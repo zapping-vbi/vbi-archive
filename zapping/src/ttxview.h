@@ -26,4 +26,25 @@ GtkWidget *build_ttxview(void);
 gboolean startup_ttxview(void);
 void shutdown_ttxview(void);
 
+/**
+ * Attach the necessary things to the given window to make it a
+ * Teletext view.
+ * @parent: Toplevel window the teletext view will be in.
+ * @da: Drawing area we will be drawing to.
+ * @toolbar: Toolbar to attach the TTXView controls to.
+ * @appbar: Application bar to show messages into, or NULL.
+ */
+void
+ttxview_attach			(GtkWidget	*parent,
+				 GtkWidget	*da,
+				 GtkWidget	*toolbar,
+				 GtkWidget	*appbar);
+
+/**
+ * Detach the TTXView elements from the given window, or does nothing
+ * is the window isn't being used as a TTXView.
+ */
+void
+ttxview_detach			(GtkWidget	*parent);
+
 #endif

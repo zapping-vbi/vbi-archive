@@ -93,8 +93,6 @@ static gchar * events[] =
 static struct {
   gint x, y, w, h; /* geometry */
   gboolean visible; /* If it is visible */
-  gboolean ignore_expose; /* whether we should ignore the next expose
-			     event */
   GtkWidget * window; /* The window we will be overlaying to */
   GtkWidget * main_window; /* The toplevel window .window is in */
   tveng_device_info * info; /* The overlaying V4L device */
@@ -201,7 +199,6 @@ overlay_clearing_timeout(gpointer data)
 			 tv_info.info->window.width+80,
 			 tv_info.info->window.height+80);
 
-      tv_info.ignore_expose = TRUE;
       tv_info.clean_screen = FALSE;
     }
 
@@ -372,7 +369,6 @@ startup_overlay(GtkWidget * window, GtkWidget * main_window,
   tv_info.info = info;
   tv_info.visible = x11_window_viewable(window->window);
 
-  tv_info.ignore_expose = FALSE;
   tv_info.clear_timeout_id = -1;
   if (info->current_controller != TVENG_CONTROLLER_XV)
     tv_info.check_timeout_id =
@@ -473,8 +469,5 @@ overlay_sync(gboolean clean_screen)
 
   if ((clean_screen) &&
       (tv_info.info->current_controller != TVENG_CONTROLLER_XV))
-    {
-      x11_force_expose(0, 0, gdk_screen_width(), gdk_screen_height());
-      tv_info.ignore_expose = TRUE;
-    }
+    x11_force_expose(0, 0, gdk_screen_width(), gdk_screen_height());
 }

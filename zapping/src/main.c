@@ -49,7 +49,7 @@ extern enum tveng_capture_mode restore_mode; /* the mode set when we went
 
 /* These are accessed by other modules as extern variables */
 tveng_device_info	*main_info;
-gboolean		flag_exit_program = FALSE;
+volatile gboolean	flag_exit_program = FALSE;
 tveng_channels		*current_country = NULL;
 GList			*plugin_list = NULL;
 gboolean		disable_preview = FALSE;/* preview should be
@@ -69,6 +69,55 @@ static gint		newbttv = -1; /* Compatibility with old bttv
 
 static void shutdown_zapping(void);
 static gboolean startup_zapping(void);
+
+/* Fixes the infamous toolbar problem */
+static
+void on_tv_screen_size_request	(GtkWidget	*widget,
+				 GtkRequisition	*req,
+				 gpointer	*user_data)
+{
+  req->width = 1;
+  req->height = widget->allocation.height;
+}
+
+/* Adjusts geometry */
+static gint timeout_handler(gpointer unused)
+{
+  GdkGeometry geometry;
+  GdkWindowHints hints=0;
+
+  if ((flag_exit_program) || (!main_window->window))
+    return 0;
+
+  if (main_info->current_mode != TVENG_CAPTURE_PREVIEW)
+    {
+      /* Set the geometry flags if needed */
+      if (zcg_bool(NULL, "fixed_increments"))
+	{
+	  geometry.width_inc = 64;
+	  geometry.height_inc = 48;
+	  hints |= GDK_HINT_RESIZE_INC;
+	}
+      
+      switch (zcg_int(NULL, "ratio")) {
+      case 1:
+	geometry.min_aspect = geometry.max_aspect = 4.0/3.0;
+	hints |= GDK_HINT_ASPECT;
+	break;
+      case 2:
+	geometry.min_aspect = geometry.max_aspect = 16.0/9.0;
+	hints |= GDK_HINT_ASPECT;
+	break;
+      default:
+	break;
+      }
+      
+      gdk_window_set_geometry_hints(main_window->window, &geometry,
+				    hints);
+    }
+  
+  return 1; /* Keep calling me */
+}
 
 /* Start VBI services, and warn if we cannot */
 static void
@@ -93,10 +142,6 @@ startup_teletext(void)
 	    GNOME_MESSAGE_BOX_INFO);
   zconf_set_boolean(FALSE, "/zapping/options/vbi/enable_vbi");
 #endif
-  D();
-  zvbi_set_mode(zcg_bool(NULL, "videotext_mode"));
-  if (zvbi_get_mode())
-    zcs_int(TVENG_NO_CAPTURE, "capture_mode");
   D();
 }
 
@@ -184,7 +229,7 @@ int main(int argc, char * argv[])
     newbttv = 0;
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.78 2001-01-12 23:13:42 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.79 2001-01-13 18:54:08 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -307,12 +352,14 @@ int main(int argc, char * argv[])
   D();
   tv_screen = lookup_widget(main_window, "tv_screen");
   printv("tv_screen is %p\n", (gpointer)tv_screen);
+  gtk_signal_connect(GTK_OBJECT(tv_screen), "size-request",
+		     GTK_SIGNAL_FUNC(on_tv_screen_size_request),
+		     NULL);
+  gtk_timeout_add(50, (GtkFunction)timeout_handler, NULL);
   /* ensure that the main window is realized */
   gtk_widget_show(main_window);
   while (!tv_screen->window)
     z_update_gui();
-  /* set the tv_screen as the destination window for Teletext */
-  zvbi_set_widget(tv_screen);
   D();
   if (!startup_capture(tv_screen))
     {
@@ -370,7 +417,6 @@ int main(int argc, char * argv[])
       /* Set the capture mode to a default value and disable VBI */
       if (zcg_int(NULL, "capture_mode") == TVENG_NO_CAPTURE)
 	zcs_int(TVENG_CAPTURE_READ, "capture_mode");
-      zvbi_set_mode(FALSE);
     }
   D();
   /* Disable the View menu completely if it is redundant */
@@ -441,7 +487,6 @@ int main(int argc, char * argv[])
     fprintf(stderr, "tveng_set_mute: %s\n", main_info->error);
   D(); printv("going into main loop...\n");
   /* That's it, now go to the main loop */
-  gtk_widget_show(main_window);
   gtk_main();
   D();
   /* Closes all fd's, writes the config to HD, and that kind of things
@@ -457,6 +502,9 @@ static void shutdown_zapping(void)
   gchar * buffer = NULL;
   tveng_tuned_channel * channel;
   gboolean do_screen_cleanup = FALSE;
+
+  /* Mute the device again */
+  tveng_set_mute(1, main_info);
 
   /* Stops any capture currently active */
   if (main_info->current_mode == TVENG_CAPTURE_WINDOW)
@@ -502,8 +550,7 @@ static void shutdown_zapping(void)
   /* Shutdown all other modules */
   shutdown_callbacks();
 
-  /* Shut down vbi, but save state first */
-  zcs_bool(zvbi_get_mode(), "videotext_mode");
+  /* Shut down vbi */
   zvbi_close_device();
 
   /*
@@ -532,8 +579,7 @@ static void shutdown_zapping(void)
    */
   shutdown_capture(main_info);
 
-  /* Mute the device and close */
-  tveng_set_mute(1, main_info);
+  /* Close */
   tveng_device_info_destroy(main_info);
 }
 

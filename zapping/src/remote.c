@@ -22,11 +22,16 @@
  * clean way.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include "callbacks.h"
 #include "zmisc.h"
 #include "zvbi.h"
 #include "remote.h"
 #include "interface.h"
+#include "ttxview.h"
 
 #include <tveng.h>
 
@@ -91,7 +96,7 @@ gpointer remote_command(gchar *command, gpointer arg)
 					     "videotext1")),
 			       NULL);
       else
-	zvbi_set_mode(FALSE);
+	ttxview_detach(main_window);
     }
   return NULL;
 }

@@ -341,23 +341,8 @@ void
 on_videotext1_activate                 (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
-#ifndef HAVE_GDKPIXBUF
-  ShowBox(_("The teletext decoder needs GdkPixbuf, and\n"
-	    "configure didn't find it."), GNOME_MESSAGE_BOX_INFO);
-  return;
-#endif /* HAVE_GDKPIXBUF */
-  if (!zvbi_get_object())
-    {
-      ShowBox(_("VBI has been disabled, or it doesn't work."),
-	      GNOME_MESSAGE_BOX_INFO);
-      return;
-    }
-
-  /* Stop any current capture mode */
+  /* Stop any current capture mode, and start TTX */
   zmisc_switch_mode(TVENG_NO_CAPTURE, main_info);
-
-  /* start vbi code */
-  zvbi_set_mode(TRUE);
 }
 
 void

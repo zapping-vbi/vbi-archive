@@ -65,6 +65,10 @@ typedef struct {
   gint			pop_pgno, pop_subno; /* for popup */
   gboolean		in_link; /* whether the cursor is over a link */
   GtkWidget		*parent; /* toplevel window */
+  GtkWidget		*appbar; /* appbar, or NULL */
+  GtkWidget		*toolbar; /* toolbar */
+  GtkWidget		*parent_toolbar; /* parent toolbar toolbar is in */
+  gboolean		popup_menu; /* whether right-click shows a popup */
 } ttxview_data;
 
 struct bookmark {
@@ -245,10 +249,10 @@ void setup_history_gui	(ttxview_data *data)
 {
   GtkWidget *prev, *next, *prev_subpage, *next_subpage;
 
-  prev = lookup_widget(data->da, "ttxview_history_prev");
-  next = lookup_widget(data->da, "ttxview_history_next");
-  prev_subpage = lookup_widget(data->da, "ttxview_prev_subpage");
-  next_subpage = lookup_widget(data->da, "ttxview_next_subpage");
+  prev = lookup_widget(data->toolbar, "ttxview_history_prev");
+  next = lookup_widget(data->toolbar, "ttxview_history_next");
+  prev_subpage = lookup_widget(data->toolbar, "ttxview_prev_subpage");
+  next_subpage = lookup_widget(data->toolbar, "ttxview_next_subpage");
 
   if (data->history_stack_size > (data->history_sp+1))
     gtk_widget_set_sensitive(next, TRUE);
@@ -314,18 +318,24 @@ void set_tooltip	(GtkWidget	*widget,
 		       "private tip, or, er, just babbling, you know");
 }
 
-static gboolean
-on_ttxview_delete_event			(GtkWidget	*widget,
-					 GdkEvent	*event,
-					 ttxview_data	*data)
+static void
+remove_ttxview_instance			(ttxview_data	*data)
 {
   if (data->mask)
     gdk_bitmap_unref(data->mask);
 
   unregister_ttx_client(data->id);
   gtk_timeout_remove(data->timeout);
-
+  
   g_free(data);
+}
+
+static gboolean
+on_ttxview_delete_event			(GtkWidget	*widget,
+					 GdkEvent	*event,
+					 ttxview_data	*data)
+{
+  remove_ttxview_instance(data);
 
   return FALSE;
 }
@@ -339,7 +349,6 @@ update_pointer (ttxview_data *data)
   gint page, subpage;
   gchar *buffer;
   GtkWidget *widget = data->da;
-  GtkWidget *appbar1 = lookup_widget(widget, "appbar1");
   
   gdk_window_get_pointer(widget->window, &x, &y, &mask);
 
@@ -358,11 +367,12 @@ update_pointer (ttxview_data *data)
 	buffer = g_strdup_printf(_(" Subpage %d"), hex2dec(subpage));
       if (!data->in_link)
 	{
-	  gnome_appbar_push(GNOME_APPBAR(appbar1), buffer);
+	  if (data->appbar)
+	    gnome_appbar_push(GNOME_APPBAR(data->appbar), buffer);
 	  data->in_link = TRUE;
 	}
-      else
-	gnome_appbar_set_status(GNOME_APPBAR(appbar1), buffer);
+      else if (data->appbar)
+	gnome_appbar_set_status(GNOME_APPBAR(data->appbar), buffer);
       g_free(buffer);
       gdk_window_set_cursor(widget->window, hand);
     }
@@ -370,7 +380,8 @@ update_pointer (ttxview_data *data)
     {
       if (data->in_link)
 	{
-	  gnome_appbar_pop(GNOME_APPBAR(appbar1));
+	  if (data->appbar)
+	    gnome_appbar_pop(GNOME_APPBAR(data->appbar));
 	  data->in_link = FALSE;
 	}
       gdk_window_set_cursor(widget->window, arrow);
@@ -384,7 +395,6 @@ event_timeout				(ttxview_data	*data)
   gint w, h;
   GtkWidget *widget;
   gchar *buffer;
-  GtkWidget *appbar1 = lookup_widget(data->da, "appbar1");
 
   while ((msg = peek_ttx_message(data->id)))
     {
@@ -400,7 +410,7 @@ event_timeout				(ttxview_data	*data)
 	    }
 	  gdk_window_clear_area_e(data->da->window, 0, 0, w, h);
 	  data->subpage = data->fmt_page->vtp->subno;
-	  widget = lookup_widget(data->da, "ttxview_subpage");
+	  widget = lookup_widget(data->toolbar, "ttxview_subpage");
 	  buffer = g_strdup_printf("S%x", data->subpage);
 	  gtk_label_set_text(GTK_LABEL(widget), buffer);
 	  if (!data->no_history)
@@ -408,14 +418,17 @@ event_timeout				(ttxview_data	*data)
 			   data->monitored_subpage, data);
 	  data->no_history = FALSE;
 	  g_free(buffer);
-	  gnome_appbar_set_status(GNOME_APPBAR(appbar1), "");
+	  if (data->appbar)
+	    gnome_appbar_set_status(GNOME_APPBAR(data->appbar), "");
 	  if (data->in_link)
 	    {
-	      gnome_appbar_pop(GNOME_APPBAR(appbar1));
+	      if (data->appbar)
+		gnome_appbar_pop(GNOME_APPBAR(data->appbar));
 	      data->in_link = FALSE;
 	    }
-	  if (!data->fmt_page->vtp->pgno)
-	    gnome_appbar_set_status(GNOME_APPBAR(appbar1),
+	  if ((!data->fmt_page->vtp->pgno) &&
+	      (data->appbar))
+	    gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
 				    _("Warning: Page not valid"));
 	  update_pointer(data);
 	  break;
@@ -435,9 +448,8 @@ static void
 load_page (int page, int subpage, ttxview_data *data,
 	   struct fmt_page *pg)
 {
-  GtkWidget *appbar1 = lookup_widget(data->da, "appbar1");
-  GtkWidget *ttxview_url = lookup_widget(data->da, "ttxview_url");
-  GtkWidget *ttxview_hold = lookup_widget(data->da, "ttxview_hold");
+  GtkWidget *ttxview_url = lookup_widget(data->toolbar, "ttxview_url");
+  GtkWidget *ttxview_hold = lookup_widget(data->toolbar, "ttxview_hold");
   GtkWidget *widget;
   gchar *buffer;
 
@@ -451,7 +463,7 @@ load_page (int page, int subpage, ttxview_data *data,
     
   data->subpage = subpage;
   data->monitored_subpage = subpage;
-  widget = lookup_widget(data->da, "ttxview_subpage");
+  widget = lookup_widget(data->toolbar, "ttxview_subpage");
   if (subpage != ANY_SUB)
     buffer = g_strdup_printf("S%x", data->subpage);
   else
@@ -470,7 +482,8 @@ load_page (int page, int subpage, ttxview_data *data,
   else
     buffer = g_strdup_printf(_("Warning: Page not valid"));
 
-  gnome_appbar_set_status(GNOME_APPBAR(appbar1), buffer);
+  if (data->appbar)
+    gnome_appbar_set_status(GNOME_APPBAR(data->appbar), buffer);
   g_free(buffer);
 
   gtk_widget_grab_focus(data->da);
@@ -515,22 +528,23 @@ void on_ttxview_prev_sp_cache_clicked	(GtkButton	*button,
 					 ttxview_data	*data)
 {
   struct vbi *vbi = zvbi_get_object();
-  GtkWidget *appbar1 = lookup_widget(data->da, "appbar1");
   int subpage;
 
   g_assert(vbi != NULL);
 
   if (!vbi->cache)
     {
-      gnome_appbar_set_status(GNOME_APPBAR(appbar1), _("No cache"));
+      if (data->appbar)
+	gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
+				_("No cache"));
       return;
     }
   
   if (((subpage = find_prev_subpage(data, data->subpage)) >= 0) &&
       (subpage != data->subpage))
     load_page(data->fmt_page->vtp->pgno, subpage, data, NULL);
-  else
-    gnome_appbar_set_status(GNOME_APPBAR(appbar1),
+  else if (data->appbar)
+    gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
 			    _("No other subpage in the cache"));
 }
 
@@ -549,22 +563,22 @@ void on_ttxview_next_sp_cache_clicked	(GtkButton	*button,
 					 ttxview_data	*data)
 {
   struct vbi *vbi = zvbi_get_object();
-  GtkWidget *appbar1 = lookup_widget(data->da, "appbar1");
   int subpage;
 
   g_assert(vbi != NULL);
 
   if (!vbi->cache)
     {
-      gnome_appbar_set_status(GNOME_APPBAR(appbar1), _("No cache"));
+      if (data->appbar)
+	gnome_appbar_set_status(GNOME_APPBAR(data->appbar), _("No cache"));
       return;
     }
   
   if (((subpage = find_next_subpage(data, data->subpage)) >= 0) &&
       (subpage != data->subpage))
     load_page(data->fmt_page->vtp->pgno, subpage, data, NULL);
-  else
-    gnome_appbar_set_status(GNOME_APPBAR(appbar1),
+  else if (data->appbar)
+    gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
 			    _("No other subpage in the cache"));
 }
 
@@ -880,11 +894,13 @@ void on_ttxview_clone_clicked		(GtkButton	*button,
 
   if (data->fmt_page->vtp->pgno)
     load_page(data->fmt_page->vtp->pgno, data->monitored_subpage,
-	      (ttxview_data*)gtk_object_get_user_data(GTK_OBJECT(dolly)),
+	      (ttxview_data*)gtk_object_get_data(GTK_OBJECT(dolly),
+						 "ttxview_data"),
 	      NULL);
   else
     load_page(0x100, ANY_SUB,
-	      (ttxview_data*)gtk_object_get_user_data(GTK_OBJECT(dolly)),
+	      (ttxview_data*)gtk_object_get_data(GTK_OBJECT(dolly),
+						 "ttxview_data"),
 	      NULL);
   gdk_window_get_size(data->parent->window, &w, &h);
   gtk_widget_realize(dolly);
@@ -930,7 +946,8 @@ void popup_new_win			(GtkWidget	*widget,
 {
   GtkWidget *dolly = build_ttxview();
   load_page(data->pop_pgno, data->pop_subno,
-	    (ttxview_data*)gtk_object_get_user_data(GTK_OBJECT(dolly)),
+	    (ttxview_data*)gtk_object_get_data(GTK_OBJECT(dolly),
+					       "ttxview_data"),
 	    NULL);
   gtk_widget_show(dolly);
 }
@@ -977,9 +994,9 @@ void new_bookmark			(GtkWidget	*widget,
       add_bookmark(page, subpage, buffer);
       default_description =
 	g_strdup_printf(_("<%s> added to the bookmarks"), buffer);
-      gnome_appbar_set_status(GNOME_APPBAR(lookup_widget(data->da,
-							 "appbar1")),
-			      default_description);
+      if (data->appbar)
+	gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
+				default_description);
       g_free(default_description);
     }
   g_free(buffer);
@@ -1087,15 +1104,14 @@ void export_ttx_page			(GtkWidget	*widget,
   struct export *exp;
   gchar *buffer, *buffer2;
   char *filename;
-  GnomeAppBar *appbar =
-    GNOME_APPBAR(lookup_widget(data->da, "appbar1"));
 
   buffer = zcg_char(NULL, "exportdir");
 
   if ((!buffer) ||
       (!strlen(buffer)))
     {
-      gnome_appbar_set_status(appbar,
+      if (data->appbar)
+	gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
 			      "You must first set the destination dir"
 			      " in the properties dialog");
       return;
@@ -1103,7 +1119,8 @@ void export_ttx_page			(GtkWidget	*widget,
 
   if (data->fmt_page->vtp->pgno < 0x100)
     {
-      gnome_appbar_set_status(appbar, "No page loaded");
+      if (data->appbar)
+	gnome_appbar_set_status(GNOME_APPBAR(data->appbar), "No page loaded");
       return;
     }
 
@@ -1156,13 +1173,15 @@ void export_ttx_page			(GtkWidget	*widget,
 	  buffer2 = g_strdup_printf("Export to %s failed: %s", buffer,
 				    export_errstr());
 	  g_warning(buffer2);
-	  gnome_appbar_set_status(appbar, buffer2);
+	  if (data->appbar)
+	    gnome_appbar_set_status(GNOME_APPBAR(data->appbar), buffer2);
 	  g_free(buffer2);
 	}
       else
 	{
 	  buffer2 = g_strdup_printf(_("%s saved"), buffer);
-	  gnome_appbar_set_status(appbar, buffer2);  
+	  if (data->appbar)
+	    gnome_appbar_set_status(GNOME_APPBAR(data->appbar), buffer2);
 	  g_free(buffer2);
 	}
       free(filename);
@@ -1174,7 +1193,8 @@ void export_ttx_page			(GtkWidget	*widget,
       buffer = g_strdup_printf("Cannot create export struct: %s",
 			       export_errstr());
       g_warning(buffer);
-      gnome_appbar_set_status(appbar, buffer);
+      if (data->appbar)
+	gnome_appbar_set_status(GNOME_APPBAR(data->appbar), buffer);
       g_free(buffer);
     }
 }
@@ -1338,15 +1358,19 @@ on_ttxview_button_press			(GtkWidget	*widget,
 	{
 	  dolly = build_ttxview();
 	  load_page(page, subpage,
-	    (ttxview_data*)gtk_object_get_user_data(GTK_OBJECT(dolly)), NULL);
+	    (ttxview_data*)gtk_object_get_data(GTK_OBJECT(dolly),
+					       "ttxview_data"), NULL);
 	  gtk_widget_show(dolly);
 	}
       break;
     default: /* context menu */
-      menu = GTK_MENU(build_ttxview_popup(data, page,
-					  subpage));
-      gtk_menu_popup(menu, NULL, NULL, NULL,
-		     NULL, event->button, event->time);
+      if (data->popup_menu)
+	{
+	  menu = GTK_MENU(build_ttxview_popup(data, page,
+					      subpage));
+	  gtk_menu_popup(menu, NULL, NULL, NULL,
+			 NULL, event->button, event->time);
+	}
       break;
     }
   
@@ -1373,7 +1397,7 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
       else
 	{
 	  buffer = g_strdup_printf("%d", hex2dec(data->page));
-	  gtk_label_set_text(GTK_LABEL(lookup_widget(widget,
+	  gtk_label_set_text(GTK_LABEL(lookup_widget(data->toolbar,
 			     "ttxview_url")), buffer);
 	  g_free(buffer);
 	}
@@ -1389,7 +1413,7 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
       else
 	{
 	  buffer = g_strdup_printf("%d", hex2dec(data->page));
-	  gtk_label_set_text(GTK_LABEL(lookup_widget(widget,
+	  gtk_label_set_text(GTK_LABEL(lookup_widget(data->toolbar,
 			     "ttxview_url")), buffer);
 	  g_free(buffer);
 	}
@@ -1436,12 +1460,12 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
       break;
     case GDK_KP_Left:
     case GDK_Left:
-      on_ttxview_prev_sp_cache_clicked(GTK_BUTTON(lookup_widget(widget,
+      on_ttxview_prev_sp_cache_clicked(GTK_BUTTON(lookup_widget(data->toolbar,
 				     "ttxview_prev_sp_cache")), data);
       break;
     case GDK_KP_Right:
     case GDK_Right:
-      on_ttxview_next_sp_cache_clicked(GTK_BUTTON(lookup_widget(widget,
+      on_ttxview_next_sp_cache_clicked(GTK_BUTTON(lookup_widget(data->toolbar,
 				     "ttxview_next_sp_cache")), data);
       break;
     default:
@@ -1468,49 +1492,53 @@ build_ttxview(void)
   memset(data, 0, sizeof(ttxview_data));
 
   data->da = lookup_widget(ttxview, "drawingarea1");
+  data->appbar = lookup_widget(ttxview, "appbar1");
+  data->toolbar = lookup_widget(ttxview, "toolbar2");
   data->id = register_ttx_client();
   data->parent = ttxview;
   data->timeout =
     gtk_timeout_add(50, (GtkFunction)event_timeout, data);
   data->fmt_page = get_ttx_fmt_page(data->id);
-  gtk_object_set_user_data(GTK_OBJECT(ttxview), data);
+  data->popup_menu = TRUE;
+  gtk_object_set_data(GTK_OBJECT(ttxview), "ttxview_data", data);
 
   /* Callbacks */
   gtk_signal_connect(GTK_OBJECT(ttxview), "delete-event",
 		     GTK_SIGNAL_FUNC(on_ttxview_delete_event), data);
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(ttxview,
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
 		      "ttxview_prev_subpage")), "clicked",
 		     GTK_SIGNAL_FUNC(on_ttxview_prev_subpage_clicked),
 		     data);
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(ttxview,
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
 		      "ttxview_next_subpage")), "clicked",
 		     GTK_SIGNAL_FUNC(on_ttxview_next_subpage_clicked),
 		     data);
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(ttxview, "ttxview_home")),
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar, "ttxview_home")),
 		     "clicked", GTK_SIGNAL_FUNC(on_ttxview_home_clicked),
 		     data);
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(ttxview, "ttxview_hold")),
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar, "ttxview_hold")),
 		     "toggled", GTK_SIGNAL_FUNC(on_ttxview_hold_toggled),
 		     data);
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(ttxview, "ttxview_clone")),
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar, "ttxview_clone")),
 		     "clicked", GTK_SIGNAL_FUNC(on_ttxview_clone_clicked),
 		     data);
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(ttxview, "ttxview_search")),
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
+					      "ttxview_search")),
 		     "clicked", GTK_SIGNAL_FUNC(on_ttxview_search_clicked),
 		     data);
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(ttxview,
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
 		     "ttxview_history_prev")), "clicked",
 		     GTK_SIGNAL_FUNC(on_ttxview_history_prev_clicked),
 		     data);
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(ttxview,
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
 		     "ttxview_history_next")), "clicked",
 		     GTK_SIGNAL_FUNC(on_ttxview_history_next_clicked),
 		     data);
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(ttxview,
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
 		     "ttxview_prev_sp_cache")), "clicked",
 		     GTK_SIGNAL_FUNC(on_ttxview_prev_sp_cache_clicked),
 		     data);
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(ttxview,
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
 		     "ttxview_next_sp_cache")), "clicked",
 		     GTK_SIGNAL_FUNC(on_ttxview_next_sp_cache_clicked),
 		     data);
@@ -1526,12 +1554,11 @@ build_ttxview(void)
   gtk_signal_connect(GTK_OBJECT(data->da),
 		     "button-press-event",
 		     GTK_SIGNAL_FUNC(on_ttxview_button_press), data);
-  gtk_signal_connect(GTK_OBJECT(ttxview),
+  gtk_signal_connect(GTK_OBJECT(data->parent),
 		     "key-press-event",
 		     GTK_SIGNAL_FUNC(on_ttxview_key_press), data);
 
-  gtk_toolbar_set_style(GTK_TOOLBAR(lookup_widget(ttxview,
-			  "toolbar2")),	GTK_TOOLBAR_ICONS);
+  gtk_toolbar_set_style(GTK_TOOLBAR(data->toolbar), GTK_TOOLBAR_ICONS);
   gtk_widget_set_usize(ttxview, 360, 400);
   gtk_widget_realize(ttxview);
   gdk_window_set_back_pixmap(data->da->window, NULL, FALSE);
@@ -1539,4 +1566,154 @@ build_ttxview(void)
   load_page(0x100, ANY_SUB, data, NULL);
 
   return (ttxview);
+}
+
+void
+ttxview_attach			(GtkWidget	*parent,
+				 GtkWidget	*da,
+				 GtkWidget	*toolbar,
+				 GtkWidget	*appbar)
+{
+  ttxview_data *data =
+    gtk_object_get_data(GTK_OBJECT(parent), "ttxview_data");
+  gint w, h;
+
+  if (!zvbi_get_object())
+    {
+      ShowBox("VBI couldn't be opened, Teletext won't work",
+	      GNOME_MESSAGE_BOX_ERROR);
+      return;
+    }
+
+  /* already being used as TTXView */
+  if (data)
+    return;
+
+  data = g_malloc(sizeof(ttxview_data));
+  memset(data, 0, sizeof(ttxview_data));
+
+  gtk_object_set_data(GTK_OBJECT(parent), "ttxview_data", data);
+
+  data->da = da;
+  data->appbar = appbar;
+  data->toolbar = create_widget("toolbar2");
+  data->id = register_ttx_client();
+  data->parent = parent;
+  data->parent_toolbar = toolbar;
+  data->timeout =
+    gtk_timeout_add(50, (GtkFunction)event_timeout, data);
+  data->fmt_page = get_ttx_fmt_page(data->id);
+  data->popup_menu = FALSE;
+
+  /* Callbacks */
+  gtk_signal_connect(GTK_OBJECT(data->parent), "delete-event",
+		     GTK_SIGNAL_FUNC(on_ttxview_delete_event), data);
+  gtk_signal_connect(GTK_OBJECT(data->parent), "key-press-event",
+		     GTK_SIGNAL_FUNC(on_ttxview_key_press), data);
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
+		     "ttxview_prev_subpage")), "clicked",
+		     GTK_SIGNAL_FUNC(on_ttxview_prev_subpage_clicked),
+		     data);
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
+		      "ttxview_next_subpage")), "clicked",
+		     GTK_SIGNAL_FUNC(on_ttxview_next_subpage_clicked),
+		     data);
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar, "ttxview_home")),
+		     "clicked", GTK_SIGNAL_FUNC(on_ttxview_home_clicked),
+		     data);
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar, "ttxview_hold")),
+		     "toggled", GTK_SIGNAL_FUNC(on_ttxview_hold_toggled),
+		     data);
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar, "ttxview_clone")),
+		     "clicked", GTK_SIGNAL_FUNC(on_ttxview_clone_clicked),
+		     data);
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
+					      "ttxview_search")),
+		     "clicked", GTK_SIGNAL_FUNC(on_ttxview_search_clicked),
+		     data);
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
+		     "ttxview_history_prev")), "clicked",
+		     GTK_SIGNAL_FUNC(on_ttxview_history_prev_clicked),
+		     data);
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
+		     "ttxview_history_next")), "clicked",
+		     GTK_SIGNAL_FUNC(on_ttxview_history_next_clicked),
+		     data);
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
+		     "ttxview_prev_sp_cache")), "clicked",
+		     GTK_SIGNAL_FUNC(on_ttxview_prev_sp_cache_clicked),
+		     data);
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
+		     "ttxview_next_sp_cache")), "clicked",
+		     GTK_SIGNAL_FUNC(on_ttxview_next_sp_cache_clicked),
+		     data);
+  gtk_signal_connect(GTK_OBJECT(data->da),
+		     "size-allocate",
+		     GTK_SIGNAL_FUNC(on_ttxview_size_allocate), data);
+  gtk_signal_connect(GTK_OBJECT(data->da),
+		     "expose-event",
+		     GTK_SIGNAL_FUNC(on_ttxview_expose_event), data);
+  gtk_signal_connect(GTK_OBJECT(data->da),
+		     "motion-notify-event",
+		     GTK_SIGNAL_FUNC(on_ttxview_motion_notify), data);
+  gtk_signal_connect(GTK_OBJECT(data->da),
+		     "button-press-event",
+		     GTK_SIGNAL_FUNC(on_ttxview_button_press), data);
+
+  if (data->da->window)
+    {
+      gdk_window_get_size(data->da->window, &w, &h);
+      resize_ttx_page(data->id, w, h);
+      gdk_window_clear_area_e(data->da->window, 0, 0, w, h);
+    }
+
+  gtk_toolbar_set_style(GTK_TOOLBAR(data->toolbar), GTK_TOOLBAR_ICONS);
+
+  gtk_widget_show(data->toolbar);
+
+  gtk_toolbar_set_style(GTK_TOOLBAR(data->parent_toolbar), GTK_TOOLBAR_ICONS);
+
+  gtk_toolbar_append_widget(GTK_TOOLBAR(data->parent_toolbar),
+			    data->toolbar, "", "");
+
+  load_page(0x100, ANY_SUB, data, NULL);
+}
+
+void
+ttxview_detach			(GtkWidget	*parent)
+{
+  ttxview_data *data =
+    gtk_object_get_data(GTK_OBJECT(parent), "ttxview_data");
+
+  if (!data)
+    return;
+
+  gtk_container_remove(GTK_CONTAINER(data->parent_toolbar),
+		       data->toolbar);
+
+  gtk_signal_disconnect_by_func(GTK_OBJECT(data->parent),
+				GTK_SIGNAL_FUNC(on_ttxview_delete_event),
+				data);
+  gtk_signal_disconnect_by_func(GTK_OBJECT(data->parent),
+				GTK_SIGNAL_FUNC(on_ttxview_key_press),
+				data);
+  gtk_signal_disconnect_by_func(GTK_OBJECT(data->da),
+				GTK_SIGNAL_FUNC(on_ttxview_size_allocate),
+				data);
+  gtk_signal_disconnect_by_func(GTK_OBJECT(data->da),
+				GTK_SIGNAL_FUNC(on_ttxview_expose_event),
+				data);
+  gtk_signal_disconnect_by_func(GTK_OBJECT(data->da),
+				GTK_SIGNAL_FUNC(on_ttxview_motion_notify),
+				data);
+  gtk_signal_disconnect_by_func(GTK_OBJECT(data->da),
+				GTK_SIGNAL_FUNC(on_ttxview_button_press),
+				data);
+
+  gtk_toolbar_set_style(GTK_TOOLBAR(data->parent_toolbar),
+			GTK_TOOLBAR_BOTH);
+
+  remove_ttxview_instance(data);
+
+  gtk_object_set_data(GTK_OBJECT(parent), "ttxview_data", NULL);
 }

@@ -466,8 +466,6 @@ on_tv_screen_size_allocate             (GtkWidget       *widget,
 
 static gint idle_handler(GtkWidget *tv_screen)
 {
-  GdkGeometry geometry;
-  GdkWindowHints hints;
   GtkWidget *main_window;
 
   if (flag_exit_program)
@@ -475,37 +473,6 @@ static gint idle_handler(GtkWidget *tv_screen)
 
   main_window = lookup_widget(tv_screen, "zapping");
 
-  if (main_info->current_mode != TVENG_CAPTURE_PREVIEW)
-    {
-      hints = GDK_HINT_MIN_SIZE;
-      geometry.min_width = main_info->caps.minwidth;
-      geometry.min_height = main_info->caps.minheight;
-      
-      /* Set the geometry flags if needed */
-      if (zcg_bool(NULL, "fixed_increments"))
-	{
-	  geometry.width_inc = 64;
-	  geometry.height_inc = 48;
-	  hints |= GDK_HINT_RESIZE_INC;
-	}
-      
-      switch (zcg_int(NULL, "ratio")) {
-      case 1:
-	geometry.min_aspect = geometry.max_aspect = 4.0/3.0;
-	hints |= GDK_HINT_ASPECT;
-	break;
-      case 2:
-	geometry.min_aspect = geometry.max_aspect = 16.0/9.0;
-	hints |= GDK_HINT_ASPECT;
-	break;
-      default:
-	break;
-      }
-      
-      gdk_window_set_geometry_hints(main_window->window, &geometry,
-				    hints);
-    }
-  
   print_info(main_window);
       
   capture_process_frame(tv_screen, main_info);

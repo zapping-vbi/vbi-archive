@@ -24,7 +24,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 #if 0
-static char rcsid[] = "$Id: ure.c,v 1.5 2001-01-12 23:13:42 garetxe Exp $";
+static char rcsid[] = "$Id: ure.c,v 1.6 2001-01-13 18:54:08 garetxe Exp $";
 #endif
 
 #include <stdlib.h>
@@ -53,6 +53,7 @@ static char rcsid[] = "$Id: ure.c,v 1.5 2001-01-12 23:13:42 garetxe Exp $";
 #define _URE_DEFINED (1<<12)
 #define _URE_WIDE (1<<13)
 #define _URE_NONSPACING (1<<14)
+#define _URE_SEPARATOR (1<<15)
 
 /*
  * Flags used internally in the DFA.
@@ -142,6 +143,13 @@ _ure_matches_properties(unsigned long props, ucs4_t c)
 
   if ((props & _URE_WIDE) && (unicode_iswide(c)))
     return 1;
+
+  if ((props & _URE_SEPARATOR))
+    {
+      int type = unicode_type(c);
+      if (type >= UNICODE_LINE_SEPARATOR)
+	return 1;
+    }
 
   if (props & _URE_NONSPACING)
     {
@@ -2061,8 +2069,8 @@ ure_write_dfa(ure_dfa_t dfa, FILE *out)
   }
 }
 
-/* FIXME: we want better separators */
-#define _ure_issep(cc) ((cc) == '\n' || (cc) == '\r' || (cc) == 0x2028 ||\
+#define _ure_issep(cc) _ure_matches_properties(cc, _URE_SEPARATOR)
+#define _ure_isbrk(cc) ((cc) == '\n' || (cc) == '\r' || (cc) == 0x2028 ||\
                         (cc) == 0x2029)
 
 int
@@ -2146,7 +2154,7 @@ ure_exec(ure_dfa_t dfa, int flags, ucs2_t *text, unsigned long textlen,
 	if (lp == text) {
 	  sp = lp;
 	  matched = 1;
-	} else if (_ure_issep(c)) {
+	} else if (_ure_isbrk(c)) {
 	  if (c == '\r' && sp < ep && *sp == '\n')
 	    sp++;
 	  lp = sp;
@@ -2156,7 +2164,7 @@ ure_exec(ure_dfa_t dfa, int flags, ucs2_t *text, unsigned long textlen,
       case _URE_EOL_ANCHOR:
 	if (flags & URE_NOTEOL)
 	  break;
-	if (_ure_issep(c)) {
+	if (_ure_isbrk(c)) {
 	  /*
 	   * Put the pointer back before the separator so the match
 	   * end position will be correct.  This case will also

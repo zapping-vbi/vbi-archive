@@ -31,7 +31,6 @@ zapping_SOURCES = \
 	properties.c \
 	channel_editor.c \
 	plugin_properties.c \
-	txtcontrols.c \
 	tveng1.c tveng1.h \
 	tveng2.c tveng2.h \
 	tvengxv.c tvengxv.h \

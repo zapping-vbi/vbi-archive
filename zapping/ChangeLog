@@ -1,3 +1,10 @@
+13.1.2001	TTXView in main window <garetxe@users.sourceforge.net>
+
+	* Restored teletext support into the main window, lacks popup menu
+	integration.
+	* src/main.c: Fixed the auto-resizing bug. A bit hackish, but
+	will remove the annoyance.
+
 12.1.2001	Rewrite of main loop <garetxe@users.sourceforge.net>
 
 	* src/main.c: Got rid of that ugly main loop, use the usual

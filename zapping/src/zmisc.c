@@ -28,11 +28,12 @@
 #include "tveng.h"
 #include "interface.h"
 #include "callbacks.h"
-#include "zvbi.h"
 #include "x11stuff.h"
 #include "overlay.h"
 #include "capture.h"
 #include "v4linterface.h"
+#include "ttxview.h"
+#include "zvbi.h"
 
 extern tveng_device_info * main_info;
 extern GtkWidget * main_window;
@@ -275,7 +276,8 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   tv_screen = lookup_widget(main_window, "tv_screen");
   g_assert(tv_screen != NULL);
 
-  if (info->current_mode == new_mode)
+  if ((info->current_mode == new_mode) &&
+      (new_mode != TVENG_NO_CAPTURE))
     return 0; /* success */
 
   gdk_window_get_size(tv_screen->window, &w, &h);
@@ -301,14 +303,11 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 
   if (new_mode != TVENG_NO_CAPTURE)
     {
-      zvbi_set_mode(FALSE);
+      ttxview_detach(main_window);
       tveng_close_device(info);
     }
   else
-    {
-      zvbi_set_mode(TRUE);
-      tveng_stop_everything(info);
-    }
+    tveng_stop_everything(info);
 
   switch (new_mode)
     {
@@ -408,6 +407,23 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	g_warning("couldn't start fullscreen mode");
       break;
     default:
+#ifndef HAVE_GDKPIXBUF
+      ShowBox(_("The teletext decoder needs GdkPixbuf, and\n"
+		"configure didn't find it."), GNOME_MESSAGE_BOX_INFO);
+      break;
+#endif /* HAVE_GDKPIXBUF */
+
+      if (!zvbi_get_object())
+	{
+	  ShowBox(_("VBI has been disabled, or it doesn't work."),
+		  GNOME_MESSAGE_BOX_INFO);
+	  break;
+	}
+
+      /* start vbi code */
+      ttxview_attach(main_window, lookup_widget(main_window, "tv_screen"),
+		     lookup_widget(main_window, "toolbar1"), NULL);
+
       break; /* TVENG_NO_CAPTURE */
     }
 
