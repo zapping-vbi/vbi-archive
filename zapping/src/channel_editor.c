@@ -314,6 +314,10 @@ on_move_channel_down_clicked		(GtkWidget	*button,
   tveng_tuned_channel * tc;
   GList *ptr;
   gint pos;
+  gboolean selected[tveng_tuned_channel_num(list)];
+  gboolean moved = FALSE;
+
+  memset(selected, FALSE, sizeof(selected));
 
   ptr = g_list_last(GTK_CLIST(channel_list) -> row_list);
 
@@ -323,6 +327,9 @@ on_move_channel_down_clicked		(GtkWidget	*button,
       if (GTK_CLIST_ROW(ptr) -> state != GTK_STATE_SELECTED)
 	break;
 
+      selected[g_list_position(GTK_CLIST(channel_list) -> row_list,
+			       ptr)] = TRUE;
+
       ptr = ptr -> prev;
     }
 
@@ -331,17 +338,35 @@ on_move_channel_down_clicked		(GtkWidget	*button,
     {
       if (GTK_CLIST_ROW(ptr) -> state == GTK_STATE_SELECTED)
 	{
+	  moved = TRUE;
 	  pos = g_list_position(GTK_CLIST(channel_list) -> row_list, ptr);
 	  g_assert(pos >= 0);
 	  tc = tveng_retrieve_tuned_channel_by_index(pos, list);
 	  tveng_tuned_channel_down(tc);
+	  selected[pos+1] = TRUE;
 	}
 
       ptr = ptr -> prev;
     }
 
+  if (!moved)
+    return;
+
   /* redraw list */
   build_channel_list(GTK_CLIST(channel_list), list);
+
+  /* select channels again */
+  gtk_signal_handler_block_by_func(GTK_OBJECT(channel_list),
+			   GTK_SIGNAL_FUNC(on_channel_list_select_row),
+			   NULL);
+  for (pos=0; pos<tveng_tuned_channel_num(list); pos++)
+    if (selected[pos])
+      gtk_clist_select_row(GTK_CLIST(channel_list), pos, 0);
+  gtk_signal_handler_unblock_by_func(GTK_OBJECT(channel_list),
+			     GTK_SIGNAL_FUNC(on_channel_list_select_row),
+			     NULL);
+
+  update_edit_buttons_sensitivity(GTK_WIDGET(channel_list));
 }
 
 static void
@@ -355,6 +380,10 @@ on_move_channel_up_clicked		(GtkWidget	*button,
   tveng_tuned_channel * tc;
   GList *ptr;
   gint pos;
+  gboolean selected[tveng_tuned_channel_num(list)];
+  gboolean moved = FALSE;
+
+  memset(selected, FALSE, sizeof(selected));
 
   ptr = g_list_first(GTK_CLIST(channel_list) -> row_list);
 
@@ -364,6 +393,8 @@ on_move_channel_up_clicked		(GtkWidget	*button,
       if (GTK_CLIST_ROW(ptr) -> state != GTK_STATE_SELECTED)
 	break;
 
+      selected[g_list_position(GTK_CLIST(channel_list) -> row_list,
+			       ptr)] = TRUE;
       ptr = ptr -> next;
     }
 
@@ -372,17 +403,35 @@ on_move_channel_up_clicked		(GtkWidget	*button,
     {
       if (GTK_CLIST_ROW(ptr) -> state == GTK_STATE_SELECTED)
 	{
+	  moved = TRUE;
 	  pos = g_list_position(GTK_CLIST(channel_list) -> row_list, ptr);
-	  g_assert(pos >= 0);
+	  g_assert(pos > 0);
 	  tc = tveng_retrieve_tuned_channel_by_index(pos, list);
 	  tveng_tuned_channel_up(tc);
+	  selected[pos-1] = TRUE;
 	}
 
       ptr = ptr -> next;
     }
 
+  if (!moved)
+    return;
+
   /* redraw list */
   build_channel_list(GTK_CLIST(channel_list), list);
+
+  /* select channels again */
+  gtk_signal_handler_block_by_func(GTK_OBJECT(channel_list),
+			   GTK_SIGNAL_FUNC(on_channel_list_select_row),
+			   NULL);
+  for (pos=0; pos<tveng_tuned_channel_num(list); pos++)
+    if (selected[pos])
+      gtk_clist_select_row(GTK_CLIST(channel_list), pos, 0);
+  gtk_signal_handler_unblock_by_func(GTK_OBJECT(channel_list),
+			     GTK_SIGNAL_FUNC(on_channel_list_select_row),
+			     NULL);
+
+  update_edit_buttons_sensitivity(GTK_WIDGET(channel_list));
 }
 
 static void

@@ -20,8 +20,11 @@
 #include "ttxview.h"
 #ifdef HAVE_LIBJPEG
 #include <pthread.h>
-#include <jpeglib.h> /* jpeg compression */
 #include <gdk-pixbuf/gdk-pixbuf.h> /* previews */
+/* avoid redefinition warning */
+#undef HAVE_STDLIB_H
+#undef HAVE_STDDEF_H
+#include <jpeglib.h> /* jpeg compression */
 
 /*
   This plugin was built from the template one. It does some thing

@@ -51,7 +51,7 @@ convert (const void *string, int bytes,
   new = ob = (char*) calloc (1, sizeof(char) * (ibl * 6 + 2));
   obl = ibl * 6 + 2;
   
-  iconv (ic, &ib, &ibl, &(ob), &obl);
+  iconv (ic, (char**) &ib, &ibl, &(ob), &obl);
   
   *((unsigned short*)ob) = 0;
   

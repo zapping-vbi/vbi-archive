@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.c,v 1.11 2001-03-18 06:03:37 mschimek Exp $ */
+/* $Id: lang.c,v 1.12 2001-08-06 22:14:57 garetxe Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -704,7 +704,7 @@ conv:
 	uc[0] = u >> 8; /* network order */
 	uc[1] = u;
 
-	if (iconv(cd, (const char **) &up, &in, (char **) &cp, &out) < 1 || c == '@')
+	if (iconv(cd, (char **) &up, &in, (char **) &cp, &out) < 1 || c == '@')
 		return -u;
 	else
 		return c;

@@ -1,3 +1,8 @@
+6.08.2001	channel editor <garetxe@users.sf.net>
+
+	* src/channel_editor.c: Keep selected channels selected when
+	hitting up/down.
+
 5.08.2001	v4lx.c <mschimek@users.sf.net>
 
 	* Rewrote guess_bttv.
