@@ -1649,7 +1649,7 @@ start_capturing			(tveng_device_info *	info)
 	}
 
 	p_tveng_stop_everything(info, &dummy);
-	t_assert(CAPTURE_MODE_NONE == info ->capture_mode);
+	assert (CAPTURE_MODE_NONE == info ->capture_mode);
 
 	timestamp_init(info);
 
@@ -1703,7 +1703,7 @@ stop_capturing			(tveng_device_info *	info)
 		return TRUE; /* Nothing to be done */
 	}
 
-	t_assert(CAPTURE_MODE_READ == info->capture_mode);
+	assert (CAPTURE_MODE_READ == info->capture_mode);
 
 	if (-1 == bktr_ioctl (info, METEORCAPTUR, &cap_stop_cont)) {
 		return FALSE;
@@ -1929,8 +1929,8 @@ p_tvengbktr_open_device_file(int flags,
   unsigned int gstatus;
   /* unsigned short mstatus; */
 
-  t_assert(info != NULL);
-  t_assert(info->file_name != NULL);
+  assert (NULL != info);
+  assert (NULL != info->file_name);
 
   info->fd = device_open (info->log_fp, info->file_name, flags, 0);
   if (-1 == info->fd)
@@ -2153,7 +2153,7 @@ static struct tveng_module_info tvengbktr_module_info = {
 
 void tvengbktr_init_module(struct tveng_module_info *module_info)
 {
-  t_assert(module_info != NULL);
+  assert (NULL != module_info);
 
   *module_info = tvengbktr_module_info;
 }
@@ -2164,7 +2164,7 @@ void tvengbktr_init_module(struct tveng_module_info *module_info)
 
 void tvengbktr_init_module(struct tveng_module_info *module_info)
 {
-  t_assert(module_info != NULL);
+  assert (NULL != module_info);
 
   CLEAR (*module_info);
 }

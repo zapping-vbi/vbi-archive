@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mixer.c,v 1.11 2005-01-19 04:16:21 mschimek Exp $ */
+/* $Id: mixer.c,v 1.12 2005-02-15 17:24:30 mschimek Exp $ */
 
 /*
  *  These functions encapsulate the OS and driver specific
@@ -34,6 +34,8 @@
  * Preliminary until the mixer becomes part of the
  * virtual tv device.
  */
+
+#include <assert.h>
 
 #include "tveng_private.h"
 #include "mixer.h"
@@ -105,7 +107,7 @@ void		startup_mixer(tveng_device_info *info)
 tv_bool
 tv_mixer_line_update		(tv_audio_line *	line)
 {
-	t_assert (line != NULL);
+	assert (NULL != line);
 
 	return ((tv_mixer *) line->_parent)->_interface->update_line (line);
 }
@@ -115,7 +117,7 @@ tv_mixer_line_get_volume	(tv_audio_line *	line,
 				 int *			left,
 				 int *			right)
 {
-	t_assert (line != NULL);
+	assert (NULL != line);
 
 	if (!((tv_mixer *) line->_parent)->_interface->update_line (line))
 		return FALSE;
@@ -131,7 +133,7 @@ tv_mixer_line_set_volume	(tv_audio_line *	line,
 				 int			left,
 				 int			right)
 {
-	t_assert (line != NULL);
+	assert (NULL != line);
 
 	left = SATURATE (left, line->minimum, line->maximum);
 	right = SATURATE (right, line->minimum, line->maximum);
@@ -144,7 +146,7 @@ tv_bool
 tv_mixer_line_get_mute		(tv_audio_line *	line,
 				 tv_bool *		mute)
 {
-	t_assert (line != NULL);
+	assert (NULL != line);
 
 	if (!((tv_mixer *) line->_parent)->_interface->update_line (line))
 		return FALSE;
@@ -158,7 +160,7 @@ extern tv_bool
 tv_mixer_line_set_mute		(tv_audio_line *	line,
 				 tv_bool		mute)
 {
-	t_assert (line != NULL);
+	assert (NULL != line);
 
 	return ((tv_mixer *) line->_parent)->_interface->set_mute (line, !!mute);
 }
@@ -169,7 +171,7 @@ tv_mixer_line_record		(tv_audio_line *	line,
 {
 	tv_audio_line *l;
 
-	t_assert (line != NULL);
+	assert (NULL != line);
 
 	for (l = ((tv_mixer *) line->_parent)->inputs; l; l = l->_next)
 		if (line == l)
@@ -187,7 +189,7 @@ tv_mixer_line_record		(tv_audio_line *	line,
 tv_bool
 tv_mixer_update			(tv_mixer *		mixer)
 {
-	t_assert (mixer != NULL);
+	assert (NULL != mixer);
 
 	return mixer->_interface->update_mixer (mixer);
 }

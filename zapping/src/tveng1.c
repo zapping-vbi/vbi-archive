@@ -389,7 +389,7 @@ panel_close			(tveng_device_info *	info _unused_)
 static tv_bool
 panel_open			(tveng_device_info *	info)
 {
-	t_assert (-1 == info->fd);
+	assert (-1 == info->fd);
 
 	/* to do */
 
@@ -1771,7 +1771,7 @@ tuner_bounds			(tveng_device_info *	info,
 	if (-1 == xioctl (info, VIDIOCGTUNER, &tuner))
 		return FALSE;
 
-	t_assert (tuner.rangelow <= tuner.rangehigh);
+	assert (tuner.rangelow <= tuner.rangehigh);
 
 	if (tuner.flags & VIDEO_TUNER_LOW) {
 		/* Actually step is 62.5 Hz, but why
@@ -2649,7 +2649,7 @@ tveng1_start_capturing(tveng_device_info * info)
   gboolean dummy;
 
   p_tveng_stop_everything(info, &dummy);
-  t_assert(info -> capture_mode == CAPTURE_MODE_NONE);
+  assert (CAPTURE_MODE_NONE == info -> capture_mode);
 
   p_tveng1_timestamp_init(info);
 
@@ -2687,7 +2687,7 @@ tveng1_stop_capturing(tveng_device_info * info)
 
   r = 0;
 
-  t_assert(info->capture_mode == CAPTURE_MODE_READ);
+  assert (CAPTURE_MODE_READ == info->capture_mode);
 
 	/* Dequeue all buffers. */
 
@@ -2740,7 +2740,7 @@ read_frame			(tveng_device_info *	info,
 	struct xbuffer *b;
 	int r;
 
-  t_assert(info != NULL);
+  assert (NULL != info);
 
   if (info -> capture_mode != CAPTURE_MODE_READ)
     {
@@ -2797,8 +2797,8 @@ int p_tveng1_open_device_file(int flags, tveng_device_info * info)
   struct private_tveng1_device_info *p_info = P_INFO (info);
   struct video_capability caps;
   
-  t_assert(info != NULL);
-  t_assert(info -> file_name != NULL);
+  assert (NULL != info);
+  assert (NULL != info -> file_name);
 
 	info->fd = -1;
 
@@ -2973,7 +2973,7 @@ static void tveng1_close_device(tveng_device_info * info)
   struct private_tveng1_device_info *p_info=
     (struct private_tveng1_device_info*) info;
 
-  t_assert(info != NULL);
+  assert (NULL != info);
 
   if (-1 != info->fd) {
     gboolean dummy;
@@ -3037,8 +3037,8 @@ int tveng1_attach_device(const char* device_file,
   struct stat st;
   int minor = -1;
 
-  t_assert(device_file != NULL);
-  t_assert(info != NULL);
+  assert (NULL != device_file);
+  assert (NULL != info);
 
   if (-1 != info -> fd) /* If the device is already attached, detach it */
     tveng_close_device(info);
@@ -3217,7 +3217,7 @@ static struct tveng_module_info tveng1_module_info = {
 */
 void tveng1_init_module(struct tveng_module_info *module_info)
 {
-  t_assert(module_info != NULL);
+  assert (NULL != module_info);
 
   memcpy(module_info, &tveng1_module_info,
 	 sizeof(struct tveng_module_info)); 
@@ -3229,7 +3229,7 @@ void tveng1_init_module(struct tveng_module_info *module_info)
 
 void tveng1_init_module(struct tveng_module_info *module_info)
 {
-  t_assert(module_info != NULL);
+  assert (NULL != module_info);
 
   CLEAR (*module_info);
 }

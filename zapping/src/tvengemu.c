@@ -285,7 +285,7 @@ read_frame			(tveng_device_info *	info,
   struct private_tvengemu_device_info *p_info = P_INFO (info);
   struct timeval adv;
 
-  t_assert (info != NULL);
+  assert (NULL != info);
 
   if (info -> capture_mode != CAPTURE_MODE_READ)
     {
@@ -408,8 +408,8 @@ int tvengemu_attach_device(const char* device_file,
 
   struct private_tvengemu_device_info * p_info = P_INFO (info);
 
-  t_assert (device_file != NULL);
-  t_assert (info != NULL);
+  assert (NULL != device_file);
+  assert (NULL != info);
 
   if (-1 != info->fd)
     tveng_close_device (info);
@@ -500,7 +500,7 @@ static struct tveng_module_info tvengemu_module_info = {
 
 void tvengemu_init_module(struct tveng_module_info *module_info)
 {
-  t_assert(module_info != NULL);
+  assert (NULL != module_info);
 
   memcpy (module_info, &tvengemu_module_info,
 	  sizeof (struct tveng_module_info));

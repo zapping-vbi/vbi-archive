@@ -1030,7 +1030,7 @@ tuner_bounds_audio_capability	(tveng_device_info *	info,
 	if (-1 == xioctl (info, VIDIOC_G_TUNER, &tuner))
 		return FALSE;
 
-	t_assert (tuner.rangelow <= tuner.rangehigh);
+	assert (tuner.rangelow <= tuner.rangehigh);
 
 	if (tuner.capability & V4L2_TUNER_CAP_LOW) {
 		/* Actually step is 62.5 Hz, but why
@@ -2058,9 +2058,9 @@ enable_capture			(tveng_device_info *	info,
 
 		p_tveng_stop_everything(info,&dummy);
 
-		t_assert(info -> capture_mode == CAPTURE_MODE_NONE);
-		t_assert(p_info->n_buffers == 0);
-		t_assert(p_info->buffers == NULL);
+		assert (info -> capture_mode == CAPTURE_MODE_NONE);
+		assert (0 == p_info->n_buffers);
+		assert (NULL == p_info->buffers);
 
 		/* sn9c102 1.0.8 bug: mmap fails for > 1 buffers, apparently
 		   because m.offset isn't page aligned. */
@@ -2099,7 +2099,7 @@ enable_capture			(tveng_device_info *	info,
 	} else {
 		int buf_type;
 
-		t_assert(info->capture_mode == CAPTURE_MODE_READ);
+		assert (info->capture_mode == CAPTURE_MODE_READ);
 
 		buf_type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
@@ -2256,8 +2256,8 @@ static int p_tveng25_open_device_file(int flags, tveng_device_info * info)
   struct v4l2_framebuffer fb;
   extern int disable_overlay;
 
-  t_assert(info != NULL);
-  t_assert(info->file_name != NULL);
+  assert (info != NULL);
+  assert (info->file_name != NULL);
 
   if (!(info->node.device = strdup (info->file_name)))
     return -1;
@@ -2380,8 +2380,8 @@ int tveng25_attach_device(const char* device_file,
   struct private_tveng25_device_info * p_info =
     (struct private_tveng25_device_info*) info;
 
-  t_assert(device_file != NULL);
-  t_assert(info != NULL);
+  assert (device_file != NULL);
+  assert (info != NULL);
 
   if (-1 != info -> fd) /* If the device is already attached, detach it */
     tveng_close_device(info);
@@ -2534,7 +2534,7 @@ static struct tveng_module_info tveng25_module_info = {
 */
 void tveng25_init_module(struct tveng_module_info *module_info)
 {
-  t_assert(module_info != NULL);
+  assert (module_info != NULL);
 
   memcpy(module_info, &tveng25_module_info,
 	 sizeof(struct tveng_module_info)); 
@@ -2546,7 +2546,7 @@ void tveng25_init_module(struct tveng_module_info *module_info)
 
 void tveng25_init_module(struct tveng_module_info *module_info)
 {
-  t_assert(module_info != NULL);
+  assert (module_info != NULL);
 
   CLEAR (module_info);
 }
