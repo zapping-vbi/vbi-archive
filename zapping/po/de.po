@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.7\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-11-03 16:40+0100\n"
+"POT-Creation-Date: 2004-11-11 15:20+0100\n"
 "PO-Revision-Date: 2004-11-03 16:44+0100\n"
 "Last-Translator: Michael H. Schimek <mschimek@users.sourceforge.net>\n"
 "Language-Team: German <de@li.org>\n"
@@ -664,7 +664,7 @@ msgstr "Formatname:"
 
 #: plugins/mpeg/mpeg.c:1468 plugins/mpeg/mpeg.c:2081
 #: plugins/screenshot/screenshot.c:497 plugins/screenshot/screenshot.c:1396
-#: plugins/teletext/main.c:207
+#: plugins/teletext/main.c:254
 msgid "Plugins"
 msgstr "Plugins"
 
@@ -937,19 +937,19 @@ msgstr "Speichern unter"
 msgid "Format:"
 msgstr "Format:"
 
-#: plugins/teletext/main.c:166
+#: plugins/teletext/main.c:175
 msgid "_Preferences"
 msgstr "_Einstellungen"
 
-#: plugins/teletext/main.c:168
+#: plugins/teletext/main.c:177
 msgid "_Colors"
 msgstr "_Farben"
 
-#: plugins/teletext/main.c:199 src/main.c:165
+#: plugins/teletext/main.c:246 src/main.c:165
 msgid "Teletext"
 msgstr "Teletext"
 
-#: plugins/teletext/main.c:267
+#: plugins/teletext/main.c:328
 msgid "Teletext plugin"
 msgstr "Teletext Plugin"
 
@@ -1100,7 +1100,7 @@ msgstr "Nicht gefunden:"
 msgid "Page memory is empty"
 msgstr "Seitenspeicher ist leer"
 
-#: plugins/teletext/search.c:336 plugins/teletext/view.c:3151
+#: plugins/teletext/search.c:336 plugins/teletext/view.c:3182
 msgid "Search page memory"
 msgstr "Suche im Seitenspeicher"
 
@@ -1150,117 +1150,117 @@ msgstr "Aufdecken"
 msgid "Reveal concealed text"
 msgstr "Verborgenen Text aufdecken"
 
-#: plugins/teletext/view.c:831
+#: plugins/teletext/view.c:860
 #, c-format
 msgid " Page %x"
 msgstr " Seite %x"
 
-#: plugins/teletext/view.c:835
+#: plugins/teletext/view.c:864
 #, c-format
 msgid " Subpage %x"
 msgstr " Unterseite %x"
 
-#: plugins/teletext/view.c:1289
+#: plugins/teletext/view.c:1385
 #, c-format
 msgid "Loading page %X..."
 msgstr "Lade Seite %X..."
 
-#: plugins/teletext/view.c:1291
+#: plugins/teletext/view.c:1387
 #, c-format
 msgid "Loading page %X.%02X..."
 msgstr "Lade Seite %X.%02X..."
 
-#: plugins/teletext/view.c:2270
+#: plugins/teletext/view.c:2305
 msgid "Selection copied to clipboard"
 msgstr "Markierung zur Zwischenablage kopiert"
 
-#: plugins/teletext/view.c:2352
+#: plugins/teletext/view.c:2387
 msgid "No page loaded"
 msgstr "Keine Seite geladen"
 
-#: plugins/teletext/view.c:2365
+#: plugins/teletext/view.c:2400
 msgid "Selecting - press Shift key for table mode"
 msgstr "Markieren - für Blockmodus Hochstelltaste gedrückt halten"
 
-#: plugins/teletext/view.c:2518
+#: plugins/teletext/view.c:2553
 msgid "Subtitle index"
 msgstr "Untertitel Übersicht"
 
-#: plugins/teletext/view.c:2525
+#: plugins/teletext/view.c:2560
 msgid "Now and Next"
 msgstr "Jetzt und danach"
 
-#: plugins/teletext/view.c:2531
+#: plugins/teletext/view.c:2566
 msgid "Current program"
 msgstr "Über diese Sendung"
 
-#: plugins/teletext/view.c:2537
+#: plugins/teletext/view.c:2572
 msgid "Program Index"
 msgstr "Programminhalt"
 
-#: plugins/teletext/view.c:2543
+#: plugins/teletext/view.c:2578
 msgid "Program Schedule"
 msgstr "Programmvorschau"
 
 #. TRANSLATORS: Schedule changes and the like.
-#: plugins/teletext/view.c:2551
+#: plugins/teletext/view.c:2586
 msgid "Program Warning"
 msgstr "Programmhinweis"
 
-#: plugins/teletext/view.c:2612
+#: plugins/teletext/view.c:2647
 msgid "_Open"
 msgstr "Ö_ffnen"
 
-#: plugins/teletext/view.c:2618
+#: plugins/teletext/view.c:2653
 msgid "Open in _New Window"
 msgstr "_Neues Fenster öffnen"
 
-#: plugins/teletext/view.c:2629
+#: plugins/teletext/view.c:2664
 msgid "_Open Link"
 msgstr "_Link öffnen"
 
-#: plugins/teletext/view.c:2640 plugins/teletext/window.c:792
+#: plugins/teletext/view.c:2675 plugins/teletext/window.c:793
 msgid "_New Window"
 msgstr "_Neues Fenster"
 
-#: plugins/teletext/view.c:2646
+#: plugins/teletext/view.c:2681
 msgid "_Save as..."
 msgstr "_Speichern unter..."
 
-#: plugins/teletext/view.c:2652
+#: plugins/teletext/view.c:2687
 msgid "S_earch..."
 msgstr "_Suche..."
 
-#: plugins/teletext/view.c:2658
+#: plugins/teletext/view.c:2693
 msgid "S_ubtitles"
 msgstr "_Untertitel"
 
-#: plugins/teletext/view.c:2664 plugins/teletext/window.c:799
+#: plugins/teletext/view.c:2699 plugins/teletext/window.c:800
 #: src/zapping.c:464
 msgid "_Bookmarks"
 msgstr "_Lesezeichen"
 
-#: plugins/teletext/view.c:3143
+#: plugins/teletext/view.c:3174
 msgid "_Go"
 msgstr "_Gehe zu"
 
-#: plugins/teletext/view.c:3145
+#: plugins/teletext/view.c:3176
 msgid "Previous page in history"
 msgstr "Vorhergehende Seite in der Chronik"
 
-#: plugins/teletext/view.c:3147
+#: plugins/teletext/view.c:3178
 msgid "Next page in history"
 msgstr "Nächste Seite in der Chronik"
 
-#: plugins/teletext/view.c:3148
+#: plugins/teletext/view.c:3179
 msgid "Index"
 msgstr "Index"
 
-#: plugins/teletext/view.c:3149
+#: plugins/teletext/view.c:3180
 msgid "Go to the index page"
 msgstr "Zur Hauptseite"
 
-#: plugins/teletext/view.c:3153
+#: plugins/teletext/view.c:3184
 msgid "Save this page to a file"
 msgstr "Seite speichern"
 
@@ -1288,34 +1288,34 @@ msgstr " (Kyrillisch)"
 msgid "_Automatic"
 msgstr "_Automatisch"
 
-#: plugins/teletext/window.c:791 src/zapping.c:400
+#: plugins/teletext/window.c:792 src/zapping.c:400
 msgid "_File"
 msgstr "_Datei"
 
-#: plugins/teletext/window.c:795 src/zapping.c:402
+#: plugins/teletext/window.c:796 src/zapping.c:402
 msgid "_Edit"
 msgstr "_Bearbeiten"
 
 # src/v4l2interface.c:344
-#: plugins/teletext/window.c:796 src/zapping.c:409
+#: plugins/teletext/window.c:797 src/zapping.c:409
 msgid "_View"
 msgstr "_Ansicht"
 
-#: plugins/teletext/window.c:797
+#: plugins/teletext/window.c:798
 msgid "_Encoding"
 msgstr "_Zeichenkodierung"
 
 # src/interface.c:362
 #. 2.6 GTK_STOCK_EDIT
-#: plugins/teletext/window.c:798 src/zapping.c:407 src/zapping.c:420
+#: plugins/teletext/window.c:799 src/zapping.c:407 src/zapping.c:420
 msgid "_Channels"
 msgstr "_Sender"
 
-#: plugins/teletext/window.c:858 src/zapping.c:442
+#: plugins/teletext/window.c:859 src/zapping.c:442
 msgid "_Toolbar"
 msgstr "_Werkzeugleiste"
 
-#: plugins/teletext/window.c:860
+#: plugins/teletext/window.c:861
 msgid "_Statusbar"
 msgstr "_Statusleiste"
 
@@ -2175,7 +2175,7 @@ msgstr "%s einstellen"
 msgid "Controls"
 msgstr "Einstellungen"
 
-#: src/v4linterface.c:1111 src/zmisc.c:2020
+#: src/v4linterface.c:1111 src/zmisc.c:2023
 msgid "Unknown"
 msgstr "Unbekannt"
 
@@ -2280,7 +2280,7 @@ msgstr "Ton ein- oder ausschalten"
 msgid "Menu"
 msgstr "Menü"
 
-#: src/zapping.c:444 src/zapping.c:1017
+#: src/zapping.c:444 src/zapping.c:1021
 msgid "Keep window on top"
 msgstr "Fenster über anderen halten"
 
@@ -2308,7 +2308,7 @@ msgstr "_Neues Teletext Fenster"
 msgid "Switch subtitles on or off"
 msgstr "Untertitel ein- oder ausschalten"
 
-#: src/zapping.c:1015
+#: src/zapping.c:1019
 msgid "Show menu and toolbar"
 msgstr "Menü und Toolbar zeigen"
 
@@ -2328,7 +2328,7 @@ msgstr "Zapzilla konnte nicht gestartet werden"
 msgid "Sorry, Zapzilla is unable to create the config tree"
 msgstr "Zapzilla kann den Konfigurationsbaum nicht erstellen"
 
-#: src/zmisc.c:659
+#: src/zmisc.c:662
 #, c-format
 msgid ""
 "Cannot start video overlay.\n"
@@ -2337,11 +2337,11 @@ msgstr ""
 "Kann Video Overlay nicht aktivieren.\n"
 "%s"
 
-#: src/zmisc.c:672
+#: src/zmisc.c:675
 msgid "VBI has been disabled, or it doesn't work."
 msgstr "VBI wurde deaktiviert oder funktioniert nicht."
 
-#: src/zmisc.c:706
+#: src/zmisc.c:709
 #, c-format
 msgid ""
 "Cannot start fullscreen overlay.\n"
@@ -2350,64 +2350,64 @@ msgstr ""
 "Kann Vollbilddardstellung nicht activieren.\n"
 "%s"
 
-#: src/zmisc.c:983
+#: src/zmisc.c:986
 msgid "Hide the statusbar"
 msgstr "Statusleiste verbergen"
 
-#: src/zmisc.c:1193
+#: src/zmisc.c:1196
 #, c-format
 msgid "%s is not a directory."
 msgstr "%s ist kein Verzeichnis."
 
-#: src/zmisc.c:1235
+#: src/zmisc.c:1238
 #, c-format
 msgid "Could not create directory %s"
 msgstr "Konnte Verzeichnis %s nicht erstellen"
 
-#: src/zmisc.c:1931 src/zmisc.c:1935
+#: src/zmisc.c:1934 src/zmisc.c:1938
 msgid "Reset"
 msgstr "Zurücksetzen"
 
-#: src/zmisc.c:2215
+#: src/zmisc.c:2218
 msgid "Device:"
 msgstr "Gerät:"
 
-#: src/zmisc.c:2216
+#: src/zmisc.c:2219
 msgid "Driver:"
 msgstr "Treiber:"
 
-#: src/zmisc.c:2217
+#: src/zmisc.c:2220
 msgid "Device file:"
 msgstr "Gerätedatei:"
 
-#: src/zmisc.c:2561
+#: src/zmisc.c:2564
 #, c-format
 msgid "Overwrite %s?"
 msgstr "%s überschreiben?"
 
-#: src/zmisc.c:2566
+#: src/zmisc.c:2569
 msgid "_Overwrite"
 msgstr "_Überschreiben"
 
-#: src/zmisc.c:2574
+#: src/zmisc.c:2577
 #, c-format
 msgid "%s is a directory."
 msgstr "%s ist ein Verzeichnis."
 
-#: src/zmisc.c:2589
+#: src/zmisc.c:2592
 #, c-format
 msgid "%s is a special file"
 msgstr "%s ist eine spezielle Datei"
 
-#: src/zmisc.c:2593
+#: src/zmisc.c:2596
 msgid "Continue"
 msgstr "Fortfahren"
 
-#: src/zmisc.c:3429
+#: src/zmisc.c:3432
 msgid "Could not open help file"
 msgstr "Konnte Hilfedatei nicht öffnen"
 
-#: src/zmisc.c:3461
+#: src/zmisc.c:3464
 msgid "Could not open URL"
 msgstr "Konnte die URL nicht öffnen"
 
@@ -2425,15 +2425,15 @@ msgstr " Teletext Seite %x"
 msgid "Open this page with Zapzilla"
 msgstr "Seite mit Zapzilla öffnen"
 
-#: src/zvbi.c:737
+#: src/zvbi.c:853
 msgid "VBI interface timeout"
 msgstr "V4L/V4L2 VBI Schnittstelle: Lesefehler"
 
-#: src/zvbi.c:760
+#: src/zvbi.c:876
 msgid "VBI interface: Failed to read from the device"
 msgstr "V4L/V4L2 VBI Schnittstelle: Lesefehler"
 
-#: src/zvbi.c:987
+#: src/zvbi.c:1131
 #, c-format
 msgid ""
 "VBI initialization failed.\n"
@@ -2442,15 +2442,15 @@ msgstr ""
 "VBI-Initialisierung fehlgeschlagen.\n"
 "%s"
 
-#: src/zvbi.c:988
+#: src/zvbi.c:1132
 msgid "Ran out of memory."
 msgstr "Speichermangel."
 
-#: src/zvbi.c:989
+#: src/zvbi.c:1133
 msgid "Out of resources to start a new thread."
 msgstr "Resourcenmangel verhindert starten eines neuen Threads."
 
-#: src/zvbi.c:991
+#: src/zvbi.c:1135
 msgid ""
 "This probably means that the required driver isn't loaded. Add to your /etc/"
 "modules.conf the line:\n"
