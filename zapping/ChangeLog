@@ -1,3 +1,12 @@
+23.08.2001	capture with different bpl <garetxe@users.sf.net>
+
+	* capture.c, tveng: Capture now accepts frames with different
+	bytes per line but the same format otherwise.
+	* zapping_setup_fb: Made PAM support work for me again.
+	* capture.c: Correct format.pixformat set for YVU420 XV bundles.
+	* zapping.spec.in, configure.in: Made stupid rpm's out there work
+	fine. Now making 0.6.0 should be just running prepare_dist.sh.
+
 22.08.2001	Overlay this page <garetxe@users.sf.net>
 
 	* TTX mode: added the option to "overlay" the current page when

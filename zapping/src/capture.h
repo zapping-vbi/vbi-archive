@@ -35,7 +35,7 @@
   plugin.
 */
 typedef struct {
-  struct tveng_frame_format	format; /* described pixformat, size,
+  struct tveng_frame_format	format; /* describes pixformat, size,
 					   etc, see tveng.h */
 
   /* type of data the bundle contains */

@@ -152,9 +152,7 @@ request_bundle_format(enum tveng_frame_pixformat pixformat, gint w, gint h)
     {
     case TVENG_PIX_YVU420:
     case TVENG_PIX_YUV420:
-      h &=~15;
-      w &=~15;
-      break;
+      h &=~1;
     case TVENG_PIX_YUYV:
       w &=~1;
       break;
@@ -205,8 +203,7 @@ bundle_equal(capture_bundle *a, capture_bundle *b)
       !a->timestamp || !b->timestamp ||
       !pixformat_ok(a->format.pixformat, b->format.pixformat) ||
       a->format.width != b->format.width ||
-      a->format.height != b->format.height ||
-      a->format.sizeimage != b->format.sizeimage)
+      a->format.height != b->format.height)
     return FALSE;
 
   return TRUE;
@@ -218,17 +215,18 @@ fill_bundle_tveng(capture_bundle *d, tveng_device_info *info)
   tveng_mutex_lock(info);
 
   if (!pixformat_ok(info->format.pixformat, d->format.pixformat) ||
-      info->format.sizeimage > d->format.sizeimage ||
+      info->format.width != d->format.width ||
+      info->format.height != d->format.height ||
       !d->image_type)
     goto fill_bundle_failure;
 
-  if (d->image_type == CAPTURE_BUNDLE_XV &&
-      d->format.pixformat == TVENG_PIX_YUV420)
+  if (d->format.pixformat == TVENG_PIX_YVU420 &&
+      info->format.pixformat == TVENG_PIX_YUV420)
     tveng_assume_yvu(TRUE, info);
   else
     tveng_assume_yvu(FALSE, info); /* default settings */
 
-  if (-1 == tveng_read_frame(d->data, info->format.sizeimage, 50, info))
+  if (-1 == tveng_read_frame(d->data, d->format.bytesperline, 50, info))
     {
       if (!count++)
 	fprintf(stderr, "cap: read(): %s\n", info->error);
@@ -267,7 +265,8 @@ build_bundle(capture_bundle *d, struct tveng_frame_format *format)
 	  d->format.width = d->image.xvimage->w;
 	  d->format.height = d->image.xvimage->h;
 	  size = d->image.xvimage->data_size;
-	  d->format.bytesperline = d->format.width*d->format.bpp;
+	  d->format.bytesperline = size/d->format.height;
+	  g_assert((d->format.bytesperline * d->format.height) == size);
 	  d->data = d->image.xvimage->data;
 	}
       else
@@ -284,7 +283,6 @@ build_bundle(capture_bundle *d, struct tveng_frame_format *format)
       
     case TVENG_PIX_YVU420:
     case TVENG_PIX_YUV420:
-      d->format.pixformat = format->pixformat;
       d->format.depth = 12;
       d->format.bpp = 1.5;
       
@@ -299,6 +297,7 @@ build_bundle(capture_bundle *d, struct tveng_frame_format *format)
 	  size = d->image.xvimage->data_size;
 	  d->format.bytesperline = d->format.width;
 	  d->data = d->image.xvimage->data;
+	  d->format.pixformat = TVENG_PIX_YVU420;
 	}
       else
 	{
@@ -309,6 +308,7 @@ build_bundle(capture_bundle *d, struct tveng_frame_format *format)
 	  d->image.yuv_data = g_malloc( size );
 	  d->format.bytesperline = d->format.width;
 	  d->data = d->image.yuv_data;
+	  d->format.pixformat = format->pixformat;
 	}
       break;
     default: /* Anything else is assumed to be current visual RGB */
@@ -360,7 +360,6 @@ capture_thread (void *data)
       /* needs rebuilding */
       pthread_mutex_lock(&req_format_mutex);
       if (!p->vanilla.image_type ||
-	  p->vanilla.format.sizeimage != req_format.sizeimage ||
 	  p->vanilla.format.width != req_format.width ||
 	  p->vanilla.format.height != req_format.height ||
 	  !pixformat_ok(p->vanilla.format.pixformat, req_format.pixformat))
@@ -566,9 +565,9 @@ print_info(GtkWidget *main_window)
 	  "	depth:		%d\n"
 	  "	pixformat:	%d\n"
 	  "	bpp:		%g\n"
-	  "	sizeimage:	%d\n",
+	  "	byterperline:	%d\n",
 	  format->width, format->height, format->depth,
-	  format->pixformat, format->bpp, format->sizeimage );
+	  format->pixformat, format->bpp, format->bytesperline );
 
   fprintf(stderr, "detected x11 depth: %d\n", x11_get_bpp());
 }

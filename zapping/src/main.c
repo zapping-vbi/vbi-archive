@@ -162,8 +162,8 @@ static gint timeout_handler(gpointer unused)
 	  gdk_window_get_size(tv_screen->window, &tvs_w, &tvs_h);
 	  gdk_window_get_size(main_window->window, &mw_w, &mw_h);
 
-	  rw = rw*(((double)mw_w)/tvs_w);
-	  rh = rh*(((double)mw_h)/tvs_h);
+	  rw *= (((double)mw_w)/tvs_w);
+	  rh *= (((double)mw_h)/tvs_h);
 
 	  geometry.min_aspect = geometry.max_aspect = rw/rh;
 	}
@@ -172,7 +172,9 @@ static gint timeout_handler(gpointer unused)
 				    hints);
 
       if (old_ratio != zvbi_ratio &&
-	  zcg_int(NULL, "ratio") == 3)
+	  zcg_int(NULL, "ratio") == 3 &&
+	  mw_h > 1 &&
+	  geometry.min_aspect > 0.1)
 	{
 	  /* ug, ugly */
 	  gdk_window_get_size(main_window->window, &mw_w, &mw_h);
@@ -412,7 +414,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.128 2001-08-22 21:13:07 garetxe Exp $",
+	 "$Id: main.c,v 1.129 2001-08-23 22:33:56 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU support... ");
   switch (cpu_detection())

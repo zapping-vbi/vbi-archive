@@ -267,7 +267,7 @@ int main(int argc, char * argv[])
 	  if ((i+1) == argc)
 	    fprintf(stderr, "Real bpp seems to be missing\n");
 	  else if (!sscanf(argv[++i], "%d", &real_bpp))
-	    fprintf(stderr, "Imposible to understand --bpp %s, ignored\n",
+	    fprintf(stderr, "Impossible to understand --bpp %s, ignored\n",
 		    argv[i-1]);
 	}
       else if ((!strcasecmp(argv[i], "--help")) ||
@@ -299,7 +299,7 @@ int main(int argc, char * argv[])
 
   if (verbosity)
     /* Print a short copyright notice if we aren't totally quiet */
-    printf("(C) 2000 Iñaki García Etxebarria.\n"
+    printf("(C) 2000-2001 Iñaki García Etxebarria.\n"
 	     "This program is under the GNU General Public License.\n");
 
   /* The user has asked for help, give it and exit */

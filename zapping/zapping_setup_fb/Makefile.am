@@ -4,7 +4,7 @@ INCLUDES = $(ARCH_CFLAGS)
 
 bin_PROGRAMS = zapping_setup_fb
 
-EXTRA_DIST = zapping_setup_fb.pam
+EXTRA_DIST = zapping_setup_fb.pam zsfb.capps.in
 
 if SUID_ZSFB
 install-binPROGRAMS: $(bin_PROGRAMS)
@@ -17,23 +17,23 @@ else
 install-binPROGRAMS: $(bin_PROGRAMS)
 	$(mkinstalldirs) $(DESTDIR)$(bindir)
 	$(mkinstalldirs) $(DESTDIR)$(sbindir)
-	$(mkinstalldirs) $(DESTDIR)$(sysconfdir)/pam.d
-	$(mkinstalldirs) $(DESTDIR)$(sysconfdir)/security/console.apps
+	$(mkinstalldirs) $(DESTDIR)/etc/pam.d
+	$(mkinstalldirs) $(DESTDIR)/etc/security/console.apps
 	$(INSTALL) zapping_setup_fb $(DESTDIR)$(sbindir)
 	ln -sf $(CONSOLEHELPER_LOCATION) $(DESTDIR)$(bindir)/zapping_setup_fb
-	if ! test -e $(DESTDIR)$(sysconfdir)/pam.d/zapping_setup_fb ; then\
-		$(INSTALL) zapping_setup_fb.pam \
-			$(DESTDIR)$(sysconfdir)/pam.d/zapping_setup_fb;\
+	if ! test -e $(DESTDIR)/etc/pam.d/zapping_setup_fb ; then\
+		$(INSTALL_DATA) zapping_setup_fb.pam \
+			$(DESTDIR)/etc/pam.d/zapping_setup_fb;\
 	fi
-	touch $(DESTDIR)$(sysconfdir)/security/console.apps/zapping_setup_fb
+	cp zsfb.capps $(DESTDIR)/etc/security/console.apps/zapping_setup_fb
 
 uninstall-binPROGRAMS:
 	rm -f $(DESTDIR)$(sbindir)/zapping_setup_fb
 	rm -f $(DESTDIR)$(bindir)/zapping_setup_fb
-	rm -f $(DESTDIR)$(sysconfdir)/security/console.apps/zapping_setup_fb
+	rm -f $(DESTDIR)/etc/security/console.apps/zapping_setup_fb
 ## Should we really remove this file? The administrator might have
 ## changed it...
-	rm -f $(DESTDIR)$(sysconfdir)/pam.d/zapping_setup_fb
+	rm -f $(DESTDIR)/etc/pam.d/zapping_setup_fb
 endif
 
 zapping_setup_fbSOURCES = \

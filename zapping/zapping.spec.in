@@ -10,6 +10,7 @@ Source: ftp://zapping.sourceforge.net/pub/zapping/@VERSION@/zapping-@VERSION@.ta
 Buildroot: %{_tmppath}/%{name}-root
 BuildPrereq: libglade-devel libxml-devel
 PreReq: /sbin/install-info
+Prefix: @GNOME_PREFIX@
 
 Requires: gnome-libs >= 1.0.40
 Requires: libxml >= 1.4.0
@@ -31,7 +32,7 @@ features, plus extensibility through a plugin system.
 %setup -q
 
 %build
-%configure
+./configure
 make
 
 %install
@@ -39,14 +40,14 @@ rm -rf %{buildroot}
 %makeinstall
 
 %post
-pushd %{_bindir} > /dev/null 2>&1
-    ln -sf consolehelper zapping_setup_fb
+pushd %{prefix}/bin > /dev/null 2>&1
+    ln -sf @CONSOLEHELPER_LOCATION@ zapping_setup_fb
     ln -sf zapping zapzilla
 popd > /dev/null 2>&1
 
 %preun
-rm -f %{_bindir}/zapping_setup_fb > /dev/null 2>&1
-rm -f %{_bindir}/zapzilla > /dev/null 2>&1
+rm -f %{prefix}/bin/zapping_setup_fb > /dev/null 2>&1
+rm -f %{prefix}/bin/zapzilla > /dev/null 2>&1
 
 %clean
 rm -rf %{buildroot}
@@ -55,17 +56,17 @@ rm -rf %{buildroot}
 %defattr (-, root, root)
 %doc AUTHORS THANKS ChangeLog README README.plugins COPYING TODO BUGS
 %doc po/zapping.pot plugins/alirc/README.alirc
-%config(noreplace) %{_sysconfdir}/pam.d/zapping_setup_fb
-%config(noreplace) %{_sysconfdir}/security/console.apps/zapping_setup_fb
-%{_bindir}/zapping
-%{_sbindir}/zapping_setup_fb
-%{_libdir}/zapping
-%{_datadir}/zapping
-%{_datadir}/gnome/help/zapping
-%{_datadir}/pixmaps/zapping
-%{_datadir}/gnome/apps/Multimedia/zapping.desktop
-%{_datadir}/locale/*/*/*
-%{_mandir}/*
+%config(noreplace) /etc/pam.d/zapping_setup_fb
+%config(noreplace) /etc/security/console.apps/zapping_setup_fb
+%{prefix}/bin/zapping
+%{prefix}/sbin/zapping_setup_fb
+%{prefix}/lib/zapping
+%{prefix}/share/zapping
+%{prefix}/share/gnome/help/zapping
+%{prefix}/share/pixmaps/zapping
+%{prefix}/share/gnome/apps/Multimedia/zapping.desktop
+%{prefix}/share/locale/*/*/*
+%{prefix}/man/man1/*
 
 %changelog
 * Sat Jul 28 2001 Iñaki García Etxebarria <garetxe@users.sf.net>

@@ -791,7 +791,7 @@ tveng1_update_capture_format(tveng_device_info * info)
       t_error("VIDIOCGPICT", info);
       return -1;
     }
-  
+
   /* Transform the palette value into a tveng value */
   switch(pict.palette)
     {
@@ -1697,7 +1697,8 @@ tveng1_get_tuner_bounds(uint32_t * min, uint32_t * max, tveng_device_info *
 
 /* Two internal functions, both return -1 on error */
 static int p_tveng1_queue(tveng_device_info * info);
-static int p_tveng1_dequeue(unsigned char * where, tveng_device_info * info);
+static int p_tveng1_dequeue(unsigned char * where, tveng_device_info *
+			    info, unsigned int bpl);
 
 /*
   Sets up the capture device so any read() call after this one
@@ -1766,7 +1767,7 @@ tveng1_stop_capturing(tveng_device_info * info)
   t_assert(info->current_mode == TVENG_CAPTURE_READ);
 
   /* Dequeue last buffer */
-  p_tveng1_dequeue(NULL, info);
+  p_tveng1_dequeue(NULL, info, info->format.bytesperline);
 
   if (p_info -> mmaped_data != ((char*)-1))
     if (munmap(p_info->mmaped_data, p_info->mmbuf.size) == -1)
@@ -1847,7 +1848,8 @@ static int p_tveng1_queue(tveng_device_info * info)
   return 0; /* Success */
 }
 
-static int p_tveng1_dequeue(unsigned char * where, tveng_device_info * info)
+static int p_tveng1_dequeue(unsigned char * where, tveng_device_info *
+			    info, unsigned int bpl)
 {
   struct video_mmap bm;
   struct private_tveng1_device_info * p_info =
@@ -1915,9 +1917,30 @@ static int p_tveng1_dequeue(unsigned char * where, tveng_device_info * info)
     {
       if (info->format.pixformat != TVENG_PIX_YUV420 ||
 	  !info->private->assume_yvu)
-	memcpy(where, p_info -> mmaped_data + p_info->
-	       mmbuf.offsets[bm.frame],
-	       info->format.sizeimage);
+	{
+	  if (bpl == info->format.bytesperline ||
+	      info->format.pixformat == TVENG_PIX_YUV420 ||
+	      info->format.pixformat == TVENG_PIX_YVU420)
+	    memcpy(where, p_info -> mmaped_data + p_info->
+		   mmbuf.offsets[bm.frame],
+		   info->format.sizeimage);
+	  else
+	    {
+	      unsigned char *p = p_info->mmaped_data +
+		p_info->mmbuf.offsets[bm.frame];
+	      unsigned int line;
+
+	      fprintf(stderr, "bytesperline: %d, %d\n", bpl,
+		      info->format.bytesperline);
+	      
+	      for (line = 0; line < info->format.height; line++)
+		{
+		  memcpy(where, p, bpl);
+		  where += bpl;
+		  p += info->format.bytesperline;
+		}
+	    }
+	}
       else
 	{
 	  /* Switch UV -> VU */
@@ -1940,8 +1963,7 @@ static int p_tveng1_dequeue(unsigned char * where, tveng_device_info * info)
 
 /* 
    Reads a frame from the video device, storing the read data in
-   the location pointed to by where. size indicates the destination
-   buffer size (that must equal or greater than format.sizeimage)
+   the location pointed to by where.
    time: time to wait using select() in miliseconds
    info: pointer to the video device info structure
    This call was originally intended to wrap a single read() call, but
@@ -1950,7 +1972,7 @@ static int p_tveng1_dequeue(unsigned char * where, tveng_device_info * info)
    Returns -1 on error, anything else on success
 */
 static
-int tveng1_read_frame(void * where, unsigned int size, 
+int tveng1_read_frame(void * where, unsigned int bpl, 
 		      unsigned int time, tveng_device_info * info)
 {
   struct itimerval iv;
@@ -1965,11 +1987,14 @@ int tveng1_read_frame(void * where, unsigned int size,
       return -1;
     }
 
-  if (info -> format.sizeimage > size)
+  if (info->format.pixformat != TVENG_PIX_YVU420 &&
+      info->format.pixformat != TVENG_PIX_YUV420 &&
+      info -> format.width * info->format.bpp > bpl)
     {
       info -> tveng_errno = ENOMEM;
       t_error_msg("check()", 
-	      "Size check failed, quitting to avoid segfault", info);
+	      "Bpl size check failed, quitting to avoid segfault, %g, %d",
+		  info, info->format.width * info->format.bpp, bpl);
       return -1;
     }
 
@@ -1990,7 +2015,7 @@ int tveng1_read_frame(void * where, unsigned int size,
       return -1;
     }
 
-  if (p_tveng1_dequeue(where, info) == -1)
+  if (p_tveng1_dequeue(where, info, bpl) == -1)
     return -1;
 
   /* Everything has been OK, return 0 (success) */

@@ -551,14 +551,14 @@ int
 tveng_stop_capturing(tveng_device_info * info);
 
 /* 
-   Reads a frame from the video device, storing the read data in
-   info->format.data
+   Reads a frame from the video device, storing the read data in dest.
    time: time to wait using select() in miliseconds
    info: pointer to the video device info structure
+   dest_bytesperline: Bytes per line in dest (can have padding)
    Returns -1 on error, anything else on success.
    Note: if you want this call to be non-blocking, call it with time=0
 */
-int tveng_read_frame(void * where, unsigned int size,
+int tveng_read_frame(void * dest, unsigned int dest_bytesperline,
 		     unsigned int time, tveng_device_info * info);
 
 /*

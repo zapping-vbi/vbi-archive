@@ -19,6 +19,7 @@ Known bugs with zapping, don't report them
 	  investigate.
 	* Don't compile conv_gen.s if $host != x86
 	~ Zapzilla: what's v4lx doing on standard change?
+	* Look for endianness problems.
 
 
 

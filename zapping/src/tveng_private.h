@@ -57,7 +57,7 @@ struct tveng_module_info {
 			    tveng_device_info *info);
   int	(*start_capturing)(tveng_device_info *info);
   int	(*stop_capturing)(tveng_device_info *info);
-  int	(*read_frame)(void *where, unsigned int size,
+  int	(*read_frame)(void *where, unsigned int bytesperline,
 		      unsigned int time, tveng_device_info *info);
   double (*get_timestamp)(tveng_device_info *info);
   int	(*set_capture_size)(int width, int height,

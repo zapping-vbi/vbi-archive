@@ -1265,16 +1265,12 @@ tveng_stop_capturing(tveng_device_info * info)
 
 /* 
    Reads a frame from the video device, storing the read data in
-   the location pointed to by where. size indicates the destination
-   buffer size (that must equal or greater than format.sizeimage)
+   the location pointed to by dest.
    time: time to wait using select() in miliseconds
    info: pointer to the video device info structure
-   This call was originally intended to wrap a single read() call, but
-   since i cannot get it to work, now encapsulates the dqbuf/qbuf
-   logic.
    Returns -1 on error, anything else on success
 */
-int tveng_read_frame(void * where, unsigned int size, 
+int tveng_read_frame(void * dest, unsigned int bpl, 
 		     unsigned int time, tveng_device_info * info)
 {
   t_assert(info != NULL);
@@ -1283,7 +1279,7 @@ int tveng_read_frame(void * where, unsigned int size,
   TVLOCK;
 
   if (info->private->module.read_frame)
-    RETURN_UNTVLOCK(info->private->module.read_frame(where, size, time,
+    RETURN_UNTVLOCK(info->private->module.read_frame(dest, bpl, time,
 						   info));
 
   TVUNSUPPORTED;

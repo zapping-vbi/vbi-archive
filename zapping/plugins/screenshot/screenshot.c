@@ -341,8 +341,7 @@ void plugin_read_bundle ( capture_bundle * bundle )
     return;
   else if (save_screenshot == 1)
     {
-      start_saving_screenshot(bundle->data,
-			      &(bundle->format));
+      start_saving_screenshot(bundle->data, &(bundle->format));
       save_screenshot = 0;
     }
   else
