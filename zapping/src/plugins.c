@@ -74,8 +74,8 @@ static gboolean plugin_load(gchar * file_name, struct plugin_info * info)
   if (((*plugin_get_protocol)()) != PLUGIN_PROTOCOL)
     {
       g_warning("While loading %s\n"
-		"The plugin uses the protocol %d, and the current"
-		" one is %d, it cannot be loaded.",
+		"The plugin uses the protocol %x, and the current"
+		" one is %x, it cannot be loaded.",
 		file_name,
 		(*plugin_get_protocol)(), PLUGIN_PROTOCOL);
       g_module_close(info->handle);

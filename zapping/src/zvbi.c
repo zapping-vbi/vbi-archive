@@ -58,8 +58,6 @@
 #undef FALSE
 #include "common/fifo.h"
 
-#ifdef HAVE_LIBZVBI
-
 /*
   Quality-speed tradeoff when scaling+antialiasing the page:
   - GDK_INTERP_NEAREST: Very fast scaling but visually pure rubbish
@@ -71,6 +69,8 @@
 			high (>3x) scalings
 */
 #define INTERP_MODE GDK_INTERP_BILINEAR
+
+#ifdef HAVE_LIBZVBI
 
 static vbi_decoder *vbi=NULL; /* holds the vbi object */
 static ZModel * vbi_model=NULL; /* notify to clients the open/closure
@@ -367,7 +367,7 @@ threads_init (const gchar *dev_name, int given_fd)
   gchar *failed = _("VBI initialization failed.\n%s");
   gchar *memory = _("Ran out of memory.");
   gchar *thread = _("Out of resources to start a new thread.");
-#warning Linux only
+  /* FIXME Linux only */
   gchar *mknod_hint = _(
 	"This probably means that the required driver isn't loaded. "
 	"Add to your /etc/modules.conf the line:\n"
@@ -391,14 +391,16 @@ threads_init (const gchar *dev_name, int given_fd)
 
   D();
 
-#warning FIXME
+#if 0
   if (!(capture = vbi_capture_bktr_new (dev_name, /* XXX */ 625,
 					&services, /* strict */ -1,
 					&_errstr, !!debug_msg)))
+#endif
     {
+#if 0
       if (_errstr)
 	free (_errstr);
-
+#endif
       if (!(capture = vbi_capture_v4l2_new (dev_name, 20 /* buffers */,
 					    &services, /* strict */ -1,
 					    &_errstr, !!debug_msg)))
@@ -843,7 +845,6 @@ zvbi_open_device(const char *device)
     80 /* I */
   };
 
-#ifdef HAVE_LIBZVBI
   D();
   if (main_info)
     given_fd = main_info->fd;
@@ -885,10 +886,8 @@ zvbi_open_device(const char *device)
   trigger_timeout_id = gtk_timeout_add(100, (GtkFunction)trigger_timeout,
 				       GINT_TO_POINTER(trigger_client_id));
 #endif
-  return TRUE;
-#endif
 
-  return FALSE;
+  return TRUE;
 }
 
 /* down the road */
@@ -2109,17 +2108,23 @@ find_subtitle_page		(void)
   return 0;
 }
 
+#endif /* HAVE_LIBZVBI */
+
 static PyObject *
 py_closed_caption		(PyObject *		self,
 				 PyObject *		args)
 {
+#ifdef HAVE_LIBZVBI
   static const char *key = "/zapping/internal/callbacks/closed_caption";
+#endif
   int active;
 
   active = -1; /* toggle */
 
   if (!PyArg_ParseTuple (args, "|i", &active))
     g_error ("zapping.closed_caption(|i)");
+
+#ifdef HAVE_LIBZVBI
 
   if (-1 == active)
     active = !zconf_get_boolean (NULL, key);
@@ -2165,6 +2170,8 @@ py_closed_caption		(PyObject *		self,
     {
       osd_clear ();
     }
+
+#endif /* HAVE_LIBZVBI */
 
   py_return_true;
 }
@@ -2218,11 +2225,13 @@ startup_zvbi(void)
     g_warning("Cannot create osd pipe");
     exit(EXIT_FAILURE);
   }
-#endif
+#endif /* HAVE_LIBZVBI */
 }
 
 void shutdown_zvbi(void)
 {
+#ifdef HAVE_LIBZVBI
+
   pthread_mutex_destroy(&prog_info_mutex);
   pthread_mutex_destroy(&network_mutex);
 
@@ -2240,7 +2249,11 @@ void shutdown_zvbi(void)
 
   close(osd_pipe[0]);
   close(osd_pipe[1]);
+
+#endif /* HAVE_LIBZVBI */
 }
+
+#ifdef HAVE_LIBZVBI
 
 gchar *
 zvbi_get_name(void)

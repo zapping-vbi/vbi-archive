@@ -638,6 +638,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   */
   if (old_input != NULL)
     tveng_set_input_by_name(old_input, info);
+
   if (old_standard != NULL)
     tveng_set_standard_by_name(old_standard, info);
 
@@ -960,6 +961,7 @@ void z_status_set_widget(GtkWidget * widget)
   gtk_widget_show(appbar2);
 }
 
+/* XXX should use GError */
 gboolean
 z_build_path(const gchar *path, gchar **error_description)
 {

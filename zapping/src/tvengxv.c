@@ -1259,10 +1259,11 @@ static void tvengxv_close_device(tveng_device_info * info)
 {
   struct private_tvengxv_device_info *p_info=
     (struct private_tvengxv_device_info*) info;
+  gboolean dummy;
 
   t_assert(info != NULL);
 
-  p_tveng_stop_everything(info);
+  p_tveng_stop_everything(info, &dummy);
 
   if (p_info->ei)
     XvFreeEncodingInfo(p_info->ei);

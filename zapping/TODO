@@ -1,6 +1,7 @@
 Outstanding issues for future releases
 --------------------------------------
 
+* Two toolbars in Teletext mode?
 * keyboard: there are too many conflicts between the Zapping
   and Xawtv mapping, better add an option to prefs.
 * Still need ure?

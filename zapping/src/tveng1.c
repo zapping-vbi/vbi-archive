@@ -924,6 +924,7 @@ set_standard			(tveng_device_info *	info,
 				 const tv_video_standard *s)
 {
 	enum tveng_capture_mode current_mode;
+	gboolean overlay_was_active;
 	unsigned int norm;
 	int r;
 
@@ -948,7 +949,8 @@ set_standard			(tveng_device_info *	info,
 			goto success;
 
 		/* XXX */
-		current_mode = p_tveng_stop_everything(info);
+		current_mode = p_tveng_stop_everything(info,
+						       &overlay_was_active);
 
 		channel.norm = norm;
 
@@ -974,7 +976,8 @@ set_standard			(tveng_device_info *	info,
 		}
 
 		/* XXX */
-		current_mode = p_tveng_stop_everything(info);
+		current_mode = p_tveng_stop_everything(info,
+						       &overlay_was_active);
 
 		tuner.mode = norm;
 
@@ -1011,7 +1014,8 @@ set_standard			(tveng_device_info *	info,
 		switched = FALSE;
 
 		/* XXX */
-		current_mode = p_tveng_stop_everything(info);
+		current_mode = p_tveng_stop_everything(info,
+						       &overlay_was_active);
 
 		if (-1 == (r = v4l_ioctl (info, VIDIOCSCHAN, &channel)))
 			goto finish;
@@ -1052,7 +1056,7 @@ set_standard			(tveng_device_info *	info,
  finish:
 	/* Start capturing again as if nothing had happened */
 	/* XXX stop yes, restarting is not our business (eg. frame geometry change). */
-	p_tveng_restart_everything(current_mode, info);
+	p_tveng_restart_everything(current_mode, overlay_was_active, info);
 
 	if (r == 0) {
  success:
@@ -1286,12 +1290,13 @@ set_video_input			(tveng_device_info *	info,
 {
 	struct video_channel channel;
 	enum tveng_capture_mode current_mode;
+	gboolean overlay_was_active;
 
 	if (TVENG_ATTACH_CONTROL == info->attach_mode)
 		if (!panel_open (info))
 			return FALSE;
 
-	current_mode = p_tveng_stop_everything (info);
+	current_mode = p_tveng_stop_everything (info, &overlay_was_active);
 
 	CLEAR (channel);
 
@@ -1318,7 +1323,7 @@ set_video_input			(tveng_device_info *	info,
 				     info->cur_video_input->u.tuner.frequency);
 
 	/* XXX bad idea Start capturing again as if nothing had happened */
-	p_tveng_restart_everything (current_mode, info);
+	p_tveng_restart_everything (current_mode, overlay_was_active, info);
 
 	if (TVENG_ATTACH_CONTROL == info->attach_mode)
 		return panel_close (info);
@@ -1967,8 +1972,9 @@ static void tveng1_close_device(tveng_device_info * info)
   t_assert(info != NULL);
 
   if (info->fd != 0) {
-    p_tveng_stop_everything(info);
+    gboolean dummy;
 
+    p_tveng_stop_everything(info, &dummy);
     device_close(info->log_fp, info -> fd);
     info -> fd = 0;
   }
@@ -2061,6 +2067,7 @@ tveng1_set_capture_format(tveng_device_info * info)
   struct video_picture pict;
   struct video_window window;
   enum tveng_capture_mode mode;
+  gboolean overlay_was_active;
   int r;
 
   CLEAR (pict);
@@ -2068,11 +2075,11 @@ tveng1_set_capture_format(tveng_device_info * info)
 
   t_assert(info != NULL);
 
-  mode = p_tveng_stop_everything(info);
+  mode = p_tveng_stop_everything(info, &overlay_was_active);
 
   if (v4l_ioctl(info, VIDIOCGPICT, &pict))
     {
-      p_tveng_restart_everything(mode, info);
+      p_tveng_restart_everything(mode, overlay_was_active, info);
       return -1;
     }
 
@@ -2082,7 +2089,7 @@ tveng1_set_capture_format(tveng_device_info * info)
     info->tveng_errno = EINVAL;
     tv_error_msg (info, "%s not supported",
 		  tv_pixfmt_name (info->format.pixfmt));
-    p_tveng_restart_everything(mode, info);
+    p_tveng_restart_everything(mode, overlay_was_active, info);
     return -1;
   }
 
@@ -2101,7 +2108,7 @@ tveng1_set_capture_format(tveng_device_info * info)
 
   if (-1 == r)
     {
-      p_tveng_restart_everything(mode, info);
+      p_tveng_restart_everything(mode, overlay_was_active, info);
       return -1;
     }
 
@@ -2123,11 +2130,11 @@ tveng1_set_capture_format(tveng_device_info * info)
   /* Ok, now set the video window dimensions */
   if (v4l_ioctl(info, VIDIOCSWIN, &window))
     {
-      p_tveng_restart_everything(mode, info);
+      p_tveng_restart_everything(mode, overlay_was_active, info);
       return -1;
     }
 
-  p_tveng_restart_everything(mode, info);
+  p_tveng_restart_everything(mode, overlay_was_active, info);
 
   /* Check fill in info with the current values (may not be the ones
      asked for) */
@@ -2344,8 +2351,9 @@ tveng1_start_capturing(tveng_device_info * info)
 {
   struct private_tveng1_device_info * p_info =
     (struct private_tveng1_device_info*) info;
+  gboolean dummy;
 
-  p_tveng_stop_everything(info);
+  p_tveng_stop_everything(info, &dummy);
   t_assert(info -> current_mode == TVENG_NO_CAPTURE);
 
   p_tveng1_timestamp_init(info);
@@ -2612,13 +2620,13 @@ static
 int tveng1_set_capture_size(int width, int height, tveng_device_info * info)
 {
   enum tveng_capture_mode current_mode;
+  gboolean overlay_was_active;
+
   t_assert(info != NULL);
   t_assert(width > 0);
   t_assert(height > 0);
 
-
-
-  current_mode = p_tveng_stop_everything(info);
+  current_mode = p_tveng_stop_everything(info, &overlay_was_active);
 
   height = SATURATE (height, info->caps.minheight, info->caps.maxheight);
   width  = SATURATE (width, info->caps.minwidth, info->caps.maxwidth);
@@ -2632,7 +2640,7 @@ int tveng1_set_capture_size(int width, int height, tveng_device_info * info)
     return -1;
 
   /* Restart capture again */
-  return p_tveng_restart_everything(current_mode, info);
+  return p_tveng_restart_everything(current_mode, overlay_was_active, info);
 }
 
 /* 

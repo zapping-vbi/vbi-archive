@@ -306,7 +306,9 @@ tvengemu_describe_controller(char ** short_str, char ** long_str,
 /* Closes a device opened with tveng_init_device */
 static void tvengemu_close_device(tveng_device_info * info)
 {
-  p_tveng_stop_everything (info);
+  gboolean dummy;
+
+  p_tveng_stop_everything (info, &dummy);
   info->fd = 0;
   info->current_controller = TVENG_CONTROLLER_NONE;
 
@@ -379,9 +381,11 @@ tvengemu_get_signal_strength (int *strength, int *afc,
 static int
 tvengemu_start_capturing (tveng_device_info *info)
 {
+  gboolean dummy;
+
   t_assert (info != NULL);
 
-  p_tveng_stop_everything (info);
+  p_tveng_stop_everything (info, &dummy);
 
   info->current_mode = TVENG_CAPTURE_READ;
 

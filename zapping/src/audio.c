@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.c,v 1.20 2003-12-17 06:34:26 mschimek Exp $ */
+/* $Id: audio.c,v 1.21 2003-12-31 06:49:59 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu */
 #undef GTK_DISABLE_DEPRECATED
@@ -54,7 +54,7 @@ typedef struct {
 
 void mixer_setup ( void )
 {
-#warning
+  /* FIXME */
   if (mixer && mixer_line)
     {
       if (mixer->rec_gain)

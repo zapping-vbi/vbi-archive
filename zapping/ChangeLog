@@ -1,3 +1,30 @@
+2003-12-31    <mschimek@users.sf.net>
+
+	* src/tveng25.c (set_standard), src/tveng2.c (set_standard):
+	  Shortcut if requested standard same as current, saves a
+	  stop_everything cycle.
+	* src/tvengxv.c, src/tvengemu.c,
+	  src/tveng1.c, src/tveng2.c, src/tveng25.c, src/tveng.c,
+	  p_tveng_stop_everything must be reentrant, not use static
+	  overlay_was_active.
+	* src/properties.h, src/properties.c (append_properties_group),
+	  plugins/lirc/lirc.c (custom_properties_add):
+	  append_properties_group stored translated string in config.
+	* glade/zapping.glade2: Restored show-toolbar-as option.
+	* po: Updated from 0.6 & gnome for show-toolbar-as option.
+	* src/properties-handler.c: Restored show-toolbar-as option.
+	* configure.in: PKG_CHECK_MODULES for gconf-2.0.
+	* plugins/screenshot/screenshot.c: Auto filename didn't work right.
+	
+2003-12-25    <mschimek@users.sf.net>
+
+	* src/plugin_common.h (PLUGIN_PROTOCOL): Changed to 0x700,
+	  just in case.
+	* src/v4linterface.c: Enable numeric keypad channel entering
+	  without libzvbi.
+	* src/zvbi.h, src/zvbi.c, src/main.c: Enable py_closed_caption
+	  with or without libzvbi.
+
 2003-12-17    <mschimek@users.sf.net>
 
 	* src/vdr.c (vdr_open): Error messages only with -d option.

@@ -817,34 +817,197 @@ picture_sizes_setup		(GtkWidget *		page)
 		    tree_view);
 }
 
-#if 0
+/* Toolbar style option menu mostly copied from libgnomeui,
+   for compatibility with libgnomeui's toolbar context menu. */
 
-/* Gnome does this already, see gnome-app-helper.c. Or right click
-   on the toolbar dock bevel. Note also Ctrl-Cursor to move the
-   toolbar around. Until I know how to satisfy both Gnome and GHIG
-   this remains commented. */
+#include <gconf/gconf-client.h>
 
+static GConfEnumStringPair toolbar_styles [] = {
+  { GTK_TOOLBAR_TEXT, "text" },
+  { GTK_TOOLBAR_ICONS, "icons" },
+  { GTK_TOOLBAR_BOTH, "both" },
+  { GTK_TOOLBAR_BOTH_HORIZ, "both_horiz" },
+  { -1,	NULL }
+};
+   
 static void
-on_toolbar_button_labels_changed
-				(GtkOptionMenu *	optionmenu,
-				 gpointer		user_data)
+style_menu_item_activated	(GtkWidget *		item,
+				 GtkToolbarStyle	style)
 {
-  GtkToolbarStyle style;
+  GConfClient *conf;
+  char *key;
+  int i;
 
-  switch (gtk_option_menu_get_history (optionmenu))
+  key = gnome_gconf_get_gnome_libs_settings_relative ("toolbar_style");
+  conf = gconf_client_get_default ();
+
+  /* Set our per-app toolbar setting */
+  for (i = 0; i < G_N_ELEMENTS (toolbar_styles); i++)
     {
-      /* Display order as in Control Center. */
-    case 1:	style = GTK_TOOLBAR_BOTH;	break;
-    case 2:	style = GTK_TOOLBAR_BOTH_HORIZ;	break;
-    case 3:	style = GTK_TOOLBAR_ICONS;	break;
-    case 4:	style = GTK_TOOLBAR_TEXT;	break;
-    default:	style = -1; /* default */	break;
+      if (toolbar_styles[i].enum_value == style)
+	{
+	  gconf_client_set_string (conf, key, toolbar_styles[i].str, NULL);
+	  break;
+	}
     }
 
-  zconf_set_integer ((gint) style, "/zapping/options/main/toolbar_style");
+  g_free (key);
 }
 
-#endif
+static void
+global_menu_item_activated	(GtkWidget *		item)
+{
+  GConfClient *conf;
+  char *key;
+
+  key = gnome_gconf_get_gnome_libs_settings_relative ("toolbar_style");
+  conf = gconf_client_get_default ();
+
+  /* Unset the per-app toolbar setting */
+  gconf_client_unset (conf, key, NULL);
+  g_free (key);
+}
+
+static GtkWidget *
+create_toolbar_style_menu	(void)
+{
+  GtkWidget *menu;
+  GtkWidget *item;
+  GtkWidget *both_item, *both_horiz_item;
+  GtkWidget *icons_item, *text_item, *global_item;
+  GSList *group;
+  char *both, *both_horiz, *icons, *text, *global;
+  char *str, *key;
+  GtkToolbarStyle toolbar_style;
+  GConfClient *conf;
+
+  group = NULL;
+  toolbar_style = GTK_TOOLBAR_BOTH;
+  menu = gtk_menu_new ();
+
+  both = _("Text Below Icons");
+  both_horiz = _("Priority Text Beside Icons");
+  icons = _("Icons Only");
+  text = _("Text Only");
+
+  both_item = gtk_radio_menu_item_new_with_label (group, both);
+  g_signal_connect (both_item, "activate",
+		    G_CALLBACK (style_menu_item_activated),
+		    GINT_TO_POINTER (GTK_TOOLBAR_BOTH));
+  group = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (both_item));
+  gtk_menu_shell_append (GTK_MENU_SHELL (menu), both_item);
+
+  both_horiz_item = gtk_radio_menu_item_new_with_label (group, both_horiz);
+  g_signal_connect (both_horiz_item, "activate",
+		    G_CALLBACK (style_menu_item_activated),
+		    GINT_TO_POINTER (GTK_TOOLBAR_BOTH_HORIZ));
+  group = gtk_radio_menu_item_get_group
+    (GTK_RADIO_MENU_ITEM (both_horiz_item));
+  gtk_menu_shell_append (GTK_MENU_SHELL (menu), both_horiz_item);
+
+  icons_item = gtk_radio_menu_item_new_with_label (group, icons);
+  g_signal_connect (icons_item, "activate",
+		    G_CALLBACK (style_menu_item_activated),
+		    GINT_TO_POINTER (GTK_TOOLBAR_ICONS));
+  group = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (icons_item));
+  gtk_menu_shell_append (GTK_MENU_SHELL (menu), icons_item);
+
+  text_item = gtk_radio_menu_item_new_with_label (group, text);
+  g_signal_connect (text_item, "activate",
+		    G_CALLBACK (style_menu_item_activated),
+		    GINT_TO_POINTER (GTK_TOOLBAR_TEXT));
+
+  group = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (text_item));
+  gtk_menu_shell_append (GTK_MENU_SHELL (menu), text_item);
+
+  item = gtk_separator_menu_item_new ();
+  gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
+
+  /* Get global setting */
+  conf = gconf_client_get_default ();
+  str = gconf_client_get_string
+    (conf, "/desktop/gnome/interface/toolbar_style", NULL);
+
+  if (str != NULL)
+    {
+      if (!gconf_string_to_enum (toolbar_styles, str, (gint *) &toolbar_style))
+	toolbar_style = GTK_TOOLBAR_BOTH;
+
+      g_free (str);
+    }
+
+  switch (toolbar_style)
+    {
+    case GTK_TOOLBAR_BOTH:
+      str = both;
+      break;
+    case GTK_TOOLBAR_BOTH_HORIZ:
+      str = both_horiz;
+      break;
+    case GTK_TOOLBAR_ICONS:
+      str = icons;
+      break;
+    case GTK_TOOLBAR_TEXT:
+      str = text;
+      break;
+    default:
+      g_assert_not_reached ();
+    }
+
+  global = g_strdup_printf (_("Use desktop default (%s)"), str);
+  global_item = gtk_radio_menu_item_new_with_label (group, global);
+  g_signal_connect (global_item, "activate",
+		    G_CALLBACK (global_menu_item_activated), NULL);
+  group = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (global_item));
+  g_free (global);
+  gtk_menu_shell_append (GTK_MENU_SHELL (menu), global_item);
+
+  gtk_widget_show_all (menu);
+
+  /* Now select the correct menu according to our preferences */
+  key = gnome_gconf_get_gnome_libs_settings_relative ("toolbar_style");
+  str = gconf_client_get_string (conf, key, NULL);
+
+  if (str == NULL)
+    {
+      /* We have no per-app setting, so the global one must be right. */
+      gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (global_item), TRUE);
+    }
+  else
+    {
+      if (!gconf_string_to_enum (toolbar_styles, str, (gint *) &toolbar_style))
+	toolbar_style = GTK_TOOLBAR_BOTH;
+
+      /* We have a per-app setting, find out which one it is */
+      switch (toolbar_style)
+	{
+	case GTK_TOOLBAR_BOTH:
+	  gtk_check_menu_item_set_active
+	    (GTK_CHECK_MENU_ITEM (both_item), TRUE);
+	  break;
+	case GTK_TOOLBAR_BOTH_HORIZ:
+	  gtk_check_menu_item_set_active
+	    (GTK_CHECK_MENU_ITEM (both_horiz_item), TRUE);
+	  break;
+	case GTK_TOOLBAR_ICONS:
+	  gtk_check_menu_item_set_active
+	    (GTK_CHECK_MENU_ITEM (icons_item), TRUE);
+	  break;
+	case GTK_TOOLBAR_TEXT:
+	  gtk_check_menu_item_set_active
+	    (GTK_CHECK_MENU_ITEM (text_item), TRUE);
+	  break;
+	default:
+	  g_assert_not_reached ();
+	}
+
+      g_free (str);
+    }
+
+  g_free (key);
+
+  return menu;
+}
 
 /* Main window */
 static void
@@ -869,32 +1032,9 @@ mw_setup		(GtkWidget	*page)
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON(w),
     zconf_get_boolean (NULL, "/zapping/options/main/disable_screensaver"));
 
-#if 0 /* See above */
-
-  {
-    guint n;
-
-    /* Toolbar Button Labels */
-
-    w = lookup_widget(page, "toolbar_button_labels");
-
-    switch (zconf_get_integer (NULL, "/zapping/options/main/toolbar_style"))
-      {
-	/* Display order as in Control Center. */
-      case GTK_TOOLBAR_ICONS:		n = 3; break;
-      case GTK_TOOLBAR_TEXT:		n = 4; break;
-      case GTK_TOOLBAR_BOTH:		n = 1; break;
-      case GTK_TOOLBAR_BOTH_HORIZ:	n = 2; break;
-      default:				n = 0; break;
-      }
-
-    gtk_option_menu_set_history (GTK_OPTION_MENU (w), n);
-
-    g_signal_connect (G_OBJECT (w), "changed",
-		      (GCallback) on_toolbar_button_labels_changed, NULL);
-  }
-
-#endif
+  /* Toolbar style */
+  w = lookup_widget(page, "toolbar_style");
+  gtk_option_menu_set_menu (GTK_OPTION_MENU (w), create_toolbar_style_menu ());
 
   /* Swap Page Up/Down */
 /*

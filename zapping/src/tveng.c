@@ -101,7 +101,6 @@ static tveng_controller tveng_controllers[] = {
   tveng2_init_module,
   tveng1_init_module,
   tvengbktr_init_module,
-  tvengemu_init_module
 };
 
 
@@ -499,10 +498,12 @@ tveng_describe_controller(char ** short_str, char ** long_str,
 /* Closes a device opened with tveng_init_device */
 void p_tveng_close_device(tveng_device_info * info)
 {
+  gboolean dummy;
+
   if (info->current_controller == TVENG_CONTROLLER_NONE)
     return; /* nothing to be done */
 
-  p_tveng_stop_everything(info);
+  p_tveng_stop_everything(info, &dummy);
 
   /* remove mixer controls */
   tveng_attach_mixer_line (info, NULL, NULL);
@@ -2536,10 +2537,11 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 	}
 
 	{
+		gboolean dummy;
 		/* FIXME need a safer solution. */
 		/* Could temporarily switch to control attach_mode. */
 		t_assert (info->file_name != NULL);
-		p_tveng_stop_everything (info);
+		p_tveng_stop_everything (info, &dummy);
 		device_close (info->log_fp, info->fd);
 		info->fd = 0;
 	}
@@ -2919,13 +2921,9 @@ tveng_get_zapping_setup_fb_verbosity(tveng_device_info * info)
   return (info->priv->zapping_setup_fb_verbosity);
 }
 
-/* FIXME static
-  This is used because mode can be _PREVIEW or _WINDOW without
-  overlay_active due to delay timer. Don't reactivate prematurely. */
-static tv_bool overlay_was_active = FALSE;
-
 enum tveng_capture_mode 
-p_tveng_stop_everything (tveng_device_info *       info)
+p_tveng_stop_everything (tveng_device_info *       info,
+			 gboolean * overlay_was_active)
 {
   enum tveng_capture_mode returned_mode;
 
@@ -2933,7 +2931,7 @@ p_tveng_stop_everything (tveng_device_info *       info)
   switch (info->current_mode)
     {
     case TVENG_CAPTURE_READ:
-      overlay_was_active = FALSE;
+      *overlay_was_active = FALSE;
       if (info->priv->module.stop_capturing)
 	(info->priv->module.stop_capturing(info));
       t_assert(info->current_mode == TVENG_NO_CAPTURE);
@@ -2946,7 +2944,7 @@ p_tveng_stop_everything (tveng_device_info *       info)
          appropriately and restart. Not our business to switch
 	 the vidmode back and forth, and changing the overlay window.
 	 That belongs at a higher layer, e.g. the zvideo widget. */
-      overlay_was_active = info->overlay_active;
+      *overlay_was_active = info->overlay_active;
       p_tveng_stop_previewing(info);
       t_assert(info->current_mode == TVENG_NO_CAPTURE);
       break;
@@ -2954,8 +2952,8 @@ p_tveng_stop_everything (tveng_device_info *       info)
       /* fall through */
 #endif
     case TVENG_CAPTURE_WINDOW:
-      overlay_was_active = info->overlay_active;
-  /* No error checking */
+      *overlay_was_active = info->overlay_active;
+      /* No error checking */
       if (info->overlay_active)
 	p_tveng_set_preview (FALSE, info);
       info -> current_mode = TVENG_NO_CAPTURE;
@@ -2984,7 +2982,8 @@ p_tveng_stop_everything (tveng_device_info *       info)
      ... show error dialog ...
 */
 enum tveng_capture_mode 
-tveng_stop_everything (tveng_device_info *       info)
+tveng_stop_everything (tveng_device_info *       info,
+		       gboolean *overlay_was_active)
 {
   enum tveng_capture_mode returned_mode;
 
@@ -2992,15 +2991,19 @@ tveng_stop_everything (tveng_device_info *       info)
 
   TVLOCK;
 
-  returned_mode = p_tveng_stop_everything (info);
+  returned_mode = p_tveng_stop_everything (info, overlay_was_active);
 
   UNTVLOCK;
 
   return returned_mode;
 }
 
+/* FIXME overlay_was_active = info->overlay_active
+   because mode can be _PREVIEW or _WINDOW without
+  overlay_active due to delay timer. Don't reactivate prematurely. */
 int p_tveng_restart_everything (enum tveng_capture_mode mode,
-			      tveng_device_info * info)
+				gboolean overlay_was_active,
+				tveng_device_info * info)
 {
   switch (mode)
     {
@@ -3023,7 +3026,9 @@ int p_tveng_restart_everything (enum tveng_capture_mode mode,
     case TVENG_CAPTURE_WINDOW:
       if (info->current_mode != mode)
 	{
-	  p_tveng_stop_everything(info);
+	  gboolean dummy;
+
+	  p_tveng_stop_everything(info, &dummy);
 
 	  if (overlay_was_active)
 	    {
@@ -3055,12 +3060,14 @@ int p_tveng_restart_everything (enum tveng_capture_mode mode,
   tveng_stop_everything. Returns -1 on error.
 */
 int tveng_restart_everything (enum tveng_capture_mode mode,
+			      gboolean overlay_was_active,
 			      tveng_device_info * info)
 {
   t_assert(info != NULL);
 
   TVLOCK;
-  RETURN_UNTVLOCK (p_tveng_restart_everything (mode, info));
+  RETURN_UNTVLOCK (p_tveng_restart_everything
+		   (mode, overlay_was_active, info));
 }
 
 int tveng_get_debug_level(tveng_device_info * info)

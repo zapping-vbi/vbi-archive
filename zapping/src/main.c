@@ -419,7 +419,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.175 2003-12-20 07:02:54 mschimek Exp $",
+	 "$Id: main.c,v 1.176 2003-12-31 06:49:59 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -638,10 +638,8 @@ int main(int argc, char * argv[])
   x11_screensaver_control (zconf_get_boolean
 			   (NULL, "/zapping/options/main/disable_screensaver"));
   D();
-#ifdef HAVE_LIBZVBI
   startup_zvbi();
   D();
-#endif
   main_window = create_zapping();
   D();
   tv_screen = lookup_widget(main_window, "tv-screen");
@@ -867,10 +865,10 @@ static void shutdown_zapping(void)
    */
   printv(" ttxview");
   shutdown_ttxview();
+#endif
   /* Shut down vbi */
   printv(" vbi\n");
   shutdown_zvbi();
-#endif
 
   {
     tveng_tc_control *controls;

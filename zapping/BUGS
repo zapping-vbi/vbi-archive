@@ -1,22 +1,15 @@
 Known bugs in Zapping, don't report them
 ----------------------------------------
 
-* Make sure we don't link with 0.6.x plugins. 
-* Overlay needs a review.
 * Chance hang in request_capture_format_real at some rwlock,
   in libzvbi-less Zapping, when switching display mode
   (btw overlay and fullscreen IIRC).
-* Fullscreen doesn't work in libzvbi-less Zapping, does
-  in other versions (with --no-xv, using DMA).
 * Edited channels, clicked ok, tc==NULL in tuned_channel_nth_name().
-* ** (zapping:14562): WARNING **: Group Allgemeine Optionen not found
-  in the properties; Also seen with "VBI Optionen"
 * Video size isn't always right on startup.
 * Wrong window stacking layer of overlay window when
   Zapping restores no-xv fullscreen at startup.
 * Station search doesn't work in overlay mode
   (Xv/v4l no signal strength), need check/switch.
-- In capture mode window resizing flickers.
 * Need better no-overlay-present handling.
 * Capture won't work under PPC (endianess)
 * Look for endianness problems.
@@ -66,6 +59,9 @@ Needs more work later:
 * fprintf_ioctl dereferences uninitialized strings. This is only
   used for debugging, but I'll sure regret it.
 * 0.7 seems to run slower than 0.6, must profile.
+* Overlay needs a review.
+* Prefs toolbar style menu does not update when config changes
+  (should it?) and selection cannot be canceled.
 
 tvengxv.c
 * Need to handle BadAtom errors resulting from Xv out

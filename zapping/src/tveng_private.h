@@ -53,20 +53,23 @@
   if (tveng_restart_everything(cur_mode, info) == -1)
      ... show error dialog ...
 */
-enum tveng_capture_mode tveng_stop_everything (tveng_device_info *
-					       info);
+enum tveng_capture_mode tveng_stop_everything (tveng_device_info *info,
+					       gboolean *overlay_was_active);
 /*
   Restarts the given capture mode. See the comments on
   tveng_stop_everything. Returns -1 on error.
 */
 int tveng_restart_everything (enum tveng_capture_mode mode,
+			      gboolean overlay_was_active,
 			      tveng_device_info * info);
 
 int p_tveng_set_preview_window(tveng_device_info * info);
 int p_tveng_set_preview (int on, tveng_device_info * info);
 enum tveng_capture_mode 
-p_tveng_stop_everything (tveng_device_info * info);
+p_tveng_stop_everything (tveng_device_info * info,
+			 gboolean * overlay_was_active);
 int p_tveng_restart_everything (enum tveng_capture_mode mode,
+				gboolean overlay_was_active,
 				tveng_device_info * info);
 int p_tveng_set_capture_format(tveng_device_info * info);
 
