@@ -176,9 +176,6 @@ main (int argc, char *argv[])
 
   tveng_tuned_channel* last_tuned_channel;
 
-  fd_set rdset;
-  struct timeval timeout;
-  int n;
   GList * p; /* For traversing the plugins */
   struct plugin_info * plug_info;
 
@@ -392,137 +389,99 @@ main (int argc, char *argv[])
 	    continue; /* Exit the loop if the exit flag has been
 			 raised */
 
-	  FD_ZERO(&rdset);
-	  FD_SET(info.fd, &rdset);
-	  timeout.tv_sec = 1;
-	  timeout.tv_usec = 0;
-	  n = select(info.fd + 1, &rdset, NULL, NULL, &timeout);
-	  if (n == -1)
-	    fprintf(stderr, _("select() error\n"));
-	  else if (n == 0)
-	    fprintf(stderr, _("select() timeout\n"));
-	  else if (FD_ISSET(info.fd, &rdset))
+	  /* read a frame */
+	  if (tveng_read_frame(10000, &info) == -1)
+	    continue;
+
+	  /* Feed all the plugins with this frame */
+	  p = g_list_first(plugin_list);
+	  while (p)
 	    {
-	      /* We have data to be dequeued, dequeue it */
-	      n = tveng_dqbuf(&info);
-	      if (n != -1) /* No errors */
-		{
-		  /* Wait for loaded frames */
-		  do{
-		    FD_ZERO(&rdset);
-		    FD_SET(info.fd, &rdset);
-		    timeout.tv_sec = timeout.tv_usec = 0;
-		    if (select(info.fd +1, &rdset, NULL, NULL,
-			       &timeout) < 1)
-		      break;
-		    tveng_qbuf(n, &info);
-		    n = tveng_dqbuf(&info);
-		      } while (TRUE);
-
-		  /* Copy the data to the format struct */
-		  /* FIXME: This is utterly provisional, TVEng should
-		     contain something like tveng_read_frame(&info),
-		     but i've been so many hours without sleeping
-		     now... */
-		  memcpy(info.format.data, info.buffers[n].vmem,
-			 info.format.sizeimage);
-
-		  /* Feed all the plugins with this frame */
-		  p = g_list_first(plugin_list);
-		  while (p)
-		    {
-		      plugin_eat_frame(&info.format, 
-				       (struct plugin_info *) p->data);
-		      p = p->next;
-		    }
-
-		  switch (info.format.pixformat)
-		    {
-		    case TVENG_PIX_BGR32:
-		      info.ximage -> data = info.format.data;
-		      gdk_draw_image(da -> window,
-				     da -> style -> white_gc,
-				     info.image,
-				     0, 0, 0, 0,
-				     info.format.width,
-				     info.format.height);
-		      break;
-
-		    case TVENG_PIX_BGR24:
-		      info.ximage -> data = info.format.data;
-		      gdk_draw_image(da -> window,
-				     da -> style -> white_gc,
-				     info.image,
-				     0, 0, 0, 0,
-				     info.format.width,
-				     info.format.height);
-		      break;
-
-		    case TVENG_PIX_RGB32:
-		      gdk_draw_rgb_32_image(da -> window,
-					    da -> style -> white_gc,
-					    0, 0,
-					    info.format.width,
-					    info.format.height,
-					    GDK_RGB_DITHER_MAX,
-					    info.format.data,
-					    info.format.bytesperline);
-		      break;
-		    case TVENG_PIX_RGB24:
-		      gdk_draw_rgb_image(da -> window,
-					 da -> style -> white_gc,
-					 0, 0, 
-					 info.format.width,
-					 info.format.height,
-					 GDK_RGB_DITHER_MAX,
-					 info.format.data,
-					 info.format.bytesperline);
-					 break;
-		      break;
-		    case TVENG_PIX_RGB565:
-		      info.ximage -> data = info.format.data;
-
-		      gdk_draw_image(da -> window,
-				     da -> style -> white_gc,
-				     info.image,
-				     0, 0, 0, 0,
-				     info.format.width,
-				     info.format.height);
-		      break;
-		    case TVENG_PIX_RGB555:
-		      info.ximage -> data = info.format.data;
+	      plugin_eat_frame(&info.format, 
+			       (struct plugin_info *) p->data);
+	      p = p->next;
+	    }
+	  
+	  switch (info.format.pixformat)
+	    {
+	    case TVENG_PIX_BGR32:
+	      info.ximage -> data = info.format.data;
+	      gdk_draw_image(da -> window,
+			     da -> style -> white_gc,
+			     info.image,
+			     0, 0, 0, 0,
+			     info.format.width,
+			     info.format.height);
+	      break;
+	      
+	    case TVENG_PIX_BGR24:
+	      info.ximage -> data = info.format.data;
+	      gdk_draw_image(da -> window,
+			     da -> style -> white_gc,
+			     info.image,
+			     0, 0, 0, 0,
+			     info.format.width,
+			     info.format.height);
+	      break;
 		      
-		      gdk_draw_image(da -> window,
-				     da -> style -> white_gc,
-				     info.image,
-				     0,0,0,0,
-				     info.format.width,
-				     info.format.height);
-		      break;
-		    default:
+	    case TVENG_PIX_RGB32:
+	      gdk_draw_rgb_32_image(da -> window,
+				    da -> style -> white_gc,
+				    0, 0,
+				    info.format.width,
+				    info.format.height,
+				    GDK_RGB_DITHER_MAX,
+				    info.format.data,
+				    info.format.bytesperline);
+	      break;
+	    case TVENG_PIX_RGB24:
+	      gdk_draw_rgb_image(da -> window,
+				 da -> style -> white_gc,
+				 0, 0, 
+				 info.format.width,
+				 info.format.height,
+				 GDK_RGB_DITHER_MAX,
+				 info.format.data,
+				 info.format.bytesperline);
+	      break;
+	    case TVENG_PIX_RGB565:
+	      info.ximage -> data = info.format.data;
+	      
+	      gdk_draw_image(da -> window,
+			     da -> style -> white_gc,
+			     info.image,
+			     0, 0, 0, 0,
+			     info.format.width,
+			     info.format.height);
+	      break;
+	    case TVENG_PIX_RGB555:
+	      info.ximage -> data = info.format.data;
+	      
+	      gdk_draw_image(da -> window,
+			     da -> style -> white_gc,
+			     info.image,
+			     0,0,0,0,
+			     info.format.width,
+			     info.format.height);
+	      break;
+	    default:
 #ifndef NDEBUG
-		      fprintf(stderr,"SWITCH ERROR !!!\n");
+	      fprintf(stderr,"SWITCH ERROR !!!\n");
 #endif
-		      break;
-		    }
-
-		  /* Take the screenshot of the current image */
-		  if (take_screenshot)
-		    {
-		      Save_PNG_shot(info.buffers[n].vmem,
-				    &info,
-				    config.png_src_dir,
-				    config.png_prefix,
-				    config.png_show_progress);
-
-		      /* Clear flag */
-		      take_screenshot = FALSE;
-		    }
-		  /* and queue  the buffer again*/
-		  tveng_qbuf(n, &info);
-		}
-	      else
-		perror("tveng_dqbuf");
+	      break;
+	    }
+	  
+	  /* Take the screenshot of the current image */
+	  if (take_screenshot)
+	    {
+	      Save_PNG_shot(info.format.data,
+			    &info,
+			    config.png_src_dir,
+			    config.png_prefix,
+			    config.png_show_progress);
+	      
+	      /* Clear flag */
+	      take_screenshot = FALSE;
 	    }
 	  /* The channels have been updated by the channel editor,
 	     show the changes */
@@ -533,6 +492,7 @@ main (int argc, char *argv[])
 	      update_channels_menu(zapping, &info);
 	    }
 	}
+
       /* Stop current capture */
       switch (info.current_mode)
 	{

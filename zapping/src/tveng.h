@@ -312,10 +312,14 @@ int tveng_stop_capturing(tveng_device_info * info);
 /* 
    Reads a frame from the video device, storing the read data in
    info->format.data
+   time: time to wait using select() in miliseconds
    info: pointer to the video device info structure
-   Returns whatever read() returns
+   This call was originally intended to wrap a single read() call, but
+   since i cannot get it to work, now encapsulates the dqbuf/qbuf
+   logic.
+   Returns -1 on error, anything else on success
 */
-int tveng_read_frame(tveng_device_info * info);
+int tveng_read_frame(unsigned int time, tveng_device_info * info);
 
 /* dequeues next available buffer and returns it's id. -1 on error */
 int tveng_dqbuf(tveng_device_info * info);

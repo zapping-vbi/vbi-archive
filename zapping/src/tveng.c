@@ -668,7 +668,7 @@ gpointer tveng_start_capturing(tveng_device_info * info)
 	  return NULL;
 	}
       
-      /* Queue the buffer */
+	/* Queue the buffer */
       tveng_qbuf(i, info);
     }
 
@@ -753,7 +753,7 @@ gpointer tveng_start_capturing(tveng_device_info * info)
   /* Set the mode flag */
   info -> current_mode = TVENG_CAPTURE_MMAPED_BUFFERS;
 
-  return (info->buffers[0].vmem); /* Success */
+  return (info->format.data); /* Success */
 }
 
 /* Try to stop capturing. -1 on error */
@@ -794,7 +794,7 @@ int tveng_stop_capturing(tveng_device_info * info)
   info -> ximage -> data = (char*) malloc(2); /* Allocate something */
   gdk_image_destroy(info -> image);
 
-  g_free(info -> buffers);
+  //g_free(info -> buffers);
 
   /* Free the memory we allocated on start */
   if (info -> format.data)
@@ -809,12 +809,67 @@ int tveng_stop_capturing(tveng_device_info * info)
 /* 
    Reads a frame from the video device, storing the read data in
    info->format.data
+   time: time to wait using select() in miliseconds
    info: pointer to the video device info structure
-   Returns whatever read() returns
+   This call was originally intended to wrap a single read() call, but
+   since i cannot get it to work, now encapsulates the dqbuf/qbuf
+   logic.
+   Returns -1 on error, anything else on success
 */
-int tveng_read_frame(tveng_device_info * info)
+int tveng_read_frame(unsigned int time, tveng_device_info * info)
 {
-  return(read(info->fd, info->format.data, info->format.sizeimage));
+  int n; /* The dequeued buffer */
+  fd_set rdset;
+  struct timeval timeout;
+
+  /* Fill in the rdset structure */
+  FD_ZERO(&rdset);
+  FD_SET(info->fd, &rdset);
+  timeout.tv_sec = 0;
+  timeout.tv_usec = time;
+  n = select(info->fd +1, &rdset, NULL, NULL, &timeout);
+  if (n == -1)
+    {
+#ifndef NDEBUG
+      perror("select()");
+#endif
+      return -1;
+    }
+  else if (n == 0)
+    return -1; /* This isn't properly an error */
+
+  g_assert(FD_ISSET(info->fd, &rdset)); /* Some sanity check */
+  n = tveng_dqbuf(info);
+  if (n == -1)
+    {
+#ifndef NDEBUG
+      perror("tveng_dqbuf()");
+#endif
+      return -1;
+    }
+  /* Ignore frames we haven't been able to process */
+  do{
+    FD_ZERO(&rdset);
+    FD_SET(info->fd, &rdset);
+    timeout.tv_sec = timeout.tv_usec = 0;
+    if (select(info->fd +1, &rdset, NULL, NULL, &timeout) < 1)
+      break;
+    tveng_qbuf(n, info);
+    n = tveng_dqbuf(info);
+  } while (TRUE);
+  /* Copy the data to the address info->format.data points to */
+  memcpy(info->format.data, info->buffers[n].vmem,
+	 info->format.sizeimage);
+  /* Queue the buffer again for processing */
+  if (tveng_qbuf(n, info))
+    {
+#ifndef NDEBUG
+      perror("tveng_qbuf()");
+#endif
+      return -1;
+    }
+  /* Everything has been OK, return 0 (success) */
+  return 0;
 }
 
 /* Queues an specific buffer. -1 on error */

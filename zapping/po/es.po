@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.2\n"
-"POT-Creation-Date: 2000-02-19 01:21+0100\n"
+"POT-Creation-Date: 2000-02-24 00:47+0100\n"
 "PO-Revision-Date: 2000-02-14 16:56+0100\n"
 "Last-Translator: Iñaki García Etxebarria <garetxe@users.sourceforge.net>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -12,32 +12,24 @@ msgstr ""
 "Content-Type: text/plain; charset=iso-8859-1\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/main.c:199
+#: src/main.c:257
 msgid "Cannot read $HOME/.zappingrc, defaulting to standards..."
 msgstr ""
 "No puedo leer $HOME/.zappingrc, volviendo a la configuración\n"
 "por defecto..."
 
 # src/main.c:224
-#: src/main.c:234
+#: src/main.c:292
 msgid "Sorry, cannot start capturing frames"
 msgstr "Lo siento, no puedo empezar a capturar el video"
 
-#: src/main.c:330
-msgid "select() error\n"
-msgstr ""
-
-#: src/main.c:332
-msgid "select() timeout\n"
-msgstr ""
-
 # src/main.c:392
-#: src/main.c:488
+#: src/main.c:536
 msgid "There was some error writing the configuration\n"
 msgstr "Ha habido un error escribiendo la configuración\n"
 
 # src/main.c:419
-#: src/main.c:495
+#: src/main.c:552
 msgid ""
 "Sorry, dude. No v4l2 for you today...\n"
 "(v4l2 must be correctly installed before running this program)"
@@ -45,12 +37,12 @@ msgstr ""
 "Lo siento, tío. Hoy no te toca v412...\n"
 "(v4l2 tiene que estar correctamente instalado antes de ejecutar el programa)"
 
-#: src/main.c:502
+#: src/main.c:559
 msgid "Should I try \"/dev/video\"?"
 msgstr "¿Debo probar con \"/dev/video\"?"
 
 # src/main.c:682
-#: src/main.c:1007
+#: src/main.c:1145
 msgid ""
 "\n"
 "This is the configuration file for Zapping, the TV viewer.\n"
@@ -70,7 +62,7 @@ msgstr ""
 "en caso de error al identificarlo, Zapping cargará el archivo por defecto.\n"
 
 # src/main.c:690
-#: src/main.c:1015
+#: src/main.c:1153
 msgid ""
 "\n"
 "Info regarding main window dimensions\n"
@@ -78,7 +70,7 @@ msgstr ""
 "\n"
 "Información sobre las dimensiones de la ventana principal\n"
 
-#: src/main.c:1024
+#: src/main.c:1162
 msgid ""
 "\n"
 "Info about capture parameters\n"
@@ -87,7 +79,7 @@ msgstr ""
 "Información sobre los parámetros de captura\n"
 
 # src/main.c:695
-#: src/main.c:1029
+#: src/main.c:1167
 msgid ""
 "\n"
 "Info regarding current tuners\n"
@@ -96,7 +88,7 @@ msgstr ""
 "Información sobre los sintonizadores actuales\n"
 
 # src/v4l2interface.c:146
-#: src/main.c:1034
+#: src/main.c:1172
 msgid ""
 "\n"
 "These are the pretuned channels\n"
@@ -104,7 +96,7 @@ msgstr ""
 "\n"
 "Estos son los canales presintonizados\n"
 
-#: src/main.c:1039
+#: src/main.c:1177
 msgid ""
 "\n"
 "Options for saving PNG screenshots\n"
@@ -112,66 +104,76 @@ msgstr ""
 "\n"
 "Opciones al guardar como PNG\n"
 
+#: src/main.c:1183
+msgid ""
+"\n"
+"Any options the plugins want to store is here\n"
+msgstr ""
+
+#: src/interface.c:30
+msgid "P_lugins"
+msgstr ""
+
 # src/interface.c:29
-#: src/interface.c:31
+#: src/interface.c:38
 msgid "_TV Channels"
 msgstr "Canales de _Televisión"
 
-#: src/interface.c:43
+#: src/interface.c:50
 msgid "Go _Fullscreen"
 msgstr "_Pantalla Completa"
 
-#: src/interface.c:44
+#: src/interface.c:51
 msgid "Use this to go fullscreen. Press ESC to return to Windowed mode"
 msgstr "Usa esto para activar el modo pantalla completa, ESC para volver"
 
-#: src/interface.c:50
+#: src/interface.c:57
 msgid "Go _Windowed"
 msgstr "En _Ventana"
 
 # src/interface.c:362
-#: src/interface.c:62
+#: src/interface.c:69
 msgid "Channel up"
 msgstr "Canal arriba"
 
 # src/interface.c:405
-#: src/interface.c:69
+#: src/interface.c:76
 msgid "Channel down"
 msgstr "Canal abajo"
 
-#: src/interface.c:90 src/interface.c:93
+#: src/interface.c:97
 msgid "Go _Zapping"
 msgstr "_Zappear"
 
 # src/interface.c:104
-#: src/interface.c:117
+#: src/interface.c:124
 msgid "Zapping"
 msgstr ""
 
 # src/interface.c:247
-#: src/interface.c:242
+#: src/interface.c:254
 msgid "Controls"
 msgstr "Controles"
 
-#: src/interface.c:243
+#: src/interface.c:255
 msgid "Configure capture"
 msgstr "Configurar la captura"
 
-#: src/interface.c:254
+#: src/interface.c:266
 msgid "Screenshot"
 msgstr ""
 
-#: src/interface.c:255
+#: src/interface.c:267
 msgid "Save a screenshot as PNG"
 msgstr "Guardar la imagen actual como PNG"
 
 # src/interface.c:307
-#: src/interface.c:314
+#: src/interface.c:326
 msgid "Channel choosing"
 msgstr "Selector de canales"
 
 # src/interface.c:316
-#: src/interface.c:323
+#: src/interface.c:335
 msgid ""
 "Choose here the channels you want to use.\n"
 "If your country is not listed, please find out the frequencies used for\n"
@@ -184,154 +186,190 @@ msgstr ""
 "del programa."
 
 # src/interface.c:336
-#: src/interface.c:343
+#: src/interface.c:355
 msgid "Select here the country you are in"
 msgstr "Selecciona tu país"
 
 # src/interface.c:338
-#: src/interface.c:345
+#: src/interface.c:357
 msgid "Dummy country"
 msgstr ""
 
 # src/interface.c:362
-#: src/interface.c:368
+#: src/interface.c:380
 msgid "Channel"
 msgstr "Canal"
 
 # src/interface.c:369
-#: src/interface.c:375
+#: src/interface.c:387
 msgid "Freq (kHz)"
 msgstr "Frec (kHz)"
 
 # src/interface.c:382
-#: src/interface.c:388
+#: src/interface.c:400
 msgid "Enter here the name you want to give to this channel"
 msgstr "Pon aquí el nombre que le quieres dar a este canal"
 
 # src/interface.c:405
-#: src/interface.c:410
+#: src/interface.c:422
 msgid "Channel name"
 msgstr "Nombre del canal"
 
 # src/interface.c:412
-#: src/interface.c:417
+#: src/interface.c:429
 msgid "Real Channel"
 msgstr "Canal real"
 
 # src/interface.c:419
-#: src/interface.c:424
+#: src/interface.c:436
 msgid "Frequence (kHz)"
 msgstr "Frecuencia (kHz)"
 
 # src/interface.c:432
-#: src/interface.c:437
+#: src/interface.c:449
 msgid "Click here to add current channel"
 msgstr "Pulsa aquí para añadir el canal actual"
 
 # src/interface.c:440
-#: src/interface.c:445
+#: src/interface.c:457
 msgid "Click here to delete selected channels"
 msgstr "Pulsa aquí para borrar los canales seleccionados"
 
 # src/interface.c:448
-#: src/interface.c:453
+#: src/interface.c:465
 msgid "Click here when you are done"
 msgstr "Pulsa aquí cuando hayas acabado"
 
-#: src/interface.c:523
+#: src/interface.c:535
 msgid "File prefix: (saved files will be called prefix1.png, prefix2.png, ...)"
 msgstr "Prefijo: (se guardarán como prefijo1.png, prefijo2.png, ...)"
 
-#: src/interface.c:536
+#: src/interface.c:548
 msgid "Enter here the saved file prefix"
 msgstr "Introduzca aquí el prefijo al guardar los ficheros"
 
-#: src/interface.c:538
+#: src/interface.c:550
 msgid "Screenshot dir"
 msgstr "Directorio para los screenshots"
 
-#: src/interface.c:545
+#: src/interface.c:557
 msgid "Screenshot directory"
 msgstr "Directorio para los screenshots"
 
-#: src/interface.c:559
+#: src/interface.c:571
 msgid "Show progress bar while saving"
 msgstr "Muestra la barra de progreso al guardar"
 
-#: src/interface.c:567
+#: src/interface.c:579
 msgid "PNG capture"
 msgstr "Captura como PNG"
 
-#: src/interface.c:581
+#: src/interface.c:593
 msgid "(This changes will be applied when the video engine is restarted)"
 msgstr "(Estos cambios serán aplicados al reiniciar el engine de video)"
 
-#: src/interface.c:588
+#: src/interface.c:600
 msgid "Capture interlaced (allows higher resolutions)"
 msgstr "Captura entrelazada (permite resoluciones mayores)"
 
-#: src/interface.c:595
+#: src/interface.c:607
 msgid "Number of capture buffers we should try to use:"
 msgstr "Número de buffers de captura que intentaremos usar:"
 
-#: src/interface.c:612
+#: src/interface.c:624
 msgid "Video device to open (usually /dev/video0)"
 msgstr "Dispositivo de video a abrir (normalmente /dev/video)"
 
-#: src/interface.c:619
+#: src/interface.c:631
 msgid "Select video device"
 msgstr "Seleccionar dispositivo de video"
 
-#: src/interface.c:632
+#: src/interface.c:644
 msgid "Video Options"
 msgstr "Opciones de Video"
 
-#: src/interface.c:648
+#: src/interface.c:660
 msgid "Verbosity value given to zapping_setup_fb (a suid helper program)"
 msgstr "Nivel de mensajes de zapping__setup__fb (un programa auxiliar)"
 
-#: src/interface.c:664
+#: src/interface.c:676
 msgid "Try to avoid noise when changing TV channels"
 msgstr "Tratar de evitar ruido al cambiar canales"
 
-#: src/interface.c:671
+#: src/interface.c:683
 msgid "Miscelaneous"
 msgstr "Varios"
 
-#: src/interface.c:700
+#: src/interface.c:712
 msgid "(C) Iñaki García Etxebarria"
 msgstr ""
 
-#: src/interface.c:702
+#: src/interface.c:714
 msgid "A TV viewer for the Gnome Desktop Environment"
 msgstr "La televisión para Gnome"
 
+#: src/interface.c:747
+msgid "Plugin properties"
+msgstr ""
+
+# src/interface.c:405
+#: src/interface.c:784
+#, fuzzy
+msgid "Canonical Name"
+msgstr "Nombre del canal"
+
+#: src/interface.c:791
+msgid "Name"
+msgstr ""
+
+#: src/interface.c:798
+msgid "Version"
+msgstr ""
+
+#: src/interface.c:805
+msgid "Active"
+msgstr ""
+
+# src/interface.c:448
+#: src/interface.c:840
+#, fuzzy
+msgid "Click here when you are done with the plugins"
+msgstr "Pulsa aquí cuando hayas acabado"
+
+#: src/interface.c:848
+msgid "Close the plugin"
+msgstr ""
+
+#: src/interface.c:856
+msgid "Click here to apply (activate) the plugin"
+msgstr ""
+
 # src/callbacks.c:268
-#: src/callbacks.c:250
+#: src/callbacks.c:253
 msgid "Sorry, but I cannot set the capture size correctly, exiting"
 msgstr ""
 "Perdón, pero no puedo ajustar el tamaño de capture\n"
 "correctamente, saliendo del programa"
 
 # src/callbacks.c:275
-#: src/callbacks.c:257
+#: src/callbacks.c:260
 msgid "Sorry, but I cannot get the capture size correctly, exiting"
 msgstr ""
 "Perdón, pero no puedo averiguar el tamaño de captura\n"
 "correctamente, saliendo del programa"
 
 # src/callbacks.c:298
-#: src/callbacks.c:281
+#: src/callbacks.c:284
 msgid "Cannot set standard"
 msgstr "No puedo ajustar el estándar"
 
 # src/callbacks.c:320 src/v4l2interface.c:89
-#: src/callbacks.c:299
+#: src/callbacks.c:302
 msgid "Cannot set input"
 msgstr "No puedo ajustar el canal de entrada"
 
 # src/callbacks.c:338
-#: src/callbacks.c:317
+#: src/callbacks.c:320
 #, c-format
 msgid "Cannot tune given channel %d (no such channel)\n"
 msgstr "No puedo sintonizar el canal %d (no hay tal canal)\n"
@@ -339,20 +377,55 @@ msgstr "No puedo sintonizar el canal %d (no hay tal canal)\n"
 # src/callbacks.c:355
 #. Set the
 #. input freq
-#: src/callbacks.c:333
+#: src/callbacks.c:336
 msgid "Cannot tune input"
 msgstr "No puedo sintonizar el canal de entrada"
 
 # src/callbacks.c:454
-#: src/callbacks.c:446
+#: src/callbacks.c:449
 #, c-format
 msgid "Cannot sscanf() unsigned integer from %s"
 msgstr ""
 
+#: src/callbacks.c:763 src/callbacks.c:801
+#, c-format
+msgid "%s (%d): This shouldn't have been reached\n"
+msgstr ""
+
 # src/tveng.c:70
-#: src/callbacks.c:806
+#: src/callbacks.c:851
 msgid "Sorry, but cannot go fullscreen"
 msgstr "Perdón, pero no puedo iniciar el modo pantalla completa"
+
+#: src/callbacks.c:962 src/callbacks.c:1048 src/callbacks.c:1074
+msgid "Yes"
+msgstr ""
+
+#: src/callbacks.c:962 src/callbacks.c:1048 src/callbacks.c:1074
+msgid "No"
+msgstr ""
+
+#: src/callbacks.c:996
+msgid "Plugin Description: "
+msgstr ""
+
+#: src/callbacks.c:1000
+msgid ""
+"\n"
+"Plugin author: "
+msgstr ""
+
+#. Adapt this and " required" to your own language structure freely
+#: src/callbacks.c:1007
+#, fuzzy
+msgid ""
+"\n"
+"Zapping "
+msgstr "_Zappear"
+
+#: src/callbacks.c:1009
+msgid " required"
+msgstr ""
 
 # src/support.c:97 src/support.c:135
 #: src/support.c:97 src/support.c:135
@@ -463,19 +536,19 @@ msgid "Error adding %s\n"
 msgstr "Error añadiendo %s\n"
 
 # src/tveng.c:40
-#: src/tveng.c:65
+#: src/tveng.c:68
 #, c-format
 msgid "Cannot open device \"%s\""
 msgstr "No se puede abrir el dispositivo \"%s\""
 
 # src/tveng.c:49
-#: src/tveng.c:75
+#: src/tveng.c:78
 #, c-format
 msgid "QUERYCAP returned %d"
 msgstr "QUERICAP devolvió %d"
 
 # src/tveng.c:58
-#: src/tveng.c:84
+#: src/tveng.c:87
 #, c-format
 msgid ""
 "Sorry, but \"%s\" doesn't identify itself\n"
@@ -485,71 +558,71 @@ msgstr ""
 "como un dispositivo de captura, no puedo continuar"
 
 # src/tveng.c:70
-#: src/tveng.c:96
+#: src/tveng.c:99
 #, c-format
 msgid "Sorry, but \"%s\" cannot do streaming"
 msgstr "Perdón, pero \"%s\" no soporte streaming"
 
 # src/tveng.c:80
-#: src/tveng.c:106
+#: src/tveng.c:109
 #, c-format
 msgid "Sorry, but \"%s\" cannot do select() on file descriptors"
 msgstr ""
 "Perdón, pero \"%s\" no soporta select() en los descriptores del archivo"
 
 # src/tveng.c:90
-#: src/tveng.c:116
+#: src/tveng.c:119
 #, c-format
 msgid "Sorry, but \"%s\" has no tuner"
 msgstr "Perdón, pero \"%s\"no tiene sintonizador"
 
 # src/tveng.c:121
 #. Don't use ShowBox() since there is no mem for that
-#: src/tveng.c:146
+#: src/tveng.c:149
 msgid "Cannot allocate enough memory"
 msgstr "No se puede reservar suficiente memoria"
 
 # src/tveng.c:140
-#: src/tveng.c:165
+#: src/tveng.c:168
 msgid "Cannot get inputs for selected device"
 msgstr ""
 "No se puede conseguir el canal de entrada\n"
 "para el dispositivo seleccionado"
 
 # src/tveng.c:150
-#: src/tveng.c:175
+#: src/tveng.c:178
 msgid "Cannot get standards for selected device"
 msgstr ""
 "No puedo conseguir los estándares para el\n"
 "dispositivo seleccionado"
 
-#: src/tveng.c:369
+#: src/tveng.c:372
 msgid "Error: ENUMSTD doesn't completely work\n"
 msgstr "Error: ENUMSTD no funciona del todo\n"
 
 # src/main.c:224
-#: src/tveng.c:620
+#: src/tveng.c:623
 msgid "Sorry, but cannot start capturing in an adequate format\n"
 msgstr "Lo siento, no puedo empezar a capturar con la resolución adecuada\n"
 
-#: src/tveng.c:1072
+#: src/tveng.c:1189
 msgid "V4L2 doesn't report any previewing capabilities"
 msgstr "V4L2 dice que no tiene capacidades de previsualización"
 
-#: src/tveng.c:1079
+#: src/tveng.c:1196
 msgid "XFree86 - DGA extension isn't valid or it is missing"
 msgstr "XFree86 - La exensión DGA no es válida o no aparece"
 
-#: src/tveng.c:1122
+#: src/tveng.c:1239
 msgid "zapping_setup_fb exited abnormally (check stderr)\n"
 msgstr ""
 
 #. zapping_setup_fb couldn't do its job
-#: src/tveng.c:1130
+#: src/tveng.c:1247
 msgid "zapping_setup_fb returned error (check stderr)\n"
 msgstr ""
 
-#: src/tveng.c:1134
+#: src/tveng.c:1251
 msgid ""
 "Cannot start zapping_setup_fb, please check\n"
 "your installation. Try running:\n"
@@ -586,9 +659,31 @@ msgstr "Perdón, pero no puedo escribir\n"
 msgid "Cannot take screenshot"
 msgstr "No puedo capturar imágen"
 
-#: src/plugins.c:59
+#: src/plugins.c:67
 msgid "The plugin doesn't understand our protocol"
 msgstr "El plugin no entiende nuestro protocolo"
+
+#: src/plugins.c:205
+#, fuzzy
+msgid "The plugin doesn't provide a canonical name"
+msgstr "El plugin no entiende nuestro protocolo"
+
+#: src/plugins.c:213
+#, fuzzy
+msgid "The plugin doesn't provide a parse struct"
+msgstr "El plugin no entiende nuestro protocolo"
+
+#: src/plugins.c:237
+msgid "(Void name)"
+msgstr ""
+
+#: src/plugins.c:252
+msgid "(No description provided for this plugin)"
+msgstr ""
+
+#: src/plugins.c:337
+msgid "(Unknown author)"
+msgstr ""
 
 #: zapping_setup_fb/zapping_setup_fb.c:58
 msgid ""

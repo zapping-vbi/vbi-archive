@@ -1,3 +1,12 @@
+24.2.2000	New release: 0.3.2 <garetxe@users.sourceforge.net>
+
+	* plugins.c:
+	* main.c:
+	* callbacks.c: Added a tveng_read_frame() function and fixed some
+	bugs. This is the first version considered "working". The plugin
+	protocol shouldn't change too much in the near future.
+	* tveng.c: i cannot get read() calls to work under v4l2 yet :-(
+	
 22.2.2000	Plugin support finished <garetxe@users.sourceforge.net>
 
 	* plugins.c:
