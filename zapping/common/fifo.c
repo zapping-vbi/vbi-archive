@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.11 2001-05-09 22:33:21 garetxe Exp $ */
+/* $Id: fifo.c,v 1.12 2001-05-26 22:45:18 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -311,9 +311,12 @@ kill_zombies(fifo *f)
 	}
 	pthread_rwlock_unlock(&f->consumers_rwlock);
 
-	/* second step: send them to the limbo */
-	pthread_rwlock_wrlock(&f->consumers_rwlock);
+	/* FIXME: investigate more carefully under which conditions the
+	   deadlock could be triggered by using _wrlock instead */
+	if (!zombies || pthread_rwlock_trywrlock(&f->consumers_rwlock))
+		return;
 
+	/* second step: send them to the limbo */
  kill_zombies_restart:
 	p = (coninfo*)f->consumers.head;
 	while (p) {

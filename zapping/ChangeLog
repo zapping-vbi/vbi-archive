@@ -1,3 +1,10 @@
+27.05.2001	MPEG fixes <garetxe@users.sf.net>
+
+	* plugins/mpeg.c: Works now if Z's yuv pixformat is YUYV and
+	capture isn't buffered push. Core when buffered push and lock with
+	YVU420 (probably RGB too, untested). Probably bugs in plugin.c
+	and capture.c.
+
 25.05.2001	<garetxe@users.sf.net>
 
 	* plugins/screenshot: YVU420, TTX capture.

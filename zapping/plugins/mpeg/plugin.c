@@ -362,6 +362,9 @@ resolve_filename(const gchar * dir, const gchar * prefix,
   return returned_file;
 }
 
+static gpointer data_dest;
+static gboolean buffered_video = FALSE; /* TRUE segfaults */
+
 static
 void plugin_process_bundle ( capture_bundle * bundle )
 {
@@ -371,14 +374,26 @@ void plugin_process_bundle ( capture_bundle * bundle )
       !bundle->image_type || !mux_mode)
     return;
 
-  /* Wait till we release it to reuse */
-  inc_buffer_refcount(bundle->b);
+  if (!buffered_video)
+    {
+      if (!data_dest)
+	data_dest = rte_push_video_data(context, NULL, 0);
 
-  rbuf.user_data = bundle->b;
-  rbuf.time = bundle->timestamp;
-  rbuf.data = bundle->data;
-
-  rte_push_video_buffer(context, &rbuf);
+      memcpy(data_dest, bundle->data, bundle->format.sizeimage);
+      
+      data_dest =
+	rte_push_video_data(context, data_dest, bundle->timestamp);
+    }
+  else
+    {
+      inc_buffer_refcount(bundle->b);
+      
+      rbuf.user_data = bundle->b;
+      rbuf.time = bundle->timestamp;
+      rbuf.data = bundle->data;
+      
+      rte_push_video_buffer(context, &rbuf);
+    }
 }
 
 static void
@@ -415,6 +430,7 @@ gboolean plugin_start (void)
     }
 
   /* FIXME: Size should be configurable */
+  /* FIXME: Won't work if YUYV isn't Z's current yuv pixformat */
   if (!request_bundle_format(TVENG_PIX_YUYV, 384, 288))
     {
       ShowBox("Cannot switch to YUYV capture format",
@@ -471,17 +487,19 @@ gboolean plugin_start (void)
       break;
     case 1:
       rte_set_mode(context, RTE_VIDEO);
-      rte_set_input(context, RTE_VIDEO, RTE_PUSH, TRUE, NULL,
-		    NULL, video_unref_buffer);
+      rte_set_input(context, RTE_VIDEO, RTE_PUSH, buffered_video, NULL,
+		    NULL, buffered_video ? video_unref_buffer : NULL);
       break;
     default:
       rte_set_mode(context, RTE_AUDIO | RTE_VIDEO);
       rte_set_input(context, RTE_AUDIO, RTE_CALLBACKS, FALSE,
 		    audio_data_callback, NULL, NULL);
-      rte_set_input(context, RTE_VIDEO, RTE_PUSH, TRUE, NULL,
-		    NULL, video_unref_buffer);
+      rte_set_input(context, RTE_VIDEO, RTE_PUSH, buffered_video, NULL,
+		    NULL, buffered_video ? video_unref_buffer : NULL);
       break;
     }
+
+  data_dest = NULL;
 
   switch (output_mode)
     {
@@ -524,9 +542,11 @@ gboolean plugin_start (void)
     }
 
   active = TRUE;
+
   /* don't let anyone mess with our settings from now on */
   capture_lock();
 
+  g_message("start encoding");
   if (!rte_start_encoding(context))
     {
       ShowBox("Cannot start encoding: %s", GNOME_MESSAGE_BOX_ERROR,
@@ -538,7 +558,7 @@ gboolean plugin_start (void)
       capture_unlock();
       return FALSE;
     }
-
+  g_message("encoding started");
   if (saving_dialog)
     gtk_widget_destroy(saving_dialog);
 
@@ -587,6 +607,8 @@ gboolean plugin_start (void)
   g_free(file_name);
 
   gtk_widget_show(saving_dialog);
+
+  g_message("plugin started");
 
   return TRUE;
 }

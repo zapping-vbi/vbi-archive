@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.11 2001-05-09 22:33:21 garetxe Exp $ */
+/* $Id: fifo.h,v 1.12 2001-05-26 22:45:18 garetxe Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -64,6 +64,7 @@ typedef struct {
 	long			size;		/* bytes */
 
 	void *			user_data;
+	int			rte_flags;	/* rte internal use */
 } buffer;
 
 typedef struct _fifo fifo;
