@@ -414,7 +414,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.136 2001-09-28 20:19:27 garetxe Exp $",
+	 "$Id: main.c,v 1.137 2001-09-29 15:36:10 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU support... ");
   switch (cpu_detection())
@@ -655,21 +655,10 @@ int main(int argc, char * argv[])
   D();
   startup_osd();
   D();
-  if (zconf_get_boolean(NULL, "/zapping/internal/callbacks/closed_caption"))
-    {
-      GtkWidget *closed_caption1 = lookup_widget(main_window,
-						 "closed_caption1");
-      osd_set_window(tv_screen);
-      gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(closed_caption1),
-				     TRUE);
-    }
-  else
-    {
-      GtkWidget *closed_caption1 = lookup_widget(main_window,
-						 "closed_caption1");
-      gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(closed_caption1),
-				     FALSE);
-    }
+  osd_set_window(tv_screen);
+  gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM
+       (lookup_widget(main_window, "closed_caption1")),
+       zconf_get_boolean(NULL, "/zapping/internal/callbacks/closed_caption"));
   D();
   printv("switching to mode %d (%d)\n", zcg_int(NULL,
 						"capture_mode"),

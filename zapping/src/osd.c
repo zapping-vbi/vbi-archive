@@ -319,7 +319,7 @@ osd_clear			(void)
 {
   int i;
 
-  for (i=0; i<MAX_ROWS; i++)
+  for (i=0; i<(MAX_ROWS-1); i++)
     clear_row(i, FALSE);
 
   zmodel_changed(osd_model);
@@ -524,6 +524,9 @@ osd_event		(gpointer	   data,
     return;
 
   if (read(osd_pipe[0], dummy, 16 /* flush */) <= 0)
+    return;
+
+  if (!zconf_get_boolean(NULL, "/zapping/internal/callbacks/closed_caption"))
     return;
 
   if (zvbi_page <= 8)
@@ -1207,8 +1210,6 @@ set_window(GtkWidget *dest_window, gboolean _coords_mode)
 void
 osd_set_window(GtkWidget *dest_window)
 {
-  g_return_if_fail (GTK_IS_FIXED (dest_window));
-
   gtk_widget_realize(dest_window);
 
   cx = cy = 0;
@@ -1221,8 +1222,6 @@ void
 osd_set_coords(GtkWidget *dest_window,
 	       gint x, gint y, gint w, gint h)
 {
-  g_return_if_fail (GTK_IS_FIXED (dest_window));
-
   cx = x;
   cy = y;
   cw = w;
@@ -1303,6 +1302,7 @@ shutdown_osd(void)
   int i;
 
   osd_clear();
+  clear_row(OSD_ROW, FALSE);
 
   for (i = 0; i<MAX_ROWS; i++)
     g_free(matrix[i]);

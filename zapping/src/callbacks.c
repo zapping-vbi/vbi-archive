@@ -260,6 +260,9 @@ on_closed_caption1_activate            (GtkMenuItem     *menuitem,
   gboolean status = button->active;
 
   zcs_bool(status, "closed_caption");
+
+  if (!status)
+    osd_clear();
 }
 
 void

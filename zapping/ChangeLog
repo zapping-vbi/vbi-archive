@@ -1,3 +1,10 @@
+29.09.2001	tvscreen gtkda again <garetxe@users.sf.net>
+
+	* glade/zapping.glade: Make tv_screen a GtkDrawingArea again to
+	fix GtkFixed expose problems with TTX.
+	* osd.c: Subtitles toggle only affects CC/TTX, not osd_render*
+	text. Same goes for osd_clear.
+
 28.09.2001	OSD complete <garetxe@users.sf.net>
 
 	* osd.c: Added osd_render, keep correct ratio for OSD text,
