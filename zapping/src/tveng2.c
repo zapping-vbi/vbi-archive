@@ -72,6 +72,7 @@ struct private_tveng2_device_info
   int num_buffers; /* Number of mmaped buffers */
   struct tveng2_vbuf * buffers; /* Array of buffers */
   double last_timestamp; /* The timestamp of the last captured buffer */
+  int muted;
 };
 
 /* Private, builds the controls structure */
@@ -220,6 +221,8 @@ int tveng2_attach_device(const char* device_file,
 
   if (info -> fd) /* If the device is already attached, detach it */
     tveng_close_device(info);
+
+  info->audio_mutable = 0;
 
   info -> file_name = strdup(device_file);
   if (!(info -> file_name))
@@ -987,6 +990,10 @@ p_tveng2_build_controls(tveng_device_info * info)
 	  control.def_value = qc.default_value;
 	  control.id = qc.id;
 	  control.controller = TVENG_CONTROLLER_V4L2;
+
+	  if (qc.id == V4L2_CID_AUDIO_MUTE)
+	    info->audio_mutable = 1;
+
 	  switch (qc.type)
 	    {
 	    case V4L2_CTRL_TYPE_INTEGER:
@@ -1064,6 +1071,8 @@ p_tveng2_build_controls(tveng_device_info * info)
 static int
 tveng2_update_controls(tveng_device_info * info)
 {
+  struct private_tveng2_device_info * p_info =
+    (struct private_tveng2_device_info*) info;
   int i;
   struct v4l2_control c;
 
@@ -1089,7 +1098,15 @@ tveng2_update_controls(tveng_device_info * info)
 	  t_error("VIDIOC_G_CTRL", info);
 	  c.value = 0; /* This shouldn't be critical */
 	}
-      info->controls[i].cur_value = c.value;
+
+/*
+  Doesn't seem to work with bttv.
+  FIXME we should check at runtime.
+*/
+      if (info->controls[i].id == V4L2_CID_AUDIO_MUTE)
+	info->controls[i].cur_value = p_info->muted;
+      else
+	info->controls[i].cur_value = c.value;
     }
   return 0;
 }
@@ -1102,6 +1119,8 @@ static int
 tveng2_set_control(struct tveng_control * control, int value,
 		   tveng_device_info * info)
 {
+  struct private_tveng2_device_info * p_info =
+    (struct private_tveng2_device_info*) info;
   struct v4l2_control c;
 
   t_assert(control != NULL);
@@ -1135,6 +1154,12 @@ tveng2_set_control(struct tveng_control * control, int value,
       t_error("VIDIOC_S_CTRL", info);
       return -1;
     }
+/*
+  Doesn't seem to work with bttv.
+  FIXME we should check at runtime.
+*/
+  if (control->id == V4L2_CID_AUDIO_MUTE)
+    p_info->muted = value;
 
   return (tveng2_update_controls(info));
 }
@@ -1165,11 +1190,21 @@ tveng2_set_mute(int value, tveng_device_info * info)
 static int
 tveng2_get_mute(tveng_device_info * info)
 {
+  struct private_tveng2_device_info * p_info =
+    (struct private_tveng2_device_info*) info;
+
+  return p_info->muted;
+
+/*
+  Doesn't seem to work with bttv.
+  FIXME we should check at runtime.
+
   int returned_value;
   if (tveng_get_control_by_id(V4L2_CID_AUDIO_MUTE, &returned_value, info) ==
       -1)
     return -1;
   return !!returned_value;
+*/
 }
 
 /*
@@ -1179,7 +1214,13 @@ tveng2_get_mute(tveng_device_info * info)
 static int
 tveng2_set_mute(int value, tveng_device_info * info)
 {
-  return (tveng_set_control_by_id(V4L2_CID_AUDIO_MUTE, !!value, info));
+  struct private_tveng2_device_info * p_info =
+    (struct private_tveng2_device_info*) info;
+
+  if (tveng_set_control_by_id(V4L2_CID_AUDIO_MUTE, !!value, info) < 0)
+      return -1;
+
+  return 0;
 }
 
 #endif /* !defined(TVENG2_FAKE_MUTE) */
