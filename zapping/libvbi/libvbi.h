@@ -1,5 +1,5 @@
 /*
- * (C) 200 Iñaki García Etxebarria
+ * (C) 2001 Iñaki García Etxebarria
  * Just a convenience wrapper
  */
 #ifndef __LIBVBI_H__
@@ -9,6 +9,7 @@
 #include <misc.h>
 #include <vbi.h>
 //#include <lang.h>
+#include <../common/ucs-2.h>
 #include <dllist.h>
 #include <export.h>
 

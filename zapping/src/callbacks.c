@@ -103,6 +103,7 @@ on_exit2_activate                      (GtkMenuItem     *menuitem,
     }
 
   flag_exit_program = TRUE;
+  gtk_main_quit();
 }
 
 void
@@ -116,8 +117,8 @@ void
 on_plugin_writing1_activate            (GtkMenuItem     *menuitem,
 					gpointer         user_data)
 {
-  static GnomeHelpMenuEntry help_ref = { NULL,
-					 "plugin_devel.html" };
+  GnomeHelpMenuEntry help_ref = { NULL,
+				  "plugin_devel.html" };
   enum tveng_capture_mode cur_mode;
 
   cur_mode = tveng_stop_everything(main_info);
@@ -170,7 +171,7 @@ on_zapping_delete_event                (GtkWidget       *widget,
                                         gpointer         user_data)
 {
   GList * p;
-  flag_exit_program = TRUE;
+
   UpdateCoords(widget->window);
 
   /* Tell the widget that the GUI is going to be closed */
@@ -181,6 +182,9 @@ on_zapping_delete_event                (GtkWidget       *widget,
 			 (struct plugin_info*)p->data);
       p = p->next;
     }
+
+  flag_exit_program = TRUE;
+  gtk_main_quit();
 
   return FALSE;
 }

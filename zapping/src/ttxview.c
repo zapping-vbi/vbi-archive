@@ -40,7 +40,6 @@
 /*
   TODO:
 	Search
-	Export filters
 	ttxview in main window (alpha et al)
 */
 
@@ -115,7 +114,9 @@ startup_ttxview (void)
   arrow = gdk_cursor_new(GDK_LEFT_PTR);
   model = ZMODEL(zmodel_new());
 
-  zcc_char(g_get_home_dir(), "Directory to export pages to", "exportdir");
+  zcc_char(g_get_home_dir(), "Directory to export pages to",
+	   "exportdir");
+  zcc_bool(FALSE, "URE matches disregarding case", "ure_casefold");
 
   while (zconf_get_nth(i, &buffer, ZCONF_DOMAIN "bookmarks"))
     {
@@ -572,65 +573,51 @@ void on_ttxview_next_subpage_clicked	(GtkButton	*button,
   load_page(data->fmt_page->vtp->pgno, new_subpage, data);
 }
 
-static inline
-gchar *describe_regerror(int error, regex_t *preg)
+static
+void show_search_help			(GtkButton	*button,
+					 ttxview_data	*data)
 {
-  gchar *description;
-  gint n;
+  GnomeHelpMenuEntry help_ref = { NULL,
+				  "ure.html" };
 
-  n = regerror(error, preg, NULL, 0);
-  description = g_malloc(n);
-  regerror(error, preg, description, n);
+  help_ref.name = gnome_app_id;
+  gnome_help_display(NULL, &help_ref);
 
-  return description;
+  /* do not propagate this signal to the parent widget */
+  gtk_signal_emit_stop_by_name(GTK_OBJECT(button), "clicked");
 }
 
 static
 void on_ttxview_search_clicked		(GtkButton	*button,
 					 ttxview_data	*data)
 {
-#if 0
-  gchar * regexp =
-    Prompt(data->parent,
-	   _("Search"),
-	   _("Enter extended regexp to search for:"), NULL);
-  regex_t preg;
-  gint error;
-  gchar *description;
-  gchar *buffer = "Testing extended regular expressions ....";
+  GnomeDialog *ure_search = GNOME_DIALOG(create_widget("ure_search"));
+  GtkWidget *entry1 =
+    lookup_widget(GTK_WIDGET(ure_search), "entry1");
+  GtkToggleButton *checkbutton9 =
+    GTK_TOGGLE_BUTTON(lookup_widget(GTK_WIDGET(ure_search),
+				    "checkbutton9"));
+  gboolean result;
 
-  if (regexp)
+  gnome_dialog_set_parent(ure_search, GTK_WINDOW(data->parent));
+  gnome_dialog_close_hides(ure_search, TRUE);
+  gnome_dialog_set_default(ure_search, 0);
+  gnome_dialog_editable_enters(ure_search, GTK_EDITABLE(entry1));
+  gnome_dialog_button_connect(ure_search, 2,
+			      GTK_SIGNAL_FUNC(show_search_help), data);
+
+  gtk_toggle_button_set_active(checkbutton9,
+			       zcg_bool(NULL, "ure_casefold"));
+
+  result = gnome_dialog_run_and_close(ure_search);
+
+  zcs_bool(gtk_toggle_button_get_active(checkbutton9), "ure_casefold");
+  gtk_widget_destroy(GTK_WIDGET(ure_search));
+
+  if (!result)
     {
-      if ((error = regcomp(&preg, regexp,
-			   REG_EXTENDED | REG_ICASE | REG_NOSUB)))
-	{
-	  description = describe_regerror(error, &preg);
-	  ShowBox("Invalid regular expression (%s)",
-		  GNOME_MESSAGE_BOX_ERROR, description);
-	  g_free(description);
-	  goto done;
-	}
-
-      /* OK, do search */
-      if ((error = regexec(&preg, buffer, 0, NULL, 0)))
-	{
-	  description = describe_regerror(error, &preg);
-	  ShowBox("Regular expression search failed: %s",
-		  GNOME_MESSAGE_BOX_ERROR, description);
-	  g_free(description);
-	}
-      else
-	ShowBox("Pattern found", GNOME_MESSAGE_BOX_INFO);
-
-      regfree(&preg);
+      g_message("searching...\n");
     }
-
- done:
-  g_free(regexp);
-
-#else
-  ShowBox("Not done yet", GNOME_MESSAGE_BOX_ERROR);
-#endif
 }
 
 static
@@ -786,12 +773,6 @@ void new_bookmark			(GtkWidget	*widget,
       g_free(default_description);
     }
   g_free(buffer);
-}
-
-static
-void not_done_yet(gpointer ping, gpointer pong)
-{
-  ShowBox("Not done yet", GNOME_MESSAGE_BOX_INFO);
 }
 
 static

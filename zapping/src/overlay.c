@@ -386,8 +386,6 @@ startup_overlay(GtkWidget * window, GtkWidget * main_window,
   
   gdk_window_get_size(window->window, &tv_info.w, &tv_info.h);
   gdk_window_get_origin(window->window, &tv_info.x, &tv_info.y);
-
-  return TRUE;
 }
 
 /*

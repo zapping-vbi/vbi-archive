@@ -2,7 +2,6 @@ noinst_LIBRARIES = libvbi.a
 
 EXTRA_DIST = wstfont.xbm README
 
-## Avoid warning messages (i'm not going to maintain this code)
 ## mhs testing new vbi code; CFLAGS = -w $(ARCH_CFLAGS)
 CFLAGS = -D_GNU_SOURCE -g -O0 -Wall $(ARCH_CFLAGS)
 

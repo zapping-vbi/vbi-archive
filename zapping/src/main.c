@@ -63,15 +63,16 @@ gboolean		was_fullscreen=FALSE; /* will be TRUE if when
 						 fullscreen */
 /*** END OF GLOBAL STUFF ***/
 
-static
-gboolean		disable_vbi = FALSE; /* TRUE for disabling VBI
+static gboolean		disable_vbi = FALSE; /* TRUE for disabling VBI
 						support */
-static
-gint			newbttv = -1; /* Compatibility with old bttv
+static gint		newbttv = -1; /* Compatibility with old bttv
 					 drivers */
+
+static guint		idle_id=0;
 
 static void shutdown_zapping(void);
 static gboolean startup_zapping(void);
+static gint idle_handler(GtkWidget *tv_screen);
 
 /* Start VBI services, and warn if we cannot */
 static void
@@ -165,9 +166,6 @@ int main(int argc, char * argv[])
   gchar * buffer;
   GList * p;
   gint x, y, w, h; /* Saved geometry */
-  GdkGeometry geometry;
-  GdkWindowHints hints;
-  plugin_sample sample; /* The a/v sample passed to the plugins */
   gint x_bpp = -1;
   char *default_norm = NULL;
   gboolean oldbttv = FALSE;
@@ -246,7 +244,7 @@ int main(int argc, char * argv[])
     newbttv = 0;
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.76 2001-01-07 20:21:03 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.77 2001-01-10 23:25:08 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -369,7 +367,6 @@ int main(int argc, char * argv[])
   D();
   tv_screen = lookup_widget(main_window, "tv_screen");
   printv("tv_screen is %p\n", (gpointer)tv_screen);
-  g_assert(tv_screen != NULL);
   /* ensure that the main window is realized */
   gtk_widget_show(main_window);
   while (gtk_events_pending() || (!tv_screen->window))
@@ -504,71 +501,9 @@ int main(int argc, char * argv[])
 			   main_info))
     fprintf(stderr, "tveng_set_mute: %s\n", main_info->error);
   D(); printv("going into main loop...\n");
-  while (!flag_exit_program)
-    {
-      while (gtk_events_pending())
-	gtk_main_iteration(); /* Check for UI changes */
-
-      if (flag_exit_program)
-	continue; /* Exit the loop if neccesary now */
-
-      if (main_info->current_mode != TVENG_CAPTURE_PREVIEW)
-	{
-	  hints = GDK_HINT_MIN_SIZE;
-	  geometry.min_width = main_info->caps.minwidth;
-	  geometry.min_height = main_info->caps.minheight;
-	  
-	  /* Set the geometry flags if needed */
-	  if (zcg_bool(NULL, "fixed_increments"))
-	    {
-	      geometry.width_inc = 64;
-	      geometry.height_inc = 48;
-	      hints |= GDK_HINT_RESIZE_INC;
-	    }
-	  
-	  switch (zcg_int(NULL, "ratio")) {
-	  case 1:
-	    geometry.min_aspect = geometry.max_aspect = 4.0/3.0;
-	    hints |= GDK_HINT_ASPECT;
-	    break;
-	  case 2:
-	    geometry.min_aspect = geometry.max_aspect = 16.0/9.0;
-	    hints |= GDK_HINT_ASPECT;
-	    break;
-	  default:
-	    break;
-	  }
-	  
-	  gdk_window_set_geometry_hints(main_window->window, &geometry,
-					hints);
-	}
-
-      /* VBI decoding support */
-      if (zvbi_get_mode())
-	{
-	  usleep(10000);
-	  memset(&sample, 0, sizeof(plugin_sample));
-	  sample.video_data =
-	    zvbi_build_current_teletext_page(tv_screen,
-					     &(sample.video_format));
-	  if (!sample.video_data)
-	    continue;
-	  /* fixme: add zvbi_process_frame */
-	  //goto give_data_to_plugins;
-	}
-
-      /* We are probably viewing fullscreen, just do nothing */
-      if (main_info -> current_mode != TVENG_CAPTURE_READ)
-	{
-	  usleep(50000);
-	  continue;
-	}
-
-      print_info();
-
-      if (main_info->current_mode == TVENG_CAPTURE_READ)
-	capture_process_frame(tv_screen, main_info);
-    }
+  idle_id = gtk_idle_add((GtkFunction)idle_handler, tv_screen);
+  /* That's it, now go to the main loop */
+  gtk_main();
   D();
   /* Closes all fd's, writes the config to HD, and that kind of things
    */
@@ -761,4 +696,75 @@ static gboolean startup_zapping()
     }
   D();
   return TRUE;
+}
+
+static gint idle_handler(GtkWidget *tv_screen)
+{
+  GdkGeometry geometry;
+  GdkWindowHints hints;
+  plugin_sample sample; /* The a/v sample passed to the plugins */
+
+  if (flag_exit_program)
+    return 0;
+
+  if (main_info->current_mode != TVENG_CAPTURE_PREVIEW)
+    {
+      hints = GDK_HINT_MIN_SIZE;
+      geometry.min_width = main_info->caps.minwidth;
+      geometry.min_height = main_info->caps.minheight;
+      
+      /* Set the geometry flags if needed */
+      if (zcg_bool(NULL, "fixed_increments"))
+	{
+	  geometry.width_inc = 64;
+	  geometry.height_inc = 48;
+	  hints |= GDK_HINT_RESIZE_INC;
+	}
+      
+      switch (zcg_int(NULL, "ratio")) {
+      case 1:
+	geometry.min_aspect = geometry.max_aspect = 4.0/3.0;
+	hints |= GDK_HINT_ASPECT;
+	break;
+      case 2:
+	geometry.min_aspect = geometry.max_aspect = 16.0/9.0;
+	hints |= GDK_HINT_ASPECT;
+	break;
+      default:
+	break;
+      }
+      
+      gdk_window_set_geometry_hints(main_window->window, &geometry,
+				    hints);
+    }
+  
+  /* VBI decoding support */
+  if (zvbi_get_mode())
+    {
+      usleep(10000);
+      memset(&sample, 0, sizeof(plugin_sample));
+      sample.video_data =
+	zvbi_build_current_teletext_page(tv_screen,
+					 &(sample.video_format));
+      if (!sample.video_data)
+	goto done;
+      /* fixme: add zvbi_process_frame */
+      //goto give_data_to_plugins;
+    }
+
+  /* We are viewing in a non-capturing mode */
+  if (main_info -> current_mode != TVENG_CAPTURE_READ)
+    {
+      usleep(50000);
+      goto done;
+    }
+  
+  print_info();
+      
+  if (main_info->current_mode == TVENG_CAPTURE_READ)
+    capture_process_frame(tv_screen, main_info);
+
+ done:
+
+  return 1; /* Keep calling me */
 }
