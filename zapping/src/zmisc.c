@@ -314,7 +314,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   GtkWidget * tv_screen;
   int return_value = 0;
   gint x, y, w, h;
-  enum tveng_frame_pixformat format;
+  tv_pixfmt pixfmt;
   gchar * old_input = NULL;
   gchar * old_standard = NULL;
   enum tveng_capture_mode mode;
@@ -436,6 +436,8 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 			GTK_MESSAGE_ERROR, info->error);
 	    }
 	}
+
+      /* XXX error? */
       tveng_set_capture_size(w, h, info);
       return_value = capture_start(info);
       video_init (tv_screen, tv_screen->style->black_gc);
@@ -483,20 +485,19 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	    }
 	}
 
-      format = zmisc_resolve_pixformat(tveng_get_display_depth(info),
-				       x11_get_byte_order());
+      pixfmt = dga_param.pixfmt;
 
-      if ((format != -1) &&
+      if ((pixfmt != TV_PIXFMT_UNKNOWN) &&
 	  (info->current_controller != TVENG_CONTROLLER_XV))
 	{
-	  info->format.pixformat = format;
-XX();
+	  info->format.pixfmt = pixfmt;
+
 	  if ((tveng_set_capture_format(info) == -1) ||
-	      (info->format.pixformat != format))
+	      (info->format.pixfmt != pixfmt))
 	    g_warning("Preview format invalid: %s (%d, %d)", info->error,
-		      info->format.pixformat, format);
-	  printv("prev: setting %d, got %d\n", format,
-		 info->format.pixformat);
+		      info->format.pixfmt, pixfmt);
+	  printv("prev: setting %d, got %d\n", pixfmt,
+		 info->format.pixfmt);
 	}
 
       if ((x + w) <= 0 || (y + h) <= 0)
@@ -543,20 +544,19 @@ XX();
 	    }
 	}
 
-      format = zmisc_resolve_pixformat(tveng_get_display_depth(info),
-				       x11_get_byte_order());
+      pixfmt = dga_param.pixfmt;
 
-      if ((format != -1) &&
+      if ((pixfmt != TV_PIXFMT_UNKNOWN) &&
 	  (info->current_controller != TVENG_CONTROLLER_XV))
 	{
-	  info->format.pixformat = format;
-XX();
+	  info->format.pixfmt = pixfmt;
+
 	  if ((tveng_set_capture_format(info) == -1) ||
-	      (info->format.pixformat != format))
+	      (info->format.pixfmt != pixfmt))
 	    g_warning("Fullscreen format invalid: %s (%d, %d)", info->error,
-		      info->format.pixformat, format);
-	  printv("fulls: setting %d, got %d\n", format,
-		 info->format.pixformat);
+		      info->format.pixfmt, pixfmt);
+	  printv("fulls: setting %d, got %d\n", pixfmt,
+		 info->format.pixfmt);
 	}
 
       if (!start_fullscreen (info))
