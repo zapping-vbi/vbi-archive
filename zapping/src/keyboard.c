@@ -618,7 +618,6 @@ on_user_key_press		(GtkWidget *		widget,
 static struct {
   guint				mask;
   guint				key;
-  const gchar *			descr;
   const gchar *			command;
 } default_key_bindings[] = {
   /*
