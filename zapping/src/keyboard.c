@@ -654,7 +654,6 @@ static void
 save_key_bindings			(void)
 {
   key_binding *kb;
-  z_key key;
   int i;
 
   zconf_delete("/zapping/options/main/keys");

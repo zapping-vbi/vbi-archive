@@ -10,7 +10,7 @@ if BACKEND_MP1E
 mp1e = $(top_srcdir)/mp1e
 mp1e_libs = $(mp1e)/video/libvideo_rte.la \
 	$(mp1e)/audio/libaudio_rte.la \
-	$(mp1e)/systems/libsystems_rte.la \
+	$(mp1e)/systems/libsystems.la \
 	$(mp1e)/common/libcommon.la \
 	$(mp1e)/libmp1e.la
 endif
@@ -30,25 +30,10 @@ divx4linux = $(top_srcdir)/divx4linux
 divx4linux_libs =
 endif
 
-BUILT_SOURCES = rte.sym
-rte.sym: rte.h
-	sed -n '/extern.*/!d;s/\(.*\)\(rte.*\)(\(.*\)/\2/p' <rte.h > $@
+BUILT_SOURCES = rte.sym librte.h
 
-librte_la_SOURCES = \
-	rte.c rte.h \
-	context.c context.h \
-	codec.c codec.h \
-	option.h rtepriv.h
-
-librteincludedir = $(includedir)/rte
-librteinclude_HEADERS = librte.h
-# rte.h rte-enums.h rte-types.h rte-version.h
-
-librte_la_LIBADD = -lpthread -lm \
-	$(ffmpeg_libs) $(mp1e_libs) $(divx4linux_libs)
-
-librte_la_LDFLAGS = -export-dynamic -export-symbols rte.sym \
-	-release @VERSION@ -version-info 1:0:0
+rte.sym: librte.h
+	sed -n '/extern.*/!d;s/\(.*\)\(rte.*\)(\(.*\)/\2/p' <$< > $@
 
 # Concat the header files in this order and filter out all lines
 #   before "^/* Public", after "^/* Private" and between "^/**"..."**/$"
@@ -66,3 +51,18 @@ librte.h: option.h context.h codec.h rte.h
 	done
 	echo -e "\n#ifdef __cplusplus\n}\n#endif" >> $@
 	echo -e "\n#endif /* __LIBRTE_H__ */" >> $@
+
+librte_la_SOURCES = \
+	rte.c rte.h \
+	context.c context.h \
+	codec.c codec.h \
+	option.h rtepriv.h
+
+librteincludedir = $(includedir)/rte
+librteinclude_HEADERS = librte.h
+
+librte_la_LIBADD = -lpthread -lm \
+	$(ffmpeg_libs) $(mp1e_libs) $(divx4linux_libs)
+
+librte_la_LDFLAGS = -export-dynamic -export-symbols rte.sym \
+	-release @VERSION@ -version-info 1:0:0

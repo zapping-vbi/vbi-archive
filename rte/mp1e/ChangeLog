@@ -1,3 +1,7 @@
+2002-03-16	<mschimek@users.sf.net>
+
+	* b_mp1e.c: Added mux i/o, untested.
+
 2002-03-14	<mschimek@users.sf.net>
 
 	* systems/vcd.c: VCDImager requires n * sector size file.

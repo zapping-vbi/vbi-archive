@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: systems.c,v 1.8 2002-02-25 06:22:19 mschimek Exp $ */
+/* $Id: systems.c,v 1.9 2002-03-19 19:26:29 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,7 +34,7 @@
 #include "systems.h"
 
 void
-mux_free(multiplexer *mux)
+mux_destroy(multiplexer *mux)
 {
 	stream *str;
 
@@ -49,7 +49,28 @@ mux_free(multiplexer *mux)
 	destroy_xlist(&mux->streams);
 
 	memset(mux, 0, sizeof(*mux));
+}
 
+bool
+mux_init(multiplexer *mux, void *user_data)
+{
+	init_xlist(&mux->streams);
+
+	/* vcd sector size is hardcoded, this one for hd
+           should be a context option */
+	mux->packet_size = 2048;
+
+	assert(mux->packet_size >= 512 && mux->packet_size <= 32768);
+
+	mux->user_data = user_data;
+
+	return TRUE;
+}
+
+void
+mux_free(multiplexer *mux)
+{
+	mux_destroy(mux);
 	free(mux);
 }
 
@@ -61,15 +82,10 @@ mux_alloc(void *user_data)
 	if (!(mux = calloc(1, sizeof(*mux))))
 		return NULL;
 
-	init_xlist(&mux->streams);
-
-	/* a) should be an argument, 
-	   b) this func should init the output fifo */
-	mux->packet_size = (mux_syn == 4) ? 2324 /* VCD */ : 2048;
-
-	assert(mux->packet_size >= 512 && mux->packet_size <= 32768);
-
-	mux->user_data = user_data;
+	if (!mux_init(mux, user_data)) {
+		free(mux);
+		return NULL;
+	}
 
 	return mux;
 }
@@ -92,7 +108,7 @@ stream_pri(int stream_id)
  *  frame_rate	24 Hz
  *  bit_rate	upper bound
  *
- *  XXX must calculate #buffers based on demux buffer size and bit rate
+ *  XXX FIXME must calculate #buffers based on demux buffer size and bit rate
  *  plus write space in secs.
  */
 fifo *
@@ -258,7 +274,7 @@ elementary_stream_bypass(void *muxp)
 		frame_count++;
 		bytes_out += buf->used;
 
-		buf = mux_output(mux, buf);
+		buf = mux->mux_output(mux, buf);
 
 		send_empty_buffer(&str->cons, buf);
 

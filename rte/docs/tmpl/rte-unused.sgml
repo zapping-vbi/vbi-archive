@@ -1,3 +1,9 @@
+<!-- ##### TYPEDEF rte_audio_stream_params ##### -->
+<para>
+
+</para>
+
+
 <!-- ##### FUNCTION rte_pause ##### -->
 <para>
 
@@ -12,4 +18,10 @@
 
 @context: 
 @Returns: 
+
+<!-- ##### TYPEDEF rte_video_stream_params ##### -->
+<para>
+
+</para>
+
 

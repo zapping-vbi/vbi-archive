@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vcd.c,v 1.10 2002-03-16 16:31:34 mschimek Exp $ */
+/* $Id: vcd.c,v 1.11 2002-03-19 19:26:29 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -448,7 +448,7 @@ vcd_system_mux(void *muxp)
 
 	/* System header */
 
-	buf = mux_output(mux, NULL);
+	buf = mux->mux_output(mux, NULL);
 	assert(buf && buf->size >= sector_size);
 
 	p = buf->data;
@@ -458,7 +458,7 @@ vcd_system_mux(void *muxp)
 	p = padding_packet(p, buf->data + buf->size - p);
 
 	bytes_out += buf->used = p - buf->data;
-	buf = mux_output(mux, buf);
+	buf = mux->mux_output(mux, buf);
 	assert(buf && buf->size >= sector_size);
 
 	scr += ticks_per_packet;
@@ -470,7 +470,7 @@ vcd_system_mux(void *muxp)
 	p = padding_packet(p, buf->data + buf->size - p);
 
 	bytes_out += buf->used = p - buf->data;
-	buf = mux_output(mux, buf);
+	buf = mux->mux_output(mux, buf);
 	assert(buf && buf->size >= sector_size);
 
 	packet_count = 2;
@@ -590,7 +590,7 @@ reschedule:
 
 		bytes_out += buf->used = sector_size;
 
-		buf = mux_output(mux, buf);
+		buf = mux->mux_output(mux, buf);
 		assert(buf && buf->size >= sector_size);
 
 		if (verbose > 0) {
@@ -625,8 +625,12 @@ reschedule:
 		p = padding_packet(buf->data, sector_size - 4);
 		put(p, MPEG_PROGRAM_END_CODE, 4);
 		buf->used = sector_size;
-		mux_output(mux, buf);
+		mux->mux_output(mux, buf);
 	}
+
+	buf->used = 0; /* EOF */
+
+	mux->mux_output(mux, buf);
 
 	pthread_cleanup_pop(1);
 

@@ -163,8 +163,6 @@ static gint timeout_handler(gpointer unused)
 	break;
       }
 
-fprintf(stderr, "#1\n");
-
       if (rw)
 	{
 	  hints |= GDK_HINT_ASPECT;
@@ -464,7 +462,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.158 2002-03-16 16:30:00 mschimek Exp $",
+	 "$Id: main.c,v 1.159 2002-03-19 19:25:11 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())

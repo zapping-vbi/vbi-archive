@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: systems.h,v 1.8 2002-02-08 15:03:11 mschimek Exp $ */
+/* $Id: systems.h,v 1.9 2002-03-19 19:26:29 mschimek Exp $ */
 
 #include "libsystems.h"
 
@@ -83,17 +83,10 @@ struct stream {
 	int killme;
 };
 
-struct multiplexer {
-	xlist			streams;
-
-	fifo *			output;
-	producer 		prod;
-
-	int			packet_size;
-
-	void *			user_data;
-};
-
-extern buffer *		(* mux_output)(struct multiplexer *mux, buffer *b);
-
 #define elements(array) (sizeof(array) / sizeof(array[0]))
+
+
+
+
+
+

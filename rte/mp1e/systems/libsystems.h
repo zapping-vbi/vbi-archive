@@ -17,19 +17,33 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libsystems.h,v 1.5 2002-02-08 15:03:11 mschimek Exp $ */
+/* $Id: libsystems.h,v 1.6 2002-03-19 19:26:29 mschimek Exp $ */
 
 #ifndef LIBSYSTEMS_H
 #define LIBSYSTEMS_H
 
 #include "../common/fifo.h"
 
-typedef struct multiplexer multiplexer; /* opaque */
+typedef struct multiplexer {
+	xlist			streams;
+
+	fifo *			output;
+	producer 		prod;
+
+	int			packet_size;
+	void *			user_data;
+
+	/* preliminary */
+	buffer *		(* mux_output)(struct multiplexer* mux, buffer *b);
+} multiplexer;
 
 extern long long		bytes_out;
 
-extern multiplexer *		mux_alloc(void *user_data);
-extern void			mux_free(multiplexer *mux);
+extern bool			mux_init	(multiplexer *mux, void *user_data);
+extern void			mux_destroy	(multiplexer *mux);
+extern multiplexer *		mux_alloc	(void *user_data);
+extern void			mux_free	(multiplexer *mux);
+
 extern fifo *			mux_add_input_stream(multiplexer *mux,
 					int stream_id, char *name,
 					int max_size, int buffers,
@@ -44,7 +58,7 @@ extern void *			vcd_system_mux(void *mux);
 
 extern double			get_idle(void);
 
-extern bool			init_output_stdout(void);
+extern bool			init_output_stdout(multiplexer *mux);
 extern void *                   output_thread(void * unused);
 extern int                      output_init(void);
 extern void                     output_end(void);

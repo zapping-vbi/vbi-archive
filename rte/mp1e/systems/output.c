@@ -34,9 +34,6 @@
 #include "../common/log.h"
 #include "systems.h"
 
-buffer *		(* mux_output)(struct multiplexer* mux,
-				       buffer *b);
-
 static buffer		mux_buffer;
 
 static buffer *
@@ -49,8 +46,11 @@ output_stdout(struct multiplexer *mux,
 	if (!b)
 		return &mux_buffer;
 
+	if (!b->used) /* EOF */
+		return b;
+
 	s = b->data;
-	n = b->used; // XXX eof 
+	n = b->used;
 
 	while (n > 0) {
 		r = write(outFileFD, s, n);
@@ -68,7 +68,7 @@ output_stdout(struct multiplexer *mux,
 }
 
 bool
-init_output_stdout(void)
+init_output_stdout(multiplexer *mux)
 {
 	int bsize = (mux_syn == 4) ? 2324 /* VCD */ : PACKET_SIZE;
 
@@ -82,7 +82,7 @@ init_output_stdout(void)
 
 	mux_buffer.data = mux_buffer.allocated; /* XXX */
 
-	mux_output = output_stdout;
+	mux->mux_output = output_stdout;
 
 	return TRUE;
 }

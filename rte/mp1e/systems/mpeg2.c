@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg2.c,v 1.9 2002-02-25 06:22:19 mschimek Exp $ */
+/* $Id: mpeg2.c,v 1.10 2002-03-19 19:26:29 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -343,7 +343,7 @@ mpeg2_program_stream_mux(void *muxp)
 			nstreams++;
 		}
 
-		buf = mux_output(mux, NULL);
+		buf = mux->mux_output(mux, NULL);
 
 		assert(buf && buf->size >= 512
 		           && buf->size <= 32768);
@@ -461,7 +461,7 @@ reschedule:
 
 		bytes_out += buf->used = p - buf->data;
 
-		buf = mux_output(mux, buf);
+		buf = mux->mux_output(mux, buf);
 
 		assert(buf && buf->size >= 512
 		           && buf->size <= 32768);
@@ -503,7 +503,11 @@ reschedule:
 	} else
 		buf->used = 4;
 
-	mux_output(mux, buf);
+	mux->mux_output(mux, buf);
+
+	buf->used = 0; /* EOF */
+
+	mux->mux_output(mux, buf);
 
 	pthread_cleanup_pop(1);
 

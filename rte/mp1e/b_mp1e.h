@@ -19,13 +19,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.h,v 1.3 2002-03-16 16:32:29 mschimek Exp $ */
+/* $Id: b_mp1e.h,v 1.4 2002-03-19 19:26:29 mschimek Exp $ */
 
 #ifndef B_MP1E_H
 #define B_MP1E_H
 
 #include "rtepriv.h"
 #include "common/sync.h"
+#include "systems/libsystems.h"
 
 #define MAX_ELEMENTARY_STREAMS ((sizeof(sync_set) * 8) - 1)
 
@@ -72,12 +73,17 @@ typedef struct {
 	sync_main		sync;
 
 	rte_codec *		codecs;
-
 	int			num_codecs;
 
-//	multiplexer *mux;
-
+	multiplexer		mux;
+	buffer			mux_buffer;
 	rte_buffer_callback	write_cb;
 } mp1e_context;
 
 #endif /* B_MP1E_H */
+
+
+
+
+
+

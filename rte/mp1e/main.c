@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.28 2002-03-16 16:32:00 mschimek Exp $ */
+/* $Id: main.c,v 1.29 2002-03-19 19:26:29 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -193,8 +193,8 @@ reset_options(rte_codec *codec)
 			break;
 
 		default:
-			fprintf(stderr, __PRETTY_FUNCTION__
-				": unknown codec option type %d\n", option->type);
+			fprintf(stderr, "%s: unknown codec option type %d\n",
+				__PRETTY_FUNCTION__, option->type);
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -587,7 +587,7 @@ main(int ac, char **av)
 		vbi_init(vbi_cap_fifo, mux);
 	}
 
-	ASSERT("initialize output routine", init_output_stdout());
+	ASSERT("initialize output routine", init_output_stdout(mux));
 
 	// pause loop? >>
 
