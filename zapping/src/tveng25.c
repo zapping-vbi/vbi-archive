@@ -112,6 +112,8 @@ struct private_tveng25_device_info
 
 #define P_INFO(p) PARENT (p, struct private_tveng25_device_info, info)
 
+#define N_BUFFERS 8
+
 static tv_pixfmt
 pixelformat_to_pixfmt		(unsigned int		pixelformat)
 {
@@ -690,6 +692,8 @@ set_tuner_frequency		(tveng_device_info *	info,
 	    && TVENG_CAPTURE_READ == info->current_mode) {
 		unsigned int i;
 
+		/* Restart streaming (flush buffers). */
+
 		for (i = 0; i < p_info->num_buffers; ++i) {
 			struct v4l2_buffer buffer;
 
@@ -939,7 +943,7 @@ tveng25_set_preview_window(tveng_device_info * info)
 	struct private_tveng25_device_info * p_info = P_INFO (info);
 	struct v4l2_format format;
 
-t_assert(info != NULL);
+	t_assert(info != NULL);
 
 	CLEAR (format);
 
@@ -1074,6 +1078,7 @@ static int p_tveng25_open_device_file(int flags, tveng_device_info * info)
   t_assert(info != NULL);
   t_assert(info->file_name != NULL);
 
+  flags |= O_NONBLOCK;
   info -> fd = device_open(info->log_fp, info -> file_name, flags, 0);
   if (info -> fd < 0)
     {
@@ -1440,7 +1445,7 @@ tveng25_update_capture_format(tveng_device_info * info)
   info->overlay_window.y	= format.fmt.win.w.top;
   info->overlay_window.width	= format.fmt.win.w.width;
   info->overlay_window.height	= format.fmt.win.w.height;
-  /* These two are defined as write-only */
+
   info->overlay_window.clip_vector.vector = NULL;
   info->overlay_window.clip_vector.size = 0;
   info->overlay_window.clip_vector.capacity = 0;
@@ -1461,6 +1466,7 @@ set_capture_format(tveng_device_info * info)
 
   format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
+  /* bttv 0.9.14 YUV 4:2:0: see BUGS. */
   format.fmt.pix.pixelformat = pixfmt_to_pixelformat (info->format.pixfmt);
 
   if (0 == format.fmt.pix.pixelformat) {
@@ -1495,7 +1501,7 @@ set_capture_format(tveng_device_info * info)
   if (format.fmt.pix.height > 288)
     format.fmt.pix.field = V4L2_FIELD_INTERLACED;
   else
-    format.fmt.pix.field = V4L2_FIELD_TOP;
+    format.fmt.pix.field = V4L2_FIELD_BOTTOM;
 
   if (-1 == v4l25_ioctl (info, VIDIOC_S_FMT, &format))
       return -1;
@@ -1634,9 +1640,47 @@ static int p_tveng25_dqbuf(tveng_device_info * info)
   tmp_buffer.type = p_info -> buffers[0].vidbuf.type;
   tmp_buffer.memory = V4L2_MEMORY_MMAP;
 
-  /* NB this blocks */
-  if (-1 == v4l25_ioctl (info, VIDIOC_DQBUF, &tmp_buffer))
-      return -1;
+  /* XXX this blocks?? */
+  if (-1 == v4l25_ioctl (info, VIDIOC_DQBUF, &tmp_buffer)) {
+    int saved_errno;
+    int buf_type;
+
+    saved_errno = errno;
+
+    buf_type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+
+    /* bttv returns EIO on internal timeout and dequeues
+       the buffer it was about to write, does not
+       dequeue on subsequent timeouts.  On bt8x8 SCERR it
+       also resets.  To be safe we restart now, although
+       really the caller should do that. */
+    if (0 == v4l25_ioctl (info, VIDIOC_STREAMOFF, &buf_type)) {
+      unsigned int i;
+
+      for (i = 0; i < p_info->num_buffers; ++i) {
+	struct v4l2_buffer vbuf;
+	
+	CLEAR (vbuf);
+
+	vbuf.index = i;
+	vbuf.type = buf_type;
+
+	if (-1 == v4l25_ioctl (info, VIDIOC_QBUF, &vbuf))
+	  break;
+      }
+
+      if (i < p_info->num_buffers
+	  || -1 == v4l25_ioctl (info, VIDIOC_STREAMOFF, &buf_type)) {
+	/* XXX suspended state */
+      }
+    } else {
+      /* XXX suspended state */
+    }
+
+    errno = saved_errno;
+
+    return -1;
+  }
 
   p_info -> last_timestamp =
     tmp_buffer.timestamp.tv_sec
@@ -1669,14 +1713,14 @@ tveng25_start_capturing(tveng_device_info * info)
   p_info -> buffers = NULL;
   p_info -> num_buffers = 0;
 
-  rb.count = 8; /* This is a good number(tm) */
+  rb.count = N_BUFFERS;
   rb.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   rb.memory = V4L2_MEMORY_MMAP;
 
   if (-1 == v4l25_ioctl (info, VIDIOC_REQBUFS, &rb))
       return -1;
 
-  if (rb.count <= 2)
+  if (rb.count <= 1)
     {
       info->tveng_errno = -1;
       t_error_msg("check()", "Not enough buffers", info);
@@ -1689,7 +1733,7 @@ tveng25_start_capturing(tveng_device_info * info)
 
   for (i = 0; i < rb.count; i++)
     {
-      CLEAR (p_info->buffers[i].vidbuf.index);
+      CLEAR (p_info->buffers[i].vidbuf);
 
       p_info -> buffers[i].vidbuf.index = i;
       p_info -> buffers[i].vidbuf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -1805,6 +1849,8 @@ int tveng25_read_frame(tveng_image_data *where,
   fd_set rdset;
   struct timeval timeout;
 
+  assert (time > 0);
+
   if (info -> current_mode != TVENG_CAPTURE_READ)
     {
       info -> tveng_errno = -1;
@@ -1818,7 +1864,9 @@ int tveng25_read_frame(tveng_image_data *where,
   FD_SET(info->fd, &rdset);
   timeout.tv_sec = 0;
   timeout.tv_usec = time*1000;
+
   n = select(info->fd +1, &rdset, NULL, NULL, &timeout);
+
   if (n == -1)
     {
       info->tveng_errno = errno;
@@ -1826,7 +1874,9 @@ int tveng25_read_frame(tveng_image_data *where,
       return -1;
     }
   else if (n == 0)
-    return 1; /* This isn't properly an error, just a timeout */
+    {
+      return 1; /* This isn't properly an error, just a timeout */
+    }
 
   t_assert(FD_ISSET(info->fd, &rdset)); /* Some sanity check */
 
@@ -1835,14 +1885,19 @@ int tveng25_read_frame(tveng_image_data *where,
     return -1;
 
   /* Ignore frames we haven't been able to process */
+  if (0) /* XXX? */
   do{
+    int m;
+
     FD_ZERO(&rdset);
     FD_SET(info->fd, &rdset);
     timeout.tv_sec = timeout.tv_usec = 0;
     if (select(info->fd +1, &rdset, NULL, NULL, &timeout) < 1)
       break;
     p_tveng25_qbuf(n, info);
-    n = p_tveng25_dqbuf(info);
+    m = p_tveng25_dqbuf(info);
+    if (m >= 0)
+      n = m;
   } while (1);
 
   /* Copy the data to the address given */
