@@ -1,0 +1,15 @@
+
+  MP1E - Real Time Software MPEG-1 Encoder for Linux
+
+  Installation
+  ============
+
+  Type "./configure", "make", "./mp1e -h"
+
+  License
+  =======
+
+  You can use, modify and redistribute this program free of charge
+  under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2 of the License, or
+  (at your option) any later version. NO WARRANTIES.

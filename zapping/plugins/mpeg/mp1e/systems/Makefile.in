@@ -1,0 +1,20 @@
+# $Id: Makefile.in,v 1.1 2000-07-04 17:40:20 garetxe Exp $
+
+OBJS	= common.o mpeg1.o output.o
+
+all: $(OBJS)
+	$(LD) -r $(OBJS) -o systems.o
+
+%.o: %.c
+	$(CC) $(CFLAGS) $(DEFS) -c $< -o $@
+
+clean:
+	-rm $(OBJS) *.d *% *~ *.bak core log systems.o
+
+%.d: %.c
+	@echo Creating $@
+	@$(SHELL) -ec '$(CC) -MM $(CFLAGS) $< \
+	| sed '\''s/\($*\)\.o[ :]*/\1.o $@ : /g'\'' > $@; \
+	[ -s $@ ] || rm -f $@'
+
+-include $(OBJS:.o=.d)

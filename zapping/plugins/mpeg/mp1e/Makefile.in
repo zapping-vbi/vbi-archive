@@ -1,0 +1,58 @@
+# $Id: Makefile.in,v 1.1 2000-07-04 17:40:20 garetxe Exp $
+
+CFLAGS	= -Wall @OPT@ @X_CFLAGS@
+DEFS	= -D_GNU_SOURCE -D_REENTRANT @DEFS@ -DVERSION=\"@VERSION@\"
+LIBS	= @X_LIBS@ -lm -lpthread @LIBS@
+OBJS	= main.o options.o mmx.o bstream.o profile.o rte.o
+TARGET  = mp1e
+
+.PHONY: all depend clean mrproper
+.EXPORT_ALL_VARIABLES:
+
+all: configure $(OBJS)
+	$(MAKE) -C video
+	$(MAKE) -C audio
+	$(MAKE) -C systems
+	$(MAKE) -C video/mpeg_stat
+	-ln -s video/mpeg_stat/mpeg_stat stat
+	if test "@ENABLE_TEST@" = "yes"; then \
+		$(MAKE) -C test; \
+		$(CC) $(CFLAGS) $(OBJS) video/video.o audio/audio.o systems/systems.o test/test.o $(LIBS) -s -o $(TARGET); \
+	else \
+		$(CC) $(CFLAGS) $(OBJS) video/video.o audio/audio.o systems/systems.o $(LIBS) -s -o $(TARGET); \
+	fi
+
+%.o: %.c
+	$(CC) $(CFLAGS) $(DEFS) -c $< -o $@
+
+clean:
+	-$(MAKE) clean -C audio
+	-$(MAKE) clean -C video
+	-$(MAKE) clean -C systems
+	-$(MAKE) clean -C test
+	-rm $(OBJS) *.d *% *~ *.bak core log LOG $(TARGET)
+
+mrproper: clean
+	-$(MAKE) clean -C video/mpeg_stat
+	-rm stat
+	-$(MAKE) clean -C video/dct
+	-rm Makefile video/Makefile audio/Makefile test/Makefile
+	-rm Makefile systems/Makefile test/Makefile
+	-rm config.* configure
+	autoconf
+
+configure: configure.in
+	autoconf
+	if test "@ENABLE_TEST@" = "yes"; then \
+		./configure --enable-test; \
+	else \
+		./configure; \
+	fi
+
+%.d: %.c
+	@echo Creating $@
+	@$(SHELL) -ec '$(CC) -MM $(CFLAGS) $< \
+	| sed '\''s/\($*\)\.o[ :]*/\1.o $@ : /g'\'' > $@; \
+	[ -s $@ ] || rm -f $@'
+
+-include $(OBJS:.o=.d)

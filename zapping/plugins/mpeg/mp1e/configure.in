@@ -1,0 +1,40 @@
+dnl Process this file with autoconf to produce a configure script.
+dnl $Id: configure.in,v 1.1 2000-07-04 17:40:20 garetxe Exp $
+
+AC_INIT(main.c)
+
+VERSION=1.8.0-pre3
+AC_SUBST(VERSION)
+
+AC_PROG_CC()
+AC_CHECK_FUNCS(memalign)
+AC_CHECK_LIB(tsp, main)
+
+AC_CHECKING(for compile time optimization)
+
+OPT="-O2 -fomit-frame-pointer"
+
+AC_TRY_RUN([
+#include "mmx.c"
+int verbose = 0;
+char *my_name = "configure";
+int main() {
+	return(!cpu_id(ARCH_KLAMATH));
+}], OPT="$OPT -march=pentiumpro",, OPT=$OPT)
+
+AC_SUBST(OPT)
+
+AC_PATH_XTRA
+AC_CHECK_LIB(Xv, XvShmPutImage,,, $X_LIBS -lX11 -lXext)
+if test "$ac_cv_lib_Xv_XvShmPutImage" = "yes"; then LIBS="$LIBS -lX11 -lXext"; fi
+
+AC_ARG_ENABLE(test,[  --enable-test           enable test gui])
+if test "$enable_test" = "yes"; then
+	LIBS="$LIBS -ltk8.0 -ltcl8.0"
+	AC_DEFINE(TEST_PREVIEW, 1)
+fi
+ENABLE_TEST=$enable_test
+
+AC_SUBST(ENABLE_TEST)
+
+AC_OUTPUT(Makefile video/Makefile audio/Makefile systems/Makefile test/Makefile mp1e.lsm)
