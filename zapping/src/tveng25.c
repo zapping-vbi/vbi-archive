@@ -53,7 +53,6 @@
 #include "tveng25.h"
 
 #include "zmisc.h"
-#include "bayer.h"
 
 /* Kernel interface */
 #include <linux/types.h>	/* __u32 etc */
@@ -141,9 +140,6 @@ struct private_tveng25_device_info
 	tv_bool			read_back_controls;
 	tv_bool			use_v4l_audio;
 	tv_bool			use_s_ctrl_old;
-
-	tv_bool			bayer_hack;
-	tv_pixfmt		bayer_pixfmt;
 
 	tv_bool			streaming;
 };
@@ -1154,6 +1150,9 @@ pixelformat_to_pixfmt		(unsigned int		pixelformat)
 	case V4L2_PIX_FMT_YUV410:	return TV_PIXFMT_YUV410;
 	case V4L2_PIX_FMT_YUV422P:	return TV_PIXFMT_YUV422;
 	case V4L2_PIX_FMT_YUV411P:	return TV_PIXFMT_YUV411;
+
+	case V4L2_PIX_FMT_SBGGR8:	return TV_PIXFMT_SBGGR;
+
 	default:			return TV_PIXFMT_UNKNOWN;
 	}
 }
@@ -1182,6 +1181,9 @@ pixfmt_to_pixelformat		(tv_pixfmt		pixfmt)
 	case TV_PIXFMT_YUV410:		return V4L2_PIX_FMT_YUV410;	
 	case TV_PIXFMT_YUV422:		return V4L2_PIX_FMT_YUV422P;	
 	case TV_PIXFMT_YUV411:		return V4L2_PIX_FMT_YUV411P;	
+
+	case TV_PIXFMT_SBGGR:		return V4L2_PIX_FMT_SBGGR8;
+
 	default:			return 0;
 	}
 }
@@ -1369,22 +1371,18 @@ get_overlay_chromakey		(tveng_device_info *	info)
 */
 
 static tv_bool
-image_format_from_format	(tveng_device_info *	info,
+image_format_from_format	(tveng_device_info *	info _unused_,
 				 tv_image_format *	f,
 				 const struct v4l2_format *vfmt)
 {
-	struct private_tveng25_device_info *p_info = P_INFO (info);
 	tv_pixfmt pixfmt;
 	unsigned int bytes_per_line;
 
 	CLEAR (*f);
 
-	if (TVENG25_BAYER_TEST
-	    || V4L2_PIX_FMT_SBGGR8 == vfmt->fmt.pix.pixelformat) {
-		pixfmt = p_info->bayer_pixfmt;
-
-		bytes_per_line = vfmt->fmt.pix.width
-			* tv_pixfmt_bytes_per_pixel (p_info->bayer_pixfmt);
+	if (TVENG25_BAYER_TEST) {
+		pixfmt = TV_PIXFMT_SBGGR;
+		bytes_per_line = vfmt->fmt.pix.width;
 	} else {
 		pixfmt = pixelformat_to_pixfmt (vfmt->fmt.pix.pixelformat);
 
@@ -1445,30 +1443,9 @@ set_capture_format		(tveng_device_info *	info,
 
 	format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
-	if (p_info->bayer_hack) {
-		switch (fmt->pixel_format->pixfmt) {
-		case TV_PIXFMT_BGRA32_LE:
-			break;
-		case TV_PIXFMT_BGR24_LE:
-			break;
-		case TV_PIXFMT_BGR16_LE:
-			break;
-		default:
-			t_error_msg ("", "Cannot convert bayer to %s", info,
-				     fmt->pixel_format->name);
-			return FALSE;
-		}
-
-		pixelformat = V4L2_PIX_FMT_SBGGR8;
-		p_info->bayer_pixfmt = fmt->pixel_format->pixfmt;
-
-		if (TVENG25_BAYER_TEST)
-			pixelformat = V4L2_PIX_FMT_GREY;
-	} else {
-		/* XXX bttv 0.9.14 bug: with YUV 4:2:0 activation of VBI
-		   can cause a SCERR & driver reset, DQBUF -> EIO. */
-		pixelformat = pixfmt_to_pixelformat (fmt->pixel_format->pixfmt);
-	}
+	/* XXX bttv 0.9.14 bug: with YUV 4:2:0 activation of VBI
+	   can cause a SCERR & driver reset, DQBUF -> EIO. */
+	pixelformat = pixfmt_to_pixelformat (fmt->pixel_format->pixfmt);
 
 	if (0 == pixelformat) {
 		info->tveng_errno = -1; /* unknown */
@@ -1478,12 +1455,15 @@ set_capture_format		(tveng_device_info *	info,
 		return FALSE;
 	}
 
-	format.fmt.pix.pixelformat = pixelformat;
-
 	if (TVENG25_BAYER_TEST) {
+		format.fmt.pix.pixelformat = V4L2_PIX_FMT_GREY;
+		pixelformat = V4L2_PIX_FMT_GREY;
+
 		format.fmt.pix.width	= 352;
 		format.fmt.pix.height	= 288;
 	} else {
+		format.fmt.pix.pixelformat = pixelformat;
+
 		format.fmt.pix.width	= fmt->width;
 		format.fmt.pix.height	= fmt->height;
 	}
@@ -1534,14 +1514,13 @@ get_supported_pixfmt_set	(tveng_device_info *	info)
 
 	tv_pixfmt_set pixfmt_set;
 	tv_pixfmt pixfmt;
-	tv_bool have_bayer;
 	unsigned int i;
 
-	if (TVENG25_BAYER_TEST)
-		goto bayer;
+	if (TVENG25_BAYER_TEST) {
+		return TV_PIXFMT_SET (TV_PIXFMT_SBGGR);
+	}
 
 	pixfmt_set = TV_PIXFMT_SET_EMPTY;
-	have_bayer = FALSE;
 
 	for (i = 0;; ++i) {
 		struct v4l2_fmtdesc fmtdesc;
@@ -1552,27 +1531,21 @@ get_supported_pixfmt_set	(tveng_device_info *	info)
 		if (-1 == xioctl_may_fail (info, VIDIOC_ENUM_FMT, &fmtdesc))
 			break;
 
-		if (V4L2_PIX_FMT_SBGGR8 == fmtdesc.pixelformat) {
-			have_bayer = TRUE;
-		} else {
-			pixfmt = pixelformat_to_pixfmt (fmtdesc.pixelformat);
+		pixfmt = pixelformat_to_pixfmt (fmtdesc.pixelformat);
 
-			if (TV_PIXFMT_UNKNOWN != pixfmt)
-				pixfmt_set |= TV_PIXFMT_SET (pixfmt);
-		}
+		if (TV_PIXFMT_UNKNOWN != pixfmt)
+			pixfmt_set |= TV_PIXFMT_SET (pixfmt);
 	}
 
 	if (0 != pixfmt_set)
 		return pixfmt_set;
 
-	if (have_bayer)
-		goto bayer;
-
 	/* Gross! Let's see if TRY_FMT gives more information. */
 
 	/* sn9c102 1.0.8 bug: TRY_FMT doesn't copy format back to user. */
-	if (0 == strcmp (p_info->caps.driver, "sn9c102"))
-		goto bayer; /* is an USB camera */
+	if (0 == strcmp (p_info->caps.driver, "sn9c102")) {
+		return TV_PIXFMT_SET (TV_PIXFMT_SBGGR); /* is an USB camera */
+	}
 
 	for (pixfmt = 0; pixfmt < TV_MAX_PIXFMTS; ++pixfmt) {
 		struct v4l2_format format;
@@ -1597,17 +1570,6 @@ get_supported_pixfmt_set	(tveng_device_info *	info)
 
 	if (0 != pixfmt_set)
 		return pixfmt_set;
-
-	{
-		struct v4l2_format format;
-
-		init_format_generic (&format, V4L2_PIX_FMT_SBGGR8);
-
-		if (0 == xioctl_may_fail (info, VIDIOC_TRY_FMT, &format)
-		    && V4L2_PIX_FMT_SBGGR8 == format.fmt.pix.pixelformat) {
-			goto bayer;
-		}
-	}
 
 	/* TRY_FMT is optional, let's see if S_FMT works. */
 
@@ -1635,17 +1597,6 @@ get_supported_pixfmt_set	(tveng_device_info *	info)
 	}
 
 	return pixfmt_set;
-
- bayer:
-	p_info->bayer_hack = TRUE;
-
-	/* Cannot dequeue without copying. */
-	info->caps.flags &= ~TVENG_CAPS_QUEUE;
-
-	/* We can convert Bayer format to these. */
-	return (TV_PIXFMT_SET (TV_PIXFMT_BGRA32_LE) |
-		TV_PIXFMT_SET (TV_PIXFMT_BGR24_LE) |
-		TV_PIXFMT_SET (TV_PIXFMT_BGR16_LE));
 }
 
 static tv_bool
@@ -1655,10 +1606,8 @@ queue_xbuffer			(tveng_device_info *	info,
 	struct v4l2_buffer buffer;
 
 	if (b->clear) {
-		if (!P_INFO (info)->bayer_hack)
-			if (!tv_clear_image (b->cb.data,
-					     &info->capture.format))
-				return FALSE;
+		if (!tv_clear_image (b->cb.data, &info->capture.format))
+			return FALSE;
 
 		b->clear = FALSE;
 	}
@@ -1941,7 +1890,6 @@ read_frame			(tveng_device_info *	info,
 				 tv_capture_buffer *	buffer,
 				 const struct timeval *	timeout)
 {
-	struct private_tveng25_device_info *p_info = P_INFO (info);
 	tv_capture_buffer *qbuffer;
 	int r;
 
@@ -1952,45 +1900,14 @@ read_frame			(tveng_device_info *	info,
 	assert (NULL != qbuffer);
 
 	if (buffer) {
-		if (p_info->bayer_hack) {
-			unsigned int width;
-			unsigned int height;
+		const tv_image_format *dst_format;
 
-			width = p_info->info.capture.format.width;
-			height = p_info->info.capture.format.height;
+		dst_format = buffer->format;
+		if (!dst_format)
+			dst_format = &info->capture.format;
 
-			switch (p_info->bayer_pixfmt) {
-			case TV_PIXFMT_BGRA32_LE:
-				sbggr8_to_bgra32_le (buffer->data,
-						     qbuffer->data,
-						     width, height);
-				break;
-
-			case TV_PIXFMT_BGR24_LE:
-				sbggr8_to_bgr24_le (buffer->data,
-						    qbuffer->data,
-						    width, height);
-				break;
-				
-			case TV_PIXFMT_BGR16_LE:
-				sbggr8_to_bgr16_le (buffer->data,
-						    qbuffer->data,
-						    width, height);
-				break;
-				
-			default:
-				assert (!"reached");
-			}
-		} else {
-			const tv_image_format *dst_format;
-
-			dst_format = buffer->format;
-			if (!dst_format)
-				dst_format = &info->capture.format;
-
-			tv_copy_image (buffer->data, dst_format,
-				       qbuffer->data, &info->capture.format);
-		}
+		tv_copy_image (buffer->data, dst_format,
+			       qbuffer->data, &info->capture.format);
 
 		buffer->sample_time = qbuffer->sample_time;
 		buffer->stream_time = qbuffer->stream_time;
@@ -2581,10 +2498,6 @@ int tveng25_attach_device(const char* device_file,
 	      	info->capture.dequeue_buffer = dequeue_buffer;
 		info->capture.flush_buffers = flush_buffers;
 		info->capture.enable = enable_capture;
-
-		/* Need a virtual current format so get_capture_format()
-		   can succeed in bayer_hack mode. */
-		p_info->bayer_pixfmt = TV_PIXFMT_BGR16_LE;
 
 		if (!get_capture_format (info))
 			goto failure;
