@@ -432,6 +432,9 @@ const char* get_locale_charset (void)
 						 || streq(codeset,"utf8")
 						 )
 					    locale_charset = "UTF-8";
+					  else /* hope that libxml
+						  understands this */
+					    locale_charset = strdup(codeset);
     } else {
       // No dot found. Choose a default, based on locale.
       if (   streq(locale,"iso_8859_1")
@@ -563,7 +566,13 @@ const char* get_locale_charset (void)
 					else
 					  if (streq(lang,"th")
 					      )
-					    locale_charset = "TIS-620"; /* was: "TACTIS"; */
+					    locale_charset =
+					      "TIS-620"; /* was:
+							    "TACTIS";
+							 */
+					else
+					  if (streq(lang, "zh"))
+					    locale_charset = "GB2313";
 					  else {
 					  }
       }
