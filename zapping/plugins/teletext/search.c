@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.3 2004-12-07 17:30:43 mschimek Exp $ */
+/* $Id: search.c,v 1.4 2005-01-31 07:07:18 mschimek Exp $ */
 
 #include "src/zgconf.h"
 #include "main.h"		/* td */
@@ -130,7 +130,9 @@ idle				(gpointer		user_data)
 
   gtk_label_set_text (sp->label, _("Search text:"));
 
-  status = vbi3_search_next (sp->context, &pg, sp->direction);
+  /* XXX shouldn't we have a few format options here? */
+  status = vbi3_search_next (sp->context, &pg, sp->direction,
+			     VBI3_END);
 
   switch (status)
     {
