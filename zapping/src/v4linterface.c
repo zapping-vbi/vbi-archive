@@ -180,7 +180,7 @@ create_slider			(GtkWidget *		table,
 		    GINT_TO_POINTER (index));
 
   spinslider = z_spinslider_new (GTK_ADJUSTMENT (adj), NULL,
-				 NULL, qc->def_value);
+				 NULL, qc->def_value, 0);
 
   z_spinslider_set_value (spinslider, qc->cur_value);
 
@@ -835,15 +835,15 @@ z_switch_channel	(tveng_tuned_channel	*channel,
   int mute=0;
   gboolean was_first_switch = first_switch;
   tveng_tuned_channel *tc;
-  gboolean in_global_list =
-    tveng_tuned_channel_in_list(channel, global_channel_list);
+  gboolean in_global_list;
 
   if (!channel)
     return;
 
+  in_global_list = tveng_tuned_channel_in_list (global_channel_list, channel);
+
   if (in_global_list &&
-      (tc = tveng_retrieve_tuned_channel_by_index(cur_tuned_channel,
-						  global_channel_list)))
+      (tc = tveng_tuned_channel_nth (global_channel_list, cur_tuned_channel)))
     {
       if (!first_switch)
 	{
@@ -918,7 +918,7 @@ static void
 select_channel (gint num_channel)
 {
   tveng_tuned_channel * channel =
-    tveng_retrieve_tuned_channel_by_index(num_channel, global_channel_list);
+    tveng_tuned_channel_nth (global_channel_list, num_channel);
 
   if (!channel)
     {
@@ -936,10 +936,6 @@ py_channel_up			(PyObject *self, PyObject *args)
   gint num_channels = tveng_tuned_channel_num(global_channel_list);
   gint new_channel;
 
-#ifdef REMOTE_LOG
-  fprintf(stderr, "py_channel_up\n");
-#endif
-
   if (num_channels == 0) /* If there are no tuned channels stop
 			    processing */
     py_return_none;
@@ -949,10 +945,6 @@ py_channel_up			(PyObject *self, PyObject *args)
     new_channel = 0;
 
   select_channel(new_channel);
-
-#ifdef REMOTE_LOG
-  fprintf(stderr, "/py_channel_up\n");
-#endif
 
   py_return_none;
 }
@@ -1009,28 +1001,23 @@ static PyObject*
 py_lookup_channel			(PyObject *self, PyObject *args)
 {
   tveng_tuned_channel *tc;
-  gint i;
   char *name;
   int ok = PyArg_ParseTuple (args, "s", &name);
 
   if (!ok)
     py_return_false;
 
-  for (i = 0; (tc = tveng_retrieve_tuned_channel_by_index
-	       (i, global_channel_list)); i++)
-    if (strcasecmp(name, tc->name) == 0)
-      {
-	z_switch_channel(tc, main_info);
-	py_return_true;
-      }
+  if ((tc = tveng_tuned_channel_by_name (global_channel_list, name)))
+    {
+      z_switch_channel(tc, main_info);
+      py_return_true;
+    }
 
-  for (i = 0; (tc = tveng_retrieve_tuned_channel_by_index
-	       (i, global_channel_list)); i++)
-    if (strcasecmp(name, tc->rf_name) == 0)
-      {
-	z_switch_channel(tc, main_info);
-	py_return_true;
-      }
+  if ((tc = tveng_tuned_channel_by_rf_name (global_channel_list, name)))
+    {
+      z_switch_channel(tc, main_info);
+      py_return_true;
+    }
 
   py_return_false;
 }
@@ -1131,8 +1118,7 @@ on_channel_key_press			(GtkWidget *	widget,
   key.key = gdk_keyval_to_lower (event->keyval);
   key.mask = event->state;
 
-  for (i = 0; (tc = tveng_retrieve_tuned_channel_by_index
-	       (i, global_channel_list)); i++)
+  for (i = 0; (tc = tveng_tuned_channel_nth(global_channel_list, i)); i++)
     if (z_key_equal (tc->accel, key))
       {
 	select_channel (tc->index);
@@ -1196,28 +1182,44 @@ void on_standard_activate              (GtkMenuItem     *menuitem,
 }
 
 static inline void
-insert_one_channel			(GtkMenuShell *menu,
-					 gint index,
-					 gint pos)
+insert_one_channel		(GtkMenuShell *		menu,
+				 guint			index,
+				 guint			pos)
 {
-  tveng_tuned_channel *tuned =
-    tveng_retrieve_tuned_channel_by_index(index, global_channel_list);
+  tveng_tuned_channel *tc;
+  GtkWidget *menu_item;
   gchar *tooltip;
-  GtkWidget *menu_item =
-    z_gtk_pixmap_menu_item_new(tuned->name,
-			       GTK_STOCK_PROPERTIES);
-  g_signal_connect_swapped(G_OBJECT(menu_item), "activate",
-			   G_CALLBACK(select_channel),
-			   GINT_TO_POINTER(index));
 
-  if ((tooltip = z_key_name (tuned->accel)))
+  if (!(tc = tveng_tuned_channel_nth (global_channel_list, index)))
+    return;
+
+  menu_item = z_gtk_pixmap_menu_item_new (tc->name, GTK_STOCK_PROPERTIES);
+
+  g_signal_connect_swapped (G_OBJECT (menu_item), "activate",
+			    G_CALLBACK (select_channel),
+			    GINT_TO_POINTER (index));
+
+  if ((tooltip = z_key_name (tc->accel)))
     {
       z_tooltip_set (menu_item, tooltip);
       g_free (tooltip);
     }
 
-  gtk_widget_show(menu_item);
-  gtk_menu_shell_insert(menu, menu_item, pos);
+  gtk_widget_show (menu_item);
+  gtk_menu_shell_insert (menu, menu_item, pos);
+}
+
+static inline const gchar *
+tuned_channel_nth_name		(tveng_tuned_channel *	list,
+				 guint			index)
+{
+  tveng_tuned_channel *tc;
+
+  tc = tveng_tuned_channel_nth (list, index);
+
+  g_assert (tc != NULL);
+
+  return tc->name ? tc->name : _("Unnamed");
 }
 
 /* Returns whether something (useful) was added */
@@ -1227,127 +1229,151 @@ add_channel_entries			(GtkMenuShell *menu,
 					 gint menu_max_entries,
 					 tveng_device_info *info)
 {
-  GtkWidget *menu_item = NULL;
-  GtkMenuShell *menu2 = NULL;
-  gchar *buf = NULL;
-  gint i;
   gboolean sth = FALSE;
+  guint num_channels;
+
+  num_channels = tveng_tuned_channel_num (global_channel_list);
 
   if (info->num_standards)
     {
-      menu2 = GTK_MENU_SHELL(gtk_menu_new());
-      menu_item =
-	    z_gtk_pixmap_menu_item_new("Standards",
-				       GTK_STOCK_SELECT_COLOR);
-      gtk_widget_show(menu_item);
-      gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item),
-				GTK_WIDGET(menu2));
-      gtk_menu_shell_insert(menu, menu_item, pos);
-      menu_item = gtk_tearoff_menu_item_new();
-      gtk_widget_show(menu_item);
-      gtk_menu_shell_append(menu2, menu_item);
-      for (i = 0; i<info->num_standards; i++)
+      GtkMenuShell *submenu;
+      GtkWidget *menu_item;
+      guint i;
+
+      menu_item = z_gtk_pixmap_menu_item_new ("Standards",
+					      GTK_STOCK_SELECT_COLOR);
+      gtk_widget_show (menu_item);
+      submenu = GTK_MENU_SHELL (gtk_menu_new());
+      gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_item),
+				 GTK_WIDGET (submenu));
+      gtk_menu_shell_insert (menu, menu_item, pos);
+
+      menu_item = gtk_tearoff_menu_item_new ();
+      gtk_widget_show (menu_item);
+      gtk_menu_shell_append (submenu, menu_item);
+
+      for (i = 0; i < info->num_standards; i++)
 	{
-	  menu_item =
-	    z_gtk_pixmap_menu_item_new(info->standards[i].name,
-				       GTK_STOCK_SELECT_COLOR);
-	  g_signal_connect(G_OBJECT(menu_item), "activate",
-			     G_CALLBACK(on_standard_activate),
-			     GINT_TO_POINTER(info->standards[i].hash));
-	  gtk_widget_show(menu_item);
-	  gtk_menu_shell_append(menu2, menu_item);
+	  menu_item = z_gtk_pixmap_menu_item_new (info->standards[i].name,
+						  GTK_STOCK_SELECT_COLOR);
+	  gtk_widget_show (menu_item);
+	  gtk_menu_shell_append (submenu, menu_item);
+	  g_signal_connect (G_OBJECT (menu_item), "activate",
+			    G_CALLBACK (on_standard_activate),
+			    GINT_TO_POINTER (info->standards[i].hash));
 	}
     }
 
   if (info->num_inputs)
     {
-      menu2 = GTK_MENU_SHELL(gtk_menu_new());
-      menu_item =
-	    z_gtk_pixmap_menu_item_new(_("Inputs"),
-				       "gnome-stock-line-in");
-      gtk_widget_show(menu_item);
-      gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item),
-				GTK_WIDGET(menu2));
-      gtk_menu_shell_insert(menu, menu_item, pos);
-      menu_item = gtk_tearoff_menu_item_new();
-      gtk_widget_show(menu_item);
-      gtk_menu_shell_append(menu2, menu_item);
-      for (i = 0; i<info->num_inputs; i++)
+      GtkMenuShell *submenu;
+      GtkWidget *menu_item;
+      guint i;
+
+      menu_item = z_gtk_pixmap_menu_item_new (_("Inputs"),
+					      "gnome-stock-line-in");
+      gtk_widget_show (menu_item);
+      submenu = GTK_MENU_SHELL (gtk_menu_new ());
+      gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_item),
+				 GTK_WIDGET (submenu));
+      gtk_menu_shell_insert (menu, menu_item, pos);
+
+      menu_item = gtk_tearoff_menu_item_new ();
+      gtk_widget_show (menu_item);
+      gtk_menu_shell_append (submenu, menu_item);
+
+      for (i = 0; i < info->num_inputs; i++)
 	{
-	  menu_item =
-	    z_gtk_pixmap_menu_item_new(info->inputs[i].name,
-				       "gnome-stock-line-in");
-	  g_signal_connect(G_OBJECT(menu_item), "activate",
-			     G_CALLBACK(on_input_activate),
-			     GINT_TO_POINTER(info->inputs[i].hash));
-	  gtk_widget_show(menu_item);
-	  gtk_menu_shell_append(menu2, menu_item);
+	  menu_item = z_gtk_pixmap_menu_item_new (info->inputs[i].name,
+						  "gnome-stock-line-in");
+	  gtk_widget_show (menu_item);
+	  gtk_menu_shell_append (submenu, menu_item);
+	  g_signal_connect (G_OBJECT (menu_item), "activate",
+			    G_CALLBACK (on_input_activate),
+			    GINT_TO_POINTER (info->inputs[i].hash));
 	}
     }
 
-  if ((info->num_standards || info->num_inputs) &&
-      tveng_tuned_channel_num(global_channel_list))
+  if ((info->num_standards > 0 || info->num_inputs > 0) && num_channels > 0)
     {
-      /* separator */
-      menu_item = gtk_menu_item_new();
-      gtk_widget_show(menu_item);
+      GtkWidget *menu_item;
+
+      /* Separator */
+
+      menu_item = gtk_menu_item_new ();
+      gtk_widget_show (menu_item);
       gtk_menu_shell_insert (menu, menu_item, pos);
-      sth = TRUE;
     }
 
 #define ITEMS_PER_SUBMENU 20
 
-  if (tveng_tuned_channel_num(global_channel_list) == 0)
+  if (num_channels == 0)
     {
-      menu_item = z_gtk_pixmap_menu_item_new(_("No tuned channels"),
-					     GTK_STOCK_CLOSE);
-      gtk_widget_set_sensitive(menu_item, FALSE);
-      gtk_widget_show(menu_item);
-      gtk_menu_shell_insert(menu, menu_item, pos);
+      GtkWidget *menu_item;
+
       /* This doesn't count as something added */
+
+      menu_item = z_gtk_pixmap_menu_item_new (_("No tuned channels"),
+					      GTK_STOCK_CLOSE);
+      gtk_widget_set_sensitive (menu_item, FALSE);
+      gtk_widget_show (menu_item);
+      gtk_menu_shell_insert (menu, menu_item, pos);
     }
   else
     {
       sth = TRUE;
-      i = tveng_tuned_channel_num(global_channel_list);
-      if (i <= ITEMS_PER_SUBMENU && i <= menu_max_entries)
-	for (--i;i>=0;i--)
-	  insert_one_channel(menu, i, pos);
-      else {
-	if ((((--i)+1) % ITEMS_PER_SUBMENU) == 1)
-	    insert_one_channel(menu, i--, pos);
-	menu2 = NULL;
-	for (;i>=0;i--) {
-	  if (!menu2)
+
+      if (num_channels <= ITEMS_PER_SUBMENU
+	  && num_channels <= menu_max_entries)
+	{
+	  while (num_channels > 0)
+	    insert_one_channel (menu, --num_channels, pos);
+	}
+      else
+	{
+	  while (num_channels > 0)
 	    {
-	      menu2 = GTK_MENU_SHELL(gtk_menu_new());
-	      menu_item = gtk_tearoff_menu_item_new();
-	      gtk_widget_show(menu_item);
-	      gtk_menu_shell_append(menu2, menu_item);
-	      gtk_widget_show(GTK_WIDGET(menu2));
-	      menu_item =
-		z_gtk_pixmap_menu_item_new("foobar",
-					   "gnome-stock-line-in");
-	      gtk_widget_show(menu_item);
-	      gtk_menu_shell_insert(menu, menu_item, pos);
-	      gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item),
-					GTK_WIDGET(menu2));
-	      buf =
-		tveng_retrieve_tuned_channel_by_index(i,
-				      global_channel_list)->name;
-	    }
-	  insert_one_channel(menu2, i, 1);
-	  if (!(i%ITEMS_PER_SUBMENU))
-	    {
-	      buf = g_strdup_printf("%s/%s",
-			    tveng_retrieve_tuned_channel_by_index(i,
-			    global_channel_list)->name, buf);
-	      z_change_menuitem(menu_item, NULL, buf, NULL);
-	      g_free(buf);
-	      menu2 = NULL;
+	      guint remainder = num_channels % ITEMS_PER_SUBMENU;
+
+	      if (remainder == 1)
+		{
+		  insert_one_channel (menu, --num_channels, pos);
+		}
+	      else
+		{
+		  const gchar *first_name;
+		  const gchar *last_name;
+		  gchar *buf;
+		  GtkMenuShell *submenu;
+		  GtkWidget *menu_item;
+
+		  if (remainder == 0)
+		    remainder = ITEMS_PER_SUBMENU;
+
+		  first_name = tuned_channel_nth_name
+		    (global_channel_list, num_channels - remainder);
+		  last_name = tuned_channel_nth_name
+		    (global_channel_list, num_channels - 1);
+		  buf = g_strdup_printf ("%s/%s", first_name, last_name);
+		  menu_item = z_gtk_pixmap_menu_item_new (buf, "gnome-stock-line-in");
+		  g_free (buf);
+		  gtk_widget_show (menu_item);
+		  gtk_menu_shell_insert (menu, menu_item, pos);
+
+		  submenu = GTK_MENU_SHELL (gtk_menu_new());
+		  gtk_widget_show (GTK_WIDGET (submenu));
+		  gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_item),
+					     GTK_WIDGET (submenu));
+
+		  menu_item = gtk_tearoff_menu_item_new ();
+		  gtk_widget_show (menu_item);
+		  gtk_menu_shell_append (submenu, menu_item);
+
+		  while (remainder-- > 0)
+		    insert_one_channel (submenu, --num_channels, 1);
+		}
 	    }
 	}
-      }
     }
 
   return sth;
