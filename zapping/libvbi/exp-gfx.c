@@ -1,4 +1,3 @@
-/* Copyright 1999 by Paul Ortyl <ortylp@from.pl> */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,6 +19,7 @@
 
 // static void init_gfx(void) __attribute__ ((constructor));
 
+#define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
 
 ///////////////////////////////////////////////////////
 // COMMON ROUTINES FOR PPM AND PNG
@@ -34,6 +34,8 @@ draw_char(unsigned int *canvas, unsigned int *pen, int c, glyph_size size)
 	unsigned char *src1, *src2;
 	int shift1, shift2;
 	int x, y;
+
+// printf("DC <%c> %d\n", printable(c), size);
 
 	x = (c & 31) * CW;
 	shift1 = x & 7;
@@ -62,7 +64,7 @@ draw_char(unsigned int *canvas, unsigned int *pen, int c, glyph_size size)
 
 		case DOUBLE_HEIGHT:
 			for (x = 0; x < CW; bits >>= 1, x++) {
-				int col = pen[bits & 1];
+				unsigned int col = pen[bits & 1];
 
 				canvas[x] = col;
 				canvas[x + WW] = col;
@@ -74,19 +76,19 @@ draw_char(unsigned int *canvas, unsigned int *pen, int c, glyph_size size)
 
 		case DOUBLE_WIDTH:
 			for (x = 0; x < CW * 2; bits >>= 1, x += 2) {
-				int col = pen[bits & 1];
+				unsigned int col = pen[bits & 1];
 
 				canvas[x + 0] = col;
 				canvas[x + 1] = col;
 			}
 
-			canvas += 2 * WW;
+			canvas += WW;
 
 			break;
 
 		case DOUBLE_SIZE:
 			for (x = 0; x < CW * 2; bits >>= 1, x += 2) {
-				int col = pen[bits & 1];
+				unsigned int col = pen[bits & 1];
 
 				canvas[x + 0] = col;
 				canvas[x + 1] = col;
@@ -107,23 +109,91 @@ draw_char(unsigned int *canvas, unsigned int *pen, int c, glyph_size size)
 	}
 }
 
+static inline void
+draw_drcs(unsigned int *canvas, unsigned char *src, unsigned int *pen, int c, glyph_size size)
+{
+	unsigned int col;
+	int x, y;
+
+	src += (c & 0x3F) * 60;
+	pen += (c >> 10);
+
+	switch (size) {
+	case NORMAL:
+		for (y = 0; y < CH; canvas += WW, y++)
+			for (x = 0; x < 12; src++, x += 2) {
+				canvas[x + 0] = pen[*src & 15];
+				canvas[x + 1] = pen[*src >> 4];
+			}
+		break;
+
+	case DOUBLE_HEIGHT:
+		for (y = 0; y < CH; canvas += 2 * WW, y++)
+			for (x = 0; x < 12; src++, x += 2) {
+				col = pen[*src & 15];
+				canvas[x + 0] = col;
+				canvas[x + WW + 0] = col;
+				col = pen[*src >> 4];
+				canvas[x + 1] = col;
+				canvas[x + WW + 1] = col;
+			}
+		break;
+
+	case DOUBLE_WIDTH:
+		for (y = 0; y < CH; y++)
+			for (x = 0; x < 12 * 2; src++, x += 4) {
+				col = pen[*src & 15];
+				canvas[x + 0] = col;
+				canvas[x + 1] = col;
+				col = pen[*src >> 4];
+				canvas[x + 2] = col;
+				canvas[x + 3] = col;
+			}
+		break;
+
+	case DOUBLE_SIZE:
+		for (y = 0; y < CH; canvas += 2 * WW, y++)
+			for (x = 0; x < 12 * 2; src++, x += 4) {
+				col = pen[*src & 15];
+				canvas[x + 0] = col;
+				canvas[x + 1] = col;
+				canvas[x + WW + 0] = col;
+				canvas[x + WW + 1] = col;
+				col = pen[*src >> 4];
+				canvas[x + 2] = col;
+				canvas[x + 3] = col;
+				canvas[x + WW + 2] = col;
+				canvas[x + WW + 3] = col;
+			}
+	default:
+		break;
+	}
+}
+
 static void
 draw_page(struct fmt_page *pg, unsigned int *canvas)
 {
+	unsigned int pen[64];
 	int row, column;
 	attr_char *ac;
+	int i;
 
-	for (row = 0; row < H; canvas += W * CW * CH, row++) {
-		for (column = 0; column < W; column++) {
-			unsigned int pen[2];
+	for (i = 2; i < 64; i++)
+		pen[i] = pg->colour_map[pg->drcs_clut[i]];
 
+	for (row = 0; row < H; canvas += W * CW * CH - W * CW, row++) {
+		for (column = 0; column < W; canvas += CW, column++) {
 			ac = &pg->data[row][column];
 
 			pen[0] = pg->colour_map[ac->background];
 			pen[1] = pg->colour_map[ac->foreground];
 
-			if (ac->size <= DOUBLE_SIZE)
-				draw_char(canvas + column * CW, pen, ac->glyph, ac->size);
+			if (ac->size <= DOUBLE_SIZE) {
+				if ((ac->glyph & 0x3FF) >= 0x3C0)
+					draw_drcs(canvas, pg->drcs, pen, ac->glyph, ac->size);
+				else
+					draw_char(canvas, pen, ac->glyph, ac->size);
+			}
 		}
 	}
 }

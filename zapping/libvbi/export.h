@@ -45,6 +45,8 @@ struct fmt_page
     struct vt_page *vtp;
     struct fmt_char data[H][W];
     unsigned int colour_map[32];
+    unsigned char *drcs_clut;	/* 64 entries */
+    unsigned char *drcs;	/* 48 * 12 * 10 nibbles, LSN first */
 };
 
 struct export

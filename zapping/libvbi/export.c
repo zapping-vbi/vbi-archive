@@ -672,6 +672,8 @@ glyph(character_set s, national_subset n, int c)
 }
 
 
+
+
 #undef printv
 #define printv printf
 // #define printv(templ, ...)
@@ -717,494 +719,7 @@ compose(int glyph, int mark)
 	return glyph;
 }
 
-static int hum = 0;
 
-static vt_triplet *
-resolve_obj_address(struct vbi *vbi, object_type type,
-	int pgno, object_address address, page_function function)
-{
-	int s1, packet, pointer;
-	struct vt_page *vtp;
-	vt_triplet *trip;
-	int i;
-
-	s1 = address & 15;
-	packet = ((address >> 7) & 3) + 1;
-	i = ((address >> 5) & 3) * 3 + type;
-
-	printv("obj invocation, source page %03x/%04x, "
-		"pointer packet %d triplet %d\n", pgno, s1, packet, i);
-
-	vtp = vbi->cache->op->get(vbi->cache, pgno, s1, 0x000F);
-
-	if (!vtp) {
-		printv("... page not cached\n");
-		return 0;
-	}
-
-	if (vtp->function == PAGE_FUNCTION_UNKNOWN) {
-int k, l;
-/*
-for (k = 0; k < 24; k++) {
-for (l = 0; l < 40; l++)
-    printv("%c", printable(vtp->_data.unknown.raw[k][l]));
-printv("\n");
-}
-*/
-		if (!convert_pop(vtp, function)) {
-			printv("... no pop page or hamming error\n");
-			return 0;
-		}
-	} else if (vtp->function != function) {
-		printv("... source page wrong function %d, expected %d\n",
-			vtp->function, function);
-		return 0;
-	}
-
-	pointer = vtp->_data.pop.pointer[
-		(packet - 1) * 24 + i * 2 + ((address >> 4) & 1)];
-//pointer = vtp->_data.pop.pointer[hum & 7];
-
-printv("... triplet pointer %d\n", pointer);
-
-	if (pointer > 506) {
-		printv("... triplet pointer out of bounds (%d)\n", pointer);
-		return 0;
-	}
-
-	packet = (pointer / 13) + 3;
-
-	if (packet <= 25) {
-		printv("... object start in packet %d, triplet %d (pointer %d)\n",
-			packet, pointer % 13, pointer);
-//		return 0;
-	} else {
-		printv("... object start in packet 26/%d, triplet %d (pointer %d)\n",
-			packet - 26, pointer % 13, pointer);
-//		return 0;
-	}		
-
-	trip = vtp->_data.pop.triplet + pointer;
-
-	printv("obj 1st: ad 0x%02x mo 0x%04x dat %d=0x%x\n",
-		trip->address, trip->mode, trip->data, trip->data);
-
-	address ^= trip->address << 7;
-	address ^= trip->data;
-
-	if (trip->mode != (type + 0x14) || (address & 0x1FF)) {
-		printv("... no object definition\n");
-//		return 0;
-	}
-
-	return trip + 1;
-}
-
-
-
-static void
-new_enhance(struct fmt_page *pg, struct vt_page *vtp,
-	vt_triplet *p, int invc_row, int invc_column)
-{
-	int active_column, active_row;
-	int offset_column, offset_row;
-	int min_column, i, j;
-	struct font_d *font, *g0_g2_font;
-	int gl;
-	attr_char *acp;
-	u8 *rawp;
-
-//	if (vtp->num_triplets <= 0) /* XXX */
-//		return;
-
-	active_column = 0;
-	active_row = 0;
-
-	offset_column = 0;
-	offset_row = 0;
-
-	rawp = vtp->_data.lop.raw[invc_row];
-	acp = pg->data[invc_row];
-	min_column = (invc_row == 0) ? 8 : 0;
-
-	{
-		vt_extension *ext;
-		int char_set;
-
-		g0_g2_font = font_d_table;
-
-		if (!(ext = vtp->_data.unknown.extension))
-			ext = &vtp->vbi->magazine[(vtp->pgno >> 8) - 1].extension;
-
-		char_set = ext->char_set[0];
-
-		if (VALID_CHARACTER_SET(char_set))
-			g0_g2_font = font_d_table + char_set;
-
-		char_set = (char_set & ~7) + vtp->national;
-
-		if (VALID_CHARACTER_SET(char_set))
-			g0_g2_font = font_d_table + char_set;
-
-		printv("enh char_set = %d\n", char_set);
-	}
-
-	font = g0_g2_font;
-
-	for (;; p++) {
-		if (p->stop)
-			break;
-
-		if (p->address >= 40) {
-			/* row address triplets */
-
-			int s = p->data >> 5;
-			int row;
-
-			switch (p->mode) {
-			case 0x00:		/* full screen colour */
-				if (s == 0) {
-					/* TODO */
-				}
-
-				break;
-
-			case 0x07:		/* address display row 0 */
-				if (p->address != 0x3F)
-					break; /* reserved, no position */
-
-			case 0x01:		/* full row colour */
-				active_column = 0;
-
-				if (p->mode == 7)
-					row = 0;
-				else
-					row = (p->address - 40) ? : 24;
-#if 0 /* TODO */
-				if (s == 0) {
-					int colour = p->data & 0x1F;
-					// addressed row
-				} else if (s == 3) {
-					int colour = p->data & 0x1F;
-					// here and below
-				} /* other reserved */
-#endif
-				goto set_active;
-
-			/* case 0x02: reserved */
-			/* case 0x03: reserved */
-
-			case 0x04:		/* set active position */
-				if (p->data >= 40)
-					break; /* reserved */
-
-				active_column = p->data;
-				row = (p->address - 40) ? : 24;
-
-			set_active:
-				if (row != active_row) {
-					active_row = row;
-
-					font = g0_g2_font;
-
-					if (invc_row + row > 24)
-						acp = NULL;
-					else {
-						rawp = vtp->_data.unknown.raw[invc_row + row];
-						acp = pg->data[invc_row + row];
-
-						min_column = (invc_row + row == 0) ? 8 : 0;
-					}
-				}
-
-				printv("enh set_active row %d col %d\n", active_row, active_column);
-
-				break;
-
-			/* case 0x05: reserved */
-			/* case 0x06: reserved */
-			/* case 0x08 ... 0x0F: PDC data */
-
-			case 0x10:		/* origin modifier */
-				if (p->data >= 72)
-					break; /* invalid */
-			
-				offset_column = p->data;
-				offset_row = p->address - 40;
-
-				printv("enh origin modifier col %+d row %+d\n", offset_column, offset_row);
-
-				break;
-
-			case 0x11 ... 0x13:	/* object invocation */
-			{
-				int source = (p->address >> 3) & 3;
-				int type = p->mode & 3;
-				vt_triplet *trip; 
-
-				/* TODO */
-
-				printv("enh obj invocation source %d type %d\n", source, type);
-
-				if (source == 0)
-					break; /* illegal */
-				else if (source == 1) { /* local */
-					int designation = (p->data >> 4) + ((p->address & 1) << 4);
-					int triplet = p->data & 15;
-					
-					if (triplet > 12)
-						break; /* invalid */
-					printv("... local obj %d/%d\n", designation, triplet);					
-				} else {
-					magazine *mag = vtp->vbi->magazine + (vtp->pgno >> 8) - 1;
-					int pgno;
-
-					/* XXX X/27 */
-
-					{
-						int i;
-
-						if (source == 3)
-							i = 0; /* GPOP */
-						else if (!(i = mag->pop_lut[vtp->pgno & 0xFF])) {
-							printf("... MOT pop_lut empty\n");
-							break; /* has no link (yet?) */
-						}
-
-						pgno = mag->pop_link[i].pgno;
-					}
-
-					if (NO_PAGE(pgno)) {
-						printf("... dead link\n");
-						break;
-					}
-
-					printv("... %s obj\n", (source == 3) ? "global" : "public");
-
-					trip = resolve_obj_address(vtp->vbi, type, pgno,
-						(p->address << 7) + p->data,
-						(source == 3) ? PAGE_FUNCTION_GPOP : PAGE_FUNCTION_POP);
-
-					/* unfinished -- type */
-					if (trip) {
-						new_enhance(pg, vtp, trip, offset_row, offset_column);
-						printf("object done\n");
-					}
-				}
-
-				offset_column = 0;
-				offset_row = 0;
-
-				break;
-			}
-
-			/* case 0x14: reserved */
-
-			case 0x15 ... 0x17:	/* object definition */
-				printv("enh obj definition 0x%02x 0x%02x\n", p->mode, p->data);
-				return;
-
-			case 0x18:		/* drcs mode */
-				/* TODO */
-
-				printv("enh DRCS mode 0x%02x\n", p->data);
-
-				break;
-
-			/* case 0x19 ... 0x1E: reserved */
-			
-			case 0x1F:		/* termination marker */
-				return;
-			}
-		} else {
-			/* column address triplets */
-
-			int s = p->data >> 5;			
-
-			switch (p->mode) {
-			case 0x00:			/* foreground colour */
-				active_column = p->address;
-
-				if (s == 0 && acp) {
-					int foreground = p->data & 0x1F;
-#if 1
-					j = MAX(min_column, invc_column + active_column);
-
-					for (; j < 40; j++) {
-						int raw = rawp[j] & 0x78; /* XXX parity */
-
-						acp[j].foreground = foreground;
-
-						/* spacing alpha foreground, set-after */
-						/* spacing mosaic foreground, set-after */
-						if (raw == 0x00 || raw == 0x10)
-							break;
-					}
-#endif
-					printv("enh col %d foreground %d\n", active_column, foreground);
-				}
-				
-				break;
-
-			case 0x01:			/* G1 block mosaic character */
-				active_column = p->address;
-
-				if (p->data & 0x20) {
-					gl = GL_CONTIGUOUS_BLOCK_MOSAIC_G1 + p->data;
-					goto store;
-				} else if (p->data >= 0x40) {
-					gl = glyph(font->G0, NO_SUBSET, p->data);
-					goto store;
-				}
-
-				break;
-
-			case 0x02:		/* G3 smooth mosaic or line drawing character */
-			case 0x0B:
-				active_column = p->address;
-
-				if (p->data >= 0x20) {
-					gl = GL_SMOOTH_MOSAIC_G3 + p->data;
-					goto store;
-				}
-
-				break;
-
-			case 0x03:		/* background colour */
-				active_column = p->address;
-
-				if (s == 0 && acp) {
-					int background = p->data & 0x1F;
-#if 1
-					j = MAX(min_column, invc_column + active_column);
-
-					for (; j < 40; j++) {
-						int raw = rawp[j] & 0x7F; /* XXX parity */
-
-						/* spacing black background, set-at */
-						/* spacing new background, set-at */
-						if (raw == 0x1C || raw == 0x1D)
-							break;
-
-						acp[j].background = background;
-					}
-#endif
-					printv("enh col %d background %d\n", active_column, background);
-				}
-
-				break;
-
-			/* case 0x04: reserved */
-			/* case 0x05: reserved */
-			/* case 0x06: pdc data */
-
-			case 0x07:		/* additional flash functions */	
-				active_column = p->address;
-
-				if (s == 0) {
-					/* huh? */
-
-					printv("enh col %d flash 0x%02x\n", active_column, p->data);
-				}
-
-				break;
-
-			case 0x08:		/* modified G0 and G2 character set designation */
-				active_column = p->address;
-
-				printv("enh col %d modify character set %d\n", active_column, p->data);
-
-				if (VALID_CHARACTER_SET(p->data))
-					font = font_d_table + p->data;
-				else
-					font = g0_g2_font;
-
-				break;
-
-			case 0x09:		/* G0 character */			
-				active_column = p->address;
-
-				if (p->data >= 0x20) {
-					gl = glyph(font->G0, NO_SUBSET, p->data);
-					goto store;
-				}
-
-				break;
-
-			/* case 0x0A: reserved */
-
-			case 0x0C:		/* display attributes */
-				active_column = p->address;
-
-				printv("enh col %d display attr 0x%02x\n", active_column, p->data);
-
-				break;
-
-			/*
-				d6	double width
-				d5	underline / separate
-				d4	invert colour
-				d3	reserved
-				d2	conceal
-				d1	boxing / window
-				d0	double height
-				set-at, 1=yes
-				The action persists to the end of a display row but may be cancelled by
-				the transmission of a further triplet of this type with the relevant bit set to '0', or, in
-				most cases, by an appropriate spacing attribute on the Level 1 page.
-			*/
-
-			case 0x0D:		/* drcs character invocation */
-				active_column = p->address;
-
-				/* TODO */
-
-				printv("enh col %d DRCS 0x%02x %c\n", active_column, p->data, printable(p->data));
-
-				break;
-
-			case 0x0E:		/* font style */
-				active_column = p->address;
-
-				/* TODO */
-
-				printv("enh col %d font style 0x%02x\n", active_column, p->data);
-
-				break;
-
-			case 0x0F:		/* G2 character */
-				active_column = p->address;
-
-				if (p->data >= 0x20) {
-					gl = glyph(font->G2, NO_SUBSET, p->data);
-					goto store;
-				}
-
-				break;
-
-			case 0x10 ... 0x1F:	/* characters including diacritical marks */
-				active_column = p->address;
-
-				if (p->data >= 0x20) {
-					gl = compose(glyph(font->G0, NO_SUBSET, p->data), p->mode - 16);
-
-			store:
-					printv("enh row %d col %d print 0x%02x/0x%02x -> 0x%04x %c\n",
-						active_row, active_column, p->mode, p->data, gl, printable(gl & 0x7F));
-
-					j = invc_column + active_column;
-
-					if (j < min_column || j > 40)
-						break;
-
-					acp[j].glyph = gl;
-				}
-
-				break;
-			}
-		}
-	}
-}
 
 static int
 vbi_resolve_flof(int x, struct vt_page *vtp, int *page, int *subpage)
@@ -1331,6 +846,669 @@ vbi_resolve_page(int x, int y, struct vt_page *vtp, int *page,
 	return FALSE;
 }
 
+
+
+
+
+
+
+
+
+
+static vt_triplet *
+resolve_obj_address(struct vbi *vbi, object_type type,
+	int pgno, object_address address, page_function function)
+{
+	int s1, packet, pointer;
+	struct vt_page *vtp;
+	vt_triplet *trip;
+	int i;
+int k, l;
+
+	s1 = address & 15;
+	packet = ((address >> 7) & 3) + 1;
+	i = ((address >> 5) & 3) * 3 + type;
+
+	printv("obj invocation, source page %03x/%04x, "
+		"pointer packet %d triplet %d\n", pgno, s1, packet, i);
+
+	vtp = vbi->cache->op->get(vbi->cache, pgno, s1, 0x000F);
+
+	if (!vtp) {
+		printv("... page not cached\n");
+		return 0;
+	}
+
+	if (vtp->function == PAGE_FUNCTION_UNKNOWN) {
+/*
+for (k = 0; k < 24; k++) {
+for (l = 0; l < 40; l++)
+    printv("%c", printable(vtp->_data.unknown.raw[k][l]));
+printv("\n");
+}
+*/
+		if (!convert_pop(vtp, function)) {
+			printv("... no pop page or hamming error\n");
+			return 0;
+		}
+	} else if (vtp->function != function) {
+		printv("... source page wrong function %d, expected %d\n",
+			vtp->function, function);
+		return 0;
+	}
+
+//printf("pp: %d\n", (packet - 1) * 24 + i * 2 + ((address >> 4) & 1));
+
+//for (k = 0; k < 48; k++)
+//    printf("pop.pointer[%d] = %d\n", k, vtp->_data.pop.pointer[k]);
+
+	pointer = vtp->_data.pop.pointer[
+		(packet - 1) * 24 + i * 2 + ((address >> 4) & 1)];
+//pointer = vtp->_data.pop.pointer[hum & 7];
+
+printv("... triplet pointer %d\n", pointer);
+
+	if (pointer > 506) {
+		printv("... triplet pointer out of bounds (%d)\n", pointer);
+		return 0;
+	}
+
+	packet = (pointer / 13) + 3;
+
+	if (packet <= 25) {
+		printv("... object start in packet %d, triplet %d (pointer %d)\n",
+			packet, pointer % 13, pointer);
+//		return 0;
+	} else {
+		printv("... object start in packet 26/%d, triplet %d (pointer %d)\n",
+			packet - 26, pointer % 13, pointer);
+//		return 0;
+	}		
+
+	trip = vtp->_data.pop.triplet + pointer;
+
+	printv("obj 1st: ad 0x%02x mo 0x%04x dat %d=0x%x\n",
+		trip->address, trip->mode, trip->data, trip->data);
+
+	address ^= trip->address << 7;
+	address ^= trip->data;
+
+	if (trip->mode != (type + 0x14) || (address & 0x1FF)) {
+int k, l;
+		printv("... no object definition\n");
+
+for (k = 0; k < 39; k++) {
+    printv("%2d: ", k);
+for (l = 0; l < 13; l++)
+    printv("%02x%02x ",
+	    vtp->_data.pop.triplet[k * 13 + l].address,
+	    vtp->_data.pop.triplet[k * 13 + l].mode);
+printv("\n");
+}
+
+		return 0;
+	}
+
+	return trip + 1;
+}
+
+static void
+new_enhance(struct fmt_page *pg, struct vt_page *vtp,
+	object_type type, vt_triplet *p, int inv_row, int inv_column)
+{
+	attr_char buf[40];
+	int active_column, active_row;
+	int offset_column, offset_row;
+	int min_column, max_column, i;
+	int foreground, background, gl;
+	struct font_d *font, *g0_g2_font;
+	int drcs_s1[2];
+	u8 *rawp;
+int tcount = 0;
+	active_column = 0;
+	active_row = 0;
+
+	offset_column = 0;
+	offset_row = 0;
+
+	min_column = (inv_row == 0) ? 8 : 0;
+	max_column = (type == OBJ_TYPE_ADAPTIVE) ? -1 : 39;
+
+	rawp = vtp->_data.lop.raw[inv_row];
+	memcpy(buf, pg->data[inv_row], 40 * sizeof(attr_char));
+
+	foreground = WHITE;
+	background = BLACK;
+
+	drcs_s1[0] = 0; /* global */
+	drcs_s1[1] = 0; /* normal */
+
+	{
+		vt_extension *ext;
+		int char_set;
+
+		g0_g2_font = font_d_table;
+
+		if (!(ext = vtp->_data.unknown.extension))
+			ext = &vtp->vbi->magazine[(vtp->pgno >> 8) - 1].extension;
+
+		char_set = ext->char_set[0];
+
+		if (VALID_CHARACTER_SET(char_set))
+			g0_g2_font = font_d_table + char_set;
+
+		char_set = (char_set & ~7) + vtp->national;
+
+		if (VALID_CHARACTER_SET(char_set))
+			g0_g2_font = font_d_table + char_set;
+
+		printv("enh char_set = %d\n", char_set);
+	}
+
+	font = g0_g2_font;
+
+	for (;; tcount++, p++) {
+		if (p->mode == 0xFF) {
+			printv("enh %d no triplet, not received (yet)?\n", tcount);
+			goto finish;
+		}
+
+		printv("triplet %d %02x%02x%02x\n", tcount,
+			p->address, p->mode, p->data);
+
+		if (p->address >= 40) {
+			/*
+			 *  Row address triplets
+			 */
+			int s = p->data >> 5;
+			int row = (p->address - 40) ? : 24;
+
+			switch (p->mode) {
+			case 0x00:		/* full screen colour */
+				if (s == 0) {
+					/* TODO */
+				}
+
+				break;
+
+			case 0x07:		/* address display row 0 */
+				if (p->address != 0x3F)
+					break; /* reserved, no position */
+
+				row = 0;
+
+				/* fall through */
+
+			case 0x01:		/* full row colour */
+				active_column = 0;
+
+#if 0 /* TODO */
+				if (s == 0) {
+					int colour = p->data & 0x1F;
+					// addressed row
+				} else if (s == 3) {
+					int colour = p->data & 0x1F;
+					// here and below
+				} /* other reserved */
+#endif
+				goto set_active;
+
+			/* case 0x02: reserved */
+			/* case 0x03: reserved */
+
+			case 0x04:		/* set active position */
+				if (p->data >= 40)
+					break; /* reserved */
+
+				active_column = p->data;
+
+			set_active:
+				printv("enh %d set_active row %d col %d\n", tcount, row, active_column);
+
+				if (row == active_row)
+					break;
+
+				active_row += inv_row;
+
+				if (active_row <= 24) {
+					if (max_column >= min_column)
+						memcpy(&pg->data[active_row][min_column],
+						       &buf[min_column],
+						       (max_column - min_column + 1) * sizeof(attr_char));
+
+					if (type == OBJ_TYPE_NONE || type == OBJ_TYPE_ACTIVE)
+						font = g0_g2_font;
+				}
+
+				active_row = row;
+				row += inv_row;
+
+				min_column = (row == 0) ? 8 : 0;
+
+				if (row <= 24) {
+					rawp = vtp->_data.unknown.raw[row];
+					memcpy(buf, pg->data[row], 40 * sizeof(attr_char));
+
+					if (type == OBJ_TYPE_ADAPTIVE)
+						max_column = -1;
+				}
+
+				break;
+
+			/* case 0x05: reserved */
+			/* case 0x06: reserved */
+			/* case 0x08 ... 0x0F: PDC data */
+
+			case 0x10:		/* origin modifier */
+				if (p->data >= 72)
+					break; /* invalid */
+
+				offset_column = p->data;
+				offset_row = p->address - 40;
+
+				printv("enh origin modifier col %+d row %+d\n", offset_column, offset_row);
+
+				break;
+
+			case 0x11 ... 0x13:	/* object invocation */
+			{
+				int source = (p->address >> 3) & 3;
+				object_type new_type = p->mode & 3;
+				vt_triplet *trip; 
+
+				/* TODO */
+
+				printv("enh obj invocation source %d type %d\n", source, new_type);
+
+				if (new_type <= type) { /* 13.2++ */
+					printv("... priority violation\n");
+					break;
+				}
+
+				if (source == 0)
+					break; /* illegal */
+
+				if (source == 1) { /* local */
+					int designation = (p->data >> 4) + ((p->address & 1) << 4);
+					int triplet = p->data & 15;
+					
+					if (triplet > 12)
+						break; /* invalid */
+					printv("... local obj %d/%d\n", designation, triplet);					
+				} else {
+					magazine *mag = vtp->vbi->magazine + (vtp->pgno >> 8) - 1;
+					int pgno, row, column;
+
+					/* XXX X/27 */
+
+					if (source == 3)
+						i = 0; /* GPOP */
+					else if (!(i = mag->pop_lut[vtp->pgno & 0xFF])) {
+						printv("... MOT pop_lut empty\n");
+						break; /* has no link (yet?) */
+					}
+
+					pgno = mag->pop_link[i].pgno;
+
+					if (NO_PAGE(pgno)) {
+						int j;
+
+						printv("... dead link %d/8: ", i);
+						for (j = 0; j < 8; j++)
+							printv("%04x ", mag->pop_link[j].pgno);
+						printv("\n");
+					pgno = 0x1F0;
+					//	break; /* has no link (yet?) */
+					}
+
+					printv("... %s obj\n", (source == 3) ? "global" : "public");
+
+					trip = resolve_obj_address(vtp->vbi, new_type, pgno,
+						(p->address << 7) + p->data,
+						(source == 3) ? PAGE_FUNCTION_GPOP : PAGE_FUNCTION_POP);
+
+					if (!trip)
+						break;
+
+					row = inv_row + active_row;
+					column = inv_column + active_column;
+
+					if (row <= 24 && max_column >= min_column)
+						memcpy(&pg->data[row][min_column], &buf[min_column],
+						       (max_column - min_column + 1) * sizeof(attr_char));
+
+					new_enhance(pg, vtp, new_type, trip,
+						row + offset_row, column + offset_column);
+
+					if (row <= 24)
+						memcpy(buf, pg->data[row], 40 * sizeof(attr_char));
+
+					printv("object done\n");
+				}
+
+				offset_row = 0;
+				offset_column = 0;
+
+				break;
+			}
+
+			/* case 0x14: reserved */
+
+			case 0x15 ... 0x17:	/* object definition */
+				printv("enh obj definition 0x%02x 0x%02x\n", p->mode, p->data);
+				printv("enh terminated at #%d\n", tcount);
+				goto finish;
+
+			case 0x18:		/* drcs mode */
+				printv("enh DRCS mode 0x%02x\n", p->data);
+				drcs_s1[p->data >> 6] = p->data & 15;
+				break;
+
+			/* case 0x19 ... 0x1E: reserved */
+			
+			case 0x1F:		/* termination marker */
+				printv("enh terminated at #%d\n", tcount);
+				goto finish;
+			}
+		} else {
+			/*
+			 *  Column address triplets
+			 */
+			int s = p->data >> 5;			
+
+			switch (p->mode) {
+			case 0x00:		/* foreground colour */
+				active_column = p->address;
+
+				if (s == 0) {
+					foreground = p->data & 0x1F;
+
+					if (type != OBJ_TYPE_PASSIVE) {
+						i = inv_column + active_column;
+
+						if (i > max_column)
+							max_column = i;
+
+						for (; i < 40; i++) {
+							int raw = rawp[i] & 0x78; /* XXX parity */
+					    // XXX doubleh
+							buf[i].foreground = foreground;
+
+							/* spacing alpha foreground, set-after */
+							/* spacing mosaic foreground, set-after */
+							if (type != OBJ_TYPE_ADAPTIVE /* 13.4 */
+							    && (raw == 0x00 || raw == 0x10))
+								break;
+						}
+					}
+
+					printv("enh %d col %d foreground %d\n", tcount, active_column, foreground);
+				}
+
+				break;
+
+			case 0x01:		/* G1 block mosaic character */
+				active_column = p->address;
+
+				if (p->data & 0x20) {
+					gl = GL_CONTIGUOUS_BLOCK_MOSAIC_G1 + p->data;
+					goto store;
+				} else if (p->data >= 0x40) {
+					gl = glyph(font->G0, NO_SUBSET, p->data);
+					goto store;
+				}
+
+				break;
+
+			case 0x02:		/* G3 smooth mosaic or line drawing character */
+			case 0x0B:
+				active_column = p->address;
+
+				if (p->data >= 0x20) {
+					gl = GL_SMOOTH_MOSAIC_G3 + p->data;
+					goto store;
+				}
+
+				break;
+
+			case 0x03:		/* background colour */
+				active_column = p->address;
+
+				if (s == 0) {
+					background = p->data & 0x1F;
+
+					if (type != OBJ_TYPE_PASSIVE) {
+						i = inv_column + active_column;
+
+						if (i > max_column)
+							max_column = i;
+
+						if (i < 40) /* override spacing attribute at active position */
+							buf[i++].background = background;
+
+						for (; i < 40; i++) {
+							int raw = rawp[i] & 0x7F; /* XXX parity */
+
+							/* spacing black background, set-at */
+							/* spacing new background, set-at */
+							if (type != OBJ_TYPE_ADAPTIVE /* 13.4 */
+							    && (raw == 0x1C || raw == 0x1D))
+								break;
+
+							buf[i].background = background;
+						}
+					}
+
+					printv("enh %d col %d background %d\n", tcount, active_column, background);
+				}
+
+				break;
+
+			/* case 0x04: reserved */
+			/* case 0x05: reserved */
+			/* case 0x06: pdc data */
+
+			case 0x07:		/* additional flash functions */	
+				active_column = p->address;
+
+				if (s == 0) {
+					/* huh? */
+
+					printv("enh col %d flash 0x%02x\n", active_column, p->data);
+				}
+
+				break;
+
+			case 0x08:		/* modified G0 and G2 character set designation */
+				active_column = p->address;
+
+				printv("enh col %d modify character set %d\n", active_column, p->data);
+
+				if (VALID_CHARACTER_SET(p->data))
+					font = font_d_table + p->data;
+				else
+					font = g0_g2_font;
+
+				break;
+
+			case 0x09:		/* G0 character */			
+				active_column = p->address;
+
+				if (p->data >= 0x20) {
+					gl = glyph(font->G0, NO_SUBSET, p->data);
+					goto store;
+				}
+
+				break;
+
+			/* case 0x0A: reserved */
+
+			case 0x0C:		/* display attributes */
+				active_column = p->address;
+
+				printv("enh col %d display attr 0x%02x\n", active_column, p->data);
+
+				break;
+
+			/*
+				d6	double width
+				d5	underline / separate
+				d4	invert colour
+				d3	reserved
+				d2	conceal
+				d1	boxing / window
+				d0	double height
+				set-at, 1=yes
+				The action persists to the end of a display row but may be cancelled by
+				the transmission of a further triplet of this type with the relevant bit set to '0', or, in
+				most cases, by an appropriate spacing attribute on the Level 1 page.
+				ADAPTIVE: no spacing attr.
+				PASSIVE: no end of row.
+			*/
+
+			case 0x0D:		/* drcs character invocation */
+{
+	magazine *mag = vtp->vbi->magazine + (vtp->pgno >> 8) - 1;
+	int normal = p->data >> 6;
+	int offset = p->data & 0x3F;
+	struct vt_page *drcs_vtp;
+	page_function function;
+	int pgno;
+extern void drcs_conv(struct vt_page *vtp);
+
+	active_column = p->address;
+
+	if (offset >= 48)
+		break; /* invalid */
+
+	printv("enh col %d DRCS 0x%02x\n", active_column, p->data);
+
+	/* XXX X/27 */
+
+	function = PAGE_FUNCTION_DRCS;
+
+	if (!normal) {
+		function = PAGE_FUNCTION_GDRCS;
+		i = 0;
+	} else if (!(i = mag->drcs_lut[vtp->pgno & 0xFF])) {
+		printv("... MOT drcs_lut empty\n");
+		break; /* has no link (yet?) */
+	}
+
+	pgno = mag->drcs_link[i];
+
+	if (NO_PAGE(pgno)) {
+		printv("... dead link\n");
+		break; /* has no link (yet?) */
+	}
+
+	printv("... %s drcs from page %x/%04x\n",
+		normal ? "normal" : "global", pgno, drcs_s1[normal]);
+
+	drcs_vtp = vtp->vbi->cache->op->get(vtp->vbi->cache, pgno, drcs_s1[normal], 0x000F);
+
+	if (!drcs_vtp) {
+		printv("... page not cached\n");
+		break;
+	}
+
+	drcs_conv(drcs_vtp);
+
+	if (drcs_vtp->function == PAGE_FUNCTION_UNKNOWN) {
+/*
+int k, l;
+
+for (k = 0; k < 24; k++) {
+for (l = 0; l < 40; l++)
+    printv("%c", printable(drcs_vtp->_data.unknown.raw[k][l]));
+printv("\n");
+}
+*/
+//		if (!convert_pop(drcs_vtp, function)) {
+			printv("... no pop page or hamming error\n");
+//			break;
+//		}
+	} else if (drcs_vtp->function != function) {
+		printv("... source page wrong function %d, expected %d\n",
+			drcs_vtp->function, function);
+		break;
+	}
+
+	pg->drcs = drcs_vtp->drcs_bits;
+{
+int k, l;
+
+for (k = 0; k < 10; k++) {
+for (l = 0; l < 6; l++)
+    printv("%02x", drcs_vtp->drcs_bits[offset+2][k * 6 + l]);
+printv("\n");
+}
+}
+
+
+	gl = 0x3C0 + offset+2;
+	goto store;
+}
+
+				break;
+
+			case 0x0E:		/* font style */
+				active_column = p->address;
+
+				/* TODO */
+
+				printv("enh col %d font style 0x%02x\n", active_column, p->data);
+
+				break;
+
+			case 0x0F:		/* G2 character */
+				active_column = p->address;
+
+				if (p->data >= 0x20) {
+					gl = glyph(font->G2, NO_SUBSET, p->data);
+					goto store;
+				}
+
+				break;
+
+			case 0x10 ... 0x1F:	/* characters including diacritical marks */
+				active_column = p->address;
+
+				if (p->data >= 0x20) {
+					gl = compose(glyph(font->G0, NO_SUBSET, p->data), p->mode - 16);
+
+			store:
+					printv("enh row %d col %d print 0x%02x/0x%02x -> 0x%04x %c\n",
+						active_row, active_column, p->mode, p->data,
+						gl, printable(gl & 0x7F));
+
+					if ((i = inv_column + active_column) >= 40)
+						break;
+
+					buf[i].glyph = gl;
+
+					if (type == OBJ_TYPE_PASSIVE) {
+						buf[i].foreground = foreground;
+						buf[i].background = background;
+					} else
+						if (active_column > max_column)
+							max_column = active_column;
+				}
+
+				break;
+			}
+		}
+	}
+
+finish:
+	active_row += inv_row;
+
+	if (active_row <= 24)
+		if (max_column >= min_column)
+			memcpy(&pg->data[active_row][min_column], &buf[min_column],
+			       (max_column - min_column + 1) * sizeof(attr_char));
+}
+
 void
 fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 {
@@ -1377,6 +1555,8 @@ fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 	    | ((ext->colour_map[i] & 0xF) << 0)
 	    | 0xFF000000;
     }
+
+	pg->drcs_clut = ext->drcs_clut;
 
 	i = 0;
 	reveal = !!reveal;
@@ -1428,6 +1608,7 @@ fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 
 			if (row == 0 && column < 8)
 				raw = buf[column];
+//printf("RAW %d, %d: %02x\n", row, column, raw);
 
 			/* set-at spacing attributes */
 
@@ -1474,17 +1655,19 @@ fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 				} else
 					ac.glyph = reveal ? glyph(font->G0, font->subset, raw) : GL_SPACE;
 
-			if (!wide_char)
+			if (!wide_char) {
 				pg->data[row][column] = ac;
 
-			wide_char = /*!!*/(ac.size & DOUBLE_WIDTH);
+				wide_char = /*!!*/(ac.size & DOUBLE_WIDTH);
 
-			if (wide_char && column < 39) {
-				attr_char t = ac;
+				if (wide_char && column < 39) {
+					attr_char t = ac;
 
-				t.size = OVER_TOP;
-				pg->data[row][column + 1] = t;
-			}
+					t.size = OVER_TOP;
+					pg->data[row][column + 1] = t;
+				}
+			} else
+				wide_char = FALSE;
 
 			/* set-after spacing attributes */
 
@@ -1529,7 +1712,7 @@ fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 			case 0x0F:		/* double size */
 				printv("spacing col %d row %d double size\n", column, row);
 
-				if (column >= 39 || row <= 0 || row >= 22)
+				if (column >= 39 || row <= 0 || row >= 23)
 					break;
 
 				ac.size = DOUBLE_SIZE;
@@ -1600,7 +1783,7 @@ fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 			pg->data[24][column] = ac;
 	}
 
-	new_enhance(pg, vtp, vtp->_data.lop.triplet, 0, 0);
+	new_enhance(pg, vtp, OBJ_TYPE_NONE, vtp->_data.lop.triplet, 0, 0);
 
 	if (0) /* Test */
 		for (row = 1; row < 24; row++)

@@ -14,14 +14,6 @@
 
 // #define PLL_ADJUST	4
 
-typedef enum {
-	DRCS_MODE_12_10_1,
-	DRCS_MODE_12_10_2,
-	DRCS_MODE_12_10_4,
-	DRCS_MODE_6_5_4,
-	DRCS_MODE_SUBSEQUENT_PTU = 14,
-	DRCS_MODE_NO_DATA
-} drcs_mode;
 
 struct raw_page
 {

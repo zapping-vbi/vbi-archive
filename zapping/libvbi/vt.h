@@ -67,7 +67,14 @@ typedef enum {
 	PAGE_CODING_META84
 } page_coding;
 
-
+typedef enum {
+	DRCS_MODE_12_10_1,
+	DRCS_MODE_12_10_2,
+	DRCS_MODE_12_10_4,
+	DRCS_MODE_6_5_4,
+	DRCS_MODE_SUBSEQUENT_PTU = 14,
+	DRCS_MODE_NO_DATA
+} drcs_mode;
 
 /*
     Only a minority of pages need this
@@ -91,9 +98,8 @@ typedef struct {
 
 	vt_ext_fallback	fallback;
 
-	u8		dclut4[2][4];		/* global, normal */
-	u8		dclut16[2][16];
-
+	u8		drcs_clut[2 + 2 * 4 + 2 * 16];
+						/* f/b, dclut4, dclut16 */
 	u16		colour_map[32];
 } vt_extension;
 
@@ -123,11 +129,11 @@ struct vt_page
     int flags;		// misc flags (see PG_xxx below)
     int errors;		// number of single bit errors in page
     u32 lines;		// 1 bit for each line received
-    u8 data[25][40];	// page contents
+    u8 data[26][40];	// page contents
 
 	union {
 		struct {
-			u8		raw[25][40];
+			u8		raw[26][40];
 			vt_triplet	triplet[16 * 13 + 1];
 			vt_pagenum	link[6 * 6];		/* X/27/0-5 links */
 			vt_extension *	extension;
@@ -136,11 +142,19 @@ struct vt_page
 		struct {
 			u16		pointer[96];
 			vt_triplet	triplet[39 * 13 + 1];
+// XXX preset [+1] mode (not 0xFF) or catch
 		}		gpop, pop;
+		struct {
+			u8		bits[48][12 * 10 / 2];	/* XXX too large for a union? */
+			u8		drcs_mode[48];
+		}		gdrcs, drcs;
 	}		_data;
 
 	/* added temporarily: */
 	struct vbi *	vbi;
+	u8		drcs_bits[48][12 * 10 / 2];
+	u8		drcs_mode[48];
+	vt_extension	extension;
 };
 
 #define C4_ERASE_PAGE		0x20	/* erase previously stored packets */
