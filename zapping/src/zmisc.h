@@ -108,12 +108,18 @@ gchar*
 Prompt (GtkWidget *main_window, const gchar *title,
 	const gchar *prompt, const gchar *default_text);
 
-/*
-  Creates a GtkPixmapMenuEntry with the desired pixmap and the
-  desired label. The pixmap is a stock GNOME pixmap.
+/**
+ * Creates a GtkPixmapMenuEntry with the desired pixmap and the
+ * desired label. The pixmap is a stock GNOME pixmap.
 */
 GtkWidget * z_gtk_pixmap_menu_item_new(const gchar * label,
 				       const gchar * icon);
+
+/**
+ * Sets the tooltip of the given widget.
+ */
+void set_tooltip	(GtkWidget	*widget,
+			 const gchar	*new_tip);
 
 /*
   does the mode switching. Since this requires more than just using

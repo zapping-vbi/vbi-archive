@@ -6,7 +6,121 @@
 <TITLE>Zapping documentation: Regular expressions</TITLE>
 </HEAD>
 <BODY BGCOLOR="#fffefe">
-<big><big><big><font color="#ff0000">FIXME: Not
-done</font></big></big></big>
+<center>
+<h1>Unicode and Regular Expressions</h1>
+<h2>Version 0.5</h2>
+</center>
+<h3>Introduction</h3>
+Regular expressions are a powerful way to search certain patterns in a
+text. Apart of simply giving the text you want to find, you can
+build a set of rules to be matched, this allows for a much more
+powerful search. There's a much comprehensive introduction to regular
+expressions in the manual: <br><b>man 7 regex</b>
+<h3>Credit where credit is due</h3>
+I've ripped most of the Unicode regex code from Mark Leishner's
+wonderful URE package, you can find it in
+<a
+href="http://crl.nmsu.edu/~mleisher/">http://crl.nmsu.edu/~mleisher/</a>.
+But please direct any comments of bugs to <a
+href="mailto:garetxe@users.sourceforge.net">me</a> instead, please.
+<h3>Usage</h3>
+From the README:<br>
+This is a simple regular expression package for matching against Unicode text
+in UCS2 form.  The implementation of this URE package is a variation on the
+RE->DFA algorithm done by Mark Hopkins (markh@csd4.csd.uwm.edu).  Mark
+Hopkins' algorithm had the virtue of being very simple, so it was used as a
+model.
+
+<pre>
+Assumptions:
+
+  o  Regular expression and text already normalized.
+
+  o  Conversion to lower case assumes a 1-1 mapping.
+
+Definitions:
+
+  Separator - any one of U+2028, U+2029, '\n', '\r'.
+
+Operators:
+  .   - match any character.
+  *   - match zero or more of the last subexpression.
+  +   - match one or more of the last subexpression.
+  ?   - match zero or one of the last subexpression.
+  ()  - subexpression grouping.
+
+  Notes:
+
+    o  The "." operator normally does not match separators, but a flag is
+       available for the ure_exec() function that will allow this operator to
+       match a separator.
+
+Literals and Constants:
+
+  c       - literal UCS2 character.
+  \x....  - hexadecimal number of up to 4 digits.
+  \X....  - hexadecimal number of up to 4 digits.
+  \u....  - hexadecimal number of up to 4 digits.
+  \U....  - hexadecimal number of up to 4 digits.
+
+Character classes:
+
+  [...]           - Character class.
+  [^...]          - Negated character class.
+  \pN1,N2,...,Nn  - Character properties class.
+  \PN1,N2,...,Nn  - Negated character properties class.
+
+  POSIX character classes recognized:
+
+    :alnum:
+    :alpha:
+    :cntrl:
+    :digit:
+    :graph:
+    :lower:
+    :print:
+    :punct:
+    :space:
+    :upper:
+    :xdigit:
+
+  And a Unicode specific character class:
+    :title:
+
+Aliases
+  #url# -> Any internet address (http://www.nowhe.re). Expands to
+	"https?://([:alnum:]|[-~./?%_=+])+"
+  #email# -> Email address (somebody@somebody.sth). Expands to
+	"([:alnum:]|[-~.])+@([:alnum:]|[-~.])+"
+
+  Notes:
+
+    o  Character property classes are \p or \P followed by a comma separated
+       list of integers between 1 and 32.  These integers are references to
+       the following character properties:
+
+        N	Character Property
+        --------------------------
+	1	_URE_ALNUM
+	2	_URE_ALPHA
+	3	_URE_CNTRL
+	4	_URE_DIGIT
+	5	_URE_GRAPH
+	6	_URE_LOWER
+	7	_URE_PRINT
+	8	_URE_PUNCT
+	9	_URE_SPACE
+	10	_URE_UPPER
+	11	_URE_XDIGIT
+	12	_URE_TITLE
+	13	_URE_DEFINED
+	14	_URE_WIDE
+	15	_URE_NONSPACING
+
+    o  Character classes can contain literals, constants, and character
+       property classes. Example:
+
+       [abc\U10A\p1,3,4]
+</pre>
 </body>
 </html>

@@ -302,22 +302,6 @@ void set_stock_pixmap	(GtkWidget	*button,
 }
 #endif
 
-static
-void set_tooltip	(GtkWidget	*widget,
-			 const gchar	*new_tip)
-{
-  GtkTooltipsData *td = gtk_tooltips_data_get(widget);
-  GtkTooltips *tips;
-
-  if ((!td) || (!td->tooltips))
-    tips = gtk_tooltips_new();
-  else
-    tips = td->tooltips;
-
-  gtk_tooltips_set_tip(tips, widget, new_tip,
-		       "private tip, or, er, just babbling, you know");
-}
-
 static void
 remove_ttxview_instance			(ttxview_data	*data)
 {
@@ -353,9 +337,17 @@ update_pointer (ttxview_data *data)
   gdk_window_get_pointer(widget->window, &x, &y, &mask);
 
   gdk_window_get_size(widget->window, &w, &h);
+
+  if ((w <= 0) || (h <= 0))
+    return;
+
   /* convert to fmt_page space */
   col = (x*40)/w;
   row = (y*25)/h;
+
+  if ((col < 0) || (col >= 40) || (row < 0) || (row >= 25))
+    return;
+
   page = data->fmt_page->data[row][col].link_page;
   subpage = data->fmt_page->data[row][col].link_subpage;
 

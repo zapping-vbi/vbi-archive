@@ -181,6 +181,21 @@ GtkWidget * z_gtk_pixmap_menu_item_new(const gchar * label,
   return (pixmap_menu_item);
 }
 
+void set_tooltip	(GtkWidget	*widget,
+			 const gchar	*new_tip)
+{
+  GtkTooltipsData *td = gtk_tooltips_data_get(widget);
+  GtkTooltips *tips;
+
+  if ((!td) || (!td->tooltips))
+    tips = gtk_tooltips_new();
+  else
+    tips = td->tooltips;
+
+  gtk_tooltips_set_tip(tips, widget, new_tip,
+		       "private tip, or, er, just babbling, you know");
+}
+
 static gint
 fullscreen_start(tveng_device_info * info)
 {

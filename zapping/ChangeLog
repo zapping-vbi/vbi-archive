@@ -4,6 +4,12 @@
 	integration.
 	* src/main.c: Fixed the auto-resizing bug. A bit hackish, but
 	will remove the annoyance.
+	* src/txtcontrols.c: Removed, not longer needed.
+	* src/ttxview.c (update_pointer): Bounds checks, needed for calls
+	when the window isn't completely open.
+	* src/callbacks.c (popup): Transform "Hide extra options" into
+	"Show extra options" when needed.
+	* help/C/ure.html: Wrote help for the search engine.
 
 12.1.2001	Rewrite of main loop <garetxe@users.sourceforge.net>
 

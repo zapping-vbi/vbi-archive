@@ -465,6 +465,15 @@ gboolean on_fullscreen_event (GtkWidget * widget, GdkEvent * event,
   return FALSE; /* We aren't interested in this event, pass it on */
 }
 
+static void
+change_pixmenuitem_label		(GtkWidget	*menuitem,
+					 const gchar	*new_label)
+{
+  GtkWidget *widget = GTK_BIN(menuitem)->child;
+
+  gtk_label_set_text(GTK_LABEL(widget), new_label);
+}
+
 gboolean
 on_tv_screen_button_press_event        (GtkWidget       *widget,
 					GdkEvent        *event,
@@ -473,6 +482,7 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
   gint i;
   GtkWidget * zapping = lookup_widget(widget, "zapping");
   GdkEventButton * bevent = (GdkEventButton *) event;
+  GtkWidget *spixmap;
 
   if (event->type != GDK_BUTTON_PRESS)
     return FALSE;
@@ -546,6 +556,24 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 	  widget = lookup_widget(GTK_WIDGET(menu), "go_capturing2");
 	  gtk_widget_set_sensitive(widget, FALSE);
 	  gtk_widget_hide(widget);
+	}
+      if (zcg_bool(NULL, "hide_extra"))
+	{
+	  widget = lookup_widget(GTK_WIDGET(menu), "hide_menubars1");
+	  change_pixmenuitem_label(widget, _("Show extra controls"));
+	  set_tooltip(widget,
+		      _("Show the Inputs and Standards menu"));
+	  spixmap =
+	    gnome_stock_pixmap_widget_at_size(widget,
+					      GNOME_STOCK_PIXMAP_BOOK_OPEN,
+					      16, 16);
+	  /************* THIS SHOULD NEVER BE DONE ***********/
+	  gtk_object_destroy(GTK_OBJECT(GTK_PIXMAP_MENU_ITEM(widget)->pixmap));
+	  GTK_PIXMAP_MENU_ITEM(widget)->pixmap = NULL;
+	  /********** BUT THERE'S NO OTHER WAY TO DO IT ******/
+	  gtk_pixmap_menu_item_set_pixmap(GTK_PIXMAP_MENU_ITEM(widget),
+					  spixmap);
+	  gtk_widget_show(spixmap);
 	}
       gtk_menu_popup(menu, NULL, NULL, NULL,
 		     NULL, bevent->button, bevent->time);
