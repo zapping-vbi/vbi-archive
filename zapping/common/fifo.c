@@ -15,7 +15,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.31 2001-08-22 01:26:53 mschimek Exp $ */
+/* $Id: fifo.c,v 1.32 2001-09-03 05:25:31 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -1040,7 +1040,13 @@ rem_consumer(consumer *c)
 		pthread_mutex_lock(&f->consumer->mutex);
 
 		if (rem_node(&f->consumers, &c->node)) {
+			buffer *b;
+
 			asserts(c->dequeued == 0);
+
+			if (c->next_buffer)
+				for_all_nodes (b, &f->full, node)
+					b->consumers = f->consumers.members;
 		}
 
 		pthread_mutex_unlock(&f->consumer->mutex);
@@ -1097,6 +1103,5 @@ add_consumer(fifo *f, consumer *c)
 
     * add_p/c shall make a fifo callback
     * error ignores mp-fifo, in data direction only
+    * add wait timeout (optional)
  */
-
-

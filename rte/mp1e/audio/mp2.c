@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.4 2001-08-22 01:28:07 mschimek Exp $ */
+/* $Id: mp2.c,v 1.5 2001-09-03 05:26:07 mschimek Exp $ */
 
 #include <limits.h>
 #include "../common/log.h"
@@ -398,14 +398,16 @@ fetch_samples(struct audio_seg *mp2, double *btime, int stereo)
 			if (mp2->left == 0) {
 				if (buf)
 					send_empty_buffer(&mp2->cons, buf);
-
+fprintf(stderr, "audio wait full\n");
 				mp2->ibuf = buf = wait_full_buffer(&mp2->cons);
+fprintf(stderr, "got it\n");
 
 				if (mp2->time == 0.0) { // XXX frame dropping, clock drift
 					mp2->time = buf->time;
 				}
 
 				if (buf->used <= 0) {
+fprintf(stderr, "audio got eof\n");
 		    			send_empty_buffer(&mp2->cons, buf);
 					goto terminate;
 				} else {
@@ -448,6 +450,7 @@ fetch_samples(struct audio_seg *mp2, double *btime, int stereo)
 
 terminate:
 	printv(2, "Audio: End of file\n");
+fprintf(stderr, "audio finish\n");
 
 	buf = wait_empty_buffer(&audio_prod);
 	buf->used = 0;
@@ -601,7 +604,7 @@ mpeg_audio_layer_ii_mono(void *cap_fifo)
 	ASSERT("add audio consumer",
 		add_consumer((fifo *) cap_fifo, &aseg.cons));
 
-	sync_sync(&aseg.cons, MOD_AUDIO, aseg.frame_period);
+	sync_sync(&aseg.cons, MOD_AUDIO, aseg.sampling_freq, 1 * sizeof(short));
 
 	for (;;) {
 		buffer *obuf;
@@ -768,7 +771,7 @@ mpeg_audio_layer_ii_stereo(void *cap_fifo)
 	ASSERT("add audio consumer",
 		add_consumer((fifo *) cap_fifo, &aseg.cons));
 
-	sync_sync(&aseg.cons, MOD_AUDIO, aseg.frame_period);
+	sync_sync(&aseg.cons, MOD_AUDIO, aseg.sampling_freq, 2 * sizeof(short));
 
 	for (;;) {
 		buffer *obuf;

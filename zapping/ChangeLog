@@ -1,3 +1,8 @@
+03.09.2001	fifo hang fix <mschimek@users.sf.net>
+
+	* fifo.c: rem_consumer could under certain circumstances leave
+	  unconsumed buffers on the virtual full queue, fixed.
+
 02.09.2001	sv translation <mschimek@users.sf.net>
 
 	* sv.po: Commited Swedish translation, contributed by

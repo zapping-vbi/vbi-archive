@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.4 2001-08-22 01:28:09 mschimek Exp $ */
+/* $Id: vbi.c,v 1.5 2001-09-03 05:26:07 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -95,7 +95,7 @@ vbi_thread(void *F)
 	ASSERT("add vbi cons", add_consumer((fifo *) F, &cons));
 
 	if (do_subtitles)
-		sync_sync(&cons, MOD_SUBTITLES, 1 / 25.0);
+		sync_sync(&cons, MOD_SUBTITLES, 1 / 25.0, 0);
 
 	while (vbi_frame_count < video_num_frames) { // XXX video XXX pdc
 		if (!(ibuf = wait_full_buffer(&cons)) || ibuf->used <= 0)

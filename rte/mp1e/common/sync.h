@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sync.h,v 1.2 2001-08-22 01:28:08 mschimek Exp $ */
+/* $Id: sync.h,v 1.3 2001-09-03 05:26:07 mschimek Exp $ */
 
 #ifndef SYNC_H
 #define SYNC_H
@@ -41,7 +41,7 @@ extern struct synchr synchr;
 extern void	sync_init(unsigned int modules);
 extern bool	sync_start(double time);
 extern bool	sync_stop(double time);
-extern bool	sync_sync(consumer *c, unsigned int this_module, double frame_period);
+extern bool	sync_sync(consumer *c, unsigned int this_module, double sample_period, int bytes_per_sample);
 
 static inline int
 sync_break(unsigned int this_module, double time, double frame_period)

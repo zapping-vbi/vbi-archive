@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.5 2001-09-02 03:26:58 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.6 2001-09-03 05:26:07 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -1497,7 +1497,7 @@ mpeg1_video_ipb(void *capture_fifo)
 	ASSERT("add video cons",
 		add_consumer((fifo *) capture_fifo, &cons));
 
-	sync_sync(&cons, MOD_VIDEO, time_per_frame);
+	sync_sync(&cons, MOD_VIDEO, time_per_frame, 0);
 
 	while (!done) {
 		int sp = 0;

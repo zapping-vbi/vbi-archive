@@ -16,12 +16,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: errstr.h,v 1.1 2001-08-20 00:53:23 mschimek Exp $ */
+/* $Id: errstr.h,v 1.2 2001-09-03 05:25:31 mschimek Exp $ */
 
 #ifndef ERRSTR_H
 #define ERRSTR_H
 
+#ifndef NO_ERRSTR
 #define errstr (get_errstr())
+#endif
 
 extern void		reset_errstr(void);
 extern void		set_errstr(char *, void (*)(void *));

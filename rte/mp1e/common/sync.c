@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sync.c,v 1.2 2001-08-22 01:28:08 mschimek Exp $ */
+/* $Id: sync.c,v 1.3 2001-09-03 05:26:07 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "sync.h"
@@ -79,9 +79,10 @@ sync_stop(double time)
 }
 
 bool
-sync_sync(consumer *c, unsigned int this_module, double frame_period)
+sync_sync(consumer *c, unsigned int this_module, double sample_period, int bytes_per_sample)
 {
-	double last_time = -1;
+	double first_time, last_time = -1;
+	double frame_period;
 	buffer *b;
 
 	c->fifo->start(c->fifo);
@@ -93,7 +94,9 @@ sync_sync(consumer *c, unsigned int this_module, double frame_period)
 
 	pthread_mutex_lock(&synchr.mucon.mutex);
 
-	for (;;) { // XXX add timeout
+	first_time = b->time;
+
+	for (;;) {
 		if (b->time == 0.0) { // offline
 			if (synchr.start_time < DBL_MAX) {
 				printv(4, "SS %02x: accept start_time %f for %f, voted %02x/%02x\n",
@@ -106,10 +109,15 @@ sync_sync(consumer *c, unsigned int this_module, double frame_period)
 			pthread_cond_wait(&synchr.mucon.cond, &synchr.mucon.mutex);
 			continue;
 		}
-if (0)
+
+		// XXX return FALSE
+		if (0) // because rte sends in duplicate b->time, but that's ok.
 		if (b->time <= last_time)
 			FAIL("Invalid timestamps from %s: ..., %f, %f\n",
 				c->fifo->name, last_time, b->time);
+		if ((b->time - first_time) > 2.0)
+			FAIL("Unable to sync %s after %f secs\n",
+				c->fifo->name, b->time - first_time);
 
 		last_time = b->time;
 
@@ -125,6 +133,12 @@ if (0)
 			continue;
 		}
 
+		if (bytes_per_sample == 0)
+			frame_period = sample_period;
+		else
+			frame_period = b->used * sample_period / bytes_per_sample;
+
+		// XXX should return lag in samples for more accurate syncing
 		if (synchr.start_time < b->time + frame_period) {
 			printv(4, "SS %02x: accept start_time %f for %f, voted %02x/%02x\n",
 				this_module, synchr.start_time, b->time,

@@ -1,3 +1,10 @@
+2001-09-03	audio sync hang fix <mschimek@users.sf.net>
+
+	* sync.c: Added bytes_per_sample parameter, for (;;) aborts
+	  after two seconds.
+	* audio.c: Pass source, not dest frame rate to sync(),
+	  follow-up to relaxing the input buffer size.
+
 2001-09-01	<mschimek@users.sf.net>
 
 	* configure.in: Added create_links(), debugging option, mmxemu test,

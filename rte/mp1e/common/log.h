@@ -86,21 +86,27 @@ do {									\
 	exit(EXIT_FAILURE);						\
 } while (0)
 
-#define DUMP(array, from, to)					\
-do {								\
-	int i;							\
-								\
-	fprintf(stderr, __FILE__ "@%d:\n", __LINE__);		\
-	for (i = (from); i < (to); i++)				\
-		fprintf(stderr, #array "[%d]=%f\n",		\
-			i, (double)((array)[i]));		\
+#define DUMP(array, from, to)						\
+do {									\
+	int i;								\
+									\
+	fprintf(stderr, __FILE__ "@%d:\n", __LINE__);			\
+	for (i = (from); i < (to); i++)					\
+		fprintf(stderr, #array "[%d]=%f\n",			\
+			i, (double)((array)[i]));			\
 } while (0)
 
-// Trace execution, except where void or prohibited by law.
+/* Trace execution, except where void or prohibited by law. */
 
-#define printv(level, format, args...)				\
-    ((verbose >= level) ? fprintf(stderr,			\
-	/* "%s: " */ format					\
+#define printv(level, format, args...)					\
+    ((verbose >= level) ? fprintf(stderr,				\
+	/* "%s: " */ format						\
 	/*, program_invocation_short_name */ ,##args) : 0)
+
+/* mp1e:log.h:106: User error message */
+
+#define ERRMSG(templ, args...)						\
+	set_errstr_printf("mp1e:" __FILE__ ":" ISTF1(__LINE__) ": "	\
+		templ ,##args)
 
 #endif
