@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.10 2001-10-07 10:55:51 mschimek Exp $ */
+/* $Id: mp2.c,v 1.11 2001-10-08 05:49:44 mschimek Exp $ */
 
 #include <limits.h>
 #include "../common/log.h"
@@ -70,12 +70,12 @@ sfsPerScfsi[4] __attribute__ ((aligned (4))) = {
 mp2_context aseg __attribute__ ((aligned (4096)));
 
 /* XXX remove */
-extern int		audio_num_frames;
+extern long long	audio_num_frames;
 extern int		aud_buffers;
 
 /* XXX read by rte, remove */
-int			audio_frame_count;
-int			audio_frames_dropped;
+long long		audio_frame_count;
+long long		audio_frames_dropped;
 
 /*
  *  Audio compression thread
@@ -924,12 +924,12 @@ mpeg1_options[] = {
 	}, {
 		RTE_OPTION_MENU,	"audio_mode",	N_("Mode"),
 		{ .num = 0 }, { .num = 0 }, { .num = elements(menu_audio_mode) - 1 },
-		{ .str = menu_audio_mode }, elements(menu_audio_mode) - 1,
+		{ .str = menu_audio_mode }, elements(menu_audio_mode),
 		NULL
 	}, {
 		RTE_OPTION_MENU,	"psycho",	N_("Psychoacoustic analysis"),
 		{ .num = 0 }, { .num = 0 }, { .num = elements(menu_psycho) - 1 },
-		{ .str = menu_psycho }, elements(menu_psycho) - 1,
+		{ .str = menu_psycho }, elements(menu_psycho),
 		N_("Speed/quality tradeoff. Selecting 'Accurate' is recommended "
 		   "below 80 kbit/s per channel, when you have bat ears or a "
 		   "little more CPU load doesn't matter.")
@@ -1161,7 +1161,7 @@ mp1e_mp2(void)
 	memcpy(mpeg2_options, mpeg1_options, sizeof(mpeg2_options));
 
 	mpeg2_options[0].menu.num = (int *) &bit_rate_value[MPEG_VERSION_2][1];
-	mpeg2_options[0].menu.num = (int *) &sampling_freq_value[MPEG_VERSION_2][0];
+	mpeg2_options[1].menu.num = (int *) &sampling_freq_value[MPEG_VERSION_2][0];
 
 	mp1e_mp2_subband_filter_init(0);
 	mp1e_mp2_fft_init(0);

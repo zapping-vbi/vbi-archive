@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libaudio.h,v 1.7 2001-10-07 10:55:51 mschimek Exp $ */
+/* $Id: libaudio.h,v 1.8 2001-10-08 05:49:44 mschimek Exp $ */
 
 #include "../common/fifo.h"
 #include "../systems/libsystems.h"
@@ -46,8 +46,8 @@ extern void *		mp1e_mp2_thread(void *foo);
 
 /* historic */
 extern void		audio_parameters(int *sampling_freq, int *bit_rate);
-extern int		audio_frame_count;
-extern int		audio_frames_dropped;
+extern long long	audio_frame_count;
+extern long long	audio_frames_dropped;
 
 /* oss.c (mp1e) */
 

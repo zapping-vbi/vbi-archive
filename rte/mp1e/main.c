@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.12 2001-10-07 10:55:51 mschimek Exp $ */
+/* $Id: main.c,v 1.13 2001-10-08 05:49:44 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -44,12 +44,8 @@
 #include "common/videodev2.h"
 #include "audio/libaudio.h"
 #include "audio/mpeg.h"
-
-#include "video/video.h" /* remove */
-
-// #include "video/libvideo.h"
+#include "video/libvideo.h"
 #include "video/mpeg.h"
-
 #include "vbi/libvbi.h"
 #include "systems/systems.h"
 #include "common/profile.h"
@@ -89,8 +85,6 @@ pthread_t		gtk_main_id;
 extern void *		gtk_main_thread(void *);
 
 extern int		psycho_loops;
-extern int		audio_num_frames;
-extern int		video_num_frames;
 
 extern void options(int ac, char **av);
 
@@ -268,14 +262,14 @@ main(int ac, char **av)
 		char *modes[] = { "stereo", "joint stereo", "dual channel", "mono" };
 		long long n = llroundn(((double) video_num_frames
 					/ frame_rate_value[vseg.frame_rate_code])
-			/ (1152.0 / sampling_rate));
+				       / (1152.0 / sampling_rate));
 
 		printv(1, "Audio compression %2.1f kHz%s %s at %d kbits/s (%1.1f : 1)\n",
 			sampling_rate / (double) 1000, sampling_rate < 32000 ? " (MPEG-2)" : "", modes[audio_mode],
 			audio_bit_rate / 1000, (double) sampling_rate * (16 << stereo) / audio_bit_rate);
 
 		if (modules & MOD_VIDEO)
-			audio_num_frames = MIN(n, (long long) INT_MAX);
+			audio_num_frames = n;
 
 		/* Initialize audio codec */
 

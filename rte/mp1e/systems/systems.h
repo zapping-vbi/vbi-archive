@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: systems.h,v 1.6 2001-09-13 17:15:44 garetxe Exp $ */
+/* $Id: systems.h,v 1.7 2001-10-08 05:49:44 mschimek Exp $ */
 
 #include "libsystems.h"
 
@@ -55,7 +55,7 @@ struct stream {
 	double			ticks_per_byte;
 
 	double			cap_t0;
-	int			frame_count;
+	long long		frame_count;
 };
 
 struct multiplexer {

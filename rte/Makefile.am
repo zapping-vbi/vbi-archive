@@ -6,7 +6,7 @@ lib_LTLIBRARIES = librte.la
 
 noinst_PROGRAMS = rte_test
 
-INCLUDES = -D_GNU_SOURCE -D_REENTRANT
+INCLUDES = -D_GNU_SOURCE -D_REENTRANT -D_LARGEFILE64_SOURCE
 
 EXTRA_DIST = rte.spec.in rte.spec
 

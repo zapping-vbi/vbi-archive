@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: systems.c,v 1.4 2001-09-13 17:15:44 garetxe Exp $ */
+/* $Id: systems.c,v 1.5 2001-10-08 05:49:44 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -180,7 +180,7 @@ elementary_stream_bypass(void *muxp)
 {
 	multiplexer *mux = muxp;
 	unsigned long long bytes_out = 0;
-	unsigned long frame_count = 0;
+	unsigned long long frame_count = 0;
 	double system_load;
 	stream *str;
 
@@ -207,7 +207,8 @@ elementary_stream_bypass(void *muxp)
 		send_empty_buffer(&str->cons, buf);
 
 		if (verbose > 0) {
-			int min, sec, frame;
+			int min, sec;
+			long long frame;
 
 			system_load = 1.0 - get_idle();
 
@@ -222,12 +223,12 @@ elementary_stream_bypass(void *muxp)
 
 				if (video_frames_dropped > 0)
 					printv(1, "%d:%02d.%02d (%.1f MB), %.2f %% dropped, system load %.1f %%  %c",
-						min, sec, frame, bytes_out / (double)(1 << 20),
+						min, sec, (int) frame, bytes_out / (double)(1 << 20),
 						100.0 * video_frames_dropped / video_frame_count,
 						100.0 * system_load, (verbose > 3) ? '\n' : '\r');
 				else
 					printv(1, "%d:%02d.%02d (%.1f MB), system load %.1f %%    %c",
-						min, sec, frame, bytes_out / (double)(1 << 20),
+						min, sec, (int) frame, bytes_out / (double)(1 << 20),
 						100.0 * system_load, (verbose > 3) ? '\n' : '\r');
 			} else {
 				sec = lroundn(frame_count / str->frame_rate);

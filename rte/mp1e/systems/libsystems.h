@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libsystems.h,v 1.3 2001-09-13 17:15:44 garetxe Exp $ */
+/* $Id: libsystems.h,v 1.4 2001-10-08 05:49:44 mschimek Exp $ */
 
 #ifndef LIBSYSTEMS_H
 #define LIBSYSTEMS_H
@@ -26,7 +26,7 @@
 
 typedef struct multiplexer multiplexer; /* opaque */
 
-extern int			bytes_out;
+extern long long		bytes_out;
 
 extern multiplexer *		mux_alloc(void *user_data);
 extern void			mux_free(multiplexer *mux);

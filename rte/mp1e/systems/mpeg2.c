@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg2.c,v 1.5 2001-09-13 17:15:44 garetxe Exp $ */
+/* $Id: mpeg2.c,v 1.6 2001-10-08 05:49:44 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,6 +25,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <assert.h>
+#include <limits.h>
 #include "../video/mpeg.h"
 #include "../video/video.h"
 #include "../audio/libaudio.h"
@@ -264,7 +265,7 @@ next_access_unit(stream *str, double *ppts, unsigned char *ph)
 	return TRUE;
 }
 
-#define LARGE_DTS 1E30
+#define LARGE_DTS (DBL_MAX / 2.0)
 
 static inline stream *
 schedule(multiplexer *mux)
@@ -294,10 +295,10 @@ mpeg2_program_stream_mux(void *muxp)
 {
 	multiplexer *mux = muxp;
 	unsigned char *p, *ph, *ps, *pl, *px;
-	unsigned long bytes_out = 0;
+	unsigned long long bytes_out = 0;
 	unsigned int pack_packet_count = PACKETS_PER_PACK;
-	unsigned int packet_count = 0;
-	unsigned int pack_count = 0;
+	unsigned long long packet_count = 0;
+	unsigned long long pack_count = 0;
 	double system_rate, system_rate_bound;
 	double system_overhead;
 	double ticks_per_pack;
@@ -372,7 +373,7 @@ mpeg2_program_stream_mux(void *muxp)
 		/* Packet header, system header */
 
 		if (pack_packet_count >= PACKETS_PER_PACK) {
-			printv(4, "Pack #%d, scr=%f\n",	pack_count++, scr);
+			printv(4, "Pack #%lld, scr=%f\n", pack_count++, scr);
 
 			p = PS_pack_header(p, scr, system_rate);
 			p = PS_system_header(mux, p, system_rate_bound);
@@ -450,7 +451,7 @@ reschedule:
 			str->ptr += n;
 		}
 
-		printv(4, "Packet #%d %s, pts=%f\n",
+		printv(4, "Packet #%lld %s, pts=%f\n",
 			packet_count, mpeg_header_name(str->stream_id), pts);
 
 		((unsigned short *) ps)[2] = swab16(p - ps - 6);

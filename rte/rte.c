@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.11 2001-10-07 10:55:51 mschimek Exp $ */
+/* $Id: rte.c,v 1.12 2001-10-08 05:49:43 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -213,13 +213,13 @@ audio_send_empty(consumer *c, buffer *b)
 
 /* The default write data callback */
 static void default_write_callback ( rte_context * context,
-				     void * data, size_t size,
+				     void * data, ssize_t size,
 				     void * user_data )
 {
 	ssize_t r;
 
 	while (size) {
-		r = write(context->private->fd, data, size);
+		r = write(context->private->fd64, data, size);
 		if ((r < 0) && (errno == EINTR))
 			continue;
 
@@ -235,12 +235,12 @@ static void default_write_callback ( rte_context * context,
 }
 
 /* The default seek callback */
-static off_t default_seek_callback ( rte_context * context,
-				     off_t offset,
+static off64_t default_seek_callback ( rte_context * context,
+				     off64_t offset,
 				     int whence,
 				     void * user_data)
 {
-	return lseek(context->private->fd, offset, whence);
+	return lseek64(context->private->fd64, offset, whence);
 }
 
 rte_context * rte_context_new (int width, int height,
@@ -306,7 +306,7 @@ rte_context * rte_context_new (int width, int height,
 	}
 
 	context->private->user_data = user_data;
-	context->private->fd = -1;
+	context->private->fd64 = -1;
 
 	BACKEND->context_new(context);
 
@@ -432,7 +432,7 @@ int rte_set_video_parameters (rte_context * context,
 			      enum rte_pixformat frame_format,
 			      int width, int height,
 			      enum rte_frame_rate video_rate,
-			      size_t output_video_bits,
+			      ssize_t output_video_bits,
 			      const char *gop_sequence)
 {
 	int i;
@@ -517,7 +517,7 @@ int rte_set_video_parameters (rte_context * context,
 int rte_set_audio_parameters (rte_context * context,
 			      int audio_rate,
 			      enum rte_audio_mode audio_mode,
-			      size_t output_audio_bits)
+			      ssize_t output_audio_bits)
 {
 	nullcheck(context, return 0);
 
@@ -676,9 +676,10 @@ int rte_init_context ( rte_context * context )
 	}
 	
 	if (context->file_name) {
-		context->private->fd = creat(context->file_name, 00644);
-		if (context->private->fd == -1) {
-			rte_error(context, "creat(%s): %s [%d]",
+		context->private->fd64 = creat64(context->file_name, 00644);
+
+		if (context->private->fd64 == -1) {
+			rte_error(context, "creat64(%s): %s [%d]",
 				  context->file_name, strerror(errno), errno);
 			if (context->mode & RTE_VIDEO)
 				destroy_fifo(&(context->private->vid));
@@ -790,9 +791,9 @@ void rte_stop ( rte_context * context )
 	context->private->audio_data_callback = audio_callback;
 	context->private->video_data_callback = video_callback;
 
-	if (context->private->fd > 0) {
-		close(context->private->fd);
-		context->private->fd = -1;
+	if (context->private->fd64 > 0) {
+		close(context->private->fd64);
+		context->private->fd64 = -1;
 	}
 }
 
@@ -1155,31 +1156,37 @@ rte_get_option_menu(rte_codec *codec, char *keyword, int *entry)
 	    || !rte_get_option(codec, keyword, &val))
 		return 0;
 
-	for (r = i = 0; !r && i < option->entries; i++) {
-		switch (option->type) {
-		case RTE_OPTION_BOOL:
-		case RTE_OPTION_INT:
-			if (!option->menu.num)
-				return 0;
-			r = (option->menu.num[i] == val.num);
-			break;
-		case RTE_OPTION_REAL:
-			if (!option->menu.dbl)
-				return 0;
-			r = (option->menu.dbl[i] == val.dbl);
-			break;
-		case RTE_OPTION_STRING:
-			if (!option->menu.str)
-				return 0;
-			r = (strcmp(option->menu.str[i], val.str) == 0);
-			break;
-		default:
-			break;
-		}
-	}
+	r = 0;
 
-	if (r)
-		*entry = i;
+	if (option->type == RTE_OPTION_MENU) {
+		*entry = val.num;
+	} else {
+		for (i = 0; !r && i < option->entries; i++) {
+			switch (option->type) {
+			case RTE_OPTION_BOOL:
+			case RTE_OPTION_INT:
+				if (!option->menu.num)
+					return 0;
+				r = (option->menu.num[i] == val.num);
+				break;
+			case RTE_OPTION_REAL:
+				if (!option->menu.dbl)
+					return 0;
+				r = (option->menu.dbl[i] == val.dbl);
+				break;
+			case RTE_OPTION_STRING:
+				if (!option->menu.str)
+					return 0;
+				r = (strcmp(option->menu.str[i], val.str) == 0);
+				break;
+			default:
+				break;
+			}
+		}
+
+		if (r)
+			*entry = i;
+	}
 
 	if (option->type == RTE_OPTION_STRING)
 		free(val.str);
@@ -1219,6 +1226,10 @@ rte_set_option_menu(rte_codec *codec, char *keyword, int entry)
 			return 0;
 		return rte_set_option(codec, keyword,
 				      option->menu.str[entry]);
+	case RTE_OPTION_MENU:
+		if (!option->menu.str)
+			return 0;
+		return rte_set_option(codec, keyword, entry);
 	default:
 		assert(!"reached");
 		return 0;

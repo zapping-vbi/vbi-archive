@@ -36,7 +36,7 @@
 /*
  * Lib build ID, for debugging.
  */
-#define RTE_ID " $Id: rte.h,v 1.10 2001-10-07 10:55:51 mschimek Exp $ "
+#define RTE_ID " $Id: rte.h,v 1.11 2001-10-08 05:49:43 mschimek Exp $ "
 
 /*
  * What are we going to encode, audio only, video only or both
@@ -110,11 +110,17 @@ enum rte_audio_mode {
 
 /*
  * Some numbers about the running encoding process.
+ * 
+ * 2**31 frames = 828 days at 30 fps
+ * 2**64 bytes = 1170000 years at 4 Mbit/s
+ * timestamps (double, sec), assumed usec precision
+ *  usable until appx. year 2110 (XXX temp results
+ *  may suffer from rounding much earlier).
  */
 struct rte_status_info {
-	int	processed_frames; /* video frames that went into the encoder */
-	int	dropped_frames;	  /* dropped frames */
-	unsigned long int bytes_out; /* compressed bytes written */
+	long long		processed_frames; /* video frames that went into the encoder */
+	long long		dropped_frames;	  /* dropped frames */
+	unsigned long long	bytes_out;	  /* compressed bytes written */
 };
 
 typedef struct _rte_context_private rte_context_private;
@@ -136,7 +142,7 @@ typedef struct {
 	/* Video frame rate (25 fps (PAL) by default) */
 	enum rte_frame_rate video_rate;
 	/* output video bits per second, defaults to 2.3 Mbit/s */
-	size_t output_video_bits;
+	ssize_t output_video_bits;
 
 	/* size in bytes of a complete frame */
 	int video_bytes;
@@ -154,7 +160,7 @@ typedef struct {
 	/* Audio mode, defaults to Mono */
 	enum rte_audio_mode audio_mode;
 	/* output audio bits per second, defaults to 80Kbit/s */
-	size_t output_audio_bits;
+	ssize_t output_audio_bits;
 	/* size in bytes of an audio frame */
 	int audio_bytes;
 
@@ -175,7 +181,7 @@ typedef struct {
 */
 typedef void (*rteEncodeCallback)(rte_context * context,
 				  void * data,
-				  size_t size,
+				  ssize_t size,
 				  void * user_data);
 
 #define RTE_ENCODE_CALLBACK(function) ((rteEncodeCallback)function)
@@ -191,10 +197,10 @@ typedef void (*rteEncodeCallback)(rte_context * context,
   (off_t)-1 in case of error. This is the same value as lseek returns
   (see 'man lseek')
 */
-typedef off_t (*rteSeekCallback)(rte_context * context,
-				 off_t offset,
-				 int whence,
-				 void * user_data);
+typedef off64_t (*rteSeekCallback)(rte_context * context,
+				   off64_t offset,
+				   int whence,
+				   void * user_data);
 
 #define RTE_SEEK_CALLBACK(function) ((rteSeekCallback)function)
 
@@ -343,14 +349,14 @@ int rte_set_video_parameters (rte_context * context,
 			      enum rte_pixformat video_format,
 			      int width, int height,
 			      enum rte_frame_rate video_rate,
-			      size_t output_video_bits,
+			      ssize_t output_video_bits,
 			      const char *gop_sequence);
 
 /* Sets the audio parameters, 0 on error */
 int rte_set_audio_parameters (rte_context * context,
 			      int audio_rate,
 			      enum rte_audio_mode audio_mode,
-			      size_t output_audio_bits);
+			      ssize_t output_audio_bits);
 
 /* Specifies whether to encode audio only, video only or both */
 void rte_set_mode (rte_context * context, enum rte_mux_mode mode);
@@ -569,12 +575,12 @@ typedef enum {
   RTE_OPTION_INT,		/* Integer min - max inclusive, def.num */
   RTE_OPTION_REAL,		/* Real min - max inclusive, def.dbl */
   RTE_OPTION_STRING,		/* Arbitrary string, def.str */
-  RTE_OPTION_MENU,
+  RTE_OPTION_MENU,		/* Integer value, string menu */
 } rte_option_type;
 
 typedef union {
   int			num;
-  char *		str;		/* gettext()ized _N() */
+  char *		str;	/* gettext()ized _N() */
   double		dbl;
 } rte_option_value;
 
@@ -611,7 +617,7 @@ extern rte_codec *rte_get_codec(rte_context *, rte_stream_type, int, char **);
 extern rte_codec *rte_set_codec(rte_context *, rte_stream_type, int, char *);
 
 extern rte_option *rte_enum_option(rte_codec *, int);
-/*** 'set' copies string values, 'get' strings must be free()ed */
+/*** 'set' copies string values, 'get' and 'print' strings must be free()ed */
 extern int rte_get_option(rte_codec *, char *, rte_option_value *);
 extern int rte_set_option(rte_codec *, char *, ...);
 extern int rte_get_option_menu(rte_codec *, char *, int *);

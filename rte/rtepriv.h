@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rtepriv.h,v 1.8 2001-10-07 10:55:51 mschimek Exp $
+ * $Id: rtepriv.h,v 1.9 2001-10-08 05:49:44 mschimek Exp $
  * Private stuff in the context.
  */
 
@@ -135,7 +135,7 @@ struct _rte_context_private {
 	enum rte_interface video_interface; /* video interface */
 	int audio_buffered; /* whether the audio uses buffers or memcpy */
 	int video_buffered; /* whether the video uses buffers or memcpy */
-	int fd; /* file descriptor of the file we are saving */
+	int fd64; /* file descriptor of the file we are saving */
 	void * user_data; /* user data given to the callback */
 	fifo vid, aud; /* callback fifos for pushing */
 	producer vid_prod, aud_prod;
@@ -144,8 +144,7 @@ struct _rte_context_private {
 	buffer * last_video_buffer; /* video buffer the app should be
 				       encoding to */
 	buffer * last_audio_buffer; /* audio buffer */
-/* XXX 64 bit please, 4 GB is easily exceeded */
-	unsigned long int bytes_out; /* sent bytes */
+	unsigned long long bytes_out; /* sent bytes */
 };
 
 /*

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rte_test_main.c,v 1.7 2001-09-23 21:04:25 mschimek Exp $
+ * $Id: rte_test_main.c,v 1.8 2001-10-08 05:49:43 mschimek Exp $
  * This is a simple RTE test.
  */
 
@@ -450,7 +450,7 @@ int main(int argc, char *argv[])
 	enum rte_interface video_interface = RTE_CALLBACKS;
 	int video_buffered = 1; /* just for push */
 	enum rte_interface audio_interface = RTE_CALLBACKS;
-	int num_encoded_frames;
+	long long num_encoded_frames;
 	void * dest_ptr = NULL;
 	int i=0;
 	enum rte_mux_mode mux_mode_query;

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: video.h,v 1.6 2001-10-07 10:55:51 mschimek Exp $ */
+/* $Id: video.h,v 1.7 2001-10-08 05:49:44 mschimek Exp $ */
 
 #ifndef VIDEO_H
 #define VIDEO_H
@@ -42,8 +42,8 @@
 
 struct rc {
 	int		ni, np, nb, ob;		/* picture types per GOP */
-	int		Ei, Ep, Eb;
-	int		gop_count;
+	long long	Ei, Ep, Eb;
+	long long	gop_count;
 	double		ei, ep, eb;
 	int		G0, Gn;			/* estimated target bits per GOP */
 	double		G4;
@@ -340,8 +340,8 @@ extern int		dropped;
 extern int		(* filter)(unsigned char *, unsigned char *);
 extern const char *	filter_labels[];
 
-extern int		video_frame_count;
-extern int		video_frames_dropped;
+extern long long	video_frame_count;
+extern long long	video_frames_dropped;
 
 // extern fifo *		video_fifo;
 // extern pthread_t	video_thread_id;

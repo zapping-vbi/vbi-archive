@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.7 2001-10-07 10:55:51 mschimek Exp $ */
+/* $Id: vbi.c,v 1.8 2001-10-08 05:49:44 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -41,7 +41,7 @@ static bool		do_pdc, do_subtitles;
 static fifo *		vbi_output_fifo;
 static producer         vbi_prod;
 
-extern int		video_num_frames;
+extern long long	video_num_frames;
 
 /*
  *  ETS 300 706 -- Enhanced Teletext specification
@@ -89,7 +89,7 @@ vbi_thread(void *F)
 	consumer cons;
 	buffer *obuf = NULL, *ibuf;
 	unsigned char *p = NULL, *p1 = NULL;
-	int vbi_frame_count = 0;
+	long long vbi_frame_count = 0;
 	int items, parity = -1;
 	vbi_sliced *s;
 

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.14 2001-10-07 10:55:51 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.15 2001-10-08 05:49:44 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -422,13 +422,10 @@ static void rte_audio_startup(void)
 static void rte_audio_init(backend_private *priv) /* init audio capture */
 {
 	if (modules & MOD_AUDIO) {
-		long long n = llroundn(((double) video_num_frames /
-					frame_rate_value[vseg.frame_rate_code])
-				       / (1152.0 / sampling_rate));
-		
 		if (modules & MOD_VIDEO)
-			audio_num_frames = MIN(n, (long long) INT_MAX);
-
+			audio_num_frames = llroundn(((double) video_num_frames /
+						     frame_rate_value[vseg.frame_rate_code])
+						    / (1152.0 / sampling_rate));
 		/* preliminary */
 
 		if (!priv->audio_codec) {
@@ -467,10 +464,11 @@ static void rte_video_init(backend_private *priv) /* init video capture */
 			assert(priv->video_codec);
 
 			rte_helper_set_option_va(priv->video_codec, "bit_rate", video_bit_rate);
-			/* rte_helper_set_option_va(priv->video_codec, "coded_frame_rate", ?); */
+			/* vseg.frame_rate_code above
+			   rte_helper_set_option_va(priv->video_codec, "coded_frame_rate", ?); */
 			rte_helper_set_option_va(priv->video_codec, "virtual_frame_rate",
 						 frame_rate);
-			rte_helper_set_option_va(priv->video_codec, "skip_method", !!hack2);
+			rte_helper_set_option_va(priv->video_codec, "skip_method", 0);
 			rte_helper_set_option_va(priv->video_codec, "gop_sequence", gop_sequence);
 			rte_helper_set_option_va(priv->video_codec, "motion_compensation",
 						 motion_min > 0 && motion_max > 0);
@@ -479,7 +477,7 @@ static void rte_video_init(backend_private *priv) /* init video capture */
 		}
 
 		video_init(cpu_type, width, height,
-			   motion_min, motion_max,
+			   motion_min, motion_max, /* preliminary */
 			   MOD_VIDEO, priv->mux);
 	}
 }

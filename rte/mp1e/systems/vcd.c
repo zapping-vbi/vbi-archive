@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vcd.c,v 1.5 2001-09-13 17:15:44 garetxe Exp $ */
+/* $Id: vcd.c,v 1.6 2001-10-08 05:49:44 mschimek Exp $ */
 
 /*
  *  This code creates a stream suitable for mkvcdfs as vcdmplex
@@ -38,6 +38,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <assert.h>
+#include <limits.h>
 #include "../video/mpeg.h"
 #include "../video/video.h"
 #include "../audio/libaudio.h"
@@ -218,7 +219,7 @@ next_access_unit(stream *str, double *ppts, unsigned char *ph)
 	return TRUE;
 }
 
-#define LARGE_DTS 1E30
+#define LARGE_DTS (DBL_MAX / 2.0)
 
 static inline stream *
 schedule(multiplexer *mux)
@@ -248,8 +249,8 @@ vcd_system_mux(void *muxp)
 {
 	multiplexer *mux = muxp;
 	unsigned char *p, *ph, *ps, *pl, *px;
-	unsigned long bytes_out = 0;
-	unsigned int packet_count;
+	unsigned long long bytes_out = 0;
+	unsigned long long packet_count;
 	double system_rate, system_rate_bound;
 	double system_overhead;
 	double ticks_per_pack, tscr;
@@ -447,7 +448,7 @@ reschedule:
 			}
 		}
 
-		printv(4, "Packet #%d %s, pts=%f\n",
+		printv(4, "Packet #%lld %s, pts=%f\n",
 			packet_count, mpeg_header_name(str->stream_id), pts);
 
 		((unsigned short *) ps)[2] = swab16(p - ps - 6);

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.h,v 1.8 2001-10-07 10:55:51 mschimek Exp $ */
+/* $Id: audio.h,v 1.9 2001-10-08 05:49:44 mschimek Exp $ */
 
 #include <stdint.h>
 #include <pthread.h>
@@ -123,7 +123,7 @@ typedef struct mp2_context {
 	int			bits_per_frame;
 	int			spf_rest, spf_lag;
 
-	int			audio_frame_count;
+//	long long		audio_frame_count;
 
 	/* Options */
 

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.10 2001-10-07 10:55:51 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.11 2001-10-08 05:49:44 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -52,8 +52,8 @@ video_context vseg __attribute__ ((aligned (32)));
 struct bs_rec		video_out;
 
 /* XXX status report */
-int			video_frame_count;
-int			video_frames_dropped;
+long long		video_frame_count;
+long long		video_frames_dropped;
 double 			video_eff_bit_rate;
 
 /* XXX options */
@@ -73,8 +73,8 @@ int x_bias = 65536 * 31,
 
 /* main.c */
 // extern int		frames_per_seqhdr;
-extern int		video_num_frames;
-extern double		video_stop_time;
+extern long long	video_num_frames;
+//extern double		video_stop_time;
 
 #define fdct_intra mp1e_mmx_fdct_intra
 #define fdct_inter mp1e_mmx_fdct_inter
@@ -171,7 +171,7 @@ tmp_picture_i(unsigned char *org, int motion)
 	unsigned int var;
 	bool slice;
 
-	printv(3, "Encoding I picture #%d GOP #%d, ref=%c\n",
+	printv(3, "Encoding I picture #%lld GOP #%d, ref=%c\n",
 		video_frame_count, vseg.gop_frame_count, "FT"[vseg.referenced]);
 
 	pr_start(21, "Picture I");
@@ -406,7 +406,7 @@ tmp_picture_p(unsigned char *org, int motion, int dist, int forward_motion)
 		M[0].src_range = 0;
 	}
 
-	printv(3, "Encoding P picture #%d GOP #%d, ref=%c, d=%d, f_code=%d (%d)\n",
+	printv(3, "Encoding P picture #%lld GOP #%d, ref=%c, d=%d, f_code=%d (%d)\n",
 		video_frame_count, vseg.gop_frame_count, "FT"[vseg.referenced],
 		dist, M[0].f_code, M[0].src_range);
 
@@ -717,7 +717,7 @@ tmp_picture_b(unsigned char *org, int motion, int dist,
 		M[0].src_range = 0; M[1].src_range = 0;
 	}
 
-	printv(3, "Encoding B picture #%d GOP #%d, fwd=%c, d=%d, f_code=%d (%d), %d (%d)\n",
+	printv(3, "Encoding B picture #%lld GOP #%d, fwd=%c, d=%d, f_code=%d (%d), %d (%d)\n",
 		video_frame_count, vseg.gop_frame_count, "FT"[!vseg.closed_gop],
 		dist, M[0].f_code, M[0].src_range, M[1].f_code, M[1].src_range);
 
@@ -1228,7 +1228,7 @@ beeframe(int n)
 				 *  We encode a placeholder for the missing frame (beyond MPEG-1).
 				 */
 
-				printv(3, "Encoding fake picture #%d GOP #%d\n",
+				printv(3, "Encoding fake picture #%lld GOP #%d\n",
 				       video_frame_count, vseg.gop_frame_count);
 
 				obuf = wait_empty_buffer(&vseg.prod);
@@ -1293,7 +1293,7 @@ beeframe(int n)
 
 				obuf = wait_empty_buffer(&vseg.prod);
 
-				printv(3, "Dupl'ing B picture #%d GOP #%d\n",
+				printv(3, "Dupl'ing B picture #%lld GOP #%d\n",
 				       video_frame_count, vseg.gop_frame_count);
 
 				memcpy(obuf->data, last->data, last->used);
@@ -1427,7 +1427,7 @@ mpeg1_video_ipb(void *capture_fifo)
 
 				if (b->used > 0) {
 					if (0 && (rand() % 100) < 20) {
-						printv(3, "Forced drop #%d\n", video_frame_count + sp);
+						printv(3, "Forced drop #%lld\n", video_frame_count + sp);
 						send_empty_buffer(&vseg.cons, this->buffer);
 						continue;
 					}
@@ -1596,7 +1596,7 @@ mpeg1_video_ipb(void *capture_fifo)
 							vseg.p_dist = 0;
 						}
 
-						printv(3, "Encoding 0 picture #%d GOP #%d\n",
+						printv(3, "Encoding 0 picture #%lld GOP #%d\n",
 						       video_frame_count, vseg.gop_frame_count);
 
 						obuf = wait_empty_buffer(&vseg.prod);

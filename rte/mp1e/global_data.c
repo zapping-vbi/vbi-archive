@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: global_data.c,v 1.6 2001-10-07 10:55:51 mschimek Exp $ */
+/* $Id: global_data.c,v 1.7 2001-10-08 05:49:44 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -70,7 +70,7 @@ int			grab_width		= 352;
 int			grab_height		= 288;
 // defaults to width/height if given
 int			video_bit_rate		= 2300000;
-int			video_num_frames	= INT_MAX;
+long long		video_num_frames	= INT_MAX; /* XXX rounding */
 char *			gop_sequence		= "IBBPBBPBBPBB";
 // int			frames_per_seqhdr	= 50;
 int			filter_mode		= CM_YUV;
@@ -85,7 +85,7 @@ int			hack2			= 0;
 
 int			audio_bit_rate		= 80000;
 int			audio_bit_rate_stereo	= 160000;
-int			audio_num_frames	= INT_MAX;
+long long		audio_num_frames	= INT_MAX;
 int			sampling_rate		= 44100;
 int			mix_line		= SOUND_MIXER_LINE;	// soundcard.h
 int			mix_volume		= 80;			// 0 <= n <= 100
@@ -106,11 +106,3 @@ int			aud_buffers		= 32;			// audio compression -> mux
 #endif
 
 int			cpu_type		= 0;			// detect
-
-
-
-
-
-
-
-

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: preview.c,v 1.3 2001-10-07 10:55:51 mschimek Exp $ */
+/* $Id: preview.c,v 1.4 2001-10-08 05:49:44 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -425,6 +425,7 @@ gtk_main_thread(void * unused)
 
 void
 packed_preview(unsigned char *buffer, int mb_cols, int mb_rows)
+
 {
 }
 
