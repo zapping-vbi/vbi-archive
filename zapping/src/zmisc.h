@@ -24,7 +24,15 @@
 #ifndef __ZMISC_H__
 #define __ZMISC_H__
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <gnome.h>
+#ifdef HAVE_GDKPIXBUF
+#include <gdk-pixbuf/gdk-pixbuf.h>
+#endif
+
 #include "tveng.h"
 
 /* With precompiler aid we can print much more useful info */

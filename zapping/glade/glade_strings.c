@@ -28,6 +28,7 @@ gchar *s = N_("Video device capabilities");
 gchar *s = N_("label30");
 gchar *s = N_("Device name:");
 gchar *s = N_("label27");
+gchar *s = N_("Select the V4L device");
 gchar *s = N_("label31");
 gchar *s = N_("Current controller:");
 gchar *s = N_("Device file:");
@@ -49,6 +50,13 @@ gchar *s = N_("No fixed ratio\n"
               "16:9\n"
               "");
 gchar *s = N_("General options");
+gchar *s = N_("Enable VBI decoding");
+gchar *s = N_("Use VBI for getting station names");
+gchar *s = N_("Try to correct errors when decoding");
+gchar *s = N_("Device name:");
+gchar *s = N_("Select the VBI device");
+gchar *s = N_("Finetune:");
+gchar *s = N_("VBI options");
 gchar *s = N_("Channel choosing");
 gchar *s = N_("Choose here the channels you want to use.\n"
               "If your country is not listed, please find out the frequencies used for\n"
@@ -117,3 +125,11 @@ gchar *s = N_("Use this to start the windowed capture mode");
 gchar *s = N_("Go _Capturing");
 gchar *s = N_("Searching...");
 gchar *s = N_("%P %%");
+gchar *s = N_("Controls");
+gchar *s = N_("Previous subpage");
+gchar *s = N_("Previous page");
+gchar *s = N_("Next page");
+gchar *s = N_("Next subpage");
+gchar *s = N_("Visit:");
+gchar *s = N_("Page");
+gchar *s = N_("Subpage, 0 for looking to all subpages");

@@ -230,7 +230,7 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
 		     GTK_SIGNAL_FUNC(on_property_item_changed),
 		     zapping_properties);
 
-  /* ration mode to use */
+  /* ratio mode to use */
   widget = lookup_widget(zapping_properties, "optionmenu1");
   gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
     zconf_get_integer(NULL,
@@ -239,6 +239,59 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
   gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
 		     GTK_SIGNAL_FUNC(on_property_item_changed),
 		     zapping_properties);
+
+  /* Enable VBI decoding */
+  widget = lookup_widget(zapping_properties, "checkbutton6");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
+    zconf_get_boolean(NULL, "/zapping/options/vbi/enable_vbi"));
+
+  gtk_signal_connect(GTK_OBJECT(widget), "toggled",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+
+  /* use VBI for getting station names */
+  widget = lookup_widget(zapping_properties, "checkbutton7");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
+    zconf_get_boolean(NULL, "/zapping/options/vbi/use_vbi"));
+
+  gtk_signal_connect(GTK_OBJECT(widget), "toggled",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+
+  /* VBI device */
+  widget = lookup_widget(zapping_properties, "fileentry2");
+  widget = gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(widget));
+  gtk_entry_set_text(GTK_ENTRY(widget),
+		     zconf_get_string(NULL,
+				      "/zapping/options/vbi/vbi_device"));
+
+  gtk_signal_connect(GTK_OBJECT(widget), "changed",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+
+  /* erc (Error correction) */
+  widget = lookup_widget(zapping_properties, "checkbutton8");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
+    zconf_get_boolean(NULL, "/zapping/options/vbi/erc"));
+
+  gtk_signal_connect(GTK_OBJECT(widget), "toggled",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+
+  /* Fine tuning range */
+  widget = lookup_widget(zapping_properties, "spinbutton4");
+  gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget),
+     zconf_get_integer(NULL,
+		       "/zapping/options/vbi/fintune"));
+
+  gtk_signal_connect(GTK_OBJECT(widget), "changed",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+
+  /* Disable/enable the VBI options */
+  widget = lookup_widget(zapping_properties, "vbox19");
+  gtk_widget_set_sensitive(widget,
+	 zconf_get_boolean(NULL, "/zapping/options/vbi/enable_vbi"));
 
   /* Let the plugins add their properties */
   while (p)
@@ -313,6 +366,33 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
 	"/zapping/options/main/ratio");
 
       break;
+    case 2:
+      widget = lookup_widget(pbox, "checkbutton6"); /* enable VBI
+						       decoding */
+      zconf_set_boolean(gtk_toggle_button_get_active(
+	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/vbi/enable_vbi");
+
+      widget = lookup_widget(pbox, "checkbutton7"); /* Use VBI
+						       station names */
+      zconf_set_boolean(gtk_toggle_button_get_active(
+	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/vbi/use_vbi");
+
+      widget = lookup_widget(pbox, "fileentry2"); /* Video device entry
+						    */
+      text = gnome_file_entry_get_full_path (GNOME_FILE_ENTRY(widget),
+					     TRUE);
+      zconf_set_string(text, "/zapping/options/vbi/vbi_device");
+
+      g_free(text); /* In the docs it says this should be freed */
+
+      widget = lookup_widget(pbox, "checkbutton8"); /* erc */
+      zconf_set_boolean(gtk_toggle_button_get_active(
+	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/vbi/erc");
+
+      widget = lookup_widget(pbox, "spinbutton4"); /* finetune */
+      zconf_set_integer(
+	gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widget)),
+			"/zapping/options/vbi/finetune");
     default:
       p = g_list_first(plugin_list);
       while (p) /* Try with all the plugins until one of them accepts
@@ -349,8 +429,7 @@ on_zapping_properties_help             (GnomePropertyBox *gnomepropertybox,
     {
     case -1:
       break; /* end of the calls */
-    case 0:
-    case 1:
+    case 0 ... 2:
       gnome_help_display(NULL, &entry);
       break;
     default:
@@ -376,5 +455,15 @@ void
 on_property_item_changed              (GtkWidget * changed_widget,
 				       GnomePropertyBox *propertybox)
 {
+  gboolean active;
+
+  if (lookup_widget(changed_widget, "checkbutton6") == changed_widget)
+    {
+      active =
+	gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(changed_widget));
+      gtk_widget_set_sensitive(lookup_widget(changed_widget,
+					     "vbox19"), active);      
+    }
+
   gnome_property_box_changed (propertybox);
 }

@@ -31,6 +31,7 @@
 #include "zmisc.h"
 #include "plugins.h"
 #include "zconf.h"
+#include "zvbi.h"
 
 gboolean flag_exit_program; /* set this flag to TRUE to exit the program */
 GtkWidget * ToolBox = NULL; /* Here is stored the Toolbox (if any) */
@@ -174,6 +175,8 @@ on_tv_screen_size_allocate             (GtkWidget       *widget,
                                         GtkAllocation   *allocation,
                                         gpointer         user_data)
 {
+  zvbi_window_updated(widget, allocation->width, allocation->height);
+
   if (main_info -> current_mode != TVENG_CAPTURE_READ)
     return;
 
@@ -240,9 +243,7 @@ on_tv_screen_configure_event           (GtkWidget       *widget,
   int x, y, w, h;
   gboolean obscured = FALSE;
   extern gboolean ignore_next_expose;
-
-  if (main_info->current_mode != TVENG_CAPTURE_WINDOW)
-    return FALSE;
+  GdkEventExpose *exp = (GdkEventExpose*) event;
 
   switch (event->type) {
   case GDK_CONFIGURE:
@@ -250,6 +251,9 @@ on_tv_screen_configure_event           (GtkWidget       *widget,
   case GDK_DELETE:
     break;
   case GDK_EXPOSE:
+    /* Update the TXT window */
+    zvbi_exposed(widget, exp->area.x, exp->area.y, exp->area.width,
+		 exp->area.height);
     if (ignore_next_expose)
       {
 	ignore_next_expose = FALSE;
@@ -269,6 +273,9 @@ on_tv_screen_configure_event           (GtkWidget       *widget,
   default:
     return FALSE;
   }
+
+  if (main_info->current_mode != TVENG_CAPTURE_WINDOW)
+    return FALSE;
 
   tv_screen = lookup_widget(widget, "tv_screen");
 

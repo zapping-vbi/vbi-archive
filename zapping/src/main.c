@@ -26,8 +26,9 @@
 #include <gnome-xml/parser.h>
 #include <glade/glade.h>
 #include <signal.h>
+#ifdef HAVE_GDKPIXBUF
 #include <gdk-pixbuf/gdk-pixbuf.h>
-
+#endif
 #define ZCONF_DOMAIN "/zapping/options/main/"
 #include "zmisc.h"
 #include "interface.h"
@@ -54,7 +55,9 @@ gboolean disable_preview = FALSE; /* TRUE if zapping_setup_fb didn't
 GtkWidget * main_window;
 gboolean was_fullscreen=FALSE; /* will be TRUE if when quitting we
 				  were fullscreen */
-static GdkPixbuf *pixbuf = NULL;
+#ifdef HAVE_GDKPIXBUF
+static GdkPixbuf * pixbuf = NULL;
+#endif
 
 void shutdown_zapping(void);
 gboolean startup_zapping(void);
@@ -73,12 +76,6 @@ delete_event                (GtkWidget       *widget,
   flag_exit_program = TRUE;
   
   return FALSE;
-}
-
-static void z_gdk_pixbuf_free(guchar *pixels, gpointer data);
-static void z_gdk_pixbuf_free(guchar *pixels, gpointer data)
-{
-  free(pixels);
 }
 
 int main(int argc, char * argv[])
@@ -247,10 +244,6 @@ int main(int argc, char * argv[])
       zconf_get_integer(&y, "/zapping/internal/callbacks/y");
       zconf_get_integer(&w, "/zapping/internal/callbacks/w");
       zconf_get_integer(&h, "/zapping/internal/callbacks/h");
-      /* Hopefully this will let me track the ghost bug */
-#ifdef DEBUG
-      g_message("Restoring %dx%d - %d-%d", x, y, w, h);
-#endif
       gdk_window_move_resize(main_window->window, x, y, w, h);
     }
 
@@ -304,9 +297,9 @@ int main(int argc, char * argv[])
 	  hints = GDK_HINT_MIN_SIZE;
 	  geometry.min_width = main_info->caps.minwidth;
 	  geometry.min_height = main_info->caps.minheight;
-	  
+      	  
 	  /* Set the geometry flags if needed */
-	  if (zcg_bool(NULL, "fixed_increments"))
+      	  if (zcg_bool(NULL, "fixed_increments"))
 	    {
 	      geometry.width_inc = 64;
 	      geometry.height_inc = 48;
@@ -340,32 +333,6 @@ int main(int argc, char * argv[])
 	  continue;
 	}
 
-      if (!pixbuf)
-	{
-	  gint width, height;
-	  unsigned char * mem;
-	  struct fmt_page pg;
-	  unsigned char alphas[8] = {0, 255, 255, 255, 255, 255, 255, 255};
-	  
-	  if (!zvbi_format_page(256, ANY_SUB, FALSE, &pg));
-	    //	    g_warning("The page isn't in the cache yet, sorry");
-	  else {
-	    mem = zvbi_render_page_rgba(&pg, &width, &height, alphas);
-	    if (!mem)
-	      g_warning("Couldn't render page");
-	    else
-	      {
-		g_message("Page rendered, %dx%d", width, height);
-		{
-		  pixbuf =
-		    gdk_pixbuf_new_from_data(mem, GDK_COLORSPACE_RGB, TRUE,
-					     8, width, height, width*4,
-					     z_gdk_pixbuf_free, NULL);
-		}
-	      }
-	  }
-	}
-
       /* Avoid segfault */
       if (!zimage_get())
 	{
@@ -397,7 +364,7 @@ int main(int argc, char * argv[])
       sample.audio_bits  = si->bits;
       sample.audio_rate  = si->rate;
       sample.a_timestamp = ((((__s64)si->tv.tv_sec) *
-			     1000000)+si->tv.tv_usec)*1000;
+      1000000)+si->tv.tv_usec)*1000;
       
       p = g_list_first(plugin_list);
       while (p)
@@ -408,24 +375,17 @@ int main(int argc, char * argv[])
 	  p = p->next;
 	}
 
+#ifdef HAVE_GDKPIXBUF
+      pixbuf = zvbi_build_current_teletext_page(tv_screen);
+#endif
+
       gdk_draw_image(tv_screen -> window,
 		     tv_screen -> style -> white_gc,
 		     zimage_get(),
 		     0, 0, 0, 0,
 		     sample.format.width,
 		     sample.format.height);
-
-      if (pixbuf)
-      	gdk_pixbuf_render_to_drawable(pixbuf,
-	 (GdkDrawable*)tv_screen->window,
-				      tv_screen -> style -> white_gc,
-				      0, 0, 0, 0,
-      	    gdk_pixbuf_get_width(pixbuf),
-      	    gdk_pixbuf_get_height(pixbuf), GDK_RGB_DITHER_NONE, 0, 0);
     }
-
-  if (pixbuf)
-    gdk_pixbuf_unref(pixbuf);
 
   /* Closes all fd's, writes the config to HD, and that kind of things
    */
@@ -591,9 +551,12 @@ gboolean startup_zapping()
     }
 
   /* Start VBI services, and warn if we cannot */
-  if (!zvbi_open_device("/dev/vbi", 999, TRUE))
+  if (!zvbi_open_device())
     ShowBox(_("Sorry, but %s couldn't be opened:\n%s (%d)"),
 	    GNOME_MESSAGE_BOX_ERROR, "/dev/vbi", strerror(errno), errno);
+
+  /* Monitor the index teletext page */
+  zvbi_monitor_page(0x100, ANY_SUB);
 
   /* Starts all modules */
   if (!startup_callbacks())

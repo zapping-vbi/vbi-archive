@@ -16,6 +16,10 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <gdk/gdkx.h>
 #define ZCONF_DOMAIN "/zapping/options/main/"
 #include "zmisc.h"
@@ -23,6 +27,7 @@
 #include "tveng.h"
 #include "interface.h"
 #include "callbacks.h"
+#include "zvbi.h"
 
 extern tveng_device_info * main_info;
 extern GtkWidget * main_window;
@@ -30,12 +35,11 @@ extern gboolean disable_preview; /* TRUE if preview won't work */
 static GdkImage * zimage = NULL; /* The buffer that holds the capture */
 static gint oldx=-1, oldy=-1, oldw=-1, oldh=-1; /* Last geometry of the
 					    Zapping window */
-static gint curx, cury, curw, curh; /* current geometry of the window
-				     */
+static gint curx, cury, curw=-1, curh=-1;
+/* current geometry of the window */
 static gboolean obscured = FALSE;
 gboolean ignore_next_expose = FALSE;
 static guint timeout_id = 0;
-//static GdkPixbuf *pixbuf;
 
 /*
   Prints a message box showing an error, with the location of the code

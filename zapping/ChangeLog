@@ -1,3 +1,10 @@
+05.9.2000	Bpp fixes <garetxe@users.sourceforge.net>
+
+	* zapping_setup_fb: Now accepts command line --bpp option
+	* src/zvbi.c: Does most of the work. Fetches, renders and scales
+	automagically teletext pages. Depends on GdkPixbuf to work.
+	* src/properties.c: Now the VBI properties are modificable.
+
 04.9.2000	Bug fixes <garetxe@users.sourceforge.net>
 
 	* src/tveng[12].c: Fixes in the fullscreen mode, it had errors

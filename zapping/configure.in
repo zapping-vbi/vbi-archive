@@ -85,8 +85,9 @@ if test $? -eq 0; then
 	AC_SUBST(GDK_PIXBUF_CFLAGS)
 	AC_SUBST(GDK_PIXBUF_LIBS)
 	HAVE_GDK_PIXBUF="yes"
+	AC_DEFINE(HAVE_GDKPIXBUF)
 else
-	AC_MSG_RESULT([no, VBI plugin will be disabled])
+	AC_MSG_RESULT([no, VBI support will be disabled])
 	HAVE_GDK_PIXBUF="no"
 dnl fixme: Remember to disable the VBI plugin now
 fi

@@ -54,7 +54,7 @@
 #include "../src/videodev.h" /* V4L header file */
 
 #define MAX_VERBOSE 2 /* Greatest verbosity allowed */
-#define ZSFB_VERSION "zapping_setup_fb 0.8.5" /* Current program version */
+#define ZSFB_VERSION "zapping_setup_fb 0.8.6" /* Current program version */
 
 /* Well, this isn't very clean, but anyway... */
 #define EXIT { \
@@ -68,6 +68,9 @@
 int vp_width, vp_height, width, height, addr, bpp;
 
 int verbosity = 0; /* Start quiet */
+
+/* Display bpp, if specified */
+int real_bpp = -1;
 
 /* Prints a short usage notice */
 void PrintUsage(void);
@@ -84,6 +87,7 @@ void PrintUsage(void)
 	   " zapping_setup_fb [OPTIONS], where OPTIONS stands for\n"
 	   " --device dev - The video device to open, /dev/video by default\n"
 	   " --display d  - The X display to use\n"
+	   " --bpp x      - Current X bpp\n"
 	   " --verbose    - Increments verbosity level\n"
 	   " --quiet      - Decrements verbosity level\n"
 	   " --help, -?   - Shows this message\n"
@@ -168,32 +172,35 @@ gboolean check_dga(Display * display, int screen)
 
   /* The following code is 'stolen' from v4l-conf, since I hadn't the
      slightest idea on how to get the real bpp */
-  template.screen = screen;
-  info = XGetVisualInfo(display, VisualScreenMask, &template, &found);
+  if (real_bpp == -1) {
+    template.screen = screen;
+    info = XGetVisualInfo(display, VisualScreenMask, &template, &found);
     v = -1;
     for (i = 0; v == -1 && i < found; i++)
-	if (info[i].class == TrueColor && info[i].depth >= 15)
-	    v = i;
+      if (info[i].class == TrueColor && info[i].depth >= 15)
+	v = i;
     if (-1 == v) {
       if (verbosity)
 	fprintf(stderr, "x11: no approximate visual available\n");
       return FALSE;
     }
-
+    
     /* get depth + bpp (heuristic) */
     pf = XListPixmapFormats(display,&n);
     for (i = 0; i < n; i++) {
-	if (pf[i].depth == info[v].depth) {
-	    bpp   = pf[i].bits_per_pixel;
-	    break;
-	}
+      if (pf[i].depth == info[v].depth) {
+	bpp   = pf[i].bits_per_pixel;
+	break;
+      }
     }
     if (0 == bpp) {
       if (verbosity)
 	fprintf(stderr,"x11: can't figure out framebuffer depth\n");
       return FALSE;
     }
-
+  } else
+    bpp = real_bpp;
+  
   /* Print some info about the DGA device in --verbose mode */
   /* This is no security flaw since this info is user-readable anyway */
   PM("DGA info we got:\n", 1);
@@ -249,6 +256,16 @@ int main(int argc, char * argv[])
 	    fprintf(stderr, _("X display name seems to be missing\n"));
 	  else
 	    display_name = argv[++i];
+	}
+      else if (!strcasecmp(argv[i], "--bpp"))
+	{
+	  /* We are told the real screen depth, no need for heuristics
+	   */
+	  if ((i+1) == argc)
+	    fprintf(stderr, _("Real bpp seems to be missing\n"));
+	  else if (!sscanf(argv[++i], "%d", &real_bpp))
+	    fprintf(stderr, _("Imposible to understand --bpp %s, ignored\n"),
+		    argv[i-1]);
 	}
       else if ((!strcasecmp(argv[i], "--help")) ||
 	       (!strcasecmp(argv[i], "--usage")) ||

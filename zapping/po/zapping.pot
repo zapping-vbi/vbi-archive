@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-09-03 22:58+0200\n"
+"POT-Creation-Date: 2000-09-05 15:04+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -14,61 +14,61 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: ENCODING\n"
 
-#: src/main.c:97
+#: src/main.c:102
 msgid "Sorry, but there is no module support"
 msgstr ""
 
-#: src/main.c:106
+#: src/main.c:111
 msgid "Cannot get device info struct"
 msgstr ""
 
-#: src/main.c:112
+#: src/main.c:117
 msgid "Zapping couldn't be started"
 msgstr ""
 
-#: src/main.c:150
+#: src/main.c:155
 msgid ""
 "The specified device isn't \"/dev/video\".\n"
 "Should I try it?"
 msgstr ""
 
-#: src/main.c:171
+#: src/main.c:176
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:263
+#: src/main.c:264
 #, c-format
 msgid ""
 "Cannot restore previous mode%s:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:266
+#: src/main.c:267
 msgid ", I will try starting capture mode"
 msgstr ""
 
-#: src/main.c:270
+#: src/main.c:271
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:276
+#: src/main.c:284
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:329
+#: src/main.c:343
 msgid "There is no allocated mem for the capture"
 msgstr ""
 
-#: src/main.c:441
+#: src/main.c:467
 msgid ""
 "ZConf could not be closed properly , your\n"
 "configuration will be lost.\n"
@@ -80,11 +80,11 @@ msgid ""
 "     Zapping. Please contact the author.\n"
 msgstr ""
 
-#: src/main.c:478
+#: src/main.c:504
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr ""
 
-#: src/main.c:540
+#: src/main.c:566
 #, c-format
 msgid ""
 "Sorry, but %s couldn't be opened:\n"
@@ -109,34 +109,34 @@ msgstr ""
 msgid "A TV viewer for the Gnome Desktop Environment"
 msgstr ""
 
-#: src/callbacks.c:316
+#: src/callbacks.c:317
 msgid "Cannot set input"
 msgstr ""
 
-#: src/callbacks.c:335
+#: src/callbacks.c:336
 #, c-format
 msgid "Cannot tune given channel %d (no such channel)\n"
 msgstr ""
 
 #. Set the
 #. input freq
-#: src/callbacks.c:350
+#: src/callbacks.c:351
 msgid "Cannot tune input"
 msgstr ""
 
-#: src/callbacks.c:501
+#: src/callbacks.c:502
 msgid "Sorry, but cannot go fullscreen"
 msgstr ""
 
-#: src/callbacks.c:562
+#: src/callbacks.c:563
 msgid "I cannot find the main zapping window, weird..."
 msgstr ""
 
-#: src/callbacks.c:744 src/v4linterface.c:161
+#: src/callbacks.c:745 src/v4linterface.c:161
 msgid "No tuner"
 msgstr ""
 
-#: src/callbacks.c:752 src/v4linterface.c:163
+#: src/callbacks.c:753 src/v4linterface.c:163
 msgid "No tuned channels"
 msgstr ""
 
@@ -248,33 +248,33 @@ msgstr ""
 #: src/tveng.c:714 src/tveng.c:740 src/tveng.c:765 src/tveng.c:795
 #: src/tveng.c:820 src/tveng.c:848 src/tveng.c:874 src/tveng.c:897
 #: src/tveng.c:931 src/tveng.c:959 src/tveng.c:987 src/tveng.c:1012
-#: src/tveng.c:1097 src/tveng.c:1275 src/tveng.c:1302 src/tveng.c:1330
-#: src/tveng.c:1510 src/tveng.c:1537
+#: src/tveng.c:1102 src/tveng.c:1280 src/tveng.c:1307 src/tveng.c:1335
+#: src/tveng.c:1529 src/tveng.c:1556
 #, c-format
 msgid "%s called on a non-controlled device: %s\n"
 msgstr ""
 
-#: src/tveng.c:1171
+#: src/tveng.c:1176
 msgid "zapping_setup_fb exited abnormally, check stderr"
 msgstr ""
 
-#: src/tveng.c:1181
+#: src/tveng.c:1186
 msgid "zapping_setup_fb failed to set up the video"
 msgstr ""
 
-#: src/tveng.c:1186
+#: src/tveng.c:1191
 msgid "Couldn't locate zapping_setup_fb, check your install"
 msgstr ""
 
-#: src/tveng.c:1227
+#: src/tveng.c:1232
 msgid "Cannot find an appropiate visual"
 msgstr ""
 
-#: src/tveng.c:1247
+#: src/tveng.c:1252
 msgid "Cannot figure out X depth"
 msgstr ""
 
-#: src/tveng.c:1598
+#: src/tveng.c:1623
 msgid "Warning: trying to stop window with no capture active\n"
 msgstr ""
 
@@ -446,7 +446,7 @@ msgstr ""
 msgid "The capability field says that there is no overlay"
 msgstr ""
 
-#: src/tveng1.c:2407 src/tveng2.c:2023
+#: src/tveng1.c:2382 src/tveng2.c:1998
 msgid "Warning: trying to stop preview with no capture active\n"
 msgstr ""
 
@@ -587,7 +587,7 @@ msgid ""
 "Hashes are 0x%x vs. 0x%x"
 msgstr ""
 
-#: src/zmisc.c:114
+#: src/zmisc.c:191
 #, c-format
 msgid ""
 "Sorry, but a %dx%d image couldn't be allocated, the image will not be "
@@ -853,12 +853,13 @@ msgstr ""
 msgid "Sorry, the plugin doesn't provide help for this"
 msgstr ""
 
-#: zapping_setup_fb/zapping_setup_fb.c:83
+#: zapping_setup_fb/zapping_setup_fb.c:86
 msgid ""
 "Usage:\n"
 " zapping_setup_fb [OPTIONS], where OPTIONS stands for\n"
 " --device dev - The video device to open, /dev/video by default\n"
 " --display d  - The X display to use\n"
+" --bpp x      - Current X bpp\n"
 " --verbose    - Increments verbosity level\n"
 " --quiet      - Decrements verbosity level\n"
 " --help, -?   - Shows this message\n"
@@ -866,47 +867,56 @@ msgid ""
 " --version    - Shows the program version\n"
 msgstr ""
 
-#: zapping_setup_fb/zapping_setup_fb.c:241
+#: zapping_setup_fb/zapping_setup_fb.c:248
 msgid "Video device name seems to be missing\n"
 msgstr ""
 
-#: zapping_setup_fb/zapping_setup_fb.c:249
+#: zapping_setup_fb/zapping_setup_fb.c:256
 msgid "X display name seems to be missing\n"
 msgstr ""
 
-#: zapping_setup_fb/zapping_setup_fb.c:271
+#: zapping_setup_fb/zapping_setup_fb.c:265
+msgid "Real bpp seems to be missing\n"
+msgstr ""
+
+#: zapping_setup_fb/zapping_setup_fb.c:267
+#, c-format
+msgid "Imposible to understand --bpp %s, ignored\n"
+msgstr ""
+
+#: zapping_setup_fb/zapping_setup_fb.c:288
 #, c-format
 msgid "Unknown command line option %s, ignoring it\n"
 msgstr ""
 
 #. Print a short copyright notice if we aren't totally quiet
-#: zapping_setup_fb/zapping_setup_fb.c:282
+#: zapping_setup_fb/zapping_setup_fb.c:299
 msgid ""
 "(C) 2000 Iñaki García Etxebarria.\n"
 "This program is under the GNU General Public License.\n"
 msgstr ""
 
-#: zapping_setup_fb/zapping_setup_fb.c:307
+#: zapping_setup_fb/zapping_setup_fb.c:324
 #, c-format
 msgid "Given device %s has dots in it, cannot use it\n"
 msgstr ""
 
-#: zapping_setup_fb/zapping_setup_fb.c:317
+#: zapping_setup_fb/zapping_setup_fb.c:334
 #, c-format
 msgid "Given device %s is too short, cannot use it\n"
 msgstr ""
 
-#: zapping_setup_fb/zapping_setup_fb.c:325
+#: zapping_setup_fb/zapping_setup_fb.c:342
 #, c-format
 msgid "Given device %s doesn't start with /dev/, cannot use it\n"
 msgstr ""
 
-#: zapping_setup_fb/zapping_setup_fb.c:340
+#: zapping_setup_fb/zapping_setup_fb.c:357
 #, c-format
 msgid "Cannot open given device %s\n"
 msgstr ""
 
-#: zapping_setup_fb/zapping_setup_fb.c:370
+#: zapping_setup_fb/zapping_setup_fb.c:387
 #, c-format
 msgid "Cannot open display %s, quitting\n"
 msgstr ""

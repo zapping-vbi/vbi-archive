@@ -25,12 +25,19 @@
 #ifndef __ZVBI_H__
 #define __ZVBI_H__
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <gnome.h>
+#ifdef HAVE_GDKPIXBUF
+#include <gdk-pixbuf/gdk-pixbuf.h>
+#endif
 #include <libvbi.h>
 
-/* Open the given VBI device, FALSE on error */
+/* Open the configured VBI device, FALSE on error */
 gboolean
-zvbi_open_device(gchar * device, gint finetune, gboolean erc);
+zvbi_open_device(void);
 
 /* Closes the VBI device */
 void
@@ -110,4 +117,51 @@ zvbi_render_page(struct fmt_page *pg, gint *width, gint *height);
 unsigned char*
 zvbi_render_page_rgba(struct fmt_page *pg, gint *width, gint *height,
 		      unsigned char * alpha);
+
+/*
+  Tells the VBI engine to monitor a page. This way you can know if the
+  page has been updated since the last format_page, get_page.
+*/
+void
+zvbi_monitor_page(gint page, gint subpage);
+
+/*
+  Tells the VBI engine to stop monitoring this page
+*/
+void
+zvbi_forget_page(gint page, gint subpage);
+
+/*
+  Asks whether the page has been updated since the last format_page,
+  get_page.
+  TRUE means that the page has been updated. FALSE means that it is
+  clean or that it isn't being monitored.
+*/
+gboolean
+zvbi_get_page_state(gint page, gint subpage);
+
+/*
+  Sets the state of the given page.
+  TRUE means set it to dirty.
+  If subpage is set to ANY_SUB, then all subpages of page being
+  monitored are set.
+  last_change is ignored if dirty == FALSE
+*/
+void
+zvbi_set_page_state(gint page, gint subpage, gint dirty, time_t
+		    last_change);
+
+/* Called when the tv screen changes size */
+void
+zvbi_window_updated(GtkWidget *widget, gint w, gint h);
+
+/* Called when the tv screen receives a expose event */
+void
+zvbi_exposed(GtkWidget *widget, gint x, gint y, gint w, gint h);
+
+#ifdef HAVE_GDKPIXBUF
+/* Builds the GdkPixbuf version of the current teletext page */
+GdkPixbuf *zvbi_build_current_teletext_page(GtkWidget *widget);
+#endif /* HAVE_GDK_PIXBUF */
+
 #endif /* zvbi.h */
