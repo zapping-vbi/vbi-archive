@@ -26,7 +26,9 @@
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
+
 #include <stdio.h>
+#include <ctype.h>
 #include <errno.h>
 
 #include <tveng.h>
@@ -37,6 +39,22 @@
 
 #include "globals.h" /* xv_overlay_port */
 #include "zmisc.h"
+
+struct video_input {
+	tv_video_line		pub;
+	char			name[64];
+	unsigned int		num;		/* random standard */
+};
+
+#define VI(l) PARENT (l, struct video_input, pub)
+
+struct standard {
+	tv_video_standard	pub;
+	char			name[64];
+	unsigned int		num;
+};
+
+#define S(l) PARENT (l, struct standard, pub)
 
 struct control {
 	tv_control		pub;
@@ -51,22 +69,70 @@ struct private_tvengxv_device_info
   XvPortID	port; /* port id */
   XvEncodingInfo *ei; /* list of encodings, for reference */
   int encodings; /* number of encodings */
+  int cur_encoding;
   /* This atoms define the controls */
-  Atom	encoding;
+	Atom			xa_encoding;
   int encoding_max, encoding_min, encoding_gettable;
-  Atom	freq;
+  	Atom			xa_freq;
   int freq_max, freq_min;
-  Atom	mute;
-  Atom	volume;
-  Atom	colorkey;
+	Atom			xa_mute;
+	Atom			xa_volume;
+	Atom			xa_colorkey;
   int colorkey_max, colorkey_min;
-  Atom	signal_strength;
+	Atom			xa_signal_strength;
+
+	tv_bool			active;
+
+	Window			window;
+	GC			gc;
+
   Window last_win;
   GC last_gc;
   int last_w, last_h;
 };
 
 #define P_INFO(p) PARENT (p, struct private_tvengxv_device_info, info)
+
+static int
+find_encoding			(tveng_device_info *	info,
+				 const char *		input,
+				 const char *		standard)
+{
+	struct private_tvengxv_device_info * p_info = P_INFO (info);
+	char encoding[200];
+	unsigned int i;
+
+	snprintf (encoding, 199, "%s-%s", standard, input);
+	encoding[199] = 0;
+
+	for (i = 0; i < p_info->encodings; ++i)
+		if (0 == strcasecmp (encoding, p_info->ei[i].name))
+			return i;
+
+	return -1;
+}
+
+/* Splits "standard-input" storing "standard" in buffer d of size,
+   returning pointer to "input". */
+static const char *
+split_encoding			(char *			d,
+				 size_t			size,
+				 const char *		s)
+{
+	for (; *s && *s != '-'; ++s)
+		if (size > 1) {
+			*d++ = *s;
+			--size;
+		}
+
+	if (size > 0)
+		*d = 0;
+
+	if (*s == 0)
+		return NULL;
+
+	return ++s; /* skip '-' */
+}
 
 static int
 p_tvengxv_open_device(tveng_device_info *info)
@@ -185,6 +251,138 @@ p_tvengxv_open_device(tveng_device_info *info)
   return -1; /* failure */
 }
 
+
+
+
+
+
+
+
+/*
+ *  Overlay
+ */
+
+static tv_bool
+set_overlay_xwindow		(tveng_device_info *	info,
+				 Window			window,
+				 GC			gc)
+{
+	struct private_tvengxv_device_info *p_info = P_INFO (info);
+
+	assert (!p_info->active);
+
+	p_info->window = window;
+	p_info->gc = gc;
+
+	return TRUE;
+}
+
+static int
+tvengxv_set_preview_window(tveng_device_info * info)
+{
+	/* Not used yet. */
+
+	return 0;
+}
+
+static int
+tvengxv_get_preview_window(tveng_device_info * info)
+{
+	/* Nothing to do. */
+
+	return 0;
+}
+
+static tv_bool
+set_overlay			(tveng_device_info *	info,
+				 tv_bool		on)
+{
+	struct private_tvengxv_device_info *p_info = P_INFO (info);
+	Window root;
+	int encoding_num;
+	int x, y;
+	unsigned int width, height;
+	unsigned int dummy;
+
+  t_assert(info != NULL);
+
+  	if (p_info->window == 0 || p_info->gc == 0) {
+		info->tveng_errno = -1;
+		t_error_msg("win", "The window value hasn't been set", info);
+		return -1;
+	}
+
+	XGetGeometry (info->priv->display,
+		      p_info->window,
+		      &root, &x, &y, &width, &height,
+		      /* border width */ &dummy,
+		      /* depth */ &dummy);
+
+	encoding_num = 0;
+
+	if (p_info->xa_encoding != None
+	    && p_info->encoding_gettable)
+		XvGetPortAttribute (info->priv->display,
+				    p_info->port,
+				    p_info->xa_encoding,
+				    &encoding_num);
+	if (on) {
+		XvPutVideo (info->priv->display,
+			    p_info->port,
+			    p_info->window,
+			    p_info->gc,
+			    /* src_x */ 0,
+			    /* src_y */ 0,
+			    /* src */ p_info->ei[encoding_num].width,
+			    /* src */ p_info->ei[encoding_num].height,
+			    /* dest */
+			    0, 0, width, height);
+	} else {
+		XvStopVideo (info->priv->display,
+			     p_info->port,
+			     p_info->window);
+	}
+
+	XSync (info->priv->display, False);
+
+	return 0;
+}
+
+
+static void
+tvengxv_set_chromakey (uint32_t chroma, tveng_device_info *info)
+{
+	struct private_tvengxv_device_info *p_info = P_INFO (info);
+
+  if (p_info->xa_colorkey != None)
+    XvSetPortAttribute (info->priv->display, p_info->port,
+			p_info->xa_colorkey, chroma);
+}
+
+static int
+tvengxv_get_chromakey (uint32_t *chroma, tveng_device_info *info)
+{
+	struct private_tvengxv_device_info *p_info = P_INFO (info);
+
+  if (p_info->xa_colorkey == None)
+    return -1;
+
+  XvGetPortAttribute (info->priv->display, p_info->port,
+		      p_info->xa_colorkey, chroma);
+  return 0;
+}
+
+
+
+
+
+
+
+
+/*
+ *  Controls
+ */
+
 static const struct {
 	const char *		atom;
 	const char *		label;
@@ -202,6 +400,71 @@ static const struct {
 };
 
 static tv_bool
+do_update_control		(struct private_tvengxv_device_info *p_info,
+				 struct control *	c)
+{
+	int value;
+
+	// XXX check at runtime
+	if (c->atom == p_info->xa_mute)
+		return TRUE; /* no read-back (bttv bug) */
+	else
+		XvGetPortAttribute (p_info->info.priv->display,
+				    p_info->port,
+				    c->atom,
+				    &value);
+
+	if (c->pub.value != value) {
+		c->pub.value = value;
+		tv_callback_notify (&c->pub, c->pub._callback);
+	}
+
+	return TRUE; /* ? */
+}
+
+static tv_bool
+update_control			(tveng_device_info *	info,
+				 tv_control *		tc)
+{
+	struct private_tvengxv_device_info *p_info = P_INFO (info);
+
+	if (tc) {
+		return do_update_control (p_info, C(tc));
+	} else {
+		for_all (tc, p_info->info.controls)
+			if (tc->_parent == info)
+				if (!do_update_control (p_info, C(tc)))
+					return FALSE;
+	}
+
+	return TRUE;
+}
+
+static int
+set_control			(tveng_device_info *	info,
+				 tv_control *		tc,
+				 int			value)
+{
+	struct private_tvengxv_device_info *p_info = P_INFO (info);
+
+	XvSetPortAttribute (info->priv->display,
+			    p_info->port,
+			    C(tc)->atom,
+			    value);
+
+	if (C(tc)->atom == p_info->xa_mute) {
+		if (tc->value != value) {
+			tc->value = value;
+			tv_callback_notify (tc, tc->_callback);
+		}
+
+		return TRUE;
+	}
+
+	return do_update_control (p_info, C(tc));
+}
+
+static tv_bool
 add_control			(struct private_tvengxv_device_info *p_info,
 				 const char *		atom,
 				 const char *		label,
@@ -211,62 +474,387 @@ add_control			(struct private_tvengxv_device_info *p_info,
 				 int			maximum,
 				 int			step)
 {
-  struct control c;
-  Atom xatom;
+	struct control c;
+	Atom xatom;
 
-  memset (&c, 0, sizeof (c));
+	CLEAR (c);
 
-  xatom = XInternAtom (p_info->info.priv->display, atom, False);
+	xatom = XInternAtom (p_info->info.priv->display, atom, False);
 
-  if (xatom == None)
-    return TRUE;
+	if (xatom == None)
+		return TRUE;
 
-  c.atom = xatom;
+	c.pub.type	= type;
+	c.pub.id	= id;
 
-  c.pub.id = id;
+	if (!(c.pub.label = strdup (_(label))))
+		goto failure;
 
-  if (!(c.pub.label = strdup (_(label))))
-	 goto failure;
+	c.pub.minimum	= minimum;
+	c.pub.maximum	= maximum;
+	c.pub.step	= step;
 
-  c.pub.minimum = minimum;
-  c.pub.maximum = maximum;
-  c.pub.step = step;
-  
-  c.pub.type = type;
+	c.atom		= xatom;
 
-  c.pub._device = &p_info->info;
+	if (0 == strcmp (atom, "XV_INTERLACE")) {
+		if (!(c.pub.menu = calloc (4, sizeof (char *))))
+			goto failure;
 
-  if (0 == strcmp (atom, "XV_INTERLACE")) {
-	  c.pub.menu = calloc (4, sizeof (char *));
+		if (!(c.pub.menu[0] = strdup (_("No")))
+		    || !(c.pub.menu[1] = strdup (_("Yes")))
+		    || !(c.pub.menu[2] = strdup (_("Doublescan"))))
+			goto failure;
+	}
 
-	  if (!c.pub.menu)
-		  goto failure;
+	if (append_control (&p_info->info, &c.pub, sizeof (c)))
+		return TRUE;
 
-	  if (!(c.pub.menu[0] = strdup (_("No")))
-	      || !(c.pub.menu[1] = strdup (_("Yes")))
-	      || !(c.pub.menu[2] = strdup (_("Doublescan"))))
-		  goto failure;
-  }
+ failure:
+	if (c.pub.menu) {
+		free (c.pub.menu[0]);
+		free (c.pub.menu[1]);
+		free (c.pub.menu[2]);
+		free (c.pub.menu);
+	}
+	
+	free (c.pub.label);
+	
+	return FALSE;
+}
 
-  if (!append_control (&p_info->info, &c.pub, sizeof (c))) {
-  failure:
-	  if (c.pub.menu) {
-		  free ((char *) c.pub.menu[0]);
-		  free ((char *) c.pub.menu[1]);
-		  free ((char *) c.pub.menu[2]);
-		  free ((char **) c.pub.menu);
-	  }
+/*
+ *  Video standards
+ */
 
-	  free ((char *) c.pub.label);
-	  return FALSE;
-  }
+/* Encodings we can translate to tv_video_standard_id. Other
+   encodings will be flagged as custom standard. */
+static const struct {
+	const char *		name;
+	const char *		label;
+	tv_video_standard_id	id;
+} standards [] = {
+	{ "pal",	"PAL",		TV_VIDEOSTD_PAL },
+	{ "ntsc",	"NTSC",		TV_VIDEOSTD_NTSC_M },
+	{ "secam",	"SECAM",	TV_VIDEOSTD_SECAM },
+	{ "palnc",	"PAL-NC",	TV_VIDEOSTD_PAL_NC },
+	{ "palm",	"PAL-M",	TV_VIDEOSTD_PAL_M },
+	{ "paln",	"PAL-N",	TV_VIDEOSTD_PAL_N },
+	{ "ntscjp",	"NTSC-JP",	TV_VIDEOSTD_NTSC_M_JP },
+};
 
-  return TRUE;
+static tv_bool
+update_standard_list		(tveng_device_info *	info)
+{
+	struct private_tvengxv_device_info *p_info = P_INFO (info);
+	const char *cur_input;
+	unsigned int custom;
+	unsigned int i;
+
+	free_video_standards (info);
+
+	if (p_info->xa_encoding == None)
+		return TRUE;
+
+	if (!(cur_input = split_encoding
+	      (NULL, 0, p_info->ei[p_info->cur_encoding].name)))
+		return TRUE;
+
+	custom = 32;
+
+	for (i = 0; i < p_info->encodings; ++i) {
+		struct standard *s;
+		char buf[sizeof (s->name)];
+		const char *input;
+		unsigned int j;
+
+		if (!(input = split_encoding (buf, sizeof (buf),
+					      p_info->ei[i].name)))
+			continue;
+
+		if (0 != strcmp (input, cur_input))
+			continue;
+
+		if (buf[0] == 0)
+			continue;
+
+		for (j = 0; j < N_ELEMENTS (standards); ++j)
+			if (0 == strcmp (buf, standards[j].name))
+				break;
+
+		if (j < N_ELEMENTS (standards)) {
+			s = S(append_video_standard (&info->video_standards,
+						     standards[j].id,
+						     standards[j].label,
+						     standards[j].name,
+						     sizeof (*s)));
+		} else {
+			char up[sizeof (buf)];
+
+			if (custom >= sizeof (tv_video_standard_id) * 8)
+				continue;
+
+			for (j = 0; buf[j]; ++j)
+				up[j] = toupper (buf[j]);
+
+			up[j] = 0;
+
+			s = S(append_video_standard (&info->video_standards,
+						     1 << (custom++),
+						     up, buf,
+						     sizeof (*s)));
+		}
+
+		if (s == NULL) {
+			free_video_standard_list (&info->video_standards);
+			return FALSE;
+		}
+
+		z_strlcpy (s->name, buf, sizeof (s->name));
+
+		s->num = i;
+	}
+
+	return TRUE;
 }
 
 static tv_bool
-tvengxv_update_control		(tveng_device_info *	info,
-				 tv_control *		tc);
+set_standard			(tveng_device_info *	info,
+				 const tv_video_standard *ts)
+{
+	struct private_tvengxv_device_info *p_info = P_INFO (info);
+
+	XvSetPortAttribute (info->priv->display,
+			    p_info->port,
+			    p_info->xa_encoding,
+			    S(ts)->num);
+
+	p_info->cur_encoding = S(ts)->num;
+
+	set_cur_video_standard (info, ts);
+
+	return TRUE;
+}
+
+/*
+ *  Video inputs
+ */
+
+static struct video_input *
+find_video_input		(tv_video_line *	list,
+				 const char *		input)
+{
+	for_all (list, list) {
+		struct video_input *vi = VI(list);
+
+		if (0 == strcmp (vi->name, input))
+			return vi;
+	}
+
+	return NULL;
+}
+
+static tv_bool
+update_video_input_list		(tveng_device_info *	info)
+{
+	struct private_tvengxv_device_info *p_info = P_INFO (info);
+	unsigned int i;
+
+	free_video_inputs (info);
+
+	if (p_info->xa_encoding == None)
+		return TRUE;
+
+	for (i = 0; i < p_info->encodings; ++i) {
+		struct video_input *vi;
+		char buf[100];
+		const char *input;
+		tv_video_line_type type;
+
+		if (info->debug_level > 0)
+			fprintf (stderr, "  TVeng Xv input #%d: %s\n",
+				 i, p_info->ei[i].name);
+
+		if (!(input = split_encoding (NULL, 0,
+					      p_info->ei[i].name)))
+			continue;
+
+		if (find_video_input (info->video_inputs, input))
+			continue;
+
+		/* FIXME */
+		if (p_info->xa_freq != None)
+			type = TV_VIDEO_LINE_TYPE_TUNER;
+		else
+			type = TV_VIDEO_LINE_TYPE_BASEBAND;
+
+		z_strlcpy (buf, input, sizeof (buf));
+		buf[0] = toupper (buf[0]);
+
+		vi = VI(append_video_line (&info->video_inputs,
+					   type, buf, input, sizeof (*vi)));
+
+		if (!vi) {
+			free_video_line_list (&info->video_inputs);
+			return FALSE;
+		}
+
+		z_strlcpy (vi->name, input, sizeof (vi->name));
+
+		vi->num = i;
+	}
+
+	return TRUE;
+}
+
+#if 0
+      /* The XVideo extension provides very little info about encodings,
+	 we must just make something up */
+      if (p_info->freq != None)
+        {
+	  /* this encoding may refer to a baseband input though */
+          info->inputs[info->num_inputs].tuners = 1;
+          info->inputs[info->num_inputs].flags |= TVENG_INPUT_TUNER;
+          info->inputs[info->num_inputs].type = TVENG_INPUT_TYPE_TV;
+	}
+      else
+        {
+          info->inputs[info->num_inputs].tuners = 0;
+          info->inputs[info->num_inputs].type = TVENG_INPUT_TYPE_CAMERA;
+	}
+      if (p_info->volume != None || p_info->mute != None)
+        info->inputs[info->num_inputs].flags |= TVENG_INPUT_AUDIO;
+      snprintf(info->inputs[info->num_inputs].name, 32, input);
+      info->inputs[info->num_inputs].name[31] = 0;
+      info->inputs[info->num_inputs].hash =
+	tveng_build_hash(info->inputs[info->num_inputs].name);
+#endif
+
+/* Cannot use the generic helper functions, we must set video
+   standard and input at the same time. */
+static void
+set_source			(tveng_device_info *	info,
+				 const tv_video_line *	input,
+				 const tv_video_standard *standard)
+{
+	tv_video_line *old_input;
+	tv_video_standard *old_standard;
+
+	old_input = info->cur_video_input;
+	info->cur_video_input = (tv_video_line *) input;
+
+	old_standard = info->cur_video_standard;
+	info->cur_video_standard = (tv_video_standard *) standard;
+
+	if (old_input != input)
+		tv_callback_notify (info, info->priv->video_input_callback);
+
+	if (old_standard != standard)
+		tv_callback_notify (info, info->priv->video_standard_callback);
+}
+
+static tv_bool
+update_current_video_input	(tveng_device_info *	info)
+{
+	struct private_tvengxv_device_info *p_info = P_INFO (info);
+	struct video_input *vi;
+	const char *input;
+	tv_video_standard *ts;
+
+	if (p_info->xa_encoding == None
+	    || !p_info->encoding_gettable) {
+		set_source (info, NULL, NULL);
+		return TRUE;
+	}
+
+	XvGetPortAttribute (info->priv->display,
+			    p_info->port,
+			    p_info->xa_encoding,
+			    &p_info->cur_encoding);
+
+#warning
+	/* Xv/v4l BUG? */
+	if (p_info->cur_encoding < 0 || p_info->cur_encoding > 10 /*XXX*/)
+		p_info->cur_encoding = 0;
+
+	input = split_encoding (NULL, 0, p_info->ei[p_info->cur_encoding].name);
+
+	vi = find_video_input (info->video_inputs, input);
+
+	assert (vi != NULL);
+
+	update_standard_list (info);
+
+	for_all (ts, info->video_standards)
+		if (S(ts)->num == p_info->cur_encoding)
+			break;
+
+	set_source (info, &vi->pub, ts);
+
+	return TRUE;
+}
+
+static tv_bool
+set_video_input			(tveng_device_info *	info,
+				 const tv_video_line *	tl)
+{
+	struct private_tvengxv_device_info *p_info = P_INFO (info);
+	struct video_input *vi;
+	const tv_video_standard *ts;
+	int num;
+
+	vi = VI(tl);
+	num = -1;
+
+	if (info->cur_video_standard) {
+		struct standard *s;
+
+		/* Keep standard if possible. */
+
+		s = S(info->cur_video_standard);
+		num = find_encoding (info, vi->name, s->name);
+	}
+
+	if (num == -1) {
+		num = vi->num; /* random standard */
+
+		XvSetPortAttribute (info->priv->display,
+				    p_info->port,
+				    p_info->xa_encoding,
+				    num);
+
+		update_standard_list (info);
+	} else {
+		XvSetPortAttribute (info->priv->display,
+				    p_info->port,
+				    p_info->xa_encoding,
+				    num);
+	}
+
+	p_info->cur_encoding = num;
+
+	for_all (ts, info->video_standards)
+		if (S(ts)->num == num)
+			break;
+
+	set_source (info, tl, ts);
+
+	return TRUE;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /*
   Associates the given tveng_device_info with the given video
@@ -308,13 +896,14 @@ int tvengxv_attach_device(const char* device_file,
     tveng_close_device(info);
 
   /* clear the atoms */
-  p_info->encoding = None;
-  p_info->freq = None;
-  p_info->mute = None;
-  p_info->volume = None;
-  p_info->colorkey = None;
-  p_info->signal_strength = None;
+  p_info->xa_encoding = None;
+  p_info->xa_freq = None;
+  p_info->xa_mute = None;
+  p_info->xa_volume = None;
+  p_info->xa_colorkey = None;
+  p_info->xa_signal_strength = None;
   p_info->ei = NULL;
+  p_info->cur_encoding = 0;
 
   /* In this module, the given device file doesn't matter */
   info -> file_name = strdup("XVideo");
@@ -367,7 +956,7 @@ int tvengxv_attach_device(const char* device_file,
 		  if (!(at[i].flags & XvSettable))
 			  continue;
 
-		  p_info->encoding = XInternAtom (dpy, "XV_ENCODING", False);
+		  p_info->xa_encoding = XInternAtom (dpy, "XV_ENCODING", False);
 		  p_info->encoding_max = at[i].max_value;
 		  p_info->encoding_min = at[i].min_value;
 		  p_info->encoding_gettable = at[i].flags & XvGettable;
@@ -376,7 +965,8 @@ int tvengxv_attach_device(const char* device_file,
 		  if (!(at[i].flags & XvGettable))
 			  continue;
 
-		  p_info->signal_strength = XInternAtom (dpy, "XV_SIGNAL_STRENGTH", False);
+		  p_info->xa_signal_strength =
+		  	XInternAtom (dpy, "XV_SIGNAL_STRENGTH", False);
 		  continue;
 	  }
 
@@ -386,23 +976,23 @@ int tvengxv_attach_device(const char* device_file,
 	  if (!strcmp("XV_FREQ", at[i].name)) {
 		  info->caps.flags |= TVENG_CAPS_TUNER;
 
-		  p_info->freq = XInternAtom (dpy, "XV_FREQ", False);
+		  p_info->xa_freq = XInternAtom (dpy, "XV_FREQ", False);
 		  p_info->freq_max = at[i].max_value;
 		  p_info->freq_min = at[i].min_value;
 		  continue;
 	  } else if (!strcmp("XV_COLORKEY", at[i].name)) {
 		  info->caps.flags = TVENG_CAPS_CHROMAKEY;
 
-		  p_info->colorkey = XInternAtom (dpy, "XV_COLORKEY", False);
+		  p_info->xa_colorkey = XInternAtom (dpy, "XV_COLORKEY", False);
 		  p_info->colorkey_max = at[i].max_value;
 		  p_info->colorkey_min = at[i].min_value;
 		  continue;
 	  }
 
 	  if (0 == strcmp ("XV_MUTE", at[i].name)) {
-		  p_info->mute = XInternAtom (dpy, "XV_MUTE", False);
+		  p_info->xa_mute = XInternAtom (dpy, "XV_MUTE", False);
 	  } else if (0 == strcmp ("XV_VOLUME", at[i].name)) {
-		  p_info->volume = XInternAtom (dpy, "XV_VOLUME", False);
+		  p_info->xa_volume = XInternAtom (dpy, "XV_VOLUME", False);
 	  }
 
 	  for (j = 0; j < N_ELEMENTS (xv_attr_meta); j++) {
@@ -429,23 +1019,27 @@ int tvengxv_attach_device(const char* device_file,
 //      tveng_set_control(&control, 0, info);
 
   /* fill in with the proper values */
-  tvengxv_update_control (info, NULL);
+  update_control (info, NULL /* all */);
 
   /* We have a valid device, get some info about it */
   info->current_controller = TVENG_CONTROLLER_XV;
 
-  /* Fill in inputs */
-  info->inputs = NULL;
-  info->cur_input = 0;
-  tvengxv_get_inputs(info);
+	/* Video inputs & standards */
 
-  /* Fill in standards */
-  info->standards = NULL;
-  info->cur_standard = 0;
-  tvengxv_get_standards(info);
+	info->video_inputs = NULL;
+	info->cur_video_input = NULL;
+
+	info->video_standards = NULL;
+	info->cur_video_standard = NULL;
+
+	if (!update_video_input_list (info))
+		goto error1; // XXX
+
+	if (!update_current_video_input (info))
+		goto error1; // XXX
 
   /* fill in capabilities info */
-  info->caps.channels = info->num_inputs;
+	info->caps.channels = 0; // FIXME info->num_inputs;
   /* Let's go creative! */
   snprintf(info->caps.name, 32, "XVideo device");
   info->caps.minwidth = 1;
@@ -488,7 +1082,6 @@ static void tvengxv_close_device(tveng_device_info * info)
 {
   struct private_tvengxv_device_info *p_info=
     (struct private_tvengxv_device_info*) info;
-  tv_control *tc;
 
   t_assert(info != NULL);
 
@@ -503,318 +1096,19 @@ static void tvengxv_close_device(tveng_device_info * info)
 
   if (info -> file_name)
     free(info -> file_name);
-  if (info -> inputs)
-    free(info -> inputs);
-  if (info -> standards)
-    free(info -> standards);
 
-	while ((tc = info->controls)) {
-		info->controls = tc->_next;
-		free_control (tc);
-	}
+	free_video_standards (info);
+	free_video_inputs (info);
+	free_controls (info);
 
   /* clear the atoms */
-  info -> num_standards = 0;
-  info -> num_inputs = 0;
-  info -> inputs = NULL;
-  info -> standards = NULL;
+
   info -> file_name = NULL;
 }
 
-/* Returns -1 if the input doesn't exist */
-static inline int
-tvengxv_find_input(const char *name, tveng_device_info *info)
-{
-  int i;
-
-  for (i=0; i<info->num_inputs; i++)
-    if (!strcasecmp(name, info->inputs[i].name))
-      return i;
-
-  return -1;
-}
-
-static int
-tvengxv_get_inputs(tveng_device_info *info)
-{
-  Display *dpy;
-  struct private_tvengxv_device_info *p_info =
-    (struct private_tvengxv_device_info*) info;
-  char norm[64], input[64];
-  int i, val;
-
-  t_assert(info != NULL);
-
-  dpy = info->priv->display;
-
-  norm[63] = input[63] = 0;
-
-  if (info->inputs)
-    free(info->inputs);
-
-  info->inputs = NULL;
-  info->num_inputs = 0;
-  info->cur_input = 0;
-
-  if (p_info->encoding == None)
-    return 0; /* Nothing settable */
-
-  for (i=0; i<p_info->encodings; i++)
-    {
-      if (info->debug_level > 0)
-	fprintf(stderr, "  TVeng Xv input #%d: %s\n", i,
-		p_info->ei[i].name);
-
-      if (2 != sscanf(p_info->ei[i].name, "%63[^-]-%63s", norm, input))
-	continue; /* not parseable */
-      if (-1 != tvengxv_find_input(input, info))
-	continue;
-      /* norm not present, add to the list */
-      info->inputs = realloc(info->inputs, (info->num_inputs+1)*
-			     sizeof(struct tveng_enum_input));
-      info->inputs[info->num_inputs].id = i;
-      info->inputs[info->num_inputs].index = info->num_inputs;
-      info->inputs[info->num_inputs].flags = 0;
-      /* The XVideo extension provides very little info about encodings,
-	 we must just make something up */
-      if (p_info->freq != None)
-        {
-	  /* this encoding may refer to a baseband input though */
-          info->inputs[info->num_inputs].tuners = 1;
-          info->inputs[info->num_inputs].flags |= TVENG_INPUT_TUNER;
-          info->inputs[info->num_inputs].type = TVENG_INPUT_TYPE_TV;
-	}
-      else
-        {
-          info->inputs[info->num_inputs].tuners = 0;
-          info->inputs[info->num_inputs].type = TVENG_INPUT_TYPE_CAMERA;
-	}
-      if (p_info->volume != None || p_info->mute != None)
-        info->inputs[info->num_inputs].flags |= TVENG_INPUT_AUDIO;
-      snprintf(info->inputs[info->num_inputs].name, 32, input);
-      info->inputs[info->num_inputs].name[31] = 0;
-      info->inputs[info->num_inputs].hash =
-	tveng_build_hash(info->inputs[info->num_inputs].name);
-      info->num_inputs++;
-    }
-
-  input_collisions(info);
-
-  /* Get the current input */
-  val = 0;
-  if ((p_info->encoding != None) &&
-      (p_info->encoding_gettable))
-    XvGetPortAttribute(info->priv->display, p_info->port,
-		       p_info->encoding, &val);
-#warning
-  /* Xv/v4l BUG? */
-  if (val < 0 || val > 10 /*XXX*/)
-    val = 0;
-  if (p_info->ei)
-    if ((2 == sscanf(p_info->ei[val].name, "%63[^-]-%63s", norm, input)) &&
-	(-1 != (i=tvengxv_find_input(input, info))))
-      info->cur_input = i;
-
-  return (info->num_inputs);
-}
-
-static const struct {
-	const char *		encoding;
-	tv_videostd_id		id;
-} xv_encoding_meta [] = {
-	{ "pal",	TV_VIDEOSTD_PAL	},	/* somewhat broad, but who knows */
-	{ "ntsc",	TV_VIDEOSTD_NTSC_M },
-	{ "secam",	TV_VIDEOSTD_SECAM },	/* ditto */
-	{ "palnc",	TV_VIDEOSTD_PAL_NC },
-	{ "palm",	TV_VIDEOSTD_PAL_M },
-	{ "paln",	TV_VIDEOSTD_PAL_N },
-	{ "ntscjp",	TV_VIDEOSTD_NTSC_M_JP },
-};
-
-/*
-  Finds the XV encoding giving this standard and this input. Returns
-  -1 on error, the index in p_info->ei on success.
-*/
-static int
-tvengxv_find_encoding(const char *standard, const char *input,
-		      tveng_device_info *info)
-{
-  struct private_tvengxv_device_info * p_info =
-    (struct private_tvengxv_device_info *) info;
-  int i;
-  char encoding_name[128];
-
-  encoding_name[127] = 0;
-  snprintf(encoding_name, 127, "%s-%s", standard, input);
-
-  for (i=0; i<p_info->encodings; i++)
-    {
-      if (!strcasecmp(encoding_name, p_info->ei[i].name))
-	return i;
-    }
-
-  return -1;
-}
-
-static int
-tvengxv_set_input(struct tveng_enum_input * input,
-		  tveng_device_info * info)
-{
-  int i=0;
-  struct private_tvengxv_device_info * p_info =
-    (struct private_tvengxv_device_info*) info;
-
-  t_assert(info != NULL);
-  t_assert(input != NULL);
-
-  if (info->num_standards == 0)
-    return 0; /* No settable standards */
-
-  if (-1 ==
-      (i = tvengxv_find_encoding(info->standards[info->cur_standard].name,
-				 input->name, info)))
-    {
-      info->tveng_errno = -1;
-      t_error_msg("find_encoding",
-		  "the given encoding (%s, %s) couldn't be found",
-		  info, info->standards[info->cur_standard], input->name);
-      return 0; /* not found, no critical error though */
-    }
-
-  if (p_info->encoding != None)
-    XvSetPortAttribute(info->priv->display, p_info->port,
-		       p_info->encoding, i);
-
-  info->cur_input = input->index;
-
-  return 0;
-}
-
-/* Returns -1 if the input doesn't exist */
-static inline int
-tvengxv_find_standard(const char *name, tveng_device_info *info)
-{
-  int i;
-
-  for (i=0; i<info->num_standards; i++)
-    if (!strcasecmp(name, info->standards[i].name))
-      return i;
-
-  return -1;
-}
 
 
-static int
-tvengxv_get_standards(tveng_device_info *info)
-{
-  Display *dpy;
-  struct private_tvengxv_device_info *p_info =
-    (struct private_tvengxv_device_info*) info;
-  char norm[64], input[64];
-  int i, j, val;
 
-  t_assert(info != NULL);
-
-  dpy = info->priv->display;
-
-  norm[63] = input[63] = 0;
-
-  if (info->standards)
-    free(info->standards);
-
-  info->standards = NULL;
-  info->num_standards = 0;
-  info->cur_standard = 0;
-
-  if (p_info->encoding == None)
-    return 0;
-
-  for (i=0; i<p_info->encodings; i++)
-    {
-      if (2 != sscanf(p_info->ei[i].name, "%63[^-]-%63s", norm, input))
-	continue; /* not parseable */
-      if (-1 != tvengxv_find_standard(norm, info))
-	continue;
-      /* norm not present, add to the list */
-      info->standards = realloc(info->standards,
-				(info->num_standards+1)*
-			     sizeof(struct tveng_enumstd));
-
-      info->standards[info->num_standards].stdid = TV_VIDEOSTD_UNKNOWN;
-      for (j = 0; j < N_ELEMENTS (xv_encoding_meta); j++)
-	if (0 == strcmp (xv_encoding_meta[j].encoding, norm))
-	    {
-	      info->standards[info->num_standards].stdid = xv_encoding_meta[j].id;
-	      break;
-	    }
-
-      info->standards[info->num_standards].id = info->num_standards;
-      snprintf(info->standards[info->num_standards].name, 32,
-	       norm);
-      info->standards[info->num_standards].name[31] = 0;
-      info->standards[info->num_standards].hash =
-	tveng_build_hash(info->standards[info->num_standards].name);
-      info->standards[info->num_standards].index = info->num_standards;
-      info->standards[info->num_standards].width = p_info->ei[i].width;
-      info->standards[info->num_standards].height = p_info->ei[i].height;
-      /* rate here is the field period */
-      info->standards[info->num_standards].frame_rate =
-	p_info->ei[i].rate.denominator
-	/ (2.0 * p_info->ei[i].rate.numerator);
-      info->num_standards++;
-    }
-
-  standard_collisions(info);
-
-  /* Get the current input */
-  val = 0;
-  if ((p_info->encoding != None) &&
-      (p_info->encoding_gettable))
-    XvGetPortAttribute(info->priv->display, p_info->port,
-		       p_info->encoding, &val);
-
-  if (p_info->ei)
-    if ((2 == sscanf(p_info->ei[val].name, "%63[^-]-%63s", norm, input)) &&
-	(-1 != (i=tvengxv_find_standard(norm, info))))
-      info->cur_standard = i;
-
-  return (info->num_standards);
-}
-
-static int
-tvengxv_set_standard(struct tveng_enumstd * standard,
-		     tveng_device_info * info)
-{
-  int i=0;
-  struct private_tvengxv_device_info * p_info =
-    (struct private_tvengxv_device_info*) info;
-
-  t_assert(info != NULL);
-  t_assert(standard != NULL);
-
-  if (info->num_inputs == 0)
-    return 0; /* No searchable inputs */
-
-  if (-1 ==
-      (i = tvengxv_find_encoding(standard->name,
-				 info->inputs[info->cur_input].name,
-				 info)))
-    {
-      info->tveng_errno = -1;
-      t_error_msg("find_encoding",
-		  "the given encoding (%s, %s) couldn't be found",
-		  info, standard->name, info->inputs[info->cur_input]);
-      return 0; /* not found, no critical error though */
-    }
-
-  if (p_info->encoding != None)
-    XvSetPortAttribute(info->priv->display, p_info->port,
-		       p_info->encoding, i);
-
-  info->cur_standard = standard->index;
-
-  return 0;
-}
 
 static int
 tvengxv_set_capture_format(tveng_device_info * info)
@@ -829,69 +1123,11 @@ tvengxv_update_capture_format(tveng_device_info * info)
 }
 
 
-static tv_bool
-update_control			(struct private_tvengxv_device_info *p_info,
-				 struct control *	c)
-{
-	int value;
 
-	if (c->atom == p_info->mute)
-		return TRUE; /* no read-back (bttv bug) */
-	else
-		XvGetPortAttribute (p_info->info.priv->display,
-				    p_info->port,
-				    c->atom,
-				    &value);
 
-	if (c->pub.value != value) {
-		c->pub.value = value;
-		tv_callback_notify (&c->pub, c->pub._callback);
-	}
 
-	return TRUE; /* ? */
-}
 
-static tv_bool
-tvengxv_update_control		(tveng_device_info *	info,
-				 tv_control *		tc)
-{
-	struct private_tvengxv_device_info *p_info = P_INFO (info);
 
-	if (tc) {
-		return update_control (p_info, C(tc));
-	} else {
-		for (tc = p_info->info.controls; tc; tc = tc->_next)
-			if (tc->_device == info)
-				if (!update_control (p_info, C(tc)))
-					return FALSE;
-	}
-
-	return TRUE;
-}
-
-static int
-tvengxv_set_control		(tveng_device_info *	info,
-				 tv_control *		tc,
-				 int			value)
-{
-	struct private_tvengxv_device_info *p_info = P_INFO (info);
-
-	XvSetPortAttribute (info->priv->display,
-			    p_info->port,
-			    C(tc)->atom,
-			    value);
-
-	if (C(tc)->atom == p_info->mute) {
-		if (tc->value != value) {
-			tc->value = value;
-			tv_callback_notify (tc, tc->_callback);
-		}
-
-		return TRUE;
-	}
-
-	return update_control (p_info, C(tc));
-}
 
 
 static int
@@ -902,10 +1138,10 @@ tvengxv_tune_input(uint32_t freq, tveng_device_info *info)
 
   t_assert(info != NULL);
 
-  if (p_info->freq != None)
+  if (p_info->xa_freq != None)
     XvSetPortAttribute(info->priv->display,
 		       p_info->port,
-		       p_info->freq,
+		       p_info->xa_freq,
 		       freq*0.016);
 
   XSync(info->priv->display, False);
@@ -920,7 +1156,7 @@ tvengxv_get_signal_strength(int *strength, int *afc,
   struct private_tvengxv_device_info * p_info =
     (struct private_tvengxv_device_info*)info;
 
-  if (p_info->signal_strength == None)
+  if (p_info->xa_signal_strength == None)
     {
       info->tveng_errno = -1;
       t_error_msg("XVideo",
@@ -932,7 +1168,7 @@ tvengxv_get_signal_strength(int *strength, int *afc,
   if (strength)
     XvGetPortAttribute(info->priv->display,
 		       p_info->port,
-		       p_info->signal_strength,
+		       p_info->xa_signal_strength,
 		       strength);
 
   if (afc)
@@ -947,12 +1183,12 @@ tvengxv_get_tune(uint32_t * freq, tveng_device_info *info)
     (struct private_tvengxv_device_info*)info;
 
   t_assert(info != NULL);
-  if (!freq || p_info->freq == None)
+  if (!freq || p_info->xa_freq == None)
     return 0;
 
   XvGetPortAttribute(info->priv->display,
 		     p_info->port,
-		     p_info->freq,
+		     p_info->xa_freq,
 		     (int*)(freq));
 
   *freq = *freq / 0.016;
@@ -977,175 +1213,31 @@ tvengxv_get_tuner_bounds(uint32_t * min, uint32_t * max, tveng_device_info *
   return 0;
 }
 
-static int
-tvengxv_detect_preview(tveng_device_info *info)
-{
-  return 1; /* we do support preview */
-}
 
-static int
-tvengxv_set_preview_window(tveng_device_info * info)
-{
-  struct private_tvengxv_device_info * p_info =
-    (struct private_tvengxv_device_info *)info;
-  
-  t_assert(info != NULL);
-  
-  /* Just reinit if necessary */
-  if ((info->current_mode == TVENG_CAPTURE_WINDOW) &&
-      (p_info->last_win != info->window.win ||
-       p_info->last_gc != info->window.gc ||
-       p_info->last_w != info->window.width ||
-       p_info->last_h != info->window.height))
-    {
-      p_info->last_win = info->window.win;
-      p_info->last_gc = info->window.gc;
-      p_info->last_w = info->window.width;
-      p_info->last_h = info->window.height;
-      tveng_set_preview_off(info);
-      tveng_set_preview_on(info);
-    }
-
-  return 0;
-}
-
-static int
-tvengxv_get_preview_window(tveng_device_info * info)
-{
-  return 0;
-}
-
-static int
-tvengxv_set_preview(int on, tveng_device_info * info)
-{
-  struct private_tvengxv_device_info * p_info =
-    (struct private_tvengxv_device_info *)info;
-  int val, width, height, dummy;
-  Window win_ignore;
-
-  t_assert(info != NULL);
-
-  if ((info->window.win == 0) || (info->window.gc == 0))
-    {
-      info->tveng_errno = -1;
-      t_error_msg("win",
-		  "The window value hasn't been set", info);
-      return -1;
-    }
-
-  XGetGeometry(info->priv->display, info->window.win, &win_ignore,
-	       &dummy, &dummy, &width, &height, &dummy, &dummy);
-
-  val = 0;
-  if ((p_info->encoding != None) &&
-      (p_info->encoding_gettable))
-    XvGetPortAttribute(info->priv->display, p_info->port,
-		       p_info->encoding, &val);
-
-  if (on)
-    {
-      XvPutVideo(info->priv->display, p_info->port, info->window.win,
-		 info->window.gc,
-		 0, 0, p_info->ei[val].width, p_info->ei[val].height, /* src */
-		 0, 0, width, height);
-      info->current_mode = TVENG_CAPTURE_WINDOW;
-    }
-  else
-    {
-      XvStopVideo(info->priv->display, p_info->port,
-		  info->window.win);
-      info->current_mode = TVENG_NO_CAPTURE;
-    }
-  XSync(info->priv->display, False);
-
-  return 0;
-}
-
-static int
-tvengxv_start_previewing (tveng_device_info * info,
-			  x11_dga_parameters *dga)
-{
-  int dummy;
-  Window win_ignore;
-
-  tveng_stop_everything(info);
-
-  t_assert(info -> current_mode == TVENG_NO_CAPTURE);
-
-  XGetGeometry(info->priv->display, info->window.win, &win_ignore,
-	       &dummy, &dummy, &info->window.width,
-	       &info->window.height, &dummy, &dummy);
-
-  if (tveng_set_preview_on(info) == -1)
-    return -1;
-
-  info->current_mode = TVENG_CAPTURE_PREVIEW;
-
-  return 0;
-}
-
-static int
-tvengxv_stop_previewing (tveng_device_info * info)
-{
-  struct private_tvengxv_device_info * p_info =
-    (struct private_tvengxv_device_info *)info;
-
-  XvStopVideo(info->priv->display, p_info->port,
-	      info->window.win);
-  XSync(info->priv->display, False);
-
-  info->current_mode = TVENG_NO_CAPTURE;
-
-  return 0;
-}
-
-static void
-tvengxv_set_chromakey (uint32_t chroma, tveng_device_info *info)
-{
-  struct private_tvengxv_device_info * p_info =
-    (struct private_tvengxv_device_info *)info;
-
-  if (p_info->colorkey != None)
-    XvSetPortAttribute (info->priv->display, p_info->port,
-			p_info->colorkey, chroma);
-}
-
-static int
-tvengxv_get_chromakey (uint32_t *chroma, tveng_device_info *info)
-{
-  struct private_tvengxv_device_info * p_info =
-    (struct private_tvengxv_device_info *)info;
-
-  if (p_info->colorkey == None)
-    return -1;
-
-  XvGetPortAttribute (info->priv->display, p_info->port,
-		      p_info->colorkey, chroma);
-  return 0;
-}
 
 static struct tveng_module_info tvengxv_module_info = {
   .attach_device =		tvengxv_attach_device,
   .describe_controller =	tvengxv_describe_controller,
   .close_device =		tvengxv_close_device,
-  .get_inputs =			tvengxv_get_inputs,
-  .set_input =			tvengxv_set_input,
-  .get_standards =		tvengxv_get_standards,
-  .set_standard =		tvengxv_set_standard,
+  .update_video_input		= update_current_video_input,
+  .set_video_input		= set_video_input,
+  /* Video input and standard combine as "encoding", update_video_input
+     also determines the current standard. */
+  .update_standard		= NULL,
+  .set_standard			= set_standard,
   .update_capture_format =	tvengxv_update_capture_format,
   .set_capture_format =		tvengxv_set_capture_format,
-  .update_control =		tvengxv_update_control,
-  .set_control =		tvengxv_set_control,
+  .update_control		= update_control,
+  .set_control			= set_control,
   .tune_input =			tvengxv_tune_input,
   .get_signal_strength =	tvengxv_get_signal_strength,
   .get_tune =			tvengxv_get_tune,
   .get_tuner_bounds =		tvengxv_get_tuner_bounds,
-  .detect_preview =		tvengxv_detect_preview,
+  .get_overlay_buffer		= NULL,
+  .set_overlay_xwindow		= set_overlay_xwindow,
   .set_preview_window =		tvengxv_set_preview_window,
   .get_preview_window =		tvengxv_get_preview_window,
-  .set_preview =		tvengxv_set_preview,
-  .start_previewing =		tvengxv_start_previewing,
-  .stop_previewing =		tvengxv_stop_previewing,
+  .set_overlay			= set_overlay,
   .get_chromakey =		tvengxv_get_chromakey,
   .set_chromakey =		tvengxv_set_chromakey,
 
