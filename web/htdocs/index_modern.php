@@ -174,7 +174,7 @@
                   </tr>
                 </table>
               </td>
-              <td class="contents" width="100%" valign="top"><h2>New release, codename: "Gumdrop in Lunar Orbit"</h2><ul><li><b>Zapping</b> 0.6.3 
+              <td class="contents" width="100%" valign="top"><h2>New release</h2><ul><li><b>Zapping</b> 0.6.3 
 
         <p>A new year, a new release, a new maintainer. This
 	release does not include all improvements planned for 0.6.3,

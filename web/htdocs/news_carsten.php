@@ -144,7 +144,7 @@ input.theme {
 height="480" alt=""></td>
 
 <!-- ###### Begin Text Table of Contents ############################### -->
-<td width="100%" height="100%" bgcolor="#000099" valign="top"><center><h2>New release, codename: "Gumdrop in Lunar Orbit"</h2></center><ul><li><b>Zapping</b> 0.6.3 
+<td width="100%" height="100%" bgcolor="#000099" valign="top"><center><h2>New release</h2></center><ul><li><b>Zapping</b> 0.6.3 
 
         <p>A new year, a new release, a new maintainer. This
 	release does not include all improvements planned for 0.6.3,
