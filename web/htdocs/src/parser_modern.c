@@ -14,9 +14,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include <tree.h>
-#include <parser.h>
-#include <xmlmemory.h>
+#include <libxml/tree.h>
+#include <libxml/parser.h>
+#include <libxml/xmlmemory.h>
 
 #define theme "modern"
 #include "parser_common.h"

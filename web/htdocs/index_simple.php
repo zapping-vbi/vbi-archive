@@ -2,7 +2,7 @@
 	"http://www.w3.org/TR/html4/loose.dtd">
 <html>
   <!--
-  Generated from index_simple.xml on Sun Feb 16 18:18:45 2003
+  Generated from index_simple.xml on Thu Mar 13 18:53:46 2003
   -->
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
@@ -229,7 +229,7 @@ mailing list page</a>.
 
     <center><h3>ZVBI library</h3></center>
     The Zapping/Zapzilla vbi decoding routines, now a standalone
-    library. Documentation is included and <a href="doc/librte">online</a>.
+    library. Documentation is included and <a href="doc/libzvbi">online</a>.
     <br><br><b>Downloading:</b> See the Zapping download page. <br><br><p>I would like to thank <a href="http://sourceforge.net"><img
 SRC="http://sourceforge.net/sflogo.php?group_id=2599&amp;type=1"
 BORDER=0 height=31 width=88 ALT="Sourceforge Logo"></a>

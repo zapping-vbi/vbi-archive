@@ -1,4 +1,4 @@
-COMPILE = gcc -DXML2 -Wall -g `xml2-config --cflags --libs`
+COMPILE = gcc -DXML2 -Wall -g `pkg-config --cflags --libs libxml-2.0`
 DEPS = Makefile parser_common.h
 
 all: parser_carsten parser_modern parser_simple

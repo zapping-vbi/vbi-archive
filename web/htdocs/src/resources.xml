@@ -56,7 +56,7 @@ abstract -> short text that describes the page (for themes that support it)
 
     <header>ZVBI library</header>
     The Zapping/Zapzilla vbi decoding routines, now a standalone
-    library. Documentation is included and <a href="doc/librte">online</a>.
+    library. Documentation is included and <a href="doc/libzvbi">online</a>.
     <br/>
     <br/>
      <b>Downloading:</b> See the Zapping download page. <br/>
