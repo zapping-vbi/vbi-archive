@@ -59,6 +59,7 @@ rm -rf %{buildroot}
 %config(noreplace) /etc/pam.d/zapping_setup_fb
 %config(noreplace) /etc/security/console.apps/zapping_setup_fb
 %{prefix}/bin/zapping
+%{prefix}/bin/zapping_fix_overlay
 %{prefix}/sbin/zapping_setup_fb
 %{prefix}/lib/zapping
 %{prefix}/share/zapping

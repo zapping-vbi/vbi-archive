@@ -760,6 +760,7 @@ static tveng_channel pal_italy[] = {
     { "10",	210250 },
     { "11",	217250 },
     { "12",	224250 },
+    FREQ_UHF
 };
 
 static tveng_channel pal_ireland[] = {
@@ -838,6 +839,7 @@ static tveng_channel pal_newzealand[] = {
     { "8",	 203250 },
     { "9",	 210250 },
     { "10",	 217250 },
+    FREQ_UHF
 };
 
 static tveng_channel secam_russia[] = {

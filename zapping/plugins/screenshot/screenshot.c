@@ -245,6 +245,7 @@ void plugin_get_info (const gchar ** canonical_name,
 
 static gint ogb_timeout_id = -1;
 static gint ogb_startup_delay;
+static gboolean ogb_button_clicked = FALSE;
 static int ogb_fd;
 
 static gint
@@ -274,8 +275,14 @@ ov511_grab_button_timeout (void *unused)
   if (read (ogb_fd, &button_flag, 1) == 1)
     if (lseek (ogb_fd, 0, SEEK_SET) != (off_t) -1)
       {
-        if (button_flag == '1')
-	  plugin_start();
+        if (button_flag == '1' &&
+	    !ogb_button_clicked)
+	  {
+	    ogb_button_clicked = TRUE;
+	    plugin_start();
+	  }
+	else if (button_flag == '0' && ogb_button_clicked)
+	  ogb_button_clicked = FALSE;
 
 	return TRUE; /* repeat */
       }

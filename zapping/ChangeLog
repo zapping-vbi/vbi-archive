@@ -1,3 +1,11 @@
+27.11.2001	Post-release fixes <garetxe@users.sf.net>
+
+	* zapping.spec.in: Included missing zapping_fix_overlay.
+	* src/frequencies.c: Added missing UHF for Italy (reported by
+	Lorenzo Delana) and Ireland (not sure, but it's probable).
+	* screenshot: call plugin_start only once when the ov511 button is
+	clicked.
+
 27.11.2001	Screenshot extension <mschimek@users.sf.net>
 
 	* Added function to poll Creative WebCam (ov511) grab button
