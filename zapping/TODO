@@ -38,6 +38,8 @@ Outstanding issues for the next release (0.6.5)
 	+ Clean up context menu.
 	+ Re-add toolbar style option.
 	+ Remove tveng_frame_format.bytesperline.
+	+ Prefs: The Galeon style selection of areas is should probably
+	  use the tab metaphor, not buttons.
 
 Please tell me about anything you think is worth adding:
 
