@@ -55,7 +55,7 @@
 #include "../common/fifo.h"
 
 /*
-  Quality-speed tradeoff when scaling+antialing the page:
+  Quality-speed tradeoff when scaling+antialiasing the page:
   - GDK_INTERP_NEAREST: Very fast scaling but visually pure rubbish
   - GDK_INTERP_TILES: Slower, and doesn't look very good at high (>2x)
 			scalings
@@ -620,8 +620,9 @@ event(struct dl_head *reqs, struct vt_event *ev)
     switch (ev->type) {
     case EV_HEADER:
 	p = ev->p1;
-	if (ev->i2 & PG_OUTOFSEQ)
-	  break;
+// handled by ttx parser
+//	if (ev->i2 & PG_OUTOFSEQ)
+//	  break;
 	// printv("header %.32s\n", p+8);
 	pthread_mutex_lock(&(last_info.mutex));
 	memcpy(last_info.header,p+8,32);

@@ -32,19 +32,24 @@ struct vbi
     int nbufs;
     unsigned char *bufs[BUFS];
     int bpl;			// bytes per line
-    u32 seq;
     // magazine defaults
 
 	vt_pagenum		initial_page;
-	magazine		magazine[9];	/* 1 ... 8; #0 unmodified level -1.5 default */
+	magazine		magazine[9];	/* 1 ... 8; #0 unmodified level 1 ... 1.5 default */
 
-	char			btt[0x800];
+	struct {
+		signed char		btt;
+		unsigned char		mip;
+		unsigned short		sub_pages;
+	}			page_info[0x800];
+
 	vt_pagenum		btt_link[15];
-	struct vt_page *	top_page[15];
+	bool			top;		/* use top navigation, flof overrides */
 
     // page assembly
-    struct raw_page rpage[8];	// one for each magazin
-    struct raw_page *ppage;	// points to page of previous pkt0
+	struct raw_page		raw_page[8];
+	struct raw_page		*current;
+
     // sliced data source
     void *fifo;
 };
@@ -72,7 +77,6 @@ void out_of_sync(struct vbi *vbi);
 int vbi_line(struct vbi *vbi, u8 *p);
 void vbi_set_default_region(struct vbi *vbi, int default_region);
 
-extern bool		convert_pop(struct vt_page *vtp, page_function function);
-extern bool		convert_drcs(struct vt_page *vtp, page_function function);
+extern bool		convert_page(struct vbi *vbi, struct vt_page *vtp, page_function new_function);
 
 #endif

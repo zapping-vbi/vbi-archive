@@ -13,6 +13,7 @@
 
 /*
     XXX t2-br p. 490 error?
+    XXX 3sat p. 888
  */
 
 /* to be exported */
@@ -276,38 +277,6 @@ export_mkname(struct export *e, char *fmt, struct vt_page *vtp, char *usr)
 
 
 
-static int
-vbi_resolve_flof(int x, struct vt_page *vtp, int *page, int *subpage)
-{
-	int code= 7, i, c;
-
-/* fixme */
-return FALSE;	
-	
-	if ((!vtp) || (!page) || (!subpage))
-		return FALSE;
-	
-	if (!(vtp->data.lop.flof))
-		return FALSE;
-#if 0 //obsolete
-	for (i=0; (i <= x) && (i<40); i++)
-		if ((c = vtp->data[24][i]) < 8) /* color code */
-			code = c; /* Store it for later on */
-#endif
-	if (code >= 8) /* not found ... weird */
-		return FALSE;
-	
-	code = " \0\1\2\3 \3 "[code]; /* color->link conversion table */
-	
-	if ((code > 6) || ((vtp->data.lop.link[code].pgno & 0xff) == 0xff))
-		return FALSE;
-	
-	*page = vtp->data.lop.link[code].pgno;
-	*subpage = vtp->data.lop.link[code].subno; /* 0x3f7f handled? */
-	
-	return TRUE;
-}
-
 #define notdigit(x) (!isdigit(x))
 
 static int
@@ -374,12 +343,12 @@ vbi_resolve_page(int x, int y, struct vt_page *vtp, int *page,
 // {mhs}
 // XXX new .ch:  123  123  112233  112233
 //                    123          112233
-
+/*
 	if (y == 24) {
 		if (vtp->data.lop.flof)
 			return vbi_resolve_flof(x, vtp, page, subpage);
 	}
-
+*/
 	buffer[0] = buffer[41] = ' ';
 
 	for (i=1; i<41; i++)
@@ -404,6 +373,50 @@ vbi_resolve_page(int x, int y, struct vt_page *vtp, int *page,
 		}
 	
 	return FALSE;
+}
+
+
+
+
+
+/*
+ *  FLOF navigation
+ */
+
+static void
+flof_navigation_bar(struct fmt_page *pg, struct vt_page *vtp)
+{
+	static const colours link_col[4] = { RED, GREEN, YELLOW, CYAN };
+	attr_char *acp = pg->data[24];
+	int i, j, k, col = -1, start = 0;
+
+	for (i = 0; i < 41; i++) {
+		if (i == 40 || (acp[i].foreground & 7) != col) {
+			for (k = 0; k < 4; k++)
+				if (link_col[k] == col)
+					break;
+
+			if (k < 4 && !NO_PAGE(vtp->data.lop.link[k].pgno)) {
+				/* Leading and trailing spaces not sensitive */
+
+				for (j = i - 1; j >= start && acp[j].glyph == GL_SPACE; j--);
+
+				for (; j >= start; j--) {
+					pg->data[24][j].link_page = vtp->data.lop.link[k].pgno;
+					pg->data[24][j].link_subpage = vtp->data.lop.link[k].subno;
+				}
+			}
+
+			if (i >= 40)
+				break;
+
+			col = acp[i].foreground & 7;
+			start = i;
+		}
+
+		if (start == i && acp[i].glyph == GL_SPACE)
+			start++;
+	}
 }
 
 /*
@@ -441,18 +454,18 @@ top_label(struct vbi *vbi, font_descriptor *font,
 						acp += (11 - ff - i) >> 1;
 
 						acp[i + 1].link_page = pgno;
-						acp[i + 1].link_subpage = ANY_SUB;
+						acp[i + 1].link_subpage = 0xFF & ANY_SUB;
 
 						acp[i + 2].glyph = 0x003E;
 						acp[i + 2].foreground = foreground;
 						acp[i + 2].link_page = pgno;
-						acp[i + 2].link_subpage = ANY_SUB;
+						acp[i + 2].link_subpage = 0xFF & ANY_SUB;
 
 						if (ff > 1) {
 							acp[i + 3].glyph = 0x003E;
 							acp[i + 3].foreground = foreground;
 							acp[i + 3].link_page = pgno;
-							acp[i + 3].link_subpage = ANY_SUB;
+							acp[i + 3].link_subpage = 0xFF & ANY_SUB;
 						}
 					} else
 						acp += (11 - i) >> 1;
@@ -462,7 +475,7 @@ top_label(struct vbi *vbi, font_descriptor *font,
 							(ait->text[i] < 0x20) ? 0x20 : ait->text[i]);
 						acp[i].foreground = foreground;
 						acp[i].link_page = pgno;
-						acp[i].link_subpage = ANY_SUB;
+						acp[i].link_subpage = 0xFF & ANY_SUB;
 					}
 
 					return TRUE;
@@ -479,7 +492,7 @@ top_navigation_bar(struct vbi *vbi, struct fmt_page *pg, struct vt_page *vtp)
 	attr_char ac;
 	int i, got;
 
-	printv("PAGE BTT: %d\n", vtp->vbi->btt[vtp->pgno - 0x100]);
+	printv("PAGE BTT: %d\n", vtp->vbi->page_info[vtp->pgno - 0x100].btt);
 
 	memset(&ac, 0, sizeof(ac));
 
@@ -493,28 +506,29 @@ top_navigation_bar(struct vbi *vbi, struct fmt_page *pg, struct vt_page *vtp)
 
 	if (0)
 		for (i = 0x100; i < 0x8FF; i++) {
-			printv("%x ", vtp->vbi->btt[i - 0x100] & 15);
+			printv("%x ", vtp->vbi->page_info[i - 0x100].btt & 15);
 			if ((i & 0x3F) == 0x3F) putchar('\n');
 		}
 
 //	top_label(vbi, pg->font[0], &pg->data[24][1], vtp->pgno, RED, FALSE);
 
-	switch (vbi->btt[vtp->pgno - 0x100]) {
+	switch (vbi->page_info[vtp->pgno - 0x100].btt) {
 	case 1: // subtitles?
 	default:
-/* test only */	top_label(vbi, pg->font[0], &pg->data[24][1], vtp->pgno, RED, FALSE);
+		break;
+
 	case 4 ... 5:
 	case 6 ... 7:
 	case 8:
 	case 10:
 		for (i = vtp->pgno; i != vtp->pgno + 1; i = (i == 0) ? 0x89a : i - 1)
-			if (vbi->btt[i - 0x100] >= 4 && vbi->btt[i - 0x100] <= 7) {
+			if (vbi->page_info[i - 0x100].btt >= 4 && vbi->page_info[i - 0x100].btt <= 7) {
 				top_label(vbi, pg->font[0], &pg->data[24][1], i, WHITE, 0);
 				break;
 			}
 
 		for (i = vtp->pgno + 1, got = FALSE; i != vtp->pgno; i = (i == 0x899) ? 0x100 : i + 1)
-			switch (vbi->btt[i - 0x100]) {
+			switch (vbi->page_info[i - 0x100].btt) {
 			case 4 ... 5:
 				top_label(vbi, pg->font[0], &pg->data[24][27], i, YELLOW, 2);
 				return;
@@ -530,11 +544,13 @@ top_navigation_bar(struct vbi *vbi, struct fmt_page *pg, struct vt_page *vtp)
 	}
 }
 
-
 /*
-    << navigation.c
-    >> format.c
-*/
+ *  Zapzilla navigation
+ */
+
+
+
+
 
 
 static void
@@ -573,8 +589,8 @@ resolve_obj_address(struct vbi *vbi, object_type type,
 	}
 
 	if (vtp->function == PAGE_FUNCTION_UNKNOWN) {
-		if (!convert_pop(vtp, function)) {
-			printv("... no pop page or hamming error\n");
+		if (!convert_page(vbi, vtp, function)) {
+			printv("... no g/pop page or hamming error\n");
 			return 0;
 		}
 	} else if (vtp->function == PAGE_FUNCTION_POP)
@@ -1185,8 +1201,19 @@ enhance(struct fmt_page *pg, object_type type, vt_triplet *p, int inv_row, int i
 						printv("... page not cached\n");
 						break;
 					}
-// XXX; GDRCS -> DRCS (MIP)
-					convert_drcs(drcs_vtp, function);
+
+					if (drcs_vtp->function == PAGE_FUNCTION_UNKNOWN) {
+						if (!convert_page(pg->vtp->vbi, drcs_vtp, function)) {
+							printv("... no g/drcs page or hamming error\n");
+							break;
+						}
+					} else if (drcs_vtp->function == PAGE_FUNCTION_DRCS) {
+						drcs_vtp->function = function;
+					} else if (drcs_vtp->function != function) {
+						printv("... source page wrong function %d, expected %d\n",
+							drcs_vtp->function, function);
+						break;
+					}
 
 					pg->drcs[page] = drcs_vtp->data.drcs.bits[0];
 				}
@@ -1662,8 +1689,12 @@ fmt_page(int reveal,
 			memcpy(pg, &page, sizeof(struct fmt_page));
 	}
 
-	if (1 && !vtp->data.lop.flof)
-		top_navigation_bar(vtp->vbi, pg, vtp);
+	if (1) { // XXX navigation, disable for search
+		if (vtp->data.lop.flof)
+			flof_navigation_bar(pg, vtp);
+		else if (vtp->vbi->top)
+			top_navigation_bar(vtp->vbi, pg, vtp);
+	}
 
 #if TEST
 	for (row = 1; row < 24; row++)
@@ -1702,7 +1733,7 @@ fmt_page(int reveal,
 	}
 #endif
 
-	for (row = 0; row < display_rows; row++)
+	for (row = 0; row < MIN(24, display_rows); row++)
 		for (column = 0; column < W; column++) {
 			int page, subpage;
 

@@ -42,7 +42,8 @@ struct vt_event
  */
 
 typedef enum {
-	PAGE_FUNCTION_UNKNOWN = -1,
+	PAGE_FUNCTION_DISCARD = -2,	/* private */
+	PAGE_FUNCTION_UNKNOWN = -1,	/* private */
 	PAGE_FUNCTION_LOP,
 	PAGE_FUNCTION_DATA_BROADCAST,
 	PAGE_FUNCTION_GPOP,
@@ -132,16 +133,10 @@ typedef struct {
 struct vt_page
 {
 	page_function		function;
+	int			pgno, subno;
 	int			national;
-
-    int pgno, subno;	// the wanted page number
-    int lang;		// language code
-    int flags;		// misc flags (see PG_xxx below)
-    unsigned active : 1;
-    int errors;		// number of single bit errors in page
-    u32 lines;		// 1 bit for each line received
-
-	u32		lop_lines, enh_lines;			/* set of received lines */
+	int			flags;
+	u32			lop_lines, enh_lines;		/* set of received lines */
 
 	union {
 		struct {
@@ -173,11 +168,17 @@ struct vt_page
 	vt_extension	extension;
 };
 
-#define C4_ERASE_PAGE		0x20	/* erase previously stored packets */
-#define C5_NEWSFLASH		0x40	/* box and overlay */
-#define C6_SUBTITLE		0x80	/* box and overlay */
-#define C7_SUPPRESS_HEADER	0x01	/* row 0 not to be displayed */
-#define C10_INHIBIT_DISPLAY	0x08	/* rows 1-24 not to be displayed */
+
+
+#define C4_ERASE_PAGE		0x000080	/* erase previously stored packets */
+#define C5_NEWSFLASH		0x004000	/* box and overlay */
+#define C6_SUBTITLE		0x008000	/* box and overlay */
+#define C7_SUPPRESS_HEADER	0x010000	/* row 0 not to be displayed */
+#define C8_UPDATE		0x020000
+#define C9_INTERRUPTED		0x040000
+#define C10_INHIBIT_DISPLAY	0x080000	/* rows 1-24 not to be displayed */
+#define C11_MAGAZINE_SERIAL	0x100000
+/*                              0xE03F7F 	national character subset and sub-page */
 
 #define MIP_NO_PAGE		0x00
 #define MIP_NORMAL_PAGE		0x01
@@ -222,19 +223,15 @@ typedef struct {
 	vt_extension	extension;
 
 	unsigned char	pop_lut[256];
-    	pop_link	pop_link[16];
-
 	unsigned char	drcs_lut[256];
-	int		drcs_link[16];	/* pgno */
 
-	unsigned char	mip[256];
-	short		mip_subpages[5 * 13];
+    	pop_link	pop_link[16];
+	int		drcs_link[16];	/* pgno */
 } magazine;
 
 
 
-
-
+/*
 #define PG_SUPPHEADER	0x01	// C7  row 0 is not to be displayed
 #define PG_UPDATE	0x02	// C8  row 1-28 has modified (editors flag)
 #define PG_OUTOFSEQ	0x04	// C9  page out of numerical order
@@ -243,6 +240,7 @@ typedef struct {
 #define PG_ERASE	0x20	// C4  clear previously stored lines
 #define PG_NEWSFLASH	0x40	// C5  box it and insert into normal video pict.
 #define PG_SUBTITLE	0x80	// C6  box it and insert into normal video pict.
+*/
 
 #define ANY_SUB		0x3f7f	// universal subpage number
 
