@@ -9,6 +9,5 @@ EXTRA_DIST = README.alirc
 libalirc_zapping_la_SOURCES = alirc.c
 libalirc_zapping_la_LIBADD = $(LIRC_LIB)
 
-CFLAGS = $(PLUGIN_DEFAULT_FLAGS)
-
-INCLUDES = -I$(top_srcdir) $(COMMON_INCLUDES)
+INCLUDES = -I$(top_srcdir) $(COMMON_INCLUDES) \
+	$(PLUGIN_DEFAULT_FLAGS)

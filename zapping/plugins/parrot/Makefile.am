@@ -10,6 +10,5 @@ libparrot_zapping_la_SOURCES = parrot.c
 
 pkgdata_DATA = parrot.glade
 
-CFLAGS = $(PLUGIN_DEFAULT_FLAGS)
-
-INCLUDES = -I$(top_srcdir) $(COMMON_INCLUDES)
+INCLUDES = -I$(top_srcdir) $(COMMON_INCLUDES) \
+	$(PLUGIN_DEFAULT_FLAGS)
