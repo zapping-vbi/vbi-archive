@@ -279,7 +279,7 @@
 	    <term><userinput>\</userinput></term>
 	    <listitem><para>has two functions: it quotes the special characters (including <userinput>\</userinput> itself), and it introduces additional special constructs.</para>
 	      <para>Because <userinput>\</userinput> quotes special characters, <userinput>\$</userinput> is a regular expression that matches only "$", and "\[" is a regular expression that matches only "[", and so on.</para>
-	      <para><userinput>\x</userinput>, <userinput>\X</userinput>, <userinput>\u</userinput> or <userinput>\U</userinput> followed by a hexadecimal number of up to 4 digits will match Unicode characters. <userinput>\x00C9</userinput> for example matches "&#136;"</para>
+	      <para><userinput>\x</userinput>, <userinput>\X</userinput>, <userinput>\u</userinput> or <userinput>\U</userinput> followed by a hexadecimal number of up to 4 digits will match Unicode characters. <userinput>\x00C9</userinput> for example matches "&Eacute;"</para>
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
@@ -299,6 +299,7 @@ Local Variables:
 mode: sgml
 coding: utf-8
 sgml-parent-document: "zapping.xml"
+comment-auto-fill-only-comments: t
 indent-tabs-mode: nil
 End:
   -->
