@@ -1,3 +1,7 @@
+2005-02-28    <mschimek@users.sf.net>
+
+	* Release 0.5.4.
+
 2005-02-25    <mschimek@users.sf.net>
 
 	* test/io.c (audio, init_audio): Added support for stereo so we
@@ -6,7 +10,7 @@
 	  a switch().
 	* src/rte.c: Doxumenation fixed.
 	* src/context.h (rte_error_printf): Added __attribute__ printf
-	  format check.
+	  format check.zapping_setup_fb/v4l25.c
 	* src/context.c (rte_context_option_set,
 	  rte_context_option_print, rte_set_output_stdio): Doxumenation fixed.
 	* src/Makefile.am (librte_la_LIBADD): LTLIBICONV, LTLIBINTL

@@ -1,3 +1,7 @@
+2005-02-28    <mschimek@users.sf.net>
+
+	* RTE release 0.5.4.
+	
 2005-02-26    <mschimek@users.sf.net>
 
 	* common/alloc.h, common/alloc.c: Don't use memalign/free, they're
