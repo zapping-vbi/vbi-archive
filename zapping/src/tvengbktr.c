@@ -59,13 +59,20 @@
 /* TFR repeats the ioctl when interrupted (EINTR) */
 #define IOCTL(fd, cmd, data) (TEMP_FAILURE_RETRY(ioctl(fd, cmd, data)))
 
+
+
+#define LOG_FP 0 /* stderr */
+
+#define bktr_ioctl(fd, cmd, arg)					\
+(IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
+ device_ioctl (LOG_FP, fprintf_ioctl_arg, fd, cmd, arg))
+
 struct control {
-	tv_dev_control		dev;
-	unsigned int		id;	/* V4L2_CID_ */
+	tv_control		pub;
+	unsigned int		id;
 };
 
 #define C(l) PARENT (l, struct control, dev)
-#define CC(l) PARENT (l, struct control, dev.pub)
 
 struct tvengbktr_vbuf
 {
@@ -368,9 +375,9 @@ tvengbktr_describe_controller(char ** short_str, char ** long_str,
 {
   t_assert(info != NULL);
   if (short_str)
-    *short_str = "V4L2";
+    *short_str = "BKTR";
   if (long_str)
-    *long_str = "Video4Linux 2";
+    *long_str = "BKTR/Meteor";
 }
 
 /* Closes a device opened with tveng_init_device */
@@ -521,188 +528,124 @@ int tvengbktr_set_input(struct tveng_enum_input * input,
   return retcode;
 }
 
-// XXX compare against bttv for safety
-static tv_videostd_id
-video_standard_quiz		(struct v4l2_standard *	std)
-{
-  if (std->framelines == 625) {
-    switch (std->colorstandard) {
-    case V4L2_COLOR_STD_PAL:
-      switch (std->colorstandard_data.pal.colorsubcarrier) {
-      case V4L2_COLOR_SUBC_PAL:
-	return TV_VIDEOSTD_PAL; /* BGDKHI */
-      case V4L2_COLOR_SUBC_PAL_N:
-	return TV_VIDEOSTD_PAL_N;
-      default:
-	return TV_VIDEOSTD_UNKNOWN;
-      }
-    case V4L2_COLOR_STD_NTSC:
-      return TV_VIDEOSTD_UNKNOWN; /* ? */
-    case V4L2_COLOR_STD_SECAM:
-      return TV_VIDEOSTD_SECAM; /* BDGHKK1L, although probably L */
-    }
-  } else if (std->framelines == 525) {
-    switch (std->colorstandard) {
-    case V4L2_COLOR_STD_PAL:
-      switch (std->colorstandard_data.pal.colorsubcarrier) {
-      case V4L2_COLOR_SUBC_PAL_M:
-	return TV_VIDEOSTD_PAL_M;
-      default:
-	break; /* "PAL-60" */
-      }
-    case V4L2_COLOR_STD_NTSC:
-      return TV_VIDEOSTD_NTSC; /* M/NTSC USA or Japan */
-    }
-  }
+struct videostd_meta_data {
+	unsigned int		id;
+	const char *		label;
+	tv_videostd_id		tvid;
+};
 
-  return TV_VIDEOSTD_UNKNOWN;
+#define VIDEOSTD_META_DATA_END { 0, NULL, 0 }
+
+static const struct videostd_meta_data
+videostd_meta_meteor [] = {
+	{ METEOR_FMT_NTSC,	"NTSC",		TV_VIDEOSTD_NTSC },
+	{ METEOR_FMT_PAL,	"PAL",		TV_VIDEOSTD_PAL },
+	{ METEOR_FMT_SECAM,	"SECAM",	TV_VIDEOSTD_SECAM_L /* prob. */ }
+};
+
+static const struct videostd_meta_data
+videostd_meta_bktr [] = {
+see BT848SFMT
+
+static int
+tvengbktr_get_standards		(tveng_device_info * info)
+{
+	unsigned long fmt;
+	unsigned int i;
+
+	if (info->standards)
+		free(info->standards);
+
+	info->standards = NULL;
+	info->cur_standard = 0;
+	info->num_standards = 0;
+	info->tveng_errno = 0;
+
+	if (!(info->standards = calloc (N_ELEMENTS (videostd_meta)
+					* sizeof (*info->standards))))
+		return -1;
+
+	for (i = 0; i < N_ELEMENTS (videostd_meta); ++i) {
+		info->standards[i].id = videostd_meta[i].id;
+		info->standards[i].stdid = videostd_meta[i].tvid;
+		info->standards[i].index = i;
+
+		strncpy (&info->standards[i].name,
+			 sizeof (info->standards[i].name) - 1,
+			 _(videostd_meta[i].label));
+
+		info->standards[i].hash =
+			tveng_build_hash (info->standards[i].name);
+
+		if (info->standards[i].stdid & TV_VIDEOSTD_NTSC) {
+			info->standards[i].width = 640;
+			info->standards[i].height = 480;
+			info->standards[i].frame_rate = 30000 / 1001.0;
+		} else {
+			info->standards[i].width = 768;
+			info->standards[i].height = 576;
+			info->standards[i].frame_rate = 25.0;
+		}
+	}
+
+	info->num_standards = i;
+
+	/* Get the current standard */
+	if (-1 == bktr_ioctl (info->fd, METEORGFMT, &fmt)) {
+		info->tveng_errno = errno;
+		t_error("VIDIOC_G_STD", info);
+		return -1;
+	}
+
+// XXX METEOR_FMT_AUTOMODE
+
+	for (i = 0; i < info->num_standards; ++i)
+		if (info->standards[i].id & fmt) {
+			info->cur_standard = i;
+			break;
+		}
+
+	if (i == info->num_standards)
+		/* Set the first standard as active */
+		tvengbktr_set_standard (&(info->standards[0]), info);
+
+	return info->num_standards;
 }
 
-/*
-  Returns the number of standards in the given device and fills in info
-  with the correct info, allocating memory as needed
-*/
-static
-int tvengbktr_get_standards(tveng_device_info * info)
+static int
+tvengbktr_set_standard		(struct tveng_enumstd * std,
+				 tveng_device_info * info)
 {
-  int count = 0; /* Number of available standards */
-  struct v4l2_enumstd enumstd;
-  struct v4l2_standard std;
-  int i;
+	enum tveng_capture_mode current_mode;
+	enum tveng_frame_pixformat pixformat;
+	unsigned long fmt;
+	int retcode;
 
-  /* free any previously allocated mem */
-  if (info->standards)
-    free(info->standards);
+	t_assert(info != NULL);
+	t_assert(std != NULL);
 
-  info->standards = NULL;
-  info->cur_standard = 0;
-  info->num_standards = 0;
-  info->tveng_errno = 0;
+	pixformat = info->format.pixformat;
 
-  /* Start querying for the supported standards */
-  for (i = 0;; i++)
-    {
-      memset(&enumstd, 0, sizeof (struct v4l2_enumstd));
-      enumstd.index = i;
-      if (IOCTL(info->fd, VIDIOC_ENUMSTD, &enumstd) != 0)
-	break;
+	current_mode = tveng_stop_everything(info);
 
-      /* Check that this standard is supported by the current input */
-      if ((enumstd.inputs & (1 << info->cur_input)) == 0)
-	continue; /* Unsupported by the current input */
+	fmt = std->id;
 
-      info->standards = realloc(info->standards,
-				(count+1)*sizeof(struct tveng_enumstd));
+	retcode = bktr_ioctl (info->fd, METEORSFMT, &fmt);
 
-      info->standards[count].stdid = video_standard_quiz (&enumstd.std);
-      info->standards[count].index = count;
-      info->standards[count].id = i;
-      snprintf(info->standards[count].name, 32, enumstd.std.name);
-      info->standards[count].name[31] = 0; /* not needed, std.name < 24 */
-      info->standards[count].hash =
-	tveng_build_hash(info->standards[count].name);
-
-      info -> standards[count].height = enumstd.std.framelines;
-      /* unreliable, a driver may report a 16:9 etc standard (api miss?) */
-      info -> standards[count].width = (enumstd.std.framelines * 4) / 3;
-      /* eg. 30000 / 1001 */
-      info -> standards[count].frame_rate =
-	enumstd.std.framerate.denominator
-	/ (double) enumstd.std.framerate.numerator;
-
-/* Only a label, contents by definition unknown.
-      if (strstr(enumstd.std.name, "ntsc") ||
-	  strstr(enumstd.std.name, "NTSC") ||
-	  strstr(enumstd.std.name, "Ntsc"))
-	{
-	  info -> standards[count].width = 640;
-	  info -> standards[count].height = 480;
+	if (-1 == retcode) {
+		info->tveng_errno = errno;
+		t_error("VIDIOC_S_STD", info);
 	}
-      else
-	{
-	  info -> standards[count].width = 768;
-	  info -> standards[count].height = 576;
-	}
-*/      
-      count++;
-    }
-
-  standard_collisions(info);
-
-  info -> num_standards = count;
-
-  if (info->num_standards == 0)
-    return 0; /* We are done, avoid the rest */
-
-  /* Get the current standard */
-  memset(&std, 0, sizeof(struct v4l2_standard));
-  if (IOCTL(info->fd, VIDIOC_G_STD, &std) != 0)
-    {
-      info->tveng_errno = errno;
-      t_error("VIDIOC_G_STD", info);
-      return -1;
-    }
-
-  for (i=0; i<info->num_standards; i++)
-    if (!strcasecmp(std.name, info->standards[i].name))
-      {
-	info->cur_standard = i;
-	break;
-      }
-
-  if (i == info->num_standards) /* Current standard not found */
-    /* Set the first standard as active */
-    tvengbktr_set_standard(&(info->standards[0]), info);
   
-  return (info->num_standards);
-}
+	info->cur_standard = std->index;
 
-/*
-  Sets the current standard for the capture. standard is the name for
-  the desired standard. updates cur_standard
-*/
-static
-int tvengbktr_set_standard(struct tveng_enumstd * std, tveng_device_info * info)
-{
-  enum tveng_capture_mode current_mode;
-  enum tveng_frame_pixformat pixformat;
-  struct v4l2_enumstd enumstd;
-  int retcode;
+	/* Start capturing again as if nothing had happened */
+	info->format.pixformat = pixformat;
+	tveng_set_capture_format(info);
 
-  t_assert(info != NULL);
-  t_assert(std != NULL);
+	tveng_restart_everything(current_mode, info);
 
-  pixformat = info->format.pixformat;
-
-  current_mode = tveng_stop_everything(info);
-
-  /* Get info about the standard we are going to set */
-  memset(&enumstd, 0, sizeof(struct v4l2_enumstd));
-  enumstd.index = std -> id;
-  if (IOCTL(info->fd, VIDIOC_ENUMSTD, &enumstd) != 0)
-    {
-      info->tveng_errno = errno;
-      t_error("VIDIOC_ENUMSTD", info);
-      tveng_restart_everything(current_mode, info);
-      return -1;
-    }
-
-  /* Now set it */
-  if ((retcode = IOCTL(info->fd, VIDIOC_S_STD, &(enumstd.std))) != 0)
-    {
-      info->tveng_errno = errno;
-      t_error("VIDIOC_S_STD", info);
-    }
-  
-  info->cur_standard = std->index;
-
-  /* Start capturing again as if nothing had happened */
-  info->format.pixformat = pixformat;
-  tveng_set_capture_format(info);
-
-  tveng_restart_everything(current_mode, info);
-
-  return retcode;
+	return retcode;
 }
 
 static int
@@ -906,78 +849,78 @@ tvengbktr_set_capture_format(tveng_device_info * info)
  *  Controls
  */
 
-/* This shouldn't be neccessary if control querying worked properly */
-/* FIXME: add audio subchannels selecting controls */
-static const struct {
-	unsigned int		cid;
+struct control_meta_data {
+	unsigned int		id;
 	const char *		label;
 	tv_control_id		tcid;
-} control_meta [] = {
-	{ V4L2_CID_BRIGHTNESS,		N_("Brightness"),	TV_CONTROL_ID_BRIGHTNESS },
-	{ V4L2_CID_CONTRAST,		N_("Contrast"),		TV_CONTROL_ID_CONTRAST },
-	{ V4L2_CID_SATURATION,		N_("Saturation"),	TV_CONTROL_ID_SATURATION },
-	{ V4L2_CID_HUE,			N_("Hue"),		TV_CONTROL_ID_HUE },
-	{ V4L2_CID_WHITENESS,		N_("Whiteness"),	TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_BLACK_LEVEL,		N_("Black level"),	TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_AUTO_WHITE_BALANCE,	N_("White balance"),	TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_DO_WHITE_BALANCE,	N_("White balance"),	TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_RED_BALANCE,		N_("Red balance"),	TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_BLUE_BALANCE,	N_("Blue balance"),	TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_GAMMA,		N_("Gamma"),		TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_EXPOSURE,		N_("Exposure"),		TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_AUTOGAIN,		N_("Auto gain"),	TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_GAIN,		N_("Gain"),		TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_HCENTER,		N_("HCenter"),		TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_VCENTER,		N_("VCenter"),		TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_HFLIP,		N_("Hor. flipping"),	TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_VFLIP,		N_("Vert. flipping"),	TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_AUDIO_VOLUME,	N_("Volume"),		TV_CONTROL_ID_VOLUME },
-	{ V4L2_CID_AUDIO_MUTE,		N_("Mute"),		TV_CONTROL_ID_MUTE },
-	{ V4L2_CID_AUDIO_MUTE,		N_("Audio Mute"),	TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_AUDIO_BALANCE,	N_("Balance"),		TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_AUDIO_BALANCE,	N_("Audio Balance"),	TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_AUDIO_TREBLE,	N_("Treble"),		TV_CONTROL_ID_TREBLE },
-	{ V4L2_CID_AUDIO_LOUDNESS, 	N_("Loudness"),		TV_CONTROL_ID_UNKNOWN },
-	{ V4L2_CID_AUDIO_BASS,		N_("Bass"),		TV_CONTROL_ID_BASS },
+	int			minimum;
+	int			maximum;
+	int			reset;
 };
 
-static const unsigned int control_meta_size = sizeof (control_meta) / sizeof (*control_meta);
+#define CONTROL_META_DATA_END { 0, NULL, 0, 0, 0, 0 }
 
-/* Preliminary */
-#define TVENGBKTR_AUDIO_MAGIC 0x1234
+static const struct control_meta_data
+control_meta_meteor [] = {
+	{ METEORGBRIG, N_("Brightness"), TV_CONTROL_ID_BRIGHTNESS,   0, 255, 128 },
+	{ METEORGCONT, N_("Contrast"),   TV_CONTROL_ID_CONTRAST,     0, 255, 128 },
+	{ METEORGCSAT, N_("Saturation"), TV_CONTROL_ID_SATURATION,   0, 255, 128 },
+	{ METEORGHUE,  N_("Hue"),        TV_CONTROL_ID_HUE,       -128, 127,   0 },
+	{ METEORGCHCV, N_("U/V Gain"),   TV_CONTROL_ID_UNKNOWN,      0, 255, 128 },
+	CONTROL_META_DATA_END
+};
 
-static const char *
-audio_decoding_modes [] = {
-	N_("Automatic"),
-	N_("Mono"),
-	N_("Stereo"),
-	N_("Alternate 1"),
-	N_("Alternate 2"),
+static const struct control_meta_data
+control_meta_bktr [] = {
+	{ BT848_GBRIG, N_("Brightness"), TV_CONTROL_ID_BRIGHTNESS, -128, 127, 0 },
+	{ BT848_GCONT, N_("Contrast"), TV_CONTROL_ID_CONTRAST, 0, 511, 216 },
+	{ BT848_GCSAT, N_("Saturation"), TV_CONTROL_ID_SATURATION, 0, 511, 216 },
+	{ BT848_GHUE,  N_("Hue"),        TV_CONTROL_ID_HUE, -128, 127, 0 },
+	{ BT848_GUSAT, N_("U Saturation"), TV_CONTROL_ID_UNKNOWN, 0, 511, 256 },
+	{ BT848_GVSAT, N_("V Saturation"), TV_CONTROL_ID_UNKNOWN, 0, 511, 180 },
+	CONTROL_META_DATA_END
 };
 
 static tv_bool
 update_control			(struct private_tvengbktr_device_info *p_info,
 				 struct control *	c)
 {
-	struct v4l2_control ctrl;
+	int value;
+	int r;
+	char c;
+	unsigned char uc;
 
-	if (c->id == TVENGBKTR_AUDIO_MAGIC) {
-		/* FIXME actual value */
-		c->dev.pub.value = p_info->audio_mode;
-		return TRUE;
-	} else if (c->id == V4L2_CID_AUDIO_MUTE) {
-		/*
-		  Doesn't seem to work with bttv.
-		  FIXME we should check at runtime.
-		*/
-		return TRUE;
+	switch (c->id) {
+	case METEORGHUE:
+		r = bktr_ioctl (p_info->info.fd, c->id, &c);
+		value = c;
+		break;
+
+	case METEORGBRIG:
+	case METEORGCSAT:
+	case METEORGCONT:
+	case METEORGCHCV:
+		r = bktr_ioctl (p_info->info.fd, c->id, &uc);
+		value = uc;
+		break;
+
+	case BT848_GHUE:
+	case BT848_GBRIG:
+	case BT848_GCSAT:
+	case BT848_GCONT:
+	case BT848_GVSAT:
+	case BT848_GUSAT:
+		r = bktr_ioctl (p_info->info.fd, c->id, &value);
+		break;
+
+	default:
+		t_assert (!"reached");
+		break;
 	}
 
-	ctrl.id = c->id;
-
-	if (-1 == IOCTL (p_info->info.fd, VIDIOC_G_CTRL, &ctrl)) {
+	if (-1 == r) {
 		p_info->info.tveng_errno = errno;
-		t_error("VIDIOC_G_CTRL", &p_info->info);
+		t_error("Get control", &p_info->info);
 		return FALSE;
 	}
 
@@ -990,18 +933,17 @@ update_control			(struct private_tvengbktr_device_info *p_info,
 }
 
 static tv_bool
-tvengbktr_update_control		(tveng_device_info *	info,
-				 tv_dev_control *	tdc)
+tvengbktr_update_control	(tveng_device_info *	info,
+				 tv_control *		tc)
 {
 	struct private_tvengbktr_device_info * p_info = P_INFO (info);
-	tv_control *tc;
 
-	if (tdc)
-		return update_control (p_info, C(tdc));
+	if (tc)
+		return update_control (p_info, C(tc));
 
 	for (tc = p_info->info.controls; tc; tc = tc->next)
-		if (CC(tc)->dev.device == info)
-			if (!update_control (p_info, CC(tc)))
+		if (C(tc)->_device == info)
+			if (!update_control (p_info, C(tc)))
 				return FALSE;
 
 	return TRUE;
@@ -1009,266 +951,155 @@ tvengbktr_update_control		(tveng_device_info *	info,
 
 static tv_bool
 tvengbktr_set_control		(tveng_device_info *	info,
-				 tv_dev_control *	tdc,
+				 tv_control *		tc,
 				 int			value)
 {
 	struct private_tvengbktr_device_info * p_info = P_INFO (info);
-	struct v4l2_control ctrl;
+	int r;
+	char c;
+	unsigned char uc;
 
-	if (C(tdc)->id == TVENGBKTR_AUDIO_MAGIC) {
-		if (p_info->info.inputs[p_info->info.cur_input].tuners > 0) {
-			struct v4l2_tuner tuner;
+	switch (c->id) {
+	case METEORGHUE:
+		c = value;
+		r = bktr_ioctl (p_info->info.fd, METEORSHUE, &c);
+		break;
 
-			memset(&tuner, 0, sizeof(tuner));
-			tuner.input = p_info->info.inputs
-				[p_info->info.cur_input].id;
+	case METEORGBRIG:
+		uc = value;
+		r = bktr_ioctl (p_info->info.fd, METEORSBRIG, &uc);
+		break;
 
-			/* XXX */
-			if (0 == IOCTL(info -> fd, VIDIOC_G_TUNER, &tuner)) {
-				tuner.audmode = "\0\1\3\2"[value];
+	case METEORGCSAT:
+		uc = value;
+		r = bktr_ioctl (p_info->info.fd, METEORSCSAT, &uc);
+		break;
 
-				if (0 == IOCTL(info -> fd, VIDIOC_S_TUNER, &tuner)) {
-					p_info->audio_mode = value;
-				}
-			}
-		} else {
-			p_info->audio_mode = 0; /* mono */
-		}
+	case METEORGCONT:
+		uc = value;
+		r = bktr_ioctl (p_info->info.fd, METEORSCONT, &uc);
+		break;
 
-		return TRUE;
-	}
+	case METEORGCHCV:
+		uc = value;
+		r = bktr_ioctl (p_info->info.fd, METEORSCHCV, &uc);
+		break;
 
-	ctrl.id = C(tdc)->id;
-	ctrl.value = value;
+	case BT848_GHUE:
+		r = bktr_ioctl (p_info->info.fd, BKTR_SHUE, &value);
+		break;
 
-	if (-1 == IOCTL(p_info->info.fd, VIDIOC_S_CTRL, &ctrl)) {
-		p_info->info.tveng_errno = errno;
-		t_error("VIDIOC_S_CTRL", &p_info->info);
-		return FALSE;
-	}
+	case BT848_GBRIG:
+		r = bktr_ioctl (p_info->info.fd, BKTR_SBRIG, &value);
+		break;
 
-	/*
-	  Doesn't seem to work with bttv.
-	  FIXME we should check at runtime.
-	*/
-	if (ctrl.id == V4L2_CID_AUDIO_MUTE) {
-		if (tdc->pub.value != value) {
-			tdc->pub.value = value;
-			tv_callback_notify (&tdc->pub, tdc->callback);
-		}
-		return TRUE;
-	}
+	case BT848_GCSAT:
+		r = bktr_ioctl (p_info->info.fd, BKTR_SCSAT, &value);
+		break;
 
-	return update_control (p_info, C(tdc));
-}
+	case BT848_GCONT:
+		r = bktr_ioctl (p_info->info.fd, BKTR_SCONT, &value);
+		break;
 
-static tv_bool
-add_control			(tveng_device_info *	info,
-				 unsigned int		id)
-{
-	struct private_tvengbktr_device_info * p_info = P_INFO (info);
-	struct v4l2_queryctrl qc;
-	struct v4l2_querymenu qm;
-	struct control *c;
-	tv_control *tc;
-	unsigned int i, j;
+	case BT848_GVSAT:
+		r = bktr_ioctl (p_info->info.fd, BKTR_SVSAT, &value);
+		break;
 
-	CLEAR (qc);
-
-	qc.id = id;
-
-	/* XXX */
-	if (-1 == IOCTL (info->fd, VIDIOC_QUERYCTRL, &qc))
-		return FALSE;
-
-	if (qc.flags & (V4L2_CTRL_FLAG_DISABLED | V4L2_CTRL_FLAG_GRABBED))
-		return TRUE;
-
-	if (!(c = calloc (1, sizeof (*c))))
-		goto failure;
-
-	for (i = 0; i < control_meta_size; i++)
-		if (qc.id == control_meta[i].cid)
-			break;
-
-	if (i < control_meta_size) {
-		c->dev.pub.label = strdup (_(control_meta[i].label));
-		c->dev.pub.id = control_meta[i].tcid;
-	} else {
-		c->dev.pub.label = strndup (qc.name, 32);
-		c->dev.pub.id = TV_CONTROL_ID_UNKNOWN;
-	}
-
-	if (!c->dev.pub.label)
-		goto failure;
-
-	c->dev.pub.minimum = qc.minimum;
-	c->dev.pub.maximum = qc.maximum;
-	c->dev.pub.step = qc.step;
-	c->dev.pub.reset = qc.default_value;
-	c->id = qc.id;
-	c->dev.device = info;
-	c->dev.pub.menu = NULL;
-
-	switch (qc.type) {
-	case V4L2_CTRL_TYPE_INTEGER:	c->dev.pub.type = TV_CONTROL_TYPE_INTEGER; break;
-	case V4L2_CTRL_TYPE_BOOLEAN:	c->dev.pub.type = TV_CONTROL_TYPE_BOOLEAN; break;
-	case V4L2_CTRL_TYPE_BUTTON:	c->dev.pub.type = TV_CONTROL_TYPE_ACTION; break;
-
-	case V4L2_CTRL_TYPE_MENU:
-		c->dev.pub.type = TV_CONTROL_TYPE_CHOICE;
-
-		if (!(c->dev.pub.menu = calloc (qc.maximum + 2, sizeof (char *))))
-			goto failure;
-
-		for (j = 0; j <= qc.maximum; j++) {
-			qm.id = qc.id;
-			qm.index = j;
-
-			if (0 == IOCTL (info->fd, VIDIOC_QUERYMENU, &qm)) {
-				if (!(c->dev.pub.menu[j] = strndup(_(qm.name), 32)))
-					goto failure;
-			} else {
-				goto failure;
-			}
-		}
-
-	      break;
+	case BT848_GUSAT:
+		r = bktr_ioctl (p_info->info.fd, BKTR_SUSAT, &value);
+		break;
 
 	default:
-		fprintf(stderr, "V4L2: Unknown control type 0x%x (%s)\n", qc.type, qc.name);
-		goto failure;
+		t_assert (!"reached");
+		break;
 	}
 
-	if (!(tc = append_control (info, &c->dev.pub, 0))) {
-	failure:
-		free_control (&c->dev.pub);
-		return TRUE; /* no control, but not end of enum */
+	if (-1 == r) {
+		p_info->info.tveng_errno = errno;
+		t_error("Set control", &p_info->info);
+		return FALSE;
 	}
 
-	update_control (p_info, CC(tc));
-
-	if (qc.id == V4L2_CID_AUDIO_MUTE) {
-		p_info->mute = tc;
+	if (c->dev.pub.value != ctrl.value) {
+		c->dev.pub.value = ctrl.value;
+		tv_callback_notify (&c->dev.pub, c->dev.callback);
 	}
 
 	return TRUE;
 }
 
-/* Private, builds the controls structure */
 static int
 p_tvengbktr_build_controls(tveng_device_info * info)
 {
-	unsigned int cid;
+	struct private_tvengbktr_device_info * p_info = P_INFO (info);
+	struct control_meta_data *cm;
+	struct control *c;
+	tv_control *tc;
 
-	for (cid = V4L2_CID_BASE;
-	     cid < V4L2_CID_LASTP1; cid++) {
-		/* EINVAL ignored */
-		add_control (info, cid);
-	}
+	cm = ;
 
-	/* Artificial control (preliminary) */
+	for (; cm->id; ++cm) {
+		if (!(c = calloc (1, sizeof (*c))))
+			goto failure;
 
-	/* Check that there are tuners in the current input */
-	if (info->inputs[info->cur_input].tuners > 0) {
-		struct v4l2_tuner tuner;
+		c->id		= cm->id;
 
-		memset(&tuner, 0, sizeof(tuner));
-		tuner.input = info->inputs[info->cur_input].id;
+		c->pub.id	= cm->tcid;
+		c->pub.type	= TV_CONTROL_TYPE_INTEGER;
+		c->pub.label	= strdup (_(cm->label));
 
-		if (IOCTL(info->fd, VIDIOC_G_TUNER, &tuner) == 0) {
-			/* NB this is not implemented in bttv 0.8.45 */
-			if (tuner.capability & (V4L2_TUNER_CAP_STEREO
-						| V4L2_TUNER_CAP_LANG2)) {
-				struct control *c;
-				unsigned int i;
+		if (!c->pub.label)
+			goto failure;
 
-				/* XXX this needs refinement */
+		c->pub.minimum	= cm->minimum;
+		c->pub.maximum	= cm->maximum;
+		c->pub.step	= 1;
+		c->pub.reset	= cm->reset;
 
-				if (!(c = calloc (1, sizeof (*c))))
-					goto failure;
+		c->pub._device	= info;
 
-				if (!(c->dev.pub.label = strdup (_("Audio"))))
-					goto failure;
-
-				c->id = TVENGBKTR_AUDIO_MAGIC;
-				c->dev.pub.type = TV_CONTROL_TYPE_CHOICE;
-				c->dev.pub.maximum = 4;
-
-				if (!(c->dev.pub.menu = calloc (6, sizeof (char *))))
-					goto failure;
-
-				for (i = 0; i < 5; i++) {
-					if (!(c->dev.pub.menu[i] = strdup (_(audio_decoding_modes[i]))))
-						goto failure;
-				}
-
-				c->dev.device = info;
-
-				if (!append_control (info, &c->dev.pub, 0)) {
-				failure:
-					free_control (&c->dev.pub);
-				}
-
-				update_control (P_INFO(info), c);
-			}
+		if (!(tc = append_control (info, &c->pub, 0))) {
+		failure:
+			free_control (&c->pub);
+			return FALSE;
 		}
+
+		update_control (p_info, C(tc));
 	}
 
-	for (cid = V4L2_CID_PRIVATE_BASE;
-	     cid < V4L2_CID_PRIVATE_BASE + 100; cid++) {
-		if (!add_control (info, cid))
-			break; /* end of enumeration */
-	}
-
-	return 0;
+	return TRUE;
 }
 
 /*
-  Tunes the current input to the given freq. Returns -1 on error.
+  Tunes the current input to the given freq (khz). Returns -1 on error.
 */
 static int
 tvengbktr_tune_input(uint32_t _freq, tveng_device_info * info)
 {
-  struct v4l2_tuner tuner_info;
-  uint32_t freq; /* real frequence passed to v4l2 */
+	unsigned int freq;
 
-  t_assert(info != NULL);
-  t_assert(info->cur_input < info->num_inputs);
-  t_assert(info->cur_input >= 0);
+	t_assert(info != NULL);
+	t_assert(info->cur_input < info->num_inputs);
+	t_assert(info->cur_input >= 0);
 
-  /* Check that there are tuners in the current input */
-  if (info->inputs[info->cur_input].tuners == 0)
-    return 0; /* Success (we shouldn't be tuning, anyway) */
+	/* Check that there are tuners in the current input */
+	if (info->inputs[info->cur_input].tuners == 0)
+		return 0; /* Success (we shouldn't be tuning, anyway) */
+	
+	freq = _freq / 62.5;
 
-  /* Get more info about this tuner */
-  tuner_info.input = info->inputs[info->cur_input].id;
-  if (IOCTL(info -> fd, VIDIOC_G_TUNER, &tuner_info) != 0)
-    {
-      info->tveng_errno = errno;
-      t_error("VIDIOC_G_TUNER", info);
-      return -1;
-    }
-  
-  if (tuner_info.capability & V4L2_TUNER_CAP_LOW)
-    freq = _freq / 0.0625;
-  else
-    freq = _freq / 62.5;
+	if (freq > tuner_info.rangehigh)
+		freq = tuner_info.rangehigh;
+	else if (freq < tuner_info.rangelow)
+		freq = tuner_info.rangelow;
 
-  if (freq > tuner_info.rangehigh)
-    freq = tuner_info.rangehigh;
-  if (freq < tuner_info.rangelow)
-    freq = tuner_info.rangelow;
-  
-  /* OK, everything is set up, try to tune it */
-  if (IOCTL(info -> fd, VIDIOC_S_FREQ, &freq) != 0)
-    {
-      info->tveng_errno = errno;
-      t_error("VIDIOC_S_FREQ", info);
-      return -1;
-    }
+	if (-1 == bktr_ioctl (info->fd, TVTUNER_SETFREQ, &freq)) {
+		info->tveng_errno = errno;
+		t_error("TVTUNER_SETFREQ", info);
+		return -1;
+	}
 
-  return 0; /* Success */
+	return 0; /* Success */
 }
 
 /*
@@ -1291,6 +1122,8 @@ tvengbktr_get_signal_strength (int *strength, int * afc,
   /* Check that there are tuners in the current input */
   if (info->inputs[info->cur_input].tuners == 0)
     return -1;
+
+
 
   tuner.input = info->inputs[info->cur_input].id;
   if (IOCTL(info -> fd, VIDIOC_G_TUNER, &tuner) != 0)
@@ -1331,52 +1164,39 @@ tvengbktr_get_signal_strength (int *strength, int * afc,
 }
 
 /*
-  Stores in freq the currently tuned freq. Returns -1 on error.
+  Stores in freq the currently tuned freq (kHz). Returns -1 on error.
 */
 static int
-tvengbktr_get_tune(uint32_t * freq, tveng_device_info * info)
+tvengbktr_get_tune		(uint32_t * _freq,
+				 tveng_device_info * info)
 {
-  uint32_t real_freq;
-  struct v4l2_tuner tuner;
+	unsigned int freq;
 
-  t_assert(info != NULL);
-  t_assert(freq != NULL);
-  t_assert(info->cur_input < info->num_inputs);
-  t_assert(info->cur_input >= 0);
+	t_assert(info != NULL);
+	t_assert(freq != NULL);
+	t_assert(info->cur_input < info->num_inputs);
+	t_assert(info->cur_input >= 0);
 
-  /* Check that there are tuners in the current input */
-  if (info->inputs[info->cur_input].tuners == 0)
-    {
-      if (freq)
-	*freq = 0;
-      info->tveng_errno = -1;
-      t_error_msg("tuners check",
-		  "There are no tuners for the active input",
-		  info);
-      return -1;
-    }
+	/* Check that there are tuners in the current input */
+	if (info->inputs[info->cur_input].tuners == 0) {
+		if (freq)
+			*freq = 0;
+		info->tveng_errno = -1;
+		t_error_msg("tuners check",
+			    "There are no tuners for the active input",
+			    info);
+		return -1;
+	}
 
-  if (IOCTL(info->fd, VIDIOC_G_FREQ, &real_freq) != 0)
-    {
-      info->tveng_errno = errno;
-      t_error("VIDIOC_G_FREQ", info);
-      return -1;
-    }
-  /* Get more info about this tuner */
-  tuner.input = info->inputs[info->cur_input].id;
-  if (IOCTL(info -> fd, VIDIOC_G_TUNER, &tuner) != 0)
-    {
-      info->tveng_errno = errno;
-      t_error("VIDIOC_G_TUNER", info);
-      return -1;
-    }
-  
-  if (tuner.capability & V4L2_TUNER_CAP_LOW)
-    *freq = real_freq * 0.0625;
-  else
-    *freq = real_freq * 62.5;
+	if (-1 == bktr_ioctl (info->fd, TVTUNER_GETFREQ, &freq)) {
+		info->tveng_errno = errno;
+		t_error("TVTUNER_GETFREQ", info);
+		return -1;
+	}
 
-  return 0;
+	*_freq = freq * 62.5;
+
+	return 0;
 }
 
 /*
@@ -1385,49 +1205,24 @@ tvengbktr_get_tune(uint32_t * freq, tveng_device_info * info)
   If any of the pointers is NULL, its value will not be filled.
 */
 static int
-tvengbktr_get_tuner_bounds(uint32_t * min, uint32_t * max, tveng_device_info *
-			info)
+tvengbktr_get_tuner_bounds	(uint32_t * min,
+				 uint32_t * max,
+				 tveng_device_info *info)
 {
-  struct v4l2_tuner tuner;
+	struct v4l2_tuner tuner;
 
-  t_assert(info != NULL);
-  t_assert(info->cur_input < info->num_inputs);
-  t_assert(info->cur_input >= 0);
+	t_assert(info != NULL);
+	t_assert(info->cur_input < info->num_inputs);
+	t_assert(info->cur_input >= 0);
 
-  /* Check that there are tuners in the current input */
-  if (info->inputs[info->cur_input].tuners == 0)
-    return -1;
+	/* Check that there are tuners in the current input */
+	if (info->inputs[info->cur_input].tuners == 0)
+		return -1;
+	
+	*min = 0;
+	*max = 900000;	// XXX
 
-  /* Get info about the current tuner */
-  tuner.input = info->inputs[info->cur_input].id;
-  if (IOCTL(info -> fd, VIDIOC_G_TUNER, &tuner) != 0)
-    {
-      info->tveng_errno = errno;
-      t_error("VIDIOC_G_TUNER", info);
-      return -1;
-    }
-
-  if (min)
-    *min = tuner.rangelow;
-  if (max)
-    *max = tuner.rangehigh;
-
-  if (tuner.capability & V4L2_TUNER_CAP_LOW)
-    {
-      if (min)
-	*min *= 0.0625;
-      if (max)
-	*max *= 0.0625;
-    }
-  else
-    {
-      if (min)
-	*min *= 62.5;
-      if (max)
-	*max *= 62.5;
-    }
-
-  return 0; /* Success */
+	return 0; /* Success */
 }
 
 /* Some private functions */
@@ -1752,23 +1547,26 @@ int tvengbktr_set_capture_size(int width, int height, tveng_device_info * info)
    Gets the actual size of the capture buffer in width and height.
    -1 on error
 */
-static
-int tvengbktr_get_capture_size(int *width, int *height, tveng_device_info * info)
+static int
+tvengbktr_get_capture_size	(int *width,
+				 int *height,
+				 tveng_device_info * info)
 {
-  t_assert(info != NULL);
+	t_assert(info != NULL);
 
-  if (tvengbktr_update_capture_format(info))
-    return -1;
+	if (tvengbktr_update_capture_format(info))
+		return -1;
 
-  if (width)
-    *width = info->format.width;
-  if (height)
-    *height = info->format.height;
+	if (width)
+		*width = info->format.width;
+	if (height)
+		*height = info->format.height;
 
-  return 0; /* Success */
+	return 0; /* Success */
 }
 
 /* XF86 Frame Buffer routines */
+
 /*
   Returns 1 if the device attached to info suports previewing, 0 otherwise
 */
@@ -1822,23 +1620,44 @@ tvengbktr_detect_preview (tveng_device_info * info)
   info   : Device we are controlling
 */
 static int
-tvengbktr_set_preview_window(tveng_device_info * info)
+tvengbktr_set_preview_window	(tveng_device_info *	info,
+				 x11_dga_parameters *	dga)
 {
-  struct v4l2_window window;
-  struct v4l2_clip * clip=NULL;
-  struct private_tvengbktr_device_info * p_info =
-    (struct private_tvengbktr_device_info*) info;
-  int i;
+	struct private_tvengbktr_device_info * p_info =
+		(struct private_tvengbktr_device_info*) info;
+	struct meteor_video video;
+	struct meteor_geom geom;
+	struct _bktr_clip clip;
+	unsigned int i;
 
-  t_assert(info != NULL);
-  t_assert(info-> window.clipcount >= 0);
+	t_assert(info != NULL);
+	t_assert(info-> window.clipcount >= 0);
 
-  memset(&window, 0, sizeof(struct v4l2_window));
+	video.addr = (void *)((char *) dga->base
+			      + info->window.y * dga->bytes_per_line
+			      + info->window.x * dga->bits_per_pixel * 8);
+	video.width = dga->bytes_per_line;
+	video.banksize = dga->size / 1024;
+	video.ramsize = dga->size / 1024;
 
-  window.x = info->window.x;
-  window.y = info->window.y;
-  window.width = info->window.width;
-  window.height = info->window.height;
+	geom.rows = info->window.width;
+	geom.columns = info->window.height;
+	geom.frames = 1;
+	geom.oformat = ;
+
+	if (info->window.clipcount > (N_ELEMENTS (clip.x) - 1)) {
+		info->tveng_errno = 0;
+		t_error("Too many clipping rectangles", info);
+		return -1;
+	}
+
+	for (i = 0; i < info->window.clipcount; ++i) {
+		clip.x[i].x_min = info->window.clips[i].x;
+		clip.x[i].y_min = info->window.clips[i].y;
+		clip.x[i].x_max = info->window.clips[i].x + info->window.clips[i].width;
+		clip.x[i].y_max = info->window.clips[i].y + info->window.clips[i].height;
+	}
+
   window.clipcount = info->window.clipcount;
   window.chromakey = p_info->chroma;
   if (window.clipcount == 0)
@@ -1849,11 +1668,6 @@ tvengbktr_set_preview_window(tveng_device_info * info)
       window.clips = clip;
       for (i=0;i<window.clipcount;i++)
 	{
-	  clip[i].x = info->window.clips[i].x;
-	  clip[i].y = info->window.clips[i].y;
-	  clip[i].width = info->window.clips[i].width;
-	  clip[i].height = info->window.clips[i].height;
-	  clip[i].next = ((i+1) == window.clipcount) ? NULL : &(clip[i+1]);
 	}
     }
 
@@ -1923,57 +1737,48 @@ static int
 tvengbktr_start_previewing (tveng_device_info * info,
 			    x11_dga_parameters *dga)
 {
-  int width, height;
-  //  unsigned int dwidth, dheight;
+	unsigned int width, height;
 
-  tveng_stop_everything(info);
+	tveng_stop_everything(info);
 
-  t_assert(info -> current_mode == TVENG_NO_CAPTURE);
+	t_assert(info -> current_mode == TVENG_NO_CAPTURE);
 
-  if (!tvengbktr_detect_preview(info))
-    /* We shouldn't be reaching this if the app is well programmed */
-    t_assert_not_reached();
+	if (!tvengbktr_detect_preview(info))
+		/* We shouldn't be reaching this if the app is well programmed */
+		t_assert_not_reached();
+	
+	if (!x11_dga_present (dga))
+		return -1;
 
-  if (!x11_dga_present (dga))
-    return -1;
+	width = MIN (info->standards[cur_standard].width, dga->width);
+	height = MIN (info->standards[cur_standard].height, dga->height);
 
-  //  x11_root_geometry (&dwidth, &dheight);
+	info->window.x = (dga->width - width) >> 1;
+	info->window.y = (dga->height - height) >> 1;
+	info->window.width = width;
+	info->window.height = height;
+	info->window.clips = NULL;
+	info->window.clipcount = 0;
 
-  width = info->caps.maxwidth;
-  if (width > dga->width)
-    width = dga->width;
+	/* Set new capture dimensions */
+	if (tvengbktr_set_preview_window(info) == -1)
+		return -1;
 
-  height = info->caps.maxheight;
-  if (height > dga->height)
-    height = dga->height;
+	/* Center preview window (maybe the requested width and/or height)
+	   aren't valid */
+	info->window.x = (dga->width - info->window.width) >> 1;
+	info->window.y = (dga->height - info->window.height) >> 1;
+	info->window.clipcount = 0;
+	info->window.clips = NULL;
+	if (tvengbktr_set_preview_window(info) == -1)
+		return -1;
 
-  /* Center the window, dwidth is always >= width */
-  info->window.x = (dga->width - width)/2;
-  info->window.y = (dga->height - height)/2;
-  info->window.width = width;
-  info->window.height = height;
-  info->window.clips = NULL;
-  info->window.clipcount = 0;
+	/* Start preview */
+	if (tvengbktr_set_preview(1, info) == -1)
+		return -1;
 
-  /* Set new capture dimensions */
-  if (tvengbktr_set_preview_window(info) == -1)
-    return -1;
-
-  /* Center preview window (maybe the requested width and/or height)
-     aren't valid */
-  info->window.x = (dga->width - info->window.width)/2;
-  info->window.y = (dga->height - info->window.height)/2;
-  info->window.clipcount = 0;
-  info->window.clips = NULL;
-  if (tvengbktr_set_preview_window(info) == -1)
-    return -1;
-
-  /* Start preview */
-  if (tvengbktr_set_preview(1, info) == -1)
-    return -1;
-
-  info -> current_mode = TVENG_CAPTURE_PREVIEW;
-  return 0; /* Success */
+	info -> current_mode = TVENG_CAPTURE_PREVIEW;
+	return 0; /* Success */
 }
 
 /*
