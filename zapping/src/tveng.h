@@ -749,6 +749,11 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info);
 void tveng_unset_xv_port(tveng_device_info *info);
 #endif
 
+/* Assume destination buffer is YVU instead of YUV in the next
+   read_frame's. Only has effect if the mode is PIX_YUV420 and the
+   controller is V4L1. assume is by default 0 */
+void tveng_assume_yvu(int assume, tveng_device_info *info);
+
 /* Adquire the (recursive) mutex on the device, TVeng functions already
    locks it when called. */
 void tveng_mutex_lock(tveng_device_info *info);

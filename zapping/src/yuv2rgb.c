@@ -80,17 +80,18 @@ static void yuv2rgb_c (void * dst, uint8_t * py,
 void yuv2rgb_init (int bpp, int mode) 
 {
     yuv2rgb = NULL;
+
 #ifdef USE_MMX
     if (mmx_ok()) {
-	yuv2rgb = yuv2rgb_init_mmx (bpp, mode);
-	if (yuv2rgb != NULL)
-	    printv ("Using MMX for colorspace transform\n");
+      yuv2rgb = yuv2rgb_init_mmx (bpp, mode);
+      if (yuv2rgb != NULL)
+	printv ("Using MMX for colorspace transform\n");
     }
 #endif
     if (yuv2rgb == NULL) {
-        printv ("No accelerated colorspace conversion found\n");
-	yuv2rgb_c_init (bpp, mode);
-	yuv2rgb = (yuv2rgb_fun)yuv2rgb_c;
+      printv ("No accelerated colorspace conversion found\n");
+      yuv2rgb_c_init (bpp, mode);
+      yuv2rgb = (yuv2rgb_fun)yuv2rgb_c;
     }
 }
 

@@ -1,3 +1,10 @@
+12.05.2001	YVU420 <garetxe@users.sourceforge.net>
+
+	* src/capture.c: Defaulted to YVU420P for capture, plugins need
+	to be adapted. Added display of _DATA bundles, using yuv2rgb.
+	* tveng: Added assume_yvu to work around V4L1 API limitations.
+	* yuv2rgb_mmx: Added lacking "emms" to reenable math coprocessor.
+
 11.05.2001	did some things from TODO <garetxe@users.sourceforge.net>
 
 	* src/channel_editor.c: Channels can have an arbitrary order now.

@@ -322,7 +322,7 @@ int main(int argc, char * argv[])
 			      0, NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.107 2001-05-11 22:14:49 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.108 2001-05-12 23:32:15 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -342,7 +342,7 @@ int main(int argc, char * argv[])
   D();
   /* init the conversion routines */
   yuv2rgb_init(x11_get_bpp(),
-	       (x11_get_byte_order()==GDK_MSB_FIRST)?MODE_RGB:MODE_BGR);
+	       (x11_get_byte_order()==GDK_MSB_FIRST)?MODE_BGR:MODE_RGB);
   D();
   glade_gnome_init();
   D();

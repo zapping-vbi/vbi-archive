@@ -94,7 +94,7 @@ typedef struct {
   union {
     xvzImage			*xvimage; /* if xv present */
     GdkImage			*gdkimage; /* otherwise */
-    void			*yuv_data; /* raw data */
+    gpointer			yuv_data; /* raw data */
   } image;
 
 #define CAPTURE_BUNDLE_XV 1		/* XvImage */

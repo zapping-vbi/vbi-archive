@@ -2105,6 +2105,13 @@ void tveng_set_xv_support(int disabled, tveng_device_info * info)
   info->private->disable_xv = disabled;
 }
 
+void tveng_assume_yvu(int assume, tveng_device_info * info)
+{
+  t_assert(info != NULL);
+
+  info->private->assume_yvu = assume;
+}
+
 #ifdef USE_XV
 void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
 {

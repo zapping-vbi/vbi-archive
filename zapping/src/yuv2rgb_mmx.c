@@ -221,7 +221,7 @@ static void yuv420_rgb16_mmx (uint8_t * image, uint8_t * py,
 	even = (!even);
     } while (y < v_size) ;
 
-    //__asm__ ("emms\n\t");
+    __asm__ ("emms\n\t");
 #endif
 }
 
@@ -407,7 +407,7 @@ static void yuv420_argb32_mmx (uint8_t * image, uint8_t * py,
 	even = (!even);
     } while ( y < v_size) ;
 
-    //__asm__ ("emms\n\t");
+    __asm__ ("emms\n\t");
 #endif
 }
 

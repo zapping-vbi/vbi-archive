@@ -90,6 +90,7 @@ struct tveng_private {
 
   int		zapping_setup_fb_verbosity;
   int		change_mode;
+  int		assume_yvu; /* assume destination is YVU */
   int		disable_xv; /* 1 if XVideo should be disabled */
   int		chromakey; /* RGB32 */
   int		dword_align; /* 1 if x and w should be dword aligned */

@@ -1689,7 +1689,7 @@ tveng1_get_tuner_bounds(__u32 * min, __u32 * max, tveng_device_info *
 
 /* Two internal functions, both return -1 on error */
 static int p_tveng1_queue(tveng_device_info * info);
-static int p_tveng1_dequeue(void * where, tveng_device_info * info);
+static int p_tveng1_dequeue(unsigned char * where, tveng_device_info * info);
 
 /*
   Sets up the capture device so any read() call after this one
@@ -1839,12 +1839,14 @@ static int p_tveng1_queue(tveng_device_info * info)
   return 0; /* Success */
 }
 
-static int p_tveng1_dequeue(void * where, tveng_device_info * info)
+static int p_tveng1_dequeue(unsigned char * where, tveng_device_info * info)
 {
   struct video_mmap bm;
   struct private_tveng1_device_info * p_info =
     (struct private_tveng1_device_info*) info;
   struct timeval tv;
+  unsigned char *y, *v, *u;
+  unsigned int bytes;
 
   t_assert(info != NULL);
   t_assert(info -> current_mode == TVENG_CAPTURE_READ);
@@ -1903,9 +1905,25 @@ static int p_tveng1_dequeue(void * where, tveng_device_info * info)
 
   /* Copy the mmaped data to the data struct, if it is not null */
   if (where)
-    memcpy(where, p_info -> mmaped_data + p_info->
-	   mmbuf.offsets[bm.frame],
-	   info->format.sizeimage);
+    {
+      if (info->format.pixformat != TVENG_PIX_YUV420 ||
+	  !info->private->assume_yvu)
+	memcpy(where, p_info -> mmaped_data + p_info->
+	       mmbuf.offsets[bm.frame],
+	       info->format.sizeimage);
+      else
+	{
+	  /* Switch UV -> VU */
+	  bytes = info->format.width * info->format.height;
+	  t_assert(info->format.sizeimage == bytes*1.5);
+	  y = p_info-> mmaped_data + p_info->mmbuf.offsets[bm.frame];
+	  u = y + bytes;
+	  v = u + (bytes>>2);
+	  memcpy(where, y, bytes); /* Y -> Y */
+	  memcpy(where + bytes, v, bytes >> 2); /* V -> V */
+	  memcpy(where + bytes + (bytes>>2), u, bytes >> 2); /* U -> U */
+	}
+    }
 
   /* increase the dequeued index */
   p_info -> dequeued ++;
