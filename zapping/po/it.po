@@ -5,14 +5,14 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.7\n"
-"POT-Creation-Date: 2003-12-04 17:11+0100\n"
-"PO-Revision-Date: 2003-11-30 13:32+0100\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2003-11-29 05:43+0100\n"
+"PO-Revision-Date: 2003-12-06 13:28+0100\n"
 "Last-Translator: Pino Toscano <toscano.pino@tiscali.it>\n"
 "Language-Team: Italian <it@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Report-Msgid-Bugs-To: \n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: glade/zapping.glade2.h:1 plugins/mpeg/mpeg_properties.glade2.h:1
@@ -69,7 +69,7 @@ msgstr "Europa Centrale e del Sud-Est"
 
 #: glade/zapping.glade2.h:12
 msgid "Channel list number"
-msgstr "Numero della lista dei canali"
+msgstr "Numero nella lista dei canali"
 
 #: glade/zapping.glade2.h:13
 msgid "Choose a color"
@@ -81,7 +81,7 @@ msgstr "Svuota console"
 
 #: glade/zapping.glade2.h:15
 msgid "Click here when you are done"
-msgstr "Fai clic qui quando hai finito"
+msgstr "Fai clic qui quando hai fatto"
 
 #: glade/zapping.glade2.h:16
 msgid "Console"
@@ -156,7 +156,7 @@ msgstr "Interlacciato (dimensione della finestra)"
 msgid "Kernel _device"
 msgstr "_Dispositivo del kernel"
 
-#: glade/zapping.glade2.h:35 src/keyboard.c:1139
+#: glade/zapping.glade2.h:35 src/keyboard.c:1138
 msgid "Keyboard"
 msgstr "Tastiera"
 
@@ -204,7 +204,7 @@ msgstr "Nessun display"
 msgid "OK, let's go on"
 msgstr "OK, andiamo avanti"
 
-#: glade/zapping.glade2.h:47 src/osd.c:1306
+#: glade/zapping.glade2.h:47 src/osd.c:1258
 msgid "OSD"
 msgstr "OSD"
 
@@ -242,7 +242,7 @@ msgstr "Compromesso qualità/velocità quando scala e migliora la pagina."
 
 #: glade/zapping.glade2.h:56
 msgid "RF channel number"
-msgstr "Numero RF del canale"
+msgstr "Numero del canale RF"
 
 #: glade/zapping.glade2.h:57
 msgid "Remember this video standard"
@@ -262,15 +262,15 @@ msgstr "SECAM"
 
 #: glade/zapping.glade2.h:61
 msgid "Save _control values per channel"
-msgstr "Salva i valori dei _controlli per ogni canale"
+msgstr "Salva i valori del _controllo per ogni canale"
 
 #: glade/zapping.glade2.h:62
 msgid "Save window _geometry (some WM's don't like it)"
-msgstr "Salva _geometria della finestra (alcuni WM non lo permettono)"
+msgstr "Salva _geometria della finestra (alcuni WM non lo accettano)"
 
 #: glade/zapping.glade2.h:63
 msgid "Select OSD font"
-msgstr "Seleziona il tipo di carattere per OSD"
+msgstr "Seleziona il carattere per OSD"
 
 #: glade/zapping.glade2.h:64
 msgid "Select the V4L device"
@@ -290,10 +290,10 @@ msgid ""
 "Teletext viewer may not display the correct font or national characters. You "
 "can select your geographical region here as an additional hint."
 msgstr ""
-"Alcune stazioni non riescono a trasmettono un identificatore di lingua "
-"completo, così il visualizzatore del Televideo non può visualizzare "
-"correttamente i caratteri nazionali. Puoi selezionare qui la tua regione "
-"geografica come aiuto addizionale."
+"Alcune stazioni non trasmettono un identificatore di lingua completo, così "
+"il visualizzatore del Televideo non può visualizzare correttamente i "
+"caratteri nazionali. Puoi selezionare qui la tua regione geografica come "
+"aiuto addizionale."
 
 #: glade/zapping.glade2.h:68
 msgid "Status Bar"
@@ -305,7 +305,7 @@ msgstr "Ferma il plugin"
 
 #: glade/zapping.glade2.h:70
 msgid "TV viewer for the Gnome environment"
-msgstr "Visualizzatore TV per l'ambiente desktop Gnome"
+msgstr "Visualizzatore TV per Gnome"
 
 #: glade/zapping.glade2.h:71
 msgid ""
@@ -361,9 +361,8 @@ msgid "Zapping error console"
 msgstr "Console degli errori di Zapping"
 
 #: glade/zapping.glade2.h:83
-#, fuzzy
 msgid "_Background color:"
-msgstr "Colore di _sfondo predefinito:"
+msgstr "Colore di _sfondo:"
 
 #: glade/zapping.glade2.h:84
 msgid "_Capture size under XVideo:"
@@ -394,9 +393,8 @@ msgid "_Enter channels by:"
 msgstr "Cambia i canali s_econdo:"
 
 #: glade/zapping.glade2.h:91
-#, fuzzy
 msgid "_Foreground color:"
-msgstr "Colore di _primo piano predefinito:"
+msgstr "Colore di _primo piano:"
 
 #: glade/zapping.glade2.h:92
 msgid "_Fullscreen video resolution:"
@@ -424,12 +422,11 @@ msgstr "_Nessuna registrazione audio"
 
 #: glade/zapping.glade2.h:98
 msgid "_Remove after:"
-msgstr ""
+msgstr "_Rimuovi dopo:"
 
 #: glade/zapping.glade2.h:99
-#, fuzzy
 msgid "_Resize using fixed increments"
-msgstr "R_idimensiona con incrementi predefiniti"
+msgstr "_Ridimensiona con incrementi predefiniti"
 
 #: glade/zapping.glade2.h:100
 msgid "_Start Zapping muted"
@@ -437,7 +434,7 @@ msgstr "Avvia Zapping _silenzioso"
 
 #: glade/zapping.glade2.h:101
 msgid "_Teletext implementation:"
-msgstr "Implemen_tazione del Televideo:"
+msgstr "Implementazione del _Televideo:"
 
 #: glade/zapping.glade2.h:102
 msgid "seconds"
@@ -445,26 +442,25 @@ msgstr "secondi"
 
 #: plugins/alirc/alirc.c:37
 msgid "Another lirc plugin"
-msgstr "Un altro plugin di LIRC"
+msgstr "Altro plugin di lirc"
 
 #: plugins/alirc/alirc.c:39
-#, fuzzy
 msgid ""
 "Another plugin to control zapping through lirc\n"
 "\n"
 "To enable this plugin you must edit your ~/.lircrc\n"
 "file. See the Zapping documentation for details.\n"
 msgstr ""
-"Un altro plugin per controllare Zapping attraverso LIRC\n"
+"Altro plugin per controllare Zapping attraverso LIRC\n"
 "\n"
-"Per abilitare questo plugin è necessario modificare il file\n"
-"\n"
-" ~/.lircrc. Per istruzioni vedi il file README.alirc.\n"
+"Per abilitare questo plugin è necessario modificare\n"
+"il file ~/.lircrc. Consulta la documentazione di Zapping\n"
+"per i dettagli.\n"
 "\n"
 
 #: plugins/alirc/alirc.c:44
 msgid "Lets you control zapping through lirc"
-msgstr "Permette di controllare Zapping attraverso LIRC"
+msgstr "Permette di controllare Zapping attraverso lirc"
 
 #. hash collision code
 #. Warn
@@ -581,13 +577,12 @@ msgid "Not implemented yet"
 msgstr "Non ancora implementato"
 
 #: plugins/mpeg/mpeg.c:1885
-#, fuzzy
 msgid "Record a video stream"
-msgstr "Registra video e audio."
+msgstr "Registra un flusso video"
 
 #: plugins/mpeg/mpeg.c:1974
 msgid "Audio/Video Recorder"
-msgstr "Registratore audio e video"
+msgstr "Registratore Audio/Video"
 
 #: plugins/mpeg/mpeg.c:1977
 msgid "This plugin records video and audio into a file"
@@ -597,24 +592,22 @@ msgstr "Questo plugin registra video e audio in un file"
 msgid "Record video and audio."
 msgstr "Registra video e audio."
 
-#: plugins/mpeg/options.c:413 src/ttxview.c:1841
+#: plugins/mpeg/options.c:413 src/ttxview.c:1839
 msgid "Options"
 msgstr "Opzioni"
 
 #. TRANSLATORS: Which codec: None, A, B, C, ...
 #: plugins/mpeg/options.c:740
 msgid "None"
-msgstr ""
+msgstr "Nessuno"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:2
-#, fuzzy
 msgid "Capture _height:"
-msgstr "Altezza della cattura:"
+msgstr "_Altezza della cattura:"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:3
-#, fuzzy
 msgid "Capture _width:"
-msgstr "Larghezza della cattura:"
+msgstr "_Larghezza della cattura:"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:4
 #: plugins/screenshot/screenshot.glade2.h:4
@@ -622,34 +615,28 @@ msgid "Destination file"
 msgstr "File di destinazione"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:5
-#, fuzzy
 msgid "Fil_e format"
-msgstr "Formato del file"
+msgstr "Formato d_el file"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:7
-#, fuzzy
 msgid "Save _as:"
-msgstr "Salva come:"
+msgstr "S_alva come:"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:8
-#, fuzzy
 msgid "_Audio"
-msgstr "Audio"
+msgstr "_Audio"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:9
-#, fuzzy
 msgid "_Codec:"
-msgstr "Codec:"
+msgstr "_Codec:"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:10
-#, fuzzy
 msgid "_Configure..."
-msgstr "Configura..."
+msgstr "_Configura..."
 
 #: plugins/mpeg/mpeg_properties.glade2.h:11
-#, fuzzy
 msgid "_Delete"
-msgstr "Elimina"
+msgstr "_Elimina"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:12
 #: plugins/screenshot/screenshot.glade2.h:12
@@ -657,29 +644,24 @@ msgid "_Format:"
 msgstr "_Formato:"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:13
-#, fuzzy
 msgid "_New"
-msgstr "Nuova"
+msgstr "_Nuovo"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:14
-#, fuzzy
 msgid "_Pause"
-msgstr "Pausa"
+msgstr "_Pausa"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:15
-#, fuzzy
 msgid "_Record"
-msgstr "Registra"
+msgstr "_Registra"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:16
-#, fuzzy
 msgid "_Stop"
-msgstr "Ferma"
+msgstr "_Ferma"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:17
-#, fuzzy
 msgid "_Video"
-msgstr "Video"
+msgstr "_Video"
 
 #: plugins/screenshot/screenshot.c:44
 msgid "Screenshot saver"
@@ -746,11 +728,13 @@ msgstr ""
 "%s"
 
 #: plugins/screenshot/screenshot.c:901
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Sorry, but I cannot write %s\n"
 "%s"
-msgstr "Spiacente, impossibile scrivere\n"
+msgstr ""
+"Spiacente, impossibile scrivere %s\n"
+"%s"
 
 #: plugins/screenshot/screenshot.c:931
 msgid "Sorry, not enough resources to create a new thread"
@@ -772,7 +756,7 @@ msgstr "circa %.2f MB"
 
 #: plugins/screenshot/screenshot.c:1162 plugins/screenshot/screenshot.c:1286
 msgid "This format has no quality option"
-msgstr "Questo formato non ha opzioni della qualità"
+msgstr "Questo formato non ha opzioni di qualità"
 
 #: plugins/screenshot/screenshot.c:1322
 msgid "Only useful with full size, unscaled picture (480 or 576 lines)"
@@ -809,11 +793,12 @@ msgstr "_Aggiungi pulsante alla barra degli strumenti"
 #: plugins/screenshot/screenshot.glade2.h:10
 #, fuzzy
 msgid "_Completion command:"
-msgstr "_Comando di ...:"
+msgstr "_Comando di completamento:"
 
 #: plugins/screenshot/screenshot.glade2.h:11
+#, fuzzy
 msgid "_Deinterlace:"
-msgstr "_Deinterlacciamento:"
+msgstr "_Deinterlaccia:"
 
 #: plugins/screenshot/screenshot.glade2.h:13
 msgid "_Grab on clicking OK"
@@ -837,39 +822,26 @@ msgstr "immagini prima di catturare"
 
 #. TRANSLATORS: Soundcard mixer line.
 #: src/audio.c:491
-#, fuzzy
 msgid "Input:"
-msgstr "Ingresso"
+msgstr "Ingresso:"
 
-#: src/audio.c:522 src/keyboard.c:1143 src/osd.c:1310
+#: src/audio.c:522 src/keyboard.c:1142 src/osd.c:1262
 #: src/properties-handler.c:1461 src/properties.c:925
 msgid "General Options"
 msgstr "Opzioni generali"
 
-#: src/audio.c:635
+#: src/audio.c:633
 msgid "<blue>Audio off</blue>"
-msgstr ""
+msgstr "<blue>Audio non attivo</blue>"
 
-#: src/audio.c:636
+#: src/audio.c:634
 msgid "<yellow>Audio on</yellow>"
-msgstr ""
-
-#: src/audio.c:638
-#, fuzzy
-msgid "<span foreground=\"blue\">Audio off</span>"
-msgstr "<span foreground=\"blue\">%s %d %%</span>"
-
-#: src/audio.c:639
-#, fuzzy
-msgid "<span foreground=\"yellow\">Audio on</span>"
-msgstr "<span foreground=\"yellow\">%s</span>"
+msgstr "<yellow>Audio attivo</yellow>"
 
 #: src/capture.c:432
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot start capturing: %s"
-msgstr ""
-"Impossibile avviare la sovrascrittura a tutto schermo.\n"
-"%s"
+msgstr "Impossibile iniziare a catturare: %s"
 
 #: src/channel_editor.c:582
 #, c-format
@@ -885,9 +857,8 @@ msgid "Select the frequency table used in your country"
 msgstr "Seleziona la tavola delle frequenze usata nel tuo paese"
 
 #: src/channel_editor.c:1564
-#, fuzzy
 msgid "Ch. Name"
-msgstr "Nome"
+msgstr "Nome del can."
 
 #: src/channel_editor.c:1569
 msgid "Freq (MHz)"
@@ -895,32 +866,28 @@ msgstr "Freq (MHz)"
 
 #. append
 #: src/channel_editor.c:1622
-#, fuzzy
 msgid "Channel name"
-msgstr "Nome canonico:"
+msgstr "Nome del canale"
 
 #. append
 #: src/channel_editor.c:1626
-#, fuzzy
 msgid "Video input"
-msgstr "Ingressi video"
+msgstr "Ingresso video"
 
 #. append
 #: src/channel_editor.c:1630
-#, fuzzy
 msgid "RF Channel"
-msgstr "Canale"
+msgstr "Canale RF"
 
 #. append
 #: src/channel_editor.c:1634
-#, fuzzy
 msgid "Video standard"
 msgstr "Standard video"
 
 #. append
 #: src/channel_editor.c:1638 src/keyboard.c:437
 msgid "Accelerator"
-msgstr ""
+msgstr "Acceleratore"
 
 #: src/channel_editor.c:1653
 msgid "Do not change input"
@@ -947,9 +914,9 @@ msgid ""
 "Select a suitable frequency table, then click here to search through all "
 "channels in the table and add the received stations to the channel list."
 msgstr ""
-"Seleziona una tavola delle frequenze adatta, quindi fai clic qui per cercare "
-"attraverso tutti i canali della tavola e aggiungere le stazioni ricevute "
-"alla lista dei canali."
+"Seleziona una tavola delle frequenze adatta, quindi fai click qui per "
+"cercare attraverso tutti i canali della tavola e aggiungere le stazioni "
+"ricevute alla lista dei canali."
 
 #: src/channel_editor.c:1788
 msgid "Add all _channels"
@@ -973,65 +940,62 @@ msgid "Edit channel"
 msgstr "Modifica canale"
 
 #: src/channel_editor.c:1877
-#, fuzzy
 msgid "Name:"
-msgstr "Nome"
+msgstr "Nome:"
 
 #: src/channel_editor.c:1886
-#, fuzzy
 msgid "Video input:"
-msgstr "Ingressi video"
+msgstr "Ingresso video:"
 
 #: src/channel_editor.c:1897
 msgid "Fine tuning:"
-msgstr ""
+msgstr "Sintonizzazione precisa:"
 
 #: src/channel_editor.c:1902
 msgid "MHz"
 msgstr "MHz"
 
 #: src/channel_editor.c:1911
-#, fuzzy
 msgid "Video standard:"
-msgstr "Standard video"
+msgstr "Standard video:"
 
 #: src/channel_editor.c:1922
 msgid "Accelerator:"
-msgstr ""
+msgstr "Acceleratore:"
 
 #: src/eggcellrendererkeys.c:160 src/eggcellrendererkeys.c:161
 msgid "Accelerator key"
-msgstr ""
+msgstr "Tasto acceleratore"
 
 #: src/eggcellrendererkeys.c:170 src/eggcellrendererkeys.c:171
 msgid "Accelerator modifiers"
 msgstr ""
 
 #: src/eggcellrendererkeys.c:180
+#, fuzzy
 msgid "Accelerator Mode"
-msgstr ""
+msgstr "Modalità dell'acceleratore"
 
 #: src/eggcellrendererkeys.c:181
 msgid "The type of accelerator."
-msgstr ""
+msgstr "Il tipo di acceleratore."
 
 #: src/eggcellrendererkeys.c:219
-#, fuzzy
 msgid "Disabled"
-msgstr "cavo"
+msgstr "Disabilitato"
 
 #: src/eggcellrendererkeys.c:330 src/eggcellrendererkeys.c:564
+#, fuzzy
 msgid "Type a new accelerator, or press Backspace to clear"
-msgstr ""
+msgstr "Digita un nuovo acceleratore, o premi la barra spazio per ..."
 
 #: src/eggcellrendererkeys.c:567
 msgid "Type a new accelerator"
-msgstr ""
+msgstr "Digita un nuovo acceleratore"
 
 #: src/frequencies.c:93 src/frequencies.c:159
-#, fuzzy
 msgid "broadcast"
-msgstr "broadcast|trasmissione"
+msgstr "trasmissione"
 
 #: src/frequencies.c:106
 msgid "cable IRC"
@@ -1052,12 +1016,11 @@ msgstr "cavo Autocom"
 
 #: src/fullscreen.c:279
 msgid "No XFree86 DGA extension.\n"
-msgstr ""
+msgstr "Senza estensione DGA di XFree86.\n"
 
 #: src/interface.c:280
-#, fuzzy
 msgid "Show Menu and Toolbar"
-msgstr "Menu e barra degli strumenti"
+msgstr "Mostra menu e barra strumenti"
 
 #: src/interface.c:286
 msgid "Keep Window on Top"
@@ -1083,7 +1046,7 @@ msgstr "_Televideo"
 msgid "_Subtitles"
 msgstr "_Sottotitoli"
 
-#: src/interface.c:329 src/ttxview.c:3777 src/ttxview.c:4025
+#: src/interface.c:329 src/ttxview.c:3741 src/ttxview.c:3989
 msgid "_Bookmarks"
 msgstr "Segnali_bri"
 
@@ -1108,9 +1071,8 @@ msgid "_Mute"
 msgstr "S_ilenzio"
 
 #: src/interface.c:571
-#, fuzzy
 msgid "Show menu and toolbar"
-msgstr "Menu e barra degli strumenti"
+msgstr "Mostra menu e barra strumenti"
 
 #: src/interface.c:577
 msgid "Keep window on top"
@@ -1122,7 +1084,7 @@ msgstr "Can. su"
 
 #: src/interface.c:690
 msgid "Switch to higher channel"
-msgstr "Cambia al canale più alto"
+msgstr "Cambia al canale precedente"
 
 #: src/interface.c:695
 msgid "Ch. Down"
@@ -1130,7 +1092,7 @@ msgstr "Can. giù"
 
 #: src/interface.c:695
 msgid "Switch to lower channel"
-msgstr "Cambia al canale più basso"
+msgstr "Cambia al canale successivo"
 
 #: src/interface.c:702 src/v4linterface.c:631
 msgid "Controls"
@@ -1154,14 +1116,12 @@ msgid "Activate Teletext mode"
 msgstr "Attiva la modalità Televideo"
 
 #: src/interface.c:722 src/main.c:156
-#, fuzzy
 msgid "Subtitles"
-msgstr "S_ottotitoli"
+msgstr "Sottotitoli"
 
 #: src/interface.c:722
-#, fuzzy
 msgid "Switch subtitles on or off"
-msgstr "Attiva e disattiva l'audio"
+msgstr "Attiva e disattiva i sottotitoli"
 
 #: src/keyboard.c:83 src/keyboard.c:106
 msgid "Ctrl+"
@@ -1179,11 +1139,11 @@ msgstr "Shift+"
 msgid "Key table..."
 msgstr "Tabella dei tasti..."
 
-#: src/keyboard.c:1100
+#: src/keyboard.c:1099
 msgid "Command"
 msgstr "Comando"
 
-#: src/keyboard.c:1114 src/properties-handler.c:799
+#: src/keyboard.c:1113 src/properties-handler.c:799
 msgid "Shortcut"
 msgstr "Scorciatoia"
 
@@ -1209,6 +1169,7 @@ msgid "XVideo image overlay port"
 msgstr "Porta della sovrascrittura dell'immagine di XVideo"
 
 #: src/main.c:254
+#, fuzzy
 msgid "Disable XVideo video input support"
 msgstr "Disabilita supporto ingresso video di XVideo"
 
@@ -1234,9 +1195,8 @@ msgid "Disable VBI support"
 msgstr "Disabilita supporto VBI"
 
 #: src/main.c:311
-#, fuzzy
 msgid "Disable plugins"
-msgstr "Disabilita supporto plugin"
+msgstr "Disabilita plugin"
 
 #. TRANSLATORS: --no-zsfb command line switch.
 #: src/main.c:325 src/main.c:371
@@ -1245,7 +1205,7 @@ msgstr "Obsoleto"
 
 #: src/main.c:334
 msgid "Color depth of the X display"
-msgstr "Profondità di colore del display X"
+msgstr "Profondità di colore del server X"
 
 #: src/main.c:335
 msgid "BPP"
@@ -1277,12 +1237,12 @@ msgstr "Impossibile ottenere la struttura delle informazioni del dispositivo"
 
 #: src/main.c:511
 msgid "Zapping couldn't be started"
-msgstr "Impossibile avviare Zapping"
+msgstr "Zapping non è potuto partire"
 
 #: src/main.c:569
-#, fuzzy, c-format
+#, c-format
 msgid "Couldn't open %s, try other devices?"
-msgstr "Impossibile aprire %s, posso provare alcune opzioni comuni?"
+msgstr "Impossibile aprire %s, provare con altri dispositivi?"
 
 #: src/main.c:594
 #, c-format
@@ -1299,21 +1259,22 @@ msgstr ""
 "%s"
 
 #: src/main.c:719
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Cannot restore previous mode, will try capture mode:\n"
 "%s"
 msgstr ""
-"Impossibile ripristinare la modalità precedente%s:\n"
+"Impossibile ripristinare la modalità precedente, proverò la modalità "
+"cattura:\n"
 "%s"
 
 #: src/main.c:722
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Cannot restore previous mode:\n"
 "%s"
 msgstr ""
-"Impossibile ripristinare la modalità precedente%s:\n"
+"Impossibile ripristinare la modalità precedente:\n"
 "%s"
 
 #: src/main.c:727
@@ -1350,7 +1311,7 @@ msgstr ""
 "la configurazione sarà perduta.\n"
 "Possibili cause di ciò:\n"
 "   - Non c'è abbastanza memoria libera\n"
-"   - Non sono stati impostati i permessi di scrittura a $HOME/.zapping\n"
+"   - Non hai i permessi di scrittura a $HOME/.zapping\n"
 "   - libxml non funziona (?)\n"
 "   - o, più probabilmente, hai trovato un bug in\n"
 "     %s. Contatta l'autore.\n"
@@ -1359,22 +1320,26 @@ msgstr ""
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Spiacente, Zapping non può creare la conigurazione"
 
-#: src/osd.c:844
+#: src/osd.c:813
 msgid "Please choose a font for OSD in preferences."
-msgstr ""
+msgstr "Scegliere un carattere per OSD nelle preferenze."
 
-#: src/osd.c:847
+#: src/osd.c:816
 #, c-format
 msgid ""
 "The configured font \"%s\" cannot be loaded, please select another one in "
 "preferences\n"
 msgstr ""
+"Impossibile caricare il carattere configurato \"%s\", selezionarne un altro "
+"nelle preferenze\n"
 
-#: src/osd.c:857
+#: src/osd.c:826
 msgid ""
 "No font could be loaded, please make sure\n"
 "your system is properly configured."
 msgstr ""
+"Non è stato possibile caricare alcun carattere,\n"
+"assicurarsi di aver configurato correttamente il sistema."
 
 #: src/oss.c:184
 msgid "Audio device:"
@@ -1459,12 +1424,11 @@ msgstr "\"%s\" non fornisce una versione"
 
 #: src/plugins.c:224
 msgid "Insufficient memory"
-msgstr ""
+msgstr "Memoria insufficiente"
 
 #: src/plugins.c:233
-#, fuzzy
 msgid "No description available"
-msgstr "[Nessuna descrizione fornita]"
+msgstr "Nessuna descrizione disponibile"
 
 #. Warn
 #: src/plugins.c:321
@@ -1522,7 +1486,7 @@ msgstr "Nessun ingresso disponibile"
 
 #: src/properties-handler.c:116
 msgid "Your video device has no inputs"
-msgstr "Il dispositivo video non ha ingressi"
+msgstr "Il tuo dispositivo video non ha ingressi"
 
 #: src/properties-handler.c:131
 msgid "TV input"
@@ -1549,7 +1513,7 @@ msgstr "Altezza"
 #. TRANSLATORS: Fullscreen video mode
 #: src/properties-handler.c:1024
 msgid "Do not change"
-msgstr "Non cambiare"
+msgstr "Non cambiare modalità"
 
 #: src/properties-handler.c:1028 src/tveng1.c:283 src/tveng2.c:463
 #: src/tveng25.c:321
@@ -1563,7 +1527,7 @@ msgid "%u x %u @ %u Hz"
 msgstr "%u x %u @ %u Hz"
 
 #: src/properties-handler.c:1180 src/properties-handler.c:1462
-#: src/ttxview.c:3930
+#: src/ttxview.c:3894
 msgid "VBI Options"
 msgstr "Opzioni VBI"
 
@@ -1573,9 +1537,9 @@ msgstr "TV interattiva"
 
 #: src/properties-handler.c:1447
 msgid "Main Window"
-msgstr "Finestra principale"
+msgstr "Finestra Principale"
 
-#: src/properties-handler.c:1452 src/ttxview.c:3930
+#: src/properties-handler.c:1452 src/ttxview.c:3894
 msgid "General"
 msgstr "Generale"
 
@@ -1583,47 +1547,47 @@ msgstr "Generale"
 msgid "Zapping Properties"
 msgstr "Proprietà di Zapping"
 
-#: src/ttxview.c:433
+#: src/ttxview.c:431
 #, c-format
 msgid "Loading page %x..."
 msgstr "Caricamento pagina %x..."
 
-#: src/ttxview.c:435
+#: src/ttxview.c:433
 #, c-format
 msgid "Loading page %x.%02x..."
 msgstr "Caricamento pagina %x.%02x..."
 
-#: src/ttxview.c:538
+#: src/ttxview.c:536
 #, c-format
 msgid " Page %x"
 msgstr " Pagina %x"
 
-#: src/ttxview.c:542
+#: src/ttxview.c:540
 #, c-format
 msgid " Subpage %x"
 msgstr " Sottopagina %x"
 
-#: src/ttxview.c:690 src/ttxview.c:3176
+#: src/ttxview.c:688 src/ttxview.c:3143
 msgid "VBI has been disabled"
 msgstr "VBI è stato disabilitato"
 
-#: src/ttxview.c:911
+#: src/ttxview.c:909
 msgid "Text export failed"
 msgstr "Esportazione del testo fallita"
 
-#: src/ttxview.c:1279
+#: src/ttxview.c:1277
 msgid "Selection copied to clipboard"
 msgstr "Selezione copiata negli appunti"
 
-#: src/ttxview.c:1363 src/ttxview.c:2105
+#: src/ttxview.c:1361 src/ttxview.c:2103
 msgid "No page loaded"
 msgstr "Nessuna pagina caricata"
 
-#: src/ttxview.c:1376
+#: src/ttxview.c:1374
 msgid "Selecting - press Shift key for table mode"
-msgstr "Selezione - premi Shift per la modalità a tabella"
+msgstr "Selezione - premi Shift per la modalità tabella"
 
-#: src/ttxview.c:1908
+#: src/ttxview.c:1906
 #, c-format
 msgid ""
 "Cannot create directory %s:\n"
@@ -1632,194 +1596,190 @@ msgstr ""
 "Impossibile creare la directory %s:\n"
 "%s"
 
-#: src/ttxview.c:1981
+#: src/ttxview.c:1979
 msgid "Save as"
 msgstr "Salva come"
 
-#: src/ttxview.c:2003
+#: src/ttxview.c:2001
 msgid "Format:"
 msgstr "Formato:"
 
-#: src/ttxview.c:2197
+#: src/ttxview.c:2195
 msgid "Text Color"
 msgstr "Colore del testo"
 
-#: src/ttxview.c:2213 src/tveng2.c:430 src/tveng25.c:291 src/tvengbktr.c:272
+#: src/ttxview.c:2211 src/tveng2.c:430 src/tveng25.c:291 src/tvengbktr.c:272
 #: src/tvengbktr.c:284 src/tvengxv.c:523
 msgid "Brightness"
 msgstr "Luminosità"
 
-#: src/ttxview.c:2235 src/tveng2.c:431 src/tveng25.c:292 src/tvengbktr.c:273
+#: src/ttxview.c:2233 src/tveng2.c:431 src/tveng25.c:292 src/tvengbktr.c:273
 #: src/tvengbktr.c:285 src/tvengxv.c:524
 msgid "Contrast"
 msgstr "Contrasto"
 
-#: src/ttxview.c:2573
+#: src/ttxview.c:2571
 msgid "Bookmarks"
 msgstr "Segnalibri"
 
-#: src/ttxview.c:2619
+#: src/ttxview.c:2617
 msgid "Channel"
 msgstr "Canale"
 
-#: src/ttxview.c:2625
+#: src/ttxview.c:2623
 msgid "Page"
 msgstr "Pagina"
 
-#: src/ttxview.c:2630
+#: src/ttxview.c:2628
 msgid "Description"
 msgstr "Descrizione"
 
-#: src/ttxview.c:2713
+#: src/ttxview.c:2711
 #, c-format
 msgid "Added page %x.%02x to bookmarks"
 msgstr "Pagina %x.%02x aggiunta ai segnalibri"
 
-#: src/ttxview.c:2716
+#: src/ttxview.c:2714
 #, c-format
 msgid "Added page %x to bookmarks"
 msgstr "Pagina %x aggiunta ai segnalibri"
 
-#: src/ttxview.c:2770
+#: src/ttxview.c:2768
 msgid "_Add Bookmark"
 msgstr "_Aggiungi segnalibro"
 
-#: src/ttxview.c:2776
+#: src/ttxview.c:2774
 msgid "_Edit Bookmarks..."
 msgstr "Modifica s_egnalibri..."
 
-#: src/ttxview.c:2968 src/ttxview.c:3209
+#: src/ttxview.c:2967 src/ttxview.c:3173
 msgid "Search text:"
 msgstr "Testo da cercare:"
 
-#: src/ttxview.c:2978
+#: src/ttxview.c:2975
 #, c-format
 msgid "Found text on page %x.%02x:"
-msgstr "Testo trovato nella pagina %x.%02x:"
+msgstr "Testo trovato nella pagine %x.%02x:"
 
-#: src/ttxview.c:2985
+#: src/ttxview.c:2982
 msgid "Not found:"
 msgstr "Non trovato:"
 
-#: src/ttxview.c:2996
+#: src/ttxview.c:2993
 msgid "Page memory is empty"
 msgstr "La memoria delle pagine è vuota"
 
-#: src/ttxview.c:3198 src/ttxview.c:4646
-#, fuzzy
+#: src/ttxview.c:3162 src/ttxview.c:4610
 msgid "Search page memory"
-msgstr "Cerca nella memoria delle pagine"
+msgstr "Cerca nella memoria delle pagine:"
 
-#: src/ttxview.c:3218
+#: src/ttxview.c:3182
 msgid "_Regular expression"
 msgstr "Esp_ressione regolare"
 
-#: src/ttxview.c:3223
+#: src/ttxview.c:3187
 msgid "Search case _insensitive"
 msgstr "Non d_istinguere MAIUSCOLE/minuscole"
 
-#: src/ttxview.c:3462
-#, fuzzy
+#: src/ttxview.c:3426
 msgid "_Disable"
-msgstr "cavo"
+msgstr "_Disabilita"
 
-#: src/ttxview.c:3531
+#: src/ttxview.c:3495
 #, c-format
 msgid "Page %x"
 msgstr "Pagina %x"
 
-#: src/ttxview.c:3598
+#: src/ttxview.c:3562
 msgid "Subtitle index"
 msgstr "Indice dei sottotitoli"
 
-#: src/ttxview.c:3605
+#: src/ttxview.c:3569
 msgid "Now and Next"
 msgstr "Ora e in seguito"
 
-#: src/ttxview.c:3612
+#: src/ttxview.c:3576
 msgid "Current program"
 msgstr "Programma corrente"
 
-#: src/ttxview.c:3619
+#: src/ttxview.c:3583
 msgid "Program Index"
 msgstr "Indice del programma"
 
-#: src/ttxview.c:3626
+#: src/ttxview.c:3590
 msgid "Program Schedule"
 msgstr "Orario del programma"
 
-#: src/ttxview.c:3634
+#: src/ttxview.c:3598
 msgid "Program Warning"
 msgstr "Avviso del programma"
 
-#: src/ttxview.c:3719
+#: src/ttxview.c:3683
 msgid "_Open"
 msgstr "_Apri"
 
-#: src/ttxview.c:3725
+#: src/ttxview.c:3689
 msgid "Open in _New Window"
 msgstr "Apri i_n una nuova finestra"
 
-#: src/ttxview.c:3736
+#: src/ttxview.c:3700
 msgid "_Open Link"
 msgstr "_Apri collegamento"
 
-#: src/ttxview.c:3747 src/ttxview.c:3953
+#: src/ttxview.c:3711 src/ttxview.c:3917
 msgid "_New Window"
 msgstr "_Nuova finestra"
 
-#: src/ttxview.c:3753
+#: src/ttxview.c:3717
 msgid "_Save as..."
 msgstr "_Salva come..."
 
-#: src/ttxview.c:3759
+#: src/ttxview.c:3723
 msgid "S_earch..."
 msgstr "C_erca..."
 
-#: src/ttxview.c:3765
-#, fuzzy
+#: src/ttxview.c:3729
 msgid "_Colors..."
-msgstr "_Colore..."
+msgstr "_Colori..."
 
-#: src/ttxview.c:3771
+#: src/ttxview.c:3735
 msgid "S_ubtitles"
 msgstr "S_ottotitoli"
 
-#: src/ttxview.c:3969
+#: src/ttxview.c:3933
 msgid "_Search"
 msgstr "_Cerca"
 
-#: src/ttxview.c:3981
+#: src/ttxview.c:3945
 msgid "_Toolbar"
 msgstr "Barra degli s_trumenti"
 
-#: src/ttxview.c:3983
+#: src/ttxview.c:3947
 msgid "_Statusbar"
 msgstr "Barra di _stato"
 
-#: src/ttxview.c:3986
-#, fuzzy
+#: src/ttxview.c:3950
 msgid "_Colors"
-msgstr "_Colore"
+msgstr "_Colori"
 
-#: src/ttxview.c:3994
+#: src/ttxview.c:3958
 msgid "_Back"
 msgstr "_Indietro"
 
-#: src/ttxview.c:4000
+#: src/ttxview.c:3964
 msgid "_Forward"
 msgstr "_Avanti"
 
-#: src/ttxview.c:4007
+#: src/ttxview.c:3971
 msgid "_Home"
-msgstr "_Indice"
+msgstr "I_ndice"
 
-#: src/ttxview.c:4023
+#: src/ttxview.c:3987
 msgid "_Go"
 msgstr "_Vai"
 
 #. TRANSLATORS: "Cannot open <URL>" (http or smtp).
-#: src/ttxview.c:4279 src/zvbi.c:596
+#: src/ttxview.c:4243 src/zvbi.c:596
 #, c-format
 msgid ""
 "Cannot open %s:\n"
@@ -1828,51 +1788,51 @@ msgstr ""
 "Impossibile aprire %s:\n"
 "%s"
 
-#: src/ttxview.c:4542
+#: src/ttxview.c:4506
 msgid "Next page"
 msgstr "Pagina successiva"
 
-#: src/ttxview.c:4545
+#: src/ttxview.c:4509
 msgid "Previous page"
 msgstr "Pagina precedente"
 
-#: src/ttxview.c:4548
+#: src/ttxview.c:4512
 msgid "Previous subpage"
 msgstr "Sottopagina precedente"
 
-#: src/ttxview.c:4551
+#: src/ttxview.c:4515
 msgid "Next subpage"
 msgstr "Sottopagina successiva"
 
-#: src/ttxview.c:4619
+#: src/ttxview.c:4583
 msgid "Previous page in history"
 msgstr "Pagina precedente nella cronologia"
 
-#: src/ttxview.c:4625
+#: src/ttxview.c:4589
 msgid "Next page in history"
 msgstr "Pagina seguente nella cronologia"
 
-#: src/ttxview.c:4634
+#: src/ttxview.c:4598
 msgid "Index"
 msgstr "Indice"
 
-#: src/ttxview.c:4634
+#: src/ttxview.c:4598
 msgid "Go to the index page"
 msgstr "Vai alla pagina indice"
 
-#: src/ttxview.c:4641
+#: src/ttxview.c:4605
 msgid "Open new Teletext window"
 msgstr "Apri una nuova finestra di Televideo"
 
-#: src/ttxview.c:4664
+#: src/ttxview.c:4628
 msgid "Hold the current subpage"
 msgstr "Blocca la sottopagina corrente"
 
-#: src/ttxview.c:4686
+#: src/ttxview.c:4650
 msgid "Reveal"
 msgstr "Rivela"
 
-#: src/ttxview.c:4686
+#: src/ttxview.c:4650
 msgid "Reveal concealed text"
 msgstr "Rivela il testo nascosto"
 
@@ -1881,18 +1841,19 @@ msgid "Volume"
 msgstr "Volume"
 
 #: src/tveng.c:2592
-#, fuzzy
 msgid "Cannot execute zapping_setup_fb."
-msgstr "Errore sconosciuto in zapping_setup_fb."
+msgstr "Impossibile eseguire zapping_setup_fb."
 
 #: src/tveng.c:2608
 msgid "zapping_setup_fb failed."
 msgstr "zapping_setup_fb fallito."
 
 #: src/tveng.c:2613
-#, fuzzy, c-format
+#, c-format
 msgid "zapping_setup_fb not found in \"%s\" or executable search path."
-msgstr "zapping_setup_fb non trovato in "
+msgstr ""
+"zapping_setup_fb non trovato in \"%s\" o nel percorso di ricerca degli "
+"eseguibili."
 
 #: src/tveng.c:2620
 msgid "Unknown error in zapping_setup_fb."
@@ -2020,45 +1981,41 @@ msgstr "%s non sembra un dispositivo di cattura valido"
 #: src/tveng2.c:1761 src/tveng25.c:1096
 #, c-format
 msgid "Sorry, but \"%s\" cannot do streaming"
-msgstr "Spiacente, ma \"%s\" non può fare streaming"
+msgstr "Spiacente, ma \"%s\" non può essere catturato"
 
 #: src/tveng2.c:1771
 #, c-format
 msgid "Sorry, but \"%s\" cannot do select() on file descriptors"
-msgstr "Spiacente, ma \"%s\" non può fare select() sui descrittori di file"
+msgstr "Spiacente, ma \"%s\" non può fare select() sui descrittori dei file"
 
 #: src/tvengbktr.c:277
-#, fuzzy
 msgid "U/V Gain"
-msgstr "Guadagno"
+msgstr "Guadagno U/V"
 
 #: src/tvengbktr.c:289
-#, fuzzy
 msgid "U Saturation"
-msgstr "Saturazione"
+msgstr "Saturazione U"
 
 #: src/tvengbktr.c:290
-#, fuzzy
 msgid "V Saturation"
-msgstr "Saturazione"
+msgstr "Saturazione V"
 
 #: src/tvengxv.c:527
-#, fuzzy
 msgid "Color"
-msgstr "_Colore"
+msgstr "Colore"
 
 #: src/tvengxv.c:528
 #, fuzzy
 msgid "Interlace"
-msgstr "_Deinterlacciamento:"
+msgstr "Interlaccia"
 
 #: src/tvengxv.c:569
 msgid "No"
-msgstr ""
+msgstr "No"
 
 #: src/tvengxv.c:570
 msgid "Yes"
-msgstr ""
+msgstr "Sì"
 
 #: src/tvengxv.c:571
 msgid "Doublescan"
@@ -2071,11 +2028,11 @@ msgstr ""
 msgid "Adjust %s"
 msgstr "Regola %s"
 
-#: src/v4linterface.c:1072 src/zmisc.c:1785
+#: src/v4linterface.c:1072 src/zmisc.c:1780
 msgid "Unknown"
 msgstr "Sconosciuto"
 
-#: src/v4linterface.c:1081 src/v4linterface.c:1985
+#: src/v4linterface.c:1081 src/v4linterface.c:1984
 msgid "Unnamed"
 msgstr "Senza nome"
 
@@ -2087,24 +2044,23 @@ msgstr "Nessun ingresso"
 msgid "No standard"
 msgstr "Nessuno standard"
 
-#: src/v4linterface.c:1886
+#: src/v4linterface.c:1885
 msgid "Video standards"
 msgstr "Standard video"
 
-#: src/v4linterface.c:1903
+#: src/v4linterface.c:1902
 msgid "Audio inputs"
 msgstr "Ingressi audio"
 
-#: src/v4linterface.c:1916
+#: src/v4linterface.c:1915
 msgid "Video inputs"
 msgstr "Ingressi video"
 
 #. TRANSLATORS: This is displayed in the channel menu when
 #. the channel list is empty.
-#: src/v4linterface.c:2013
-#, fuzzy
+#: src/v4linterface.c:2012
 msgid "No channels"
-msgstr "Nessun canale sintonizzato"
+msgstr "Nessun canale"
 
 #: src/zapzilla.c:83
 msgid "VBI device to use"
@@ -2116,7 +2072,7 @@ msgstr "DISPOSITIVO"
 
 #: src/zapzilla.c:113
 msgid "Zapzilla couldn't be started"
-msgstr "Impossibile avviare Zapzilla"
+msgstr "Zapzilla non è potuto partire"
 
 #: src/zapzilla.c:192
 msgid "Sorry, Zapzilla is unable to create the config tree"
@@ -2154,37 +2110,36 @@ msgid "VBI has been disabled, or it doesn't work."
 msgstr "VBI è stato disabilitato, o non funziona."
 
 #: src/zmisc.c:868
-#, fuzzy
 msgid "Hide the statusbar"
 msgstr "Nascondi la barra di stato"
 
-#: src/zmisc.c:975
+#: src/zmisc.c:970
 msgid "The path must start with /"
 msgstr "Il percorso deve iniziare con /"
 
-#: src/zmisc.c:990
+#: src/zmisc.c:985
 #, c-format
 msgid "Cannot create %s: %s"
 msgstr "Impossibile creare %s: %s"
 
-#: src/zmisc.c:1003
+#: src/zmisc.c:998
 #, c-format
 msgid "%s is not a directory"
 msgstr "%s non è una directory"
 
-#: src/zmisc.c:1696 src/zmisc.c:1700
+#: src/zmisc.c:1691 src/zmisc.c:1695
 msgid "Reset"
 msgstr "Ripristina"
 
-#: src/zmisc.c:1980
+#: src/zmisc.c:1975
 msgid "Device:"
 msgstr "Dispositivo:"
 
-#: src/zmisc.c:1981
+#: src/zmisc.c:1976
 msgid "Driver:"
 msgstr "Driver:"
 
-#: src/zmisc.c:1982
+#: src/zmisc.c:1977
 msgid "Device file:"
 msgstr "File del dispositivo:"
 
@@ -2219,7 +2174,7 @@ msgstr "Effetti Speciali"
 
 #: src/zvbi.c:147
 msgid "Data Service"
-msgstr "Servizio di dati"
+msgstr "Servizio di Dati"
 
 #: src/zvbi.c:148
 msgid "Unknown Audio"
@@ -2285,7 +2240,7 @@ msgstr " %s: Pagina del Televideo %x"
 #: src/zvbi.c:741
 #, c-format
 msgid " Teletext Page %x"
-msgstr "Pagina del Televideo %x"
+msgstr " Pagina del Televideo %x"
 
 #: src/zvbi.c:742
 msgid "Open this page with Zapzilla"
@@ -2294,150 +2249,3 @@ msgstr "Apri questa pagina con Zapzilla"
 #: zapping.desktop.in.h:1
 msgid "TV viewer"
 msgstr "Visualizzatore TV"
-
-#~ msgid ", I will try starting capture mode"
-#~ msgstr ", proverò ad avviare la modalità cattura"
-
-#~ msgid "Set debug messages on"
-#~ msgstr "Attiva i messaggi di debug"
-
-#~ msgid "Zapping"
-#~ msgstr "Zapping"
-
-#~ msgid "No id"
-#~ msgstr "Nessun id"
-
-#~ msgid "<span foreground=\"green\">%s</span>"
-#~ msgstr "<span foreground=\"green\">%s</span>"
-
-#~ msgid ""
-#~ "Cannot show %s:\n"
-#~ "%s"
-#~ msgstr ""
-#~ "Impossibile mostrare %s:\n"
-#~ "%s"
-
-#~ msgid "Click me"
-#~ msgstr "Fai clic qui"
-
-#~ msgid "zapping_setup_fb exited abnormally."
-#~ msgstr "zapping_setup_fb non è terminato regolarmente."
-
-#~ msgid " or executable search path."
-#~ msgstr " o nel percorso di ricerca degli eseguibili."
-
-#~ msgid "There wasn't enough mem for allocating symbol %d in %s"
-#~ msgstr "Non c'era abbastanza memoria per allocare il simbolo %d in %s"
-
-#~ msgid "%s with %d tuner"
-#~ msgid_plural "%s with %d tuners"
-#~ msgstr[0] "%s con %d sintonizzatore"
-#~ msgstr[1] "%s con %d sintonizzatori"
-
-#~ msgid "Standard"
-#~ msgstr "Standard"
-
-#~ msgid "Key"
-#~ msgstr "Tasto"
-
-#~ msgid ""
-#~ "When your country is not listed or misrepresented please send an e-mail,\n"
-#~ "if possible including the correct frequency table, to zapping-misc@lists."
-#~ "sf.net."
-#~ msgstr ""
-#~ "Se la tua nazione non è elencata o presenta valori non corretti invia "
-#~ "una\n"
-#~ "email all'indirizzo zapping-misc@lists.sf, includendo se possibile la "
-#~ "tavola\n"
-#~ "delle frequenze corretta."
-
-#~ msgid "888.88"
-#~ msgstr "888.88"
-
-#~ msgid "OSS %u.%u.%u"
-#~ msgstr "OSS %u.%u.%u"
-
-#~ msgid "_Overlay subtitle pages automatically"
-#~ msgstr "S_ovrascrivi pagine dei sottotitoli automaticamente"
-
-#~ msgid "_Subtitle page:"
-#~ msgstr "Pagina dei _sottotitoli:"
-
-#~ msgid "_Timeout:"
-#~ msgstr "_Timeout:"
-
-#~ msgid "_Use VBI for getting station names"
-#~ msgstr "_Usa VBI per ricavare i nome delle stazioni"
-
-#~ msgid ""
-#~ "\n"
-#~ "The image won't be saved.\n"
-#~ msgstr ""
-#~ "\n"
-#~ "L'immagine non sarà salvata.\n"
-
-#~ msgid "Recording dialog"
-#~ msgstr "Finestra di dialogo di registrazione"
-
-#~ msgid "What to do with the compressed stream"
-#~ msgstr "Cosa fare con lo stream compresso"
-
-#~ msgid "Save to file"
-#~ msgstr "Salva su file"
-
-#~ msgid "/dev/null"
-#~ msgstr "/dev/null"
-
-#~ msgid "Write the encoded stream to:"
-#~ msgstr "Scrivi lo stream compresso su:"
-
-#~ msgid "MPEG file destination"
-#~ msgstr "File MPEG di destinazione"
-
-#~ msgid "Sets the dir where the encoded clips will be written to"
-#~ msgstr "Imposta la directory dove salvare i filmati compressi"
-
-#~ msgid "Engine verbosity (output goes to stderr):"
-#~ msgstr "Prolissità del compressore (l'output va sullo stderr):"
-
-#~ msgid "Input / output"
-#~ msgstr "Ingresso / uscita"
-
-#~ msgid "Saving MPEG"
-#~ msgstr "Salvataggio MPEG"
-
-#~ msgid "Press this when you are done"
-#~ msgstr "Premi questo quando hai fatto"
-
-#~ msgid "RTE id (for debugging)"
-#~ msgstr "Id di RTE (per il debug)"
-
-#~ msgid "Destination"
-#~ msgstr "Destinazione"
-
-#~ msgid "Mux mode"
-#~ msgstr "Modalità mux"
-
-#~ msgid "Some more info: bit rates"
-#~ msgstr "Altre informazioni: bit rate"
-
-#~ msgid "Dynamic stats (dropped, output M's, etc)"
-#~ msgstr "Statistiche dinamiche (persi, Mbyte in uscita, ecc)"
-
-#~ msgid "Save mpeg"
-#~ msgstr "Salva mpeg"
-
-#~ msgid "Configure the properties for this plugin"
-#~ msgstr "Configura le proprietà di questo plugin"
-
-#~ msgid "Configure"
-#~ msgstr "Configura"
-
-#~ msgid "Destination file:"
-#~ msgstr "File di destinazione:"
-
-#~ msgid "%P %%"
-#~ msgstr "%P %%"
-
-#~ msgid "New Format"
-#~ msgstr "Nuovo formato"
