@@ -651,5 +651,15 @@ until the requested page has been received.</long>
 period).</short>
    </locale>
   </schema>
+  <schema>
+   <key>/schemas/apps/zapping/plugins/screenshot/full_size</key>
+   <applyto>/apps/zapping/plugins/screenshot/full_size</applyto>
+   <owner>Zapping</owner>
+   <type>bool</type>
+   <default>0</default>
+   <locale name="C">
+    <short>Switch to full capture size for screenshot.</short>
+   </locale>
+  </schema>
  </schemalist>
 </gconfschemafile>
