@@ -46,7 +46,7 @@ cannot reproduce them, so i need your help.
 	Disabling things can be useful, run 'zapping --help' to see
 what can be disabled (the "--no-" options at the end).
 I need feedback specially on these bugs:
-*) Preview doesn't work, image through all screen:
+*) Overlay image through all screen:
 	- Use the command line --bpp option giving the real X
 	server depth. Usually 24 or 32 if you have this problem.
 
@@ -73,6 +73,13 @@ request_code 14?, but it didn't happen before (Zapping < 0.5.8).
 	or Zapping itself). The --no-xv option might help, but please
 	contact me (garetxe@users.sourceforge.net), maybe i can fix
 	the bug.
+
+*) Overlay just works as root, cannot be started as user.
+	Probably you are being hit by a PAM bug. Upgrading to 0.72
+	fixed it for me, if that doesn't work you can try using the
+	--disable-pam switch to ./configure
+	./configure --disable-pam
+	and then recompile, reinstall.
 
 USEFUL ADDRESSES
 ----------------

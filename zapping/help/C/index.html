@@ -22,8 +22,10 @@ When <a
 href="http://zapping.sourceforge.net/index.html#Bugs">reporting</a>
 the bug check that it isn't a known one
 (check the file <i>BUGS</i> that comes with Zapping), and include as
-much info as possible (if there is a crash include the backtrace too).
-<br>
+much info as possible (if there is a crash include the backtrace
+too). Typically the output of ./zapping -d is very useful to me.<p>
+<i>./zapping -d 2&gt;&amp;1 | tee debug.log</i>
+</p>
 <ul>
 <li><i>When fullscreen the image doesn't use the whole screen.</i><br>
 That usually means that you are using a high resolution. Tell the X
@@ -44,6 +46,12 @@ to Zapping. For example:<br>
 <i>zapping -n SECAM</i><br>
 <b>Note:</b> This is just a workaround, and it will only work if you
 have at least one input with a tuner.
+<li><i>Overlay only works as root, cannot be started as user.</i><br>
+Probably you are being hit by a PAM bug. Upgrading to 0.72 fixed it
+for me, if that doesn't work you can try using the --disable-pam
+switch to ./configure<p>
+<i>./configure --disable-pam</i></p>
+and then recompile, reinstall.
 </ul>
 <H4>How can I help?</H4>
 The preferred way is with translations, patches and plugins.

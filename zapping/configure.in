@@ -103,9 +103,16 @@ fi
 dnl ---------------------------------------------------------------------
 dnl consolehelper, PAM authentication for zapping_setup_fb
 dnl ---------------------------------------------------------------------
-AC_PATH_PROG(CONSOLEHELPER_LOCATION, consolehelper, "")
-if test "x$CONSOLEHELPER_LOCATION" = "x"; then
-	AC_MSG_RESULT([consolehelper not found, using setuid binary])
+AC_MSG_CHECKING(whether to enable PAM support)
+AC_ARG_ENABLE(pam,
+	[  --enable-pam            Enable PAM support],
+	enable_pam="$enableval", enable_pam="yes")
+AC_MSG_RESULT($enable_pam)
+if test "x$enable_pam" = "xyes"; then
+	AC_PATH_PROG(CONSOLEHELPER_LOCATION, consolehelper, "")
+	if test "x$CONSOLEHELPER_LOCATION" = "x"; then
+		AC_MSG_RESULT([consolehelper not found, using setuid binary])
+	fi
 fi
 AC_SUBST(CONSOLEHELPER_LOCATION)
 AM_CONDITIONAL(SUID_ZSFB, test x$CONSOLEHELPER_LOCATION = x)
