@@ -33,7 +33,7 @@
 #include "plugins.h"
 #include "frequencies.h"
 #include "zvbi.h"
-#include "cpu.h"
+#include "libtv/cpu.h"
 #include "overlay.h"
 #include "capture.h"
 #include "x11stuff.h"
@@ -576,7 +576,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.197 2005-02-15 17:19:31 mschimek Exp $",
+	 "$Id: main.c,v 1.198 2005-02-25 18:13:50 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
 
   cpu_detection ();

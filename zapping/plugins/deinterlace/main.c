@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.3 2005-02-05 22:21:54 mschimek Exp $ */
+/* $Id: main.c,v 1.4 2005-02-25 18:14:23 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -31,7 +31,7 @@
 #include "src/properties.h"
 #include "src/plugin_common.h"
 #include "src/zgconf.h"
-#include "src/cpu.h"
+#include "libtv/cpu.h"
 #include "preferences.h"
 #include "main.h"
 

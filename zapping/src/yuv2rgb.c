@@ -40,7 +40,7 @@
 #include "yuv2rgb.h"
 #include "gen_conv.h"
 #include "zmisc.h"
-#include "cpu.h"
+#include "libtv/cpu.h"
 #include "globals.h"
 
 #define MODE_RGB  0x1

@@ -17,11 +17,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.c,v 1.10 2005-02-18 07:56:00 mschimek Exp $ */
+/* $Id: image_format.c,v 1.11 2005-02-25 18:14:36 mschimek Exp $ */
 
 #include <string.h>		/* memset() */
 #include <assert.h>
-#include "src/cpu.h"
+#include "cpu.h"
 #include "mmx/mmx.h"
 #include "sse/sse.h"
 #include "avec/avec.h"
@@ -336,6 +336,7 @@ tv_clear_image			(void *			image,
 	clear_block_fn **clear_block;
 	tv_pixfmt_set set;
 	uint8_t *data;
+	unsigned int value;
 
 	assert (NULL != image);
 	assert (NULL != format);
@@ -396,8 +397,6 @@ tv_clear_image			(void *			image,
 	}
 
 	switch (pf->pixfmt) {
-		unsigned int value = 0;
-
 	case TV_PIXFMT_NONE:
 	case TV_PIXFMT_RESERVED0:
 	case TV_PIXFMT_RESERVED1:
