@@ -191,7 +191,6 @@ restore_controls		(void)
   tveng_tc_control *controls;
   guint num_controls;
   gboolean start_muted;
-  tveng_tuned_channel *ch;
 
   D();
 
@@ -221,37 +220,7 @@ restore_controls		(void)
   /* XXX make this optional */
 
   if (1)
-    {
-      if (zcg_int(NULL, "current_input"))
-	z_switch_video_input(zcg_uint(NULL, "current_input"), zapping->info);
-
-      if (zcg_int(NULL, "current_audio_input"))
-	z_switch_audio_input(zcg_uint(NULL, "current_audio_input"),
-			     zapping->info);
-
-      if (zcg_int(NULL, "current_standard"))
-	z_switch_standard(zcg_uint(NULL, "current_standard"), zapping->info);
-
-      cur_tuned_channel = zcg_int(NULL, "cur_tuned_channel");
-      ch = tveng_tuned_channel_nth (global_channel_list,
-				    (guint) cur_tuned_channel);
-
-      if (NULL != ch)
-	{
-	  if (start_muted)
-	    {
-	      tveng_tc_control *mute;
-
-	      if ((mute = tveng_tc_control_by_id (zapping->info,
-						  ch->controls,
-						  ch->num_controls,
-						  TV_CONTROL_ID_MUTE)))
-		mute->value = 1; /* XXX sub-optimal */
-	    }
-
-	  z_switch_channel (ch, zapping->info);
-	}
-    }
+    zconf_get_sources (zapping->info, start_muted);
 }
 
 static void
@@ -520,6 +489,7 @@ int main(int argc, char * argv[])
       0,
       /* TRANSLATORS: --yuv-format command line option. */
       N_("Obsolete"),
+      NULL
     },
     {
       "tunerless-norm",
@@ -529,9 +499,16 @@ int main(int argc, char * argv[])
       0,
       /* TRANSLATORS: --tunerless-norm command line option. */
       N_("Obsolete"),
+      NULL
     },
     {
       NULL,
+      0,
+      0,
+      NULL,
+      0,
+      NULL,
+      NULL
     } /* end the list */
   };
 
@@ -576,7 +553,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.198 2005-02-25 18:13:50 mschimek Exp $",
+	 "$Id: main.c,v 1.199 2005-03-30 21:25:15 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
 
   cpu_detection ();
@@ -686,12 +663,21 @@ int main(int argc, char * argv[])
   if (debug_msg)
     {
       x11_vidmode_info *v;
+      unsigned int i = 0;
 
-      fprintf (stderr, "VidModes:\n");
+      fprintf (stderr, "VidModes:");
+
       for (v = vidmodes; v; v = v->next)
-        fprintf (stderr, "  %ux%u@%u\n",
-		 v->width, v->height,
-		 (unsigned int)(v->vfreq + 0.5));
+	{
+	  fprintf (stderr, "%s%ux%u@%u",
+		   (0 == i) ? "\n  " : " ",
+		   v->width,
+		   v->height,
+		   (unsigned int)(v->vfreq + 0.5));
+	  i = (i + 1) % 5;
+	}
+
+      fputc ('\n', stderr);
     }
 
   /* Determine size and pixfmt of the Display. */
@@ -955,9 +941,6 @@ void shutdown_zapping(void)
   guint i = 0;
   gchar * buffer = NULL;
   tveng_tuned_channel * channel;
-  const tv_video_line *vi;
-  const tv_audio_line *ai;
-  const tv_video_standard *vs;
 
   printv("Shutting down the beast:\n");
 
@@ -1052,22 +1035,9 @@ void shutdown_zapping(void)
       i++;
     }
 
+  zconf_set_sources (zapping->info);
+
   tveng_tuned_channel_list_delete (&global_channel_list);
-
-  if ((vs = tv_cur_video_standard (zapping->info)))
-    zcs_uint (vs->hash, "current_standard");
-  else
-    zcs_int (0, "current_standard");
-
-  if ((vi = tv_cur_video_input (zapping->info)))
-    zcs_uint (vi->hash, "current_input");
-  else
-    zcs_int (0, "current_input");
-
-  if ((ai = tv_cur_audio_input (zapping->info)))
-    zcs_uint (ai->hash, "current_audio_input");
-  else
-    zcs_int (0, "current_audio_input");
 
   /* inputs, standards handling */
   printv("\n v4linterface");

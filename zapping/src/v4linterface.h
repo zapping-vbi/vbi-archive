@@ -92,6 +92,11 @@ void
 store_control_values		(tveng_device_info *	info,
 				 tveng_tc_control **	tcc,
 				 guint *		num_controls);
+void
+zconf_get_sources		(tveng_device_info *	info,
+				 gboolean               mute);
+void
+zconf_set_sources		(tveng_device_info *	info);
 
 /* Returns whether something (useful) was added */
 gboolean
