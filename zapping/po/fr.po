@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.6.3\n"
-"POT-Creation-Date: 2002-06-16 15:59+0200\n"
+"POT-Creation-Date: 2002-06-18 10:25+0200\n"
 "PO-Revision-Date: 2002-03-20 15:36+0100\n"
 "Last-Translator: Christian Marillat <marillat.christian@wanadoo.fr>\n"
 "Language-Team: French <fr@li.org>\n"
@@ -188,11 +188,6 @@ msgstr "Sourdine"
 #: src/interface.c:222 glade/glade_strings.c:26
 msgid "Switch audio on and off"
 msgstr "Basculer le son on et off"
-
-#: src/interface.c:257
-#, fuzzy
-msgid "(C) Iaki Garca Etxebarria"
-msgstr "(C) Iñaki García Etxebarria"
 
 #: src/interface.c:259
 msgid "A TV viewer for the Gnome Desktop Environment"
@@ -475,7 +470,7 @@ msgid "none"
 msgstr "rien"
 
 #: src/zvbi.c:2118
-#, c-format, fuzzy
+#, fuzzy, c-format
 msgid "%d minute"
 msgid_plural "%d minutes"
 msgstr[0] "%d minute"
@@ -2960,6 +2955,10 @@ msgstr "Format :"
 #, fuzzy
 msgid "Format name:"
 msgstr "Format :"
+
+#, fuzzy
+#~ msgid "(C) Iaki Garca Etxebarria"
+#~ msgstr "(C) Iñaki García Etxebarria"
 
 #~ msgid "%s"
 #~ msgstr "%s"

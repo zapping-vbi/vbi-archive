@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.5\n"
-"POT-Creation-Date: 2002-06-16 15:59+0200\n"
+"POT-Creation-Date: 2002-06-18 10:25+0200\n"
 "PO-Revision-Date: 2002-05-10 16:08+0000\n"
 "Last-Translator: Pawe³ Sakowski <pawel@sakowski.eu.org>\n"
 "Language-Team: Polish <pl@li.org>\n"
@@ -189,11 +189,6 @@ msgstr "Wycisz"
 #: src/interface.c:222 glade/glade_strings.c:26
 msgid "Switch audio on and off"
 msgstr "W³±cz/wy³±cz d¼wiêk"
-
-#: src/interface.c:257
-#, fuzzy
-msgid "(C) Iaki Garca Etxebarria"
-msgstr "(C) Inaki Carcía Etxebarria"
 
 #: src/interface.c:259
 msgid "A TV viewer for the Gnome Desktop Environment"
@@ -545,7 +540,7 @@ msgid "Audio: %s"
 msgstr "D¼wiêk: %s"
 
 #: src/zvbi.c:2283
-#, c-format, fuzzy
+#, fuzzy, c-format
 msgid "Captioned %s"
 msgstr "Z podpisami %x"
 
@@ -2939,3 +2934,7 @@ msgstr "Format:"
 #, fuzzy
 msgid "Format name:"
 msgstr "Format:"
+
+#, fuzzy
+#~ msgid "(C) Iaki Garca Etxebarria"
+#~ msgstr "(C) Inaki Carcía Etxebarria"

@@ -1,4 +1,4 @@
-# English translations for Zapping package.
+# English translations for PACKAGE package.
 # This file is put in the public domain.
 # Automatically generated, 2002.
 #
@@ -26,9 +26,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Zapping 0.6\n"
-"POT-Creation-Date: 2002-06-16 15:59+0200\n"
-"PO-Revision-Date: 2002-06-16 15:59+0200\n"
+"Project-Id-Version: zapping 0.6.4\n"
+"POT-Creation-Date: 2002-06-18 10:25+0200\n"
+"PO-Revision-Date: 2002-06-18 10:25+0200\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
 "MIME-Version: 1.0\n"
@@ -211,10 +211,6 @@ msgstr "Mute"
 #: src/interface.c:222 glade/glade_strings.c:26
 msgid "Switch audio on and off"
 msgstr "Switch audio on and off"
-
-#: src/interface.c:257
-msgid "(C) Iaki Garca Etxebarria"
-msgstr "(C) Iaki Garca Etxebarria"
 
 #: src/interface.c:259
 msgid "A TV viewer for the Gnome Desktop Environment"
