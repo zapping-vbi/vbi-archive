@@ -294,6 +294,15 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
 		     GTK_SIGNAL_FUNC(on_property_item_changed),
 		     zapping_properties);
 
+  /* overlay subtitle pages automagically */
+  widget = lookup_widget(zapping_properties, "checkbutton12");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
+    zconf_get_boolean(NULL, "/zapping/options/vbi/auto_overlay"));
+
+  gtk_signal_connect(GTK_OBJECT(widget), "toggled",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);  
+
   /* VBI device */
   widget = lookup_widget(zapping_properties, "fileentry2");
   widget = gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(widget));
@@ -522,6 +531,12 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
 						       station names */
       zconf_set_boolean(gtk_toggle_button_get_active(
 	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/vbi/use_vbi");
+
+      widget = lookup_widget(pbox, "checkbutton12"); /* Overlay TTX
+						       pages
+						       automagically */
+      zconf_set_boolean(gtk_toggle_button_get_active(
+	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/vbi/auto_overlay");
 
       widget = lookup_widget(pbox, "fileentry2"); /* VBI device entry */
       text = gnome_file_entry_get_full_path (GNOME_FILE_ENTRY(widget),

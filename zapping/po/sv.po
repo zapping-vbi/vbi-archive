@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.6\n"
-"POT-Creation-Date: 2001-08-31 01:29+0100\n"
+"POT-Creation-Date: 2001-08-31 22:22+0200\n"
 "PO-Revision-Date: 2001-08-31 01:29+01:00\n"
 "Last-Translator: <snout@ctrl-c.liu.se>\n"
 "Language-Team: Swedish <sv@li.org>\n"
@@ -221,88 +221,88 @@ msgid "Return to windowed mode and use the current page as subtitles"
 msgstr "Återgå till fönsterläge och använd denna sida som textremsa"
 
 # src/frequencies.c:816
-#: src/frequencies.c:1055
+#: src/frequencies.c:1057
 msgid "us-bcast"
 msgstr "US-Antenn"
 
 # src/frequencies.c:817
-#: src/frequencies.c:1056
+#: src/frequencies.c:1058
 msgid "us-cable"
 msgstr "US-Kabel"
 
 # src/frequencies.c:818
-#: src/frequencies.c:1057
+#: src/frequencies.c:1059
 msgid "us-cable-hrc"
 msgstr "US-Kabel-HRC"
 
 # src/frequencies.c:819
-#: src/frequencies.c:1058
+#: src/frequencies.c:1060
 msgid "japan-bcast"
 msgstr "Japan-Antenn"
 
 # src/frequencies.c:820
-#: src/frequencies.c:1059
+#: src/frequencies.c:1061
 msgid "japan-cable"
 msgstr "Japan-Kabel"
 
 # src/frequencies.c:821
-#: src/frequencies.c:1060
+#: src/frequencies.c:1062
 msgid "europe"
 msgstr "Europa"
 
 # src/frequencies.c:822
-#: src/frequencies.c:1061
+#: src/frequencies.c:1063
 msgid "europe-east"
 msgstr "Östeuropa"
 
 # src/frequencies.c:823
-#: src/frequencies.c:1062
+#: src/frequencies.c:1064
 msgid "italy"
 msgstr "Italien"
 
 # src/frequencies.c:824
-#: src/frequencies.c:1063
+#: src/frequencies.c:1065
 msgid "newzealand"
 msgstr "Nya Zealand"
 
 # src/frequencies.c:825
-#: src/frequencies.c:1064
+#: src/frequencies.c:1066
 msgid "australia"
 msgstr "Australien"
 
 # src/frequencies.c:826
-#: src/frequencies.c:1065
+#: src/frequencies.c:1067
 msgid "ireland"
 msgstr "Irland"
 
 # src/frequencies.c:827
-#: src/frequencies.c:1066
+#: src/frequencies.c:1068
 msgid "france"
 msgstr "Frankrike"
 
-#: src/frequencies.c:1067
+#: src/frequencies.c:1069
 msgid "russia"
 msgstr "Ryssland"
 
-#: src/frequencies.c:1068
+#: src/frequencies.c:1070
 msgid "south africa"
 msgstr "Sydafrika"
 
-#: src/frequencies.c:1069
+#: src/frequencies.c:1071
 msgid "china"
 msgstr "Kina"
 
 # src/v4l2interface.c:146
-#: src/frequencies.c:1267 src/frequencies.c:1373 src/frequencies.c:1565
+#: src/frequencies.c:1269 src/frequencies.c:1375 src/frequencies.c:1556
 msgid "(Unnamed channel)"
 msgstr "(Ej namngiven kanal)"
 
 # src/interface.c:412
-#: src/frequencies.c:1271 src/frequencies.c:1377 src/frequencies.c:1569
+#: src/frequencies.c:1273 src/frequencies.c:1379 src/frequencies.c:1560
 msgid "(Unknown real channel)"
 msgstr "Okänd riktig kanal"
 
-#: src/frequencies.c:1275 src/frequencies.c:1381 src/frequencies.c:1573
+#: src/frequencies.c:1277 src/frequencies.c:1383 src/frequencies.c:1564
 msgid "(Unknown country)"
 msgstr "(Okänt land)"
 
@@ -342,7 +342,7 @@ msgstr "Ingångar"
 msgid "No tuned channels"
 msgstr "Inga inställda kanaler"
 
-#: src/zvbi.c:138
+#: src/zvbi.c:139
 #, c-format
 msgid ""
 "Sorry, but %s couldn't be opened:\n"
@@ -352,11 +352,11 @@ msgstr ""
 "%s (%d)"
 
 #. pixmaps not installed
-#: src/zvbi.c:397
+#: src/zvbi.c:399
 msgid "Click me"
 msgstr "Klicka på mig"
 
-#: src/zvbi.c:431
+#: src/zvbi.c:433
 msgid ""
 "Open this link with the predetermined Web browser.\n"
 "You can configure this in the GNOME Control Center, under Handlers/Url "
@@ -365,21 +365,21 @@ msgstr ""
 "Öppna denna länk med den förvalda webbläsaren.\n"
 "Du kan ställa in detta i GNOMEs Kontrollpanel, under Handlers/Url "
 
-#: src/zvbi.c:438
+#: src/zvbi.c:440
 #, c-format
 msgid " %s: Teletext Page %x"
 msgstr " %s: Teletext sida %x"
 
-#: src/zvbi.c:441
+#: src/zvbi.c:443
 #, c-format
 msgid " Teletext Page %x"
 msgstr " Teletext sida %x"
 
-#: src/zvbi.c:442
+#: src/zvbi.c:444
 msgid "Open this page with Zapzilla"
 msgstr "Öppna denna sida med Zapzilla"
 
-#: src/zvbi.c:535
+#: src/zvbi.c:537
 msgid ""
 "This probably means that the required driver isn't loaded. Add to your /etc/"
 "modules.conf the line:\n"
@@ -390,13 +390,11 @@ msgid ""
 msgstr ""
 "Detta betyder antagligen att den nödvändiga drivrutinen inte är inladdad. "
 "Lägg till följande i din /etc/modules.conf:\n"
-"alias char-major-81-224 bttv (byt ut 'bttv' mot namnet på din videodrivare)\n "
-"och skapa /dev/vbi0 med mknod. Om det inte fungerar, "
-"så kan du stänga av VBI i Inställningar/Alternativ/VBI-val/Slå på "
-"VBI-avkodning."
+"alias char-major-81-224 bttv (byt ut 'bttv' mot namnet på din videodrivare)\n"
+" och skapa /dev/vbi0 med mknod. Om det inte fungerar, så kan du stänga av "
+"VBI i Inställningar/Alternativ/VBI-val/Slå på VBI-avkodning."
 
-
-#: src/zvbi.c:547
+#: src/zvbi.c:549
 #, c-format
 msgid ""
 "Failed to access vbi device:\n"
@@ -408,25 +406,18 @@ msgstr ""
 "%s"
 
 #. should not happen
-#: src/zvbi.c:550
+#: src/zvbi.c:552
 #, c-format
 msgid "Failed to access vbi device %s, cause unknown.\n"
 msgstr "Kunde inte komma åt VBI-enheten %s, okänt skäl.\n"
 
-#: src/zvbi.c:1749
-#, c-format
-msgid "%d %s"
-msgstr "%d %s"
+#: src/zvbi.c:1751
+#, fuzzy, c-format
+msgid "%d minute"
+msgid_plural "%d minutes"
+msgstr[0] "minut"
 
-#: src/zvbi.c:1750
-msgid "minute"
-msgstr "minut"
-
-#: src/zvbi.c:1750
-msgid "minutes"
-msgstr "minuter"
-
-#: src/zvbi.c:1752
+#: src/zvbi.c:1753
 #, c-format
 msgid "%d h %d m"
 msgstr "%d h %d m"
@@ -552,7 +543,6 @@ msgstr "Vitbalans"
 msgid "Do white balance"
 msgstr "Automatisk vitbalans"
 
-
 # src/frequencies.c:827
 #: src/tveng2.c:900
 msgid "Red balance"
@@ -616,8 +606,8 @@ msgid ""
 "loaded."
 msgstr ""
 "När %s laddades\n"
-"Pluginen använder protokollet %d, och det nuvarande är %d, så den kan "
-"inte laddas."
+"Pluginen använder protokollet %d, och det nuvarande är %d, så den kan inte "
+"laddas."
 
 #: src/plugins.c:95
 #, c-format
@@ -768,27 +758,28 @@ msgstr "Ingen plugin accepterar denna sida."
 #: src/properties.c:656
 msgid ""
 "The plugin that created the active page doesn't provide help for it. Sorry."
-msgstr "Pluginen som skapade den aktiva sidan ger ingen hjälp för den. Ledsen error."
+msgstr ""
+"Pluginen som skapade den aktiva sidan ger ingen hjälp för den. Ledsen error."
 
-#: src/channel_editor.c:214
+#: src/channel_editor.c:315
 msgid "Do not change standard"
 msgstr "Byt ej videostandard"
 
-#: src/channel_editor.c:235
+#: src/channel_editor.c:336
 msgid "Do not change input"
 msgstr "Vyt ej ingång"
 
 # src/interface.c:362
-#: src/channel_editor.c:643
+#: src/channel_editor.c:744
 msgid "Add Channel"
 msgstr "Lägg till kanal"
 
 # src/interface.c:362
-#: src/channel_editor.c:643
+#: src/channel_editor.c:744
 msgid "New channel name:"
 msgstr "Nytt kanalnamn:"
 
-#: src/channel_editor.c:1307
+#: src/channel_editor.c:1356
 #, c-format
 msgid ""
 "Channel autosearching won't work with XVideo.\n"
@@ -803,10 +794,9 @@ msgstr ""
 "Felmeddelande:\n"
 "%s"
 
-#: src/channel_editor.c:1313
+#: src/channel_editor.c:1362
 msgid "Your current V4L/V4L2 driver cannot do channel autosearching, sorry"
-msgstr ""
-"Din nuvarande V4L/V4L2-drivare kan inte autosöka kanaler, ledsen error"
+msgstr "Din nuvarande V4L/V4L2-drivare kan inte autosöka kanaler, ledsen error"
 
 #: src/plugin_properties.c:56
 msgid "Sorry, but no plugins have been loaded"
@@ -856,7 +846,7 @@ msgstr "Tyvärr, men pluginen kunde inte startas"
 msgid "Sorry, the plugin doesn't provide help for this"
 msgstr "Tyvärr, pluginen ger ingen hjälp för det här"
 
-#: src/ttxview.c:173 src/ttxview.c:1216
+#: src/ttxview.c:173 src/ttxview.c:1218
 msgid "VBI has been disabled"
 msgstr "VBI har stängts av"
 
@@ -870,90 +860,90 @@ msgstr "Laddar sida %x..."
 msgid "Loading subpage %x..."
 msgstr "Laddar undersida %x..."
 
-#: src/ttxview.c:528 src/ttxview.c:824
+#: src/ttxview.c:528 src/ttxview.c:826
 msgid "Warning: Page not valid"
 msgstr "Varning: Sida ogiltig"
 
-#: src/ttxview.c:656
+#: src/ttxview.c:657
 #, c-format
 msgid "Text export failed: %s"
 msgstr "Textexport gick snett: %s"
 
-#: src/ttxview.c:664
+#: src/ttxview.c:666
 #, c-format
 msgid "Selection failed: %s"
 msgstr "Urval misslyckades: %s"
 
-#: src/ttxview.c:739
+#: src/ttxview.c:741
 #, c-format
 msgid " Page %d"
 msgstr " Sida %d"
 
-#: src/ttxview.c:743
+#: src/ttxview.c:745
 #, c-format
 msgid " Subpage %d"
 msgstr " Undersida %d"
 
-#: src/ttxview.c:834
+#: src/ttxview.c:836
 msgid "The cache has been cleared"
 msgstr "Sparade sidor har rensats"
 
-#: src/ttxview.c:908 src/ttxview.c:936
+#: src/ttxview.c:910 src/ttxview.c:938
 msgid "No other subpage in the cache"
 msgstr "Ingen annan undersida i sidminnet"
 
-#: src/ttxview.c:1008
+#: src/ttxview.c:1010
 msgid "Found"
 msgstr "Hittat"
 
-#: src/ttxview.c:1027
+#: src/ttxview.c:1029
 msgid "Not found"
 msgstr "Hittades inte"
 
-#: src/ttxview.c:1048
+#: src/ttxview.c:1050
 msgid "Empty cache"
 msgstr "Tomt sidminne"
 
-#: src/ttxview.c:1171
+#: src/ttxview.c:1173
 #, c-format
 msgid "Scanning %x.%02x"
 msgstr "Söker igenom %x.%02x"
 
-#: src/ttxview.c:1507
+#: src/ttxview.c:1509
 #, c-format
 msgid "<%s> added to the bookmarks"
 msgstr "<%s> lagt till bokmärkena"
 
-#: src/ttxview.c:1570
+#: src/ttxview.c:1572
 msgid "Any subpage"
 msgstr "Vilken undersida som helst"
 
-#: src/ttxview.c:1912
+#: src/ttxview.c:1914
 #, c-format
 msgid "Export %s"
 msgstr "Exportera %s"
 
-#: src/ttxview.c:1926
+#: src/ttxview.c:1928
 msgid "Save as:"
 msgstr "Spara som:"
 
-#: src/ttxview.c:1931
+#: src/ttxview.c:1933
 msgid "Select file you'll be exporting to"
 msgstr "Välj fil du vill exportera till"
 
-#: src/ttxview.c:1946
+#: src/ttxview.c:1948
 msgid "Options"
 msgstr "Val"
 
-#: src/ttxview.c:2128 src/ttxview.c:2945
+#: src/ttxview.c:2130 src/ttxview.c:2947
 msgid "No page loaded"
 msgstr "Ingen sida laddad"
 
-#: glade/glade_strings.c:225 src/ttxview.c:2134
+#: glade/glade_strings.c:225 src/ttxview.c:2136
 msgid "Zapzilla"
 msgstr "Zapzilla"
 
-#: src/ttxview.c:2188
+#: src/ttxview.c:2190
 #, c-format
 msgid ""
 "Cannot create destination dir for Zapzilla export:\n"
@@ -964,94 +954,94 @@ msgstr ""
 "%s\n"
 "%s"
 
-#: src/ttxview.c:2207
+#: src/ttxview.c:2209
 #, c-format
 msgid "Export to %s failed: %s"
 msgstr "Exportering till %s misslyckades: %s"
 
-#: src/ttxview.c:2216
+#: src/ttxview.c:2218
 #, c-format
 msgid "%s saved"
 msgstr "%s sparad"
 
-#: src/ttxview.c:2228
+#: src/ttxview.c:2230
 #, c-format
 msgid "Export failed: %s"
 msgstr "Export misslyckades: %s"
 
-#: src/ttxview.c:2396
+#: src/ttxview.c:2398
 #, c-format
 msgid "Caption %x - %s"
 msgstr "Bildtext %x - %s"
 
-#: src/ttxview.c:2398
+#: src/ttxview.c:2400
 #, c-format
 msgid "Text %x - %s"
 msgstr "Text %x - %s"
 
-#: src/ttxview.c:2402
+#: src/ttxview.c:2404
 #, c-format
 msgid "Caption %x"
 msgstr "Bildtext %x"
 
-#: src/ttxview.c:2404
+#: src/ttxview.c:2406
 #, c-format
 msgid "Text %x"
 msgstr "Text %x"
 
-#: src/ttxview.c:2430
+#: src/ttxview.c:2432
 #, c-format
 msgid "%x: Unknown language"
 msgstr "%x: Okänt språk"
 
-#: src/ttxview.c:2443 src/ttxview.c:2458 src/ttxview.c:2482 src/ttxview.c:2498
-#: src/ttxview.c:2514 src/ttxview.c:2530 src/ttxview.c:2546
+#: src/ttxview.c:2445 src/ttxview.c:2460 src/ttxview.c:2484 src/ttxview.c:2500
+#: src/ttxview.c:2516 src/ttxview.c:2532 src/ttxview.c:2548
 #, c-format
 msgid "Page %x"
 msgstr "Sida %x"
 
-#: src/ttxview.c:2452
+#: src/ttxview.c:2454
 msgid "Index"
 msgstr "Innehåll"
 
-#: src/ttxview.c:2476
+#: src/ttxview.c:2478
 msgid "Now and Next"
 msgstr "Nu och Nästa"
 
-#: src/ttxview.c:2492
+#: src/ttxview.c:2494
 msgid "Current program"
 msgstr "Om pågående program"
 
-#: src/ttxview.c:2508
+#: src/ttxview.c:2510
 msgid "Program Index"
 msgstr "Programinnehåll"
 
-#: src/ttxview.c:2524
+#: src/ttxview.c:2526
 msgid "Program Schedule"
 msgstr "Programtablå"
 
-#: src/ttxview.c:2540
+#: src/ttxview.c:2542
 msgid "Program Warning"
 msgstr "Programvarning"
 
-#: src/ttxview.c:2560
+#: src/ttxview.c:2562
 msgid "Subtitles"
 msgstr "Bildtext"
 
-#: src/ttxview.c:2562
+#: src/ttxview.c:2564
 msgid "Select subtitles page"
 msgstr "Välj sida för bildtext"
 
-#: src/ttxview.c:2635
+#: src/ttxview.c:2637
 #, c-format
 msgid "%s in %s"
 msgstr "%s i %s"
 
-#: src/ttxview.c:2954
+#: src/ttxview.c:2956
 msgid "Selecting - hold Shift for table mode"
 msgstr "Markera - håll Skift för tabell-läge"
 
-#: src/ttxview.c:3074
+#: src/ttxview.c:3076
 msgid "Selection copied to clipboard"
 msgstr "Markering kopierad till urklipp"
 
@@ -1089,8 +1079,7 @@ msgstr "Växla Ljud Av/På"
 
 #: glade/glade_strings.c:13
 msgid "Use this to go fullscreen. Press ESC to return to Windowed mode"
-msgstr ""
-"Använd detta för fullskärm, tryck ESC för att återgå till fönsterläge"
+msgstr "Använd detta för fullskärm, tryck ESC för att återgå till fönsterläge"
 
 #: glade/glade_strings.c:14 glade/glade_strings.c:204
 msgid "Go _Fullscreen"
@@ -1244,8 +1233,8 @@ msgid ""
 "If this option is on, the brightness, contrast, etc. info is saved with the "
 "channel, and restored when you select it again"
 msgstr ""
-"Om detta val är på, så sparas ljusstyrkeinfo, kontrast etc, med kanalen, "
-"och återställs när du väljer den igen"
+"Om detta val är på, så sparas ljusstyrkeinfo, kontrast etc, med kanalen, och "
+"återställs när du väljer den igen"
 
 #: glade/glade_strings.c:53
 msgid "Save control values with the channel info"
@@ -1277,8 +1266,7 @@ msgstr "Debugläge för zapping__setup__fb:"
 
 #: glade/glade_strings.c:60
 msgid "The bigger this value is, the more verbose zapping_setup_fb will be"
-msgstr ""
-"Ju större värde, desto mer diagnosmeddelanden ger zapping_setup_fb"
+msgstr "Ju större värde, desto mer diagnosmeddelanden ger zapping_setup_fb"
 
 #: glade/glade_strings.c:61
 msgid "Fullscreen video mode:"
@@ -1299,8 +1287,8 @@ msgid ""
 "use in this case."
 msgstr ""
 "Tack vare XVideo-utökningen, om den finns, kan inspelningsbuffern skalas "
-"till godtycklig storlek med hjälp av hårdvara. Välj inspelningsstorleken här,"
-" som ska användas i det fallet."
+"till godtycklig storlek med hjälp av hårdvara. Välj inspelningsstorleken "
+"här, som ska användas i det fallet."
 
 #: glade/glade_strings.c:66
 msgid "Biggest noninterlaced (autodetect)"
@@ -1375,9 +1363,9 @@ msgid ""
 "Teletext viewer may not display the correct font or national characters. You "
 "can select your geographical region here as an additional hint."
 msgstr ""
-"Vissa stationer sänder inte en komplett språkidentifierare, så "
-"teletext-visaren kanske inte visar korrekt teckenupsättning. Du kan välja "
-"din geografiska region här som en extra vink åt programmet."
+"Vissa stationer sänder inte en komplett språkidentifierare, så teletext-"
+"visaren kanske inte visar korrekt teckenupsättning. Du kan välja din "
+"geografiska region här som en extra vink åt programmet."
 
 #: glade/glade_strings.c:82
 msgid "Western and Central Europe"
@@ -1430,7 +1418,8 @@ msgstr "Nivå 1.5 (extra nationella tecken)"
 
 #: glade/glade_strings.c:93
 msgid "Level 2.5 (more colours, font styles and graphics)"
-msgstr "Nivå 2.5 (\"HiText\" - fler färger, teckenuppsättningar och mer grafik)"
+msgstr ""
+"Nivå 2.5 (\"HiText\" - fler färger, teckenuppsättningar och mer grafik)"
 
 #: glade/glade_strings.c:94
 msgid "Level 3.5 (proportional spacing, multicolour graphics)"
@@ -1442,8 +1431,7 @@ msgstr "Interpolationstyp:"
 
 #: glade/glade_strings.c:96
 msgid "Quality/speed tradeoff when scaling and antialing the page."
-msgstr ""
-"Kvalitets/hastighetsavvägning vid skalning och utjämning av sidan."
+msgstr "Kvalitets/hastighetsavvägning vid skalning och utjämning av sidan."
 
 #: glade/glade_strings.c:97
 msgid "Nearest (fast, looks ugly when scaled)"
@@ -1543,8 +1531,8 @@ msgstr "Standardaktion:"
 
 #: glade/glade_strings.c:134
 msgid "What to do with received trigger if no identifier is transmitted"
-msgstr "Vad som ska göras med mottagna aktivatorer om ingen identifierare "
-"sänts"
+msgstr ""
+"Vad som ska göras med mottagna aktivatorer om ingen identifierare sänts"
 
 #: glade/glade_strings.c:138
 msgid "Interactive TV"
@@ -1571,9 +1559,9 @@ msgid ""
 msgstr ""
 "Med denna dialog kan du editera kanallistan.\n"
 "För att börja, välj den frekvenstabell som används i ditt land.\n"
-"Om ditt land eller dess tabell inte finns med, säg till programmeraren,"
-" skicka med tabellen om möjligt för att den ska kunna komma med i nästa "
-" utgåva av programmet."
+"Om ditt land eller dess tabell inte finns med, säg till programmeraren, "
+"skicka med tabellen om möjligt för att den ska kunna komma med i nästa  "
+"utgåva av programmet."
 
 # src/interface.c:336
 #: glade/glade_strings.c:145
@@ -2141,7 +2129,7 @@ msgstr "Denna plugin tar stillbilder."
 
 #. hash collision code
 #. Warn
-#: plugins/alirc/alirc.c:231 plugins/lirc/lirc.c:133 plugins/mpeg/mpeg.c:116
+#: plugins/alirc/alirc.c:231 plugins/lirc/lirc.c:133 plugins/mpeg/mpeg.c:118
 #: plugins/parrot/parrot.c:141 plugins/screenshot/screenshot.c:192
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
@@ -2159,8 +2147,7 @@ msgstr ""
 
 #: plugins/screenshot/screenshot.c:373
 msgid "Converts a row in RGBA format to RGB24. Returns the destination."
-msgstr ""
-"Konverterar en rad i RGBA-format till RGB24. Returnerar destinationen."
+msgstr "Konverterar en rad i RGBA-format till RGB24. Returnerar destinationen."
 
 #: plugins/screenshot/screenshot.c:437 plugins/screenshot/screenshot.c:513
 msgid "Screenshot"
@@ -2246,8 +2233,7 @@ msgstr "LIRC plugin"
 #: plugins/lirc/lirc.c:40
 msgid ""
 "This plugin enables the usage of LIRC, the Linux Infrared Remote Control."
-msgstr ""
-"Denna plugin ger stöd för LIRC, infraröd fjärrkontroll för Linux."
+msgstr "Denna plugin ger stöd för LIRC, infraröd fjärrkontroll för Linux."
 
 #: plugins/lirc/lirc.c:41
 msgid "This plugin enables the usage of LIRC."
@@ -2330,8 +2316,8 @@ msgstr ""
 "Ytterligare en plugin för att kontrollera zapping via lirc\n"
 "\n"
 "Se lirc-dokumentationen för information on .lircrc-filen. Pluginen "
-"registrerar sig udner namnet 'zapping_lirc' och du kan använda "
-"följande kommando:\n"
+"registrerar sig udner namnet 'zapping_lirc' och du kan använda följande "
+"kommando:\n"
 "  CHANUP: En kanal upp\n"
 "  CHANDOWN: En kanal ner\n"
 "  ZOOM: växla mellan fullskärms och fönsterläge\n"
@@ -2339,8 +2325,9 @@ msgstr ""
 "  QUIT: Avsluta zapping\n"
 "  \n"
 "Obs: när du använder SETCHANNEL två gånger inom 1500 ms, så reagerar den på "
-"samma\nsätt som man för väntar sig av en TV, dvs SETCHANNEL 1, SETCHANNEL 3 "
-"sätter kanalen till 13\n"
+"samma\n"
+"sätt som man för väntar sig av en TV, dvs SETCHANNEL 1, SETCHANNEL 3 sätter "
+"kanalen till 13\n"
 "Filen README.alirc har mer information on pluginen."
 
 #: plugins/alirc/alirc.c:48
@@ -2359,22 +2346,26 @@ msgstr "Denna plugin sparar ner bilden och ljudet till en MPEG-fil"
 msgid "Encode the stream as MPEG."
 msgstr "Spara strömmen som MPEG."
 
-#: plugins/mpeg/mpeg.c:338
+#: plugins/mpeg/mpeg.c:438
 #, c-format
-msgid "%.1f MB : %d %s dropped : %d %s processed"
-msgstr "%.1f MB : %d %s missade : %d %s sparade"
+msgid "%d frame dropped"
+msgid_plural "%d frames dropped"
+msgstr[0] ""
+msgstr[1] ""
 
-# src/frequencies.c:827
-#: plugins/mpeg/mpeg.c:341 plugins/mpeg/mpeg.c:343
-msgid "frame"
-msgstr "bild"
+#: plugins/mpeg/mpeg.c:442
+#, c-format
+msgid "%d frame processed"
+msgid_plural "%d frames processed"
+msgstr[0] ""
+msgstr[1] ""
 
-# src/frequencies.c:827
-#: plugins/mpeg/mpeg.c:341 plugins/mpeg/mpeg.c:343
-msgid "frames"
-msgstr "bilder"
+#: plugins/mpeg/mpeg.c:446
+#, c-format
+msgid "%.1f MB : %s : %s"
+msgstr ""
 
-#: plugins/mpeg/mpeg.c:410
+#: plugins/mpeg/mpeg.c:517
 #, c-format
 msgid ""
 "Cannot create destination dir for clips:\n"
@@ -2385,19 +2376,19 @@ msgstr ""
 "%s\n"
 "%s"
 
-#: plugins/mpeg/mpeg.c:421
+#: plugins/mpeg/mpeg.c:528
 msgid "Synchronization under V4L1"
 msgstr "Synkronisation under V4L1"
 
-#: plugins/mpeg/mpeg.c:423
+#: plugins/mpeg/mpeg.c:530
 msgid "Do not show this again"
 msgstr "Visa inte detta igen"
 
-#: plugins/mpeg/mpeg.c:424
+#: plugins/mpeg/mpeg.c:531
 msgid "V4L2 page"
 msgstr "V4L2 hemsida"
 
-#: plugins/mpeg/mpeg.c:427
+#: plugins/mpeg/mpeg.c:534
 msgid ""
 "You are using a V4L1 driver, so synchronization\n"
 "between audio and video will not be very good.\n"
@@ -2410,49 +2401,49 @@ msgstr ""
 "mycket bättre synkronisation, du kanske vill prova dem om du\n"
 "inte är nöjd med resultatet."
 
-#: plugins/mpeg/mpeg.c:606
+#: plugins/mpeg/mpeg.c:713
 #, c-format
 msgid "RTE ID: %s"
 msgstr "RTE ID: %s"
 
-#: plugins/mpeg/mpeg.c:611
+#: plugins/mpeg/mpeg.c:718
 #, c-format
 msgid "Destination: %s"
 msgstr "Destination: %s"
 
-#: plugins/mpeg/mpeg.c:619 plugins/mpeg/mpeg_strings.c:12
+#: plugins/mpeg/mpeg.c:726 plugins/mpeg/mpeg_strings.c:12
 msgid "Audio only"
 msgstr "Endast ljud"
 
 # src/v4l2interface.c:344
-#: plugins/mpeg/mpeg.c:622 plugins/mpeg/mpeg_strings.c:13
+#: plugins/mpeg/mpeg.c:729 plugins/mpeg/mpeg_strings.c:13
 msgid "Video only"
 msgstr "Endast bild"
 
 # src/frequencies.c:827
-#: plugins/mpeg/mpeg.c:625 plugins/mpeg/mpeg_strings.c:14
+#: plugins/mpeg/mpeg.c:732 plugins/mpeg/mpeg_strings.c:14
 msgid "Audio and Video"
 msgstr "Bild och ljud"
 
-#: plugins/mpeg/mpeg.c:636 plugins/mpeg/mpeg.c:648
-#: plugins/mpeg/mpeg_strings.c:23
+#: plugins/mpeg/mpeg.c:743 plugins/mpeg/mpeg.c:755
+#: plugins/mpeg/mpeg_strings.c:27
 msgid "Output audio Kbits per second:"
 msgstr "Ljud, kbits/s:"
 
-#: plugins/mpeg/mpeg.c:642 plugins/mpeg/mpeg.c:650
-#: plugins/mpeg/mpeg_strings.c:22
+#: plugins/mpeg/mpeg.c:749 plugins/mpeg/mpeg.c:757
+#: plugins/mpeg/mpeg_strings.c:26
 msgid "Output video Mbits per second:"
 msgstr "Video, Mbits/s:"
 
-#: plugins/mpeg/mpeg.c:658
+#: plugins/mpeg/mpeg.c:765
 msgid "Waiting for frames..."
 msgstr "Väntar på bilder..."
 
-#: plugins/mpeg/mpeg.c:853 plugins/mpeg/mpeg.c:1009
+#: plugins/mpeg/mpeg.c:1016 plugins/mpeg/mpeg.c:1207
 msgid "MPEG"
 msgstr "MPEG"
 
-#: plugins/mpeg/mpeg.c:1010
+#: plugins/mpeg/mpeg.c:1208
 msgid "Store the data as MPEG"
 msgstr "Spara som MPEG"
 
@@ -2497,52 +2488,73 @@ msgstr "MPEG-filens destination"
 msgid "Sets the dir where the encoded clips will be written to"
 msgstr "Katalogen filmer ska sparas till"
 
+# src/frequencies.c:827
 #: plugins/mpeg/mpeg_strings.c:19
+#, fuzzy
+msgid "Audio device:"
+msgstr "Bild och ljud"
+
+#: plugins/mpeg/mpeg_strings.c:20
+msgid "Select the audio input type you would like to use"
+msgstr ""
+
+# src/frequencies.c:827
+#: plugins/mpeg/mpeg_strings.c:21
+#, fuzzy
+msgid "Audio device"
+msgstr "Bild och ljud"
+
+#: plugins/mpeg/mpeg_strings.c:22
+#, fuzzy
+msgid "Select the audio device to open"
+msgstr "Välj VBI-enhet"
+
+#: plugins/mpeg/mpeg_strings.c:23
 msgid "Capture Width:"
 msgstr "Bildbredd:"
 
-#: plugins/mpeg/mpeg_strings.c:20
+#: plugins/mpeg/mpeg_strings.c:24
 msgid "Capture Height:"
 msgstr "Bildhöjd:"
 
-#: plugins/mpeg/mpeg_strings.c:21
+#: plugins/mpeg/mpeg_strings.c:25
 msgid "Input / output"
 msgstr "In-/utgång"
 
-#: plugins/mpeg/mpeg_strings.c:24
+#: plugins/mpeg/mpeg_strings.c:28
 msgid "Engine verbosity (output goes to stderr):"
 msgstr "Diagnosnivå (till stderr, 0 = inget):"
 
-#: plugins/mpeg/mpeg_strings.c:25
+#: plugins/mpeg/mpeg_strings.c:29
 msgid "Compression parameters"
 msgstr "Kompressionsparameter"
 
-#: plugins/mpeg/mpeg_strings.c:26
+#: plugins/mpeg/mpeg_strings.c:30
 msgid "Saving MPEG"
 msgstr "Sparar MPEG-data"
 
 # src/interface.c:448
-#: plugins/mpeg/mpeg_strings.c:27
+#: plugins/mpeg/mpeg_strings.c:31
 msgid "Press this when you are done"
 msgstr "Tryck här när du är klar"
 
-#: plugins/mpeg/mpeg_strings.c:28
+#: plugins/mpeg/mpeg_strings.c:32
 msgid "RTE id (for debugging)"
 msgstr "RTE ID (för avlusning)"
 
-#: plugins/mpeg/mpeg_strings.c:29
+#: plugins/mpeg/mpeg_strings.c:33
 msgid "Destination"
 msgstr "Destination"
 
-#: plugins/mpeg/mpeg_strings.c:30
+#: plugins/mpeg/mpeg_strings.c:34
 msgid "Mux mode"
 msgstr "Multiplexermod"
 
-#: plugins/mpeg/mpeg_strings.c:31
+#: plugins/mpeg/mpeg_strings.c:35
 msgid "Some more info: bit rates"
 msgstr "Extra information: Bitrates"
 
-#: plugins/mpeg/mpeg_strings.c:32
+#: plugins/mpeg/mpeg_strings.c:36
 msgid "Dinamic stats (dropped, output M's, etc)"
 msgstr "Dynamisk statistik (Bytes sparade, etc.)"
 
@@ -2555,8 +2567,8 @@ msgid ""
 "This plugin stores the last frames of video and repeats them upon request, "
 "so you can see again and again and again that sequence you liked so much."
 msgstr ""
-"Denna plugin sparar de senaste bilderna och repeterar dem när du vill, "
-"så du kan se den där sekvensen du tyckte så mycket om igen och igen."
+"Denna plugin sparar de senaste bilderna och repeterar dem när du vill, så du "
+"kan se den där sekvensen du tyckte så mycket om igen och igen."
 
 #: plugins/parrot/parrot.c:28
 msgid "Superb parrot landing observatory."
@@ -2613,8 +2625,8 @@ msgid ""
 "be taken as an estimation. Any change in the capture properties (window "
 "size, screen depth, etc) can make this number change significantly."
 msgstr ""
-"Detta värde beräknas med nuvarande inspelningsparametrar, och ska bara "
-"tas som en uppskattning. Alla ändringar i inspelningsvalen (fönsterstorlek, "
+"Detta värde beräknas med nuvarande inspelningsparametrar, och ska bara tas "
+"som en uppskattning. Alla ändringar i inspelningsvalen (fönsterstorlek, "
 "färgdjup etc) kan ändra detta värde rejält."
 
 #: libvbi/exp-gfx.c:470
@@ -2648,12 +2660,12 @@ msgstr "_PPM"
 msgid "Export this page as PPM image"
 msgstr "Spara denna sida som PPM-bild"
 
-#: libvbi/exp-gfx.c:835 libvbi/exp-html.c:503
+#: libvbi/exp-gfx.c:835 libvbi/exp-html.c:504
 #, c-format
 msgid "Teletext Page %3x.%x"
 msgstr "Teletext sida %3x.%x"
 
-#: libvbi/exp-gfx.c:837 libvbi/exp-html.c:505
+#: libvbi/exp-gfx.c:837 libvbi/exp-html.c:506
 #, c-format, ycp-format
 msgid "Teletext Page %3x"
 msgstr "Teletext sida %3x"
@@ -2675,8 +2687,8 @@ msgid ""
 "Replacement for block graphic characters: a single character or decimal (32) "
 "or hex (0x20) code"
 msgstr ""
-"Ersättning för blockgrafik-tecken: ett tecken, eller decimal (32) "
-"eller hexadecimal (0x20) kod"
+"Ersättning för blockgrafik-tecken: ett tecken, eller decimal (32) eller "
+"hexadecimal (0x20) kod"
 
 #: libvbi/exp-html.c:104
 msgid "Color (CSS)"
@@ -2703,15 +2715,15 @@ msgstr "Teckenkonvertering unicode -> %s stöds ej"
 #. *  "lang=\"en\" refers to "Teletext Page..." below,
 #. *  specify "de", "fr", "es" etc.
 #.
-#: libvbi/exp-html.c:493
+#: libvbi/exp-html.c:494
 msgid "<title lang=\"en\">"
 msgstr "<title lang=\"se\">"
 
-#: libvbi/exp-html.c:699
+#: libvbi/exp-html.c:701
 msgid "HTML"
 msgstr "_HTML"
 
-#: libvbi/exp-html.c:700
+#: libvbi/exp-html.c:702
 msgid "Export this page as HTML page"
 msgstr "Spara denna sida som HTML"
 
@@ -2814,121 +2826,118 @@ msgid ""
 msgstr ""
 "Spara denna sida som VTX-fil, formatet VideoteXt och vbidecode använder"
 
-#: libvbi/v4lx.c:127
+#: libvbi/v4lx.c:132
 msgid "Please contact the Zapzilla maintainers at <http://zapping.sf.net>."
-msgstr ""
-"Kontakta Zapzilla-programmerarna på <http://zapping.sf."
-"net>."
+msgstr "Kontakta Zapzilla-programmerarna på <http://zapping.sf.net>."
 
-#: libvbi/v4lx.c:159 libvbi/v4lx.c:224
+#: libvbi/v4lx.c:164 libvbi/v4lx.c:229
 msgid "V4L/V4L2 VBI interface: Failed to read from the device"
 msgstr "V4L/V4L2 VBI-gränssnitt: Läsfel från enheten"
 
-#: libvbi/v4lx.c:574
+#: libvbi/v4lx.c:579
 msgid "driver unknown"
 msgstr "okänd drivare"
 
-#: libvbi/v4lx.c:580 libvbi/v4lx.c:1086
+#: libvbi/v4lx.c:585 libvbi/v4lx.c:1091
 msgid "Virtual memory exhausted.\n"
 msgstr "Slut på virtuellt minne.\n"
 
-#: libvbi/v4lx.c:586 libvbi/v4lx.c:1092
+#: libvbi/v4lx.c:591 libvbi/v4lx.c:1097
 #, c-format
 msgid "Cannot open '%s': %d, %s."
 msgstr "Kan inte öppna enheten '%s': %d, %s."
 
-#: libvbi/v4lx.c:614 libvbi/v4lx.c:1109
+#: libvbi/v4lx.c:619 libvbi/v4lx.c:1114
 #, c-format
 msgid "%s (%s) is not a raw VBI device.\n"
 msgstr "%s (%s) är inge rå VBI-enhet.\n"
 
-#: libvbi/v4lx.c:645 libvbi/v4lx.c:1151
+#: libvbi/v4lx.c:650 libvbi/v4lx.c:1156
 #, c-format
 msgid "Sorry, %s (%s) cannot capture the requested data services.\n"
 msgstr "Tyvärr, %s (%s) kan inte spela in de begärda datatjänsterna.\n"
 
-#: libvbi/v4lx.c:673 libvbi/v4lx.c:1178
+#: libvbi/v4lx.c:678 libvbi/v4lx.c:1183
 #, c-format
 msgid "%s (%s) is already in use.\n"
 msgstr "%s (%s) används redan.\n"
 
-#: libvbi/v4lx.c:678 libvbi/v4lx.c:1194
+#: libvbi/v4lx.c:683 libvbi/v4lx.c:1199
 #, c-format
 msgid ""
 "Could not set the vbi capture parameters for %s (%s), possibly a driver bug. "
 "%s\n"
 msgstr ""
-"Kunde inte ställa in VBI-parametrarna för %s (%s), möjligtvis ett drivar"
-"fel. %s\n"
+"Kunde inte ställa in VBI-parametrarna för %s (%s), möjligtvis ett drivarfel. "
+"%s\n"
 
-#: libvbi/v4lx.c:692 libvbi/v4lx.c:1222
+#: libvbi/v4lx.c:697 libvbi/v4lx.c:1227
 #, c-format
 msgid "%s (%s) offers unknown vbi sampling format #%d. %s"
 msgstr "%s (%s) har ett okänt VBI-hämtningsformat nr. %d. %s"
 
-#: libvbi/v4lx.c:728
+#: libvbi/v4lx.c:733
 #, c-format
 msgid "Cannot capture with %s (%s), has no standard vbi interface.\n"
-msgstr ""
-"Kan inte läsa med %s (%s), den har inget standard VBI-gränssnitt.\n"
+msgstr "Kan inte läsa med %s (%s), den har inget standard VBI-gränssnitt.\n"
 
-#: libvbi/v4lx.c:736 libvbi/v4lx.c:802
+#: libvbi/v4lx.c:741 libvbi/v4lx.c:807
 #, c-format
 msgid "Cannot set or determine current videostandard of %s (%s).\n"
-msgstr ""
-"Kan inte ställa in eller avgöra nuvarande videostandard av %s (%s).\n"
+msgstr "Kan inte ställa in eller avgöra nuvarande videostandard av %s (%s).\n"
 
-#: libvbi/v4lx.c:773
+#: libvbi/v4lx.c:778
 #, c-format
 msgid "%s (%s) reports improbable vbi frame size. %s\n"
 msgstr "%s (%s) rapporterar en icke trovärdig VBI-bildsstorlek. %s\n"
 
-#: libvbi/v4lx.c:786 libvbi/v4lx.c:834 libvbi/v4lx.c:1239
+#: libvbi/v4lx.c:791 libvbi/v4lx.c:839 libvbi/v4lx.c:1244
 #, c-format
 msgid "Sorry, %s (%s) cannot capture any of the requested data services.\n"
 msgstr "Tyvärr, %s (%s) kan inte spela in någon av de begärda tjänsterna.\n"
 
-#: libvbi/v4lx.c:825 libvbi/v4lx.c:1230
+#: libvbi/v4lx.c:830 libvbi/v4lx.c:1235
 #, c-format
 msgid ""
 "Cannot capture the requested data services with %s (%s), the sampling "
 "frequency is too low.\n"
 msgstr ""
-"Kan inte spela in de begärda datatjänsterna med %s (%s), inspelnings"
-"frekvensen är för låg.\n"
+"Kan inte spela in de begärda datatjänsterna med %s (%s), "
+"inspelningsfrekvensen är för låg.\n"
 
-#: libvbi/v4lx.c:851 libvbi/v4lx.c:859 libvbi/v4lx.c:1256 libvbi/v4lx.c:1264
-#: libvbi/v4lx.c:1361 libvbi/v4lx.c:1369
+#: libvbi/v4lx.c:856 libvbi/v4lx.c:864 libvbi/v4lx.c:1261 libvbi/v4lx.c:1269
+#: libvbi/v4lx.c:1366 libvbi/v4lx.c:1374
 #, c-format
 msgid "Not enough memory to allocate vbi data buffers (%d KB).\n"
 msgstr "Inte nog minne för att skapa VBI-buffrar (%d KB).\n"
 
-#: libvbi/v4lx.c:872 libvbi/v4lx.c:1384
+#: libvbi/v4lx.c:877 libvbi/v4lx.c:1389
 #, c-format
 msgid "Not enough memory to allocate vbi capture buffer (%d KB).\n"
 msgstr "Inte nog minne för att skapa VBI-inspelningsbuffer (%d KB).\n"
 
-#: libvbi/v4lx.c:941
+#: libvbi/v4lx.c:946
 msgid "V4L2 VBI interface: Capture stalled, no station tuned in?"
 msgstr "V4L2 VBI-gränssnitt: Inspelning avstannad, ingen kanal inställd?"
 
-#: libvbi/v4lx.c:953
+#: libvbi/v4lx.c:958
 msgid "V4L2 VBI interface: Failed to read from the device"
 msgstr "V4L2 VBI-gränssnitt: Läsfel"
 
-#: libvbi/v4lx.c:969
+#: libvbi/v4lx.c:974
 msgid "V4L2 VBI interface: Cannot dequeue buffer, driver or application bug?"
 msgstr ""
-"V4L2 VBI-gränssnitt: Kan inte av-köa buffern, fel i drivaren eller programmet?"
+"V4L2 VBI-gränssnitt: Kan inte av-köa buffern, fel i drivaren eller "
+"programmet?"
 
-#: libvbi/v4lx.c:990
+#: libvbi/v4lx.c:995
 msgid "V4L2 VBI interface: Cannot enqueue buffer, driver or application bug?"
 msgstr ""
 "V4L2 VBI-gränssnitt: Kan inte lägga buffern på kö, fel i drivare eller "
 "program?"
 
 #. mandatory, http://www.thedirks.org/v4l2/v4l2dsi.htm
-#: libvbi/v4lx.c:1118
+#: libvbi/v4lx.c:1123
 #, c-format
 msgid ""
 "Cannot query current videostandard of %s (%s): %d, %s. Probably a driver "
@@ -2937,47 +2946,43 @@ msgstr ""
 "Kan inte få videostandardinfo från %s (%s): %d, %s. Antagligen ett fel i "
 "drivaren.\n"
 
-#: libvbi/v4lx.c:1140
+#: libvbi/v4lx.c:1145
 #, c-format
 msgid "Cannot query current vbi parameters of %s (%s): %d, %s.\n"
-msgstr ""
-"Kan inte få VBI-parametrar från 5s (%s): %d, %s.\n"
+msgstr "Kan inte få VBI-parametrar från 5s (%s): %d, %s.\n"
 
-#: libvbi/v4lx.c:1280
+#: libvbi/v4lx.c:1285
 #, c-format
 msgid ""
 "Cannot request streaming i/o buffers from %s (%s): %d, %s. Driver bug?\n"
-msgstr ""
-"Kan inte få strömmande i/o-buffrar från %s (%s): %d, %s. Drivarfel?\n"
+msgstr "Kan inte få strömmande i/o-buffrar från %s (%s): %d, %s. Drivarfel?\n"
 
-#: libvbi/v4lx.c:1286
+#: libvbi/v4lx.c:1291
 #, c-format
 msgid "%s (%s) granted no streaming i/o buffers, physical memory exhausted?\n"
-msgstr ""
-"%s (%s) gav inga stömmande i/o-buffrar, slut på fysiskt minne?\n"
+msgstr "%s (%s) gav inga stömmande i/o-buffrar, slut på fysiskt minne?\n"
 
-#: libvbi/v4lx.c:1303
+#: libvbi/v4lx.c:1308
 #, c-format
 msgid "Querying streaming i/o buffer #%d from %s (%s) failed: %d, %s.\n"
 msgstr ""
 "Fråga till strömmande i/o-buffer nr. %d från %s (%s) misslyckades: %d, %s.\n"
 
-#: libvbi/v4lx.c:1317
+#: libvbi/v4lx.c:1322
 #, c-format
 msgid "Memory mapping streaming i/o buffer #%d from %s (%s) failed: %d, %s.\n"
 msgstr ""
 "Minnesmappning av strömmande i/o-buffer nr. %d från %s (%s) misslyckades: %"
 "d, %s.\n"
 
-#: libvbi/v4lx.c:1341
+#: libvbi/v4lx.c:1346
 #, c-format
 msgid ""
 "Cannot enqueue streaming i/o buffer #%d to %s (%s): %d, %s. Driver bug?\n"
 msgstr ""
-"Kan inte köa strömmande i/o-buffer nr. %d till %s (%s): %d, %s. "
-"Drivarfel?\n"
+"Kan inte köa strömmande i/o-buffer nr. %d till %s (%s): %d, %s. Drivarfel?\n"
 
-#: libvbi/v4lx.c:1394
+#: libvbi/v4lx.c:1399
 #, c-format
 msgid ""
 "%s (%s) lacks a vbi read interface, possibly an output only device or a "
@@ -2986,6 +2991,22 @@ msgstr ""
 "%s (%s) har inget läsgränssnitt för VBI, möjligen är det en endast skrivbar "
 "enhet eller ett drivarfel. %s\n"
 
+#~ msgid "%d %s"
+#~ msgstr "%d %s"
+
+#~ msgid "minutes"
+#~ msgstr "minuter"
+
+#~ msgid "%.1f MB : %d %s dropped : %d %s processed"
+#~ msgstr "%.1f MB : %d %s missade : %d %s sparade"
+
+# src/frequencies.c:827
+#~ msgid "frame"
+#~ msgstr "bild"
+
+# src/frequencies.c:827
+#~ msgid "frames"
+#~ msgstr "bilder"
 
 # glade/glade_strings.c:178
 #~ msgid "Leave the dialog"

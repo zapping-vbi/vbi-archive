@@ -1,3 +1,11 @@
+10.09.2001	automatic overlaying of subtitles <garetxe@users.sf.net>
+
+	* ttxview: Subtitle pages opened in the main window can now be
+	opened automatically (configurable).
+	* tveng.c: Fixed xv control multigenesis bug.
+	* tveng[12].c: Removed the ioctl tests, they did no good.
+	* pl.po: Updated (Paweł)
+
 03.09.2001	fifo hang fix <mschimek@users.sf.net>
 
 	* fifo.c: rem_consumer could under certain circumstances leave

@@ -33,7 +33,7 @@
     <class>GtkVBox</class>
     <name>vbox1</name>
     <homogeneous>False</homogeneous>
-    <spacing>15</spacing>
+    <spacing>0</spacing>
 
     <widget>
       <class>GtkLabel</class>
@@ -125,6 +125,47 @@
 	  <expand>True</expand>
 	  <fill>True</fill>
 	</child>
+      </widget>
+    </widget>
+
+    <widget>
+      <class>GtkLabel</class>
+      <name>label3</name>
+      <label>After saving the screenshot, run the command:</label>
+      <justify>GTK_JUSTIFY_CENTER</justify>
+      <wrap>False</wrap>
+      <xalign>0.5</xalign>
+      <yalign>0.5</yalign>
+      <xpad>0</xpad>
+      <ypad>0</ypad>
+      <child>
+	<padding>0</padding>
+	<expand>False</expand>
+	<fill>False</fill>
+      </child>
+    </widget>
+
+    <widget>
+      <class>GnomeEntry</class>
+      <name>entry1</name>
+      <history_id>screenshot_command_history</history_id>
+      <max_saved>10</max_saved>
+      <child>
+	<padding>0</padding>
+	<expand>False</expand>
+	<fill>False</fill>
+      </child>
+
+      <widget>
+	<class>GtkEntry</class>
+	<child_name>GnomeEntry:entry</child_name>
+	<name>screenshot_command</name>
+	<tooltip>If this entry isn't empty, Zapping will try to run the given command each time you save a screenshot.</tooltip>
+	<can_focus>True</can_focus>
+	<editable>True</editable>
+	<text_visible>True</text_visible>
+	<text_max_length>0</text_max_length>
+	<text></text>
       </widget>
     </widget>
   </widget>

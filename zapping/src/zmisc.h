@@ -305,4 +305,8 @@ z_build_path(const gchar *path, gchar **error_description);
 void
 propagate_toolbar_changes	(GtkWidget	*toolbar);
 
+/* Switchs OSD on and sets the given OSD page as the subtitles source */
+void
+zmisc_overlay_subtitles		(gint page);
+
 #endif /* ZMISC.H */

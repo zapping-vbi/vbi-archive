@@ -267,23 +267,11 @@ void
 on_videotext1_activate                 (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
-  GtkWidget *closed_caption1;
-
   /* Switch from TTX to Subtitles overlay, and viceversa */
   if (main_info->current_mode == TVENG_NO_CAPTURE)
     {
       if (get_ttxview_page(main_window, &zvbi_page, NULL))
-	{
-	  zcs_bool(TRUE, "closed_caption");
-	  zcs_int(zvbi_page, "zvbi_page");
-	  osd_clear();
-	  closed_caption1 =
-	    lookup_widget(main_window, "closed_caption1");
-	  gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(closed_caption1),
-					 TRUE);
-	}
-
-      zmisc_restore_previous_mode(main_info);
+	zmisc_overlay_subtitles(zvbi_page);
     }
   else
     zmisc_switch_mode(TVENG_NO_CAPTURE, main_info);

@@ -2325,7 +2325,7 @@ msgstr ""
 "  QUIT: Salir de Zapping\n"
 "\n"
 "Nota: el utilizar SETCHANNEL dos veces en un intervalo de 1500 ms o\n"
-"menos, reaccionará igual que una televisión, pro ejemplo,\n"
+"menos, reaccionará igual que una televisión, por ejemplo,\n"
 "SETCHANNEL 1, SETCHANNEL 3 seleccionará el canal 13\n"
 "El fichero README.alirc tiene más información sobre el plugin."
 
@@ -2985,7 +2985,7 @@ msgstr ""
 msgid ""
 "Cannot enqueue streaming i/o buffer #%d to %s (%s): %d, %s. Driver bug?\n"
 msgstr ""
-"Fallo al enviar el buffer straming #%d a %s (%s): %d, %s. ¿Fallo del\n"
+"Fallo al enviar el buffer streaming #%d a %s (%s): %d, %s. ¿Fallo del\n"
 "controlador?\n"
 
 #: libvbi/v4lx.c:1399

@@ -1344,6 +1344,21 @@ Interlaced (window size)
 	  </widget>
 
 	  <widget>
+	    <class>GtkCheckButton</class>
+	    <name>checkbutton12</name>
+	    <tooltip>If you select this option, TTX pages marked as subtitles and opened in the main window will automagically switch to TV mode and overlay themselves.</tooltip>
+	    <can_focus>True</can_focus>
+	    <label>Overlay subtitle pages automatically</label>
+	    <active>False</active>
+	    <draw_indicator>True</draw_indicator>
+	    <child>
+	      <padding>0</padding>
+	      <expand>False</expand>
+	      <fill>False</fill>
+	    </child>
+	  </widget>
+
+	  <widget>
 	    <class>GtkHBox</class>
 	    <name>hbox19</name>
 	    <homogeneous>True</homogeneous>

@@ -154,7 +154,7 @@ typedef struct {
   guint			wait_page; /* last page requested */
   struct fmt_page	wait_pg; /* page we wait for */
   gboolean		wait_mode; /* waiting */
-
+  
   GtkToolbarStyle	toolbar_style; /* previous style of the
 					  toolbar (restored on detach) */
 } ttxview_data;
@@ -796,6 +796,16 @@ event_timeout				(ttxview_data	*data)
       switch (msg)
 	{
 	case TTX_PAGE_RECEIVED:
+	  if (data->parent_toolbar &&
+	      zconf_get_boolean(NULL,
+				"/zapping/options/vbi/auto_overlay") &&
+	      vbi_classify_page(zvbi_get_object(), data->fmt_page->pgno, NULL,
+				NULL) == VBI_SUBTITLE_PAGE)
+	    {
+	      zmisc_overlay_subtitles(zvbi_page);
+	      return TRUE;
+	    }
+
 	  gdk_window_get_size(data->da->window, &w, &h);
 	  gdk_window_clear_area_e(data->da->window, 0, 0, w, h);
 	  data->subpage = data->fmt_page->subno;
@@ -2293,8 +2303,6 @@ void on_subtitle_select			(GtkWidget	*widget,
 					 gint		page)
 {
   int classf;
-  GtkWidget *window =
-    GTK_WIDGET(gtk_object_get_user_data(GTK_OBJECT(widget)));
 
   if (!zvbi_get_object())
     return;
@@ -2303,22 +2311,7 @@ void on_subtitle_select			(GtkWidget	*widget,
 
   if (classf == VBI_SUBTITLE_PAGE ||
       (classf == VBI_NORMAL_PAGE && (page > 4 && page < 9)))
-    {
-      zvbi_page = page;
-
-      zconf_set_integer(zvbi_page,
-			"/zapping/internal/callbacks/zvbi_page");
-      osd_clear();
-
-      /* Switch OSD on */
-      if (find_widget(window, "zapping"))
-	{
-	  GtkWidget *closed_caption1 =
-	    lookup_widget(window, "closed_caption1");
-	  gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(closed_caption1),
-					 TRUE);
-	}
-    }
+    zmisc_overlay_subtitles(page);
 }
 
 /* Open the subtitle page in a new TTXView */
@@ -2431,7 +2424,6 @@ build_subtitles_submenu(GtkWidget *widget,
 	      buffer = g_strdup_printf(_("Text %x"), count - 4);
 
 	  menu_item = gtk_menu_item_new_with_label(buffer);
-	  gtk_object_set_user_data(GTK_OBJECT(menu_item), widget);
 	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
 			     GTK_SIGNAL_FUNC(on_subtitle_select),
 			     GINT_TO_POINTER(count));
@@ -2457,7 +2449,6 @@ build_subtitles_submenu(GtkWidget *widget,
 	    buffer = g_strdup_printf(_("%x: Unknown language"), count);
 
 	  menu_item = gtk_menu_item_new_with_label(buffer);
-	  gtk_object_set_user_data(GTK_OBJECT(menu_item), widget);
 	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
 			     GTK_SIGNAL_FUNC(on_subtitle_select),
 			     GINT_TO_POINTER(count));

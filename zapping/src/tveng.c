@@ -2186,7 +2186,7 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
 	      }
 	  }
 
-      if (!strcmp("XV_DOUBLE_BUFFER", at[i].name))
+      else if (!strcmp("XV_DOUBLE_BUFFER", at[i].name))
 	  {
 	    info->private->double_buffer = XInternAtom(dpy, "XV_DOUBLE_BUFFER",
 						       False);
@@ -2204,7 +2204,7 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
 	      }
 	  }
 
-      if (!strcmp("XV_COLORKEY", at[i].name))
+      else if (!strcmp("XV_COLORKEY", at[i].name))
 	  {
 	    info->private->colorkey = XInternAtom(dpy, "XV_COLORKEY",
 						False);

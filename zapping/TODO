@@ -2,30 +2,20 @@ Outstanding issues for the next release (0.6.0)
 -----------------------------------------------
 	+ Finish parrot buffer for observing parrots.
 	+ Find/draw some icons for the parrot buffer plugin.
-	+ Reorganize toolbar, etc.
-	+ XWarpPointer
 
 > 0.6.1
 	+ extend OSD to allow arbitrary strings, not just CC and ttx.
-	+ Add some remote control applet (or sth like that).
-	+ Have a copy of the stuff in the "quick bar" in the main menu
-	(for keyb navigation)
-	+ Key combos for lazy guys like me (channels + mute)
 	+ Fullscreen channel tips.
 	+ GUI improvements (channel selection, controls, toolbar...)
 	+ Revamp GUI for closed caption, program info, etc.
-	+ Screenshot preview, save in more formats (png, ...)
 	+ Get thumbnails of all tuned channels.
 	+ --roottv switch (use Z as screensaver)
 	+ Save control values and restore on startup (per channel).
-	+ Save screenshots at arbitrary sizes.
 	+ In ttx search progress window emphasis jumps between
 	  Cancel and Prev, should be Cancel and Next. Is Cancel correct
 	  at the left? And it may be cleaner with an Abort (the search)
 	  and a Cancel (the dialog).
-	+ In tty gui: The "R" (Reveal) button is unsuitable for i18n,
-	  should be "?" (preferably a nice pixmap), and "?" as kbd
-	  shortcut. Verify no other unNLSed accels exist.
+	+ Verify no unNLSed accels exist. (suitable replacement for H?)
 	+ Improve documentation.
 	+ Make controls move faster with the keyb, and avoid rounding
 	issues (maxvalue never reached because of integer rounding)
@@ -38,6 +28,12 @@ Outstanding issues for the next release (0.6.0)
 	+ zapzilla: channel selector, properties.
 	+ libvbi: SGML error reporting.
 	+ Examine the possiblity of linking movie titles
+
+> 0.7.0
+	+ Support for Python scripting, write all new gui handling as
+	Python code.
+	+ Add some remote control applet, or sth like that (moved here
+	because it will use scripting).
 
 > Somewhen...
 	+ Do realtime effects to the image, plainly wonderful, see

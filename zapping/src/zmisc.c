@@ -809,3 +809,24 @@ propagate_toolbar_changes	(GtkWidget	*toolbar)
 		     GTK_SIGNAL_FUNC(on_orientation_changed),
 		     NULL);
 }
+
+void zmisc_overlay_subtitles	(gint page)
+{
+  GtkWidget *closed_caption1;
+
+  zvbi_page = page;
+  
+  zconf_set_integer(zvbi_page,
+		    "/zapping/internal/callbacks/zvbi_page");
+  zconf_set_boolean(TRUE, "/zapping/internal/callbacks/closed_caption");
+
+  if (main_info->current_mode == TVENG_NO_CAPTURE)
+    zmisc_restore_previous_mode(main_info);
+
+  osd_clear();
+  
+  closed_caption1 =
+    lookup_widget(main_window, "closed_caption1");
+  gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(closed_caption1),
+				 TRUE);
+}

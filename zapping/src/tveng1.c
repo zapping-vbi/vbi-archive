@@ -270,15 +270,6 @@ int tveng1_attach_device(const char* device_file,
       return -1;
     }
 
-#ifdef TVENG_ENABLE_IOCTL_TESTS
-  /* Make an ioctl test and switch to the first input */
-  if (tveng1_set_input(&(info->inputs[0]), info) == -1)
-    {
-      tveng1_close_device(info);
-      return -1;
-    }
-#endif
-
   /* Fill in standards */
   info->standards = NULL;
   info->cur_standard = 0;
@@ -288,27 +279,6 @@ int tveng1_attach_device(const char* device_file,
       tveng1_close_device(info);
       return -1;
     }
-
-#ifdef TVENG_ENABLE_IOCTL_TESTS
-  /* make another ioctl test, switch to first or default standard */
-  if (info->num_standards > 0)
-    {
-      if (info->private->default_standard)
-	{
-	  if (tveng1_set_standard_by_name(info->private->default_standard, info) ==
-	      -1)
-	    {
-	      tveng1_close_device(info);
-	      return -1;
-	    }
-	}
-      else if (tveng1_set_standard(&(info->standards[0]), info) == -1)
-	{
-	  tveng1_close_device(info);
-	  return -1;
-	}
-    }
-#endif
 
   /* Query present controls */
   info->num_controls = 0;

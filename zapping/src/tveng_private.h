@@ -111,11 +111,31 @@ static int
 p_tveng_append_control(struct tveng_control * new_control, 
 		       tveng_device_info * info) __attribute__ ((unused));
 
+static struct tveng_control *
+find_control_by_id(tveng_device_info *info, int id) __attribute__ ((unused));
+
+static struct tveng_control *
+find_control_by_id(tveng_device_info *info, int id)
+{
+  int i;
+
+  for (i = 0; i<info->num_controls; i++)
+    if (info->controls[i].id == id)
+      return &(info->controls[i]);
+
+  return NULL;
+};
+
 static int
 p_tveng_append_control(struct tveng_control * new_control, 
 		       tveng_device_info * info)
 {
-  struct tveng_control * new_pointer = (struct tveng_control*)
+  struct tveng_control * new_pointer;
+
+  if (find_control_by_id(info, new_control->id))
+    return 0;
+
+  new_pointer = (struct tveng_control*)
     realloc(info->controls, (info->num_controls+1)*
 	    sizeof(struct tveng_control));
 

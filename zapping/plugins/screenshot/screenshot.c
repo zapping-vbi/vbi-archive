@@ -1,5 +1,5 @@
 /* Screenshot saving plugin for Zapping
- * Copyright (C) 2000 Iñaki García Etxebarria
+ * Copyright (C) 2000-2001 Iñaki García Etxebarria
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -58,6 +58,9 @@ static gint num_threads = 0;
 /* Where should the screenshots be saved to (dir) */
 static gchar * save_dir = NULL;
 
+/* Command to run after saving the screenshot */
+static gchar * command = NULL;
+
 static gint quality; /* Quality of the compressed image */
 
 static tveng_device_info * zapping_info = NULL; /* Info about the
@@ -97,6 +100,7 @@ struct screenshot_data
   struct jpeg_compress_struct cinfo; /* Compression parameters */
   struct jpeg_error_mgr jerr; /* Error handler */
   FILE * handle; /* Handle to the file we are saving */
+  gchar *path; /* path to the file we are saving */
   gboolean set_bgr; /* TRUE if we got BGR data instead of RGB */
 };
 
@@ -315,6 +319,14 @@ void plugin_load_config (gchar * root_key)
   zconf_get_string(&save_dir, buffer);
   g_free(buffer);
 
+  buffer = g_strconcat(root_key, "command", NULL);
+  zconf_create_string("", "Command to run after taking the screenshot",
+		      buffer);
+  zconf_get_string(&command, buffer);
+  if (!command)
+    command = g_strdup("");
+  g_free(buffer);
+
   g_free(default_save_dir);
 }
 
@@ -331,7 +343,12 @@ void plugin_save_config (gchar * root_key)
   zconf_set_integer(quality, buffer);
   g_free(buffer);
 
+  buffer = g_strconcat(root_key, "command", NULL);
+  zconf_set_string(command, buffer);
+  g_free(buffer);
+
   g_free(save_dir);
+  g_free(command);
 }
 
 static
@@ -401,6 +418,7 @@ gboolean plugin_add_properties ( GnomePropertyBox * gpb )
   GtkWidget *vbox1;
   GtkWidget *screenshot_quality;
   GtkWidget *screenshot_dir;
+  GtkWidget *screenshot_command;
   GtkWidget *combo_entry1;
   GtkObject *adj;
   GtkWidget *label;
@@ -415,6 +433,8 @@ gboolean plugin_add_properties ( GnomePropertyBox * gpb )
     lookup_widget(vbox1, "screenshot_quality");
   screenshot_dir =
     lookup_widget(vbox1, "screenshot_dir");
+  screenshot_command =
+    lookup_widget(vbox1, "screenshot_command");
   combo_entry1 = lookup_widget(vbox1, "combo-entry1");
 
   gtk_object_set_data(GTK_OBJECT(gpb), "screenshot_save_dir", screenshot_dir);
@@ -434,6 +454,10 @@ gboolean plugin_add_properties ( GnomePropertyBox * gpb )
   gtk_range_set_adjustment(GTK_RANGE(screenshot_quality),
 			   GTK_ADJUSTMENT(adj));
 
+  gtk_entry_set_text(GTK_ENTRY(screenshot_command), command);
+  gtk_signal_connect(GTK_OBJECT(screenshot_command), "changed",
+		     on_property_item_changed, gpb);
+
   label = gtk_label_new(_("Screenshot"));
   gtk_widget_show(label);
   page = gnome_property_box_append_page(gpb, GTK_WIDGET(vbox1), label);
@@ -447,7 +471,7 @@ gboolean plugin_add_properties ( GnomePropertyBox * gpb )
 static
 gboolean plugin_activate_properties ( GnomePropertyBox * gpb, gint page )
 {
-  /* Return TRUE only if the given page have been builded by this
+  /* Return TRUE only if the given page have been built by this
      plugin, and apply any config changes here */
   gpointer data = gtk_object_get_data(GTK_OBJECT(gpb), "screenshot_page");
   GnomeFileEntry * save_dir_widget
@@ -456,6 +480,8 @@ gboolean plugin_activate_properties ( GnomePropertyBox * gpb, gint page )
   GtkAdjustment * quality_adj =
     GTK_ADJUSTMENT(gtk_object_get_data(GTK_OBJECT(gpb),
 				       "screenshot_quality"));
+  GtkWidget * screenshot_command =
+    lookup_widget(GTK_WIDGET(save_dir_widget), "screenshot_command");
 
   if (GPOINTER_TO_INT(data) == page)
     {
@@ -466,6 +492,9 @@ gboolean plugin_activate_properties ( GnomePropertyBox * gpb, gint page )
       gnome_entry_save_history(GNOME_ENTRY(gnome_file_entry_gnome_entry(
 	 save_dir_widget)));
       quality = quality_adj->value;
+
+      command = g_strdup(gtk_entry_get_text(GTK_ENTRY(screenshot_command)));
+
       return TRUE;
     }
 
@@ -486,7 +515,11 @@ N_("The first option, the screenshot dir, lets you specify where\n"
    "will the screenshots be saved. The file name will be:\n"
    "save_dir/shot[1,2,3,...].jpeg\n\n"
    "The quality option lets you choose how much info will be\n"
-   "discarded when compressing the JPEG."
+   "discarded when compressing the JPEG.\n\n"
+   "The command will be run after writing to disk the screenshot,\n"
+   "with the environmental variables $SCREENSHOT_PATH, $CHANNEL_ALIAS,\n"
+   "$CHANNEL_ID, $CURRENT_STANDARD, $CURRENT_INPUT set to their\n"
+   "correct value."
 );
 
   if (GPOINTER_TO_INT(data) == page)
@@ -742,7 +775,7 @@ start_saving_screenshot (gpointer data_to_save,
   gtk_widget_show(progressbar);
   vbox = gtk_vbox_new (FALSE, 0);
   label = gtk_label_new(buffer);
-  g_free(buffer); /* No longer needed */
+  data->path = buffer;
   gtk_widget_show(label);
   gtk_box_pack_start_defaults(GTK_BOX(vbox),label);
   gtk_box_pack_start_defaults(GTK_BOX(vbox), progressbar);
@@ -797,6 +830,11 @@ static void * saver_thread(void * _data)
   gint rowstride;
   gchar * pixels, *row_pointer = NULL;
   gboolean done_writing = FALSE;
+  char *argv[10];
+  int argc = 0;
+  char *env[10];
+  int envc = 0;
+  int i;
 
   data -> lines = 0;
   data -> done = FALSE;
@@ -827,8 +865,7 @@ static void * saver_thread(void * _data)
       Converter = (LineConverter) Convert_YUYV_RGB24;
       break;
     default:
-      g_warning("pixformat not supported");
-      goto finish; /* thread cleanup */
+      g_assert_not_reached();
     }
 
   pixels = (gchar*) data->data;
@@ -855,12 +892,44 @@ static void * saver_thread(void * _data)
 	done_writing = TRUE;
     }
 
- finish:
   jpeg_finish_compress(&(data->cinfo));
   jpeg_destroy_compress(&(data->cinfo));
   fclose(data->handle);
 
   data->done = TRUE;
+
+  /* Attempt to run command if it isn't empty */
+  if (command && *command)
+    {
+      extern int cur_tuned_channel;
+      extern tveng_tuned_channel *global_channel_list;
+      tveng_tuned_channel *tc =
+	tveng_retrieve_tuned_channel_by_index(cur_tuned_channel,
+					      global_channel_list);
+      /* Invoque through sh */
+      argv[argc++] = "sh";
+      argv[argc++] = "-c";
+      argv[argc++] = command;
+      /* FIXME */
+      env[envc++] = g_strdup_printf("SCREENSHOT_PATH=%s", data->path);
+      if (tc)
+	{
+	  env[envc++] = g_strdup_printf("CHANNEL_ALIAS=%s", tc->name);
+	  env[envc++] = g_strdup_printf("CHANNEL_ID=%s",
+					tc->real_name);
+	  if (zapping_info->num_standards)
+	    env[envc++] =
+	      g_strdup_printf("CURRENT_STANDARD=%s",
+		zapping_info->standards[zapping_info->cur_standard].name);
+	  if (zapping_info->num_inputs)
+	    env[envc++] =
+	      g_strdup_printf("CURRENT_INPUT=%s",
+		zapping_info->inputs[zapping_info->cur_input].name);
+	}
+      gnome_execute_async_with_env(NULL, argc, argv, envc, env);
+      for (i=0; i<envc; i++)
+	g_free(env[i]);
+    }
 
   return NULL;
 }
@@ -887,6 +956,7 @@ static gboolean thread_manager (struct screenshot_data * data)
       if (data->window)
 	gtk_widget_destroy(data->window);
       pthread_join(data->thread, &result);
+      g_free(data -> path);
       g_free(data -> data);
       g_free(data -> line_data);
       g_free(data);

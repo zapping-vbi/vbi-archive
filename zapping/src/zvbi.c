@@ -218,6 +218,7 @@ startup_zvbi(void)
   zcc_bool(FALSE, "Enable VBI decoding", "enable_vbi");
 #endif
   zcc_bool(TRUE, "Use VBI for getting station names", "use_vbi");
+  zcc_bool(TRUE, "Overlay subtitle pages automagically", "auto_overlay");
   zcc_char("/dev/vbi0", "VBI device", "vbi_device");
   zcc_int(0, "Default TTX region", "default_region");
   zcc_int(3, "Teletext implementation level", "teletext_level");
