@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.36 2002-09-12 12:23:48 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.37 2002-09-14 04:19:34 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -194,7 +194,7 @@ tmp_slice_i(mpeg1_context *mpeg1, bool motion)
 			int pq0 = MB_HIST(mb_col - 1).quant; /* left */
 			int pq1 = MB_HIST(mb_col + 0).quant; /* up */
 
-			quant = rc_quant(&mpeg1->rc, MB_INTRA,
+			quant = rc_quant(&mpeg1->rc, &mpeg1->rc.f, MB_INTRA,
 					 var / VARQ + 1, 0.0,
 					 bwritten(&video_out.bstream), 0, quant_max);
 
@@ -265,7 +265,7 @@ if (0)
 
 		bprolog(&video_out.bstream);
 
-		mpeg1->quant_sum += quant;
+		mpeg1->rc.f.quant_sum += quant;
 		MB_HIST(mb_col).quant = quant;
 
 		if (__builtin_expect(mpeg1->referenced, 1)) {
@@ -301,9 +301,7 @@ tmp_picture_i(mpeg1_context *mpeg1, unsigned char *org, bool motion)
 
 	pr_start(21, "Picture I");
 
-	rc_picture_start(&mpeg1->rc, I_TYPE, mb_num);
-
-	mpeg1->quant_sum = 0;
+	rc_picture_start(&mpeg1->rc, &mpeg1->rc.f, I_TYPE, mb_num);
 
 	swap(mpeg1->oldref, newref);
 
@@ -343,7 +341,7 @@ tmp_picture_i(mpeg1_context *mpeg1, unsigned char *org, bool motion)
 
 	S = bflush(&video_out.bstream);
 
-	rc_picture_end(&mpeg1->rc, I_TYPE, S, mpeg1->quant_sum, mb_num);
+	rc_picture_end(&mpeg1->rc, &mpeg1->rc.f, I_TYPE, S, mb_num);
 
 	pr_end(21);
 
@@ -453,9 +451,7 @@ tmp_picture_p(mpeg1_context *mpeg1, unsigned char *org,
 		memcpy(newref, mpeg1->oldref, 64 * 6 * mb_num);
 #endif
 
-	rc_picture_start(&mpeg1->rc, P_TYPE, mb_num);
-
-	mpeg1->quant_sum = 0;
+	rc_picture_start(&mpeg1->rc, &mpeg1->rc.f, P_TYPE, mb_num);
 
 	reset_dct_pred (&video_out);
 	
@@ -580,7 +576,7 @@ tmp_picture_p(mpeg1_context *mpeg1, unsigned char *org,
 					quant = 3;
 	    			        fprintf(stderr, "/");
 				} else {
-					quant = rc_quant(&mpeg1->rc, MB_FORWARD,
+					quant = rc_quant(&mpeg1->rc, &mpeg1->rc.f, MB_FORWARD,
 							 act, act,
 							 bwritten(&video_out.bstream), QS, quant_max);
 					quant = quant_res_intra[quant];
@@ -597,7 +593,7 @@ tmp_picture_p(mpeg1_context *mpeg1, unsigned char *org,
 					quant1 = quant;
 
 				prev_quant = quant;
-				mpeg1->quant_sum += quant;
+				mpeg1->rc.f.quant_sum += quant;
 
 				mb_skipped = 0;
 
@@ -620,7 +616,7 @@ tmp_picture_p(mpeg1_context *mpeg1, unsigned char *org,
 
 				/* Calculate quantization factor */
 
-				quant = rc_quant(&mpeg1->rc, MB_FORWARD,
+				quant = rc_quant(&mpeg1->rc, &mpeg1->rc.f, MB_FORWARD,
 						 var / VARQ + 1, vmc / VARQ + 1,
 						 bwritten(&video_out.bstream), 0, quant_max);
 if (!T3RT) quant = 2;
@@ -735,7 +731,7 @@ if (!T3RT) quant = 2;
 					} // if not skipped
 				} // retry
 
-				mpeg1->quant_sum += quant;
+				mpeg1->rc.f.quant_sum += quant;
 				mb_skipped = i;
 
 				reset_dct_pred (&video_out);
@@ -765,7 +761,7 @@ if (!T3RT) quant = 2;
 	
 	*q1p |= (quant1 << 3);
 
-	rc_picture_end(&mpeg1->rc, P_TYPE, S, mpeg1->quant_sum, mb_num);
+	rc_picture_end(&mpeg1->rc, &mpeg1->rc.f, P_TYPE, S, mb_num);
 
 	pr_end(24);
 
@@ -806,9 +802,7 @@ tmp_picture_b(mpeg1_context *mpeg1, unsigned char *org,
 
 	reset_mba();
 
-	rc_picture_start(&mpeg1->rc, B_TYPE, mb_num);
-
-	mpeg1->quant_sum = 0;
+	rc_picture_start(&mpeg1->rc, &mpeg1->rc.f, B_TYPE, mb_num);
 
 	reset_dct_pred (&video_out);
 
@@ -960,7 +954,7 @@ skip_pred:
 
 				/* Calculate quantization factor */
 
-				quant = rc_quant(&mpeg1->rc, MB_FORWARD,
+				quant = rc_quant(&mpeg1->rc, &mpeg1->rc.f, MB_FORWARD,
 						 act, act,
 						 bwritten(&video_out.bstream), QS, quant_max);
 				quant = quant_res_intra[quant];
@@ -978,7 +972,7 @@ skip_pred:
 					quant1 = quant;
 
 				prev_quant = quant;
-				mpeg1->quant_sum += quant;
+				mpeg1->rc.f.quant_sum += quant;
 
 				mb_skipped = 0;
 
@@ -994,7 +988,7 @@ skip_pred:
 
 				/* Calculate quantization factor */
 
-				quant = rc_quant(&mpeg1->rc, MB_INTERP,
+				quant = rc_quant(&mpeg1->rc, &mpeg1->rc.f, MB_INTERP,
 						 var / VARQ + 1, vmc / VARQ + 1,
 						 bwritten(&video_out.bstream), 0, quant_max);
 
@@ -1119,7 +1113,7 @@ l2:
 
 				prev_quant = quant;
 
-				mpeg1->quant_sum += quant;
+				mpeg1->rc.f.quant_sum += quant;
 				mb_skipped = i;
 
 				if (motion && i == 0) {
@@ -1153,7 +1147,7 @@ l2:
 
 	*q1p |= (quant1 << 3);
 
-	rc_picture_end(&mpeg1->rc, B_TYPE, S, mpeg1->quant_sum, mb_num);
+	rc_picture_end(&mpeg1->rc, &mpeg1->rc.f, B_TYPE, S, mb_num);
 
 	pr_end(25);
 
@@ -1942,8 +1936,8 @@ rc_reset(mpeg1_context *mpeg1)
 	mpeg1->rc.r31	= (double) quant_max
 		/ lroundn(mpeg1->bit_rate / mpeg1->virtual_frame_rate * 1.0);
 	mpeg1->rc.Tmin	= lroundn(mpeg1->bit_rate / mpeg1->virtual_frame_rate / 8.0);
-	mpeg1->rc.avg_acti = 400.0;
-	mpeg1->rc.avg_actp = 400.0;
+	mpeg1->rc.act_avg_i = 400.0;
+	mpeg1->rc.act_avg_p = 400.0;
 
 	mpeg1->rc.Xi	= lroundn(160.0 * mpeg1->bit_rate / 115.0);
 	mpeg1->rc.Xp	= lroundn( 60.0 * mpeg1->bit_rate / 115.0); 
