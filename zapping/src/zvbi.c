@@ -68,6 +68,10 @@ static pthread_t zvbi_thread_id; /* VBI thread in libvbi */
 static pthread_mutex_t network_mutex;
 static vbi_network current_network; /* current network info */
 
+/* symbol used by osd.c */
+int zvbi_page = 1, zvbi_subpage = ANY_SUB;	// caption 1 ... 8
+// int zvbi_page = 0x888, zvbi_subpage = ANY_SUB;// ttx 0x100 ... 0x8FF
+
 /**
  * The blink of items in the page is done by applying the patch once
  * every second (whenever the client wishes) to the appropiate places
@@ -202,6 +206,8 @@ on_vbi_prefs_changed		(const gchar *key,
     }
 }
 
+int test_pipe[2];
+
 void
 startup_zvbi(void)
 {
@@ -209,7 +215,7 @@ startup_zvbi(void)
   zcc_bool(TRUE, "Use VBI for getting station names", "use_vbi");
   zcc_char("/dev/vbi", "VBI device", "vbi_device");
   zcc_int(0, "Default TTX region", "default_region");
-  zcc_int(0, "Teletext implementation level", "teletext_level");
+  zcc_int(3, "Teletext implementation level", "teletext_level");
 
   zconf_add_hook("/zapping/options/vbi/enable_vbi",
 		 (ZConfHook)on_vbi_prefs_changed,
@@ -217,6 +223,12 @@ startup_zvbi(void)
   vbi_model = ZMODEL(zmodel_new());
   pthread_mutex_init(&network_mutex, NULL);
   memset(&current_network, 0, sizeof(current_network));
+
+  if (pipe(test_pipe)) {
+    RunBox("pipe! pipe! duh.\n%s", GNOME_MESSAGE_BOX_ERROR,
+	   strerror(errno));
+    exit(EXIT_FAILURE);
+  }
 }
 
 void shutdown_zvbi(void)
@@ -225,9 +237,21 @@ void shutdown_zvbi(void)
 
   if (vbi)
     zvbi_close_device();
+
+  close(test_pipe[0]);
+  close(test_pipe[1]);
 }
 
-int test_pipe[2];
+static void cc_event(vbi_event *ev, void *data)
+{
+  int *pipe = data;
+
+  if (ev->pgno != zvbi_page)
+    return;
+
+  /* Shouldn't block when the pipe buffer is full... ? */
+  write(pipe[1], "", 1);
+}
 
 /* Open the configured VBI device, FALSE on error */
 gboolean
@@ -253,11 +277,6 @@ zvbi_open_device(void)
 
   device = zcg_char(NULL, "vbi_device");
 
-  if (pipe(test_pipe)) {
-    fprintf(stderr, "pipe! pipe! duh.\n");
-    exit(EXIT_FAILURE);
-  }
-
   if (main_info)
     given_fd = main_info->fd;
   else
@@ -273,7 +292,7 @@ zvbi_open_device(void)
   if (vbi->cache)
     vbi->cache->op->mode(vbi->cache, CACHE_MODE_ERC, 1);
 
-  vbi_event_handler(vbi, ~0, event, NULL);
+  g_assert(vbi_event_handler(vbi, ~0, event, NULL) != 0);
 
   if (pthread_create(&zvbi_thread_id, NULL, vbi_mainloop, vbi))
     {
@@ -300,6 +319,10 @@ zvbi_open_device(void)
   pthread_mutex_init(&clients_mutex, NULL);
 
   zmodel_changed(vbi_model);
+
+  g_assert(vbi_event_handler(vbi,
+			     VBI_EVENT_CAPTION | VBI_EVENT_PAGE,
+			     cc_event, test_pipe) != 0);
 
   return TRUE;
 
@@ -339,8 +362,6 @@ zvbi_close_device(void)
   pthread_mutex_destroy(&clients_mutex);
   vbi_close(vbi);
   vbi = NULL;
-  close(test_pipe[0]);
-  close(test_pipe[1]);
 
   zmodel_changed(vbi_model);
 }

@@ -65,6 +65,7 @@ gboolean startup_callbacks(void)
   zcc_bool(TRUE, "Show the Closed Caption", "closed_caption");
   cur_tuned_channel = zcg_int(NULL, "cur_tuned_channel");
   zcc_bool(FALSE, "Hide the extra controls", "hide_extra");
+  zcc_int(0x888, "Subtitles page", "zvbi_page");
 
   return TRUE;
 }
@@ -180,12 +181,14 @@ on_hide_menubars1_activate             (GtkMenuItem     *menuitem,
       zcs_bool(FALSE, "hide_extra");
       gtk_widget_show(lookup_widget(main_window, "Inputs"));
       gtk_widget_show(lookup_widget(main_window, "Standards")); 
+      gtk_widget_show(lookup_widget(main_window, "frame6"));
     }
   else
     {
       zcs_bool(TRUE, "hide_extra");
       gtk_widget_hide(lookup_widget(main_window, "Inputs"));
       gtk_widget_hide(lookup_widget(main_window, "Standards"));
+      gtk_widget_hide(lookup_widget(main_window, "frame6"));
     }
 }
 
@@ -388,6 +391,17 @@ on_vbi_info1_activate                  (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
   gtk_widget_show(build_vbi_info());
+}
+
+void
+on_zvbi_page_changed		       (GtkSpinButton	*widget,
+					gpointer	user_data)
+{
+  extern int zvbi_page;
+
+  zvbi_page = dec2bcd(gtk_spin_button_get_value_as_int(widget));
+
+  zcs_int(zvbi_page, "zvbi_page");
 }
 
 void

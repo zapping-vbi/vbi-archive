@@ -8,8 +8,7 @@ liblirc_zapping_la_SOURCES = lirc.c
 
 EXTRA_DIST = README
 
-## CFLAGS = $(PLUGIN_DEFAULT_FLAGS)
-CFLAGS = -Wall -g
+CFLAGS = $(PLUGIN_DEFAULT_FLAGS)
 INCLUDES = \
 	-I$(top_srcdir)/intl \
 	-I$(includedir)	\

@@ -249,8 +249,6 @@ void plugin_save_config (gchar * root_key)
   gchar *buffer;
   action_list_item *item;
   gchar number[15];
-  gchar button[20];
-  gchar action[30];
   int i=0;
 
   printf("lirc plugin: saving configuration\n");
@@ -289,10 +287,6 @@ void plugin_add_properties ( GnomePropertyBox * gpb )
 {
   GtkWidget * label;
   GtkBox * vbox; /* the page added to the notebook */
-  GtkWidget * box; /* For building the slider */
-  GtkWidget * widget;
-  GtkObject * adj;
-  GtkWidget * hscale;
   gint page;
 
   printf("lirc plugin: adding properties\n");

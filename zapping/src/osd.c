@@ -63,9 +63,6 @@ static gboolean osd_status = FALSE;
 
 static gint input_id = 0;
 
-static gint page = 1, subpage = ANY_SUB;	// caption 1 ... 8
-// static gint page = 0x777, subpage = ANY_SUB;	// ttx 0x100 ... 0x8FF
-
 extern int test_pipe[2];
 
 static void osd_event		(gpointer	   data,
@@ -75,7 +72,6 @@ static void osd_event		(gpointer	   data,
 void
 startup_osd(void)
 {
-  struct vbi *vbi = zvbi_get_object();
   int i;
 
   if (osd_started)
@@ -94,27 +90,17 @@ startup_osd(void)
   input_id = gdk_input_add(test_pipe[0], GDK_INPUT_READ,
 			   osd_event, NULL);
 
-  if (vbi) /* FIXME: This doesn't belong here, but zvbi (osd isn't vbi
-	      specific, vbi can be opened at a later time) */
-    g_assert(vbi_event_handler(vbi,
-			       VBI_EVENT_CAPTION | VBI_EVENT_PAGE,
-			       cc_event, test_pipe) != 0);
-
   pthread_mutex_unlock(&osd_mutex);
 }
 
 void
 shutdown_osd(void)
 {
-  struct vbi *vbi = zvbi_get_object();
   int i;
 
   g_assert(osd_started == TRUE);
 
   pthread_mutex_lock(&osd_mutex);
-
-  if (vbi)
-    vbi_event_handler(vbi, 0, cc_event, NULL);
 
   osd_clear();
 
@@ -538,8 +524,6 @@ void osd_render2(void)
 
   for (; row <= osd_page.dirty.y1; ac_row += osd_page.columns, row++)
     {
-      /* FIXME: This produces flicker, we should allow rendering from
-	 an arbitrary row, there's no way to know from osd */
       osd_clear_row(row, 1);
       for (i = j = 0; i < osd_page.columns; i++)
         {
@@ -585,19 +569,20 @@ osd_event			(gpointer	   data,
 {
   struct vbi *vbi = zvbi_get_object();
   char dummy[16];
+  extern int zvbi_page, zvbi_subpage;
 
   if (read(test_pipe[0], dummy, 16 /* flush */) <= 0
       || !osd_status)
     return;
 
-  if (page <= 8)
+  if (zvbi_page <= 8)
     {
-      if (!vbi_fetch_cc_page(vbi, &osd_page, page))
+      if (!vbi_fetch_cc_page(vbi, &osd_page, zvbi_page))
         return; /* trouble in outer space */
     }
   else
     {
-      if (!vbi_fetch_vt_page(vbi, &osd_page, page, subpage,
+      if (!vbi_fetch_vt_page(vbi, &osd_page, zvbi_page, zvbi_subpage,
           25 /* rows */, 1 /* nav */))
         return;
     }
@@ -622,15 +607,4 @@ osd_event			(gpointer	   data,
     /* currently never down or more than one row */
 
   osd_render2();
-}
-
-void cc_event(vbi_event *ev, void *data)
-{
-  int *pipe = data;
-
-  if (ev->pgno != page)
-    return;
-
-  /* Shouldn't block when the pipe buffer is full... ? */
-  write(pipe[1], "", 1);
 }
