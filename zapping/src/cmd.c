@@ -39,11 +39,17 @@ static PyObject* py_quit (PyObject *self, PyObject *args)
 {
   GList *p;
   int x, y, w, h;
+  gboolean quit_muted;
 
   if (!main_window)
     py_return_false;
 
-  if (zconf_get_boolean (NULL, "/zapping/options/audio/quit_muted"))
+  quit_muted = TRUE;
+
+  /* Error ignored */
+  zconf_get_boolean (&quit_muted, "/zapping/options/main/quit_muted");
+
+  if (quit_muted)
     {
       /* Error ignored */
       tv_quiet_set (main_info, TRUE);
@@ -105,6 +111,9 @@ resolve_mode			(const gchar *		mode_str)
 static gboolean
 switch_mode			(enum tveng_capture_mode mode)
 {
+  if (0)
+    fprintf (stderr, "switch_mode: %d\n", mode);
+
   switch (mode)
     {
     case TVENG_CAPTURE_PREVIEW:
@@ -170,6 +179,7 @@ static PyObject *
 py_toggle_mode			(PyObject *		self,
 				 PyObject *		args)
 {
+  enum tveng_capture_mode old_mode;
   enum tveng_capture_mode mode;
   char *mode_str;
 
@@ -178,15 +188,30 @@ py_toggle_mode			(PyObject *		self,
   if (!PyArg_ParseTuple (args, "|s", &mode_str))
     g_error ("zapping.toggle_mode(|s)");
 
+  old_mode = main_info->current_mode;
+
   if (mode_str)
     mode = resolve_mode (mode_str);
   else
-    mode = main_info->current_mode;
+    mode = old_mode;
 
-  if (!switch_mode (last_mode))
-    py_return_false;
+  if (mode == old_mode)
+    {
+      if (mode == last_mode)
+	py_return_true;
 
-  last_mode = mode;
+      if (!switch_mode (last_mode))
+	py_return_false;
+
+      SWAP (mode, last_mode);
+    }
+  else
+    {
+      if (!switch_mode (mode))
+	py_return_false;
+
+      last_mode = old_mode;
+    }
 
   py_return_true;
 }
