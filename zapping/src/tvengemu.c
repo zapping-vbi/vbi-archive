@@ -32,7 +32,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <site_def.h>
-#include "../common/fifo.h"
+#include "common/fifo.h"
 #include <tveng.h>
 
 #ifndef TVENGEMU_ENABLE
