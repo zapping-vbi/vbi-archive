@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: copy_block.c,v 1.1 2004-12-11 11:46:22 mschimek Exp $ */
+/* $Id: copy_block.c,v 1.2 2005-01-08 14:40:44 mschimek Exp $ */
 
 #include <inttypes.h>
 #include <mmintrin.h>
@@ -69,13 +69,16 @@ copy_block1_mmx			(void *			dst,
 				 const void *		src,
 				 unsigned int		width,
 				 unsigned int		height,
-				 unsigned int		bytes_per_line)
+				 unsigned int		dst_bytes_per_line,
+				 unsigned int		src_bytes_per_line)
 {
-	unsigned int padding;
+	unsigned int dst_padding;
+	unsigned int src_padding;
 
-	padding = bytes_per_line - width;
+	dst_padding = dst_bytes_per_line - width * 1;
+	src_padding = src_bytes_per_line - width * 1;
 
-	if (__builtin_expect (0 == padding, TRUE)) {
+	if (__builtin_expect (0 == (dst_padding | src_padding), TRUE)) {
 		width *= height;
 		height = 1;
 	}
@@ -116,8 +119,8 @@ copy_block1_mmx			(void *			dst,
 				      : "+D" (d), "+S" (s), "+c" (count)
 				      :: "cc", "memory");
 
-		dst = ((uint8_t *) d) + padding;
-		src = ((const uint8_t *) s) + padding;
+		dst = ((uint8_t *) d) + dst_padding;
+		src = ((const uint8_t *) s) + src_padding;
 	}
 
 	_mm_empty ();
