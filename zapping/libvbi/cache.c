@@ -205,6 +205,43 @@ cache_foreach_pg(struct cache *ca, int pgno, int subno, int dir,
 }
 
 static int
+cache_foreach_pg2(struct cache *ca, int pgno, int subno,
+		  int dir, int (*func)(), void *data)
+{
+    struct vt_page *vtp, *s_vtp = 0;
+    int r;
+
+    if (ca->npages == 0)
+	return 0;
+
+    if (vtp = cache_lookup(ca, pgno, subno))
+	subno = vtp->subno;
+    else if (subno == ANY_SUB)
+	subno = dir < 0 ? 0 : 0xffff;
+
+    for (;;)
+    {
+	subno += dir;
+	while (subno < 0 || subno >= ca->hi_subno[pgno])
+	{
+	    pgno += dir;
+	    if (pgno < 0x100)
+		pgno = 0x9ff;
+	    if (pgno > 0x9ff)
+		pgno = 0x100;
+	    subno = dir < 0 ? ca->hi_subno[pgno] - 1 : 0;
+	}
+	if (vtp = cache_lookup(ca, pgno, subno))
+	{
+	    if ((r = func(data, vtp)))
+		return r;
+	}
+    }
+}
+
+
+
+static int
 cache_mode(struct cache *ca, int mode, int arg)
 {
     int res = -1;
@@ -227,6 +264,7 @@ static struct cache_ops cops =
     cache_put,
     cache_reset,
     cache_foreach_pg,
+    cache_foreach_pg2,
     cache_mode,
 };
 

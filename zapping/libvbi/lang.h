@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.h,v 1.4 2001-01-05 03:51:52 mschimek Exp $ */
+/* $Id: lang.h,v 1.5 2001-01-10 12:17:58 mschimek Exp $ */
 
 #ifndef LANG_H
 #define LANG_H
@@ -86,6 +86,21 @@ extern font_descriptor	font_descriptors[88];
 #define GL_DRCS					(0x8000)	/* vector 0 .. n << 8, char 0 ... 47, not in the font file */
 
 #define GL_SPACE				(GL_LATIN_G0 + ' ')
+
+static inline int
+gl_isalnum(int glyph)
+{
+	glyph &= 0xFFFF;
+
+	if (glyph >= GL_DRCS)
+		return 0;
+	if (glyph >= GL_ITALICS)
+		return 1;
+	if (glyph >= GL_GRAPHICS)
+		return 0;
+
+	return 1;
+}
 
 /*
  *  Glyph modifiers:

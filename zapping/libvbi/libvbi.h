@@ -12,4 +12,10 @@
 #include <dllist.h>
 #include <export.h>
 
+extern void		vbi_delete_search(void *p);
+extern void *		vbi_new_search(struct cache *ca, int pgno, int subno,
+				ucs2_t *pattern, int casefold,
+				int (* progress)(struct fmt_page *pg));
+extern int		vbi_next_search(void *p, struct fmt_page **pg);
+
 #endif

@@ -30,6 +30,8 @@ struct cache_ops
     void (*reset)(struct cache *ca);
     struct vt_page *(*foreach_pg)(struct cache *ca, int pgno, int subno,
 					    int dir, int (*func)(), void *data);
+    int (*foreach_pg2)(struct cache *ca, int pgno, int subno,
+		       int dir, int (*func)(), void *data);
     int (*mode)(struct cache *ca, int mode, int arg);
 };
 
