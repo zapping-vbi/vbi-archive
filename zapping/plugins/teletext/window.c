@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: window.c,v 1.8 2005-01-19 04:17:01 mschimek Exp $ */
+/* $Id: window.c,v 1.9 2005-01-31 07:21:34 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -184,6 +184,7 @@ append_top_menu			(TeletextWindow *	window,
       gtk_menu_shell_append (menu, first_item);
 
       subitem = NULL;
+      submenu = NULL;
 
       for (i = 0; i < n_elements; ++i)
 	{

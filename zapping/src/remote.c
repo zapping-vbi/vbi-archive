@@ -58,8 +58,7 @@ ParseTuple			(PyObject *		args,
 
   va_start (va, format);
 
-  /* Sigh. */
-  retval = PyArg_VaParse (args, (char *) format, va);
+  retval = PyArg_VaParse (args, /* const cast */ format, va);
 
   va_end (va);
 
@@ -353,7 +352,7 @@ _cmd_register			(const gchar *		name,
   /*  def->ml_doc = strdup(doc); */
   
   func = PyCFunction_New (def, NULL);
-  PyDict_SetItemString (dict, (char *) name, func);
+  PyDict_SetItemString (dict, /* const cast */ name, func);
   Py_DECREF (func);
 
   va_start (ap, flags);

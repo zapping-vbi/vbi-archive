@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.6 2005-01-19 04:07:59 mschimek Exp $ */
+/* $Id: misc.h,v 1.7 2005-01-31 07:21:33 mschimek Exp $ */
 
 #ifndef __ZTV_MISC_H__
 #define __ZTV_MISC_H__
@@ -136,7 +136,7 @@ do {									\
 #define __builtin_expect(expr, c) (expr)
 #undef __i386__
 #undef __i686__
-#define __attribute__(x)
+#define __attribute__(args...)
 
 static char *
 PARENT_HELPER (char *p, unsigned int offset)

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.1 2005-01-08 14:31:12 mschimek Exp $ */
+/* $Id: main.c,v 1.2 2005-01-31 07:21:34 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -363,7 +363,7 @@ start_thread1			(void)
   info.InputPitch = capture_width * 2 * 2;
   info.pMemcpy = (void *) tv_memcpy;
 
-#warning
+#warning TODO
   //  assert (!method->bNeedFieldDiff);
   //  assert (!method->bNeedCombFactor);
 

@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.21 2005-01-19 04:17:53 mschimek Exp $ */
+/* $Id: exp-txt.c,v 1.22 2005-01-31 07:21:34 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -56,7 +56,7 @@ typedef struct text_instance {
 
 	int			encoding;
 	char *			charset;
-	unsigned		color : 1;
+	vbi3_bool		color;
 	int			term;
 	int			gfx_chr;
 	vbi3_bool		ascii_art;

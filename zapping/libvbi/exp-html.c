@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.32 2005-01-19 04:17:53 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.33 2005-01-31 07:21:34 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -239,7 +239,7 @@ putwc				(html_instance *	html,
 				 unsigned int		c,
 				 vbi3_bool		escape)
 {
-	uint8_t *d;
+	char *d;
 
 	if (escape) {
 		switch (c) {

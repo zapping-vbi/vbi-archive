@@ -1393,10 +1393,6 @@ set_overlay_window		(tveng_device_info *	info,
 	int wx2;
 	int wy2;
 
-/* Temporarily disabled. */
-p_info->ovl_ready = FALSE;
-return FALSE;
-
 	if (p_info->cap_active)
 		return FALSE;
 
@@ -2128,7 +2124,7 @@ tvengbktr_attach_device (const char* device_file,
 	if (TVENG_ATTACH_VBI == attach_mode) {
 		unsigned long ul;
 
-		/* We need this only for Teletext, which is PAL. */
+		/* We need this only for Teletext, which implies PAL. */
 		ul = BT848_IFORM_F_PALBDGHI;
 		bktr_ioctl (info, BT848SFMT, &ul);
 

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bookmark.c,v 1.2 2004-11-03 06:44:51 mschimek Exp $ */
+/* $Id: bookmark.c,v 1.3 2005-01-31 07:21:34 mschimek Exp $ */
 
 #include "libvbi/top_title.h"
 #include "main.h"
@@ -383,26 +383,26 @@ bookmarks_menu_new		(TeletextView *		view)
     {
       bookmark *b;
       GtkWidget *menu_item;
-      const gchar *tmpl;
       gchar *buffer;
       gchar *channel;
 
       b = (bookmark * ) glist->data;
 
-      if (b->pn.subno != VBI3_ANY_SUBNO)
-	tmpl = "%s%s%x.%x";
-      else
-	tmpl = "%s%s%x";
-
       channel = b->channel;
       if (channel && !*channel)
 	channel = NULL;
 
-      buffer = g_strdup_printf (tmpl,
-				channel ? channel : "",
-				channel ? " " : "",
-				b->pn.pgno,
-				b->pn.subno);
+      if (b->pn.subno != VBI3_ANY_SUBNO)
+	buffer = g_strdup_printf ("%s%s%x.%x",
+				  channel ? channel : "",
+				  channel ? " " : "",
+				  b->pn.pgno,
+				  b->pn.subno);
+      else
+	buffer = g_strdup_printf ("%s%s%x",
+				  channel ? channel : "",
+				  channel ? " " : "",
+				  b->pn.pgno);
 
       if (b->description && *b->description)
 	{

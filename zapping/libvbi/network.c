@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: network.c,v 1.3 2005-01-19 04:17:54 mschimek Exp $ */
+/* $Id: network.c,v 1.4 2005-01-31 07:21:34 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -338,7 +338,7 @@ _vbi3_network_set_name_from_ttx_header
 		uint8_t c2;
 		char *name;
 
-		s1 = ttx_header_table[i].header;
+		s1 = (const uint8_t *) ttx_header_table[i].header;
 		s2 = buffer + 8;
 
 		while (0 != (c1 = *s1) && s2 < &buffer[40]) {

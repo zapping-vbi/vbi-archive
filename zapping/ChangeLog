@@ -1,3 +1,72 @@
+2005-01-30    <mschimek@users.sf.net>
+
+	* src/video_gdkrgb.c (image_put),
+	  src/tvengbktr.c (set_overlay_window),
+	  zapping_setup_fb/v4l25.c (setup_v4l25),
+	  zapping_setup_fb/v4l.c (setup_v4l): Used bytes_per_line
+	  instead of bytes_per_line[0].
+	* zapping_setup_fb/zapping_setup_fb.c (main): printf type mismatch.
+	* src/capture.c (request_capture_format): Possibly uninitialized
+	  return value.
+	* src/x11stuff.c (xv_adaptor_dump),
+	  libvbi/teletext.c (top_navigation_bar_style_1),
+	  libvbi/event.c (_vbi3_event_handler_list_remove):
+	  Uninitialized variable.
+	* plugins/deinterlace/DI_MoComp2/DI_MoComp2.c,
+	  plugins/deinterlace/windows.h: Don't define size_t or we
+	  run into conflicts with system headers.
+	* libtv/image_format.c (tv_copy_image): NULL check correction.
+	* src/zvbi.c: Open and close ttx_pipe as needed.
+	(decoder_giofunc): Blocked on capture error. Now aborts when
+	  error/eof propagates through ttx_pipe.
+	* src/tvengxv.c, src/tvengemu.c, src/tvengbktr.c,
+	  src/tveng25.c: Replaced t_error_msg() by tv_error_msg().
+	* src/tveng1.c: Rewrote buffering routines to stack up empty
+	  buffers and prepared for out of order buffer queuing.
+	  Replaced t_error_msg() by tv_error_msg().
+	* src/tveng.h (t_error_msg): Removed the ugly thing.
+	(t_error): Replaced t_error_msg() by tv_error_msg().
+	* src/tveng.c: Replaced t_error_msg() by tv_error_msg().
+	(validate_overlay_buffer): Compared bytes_per_line instead of
+	  bytes_per_line[0], always failing, disabling overlay.
+	* plugins/teletext/view.c: s/0/VBI3_END.
+	* plugins/teletext/search.c (idle): Missing sentinel in
+	  vbi3_search_next call.
+	* src/zconf.c (zconf_init), src/v4linterface.c (z_switch_channel),
+	  src/plugins.c, src/osd.c (py_osd_render), src/cmd.c (switch_mode),
+	  plugins/screenshot/screenshot.c (screenshot_save,
+	  screenshot_timeout): Used message as printf-like template.
+	  Replaced by %s string.
+	* libvbi/teletext_decoder.c (mip_page_stat): Parameter sign fix.
+	(vbi3_teletext_decoder_reset): Missing NULL check.
+	* libvbi/search.c (vbi3_search_utf8_new): Abort on NULL pattern.
+	* libvbi/misc.c (_vbi3_asprintf): Sign fix.
+	* libvbi/link.c (vbi3_link_copy): NULL check correction.
+	* libvbi/hamm.c (_vbi3_hamm8_inv): s/0xff/-1 to get rid of warning.
+	* libvbi/export.c (vbi3_export_option_menu_get,
+	  vbi3_export_option_menu_set, vbi3_export_option_get,
+	  vbi3_export_option_set): Abort on NULL keyword.
+	* libvbi/exp-gfx.c (vbi3_page_draw_caption_region_va_list,
+	  vbi3_page_draw_teletext_region_va_list): Missing NULL checks.
+	* libvbi/event.c (_vbi3_event_name): Missing default case.
+	* libvbi/conv.c (vbi3_iconv_ucs2_close): Invalid pointer check.
+	(vbi3_iconv_ucs2_open, vbi3_iconv_ucs2, vbi3_iconv_unicode,
+	 strdup_iconv, _vbi3_strdup_locale_ucs2,
+	 _vbi3_strdup_locale_teletext): Missing NULL checks.
+	* libvbi/cache.c (vbi3_cache_remove_event_handler,
+	  vbi3_cache_add_event_handler): assert !NULL.
+	* libvbi/macros.h (VBI3_END): Added to take advantage of gcc 4
+	  sentinel attribute in variadic format_options, export_options.
+	* libtv/screen.h, libtv/pixel_format.h, libtv/macros.h,
+	  libtv/image_format.h, libtv/clip_vector.h, libtv/callback.h,
+	  libvbi/top_title.h, libvbi/teletext_decoder.h, libvbi/search.h,
+	  libvbi/sampling_par.h, libvbi/pdc.h, libvbi/page.h,
+	  libvbi/packet-830.h, libvbi/network.h, libvbi/macros.h,
+	  libvbi/link.h, libvbi/lang.h, libvbi/image_format.h,
+	  libvbi/hamm.h, libvbi/export.h, libvbi/exp-txt.h,
+	  libvbi/exp-gfx.h, libvbi/conv.h, libvbi/cache.h, libvbi/bcd.h:
+	  Updated function attributes.
+
 2005-01-27    <mschimek@users.sf.net>
 
 	* plugins/deinterlace/Makefile.am,
@@ -10,8 +79,8 @@
 	* src/tvengbktr.c: Updated.
 	* src/tveng25.c: Choose fprint_ioctl function at runtime.
 	(dequeue_buffer, flush_buffers): EINTR check is redundant.
-	* src/tveng1.c (p_tveng1_dequeue): Must bypass device_ioctl() to
-	  get EINTR for timeout.
+	* src/tveng1.c (p_tveng1_dequeue): Must bypass device_ioctl()
+	  to get EINTR for timeout. Didn't fix the videostd bug though.
 	* libvbi/Makefile.am (wstfont2.xbm): Don't rebuild fontgen if
 	  wstfont2.xbm is up to date.
 	* libvbi/search.c (vbi3_search_next_va_list, vbi3_search_next):
@@ -57,8 +126,9 @@
 	* plugins/mpeg/mpeg.c (pref_rebuild_configs): 
 	  Nested func declaration fix for gcc 4.0.
 	* plugins/deinterlace/windows.h: Added _m_int().
-	* plugins/deinterlace/DI_GreedyH/DI_GreedyHMPulldown.c (PullDown_VSharp2,
-	  PullDown_VSoft2), plugins/deinterlace/DI_GreedyH/DI_GreedyHF.asm: 
+	* plugins/deinterlace/DI_GreedyH/DI_GreedyHMPulldown.c
+	(PullDown_VSharp2, PullDown_VSoft2),
+	  plugins/deinterlace/DI_GreedyH/DI_GreedyHF.asm: 
 	  QWORD PTR fix, bug #1102718.
 	* src/csconvert.c, libtv/pixel_format.c	(tv_pixfmt_name,
 	  pixel_formats), libtv/image_format.c (tv_clear_image),

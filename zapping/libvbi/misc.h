@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.7 2005-01-19 04:11:35 mschimek Exp $ */
+/* $Id: misc.h,v 1.8 2005-01-31 07:21:34 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
@@ -150,7 +150,7 @@ vbi3_log_printf			(vbi3_log_level		level,
 #define __builtin_expect(expr, c) (expr)
 #undef __i386__
 #undef __i686__
-#define __attribute__(x)
+#define __attribute__(args...)
 
 static char *
 PARENT_HELPER (char *p, unsigned int offset)

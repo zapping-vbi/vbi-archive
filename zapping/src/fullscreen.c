@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fullscreen.c,v 1.40 2005-01-19 04:16:20 mschimek Exp $ */
+/* $Id: fullscreen.c,v 1.41 2005-01-31 07:21:35 mschimek Exp $ */
 
 /**
  * Fullscreen mode handling
@@ -45,6 +45,8 @@
 #include "globals.h"
 #include "zvbi.h"
 
+extern gboolean was_fullscreen;
+
 static x11_vidmode_info *	svidmodes;
 static GtkWidget *		drawing_area;
 static GtkWidget * 		black_window; /* The black window when you go
@@ -62,8 +64,6 @@ on_key_press			(GtkWidget *		widget,
   if (GDK_q == event->keyval
       && (event->state & GDK_CONTROL_MASK))
     {
-      extern gboolean was_fullscreen;
-
       was_fullscreen = TRUE;
 
       python_command (widget, "zapping.switch_mode('window'); zapping.quit()");

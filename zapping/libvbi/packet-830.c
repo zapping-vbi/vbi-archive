@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet-830.c,v 1.3 2005-01-19 04:11:13 mschimek Exp $ */
+/* $Id: packet-830.c,v 1.4 2005-01-31 07:21:34 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -60,7 +60,7 @@ vbi3_decode_teletext_8301_cni	(unsigned int *		cni,
 }
 
 /**
- * @param time UTC time will be stored here.
+ * @param tme UTC time will be stored here.
  * @param gmtoff Local time offset in seconds east of UTC is stored here,
  *   including daylight saving time, as in BSD and GNU struct tm tm_gmtoff.
  *   To get the local time of the network broadcasting this packet add
@@ -76,11 +76,11 @@ vbi3_decode_teletext_8301_cni	(unsigned int *		cni,
  *
  * @returns
  * @c FALSE if the buffer contained incorrectable data, in this case
- * @a time and @a gmtoff remain unchanged.
+ * @a tme and @a gmtoff remain unchanged.
  */
 vbi3_bool
 vbi3_decode_teletext_8301_local_time
-				(time_t *		time,
+				(time_t *		tme,
 				 int *			gmtoff,
 				 const uint8_t		buffer[42])
 {
@@ -89,7 +89,7 @@ vbi3_decode_teletext_8301_local_time
 	int bcd;
 	int t;
 
-	assert (NULL != time);
+	assert (NULL != tme);
 	assert (NULL != gmtoff);
 	assert (NULL != buffer);
 
@@ -120,7 +120,7 @@ vbi3_decode_teletext_8301_local_time
 	if (utc >= 24 * 60 * 60)
 		return FALSE;
 
-	*time = (mjd - 40587) * 86400 + utc;
+	*tme = (mjd - 40587) * 86400 + utc;
 
 	/* Local time offset in seconds east of UTC. */
 

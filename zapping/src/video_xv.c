@@ -632,8 +632,8 @@ void add_backend_xv (void)
   unsigned int error_base;
   Window root;
   XvAdaptorInfo *pAdaptors;
-  int nAdaptors;
-  int i;
+  unsigned int nAdaptors;
+  unsigned int i;
 
   if (disable_xv || disable_xv_image)
     return;

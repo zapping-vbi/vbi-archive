@@ -49,21 +49,30 @@
 #ifdef HAVE_SSE
 
 typedef void
-planar2packed_fn		(uint8_t * image, uint8_t * py,
-				 uint8_t * pu, uint8_t * pv,
-				 int h_size, int v_size,
+planar2packed_fn		(uint8_t * image,
+				 const uint8_t * py,
+				 const uint8_t * pu,
+				 const uint8_t * pv,
+				 int h_size,
+				 int v_size,
 				 unsigned int rgb_stride,
 				 unsigned int y_stride,
 				 unsigned int uv_stride);
 typedef void
-packed2planar_fn		(uint8_t *py, uint8_t *pu, uint8_t *pv,
-				 uint8_t *image, int h_size, int v_size,
+packed2planar_fn		(uint8_t *py,
+				 uint8_t *pu,
+				 uint8_t *pv,
+				 const uint8_t *image,
+				 int h_size,
+				 int v_size,
 				 unsigned int y_stride,
 				 unsigned int uv_stride,
 				 unsigned int rgb_stride);
 typedef void
-packed2packed_fn		(uint8_t *dest, uint8_t *src,
-				 int h_size, int v_size,
+packed2packed_fn		(uint8_t *dst,
+				 const uint8_t *src,
+				 int h_size,
+				 int v_size,
 				 unsigned int dest_stride,
 				 unsigned int src_stride);
 

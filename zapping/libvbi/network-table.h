@@ -1,4 +1,4 @@
-/* $Id: network-table.h,v 1.2 2005-01-08 14:54:21 mschimek Exp $ */
+/* $Id: network-table.h,v 1.3 2005-01-31 07:21:34 mschimek Exp $ */
 
 /* Generated file, do not edit! */
 
@@ -22,7 +22,7 @@ struct network {
 
 struct ttx_header {
 	const char *		name;		/* UTF-8 */
-	const uint8_t *		header;		/* raw Teletext data */
+	const char *		header;		/* raw Teletext data */
 };
 
 static const struct country
