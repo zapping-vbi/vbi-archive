@@ -38,7 +38,6 @@
 #include "capture.h"
 #include "x11stuff.h"
 #include "zimage.h"
-#include "ttxview.h"
 #include "osd.h"
 #include "remote.h"
 #include "cmd.h"
@@ -93,17 +92,22 @@ static void
 startup_teletext(void)
 {
 #ifdef HAVE_LIBZVBI
-  if (disable_vbi)
-    zconf_set_boolean(FALSE, "/zapping/options/vbi/enable_vbi");
+  if (_teletext_view_new /* have Teletext plugin */)
+    {
+      if (disable_vbi)
+	zconf_set_boolean(FALSE, "/zapping/options/vbi/enable_vbi");
 
-  /* Make the vbi module open the device */
-  D();
-  zconf_touch("/zapping/options/vbi/enable_vbi");
-  D();
-#else
-  zconf_set_boolean(FALSE, "/zapping/options/vbi/enable_vbi");
-  vbi_gui_sensitive(FALSE);
+      /* Make the vbi module open the device */
+      D();
+      zconf_touch("/zapping/options/vbi/enable_vbi");
+      D();
+    }
+  else
 #endif
+    {
+      zconf_set_boolean(FALSE, "/zapping/options/vbi/enable_vbi");
+      vbi_gui_sensitive(FALSE);
+    }
 }
 
 /*
@@ -563,7 +567,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.185 2004-09-20 04:37:23 mschimek Exp $",
+	 "$Id: main.c,v 1.186 2004-09-22 21:24:56 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -899,19 +903,15 @@ int main(int argc, char * argv[])
 
       action = gtk_action_group_get_action (zapping->generic_action_group,
 					    "Fullscreen");
-      gtk_action_set_sensitive (action, FALSE);
+      z_action_set_sensitive (action, FALSE);
       action = gtk_action_group_get_action (zapping->generic_action_group,
 					    "Overlay");
-      gtk_action_set_sensitive (action, FALSE);
+      z_action_set_sensitive (action, FALSE);
     }
   D();
   startup_capture();
   D();
   startup_teletext();
-  D();
-#ifdef HAVE_LIBZVBI
-  startup_ttxview();
-#endif
   D();
   startup_vdr();
   D();
@@ -978,19 +978,20 @@ void shutdown_zapping(void)
   if (was_fullscreen)
     zcs_int(OLD_TVENG_CAPTURE_PREVIEW, "capture_mode");
 
+#ifdef HAVE_LIBZVBI
+  /*
+   * Shuts down the teletext view
+   */
+  /*  printv(" ttxview"); */
+  /*  if (_shutdown_ttxview) */
+  /*    _shutdown_ttxview(); */
+#endif
+
   /* Unloads all plugins, this tells them to save their config too */
   printv("plugins");
   plugin_unload_plugins(plugin_list);
   plugin_list = NULL;
 
-/* Temporarily moved up here for a test */
-#ifdef HAVE_LIBZVBI
-  /*
-   * Shuts down the teletext view
-   */
-  printv(" ttxview");
-  shutdown_ttxview();
-#endif
   /* Shut down vbi */
   printv(" vbi\n");
   shutdown_zvbi();
@@ -1332,5 +1333,19 @@ static gboolean startup_zapping(gboolean load_plugins,
       p = p->next;
     }
   D();
+
+  {
+    struct plugin_info *info;
+
+    if ((info = plugin_by_name ("teletext")))
+      {
+	_teletext_view_new = plugin_symbol (info, "view_new");
+	_teletext_view_from_widget = plugin_symbol (info, "view_from_widget");
+	_teletext_view_on_key_press =
+	  plugin_symbol (info, "view_on_key_press");
+	_teletext_toolbar_new = plugin_symbol (info, "toolbar_new");
+      }
+  }
+
   return TRUE;
 }
