@@ -1,3 +1,7 @@
+2002-06-29	<mschimek@users.sf.net>
+
+	* Switched from gtk-doc to doxygen (sigh of relief...). Cleanup.
+
 2002-06-19	<mschimek@users.sf.net>
 
 	* common, macros: Contents moved elsewhere, dirs removed.

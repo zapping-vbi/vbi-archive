@@ -1,5 +1,5 @@
 /*
- *  Real Time Encoder
+ *  Real Time Encoding Library
  *
  *  Copyright (C) 2000, 2001 Iñaki García Etxebarria
  *  Copyright (C) 2000, 2001, 2002 Michael H. Schimek
@@ -19,687 +19,257 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.16 2002-06-18 02:26:38 mschimek Exp $ */
+/* $Id: rte.c,v 1.17 2002-08-22 22:10:46 mschimek Exp $ */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
+#include "config.h"
 
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <math.h>
+#include <limits.h>
+#include <float.h>
 
 #include "rtepriv.h"
 
-/*
-[enum context]
-rte_context_new (which format)
-  for each option not left at defaults
-    rte_option_set
-  [enum codecs]
-  for each elementary stream to be encoded
-    rte_codec_set (which format)
-      [enum options]
-      for each option not left at defaults
-        rte_option_set
-      negotiate sample parameters (changing options after this unlocks
-                                   parameters)
-      select input interface (which also puts the codec in ready
-                              state, changing parameters unlocks)
-  select output interface (this puts the whole context in ready state,
-                           replacing rte_init)
-start/pause/restart/stop
-delete 
- */
-
-#define xc context->class
-#define dc codec->class
+#define xc context->_class
+#define dc codec->_class
 
 /**
- * rte_set_input_callback_active:
- * @codec: Pointer to a #rte_codec returned by rte_codec_get() or rte_codec_set().
- * @read_cb: Function called by the codec to read more data to encode.
- * @unref_cb: Optional function called by the codec to free the data.
- * @queue_length: When non-zero, the codec queue length is returned here. That
- *   is the maximum number of buffers read before freeing the oldest.
- *   When for example @read_cb and @unref_cb calls always pair, this number
- *   is 1.
+ * @mainpage RTE - Real Time Audio/Video Encoding Library
  *
- * Sets the input mode for the codec and puts the codec into ready state.
- * Using this method, when the @codec needs more data it will call @read_cb
- * with a rte_buffer to be initialized by the rte client. After using the
- * data, it is released by calling @unref_cb. See #rte_buffer_callback for
- * the handshake details.
+ * @author Iñaki García Etxebarria<br>Michael H. Schimek<br>
+ *   FFMpeg backend by Gérard Lantau et al
  *
- * Attention: A codec may read more than once before freeing the data, and it
- * may also free the data in a different order than it has been read.
+ * @section intro Introduction
  *
- * <example><title>Typical usage of rte_set_input_callback_active()</title>
- * <programlisting>
- * rte_bool
- * my_read_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
- * {
- * &nbsp;    buffer->data = malloc();
- * &nbsp;    read(buffer->data, &amp;buffer->timestamp);
- * &nbsp;    return TRUE;
- * }
- * &nbsp;
- * rte_bool
- * my_unref_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
- * {
- * &nbsp;    free(buffer->data);
- * }
- * </programlisting></example>
+ * The RTE library is a frontend or wrapper of other libraries or
+ * programs for real time
+ * video and audio compression on Linux. It is designed to interface between
+ * codecs and the <a href="http://zapping.sourceforge.net">Zapping TV viewer</a>.
  *
- * Return value:
- * Before selecting an input method you must negotiate sample parameters with
- * rte_codec_set_parameters(), else this function fails with a return value
- * of %FALSE. Setting codec options invalidates previously selected sample
- * parameters, and thus also the input method selection. The function can
- * also fail when the codec does not support this input method.
- **/
-rte_bool
-rte_set_input_callback_active(rte_codec *codec,
-			      rte_buffer_callback read_cb,
-			      rte_buffer_callback unref_cb,
-			      int *queue_length)
-{
-	rte_context *context = NULL;
-	rte_bool r = FALSE;
-	int ql = 0;
-
-	nullcheck(codec, return FALSE);
-
-	context = codec->context;
-	rte_error_reset(context);
-
-	nullcheck(read_cb, return FALSE);
-
-	if (!queue_length)
-		queue_length = &ql;
-
-	if (xc->set_input)
-		r = xc->set_input(codec, RTE_CALLBACK_ACTIVE,
-				  read_cb, unref_cb, queue_length);
-	else if (dc->set_input)
-		r = dc->set_input(codec, RTE_CALLBACK_ACTIVE,
-				  read_cb, unref_cb, queue_length);
-	else
-		assert(!"codec bug");
-
-	if (r) {
-		codec->input_method = RTE_CALLBACK_ACTIVE;
-		codec->input_fd = -1;
-	}
-
-	return r;
-}
-
-/**
- * rte_set_input_callback_passive:
- * @codec: Pointer to a #rte_codec returned by rte_codec_get() or rte_codec_set().
- * @read_cb: Function called by the codec to read more data to encode.
+ * RTE has a rather simple design unlike a filter graph.
+ * Each recording context has exactly one output and
+ * one or more inputs, sending the raw data through codecs for compression
+ * and eventually a multiplexer to combine multiple video and audio tracks.
  *
- * Sets the input mode for the codec and puts the codec into ready state.
- * Using this method the codec allocates the necessary buffers, when it
- * needs more data it calls @data_cb, passing a pointer to the buffer
- * space where the client shall copy the data.
+ * Recording can be started and stopped, a pause and preview function are
+ * planned for a later date.
  *
- * <example><title>Typical usage of rte_set_input_callback_passive()</title>
- * <programlisting>
- * rte_bool
- * my_read_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
- * {
- * &nbsp;    read(buffer->data, &amp;buffer->timestamp);
- * &nbsp;    return TRUE;
- * }
- * </programlisting></example>
- *
- * Return value:
- * Before selecting an input method you must negotiate sample parameters with
- * rte_codec_set_parameters(), else this function fails with a return value
- * of %FALSE. Setting codec options invalidates previously selected sample
- * parameters, and thus also the input method selection. The function can
- * also fail when the codec does not support this input method.
- **/
-rte_bool
-rte_set_input_callback_passive(rte_codec *codec,
-			       rte_buffer_callback read_cb)
-{
-	rte_context *context = NULL;
-	rte_bool r = FALSE;
-	int ql = 0;
-
-	nullcheck(codec, return FALSE);
-
-	context = codec->context;
-	rte_error_reset(context);
-
-	nullcheck(read_cb, return FALSE);
-
-	if (xc->set_input)
-		r = xc->set_input(codec, RTE_CALLBACK_PASSIVE, read_cb, NULL, &ql);
-	else if (dc->set_input)
-		r = dc->set_input(codec, RTE_CALLBACK_PASSIVE, read_cb, NULL, &ql);
-	else
-		assert(!"codec bug");
-
-	if (r) {
-		codec->input_method = RTE_CALLBACK_PASSIVE;
-		codec->input_fd = -1;
-	}
-
-	return r;
-}
-
-/**
- * rte_set_input_push_active:
- * @codec: Pointer to a #rte_codec returned by rte_codec_get() or rte_codec_set().
- * @unref_cb: Optional function called as subroutine of rte_push_buffer()
- *   to free the data.
- * @queue_request: The minimum number of buffers you will be able to push before
- *   rte_push_buffer() blocks.
- * @queue_length: When non-zero the codec queue length is returned here. This is
- *   at least the number of buffers read before freeing the oldest, and at most
- *   @queue_request. When for example rte_push_buffer() and @unref_cb calls
- *   always pair, the minimum length is 1.
- *
- * Sets the input mode for the codec and puts the codec into ready state.
- * Using this method, when the codec needs data it waits until the rte client
- * called rte_push_buffer(). After using the data, it is released by calling
- * @unref_cb. See #rte_buffer_callback for the handshake details.
- *
- * Attention: A codec may wait for more than one buffer before releasing the
- * oldest, it may also free in a different order than has been pushed.
- *
- * <example><title>Typical usage of rte_set_input_push_active()</title>
- * <programlisting>
- * rte_bool
- * my_unref_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
- * {
- * &nbsp;    free(buffer->data);
- * }
- * &nbsp;
- * while (have_data) {
- * &nbsp;    rte_buffer buffer;
- * &nbsp;
- * &nbsp;    buffer.data = malloc();
- * &nbsp;    read(buffer.data, &amp;buffer.timestamp);
- * &nbsp;    if (!rte_push_buffer(codec, &amp;buffer, FALSE)) {
- * &nbsp;        // The codec is not fast enough, we drop the frame.
- * &nbsp;        free(buffer.data);
- * &nbsp;    }
- * }
- * </programlisting></example>
- *
- * Return value:
- * Before selecting an input method you must negotiate sample parameters with
- * rte_codec_set_parameters(), else this function fails with a return value
- * of %FALSE. Setting codec options invalidates previously selected sample
- * parameters, and thus also the input method selection. The function can
- * also fail when the codec does not support this input method.
- **/
-rte_bool
-rte_set_input_push_active(rte_codec *codec,
-			  rte_buffer_callback unref_cb,
-			  int queue_request, int *queue_length)
-{
-	rte_context *context = NULL;
-	rte_bool r = FALSE;
-
-	nullcheck(codec, return FALSE);
-
-	context = codec->context;
-	rte_error_reset(context);
-
-	if (!queue_length)
-		queue_length = &queue_request;
-	else
-		*queue_length = queue_request;
-
-	if (xc->set_input)
-		r = xc->set_input(codec, RTE_PUSH_PULL_ACTIVE,
-				  NULL, unref_cb, queue_length);
-	else if (dc->set_input)
-		r = dc->set_input(codec, RTE_PUSH_PULL_ACTIVE,
-				  NULL, unref_cb, queue_length);
-	else
-		assert(!"codec bug");
-
-	if (r) {
-		codec->input_method = RTE_PUSH_PULL_ACTIVE;
-		codec->input_fd = -1;
-	}
-
-	return r;
-}
-
-/**
- * rte_set_input_push_passive:
- * @codec: Pointer to a #rte_codec returned by rte_codec_get() or rte_codec_set().
- * @queue_request: The minimum number of buffers you will be able to push before
- *   rte_push_buffer() blocks.
- * @queue_length: When non-zero the actual codec queue length is returned here,
- *   this may be more or less than @queue_request.
- *
- * Sets the input mode for the codec and puts the codec into ready state.
- * Using this method the codec allocates the necessary buffers, when it needs more
- * data it waits until the rte client called rte_push_buffer(). In buffer.data
- * this function always returns a pointer to buffer space where the rte client
- * shall store the data. You can pass %NULL as buffer.data to start the cycle.
- *
- * <example><title>Typical usage of rte_set_input_push_passive()</title>
- * <programlisting>
- * rte_buffer buffer;
- * &nbsp;
- * buffer.data = NULL;
- * rte_push_buffer(codec, &amp;buffer, FALSE); // cannot fail
- * &nbsp;
- * while (have_data) {
- * &nbsp;    read(buffer.data, &amp;buffer.timestamp);
- * &nbsp;    if (!rte_push_buffer(codec, &amp;buffer, FALSE)) {
- * &nbsp;         // The codec is not fast enough, we drop the frame.
- * &nbsp;    }
- * }
- * </programlisting></example>
- *
- * Return value:
- * Before selecting an input method you must negotiate sample parameters with
- * rte_codec_set_parameters(), else this function fails with a return value
- * of %FALSE. Setting codec options invalidates previously selected sample
- * parameters, and thus also the input method selection. The function can
- * also fail when the codec does not support this input method.
- **/
-rte_bool
-rte_set_input_push_passive(rte_codec *codec, int queue_request, int *queue_length)
-{
-	rte_context *context = NULL;
-	rte_bool r = FALSE;
-
-	nullcheck(codec, return FALSE);
-
-	context = codec->context;
-	rte_error_reset(context);
-
-	if (!queue_length)
-		queue_length = &queue_request;
-	else
-		*queue_length = queue_request;
-
-	if (xc->set_input)
-		r = xc->set_input(codec, RTE_PUSH_PULL_PASSIVE,
-				  NULL, NULL, queue_length);
-	else if (dc->set_input)
-		r = dc->set_input(codec, RTE_PUSH_PULL_PASSIVE,
-				  NULL, NULL, queue_length);
-	else
-		assert(!"codec bug");
-
-	if (r) {
-		codec->input_method = RTE_PUSH_PULL_PASSIVE;
-		codec->input_fd = -1;
-	}
-
-	return r;
-}
-
-/**
- * rte_push_buffer:
- * @codec: Pointer to a #rte_codec returned by rte_codec_get() or rte_codec_set().
- * @buffer: Pointer to a #rte_buffer, can be %NULL.
- * @blocking: %TRUE to enable blocking behaviour.
- * 
- * Passes data for encoding to the codec when the input method is 'push'.
- * When the codec input queue is full and @blocking is %TRUE this function waits
- * until space becomes available, when @blocking is %FALSE it immediately
- * returns %FALSE.
- *
- * Return value:
- * %FALSE if the function would block. In active push mode and when the function
- * fails, the contents of @buffer are unmodified on return. Otherwise, that is in
- * passive push mode, buffer.data points to the next buffer space to be filled.
- * You can always obtain a pointer by calling rte_push_buffer() with buffer.data
- * set to %NULL, in active push mode this has no effect.
- **/
-rte_bool
-rte_push_buffer(rte_codec *codec, rte_buffer *buffer, rte_bool blocking)
-{
-	rte_context *context = NULL;
-
-	nullcheck(codec, return FALSE);
-
-	context = codec->context;
-	rte_error_reset(context);
-
-	if (xc->push_buffer)
-		return xc->push_buffer(codec, buffer, blocking);
-	else if (dc->push_buffer)
-		return dc->push_buffer(codec, buffer, blocking);
-	else
-		return FALSE;
-}
-
-/**
- * rte_set_output_callback_passive:
- * @context: Initialized #rte_context as returned by rte_context_new().
- * @write_cb: Function called by the context to write encoded data.
- *   The codec parameter of the callback is not used (%NULL).
- * @seek_cb: Optional function called by the context to move the output
- *  file pointer, for example to complete a header.
- *
- * Sets the output mode for the context and makes the context ready
- * to start encoding. Using this method the codec allocates the necessary
- * buffers, when data is available for writing it calls @write_cb with
- * buffer.data and buffer.size initialized.
- *
- * <example><title>Typical usage of rte_set_output_callback()</title>
- * <programlisting>
- * rte_bool
- * my_write_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
- * {
- * &nbsp;    ssize_t actual;
- * &nbsp;
- * &nbsp;    if (!buffer) // EOF
- * &nbsp;        return TRUE;
- * &nbsp;
- * &nbsp;    do actual = write(STDOUT_FILENO, buffer->data, buffer->size);
- * &nbsp;    while (actual == -1 && errno == EINTR);
- * &nbsp;
- * &nbsp;    return actual == buffer->size; // no error
- * }
- * &nbsp;
- * rte_bool
- * my_seek_cb(rte_context *context, off64_t offset, int whence)
- * {
- * &nbsp;    return lseek64(STDOUT_FILENO, offset, whence) != (off64_t) -1;
- * }
- * </programlisting></example>
- *
- * Return value:
- * Before selecting an output method you must select input methods for all
- * codecs, else this function fails with a return value of %FALSE. Setting
- * context options or selecting or removing codecs cancels the output method
- * selection.
- **/
-rte_bool
-rte_set_output_callback_passive(rte_context *context,
-				rte_buffer_callback write_cb,
-				rte_seek_callback seek_cb)
-{
-	rte_bool r;
-
-	nullcheck(context, return FALSE);
-
-	rte_error_reset(context);
-
-	nullcheck(write_cb, return FALSE);
-
-	r = xc->set_output(context, write_cb, seek_cb);
-
-	if (r) {
-		context->output_method = RTE_CALLBACK_PASSIVE;
-		context->output_fd = -1;
-	}
-
-	return r;
-}
-
-static rte_bool
-write_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
-{
-	ssize_t actual;
-
-	if (!buffer) /* EOF */
-		return TRUE;
-
-	do actual = write(context->output_fd, buffer->data, buffer->size);
-	while (actual == (ssize_t) -1 && errno == EINTR);
-
-	// XXX error propagation?
-	// Aborting encoding is bad for Zapping. It should a)
-	// activate its backup plan and b) notify the user before
-	// data is lost. Have to use private callback.
-
-	return actual == buffer->size; /* no error */
-}
-
-static rte_bool
-seek_cb(rte_context *context, off64_t offset, int whence)
-{
-	// XXX error propagation?
-	return lseek64(context->output_fd, offset, whence) != (off64_t) -1;
-}
-
-static void
-new_output_fd(rte_context *context, rte_io_method new_method, int new_fd)
-{
-	switch (context->output_method) {
-	case RTE_FILE:
-		// XXX can fail
-		close(context->output_fd);
-		break;
-
-	default:
-		break;
-	}
-
-	context->output_method = new_method;
-	context->output_fd = new_fd;
-}
-
-/**
- * rte_set_output_stdio:
- * @context: Initialized #rte_context as returned by rte_context_new().
- * @file_name: File descriptor to write to.
- *
- * Sets the output mode for the context and makes the context ready
- * to start encoding. All output of the codec will be written into the
- * given file. Use 64 bit mode when opening the file, it must be
- * seek()able too.
- *
- * Return value:
- * Before selecting an output method you must select input methods for all
- * codecs, else this function fails with a return value of %FALSE. Setting
- * context options or selecting or removing codecs cancels the output method
- * selection.
- **/
-rte_bool
-rte_set_output_stdio(rte_context *context, int fd)
-{
-	nullcheck(context, return FALSE);
-
-	rte_error_reset(context);
-
-	if (fd < 0)
-		return FALSE;
-
-	if (rte_set_output_callback_passive(context, write_cb, seek_cb)) {
-		new_output_fd(context, RTE_STDIO, fd);
-		return TRUE;
-	}
-
-	return FALSE;
-}
-
-/**
- * rte_set_output_file:
- * @context: Initialized #rte_context as returned by rte_context_new().
- * @filename: Name of the file to create.
- *
- * Sets the output mode for the context and makes the context ready
- * to start encoding. This function creates a file where all output
- * of the codec will be written to.
- *
- * Return value:
- * Before selecting an output method you must select input methods for all
- * codecs, else this function fails with a return value of %FALSE. Setting
- * context options or selecting or removing codecs cancels the output method
- * selection. When the file could not be created this function also returns
- * %FALSE.
- **/
-rte_bool
-rte_set_output_file(rte_context *context, const char *filename)
-{
-	int fd;
-
-	nullcheck(context, return FALSE);
-
-	rte_error_reset(context);
-
-	fd = open(filename,
-		  O_CREAT | O_WRONLY | O_TRUNC | O_LARGEFILE,
-		  S_IRUSR | S_IWUSR |
-		  S_IRGRP | S_IWGRP |
-		  S_IROTH | S_IWOTH);
-
-	if (fd == -1) {
-		rte_error_printf(context, "Cannot create file '%s': %s.",
-				 filename, strerror(errno));
-		return FALSE;
-	}
-
-	if (rte_set_output_callback_passive(context, write_cb, seek_cb)) {
-		new_output_fd(context, RTE_FILE, fd);
-		return TRUE;
-	} else {
-		close(fd);
-		unlink(filename);
-		return FALSE;
-	}
-}
-
-static rte_bool
-discard_write_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
-{
-	return TRUE;
-}
-
-static rte_bool
-discard_seek_cb(rte_context *context, off64_t offset, int whence)
-{
-	return TRUE;
-}
-
-/**
- * rte_set_output_discard:
- * @context: Initialized #rte_context as returned by rte_context_new().
- *
- * Sets the output mode for the context and makes the context ready
- * to start encoding. All output of the codec will be discarded (for
- * testing purposes).
- *
- * Return value:
- * Before selecting an output method you must select input methods for all
- * codecs, else this function fails with a return value of %FALSE. Setting
- * context options or selecting or removing codecs cancels the output method
- * selection.
- **/
-rte_bool
-rte_set_output_discard(rte_context *context)
-{
-	nullcheck(context, return FALSE);
-
-	rte_error_reset(context);
-
-	if (rte_set_output_callback_passive(context, discard_write_cb, discard_seek_cb)) {
-		new_output_fd(context, RTE_DISCARD, -1);
-		return TRUE;
-	}
-
-	return FALSE;
-}
-
-/*
- *  Start / Stop
+ * - @ref client_overview
+ * - @ref backend_overview
  */
 
 /**
- * rte_start:
- * @context: Initialized #rte_context as returned by rte_context_new().
- * @timestamp: Start instant, pass 0.0.
- * @sync_ref: Pass %NULL.
- * @async: Pass %TRUE.
+ * @page client_overview RTE Client Interface Overview
  *
- * XXX describe me
+ * This is an overview of the interface between applications and
+ * the RTE library. See section <a href="modules.html">Modules</a> for details.
  *
- * Return value:
- * %FALSE on error.
- **/
-rte_bool
-rte_start(rte_context *context, double timestamp, rte_codec *sync_ref, rte_bool async)
-{
-	rte_bool r;
-
-	nullcheck(context, return FALSE);
-	rte_error_reset(context);
-
-	if (!async)
-		return FALSE;
-
-	r = xc->start(context, timestamp, sync_ref, async);
-
-	return r;
-}
+ * RTE client applications <tt>\#include &lt;librte.h&gt;</tt>.
+ *
+ * A rte_context must be allocated to create an output stream, this
+ * can be an elementary stream such as mp3 audio, or a complex
+ * multiplexed stream with several video and audio tracks.
+ *
+ * A rte_codec must be allocated and assigned to a rte_context track to
+ * compress raw input to an elementary video or audio stream for this
+ * track.
+ *
+ * @subsection opt Options
+ *
+ * Both contexts and codecs can have options which are assigned by name
+ * like variables. These are often canonical (like @c "sampling_freq",
+ * an integer expressing the audio sampling frequency in Hertz),
+ * but the same name does not necessarily imply the same semantics
+ * in different contexts.
+ *
+ * @subsection par Input Stream Parameters
+ *
+ * Codecs need information about the raw data input, for example
+ * the image size or audio sample format. These parameters are
+ * negotiated with the codec, the client can propose a set of parameters
+ * and the codec will return modified parameters shaped by any limitations
+ * it has. For example image alignment requirements or supported
+ * sample format conversions.
+ *
+ * The client can also begin negotiation with a blank set of parameters,
+ * the returned defaults will be suitable for the requested kind of
+ * stream and the given options. Note some input stream parameters and
+ * options seemingly specify the same property. In case of @c sampling_freq
+ * for example that means the codec resamples from the input sampling
+ * frequency (device specific parameter) to the encoded sampling frequency
+ * (user option).
+ *
+ * @subsection io Input/Output Interface
+ *
+ * An input method must be selected for each rte_codec. Data is
+ * always passed in blocks of one video image or a fixed number of
+ * audio samples. Either the client or the codec can maintain
+ * the buffer memory. RTE does not include driver interfaces,
+ * the client is responsible for device or file read access.
+ *
+ * An output method must be selected for each rte_context.
+ * RTE can pass encoded data in blocks or directly write to a file.
+ *
+ * @subsection start Starting and Stopping
+ *
+ * This version of RTE will always launch one, sometimes more,
+ * subthreads for encoding. This happens when the rte_start()
+ * function is called, which returns immediately. The rte_stop()
+ * function stops encoding and returns after joining the
+ * subthread.
+ *
+ * Options, parameters and i/o methods cannot be changed
+ * when encoding is in progress.
+ *
+ * @subsection stat Status Report
+ *
+ * During encoding the context and its codecs can
+ * be polled for status information, such as the number of
+ * bytes processed or coding time elapsed.
+ *
+ * @subsection rec_seq Typical Recording Session
+ *
+ * -# Enumeration of available contexts (i. e. file formats)
+ * -# <b>Allocation of a context with rte_context_new()</b>
+ * -# Enumeration of context options
+ * -# Assignment of context options
+ * -# Enumeration of available codecs.<br>
+ *   For each elementary stream to be encoded:
+ *	-# <b>Selection of the codec to encode a track with rte_set_codec()</b>,
+ *         options are reset to their default value
+ *	-# Enumeration of codec options
+ *	-# Assignment of codec options
+ *	-# <b>Input stream parameters negotiation</b>,
+ *	   locks the codec options
+ *	-# <b>Selection of the input method</b>, locks parameters
+ * -# <b>Selection of the output method</b>, locks the context
+ *    options and codecs table
+ * -# <b>Start of recording with rte_start()</b>, no properties can be changed
+ *    until stopping
+ * -# Status polling
+ * -# <b>Stop recording with rte_stop()</b>
+ * -# rte_context_delete()
+ *
+ * The operations in <b>bold face</b> are mandatory, the rest optional.
+ *
+ * When a property is locked, changing it resets this and all following
+ * properties in the sequence above. Said properties must be
+ * renegotiated to proceed. Stopping resets all parameters, input
+ * and output methods. Enumeration and get functions are always
+ * available.
+ */
 
 /**
- * rte_stop:
- * @context: Initialized #rte_context as returned by rte_context_new().
- * @timestamp: Stop instant.
- * 
- * XXX describe me
+ * @page backend_overview RTE Backend Interface Overview
  *
- * Do not call this from a signal handler.
+ * RTE consists of four layers:
+ * - Frontend
+ * - Backend
+ * - Context
+ * - Codec
  *
- * Return value:
- * %FALSE on error.
- **/
-rte_bool
-rte_stop(rte_context *context, double timestamp)
-{
-	rte_bool r;
+ * The frontend code implements the interface to RTE clients, hiding
+ * all implementation details. It does some housekeeping, sanity checking
+ * on client input, and provides helper functions for backends.
+ *
+ * The frontend maintains multiple backends, possibly through use of
+ * plugins, which implement most of the actual RTE functionality on top of
+ * the respective compression library or program. That includes for
+ * example missing UI functions or backend specific implementation of
+ * the RTE i/o functions.
+ *
+ * Context and codec definitions are cleanly separated, so the code can be
+ * kept in isolated modules or merged into context or backend modules.
+ *
+ * The rte_context and rte_codec structure are inaccessible to the
+ * client and shall be used by the backend as documented. The
+ * rte_backend_class, rte_context_class and rte_codec_class define
+ * the interface of the respective layer to higher layers.
+ *
+ * @subsection requirements Minimum Requirements
+ *
+ * - Each backend must support at least one class of context (i. e.
+ *   file format) and one codec.
+ * - The backend must be able to allocate multiple instances of
+ *   contexts and codecs, although no more than one context needs
+ *   to encode at a time.
+ * - Context and codec options are optional.
+ * - Each codec must implement input stream parameter negotiation,
+ *   even if the parameters are constant.
+ * - Each codec must implement at least the callback-master
+ *   input method.
+ * - Status report is optional.
+ * - All functions which can fail should leave an error description
+ *   with rte_error_printf() or other helper functions, in a language
+ *   suitable for a user interface.
+ * - Labels, tooltips, menu items and error messages should be
+ *   internationalized with GNU gettext. Use the _() etc.
+ *   macros defined in rtepriv.h.
+ *
+ * @subsection compilation Backend Installation
+ *
+ * Put each backend into a separate directory under rte/. The directory
+ * name goes into rte/Makefile.am. A backend switch, the Makefile.am's
+ * to be built and environment checks go into rte/configure.in.
+ * Take ffmpeg as example. In rte/src, add any backend object
+ * libs to Makefile.am, extend the backends[] array in %context.c.
+ *
+ * Backend files <tt>\#include "config.h"</tt> to get configure
+ * definitions and <tt>\#include "rtepriv.h"</tt> to get all RTE
+ * definitions.
+ *
+ * For test code see the rte/test directory. Support is available
+ * at <a href="mailto:zapping-misc@lists.sourceforge.net">zapping-misc@lists.sourceforge.net</a>.
+ */
 
-	nullcheck(context, return FALSE);
-	rte_error_reset(context);
+/** @addtogroup Context Context */
+/** @addtogroup Codec Codec */
+/** @addtogroup Option Context and Codec Options */
+/** @addtogroup Param Raw Input Parameters */
+/** @addtogroup IO Input/Output Interfaces */
+/** @addtogroup Start Starting and Stopping */
+/** @addtogroup Status Context and Codec Status */
+/** @addtogroup Error Errors */
 
-	r = xc->stop(context, timestamp);
-
-	if (r)
-		switch (context->output_method) {
-		case RTE_FILE:
-			// XXX this can fail, notify caller
-			new_output_fd(context, 0, -1); /* close */
-			break;
-
-		default:
-			break;
-		}
-
-	return r;
-}
-
-/* rte_pause() TODO */
-/* rte_resume() TODO */
+/**
+ * @addtogroup Backend Backend Interface
+ *
+ * These, together with the public RTE structures, are the definitions
+ * of the RTE backend interface from rtepriv.h. Only backends use this,
+ * not RTE clients.
+ */
 
 /* no public prototype */
 void rte_status_query(rte_context *context, rte_codec *codec,
-		      rte_status *status, int size);
+		      rte_status *status, unsigned int size);
 
-/*
- *  This functions returns context or codec status. It is not
- *  client visible but wrapped in inline rte_context_status() and
- *  rte_codec_status(). The @size argument is a compile time
- *  constant on the client side, this permits upwards compatible
- *  extensions to #rte_status.
+/**
+ * @internal
  *
- *  No keywords because the app must look up values anyway, we're
- *  in critical path and a struct is much faster than enum & strcmp.
- *  A copy of #rte_status is returned because the values are calculated
- *  on the fly and must be r/w locked.
+ * @param context Initialized rte_context.
+ * @param codec Pointer to rte_codec if fetching codec status, else
+ *   context status.
+ * @param status Buffer to store status structure. 
+ * @param size Size of buffer. 
+ *
+ * This functions returns context or codec status. It is not
+ * client visible but wrapped in inline rte_context_status() and
+ * rte_codec_status(). The @a size argument is a compile time
+ * constant on the client side, this permits upwards compatible
+ * extensions to rte_status.
+ *
+ * Implementation:
+ * No keywords because the app must look up values anyway, we're
+ * in critical path and a struct is much faster than enum & strcmp.
+ * A copy of rte_status is returned because the values are calculated
+ * on the fly and must be r/w locked.
  */
 void
 rte_status_query(rte_context *context, rte_codec *codec,
-		 rte_status *status, int size)
+		 rte_status *status, unsigned int size)
 {
 	assert(status != NULL);
 	assert(size >= sizeof(status->valid));
@@ -722,36 +292,20 @@ rte_status_query(rte_context *context, rte_codec *codec,
 	xc->status(context, codec, status, size);
 }
 
-#if 0 /* obsolete */
-
-void
-rte_status_free(rte_status_info *status)
-{
-	rte_context *context = NULL;
-
-	nullcheck(status, return);
-
-	if (status->type == RTE_STRING)
-		free(status->val.str);
-
-	free(status);
-}
-
-#endif
-
 /**
- * rte_option_string:
- * @context: Initialized #rte_context.
- * @codec: Pointer to #rte_codec if these are codec options,
- *   %NULL if context options.
- * @optstr: Option string.
+ * @internal
+ *
+ * @param context Initialized rte_context.
+ * @param codec Pointer to rte_codec if these are codec options,
+ *   @c NULL if context options.
+ * @param optstr Option string.
  *
  * RTE internal function to parse an option string and set
  * the options accordingly.
  *
- * Return value:
- * %FALSE if the string is invalid or setting some option failed.
- **/
+ * @return
+ * @c FALSE if the string is invalid or setting some option failed.
+ */
 rte_bool
 rte_option_string(rte_context *context, rte_codec *codec, const char *optstr)
 {
@@ -802,9 +356,9 @@ rte_option_string(rte_context *context, rte_codec *codec, const char *optstr)
 		}
 
 		if (codec)
-			oi = rte_codec_option_info_keyword(codec, keyword);
+			oi = rte_codec_option_info_by_keyword(codec, keyword);
 		else
-			oi = rte_context_option_info_keyword(context, keyword);
+			oi = rte_context_option_info_by_keyword(context, keyword);
 
 		if (!oi)
 			break;
@@ -866,15 +420,14 @@ rte_option_string(rte_context *context, rte_codec *codec, const char *optstr)
  */
 
 /**
- * rte_asprintf:
- * @errstr: Place to store the allocated string or %NULL.
- * @templ: See printf().
- * @Varargs: See printf(). 
+ * @param errstr Place to store the allocated string or @c NULL.
+ * @param templ See printf().
+ * @param Varargs See printf(). 
  * 
- * RTE internal helper function.
+ * RTE internal helper function for backends.
  *
  * Identical to GNU or BSD libc asprintf().
- **/
+ */
 void
 rte_asprintf(char **errstr, const char *templ, ...)
 {
@@ -898,79 +451,18 @@ rte_asprintf(char **errstr, const char *templ, ...)
 	errno = temp;
 }
 
-/**
- * rte_errstr:
- * @context: Initialized #rte_context as returned by rte_context_new().
- *
- * When a RTE function failed you can use this function to get a
- * verbose description of the failure cause, if available.
- *
- * Return value:
- * Static pointer, string not to be freed, describing the error. The pointer
- * remains valid until the next call of a RTE function for this context
- * and all its codecs.
- **/
-char *
-rte_errstr(rte_context *context)
-{
-	if (!context)
-		return "Invalid RTE context.";
-
-	if (!context->error)
-		return _("Unknown error.");
-
-	return context->error;
-}
-
-/**
- * rte_error_printf:
- * @context: Initialized #rte_context as returned by rte_context_new().
- * @templ: See printf().
- * @Varargs: See printf().
- * 
- * Store an error description in the @context which can be retrieved
- * with rte_errstr().
- **/
-/* XXX Methinks in the long run we'll need an error handler. */
-void
-rte_error_printf(rte_context *context, const char *templ, ...)
-{
-	char buf[512], *s, *t;
-	va_list ap;
-	int temp;
-
-	if (!context)
-		return;
-
-	temp = errno;
-
-	va_start(ap, templ);
-	vsnprintf(buf, sizeof(buf) - 1, templ, ap);
-	va_end(ap);
-
-	s = strdup(buf);
-
-	t = context->error;
-	context->error = s;
-
-	if (t)
-		free(t);
-
-	errno = temp;
-}
-
 static char *
 whois(rte_context *context, rte_codec *codec)
 {
 	char name[80];
 
 	if (codec) {
-		rte_codec_info *ci = &codec->class->public;
+		rte_codec_info *ci = &codec->_class->_public;
 
 		snprintf(name, sizeof(name) - 1,
 			 "codec %s", ci->label ? _(ci->label) : ci->keyword);
 	} else if (context) {
-		rte_context_info *ci = &context->class->public;
+		rte_context_info *ci = &context->_class->_public;
 
 		snprintf(name, sizeof(name) - 1,
 			 "context %s", ci->label ? _(ci->label) : ci->keyword);
@@ -983,16 +475,15 @@ whois(rte_context *context, rte_codec *codec)
 }
 
 /**
- * rte_unknown_option:
- * @context: Initialized #rte_context as returned by rte_context_new().
- * @codec: Pointer to #rte_codec if this refers to a codec option,
- *  %NULL if context option.
- * @keyword: Keyword of the option, can be %NULL or "".
+ * @param context Initialized rte_context as returned by rte_context_new().
+ * @param codec Pointer to rte_codec if this refers to a codec option,
+ *  @c NULL if context option.
+ * @param keyword Keyword of the option, can be @c NULL or "".
  * 
- * RTE internal helper function.
+ * RTE internal helper function for backends.
  *
- * Sets the @context error string.
- **/
+ * Sets the @a context error string.
+ */
 void
 rte_unknown_option(rte_context *context, rte_codec *codec, const char *keyword)
 {
@@ -1010,17 +501,16 @@ rte_unknown_option(rte_context *context, rte_codec *codec, const char *keyword)
 }
 
 /**
- * rte_invalid_option:
- * @context: Initialized #rte_context as returned by rte_context_new().
- * @codec: Pointer to #rte_codec if this refers to a codec option,
- *  %NULL if context option.
- * @keyword: Keyword of the option, can be %NULL or "".
- * @Varargs: If the option is known, the invalid data (int, double, char *).
+ * @param context Initialized rte_context as returned by rte_context_new().
+ * @param codec Pointer to rte_codec if this refers to a codec option,
+ *  @c NULL if context option.
+ * @param keyword Keyword of the option, can be @c NULL or "".
+ * @param ... If the option is known, the invalid data (int, double, char *).
  * 
- * RTE internal helper function.
+ * RTE internal helper function for backends.
  *
- * Sets the @context error string.
- **/
+ * Sets the @a context error string.
+ */
 void
 rte_invalid_option(rte_context *context, rte_codec *codec, const char *keyword, ...)
 {
@@ -1034,9 +524,9 @@ rte_invalid_option(rte_context *context, rte_codec *codec, const char *keyword, 
 		return;
 
 	if (codec)
-		oi = rte_codec_option_info_keyword(codec, keyword);
+		oi = rte_codec_option_info_by_keyword(codec, keyword);
 	else
-		oi = rte_context_option_info_keyword(context, keyword);
+		oi = rte_context_option_info_by_keyword(context, keyword);
 
 	if (oi) {
 		va_list args;
@@ -1077,20 +567,19 @@ rte_invalid_option(rte_context *context, rte_codec *codec, const char *keyword, 
 }
 
 /**
- * rte_strdup:
- * @context: Initialized #rte_context as returned by rte_context_new().
- * @d: If non-zero, store pointer to allocated string here. When *d
+ * @param context Initialized rte_context as returned by rte_context_new().
+ * @param d If non-zero, store pointer to allocated string here. When *d
  *   is non-zero, free(*d) the old string first.
- * @s: String to be duplicated.
+ * @param s String to be duplicated.
  * 
- * RTE internal helper function.
+ * RTE internal helper function for backends.
  *
- * Same as the libc strdup(), except for @d argument and setting
- * the @context error string on failure.
+ * Same as the libc strdup(), except for @a d argument and setting
+ * the @a context error string on failure.
  * 
- * Return value: 
- * %NULL on failure, pointer to malloc()ated string otherwise.
- **/
+ * @return 
+ * @c NULL on failure, pointer to malloc()ed string otherwise.
+ */
 char *
 rte_strdup(rte_context *context, char **d, const char *s)
 {
@@ -1109,4 +598,70 @@ rte_strdup(rte_context *context, char **d, const char *s)
 	}
 
 	return new;
+}
+
+/**
+ * @param vec Vector of int values.
+ * @param len Length of the vector.
+ * @param val Value to be compared.
+ * 
+ * RTE internal helper function for backends.
+ *
+ * Find in a vector of int values the entry closest to
+ * @a val and return its index, 0 ... n.
+ * 
+ * @return 
+ * Index. Never fails.
+ */
+unsigned int
+rte_closest_int(const int *vec, unsigned int len, int val)
+{
+	unsigned int i, imin = 0;
+	int dmin = INT_MAX;
+
+	assert(vec != NULL && len > 0);
+
+	for (i = 0; i < len; i++) {
+		int d = fabs(val - vec[i]);
+
+		if (d < dmin) {
+			dmin = d;
+		        imin = i;
+		}
+	}
+
+	return imin;
+}
+
+/**
+ * @param vec Vector of double values.
+ * @param len Length of the vector.
+ * @param val Value to be compared.
+ * 
+ * RTE internal helper function for backends.
+ *
+ * Find in a vector of double values the entry closest to
+ * @a val and return its index, 0 ... n.
+ * 
+ * @return 
+ * Index. Never fails.
+ */
+unsigned int
+rte_closest_double(const double *vec, unsigned int len, double val)
+{
+	unsigned int i, imin = 0;
+	double dmin = DBL_MAX;
+
+	assert(vec != NULL && len > 0);
+
+	for (i = 0; i < len; i++) {
+		double d = fabs(val - vec[i]);
+
+		if (d < dmin) {
+			dmin = d;
+		        imin = i;
+		}
+	}
+
+	return imin;
 }

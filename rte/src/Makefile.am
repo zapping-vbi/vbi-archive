@@ -36,7 +36,7 @@ rte.sym: librte.h
 	sed -n '/extern.*/!d;s/\(.*\)\(rte.*\)(\(.*\)/\2/p' <$< > $@
 
 # Concat the header files in this order and filter out all lines
-#   before "^/* Public", after "^/* Private" and between "^/**"..."**/$"
+#   before "^/* Public", after "^/* Private" and dox between "^/**"..."*/$"
 librte.h: option.h context.h codec.h rte.h
 	sed -ne "1,/\*\//p" $(srcdir)/rte.h > $@
 	echo -e "\n/* Generated file, do not edit! */" >> $@
@@ -47,10 +47,11 @@ librte.h: option.h context.h codec.h rte.h
 	echo -e "\n#ifdef __cplusplus\nextern \"C\" {\n#endif\n" >> $@
 	for fi in $^; do \
 		echo "/* $$fi */" >> $@; \
-		sed -e "/^\/\* Public/,/^\/\* Private/!d;/^\/\* Public/d;/^\/\* Private/d;/^\/\*\*/,/\*\*\/$$/d;" $$fi >> $@; \
+		sed -e "/^\/\* Public/,/^\/\* Private/!d;/^\/\* Public/d;/^\/\* Private/d;s/\(\/\*\*.*\*\/\)//;/^[ 	]*\/\*\*/,/\*\/[ 	]*$$/d;" $$fi >> $@; \
 	done
 	echo -e "\n#ifdef __cplusplus\n}\n#endif" >> $@
 	echo -e "\n#endif /* __LIBRTE_H__ */" >> $@
+
 
 librte_la_SOURCES = \
 	rte.c rte.h \

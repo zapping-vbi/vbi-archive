@@ -1,7 +1,7 @@
 ## Process this file with automake to produce Makefile.in
-## $Id: Makefile.am,v 1.11 2002-06-24 03:21:11 mschimek Exp $
+## $Id: Makefile.am,v 1.12 2002-08-22 22:06:01 mschimek Exp $
 
-INCLUDES = -D_GNU_SOURCE -D_REENTRANT $(RTE_CFLAGS) \
+INCLUDES = -D_GNU_SOURCE -D_REENTRANT \
 	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
 
 if BACKEND_MP1E

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: info.c,v 1.10 2002-06-24 03:25:16 mschimek Exp $ */
+/* $Id: info.c,v 1.11 2002-08-22 22:10:48 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -530,7 +530,7 @@ show_codec_info (rte_context *context, rte_codec_info *ci)
 
 	keyword_check(ci->keyword);
 
-	codec = rte_codec_set(context, ci->keyword, 0, NULL);
+	codec = rte_set_codec(context, ci->keyword, 0, NULL);
 
 	if (!codec) {
 		fprintf(stderr, "\tCannot create/set codec %s: %s\n",
@@ -543,7 +543,7 @@ show_codec_info (rte_context *context, rte_codec_info *ci)
 
 	printf("\n");
 
-	rte_codec_remove(context, ci->stream_type, 0);
+	rte_remove_codec(context, ci->stream_type, 0);
 }
 
 static void
@@ -607,6 +607,7 @@ static const char *short_options = "c";
 static const struct option
 long_options[] = {
 	{ "check", no_argument, NULL, 'c' },
+	{ 0, 0, 0, 0 }
 };
 
 int

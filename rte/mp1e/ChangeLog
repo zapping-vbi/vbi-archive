@@ -1,3 +1,18 @@
+2002-08-21	<mschimek@users.sf.net>
+
+	* video/mpeg1.c: Rewrote aspect ratio encoding.
+	* video/mpeg2.c, main.c: Dipped a toe into MPEG-2 interlace.
+	* video/filter.c, video/filter_mmx.c: Added YUYV #2 and #3,
+	  horizontal and bidirectional 2:1.
+	* devices/v4l.c: Applied read fix and AIW patch by Nikolai Zhubr.
+	* options.c, options.h: New AIW hack, frame rate and aspect
+	  override options.
+	* video/mblock.c: Added video_sampling_aspect() helper.
+
+2002-07-25	<mschimek@users.sf.net>
+
+	* video/mpeg1.c: Corrected NTSC aspect ratio code.
+
 2002-06-06	<mschimek@users.sf.net>
 
 	* video/vlc_gen.c: Added. There's just no reason to create static

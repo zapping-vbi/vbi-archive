@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = $(GTK_CFLAGS) -D_GNU_SOURCE $(RTE_CFLAGS) \
+INCLUDES = $(GTK_CFLAGS) -D_GNU_SOURCE \
 	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
 
 noinst_LTLIBRARIES = libtest.la

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io.c,v 1.6 2002-06-24 03:25:16 mschimek Exp $ */
+/* $Id: io.c,v 1.7 2002-08-22 22:10:48 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -133,7 +133,7 @@ init_audio(struct generator *g)
 	g->params.audio.sampling_freq = 44100;
 	g->params.audio.channels = 1;
 
-	if (!rte_codec_parameters_set(codec, &g->params)) {
+	if (!rte_parameters_set(codec, &g->params)) {
 		fprintf(stderr, "Sampling parameter negotiation failed: %s\n",
 			rte_errstr(context));
 		exit(EXIT_FAILURE);
@@ -244,11 +244,11 @@ init_video(struct generator *gen)
 
 	gen->params.video.pixfmt = RTE_PIXFMT_YUYV;
 	gen->params.video.frame_rate = 24.0;
-	gen->params.video.pixel_aspect = 1.0;
+	gen->params.video.sample_aspect = 1.0;
 	gen->params.video.width = 352;
 	gen->params.video.height = 288;
 
-	if (!rte_codec_parameters_set(codec, &gen->params)) {
+	if (!rte_parameters_set(codec, &gen->params)) {
 		fprintf(stderr, "Sampling parameter negotiation failed: %s\n",
 			rte_errstr(context));
 		exit(EXIT_FAILURE);
@@ -292,7 +292,7 @@ init_video(struct generator *gen)
 	}
 }
 
-/* Input method #1 callback active */
+/* Input method #1 callback master */
 
 static rte_bool
 read_ca_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
@@ -318,7 +318,7 @@ unref_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
 	return TRUE;
 }
 
-/* Input method #2 callback passive */
+/* Input method #2 callback slave */
 
 static rte_bool
 read_cp_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
@@ -330,7 +330,7 @@ read_cp_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
 	return TRUE;
 }
 
-/* Input method #3 push active */
+/* Input method #3 push master */
 
 rte_buffer buffer;
 
@@ -355,7 +355,7 @@ mainloop_pa(void)
 	fprintf(stderr, "Mainloop-pa finished.\n");
 }
 
-/* Input method #4 push passive */
+/* Input method #4 push slave */
 
 static void
 mainloop_pp(void)
@@ -375,7 +375,7 @@ mainloop_pp(void)
 	fprintf(stderr, "Mainloop-pp finished.\n");
 }
 
-/* Output method #2 callback passive */
+/* Output method #2 callback slave */
 
 static rte_bool
 write_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
@@ -407,16 +407,17 @@ static const char *short_options = "d:o:q:s:x:";
 
 static const struct option
 long_options[] = {
-	{ "ca",			no_argument,		&io_mode,		1 },
-	{ "cp",			no_argument,		&io_mode,		2 },
-	{ "pa",			no_argument,		&io_mode,		3 },
-	{ "pp",			no_argument,		&io_mode,		4 },
+	{ "cm",			no_argument,		&io_mode,		1 },
+	{ "cs",			no_argument,		&io_mode,		2 },
+	{ "pm",			no_argument,		&io_mode,		3 },
+	{ "ps",			no_argument,		&io_mode,		4 },
 	{ "block",		no_argument,		&blocking,		TRUE },
 	{ "queue",		required_argument,	NULL,			'q' },
 	{ "sleep",		required_argument,	NULL,			's' },
 	{ "context",		required_argument,	NULL,			'x' },
 	{ "codec",		required_argument,	NULL,			'd' },
 	{ "output",		required_argument,	NULL,			'o' },
+	{ 0, 0, 0, 0 }
 };
 
 int
@@ -476,14 +477,14 @@ main(int argc, char **argv)
 
 		assert(g != NULL);
 
-		if ((dinfo = rte_codec_info_keyword(context, codec_key[i]))) {
+		if ((dinfo = rte_codec_info_by_keyword(context, codec_key[i]))) {
 			track = (dinfo->stream_type == RTE_STREAM_AUDIO) ?
 				audio_tracks : video_tracks;
 		}
 
 		/* Codec */
 
-		if (!(codec = rte_codec_set(context, codec_key[i], track, g))) {
+		if (!(codec = rte_set_codec(context, codec_key[i], track, g))) {
 			fprintf(stderr, "Cannot select codec '%s': %s\n",
 				codec_key[i],
 				rte_errstr(context));
@@ -514,25 +515,25 @@ main(int argc, char **argv)
 
 		switch (io_mode) {
 		case 1:
-			r = rte_set_input_callback_active(codec, read_ca_cb, unref_cb, &queue_length);
+			r = rte_set_input_callback_master(codec, read_ca_cb, unref_cb, &queue_length);
 			/* That's the number of buffers we'd normally allocate here. */
-			r && fprintf(stderr, "Callback-active queue: %d buffers\n", queue_length);
+			r && fprintf(stderr, "Callback-master queue: %d buffers\n", queue_length);
 			break;
 
 		case 2:
-			r = rte_set_input_callback_passive(codec, read_cp_cb);
+			r = rte_set_input_callback_slave(codec, read_cp_cb);
 			break;
 
 		case 3:
-			r = rte_set_input_push_active(codec, unref_cb, queue, &queue_length);
-			r && fprintf(stderr, "Push-active queue: %d buffers requested, %d needed\n",
+			r = rte_set_input_push_master(codec, unref_cb, queue, &queue_length);
+			r && fprintf(stderr, "Push-master queue: %d buffers requested, %d needed\n",
 				     queue, queue_length);
 			break;
 
 		case 4:
-			r = rte_set_input_push_passive(codec, queue, &queue_length);
+			r = rte_set_input_push_slave(codec, queue, &queue_length);
 			if (r) {
-				fprintf(stderr, "Push-passive queue: %d buffers requested, %d needed\n",
+				fprintf(stderr, "Push-slave queue: %d buffers requested, %d needed\n",
 					queue, queue_length);
 				memset(&buffer, 0, sizeof(buffer));
 				rte_push_buffer(codec, &buffer, FALSE);
@@ -553,7 +554,7 @@ main(int argc, char **argv)
 
 	/* Output method */
 
-	if (!rte_set_output_callback_passive(context, write_cb, seek_cb)) {
+	if (!rte_set_output_callback_slave(context, write_cb, seek_cb)) {
 		fprintf(stderr, "Unable to set output method: %s\n", rte_errstr(context));
 		exit(EXIT_FAILURE);
 	}
@@ -582,8 +583,8 @@ main(int argc, char **argv)
 	/* Main loop */
 
 	switch (io_mode) {
-	case 1: /* callback-active */
-	case 2: /* callback-passive */
+	case 1: /* callback-master */
+	case 2: /* callback-slave */
 		sleep(sleep_secs);
 		break;
 

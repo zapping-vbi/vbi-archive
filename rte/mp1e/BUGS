@@ -1,5 +1,6 @@
-$Id: BUGS,v 1.3 2002-06-14 07:56:54 mschimek Exp $
+$Id: BUGS,v 1.4 2002-08-22 22:05:59 mschimek Exp $
 
+* -J -K -L -F9 -F10 undocumented
 * desaturation out of order
 * verify esd error checking
 * b_mp1e: start() checks codecs readiness?
