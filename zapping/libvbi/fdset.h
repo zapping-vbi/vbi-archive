@@ -1,6 +1,8 @@
 #ifndef FDSET_H
 #define FDSET_H
 
+/* OBSOLETE */
+
 #include "dllist.h"
 
 struct fdset

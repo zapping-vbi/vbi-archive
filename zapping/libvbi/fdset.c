@@ -2,6 +2,8 @@
 #include <unistd.h>
 #include <sys/time.h>
 
+/* OBSOLETE */
+
 #include "dllist.h"
 #include "misc.h"
 #include "fdset.h"

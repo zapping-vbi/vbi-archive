@@ -16,6 +16,8 @@
 #include <errno.h>
 #include <sys/mman.h>
 
+/* OBSOLETE */
+
 static u8 *rawbuf;		// one common buffer for raw vbi data.
 static int rawbuf_size;		// its current size
 
