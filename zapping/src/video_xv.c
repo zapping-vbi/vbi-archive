@@ -59,58 +59,8 @@ struct _zimage_private {
 static GdkWindow *window = NULL;
 static GdkGC *gc = NULL;
 
-static unsigned int
-xv_mode_id(char * fourcc)
-{
-  return ((((uint32_t)(fourcc[0])<<0)|
-	   ((uint32_t)(fourcc[1])<<8)|
-	   ((uint32_t)(fourcc[2])<<16)|
-	   ((uint32_t)(fourcc[3])<<24)));
-}
-
-#define YV12 xv_mode_id("YV12") /* YVU420 (planar, 12 bits) */
-#define UYVY xv_mode_id("UYVY") /* UYVY (packed, 16 bits) */
-#define YUY2 xv_mode_id("YUY2") /* YUYV (packed, 16 bits) */
-
 extern gint		disable_xv; /* TRUE if XV should be disabled */
 
-static unsigned int tveng2xv (enum tveng_frame_pixformat fmt)
-{
-  switch (fmt)
-    {
-    case TVENG_PIX_YUYV:
-      return YUY2;
-    case TVENG_PIX_YUV420:
-    case TVENG_PIX_YVU420:
-      return YV12;
-    case TVENG_PIX_UYVY:
-      return UYVY;
-    default:
-      g_assert_not_reached ();
-      break;
-    }
-
-  return 0;
-}
-
-static double tveng2bpp (enum tveng_frame_pixformat fmt)
-{
-  switch (fmt)
-    {
-    case TVENG_PIX_YUYV:
-      return 2;
-    case TVENG_PIX_YUV420:
-    case TVENG_PIX_YVU420:
-      return 1.5;
-    case TVENG_PIX_UYVY:
-      return 2;
-    default:
-      g_assert_not_reached ();
-      break;
-    }
-
-  return 0;
-}
 
 /*
   This curious construct assures that we only grab the minimum set of
@@ -120,28 +70,29 @@ static double tveng2bpp (enum tveng_frame_pixformat fmt)
   ports, but i suppose that isn't good practise (?)
   In any case, that's the trivial scenario if we decide to go that route.
 */
-static struct {
-  /* Ports providing this format (index in xvports struct) */
-  int		*ports;
-  int		num_ports;
-} formats [TVENG_PIX_LAST];
-
 typedef struct {
-  XvPortID	xvport;
-  /* Grab refcount. When > 0 it's grabbed, 0 ungrabs */
-  int		refcount;  
+	XvPortID		xvport;
+	int			refcount; /* > 0 grabbed, 0 ungrabed */
 } XvPortID_ref;
-XvPortID_ref *xvports = NULL;
-static int num_xvports = 0;
+
+static XvPortID_ref *		xvports = NULL;
+static int			num_xvports = 0;
+
+static struct {
+	int			format_id;	/* XvImageFormat */
+	/* Ports providing this format (index in xvports struct) */
+	int *			ports;
+	int			num_ports;
+} formats [TV_MAX_PIXFMTS];
 
 static XvPortID
-grab_port (enum tveng_frame_pixformat fmt)
+grab_port (tv_pixfmt pixfmt)
 {
   gint i;
 
-  for (i=0; i<formats[fmt].num_ports; i++)
+  for (i=0; i<formats[pixfmt].num_ports; i++)
     {
-      XvPortID_ref *ref = xvports + formats[fmt].ports[i];
+      XvPortID_ref *ref = xvports + formats[pixfmt].ports[i];
       if (ref->refcount > 0)
 	{
 	  /* there's already a grabbed port with the right fmt
@@ -193,15 +144,16 @@ ungrab_port (XvPortID	xvport)
  * Create a new XV image with the given attributes, returns NULL on error.
  */
 static zimage *
-image_new(enum tveng_frame_pixformat pixformat, gint w, gint h)
+image_new(tv_pixfmt pixfmt, gint w, gint h)
 {
   zimage *new_image;
   struct _zimage_private * pimage =
     g_malloc0(sizeof(struct _zimage_private));
   void * image_data = NULL;
-  unsigned int xvmode = tveng2xv (pixformat);
-  double bpp = tveng2bpp (pixformat);
-  XvPortID xvport = grab_port (pixformat);
+  tv_pixel_format format;
+  XvPortID xvport = grab_port (pixfmt);
+
+  tv_pixfmt_to_pixel_format (&format, pixfmt, 0);
 
   if (xvport == None)
     return NULL; /* Cannot grab a suitable port */
@@ -212,9 +164,9 @@ image_new(enum tveng_frame_pixformat pixformat, gint w, gint h)
 
   if (have_mitshm) /* just in case */
     {
-      memset(&pimage->shminfo, 0, sizeof(XShmSegmentInfo));
+      CLEAR (pimage->shminfo);
       pimage->image = XvShmCreateImage(GDK_DISPLAY(), xvport,
-	xvmode, NULL, w, h, &pimage->shminfo);
+	formats[pixfmt].format_id, NULL, w, h, &pimage->shminfo);
 
       if (pimage->image)
 	{
@@ -257,14 +209,19 @@ image_new(enum tveng_frame_pixformat pixformat, gint w, gint h)
 
   if (!pimage->image)
     {
-      image_data = malloc(bpp*w*h);
+      if (format.planar)
+	image_data = malloc ((format.color_depth * w * h) >> 3);
+      else
+	image_data = malloc ((format.bits_per_pixel * w * h) >> 3);
+
       if (!image_data)
 	{
 	  g_warning("XV image data allocation failed");
 	  goto error1;
 	}
       pimage->image =
-	XvCreateImage(GDK_DISPLAY(), xvport, xvmode,
+	XvCreateImage(GDK_DISPLAY(), xvport,
+		      formats[pixfmt].format_id,
 		      image_data, w, h);
       if (!pimage->image)
         goto error2;
@@ -281,16 +238,14 @@ image_new(enum tveng_frame_pixformat pixformat, gint w, gint h)
 
   new_image->fmt.width = w;
   new_image->fmt.height = h;
-  new_image->fmt.pixformat = pixformat;
+  new_image->fmt.pixfmt = pixfmt;
+  new_image->fmt.bytesperline = (w * format.bits_per_pixel) >> 3;
   new_image->fmt.sizeimage = pimage->image->data_size;
-  new_image->fmt.bytesperline = w * bpp;
-  new_image->fmt.bpp = bpp;
-  new_image->fmt.depth = bpp*8;
 
-  switch (pixformat)
+  switch (pixfmt)
     {
-    case TVENG_PIX_YVU420:
-    case TVENG_PIX_YUV420:
+    case TV_PIXFMT_YVU420:
+    case TV_PIXFMT_YUV420:
       g_assert (pimage->image->num_planes == 3);
       g_assert (pimage->image->pitches[1] ==
 		pimage->image->pitches[2]);
@@ -305,8 +260,8 @@ image_new(enum tveng_frame_pixformat pixformat, gint w, gint h)
       new_image->data.planar.uv_stride =
 	pimage->image->pitches[1];
       break;
-    case TVENG_PIX_YUYV:
-    case TVENG_PIX_UYVY:
+    case TV_PIXFMT_YUYV:
+    case TV_PIXFMT_UYVY:
       g_assert (pimage->image->num_planes == 1);
       new_image->data.linear.data = pimage->image->data;
       new_image->data.linear.stride = pimage->image->pitches[0];
@@ -318,7 +273,7 @@ image_new(enum tveng_frame_pixformat pixformat, gint w, gint h)
 
   printv ("Created image: %d, %d, %d, %d, %d\n",
 	  new_image->fmt.width, new_image->fmt.height,
-	  new_image->fmt.pixformat,
+	  new_image->fmt.pixfmt,
 	  new_image->data.planar.y_stride,
 	  new_image->data.planar.uv_stride);
 
@@ -423,17 +378,19 @@ unset_destination(tveng_device_info *info)
 static gboolean
 suggest_format (void)
 {
-  int i;
-  for (i=0; i<=TVENG_PIX_LAST; i++)
-    if (formats[i].num_ports > 0)
-      {
-	capture_fmt fmt;
-	fmt.fmt = i;
-	fmt.locked = FALSE;
-	if (suggest_capture_format (&fmt) != -1)
-	  /* Capture format granted */
-	  return TRUE;
-      }
+  tv_pixfmt pixfmt;
+
+  for (pixfmt = 0; pixfmt < TV_MAX_PIXFMTS; pixfmt++)
+    if (TV_PIXFMT_SET_ALL & TV_PIXFMT_SET (pixfmt))
+      if (formats[pixfmt].num_ports > 0)
+	{
+	  capture_fmt fmt;
+	  fmt.pixfmt = pixfmt;
+	  fmt.locked = FALSE;
+	  if (suggest_capture_format (&fmt) != -1)
+	    /* Capture format granted */
+	    return TRUE;
+	}
 
   return FALSE;
 }
@@ -449,7 +406,10 @@ static video_backend xv = {
 };
 
 static void
-register_port (XvPortID xvport, enum tveng_frame_pixformat fmt)
+register_port			(XvPortID		xvport,
+				 tv_pixfmt		pixfmt,
+				 int			format_id,
+				 unsigned int		adaptor_index)
 {
   int i, id = -1;
 
@@ -469,20 +429,81 @@ register_port (XvPortID xvport, enum tveng_frame_pixformat fmt)
 
   /* Now check whether we already knew this port for this format (we
      shouldn't, but checking won't harm). */
-  for (i=0; i<formats[fmt].num_ports; i++)
-    if (formats[fmt].ports[i] == id)
+  for (i=0; i<formats[pixfmt].num_ports; i++)
+    if (formats[pixfmt].ports[i] == id)
       return; /* All done */
 
+  /* Check if this port uses the same format_id as other ports
+     supporting the same format. */
+  if (formats[pixfmt].num_ports > 0
+      && formats[pixfmt].format_id != format_id)
+    return; /* Bizarre. */
+
   /* Add a new entry for the port in this format */
-  formats[fmt].ports = g_realloc
-    (formats[fmt].ports,
-     (formats[fmt].num_ports+1)*sizeof(formats[fmt].ports[0]));
-  formats[fmt].ports[formats[fmt].num_ports++] = id;
+  formats[pixfmt].ports = g_realloc
+    (formats[pixfmt].ports,
+     (formats[pixfmt].num_ports+1)*sizeof(formats[pixfmt].ports[0]));
+  formats[pixfmt].ports[formats[pixfmt].num_ports++] = id;
+
+  formats[pixfmt].format_id = format_id;
 
   /* If this is the first port we add for the given format add
      ourselves to the backend list for the pixformat. */
-  if (formats[fmt].num_ports == 1)
-    register_video_backend (fmt, &xv);
+  if (formats[pixfmt].num_ports == 1)
+    register_video_backend (pixfmt, &xv);
+
+  printv ("Registered XVideo adaptor %u, image port 0x%x with pixfmt %s\n",
+	  adaptor_index,
+	  (unsigned int) xvport,
+	  tv_pixfmt_name (pixfmt));
+}
+
+static void
+traverse_ports			(Display *		display,
+				 const XvAdaptorInfo *	pAdaptor,
+				 unsigned int		index)
+{
+  int i;
+
+  for (i = 0; i < pAdaptor->num_ports; ++i)
+    {
+      XvImageFormatValues *pImageFormats;
+      int nImageFormats;
+      XvPortID xvport;
+      int j;
+      tv_pixfmt pixfmt;
+
+      xvport = pAdaptor->base_id + i;
+
+      pImageFormats = XvListImageFormats (display, xvport, &nImageFormats);
+
+      if (NULL == pImageFormats || 0 == nImageFormats)
+	continue;
+
+      for (j = 0; j < nImageFormats; ++j)
+	switch ((pixfmt = x11_xv_image_format_to_pixfmt (pImageFormats + j)))
+	  {
+	  case TV_PIXFMT_YUV420:
+	    register_port (xvport, TV_PIXFMT_YUV420,
+			   pImageFormats[j].id, index);
+	    register_port (xvport, TV_PIXFMT_YVU420,
+			   pImageFormats[j].id, index);
+	    break;
+
+	  case TV_PIXFMT_YUYV:
+	  case TV_PIXFMT_YVYU:
+	  case TV_PIXFMT_UYVY:
+	  case TV_PIXFMT_VYUY:
+	    register_port (xvport, pixfmt, pImageFormats[j].id, index);
+	    break;
+
+	  default:
+	    break;
+	  }
+
+      if (nImageFormats > 0)
+	XFree (pImageFormats);
+    }
 }
 
 /**
@@ -491,90 +512,74 @@ register_port (XvPortID xvport, enum tveng_frame_pixformat fmt)
 void add_backend_xv (void);
 void add_backend_xv (void)
 {
-  Display *dpy=GDK_DISPLAY();
-  Window root_window = GDK_ROOT_WINDOW();
-  unsigned int version, revision, major_opcode, event_base,
-    error_base;
-  int i, j=0, k=0;
+  Display *display;
+  unsigned int version;
+  unsigned int revision;
+  unsigned int major_opcode;
+  unsigned int event_base;
+  unsigned int error_base;
+  Window root;
+  XvAdaptorInfo *pAdaptors;
   int nAdaptors;
-  XvAdaptorInfo *pAdaptors, *pAdaptor;
-  XvImageFormatValues *pImgFormats=NULL;
-  int nImgFormats;
+  int i;
 
   if (disable_xv)
     return;
 
-  if (Success != XvQueryExtension(dpy, &version, &revision,
-				  &major_opcode, &event_base,
-				  &error_base))
-    return;
+  display = GDK_DISPLAY ();
+
+  if (Success != XvQueryExtension (display,
+				   &version, &revision,
+				   &major_opcode,
+				   &event_base, &error_base))
+    {
+      printv ("XVideo extension not available\n");
+      return;
+    }
+
+  printv ("XVideo opcode %d, base %d, %d, version %d.%d\n",
+	  major_opcode,
+	  event_base, error_base,
+	  version, revision);
 
   if (version < 2 || (version == 2 && revision < 2))
-    return;
+    {
+      printv ("XVideo extension not usable\n");
+      return;
+    }
 
-  if (Success != XvQueryAdaptors(dpy, root_window, &nAdaptors,
-				 &pAdaptors))
-    return;
+  root = GDK_ROOT_WINDOW();
+
+  if (Success != XvQueryAdaptors (display, root, &nAdaptors, &pAdaptors))
+    {
+      printv ("XvQueryAdaptors failed\n");
+      return;
+    }
 
   if (nAdaptors <= 0)
     return;
 
-  /* Just for debugging, can be useful */
-  for (i=0; i<nAdaptors; i++)
+  for (i = 0; i < nAdaptors; ++i)
     {
+      XvAdaptorInfo *pAdaptor;
+      unsigned int type;
+
       pAdaptor = pAdaptors + i;
-      /* print some info about this adaptor */
-      printv("%d) Adaptor info:\n"
-	     "	- Base port id:		0x%x\n"
-	     "	- Number of ports:	%d\n"
-	     "	- Type:			%d\n"
-	     "	- Name:			%s\n"
-	     "	- Number of formats:	%d\n",
-	     i, (int)pAdaptor->base_id, (int) pAdaptor->num_ports,
-	     (int)pAdaptor->type, pAdaptor->name,
-	     (int)pAdaptor->num_formats);
 
-      if ((pAdaptor->type & XvInputMask) &&
-	  (pAdaptor->type & XvImageMask))
-	{ /* Image adaptor, check if some port fits our needs */
-	  for (j=0; j<pAdaptor->num_ports;j++)
-	    {
-	      XvPortID xvport = pAdaptor->base_id + j;
-	      pImgFormats = XvListImageFormats(dpy, xvport,
-					       &nImgFormats);
-	      if (!pImgFormats || !nImgFormats)
-		continue;
+      type = pAdaptor->type;
 
-	      for (k=0; k<nImgFormats; k++)
-		{
-		  printv("		[%d] %c%c%c%c (0x%x)\n", k,
-			 (char)(pImgFormats[k].id>>0)&0xff,
-			 (char)(pImgFormats[k].id>>8)&0xff,
-			 (char)(pImgFormats[k].id>>16)&0xff,
-			 (char)(pImgFormats[k].id>>24)&0xff,
-			 pImgFormats[k].id);
+      if (0 == strcmp (pAdaptor->name, "NVIDIA Video Interface Port")
+	  && type == (XvInputMask | XvVideoMask))
+	type = XvOutputMask | XvVideoMask; /* Bug. This is TV out. */
 
-		  if (pImgFormats[k].id == YUY2)
-		    register_port (xvport, TVENG_PIX_YUYV);
-		  else if (pImgFormats[k].id == UYVY)
-		    register_port (xvport, TVENG_PIX_UYVY);
-		  else if (pImgFormats[k].id == YV12)
-		    {
-		      register_port (xvport, TVENG_PIX_YUV420);
-		      register_port (xvport, TVENG_PIX_YVU420);
-		    }
-		  else
-		      printv ("Fourcc unknown, please contact the "
-			      "maintainer so it can be accelerated.\n");
-		}
-	    }
-	}
+      if ((XvInputMask | XvImageMask) == (type & (XvInputMask | XvImageMask)))
+	traverse_ports (display, pAdaptor, i);
     }
 
-  XvFreeAdaptorInfo(pAdaptors);
+  XvFreeAdaptorInfo (pAdaptors);
 
 #ifdef USE_XV_SHM
-  have_mitshm = !!XShmQueryExtension(dpy);
+  have_mitshm = !!XShmQueryExtension (display);
 #endif
 }
 
