@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping_setup_fb.h,v 1.1.2.1 2003-01-21 05:23:30 mschimek Exp $ */
+/* $Id: zapping_setup_fb.h,v 1.1.2.2 2003-01-21 09:38:46 mschimek Exp $ */
 
 #include <stdio.h>
 #include <string.h>
@@ -70,7 +70,7 @@ extern int
 query_dga			(const char *		display_name,
 				 int			bpp_arg);
 
-#define CASE(x) case x: if (!arg) { fputs ("#x", fp); return; }
+#define CASE(x) case x: if (!arg) { fputs (#x, fp); return; }
 #define SYM(x) #x, (unsigned long)(x)
 
 typedef void (ioctl_log_fn)	(FILE *			fp,

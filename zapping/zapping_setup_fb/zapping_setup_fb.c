@@ -257,7 +257,6 @@ static const char *	short_options = "d:D:b:vqh?V";
 static const struct option
 long_options [] =
 {
-  { "device",		required_argument,	0, 'c' },
   { "device",		required_argument,	0, 'd' },
   { "display",		required_argument,	0, 'D' },
   { "bpp",		required_argument,	0, 'b' },
@@ -273,7 +272,7 @@ print_usage			(void)
 {
   printf ("Usage:\n"
 	  " %s [OPTIONS], where OPTIONS can be\n"
-	  " -c, -d, --device name - The video device to open, default /dev/video0\n"
+	  " -d, --device name     - The video device to open, default /dev/video0\n"
 	  " -D, --display name    - The X display to use\n"
 	  " -b, --bpp x           - Color depth, bits per pixel on said display\n"
 	  " -v, --verbose         - Increment verbosity level\n"
