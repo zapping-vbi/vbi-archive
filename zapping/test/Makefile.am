@@ -7,6 +7,8 @@ EXTRA_DIST = \
 	guard.h \
 	pixel.h
 
+INCLUDES = -I$(top_srcdir)
+
 check_PROGRAMS = \
 	clear_image \
 	guard1 \
