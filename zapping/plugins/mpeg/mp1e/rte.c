@@ -47,6 +47,7 @@
 /*
   BUGS:
       . Callbacks + push doesn't work yet.
+      . Audio doesn't work.
       . It isn't reentrant.
       . Plenty of unknown bugs
 */
@@ -56,7 +57,25 @@
 
 rte_context * rte_global_context = NULL;
 
-/* prototypes for main initialization (mp1e core startup) */
+/*
+ * Global options from rte.
+ */
+char *			my_name="rte";
+int			verbose=0;
+
+double			video_stop_time = 1e30;
+double			audio_stop_time = 1e30;
+double			vbi_stop_time = 1e30;
+
+fifo *			audio_cap_fifo;
+int			stereo;
+
+fifo *			video_cap_fifo;
+
+int			min_cap_buffers = MIN(NUM_AUDIO_BUFFERS,
+					      NUM_VIDEO_BUFFERS);
+
+/* prototypes for main initialization (mp1e startup) */
 /* fixme: preview support (whew, XV is really nice!) */
 /* These routines are called in this order, they come from mp1e's main.c */
 static void rte_audio_startup(void); /* Startup video parameters */
@@ -199,7 +218,7 @@ rte_context * rte_context_new (int width, int height,
 	context->mode = RTE_MUX_VIDEO_AND_AUDIO;
 
 	if (!rte_set_video_parameters(context, frame_format, width,
-				      height, rate, 2e6)) {
+				      height, rate, 2.3e6)) {
 		rte_error(NULL, "invalid video format: %s",
 			  context->error);
 
@@ -659,7 +678,8 @@ int rte_start_encoding (rte_context * context)
 
 	if (modules & MOD_AUDIO) {
 		ASSERT("create audio compression thread",
-			!pthread_create(&audio_thread_id, NULL,
+			!pthread_create(&context->private->audio_thread_id,
+					NULL,
 			stereo ? mpeg_audio_layer_ii_stereo :
 				 mpeg_audio_layer_ii_mono, NULL));
 
@@ -668,7 +688,8 @@ int rte_start_encoding (rte_context * context)
 
 	if (modules & MOD_VIDEO) {
 		ASSERT("create video compression thread",
-			!pthread_create(&video_thread_id, NULL,
+			!pthread_create(&context->private->video_thread_id,
+					NULL,
 				mpeg1_video_ipb, NULL));
 
 		printv(2, "Video compression thread launched\n");
@@ -729,7 +750,7 @@ void rte_stop ( rte_context * context )
 	gettimeofday(&tv, NULL);
 
 	video_stop_time =
-//	vbi_stop_time =
+	vbi_stop_time =
 	audio_stop_time = tv.tv_sec + tv.tv_usec / 1e6;
 
 	/* Join the mux thread */
@@ -841,22 +862,12 @@ void * rte_push_audio_data ( rte_context * context, void * data,
 	return context->private->last_audio_buffer->data;
 }
 
-/* video_start = video_input_start */
-static void
-video_input_start ( void )
-{
-	/* FIXME: Nothing needs to be done here, it will probably be
-	   removed in the future */
-}
-
 int rte_init ( void )
 {
 	if (!cpu_id(ARCH_PENTIUM_MMX))
 		return 0;
 
 	rte_global_context = NULL;
-
-	video_start = video_input_start;
 
 	return 1;
 }

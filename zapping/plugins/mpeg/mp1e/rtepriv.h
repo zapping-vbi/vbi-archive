@@ -57,6 +57,8 @@ struct _rte_context_private {
 	rteEncodeCallback encode_callback; /* save-data Callback */
 	rteDataCallback data_callback; /* need-data Callback */
 	pthread_t mux_thread; /* mp1e multiplexer thread */
+	pthread_t video_thread_id; /* video encoder thread */
+	pthread_t audio_thread_id; /* audio encoder thread */
 	int fd; /* file descriptor of the file we are saving */
 	void * user_data; /* user data given to the callback */
 	fifo aud, vid; /* callback fifos for pushing */

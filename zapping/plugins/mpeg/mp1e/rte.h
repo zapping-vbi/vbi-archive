@@ -113,7 +113,7 @@ typedef struct {
 	int video_bytes;
 	
 	/******* audio parameters **********/
-	/* audio sampling rate in kHz, 44100 by default */
+	/* audio sampling rate in Hz, 44100 by default */
 	int audio_rate; 
 	/* Audio mode, defaults to Mono */
 	enum rte_audio_mode audio_mode;

@@ -17,271 +17,311 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
+/*
+ * This is a simple RTE test.
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
-#include <string.h>
-#include <getopt.h>
-#include <math.h>
-#include <signal.h>
 #include <time.h>
-#include <limits.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <pthread.h>
+#include <assert.h>
 #include <sys/mman.h>
 #include <sys/time.h>
-#include <sys/stat.h>
+#include <sys/ioctl.h>
 #include <asm/types.h>
-#include "videodev2.h"
-#include "audio/mpeg.h"
-#include "video/mpeg.h"
-#include "video/video.h"
-#include "audio/audio.h"
-#include "systems/systems.h"
-#include "common/profile.h"
-#include "common/math.h"
+#include <linux/soundcard.h>
 #include "common/log.h"
-#include "common/mmx.h"
-#include "common/bstream.h"
-#include "options.h"
-#include "rtepriv.h"
-#include "main.h"
+#include "videodev2.h"
+#include "rte.h"
 
-char *			my_name;
-int			verbose;
+static int			fd; /* fd:video, fd2:audio */
+static void*			buffers[16];
 
-double			video_stop_time = 1e30;
-double			audio_stop_time = 1e30;
+static struct v4l2_capability	vcap;
+static struct v4l2_standard	vstd;
+static struct v4l2_format	vfmt;
+static struct v4l2_buffer	vbuf;
+static struct v4l2_requestbuffers vrbuf;
 
-pthread_t		audio_thread_id;
-fifo *			audio_cap_fifo;
-int			stereo;
+static struct v4l2_control	old_mute;
 
-pthread_t		video_thread_id;
-fifo *			video_cap_fifo;
-void			(* video_start)(void);
-int			min_cap_buffers;
+static void
+read_video(void * data, double * time, rte_context * context)
+{
+	struct timeval tv;
+	fd_set fds;
+	int r = -1;
 
-pthread_t               output_thread_id;
+	while (r <= 0) {
+		FD_ZERO(&fds);
+		FD_SET(fd, &fds);
 
-pthread_t		tk_main_id;
-extern void *		tk_main(void *);
+		tv.tv_sec = 2;
+		tv.tv_usec = 0;
 
-extern int		psycho_loops;
-extern int		audio_num_frames;
-extern int		video_num_frames;
+		r = select(fd + 1, &fds, NULL, NULL, &tv);
 
-extern void options(int ac, char **av);
+		if (r < 0 && errno == EINTR)
+			continue;
 
-extern void preview_init(void);
+		if (r == 0)
+			FAIL("Video capture timeout");
 
-extern void audio_init(void);
-extern void video_init(void);
+		ASSERT("execute select", r > 0);
+	}
+
+	vbuf.type = V4L2_BUF_TYPE_CAPTURE;
+
+	ASSERT("dequeue capture buffer", ioctl(fd, VIDIOC_DQBUF, &vbuf) == 0);
+
+	memcpy(data, buffers[vbuf.index], context->video_bytes);
+
+	*time = vbuf.timestamp / 1e9; // UST, currently TOD
+
+	ASSERT("enqueue capture buffer", ioctl(fd, VIDIOC_QBUF, &vbuf) == 0);
+}
+
+static void
+mute_restore(void)
+{
+	if (old_mute.id)
+		ioctl(fd, VIDIOC_S_CTRL, &old_mute);
+}
+
+static enum rte_frame_rate
+init_video(const char * cap_dev, int width, int height)
+{
+	int str_type = V4L2_BUF_TYPE_CAPTURE;
+	int num_buffers;
+	enum rte_frame_rate rate_code=RTE_RATE_NORATE;
+
+	ASSERT("open video capture device", (fd = open(cap_dev, O_RDONLY)) != -1);
+	ASSERT("query video capture capabilities", ioctl(fd, VIDIOC_QUERYCAP, &vcap) == 0);
+
+	if (vcap.type != V4L2_TYPE_CAPTURE)
+		FAIL("%s ('%s') is not a capture device",
+			cap_dev, vcap.name);
+
+	if (!(vcap.flags & V4L2_FLAG_STREAMING) ||
+	    !(vcap.flags & V4L2_FLAG_SELECT))
+		FAIL("%s ('%s') does not support streaming/select(2),\n"
+			"%s will not work with the v4l2 read(2) interface.",
+			cap_dev, vcap.name, my_name);
+
+	ASSERT("query current video standard", ioctl(fd, VIDIOC_G_STD, &vstd) == 0);
+
+	rate_code = ((double) vstd.framerate.denominator /
+		     vstd.framerate.numerator < 29.0) ?
+		RTE_RATE_3 : RTE_RATE_4;
+
+	printv(2, "Video standard is '%s'\n", vstd.name);
+
+	vfmt.type = V4L2_BUF_TYPE_CAPTURE;
+	vfmt.fmt.pix.width = width;
+	vfmt.fmt.pix.height = height;
+
+	vfmt.fmt.pix.depth = 12;
+	vfmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUV420;
+	vfmt.fmt.pix.flags = V4L2_FMT_FLAG_INTERLACED;
+
+	ASSERT("set capture mode to YUV420", ioctl(fd, VIDIOC_S_FMT,
+						   &vfmt) == 0);
+
+	if ((vfmt.fmt.pix.width != width) || (vfmt.fmt.pix.height !=
+					      height))
+		FAIL("width and height not valid");
+
+	vrbuf.type = V4L2_BUF_TYPE_CAPTURE;
+	vrbuf.count = 8;
+
+	ASSERT("request capture buffers", ioctl(fd, VIDIOC_REQBUFS, &vrbuf) == 0);
+
+	if (vrbuf.count == 0)
+		FAIL("No capture buffers granted");
+
+	printv(2, "%d capture buffers granted\n", vrbuf.count);
+
+	// Map capture buffers
+	num_buffers = 0;
+
+	while (num_buffers < vrbuf.count) {
+		unsigned char *p;
+
+		vbuf.type = V4L2_BUF_TYPE_CAPTURE;
+		vbuf.index = num_buffers;
+
+		printv(3, "Mapping capture buffer #%d\n", num_buffers);
+
+		ASSERT("query capture buffer #%d", ioctl(fd, VIDIOC_QUERYBUF, &vbuf) == 0,
+			num_buffers);
+
+		p = mmap(NULL, vbuf.length, PROT_READ, MAP_SHARED, fd, vbuf.offset);
+
+		buffers[num_buffers] = p;
+
+		ASSERT("enqueue capture buffer #%d",
+		       ioctl(fd, VIDIOC_QBUF, &vbuf) == 0, vbuf.index);
+
+		num_buffers++;
+	}
+
+	str_type = 1;
+	ASSERT("activate capturing",
+	       ioctl(fd, VIDIOC_STREAMON, &str_type) == 0);
+
+	old_mute.id = V4L2_CID_AUDIO_MUTE;
+
+	if (ioctl(fd, VIDIOC_G_CTRL, &old_mute) == 0) {
+		struct v4l2_control new_mute;
+
+		atexit(mute_restore);
+
+		new_mute.id = V4L2_CID_AUDIO_MUTE;
+		new_mute.value = 0;
+
+		ASSERT("set mute control to %d",
+		       ioctl(fd, VIDIOC_S_CTRL, &new_mute) == 0, 0);
+	}
+
+	return rate_code;
+}
 
 #if 0
-
-volatile int program_shutdown = 0;
-
-pthread_t video_emulation_thread_id;
-pthread_t audio_emulation_thread_id;
-pthread_mutex_t video_device_mutex=PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t audio_device_mutex=PTHREAD_MUTEX_INITIALIZER;
-
-fifo *			ye_olde_audio_cap_fifo;
-fifo *			ye_olde_video_cap_fifo;
-
-void emulation_data_callback(void * data, double * time, int video,
-			     rte_context * context, void * user_data)
+static void
+init_audio(const char * pcm_dev, int format, int speed, int stereo)
 {
-	int frame;
-	void * misc_data;
-	buffer *b;
+	ASSERT("open PCM device %s", (fd2 = open(pcm_dev, O_RDONLY))
+	       != -1, pcm_dev);
 
-	if (video) {
-		pthread_mutex_lock(&video_device_mutex);
-		b = wait_full_buffer(ye_olde_video_cap_fifo);
-		misc_data = b->data;
-		*time = b->time;
-		pthread_mutex_unlock(&video_device_mutex);
-		memcpy(data, misc_data, context->video_bytes);
-		send_empty_buffer(ye_olde_video_cap_fifo, b);
-	}
-	else {
-		pthread_mutex_lock(&audio_device_mutex);
-		b = wait_full_buffer(ye_olde_audio_cap_fifo);
-		misc_data = b->data;
-		*time = b->time;
-		pthread_mutex_unlock(&audio_device_mutex);
-		memcpy(data, misc_data, context->audio_bytes);
-		send_empty_buffer(ye_olde_audio_cap_fifo, b);
-	}
+	printv(2, "Opened PCM device %s\n", pcm_dev);
+
+	ASSERT("set PCM AFMT_S16_LE", ioctl(fd2, SNDCTL_DSP_SETFMT,
+					    &format) != -1);
+	ASSERT("set PCM %d channels", ioctl(fd2, SNDCTL_DSP_STEREO,
+					    &stereo) != -1, stereo + 1);
+	ASSERT("set PCM sampling rate %d Hz",
+	       ioctl(fd2, SNDCTL_DSP_SPEED, &speed) != -1, speed);
+
+	fprintf(stderr, "audio doesn't work yet!\n");
 }
-
-void * video_emulation_thread (void * ptr)
-{
-	int frame;
-	double timestamp;
-	unsigned char * data;
-	void * video_data;
-	rte_context * context = (rte_context *)ptr;
-	buffer *b;
-
-	data = rte_push_video_data(context, NULL, 0);
-	for (;data;) {
-		pthread_mutex_lock(&video_device_mutex);
-		b = wait_full_buffer(ye_olde_video_cap_fifo);
-		video_data = b->data;
-		timestamp = b->time;
-		pthread_mutex_unlock(&video_device_mutex);
-		memcpy(data, video_data, context->video_bytes);
-		data = rte_push_video_data(context, data, timestamp);
-		send_empty_buffer(ye_olde_video_cap_fifo, b);
-	}
-	fprintf(stderr, "video emulation: %s\n", context->error);
-
-	return NULL;
-}
-
-void * audio_emulation_thread (void * ptr)
-{
-	double timestamp;
-	short * data;
-	short * audio_data;
-	rte_context * context = (rte_context *)ptr;
-	buffer *b;
-
-	data = rte_push_audio_data(context, NULL, 0);
-	for (;data;) {
-		pthread_mutex_lock(&audio_device_mutex);
-		b = wait_full_buffer(ye_olde_audio_cap_fifo);
-		audio_data = (short *) b->data;
-		timestamp = b->time;
-		pthread_mutex_unlock(&audio_device_mutex);
-		memcpy(data, audio_data, context->audio_bytes);
-		data = rte_push_audio_data(context, data, timestamp);
-		send_empty_buffer(ye_olde_audio_cap_fifo, b);
-	}
-	fprintf(stderr, "audio emulation: %s\n", context->error);
-	return NULL;
-}
-
-static	rte_context * context;
 
 /*
-  This is just for a preliminary testing, loads of things need to be
-  done before this gets really functional.
-  push + callbacks don't work together yet, but separately they
-  do. Does anybody really want to use them together?
-  The push interface works great, not much more CPU usage and nearly
-  no lost frames; the callbacks one needs a bit more CPU, and drops
-  some more frames, but works fine too.
-*/
-int emulation_thread_init ( void )
+ * fixme: Audio is harder to get right. Give a look to the routines in
+ * audio/oss.c
+ */
+static void
+read_audio(void * data, double * time, rte_context * context)
 {
-	int do_test = 1; /* 1 == push, 2 == callbacks, 3 == both */
-	rteDataCallback callback;
-	enum rte_pixformat format;
+	struct timeval tv;
+	int n = context->audio_bytes;
+	int r;
+	void * p = data;
+	double frame_time;
 
-	ye_olde_audio_cap_fifo = audio_cap_fifo;
-	ye_olde_video_cap_fifo = video_cap_fifo;
+	while (n>0) {
+		r = read(fd2, p, n);
 
-	if (!rte_init())
-		return 0;
+		if (r<0 && errno == EINTR)
+			continue;
 
-	if (do_test & 2)
-		callback = RTE_DATA_CALLBACK(emulation_data_callback);
+		(char*)p += r;
+		n -= r;
+	}
+
+	gettimeofday(&tv, NULL);
+
+	*time = tv.tv_sec + tv.tv_usec/1e6;
+
+	frame_time = context->audio_bytes/(double)context->audio_rate;
+	if (context->audio_mode == RTE_AUDIO_MODE_STEREO)
+		frame_time = frame_time/2;
+
+	*time -= frame_time;;
+}
+#endif
+
+static void
+data_callback(void * data, double * time, int video, rte_context *
+	      context, void * user_data)
+{
+	struct timeval tv;
+
+	if (user_data != (void*)0xdeadbeef)
+		fprintf(stderr, "check failed: %p\n", user_data);
+
+	if (video)
+		read_video(data, time, context);
 	else
-		callback = NULL;
+//		read_audio(data, time, context);
+	{
+		gettimeofday(&tv, NULL);
+		*time = tv.tv_sec + tv.tv_usec/1e6;		
+	}
+}
 
-	context = rte_context_new("temp.mpeg", 352, 288, RTE_RATE_3,
-				  NULL, callback, (void*)0xdeadbeef);
+int main(int argc, char *argv[])
+{
+	rte_context * context;
+	enum rte_frame_rate rate_code;
+	int width = 32, height = 32;
+	int sleep_time = 5;
+//	int audio_format=AFMT_S16_LE, audio_rate=44100, stereo=0;
 
-	if (!context) {
-		fprintf(stderr, "%s\n", context->error);
+	if (!rte_init()) {
+		fprintf(stderr, "RTE couldn't be inited\n");
 		return 0;
 	}
 
-	rte_set_video_parameters(context, RTE_YUV420, context->width,
-				 context->height, context->video_rate,
-				 context->output_video_bits);
+	srand(time(NULL));
 
-	printv(3, "\nrte_start started its work.\n");
-	if (!rte_start(context))
-	{
-		fprintf(stderr, "%s\n", context->error);
+	width *= (rand()%15)+5;
+	height *= (rand()%15)+5;
+
+	width = 640; height = 480;
+
+	fprintf(stderr, "%dx%d\n", width, height);
+
+	rate_code = init_video("/dev/video", width, height);
+//	init_audio("/dev/dsp", audio_format, audio_rate, stereo);
+
+	context = rte_context_new(width, height, RTE_YUV420,
+				  rate_code, "temp.mpeg", NULL,
+				  data_callback, (void*)0xdeadbeef);
+
+	if (!context) {
+		fprintf(stderr, "the context cannot be created\n");
+		return 0;
+	}
+
+//	rte_set_audio_parameters(context, audio_rate, stereo ?
+//				 RTE_AUDIO_MODE_STEREO :
+//				 RTE_AUDIO_MODE_MONO,
+//				 context->output_audio_bits);
+
+	rte_set_mode(context, RTE_MUX_VIDEO_ONLY);
+
+	fprintf(stderr, "starting encode\n");
+	if (!rte_init_context(context) ||
+	    (!rte_start_encoding(context))) {
+		fprintf(stderr, "cannot start encoding: %s\n",
+			context->error);
 		rte_context_destroy(context);
 		return 0;
 	}
-	printv(3, "\nrte_start finished its work.\n");
+	fprintf(stderr, "going to bed (%d secs)\n", sleep_time);
+	// Encode video for 5 secs
+	sleep(sleep_time);
 
-	if (do_test & 1) {
-		pthread_create(&video_emulation_thread_id, NULL,
-			       video_emulation_thread, context);
-		pthread_create(&audio_emulation_thread_id, NULL,
-			       audio_emulation_thread, context);
-	}
+	fprintf(stderr, "done encoding\n");
 
-	return 1;
-}
-
-int
-main(int ac, char **av)
-{
-	sigset_t block_mask;
-	struct timeval tv;
-	pthread_t mux_thread; /* Multiplexer thread */
-
-	my_name = av[0];
-	options(ac, av);
-
-	mix_init();
-	pcm_init();
-
-	v4l2_init();
-	video_start();
-
-	printv(3, "\nstarting emulation... ");
-	if (!emulation_thread_init())
-		return 0;
-	printv(3, "done (closing).\n");
-
-	sleep(5);
-
-	program_shutdown = 1;
-
-	if (modules & 1) {
-		printv(3, "\nvideo thread... ");
-		pthread_cancel(video_thread_id);
-		pthread_join(video_thread_id, NULL);
-		printv(3, "done\n");
-	}
-
-	if (modules & 2) {
-		printv(3, "\naudio thread... ");
-		pthread_cancel(audio_thread_id);
-		pthread_join(audio_thread_id, NULL);
-		printv(3, "done\n");
-	}
-
-	printv(3, "\noutput thread... ");
-
+	// stop encoding
 	rte_context_destroy(context);
 
-	output_end();
-	printv(3, "done\n");
+	fprintf(stderr, "exiting\n");
 
-	printv(2, "\nCleanup done, bye...\n");
-
-	return EXIT_SUCCESS;
-}
-#else
-int main(int argc, char *argv[])
-{
-	fprintf(stderr, "not done yet\n");
 	return 0;
 }
-#endif
