@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dct.c,v 1.2 2000-08-09 09:41:36 mschimek Exp $ */
+/* $Id: dct.c,v 1.3 2000-08-10 18:51:19 mschimek Exp $ */
 
 #include <assert.h>
 #include "../common/math.h"
@@ -148,11 +148,6 @@ init_dct(void)
 				if (u & 1)
 					m *= C6 * 2.0;
 
-				/*
-				 *  Pseudo-float gives smaller tables and
-				 *  better accuracy with increasing quantization
-				 *  factors.
-				 */
 				if (v + u == 0) {
 					LUT1[q][v][u] = 0;
 				} else {
@@ -288,6 +283,8 @@ mmx_new_inter_quant(int quant_scale)
 	c3b.uq = 16 /* pmulh */ + 5 /* scale */ + ltsi - sh2[ltpi];
 	lut2p = &LUT2[ltpi][0][0];
 }
+
+/* preliminary */
 
 void
 mmx_mpeg1_idct_intra(unsigned char *new)
@@ -663,6 +660,8 @@ asm("
     }
 
 }
+
+/* preliminary */
 
 void
 mmx_mpeg1_idct_inter(unsigned char *new, unsigned char *old, unsigned int cbp)

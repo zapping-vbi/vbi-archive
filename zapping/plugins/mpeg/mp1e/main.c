@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.9 2000-08-10 01:18:58 mschimek Exp $ */
+/* $Id: main.c,v 1.10 2000-08-10 18:51:19 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,8 +38,6 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <asm/types.h>
-#include "videodev2.h"
-#include <linux/soundcard.h>
 #include "audio/mpeg.h"
 #include "video/mpeg.h"
 #include "video/video.h"
@@ -62,13 +60,11 @@ int			verbose;
 double			video_stop_time = 1e30;
 double			audio_stop_time = 1e30;
 
-fifo			aud;
 pthread_t		audio_thread_id;
 short *			(* audio_read)(double *);
 void			(* audio_unget)(short *);
 int			stereo;
 
-fifo			vid;
 pthread_t		video_thread_id;
 void			(* video_start)(void);
 unsigned char *		(* video_wait_frame)(double *, int *);
@@ -355,15 +351,15 @@ main(int ac, char **av)
 
 	if (mux_mode & 2) {
 		char *modes[] = { "stereo", "joint stereo", "dual channel", "mono" };
+		long long n = llroundn(((double) video_num_frames / frame_rate_value[frame_rate_code])
+			/ (1152.0 / sampling_rate));
 
 		printv(1, "Audio compression %2.1f kHz%s %s at %d kbits/s (%1.1f : 1)\n",
 			sampling_rate / (double) 1000, sampling_rate < 32000 ? " (MPEG-2)" : "", modes[audio_mode],
 			audio_bit_rate / 1000, (double) sampling_rate * (16 << stereo) / audio_bit_rate);
 
 		if (mux_mode & 1)
-			audio_num_frames =
-				lroundn((frame_rate_value[frame_rate_code] / video_num_frames)
-					/ (1152.0 / sampling_rate));
+			audio_num_frames = MIN(n, (long long) INT_MAX);
 
 		audio_init();
 	}
@@ -445,6 +441,7 @@ main(int ac, char **av)
 		mpeg1_system_mux(NULL);
 		break;
 	case 2:
+		printv(1, "MPEG-2 Program Stream");
 		mpeg2_program_stream_mux(NULL);
 		break;
 	}

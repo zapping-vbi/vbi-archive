@@ -32,7 +32,6 @@
 #include "../options.h"
 #include "../common/fifo.h"
 #include "../common/log.h"
-#include "../rtepriv.h"
 #include "systems.h"
 #include "stream.h"
 
@@ -94,6 +93,8 @@ output_buffered(buffer *b)
 }
 
 #endif
+
+#include "../rtepriv.h"
 
 static _fifo            out;
 static int              out_buffers = 8;
