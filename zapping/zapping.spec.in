@@ -10,8 +10,9 @@ Source: ftp://zapping.sourceforge.net/pub/zapping/@VERSION@/zapping-@VERSION@.ta
 Buildroot: %{_tmppath}/%{name}-root
 BuildPrereq: libglade-devel libxml-devel
 PreReq: /sbin/install-info
-# mhs: @GNOME_PREFIX@ changed on my box, used to be /usr/local
-Prefix: /usr/local
+# Not relocatable, should be @GNOME_PREFIX@
+# Prefix: /usr/local
+%define prefx /usr/local
 
 Requires: gnome-libs >= 1.0.40
 Requires: libxml >= 1.4.0
@@ -29,7 +30,7 @@ features, plus extensibility through a plugin system.
 %setup -q
 
 %build
-./configure --with-gnome-prefix=%{prefix}
+./configure --with-gnome-prefix=%{prefx}
 make
 
 %install
@@ -37,14 +38,14 @@ rm -rf %{buildroot}
 make DESTDIR=%{buildroot} install
 
 %post
-pushd %{prefix}/bin > /dev/null 2>&1
+pushd %{prefx}/bin > /dev/null 2>&1
     ln -sf @CONSOLEHELPER_LOCATION@ zapping_setup_fb
     ln -sf zapping zapzilla
 popd > /dev/null 2>&1
 
 %preun
-rm -f %{prefix}/bin/zapping_setup_fb > /dev/null 2>&1
-rm -f %{prefix}/bin/zapzilla > /dev/null 2>&1
+rm -f %{prefx}/bin/zapping_setup_fb > /dev/null 2>&1
+rm -f %{prefx}/bin/zapzilla > /dev/null 2>&1
 
 %clean
 rm -rf %{buildroot}
@@ -55,16 +56,16 @@ rm -rf %{buildroot}
 %doc plugins/alirc/README.alirc
 %config(noreplace) /etc/pam.d/zapping_setup_fb
 %config(noreplace) /etc/security/console.apps/zapping_setup_fb
-%{prefix}/bin/zapping
-%{prefix}/bin/zapping_fix_overlay
-%{prefix}/sbin/zapping_setup_fb
-%{prefix}/lib/zapping
-%{prefix}/share/zapping
-%{prefix}/share/gnome/help/zapping
-%{prefix}/share/pixmaps/zapping
-%{prefix}/share/gnome/apps/Multimedia/zapping.desktop
-%{prefix}/share/locale/*/*/*
-%{prefix}/man/man1/*
+%{prefx}/bin/zapping
+%{prefx}/bin/zapping_fix_overlay
+%{prefx}/sbin/zapping_setup_fb
+%{prefx}/lib/zapping
+%{prefx}/share/zapping
+%{prefx}/share/gnome/help/zapping
+%{prefx}/share/pixmaps/zapping
+%{prefx}/share/gnome/apps/Multimedia/zapping.desktop
+%{prefx}/share/locale/*/*/*
+%{prefx}/man/man1/*
 
 %changelog
 * Tue Jun 24 2002 Michael H. Schimek <mschimek@users.sourceforge.net>
