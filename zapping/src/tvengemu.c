@@ -18,10 +18,8 @@
 
 /*
   This module is somewhat different, this time we are generating a
-  virtual device without actual hw underneath.
-  The module is disabled by default, to enable it define
-  TVENGEMU_ENABLE in site_def.h:
-  #define TVENGEMU_ENABLE 1
+  virtual device without actual hw underneath. To enable it
+  use the device name "emulator".
   You can also this module as a template when you want to support
   other apis in tveng.
 */
@@ -34,10 +32,6 @@
 #include <site_def.h>
 #include "common/fifo.h"
 #include <tveng.h>
-
-#ifndef TVENGEMU_ENABLE
-#define TVENGEMU_ENABLE 1
-#endif
 
 #define TVENGEMU_PROTOTYPES
 #include "tvengemu.h"
@@ -118,7 +112,7 @@ add_controls			(tveng_device_info *	info)
 	tc->menu = calloc (3 + 1, sizeof (const char *));
 
 	tc->menu[0] = strdup ("42");
-	tc->menu[1] = strdup ("Pr0n");
+	tc->menu[1] = strdup ("9:4:1");
 	tc->menu[2] = strdup ("Monty Python");
 
 	add_control (info, "Self Destruct",
@@ -330,19 +324,11 @@ static void tvengemu_close_device(tveng_device_info * info)
 static int
 tvengemu_update_capture_format (tveng_device_info *info)
 {
-  tv_pixel_format format;
-
-  tv_pixfmt_to_pixel_format (&format, info->format.pixfmt, 0);
-
-  info->format.bytes_per_line =
-    (info->format.width * format.bits_per_pixel) >> 3;
-
-  if (format.planar)
-    info->format.size =
-      (info->format.width * info->format.height * format.color_depth) >> 3;
-  else
-    info->format.size =
-      info->format.height * info->format.bytes_per_line;
+  tv_image_format_init (&info->format,
+			info->format.width,
+			info->format.height,
+			/* bytes_per_line */ 0,
+			info->format.pixfmt, 0);
 
   return 0;
 }
@@ -361,7 +347,7 @@ tvengemu_set_capture_format (tveng_device_info *info)
   if (info->format.width > info->caps.maxwidth)
     info->format.width = info->caps.maxwidth;
 
-  tveng_update_capture_format (info);
+  tvengemu_update_capture_format (info);
 
   return 0;
 }
@@ -560,7 +546,6 @@ void tvengemu_init_module(struct tveng_module_info *module_info)
 {
   t_assert(module_info != NULL);
 
-  if (TVENGEMU_ENABLE)
-    memcpy (module_info, &tvengemu_module_info,
-	    sizeof (struct tveng_module_info));
+  memcpy (module_info, &tvengemu_module_info,
+	  sizeof (struct tveng_module_info));
 }
