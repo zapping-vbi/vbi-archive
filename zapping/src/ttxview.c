@@ -352,9 +352,9 @@ update_pointer (ttxview_data *data)
   if (page)
     {
       if (subpage == (guchar)ANY_SUB)
-	buffer = g_strdup_printf(_("Page %d"), hex2dec(page));
+	buffer = g_strdup_printf(_(" Page %d"), hex2dec(page));
       else
-	buffer = g_strdup_printf(_("Subpage %d"), hex2dec(subpage));
+	buffer = g_strdup_printf(_(" Subpage %d"), hex2dec(subpage));
       if (!data->in_link)
 	{
 	  gnome_appbar_push(GNOME_APPBAR(appbar1), buffer);
@@ -453,7 +453,8 @@ load_page (int page, int subpage, ttxview_data *data)
   if (subpage != ANY_SUB)
     buffer = g_strdup_printf("S%x", data->subpage);
   else
-    buffer = g_strdup(_(""));
+    buffer = g_strdup(_(" "));
+    // {mhs} "" displayed trash, i18n related?
   gtk_label_set_text(GTK_LABEL(widget), buffer);
   g_free(buffer);
 
@@ -747,7 +748,9 @@ static
 void new_bookmark			(GtkWidget	*widget,
 					 ttxview_data	*data)
 {
+  struct vbi *vbi = zvbi_get_object();
   gchar *default_description;
+  gchar title[41];
   gchar *buffer;
   gint page, subpage;
 
@@ -757,11 +760,22 @@ void new_bookmark			(GtkWidget	*widget,
     page = data->fmt_page->vtp->pgno;
   subpage = data->monitored_subpage;
 
-  if (subpage != ANY_SUB)
-    default_description =
-      g_strdup_printf("%x.%x", page, subpage);
+  if (vbi_page_title(vbi, page, title))
+    {
+      if (subpage != ANY_SUB)
+        default_description =
+          g_strdup_printf("%x.%x %s", page, subpage, title);
+      else
+        default_description = g_strdup_printf("%x %s", page, title);
+    }
   else
-    default_description = g_strdup_printf("%x", page);
+    {
+      if (subpage != ANY_SUB)
+        default_description =
+          g_strdup_printf("%x.%x", page, subpage);
+      else
+        default_description = g_strdup_printf("%x", page);
+    }
 
   buffer = Prompt(lookup_widget(data->da, "ttxview"),
 		  _("New bookmark"),
@@ -975,6 +989,20 @@ void export_png				(GtkWidget	*widget,
 #endif /* HAVE_LIBPNG */
 
 static
+void export_ascii			(GtkWidget	*widget,
+					 ttxview_data	*data)
+{
+  export_ttx_page(widget, data, "ascii");
+}
+
+static
+void export_ansi			(GtkWidget	*widget,
+					 ttxview_data	*data)
+{
+  export_ttx_page(widget, data, "ansi");
+}
+
+static
 void on_bookmark_activated		(GtkWidget	*widget,
 					 ttxview_data	*data)
 {
@@ -1015,7 +1043,7 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
 		     data);
   gtk_signal_connect(GTK_OBJECT(lookup_widget(popup, "html1")),
 		     "activate",
-		     GTK_SIGNAL_FUNC(not_done_yet), data);
+		     GTK_SIGNAL_FUNC(export_html), data);
   gtk_signal_connect(GTK_OBJECT(lookup_widget(popup, "ppm1")),
 		     "activate",
 		     GTK_SIGNAL_FUNC(export_ppm), data);
@@ -1028,7 +1056,10 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
 #endif
   gtk_signal_connect(GTK_OBJECT(lookup_widget(popup, "ascii1")),
 		     "activate",
-		     GTK_SIGNAL_FUNC(not_done_yet), data);
+		     GTK_SIGNAL_FUNC(export_ascii), data);
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(popup, "ansi1")),
+		     "activate",
+		     GTK_SIGNAL_FUNC(export_ansi), data);
   gtk_signal_connect(GTK_OBJECT(lookup_widget(popup, "add_bookmark")),
 		     "activate",
 		     GTK_SIGNAL_FUNC(new_bookmark), data);

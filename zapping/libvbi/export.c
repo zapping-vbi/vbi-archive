@@ -552,6 +552,61 @@ top_navigation_bar(struct vbi *vbi, struct fmt_page *pg, struct vt_page *vtp)
  *  Zapzilla navigation
  */
 
+/* ... */
+
+/*
+ *  Try find a page title for the bookmarks.
+ *  TRUE if success, buf min 41 chars.
+ *
+ *  TODO: FLOF, TTX character set, buf character set (currently Latin-1 assumed).
+ */
+int
+vbi_page_title(struct vbi *vbi, int pgno, char *buf)
+{
+	font_descriptor *font;
+	struct vt_page *vtp;
+	ait_entry *ait;
+	int i, j;
+
+	if (vbi->top) {
+		for (i = 0; i < 8; i++)
+			if (vbi->btt_link[i].type == 2) {
+				vtp = vbi->cache->op->get(vbi->cache,
+					vbi->btt_link[i].pgno, vbi->btt_link[i].subno, 0x3f7f);
+
+				if (!vtp) {
+					printv("p/t top ait page %x not cached\n", vbi->btt_link[i].pgno);
+					continue;
+				} else if (vtp->function != PAGE_FUNCTION_AIT) {
+					printv("p/t no ait page %x\n", vtp->pgno);
+					continue;
+				}
+
+				for (ait = vtp->data.ait, j = 0; j < 46; ait++, j++)
+					if (ait->page.pgno == pgno) {
+						font = font_descriptors + 0; // XXX
+
+						for (i = 11; i >= 0; i--)
+							if (ait->text[i] > 0x20)
+								break;
+
+						buf[i + 1] = 0;
+
+						for (; i >= 0; i--)
+							buf[i] = glyph2latin(glyph_lookup(
+								font->G0, font->subset,
+								(ait->text[i] < 0x20) ?
+									0x20 : ait->text[i]));
+						return TRUE;
+					}
+			}
+	} else {
+		/* find a FLOF link and the corresponding label */
+	}
+
+	return FALSE;
+}
+
 
 
 

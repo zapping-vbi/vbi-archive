@@ -18,10 +18,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.h,v 1.3 2000-12-29 00:38:30 mschimek Exp $ */
+/* $Id: lang.h,v 1.4 2001-01-05 03:51:52 mschimek Exp $ */
 
 #ifndef LANG_H
 #define LANG_H
+
+#include <iconv.h>
 
 typedef enum {
 	LATIN_G0 = 1,
@@ -59,8 +61,8 @@ typedef enum {
 typedef struct {
 	character_set		G0;
 	character_set		G2;	
-	national_subset		subset;	/* applies only to LATIN_G0 */
-	char *			label;
+	national_subset		subset;		/* applies only to LATIN_G0 */
+	char *			label;		/* Latin-1 (ISO 8859-1) */
 } font_descriptor;
 
 extern font_descriptor	font_descriptors[88];
@@ -76,6 +78,7 @@ extern font_descriptor	font_descriptors[88];
 #define GL_ARABIC_G0_ALPHA			(0x0180)
 #define GL_ARABIC_G2				(0x01C0 - 0x20)	/* 0x20 ... 0x3F only */
 #define GL_HEBREW_G0_LOWER			(0x01E0)
+#define GL_GRAPHICS				(0x0200)
 #define GL_CONTIGUOUS_BLOCK_MOSAIC_G1		(0x0200 - 0x20)
 #define GL_SEPARATED_BLOCK_MOSAIC_G1		(0x0220 - 0x20)	/* interleaved 2-2-6-6 */
 #define GL_SMOOTH_MOSAIC_G3			(0x0280 - 0x20)
@@ -104,9 +107,16 @@ extern int		compose_glyph(int glyph, int mark);
 extern int		glyph2unicode(int glyph);
 
 /*
- *  Translate glyph code to non-zero Latin character (ASCII / ISO 8859-1)
+ *  Translate glyph code to non-zero Latin-1 character (ISO 8859-1)
  *  Range 0x20 ... 0x7F, 0xA0 ... 0xFF (0x20 == no mapping)
  */
 extern unsigned char	glyph2latin(int glyph);
+
+/*
+ *  The iconv source must be "UCS2".
+ *  Returns *8 bit* code equv. glyph; -unicode if not representable
+ *  or target is not 8 bit; 0x20 or gfx_substitute if no unicode exists.
+ */
+extern int		glyph_iconv(iconv_t cd, int glyph, int gfx_substitute);
 
 #endif LANG_H

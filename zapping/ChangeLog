@@ -1,3 +1,11 @@
+4.1.2001	libvbi <mschimek@users.sourceforge.net>
+
+	* HTML export restored, enhanced, export filter enabled
+	* ASCII/ANSI export restored, enabled
+	* vbi_page_title added, unfinished
+	* fixed a problem with ttxview subpage display
+	* modified toolbar, let's see what Iñaki sez ;-)
+
 3.1.2001	gui for export filters <garetxe@users.sourceforge.net>
 
 	* src/ttxview.c: Export filters GUI. 
@@ -6,7 +14,7 @@
 
 	* fmt_page: returns boolean success now
 	* PPM export restored
-	* PNG export added
+	* PNG export added (requires libpng)
 
 31.12.2000	libvbi <mschimek@users.sourceforge.net>
 

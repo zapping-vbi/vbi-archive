@@ -199,6 +199,7 @@ gchar *s = N_("P_PM");
 gchar *s = N_("Export the current page as PNG");
 gchar *s = N_("P_NG");
 gchar *s = N_("_ASCII");
+gchar *s = N_("ANS_I");
 gchar *s = N_("Manage your bookmarks");
 gchar *s = N_("_Bookmarks");
 gchar *s = N_("Add the current page to the bookmarks");

@@ -2948,7 +2948,7 @@ in the next release of this program.</label>
       <class>GnomeDockItem</class>
       <name>dockitem4</name>
       <border_width>1</border_width>
-      <placement>GNOME_DOCK_BOTTOM</placement>
+      <placement>GNOME_DOCK_TOP</placement>
       <band>0</band>
       <position>0</position>
       <offset>37</offset>
@@ -2973,10 +2973,19 @@ in the next release of this program.</label>
 	<widget>
 	  <class>GtkButton</class>
 	  <child_name>Toolbar:button</child_name>
-	  <name>ttxview_clone</name>
-	  <tooltip>Clone the current Teletext window</tooltip>
-	  <label>button13</label>
-	  <stock_pixmap>GNOME_STOCK_PIXMAP_COPY</stock_pixmap>
+	  <name>ttxview_history_prev</name>
+	  <tooltip>Previous page in history</tooltip>
+	  <label>Previous</label>
+	  <stock_pixmap>GNOME_STOCK_PIXMAP_BACK</stock_pixmap>
+	</widget>
+
+	<widget>
+	  <class>GtkButton</class>
+	  <child_name>Toolbar:button</child_name>
+	  <name>ttxview_history_next</name>
+	  <tooltip>Next page in history</tooltip>
+	  <label>Next</label>
+	  <stock_pixmap>GNOME_STOCK_PIXMAP_FORWARD</stock_pixmap>
 	</widget>
 
 	<widget>
@@ -2996,28 +3005,19 @@ in the next release of this program.</label>
 	<widget>
 	  <class>GtkButton</class>
 	  <child_name>Toolbar:button</child_name>
+	  <name>ttxview_clone</name>
+	  <tooltip>Clone the current Teletext window</tooltip>
+	  <label>button13</label>
+	  <stock_pixmap>GNOME_STOCK_PIXMAP_COPY</stock_pixmap>
+	</widget>
+
+	<widget>
+	  <class>GtkButton</class>
+	  <child_name>Toolbar:button</child_name>
 	  <name>ttxview_search</name>
 	  <tooltip>Search for a given pattern in the cache</tooltip>
 	  <label>Search</label>
 	  <stock_pixmap>GNOME_STOCK_PIXMAP_SEARCH</stock_pixmap>
-	</widget>
-
-	<widget>
-	  <class>GtkButton</class>
-	  <child_name>Toolbar:button</child_name>
-	  <name>ttxview_history_prev</name>
-	  <tooltip>Previous page in history</tooltip>
-	  <label>Previous</label>
-	  <stock_pixmap>GNOME_STOCK_PIXMAP_BACK</stock_pixmap>
-	</widget>
-
-	<widget>
-	  <class>GtkButton</class>
-	  <child_name>Toolbar:button</child_name>
-	  <name>ttxview_history_next</name>
-	  <tooltip>Next page in history</tooltip>
-	  <label>Next</label>
-	  <stock_pixmap>GNOME_STOCK_PIXMAP_FORWARD</stock_pixmap>
 	</widget>
 
 	<widget>
@@ -3268,6 +3268,13 @@ in the next release of this program.</label>
 	<class>GtkMenuItem</class>
 	<name>ascii1</name>
 	<label>_ASCII</label>
+	<right_justify>False</right_justify>
+      </widget>
+
+      <widget>
+	<class>GtkMenuItem</class>
+	<name>ansi1</name>
+	<label>ANS_I</label>
 	<right_justify>False</right_justify>
       </widget>
     </widget>

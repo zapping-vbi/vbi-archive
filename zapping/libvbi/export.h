@@ -50,10 +50,11 @@ struct fmt_page
 	unsigned char *		drcs_clut;		/* 64 entries */
 	unsigned char *		drcs[32];		/* 16 * 48 * 12 * 10 nibbles, LSN first */
 
+	font_descriptor	*	font[2];
+
 	/* private */
 
 	magazine *		magazine;
-	font_descriptor	*	font[2];
 	opacity			page_opacity[2];
 	opacity			boxed_opacity[2];
 
@@ -114,3 +115,5 @@ fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp, int
 #define hex2dec(hex) \
   (((int)(hex)&0xf) + (((int)(hex)>>4)&0xf)*10 + (((int)(hex)>>8)&0xf)*100)
 #endif
+
+extern int		vbi_page_title(struct vbi *vbi, int pgno, char *buf);

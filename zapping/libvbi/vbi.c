@@ -549,7 +549,7 @@ convert_drcs(struct vt_page *vtp, unsigned char *raw)
 		}
 	}
 
-	if (1)
+	if (0)
 		dump_drcs(vtp);
 
 	return TRUE;
@@ -1504,7 +1504,7 @@ vt_packet(struct vbi *vbi, u8 *p)
 		if ((designation = hamm8a[p[0]]) < 0)
 			return 4;
 
-printf("X/27/%d page %x\n", designation, cvtp->pgno);
+// printf("X/27/%d page %x\n", designation, cvtp->pgno);
 
 		switch (designation) {
 		case 0:
@@ -1816,7 +1816,7 @@ if(0)
 
 /* Quick Hack(tm) to read from a sample stream */
 
-//static char *sample_file = "libvbi/samples/t2-br";
+// static char *sample_file = "libvbi/samples/t2-br";
 static char *sample_file = NULL; // disabled
 static FILE *sample_fd;
 
