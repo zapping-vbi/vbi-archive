@@ -241,64 +241,80 @@ static PyObject* py_resize_screen (PyObject *self, PyObject *args)
   py_return_true;
 }
 
-static PyObject* py_hide_controls (PyObject *self, PyObject *args)
+static PyObject *
+py_hide_controls		(PyObject *		self,
+				 PyObject *		args)
 {
-  int hide = 2; /* toggle */
-  int ok = PyArg_ParseTuple (args, "|i", &hide);
-  GtkWidget *toolbar, *menu, *menuitem;
+  int hide;
+  int ok;
+
+  hide = 2; /* toggle */
+  ok = PyArg_ParseTuple (args, "|i", &hide);
 
   if (!ok)
     g_error ("zapping.hide_controls(|i)");
 
   if (hide > 1)
-    hide = !zconf_get_boolean (NULL,
-			       "/zapping/internal/callbacks/hide_controls");
-
-  menu = lookup_widget (main_window, "bonobodockitem1");
-  toolbar = lookup_widget (main_window, "bonobodockitem2");
-  menuitem = lookup_widget (main_window, "hide_controls2"); 
-  if (hide)
-    {
-      gtk_widget_hide (menu);
-      gtk_widget_hide (toolbar);
-      z_change_menuitem(menuitem,
-			"gnome-stock-book-open",
-			_("Show menu and toolbar"), NULL);
-    }
-  else
-    {
-      gtk_widget_show (menu);
-      gtk_widget_show (toolbar);
-      z_change_menuitem(menuitem,
-			"gnome-stock-book-yellow",
-			_("Hide menu and toolbar"), NULL);
-    }
-
-  gtk_widget_queue_resize (main_window);
+    hide = !zconf_get_boolean (NULL, "/zapping/internal/callbacks/hide_controls");
   zconf_set_boolean (hide, "/zapping/internal/callbacks/hide_controls");
+
+  {
+    GtkWidget *menu;
+    GtkWidget *toolbar;
+
+    menu = lookup_widget (main_window, "bonobodockitem1");
+    toolbar = lookup_widget (main_window, "bonobodockitem2");
+
+    if (hide)
+      {
+	gtk_widget_hide (menu);
+	gtk_widget_hide (toolbar);
+      }
+    else
+      {
+	GtkCheckMenuItem *item;
+
+	gtk_widget_show (menu);
+	gtk_widget_show (toolbar);
+
+	item = GTK_CHECK_MENU_ITEM (lookup_widget (main_window, "hide_controls2"));
+
+	if (hide == item->active)
+	  gtk_check_menu_item_set_active (item, !hide);
+      }
+
+    gtk_widget_queue_resize (main_window);
+  }
 
   py_return_none;
 }
 
-static PyObject* py_keep_on_top (PyObject *self, PyObject *args)
+static PyObject *
+py_keep_on_top			(PyObject *		self,
+				 PyObject *		args)
 {
   extern gboolean have_wm_hints;
-  int keep = 2; /* toggle */
-  int ok = PyArg_ParseTuple (args, "|i", &keep);
-  GtkWidget *menu;
+  int keep;
+  int ok;
+
+  keep = 2; /* toggle */
+  ok = PyArg_ParseTuple (args, "|i", &keep);
 
   if (!ok)
     g_error ("zapping.keep_on_top(|i)");
 
   if (have_wm_hints)
     {
+      GtkCheckMenuItem *item;
+
       if (keep > 1)
         keep = !zconf_get_boolean (NULL, "/zapping/options/main/keep_on_top");
-
       zconf_set_boolean (keep, "/zapping/options/main/keep_on_top");
 
-      menu = lookup_widget (main_window, "keep_window_on_top2");
-      gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu), !!keep);
+      item = GTK_CHECK_MENU_ITEM (lookup_widget (main_window, "keep_window_on_top2"));
+
+      if (keep != item->active)
+	  gtk_check_menu_item_set_active (item, keep);
 
       window_on_top (GTK_WINDOW (main_window), keep);
     }
@@ -339,7 +355,7 @@ startup_cmd (void)
 		"zapping.resize_screen(640, 480)");
   cmd_register ("hide_controls", py_hide_controls, METH_VARARGS,
 		_("Hides the menu and the toolbar"),
-		"zapping.hide_controls([1])");
+		"zapping.hide_controls(1)");
   cmd_register ("help", py_help, METH_VARARGS,
 		_("Opens the help page"), "zapping.help()"); 
   cmd_register ("keep_on_top", py_keep_on_top, METH_VARARGS,
