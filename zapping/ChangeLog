@@ -2,6 +2,7 @@
 
 	* plugins/mpeg: Finished changes for rte 0.5 (still compiles with
 	  rte 0.4).
+	* src/x11stuff.c: Applied Iñaki's XScreensaver patch.
 
 28.05.2002	<mschimek@users.sf.net>
 
@@ -86,8 +87,8 @@
 
 01.04.2002	Release 0.6.4 <mschimek@users.sf.net>
 
-	* po/es.po: Updated by I�aki G. Etxebarria.
-	* po/pl.po: Updated by Pawel Sakowski.
+	* po/es.po: Updated by Iñaki G. Etxebarria.
+	* po/pl.po: Updated by Paweł Sakowski.
 	* src/properties-handler.c: Use ngettext for
 	  'with %d tuners' (%d > 1) string.
 
@@ -752,7 +753,7 @@
 
 25.08.2001	Plural forms <garetxe@users.sf.net>
 
-	* gettext: Applied patch from Pawel for handling plural i18ed
+	* gettext: Applied patch from Paweł for handling plural i18ed
 		strings correctly.
 
 24.08.2001	0.6.0 released <garetxe@users.sf.net>
@@ -2533,3 +2534,7 @@
 	* src/io.c: Ability to capture PNG images
 	* src/tveng.c: Direct Video Blitting (BGR -> RGB conversion avoided)
 	* src/interface.c: Channel editor added
+
+;; Local Variables:
+;; coding: utf-8
+;; End:
