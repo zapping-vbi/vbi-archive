@@ -64,6 +64,7 @@ rm -rf %{buildroot}
 %{_datadir}/pixmaps/zapping
 %{_datadir}/gnome/apps/Multimedia/zapping.desktop
 %{_datadir}/locale/*/*/*
+%{_mandir}/*
 
 %changelog
 * Fri Feb  2 2001 Tim Powers <timp@redhat.com>

@@ -5,7 +5,10 @@
 	* everything: Portability to Solaris, adapted from a patch by
 	Roger Fujii.
 	* configure.in: Removed broken "-multrasparc -mvis" in
-	configure.in (Christian Marillat).
+	configure.in.
+	* error_console.c: "console_errors" clo.
+	* fr.po: Updated (Christian Marillat).
+	* help/man/: Man pages (Christian Marillat).
 
 30.06.2001	yuv filters <garetxe@users.sf.net>
 

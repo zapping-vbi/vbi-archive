@@ -1,11 +1,11 @@
 # French translation for Zapping.
-# Christian Marillat <marillat.christian@wanadoo.fr>, 2000.
+# Christian Marillat <marillat.christian@wanadoo.fr>, 2000, 2001.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.5.4\n"
-"POT-Creation-Date: 2001-06-18 12:02+0200\n"
-"PO-Revision-Date: 2000-09-17 11:11+02:00\n"
+"POT-Creation-Date: 2001-05-28 20:33+0200\n"
+"PO-Revision-Date: 2001-07-02 18:06+0200\n"
 "Last-Translator: Christian Marillat <marillat.christian@wanadoo.fr>\n"
 "Language-Team: French <fr@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -31,55 +31,51 @@ msgstr "Déactiver le support VBI"
 #: src/main.c:264
 msgid "Set the default standard/norm for tunerless inputs"
 msgstr ""
-"Selectionner par défaut standard/norm pour un tuner ayant une faible entrée"
+"Sélectionner par défaut standard/norm pour un tuner ayant une faible entrée"
 
 #: src/main.c:265
 msgid "NORM"
 msgstr "NORM"
 
 #: src/main.c:273
-#, fuzzy
 msgid "Video device to use"
-msgstr "Capacité du device vidéo"
+msgstr "Périphérique vidéo à utiliser"
 
 #: src/main.c:274
 msgid "DEVICE"
-msgstr ""
+msgstr "PERIPHERIQUE"
 
 #: src/main.c:282
-#, fuzzy
 msgid "Disable XVideo extension support"
-msgstr "Déactiver le support audio"
+msgstr "Déactiver le support XVideo"
 
 #: src/main.c:291
 msgid "Force dword aligning of the overlay window"
-msgstr ""
+msgstr "Forcer l'alignement en dword pour la fenêtre d'overlay"
 
 #: src/main.c:300
 msgid "Execute the given command and exit"
-msgstr ""
+msgstr "Exécuter la commande donnée et quitter"
 
 #: src/main.c:301
 msgid "CMD"
-msgstr ""
+msgstr "CMD"
 
 #: src/main.c:309
-#, fuzzy
 msgid "Do not call zapping_setup_fb on startup"
-msgstr "Impossible de trouver zapping_setup_fb, vérifié votre installation"
+msgstr "Ne pas appeler zapping_setup_fb au démarrage"
 
 #: src/main.c:318
 msgid "Pixformat for XVideo capture mode [YUYV | YVU420]"
-msgstr ""
+msgstr "Pixformat pour le mode de capture XVideo [YUYV | YVU420]"
 
 #: src/main.c:319
 msgid "PIXFORMAT"
-msgstr ""
+msgstr "PIXFORMAT"
 
 #: src/main.c:361
-#, fuzzy
 msgid "Sorry, but there is no module support in GLib"
-msgstr "Désolé, mais il n'y a pas le support des modules"
+msgstr "Désolé, mais il n'y a pas le support des modules dans Glib"
 
 #: src/main.c:369
 msgid "Cannot get device info struct"
@@ -92,12 +88,12 @@ msgstr "Zapping ne peut pas démarrer."
 #: src/main.c:434
 #, c-format
 msgid "Couldn't open %s, should I try some common options?"
-msgstr ""
+msgstr "Ne peut ouvrir %s, dois-je essayer des options plus commune ?"
 
 #: src/main.c:468
 #, c-format
 msgid "%s suceeded, setting it as the new default"
-msgstr ""
+msgstr "%s avec succès, la configuration est la nouvelle par défaut"
 
 #: src/main.c:477
 #, c-format
@@ -140,21 +136,20 @@ msgstr ""
 "%s"
 
 #: src/callbacks.c:186 src/callbacks.c:574 src/main.c:620
-#, fuzzy
 msgid "Show controls"
-msgstr "Contrôles"
+msgstr "Voir les contrôles"
 
 #: src/callbacks.c:187 src/callbacks.c:575 src/main.c:621
 msgid "Show the menu and the toolbar"
-msgstr ""
+msgstr "Voir le menu et la barre d'outils"
 
 #: src/callbacks.c:216 src/callbacks.c:567 src/main.c:632
 msgid "Show extra controls"
-msgstr ""
+msgstr "Voir les contrôles extra"
 
 #: src/callbacks.c:217 src/callbacks.c:568 src/main.c:633
 msgid "Show Input, Standards and subtitle selection"
-msgstr ""
+msgstr "Voir Input, Standards et sous-titre sélections"
 
 #: src/main.c:778
 msgid ""
@@ -189,21 +184,20 @@ msgid "A TV viewer for the Gnome Desktop Environment"
 msgstr "Un visualiseur de TV pour l'environnement Gnome"
 
 #: glade/glade_strings.c:27 glade/glade_strings.c:232 src/callbacks.c:173
-#, fuzzy
 msgid "Hide controls"
-msgstr "Controls valable"
+msgstr "Cacher les contrôles"
 
 #: glade/glade_strings.c:26 glade/glade_strings.c:231 src/callbacks.c:174
 msgid "Hide the menu and the toolbar"
-msgstr ""
+msgstr "Cacher le menu et la barre d'outils"
 
 #: glade/glade_strings.c:29 glade/glade_strings.c:234 src/callbacks.c:204
 msgid "Hide extra controls"
-msgstr ""
+msgstr "Cacher les contrôles extra"
 
 #: glade/glade_strings.c:28 glade/glade_strings.c:233 src/callbacks.c:205
 msgid "Hide Input, Standards and subtitle selection"
-msgstr ""
+msgstr "Cacher Input, Standards et sous-titre sélections"
 
 #: src/callbacks.c:467 src/v4linterface.c:185
 msgid "No tuned channels"
@@ -231,43 +225,43 @@ msgstr "japan-cable"
 
 #: src/frequencies.c:1060
 msgid "europe"
-msgstr "europe"
+msgstr "Europe"
 
 #: src/frequencies.c:1061
 msgid "europe-east"
-msgstr "europe-east"
+msgstr "Europe-est"
 
 #: src/frequencies.c:1062
 msgid "italy"
-msgstr "italy"
+msgstr "Italie"
 
 #: src/frequencies.c:1063
 msgid "newzealand"
-msgstr "newzealand"
+msgstr "Nouvelle zealand"
 
 #: src/frequencies.c:1064
 msgid "australia"
-msgstr "australia"
+msgstr "Australie"
 
 #: src/frequencies.c:1065
 msgid "ireland"
-msgstr "ireland"
+msgstr "Ireland"
 
 #: src/frequencies.c:1066
 msgid "france"
-msgstr "france"
+msgstr "France"
 
 #: src/frequencies.c:1067
 msgid "russia"
-msgstr ""
+msgstr "Russie"
 
 #: src/frequencies.c:1068
 msgid "south africa"
-msgstr ""
+msgstr "Afrique du sud"
 
 #: src/frequencies.c:1069
 msgid "china"
-msgstr ""
+msgstr "Chine"
 
 #: src/frequencies.c:1267 src/frequencies.c:1368 src/frequencies.c:1553
 msgid "(Unnamed channel)"
@@ -288,7 +282,7 @@ msgstr "Pas de standards valable"
 #: src/v4linterface.c:421
 #, c-format
 msgid "Adjust %s"
-msgstr ""
+msgstr "Ajuster %s"
 
 #: src/v4linterface.c:563
 msgid "Available controls"
@@ -304,32 +298,34 @@ msgstr ""
 "%s (%d)"
 
 #. pixmaps not installed
-#: src/zvbi.c:372
+#: src/zvbi.c:370
 msgid "Click me"
-msgstr ""
+msgstr "Cliquez moi"
 
-#: src/zvbi.c:406
+#: src/zvbi.c:404
 msgid ""
 "Open this link with the predetermined Web browser.\n"
 "You can configure this in the GNOME Control Center, under Handlers/Url "
 "Navigator"
 msgstr ""
+"Ouvrir ce lien avec le butineur prédéfini.\n"
+"You can configure this in the GNOME Control Center, under Handlers/Url Navigator"
 
-#: src/zvbi.c:413
-#, fuzzy, c-format
-msgid " %s: Teletext Page %x"
-msgstr "_Teletext"
+#: src/zvbi.c:411
+#, c-format
+msgid "%s: Teletext Page %x"
+msgstr "%s : Page Teletext %x"
 
-#: src/zvbi.c:416
-#, fuzzy, c-format
-msgid " Teletext Page %x"
-msgstr "_Teletext"
+#: src/zvbi.c:414
+#, c-format
+msgid "Teletext Page %x"
+msgstr "Page Teletext %x"
 
-#: src/zvbi.c:417
-msgid "Open this page with Zapzilla"
-msgstr ""
+#: src/zvbi.c:415
+msgid "Open this with Zapzilla"
+msgstr "Ouvrir ceci avec Zapzilla"
 
-#: src/zvbi.c:543
+#: src/zvbi.c:541
 #, c-format
 msgid ""
 "VBI: %s couldn't be opened: %d, %s\n"
@@ -340,25 +336,28 @@ msgid ""
 "and create /dev/vbi0 appropiately. If this doesn't work, you can disable VBI "
 "in Settings/Preferences/VBI options/Enable VBI decoding."
 msgstr ""
+"VBI: %s ne peut être ouvert : %d, %s\n"
+"Cela veut probablement dire que le pilote n'a pas été chargé, ajoutez dans /etc/modules.conf la ligne:\n"
+"alias char-major-81-224 bttv (remplacer bttv avec le nom de votre pilote vidéo)\n"
+"et créez /dev/vbi0 . Si ceci ne marche pas, vous pouvez déactiver le VBI dans Paramètres/Préférences/options VBI/Activer le décodage VBI."
 
-#: src/zvbi.c:1575
-#, fuzzy, c-format
+#: src/zvbi.c:1573
+#, c-format
 msgid "%d %s"
-msgstr "%P %%"
+msgstr "%d %s"
 
-#: src/zvbi.c:1576
-#, fuzzy
+#: src/zvbi.c:1574
 msgid "minute"
-msgstr "Sourdine"
+msgstr "minute"
+
+#: src/zvbi.c:1574
+msgid "minutes"
+msgstr "minutes"
 
 #: src/zvbi.c:1576
-msgid "minutes"
-msgstr ""
-
-#: src/zvbi.c:1578
 #, c-format
 msgid "%d h %d m"
-msgstr ""
+msgstr "%d h %d m"
 
 #: src/tveng.c:264
 msgid "TV"
@@ -375,12 +374,11 @@ msgstr "Impossible de trouver zapping_setup_fb, vérifié votre installation"
 
 #: src/tveng.c:2172 src/tveng.c:2190
 msgid "Filter"
-msgstr ""
+msgstr "Filtre"
 
 #: src/tveng.c:2208
-#, fuzzy
 msgid "Colorkey"
-msgstr "Couleur"
+msgstr ""
 
 #: src/tveng1.c:984
 msgid "Mono"
@@ -404,7 +402,7 @@ msgstr "Luminosité"
 
 #: src/tveng1.c:1108 src/tveng2.c:891
 msgid "Hue"
-msgstr "Hue"
+msgstr "Teinte"
 
 #: src/tveng1.c:1118
 msgid "Colour"
@@ -475,7 +473,7 @@ msgstr "Balance du blanc"
 
 #: src/tveng2.c:895
 msgid "Do white balance"
-msgstr "Faire balance blanche"
+msgstr "Faire la balance blanche"
 
 #: src/tveng2.c:896
 msgid "Red balance"
@@ -495,7 +493,7 @@ msgstr "Exposition"
 
 #: src/tveng2.c:900
 msgid "Auto gain"
-msgstr ""
+msgstr "Gain auto"
 
 #: src/tveng2.c:901
 msgid "Gain"
@@ -519,12 +517,11 @@ msgstr "Retournement verticale"
 
 #: src/tveng2.c:908
 msgid "Audio Mute"
-msgstr ""
+msgstr "Audio Muet"
 
 #: src/tveng2.c:910
-#, fuzzy
 msgid "Audio Balance"
-msgstr "Balance"
+msgstr "Balance Audio"
 
 #: src/tveng2.c:912
 msgid "Loudness"
@@ -538,8 +535,7 @@ msgid ""
 "loaded."
 msgstr ""
 "Au chargement de %s\n"
-"Le plu-gin utilise le protocole %d, et le courant celui-ci %d, ne peux pas "
-"être chargé."
+"Le greffon utilise le protocole %d, et le courant celui-ci %d, ne peux pas être chargé."
 
 #: src/plugins.c:95
 #, c-format
@@ -550,7 +546,7 @@ msgstr "Désolé, plu-gin_get_info n'a pas été trouvé dans %s"
 #, c-format
 msgid ""
 "\"%s\" seems to be a valid plugin, but it doesn't provide a canonical name."
-msgstr "\"%s\" semble être un plu-gin valide, mais il ne fournis pas de nom."
+msgstr "\"%s\" semble être un greffon valide, mais il ne fournis pas de nom."
 
 #: src/plugins.c:199
 #, c-format
@@ -564,7 +560,7 @@ msgid ""
 "The given version is %s.\n"
 "Error loading \"%s\" (%s)"
 msgstr ""
-"Désolé, mais la version du plu-gin n'a pas été trouvée.\n"
+"Désolé, mais la version du greffon n'a pas été trouvée.\n"
 "La version doit être comme ceci %%d[.%%d[%%d[autre chose]]]\n"
 "La version donnée est %s.\n"
 "Erreur en chargeant \"%s\" (%s)"
@@ -584,14 +580,12 @@ msgstr "[pas de description]"
 msgid ""
 "Check error: \"%s\" in plugin %s was supposed to be \"%s\" but it is:\"%s\". "
 "Hashes are 0x%x vs. 0x%x"
-msgstr ""
-"Check erreur: \"%s\" du plu-gin %s devrait être \"%s\" mais il est:\"%s\". "
-"Hashes are 0x%x vs. 0x%x"
+msgstr "Check erreur: \"%s\" du greffon %s devrait être \"%s\" mais il est:\"%s\". Hashes are 0x%x vs. 0x%x"
 
 #: src/zmisc.c:316
 #, c-format
 msgid "Preview will not work: %s"
-msgstr ""
+msgstr "La pré-visualisation ne marchera pas : %s"
 
 #: src/zmisc.c:398
 msgid "VBI has been disabled, or it doesn't work."
@@ -607,11 +601,11 @@ msgstr "A un tuner.\n"
 
 #: src/properties.c:91
 msgid "Supports the teletext service.\n"
-msgstr "Support du service teletexte.\n"
+msgstr "Support du service Teletext.\n"
 
 #: src/properties.c:93
 msgid "Can overlay the image.\n"
-msgstr "Peut overlay l'image.\n"
+msgstr "Peut faire l'overlay l'image.\n"
 
 #: src/properties.c:95
 msgid "Can chromakey the image.\n"
@@ -639,11 +633,11 @@ msgstr "La capture peut-être zoomée\n"
 
 #: src/properties.c:116
 msgid "No available inputs"
-msgstr "Pas d'entrée de valide"
+msgstr "Pas d'entrée valide"
 
 #: src/properties.c:118
 msgid "Your video device has no inputs"
-msgstr "Votre vidéo n'a pas d'entrée"
+msgstr "Votre périphérique vidéo n'a pas d'entrée"
 
 #: src/properties.c:132
 #, c-format
@@ -666,21 +660,20 @@ msgstr "%s avec %d tuners"
 
 #: src/properties.c:611
 msgid "No plugin accepts this page."
-msgstr "Aucun plu-gin n'accepte cette page"
+msgstr "Aucun greffon n'accepte cette page"
 
 #: src/properties.c:646
 msgid ""
 "The plugin that created the active page doesn't provide help for it. Sorry."
-msgstr "Le plu-gin qui à créer cette page ne fournis pas d'aide. Désolé."
+msgstr "Le greffon qui à créer cette page ne fournis pas d'aide. Désolé."
 
 #: src/channel_editor.c:214
 msgid "Do not change standard"
-msgstr ""
+msgstr "Ne pas changer le standard"
 
 #: src/channel_editor.c:235
-#, fuzzy
 msgid "Do not change input"
-msgstr "Impossible d'accorder l'entrée"
+msgstr "Ne pas changer l'entrée"
 
 #: src/channel_editor.c:1162
 #, c-format
@@ -691,251 +684,251 @@ msgid ""
 "Reported error:\n"
 "%s"
 msgstr ""
+"La recherche automatique des chaînes ne marche pas avec XVideo.\n"
+"Changez le contrôleur en démarrant le mode capture\n"
+"Entrée du menu (\"Voir/faire la capture\").\n"
+"Erreur reportée :\n"
+"%s"
 
 #: src/channel_editor.c:1168
 msgid "Your current V4L/V4L2 driver cannot do, channel autosearching, sorry"
-msgstr ""
+msgstr "Votre pilote V4L/V4L2 ne peut pas faire la recherche automatique des chaînes, désolé"
 
 #: src/plugin_properties.c:56
 msgid "Sorry, but no plugins have been loaded"
-msgstr "Désolé, mais aucun plu-gin n'a été chargé"
+msgstr "Désolé, mais aucun greffon n'a été chargé"
 
-#: src/plugin_properties.c:165
+#: src/plugin_properties.c:156
 msgid "Very low"
 msgstr "Très bas"
 
-#: src/plugin_properties.c:167
+#: src/plugin_properties.c:158
 msgid "Low"
 msgstr "Bas"
 
-#: src/plugin_properties.c:169
+#: src/plugin_properties.c:160
 msgid "Below normal"
 msgstr "En dessous de normal"
 
-#: src/plugin_properties.c:171
+#: src/plugin_properties.c:162
 msgid "Normal"
 msgstr "Normal"
 
-#: src/plugin_properties.c:173
+#: src/plugin_properties.c:164
 msgid "Very high"
 msgstr "Très haut"
 
-#: src/plugin_properties.c:175
+#: src/plugin_properties.c:166
 msgid "High"
 msgstr "Haut"
 
-#: src/plugin_properties.c:177
+#: src/plugin_properties.c:168
 msgid "Above normal"
 msgstr "Au dessus de normal"
 
-#: src/plugin_properties.c:215
-msgid "This plugin has no public symbols"
-msgstr "Ce plu-gin n'a pas de symbole public"
+#: src/plugin_properties.c:210
+msgid "This, plugin has no public symbols"
+msgstr "Ce greffon n'a pas de symbole public"
 
-#: src/plugin_properties.c:237
+#: src/plugin_properties.c:232
 msgid "List of symbols exported by the plugin"
-msgstr "Liste des symboles exportés par le plu-gin"
+msgstr "Liste des symboles exportés par le greffon"
 
-#: src/plugin_properties.c:298
+#: src/plugin_properties.c:291
 msgid "Sorry, but the plugin couldn't be started"
-msgstr "Désolé, mais le plu-gin ne peut être démarré"
+msgstr "Désolé, mais le greffon ne peut être démarré"
 
-#: src/plugin_properties.c:408
+#: src/plugin_properties.c:397
 msgid "Sorry, the plugin doesn't provide help for this"
-msgstr "Le plu-gin ne fournis pas d'aide. Désolé."
+msgstr "Le greffon ne fournis pas d'aide. Désolé."
 
-#: src/ttxview.c:488
-#, c-format
-msgid "Loading page %x..."
-msgstr ""
-
-#: src/ttxview.c:490
-#, c-format
-msgid "Loading subpage %x..."
-msgstr ""
-
-#: src/ttxview.c:494 src/ttxview.c:788
-msgid "Warning: Page not valid"
-msgstr ""
-
-#: src/ttxview.c:623
+#: src/ttxview.c:498
 #, c-format
 msgid "Text export failed: %s"
-msgstr ""
+msgstr "L'export du texte à échoué : %s"
 
-#: src/ttxview.c:631
+#: src/ttxview.c:506
 #, c-format
 msgid "Selection failed: %s"
-msgstr ""
+msgstr "La sélection à échouée : %s"
 
-#: src/ttxview.c:707
-#, fuzzy, c-format
+#: src/ttxview.c:582
+#, c-format
 msgid " Page %d"
-msgstr "Page"
+msgstr " Page %d"
 
-#: src/ttxview.c:711
+#: src/ttxview.c:586
 #, c-format
 msgid " Subpage %d"
-msgstr ""
+msgstr " Sous-page %d"
 
-#: src/ttxview.c:867 src/ttxview.c:904
+#: src/ttxview.c:663 src/ttxview.c:772
+msgid "Warning: Page not valid"
+msgstr "Avertissement : La page n'est pas valide"
+
+#: src/ttxview.c:766
+#, c-format
+msgid "Loading page %x..."
+msgstr "Chargement de la page %x..."
+
+#: src/ttxview.c:768
+#, c-format
+msgid "Loading subpage %x..."
+msgstr "Chargement de la sous-page %x..."
+
+#: src/ttxview.c:844 src/ttxview.c:881
 msgid "No cache"
-msgstr ""
+msgstr "Pas de cache"
 
-#: src/ttxview.c:877 src/ttxview.c:913
+#: src/ttxview.c:854 src/ttxview.c:890
 msgid "No other subpage in the cache"
-msgstr ""
+msgstr "Pas d'autre sous-page dans le cache"
 
-#: src/ttxview.c:985
+#: src/ttxview.c:962
 msgid "Found"
-msgstr ""
+msgstr "Trouvé"
 
-#: src/ttxview.c:1004
-#, fuzzy
+#: src/ttxview.c:981
 msgid "Not found"
-msgstr "Pas de tuner"
+msgstr "Non trouvé"
 
-#: src/ttxview.c:1128
+#: src/ttxview.c:1105
 #, c-format
 msgid "Scanning %x.%02x"
-msgstr ""
+msgstr "Parcourir %x.%02x"
 
-#: src/ttxview.c:1170
-#, fuzzy
+#: src/ttxview.c:1147
 msgid "VBI has been disabled"
-msgstr "VBI n'a pas été activé, ou il ne marche pas."
+msgstr "Le VBI n'a pas été activé"
 
-#: src/ttxview.c:1438
+#: src/ttxview.c:1401
 #, c-format
 msgid "<%s> added to the bookmarks"
-msgstr ""
+msgstr "<%s> ajouté aux signets"
 
-#: src/ttxview.c:1501
+#: src/ttxview.c:1464
 msgid "Any subpage"
-msgstr ""
+msgstr "N'importe qu'elle sous-page"
 
-#: src/ttxview.c:1808
-#, fuzzy, c-format
+#: src/ttxview.c:1771
+#, c-format
 msgid "Export %s"
-msgstr "Exposition"
+msgstr "Export %s"
 
-#: src/ttxview.c:1822
+#: src/ttxview.c:1785
 msgid "Save as:"
-msgstr ""
+msgstr "Sauver sous :"
 
-#: src/ttxview.c:1827
-#, fuzzy
+#: src/ttxview.c:1790
 msgid "Select file you'll be exporting to"
-msgstr "Sélectionnez le répertoire de sauvegarde"
+msgstr "Sélectionner le fichier d'exportation"
 
-#: src/ttxview.c:1841
-#, fuzzy
+#: src/ttxview.c:1804
 msgid "Options"
-msgstr "Options VBI"
+msgstr "Options"
 
-#: src/ttxview.c:2031
+#: src/ttxview.c:1842
 msgid "You must first set the destination dir in the properties dialog"
-msgstr ""
+msgstr "Vous devez d'abord sélectionner le répertoire de destination"
 
-#: src/ttxview.c:2040 src/ttxview.c:2808
+#: src/ttxview.c:1851 src/ttxview.c:2615
 msgid "No page loaded"
-msgstr ""
+msgstr "Pas de page chargée"
 
-#: glade/glade_strings.c:243 src/ttxview.c:2046
+#: glade/glade_strings.c:243 src/ttxview.c:1857
 msgid "Zapzilla"
-msgstr ""
+msgstr "Zapzilla"
 
-#: src/ttxview.c:2075
+#: src/ttxview.c:1886
 #, c-format
 msgid "Export to %s failed: %s"
-msgstr ""
+msgstr "L'export de %s à échoué : %s"
 
-#: src/ttxview.c:2084
+#: src/ttxview.c:1895
 #, c-format
 msgid "%s saved"
-msgstr ""
+msgstr "%s sauvée"
 
-#: src/ttxview.c:2095
+#: src/ttxview.c:1906
 #, c-format
 msgid "Export failed: %s"
-msgstr ""
+msgstr "L'export à échoué : %s"
 
-#: src/ttxview.c:2263
+#: src/ttxview.c:2074
 #, c-format
 msgid "Caption %x - %s"
-msgstr ""
+msgstr "Sous-titre %x - %s"
 
-#: src/ttxview.c:2265
+#: src/ttxview.c:2076
 #, c-format
 msgid "Text %x - %s"
-msgstr ""
+msgstr "Texte %x - %s"
 
-#: src/ttxview.c:2269
+#: src/ttxview.c:2080
 #, c-format
 msgid "Caption %x"
-msgstr ""
+msgstr "Sous-titre %x"
 
-#: src/ttxview.c:2271
+#: src/ttxview.c:2082
 #, c-format
 msgid "Text %x"
-msgstr ""
+msgstr "Texte %x"
 
-#: src/ttxview.c:2297
+#: src/ttxview.c:2108
 #, c-format
 msgid "%x: Unknown language"
-msgstr ""
+msgstr "%x: langage inconnu"
 
-#: src/ttxview.c:2310 src/ttxview.c:2325 src/ttxview.c:2349 src/ttxview.c:2365
-#: src/ttxview.c:2381 src/ttxview.c:2397 src/ttxview.c:2413
-#, fuzzy, c-format
+#: src/ttxview.c:2121 src/ttxview.c:2136 src/ttxview.c:2160 src/ttxview.c:2176
+#: src/ttxview.c:2192 src/ttxview.c:2208 src/ttxview.c:2224
+#, c-format
 msgid "Page %x"
-msgstr "Page"
+msgstr "Page %x"
 
-#: src/ttxview.c:2319
+#: src/ttxview.c:2130
 msgid "Index"
-msgstr ""
+msgstr "Index"
 
-#: src/ttxview.c:2343
+#: src/ttxview.c:2154
 msgid "Now and Next"
-msgstr ""
+msgstr "Maintenant et suivant"
 
-#: src/ttxview.c:2359
-#, fuzzy
+#: src/ttxview.c:2170
 msgid "Current program"
-msgstr "Contrôleur courant :"
+msgstr "Programme courant"
 
-#: src/ttxview.c:2375
+#: src/ttxview.c:2186
 msgid "Program Index"
-msgstr ""
+msgstr "Index des programmes"
 
-#: src/ttxview.c:2391
+#: src/ttxview.c:2202
 msgid "Program Schedule"
-msgstr ""
+msgstr "Calendrier des programmes"
 
-#: src/ttxview.c:2407
+#: src/ttxview.c:2218
 msgid "Program Warning"
-msgstr ""
+msgstr "Préavis des programmes"
 
-#: src/ttxview.c:2427
+#: src/ttxview.c:2238
 msgid "Subtitles"
-msgstr ""
+msgstr "Sous-titres"
 
-#: src/ttxview.c:2429
+#: src/ttxview.c:2240
 msgid "Select subtitles page"
-msgstr ""
+msgstr "Choisir la page des sous-titres"
 
-#: src/ttxview.c:2502
-#, fuzzy, c-format
+#: src/ttxview.c:2309
+#, c-format
 msgid "%s in %s"
-msgstr "%P %%"
+msgstr "%s dans %s"
 
-#: src/ttxview.c:2817
+#: src/ttxview.c:2624
 msgid "Selecting - hold Shift for table mode"
-msgstr ""
+msgstr "Sélection - appuyer sur Shift pour le mode table"
 
-#: src/ttxview.c:2931
+#: src/ttxview.c:2738
 msgid "Selection copied to clipboard"
-msgstr ""
+msgstr "Sélection copiée dans le presse papier"
 
 #.
 #. * Archivo de cadenas traducibles generado por Glade.
@@ -948,11 +941,11 @@ msgstr "Zapping"
 
 #: glade/glade_strings.c:8
 msgid "Manages the installed plug-ins"
-msgstr "Gestion des plugins installés"
+msgstr "Gestion des greffons installés"
 
 #: glade/glade_strings.c:9
 msgid "P_lugins"
-msgstr "P_lugins"
+msgstr "_Greffons"
 
 #: glade/glade_strings.c:10
 msgid "Edit here the channels you have tuned"
@@ -960,7 +953,7 @@ msgstr "Éditer la chaîne qui a été réglée"
 
 #: glade/glade_strings.c:11
 msgid "_TV Channels"
-msgstr "Chaîne _TV"
+msgstr "Chaînes _TV"
 
 #: glade/glade_strings.c:12
 msgid "Use this to go fullscreen. Press ESC to return to Windowed mode"
@@ -974,7 +967,7 @@ msgstr "P_lein écran"
 
 #: glade/glade_strings.c:14 glade/glade_strings.c:221
 msgid "Use this to start the windowed overlay mode"
-msgstr "Utilisez ceci pour démarrer le mode overlay"
+msgstr "Utiliser ceci pour démarrer le mode overlay"
 
 #: glade/glade_strings.c:15 glade/glade_strings.c:222
 msgid "Go _Previewing"
@@ -982,7 +975,7 @@ msgstr "Faire la _Pré-visualisation"
 
 #: glade/glade_strings.c:16 glade/glade_strings.c:223
 msgid "Use this to start the windowed capture mode"
-msgstr "Utilisez ceci pour démarrer la capture en fenêtre"
+msgstr "Utiliser ceci pour démarrer la capture en fenêtre"
 
 #: glade/glade_strings.c:17 glade/glade_strings.c:224
 msgid "Go _Capturing"
@@ -998,30 +991,27 @@ msgstr "_Teletext"
 
 #: glade/glade_strings.c:20 glade/glade_strings.c:227
 msgid "Starts the Teletext decoder in a new window"
-msgstr ""
+msgstr "Démarrer le décodeur Teletext dans une nouvelle fenêtre"
 
 #: glade/glade_strings.c:21 glade/glade_strings.c:228
-#, fuzzy
 msgid "_New Teletext View"
-msgstr "_Teletext"
+msgstr "_Nouvelle vue Teletext"
 
 #: glade/glade_strings.c:22
-#, fuzzy
 msgid "Info about the current network"
-msgstr "Désolé, mais l'entrée courante n'a pas de tuner"
+msgstr "Infos à propos du réseau courant"
 
 #: glade/glade_strings.c:23
-#, fuzzy
 msgid "_VBI info"
-msgstr "Options VBI"
+msgstr "Infos _VBI"
 
 #: glade/glade_strings.c:24
 msgid "Toggle Subtitles Display (if transmitted)"
-msgstr ""
+msgstr "Sélectionner l'affichage des sous-titres (si transis)"
 
 #: glade/glade_strings.c:25
 msgid "_Subtitles"
-msgstr ""
+msgstr "_Sous-titres"
 
 #: glade/glade_strings.c:30
 msgid "Go _Zapping"
@@ -1060,9 +1050,8 @@ msgid "Controls"
 msgstr "Contrôles"
 
 #: glade/glade_strings.c:40
-#, fuzzy
 msgid "Teletext"
-msgstr "_Teletext"
+msgstr "Teletext"
 
 #: glade/glade_strings.c:41
 msgid "Video device capabilities"
@@ -1082,7 +1071,7 @@ msgstr "label27"
 
 #: glade/glade_strings.c:45
 msgid "Select the V4L device"
-msgstr "Selectionner le device V4L"
+msgstr "Sélectionner le device V4L"
 
 #: glade/glade_strings.c:46
 msgid "label31"
@@ -1114,7 +1103,7 @@ msgstr "label29"
 
 #: glade/glade_strings.c:53
 msgid "Device info"
-msgstr "Info du device"
+msgstr "Infos du device"
 
 #: glade/glade_strings.c:54
 msgid "Avoid noise while changing channels"
@@ -1130,35 +1119,30 @@ msgstr "Redimensionner en utilisant un incrément fixe"
 
 #: glade/glade_strings.c:57
 msgid "Start Zapping muted"
-msgstr "Démarré Zapping sans le son"
+msgstr "Démarrer Zapping sans le son"
 
 #: glade/glade_strings.c:58
 msgid ""
 "Avoid some flicker in preview mode (leaves artifacts in the main window)"
-msgstr ""
+msgstr "Éviter les clignotements dans le mode pré-visualisation (Laisser dans la fenêtre principale)"
 
 #: glade/glade_strings.c:59
 msgid "Ratio mode:"
 msgstr "mode Ratio :"
 
 #: glade/glade_strings.c:60
-#, fuzzy
 msgid "No fixed ratio"
-msgstr ""
-"Pas de ratio\n"
-"4:3\n"
-"16:9\n"
+msgstr "Pas de ratio"
 
 #: glade/glade_strings.c:61
 msgid "4:3"
-msgstr ""
+msgstr "4:3"
 
 #: glade/glade_strings.c:62
 msgid "16:9"
-msgstr ""
+msgstr "16:9"
 
 #: glade/glade_strings.c:63
-#, fuzzy
 msgid "Verbosity value given to zapping__setup__fb:"
 msgstr "Valeur de verbosité donnée a zapping__setup__fb :"
 
@@ -1168,38 +1152,38 @@ msgstr "Plus la valeur serra grande, plus zapping_setup_fb serra verbeux"
 
 #: glade/glade_strings.c:65
 msgid "Fullscreen video mode:"
-msgstr ""
+msgstr "Mode vidéo plein écran :"
 
 #: glade/glade_strings.c:66
 msgid "Autodetect"
-msgstr ""
+msgstr "Auto-détection"
 
 #: glade/glade_strings.c:67
 msgid "Do not change mode"
-msgstr ""
+msgstr "ne pas changer de mode"
 
 #: glade/glade_strings.c:68
 msgid "Capture size under XVideo:"
-msgstr ""
+msgstr "taille de la capture avec XVideo :"
 
 #: glade/glade_strings.c:69
 msgid ""
 "Thanks to the XVideo extension, if present, the capture buffer can be scaled "
 "to arbitrary sizes using HW acceleration. Select here the capture size to "
 "use in this case."
-msgstr ""
+msgstr "Merci à l'extension XVideo, si elle est présente, le tampon de capture peut être redimensionné à une taille arbitraire en utilisant une accélération HW. Sélectionnez ici la taille de la capture à utiliser."
 
 #: glade/glade_strings.c:70
 msgid "Biggest noninterlaced (autodetect)"
-msgstr ""
+msgstr "Important non-interlacé (auto-detecté)"
 
 #: glade/glade_strings.c:71
 msgid "320x240"
-msgstr ""
+msgstr "320x240"
 
 #: glade/glade_strings.c:72
 msgid "Interlaced (window size)"
-msgstr ""
+msgstr "Interlacé (taille de la fenêtre)"
 
 #: glade/glade_strings.c:73
 msgid "General options"
@@ -1215,213 +1199,210 @@ msgstr "Utiliser le VBI pour définir le nom des chaînes"
 
 #: glade/glade_strings.c:77
 msgid "Select the VBI device"
-msgstr "Selectionner le device VBI"
+msgstr "Sélectionner le device VBI"
 
 #: glade/glade_strings.c:78
 msgid "Enter here the device associated with the VBI input"
-msgstr ""
+msgstr "Entrer ici le périphérique associé avec l'entrée VBI"
 
 #: glade/glade_strings.c:79
 msgid "Export Teletext pages to:"
-msgstr ""
+msgstr "Exporter la page Teletext en :"
 
 #: glade/glade_strings.c:80
-#, fuzzy
 msgid "Select directory we will export pages to"
-msgstr "Sélectionnez le répertoire de sauvegarde"
+msgstr "Sélectionnez le répertoire de sauvegarde des pages"
 
 #: glade/glade_strings.c:81
 msgid "Enter here the directory we will be exporting TTX pages to"
-msgstr ""
+msgstr "Entrez ici le répertoire d'exportation des pages TTX"
 
 #: glade/glade_strings.c:82
 msgid "Page to take subtitles from:"
-msgstr ""
+msgstr "Prendre les sous-titres à partir de cette page :"
 
 #: glade/glade_strings.c:83
 msgid "Where will subtitles be taken from"
-msgstr ""
+msgstr "Ou les sous-titres seront placés"
 
 #: glade/glade_strings.c:84
 msgid "Default region:"
-msgstr ""
+msgstr "Région par défaut :"
 
 #: glade/glade_strings.c:85
 msgid "Teletext implementation:"
-msgstr ""
+msgstr "Implementation Teletext :"
 
 #: glade/glade_strings.c:86
 msgid ""
 "Some stations fail to transmit a complete language identifier, so the "
 "Teletext viewer may not display the correct font or national characters. You "
 "can select your geographical region here as an additional hint."
-msgstr ""
+msgstr "Certaines stations échouent à transmettre une identification de langage, ainsi le visualiseur Teletext ne peut pas correctement afficher les fontes ou les caractères nationaux. Vous pouvez sélectionner ici une région comme une pré-configuration"
 
 #: glade/glade_strings.c:87
 msgid "Western and Central Europe"
-msgstr ""
+msgstr "Europe de l'ouest et centrale"
 
 #: glade/glade_strings.c:88
-#, fuzzy
 msgid "Eastern Europe"
-msgstr "europe"
+msgstr "Europe de l'est"
 
 #: glade/glade_strings.c:89
 msgid "Western Europe and Turkey"
-msgstr ""
+msgstr "Europe de l'ouest et Turquie"
 
 #: glade/glade_strings.c:90
 msgid "Central and Southeast Europe"
-msgstr ""
+msgstr "Europe centrale et sud-est"
 
 #: glade/glade_strings.c:91
 msgid "Cyrillic"
-msgstr ""
+msgstr "Cyrillique"
 
 #: glade/glade_strings.c:92
 msgid "Greek and Turkish"
-msgstr ""
+msgstr "Grec et Turc"
 
 #: glade/glade_strings.c:93
 msgid "Arabic"
-msgstr ""
+msgstr "Arabe"
 
 #: glade/glade_strings.c:94
 msgid "Hebrew and Arabic"
-msgstr ""
+msgstr "Hébreu et Arabe"
 
 #: glade/glade_strings.c:95
 msgid ""
 "Zapping supports several levels of Teletext extensions, you can disable "
 "higher levels if you dislike the appearance."
-msgstr ""
+msgstr "Zapping supporte un nombre élevé de niveau d'extension Teletext, Vous pouvez désélectionner les plus hauts niveaux si vous n'aimez pas l'apparence"
 
 #: glade/glade_strings.c:96
 msgid "Level 1.0"
-msgstr ""
+msgstr "Niveau 1.0"
 
 #: glade/glade_strings.c:97
 msgid "Level 1.5 (additional national characters)"
-msgstr ""
+msgstr "Niveau 1.5 (caractères nationaux supplémentaire)"
 
 #: glade/glade_strings.c:98
 msgid "Level 2.5 (more colours, font styles and graphics)"
-msgstr ""
+msgstr "Niveau 2.5 (plus de couleurs, styles de fonte et graphiques)"
 
 #: glade/glade_strings.c:99
 msgid "Level 3.5 (proportional spacing, multicolour graphics)"
-msgstr ""
+msgstr "Niveau 3.5 (espacement proportionnel, graphique multi-couleurs)"
 
 #: glade/glade_strings.c:100
 msgid "Interpolation type:"
-msgstr ""
+msgstr "Type d'interpolation :"
 
 #: glade/glade_strings.c:101
 msgid "Quality/speed tradeoff when scaling and antialing the page."
-msgstr ""
+msgstr "Qualité/vitesse transaction lors du redimensionnement et du anti aliasing de la page"
 
 #: glade/glade_strings.c:102
 msgid "Nearest (fast, looks ugly when scaled)"
-msgstr ""
+msgstr "Nearest (rapide, rendu laid après redimensionnement)"
 
 #: glade/glade_strings.c:103
 msgid "Tiles (slightly slower, somewhat better)"
-msgstr ""
+msgstr "Tiles (légèrement lent, en quelque sorte meilleur)"
 
 #: glade/glade_strings.c:104
 msgid "Bilinear (good quality but slow)"
-msgstr ""
+msgstr "Bilinear (bonne qualité mais lent)"
 
 #: glade/glade_strings.c:105
 msgid "Hyper (best quality but CPU intensive)"
-msgstr ""
+msgstr "Hyper (meilleure qualité mais utilisation intensive du CPU)"
 
 #: glade/glade_strings.c:106
-#, fuzzy
 msgid "General"
-msgstr "Options générale"
+msgstr "Générale"
 
 #: glade/glade_strings.c:107
 msgid "Filtering"
-msgstr ""
+msgstr "Filtrage"
 
 #: glade/glade_strings.c:108
 msgid "Program related links:"
-msgstr ""
+msgstr "Liens associés au programme :"
 
 #: glade/glade_strings.c:109
 msgid "Network related links:"
-msgstr ""
+msgstr "Liens associés au réseau :"
 
 #: glade/glade_strings.c:110
 msgid "Station related links:"
-msgstr ""
+msgstr "Liens associés au station :"
 
 #: glade/glade_strings.c:111
 msgid "Sponsor messages:"
-msgstr ""
+msgstr "Messages su sponsor :"
 
 #: glade/glade_strings.c:112
 msgid "Operator messages:"
-msgstr ""
+msgstr "Messages de l'opérateur :"
 
 #: glade/glade_strings.c:113 glade/glade_strings.c:117
 #: glade/glade_strings.c:121 glade/glade_strings.c:125
 #: glade/glade_strings.c:129
 msgid "What to do with this kind of links"
-msgstr ""
+msgstr "Que faire avec cette sorte de liens"
 
 #: glade/glade_strings.c:114 glade/glade_strings.c:118
 #: glade/glade_strings.c:122 glade/glade_strings.c:126
 #: glade/glade_strings.c:130 glade/glade_strings.c:140
 msgid "Ignore"
-msgstr ""
+msgstr "Ignoré"
 
 #: glade/glade_strings.c:115 glade/glade_strings.c:119
 #: glade/glade_strings.c:123 glade/glade_strings.c:127
 #: glade/glade_strings.c:131 glade/glade_strings.c:141
 msgid "Show in the status bar"
-msgstr ""
+msgstr "Voir dans la barre d'état"
 
 #: glade/glade_strings.c:116 glade/glade_strings.c:120
 #: glade/glade_strings.c:124 glade/glade_strings.c:128
 #: glade/glade_strings.c:132 glade/glade_strings.c:142
 msgid "Open automatically"
-msgstr ""
+msgstr "Ouvrir automatiquement"
 
 #: glade/glade_strings.c:133
 msgid "Filter Level:"
-msgstr ""
+msgstr "Niveau du filtre :"
 
 #: glade/glade_strings.c:134
 msgid ""
 "Sometimes a priority level is transmitted with the trigger, it can be used "
 "to filter the messages you want to receive"
-msgstr ""
+msgstr "Quelquefois un niveau de priorité est transmis avec le signal, il peut-être utilisé pour filtrer les messages que vous voulez recevoir"
 
 #: glade/glade_strings.c:135
 msgid "High priority only"
-msgstr ""
+msgstr "Haute priorité seulement"
 
 #: glade/glade_strings.c:136
 msgid "Medium and High priority"
-msgstr ""
+msgstr "Moyenne et haute priorité"
 
 #: glade/glade_strings.c:137
 msgid "All messages"
-msgstr ""
+msgstr "Tous les messages"
 
 #: glade/glade_strings.c:138
 msgid "Default action:"
-msgstr ""
+msgstr "Action par défaut :"
 
 #: glade/glade_strings.c:139
 msgid "What to do with received trigger if no identifier is transmitted"
-msgstr ""
+msgstr "Que faire avec le signal reçu si aucun identificateur est transmit"
 
 #: glade/glade_strings.c:143
 msgid "Interactive TV"
-msgstr ""
+msgstr "TV Interactive"
 
 #: glade/glade_strings.c:144
 msgid "VBI options"
@@ -1443,16 +1424,15 @@ msgstr ""
 
 #: glade/glade_strings.c:150
 msgid "Select here the country you are in"
-msgstr "Sélectionné le pays ou vous êtes"
+msgstr "Sélectionner le pays ou vous êtes"
 
 #: glade/glade_strings.c:151
-#, fuzzy
 msgid "Dummy country"
-msgstr "Pays vide\n"
+msgstr "Pays factice"
 
 #: glade/glade_strings.c:152
 msgid "Select here the channel you want to tune"
-msgstr "Sélectionné ici la chaîne que vous voulez accorder"
+msgstr "Sélectionner ici la chaîne que vous voulez accorder"
 
 #: glade/glade_strings.c:153
 msgid "Channel"
@@ -1468,7 +1448,7 @@ msgstr "Nom"
 
 #: glade/glade_strings.c:156
 msgid "ID"
-msgstr ""
+msgstr "ID"
 
 #: glade/glade_strings.c:157
 msgid "Country"
@@ -1480,20 +1460,19 @@ msgstr "kHz"
 
 #: glade/glade_strings.c:159
 msgid "Accelerator"
-msgstr ""
+msgstr "Accelerateur"
 
 #: glade/glade_strings.c:160
 msgid "Move selected channels one row up"
-msgstr ""
+msgstr "Déplacer la chaîne sélectionnée d'une ligne plus haut"
 
 #: glade/glade_strings.c:161
 msgid "Move selected channels one row down"
-msgstr ""
+msgstr "Déplacer la chaîne sélectionnée d'une ligne plus bas"
 
 #: glade/glade_strings.c:162
-#, fuzzy
 msgid "Delete selected channels"
-msgstr "Cliquez ici pour annuler la chaîne sélectionnées"
+msgstr "Effacer les chaînes sélectionnées"
 
 #: glade/glade_strings.c:163
 msgid "_Remove"
@@ -1509,24 +1488,20 @@ msgid "_Modify"
 msgstr "_Modifier"
 
 #: glade/glade_strings.c:166
-#, fuzzy
 msgid "Select here the input to be attached to this channel"
-msgstr "Entrez ici le nom que vous voulez donner à cette chaîne :"
+msgstr "Entrez ici le nom du périphérique que vous voulez attribuer à cette chaîne"
 
 #: glade/glade_strings.c:167
-#, fuzzy
 msgid "Magical input"
-msgstr "Pas d'entrée de valide"
+msgstr ""
 
 #: glade/glade_strings.c:168
-#, fuzzy
 msgid "Select here the Standard this channel uses"
-msgstr "Sélectionner la chaîne suivante dans la liste"
+msgstr "Sélectionner ici le standard utilisé par cette chaîne"
 
 #: glade/glade_strings.c:169
-#, fuzzy
 msgid "Magical Standard"
-msgstr "Pas de standards valable"
+msgstr ""
 
 #: glade/glade_strings.c:170
 msgid "Select your country and click here to search for the available channels"
@@ -1534,7 +1509,7 @@ msgstr "Sélectionner votre pays et cliquez ici pour chercher les chaînes"
 
 #: glade/glade_strings.c:171
 msgid "_Search for the available channels in the current country"
-msgstr "Chercher le_s chaines dans le pays courant"
+msgstr "Chercher le_s chaînes dans le pays courant"
 
 #: glade/glade_strings.c:172
 msgid "Frequence:"
@@ -1546,46 +1521,44 @@ msgstr "Entrez ici le nom que vous voulez donner à cette chaîne :"
 
 #: glade/glade_strings.c:174
 msgid "Enter here the name you want to give to this channel"
-msgstr "Entrez ici le nom que vous voulez donner à cette chaîne :"
+msgstr "Entrer ici le nom que vous voulez donner à cette chaîne :"
 
 #: glade/glade_strings.c:175
-#, fuzzy
 msgid "Ctrl"
-msgstr "Contrôles"
+msgstr "Ctrl"
 
 #: glade/glade_strings.c:176
 msgid "Shift"
-msgstr ""
+msgstr "Shift"
 
 #: glade/glade_strings.c:177
 msgid "Alt"
-msgstr ""
+msgstr "Alt"
 
 #: glade/glade_strings.c:178
-#, fuzzy
 msgid "Enter here the key you want to attach to this channel"
-msgstr "Entrez ici le nom que vous voulez donner à cette chaîne :"
+msgstr "Entrer ici la touche que vous voulez attribuer à cette chaîne"
 
 #: glade/glade_strings.c:179
 msgid "Open the list of known keys"
-msgstr ""
+msgstr "Ouvrir la liste des clés connues"
 
 #: glade/glade_strings.c:180
 msgid "..."
-msgstr ""
+msgstr "..."
 
 #: glade/glade_strings.c:181 glade/glade_strings.c:187
-#: glade/glade_strings.c:289
+#: glade/glade_strings.c:287
 msgid "Click here when you are done"
 msgstr "Cliquez ici une fois fini"
 
 #: glade/glade_strings.c:182
 msgid "Click this button if you want to discard current changes"
-msgstr "Cliquez ici si vous voulez annuler les changements effectués"
+msgstr "Cliquer ici si vous voulez annuler les changements effectués"
 
 #: glade/glade_strings.c:183
 msgid "Click here to add current channel"
-msgstr "Cliquez ici pour ajouter la chaîne courante"
+msgstr "Cliquer ici pour ajouter la chaîne courante"
 
 #: glade/glade_strings.c:184
 msgid "_Add"
@@ -1597,27 +1570,27 @@ msgstr "Ceci affiche une aide a propos de ce dialogue"
 
 #: glade/glade_strings.c:186
 msgid "Plugin properties"
-msgstr "Propriété du plu-gin"
+msgstr "Propriété du greffon"
 
 #: glade/glade_strings.c:188
 msgid "Run the plugin"
-msgstr "Démarrer ce plu-gin"
+msgstr "Démarrer ce greffon"
 
 #: glade/glade_strings.c:189
 msgid "_Start Plugin"
-msgstr "_Démarrer le plu-gin"
+msgstr "_Démarrer le greffon"
 
 #: glade/glade_strings.c:190
 msgid "Stop this plugin"
-msgstr "Arrêter ce plu-gin"
+msgstr "Arrêter ce greffon"
 
 #: glade/glade_strings.c:191
 msgid "S_top Plugin"
-msgstr "_Arrêter le plu-gin"
+msgstr "_Arrêter le greffon"
 
 #: glade/glade_strings.c:192
 msgid "Show the configuration options for this plugin"
-msgstr "Voir les options de configuration pour ce plu-gin"
+msgstr "Voir les options de configuration pour ce greffon"
 
 #: glade/glade_strings.c:193
 msgid "_Configure"
@@ -1625,15 +1598,15 @@ msgstr "_Configurer"
 
 #: glade/glade_strings.c:194
 msgid "Plugins"
-msgstr "Plu-gins"
+msgstr "Greffons"
 
 #: glade/glade_strings.c:195
 msgid "label67 (Plugin name)"
-msgstr "label67 (Nom du plu-gin)"
+msgstr "label67 (Nom du greffon)"
 
 #: glade/glade_strings.c:196
 msgid "label68 (Plugin short description)"
-msgstr "label68 (Courte description du plu-gin)"
+msgstr "label68 (Courte description du greffon)"
 
 #: glade/glade_strings.c:197
 msgid "Canonical name:"
@@ -1653,7 +1626,7 @@ msgstr "label71"
 
 #: glade/glade_strings.c:201
 msgid "Plugin version:"
-msgstr "Version du plu-gin :"
+msgstr "Version du greffon :"
 
 #: glade/glade_strings.c:202
 msgid "label72"
@@ -1661,7 +1634,7 @@ msgstr "label72"
 
 #: glade/glade_strings.c:203
 msgid "Plugin priority:"
-msgstr "Priorité du plu-gin :"
+msgstr "Priorité du greffon :"
 
 #: glade/glade_strings.c:204
 msgid "label73"
@@ -1669,7 +1642,7 @@ msgstr "label73"
 
 #: glade/glade_strings.c:205
 msgid "Plugin description"
-msgstr "Description du plu-gin"
+msgstr "Description du greffon"
 
 #: glade/glade_strings.c:206
 msgid "text1"
@@ -1681,11 +1654,11 @@ msgstr "Propriétés"
 
 #: glade/glade_strings.c:208
 msgid "Plugin location"
-msgstr "Location du plu-gin"
+msgstr "Location du greffon"
 
 #: glade/glade_strings.c:209
 msgid "This is the file where the plugin is located"
-msgstr "ceci est le fichier ou ce trouve le plu-gin"
+msgstr "ceci est le fichier ou ce trouve le greffon"
 
 #: glade/glade_strings.c:210
 msgid "text2"
@@ -1717,12 +1690,11 @@ msgstr "Avancé"
 
 #: glade/glade_strings.c:217
 msgid "The list of channels you have configured in the Channel Editor"
-msgstr ""
+msgstr "La liste des chaînes que vous avez configuré dans l'éditeur de chaîne"
 
 #: glade/glade_strings.c:218
-#, fuzzy
 msgid "Channel list"
-msgstr "Chaîne"
+msgstr "Liste des Chaîne"
 
 #: glade/glade_strings.c:219
 msgid "Use this for starting the fullscreen mode"
@@ -1730,373 +1702,337 @@ msgstr "Utilisé ceci pour démarrer le mode plein écran"
 
 #: glade/glade_strings.c:225
 msgid "Use Zapping as a teletext navigator"
-msgstr "Utiliser Zapping comme un navigateur teletext"
+msgstr "Utiliser Zapping comme un navigateur Teletext"
 
 #: glade/glade_strings.c:229
 msgid "Resize the main window, hide/show toolbars"
-msgstr ""
+msgstr "Redimensionner la fenêtre principale, cacher/voir la barre d'outils"
 
 #: glade/glade_strings.c:230
 msgid "_Appearance"
-msgstr ""
+msgstr "_Apparence"
 
 #: glade/glade_strings.c:235
 msgid "Resize to 768x576"
-msgstr ""
+msgstr "Redimensionner à 768x576"
 
 #: glade/glade_strings.c:236
 msgid "Resize to 720x576"
-msgstr ""
+msgstr "Redimensionner à 720x576"
 
 #: glade/glade_strings.c:237
 msgid "Resize to 640x480"
-msgstr ""
+msgstr "Redimensionner à 640x480"
 
 #: glade/glade_strings.c:238
 msgid "Resize to 384x288"
-msgstr ""
+msgstr "Redimensionner à 384x288"
 
 #: glade/glade_strings.c:239
 msgid "Resize to 352x288"
-msgstr ""
+msgstr "Redimensionner à 352x288"
 
 #: glade/glade_strings.c:240
 msgid "Resize to 320x240"
-msgstr ""
+msgstr "Redimensionner à 320x240"
 
 #: glade/glade_strings.c:241
 msgid "Searching..."
 msgstr "Recherche..."
 
-#: glade/glade_strings.c:242 glade/glade_strings.c:300
+#: glade/glade_strings.c:242 glade/glade_strings.c:298
 msgid "%P %%"
 msgstr "%P %%"
 
 #: glade/glade_strings.c:244
-#, fuzzy
 msgid "Previous page in history"
-msgstr "Page précédente"
+msgstr "Page précédente dans l'historique"
 
 #: glade/glade_strings.c:245
-#, fuzzy
 msgid "Previous"
-msgstr "Page précédente"
+msgstr "Précédente"
 
 #: glade/glade_strings.c:246
-#, fuzzy
 msgid "Next page in history"
-msgstr "Entrée suivante"
+msgstr "Entrée suivante dans l'historique"
 
 #: glade/glade_strings.c:247
-#, fuzzy
 msgid "Next"
-msgstr "text1"
+msgstr "Suivant"
 
 #: glade/glade_strings.c:248
 msgid "Go to the index page [Home]"
-msgstr ""
+msgstr "Aller à la page d'index [Maison]"
 
 #: glade/glade_strings.c:249
-#, fuzzy
 msgid "Home"
-msgstr "Volume"
+msgstr "Maison"
 
 #: glade/glade_strings.c:250
 msgid "Clone the current Teletext window"
-msgstr ""
+msgstr "Cloner la fenêtre Teletext courante"
 
 #: glade/glade_strings.c:251
 msgid "button13"
-msgstr ""
+msgstr "button13"
 
 #: glade/glade_strings.c:252 glade/glade_strings.c:271
 msgid "Search for a given pattern in the cache"
-msgstr ""
+msgstr "Chercher un motif donné dans le cache"
 
-#: glade/glade_strings.c:253 glade/glade_strings.c:290
-#, fuzzy
+#: glade/glade_strings.c:253 glade/glade_strings.c:288
 msgid "Search"
-msgstr "Recherche..."
+msgstr "Recherche"
 
 #: glade/glade_strings.c:254
 msgid "Previous subpage in the cache [Left]"
-msgstr ""
+msgstr "Sous-page précédente dans le cache [Gauche]"
 
 #: glade/glade_strings.c:255
 msgid "<<"
-msgstr ""
+msgstr "<<"
 
 #: glade/glade_strings.c:256
-#, fuzzy
 msgid "Previous subpage [-]"
-msgstr "Page précédente"
+msgstr "Sous-page précédente [-]"
 
 #: glade/glade_strings.c:257
 msgid "<"
-msgstr ""
+msgstr "<"
 
 #: glade/glade_strings.c:258
 msgid "Hold the current subpage [H]"
-msgstr ""
+msgstr "Retenir la sous-page courante [H]"
 
 #: glade/glade_strings.c:259
 msgid "S0"
-msgstr ""
+msgstr "S0"
 
 #: glade/glade_strings.c:260
-#, fuzzy
 msgid "Next subpage [+]"
-msgstr "Page suivante"
+msgstr "Sous-page suivante [+]"
 
 #: glade/glade_strings.c:261
 msgid ">"
-msgstr ""
+msgstr ">"
 
 #: glade/glade_strings.c:262
 msgid "Next subpage in the cache [Right]"
-msgstr ""
+msgstr "Sous-page suivante dans le cache [Droite]"
 
 #: glade/glade_strings.c:263
 msgid ">>"
-msgstr ""
+msgstr ">>"
 
 #: glade/glade_strings.c:264
 msgid "100"
-msgstr ""
+msgstr "100"
 
 #: glade/glade_strings.c:265
 msgid "Reveal hidden characters [R]"
-msgstr ""
+msgstr "Afficher les caractères cachés [R]"
 
 #: glade/glade_strings.c:266
 msgid "R"
-msgstr ""
+msgstr "R"
 
 #: glade/glade_strings.c:267
 msgid "Exit TTX mode [Esc]"
-msgstr ""
+msgstr "Sortir du mode TTX [Esc]"
 
 #: glade/glade_strings.c:268
 msgid "button35"
-msgstr ""
+msgstr "button35"
 
 #: glade/glade_strings.c:269
 msgid "Open this link in a new window"
-msgstr ""
+msgstr "Ouvrir ce lien dans une autre fenêtre"
 
 #: glade/glade_strings.c:270
 msgid "_Open in new window"
-msgstr ""
+msgstr "_Ouvrir dans une autre fenêtre"
 
 #: glade/glade_strings.c:272
-#, fuzzy
 msgid "_Search..."
-msgstr "Recherche..."
+msgstr "_Recherche..."
 
 #: glade/glade_strings.c:273
 msgid "Export the current page to different formats"
-msgstr ""
+msgstr "Exporter la page courante dans différent format"
 
 #: glade/glade_strings.c:274
-#, fuzzy
 msgid "_Export"
-msgstr "Exposition"
+msgstr "_Exportation"
 
 #: glade/glade_strings.c:275
 msgid "Manage your bookmarks"
-msgstr ""
+msgstr "Arranger vos signets"
 
 #: glade/glade_strings.c:276
 msgid "_Bookmarks"
-msgstr ""
+msgstr "_Signets"
 
 #: glade/glade_strings.c:277
 msgid "Add the current page to the bookmarks"
-msgstr ""
+msgstr "Ajouter la page courante aux signets"
 
 #: glade/glade_strings.c:278
 msgid "_Add current page..."
-msgstr ""
+msgstr "_Ajouter la page courante..."
 
 #: glade/glade_strings.c:279
 msgid "Use this dialog to delete any bookmarks you wish to remove"
-msgstr ""
+msgstr "Utilisez cette boîte de dialogue pour effacer les signets que vous voulez enlever"
 
 #: glade/glade_strings.c:280
 msgid "_Edit Bookmarks..."
-msgstr ""
+msgstr "_Éditer les Signets..."
 
 #: glade/glade_strings.c:281
-msgid "Foo"
-msgstr ""
+msgid "Edit Bookmarks"
+msgstr "Éditer les Signets"
 
 #: glade/glade_strings.c:282
-#, fuzzy
-msgid "_Colors"
-msgstr "Couleur"
-
-#: glade/glade_strings.c:283
-msgid "Edit Bookmarks"
-msgstr ""
-
-#: glade/glade_strings.c:284
 msgid "Page"
 msgstr "Page"
 
-#: glade/glade_strings.c:285
+#: glade/glade_strings.c:283
 msgid "Subpage"
-msgstr ""
+msgstr "Sous-page"
+
+#: glade/glade_strings.c:284
+msgid "Description"
+msgstr "Description"
+
+#: glade/glade_strings.c:285
+msgid "Remove the currently selected bookmark"
+msgstr "Enlever le Signet sélectionné"
 
 #: glade/glade_strings.c:286
-#, fuzzy
-msgid "Description"
-msgstr "Description du plu-gin"
-
-#: glade/glade_strings.c:287
-msgid "Remove the currently selected bookmark"
-msgstr ""
-
-#: glade/glade_strings.c:288
 msgid "Remove Bookmark"
-msgstr ""
+msgstr "Enlever Signet"
+
+#: glade/glade_strings.c:289
+msgid "Regular Expression:"
+msgstr "Expression régulière :"
+
+#: glade/glade_strings.c:290
+msgid "Search case insensitive"
+msgstr "Recherche avec la casse insensible"
 
 #: glade/glade_strings.c:291
-msgid "Regular Expression:"
-msgstr ""
+msgid "Search backwards"
+msgstr "Chercher en arrière"
 
 #: glade/glade_strings.c:292
-msgid "Search case insensitive"
-msgstr ""
-
-#: glade/glade_strings.c:293
-msgid "Search backwards"
-msgstr ""
-
-#: glade/glade_strings.c:294
-#, fuzzy
 msgid "Search in progress..."
 msgstr "Recherche..."
 
-#: glade/glade_strings.c:295
+#: glade/glade_strings.c:293
 msgid "Cancel the current search"
-msgstr ""
+msgstr "Annuler la recherche"
+
+#: glade/glade_strings.c:294
+msgid "Search forwards for the next match"
+msgstr "Chercher en avant pour la prochaine occurrence"
+
+#: glade/glade_strings.c:295
+msgid "Search backwards for the previous match"
+msgstr "Chercher en arrière pour l'occurrence suivante"
 
 #: glade/glade_strings.c:296
-msgid "Search forwards for the next match"
-msgstr ""
+msgid "Start a new search"
+msgstr "Démarrer une nouvelle recherche"
 
 #: glade/glade_strings.c:297
-msgid "Search backwards for the previous match"
-msgstr ""
-
-#: glade/glade_strings.c:298
-msgid "Start a new search"
-msgstr ""
+msgid "New"
+msgstr "Nouveau"
 
 #: glade/glade_strings.c:299
-msgid "New"
-msgstr ""
+msgid "Zapping error console"
+msgstr "Console d'erreur de Zapping"
+
+#: glade/glade_strings.c:300
+msgid "OK, let's go on"
+msgstr "OK, laissez faire"
 
 #: glade/glade_strings.c:301
-msgid "Zapping error console"
-msgstr ""
+msgid "Remove all this mess"
+msgstr "Enlever toute cette pagaille"
 
 #: glade/glade_strings.c:302
-msgid "OK, let's go on"
-msgstr ""
+msgid "Clean console"
+msgstr "Nettoyer la console"
 
 #: glade/glade_strings.c:303
-msgid "Remove all this mess"
-msgstr ""
+msgid "VBI info"
+msgstr "Infos VBI"
 
 #: glade/glade_strings.c:304
-#, fuzzy
-msgid "Clean console"
-msgstr "Contrôleur courant :"
+msgid "My curiosity has been fullfilled"
+msgstr "Ma curiosité à été remplie"
 
 #: glade/glade_strings.c:305
-#, fuzzy
-msgid "VBI info"
-msgstr "Options VBI"
+msgid "Network info"
+msgstr "Infos réseau"
 
 #: glade/glade_strings.c:306
-msgid "My curiosity has been fullfilled"
-msgstr ""
+msgid "Name:"
+msgstr "Nom :"
 
 #: glade/glade_strings.c:307
-msgid "Network info"
-msgstr ""
+msgid "Short Name:"
+msgstr "Nom court :"
 
 #: glade/glade_strings.c:308
-msgid "Name:"
-msgstr ""
+msgid "Network call letters:"
+msgstr "Lettres d'appel du réseau :"
 
 #: glade/glade_strings.c:309
-msgid "Short Name:"
-msgstr ""
+msgid "label204"
+msgstr "label204"
 
 #: glade/glade_strings.c:310
-msgid "Network call letters:"
-msgstr ""
+msgid "label205"
+msgstr "label205"
 
 #: glade/glade_strings.c:311
-#, fuzzy
-msgid "label204"
-msgstr "label30"
+msgid "label206"
+msgstr "label206"
 
 #: glade/glade_strings.c:312
-#, fuzzy
-msgid "label205"
-msgstr "label30"
+msgid "Tape delay"
+msgstr "Délai d'enregistrement"
 
 #: glade/glade_strings.c:313
-#, fuzzy
-msgid "label206"
-msgstr "label30"
+msgid "label207"
+msgstr "label207"
 
 #: glade/glade_strings.c:314
-msgid "Tape delay"
-msgstr ""
+msgid "Known key names"
+msgstr "Nom de touche connu"
 
 #: glade/glade_strings.c:315
-#, fuzzy
-msgid "label207"
-msgstr "label27"
+msgid "Keys"
+msgstr "Touches"
 
 #: glade/glade_strings.c:316
-msgid "Known key names"
-msgstr ""
+msgid "New bookmark:"
+msgstr "Nouveau signet :"
 
 #: glade/glade_strings.c:317
-msgid "Keys"
-msgstr ""
+msgid "Description:"
+msgstr "Description :"
 
 #: glade/glade_strings.c:318
-msgid "New bookmark:"
-msgstr ""
-
-#: glade/glade_strings.c:319
-#, fuzzy
-msgid "Description:"
-msgstr "Description du plu-gin"
-
-#: glade/glade_strings.c:320
 msgid ""
 "If checked, the current channel will be automatically selected when the "
 "bookmark is selected"
-msgstr ""
+msgstr "Si activé, la chaîne courante sera automatiquement sélectionnée quand le signet est sélectionné"
 
-#: glade/glade_strings.c:321
+#: glade/glade_strings.c:319
 msgid "Switch to the current channel when the bookmark is selected"
-msgstr ""
-
-#: glade/glade_strings.c:322
-msgid "Text colors"
-msgstr ""
-
-#: glade/glade_strings.c:323 glade/glade_strings.c:324
-msgid "Reset"
-msgstr ""
+msgstr "Aller à la chaîne courante quand le signet est sélectionné"
 
 #: plugins/screenshot/screenshot.c:35
 msgid "Screenshot saver"
@@ -2108,20 +2044,19 @@ msgid ""
 "watching in TV.\n"
 "It will save the screenshots in JPEG format."
 msgstr ""
-"Vous pouvez utiliser ce plu-gin pour faire des copies d'écran que vous êtes "
-"entrain de regarder.\n"
+"Vous pouvez utiliser ce greffon pour faire des copies d'écran que vous êtes entrain de regarder.\n"
 "La copie d'écran sera sauvée au format JPG."
 
 #: plugins/screenshot/screenshot.c:41
 msgid "This plugin takes screenshots of the capture."
-msgstr "Ce plu-gin fait des copies d'écran de la fenêtre"
+msgstr "Ce greffon fait des copies d'écran de la fenêtre"
 
 #. hash collision code
 #. Warn
 #: plugins/screenshot/screenshot.c:189
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
-msgstr "Check erreur : \"%s\" du plu-gin %s has hash 0x%x vs. 0x%x"
+msgstr "Check erreur : \"%s\" du greffon %s has hash 0x%x vs. 0x%x"
 
 #: plugins/screenshot/screenshot.c:359
 msgid "Converts a row in RGB565 format to RGB24. Returns the destination."
@@ -2137,11 +2072,11 @@ msgstr ""
 msgid "Converts a row in RGBA format to RGB24. Returns the destination."
 msgstr "Convertis une ligne au format RGBA en RGB24. Retourne la destination."
 
-#: plugins/screenshot/screenshot.c:435 plugins/screenshot/screenshot.c:511
+#: plugins/screenshot/screenshot.c:427 plugins/screenshot/screenshot.c:501
 msgid "Screenshot"
 msgstr "Copie d'écran"
 
-#: plugins/screenshot/screenshot.c:483
+#: plugins/screenshot/screenshot.c:473
 msgid ""
 "The first option, the screenshot dir, lets you specify where\n"
 "will the screenshots be saved. The file name will be:\n"
@@ -2157,22 +2092,21 @@ msgstr ""
 "L'option de qualité permet de définir combien de données\n"
 "seront perdus pendant la compression."
 
-#: plugins/screenshot/screenshot.c:512
-#, fuzzy
+#: plugins/screenshot/screenshot.c:502
 msgid "Take a JPEG screenshot [Ctrl+S]"
-msgstr "Faire une copie d'écran en JPEG"
+msgstr "Faire une copie d'écran en JPEG [Ctrl+S]"
 
 #. Probably there is no mem even for this, but try anyway
-#: plugins/screenshot/screenshot.c:599 plugins/screenshot/screenshot.c:615
-#: plugins/screenshot/screenshot.c:624
+#: plugins/screenshot/screenshot.c:589 plugins/screenshot/screenshot.c:605
+#: plugins/screenshot/screenshot.c:614
 msgid "Sorry, not enough mem"
 msgstr "Désolé, plus de mémoire"
 
-#: plugins/screenshot/screenshot.c:680
+#: plugins/screenshot/screenshot.c:670
 msgid "Sorry, but I cannot write\n"
 msgstr "Désolé, mais je ne peut pas écrire\n"
 
-#: plugins/screenshot/screenshot.c:682
+#: plugins/screenshot/screenshot.c:672
 msgid ""
 "\n"
 "The image won't be saved."
@@ -2180,15 +2114,15 @@ msgstr ""
 "\n"
 "L'image ne sera pas sauvée."
 
-#: plugins/screenshot/screenshot.c:762
+#: plugins/screenshot/screenshot.c:752
 msgid "Saving..."
 msgstr "Sauvegarde..."
 
-#: plugins/screenshot/screenshot.c:773
+#: plugins/screenshot/screenshot.c:763
 msgid "Sorry, not enough resources for creating a new thread"
 msgstr "Désolé, plus de ressource pour créer un nouveau thread"
 
-#: plugins/screenshot/screenshot.c:777
+#: plugins/screenshot/screenshot.c:767
 msgid "There are too many threads"
 msgstr "Il y a trop de thread"
 
@@ -2199,7 +2133,7 @@ msgstr "Il y a trop de thread"
 #.
 #: plugins/screenshot/screenshot_strings.c:7
 msgid "window1"
-msgstr ""
+msgstr "window1"
 
 #: plugins/screenshot/screenshot_strings.c:8
 msgid "Select here the directory where screenshots will be saved"
@@ -2214,154 +2148,142 @@ msgid "Quality of the compressed image:"
 msgstr "Qualité de la compression d'image :"
 
 #: plugins/lirc/lirc.c:39
-#, fuzzy
 msgid "LIRC plugin"
-msgstr "Démarrer ce plu-gin"
+msgstr "Greffon LIRC"
 
 #: plugins/lirc/lirc.c:40
 msgid ""
 "This plugin enables the usage of LIRC, the Linux Infrared Remote Control."
-msgstr ""
+msgstr "Cet greffon permet l'utilisation de LIRC, le Linux Infrared Remote Control."
 
 #: plugins/lirc/lirc.c:41
 msgid "This plugin enables the usage of LIRC."
-msgstr ""
+msgstr "Ce greffon permet l'usage de LIRC."
 
 #. hash collision code
 #. Warn
 #: plugins/lirc/lirc.c:133
-#, fuzzy, c-format
+#, c-format
 msgid "Check error: \"%s\" in plugin %shas hash 0x%x vs. 0x%x"
-msgstr "Check erreur : \"%s\" du plu-gin %s has hash 0x%x vs. 0x%x"
+msgstr "Check erreur : \"%s\" du greffon %shas hash 0x%x vs. 0x%x"
 
-#: plugins/lirc/lirc.c:321
+#: plugins/lirc/lirc.c:315
 msgid "LIRC"
-msgstr ""
+msgstr "LIRC"
 
-#: plugins/lirc/lirc.c:522
+#: plugins/lirc/lirc.c:514
 msgid "Button"
-msgstr ""
+msgstr "Bouton"
 
-#: plugins/lirc/lirc.c:529
+#: plugins/lirc/lirc.c:521
 msgid "Action"
-msgstr ""
+msgstr "Action"
 
-#: plugins/lirc/lirc.c:546
+#: plugins/lirc/lirc.c:538
 msgid "Button:"
-msgstr ""
+msgstr "Bouton :"
 
-#: plugins/lirc/lirc.c:557
-#, fuzzy
+#: plugins/lirc/lirc.c:549
 msgid "Action:"
-msgstr "Description du plu-gin"
+msgstr "Action :"
 
-#: plugins/lirc/lirc.c:585 plugins/lirc/lirc.c:597
-#, fuzzy
+#: plugins/lirc/lirc.c:577 plugins/lirc/lirc.c:589
 msgid "channel up"
-msgstr "Chaîne +"
+msgstr "chaîne +"
 
-#: plugins/lirc/lirc.c:586
-#, fuzzy
+#: plugins/lirc/lirc.c:578
 msgid "channel down"
-msgstr "Chaîne -"
+msgstr "chaîne -"
 
-#: plugins/lirc/lirc.c:587
-#, fuzzy
+#: plugins/lirc/lirc.c:579
 msgid "set channel"
-msgstr "Chaîne"
+msgstr "choisir la chaîne"
 
-#: plugins/lirc/lirc.c:588
+#: plugins/lirc/lirc.c:580
 msgid "power off"
-msgstr ""
+msgstr "éteindre"
 
-#: plugins/lirc/lirc.c:631
+#: plugins/lirc/lirc.c:623
 msgid "1"
-msgstr ""
+msgstr "1"
 
-#: plugins/lirc/lirc.c:640
-#, fuzzy
+#: plugins/lirc/lirc.c:632
 msgid "Add"
-msgstr "_Ajouter"
+msgstr "Ajouter"
 
-#: plugins/lirc/lirc.c:649
-#, fuzzy
+#: plugins/lirc/lirc.c:641
 msgid "Delete"
-msgstr "_Teletext"
+msgstr "Effacer"
 
 #: libvbi/exp-gfx.c:443
 msgid "Correct aspect ratio"
-msgstr ""
+msgstr "Corriger les proportions"
 
 #: libvbi/exp-gfx.c:444
 msgid ""
 "Approach an image aspect ratio similar to a real TV, this will add redundant "
 "information"
-msgstr ""
+msgstr "Approche les proportions d'une image d'une vraie TV, cela ajoute des informations superflus"
 
 #: libvbi/exp-gfx.c:477 libvbi/exp-gfx.c:739
 #, c-format
 msgid "Unable to allocate %d KB image buffer"
-msgstr ""
+msgstr "Incapable d'allouer %d KO d'image tampon"
 
 #: libvbi/exp-gfx.c:489 libvbi/exp-gfx.c:745 libvbi/exp-html.c:288
 #: libvbi/exp-vtx.c:119
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot create file '%s': %s"
-msgstr ""
-"Impossible de restorer le précédent mode%s:\n"
-"%s"
+msgstr "Ne peut créer le fichier '%s' : %s"
 
 #: libvbi/exp-gfx.c:588
-#, fuzzy
 msgid "PPM"
-msgstr "BPP"
+msgstr "PPM"
 
 #: libvbi/exp-gfx.c:589
-#, fuzzy
 msgid "Export this page as PPM image"
-msgstr "Désolé, mais l'entrée courante n'a pas de tuner"
+msgstr "Exporter cette page en une image PPM"
 
 #: libvbi/exp-gfx.c:804 libvbi/exp-html.c:487
 #, c-format
 msgid "Teletext Page %3x.%x"
-msgstr ""
+msgstr "Page Teletext %3x.%x"
 
 #: libvbi/exp-gfx.c:806 libvbi/exp-html.c:489
-#, fuzzy, c-format
+#, c-format
 msgid "Teletext Page %3x"
-msgstr "_Teletext"
+msgstr "Page Teletext %3x"
 
 #: libvbi/exp-gfx.c:868
 msgid "PNG"
-msgstr ""
+msgstr "PNG"
 
 #: libvbi/exp-gfx.c:869
-#, fuzzy
 msgid "Export this page as PNG image"
-msgstr "Désolé, mais l'entrée courante n'a pas de tuner"
+msgstr "Exporter cette page en une image PNG"
 
 #: libvbi/exp-html.c:98 libvbi/exp-txt.c:52 libvbi/exp-txt.c:70
 msgid "Graphics char"
-msgstr ""
+msgstr "Nettoyage graphique"
 
 #: libvbi/exp-html.c:99 libvbi/exp-txt.c:53 libvbi/exp-txt.c:71
 msgid ""
 "Replacement for block graphic characters: a single character or decimal (32) "
 "or hex (0x20) code"
-msgstr ""
+msgstr "Replacement pour les blocs de caractère graphique : un single caractère ou décimal (32) ou hexa (0x20) code"
 
 #: libvbi/exp-html.c:101
 msgid "HTML header"
-msgstr ""
+msgstr "En-tête HTML"
 
 #: libvbi/exp-html.c:102
 msgid "Include HTML page header"
-msgstr ""
+msgstr "Inclure l'entête de page HTML"
 
 #: libvbi/exp-html.c:283
 #, c-format
 msgid "Character conversion Unicode -> %s not supported"
-msgstr ""
+msgstr "Conversion de caractère Unicode -> %s non supporté"
 
 #.
 #. *  "lang=\"en\" refers to "Teletext Page..." below,
@@ -2369,292 +2291,109 @@ msgstr ""
 #.
 #: libvbi/exp-html.c:477
 msgid "<title lang=\"en\">"
-msgstr ""
+msgstr "<title lang=\"fr\">"
 
 #: libvbi/exp-html.c:711
 msgid "HTML"
-msgstr ""
+msgstr "HTML"
 
 #: libvbi/exp-html.c:712
-#, fuzzy
 msgid "Export this page as HTML page"
-msgstr "Désolé, mais l'entrée courante n'a pas de tuner"
+msgstr "Exporter cette page en HTML"
 
 #: libvbi/exp-txt.c:45
-#, fuzzy
 msgid "Black"
-msgstr "Balance"
+msgstr "Noir"
 
 #: libvbi/exp-txt.c:45
 msgid "Red"
-msgstr ""
+msgstr "Rouge"
 
 #: libvbi/exp-txt.c:45
 msgid "Green"
-msgstr ""
+msgstr "Vert"
 
 #: libvbi/exp-txt.c:45
 msgid "Yellow"
-msgstr ""
+msgstr "Jaune"
 
 #: libvbi/exp-txt.c:46
-#, fuzzy
 msgid "Blue"
-msgstr "Volume"
+msgstr "Bleue"
 
 #: libvbi/exp-txt.c:46
 msgid "Magenta"
-msgstr ""
+msgstr "Magenta"
 
 #: libvbi/exp-txt.c:46
 msgid "Cyan"
-msgstr ""
+msgstr "Cyan"
 
 #: libvbi/exp-txt.c:46
-#, fuzzy
 msgid "White"
-msgstr "Blancheur"
+msgstr "Blanc"
 
 #: libvbi/exp-txt.c:47
 msgid "Any"
-msgstr ""
+msgstr "N'importe laquelle"
 
 #: libvbi/exp-txt.c:55 libvbi/exp-txt.c:73
 msgid "Foreground"
-msgstr ""
+msgstr "Texte"
 
 #: libvbi/exp-txt.c:56 libvbi/exp-txt.c:74
 msgid "Assumed terminal foreground color"
-msgstr ""
+msgstr "Supposer la couleur du texte du terminal"
 
 #: libvbi/exp-txt.c:58 libvbi/exp-txt.c:76
 msgid "Background"
-msgstr ""
+msgstr "Fond d'écran"
 
 #: libvbi/exp-txt.c:59 libvbi/exp-txt.c:77
 msgid "Assumed terminal background color"
-msgstr ""
+msgstr "Supposer la couleur du fond d'écran du terminal"
 
 #: libvbi/exp-txt.c:61
 msgid "ANSI colors"
-msgstr ""
+msgstr "Couleurs ANSI"
 
 #: libvbi/exp-txt.c:62
 msgid "Insert ANSI color escape codes"
-msgstr ""
+msgstr "Insérer un code d'échappement couleur ANSI"
 
 #: libvbi/exp-txt.c:126
 msgid "ASCII"
-msgstr ""
+msgstr "ASCII"
 
 #: libvbi/exp-txt.c:127
-#, fuzzy
 msgid "Export this page as ASCII text"
-msgstr "Désolé, mais l'entrée courante n'a pas de tuner"
+msgstr "Exporter cette page en texte ASCII"
 
 #: libvbi/exp-txt.c:141
 msgid "ANSI"
-msgstr ""
+msgstr "ANSI"
 
 #: libvbi/exp-txt.c:142
-#, fuzzy
 msgid "Export this page as ANSI text"
-msgstr "Désolé, mais l'entrée courante n'a pas de tuner"
+msgstr "Exporter cette page en texte ANSI"
 
 #: libvbi/exp-vtx.c:80
 msgid "Can only export Teletext pages"
-msgstr ""
+msgstr "Ne peut seulement exporter les pages Teletext"
 
 #: libvbi/exp-vtx.c:89
 msgid "Page is not cached, sorry"
-msgstr ""
+msgstr "Cette page n'est pas cachée, désolé"
 
 #: libvbi/exp-vtx.c:99
-#, fuzzy
 msgid "Cannot export this page"
-msgstr "Impossible de comprendre la palette donnée"
+msgstr "Ne peut exporter cette page"
 
 #: libvbi/exp-vtx.c:154
 msgid "VTX"
-msgstr ""
+msgstr "VTX"
 
 #: libvbi/exp-vtx.c:155
 msgid ""
 "Export this page as VTX file, the format used by VideoteXt and vbidecode"
-msgstr ""
-
-#, fuzzy
-#~ msgid "%s: TTX Page %x"
-#~ msgstr "Page"
-
-#, fuzzy
-#~ msgid "VBI: %s couldn't be opened: %d, %s"
-#~ msgstr ""
-#~ "Désolé, mais %s ne peut pas être ouvert :\n"
-#~ "%s (%d)"
-
-#, fuzzy
-#~ msgid "Page %x.%x"
-#~ msgstr "Page"
-
-#~ msgid "Cannot set input"
-#~ msgstr "Impossible d'installer l'entrée"
-
-#~ msgid "No tuner"
-#~ msgstr "Pas de tuner"
-
-#~ msgid "Cannot tune the device"
-#~ msgstr "Impossible d'accorder le device"
-
-#~ msgid "Sorry, but the current input has no tuners"
-#~ msgstr "Désolé, mais l'entrée courante n'a pas de tuner"
-
-#, fuzzy
-#~ msgid "Export the current page as HTML page"
-#~ msgstr "Désolé, mais l'entrée courante n'a pas de tuner"
-
-#, fuzzy
-#~ msgid "Export the current page as PPM image"
-#~ msgstr "Désolé, mais l'entrée courante n'a pas de tuner"
-
-#, fuzzy
-#~ msgid "Export the current page as PNG image"
-#~ msgstr "Désolé, mais l'entrée courante n'a pas de tuner"
-
-#, fuzzy
-#~ msgid "Export the current page as ASCII text"
-#~ msgstr "Désolé, mais l'entrée courante n'a pas de tuner"
-
-#, fuzzy
-#~ msgid "Export the current page as ANSI text"
-#~ msgstr "Désolé, mais l'entrée courante n'a pas de tuner"
-
-#, fuzzy
-#~ msgid "Export the current page as VTX file"
-#~ msgstr "Désolé, mais l'entrée courante n'a pas de tuner"
-
-#, fuzzy
-#~ msgid ""
-#~ "The teletext decoder needs GdkPixbuf, and\n"
-#~ "configure didn't find it."
-#~ msgstr ""
-#~ "Le décodeur videotext a besoin de GdkPixbuf, et\n"
-#~ "configure ne le trouve pas."
-
-#~ msgid "There's no GdkPixbuf support, VBI has been disabled"
-#~ msgstr "Il n'y a pas de GdkPixbuf support, le VBI a été déactivé"
-
-#~ msgid ""
-#~ "The specified device isn't \"/dev/video0\".\n"
-#~ "Should I try it?"
-#~ msgstr ""
-#~ "Le device spécifié n'est pas \"/dev/video0\".\n"
-#~ "Essayer quand même ?"
-
-#, fuzzy
-#~ msgid "Export options"
-#~ msgstr "Options VBI"
-
-#~ msgid "Cannot find an appropiate visual"
-#~ msgstr "Impossible de trouver un visuel"
-
-#~ msgid "Cannot figure out X depth"
-#~ msgstr "Impossible de déterminer le nombre de couleurs"
-
-#~ msgid "No inputs for this device"
-#~ msgstr "Pas d'entrée pour ce device"
-
-#~ msgid "Cannot find appropiate palette for current display"
-#~ msgstr "Impossible de trouver une palette pour cet écran"
-
-#~ msgid "Cannot understand the actual palette"
-#~ msgstr "Impossible d'utiliser la palette courante"
-
-#~ msgid "Unknown audio control: %s (%d)"
-#~ msgstr "Contrôleur audio inconnu : %s (%d)"
-
-#~ msgid "Unknown video control: %s (%d)"
-#~ msgstr "Contrôleur vidéo inconnu : %s (%d)"
-
-#~ msgid "Warning: trying to stop capture with no capture active\n"
-#~ msgstr "Attention: essai d'arrêter la capture sans quelle soit active\n"
-
-#~ msgid "Cannot understand actual palette"
-#~ msgstr "Impossible de comprendre la palette actuelle"
-
-#~ msgid "Grabber chip can't sync (no station tuned in?)"
-#~ msgstr ""
-#~ "Impossible de synchroniser la capture de l'écran (pas de station accordée ?)"
-
-#~ msgid "Current capture mode is not READ"
-#~ msgstr "Le mode de capture courant n'a pas été lu"
-
-#~ msgid "Size check failed, quitting to avoid segfault"
-#~ msgstr "Le contrôle de la taille à échoué, quitter avant un plantage"
-
-#~ msgid "The capability field says that there is no overlay"
-#~ msgstr "Le champ de capacité qu'il n'y a pas d'overlay"
-
-#~ msgid "Warning: trying to stop preview with no capture active\n"
-#~ msgstr ""
-#~ "Attention: essai de stopper la pré-visualisation sans la capture active\n"
-
-#, fuzzy
-#~ msgid ""
-#~ "Sorry, but cannot go fullscreen:\n"
-#~ "%s"
-#~ msgstr "Désolé, impossible d'avoir le plein écran "
-
-#, fuzzy
-#~ msgid ""
-#~ "The properties dialog could not be opened\n"
-#~ "Check the location of zapping.glade"
-#~ msgstr "Le dialogue de propriétés ne peut pas être ouvert, désolé"
-
-#~ msgid "Try to correct errors when decoding"
-#~ msgstr "Essaie de corriger les erreurs pendant le décodage"
-
-#~ msgid "Tveng critical error, zapping will exit NOW."
-#~ msgstr "Erreur critique de Tveng, Zapping doit terminer MAINTENANT."
-
-#~ msgid "Type %d of control %s is not supported"
-#~ msgstr "Le type %d du control %s n'est pas supporté"
-
-#~ msgid "Error adding %s"
-#~ msgstr "Erreur en ajoutant %s"
-
-#~ msgid "<Broken menu entry>"
-#~ msgstr "<Entrée du menu défectueuse>"
-
-#~ msgid "V4L2: Unknown control type 0x%x (%s)\n"
-#~ msgstr "V4L2: Control inconnu de type 0x%x (%s)\n"
-
-#~ msgid "Cannot tune given channel %d (no such channel)\n"
-#~ msgstr "Impossible d'accorder la chaîne %d (aucune chaîne)\n"
-
-#~ msgid "Not enough buffers"
-#~ msgstr "Plus de buffer"
-
-#~ msgid "Cannot sscanf() unsigned integer from %s"
-#~ msgstr "Je ne peux pas sscanf() un entier non signé %s"
-
-#~ msgid "s_channel could not be retrieved, strange..."
-#~ msgstr "Étrange... s_channel ne peut pas être récupéré"
-
-#~ msgid "s_country could not be retrieved, strange..."
-#~ msgstr "Étrange... s_country ne peut pas être récupéré"
-
-#~ msgid "s_freq could not be retrieved, strange..."
-#~ msgstr "Étrange... s_freq ne peut pas être récupéré"
-
-#~ msgid "The specified frequence cannot be parsed"
-#~ msgstr "La fréquence spécifiée ne peut-être parcourue"
-
-#~ msgid "Returned country tune id is invalid"
-#~ msgstr "L'id du pays est invalide"
-
-#~ msgid "Channel %s cannot be found in current country: %s"
-#~ msgstr "La chaîne %s na pas été trouvée dans le pays : %s"
-
-#~ msgid "Returned channel id (%d) is not valid"
-#~ msgstr "La chaîne id '%d) n'est pas valide"
+msgstr "Exporter cette page en un fichier VTX, le format utilisé par Videotext et vbidecode"

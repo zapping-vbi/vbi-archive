@@ -30,6 +30,8 @@
 
 static GtkWidget *ec = NULL;
 
+extern gint console_errors; /* main.c */
+
 static
 void on_clean_console_clicked		(GtkWidget	*button,
 					 gpointer	data)
@@ -81,9 +83,19 @@ void ec_add_message			(const gchar	*text,
 					 gboolean	show,
 					 GdkColor	*color)
 {
-  GtkWidget *console = create_console();
-  GtkWidget *text4 = lookup_widget(console, "text4");
-  gchar * new_text = g_strdup_printf("\n%s\n", text);
+  GtkWidget *console;
+  GtkWidget *text4;
+  gchar * new_text;
+
+  if (console_errors)
+    {
+      fprintf(stderr, "\n%s\n", text);
+      return;
+    }
+
+  console = create_console();
+  text4 = lookup_widget(console, "text4");
+  new_text = g_strdup_printf("\n%s\n", text);
 
   gtk_text_insert(GTK_TEXT(text4), NULL, color, NULL, new_text, -1);
 

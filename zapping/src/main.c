@@ -67,6 +67,8 @@ gboolean		was_fullscreen=FALSE; /* will be TRUE if when
 						 quitting we were
 						 fullscreen */
 tveng_tuned_channel	*global_channel_list=NULL;
+gint			console_errors = FALSE;
+
 /*** END OF GLOBAL STUFF ***/
 
 static gboolean		disable_vbi = FALSE; /* TRUE for disabling VBI
@@ -319,6 +321,15 @@ int main(int argc, char * argv[])
       N_("PIXFORMAT")
     },
     {
+      "console-errors",
+      0,
+      POPT_ARG_NONE,
+      &console_errors,
+      0,
+      N_("Redirect the error messages to the console"),
+      NULL
+    },
+    {
       NULL,
     } /* end the list */
   };
@@ -332,7 +343,7 @@ int main(int argc, char * argv[])
 			      0, NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.113 2001-07-02 16:17:14 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.114 2001-07-02 18:53:39 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {

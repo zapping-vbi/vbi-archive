@@ -962,7 +962,7 @@ tvengxv_get_signal_strength(int *strength, int *afc,
     {
       info->tveng_errno = -1;
       t_error_msg("XVideo",
-		  "\"XV_SIGNAL_STRENGTH\" atom not provided by"
+		  "\"XV_SIGNAL_STRENGTH\" atom not provided by "
 		  "the XVideo driver", info);
       return -1;
     }
