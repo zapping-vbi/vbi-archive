@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder.c,v 1.7 2000-12-01 13:12:11 mschimek Exp $ */
+/* $Id: vbi_decoder.c,v 1.8 2000-12-01 13:37:55 mschimek Exp $ */
 
 /*
     TODO:
@@ -938,9 +938,12 @@ capture_on_read(fifo *f)
 #include <sys/stat.h>
 #include <sys/sysmacros.h>
 
+#define SPEAK 0
+
 static bool
 guess_bttv_v4l(struct vbi_capture *vbi)
 {
+	struct video_capability vcap;
 	struct video_tuner vtuner;
 	struct video_channel vchan;
 	struct video_unit vunit;
@@ -949,14 +952,13 @@ guess_bttv_v4l(struct vbi_capture *vbi)
 
 	memset(&vtuner, 0, sizeof(struct video_tuner));
 	memset(&vchan, 0, sizeof(struct video_channel));
-	memset(&vunit, 0, sizeof(struct video_unit));
 
 	if (ioctl(vbi->fd, VIDIOCGTUNER, &vtuner) != -1)
 		mode = vtuner.mode;
 	else if (ioctl(vbi->fd, VIDIOCGCHAN, &vchan) != -1)
 		mode = vchan.norm;
 	else do {
-		struct dirent, *pdirent = &dirent;
+		struct dirent dirent, *pdirent = &dirent;
 		struct stat vbi_stat;
 		DIR *dir;
 
@@ -973,18 +975,18 @@ guess_bttv_v4l(struct vbi_capture *vbi)
 
 		if (!S_ISCHR(vbi_stat.st_mode))
 			return FALSE;
-
+#if SPEAK
 		printf("VBI is a character device %d,%d\n",
-			major(vbi_stat.st_dev), minor(vbi_stat.st_dev));
-
-		if (major(vbi_stat.st_dev) != 81)
+			major(vbi_stat.st_rdev), minor(vbi_stat.st_rdev));
+#endif
+		if (major(vbi_stat.st_rdev) != 81)
 			return FALSE; /* break? */
 
 		if (!(dir = opendir("/dev")))
 			break;
 
 		while (readdir_r(dir, &dirent, &pdirent) == 0 && pdirent) {
-			struct stat stat;
+			struct stat dir_stat;
 			unsigned char *s;
 
 			if (!asprintf(&s, "/dev/%s", dirent.d_name))
@@ -993,27 +995,30 @@ guess_bttv_v4l(struct vbi_capture *vbi)
 			 *  V4l2 O_NOIO == O_TRUNC,
 			 *  shouldn't affect v4l devices.
 			 */
-			if (stat(s, &stat) == -1
-			    || !S_ISCHR(stat.st_mode)
-			    || major(stat.st_dev) != 81
+			if (stat(s, &dir_stat) == -1
+			    || !S_ISCHR(dir_stat.st_mode)
+			    || major(dir_stat.st_rdev) != 81
+			    || minor(dir_stat.st_rdev) == minor(vbi_stat.st_rdev)
 			    || (video_fd = open(s, O_RDONLY | O_TRUNC)) == -1) {
 				free(s);
 				continue;
 			}
-
+#if SPEAK
 			printf("Trying %s, a character device %d,%d\n",
-				s, major(stat.st_dev), minor(stat.st_dev));
-
-			if (ioctl(video_fd, VIDIOCGUNIT, &vunit) == -1
-			    || vunit.vbi != minor(vbi_stat.st_dev)) {
+				s, major(dir_stat.st_rdev), minor(dir_stat.st_rdev));
+#endif
+			if (ioctl(video_fd, VIDIOCGCAP, &vcap) == -1
+			    || !(vcap.type & VID_TYPE_CAPTURE)
+			    || ioctl(video_fd, VIDIOCGUNIT, &vunit) == -1
+			    || vunit.vbi != minor(vbi_stat.st_rdev)) {
 				close(video_fd);
 				video_fd = -1;
 				free(s);
 				continue;
 			}
-
-			printf("And the winner is: %s\nThank you, thank you.", s);
-
+#if SPEAK
+			printf("And the winner is: %s\nThank you, thank you.\n", s);
+#endif
 			free(s);
 			break;
 		}
@@ -1021,7 +1026,7 @@ guess_bttv_v4l(struct vbi_capture *vbi)
 		closedir(dir);
 
 		if (video_fd == -1)
-			break; /* not found in /dev */
+			break; /* not found in /dev or some other problem */
 
 		if (ioctl(video_fd, VIDIOCGTUNER, &vtuner) != -1)
 			mode = vtuner.mode;
@@ -1031,7 +1036,7 @@ guess_bttv_v4l(struct vbi_capture *vbi)
 		close(video_fd);
 	} while (0);
 
-	switch (norm) {
+	switch (mode) {
 	case VIDEO_MODE_NTSC:
 		vbi->scanning = 525;
 		break;
@@ -1043,9 +1048,8 @@ guess_bttv_v4l(struct vbi_capture *vbi)
 
 	default:
 		/*
-		 *  You get one last chance, we'll try
-		 *  to guess the scanning if GVBIFMT is
-		 *  available.
+		 *  One last chance, we'll try to guess
+		 *  the scanning if GVBIFMT is available.
 		 */
 		vbi->scanning = 0;
 		opt_surrender = TRUE;
