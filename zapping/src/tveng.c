@@ -53,7 +53,8 @@ struct private_tveng_device_info
 };
 
 /* Initializes a tveng_device_info object */
-tveng_device_info * tveng_device_info_new(Display * display, int bpp)
+tveng_device_info * tveng_device_info_new(Display * display, int bpp,
+					  const char *default_standard)
 {
   tveng_device_info * new_object = (tveng_device_info*)
     malloc(sizeof(struct private_tveng_device_info));
@@ -76,6 +77,10 @@ tveng_device_info * tveng_device_info_new(Display * display, int bpp)
 
   new_object->display = display;
   new_object->bpp = bpp;
+  if (default_standard)
+    new_object->default_standard=strdup(default_standard);
+  else
+    new_object->default_standard=NULL;
 
   new_object->zapping_setup_fb_verbosity = 0; /* No output by default */
 
@@ -96,6 +101,9 @@ void tveng_device_info_destroy(tveng_device_info * info)
   if (info -> error)
     free(info -> error);
 
+  if (info -> default_standard)
+    free(info -> default_standard);
+
   free(info);
 }
 
@@ -114,6 +122,11 @@ int tveng_attach_device(const char* device_file,
 			enum tveng_attach_mode attach_mode,
 			tveng_device_info * info)
 {
+#ifdef TVENG_DEBUG
+  int i, j;
+  char *long_str, *short_str;
+#endif
+
   t_assert(device_file != NULL);
   t_assert(info != NULL);
 
@@ -143,12 +156,12 @@ int tveng_attach_device(const char* device_file,
   info -> fd = 0;
   /* Try first to attach it as a V4L2 device */
   if (-1 != tveng2_attach_device(device_file, attach_mode, info))
-      return info -> fd;
+      goto success;
 
   info -> fd = 0;
   /* Now try it as a V4L device */
   if (-1 != tveng1_attach_device(device_file, attach_mode, info))
-    return info->fd;
+    goto success;
 
   /* Error */
   info->tveng_errno = -1;
@@ -156,6 +169,73 @@ int tveng_attach_device(const char* device_file,
 	      _("The device cannot be attached to any controller"),
 	      info);
   return -1;
+
+ success:
+
+#ifdef TVENG_DEBUG
+  fprintf(stderr, "[TVeng] - Info about the video device\n");
+  fprintf(stderr, "-------------------------------------\n");
+  tveng_describe_controller(&short_str, &long_str, info);
+  fprintf(stderr, "Device: %s [%s - %s]\n", info->file_name,
+	  short_str, long_str);
+  if (info->default_standard)
+    fprintf(stderr, "On tunerless inputs, the norm defaults to %s\n",
+	    info->default_standard);
+  fprintf(stderr, "Current capture format:\n");
+  fprintf(stderr, "  Dimensions: %dx%d  BytesPerLine: %d  Depth: %d "
+	  "Size: %d K\n", info->format.width,
+	  info->format.height, info->format.bytesperline,
+	  info->format.depth, info->format.sizeimage/1024);
+  fprintf(stderr, "Current overlay window struct:\n");
+  fprintf(stderr, "  Coords: %dx%d-%dx%d   Chroma: 0x%x  Clips: %d\n",
+	  info->window.x, info->window.y, info->window.width,
+	  info->window.height, info->window.chromakey,
+	  info->window.clipcount);
+  fprintf(stderr, "Detected standards:\n");
+  for (i=0;i<info->num_standards;i++)
+    fprintf(stderr, "  %d) [%s] ID: %d\n", i,
+	    info->standards[i].name, info->standards[i].id);
+  fprintf(stderr, "Detected inputs:\n");
+  for (i=0;i<info->num_inputs;i++)
+    {
+      fprintf(stderr, "  %d) [%s] ID: %d\n", i, info->inputs[i].name,
+	      info->inputs[i].id);
+      fprintf(stderr, "      Type: %s  Tuners: %d  Flags: 0x%x\n",
+	      (info->inputs[i].type == TVENG_INPUT_TYPE_TV) ? _("TV")
+	      : _("Camera"), info->inputs[i].tuners, info->inputs[i].flags);
+    }
+  fprintf(stderr, "Available controls:\n");
+  for (i=0;i<info->num_controls;i++)
+    {
+      fprintf(stderr, "  %d) [%s] ID: %d  Range: (%d, %d)  Value: %d ",
+	      i, info->controls[i].name, info->controls[i].id,
+	      info->controls[i].min, info->controls[i].max,
+	      info->controls[i].cur_value);
+      switch (info->controls[i].type)
+	{
+	case TVENG_CONTROL_SLIDER:
+	  fprintf(stderr, " <Slider>\n");
+	  break;
+	case TVENG_CONTROL_CHECKBOX:
+	  fprintf(stderr, " <Checkbox>\n");
+	  break;
+	case TVENG_CONTROL_MENU:
+	  fprintf(stderr, " <Menu>\n");
+	  for (j=0; info->controls[i].data[j]; j++)
+	    fprintf(stderr, " %d.%d) [%s] <Menu entry>\n", i, j,
+		    info->controls[i].data[j]);
+	  break;
+	case TVENG_CONTROL_BUTTON:
+	  fprintf(stderr, " <Button>\n");
+	  break;
+	default:
+	  fprintf(stderr, " <Unknown type>\n");
+	  break;
+	}
+    }
+#endif /* TVENG_DEBUG */
+
+  return info->fd;
 }
 
 /*
@@ -510,6 +590,17 @@ int
 tveng_set_capture_format(tveng_device_info * info)
 {
   t_assert(info != NULL);
+
+  info->format.width = (info->format.width+3) & ~3;
+  info->format.height = (info->format.height+3) & ~3;
+  if (info->format.height < info->caps.minheight)
+    info->format.height = info->caps.minheight;
+  if (info->format.height > info->caps.maxheight)
+    info->format.height = info->caps.maxheight;
+  if (info->format.width < info->caps.minwidth)
+    info->format.width = info->caps.minwidth;
+  if (info->format.width > info->caps.maxwidth)
+    info->format.width = info->caps.maxwidth;
 
   switch (info -> current_controller)
     {
@@ -1040,7 +1131,9 @@ tveng_detect_XF86DGA(tveng_device_info * info)
   int event_base, error_base;
   int major_version, minor_version;
   int flags;
+#ifdef TVENG_DEBUG
   static int info_printed = 0; /* Print the info just once */
+#endif
 
   Display * display = info->display;
 
@@ -1070,7 +1163,8 @@ tveng_detect_XF86DGA(tveng_device_info * info)
       return 0;
     }
 
-/* Print collected info if we are in debug mode */
+  /* Print collected info if we are in debug mode */
+#ifdef TVENG_DEBUG
   if (!info_printed)
     {
       info_printed = 1;
@@ -1082,6 +1176,7 @@ tveng_detect_XF86DGA(tveng_device_info * info)
       fprintf(stderr, "  - Supported features    :%s\n",
 	      (flags & XF86DGADirectPresent) ? " DirectVideo" : "");
     }
+#endif
 
   return 1; /* Everything correct */
 #else
@@ -1286,6 +1381,17 @@ tveng_set_preview_window(tveng_device_info * info)
 {
   t_assert(info != NULL);
 
+  info->window.width = (info->window.width+3) & ~3;
+  info->window.height = (info->window.height+3) & ~3;
+  if (info->window.height < info->caps.minheight)
+    info->window.height = info->caps.minheight;
+  if (info->window.height > info->caps.maxheight)
+    info->window.height = info->caps.maxheight;
+  if (info->window.width < info->caps.minwidth)
+    info->window.width = info->caps.minwidth;
+  if (info->window.width > info->caps.maxwidth)
+    info->window.width = info->caps.maxwidth;
+
   switch (info -> current_controller)
     {
     case TVENG_CONTROLLER_NONE:
@@ -1397,7 +1503,9 @@ tveng_start_previewing (tveng_device_info * info)
   int distance=-1; /* Distance of the best video mode to a valid size */
   int temp; /* Temporal value */
   int bigger=0; /* Allow choosing bigger screen depths */
+#ifdef TVENG_DEBUG
   static int info_printed = 0; /* do not print the modes every time */
+#endif
 #endif
 
   t_assert(info != NULL);
@@ -1437,6 +1545,7 @@ tveng_start_previewing (tveng_device_info * info)
 
   if (info -> xf86vm_enabled)
     {
+#ifdef TVENG_DEBUG
       if (!info_printed)
 	{
 	  fprintf(stderr, "XF86VidMode info:\n");
@@ -1447,14 +1556,17 @@ tveng_start_previewing (tveng_device_info * info)
 	  fprintf(stderr, "  - Available video modes : %d\n",
 		  modecount);
 	}
+#endif
 
     loop_point:
       for (i = 0; i<modecount; i++)
 	{
+#ifdef TVENG_DEBUG
   	  if ((!bigger) && (!info_printed)) /* print only once */
 	    fprintf(stderr, "      %d) %dx%d @ %d Hz\n", i, (int)
 		    modesinfo[i]->hdisplay, (int) modesinfo[i]->vdisplay,
 		    (int) modesinfo[i]->dotclock);
+#endif
 	  /* Check whether this is a good value */
 	  temp = ((int)modesinfo[i]->hdisplay) - info->caps.maxwidth;
 	  temp *= temp;
@@ -1481,11 +1593,13 @@ tveng_start_previewing (tveng_device_info * info)
 	  goto loop_point;
 	}
       
+#ifdef TVENG_DEBUG
       if (!info_printed)
 	{
 	  info_printed = 1;
 	  fprintf(stderr, "      Mode # %d chosen\n", chosen_mode);
 	}
+#endif
       
       /* If the chosen mode isn't the actual one, choose it, but
 	 place the viewport correctly first */

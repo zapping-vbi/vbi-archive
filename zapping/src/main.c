@@ -87,6 +87,7 @@ int main(int argc, char * argv[])
   GdkWindowHints hints;
   plugin_sample sample; /* The a/v sample passed to the plugins */
   gint x_bpp = -1;
+  char *default_norm = NULL;
 
   const struct poptOption options[] = {
     {
@@ -126,6 +127,15 @@ int main(int argc, char * argv[])
       NULL
     },
     {
+      "tunerless-norm",
+      'n',
+      POPT_ARG_STRING,
+      &default_norm,
+      0,
+      N_("Set the default standard/norm for tunerless inputs"),
+      N_("NORM")
+    },
+    {
       NULL,
     } /* end the list */
   };
@@ -146,7 +156,7 @@ int main(int argc, char * argv[])
       return 0;
     }
   D();
-  main_info = tveng_device_info_new( GDK_DISPLAY(), x_bpp );
+  main_info = tveng_device_info_new( GDK_DISPLAY(), x_bpp, default_norm);
 
   if (!main_info)
     {
@@ -281,7 +291,8 @@ int main(int argc, char * argv[])
 			       FALSE);
       gtk_widget_hide(lookup_widget(main_window, "videotext1"));
       /* Set the capture mode to a default value and disable VBI */
-      zcs_int(TVENG_CAPTURE_READ, "capture_mode");
+      if (zcg_int(NULL, "capture_mode") == TVENG_NO_CAPTURE)
+	zcs_int(TVENG_CAPTURE_READ, "capture_mode");
       zvbi_set_mode(FALSE);
     }
   /* Disable the View menu completely if it is redundant */

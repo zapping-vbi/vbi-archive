@@ -3,11 +3,11 @@ Outstanding issues for the next release
 	+ Write the mpeg plugin (this is a MUST)
 	+ VBI can be opened/closed while running, try.
 	+ Bug fixes
-	> Release 0.5.4
+	> Release 0.5.5
 	+ Subtitles support
 	+ Xv support if present.
 	+ Support in teletext mode for numeric keys
 	? Make the visited pages in the teletext browser a tree ? -
 		depends on feedback.
 	+ Teletext docs
-	> Release 0.5.5
+	> Release 0.5.6

@@ -5,7 +5,7 @@ Zapping - A GNOME TV viewer
 box there were only a few TV viewing programs, and none of them for
 Gnome. So I built a TV viewer following V4L2 spec (not compiled into
 the Kernel by default) from scratch, but trying to make it as complete
-as possible. This is version 0.5.2 of that software.
+as possible. This is the last version of that software.
 
 INSTALLING
 ----------
@@ -36,6 +36,33 @@ really care about security, you may:
 	b) Check the suid's sources and locate the security flaws.
 	   Drop me a line and in a couple of hours since i read the
 	   message it will be fixed (this is the preferred method ;-)
+
+FEEDBACK and TROUBLESHOOTING
+----------------------------
+	Please read the included BUGS file. If your bug is there, i
+probably know about it, but feedback on them is very appreciated. If
+they are still there it is because i don't know how to fix them or i
+cannot reproduce them, so i need your help.
+	Disabling things can be useful, run 'zapping --help' to see
+what can be disabled (the "--no-" options at the end).
+I need feedback specially on these bugs:
+*) Preview doesn't work, image through all screen:
+	- Use the command line --bpp option giving the real X
+	server depth. Usually 24 or 32 if you have this problem.
+*) The program just hangs after showing the main window.
+	I have experienced this one myself with a 2.4.0test8
+	kernel, and appearently it gets fixed in the 5.4 release. I
+	would really appreciate some feedback on this one.
+*) Teletext just shows loading..., no page ever loaded
+	Try using the -d option. If it doesn't show
+	'vtx page: xxx.xxx' you aren't receiving anything Zapping can
+	understand. If AleVT works and Zapping's Teletext doesn't,
+	please mail me, otherwise it's probably a bug in the drivers
+	you are using.
+*) The camera/dvd player/whatever connected to Composite uses
+NTSC/SECAM/..., and the image appears horribly distorted/colorless/...
+	That's because PAL is being used for those inputs. Use the
+	--tunerless-norm option to set the norm for those inputs.
 
 USEFUL ADDRESSES
 ----------------

@@ -462,6 +462,9 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
     }
   tveng_stop_everything(info);
 
+  if (new_mode != TVENG_NO_CAPTURE)
+    zvbi_set_mode(FALSE);
+
   switch (new_mode)
     {
     case TVENG_CAPTURE_READ:

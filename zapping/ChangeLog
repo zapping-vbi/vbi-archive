@@ -1,3 +1,17 @@
+16.9.2000	/dev/dsp bug closed <garetxe@users.sourceforge.net>
+
+	* src/main.c: When VBI was disabled, the previous capture mode was
+	set automatically to CAPTURE, fixed.
+	* src/tveng.c: tveng_attach_device prints info about the video
+	device on success (if not configured with --disable-tveng-debug)
+	* src/tveng.c: Kernel 2.4.0test8's bttv makes the program hang if
+	the given width and height aren't valid, fixed (was '/dev/dsp bug')
+	* src/tveng.c: Added the option to tveng_device_info_new to use a
+	standard norm is the input we are going to switch to is tunerless
+	(so it defaults to PAL).
+	* src/main.c: Added the command line option to control the default
+	norm (--tunerless-norm, -n)
+
 14.9.2000	Kernel 2.4.0test8 <garetxe@users.sourceforge.net>
 
 	* /box: Installed the new kernel, a number of problems have arisen
@@ -9,6 +23,7 @@
 	startup_sound returned succeeded.
 	* src/main.c: Sound can be disabled by a command line  option and
 	if startup_sound fails.
+	* README: Updated, added a quick troubleshooting.
 
 13.9.2000	Teletext processed <garetxe@users.sourceforge.net>
 

@@ -464,6 +464,24 @@ int tveng1_set_input(struct tveng_enum_input * input,
   t_assert(info != NULL);
   t_assert(input != NULL);
 
+  /* If this input has no tuner, switch to an input with a tuner and
+     set the given standard. This fixes the V4L1 design flaw */
+  if ((input->tuners == 0) || (!(input->flags & TVENG_INPUT_TUNER)))
+    if (info->default_standard)
+      {
+	int i;
+	for (i = 0; i<info->num_inputs;i++)
+	  if ((info->inputs[i].tuners > 0) && (info->inputs[i].flags &
+					       TVENG_INPUT_TUNER))
+	    break;
+	if (i != info->num_inputs) /* found a candidate */
+	  {
+	    /* failing here isn't critical */
+	    tveng_set_input(&(info->inputs[i]), info);
+	    tveng_set_standard_by_name(info->default_standard, info);
+	  }
+      }
+
   current_mode = tveng_stop_everything(info);
 
   /* Fill in the channel with the appropiate info */
@@ -820,19 +838,23 @@ tveng1_set_capture_format(tveng_device_info * info)
 {
   struct video_picture pict;
   struct video_window window;
+  enum tveng_capture_mode mode;
 
   memset(&pict, 0, sizeof(struct video_picture));
   memset(&window, 0, sizeof(struct video_window));
 
   t_assert(info != NULL);
 
+  mode = tveng_stop_everything(info);
+
   if (ioctl(info->fd, VIDIOCGPICT, &pict))
     {
       info->tveng_errno = errno;
       t_error("VIDIOCGPICT", info);
+      tveng_restart_everything(mode, info);
       return -1;
     }
-  
+
   /* Transform the given palette value into a V4L value */
   switch(info->format.pixformat)
     {
@@ -858,6 +880,7 @@ tveng1_set_capture_format(tveng_device_info * info)
       info->tveng_errno = -1; /* unknown */
       t_error_msg("switch()", _("Cannot understand the given palette"),
 		  info);
+      tveng_restart_everything(mode, info);
       return -1;
     }
 
@@ -866,6 +889,7 @@ tveng1_set_capture_format(tveng_device_info * info)
     {
       info->tveng_errno = errno;
       t_error("VIDIOCSPICT", info);
+      tveng_restart_everything(mode, info);
       return -1;
     }
 
@@ -892,8 +916,12 @@ tveng1_set_capture_format(tveng_device_info * info)
     {
       info->tveng_errno = errno;
       t_error("VIDIOCSWIN", info);
+      tveng_restart_everything(mode, info);
       return -1;
     }
+
+  tveng_restart_everything(mode, info);
+
   /* Check fill in info with the current values (may not be the ones
      asked for) */
   if (tveng1_update_capture_format(info) == -1)
@@ -2206,6 +2234,7 @@ tveng1_set_preview_window(tveng_device_info * info)
 {
   struct video_window v4l_window;
   struct video_clip * clips=NULL;
+  enum tveng_capture_mode mode;
   int i;
 
   t_assert(info != NULL);
@@ -2242,6 +2271,8 @@ tveng1_set_preview_window(tveng_device_info * info)
 	}
     }
 
+  mode = tveng_stop_everything(info);
+
   /* Set the new window */
   if (ioctl(info->fd, VIDIOCSWIN, &v4l_window))
     {
@@ -2249,8 +2280,11 @@ tveng1_set_preview_window(tveng_device_info * info)
       t_error("VIDIOCSWIN", info);
       if (clips)
 	free(clips);
+      tveng_restart_everything(mode, info);
       return -1;
     }
+
+  tveng_restart_everything(mode, info);
 
   /* free allocated mem */
   if (clips)

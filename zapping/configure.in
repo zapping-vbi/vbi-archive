@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT(src/callbacks.c)
-AM_INIT_AUTOMAKE(zapping, 0.5.4cvs)
+AM_INIT_AUTOMAKE(zapping, 0.5.4)
 AM_CONFIG_HEADER(config.h)
 
 dnl Pick up the Gnome macros.
@@ -42,6 +42,20 @@ AC_ARG_ENABLE(
 AC_MSG_RESULT($disable_tveng_checks)
 if test "$disable_tveng_checks" = "yes"; then
 	AC_DEFINE(TVENG_DISABLE_IOCTL_TESTS)
+fi
+
+dnl ---------------------------------------------------------------------------
+dnl enable TVeng debugging messages
+dnl ---------------------------------------------------------------------------
+AC_MSG_CHECKING(whether to disable TVeng debugging messages)
+AC_ARG_ENABLE(
+	tveng-debug,
+	[  --disable-tveng-debug   Disable debug messages in TVeng],
+	[disable_tveng_debug="yes"],
+	[disable_tveng_debug="no"])
+AC_MSG_RESULT($disable_tveng_debug)
+if test "$disable_tveng_debug" = "no"; then
+	AC_DEFINE(TVENG_DEBUG)
 fi
 
 GNOME_INIT
