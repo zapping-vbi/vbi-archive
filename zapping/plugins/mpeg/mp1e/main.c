@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.41 2001-07-12 23:20:17 mschimek Exp $ */
+/* $Id: main.c,v 1.42 2001-07-13 18:09:12 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -148,9 +148,6 @@ main(int ac, char **av)
 	sigemptyset(&block_mask);
 	sigaddset(&block_mask, SIGINT);
 	sigprocmask(SIG_BLOCK, &block_mask, NULL);
-	sigemptyset(&block_mask);
-	sigaddset(&block_mask, SIGILL);
-	sigprocmask(SIG_UNBLOCK, &block_mask, NULL);
 
 	ASSERT("install termination handler", signal(SIGINT, terminate) != SIG_ERR);
 
