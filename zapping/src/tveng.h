@@ -90,7 +90,12 @@ enum tveng_attach_mode
     only supports preview mode, and falls back to the previous attach
     modes if XVideo isn't present or it isn't functional.
   */
-  TVENG_ATTACH_XV
+  TVENG_ATTACH_XV,
+  /*
+    Special control mode to enable VBI capturing without video capturing,
+    required for the bktr driver. Same as _CONTROL for other drivers.
+  */
+  TVENG_ATTACH_VBI,
 };
 
 /* The capture structure */
@@ -480,7 +485,9 @@ typedef enum {
 	TV_CONTROL_ID_MUTE,
 	TV_CONTROL_ID_VOLUME,
 	TV_CONTROL_ID_BASS,
-	TV_CONTROL_ID_TREBLE
+	TV_CONTROL_ID_TREBLE,
+	/* preliminary */
+	TV_CONTROL_ID_AUDIO_MODE,
 } tv_control_id;
 
 typedef enum {
@@ -546,31 +553,27 @@ tv_control_add_callback		(tv_control *		control,
 }
 
 /*
- *  Audio modes
+ *  Audio matrix
  */
 
-/* XXX this is a set, no enum */
-typedef enum {
-	TV_AUDIO_CAPABILITY_NONE,
-	TV_AUDIO_CAPABILITY_AUTO	= (1 << 0),
-	TV_AUDIO_CAPABILITY_MONO	= (1 << 1),
-	TV_AUDIO_CAPABILITY_STEREO	= (1 << 2),
-	/* Note SAP and BILINGUAL are mutually exclusive. */
-	TV_AUDIO_CAPABILITY_SAP		= (1 << 3),
-	TV_AUDIO_CAPABILITY_BILINGUAL	= (1 << 4),
-} tv_audio_capability;
+typedef unsigned int tv_audio_capability;
+
+#define TV_AUDIO_CAPABILITY_EMPTY	0
+#define TV_AUDIO_CAPABILITY_AUTO	(1 << 0)
+/* Primary language MONO/STEREO. */
+#define TV_AUDIO_CAPABILITY_MONO	(1 << 1)
+#define TV_AUDIO_CAPABILITY_STEREO	(1 << 2)
+/* Note SAP and BILINGUAL are mutually exclusive and
+   depend on the current video standard. */
+#define TV_AUDIO_CAPABILITY_SAP		(1 << 3)
+#define TV_AUDIO_CAPABILITY_BILINGUAL	(1 << 4)
 
 typedef enum {
-	TV_AUDIO_MODE_AUTO		= 0,
-	TV_AUDIO_MODE_UNKNOWN		= TV_AUDIO_MODE_AUTO,
-	TV_AUDIO_MODE_MONO		= 1,
-	TV_AUDIO_MODE_LANG1_MONO	= TV_AUDIO_MODE_MONO,
-	TV_AUDIO_MODE_STEREO		= 2,
-	TV_AUDIO_MODE_LANG1_STEREO	= TV_AUDIO_MODE_STEREO,
-	TV_AUDIO_MODE_LANG2		= 3,
-	TV_AUDIO_MODE_LANG2_MONO	= TV_AUDIO_MODE_LANG2
-	/* LANG2_STEREO: There are no 4 channel systems. Digital and
-	   satellite are a different matter. */
+	TV_AUDIO_MODE_UNKNOWN,
+	TV_AUDIO_MODE_AUTO = TV_AUDIO_MODE_UNKNOWN,
+	TV_AUDIO_MODE_LANG1_MONO,
+	TV_AUDIO_MODE_LANG1_STEREO,
+	TV_AUDIO_MODE_LANG2_MONO,
 } tv_audio_mode;
 
 extern tv_bool
@@ -841,7 +844,7 @@ struct _tv_pixel_format {
 
 	/* Bit masks describing size and position of color components
 	   in a in 8, 16, 24 or 32 bit (bits_per_pixel) quantity, as
-	   seen when reading from memory with proper endianess.
+	   seen when reading a word from memory with proper endianess.
 	   For packed YUV 4:2:2 and planar formats y, u and v will be
 	   0xFF. The a (alpha) component can be zero. */
 	union {
@@ -920,6 +923,9 @@ tv_image_format_init		(tv_image_format *	format,
 				 unsigned int		reserved);
 extern tv_bool
 tv_image_format_is_valid	(const tv_image_format *format);
+extern void
+_tv_image_format_dump		(const tv_image_format *format,
+				 FILE *			fp);
 
 /*
  *  Video capture
@@ -971,10 +977,10 @@ struct _tv_overlay_buffer {
 typedef struct _tv_clip tv_clip;
 
 struct _tv_clip {
-	uint16_t		x;
-	uint16_t		y;
-	uint16_t		width;
-	uint16_t		height;
+	uint16_t		x1;
+	uint16_t		y1;
+	uint16_t		x2;
+	uint16_t		y2;
 };
 
 static __inline__ tv_bool
@@ -984,10 +990,10 @@ tv_clip_equal			(const tv_clip *	clip1,
 	if (sizeof (tv_clip) == 8)
 		return (* (uint64_t *) clip1) == (* (uint64_t *) clip2);
 	else
-		return (0 == ((clip1->x ^ clip2->x) |
-			      (clip1->y ^ clip2->y) |
-			      (clip1->width ^ clip2->width) |
-			      (clip1->height ^ clip2->height)));
+		return (0 == ((clip1->x1 ^ clip2->x1) |
+			      (clip1->y1 ^ clip2->y1) |
+			      (clip1->x2 ^ clip2->x2) |
+			      (clip1->y2 ^ clip2->y2)));
 }
 
 typedef struct _tv_clip_vector tv_clip_vector;
@@ -1156,11 +1162,11 @@ struct _tveng_device_info
 	tv_control *		controls;
 	unsigned		audio_mutable : 1;
 
-	/* Audio mode, input & videostd dependant. Not implemented yet. */
+	/* Audio mode */
 	tv_audio_capability	audio_capability;
-	tv_audio_mode		audio_mode;
 	/* lang1/2: 0-none/unknown 1-mono 2-stereo */
 	unsigned int		audio_reception[2];
+	tv_audio_mode		audio_mode;
 
 	/* Overlay device properties */
 
@@ -1169,6 +1175,8 @@ struct _tveng_device_info
 
 	tv_bool			overlay_active; /* XXX internal */
 
+	/* Preliminary. If zero try set_format. */
+	tv_pixfmt_set		supported_pixfmt_set;
 
 
   /* Unique integer that indentifies this device */
