@@ -1,78 +1,112 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.17 2002-05-09 21:05:31 mschimek Exp $
+dnl $Id: configure.in,v 1.18 2002-06-12 04:01:23 mschimek Exp $
 
 AC_INIT(configure.in)
-AM_INIT_AUTOMAKE(rte, 0.5.0)
+AM_INIT_AUTOMAKE(rte, 0.5)
 AM_CONFIG_HEADER(config.h)
 
 AM_ACLOCAL_INCLUDE(macros)
 
+test "x`echo $CFLAGS | grep -e -g`" != "x" && CFLAGS="$CFLAGS -O0"
+CFLAGS="-O2 $CFLAGS -Wall -Wunused -Wmissing-prototypes -Wmissing-declarations"
+
 AC_PROG_CC
-
-dnl for automake 1.5
-AS=$CC
-AC_SUBST(AS)
-AC_SUBST(ASFLAGS)
-
-dnl Stupid rpm in SuSE
-CFLAGS="-g -O2 -Wall -fomit-frame-pointer"
+AM_PROG_AS
 
 AM_PROG_LIBTOOL
 
-test -e site_def.h || cat <<EOF >site_def.h
+for i in . mp1e; do
+  test -e $i/site_def.h || cat <<EOF >$i/site_def.h
 /* Site specific definitions */
 
 #ifndef SITE_DEF_H
 #define SITE_DEF_H
-#if 1 /* EXISTS */
-#endif /* EXISTS */
 #endif /* SITE_DEF_H */
 EOF
+done
 
-AC_CHECK_HEADER(linux/soundcard.h,AC_DEFINE(OSS, 1,
-					    [Define if you have linux/soundcard.h]))
+AC_CHECK_FUNCS(memalign)
 
-AC_MSG_CHECKING(for EsounD)
-ESD_VERSION=`esd-config --version`
-if test $? -eq 0; then
-	AC_MSG_RESULT($ESD_VERSION)
-	ESD_LIBS=`esd-config --libs`
-	ESD_CFLAGS=`esd-config --cflags`
-	AC_SUBST(ESD_CFLAGS)
-	AC_SUBST(ESD_LIBS)
-	AC_DEFINE(USE_ESD, 1, [Define if you have ESD.])
-else
-	AC_MSG_RESULT([no, ESD won't be used])
-fi
+dnl Check whether program_invocation_name exists, GNU extension
+AC_CHECK_FUNCS(program_invocation_name)
 
-dnl Build docs from the sources automagically if gtkdoc is available.
-GTK_DOC_CHECK
+dnl
+dnl Test 'as' support for SSE2
+dnl
+use_sse2=no
+AC_MSG_CHECKING([whether as supports SSE2])
+AC_TRY_COMPILE(, __asm__ __volatile__ (" movdqu 0,%xmm0\n"),
+	[AC_DEFINE(USE_SSE2, 1, [Define if 'as' supports SSE2])
+	 use_sse2=yes])
+AC_MSG_RESULT($use_sse2)
+AM_CONDITIONAL(USE_SSE2, test x$use_sse2 = xyes)
 
-dnl Short term plan is to have these three available
+dnl 
+dnl Plan is to have these three available
+dnl 
 BACKEND_MP1E=no
 AC_ARG_WITH(
-	mp1e,
-	[  --with-mp1e             Add the mp1e backend],
-	BACKEND_MP1E="$withval", BACKEND_MP1E="yes")
+  mp1e,
+  [  --with-mp1e             Add the mp1e backend],
+  BACKEND_MP1E="$withval", BACKEND_MP1E="yes")
 if test "x$BACKEND_MP1E" = "xyes"; then
-	AC_DEFINE(MP1E, 1, [Define if mp1e is built])
+  AC_DEFINE(MP1E, 1, [Define if mp1e is built])
+
+  create_links () {
+	for i in $3; do
+		test -e $2/$i || {
+			test -f $1/$i || {
+				echo "$1/$i not found, abort."
+				echo "Mp1e needs files from the Zapping CVS tree at" $1
+				echo "which is available from http://zapping.sf.net."
+				echo "Sorry for the inconvenience."
+				exit 1
+			}
+			echo "creating link for" $2/$i
+			dnl absolute path because make dist moves the tree
+			ln -s `cd $1; pwd; cd - >/dev/null`/$i $2/$i || exit 1
+		}
+	done
+  }
+
+  cd mp1e
+  create_links ../common common "list.h fifo.h threads.h"
+  create_links ../src . "context.h codec.h rte.h option.h rtepriv.h"
+  cd -
 fi
 
 BACKEND_FFMPEG=no
+AC_ARG_WITH(
+  ffmpeg,
+  [  --with-ffmpeg           Add the ffmpeg backend],
+  BACKEND_FFMPEG="$withval", BACKEND_FFMPEG="yes")
+if test "x$BACKEND_FFMPEG" = "xyes"; then
+  AC_DEFINE(FFMPEG, 1, [Define if ffmpeg is built])
+fi
+
 BACKEND_DIVX4LINUX=no
 
 AM_CONDITIONAL(BACKEND_FFMPEG, test "x$BACKEND_FFMPEG" = "xyes")
 AM_CONDITIONAL(BACKEND_MP1E, test "x$BACKEND_MP1E" = "xyes")
 AM_CONDITIONAL(BACKEND_DIVX4LINUX, test "x$BACKEND_DIVX4LINUX" = "xyes")
 
-dnl Check whether program_invocation_name exists, GNU extension
-AC_CHECK_FUNCS(program_invocation_name)
+dnl
+dnl For ffmpeg
+dnl
+AC_CHECK_FUNCS(memalign)
 
-dnl Add the languages which your application supports here.
+dnl 
+dnl Languages.
+dnl 
 ALL_LINGUAS="de"
 AM_GNU_GETTEXT(, [need-ngettext])
 LDFLAGS="$LDFLAGS $INTLLIBS"
 AC_CHECK_FUNCS(ngettext)
+
+dnl 
+dnl Build docs from the sources automagically if gtkdoc is available.
+dnl 
+GTK_DOC_CHECK
 
 AC_OUTPUT([
 Makefile
@@ -83,26 +117,32 @@ src/Makefile
 test/Makefile
 po/Makefile.in
 rte.spec
+mp1e/Makefile
+mp1e/video/Makefile
+mp1e/audio/Makefile
+mp1e/systems/Makefile
+mp1e/common/Makefile
+ffmpeg/Makefile
+ffmpeg/libav/Makefile
+ffmpeg/libavcodec/Makefile
+ffmpeg/libavcodec/i386/Makefile
 ])
-
-if test ! -e mp1e/NO-CONFIGURE; then
-	(cd mp1e && ./configure)
-else
-	echo "skipping ./mp1e -- flagged as no-configure"
-fi
 
 dnl fscking broken world
 if test ! -r po/Makefile; then
-	dnl Don't ask :-)
-	PF="POT"
-	PF=$PF"FILES"
-        sed -e "/$PF =/r po/PF" po/Makefile.in > po/Makefile
+  dnl Don't ask :-)
+  PF="POT"
+  PF=$PF"FILES"
+  sed -e "/$PF =/r po/PF" po/Makefile.in > po/Makefile
 fi
 
 echo "
-	Backend			Build		
+	Backend			Build
 	-------			-----
 	mp1e			$BACKEND_MP1E
 	ffmpeg			$BACKEND_FFMPEG
 	divx4linux		$BACKEND_DIVX4LINUX
+
+Note mp1e is now configured as rte backend. To build the mp1e command
+line program ./configure and make in mp1e/ instead.
 "
