@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.25 2002-03-12 18:20:03 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.26 2002-04-09 12:28:55 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -109,41 +109,12 @@ extern void		packed_preview(unsigned char *buffer,
 #endif
 
 #define TEST12 0
+#define PBF 2
+#define LOWVAR 0
+#define LOWVARI 0
+#define LOWVARP 0
 
 #define VARQ 65536.0
-
-#if TEST12
-#define LOWVAR 3000000
-#define ZMB1(var)					\
-do {							\
-	if (var < LOWVAR) quant = 3;			\
-} while (0)
-/* preliminary trick */
-#define ZMB2(mb, var)					\
-do { int i, j, n;					\
-	/* if (var < LOWVAR / 5) n = 64 - 3; else */	\
-	if (var < LOWVAR) n = 64 - 8; else n = 0;	\
-	for (i = 0; i < n; i++) {			\
-		j = 63 - mp1e_iscan[0][(i - 1) & 63];	\
-		mb[0][0][j] = 0;			\
-		mb[1][0][j] = 0;			\
-		mb[2][0][j] = 0;			\
-		mb[3][0][j] = 0;			\
-		mb[4][0][j] = 0;			\
-		mb[5][0][j] = 0;			\
-	}						\
-} while (0)
-#define PBF 2
-
-#else /* !TEST12 */
-
-#define TEST12 0
-#define LOWVAR 0
-#define ZMB1(x)
-#define ZMB2(x, y)
-#define PBF 2
-
-#endif
 
 /*
  *  Picture layer
@@ -167,14 +138,159 @@ do {									\
 	      (m)->vlc[dmv[0]].length + l1);				\
 } while (0)
 
+/* preliminary */
+static inline void
+mblock_hp(int n)
+{
+	int i;
+
+	asm volatile ("\tpxor %mm0,%mm0;\n");
+
+	for (i = 0; i < 6; i++)
+		asm volatile (
+			"\tmovq %%mm0,0*16+8(%0);\n"
+			"\tmovq %%mm0,1*16+4(%0); movq %%mm0,1*16+8(%0);\n"
+			"\tmovq %%mm0,2*16+2(%0); movq %%mm0,2*16+8(%0);\n"
+			"\tmovq %%mm0,3*16+2(%0); movq %%mm0,3*16+8(%0);\n"
+			"\tmovq %%mm0,4*16+0(%0); movq %%mm0,4*16+8(%0);\n"
+			"\tmovq %%mm0,5*16+0(%0); movq %%mm0,5*16+8(%0);\n"
+			"\tmovq %%mm0,6*16+0(%0); movq %%mm0,6*16+8(%0);\n"
+			"\tmovq %%mm0,7*16+0(%0); movq %%mm0,7*16+8(%0);\n"
+		:: "r" (&mblock[n][i]) : "memory");
+}
+
+static inline void
+tmp_slice_i(mpeg1_context *mpeg1, bool motion)
+{
+	for (mb_col = 0; mb_col < mb_width; mb_col++) {
+		unsigned int var;
+		int quant;
+		struct bs_rec mark;
+
+		pr_start(41, "Filter");
+#if TEST21
+		var = mpeg1->filter_param[0].func(&mpeg1->filter_param[0], mb_col, mb_row);
+#else
+		var = (*filter)(mpeg1->filter_param[0].src,
+				mpeg1->filter_param[0].src); // -> mblock[0]
+#endif
+		pr_end(41);
+
+		if (motion && __builtin_expect(mpeg1->referenced, 1)) {
+			pr_start(56, "MB sum");
+			mmx_mbsum(newref + mm_buf_offs); // mblock[0]
+			pr_end(56);
+		}
+
+		emms();
+
+		if (0 && var < LOWVARI) {
+			quant = 4;
+			fprintf(stderr, "+");
+		} else {
+			int pq0 = mpeg1->mb_hist[mb_col + 0].quant;
+			int pq1 = mpeg1->mb_hist[mb_col + 1].quant;
+
+			quant = rc_quant(&mpeg1->rc, MB_INTRA,
+					 var / VARQ + 1, 0.0,
+					 bwritten(&video_out), 0, quant_max);
+
+if (0)
+			if (mb_col > 0 && !(TEST12 && motion)) {
+		       		if (((quant - pq0) < -2 || (quant - pq1) < -2)) {
+					quant = (quant + quant + pq0 + pq1 + 2) >> 2;
+				} else if (quant >= 4 && quant > pq0 && (quant - pq0) <= 2) {
+					quant = pq0;
+				}
+			}
+
+			quant = quant_res_intra[quant];
+			/*
+			 *  quant_res_intra halves the quantization factor resolution above 16 to
+			 *  reduce lookup table size (MMX DCT). Quality is already poor at 16,
+			 *  so it won't hurt very much.
+			 */
+		}
+
+		/* Encode macroblock */
+
+		brewind(&mark, &video_out);
+
+		for (;;) {
+			pr_start(22, "FDCT intra");
+			fdct_intra(quant); // mblock[0] -> mblock[1]
+			pr_end(22);
+
+			if (0 && var < LOWVARI)
+				mblock_hp(0);
+
+			bepilog(&video_out);
+
+			if (__builtin_expect((mb_col + mb_row) == 0, 0)) {
+				bstartq(SLICE_START_CODE);
+				bcatq((quant << 3) + 0x3, 8);
+				bputq(&video_out, 40);
+				/*
+				 *  slice header: quantiser_scale_code 'xxxxx', extra_bit_slice '0';
+				 *  macroblock_address_increment '1', macroblock_type '1' (I Intra)
+				 */
+			} else if (mpeg1->mb_hist[mb_col].quant != quant) {
+				bputl(&video_out, 0xA0 + quant, 8);
+				/*
+				 *  macroblock_address_increment '1', macroblock_type '01' (I Intra, Quant),
+				 *  quantiser_scale_code 'xxxxx'
+				 */
+			} else
+				bputl(&video_out, 0x3, 2);
+				/* macroblock_address_increment '1', macroblock_type '1' (I Intra) */
+
+			pr_start(44, "Encode intra");
+
+			if (__builtin_expect(!mpeg1_encode_intra(), 1)) { // mblock[1]
+				pr_end(44);
+				break;
+			}
+
+			pr_end(44);
+
+			quant++;
+			brewind(&video_out, &mark);
+
+			pr_event(42, "I/intra overflow");
+		}
+
+		bprolog(&video_out);
+
+		mpeg1->quant_sum += quant;
+		mpeg1->mb_hist[mb_col + 1].quant = quant;
+
+		if (__builtin_expect(mpeg1->referenced, 1)) {
+			pr_start(23, "IDCT intra");
+			mpeg1_idct_intra(quant);	// mblock[1] -> newref
+			pr_end(23);
+
+			if (motion)
+				zero_forward_motion();
+
+			mba_col_incr();
+		}
+#if TEST_PREVIEW
+		if (preview > 1) {
+			emms();
+			packed_preview(newref, mb_width, mb_height);
+		}
+#endif
+	}
+
+	mpeg1->mb_hist[0] = mpeg1->mb_hist[mb_col - 1];
+
+	mba_row_incr();
+}
+
 static inline int
 tmp_picture_i(mpeg1_context *mpeg1, unsigned char *org, bool motion)
 {
-	int quant_sum;
-	int S, prev_quant, quant;
-	struct bs_rec mark;
-	unsigned int var;
-	bool slice;
+	int S;
 
 	printv(3, "Encoding I picture #%lld GOP #%d, ref=%c\n",
 		video_frame_count, mpeg1->gop_frame_count, "FT"[mpeg1->referenced]);
@@ -183,15 +299,20 @@ tmp_picture_i(mpeg1_context *mpeg1, unsigned char *org, bool motion)
 
 	rc_picture_start(&mpeg1->rc, I_TYPE, mb_num);
 
-	quant_sum = 0;
+	mpeg1->quant_sum = 0;
 
 	swap(mpeg1->oldref, newref);
 
 	reset_mba();
 	reset_dct_pred();
 
-	slice = FALSE;
-	prev_quant = -100;
+	{
+		struct mblock_hist m = { -100, 0, { 0, 0 }};
+		int i;
+
+		for (i = -1; i < mb_width; i++)
+			mpeg1->mb_hist[i + 1] = m;
+	}
 
 	/* Picture header */
 
@@ -209,117 +330,8 @@ tmp_picture_i(mpeg1_context *mpeg1, unsigned char *org, bool motion)
 
 	mpeg1->filter_param[0].src = org;
 
-	for (mb_row = 0; mb_row < mb_height; mb_row++) {
-		for (mb_col = 0; mb_col < mb_width; mb_col++) {
-
-			/* Read macroblock (MMX state) */
-
-			pr_start(41, "Filter");
-#if TEST21
-			var = mpeg1->filter_param[0].func(&mpeg1->filter_param[0], mb_col, mb_row);
-#else
-			var = (*filter)(org, org); // -> mblock[0]
-#endif
-			pr_end(41);
-
-			if (motion && __builtin_expect(mpeg1->referenced, 1)) {
-				pr_start(56, "MB sum");
-				mmx_mbsum(newref + mm_buf_offs); // mblock[0]
-				pr_end(56);
-			}
-
-			emms();
-
-			/* Calculate quantization factor */
-
-			quant = rc_quant(&mpeg1->rc, MB_INTRA,
-					 var / VARQ + 1, 0.0,
-					 bwritten(&video_out), 0, quant_max);
-			quant = quant_res_intra[quant];
-			/*
-			 *  quant_res_intra halves the quantization factor resolution above 16 to
-			 *  reduce lookup table size (MMX DCT). Quality is already poor at 16,
-			 *  so it won't hurt very much.
-	                 */
-
-			if (!(TEST12 && motion))
-			if (quant >= 4 && quant > prev_quant &&
-			    nbabs(quant - prev_quant) <= 2)
-				quant = prev_quant;
-
-if (motion)
-ZMB1(var);
-			/* Encode macroblock */
-
-			brewind(&mark, &video_out);
-
-			for (;;) {
-				pr_start(22, "FDCT intra");
-				fdct_intra(quant); // mblock[0] -> mblock[1]
-				pr_end(22);
-if (motion)
-ZMB2(mblock[1], var);
-				bepilog(&video_out);
-
-				if (__builtin_expect(!slice, 0)) {
-					bstartq(SLICE_START_CODE);
-					bcatq((quant << 3) + 0x3, 8);
-					bputq(&video_out, 40);
-					/*
-					 *  slice header: quantiser_scale_code 'xxxxx', extra_bit_slice '0';
-					 *  macroblock_address_increment '1', macroblock_type '1' (I Intra)
-					 */
-				} else if (prev_quant != quant) {
-					bputl(&video_out, 0xA0 + quant, 8);
-					/*
-					 *  macroblock_address_increment '1', macroblock_type '01' (I Intra, Quant),
-					 *  quantiser_scale_code 'xxxxx'
-					 */
-				} else
-					bputl(&video_out, 0x3, 2);
-					/* macroblock_address_increment '1', macroblock_type '1' (I Intra) */
-
-				pr_start(44, "Encode intra");
-
-				if (__builtin_expect(!mpeg1_encode_intra(), 1)) { // mblock[1]
-					pr_end(44);
-					break;
-				}
-
-				pr_end(44);
-
-				quant++;
-				brewind(&video_out, &mark);
-
-				pr_event(42, "I/intra overflow");
-			}
-
-			bprolog(&video_out);
-
-			slice = TRUE;
-			quant_sum += quant;
-			prev_quant = quant;
-
-			if (__builtin_expect(mpeg1->referenced, 1)) {
-				pr_start(23, "IDCT intra");
-				mpeg1_idct_intra(quant);	// mblock[1] -> newref
-				pr_end(23);
-
-				if (motion)
-					zero_forward_motion();
-
-				mba_col_incr();
-			}
-#if TEST_PREVIEW
-			if (preview > 1) {
-				emms();
-				packed_preview(newref, mb_width, mb_height);
-			}
-#endif
-		}
-
-		mba_row_incr();
-	}
+	for (mb_row = 0; mb_row < mb_height; mb_row++)
+		tmp_slice_i(mpeg1, motion);
 
 	emms();
 
@@ -327,7 +339,7 @@ ZMB2(mblock[1], var);
 
 	S = bflush(&video_out);
 
-	rc_picture_end(&mpeg1->rc, I_TYPE, S, quant_sum, mb_num);
+	rc_picture_end(&mpeg1->rc, I_TYPE, S, mpeg1->quant_sum, mb_num);
 
 	pr_end(21);
 
@@ -347,7 +359,10 @@ do {									\
 		pr_start(22, "FDCT intra");				\
 		fdct_intra(quant); /* mblock[0] -> mblock[1] */		\
 		pr_end(22);						\
-ZMB2(mblock[1], var);							\
+									\
+		if (0 && var < LOWVARP)					\
+			mblock_hp(0);					\
+									\
 		bepilog(&video_out);					\
 									\
 		if (f) {						\
@@ -402,7 +417,6 @@ static inline int
 tmp_picture_p(mpeg1_context *mpeg1, unsigned char *org,
 	      bool motion, int dist, int forward_motion)
 {
-	int quant_sum;
 	int S, quant, prev_quant, quant1 = 1;
 	struct bs_rec mark;
 	struct motion M[1];
@@ -437,7 +451,7 @@ tmp_picture_p(mpeg1_context *mpeg1, unsigned char *org,
 
 	rc_picture_start(&mpeg1->rc, P_TYPE, mb_num);
 
-	quant_sum = 0;
+	mpeg1->quant_sum = 0;
 
 	reset_dct_pred();
 	
@@ -562,23 +576,28 @@ tmp_picture_p(mpeg1_context *mpeg1, unsigned char *org,
 
 				/* Calculate quantization factor */
 
-				quant = rc_quant(&mpeg1->rc, MB_FORWARD,
-						 act, act,
-						 bwritten(&video_out), QS, quant_max);
-				quant = quant_res_intra[quant];
+				if (0 && var < LOWVARP) {
+					quant = 3;
+	    			        fprintf(stderr, "/");
+				} else {
+					quant = rc_quant(&mpeg1->rc, MB_FORWARD,
+							 act, act,
+							 bwritten(&video_out), QS, quant_max);
+					quant = quant_res_intra[quant];
 
 //				if (quant >= 4 && nbabs(quant - prev_quant) <= 2)
 //					quant = prev_quant;
+				}
 
 				intra_count++;
-ZMB1(var);
+
 				pb_intra_mb(TRUE);
 
 				if (prev_quant < 0)
 					quant1 = quant;
 
 				prev_quant = quant;
-				quant_sum += quant;
+				mpeg1->quant_sum += quant;
 
 				mb_skipped = 0;
 
@@ -715,7 +734,7 @@ if (!T3RT) quant = 2;
 					} // if not skipped
 				} // retry
 
-				quant_sum += quant;
+				mpeg1->quant_sum += quant;
 				mb_skipped = i;
 
 				reset_dct_pred();
@@ -745,7 +764,7 @@ if (!T3RT) quant = 2;
 	
 	*q1p |= (quant1 << 3);
 
-	rc_picture_end(&mpeg1->rc, P_TYPE, S, quant_sum, mb_num);
+	rc_picture_end(&mpeg1->rc, P_TYPE, S, mpeg1->quant_sum, mb_num);
 
 	pr_end(24);
 
@@ -762,7 +781,6 @@ tmp_picture_b(mpeg1_context *mpeg1, unsigned char *org,
 	      bool motion, int dist, int forward_motion, int backward_motion)
 {
 	short (* iblock)[6][8][8];
-	int quant_sum;
 	int S, quant, prev_quant, quant1 = 1;
 	struct bs_rec mark;
 	unsigned char *q1p;
@@ -789,7 +807,7 @@ tmp_picture_b(mpeg1_context *mpeg1, unsigned char *org,
 
 	rc_picture_start(&mpeg1->rc, B_TYPE, mb_num);
 
-	quant_sum = 0;
+	mpeg1->quant_sum = 0;
 
 	reset_dct_pred();
 
@@ -951,14 +969,19 @@ skip_pred:
 				quant = quant_res_intra[quant];
 
 				macroblock_type = MB_INTRA;
-ZMB1(var);
+
+				if (0 && var < LOWVARP) {
+					quant = 3;
+					fprintf(stderr, "-");
+				}
+
 				pb_intra_mb(TRUE);
 
 				if (prev_quant < 0)
 					quant1 = quant;
 
 				prev_quant = quant;
-				quant_sum += quant;
+				mpeg1->quant_sum += quant;
 
 				mb_skipped = 0;
 
@@ -1099,7 +1122,7 @@ l2:
 
 				prev_quant = quant;
 
-				quant_sum += quant;
+				mpeg1->quant_sum += quant;
 				mb_skipped = i;
 
 				if (motion && i == 0) {
@@ -1133,7 +1156,7 @@ l2:
 
 	*q1p |= (quant1 << 3);
 
-	rc_picture_end(&mpeg1->rc, B_TYPE, S, quant_sum, mb_num);
+	rc_picture_end(&mpeg1->rc, B_TYPE, S, mpeg1->quant_sum, mb_num);
 
 	pr_end(25);
 
@@ -1750,8 +1773,9 @@ mp1e_mpeg1(void *codec)
 
 				this->org = NULL;
 				this->time = mpeg1->last.time += mpeg1->nominal_frame_period;
-			} else
+			} else {
 				mpeg1->last.time = this->time;
+			}
 
 			sp++;
 
@@ -1983,6 +2007,7 @@ video_reset(mpeg1_context *mpeg1)
 
 	if (!mpeg1->nominal_frame_rate) // XXX mp1e frontend
 		mpeg1->nominal_frame_rate = frame_rate_value[mpeg1->frame_rate_code];
+
 	mpeg1->nominal_frame_period = 1.0 / mpeg1->nominal_frame_rate;
 
 	mpeg1->skip_rate_acc = mpeg1->nominal_frame_rate
@@ -2144,6 +2169,8 @@ uninit(rte_codec *codec)
 	do_free((void **) &mm_mbrow);
 	do_free((void **) &newref);
 	do_free((void **) &mpeg1->oldref);
+
+	do_free((void **) &mpeg1->mb_hist);
 
 	do_free((void **) &mpeg1->banner);
 
@@ -2385,6 +2412,8 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 	}
 
 	/* Init buffers */
+
+	mpeg1->mb_hist = calloc_aligned ((mb_width + 1) * sizeof (*mpeg1->mb_hist), 32);
 
 	// XXX too big. Interleave.
 

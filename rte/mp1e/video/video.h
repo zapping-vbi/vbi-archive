@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: video.h,v 1.16 2002-03-12 18:20:23 mschimek Exp $ */
+/* $Id: video.h,v 1.17 2002-04-09 12:28:55 mschimek Exp $ */
 
 #ifndef VIDEO_H
 #define VIDEO_H
@@ -235,6 +235,12 @@ typedef struct stacked_frame {
 	int		skipped;
 } stacked_frame;
 
+typedef struct mblock_hist {
+	int8_t			quant;
+	int8_t			pad1;
+	int8_t			mv[2];
+} mblock_hist;
+
 typedef struct mpeg1_context mpeg1_context;
 
 struct mpeg1_context {
@@ -260,6 +266,8 @@ struct mpeg1_context {
 	stacked_frame	stack[MAX_B_SUCC];
 	stacked_frame	last;
 
+	mblock_hist *	mb_hist;		/* attn: base -1 */
+
 						/* frames encoded (coding order) */
 	int		gop_frame_count;	/* .. in current GOP (display order) */
 	int		seq_frame_count;	/* .. since last sequence header */
@@ -272,6 +280,9 @@ struct mpeg1_context {
 	bool		insert_gop_header;
 	bool		closed_gop;		/* random access point, no fwd ref */
 	bool		referenced;		/* by other P or B pictures */
+	bool		slice;
+
+	int		quant_sum;
 
 	struct rc	rc;
 

@@ -205,7 +205,9 @@ gpointer remote_command(gchar *command, gpointer arg)
  *  Zapping commands Mk II
  */
 
-#define CMD_LOG 1
+#ifndef REMOTE_CMD_LOG
+#define REMOTE_CMD_LOG 0
+#endif
 
 typedef struct command {
   struct command *		next;
@@ -281,7 +283,7 @@ cmd_execute				(GtkWidget *	widget,
   if (recursion > 20)
     return FALSE;
 
-  if (CMD_LOG)
+  if (REMOTE_CMD_LOG)
     fprintf (stderr, "cmd_execute '%s'\n", s);
 
   while (*s != 0)
@@ -386,7 +388,7 @@ on_remote_command1			(GtkWidget *	widget,
 
   g_assert (command != NULL && command[0]);
 
-  if (CMD_LOG)
+  if (REMOTE_CMD_LOG)
     {
       gchar *long_name = (gchar *) glade_get_widget_long_name (widget);
 
@@ -395,7 +397,7 @@ on_remote_command1			(GtkWidget *	widget,
     }
 
   if (!cmd_execute (widget, command))
-    if (CMD_LOG)
+    if (REMOTE_CMD_LOG)
       fprintf (stderr, "command failed\n");
 }
 
@@ -411,7 +413,7 @@ on_remote_command2			(GtkWidget *	widget,
 
   g_assert (command != NULL && command[0]);
 
-  if (CMD_LOG)
+  if (REMOTE_CMD_LOG)
     {
       gchar *long_name = (gchar *) glade_get_widget_long_name (widget);
 
@@ -420,7 +422,7 @@ on_remote_command2			(GtkWidget *	widget,
     }
 
   if (!cmd_execute (widget, command))
-    if (CMD_LOG)
+    if (REMOTE_CMD_LOG)
       fprintf (stderr, "command failed\n");
 }
 

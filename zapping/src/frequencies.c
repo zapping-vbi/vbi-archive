@@ -32,6 +32,7 @@
 /* --------------------------------------------------------------------- */
 
 /* US terrestrial */
+
 static tveng_rf_channel
 ntsc_bcast[] = {
     /* "1" eliminated by FCC in 1945 */
@@ -119,7 +120,8 @@ ntsc_bcast[] = {
     { "83",	885250 },
 };
 
-/* US cable */
+/* US cable IRC (Incrementally Related Carriers) */
+
 static tveng_rf_channel
 ntsc_cable[] = {
     { "1",	 73250 },
@@ -248,6 +250,8 @@ ntsc_cable[] = {
     { "124",	793250 },
     { "125",	799250 },
 
+    /* Usually upstream (reverse) channels */
+
     { "T7", 	  8250 },
     { "T8",	 14250 },
     { "T9",	 20250 },
@@ -258,7 +262,8 @@ ntsc_cable[] = {
     { "T14",	 50250 }
 };
 
-/* US HRC */
+/* US cable HRC (Harmonically Related Carriers) */
+
 static tveng_rf_channel
 ntsc_hrc[] = {
     { "1",	  72000 },
@@ -386,7 +391,9 @@ ntsc_hrc[] = {
     { "123",	 786000 },
     { "124",	 792000 },
     { "125",	 798000 },
- 
+
+    /* Usually upstream (reverse) channels */
+
     { "T7",	   7000 },  
     { "T8",	  13000 }, 
     { "T9",	  19000 }, 
@@ -399,7 +406,8 @@ ntsc_hrc[] = {
 
 /* --------------------------------------------------------------------- */
 
-/* JP broadcast */
+/* Japan terrestrial */
+
 static tveng_rf_channel
 ntsc_bcast_jp[] = {
     { "1",   91250 },
@@ -467,7 +475,8 @@ ntsc_bcast_jp[] = {
     { "62", 765250 },
 };
 
-/* JP cable */
+/* Japan cable */
+
 static tveng_rf_channel
 ntsc_cable_jp[] = {
     { "13",	109250 },
@@ -525,7 +534,8 @@ ntsc_cable_jp[] = {
 
 /* --------------------------------------------------------------------- */
 
-/* australia */
+/* Australia */
+
 static tveng_rf_channel
 pal_australia[] = {
     { "0",	 46250 },
@@ -583,7 +593,8 @@ pal_australia[] = {
 };
 
 /* --------------------------------------------------------------------- */
-/* europe                                                                */
+
+/* Europe */
 
 /* CCIR frequencies */
 
@@ -836,8 +847,6 @@ secam_france[] = {
     FREQ_UHF,
 };
 
-/* --------------------------------------------------------------------- */
-
 static tveng_rf_channel
 pal_newzealand[] = {
     { "1", 	  45250 }, 
@@ -1069,6 +1078,13 @@ pal_bcast_cn[] = {
     { "94",	855250 },
 };
 
+/*
+pakistan_cable[] = {
+    pal_europe +
+    { "Z1",  90250 },
+    { "Z2",  97250 },
+*/
+
 /* --------------------------------------------------------------------- */
 
 #define COUNT(array) (sizeof(array) / sizeof(array[0]))
@@ -1090,6 +1106,7 @@ rf_tables[] = {
   { N_("Russia"),	     secam_russia,    COUNT (secam_russia),    { 0 } },
   { N_("South Africa"),	     south_africa,    COUNT (south_africa),    { 0 } },
   { N_("China"),	     pal_bcast_cn,    COUNT (pal_bcast_cn),    { 0 } },
+  { N_("Pakistan cable"),    pal_europe,      COUNT (pal_europe),      { "E", "S", "SE", 0 } },
   { 0 }
 };
 

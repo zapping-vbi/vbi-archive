@@ -1,3 +1,21 @@
+09.04.2002	<mschimek@users.sf.net>
+
+	* zapping_setup_fb/Makefile.am: In absence of consolehelper
+	  install suid root zapping_setup_fb in $sbindir but $bindir
+	  and create a symlink in $bindir. Now the executable is always
+	  in $sbindir. Removed zsfb.capps.in, now created by
+	  Makefile, to replace $prefix/sbin by $sbindir (which isn't
+	  fully expanded by autoconf in zsfb.capps.in).
+	* zapping_setup_fb/zapping_fix_overlay.in: Renamed from
+	  zapping_fix_overlay. This version works exactly like
+	  the new make install, honouring $bindir and $sbindir, with a
+	  a provision for RPM relocation and a reversion option.
+
+06.04.2002	<mschimek@users.sf.net>
+
+	* src/osd.c: Fix to compile w/o zvbi.
+	* src/callbacks.c: Fix to compile w/o zvbi.
+
 04.04.2002	<mschimek@users.sf.net>
 
 	* zapping_setup_fb/zapping_fix_overlay: Didn't work when
