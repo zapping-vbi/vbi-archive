@@ -77,6 +77,35 @@ struct plugin_misc_info
   gint plugin_cathegory; /* Cathegories the plugin falls under */
 };
 
+/*
+  This struct holds all the info about a a/v sample pased to a
+  plugin. The plugin can write to all fields, but it should keep all
+  the data valid, since the same struct will be passed to the
+  remaining plugins.
+*/
+typedef struct
+{
+  /* VIDEO fields */
+  GdkImage * image; /* Pointer to the image as a GdkImage */
+  gpointer video_data; /* The data contained in the image */
+  __s64 v_timestamp; /*
+		       Timestamp for this video frame, format is:
+		       timestamp = (sec*1000000+usec)*1000
+		     */
+  struct tveng_frame_format format; /* Format of the frame */
+
+  /* AUDIO fields */
+  gpointer audio_data; /* The audio data */
+  gint audio_size; /* Number of bytes available in audio_data, can be 0 */
+  gint audio_bits; /* Bits per sample, usually 16 */
+  gint audio_rate; /* Audio sampling rate, usually 44100 (44.1 kHz) */
+  __s64 a_timestamp; /*
+		       Audio timestamp, same format as the video
+		       timestamp
+		     */
+}
+plugin_sample;
+
 #ifndef ZAPPING /* If this is being included from a plugin, give them
 		   the correct prototypes for public symbols ( so
 		   compiling will give an error if defined differently) */
@@ -100,8 +129,7 @@ static gboolean plugin_start ( void );
 static void plugin_stop( void );
 static void plugin_load_config ( gchar * root_key );
 static void plugin_save_config ( gchar * root_key );
-static GdkImage * plugin_process_frame(GdkImage * image, gpointer data,
-				       struct tveng_frame_format * format);
+static void plugin_process_sample( plugin_sample * sample );
 static
 gboolean plugin_get_public_info (gint index, gpointer * ptr, gchar **
 				 symbol, gchar ** description, gchar **

@@ -1873,7 +1873,6 @@ tveng1_start_capturing(tveng_device_info * info)
 {
   struct private_tveng1_device_info * p_info =
     (struct private_tveng1_device_info*) info;
-  struct timeval tv;
 
   tveng_stop_everything(info);
   t_assert(info -> current_mode == TVENG_NO_CAPTURE);
@@ -1908,10 +1907,6 @@ tveng1_start_capturing(tveng_device_info * info)
   p_info -> queued = p_info -> dequeued = 0;
 
   info->current_mode = TVENG_CAPTURE_READ;  
-
-  gettimeofday(&tv, NULL);
-  p_info -> start_timestamp = (tv.tv_sec * 1000000) + tv.tv_usec;
-  p_info -> start_timestamp *= 1000;
 
   /* Queue first buffer */
   if (p_tveng1_queue(info) == -1)
@@ -2014,7 +2009,7 @@ static int p_tveng1_dequeue(void * where, tveng_device_info * info)
   struct video_mmap bm;
   struct private_tveng1_device_info * p_info =
     (struct private_tveng1_device_info*) info;
-  struct timeval tv; /* For the timestamp */
+  struct timeval tv;
 
   t_assert(info != NULL);
   t_assert(info -> current_mode == TVENG_CAPTURE_READ);
@@ -2056,11 +2051,21 @@ static int p_tveng1_dequeue(void * where, tveng_device_info * info)
       return -1;
     }
 
+  /* get the timestamp */
   gettimeofday(&tv, NULL);
+  tv.tv_sec -= info->tv_init.tv_sec;
+  tv.tv_usec -= info->tv_init.tv_usec;
+  if (tv.tv_usec < 0)
+    {
+      tv.tv_sec--;
+      tv.tv_usec += 1000000;
+    }
 
-  p_info -> last_timestamp = (tv.tv_sec * 1000000) + tv.tv_usec;
-  p_info -> last_timestamp *= 1000;
-  p_info -> last_timestamp -= p_info -> start_timestamp;
+  t_assert(tv.tv_sec >= 0);
+  t_assert(tv.tv_usec >= 0);
+
+  p_info->last_timestamp = ((__s64)tv.tv_sec)*1000000 + ((__s64)tv.tv_usec);
+  p_info->last_timestamp *= 1000;
 
   /* Copy the mmaped data to the data struct, if it is not null */
   if (where)

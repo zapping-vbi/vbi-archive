@@ -67,6 +67,8 @@ struct SoundInfo
 };
 
 static struct SoundInfo si;
+static struct timeval tv; /* When did sound capturing start */
+static pthread_mutex_t tv_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* This thread is the responsible of capturing the sound */
 gpointer sound_capturing_thread( gpointer data );
@@ -161,6 +163,14 @@ void shutdown_sound ( void )
   esd_close(si.esd_playing_socket);
 }
 
+/* Set the timestamps relative to the current time value */
+void sound_start_timer ( void )
+{
+  pthread_mutex_lock(&tv_mutex);
+  gettimeofday(&tv, NULL);
+  pthread_mutex_unlock(&tv_mutex);
+}
+
 /* This thread is the responsible of capturing the sound */
 gpointer sound_capturing_thread( gpointer data )
 {
@@ -169,18 +179,28 @@ gpointer sound_capturing_thread( gpointer data )
   struct timeval timeout;
   int n;
   int index;
+  __s64 t_value;
+  __s64 t_value_start;
 
   /* Do the startup */
   index = si.write_index;
   pthread_mutex_lock(&si.sb[index].mutex);
   si.sb[index].write_pointer = 0;
-  gettimeofday(&si.sb[index].tv, NULL);
+
+  gettimeofday(&timeout, NULL);
+  pthread_mutex_lock(&tv_mutex);
+  t_value_start = (((__s64)tv.tv_sec) * 1000000)+((__s64)tv.tv_usec);
+  pthread_mutex_unlock(&tv_mutex);
+
+  t_value = (((__s64)timeout.tv_sec) * 1000000)+((__s64)timeout.tv_usec);
+  t_value -= t_value_start;
+  si.sb[index].tv.tv_sec = t_value / 1000000;
+  si.sb[index].tv.tv_usec = t_value % 1000000;
 
   /* HOWTO: Make si.write_index = 1-si.write_index; si.switch_buffers
      = TRUE; put a lock in
      1-si.write_index and when pthread_mutex_lock returns you can
      start reading from the buffer */
-  
   while (!si.exit_thread)
     {
       /* Check if a buffer switch has been requested */
@@ -188,7 +208,16 @@ gpointer sound_capturing_thread( gpointer data )
 	{
 	  pthread_mutex_lock(&si.sb[si.write_index].mutex);
 	  si.sb[si.write_index].write_pointer = 0;
-	  gettimeofday(&si.sb[si.write_index].tv, NULL);
+	  gettimeofday(&timeout, NULL);
+	  pthread_mutex_lock(&tv_mutex);
+	  t_value_start = (((__s64)tv.tv_sec) *
+			   1000000)+((__s64)tv.tv_usec);
+	  pthread_mutex_unlock(&tv_mutex);
+	  t_value = (((__s64)timeout.tv_sec) * 1000000)+
+	    ((__s64)timeout.tv_usec);
+	  t_value -= t_value_start;
+	  si.sb[si.write_index].tv.tv_sec = t_value / 1000000;
+	  si.sb[si.write_index].tv.tv_usec = t_value % 1000000;
 	  si.switch_buffers = FALSE;
 	  /* Remove the lock from the previous write buffer */
 	  pthread_mutex_unlock(&si.sb[index].mutex);

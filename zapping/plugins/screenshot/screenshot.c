@@ -152,7 +152,7 @@ gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
     SYMBOL(plugin_start, 0x1234),
     SYMBOL(plugin_load_config, 0x1234),
     SYMBOL(plugin_save_config, 0x1234),
-    SYMBOL(plugin_process_frame, 0x1234),
+    SYMBOL(plugin_process_sample, 0x1234),
     SYMBOL(plugin_get_public_info, 0x1234),
     SYMBOL(plugin_add_properties, 0x1234),
     SYMBOL(plugin_activate_properties, 0x1234),
@@ -274,20 +274,13 @@ void plugin_save_config (gchar * root_key)
 }
 
 static
-GdkImage * plugin_process_frame(GdkImage * image, gpointer data,
-				struct tveng_frame_format *  format)
+void plugin_process_sample(plugin_sample * sample)
 {
   if (save_screenshot)
     {
-      start_saving_screenshot(data, format);
+      start_saving_screenshot(sample->video_data, &(sample->format));
       save_screenshot = FALSE;
     }
-
-  /*
-    Return the modified data (the same as the supplied on, in this
-    case).
-  */
-  return image;
 }
 
 static

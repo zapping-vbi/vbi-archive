@@ -263,6 +263,8 @@ typedef struct
 #endif
 
   int zapping_setup_fb_verbosity;
+
+  struct timeval tv_init;
 }
 tveng_device_info;
 
@@ -644,6 +646,9 @@ enum tveng_capture_mode tveng_stop_everything (tveng_device_info *
 */
 int tveng_restart_everything (enum tveng_capture_mode mode,
 			      tveng_device_info * info);
+
+/* Sets the timestamps relative to the current time */
+void tveng_start_timer(tveng_device_info * info);
 
 /* Sanity checks should use this */
 #define t_assert(condition) if (!(condition)) { \

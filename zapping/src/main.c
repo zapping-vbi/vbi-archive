@@ -71,9 +71,9 @@ int main(int argc, char * argv[])
   GtkWidget * tv_screen;
   gchar * buffer;
   GList * p;
-  struct tveng_frame_format format;
   gint x, y, w, h; /* Saved geometry */
   GdkGeometry geometry;
+  plugin_sample sample; /* The a/v sample passed to the plugins */
 
 #ifdef ENABLE_NLS
   bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
@@ -99,9 +99,6 @@ int main(int argc, char * argv[])
       return -1;
     }
 
-  /* We must do this (running zapping_setup_fb) before attaching the
-     device because V4L and V4L2 don't support multiple capture opens
-  */
   if (!startup_zapping())
     {
       RunBox(_("Zapping couldn't be started"),
@@ -110,6 +107,9 @@ int main(int argc, char * argv[])
       return 0;
     }
 
+  /* We must do this (running zapping_setup_fb) before attaching the
+     device because V4L and V4L2 don't support multiple capture opens
+  */
  open_device:
 
   main_info -> file_name = strdup(zcg_char(NULL, "video_device"));
@@ -288,24 +288,34 @@ int main(int argc, char * argv[])
 	}
 
       /* Give the image to the plugins too */
-      memcpy(&format, &(main_info->format),
+      memset(&sample, 0, sizeof(plugin_sample));
+      memcpy(&(sample.format), &(main_info->format),
 	     sizeof(struct tveng_frame_format));
+      sample.video_data  = zimage_get_data(zimage_get());
+      sample.image       = zimage_get();
+      sample.v_timestamp = tveng_get_timestamp(main_info);
+
+      sample.audio_data  = si->buffer;
+      sample.audio_size  = si->size;
+      sample.audio_bits  = si->bits;
+      sample.audio_rate  = si->rate;
+      sample.a_timestamp = ((((__s64)si->tv.tv_sec) *
+			     1000000)+si->tv.tv_usec)*1000;
+
       p = g_list_first(plugin_list);
       while (p)
 	{
-	  plugin_process_frame(zimage_get(),
-			       zimage_get_data(zimage_get()), &format,
-			       (struct plugin_info*)p->data);
+	  plugin_process_sample(&sample, (struct plugin_info*)p->data);
 	  /* Update the gdkimage, since it may have changed */
-	  zimage_reallocate(format.width, format.height);
+	  zimage_reallocate(sample.format.width, sample.format.height);
 	  p = p->next;
 	}
       gdk_draw_image(tv_screen -> window,
 		     tv_screen -> style -> white_gc,
 		     zimage_get(),
 		     0, 0, 0, 0,
-		     format.width,
-		     format.height);
+		     sample.format.width,
+		     sample.format.height);
     }
 
   /* Closes all fd's, writes the config to HD, and that kind of things
@@ -479,6 +489,10 @@ gboolean startup_zapping()
     }
 
   si = sound_create_struct();
+
+  /* Sync the timestamps from the video and the audio */
+  sound_start_timer();
+  tveng_start_timer(main_info);
 
   return TRUE;
 }

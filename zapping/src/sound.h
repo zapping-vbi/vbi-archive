@@ -45,6 +45,9 @@ gboolean startup_sound( void );
 /* Shutdown all sound */
 void shutdown_sound ( void);
 
+/* Set the timestamps relative to the current time value */
+void sound_start_timer ( void );
+
 /* Create the struct needed for communicating with the sound thread */
 struct soundinfo * sound_create_struct( void );
 

@@ -70,7 +70,6 @@ struct private_tveng1_device_info
   char * mmaped_data; /* A pointer to the data mmap() returned */
   struct video_mbuf mmbuf; /* Info about the location of the frames */
   int queued, dequeued; /* The index of the [de]queued frames */
-  __s64 start_timestamp; /* Timestamp of the capture start */
   __s64 last_timestamp; /* Timestamp of the last frame captured */
 };
 

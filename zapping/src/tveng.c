@@ -1589,3 +1589,8 @@ int tveng_restart_everything (enum tveng_capture_mode mode,
     }
   return 0; /* Success */
 }
+
+void tveng_start_timer(tveng_device_info * info)
+{
+  gettimeofday(&(info->tv_init), NULL);
+}

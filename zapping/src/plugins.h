@@ -83,9 +83,11 @@ struct plugin_info{
   gboolean (*plugin_running) ( void );
 
   /* Lets the plugin process one frame */
-  GdkImage * (*plugin_process_frame) ( GdkImage * image, gpointer
+  /*  GdkImage * (*plugin_process_frame) ( GdkImage * image, gpointer
 				       data, struct
-				       tveng_frame_format * format );
+				       tveng_frame_format * format );*/
+  /* Lets the plugin process one a+v sample */
+  void (*plugin_process_sample)      ( plugin_sample * sample );
   /* Used to query the public symbols from the plugin */
   gboolean (*plugin_get_public_info) ( gint index, gpointer * ptr,
 				       gchar ** symbol, 
@@ -161,9 +163,12 @@ gchar * plugin_get_version (struct plugin_info * info);
 
 gboolean plugin_running ( struct plugin_info * info);
 
-GdkImage * plugin_process_frame (GdkImage * image, gpointer data,
+/*GdkImage * plugin_process_frame (GdkImage * image, gpointer data,
 				 struct  tveng_frame_format *
 				 format, struct plugin_info * info);
+*/
+void plugin_process_sample (plugin_sample * sample, struct plugin_info
+			    * info);
 
 void plugin_add_properties (GnomePropertyBox * gpb, struct plugin_info
 			    * info);

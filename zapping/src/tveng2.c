@@ -1515,6 +1515,7 @@ static int p_tveng2_dqbuf(tveng_device_info * info)
   struct v4l2_buffer tmp_buffer;
   struct private_tveng2_device_info * p_info =
     (struct private_tveng2_device_info*) info;
+  __s64 init_timestamp;
 
   t_assert(info != NULL);
 
@@ -1527,8 +1528,13 @@ static int p_tveng2_dqbuf(tveng_device_info * info)
       return -1;
     }
 
+  init_timestamp = ((__s64)info->tv_init.tv_sec) * 1000000 +
+    info->tv_init.tv_usec;
+  init_timestamp *= 1000;
+
   p_info -> last_timestamp = tmp_buffer.timestamp;
-  
+  p_info -> last_timestamp -= init_timestamp;
+
   return (tmp_buffer.index);
 }
 

@@ -67,7 +67,7 @@ gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
     SYMBOL(plugin_load_config, 0x1234),
     SYMBOL(plugin_save_config, 0x1234),
     SYMBOL(plugin_running, 0x1234),
-    SYMBOL(plugin_process_frame, 0x1234),
+    SYMBOL(plugin_process_sample, 0x1234),
     SYMBOL(plugin_get_public_info, 0x1234),
     /* These three shouldn't be exported, since there are no
        configuration options */
@@ -216,16 +216,14 @@ void plugin_save_config (gchar * root_key)
 }
 
 static
-GdkImage * plugin_process_frame(GdkImage * image, gpointer data,
-				  struct tveng_frame_format * format)
+void plugin_process_sample(plugin_sample * sample)
 {
   /* If the plugin isn't active, it shouldn't do anything */
   if (!active)
-    return image;
+    return;
 
-  /* Do any changes to the image here */
-  
-  return image;
+  /* Do any changes to the image here and update the struct
+     accordingly */
 }
 
 static

@@ -1,3 +1,9 @@
+21.6.2000	Timestamps <garetxe@users.sourceforge.net>
+
+	* src/tveng: Timestamps support has been added
+	* src/plugins: Now the plugins receive a sample object (a+v), not
+	just video.
+
 20.6.2000	Channel finder <garetxe@users.sourceforge.net>
 
 	* src/channel_editor.c: Added the option to find automagically all

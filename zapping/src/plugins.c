@@ -128,9 +128,9 @@ gboolean plugin_load(gchar * file_name, struct plugin_info * info)
 		       (gpointer*)&(info->plugin_running)))
     info->plugin_running = NULL;
 
-  if (!(*plugin_get_symbol)("plugin_process_frame", 0x1234,
-		       (gpointer*)&(info->plugin_process_frame)))
-    info->plugin_process_frame = NULL;
+  if (!(*plugin_get_symbol)("plugin_process_sample", 0x1234,
+		       (gpointer*)&(info->plugin_process_sample)))
+    info->plugin_process_sample = NULL;
 
   if (!(*plugin_get_symbol)("plugin_get_public_info", 0x1234,
 		       (gpointer*)&(info->plugin_get_public_info)))
@@ -499,19 +499,16 @@ gboolean plugin_running ( struct plugin_info * info)
   return (*(info->plugin_running))();
 }
 
-GdkImage * plugin_process_frame (GdkImage * image, gpointer data,
-				 struct tveng_frame_format *
-				 format, struct plugin_info * info)
+void plugin_process_sample (plugin_sample * sample, struct plugin_info
+			    * info)
 {
-  g_assert(format != NULL);
-  g_assert(data != NULL);
   g_assert(info != NULL);
-  g_assert(image != NULL);
+  g_return_if_fail(sample != NULL);
+  g_return_if_fail(sample -> image != NULL);
+  g_return_if_fail(sample -> video_data != NULL);
 
-  if (info -> plugin_process_frame)
-    return ((*info->plugin_process_frame))(image, data, format);
-  else
-    return image;
+  if (info -> plugin_process_sample)
+    (*info->plugin_process_sample)(sample);
 }
 
 void plugin_add_properties (GnomePropertyBox * gpb, struct plugin_info
