@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_ffmpeg.c,v 1.7 2002-06-18 02:25:17 mschimek Exp $ */
+/* $Id: b_ffmpeg.c,v 1.8 2002-06-24 03:21:36 mschimek Exp $ */
 
 #include <limits.h>
 #include "b_ffmpeg.h"
@@ -1207,7 +1207,7 @@ context_enum(int index, char **errstr)
 
 const rte_backend_class
 rte_backend_ffmpeg = {
-	.name		= "ffmpeg (prototype)",
+	.name		= "ffmpeg",
 	.backend_init	= backend_init,
 	.context_enum	= context_enum,
 };
