@@ -10,7 +10,7 @@ INCLUDES = -I$(top_srcdir) \
 bin_PROGRAMS = zapping zapping_remote
 
 COMMON_LIB = $(top_builddir)/common/libcommon.a
-TV_LIB = $(top_builddir)/libtv/libtv.a
+TV_LIB = $(top_builddir)/libtv/libtv.la
 
 # Need gcc and as support for SSE to build this module.
 # Cannot build for target x86_64, code is 32 bit.
@@ -52,7 +52,6 @@ zapping_SOURCES = \
 	capture.c capture.h \
 	channel_editor.c channel_editor.h \
 	cmd.c cmd.h \
-	cpu.c cpu.h \
 	csconvert.c csconvert.h \
 	eggcellrendererkeys.c eggcellrendererkeys.h \
 	eggaccelerators.c eggaccelerators.h \
