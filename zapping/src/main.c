@@ -35,7 +35,7 @@
 #include "plugins.h"
 #include "frequencies.h"
 #include "zvbi.h"
-#include "mmx.h"
+#include "cpu.h"
 #include "overlay.h"
 #include "capture.h"
 #include "x11stuff.h"
@@ -343,21 +343,35 @@ int main(int argc, char * argv[])
 			      0, NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.114 2001-07-02 18:53:39 garetxe Exp $", "Zapping", VERSION, __DATE__);
-  printv("Checking for MMX support... ");
-  switch (mm_support())
+	 "$Id: main.c,v 1.115 2001-07-17 02:10:00 mschimek Exp $", "Zapping", VERSION, __DATE__);
+  printv("Checking for CPU support... ");
+  switch (cpu_detection())
     {
-    case 1:
-      printv("MMX enabled.\n");
+    case CPU_PENTIUM_MMX:
+    case CPU_PENTIUM_II:
+      printv("Intel Pentium MMX / Pentium II. MMX support enabled.\n");
       break;
-    case 3:
-      printv("Cyrix MMX / Extended MMX. MMX enabled.\n");
+
+    case CPU_PENTIUM_III:
+    case CPU_PENTIUM_4:
+      printv("Intel Pentium III / Pentium 4. SSE support enabled.\n");
       break;
-    case 5:
-      printv("AMD MMX / 3DNow!. MMX enabled.\n");
+
+    case CPU_K6_2:
+      printv("AMD K6-2 / K6-III. 3DNow support enabled.\n");
       break;
+
+    case CPU_CYRIX_MII:
+    case CPU_CYRIX_III:
+      printv("Cyrix MII / Cyrix III. MMX support enabled.\n");
+      break;
+
+    case CPU_ATHLON:
+      printv("AMD Athlon. MMX/3DNow/SSE support enabled.\n");
+      break;
+
     default:
-      printv("MMX not detected. Using plain C.\n");
+      printv("unknow CPU type. Using plain C.\n");
       break;
     }
   D();

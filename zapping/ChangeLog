@@ -1,7 +1,16 @@
+17.07.2001	libvbi/wss <mschimek@users.sf.net>
+
+	* Added vbi_push_video function, works ok. Some more
+	  details to be finished.
+
 16.07.2001	<mschimek@users.sf.net>
 
 	* capture.c: ported capture_fifo to fifo2
 	* v4lx.c: ported vbi fifo to fifo2
+	* Removed unneeded functions from acc colour
+	  conv: uyvy, *v*u*; enabled SSE, 3DNow, Athlon.
+	* Replaced CPU detection code. Hope this works for
+	  everyone.
 
 15.07.2001	mpeg plugin <mschimek@users.sf.net>
 

@@ -22,7 +22,6 @@
 #include "../common/fifo.h"
 #include "../common/math.h"
 #include "v4lx.h"
-#include "sliced.h"
 
 /*
  *  When event_mask == 0, remove previously added handler,
@@ -493,6 +492,78 @@ vbi_classify_page(struct vbi *vbi, int pgno, int *subpage, char **language)
 	return VBI_UNKNOWN_PAGE;
 }
 
+/*
+ *  Width in pixels, assuming the width corresponds to
+ *  52 usec of PAL video data. Enter capture widths, not
+ *  scaled widths (XvVideo/Image or scaled streaming). 
+ *  Height assumed >= 1, we examine only the first line.
+ *  Time in TOD sec fractions as usual.
+ */
+void
+vbi_push_video(struct vbi *vbi, void *video_data,
+	int width, enum tveng_frame_pixformat fmt,
+	double time)
+{
+	static const int std_widths[] = {
+		768, 704, 640, 384, 352, 320, 192, 176, 160, -160
+	};
+	int sampling_rate, spl;
+	vbi_sliced *s;
+	buffer2 *b;
+	int i;
+
+	if (fmt != vbi->video_fmt || width != vbi->video_width) {
+		for (i = 0; width < ((std_widths[i] + std_widths[i + 1]) >> 1); i++)
+			;
+
+		spl = std_widths[i]; /* samples in 52 usec */
+		sampling_rate = spl / 52.148e-6;
+
+		vbi->wss_slicer_fn =
+			init_bit_slicer(&vbi->wss_slicer, 
+				width,
+				sampling_rate, 
+				/* cri_rate */ 5000000, 
+				/* bit_rate */ 833333,
+				/* cri_frc */ 0xC71E3C1F, 
+				/* cri_mask */ 0x924C99CE,
+				/* cri_bits */ 32, 
+				/* frc_bits */ 0, 
+				/* payload */ 14 * 1,
+				MOD_BIPHASE_LSB_ENDIAN,
+				fmt);
+
+		vbi->video_fmt = fmt;
+		vbi->video_width = width;		
+	}
+
+	if ((time - vbi->video_time) < 1.0 / 4.0)
+		return; /* we can spend the time better elsewhere... */
+
+	/*
+	 *  We should always have enough free buffers except something
+	 *  blocks the vbi parser, eg. an event handler. In case
+	 *  *we* are actually the rogue thread, don't attempt to wait,
+	 *  the WSS datagram will repeat anyway.
+	 */
+	if (!(b = recv_empty_buffer2(&vbi->wss_producer)))
+		return;
+
+	s = (void *) b->data = b->allocated;
+
+	if (vbi->wss_slicer_fn(&vbi->wss_slicer,
+		video_data, (unsigned char *) &s->data)) {
+		s->id = SLICED_WSS_625;
+		s->line = 23;
+		b->time = time; /* important to serialize
+				    (the consumer has to, fifo ignores time) */
+		b->used = sizeof(vbi_sliced);
+
+		send_full_buffer2(&vbi->wss_producer, b);
+	} else
+		unget_empty_buffer2(&vbi->wss_producer, b);
+}
+
 struct vbi *
 vbi_open(char *vbi_name, struct cache *ca, int given_fd)
 {
@@ -514,6 +585,13 @@ vbi_open(char *vbi_name, struct cache *ca, int given_fd)
 
 
 	add_filter(vbi);
+
+	/* NB the vbi fifo has TWO producers now (and they don't even know :-) */
+	assert(add_producer(vbi->fifo, &vbi->wss_producer));
+
+	vbi->video_fmt = -1;
+	vbi->video_width = -1;		
+	vbi->video_time = 0.0;
 
 
     vbi->cache = ca;

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: decoder.c,v 1.7 2001-06-29 01:29:09 mschimek Exp $ */
+/* $Id: decoder.c,v 1.8 2001-07-17 02:09:59 mschimek Exp $ */
 
 /*
     XXX NTSC transmits 0-4 (AFAIS) CC packets per frame,
@@ -235,7 +235,8 @@ bit_slicer_fn *
 init_bit_slicer(struct bit_slicer *d,
 	int raw_samples, int sampling_rate, int cri_rate, int bit_rate,
 	unsigned int cri_frc, unsigned int cri_mask,
-	int cri_bits, int frc_bits, int payload, int modulation, int fmt)
+	int cri_bits, int frc_bits, int payload, int modulation,
+	enum tveng_frame_pixformat fmt)
 {
 	unsigned int c_mask = (unsigned int)(-(cri_bits > 0)) >> (32 - cri_bits);
 	unsigned int f_mask = (unsigned int)(-(frc_bits > 0)) >> (32 - frc_bits);
@@ -243,45 +244,48 @@ init_bit_slicer(struct bit_slicer *d,
 	int gsh = 0;
 
 	switch (fmt) {
-	case 0: /* RGB / BGR 888 */
+	case TVENG_PIX_RGB24:
+	case TVENG_PIX_BGR24:
 		bsf = bit_slicer_3;
 		d->skip = 1;
 		break;
 
-	case 1: /* RGBA / BGRA 8888 */
+	case TVENG_PIX_RGB32: /* RGBA / BGRA */
+	case TVENG_PIX_BGR32:
 		bsf = bit_slicer_4;
 		d->skip = 1;
 		break;
 
-	case 2: /* RGB / BGR 565 */
+	case TVENG_PIX_RGB565:
 		bsf = bit_slicer_565;
 		gsh = 3; /* (green << 3) & 0x07E0 */
 		d->skip = 0;
 		break;
 
-	case 3: /* RGB / BGR 5551 */
+	case TVENG_PIX_RGB555:
 		bsf = bit_slicer_5551;
 		gsh = 2; /* (green << 2) & 0x03E0 */
 		d->skip = 0;
 		break;
 
-	case 8: /* YUV 4:2:0 */
+	case TVENG_PIX_YVU420:
+	case TVENG_PIX_YUV420:
 		bsf = bit_slicer_1;
 		d->skip = 0;
 		break;
 
-	case 9: /* YUYV / YVYU */
+	case TVENG_PIX_YUYV:
 		bsf = bit_slicer_2;
 		d->skip = 0;
 		break;
 
-	case 10: /* UYVY / VYUY */
+	case TVENG_PIX_UYVY:
 		bsf = bit_slicer_2;
 		d->skip = 1;
 		break;
 
 	default:
-		assert(0);
+		assert(!"bit_slicer image format");
 	}
 
 	d->cri_mask		= cri_mask & c_mask;
@@ -668,7 +672,7 @@ add_vbi_services(struct vbi_decoder *vbi, unsigned int services, int strict)
 				vbi_services[i].frc_bits,
 				vbi_services[i].payload,
 				vbi_services[i].modulation,
-				8 /* YUV 4:2:0 (sort of) */);
+				TVENG_PIX_YVU420 /* sort of */);
 
 		if (job >= vbi->jobs + vbi->num_jobs)
 			vbi->num_jobs++;

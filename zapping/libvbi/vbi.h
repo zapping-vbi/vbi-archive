@@ -11,6 +11,9 @@
 
 #include "cache.h"
 
+#include "../common/fifo.h"
+#include "decoder.h"
+
 typedef struct _vbi_trigger vbi_trigger;
 
 struct event_handler {
@@ -44,7 +47,18 @@ struct vbi
 	struct event_handler *	next_handler;
 
     // sliced data source
-    void *fifo;
+    fifo2			*fifo;
+
+	/* Property of the vbi_push_video caller */
+
+	enum tveng_frame_pixformat
+				video_fmt;
+	int			video_width; 
+	double			video_time;
+	bit_slicer_fn *		wss_slicer_fn;
+	struct bit_slicer	wss_slicer;
+	unsigned char		wss_last[2];
+	producer		wss_producer;
 };
 
 static inline void

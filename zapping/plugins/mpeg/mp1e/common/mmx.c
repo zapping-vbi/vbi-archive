@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mmx.c,v 1.8 2001-06-23 02:50:44 mschimek Exp $ */
+/* $Id: mmx.c,v 1.9 2001-07-17 02:09:59 mschimek Exp $ */
 
 #include <stdlib.h>
 #include "log.h"
@@ -31,8 +31,8 @@
  *  References
  *
  *  "Intel Processor Identification and the CPUID Instruction",
- *  Application Note AP-485, May 2000, order no. 241618-015,
- *  http://developer.intel.com/design/pentiumII/applnots/241618.htm
+ *  Application Note AP-485, Nov 2000, order no. 241618-016,
+ *  http://developer.intel.com
  *
  *  "AMD Processor Recognition Application Note",
  *  publication # 20734, Rev. R, June 2000.
@@ -176,7 +176,7 @@ cpu_detection(void)
 #else
 
 int
-cpu_detection(cpu_architecture arch)
+cpu_detection(void)
 {
 	return 0;
 }

@@ -35,8 +35,9 @@
 #endif
 
 #include "yuv2rgb.h"
-#include "mmx.h"
+#include "gen_conv.h"
 #include "zmisc.h"
+#include "cpu.h"
 
 uint32_t matrix_coefficients = 6;
 
@@ -78,17 +79,233 @@ static void yuv2rgb_c (void * dst, uint8_t * py,
     }
 }
 
+#ifdef USE_MMX
+
+#if #cpu (i386)
+
+static yuv2rgb_fun
+yuv2rgb_init_mmx (int bpp, int mode)
+{
+  switch (cpu_detection())
+    {
+    case CPU_PENTIUM_MMX:
+    case CPU_PENTIUM_II:
+    case CPU_CYRIX_MII:
+    case CPU_CYRIX_III:
+      switch (bpp)
+        {
+        case 15:
+          return (mode == MODE_BGR ? mmx_yuv420_rgb5551 :
+    	      mmx_yuv420_bgr5551);
+        case 16:
+          return (mode == MODE_BGR ? mmx_yuv420_rgb565 :
+    	      mmx_yuv420_bgr565);
+        case 24:
+          return (mode == MODE_BGR ? mmx_yuv420_rgb24 :
+    	      mmx_yuv420_bgr24);
+        case 32:
+          return (mode == MODE_BGR ? mmx_yuv420_rgb32 :
+	      mmx_yuv420_bgr32);
+        default:
+          break;
+        }
+      break;
+
+    case CPU_PENTIUM_III:
+    case CPU_PENTIUM_4:
+      switch (bpp)
+        {
+        case 15:
+          return (mode == MODE_BGR ? sse_yuv420_rgb5551 :
+    	      sse_yuv420_bgr5551);
+        case 16:
+          return (mode == MODE_BGR ? sse_yuv420_rgb565 :
+    	      sse_yuv420_bgr565);
+        case 24:
+          return (mode == MODE_BGR ? sse_yuv420_rgb24 :
+    	      sse_yuv420_bgr24);
+        case 32:
+          return (mode == MODE_BGR ? sse_yuv420_rgb32 :
+	      sse_yuv420_bgr32);
+        default:
+          break;
+        }
+      break;
+
+    case CPU_K6_2:
+      switch (bpp)
+        {
+        case 15:
+          return (mode == MODE_BGR ? _3dn_yuv420_rgb5551 :
+    	      _3dn_yuv420_bgr5551);
+        case 16:
+          return (mode == MODE_BGR ? _3dn_yuv420_rgb565 :
+    	      _3dn_yuv420_bgr565);
+        case 24:
+          return (mode == MODE_BGR ? _3dn_yuv420_rgb24 :
+    	      _3dn_yuv420_bgr24);
+        case 32:
+          return (mode == MODE_BGR ? _3dn_yuv420_rgb32 :
+	      _3dn_yuv420_bgr32);
+        default:
+          break;
+        }
+      break;
+
+    case CPU_ATHLON:
+      switch (bpp)
+        {
+        case 15:
+          return (mode == MODE_BGR ? amd_yuv420_rgb5551 :
+    	      amd_yuv420_bgr5551);
+        case 16:
+          return (mode == MODE_BGR ? amd_yuv420_rgb565 :
+    	      amd_yuv420_bgr565);
+        case 24:
+          return (mode == MODE_BGR ? amd_yuv420_rgb24 :
+    	      amd_yuv420_bgr24);
+        case 32:
+          return (mode == MODE_BGR ? amd_yuv420_rgb32 :
+	      amd_yuv420_bgr32);
+        default:
+          break;
+        }
+      break;
+
+    default:
+      break;
+    }
+
+  return NULL; // Fallback to C.
+}
+
+static yuyv2rgb_fun
+yuyv2rgb_init_mmx (int bpp, int mode)
+{
+  switch (cpu_detection())
+    {
+    case CPU_PENTIUM_MMX:
+    case CPU_PENTIUM_II:
+    case CPU_CYRIX_MII:
+    case CPU_CYRIX_III:
+      switch (bpp)
+        {
+        case 15:
+          return (mode == MODE_BGR ? mmx_yuyv_rgb5551 :
+    	      mmx_yuyv_bgr5551);
+        case 16:
+          return (mode == MODE_BGR ? mmx_yuyv_rgb565 :
+    	      mmx_yuyv_bgr565);
+        case 24:
+          return (mode == MODE_BGR ? mmx_yuyv_rgb24 :
+    	      mmx_yuyv_bgr24);
+        case 32:
+          return (mode == MODE_BGR ? mmx_yuyv_rgb32 :
+	      mmx_yuyv_bgr32);
+        default:
+          break;
+        }
+      break;
+
+    case CPU_PENTIUM_III:
+    case CPU_PENTIUM_4:
+      switch (bpp)
+        {
+        case 15:
+          return (mode == MODE_BGR ? sse_yuyv_rgb5551 :
+    	      sse_yuyv_bgr5551);
+        case 16:
+          return (mode == MODE_BGR ? sse_yuyv_rgb565 :
+    	      sse_yuyv_bgr565);
+        case 24:
+          return (mode == MODE_BGR ? sse_yuyv_rgb24 :
+    	      sse_yuyv_bgr24);
+        case 32:
+          return (mode == MODE_BGR ? sse_yuyv_rgb32 :
+	      sse_yuyv_bgr32);
+        default:
+          break;
+        }
+      break;
+
+    case CPU_K6_2:
+      switch (bpp)
+        {
+        case 15:
+          return (mode == MODE_BGR ? _3dn_yuyv_rgb5551 :
+    	      _3dn_yuyv_bgr5551);
+        case 16:
+          return (mode == MODE_BGR ? _3dn_yuyv_rgb565 :
+    	      _3dn_yuyv_bgr565);
+        case 24:
+          return (mode == MODE_BGR ? _3dn_yuyv_rgb24 :
+    	      _3dn_yuyv_bgr24);
+        case 32:
+          return (mode == MODE_BGR ? _3dn_yuyv_rgb32 :
+	      _3dn_yuyv_bgr32);
+        default:
+          break;
+        }
+      break;
+
+    case CPU_ATHLON:
+      switch (bpp)
+        {
+        case 15:
+          return (mode == MODE_BGR ? amd_yuyv_rgb5551 :
+    	      amd_yuyv_bgr5551);
+        case 16:
+          return (mode == MODE_BGR ? amd_yuyv_rgb565 :
+    	      amd_yuyv_bgr565);
+        case 24:
+          return (mode == MODE_BGR ? amd_yuyv_rgb24 :
+    	      amd_yuyv_bgr24);
+        case 32:
+          return (mode == MODE_BGR ? amd_yuyv_rgb32 :
+	      amd_yuyv_bgr32);
+        default:
+          break;
+        }
+      break;
+
+    default:
+      break;
+    }
+
+  return NULL; // Fallback to C.
+}
+
+#else /* !cpu x86 */
+
+static yuv2rgb_fun
+yuv2rgb_init_mmx (int bpp, int mode)
+{
+  return NULL; // Fallback to C.
+}
+
+static yuyv2rgb_fun
+yuyv2rgb_init_mmx (int bpp, int mode)
+{
+  return NULL; // Fallback to C.
+}
+
+#endif /* !cpu x86 */
+
+#endif /* USE_MMX */
+
 void yuv2rgb_init (int bpp, int mode) 
 {
     yuv2rgb = NULL;
 
 #ifdef USE_MMX
-    if (mmx_ok()) {
-      yuv2rgb = yuv2rgb_init_mmx (bpp, mode);
-      if (yuv2rgb != NULL)
-	printv ("Using MMX for YVU420 colorspace transform\n");
-    }
+
+    yuv2rgb = yuv2rgb_init_mmx (bpp, mode);
+    
+    if (yuv2rgb != NULL)
+      printv ("Using accelerated YVU420 colorspace transform\n");
+
 #endif
+
     if (yuv2rgb == NULL) {
       printv ("No accelerated YVU420 colorspace conversion found\n");
       yuv2rgb_c_init (bpp, mode);
@@ -101,12 +318,14 @@ void yuyv2rgb_init (int bpp, int mode)
     yuyv2rgb = NULL;
 
 #ifdef USE_MMX
-    if (mmx_ok()) {
-      yuyv2rgb = yuyv2rgb_init_mmx (bpp, mode);
-      if (yuyv2rgb != NULL)
-	printv ("Using MMX for YUYV colorspace transform\n");
-    }
+
+    yuyv2rgb = yuyv2rgb_init_mmx (bpp, mode);
+    
+    if (yuyv2rgb != NULL)
+      printv ("Using accelerated YUYV colorspace transform\n");
+
 #endif
+
     if (yuyv2rgb == NULL) {
       printv ("No accelerated YUYV colorspace conversion found\n");
     }

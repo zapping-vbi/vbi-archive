@@ -23,8 +23,7 @@ zapping_SOURCES = \
 	fullscreen.c fullscreen.h \
 	ttxview.c ttxview.h \
 	osd.c osd.h \
-	yuv2rgb_mmx.c \
-	mmx.c mmx.h \
+	cpu.c cpu.h \
 	yuv2rgb.c yuv2rgb.h \
 	interface.c interface.h \
 	callbacks.c callbacks.h \

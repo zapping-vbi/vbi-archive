@@ -19,11 +19,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvbi.h,v 1.37 2001-07-02 16:17:14 garetxe Exp $ */
+/* $Id: libvbi.h,v 1.38 2001-07-17 02:09:59 mschimek Exp $ */
 
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
 
+#include "../src/tveng.h" /* tveng_frame_pixformat */
 #include "format.h"
 
 /*
@@ -303,6 +304,7 @@ void vbi_close(struct vbi *vbi);
 extern void *	vbi_mainloop(void *p);
 /* Affects vbi_fetch_*_page(), the fmt_page, not export */
 extern void		vbi_set_colour_level(struct vbi *vbi, int brig, int cont);
+extern void		vbi_push_video(struct vbi *vbi, void *data, int width, enum tveng_frame_pixformat fmt, double time);
 
 /*
  *  Export (export.c)

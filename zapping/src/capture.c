@@ -31,6 +31,10 @@
 
 #include <pthread.h>
 
+/* for vbi_push_video */
+#include <libvbi.h>
+#include "zvbi.h"
+
 #include <tveng.h>
 #include "zmisc.h"
 #include "x11stuff.h"
@@ -469,7 +473,18 @@ build_bundle(capture_bundle *d, struct tveng_frame_format *format,
 static void
 give_data_to_plugins(capture_bundle *d)
 {
+  struct vbi *vbi;
   GList *p;
+
+#if 0
+  if ((vbi = zvbi_get_object()))
+    {
+      /* XXX redundant if we're not in PAL/SECAM mode
+         or VBI captures line 23 already */
+      vbi_push_video(vbi, d->data, d->format.width,
+                     d->format.pixformat, d->timestamp);
+    }
+#endif
 
   p = g_list_first(plugin_list);
   while (p)
@@ -687,7 +702,6 @@ capture_stop(tveng_device_info *info)
     }
 
   exit_capture_thread = TRUE;
-fprintf(stderr, "down\n");
 
   while ((b = recv_full_buffer2(&cf_idle_consumer)))
     send_empty_buffer2(&cf_idle_consumer, b);
@@ -700,8 +714,9 @@ fprintf(stderr, "down\n");
   /* Free the memory used by the bundles */
   /* XXX should use the buffer2.destroy hook */
   for (b = (buffer2 *) capture_fifo.buffers.head;
-       b->node.succ; b = (buffer2 *) b->node.succ) 
-    clear_bundle((capture_bundle * ) b->data);
+       b->node.succ; b = (buffer2 *) b->node.succ)
+    if (b->data)
+      clear_bundle((capture_bundle * ) b->data);
 
   xvz_ungrab_port(info);
 

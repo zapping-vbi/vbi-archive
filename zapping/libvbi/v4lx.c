@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.22 2001-07-16 07:06:01 mschimek Exp $ */
+/* $Id: v4lx.c,v 1.23 2001-07-17 02:09:59 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -60,6 +60,11 @@
 
 #define HAVE_V4L2 defined (V4L2_MAJOR_VERSION)
 
+#define WSS_TEST 0
+#if WSS_TEST
+static unsigned char wss_test_data[768 * 4];
+#endif
+
 typedef struct {
 	fifo2			fifo;			/* world interface */
 	producer		producer;
@@ -67,8 +72,10 @@ typedef struct {
 
 	struct vbi_decoder	dec;			/* raw vbi decoder context */
 
+#if WSS_TEST
 	bit_slicer_fn *		wss_slicer_fn;
 	struct bit_slicer	wss_slicer;
+#endif
 
 	int			fd;
 	int			btype;			/* v4l2 stream type */
@@ -83,11 +90,6 @@ typedef struct {
 	}			raw_buffer[MAX_RAW_BUFFERS];
 
 } vbi_device;
-
-#define WSS_TEST 0
-#if WSS_TEST
-static unsigned char wss_test_data[768 * 4];
-#endif
 
 /*
  *  Read Interface
@@ -1189,14 +1191,15 @@ wss_test_init(vbi_device *vbi)
 		768, 704, 640, 384, 352, 320, 192, 176, 160, -160
 	};
 	unsigned char *p = wss_test_data;
-	int i, j, g, fmt, width, spl, bpp = 0;
+	int i, j, g, width, spl, bpp = 0;
+	enum tveng_frame_pixformat fmt;
 	int sampling_rate;
 
 	printf("WSS test enabled\n");
 
-	fmt = 2;	/* see below */
-	width = 352;	/* pixels per line; assume a line length
-			   of 52 usec, i.e. no clipping */
+	fmt = TVENG_PIX_RGB565;	/* see below */
+	width = 352;		/* pixels per line; assume a line length
+				   of 52 usec, i.e. no clipping */
 
 	/* use this for capture widths reported by the driver, not scaled images */
 	for (i = 0; width < ((std_widths[i] + std_widths[i + 1]) >> 1); i++);
@@ -1216,14 +1219,16 @@ wss_test_init(vbi_device *vbi)
 		    + genuine_pal_wss_green[j + 0] * (1 - off));
 
 		switch (fmt) {
-		case 0: /* RGB / BGR 888 */
+		case TVENG_PIX_RGB24:
+		case TVENG_PIX_BGR24:
 			*p++ = rand();
 			*p++ = g;
 			*p++ = rand();
 			bpp = 3;
 			break;
 
-		case 1: /* RGBA / BGRA 8888 */
+		case TVENG_PIX_RGB32: /* RGBA / BGRA */
+		case TVENG_PIX_BGR32:
 			*p++ = rand();
 			*p++ = g;
 			*p++ = rand();
@@ -1231,7 +1236,7 @@ wss_test_init(vbi_device *vbi)
 			bpp = 4;
 			break;
 
-		case 2: /* RGB / BGR 565 */
+		case TVENG_PIX_RGB565:
 			g <<= 3;
 			g ^= rand() & 0xF81F;
 			*p++ = g;
@@ -1239,7 +1244,7 @@ wss_test_init(vbi_device *vbi)
 			bpp = 2;
 			break;
 
-		case 3: /* RGB / BGR 5551 */
+		case TVENG_PIX_RGB555:
 			g <<= 2;
 			g ^= rand() & 0xFC1F;
 			*p++ = g;
@@ -1247,18 +1252,19 @@ wss_test_init(vbi_device *vbi)
 			bpp = 2;
 			break;
 
-		case 8: /* YUV 4:2:0 */
+		case TVENG_PIX_YVU420:
+		case TVENG_PIX_YUV420:
 			*p++ = g;
 			bpp = 1;
 			break;
 
-		case 9: /* YUYV / YVYU */
+		case TVENG_PIX_YUYV:
 			*p++ = g;
 			*p++ = rand();
 			bpp = 2;
 			break;
 
-		case 10: /* UYVY / VYUY */
+		case TVENG_PIX_UYVY:
 			*p++ = rand();
 			*p++ = g;
 			bpp = 2;

@@ -50,7 +50,5 @@ extern yuyv2rgb_fun yuyv2rgb;
 
 void yuv2rgb_init (int bpp, int mode);
 void yuyv2rgb_init (int bpp, int mode);
-yuv2rgb_fun yuv2rgb_init_mmx (int bpp, int mode);
-yuyv2rgb_fun yuyv2rgb_init_mmx (int bpp, int mode);
 
 #endif
