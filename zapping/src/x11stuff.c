@@ -469,7 +469,7 @@ void xvzImage_put(xvzImage *image, GdkWindow *window, GdkGC *gc)
 		  GDK_GC_XGC(gc), pimage->image,
 		  0, 0, image->w, image->h, /* source */
 		  0, 0, w, h, /* dest */
-		  False /* send event when done */);
+		  True);
 #endif
 
   if (!pimage->uses_shm)

@@ -112,6 +112,7 @@ typedef struct {
 					   captured */
 
   fifo		*f;			/* fifo this bundle belongs to */
+  buffer	*b;			/* buffer this bundle belongs to */
 } capture_bundle;
 
 #ifndef ZAPPING /* If this is being included from a plugin, give them

@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.12 2001-02-22 14:15:51 mschimek Exp $ */
+/* $Id: mp2.c,v 1.13 2001-05-09 22:33:21 garetxe Exp $ */
 
 #include <limits.h>
 #include "../common/log.h"
@@ -341,15 +341,18 @@ static void
 terminate(void)
 {
 	buffer *obuf;
+	extern volatile int mux_thread_done;
 
 	printv(2, "Audio: End of file\n");
 
-	for (;;) {
+	while (!mux_thread_done) {
 		obuf = wait_empty_buffer(audio_fifo);
 		obuf->used = 0;
 		// XXX other?
 		send_full_buffer(audio_fifo, obuf);
 	}
+
+	pthread_exit(NULL);
 }
 
 /*

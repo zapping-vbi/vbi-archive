@@ -41,7 +41,7 @@ static const gchar str_author[] = "Iñaki García Etxebarria";
    needed, and if not present, 0 will be assumed */
 static const gchar str_version[] = "0.1";
 /* TRUE if we are running */
-static gboolean active = FALSE;
+static volatile gboolean active = FALSE;
 /* The context we are encoding to */
 static rte_context * context = NULL;
 /* Info about the video device */
@@ -78,6 +78,7 @@ gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
     SYMBOL(plugin_start, 0x1234),
     SYMBOL(plugin_load_config, 0x1234),
     SYMBOL(plugin_save_config, 0x1234),
+    SYMBOL(plugin_process_bundle, 0x1234),
     SYMBOL(plugin_capture_stop, 0x1234),
     SYMBOL(plugin_get_public_info, 0x1234),
     SYMBOL(plugin_add_properties, 0x1234),
@@ -161,6 +162,7 @@ void plugin_close(void)
 {
   if (active)
     {
+      /* FIXME: This could hang */
       if (context)
 	context = rte_context_destroy(context);
       active = FALSE;
@@ -356,33 +358,23 @@ resolve_filename(const gchar * dir, const gchar * prefix,
   return returned_file;
 }
 
-static void
-video_get_buffer(rte_context *context, rte_buffer *buf,
-		 enum rte_mux_mode stream)
+static
+void plugin_process_bundle ( capture_bundle * bundle )
 {
-  fifo *capture_fifo = rte_get_user_data(context);
-  buffer *b = NULL;
-  capture_bundle *bundle;
+  rte_buffer rbuf;
 
-  g_assert(capture_fifo != NULL);
+  if (!active || !context || !bundle || !bundle->data ||
+      !bundle->image_type || !mux_mode)
+    return;
 
-  while (!b)
-    {
-      b = wait_full_buffer(capture_fifo);
-      bundle = (capture_bundle*)b->data;
+  /* Wait till we release it to reuse */
+  inc_buffer_refcount(bundle->b);
 
-      /* empty bundles are allowed (resizing, etc.) */
-      if (!bundle->image_type ||
-	  !bundle->data)
-	{
-	  send_empty_buffer(capture_fifo, b);
-	  b = NULL;
-	}
-    }
+  rbuf.user_data = bundle->b;
+  rbuf.time = bundle->timestamp;
+  rbuf.data = bundle->data;
 
-  buf->data = bundle->data;
-  buf->time = bundle->timestamp;
-  buf->user_data = b;
+  rte_push_video_buffer(context, &rbuf);
 }
 
 static void
@@ -475,15 +467,15 @@ gboolean plugin_start (void)
       break;
     case 1:
       rte_set_mode(context, RTE_VIDEO);
-      rte_set_input(context, RTE_VIDEO, RTE_CALLBACKS, TRUE, NULL,
-		    video_get_buffer, video_unref_buffer);
+      rte_set_input(context, RTE_VIDEO, RTE_PUSH, TRUE, NULL,
+		    NULL, video_unref_buffer);
       break;
     default:
       rte_set_mode(context, RTE_AUDIO | RTE_VIDEO);
       rte_set_input(context, RTE_AUDIO, RTE_CALLBACKS, FALSE,
 		    audio_data_callback, NULL, NULL);
-      rte_set_input(context, RTE_VIDEO, RTE_CALLBACKS, TRUE, NULL,
-		    video_get_buffer, video_unref_buffer);
+      rte_set_input(context, RTE_VIDEO, RTE_PUSH, TRUE, NULL,
+		    NULL, video_unref_buffer);
       break;
     }
 
@@ -527,6 +519,10 @@ gboolean plugin_start (void)
       return FALSE;
     }
 
+  active = TRUE;
+  /* don't let anyone mess with our settings from now on */
+  capture_lock();
+
   if (!rte_start_encoding(context))
     {
       ShowBox("Cannot start encoding: %s", GNOME_MESSAGE_BOX_ERROR,
@@ -534,6 +530,8 @@ gboolean plugin_start (void)
       context = rte_context_destroy(context);
       if ((mux_mode+1) & 1)
 	close_audio();
+      active = FALSE;
+      capture_unlock();
       return FALSE;
     }
 
@@ -585,11 +583,6 @@ gboolean plugin_start (void)
   g_free(file_name);
 
   gtk_widget_show(saving_dialog);
-
-  /* don't let anyone mess with our settings from now on */
-  capture_lock();
-
-  active = TRUE;
 
   return TRUE;
 }
@@ -672,14 +665,8 @@ void plugin_save_config (gchar * root_key)
 static void
 do_stop(void)
 {
-  capture_unlock();
-
   if (!active)
     return;
-
-  context = rte_context_destroy(context);
-  if ((mux_mode+1) & 1)
-    close_audio();
 
   if (saving_dialog)
     gtk_widget_destroy(saving_dialog);
@@ -687,6 +674,13 @@ do_stop(void)
   saving_dialog = NULL;
 
   active = FALSE;
+
+  context = rte_context_destroy(context);
+
+  if ((mux_mode+1) & 1)
+    close_audio();
+
+  capture_unlock();
 }
 
 static

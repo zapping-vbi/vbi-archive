@@ -1,3 +1,9 @@
+2001-05-10	<garetxe@users.sourceforge.net>
+
+	* Added .spec.in file, mux_thread_done flag for cleaner exit, some
+	more fixes to rte/fifos. Lots of useless debugging of mpeg plugin
+	segfaults/hanging, cannot isolate the bug yet.
+
 2001-05-07	<mschimek@users.sourceforge.net>
 
 	* Added MC 3.1, not yet compiled in by default, needs testing.

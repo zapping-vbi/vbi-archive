@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.27 2001-05-07 13:06:06 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.28 2001-05-09 22:33:21 garetxe Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -1695,16 +1695,20 @@ finish:
 		_send_full_buffer(video_fifo, obuf);
 	}
 
-	for (;;) {
-		obuf = wait_empty_buffer(video_fifo);
-		obuf->type = 0;
-		obuf->offset = 1;
-		obuf->used = 0; // EOF mark
-		obuf->time = last.time += time_per_frame;
-		_send_full_buffer(video_fifo, obuf);
+	{
+		extern volatile int mux_thread_done;
+		
+		while (!mux_thread_done) {
+			obuf = wait_empty_buffer(video_fifo);
+			obuf->type = 0;
+			obuf->offset = 1;
+			obuf->used = 0; // EOF mark
+			obuf->time = last.time += time_per_frame;
+			_send_full_buffer(video_fifo, obuf);
+		}
 	}
 
-	return NULL; // never
+	return NULL;
 }
 
 static void

@@ -4,9 +4,9 @@ Release: 1
 Summary: a TV viewer for Gnome
 Copyright: GPL
 Group: Applications/Multimedia
-Source: http://download.sourceforge.net/zapping/zapping-%{version}.tar.bz2
 URL: http://zapping.sourceforge.net
 Packager: Iñaki García Etxebarria <garetxe@users.sourceforge.net>
+Source: ftp://zapping.sourceforge.net/pub/zapping/%{version}/zapping-%{version}.tar.bz2
 Buildroot: %{_tmppath}/%{name}-root
 BuildPrereq: libglade-devel libxml-devel
 PreReq: /sbin/install-info

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.10 2001-05-06 13:30:17 garetxe Exp $ */
+/* $Id: fifo.h,v 1.11 2001-05-09 22:33:21 garetxe Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -30,8 +30,7 @@
 
 /*
   TODO:
-  - Use the occupancy variable
-    + Killing dead consumers
+  - Use the waiting variable
     + Stealing buffers from slow consumers
   
   - Interface changes:
@@ -155,7 +154,7 @@ query_consumer(fifo *f)
 	if (current && !current->zombie)
 		return current;
 	else {
-		if (current && current->zombie) {
+		if (current) {
 			/* pending destroy sequence */
 			pthread_mutex_lock(&f->limbo_mutex);
 			unlink_node(&(f->limbo), (node*)current);
@@ -250,25 +249,23 @@ wait_full_buffer(fifo *f)
 
 	pthread_mutex_lock(&consumer->consumer.mutex);
 
-	b = (buffer*) rem_head(&consumer->full);
-
-	if ((b) || (f->wait_full))
+	if ((b = (buffer*) rem_head(&consumer->full))) {
+		consumer->waiting --;
 		pthread_mutex_unlock(&consumer->consumer.mutex);
-
-	if (b)
-		consumer->waiting--;
-	else if ((!b) && (f->wait_full)) {
-		/* Wait for a new buffer */
-		while (!b)
-			b = f->wait_full(f);
-		b->refcount = 1;
-		propagate_buffer(f, b, consumer);
-	} else if (!b) {
-		while (!(b = (buffer *) rem_head(&consumer->full)))
-			pthread_cond_wait(&consumer->consumer.cond,
-					  &consumer->consumer.mutex);
-		consumer->waiting--;
-		pthread_mutex_unlock(&consumer->consumer.mutex);
+	} else {
+		if (f->wait_full) {
+			pthread_mutex_unlock(&consumer->consumer.mutex);
+			while (!b)
+				b = f->wait_full(f);
+			b->refcount = 1;
+			propagate_buffer(f, b, consumer);
+		} else {
+			while (!(b = (buffer *) rem_head(&consumer->full)))
+				pthread_cond_wait(&consumer->consumer.cond,
+						  &consumer->consumer.mutex);
+			consumer->waiting--;
+			pthread_mutex_unlock(&consumer->consumer.mutex);
+		}
 	}
 
 	pthread_rwlock_unlock(&f->consumers_rwlock);
@@ -284,6 +281,7 @@ recv_full_buffer(fifo *f)
 
 	pthread_rwlock_rdlock(&f->consumers_rwlock);
 	consumer = query_consumer(f);
+
 	pthread_mutex_lock(&consumer->consumer.mutex);
 	b = (buffer*) rem_head(&consumer->full);
 	if (b)
@@ -310,6 +308,8 @@ send_empty_buffer(fifo *f, buffer *b)
 		f->send_empty(f, b);
 }
 
+#define inc_buffer_refcount(b) (b->refcount++)
+
 static inline buffer *
 wait_empty_buffer(fifo *f)
 {
@@ -326,7 +326,7 @@ wait_empty_buffer(fifo *f)
 	}
 	pthread_rwlock_unlock(&f->consumers_rwlock);
 
-	/* FIXME: steal, kill, be bad */
+	/* FIXME: steal, be bad in a polite way */
 	pthread_mutex_lock(&f->producer.mutex);
 
 	b = (buffer *) rem_head(&f->empty);
@@ -346,6 +346,8 @@ wait_empty_buffer(fifo *f)
 		pthread_testcancel();
 
 	pthread_mutex_unlock(&f->producer.mutex);
+
+	b->refcount = 0;
 
 	return b;
 }
@@ -373,7 +375,9 @@ recv_empty_buffer(fifo *f)
 	pthread_mutex_unlock(&f->producer.mutex);
 
 	if (!b)
-	  kill_zombies(f);
+		kill_zombies(f);
+	else
+		b->refcount = 0;
 
 	return b;
 }

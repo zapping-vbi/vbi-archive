@@ -18,13 +18,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: systems.h,v 1.11 2001-02-22 14:15:51 mschimek Exp $ */
+/* $Id: systems.h,v 1.12 2001-05-09 22:33:21 garetxe Exp $ */
 
 #ifndef __SYSTEMS_H__
 #define __SYSTEMS_H__
 
 //extern mucon			mux_mucon;
 extern int			bytes_out;
+extern volatile int		mux_thread_done;
 
 extern double			get_idle(void);
 

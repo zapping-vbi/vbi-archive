@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.10 2001-05-06 13:30:16 garetxe Exp $ */
+/* $Id: fifo.c,v 1.11 2001-05-09 22:33:21 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -136,7 +136,7 @@ create_consumer(fifo *f)
 	new_consumer->killable = 1;
 	new_consumer->owner = pthread_self();
 
-	add_tail(&f->consumers, (node*)new_consumer);
+	add_tail(&f->consumers, &new_consumer->node);
 
 	pthread_setspecific(f->consumer_key, new_consumer);
 
@@ -155,6 +155,19 @@ create_consumer(fifo *f)
 	return new_consumer;
 }
 
+static void
+send_empty(fifo *f, buffer *b)
+{
+	pthread_mutex_lock(&f->producer.mutex);
+	
+	add_head(&f->empty, &b->node);
+	
+	b->refcount = 0;
+
+	pthread_mutex_unlock(&f->producer.mutex);
+	pthread_cond_broadcast(&f->producer.cond);
+}
+
 static inline void
 dealloc_consumer_info(fifo *f, coninfo *consumer)
 {
@@ -170,7 +183,7 @@ dealloc_consumer_info(fifo *f, coninfo *consumer)
 	if (consumer->waiting) {
 		fprintf(stderr, "FIFO INTERNAL ERROR: waiting: %d [%s]\n",
 			consumer->waiting, f->name);
-		assert(consumer->waiting == 0);
+		exit(100);
 	}
 	pthread_mutex_unlock(&(cm->mutex));
 	mucon_destroy(cm);
@@ -223,17 +236,6 @@ uninit(fifo * f)
 	f->send_full  = (void     (*)(fifo *, buffer *)) dead_end;
 	f->start      = (bool     (*)(fifo *))           dead_end;
 	f->uninit     = (void     (*)(fifo *))           dead_end;
-}
-
-static void
-send_empty(fifo *f, buffer *b)
-{
-	pthread_mutex_lock(&f->producer.mutex);
-	
-	add_head(&f->empty, &b->node);
-	
-	pthread_mutex_unlock(&f->producer.mutex);
-	pthread_cond_broadcast(&f->producer.cond);
 }
 
 /*
@@ -303,7 +305,7 @@ kill_zombies(fifo *f)
 	p = (coninfo*)f->consumers.head;
 	while (p) {
 		if (p->waiting == f->num_buffers &&
-		    p->killable)
+		    f->num_buffers && p->killable)
 			zombies++;
 		p = (coninfo*)(p->node.next);
 	}
@@ -333,6 +335,7 @@ init_callback_fifo(fifo *f, char *name,
 {
 	int i;
 
+	/* inits lists too */
 	memset(f, 0, sizeof(fifo));
 	snprintf(f->name, 63, name);
 
@@ -347,12 +350,9 @@ init_callback_fifo(fifo *f, char *name,
 			add_tail(&f->empty, &f->buffers[i].node);
 	}
 
-	init_list(&f->consumers);
-
 	pthread_rwlock_init(&f->consumers_rwlock, NULL);
 	pthread_key_create(&f->consumer_key, key_destroy_callback);
 
-	init_list(&f->limbo);
 	pthread_mutex_init(&f->limbo_mutex, NULL);
 
 	mucon_init(&f->producer);

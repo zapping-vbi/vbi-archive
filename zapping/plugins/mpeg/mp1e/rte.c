@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.50 2001-04-07 14:51:11 garetxe Exp $ */
+/* $Id: rte.c,v 1.51 2001-05-09 22:33:21 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -27,6 +27,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <assert.h>
 #include "options.h"
 #include "common/fifo.h"
 #include "common/mmx.h"
@@ -140,23 +141,24 @@ wait_data(rte_context * context, int video)
 	while (!(b = rte_recv_full_buffer(f))) {
 		if (*data_callback) {
 			b = wait_empty_buffer(f);
-
 			(*data_callback)(context, b->data, &(b->time),
 					 stream, context->private->user_data);
-
 			send_full_buffer(f, b);
 			continue;
 		} else if (*buffer_callback) {
-			b = wait_empty_buffer(f);
-
 			(*buffer_callback)(context, &rbuf, stream);
-			b->data = rbuf.data;
-			b->time = rbuf.time;
-			b->user_data = rbuf.user_data;
+			if (rbuf.data) {
+				b = wait_empty_buffer(f);
 
-			send_full_buffer(f, b);
+				b->data = rbuf.data;
+				b->time = rbuf.time;
+				b->user_data = rbuf.user_data;
+
+				send_full_buffer(f, b);
+			}
 			continue;
 		}
+
 		/* wait for the push interface */
 		pthread_mutex_lock(&consumer->mutex);
 		pthread_cond_wait(&consumer->cond, &consumer->mutex);
@@ -185,22 +187,22 @@ video_send_empty(fifo *f, buffer *b)
 	rteUnrefCallback unref_callback =
 		((rte_context*)f->user_data)->private->video_unref_callback;
 
-	if ((--(b->refcount)) <= 0) {
-		if (unref_callback) {
-			rbuf.data = b->data;
-			rbuf.time = b->time;
-			rbuf.user_data = b->user_data;
-			
-			unref_callback((rte_context*)f->user_data, &rbuf);
-		}
+	if (unref_callback) {
+		rbuf.data = b->data;
+		rbuf.time = b->time;
+		rbuf.user_data = b->user_data;
 		
-		pthread_mutex_lock(&f->producer.mutex);
-		
-		add_head(&f->empty, &b->node);
-		
-		pthread_mutex_unlock(&f->producer.mutex);
-		pthread_cond_broadcast(&f->producer.cond);
+		unref_callback((rte_context*)f->user_data, &rbuf);
 	}
+
+	pthread_mutex_lock(&f->producer.mutex);
+		
+	add_head(&f->empty, &b->node);
+	
+	b->refcount = 0;
+		
+	pthread_mutex_unlock(&f->producer.mutex);
+	pthread_cond_broadcast(&f->producer.cond);
 }
 
 static void
@@ -210,22 +212,22 @@ audio_send_empty(fifo *f, buffer *b)
 	rteUnrefCallback unref_callback =
 		((rte_context*)f->user_data)->private->audio_unref_callback;
 
-	if ((--(b->refcount)) <= 0) {
-		if (unref_callback) {
-			rbuf.data = b->data;
-			rbuf.time = b->time;
-			rbuf.user_data = b->user_data;
-			
-			unref_callback((rte_context*)f->user_data, &rbuf);
-		}
+	if (unref_callback) {
+		rbuf.data = b->data;
+		rbuf.time = b->time;
+		rbuf.user_data = b->user_data;
 		
-		pthread_mutex_lock(&f->producer.mutex);
-		
-		add_head(&f->empty, &b->node);
-		
-		pthread_mutex_unlock(&f->producer.mutex);
-		pthread_cond_broadcast(&f->producer.cond);
+		unref_callback((rte_context*)f->user_data, &rbuf);
 	}
+
+	pthread_mutex_lock(&f->producer.mutex);
+		
+	add_head(&f->empty, &b->node);
+	
+	b->refcount = 0;
+		
+	pthread_mutex_unlock(&f->producer.mutex);
+	pthread_cond_broadcast(&f->producer.cond);
 }
 
 /* Just produces a blank buffer */
@@ -688,6 +690,8 @@ int rte_start_encoding (rte_context * context)
 
 	remote_init(modules);
 
+	mux_thread_done = 0;
+
 	if (modules & MOD_AUDIO) {
 		ASSERT("create audio compression thread",
 			!pthread_create(&context->private->audio_thread_id,
@@ -738,7 +742,7 @@ int rte_start_encoding (rte_context * context)
 		break;
 	}
 
-	remote_start(0.0); // now
+	remote_start(0.0);
 
 	context->private->encoding = 1;
 
@@ -802,17 +806,16 @@ void rte_stop ( rte_context * context )
 	/* Join the mux thread */
 	printv(2, "joining mux\n");
 	pthread_join(context->private->mux_thread, NULL);
+	mux_thread_done = 1;
 	printv(2, "mux joined\n");
 
 	if (context->mode & RTE_AUDIO) {
 		printv(2, "joining audio\n");
-		pthread_cancel(context->private->audio_thread_id);
 		pthread_join(context->private->audio_thread_id, NULL);
 		printv(2, "audio joined\n");
 	}
 	if (context->mode & RTE_VIDEO) {
 		printv(2, "joining video\n");
-		pthread_cancel(context->private->video_thread_id);
 		pthread_join(context->private->video_thread_id, NULL);
 		printv(2, "video joined\n");
 	}

@@ -199,14 +199,15 @@ capture_thread (gpointer data)
 
   while (!exit_capture_thread)
     {
-      if ((b = recv_empty_buffer(&capture_fifo)))
+      b = recv_empty_buffer(&capture_fifo);
+      if (b)
 	{
 	  d = (capture_bundle*)b->data;
 	  
 	  fill_bundle(d, info);
 	  send_full_buffer(&capture_fifo, b);
 	}
-      usleep(1000);
+      usleep(2000);
     }
 
   /* clear capture_fifo on exit */
@@ -282,7 +283,7 @@ clear_bundle(capture_bundle *d)
 
 static void
 build_bundle(capture_bundle *d, struct tveng_frame_format *format,
-	     fifo *f)
+	     fifo *f, buffer *b)
 {
   g_assert(d != NULL);
   g_assert(format != NULL);
@@ -341,6 +342,7 @@ build_bundle(capture_bundle *d, struct tveng_frame_format *format,
   d->format.sizeimage = d->image_size;
   d->format.bpp = (format->depth+7)>>3;
   d->f = f;
+  d->b = b;
 }
 
 static void
@@ -410,7 +412,7 @@ static gint idle_handler(gpointer ignored)
 	  d->format.pixformat != current_format.pixformat)
 	{
 	  clear_bundle(d);
-	  build_bundle(d, &current_format, &capture_fifo);
+	  build_bundle(d, &current_format, &capture_fifo, b);
 	}
       send_empty_buffer(&capture_fifo, b);
     }
@@ -481,11 +483,6 @@ capture_stop(tveng_device_info *info)
   gint i;
   GList *p;
 
-  exit_capture_thread = TRUE;
-  while ((b = recv_full_buffer(&capture_fifo)))
-    send_empty_buffer(&capture_fifo, b);
-  pthread_join(capture_thread_id, NULL);
-
   gtk_idle_remove(idle_id);
 
   /* Tell the plugins that capture is stopped */
@@ -495,6 +492,11 @@ capture_stop(tveng_device_info *info)
       plugin_capture_stop((struct plugin_info*)p->data);
       p = p->next;
     }
+
+  exit_capture_thread = TRUE;
+  while ((b = recv_full_buffer(&capture_fifo)))
+    send_empty_buffer(&capture_fifo, b);
+  pthread_join(capture_thread_id, NULL);
 
   /* Free the memory used by the bundles */
   for (i=0; i<capture_fifo.num_buffers; i++)
