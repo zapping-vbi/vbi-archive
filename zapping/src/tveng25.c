@@ -1015,7 +1015,7 @@ static int p_tveng25_open_device_file(int flags, tveng_device_info * info)
 
   if (-1 == v4l25_ioctl (info, VIDIOC_QUERYCAP, &caps))
     {
-      device_close(info->log_fp, info -> fd);
+      device_close(info->log_fp, info->fd);
       return -1;
     }
 
@@ -1026,7 +1026,7 @@ static int p_tveng25_open_device_file(int flags, tveng_device_info * info)
       snprintf(info->error, 256, 
 	       _("%s doesn't look like a valid capture device"), info
 	       -> file_name);
-      close(info -> fd);
+      device_close(info->log_fp, info->fd);
       return -1;
     }
 
@@ -1038,7 +1038,7 @@ static int p_tveng25_open_device_file(int flags, tveng_device_info * info)
       snprintf(info->error, 256,
 	       _("Sorry, but \"%s\" cannot do streaming"),
 	       info -> file_name);
-      close(info -> fd);
+      device_close(info->log_fp, info->fd);
       return -1;
     }
 
@@ -1268,7 +1268,7 @@ static void tveng25_close_device(tveng_device_info * info)
 {
   tveng_stop_everything(info);
 
-  close(info -> fd);
+  device_close(info->log_fp, info->fd);
   info -> fd = 0;
   info -> current_controller = TVENG_CONTROLLER_NONE;
 
@@ -1502,10 +1502,9 @@ tveng25_set_capture_format(tveng_device_info * info)
   enum tveng_frame_pixformat pixformat;
 
   pixformat = info->format.pixformat;
-
   current_mode = tveng_stop_everything(info);
-
   info->format.pixformat = pixformat;
+
   set_capture_format(info);
 
   /* Start capturing again as if nothing had happened */
