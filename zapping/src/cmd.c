@@ -81,61 +81,59 @@ static PyObject* py_quit (PyObject *self, PyObject *args)
 }
 
 static enum tveng_capture_mode
-resolve_mode		(const gchar *_mode)
+resolve_mode			(const gchar *		mode_str)
 {
-  if (!strcasecmp (_mode, "preview"))
+  if (0 == strcasecmp (mode_str, "preview"))
     return TVENG_CAPTURE_WINDOW;
-  else if (!strcasecmp (_mode, "fullscreen"))
+  else if (0 == strcasecmp (mode_str, "fullscreen"))
     return TVENG_CAPTURE_PREVIEW;
-  else if (!strcasecmp (_mode, "capture"))
+  else if (0 == strcasecmp (mode_str, "capture"))
     return TVENG_CAPTURE_READ;
-  else if (!strcasecmp (_mode, "teletext"))
-    return TVENG_NO_CAPTURE;
+  else if (0 == strcasecmp (mode_str, "teletext"))
+    return TVENG_TELETEXT;
   else
-    ShowBox (_("Unknown mode <%s>, possible choices are:\n"
+    ShowBox (_("Unknown display mode '%s', possible choices are:\n"
 	       "preview, fullscreen, capture and teletext"),
-	     GTK_MESSAGE_ERROR, _mode);
+	     GTK_MESSAGE_ERROR, mode_str);
 
-  return -1;
+  return TVENG_NO_CAPTURE;
 }
 
 static gboolean
-switch_mode				(enum tveng_capture_mode mode)
+switch_mode			(enum tveng_capture_mode mode)
 {
   switch (mode)
     {
     case TVENG_CAPTURE_PREVIEW:
-      zmisc_switch_mode (TVENG_CAPTURE_PREVIEW, main_info);
+      if (-1 == zmisc_switch_mode (TVENG_CAPTURE_PREVIEW, main_info))
+	return FALSE;
       break;
 
     case TVENG_CAPTURE_WINDOW:
-      if (zmisc_switch_mode (TVENG_CAPTURE_WINDOW, main_info) == -1)
-	ShowBox(_("%s:\n"
-		  "Try running as root \"zapping_fix_overlay\" in a console"),
-		GTK_MESSAGE_ERROR, main_info->error);
+      if (-1 == zmisc_switch_mode (TVENG_CAPTURE_WINDOW, main_info))
+	{
+	  ShowBox(main_info->error, GTK_MESSAGE_ERROR);
+	  return FALSE;
+	}
       break;
 
     case TVENG_CAPTURE_READ:
-      if (zmisc_switch_mode(TVENG_CAPTURE_READ, main_info) == -1)
-	ShowBox(main_info->error, GTK_MESSAGE_ERROR);
-      break;
-
-#ifdef HAVE_LIBZVBI
-    case TVENG_NO_CAPTURE:
-      /* Switch from TTX to Subtitles overlay, and vice versa */
-#if 0 /* needs some other solution */
-      if (main_info->current_mode == TVENG_NO_CAPTURE)
+      if (-1 == zmisc_switch_mode(TVENG_CAPTURE_READ, main_info))
 	{
-	  /* implicit switch to previous_mode */
-	  if (get_ttxview_page(main_window, &zvbi_page, NULL))
-	    zmisc_overlay_subtitles(zvbi_page);
+	  ShowBox(main_info->error, GTK_MESSAGE_ERROR);
+	  return FALSE;
 	}
-      else
-#endif
-	zmisc_switch_mode(TVENG_NO_CAPTURE, main_info);
-
       break;
-#endif
+
+    case TVENG_TELETEXT:
+      if (-1 == zmisc_switch_mode(TVENG_TELETEXT, main_info))
+	return FALSE;
+      break;
+
+    case TVENG_NO_CAPTURE:
+      if (-1 == zmisc_switch_mode(TVENG_NO_CAPTURE, main_info))
+	return FALSE;
+      break;
 
     default:
       return FALSE;
@@ -144,62 +142,48 @@ switch_mode				(enum tveng_capture_mode mode)
   return TRUE;
 }
 
-static PyObject* py_switch_mode (PyObject *self, PyObject *args)
+static PyObject *
+py_switch_mode			(PyObject *		self,
+				 PyObject *		args)
 {
-  char *_mode;
-  int ok = PyArg_ParseTuple (args, "s", &_mode);
-  enum tveng_capture_mode mode;
+  enum tveng_capture_mode old_mode;
+  char *mode_str;
 
-  if (!ok)
+  if (!PyArg_ParseTuple (args, "s", &mode_str))
     g_error ("zapping.switch_mode(s)");
 
-  mode = main_info->current_mode;
+  old_mode = main_info->current_mode;
 
-  if (!switch_mode (resolve_mode (_mode)))
+  if (!switch_mode (resolve_mode (mode_str)))
     py_return_false;
 
-  if (mode != main_info->current_mode)
-    last_mode = mode;
+  if (main_info->current_mode != old_mode)
+    last_mode = old_mode;
 
   py_return_none;
 }
 
-static PyObject* py_toggle_mode (PyObject *self, PyObject *args)
+static PyObject *
+py_toggle_mode			(PyObject *		self,
+				 PyObject *		args)
 {
-  enum tveng_capture_mode mode, curr_mode = main_info->current_mode;
-  char *_mode = NULL;
-  int ok = PyArg_ParseTuple (args, "|s", &_mode);
+  enum tveng_capture_mode mode;
+  char *mode_str;
 
-  if (!ok)
+  mode_str = NULL;
+
+  if (!PyArg_ParseTuple (args, "|s", &mode_str))
     g_error ("zapping.toggle_mode(|s)");
 
-  if (_mode)
-    {
-      mode = resolve_mode (_mode);
-      if (mode < 0)
-	py_return_false;
-    }
+  if (mode_str)
+    mode = resolve_mode (mode_str);
   else
-    mode = curr_mode;
+    mode = main_info->current_mode;
 
-  if (curr_mode == mode && mode != TVENG_NO_CAPTURE)
-    {
-      /* swap requested (current) mode and last mode */
+  if (!switch_mode (last_mode))
+    py_return_false;
 
-      if (!switch_mode (last_mode))
-	py_return_false;
-
-      last_mode = mode;
-    }
-  else
-    {
-      /* switch to requested mode */
-
-      if (!switch_mode (mode))
-	py_return_false;
-
-      last_mode = curr_mode;
-    }
+  last_mode = mode;
 
   py_return_true;
 }
@@ -254,37 +238,7 @@ py_hide_controls		(PyObject *		self,
   if (!ok)
     g_error ("zapping.hide_controls(|i)");
 
-  if (hide > 1)
-    hide = !zconf_get_boolean (NULL, "/zapping/internal/callbacks/hide_controls");
   zconf_set_boolean (hide, "/zapping/internal/callbacks/hide_controls");
-
-  {
-    GtkWidget *menu;
-    GtkWidget *toolbar;
-
-    menu = lookup_widget (main_window, "bonobodockitem1");
-    toolbar = lookup_widget (main_window, "bonobodockitem2");
-
-    if (hide)
-      {
-	gtk_widget_hide (menu);
-	gtk_widget_hide (toolbar);
-      }
-    else
-      {
-	GtkCheckMenuItem *item;
-
-	gtk_widget_show (menu);
-	gtk_widget_show (toolbar);
-
-	item = GTK_CHECK_MENU_ITEM (lookup_widget (main_window, "hide_controls2"));
-
-	if (hide == item->active)
-	  gtk_check_menu_item_set_active (item, !hide);
-      }
-
-    gtk_widget_queue_resize (main_window);
-  }
 
   py_return_none;
 }
@@ -305,16 +259,9 @@ py_keep_on_top			(PyObject *		self,
 
   if (have_wm_hints)
     {
-      GtkCheckMenuItem *item;
-
       if (keep > 1)
         keep = !zconf_get_boolean (NULL, "/zapping/options/main/keep_on_top");
       zconf_set_boolean (keep, "/zapping/options/main/keep_on_top");
-
-      item = GTK_CHECK_MENU_ITEM (lookup_widget (main_window, "keep_window_on_top2"));
-
-      if (keep != item->active)
-	  gtk_check_menu_item_set_active (item, keep);
 
       window_on_top (GTK_WINDOW (main_window), keep);
     }
@@ -324,7 +271,9 @@ py_keep_on_top			(PyObject *		self,
 
 static PyObject *py_help (PyObject *self, PyObject *args)
 {
-  gnome_help_display ("index.html", NULL, NULL);
+#warning
+  /* See gnome-docu what's appropriate in Gnome-2.
+     gnome_help_display ("index.html", NULL, NULL); */
 
   py_return_none;
 }
