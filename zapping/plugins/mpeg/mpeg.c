@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.57 2005-02-28 22:34:56 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.58 2005-03-30 21:32:10 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu -> ? */
 #undef GTK_DISABLE_DEPRECATED
@@ -148,7 +148,6 @@ video_callback			(rte_context *		context _unused_,
       --stopped;
 
     b = zf_wait_full_buffer (&mpeg_consumer);
-
     cf = PARENT (b, capture_frame, b);
 
     /* XXX copy? */
@@ -173,7 +172,17 @@ video_unref			(rte_context *		context _unused_,
 				 rte_codec *		codec _unused_,
 				 rte_buffer *		rb)
 {
-  zf_send_empty_buffer (&mpeg_consumer, (zf_buffer *) rb->user_data);
+  zf_buffer *b;
+
+  if (0 == rb->size) {
+    /* Bug in librte < 0.5.6: If video_callback() returned FALSE
+       it passes an "EOF" buffer to the codec and later thinks
+       it must return data to this function. */
+    return TRUE;
+  }
+
+  b = (zf_buffer *) rb->user_data;
+  zf_send_empty_buffer (&mpeg_consumer, b);
   return TRUE;
 }
 
