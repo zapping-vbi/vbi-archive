@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.4 2000-07-12 21:11:05 garetxe Exp $ */
+/* $Id: main.c,v 1.5 2000-07-13 19:02:37 garetxe Exp $ */
 
 #define MAIN_C
 
@@ -96,20 +96,34 @@ volatile int quit_please = 0;
 volatile int program_shutdown = 0;
 
 pthread_t video_emulation_thread_id;
+pthread_t audio_emulation_thread_id;
+pthread_mutex_t video_device_mutex=PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t audio_device_mutex=PTHREAD_MUTEX_INITIALIZER;
 
 unsigned char *		(* ye_olde_wait_frame)(double *, int *);
 void			(* ye_olde_frame_done)(int);
+short *			(* ye_olde_audio_read)(double *);
+void			(* ye_olde_audio_unget)(short *);
 
-void video_data_callback(void * data, double * time, int video,
-			 rte_context * context, void * user_data)
+void emulation_data_callback(void * data, double * time, int video,
+			     rte_context * context, void * user_data)
 {
 	int frame;
+	void * misc_data;
 
-	if (!video)
-		return;
-
-	memcpy(data, ye_olde_wait_frame(time, &frame), context->video_bytes);
-	ye_olde_frame_done(frame);
+	if (video) {
+		pthread_mutex_lock(&video_device_mutex);
+		misc_data = ye_olde_wait_frame(time, &frame);
+		pthread_mutex_unlock(&video_device_mutex);
+		memcpy(data, misc_data, context->video_bytes);
+		ye_olde_frame_done(frame);
+	}
+	else {
+		pthread_mutex_lock(&audio_device_mutex);
+		misc_data = ye_olde_audio_read(time);
+		pthread_mutex_unlock(&audio_device_mutex);
+		memcpy(data, misc_data, context->audio_bytes);
+	}
 }
 
 void * video_emulation_thread (void * ptr)
@@ -117,14 +131,34 @@ void * video_emulation_thread (void * ptr)
 	int frame;
 	double timestamp;
 	unsigned char * data;
+	void * video_data;
 	rte_context * context = (rte_context *)ptr;
 
 	data = rte_push_video_data(context, NULL, 0);
 	for (;;) {
-		memcpy(data, ye_olde_wait_frame(&timestamp, &frame),
-		       context->video_bytes);
+		pthread_mutex_lock(&video_device_mutex);
+		video_data = ye_olde_wait_frame(&timestamp, &frame);
+		pthread_mutex_unlock(&video_device_mutex);
+		memcpy(data, video_data, context->video_bytes);
 		data = rte_push_video_data(context, data, timestamp);
 		ye_olde_frame_done(frame);
+	}
+}
+
+void * audio_emulation_thread (void * ptr)
+{
+	double timestamp;
+	short * data;
+	short * audio_data;
+	rte_context * context = (rte_context *)ptr;
+
+	data = rte_push_audio_data(context, NULL, 0);
+	for (;;) {
+		pthread_mutex_lock(&audio_device_mutex);
+		audio_data = ye_olde_audio_read(&timestamp);
+		pthread_mutex_unlock(&audio_device_mutex);
+		memcpy(data, audio_data, context->audio_bytes);
+		data = rte_push_audio_data(context, data, timestamp);
 	}
 }
 
@@ -140,17 +174,19 @@ void * video_emulation_thread (void * ptr)
 int emulation_thread_init ( void )
 {
 	rte_context * context;
-	int do_test = 2; /* 1 == push, 2 == callbacks, 3 == both */
+	int do_test = 1; /* 1 == push, 2 == callbacks, 3 == both */
 	rteDataCallback callback;
 
 	ye_olde_wait_frame = video_wait_frame;
 	ye_olde_frame_done = video_frame_done;
+	ye_olde_audio_read = audio_read;
+	ye_olde_audio_unget = audio_unget;
 
 	if (!rte_init())
 		return 0;
 
 	if (do_test & 2)
-		callback = RTE_DATA_CALLBACK(video_data_callback);
+		callback = RTE_DATA_CALLBACK(emulation_data_callback);
 	else
 		callback = NULL;
 
@@ -167,9 +203,12 @@ int emulation_thread_init ( void )
 		return 0;
 	}
 
-	if (do_test & 1)
+	if (do_test & 1) {
 		pthread_create(&video_emulation_thread_id, NULL,
 			       video_emulation_thread, context);
+		pthread_create(&audio_emulation_thread_id, NULL,
+			       audio_emulation_thread, context);
+	}
 
 	return 1;
 }

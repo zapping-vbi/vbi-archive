@@ -29,6 +29,7 @@
 #include "mmx.h"
 #include "rte.h"
 #include "video/video.h" /* fixme: video_unget_frame and friends */
+#include "audio/audio.h" /* fixme: audio_read, audio_unget prots. */
 
 /*
   TODO:
@@ -55,6 +56,8 @@ struct _rte_context_private {
 	void * user_data; /* user data given to the callback */
 	fifo aud, vid; /* fifos for pushing */
 	int v_ubuffer; /* for unget() */
+	buffer * a_ubuffer; /* for unget() */
+	int a_again; /* if 1, return a_ubuffer again */
 	int depth; /* video bit depth (bytes per pixel, includes
 		      packing) */
 	buffer * last_video_buffer; /* video buffer the app should be
@@ -114,6 +117,9 @@ fetch_data(rte_context * context, int video)
 static inline void
 schedule_video_fetch(rte_context * context)
 {
+	if (!context->private->data_callback)
+		return;
+
 	if (context->private->video_pending < 5) {
 		pthread_mutex_lock(&(context->private->video_mutex));
 		context->private->video_pending ++;
@@ -127,6 +133,9 @@ schedule_video_fetch(rte_context * context)
 static inline void
 schedule_audio_fetch(rte_context * context)
 {
+	if (!context->private->data_callback)
+		return;
+
 	if (context->private->audio_pending < 5) {
 		pthread_mutex_lock(&(context->private->audio_mutex));
 		context->private->audio_pending ++;
@@ -182,7 +191,6 @@ audio_input_thread ( void * ptr )
 			pthread_mutex_unlock(&(priv->audio_mutex));
 			fetch_data(context, 0);
 			pthread_mutex_lock(&(priv->audio_mutex));
-
 			priv->audio_pending --;
 		}
 	}
@@ -223,6 +231,7 @@ rte_context * rte_context_new (char * file,
 			       void * user_data)
 {
 	rte_context * context;
+	int stereo;
 
 	if (global_context)
 	{
@@ -302,6 +311,21 @@ rte_context * rte_context_new (char * file,
 	context->video_bytes = context->width * context->height * 2;
 
 	context->mode = RTE_MUX_VIDEO_AND_AUDIO;
+
+	switch (context->audio_mode) {
+	case RTE_AUDIO_MODE_MONO:
+		stereo = 0;
+		break;
+	case RTE_AUDIO_MODE_STEREO:
+		stereo = 1;
+		break;
+		/* fixme:dual channel */
+	default:
+		stereo = 0;
+		break;
+	}
+
+	context->audio_bytes = 2 * (stereo+1) * 1632;
 
 	global_context = context;
 
@@ -396,6 +420,7 @@ int rte_start ( rte_context * context )
 	}
 
 	context->private->v_ubuffer = -1;
+	context->private->a_ubuffer = NULL;
 	context->private->encoding = 1;
 
 	/* Hopefully 8 frames is more than enough (we should only go
@@ -513,6 +538,7 @@ void * rte_push_video_data ( rte_context * context, void * data,
 		pthread_mutex_lock(&(context->private->video_mutex));
 		if (context->private->video_pending > 0)
 			context->private->video_pending --;
+		pthread_cond_broadcast(&(context->private->video_cond));
 		pthread_mutex_unlock(&(context->private->video_mutex));
 	}
 
@@ -559,6 +585,7 @@ void * rte_push_audio_data ( rte_context * context, void * data,
 		pthread_mutex_lock(&(context->private->audio_mutex));
 		if (context->private->audio_pending > 0)
 			context->private->audio_pending --;
+		pthread_cond_broadcast(&(context->private->audio_cond));
 		pthread_mutex_unlock(&(context->private->audio_mutex));
 	}
 
@@ -648,6 +675,67 @@ video_input_unget_frame(int buf_index)
 	context->private->v_ubuffer = buf_index;
 }
 
+/* audio_read = audio_input_read */
+static short *
+audio_input_read( double *ftime)
+{
+	rte_context * context = global_context; /* FIXME: this shoudn't be global */
+	buffer * b;
+	fifo * f;
+
+	b = context->private->a_ubuffer;
+
+	if (context->private->a_again) {
+		ASSERT("re-using audio before using it\n", b != NULL);
+		*ftime = b->time;
+		context->private->a_again = 0;
+
+		return ((short*)b->data);
+	}
+
+	f = &(context->private->aud);
+
+	if (b)
+		empty_buffer(f, b);
+
+	pthread_mutex_lock(&f->mutex);
+
+	b = (buffer*) rem_head(&f->full);
+	
+	pthread_mutex_unlock(&(f->mutex));
+	
+	schedule_audio_fetch(context);
+
+	if (!b) {
+		pthread_mutex_lock(&f->mutex);
+		
+		while (!(b = (buffer*) rem_head(&f->full)))
+			pthread_cond_wait(&(f->cond), &(f->mutex));
+		
+		pthread_mutex_unlock(&(f->mutex));
+	}
+
+	*ftime = b->time;
+	context->private->a_ubuffer = b;
+
+	return ((short*)b->data);
+}
+
+/* audio_unget = audio_input_unget */
+static void
+audio_input_unget(short * p)
+{
+	rte_context * context = global_context; /* fixme: avoid global */
+
+	ASSERT("Ungetting an incorrect buffer\n",
+	       p == (short*)context->private->a_ubuffer->data);
+
+	ASSERT("You shouldn't unget audio twice, core!\n",
+	       context->private->a_again == 0);
+
+	context->private->a_again = 1;
+}
+
 int rte_init ( void )
 {
 	if (!cpu_id(ARCH_PENTIUM_MMX))
@@ -657,6 +745,9 @@ int rte_init ( void )
 	video_wait_frame = video_input_wait_frame;
 	video_frame_done = video_input_frame_done;
 	video_unget_frame = video_input_unget_frame;
+
+	audio_read = audio_input_read;
+	audio_unget = audio_input_unget;
 
 	return 1;
 }

@@ -20,6 +20,7 @@
 
 /* FIXME: We need declaring things as const */
 /* FIXME: global_context must disappear */
+/* FIXME: All these huge comments should go into a ref manual */
 
 #ifndef __RTELIB_H__
 #define __RTELIB_H__
@@ -73,6 +74,7 @@ enum rte_frame_rate {
 enum rte_audio_mode {
 	RTE_AUDIO_MODE_MONO,
 	RTE_AUDIO_MODE_STEREO,
+	/* fixme: what does this mean? */
 	RTE_AUDIO_MODE_DUAL_CHANNEL
 };
 
@@ -138,8 +140,8 @@ typedef int (*rteEncodeCallback)(void * data,
   "I need more data" callback. The input thread will call this
   callback whenever it thinks it will need some fresh
   data to encode (usually it will go one or two samples ahead of the
-  encoder thread). The callbacks and the push() interfaces can be used
-  together.
+  encoder thread). The callbacks and the push() interfaces shouldn't
+  be used together (they don't always work).
   data: Where should you write the data. It's a memchunk of
   context->video_bytes or context->audio_bytes (depending whether rte
   asks for video or audio), and you should fill it (i.e., a video
@@ -250,6 +252,12 @@ void * rte_push_video_data ( rte_context * context, void * data,
   When you push one sample, it is assumed that it contains
   context->audio_bytes of audio data with the current context audio
   parameters.
+  The expected audio format is signed 16-bit Little Endian.
+  A sample is structured as follows:
+  2 * (stereo ? 1:2) * 1632 bytes of audio, where the first 1152
+  audio atoms (2* (stereo ? 1:2) bytes of audio are considered an
+  atom) are data, and the remaining 480 atoms belong to the next frame
+  (so the last atoms will be pushed in the beginning of the next frame).
   data: pointer to the data to encode.
   time: Timestamp given to the frame, in seconds.
   Returns: A pointer to the buffer where you should write the next sample
