@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.32 2002-05-07 06:40:08 mschimek Exp $ */
+/* $Id: main.c,v 1.33 2002-05-13 05:38:00 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -345,6 +345,7 @@ main(int ac, char **av)
 	sigset_t block_mask, endm;
 	/* XXX encapsulation */
 	struct pcm_context *pcm = 0;
+	struct filter_param fp[2];
 	char *errstr = NULL;
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
@@ -488,12 +489,12 @@ main(int ac, char **av)
 		video_params.video.height = grab_height;
 
 		if (!stat(cap_dev, &st) && S_ISCHR(st.st_mode)) {
-			if (!(vfifo = v4l2_init(&video_params.video)))
-				vfifo = v4l_init(&video_params.video);
+			if (!(vfifo = v4l2_init(&video_params.video, fp)))
+				vfifo = v4l_init(&video_params.video, fp);
 		} else if (!strncmp(cap_dev, "raw:", 4)) {
-			vfifo = raw_init(&video_params.video);
+			vfifo = raw_init(&video_params.video, fp);
 		} else {
-			vfifo = file_init(&video_params.video);
+			vfifo = file_init(&video_params.video, fp);
 		}
 	}
 
@@ -622,6 +623,8 @@ main(int ac, char **av)
 //		set_option(video_codec, "desaturate", !!luma_only);
 		set_option(video_codec, "anno", anno);
 		set_option(video_codec, "num_frames", video_num_frames);
+
+		memcpy(&PARENT(video_codec, mpeg1_context, codec.codec)->filter_param, fp, sizeof(fp));
 
 		ASSERT("set video parameters",
 		       video_codec->class->parameters_set(video_codec, &video_params));
