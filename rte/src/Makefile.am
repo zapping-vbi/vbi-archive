@@ -4,10 +4,11 @@ lib_LTLIBRARIES = librte.la
 
 EXTRA_DIST = 
 
-INCLUDES = -D_GNU_SOURCE -D_REENTRANT -D_LARGEFILE64_SOURCE
+INCLUDES = -D_GNU_SOURCE -D_REENTRANT -D_LARGEFILE64_SOURCE \
+	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
 
 if BACKEND_MP1E
-mp1e = $(top_srcdir)/mp1e
+mp1e = ../mp1e
 mp1e_libs = \
 	$(mp1e)/video/libvideo.la \
 	$(mp1e)/audio/libaudio.la \
@@ -17,7 +18,7 @@ mp1e_libs = \
 endif
 
 if BACKEND_FFMPEG
-ffmpeg = $(top_srcdir)/ffmpeg
+ffmpeg = ../ffmpeg
 ffmpeg_libs = \
 	$(ffmpeg)/libffmpeg.la \
 	$(ffmpeg)/libav/libav.la \
@@ -25,7 +26,7 @@ ffmpeg_libs = \
 endif
 
 if BACKEND_DIVX4LINUX
-divx4linux = $(top_srcdir)/divx4linux
+divx4linux = ../divx4linux
 divx4linux_libs =
 endif
 

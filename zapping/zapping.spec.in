@@ -51,7 +51,7 @@ rm -rf %{buildroot}
 %files
 %defattr (-, root, root)
 %doc AUTHORS THANKS ChangeLog README README.plugins COPYING TODO BUGS
-%doc po/zapping.pot plugins/alirc/README.alirc
+%doc plugins/alirc/README.alirc
 %config(noreplace) /etc/pam.d/zapping_setup_fb
 %config(noreplace) /etc/security/console.apps/zapping_setup_fb
 %{prefix}/bin/zapping
@@ -66,6 +66,9 @@ rm -rf %{buildroot}
 %{prefix}/man/man1/*
 
 %changelog
+* Tue Jun 24 2002 Michael H. Schimek <mschimek@users.sourceforge.net>
+- Removed po/zapping.pot from docs list (purpose?)
+
 * Tue Jun 18 2002 Michael H. Schimek <mschimek@users.sourceforge.net>
 - Requires gettext 0.11.2
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io.c,v 1.5 2002-06-14 07:58:48 mschimek Exp $ */
+/* $Id: io.c,v 1.6 2002-06-24 03:25:16 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -33,7 +33,7 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include "../src/librte.h"
+#include "librte.h"
 
 #ifndef BYTE_ORDER /* BSD feat */
 /* FIXME a GNU libc feature */

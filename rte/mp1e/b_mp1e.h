@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.h,v 1.6 2002-04-20 06:42:54 mschimek Exp $ */
+/* $Id: b_mp1e.h,v 1.7 2002-06-24 03:21:11 mschimek Exp $ */
 
 #ifndef B_MP1E_H
 #define B_MP1E_H
@@ -29,6 +29,11 @@
 #include "systems/libsystems.h"
 
 #define MAX_ELEMENTARY_STREAMS ((sizeof(sync_set) * 8) - 1)
+
+#define PCAST(name, to, from, member)					\
+static inline to * name (from *p) {					\
+	return PARENT(p, to, member);					\
+}
 
 /* Backend specific rte_codec and rte_context extensions */
 
@@ -69,6 +74,8 @@ typedef struct {
 	rte_status		status;
 } mp1e_codec;
 
+PCAST(MD, mp1e_codec, rte_codec, codec);
+
 typedef struct {
 	rte_context		context;
 
@@ -85,10 +92,6 @@ typedef struct {
 	rte_buffer_callback	write_cb;
 } mp1e_context;
 
+PCAST(MX, mp1e_context, rte_context, context);
+
 #endif /* B_MP1E_H */
-
-
-
-
-
-

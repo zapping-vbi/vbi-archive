@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: info.c,v 1.9 2002-06-18 02:26:38 mschimek Exp $ */
+/* $Id: info.c,v 1.10 2002-06-24 03:25:16 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -30,7 +30,7 @@
 #include <assert.h>
 #include <getopt.h>
 
-#include "../src/librte.h"
+#include "librte.h"
 
 #ifndef _
 #ifdef ENABLE_NLS

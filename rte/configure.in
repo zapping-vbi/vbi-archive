@@ -1,32 +1,22 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.22 2002-06-19 19:58:23 mschimek Exp $
+dnl $Id: configure.in,v 1.23 2002-06-24 03:25:16 mschimek Exp $
 
 AC_INIT(configure.in)
-AM_INIT_AUTOMAKE(rte, 0.5)
+AM_INIT_AUTOMAKE(rte, 0.5cvs)
 AM_CONFIG_HEADER(config.h)
 AM_ACLOCAL_INCLUDE(m4)
 
-test "x`echo $CFLAGS | grep -e -g`" != "x" && CFLAGS="$CFLAGS -O0"
-CFLAGS="-O2 $CFLAGS -Wall -Wunused -Wmissing-prototypes -Wmissing-declarations"
+dnl
+dnl Default to -O2, except we are debugging -g
+dnl
+test -z "`echo $CFLAGS | grep -e -g`" && CFLAGS="-O2 $CFLAGS"
 
 AC_PROG_CC
 AM_PROG_AS
 
 AM_PROG_LIBTOOL
 
-for i in . mp1e; do
-  test -e $i/site_def.h || cat <<EOF >$i/site_def.h
-/* Site specific definitions */
-
-#ifndef SITE_DEF_H
-#define SITE_DEF_H
-#endif /* SITE_DEF_H */
-EOF
-done
-
 AC_CHECK_FUNCS(memalign)
-
-dnl Check whether program_invocation_name exists, GNU extension
 AC_CHECK_FUNCS(program_invocation_name)
 
 dnl
@@ -35,52 +25,65 @@ dnl
 use_sse2=no
 AC_MSG_CHECKING([whether as supports SSE2])
 AC_TRY_COMPILE(, __asm__ __volatile__ (" movdqu 0,%xmm0\n"),
-	[AC_DEFINE(USE_SSE2, 1, [Define if 'as' supports SSE2])
-	 use_sse2=yes])
+  [AC_DEFINE(USE_SSE2, 1, [Define if 'as' supports SSE2])
+    use_sse2=yes])
 AC_MSG_RESULT($use_sse2)
 AM_CONDITIONAL(USE_SSE2, test x$use_sse2 = xyes)
 
-dnl 
-dnl Plan is to have these three available
-dnl 
+dnl ---------------------------------------------------------------------------
+dnl Backends
+dnl ---------------------------------------------------------------------------
+
 BACKEND_MP1E=no
-AC_ARG_WITH(
-  mp1e,
-  [  --with-mp1e             Add the mp1e backend],
+AC_ARG_WITH(mp1e,
+  AC_HELP_STRING([--with-mp1e], [Add the mp1e backend]),
   BACKEND_MP1E="$withval", BACKEND_MP1E="yes")
 if test "x$BACKEND_MP1E" = "xyes"; then
-  AC_DEFINE(MP1E, 1, [Define if mp1e is built])
+  AC_DEFINE(BACKEND_MP1E, 1, [Define if mp1e is built])
 
-  create_links () {
-	for i in $3; do
-		test -e $2/$i || {
-			test -f $1/$i || {
-				echo "$1/$i not found, abort."
-				echo "Mp1e needs files from the Zapping CVS tree at" $1
-				echo "which is available from http://zapping.sf.net."
-				echo "Sorry for the inconvenience."
-				exit 1
-			}
-			echo "creating link for" $2/$i
-			dnl absolute path because make dist moves the tree
-			ln -s `cd $1; pwd; cd - >/dev/null`/$i $2/$i || exit 1
-		}
-	done
-  }
+  dnl When builddir is different, no mp1e dir yet
+  test -d mp1e || mkdir mp1e
+  dnl Must not confuse with cli-mp1e config.h, hence not just -I
+  ln -s ../config.h mp1e/config.h
 
-  cd mp1e
-  create_links ../common common "list.h fifo.h threads.h"
-  create_links ../src . "context.h codec.h rte.h option.h rtepriv.h"
-  cd -
+  AC_CONFIG_FILES([
+    mp1e/Makefile
+    mp1e/video/Makefile
+    mp1e/audio/Makefile
+    mp1e/systems/Makefile
+    mp1e/common/Makefile
+  ])
 fi
 
 BACKEND_FFMPEG=no
-AC_ARG_WITH(
-  ffmpeg,
-  [  --with-ffmpeg           Add the ffmpeg backend],
+AC_ARG_WITH(ffmpeg,
+  AC_HELP_STRING([--with-ffmpeg], [Add the ffmpeg backend]),
   BACKEND_FFMPEG="$withval", BACKEND_FFMPEG="yes")
 if test "x$BACKEND_FFMPEG" = "xyes"; then
-  AC_DEFINE(FFMPEG, 1, [Define if ffmpeg is built])
+  AC_DEFINE(BACKEND_FFMPEG, 1, [Define if ffmpeg is built])
+
+      AC_DEFINE(ARCH_X86, 1, [ffmpeg config])
+  dnl AC_DEFINE(ARCH_ARMV4L, 1, [ffmpeg config])
+  dnl AC_DEFINE(ARCH_ALPHA, 1, [ffmpeg config])
+      AC_DEFINE(HAVE_MMX, 1, [ffmpeg config])
+  dnl AC_DEFINE(HAVE_GPROF, 1, [ffmpeg config])
+      AC_DEFINE(CONFIG_ENCODERS, 1, [ffmpeg config])
+  dnl AC_DEFINE(CONFIG_DECODERS, 1, [ffmpeg config])
+  dnl AC_DEFINE(CONFIG_AC3, 1, [ffmpeg config])
+  dnl AC_DEFINE(CONFIG_A52BIN, 1, [ffmpeg config])
+  dnl AC_DEFINE(CONFIG_GRAB, 1, [ffmpeg config])
+  dnl AC_DEFINE(CONFIG_MP3LAME, 1, [ffmpeg config])
+  dnl AC_DEFINE(CONFIG_WIN32, 1, [ffmpeg config])
+  dnl AC_DEFINE(SIMPLE_IDCT, 1, [ffmpeg config])
+  dnl AC_DEFINE(WORDS_BIGENDIAN, 1, [ffmpeg config])
+  dnl AC_DEFINE(HAVE_BYTESWAP_H, 1, [ffmpeg config])
+
+  AC_CONFIG_FILES([
+    ffmpeg/Makefile
+    ffmpeg/libav/Makefile
+    ffmpeg/libavcodec/Makefile
+    ffmpeg/libavcodec/i386/Makefile
+  ])
 fi
 
 BACKEND_DIVX4LINUX=no
@@ -89,12 +92,21 @@ AM_CONDITIONAL(BACKEND_FFMPEG, test "x$BACKEND_FFMPEG" = "xyes")
 AM_CONDITIONAL(BACKEND_MP1E, test "x$BACKEND_MP1E" = "xyes")
 AM_CONDITIONAL(BACKEND_DIVX4LINUX, test "x$BACKEND_DIVX4LINUX" = "xyes")
 
-dnl
-dnl For ffmpeg
-dnl
-AC_CHECK_FUNCS(memalign)
+RTE_CFLAGS=-I`cd $srcdir; pwd`/src
+AC_SUBST(RTE_CFLAGS)
 
-dnl 
+
+for i in . mp1e; do
+  test -d $i && test -e $i/site_def.h || cat <<EOF >$i/site_def.h
+/* Site specific definitions */
+
+#ifndef SITE_DEF_H
+#define SITE_DEF_H
+#endif /* SITE_DEF_H */
+EOF
+done
+
+dnl
 dnl Native language support.
 dnl 
 AM_GNU_GETTEXT([external], [need-ngettext])
@@ -104,24 +116,17 @@ dnl Build docs from the sources automagically if gtkdoc is available.
 dnl 
 GTK_DOC_CHECK
 
-AC_OUTPUT([
-Makefile
-m4/Makefile
-po/Makefile.in
-docs/Makefile
-src/Makefile
-test/Makefile
-rte.spec
-mp1e/Makefile
-mp1e/video/Makefile
-mp1e/audio/Makefile
-mp1e/systems/Makefile
-mp1e/common/Makefile
-ffmpeg/Makefile
-ffmpeg/libav/Makefile
-ffmpeg/libavcodec/Makefile
-ffmpeg/libavcodec/i386/Makefile
+AC_CONFIG_FILES([
+  Makefile
+  m4/Makefile
+  po/Makefile.in
+  docs/Makefile
+  src/Makefile
+  test/Makefile
+  rte.spec
 ])
+
+AC_OUTPUT
 
 echo "
 	Backend			Build
@@ -129,9 +134,14 @@ echo "
 	mp1e			$BACKEND_MP1E
 	ffmpeg			$BACKEND_FFMPEG
 	divx4linux		$BACKEND_DIVX4LINUX
+"
 
+dnl
+dnl In cvs we have two build targets: rte with mp1e as backend and
+dnl command line mp1e. The rte dist however will not build cli mp1e
+dnl or vice versa.
+dnl
+test -e $srcdir/mp1e/configure.in && echo "
 Note mp1e is now configured as rte backend. To build the mp1e command
-line program configure and make in mp1e/ instead. However you should
-build in a separate directory: cd <dir>; <where it is>/rte/mp1e/configure;
-make.
+line program, configure and make in mp1e/ instead.
 "

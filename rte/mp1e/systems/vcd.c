@@ -1,7 +1,7 @@
 /*
  *  MPEG-1 Real Time Encoder
  *
- *  Copyright (C) 1999, 2000, 2001, 2002 Michael H. Schimek
+ *  Copyright (C) 1999-2002 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vcd.c,v 1.11 2002-03-19 19:26:29 mschimek Exp $ */
+/* $Id: vcd.c,v 1.12 2002-06-24 03:21:11 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,7 +33,6 @@
 #include "../common/log.h"
 #include "../common/fifo.h"
 #include "../common/math.h"
-#include "../options.h"
 
 #include "mpeg.h"
 #include "systems.h"
@@ -206,7 +205,7 @@ static inline uint8_t *
 fill_packet(uint8_t *p, uint8_t *ph, uint8_t *px,
 	    stream *str, tstamp dend, tstamp *ppts)
 {
-	struct au *au = str->au_w;
+	access_unit *au = str->au_w;
 	rte_bool stamped = FALSE;
 
 	while (p < px) {
@@ -317,7 +316,7 @@ schedule(multiplexer *mux, tstamp scr)
 		dts_min = dts;
 
 		for (;;) {
-			struct au *au = s->au_r + 1;
+			access_unit *au = s->au_r + 1;
 
 			if (au >= &s->au_ring[elements(s->au_ring)])
 				au = &s->au_ring[0];
@@ -355,10 +354,8 @@ schedule(multiplexer *mux, tstamp scr)
 void *
 vcd_system_mux(void *muxp)
 {
-	uint64_t bytes_out = 0;
 	tstamp scr, pts, front_pts = 0;
 	multiplexer *mux = muxp;
-	unsigned int packet_count;
 	int nstreams, fspace;
 	stream *str, *video_stream = NULL;
 	stream *audio_stream = NULL;
@@ -366,8 +363,18 @@ vcd_system_mux(void *muxp)
 	buffer *buf;
 	uint8_t *p;
 
-	pthread_cleanup_push((void (*)(void *)) pthread_rwlock_unlock, (void *) &mux->streams.rwlock);
+	pthread_cleanup_push((void (*)(void *)) pthread_rwlock_unlock,
+			     (void *) &mux->streams.rwlock);
+
 	assert(pthread_rwlock_rdlock(&mux->streams.rwlock) == 0);
+
+	mux->status.frames_out = 0;
+	mux->status.bytes_out = 0;
+	mux->status.coded_time = 0.0;
+	mux->status.valid = 0
+		+ RTE_STATUS_FRAMES_OUT
+		+ RTE_STATUS_BYTES_OUT
+		+ RTE_STATUS_CODED_TIME;
 
 	/* Initialization */
 
@@ -457,7 +464,7 @@ vcd_system_mux(void *muxp)
 
 	p = padding_packet(p, buf->data + buf->size - p);
 
-	bytes_out += buf->used = p - buf->data;
+	mux->status.bytes_out += buf->used = p - buf->data;
 	buf = mux->mux_output(mux, buf);
 	assert(buf && buf->size >= sector_size);
 
@@ -469,11 +476,11 @@ vcd_system_mux(void *muxp)
 
 	p = padding_packet(p, buf->data + buf->size - p);
 
-	bytes_out += buf->used = p - buf->data;
+	mux->status.bytes_out += buf->used = p - buf->data;
 	buf = mux->mux_output(mux, buf);
 	assert(buf && buf->size >= sector_size);
 
-	packet_count = 2;
+	mux->status.frames_out = 2;
 
 	/* Packet loop */
 
@@ -493,8 +500,8 @@ reschedule:
 		if (!str) {
 			p = padding_packet(p, px - p);
 
-			printv(PVER, "Packet #%d %s\n",
-			       packet_count, mpeg_header_name(PADDING_STREAM));
+			printv(PVER, "Packet #%lld %s\n",
+			       mux->status.frames_out, mpeg_header_name(PADDING_STREAM));
 		} else {
 			uint8_t *ph = p; /* packet header */
 			int n, m; /* max payload, timestamp size */
@@ -528,8 +535,8 @@ reschedule:
 					str->dts += str->ticks_per_frame;
 				}
 
-				printv(PVER, "Packet #%d %s\n",
-				       packet_count, mpeg_header_name(str->stream_id));
+				printv(PVER, "Packet #%lld %s\n",
+				       mux->status.frames_out, mpeg_header_name(str->stream_id));
 
 				put(ph + 4, px - ph - 6, 2);
 			} else {
@@ -565,8 +572,8 @@ reschedule:
 					}
 				}
 
-				printv(PVER, "Packet #%d %s, pts=%lld\n",
-				       packet_count, mpeg_header_name(str->stream_id), pts);
+				printv(PVER, "Packet #%lld %s, pts=%lld\n",
+				       mux->status.frames_out, mpeg_header_name(str->stream_id), pts);
 
 				put(ph + 4, p - ph - 6, 2); /* packet size */
 
@@ -588,18 +595,19 @@ reschedule:
 			}
 		}
 
-		bytes_out += buf->used = sector_size;
+		mux->status.bytes_out += buf->used = sector_size;
 
 		buf = mux->mux_output(mux, buf);
 		assert(buf && buf->size >= sector_size);
 
+		if (pts > front_pts)
+			front_pts = pts;
+
+		mux->status.bytes_out = front_pts * (1.0 / SYSTEM_TICKS);
+		mux->status.frames_out++;
+
 		if (verbose > 0) {
-			if (pts > front_pts)
-				front_pts = pts;
-
-			packet_count++;
-
-			if ((packet_count & 3) == 0) {
+			if ((mux->status.frames_out & 3) == 0) {
 				double system_load = 1.0 - get_idle();
 				int min, sec;
 
@@ -608,7 +616,9 @@ reschedule:
 				sec -= min * 60;
 
 				printv(1, "%d:%02d (%.1f MB), system load %4.1f %%",
-				       min, sec, bytes_out / (double)(1 << 20), 100.0 * system_load);
+				       min, sec,
+				       mux->status.bytes_out / (double)(1 << 20),
+				       100.0 * system_load);
 
 				if (video_frames_dropped > 0)
 					printv(1, ", %5.2f %% dropped",

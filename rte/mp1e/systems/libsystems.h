@@ -17,12 +17,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libsystems.h,v 1.6 2002-03-19 19:26:29 mschimek Exp $ */
+/* $Id: libsystems.h,v 1.7 2002-06-24 03:21:11 mschimek Exp $ */
 
 #ifndef LIBSYSTEMS_H
 #define LIBSYSTEMS_H
 
 #include "../common/fifo.h"
+#include "rtepriv.h"
 
 typedef struct multiplexer {
 	xlist			streams;
@@ -35,9 +36,9 @@ typedef struct multiplexer {
 
 	/* preliminary */
 	buffer *		(* mux_output)(struct multiplexer* mux, buffer *b);
-} multiplexer;
 
-extern long long		bytes_out;
+	rte_status		status;
+} multiplexer;
 
 extern bool			mux_init	(multiplexer *mux, void *user_data);
 extern void			mux_destroy	(multiplexer *mux);

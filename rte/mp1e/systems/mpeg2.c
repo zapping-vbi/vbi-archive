@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg2.c,v 1.10 2002-03-19 19:26:29 mschimek Exp $ */
+/* $Id: mpeg2.c,v 1.11 2002-06-24 03:21:11 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,7 +31,6 @@
 #include "../common/log.h"
 #include "../common/fifo.h"
 #include "../common/math.h"
-#include "../options.h"
 #include "mpeg.h"
 #include "systems.h"
 
@@ -300,9 +299,7 @@ mpeg2_program_stream_mux(void *muxp)
 {
 	multiplexer *mux = muxp;
 	unsigned char *p, *ph, *ps, *pl, *px;
-	unsigned long bytes_out = 0;
 	unsigned int pack_packet_count = PACKETS_PER_PACK;
-	unsigned int packet_count = 0;
 	unsigned int pack_count = 0;
 	double system_rate, system_rate_bound;
 	double system_overhead;
@@ -311,8 +308,18 @@ mpeg2_program_stream_mux(void *muxp)
 	buffer *buf;
 	stream *str;
 
-	pthread_cleanup_push((void (*)(void *)) pthread_rwlock_unlock, (void *) &mux->streams.rwlock);
+	pthread_cleanup_push((void (*)(void *)) pthread_rwlock_unlock,
+			     (void *) &mux->streams.rwlock);
+
 	assert(pthread_rwlock_rdlock(&mux->streams.rwlock) == 0);
+
+	mux->status.frames_out = 0;
+	mux->status.bytes_out = 0;
+	mux->status.coded_time = 0.0;
+	mux->status.valid = 0
+		+ RTE_STATUS_FRAMES_OUT
+		+ RTE_STATUS_BYTES_OUT
+		+ RTE_STATUS_CODED_TIME;
 
 	{
 		double preload_delay;
@@ -328,7 +335,7 @@ mpeg2_program_stream_mux(void *muxp)
 			str->ticks_per_frame = (double) SYSTEM_TICKS / str->frame_rate;
 
 			if (IS_VIDEO_STREAM(str->stream_id) && str->frame_rate < video_frame_rate)
-				video_frame_rate = frame_rate;
+				video_frame_rate = str->frame_rate;
 
 			buf = wait_full_buffer(&str->cons);
 
@@ -454,25 +461,27 @@ reschedule:
 			str->ptr += n;
 		}
 
-		printv(4, "Packet #%d %s, pts=%f\n",
-			packet_count, mpeg_header_name(str->stream_id), pts);
+		printv(4, "Packet #%lld %s, pts=%f\n",
+			mux->status.frames_out, mpeg_header_name(str->stream_id), pts);
 
 		((unsigned short *) ps)[2] = swab16(p - ps - 6);
 
-		bytes_out += buf->used = p - buf->data;
+		mux->status.bytes_out += buf->used = p - buf->data;
 
 		buf = mux->mux_output(mux, buf);
 
 		assert(buf && buf->size >= 512
 		           && buf->size <= 32768);
 
-		packet_count++;
+		mux->status.frames_out++;
 		pack_packet_count++;
 
 		if (pts > front_pts)
 			front_pts = pts;
 
-		if (verbose > 0 && (packet_count & 3) == 0) {
+		mux->status.coded_time = front_pts * (1.0 / SYSTEM_TICKS);
+
+		if (verbose > 0 && (mux->status.frames_out & 3) == 0) {
 			double system_load = 1.0 - get_idle();
 			int min, sec;
 
@@ -482,12 +491,14 @@ reschedule:
 
 			if (video_frames_dropped > 0)
 				printv(1, "%d:%02d (%.1f MB), %.2f %% dropped, system load %.1f %%  %c",
-					min, sec, bytes_out / (double)(1 << 20),
+					min, sec,
+					mux->status.bytes_out / (double)(1 << 20),
 					100.0 * video_frames_dropped / video_frame_count,
 					100.0 * system_load, (verbose > 3) ? '\n' : '\r');
 			else
 				printv(1, "%d:%02d (%.1f MB), system load %.1f %%  %c",
-					min, sec, bytes_out / (double)(1 << 20),
+					min, sec, 
+					mux->status.bytes_out / (double)(1 << 20),
 					100.0 * system_load, (verbose > 3) ? '\n' : '\r');
 
 			fflush(stderr);
