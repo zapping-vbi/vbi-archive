@@ -40,8 +40,11 @@
 #include "remote.h"
 #include "globals.h"
 #include "audio.h"
+#include "mixer.h"
 
-GtkWidget * ToolBox = NULL; /* Pointer to the last control box */
+struct control_window;
+
+struct control_window *ToolBox = NULL; /* Pointer to the last control box */
 ZModel *z_input_model = NULL;
 
 /* Minimize updates */
@@ -97,6 +100,74 @@ thaw_update (void)
  *  Control box
  */
 
+struct control
+{
+  struct control *		next;
+  tveng_device_info *		info;
+  tveng_control *		ctrl;
+  GtkWidget *			widget;
+};
+
+struct control_window
+{
+  GtkWidget *			window;
+  GtkWidget *			hbox;
+
+  struct control *		controls;
+
+  /* This is only used for building */
+  GtkWidget *			table;
+  guint				index;
+};
+
+static struct control *
+add_control			(struct control_window *cb,
+				 tveng_device_info *	info,
+				 tveng_control *	ctrl,
+				 GtkWidget *		label,
+				 GtkWidget *		crank)
+{
+  struct control *c, **cp;
+
+  g_assert (cb != NULL);
+  g_assert (info != NULL);
+  g_assert (ctrl != NULL);
+  g_assert (crank != NULL);
+
+  for (cp = &cb->controls; (c = *cp); cp = &c->next)
+    ;
+
+  c = g_malloc0 (sizeof (*c));
+  
+  c->info = info;
+  c->ctrl = ctrl;
+
+  c->widget = crank;
+
+  gtk_table_resize (GTK_TABLE (cb->table), cb->index + 1, 2);
+
+  if (label)
+    {
+      gtk_widget_show (label);
+
+      gtk_table_attach (GTK_TABLE (cb->table), label,
+			0, 1, cb->index, cb->index + 1,
+			(GtkAttachOptions) (GTK_FILL),
+			(GtkAttachOptions) (0), 3, 3);
+    }
+
+  gtk_widget_show (crank);
+
+  gtk_table_attach (GTK_TABLE (cb->table), crank,
+		    1, 2, cb->index, cb->index + 1,
+                    (GtkAttachOptions) (GTK_FILL | GTK_EXPAND),
+                    (GtkAttachOptions) (0), 3, 3);
+
+  *cp = c;
+
+  return c;
+}
+
 static GtkWidget *
 control_symbol			(struct tveng_control *	qc)
 {
@@ -118,7 +189,7 @@ control_symbol			(struct tveng_control *	qc)
     if (qc->property == pixmaps[i].prop)
       {
 	symbol = z_load_pixmap (pixmaps[i].image);
-  gtk_misc_set_alignment (GTK_MISC (symbol), 1.0, 0.5);
+	gtk_misc_set_alignment (GTK_MISC (symbol), 1.0, 0.5);
 	symbol = z_tooltip_set_wrap (symbol, _(qc->name));
 	break;
       }
@@ -127,14 +198,8 @@ control_symbol			(struct tveng_control *	qc)
     {
       symbol = gtk_label_new (_(qc->name));
       gtk_widget_show (symbol);
-  gtk_misc_set_alignment (GTK_MISC (symbol), 1.0, 0.5);
+      gtk_misc_set_alignment (GTK_MISC (symbol), 1.0, 0.5);
     }
-
-  if (!GTK_IS_MISC (symbol))
-    {
-      
-    }
-
 
   return symbol;
 }
@@ -143,204 +208,138 @@ static void
 on_control_slider_changed	(GtkAdjustment *	adjust,
 				 gpointer		user_data)
 {
-  /* Control id */
-  gint cid = GPOINTER_TO_INT (user_data);
-  tveng_device_info *info =
-    (tveng_device_info *) g_object_get_data (G_OBJECT (adjust), "info");
+  struct control *c = user_data;
 
-  g_assert (info != NULL);
-  g_assert (cid < info->num_controls);
-
-  tveng_set_control (&info->controls[cid], (int) adjust->value, info);
+  tveng_set_control (c->ctrl, (int) adjust->value, c->info);
 }
 
 static void
-create_slider			(GtkWidget *		table,
-				 struct tveng_control *	qc,
-				 int			index,
-				 tveng_device_info *	info)
+create_slider			(struct control_window *cb,
+				 tveng_device_info *	info,
+				 tveng_control *	ctrl)
 { 
-  GtkWidget *spinslider;
   GObject *adj; /* Adjustment object for the slider */
+  GtkWidget *spinslider;
 
-  gtk_table_resize (GTK_TABLE (table), index + 1, 2);
-
-  gtk_table_attach (GTK_TABLE (table),
-		    control_symbol (qc),
-		    0, 1, index, index + 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 3, 3);
-
-  adj = G_OBJECT (gtk_adjustment_new (qc->cur_value,
-				      qc->min, qc->max,
+  adj = G_OBJECT (gtk_adjustment_new (ctrl->cur_value,
+				      ctrl->min, ctrl->max,
 				      1, 10, 10));
-  g_object_set_data (adj, "info", (gpointer) info);
-  g_signal_connect (adj, "value-changed", 
-		    G_CALLBACK (on_control_slider_changed),
-		    GINT_TO_POINTER (index));
 
   spinslider = z_spinslider_new (GTK_ADJUSTMENT (adj), NULL,
-				 NULL, qc->def_value, 0);
+				 NULL, ctrl->def_value, 0);
 
-  z_spinslider_set_value (spinslider, qc->cur_value);
+  z_spinslider_set_value (spinslider, ctrl->cur_value);
 
-  gtk_widget_show (spinslider);
-
-  gtk_table_attach (GTK_TABLE (table), spinslider,
-		    1, 3, index, index + 1,
-                    (GtkAttachOptions) (GTK_FILL | GTK_EXPAND),
-                    (GtkAttachOptions) (0), 3, 3);
+  g_signal_connect (adj, "value-changed",
+		    G_CALLBACK (on_control_slider_changed),
+		    add_control (cb, info, ctrl, control_symbol (ctrl),
+				 spinslider));
 }
 
 static void
 on_control_checkbutton_toggled	(GtkToggleButton *	tb,
 				 gpointer		user_data)
 {
-  gint cid = GPOINTER_TO_INT (user_data);
-  tveng_device_info *info =
-    (tveng_device_info *) g_object_get_data (G_OBJECT (tb), "info");
+  struct control *c = user_data;
 
-  g_assert (info != NULL);
-  g_assert (cid < info->num_controls);
+  tveng_set_control (c->ctrl, gtk_toggle_button_get_active (tb), c->info);
 
-  tveng_set_control (&(info->controls[cid]),
-		     gtk_toggle_button_get_active (tb),
-		     info);
-
-  set_mute1 (3, FALSE, FALSE); /* update */
+  /* Update tool button XXX switch to callback */
+  set_mute (3, /* controls */ FALSE, /* osd */ FALSE);
 }
 
 static void
-create_checkbutton		(GtkWidget *		table,
-				 struct tveng_control *	qc,
-				 int			index,
-				 tveng_device_info *	info)
+create_checkbutton		(struct control_window *cb,
+				 tveng_device_info *	info,
+				 tveng_control *	ctrl)
 {
-  GtkWidget *cb;
+  GtkWidget *check_button;
 
-  cb = gtk_check_button_new_with_label (_(qc->name));
+  check_button = gtk_check_button_new_with_label (_(ctrl->name));
 
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (cb), qc->cur_value);
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button),
+				ctrl->cur_value);
 
-  g_object_set_data (G_OBJECT (cb), "info", (gpointer) info);
-
-  g_signal_connect (G_OBJECT (cb), "toggled",
+  g_signal_connect (G_OBJECT (check_button), "toggled",
 		    G_CALLBACK (on_control_checkbutton_toggled),
-		    GINT_TO_POINTER (index));
-
-  gtk_table_resize (GTK_TABLE (table), index + 1, 2);
-  gtk_table_attach (GTK_TABLE (table), cb,
-		    1, 3, index, index + 1,
-                    (GtkAttachOptions) (GTK_FILL | GTK_EXPAND),
-                    (GtkAttachOptions) (0), 3, 3);
+		    add_control (cb, info, ctrl, NULL, check_button));
 }
 
 static void
 on_control_menuitem_activate	(GtkMenuItem *		menuitem,
 				 gpointer		user_data)
 {
-  gint cid = GPOINTER_TO_INT (user_data);
-  tveng_device_info *info;
-  int value;
+  struct control *c = user_data;
+  gint value;
 
-  info = (tveng_device_info *) g_object_get_data (G_OBJECT (menuitem), "info");
-  value = (int) g_object_get_data (G_OBJECT (menuitem), "value");
+  value = (gint) g_object_get_data (G_OBJECT (menuitem), "value");
 
-  g_assert (info != NULL);
-  g_assert (cid < info->num_controls);
-
-  tveng_set_control (&(info->controls[cid]), value, info);
+  tveng_set_control (c->ctrl, value, c->info);
 }
 
 static void
-create_menu			(GtkWidget *		table,
-				 struct tveng_control *	qc,
-				 int			index,
-				 tveng_device_info *	info)
+create_menu			(struct control_window *cb,
+				 tveng_device_info *	info,
+				 tveng_control *	ctrl)
+
 {
+  GtkWidget *label; /* This shows what the menu is for */
   GtkWidget *option_menu; /* The option menu */
   GtkWidget *menu; /* The menu displayed */
   GtkWidget *menu_item; /* Each of the menu items */
-  GtkWidget *label; /* This shows what the menu is for */
+  struct control *c;
   guint i;
 
-  gtk_table_resize (GTK_TABLE (table), index + 1, 2);
-
-  label = gtk_label_new (_(qc->name));
-  gtk_widget_show (label);
+  label = gtk_label_new (_(ctrl->name));
   gtk_misc_set_alignment (GTK_MISC (label), 1.0, 0.5);
-
-  gtk_table_attach (GTK_TABLE (table), label,
-		    0, 1, index, index + 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 3, 3);
 
   option_menu = gtk_option_menu_new ();
   menu = gtk_menu_new ();
-  
-  /* Start querying menu_items and building the menu */
-  for (i = 0; qc->data[i] != NULL; i++)
-    {
-      menu_item = gtk_menu_item_new_with_label (_(qc->data[i]));
+  gtk_widget_show (menu);
+  gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu), menu);
 
-      g_object_set_data (G_OBJECT (menu_item), "info", (gpointer) info);
+  c = add_control (cb, info, ctrl, label, option_menu);
+
+  /* Start querying menu_items and building the menu */
+  for (i = 0; ctrl->data[i] != NULL; i++)
+    {
+      menu_item = gtk_menu_item_new_with_label (_(ctrl->data[i]));
+      gtk_widget_show (menu_item);
+
       g_object_set_data (G_OBJECT (menu_item), "value", 
 			 GINT_TO_POINTER (i));
+
       g_signal_connect (G_OBJECT (menu_item), "activate",
-			G_CALLBACK (on_control_menuitem_activate),
-			GINT_TO_POINTER (index)); /* it should know about
-						     itself */
-      gtk_widget_show (menu_item);
+			G_CALLBACK (on_control_menuitem_activate), c);
+
       gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
     }
 
-  gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu), menu);
   gtk_option_menu_set_history (GTK_OPTION_MENU (option_menu),
-			       qc->cur_value);
-  gtk_widget_show (menu);
-  gtk_widget_show (option_menu);
-
-  gtk_table_attach (GTK_TABLE (table), option_menu,
-		    1, 3, index, index + 1,
-                    (GtkAttachOptions) (GTK_FILL | GTK_EXPAND),
-                    (GtkAttachOptions) (0), 3, 3);
+			       ctrl->cur_value);
 }
 
 static void
 on_control_button_clicked	(GtkButton *		button,
 				 gpointer		user_data)
 {
-  gint cid = GPOINTER_TO_INT (user_data);
-  tveng_device_info *info =
-    (tveng_device_info*) g_object_get_data (G_OBJECT (button), "info");
+  struct control *c = user_data;
 
-  g_assert (info != NULL);
-  g_assert (cid < info->num_controls);
-
-  tveng_set_control (&(info->controls[cid]), 1, info);
+  tveng_set_control (c->ctrl, 1, c->info);
 }
 
 static void
-create_button			(GtkWidget *		table,
-				 struct tveng_control *	qc,
-				 int			index,
-				 tveng_device_info *	info)
+create_button			(struct control_window *cb,
+				 tveng_device_info *	info,
+				 tveng_control *	ctrl)
 {
   GtkWidget *button;
 
-  button = gtk_button_new_with_label (_(qc->name));
-  gtk_widget_show (button);
+  button = gtk_button_new_with_label (_(ctrl->name));
 
-  g_object_set_data (G_OBJECT (button), "info", (gpointer) info);
   g_signal_connect (G_OBJECT (button), "clicked",
 		    G_CALLBACK (on_control_button_clicked),
-		    GINT_TO_POINTER (index));
-
-  gtk_table_resize (GTK_TABLE (table), index + 1, 2);
-  gtk_table_attach (GTK_TABLE (table), button,
-		    1, 3, index, index + 1,
-                    (GtkAttachOptions) (GTK_FILL | GTK_EXPAND),
-                    (GtkAttachOptions) (0), 3, 3);
+		    add_control (cb, info, ctrl, NULL, button));
 }
 
 static void
@@ -351,68 +350,63 @@ on_color_set			(GnomeColorPicker *	colorpicker,
 				 guint			arg4,
 				 gpointer		user_data)
 {
-  gint cid = GPOINTER_TO_INT (user_data);
-  gint color = ((arg1 >> 8) << 16) + ((arg2 >> 8) << 8) + (arg3 >> 8);
-  tveng_device_info *info =
-    (tveng_device_info *) g_object_get_data (G_OBJECT (colorpicker), "info");
+  struct control *c = user_data;
+  guint color = ((arg1 >> 8) << 16) + ((arg2 >> 8) << 8) + (arg3 >> 8);
 
-  g_assert (info != NULL);
-  g_assert (cid < info->num_controls);
-
-  tveng_set_control (&(info->controls[cid]), color, info);
+  tveng_set_control (c->ctrl, color, c->info);
 }
 
 static void
-create_color_picker		(GtkWidget *		table,
-				 struct tveng_control *	qc,
-				 int			index,
-				 tveng_device_info *	info)
+create_color_picker		(struct control_window *cb,
+				 tveng_device_info *	info,
+				 tveng_control *	ctrl)
 {
+  GtkWidget *label;
   GnomeColorPicker *color_picker;
   gchar *buffer;
-  GtkWidget *label;
 
-  gtk_table_resize (GTK_TABLE (table), index + 1, 2);
-
-  label = gtk_label_new (_(qc->name));
-  gtk_widget_show (label);
+  label = gtk_label_new (_(ctrl->name));
   gtk_misc_set_alignment (GTK_MISC (label), 1.0, 0.5);
-  gtk_table_attach (GTK_TABLE (table), label,
-		    0, 1, index, index + 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 3, 3);
 
   color_picker = GNOME_COLOR_PICKER (gnome_color_picker_new ());
   gnome_color_picker_set_use_alpha (color_picker, FALSE);
   gnome_color_picker_set_i8 (color_picker,
-			     (qc->cur_value & 0xff0000) >> 16,
-			     (qc->cur_value & 0xff00) >> 8,
-			     (qc->cur_value & 0xff),
+			     (ctrl->cur_value & 0xff0000) >> 16,
+			     (ctrl->cur_value & 0xff00) >> 8,
+			     (ctrl->cur_value & 0xff),
 			     0);
-  /* TRANSLATORS: Video controls, color picker, name of property */
-  buffer = g_strdup_printf (_("Adjust %s"), qc->name);
+
+  /* TRANSLATORS: In controls box, color picker, name of the property */
+  buffer = g_strdup_printf (_("Adjust %s"), ctrl->name);
   gnome_color_picker_set_title (color_picker, buffer);
-  g_object_set_data (G_OBJECT (color_picker), "info", (gpointer) info);
-  gtk_widget_show (GTK_WIDGET (color_picker));
   g_free (buffer);
 
   g_signal_connect (G_OBJECT (color_picker), "color-set",
 		    G_CALLBACK (on_color_set),
-		    GINT_TO_POINTER (index));
-
-  gtk_table_attach (GTK_TABLE (table), GTK_WIDGET(color_picker),
-		    1, 3, index, index + 1,
-                    (GtkAttachOptions) (GTK_FILL | GTK_EXPAND),
-                    (GtkAttachOptions) (0), 3, 3);
+		    add_control (cb, info, ctrl, label, GTK_WIDGET(color_picker)));
 }
 
 static void
-build_control_box		(GtkWidget *		hbox,
+add_controls			(struct control_window *cb,
 				 tveng_device_info *	info)
 {
-  struct tveng_control *control;
-  GtkWidget *table = NULL;
-  guint i = 0;
+  tveng_control *ctrl;
+
+  if (cb->hbox)
+    {
+      struct control *c;
+
+      while ((c = cb->controls))
+	{
+	  cb->controls = c->next;
+	  g_free (c);
+	}
+      
+      gtk_container_remove (GTK_CONTAINER (cb->window), cb->hbox);
+    }
+
+  cb->hbox = gtk_hbox_new (FALSE, 0);
+  gtk_container_add (GTK_CONTAINER (cb->window), cb->hbox);
 
   /* Update the values of all the controls */
   if (-1 == tveng_update_controls (info))
@@ -422,61 +416,66 @@ build_control_box		(GtkWidget *		hbox,
       g_error ("tveng critical: %s", info->error);
     }
 
-  for (i = 0; i < info->num_controls; i++)
+  cb->table = NULL;
+  cb->index = 0;
+
+  for (; cb->index < info->num_controls; cb->index++)
     {
-      if ((i % 20) == 0)
+      if ((cb->index % 20) == 0)
 	{
-	  if (table)
+	  if (cb->table)
 	    {
-	      gtk_widget_show (table);
-	      gtk_box_pack_start_defaults (GTK_BOX (hbox), table);
+	      gtk_widget_show (cb->table);
+	      gtk_box_pack_start_defaults (GTK_BOX (cb->hbox), cb->table);
 	    }
 
-	  table = gtk_table_new (1, 3, FALSE);
+	  cb->table = gtk_table_new (1, 2, FALSE);
 	}
 
-      control = &(info->controls[i]);
+      ctrl = info->controls + cb->index;
 
-      g_assert (control != NULL);
+      g_assert (ctrl != NULL);
 
-      switch (control->type)
+      switch (ctrl->type)
 	{
 	case TVENG_CONTROL_SLIDER:
-	  create_slider (table, control, i, info);
+	  create_slider (cb, info, ctrl);
 	  break;
 
 	case TVENG_CONTROL_CHECKBOX:
-	  create_checkbutton (table, control, i, info);
+	  create_checkbutton (cb, info, ctrl);
 	  break;
 
 	case TVENG_CONTROL_MENU:
-	  create_menu (table, control, i, info);
+	  create_menu (cb, info, ctrl);
 	  break;
 
 	case TVENG_CONTROL_BUTTON:
-	  create_button (table, control, i, info);
+	  create_button (cb, info, ctrl);
 	  break;
 
 	case TVENG_CONTROL_COLOR:
-	  create_color_picker (table, control, i, info);
+	  create_color_picker (cb, info, ctrl);
 	  break;
 
 	default:
 	  g_warning ("Type %d of control %s is not supported",
-		     control->type, control->name);
+		     ctrl->type, ctrl->name);
 	  continue;
 	}
     }
 
-  if (table)
+  if (cb->table)
     {
-      gtk_widget_show (table);
-      gtk_box_pack_start_defaults (GTK_BOX (hbox), table);
+      gtk_widget_show (cb->table);
+      gtk_box_pack_start_defaults (GTK_BOX (cb->hbox), cb->table);
     }
+
+  gtk_widget_show (cb->hbox);
 }
 
 static gboolean
-on_control_box_key_press	(GtkWidget *		widget,
+on_control_window_key_press	(GtkWidget *		widget,
 				 GdkEventKey *		event,
 				 gpointer		user_data)
 {
@@ -503,55 +502,54 @@ on_control_box_key_press	(GtkWidget *		widget,
 }
 
 static void
-on_control_box_destroy		(GtkWidget *		widget,
+on_control_window_destroy	(GtkWidget *		widget,
 				 gpointer		user_data)
 {
-  GtkWidget * related_button;
-
-  related_button =
-    GTK_WIDGET(g_object_get_data(G_OBJECT(widget), "user-data"));
-
-  gtk_widget_set_sensitive(related_button, TRUE);
+  struct control_window *cb = user_data;
+  struct control *c;
 
   ToolBox = NULL;
+
+  while ((c = cb->controls))
+    {
+      cb->controls = c->next;
+      g_free (c);
+    }
+
+  g_free (cb);
+
+  gtk_widget_set_sensitive (lookup_widget (main_window, "controls"), TRUE);
+}
+
+static void
+create_control_window		(void)
+{
+  struct control_window *cb;
+
+  cb = g_malloc0 (sizeof (*cb));
+
+  cb->window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+  gtk_window_set_title (GTK_WINDOW (cb->window), _("Controls"));
+  g_signal_connect (G_OBJECT (cb->window), "destroy",
+		    G_CALLBACK (on_control_window_destroy), cb);
+  g_signal_connect (G_OBJECT(cb->window), "key-press-event",
+		    G_CALLBACK (on_control_window_key_press), cb);
+
+  add_controls (cb, main_info);
+
+  gtk_widget_show (cb->window);
+
+  gtk_widget_set_sensitive (lookup_widget (main_window, "controls"), FALSE);
+
+  ToolBox = cb;
 }
 
 static PyObject *
 py_control_box			(PyObject *		self,
 				 PyObject *		args)
 {
-  GtkWidget * control_box;
-  GtkWidget * hbox;
-  GtkWidget * related_button = lookup_widget (main_window, "controls");
-
-  g_assert (ToolBox == NULL);
-
-  control_box = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-  gtk_window_set_title(GTK_WINDOW(control_box), _("Controls"));
-
-  hbox = gtk_hbox_new(FALSE, 0);
-
-  build_control_box(hbox, main_info);
-
-  gtk_widget_show(hbox);
-  gtk_container_add(GTK_CONTAINER (control_box), hbox);
-
-  g_object_set_data(G_OBJECT(control_box), "hbox", hbox);
-  g_signal_connect(G_OBJECT(control_box), "destroy",
-		     G_CALLBACK(on_control_box_destroy),
-		     NULL);
-
-  g_signal_connect(G_OBJECT(control_box), "key-press-event",
-		     G_CALLBACK(on_control_box_key_press),
-		     NULL);
-
-  gtk_widget_set_sensitive (related_button, FALSE);
-  g_object_set_data (G_OBJECT (control_box), "user-data",
-		     related_button);
-
-  ToolBox = control_box;
-
-  gtk_widget_show (control_box);
+  if (ToolBox == NULL)
+    create_control_window ();
 
   py_return_none;
 }
@@ -559,26 +557,65 @@ py_control_box			(PyObject *		self,
 void
 update_control_box		(tveng_device_info *	info)
 {
-  GtkWidget * hbox;
-  GtkWidget * control_box = ToolBox;
+  struct control *c;
+  tveng_control *ctrl;
+  guint i;
 
-  if ((!info) || (!control_box))
+  if (!ToolBox)
     return;
 
-  hbox = GTK_WIDGET(g_object_get_data(G_OBJECT(control_box),
-					"hbox"));
-  gtk_container_remove(GTK_CONTAINER (control_box), hbox);
+  c = ToolBox->controls;
 
-  hbox = gtk_hbox_new(FALSE, 0);
+  for (i = 0; i < info->num_controls; i++)
+    {
+      ctrl = info->controls + i;
 
-  build_control_box(hbox, info);
+      /* XXX Is this safe? Unlikely. */
+      if (!c || c->ctrl != ctrl)
+	goto rebuild;
 
-  gtk_widget_show(hbox);
-  gtk_container_add(GTK_CONTAINER (control_box), hbox);
-  g_object_set_data(G_OBJECT(control_box), "hbox", hbox);
+      switch (ctrl->type)
+	{
+	case TVENG_CONTROL_SLIDER:
+	  z_spinslider_set_value (c->widget, ctrl->cur_value);
+	  break;
+
+	case TVENG_CONTROL_CHECKBOX:
+	  gtk_toggle_button_set_active
+	    (GTK_TOGGLE_BUTTON (c->widget), ctrl->cur_value);
+	  break;
+
+	case TVENG_CONTROL_MENU:
+	  gtk_option_menu_set_history
+	    (GTK_OPTION_MENU (c->widget), ctrl->cur_value);
+	  break;
+
+	case TVENG_CONTROL_BUTTON:
+	  break;
+
+	case TVENG_CONTROL_COLOR:
+	  gnome_color_picker_set_i8
+	    (GNOME_COLOR_PICKER (c->widget),
+	     (ctrl->cur_value & 0xff0000) >> 16,
+	     (ctrl->cur_value & 0xff00) >> 8,
+	     (ctrl->cur_value & 0xff),
+	     0);
+	  break;
+
+	default:
+	  g_warning ("Type %d of control %s is not supported",
+		     ctrl->type, ctrl->name);
+	  continue;
+	}
+
+      c = c->next;
+    }
+
+  return;
+  
+ rebuild:
+  add_controls (ToolBox, info);
 }
-
-
 
 void
 z_switch_input			(int hash, tveng_device_info *info)
@@ -832,7 +869,7 @@ void
 z_switch_channel	(tveng_tuned_channel	*channel,
 			 tveng_device_info	*info)
 {
-  int mute=0;
+  gint muted;
   gboolean was_first_switch = first_switch;
   tveng_tuned_channel *tc;
   gboolean in_global_list;
@@ -861,10 +898,19 @@ z_switch_channel	(tveng_tuned_channel	*channel,
 	first_switch = FALSE;
     }
 
+  muted = -1;
+
   if (zcg_bool(NULL, "avoid_noise"))
     {
-      mute = tveng_get_mute(info);
-      set_mute1(TRUE, TRUE, FALSE);
+      gint cur_line = zconf_get_integer (NULL, "/zapping/options/audio/record_source");
+
+      if (info->audio_mutable)
+	muted = tveng_get_mute (info);
+      else if (cur_line > 0)
+	muted = mixer_get_mute (cur_line - 1);
+
+      if (muted == 0) /* not muted, no error */
+	set_mute (1, /* controls */ FALSE, /* osd */ FALSE);
     }
 
   freeze_update();
@@ -887,9 +933,9 @@ z_switch_channel	(tveng_tuned_channel	*channel,
     {
       /* Sleep a little so the noise disappears */
       usleep(100000);
-      
-      if (!mute)
-	set_mute1(FALSE, TRUE, FALSE);
+
+      if (muted == 0) /* was on (and no error) */
+	set_mute (0, FALSE, FALSE);
     }
 
   if (in_global_list)
