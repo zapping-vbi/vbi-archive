@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: ttxview.c,v 1.116.2.19 2003-11-17 06:21:45 mschimek Exp $ */
+/* $Id: ttxview.c,v 1.116.2.20 2003-11-26 07:15:12 mschimek Exp $ */
 
 /*
  *  Teletext View
@@ -604,18 +604,18 @@ void scale_image			(GtkWidget	*wid,
 
 gboolean
 get_ttxview_page		(GtkWidget *		view,
-				 gint *			page,
-				 gint *			subpage)
+				 vbi_pgno *		pgno,
+				 vbi_subno *		subno)
 {
   ttxview_data *data = g_object_get_data (G_OBJECT (view), "ttxview_data");
 
   if (!data)
     return FALSE;
 
-  if (page)
-    *page = data->fmt_page->pgno;
-  if (subpage)
-    *subpage = data->monitored_subpage;
+  if (pgno)
+    *pgno = data->fmt_page->pgno;
+  if (subno)
+    *subno = data->monitored_subpage;
 
   return TRUE;
 }
@@ -3407,11 +3407,21 @@ on_subtitle_menu_activate	(GtkWidget *		menu_item,
 
   if (classf == VBI_SUBTITLE_PAGE ||
       (classf == VBI_NORMAL_PAGE && (pgno >= 5 && pgno <= 8)))
-    zmisc_overlay_subtitles (pgno);
+    {
+      zvbi_caption_pgno = pgno;
+
+      python_command_printf (menu_item, "zapping.closed_caption(1)");
+    }
 }
 
 static GnomeUIInfo
 subtitles_uiinfo [] = {
+  {
+    GNOME_APP_UI_ITEM, N_("_Disable"), NULL,
+    G_CALLBACK (on_python_command1), "zapping.closed_caption(0)", NULL,
+    GNOME_APP_PIXMAP_NONE, NULL,
+    0, (GdkModifierType) 0, NULL
+  },
   GNOMEUIINFO_END
 };
 
@@ -3421,11 +3431,19 @@ ttxview_subtitles_menu_new	(void)
   vbi_decoder *vbi;
   GtkMenuShell *menu;
   vbi_pgno pgno;
+  unsigned int count;
 
   if (!(vbi = zvbi_get_object ()))
     return NULL;
 
-  menu = NULL;
+  menu = GTK_MENU_SHELL (gtk_menu_new ());
+
+  gnome_app_fill_menu (menu, subtitles_uiinfo,
+		       /* accel */ NULL,
+		       /* mnemo */ TRUE,
+		       /* position */ 0);
+
+  count = 0;
 
   for (pgno = 1; pgno <= 0x899;
        pgno = (pgno == 8) ? 0x100 : vbi_add_bcd (pgno, 0x001))
@@ -3488,20 +3506,14 @@ ttxview_subtitles_menu_new	(void)
 			G_CALLBACK (on_subtitle_menu_activate),
 			GINT_TO_POINTER (pgno));
 
-      if (!menu)
-	{
-	  menu = GTK_MENU_SHELL (gtk_menu_new ());
-
-	  /* Let's pick up some desktop defaults. */
-	  gnome_app_fill_menu (menu, subtitles_uiinfo,
-			       /* accel */ NULL,
-			       /* mnemo */ TRUE,
-			       /* position */ 0);
-	}
+      if (0 == count)
+	gtk_menu_shell_append (menu, gtk_separator_menu_item_new ());
 
       gtk_menu_shell_append (menu, menu_item);
 
       g_free (language);
+
+      ++count;
     }
 
   return menu ? GTK_WIDGET (menu) : NULL;
@@ -4090,18 +4102,7 @@ zvbi_timeout			(gpointer		user_data)
 
 	  if (data->selecting)
 	    continue;
-/*
-	  if (data->parent_toolbar &&
-	      zconf_get_boolean(NULL,
-				"/zapping/options/vbi/auto_overlay") &&
-	      (data->fmt_page->screen_opacity == VBI_TRANSPARENT_SPACE ||
-	       vbi_classify_page(zvbi_get_object(), data->fmt_page->pgno, NULL,
-				 NULL) == VBI_SUBTITLE_PAGE))
-	    {
-	      zmisc_overlay_subtitles(data->fmt_page->pgno);
-	      return TRUE;
-	    }
-*/
+
 	  gdk_window_get_geometry (data->darea->window, NULL, NULL,
 				   &width, &height, NULL);
 
