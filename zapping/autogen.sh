@@ -1,8 +1,8 @@
 #!/bin/sh
 # Run this to generate all the initial makefiles, etc.
 
-REQUIRED_AUTOCONF_VERSION=2.58
-REQUIRED_AUTOMAKE_VERSION=1.7
+REQUIRED_AUTOCONF_VERSION=${REQUIRED_AUTOCONF_VERSION:-2.58}
+REQUIRED_AUTOMAKE_VERSION=${REQUIRED_AUTOMAKE_VERSION:-1.7}
 
 srcdir=`dirname $0`
 test -z "$srcdir" && srcdir=.
