@@ -326,6 +326,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   gint x, y, w, h;
   enum tveng_frame_pixformat format;
   gboolean muted;
+  gchar * old_name = NULL;
 
   g_assert(info != NULL);
   g_assert(main_window != NULL);
@@ -335,6 +336,10 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   if ((info->current_mode == new_mode) &&
       (new_mode != TVENG_NO_CAPTURE))
     return 0; /* success */
+
+  /* save this input name for later retrieval */
+  if (info->num_inputs > 0)
+    old_name = g_strdup(info->inputs[info->cur_input].name);
 
   gdk_window_get_size(tv_screen->window, &w, &h);
   gdk_window_get_origin(tv_screen->window, &x, &y);
@@ -482,6 +487,10 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 
       break; /* TVENG_NO_CAPTURE */
     }
+
+  if (old_name)
+    tveng_set_input_by_name(old_name, info);
+  g_free(old_name);
 
   /* Update the controls window if it's open */
   update_control_box(info);

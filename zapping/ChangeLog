@@ -1,3 +1,8 @@
+5.2.2001	Set input <garetxe@users.sourceforge.net>
+
+	* src/zmisc.c: Applied patch by Magnus Sandin to keep input whilst
+	switching modes.
+
 3.2.2001	ZSFB goes PAM <garetxe@users.sourceforge.net>
 
 	* zapping_setup_fb: Uses PAM if available, as explained by Tim
