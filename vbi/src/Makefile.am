@@ -6,13 +6,13 @@ BUILT_SOURCES = version.h libzvbi.h wstfont2.xbm ccfont3.xbm
 EXTRA_DIST = wstfont2.pbm ccfont3.pbm
 CLEANFILES = $(BUILT_SOURCES)
 
-INCLUDES  = -W -Wall -Wunused -Wfloat-equal \
+INCLUDES = \
+	-W -Wall -Wunused -Wfloat-equal \
 	-Wpointer-arith -Wbad-function-cast -Wcast-qual -Wcast-align \
 	-Wwrite-strings -Winline -Wmissing-prototypes \
 	-Wmissing-declarations
-## -Wpadded -Wconversion 
-## -D_XOPEN_SOURCE=500 -D_BSD_SOURCE to enable pthread_rwlocks
-INCLUDES += -D_REENTRANT -D_POSIX_SOURCE
+	-Wpadded -Wconversion 
+INCLUDES += -D_REENTRANT -D_XOPEN_SOURCE -D_BSD_SOURCE
 INCLUDES += $(X_CFLAGS) $(UNICODE_CFLAGS)
 
 libzvbi_la_SOURCES = \
@@ -20,6 +20,7 @@ libzvbi_la_SOURCES = \
 	bit_slicer.c bit_slicer.h \
 	cache.c cache.h \
 	caption.c cc.h \
+	conv.c conv.h \
 	event.h \
 	export.c export.h \
 	exp-gfx.c exp-gfx.h \
@@ -40,6 +41,8 @@ libzvbi_la_SOURCES = \
 	io-v4l2.c videodev2.h \
 	io-v4l.c videodev.h \
 	packet.c \
+	packet-830.c packet-830.h \
+	packet-pfc.c packet-pfc.h \
 	pdc.c pdc.h \
 	raw_decoder.c raw_decoder.h \
 	sampling.c sampling.h \
@@ -57,9 +60,9 @@ libzvbi_la_SOURCES = \
 
 exp-gfx.c: wstfont2.xbm ccfont3.xbm
 
-wstfont2.xbm: wstfont2.pbm fontgen
+wstfont2.xbm: wstfont2.pbm fontgen Makefile.in
 	$(top_builddir)/src/fontgen xbm wstfont2 10 < $< > $@
-ccfont3.xbm: ccfont3.pbm fontgen
+ccfont3.xbm: ccfont3.pbm fontgen Makefile.in
 	$(top_builddir)/src/fontgen xbm ccfont3 13 < $< > $@
 
 libzvbiincludedir = $(includedir)
@@ -68,7 +71,7 @@ libzvbiinclude_HEADERS = libzvbi.h
 libzvbi_la_LIBADD = $(PTHREAD_LIB) $(PNG_LIB) $(UNICODE_LIBS)
 libzvbi_la_LDFLAGS = -version-info $(LIBZVBI_SO_VERSION)
 
-version.h:
+version.h: Makefile.in
 	echo -e "\n#define VBI_VERSION_MAJOR" `echo @VERSION@ \
 	 | sed "s/[^0-9.]//g" \
 	 | sed "s/\./\\\\\n#define VBI_VERSION_MINOR /" \
@@ -76,7 +79,7 @@ version.h:
 
 LIBZVBI_HDRS = \
 	misc.h \
-	bcd.h hamm.h network.h event.h format.h lang.h export.h \
+	bcd.h hamm.h network.h event.h format.h pdc.h lang.h export.h \
 	cache.h search.h \
 	sliced.h \
 	graphics.h \
@@ -85,13 +88,14 @@ LIBZVBI_HDRS = \
 	raw_decoder.h \
 	io.h \
 	io-sim.h \
+	conv.h \
 	exp-gfx.h \
 	exp-txt.h \
-	pdc.h xds.h cc.h vps.h vt.h tables.h vbi.h
+	xds.h cc.h vps.h packet-pfc.h packet-830.h vt.h tables.h vbi.h
 
 # Concat the header files in this order and filter out all lines
 #   before "^/* Public", after "^/* Private" and between "^/**"..."**/$"
-libzvbi.h: version.h $(LIBZVBI_HDRS)
+libzvbi.h: Makefile.in version.h $(LIBZVBI_HDRS)
 	sed -ne "1,/\*\//p" $(srcdir)/vbi.h > $@
 	echo -e "\n/* Generated file, do not edit! */" >> $@
 	echo -e "\n#ifndef __LIBZVBI_H__\n#define __LIBZVBI_H__" >> $@
