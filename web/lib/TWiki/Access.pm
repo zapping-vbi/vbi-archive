@@ -188,11 +188,71 @@ sub checkAccessPermission
 # =========================
 =pod
 
+---++ getListOfGroups(  ) ==> @listOfGroups
+| Description:        | get a list of groups definedin this TWiki |
+| Return:    =@listOfGroups=    | list of all the groups |
+
+=cut
+
+sub getListOfGroups
+{
+    my $text = &TWiki::Search::searchWeb(
+         "inline"        => "1",
+         "search"        => "Set GROUP =",
+         "web"           => "all",
+         "topic"         => "*Group",
+         "type"          => "regex",
+         "nosummary"     => "on",
+         "nosearch"      => "on",
+         "noheader"      => "on",
+         "nototal"       => "on",
+         "noempty"       => "on",
+	 "format"	 => "\$web.\$topic",
+     );
+
+    my ( @list ) =  split ( /\n/, $text );	
+    return @list;
+}
+
+# =========================
+=pod
+
+---++ getGroupsUserIsIn( $user ) ==> @listOfGroups
+| Description:        | get a list of groups a user is in |
+| Parameter: =$user=  | Remote WikiName, e.g. "Main.PeterThoeny" |
+| Return:    =@listOfGroups=    | list os all the WikiNames for a group |
+
+=cut
+
+sub getGroupsUserIsIn
+{
+    my( $theUserName ) = @_;
+
+    my $userTopic = prvGetWebTopicName( $TWiki::mainWebname, $theUserName );
+    my @grpMembers = ();
+    my @listOfGroups = getListOfGroups();
+    my $group;
+
+	&TWiki::writeDebug("Checking [$userTopic]");
+    foreach $group ( @listOfGroups) {
+        if ( userIsInGroup ( $userTopic, $group )) {
+	    	push ( @grpMembers, $group );
+		}
+    }
+
+    return @grpMembers;
+}
+
+# =========================
+=pod
+
 ---++ userIsInGroup( $user, $group ) ==> $ok
 | Description:        | Check if user is a member of a group |
 | Parameter: =$user=  | Remote WikiName, e.g. "Main.PeterThoeny" |
 | Parameter: =$group= | Group name, e.g. "Main.EngineeringGroup" |
 | Return:    =$ok=    | 1 user is in group, 0 if not |
+| TODO: | what are we checking if we are not specifying a Group? |
+| | more detailed documentation@! |
 
 =cut
 

@@ -19,6 +19,8 @@
 # - Installation instructions in $dataDir/TWiki/TWikiDocumentation.txt
 # - Customize variables in TWiki.cfg when installing TWiki.
 
+use strict;
+
 =begin twiki
 
 ---+ TWiki::Attach Module
@@ -29,64 +31,204 @@ This package contains routines for dealing with attachments to topics.
 
 package TWiki::Attach;
 
-use vars qw(
-        $viewableAttachmentCount $noviewableAttachmentCount $attachmentCount
-    );
+use vars qw( %templateVars );
 
 # ======================
 =pod
 
 ---++ sub renderMetaData (  $web, $topic, $meta, $args, $isTopRev  )
 
-Not yet documented.
+Generate a table of attachments suitable for the bottom of a topic
+view, using templates for the header, footer and each row.
+| =$web= | the web |
+| =$topic= | the topic |
+| =$meta= | meta-data hash for the topic |
+| =$attrs= | hash of attachment arguments |
+| $isTopTopicRev | 1 if this topic is being rendered at the most recent revision |
 
 =cut
 
 sub renderMetaData
 {
-    my( $web, $topic, $meta, $args, $isTopRev ) = @_;
-        
-    my $metaText = "";
-    
-    my $showAttr = "";
-    my $showAll = &TWiki::extractNameValuePair( $args, "all" );
-    if( $showAll ) {
-        $showAttr = "h";
-    }
-    
-    $viewableAttachmentCount = 0;
-    $noviewableAttachmentCount = 0;
-    $attachmentCount = 0;
-    
-    my $header = "|  *[[$TWiki::twikiWebname.FileAttachment][Attachment]]*  |  *Action*  |  *Size*  |  *Date*  |  *Who*  |  *Comment*  |";
-    if( $showAttr ) {
-        $header .= "  *[[$TWiki::twikiWebname.FileAttribute][Attribute]]*  |";
-    }
-    $header .= "\n";
-    
-    my @attachments = $meta->find( "FILEATTACHMENT" );
+    my( $web, $topic, $meta, $attrs, $isTopTopicRev ) = @_;
+
+    my $showAll = TWiki::extractNameValuePair( $attrs, "all" );
+    my $showAttr = $showAll ? "h" : "";
+	my $a = ( $showAttr ) ? ":A" : "";
+
+	my @attachments = $meta->find( "FILEATTACHMENT" );
+
+	my $rows = "";
+	my $row = _getTemplate("ATTACH:files:row$a");
     foreach my $attachment ( @attachments ) {
-        $metaText .= formatAttachments( $web, $topic, $showAttr, $isTopRev, %$attachment );
+	  my $attrAttr = $attachment->{attr};
+
+	  if( ! $attrAttr || ( $showAttr && $attrAttr =~ /^[$showAttr]*$/ )) {
+		$rows .= _formatRow( $web,
+							 $topic,
+							 $attachment->{name},
+							 $attachment->{version},
+							 $isTopTopicRev,
+							 $attachment->{date},
+							 $attachment->{user},
+							 $attachment->{comment},
+							 $attachment,
+							 $row );
+	  }
     }
-    
+
     my $text = "";
-    if( $showAll || $viewableAttachmentCount ) {
-       $text = "\n$header$metaText\n\n";
+
+    if( $showAll || $rows ne "" ) {
+	  my $header = _getTemplate("ATTACH:files:header$a");
+	  my $footer = _getTemplate("ATTACH:files:footer$a");
+
+	  $text = "$header$rows$footer";
     }
-    
-    $text = &TWiki::handleCommonTags( $text, $topic, $web ); # FIXME needed?
-    $text = &TWiki::getRenderedVersion( $text, $web );
-    
     return $text;
 }
 
+# PRIVATE get a template, reading the attachment tables template
+# if not already defined.
+sub _getTemplate {
+  my $template = shift;
+
+  if ( ! defined( $templateVars{$template} )) {
+	TWiki::Store::readTemplate("attachtables");
+  }
+
+  return TWiki::Store::handleTmplP($template);
+}
+
+#=========================
+=pod
+
+---++ sub formatVersions (  $theWeb, $theTopic, $attachment, $attrs )
+
+Generate a version history table for a single attachment
+| =$web= | the web |
+| =$topic= | the topic |
+| =$attachment= | basename of attachment |
+| =$attrs= | Hash of meta-data attributes |
+
+=cut
+
+sub formatVersions {
+  my( $web, $topic, $attachment, $attrs ) = @_;
+
+  my $latestRev = TWiki::Store::getRevisionNumber( $web, $topic, $attachment );
+  $latestRev =~ m/\.(.*)/o;
+  my $maxRevNum = $1;
+
+  my $header = _getTemplate("ATTACH:versions:header");
+  my $footer = _getTemplate("ATTACH:versions:footer");
+  my $row    = _getTemplate("ATTACH:versions:row");
+
+  my $rows ="";
+
+  for( my $version = $maxRevNum; $version >= 1; $version-- ) {
+    my $rev = "1.$version";
+
+	my( $date, $userName, $minorRev, $comment ) = 
+	  TWiki::Store::getRevisionInfo( $web, $topic, $rev, $attachment );
+	$rows .= _formatRow( $web, $topic,
+						 $attachment,
+						 $rev,
+						 ( $rev eq $latestRev),
+						 $date,
+						 $userName,
+						 $comment,
+						 $attrs,
+						 $row );
+  }
+
+  return "$header$rows$footer";
+}
+
+#=========================
+=pod
+
+---++ sub _formatRow ( $web, $topic, $file, $rev, $topRev, $date, $userName, $comment, $attrs, $tmpl )
+
+Format a single row in an attachment table by expanding a template.
+| =$web= | the web |
+| =$topic= | the topic |
+| =$file= | the attachment file name |
+| =$rev= | the required revision; required to be a full (major.minor) revision number |
+| =$topRev= | boolean indicating if this revision is the most recent revision |
+| =$date= | date of _this revision_ of the attachment |
+| =$userName= | user (not wikiname) who uploaded this revision |
+| =$comment= | comment against this revision |
+| =$attrs= | reference to a hash of other meta-data attributes for the attachment |
+
+=cut
+
+sub _formatRow {
+  my ( $web, $topic, $file, $rev, $topRev,
+	   $date, $userName, $comment, $attrs, $tmpl ) = @_;
+
+  my $row = $tmpl;
+
+  $row =~ s/%A_REV%/$rev/go;
+
+  if ( $row =~ /%A_ICON%/o ) {
+	my $fileIcon = filenameToIcon( $file );
+	$row =~ s/%A_ICON%/$fileIcon/go;
+  }
+
+  if ( $row =~ /%A_URL%/o ) {
+	my $url;
+
+	if ( $topRev || $rev eq "1.1" ) {
+	  # I18N: To support attachments via UTF-8 URLs to attachment
+	  # directories/files that use non-UTF-8 character sets, go through viewfile. 
+	  # If using %PUBURL%, must URL-encode explicitly to site character set.
+	  $url = TWiki::handleNativeUrlEncode
+		( "%PUBURLPATH%/$web/$topic/$file" );
+	} else {
+	  $url = "%SCRIPTURLPATH%/viewfile%SCRIPTSUFFIX%/".
+		"$web/$topic?rev=$rev&filename=$file";
+	}
+	$row =~ s/%A_URL%/$url/go;
+  }
+
+  if ( $row =~ /%A_SIZE%/o && $attrs ) {
+    my $attrSize = $attrs->{size};
+	$attrSize = 100 if( $attrSize < 100 );
+	$attrSize = sprintf( "%1.1f&nbsp;K", $attrSize / 1024 );
+	$row =~ s/%A_SIZE%/$attrSize/go;
+  }
+
+  $comment =~ s/\|/&#124;/g;
+  $comment = "&nbsp;" unless ( $comment );
+  $row =~ s/%A_COMMENT%/$comment/go;
+
+  if ( $row =~ /%A_ATTRS%/o && $attrs ) {
+	my $attrAttr = $attrs->{attr};
+	$attrAttr = $attrAttr || "&nbsp;";
+	$row =~ s/%A_ATTRS%/$attrAttr/go;
+  }
+
+  $row =~ s/%A_FILE%/$file/go;
+
+  $date = TWiki::formatTime( $date );
+  $row =~ s/%A_DATE%/$date/go;
+
+  my $wikiUserName = TWiki::userToWikiName( $userName );
+  $row =~ s/%A_USER%/$wikiUserName/go;
+
+  return $row;
+}
 
 # =========================
 =pod
 
 ---++ sub filenameToIcon (  $fileName  )
 
-Not yet documented.
+Produce an image tailored to the type of the file, guessed from
+it's extension.
+
+used in TWiki::handleIcon
 
 =cut
 
@@ -110,310 +252,13 @@ sub filenameToIcon
     return "<img src=\"$iconUrl/else.gif\" width=\"16\" height=\"16\" align=\"top\" alt=\"\" border=\"0\" />";
 }
 
-=pod
-
----++ sub formatAttachments (  $theWeb, $theTopic, $showAttr, $isTopRev, %attachment  )
-
-This routine creates attachment links as part of attachment table etc; within
-topic text, attachment links are created using %ATTACHURL% and %ATTACHURLPATH%.
-
-=cut
-
-sub formatAttachments
-{
-    my ( $theWeb, $theTopic, $showAttr, $isTopRev, %attachment ) = @_;
-
-    my $row = "";
-
-    my ( $file, $attrVersion, $attrPath, $attrSize, $attrDate, $attrUser, $attrComment, $attrAttr ) =
-        TWiki::Attach::extractFileAttachmentArgs( %attachment );
-
-    $attachmentCount++;
-    if (  ! $attrAttr || ( $showAttr && $attrAttr =~ /^[$showAttr]*$/ ) ) {
-        $viewableAttachmentCount++;     
-        my $fileIcon = TWiki::Attach::filenameToIcon( $file );
-
-	# I18N: To support attachments via UTF-8 URLs to attachment
-	# directories/files that use non-UTF-8 character sets, go through viewfile. 
-	# If using %PUBURL%, must URL-encode explicitly to site character set.
-        my $fileUrl = "%SCRIPTURLPATH%/viewfile%SCRIPTSUFFIX%/$theWeb/$theTopic?rev=$attrVersion&filename=$file";
-	# Go direct to file where possible, for efficiency
-	if( $isTopRev || $attrVersion eq "1.1" ) {
-	    $fileUrl = TWiki::handleNativeUrlEncode( "%PUBURLPATH%/$theWeb/$theTopic/$file" );
-	}
-
-        $attrSize = 100 if( $attrSize < 100 );
-        $attrSize = sprintf( "%1.1f&nbsp;K", $attrSize / 1024 );
-        $attrComment = $attrComment || "&nbsp;";
-        $row .= "| $fileIcon <a href=\"$fileUrl\">$file</a> "
-              . "|  <a href=\"%SCRIPTURL%/attach%SCRIPTSUFFIX%/$theWeb/$theTopic?filename=$file&revInfo=1\""
-              . " title=\"change, update, previous revisions, move, delete...\">manage</a>  "
-              . "|   $attrSize | $attrDate | $attrUser | $attrComment |";
-        if ( $showAttr ) {
-            $attrAttr = $attrAttr || " &nbsp; ";
-            $row .= " $attrAttr |";
-        }
-        $row .= "\n";
-    }  else {
-        $noviewableAttachmentCount++;
-    }
-
-    return $row;
-}
-
-
-#=========================
-=pod
-
----++ sub migrateFormatForTopic (  $theWeb, $theTopic, $doLogToStdOut  )
-
-Not yet documented.
-
-=cut
-
-sub migrateFormatForTopic
-{
-   my ( $theWeb, $theTopic, $doLogToStdOut ) = @_;
-   
-   my $text = TWiki::Store::readWebTopic( $theWeb, $theTopic );
-   my ( $before, $atext, $after ) = split( /<!--TWikiAttachment-->/, $text );
-   if( ! $before ) { $before = ""; }
-   if( ! $atext  ) { $atext  = ""; }
-
-   if ( $atext =~ /<TwkNextItem>/ ) {
-      my $newtext = migrateToFileAttachmentMacro( $atext );
-      
-      $text = "$before<!--TWikiAttachment-->$newtext<!--TWikiAttachment-->";
-
-      my ( $dontLogSave, $doUnlock, $dontNotify ) = ( "", "1", "1" );
-      my $error = TWiki::Store::save( $theWeb, $theTopic, $text, "", $dontLogSave, $doUnlock, $dontNotify, "upgraded attachment format" );
-      if ( $error ) {
-         print "Attach: error from save: $error\n";
-      }
-      if ( $doLogToStdOut ) {
-         print "Changed attachment format for $theWeb.$theTopic\n";
-      }
-   }
-}
-
-# Get file attachment attributes for old html
-# format.
 # =========================
-=pod
-
----++ sub getOldAttachAttr (  $atext  )
-
-Not yet documented.
-
-=cut
-
-sub getOldAttachAttr
-{
-    my( $atext ) = @_;
-    my $fileName="", $filePath="", $fileSize="", $fileDate="", $fileUser="", $fileComment="";
-    my $before="", $item="", $after="";
-
-    ( $before, $fileName, $after ) = split( /<(?:\/)*TwkFileName>/, $atext );
-    if( ! $fileName ) { $fileName = ""; }
-    if( $fileName ) {
-        ( $before, $filePath,    $after ) = split( /<(?:\/)*TwkFilePath>/, $atext );
-	if( ! $filePath ) { $filePath = ""; }
-	$filePath =~ s/<TwkData value="(.*)">//go;
-	if( $1 ) { $filePath = $1; } else { $filePath = ""; }
-	$filePath =~ s/\%NOP\%//goi;   # delete placeholder that prevents WikiLinks
-	( $before, $fileSize,    $after ) = split( /<(?:\/)*TwkFileSize>/, $atext );
-	if( ! $fileSize ) { $fileSize = "0"; }
-	( $before, $fileDate,    $after ) = split( /<(?:\/)*TwkFileDate>/, $atext );
-	if( ! $fileDate ) { 
-            $fileDate = "";
-        } else {
-            $fileDate =~ s/&nbsp;/ /go;
-            $fileDate = &TWiki::revDate2EpSecs( $fileDate );
-        }
-	( $before, $fileUser,    $after ) = split( /<(?:\/)*TwkFileUser>/, $atext );
-	if( ! $fileUser ) { 
-            $fileUser = ""; 
-        } else {
-            $fileUser = &TWiki::wikiToUserName( $fileUser );
-        }
-	$fileUser =~ s/ //go;
-	( $before, $fileComment, $after ) = split( /<(?:\/)*TwkFileComment>/, $atext );
-	if( ! $fileComment ) { $fileComment = ""; }
-    }
-
-    return ( $fileName, $filePath, $fileSize, $fileDate, $fileUser, $fileComment );
-}
-
-# Migrate old HTML format, to %FILEATTACHMENT ... format
-# for one piece of text
-# =========================
-=pod
-
----++ sub migrateToFileAttachmentMacro (  $meta, $text  )
-
-Not yet documented.
-
-=cut
-
-sub migrateToFileAttachmentMacro
-{
-   my ( $meta, $text ) = @_;
-   
-   
-   my ( $before, $atext, $after ) = split( /<!--TWikiAttachment-->/, $text );
-   $text = $before || "";
-   $text .= $after if( $after );
-   $atext  = "" if( ! $atext  );
-
-   if( $atext =~ /<TwkNextItem>/ ) {
-      my $line = "";
-      foreach $line ( split( /<TwkNextItem>/, $atext ) ) {
-          my( $fileName, $filePath, $fileSize, $fileDate, $fileUser, $fileComment ) =
-             getOldAttachAttr( $line );
-
-          if( $fileName ) {
-             my @args = formFileAttachmentArgs( $fileName, "", $filePath, $fileSize, 
-                                              $fileDate, $fileUser, $fileComment, "" );
-             $meta->put( "FILEATTACHMENT", @args );
-          }
-       }
-   } else {
-       # Format of macro that came before META:ATTACHMENT
-       my $line = "";
-       foreach $line ( split( /\n/, $atext ) ) {
-           if( $line =~ /%FILEATTACHMENT{\s"([^"]*)"([^}]*)}%/ ) {
-               my $name = $1;
-               my $rest = $2;
-               $rest =~ s/^\s*//;
-               my @values = TWiki::Store::keyValue2list( $rest );
-               unshift @values, $name;
-               unshift @values, "name";
-               $meta->put( "FILEATTACHMENT", @values );
-           }
-       }
-   }
-       
-   return $text;
-}
-
-
-# =========================
-=pod
-
----++ sub upgradeFrom1v0beta (  $meta  )
-
-Not yet documented.
-
-=cut
-
-sub upgradeFrom1v0beta
-{
-   my( $meta ) = @_;
-   
-   my @attach = $meta->find( "FILEATTACHMENT" );
-   foreach $att ( @attach ) {
-       my $date = $att->{"date"};
-       if( $date =~ /-/ ) {
-           $date =~ s/&nbsp;/ /go;
-           $date = TWiki::revDate2EpSecs( $date );
-       }
-       $att->{"date"} = $date;
-       $att->{"user"} = &TWiki::wikiToUserName( $att->{"user"} );
-   }
-}
-
-
-
-# =========================
-=pod
-
----++ sub formFileAttachmentArgs ()
-
-Not yet documented.
-
-=cut
-
-sub formFileAttachmentArgs
-{
-    my( $theFile, $theVersion, $thePath, $theSize, $theDate, $theUser, 
-             $theComment, $theAttr ) = @_;
-
-    my @args = (
-       "name"    => $theFile,
-       "version" => $theVersion,
-       "path"    => $thePath,
-       "size"    => $theSize,
-       "date"    => $theDate,
-       "user"    => $theUser,
-       "comment" => $theComment,
-       "attr"    => $theAttr );
-    
-    return @args;
-}
-
-
-
-# =========================
-# Includes required formatting and conversion
-=pod
-
----++ sub extractFileAttachmentArgs (  %attributes  )
-
-Not yet documented.
-
-=cut
-
-sub extractFileAttachmentArgs
-{
-    my( %attributes ) = @_;
-
-    my $file =        $attributes{"name"};
-    my $attrVersion = $attributes{"version"};
-    my $attrPath    = $attributes{"path"};
-    my $attrSize    = $attributes{"size"};
-    my $attrDate    = $attributes{"date"};
-    my $attrUser    = $attributes{"user"};
-    my $attrComment = $attributes{"comment"}; 
-    my $attrAttr    = $attributes{"attr"};
-
-    $attrDate = &TWiki::formatTime( $attrDate );
-    
-    $attrUser = &TWiki::userToWikiName( $attrUser );
-
-    return ( $file, $attrVersion, $attrPath, $attrSize, $attrDate, $attrUser, 
-             $attrComment, $attrAttr );
-}
-
-# FIXME - could be used more?
-# ==========================
-=pod
-
----++ sub extractArgsForFile (  $theText, $theFile  )
-
-Not yet documented.
-
-=cut
-
-sub extractArgsForFile
-{
-   my ( $theText, $theFile ) = @_;
-   
-   if ( $theText =~ /%FILEATTACHMENT{[\s]*("$theFile" [^}]*)}%/o ) {
-      return extractFileAttachmentArgs( $1 );
-   } else {
-      return "";
-   }
-}
-
-
-# =========================
-# Remove attachment macro for specified file from topic
-# return "", or error string
 =pod
 
 ---++ sub removeFile ()
 
-Not yet documented.
+Remove attachment macro for specified file from topic
+return "", or error string
 
 =cut
 
@@ -450,13 +295,12 @@ sub updateProperties
 }
 
 # =========================
-# Add/update attachment for a topic
-# $text is full set of attachments, new attachments will be added to the end.
 =pod
 
 ---++ sub updateAttachment (  $fileVersion, $fileName, $filePath, $fileSize, $fileDate, $fileUser, $fileComment, $hideFile, $meta  )
 
-Not yet documented.
+Add/update attachment for a topic
+$text is full set of attachments, new attachments will be added to the end.
 
 =cut
 
@@ -466,10 +310,197 @@ sub updateAttachment
 
     my $tmpAttr = ( $hideFile ) ? "h" : "";
 
-    my @args = formFileAttachmentArgs(
-        $fileName, $fileVersion, $filePath, $fileSize, $fileDate, $fileUser, 
-        $fileComment, $tmpAttr );
-    $meta->put( "FILEATTACHMENT", @args );
+    my( $theFile, $theVersion, $thePath, $theSize, $theDate, $theUser, 
+             $theComment, $theAttr ) = @_;
+
+    my @attrs = (
+				 "name"    => $fileName,
+				 "version" => $fileVersion,
+				 "path"    => $filePath,
+				 "size"    => $fileSize,
+				 "date"    => $fileDate,
+				 "user"    => $fileUser,
+				 "comment" => $fileComment,
+				 "attr"    => $tmpAttr
+				);
+
+    $meta->put( "FILEATTACHMENT", @attrs );
+}
+
+#=========================
+=pod
+
+---++ sub migrateFormatForTopic (  $theWeb, $theTopic, $doLogToStdOut  )
+
+Not yet documented.
+CODE_SMELL: Is this really necessary? migrateFormatForTopic?
+
+=cut
+
+sub migrateFormatForTopic
+{
+   my ( $theWeb, $theTopic, $doLogToStdOut ) = @_;
+   
+   my $text = TWiki::Store::readWebTopic( $theWeb, $theTopic );
+   my ( $before, $atext, $after ) = split( /<!--TWikiAttachment-->/, $text );
+   if( ! $before ) { $before = ""; }
+   if( ! $atext  ) { $atext  = ""; }
+
+   if ( $atext =~ /<TwkNextItem>/ ) {
+      my $newtext = migrateToFileAttachmentMacro( $atext );
+      
+      $text = "$before<!--TWikiAttachment-->$newtext<!--TWikiAttachment-->";
+
+      my ( $dontLogSave, $doUnlock, $dontNotify ) = ( "", "1", "1" );
+      my $error = TWiki::Store::save( $theWeb, $theTopic, $text, "", $dontLogSave, $doUnlock, $dontNotify, "upgraded attachment format" );
+      if ( $error ) {
+         print "Attach: error from save: $error\n";
+      }
+      if ( $doLogToStdOut ) {
+         print "Changed attachment format for $theWeb.$theTopic\n";
+      }
+   }
+}
+
+# =========================
+=pod
+
+---++ sub getOldAttachAttr (  $atext  )
+
+Get file attachment attributes for old html
+format.
+CODE_SMELL: Is this really necessary? getOldAttachAttr?
+
+=cut
+
+sub getOldAttachAttr
+{
+    my( $atext ) = @_;
+    my $fileName="";
+	my $filePath="";
+	my $fileSize="";
+	my $fileDate="";
+	my $fileUser="";
+	my $fileComment="";
+    my $before="";
+	my $item="";
+	my $after="";
+
+    ( $before, $fileName, $after ) = split( /<(?:\/)*TwkFileName>/, $atext );
+    if( ! $fileName ) { $fileName = ""; }
+    if( $fileName ) {
+        ( $before, $filePath,    $after ) = split( /<(?:\/)*TwkFilePath>/, $atext );
+	if( ! $filePath ) { $filePath = ""; }
+	$filePath =~ s/<TwkData value="(.*)">//go;
+	if( $1 ) { $filePath = $1; } else { $filePath = ""; }
+	$filePath =~ s/\%NOP\%//goi;   # delete placeholder that prevents WikiLinks
+	( $before, $fileSize,    $after ) = split( /<(?:\/)*TwkFileSize>/, $atext );
+	if( ! $fileSize ) { $fileSize = "0"; }
+	( $before, $fileDate,    $after ) = split( /<(?:\/)*TwkFileDate>/, $atext );
+	if( ! $fileDate ) { 
+            $fileDate = "";
+        } else {
+            $fileDate =~ s/&nbsp;/ /go;
+            $fileDate = &TWiki::revDate2EpSecs( $fileDate );
+        }
+	( $before, $fileUser,    $after ) = split( /<(?:\/)*TwkFileUser>/, $atext );
+	if( ! $fileUser ) { 
+            $fileUser = ""; 
+        } else {
+            $fileUser = &TWiki::wikiToUserName( $fileUser );
+        }
+	$fileUser =~ s/ //go;
+	( $before, $fileComment, $after ) = split( /<(?:\/)*TwkFileComment>/, $atext );
+	if( ! $fileComment ) { $fileComment = ""; }
+    }
+
+    return ( $fileName, $filePath, $fileSize, $fileDate, $fileUser, $fileComment );
+}
+
+# =========================
+=pod
+
+---++ sub migrateToFileAttachmentMacro (  $meta, $text  )
+
+Migrate old HTML format, to %FILEATTACHMENT ... format
+for one piece of text
+CODE_SMELL: Is this really necessary? migrateToFileAttachmentMacro?
+
+=cut
+
+sub migrateToFileAttachmentMacro
+{
+   my ( $meta, $text ) = @_;
+   
+   
+   my ( $before, $atext, $after ) = split( /<!--TWikiAttachment-->/, $text );
+   $text = $before || "";
+   $text .= $after if( $after );
+   $atext  = "" if( ! $atext  );
+
+   if( $atext =~ /<TwkNextItem>/ ) {
+      my $line = "";
+      foreach $line ( split( /<TwkNextItem>/, $atext ) ) {
+          my( $fileName, $filePath, $fileSize, $fileDate, $fileUser, $fileComment ) =
+             getOldAttachAttr( $line );
+
+          if( $fileName ) {
+			my @attrs = (
+						"name"    => $fileName,
+						"version" => "",
+						"path"    => $filePath,
+						"size"    => $fileSize,
+						"date"    => $fileDate,
+						"user"    => $fileUser,
+						"comment" => $fileComment,
+						"attr"    => ""
+					   );
+			$meta->put( "FILEATTACHMENT", @attrs );
+          }
+       }
+   } else {
+       # Format of macro that came before META:ATTACHMENT
+       my $line = "";
+       foreach $line ( split( /\n/, $atext ) ) {
+           if( $line =~ /%FILEATTACHMENT{\s"([^"]*)"([^}]*)}%/ ) {
+               my $name = $1;
+               my $rest = $2;
+               $rest =~ s/^\s*//;
+               my @values = TWiki::Store::keyValue2list( $rest );
+               unshift @values, $name;
+               unshift @values, "name";
+               $meta->put( "FILEATTACHMENT", @values );
+           }
+       }
+   }
+       
+   return $text;
+}
+
+
+# =========================
+=pod
+
+---++ sub upgradeFrom1v0beta (  $meta  )
+
+CODE_SMELL: Is this really necessary? upgradeFrom1v0beta?
+
+=cut
+
+sub upgradeFrom1v0beta
+{
+   my( $meta ) = @_;
+   
+   my @attach = $meta->find( "FILEATTACHMENT" );
+   foreach my $att ( @attach ) {
+       my $date = $att->{"date"};
+       if( $date =~ /-/ ) {
+           $date =~ s/&nbsp;/ /go;
+           $date = TWiki::revDate2EpSecs( $date );
+       }
+       $att->{"date"} = $date;
+       $att->{"user"} = &TWiki::wikiToUserName( $att->{"user"} );
+   }
 }
 
 1;

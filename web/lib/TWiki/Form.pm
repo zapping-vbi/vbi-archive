@@ -45,10 +45,11 @@ Not yet documented.
 sub getFormDefinition
 {
     my( $text ) = @_;
-    
+
     my @fields = ();
-    
     my $inBlock = 0;
+    $text =~ s/\\\r?\n//go; # remove trailing '\' and join continuation lines
+
     # | *Name:* | *Type:* | *Size:* | *Value:*  | *Tooltip message:* | *Attributes:* |
     # Tooltip and attributes are optional
     foreach( split( /\n/, $text ) ) {
@@ -85,15 +86,15 @@ sub getFormDefinition
                        $vals = $TWiki::mainWebname . "." . join( ", ${TWiki::mainWebname}.", ( TWiki::Store::getTopicNames( $TWiki::mainWebname ) ) );
                     }
                     $tooltip =~ s/^\s*//go;
-                    $tooltip =~ s/^\s*//go;
+                    $tooltip =~ s/\s*$//go;
                     # FIXME object if too short
                     push @fields, [ $name, $title, $type, $size, $vals, $tooltip, $attributes ];
             } else {
-            $inBlock = 0;
+                $inBlock = 0;
+            }
         }
     }
-    }
-    
+
     return @fields;
 }
 
@@ -215,13 +216,13 @@ sub getFormDef
 # ============================
 =pod
 
----++ sub link (  $web, $name, $tooltip, $heading, $align, $span, $extra  )
+---++ sub _link (  $web, $name, $tooltip, $heading, $align, $span, $extra  )
 
 Not yet documented.
 
 =cut
 
-sub link
+sub _link
 {
     my( $web, $name, $tooltip, $heading, $align, $span, $extra ) = @_;
     
@@ -254,7 +255,7 @@ sub link
             $tooltip = "Click to see details in separate window";
         }
         $link =  "<a target=\"$name\" " .
-                 "onClick=\"return launchWindow('$web','$name')\" " .
+                 "onclick=\"return launchWindow('$web','$name')\" " .
                  "title=\"$tooltip\" " .
                  "href=\"$TWiki::scriptUrlPath/view$TWiki::scriptSuffix/$web/$name\">$name</a>";
     } elsif ( $tooltip ) {
@@ -277,7 +278,7 @@ sub chooseFormButton
 {
     my( $text ) = @_;
     
-    return "<input type=\"submit\" name=\"submitChangeForm\" value=\" &nbsp; $text &nbsp; \" />";
+    return "<input type=\"submit\" name=\"submitChangeForm\" value=\"$text\" class=\"twikiChangeFormButton twikiSubmit \" />";
 }
 
 
@@ -285,7 +286,7 @@ sub chooseFormButton
 # Render form information 
 =pod
 
----++ sub renderForEdit (  $web, $topic, $form, $meta, $query, @fieldsInfo  )
+---++ sub renderForEdit (  $web, $topic, $form, $meta, $query, $getValuesFromFormTopic,  @fieldsInfo  )
 
 Not yet documented.
 
@@ -293,16 +294,16 @@ Not yet documented.
 
 sub renderForEdit
 {
-    my( $web, $topic, $form, $meta, $query, @fieldsInfo ) = @_;
+    my( $web, $topic, $form, $meta, $query, $getValuesFromFormTopic, @fieldsInfo ) = @_;
 
     my $chooseForm = "";   
     if( TWiki::Prefs::getPreferencesValue( "WEBFORMS", "$web" ) ) {
-        $chooseForm = chooseFormButton( "Change" );
+        $chooseForm = chooseFormButton( "Replace form..." );
     }
     
     # FIXME could do with some of this being in template
-    my $text = "<table border=\"1\" cellspacing=\"0\" cellpadding=\"0\">\n   <tr>" . 
-               &link( $web, $form, "", "h", "", 2, $chooseForm ) . "</tr>\n";
+    my $text = "<div class=\"twikiForm twikiEditForm\"><table border=\"1\" cellspacing=\"0\" cellpadding=\"0\">\n   <tr>" . 
+               _link( $web, $form, "", "h", "", 2, $chooseForm ) . "</tr>\n";
                
     fieldVars2Meta( $web, $query, $meta, "override" );
     
@@ -319,12 +320,21 @@ sub renderForEdit
         my %field = $meta->findOne( "FIELD", $fieldName );
         my $value = $field{"value"};
         if( ! defined( $value ) && $attributes =~ /S/ ) {
-           # Allow initialisation based on a preference
-           $value = &TWiki::Prefs::getPreferencesValue($fieldName);
+            # Allow initialisation based on a preference
+            $value = &TWiki::Prefs::getPreferencesValue($fieldName);
+        }
+        if( ($getValuesFromFormTopic ) ) {
+            my $tmp = $fieldInfo[0] || "";
+            $value = &TWiki::handleCommonTags( $tmp, $topic );
         }
         $value = "" unless defined $value;  # allow "0" values
         my $extra = "";
-        
+
+        $tooltip =~ s/&/&amp\;/g;
+        $tooltip =~ s/"/&quot\;/g;
+        $tooltip =~ s/</&lt\;/g;
+        $tooltip =~ s/>/&gt\;/g;
+
         my $output = TWiki::Plugins::renderFormFieldForEditHandler( $name, $type, $size, $value, $attributes, \@fieldInfo );
         if( $output ) {
             $value = $output;
@@ -333,14 +343,14 @@ sub renderForEdit
             $value =~ s/"/&quot\;/go; # Make sure double quote don't kill us
             $value =~ s/</&lt\;/go;
             $value =~ s/>/&gt\;/go;
-            $value = "<input type=\"text\" name=\"$name\" size=\"$size\" value=\"$value\" />";
+            $value = "<input class=\"twikiEditFormTextField\" type=\"text\" name=\"$name\" size=\"$size\" value=\"$value\" />";
         } elsif( $type eq "label" ) {
             my $escaped = $value;
             $escaped =~ s/&/&amp\;/go;
             $escaped =~ s/"/&quot\;/go; # Make sure double quote don't kill us
             $escaped =~ s/</&lt\;/go;
             $escaped =~ s/>/&gt\;/go;
-            $value = "<input type=\"hidden\" name=\"$name\" value=\"$escaped\" />$value";
+            $value = "<input class=\"twikiEditFormLabelField\" type=\"hidden\" name=\"$name\" value=\"$escaped\" />$value";
         } elsif( $type eq "textarea" ) {
             my $cols = 40;
             my $rows = 5;
@@ -352,7 +362,7 @@ sub renderForEdit
             $value =~ s/"/&quot\;/go; # Make sure double quote don't kill us
             $value =~ s/</&lt\;/go;
             $value =~ s/>/&gt\;/go;
-            $value = "<textarea cols=\"$cols\" rows=\"$rows\" name=\"$name\">$value</textarea>";
+            $value = "<textarea class=\"twikiEditFormTextAreaField\" cols=\"$cols\" rows=\"$rows\" name=\"$name\">$value</textarea>";
         } elsif( $type eq "select" ) {
             my $val = "";
             my $matched = "";
@@ -365,7 +375,7 @@ sub renderForEdit
                 }
                 $defaultMarker = "";
                 $item =~ s/<nop/&lt\;nop/go;
-                $val .= "   <option name=\"$item\"$selected>$item</option>";
+                $val .= "   <option$selected>$item</option>";
             }
             if( ! $matched ) {
                $val =~ s/%DEFAULTOPTION%/ selected="selected"/go;
@@ -376,8 +386,8 @@ sub renderForEdit
         } elsif( $type =~ "^checkbox" ) {
             if( $type eq "checkbox+buttons" ) {
                 my $boxes = $#fieldInfo + 1;
-                $extra = "<br />\n<input type=\"button\" value=\" Set \" onClick=\"checkAll(this, 2, $boxes, true)\" />&nbsp;\n" .
-                         "<input type=\"button\" value=\"Clear\" onClick=\"checkAll(this, 1, $boxes, false)\" />\n";
+                $extra = "<br />\n<input class=\"twikiEditFormCheckboxButton twikiCheckbox\" type=\"button\" value=\" Set \" onclick=\"checkAll(this, 2, $boxes, true)\" />&nbsp;\n" .
+                         "<input class=\"twikiEditFormCheckboxButton twikiCheckbox\" type=\"button\" value=\"Clear\" onclick=\"checkAll(this, 1, $boxes, false)\" />\n";
             }
 
             my $val ="<table  cellspacing=\"0\" cellpadding=\"0\"><tr>";
@@ -388,12 +398,13 @@ sub renderForEdit
                 if( $value =~ /(^|,\s*)\Q$item\E(,|$)/ ) {
                     $flag = ' checked="checked"';
                 }
-                $val .= "\n<td><input type=\"checkbox\" name=\"$name$item\"$flag />$expandedItem &nbsp;&nbsp;</td>";
+                $val .= "\n<td><input class=\"twikiEditFormCheckboxField\" type=\"checkbox\" name=\"$name$item\"$flag />$expandedItem &nbsp;&nbsp;</td>";
                 if( $size > 0 && ($lines % $size == $size - 1 ) ) {
                    $val .= "\n</tr><tr>";
                 }
                 $lines++;
             }
+            $val =~ s/\n<\/tr><tr>$//;
             $value = "$val\n</tr></table>\n";
         } elsif( $type eq "radio" ) {
             my $val = "<table  cellspacing=\"0\" cellpadding=\"0\"><tr>";
@@ -408,7 +419,7 @@ sub renderForEdit
                    $matched = $item;
                 }
                 $defaultMarker = "";
-                $val .= "\n<td><input type=\"radio\" name=\"$name\" value=\"$item\" $selected />$expandedItem &nbsp;&nbsp;</td>";
+                $val .= "\n<td><input class=\"twikiEditFormRadioField twikiRadioButton\" type=\"radio\" name=\"$name\" value=\"$item\" $selected />$expandedItem &nbsp;&nbsp;</td>";
                 if( $size > 0 && ($lines % $size == $size - 1 ) ) {
                    $val .= "\n</tr><tr>";
                 }
@@ -419,18 +430,20 @@ sub renderForEdit
             } else {
                $val =~ s/%DEFAULTOPTION%//go;
             }
+            $val =~ s/\n<\/tr><tr>$//;
             $value = "$val\n</tr></table>\n";
         } else {
             # Treat like test, make it reasonably long
+#TODO: Sven thinks this should be an error condition - so users know about typo's, and don't loose data when the typo is fixed
             $value =~ s/&/&amp\;/go;
             $value =~ s/"/&quot\;/go; # Make sure double quote don't kill us
             $value =~ s/</&lt\;/go;
             $value =~ s/>/&gt\;/go;
-            $value = "<input type=\"text\" name=\"$name\" size=\"80\" value=\"$value\" />";
+            $value = "<input class=\"twikiEditFormError\" type=\"text\" name=\"$name\" size=\"80\" value=\"$value\" />";
         }
-        $text .= "   <tr> " . &link( $web, $title, $tooltip, "h", "right", "", $extra ) . "<td align=\"left\"> $value </td> </tr>\n";
+        $text .= "   <tr> " . _link( $web, $title, $tooltip, "h", "right", "", $extra ) . "<td align=\"left\"> $value </td> </tr>\n";
     }
-    $text .= "</table>\n";
+    $text .= "</table></div>\n";
     
     return $text;
 }
@@ -576,9 +589,9 @@ sub changeForm
     my $tmpl = &TWiki::Store::readTemplate( "changeform" );
     &TWiki::writeHeader( $theQuery );
     $tmpl = &TWiki::handleCommonTags( $tmpl, $theTopic );
-    $tmpl = &TWiki::getRenderedVersion( $tmpl );
+    $tmpl = &TWiki::Render::getRenderedVersion( $tmpl );
     my $text = $theQuery->param( 'text' );
-    $text = &TWiki::encodeSpecialChars( $text );
+    $text = &TWiki::Render::encodeSpecialChars( $text );
     $tmpl =~ s/%TEXT%/$text/go;
 
     my $listForms = TWiki::Prefs::getPreferencesValue( "WEBFORMS", "$theWeb" );

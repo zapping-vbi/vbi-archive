@@ -271,7 +271,10 @@ sub changeRefTo
            foreach my $topic ( @topics ) {
               if( $topic ne $oldTopic ) {
                   if( /^%META:/ ) {
+                      s/^(%META:FILEATTACHMENT.*? user\=\")(\w)/$1$TWiki::TranslationToken$2/;
+                      s/^(%META:TOPICMOVED.*? by\=\")(\w)/$1$TWiki::TranslationToken$2/;
                       s/($metaPreTopic)\Q$topic\E(?=$metaPostTopic)/$1$oldWeb.$topic/g;
+                      s/$TWiki::TranslationToken//;
                   } else {
                       s/($preTopic)\Q$topic\E(?=$postTopic)/$1$oldWeb.$topic/g;
                   }
@@ -518,23 +521,24 @@ sub getRevisionNumberX
 
 =pod
 
----++ sub getRevisionDiff (  $web, $topic, $rev1, $rev2  )
+---++ sub getRevisionDiff (  $web, $topic, $rev1, $rev2, $contextLines  )
 
 <pre>
-rdiff:            $text = &TWiki::Store::getRevisionDiff( $webName, $topic, "1.$r2", "1.$r1" );
+rdiff:            $diffArray = &TWiki::Store::getRevisionDiff( $webName, $topic, "1.$r2", "1.$r1", 3 );
 </pre>
+| Return: =\@diffArray= | reference to an array of [ diffType, $right, $left ] |
 
 =cut
 
 sub getRevisionDiff
 {
-    my( $web, $topic, $rev1, $rev2 ) = @_;
+    my( $web, $topic, $rev1, $rev2, $contextLines ) = @_;
 
     my $rcs = _getTopicHandler( $web, $topic );
     my $r1 = substr( $rev1, 2 );
     my $r2 = substr( $rev2, 2 );
-    my( $error, $diff ) = $rcs->revisionDiff( $r1, $r2 );
-    return $diff;
+    my( $error, $diffArrayRef ) = $rcs->revisionDiff( $r1, $r2, $contextLines );
+    return $diffArrayRef;
 }
 
 
@@ -545,10 +549,13 @@ sub getRevisionDiff
 
 =pod
 
----+++ getRevisionInfo($theWebName, $theTopic, $theRev, $attachment, $topicHandler) ==> ( $theWebName, $theTopic, $theRev, $attachment, $topicHandler ) 
+---+++ getRevisionInfo($theWebName, $theTopic, $theRev, $attachment, $topicHandler) ==> ( $date, $user, $rev, $comment ) 
 | Description: | Get revision info of a topic |
 | Parameter: =$theWebName= | Web name, optional, e.g. ="Main"= |
 | Parameter: =$theTopic= | Topic name, required, e.g. ="TokyoOffice"= |
+| Parameter: =$theRev= | revsion number, or tag name (can be in the format 1.2, or just the minor number) |
+| Parameter: =$attachment= |attachment filename |
+| Parameter: =$topicHandler= | internal store use only |
 | Return: =( $date, $user, $rev, $comment )= | List with: ( last update date, login name of last user, minor part of top revision number ), e.g. =( 1234561, "phoeny", "5" )= |
 | $date | in epochSec |
 | $user | |
@@ -713,9 +720,21 @@ sub saveAttachment
 {
     my( $web, $topic, $text, $saveCmd, $attachment, $dontLogSave, $doUnlock, $dontNotify, $theComment, $theTmpFilename,
         $forceDate) = @_;
-        
+
+    writeDebug("saveAttachment");
+    my %attachmentAtt = ( attachment => $attachment,
+                           tmpFilename => $theTmpFilename,
+                           comment => $theComment,
+                           user => $TWiki::userName
+                         ); # pass a hash of stuff using keys
+
     my $topicHandler = _getTopicHandler( $web, $topic, $attachment );
+    TWiki::Plugins::beforeAttachmentSaveHandler( \%attachmentAtt, $topic, $web );
+
+    $theComment = $attachmentAtt{comment};
     my $error = $topicHandler->addRevision( $theTmpFilename, $theComment, $TWiki::userName );
+    TWiki::Plugins::afterAttachmentSaveHandler( \%attachmentAtt, $topic, $web, $error );
+
     $topicHandler->setLock( ! $doUnlock );
     
     return $error;
@@ -942,9 +961,13 @@ sub writeLog
 
     my $filename = $TWiki::logFilename;
     $filename =~ s/%DATE%/$yearmonth/go;
-    open( FILE, ">>$filename");
-    print FILE "$text\n";
-    close( FILE);
+
+    if( open( FILE, ">>$filename" ) ) {
+         print FILE "$text\n";
+         close( FILE );
+    } else {
+         print STDERR "Couldn't write \"$text\" to $filename: $!\n";
+    }
 }
 
 =pod
@@ -1309,7 +1332,7 @@ sub readTopicRaw
     
     unless( $viewAccessOK ) {
         # FIXME: TWiki::Func::readTopicText will break if the following text changes
-        $text = "No permission to read topic $theWeb.$theTopic\n";
+        $text = "No permission to read topic $theWeb.$theTopic  - perhaps you need to log in?\n";
         # Could note inability to read so can divert to viewauth or similar
         $TWiki::readTopicPermissionFailed = "$TWiki::readTopicPermissionFailed $theWeb.$theTopic";
     }
@@ -1711,6 +1734,31 @@ sub getAllWebs {
     return @webList ;
 }
 #/AS
+
+=pod
+
+---+++ setTopicRevisionTag( $web, $topic, $rev, $tag ) ==> $success
+
+| Description: | sets a names tag on the specified revision |
+| Parameter: =$web= | webname |
+| Parameter: =$topic= | topic name |
+| Parameter: =$rev= | the revision we are taging |
+| Parameter: =$tag= | the string to tag with |
+| Return: =$success= |  |
+| TODO: | we _need_ an error mechanism! |
+| Since: | TWiki:: (20 April 2004) |
+
+=cut
+
+sub setTopicRevisionTag
+{
+	my ( $web, $topic, $rev, $tag ) = @_;
+	
+    my $topicHandler = _getTopicHandler( $web, $topic );
+#	TWiki::writeDebug("Store - setTopicRevisionTag ( $web, $topic, $rev, $tag )");	
+    return $topicHandler->setTopicRevisionTag( $web, $topic, $rev, $tag );
+}
+
 
 
 # =========================

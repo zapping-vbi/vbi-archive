@@ -161,6 +161,7 @@ sub sendEmail
         if( scalar( @arr ) ) {
             $from = $arr[0];
             $from =~ s/^From:\s*//io;
+            $from =~ s/.*<(.*?)>.*/$1/o; # extract "user@host" out of "Name <user@host>"
         }
         if( ! ( $from ) ) {
             return "ERROR: Can't send mail, missing 'From:'";

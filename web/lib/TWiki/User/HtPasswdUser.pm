@@ -1,6 +1,6 @@
 # Module of TWiki Collaboration Platform, http://TWiki.org/
 #
-# Copyright (C) 1999-2003 Peter Thoeny, peter@thoeny.com
+# Copyright (C) 1999-2004 Peter Thoeny, peter@thoeny.com
 #
 # For licensing info read license.txt file in the TWiki root.
 # This program is free software; you can redistribute it and/or
@@ -23,20 +23,27 @@
 # - Check web server error logs for errors, i.e. % tail /var/log/httpd/error_log
 #
 
+=begin twiki
 
-#TODO: User.pm and the impls propbably shouldn't use Store.pm - they are not TWikiTopics..
+---+ TWiki::User::HtPasswdUser Package
+
+The HtPasswdUser module seperates out the User Authentication code that is htpasswd and htdigest
+specific. 
+
+TODO: User.pm and the impls propbably shouldn't use Store.pm - they are not TWikiTopics..
+
+=cut
+
 package TWiki::User::HtPasswdUser;
 
-#use File::Copy;
-#use Time::Local;
-
-if( $TWiki::OS eq "WINDOWS" ) {
+if( 'md5' eq $TWiki::htpasswdEncoding ) {
+	require Digest::MD5;
+} elsif( 'sha1' eq $TWiki::htpasswdEncoding ) {
     require MIME::Base64;
     import MIME::Base64 qw( encode_base64 );
     require Digest::SHA1;
     import Digest::SHA1 qw( sha1 );
 }
-
 
 use strict;
 
@@ -59,21 +66,11 @@ sub new
 {
    my( $proto ) = @_;
    my $class = ref($proto) || $proto;
-#   my $self = TWiki::User::RcsFile->new( $web, $topic, $attachment, %settings );
    my $self = {};
    bless( $self, $class );
 #   $self->_init();
 #   $self->{head} = 0;
    return $self;
-}
-
-
-# ===========================
-# Normally writes no output, uncomment writeDebug line to get output of all RCS etc command to debug file
-sub _traceExec
-{
-   #my( $cmd, $result ) = @_;
-   #TWiki::writeDebug( "User exec: $cmd -> $result" );
 }
 
 # ===========================
@@ -83,50 +80,70 @@ sub writeDebug
 }
 
 # =========================
+=pod
+
+---+++ _htpasswdGeneratePasswd( $user, $passwd , $useOldSalt ) ==> $passwordExists
+| Description: | (private) implementation method that generates an encrypted password |
+| Parameter: =$user= | userName |
+| Parameter: =$passwd= | unencypted password |
+| Parameter: =$useOldSalt= | if $useOldSalt == 1 then we are attempting to match $passwd an existing one 
+otherwise, we are just creating a new use encrypted passwd |
+| Return: =$value= | returns "" on failure, an encrypted password otherwise |
+
+=cut
 sub _htpasswdGeneratePasswd
 {
-    my ( $user, $passwd ) = @_;
-    # by David Levy, Internet Channel, 1997
-    # found at http://world.inch.com/Scripts/htpasswd.pl.html
+    my ( $user, $passwd , $useOldSalt ) = @_;
 
-    # check for Windows and use SHA1 digest instead of crypt()
-    if( $TWiki::OS eq "WINDOWS" ) {
-        my $pwd = $user . ':{SHA}' . MIME::Base64::encode_base64( Digest::SHA1::sha1( $passwd ) ); 
-        chomp $pwd;
-        return $pwd
-    }
-    srand( $$|time );
-    my @saltchars = ( 'a'..'z', 'A'..'Z', '0'..'9', '.', '/' );
-    my $salt = $saltchars[ int( rand( $#saltchars+1 ) ) ];
-    $salt .= $saltchars[ int( rand( $#saltchars+1 ) ) ];
-    my $passwdcrypt = crypt( $passwd, $salt );
-    return "$passwdcrypt";
+	my $encodedPassword = '';
+
+    if( 'sha1' eq $TWiki::htpasswdEncoding ) {
+
+        $encodedPassword = '{SHA}' . MIME::Base64::encode_base64( Digest::SHA1::sha1( $passwd ) ); 
+        chomp $encodedPassword;
+
+    } elsif ( 'crypt' eq $TWiki::htpasswdEncoding ) {
+	    # by David Levy, Internet Channel, 1997
+	    # found at http://world.inch.com/Scripts/htpasswd.pl.html
+
+		my $salt;
+		if ( $useOldSalt eq 1) {
+		    my $currentEncryptedPasswordEntry = _htpasswdReadPasswd( $user );
+	        $salt = substr( $currentEncryptedPasswordEntry, 0, 2 );
+		} else {
+		    srand( $$|time );
+		    my @saltchars = ( 'a'..'z', 'A'..'Z', '0'..'9', '.', '/' );
+		    $salt = $saltchars[ int( rand( $#saltchars+1 ) ) ];
+		    $salt .= $saltchars[ int( rand( $#saltchars+1 ) ) ];
+		}
+
+		if ( ( $salt ) && (2 == length $salt) ) {
+			$encodedPassword = crypt( $passwd, $salt );
+		}
+
+    } elsif ( 'md5' eq $TWiki::htpasswdEncoding ) {
+#what does this do if we are using a htpasswd file?
+		my $toEncode= "$user:$TWiki::authRealm:$passwd";
+		$encodedPassword = Digest::MD5::md5_hex( $toEncode );
+
+    } elsif ( 'plain' eq $TWiki::htpasswdEncoding ) {
+
+		$encodedPassword = $passwd;
+
+	}
+
+    return $encodedPassword;
 }
 
-#==========================
-#use the same salt as the password in the htpasswd file
-sub _htpasswdEncryptSameSalt
-{
-    my ( $user, $password ) = @_;
-
-    my $currentEncryptedPasswordEntry = _htpasswdReadPasswd( $user );
-    my $encryptedPassword;
-
-    # check for Windows
-    if ( $TWiki::OS eq "WINDOWS" ) {
-        $encryptedPassword = '{SHA}' . MIME::Base64::encode_base64( Digest::SHA1::sha1( $password ) );
-        # strip whitespace at end of line
-        $encryptedPassword =~ /(.*)$/ ;
-        $encryptedPassword = $1;
-
-    } else {
-        my $salt = substr( $currentEncryptedPasswordEntry, 0, 2 );
-        $encryptedPassword = crypt( $password, $salt );
-    }
-    return $encryptedPassword;
-}
- 
 #========================= 
+=pod
+
+---+++ _htpasswdReadPasswd( $user ) ==> $encryptedPassword
+| Description: | gets the encrypted password from the htpasswd / htdigest file |
+| Parameter: =$user= | UserName |
+| Return: =$encryptedPassword= | "" if there is none, the encrypted password otherwise |
+
+=cut
 sub _htpasswdReadPasswd
 {
     my ( $user ) = @_;
@@ -143,6 +160,14 @@ sub _htpasswdReadPasswd
 }
  
 #========================= 
+=pod
+
+---+++ UserPasswordExists( $user ) ==> $passwordExists
+| Description: | checks to see if there is a $user in the password system |
+| Parameter: =$user= | the username we are looking for  |
+| Return: =$passwordExists= | "1" if true, "" if not |
+
+=cut
 sub UserPasswordExists
 {
     my ( $self, $user ) = @_;
@@ -159,13 +184,23 @@ sub UserPasswordExists
 }
  
 #========================= 
+=pod
+
+---+++ UpdateUserPassword( $user, $oldUserPassword, $newUserPassword ) ==> $success
+| Description: | used to change the user's password |
+| Parameter: =$user= | the username we are replacing  |
+| Parameter: =$oldUserPassword= | unencrypted password |
+| Parameter: =$newUserPassword= | unencrypted password |
+| Return: =$success= | "1" if success |
+
+=cut
 # TODO: needs to fail if it doesw not succed due to file permissions
 sub UpdateUserPassword
 {
     my ( $self, $user, $oldUserPassword, $newUserPassword ) = @_;
 
-    my $oldUserEntry = _htpasswdEncryptSameSalt( $user, $oldUserPassword );
-    my $newUserEntry = _htpasswdGeneratePasswd( $user, $newUserPassword );
+    my $oldUserEntry = _htpasswdGeneratePasswd( $user, $oldUserPassword , 1);
+    my $newUserEntry = _htpasswdGeneratePasswd( $user, $newUserPassword , 0);
  
     # can't use `htpasswd $wikiName` because htpasswd doesn't understand stdin
     # simply add name to file, but this is a security issue
@@ -179,10 +214,18 @@ sub UpdateUserPassword
 }
 
 #===========================
-# only used by the htpasswd specific installpasswd script 
-# (the 2 parameters have the format as in the htpasswd file user:password)
-#(do we use it that much?)
-#would we be better off generating a new password that we email to the user, and then let them change it?
+=pod
+
+---+++ htpasswdUpdateUser( $self, $oldEncryptedUserPassword, $newEncryptedUserPassword ) ==> $success
+| Description: |  |
+| Parameter: =$oldEncryptedUserPassword= | formated as in the htpasswd file user:encryptedPasswd |
+| Parameter: =$newEncryptedUserPassword= | formated as in the htpasswd file user:encryptedPasswd |
+| Return: =$success= |  |
+| TODO: | __Needs to go away!__ |
+| TODO: | we be better off generating a new password that we email to the user, and then let them change it? |
+| Note: | used by the htpasswd specific installpasswd & script  |
+
+=cut
 sub htpasswdUpdateUser
 {
     my ( $self, $oldEncryptedUserPassword, $newEncryptedUserPassword ) = @_;
@@ -198,11 +241,21 @@ sub htpasswdUpdateUser
     return "1";
 }
 
+#===========================
+=pod
 
+---+++ AddUserPassword( $user, $newUserPassword ) ==> $success
+| Description: | creates a new user & password entry |
+| Parameter: =$user= | the username we are replacing  |
+| Parameter: =$newUserPassword= | unencrypted password |
+| Return: =$success= | "1" if success |
+| TODO: | need to improve the error mechanism so TWikiAdmins know what failed |
+
+=cut
 sub AddUserPassword
 {
     my ( $self, $user, $newUserPassword ) = @_;
-    my $userEntry = $user.":". _htpasswdGeneratePasswd( $user, $newUserPassword );
+    my $userEntry = $user.":". _htpasswdGeneratePasswd( $user, $newUserPassword , 0);
 
     # can't use `htpasswd $wikiName` because htpasswd doesn't understand stdin
     # simply add name to file, but this is a security issue
@@ -210,15 +263,46 @@ sub AddUserPassword
     ##TWiki::writeDebug "User entry is :$userEntry: before newline";
     $text .= "$userEntry\n";
     &TWiki::Store::saveFile( $TWiki::htpasswdFilename, $text );
+
+	return "1";
+}
+
+#===========================
+=pod
+
+---+++ RemoveUser( $user ) ==> $success
+| Description: | used to remove the user from the password system |
+| Parameter: =$user= | the username we are replacing  |
+| Return: =$success= | "1" if success |
+| TODO: | need to improve the error mechanism so TWikiAdmins know what failed |
+
+=cut
+#i'm a wimp - comment out the password entry
+sub RemoveUser
+{
+    my ( $self, $user ) = @_;
+    my $userEntry = $user.":"._htpasswdReadPasswd( $user );
+
+    return $self->htpasswdUpdateUser( $userEntry, "#".$userEntry);
 }
 
 # =========================
+=pod
+
+---+++ CheckUserPasswd( $user, $password ) ==> $success
+| Description: | used to check the user's password |
+| Parameter: =$user= | the username we are replacing  |
+| Parameter: =$password= | unencrypted password |
+| Return: =$success= | "1" if success |
+| TODO: | need to improve the error mechanism so TWikiAdmins know what failed |
+
+=cut
 sub CheckUserPasswd
 {
     my ( $self, $user, $password ) = @_;
     my $currentEncryptedPasswordEntry = _htpasswdReadPasswd( $user );
 
-    my $encryptedPassword = _htpasswdEncryptSameSalt($user, $password );
+    my $encryptedPassword = _htpasswdGeneratePasswd($user, $password , 1);
 
     # OK
     if( $encryptedPassword eq $currentEncryptedPasswordEntry ) {
@@ -228,62 +312,6 @@ sub CheckUserPasswd
     return "";
 }
  
- # =========================
-sub addUserToTWikiUsersTopic
-{
-    my ($self,  $wikiName, $remoteUser ) = @_;
-    my $today = &TWiki::getGmDate();
-    my $topicName = $TWiki::wikiUsersTopicname;
-    my( $meta, $text )  = &TWiki::Store::readTopic( $TWiki::mainWebname, $topicName );
-    my $result = "";
-    my $status = "0";
-    my $line = "";
-    my $name = "";
-    my $isList = "";
-    # add name alphabetically to list
-    foreach( split( /\n/, $text) ) {
-        $line = $_;
-	# TODO: I18N fix here once basic auth problem with 8-bit user names is
-	# solved
-        $isList = ( $line =~ /^\t\*\s[A-Z][a-zA-Z0-9]*\s\-/go );
-        if( ( $status == "0" ) && ( $isList ) ) {
-            $status = "1";
-        }
-        if( $status == "1" ) {
-            if( $isList ) {
-                $name = $line;
-                $name =~ s/(\t\*\s)([A-Z][a-zA-Z0-9]*)\s\-.*/$2/go;            
-                if( $wikiName eq $name ) {
-                    # name is already there, do nothing
-                    return $topicName;
-                } elsif( $wikiName lt $name ) {
-                    # found alphabetical position
-                    if( $remoteUser ) {
-                        $result .= "\t* $wikiName - $remoteUser - $today\n";
-                    } else {
-                        $result .= "\t* $wikiName - $today\n";
-                    }
-                    $status = "2";
-                }
-            } else {
-                # is last entry
-                if( $remoteUser ) {
-                    $result .= "\t* $wikiName - $remoteUser - $today\n";
-                } else {
-                    $result .= "\t* $wikiName - $today\n";
-                }
-                $status = "2";
-            }
-        }
-
-        $result .= "$line\n";
-    }
-    &TWiki::Store::saveTopic( $TWiki::mainWebname, $topicName, $result, $meta, "", 1 );
-    return $topicName;
-}
-
-
-
 1;
 
 # EOF

@@ -45,9 +45,12 @@ use TWiki::Store::RcsFile;
 @ISA = qw(TWiki::Store::RcsFile);
 
 use strict;
+#use Algorithm::Diff;# qw(diff sdiff);
 use Algorithm::Diff;
 use FileHandle;
 use TWiki;
+
+TWiki::writeDebug("Diff version $Algorithm::Diff::VERSION\n");
 
 my $DIFF_DEBUG = 0;
 my $DIFFEND_DEBUG = 0;
@@ -583,7 +586,7 @@ sub addRevision
     $text = $self->_readFile( $self->{file} ) if( $self->{attachment} );
     my $head = $self->numRevisions();
     if( $head ) {
-        my $delta = _diffText( \$text, \$self->delta($head), "" );
+        my $delta = _diffText( \$text, \$self->delta($head), "", 0 );
         ${$self->{"delta"}}[$head] = $delta;
     }   
     $head++;
@@ -699,23 +702,59 @@ sub _delLastRevision
 # ======================
 =pod
 
----++ sub revisionDiff (  $self, $rev1, $rev2  )
+---++ sub revisionDiff (  $self, $rev1, $rev2, $contextLines  )
 
 Not yet documented.
-
+| TODO: | so why does this read the rcs file, re-create each of the 2 revisions and then diff them? isn't the delta in the rcs file good enough? (until you want context?) |
 =cut to implementation
 
 sub revisionDiff
 {
-    my( $self, $rev1, $rev2 ) = @_;
+    my( $self, $rev1, $rev2, $contextLines ) = @_;
     $self->_ensureProcessed();
     my $text1 = $self->getRevision( $rev1 );
-    $text1 =~ s/%META:TOPICINFO{[^\n]*}%\n//o;
     my $text2 = $self->getRevision( $rev2 );
-    $text2 =~ s/%META:TOPICINFO{[^\n]*}%\n//o;
-    my $diff = _diffText( \$text1, \$text2, "diff" );
-    return ("", $diff);
+	
+    my @lNew = _mySplit( \$text1 );
+    my @lOld = _mySplit( \$text2 );
+	my $diff = Algorithm::Diff::sdiff( \@lNew, \@lOld );
+
+	#the Diff::sdiff algol seems to work better with \n, and the rendering currently needs no \n's
+	my @list;
+	foreach my $ele ( @$diff ) {
+		@$ele[1] =~ s/\n//go;
+		@$ele[2] =~ s/\n//go;
+		push @list, $ele;
+	}
+	return ("", \@list);	
 }
+
+
+=pod
+
+---+++ setTopicRevisionTag( $web, $topic, $rev, $tag ) ==> $success
+
+| Description: | sets a names tag on the specified revision |
+| Parameter: =$web= | webname |
+| Parameter: =$topic= | topic name |
+| Parameter: =$rev= | the revision we are taging |
+| Parameter: =$tag= | the string to tag with |
+| Return: =$success= |  |
+| TODO: | we _need_ an error mechanism! |
+| Since: | TWiki:: (20 April 2004) |
+
+=cut
+
+sub setTopicRevisionTag
+{
+#	my ( $self, $web, $topic, $rev, $tag ) = @_;
+
+	TWiki::writeDebug("setTopicRevisionTag - not implemented in RCSLite");
+#TODO: implement me :)
+	
+	return "";
+}
+
 
 # ======================
 =pod
@@ -756,11 +795,18 @@ sub getRevisionInfo
     my( $self, $version ) = @_;
     $self->_ensureProcessed();
     $version = $self->numRevisions() if( ! $version );
+
+	#TODO: need to add a where $revision is not number, find out what rev number the tag refers to
+
+    my @result;
+    
     if( $self->{where} && $self->{where} ne "nofile" ) {
-        return ( "", $version, $self->date( $version ), $self->author( $version ), $self->comment( $version ) );
+        @result = ( "", $version, $self->date( $version ), $self->author( $version ), $self->comment( $version ) );
     } else {
-        return $self->_getRevisionInfoDefault();
+        @result = $self->_getRevisionInfoDefault();
     }
+
+    return @result;
 }
 
 
@@ -800,7 +846,7 @@ sub _patch
              $adj -= $length;
              $pos++;
           } elsif( $last eq "a" ) {
-             my @toAdd = @${delta}[$pos+1..$pos+$length];
+             my @toAdd = @$delta[$pos+1..$pos+$length];
              if( $extra ) {
                  if( @toAdd ) {
                      $toAdd[$#toAdd] .= $extra;
@@ -832,10 +878,11 @@ Not yet documented.
 sub _patchN
 {
     my( $self, $text, $version, $target ) = @_;
+
     my $deltaText= $self->delta( $version );
     my @delta = _mySplit( \$deltaText );
     _patch( $text, \@delta );
-    if( $version == $target ) {
+    if( $version <= $target ) {
         return join( "", @$text );
     } else {
         return $self->_patchN( $text, $version-1, $target );
@@ -863,9 +910,9 @@ sub _mySplit
 
     my @list = split( /\n/o, $$text );
     for( my $i = 0; $i<$#list; $i++ ) {
-        $list[$i] .= "\n";
+    	    $list[$i] .= "\n";
     }
-
+	
     if( $ending ) {
         if( $addEntries ) {
             my $len = length($ending);
@@ -875,7 +922,7 @@ sub _mySplit
             }
             for( my $i=0; $i<$len; $i++ ) {
                 push @list, ("\n");
-            }
+           }
         } else {
             if( @list ) {
                 $list[$#list] .= $ending;
@@ -893,7 +940,7 @@ sub _mySplit
 # Way of dealing with trailing \ns feels clumsy
 =pod
 
----++ sub _diffText (  $new, $old, $type  )
+---++ sub _diffText (  $new, $old, $type, $contextLines  )
 
 Not yet documented.
 
@@ -901,11 +948,11 @@ Not yet documented.
 
 sub _diffText
 {
-    my( $new, $old, $type ) = @_;
+    my( $new, $old, $type, $contextLines ) = @_;
     
     my @lNew = _mySplit( $new );
     my @lOld = _mySplit( $old );
-    return _diff( \@lNew, \@lOld, $type );
+    return _diff( \@lNew, \@lOld, $type, $contextLines );
 }
 
 # ======================
@@ -960,7 +1007,7 @@ sub _diffEnd
    
    $posNew++;
    my $toDel = ( $countNew < 2 ) ? 1 : $countNew;
-   my $startA = @${new} - ( ( $countNew > 0 ) ? 1 : 0 );
+   my $startA = @$new - ( ( $countNew > 0 ) ? 1 : 0 );
    my $toAdd = ( $countOld < 2 ) ? 1 : $countOld;
    my $theEnd = "d$posNew $toDel\na$startA $toAdd\n";
    for( my $i=$posOld; $i<@${old}; $i++ ) {
@@ -981,18 +1028,20 @@ sub _diffEnd
 # no type means diff for putting in rcs file, diff means normal diff output
 =pod
 
----++ sub _diff (  $new, $old, $type  )
+---++ sub _diff (  $new, $old, $type, $contextLines  )
 
 Not yet documented.
+
+TODO need to add functionality to use $contextLines
 
 =cut to implementation
 
 sub _diff
 {
-    my( $new, $old, $type ) = @_;
+    my( $new, $old, $type, $contextLines ) = @_;
     # Work out diffs to change new to old, params are refs to lists
     my $diffs = Algorithm::Diff::diff( $new, $old );
-
+	
     my $adj = 0;
     my @patch = ();
     my @del = ();

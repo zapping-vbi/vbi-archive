@@ -101,8 +101,8 @@ sub processWeb
     my $before = "";
     my $after = "";
     ( $before, $text, $after) = split( /%REPEAT%/, $text );
-    $emailbody = &TWiki::getRenderedVersion( $before );
-    $after = &TWiki::getRenderedVersion( $after );
+    $emailbody = &TWiki::Render::getRenderedVersion( $before );
+    $after = &TWiki::Render::getRenderedVersion( $after );
 
     my $prevLastmodify = &TWiki::Store::readFile( "$dataDir/$webName/.mailnotify" ) || "0";
     my $currLastmodify = "";
@@ -158,7 +158,7 @@ sub processWeb
 	    $time = &TWiki::formatTime( $changeTime );
             $newText =~ s/%TIME%/$time/go;
             $newText =~ s/%REVISION%/$frev/go;
-	    $newText = &TWiki::getRenderedVersion( $newText );
+	    $newText = &TWiki::Render::getRenderedVersion( $newText );
 
             $head = &TWiki::Store::readFileHead( "$dataDir\/$webName\/$topicName.txt", 16 );
             $head = &TWiki::makeTopicSummary( $head, $topicName, $webName );

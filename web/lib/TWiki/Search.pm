@@ -298,6 +298,21 @@ sub _makeTopicPattern
 # =========================
 =pod
 
+---++ sub revDate2ISO ()
+
+Not yet documented.
+
+=cut
+
+sub revDate2ISO
+{
+    my $epochSec = &TWiki::revDate2EpSecs( $_[0] );
+    return &TWiki::formatTime( $epochSec, "\$iso", "gmtime");
+}
+
+# =========================
+=pod
+
 ---++ sub searchWeb ()
 
 Not yet documented.
@@ -308,6 +323,8 @@ sub searchWeb
 {
     my %params = @_;
     my $doInline =      $params{"inline"} || 0;
+    my $baseWeb =       $params{"baseweb"}   || $TWiki::webName;
+    my $baseTopic =     $params{"basetopic"} || $TWiki::topicName;
     my $emptySearch =   "something.Very/unLikelyTo+search-for;-)";
     my $theSearchVal =  $params{"search"} || $emptySearch;
     my $theWebName =    $params{"web"} || "";
@@ -417,6 +434,13 @@ sub searchWeb
     my $tempVal = "";
     my $tmpl = "";
     my $topicCount = 0; # JohnTalintyre
+
+    # fix for Codev.SecurityAlertExecuteCommandsWithSearch
+    # vulnerability, search: "test_vulnerability '; ls -la'"
+    $theSearchVal =~ s/(^|[^\\])([\'\`])/\\$2/g;    # Escape ' and `
+    $theSearchVal =~ s/[\@\$]\(/$1\\\(/g;           # Defuse @( ... ) and $( ... )
+    $theSearchVal = substr($theSearchVal, 0, 1500); # Limit string length
+
     my $originalSearch = $theSearchVal;
     my $renameTopic;
     my $renameWeb = "";
@@ -472,7 +496,7 @@ sub searchWeb
 
     if( ! $doInline ) {
         # print first part of full HTML page
-        $tmplHead = &TWiki::getRenderedVersion( $tmplHead );
+        $tmplHead = &TWiki::Render::getRenderedVersion( $tmplHead );
         $tmplHead =~ s|</*nop/*>||goi;   # remove <nop> tags (PTh 06 Nov 2000)
         print $tmplHead;
     }
@@ -489,7 +513,7 @@ sub searchWeb
         if( $doInline ) {
             $searchResult .= $tmplSearch;
         } else {
-            $tmplSearch = &TWiki::getRenderedVersion( $tmplSearch );
+            $tmplSearch = &TWiki::Render::getRenderedVersion( $tmplSearch );
             $tmplSearch =~ s|</*nop/*>||goi;   # remove <nop> tag
             print $tmplSearch;
         }
@@ -786,7 +810,7 @@ sub searchWeb
                   $text =~ s/%TOPIC%/$topic/gos;
               }
               if( $doExpandVars ) {
-                  if( $topic eq $TWiki::topicName ) {
+                  if( "$thisWebName.$topic" eq "$baseWeb.$baseTopic" ) {
                       # primitive way to prevent recursion
                       $text =~ s/%SEARCH/%<nop>SEARCH/g;
                   }
@@ -826,7 +850,7 @@ sub searchWeb
                 $tempVal =~ s/\$topic/$topic/gos;
                 $tempVal =~ s/\$locked/$locked/gos;
                 $tempVal =~ s/\$date/$revDate/gos;
-                $tempVal =~ s/\$isodate/&TWiki::revDate2ISO($revDate)/geos;
+                $tempVal =~ s/\$isodate/&revDate2ISO($revDate)/geos;
                 $tempVal =~ s/\$rev/1.$revNum/gos;
                 $tempVal =~ s/\$wikiusername/$revUser/gos;
                 $tempVal =~ s/\$wikiname/wikiName($revUser)/geos;
@@ -855,7 +879,7 @@ sub searchWeb
             if( $revNum > 1 ) {
                 $revNumText = "r1.$revNum";
             } else {
-                $revNumText = "<b>NEW</b>";
+                $revNumText = "<span class=\"twikiNew\"><b>NEW</b></span>";
             }
             $tempVal =~ s/%REVISION%/$revNumText/o;
             $tempVal =~ s/%AUTHOR%/$revUser/o;
@@ -865,7 +889,7 @@ sub searchWeb
                 # do nothing
             } else {
                 $tempVal = &TWiki::handleCommonTags( $tempVal, $topic );
-                $tempVal = &TWiki::getRenderedVersion( $tempVal );
+                $tempVal = &TWiki::Render::getRenderedVersion( $tempVal );
             }
 
             if( $doRenameView ) { # added JET 19 Feb 2000
@@ -915,9 +939,9 @@ sub searchWeb
 		       # NOTE: Must *not* use /o here, since $match is based on
 		       # search string that will vary during lifetime of
 		       # compiled code with mod_perl.
-                       my $subs = s|$match|$1<font color="red">$2</font>&nbsp;|g;
+                       my $subs = s|$match|$1<font color="red"><span class="twikiAlert">$2</span></font>&nbsp;|g;
                        $match = '(\[\[)' . "($spacedTopic)" . '(?=\]\])';
-                       $subs += s|$match|$1<font color="red">$2</font>&nbsp;|gi;
+                       $subs += s|$match|$1<font color="red"><span class="twikiAlert">$2</span></font>&nbsp;|gi;
                        if( $subs ) {
                            $topicCount++ if( ! $reducedOutput );
                            $reducedOutput .= "$_<br />\n" if( $subs );
@@ -933,15 +957,20 @@ sub searchWeb
                 if( ! $text ) {
                     ( $meta, $text ) = &TWiki::Store::readTopic( $thisWebName, $topic );
                 }
-
+                if( "$thisWebName.$topic" eq "$baseWeb.$baseTopic" ) {
+                    # primitive way to prevent recursion
+                    $text =~ s/%SEARCH/%<nop>SEARCH/g;
+                }
                 $text = &TWiki::handleCommonTags( $text, $topic, $thisWebName );
-                $text = &TWiki::getRenderedVersion( $text, $thisWebName );
+                $text = &TWiki::Render::getRenderedVersion( $text, $thisWebName );
                 # FIXME: What about meta data rendering?
                 $tempVal =~ s/%TEXTHEAD%/$text/go;
 
             } elsif( $theFormat ) {
                 # free format, added PTh 10 Oct 2001
                 $tempVal =~ s/\$summary/&TWiki::makeTopicSummary( $text, $topic, $thisWebName )/geos;
+                $tempVal =~ s/\$parent\(([^\)]*)\)/breakName( getMetaParent( $meta ), $1 )/geos;
+                $tempVal =~ s/\$parent/getMetaParent( $meta )/geos;
                 $tempVal =~ s/\$formfield\(\s*([^\)]*)\s*\)/getMetaFormField( $meta, $1 )/geos;
                 $tempVal =~ s/\$formname/_getMetaFormName( $meta )/geos;
                 $tempVal =~ s/\$pattern\((.*?\s*\.\*)\)/getTextPattern( $text, $1 )/geos;
@@ -975,7 +1004,7 @@ sub searchWeb
                     # print at the end if formatted search because of table rendering
                     $searchResult .= $beforeText;
                 } else {
-                    $beforeText = &TWiki::getRenderedVersion( $beforeText, $thisWebName );
+                    $beforeText = &TWiki::Render::getRenderedVersion( $beforeText, $thisWebName );
                     $beforeText =~ s|</*nop/*>||goi;   # remove <nop> tag
                     print $beforeText;
                 }
@@ -986,7 +1015,7 @@ sub searchWeb
                 # print at the end if formatted search because of table rendering
                 $searchResult .= $tempVal;
             } else {
-                $tempVal = &TWiki::getRenderedVersion( $tempVal, $thisWebName );
+                $tempVal = &TWiki::Render::getRenderedVersion( $tempVal, $thisWebName );
                 $tempVal =~ s|</*nop/*>||goi;   # remove <nop> tag
                 print $tempVal;
             }
@@ -1006,7 +1035,7 @@ sub searchWeb
                 $afterText =~ s/\n$//os;  # remove trailing new line
                 $searchResult .= $afterText;
             } else {
-                $afterText = &TWiki::getRenderedVersion( $afterText, $thisWebName );
+                $afterText = &TWiki::Render::getRenderedVersion( $afterText, $thisWebName );
                 $afterText =~ s|</*nop/*>||goi;   # remove <nop> tag
                 print $afterText;
             }
@@ -1021,7 +1050,7 @@ sub searchWeb
                     # print at the end if formatted search because of table rendering
                     $searchResult .= $thisNumber;
                 } else {
-                    $thisNumber = &TWiki::getRenderedVersion( $thisNumber, $thisWebName );
+                    $thisNumber = &TWiki::Render::getRenderedVersion( $thisNumber, $thisWebName );
                     $thisNumber =~ s|</*nop/*>||goi;   # remove <nop> tag
                     print $thisNumber;
                 }
@@ -1047,7 +1076,7 @@ sub searchWeb
         }
 
         # print last part of full HTML page
-        $tmplTail = &TWiki::getRenderedVersion( $tmplTail );
+        $tmplTail = &TWiki::Render::getRenderedVersion( $tmplTail );
         $tmplTail =~ s|</*nop/*>||goi;   # remove <nop> tag
         print $tmplTail;
     }
@@ -1092,6 +1121,25 @@ sub _getRev1Info
 #=========================
 =pod
 
+---++ sub getMetaParent( $theMeta )
+
+Not yet documented.
+
+=cut
+
+sub getMetaParent
+{
+    my( $theMeta ) = @_;
+
+    my $value = "";
+    my %parent = $theMeta->findOne( "TOPICPARENT" );
+    $value = $parent{"name"} if( %parent );
+    return $value;
+}
+
+#=========================
+=pod
+
 ---++ sub getMetaFormField (  $theMeta, $theParams  )
 
 Not yet documented.
@@ -1109,14 +1157,12 @@ sub getMetaFormField
         $name = $params[0] || "";
         $break = $params[1] || 1;
     }
-    my $title = "";
     my $value = "";
     my @fields = $theMeta->find( "FIELD" );
     foreach my $field ( @fields ) {
-        $title = $field->{"title"};
         $value = $field->{"value"};
         $value =~ s/^\s*(.*?)\s*$/$1/go;
-        if( $title eq $name ) {
+        if( $name =~ /^($field->{"name"}|$field->{"title"})$/ ) {
             $value = breakName( $value, $break );
             return $value;
         }

@@ -36,6 +36,107 @@ topics and implements routines to access those preferences.
 $TWiki::Prefs::finalPrefsName = "FINALPREFERENCES";
 $TWiki::Prefs::formPrefPrefix = "FORM_";
 
+package TWiki::Prefs::Parser;
+
+=pod
+
+---++ Prefs::Parser Object
+
+This Prefs-internal class is used to parse * Set statements from arbitrary
+text, and extract settings from meta objects.  It is used by TopicPrefs to
+parse preference settings from topics.
+
+This class does no validation or duplicate-checking on the settings; it
+simply returns the recognized settings in the order it sees them in.
+
+---+++ sub new()
+
+Returns a new TopicParser object.
+
+---+++ sub parseText( $text )
+
+Returns an array ref \@settings representing the settings present in the text.
+The array contains one subarray [ $key, $value ] for each setting.
+
+=cut
+
+sub new { return bless {}, $_[0]; }
+
+sub parseText
+{
+    my ($self, $text) = @_;
+
+    my @settings;
+    
+    $text =~ s/\r/\n/g;
+    $text =~ s/\n+/\n/g;
+
+    my $key = "";
+    my $value ="";
+    my $isKey = 0;
+    foreach( split( /\n/, $text ) ) {
+        if( /^\t+\*\sSet\s([a-zA-Z0-9_]*)\s\=\s*(.*)/ ) {
+            if( $isKey ) {
+		push @settings, [$key, $value];
+            }
+            $key = $1;
+            $value = defined $2 ? $2 : "";
+            $isKey = 1;
+        } elsif ( $isKey ) {
+            if( ( /^\t+/ ) && ( ! /^\t+\*/ ) ) {
+                # follow up line, extending value
+                $value .= "\n$_";
+            } else {
+		push @settings, [$key, $value];
+                $isKey = 0;
+            }
+        }
+    }
+    if( $isKey ) {
+	push @settings, [$key, $value];
+    }
+    
+    return \@settings;
+}
+
+=pod
+
+---+++ sub parseMeta( $metaObject )
+
+Traverses through all FIELD attributes of the meta object, creating one setting
+named with $TWiki::Prefs::formPrefPrefix . $fieldTitle for each.  If the
+field's attribute list includes a 'S', it also creates an entry named with the
+field "name", which is a cleaned-up, space-removed version of the title.
+
+The resulting list of settings is returned in the same format as for parseText.
+
+=cut
+
+sub parseMeta
+{
+    my ($self, $meta) = @_;
+
+    my @settings;
+   
+    my %form = $meta->findOne( "FORM" );
+    if( %form ) {
+        my @fields = $meta->find( "FIELD" );
+        foreach my $field ( @fields ) {
+	    my $title = $field->{"title"};
+	    my $prefixedTitle = $TWiki::Prefs::formPrefPrefix . $title;
+            my $value = $field->{"value"};
+	    push @settings, [$prefixedTitle, $value];
+            my $attributes = $field->{"attributes"};
+            if( $attributes && $attributes =~ /[S]/o ) {
+		my $name = $field->{"name"};
+		push @settings, [$name, $value];
+            }
+        }
+    }
+
+    return \@settings;
+}
+
 package TWiki::Prefs::TopicPrefs;
 
 =pod
@@ -43,8 +144,7 @@ package TWiki::Prefs::TopicPrefs;
 ---++ TopicPrefs Object
 
 This Prefs-internal class is used to cache preferences read in from a single
-topic.  It is available via 'use TWiki::Prefs', but not via
-'use TWiki::Prefs::TopicPrefs'.
+topic.
 
 ---+++ sub new( $web, $topic )
 
@@ -85,50 +185,16 @@ sub readPrefs
     $self->{prefsKeys} = [];
     $self->{prefsVals} = [];
 
+    my $parser = TWiki::Prefs::Parser->new();
     my( $meta, $text ) = &TWiki::Store::readTopic( $theWeb, $theTopic, 1 );
-    $text =~ s/\r/\n/g;
-    $text =~ s/\n+/\n/g;
 
-    my $key = "";
-    my $value ="";
-    my $isKey = 0;
-    foreach( split( /\n/, $text ) ) {
-        if( /^\t+\*\sSet\s([a-zA-Z0-9_]*)\s\=\s*(.*)/ ) {
-            if( $isKey ) {
-                $self->insertPrefsValue( $key, $value );
-            }
-            $key = $1;
-            $value = defined $2 ? $2 : "";
-            $isKey = 1;
-        } elsif ( $isKey ) {
-            if( ( /^\t+/ ) && ( ! /^\t+\*/ ) ) {
-                # follow up line, extending value
-                $value .= "\n$_";
-            } else {
-                $self->insertPrefsValue( $key, $value );
-                $isKey = 0;
-            }
-        }
+    foreach my $setting ( @{ $parser->parseText($text) } ) {
+	$self->insertPrefsValue( $setting->[0], $setting->[1] );
     }
-    if( $isKey ) {
-        $self->insertPrefsValue( $key, $value );
+    foreach my $setting ( @{ $parser->parseMeta($meta) } ) {
+	$self->insertPrefsValue( $setting->[0], $setting->[1] );
     }
-    
-    my %form = $meta->findOne( "FORM" );
-    if( %form ) {
-        my @fields = $meta->find( "FIELD" );
-        foreach my $field ( @fields ) {
-            $key = $field->{"name"};
-            $value = $field->{"value"};
-	    my $title = $field->{"title"};
-	    my $prefixedTitle = $TWiki::Prefs::formPrefPrefix . $title;
-	    $self->insertPrefsValue( $prefixedTitle, $value );
-            my $attributes = $field->{"attributes"};
-            if( $attributes && $attributes =~ /[S]/o ) {
-                $self->insertPrefsValue( $key, $value );
-            }
-        }
-    }
+
 }
 
 =pod
@@ -420,7 +486,7 @@ sub replacePreferencesTags
     my $vals = $self->{prefsVals};
     
     for( $x = 0; $x < @$keys; $x++ ) {
-        $term = '%' . $keys->[$x] . '%';
+        $term = qr/%\Q$keys->[$x]\E%/;
         $_[0] =~ s/$term/$vals->[$x]/ge;
     }
 }
@@ -573,7 +639,7 @@ sub updateSetFromForm
                 my $attributes = $field->{"attributes"};
                 if( $attributes && $attributes =~ /[S]/o ) {
                     $value =~ s/\n/\\\n/o;
-                    TWiki::writeDebug( "updateSetFromForm: \"$key\"=\"$value\"" );
+                    ##TWiki::writeDebug( "updateSetFromForm: \"$key\"=\"$value\"" );
                     # Worry about verbatim?  Multi-lines
                     if ( $line =~ s/^(\t+\*\sSet\s$key\s\=\s*).*$/$1$value/g ) {
                         last;

@@ -123,15 +123,38 @@ use vars qw(
 # Per-Request "Global" Variables
 use vars qw(
         $webName $topicName $includingWebName $includingTopicName
-	$userName $wikiName $wikiUserName $urlHost $isList @listTypes
-	@listElements $debugUserTime $debugSystemTime $script
-        $newTopicFontColor $newTopicBgColor $linkToolTipInfo $noAutoLink
+	$userName $wikiName $wikiUserName $urlHost
+	$debugUserTime $debugSystemTime $script
 	$pageMode $readTopicPermissionFailed $cgiQuery $basicInitDone
     );
+    
+# ===========================
+# Exports
+
+# The Render module needs to access a lot of configuration flags from
+# TWiki.cfg, so we export them here.  We also export the %regex hash
+# and a few other useful constants.
+
+use vars qw(@EXPORT_OK %EXPORT_TAGS @ISA);
+
+BEGIN {
+    require Exporter;
+    @ISA = qw(Exporter);
+    
+    %EXPORT_TAGS = (
+	renderflags => [qw($siteLang $securityFilter $twikiWebname $mainWebname
+	    $mainTopicname $scriptSuffix $doPluralToSingular
+	    $dispScriptUrlPath $dispViewPath
+	)]
+    );
+    
+    @EXPORT_OK = qw(%regex $TranslationToken);
+    Exporter::export_ok_tags('renderflags');
+}
 
 # ===========================
 # TWiki version:
-$wikiversion      = "20 Mar 2004";
+$wikiversion      = '02 Sep 2004 $Rev: 1742 $';
 
 # ===========================
 # Key Global variables, required for writeDebug
@@ -173,6 +196,7 @@ use TWiki::Func;      # official TWiki functions for plugins
 use TWiki::Plugins;   # plugins handler  #AS
 use TWiki::Net;       # SMTP, get URL
 use TWiki::User;
+use TWiki::Render;
 
 
 # ===========================
@@ -186,7 +210,6 @@ $TranslationToken= "\0";	# Null not allowed in charsets used with TWiki
 # initialize not called.
 $cgiQuery = 0;
 @publicWebList = ();
-$noAutoLink = 0;
 $viewScript = "view";
 
 $regex{linkProtocolPattern} = "(file|ftp|gopher|http|https|irc|news|nntp|telnet)";
@@ -205,7 +228,6 @@ $formatVersion = "1.0";
 $basicInitDone = 0;		# basicInitialize not yet done
 
 $pageMode = 'html';		# Default is to render as HTML
-
 
 =pod
 
@@ -226,9 +248,13 @@ sub writeWarning {
         $year = sprintf( "%.4u", $year + 1900 );
         my $time = sprintf( "%.2u ${tmon} %.2u - %.2u:%.2u",
 			   $mday, $year, $hour, $min );
-        open( FILE, ">>$warningFilename" );
-        print FILE "$time $text\n";
-        close( FILE );
+
+        if( open( FILE, ">>$warningFilename" ) ) {
+            print FILE "$time $text\n";
+            close( FILE );
+        } else {
+            print STDERR "Couldn't write \"$text\" to $warningFilename: $!\n";
+        }
     }
 }
 
@@ -243,15 +269,18 @@ Prints date, time, and contents of $text to $debugFilename, typically
 
 sub writeDebug {
     my( $text ) = @_;
-    open( FILE, ">>$debugFilename" );
     
     my ( $sec, $min, $hour, $mday, $mon, $year ) = localtime( time() );
     my( $tmon) = $isoMonth[$mon];
     $year = sprintf( "%.4u", $year + 1900 );
     my $time = sprintf( "%.2u ${tmon} %.2u - %.2u:%.2u", $mday, $year, $hour, $min );
 
-    print FILE "$time $text\n";
-    close(FILE);
+    if( open( FILE, ">>$debugFilename" ) ) {
+         print FILE "$time $text\n";
+         close( FILE );
+    } else {
+         print STDERR "Couldn't write \"$text\" to $debugFilename: $!\n";
+    }
 }
 
 =pod
@@ -354,7 +383,8 @@ sub initialize
     # Clean up PATH_INFO problems, e.g.  Support.CobaltRaqInstall.  A valid
     # PATH_INFO is '/Main/WebHome', i.e. the text after the script name;
     # invalid PATH_INFO is often a full path starting with '/cgi-bin/...'.
-    $thePathInfo =~ s!$scriptUrlPath/[\-\.A-Z]+$scriptSuffix/!/!i;
+    my $cgiScriptName = $ENV{'SCRIPT_NAME'} || "";
+    $thePathInfo =~ s!$cgiScriptName/!/!i;
     ## writeDebug( "===== thePathInfo after cleanup = $thePathInfo" );
 
     # Get the web and topic names from PATH_INFO
@@ -431,14 +461,8 @@ sub initialize
         # Needed for TOC
         $viewScript = "viewauth";
     }
-
-    # Add background color and font color (AlWilliams - 18 Sep 2000)
-    # PTh: Moved from internalLink to initialize ('cause of performance)
-    $newTopicBgColor   = TWiki::Prefs::getPreferencesValue("NEWTOPICBGCOLOR")   || "#FFFFCE";
-    $newTopicFontColor = TWiki::Prefs::getPreferencesValue("NEWTOPICFONTCOLOR") || "#0000FF";
-    $linkToolTipInfo   = TWiki::Prefs::getPreferencesValue("LINKTOOLTIPINFO")   || "";
-    # Prevent autolink of WikiWords
-    $noAutoLink        = TWiki::Prefs::getPreferencesValue("NOAUTOLINK") || 0;
+    
+    TWiki::Render::initialize();
 
 #AS
     if( !$disableAllPlugins ) {
@@ -571,7 +595,7 @@ sub setupRegexes {
     $regex{webNameRegex} = qr/[$regex{upperAlpha}]+[$regex{mixedAlphaNum}]*/;
     $regex{defaultWebNameRegex} = qr/_[$regex{mixedAlphaNum}_]+/;
     $regex{anchorRegex} = qr/\#[$regex{mixedAlphaNum}_]+/;
-    $regex{abbrevRegex} = qr/[$regex{upperAlpha}]{3,}/;
+    $regex{abbrevRegex} = qr/[$regex{upperAlpha}]{3,}s?\b/;
 
     # Simplistic email regex, e.g. for WebNotify processing - no i18n
     # characters allowed
@@ -804,7 +828,7 @@ sub writeHeaderFull
 
     if ($pageType eq 'edit') {
 	# Get time now in HTTP header format
-	my $lastModifiedString = formatTime(time, 'http', "gmtime");
+	my $lastModifiedString = formatTime(time, '\$http', "gmtime");
 
 	# Expiry time is set high to avoid any data loss.  Each instance of 
 	# Edit page has a unique URL with time-string suffix (fix for 
@@ -1130,12 +1154,14 @@ sub userToWikiListInit
 {
     %userToWikiList = ();
     %wikiToUserList = ();
-
-    # fix for Codev.SecurityAlertGainAdminRightWithTWikiUsersMapping
-    # bail out in .htpasswd authenticated sites
-    return unless( $doMapUserToWikiName );
-
-    my @list = split( /\n/, &TWiki::Store::readFile( $userListFilename ) );
+    my @list = ();
+    if( $doMapUserToWikiName ) {
+        @list = split( /\n/, TWiki::Store::readFile( $userListFilename ) );
+    } else {
+        # fix for Codev.SecurityAlertGainAdminRightWithTWikiUsersMapping
+        # for .htpasswd authenticated sites ignore user list, but map only guest to TWikiGuest
+        @list = ( "\t* TWikiGuest - guest - " ); # CODE_SMELL on localization
+    }
 
     # Get all entries with two '-' characters on same line, i.e.
     # 'WikiName - userid - date created'
@@ -1163,6 +1189,11 @@ Translates intranet username (e.g. jsmith) to WikiName (e.g. JaneSmith)
 userToWikiListInit must be called before this function is used.
 
 Unless $dontAddWeb is set, "Main." is prepended to the returned WikiName.
+
+if you give an invalid username, we just return that (no appending Main. blindy)
+
+SMELL: the userToWikiList cache should really contain the WebName so its possible 
+		to have userTopics in more than just the MainWeb (what if you move a user topic?)
 
 =cut
 
@@ -1236,6 +1267,7 @@ sub getWikiUserTopic
 ---++ sub isWikiName (  $name  )
 
 Not yet documented.
+CODE_SMELL - this should be called isWikiWord
 
 =cut
 
@@ -1308,7 +1340,7 @@ sub readOnlyMirrorWeb
             my $mirrorNote = &TWiki::Store::readTemplate( "mirrornote" );
             $mirrorNote =~ s/%MIRRORSITENAME%/$mirrorSiteName/g;
             $mirrorNote =~ s/%MIRRORVIEWURL%/$mirrorViewURL/g;
-            $mirrorNote = getRenderedVersion( $mirrorNote, $theWeb );
+            $mirrorNote = TWiki::Render::getRenderedVersion( $mirrorNote, $theWeb );
             $mirrorNote =~ s/\s*$//g;
             @mirrorInfo = ( $mirrorSiteName, $mirrorViewURL, $mirrorLink, $mirrorNote );
         }
@@ -1397,21 +1429,6 @@ sub getTWikiLibDir
     $twikiLibDir =~ s|[\\/]$||;           # cut trailing "/"
 
     return $twikiLibDir;
-}
-
-# =========================
-=pod
-
----++ sub revDate2ISO ()
-
-Not yet documented.
-
-=cut
-
-sub revDate2ISO
-{
-    my $epochSec = revDate2EpSecs( $_[0] );
-    return formatTime( $epochSec, 1, "gmtime");
 }
 
 # =========================
@@ -1613,7 +1630,7 @@ sub makeTopicSummary
 
     my $htext = $theText;
     # Format e-mail to add spam padding (HTML tags removed later)
-    $htext =~ s/([\s\(])(?:mailto\:)*([a-zA-Z0-9\-\_\.\+]+)\@([a-zA-Z0-9\-\_\.]+)\.([a-zA-Z0-9\-\_]+)(?=[\s\.\,\;\:\!\?\)])/$1 . &mailtoLink( $2, $3, $4 )/ge;
+    $htext =~ s/([\s\(])(?:mailto\:)*([a-zA-Z0-9\-\_\.\+]+)\@([a-zA-Z0-9\-\_\.]+)\.([a-zA-Z0-9\-\_]+)(?=[\s\.\,\;\:\!\?\)])/$1 . &TWiki::Render::mailtoLink( $2, $3, $4 )/ge;
     $htext =~ s/<\!\-\-.*?\-\->//gs;  # remove all HTML comments
     $htext =~ s/<\!\-\-.*$//s;        # cut HTML comment
     $htext =~ s/<[^>]*>//g;           # remove all HTML tags
@@ -1655,6 +1672,56 @@ sub makeTopicSummary
     $htext =~ s/@([a-zA-Z0-9\-\_\.]+)/@<nop>$1/g;	# email address
 
     return $htext;
+}
+
+# =========================
+=pod
+
+---++ sub extractParameters (  $str )
+
+Extracts parameters from a variable string and returns a hash with all parameters.
+The nameless parameter's key is _DEFAULT.
+
+   * Example variable: %TEST{ "nameless" name1="val1" name2="val2" }%
+   * First extract text between {...} to get: "nameless" name1="val1" name2="val2"
+   * Then call this on the text:
+   * =my %params = TWiki::Func::extractParameters( $text );=
+   * The hash contains now: <br />
+     _DEFAULT => "nameless" <br />
+     name1 => "val1" <br />
+     name2 => "val2"
+
+=cut
+
+sub extractParameters
+{
+    my( $str ) = @_;
+
+    my %params = ();
+    return %params unless defined $str;
+    $str =~ s/\\\"/\\$TranslationToken/g;  # escape \"
+
+    if( $str =~ s/^\s*\"(.*?)\"\s*(\w+\s*=\s*\"|$)/$2/ ) {
+        # is: %VAR{ "value" }%
+        # or: %VAR{ "value" param="etc" ... }%
+        # Note: "value" may contain embedded double quotes
+        $params{"_DEFAULT"} = $1 if defined $1;  # distinguish between "" and "0";
+        if( $2 ) {
+            while( $str =~ s/^\s*(\w+)\s*=\s*\"([^\"]*)\"// ) {
+                $params{"$1"} = $2 if defined $2;
+            }
+        }
+    } elsif( ( $str =~ s/^\s*(\w+)\s*=\s*\"([^\"]*)\"// ) && ( $1 ) ) {
+        # is: %VAR{ name = "value" }%
+        $params{"$1"} = $2 if defined $2;
+        while( $str =~ s/^\s*(\w+)\s*=\s*\"([^\"]*)\"// ) {
+            $params{"$1"} = $2 if defined $2;
+        }
+    } elsif( $str =~ s/^\s*(.*?)\s*$// ) {
+        # is: %VAR{ value }%
+        $params{"_DEFAULT"} = $1 unless $1 eq "";
+    }
+    return map{ s/\\$TranslationToken/\"/go; $_ } %params;
 }
 
 # =========================
@@ -1782,7 +1849,52 @@ sub fixIncludeLink
 # =========================
 =pod
 
----++ sub handleIncludeUrl (  $theUrl, $thePattern  )
+---++ sub cleanupIncludedHTML ( $text, $host, $path )
+
+Clean-up HTML text so that it can be shown embedded in a topic
+
+=cut
+
+sub cleanupIncludedHTML
+{
+    my( $text, $host, $path ) = @_;
+
+    # FIXME: Make aware of <base> tag
+
+    $text =~ s/^.*?<\/head>//is;            # remove all HEAD
+    $text =~ s/<script.*?<\/script>//gis;   # remove all SCRIPTs
+    $text =~ s/^.*?<body[^>]*>//is;         # remove all to <BODY>
+    $text =~ s/(?:\n)<\/body>//is;          # remove </BODY>
+    $text =~ s/(?:\n)<\/html>//is;          # remove </HTML>
+    $text =~ s/(<[^>]*>)/&fixN($1)/ges;     # join tags to one line each
+    $text =~ s/(\s(href|src|action)\=[\"\']?)([^\"\'\>\s]*)/$1 . &fixURL( $host, $path, $3 )/geois;
+
+    return $text;
+}
+
+# =========================
+=pod
+
+---++ sub applyPatternToIncludedText (  $theText, $thePattern )
+
+Apply a pattern on included text to extract a subset
+
+=cut
+
+sub applyPatternToIncludedText
+{
+    my( $theText, $thePattern ) = @_;
+    $thePattern =~ s/([^\\])([\$\@\%\&\#\'\`\/])/$1\\$2/g;  # escape some special chars
+    $thePattern =~ /(.*)/;     # untaint
+    $thePattern = $1;
+    $theText = "" unless( $theText =~ s/$thePattern/$1/is );
+    return $theText;
+}
+
+# =========================
+=pod
+
+---++ sub handleIncludeUrl (  $theUrl, $thePattern )
 
 Not yet documented.
 
@@ -1790,13 +1902,36 @@ Not yet documented.
 
 sub handleIncludeUrl
 {
-    my( $theUrl, $thePattern ) = @_;
+    my( $theUrl, $thePattern, $theWeb, $theTopic ) = @_;
     my $text = "";
     my $host = "";
     my $port = 80;
     my $path = "";
     my $user = "";
     my $pass = "";
+
+    # For speed, read file directly if URL matches an attachment directory
+    if( $theUrl =~ /^$urlHost$pubUrlPath\/([^\/\.]+)\/([^\/\.]+)\/([^\/]+)$/ ) {
+        my $web = $1;
+        my $topic = $2;
+        my $fileName = "$pubDir/$web/$topic/$3";
+        if( $fileName =~ m/\.(txt|html?)$/i ) {       # FIXME: Check for MIME type, not file suffix
+            unless( -e $fileName ) {
+                return showError( "Error: File attachment at $theUrl does not exist" );
+            }
+            if( "$web.$topic" ne "$theWeb.$theTopic" ) {
+                # CODE_SMELL: Does not account for not yet authenticated user
+                unless( TWiki::Access::checkAccessPermission( "VIEW", $wikiUserName, "", $topic, $web ) ) {
+                    return showError( "Error: No permission to view files attached to $web.$topic" );
+                }
+            }
+            $text = TWiki::Store::readFile( $fileName );
+            $text = cleanupIncludedHTML( $text, $urlHost, $pubUrlPath );
+            $text = applyPatternToIncludedText( $text, $thePattern ) if( $thePattern );
+            return $text;
+        }
+        # fall through; try to include file over http based on MIME setting
+    }
 
     # RNF 22 Jan 2002 Handle http://user:pass@host
     if( $theUrl =~ /http\:\/\/(.+)\:(.+)\@([^\:]+)\:([0-9]+)(\/.*)/ ) {
@@ -1841,31 +1976,17 @@ sub handleIncludeUrl
         if( $port != 80 ) {
             $host .= ":$port";
         }
+        $text = cleanupIncludedHTML( $text, $host, $path );
 
-        # FIXME: Make aware of <base> tag
-
-        $text =~ s/^.*?<\/head>//is;            # remove all HEAD
-        $text =~ s/<script.*?<\/script>//gis;   # remove all SCRIPTs
-        $text =~ s/^.*?<body[^>]*>//is;         # remove all to <BODY>
-        $text =~ s/(?:\n)<\/body>//is;          # remove </BODY>
-        $text =~ s/(?:\n)<\/html>//is;          # remove </HTML>
-        $text =~ s/(<[^>]*>)/&fixN($1)/ges;     # join tags to one line each
-        $text =~ s/(\s(href|src|action)\=[\"\']?)([^\"\'\>\s]*)/$1 . &fixURL( $host, $path, $3 )/geois;
-
-    } elsif( $contentType =~ /^text\/plain/ ) {
+    } elsif( $contentType =~ /^text\/(plain|css)/ ) {
         # do nothing
 
     } else {
         $text = showError( "Error: Unsupported content type: $contentType."
-              . " (Must be text/html or text/plain)" );
+              . " (Must be text/html, text/plain or text/css)" );
     }
 
-    if( $thePattern ) {
-        $thePattern =~ s/([^\\])([\$\@\%\&\#\'\`\/])/$1\\$2/g;  # escape some special chars
-        $thePattern =~ /(.*)/;     # untaint
-        $thePattern = $1;
-        $text = "" unless( $text =~ s/$thePattern/$1/is );
-    }
+    $text = applyPatternToIncludedText( $text, $thePattern ) if( $thePattern );
 
     return $text;
 }
@@ -1894,7 +2015,7 @@ sub handleIncludeFile
 
     if( $incfile =~ /^http\:/ ) {
         # include web page
-        return handleIncludeUrl( $incfile, $pattern );
+        return handleIncludeUrl( $incfile, $pattern, $theWeb, $theTopic );
     }
 
     # CrisBailiff, PeterThoeny 12 Jun 2000: Add security
@@ -1908,29 +2029,35 @@ sub handleIncludeFile
         $incfile =~ s/passwd//gi;    # filter out passwd filename
     }
 
-    # test for different usage
-    my $fileName = "$dataDir/$theWeb/$incfile";       # TopicName.txt
-    if( ! -e $fileName ) {
-        $fileName = "$dataDir/$theWeb/$incfile.txt";  # TopicName
-        if( ! -e $fileName ) {
-            $fileName = "$dataDir/$incfile";              # Web/TopicName.txt
-            if( ! -e $fileName ) {
-                $incfile =~ s/\.([^\.]*)$/\/$1/g;
-                $fileName = "$dataDir/$incfile.txt";      # Web.TopicName
-                if( ! -e $fileName ) {
-                    # give up, file not found
-                    $warn = TWiki::Prefs::getPreferencesValue( "INCLUDEWARNING" ) unless( $warn );
-                    if( $warn =~ /^on$/i ) {
-                        return showError( "Warning: Can't INCLUDE <nop>$incfile, topic not found" );
-                    } elsif( $warn && $warn !~ /^(off|no)$/i ) {
-                        $incfile =~ s/\//\./go;
-                        $warn =~ s/\$topic/$incfile/go;
-                        return $warn;
-                    } # else fail silently
-                    return "";
-                }
-            }
-        }
+    my $text = "";
+    my $meta = "";
+    my $isTopic = 0;
+
+    # test for different topic name and file name patterns
+    my $fileName = "";
+    TRY: {
+        # check for topic
+        $fileName = "$dataDir/$theWeb/$incfile.txt";      # TopicName
+        last TRY if( -e $fileName );
+        my $incwebfile = $incfile;
+        $incwebfile =~ s/\.([^\.]*)$/\/$1/;
+        $fileName = "$dataDir/$incwebfile.txt";           # Web.TopicName
+        last TRY if( -e $fileName );
+        $fileName = "$dataDir/$theWeb/$incfile";          # TopicName.txt
+        last TRY if( -e $fileName );
+        $fileName = "$dataDir/$incfile";                  # Web/TopicName.txt
+        last TRY if( -e $fileName );
+
+        # give up, file not found
+        $warn = TWiki::Prefs::getPreferencesValue( "INCLUDEWARNING" ) unless( $warn );
+        if( $warn =~ /^on$/i ) {
+            return showError( "Warning: Can't INCLUDE <nop>$incfile, topic not found" );
+        } elsif( $warn && $warn !~ /^(off|no)$/i ) {
+            $incfile =~ s/\//\./go;
+            $warn =~ s/\$topic/$incfile/go;
+            return $warn;
+        } # else fail silently
+        return "";
     }
 
     # prevent recursive loop
@@ -1947,15 +2074,10 @@ sub handleIncludeFile
         push( @theProcessedTopics, $fileName );
     }
 
-    my $text = "";
-    my $meta = "";
-    my $isTopic = 0;
-
     # set include web/filenames and current web/filenames
     $includingWebName = $theWeb;
     $includingTopicName = $theTopic;
-    $fileName =~ s/\/([^\/]*)\/([^\/]*)(\.txt)$/$1/g;
-    if( $3 ) {
+    if( $fileName =~ s/\/([^\/]*)\/([^\/]*)\.txt$/$1/ ) {
         # identified "/Web/TopicName.txt" filename, e.g. a Wiki topic
         # so save the current web and topic name
         $theWeb = $1;
@@ -1974,21 +2096,19 @@ sub handleIncludeFile
 
     } # else is a file with relative path, e.g. $dataDir/../../path/to/non-twiki/file.ext
 
-    if( $pattern ) {
-        $pattern =~ s/([^\\])([\$\@\%\&\#\'\`\/])/$1\\$2/g;  # escape some special chars
-        $pattern =~ /(.*)/;     # untaint
-        $pattern = $1;
-        $text = "" unless( $text =~ s/$pattern/$1/is );
-    }
+    $text = applyPatternToIncludedText( $text, $pattern ) if( $pattern );
 
     # handle all preferences and internal tags (for speed: call by reference)
     $text = takeOutVerbatim( $text, $verbatim );
+
+    # Escape rendering: Change " !%VARIABLE%" to " %<nop>VARIABLE%", for final " %VARIABLE%" output
+    $text =~ s/(\s)\!\%([A-Z])/$1%<nop>$2/g;
 
     # handle all preferences and internal tags
     &TWiki::Prefs::handlePreferencesTags( $text );
     handleInternalTags( $text, $theTopic, $theWeb );
 
-    # Wiki Plugin Hook (4th parameter tells plugin that its called from an include)
+    # TWiki Plugin Hook (4th parameter tells plugin that its called from an include)
     &TWiki::Plugins::commonTagsHandler( $text, $theTopic, $theWeb, 1 );
 
     # handle tags again because of plugin hook
@@ -1999,7 +2119,7 @@ sub handleIncludeFile
     if( ( $isTopic ) && ( $theWeb ne $webName ) ) {
         # "TopicName" to "Web.TopicName"
         $text =~ s/(^|[\s\(])($regex{webNameRegex}\.$regex{wikiWordRegex})/$1$TranslationToken$2/go;
-        $text =~ s/(^|[\s\(])($regex{wikiWordRegex}|$regex{abbrevRegex})/$1$theWeb\.$2/go;
+        $text =~ s/(^|[\s\(])($regex{wikiWordRegex})/$1$theWeb\.$2/go;
         $text =~ s/(^|[\s\(])$TranslationToken/$1/go;
         # "[[TopicName]]" to "[[Web.TopicName][TopicName]]"
         $text =~ s/\[\[([^\]]+)\]\]/fixIncludeLink( $theWeb, $1 )/geo;
@@ -2034,14 +2154,14 @@ sub handleMetaSearch
     my $attrTopic         = extractNameValuePair( $attributes, "topic" );
     my $attrType          = extractNameValuePair( $attributes, "type" );
     my $attrTitle         = extractNameValuePair( $attributes, "title" );
-    
+    my $attrDefault       = extractNameValuePair( $attributes, "default" );
+
     my $searchVal = "XXX";
     
     if( ! $attrType ) {
        $attrType = "";
     }
-    
-    
+
     my $searchWeb = "all";
     
     if( $attrType eq "topicmoved" ) {
@@ -2050,7 +2170,7 @@ sub handleMetaSearch
        $searchWeb = $attrWeb;
        $searchVal = "%META:TOPICPARENT[{].*name=\\\"($attrWeb\\.)?$attrTopic\\\".*[}]%";
     }
-    
+
     my $text = &TWiki::Search::searchWeb(
         "inline"        => "1",
         "search"        => $searchVal,
@@ -2062,19 +2182,20 @@ sub handleMetaSearch
         "nototal"       => "on",
         "noempty"       => "on",
         "template"      => "searchmeta",
-    );    
-    
-    if( $text !~ /^\s*$/ ) {
+    );
+
+    if( $text =~ /^\s*$/ ) {
+       $text = "$attrTitle$attrDefault";
+    } else {
        $text = "$attrTitle$text";
     }
-    
     return $text;
 }
 
 # =========================
 =pod
 
----++ sub handleSearchWeb (  $attributes  )
+---++ sub handleSearchWeb ( $attributes, $baseWeb, $baseTopic )
 
 Not yet documented.
 
@@ -2082,10 +2203,12 @@ Not yet documented.
 
 sub handleSearchWeb
 {
-    my( $attributes ) = @_;
+    my( $attributes, $baseWeb, $baseTopic ) = @_;
 
     return &TWiki::Search::searchWeb(
         "inline"        => "1",
+        "baseweb"       => $baseWeb,
+        "basetopic"     => $baseTopic,
         "search"        => extractNameValuePair( $attributes ) || extractNameValuePair( $attributes, "search" ),
         "web"           => extractNameValuePair( $attributes, "web" ),
         "topic"         => extractNameValuePair( $attributes, "topic" ),
@@ -2215,6 +2338,44 @@ sub formatTime
     return $value;        
 }
 
+# =========================
+=pod
+---++ sub handleRevisionInfo ( $web, $topic, $formatString ) ==> $value
+| $web | web and  |
+| $topic | topic to display the name for |
+| $formatString | twiki format string (like in search) |
+
+=cut
+sub handleRevisionInfo 
+{
+    my( $theWeb, $theTopic, $theArgs ) = @_;
+
+    my $format = extractNameValuePair( $theArgs ) || extractNameValuePair( $theArgs, "format" )
+                 || "r1.\$rev - \$date - \$wikiusername";
+    my $web    = extractNameValuePair( $theArgs, "web" ) || $theWeb;
+    my $topic  = extractNameValuePair( $theArgs, "topic" ) || $theTopic;
+    my $cgiQuery = getCgiQuery();
+    my $cgiRev = "";
+    $cgiRev = $cgiQuery->param('rev') if( $cgiQuery );
+    my $revnum = $cgiRev || extractNameValuePair( $theArgs, "rev" ) || "";
+
+    my( $date, $user, $rev, $comment ) = TWiki::Store::getRevisionInfo( $web, $topic, $revnum );
+    my $wikiName     = userToWikiName( $user, 1 );
+    my $wikiUserName = userToWikiName( $user );
+
+    my $value = $format;
+    $value =~ s/\$web/$web/goi;
+    $value =~ s/\$topic/$topic/goi;
+    $value =~ s/\$rev/$rev/goi;
+    $value =~ s/\$date/&formatTime($date)/geoi;
+    $value =~ s/\$comment/$comment/goi;
+    $value =~ s/\$username/$user/goi;
+    $value =~ s/\$wikiname/$wikiName/goi;
+    $value =~ s/\$wikiusername/$wikiUserName/goi;
+ 
+    return $value;        
+}
+
 #AS
 # =========================
 =pod
@@ -2228,7 +2389,7 @@ Not yet documented.
 sub showError
 {
     my( $errormessage ) = @_;
-    return "<font size=\"-1\" color=\"#FF0000\">$errormessage</font>" ;
+    return "<font size=\"-1\" class=\"twikiAlert\" color=\"#FF0000\">$errormessage</font>" ;
 }
 
 =pod
@@ -2271,7 +2432,7 @@ sub handleToc
 
     #get the title attribute
     my $title = extractNameValuePair( $_[3], "title" ) || "";
-    $title = "\n<span class=\"title\">$title</span>" if( $title );
+    $title = "\n<span class=\"twikiTocTitle\">$title</span>" if( $title );
 
     my $result  = "";
     my $line  = "";
@@ -2287,8 +2448,10 @@ sub handleToc
         if ( ! &TWiki::Store::topicExists( $web, $topicname ) ) {
             return showError( "TOC: Cannot find topic \"$web.$topicname\"" );
         }
-        @list = split( /\n/, handleCommonTags( 
-            &TWiki::Store::readWebTopic( $web, $topicname ), $topicname, $web ) );
+        my $t = TWiki::Store::readWebTopic( $web, $topicname );
+        $t =~ s/.*?%STARTINCLUDE%//s;
+        $t =~ s/%STOPINCLUDE%.*//s;
+        @list = split( /\n/, handleCommonTags( $t, $topicname, $web ) );
     }
 
     @list = grep { /(<\/?pre>)|($regex{headerPatternDa})|($regex{headerPatternSp})|($regex{headerPatternHt})/ } @list;
@@ -2322,8 +2485,13 @@ sub handleToc
                 $level =~ s/$regex{headerPatternHt}/$1/gio;
                 $line  =~ s/$regex{headerPatternHt}/$2/gio;
             }
+            my $urlPath = "";
+            if( "$web.$topicname" ne "$webName.$topicName" ) {
+                # not current topic, can't omit URL
+                $urlPath = "$dispScriptUrlPath$dispViewPath$scriptSuffix/$webPath/$topicname";
+            }
             if( ( $line ) && ( $level <= $depth ) ) {
-                $anchor = makeAnchorName( $line );
+                $anchor = TWiki::Render::makeAnchorName( $line );
                 # cut TOC exclude '---+ heading !! exclude'
                 $line  =~ s/\s*$regex{headerPatternNoTOC}.+$//go;
                 $line  =~ s/[\n\r]//go;
@@ -2333,23 +2501,18 @@ sub handleToc
                 for( $i=0 ; $i<$level ; $i++ ) {
                     $tabs = "\t$tabs";
                 }
-                # Remove *bold* and _italic_ formatting
+                # Remove *bold*, _italic_ and =fixed= formatting
                 $line =~ s/(^|[\s\(])\*([^\s]+?|[^\s].*?[^\s])\*($|[\s\,\.\;\:\!\?\)])/$1$2$3/g;
                 $line =~ s/(^|[\s\(])_+([^\s]+?|[^\s].*?[^\s])_+($|[\s\,\.\;\:\!\?\)])/$1$2$3/g;
+                $line =~ s/(^|[\s\(])=+([^\s]+?|[^\s].*?[^\s])=+($|[\s\,\.\;\:\!\?\)])/$1$2$3/g;
                 # Prevent WikiLinks
                 $line =~ s/\[\[.*?\]\[(.*?)\]\]/$1/g;  # '[[...][...]]'
                 $line =~ s/\[\[(.*?)\]\]/$1/ge;        # '[[...]]'
                 $line =~ s/([\s\(])($regex{webNameRegex})\.($regex{wikiWordRegex})/$1<nop>$3/g;  # 'Web.TopicName'
                 $line =~ s/([\s\(])($regex{wikiWordRegex})/$1<nop>$2/g;  # 'TopicName'
-                $line =~ s/([\s\(])($regex{abbrevRegex})/$1<nop>$2/g;  # 'TLA'
-                # create linked bullet item
-                # AB change
-		# $line = "$tabs* <a href=\"$dispScriptUrlPath/$viewScript$scriptSuffix/$webPath/$topicname#$anchor\">$line</a>";
-		if ( $viewScript eq 'view' ) {
-		    $line = "$tabs* <a href=\"$dispScriptUrlPath$dispViewPath/$webPath/$topicname#$anchor\">$line</a>";
-		} else {
-		    $line = "$tabs* <a href=\"$dispScriptUrlPath/$viewScript$scriptSuffix/$webPath/$topicname#$anchor\">$line</a>";
-		}
+                $line =~ s/([\s\(])($regex{abbrevRegex})/$1<nop>$2/g;    # 'TLA'
+                # create linked bullet item, using a relative link to anchor
+                $line = "$tabs* <a href=\"$urlPath#$anchor\">$line</a>";
                 $result .= "\n$line";
             }
         }
@@ -2360,7 +2523,7 @@ sub handleToc
             $highest--;
             $result =~ s/^\t{$highest}//gm;
         }
-        $result = "<div id=\"twikitoc\">$title$result\n</div>";
+        $result = "<div class=\"twikiToc\">$title$result\n</div>";
         return $result;
 
     } else {
@@ -2401,7 +2564,7 @@ sub getPublicWebList
 # =========================
 =pod
 
----++ sub expandVariablesOnTopicCreation ( $text )
+---++ sub expandVariablesOnTopicCreation ( $theText, $theUser, $theWikiName, $theWikiUserName )
 
 Expand limited set of variables with a topic during topic creation
 
@@ -2471,15 +2634,13 @@ sub handleWebAndTopicList
     my $text = "";
     my $item = "";
     my $line = "";
-#$text .= "format: $format, selection: $selection, marker: $marker\n";
     my $mark = "";
     foreach $item ( @list ) {
         $line = $format;
         $line =~ s/\$web/$web/goi;
         $line =~ s/\$name/$item/goi;
         $line =~ s/\$qname/"$item"/goi;
-        $mark = ( $selection =~ / $item / ) ? $marker : "";
-#$text .= "item: $item, mark: $mark.";
+        $mark = ( $selection =~ / \Q$item\E / ) ? $marker : "";
         $line =~ s/\$marker/$mark/goi;
         $text .= "$line$separator";
     }
@@ -2526,8 +2687,8 @@ sub handleUrlParam
             $value = "" unless( defined $value );
         }
     }
-    $value = handleUrlEncode( "\"$value\" type=\"$encode\"", 1 ) if( $encode );
     $value =~ s/\r?\n/$newLine/go if( $newLine );
+    $value = handleUrlEncode( $value, 0, $encode ) if( $encode );
     unless( $value ) {
         $value = extractNameValuePair( $theArgs, "default" ) || "";
     }
@@ -2549,10 +2710,10 @@ Not yet documented.
 
 sub handleUrlEncode
 {
-    my( $theArgs, $doExtract ) = @_;
+    my( $theArgs, $doExtract, $theType ) = @_;
 
     my $text = $theArgs;
-    my $type = "";
+    my $type = $theType || "";
     if( $doExtract ) {
         $text = extractNameValuePair( $theArgs );
         $type = extractNameValuePair( $theArgs, "type" ) || "";
@@ -2815,6 +2976,7 @@ sub handleInternalTags
     $_[0] =~ s/%DISPLAYTIME{(.*?)}%/&handleTime($1, $displayTimeValues)/ge;
 
     $_[0] =~ s/%WIKIVERSION%/$wikiversion/g;
+    $_[0] =~ s/%PLUGINVERSION{(.*?)}%/TWiki::Plugins::getPluginVersion($1)/ge;
     $_[0] =~ s/%USERNAME%/$userName/g;
     $_[0] =~ s/%WIKINAME%/$wikiName/g;
     $_[0] =~ s/%WIKIUSERNAME%/$wikiUserName/g;
@@ -2831,10 +2993,15 @@ sub handleInternalTags
     $_[0] =~ s/%STOPINCLUDE%//g;
     $_[0] =~ s/%SECTION{(.*?)}%//g;
     $_[0] =~ s/%ENDSECTION%//g;
-    $_[0] =~ s/%SEARCH{(.*?)}%/&handleSearchWeb($1)/ge; # can be nested
-    $_[0] =~ s/%SEARCH{(.*?)}%/&handleSearchWeb($1)/ge if( $_[0] =~ /%SEARCH/o );
+    my $ok = 16; # SEARCH may be nested up to 16 times
+    TRY: while( $_[0] =~ s/%SEARCH{(.*?)}%/&handleSearchWeb($1,$_[2],$_[1])/ge ) {
+        last TRY unless( --$ok );
+    }
     $_[0] =~ s/%METASEARCH{(.*?)}%/&handleMetaSearch($1)/ge;
+    $_[0] =~ s/%FORMFIELD{(.*?)}%/&TWiki::Render::getFormField($_[2],$_[1],$1)/ge;
 
+    $_[0] =~ s/%REVINFO%/handleRevisionInfo( $_[2], $_[1] )/ge;
+    $_[0] =~ s/%REVINFO{(.*?)}%/handleRevisionInfo( $_[2], $_[1], $1 )/ge;
 }
 
 =pod
@@ -2929,8 +3096,9 @@ sub putBackVerbatim
     for( my $i=0; $i<=$#verbatim; $i++ ) {
         my $val = $verbatim[$i];
         if( $type ne "verbatim" ) {
+            $val =~ s/&/&amp;/g;
             $val =~ s/</&lt;/g;
-            $val =~ s/</&gt;/g;
+            $val =~ s/>/&gt;/g;
             $val =~ s/\t/   /g; # A shame to do this, but been in TWiki.org have converted
                                 # 3 spaces to tabs since day 1
         }
@@ -2963,9 +3131,15 @@ sub handleCommonTags
     if( !$theWeb ) {
         $theWeb = $webName;
     }
-    
+
+    # TWiki Plugin Hook (for cache Plugins only)
+    &TWiki::Plugins::beforeCommonTagsHandler( $text, $theTopic, $theWeb );
+
     my @verbatim = ();
     $text = takeOutVerbatim( $text, \@verbatim );
+
+    # Escape rendering: Change " !%VARIABLE%" to " %<nop>VARIABLE%", for final " %VARIABLE%" output
+    $text =~ s/(\s)\!\%([A-Z])/$1%<nop>$2/g;
 
     # handle all preferences and internal tags (for speed: call by reference)
     $includingWebName = $theWeb;
@@ -2976,22 +3150,26 @@ sub handleCommonTags
     # recursively process multiple embedded %INCLUDE% statements and prefs
     $text =~ s/%INCLUDE{(.*?)}%/&handleIncludeFile($1, $theTopic, $theWeb, \@verbatim, @theProcessedTopics )/ge;
 
-    # Wiki Plugin Hook
+    # TWiki Plugin Hook
     &TWiki::Plugins::commonTagsHandler( $text, $theTopic, $theWeb, 0 );
 
     # handle tags again because of plugin hook
     &TWiki::Prefs::handlePreferencesTags( $text );
     handleInternalTags( $text, $theTopic, $theWeb );
 
-    $text =~ s/%FORMFIELD{(.*?)}%/&getFormField($theWeb,$theTopic,$1)/ge;
     $text =~ s/%TOC{([^}]*)}%/&handleToc($text,$theTopic,$theWeb,$1)/ge;
     $text =~ s/%TOC%/&handleToc($text,$theTopic,$theWeb,"")/ge;
-#SVEN
-    $text =~ s/%GROUPS%/join( ", ", &TWiki::Access::getListOfGroups() )/ge;
-    
+
+    # Codev.FormattedSearchWithConditionalOutput: remove <nop> lines, possibly introduced by
+    # SEARCHes with conditional CALC. This needs to be done after CALC and before table rendering
+    $text =~ s/^<nop>\r?\n//gm;
+
     # Ideally would put back in getRenderedVersion rather than here which would save removing
     # it again!  But this would mean altering many scripts to pass back verbatim
     $text = putBackVerbatim( $text, "verbatim", @verbatim );
+
+    # TWiki Plugin Hook (for cache Plugins only)
+    &TWiki::Plugins::afterCommonTagsHandler( $text, $theTopic, $theWeb );
 
     return $text;
 }
@@ -3001,6 +3179,8 @@ sub handleCommonTags
 
 ---++ sub handleMetaTags (  $theWeb, $theTopic, $text, $meta, $isTopRev  )
 
+| TODO | move to Render.pm or Meta.pm of Forms.pm |
+| | used to render the non-active modes of META data (view, preview ...) |
 Not yet documented.
 
 =cut
@@ -3009,1065 +3189,17 @@ sub handleMetaTags
 {
     my( $theWeb, $theTopic, $text, $meta, $isTopRev ) = @_;
 
-    $text =~ s/%META{\s*"form"\s*}%/&renderFormData( $theWeb, $theTopic, $meta )/ge;
-    $text =~ s/%META{\s*"formfield"\s*(.*?)}%/&renderFormField( $meta, $1 )/ge;
+    $text =~ s/%META{\s*"form"\s*}%/&TWiki::Render::renderFormData( $theWeb, $theTopic, $meta )/ge;    #this renders META:FORM and META:FIELD
+    $text =~ s/%META{\s*"formfield"\s*(.*?)}%/&TWiki::Render::renderFormField( $meta, $1 )/ge;                 #TODO: what does this do? (is this the old forms system, and so can be deleted)
     $text =~ s/%META{\s*"attachments"\s*(.*)}%/&TWiki::Attach::renderMetaData( $theWeb,
-                                                $theTopic, $meta, $1, $isTopRev )/ge;
-    $text =~ s/%META{\s*"moved"\s*}%/&renderMoved( $theWeb, $theTopic, $meta )/ge;
-    $text =~ s/%META{\s*"parent"\s*(.*)}%/&renderParent( $theWeb, $theTopic, $meta, $1 )/ge;
+                                                $theTopic, $meta, $1, $isTopRev )/ge;                                       #renders attachment tables
+    $text =~ s/%META{\s*"moved"\s*}%/&TWiki::Render::renderMoved( $theWeb, $theTopic, $meta )/ge;      #render topic moved information
+    $text =~ s/%META{\s*"parent"\s*(.*)}%/&TWiki::Render::renderParent( $theWeb, $theTopic, $meta, $1 )/ge;    #render the parent information
 
-    $text = &TWiki::handleCommonTags( $text, $theTopic );
-
-    return $text;
-}
-
-# ========================
-=pod
-
----++ sub renderParent (  $web, $topic, $meta, $args  )
-
-Not yet documented.
-
-=cut
-
-sub renderParent
-{
-    my( $web, $topic, $meta, $args ) = @_;
-    
-    my $text = "";
-
-    my $dontRecurse = 0;
-    my $noWebHome = 0;
-    my $prefix = "";
-    my $suffix = "";
-    my $usesep = "";
-
-    if( $args ) {
-       $dontRecurse = extractNameValuePair( $args, "dontrecurse" );
-       $noWebHome =   extractNameValuePair( $args, "nowebhome" );
-       $prefix =      extractNameValuePair( $args, "prefix" );
-       $suffix =      extractNameValuePair( $args, "suffix" );
-       $usesep =      extractNameValuePair( $args, "separator" );
-    }
-
-    if( ! $usesep ) {
-       $usesep = " &gt; ";
-    }
-
-    my %visited = ();
-    $visited{"$web.$topic"} = 1;
-
-    my $sep = "";
-    my $cWeb = $web;
-
-    while( 1 ) {
-        my %parent = $meta->findOne( "TOPICPARENT" );
-        if( %parent ) {
-            my $name = $parent{"name"};
-            my $pWeb = $cWeb;
-            my $pTopic = $name;
-            if( $name =~ /^(.*)\.(.*)$/ ) {
-               $pWeb = $1;
-               $pTopic = $2;
-            }
-            if( $noWebHome && ( $pTopic eq $mainTopicname ) ) {
-               last;  # exclude "WebHome"
-            }
-            $text = "[[$pWeb.$pTopic][$pTopic]]$sep$text";
-            $sep = $usesep;
-            if( $dontRecurse || ! $name ) {
-               last;
-            } else {
-               my $dummy;
-               if( $visited{"$pWeb.$pTopic"} ) {
-                  last;
-               } else {
-                  $visited{"$pWeb.$pTopic"} = 1;
-               }
-               if( TWiki::Store::topicExists( $pWeb, $pTopic ) ) {
-                   ( $meta, $dummy ) = TWiki::Store::readTopMeta( $pWeb, $pTopic );
-               } else {
-                   last;
-               }
-               $cWeb = $pWeb;
-            }
-        } else {
-            last;
-        }
-    }
-
-    if( $text && $prefix ) {
-       $text = "$prefix$text";
-    }
-
-    if( $text && $suffix ) {
-       $text .= $suffix;
-    }
-
-    if( $text ) {
-        $text = handleCommonTags( $text, $topic, $web );
-        $text = getRenderedVersion( $text, $web );
-    }
+    $text = handleCommonTags( $text, $theTopic );
+    $text = TWiki::Render::getRenderedVersion( $text, $theWeb );
 
     return $text;
-}
-
-# ========================
-=pod
-
----++ sub renderMoved (  $web, $topic, $meta  )
-
-Not yet documented.
-
-=cut
-
-sub renderMoved
-{
-    my( $web, $topic, $meta ) = @_;
-    
-    my $text = "";
-    
-    my %moved = $meta->findOne( "TOPICMOVED" );
-    
-    if( %moved ) {
-        my $from = $moved{"from"};
-        $from =~ /(.*)\.(.*)/;
-        my $fromWeb = $1;
-        my $fromTopic = $2;
-        my $to   = $moved{"to"};
-        $to =~ /(.*)\.(.*)/;
-        my $toWeb = $1;
-        my $toTopic = $2;
-        my $by   = $moved{"by"};
-        $by = userToWikiName( $by );
-        my $date = $moved{"date"};
-        $date = formatTime( $date, , "gmtime" );
-        
-        # Only allow put back if current web and topic match stored information
-        my $putBack = "";
-        if( $web eq $toWeb && $topic eq $toTopic ) {
-            $putBack  = " - <a title=\"Click to move topic back to previous location, with option to change references.\"";
-            $putBack .= " href=\"$dispScriptUrlPath/rename/$web/$topic?newweb=$fromWeb&newtopic=$fromTopic&";
-            $putBack .= "confirm=on\">put it back</a>";
-        }
-        $text = "<p><i><nop>$to moved from <nop>$from on $date by $by </i>$putBack</p>";
-    }
-    
-    $text = handleCommonTags( $text, $topic, $web );
-    $text = getRenderedVersion( $text, $web );
-
-    
-    return $text;
-}
-
-
-# ========================
-=pod
-
----++ sub renderFormField (  $meta, $args  )
-
-Not yet documented.
-
-=cut
-
-sub renderFormField
-{
-    my( $meta, $args ) = @_;
-    my $text = "";
-    if( $args ) {
-        my $name = extractNameValuePair( $args, "name" );
-        $text = TWiki::Search::getMetaFormField( $meta, $name ) if( $name );
-    }
-    return $text;
-}
-
-# =========================
-=pod
-
----++ sub renderFormData (  $web, $topic, $meta  )
-
-Not yet documented.
-
-=cut
-
-sub renderFormData
-{
-    my( $web, $topic, $meta ) = @_;
-
-    my $metaText = "";
-    
-    my %form = $meta->findOne( "FORM" );
-    if( %form ) {
-        my $name = $form{"name"};
-        $metaText = "\n|*[[$name]]*||\n";
-        
-        my @fields = $meta->find( "FIELD" );
-        foreach my $field ( @fields ) {
-            my $title = $field->{"title"};
-            my $value = $field->{"value"};
-            $value =~ s/\n/<br \/>/g;      # undo expansion
-            $metaText .= "|  $title:|$value  |\n";
-        }
-
-        $metaText = getRenderedVersion( $metaText, $web );
-    }
-
-    return $metaText;
-}
-
-# Before including topic text in a hidden field in web form, encode
-# characters that would break the field
-=pod
-
----++ sub encodeSpecialChars (  $text  )
-
-Not yet documented.
-
-=cut
-
-sub encodeSpecialChars
-{
-    my( $text ) = @_;
-    
-    $text =~ s/&/%_A_%/g;
-    $text =~ s/\"/%_Q_%/g;
-    $text =~ s/>/%_G_%/g;
-    $text =~ s/</%_L_%/g;
-    # PTh, JoachimDurchholz 22 Nov 2001: Fix for Codev.OperaBrowserDoublesEndOfLines
-    $text =~ s/(\r*\n|\r)/%_N_%/g;
-
-    return $text;
-}
-
-=pod
-
----++ sub decodeSpecialChars (  $text  )
-
-Not yet documented.
-
-=cut
-
-sub decodeSpecialChars
-{
-    my( $text ) = @_;
-    
-    $text =~ s/%_N_%/\r\n/g;
-    $text =~ s/%_L_%/</g;
-    $text =~ s/%_G_%/>/g;
-    $text =~ s/%_Q_%/\"/g;
-    $text =~ s/%_A_%/&/g;
-
-    return $text;
-}
-
-
-# =========================
-# Render bulleted and numbered lists, including nesting.
-# Called from several places.  Accumulates @listTypes and @listElements
-# to track nested lists.
-=pod
-
----++ sub emitList (  $theType, $theElement, $theDepth, $theOlType  )
-
-Not yet documented.
-
-=cut
-
-sub emitList {
-    my( $theType, $theElement, $theDepth, $theOlType ) = @_;
-
-    my $result = "";
-    $isList = 1;
-
-    # Ordered list type
-    $theOlType = "" unless( $theOlType );
-    $theOlType =~ s/^(.).*/$1/;
-    $theOlType = "" if( $theOlType eq "1" );
-
-    if( @listTypes < $theDepth ) {
-        my $firstTime = 1;
-        while( @listTypes < $theDepth ) {
-            push( @listTypes, $theType );
-            push( @listElements, $theElement );
-            $result .= "<$theElement>\n" unless( $firstTime );
-            if( $theOlType ) {
-                $result .= "<$theType type=\"$theOlType\">\n";
-            } else {
-                $result .= "<$theType>\n";
-            }
-            $firstTime = 0;
-        }
-
-    } elsif( @listTypes > $theDepth ) {
-        while( @listTypes > $theDepth ) {
-            local($_) = pop @listElements;
-            $result .= "</$_>\n";
-            local($_) = pop @listTypes;
-            $result .= "</$_>\n";
-        }
-        $result .= "</$listElements[$#listElements]>\n" if( @listElements );
-
-    } elsif( @listElements ) {
-        $result = "</$listElements[$#listElements]>\n";
-    }
-
-    if( ( @listTypes ) && ( $listTypes[$#listTypes] ne $theType ) ) {
-        $result .= "</$listTypes[$#listTypes]>\n<$theType>\n";
-        $listTypes[$#listTypes] = $theType;
-        $listElements[$#listElements] = $theElement;
-    }
-
-    return $result;
-}
-
-# ========================
-=pod
-
----++ sub emitTR (  $thePre, $theRow, $insideTABLE  )
-
-Not yet documented.
-
-=cut
-
-sub emitTR {
-    my ( $thePre, $theRow, $insideTABLE ) = @_;
-
-    my $text = "";
-    my $attr = "";
-    my $l1 = 0;
-    my $l2 = 0;
-    if( $insideTABLE ) {
-        $text = "$thePre<tr>";
-    } else {
-        $text = "$thePre<table border=\"1\" cellspacing=\"0\" cellpadding=\"1\"> <tr>";
-    }
-    $theRow =~ s/\t/   /g;  # change tabs to space
-    $theRow =~ s/\s*$//;    # remove trailing spaces
-    $theRow =~ s/(\|\|+)/$TranslationToken . length($1) . "\|"/ge;  # calc COLSPAN
-
-    foreach( split( /\|/, $theRow ) ) {
-        $attr = "";
-        #AS 25-5-01 Fix to avoid matching also single columns
-        if ( s/$TranslationToken([0-9]+)//o ) { 
-            $attr = " colspan=\"$1\"" ;
-        }
-        s/^\s+$/ &nbsp; /;
-        /^(\s*).*?(\s*)$/;
-        $l1 = length( $1 || "" );
-        $l2 = length( $2 || "" );
-        if( $l1 >= 2 ) {
-            if( $l2 <= 1 ) {
-                $attr .= ' align="right"';
-            } else {
-                $attr .= ' align="center"';
-            }
-        }
-        if( /^\s*(\*.*\*)\s*$/ ) {
-            $text .= "<th$attr bgcolor=\"#99CCCC\"> $1 </th>";
-        } else {
-            $text .= "<td$attr> $_ </td>";
-        }
-    }
-    $text .= "</tr>";
-    return $text;
-}
-
-# =========================
-=pod
-
----++ sub fixedFontText (  $theText, $theDoBold  )
-
-Not yet documented.
-
-=cut
-
-sub fixedFontText
-{
-    my( $theText, $theDoBold ) = @_;
-    # preserve white space, so replace it by "&nbsp; " patterns
-    $theText =~ s/\t/   /g;
-    $theText =~ s|((?:[\s]{2})+)([^\s])|'&nbsp; ' x (length($1) / 2) . "$2"|eg;
-    if( $theDoBold ) {
-        return "<code><b>$theText</b></code>";
-    } else {
-        return "<code>$theText</code>";
-    }
-}
-
-# =========================
-# Build an HTML &lt;Hn> element with suitable anchor for linking from %<nop>TOC%
-=pod
-
----++ sub makeAnchorHeading (  $theText, $theLevel  )
-
-Not yet documented.
-
-=cut
-
-sub makeAnchorHeading
-{
-    my( $theText, $theLevel ) = @_;
-
-    # - Need to build '<nop><h1><a name="atext"> text </a></h1>'
-    #   type markup.
-    # - Initial '<nop>' is needed to prevent subsequent matches.
-    # - Need to make sure that <a> tags are not nested, i.e. in
-    #   case heading has a WikiName or ABBREV that gets linked
-    # - filter out $regex{headerPatternNoTOC} ( '!!' and '%NOTOC%' )
-
-    my $text = $theText;
-    my $anchorName =       makeAnchorName( $text, 0 );
-    my $compatAnchorName = makeAnchorName( $text, 1 );
-    $text =~ s/$regex{headerPatternNoTOC}//o; # filter '!!', '%NOTOC%'
-    my $hasAnchor = 0;  # text contains potential anchor
-    $hasAnchor = 1 if( $text =~ m/<a /i );
-    $hasAnchor = 1 if( $text =~ m/\[\[/ );
-
-    $hasAnchor = 1 if( $text =~ m/(^|[\s\(])($regex{abbrevRegex})/ );
-    $hasAnchor = 1 if( $text =~ m/(^|[\s\(])($regex{webNameRegex})\.($regex{wikiWordRegex})/ );
-    $hasAnchor = 1 if( $text =~ m/(^|[\s\(])($regex{wikiWordRegex})/ );
-
-    # FIXME: '<h1><a name="atext"></a></h1> WikiName' has an
-    #        empty <a> tag, which is not HTML conform
-    my $prefix = "<nop><h$theLevel><a name=\"$compatAnchorName\"> </a> " .
-		 "<a name=\"$anchorName\"> ";
-    if( $hasAnchor ) {
-        $text = "$prefix </a> $text <\/h$theLevel>";
-    } else {
-        $text = "$prefix $text <\/a><\/h$theLevel>";
-    }
-
-    return $text;
-}
-
-# =========================
-# Build a valid HTML anchor name
-=pod
-
----++ sub makeAnchorName (  $anchorName, $compatibilityMode  )
-
-Not yet documented.
-
-=cut
-
-sub makeAnchorName
-{
-    my( $anchorName, $compatibilityMode ) = @_;
-
-    if ( ! $compatibilityMode && $anchorName =~ /^$regex{anchorRegex}$/ ) {
-	# accept, already valid -- just remove leading #
-	return substr($anchorName, 1);
-    }
-
-    if ( $compatibilityMode ) {
-	# remove leading/trailing underscores first, allowing them to be
-	# reintroduced
-	$anchorName =~ s/^[\s\#\_]*//;
-        $anchorName =~ s/[\s\_]*$//;
-    }
-    $anchorName =~ s/<\w[^>]*>//gi;         # remove HTML tags
-    $anchorName =~ s/\&\#?[a-zA-Z0-9]*;//g; # remove HTML entities
-    $anchorName =~ s/^(.+?)\s*$regex{headerPatternNoTOC}.*/$1/o; # filter TOC excludes if not at beginning
-    $anchorName =~ s/$regex{headerPatternNoTOC}//o; # filter '!!', '%NOTOC%'
-    # FIXME: More efficient to match with '+' on next line:
-    $anchorName =~ s/$regex{singleMixedNonAlphaNumRegex}/_/g;      # only allowed chars
-    $anchorName =~ s/__+/_/g;               # remove excessive '_'
-    if ( !$compatibilityMode ) {
-        $anchorName =~ s/^[\s\#\_]*//;      # no leading space nor '#', '_'
-    }
-    $anchorName =~ s/^(.{32})(.*)$/$1/;     # limit to 32 chars - FIXME: Use Unicode chars before truncate
-    if ( !$compatibilityMode ) {
-        $anchorName =~ s/[\s\_]*$//;        # no trailing space, nor '_'
-    }
-
-    # No need to encode 8-bit characters in anchor due to UTF-8 URL support
-
-    return $anchorName;
-}
-
-# =========================
-=pod
-
----++ sub internalCrosswebLink (  $thePreamble, $theWeb, $theTopic, $theLinkText, $theAnchor, $doLink  )
-
-Not yet documented.
-
-=cut
-
-sub internalCrosswebLink
-{
-    my( $thePreamble, $theWeb, $theTopic, $theLinkText, $theAnchor, $doLink ) = @_;
-    if ( $theTopic eq $mainTopicname && $theWeb ne $webName ) {
-        return &internalLink( $thePreamble, $theWeb, $theTopic, $theWeb, $theAnchor, $doLink );
-    } else {
-        return &internalLink( $thePreamble, $theWeb, $theTopic, $theLinkText, $theAnchor, $doLink );
-    }
-}
-
-# =========================
-=pod
-
----++ sub linkToolTipInfo ( $theWeb, $theTopic )
-
-Returns =title="..."= tooltip info in case LINKTOOLTIPINFO perferences variable is set. 
-Warning: Slower performance if enabled.
-
-=cut
-
-sub linkToolTipInfo
-{
-    my( $theWeb, $theTopic ) = @_;
-    return "" unless( $linkToolTipInfo );
-
-    # FIXME: This is slow, it can be improved by caching topic rev info and summary
-    my( $date, $user, $rev ) = TWiki::Store::getRevisionInfo( $theWeb, $theTopic );
-    my $text = $linkToolTipInfo;
-    $text =~ s/\$web/<nop>$theWeb/g;
-    $text =~ s/\$topic/<nop>$theTopic/g;
-    $text =~ s/\$rev/1.$rev/g;
-    $text =~ s/\$date/&formatTime( $date )/ge;
-    $text =~ s/\$username/<nop>$user/g;                                     # "jsmith"
-    $text =~ s/\$wikiname/"<nop>" . &TWiki::userToWikiName( $user, 1 )/ge;  # "JohnSmith"
-    $text =~ s/\$wikiusername/"<nop>" . &TWiki::userToWikiName( $user )/ge; # "Main.JohnSmith"
-    if( $text =~ /\$summary/ ) {
-        my $summary = &TWiki::Store::readFileHead( "$TWiki::dataDir\/$theWeb\/$theTopic.txt", 16 );
-        $summary = &TWiki::makeTopicSummary( $summary, $theTopic, $theWeb );
-        $summary =~ s/[\"\']/<nop>/g;       # remove quotes (not allowed in title attribute)
-        $text =~ s/\$summary/$summary/g;
-    }
-    return " title=\"$text\"";
-}
-
-# =========================
-=pod
-
----++ sub internalLink (  $thePreamble, $theWeb, $theTopic, $theLinkText, $theAnchor, $doLink  )
-
-Not yet documented.
-
-=cut
-
-sub internalLink {
-    my( $thePreamble, $theWeb, $theTopic, $theLinkText, $theAnchor, $doLink ) = @_;
-    # $thePreamble is text used before the TWiki link syntax
-    # $doLink is boolean: false means suppress link for non-existing pages
-
-    # Get rid of leading/trailing spaces in topic name
-    $theTopic =~ s/^\s*//;
-    $theTopic =~ s/\s*$//;
-
-    # Turn spaced-out names into WikiWords - upper case first letter of
-    # whole link, and first of each word. TODO: Try to turn this off,
-    # avoiding spaces being stripped elsewhere - e.g. $doPreserveSpacedOutWords 
-    $theTopic =~ s/^(.)/\U$1/;
-    $theTopic =~ s/\s($regex{singleMixedAlphaNumRegex})/\U$1/go;	
-
-    # Add <nop> before WikiWord inside link text to prevent double links
-    $theLinkText =~ s/([\s\(])($regex{singleUpperAlphaRegex})/$1<nop>$2/go;
-
-    my $exist = &TWiki::Store::topicExists( $theWeb, $theTopic );
-    # I18N - Only apply plural processing if site language is English, or
-    # if a built-in English-language web (Main, TWiki or Plugins).  Plurals
-    # apply to names ending in 's', where topic doesn't exist with plural
-    # name.
-    if(  ( $doPluralToSingular ) and ( $siteLang eq 'en' 
-					or $theWeb eq $mainWebname
-					or $theWeb eq $twikiWebname
-					or $theWeb eq 'Plugins' 
-				     ) 
-	    and ( $theTopic =~ /s$/ ) and not ( $exist ) ) {
-        # Topic name is plural in form and doesn't exist as written
-        my $tmp = $theTopic;
-        $tmp =~ s/ies$/y/;       # plurals like policy / policies
-        $tmp =~ s/sses$/ss/;     # plurals like address / addresses
-        $tmp =~ s/([Xx])es$/$1/; # plurals like box / boxes
-        $tmp =~ s/([A-Za-rt-z])s$/$1/; # others, excluding ending ss like address(es)
-        if( &TWiki::Store::topicExists( $theWeb, $tmp ) ) {
-            $theTopic = $tmp;
-            $exist = 1;
-        }
-    }
-
-    my $text = $thePreamble;
-    if( $exist) {
-        if( $theAnchor ) {
-            my $anchor = makeAnchorName( $theAnchor );
-            $text .= "<a href=\"$dispScriptUrlPath$dispViewPath"
-		  .  "$scriptSuffix/$theWeb/$theTopic\#$anchor\""
-                  .  &linkToolTipInfo( $theWeb, $theTopic )
-                  .  ">$theLinkText<\/a>";
-            return $text;
-        } else {
-            $text .= "<a href=\"$dispScriptUrlPath$dispViewPath"
-		  .  "$scriptSuffix/$theWeb/$theTopic\""
-                  .  &linkToolTipInfo( $theWeb, $theTopic )
-                  .  ">$theLinkText<\/a>";
-            return $text;
-        }
-
-    } elsif( $doLink ) {
-        $text .= "<span style='background : $newTopicBgColor;'>"
-              .  "<font color=\"$newTopicFontColor\">$theLinkText</font></span>"
-              .  "<a href=\"$dispScriptUrlPath/edit$scriptSuffix/$theWeb/$theTopic?topicparent=$webName.$topicName\">?</a>";
-        return $text;
-
-    } else {
-        $text .= $theLinkText;
-        return $text;
-    }
-}
-
-# =========================
-# Handle most internal and external links
-=pod
-
----++ sub specificLink (  $thePreamble, $theWeb, $theTopic, $theText, $theLink  )
-
-Not yet documented.
-
-=cut
-
-sub specificLink
-{
-    my( $thePreamble, $theWeb, $theTopic, $theText, $theLink ) = @_;
-
-    # format: $thePreamble[[$theText]]
-    # format: $thePreamble[[$theLink][$theText]]
-    #
-    # Current page's $theWeb and $theTopic are also used
-
-    # Strip leading/trailing spaces
-    $theLink =~ s/^\s*//;
-    $theLink =~ s/\s*$//;
-
-    if( $theLink =~ /^$regex{linkProtocolPattern}\:/ ) {
-
-        # External link: add <nop> before WikiWord and ABBREV 
-	# inside link text, to prevent double links
-	$theText =~ s/([\s\(])($regex{singleUpperAlphaRegex})/$1<nop>$2/go;
-        return "$thePreamble<a href=\"$theLink\" target=\"_top\">$theText</a>";
-
-    } else {
-
-	# Internal link: get any 'Web.' prefix, or use current web
-	$theLink =~ s/^($regex{webNameRegex}|$regex{defaultWebNameRegex})\.//;
-	my $web = $1 || $theWeb;
-	(my $baz = "foo") =~ s/foo//;       # reset $1, defensive coding
-
-	# Extract '#anchor'
-	# FIXME and NOTE: Had '-' as valid anchor character, removed
-	# $theLink =~ s/(\#[a-zA-Z_0-9\-]*$)//;
-	$theLink =~ s/($regex{anchorRegex}$)//;
-	my $anchor = $1 || "";
-
-	# Get the topic name
-	my $topic = $theLink || $theTopic;  # remaining is topic
-	$topic =~ s/\&[a-z]+\;//gi;        # filter out &any; entities
-	$topic =~ s/\&\#[0-9]+\;//g;       # filter out &#123; entities
-	$topic =~ s/[\\\/\#\&\(\)\{\}\[\]\<\>\!\=\:\,\.]//g;
-	$topic =~ s/$securityFilter//go;    # filter out suspicious chars
-	if( ! $topic ) {
-	    return "$thePreamble$theText"; # no link if no topic
-	}
-
-	return internalLink( $thePreamble, $web, $topic, $theText, $anchor, 1 );
-    }
-
-}
-
-# =========================
-=pod
-
----++ sub externalLink (  $pre, $url  )
-
-Not yet documented.
-
-=cut
-
-sub externalLink
-{
-    my( $pre, $url ) = @_;
-    if( $url =~ /\.(gif|jpg|jpeg|png)$/i ) {
-        my $filename = $url;
-        $filename =~ s@.*/([^/]*)@$1@go;
-        return "$pre<img src=\"$url\" alt=\"$filename\" />";
-    }
-
-    return "$pre<a href=\"$url\" target=\"_top\">$url</a>";
-}
-
-# =========================
-=pod
-
----++ sub mailtoLink (  $theAccount, $theSubDomain, $theTopDomain  )
-
-Not yet documented.
-
-=cut
-
-sub mailtoLink
-{
-    my( $theAccount, $theSubDomain, $theTopDomain ) = @_;
-
-    my $addr = "$theAccount\@$theSubDomain$TWiki::noSpamPadding\.$theTopDomain";
-    return "<a href=\"mailto\:$addr\">$addr</a>";
-}
-
-# =========================
-=pod
-
----++ sub mailtoLinkFull (  $theAccount, $theSubDomain, $theTopDomain, $theLinkText  )
-
-Not yet documented.
-
-=cut
-
-sub mailtoLinkFull
-{
-    my( $theAccount, $theSubDomain, $theTopDomain, $theLinkText ) = @_;
-
-    my $addr = "$theAccount\@$theSubDomain$TWiki::noSpamPadding\.$theTopDomain";
-    return "<a href=\"mailto\:$addr\">$theLinkText</a>";
-}
-
-# =========================
-=pod
-
----++ sub mailtoLinkSimple (  $theMailtoString, $theLinkText  )
-
-Not yet documented.
-
-=cut
-
-sub mailtoLinkSimple
-{
-    # Does not do any anti-spam padding, because address will not include '@'
-    my( $theMailtoString, $theLinkText ) = @_;	
-
-    # Defensive coding
-    if ($theMailtoString =~ s/@//g ) {
-    	writeWarning("mailtoLinkSimple called with an '\@' in string - internal TWiki error");
-    }
-    return "<a href=\"mailto\:$theMailtoString\">$theLinkText</a>";
-}
-
-=pod
-
----++ sub getFormField ( $web, $topic, $args )
-
-Handles %FORMFIELD{}% tags in topics, used in handleInternalTags
-
-TODO: use Prefs subsystem to read form info, instead of rereadeing
-topic every time a form field value is requested.
-
-=cut
-
-sub getFormField
-{
-    my( $web, $topic, $args ) = @_;
-    
-    my ( $altText, $found, $format );
-    my ( $formField, $formTopic, $default );
-    
-    $formField = extractNameValuePair( $args );
-    $formTopic = extractNameValuePair( $args, "topic" );
-    $altText   = extractNameValuePair( $args, "alttext" );
-    $default   = extractNameValuePair( $args, "default" ) || undef;
-    $format    = extractNameValuePair( $args, "format" ) || '$value';
-
-    my $meta;
-    if ($formTopic) {
-       my $formTopicWeb;
-       if ($topic =~ /^([^.]+)\.([^.]+)/o) {
-	   ( $formTopicWeb, $topic ) = ( $1, $2 );
-       } else {
-	   $formTopicWeb = extractNameValuePair( $args, "web" );
-       }
-       $formTopicWeb = $web unless defined $formTopicWeb;
-       ( $meta, my $dummyText ) = &TWiki::Store::readTopic( $formTopicWeb, $formTopic );
-    } else {
-       ( $meta, my $dummyText ) = &TWiki::Store::readTopic( $web, $topic );
-    }
-
-    my $text = "";
-    my @fields = $meta->find( "FIELD" );
-    foreach my $field ( @fields ) {
-	my $title = $field->{"title"};
-	my $name = $field->{"name"};
-	if( $title eq $formField || $name eq $formField ) {
-	    my $value = $field->{"value"};
-	    if (length $value) {
-		$found = 1;
-		$text = $format;
-		$text =~ s/\$value/$value/g;
-	    } elsif (defined $altText) {
-		$found = 1;
-		$text = $altText;
-	    }
-	    last; #one hit suffices
-	}
-    }          
-    if (!$found) {
-	if (defined $default) {
-	    $text = $format;
-	    $text =~ s/\$value/$default/g;
-	} else {
-	    $text = $altText;
-	}
-    }
-    $text = getRenderedVersion( $text, $web );
-    return $text;
-} 
-
-
-# =========================
-=pod
-
----++ sub getRenderedVersion (  $text, $theWeb, $meta  )
-
-Not yet documented.
-
-=cut
-
-sub getRenderedVersion {
-    my( $text, $theWeb, $meta ) = @_;
-    my( $head, $result, $extraLines, $insidePRE, $insideTABLE, $insideNoAutoLink );
-
-    return "" unless $text;  # nothing to do
-
-    # FIXME: Get $theTopic from parameter to handle [[#anchor]] correctly
-    # (fails in %INCLUDE%, %SEARCH%)
-    my $theTopic = $topicName;
-
-    # PTh 22 Jul 2000: added $theWeb for correct handling of %INCLUDE%, %SEARCH%
-    if( !$theWeb ) {
-        $theWeb = $webName;
-    }
-
-    $head = "";
-    $result = "";
-    $insidePRE = 0;
-    $insideTABLE = 0;
-    $insideNoAutoLink = 0;      # PTh 02 Feb 2001: Added Codev.DisableWikiWordLinks
-    $isList = 0;
-    @listTypes = ();
-    @listElements = ();
-
-    # Initial cleanup
-    $text =~ s/\r//g;
-    $text =~ s/(\n?)$/\n<nop>\n/s; # clutch to enforce correct rendering at end of doc
-    # Convert any occurrences of token (very unlikely - details in
-    # Codev.NationalCharTokenClash)
-    $text =~ s/$TranslationToken/!/go;	
-
-    my @verbatim = ();
-    $text = takeOutVerbatim( $text, \@verbatim );
-    $text =~ s/\\\n//g;  # Join lines ending in "\"
-
-    # do not render HTML head, style sheets and scripts
-    if( $text =~ m/<body[\s\>]/i ) {
-        my $bodyTag = "";
-        my $bodyText = "";
-        ( $head, $bodyTag, $bodyText ) = split( /(<body)/i, $text, 3 );
-        $text = $bodyTag . $bodyText;
-    }
-    
-    # Wiki Plugin Hook
-    &TWiki::Plugins::startRenderingHandler( $text, $theWeb, $meta );
-
-    # $isList is tested and set by this loop and 'emitList' function
-    $isList = 0;		# True when within a list
-
-    foreach( split( /\n/, $text ) ) {
-
-        # change state:
-        m|<pre>|i  && ( $insidePRE = 1 );
-        m|</pre>|i && ( $insidePRE = 0 );
-        m|<noautolink>|i   && ( $insideNoAutoLink = 1 );
-        m|</noautolink>|i  && ( $insideNoAutoLink = 0 );
-
-        if( $insidePRE ) {
-            # inside <PRE>
-
-            # close list tags if any
-            if( @listTypes ) {
-                $result .= &emitList( "", "", 0 );
-                $isList = 0;
-            }
-
-# Wiki Plugin Hook
-            &TWiki::Plugins::insidePREHandler( $_ );
-
-            s/(.*)/$1\n/;
-            s/\t/   /g;		# Three spaces
-            $result .= $_;
-
-        } else {
-          # normal state, do Wiki rendering
-
-# Wiki Plugin Hook
-          &TWiki::Plugins::outsidePREHandler( $_ );
-          $extraLines = undef;   # Plugins might introduce extra lines
-          do {                   # Loop over extra lines added by plugins
-            $_ = $extraLines if( defined $extraLines );
-            s/^(.*?)\n(.*)$/$1/s;
-            $extraLines = $2;    # Save extra lines, need to parse each separately
-
-# Blockquoted email (indented with '> ')
-            s/^>(.*?)$/> <cite> $1 <\/cite><br \/>/g;
-
-# Embedded HTML
-            s/\<(\!\-\-)/$TranslationToken$1/g;  # Allow standalone "<!--"
-            s/(\-\-)\>/$1$TranslationToken/g;    # Allow standalone "-->"
-	    # FIXME: next 2 lines are redundant since s///g's below do same
-	    # thing
-            s/(\<\<+)/"&lt\;" x length($1)/ge;
-            s/(\>\>+)/"&gt\;" x length($1)/ge;
-            s/\<nop\>/nopTOKEN/g;  # defuse <nop> inside HTML tags
-            s/\<(\S.*?)\>/$TranslationToken$1$TranslationToken/g;
-            s/</&lt\;/g;
-            s/>/&gt\;/g;
-            s/$TranslationToken(\S.*?)$TranslationToken/\<$1\>/go;
-            s/nopTOKEN/\<nop\>/g;
-            s/(\-\-)$TranslationToken/$1\>/go;
-            s/$TranslationToken(\!\-\-)/\<$1/go;
-
-# Handle embedded URLs
-            s!(^|[\-\*\s\(])($regex{linkProtocolPattern}\:([^\s\<\>\"]+[^\s\.\,\!\?\;\:\)\<]))!&externalLink($1,$2)!geo;
-
-# Entities
-            s/&(\w+?)\;/$TranslationToken$1\;/g;      # "&abc;"
-            s/&(\#[0-9]+)\;/$TranslationToken$1\;/g;  # "&#123;"
-            s/&/&amp;/g;                              # escape standalone "&"
-            s/$TranslationToken/&/go;
-
-# Headings
-            # '<h6>...</h6>' HTML rule
-            s/$regex{headerPatternHt}/&makeAnchorHeading($2,$1)/geoi;
-            # '\t+++++++' rule
-            s/$regex{headerPatternSp}/&makeAnchorHeading($2,(length($1)))/geo;
-            # '----+++++++' rule
-            s/$regex{headerPatternDa}/&makeAnchorHeading($2,(length($1)))/geo;
-
-# Horizontal rule
-            s/^---+/<hr \/>/;
-            s!^([a-zA-Z0-9]+)----*!<table width=\"100%\"><tr><td valign=\"bottom\"><h2>$1</h2></td><td width=\"98%\" valign=\"middle\"><hr /></td></tr></table>!o;
-
-# Table of format: | cell | cell |
-            # PTh 25 Jan 2001: Forgiving syntax, allow trailing white space
-            if( $_ =~ /^(\s*)\|.*\|\s*$/ ) {
-                s/^(\s*)\|(.*)/&emitTR($1,$2,$insideTABLE)/e;
-                $insideTABLE = 1;
-            } elsif( $insideTABLE ) {
-                $result .= "</table>\n";
-                $insideTABLE = 0;
-            }
-
-# Lists and paragraphs
-            s/^\s*$/<p \/>/o                 && ( $isList = 0 );
-            m/^(\S+?)/o                      && ( $isList = 0 );
-	    # Definition list
-            s/^(\t+)\$\s(([^:]+|:[^\s]+)+?):\s/<dt> $2 <\/dt><dd> /o && ( $result .= &emitList( "dl", "dd", length $1 ) );
-            s/^(\t+)(\S+?):\s/<dt> $2<\/dt><dd> /o && ( $result .= &emitList( "dl", "dd", length $1 ) );
-	    # Unnumbered list
-            s/^(\t+)\* /<li> /o              && ( $result .= &emitList( "ul", "li", length $1 ) );
-	    # Numbered list
-            s/^(\t+)([1AaIi]\.|\d+\.?) ?/<li> /o && ( $result .= &emitList( "ol", "li", length $1, $2 ) );
-	    # Finish the list
-            if( ! $isList ) {
-                $result .= &emitList( "", "", 0 );
-                $isList = 0;
-            }
-
-# '#WikiName' anchors
-            s/^(\#)($regex{wikiWordRegex})/ '<a name="' . &makeAnchorName( $2 ) . '"><\/a>'/ge;
-
-# enclose in white space for the regex that follow
-             s/(.*)/\n$1\n/;
-
-# Emphasizing
-            # PTh 25 Sep 2000: More relaxed rules, allow leading '(' and trailing ',.;:!?)'
-            s/([\s\(])==([^\s]+?|[^\s].*?[^\s])==([\s\,\.\;\:\!\?\)])/$1 . &fixedFontText( $2, 1 ) . $3/ge;
-            s/([\s\(])__([^\s]+?|[^\s].*?[^\s])__([\s\,\.\;\:\!\?\)])/$1<strong><em>$2<\/em><\/strong>$3/g;
-            s/([\s\(])\*([^\s]+?|[^\s].*?[^\s])\*([\s\,\.\;\:\!\?\)])/$1<strong>$2<\/strong>$3/g;
-            s/([\s\(])_([^\s]+?|[^\s].*?[^\s])_([\s\,\.\;\:\!\?\)])/$1<em>$2<\/em>$3/g;
-            s/([\s\(])=([^\s]+?|[^\s].*?[^\s])=([\s\,\.\;\:\!\?\)])/$1 . &fixedFontText( $2, 0 ) . $3/ge;
-
-# Mailto
-	    # Email addresses must always be 7-bit, even within I18N sites
-
-	    # RD 27 Mar 02: Mailto improvements - FIXME: check security...
-	    # Explicit [[mailto:... ]] link without an '@' - hence no 
-	    # anti-spam padding needed.
-            # '[[mailto:string display text]]' link (no '@' in 'string'):
-            s/\[\[mailto\:([^\s\@]+)\s+(.+?)\]\]/&mailtoLinkSimple( $1, $2 )/ge;
-
-	    # Explicit [[mailto:... ]] link including '@', with anti-spam 
-	    # padding, so match name@subdom.dom.
-            # '[[mailto:string display text]]' link
-            s/\[\[mailto\:([a-zA-Z0-9\-\_\.\+]+)\@([a-zA-Z0-9\-\_\.]+)\.(.+?)(\s+|\]\[)(.*?)\]\]/&mailtoLinkFull( $1, $2, $3, $5 )/ge;
-
-	    # Normal mailto:foo@example.com ('mailto:' part optional)
-	    # FIXME: Should be '?' after the 'mailto:'...
-            s/([\s\(])(?:mailto\:)*([a-zA-Z0-9\-\_\.\+]+)\@([a-zA-Z0-9\-\_\.]+)\.([a-zA-Z0-9\-\_]+)(?=[\s\.\,\;\:\!\?\)])/$1 . &mailtoLink( $2, $3, $4 )/ge;
-
-# Make internal links
-	    # Spaced-out Wiki words with alternative link text
-            # '[[Web.odd wiki word#anchor][display text]]' link:
-            s/\[\[([^\]]+)\]\[([^\]]+)\]\]/&specificLink("",$theWeb,$theTopic,$2,$1)/ge;
-            # RD 25 Mar 02: Codev.EasierExternalLinking
-            # '[[URL#anchor display text]]' link:
-            s/\[\[([a-z]+\:\S+)\s+(.*?)\]\]/&specificLink("",$theWeb,$theTopic,$2,$1)/ge;
-	    # Spaced-out Wiki words
-            # '[[Web.odd wiki word#anchor]]' link:
-            s/\[\[([^\]]+)\]\]/&specificLink("",$theWeb,$theTopic,$1,$1)/ge;
-
-            # do normal WikiWord link if not disabled by <noautolink> or NOAUTOLINK preferences variable
-            unless( $noAutoLink || $insideNoAutoLink ) {
-
-                # 'Web.TopicName#anchor' link:
-                s/([\s\(])($regex{webNameRegex})\.($regex{wikiWordRegex})($regex{anchorRegex})/&internalLink($1,$2,$3,"$TranslationToken$3$4$TranslationToken",$4,1)/geo;
-                # 'Web.TopicName' link:
-                s/([\s\(])($regex{webNameRegex})\.($regex{wikiWordRegex})/&internalCrosswebLink($1,$2,$3,"$TranslationToken$3$TranslationToken","",1)/geo;
-
-                # 'TopicName#anchor' link:
-                s/([\s\(])($regex{wikiWordRegex})($regex{anchorRegex})/&internalLink($1,$theWeb,$2,"$TranslationToken$2$3$TranslationToken",$3,1)/geo;
-
-                # 'TopicName' link:
-		s/([\s\(])($regex{wikiWordRegex})/&internalLink($1,$theWeb,$2,$2,"",1)/geo;
-
-		# Handle acronyms/abbreviations of three or more letters
-                # 'Web.ABBREV' link:
-                s/([\s\(])($regex{webNameRegex})\.($regex{abbrevRegex})/&internalLink($1,$2,$3,$3,"",0)/geo;
-                # 'ABBREV' link:
-		s/([\s\(])($regex{abbrevRegex})/&internalLink($1,$theWeb,$2,$2,"",0)/geo;
-                # (deprecated <link> moved to DefaultPlugin)
-
-                s/$TranslationToken(\S.*?)$TranslationToken/$1/go;
-            }
-
-            s/^\n//;
-            s/\t/   /g;
-            $result .= $_;
-
-          } while( defined( $extraLines ) );  # extra lines produced by plugins
-        }
-    }
-    if( $insideTABLE ) {
-        $result .= "</table>\n";
-    }
-    $result .= &emitList( "", "", 0 );
-    if( $insidePRE ) {
-        $result .= "</pre>\n";
-    }
-
-    # Wiki Plugin Hook
-    &TWiki::Plugins::endRenderingHandler( $result );
-
-    $result = putBackVerbatim( $result, "pre", @verbatim );
-
-    $result =~ s|\n?<nop>\n$||o; # clean up clutch
-    return "$head$result";
 }
 
 =end twiki

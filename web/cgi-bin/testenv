@@ -294,7 +294,9 @@ if ($detailedOS eq 'cygwin') {
 # indicates they should.
 my $exeSuffix='';
 if ( $Config::Config{'_exe'} and ($OS eq 'WINDOWS' and $perltype ne 'Cygwin') ) { 
-    $exeSuffix = $Config::Config{'_exe'};
+    if ( ! $ENV{'INTERIX_ROOT'} ) { #this is set is we are using UnixServicesForWindows (or INTERIX funnily enough) and they don't use .exe either
+        $exeSuffix = $Config::Config{'_exe'};
+    }
 }
 
 
@@ -498,7 +500,7 @@ if( $OS eq 'UNIX' or  ($OS eq 'WINDOWS' and $perltype eq 'Cygwin' ) ) {
     }
 }
 
-print "<tr><th align=\"right\">User:</th><td>$usr</td></tr>\n";
+print "<tr><th align=\"right\">User:</th><td> $usr </td></tr>\n";
 print "<tr><th></th><td><b><font color=\"green\">Note:</font></b> ";
 print "Your CGI scripts are executing as this user.";
 print "</td></tr>\n";
@@ -510,6 +512,13 @@ if( $usr ne "nobody" ) {
     print "Otherwise, changes to topics will not be logged by RCS.\n";
     print "</td></tr>\n";
 }
+my $relockCmd = $ENV{'SCRIPT_NAME'};
+$relockCmd =~ s/\/testenv/\/manage/; # scripts possibly have a suffix
+$relockCmd .= "?action=relockrcs";
+print "<tr><th></th><td><b><font color=\"brown\">Fix:</font></b>\n";
+print "If needed, <a href=\"$relockCmd\">relock</a> ";
+print "all the rcs files to user <tt>$usr</tt></td></tr>\n";
+
 print "<tr><th align=\"right\">Group(s):</th><td>";
 print "$grp";
 print "</table>\n";
