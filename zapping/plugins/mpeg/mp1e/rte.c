@@ -165,7 +165,9 @@ video_input_thread ( void * ptr )
 			fetch_data(context, 1);
 			pthread_mutex_lock(&(priv->video_mutex));
 			priv->video_pending --;
+			pthread_cond_broadcast(&(priv->video_cond));
 		}
+
 	}
 
 	pthread_mutex_unlock(&(priv->video_mutex));
@@ -192,6 +194,7 @@ audio_input_thread ( void * ptr )
 			fetch_data(context, 0);
 			pthread_mutex_lock(&(priv->audio_mutex));
 			priv->audio_pending --;
+			pthread_cond_broadcast(&(priv->audio_cond));
 		}
 	}
 
@@ -424,7 +427,7 @@ int rte_start ( rte_context * context )
 	context->private->encoding = 1;
 
 	/* Hopefully 8 frames is more than enough (we should only go
-	   2-3 frames ahead). With 16 buffers we lose few frames */
+	   2-3 frames ahead). With 16 buffers we lose fewer frames */
 	if (context->mode & 1)
 	{
 		init_fifo(&(context->private->vid), "video input",
@@ -438,6 +441,15 @@ int rte_start ( rte_context * context )
 			pthread_create(&(context->private->video_fetcher_id),
 				       NULL, video_input_thread, context);
 			schedule_video_fetch(context);
+			/* Wait until we get the frames (avoid frame drops) */
+			pthread_mutex_lock(&(context->private->video_mutex));
+			fprintf(stderr, "locked\n");
+			while (context->private->video_pending) {
+				fprintf(stderr, "waiting\n");
+				pthread_cond_wait(&(context->private->video_cond), &(context->private->video_mutex));
+				fprintf(stderr, "done waiting\n");
+			}
+			pthread_mutex_unlock(&(context->private->video_mutex));
 		}
 	}
 
@@ -453,6 +465,11 @@ int rte_start ( rte_context * context )
 			pthread_create(&(context->private->audio_fetcher_id),
 				       NULL, audio_input_thread, context);
 			schedule_audio_fetch(context);
+			/* Wait until we get the samples */
+			pthread_mutex_lock(&(context->private->audio_mutex));
+			while (context->private->audio_pending)
+				pthread_cond_wait(&(context->private->audio_cond), &(context->private->audio_mutex));
+			pthread_mutex_unlock(&(context->private->audio_mutex));
 		}
 	}
 
@@ -515,6 +532,11 @@ void * rte_push_video_data ( rte_context * context, void * data,
 		rte_error(context, "Mux isn't prepared to encode video!");
 		return NULL;
 	}
+	if (context->private->data_callback) {
+		rte_error(context,
+			  "The push and the callbacks interfaces don't work well together");
+		return NULL;
+	}
 
 	buf = new_buffer(&(context->private->vid));
 
@@ -560,6 +582,11 @@ void * rte_push_audio_data ( rte_context * context, void * data,
 	}
 	if (!(context->mode & 2)) {
 		rte_error(context, "Mux isn't prepared to encode audio!");
+		return NULL;
+	}
+	if (context->private->data_callback) {
+		rte_error(context,
+			  "The push and the callbacks interfaces don't work well together");
 		return NULL;
 	}
 
