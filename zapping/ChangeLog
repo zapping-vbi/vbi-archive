@@ -1,3 +1,8 @@
+26.08.2001	Color conversion <mschimek@users.sf.net>
+
+	* src/gen_conv.*: Added rgb2yuv functions, for now MMX only. 
+	* src/gen_conv.s: Fixed stack allocation bug (harmless).
+
 25.08.2001	Plural forms <garetxe@users.sf.net>
 
 	* gettext: Applied patch from Pawel for handling plural i18ed

@@ -1,21 +1,12 @@
 /*
  *  Zapping (TV viewer for the Gnome Desktop)
- *  MMX color conversion routines
+ *  SWAR color conversion routines
  *
  *  Copyright (C) 2001 Michael H. Schimek <mschimek@users.sf.net>
  *
- *  Contains code from mpeg2dec yuv2rgb_mmx.c,
- *  Software YUV to RGB converter with Intel MMX "technology"
- *
- *  Copyright (C) 2000, Silicon Integrated System Corp.
- *  All Rights Reserved.
- *
- *  Author: Olie Lho <ollie@sis.com.tw>
- *
  *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *  it under the terms of the GNU General Public License version 2 as
+ *  published by the Free Software Foundation.
  *
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -53,6 +44,26 @@
 		.long		0xf8f8f8f8, 0xf8f8f8f8
 .L28:
 		.long		0xe0e0e0e0, 0xe0e0e0e0
+.L45:
+		.long		0x41bd41bd, 0x41bd41bd
+.L46:
+		.long		0x40874087, 0x40874087
+.L47:
+		.long		0x19101910, 0x19101910
+.L48:
+		.long		0x6dee6dee, 0x6dee6dee
+.L49:
+		.long		0x36f736f7, 0x36f736f7
+.L50:
+		.long		0x093c093c, 0x093c093c
+.L51:
+		.long		0x0bac0bac, 0x0bac0bac
+.L52:
+		.long		0x01080108, 0x01080108
+.L53:
+		.long		0x80808080, 0x80808080
+.L62:
+		.long		0x001f001f, 0x001f001f
 		.text
 		.align		16
 		.globl		mmx_yuyv_rgb32
@@ -60,20 +71,20 @@ mmx_yuyv_rgb32:
 		pushl		%edi
 		pushl		%esi
 		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
 		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
+		movl		0+12+20(%esp),%ebx
 		subl		%ecx,%eax
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 		shll		$2,%ecx
-		movl		28(%esp),%edx
+		movl		0+12+16(%esp),%edx
 		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
 .L2:
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 .L1:
 		pxor		%mm7,%mm7
 		movq		(%esi),%mm4
@@ -176,28 +187,28 @@ mmx_yuv420_rgb32:
 		t4 = 36
 		t5 = 40
 		t9 = 44
-		movl		36(%ecx),%ebx
+		movl		0+16+20(%ecx),%ebx
 		movl		%ebx,t4(%esp)
 		shrl		$1,%ebx
-		movl		52(%ecx),%eax
+		movl		0+16+36(%ecx),%eax
 		subl		%ebx,%eax
 		movl		%eax,t3(%esp)
-		movl		48(%ecx),%eax
+		movl		0+16+32(%ecx),%eax
 		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
+		movl		0+16+4(%ecx),%edi
 		movl		%eax,%ebp
-		movl		44(%ecx),%esi
+		movl		0+16+28(%ecx),%esi
 		subl		%ebx,%eax
 		movl		%eax,t1(%esp)
 		shll		$2,%ebx
 		movl		%esi,%edx
-		movl		40(%ecx),%eax
+		movl		0+16+24(%ecx),%eax
 		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
+		movl		0+16+16(%ecx),%ebx
 		movl		%esi,t2(%esp)
-		movl		24(%ecx),%esi
+		movl		0+16+8(%ecx),%esi
 		movl		%eax,t5(%esp)
-		movl		28(%ecx),%eax
+		movl		0+16+12(%ecx),%eax
 		movl		%ecx,t9(%esp)
 		.align 16
 .L11:
@@ -343,20 +354,20 @@ mmx_yuyv_bgr32:
 		pushl		%edi
 		pushl		%esi
 		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
 		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
+		movl		0+12+20(%esp),%ebx
 		subl		%ecx,%eax
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 		shll		$2,%ecx
-		movl		28(%esp),%edx
+		movl		0+12+16(%esp),%edx
 		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
 .L14:
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 .L13:
 		pxor		%mm7,%mm7
 		movq		(%esi),%mm4
@@ -448,7 +459,7 @@ mmx_yuv420_bgr32:
 		pushl		%esi
 		pushl		%edi
 		movl		%esp,%ecx
-		leal		-96(%esp),%esp
+		leal		-48(%esp),%esp
 		andl		$-8,%esp
 		t15 = 0
 		t16 = 8
@@ -459,28 +470,28 @@ mmx_yuv420_bgr32:
 		t13 = 36
 		t14 = 40
 		t18 = 44
-		movl		36(%ecx),%ebx
+		movl		0+16+20(%ecx),%ebx
 		movl		%ebx,t13(%esp)
 		shrl		$1,%ebx
-		movl		52(%ecx),%eax
+		movl		0+16+36(%ecx),%eax
 		subl		%ebx,%eax
 		movl		%eax,t12(%esp)
-		movl		48(%ecx),%eax
+		movl		0+16+32(%ecx),%eax
 		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
+		movl		0+16+4(%ecx),%edi
 		movl		%eax,%ebp
-		movl		44(%ecx),%esi
+		movl		0+16+28(%ecx),%esi
 		subl		%ebx,%eax
 		movl		%eax,t10(%esp)
 		shll		$2,%ebx
 		movl		%esi,%edx
-		movl		40(%ecx),%eax
+		movl		0+16+24(%ecx),%eax
 		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
+		movl		0+16+16(%ecx),%ebx
 		movl		%esi,t11(%esp)
-		movl		24(%ecx),%esi
+		movl		0+16+8(%ecx),%esi
 		movl		%eax,t14(%esp)
-		movl		28(%ecx),%eax
+		movl		0+16+12(%ecx),%eax
 		movl		%ecx,t18(%esp)
 		.align 16
 .L16:
@@ -626,20 +637,20 @@ mmx_yuyv_rgb24:
 		pushl		%edi
 		pushl		%esi
 		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
 		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
+		movl		0+12+20(%esp),%ebx
 		subl		%ecx,%eax
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 		leal		(%ecx,%ecx,2),%ecx
-		movl		28(%esp),%edx
+		movl		0+12+16(%esp),%edx
 		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
 .L18:
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 .L17:
 		movq		(%esi),%mm4
 		movq		%mm4,%mm6
@@ -735,7 +746,7 @@ mmx_yuv420_rgb24:
 		pushl		%esi
 		pushl		%edi
 		movl		%esp,%ecx
-		leal		-136(%esp),%esp
+		leal		-40(%esp),%esp
 		andl		$-8,%esp
 		t24 = 0
 		t25 = 8
@@ -745,28 +756,28 @@ mmx_yuv420_rgb24:
 		t22 = 28
 		t23 = 32
 		t26 = 36
-		movl		36(%ecx),%ebx
+		movl		0+16+20(%ecx),%ebx
 		movl		%ebx,t22(%esp)
 		shrl		$1,%ebx
-		movl		52(%ecx),%eax
+		movl		0+16+36(%ecx),%eax
 		subl		%ebx,%eax
 		movl		%eax,t21(%esp)
-		movl		48(%ecx),%eax
+		movl		0+16+32(%ecx),%eax
 		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
+		movl		0+16+4(%ecx),%edi
 		movl		%eax,%ebp
-		movl		44(%ecx),%esi
+		movl		0+16+28(%ecx),%esi
 		subl		%ebx,%eax
 		movl		%eax,t19(%esp)
 		leal		(%ebx,%ebx,2),%ebx
 		movl		%esi,%edx
-		movl		40(%ecx),%eax
+		movl		0+16+24(%ecx),%eax
 		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
+		movl		0+16+16(%ecx),%ebx
 		movl		%esi,t20(%esp)
-		movl		24(%ecx),%esi
+		movl		0+16+8(%ecx),%esi
 		movl		%eax,t23(%esp)
-		movl		28(%ecx),%eax
+		movl		0+16+12(%ecx),%eax
 		movl		%ecx,t26(%esp)
 		.align 16
 .L20:
@@ -921,20 +932,20 @@ mmx_yuyv_bgr24:
 		pushl		%edi
 		pushl		%esi
 		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
 		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
+		movl		0+12+20(%esp),%ebx
 		subl		%ecx,%eax
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 		leal		(%ecx,%ecx,2),%ecx
-		movl		28(%esp),%edx
+		movl		0+12+16(%esp),%edx
 		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
 .L22:
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 .L21:
 		movq		(%esi),%mm4
 		movq		%mm4,%mm6
@@ -1030,7 +1041,7 @@ mmx_yuv420_bgr24:
 		pushl		%esi
 		pushl		%edi
 		movl		%esp,%ecx
-		leal		-176(%esp),%esp
+		leal		-40(%esp),%esp
 		andl		$-8,%esp
 		t32 = 0
 		t33 = 8
@@ -1040,28 +1051,28 @@ mmx_yuv420_bgr24:
 		t30 = 28
 		t31 = 32
 		t34 = 36
-		movl		36(%ecx),%ebx
+		movl		0+16+20(%ecx),%ebx
 		movl		%ebx,t30(%esp)
 		shrl		$1,%ebx
-		movl		52(%ecx),%eax
+		movl		0+16+36(%ecx),%eax
 		subl		%ebx,%eax
 		movl		%eax,t29(%esp)
-		movl		48(%ecx),%eax
+		movl		0+16+32(%ecx),%eax
 		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
+		movl		0+16+4(%ecx),%edi
 		movl		%eax,%ebp
-		movl		44(%ecx),%esi
+		movl		0+16+28(%ecx),%esi
 		subl		%ebx,%eax
 		movl		%eax,t27(%esp)
 		leal		(%ebx,%ebx,2),%ebx
 		movl		%esi,%edx
-		movl		40(%ecx),%eax
+		movl		0+16+24(%ecx),%eax
 		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
+		movl		0+16+16(%ecx),%ebx
 		movl		%esi,t28(%esp)
-		movl		24(%ecx),%esi
+		movl		0+16+8(%ecx),%esi
 		movl		%eax,t31(%esp)
-		movl		28(%ecx),%eax
+		movl		0+16+12(%ecx),%eax
 		movl		%ecx,t34(%esp)
 		.align 16
 .L24:
@@ -1216,20 +1227,20 @@ mmx_yuyv_rgb565:
 		pushl		%edi
 		pushl		%esi
 		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
 		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
+		movl		0+12+20(%esp),%ebx
 		subl		%ecx,%eax
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 		addl		%ecx,%ecx
-		movl		28(%esp),%edx
+		movl		0+12+16(%esp),%edx
 		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
 .L26:
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 .L25:
 		movq		.L27,%mm7
 		movq		(%esi),%mm4
@@ -1318,7 +1329,7 @@ mmx_yuv420_rgb565:
 		pushl		%esi
 		pushl		%edi
 		movl		%esp,%ecx
-		leal		-224(%esp),%esp
+		leal		-48(%esp),%esp
 		andl		$-8,%esp
 		t40 = 0
 		t41 = 8
@@ -1329,28 +1340,28 @@ mmx_yuv420_rgb565:
 		t38 = 36
 		t39 = 40
 		t43 = 44
-		movl		36(%ecx),%ebx
+		movl		0+16+20(%ecx),%ebx
 		movl		%ebx,t38(%esp)
 		shrl		$1,%ebx
-		movl		52(%ecx),%eax
+		movl		0+16+36(%ecx),%eax
 		subl		%ebx,%eax
 		movl		%eax,t37(%esp)
-		movl		48(%ecx),%eax
+		movl		0+16+32(%ecx),%eax
 		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
+		movl		0+16+4(%ecx),%edi
 		movl		%eax,%ebp
-		movl		44(%ecx),%esi
+		movl		0+16+28(%ecx),%esi
 		subl		%ebx,%eax
 		movl		%eax,t35(%esp)
 		addl		%ebx,%ebx
 		movl		%esi,%edx
-		movl		40(%ecx),%eax
+		movl		0+16+24(%ecx),%eax
 		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
+		movl		0+16+16(%ecx),%ebx
 		movl		%esi,t36(%esp)
-		movl		24(%ecx),%esi
+		movl		0+16+8(%ecx),%esi
 		movl		%eax,t39(%esp)
-		movl		28(%ecx),%eax
+		movl		0+16+12(%ecx),%eax
 		movl		%ecx,t43(%esp)
 		.align 16
 .L30:
@@ -1490,20 +1501,20 @@ mmx_yuyv_bgr565:
 		pushl		%edi
 		pushl		%esi
 		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
 		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
+		movl		0+12+20(%esp),%ebx
 		subl		%ecx,%eax
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 		addl		%ecx,%ecx
-		movl		28(%esp),%edx
+		movl		0+12+16(%esp),%edx
 		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
 .L32:
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 .L31:
 		movq		.L27,%mm7
 		movq		(%esi),%mm4
@@ -1592,7 +1603,7 @@ mmx_yuv420_bgr565:
 		pushl		%esi
 		pushl		%edi
 		movl		%esp,%ecx
-		leal		-272(%esp),%esp
+		leal		-48(%esp),%esp
 		andl		$-8,%esp
 		t49 = 0
 		t50 = 8
@@ -1603,28 +1614,28 @@ mmx_yuv420_bgr565:
 		t47 = 36
 		t48 = 40
 		t52 = 44
-		movl		36(%ecx),%ebx
+		movl		0+16+20(%ecx),%ebx
 		movl		%ebx,t47(%esp)
 		shrl		$1,%ebx
-		movl		52(%ecx),%eax
+		movl		0+16+36(%ecx),%eax
 		subl		%ebx,%eax
 		movl		%eax,t46(%esp)
-		movl		48(%ecx),%eax
+		movl		0+16+32(%ecx),%eax
 		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
+		movl		0+16+4(%ecx),%edi
 		movl		%eax,%ebp
-		movl		44(%ecx),%esi
+		movl		0+16+28(%ecx),%esi
 		subl		%ebx,%eax
 		movl		%eax,t44(%esp)
 		addl		%ebx,%ebx
 		movl		%esi,%edx
-		movl		40(%ecx),%eax
+		movl		0+16+24(%ecx),%eax
 		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
+		movl		0+16+16(%ecx),%ebx
 		movl		%esi,t45(%esp)
-		movl		24(%ecx),%esi
+		movl		0+16+8(%ecx),%esi
 		movl		%eax,t48(%esp)
-		movl		28(%ecx),%eax
+		movl		0+16+12(%ecx),%eax
 		movl		%ecx,t52(%esp)
 		.align 16
 .L34:
@@ -1764,20 +1775,20 @@ mmx_yuyv_rgb5551:
 		pushl		%edi
 		pushl		%esi
 		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
 		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
+		movl		0+12+20(%esp),%ebx
 		subl		%ecx,%eax
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 		addl		%ecx,%ecx
-		movl		28(%esp),%edx
+		movl		0+12+16(%esp),%edx
 		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
 .L36:
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 .L35:
 		movq		.L27,%mm7
 		movq		(%esi),%mm4
@@ -1868,7 +1879,7 @@ mmx_yuv420_rgb5551:
 		pushl		%esi
 		pushl		%edi
 		movl		%esp,%ecx
-		leal		-320(%esp),%esp
+		leal		-48(%esp),%esp
 		andl		$-8,%esp
 		t58 = 0
 		t59 = 8
@@ -1879,28 +1890,28 @@ mmx_yuv420_rgb5551:
 		t56 = 36
 		t57 = 40
 		t61 = 44
-		movl		36(%ecx),%ebx
+		movl		0+16+20(%ecx),%ebx
 		movl		%ebx,t56(%esp)
 		shrl		$1,%ebx
-		movl		52(%ecx),%eax
+		movl		0+16+36(%ecx),%eax
 		subl		%ebx,%eax
 		movl		%eax,t55(%esp)
-		movl		48(%ecx),%eax
+		movl		0+16+32(%ecx),%eax
 		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
+		movl		0+16+4(%ecx),%edi
 		movl		%eax,%ebp
-		movl		44(%ecx),%esi
+		movl		0+16+28(%ecx),%esi
 		subl		%ebx,%eax
 		movl		%eax,t53(%esp)
 		addl		%ebx,%ebx
 		movl		%esi,%edx
-		movl		40(%ecx),%eax
+		movl		0+16+24(%ecx),%eax
 		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
+		movl		0+16+16(%ecx),%ebx
 		movl		%esi,t54(%esp)
-		movl		24(%ecx),%esi
+		movl		0+16+8(%ecx),%esi
 		movl		%eax,t57(%esp)
-		movl		28(%ecx),%eax
+		movl		0+16+12(%ecx),%eax
 		movl		%ecx,t61(%esp)
 		.align 16
 .L38:
@@ -2044,20 +2055,20 @@ mmx_yuyv_bgr5551:
 		pushl		%edi
 		pushl		%esi
 		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
 		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
+		movl		0+12+20(%esp),%ebx
 		subl		%ecx,%eax
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 		addl		%ecx,%ecx
-		movl		28(%esp),%edx
+		movl		0+12+16(%esp),%edx
 		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
 .L40:
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 .L39:
 		movq		.L27,%mm7
 		movq		(%esi),%mm4
@@ -2148,7 +2159,7 @@ mmx_yuv420_bgr5551:
 		pushl		%esi
 		pushl		%edi
 		movl		%esp,%ecx
-		leal		-368(%esp),%esp
+		leal		-48(%esp),%esp
 		andl		$-8,%esp
 		t67 = 0
 		t68 = 8
@@ -2159,28 +2170,28 @@ mmx_yuv420_bgr5551:
 		t65 = 36
 		t66 = 40
 		t70 = 44
-		movl		36(%ecx),%ebx
+		movl		0+16+20(%ecx),%ebx
 		movl		%ebx,t65(%esp)
 		shrl		$1,%ebx
-		movl		52(%ecx),%eax
+		movl		0+16+36(%ecx),%eax
 		subl		%ebx,%eax
 		movl		%eax,t64(%esp)
-		movl		48(%ecx),%eax
+		movl		0+16+32(%ecx),%eax
 		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
+		movl		0+16+4(%ecx),%edi
 		movl		%eax,%ebp
-		movl		44(%ecx),%esi
+		movl		0+16+28(%ecx),%esi
 		subl		%ebx,%eax
 		movl		%eax,t62(%esp)
 		addl		%ebx,%ebx
 		movl		%esi,%edx
-		movl		40(%ecx),%eax
+		movl		0+16+24(%ecx),%eax
 		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
+		movl		0+16+16(%ecx),%ebx
 		movl		%esi,t63(%esp)
-		movl		24(%ecx),%esi
+		movl		0+16+8(%ecx),%esi
 		movl		%eax,t66(%esp)
-		movl		28(%ecx),%eax
+		movl		0+16+12(%ecx),%eax
 		movl		%ecx,t70(%esp)
 		.align 16
 .L42:
@@ -2319,97 +2330,99 @@ mmx_yuv420_bgr5551:
 		ret
 		.text
 		.align		16
-		.globl		sse_yuyv_rgb32
-sse_yuyv_rgb32:
+		.globl		mmx_rgb32_yuyv
+mmx_rgb32_yuyv:
 		pushl		%edi
 		pushl		%esi
 		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
-		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
-		subl		%ecx,%eax
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
 		shll		$2,%ecx
-		movl		28(%esp),%edx
+		movl		0+12+20(%esp),%ebx
+		subl		%ecx,%eax
+		movl		0+12+12(%esp),%ecx
+		addl		%ecx,%ecx
+		movl		0+12+16(%esp),%edx
 		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
 .L44:
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 .L43:
-		pxor		%mm7,%mm7
-		movq		(%esi),%mm4
-		movq		%mm4,%mm6
+		movq		(%esi),%mm0
 		movq		8(%esi),%mm5
-		punpcklwd	%mm5,%mm4
-		addl		$16,%esi
-		punpckhwd	%mm5,%mm6
-		movq		%mm4,%mm5
-		punpcklwd	%mm6,%mm4
-		movq		%mm4,%mm0
-		punpckhwd	%mm6,%mm5
-		movq		.L3,%mm1
-		movq		%mm5,%mm2
-		movq		.L4,%mm3
-		psrlw		$8,%mm0
-		pand		%mm1,%mm4
-		psubw		%mm3,%mm0
-		psrlw		$8,%mm2
-		pand		%mm1,%mm5
-		psubw		%mm3,%mm2
-		psrlw		$3,%mm3
-		psubw		%mm3,%mm4
-		psubw		%mm3,%mm5
-		psllw		$3,%mm0
+		movq		16(%esi),%mm2
+		movq		24(%esi),%mm4
+		addl		$32,%esi
 		movq		%mm0,%mm6
-		pmulhw		.L6,%mm6
-		psllw		$2,%mm2
-		movq		%mm2,%mm1
-		pmulhw		.L9,%mm1
-		psllw		$2,%mm4
-		pmulhw		.L7,%mm0
-		psllw		$2,%mm5
-		pmulhw		.L8,%mm2
-		paddw		%mm1,%mm6
-		pmulhw		.L5,%mm4
-		movq		%mm0,%mm1
-		pmulhw		.L5,%mm5
-		prefetchnta	(%esi)
-		paddw		%mm4,%mm0
-		paddw		%mm5,%mm1
-		packuswb	%mm0,%mm0
-		movq		%mm2,%mm3
-		packuswb	%mm1,%mm1
-		paddw		%mm4,%mm2
-		punpcklbw	%mm1,%mm0
-		paddw		%mm5,%mm3
-		psubw		%mm6,%mm4
-		packuswb	%mm2,%mm2
-		packuswb	%mm3,%mm3
-		packuswb	%mm4,%mm4
-		psubw		%mm6,%mm5
-		punpcklbw	%mm3,%mm2
-		packuswb	%mm5,%mm5
-		punpcklbw	%mm5,%mm4
-		movq		%mm2,%mm1
+		punpcklbw	%mm5,%mm0
+		punpckhbw	%mm5,%mm6
+		movq		%mm2,%mm7
 		punpcklbw	%mm4,%mm2
+		punpckhbw	%mm4,%mm7
+		pxor		%mm5,%mm5
+		movq		%mm0,%mm4
+		punpcklwd	%mm2,%mm0
+		punpckhwd	%mm2,%mm4
+		punpcklbw	%mm5,%mm4
+		movq		%mm0,%mm2
+		punpcklbw	%mm5,%mm0
+		punpckhbw	%mm5,%mm2
+		psllw		$4,%mm0
+		movq		%mm0,%mm1
+		pmulhw		.L45,%mm0
+		psllw		$5,%mm2
+		pmulhw		.L46,%mm2
+		psllw		$4,%mm4
+		movq		%mm4,%mm3
+		pmulhw		.L47,%mm4
+		paddw		%mm2,%mm0
+		paddw		%mm4,%mm0
+		movq		%mm6,%mm4
+		punpcklwd	%mm7,%mm6
+		punpckhwd	%mm7,%mm4
+		punpcklbw	%mm5,%mm4
+		movq		%mm6,%mm2
+		punpcklbw	%mm5,%mm6
+		punpckhbw	%mm5,%mm2
+		psllw		$4,%mm6
+		paddw		%mm6,%mm1
+		pmulhw		.L45,%mm6
+		psllw		$5,%mm2
+		pmulhw		.L46,%mm2
+		psllw		$4,%mm4
+		paddw		%mm4,%mm3
+		pmulhw		.L47,%mm4
+		movq		.L48,%mm5
+		paddw		%mm2,%mm6
+		paddw		%mm4,%mm6
+		pmulhw		%mm5,%mm1
+		movq		%mm0,%mm2
+		pmulhw		%mm5,%mm3
+		movq		.L52,%mm4
+		paddw		%mm6,%mm2
+		psrlw		$1,%mm2
+		psubw		%mm2,%mm1
+		pmulhw		.L51,%mm1
+		psubw		%mm2,%mm3
+		pmulhw		.L50,%mm3
+		packsswb	%mm1,%mm3
+		paddw		%mm4,%mm0
+		psrlw		$4,%mm0
+		pxor		.L53,%mm3
+		paddw		%mm4,%mm6
+		psrlw		$4,%mm6
+		packuswb	%mm6,%mm0
+		movq		%mm0,%mm6
+		punpcklbw	%mm3,%mm0
+		punpckhbw	%mm3,%mm6
 		movq		%mm0,%mm3
-		punpcklbw	%mm7,%mm0
-		movq		%mm2,%mm5
-		punpcklwd	%mm0,%mm2
-		punpckhwd	%mm0,%mm5
-		movntq		%mm2,(%edi)
-		punpckhbw	%mm4,%mm1
-		movntq		%mm5,8(%edi)
-		punpckhbw	%mm7,%mm3
-		movq		%mm1,%mm5
-		punpcklwd	%mm3,%mm1
-		movntq		%mm1,16(%edi)
-		punpckhwd	%mm3,%mm5
-		movntq		%mm5,24(%edi)
-		addl		$32,%edi
+		punpcklwd	%mm6,%mm0
+		punpckhwd	%mm6,%mm3
+		movq		%mm0,(%edi)
+		movq		%mm3,8(%edi)
+		addl		$16,%edi
 		subl		$8,%ecx
 		jne		.L43
 		addl		%eax,%esi
@@ -2423,845 +2436,105 @@ sse_yuyv_rgb32:
 		ret
 		.text
 		.align		16
-		.globl		sse_yuv420_rgb32
-sse_yuv420_rgb32:
-		pushl		%ebx
-		pushl		%ebp
-		pushl		%esi
-		pushl		%edi
-		movl		%esp,%ecx
-		leal		-416(%esp),%esp
-		andl		$-8,%esp
-		t76 = 0
-		t77 = 8
-		t78 = 16
-		t71 = 24
-		t72 = 28
-		t73 = 32
-		t74 = 36
-		t75 = 40
-		t79 = 44
-		movl		36(%ecx),%ebx
-		movl		%ebx,t74(%esp)
-		shrl		$1,%ebx
-		movl		52(%ecx),%eax
-		subl		%ebx,%eax
-		movl		%eax,t73(%esp)
-		movl		48(%ecx),%eax
-		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
-		movl		%eax,%ebp
-		movl		44(%ecx),%esi
-		subl		%ebx,%eax
-		movl		%eax,t71(%esp)
-		shll		$2,%ebx
-		movl		%esi,%edx
-		movl		40(%ecx),%eax
-		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
-		movl		%esi,t72(%esp)
-		movl		24(%ecx),%esi
-		movl		%eax,t75(%esp)
-		movl		28(%ecx),%eax
-		movl		%ecx,t79(%esp)
-		.align 16
-.L46:
-		movl		t74(%esp),%ecx
-.L45:
-		pxor		%mm7,%mm7
-		movq		.L4,%mm3
-		pxor		%mm1,%mm1
-		movd		(%eax),%mm0
-		addl		$4,%eax
-		punpcklbw	%mm1,%mm0
-		movd		(%ebx),%mm2
-		addl		$4,%ebx
-		psubw		%mm3,%mm0
-		punpcklbw	%mm1,%mm2
-		movq		(%esi),%mm4
-		psubw		%mm3,%mm2
-		movq		%mm4,%mm5
-		psrlw		$3,%mm3
-		pand		.L3,%mm4
-		psrlw		$8,%mm5
-		psubw		%mm3,%mm4
-		psubw		%mm3,%mm5
-		psllw		$3,%mm0
-		movq		%mm0,%mm6
-		pmulhw		.L6,%mm6
-		psllw		$2,%mm2
-		movq		%mm2,%mm1
-		pmulhw		.L9,%mm1
-		psllw		$2,%mm4
-		pmulhw		.L7,%mm0
-		psllw		$2,%mm5
-		pmulhw		.L8,%mm2
-		paddw		%mm1,%mm6
-		pmulhw		.L5,%mm4
-		movq		%mm0,t77(%esp)
-		pmulhw		.L5,%mm5
-		movq		%mm2,t76(%esp)
-		movq		%mm0,%mm1
-		movq		%mm6,t78(%esp)
-		prefetchnta	(%esi)
-		paddw		%mm4,%mm0
-		paddw		%mm5,%mm1
-		packuswb	%mm0,%mm0
-		movq		%mm2,%mm3
-		packuswb	%mm1,%mm1
-		paddw		%mm4,%mm2
-		punpcklbw	%mm1,%mm0
-		paddw		%mm5,%mm3
-		psubw		%mm6,%mm4
-		packuswb	%mm2,%mm2
-		packuswb	%mm3,%mm3
-		packuswb	%mm4,%mm4
-		psubw		%mm6,%mm5
-		punpcklbw	%mm3,%mm2
-		packuswb	%mm5,%mm5
-		punpcklbw	%mm5,%mm4
-		movq		%mm2,%mm1
-		punpcklbw	%mm4,%mm2
-		movq		%mm0,%mm3
-		punpcklbw	%mm7,%mm0
-		movq		%mm2,%mm5
-		punpcklwd	%mm0,%mm2
-		punpckhwd	%mm0,%mm5
-		movntq		%mm2,(%edi)
-		punpckhbw	%mm4,%mm1
-		movntq		%mm5,8(%edi)
-		punpckhbw	%mm7,%mm3
-		movq		%mm1,%mm5
-		punpcklwd	%mm3,%mm1
-		movntq		%mm1,16(%edi)
-		punpckhwd	%mm3,%mm5
-		movntq		%mm5,24(%edi)
-		movq		(%esi,%ebp),%mm4
-		addl		$8,%esi
-		movq		.L12,%mm3
-		movq		%mm4,%mm5
-		pand		.L3,%mm4
-		psrlw		$8,%mm5
-		psubw		%mm3,%mm4
-		psubw		%mm3,%mm5
-		movq		t77(%esp),%mm0
-		psllw		$2,%mm4
-		movq		t76(%esp),%mm2
-		psllw		$2,%mm5
-		pmulhw		.L5,%mm4
-		movq		%mm0,%mm1
-		pmulhw		.L5,%mm5
-		prefetchnta	(%esi)
-		paddw		%mm4,%mm0
-		paddw		%mm5,%mm1
-		packuswb	%mm0,%mm0
-		movq		%mm2,%mm3
-		packuswb	%mm1,%mm1
-		paddw		%mm4,%mm2
-		punpcklbw	%mm1,%mm0
-		paddw		%mm5,%mm3
-		psubw		t78(%esp),%mm4
-		packuswb	%mm2,%mm2
-		packuswb	%mm3,%mm3
-		packuswb	%mm4,%mm4
-		psubw		t78(%esp),%mm5
-		punpcklbw	%mm3,%mm2
-		packuswb	%mm5,%mm5
-		punpcklbw	%mm5,%mm4
-		movq		%mm2,%mm1
-		punpcklbw	%mm4,%mm2
-		movq		%mm0,%mm3
-		punpcklbw	%mm7,%mm0
-		movq		%mm2,%mm5
-		punpcklwd	%mm0,%mm2
-		punpckhwd	%mm0,%mm5
-		movntq		%mm2,(%edi,%edx)
-		punpckhbw	%mm4,%mm1
-		movntq		%mm5,8(%edi,%edx)
-		punpckhbw	%mm7,%mm3
-		movq		%mm1,%mm5
-		punpcklwd	%mm3,%mm1
-		movntq		%mm1,16(%edi,%edx)
-		punpckhwd	%mm3,%mm5
-		movntq		%mm5,24(%edi,%edx)
-		addl		$32,%edi
-		subl		$8,%ecx
-		jne		.L45
-		addl		t71(%esp),%esi
-		addl		%ebp,%esi
-		movl		t73(%esp),%ecx
-		addl		%ecx,%eax
-		addl		t72(%esp),%edi
-		addl		%edx,%edi
-		addl		%ecx,%ebx
-		subl		$2,t75(%esp)
-		jne		.L46
-		movl		t79(%esp),%esp
-		emms
-		popl		%edi
-		popl		%esi
-		popl		%ebp
-		popl		%ebx
-		ret
-		.text
-		.align		16
-		.globl		sse_yuyv_bgr32
-sse_yuyv_bgr32:
+		.globl		mmx_bgr32_yuyv
+mmx_bgr32_yuyv:
 		pushl		%edi
 		pushl		%esi
 		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
-		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
-		subl		%ecx,%eax
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
 		shll		$2,%ecx
-		movl		28(%esp),%edx
-		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
-		.align 16
-.L48:
-		movl		24(%esp),%ecx
-.L47:
-		pxor		%mm7,%mm7
-		movq		(%esi),%mm4
-		movq		%mm4,%mm6
-		movq		8(%esi),%mm5
-		punpcklwd	%mm5,%mm4
-		addl		$16,%esi
-		punpckhwd	%mm5,%mm6
-		movq		%mm4,%mm5
-		punpcklwd	%mm6,%mm4
-		movq		%mm4,%mm0
-		punpckhwd	%mm6,%mm5
-		movq		.L3,%mm1
-		movq		%mm5,%mm2
-		movq		.L4,%mm3
-		psrlw		$8,%mm0
-		pand		%mm1,%mm4
-		psubw		%mm3,%mm0
-		psrlw		$8,%mm2
-		pand		%mm1,%mm5
-		psubw		%mm3,%mm2
-		psrlw		$3,%mm3
-		psubw		%mm3,%mm4
-		psubw		%mm3,%mm5
-		psllw		$3,%mm0
-		movq		%mm0,%mm6
-		pmulhw		.L6,%mm6
-		psllw		$2,%mm2
-		movq		%mm2,%mm1
-		pmulhw		.L9,%mm1
-		psllw		$2,%mm4
-		pmulhw		.L7,%mm0
-		psllw		$2,%mm5
-		pmulhw		.L8,%mm2
-		paddw		%mm1,%mm6
-		pmulhw		.L5,%mm4
-		movq		%mm0,%mm1
-		pmulhw		.L5,%mm5
-		prefetchnta	(%esi)
-		paddw		%mm4,%mm0
-		paddw		%mm5,%mm1
-		packuswb	%mm0,%mm0
-		movq		%mm2,%mm3
-		packuswb	%mm1,%mm1
-		paddw		%mm4,%mm2
-		punpcklbw	%mm1,%mm0
-		paddw		%mm5,%mm3
-		psubw		%mm6,%mm4
-		packuswb	%mm2,%mm2
-		packuswb	%mm3,%mm3
-		packuswb	%mm4,%mm4
-		psubw		%mm6,%mm5
-		punpcklbw	%mm3,%mm2
-		packuswb	%mm5,%mm5
-		punpcklbw	%mm5,%mm4
-		movq		%mm0,%mm1
-		punpcklbw	%mm4,%mm0
-		movq		%mm2,%mm3
-		punpcklbw	%mm7,%mm2
-		movq		%mm0,%mm5
-		punpcklwd	%mm2,%mm0
-		punpckhwd	%mm2,%mm5
-		movntq		%mm0,(%edi)
-		punpckhbw	%mm4,%mm1
-		movntq		%mm5,8(%edi)
-		punpckhbw	%mm7,%mm3
-		movq		%mm1,%mm5
-		punpcklwd	%mm3,%mm1
-		movntq		%mm1,16(%edi)
-		punpckhwd	%mm3,%mm5
-		movntq		%mm5,24(%edi)
-		addl		$32,%edi
-		subl		$8,%ecx
-		jne		.L47
-		addl		%eax,%esi
-		addl		%ebx,%edi
-		decl		%edx
-		jne		.L48
-		emms
-		popl		%ebx
-		popl		%esi
-		popl		%edi
-		ret
-		.text
-		.align		16
-		.globl		sse_yuv420_bgr32
-sse_yuv420_bgr32:
-		pushl		%ebx
-		pushl		%ebp
-		pushl		%esi
-		pushl		%edi
-		movl		%esp,%ecx
-		leal		-464(%esp),%esp
-		andl		$-8,%esp
-		t85 = 0
-		t86 = 8
-		t87 = 16
-		t80 = 24
-		t81 = 28
-		t82 = 32
-		t83 = 36
-		t84 = 40
-		t88 = 44
-		movl		36(%ecx),%ebx
-		movl		%ebx,t83(%esp)
-		shrl		$1,%ebx
-		movl		52(%ecx),%eax
-		subl		%ebx,%eax
-		movl		%eax,t82(%esp)
-		movl		48(%ecx),%eax
-		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
-		movl		%eax,%ebp
-		movl		44(%ecx),%esi
-		subl		%ebx,%eax
-		movl		%eax,t80(%esp)
-		shll		$2,%ebx
-		movl		%esi,%edx
-		movl		40(%ecx),%eax
-		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
-		movl		%esi,t81(%esp)
-		movl		24(%ecx),%esi
-		movl		%eax,t84(%esp)
-		movl		28(%ecx),%eax
-		movl		%ecx,t88(%esp)
-		.align 16
-.L50:
-		movl		t83(%esp),%ecx
-.L49:
-		pxor		%mm7,%mm7
-		movq		.L4,%mm3
-		pxor		%mm1,%mm1
-		movd		(%eax),%mm0
-		addl		$4,%eax
-		punpcklbw	%mm1,%mm0
-		movd		(%ebx),%mm2
-		addl		$4,%ebx
-		psubw		%mm3,%mm0
-		punpcklbw	%mm1,%mm2
-		movq		(%esi),%mm4
-		psubw		%mm3,%mm2
-		movq		%mm4,%mm5
-		psrlw		$3,%mm3
-		pand		.L3,%mm4
-		psrlw		$8,%mm5
-		psubw		%mm3,%mm4
-		psubw		%mm3,%mm5
-		psllw		$3,%mm0
-		movq		%mm0,%mm6
-		pmulhw		.L6,%mm6
-		psllw		$2,%mm2
-		movq		%mm2,%mm1
-		pmulhw		.L9,%mm1
-		psllw		$2,%mm4
-		pmulhw		.L7,%mm0
-		psllw		$2,%mm5
-		pmulhw		.L8,%mm2
-		paddw		%mm1,%mm6
-		pmulhw		.L5,%mm4
-		movq		%mm0,t86(%esp)
-		pmulhw		.L5,%mm5
-		movq		%mm2,t85(%esp)
-		movq		%mm0,%mm1
-		movq		%mm6,t87(%esp)
-		prefetchnta	(%esi)
-		paddw		%mm4,%mm0
-		paddw		%mm5,%mm1
-		packuswb	%mm0,%mm0
-		movq		%mm2,%mm3
-		packuswb	%mm1,%mm1
-		paddw		%mm4,%mm2
-		punpcklbw	%mm1,%mm0
-		paddw		%mm5,%mm3
-		psubw		%mm6,%mm4
-		packuswb	%mm2,%mm2
-		packuswb	%mm3,%mm3
-		packuswb	%mm4,%mm4
-		psubw		%mm6,%mm5
-		punpcklbw	%mm3,%mm2
-		packuswb	%mm5,%mm5
-		punpcklbw	%mm5,%mm4
-		movq		%mm0,%mm1
-		punpcklbw	%mm4,%mm0
-		movq		%mm2,%mm3
-		punpcklbw	%mm7,%mm2
-		movq		%mm0,%mm5
-		punpcklwd	%mm2,%mm0
-		punpckhwd	%mm2,%mm5
-		movntq		%mm0,(%edi)
-		punpckhbw	%mm4,%mm1
-		movntq		%mm5,8(%edi)
-		punpckhbw	%mm7,%mm3
-		movq		%mm1,%mm5
-		punpcklwd	%mm3,%mm1
-		movntq		%mm1,16(%edi)
-		punpckhwd	%mm3,%mm5
-		movntq		%mm5,24(%edi)
-		movq		(%esi,%ebp),%mm4
-		addl		$8,%esi
-		movq		.L12,%mm3
-		movq		%mm4,%mm5
-		pand		.L3,%mm4
-		psrlw		$8,%mm5
-		psubw		%mm3,%mm4
-		psubw		%mm3,%mm5
-		movq		t86(%esp),%mm0
-		psllw		$2,%mm4
-		movq		t85(%esp),%mm2
-		psllw		$2,%mm5
-		pmulhw		.L5,%mm4
-		movq		%mm0,%mm1
-		pmulhw		.L5,%mm5
-		prefetchnta	(%esi)
-		paddw		%mm4,%mm0
-		paddw		%mm5,%mm1
-		packuswb	%mm0,%mm0
-		movq		%mm2,%mm3
-		packuswb	%mm1,%mm1
-		paddw		%mm4,%mm2
-		punpcklbw	%mm1,%mm0
-		paddw		%mm5,%mm3
-		psubw		t87(%esp),%mm4
-		packuswb	%mm2,%mm2
-		packuswb	%mm3,%mm3
-		packuswb	%mm4,%mm4
-		psubw		t87(%esp),%mm5
-		punpcklbw	%mm3,%mm2
-		packuswb	%mm5,%mm5
-		punpcklbw	%mm5,%mm4
-		movq		%mm0,%mm1
-		punpcklbw	%mm4,%mm0
-		movq		%mm2,%mm3
-		punpcklbw	%mm7,%mm2
-		movq		%mm0,%mm5
-		punpcklwd	%mm2,%mm0
-		punpckhwd	%mm2,%mm5
-		movntq		%mm0,(%edi,%edx)
-		punpckhbw	%mm4,%mm1
-		movntq		%mm5,8(%edi,%edx)
-		punpckhbw	%mm7,%mm3
-		movq		%mm1,%mm5
-		punpcklwd	%mm3,%mm1
-		movntq		%mm1,16(%edi,%edx)
-		punpckhwd	%mm3,%mm5
-		movntq		%mm5,24(%edi,%edx)
-		addl		$32,%edi
-		subl		$8,%ecx
-		jne		.L49
-		addl		t80(%esp),%esi
-		addl		%ebp,%esi
-		movl		t82(%esp),%ecx
-		addl		%ecx,%eax
-		addl		t81(%esp),%edi
-		addl		%edx,%edi
-		addl		%ecx,%ebx
-		subl		$2,t84(%esp)
-		jne		.L50
-		movl		t88(%esp),%esp
-		emms
-		popl		%edi
-		popl		%esi
-		popl		%ebp
-		popl		%ebx
-		ret
-		.text
-		.align		16
-		.globl		sse_yuyv_rgb24
-sse_yuyv_rgb24:
-		pushl		%edi
-		pushl		%esi
-		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
-		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
+		movl		0+12+20(%esp),%ebx
 		subl		%ecx,%eax
-		movl		24(%esp),%ecx
-		leal		(%ecx,%ecx,2),%ecx
-		movl		28(%esp),%edx
-		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
-		.align 16
-.L52:
-		movl		24(%esp),%ecx
-.L51:
-		movq		(%esi),%mm4
-		movq		%mm4,%mm6
-		movq		8(%esi),%mm5
-		punpcklwd	%mm5,%mm4
-		addl		$16,%esi
-		punpckhwd	%mm5,%mm6
-		movq		%mm4,%mm5
-		punpcklwd	%mm6,%mm4
-		movq		%mm4,%mm0
-		punpckhwd	%mm6,%mm5
-		movq		.L3,%mm1
-		movq		%mm5,%mm2
-		movq		.L4,%mm3
-		psrlw		$8,%mm0
-		pand		%mm1,%mm4
-		psubw		%mm3,%mm0
-		psrlw		$8,%mm2
-		pand		%mm1,%mm5
-		psubw		%mm3,%mm2
-		psrlw		$3,%mm3
-		psubw		%mm3,%mm4
-		psubw		%mm3,%mm5
-		psllw		$3,%mm0
-		movq		%mm0,%mm6
-		pmulhw		.L6,%mm6
-		psllw		$2,%mm2
-		movq		%mm2,%mm1
-		pmulhw		.L9,%mm1
-		psllw		$2,%mm4
-		pmulhw		.L7,%mm0
-		psllw		$2,%mm5
-		pmulhw		.L8,%mm2
-		paddw		%mm1,%mm6
-		pmulhw		.L5,%mm4
-		movq		%mm0,%mm1
-		pmulhw		.L5,%mm5
-		movq		%mm2,%mm3
-		prefetchnta	(%esi)
-		paddw		%mm4,%mm0
-		paddw		%mm5,%mm1
-		paddw		%mm4,%mm2
-		packuswb	%mm1,%mm0
-		paddw		%mm5,%mm3
-		psubw		%mm6,%mm4
-		packuswb	%mm3,%mm2
-		psubw		%mm6,%mm5
-		packuswb	%mm5,%mm4
-		movq		%mm2,%mm1
-		punpcklbw	%mm4,%mm2
-		psrlq		$32,%mm1
-		punpckhbw	%mm0,%mm4
-		punpcklbw	%mm1,%mm0
-		movq		%mm2,%mm1
-		punpcklwd	%mm0,%mm2
-		punpckhwd	%mm4,%mm0
-		psllq		$32,%mm4
-		punpckhwd	%mm2,%mm4
-		punpckldq	%mm4,%mm2
-		pshufw		$75,%mm4,%mm3
-		psrlq		$32,%mm1
-		movntq		%mm2,(%edi)
-		punpcklwd	%mm0,%mm1
-		pshufw		$180,%mm1,%mm1
-		punpckldq	%mm1,%mm3
-		punpckhdq	%mm0,%mm1
-		movntq		%mm3,8(%edi)
-		movntq		%mm1,16(%edi)
-		addl		$24,%edi
-		subl		$8,%ecx
-		jne		.L51
-		addl		%eax,%esi
-		addl		%ebx,%edi
-		decl		%edx
-		jne		.L52
-		emms
-		popl		%ebx
-		popl		%esi
-		popl		%edi
-		ret
-		.text
-		.align		16
-		.globl		sse_yuv420_rgb24
-sse_yuv420_rgb24:
-		pushl		%ebx
-		pushl		%ebp
-		pushl		%esi
-		pushl		%edi
-		movl		%esp,%ecx
-		leal		-504(%esp),%esp
-		andl		$-8,%esp
-		t94 = 0
-		t95 = 8
-		t89 = 16
-		t90 = 20
-		t91 = 24
-		t92 = 28
-		t93 = 32
-		t96 = 36
-		movl		36(%ecx),%ebx
-		movl		%ebx,t92(%esp)
-		shrl		$1,%ebx
-		movl		52(%ecx),%eax
-		subl		%ebx,%eax
-		movl		%eax,t91(%esp)
-		movl		48(%ecx),%eax
-		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
-		movl		%eax,%ebp
-		movl		44(%ecx),%esi
-		subl		%ebx,%eax
-		movl		%eax,t89(%esp)
-		leal		(%ebx,%ebx,2),%ebx
-		movl		%esi,%edx
-		movl		40(%ecx),%eax
-		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
-		movl		%esi,t90(%esp)
-		movl		24(%ecx),%esi
-		movl		%eax,t93(%esp)
-		movl		28(%ecx),%eax
-		movl		%ecx,t96(%esp)
-		.align 16
-.L54:
-		movl		t92(%esp),%ecx
-.L53:
-		movq		.L4,%mm3
-		pxor		%mm1,%mm1
-		movd		(%eax),%mm0
-		addl		$4,%eax
-		punpcklbw	%mm1,%mm0
-		movd		(%ebx),%mm2
-		addl		$4,%ebx
-		psubw		%mm3,%mm0
-		punpcklbw	%mm1,%mm2
-		movq		(%esi),%mm4
-		psubw		%mm3,%mm2
-		movq		%mm4,%mm5
-		psrlw		$3,%mm3
-		pand		.L3,%mm4
-		psrlw		$8,%mm5
-		psubw		%mm3,%mm4
-		psubw		%mm3,%mm5
-		psllw		$3,%mm0
-		movq		%mm0,%mm6
-		pmulhw		.L6,%mm6
-		psllw		$2,%mm2
-		movq		%mm2,%mm1
-		pmulhw		.L9,%mm1
-		psllw		$2,%mm4
-		pmulhw		.L7,%mm0
-		psllw		$2,%mm5
-		pmulhw		.L8,%mm2
-		paddw		%mm1,%mm6
-		pmulhw		.L5,%mm4
-		movq		%mm0,%mm7
-		pmulhw		.L5,%mm5
-		movq		%mm2,t94(%esp)
-		movq		%mm0,%mm1
-		movq		%mm6,t95(%esp)
-		movq		%mm2,%mm3
-		prefetchnta	(%esi)
-		paddw		%mm4,%mm0
-		paddw		%mm5,%mm1
-		paddw		%mm4,%mm2
-		packuswb	%mm1,%mm0
-		paddw		%mm5,%mm3
-		psubw		%mm6,%mm4
-		packuswb	%mm3,%mm2
-		psubw		%mm6,%mm5
-		packuswb	%mm5,%mm4
-		movq		%mm2,%mm1
-		punpcklbw	%mm4,%mm2
-		psrlq		$32,%mm1
-		punpckhbw	%mm0,%mm4
-		punpcklbw	%mm1,%mm0
-		movq		%mm2,%mm1
-		punpcklwd	%mm0,%mm2
-		punpckhwd	%mm4,%mm0
-		psllq		$32,%mm4
-		punpckhwd	%mm2,%mm4
-		punpckldq	%mm4,%mm2
-		pshufw		$75,%mm4,%mm3
-		psrlq		$32,%mm1
-		movntq		%mm2,(%edi)
-		punpcklwd	%mm0,%mm1
-		pshufw		$180,%mm1,%mm1
-		punpckldq	%mm1,%mm3
-		punpckhdq	%mm0,%mm1
-		movntq		%mm3,8(%edi)
-		movntq		%mm1,16(%edi)
-		movq		(%esi,%ebp),%mm4
-		addl		$8,%esi
-		movq		.L12,%mm3
-		movq		%mm4,%mm5
-		pand		.L3,%mm4
-		psrlw		$8,%mm5
-		psubw		%mm3,%mm4
-		psubw		%mm3,%mm5
-		movq		%mm7,%mm0
-		psllw		$2,%mm4
-		movq		t94(%esp),%mm2
-		psllw		$2,%mm5
-		pmulhw		.L5,%mm4
-		movq		%mm0,%mm1
-		pmulhw		.L5,%mm5
-		movq		%mm2,%mm3
-		prefetchnta	(%esi)
-		paddw		%mm4,%mm0
-		paddw		%mm5,%mm1
-		paddw		%mm4,%mm2
-		packuswb	%mm1,%mm0
-		paddw		%mm5,%mm3
-		psubw		t95(%esp),%mm4
-		packuswb	%mm3,%mm2
-		psubw		t95(%esp),%mm5
-		packuswb	%mm5,%mm4
-		movq		%mm2,%mm1
-		punpcklbw	%mm4,%mm2
-		psrlq		$32,%mm1
-		punpckhbw	%mm0,%mm4
-		punpcklbw	%mm1,%mm0
-		movq		%mm2,%mm1
-		punpcklwd	%mm0,%mm2
-		punpckhwd	%mm4,%mm0
-		psllq		$32,%mm4
-		punpckhwd	%mm2,%mm4
-		punpckldq	%mm4,%mm2
-		pshufw		$75,%mm4,%mm3
-		psrlq		$32,%mm1
-		movntq		%mm2,(%edi,%edx)
-		punpcklwd	%mm0,%mm1
-		pshufw		$180,%mm1,%mm1
-		punpckldq	%mm1,%mm3
-		punpckhdq	%mm0,%mm1
-		movntq		%mm3,8(%edi,%edx)
-		movntq		%mm1,16(%edi,%edx)
-		addl		$24,%edi
-		subl		$8,%ecx
-		jne		.L53
-		addl		t89(%esp),%esi
-		addl		%ebp,%esi
-		movl		t91(%esp),%ecx
-		addl		%ecx,%eax
-		addl		t90(%esp),%edi
-		addl		%edx,%edi
-		addl		%ecx,%ebx
-		subl		$2,t93(%esp)
-		jne		.L54
-		movl		t96(%esp),%esp
-		emms
-		popl		%edi
-		popl		%esi
-		popl		%ebp
-		popl		%ebx
-		ret
-		.text
-		.align		16
-		.globl		sse_yuyv_bgr24
-sse_yuyv_bgr24:
-		pushl		%edi
-		pushl		%esi
-		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
+		movl		0+12+12(%esp),%ecx
 		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
-		subl		%ecx,%eax
-		movl		24(%esp),%ecx
-		leal		(%ecx,%ecx,2),%ecx
-		movl		28(%esp),%edx
+		movl		0+12+16(%esp),%edx
 		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
-.L56:
-		movl		24(%esp),%ecx
 .L55:
-		movq		(%esi),%mm4
-		movq		%mm4,%mm6
+		movl		0+12+12(%esp),%ecx
+.L54:
+		movq		(%esi),%mm0
 		movq		8(%esi),%mm5
-		punpcklwd	%mm5,%mm4
-		addl		$16,%esi
-		punpckhwd	%mm5,%mm6
-		movq		%mm4,%mm5
-		punpcklwd	%mm6,%mm4
-		movq		%mm4,%mm0
-		punpckhwd	%mm6,%mm5
-		movq		.L3,%mm1
-		movq		%mm5,%mm2
-		movq		.L4,%mm3
-		psrlw		$8,%mm0
-		pand		%mm1,%mm4
-		psubw		%mm3,%mm0
-		psrlw		$8,%mm2
-		pand		%mm1,%mm5
-		psubw		%mm3,%mm2
-		psrlw		$3,%mm3
-		psubw		%mm3,%mm4
-		psubw		%mm3,%mm5
-		psllw		$3,%mm0
+		movq		16(%esi),%mm2
+		movq		24(%esi),%mm4
+		addl		$32,%esi
 		movq		%mm0,%mm6
-		pmulhw		.L6,%mm6
-		psllw		$2,%mm2
-		movq		%mm2,%mm1
-		pmulhw		.L9,%mm1
-		psllw		$2,%mm4
-		pmulhw		.L7,%mm0
-		psllw		$2,%mm5
-		pmulhw		.L8,%mm2
-		paddw		%mm1,%mm6
-		pmulhw		.L5,%mm4
-		movq		%mm0,%mm1
-		pmulhw		.L5,%mm5
-		movq		%mm2,%mm3
-		prefetchnta	(%esi)
-		paddw		%mm4,%mm0
-		paddw		%mm5,%mm1
-		paddw		%mm4,%mm2
-		packuswb	%mm1,%mm0
-		paddw		%mm5,%mm3
-		psubw		%mm6,%mm4
-		packuswb	%mm3,%mm2
-		psubw		%mm6,%mm5
-		packuswb	%mm5,%mm4
-		movq		%mm0,%mm1
-		punpcklbw	%mm4,%mm0
-		psrlq		$32,%mm1
-		punpckhbw	%mm2,%mm4
-		punpcklbw	%mm1,%mm2
-		movq		%mm0,%mm1
+		punpcklbw	%mm5,%mm0
+		punpckhbw	%mm5,%mm6
+		movq		%mm2,%mm7
+		punpcklbw	%mm4,%mm2
+		punpckhbw	%mm4,%mm7
+		pxor		%mm5,%mm5
+		movq		%mm0,%mm4
 		punpcklwd	%mm2,%mm0
-		punpckhwd	%mm4,%mm2
-		psllq		$32,%mm4
-		punpckhwd	%mm0,%mm4
-		punpckldq	%mm4,%mm0
-		pshufw		$75,%mm4,%mm3
-		psrlq		$32,%mm1
-		movntq		%mm0,(%edi)
-		punpcklwd	%mm2,%mm1
-		pshufw		$180,%mm1,%mm1
-		punpckldq	%mm1,%mm3
-		punpckhdq	%mm2,%mm1
-		movntq		%mm3,8(%edi)
-		movntq		%mm1,16(%edi)
-		addl		$24,%edi
+		punpckhwd	%mm2,%mm4
+		punpcklbw	%mm5,%mm4
+		movq		%mm0,%mm2
+		punpcklbw	%mm5,%mm0
+		punpckhbw	%mm5,%mm2
+		psllw		$4,%mm4
+		movq		%mm4,%mm1
+		pmulhw		.L45,%mm4
+		psllw		$5,%mm2
+		pmulhw		.L46,%mm2
+		psllw		$4,%mm0
+		movq		%mm0,%mm3
+		pmulhw		.L47,%mm0
+		paddw		%mm2,%mm4
+		paddw		%mm0,%mm4
+		movq		%mm6,%mm2
+		punpcklwd	%mm7,%mm6
+		punpckhwd	%mm7,%mm2
+		punpcklbw	%mm5,%mm2
+		movq		%mm6,%mm0
+		punpcklbw	%mm5,%mm6
+		punpckhbw	%mm5,%mm0
+		psllw		$4,%mm2
+		paddw		%mm2,%mm1
+		pmulhw		.L45,%mm2
+		psllw		$5,%mm0
+		pmulhw		.L46,%mm0
+		psllw		$4,%mm6
+		paddw		%mm6,%mm3
+		pmulhw		.L47,%mm6
+		movq		.L48,%mm5
+		paddw		%mm0,%mm2
+		paddw		%mm6,%mm2
+		pmulhw		%mm5,%mm1
+		movq		%mm4,%mm0
+		pmulhw		%mm5,%mm3
+		movq		.L52,%mm5
+		paddw		%mm2,%mm0
+		psrlw		$1,%mm0
+		psubw		%mm0,%mm1
+		pmulhw		.L51,%mm1
+		psubw		%mm0,%mm3
+		pmulhw		.L50,%mm3
+		packsswb	%mm1,%mm3
+		paddw		%mm5,%mm4
+		psrlw		$4,%mm4
+		pxor		.L53,%mm3
+		paddw		%mm5,%mm2
+		psrlw		$4,%mm2
+		packuswb	%mm2,%mm4
+		movq		%mm4,%mm2
+		punpcklbw	%mm3,%mm4
+		punpckhbw	%mm3,%mm2
+		movq		%mm4,%mm3
+		punpcklwd	%mm2,%mm4
+		punpckhwd	%mm2,%mm3
+		movq		%mm4,(%edi)
+		movq		%mm3,8(%edi)
+		addl		$16,%edi
 		subl		$8,%ecx
+		jne		.L54
+		addl		%eax,%esi
+		addl		%ebx,%edi
+		decl		%edx
 		jne		.L55
-		addl		%eax,%esi
-		addl		%ebx,%edi
-		decl		%edx
-		jne		.L56
 		emms
 		popl		%ebx
 		popl		%esi
@@ -3269,276 +2542,107 @@ sse_yuyv_bgr24:
 		ret
 		.text
 		.align		16
-		.globl		sse_yuv420_bgr24
-sse_yuv420_bgr24:
-		pushl		%ebx
-		pushl		%ebp
-		pushl		%esi
+		.globl		mmx_rgb24_yuyv
+mmx_rgb24_yuyv:
 		pushl		%edi
-		movl		%esp,%ecx
-		leal		-544(%esp),%esp
-		andl		$-8,%esp
-		t102 = 0
-		t103 = 8
-		t97 = 16
-		t98 = 20
-		t99 = 24
-		t100 = 28
-		t101 = 32
-		t104 = 36
-		movl		36(%ecx),%ebx
-		movl		%ebx,t100(%esp)
-		shrl		$1,%ebx
-		movl		52(%ecx),%eax
-		subl		%ebx,%eax
-		movl		%eax,t99(%esp)
-		movl		48(%ecx),%eax
-		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
-		movl		%eax,%ebp
-		movl		44(%ecx),%esi
-		subl		%ebx,%eax
-		movl		%eax,t97(%esp)
-		leal		(%ebx,%ebx,2),%ebx
-		movl		%esi,%edx
-		movl		40(%ecx),%eax
-		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
-		movl		%esi,t98(%esp)
-		movl		24(%ecx),%esi
-		movl		%eax,t101(%esp)
-		movl		28(%ecx),%eax
-		movl		%ecx,t104(%esp)
+		pushl		%esi
+		pushl		%ebx
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
+		leal		(%ecx,%ecx,2),%ecx
+		movl		0+12+20(%esp),%ebx
+		subl		%ecx,%eax
+		movl		0+12+12(%esp),%ecx
+		addl		%ecx,%ecx
+		movl		0+12+16(%esp),%edx
+		subl		%ecx,%ebx
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
-.L58:
-		movl		t100(%esp),%ecx
 .L57:
-		movq		.L4,%mm3
-		pxor		%mm1,%mm1
-		movd		(%eax),%mm0
-		addl		$4,%eax
-		punpcklbw	%mm1,%mm0
-		movd		(%ebx),%mm2
-		addl		$4,%ebx
-		psubw		%mm3,%mm0
-		punpcklbw	%mm1,%mm2
+		movl		0+12+12(%esp),%ecx
+.L56:
 		movq		(%esi),%mm4
-		psubw		%mm3,%mm2
-		movq		%mm4,%mm5
-		psrlw		$3,%mm3
-		pand		.L3,%mm4
-		psrlw		$8,%mm5
-		psubw		%mm3,%mm4
-		psubw		%mm3,%mm5
-		psllw		$3,%mm0
-		movq		%mm0,%mm6
-		pmulhw		.L6,%mm6
-		psllw		$2,%mm2
-		movq		%mm2,%mm1
-		pmulhw		.L9,%mm1
-		psllw		$2,%mm4
-		pmulhw		.L7,%mm0
-		psllw		$2,%mm5
-		pmulhw		.L8,%mm2
-		paddw		%mm1,%mm6
-		pmulhw		.L5,%mm4
-		movq		%mm0,%mm7
-		pmulhw		.L5,%mm5
-		movq		%mm2,t102(%esp)
-		movq		%mm0,%mm1
-		movq		%mm6,t103(%esp)
-		movq		%mm2,%mm3
-		prefetchnta	(%esi)
-		paddw		%mm4,%mm0
-		paddw		%mm5,%mm1
-		paddw		%mm4,%mm2
-		packuswb	%mm1,%mm0
-		paddw		%mm5,%mm3
-		psubw		%mm6,%mm4
-		packuswb	%mm3,%mm2
-		psubw		%mm6,%mm5
-		packuswb	%mm5,%mm4
-		movq		%mm0,%mm1
-		punpcklbw	%mm4,%mm0
-		psrlq		$32,%mm1
-		punpckhbw	%mm2,%mm4
-		punpcklbw	%mm1,%mm2
-		movq		%mm0,%mm1
-		punpcklwd	%mm2,%mm0
-		punpckhwd	%mm4,%mm2
-		psllq		$32,%mm4
-		punpckhwd	%mm0,%mm4
-		punpckldq	%mm4,%mm0
-		pshufw		$75,%mm4,%mm3
-		psrlq		$32,%mm1
-		movntq		%mm0,(%edi)
-		punpcklwd	%mm2,%mm1
-		pshufw		$180,%mm1,%mm1
-		punpckldq	%mm1,%mm3
-		punpckhdq	%mm2,%mm1
-		movntq		%mm3,8(%edi)
-		movntq		%mm1,16(%edi)
-		movq		(%esi,%ebp),%mm4
-		addl		$8,%esi
-		movq		.L12,%mm3
-		movq		%mm4,%mm5
-		pand		.L3,%mm4
-		psrlw		$8,%mm5
-		psubw		%mm3,%mm4
-		psubw		%mm3,%mm5
-		movq		%mm7,%mm0
-		psllw		$2,%mm4
-		movq		t102(%esp),%mm2
-		psllw		$2,%mm5
-		pmulhw		.L5,%mm4
-		movq		%mm0,%mm1
-		pmulhw		.L5,%mm5
-		movq		%mm2,%mm3
-		prefetchnta	(%esi)
-		paddw		%mm4,%mm0
-		paddw		%mm5,%mm1
-		paddw		%mm4,%mm2
-		packuswb	%mm1,%mm0
-		paddw		%mm5,%mm3
-		psubw		t103(%esp),%mm4
-		packuswb	%mm3,%mm2
-		psubw		t103(%esp),%mm5
-		packuswb	%mm5,%mm4
-		movq		%mm0,%mm1
-		punpcklbw	%mm4,%mm0
-		psrlq		$32,%mm1
-		punpckhbw	%mm2,%mm4
-		punpcklbw	%mm1,%mm2
-		movq		%mm0,%mm1
-		punpcklwd	%mm2,%mm0
-		punpckhwd	%mm4,%mm2
-		psllq		$32,%mm4
-		punpckhwd	%mm0,%mm4
-		punpckldq	%mm4,%mm0
-		pshufw		$75,%mm4,%mm3
-		psrlq		$32,%mm1
-		movntq		%mm0,(%edi,%edx)
-		punpcklwd	%mm2,%mm1
-		pshufw		$180,%mm1,%mm1
-		punpckldq	%mm1,%mm3
-		punpckhdq	%mm2,%mm1
-		movntq		%mm3,8(%edi,%edx)
-		movntq		%mm1,16(%edi,%edx)
-		addl		$24,%edi
-		subl		$8,%ecx
-		jne		.L57
-		addl		t97(%esp),%esi
-		addl		%ebp,%esi
-		movl		t99(%esp),%ecx
-		addl		%ecx,%eax
-		addl		t98(%esp),%edi
-		addl		%edx,%edi
-		addl		%ecx,%ebx
-		subl		$2,t101(%esp)
-		jne		.L58
-		movl		t104(%esp),%esp
-		emms
-		popl		%edi
-		popl		%esi
-		popl		%ebp
-		popl		%ebx
-		ret
-		.text
-		.align		16
-		.globl		sse_yuyv_rgb565
-sse_yuyv_rgb565:
-		pushl		%edi
-		pushl		%esi
-		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
-		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
-		subl		%ecx,%eax
-		movl		24(%esp),%ecx
-		addl		%ecx,%ecx
-		movl		28(%esp),%edx
-		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
-		.align 16
-.L60:
-		movl		24(%esp),%ecx
-.L59:
-		movq		.L27,%mm7
-		movq		(%esi),%mm4
+		movq		8(%esi),%mm0
+		movq		16(%esi),%mm2
+		addl		$24,%esi
 		movq		%mm4,%mm6
-		movq		8(%esi),%mm5
-		punpcklwd	%mm5,%mm4
-		addl		$16,%esi
-		punpckhwd	%mm5,%mm6
-		movq		%mm4,%mm5
-		punpcklwd	%mm6,%mm4
-		movq		%mm4,%mm0
-		punpckhwd	%mm6,%mm5
-		movq		.L3,%mm1
-		movq		%mm5,%mm2
-		movq		.L4,%mm3
-		psrlw		$8,%mm0
-		pand		%mm1,%mm4
-		psubw		%mm3,%mm0
-		psrlw		$8,%mm2
-		pand		%mm1,%mm5
-		psubw		%mm3,%mm2
-		psrlw		$3,%mm3
-		psubw		%mm3,%mm4
-		psubw		%mm3,%mm5
-		psllw		$3,%mm0
-		movq		%mm0,%mm6
-		pmulhw		.L6,%mm6
-		psllw		$2,%mm2
-		movq		%mm2,%mm1
-		pmulhw		.L9,%mm1
-		psllw		$2,%mm4
-		pmulhw		.L7,%mm0
-		psllw		$2,%mm5
-		pmulhw		.L8,%mm2
-		paddw		%mm1,%mm6
-		pmulhw		.L5,%mm4
+		psllq		$32,%mm4
+		punpckhbw	%mm0,%mm4
+		psrlq		$32,%mm6
+		punpcklbw	%mm2,%mm6
+		psllq		$32,%mm0
+		punpckhbw	%mm2,%mm0
+		movq		%mm4,%mm2
+		psllq		$32,%mm2
+		punpckhbw	%mm6,%mm2
+		psllq		$32,%mm6
+		punpckhbw	%mm0,%mm6
+		psllq		$32,%mm0
+		punpckhbw	%mm0,%mm4
+		pxor		%mm5,%mm5
+		movq		%mm2,%mm0
+		punpcklbw	%mm5,%mm0
+		punpckhbw	%mm5,%mm2
+		movq		%mm4,%mm7
+		punpcklbw	%mm5,%mm4
+		psllw		$4,%mm0
 		movq		%mm0,%mm1
-		pmulhw		.L5,%mm5
-		movq		%mm2,%mm3
-		prefetchnta	(%esi)
+		pmulhw		.L45,%mm0
+		psllw		$5,%mm2
+		pmulhw		.L46,%mm2
+		psllw		$4,%mm4
+		movq		%mm4,%mm3
+		pmulhw		.L47,%mm4
+		paddw		%mm2,%mm0
 		paddw		%mm4,%mm0
-		paddw		%mm5,%mm1
-		paddw		%mm4,%mm2
-		packuswb	%mm1,%mm0
-		paddw		%mm5,%mm3
-		psubw		%mm6,%mm4
-		packuswb	%mm3,%mm2
-		psubw		%mm6,%mm5
-		packuswb	%mm5,%mm4
-		pand		%mm7,%mm2
-		movq		%mm4,%mm5
-		movq		.L28,%mm3
-		pand		%mm7,%mm0
-		psllq		$3,%mm4
-		pand		%mm3,%mm5
-		psrlq		$3,%mm2
-		pand		%mm3,%mm4
-		por		%mm4,%mm2
-		psrlq		$5,%mm5
-		movq		%mm2,%mm3
-		por		%mm5,%mm0
-		punpcklbw	%mm0,%mm2
-		punpckhbw	%mm0,%mm3
-		movq		%mm2,%mm5
-		punpcklwd	%mm3,%mm2
-		movntq		%mm2,(%edi)
-		punpckhwd	%mm3,%mm5
-		movntq		%mm5,8(%edi)
+		movq		%mm6,%mm2
+		punpcklbw	%mm5,%mm6
+		punpckhbw	%mm5,%mm2
+		punpckhbw	%mm5,%mm7
+		psllw		$4,%mm7
+		paddw		%mm7,%mm1
+		pmulhw		.L45,%mm7
+		psllw		$5,%mm6
+		pmulhw		.L46,%mm6
+		psllw		$4,%mm2
+		paddw		%mm2,%mm3
+		pmulhw		.L47,%mm2
+		movq		.L48,%mm4
+		paddw		%mm6,%mm7
+		paddw		%mm2,%mm7
+		pmulhw		%mm4,%mm1
+		movq		%mm0,%mm2
+		pmulhw		%mm4,%mm3
+		movq		.L52,%mm4
+		paddw		%mm7,%mm2
+		psrlw		$1,%mm2
+		psubw		%mm2,%mm1
+		pmulhw		.L51,%mm1
+		psubw		%mm2,%mm3
+		pmulhw		.L50,%mm3
+		packsswb	%mm1,%mm3
+		paddw		%mm4,%mm0
+		psrlw		$4,%mm0
+		pxor		.L53,%mm3
+		paddw		%mm4,%mm7
+		psrlw		$4,%mm7
+		packuswb	%mm7,%mm0
+		movq		%mm0,%mm7
+		punpcklbw	%mm3,%mm0
+		punpckhbw	%mm3,%mm7
+		movq		%mm0,%mm3
+		punpcklwd	%mm7,%mm0
+		punpckhwd	%mm7,%mm3
+		movq		%mm0,(%edi)
+		movq		%mm3,8(%edi)
 		addl		$16,%edi
 		subl		$8,%ecx
-		jne		.L59
+		jne		.L56
 		addl		%eax,%esi
 		addl		%ebx,%edi
 		decl		%edx
-		jne		.L60
+		jne		.L57
 		emms
 		popl		%ebx
 		popl		%esi
@@ -3546,269 +2650,354 @@ sse_yuyv_rgb565:
 		ret
 		.text
 		.align		16
-		.globl		sse_yuv420_rgb565
-sse_yuv420_rgb565:
-		pushl		%ebx
-		pushl		%ebp
-		pushl		%esi
+		.globl		mmx_bgr24_yuyv
+mmx_bgr24_yuyv:
 		pushl		%edi
-		movl		%esp,%ecx
-		leal		-592(%esp),%esp
-		andl		$-8,%esp
-		t110 = 0
-		t111 = 8
-		t112 = 16
-		t105 = 24
-		t106 = 28
-		t107 = 32
-		t108 = 36
-		t109 = 40
-		t113 = 44
-		movl		36(%ecx),%ebx
-		movl		%ebx,t108(%esp)
-		shrl		$1,%ebx
-		movl		52(%ecx),%eax
-		subl		%ebx,%eax
-		movl		%eax,t107(%esp)
-		movl		48(%ecx),%eax
-		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
-		movl		%eax,%ebp
-		movl		44(%ecx),%esi
-		subl		%ebx,%eax
-		movl		%eax,t105(%esp)
-		addl		%ebx,%ebx
-		movl		%esi,%edx
-		movl		40(%ecx),%eax
-		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
-		movl		%esi,t106(%esp)
-		movl		24(%ecx),%esi
-		movl		%eax,t109(%esp)
-		movl		28(%ecx),%eax
-		movl		%ecx,t113(%esp)
+		pushl		%esi
+		pushl		%ebx
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
+		leal		(%ecx,%ecx,2),%ecx
+		movl		0+12+20(%esp),%ebx
+		subl		%ecx,%eax
+		movl		0+12+12(%esp),%ecx
+		addl		%ecx,%ecx
+		movl		0+12+16(%esp),%edx
+		subl		%ecx,%ebx
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
-.L62:
-		movl		t108(%esp),%ecx
-.L61:
-		movq		.L27,%mm7
-		movq		.L4,%mm3
-		pxor		%mm1,%mm1
-		movd		(%eax),%mm0
-		addl		$4,%eax
-		punpcklbw	%mm1,%mm0
-		movd		(%ebx),%mm2
-		addl		$4,%ebx
-		psubw		%mm3,%mm0
-		punpcklbw	%mm1,%mm2
+.L59:
+		movl		0+12+12(%esp),%ecx
+.L58:
 		movq		(%esi),%mm4
-		psubw		%mm3,%mm2
+		movq		8(%esi),%mm0
+		movq		16(%esi),%mm2
+		addl		$24,%esi
+		movq		%mm4,%mm6
+		psllq		$32,%mm4
+		punpckhbw	%mm0,%mm4
+		psrlq		$32,%mm6
+		punpcklbw	%mm2,%mm6
+		psllq		$32,%mm0
+		punpckhbw	%mm2,%mm0
+		movq		%mm4,%mm2
+		psllq		$32,%mm2
+		punpckhbw	%mm6,%mm2
+		psllq		$32,%mm6
+		punpckhbw	%mm0,%mm6
+		psllq		$32,%mm0
+		punpckhbw	%mm0,%mm4
+		pxor		%mm5,%mm5
+		movq		%mm2,%mm0
+		punpcklbw	%mm5,%mm0
+		punpckhbw	%mm5,%mm2
+		movq		%mm4,%mm7
+		punpcklbw	%mm5,%mm4
+		psllw		$4,%mm4
+		movq		%mm4,%mm1
+		pmulhw		.L45,%mm4
+		psllw		$5,%mm2
+		pmulhw		.L46,%mm2
+		psllw		$4,%mm0
+		movq		%mm0,%mm3
+		pmulhw		.L47,%mm0
+		paddw		%mm2,%mm4
+		paddw		%mm0,%mm4
+		movq		%mm6,%mm0
+		punpcklbw	%mm5,%mm6
+		punpckhbw	%mm5,%mm0
+		punpckhbw	%mm5,%mm7
+		psllw		$4,%mm0
+		paddw		%mm0,%mm1
+		pmulhw		.L45,%mm0
+		psllw		$5,%mm6
+		pmulhw		.L46,%mm6
+		psllw		$4,%mm7
+		paddw		%mm7,%mm3
+		pmulhw		.L47,%mm7
+		movq		.L48,%mm2
+		paddw		%mm6,%mm0
+		paddw		%mm7,%mm0
+		pmulhw		%mm2,%mm1
 		movq		%mm4,%mm5
-		psrlw		$3,%mm3
-		pand		.L3,%mm4
-		psrlw		$8,%mm5
-		psubw		%mm3,%mm4
-		psubw		%mm3,%mm5
-		psllw		$3,%mm0
-		movq		%mm0,%mm6
-		pmulhw		.L6,%mm6
-		psllw		$2,%mm2
-		movq		%mm2,%mm1
-		pmulhw		.L9,%mm1
-		psllw		$2,%mm4
-		pmulhw		.L7,%mm0
-		psllw		$2,%mm5
-		pmulhw		.L8,%mm2
-		paddw		%mm1,%mm6
-		pmulhw		.L5,%mm4
-		movq		%mm0,t111(%esp)
-		pmulhw		.L5,%mm5
-		movq		%mm2,t110(%esp)
-		movq		%mm0,%mm1
-		movq		%mm6,t112(%esp)
-		movq		%mm2,%mm3
-		prefetchnta	(%esi)
-		paddw		%mm4,%mm0
-		paddw		%mm5,%mm1
-		paddw		%mm4,%mm2
-		packuswb	%mm1,%mm0
-		paddw		%mm5,%mm3
-		psubw		%mm6,%mm4
-		packuswb	%mm3,%mm2
-		psubw		%mm6,%mm5
-		packuswb	%mm5,%mm4
-		pand		%mm7,%mm2
-		movq		%mm4,%mm5
-		movq		.L28,%mm3
-		pand		%mm7,%mm0
-		psllq		$3,%mm4
-		pand		%mm3,%mm5
-		psrlq		$3,%mm2
-		pand		%mm3,%mm4
-		por		%mm4,%mm2
-		psrlq		$5,%mm5
-		movq		%mm2,%mm3
-		por		%mm5,%mm0
-		punpcklbw	%mm0,%mm2
-		punpckhbw	%mm0,%mm3
-		movq		%mm2,%mm5
-		punpcklwd	%mm3,%mm2
-		movntq		%mm2,(%edi)
-		punpckhwd	%mm3,%mm5
-		movntq		%mm5,8(%edi)
-		movq		(%esi,%ebp),%mm4
-		addl		$8,%esi
-		movq		.L12,%mm3
-		movq		%mm4,%mm5
-		pand		.L3,%mm4
-		psrlw		$8,%mm5
-		psubw		%mm3,%mm4
-		psubw		%mm3,%mm5
-		movq		t111(%esp),%mm0
-		psllw		$2,%mm4
-		movq		t110(%esp),%mm2
-		psllw		$2,%mm5
-		pmulhw		.L5,%mm4
-		movq		%mm0,%mm1
-		pmulhw		.L5,%mm5
-		movq		%mm2,%mm3
-		prefetchnta	(%esi)
-		paddw		%mm4,%mm0
-		paddw		%mm5,%mm1
-		paddw		%mm4,%mm2
-		packuswb	%mm1,%mm0
-		paddw		%mm5,%mm3
-		psubw		t112(%esp),%mm4
-		packuswb	%mm3,%mm2
-		psubw		t112(%esp),%mm5
-		packuswb	%mm5,%mm4
-		pand		%mm7,%mm2
-		movq		%mm4,%mm5
-		movq		.L28,%mm3
-		pand		%mm7,%mm0
-		psllq		$3,%mm4
-		pand		%mm3,%mm5
-		psrlq		$3,%mm2
-		pand		%mm3,%mm4
-		por		%mm4,%mm2
-		psrlq		$5,%mm5
-		movq		%mm2,%mm3
-		por		%mm5,%mm0
-		punpcklbw	%mm0,%mm2
-		punpckhbw	%mm0,%mm3
-		movq		%mm2,%mm5
-		punpcklwd	%mm3,%mm2
-		movntq		%mm2,(%edi,%edx)
-		punpckhwd	%mm3,%mm5
-		movntq		%mm5,8(%edi,%edx)
+		pmulhw		%mm2,%mm3
+		movq		.L52,%mm2
+		paddw		%mm0,%mm5
+		psrlw		$1,%mm5
+		psubw		%mm5,%mm1
+		pmulhw		.L51,%mm1
+		psubw		%mm5,%mm3
+		pmulhw		.L50,%mm3
+		packsswb	%mm1,%mm3
+		paddw		%mm2,%mm4
+		psrlw		$4,%mm4
+		pxor		.L53,%mm3
+		paddw		%mm2,%mm0
+		psrlw		$4,%mm0
+		packuswb	%mm0,%mm4
+		movq		%mm4,%mm0
+		punpcklbw	%mm3,%mm4
+		punpckhbw	%mm3,%mm0
+		movq		%mm4,%mm3
+		punpcklwd	%mm0,%mm4
+		punpckhwd	%mm0,%mm3
+		movq		%mm4,(%edi)
+		movq		%mm3,8(%edi)
 		addl		$16,%edi
 		subl		$8,%ecx
-		jne		.L61
-		addl		t105(%esp),%esi
-		addl		%ebp,%esi
-		movl		t107(%esp),%ecx
-		addl		%ecx,%eax
-		addl		t106(%esp),%edi
-		addl		%edx,%edi
-		addl		%ecx,%ebx
-		subl		$2,t109(%esp)
-		jne		.L62
-		movl		t113(%esp),%esp
+		jne		.L58
+		addl		%eax,%esi
+		addl		%ebx,%edi
+		decl		%edx
+		jne		.L59
 		emms
-		popl		%edi
-		popl		%esi
-		popl		%ebp
 		popl		%ebx
+		popl		%esi
+		popl		%edi
 		ret
 		.text
 		.align		16
-		.globl		sse_yuyv_bgr565
-sse_yuyv_bgr565:
+		.globl		mmx_rgb565_yuyv
+mmx_rgb565_yuyv:
 		pushl		%edi
 		pushl		%esi
 		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
 		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
+		movl		0+12+20(%esp),%ebx
 		subl		%ecx,%eax
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 		addl		%ecx,%ecx
-		movl		28(%esp),%edx
+		movl		0+12+16(%esp),%edx
 		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
+		.align 16
+.L61:
+		movl		0+12+12(%esp),%ecx
+.L60:
+		movq		(%esi),%mm2
+		movq		8(%esi),%mm6
+		addl		$16,%esi
+		movq		%mm2,%mm0
+		punpcklwd	%mm6,%mm2
+		punpckhwd	%mm6,%mm0
+		movq		%mm2,%mm6
+		punpcklwd	%mm0,%mm2
+		punpckhwd	%mm0,%mm6
+		movq		.L62,%mm4
+		movq		%mm2,%mm0
+		pand		%mm4,%mm0
+		pxor		%mm0,%mm2
+		movq		%mm0,%mm5
+		psllw		$3,%mm5
+		psrlw		$2,%mm0
+		por		%mm5,%mm0
+		psllw		$11,%mm4
+		pand		%mm2,%mm4
+		pxor		%mm4,%mm2
+		movq		%mm4,%mm5
+		psrlw		$8,%mm5
+		psrlw		$13,%mm4
+		por		%mm5,%mm4
+		movq		%mm2,%mm5
+		psrlw		$3,%mm5
+		psrlw		$9,%mm2
+		por		%mm5,%mm2
+		psllw		$4,%mm0
+		movq		%mm0,%mm1
+		pmulhw		.L45,%mm0
+		psllw		$5,%mm2
+		pmulhw		.L46,%mm2
+		psllw		$4,%mm4
+		movq		%mm4,%mm3
+		pmulhw		.L47,%mm4
+		paddw		%mm2,%mm0
+		paddw		%mm4,%mm0
+		movq		.L62,%mm4
+		movq		%mm6,%mm2
+		pand		%mm4,%mm2
+		pxor		%mm2,%mm6
+		movq		%mm2,%mm5
+		psllw		$3,%mm5
+		psrlw		$2,%mm2
+		por		%mm5,%mm2
+		psllw		$11,%mm4
+		pand		%mm6,%mm4
+		pxor		%mm4,%mm6
+		movq		%mm4,%mm5
+		psrlw		$8,%mm5
+		psrlw		$13,%mm4
+		por		%mm5,%mm4
+		movq		%mm6,%mm5
+		psrlw		$3,%mm5
+		psrlw		$9,%mm6
+		por		%mm5,%mm6
+		psllw		$4,%mm2
+		paddw		%mm2,%mm1
+		pmulhw		.L45,%mm2
+		psllw		$5,%mm6
+		pmulhw		.L46,%mm6
+		psllw		$4,%mm4
+		paddw		%mm4,%mm3
+		pmulhw		.L47,%mm4
+		movq		.L48,%mm5
+		paddw		%mm6,%mm2
+		paddw		%mm4,%mm2
+		pmulhw		%mm5,%mm1
+		movq		%mm0,%mm4
+		pmulhw		%mm5,%mm3
+		movq		.L52,%mm5
+		paddw		%mm2,%mm4
+		psrlw		$1,%mm4
+		psubw		%mm4,%mm1
+		pmulhw		.L51,%mm1
+		psubw		%mm4,%mm3
+		pmulhw		.L50,%mm3
+		packsswb	%mm1,%mm3
+		paddw		%mm5,%mm0
+		psrlw		$4,%mm0
+		pxor		.L53,%mm3
+		paddw		%mm5,%mm2
+		psrlw		$4,%mm2
+		packuswb	%mm2,%mm0
+		movq		%mm0,%mm2
+		punpcklbw	%mm3,%mm0
+		punpckhbw	%mm3,%mm2
+		movq		%mm0,%mm3
+		punpcklwd	%mm2,%mm0
+		punpckhwd	%mm2,%mm3
+		movq		%mm0,(%edi)
+		movq		%mm3,8(%edi)
+		addl		$16,%edi
+		subl		$8,%ecx
+		jne		.L60
+		addl		%eax,%esi
+		addl		%ebx,%edi
+		decl		%edx
+		jne		.L61
+		emms
+		popl		%ebx
+		popl		%esi
+		popl		%edi
+		ret
+		.text
+		.align		16
+		.globl		mmx_bgr565_yuyv
+mmx_bgr565_yuyv:
+		pushl		%edi
+		pushl		%esi
+		pushl		%ebx
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
+		addl		%ecx,%ecx
+		movl		0+12+20(%esp),%ebx
+		subl		%ecx,%eax
+		movl		0+12+12(%esp),%ecx
+		addl		%ecx,%ecx
+		movl		0+12+16(%esp),%edx
+		subl		%ecx,%ebx
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
 .L64:
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 .L63:
-		movq		.L27,%mm7
-		movq		(%esi),%mm4
-		movq		%mm4,%mm6
-		movq		8(%esi),%mm5
-		punpcklwd	%mm5,%mm4
+		movq		(%esi),%mm2
+		movq		8(%esi),%mm6
 		addl		$16,%esi
-		punpckhwd	%mm5,%mm6
-		movq		%mm4,%mm5
-		punpcklwd	%mm6,%mm4
-		movq		%mm4,%mm0
-		punpckhwd	%mm6,%mm5
-		movq		.L3,%mm1
-		movq		%mm5,%mm2
-		movq		.L4,%mm3
-		psrlw		$8,%mm0
-		pand		%mm1,%mm4
-		psubw		%mm3,%mm0
-		psrlw		$8,%mm2
-		pand		%mm1,%mm5
-		psubw		%mm3,%mm2
-		psrlw		$3,%mm3
-		psubw		%mm3,%mm4
-		psubw		%mm3,%mm5
-		psllw		$3,%mm0
-		movq		%mm0,%mm6
-		pmulhw		.L6,%mm6
-		psllw		$2,%mm2
-		movq		%mm2,%mm1
-		pmulhw		.L9,%mm1
-		psllw		$2,%mm4
-		pmulhw		.L7,%mm0
-		psllw		$2,%mm5
-		pmulhw		.L8,%mm2
-		paddw		%mm1,%mm6
-		pmulhw		.L5,%mm4
-		movq		%mm0,%mm1
-		pmulhw		.L5,%mm5
-		movq		%mm2,%mm3
-		prefetchnta	(%esi)
-		paddw		%mm4,%mm0
-		paddw		%mm5,%mm1
-		paddw		%mm4,%mm2
-		packuswb	%mm1,%mm0
-		paddw		%mm5,%mm3
-		psubw		%mm6,%mm4
-		packuswb	%mm3,%mm2
-		psubw		%mm6,%mm5
-		packuswb	%mm5,%mm4
-		pand		%mm7,%mm0
-		movq		%mm4,%mm5
-		movq		.L28,%mm3
-		pand		%mm7,%mm2
-		psllq		$3,%mm4
-		pand		%mm3,%mm5
-		psrlq		$3,%mm0
-		pand		%mm3,%mm4
-		por		%mm4,%mm0
-		psrlq		$5,%mm5
-		movq		%mm0,%mm3
-		por		%mm5,%mm2
-		punpcklbw	%mm2,%mm0
-		punpckhbw	%mm2,%mm3
+		movq		%mm2,%mm0
+		punpcklwd	%mm6,%mm2
+		punpckhwd	%mm6,%mm0
+		movq		%mm2,%mm6
+		punpcklwd	%mm0,%mm2
+		punpckhwd	%mm0,%mm6
+		movq		.L62,%mm4
+		movq		%mm2,%mm0
+		pand		%mm4,%mm0
+		pxor		%mm0,%mm2
 		movq		%mm0,%mm5
-		punpcklwd	%mm3,%mm0
-		movntq		%mm0,(%edi)
-		punpckhwd	%mm3,%mm5
-		movntq		%mm5,8(%edi)
+		psllw		$3,%mm5
+		psrlw		$2,%mm0
+		por		%mm5,%mm0
+		psllw		$11,%mm4
+		pand		%mm2,%mm4
+		pxor		%mm4,%mm2
+		movq		%mm4,%mm5
+		psrlw		$8,%mm5
+		psrlw		$13,%mm4
+		por		%mm5,%mm4
+		movq		%mm2,%mm5
+		psrlw		$3,%mm5
+		psrlw		$9,%mm2
+		por		%mm5,%mm2
+		psllw		$4,%mm4
+		movq		%mm4,%mm1
+		pmulhw		.L45,%mm4
+		psllw		$5,%mm2
+		pmulhw		.L46,%mm2
+		psllw		$4,%mm0
+		movq		%mm0,%mm3
+		pmulhw		.L47,%mm0
+		paddw		%mm2,%mm4
+		paddw		%mm0,%mm4
+		movq		.L62,%mm2
+		movq		%mm6,%mm0
+		pand		%mm2,%mm0
+		pxor		%mm0,%mm6
+		movq		%mm0,%mm5
+		psllw		$3,%mm5
+		psrlw		$2,%mm0
+		por		%mm5,%mm0
+		psllw		$11,%mm2
+		pand		%mm6,%mm2
+		pxor		%mm2,%mm6
+		movq		%mm2,%mm5
+		psrlw		$8,%mm5
+		psrlw		$13,%mm2
+		por		%mm5,%mm2
+		movq		%mm6,%mm5
+		psrlw		$3,%mm5
+		psrlw		$9,%mm6
+		por		%mm5,%mm6
+		psllw		$4,%mm2
+		paddw		%mm2,%mm1
+		pmulhw		.L45,%mm2
+		psllw		$5,%mm6
+		pmulhw		.L46,%mm6
+		psllw		$4,%mm0
+		paddw		%mm0,%mm3
+		pmulhw		.L47,%mm0
+		movq		.L48,%mm5
+		paddw		%mm6,%mm2
+		paddw		%mm0,%mm2
+		pmulhw		%mm5,%mm1
+		movq		%mm4,%mm0
+		pmulhw		%mm5,%mm3
+		movq		.L52,%mm5
+		paddw		%mm2,%mm0
+		psrlw		$1,%mm0
+		psubw		%mm0,%mm1
+		pmulhw		.L51,%mm1
+		psubw		%mm0,%mm3
+		pmulhw		.L50,%mm3
+		packsswb	%mm1,%mm3
+		paddw		%mm5,%mm4
+		psrlw		$4,%mm4
+		pxor		.L53,%mm3
+		paddw		%mm5,%mm2
+		psrlw		$4,%mm2
+		packuswb	%mm2,%mm4
+		movq		%mm4,%mm2
+		punpcklbw	%mm3,%mm4
+		punpckhbw	%mm3,%mm2
+		movq		%mm4,%mm3
+		punpcklwd	%mm2,%mm4
+		punpckhwd	%mm2,%mm3
+		movq		%mm4,(%edi)
+		movq		%mm3,8(%edi)
 		addl		$16,%edi
 		subl		$8,%ecx
 		jne		.L63
@@ -3823,51 +3012,3256 @@ sse_yuyv_bgr565:
 		ret
 		.text
 		.align		16
-		.globl		sse_yuv420_bgr565
-sse_yuv420_bgr565:
+		.globl		mmx_rgb5551_yuyv
+mmx_rgb5551_yuyv:
+		pushl		%edi
+		pushl		%esi
+		pushl		%ebx
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
+		addl		%ecx,%ecx
+		movl		0+12+20(%esp),%ebx
+		subl		%ecx,%eax
+		movl		0+12+12(%esp),%ecx
+		addl		%ecx,%ecx
+		movl		0+12+16(%esp),%edx
+		subl		%ecx,%ebx
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
+		.align 16
+.L66:
+		movl		0+12+12(%esp),%ecx
+.L65:
+		movq		(%esi),%mm4
+		movq		8(%esi),%mm6
+		addl		$16,%esi
+		movq		%mm4,%mm0
+		punpcklwd	%mm6,%mm4
+		punpckhwd	%mm6,%mm0
+		movq		%mm4,%mm6
+		punpcklwd	%mm0,%mm4
+		punpckhwd	%mm0,%mm6
+		movq		.L62,%mm5
+		movq		%mm4,%mm0
+		pand		%mm5,%mm0
+		movq		%mm0,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm0
+		por		%mm7,%mm0
+		movq		%mm4,%mm2
+		psrlw		$5,%mm2
+		pand		%mm5,%mm2
+		movq		%mm2,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm2
+		por		%mm7,%mm2
+		psrlw		$10,%mm4
+		pand		%mm5,%mm4
+		movq		%mm4,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm4
+		por		%mm7,%mm4
+		psllw		$4,%mm0
+		movq		%mm0,%mm1
+		pmulhw		.L45,%mm0
+		psllw		$5,%mm2
+		pmulhw		.L46,%mm2
+		psllw		$4,%mm4
+		movq		%mm4,%mm3
+		pmulhw		.L47,%mm4
+		paddw		%mm2,%mm0
+		paddw		%mm4,%mm0
+		movq		%mm6,%mm2
+		pand		%mm5,%mm2
+		movq		%mm2,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm2
+		por		%mm7,%mm2
+		movq		%mm6,%mm4
+		psrlw		$5,%mm4
+		pand		%mm5,%mm4
+		movq		%mm4,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm4
+		por		%mm7,%mm4
+		psrlw		$10,%mm6
+		pand		%mm5,%mm6
+		movq		%mm6,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm6
+		por		%mm7,%mm6
+		psllw		$4,%mm2
+		paddw		%mm2,%mm1
+		pmulhw		.L45,%mm2
+		psllw		$5,%mm4
+		pmulhw		.L46,%mm4
+		psllw		$4,%mm6
+		paddw		%mm6,%mm3
+		pmulhw		.L47,%mm6
+		movq		.L48,%mm5
+		paddw		%mm4,%mm2
+		paddw		%mm6,%mm2
+		pmulhw		%mm5,%mm1
+		movq		%mm0,%mm4
+		pmulhw		%mm5,%mm3
+		movq		.L52,%mm5
+		paddw		%mm2,%mm4
+		psrlw		$1,%mm4
+		psubw		%mm4,%mm1
+		pmulhw		.L51,%mm1
+		psubw		%mm4,%mm3
+		pmulhw		.L50,%mm3
+		packsswb	%mm1,%mm3
+		paddw		%mm5,%mm0
+		psrlw		$4,%mm0
+		pxor		.L53,%mm3
+		paddw		%mm5,%mm2
+		psrlw		$4,%mm2
+		packuswb	%mm2,%mm0
+		movq		%mm0,%mm2
+		punpcklbw	%mm3,%mm0
+		punpckhbw	%mm3,%mm2
+		movq		%mm0,%mm3
+		punpcklwd	%mm2,%mm0
+		punpckhwd	%mm2,%mm3
+		movq		%mm0,(%edi)
+		movq		%mm3,8(%edi)
+		addl		$16,%edi
+		subl		$8,%ecx
+		jne		.L65
+		addl		%eax,%esi
+		addl		%ebx,%edi
+		decl		%edx
+		jne		.L66
+		emms
+		popl		%ebx
+		popl		%esi
+		popl		%edi
+		ret
+		.text
+		.align		16
+		.globl		mmx_bgr5551_yuyv
+mmx_bgr5551_yuyv:
+		pushl		%edi
+		pushl		%esi
+		pushl		%ebx
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
+		addl		%ecx,%ecx
+		movl		0+12+20(%esp),%ebx
+		subl		%ecx,%eax
+		movl		0+12+12(%esp),%ecx
+		addl		%ecx,%ecx
+		movl		0+12+16(%esp),%edx
+		subl		%ecx,%ebx
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
+		.align 16
+.L68:
+		movl		0+12+12(%esp),%ecx
+.L67:
+		movq		(%esi),%mm4
+		movq		8(%esi),%mm6
+		addl		$16,%esi
+		movq		%mm4,%mm0
+		punpcklwd	%mm6,%mm4
+		punpckhwd	%mm6,%mm0
+		movq		%mm4,%mm6
+		punpcklwd	%mm0,%mm4
+		punpckhwd	%mm0,%mm6
+		movq		.L62,%mm5
+		movq		%mm4,%mm0
+		pand		%mm5,%mm0
+		movq		%mm0,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm0
+		por		%mm7,%mm0
+		movq		%mm4,%mm2
+		psrlw		$5,%mm2
+		pand		%mm5,%mm2
+		movq		%mm2,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm2
+		por		%mm7,%mm2
+		psrlw		$10,%mm4
+		pand		%mm5,%mm4
+		movq		%mm4,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm4
+		por		%mm7,%mm4
+		psllw		$4,%mm4
+		movq		%mm4,%mm1
+		pmulhw		.L45,%mm4
+		psllw		$5,%mm2
+		pmulhw		.L46,%mm2
+		psllw		$4,%mm0
+		movq		%mm0,%mm3
+		pmulhw		.L47,%mm0
+		paddw		%mm2,%mm4
+		paddw		%mm0,%mm4
+		movq		%mm6,%mm0
+		pand		%mm5,%mm0
+		movq		%mm0,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm0
+		por		%mm7,%mm0
+		movq		%mm6,%mm2
+		psrlw		$5,%mm2
+		pand		%mm5,%mm2
+		movq		%mm2,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm2
+		por		%mm7,%mm2
+		psrlw		$10,%mm6
+		pand		%mm5,%mm6
+		movq		%mm6,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm6
+		por		%mm7,%mm6
+		psllw		$4,%mm6
+		paddw		%mm6,%mm1
+		pmulhw		.L45,%mm6
+		psllw		$5,%mm2
+		pmulhw		.L46,%mm2
+		psllw		$4,%mm0
+		paddw		%mm0,%mm3
+		pmulhw		.L47,%mm0
+		movq		.L48,%mm5
+		paddw		%mm2,%mm6
+		paddw		%mm0,%mm6
+		pmulhw		%mm5,%mm1
+		movq		%mm4,%mm0
+		pmulhw		%mm5,%mm3
+		movq		.L52,%mm2
+		paddw		%mm6,%mm0
+		psrlw		$1,%mm0
+		psubw		%mm0,%mm1
+		pmulhw		.L51,%mm1
+		psubw		%mm0,%mm3
+		pmulhw		.L50,%mm3
+		packsswb	%mm1,%mm3
+		paddw		%mm2,%mm4
+		psrlw		$4,%mm4
+		pxor		.L53,%mm3
+		paddw		%mm2,%mm6
+		psrlw		$4,%mm6
+		packuswb	%mm6,%mm4
+		movq		%mm4,%mm6
+		punpcklbw	%mm3,%mm4
+		punpckhbw	%mm3,%mm6
+		movq		%mm4,%mm3
+		punpcklwd	%mm6,%mm4
+		punpckhwd	%mm6,%mm3
+		movq		%mm4,(%edi)
+		movq		%mm3,8(%edi)
+		addl		$16,%edi
+		subl		$8,%ecx
+		jne		.L67
+		addl		%eax,%esi
+		addl		%ebx,%edi
+		decl		%edx
+		jne		.L68
+		emms
+		popl		%ebx
+		popl		%esi
+		popl		%edi
+		ret
+		.text
+		.align		16
+		.globl		mmx_rgb32_yuv420
+mmx_rgb32_yuv420:
 		pushl		%ebx
 		pushl		%ebp
 		pushl		%esi
 		pushl		%edi
 		movl		%esp,%ecx
-		leal		-640(%esp),%esp
+		leal		-32(%esp),%esp
 		andl		$-8,%esp
-		t119 = 0
-		t120 = 8
-		t121 = 16
-		t114 = 24
-		t115 = 28
-		t116 = 32
-		t117 = 36
-		t118 = 40
-		t122 = 44
-		movl		36(%ecx),%ebx
-		movl		%ebx,t117(%esp)
+		t77 = 0
+		t71 = 8
+		t72 = 12
+		t73 = 16
+		t74 = 20
+		t75 = 24
+		t76 = 28
+		movl		0+16+20(%ecx),%ebx
+		movl		%ebx,t74(%esp)
 		shrl		$1,%ebx
-		movl		52(%ecx),%eax
+		movl		0+16+32(%ecx),%eax
 		subl		%ebx,%eax
-		movl		%eax,t116(%esp)
-		movl		48(%ecx),%eax
+		movl		%eax,t73(%esp)
+		movl		0+16+28(%ecx),%eax
 		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
-		movl		%eax,%ebp
-		movl		44(%ecx),%esi
+		movl		0+16+4(%ecx),%edi
+		movl		%eax,%edx
+		movl		0+16+36(%ecx),%esi
 		subl		%ebx,%eax
-		movl		%eax,t114(%esp)
+		movl		%eax,t72(%esp)
+		shll		$2,%ebx
+		movl		%esi,%ebp
+		movl		0+16+24(%ecx),%eax
+		subl		%ebx,%esi
+		movl		0+16+12(%ecx),%ebx
+		movl		%esi,t71(%esp)
+		movl		0+16+16(%ecx),%esi
+		movl		%eax,t75(%esp)
+		movl		0+16+8(%ecx),%eax
+		movl		%ecx,t76(%esp)
+		.align 16
+.L70:
+		movl		t74(%esp),%ecx
+.L69:
+		movq		(%esi),%mm0
+		movq		8(%esi),%mm5
+		movq		16(%esi),%mm2
+		movq		24(%esi),%mm4
+		movq		%mm0,%mm6
+		punpcklbw	%mm5,%mm0
+		punpckhbw	%mm5,%mm6
+		movq		%mm2,%mm7
+		punpcklbw	%mm4,%mm2
+		punpckhbw	%mm4,%mm7
+		pxor		%mm5,%mm5
+		movq		%mm0,%mm4
+		punpcklwd	%mm2,%mm0
+		punpckhwd	%mm2,%mm4
+		punpcklbw	%mm5,%mm4
+		movq		%mm0,%mm2
+		punpcklbw	%mm5,%mm0
+		punpckhbw	%mm5,%mm2
+		psllw		$4,%mm0
+		movq		%mm0,%mm1
+		pmulhw		.L45,%mm0
+		psllw		$5,%mm2
+		pmulhw		.L46,%mm2
+		psllw		$4,%mm4
+		movq		%mm4,%mm3
+		pmulhw		.L47,%mm4
+		paddw		%mm2,%mm0
+		paddw		%mm4,%mm0
+		movq		%mm6,%mm4
+		punpcklwd	%mm7,%mm6
+		punpckhwd	%mm7,%mm4
+		punpcklbw	%mm5,%mm4
+		movq		%mm6,%mm2
+		punpcklbw	%mm5,%mm6
+		punpckhbw	%mm5,%mm2
+		psllw		$4,%mm6
+		paddw		%mm6,%mm1
+		pmulhw		.L45,%mm6
+		psllw		$5,%mm2
+		pmulhw		.L46,%mm2
+		psllw		$4,%mm4
+		paddw		%mm4,%mm3
+		pmulhw		.L47,%mm4
+		paddw		%mm2,%mm6
+		paddw		%mm4,%mm6
+		movq		.L52,%mm2
+		movq		%mm0,%mm4
+		paddw		%mm6,%mm4
+		movq		%mm4,t77(%esp)
+		paddw		%mm2,%mm0
+		psrlw		$4,%mm0
+		packuswb	%mm0,%mm0
+		paddw		%mm2,%mm6
+		psrlw		$4,%mm6
+		packuswb	%mm6,%mm6
+		punpcklbw	%mm6,%mm0
+		movq		%mm0,(%edi)
+		movq		(%esi,%ebp),%mm0
+		movq		8(%esi,%ebp),%mm5
+		movq		16(%esi,%ebp),%mm2
+		movq		24(%esi,%ebp),%mm4
+		addl		$32,%esi
+		movq		%mm0,%mm6
+		punpcklbw	%mm5,%mm0
+		punpckhbw	%mm5,%mm6
+		movq		%mm2,%mm7
+		punpcklbw	%mm4,%mm2
+		punpckhbw	%mm4,%mm7
+		pxor		%mm5,%mm5
+		movq		%mm0,%mm4
+		punpcklwd	%mm2,%mm0
+		punpckhwd	%mm2,%mm4
+		punpcklbw	%mm5,%mm4
+		movq		%mm0,%mm2
+		punpcklbw	%mm5,%mm0
+		punpckhbw	%mm5,%mm2
+		psllw		$4,%mm0
+		paddw		%mm0,%mm1
+		pmulhw		.L45,%mm0
+		psllw		$5,%mm2
+		pmulhw		.L46,%mm2
+		psllw		$4,%mm4
+		paddw		%mm4,%mm3
+		pmulhw		.L47,%mm4
+		paddw		%mm2,%mm0
+		paddw		%mm4,%mm0
+		movq		%mm6,%mm4
+		punpcklwd	%mm7,%mm6
+		punpckhwd	%mm7,%mm4
+		punpcklbw	%mm5,%mm4
+		movq		%mm6,%mm2
+		punpcklbw	%mm5,%mm6
+		punpckhbw	%mm5,%mm2
+		psllw		$4,%mm6
+		paddw		%mm6,%mm1
+		pmulhw		.L45,%mm6
+		psllw		$5,%mm2
+		pmulhw		.L46,%mm2
+		psllw		$4,%mm4
+		paddw		%mm4,%mm3
+		pmulhw		.L47,%mm4
+		paddw		%mm2,%mm6
+		paddw		%mm4,%mm6
+		movq		.L52,%mm2
+		movq		%mm0,%mm4
+		paddw		%mm6,%mm4
+		paddw		t77(%esp),%mm4
+		paddw		%mm2,%mm0
+		psrlw		$4,%mm0
+		packuswb	%mm0,%mm0
+		paddw		%mm2,%mm6
+		psrlw		$4,%mm6
+		packuswb	%mm6,%mm6
+		movq		.L49,%mm5
+		punpcklbw	%mm6,%mm0
+		psrlw		$2,%mm4
+		movq		%mm0,(%edi,%edx)
+		pmulhw		%mm5,%mm1
+		pmulhw		%mm5,%mm3
+		psubw		%mm4,%mm1
+		pmulhw		.L51,%mm1
+		psubw		%mm4,%mm3
+		pmulhw		.L50,%mm3
+		packsswb	%mm1,%mm3
+		pxor		.L53,%mm3
+		movd		%mm3,(%eax)
+		psrlq		$32,%mm3
+		movd		%mm3,(%ebx)
+		addl		$8,%edi
+		addl		$4,%eax
+		addl		$4,%ebx
+		subl		$8,%ecx
+		jne		.L69
+		addl		t71(%esp),%esi
+		addl		%ebp,%esi
+		movl		t73(%esp),%ecx
+		addl		%ecx,%eax
+		addl		t72(%esp),%edi
+		addl		%edx,%edi
+		addl		%ecx,%ebx
+		subl		$2,t75(%esp)
+		jne		.L70
+		movl		t76(%esp),%esp
+		emms
+		popl		%edi
+		popl		%esi
+		popl		%ebp
+		popl		%ebx
+		ret
+		.text
+		.align		16
+		.globl		mmx_bgr32_yuv420
+mmx_bgr32_yuv420:
+		pushl		%ebx
+		pushl		%ebp
+		pushl		%esi
+		pushl		%edi
+		movl		%esp,%ecx
+		leal		-32(%esp),%esp
+		andl		$-8,%esp
+		t84 = 0
+		t78 = 8
+		t79 = 12
+		t80 = 16
+		t81 = 20
+		t82 = 24
+		t83 = 28
+		movl		0+16+20(%ecx),%ebx
+		movl		%ebx,t81(%esp)
+		shrl		$1,%ebx
+		movl		0+16+32(%ecx),%eax
+		subl		%ebx,%eax
+		movl		%eax,t80(%esp)
+		movl		0+16+28(%ecx),%eax
+		addl		%ebx,%ebx
+		movl		0+16+4(%ecx),%edi
+		movl		%eax,%edx
+		movl		0+16+36(%ecx),%esi
+		subl		%ebx,%eax
+		movl		%eax,t79(%esp)
+		shll		$2,%ebx
+		movl		%esi,%ebp
+		movl		0+16+24(%ecx),%eax
+		subl		%ebx,%esi
+		movl		0+16+12(%ecx),%ebx
+		movl		%esi,t78(%esp)
+		movl		0+16+16(%ecx),%esi
+		movl		%eax,t82(%esp)
+		movl		0+16+8(%ecx),%eax
+		movl		%ecx,t83(%esp)
+		.align 16
+.L72:
+		movl		t81(%esp),%ecx
+.L71:
+		movq		(%esi),%mm0
+		movq		8(%esi),%mm5
+		movq		16(%esi),%mm2
+		movq		24(%esi),%mm4
+		movq		%mm0,%mm6
+		punpcklbw	%mm5,%mm0
+		punpckhbw	%mm5,%mm6
+		movq		%mm2,%mm7
+		punpcklbw	%mm4,%mm2
+		punpckhbw	%mm4,%mm7
+		pxor		%mm5,%mm5
+		movq		%mm0,%mm4
+		punpcklwd	%mm2,%mm0
+		punpckhwd	%mm2,%mm4
+		punpcklbw	%mm5,%mm4
+		movq		%mm0,%mm2
+		punpcklbw	%mm5,%mm0
+		punpckhbw	%mm5,%mm2
+		psllw		$4,%mm4
+		movq		%mm4,%mm1
+		pmulhw		.L45,%mm4
+		psllw		$5,%mm2
+		pmulhw		.L46,%mm2
+		psllw		$4,%mm0
+		movq		%mm0,%mm3
+		pmulhw		.L47,%mm0
+		paddw		%mm2,%mm4
+		paddw		%mm0,%mm4
+		movq		%mm6,%mm2
+		punpcklwd	%mm7,%mm6
+		punpckhwd	%mm7,%mm2
+		punpcklbw	%mm5,%mm2
+		movq		%mm6,%mm0
+		punpcklbw	%mm5,%mm6
+		punpckhbw	%mm5,%mm0
+		psllw		$4,%mm2
+		paddw		%mm2,%mm1
+		pmulhw		.L45,%mm2
+		psllw		$5,%mm0
+		pmulhw		.L46,%mm0
+		psllw		$4,%mm6
+		paddw		%mm6,%mm3
+		pmulhw		.L47,%mm6
+		paddw		%mm0,%mm2
+		paddw		%mm6,%mm2
+		movq		.L52,%mm0
+		movq		%mm4,%mm5
+		paddw		%mm2,%mm5
+		movq		%mm5,t84(%esp)
+		paddw		%mm0,%mm4
+		psrlw		$4,%mm4
+		packuswb	%mm4,%mm4
+		paddw		%mm0,%mm2
+		psrlw		$4,%mm2
+		packuswb	%mm2,%mm2
+		punpcklbw	%mm2,%mm4
+		movq		%mm4,(%edi)
+		movq		(%esi,%ebp),%mm0
+		movq		8(%esi,%ebp),%mm5
+		movq		16(%esi,%ebp),%mm2
+		movq		24(%esi,%ebp),%mm4
+		addl		$32,%esi
+		movq		%mm0,%mm6
+		punpcklbw	%mm5,%mm0
+		punpckhbw	%mm5,%mm6
+		movq		%mm2,%mm7
+		punpcklbw	%mm4,%mm2
+		punpckhbw	%mm4,%mm7
+		pxor		%mm5,%mm5
+		movq		%mm0,%mm4
+		punpcklwd	%mm2,%mm0
+		punpckhwd	%mm2,%mm4
+		punpcklbw	%mm5,%mm4
+		movq		%mm0,%mm2
+		punpcklbw	%mm5,%mm0
+		punpckhbw	%mm5,%mm2
+		psllw		$4,%mm4
+		paddw		%mm4,%mm1
+		pmulhw		.L45,%mm4
+		psllw		$5,%mm2
+		pmulhw		.L46,%mm2
+		psllw		$4,%mm0
+		paddw		%mm0,%mm3
+		pmulhw		.L47,%mm0
+		paddw		%mm2,%mm4
+		paddw		%mm0,%mm4
+		movq		%mm6,%mm2
+		punpcklwd	%mm7,%mm6
+		punpckhwd	%mm7,%mm2
+		punpcklbw	%mm5,%mm2
+		movq		%mm6,%mm0
+		punpcklbw	%mm5,%mm6
+		punpckhbw	%mm5,%mm0
+		psllw		$4,%mm2
+		paddw		%mm2,%mm1
+		pmulhw		.L45,%mm2
+		psllw		$5,%mm0
+		pmulhw		.L46,%mm0
+		psllw		$4,%mm6
+		paddw		%mm6,%mm3
+		pmulhw		.L47,%mm6
+		paddw		%mm0,%mm2
+		paddw		%mm6,%mm2
+		movq		.L52,%mm0
+		movq		%mm4,%mm5
+		paddw		%mm2,%mm5
+		paddw		t84(%esp),%mm5
+		paddw		%mm0,%mm4
+		psrlw		$4,%mm4
+		packuswb	%mm4,%mm4
+		paddw		%mm0,%mm2
+		psrlw		$4,%mm2
+		packuswb	%mm2,%mm2
+		movq		.L49,%mm6
+		punpcklbw	%mm2,%mm4
+		psrlw		$2,%mm5
+		movq		%mm4,(%edi,%edx)
+		pmulhw		%mm6,%mm1
+		pmulhw		%mm6,%mm3
+		psubw		%mm5,%mm1
+		pmulhw		.L51,%mm1
+		psubw		%mm5,%mm3
+		pmulhw		.L50,%mm3
+		packsswb	%mm1,%mm3
+		pxor		.L53,%mm3
+		movd		%mm3,(%eax)
+		psrlq		$32,%mm3
+		movd		%mm3,(%ebx)
+		addl		$8,%edi
+		addl		$4,%eax
+		addl		$4,%ebx
+		subl		$8,%ecx
+		jne		.L71
+		addl		t78(%esp),%esi
+		addl		%ebp,%esi
+		movl		t80(%esp),%ecx
+		addl		%ecx,%eax
+		addl		t79(%esp),%edi
+		addl		%edx,%edi
+		addl		%ecx,%ebx
+		subl		$2,t82(%esp)
+		jne		.L72
+		movl		t83(%esp),%esp
+		emms
+		popl		%edi
+		popl		%esi
+		popl		%ebp
+		popl		%ebx
+		ret
+		.text
+		.align		16
+		.globl		mmx_rgb24_yuv420
+mmx_rgb24_yuv420:
+		pushl		%ebx
+		pushl		%ebp
+		pushl		%esi
+		pushl		%edi
+		movl		%esp,%ecx
+		leal		-32(%esp),%esp
+		andl		$-8,%esp
+		t91 = 0
+		t85 = 8
+		t86 = 12
+		t87 = 16
+		t88 = 20
+		t89 = 24
+		t90 = 28
+		movl		0+16+20(%ecx),%ebx
+		movl		%ebx,t88(%esp)
+		shrl		$1,%ebx
+		movl		0+16+32(%ecx),%eax
+		subl		%ebx,%eax
+		movl		%eax,t87(%esp)
+		movl		0+16+28(%ecx),%eax
+		addl		%ebx,%ebx
+		movl		0+16+4(%ecx),%edi
+		movl		%eax,%edx
+		movl		0+16+36(%ecx),%esi
+		subl		%ebx,%eax
+		movl		%eax,t86(%esp)
+		leal		(%ebx,%ebx,2),%ebx
+		movl		%esi,%ebp
+		movl		0+16+24(%ecx),%eax
+		subl		%ebx,%esi
+		movl		0+16+12(%ecx),%ebx
+		movl		%esi,t85(%esp)
+		movl		0+16+16(%ecx),%esi
+		movl		%eax,t89(%esp)
+		movl		0+16+8(%ecx),%eax
+		movl		%ecx,t90(%esp)
+		.align 16
+.L74:
+		movl		t88(%esp),%ecx
+.L73:
+		movq		(%esi),%mm4
+		movq		8(%esi),%mm0
+		movq		16(%esi),%mm2
+		movq		%mm4,%mm6
+		psllq		$32,%mm4
+		punpckhbw	%mm0,%mm4
+		psrlq		$32,%mm6
+		punpcklbw	%mm2,%mm6
+		psllq		$32,%mm0
+		punpckhbw	%mm2,%mm0
+		movq		%mm4,%mm2
+		psllq		$32,%mm2
+		punpckhbw	%mm6,%mm2
+		psllq		$32,%mm6
+		punpckhbw	%mm0,%mm6
+		psllq		$32,%mm0
+		punpckhbw	%mm0,%mm4
+		pxor		%mm5,%mm5
+		movq		%mm2,%mm0
+		punpcklbw	%mm5,%mm0
+		punpckhbw	%mm5,%mm2
+		movq		%mm4,%mm7
+		punpcklbw	%mm5,%mm4
+		psllw		$4,%mm0
+		movq		%mm0,%mm1
+		pmulhw		.L45,%mm0
+		psllw		$5,%mm2
+		pmulhw		.L46,%mm2
+		psllw		$4,%mm4
+		movq		%mm4,%mm3
+		pmulhw		.L47,%mm4
+		paddw		%mm2,%mm0
+		paddw		%mm4,%mm0
+		movq		%mm6,%mm2
+		punpcklbw	%mm5,%mm6
+		punpckhbw	%mm5,%mm2
+		punpckhbw	%mm5,%mm7
+		psllw		$4,%mm7
+		paddw		%mm7,%mm1
+		pmulhw		.L45,%mm7
+		psllw		$5,%mm6
+		pmulhw		.L46,%mm6
+		psllw		$4,%mm2
+		paddw		%mm2,%mm3
+		pmulhw		.L47,%mm2
+		paddw		%mm6,%mm7
+		paddw		%mm2,%mm7
+		movq		.L52,%mm2
+		movq		%mm0,%mm4
+		paddw		%mm7,%mm4
+		movq		%mm4,t91(%esp)
+		paddw		%mm2,%mm0
+		psrlw		$4,%mm0
+		packuswb	%mm0,%mm0
+		paddw		%mm2,%mm7
+		psrlw		$4,%mm7
+		packuswb	%mm7,%mm7
+		punpcklbw	%mm7,%mm0
+		movq		%mm0,(%edi)
+		movq		(%esi,%ebp),%mm4
+		movq		8(%esi,%ebp),%mm0
+		movq		16(%esi,%ebp),%mm2
+		addl		$24,%esi
+		movq		%mm4,%mm6
+		psllq		$32,%mm4
+		punpckhbw	%mm0,%mm4
+		psrlq		$32,%mm6
+		punpcklbw	%mm2,%mm6
+		psllq		$32,%mm0
+		punpckhbw	%mm2,%mm0
+		movq		%mm4,%mm2
+		psllq		$32,%mm2
+		punpckhbw	%mm6,%mm2
+		psllq		$32,%mm6
+		punpckhbw	%mm0,%mm6
+		psllq		$32,%mm0
+		punpckhbw	%mm0,%mm4
+		pxor		%mm5,%mm5
+		movq		%mm2,%mm0
+		punpcklbw	%mm5,%mm0
+		punpckhbw	%mm5,%mm2
+		movq		%mm4,%mm7
+		punpcklbw	%mm5,%mm4
+		psllw		$4,%mm0
+		paddw		%mm0,%mm1
+		pmulhw		.L45,%mm0
+		psllw		$5,%mm2
+		pmulhw		.L46,%mm2
+		psllw		$4,%mm4
+		paddw		%mm4,%mm3
+		pmulhw		.L47,%mm4
+		paddw		%mm2,%mm0
+		paddw		%mm4,%mm0
+		movq		%mm6,%mm2
+		punpcklbw	%mm5,%mm6
+		punpckhbw	%mm5,%mm2
+		punpckhbw	%mm5,%mm7
+		psllw		$4,%mm7
+		paddw		%mm7,%mm1
+		pmulhw		.L45,%mm7
+		psllw		$5,%mm6
+		pmulhw		.L46,%mm6
+		psllw		$4,%mm2
+		paddw		%mm2,%mm3
+		pmulhw		.L47,%mm2
+		paddw		%mm6,%mm7
+		paddw		%mm2,%mm7
+		movq		.L52,%mm2
+		movq		%mm0,%mm4
+		paddw		%mm7,%mm4
+		paddw		t91(%esp),%mm4
+		paddw		%mm2,%mm0
+		psrlw		$4,%mm0
+		packuswb	%mm0,%mm0
+		paddw		%mm2,%mm7
+		psrlw		$4,%mm7
+		packuswb	%mm7,%mm7
+		movq		.L49,%mm5
+		punpcklbw	%mm7,%mm0
+		psrlw		$2,%mm4
+		movq		%mm0,(%edi,%edx)
+		pmulhw		%mm5,%mm1
+		pmulhw		%mm5,%mm3
+		psubw		%mm4,%mm1
+		pmulhw		.L51,%mm1
+		psubw		%mm4,%mm3
+		pmulhw		.L50,%mm3
+		packsswb	%mm1,%mm3
+		pxor		.L53,%mm3
+		movd		%mm3,(%eax)
+		psrlq		$32,%mm3
+		movd		%mm3,(%ebx)
+		addl		$8,%edi
+		addl		$4,%eax
+		addl		$4,%ebx
+		subl		$8,%ecx
+		jne		.L73
+		addl		t85(%esp),%esi
+		addl		%ebp,%esi
+		movl		t87(%esp),%ecx
+		addl		%ecx,%eax
+		addl		t86(%esp),%edi
+		addl		%edx,%edi
+		addl		%ecx,%ebx
+		subl		$2,t89(%esp)
+		jne		.L74
+		movl		t90(%esp),%esp
+		emms
+		popl		%edi
+		popl		%esi
+		popl		%ebp
+		popl		%ebx
+		ret
+		.text
+		.align		16
+		.globl		mmx_bgr24_yuv420
+mmx_bgr24_yuv420:
+		pushl		%ebx
+		pushl		%ebp
+		pushl		%esi
+		pushl		%edi
+		movl		%esp,%ecx
+		leal		-32(%esp),%esp
+		andl		$-8,%esp
+		t98 = 0
+		t92 = 8
+		t93 = 12
+		t94 = 16
+		t95 = 20
+		t96 = 24
+		t97 = 28
+		movl		0+16+20(%ecx),%ebx
+		movl		%ebx,t95(%esp)
+		shrl		$1,%ebx
+		movl		0+16+32(%ecx),%eax
+		subl		%ebx,%eax
+		movl		%eax,t94(%esp)
+		movl		0+16+28(%ecx),%eax
+		addl		%ebx,%ebx
+		movl		0+16+4(%ecx),%edi
+		movl		%eax,%edx
+		movl		0+16+36(%ecx),%esi
+		subl		%ebx,%eax
+		movl		%eax,t93(%esp)
+		leal		(%ebx,%ebx,2),%ebx
+		movl		%esi,%ebp
+		movl		0+16+24(%ecx),%eax
+		subl		%ebx,%esi
+		movl		0+16+12(%ecx),%ebx
+		movl		%esi,t92(%esp)
+		movl		0+16+16(%ecx),%esi
+		movl		%eax,t96(%esp)
+		movl		0+16+8(%ecx),%eax
+		movl		%ecx,t97(%esp)
+		.align 16
+.L76:
+		movl		t95(%esp),%ecx
+.L75:
+		movq		(%esi),%mm4
+		movq		8(%esi),%mm0
+		movq		16(%esi),%mm2
+		movq		%mm4,%mm6
+		psllq		$32,%mm4
+		punpckhbw	%mm0,%mm4
+		psrlq		$32,%mm6
+		punpcklbw	%mm2,%mm6
+		psllq		$32,%mm0
+		punpckhbw	%mm2,%mm0
+		movq		%mm4,%mm2
+		psllq		$32,%mm2
+		punpckhbw	%mm6,%mm2
+		psllq		$32,%mm6
+		punpckhbw	%mm0,%mm6
+		psllq		$32,%mm0
+		punpckhbw	%mm0,%mm4
+		pxor		%mm5,%mm5
+		movq		%mm2,%mm0
+		punpcklbw	%mm5,%mm0
+		punpckhbw	%mm5,%mm2
+		movq		%mm4,%mm7
+		punpcklbw	%mm5,%mm4
+		psllw		$4,%mm4
+		movq		%mm4,%mm1
+		pmulhw		.L45,%mm4
+		psllw		$5,%mm2
+		pmulhw		.L46,%mm2
+		psllw		$4,%mm0
+		movq		%mm0,%mm3
+		pmulhw		.L47,%mm0
+		paddw		%mm2,%mm4
+		paddw		%mm0,%mm4
+		movq		%mm6,%mm0
+		punpcklbw	%mm5,%mm6
+		punpckhbw	%mm5,%mm0
+		punpckhbw	%mm5,%mm7
+		psllw		$4,%mm0
+		paddw		%mm0,%mm1
+		pmulhw		.L45,%mm0
+		psllw		$5,%mm6
+		pmulhw		.L46,%mm6
+		psllw		$4,%mm7
+		paddw		%mm7,%mm3
+		pmulhw		.L47,%mm7
+		paddw		%mm6,%mm0
+		paddw		%mm7,%mm0
+		movq		.L52,%mm2
+		movq		%mm4,%mm5
+		paddw		%mm0,%mm5
+		movq		%mm5,t98(%esp)
+		paddw		%mm2,%mm4
+		psrlw		$4,%mm4
+		packuswb	%mm4,%mm4
+		paddw		%mm2,%mm0
+		psrlw		$4,%mm0
+		packuswb	%mm0,%mm0
+		punpcklbw	%mm0,%mm4
+		movq		%mm4,(%edi)
+		movq		(%esi,%ebp),%mm4
+		movq		8(%esi,%ebp),%mm0
+		movq		16(%esi,%ebp),%mm2
+		addl		$24,%esi
+		movq		%mm4,%mm6
+		psllq		$32,%mm4
+		punpckhbw	%mm0,%mm4
+		psrlq		$32,%mm6
+		punpcklbw	%mm2,%mm6
+		psllq		$32,%mm0
+		punpckhbw	%mm2,%mm0
+		movq		%mm4,%mm2
+		psllq		$32,%mm2
+		punpckhbw	%mm6,%mm2
+		psllq		$32,%mm6
+		punpckhbw	%mm0,%mm6
+		psllq		$32,%mm0
+		punpckhbw	%mm0,%mm4
+		pxor		%mm5,%mm5
+		movq		%mm2,%mm0
+		punpcklbw	%mm5,%mm0
+		punpckhbw	%mm5,%mm2
+		movq		%mm4,%mm7
+		punpcklbw	%mm5,%mm4
+		psllw		$4,%mm4
+		paddw		%mm4,%mm1
+		pmulhw		.L45,%mm4
+		psllw		$5,%mm2
+		pmulhw		.L46,%mm2
+		psllw		$4,%mm0
+		paddw		%mm0,%mm3
+		pmulhw		.L47,%mm0
+		paddw		%mm2,%mm4
+		paddw		%mm0,%mm4
+		movq		%mm6,%mm0
+		punpcklbw	%mm5,%mm6
+		punpckhbw	%mm5,%mm0
+		punpckhbw	%mm5,%mm7
+		psllw		$4,%mm0
+		paddw		%mm0,%mm1
+		pmulhw		.L45,%mm0
+		psllw		$5,%mm6
+		pmulhw		.L46,%mm6
+		psllw		$4,%mm7
+		paddw		%mm7,%mm3
+		pmulhw		.L47,%mm7
+		paddw		%mm6,%mm0
+		paddw		%mm7,%mm0
+		movq		.L52,%mm2
+		movq		%mm4,%mm5
+		paddw		%mm0,%mm5
+		paddw		t98(%esp),%mm5
+		paddw		%mm2,%mm4
+		psrlw		$4,%mm4
+		packuswb	%mm4,%mm4
+		paddw		%mm2,%mm0
+		psrlw		$4,%mm0
+		packuswb	%mm0,%mm0
+		movq		.L49,%mm6
+		punpcklbw	%mm0,%mm4
+		psrlw		$2,%mm5
+		movq		%mm4,(%edi,%edx)
+		pmulhw		%mm6,%mm1
+		pmulhw		%mm6,%mm3
+		psubw		%mm5,%mm1
+		pmulhw		.L51,%mm1
+		psubw		%mm5,%mm3
+		pmulhw		.L50,%mm3
+		packsswb	%mm1,%mm3
+		pxor		.L53,%mm3
+		movd		%mm3,(%eax)
+		psrlq		$32,%mm3
+		movd		%mm3,(%ebx)
+		addl		$8,%edi
+		addl		$4,%eax
+		addl		$4,%ebx
+		subl		$8,%ecx
+		jne		.L75
+		addl		t92(%esp),%esi
+		addl		%ebp,%esi
+		movl		t94(%esp),%ecx
+		addl		%ecx,%eax
+		addl		t93(%esp),%edi
+		addl		%edx,%edi
+		addl		%ecx,%ebx
+		subl		$2,t96(%esp)
+		jne		.L76
+		movl		t97(%esp),%esp
+		emms
+		popl		%edi
+		popl		%esi
+		popl		%ebp
+		popl		%ebx
+		ret
+		.text
+		.align		16
+		.globl		mmx_rgb565_yuv420
+mmx_rgb565_yuv420:
+		pushl		%ebx
+		pushl		%ebp
+		pushl		%esi
+		pushl		%edi
+		leal		-24(%esp),%esp
+		t99 = 0
+		t100 = 4
+		t101 = 8
+		t102 = 12
+		t103 = 16
+		t104 = 20
+		movl		24+16+20(%esp),%ebx
+		movl		%ebx,t102(%esp)
+		shrl		$1,%ebx
+		movl		24+16+32(%esp),%eax
+		subl		%ebx,%eax
+		movl		%eax,t101(%esp)
+		movl		24+16+28(%esp),%eax
+		addl		%ebx,%ebx
+		movl		24+16+4(%esp),%edi
+		movl		%eax,%edx
+		movl		24+16+36(%esp),%esi
+		subl		%ebx,%eax
+		movl		%eax,t100(%esp)
+		addl		%ebx,%ebx
+		movl		%esi,%ebp
+		movl		24+16+24(%esp),%eax
+		subl		%ebx,%esi
+		movl		24+16+12(%esp),%ebx
+		movl		%esi,t99(%esp)
+		movl		24+16+16(%esp),%esi
+		movl		%eax,t103(%esp)
+		movl		24+16+8(%esp),%eax
+		.align 16
+.L78:
+		movl		t102(%esp),%ecx
+.L77:
+		movq		(%esi),%mm2
+		movq		8(%esi),%mm6
+		movq		%mm2,%mm0
+		punpcklwd	%mm6,%mm2
+		punpckhwd	%mm6,%mm0
+		movq		%mm2,%mm6
+		punpcklwd	%mm0,%mm2
+		punpckhwd	%mm0,%mm6
+		movq		.L62,%mm4
+		movq		%mm2,%mm0
+		pand		%mm4,%mm0
+		pxor		%mm0,%mm2
+		movq		%mm0,%mm5
+		psllw		$3,%mm5
+		psrlw		$2,%mm0
+		por		%mm5,%mm0
+		psllw		$11,%mm4
+		pand		%mm2,%mm4
+		pxor		%mm4,%mm2
+		movq		%mm4,%mm5
+		psrlw		$8,%mm5
+		psrlw		$13,%mm4
+		por		%mm5,%mm4
+		movq		%mm2,%mm5
+		psrlw		$3,%mm5
+		psrlw		$9,%mm2
+		por		%mm5,%mm2
+		psllw		$4,%mm0
+		movq		%mm0,%mm1
+		pmulhw		.L45,%mm0
+		psllw		$5,%mm2
+		pmulhw		.L46,%mm2
+		psllw		$4,%mm4
+		movq		%mm4,%mm3
+		pmulhw		.L47,%mm4
+		paddw		%mm2,%mm0
+		paddw		%mm4,%mm0
+		movq		.L62,%mm4
+		movq		%mm6,%mm2
+		pand		%mm4,%mm2
+		pxor		%mm2,%mm6
+		movq		%mm2,%mm5
+		psllw		$3,%mm5
+		psrlw		$2,%mm2
+		por		%mm5,%mm2
+		psllw		$11,%mm4
+		pand		%mm6,%mm4
+		pxor		%mm4,%mm6
+		movq		%mm4,%mm5
+		psrlw		$8,%mm5
+		psrlw		$13,%mm4
+		por		%mm5,%mm4
+		movq		%mm6,%mm5
+		psrlw		$3,%mm5
+		psrlw		$9,%mm6
+		por		%mm5,%mm6
+		psllw		$4,%mm2
+		paddw		%mm2,%mm1
+		pmulhw		.L45,%mm2
+		psllw		$5,%mm6
+		pmulhw		.L46,%mm6
+		psllw		$4,%mm4
+		paddw		%mm4,%mm3
+		pmulhw		.L47,%mm4
+		paddw		%mm6,%mm2
+		paddw		%mm4,%mm2
+		movq		.L52,%mm4
+		movq		%mm0,%mm7
+		paddw		%mm2,%mm7
+		paddw		%mm4,%mm0
+		psrlw		$4,%mm0
+		packuswb	%mm0,%mm0
+		paddw		%mm4,%mm2
+		psrlw		$4,%mm2
+		packuswb	%mm2,%mm2
+		punpcklbw	%mm2,%mm0
+		movq		%mm0,(%edi)
+		movq		(%esi,%ebp),%mm2
+		movq		8(%esi,%ebp),%mm6
+		addl		$16,%esi
+		movq		%mm2,%mm0
+		punpcklwd	%mm6,%mm2
+		punpckhwd	%mm6,%mm0
+		movq		%mm2,%mm6
+		punpcklwd	%mm0,%mm2
+		punpckhwd	%mm0,%mm6
+		movq		.L62,%mm4
+		movq		%mm2,%mm0
+		pand		%mm4,%mm0
+		pxor		%mm0,%mm2
+		movq		%mm0,%mm5
+		psllw		$3,%mm5
+		psrlw		$2,%mm0
+		por		%mm5,%mm0
+		psllw		$11,%mm4
+		pand		%mm2,%mm4
+		pxor		%mm4,%mm2
+		movq		%mm4,%mm5
+		psrlw		$8,%mm5
+		psrlw		$13,%mm4
+		por		%mm5,%mm4
+		movq		%mm2,%mm5
+		psrlw		$3,%mm5
+		psrlw		$9,%mm2
+		por		%mm5,%mm2
+		psllw		$4,%mm0
+		paddw		%mm0,%mm1
+		pmulhw		.L45,%mm0
+		psllw		$5,%mm2
+		pmulhw		.L46,%mm2
+		psllw		$4,%mm4
+		paddw		%mm4,%mm3
+		pmulhw		.L47,%mm4
+		paddw		%mm2,%mm0
+		paddw		%mm4,%mm0
+		movq		.L62,%mm4
+		movq		%mm6,%mm2
+		pand		%mm4,%mm2
+		pxor		%mm2,%mm6
+		movq		%mm2,%mm5
+		psllw		$3,%mm5
+		psrlw		$2,%mm2
+		por		%mm5,%mm2
+		psllw		$11,%mm4
+		pand		%mm6,%mm4
+		pxor		%mm4,%mm6
+		movq		%mm4,%mm5
+		psrlw		$8,%mm5
+		psrlw		$13,%mm4
+		por		%mm5,%mm4
+		movq		%mm6,%mm5
+		psrlw		$3,%mm5
+		psrlw		$9,%mm6
+		por		%mm5,%mm6
+		psllw		$4,%mm2
+		paddw		%mm2,%mm1
+		pmulhw		.L45,%mm2
+		psllw		$5,%mm6
+		pmulhw		.L46,%mm6
+		psllw		$4,%mm4
+		paddw		%mm4,%mm3
+		pmulhw		.L47,%mm4
+		paddw		%mm6,%mm2
+		paddw		%mm4,%mm2
+		movq		.L52,%mm4
+		movq		%mm0,%mm5
+		paddw		%mm2,%mm5
+		paddw		%mm7,%mm5
+		paddw		%mm4,%mm0
+		psrlw		$4,%mm0
+		packuswb	%mm0,%mm0
+		paddw		%mm4,%mm2
+		psrlw		$4,%mm2
+		packuswb	%mm2,%mm2
+		movq		.L49,%mm6
+		punpcklbw	%mm2,%mm0
+		psrlw		$2,%mm5
+		movq		%mm0,(%edi,%edx)
+		pmulhw		%mm6,%mm1
+		pmulhw		%mm6,%mm3
+		psubw		%mm5,%mm1
+		pmulhw		.L51,%mm1
+		psubw		%mm5,%mm3
+		pmulhw		.L50,%mm3
+		packsswb	%mm1,%mm3
+		pxor		.L53,%mm3
+		movd		%mm3,(%eax)
+		psrlq		$32,%mm3
+		movd		%mm3,(%ebx)
+		addl		$8,%edi
+		addl		$4,%eax
+		addl		$4,%ebx
+		subl		$8,%ecx
+		jne		.L77
+		addl		t99(%esp),%esi
+		addl		%ebp,%esi
+		movl		t101(%esp),%ecx
+		addl		%ecx,%eax
+		addl		t100(%esp),%edi
+		addl		%edx,%edi
+		addl		%ecx,%ebx
+		subl		$2,t103(%esp)
+		jne		.L78
+		leal		24(%esp),%esp
+		emms
+		popl		%edi
+		popl		%esi
+		popl		%ebp
+		popl		%ebx
+		ret
+		.text
+		.align		16
+		.globl		mmx_bgr565_yuv420
+mmx_bgr565_yuv420:
+		pushl		%ebx
+		pushl		%ebp
+		pushl		%esi
+		pushl		%edi
+		leal		-24(%esp),%esp
+		t105 = 0
+		t106 = 4
+		t107 = 8
+		t108 = 12
+		t109 = 16
+		t110 = 20
+		movl		24+16+20(%esp),%ebx
+		movl		%ebx,t108(%esp)
+		shrl		$1,%ebx
+		movl		24+16+32(%esp),%eax
+		subl		%ebx,%eax
+		movl		%eax,t107(%esp)
+		movl		24+16+28(%esp),%eax
+		addl		%ebx,%ebx
+		movl		24+16+4(%esp),%edi
+		movl		%eax,%edx
+		movl		24+16+36(%esp),%esi
+		subl		%ebx,%eax
+		movl		%eax,t106(%esp)
+		addl		%ebx,%ebx
+		movl		%esi,%ebp
+		movl		24+16+24(%esp),%eax
+		subl		%ebx,%esi
+		movl		24+16+12(%esp),%ebx
+		movl		%esi,t105(%esp)
+		movl		24+16+16(%esp),%esi
+		movl		%eax,t109(%esp)
+		movl		24+16+8(%esp),%eax
+		.align 16
+.L80:
+		movl		t108(%esp),%ecx
+.L79:
+		movq		(%esi),%mm2
+		movq		8(%esi),%mm6
+		movq		%mm2,%mm0
+		punpcklwd	%mm6,%mm2
+		punpckhwd	%mm6,%mm0
+		movq		%mm2,%mm6
+		punpcklwd	%mm0,%mm2
+		punpckhwd	%mm0,%mm6
+		movq		.L62,%mm4
+		movq		%mm2,%mm0
+		pand		%mm4,%mm0
+		pxor		%mm0,%mm2
+		movq		%mm0,%mm5
+		psllw		$3,%mm5
+		psrlw		$2,%mm0
+		por		%mm5,%mm0
+		psllw		$11,%mm4
+		pand		%mm2,%mm4
+		pxor		%mm4,%mm2
+		movq		%mm4,%mm5
+		psrlw		$8,%mm5
+		psrlw		$13,%mm4
+		por		%mm5,%mm4
+		movq		%mm2,%mm5
+		psrlw		$3,%mm5
+		psrlw		$9,%mm2
+		por		%mm5,%mm2
+		psllw		$4,%mm4
+		movq		%mm4,%mm1
+		pmulhw		.L45,%mm4
+		psllw		$5,%mm2
+		pmulhw		.L46,%mm2
+		psllw		$4,%mm0
+		movq		%mm0,%mm3
+		pmulhw		.L47,%mm0
+		paddw		%mm2,%mm4
+		paddw		%mm0,%mm4
+		movq		.L62,%mm2
+		movq		%mm6,%mm0
+		pand		%mm2,%mm0
+		pxor		%mm0,%mm6
+		movq		%mm0,%mm5
+		psllw		$3,%mm5
+		psrlw		$2,%mm0
+		por		%mm5,%mm0
+		psllw		$11,%mm2
+		pand		%mm6,%mm2
+		pxor		%mm2,%mm6
+		movq		%mm2,%mm5
+		psrlw		$8,%mm5
+		psrlw		$13,%mm2
+		por		%mm5,%mm2
+		movq		%mm6,%mm5
+		psrlw		$3,%mm5
+		psrlw		$9,%mm6
+		por		%mm5,%mm6
+		psllw		$4,%mm2
+		paddw		%mm2,%mm1
+		pmulhw		.L45,%mm2
+		psllw		$5,%mm6
+		pmulhw		.L46,%mm6
+		psllw		$4,%mm0
+		paddw		%mm0,%mm3
+		pmulhw		.L47,%mm0
+		paddw		%mm6,%mm2
+		paddw		%mm0,%mm2
+		movq		.L52,%mm0
+		movq		%mm4,%mm7
+		paddw		%mm2,%mm7
+		paddw		%mm0,%mm4
+		psrlw		$4,%mm4
+		packuswb	%mm4,%mm4
+		paddw		%mm0,%mm2
+		psrlw		$4,%mm2
+		packuswb	%mm2,%mm2
+		punpcklbw	%mm2,%mm4
+		movq		%mm4,(%edi)
+		movq		(%esi,%ebp),%mm2
+		movq		8(%esi,%ebp),%mm6
+		addl		$16,%esi
+		movq		%mm2,%mm0
+		punpcklwd	%mm6,%mm2
+		punpckhwd	%mm6,%mm0
+		movq		%mm2,%mm6
+		punpcklwd	%mm0,%mm2
+		punpckhwd	%mm0,%mm6
+		movq		.L62,%mm4
+		movq		%mm2,%mm0
+		pand		%mm4,%mm0
+		pxor		%mm0,%mm2
+		movq		%mm0,%mm5
+		psllw		$3,%mm5
+		psrlw		$2,%mm0
+		por		%mm5,%mm0
+		psllw		$11,%mm4
+		pand		%mm2,%mm4
+		pxor		%mm4,%mm2
+		movq		%mm4,%mm5
+		psrlw		$8,%mm5
+		psrlw		$13,%mm4
+		por		%mm5,%mm4
+		movq		%mm2,%mm5
+		psrlw		$3,%mm5
+		psrlw		$9,%mm2
+		por		%mm5,%mm2
+		psllw		$4,%mm4
+		paddw		%mm4,%mm1
+		pmulhw		.L45,%mm4
+		psllw		$5,%mm2
+		pmulhw		.L46,%mm2
+		psllw		$4,%mm0
+		paddw		%mm0,%mm3
+		pmulhw		.L47,%mm0
+		paddw		%mm2,%mm4
+		paddw		%mm0,%mm4
+		movq		.L62,%mm2
+		movq		%mm6,%mm0
+		pand		%mm2,%mm0
+		pxor		%mm0,%mm6
+		movq		%mm0,%mm5
+		psllw		$3,%mm5
+		psrlw		$2,%mm0
+		por		%mm5,%mm0
+		psllw		$11,%mm2
+		pand		%mm6,%mm2
+		pxor		%mm2,%mm6
+		movq		%mm2,%mm5
+		psrlw		$8,%mm5
+		psrlw		$13,%mm2
+		por		%mm5,%mm2
+		movq		%mm6,%mm5
+		psrlw		$3,%mm5
+		psrlw		$9,%mm6
+		por		%mm5,%mm6
+		psllw		$4,%mm2
+		paddw		%mm2,%mm1
+		pmulhw		.L45,%mm2
+		psllw		$5,%mm6
+		pmulhw		.L46,%mm6
+		psllw		$4,%mm0
+		paddw		%mm0,%mm3
+		pmulhw		.L47,%mm0
+		paddw		%mm6,%mm2
+		paddw		%mm0,%mm2
+		movq		.L52,%mm0
+		movq		%mm4,%mm5
+		paddw		%mm2,%mm5
+		paddw		%mm7,%mm5
+		paddw		%mm0,%mm4
+		psrlw		$4,%mm4
+		packuswb	%mm4,%mm4
+		paddw		%mm0,%mm2
+		psrlw		$4,%mm2
+		packuswb	%mm2,%mm2
+		movq		.L49,%mm6
+		punpcklbw	%mm2,%mm4
+		psrlw		$2,%mm5
+		movq		%mm4,(%edi,%edx)
+		pmulhw		%mm6,%mm1
+		pmulhw		%mm6,%mm3
+		psubw		%mm5,%mm1
+		pmulhw		.L51,%mm1
+		psubw		%mm5,%mm3
+		pmulhw		.L50,%mm3
+		packsswb	%mm1,%mm3
+		pxor		.L53,%mm3
+		movd		%mm3,(%eax)
+		psrlq		$32,%mm3
+		movd		%mm3,(%ebx)
+		addl		$8,%edi
+		addl		$4,%eax
+		addl		$4,%ebx
+		subl		$8,%ecx
+		jne		.L79
+		addl		t105(%esp),%esi
+		addl		%ebp,%esi
+		movl		t107(%esp),%ecx
+		addl		%ecx,%eax
+		addl		t106(%esp),%edi
+		addl		%edx,%edi
+		addl		%ecx,%ebx
+		subl		$2,t109(%esp)
+		jne		.L80
+		leal		24(%esp),%esp
+		emms
+		popl		%edi
+		popl		%esi
+		popl		%ebp
+		popl		%ebx
+		ret
+		.text
+		.align		16
+		.globl		mmx_rgb5551_yuv420
+mmx_rgb5551_yuv420:
+		pushl		%ebx
+		pushl		%ebp
+		pushl		%esi
+		pushl		%edi
+		movl		%esp,%ecx
+		leal		-32(%esp),%esp
+		andl		$-8,%esp
+		t117 = 0
+		t111 = 8
+		t112 = 12
+		t113 = 16
+		t114 = 20
+		t115 = 24
+		t116 = 28
+		movl		0+16+20(%ecx),%ebx
+		movl		%ebx,t114(%esp)
+		shrl		$1,%ebx
+		movl		0+16+32(%ecx),%eax
+		subl		%ebx,%eax
+		movl		%eax,t113(%esp)
+		movl		0+16+28(%ecx),%eax
+		addl		%ebx,%ebx
+		movl		0+16+4(%ecx),%edi
+		movl		%eax,%edx
+		movl		0+16+36(%ecx),%esi
+		subl		%ebx,%eax
+		movl		%eax,t112(%esp)
+		addl		%ebx,%ebx
+		movl		%esi,%ebp
+		movl		0+16+24(%ecx),%eax
+		subl		%ebx,%esi
+		movl		0+16+12(%ecx),%ebx
+		movl		%esi,t111(%esp)
+		movl		0+16+16(%ecx),%esi
+		movl		%eax,t115(%esp)
+		movl		0+16+8(%ecx),%eax
+		movl		%ecx,t116(%esp)
+		.align 16
+.L82:
+		movl		t114(%esp),%ecx
+.L81:
+		movq		(%esi),%mm4
+		movq		8(%esi),%mm6
+		movq		%mm4,%mm0
+		punpcklwd	%mm6,%mm4
+		punpckhwd	%mm6,%mm0
+		movq		%mm4,%mm6
+		punpcklwd	%mm0,%mm4
+		punpckhwd	%mm0,%mm6
+		movq		.L62,%mm5
+		movq		%mm4,%mm0
+		pand		%mm5,%mm0
+		movq		%mm0,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm0
+		por		%mm7,%mm0
+		movq		%mm4,%mm2
+		psrlw		$5,%mm2
+		pand		%mm5,%mm2
+		movq		%mm2,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm2
+		por		%mm7,%mm2
+		psrlw		$10,%mm4
+		pand		%mm5,%mm4
+		movq		%mm4,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm4
+		por		%mm7,%mm4
+		psllw		$4,%mm0
+		movq		%mm0,%mm1
+		pmulhw		.L45,%mm0
+		psllw		$5,%mm2
+		pmulhw		.L46,%mm2
+		psllw		$4,%mm4
+		movq		%mm4,%mm3
+		pmulhw		.L47,%mm4
+		paddw		%mm2,%mm0
+		paddw		%mm4,%mm0
+		movq		%mm6,%mm2
+		pand		%mm5,%mm2
+		movq		%mm2,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm2
+		por		%mm7,%mm2
+		movq		%mm6,%mm4
+		psrlw		$5,%mm4
+		pand		%mm5,%mm4
+		movq		%mm4,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm4
+		por		%mm7,%mm4
+		psrlw		$10,%mm6
+		pand		%mm5,%mm6
+		movq		%mm6,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm6
+		por		%mm7,%mm6
+		psllw		$4,%mm2
+		paddw		%mm2,%mm1
+		pmulhw		.L45,%mm2
+		psllw		$5,%mm4
+		pmulhw		.L46,%mm4
+		psllw		$4,%mm6
+		paddw		%mm6,%mm3
+		pmulhw		.L47,%mm6
+		paddw		%mm4,%mm2
+		paddw		%mm6,%mm2
+		movq		.L52,%mm4
+		movq		%mm0,%mm5
+		paddw		%mm2,%mm5
+		movq		%mm5,t117(%esp)
+		paddw		%mm4,%mm0
+		psrlw		$4,%mm0
+		packuswb	%mm0,%mm0
+		paddw		%mm4,%mm2
+		psrlw		$4,%mm2
+		packuswb	%mm2,%mm2
+		punpcklbw	%mm2,%mm0
+		movq		%mm0,(%edi)
+		movq		(%esi,%ebp),%mm4
+		movq		8(%esi,%ebp),%mm6
+		addl		$16,%esi
+		movq		%mm4,%mm0
+		punpcklwd	%mm6,%mm4
+		punpckhwd	%mm6,%mm0
+		movq		%mm4,%mm6
+		punpcklwd	%mm0,%mm4
+		punpckhwd	%mm0,%mm6
+		movq		.L62,%mm5
+		movq		%mm4,%mm0
+		pand		%mm5,%mm0
+		movq		%mm0,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm0
+		por		%mm7,%mm0
+		movq		%mm4,%mm2
+		psrlw		$5,%mm2
+		pand		%mm5,%mm2
+		movq		%mm2,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm2
+		por		%mm7,%mm2
+		psrlw		$10,%mm4
+		pand		%mm5,%mm4
+		movq		%mm4,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm4
+		por		%mm7,%mm4
+		psllw		$4,%mm0
+		paddw		%mm0,%mm1
+		pmulhw		.L45,%mm0
+		psllw		$5,%mm2
+		pmulhw		.L46,%mm2
+		psllw		$4,%mm4
+		paddw		%mm4,%mm3
+		pmulhw		.L47,%mm4
+		paddw		%mm2,%mm0
+		paddw		%mm4,%mm0
+		movq		%mm6,%mm2
+		pand		%mm5,%mm2
+		movq		%mm2,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm2
+		por		%mm7,%mm2
+		movq		%mm6,%mm4
+		psrlw		$5,%mm4
+		pand		%mm5,%mm4
+		movq		%mm4,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm4
+		por		%mm7,%mm4
+		psrlw		$10,%mm6
+		pand		%mm5,%mm6
+		movq		%mm6,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm6
+		por		%mm7,%mm6
+		psllw		$4,%mm2
+		paddw		%mm2,%mm1
+		pmulhw		.L45,%mm2
+		psllw		$5,%mm4
+		pmulhw		.L46,%mm4
+		psllw		$4,%mm6
+		paddw		%mm6,%mm3
+		pmulhw		.L47,%mm6
+		paddw		%mm4,%mm2
+		paddw		%mm6,%mm2
+		movq		.L52,%mm4
+		movq		%mm0,%mm5
+		paddw		%mm2,%mm5
+		paddw		t117(%esp),%mm5
+		paddw		%mm4,%mm0
+		psrlw		$4,%mm0
+		packuswb	%mm0,%mm0
+		paddw		%mm4,%mm2
+		psrlw		$4,%mm2
+		packuswb	%mm2,%mm2
+		movq		.L49,%mm6
+		punpcklbw	%mm2,%mm0
+		psrlw		$2,%mm5
+		movq		%mm0,(%edi,%edx)
+		pmulhw		%mm6,%mm1
+		pmulhw		%mm6,%mm3
+		psubw		%mm5,%mm1
+		pmulhw		.L51,%mm1
+		psubw		%mm5,%mm3
+		pmulhw		.L50,%mm3
+		packsswb	%mm1,%mm3
+		pxor		.L53,%mm3
+		movd		%mm3,(%eax)
+		psrlq		$32,%mm3
+		movd		%mm3,(%ebx)
+		addl		$8,%edi
+		addl		$4,%eax
+		addl		$4,%ebx
+		subl		$8,%ecx
+		jne		.L81
+		addl		t111(%esp),%esi
+		addl		%ebp,%esi
+		movl		t113(%esp),%ecx
+		addl		%ecx,%eax
+		addl		t112(%esp),%edi
+		addl		%edx,%edi
+		addl		%ecx,%ebx
+		subl		$2,t115(%esp)
+		jne		.L82
+		movl		t116(%esp),%esp
+		emms
+		popl		%edi
+		popl		%esi
+		popl		%ebp
+		popl		%ebx
+		ret
+		.text
+		.align		16
+		.globl		mmx_bgr5551_yuv420
+mmx_bgr5551_yuv420:
+		pushl		%ebx
+		pushl		%ebp
+		pushl		%esi
+		pushl		%edi
+		movl		%esp,%ecx
+		leal		-32(%esp),%esp
+		andl		$-8,%esp
+		t124 = 0
+		t118 = 8
+		t119 = 12
+		t120 = 16
+		t121 = 20
+		t122 = 24
+		t123 = 28
+		movl		0+16+20(%ecx),%ebx
+		movl		%ebx,t121(%esp)
+		shrl		$1,%ebx
+		movl		0+16+32(%ecx),%eax
+		subl		%ebx,%eax
+		movl		%eax,t120(%esp)
+		movl		0+16+28(%ecx),%eax
+		addl		%ebx,%ebx
+		movl		0+16+4(%ecx),%edi
+		movl		%eax,%edx
+		movl		0+16+36(%ecx),%esi
+		subl		%ebx,%eax
+		movl		%eax,t119(%esp)
+		addl		%ebx,%ebx
+		movl		%esi,%ebp
+		movl		0+16+24(%ecx),%eax
+		subl		%ebx,%esi
+		movl		0+16+12(%ecx),%ebx
+		movl		%esi,t118(%esp)
+		movl		0+16+16(%ecx),%esi
+		movl		%eax,t122(%esp)
+		movl		0+16+8(%ecx),%eax
+		movl		%ecx,t123(%esp)
+		.align 16
+.L84:
+		movl		t121(%esp),%ecx
+.L83:
+		movq		(%esi),%mm4
+		movq		8(%esi),%mm6
+		movq		%mm4,%mm0
+		punpcklwd	%mm6,%mm4
+		punpckhwd	%mm6,%mm0
+		movq		%mm4,%mm6
+		punpcklwd	%mm0,%mm4
+		punpckhwd	%mm0,%mm6
+		movq		.L62,%mm5
+		movq		%mm4,%mm0
+		pand		%mm5,%mm0
+		movq		%mm0,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm0
+		por		%mm7,%mm0
+		movq		%mm4,%mm2
+		psrlw		$5,%mm2
+		pand		%mm5,%mm2
+		movq		%mm2,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm2
+		por		%mm7,%mm2
+		psrlw		$10,%mm4
+		pand		%mm5,%mm4
+		movq		%mm4,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm4
+		por		%mm7,%mm4
+		psllw		$4,%mm4
+		movq		%mm4,%mm1
+		pmulhw		.L45,%mm4
+		psllw		$5,%mm2
+		pmulhw		.L46,%mm2
+		psllw		$4,%mm0
+		movq		%mm0,%mm3
+		pmulhw		.L47,%mm0
+		paddw		%mm2,%mm4
+		paddw		%mm0,%mm4
+		movq		%mm6,%mm0
+		pand		%mm5,%mm0
+		movq		%mm0,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm0
+		por		%mm7,%mm0
+		movq		%mm6,%mm2
+		psrlw		$5,%mm2
+		pand		%mm5,%mm2
+		movq		%mm2,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm2
+		por		%mm7,%mm2
+		psrlw		$10,%mm6
+		pand		%mm5,%mm6
+		movq		%mm6,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm6
+		por		%mm7,%mm6
+		psllw		$4,%mm6
+		paddw		%mm6,%mm1
+		pmulhw		.L45,%mm6
+		psllw		$5,%mm2
+		pmulhw		.L46,%mm2
+		psllw		$4,%mm0
+		paddw		%mm0,%mm3
+		pmulhw		.L47,%mm0
+		paddw		%mm2,%mm6
+		paddw		%mm0,%mm6
+		movq		.L52,%mm0
+		movq		%mm4,%mm2
+		paddw		%mm6,%mm2
+		movq		%mm2,t124(%esp)
+		paddw		%mm0,%mm4
+		psrlw		$4,%mm4
+		packuswb	%mm4,%mm4
+		paddw		%mm0,%mm6
+		psrlw		$4,%mm6
+		packuswb	%mm6,%mm6
+		punpcklbw	%mm6,%mm4
+		movq		%mm4,(%edi)
+		movq		(%esi,%ebp),%mm4
+		movq		8(%esi,%ebp),%mm6
+		addl		$16,%esi
+		movq		%mm4,%mm0
+		punpcklwd	%mm6,%mm4
+		punpckhwd	%mm6,%mm0
+		movq		%mm4,%mm6
+		punpcklwd	%mm0,%mm4
+		punpckhwd	%mm0,%mm6
+		movq		.L62,%mm5
+		movq		%mm4,%mm0
+		pand		%mm5,%mm0
+		movq		%mm0,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm0
+		por		%mm7,%mm0
+		movq		%mm4,%mm2
+		psrlw		$5,%mm2
+		pand		%mm5,%mm2
+		movq		%mm2,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm2
+		por		%mm7,%mm2
+		psrlw		$10,%mm4
+		pand		%mm5,%mm4
+		movq		%mm4,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm4
+		por		%mm7,%mm4
+		psllw		$4,%mm4
+		paddw		%mm4,%mm1
+		pmulhw		.L45,%mm4
+		psllw		$5,%mm2
+		pmulhw		.L46,%mm2
+		psllw		$4,%mm0
+		paddw		%mm0,%mm3
+		pmulhw		.L47,%mm0
+		paddw		%mm2,%mm4
+		paddw		%mm0,%mm4
+		movq		%mm6,%mm0
+		pand		%mm5,%mm0
+		movq		%mm0,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm0
+		por		%mm7,%mm0
+		movq		%mm6,%mm2
+		psrlw		$5,%mm2
+		pand		%mm5,%mm2
+		movq		%mm2,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm2
+		por		%mm7,%mm2
+		psrlw		$10,%mm6
+		pand		%mm5,%mm6
+		movq		%mm6,%mm7
+		psllw		$3,%mm7
+		psrlw		$2,%mm6
+		por		%mm7,%mm6
+		psllw		$4,%mm6
+		paddw		%mm6,%mm1
+		pmulhw		.L45,%mm6
+		psllw		$5,%mm2
+		pmulhw		.L46,%mm2
+		psllw		$4,%mm0
+		paddw		%mm0,%mm3
+		pmulhw		.L47,%mm0
+		paddw		%mm2,%mm6
+		paddw		%mm0,%mm6
+		movq		.L52,%mm0
+		movq		%mm4,%mm2
+		paddw		%mm6,%mm2
+		paddw		t124(%esp),%mm2
+		paddw		%mm0,%mm4
+		psrlw		$4,%mm4
+		packuswb	%mm4,%mm4
+		paddw		%mm0,%mm6
+		psrlw		$4,%mm6
+		packuswb	%mm6,%mm6
+		movq		.L49,%mm5
+		punpcklbw	%mm6,%mm4
+		psrlw		$2,%mm2
+		movq		%mm4,(%edi,%edx)
+		pmulhw		%mm5,%mm1
+		pmulhw		%mm5,%mm3
+		psubw		%mm2,%mm1
+		pmulhw		.L51,%mm1
+		psubw		%mm2,%mm3
+		pmulhw		.L50,%mm3
+		packsswb	%mm1,%mm3
+		pxor		.L53,%mm3
+		movd		%mm3,(%eax)
+		psrlq		$32,%mm3
+		movd		%mm3,(%ebx)
+		addl		$8,%edi
+		addl		$4,%eax
+		addl		$4,%ebx
+		subl		$8,%ecx
+		jne		.L83
+		addl		t118(%esp),%esi
+		addl		%ebp,%esi
+		movl		t120(%esp),%ecx
+		addl		%ecx,%eax
+		addl		t119(%esp),%edi
+		addl		%edx,%edi
+		addl		%ecx,%ebx
+		subl		$2,t122(%esp)
+		jne		.L84
+		movl		t123(%esp),%esp
+		emms
+		popl		%edi
+		popl		%esi
+		popl		%ebp
+		popl		%ebx
+		ret
+		.text
+		.align		16
+		.globl		sse_yuyv_rgb32
+sse_yuyv_rgb32:
+		pushl		%edi
+		pushl		%esi
+		pushl		%ebx
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
+		addl		%ecx,%ecx
+		movl		0+12+20(%esp),%ebx
+		subl		%ecx,%eax
+		movl		0+12+12(%esp),%ecx
+		shll		$2,%ecx
+		movl		0+12+16(%esp),%edx
+		subl		%ecx,%ebx
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
+		.align 16
+.L86:
+		movl		0+12+12(%esp),%ecx
+.L85:
+		pxor		%mm7,%mm7
+		movq		(%esi),%mm4
+		movq		%mm4,%mm6
+		movq		8(%esi),%mm5
+		punpcklwd	%mm5,%mm4
+		addl		$16,%esi
+		punpckhwd	%mm5,%mm6
+		movq		%mm4,%mm5
+		punpcklwd	%mm6,%mm4
+		movq		%mm4,%mm0
+		punpckhwd	%mm6,%mm5
+		movq		.L3,%mm1
+		movq		%mm5,%mm2
+		movq		.L4,%mm3
+		psrlw		$8,%mm0
+		pand		%mm1,%mm4
+		psubw		%mm3,%mm0
+		psrlw		$8,%mm2
+		pand		%mm1,%mm5
+		psubw		%mm3,%mm2
+		psrlw		$3,%mm3
+		psubw		%mm3,%mm4
+		psubw		%mm3,%mm5
+		psllw		$3,%mm0
+		movq		%mm0,%mm6
+		pmulhw		.L6,%mm6
+		psllw		$2,%mm2
+		movq		%mm2,%mm1
+		pmulhw		.L9,%mm1
+		psllw		$2,%mm4
+		pmulhw		.L7,%mm0
+		psllw		$2,%mm5
+		pmulhw		.L8,%mm2
+		paddw		%mm1,%mm6
+		pmulhw		.L5,%mm4
+		movq		%mm0,%mm1
+		pmulhw		.L5,%mm5
+		prefetchnta	(%esi)
+		paddw		%mm4,%mm0
+		paddw		%mm5,%mm1
+		packuswb	%mm0,%mm0
+		movq		%mm2,%mm3
+		packuswb	%mm1,%mm1
+		paddw		%mm4,%mm2
+		punpcklbw	%mm1,%mm0
+		paddw		%mm5,%mm3
+		psubw		%mm6,%mm4
+		packuswb	%mm2,%mm2
+		packuswb	%mm3,%mm3
+		packuswb	%mm4,%mm4
+		psubw		%mm6,%mm5
+		punpcklbw	%mm3,%mm2
+		packuswb	%mm5,%mm5
+		punpcklbw	%mm5,%mm4
+		movq		%mm2,%mm1
+		punpcklbw	%mm4,%mm2
+		movq		%mm0,%mm3
+		punpcklbw	%mm7,%mm0
+		movq		%mm2,%mm5
+		punpcklwd	%mm0,%mm2
+		punpckhwd	%mm0,%mm5
+		movntq		%mm2,(%edi)
+		punpckhbw	%mm4,%mm1
+		movntq		%mm5,8(%edi)
+		punpckhbw	%mm7,%mm3
+		movq		%mm1,%mm5
+		punpcklwd	%mm3,%mm1
+		movntq		%mm1,16(%edi)
+		punpckhwd	%mm3,%mm5
+		movntq		%mm5,24(%edi)
+		addl		$32,%edi
+		subl		$8,%ecx
+		jne		.L85
+		addl		%eax,%esi
+		addl		%ebx,%edi
+		decl		%edx
+		jne		.L86
+		emms
+		popl		%ebx
+		popl		%esi
+		popl		%edi
+		ret
+		.text
+		.align		16
+		.globl		sse_yuv420_rgb32
+sse_yuv420_rgb32:
+		pushl		%ebx
+		pushl		%ebp
+		pushl		%esi
+		pushl		%edi
+		movl		%esp,%ecx
+		leal		-48(%esp),%esp
+		andl		$-8,%esp
+		t130 = 0
+		t131 = 8
+		t132 = 16
+		t125 = 24
+		t126 = 28
+		t127 = 32
+		t128 = 36
+		t129 = 40
+		t133 = 44
+		movl		0+16+20(%ecx),%ebx
+		movl		%ebx,t128(%esp)
+		shrl		$1,%ebx
+		movl		0+16+36(%ecx),%eax
+		subl		%ebx,%eax
+		movl		%eax,t127(%esp)
+		movl		0+16+32(%ecx),%eax
+		addl		%ebx,%ebx
+		movl		0+16+4(%ecx),%edi
+		movl		%eax,%ebp
+		movl		0+16+28(%ecx),%esi
+		subl		%ebx,%eax
+		movl		%eax,t125(%esp)
+		shll		$2,%ebx
+		movl		%esi,%edx
+		movl		0+16+24(%ecx),%eax
+		subl		%ebx,%esi
+		movl		0+16+16(%ecx),%ebx
+		movl		%esi,t126(%esp)
+		movl		0+16+8(%ecx),%esi
+		movl		%eax,t129(%esp)
+		movl		0+16+12(%ecx),%eax
+		movl		%ecx,t133(%esp)
+		.align 16
+.L88:
+		movl		t128(%esp),%ecx
+.L87:
+		pxor		%mm7,%mm7
+		movq		.L4,%mm3
+		pxor		%mm1,%mm1
+		movd		(%eax),%mm0
+		addl		$4,%eax
+		punpcklbw	%mm1,%mm0
+		movd		(%ebx),%mm2
+		addl		$4,%ebx
+		psubw		%mm3,%mm0
+		punpcklbw	%mm1,%mm2
+		movq		(%esi),%mm4
+		psubw		%mm3,%mm2
+		movq		%mm4,%mm5
+		psrlw		$3,%mm3
+		pand		.L3,%mm4
+		psrlw		$8,%mm5
+		psubw		%mm3,%mm4
+		psubw		%mm3,%mm5
+		psllw		$3,%mm0
+		movq		%mm0,%mm6
+		pmulhw		.L6,%mm6
+		psllw		$2,%mm2
+		movq		%mm2,%mm1
+		pmulhw		.L9,%mm1
+		psllw		$2,%mm4
+		pmulhw		.L7,%mm0
+		psllw		$2,%mm5
+		pmulhw		.L8,%mm2
+		paddw		%mm1,%mm6
+		pmulhw		.L5,%mm4
+		movq		%mm0,t131(%esp)
+		pmulhw		.L5,%mm5
+		movq		%mm2,t130(%esp)
+		movq		%mm0,%mm1
+		movq		%mm6,t132(%esp)
+		prefetchnta	(%esi)
+		paddw		%mm4,%mm0
+		paddw		%mm5,%mm1
+		packuswb	%mm0,%mm0
+		movq		%mm2,%mm3
+		packuswb	%mm1,%mm1
+		paddw		%mm4,%mm2
+		punpcklbw	%mm1,%mm0
+		paddw		%mm5,%mm3
+		psubw		%mm6,%mm4
+		packuswb	%mm2,%mm2
+		packuswb	%mm3,%mm3
+		packuswb	%mm4,%mm4
+		psubw		%mm6,%mm5
+		punpcklbw	%mm3,%mm2
+		packuswb	%mm5,%mm5
+		punpcklbw	%mm5,%mm4
+		movq		%mm2,%mm1
+		punpcklbw	%mm4,%mm2
+		movq		%mm0,%mm3
+		punpcklbw	%mm7,%mm0
+		movq		%mm2,%mm5
+		punpcklwd	%mm0,%mm2
+		punpckhwd	%mm0,%mm5
+		movntq		%mm2,(%edi)
+		punpckhbw	%mm4,%mm1
+		movntq		%mm5,8(%edi)
+		punpckhbw	%mm7,%mm3
+		movq		%mm1,%mm5
+		punpcklwd	%mm3,%mm1
+		movntq		%mm1,16(%edi)
+		punpckhwd	%mm3,%mm5
+		movntq		%mm5,24(%edi)
+		movq		(%esi,%ebp),%mm4
+		addl		$8,%esi
+		movq		.L12,%mm3
+		movq		%mm4,%mm5
+		pand		.L3,%mm4
+		psrlw		$8,%mm5
+		psubw		%mm3,%mm4
+		psubw		%mm3,%mm5
+		movq		t131(%esp),%mm0
+		psllw		$2,%mm4
+		movq		t130(%esp),%mm2
+		psllw		$2,%mm5
+		pmulhw		.L5,%mm4
+		movq		%mm0,%mm1
+		pmulhw		.L5,%mm5
+		prefetchnta	(%esi)
+		paddw		%mm4,%mm0
+		paddw		%mm5,%mm1
+		packuswb	%mm0,%mm0
+		movq		%mm2,%mm3
+		packuswb	%mm1,%mm1
+		paddw		%mm4,%mm2
+		punpcklbw	%mm1,%mm0
+		paddw		%mm5,%mm3
+		psubw		t132(%esp),%mm4
+		packuswb	%mm2,%mm2
+		packuswb	%mm3,%mm3
+		packuswb	%mm4,%mm4
+		psubw		t132(%esp),%mm5
+		punpcklbw	%mm3,%mm2
+		packuswb	%mm5,%mm5
+		punpcklbw	%mm5,%mm4
+		movq		%mm2,%mm1
+		punpcklbw	%mm4,%mm2
+		movq		%mm0,%mm3
+		punpcklbw	%mm7,%mm0
+		movq		%mm2,%mm5
+		punpcklwd	%mm0,%mm2
+		punpckhwd	%mm0,%mm5
+		movntq		%mm2,(%edi,%edx)
+		punpckhbw	%mm4,%mm1
+		movntq		%mm5,8(%edi,%edx)
+		punpckhbw	%mm7,%mm3
+		movq		%mm1,%mm5
+		punpcklwd	%mm3,%mm1
+		movntq		%mm1,16(%edi,%edx)
+		punpckhwd	%mm3,%mm5
+		movntq		%mm5,24(%edi,%edx)
+		addl		$32,%edi
+		subl		$8,%ecx
+		jne		.L87
+		addl		t125(%esp),%esi
+		addl		%ebp,%esi
+		movl		t127(%esp),%ecx
+		addl		%ecx,%eax
+		addl		t126(%esp),%edi
+		addl		%edx,%edi
+		addl		%ecx,%ebx
+		subl		$2,t129(%esp)
+		jne		.L88
+		movl		t133(%esp),%esp
+		emms
+		popl		%edi
+		popl		%esi
+		popl		%ebp
+		popl		%ebx
+		ret
+		.text
+		.align		16
+		.globl		sse_yuyv_bgr32
+sse_yuyv_bgr32:
+		pushl		%edi
+		pushl		%esi
+		pushl		%ebx
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
+		addl		%ecx,%ecx
+		movl		0+12+20(%esp),%ebx
+		subl		%ecx,%eax
+		movl		0+12+12(%esp),%ecx
+		shll		$2,%ecx
+		movl		0+12+16(%esp),%edx
+		subl		%ecx,%ebx
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
+		.align 16
+.L90:
+		movl		0+12+12(%esp),%ecx
+.L89:
+		pxor		%mm7,%mm7
+		movq		(%esi),%mm4
+		movq		%mm4,%mm6
+		movq		8(%esi),%mm5
+		punpcklwd	%mm5,%mm4
+		addl		$16,%esi
+		punpckhwd	%mm5,%mm6
+		movq		%mm4,%mm5
+		punpcklwd	%mm6,%mm4
+		movq		%mm4,%mm0
+		punpckhwd	%mm6,%mm5
+		movq		.L3,%mm1
+		movq		%mm5,%mm2
+		movq		.L4,%mm3
+		psrlw		$8,%mm0
+		pand		%mm1,%mm4
+		psubw		%mm3,%mm0
+		psrlw		$8,%mm2
+		pand		%mm1,%mm5
+		psubw		%mm3,%mm2
+		psrlw		$3,%mm3
+		psubw		%mm3,%mm4
+		psubw		%mm3,%mm5
+		psllw		$3,%mm0
+		movq		%mm0,%mm6
+		pmulhw		.L6,%mm6
+		psllw		$2,%mm2
+		movq		%mm2,%mm1
+		pmulhw		.L9,%mm1
+		psllw		$2,%mm4
+		pmulhw		.L7,%mm0
+		psllw		$2,%mm5
+		pmulhw		.L8,%mm2
+		paddw		%mm1,%mm6
+		pmulhw		.L5,%mm4
+		movq		%mm0,%mm1
+		pmulhw		.L5,%mm5
+		prefetchnta	(%esi)
+		paddw		%mm4,%mm0
+		paddw		%mm5,%mm1
+		packuswb	%mm0,%mm0
+		movq		%mm2,%mm3
+		packuswb	%mm1,%mm1
+		paddw		%mm4,%mm2
+		punpcklbw	%mm1,%mm0
+		paddw		%mm5,%mm3
+		psubw		%mm6,%mm4
+		packuswb	%mm2,%mm2
+		packuswb	%mm3,%mm3
+		packuswb	%mm4,%mm4
+		psubw		%mm6,%mm5
+		punpcklbw	%mm3,%mm2
+		packuswb	%mm5,%mm5
+		punpcklbw	%mm5,%mm4
+		movq		%mm0,%mm1
+		punpcklbw	%mm4,%mm0
+		movq		%mm2,%mm3
+		punpcklbw	%mm7,%mm2
+		movq		%mm0,%mm5
+		punpcklwd	%mm2,%mm0
+		punpckhwd	%mm2,%mm5
+		movntq		%mm0,(%edi)
+		punpckhbw	%mm4,%mm1
+		movntq		%mm5,8(%edi)
+		punpckhbw	%mm7,%mm3
+		movq		%mm1,%mm5
+		punpcklwd	%mm3,%mm1
+		movntq		%mm1,16(%edi)
+		punpckhwd	%mm3,%mm5
+		movntq		%mm5,24(%edi)
+		addl		$32,%edi
+		subl		$8,%ecx
+		jne		.L89
+		addl		%eax,%esi
+		addl		%ebx,%edi
+		decl		%edx
+		jne		.L90
+		emms
+		popl		%ebx
+		popl		%esi
+		popl		%edi
+		ret
+		.text
+		.align		16
+		.globl		sse_yuv420_bgr32
+sse_yuv420_bgr32:
+		pushl		%ebx
+		pushl		%ebp
+		pushl		%esi
+		pushl		%edi
+		movl		%esp,%ecx
+		leal		-48(%esp),%esp
+		andl		$-8,%esp
+		t139 = 0
+		t140 = 8
+		t141 = 16
+		t134 = 24
+		t135 = 28
+		t136 = 32
+		t137 = 36
+		t138 = 40
+		t142 = 44
+		movl		0+16+20(%ecx),%ebx
+		movl		%ebx,t137(%esp)
+		shrl		$1,%ebx
+		movl		0+16+36(%ecx),%eax
+		subl		%ebx,%eax
+		movl		%eax,t136(%esp)
+		movl		0+16+32(%ecx),%eax
+		addl		%ebx,%ebx
+		movl		0+16+4(%ecx),%edi
+		movl		%eax,%ebp
+		movl		0+16+28(%ecx),%esi
+		subl		%ebx,%eax
+		movl		%eax,t134(%esp)
+		shll		$2,%ebx
+		movl		%esi,%edx
+		movl		0+16+24(%ecx),%eax
+		subl		%ebx,%esi
+		movl		0+16+16(%ecx),%ebx
+		movl		%esi,t135(%esp)
+		movl		0+16+8(%ecx),%esi
+		movl		%eax,t138(%esp)
+		movl		0+16+12(%ecx),%eax
+		movl		%ecx,t142(%esp)
+		.align 16
+.L92:
+		movl		t137(%esp),%ecx
+.L91:
+		pxor		%mm7,%mm7
+		movq		.L4,%mm3
+		pxor		%mm1,%mm1
+		movd		(%eax),%mm0
+		addl		$4,%eax
+		punpcklbw	%mm1,%mm0
+		movd		(%ebx),%mm2
+		addl		$4,%ebx
+		psubw		%mm3,%mm0
+		punpcklbw	%mm1,%mm2
+		movq		(%esi),%mm4
+		psubw		%mm3,%mm2
+		movq		%mm4,%mm5
+		psrlw		$3,%mm3
+		pand		.L3,%mm4
+		psrlw		$8,%mm5
+		psubw		%mm3,%mm4
+		psubw		%mm3,%mm5
+		psllw		$3,%mm0
+		movq		%mm0,%mm6
+		pmulhw		.L6,%mm6
+		psllw		$2,%mm2
+		movq		%mm2,%mm1
+		pmulhw		.L9,%mm1
+		psllw		$2,%mm4
+		pmulhw		.L7,%mm0
+		psllw		$2,%mm5
+		pmulhw		.L8,%mm2
+		paddw		%mm1,%mm6
+		pmulhw		.L5,%mm4
+		movq		%mm0,t140(%esp)
+		pmulhw		.L5,%mm5
+		movq		%mm2,t139(%esp)
+		movq		%mm0,%mm1
+		movq		%mm6,t141(%esp)
+		prefetchnta	(%esi)
+		paddw		%mm4,%mm0
+		paddw		%mm5,%mm1
+		packuswb	%mm0,%mm0
+		movq		%mm2,%mm3
+		packuswb	%mm1,%mm1
+		paddw		%mm4,%mm2
+		punpcklbw	%mm1,%mm0
+		paddw		%mm5,%mm3
+		psubw		%mm6,%mm4
+		packuswb	%mm2,%mm2
+		packuswb	%mm3,%mm3
+		packuswb	%mm4,%mm4
+		psubw		%mm6,%mm5
+		punpcklbw	%mm3,%mm2
+		packuswb	%mm5,%mm5
+		punpcklbw	%mm5,%mm4
+		movq		%mm0,%mm1
+		punpcklbw	%mm4,%mm0
+		movq		%mm2,%mm3
+		punpcklbw	%mm7,%mm2
+		movq		%mm0,%mm5
+		punpcklwd	%mm2,%mm0
+		punpckhwd	%mm2,%mm5
+		movntq		%mm0,(%edi)
+		punpckhbw	%mm4,%mm1
+		movntq		%mm5,8(%edi)
+		punpckhbw	%mm7,%mm3
+		movq		%mm1,%mm5
+		punpcklwd	%mm3,%mm1
+		movntq		%mm1,16(%edi)
+		punpckhwd	%mm3,%mm5
+		movntq		%mm5,24(%edi)
+		movq		(%esi,%ebp),%mm4
+		addl		$8,%esi
+		movq		.L12,%mm3
+		movq		%mm4,%mm5
+		pand		.L3,%mm4
+		psrlw		$8,%mm5
+		psubw		%mm3,%mm4
+		psubw		%mm3,%mm5
+		movq		t140(%esp),%mm0
+		psllw		$2,%mm4
+		movq		t139(%esp),%mm2
+		psllw		$2,%mm5
+		pmulhw		.L5,%mm4
+		movq		%mm0,%mm1
+		pmulhw		.L5,%mm5
+		prefetchnta	(%esi)
+		paddw		%mm4,%mm0
+		paddw		%mm5,%mm1
+		packuswb	%mm0,%mm0
+		movq		%mm2,%mm3
+		packuswb	%mm1,%mm1
+		paddw		%mm4,%mm2
+		punpcklbw	%mm1,%mm0
+		paddw		%mm5,%mm3
+		psubw		t141(%esp),%mm4
+		packuswb	%mm2,%mm2
+		packuswb	%mm3,%mm3
+		packuswb	%mm4,%mm4
+		psubw		t141(%esp),%mm5
+		punpcklbw	%mm3,%mm2
+		packuswb	%mm5,%mm5
+		punpcklbw	%mm5,%mm4
+		movq		%mm0,%mm1
+		punpcklbw	%mm4,%mm0
+		movq		%mm2,%mm3
+		punpcklbw	%mm7,%mm2
+		movq		%mm0,%mm5
+		punpcklwd	%mm2,%mm0
+		punpckhwd	%mm2,%mm5
+		movntq		%mm0,(%edi,%edx)
+		punpckhbw	%mm4,%mm1
+		movntq		%mm5,8(%edi,%edx)
+		punpckhbw	%mm7,%mm3
+		movq		%mm1,%mm5
+		punpcklwd	%mm3,%mm1
+		movntq		%mm1,16(%edi,%edx)
+		punpckhwd	%mm3,%mm5
+		movntq		%mm5,24(%edi,%edx)
+		addl		$32,%edi
+		subl		$8,%ecx
+		jne		.L91
+		addl		t134(%esp),%esi
+		addl		%ebp,%esi
+		movl		t136(%esp),%ecx
+		addl		%ecx,%eax
+		addl		t135(%esp),%edi
+		addl		%edx,%edi
+		addl		%ecx,%ebx
+		subl		$2,t138(%esp)
+		jne		.L92
+		movl		t142(%esp),%esp
+		emms
+		popl		%edi
+		popl		%esi
+		popl		%ebp
+		popl		%ebx
+		ret
+		.text
+		.align		16
+		.globl		sse_yuyv_rgb24
+sse_yuyv_rgb24:
+		pushl		%edi
+		pushl		%esi
+		pushl		%ebx
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
+		addl		%ecx,%ecx
+		movl		0+12+20(%esp),%ebx
+		subl		%ecx,%eax
+		movl		0+12+12(%esp),%ecx
+		leal		(%ecx,%ecx,2),%ecx
+		movl		0+12+16(%esp),%edx
+		subl		%ecx,%ebx
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
+		.align 16
+.L94:
+		movl		0+12+12(%esp),%ecx
+.L93:
+		movq		(%esi),%mm4
+		movq		%mm4,%mm6
+		movq		8(%esi),%mm5
+		punpcklwd	%mm5,%mm4
+		addl		$16,%esi
+		punpckhwd	%mm5,%mm6
+		movq		%mm4,%mm5
+		punpcklwd	%mm6,%mm4
+		movq		%mm4,%mm0
+		punpckhwd	%mm6,%mm5
+		movq		.L3,%mm1
+		movq		%mm5,%mm2
+		movq		.L4,%mm3
+		psrlw		$8,%mm0
+		pand		%mm1,%mm4
+		psubw		%mm3,%mm0
+		psrlw		$8,%mm2
+		pand		%mm1,%mm5
+		psubw		%mm3,%mm2
+		psrlw		$3,%mm3
+		psubw		%mm3,%mm4
+		psubw		%mm3,%mm5
+		psllw		$3,%mm0
+		movq		%mm0,%mm6
+		pmulhw		.L6,%mm6
+		psllw		$2,%mm2
+		movq		%mm2,%mm1
+		pmulhw		.L9,%mm1
+		psllw		$2,%mm4
+		pmulhw		.L7,%mm0
+		psllw		$2,%mm5
+		pmulhw		.L8,%mm2
+		paddw		%mm1,%mm6
+		pmulhw		.L5,%mm4
+		movq		%mm0,%mm1
+		pmulhw		.L5,%mm5
+		movq		%mm2,%mm3
+		prefetchnta	(%esi)
+		paddw		%mm4,%mm0
+		paddw		%mm5,%mm1
+		paddw		%mm4,%mm2
+		packuswb	%mm1,%mm0
+		paddw		%mm5,%mm3
+		psubw		%mm6,%mm4
+		packuswb	%mm3,%mm2
+		psubw		%mm6,%mm5
+		packuswb	%mm5,%mm4
+		movq		%mm2,%mm1
+		punpcklbw	%mm4,%mm2
+		psrlq		$32,%mm1
+		punpckhbw	%mm0,%mm4
+		punpcklbw	%mm1,%mm0
+		movq		%mm2,%mm1
+		punpcklwd	%mm0,%mm2
+		punpckhwd	%mm4,%mm0
+		psllq		$32,%mm4
+		punpckhwd	%mm2,%mm4
+		punpckldq	%mm4,%mm2
+		pshufw		$75,%mm4,%mm3
+		psrlq		$32,%mm1
+		movntq		%mm2,(%edi)
+		punpcklwd	%mm0,%mm1
+		pshufw		$180,%mm1,%mm1
+		punpckldq	%mm1,%mm3
+		punpckhdq	%mm0,%mm1
+		movntq		%mm3,8(%edi)
+		movntq		%mm1,16(%edi)
+		addl		$24,%edi
+		subl		$8,%ecx
+		jne		.L93
+		addl		%eax,%esi
+		addl		%ebx,%edi
+		decl		%edx
+		jne		.L94
+		emms
+		popl		%ebx
+		popl		%esi
+		popl		%edi
+		ret
+		.text
+		.align		16
+		.globl		sse_yuv420_rgb24
+sse_yuv420_rgb24:
+		pushl		%ebx
+		pushl		%ebp
+		pushl		%esi
+		pushl		%edi
+		movl		%esp,%ecx
+		leal		-40(%esp),%esp
+		andl		$-8,%esp
+		t148 = 0
+		t149 = 8
+		t143 = 16
+		t144 = 20
+		t145 = 24
+		t146 = 28
+		t147 = 32
+		t150 = 36
+		movl		0+16+20(%ecx),%ebx
+		movl		%ebx,t146(%esp)
+		shrl		$1,%ebx
+		movl		0+16+36(%ecx),%eax
+		subl		%ebx,%eax
+		movl		%eax,t145(%esp)
+		movl		0+16+32(%ecx),%eax
+		addl		%ebx,%ebx
+		movl		0+16+4(%ecx),%edi
+		movl		%eax,%ebp
+		movl		0+16+28(%ecx),%esi
+		subl		%ebx,%eax
+		movl		%eax,t143(%esp)
+		leal		(%ebx,%ebx,2),%ebx
+		movl		%esi,%edx
+		movl		0+16+24(%ecx),%eax
+		subl		%ebx,%esi
+		movl		0+16+16(%ecx),%ebx
+		movl		%esi,t144(%esp)
+		movl		0+16+8(%ecx),%esi
+		movl		%eax,t147(%esp)
+		movl		0+16+12(%ecx),%eax
+		movl		%ecx,t150(%esp)
+		.align 16
+.L96:
+		movl		t146(%esp),%ecx
+.L95:
+		movq		.L4,%mm3
+		pxor		%mm1,%mm1
+		movd		(%eax),%mm0
+		addl		$4,%eax
+		punpcklbw	%mm1,%mm0
+		movd		(%ebx),%mm2
+		addl		$4,%ebx
+		psubw		%mm3,%mm0
+		punpcklbw	%mm1,%mm2
+		movq		(%esi),%mm4
+		psubw		%mm3,%mm2
+		movq		%mm4,%mm5
+		psrlw		$3,%mm3
+		pand		.L3,%mm4
+		psrlw		$8,%mm5
+		psubw		%mm3,%mm4
+		psubw		%mm3,%mm5
+		psllw		$3,%mm0
+		movq		%mm0,%mm6
+		pmulhw		.L6,%mm6
+		psllw		$2,%mm2
+		movq		%mm2,%mm1
+		pmulhw		.L9,%mm1
+		psllw		$2,%mm4
+		pmulhw		.L7,%mm0
+		psllw		$2,%mm5
+		pmulhw		.L8,%mm2
+		paddw		%mm1,%mm6
+		pmulhw		.L5,%mm4
+		movq		%mm0,%mm7
+		pmulhw		.L5,%mm5
+		movq		%mm2,t148(%esp)
+		movq		%mm0,%mm1
+		movq		%mm6,t149(%esp)
+		movq		%mm2,%mm3
+		prefetchnta	(%esi)
+		paddw		%mm4,%mm0
+		paddw		%mm5,%mm1
+		paddw		%mm4,%mm2
+		packuswb	%mm1,%mm0
+		paddw		%mm5,%mm3
+		psubw		%mm6,%mm4
+		packuswb	%mm3,%mm2
+		psubw		%mm6,%mm5
+		packuswb	%mm5,%mm4
+		movq		%mm2,%mm1
+		punpcklbw	%mm4,%mm2
+		psrlq		$32,%mm1
+		punpckhbw	%mm0,%mm4
+		punpcklbw	%mm1,%mm0
+		movq		%mm2,%mm1
+		punpcklwd	%mm0,%mm2
+		punpckhwd	%mm4,%mm0
+		psllq		$32,%mm4
+		punpckhwd	%mm2,%mm4
+		punpckldq	%mm4,%mm2
+		pshufw		$75,%mm4,%mm3
+		psrlq		$32,%mm1
+		movntq		%mm2,(%edi)
+		punpcklwd	%mm0,%mm1
+		pshufw		$180,%mm1,%mm1
+		punpckldq	%mm1,%mm3
+		punpckhdq	%mm0,%mm1
+		movntq		%mm3,8(%edi)
+		movntq		%mm1,16(%edi)
+		movq		(%esi,%ebp),%mm4
+		addl		$8,%esi
+		movq		.L12,%mm3
+		movq		%mm4,%mm5
+		pand		.L3,%mm4
+		psrlw		$8,%mm5
+		psubw		%mm3,%mm4
+		psubw		%mm3,%mm5
+		movq		%mm7,%mm0
+		psllw		$2,%mm4
+		movq		t148(%esp),%mm2
+		psllw		$2,%mm5
+		pmulhw		.L5,%mm4
+		movq		%mm0,%mm1
+		pmulhw		.L5,%mm5
+		movq		%mm2,%mm3
+		prefetchnta	(%esi)
+		paddw		%mm4,%mm0
+		paddw		%mm5,%mm1
+		paddw		%mm4,%mm2
+		packuswb	%mm1,%mm0
+		paddw		%mm5,%mm3
+		psubw		t149(%esp),%mm4
+		packuswb	%mm3,%mm2
+		psubw		t149(%esp),%mm5
+		packuswb	%mm5,%mm4
+		movq		%mm2,%mm1
+		punpcklbw	%mm4,%mm2
+		psrlq		$32,%mm1
+		punpckhbw	%mm0,%mm4
+		punpcklbw	%mm1,%mm0
+		movq		%mm2,%mm1
+		punpcklwd	%mm0,%mm2
+		punpckhwd	%mm4,%mm0
+		psllq		$32,%mm4
+		punpckhwd	%mm2,%mm4
+		punpckldq	%mm4,%mm2
+		pshufw		$75,%mm4,%mm3
+		psrlq		$32,%mm1
+		movntq		%mm2,(%edi,%edx)
+		punpcklwd	%mm0,%mm1
+		pshufw		$180,%mm1,%mm1
+		punpckldq	%mm1,%mm3
+		punpckhdq	%mm0,%mm1
+		movntq		%mm3,8(%edi,%edx)
+		movntq		%mm1,16(%edi,%edx)
+		addl		$24,%edi
+		subl		$8,%ecx
+		jne		.L95
+		addl		t143(%esp),%esi
+		addl		%ebp,%esi
+		movl		t145(%esp),%ecx
+		addl		%ecx,%eax
+		addl		t144(%esp),%edi
+		addl		%edx,%edi
+		addl		%ecx,%ebx
+		subl		$2,t147(%esp)
+		jne		.L96
+		movl		t150(%esp),%esp
+		emms
+		popl		%edi
+		popl		%esi
+		popl		%ebp
+		popl		%ebx
+		ret
+		.text
+		.align		16
+		.globl		sse_yuyv_bgr24
+sse_yuyv_bgr24:
+		pushl		%edi
+		pushl		%esi
+		pushl		%ebx
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
+		addl		%ecx,%ecx
+		movl		0+12+20(%esp),%ebx
+		subl		%ecx,%eax
+		movl		0+12+12(%esp),%ecx
+		leal		(%ecx,%ecx,2),%ecx
+		movl		0+12+16(%esp),%edx
+		subl		%ecx,%ebx
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
+		.align 16
+.L98:
+		movl		0+12+12(%esp),%ecx
+.L97:
+		movq		(%esi),%mm4
+		movq		%mm4,%mm6
+		movq		8(%esi),%mm5
+		punpcklwd	%mm5,%mm4
+		addl		$16,%esi
+		punpckhwd	%mm5,%mm6
+		movq		%mm4,%mm5
+		punpcklwd	%mm6,%mm4
+		movq		%mm4,%mm0
+		punpckhwd	%mm6,%mm5
+		movq		.L3,%mm1
+		movq		%mm5,%mm2
+		movq		.L4,%mm3
+		psrlw		$8,%mm0
+		pand		%mm1,%mm4
+		psubw		%mm3,%mm0
+		psrlw		$8,%mm2
+		pand		%mm1,%mm5
+		psubw		%mm3,%mm2
+		psrlw		$3,%mm3
+		psubw		%mm3,%mm4
+		psubw		%mm3,%mm5
+		psllw		$3,%mm0
+		movq		%mm0,%mm6
+		pmulhw		.L6,%mm6
+		psllw		$2,%mm2
+		movq		%mm2,%mm1
+		pmulhw		.L9,%mm1
+		psllw		$2,%mm4
+		pmulhw		.L7,%mm0
+		psllw		$2,%mm5
+		pmulhw		.L8,%mm2
+		paddw		%mm1,%mm6
+		pmulhw		.L5,%mm4
+		movq		%mm0,%mm1
+		pmulhw		.L5,%mm5
+		movq		%mm2,%mm3
+		prefetchnta	(%esi)
+		paddw		%mm4,%mm0
+		paddw		%mm5,%mm1
+		paddw		%mm4,%mm2
+		packuswb	%mm1,%mm0
+		paddw		%mm5,%mm3
+		psubw		%mm6,%mm4
+		packuswb	%mm3,%mm2
+		psubw		%mm6,%mm5
+		packuswb	%mm5,%mm4
+		movq		%mm0,%mm1
+		punpcklbw	%mm4,%mm0
+		psrlq		$32,%mm1
+		punpckhbw	%mm2,%mm4
+		punpcklbw	%mm1,%mm2
+		movq		%mm0,%mm1
+		punpcklwd	%mm2,%mm0
+		punpckhwd	%mm4,%mm2
+		psllq		$32,%mm4
+		punpckhwd	%mm0,%mm4
+		punpckldq	%mm4,%mm0
+		pshufw		$75,%mm4,%mm3
+		psrlq		$32,%mm1
+		movntq		%mm0,(%edi)
+		punpcklwd	%mm2,%mm1
+		pshufw		$180,%mm1,%mm1
+		punpckldq	%mm1,%mm3
+		punpckhdq	%mm2,%mm1
+		movntq		%mm3,8(%edi)
+		movntq		%mm1,16(%edi)
+		addl		$24,%edi
+		subl		$8,%ecx
+		jne		.L97
+		addl		%eax,%esi
+		addl		%ebx,%edi
+		decl		%edx
+		jne		.L98
+		emms
+		popl		%ebx
+		popl		%esi
+		popl		%edi
+		ret
+		.text
+		.align		16
+		.globl		sse_yuv420_bgr24
+sse_yuv420_bgr24:
+		pushl		%ebx
+		pushl		%ebp
+		pushl		%esi
+		pushl		%edi
+		movl		%esp,%ecx
+		leal		-40(%esp),%esp
+		andl		$-8,%esp
+		t156 = 0
+		t157 = 8
+		t151 = 16
+		t152 = 20
+		t153 = 24
+		t154 = 28
+		t155 = 32
+		t158 = 36
+		movl		0+16+20(%ecx),%ebx
+		movl		%ebx,t154(%esp)
+		shrl		$1,%ebx
+		movl		0+16+36(%ecx),%eax
+		subl		%ebx,%eax
+		movl		%eax,t153(%esp)
+		movl		0+16+32(%ecx),%eax
+		addl		%ebx,%ebx
+		movl		0+16+4(%ecx),%edi
+		movl		%eax,%ebp
+		movl		0+16+28(%ecx),%esi
+		subl		%ebx,%eax
+		movl		%eax,t151(%esp)
+		leal		(%ebx,%ebx,2),%ebx
+		movl		%esi,%edx
+		movl		0+16+24(%ecx),%eax
+		subl		%ebx,%esi
+		movl		0+16+16(%ecx),%ebx
+		movl		%esi,t152(%esp)
+		movl		0+16+8(%ecx),%esi
+		movl		%eax,t155(%esp)
+		movl		0+16+12(%ecx),%eax
+		movl		%ecx,t158(%esp)
+		.align 16
+.L100:
+		movl		t154(%esp),%ecx
+.L99:
+		movq		.L4,%mm3
+		pxor		%mm1,%mm1
+		movd		(%eax),%mm0
+		addl		$4,%eax
+		punpcklbw	%mm1,%mm0
+		movd		(%ebx),%mm2
+		addl		$4,%ebx
+		psubw		%mm3,%mm0
+		punpcklbw	%mm1,%mm2
+		movq		(%esi),%mm4
+		psubw		%mm3,%mm2
+		movq		%mm4,%mm5
+		psrlw		$3,%mm3
+		pand		.L3,%mm4
+		psrlw		$8,%mm5
+		psubw		%mm3,%mm4
+		psubw		%mm3,%mm5
+		psllw		$3,%mm0
+		movq		%mm0,%mm6
+		pmulhw		.L6,%mm6
+		psllw		$2,%mm2
+		movq		%mm2,%mm1
+		pmulhw		.L9,%mm1
+		psllw		$2,%mm4
+		pmulhw		.L7,%mm0
+		psllw		$2,%mm5
+		pmulhw		.L8,%mm2
+		paddw		%mm1,%mm6
+		pmulhw		.L5,%mm4
+		movq		%mm0,%mm7
+		pmulhw		.L5,%mm5
+		movq		%mm2,t156(%esp)
+		movq		%mm0,%mm1
+		movq		%mm6,t157(%esp)
+		movq		%mm2,%mm3
+		prefetchnta	(%esi)
+		paddw		%mm4,%mm0
+		paddw		%mm5,%mm1
+		paddw		%mm4,%mm2
+		packuswb	%mm1,%mm0
+		paddw		%mm5,%mm3
+		psubw		%mm6,%mm4
+		packuswb	%mm3,%mm2
+		psubw		%mm6,%mm5
+		packuswb	%mm5,%mm4
+		movq		%mm0,%mm1
+		punpcklbw	%mm4,%mm0
+		psrlq		$32,%mm1
+		punpckhbw	%mm2,%mm4
+		punpcklbw	%mm1,%mm2
+		movq		%mm0,%mm1
+		punpcklwd	%mm2,%mm0
+		punpckhwd	%mm4,%mm2
+		psllq		$32,%mm4
+		punpckhwd	%mm0,%mm4
+		punpckldq	%mm4,%mm0
+		pshufw		$75,%mm4,%mm3
+		psrlq		$32,%mm1
+		movntq		%mm0,(%edi)
+		punpcklwd	%mm2,%mm1
+		pshufw		$180,%mm1,%mm1
+		punpckldq	%mm1,%mm3
+		punpckhdq	%mm2,%mm1
+		movntq		%mm3,8(%edi)
+		movntq		%mm1,16(%edi)
+		movq		(%esi,%ebp),%mm4
+		addl		$8,%esi
+		movq		.L12,%mm3
+		movq		%mm4,%mm5
+		pand		.L3,%mm4
+		psrlw		$8,%mm5
+		psubw		%mm3,%mm4
+		psubw		%mm3,%mm5
+		movq		%mm7,%mm0
+		psllw		$2,%mm4
+		movq		t156(%esp),%mm2
+		psllw		$2,%mm5
+		pmulhw		.L5,%mm4
+		movq		%mm0,%mm1
+		pmulhw		.L5,%mm5
+		movq		%mm2,%mm3
+		prefetchnta	(%esi)
+		paddw		%mm4,%mm0
+		paddw		%mm5,%mm1
+		paddw		%mm4,%mm2
+		packuswb	%mm1,%mm0
+		paddw		%mm5,%mm3
+		psubw		t157(%esp),%mm4
+		packuswb	%mm3,%mm2
+		psubw		t157(%esp),%mm5
+		packuswb	%mm5,%mm4
+		movq		%mm0,%mm1
+		punpcklbw	%mm4,%mm0
+		psrlq		$32,%mm1
+		punpckhbw	%mm2,%mm4
+		punpcklbw	%mm1,%mm2
+		movq		%mm0,%mm1
+		punpcklwd	%mm2,%mm0
+		punpckhwd	%mm4,%mm2
+		psllq		$32,%mm4
+		punpckhwd	%mm0,%mm4
+		punpckldq	%mm4,%mm0
+		pshufw		$75,%mm4,%mm3
+		psrlq		$32,%mm1
+		movntq		%mm0,(%edi,%edx)
+		punpcklwd	%mm2,%mm1
+		pshufw		$180,%mm1,%mm1
+		punpckldq	%mm1,%mm3
+		punpckhdq	%mm2,%mm1
+		movntq		%mm3,8(%edi,%edx)
+		movntq		%mm1,16(%edi,%edx)
+		addl		$24,%edi
+		subl		$8,%ecx
+		jne		.L99
+		addl		t151(%esp),%esi
+		addl		%ebp,%esi
+		movl		t153(%esp),%ecx
+		addl		%ecx,%eax
+		addl		t152(%esp),%edi
+		addl		%edx,%edi
+		addl		%ecx,%ebx
+		subl		$2,t155(%esp)
+		jne		.L100
+		movl		t158(%esp),%esp
+		emms
+		popl		%edi
+		popl		%esi
+		popl		%ebp
+		popl		%ebx
+		ret
+		.text
+		.align		16
+		.globl		sse_yuyv_rgb565
+sse_yuyv_rgb565:
+		pushl		%edi
+		pushl		%esi
+		pushl		%ebx
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
+		addl		%ecx,%ecx
+		movl		0+12+20(%esp),%ebx
+		subl		%ecx,%eax
+		movl		0+12+12(%esp),%ecx
+		addl		%ecx,%ecx
+		movl		0+12+16(%esp),%edx
+		subl		%ecx,%ebx
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
+		.align 16
+.L102:
+		movl		0+12+12(%esp),%ecx
+.L101:
+		movq		.L27,%mm7
+		movq		(%esi),%mm4
+		movq		%mm4,%mm6
+		movq		8(%esi),%mm5
+		punpcklwd	%mm5,%mm4
+		addl		$16,%esi
+		punpckhwd	%mm5,%mm6
+		movq		%mm4,%mm5
+		punpcklwd	%mm6,%mm4
+		movq		%mm4,%mm0
+		punpckhwd	%mm6,%mm5
+		movq		.L3,%mm1
+		movq		%mm5,%mm2
+		movq		.L4,%mm3
+		psrlw		$8,%mm0
+		pand		%mm1,%mm4
+		psubw		%mm3,%mm0
+		psrlw		$8,%mm2
+		pand		%mm1,%mm5
+		psubw		%mm3,%mm2
+		psrlw		$3,%mm3
+		psubw		%mm3,%mm4
+		psubw		%mm3,%mm5
+		psllw		$3,%mm0
+		movq		%mm0,%mm6
+		pmulhw		.L6,%mm6
+		psllw		$2,%mm2
+		movq		%mm2,%mm1
+		pmulhw		.L9,%mm1
+		psllw		$2,%mm4
+		pmulhw		.L7,%mm0
+		psllw		$2,%mm5
+		pmulhw		.L8,%mm2
+		paddw		%mm1,%mm6
+		pmulhw		.L5,%mm4
+		movq		%mm0,%mm1
+		pmulhw		.L5,%mm5
+		movq		%mm2,%mm3
+		prefetchnta	(%esi)
+		paddw		%mm4,%mm0
+		paddw		%mm5,%mm1
+		paddw		%mm4,%mm2
+		packuswb	%mm1,%mm0
+		paddw		%mm5,%mm3
+		psubw		%mm6,%mm4
+		packuswb	%mm3,%mm2
+		psubw		%mm6,%mm5
+		packuswb	%mm5,%mm4
+		pand		%mm7,%mm2
+		movq		%mm4,%mm5
+		movq		.L28,%mm3
+		pand		%mm7,%mm0
+		psllq		$3,%mm4
+		pand		%mm3,%mm5
+		psrlq		$3,%mm2
+		pand		%mm3,%mm4
+		por		%mm4,%mm2
+		psrlq		$5,%mm5
+		movq		%mm2,%mm3
+		por		%mm5,%mm0
+		punpcklbw	%mm0,%mm2
+		punpckhbw	%mm0,%mm3
+		movq		%mm2,%mm5
+		punpcklwd	%mm3,%mm2
+		movntq		%mm2,(%edi)
+		punpckhwd	%mm3,%mm5
+		movntq		%mm5,8(%edi)
+		addl		$16,%edi
+		subl		$8,%ecx
+		jne		.L101
+		addl		%eax,%esi
+		addl		%ebx,%edi
+		decl		%edx
+		jne		.L102
+		emms
+		popl		%ebx
+		popl		%esi
+		popl		%edi
+		ret
+		.text
+		.align		16
+		.globl		sse_yuv420_rgb565
+sse_yuv420_rgb565:
+		pushl		%ebx
+		pushl		%ebp
+		pushl		%esi
+		pushl		%edi
+		movl		%esp,%ecx
+		leal		-48(%esp),%esp
+		andl		$-8,%esp
+		t164 = 0
+		t165 = 8
+		t166 = 16
+		t159 = 24
+		t160 = 28
+		t161 = 32
+		t162 = 36
+		t163 = 40
+		t167 = 44
+		movl		0+16+20(%ecx),%ebx
+		movl		%ebx,t162(%esp)
+		shrl		$1,%ebx
+		movl		0+16+36(%ecx),%eax
+		subl		%ebx,%eax
+		movl		%eax,t161(%esp)
+		movl		0+16+32(%ecx),%eax
+		addl		%ebx,%ebx
+		movl		0+16+4(%ecx),%edi
+		movl		%eax,%ebp
+		movl		0+16+28(%ecx),%esi
+		subl		%ebx,%eax
+		movl		%eax,t159(%esp)
 		addl		%ebx,%ebx
 		movl		%esi,%edx
-		movl		40(%ecx),%eax
+		movl		0+16+24(%ecx),%eax
 		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
-		movl		%esi,t115(%esp)
-		movl		24(%ecx),%esi
-		movl		%eax,t118(%esp)
-		movl		28(%ecx),%eax
-		movl		%ecx,t122(%esp)
+		movl		0+16+16(%ecx),%ebx
+		movl		%esi,t160(%esp)
+		movl		0+16+8(%ecx),%esi
+		movl		%eax,t163(%esp)
+		movl		0+16+12(%ecx),%eax
+		movl		%ecx,t167(%esp)
 		.align 16
-.L66:
-		movl		t117(%esp),%ecx
-.L65:
+.L104:
+		movl		t162(%esp),%ecx
+.L103:
 		movq		.L27,%mm7
 		movq		.L4,%mm3
 		pxor		%mm1,%mm1
@@ -3898,11 +6292,288 @@ sse_yuv420_bgr565:
 		pmulhw		.L8,%mm2
 		paddw		%mm1,%mm6
 		pmulhw		.L5,%mm4
-		movq		%mm0,t120(%esp)
+		movq		%mm0,t165(%esp)
 		pmulhw		.L5,%mm5
-		movq		%mm2,t119(%esp)
+		movq		%mm2,t164(%esp)
 		movq		%mm0,%mm1
-		movq		%mm6,t121(%esp)
+		movq		%mm6,t166(%esp)
+		movq		%mm2,%mm3
+		prefetchnta	(%esi)
+		paddw		%mm4,%mm0
+		paddw		%mm5,%mm1
+		paddw		%mm4,%mm2
+		packuswb	%mm1,%mm0
+		paddw		%mm5,%mm3
+		psubw		%mm6,%mm4
+		packuswb	%mm3,%mm2
+		psubw		%mm6,%mm5
+		packuswb	%mm5,%mm4
+		pand		%mm7,%mm2
+		movq		%mm4,%mm5
+		movq		.L28,%mm3
+		pand		%mm7,%mm0
+		psllq		$3,%mm4
+		pand		%mm3,%mm5
+		psrlq		$3,%mm2
+		pand		%mm3,%mm4
+		por		%mm4,%mm2
+		psrlq		$5,%mm5
+		movq		%mm2,%mm3
+		por		%mm5,%mm0
+		punpcklbw	%mm0,%mm2
+		punpckhbw	%mm0,%mm3
+		movq		%mm2,%mm5
+		punpcklwd	%mm3,%mm2
+		movntq		%mm2,(%edi)
+		punpckhwd	%mm3,%mm5
+		movntq		%mm5,8(%edi)
+		movq		(%esi,%ebp),%mm4
+		addl		$8,%esi
+		movq		.L12,%mm3
+		movq		%mm4,%mm5
+		pand		.L3,%mm4
+		psrlw		$8,%mm5
+		psubw		%mm3,%mm4
+		psubw		%mm3,%mm5
+		movq		t165(%esp),%mm0
+		psllw		$2,%mm4
+		movq		t164(%esp),%mm2
+		psllw		$2,%mm5
+		pmulhw		.L5,%mm4
+		movq		%mm0,%mm1
+		pmulhw		.L5,%mm5
+		movq		%mm2,%mm3
+		prefetchnta	(%esi)
+		paddw		%mm4,%mm0
+		paddw		%mm5,%mm1
+		paddw		%mm4,%mm2
+		packuswb	%mm1,%mm0
+		paddw		%mm5,%mm3
+		psubw		t166(%esp),%mm4
+		packuswb	%mm3,%mm2
+		psubw		t166(%esp),%mm5
+		packuswb	%mm5,%mm4
+		pand		%mm7,%mm2
+		movq		%mm4,%mm5
+		movq		.L28,%mm3
+		pand		%mm7,%mm0
+		psllq		$3,%mm4
+		pand		%mm3,%mm5
+		psrlq		$3,%mm2
+		pand		%mm3,%mm4
+		por		%mm4,%mm2
+		psrlq		$5,%mm5
+		movq		%mm2,%mm3
+		por		%mm5,%mm0
+		punpcklbw	%mm0,%mm2
+		punpckhbw	%mm0,%mm3
+		movq		%mm2,%mm5
+		punpcklwd	%mm3,%mm2
+		movntq		%mm2,(%edi,%edx)
+		punpckhwd	%mm3,%mm5
+		movntq		%mm5,8(%edi,%edx)
+		addl		$16,%edi
+		subl		$8,%ecx
+		jne		.L103
+		addl		t159(%esp),%esi
+		addl		%ebp,%esi
+		movl		t161(%esp),%ecx
+		addl		%ecx,%eax
+		addl		t160(%esp),%edi
+		addl		%edx,%edi
+		addl		%ecx,%ebx
+		subl		$2,t163(%esp)
+		jne		.L104
+		movl		t167(%esp),%esp
+		emms
+		popl		%edi
+		popl		%esi
+		popl		%ebp
+		popl		%ebx
+		ret
+		.text
+		.align		16
+		.globl		sse_yuyv_bgr565
+sse_yuyv_bgr565:
+		pushl		%edi
+		pushl		%esi
+		pushl		%ebx
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
+		addl		%ecx,%ecx
+		movl		0+12+20(%esp),%ebx
+		subl		%ecx,%eax
+		movl		0+12+12(%esp),%ecx
+		addl		%ecx,%ecx
+		movl		0+12+16(%esp),%edx
+		subl		%ecx,%ebx
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
+		.align 16
+.L106:
+		movl		0+12+12(%esp),%ecx
+.L105:
+		movq		.L27,%mm7
+		movq		(%esi),%mm4
+		movq		%mm4,%mm6
+		movq		8(%esi),%mm5
+		punpcklwd	%mm5,%mm4
+		addl		$16,%esi
+		punpckhwd	%mm5,%mm6
+		movq		%mm4,%mm5
+		punpcklwd	%mm6,%mm4
+		movq		%mm4,%mm0
+		punpckhwd	%mm6,%mm5
+		movq		.L3,%mm1
+		movq		%mm5,%mm2
+		movq		.L4,%mm3
+		psrlw		$8,%mm0
+		pand		%mm1,%mm4
+		psubw		%mm3,%mm0
+		psrlw		$8,%mm2
+		pand		%mm1,%mm5
+		psubw		%mm3,%mm2
+		psrlw		$3,%mm3
+		psubw		%mm3,%mm4
+		psubw		%mm3,%mm5
+		psllw		$3,%mm0
+		movq		%mm0,%mm6
+		pmulhw		.L6,%mm6
+		psllw		$2,%mm2
+		movq		%mm2,%mm1
+		pmulhw		.L9,%mm1
+		psllw		$2,%mm4
+		pmulhw		.L7,%mm0
+		psllw		$2,%mm5
+		pmulhw		.L8,%mm2
+		paddw		%mm1,%mm6
+		pmulhw		.L5,%mm4
+		movq		%mm0,%mm1
+		pmulhw		.L5,%mm5
+		movq		%mm2,%mm3
+		prefetchnta	(%esi)
+		paddw		%mm4,%mm0
+		paddw		%mm5,%mm1
+		paddw		%mm4,%mm2
+		packuswb	%mm1,%mm0
+		paddw		%mm5,%mm3
+		psubw		%mm6,%mm4
+		packuswb	%mm3,%mm2
+		psubw		%mm6,%mm5
+		packuswb	%mm5,%mm4
+		pand		%mm7,%mm0
+		movq		%mm4,%mm5
+		movq		.L28,%mm3
+		pand		%mm7,%mm2
+		psllq		$3,%mm4
+		pand		%mm3,%mm5
+		psrlq		$3,%mm0
+		pand		%mm3,%mm4
+		por		%mm4,%mm0
+		psrlq		$5,%mm5
+		movq		%mm0,%mm3
+		por		%mm5,%mm2
+		punpcklbw	%mm2,%mm0
+		punpckhbw	%mm2,%mm3
+		movq		%mm0,%mm5
+		punpcklwd	%mm3,%mm0
+		movntq		%mm0,(%edi)
+		punpckhwd	%mm3,%mm5
+		movntq		%mm5,8(%edi)
+		addl		$16,%edi
+		subl		$8,%ecx
+		jne		.L105
+		addl		%eax,%esi
+		addl		%ebx,%edi
+		decl		%edx
+		jne		.L106
+		emms
+		popl		%ebx
+		popl		%esi
+		popl		%edi
+		ret
+		.text
+		.align		16
+		.globl		sse_yuv420_bgr565
+sse_yuv420_bgr565:
+		pushl		%ebx
+		pushl		%ebp
+		pushl		%esi
+		pushl		%edi
+		movl		%esp,%ecx
+		leal		-48(%esp),%esp
+		andl		$-8,%esp
+		t173 = 0
+		t174 = 8
+		t175 = 16
+		t168 = 24
+		t169 = 28
+		t170 = 32
+		t171 = 36
+		t172 = 40
+		t176 = 44
+		movl		0+16+20(%ecx),%ebx
+		movl		%ebx,t171(%esp)
+		shrl		$1,%ebx
+		movl		0+16+36(%ecx),%eax
+		subl		%ebx,%eax
+		movl		%eax,t170(%esp)
+		movl		0+16+32(%ecx),%eax
+		addl		%ebx,%ebx
+		movl		0+16+4(%ecx),%edi
+		movl		%eax,%ebp
+		movl		0+16+28(%ecx),%esi
+		subl		%ebx,%eax
+		movl		%eax,t168(%esp)
+		addl		%ebx,%ebx
+		movl		%esi,%edx
+		movl		0+16+24(%ecx),%eax
+		subl		%ebx,%esi
+		movl		0+16+16(%ecx),%ebx
+		movl		%esi,t169(%esp)
+		movl		0+16+8(%ecx),%esi
+		movl		%eax,t172(%esp)
+		movl		0+16+12(%ecx),%eax
+		movl		%ecx,t176(%esp)
+		.align 16
+.L108:
+		movl		t171(%esp),%ecx
+.L107:
+		movq		.L27,%mm7
+		movq		.L4,%mm3
+		pxor		%mm1,%mm1
+		movd		(%eax),%mm0
+		addl		$4,%eax
+		punpcklbw	%mm1,%mm0
+		movd		(%ebx),%mm2
+		addl		$4,%ebx
+		psubw		%mm3,%mm0
+		punpcklbw	%mm1,%mm2
+		movq		(%esi),%mm4
+		psubw		%mm3,%mm2
+		movq		%mm4,%mm5
+		psrlw		$3,%mm3
+		pand		.L3,%mm4
+		psrlw		$8,%mm5
+		psubw		%mm3,%mm4
+		psubw		%mm3,%mm5
+		psllw		$3,%mm0
+		movq		%mm0,%mm6
+		pmulhw		.L6,%mm6
+		psllw		$2,%mm2
+		movq		%mm2,%mm1
+		pmulhw		.L9,%mm1
+		psllw		$2,%mm4
+		pmulhw		.L7,%mm0
+		psllw		$2,%mm5
+		pmulhw		.L8,%mm2
+		paddw		%mm1,%mm6
+		pmulhw		.L5,%mm4
+		movq		%mm0,t174(%esp)
+		pmulhw		.L5,%mm5
+		movq		%mm2,t173(%esp)
+		movq		%mm0,%mm1
+		movq		%mm6,t175(%esp)
 		movq		%mm2,%mm3
 		prefetchnta	(%esi)
 		paddw		%mm4,%mm0
@@ -3941,9 +6612,9 @@ sse_yuv420_bgr565:
 		psrlw		$8,%mm5
 		psubw		%mm3,%mm4
 		psubw		%mm3,%mm5
-		movq		t120(%esp),%mm0
+		movq		t174(%esp),%mm0
 		psllw		$2,%mm4
-		movq		t119(%esp),%mm2
+		movq		t173(%esp),%mm2
 		psllw		$2,%mm5
 		pmulhw		.L5,%mm4
 		movq		%mm0,%mm1
@@ -3955,9 +6626,9 @@ sse_yuv420_bgr565:
 		paddw		%mm4,%mm2
 		packuswb	%mm1,%mm0
 		paddw		%mm5,%mm3
-		psubw		t121(%esp),%mm4
+		psubw		t175(%esp),%mm4
 		packuswb	%mm3,%mm2
-		psubw		t121(%esp),%mm5
+		psubw		t175(%esp),%mm5
 		packuswb	%mm5,%mm4
 		pand		%mm7,%mm0
 		movq		%mm4,%mm5
@@ -3980,17 +6651,17 @@ sse_yuv420_bgr565:
 		movntq		%mm5,8(%edi,%edx)
 		addl		$16,%edi
 		subl		$8,%ecx
-		jne		.L65
-		addl		t114(%esp),%esi
+		jne		.L107
+		addl		t168(%esp),%esi
 		addl		%ebp,%esi
-		movl		t116(%esp),%ecx
+		movl		t170(%esp),%ecx
 		addl		%ecx,%eax
-		addl		t115(%esp),%edi
+		addl		t169(%esp),%edi
 		addl		%edx,%edi
 		addl		%ecx,%ebx
-		subl		$2,t118(%esp)
-		jne		.L66
-		movl		t122(%esp),%esp
+		subl		$2,t172(%esp)
+		jne		.L108
+		movl		t176(%esp),%esp
 		emms
 		popl		%edi
 		popl		%esi
@@ -4004,21 +6675,21 @@ sse_yuyv_rgb5551:
 		pushl		%edi
 		pushl		%esi
 		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
 		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
+		movl		0+12+20(%esp),%ebx
 		subl		%ecx,%eax
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 		addl		%ecx,%ecx
-		movl		28(%esp),%edx
+		movl		0+12+16(%esp),%edx
 		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
-.L68:
-		movl		24(%esp),%ecx
-.L67:
+.L110:
+		movl		0+12+12(%esp),%ecx
+.L109:
 		movq		.L27,%mm7
 		movq		(%esi),%mm4
 		movq		%mm4,%mm6
@@ -4090,11 +6761,11 @@ sse_yuyv_rgb5551:
 		movntq		%mm3,8(%edi)
 		addl		$16,%edi
 		subl		$8,%ecx
-		jne		.L67
+		jne		.L109
 		addl		%eax,%esi
 		addl		%ebx,%edi
 		decl		%edx
-		jne		.L68
+		jne		.L110
 		emms
 		popl		%ebx
 		popl		%esi
@@ -4109,44 +6780,44 @@ sse_yuv420_rgb5551:
 		pushl		%esi
 		pushl		%edi
 		movl		%esp,%ecx
-		leal		-688(%esp),%esp
+		leal		-48(%esp),%esp
 		andl		$-8,%esp
-		t128 = 0
-		t129 = 8
-		t130 = 16
-		t123 = 24
-		t124 = 28
-		t125 = 32
-		t126 = 36
-		t127 = 40
-		t131 = 44
-		movl		36(%ecx),%ebx
-		movl		%ebx,t126(%esp)
+		t182 = 0
+		t183 = 8
+		t184 = 16
+		t177 = 24
+		t178 = 28
+		t179 = 32
+		t180 = 36
+		t181 = 40
+		t185 = 44
+		movl		0+16+20(%ecx),%ebx
+		movl		%ebx,t180(%esp)
 		shrl		$1,%ebx
-		movl		52(%ecx),%eax
+		movl		0+16+36(%ecx),%eax
 		subl		%ebx,%eax
-		movl		%eax,t125(%esp)
-		movl		48(%ecx),%eax
+		movl		%eax,t179(%esp)
+		movl		0+16+32(%ecx),%eax
 		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
+		movl		0+16+4(%ecx),%edi
 		movl		%eax,%ebp
-		movl		44(%ecx),%esi
+		movl		0+16+28(%ecx),%esi
 		subl		%ebx,%eax
-		movl		%eax,t123(%esp)
+		movl		%eax,t177(%esp)
 		addl		%ebx,%ebx
 		movl		%esi,%edx
-		movl		40(%ecx),%eax
+		movl		0+16+24(%ecx),%eax
 		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
-		movl		%esi,t124(%esp)
-		movl		24(%ecx),%esi
-		movl		%eax,t127(%esp)
-		movl		28(%ecx),%eax
-		movl		%ecx,t131(%esp)
+		movl		0+16+16(%ecx),%ebx
+		movl		%esi,t178(%esp)
+		movl		0+16+8(%ecx),%esi
+		movl		%eax,t181(%esp)
+		movl		0+16+12(%ecx),%eax
+		movl		%ecx,t185(%esp)
 		.align 16
-.L70:
-		movl		t126(%esp),%ecx
-.L69:
+.L112:
+		movl		t180(%esp),%ecx
+.L111:
 		movq		.L27,%mm7
 		movq		.L4,%mm3
 		pxor		%mm1,%mm1
@@ -4177,11 +6848,11 @@ sse_yuv420_rgb5551:
 		pmulhw		.L8,%mm2
 		paddw		%mm1,%mm6
 		pmulhw		.L5,%mm4
-		movq		%mm0,t129(%esp)
+		movq		%mm0,t183(%esp)
 		pmulhw		.L5,%mm5
-		movq		%mm2,t128(%esp)
+		movq		%mm2,t182(%esp)
 		movq		%mm0,%mm1
-		movq		%mm6,t130(%esp)
+		movq		%mm6,t184(%esp)
 		movq		%mm2,%mm3
 		prefetchnta	(%esi)
 		paddw		%mm4,%mm0
@@ -4222,9 +6893,9 @@ sse_yuv420_rgb5551:
 		psrlw		$8,%mm5
 		psubw		%mm3,%mm4
 		psubw		%mm3,%mm5
-		movq		t129(%esp),%mm0
+		movq		t183(%esp),%mm0
 		psllw		$2,%mm4
-		movq		t128(%esp),%mm2
+		movq		t182(%esp),%mm2
 		psllw		$2,%mm5
 		pmulhw		.L5,%mm4
 		movq		%mm0,%mm1
@@ -4236,9 +6907,9 @@ sse_yuv420_rgb5551:
 		paddw		%mm4,%mm2
 		packuswb	%mm1,%mm0
 		paddw		%mm5,%mm3
-		psubw		t130(%esp),%mm4
+		psubw		t184(%esp),%mm4
 		packuswb	%mm3,%mm2
-		psubw		t130(%esp),%mm5
+		psubw		t184(%esp),%mm5
 		packuswb	%mm5,%mm4
 		pand		%mm7,%mm2
 		pand		%mm7,%mm0
@@ -4263,17 +6934,17 @@ sse_yuv420_rgb5551:
 		movntq		%mm3,8(%edi,%edx)
 		addl		$16,%edi
 		subl		$8,%ecx
-		jne		.L69
-		addl		t123(%esp),%esi
+		jne		.L111
+		addl		t177(%esp),%esi
 		addl		%ebp,%esi
-		movl		t125(%esp),%ecx
+		movl		t179(%esp),%ecx
 		addl		%ecx,%eax
-		addl		t124(%esp),%edi
+		addl		t178(%esp),%edi
 		addl		%edx,%edi
 		addl		%ecx,%ebx
-		subl		$2,t127(%esp)
-		jne		.L70
-		movl		t131(%esp),%esp
+		subl		$2,t181(%esp)
+		jne		.L112
+		movl		t185(%esp),%esp
 		emms
 		popl		%edi
 		popl		%esi
@@ -4287,21 +6958,21 @@ sse_yuyv_bgr5551:
 		pushl		%edi
 		pushl		%esi
 		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
 		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
+		movl		0+12+20(%esp),%ebx
 		subl		%ecx,%eax
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 		addl		%ecx,%ecx
-		movl		28(%esp),%edx
+		movl		0+12+16(%esp),%edx
 		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
-.L72:
-		movl		24(%esp),%ecx
-.L71:
+.L114:
+		movl		0+12+12(%esp),%ecx
+.L113:
 		movq		.L27,%mm7
 		movq		(%esi),%mm4
 		movq		%mm4,%mm6
@@ -4373,11 +7044,11 @@ sse_yuyv_bgr5551:
 		movntq		%mm3,8(%edi)
 		addl		$16,%edi
 		subl		$8,%ecx
-		jne		.L71
+		jne		.L113
 		addl		%eax,%esi
 		addl		%ebx,%edi
 		decl		%edx
-		jne		.L72
+		jne		.L114
 		emms
 		popl		%ebx
 		popl		%esi
@@ -4392,44 +7063,44 @@ sse_yuv420_bgr5551:
 		pushl		%esi
 		pushl		%edi
 		movl		%esp,%ecx
-		leal		-736(%esp),%esp
+		leal		-48(%esp),%esp
 		andl		$-8,%esp
-		t137 = 0
-		t138 = 8
-		t139 = 16
-		t132 = 24
-		t133 = 28
-		t134 = 32
-		t135 = 36
-		t136 = 40
-		t140 = 44
-		movl		36(%ecx),%ebx
-		movl		%ebx,t135(%esp)
+		t191 = 0
+		t192 = 8
+		t193 = 16
+		t186 = 24
+		t187 = 28
+		t188 = 32
+		t189 = 36
+		t190 = 40
+		t194 = 44
+		movl		0+16+20(%ecx),%ebx
+		movl		%ebx,t189(%esp)
 		shrl		$1,%ebx
-		movl		52(%ecx),%eax
+		movl		0+16+36(%ecx),%eax
 		subl		%ebx,%eax
-		movl		%eax,t134(%esp)
-		movl		48(%ecx),%eax
+		movl		%eax,t188(%esp)
+		movl		0+16+32(%ecx),%eax
 		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
+		movl		0+16+4(%ecx),%edi
 		movl		%eax,%ebp
-		movl		44(%ecx),%esi
+		movl		0+16+28(%ecx),%esi
 		subl		%ebx,%eax
-		movl		%eax,t132(%esp)
+		movl		%eax,t186(%esp)
 		addl		%ebx,%ebx
 		movl		%esi,%edx
-		movl		40(%ecx),%eax
+		movl		0+16+24(%ecx),%eax
 		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
-		movl		%esi,t133(%esp)
-		movl		24(%ecx),%esi
-		movl		%eax,t136(%esp)
-		movl		28(%ecx),%eax
-		movl		%ecx,t140(%esp)
+		movl		0+16+16(%ecx),%ebx
+		movl		%esi,t187(%esp)
+		movl		0+16+8(%ecx),%esi
+		movl		%eax,t190(%esp)
+		movl		0+16+12(%ecx),%eax
+		movl		%ecx,t194(%esp)
 		.align 16
-.L74:
-		movl		t135(%esp),%ecx
-.L73:
+.L116:
+		movl		t189(%esp),%ecx
+.L115:
 		movq		.L27,%mm7
 		movq		.L4,%mm3
 		pxor		%mm1,%mm1
@@ -4460,11 +7131,11 @@ sse_yuv420_bgr5551:
 		pmulhw		.L8,%mm2
 		paddw		%mm1,%mm6
 		pmulhw		.L5,%mm4
-		movq		%mm0,t138(%esp)
+		movq		%mm0,t192(%esp)
 		pmulhw		.L5,%mm5
-		movq		%mm2,t137(%esp)
+		movq		%mm2,t191(%esp)
 		movq		%mm0,%mm1
-		movq		%mm6,t139(%esp)
+		movq		%mm6,t193(%esp)
 		movq		%mm2,%mm3
 		prefetchnta	(%esi)
 		paddw		%mm4,%mm0
@@ -4505,9 +7176,9 @@ sse_yuv420_bgr5551:
 		psrlw		$8,%mm5
 		psubw		%mm3,%mm4
 		psubw		%mm3,%mm5
-		movq		t138(%esp),%mm0
+		movq		t192(%esp),%mm0
 		psllw		$2,%mm4
-		movq		t137(%esp),%mm2
+		movq		t191(%esp),%mm2
 		psllw		$2,%mm5
 		pmulhw		.L5,%mm4
 		movq		%mm0,%mm1
@@ -4519,9 +7190,9 @@ sse_yuv420_bgr5551:
 		paddw		%mm4,%mm2
 		packuswb	%mm1,%mm0
 		paddw		%mm5,%mm3
-		psubw		t139(%esp),%mm4
+		psubw		t193(%esp),%mm4
 		packuswb	%mm3,%mm2
-		psubw		t139(%esp),%mm5
+		psubw		t193(%esp),%mm5
 		packuswb	%mm5,%mm4
 		pand		%mm7,%mm0
 		pand		%mm7,%mm2
@@ -4546,17 +7217,17 @@ sse_yuv420_bgr5551:
 		movntq		%mm3,8(%edi,%edx)
 		addl		$16,%edi
 		subl		$8,%ecx
-		jne		.L73
-		addl		t132(%esp),%esi
+		jne		.L115
+		addl		t186(%esp),%esi
 		addl		%ebp,%esi
-		movl		t134(%esp),%ecx
+		movl		t188(%esp),%ecx
 		addl		%ecx,%eax
-		addl		t133(%esp),%edi
+		addl		t187(%esp),%edi
 		addl		%edx,%edi
 		addl		%ecx,%ebx
-		subl		$2,t136(%esp)
-		jne		.L74
-		movl		t140(%esp),%esp
+		subl		$2,t190(%esp)
+		jne		.L116
+		movl		t194(%esp),%esp
 		emms
 		popl		%edi
 		popl		%esi
@@ -4570,21 +7241,21 @@ _3dn_yuyv_rgb32:
 		pushl		%edi
 		pushl		%esi
 		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
 		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
+		movl		0+12+20(%esp),%ebx
 		subl		%ecx,%eax
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 		shll		$2,%ecx
-		movl		28(%esp),%edx
+		movl		0+12+16(%esp),%edx
 		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
-.L76:
-		movl		24(%esp),%ecx
-.L75:
+.L118:
+		movl		0+12+12(%esp),%ecx
+.L117:
 		pxor		%mm7,%mm7
 		movq		(%esi),%mm4
 		movq		%mm4,%mm6
@@ -4658,11 +7329,11 @@ _3dn_yuyv_rgb32:
 		movq		%mm5,24(%edi)
 		addl		$32,%edi
 		subl		$8,%ecx
-		jne		.L75
+		jne		.L117
 		addl		%eax,%esi
 		addl		%ebx,%edi
 		decl		%edx
-		jne		.L76
+		jne		.L118
 		femms
 		popl		%ebx
 		popl		%esi
@@ -4677,44 +7348,44 @@ _3dn_yuv420_rgb32:
 		pushl		%esi
 		pushl		%edi
 		movl		%esp,%ecx
-		leal		-784(%esp),%esp
+		leal		-48(%esp),%esp
 		andl		$-8,%esp
-		t146 = 0
-		t147 = 8
-		t148 = 16
-		t141 = 24
-		t142 = 28
-		t143 = 32
-		t144 = 36
-		t145 = 40
-		t149 = 44
-		movl		36(%ecx),%ebx
-		movl		%ebx,t144(%esp)
+		t200 = 0
+		t201 = 8
+		t202 = 16
+		t195 = 24
+		t196 = 28
+		t197 = 32
+		t198 = 36
+		t199 = 40
+		t203 = 44
+		movl		0+16+20(%ecx),%ebx
+		movl		%ebx,t198(%esp)
 		shrl		$1,%ebx
-		movl		52(%ecx),%eax
+		movl		0+16+36(%ecx),%eax
 		subl		%ebx,%eax
-		movl		%eax,t143(%esp)
-		movl		48(%ecx),%eax
+		movl		%eax,t197(%esp)
+		movl		0+16+32(%ecx),%eax
 		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
+		movl		0+16+4(%ecx),%edi
 		movl		%eax,%ebp
-		movl		44(%ecx),%esi
+		movl		0+16+28(%ecx),%esi
 		subl		%ebx,%eax
-		movl		%eax,t141(%esp)
+		movl		%eax,t195(%esp)
 		shll		$2,%ebx
 		movl		%esi,%edx
-		movl		40(%ecx),%eax
+		movl		0+16+24(%ecx),%eax
 		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
-		movl		%esi,t142(%esp)
-		movl		24(%ecx),%esi
-		movl		%eax,t145(%esp)
-		movl		28(%ecx),%eax
-		movl		%ecx,t149(%esp)
+		movl		0+16+16(%ecx),%ebx
+		movl		%esi,t196(%esp)
+		movl		0+16+8(%ecx),%esi
+		movl		%eax,t199(%esp)
+		movl		0+16+12(%ecx),%eax
+		movl		%ecx,t203(%esp)
 		.align 16
-.L78:
-		movl		t144(%esp),%ecx
-.L77:
+.L120:
+		movl		t198(%esp),%ecx
+.L119:
 		pxor		%mm7,%mm7
 		movq		.L4,%mm3
 		pxor		%mm1,%mm1
@@ -4746,11 +7417,11 @@ _3dn_yuv420_rgb32:
 		pmulhrw		.L8,%mm2
 		paddw		%mm1,%mm6
 		pmulhrw		.L5,%mm4
-		movq		%mm0,t147(%esp)
+		movq		%mm0,t201(%esp)
 		pmulhrw		.L5,%mm5
-		movq		%mm2,t146(%esp)
+		movq		%mm2,t200(%esp)
 		movq		%mm0,%mm1
-		movq		%mm6,t148(%esp)
+		movq		%mm6,t202(%esp)
 		prefetch	(%esi)
 		paddw		%mm4,%mm0
 		paddw		%mm5,%mm1
@@ -4793,9 +7464,9 @@ _3dn_yuv420_rgb32:
 		psubw		%mm3,%mm4
 		psubw		%mm3,%mm5
 		prefetchw	(%edi)
-		movq		t147(%esp),%mm0
+		movq		t201(%esp),%mm0
 		psllw		$2,%mm4
-		movq		t146(%esp),%mm2
+		movq		t200(%esp),%mm2
 		psllw		$2,%mm5
 		pmulhrw		.L5,%mm4
 		movq		%mm0,%mm1
@@ -4809,11 +7480,11 @@ _3dn_yuv420_rgb32:
 		paddw		%mm4,%mm2
 		punpcklbw	%mm1,%mm0
 		paddw		%mm5,%mm3
-		psubw		t148(%esp),%mm4
+		psubw		t202(%esp),%mm4
 		packuswb	%mm2,%mm2
 		packuswb	%mm3,%mm3
 		packuswb	%mm4,%mm4
-		psubw		t148(%esp),%mm5
+		psubw		t202(%esp),%mm5
 		punpcklbw	%mm3,%mm2
 		packuswb	%mm5,%mm5
 		punpcklbw	%mm5,%mm4
@@ -4835,17 +7506,17 @@ _3dn_yuv420_rgb32:
 		movq		%mm5,24(%edi,%edx)
 		addl		$32,%edi
 		subl		$8,%ecx
-		jne		.L77
-		addl		t141(%esp),%esi
+		jne		.L119
+		addl		t195(%esp),%esi
 		addl		%ebp,%esi
-		movl		t143(%esp),%ecx
+		movl		t197(%esp),%ecx
 		addl		%ecx,%eax
-		addl		t142(%esp),%edi
+		addl		t196(%esp),%edi
 		addl		%edx,%edi
 		addl		%ecx,%ebx
-		subl		$2,t145(%esp)
-		jne		.L78
-		movl		t149(%esp),%esp
+		subl		$2,t199(%esp)
+		jne		.L120
+		movl		t203(%esp),%esp
 		femms
 		popl		%edi
 		popl		%esi
@@ -4859,21 +7530,21 @@ _3dn_yuyv_bgr32:
 		pushl		%edi
 		pushl		%esi
 		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
 		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
+		movl		0+12+20(%esp),%ebx
 		subl		%ecx,%eax
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 		shll		$2,%ecx
-		movl		28(%esp),%edx
+		movl		0+12+16(%esp),%edx
 		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
-.L80:
-		movl		24(%esp),%ecx
-.L79:
+.L122:
+		movl		0+12+12(%esp),%ecx
+.L121:
 		pxor		%mm7,%mm7
 		movq		(%esi),%mm4
 		movq		%mm4,%mm6
@@ -4947,11 +7618,11 @@ _3dn_yuyv_bgr32:
 		movq		%mm5,24(%edi)
 		addl		$32,%edi
 		subl		$8,%ecx
-		jne		.L79
+		jne		.L121
 		addl		%eax,%esi
 		addl		%ebx,%edi
 		decl		%edx
-		jne		.L80
+		jne		.L122
 		femms
 		popl		%ebx
 		popl		%esi
@@ -4966,44 +7637,44 @@ _3dn_yuv420_bgr32:
 		pushl		%esi
 		pushl		%edi
 		movl		%esp,%ecx
-		leal		-832(%esp),%esp
+		leal		-48(%esp),%esp
 		andl		$-8,%esp
-		t155 = 0
-		t156 = 8
-		t157 = 16
-		t150 = 24
-		t151 = 28
-		t152 = 32
-		t153 = 36
-		t154 = 40
-		t158 = 44
-		movl		36(%ecx),%ebx
-		movl		%ebx,t153(%esp)
+		t209 = 0
+		t210 = 8
+		t211 = 16
+		t204 = 24
+		t205 = 28
+		t206 = 32
+		t207 = 36
+		t208 = 40
+		t212 = 44
+		movl		0+16+20(%ecx),%ebx
+		movl		%ebx,t207(%esp)
 		shrl		$1,%ebx
-		movl		52(%ecx),%eax
+		movl		0+16+36(%ecx),%eax
 		subl		%ebx,%eax
-		movl		%eax,t152(%esp)
-		movl		48(%ecx),%eax
+		movl		%eax,t206(%esp)
+		movl		0+16+32(%ecx),%eax
 		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
+		movl		0+16+4(%ecx),%edi
 		movl		%eax,%ebp
-		movl		44(%ecx),%esi
+		movl		0+16+28(%ecx),%esi
 		subl		%ebx,%eax
-		movl		%eax,t150(%esp)
+		movl		%eax,t204(%esp)
 		shll		$2,%ebx
 		movl		%esi,%edx
-		movl		40(%ecx),%eax
+		movl		0+16+24(%ecx),%eax
 		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
-		movl		%esi,t151(%esp)
-		movl		24(%ecx),%esi
-		movl		%eax,t154(%esp)
-		movl		28(%ecx),%eax
-		movl		%ecx,t158(%esp)
+		movl		0+16+16(%ecx),%ebx
+		movl		%esi,t205(%esp)
+		movl		0+16+8(%ecx),%esi
+		movl		%eax,t208(%esp)
+		movl		0+16+12(%ecx),%eax
+		movl		%ecx,t212(%esp)
 		.align 16
-.L82:
-		movl		t153(%esp),%ecx
-.L81:
+.L124:
+		movl		t207(%esp),%ecx
+.L123:
 		pxor		%mm7,%mm7
 		movq		.L4,%mm3
 		pxor		%mm1,%mm1
@@ -5035,11 +7706,11 @@ _3dn_yuv420_bgr32:
 		pmulhrw		.L8,%mm2
 		paddw		%mm1,%mm6
 		pmulhrw		.L5,%mm4
-		movq		%mm0,t156(%esp)
+		movq		%mm0,t210(%esp)
 		pmulhrw		.L5,%mm5
-		movq		%mm2,t155(%esp)
+		movq		%mm2,t209(%esp)
 		movq		%mm0,%mm1
-		movq		%mm6,t157(%esp)
+		movq		%mm6,t211(%esp)
 		prefetch	(%esi)
 		paddw		%mm4,%mm0
 		paddw		%mm5,%mm1
@@ -5082,9 +7753,9 @@ _3dn_yuv420_bgr32:
 		psubw		%mm3,%mm4
 		psubw		%mm3,%mm5
 		prefetchw	(%edi)
-		movq		t156(%esp),%mm0
+		movq		t210(%esp),%mm0
 		psllw		$2,%mm4
-		movq		t155(%esp),%mm2
+		movq		t209(%esp),%mm2
 		psllw		$2,%mm5
 		pmulhrw		.L5,%mm4
 		movq		%mm0,%mm1
@@ -5098,11 +7769,11 @@ _3dn_yuv420_bgr32:
 		paddw		%mm4,%mm2
 		punpcklbw	%mm1,%mm0
 		paddw		%mm5,%mm3
-		psubw		t157(%esp),%mm4
+		psubw		t211(%esp),%mm4
 		packuswb	%mm2,%mm2
 		packuswb	%mm3,%mm3
 		packuswb	%mm4,%mm4
-		psubw		t157(%esp),%mm5
+		psubw		t211(%esp),%mm5
 		punpcklbw	%mm3,%mm2
 		packuswb	%mm5,%mm5
 		punpcklbw	%mm5,%mm4
@@ -5124,17 +7795,17 @@ _3dn_yuv420_bgr32:
 		movq		%mm5,24(%edi,%edx)
 		addl		$32,%edi
 		subl		$8,%ecx
-		jne		.L81
-		addl		t150(%esp),%esi
+		jne		.L123
+		addl		t204(%esp),%esi
 		addl		%ebp,%esi
-		movl		t152(%esp),%ecx
+		movl		t206(%esp),%ecx
 		addl		%ecx,%eax
-		addl		t151(%esp),%edi
+		addl		t205(%esp),%edi
 		addl		%edx,%edi
 		addl		%ecx,%ebx
-		subl		$2,t154(%esp)
-		jne		.L82
-		movl		t158(%esp),%esp
+		subl		$2,t208(%esp)
+		jne		.L124
+		movl		t212(%esp),%esp
 		femms
 		popl		%edi
 		popl		%esi
@@ -5148,21 +7819,21 @@ _3dn_yuyv_rgb24:
 		pushl		%edi
 		pushl		%esi
 		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
 		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
+		movl		0+12+20(%esp),%ebx
 		subl		%ecx,%eax
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 		leal		(%ecx,%ecx,2),%ecx
-		movl		28(%esp),%edx
+		movl		0+12+16(%esp),%edx
 		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
-.L84:
-		movl		24(%esp),%ecx
-.L83:
+.L126:
+		movl		0+12+12(%esp),%ecx
+.L125:
 		movq		(%esi),%mm4
 		movq		%mm4,%mm6
 		movq		8(%esi),%mm5
@@ -5240,11 +7911,11 @@ _3dn_yuyv_rgb24:
 		movq		%mm0,16(%edi)
 		addl		$24,%edi
 		subl		$8,%ecx
-		jne		.L83
+		jne		.L125
 		addl		%eax,%esi
 		addl		%ebx,%edi
 		decl		%edx
-		jne		.L84
+		jne		.L126
 		femms
 		popl		%ebx
 		popl		%esi
@@ -5259,43 +7930,43 @@ _3dn_yuv420_rgb24:
 		pushl		%esi
 		pushl		%edi
 		movl		%esp,%ecx
-		leal		-872(%esp),%esp
+		leal		-40(%esp),%esp
 		andl		$-8,%esp
-		t164 = 0
-		t165 = 8
-		t159 = 16
-		t160 = 20
-		t161 = 24
-		t162 = 28
-		t163 = 32
-		t166 = 36
-		movl		36(%ecx),%ebx
-		movl		%ebx,t162(%esp)
+		t218 = 0
+		t219 = 8
+		t213 = 16
+		t214 = 20
+		t215 = 24
+		t216 = 28
+		t217 = 32
+		t220 = 36
+		movl		0+16+20(%ecx),%ebx
+		movl		%ebx,t216(%esp)
 		shrl		$1,%ebx
-		movl		52(%ecx),%eax
+		movl		0+16+36(%ecx),%eax
 		subl		%ebx,%eax
-		movl		%eax,t161(%esp)
-		movl		48(%ecx),%eax
+		movl		%eax,t215(%esp)
+		movl		0+16+32(%ecx),%eax
 		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
+		movl		0+16+4(%ecx),%edi
 		movl		%eax,%ebp
-		movl		44(%ecx),%esi
+		movl		0+16+28(%ecx),%esi
 		subl		%ebx,%eax
-		movl		%eax,t159(%esp)
+		movl		%eax,t213(%esp)
 		leal		(%ebx,%ebx,2),%ebx
 		movl		%esi,%edx
-		movl		40(%ecx),%eax
+		movl		0+16+24(%ecx),%eax
 		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
-		movl		%esi,t160(%esp)
-		movl		24(%ecx),%esi
-		movl		%eax,t163(%esp)
-		movl		28(%ecx),%eax
-		movl		%ecx,t166(%esp)
+		movl		0+16+16(%ecx),%ebx
+		movl		%esi,t214(%esp)
+		movl		0+16+8(%ecx),%esi
+		movl		%eax,t217(%esp)
+		movl		0+16+12(%ecx),%eax
+		movl		%ecx,t220(%esp)
 		.align 16
-.L86:
-		movl		t162(%esp),%ecx
-.L85:
+.L128:
+		movl		t216(%esp),%ecx
+.L127:
 		movq		.L4,%mm3
 		pxor		%mm1,%mm1
 		movd		(%eax),%mm0
@@ -5328,9 +7999,9 @@ _3dn_yuv420_rgb24:
 		pmulhrw		.L5,%mm4
 		movq		%mm0,%mm7
 		pmulhrw		.L5,%mm5
-		movq		%mm2,t164(%esp)
+		movq		%mm2,t218(%esp)
 		movq		%mm0,%mm1
-		movq		%mm6,t165(%esp)
+		movq		%mm6,t219(%esp)
 		movq		%mm2,%mm3
 		prefetch	(%esi)
 		paddw		%mm4,%mm0
@@ -5380,7 +8051,7 @@ _3dn_yuv420_rgb24:
 		prefetchw	(%edi)
 		movq		%mm7,%mm0
 		psllw		$2,%mm4
-		movq		t164(%esp),%mm2
+		movq		t218(%esp),%mm2
 		psllw		$2,%mm5
 		pmulhrw		.L5,%mm4
 		movq		%mm0,%mm1
@@ -5392,9 +8063,9 @@ _3dn_yuv420_rgb24:
 		paddw		%mm4,%mm2
 		packuswb	%mm1,%mm0
 		paddw		%mm5,%mm3
-		psubw		t165(%esp),%mm4
+		psubw		t219(%esp),%mm4
 		packuswb	%mm3,%mm2
-		psubw		t165(%esp),%mm5
+		psubw		t219(%esp),%mm5
 		packuswb	%mm5,%mm4
 		movq		%mm2,%mm1
 		punpcklbw	%mm4,%mm2
@@ -5425,17 +8096,17 @@ _3dn_yuv420_rgb24:
 		movq		%mm0,16(%edi,%edx)
 		addl		$24,%edi
 		subl		$8,%ecx
-		jne		.L85
-		addl		t159(%esp),%esi
+		jne		.L127
+		addl		t213(%esp),%esi
 		addl		%ebp,%esi
-		movl		t161(%esp),%ecx
+		movl		t215(%esp),%ecx
 		addl		%ecx,%eax
-		addl		t160(%esp),%edi
+		addl		t214(%esp),%edi
 		addl		%edx,%edi
 		addl		%ecx,%ebx
-		subl		$2,t163(%esp)
-		jne		.L86
-		movl		t166(%esp),%esp
+		subl		$2,t217(%esp)
+		jne		.L128
+		movl		t220(%esp),%esp
 		femms
 		popl		%edi
 		popl		%esi
@@ -5449,21 +8120,21 @@ _3dn_yuyv_bgr24:
 		pushl		%edi
 		pushl		%esi
 		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
 		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
+		movl		0+12+20(%esp),%ebx
 		subl		%ecx,%eax
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 		leal		(%ecx,%ecx,2),%ecx
-		movl		28(%esp),%edx
+		movl		0+12+16(%esp),%edx
 		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
-.L88:
-		movl		24(%esp),%ecx
-.L87:
+.L130:
+		movl		0+12+12(%esp),%ecx
+.L129:
 		movq		(%esi),%mm4
 		movq		%mm4,%mm6
 		movq		8(%esi),%mm5
@@ -5541,11 +8212,11 @@ _3dn_yuyv_bgr24:
 		movq		%mm2,16(%edi)
 		addl		$24,%edi
 		subl		$8,%ecx
-		jne		.L87
+		jne		.L129
 		addl		%eax,%esi
 		addl		%ebx,%edi
 		decl		%edx
-		jne		.L88
+		jne		.L130
 		femms
 		popl		%ebx
 		popl		%esi
@@ -5560,43 +8231,43 @@ _3dn_yuv420_bgr24:
 		pushl		%esi
 		pushl		%edi
 		movl		%esp,%ecx
-		leal		-912(%esp),%esp
+		leal		-40(%esp),%esp
 		andl		$-8,%esp
-		t172 = 0
-		t173 = 8
-		t167 = 16
-		t168 = 20
-		t169 = 24
-		t170 = 28
-		t171 = 32
-		t174 = 36
-		movl		36(%ecx),%ebx
-		movl		%ebx,t170(%esp)
+		t226 = 0
+		t227 = 8
+		t221 = 16
+		t222 = 20
+		t223 = 24
+		t224 = 28
+		t225 = 32
+		t228 = 36
+		movl		0+16+20(%ecx),%ebx
+		movl		%ebx,t224(%esp)
 		shrl		$1,%ebx
-		movl		52(%ecx),%eax
+		movl		0+16+36(%ecx),%eax
 		subl		%ebx,%eax
-		movl		%eax,t169(%esp)
-		movl		48(%ecx),%eax
+		movl		%eax,t223(%esp)
+		movl		0+16+32(%ecx),%eax
 		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
+		movl		0+16+4(%ecx),%edi
 		movl		%eax,%ebp
-		movl		44(%ecx),%esi
+		movl		0+16+28(%ecx),%esi
 		subl		%ebx,%eax
-		movl		%eax,t167(%esp)
+		movl		%eax,t221(%esp)
 		leal		(%ebx,%ebx,2),%ebx
 		movl		%esi,%edx
-		movl		40(%ecx),%eax
+		movl		0+16+24(%ecx),%eax
 		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
-		movl		%esi,t168(%esp)
-		movl		24(%ecx),%esi
-		movl		%eax,t171(%esp)
-		movl		28(%ecx),%eax
-		movl		%ecx,t174(%esp)
+		movl		0+16+16(%ecx),%ebx
+		movl		%esi,t222(%esp)
+		movl		0+16+8(%ecx),%esi
+		movl		%eax,t225(%esp)
+		movl		0+16+12(%ecx),%eax
+		movl		%ecx,t228(%esp)
 		.align 16
-.L90:
-		movl		t170(%esp),%ecx
-.L89:
+.L132:
+		movl		t224(%esp),%ecx
+.L131:
 		movq		.L4,%mm3
 		pxor		%mm1,%mm1
 		movd		(%eax),%mm0
@@ -5629,9 +8300,9 @@ _3dn_yuv420_bgr24:
 		pmulhrw		.L5,%mm4
 		movq		%mm0,%mm7
 		pmulhrw		.L5,%mm5
-		movq		%mm2,t172(%esp)
+		movq		%mm2,t226(%esp)
 		movq		%mm0,%mm1
-		movq		%mm6,t173(%esp)
+		movq		%mm6,t227(%esp)
 		movq		%mm2,%mm3
 		prefetch	(%esi)
 		paddw		%mm4,%mm0
@@ -5681,7 +8352,7 @@ _3dn_yuv420_bgr24:
 		prefetchw	(%edi)
 		movq		%mm7,%mm0
 		psllw		$2,%mm4
-		movq		t172(%esp),%mm2
+		movq		t226(%esp),%mm2
 		psllw		$2,%mm5
 		pmulhrw		.L5,%mm4
 		movq		%mm0,%mm1
@@ -5693,9 +8364,9 @@ _3dn_yuv420_bgr24:
 		paddw		%mm4,%mm2
 		packuswb	%mm1,%mm0
 		paddw		%mm5,%mm3
-		psubw		t173(%esp),%mm4
+		psubw		t227(%esp),%mm4
 		packuswb	%mm3,%mm2
-		psubw		t173(%esp),%mm5
+		psubw		t227(%esp),%mm5
 		packuswb	%mm5,%mm4
 		movq		%mm0,%mm1
 		punpcklbw	%mm4,%mm0
@@ -5726,17 +8397,17 @@ _3dn_yuv420_bgr24:
 		movq		%mm2,16(%edi,%edx)
 		addl		$24,%edi
 		subl		$8,%ecx
-		jne		.L89
-		addl		t167(%esp),%esi
+		jne		.L131
+		addl		t221(%esp),%esi
 		addl		%ebp,%esi
-		movl		t169(%esp),%ecx
+		movl		t223(%esp),%ecx
 		addl		%ecx,%eax
-		addl		t168(%esp),%edi
+		addl		t222(%esp),%edi
 		addl		%edx,%edi
 		addl		%ecx,%ebx
-		subl		$2,t171(%esp)
-		jne		.L90
-		movl		t174(%esp),%esp
+		subl		$2,t225(%esp)
+		jne		.L132
+		movl		t228(%esp),%esp
 		femms
 		popl		%edi
 		popl		%esi
@@ -5750,21 +8421,21 @@ _3dn_yuyv_rgb565:
 		pushl		%edi
 		pushl		%esi
 		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
 		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
+		movl		0+12+20(%esp),%ebx
 		subl		%ecx,%eax
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 		addl		%ecx,%ecx
-		movl		28(%esp),%edx
+		movl		0+12+16(%esp),%edx
 		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
-.L92:
-		movl		24(%esp),%ecx
-.L91:
+.L134:
+		movl		0+12+12(%esp),%ecx
+.L133:
 		movq		.L27,%mm7
 		movq		(%esi),%mm4
 		movq		%mm4,%mm6
@@ -5835,11 +8506,11 @@ _3dn_yuyv_rgb565:
 		movq		%mm5,8(%edi)
 		addl		$16,%edi
 		subl		$8,%ecx
-		jne		.L91
+		jne		.L133
 		addl		%eax,%esi
 		addl		%ebx,%edi
 		decl		%edx
-		jne		.L92
+		jne		.L134
 		femms
 		popl		%ebx
 		popl		%esi
@@ -5854,44 +8525,44 @@ _3dn_yuv420_rgb565:
 		pushl		%esi
 		pushl		%edi
 		movl		%esp,%ecx
-		leal		-960(%esp),%esp
+		leal		-48(%esp),%esp
 		andl		$-8,%esp
-		t180 = 0
-		t181 = 8
-		t182 = 16
-		t175 = 24
-		t176 = 28
-		t177 = 32
-		t178 = 36
-		t179 = 40
-		t183 = 44
-		movl		36(%ecx),%ebx
-		movl		%ebx,t178(%esp)
+		t234 = 0
+		t235 = 8
+		t236 = 16
+		t229 = 24
+		t230 = 28
+		t231 = 32
+		t232 = 36
+		t233 = 40
+		t237 = 44
+		movl		0+16+20(%ecx),%ebx
+		movl		%ebx,t232(%esp)
 		shrl		$1,%ebx
-		movl		52(%ecx),%eax
+		movl		0+16+36(%ecx),%eax
 		subl		%ebx,%eax
-		movl		%eax,t177(%esp)
-		movl		48(%ecx),%eax
+		movl		%eax,t231(%esp)
+		movl		0+16+32(%ecx),%eax
 		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
+		movl		0+16+4(%ecx),%edi
 		movl		%eax,%ebp
-		movl		44(%ecx),%esi
+		movl		0+16+28(%ecx),%esi
 		subl		%ebx,%eax
-		movl		%eax,t175(%esp)
+		movl		%eax,t229(%esp)
 		addl		%ebx,%ebx
 		movl		%esi,%edx
-		movl		40(%ecx),%eax
+		movl		0+16+24(%ecx),%eax
 		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
-		movl		%esi,t176(%esp)
-		movl		24(%ecx),%esi
-		movl		%eax,t179(%esp)
-		movl		28(%ecx),%eax
-		movl		%ecx,t183(%esp)
+		movl		0+16+16(%ecx),%ebx
+		movl		%esi,t230(%esp)
+		movl		0+16+8(%ecx),%esi
+		movl		%eax,t233(%esp)
+		movl		0+16+12(%ecx),%eax
+		movl		%ecx,t237(%esp)
 		.align 16
-.L94:
-		movl		t178(%esp),%ecx
-.L93:
+.L136:
+		movl		t232(%esp),%ecx
+.L135:
 		movq		.L27,%mm7
 		movq		.L4,%mm3
 		pxor		%mm1,%mm1
@@ -5923,11 +8594,11 @@ _3dn_yuv420_rgb565:
 		pmulhrw		.L8,%mm2
 		paddw		%mm1,%mm6
 		pmulhrw		.L5,%mm4
-		movq		%mm0,t181(%esp)
+		movq		%mm0,t235(%esp)
 		pmulhrw		.L5,%mm5
-		movq		%mm2,t180(%esp)
+		movq		%mm2,t234(%esp)
 		movq		%mm0,%mm1
-		movq		%mm6,t182(%esp)
+		movq		%mm6,t236(%esp)
 		movq		%mm2,%mm3
 		prefetch	(%esi)
 		paddw		%mm4,%mm0
@@ -5967,9 +8638,9 @@ _3dn_yuv420_rgb565:
 		psubw		%mm3,%mm4
 		psubw		%mm3,%mm5
 		prefetchw	(%edi)
-		movq		t181(%esp),%mm0
+		movq		t235(%esp),%mm0
 		psllw		$2,%mm4
-		movq		t180(%esp),%mm2
+		movq		t234(%esp),%mm2
 		psllw		$2,%mm5
 		pmulhrw		.L5,%mm4
 		movq		%mm0,%mm1
@@ -5981,9 +8652,9 @@ _3dn_yuv420_rgb565:
 		paddw		%mm4,%mm2
 		packuswb	%mm1,%mm0
 		paddw		%mm5,%mm3
-		psubw		t182(%esp),%mm4
+		psubw		t236(%esp),%mm4
 		packuswb	%mm3,%mm2
-		psubw		t182(%esp),%mm5
+		psubw		t236(%esp),%mm5
 		packuswb	%mm5,%mm4
 		pand		%mm7,%mm2
 		movq		%mm4,%mm5
@@ -6006,17 +8677,17 @@ _3dn_yuv420_rgb565:
 		movq		%mm5,8(%edi,%edx)
 		addl		$16,%edi
 		subl		$8,%ecx
-		jne		.L93
-		addl		t175(%esp),%esi
+		jne		.L135
+		addl		t229(%esp),%esi
 		addl		%ebp,%esi
-		movl		t177(%esp),%ecx
+		movl		t231(%esp),%ecx
 		addl		%ecx,%eax
-		addl		t176(%esp),%edi
+		addl		t230(%esp),%edi
 		addl		%edx,%edi
 		addl		%ecx,%ebx
-		subl		$2,t179(%esp)
-		jne		.L94
-		movl		t183(%esp),%esp
+		subl		$2,t233(%esp)
+		jne		.L136
+		movl		t237(%esp),%esp
 		femms
 		popl		%edi
 		popl		%esi
@@ -6030,21 +8701,21 @@ _3dn_yuyv_bgr565:
 		pushl		%edi
 		pushl		%esi
 		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
 		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
+		movl		0+12+20(%esp),%ebx
 		subl		%ecx,%eax
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 		addl		%ecx,%ecx
-		movl		28(%esp),%edx
+		movl		0+12+16(%esp),%edx
 		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
-.L96:
-		movl		24(%esp),%ecx
-.L95:
+.L138:
+		movl		0+12+12(%esp),%ecx
+.L137:
 		movq		.L27,%mm7
 		movq		(%esi),%mm4
 		movq		%mm4,%mm6
@@ -6115,11 +8786,11 @@ _3dn_yuyv_bgr565:
 		movq		%mm5,8(%edi)
 		addl		$16,%edi
 		subl		$8,%ecx
-		jne		.L95
+		jne		.L137
 		addl		%eax,%esi
 		addl		%ebx,%edi
 		decl		%edx
-		jne		.L96
+		jne		.L138
 		femms
 		popl		%ebx
 		popl		%esi
@@ -6134,44 +8805,44 @@ _3dn_yuv420_bgr565:
 		pushl		%esi
 		pushl		%edi
 		movl		%esp,%ecx
-		leal		-1008(%esp),%esp
+		leal		-48(%esp),%esp
 		andl		$-8,%esp
-		t189 = 0
-		t190 = 8
-		t191 = 16
-		t184 = 24
-		t185 = 28
-		t186 = 32
-		t187 = 36
-		t188 = 40
-		t192 = 44
-		movl		36(%ecx),%ebx
-		movl		%ebx,t187(%esp)
+		t243 = 0
+		t244 = 8
+		t245 = 16
+		t238 = 24
+		t239 = 28
+		t240 = 32
+		t241 = 36
+		t242 = 40
+		t246 = 44
+		movl		0+16+20(%ecx),%ebx
+		movl		%ebx,t241(%esp)
 		shrl		$1,%ebx
-		movl		52(%ecx),%eax
+		movl		0+16+36(%ecx),%eax
 		subl		%ebx,%eax
-		movl		%eax,t186(%esp)
-		movl		48(%ecx),%eax
+		movl		%eax,t240(%esp)
+		movl		0+16+32(%ecx),%eax
 		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
+		movl		0+16+4(%ecx),%edi
 		movl		%eax,%ebp
-		movl		44(%ecx),%esi
+		movl		0+16+28(%ecx),%esi
 		subl		%ebx,%eax
-		movl		%eax,t184(%esp)
+		movl		%eax,t238(%esp)
 		addl		%ebx,%ebx
 		movl		%esi,%edx
-		movl		40(%ecx),%eax
+		movl		0+16+24(%ecx),%eax
 		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
-		movl		%esi,t185(%esp)
-		movl		24(%ecx),%esi
-		movl		%eax,t188(%esp)
-		movl		28(%ecx),%eax
-		movl		%ecx,t192(%esp)
+		movl		0+16+16(%ecx),%ebx
+		movl		%esi,t239(%esp)
+		movl		0+16+8(%ecx),%esi
+		movl		%eax,t242(%esp)
+		movl		0+16+12(%ecx),%eax
+		movl		%ecx,t246(%esp)
 		.align 16
-.L98:
-		movl		t187(%esp),%ecx
-.L97:
+.L140:
+		movl		t241(%esp),%ecx
+.L139:
 		movq		.L27,%mm7
 		movq		.L4,%mm3
 		pxor		%mm1,%mm1
@@ -6203,11 +8874,11 @@ _3dn_yuv420_bgr565:
 		pmulhrw		.L8,%mm2
 		paddw		%mm1,%mm6
 		pmulhrw		.L5,%mm4
-		movq		%mm0,t190(%esp)
+		movq		%mm0,t244(%esp)
 		pmulhrw		.L5,%mm5
-		movq		%mm2,t189(%esp)
+		movq		%mm2,t243(%esp)
 		movq		%mm0,%mm1
-		movq		%mm6,t191(%esp)
+		movq		%mm6,t245(%esp)
 		movq		%mm2,%mm3
 		prefetch	(%esi)
 		paddw		%mm4,%mm0
@@ -6247,9 +8918,9 @@ _3dn_yuv420_bgr565:
 		psubw		%mm3,%mm4
 		psubw		%mm3,%mm5
 		prefetchw	(%edi)
-		movq		t190(%esp),%mm0
+		movq		t244(%esp),%mm0
 		psllw		$2,%mm4
-		movq		t189(%esp),%mm2
+		movq		t243(%esp),%mm2
 		psllw		$2,%mm5
 		pmulhrw		.L5,%mm4
 		movq		%mm0,%mm1
@@ -6261,9 +8932,9 @@ _3dn_yuv420_bgr565:
 		paddw		%mm4,%mm2
 		packuswb	%mm1,%mm0
 		paddw		%mm5,%mm3
-		psubw		t191(%esp),%mm4
+		psubw		t245(%esp),%mm4
 		packuswb	%mm3,%mm2
-		psubw		t191(%esp),%mm5
+		psubw		t245(%esp),%mm5
 		packuswb	%mm5,%mm4
 		pand		%mm7,%mm0
 		movq		%mm4,%mm5
@@ -6286,17 +8957,17 @@ _3dn_yuv420_bgr565:
 		movq		%mm5,8(%edi,%edx)
 		addl		$16,%edi
 		subl		$8,%ecx
-		jne		.L97
-		addl		t184(%esp),%esi
+		jne		.L139
+		addl		t238(%esp),%esi
 		addl		%ebp,%esi
-		movl		t186(%esp),%ecx
+		movl		t240(%esp),%ecx
 		addl		%ecx,%eax
-		addl		t185(%esp),%edi
+		addl		t239(%esp),%edi
 		addl		%edx,%edi
 		addl		%ecx,%ebx
-		subl		$2,t188(%esp)
-		jne		.L98
-		movl		t192(%esp),%esp
+		subl		$2,t242(%esp)
+		jne		.L140
+		movl		t246(%esp),%esp
 		femms
 		popl		%edi
 		popl		%esi
@@ -6310,21 +8981,21 @@ _3dn_yuyv_rgb5551:
 		pushl		%edi
 		pushl		%esi
 		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
 		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
+		movl		0+12+20(%esp),%ebx
 		subl		%ecx,%eax
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 		addl		%ecx,%ecx
-		movl		28(%esp),%edx
+		movl		0+12+16(%esp),%edx
 		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
-.L100:
-		movl		24(%esp),%ecx
-.L99:
+.L142:
+		movl		0+12+12(%esp),%ecx
+.L141:
 		movq		.L27,%mm7
 		movq		(%esi),%mm4
 		movq		%mm4,%mm6
@@ -6397,11 +9068,11 @@ _3dn_yuyv_rgb5551:
 		movq		%mm3,8(%edi)
 		addl		$16,%edi
 		subl		$8,%ecx
-		jne		.L99
+		jne		.L141
 		addl		%eax,%esi
 		addl		%ebx,%edi
 		decl		%edx
-		jne		.L100
+		jne		.L142
 		femms
 		popl		%ebx
 		popl		%esi
@@ -6416,44 +9087,44 @@ _3dn_yuv420_rgb5551:
 		pushl		%esi
 		pushl		%edi
 		movl		%esp,%ecx
-		leal		-1056(%esp),%esp
+		leal		-48(%esp),%esp
 		andl		$-8,%esp
-		t198 = 0
-		t199 = 8
-		t200 = 16
-		t193 = 24
-		t194 = 28
-		t195 = 32
-		t196 = 36
-		t197 = 40
-		t201 = 44
-		movl		36(%ecx),%ebx
-		movl		%ebx,t196(%esp)
+		t252 = 0
+		t253 = 8
+		t254 = 16
+		t247 = 24
+		t248 = 28
+		t249 = 32
+		t250 = 36
+		t251 = 40
+		t255 = 44
+		movl		0+16+20(%ecx),%ebx
+		movl		%ebx,t250(%esp)
 		shrl		$1,%ebx
-		movl		52(%ecx),%eax
+		movl		0+16+36(%ecx),%eax
 		subl		%ebx,%eax
-		movl		%eax,t195(%esp)
-		movl		48(%ecx),%eax
+		movl		%eax,t249(%esp)
+		movl		0+16+32(%ecx),%eax
 		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
+		movl		0+16+4(%ecx),%edi
 		movl		%eax,%ebp
-		movl		44(%ecx),%esi
+		movl		0+16+28(%ecx),%esi
 		subl		%ebx,%eax
-		movl		%eax,t193(%esp)
+		movl		%eax,t247(%esp)
 		addl		%ebx,%ebx
 		movl		%esi,%edx
-		movl		40(%ecx),%eax
+		movl		0+16+24(%ecx),%eax
 		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
-		movl		%esi,t194(%esp)
-		movl		24(%ecx),%esi
-		movl		%eax,t197(%esp)
-		movl		28(%ecx),%eax
-		movl		%ecx,t201(%esp)
+		movl		0+16+16(%ecx),%ebx
+		movl		%esi,t248(%esp)
+		movl		0+16+8(%ecx),%esi
+		movl		%eax,t251(%esp)
+		movl		0+16+12(%ecx),%eax
+		movl		%ecx,t255(%esp)
 		.align 16
-.L102:
-		movl		t196(%esp),%ecx
-.L101:
+.L144:
+		movl		t250(%esp),%ecx
+.L143:
 		movq		.L27,%mm7
 		movq		.L4,%mm3
 		pxor		%mm1,%mm1
@@ -6485,11 +9156,11 @@ _3dn_yuv420_rgb5551:
 		pmulhrw		.L8,%mm2
 		paddw		%mm1,%mm6
 		pmulhrw		.L5,%mm4
-		movq		%mm0,t199(%esp)
+		movq		%mm0,t253(%esp)
 		pmulhrw		.L5,%mm5
-		movq		%mm2,t198(%esp)
+		movq		%mm2,t252(%esp)
 		movq		%mm0,%mm1
-		movq		%mm6,t200(%esp)
+		movq		%mm6,t254(%esp)
 		movq		%mm2,%mm3
 		prefetch	(%esi)
 		paddw		%mm4,%mm0
@@ -6531,9 +9202,9 @@ _3dn_yuv420_rgb5551:
 		psubw		%mm3,%mm4
 		psubw		%mm3,%mm5
 		prefetchw	(%edi)
-		movq		t199(%esp),%mm0
+		movq		t253(%esp),%mm0
 		psllw		$2,%mm4
-		movq		t198(%esp),%mm2
+		movq		t252(%esp),%mm2
 		psllw		$2,%mm5
 		pmulhrw		.L5,%mm4
 		movq		%mm0,%mm1
@@ -6545,9 +9216,9 @@ _3dn_yuv420_rgb5551:
 		paddw		%mm4,%mm2
 		packuswb	%mm1,%mm0
 		paddw		%mm5,%mm3
-		psubw		t200(%esp),%mm4
+		psubw		t254(%esp),%mm4
 		packuswb	%mm3,%mm2
-		psubw		t200(%esp),%mm5
+		psubw		t254(%esp),%mm5
 		packuswb	%mm5,%mm4
 		pand		%mm7,%mm2
 		pand		%mm7,%mm0
@@ -6572,17 +9243,17 @@ _3dn_yuv420_rgb5551:
 		movq		%mm3,8(%edi,%edx)
 		addl		$16,%edi
 		subl		$8,%ecx
-		jne		.L101
-		addl		t193(%esp),%esi
+		jne		.L143
+		addl		t247(%esp),%esi
 		addl		%ebp,%esi
-		movl		t195(%esp),%ecx
+		movl		t249(%esp),%ecx
 		addl		%ecx,%eax
-		addl		t194(%esp),%edi
+		addl		t248(%esp),%edi
 		addl		%edx,%edi
 		addl		%ecx,%ebx
-		subl		$2,t197(%esp)
-		jne		.L102
-		movl		t201(%esp),%esp
+		subl		$2,t251(%esp)
+		jne		.L144
+		movl		t255(%esp),%esp
 		femms
 		popl		%edi
 		popl		%esi
@@ -6596,21 +9267,21 @@ _3dn_yuyv_bgr5551:
 		pushl		%edi
 		pushl		%esi
 		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
 		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
+		movl		0+12+20(%esp),%ebx
 		subl		%ecx,%eax
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 		addl		%ecx,%ecx
-		movl		28(%esp),%edx
+		movl		0+12+16(%esp),%edx
 		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
-.L104:
-		movl		24(%esp),%ecx
-.L103:
+.L146:
+		movl		0+12+12(%esp),%ecx
+.L145:
 		movq		.L27,%mm7
 		movq		(%esi),%mm4
 		movq		%mm4,%mm6
@@ -6683,11 +9354,11 @@ _3dn_yuyv_bgr5551:
 		movq		%mm3,8(%edi)
 		addl		$16,%edi
 		subl		$8,%ecx
-		jne		.L103
+		jne		.L145
 		addl		%eax,%esi
 		addl		%ebx,%edi
 		decl		%edx
-		jne		.L104
+		jne		.L146
 		femms
 		popl		%ebx
 		popl		%esi
@@ -6702,44 +9373,44 @@ _3dn_yuv420_bgr5551:
 		pushl		%esi
 		pushl		%edi
 		movl		%esp,%ecx
-		leal		-1104(%esp),%esp
+		leal		-48(%esp),%esp
 		andl		$-8,%esp
-		t207 = 0
-		t208 = 8
-		t209 = 16
-		t202 = 24
-		t203 = 28
-		t204 = 32
-		t205 = 36
-		t206 = 40
-		t210 = 44
-		movl		36(%ecx),%ebx
-		movl		%ebx,t205(%esp)
+		t261 = 0
+		t262 = 8
+		t263 = 16
+		t256 = 24
+		t257 = 28
+		t258 = 32
+		t259 = 36
+		t260 = 40
+		t264 = 44
+		movl		0+16+20(%ecx),%ebx
+		movl		%ebx,t259(%esp)
 		shrl		$1,%ebx
-		movl		52(%ecx),%eax
+		movl		0+16+36(%ecx),%eax
 		subl		%ebx,%eax
-		movl		%eax,t204(%esp)
-		movl		48(%ecx),%eax
+		movl		%eax,t258(%esp)
+		movl		0+16+32(%ecx),%eax
 		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
+		movl		0+16+4(%ecx),%edi
 		movl		%eax,%ebp
-		movl		44(%ecx),%esi
+		movl		0+16+28(%ecx),%esi
 		subl		%ebx,%eax
-		movl		%eax,t202(%esp)
+		movl		%eax,t256(%esp)
 		addl		%ebx,%ebx
 		movl		%esi,%edx
-		movl		40(%ecx),%eax
+		movl		0+16+24(%ecx),%eax
 		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
-		movl		%esi,t203(%esp)
-		movl		24(%ecx),%esi
-		movl		%eax,t206(%esp)
-		movl		28(%ecx),%eax
-		movl		%ecx,t210(%esp)
+		movl		0+16+16(%ecx),%ebx
+		movl		%esi,t257(%esp)
+		movl		0+16+8(%ecx),%esi
+		movl		%eax,t260(%esp)
+		movl		0+16+12(%ecx),%eax
+		movl		%ecx,t264(%esp)
 		.align 16
-.L106:
-		movl		t205(%esp),%ecx
-.L105:
+.L148:
+		movl		t259(%esp),%ecx
+.L147:
 		movq		.L27,%mm7
 		movq		.L4,%mm3
 		pxor		%mm1,%mm1
@@ -6771,11 +9442,11 @@ _3dn_yuv420_bgr5551:
 		pmulhrw		.L8,%mm2
 		paddw		%mm1,%mm6
 		pmulhrw		.L5,%mm4
-		movq		%mm0,t208(%esp)
+		movq		%mm0,t262(%esp)
 		pmulhrw		.L5,%mm5
-		movq		%mm2,t207(%esp)
+		movq		%mm2,t261(%esp)
 		movq		%mm0,%mm1
-		movq		%mm6,t209(%esp)
+		movq		%mm6,t263(%esp)
 		movq		%mm2,%mm3
 		prefetch	(%esi)
 		paddw		%mm4,%mm0
@@ -6817,9 +9488,9 @@ _3dn_yuv420_bgr5551:
 		psubw		%mm3,%mm4
 		psubw		%mm3,%mm5
 		prefetchw	(%edi)
-		movq		t208(%esp),%mm0
+		movq		t262(%esp),%mm0
 		psllw		$2,%mm4
-		movq		t207(%esp),%mm2
+		movq		t261(%esp),%mm2
 		psllw		$2,%mm5
 		pmulhrw		.L5,%mm4
 		movq		%mm0,%mm1
@@ -6831,9 +9502,9 @@ _3dn_yuv420_bgr5551:
 		paddw		%mm4,%mm2
 		packuswb	%mm1,%mm0
 		paddw		%mm5,%mm3
-		psubw		t209(%esp),%mm4
+		psubw		t263(%esp),%mm4
 		packuswb	%mm3,%mm2
-		psubw		t209(%esp),%mm5
+		psubw		t263(%esp),%mm5
 		packuswb	%mm5,%mm4
 		pand		%mm7,%mm0
 		pand		%mm7,%mm2
@@ -6858,17 +9529,17 @@ _3dn_yuv420_bgr5551:
 		movq		%mm3,8(%edi,%edx)
 		addl		$16,%edi
 		subl		$8,%ecx
-		jne		.L105
-		addl		t202(%esp),%esi
+		jne		.L147
+		addl		t256(%esp),%esi
 		addl		%ebp,%esi
-		movl		t204(%esp),%ecx
+		movl		t258(%esp),%ecx
 		addl		%ecx,%eax
-		addl		t203(%esp),%edi
+		addl		t257(%esp),%edi
 		addl		%edx,%edi
 		addl		%ecx,%ebx
-		subl		$2,t206(%esp)
-		jne		.L106
-		movl		t210(%esp),%esp
+		subl		$2,t260(%esp)
+		jne		.L148
+		movl		t264(%esp),%esp
 		femms
 		popl		%edi
 		popl		%esi
@@ -6882,21 +9553,21 @@ amd_yuyv_rgb32:
 		pushl		%edi
 		pushl		%esi
 		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
 		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
+		movl		0+12+20(%esp),%ebx
 		subl		%ecx,%eax
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 		shll		$2,%ecx
-		movl		28(%esp),%edx
+		movl		0+12+16(%esp),%edx
 		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
-.L108:
-		movl		24(%esp),%ecx
-.L107:
+.L150:
+		movl		0+12+12(%esp),%ecx
+.L149:
 		pxor		%mm7,%mm7
 		movq		(%esi),%mm4
 		movq		%mm4,%mm6
@@ -6969,11 +9640,11 @@ amd_yuyv_rgb32:
 		movntq		%mm5,24(%edi)
 		addl		$32,%edi
 		subl		$8,%ecx
-		jne		.L107
+		jne		.L149
 		addl		%eax,%esi
 		addl		%ebx,%edi
 		decl		%edx
-		jne		.L108
+		jne		.L150
 		femms
 		popl		%ebx
 		popl		%esi
@@ -6988,44 +9659,44 @@ amd_yuv420_rgb32:
 		pushl		%esi
 		pushl		%edi
 		movl		%esp,%ecx
-		leal		-1152(%esp),%esp
+		leal		-48(%esp),%esp
 		andl		$-8,%esp
-		t216 = 0
-		t217 = 8
-		t218 = 16
-		t211 = 24
-		t212 = 28
-		t213 = 32
-		t214 = 36
-		t215 = 40
-		t219 = 44
-		movl		36(%ecx),%ebx
-		movl		%ebx,t214(%esp)
+		t270 = 0
+		t271 = 8
+		t272 = 16
+		t265 = 24
+		t266 = 28
+		t267 = 32
+		t268 = 36
+		t269 = 40
+		t273 = 44
+		movl		0+16+20(%ecx),%ebx
+		movl		%ebx,t268(%esp)
 		shrl		$1,%ebx
-		movl		52(%ecx),%eax
+		movl		0+16+36(%ecx),%eax
 		subl		%ebx,%eax
-		movl		%eax,t213(%esp)
-		movl		48(%ecx),%eax
+		movl		%eax,t267(%esp)
+		movl		0+16+32(%ecx),%eax
 		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
+		movl		0+16+4(%ecx),%edi
 		movl		%eax,%ebp
-		movl		44(%ecx),%esi
+		movl		0+16+28(%ecx),%esi
 		subl		%ebx,%eax
-		movl		%eax,t211(%esp)
+		movl		%eax,t265(%esp)
 		shll		$2,%ebx
 		movl		%esi,%edx
-		movl		40(%ecx),%eax
+		movl		0+16+24(%ecx),%eax
 		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
-		movl		%esi,t212(%esp)
-		movl		24(%ecx),%esi
-		movl		%eax,t215(%esp)
-		movl		28(%ecx),%eax
-		movl		%ecx,t219(%esp)
+		movl		0+16+16(%ecx),%ebx
+		movl		%esi,t266(%esp)
+		movl		0+16+8(%ecx),%esi
+		movl		%eax,t269(%esp)
+		movl		0+16+12(%ecx),%eax
+		movl		%ecx,t273(%esp)
 		.align 16
-.L110:
-		movl		t214(%esp),%ecx
-.L109:
+.L152:
+		movl		t268(%esp),%ecx
+.L151:
 		pxor		%mm7,%mm7
 		movq		.L4,%mm3
 		pxor		%mm1,%mm1
@@ -7056,11 +9727,11 @@ amd_yuv420_rgb32:
 		pmulhrw		.L8,%mm2
 		paddw		%mm1,%mm6
 		pmulhrw		.L5,%mm4
-		movq		%mm0,t217(%esp)
+		movq		%mm0,t271(%esp)
 		pmulhrw		.L5,%mm5
-		movq		%mm2,t216(%esp)
+		movq		%mm2,t270(%esp)
 		movq		%mm0,%mm1
-		movq		%mm6,t218(%esp)
+		movq		%mm6,t272(%esp)
 		prefetchnta	(%esi)
 		paddw		%mm4,%mm0
 		paddw		%mm5,%mm1
@@ -7102,9 +9773,9 @@ amd_yuv420_rgb32:
 		psrlw		$8,%mm5
 		psubw		%mm3,%mm4
 		psubw		%mm3,%mm5
-		movq		t217(%esp),%mm0
+		movq		t271(%esp),%mm0
 		psllw		$2,%mm4
-		movq		t216(%esp),%mm2
+		movq		t270(%esp),%mm2
 		psllw		$2,%mm5
 		pmulhrw		.L5,%mm4
 		movq		%mm0,%mm1
@@ -7118,11 +9789,11 @@ amd_yuv420_rgb32:
 		paddw		%mm4,%mm2
 		punpcklbw	%mm1,%mm0
 		paddw		%mm5,%mm3
-		psubw		t218(%esp),%mm4
+		psubw		t272(%esp),%mm4
 		packuswb	%mm2,%mm2
 		packuswb	%mm3,%mm3
 		packuswb	%mm4,%mm4
-		psubw		t218(%esp),%mm5
+		psubw		t272(%esp),%mm5
 		punpcklbw	%mm3,%mm2
 		packuswb	%mm5,%mm5
 		punpcklbw	%mm5,%mm4
@@ -7144,17 +9815,17 @@ amd_yuv420_rgb32:
 		movntq		%mm5,24(%edi,%edx)
 		addl		$32,%edi
 		subl		$8,%ecx
-		jne		.L109
-		addl		t211(%esp),%esi
+		jne		.L151
+		addl		t265(%esp),%esi
 		addl		%ebp,%esi
-		movl		t213(%esp),%ecx
+		movl		t267(%esp),%ecx
 		addl		%ecx,%eax
-		addl		t212(%esp),%edi
+		addl		t266(%esp),%edi
 		addl		%edx,%edi
 		addl		%ecx,%ebx
-		subl		$2,t215(%esp)
-		jne		.L110
-		movl		t219(%esp),%esp
+		subl		$2,t269(%esp)
+		jne		.L152
+		movl		t273(%esp),%esp
 		femms
 		popl		%edi
 		popl		%esi
@@ -7168,21 +9839,21 @@ amd_yuyv_bgr32:
 		pushl		%edi
 		pushl		%esi
 		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
 		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
+		movl		0+12+20(%esp),%ebx
 		subl		%ecx,%eax
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 		shll		$2,%ecx
-		movl		28(%esp),%edx
+		movl		0+12+16(%esp),%edx
 		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
-.L112:
-		movl		24(%esp),%ecx
-.L111:
+.L154:
+		movl		0+12+12(%esp),%ecx
+.L153:
 		pxor		%mm7,%mm7
 		movq		(%esi),%mm4
 		movq		%mm4,%mm6
@@ -7255,11 +9926,11 @@ amd_yuyv_bgr32:
 		movntq		%mm5,24(%edi)
 		addl		$32,%edi
 		subl		$8,%ecx
-		jne		.L111
+		jne		.L153
 		addl		%eax,%esi
 		addl		%ebx,%edi
 		decl		%edx
-		jne		.L112
+		jne		.L154
 		femms
 		popl		%ebx
 		popl		%esi
@@ -7274,44 +9945,44 @@ amd_yuv420_bgr32:
 		pushl		%esi
 		pushl		%edi
 		movl		%esp,%ecx
-		leal		-1200(%esp),%esp
+		leal		-48(%esp),%esp
 		andl		$-8,%esp
-		t225 = 0
-		t226 = 8
-		t227 = 16
-		t220 = 24
-		t221 = 28
-		t222 = 32
-		t223 = 36
-		t224 = 40
-		t228 = 44
-		movl		36(%ecx),%ebx
-		movl		%ebx,t223(%esp)
+		t279 = 0
+		t280 = 8
+		t281 = 16
+		t274 = 24
+		t275 = 28
+		t276 = 32
+		t277 = 36
+		t278 = 40
+		t282 = 44
+		movl		0+16+20(%ecx),%ebx
+		movl		%ebx,t277(%esp)
 		shrl		$1,%ebx
-		movl		52(%ecx),%eax
+		movl		0+16+36(%ecx),%eax
 		subl		%ebx,%eax
-		movl		%eax,t222(%esp)
-		movl		48(%ecx),%eax
+		movl		%eax,t276(%esp)
+		movl		0+16+32(%ecx),%eax
 		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
+		movl		0+16+4(%ecx),%edi
 		movl		%eax,%ebp
-		movl		44(%ecx),%esi
+		movl		0+16+28(%ecx),%esi
 		subl		%ebx,%eax
-		movl		%eax,t220(%esp)
+		movl		%eax,t274(%esp)
 		shll		$2,%ebx
 		movl		%esi,%edx
-		movl		40(%ecx),%eax
+		movl		0+16+24(%ecx),%eax
 		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
-		movl		%esi,t221(%esp)
-		movl		24(%ecx),%esi
-		movl		%eax,t224(%esp)
-		movl		28(%ecx),%eax
-		movl		%ecx,t228(%esp)
+		movl		0+16+16(%ecx),%ebx
+		movl		%esi,t275(%esp)
+		movl		0+16+8(%ecx),%esi
+		movl		%eax,t278(%esp)
+		movl		0+16+12(%ecx),%eax
+		movl		%ecx,t282(%esp)
 		.align 16
-.L114:
-		movl		t223(%esp),%ecx
-.L113:
+.L156:
+		movl		t277(%esp),%ecx
+.L155:
 		pxor		%mm7,%mm7
 		movq		.L4,%mm3
 		pxor		%mm1,%mm1
@@ -7342,11 +10013,11 @@ amd_yuv420_bgr32:
 		pmulhrw		.L8,%mm2
 		paddw		%mm1,%mm6
 		pmulhrw		.L5,%mm4
-		movq		%mm0,t226(%esp)
+		movq		%mm0,t280(%esp)
 		pmulhrw		.L5,%mm5
-		movq		%mm2,t225(%esp)
+		movq		%mm2,t279(%esp)
 		movq		%mm0,%mm1
-		movq		%mm6,t227(%esp)
+		movq		%mm6,t281(%esp)
 		prefetchnta	(%esi)
 		paddw		%mm4,%mm0
 		paddw		%mm5,%mm1
@@ -7388,9 +10059,9 @@ amd_yuv420_bgr32:
 		psrlw		$8,%mm5
 		psubw		%mm3,%mm4
 		psubw		%mm3,%mm5
-		movq		t226(%esp),%mm0
+		movq		t280(%esp),%mm0
 		psllw		$2,%mm4
-		movq		t225(%esp),%mm2
+		movq		t279(%esp),%mm2
 		psllw		$2,%mm5
 		pmulhrw		.L5,%mm4
 		movq		%mm0,%mm1
@@ -7404,11 +10075,11 @@ amd_yuv420_bgr32:
 		paddw		%mm4,%mm2
 		punpcklbw	%mm1,%mm0
 		paddw		%mm5,%mm3
-		psubw		t227(%esp),%mm4
+		psubw		t281(%esp),%mm4
 		packuswb	%mm2,%mm2
 		packuswb	%mm3,%mm3
 		packuswb	%mm4,%mm4
-		psubw		t227(%esp),%mm5
+		psubw		t281(%esp),%mm5
 		punpcklbw	%mm3,%mm2
 		packuswb	%mm5,%mm5
 		punpcklbw	%mm5,%mm4
@@ -7430,17 +10101,17 @@ amd_yuv420_bgr32:
 		movntq		%mm5,24(%edi,%edx)
 		addl		$32,%edi
 		subl		$8,%ecx
-		jne		.L113
-		addl		t220(%esp),%esi
+		jne		.L155
+		addl		t274(%esp),%esi
 		addl		%ebp,%esi
-		movl		t222(%esp),%ecx
+		movl		t276(%esp),%ecx
 		addl		%ecx,%eax
-		addl		t221(%esp),%edi
+		addl		t275(%esp),%edi
 		addl		%edx,%edi
 		addl		%ecx,%ebx
-		subl		$2,t224(%esp)
-		jne		.L114
-		movl		t228(%esp),%esp
+		subl		$2,t278(%esp)
+		jne		.L156
+		movl		t282(%esp),%esp
 		femms
 		popl		%edi
 		popl		%esi
@@ -7454,21 +10125,21 @@ amd_yuyv_rgb24:
 		pushl		%edi
 		pushl		%esi
 		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
 		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
+		movl		0+12+20(%esp),%ebx
 		subl		%ecx,%eax
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 		leal		(%ecx,%ecx,2),%ecx
-		movl		28(%esp),%edx
+		movl		0+12+16(%esp),%edx
 		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
-.L116:
-		movl		24(%esp),%ecx
-.L115:
+.L158:
+		movl		0+12+12(%esp),%ecx
+.L157:
 		movq		(%esi),%mm4
 		movq		%mm4,%mm6
 		movq		8(%esi),%mm5
@@ -7538,11 +10209,11 @@ amd_yuyv_rgb24:
 		movntq		%mm1,16(%edi)
 		addl		$24,%edi
 		subl		$8,%ecx
-		jne		.L115
+		jne		.L157
 		addl		%eax,%esi
 		addl		%ebx,%edi
 		decl		%edx
-		jne		.L116
+		jne		.L158
 		femms
 		popl		%ebx
 		popl		%esi
@@ -7557,43 +10228,43 @@ amd_yuv420_rgb24:
 		pushl		%esi
 		pushl		%edi
 		movl		%esp,%ecx
-		leal		-1240(%esp),%esp
+		leal		-40(%esp),%esp
 		andl		$-8,%esp
-		t234 = 0
-		t235 = 8
-		t229 = 16
-		t230 = 20
-		t231 = 24
-		t232 = 28
-		t233 = 32
-		t236 = 36
-		movl		36(%ecx),%ebx
-		movl		%ebx,t232(%esp)
+		t288 = 0
+		t289 = 8
+		t283 = 16
+		t284 = 20
+		t285 = 24
+		t286 = 28
+		t287 = 32
+		t290 = 36
+		movl		0+16+20(%ecx),%ebx
+		movl		%ebx,t286(%esp)
 		shrl		$1,%ebx
-		movl		52(%ecx),%eax
+		movl		0+16+36(%ecx),%eax
 		subl		%ebx,%eax
-		movl		%eax,t231(%esp)
-		movl		48(%ecx),%eax
+		movl		%eax,t285(%esp)
+		movl		0+16+32(%ecx),%eax
 		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
+		movl		0+16+4(%ecx),%edi
 		movl		%eax,%ebp
-		movl		44(%ecx),%esi
+		movl		0+16+28(%ecx),%esi
 		subl		%ebx,%eax
-		movl		%eax,t229(%esp)
+		movl		%eax,t283(%esp)
 		leal		(%ebx,%ebx,2),%ebx
 		movl		%esi,%edx
-		movl		40(%ecx),%eax
+		movl		0+16+24(%ecx),%eax
 		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
-		movl		%esi,t230(%esp)
-		movl		24(%ecx),%esi
-		movl		%eax,t233(%esp)
-		movl		28(%ecx),%eax
-		movl		%ecx,t236(%esp)
+		movl		0+16+16(%ecx),%ebx
+		movl		%esi,t284(%esp)
+		movl		0+16+8(%ecx),%esi
+		movl		%eax,t287(%esp)
+		movl		0+16+12(%ecx),%eax
+		movl		%ecx,t290(%esp)
 		.align 16
-.L118:
-		movl		t232(%esp),%ecx
-.L117:
+.L160:
+		movl		t286(%esp),%ecx
+.L159:
 		movq		.L4,%mm3
 		pxor		%mm1,%mm1
 		movd		(%eax),%mm0
@@ -7625,9 +10296,9 @@ amd_yuv420_rgb24:
 		pmulhrw		.L5,%mm4
 		movq		%mm0,%mm7
 		pmulhrw		.L5,%mm5
-		movq		%mm2,t234(%esp)
+		movq		%mm2,t288(%esp)
 		movq		%mm0,%mm1
-		movq		%mm6,t235(%esp)
+		movq		%mm6,t289(%esp)
 		movq		%mm2,%mm3
 		prefetchnta	(%esi)
 		paddw		%mm4,%mm0
@@ -7669,7 +10340,7 @@ amd_yuv420_rgb24:
 		psubw		%mm3,%mm5
 		movq		%mm7,%mm0
 		psllw		$2,%mm4
-		movq		t234(%esp),%mm2
+		movq		t288(%esp),%mm2
 		psllw		$2,%mm5
 		pmulhrw		.L5,%mm4
 		movq		%mm0,%mm1
@@ -7681,9 +10352,9 @@ amd_yuv420_rgb24:
 		paddw		%mm4,%mm2
 		packuswb	%mm1,%mm0
 		paddw		%mm5,%mm3
-		psubw		t235(%esp),%mm4
+		psubw		t289(%esp),%mm4
 		packuswb	%mm3,%mm2
-		psubw		t235(%esp),%mm5
+		psubw		t289(%esp),%mm5
 		packuswb	%mm5,%mm4
 		movq		%mm2,%mm1
 		punpcklbw	%mm4,%mm2
@@ -7707,17 +10378,17 @@ amd_yuv420_rgb24:
 		movntq		%mm1,16(%edi,%edx)
 		addl		$24,%edi
 		subl		$8,%ecx
-		jne		.L117
-		addl		t229(%esp),%esi
+		jne		.L159
+		addl		t283(%esp),%esi
 		addl		%ebp,%esi
-		movl		t231(%esp),%ecx
+		movl		t285(%esp),%ecx
 		addl		%ecx,%eax
-		addl		t230(%esp),%edi
+		addl		t284(%esp),%edi
 		addl		%edx,%edi
 		addl		%ecx,%ebx
-		subl		$2,t233(%esp)
-		jne		.L118
-		movl		t236(%esp),%esp
+		subl		$2,t287(%esp)
+		jne		.L160
+		movl		t290(%esp),%esp
 		femms
 		popl		%edi
 		popl		%esi
@@ -7731,21 +10402,21 @@ amd_yuyv_bgr24:
 		pushl		%edi
 		pushl		%esi
 		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
 		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
+		movl		0+12+20(%esp),%ebx
 		subl		%ecx,%eax
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 		leal		(%ecx,%ecx,2),%ecx
-		movl		28(%esp),%edx
+		movl		0+12+16(%esp),%edx
 		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
-.L120:
-		movl		24(%esp),%ecx
-.L119:
+.L162:
+		movl		0+12+12(%esp),%ecx
+.L161:
 		movq		(%esi),%mm4
 		movq		%mm4,%mm6
 		movq		8(%esi),%mm5
@@ -7815,11 +10486,11 @@ amd_yuyv_bgr24:
 		movntq		%mm1,16(%edi)
 		addl		$24,%edi
 		subl		$8,%ecx
-		jne		.L119
+		jne		.L161
 		addl		%eax,%esi
 		addl		%ebx,%edi
 		decl		%edx
-		jne		.L120
+		jne		.L162
 		femms
 		popl		%ebx
 		popl		%esi
@@ -7834,43 +10505,43 @@ amd_yuv420_bgr24:
 		pushl		%esi
 		pushl		%edi
 		movl		%esp,%ecx
-		leal		-1280(%esp),%esp
+		leal		-40(%esp),%esp
 		andl		$-8,%esp
-		t242 = 0
-		t243 = 8
-		t237 = 16
-		t238 = 20
-		t239 = 24
-		t240 = 28
-		t241 = 32
-		t244 = 36
-		movl		36(%ecx),%ebx
-		movl		%ebx,t240(%esp)
+		t296 = 0
+		t297 = 8
+		t291 = 16
+		t292 = 20
+		t293 = 24
+		t294 = 28
+		t295 = 32
+		t298 = 36
+		movl		0+16+20(%ecx),%ebx
+		movl		%ebx,t294(%esp)
 		shrl		$1,%ebx
-		movl		52(%ecx),%eax
+		movl		0+16+36(%ecx),%eax
 		subl		%ebx,%eax
-		movl		%eax,t239(%esp)
-		movl		48(%ecx),%eax
+		movl		%eax,t293(%esp)
+		movl		0+16+32(%ecx),%eax
 		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
+		movl		0+16+4(%ecx),%edi
 		movl		%eax,%ebp
-		movl		44(%ecx),%esi
+		movl		0+16+28(%ecx),%esi
 		subl		%ebx,%eax
-		movl		%eax,t237(%esp)
+		movl		%eax,t291(%esp)
 		leal		(%ebx,%ebx,2),%ebx
 		movl		%esi,%edx
-		movl		40(%ecx),%eax
+		movl		0+16+24(%ecx),%eax
 		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
-		movl		%esi,t238(%esp)
-		movl		24(%ecx),%esi
-		movl		%eax,t241(%esp)
-		movl		28(%ecx),%eax
-		movl		%ecx,t244(%esp)
+		movl		0+16+16(%ecx),%ebx
+		movl		%esi,t292(%esp)
+		movl		0+16+8(%ecx),%esi
+		movl		%eax,t295(%esp)
+		movl		0+16+12(%ecx),%eax
+		movl		%ecx,t298(%esp)
 		.align 16
-.L122:
-		movl		t240(%esp),%ecx
-.L121:
+.L164:
+		movl		t294(%esp),%ecx
+.L163:
 		movq		.L4,%mm3
 		pxor		%mm1,%mm1
 		movd		(%eax),%mm0
@@ -7902,9 +10573,9 @@ amd_yuv420_bgr24:
 		pmulhrw		.L5,%mm4
 		movq		%mm0,%mm7
 		pmulhrw		.L5,%mm5
-		movq		%mm2,t242(%esp)
+		movq		%mm2,t296(%esp)
 		movq		%mm0,%mm1
-		movq		%mm6,t243(%esp)
+		movq		%mm6,t297(%esp)
 		movq		%mm2,%mm3
 		prefetchnta	(%esi)
 		paddw		%mm4,%mm0
@@ -7946,7 +10617,7 @@ amd_yuv420_bgr24:
 		psubw		%mm3,%mm5
 		movq		%mm7,%mm0
 		psllw		$2,%mm4
-		movq		t242(%esp),%mm2
+		movq		t296(%esp),%mm2
 		psllw		$2,%mm5
 		pmulhrw		.L5,%mm4
 		movq		%mm0,%mm1
@@ -7958,9 +10629,9 @@ amd_yuv420_bgr24:
 		paddw		%mm4,%mm2
 		packuswb	%mm1,%mm0
 		paddw		%mm5,%mm3
-		psubw		t243(%esp),%mm4
+		psubw		t297(%esp),%mm4
 		packuswb	%mm3,%mm2
-		psubw		t243(%esp),%mm5
+		psubw		t297(%esp),%mm5
 		packuswb	%mm5,%mm4
 		movq		%mm0,%mm1
 		punpcklbw	%mm4,%mm0
@@ -7984,17 +10655,17 @@ amd_yuv420_bgr24:
 		movntq		%mm1,16(%edi,%edx)
 		addl		$24,%edi
 		subl		$8,%ecx
-		jne		.L121
-		addl		t237(%esp),%esi
+		jne		.L163
+		addl		t291(%esp),%esi
 		addl		%ebp,%esi
-		movl		t239(%esp),%ecx
+		movl		t293(%esp),%ecx
 		addl		%ecx,%eax
-		addl		t238(%esp),%edi
+		addl		t292(%esp),%edi
 		addl		%edx,%edi
 		addl		%ecx,%ebx
-		subl		$2,t241(%esp)
-		jne		.L122
-		movl		t244(%esp),%esp
+		subl		$2,t295(%esp)
+		jne		.L164
+		movl		t298(%esp),%esp
 		femms
 		popl		%edi
 		popl		%esi
@@ -8008,21 +10679,21 @@ amd_yuyv_rgb565:
 		pushl		%edi
 		pushl		%esi
 		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
 		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
+		movl		0+12+20(%esp),%ebx
 		subl		%ecx,%eax
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 		addl		%ecx,%ecx
-		movl		28(%esp),%edx
+		movl		0+12+16(%esp),%edx
 		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
-.L124:
-		movl		24(%esp),%ecx
-.L123:
+.L166:
+		movl		0+12+12(%esp),%ecx
+.L165:
 		movq		.L27,%mm7
 		movq		(%esi),%mm4
 		movq		%mm4,%mm6
@@ -8092,11 +10763,11 @@ amd_yuyv_rgb565:
 		movntq		%mm5,8(%edi)
 		addl		$16,%edi
 		subl		$8,%ecx
-		jne		.L123
+		jne		.L165
 		addl		%eax,%esi
 		addl		%ebx,%edi
 		decl		%edx
-		jne		.L124
+		jne		.L166
 		femms
 		popl		%ebx
 		popl		%esi
@@ -8111,44 +10782,44 @@ amd_yuv420_rgb565:
 		pushl		%esi
 		pushl		%edi
 		movl		%esp,%ecx
-		leal		-1328(%esp),%esp
+		leal		-48(%esp),%esp
 		andl		$-8,%esp
-		t250 = 0
-		t251 = 8
-		t252 = 16
-		t245 = 24
-		t246 = 28
-		t247 = 32
-		t248 = 36
-		t249 = 40
-		t253 = 44
-		movl		36(%ecx),%ebx
-		movl		%ebx,t248(%esp)
+		t304 = 0
+		t305 = 8
+		t306 = 16
+		t299 = 24
+		t300 = 28
+		t301 = 32
+		t302 = 36
+		t303 = 40
+		t307 = 44
+		movl		0+16+20(%ecx),%ebx
+		movl		%ebx,t302(%esp)
 		shrl		$1,%ebx
-		movl		52(%ecx),%eax
+		movl		0+16+36(%ecx),%eax
 		subl		%ebx,%eax
-		movl		%eax,t247(%esp)
-		movl		48(%ecx),%eax
+		movl		%eax,t301(%esp)
+		movl		0+16+32(%ecx),%eax
 		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
+		movl		0+16+4(%ecx),%edi
 		movl		%eax,%ebp
-		movl		44(%ecx),%esi
+		movl		0+16+28(%ecx),%esi
 		subl		%ebx,%eax
-		movl		%eax,t245(%esp)
+		movl		%eax,t299(%esp)
 		addl		%ebx,%ebx
 		movl		%esi,%edx
-		movl		40(%ecx),%eax
+		movl		0+16+24(%ecx),%eax
 		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
-		movl		%esi,t246(%esp)
-		movl		24(%ecx),%esi
-		movl		%eax,t249(%esp)
-		movl		28(%ecx),%eax
-		movl		%ecx,t253(%esp)
+		movl		0+16+16(%ecx),%ebx
+		movl		%esi,t300(%esp)
+		movl		0+16+8(%ecx),%esi
+		movl		%eax,t303(%esp)
+		movl		0+16+12(%ecx),%eax
+		movl		%ecx,t307(%esp)
 		.align 16
-.L126:
-		movl		t248(%esp),%ecx
-.L125:
+.L168:
+		movl		t302(%esp),%ecx
+.L167:
 		movq		.L27,%mm7
 		movq		.L4,%mm3
 		pxor		%mm1,%mm1
@@ -8179,11 +10850,11 @@ amd_yuv420_rgb565:
 		pmulhrw		.L8,%mm2
 		paddw		%mm1,%mm6
 		pmulhrw		.L5,%mm4
-		movq		%mm0,t251(%esp)
+		movq		%mm0,t305(%esp)
 		pmulhrw		.L5,%mm5
-		movq		%mm2,t250(%esp)
+		movq		%mm2,t304(%esp)
 		movq		%mm0,%mm1
-		movq		%mm6,t252(%esp)
+		movq		%mm6,t306(%esp)
 		movq		%mm2,%mm3
 		prefetchnta	(%esi)
 		paddw		%mm4,%mm0
@@ -8222,9 +10893,9 @@ amd_yuv420_rgb565:
 		psrlw		$8,%mm5
 		psubw		%mm3,%mm4
 		psubw		%mm3,%mm5
-		movq		t251(%esp),%mm0
+		movq		t305(%esp),%mm0
 		psllw		$2,%mm4
-		movq		t250(%esp),%mm2
+		movq		t304(%esp),%mm2
 		psllw		$2,%mm5
 		pmulhrw		.L5,%mm4
 		movq		%mm0,%mm1
@@ -8236,9 +10907,9 @@ amd_yuv420_rgb565:
 		paddw		%mm4,%mm2
 		packuswb	%mm1,%mm0
 		paddw		%mm5,%mm3
-		psubw		t252(%esp),%mm4
+		psubw		t306(%esp),%mm4
 		packuswb	%mm3,%mm2
-		psubw		t252(%esp),%mm5
+		psubw		t306(%esp),%mm5
 		packuswb	%mm5,%mm4
 		pand		%mm7,%mm2
 		movq		%mm4,%mm5
@@ -8261,17 +10932,17 @@ amd_yuv420_rgb565:
 		movntq		%mm5,8(%edi,%edx)
 		addl		$16,%edi
 		subl		$8,%ecx
-		jne		.L125
-		addl		t245(%esp),%esi
+		jne		.L167
+		addl		t299(%esp),%esi
 		addl		%ebp,%esi
-		movl		t247(%esp),%ecx
+		movl		t301(%esp),%ecx
 		addl		%ecx,%eax
-		addl		t246(%esp),%edi
+		addl		t300(%esp),%edi
 		addl		%edx,%edi
 		addl		%ecx,%ebx
-		subl		$2,t249(%esp)
-		jne		.L126
-		movl		t253(%esp),%esp
+		subl		$2,t303(%esp)
+		jne		.L168
+		movl		t307(%esp),%esp
 		femms
 		popl		%edi
 		popl		%esi
@@ -8285,21 +10956,21 @@ amd_yuyv_bgr565:
 		pushl		%edi
 		pushl		%esi
 		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
 		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
+		movl		0+12+20(%esp),%ebx
 		subl		%ecx,%eax
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 		addl		%ecx,%ecx
-		movl		28(%esp),%edx
+		movl		0+12+16(%esp),%edx
 		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
-.L128:
-		movl		24(%esp),%ecx
-.L127:
+.L170:
+		movl		0+12+12(%esp),%ecx
+.L169:
 		movq		.L27,%mm7
 		movq		(%esi),%mm4
 		movq		%mm4,%mm6
@@ -8369,11 +11040,11 @@ amd_yuyv_bgr565:
 		movntq		%mm5,8(%edi)
 		addl		$16,%edi
 		subl		$8,%ecx
-		jne		.L127
+		jne		.L169
 		addl		%eax,%esi
 		addl		%ebx,%edi
 		decl		%edx
-		jne		.L128
+		jne		.L170
 		femms
 		popl		%ebx
 		popl		%esi
@@ -8388,44 +11059,44 @@ amd_yuv420_bgr565:
 		pushl		%esi
 		pushl		%edi
 		movl		%esp,%ecx
-		leal		-1376(%esp),%esp
+		leal		-48(%esp),%esp
 		andl		$-8,%esp
-		t259 = 0
-		t260 = 8
-		t261 = 16
-		t254 = 24
-		t255 = 28
-		t256 = 32
-		t257 = 36
-		t258 = 40
-		t262 = 44
-		movl		36(%ecx),%ebx
-		movl		%ebx,t257(%esp)
+		t313 = 0
+		t314 = 8
+		t315 = 16
+		t308 = 24
+		t309 = 28
+		t310 = 32
+		t311 = 36
+		t312 = 40
+		t316 = 44
+		movl		0+16+20(%ecx),%ebx
+		movl		%ebx,t311(%esp)
 		shrl		$1,%ebx
-		movl		52(%ecx),%eax
+		movl		0+16+36(%ecx),%eax
 		subl		%ebx,%eax
-		movl		%eax,t256(%esp)
-		movl		48(%ecx),%eax
+		movl		%eax,t310(%esp)
+		movl		0+16+32(%ecx),%eax
 		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
+		movl		0+16+4(%ecx),%edi
 		movl		%eax,%ebp
-		movl		44(%ecx),%esi
+		movl		0+16+28(%ecx),%esi
 		subl		%ebx,%eax
-		movl		%eax,t254(%esp)
+		movl		%eax,t308(%esp)
 		addl		%ebx,%ebx
 		movl		%esi,%edx
-		movl		40(%ecx),%eax
+		movl		0+16+24(%ecx),%eax
 		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
-		movl		%esi,t255(%esp)
-		movl		24(%ecx),%esi
-		movl		%eax,t258(%esp)
-		movl		28(%ecx),%eax
-		movl		%ecx,t262(%esp)
+		movl		0+16+16(%ecx),%ebx
+		movl		%esi,t309(%esp)
+		movl		0+16+8(%ecx),%esi
+		movl		%eax,t312(%esp)
+		movl		0+16+12(%ecx),%eax
+		movl		%ecx,t316(%esp)
 		.align 16
-.L130:
-		movl		t257(%esp),%ecx
-.L129:
+.L172:
+		movl		t311(%esp),%ecx
+.L171:
 		movq		.L27,%mm7
 		movq		.L4,%mm3
 		pxor		%mm1,%mm1
@@ -8456,11 +11127,11 @@ amd_yuv420_bgr565:
 		pmulhrw		.L8,%mm2
 		paddw		%mm1,%mm6
 		pmulhrw		.L5,%mm4
-		movq		%mm0,t260(%esp)
+		movq		%mm0,t314(%esp)
 		pmulhrw		.L5,%mm5
-		movq		%mm2,t259(%esp)
+		movq		%mm2,t313(%esp)
 		movq		%mm0,%mm1
-		movq		%mm6,t261(%esp)
+		movq		%mm6,t315(%esp)
 		movq		%mm2,%mm3
 		prefetchnta	(%esi)
 		paddw		%mm4,%mm0
@@ -8499,9 +11170,9 @@ amd_yuv420_bgr565:
 		psrlw		$8,%mm5
 		psubw		%mm3,%mm4
 		psubw		%mm3,%mm5
-		movq		t260(%esp),%mm0
+		movq		t314(%esp),%mm0
 		psllw		$2,%mm4
-		movq		t259(%esp),%mm2
+		movq		t313(%esp),%mm2
 		psllw		$2,%mm5
 		pmulhrw		.L5,%mm4
 		movq		%mm0,%mm1
@@ -8513,9 +11184,9 @@ amd_yuv420_bgr565:
 		paddw		%mm4,%mm2
 		packuswb	%mm1,%mm0
 		paddw		%mm5,%mm3
-		psubw		t261(%esp),%mm4
+		psubw		t315(%esp),%mm4
 		packuswb	%mm3,%mm2
-		psubw		t261(%esp),%mm5
+		psubw		t315(%esp),%mm5
 		packuswb	%mm5,%mm4
 		pand		%mm7,%mm0
 		movq		%mm4,%mm5
@@ -8538,17 +11209,17 @@ amd_yuv420_bgr565:
 		movntq		%mm5,8(%edi,%edx)
 		addl		$16,%edi
 		subl		$8,%ecx
-		jne		.L129
-		addl		t254(%esp),%esi
+		jne		.L171
+		addl		t308(%esp),%esi
 		addl		%ebp,%esi
-		movl		t256(%esp),%ecx
+		movl		t310(%esp),%ecx
 		addl		%ecx,%eax
-		addl		t255(%esp),%edi
+		addl		t309(%esp),%edi
 		addl		%edx,%edi
 		addl		%ecx,%ebx
-		subl		$2,t258(%esp)
-		jne		.L130
-		movl		t262(%esp),%esp
+		subl		$2,t312(%esp)
+		jne		.L172
+		movl		t316(%esp),%esp
 		femms
 		popl		%edi
 		popl		%esi
@@ -8562,21 +11233,21 @@ amd_yuyv_rgb5551:
 		pushl		%edi
 		pushl		%esi
 		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
 		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
+		movl		0+12+20(%esp),%ebx
 		subl		%ecx,%eax
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 		addl		%ecx,%ecx
-		movl		28(%esp),%edx
+		movl		0+12+16(%esp),%edx
 		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
-.L132:
-		movl		24(%esp),%ecx
-.L131:
+.L174:
+		movl		0+12+12(%esp),%ecx
+.L173:
 		movq		.L27,%mm7
 		movq		(%esi),%mm4
 		movq		%mm4,%mm6
@@ -8648,11 +11319,11 @@ amd_yuyv_rgb5551:
 		movntq		%mm3,8(%edi)
 		addl		$16,%edi
 		subl		$8,%ecx
-		jne		.L131
+		jne		.L173
 		addl		%eax,%esi
 		addl		%ebx,%edi
 		decl		%edx
-		jne		.L132
+		jne		.L174
 		femms
 		popl		%ebx
 		popl		%esi
@@ -8667,44 +11338,44 @@ amd_yuv420_rgb5551:
 		pushl		%esi
 		pushl		%edi
 		movl		%esp,%ecx
-		leal		-1424(%esp),%esp
+		leal		-48(%esp),%esp
 		andl		$-8,%esp
-		t268 = 0
-		t269 = 8
-		t270 = 16
-		t263 = 24
-		t264 = 28
-		t265 = 32
-		t266 = 36
-		t267 = 40
-		t271 = 44
-		movl		36(%ecx),%ebx
-		movl		%ebx,t266(%esp)
+		t322 = 0
+		t323 = 8
+		t324 = 16
+		t317 = 24
+		t318 = 28
+		t319 = 32
+		t320 = 36
+		t321 = 40
+		t325 = 44
+		movl		0+16+20(%ecx),%ebx
+		movl		%ebx,t320(%esp)
 		shrl		$1,%ebx
-		movl		52(%ecx),%eax
+		movl		0+16+36(%ecx),%eax
 		subl		%ebx,%eax
-		movl		%eax,t265(%esp)
-		movl		48(%ecx),%eax
+		movl		%eax,t319(%esp)
+		movl		0+16+32(%ecx),%eax
 		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
+		movl		0+16+4(%ecx),%edi
 		movl		%eax,%ebp
-		movl		44(%ecx),%esi
+		movl		0+16+28(%ecx),%esi
 		subl		%ebx,%eax
-		movl		%eax,t263(%esp)
+		movl		%eax,t317(%esp)
 		addl		%ebx,%ebx
 		movl		%esi,%edx
-		movl		40(%ecx),%eax
+		movl		0+16+24(%ecx),%eax
 		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
-		movl		%esi,t264(%esp)
-		movl		24(%ecx),%esi
-		movl		%eax,t267(%esp)
-		movl		28(%ecx),%eax
-		movl		%ecx,t271(%esp)
+		movl		0+16+16(%ecx),%ebx
+		movl		%esi,t318(%esp)
+		movl		0+16+8(%ecx),%esi
+		movl		%eax,t321(%esp)
+		movl		0+16+12(%ecx),%eax
+		movl		%ecx,t325(%esp)
 		.align 16
-.L134:
-		movl		t266(%esp),%ecx
-.L133:
+.L176:
+		movl		t320(%esp),%ecx
+.L175:
 		movq		.L27,%mm7
 		movq		.L4,%mm3
 		pxor		%mm1,%mm1
@@ -8735,11 +11406,11 @@ amd_yuv420_rgb5551:
 		pmulhrw		.L8,%mm2
 		paddw		%mm1,%mm6
 		pmulhrw		.L5,%mm4
-		movq		%mm0,t269(%esp)
+		movq		%mm0,t323(%esp)
 		pmulhrw		.L5,%mm5
-		movq		%mm2,t268(%esp)
+		movq		%mm2,t322(%esp)
 		movq		%mm0,%mm1
-		movq		%mm6,t270(%esp)
+		movq		%mm6,t324(%esp)
 		movq		%mm2,%mm3
 		prefetchnta	(%esi)
 		paddw		%mm4,%mm0
@@ -8780,9 +11451,9 @@ amd_yuv420_rgb5551:
 		psrlw		$8,%mm5
 		psubw		%mm3,%mm4
 		psubw		%mm3,%mm5
-		movq		t269(%esp),%mm0
+		movq		t323(%esp),%mm0
 		psllw		$2,%mm4
-		movq		t268(%esp),%mm2
+		movq		t322(%esp),%mm2
 		psllw		$2,%mm5
 		pmulhrw		.L5,%mm4
 		movq		%mm0,%mm1
@@ -8794,9 +11465,9 @@ amd_yuv420_rgb5551:
 		paddw		%mm4,%mm2
 		packuswb	%mm1,%mm0
 		paddw		%mm5,%mm3
-		psubw		t270(%esp),%mm4
+		psubw		t324(%esp),%mm4
 		packuswb	%mm3,%mm2
-		psubw		t270(%esp),%mm5
+		psubw		t324(%esp),%mm5
 		packuswb	%mm5,%mm4
 		pand		%mm7,%mm2
 		pand		%mm7,%mm0
@@ -8821,17 +11492,17 @@ amd_yuv420_rgb5551:
 		movntq		%mm3,8(%edi,%edx)
 		addl		$16,%edi
 		subl		$8,%ecx
-		jne		.L133
-		addl		t263(%esp),%esi
+		jne		.L175
+		addl		t317(%esp),%esi
 		addl		%ebp,%esi
-		movl		t265(%esp),%ecx
+		movl		t319(%esp),%ecx
 		addl		%ecx,%eax
-		addl		t264(%esp),%edi
+		addl		t318(%esp),%edi
 		addl		%edx,%edi
 		addl		%ecx,%ebx
-		subl		$2,t267(%esp)
-		jne		.L134
-		movl		t271(%esp),%esp
+		subl		$2,t321(%esp)
+		jne		.L176
+		movl		t325(%esp),%esp
 		femms
 		popl		%edi
 		popl		%esi
@@ -8845,21 +11516,21 @@ amd_yuyv_bgr5551:
 		pushl		%edi
 		pushl		%esi
 		pushl		%ebx
-		movl		24(%esp),%ecx
-		movl		36(%esp),%eax
+		movl		0+12+12(%esp),%ecx
+		movl		0+12+24(%esp),%eax
 		addl		%ecx,%ecx
-		movl		32(%esp),%ebx
+		movl		0+12+20(%esp),%ebx
 		subl		%ecx,%eax
-		movl		24(%esp),%ecx
+		movl		0+12+12(%esp),%ecx
 		addl		%ecx,%ecx
-		movl		28(%esp),%edx
+		movl		0+12+16(%esp),%edx
 		subl		%ecx,%ebx
-		movl		20(%esp),%esi
-		movl		16(%esp),%edi
+		movl		0+12+8(%esp),%esi
+		movl		0+12+4(%esp),%edi
 		.align 16
-.L136:
-		movl		24(%esp),%ecx
-.L135:
+.L178:
+		movl		0+12+12(%esp),%ecx
+.L177:
 		movq		.L27,%mm7
 		movq		(%esi),%mm4
 		movq		%mm4,%mm6
@@ -8931,11 +11602,11 @@ amd_yuyv_bgr5551:
 		movntq		%mm3,8(%edi)
 		addl		$16,%edi
 		subl		$8,%ecx
-		jne		.L135
+		jne		.L177
 		addl		%eax,%esi
 		addl		%ebx,%edi
 		decl		%edx
-		jne		.L136
+		jne		.L178
 		femms
 		popl		%ebx
 		popl		%esi
@@ -8950,44 +11621,44 @@ amd_yuv420_bgr5551:
 		pushl		%esi
 		pushl		%edi
 		movl		%esp,%ecx
-		leal		-1472(%esp),%esp
+		leal		-48(%esp),%esp
 		andl		$-8,%esp
-		t277 = 0
-		t278 = 8
-		t279 = 16
-		t272 = 24
-		t273 = 28
-		t274 = 32
-		t275 = 36
-		t276 = 40
-		t280 = 44
-		movl		36(%ecx),%ebx
-		movl		%ebx,t275(%esp)
+		t331 = 0
+		t332 = 8
+		t333 = 16
+		t326 = 24
+		t327 = 28
+		t328 = 32
+		t329 = 36
+		t330 = 40
+		t334 = 44
+		movl		0+16+20(%ecx),%ebx
+		movl		%ebx,t329(%esp)
 		shrl		$1,%ebx
-		movl		52(%ecx),%eax
+		movl		0+16+36(%ecx),%eax
 		subl		%ebx,%eax
-		movl		%eax,t274(%esp)
-		movl		48(%ecx),%eax
+		movl		%eax,t328(%esp)
+		movl		0+16+32(%ecx),%eax
 		addl		%ebx,%ebx
-		movl		20(%ecx),%edi
+		movl		0+16+4(%ecx),%edi
 		movl		%eax,%ebp
-		movl		44(%ecx),%esi
+		movl		0+16+28(%ecx),%esi
 		subl		%ebx,%eax
-		movl		%eax,t272(%esp)
+		movl		%eax,t326(%esp)
 		addl		%ebx,%ebx
 		movl		%esi,%edx
-		movl		40(%ecx),%eax
+		movl		0+16+24(%ecx),%eax
 		subl		%ebx,%esi
-		movl		32(%ecx),%ebx
-		movl		%esi,t273(%esp)
-		movl		24(%ecx),%esi
-		movl		%eax,t276(%esp)
-		movl		28(%ecx),%eax
-		movl		%ecx,t280(%esp)
+		movl		0+16+16(%ecx),%ebx
+		movl		%esi,t327(%esp)
+		movl		0+16+8(%ecx),%esi
+		movl		%eax,t330(%esp)
+		movl		0+16+12(%ecx),%eax
+		movl		%ecx,t334(%esp)
 		.align 16
-.L138:
-		movl		t275(%esp),%ecx
-.L137:
+.L180:
+		movl		t329(%esp),%ecx
+.L179:
 		movq		.L27,%mm7
 		movq		.L4,%mm3
 		pxor		%mm1,%mm1
@@ -9018,11 +11689,11 @@ amd_yuv420_bgr5551:
 		pmulhrw		.L8,%mm2
 		paddw		%mm1,%mm6
 		pmulhrw		.L5,%mm4
-		movq		%mm0,t278(%esp)
+		movq		%mm0,t332(%esp)
 		pmulhrw		.L5,%mm5
-		movq		%mm2,t277(%esp)
+		movq		%mm2,t331(%esp)
 		movq		%mm0,%mm1
-		movq		%mm6,t279(%esp)
+		movq		%mm6,t333(%esp)
 		movq		%mm2,%mm3
 		prefetchnta	(%esi)
 		paddw		%mm4,%mm0
@@ -9063,9 +11734,9 @@ amd_yuv420_bgr5551:
 		psrlw		$8,%mm5
 		psubw		%mm3,%mm4
 		psubw		%mm3,%mm5
-		movq		t278(%esp),%mm0
+		movq		t332(%esp),%mm0
 		psllw		$2,%mm4
-		movq		t277(%esp),%mm2
+		movq		t331(%esp),%mm2
 		psllw		$2,%mm5
 		pmulhrw		.L5,%mm4
 		movq		%mm0,%mm1
@@ -9077,9 +11748,9 @@ amd_yuv420_bgr5551:
 		paddw		%mm4,%mm2
 		packuswb	%mm1,%mm0
 		paddw		%mm5,%mm3
-		psubw		t279(%esp),%mm4
+		psubw		t333(%esp),%mm4
 		packuswb	%mm3,%mm2
-		psubw		t279(%esp),%mm5
+		psubw		t333(%esp),%mm5
 		packuswb	%mm5,%mm4
 		pand		%mm7,%mm0
 		pand		%mm7,%mm2
@@ -9104,17 +11775,17 @@ amd_yuv420_bgr5551:
 		movntq		%mm3,8(%edi,%edx)
 		addl		$16,%edi
 		subl		$8,%ecx
-		jne		.L137
-		addl		t272(%esp),%esi
+		jne		.L179
+		addl		t326(%esp),%esi
 		addl		%ebp,%esi
-		movl		t274(%esp),%ecx
+		movl		t328(%esp),%ecx
 		addl		%ecx,%eax
-		addl		t273(%esp),%edi
+		addl		t327(%esp),%edi
 		addl		%edx,%edi
 		addl		%ecx,%ebx
-		subl		$2,t276(%esp)
-		jne		.L138
-		movl		t280(%esp),%esp
+		subl		$2,t330(%esp)
+		jne		.L180
+		movl		t334(%esp),%esp
 		femms
 		popl		%edi
 		popl		%esi

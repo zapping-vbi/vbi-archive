@@ -1,21 +1,12 @@
 /*
  *  Zapping (TV viewer for the Gnome Desktop)
- *  MMX color conversion routines
+ *  SWAR color conversion routines
  *
  *  Copyright (C) 2001 Michael H. Schimek <mschimek@users.sf.net>
  *
- *  Contains code from mpeg2dec yuv2rgb_mmx.c,
- *  Software YUV to RGB converter with Intel MMX "technology"
- *
- *  Copyright (C) 2000, Silicon Integrated System Corp.
- *  All Rights Reserved.
- *
- *  Author: Olie Lho <ollie@sis.com.tw>
- *
  *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *  it under the terms of the GNU General Public License version 2 as
+ *  published by the Free Software Foundation.
  *
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -51,6 +42,22 @@ extern void mmx_yuyv_rgb5551(unsigned char *d, unsigned char *s, int w, int h, i
 extern void mmx_yuv420_rgb5551(unsigned char *d, unsigned char *s, unsigned char *s_u, unsigned char *s_v, int w, int h, int d_stride, int s_stride, int s_uv_stride);
 extern void mmx_yuyv_bgr5551(unsigned char *d, unsigned char *s, int w, int h, int d_stride, int s_stride);
 extern void mmx_yuv420_bgr5551(unsigned char *d, unsigned char *s, unsigned char *s_u, unsigned char *s_v, int w, int h, int d_stride, int s_stride, int s_uv_stride);
+extern void mmx_rgb32_yuyv(unsigned char *d, unsigned char *s, int w, int h, int d_stride, int s_stride);
+extern void mmx_bgr32_yuyv(unsigned char *d, unsigned char *s, int w, int h, int d_stride, int s_stride);
+extern void mmx_rgb24_yuyv(unsigned char *d, unsigned char *s, int w, int h, int d_stride, int s_stride);
+extern void mmx_bgr24_yuyv(unsigned char *d, unsigned char *s, int w, int h, int d_stride, int s_stride);
+extern void mmx_rgb565_yuyv(unsigned char *d, unsigned char *s, int w, int h, int d_stride, int s_stride);
+extern void mmx_bgr565_yuyv(unsigned char *d, unsigned char *s, int w, int h, int d_stride, int s_stride);
+extern void mmx_rgb5551_yuyv(unsigned char *d, unsigned char *s, int w, int h, int d_stride, int s_stride);
+extern void mmx_bgr5551_yuyv(unsigned char *d, unsigned char *s, int w, int h, int d_stride, int s_stride);
+extern void mmx_rgb32_yuv420(unsigned char *d, unsigned char *d_u, unsigned char *d_v, unsigned char *s, int w, int h, int d_stride, int d_uv_stride, int s_stride);
+extern void mmx_bgr32_yuv420(unsigned char *d, unsigned char *d_u, unsigned char *d_v, unsigned char *s, int w, int h, int d_stride, int d_uv_stride, int s_stride);
+extern void mmx_rgb24_yuv420(unsigned char *d, unsigned char *d_u, unsigned char *d_v, unsigned char *s, int w, int h, int d_stride, int d_uv_stride, int s_stride);
+extern void mmx_bgr24_yuv420(unsigned char *d, unsigned char *d_u, unsigned char *d_v, unsigned char *s, int w, int h, int d_stride, int d_uv_stride, int s_stride);
+extern void mmx_rgb565_yuv420(unsigned char *d, unsigned char *d_u, unsigned char *d_v, unsigned char *s, int w, int h, int d_stride, int d_uv_stride, int s_stride);
+extern void mmx_bgr565_yuv420(unsigned char *d, unsigned char *d_u, unsigned char *d_v, unsigned char *s, int w, int h, int d_stride, int d_uv_stride, int s_stride);
+extern void mmx_rgb5551_yuv420(unsigned char *d, unsigned char *d_u, unsigned char *d_v, unsigned char *s, int w, int h, int d_stride, int d_uv_stride, int s_stride);
+extern void mmx_bgr5551_yuv420(unsigned char *d, unsigned char *d_u, unsigned char *d_v, unsigned char *s, int w, int h, int d_stride, int d_uv_stride, int s_stride);
 extern void sse_yuyv_rgb32(unsigned char *d, unsigned char *s, int w, int h, int d_stride, int s_stride);
 extern void sse_yuv420_rgb32(unsigned char *d, unsigned char *s, unsigned char *s_u, unsigned char *s_v, int w, int h, int d_stride, int s_stride, int s_uv_stride);
 extern void sse_yuyv_bgr32(unsigned char *d, unsigned char *s, int w, int h, int d_stride, int s_stride);
