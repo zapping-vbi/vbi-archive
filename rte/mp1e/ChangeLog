@@ -1,3 +1,9 @@
+2003-03-06	<mschimek@users.sf.net>
+
+	* video/video.h, video/mpeg1.c, video/filter_mmx.s,
+	  video/filter.c, devices/v4l2.c, devices/v4l25.c:
+	  Added UYVY support.
+	
 2003-02-10	<mschimek@users.sf.net>
 
 	* common/videodev25.h: Updated.
