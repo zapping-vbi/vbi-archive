@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.5\n"
-"POT-Creation-Date: 2002-09-26 22:16+0200\n"
+"POT-Creation-Date: 2002-10-04 01:48+0200\n"
 "PO-Revision-Date: 2002-05-10 16:08+0000\n"
 "Last-Translator: Pawe³ Sakowski <pawel@sakowski.eu.org>\n"
 "Language-Team: Polish <pl@li.org>\n"
@@ -321,7 +321,7 @@ msgstr "Dostosuj %s"
 msgid "Available controls"
 msgstr "Dostêpne ustawienia"
 
-#: src/v4linterface.c:663 src/zvbi.c:2106
+#: src/v4linterface.c:663 src/zvbi.c:2105
 msgid "Unknown"
 msgstr "Nieznany"
 
@@ -355,55 +355,55 @@ msgstr "Wej¶cia"
 msgid "No tuned channels"
 msgstr "Brak ustawionych kana³ów"
 
-#: src/zvbi.c:136
+#: src/zvbi.c:135
 msgid "No Audio"
 msgstr "Bez d¼wiêku"
 
-#: src/zvbi.c:137 src/tveng1.c:1018
+#: src/zvbi.c:136 src/tveng1.c:1018
 msgid "Mono"
 msgstr "Mono"
 
-#: src/zvbi.c:138 src/tveng1.c:1019
+#: src/zvbi.c:137 src/tveng1.c:1019
 msgid "Stereo"
 msgstr "Stereo"
 
-#: src/zvbi.c:139
+#: src/zvbi.c:138
 msgid "Stereo Surround"
 msgstr "Stereo Surround"
 
-#: src/zvbi.c:140
+#: src/zvbi.c:139
 msgid "Simulated Stereo"
 msgstr "Symulowane stereo"
 
-#: src/zvbi.c:141
+#: src/zvbi.c:140
 msgid "Video Descriptions"
 msgstr ""
 
-#: src/zvbi.c:142
+#: src/zvbi.c:141
 msgid "Non-program Audio"
 msgstr ""
 
-#: src/zvbi.c:143
+#: src/zvbi.c:142
 msgid "Special Effects"
 msgstr "Efekty specjalne"
 
-#: src/zvbi.c:144
+#: src/zvbi.c:143
 msgid "Data Service"
 msgstr ""
 
-#: src/zvbi.c:145
+#: src/zvbi.c:144
 msgid "Unknown Audio"
 msgstr "Nieznany d¼wiêk"
 
-#: src/zvbi.c:253
+#: src/zvbi.c:252
 msgid "V4L/V4L2 VBI interface timeout"
 msgstr "Przekroczenie limitu czasu interfejsu VBI V4L/V4L2"
 
-#: src/zvbi.c:266
+#: src/zvbi.c:265
 msgid "V4L/V4L2 VBI interface: Failed to read from the device"
 msgstr "Interfejs VBI V4L/V4L2: Nie mogê czytaæ z urz±dzenia"
 
-#: src/zvbi.c:361
+#: src/zvbi.c:360
 #, c-format
 msgid ""
 "VBI initialization failed.\n"
@@ -412,15 +412,15 @@ msgstr ""
 "Inicjalizacja VBI nie powiod³a siê.\n"
 "%s"
 
-#: src/zvbi.c:362
+#: src/zvbi.c:361
 msgid "Ran out of memory."
 msgstr "Zabrak³o pamiêci."
 
-#: src/zvbi.c:363
+#: src/zvbi.c:362
 msgid "Out of resources to start a new thread."
 msgstr "Brakuje zasobów na stworzenie nowego w±tku."
 
-#: src/zvbi.c:365
+#: src/zvbi.c:364
 msgid ""
 "This probably means that the required driver isn't loaded. Add to your /etc/"
 "modules.conf the line:\n"
@@ -436,11 +436,11 @@ msgstr ""
 "i utwórz /dev/vbi0 przy u¿yciu mknod. Je¶li to nie zadzia³a, mo¿esz wy³±czyæ "
 "VBI w menu Ustawienia/Preferencje/Opcje VBI/W³±cz dekodowanie VBI."
 
-#: src/zvbi.c:717
+#: src/zvbi.c:716
 msgid "Click me"
 msgstr "Kliknij na mnie"
 
-#: src/zvbi.c:752
+#: src/zvbi.c:751
 msgid ""
 "Open this link with the predetermined Web browser.\n"
 "You can configure this in the GNOME Control Center, under Handlers/Url "
@@ -450,29 +450,29 @@ msgstr ""
 "Mo¿esz j± skonfigurowaæ w Centrum Sterowania GNOME pod Obs³uga dokumentów/"
 "Obs³uga URL"
 
-#: src/zvbi.c:759
+#: src/zvbi.c:758
 #, c-format
 msgid " %s: Teletext Page %x"
 msgstr "%s: Strona Teletekstu %x"
 
-#: src/zvbi.c:762
+#: src/zvbi.c:761
 #, c-format
 msgid " Teletext Page %x"
 msgstr " Strona Teletekstu %x"
 
-#: src/zvbi.c:763
+#: src/zvbi.c:762
 msgid "Open this page with Zapzilla"
 msgstr "Otwórz t± stronê w Zapzilli"
 
-#: src/zvbi.c:2111
+#: src/zvbi.c:2110
 msgid "n/a"
 msgstr "niedostêpna"
 
-#: src/zvbi.c:2115
+#: src/zvbi.c:2114
 msgid "none"
 msgstr "brak"
 
-#: src/zvbi.c:2118
+#: src/zvbi.c:2117
 #, c-format
 msgid "%d minute"
 msgid_plural "%d minutes"
@@ -480,20 +480,20 @@ msgstr[0] "%d minuta"
 msgstr[1] "%d minuty"
 msgstr[2] "%d minut"
 
-#: src/zvbi.c:2120
+#: src/zvbi.c:2119
 #, c-format
 msgid "%d h %d m"
 msgstr "%d godz. %d min."
 
-#: src/zvbi.c:2152 src/ttxview.c:2546
+#: src/zvbi.c:2151 src/ttxview.c:2545
 msgid "Current program"
 msgstr "Aktualny program"
 
-#: src/zvbi.c:2173
+#: src/zvbi.c:2172
 msgid "%d %b  %I:%M %p    "
 msgstr "%d %b  %H:%M    "
 
-#: src/zvbi.c:2195
+#: src/zvbi.c:2194
 #, c-format
 msgid ""
 "\n"
@@ -502,21 +502,21 @@ msgstr ""
 "\n"
 "D³ugo¶æ: %u:%02u (jeszcze %u:%02u)"
 
-#: src/zvbi.c:2203
+#: src/zvbi.c:2202
 #, c-format
 msgid "Length: %uh%02u"
 msgstr "D³ugo¶æ: %u:%02u"
 
-#: src/zvbi.c:2210
+#: src/zvbi.c:2209
 #, c-format
 msgid "Elapsed: %uh%02u"
 msgstr "Up³ynê³o: %u:%02u"
 
-#: src/zvbi.c:2233 src/zvbi.c:2235
+#: src/zvbi.c:2232 src/zvbi.c:2234
 msgid "unknown language"
 msgstr "nieznany jêzyk"
 
-#: src/zvbi.c:2238
+#: src/zvbi.c:2237
 #, c-format
 msgid ""
 "Channel 1: %s (%s)\n"
@@ -525,7 +525,7 @@ msgstr ""
 "Kana³ 1: %s (%s)\n"
 "Kana³ 2: %s (%s)"
 
-#: src/zvbi.c:2246
+#: src/zvbi.c:2245
 #, c-format
 msgid ""
 "Channel 1: %s\n"
@@ -534,26 +534,26 @@ msgstr ""
 "Kana³ 1: %s\n"
 "Kana³ 2: %s"
 
-#: src/zvbi.c:2259
+#: src/zvbi.c:2258
 #, c-format
 msgid "Audio: %s (%s)"
 msgstr "D¼wiêk: %s (%s)"
 
-#: src/zvbi.c:2264
+#: src/zvbi.c:2263
 #, c-format
 msgid "Audio: %s"
 msgstr "D¼wiêk: %s"
 
-#: src/zvbi.c:2283
+#: src/zvbi.c:2282
 #, fuzzy, c-format
 msgid "Captioned %s"
 msgstr "Z podpisami %x"
 
-#: src/zvbi.c:2283
+#: src/zvbi.c:2282
 msgid "Captioned"
 msgstr "Z podpisami"
 
-#: src/zvbi.c:2367 src/zvbi.c:2628
+#: src/zvbi.c:2366 src/zvbi.c:2627
 msgid "Not rated"
 msgstr "Nie klasyfikowany"
 
@@ -948,95 +948,95 @@ msgstr "Lista symboli eksportowanych przez wtyczkê"
 msgid "Sorry, but the plugin couldn't be started"
 msgstr "Niestety, nie mo¿na uruchomiæ wtyczki"
 
-#: src/ttxview.c:187 src/ttxview.c:763 src/ttxview.c:1359
+#: src/ttxview.c:186 src/ttxview.c:762 src/ttxview.c:1358
 msgid "VBI has been disabled"
 msgstr "VBI zosta³ wy³±czony"
 
-#: src/ttxview.c:403
+#: src/ttxview.c:402
 #, c-format
 msgid "Loading page %x..."
 msgstr "£adujê stronê %x..."
 
-#: src/ttxview.c:405
+#: src/ttxview.c:404
 #, c-format
 msgid "Loading subpage %x..."
 msgstr "£adujê podstronê %x..."
 
-#: src/ttxview.c:409 src/ttxview.c:701
+#: src/ttxview.c:408 src/ttxview.c:700
 msgid "Warning: Page not valid"
 msgstr "Uwaga: Strona nieprawid³owa"
 
-#: src/ttxview.c:530
+#: src/ttxview.c:529
 msgid "Text export failed"
 msgstr "Eksport tekstu nie powiód³ siê"
 
-#: src/ttxview.c:604
+#: src/ttxview.c:603
 #, c-format
 msgid " Page %d"
 msgstr " Strona %d"
 
-#: src/ttxview.c:608
+#: src/ttxview.c:607
 #, c-format
 msgid " Subpage %d"
 msgstr " Podstrona %d"
 
-#: src/ttxview.c:712
+#: src/ttxview.c:711
 msgid "The cache has been cleared"
 msgstr "Pamiêæ podrêczna zosta³a wyczyszczona"
 
-#: src/ttxview.c:1069 src/ttxview.c:1090
+#: src/ttxview.c:1068 src/ttxview.c:1089
 msgid "No other subpage in the cache"
 msgstr "Brak innej podstrony w pamiêci podrêcznej"
 
-#: src/ttxview.c:1153
+#: src/ttxview.c:1152
 msgid "Found"
 msgstr "Znaleziono"
 
-#: src/ttxview.c:1171
+#: src/ttxview.c:1170
 msgid "Not found"
 msgstr "Nie znaleziono"
 
-#: src/ttxview.c:1191
+#: src/ttxview.c:1190
 msgid "Empty cache"
 msgstr "Pamiêæ podrêczna pusta"
 
-#: src/ttxview.c:1314
+#: src/ttxview.c:1313
 #, c-format
 msgid "Scanning %x.%02x"
 msgstr "Przeszukujê %x.%02x"
 
-#: src/ttxview.c:1568
+#: src/ttxview.c:1567
 #, c-format
 msgid "<%s> added to the bookmarks"
 msgstr "<%s> zosta³ dodany do zak³adek"
 
-#: src/ttxview.c:1631
+#: src/ttxview.c:1630
 msgid "Any subpage"
 msgstr "Dowolna podstrona"
 
-#: src/ttxview.c:1980
+#: src/ttxview.c:1979
 #, c-format
 msgid "Export %s"
 msgstr "Eksportuj %s"
 
-#: src/ttxview.c:1994 plugins/screenshot/screenshot_strings.c:19
+#: src/ttxview.c:1993 plugins/screenshot/screenshot_strings.c:19
 #: plugins/mpeg/mpeg_strings.c:36
 msgid "Save as:"
 msgstr "Zapisz jako:"
 
-#: src/ttxview.c:1999
+#: src/ttxview.c:1998
 msgid "Select file you'll be exporting to"
 msgstr "Wybierz plik, do którego bêdziesz eksportowaæ"
 
-#: src/ttxview.c:2014
+#: src/ttxview.c:2013
 msgid "Options"
 msgstr "Opcje"
 
-#: src/ttxview.c:2044 src/ttxview.c:3004
+#: src/ttxview.c:2043 src/ttxview.c:3003
 msgid "No page loaded"
 msgstr "Brak za³adowanej strony"
 
-#: src/ttxview.c:2104
+#: src/ttxview.c:2103
 #, c-format
 msgid ""
 "Cannot create destination dir for Zapzilla export:\n"
@@ -1047,90 +1047,90 @@ msgstr ""
 "%s\n"
 "%s"
 
-#: src/ttxview.c:2123
+#: src/ttxview.c:2122
 #, c-format
 msgid "Export to %s failed: %s"
 msgstr "Eksport do %s nie powiód³ siê: %s"
 
-#: src/ttxview.c:2132
+#: src/ttxview.c:2131
 #, c-format
 msgid "%s saved"
 msgstr "%s zachowany"
 
-#: src/ttxview.c:2144
+#: src/ttxview.c:2143
 #, c-format
 msgid "Export failed: %s"
 msgstr "Eksport siê nie powiód³: %s"
 
-#: src/ttxview.c:2452
+#: src/ttxview.c:2451
 #, c-format
 msgid "Caption %x - %s"
 msgstr "Nag³ówek %x - %s"
 
-#: src/ttxview.c:2454
+#: src/ttxview.c:2453
 #, c-format
 msgid "Text %x - %s"
 msgstr "Tekst %x - %s"
 
-#: src/ttxview.c:2458
+#: src/ttxview.c:2457
 #, c-format
 msgid "Caption %x"
 msgstr "Nag³ówek0 %x"
 
-#: src/ttxview.c:2460
+#: src/ttxview.c:2459
 #, c-format
 msgid "Text %x"
 msgstr "Tekst %x"
 
-#: src/ttxview.c:2485
+#: src/ttxview.c:2484
 #, c-format
 msgid "%x: Unknown language"
 msgstr "%x: Nieznany jêzyk"
 
-#: src/ttxview.c:2497 src/ttxview.c:2512 src/ttxview.c:2536 src/ttxview.c:2552
-#: src/ttxview.c:2568 src/ttxview.c:2584 src/ttxview.c:2600
+#: src/ttxview.c:2496 src/ttxview.c:2511 src/ttxview.c:2535 src/ttxview.c:2551
+#: src/ttxview.c:2567 src/ttxview.c:2583 src/ttxview.c:2599
 #, c-format
 msgid "Page %x"
 msgstr "Strona %x"
 
-#: src/ttxview.c:2506
+#: src/ttxview.c:2505
 msgid "Index"
 msgstr "Indeks"
 
-#: src/ttxview.c:2530
+#: src/ttxview.c:2529
 msgid "Now and Next"
 msgstr "Teraz i nastêpne"
 
-#: src/ttxview.c:2562
+#: src/ttxview.c:2561
 msgid "Program Index"
 msgstr "Indeks programów"
 
-#: src/ttxview.c:2578
+#: src/ttxview.c:2577
 msgid "Program Schedule"
 msgstr "Program TV"
 
-#: src/ttxview.c:2594
+#: src/ttxview.c:2593
 msgid "Program Warning"
 msgstr "Ostrze¿enie o programie"
 
-#: src/ttxview.c:2614
+#: src/ttxview.c:2613
 msgid "Subtitles"
 msgstr "Napisy"
 
-#: src/ttxview.c:2616
+#: src/ttxview.c:2615
 msgid "Select subtitles page"
 msgstr "Wybierz stronê z napisami"
 
-#: src/ttxview.c:2689
+#: src/ttxview.c:2688
 #, c-format
 msgid "%s in %s"
 msgstr "%s w %s"
 
-#: src/ttxview.c:3013
+#: src/ttxview.c:3012
 msgid "Selecting - hold Shift for table mode"
 msgstr "Wybieranie - przytrzymaj Shift dla trybu tabeli"
 
-#: src/ttxview.c:3133
+#: src/ttxview.c:3132
 msgid "Selection copied to clipboard"
 msgstr "Wybór skopiowany do schowka"
 
@@ -1850,8 +1850,8 @@ msgstr "_Zatrzymaj wtyczkê"
 
 #: glade/glade_strings.c:188 plugins/screenshot/screenshot.c:576
 #: plugins/screenshot/screenshot.c:1423 plugins/lirc/lirc.c:382
-#: plugins/mpeg/mpeg.c:1093 plugins/mpeg/mpeg.c:1120 plugins/mpeg/mpeg.c:1184
-#: plugins/mpeg/mpeg.c:2668 plugins/mpeg/mpeg.c:3245
+#: plugins/mpeg/mpeg.c:1093 plugins/mpeg/mpeg.c:1120 plugins/mpeg/mpeg.c:1186
+#: plugins/mpeg/mpeg.c:2682 plugins/mpeg/mpeg.c:3286
 msgid "Plugins"
 msgstr "Wtyczki"
 
@@ -2337,7 +2337,7 @@ msgid "This plugin takes screenshots of the video capture."
 msgstr "Ta wtyczka robi zrzuty przechwytywanego obrazu."
 
 #: plugins/screenshot/screenshot.c:173 plugins/lirc/lirc.c:134
-#: plugins/alirc/alirc.c:231 plugins/mpeg/mpeg.c:142 plugins/mpeg/mpeg.c:3307
+#: plugins/alirc/alirc.c:231 plugins/mpeg/mpeg.c:142 plugins/mpeg/mpeg.c:3348
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr "B³±d kontroli: \"%s\" we wtyczce %s ma kod mieszania 0x%x zamiast 0x%x"
@@ -2730,8 +2730,8 @@ msgstr "Ilo¶æ obrazu w Mbit/s:"
 msgid "Waiting for frames..."
 msgstr "Czekam na ramki..."
 
-#: plugins/mpeg/mpeg.c:1089 plugins/mpeg/mpeg.c:1120 plugins/mpeg/mpeg.c:1184
-#: plugins/mpeg/mpeg.c:1225
+#: plugins/mpeg/mpeg.c:1089 plugins/mpeg/mpeg.c:1120 plugins/mpeg/mpeg.c:1186
+#: plugins/mpeg/mpeg.c:1227
 msgid "MPEG"
 msgstr "MPEG"
 
@@ -2747,20 +2747,20 @@ msgstr ""
 msgid "Open preferences"
 msgstr "Otwórz ustawienia"
 
-#: plugins/mpeg/mpeg.c:1210
+#: plugins/mpeg/mpeg.c:1212
 msgid "Start recording"
 msgstr "Rozpocznij nagrywanie"
 
-#: plugins/mpeg/mpeg.c:1261
+#: plugins/mpeg/mpeg.c:1263
 msgid "Record as MPEG"
 msgstr "Nagraj jako MPEG"
 
-#: plugins/mpeg/mpeg.c:1688
+#: plugins/mpeg/mpeg.c:1691
 #, c-format
 msgid "Format %s is incomplete, please configure the video or audio codec."
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:1831
+#: plugins/mpeg/mpeg.c:1841
 #, fuzzy, c-format
 msgid ""
 "Cannot create destination directory:\n"
@@ -2771,36 +2771,36 @@ msgstr ""
 "%s\n"
 "%s"
 
-#: plugins/mpeg/mpeg.c:1843
+#: plugins/mpeg/mpeg.c:1854
 #, c-format
 msgid "Cannot create file %s: %s\n"
 msgstr "Nie mogê utworzyæ pliku %s: %s\n"
 
-#: plugins/mpeg/mpeg.c:2668 plugins/mpeg/mpeg.c:3099 plugins/mpeg/mpeg.c:3123
-#: plugins/mpeg/mpeg.c:3233 plugins/mpeg/mpeg_strings.c:34
+#: plugins/mpeg/mpeg.c:2682 plugins/mpeg/mpeg.c:3140 plugins/mpeg/mpeg.c:3164
+#: plugins/mpeg/mpeg.c:3274 plugins/mpeg/mpeg_strings.c:34
 #: plugins/mpeg/mpeg_strings.c:41
 msgid "Record"
 msgstr "Nagraj"
 
-#: plugins/mpeg/mpeg.c:2912
+#: plugins/mpeg/mpeg.c:2938
 msgid "Not implemented yet"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:3083
+#: plugins/mpeg/mpeg.c:3124
 #, fuzzy
 msgid "Recording dialog"
 msgstr "G³o¶no¶æ nagrywania:"
 
-#: plugins/mpeg/mpeg.c:3174
+#: plugins/mpeg/mpeg.c:3215
 msgid "Audio/Video Recorder"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:3177
+#: plugins/mpeg/mpeg.c:3218
 #, fuzzy
 msgid "This plugin records video and audio into a file"
 msgstr "Ta wtyczka koduje strumieñ obrazu i d¼wiêku do pliku MPEG"
 
-#: plugins/mpeg/mpeg.c:3180
+#: plugins/mpeg/mpeg.c:3221
 msgid "Record video and audio."
 msgstr ""
 

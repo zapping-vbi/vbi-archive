@@ -5,8 +5,8 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Zapping 0.6.1\n"
-"POT-Creation-Date: 2002-10-01 22:40+0200\n"
+"Project-Id-Version: zapping 0.6.5\n"
+"POT-Creation-Date: 2002-10-04 17:11+0200\n"
 "PO-Revision-Date: 2002-09-30 21:03+0200\n"
 "Last-Translator: Guus Bonnema <abonnema@xs4all.nl>\n"
 "Language-Team: Dutch\n"
@@ -1881,8 +1881,8 @@ msgstr "Plugin s_toppen"
 
 #: glade/glade_strings.c:188 plugins/screenshot/screenshot.c:576
 #: plugins/screenshot/screenshot.c:1423 plugins/lirc/lirc.c:382
-#: plugins/mpeg/mpeg.c:1093 plugins/mpeg/mpeg.c:1120 plugins/mpeg/mpeg.c:1186
-#: plugins/mpeg/mpeg.c:2682 plugins/mpeg/mpeg.c:3286
+#: plugins/mpeg/mpeg.c:1093 plugins/mpeg/mpeg.c:1120 plugins/mpeg/mpeg.c:1184
+#: plugins/mpeg/mpeg.c:2668 plugins/mpeg/mpeg.c:3269
 msgid "Plugins"
 msgstr "Plugins"
 
@@ -2385,7 +2385,7 @@ msgid "This plugin takes screenshots of the video capture."
 msgstr "Deze plugin maakt screenshots van het videobeeld."
 
 #: plugins/screenshot/screenshot.c:173 plugins/lirc/lirc.c:134
-#: plugins/alirc/alirc.c:231 plugins/mpeg/mpeg.c:142 plugins/mpeg/mpeg.c:3348
+#: plugins/alirc/alirc.c:231 plugins/mpeg/mpeg.c:142 plugins/mpeg/mpeg.c:3331
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr "Waarschuwing: \"%s\" in plugin %s heeft checksum 0x%x i.p.v. 0x%x"
@@ -2786,8 +2786,8 @@ msgstr "Video bandbreedte (Mbits/s):"
 msgid "Waiting for frames..."
 msgstr "Wachten op frames..."
 
-#: plugins/mpeg/mpeg.c:1089 plugins/mpeg/mpeg.c:1120 plugins/mpeg/mpeg.c:1186
-#: plugins/mpeg/mpeg.c:1227
+#: plugins/mpeg/mpeg.c:1089 plugins/mpeg/mpeg.c:1120 plugins/mpeg/mpeg.c:1184
+#: plugins/mpeg/mpeg.c:1225
 msgid "MPEG"
 msgstr "MPEG"
 
@@ -2803,20 +2803,20 @@ msgstr ""
 msgid "Open preferences"
 msgstr "Open voorkeuren"
 
-#: plugins/mpeg/mpeg.c:1212
+#: plugins/mpeg/mpeg.c:1210
 msgid "Start recording"
 msgstr "Start opnemen"
 
-#: plugins/mpeg/mpeg.c:1263
+#: plugins/mpeg/mpeg.c:1261
 msgid "Record as MPEG"
 msgstr "Opslaan in MPEG-formaat"
 
-#: plugins/mpeg/mpeg.c:1691
+#: plugins/mpeg/mpeg.c:1688
 #, c-format
 msgid "Format %s is incomplete, please configure the video or audio codec."
 msgstr "Formaat %s is incompleet. De video of audio codec graag configureren."
 
-#: plugins/mpeg/mpeg.c:1841
+#: plugins/mpeg/mpeg.c:1831
 #, c-format
 msgid ""
 "Cannot create destination directory:\n"
@@ -2827,34 +2827,34 @@ msgstr ""
 "%s\n"
 "%s"
 
-#: plugins/mpeg/mpeg.c:1854
+#: plugins/mpeg/mpeg.c:1843
 #, c-format
 msgid "Cannot create file %s: %s\n"
 msgstr "Kan bestand '%s' niet aanmaken: %s\n"
 
-#: plugins/mpeg/mpeg.c:2682 plugins/mpeg/mpeg.c:3140 plugins/mpeg/mpeg.c:3164
-#: plugins/mpeg/mpeg.c:3274 plugins/mpeg/mpeg_strings.c:34
+#: plugins/mpeg/mpeg.c:2668 plugins/mpeg/mpeg.c:3123 plugins/mpeg/mpeg.c:3147
+#: plugins/mpeg/mpeg.c:3257 plugins/mpeg/mpeg_strings.c:34
 #: plugins/mpeg/mpeg_strings.c:41
 msgid "Record"
 msgstr "Opnemen"
 
-#: plugins/mpeg/mpeg.c:2938
+#: plugins/mpeg/mpeg.c:2923
 msgid "Not implemented yet"
 msgstr "Nog niet geimplementeerd"
 
-#: plugins/mpeg/mpeg.c:3124
+#: plugins/mpeg/mpeg.c:3107
 msgid "Recording dialog"
 msgstr "Opnemen dialog"
 
-#: plugins/mpeg/mpeg.c:3215
+#: plugins/mpeg/mpeg.c:3198
 msgid "Audio/Video Recorder"
 msgstr "Audio/Video recorder"
 
-#: plugins/mpeg/mpeg.c:3218
+#: plugins/mpeg/mpeg.c:3201
 msgid "This plugin records video and audio into a file"
 msgstr "Deze plugin neemt beeld en geluid op als MPEG bestand"
 
-#: plugins/mpeg/mpeg.c:3221
+#: plugins/mpeg/mpeg.c:3204
 msgid "Record video and audio."
 msgstr "Opnemen van beeld en geluid"
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.38 2002-09-27 23:55:29 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.39 2002-10-04 16:50:43 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -1146,8 +1146,6 @@ record_cmd				(GtkWidget *	widget,
   gchar *filename;
   GtkWidget *properties;
 
-fprintf(stderr, "###4\n");
-
   if (!mpeg_configured())
     return FALSE;
 
@@ -1682,7 +1680,6 @@ do_start			(const gchar *		file_name)
     {
       ShowBox ("Couldn't create the encoding context",
 	       GNOME_MESSAGE_BOX_ERROR);
-fprintf(stderr, "##1\n");
       return FALSE;
     }
 
@@ -1692,7 +1689,6 @@ fprintf(stderr, "##1\n");
 	       GNOME_MESSAGE_BOX_ERROR,
 	       record_config_name);
       rte_context_delete (context);
-fprintf(stderr, "##2\n");
       return FALSE;
     }
 
@@ -1718,7 +1714,6 @@ fprintf(stderr, "##2\n");
 	  ShowBox ("This plugin needs to run in Capture mode, but"
 		   " couldn't switch to that mode:\n%s",
 		   GNOME_MESSAGE_BOX_INFO, zapping_info->error);
-fprintf(stderr, "##3\n");
 	  return FALSE;
 	}
 
@@ -1734,7 +1729,6 @@ fprintf(stderr, "##3\n");
 		   GNOME_MESSAGE_BOX_ERROR,
 		   (tveng_pixformat == TVENG_PIX_YVU420) ?
 		   "YUV 4:2:0" : "YUV 4:2:2");
-fprintf(stderr, "##4\n");
 	  return FALSE;
 	}
 
@@ -1764,7 +1758,6 @@ fprintf(stderr, "##4\n");
 
 	  ShowBox ("Unable to determine current video standard",
 		   GNOME_MESSAGE_BOX_ERROR);
-fprintf(stderr, "##5\n");
 	  return FALSE; 
 	}
 
@@ -1785,7 +1778,6 @@ fprintf(stderr, "##5\n");
 
 	  ShowBox ("Oops, catched a bug.",
 		   GNOME_MESSAGE_BOX_ERROR);
-fprintf(stderr, "##6\n");
 	  return FALSE; 
 	}
     }
@@ -1807,7 +1799,6 @@ fprintf(stderr, "##6\n");
 	{
 	  ShowBox ("Couldn't open the audio device",
 		   GNOME_MESSAGE_BOX_ERROR);
-fprintf(stderr, "##7\n");
 	  goto failed;
 	}
 
@@ -1815,7 +1806,6 @@ fprintf(stderr, "##7\n");
 	{
 	  ShowBox ("Couldn't open the audio device",
 		   GNOME_MESSAGE_BOX_ERROR);
-fprintf(stderr, "##8\n");
 	  goto failed;
 	}
     }
@@ -1842,7 +1832,6 @@ fprintf(stderr, "##8\n");
 		   GNOME_MESSAGE_BOX_WARNING, dir, error_msg);
 	  g_free (error_msg);
 	  g_free (dir);
-fprintf(stderr, "##9\n");
 	  goto failed;
 	}
 
@@ -1854,7 +1843,6 @@ fprintf(stderr, "##9\n");
 	  ShowBox (_("Cannot create file %s: %s\n"),
 		   GNOME_MESSAGE_BOX_WARNING,
 		   file_name, rte_errstr (context));
-fprintf(stderr, "##10\n");
 	  goto failed;
 	}
     }
@@ -1877,7 +1865,6 @@ fprintf(stderr, "##10\n");
       rem_consumer (&mpeg_consumer);
       capture_unlock ();
       active = FALSE;
-fprintf(stderr, "##11\n");
       goto failed;
     }
 
@@ -1897,7 +1884,6 @@ fprintf(stderr, "##11\n");
   if (audio_handle)
     close_audio_device (audio_handle);
   audio_handle = NULL;
-fprintf(stderr, "##12\n");
 
   return FALSE;
 }
@@ -2729,7 +2715,6 @@ on_saving_record_clicked	(GtkButton *		button,
   GtkToggleButton *record;
   GtkWidget *widget;
   const gchar *buffer;
-fprintf(stderr, "GGGGG\n");
 
   g_assert (saving_dialog != NULL);
 
@@ -3023,8 +3008,6 @@ record_cmd			(GtkWidget *		widget,
 				 gchar **		argv,
 				 gpointer		user_data)
 {
-fprintf(stderr, "EEEE\n");
-
   saving_dialog_new (FALSE);
 
   return TRUE;

@@ -10,9 +10,8 @@ Source: ftp://zapping.sourceforge.net/pub/zapping/@VERSION@/zapping-@VERSION@.ta
 Buildroot: %{_tmppath}/%{name}-root
 BuildPrereq: libglade-devel libxml-devel
 PreReq: /sbin/install-info
-# Not relocatable, should be @GNOME_PREFIX@
-# Prefix: /usr/local
-%define prefx /usr/local
+# Not relocatable Prefix: @GNOME_PREFIX@
+%define prefx @GNOME_PREFIX@
 
 Requires: gnome-libs >= 1.0.40
 Requires: libxml >= 1.4.0
@@ -21,6 +20,8 @@ Requires: gdk-pixbuf >= 0.8
 Requires: libunicode >= 0.4
 Requires: gettext >= 0.11.2
 Requires: /usr/bin/consolehelper
+Requires: zvbi >= 0.2
+Requires: rte >= 0.5
 
 %description
 This is a TV viewer for the GNOME desktop. It has all the needed
@@ -68,6 +69,10 @@ rm -rf %{buildroot}
 %{prefx}/man/man1/*
 
 %changelog
+* Fri Oct 4 2002 Michael H. Schimek <mschimek@users.sourceforge.net>
+- Changed prefx to @GNOME_PREFIX@
+- Added rte, zvbi dependencies.
+
 * Tue Jun 24 2002 Michael H. Schimek <mschimek@users.sourceforge.net>
 - Removed po/zapping.pot from docs list (purpose?)
 
