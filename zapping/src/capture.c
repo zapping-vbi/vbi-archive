@@ -223,6 +223,7 @@ scan_device		(tveng_device_info	*info)
 {
   gchar *key;
   int values = 0, fmt;
+  enum tveng_frame_pixformat old_fmt;
 
   key = g_strdup_printf (ZCONF_DOMAIN "%x/scanned", info->signature);
   if (zconf_get_boolean (NULL, key))
@@ -235,15 +236,22 @@ scan_device		(tveng_device_info	*info)
       return values;
     }
 
+  old_fmt = info->format.pixformat;
+
   /* Things are simpler this way. */
   g_assert (TVENG_PIX_FIRST == 0);
   g_assert (TVENG_PIX_LAST < (sizeof (int)*8));
   for (fmt = TVENG_PIX_FIRST; fmt <= TVENG_PIX_LAST; fmt++)
     {
+      if (fmt == TVENG_PIX_GREY)
+	continue;
       info->format.pixformat = fmt;
       if (!tveng_set_capture_format (info))
 	values += 1<<fmt;
     }
+
+  info->format.pixformat = old_fmt;
+  tveng_set_capture_format (info);
 
   zconf_create_boolean (TRUE,
 			"Whether this device has been already scanned",
@@ -518,7 +526,6 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
   gint conversions = 999;
   struct tveng_frame_format prev_fmt;
   gint req_w, req_h;
-  enum tveng_capture_mode cur_mode;
 
   if (fmt)
     pthread_rwlock_wrlock (&fmt_rwlock);
