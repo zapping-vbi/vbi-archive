@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.h,v 1.8.2.2 2003-04-29 05:49:55 mschimek Exp $ */
+/* $Id: export.h,v 1.8.2.3 2004-02-25 17:34:33 mschimek Exp $ */
 
 #ifndef EXPORT_H
 #define EXPORT_H
@@ -29,6 +29,8 @@
 #include "bcd.h" /* vbi_bool */
 #include "event.h" /* vbi_network */
 #include "format.h" /* vbi_page */
+#include "pdc.h"
+#include "conv.h"
 
 /* Public */
 
@@ -56,32 +58,32 @@ typedef struct vbi_export vbi_export;
  */
 typedef struct vbi_export_info {
 	/**
-	 * Unique (within this library) keyword to identify
-	 * this export module. Can be stored in configuration files.
+	 * Unique (within this library) keyword identifying
+	 * this export module, a NUL terminated ASCII string.
 	 */
-	char *			keyword;
+	const char *		keyword;
 	/**
-	 * Name of the export module to be shown to the user.
-	 * Can be @c NULL indicating the module shall not be listed.
-	 * Clients are encouraged to localize this with dgettext("zvbi", label).
+	 * Localized name of the export module for the user interface. Can
+	 * be @c NULL if the option is not supposed to be listed in the UI.
 	 */
-	char *			label;
+	const char *		label;
 	/**
-	 * A brief description (or @c NULL) for the user.
-	 * Clients are encouraged to localize this with dgettext("zvbi", label).
+	 * A localized description of the option for the user,
+	 * can be @c NULL.
 	 */
-	char *			tooltip;
+	const char *		tooltip;
 	/**
 	 * Description of the export format as MIME type,
-	 * for example "text/html". May be @c NULL.
+	 * a NUL terminated ASCII string, for example "text/html".
+	 * Can be @c NULL if no MIME type applicable.
 	 */
-	char *			mime_type;
+	const char *		mime_type;
 	/**
-	 * Suggested filename extension. Multiple strings are
-	 * possible, separated by comma. The first string is preferred.
-	 * Example: "html,htm". May be @c NULL.
+	 * Suggested filename extension, a NUL terminated ASCII string.
+	 * Multiple strings are possible, separated by comma. The first
+	 * string is preferred. Example: "html,htm". Can be @c NULL.
 	 */
-	char *			extension;
+	const char *		extension;
 } vbi_export_info;
 
 /**
@@ -193,67 +195,122 @@ typedef union {
  * @ingroup Export
  * @brief Information about an export option.
  *
- * Although export options can be accessed by a static keyword they are
- * by definition opaque: the client can present them to the user and
- * manipulate them without knowing about their presence or purpose.
- * To do so, some information about the option is necessary,
- * given in this structure.
- * 
+ * Clients can access known options by keyword, or enumerate unknown
+ * options and using the information in this structure for proper
+ * presentation and access.
+ *
  * You can obtain this information with vbi_export_option_info_enum().
  */
 typedef struct {
-  	vbi_option_type		type;	/**< @see vbi_option_type */
+	/** @see vbi_option_type */
+  	vbi_option_type		type;
 
 	/**
-	 * Unique (within the respective export module) keyword to identify
-	 * this option. Can be stored in configuration files.
+	 * Unique (within the export module) keyword to identify
+	 * this option, a NUL terminated ASCII string.
 	 */
-	char *			keyword;
+	const char *		keyword;
 
 	/**
-	 * Name of the option to be shown to the user.
-	 * This can be @c NULL to indicate this option shall not be listed.
-	 * Can be localized with dgettext("zvbi", label).
+	 * Localized name of the option for the user interface. Can
+	 * be @c NULL if the option is not supposed to be listed in the UI.
 	 */
-	char *			label;
+	const char *		label;
 
-	vbi_option_value	def;	/**< @see vbi_option_type */
-	vbi_option_value	min;	/**< @see vbi_option_type */
-	vbi_option_value	max;	/**< @see vbi_option_type */
-	vbi_option_value	step;	/**< @see vbi_option_type */
-	vbi_option_value_ptr	menu;	/**< @see vbi_option_type */
+	/** @see vbi_option_type */
+	union {
+		int			num;
+		double			dbl;
+		const char *		str;
+	}			def;
+	/** @see vbi_option_type */
+	union {
+		int			num;
+		double			dbl;
+	}			min, max, step;
+	/** @see vbi_option_type */
+	union {
+		int *			num;
+		double *		dbl;
+		const char * const *	str;
+	}			menu;
 
 	/**
-	 * A brief description (or @c NULL) for the user.
-	 *  Can be localized with dgettext("zvbi", tooltip).
+	 * A localized description of the option for the user,
+	 * can be @c NULL.
 	 */
-	char *			tooltip;
+	const char *		tooltip;
 } vbi_option_info;
+
+typedef vbi_bool
+vbi_export_link_fn		(vbi_export *		ex,
+				 void *			user_data,
+				 FILE *			fp,
+				 const vbi_link *	link,
+				 const char *		text);
+typedef vbi_bool
+vbi_export_pdc_fn		(vbi_export *		ex,
+				 void *			user_data,
+				 FILE *			fp,
+				 const vbi_preselection *pl,
+				 const char *		text);
 
 /**
  * @addtogroup Export
  * @{
  */
-extern vbi_export_info *	vbi_export_info_enum(int index);
-extern vbi_export_info *	vbi_export_info_keyword(const char *keyword);
-extern vbi_export_info *	vbi_export_info_export(vbi_export *);
-
-extern vbi_export *		vbi_export_new(const char *keyword, char **errstr);
-extern void			vbi_export_delete(vbi_export *);
-
-extern vbi_option_info *	vbi_export_option_info_enum(vbi_export *, int index);
-extern vbi_option_info *	vbi_export_option_info_keyword(vbi_export *, const char *keyword);
-
-extern vbi_bool			vbi_export_option_set(vbi_export *, const char *keyword, ...);
-extern vbi_bool			vbi_export_option_get(vbi_export *, const char *keyword,
-						      vbi_option_value *value);
-extern vbi_bool			vbi_export_option_menu_set(vbi_export *, const char *keyword, int entry);
-extern vbi_bool			vbi_export_option_menu_get(vbi_export *, const char *keyword, int *entry);
-
-extern vbi_bool			vbi_export_stdio(vbi_export *, FILE *fp, vbi_page *pg);
-extern vbi_bool			vbi_export_file(vbi_export *, const char *name, vbi_page *pg);
-
-extern char *			vbi_export_errstr(vbi_export *);
+extern const vbi_export_info *
+vbi_export_info_enum		(unsigned int		index);
+extern const vbi_export_info *
+vbi_export_info_by_keyword	(const char *		keyword);
+extern const vbi_export_info *
+vbi_export_info_from_export	(const vbi_export *	e);
+extern void
+vbi_export_delete		(vbi_export *		e);
+extern vbi_export *
+vbi_export_new			(const char *		keyword,
+				 char **		errstr);
+extern const vbi_option_info *
+vbi_export_option_info_enum	(vbi_export *		e,
+				 unsigned int		index);
+extern const vbi_option_info *
+vbi_export_option_info_by_keyword
+				(vbi_export *		e,
+				 const char *		keyword);
+extern vbi_bool
+vbi_export_option_set		(vbi_export *		e,
+				 const char *		keyword,
+				 ...);
+extern vbi_bool
+vbi_export_option_get		(vbi_export *		e,
+				 const char *		keyword,
+				 vbi_option_value *	value);
+extern vbi_bool
+vbi_export_option_menu_set	(vbi_export *		e,
+				 const char *		keyword,
+				 unsigned int		entry);
+extern vbi_bool
+vbi_export_option_menu_get	(vbi_export *		e,
+				 const char *		keyword,
+				 unsigned int *		entry);
+extern void
+vbi_export_set_link_fn		(vbi_export *		e,
+				 vbi_export_link_fn *	function,
+				 void *			user_data);
+extern void
+vbi_export_set_pdc_fn		(vbi_export *		e,
+				 vbi_export_pdc_fn *	function,
+				 void *			user_data);
+extern vbi_bool
+vbi_export_stdio		(vbi_export *		e,
+				 FILE *			fp,
+				 const vbi_page *	pg);
+extern vbi_bool
+vbi_export_file			(vbi_export *		e,
+				 const char *		name,
+				 const vbi_page *	pg);
+extern const char *
+vbi_export_errstr		(vbi_export *		e);
 /** @} */
 
 /* Private */
@@ -265,7 +322,7 @@ extern char *			vbi_export_errstr(vbi_export *);
 #include "../config.h"
 #include "misc.h"
 
-typedef struct vbi_export_class vbi_export_class;
+typedef struct vbi_export_module vbi_export_module;
 
 /**
  * @ingroup Exmod
@@ -280,13 +337,15 @@ struct vbi_export {
 	/**
 	 * Points back to export module description.
 	 */
-	vbi_export_class *	_class;
+	const vbi_export_module *module;
 	char *			errstr;		/**< Frontend private. */
+
 	/**
 	 * Name of the file we are writing, @c NULL if none (may be
 	 * an anonymous FILE though).
 	 */
 	const char *		name;
+
 	/**
 	 * Generic option: Network name or @c NULL.
 	 */
@@ -299,6 +358,15 @@ struct vbi_export {
 	 * Generic option: Reveal hidden characters.
 	 */
 	vbi_bool		reveal;
+
+	vbi_export_link_fn *	link_function;
+	void *			link_user_data;
+
+	vbi_export_pdc_fn *	pdc_function;
+	void *			pdc_user_data;
+
+	const vbi_export_info *	local_export_info;
+	vbi_option_info *	local_option_info;
 };
 
 /**
@@ -311,20 +379,25 @@ struct vbi_export {
  * exp-tmpl.c for a detailed discussion) and call vbi_export_register_module()
  * to become accessible.
  */
-struct vbi_export_class {
-	vbi_export_class *	next;
-	vbi_export_info	*	_public;
+struct vbi_export_module {
+	vbi_export_module *	next;
+
+	const vbi_export_info *	export_info;
 
 	vbi_export *		(* _new)(void);
-	void			(* _delete)(vbi_export *);
+	void			(* _delete)(vbi_export *e);
 
-	vbi_option_info *	(* option_enum)(vbi_export *, int index);
-	vbi_bool		(* option_set)(vbi_export *, const char *keyword,
+	const vbi_option_info *	option_info;
+	unsigned int		option_info_size;
+
+	vbi_bool		(* option_set)(vbi_export *e,
+					       const char *keyword,
 					       va_list);
-	vbi_bool		(* option_get)(vbi_export *, const char *keyword,
+	vbi_bool		(* option_get)(vbi_export *e,
+					       const char *keyword,
 					       vbi_option_value *value);
-
-	vbi_bool		(* export)(vbi_export *, FILE *fp, vbi_page *pg);
+	vbi_bool		(* export)(vbi_export *e, FILE *fp,
+					   const vbi_page *pg);
 };
 
 /**
@@ -342,7 +415,7 @@ struct vbi_export_class {
  * @addtogroup Exmod
  * @{
  */
-extern void			vbi_register_export_module(vbi_export_class *);
+extern void			vbi_register_export_module(vbi_export_module *);
 
 extern void			vbi_export_write_error(vbi_export *);
 extern void			vbi_export_unknown_option(vbi_export *, const char *keyword);
@@ -350,38 +423,8 @@ extern void			vbi_export_invalid_option(vbi_export *, const char *keyword, ...);
 extern char *			vbi_export_strdup(vbi_export *, char **d, const char *s);
 extern void			vbi_export_error_printf(vbi_export *, const char *templ, ...);
 
-/**
- * @param cd Conversion object returned by vbi_iconv_open().
- *
- * Helper function for export modules to convert UCS-2 (as in
- * vbi_page) to another format.
- */
-static_inline void
-vbi_iconv_close			(iconv_t		cd)
-{
-	iconv_close (cd);
-}
-
-extern iconv_t
-vbi_iconv_open			(const char *		format,
-				 char **		dstp,
-				 unsigned int		dst_len);
-extern vbi_bool
-vbi_iconv			(iconv_t		cd,
-				 char **		dstp,
-				 unsigned int		dst_len,
-				 uint16_t *		src,
-				 unsigned int		src_len);
-extern vbi_bool
-vbi_iconv_unicode		(iconv_t		cd,
-				 char **		dstp,
-				 unsigned int		dst_len,
-				 uint16_t		unicode);
 
 /* Option info building */
-
-#define VBI_OPTION_BOUNDS_INITIALIZER_(type_, def_, min_, max_, step_)	\
-  { type_ = def_ }, { type_ = min_ }, { type_ = max_ }, { type_ = step_ }
 
 /**
  * Helper macro for export modules to build option lists. Use like this:
@@ -394,8 +437,8 @@ vbi_iconv_unicode		(iconv_t		cd,
  * N_() marks the string for i18n, see info gettext for details.
  */
 #define VBI_OPTION_BOOL_INITIALIZER(key_, label_, def_, tip_)		\
-  { VBI_OPTION_BOOL, key_, label_, VBI_OPTION_BOUNDS_INITIALIZER_(	\
-  .num, def_, 0, 1, 1),	{ .num = NULL }, tip_ }
+  { VBI_OPTION_BOOL, key_, label_, { .num = def_ }, { .num = 0 },	\
+  { .num = 1 }, { .num = 1 }, { .num = NULL }, tip_ }
 
 /**
  * Helper macro for export modules to build option lists. Use like this:
@@ -409,7 +452,7 @@ vbi_iconv_unicode		(iconv_t		cd,
  */
 #define VBI_OPTION_INT_RANGE_INITIALIZER(key_, label_, def_, min_,	\
   max_,	step_, tip_) { VBI_OPTION_INT, key_, label_,			\
-  VBI_OPTION_BOUNDS_INITIALIZER_(.num, def_, min_, max_, step_),	\
+  { .num = def_ }, { .num = min_ }, { .num = max_ }, { .num = step_ },	\
   { .num = NULL }, tip_ }
 
 /**
@@ -419,16 +462,16 @@ vbi_iconv_unicode		(iconv_t		cd,
  * int mymenu[] = { 29, 30, 31 };
  *
  * vbi_option_info myinfo = VBI_OPTION_INT_MENU_INITIALIZER
- *   ("days", NULL, 1, mymenu, 3, NULL);
+ *   ("days", NULL, 1, mymenu, N_ELEMENTS (mymenu), NULL);
  * @endcode
  *
  * No label and tooltip (@c NULL), i. e. this option is not to be
  * listed in the user interface. Default is entry 1 ("30") of 3 entries. 
  */
 #define VBI_OPTION_INT_MENU_INITIALIZER(key_, label_, def_,		\
-  menu_, entries_, tip_) { VBI_OPTION_INT, key_, label_,		\
-  VBI_OPTION_BOUNDS_INITIALIZER_(.num, def_, 0, (entries_) - 1, 1),	\
-  { .num = menu_ }, tip_ }
+  menu_, elements_, tip_) { VBI_OPTION_INT, key_, label_,		\
+  { .num = def_}, { .num = 0 }, { .num = (elements_) - 1 },		\
+  { .num = 1 }, { .num = menu_ }, tip_ }
 
 /**
  * Helper macro for export modules to build option lists. Use like
@@ -436,7 +479,7 @@ vbi_iconv_unicode		(iconv_t		cd,
  */
 #define VBI_OPTION_REAL_RANGE_INITIALIZER(key_, label_, def_, min_,	\
   max_, step_, tip_) { VBI_OPTION_REAL, key_, label_,			\
-  VBI_OPTION_BOUNDS_INITIALIZER_(.dbl, def_, min_, max_, step_),	\
+  { .dbl = def_ }, { .dbl = min_ }, { .dbl = max_ }, { .dbl = step_ },	\
   { .dbl = NULL }, tip_ }
 
 /**
@@ -444,9 +487,9 @@ vbi_iconv_unicode		(iconv_t		cd,
  * VBI_OPTION_INT_MENU_INITIALIZER(), just with an array of doubles but ints.
  */
 #define VBI_OPTION_REAL_MENU_INITIALIZER(key_, label_, def_,		\
-  menu_, entries_, tip_) { VBI_OPTION_REAL, key_, label_,		\
-  VBI_OPTION_BOUNDS_INITIALIZER_(.num, def_, 0, (entries_) - 1, 1),	\
-  { .dbl = menu_ }, tip_ }
+  menu_, elements_, tip_) { VBI_OPTION_REAL, key_, label_,		\
+  { .num = def_ }, { .num = 0 }, { .num = (elements_) - 1 },		\
+  { .num = 1 }, { .dbl = menu_ }, tip_ }
 
 /**
  * Helper macro for export modules to build option lists. Use like this:
@@ -457,8 +500,8 @@ vbi_iconv_unicode		(iconv_t		cd,
  * @endcode
  */
 #define VBI_OPTION_STRING_INITIALIZER(key_, label_, def_, tip_)		\
-  { VBI_OPTION_STRING, key_, label_, VBI_OPTION_BOUNDS_INITIALIZER_(	\
-  .str, def_, NULL, NULL, NULL), { .str = NULL }, tip_ }
+  { VBI_OPTION_STRING, key_, label_, { .str = def_ }, { .num = 0 },	\
+  { .num = 0 }, { .num = 0 }, { .str = 0 }, tip_ }
 
 /**
  * Helper macro for export modules to build option lists. Use like this:
@@ -467,7 +510,8 @@ vbi_iconv_unicode		(iconv_t		cd,
  * char *mymenu[] = { "txt", "html" };
  *
  * vbi_option_info myinfo = VBI_OPTION_STRING_MENU_INITIALIZER
- *   ("extension", "Ext", 0, mymenu, 2, N_("Select an extension"));
+ *   ("extension", "Ext", 0, mymenu, N_ELEMENTS (mymenu),
+ *   N_("Select an extension"));
  * @endcode
  *
  * Remember this is like VBI_OPTION_STRING_INITIALIZER() in the sense
@@ -476,24 +520,25 @@ vbi_iconv_unicode		(iconv_t		cd,
  * VBI_OPTION_MENU_INITIALIZER() expects menu indices as input.
  */
 #define VBI_OPTION_STRING_MENU_INITIALIZER(key_, label_, def_,		\
-  menu_, entries_, tip_) { VBI_OPTION_STRING, key_, label_,		\
-  VBI_OPTION_BOUNDS_INITIALIZER_(.str, def_, 0, (entries_) - 1, 1),	\
-  { .str = menu_ }, tip_ }
+  menu_, elements_, tip_) { VBI_OPTION_STRING, key_, label_,		\
+  { .str = def_ }, { .num = 0 }, { .num = (elements_) - 1 },		\
+  { .num = 1 }, { .str = menu_ }, tip_ }
 
 /**
  * Helper macro for export modules to build option lists. Use like this:
  *
  * @code
- * char *mymenu[] = { N_("Monday"), N_("Tuesday") };
+ * char *mymenu [] = { N_("Monday"), N_("Tuesday") };
  *
  * vbi_option_info myinfo = VBI_OPTION_MENU_INITIALIZER
- *   ("weekday", "Weekday", 0, mymenu, 2, N_("Select a weekday"));
+ *   ("weekday", "Weekday", 0, mymenu, N_ELEMENTS (mymenu),
+ *   N_("Select a weekday"));
  * @endcode
  */
 #define VBI_OPTION_MENU_INITIALIZER(key_, label_, def_, menu_,		\
-  entries_, tip_) { VBI_OPTION_MENU, key_, label_,			\
-  VBI_OPTION_BOUNDS_INITIALIZER_(.num, def_, 0, (entries_) - 1, 1),	\
-  { .str = (char **)(menu_) }, tip_ }
+  elements_, tip_) { VBI_OPTION_MENU, key_, label_, { .num = def_ },	\
+  { .num = 0 }, { .num = (elements_) - 1 }, { .num = 1 },		\
+  { .str = menu_ }, tip_ }
 
 /* See exp-templ.c for an example */
 
