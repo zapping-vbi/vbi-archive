@@ -16,10 +16,17 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.h,v 1.10 2002-05-29 02:32:29 mschimek Exp $ */
+/* $Id: mpeg.h,v 1.11 2002-09-26 20:36:17 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
+#endif
+
+#ifdef ENABLE_NLS
+#  include <libintl.h>
+#  define R_(String) dgettext("rte", String)
+#else
+#  define R_(String) (String)
 #endif
 
 #if defined(HAVE_LIBRTE4)
