@@ -4,6 +4,7 @@
 	and now uses zconf to keep preferences. Made it a bit wider.
 	* configure.in: Released 0.5.91 (bugfixes) today, bumped version
 	to 0.6.0cvs.
+	* libvbi/lang.h, exp-*: Added gettext support to export.
 
 16.3.2001	TTX export <mschimek@users.sourceforge.net>
 

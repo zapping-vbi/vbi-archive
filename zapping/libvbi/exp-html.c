@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.13 2001-03-17 07:44:29 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.14 2001-03-17 17:18:27 garetxe Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -41,12 +41,6 @@
 
 #include "lang.h"
 #include "export.h"
-
-/* future */
-#undef _
-#define _(String) (String)
-#undef N_
-#define N_(String) (String)
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
@@ -114,7 +108,7 @@ html_option(struct export *e, int opt, char *str_arg, int num_arg)
 static vbi_export_option html_opts[] = {
 	{
 		VBI_EXPORT_STRING,	"gfx-chr",	N_("Graphics char"),
-		{ .str = "#" }, 0, 0, NULL, N_("Replacement for block graphic characters: a single character or decimal (32) or hex (0x20) unicode")
+		{ .str = "#" }, 0, 0, NULL, N_("Replacement for block graphic characters: a single character or decimal (32) or hex (0x20) code")
 	}, {
 		VBI_EXPORT_BOOL,	"header",	N_("HTML header"),
 		{ .num = TRUE }, FALSE, TRUE, NULL, N_("Include HTML page header")

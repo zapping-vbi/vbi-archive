@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.h,v 1.7 2001-02-20 07:33:20 mschimek Exp $ */
+/* $Id: lang.h,v 1.8 2001-03-17 17:18:27 garetxe Exp $ */
 
 #ifndef LANG_H
 #define LANG_H
@@ -146,5 +146,27 @@ extern unsigned char	glyph2latin(int glyph);
  *  or target is not 8 bit; 0x20 or gfx_substitute if no unicode exists.
  */
 extern int		glyph_iconv(iconv_t cd, int glyph, int gfx_substitute);
+
+/*
+ * i18n support
+ */
+#ifdef ENABLE_NLS
+#    include <libintl.h>
+#    define _(String) gettext (String)
+#    ifdef gettext_noop
+#        define N_(String) gettext_noop (String)
+#    else
+#        define N_(String) (String)
+#    endif
+#else
+/* Stubs that do something close enough.  */
+#    define textdomain(String) (String)
+#    define gettext(String) (String)
+#    define dgettext(Domain,Message) (Message)
+#    define dcgettext(Domain,Message,Type) (Message)
+#    define bindtextdomain(Domain,Directory) (Domain)
+#    define _(String) (String)
+#    define N_(String) (String)
+#endif
 
 #endif LANG_H

@@ -25,7 +25,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-vtx.c,v 1.2 2001-03-09 17:39:01 mschimek Exp $ */
+/* $Id: exp-vtx.c,v 1.3 2001-03-17 17:18:27 garetxe Exp $ */
 
 /*
  *  VTX is the file format used by VideoteXt. It stores Teletext pages in
@@ -53,10 +53,6 @@
 #include "vbi.h"
 #include "hamm.h"	/* bit_reverse */
 #include "export.h"
-
-/* future */
-#undef _
-#define _(String) (String)
 
 struct header {
 	char			signature[5];

@@ -22,12 +22,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.11 2001-03-17 07:44:29 mschimek Exp $ */
+/* $Id: exp-txt.c,v 1.12 2001-03-17 17:18:27 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "os.h"
+#include "lang.h"
 #include "export.h"
 
 static int txt_open(struct export *e);
@@ -35,12 +36,6 @@ static int txt_option(struct export *e, int opt, char *str_arg, int num_arg);
 static int txt_output(struct export *e, char *name, struct fmt_page *pg);
 static int string_option(struct export *e, int opt, char *str_arg, int num_arg);
 static int string_output(struct export *e, char *name, struct fmt_page *pg);
-
-/* future */
-#undef _
-#define _(String) (String)
-#undef N_
-#define N_(String) (String)
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
@@ -271,7 +266,7 @@ put_attr(struct export *e, attr_char *new)
 	    p = stpcpy(buf, "\e[");
 	    if (reset)
 	    {
-		p = stpcpy(p, ";");		// "0;" but 0 isn't neccesary
+		p = stpcpy(p, ";");	/* "0;", but 0 isn't necessary */
 		ac.flash = 1;
 		ac.size = 1;			// set all attributes
 		ac.foreground = new->foreground ^ D->def_fg;	// set fg if != default fg

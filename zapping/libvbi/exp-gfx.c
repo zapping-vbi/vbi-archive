@@ -23,7 +23,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.29 2001-03-17 07:44:29 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.30 2001-03-17 17:18:27 garetxe Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -44,12 +44,6 @@
 
 #include "wstfont.xbm"
 #include "ccfont.xbm"
-
-/* future */
-#undef _
-#define _(String) (String)
-#undef N_
-#define N_(String) (String)
 
 /* Character cell dimensions - hardcoded (DRCS) */
 

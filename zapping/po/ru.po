@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: 0.5.8cvs\n"
-"POT-Creation-Date: 2001-03-10 16:40+0100\n"
+"POT-Creation-Date: 2001-03-17 18:04+0100\n"
 "PO-Revision-Date: 2000-11-18 17:00+0300\n"
 "Last-Translator: Sergey Nikulin <sergey-nikulin@mail.ru>\n"
 "Language-Team: LANGUAGE <ru@li.org>\n"
@@ -11,78 +11,75 @@ msgstr ""
 "Content-Type: text/plain; charset=koi8-r\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/main.c:182
-msgid "There's no GdkPixbuf support, VBI has been disabled"
-msgstr "Нет поддержки GdkPizbuf, VBI будет отключен"
-
-#: src/main.c:224
+#: src/main.c:229
 msgid "Color depth of the X display"
 msgstr "Глубина цвета Х-дисплея"
 
-#: src/main.c:225
+#: src/main.c:230
 msgid "BPP"
 msgstr ""
 
-#: src/main.c:233
+#: src/main.c:238
 msgid "Set debug messages on"
 msgstr "Устнановить отладлчные сообщения на"
 
-#: src/main.c:242
+#: src/main.c:247
 msgid "Disable VBI support"
 msgstr "Отключить поддержку VBI"
 
-#: src/main.c:251
+#: src/main.c:256
 msgid "Set the default standard/norm for tunerless inputs"
 msgstr "Установить стандарт/норму по умолчанию для входов без тюнера"
 
-#: src/main.c:252
+#: src/main.c:257
 msgid "NORM"
 msgstr "НОРМА"
 
-#: src/main.c:260
+#: src/main.c:265
 #, fuzzy
 msgid "Video device to use"
 msgstr "Возможности видео устройства"
 
-#: src/main.c:261
+#: src/main.c:266
 msgid "DEVICE"
 msgstr ""
 
-#: src/main.c:269
+#: src/main.c:274
 #, fuzzy
 msgid "Disable XVideo extension support"
 msgstr "Отключить поддержку VBI"
 
-#: src/main.c:312
+#: src/main.c:317
 #, fuzzy
 msgid "Sorry, but there is no module support in GLib"
 msgstr "Извините, нет поддержки модулей"
 
-#: src/main.c:320
+#: src/main.c:325
 msgid "Cannot get device info struct"
 msgstr "Не могу получить информацию об устройстве"
 
-#: src/main.c:328
+#: src/main.c:333
 msgid "Zapping couldn't be started"
 msgstr "Zapping не может стартовать"
 
-#: src/main.c:369
-#, fuzzy
-msgid ""
-"The specified device isn't \"/dev/video0\".\n"
-"Should I try it?"
+#: src/main.c:372
+#, c-format
+msgid "Couldn't open %s, should I try some common options?"
 msgstr ""
-"Указанное устройство не \"/dev/video0\"\n"
-"Попробывать его?"
 
-#: src/main.c:390
+#: src/main.c:406
+#, c-format
+msgid "%s suceeded, setting it as the new default"
+msgstr ""
+
+#: src/main.c:415
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
 "%s"
 msgstr "Извините, но \"%s\" не может быть открыт:%s"
 
-#: src/main.c:497
+#: src/main.c:524
 #, c-format
 msgid ""
 "Cannot restore previous mode%s:\n"
@@ -91,11 +88,11 @@ msgstr ""
 "Не могу восстановить предыдущий режим%s:\n"
 "%s"
 
-#: src/main.c:500
+#: src/main.c:527
 msgid ", I will try starting capture mode"
 msgstr ", я попробую запустить режим захвата"
 
-#: src/main.c:504
+#: src/main.c:531
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
@@ -104,7 +101,7 @@ msgstr ""
 "Режим захвата не может быть запущен из-за:\n"
 "%s"
 
-#: src/main.c:517
+#: src/main.c:544
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
@@ -113,7 +110,7 @@ msgstr ""
 "Режим захвата не может быть запущен:\n"
 "%s"
 
-#: src/main.c:656
+#: src/main.c:678
 msgid ""
 "ZConf could not be closed properly , your\n"
 "configuration will be lost.\n"
@@ -133,7 +130,7 @@ msgstr ""
 "   - или, что более вероятно, вы нашли баг в\n"
 "     Zapping. Пожалуйста свяжитесь с автором.\n"
 
-#: src/main.c:695
+#: src/main.c:718
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Извините, Zapping не может создать конфигурационное дерево"
 
@@ -265,55 +262,55 @@ msgstr ""
 msgid "Available controls"
 msgstr "Доступные настройки"
 
-#: src/zvbi.c:139
+#: src/zvbi.c:122
 #, c-format
 msgid ""
 "Sorry, but %s couldn't be opened:\n"
 "%s (%d)"
 msgstr "Извините, но %s не может быть открыт:%s (%d)"
 
-#: src/zvbi.c:331
+#: src/zvbi.c:316
 #, fuzzy, c-format
 msgid "VBI: %s couldn't be opened: %d, %s"
 msgstr "Извините, но %s не может быть открыт:%s (%d)"
 
-#: src/zvbi.c:1260
+#: src/zvbi.c:1179
 #, c-format
 msgid "%d %s"
 msgstr ""
 
-#: src/zvbi.c:1261
+#: src/zvbi.c:1180
 #, fuzzy
 msgid "minute"
 msgstr "Отключить звук"
 
-#: src/zvbi.c:1261
+#: src/zvbi.c:1180
 msgid "minutes"
 msgstr ""
 
-#: src/zvbi.c:1263
+#: src/zvbi.c:1182
 #, c-format
 msgid "%d h %d m"
 msgstr ""
 
-#: src/tveng.c:235
+#: src/tveng.c:237
 msgid "TV"
 msgstr ""
 
 #: src/properties.c:133 src/properties.c:140 src/properties.c:147
-#: src/tveng.c:236
+#: src/tveng.c:238
 msgid "Camera"
 msgstr "Камера"
 
-#: src/tveng.c:1371
+#: src/tveng.c:1373
 msgid "Couldn't locate zapping_setup_fb, check your install"
 msgstr "Не могу найти zapping_setup_fb, проверте инсталляцию"
 
-#: src/tveng.c:1925 src/tveng.c:1940
+#: src/tveng.c:1927 src/tveng.c:1942
 msgid "Filter"
 msgstr ""
 
-#: src/tveng.c:1955
+#: src/tveng.c:1957
 #, fuzzy
 msgid "Colorkey"
 msgstr "Цвет"
@@ -600,11 +597,11 @@ msgstr "%s с тюнером"
 msgid "%s with %d tuners"
 msgstr "%s с %d тюнерами"
 
-#: src/properties.c:474
+#: src/properties.c:477
 msgid "No plugin accepts this page."
 msgstr "Нет плагинов принимающих эту страницу"
 
-#: src/properties.c:509
+#: src/properties.c:512
 msgid ""
 "The plugin that created the active page doesn't provide help for it. Sorry."
 msgstr ""
@@ -737,40 +734,43 @@ msgstr ""
 msgid "Any subpage"
 msgstr ""
 
-#: src/ttxview.c:1363
+#: src/ttxview.c:1608
+#, fuzzy
+msgid "Export"
+msgstr "Экспозиция"
+
+#: src/ttxview.c:1619
+msgid "Save as:"
+msgstr ""
+
+#: src/ttxview.c:1624
+#, fuzzy
+msgid "Select file you'll be exporting to"
+msgstr "Выберите дирректорию для сохранения скриншотов"
+
+#: src/ttxview.c:1638
+#, fuzzy
+msgid "Options"
+msgstr "VBI опции"
+
+#: src/ttxview.c:1673
 msgid "You must first set the destination dir in the properties dialog"
 msgstr ""
 
-#: src/ttxview.c:1372 src/ttxview.c:1689
+#: src/ttxview.c:1682 src/ttxview.c:1975
 msgid "No page loaded"
 msgstr ""
 
-#: src/ttxview.c:1383
-msgid "[none]"
-msgstr ""
-
-#: src/ttxview.c:1384
-#, c-format
-msgid ""
-"Global options: %s\n"
-"Options for %s filter: %s"
-msgstr ""
-
-#: src/ttxview.c:1392
-#, fuzzy
-msgid "Export options"
-msgstr "VBI опции"
-
-#: src/ttxview.c:1435
+#: src/ttxview.c:1721
 #, c-format
 msgid "%s saved"
 msgstr ""
 
-#: src/ttxview.c:1697
+#: src/ttxview.c:1983
 msgid "Selecting"
 msgstr ""
 
-#: src/ttxview.c:1805
+#: src/ttxview.c:2091
 msgid "Selection copied to clipboard"
 msgstr ""
 
@@ -1950,6 +1950,154 @@ msgstr "_Добавить"
 #, fuzzy
 msgid "Delete"
 msgstr "_Телетекст"
+
+#: libvbi/exp-gfx.c:451
+msgid "Correct aspect ratio"
+msgstr ""
+
+#: libvbi/exp-gfx.c:486 libvbi/exp-gfx.c:744
+#, c-format
+msgid "unable to allocate %d KB image buffer"
+msgstr ""
+
+#: libvbi/exp-gfx.c:498 libvbi/exp-gfx.c:750 libvbi/exp-html.c:271
+#: libvbi/exp-vtx.c:120
+#, c-format
+msgid "cannot create file '%s': %s"
+msgstr ""
+
+#: libvbi/exp-gfx.c:578 libvbi/exp-html.c:144 libvbi/exp-vtx.c:139
+#, c-format
+msgid "error while writing file '%s': %s"
+msgstr ""
+
+#: libvbi/exp-gfx.c:579 libvbi/exp-html.c:145 libvbi/exp-vtx.c:140
+#, c-format
+msgid "error while writing file '%s'"
+msgstr ""
+
+#: libvbi/exp-gfx.c:800
+#, c-format
+msgid "Teletext Page %3x/%04x"
+msgstr ""
+
+#: libvbi/exp-gfx.c:840
+#, c-format
+msgid "error while writing '%s': %s"
+msgstr ""
+
+#: libvbi/exp-gfx.c:841
+#, c-format
+msgid "error while writing '%s'"
+msgstr ""
+
+#: libvbi/exp-html.c:110 libvbi/exp-txt.c:51 libvbi/exp-txt.c:69
+msgid "Graphics char"
+msgstr ""
+
+#: libvbi/exp-html.c:111 libvbi/exp-txt.c:52 libvbi/exp-txt.c:70
+msgid ""
+"Replacement for block graphic characters: a single character or decimal (32) "
+"or hex (0x20) code"
+msgstr ""
+
+#: libvbi/exp-html.c:113
+msgid "HTML header"
+msgstr ""
+
+#: libvbi/exp-html.c:114
+msgid "Include HTML page header"
+msgstr ""
+
+#: libvbi/exp-txt.c:44
+#, fuzzy
+msgid "Black"
+msgstr "Баланс"
+
+#: libvbi/exp-txt.c:44
+msgid "Red"
+msgstr ""
+
+#: libvbi/exp-txt.c:44
+msgid "Green"
+msgstr ""
+
+#: libvbi/exp-txt.c:44
+msgid "Yellow"
+msgstr ""
+
+#: libvbi/exp-txt.c:45
+#, fuzzy
+msgid "Blue"
+msgstr "Громкость"
+
+#: libvbi/exp-txt.c:45
+msgid "Magenta"
+msgstr ""
+
+#: libvbi/exp-txt.c:45
+msgid "Cyan"
+msgstr ""
+
+#: libvbi/exp-txt.c:45
+#, fuzzy
+msgid "White"
+msgstr "Уровень белого"
+
+#: libvbi/exp-txt.c:46
+msgid "Any"
+msgstr ""
+
+#: libvbi/exp-txt.c:54 libvbi/exp-txt.c:72
+msgid "Foreground"
+msgstr ""
+
+#: libvbi/exp-txt.c:55 libvbi/exp-txt.c:73
+msgid "Assumed terminal foreground color"
+msgstr ""
+
+#: libvbi/exp-txt.c:57 libvbi/exp-txt.c:75
+msgid "Background"
+msgstr ""
+
+#: libvbi/exp-txt.c:58 libvbi/exp-txt.c:76
+msgid "Assumed terminal background color"
+msgstr ""
+
+#: libvbi/exp-txt.c:60
+msgid "ANSI colors"
+msgstr ""
+
+#: libvbi/exp-txt.c:61
+msgid "Insert ANSI color escape codes"
+msgstr ""
+
+#: libvbi/exp-vtx.c:81
+msgid "can only export Teletext pages"
+msgstr ""
+
+#: libvbi/exp-vtx.c:90
+msgid "page is not cached, sorry"
+msgstr ""
+
+#: libvbi/exp-vtx.c:100
+msgid "cannot export this page"
+msgstr ""
+
+#~ msgid "There's no GdkPixbuf support, VBI has been disabled"
+#~ msgstr "Нет поддержки GdkPizbuf, VBI будет отключен"
+
+#, fuzzy
+#~ msgid ""
+#~ "The specified device isn't \"/dev/video0\".\n"
+#~ "Should I try it?"
+#~ msgstr ""
+#~ "Указанное устройство не \"/dev/video0\"\n"
+#~ "Попробывать его?"
+
+#, fuzzy
+#~ msgid "Export options"
+#~ msgstr "VBI опции"
 
 #~ msgid "Cannot figure out X depth"
 #~ msgstr "Не могу определить число цветов X дисплея"
