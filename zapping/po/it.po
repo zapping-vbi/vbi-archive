@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: Zapping 0.7\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2003-12-31 06:47+0100\n"
-"PO-Revision-Date: 2004-01-02 22:14+0100\n"
+"PO-Revision-Date: 2004-01-14 21:46+0100\n"
 "Last-Translator: Pino Toscano <toscano.pino@tiscali.it>\n"
 "Language-Team: Italian <it@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -1954,7 +1954,6 @@ msgid "Yes"
 msgstr "Sì"
 
 #: src/tvengxv.c:571
-#, fuzzy
 msgid "Doublescan"
 msgstr "Doublescan"
 
@@ -2166,8 +2165,8 @@ msgid ""
 "Navigator"
 msgstr ""
 "Apri questo collegamento con il browser Web predefinito.\n"
-"È possibile configurare questo comportamento nel Centro di Controllo di "
-"GNOME, sotto Avanzato/Applicazioni Preferite"
+"Puoi configurare questo comportamento nel Centro di Controllo di GNOME, "
+"sotto Avanzato/Applicazioni Preferite"
 
 #: src/zvbi.c:740
 #, c-format
