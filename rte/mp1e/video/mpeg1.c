@@ -17,13 +17,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.33 2002-06-19 19:55:27 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.34 2002-06-24 03:18:17 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
-#  include "../config.h"
+#  include "config.h"
 #endif
 
-#include "../site_def.h"
+#include "site_def.h"
 
 #include <assert.h>
 #include <limits.h>
