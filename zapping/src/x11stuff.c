@@ -642,12 +642,13 @@ void xvz_ungrab_port(tveng_device_info *info)
 
 #else /* !USE_XV, useless stubs */
 
-xvzImage * xvzImage_new(gint width, gint height)
+xvzImage * xvzImage_new(enum tveng_frame_pixformat pixformat,
+			gint width, gint height)
 {
   return NULL;
 }
 
-void xvzImage_put(xvzImage *image, GdkWindow *window)
+void xvzImage_put(xvzImage *image, GdkWindow *window, GdkGC *gc)
 {
 }
 
