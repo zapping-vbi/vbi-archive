@@ -10,7 +10,8 @@ Source: ftp://zapping.sourceforge.net/pub/zapping/@VERSION@/zapping-@VERSION@.ta
 Buildroot: %{_tmppath}/%{name}-root
 BuildPrereq: libglade-devel libxml-devel
 PreReq: /sbin/install-info
-Prefix: @GNOME_PREFIX@
+# mhs: @GNOME_PREFIX@ changed on my box, used to be /usr/local
+Prefix: /usr/local
 
 Requires: gnome-libs >= 1.0.40
 Requires: libxml >= 1.4.0

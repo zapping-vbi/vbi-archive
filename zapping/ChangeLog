@@ -1,7 +1,9 @@
 31.08.2002	<mschimek@users.sf.net>
 
+	* src/tvengxv.c: Added XSync in tvengxv_tune_input as
+	  suggested by bug report #599834.
 	* src/v4linterface.c: Increased nap time before unmuting after
-	  channel switch (in response to a bttv fix).
+	  channel switch.
 	* src/main.c: Fixed widget lookup before main window creation bug.
 	* zapping_setup_fb/zapping_setup_fb.c: Had to restore pre-gcc3
 	  macro varargs for compatibility.
