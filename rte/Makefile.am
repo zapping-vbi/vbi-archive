@@ -16,6 +16,6 @@ SUBDIRS = \
 	$(DIVX4LINUX_SUBDIRS) \
 	m4 src test po doc
 
-EXTRA_DIST = config.rpath rte.spec.in rte.spec
+EXTRA_DIST = rte.spec.in rte.spec
 
 DISTCLEANFILES = site_def.h
