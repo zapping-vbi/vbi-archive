@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.6 2000-09-29 17:54:33 mschimek Exp $ */
+/* $Id: mp2.c,v 1.7 2000-10-15 20:54:14 mschimek Exp $ */
 
 #include <limits.h>
 #include "../options.h"
@@ -679,7 +679,7 @@ mpeg_audio_layer_ii_stereo(void *unused)
 
 		pr_end(34);
 
-		send_full_buffer(audio_cap_fifo, ibuf);
+		send_empty_buffer(audio_cap_fifo, ibuf);
 
 		pr_start(36, "Bit twiddling");
 
