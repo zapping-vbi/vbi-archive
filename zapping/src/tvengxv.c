@@ -349,16 +349,17 @@ set_overlay_xwindow		(tveng_device_info *	info,
 	return TRUE;
 }
 
-static int
-tvengxv_set_preview_window(tveng_device_info * info)
+static tv_bool
+set_overlay_window		(tveng_device_info *	info,
+				 const tv_window *	w)
 {
 	/* Not used yet. */
 
-	return 0;
+	return TRUE;
 }
 
-static int
-tvengxv_get_preview_window(tveng_device_info * info)
+static tv_bool
+get_overlay_window		(tveng_device_info *	info)
 {
 	/* Nothing to do. */
 
@@ -366,7 +367,7 @@ tvengxv_get_preview_window(tveng_device_info * info)
 }
 
 static tv_bool
-set_overlay			(tveng_device_info *	info,
+enable_overlay			(tveng_device_info *	info,
 				 tv_bool		on)
 {
 	struct private_tvengxv_device_info *p_info = P_INFO (info);
@@ -458,7 +459,7 @@ tvengxv_get_chromakey (uint32_t *chroma, tveng_device_info *info)
  */
 
 static tv_bool
-do_update_control		(struct private_tvengxv_device_info *p_info,
+do_get_control			(struct private_tvengxv_device_info *p_info,
 				 struct control *	c)
 {
 	int value;
@@ -487,17 +488,17 @@ do_update_control		(struct private_tvengxv_device_info *p_info,
 }
 
 static tv_bool
-update_control			(tveng_device_info *	info,
+get_control			(tveng_device_info *	info,
 				 tv_control *		c)
 {
 	struct private_tvengxv_device_info *p_info = P_INFO (info);
 
 	if (c)
-		return do_update_control (p_info, C(c));
+		return do_get_control (p_info, C(c));
 
 	for_all (c, p_info->info.controls)
 		if (c->_parent == info)
-			if (!do_update_control (p_info, C(c)))
+			if (!do_get_control (p_info, C(c)))
 				return FALSE;
 	return TRUE;
 }
@@ -528,7 +529,7 @@ set_control			(tveng_device_info *	info,
 		return TRUE;
 	}
 
-	return do_update_control (p_info, C(c));
+	return do_get_control (p_info, C(c));
 }
 
 static const struct {
@@ -610,7 +611,7 @@ add_control			(struct private_tvengxv_device_info *p_info,
  */
 
 static tv_bool
-set_standard			(tveng_device_info *	info,
+set_video_standard		(tveng_device_info *	info,
 				 const tv_video_standard *s)
 {
 	struct private_tvengxv_device_info *p_info = P_INFO (info);
@@ -649,7 +650,7 @@ static const struct {
 };
 
 static tv_bool
-update_standard_list		(tveng_device_info *	info)
+get_video_standard_list		(tveng_device_info *	info)
 {
 	struct private_tvengxv_device_info *p_info = P_INFO (info);
 	const char *cur_input;
@@ -730,7 +731,7 @@ update_standard_list		(tveng_device_info *	info)
  */
 
 static tv_bool
-update_video_input		(tveng_device_info *	info);
+get_video_input			(tveng_device_info *	info);
 
 static void
 store_frequency			(tveng_device_info *	info,
@@ -746,7 +747,7 @@ store_frequency			(tveng_device_info *	info,
 }
 
 static tv_bool
-update_tuner_frequency		(tveng_device_info *	info,
+get_tuner_frequency		(tveng_device_info *	info,
 				 tv_video_line *	l)
 {
 	struct private_tvengxv_device_info * p_info = P_INFO (info);
@@ -755,7 +756,7 @@ update_tuner_frequency		(tveng_device_info *	info,
 	if (p_info->xa_freq == None)
 		return FALSE;
 
-	if (!update_video_input (info))
+	if (!get_video_input (info))
 		return FALSE;
 
 	if (info->cur_video_input == l) {
@@ -781,7 +782,7 @@ set_tuner_frequency		(tveng_device_info *	info,
 	if (p_info->xa_freq == None)
 		return FALSE;
 
-	if (!update_video_input (info))
+	if (!get_video_input (info))
 		return FALSE;
 
 	freq = frequency / 62500;
@@ -843,7 +844,7 @@ set_source			(tveng_device_info *	info,
 }
 
 static tv_bool
-update_video_input		(tveng_device_info *	info)
+get_video_input			(tveng_device_info *	info)
 {
 	struct private_tvengxv_device_info *p_info = P_INFO (info);
 	struct video_input *vi;
@@ -871,7 +872,7 @@ update_video_input		(tveng_device_info *	info)
 
 	assert (vi != NULL);
 
-	update_standard_list (info);
+	get_video_standard_list (info);
 
 	for_all (ts, info->video_standards)
 		if (S(ts)->num == p_info->cur_encoding)
@@ -916,7 +917,7 @@ set_video_input			(tveng_device_info *	info,
 				    p_info->xa_encoding,
 				    num);
 
-		update_standard_list (info);
+		get_video_standard_list (info);
 	} else {
 		if (io_debug_msg > 0) {
 			fprintf (stderr, "XvSetPortAttribute XA_ENCODING %d\n",
@@ -948,7 +949,7 @@ set_video_input			(tveng_device_info *	info,
 }
 
 static tv_bool
-update_video_input_list		(tveng_device_info *	info)
+get_video_input_list		(tveng_device_info *	info)
 {
 	struct private_tvengxv_device_info *p_info = P_INFO (info);
 	unsigned int i;
@@ -1009,7 +1010,7 @@ update_video_input_list		(tveng_device_info *	info)
 		}
 	}
 
-	if (!update_video_input (info))
+	if (!get_video_input (info))
 		goto failure;
 
 	return TRUE;
@@ -1235,7 +1236,7 @@ int tvengxv_attach_device(const char* device_file,
       /* tveng_set_control(&control, 0, info); */
 
   /* fill in with the proper values */
-  update_control (info, NULL /* all */);
+  get_control (info, NULL /* all */);
 
   /* We have a valid device, get some info about it */
   info->current_controller = TVENG_CONTROLLER_XV;
@@ -1248,7 +1249,7 @@ int tvengxv_attach_device(const char* device_file,
 	info->video_standards = NULL;
 	info->cur_video_standard = NULL;
 
-	if (!update_video_input_list (info))
+	if (!get_video_input_list (info))
 	  goto error1; /* XXX*/
 
   /* fill in capabilities info */
@@ -1386,23 +1387,25 @@ static struct tveng_module_info tvengxv_module_info = {
   .attach_device =		tvengxv_attach_device,
   .describe_controller =	tvengxv_describe_controller,
   .close_device =		tvengxv_close_device,
-  .update_video_input		= update_video_input,
+
   .set_video_input		= set_video_input,
+  .get_video_input		= get_video_input,
   .set_tuner_frequency		= set_tuner_frequency,
-  .update_tuner_frequency	= update_tuner_frequency,
-  /* Video input and standard combine as "encoding", update_video_input
-     also determines the current standard, hence no update_standard. */
-  .set_standard			= set_standard,
+  .get_tuner_frequency		= get_tuner_frequency,
+  /* Video input and standard combine as "encoding", get_video_input
+     also determines the current standard, hence no get_video_standard. */
+  .set_video_standard		= set_video_standard,
   .set_control			= set_control,
-  .update_control		= update_control,
+  .get_control			= get_control,
+
   .update_capture_format =	tvengxv_update_capture_format,
   .set_capture_format =		tvengxv_set_capture_format,
   .get_signal_strength =	tvengxv_get_signal_strength,
-  .get_overlay_buffer		= NULL,
+
   .set_overlay_xwindow		= set_overlay_xwindow,
-  .set_preview_window =		tvengxv_set_preview_window,
-  .get_preview_window =		tvengxv_get_preview_window,
-  .set_overlay			= set_overlay,
+  .set_overlay_window		= set_overlay_window,
+  .get_overlay_window		= get_overlay_window,
+  .enable_overlay		= enable_overlay,
   .get_chromakey =		tvengxv_get_chromakey,
   .set_chromakey =		tvengxv_set_chromakey,
 

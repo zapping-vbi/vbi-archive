@@ -4,8 +4,6 @@ Known bugs in Zapping, don't report them
 Zapping 0.7 bugs, need more work later:
 * Video size isn't always right on startup.
 * Spinslider minimum sizes.
-* Zapzilla: what's v4lx doing on standard change?
-  Changing the video standard breaks vbi decoding.
 * Select composite, quit, restart, back at "television". Problem: channels
   have a video input parameter, and selecting composite does not
   switch the channel, so on restart the channel's input is restored. We

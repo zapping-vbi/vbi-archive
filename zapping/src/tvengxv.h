@@ -90,26 +90,6 @@ tvengxv_get_signal_strength (int *strength, int * afc,
 
 /* XF86 Frame Buffer routines */
 
-/*
-  Sets the preview window dimensions to the given window.
-  Returns -1 on error, something else on success.
-  Success doesn't mean that the requested dimensions are used, maybe
-  they are different, check the returned fields to see if they are suitable
-  info   : Device we are controlling
-  The current chromakey value is used, the caller doesn't need to fill
-  it in.
-*/
-static int
-tvengxv_set_preview_window(tveng_device_info * info);
-
-/*
-  Gets the current overlay window parameters.
-  Returns -1 on error, and any other value on success.
-  info   : The device to use
-*/
-static int
-tvengxv_get_preview_window(tveng_device_info * info);
-
 
 
 #endif /* TVENGXV_PROTOTYPES */

@@ -229,6 +229,9 @@ capturing_thread (void *x)
   stacked = 0;
 #endif
 
+  if (ZVBI_CAPTURE_THREAD_DEBUG)
+    fprintf (stderr, "VBI capture thread started\n");
+
   D();
 
   timeout.tv_sec = 1;
@@ -397,6 +400,7 @@ threads_init (const gchar *dev_name, int given_fd)
   char *_errstr;
   vbi_raw_decoder *raw;
   int buffer_size;
+  unsigned int scanning;
 
   D();
 
@@ -408,13 +412,21 @@ threads_init (const gchar *dev_name, int given_fd)
 
   D();
 
-#if 0
-  if (!(capture = vbi_capture_bktr_new (dev_name, /* XXX */ 625,
+  /* XXX */
+  scanning = 625;
+  if (main_info)
+    if (main_info->cur_video_standard)
+      if (main_info->cur_video_standard->videostd_set
+	  & TV_VIDEOSTD_SET_525_60)
+	scanning = 525;
+
+#ifdef ENABLE_BKTR
+  if (!(capture = vbi_capture_bktr_new (dev_name, scanning,
 					&services, /* strict */ -1,
 					&_errstr, !!debug_msg)))
 #endif
     {
-#if 0
+#ifdef ENABLE_BKTR
       if (_errstr)
 	free (_errstr);
 #endif
@@ -1739,7 +1751,7 @@ scan_header(vbi_page *pg)
   /* just copy */
   else
     {
-      strncpy(station_name, buf, 255);
+      g_strlcpy(station_name, buf, 255);
       station_name[255] = 0;
     }
 
@@ -2018,13 +2030,13 @@ event(vbi_event *ev, void *unused)
       memcpy(&current_network, &ev->ev.network, sizeof(vbi_network));
       if (*current_network.name)
 	{
-	  strncpy(station_name, current_network.name, 255);
+	  g_strlcpy(station_name, current_network.name, 255);
 	  station_name[255] = 0;
 	  station_name_known = TRUE;
 	}
       else if (*current_network.call)
 	{
-	  strncpy(station_name, current_network.call, 255);
+	  g_strlcpy(station_name, current_network.call, 255);
 	  station_name[255] = 0;
 	  station_name_known = TRUE;
 	}

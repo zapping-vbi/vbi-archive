@@ -1,3 +1,109 @@
+2004-08-11  <mschimek@users.sf.net>
+
+	* plugins/alirc/alirc.c (legacy_command_txl_table): Fixed
+	  invalid volume_incr command (bug #1005111).
+	* src/osd.c (ttx_position, cc_position): Corrected subtitle
+	  position in fullscreen mode.
+	* tvengbktr.c (set_clips): Don't scale clip coordinates when we
+	  capture only one field.
+	* tveng.c, tveng.h, tveng1.c,tveng2.c,tveng25.c, tvengbktr.c,
+	  zmisc.c: Added TVENG_ATTACH_VBI mode to prepare driver for VBI
+	  capturing only. Required by the bktr driver which cannot capture
+	  VBI without video, otherwise like TVENG_ATTACH_CONTROL.
+	* zapping_setup_fb/Makefile.am (install-binPROGRAMS): Need not
+	  install when we use the bktr driver.
+	* src/yuv2rgb.c (mmx_register_converters),
+	  src/csconvert.h, src/csconvert.c (register_converter,
+	  register_converters):
+	  Added converter name parameter for debugging.
+	* src/xawtv.c (property_get_string): Don't use gdk 2.4 X Atom
+	  functions, must work with 2.0.
+	* src/video_xv.c (image_new): Fixed mem leak.
+	  (image_new): Await X server confirmation before marking shared
+	  segment for removal (FreeBSD).
+	  (suggest_format): Broken by design, disabled.
+	  (traverse_ports): Add support for RGB formats. Required by bktr
+	  driver.
+	* src/video_mem.c (planar_image_new): Handle YUV formats besides 420.
+	* src/vdr.c (vdr_open): Properly close vdr_sock on connect failure.
+	* src/v4linterface.h, src/v4linterface.c (z_switch_audio_input):
+	  Added audio input menu builder and z_switch_audio_input functions
+	  for bktr.
+	  (z_switch_standard): Restart VBI capturing after standard change.
+	  s/strncpy/g_strlcpy.
+	* src/tvengbktr.c (set_video_standard): Did not store current
+	  standard, fixed p_tveng_stop_everything call.
+	  (set_tuner_frequency): Undo forced mute after frequency change.
+	  (set_video_input): Undo forced mute after frequency change,
+	  fixed p_tveng_stop_everything call.
+	  (get_signal_strength): Finished for automatic channel scan.
+	* src/tveng25.c, src/tveng2.c, src/tveng1.c, src/tvengemu.c,
+	  src/tveng_private.h: Cleaned up preview window interface.
+	* src/tvengbktr.c: Added capture and overlay routines, audio
+	  input support because automatic selection by video input
+	  doesn't seem to work. Rewrote controls code and added mute control.
+	* src/tveng_private.h: Added driver audio input interface for bktr.
+	* src/tvengemu.c: Removed redundant get/set_capture_size().
+	* src/tveng25.c: Replaced audio mode control hack by tveng audio mode
+	  interface. Use audio mode control helper functions in tveng.c. Use
+	  V4L audio ioctl to work around bttv bug. Removed
+	  redundant get/set_capture_size().
+	* src/tveng2.c: Removed get/set capture_size().
+	* src/tveng1.c: Replaced audio mode control hack by tveng audio mode
+	  interface, moved control building function to tveng.c. Removed
+	  redundant get/set_capture_size().
+	* src/tveng.h: Changed tv_audio_capability enum to flag set.
+	  Changed tv_clip width, height to x2, y2.
+	* src/tveng.c, src/tveng_private.h (_tv_strlcpy): Added, with
+	  strlcpy() fallback if available.
+	  (_tv_strndup): Use strndup() if available.
+	  (_tv_asprintf): Use asprintf() if available.
+	  (append_audio_mode_control, set_audio_mode_control): New helper
+	  function to build and set an audio mode (mono stereo etc) control,
+	  preliminary wrapper for tv_set_audio_mode.
+	* src/tveng.c (tveng_device_info_destroy): Did not destroy audio
+	  mode callback.
+	  (tveng_attach_device): Mask out bktr YUV formats, conflict with
+	  VBI capturing. Replaced GNU asprintf by _tv_asprintf.
+	  (tv_get_audio_input, tv_set_audio_input, tv_set_audio_mode):
+	  Implemented now.
+	  (tv_pixel_format_to_pixfmt): Expect more unusual input, required
+	  for bktr.
+	  (tveng_copy_frame): Handle planar YUV formats besides 420.
+	  (tv_clip_vector_equal): Handle comparison of same.
+	  (tv_clip_vector_copy): Handle self assignment.
+	  (tv_clip_vector_add_clip_xy): Changed tv_clip width, height to
+	  x2, y2. Fixed band order bug.
+	  (_tv_image_format_dump): Added.
+	  Replaced redundant get/set_capture_size by calls to driver
+	  capture format functions.
+	* src/remote.c (python_command_printf): Replaced GNU vasprintf
+	  by glib/g_strdup_vprintf().
+	* src/plugins.c (plugin_load_plugins_in_dir): Replaced GNU scandir
+	  by glib/g_dir functions.
+	* src/overlay.c: Changed tv_clip width, height to x2, y2. 
+	* src/oss.c (open_pcm): SOUND_MASK_PHONEIN not defined on Solaris.
+	* src/main.c (restore_controls): Restore current audio input.
+	  (restore_controls): Expect invalid current channel (NULL).
+	  (main, startup_zapping): Use different default / fallback devices
+	  on FreeBSD.
+	* src/vdr.c, src/keyboard.c, src/interface.c, src/cmd.c:
+	  Moved include remote.h to properly compile on Solaris.
+	* src/capture.c (scan_device): Take shortcut if set of supported
+	  pixel formats is const.
+	  (request_capture_format_real): Fixed conversion check.
+	* src/Makefile.am (zapping_LDADD): Missing -lX11.
+	* plugins/mpeg/options.c (grte_options_load): Skip special options
+	  to keep defaults.
+	* plugins/mpeg/mpeg.c (plugin_load_config): s/strndup/g_strndup.
+	* common/structpr_gen.pl: Handle ioctls with plain type parameters.
+	* common/device.h, common/device.c: Added mmap, munmap wrappers.
+	* common/Makefile.am (_videodev25.h): RW fixes.
+	  (_bktr.h): Added hints.
+	* configure.in: strlcpy() check. Bktr driver needs no
+	  zapping_setup_fb and PAM. Don't compile with librte on FreeBSD,
+	  doesn't work right. s/DATADIRNAME/datadir, is a gettextism.
+
 2004-07-09    <mschimek@users.sf.net>
 
 	* Release 0.7. 

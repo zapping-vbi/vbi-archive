@@ -127,43 +127,8 @@ int tveng2_read_frame(tveng_image_data * where,
 static
 double tveng2_get_timestamp(tveng_device_info * info);
 
-/* 
-   Sets the capture buffer to an specific size. returns -1 on
-   error. Remember to check the value of width and height in the
-   format struct since it can be different to the one requested. 
-*/
-static
-int tveng2_set_capture_size(int width, int height, tveng_device_info *
-			    info);
-
-/* 
-   Gets the actual size of the capture buffer in width and height.
-   -1 on error
-*/
-static
-int tveng2_get_capture_size(int *width, int *height, tveng_device_info * info);
-
 /* XF86 Frame Buffer routines */
 
-/*
-  Sets the preview window dimensions to the given window.
-  Returns -1 on error, something else on success.
-  Success doesn't mean that the requested dimensions are used, maybe
-  they are different, check the returned fields to see if they are suitable
-  info   : Device we are controlling
-  The current chromakey value is used, the caller doesn't need to fill
-  it in.
-*/
-static int
-tveng2_set_preview_window(tveng_device_info * info);
-
-/*
-  Gets the current overlay window parameters.
-  Returns -1 on error, and any other value on success.
-  info   : The device to use
-*/
-static int
-tveng2_get_preview_window(tveng_device_info * info);
 
 
 

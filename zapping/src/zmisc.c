@@ -428,26 +428,24 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   switch (new_mode)
     {
     case TVENG_CAPTURE_READ:
-      if (info->current_controller == TVENG_CONTROLLER_XV ||
+      if (info->attach_mode == TVENG_ATTACH_VBI ||
+	  info->attach_mode == TVENG_ATTACH_CONTROL ||
+	  info->current_controller == TVENG_CONTROLLER_XV ||
 	  info->current_controller == TVENG_CONTROLLER_NONE)
 	{
 	  if (info->current_controller != TVENG_CONTROLLER_NONE)
 	    tveng_close_device(info);
-	  if (tveng_attach_device(zcg_char(NULL, "video_device"),
-				  TVENG_ATTACH_READ, info) == -1)
+	  if (-1 == tveng_attach_device(zcg_char(NULL, "video_device"),
+					TVENG_ATTACH_READ, info))
 	    {
-	      /* Try restoring as XVideo as a last resort */
-	      if (tveng_attach_device(zcg_char(NULL, "video_device"),
-				      TVENG_ATTACH_XV, info) == -1)
-		{
-		  RunBox("%s couldn't be opened\n:%s,\naborting",
-			 GTK_MESSAGE_ERROR,
-			 zcg_char(NULL, "video_device"), info->error);
-		  exit(1);
-		}
-	      else
-		ShowBox("Capture mode not available:\n%s",
-			GTK_MESSAGE_ERROR, info->error);
+	      /* Try restoring as XVideo, error ignored. */
+	      tveng_attach_device (zcg_char(NULL, "video_device"),
+				   TVENG_ATTACH_XV, info);
+
+	      ShowBox("Capture mode not available:\n%s",
+		      GTK_MESSAGE_ERROR, info->error);
+
+	      goto failure;
 	    }
 	}
 
@@ -464,24 +462,21 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
     case TVENG_CAPTURE_WINDOW:
       if (disable_preview || disable_overlay) {
 	ShowBox("preview has been disabled", GTK_MESSAGE_WARNING);
-	g_free(old_input);
-	g_free(old_standard);
-	x11_screensaver_set (X11_SCREENSAVER_ON);
-        z_video_blank_cursor (Z_VIDEO (tv_screen), 0);
-	return -1;
+	goto failure;
       }
 
-      if (info->current_controller != TVENG_CONTROLLER_XV &&
-	  xv_present)
+      if (info->attach_mode == TVENG_ATTACH_VBI ||
+	  info->attach_mode == TVENG_ATTACH_CONTROL ||
+	  (info->current_controller != TVENG_CONTROLLER_XV &&
+	   xv_present))
 	{
 	  tveng_close_device(info);
-	  if (tveng_attach_device(zcg_char(NULL, "video_device"),
-				  TVENG_ATTACH_XV, info)==-1)
+	  if (-1 == tveng_attach_device(zcg_char(NULL, "video_device"),
+					TVENG_ATTACH_XV, info))
 	    {
-	      RunBox("%s couldn't be opened\n:%s, aborting",
-		     GTK_MESSAGE_ERROR,
-		     zcg_char(NULL, "video_device"), info->error);
-	      exit(1);
+	      ShowBox("Overlay mode not available:\n%s",
+		      GTK_MESSAGE_ERROR, info->error);
+	      goto failure;
 	    }
 	}
 
@@ -493,9 +488,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	    {
 	      ShowBox(_("Preview will not work: %s"),
 		      GTK_MESSAGE_ERROR, info->error);
-	      x11_screensaver_set (X11_SCREENSAVER_ON);
-	      z_video_blank_cursor (Z_VIDEO (tv_screen), 0);
-	      return -1;
+	      goto failure;
 	    }
 	}
 
@@ -508,8 +501,12 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 
 	  if ((tveng_set_capture_format(info) == -1) ||
 	      (info->format.pixfmt != pixfmt))
-	    g_warning("Preview format invalid: %s (%d, %d)", info->error,
-		      info->format.pixfmt, pixfmt);
+	    {
+	      g_warning("Preview format invalid: %s (%d, %d)", info->error,
+			info->format.pixfmt, pixfmt);
+	      goto failure;
+	    }
+
 	  printv("prev: setting %d, got %d\n", pixfmt,
 		 info->format.pixfmt);
 	}
@@ -528,33 +525,29 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 		  GTK_MESSAGE_ERROR, info->error);
 	oops:
 	  zmisc_stop (info);
-
-	  x11_screensaver_set (X11_SCREENSAVER_ON);
-          z_video_blank_cursor (Z_VIDEO (tv_screen), 0);
+	  goto failure;
 	}
       break;
 
     case TVENG_CAPTURE_PREVIEW:
       if (disable_preview || disable_overlay) {
 	ShowBox("preview has been disabled", GTK_MESSAGE_WARNING);
-	g_free(old_input);
-	g_free(old_standard);
-	x11_screensaver_set (X11_SCREENSAVER_ON);
-	z_video_blank_cursor (Z_VIDEO (tv_screen), 0);
-	return -1;
+	goto failure;
       }
 
-      if (info->current_controller != TVENG_CONTROLLER_XV &&
-	  xv_present)
+      if (info->attach_mode == TVENG_ATTACH_VBI ||
+	  info->attach_mode == TVENG_ATTACH_CONTROL ||
+	  (info->current_controller != TVENG_CONTROLLER_XV &&
+	   xv_present))
 	{
 	  tveng_close_device(info);
-	  if (tveng_attach_device(zcg_char(NULL, "video_device"),
-				  TVENG_ATTACH_XV, info)==-1)
+
+	  if (-1 == tveng_attach_device(zcg_char(NULL, "video_device"),
+					TVENG_ATTACH_XV, info))
 	    {
-	      RunBox("%s couldn't be opened\n:%s, aborting",
-		     GTK_MESSAGE_ERROR,
-		     zcg_char(NULL, "video_device"), info->error);
-	      exit(1);
+	      ShowBox("Overlay mode not available:\n%s",
+		      GTK_MESSAGE_ERROR, info->error);
+	      goto failure;
 	    }
 	}
 
@@ -579,9 +572,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 		   GTK_MESSAGE_ERROR, info->error);
 
 	  zmisc_stop (info);
-
-	  x11_screensaver_set (X11_SCREENSAVER_ON);
-          z_video_blank_cursor (Z_VIDEO (tv_screen), 0);
+	  goto failure;
 	}
       else
 	{
@@ -597,6 +588,16 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 #ifdef HAVE_LIBZVBI
       if (zvbi_get_object ())
 	{
+	  if (info->current_controller != TVENG_CONTROLLER_NONE)
+	    tveng_close_device (info);
+	  if (-1 == tveng_attach_device (zcg_char (NULL, "video_device"),
+					 TVENG_ATTACH_VBI, info))
+	    {
+	      ShowBox ("Teletext mode not available.",
+		       GTK_MESSAGE_ERROR);
+	      goto failure;
+	    }
+
 	  /* start vbi code */
 
 	  gtk_widget_show (lookup_widget (main_window, "appbar2"));
@@ -614,7 +615,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	{
 	  ShowBox(_("VBI has been disabled, or it doesn't work."),
 		  GTK_MESSAGE_INFO);
-	  break;
+	  goto failure;
 	}
 
       break;
@@ -668,6 +669,16 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   gtk_widget_queue_resize(main_window);
 
   return return_value;
+
+ failure:
+  g_free (old_input);
+  g_free (old_standard);
+
+  x11_screensaver_set (X11_SCREENSAVER_ON);
+
+  z_video_blank_cursor (Z_VIDEO (tv_screen), 0);
+
+  return -1;
 }
 
 void set_stock_pixmap	(GtkWidget	*button,

@@ -1,6 +1,18 @@
 New stuff, refer to the ChangeLog for a more detailed description of
 the changes.
 
+0.7.1
+-----
+Zapping now runs on FreeBSD using the bktr driver, missing only support
+for remote controls and recording. Again it also runs on Solaris using
+XVideo, fixes courtesy of Roger Fuji.
+
+Important bug fixes:
+- Using V4L2 (Linux 2.6) there is now a working audio mode
+  (mono, stereo, SAP) control.
+- Position of subtitles in fullscreen mode was wrong.
+- Alirc VOL_UP/DOWN did not work.
+
 0.7
 ---
 Main focus in Zapping 0.7 was porting the user interface to Gnome 2. Along
