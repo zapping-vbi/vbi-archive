@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.167 2005-02-10 07:56:30 mschimek Exp $
+dnl $Id: configure.in,v 1.168 2005-02-12 13:32:16 mschimek Exp $
 
-AC_INIT(zapping, 0.9cvs,
+AC_INIT(zapping, 0.9cvs1,
   [http://sourceforge.net/tracker/?atid=102599&group_id=2599&func=browse])
 AC_CONFIG_SRCDIR(configure.in)
 AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
@@ -269,7 +269,7 @@ ESD_LIBS=""
 
 AC_CHECK_LIB(esd, esd_record_stream_fallback, ESD_LIBS="-lesd", HAVE_ESD="no")
 if test "x$HAVE_ESD" = "xyes"; then
-  AC_DEFINE(HAVE_LIBESD, 1, [Define if ESD lib is present])
+  AC_DEFINE(HAVE_ESD, 1, [Define if ESD lib is present])
   AUDIO_SUPPORT="${AUDIO_SUPPORT}ESD "
 fi
 
