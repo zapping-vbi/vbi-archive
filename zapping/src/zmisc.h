@@ -455,12 +455,6 @@ extern gchar *
 z_replace_filename_extension	(const gchar *		filename,
 				 const gchar *		new_ext);
 
-/**
- * Makes the toolbar modify its children toolbars to always
- * mimic its oriention and style.
- */
-void
-propagate_toolbar_changes	(GtkWidget	*toolbar);
 
 /* Switchs OSD on and sets the given OSD page as the subtitles source */
 void
@@ -564,5 +558,14 @@ z_strlcpy			(char *			dst1,
 
 extern const gchar *
 z_gdk_event_name		(GdkEvent *		event);
+
+extern void
+z_toolbar_set_style_recursive	(GtkToolbar *		toolbar,
+				 GtkToolbarStyle	style);
+
+void
+z_label_set_text_printf		(GtkLabel *		label,
+				 const gchar *		format,
+				 ...);
 
 #endif /* __ZMISC_H__ */
