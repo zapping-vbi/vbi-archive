@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.106 2001-11-26 17:08:14 garetxe Exp $
+dnl $Id: configure.in,v 1.107 2001-12-10 20:29:45 garetxe Exp $
 
 AC_INIT(src/callbacks.c)
 AM_INIT_AUTOMAKE(zapping, 0.6.3cvs)
@@ -37,13 +37,22 @@ else
 fi
 
 dnl ---------------------------------------------------------------------------
-dnl Remove all the V4L(2) stuff from the compilation
+dnl Remove all the V4L(2) stuff from the compilation if not Linux
 dnl ---------------------------------------------------------------------------
-AC_MSG_CHECKING(whether to include the v4l stuff)
+AC_MSG_CHECKING(whether to build the Video4Linux backends)
 AC_ARG_ENABLE(
 	v4l,
 	[  --enable-v4l            Include the V4L and V4L2 controllers],
-	enable_vl4="$enableval", enable_v4l="yes")
+	enable_vl4="$enableval", enable_v4l="auto")
+
+if test "x$enable_v4l" = "xauto"; then
+	if test "x`uname`" = "xLinux"; then
+		enable_v4l=yes
+	else
+		enable_v4l=no
+	fi
+fi
+
 AC_MSG_RESULT($enable_v4l)
 if test "x$enable_v4l" = "xyes"; then
 	AC_DEFINE(ENABLE_V4L)
@@ -310,6 +319,20 @@ ALL_LINGUAS="de es fr nl pl sv"
 AM_GNU_GETTEXT(, [need-ngettext])
 
 dnl -----------------------------------------------------------
+dnl look for ngettext
+dnl -----------------------------------------------------------
+saved_ldflags="$LDFLAGS"
+if test "x$USE_INCLUDED_LIBINTL" = "xyes"; then
+LDFLAGS="$LDFLAGS intl/libintl.a"
+else
+LDFLAGS="$LDFLAGS $INTLLIBS"
+fi
+
+AC_CHECK_FUNCS(ngettext)
+
+LDFLAGS="$saved_ldflags"
+
+dnl -----------------------------------------------------------
 dnl with-gnome-prefix handling, used for building packages.
 dnl -----------------------------------------------------------
 AC_ARG_WITH(gnome-prefix,
@@ -373,7 +396,8 @@ dnl Check for OSS (preliminary)
 dnl ----------------------------------------------------------------------
 HAVE_OSS="yes"
 AC_REQUIRE_CPP
-AC_CHECK_HEADER(linux/soundcard.h,true,HAVE_OSS=no)
+AC_CHECK_HEADERS(sys/soundcard.h,true,
+	AC_CHECK_HEADERS(machine/soundcard.h, true, HAVE_OSS=no))
 
 if test "$HAVE_OSS" = "yes"; then
   AC_DEFINE(USE_OSS)

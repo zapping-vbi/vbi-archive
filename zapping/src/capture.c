@@ -829,6 +829,8 @@ capture_start(GtkWidget * window, tveng_device_info *info)
     {
       ShowBox("Couldn't start capture: no capture format available",
 	      GNOME_MESSAGE_BOX_ERROR);
+      if (have_xv)
+	xvz_ungrab_port(info);
       return -1;
     }
 
@@ -837,6 +839,8 @@ capture_start(GtkWidget * window, tveng_device_info *info)
       ShowBox("Couldn't start capturing: %s",
 	      GNOME_MESSAGE_BOX_ERROR,
 	      info->error);
+      if (have_xv)
+	xvz_ungrab_port(info);
       return -1;
     }
 

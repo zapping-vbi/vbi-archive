@@ -1,3 +1,8 @@
+10.12.2001	Solaris portability <garetxe@users.sf.net>
+
+	* Many fixes, mainly Solaris portability (thanks to Roger Fujii
+	for his help with this).
+
 9.12.2001	JPEG plugin <mschimek@users.sf.net>
 
 	* Rewrote jpeg plugin. New attractions: screenshot dialog

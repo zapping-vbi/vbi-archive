@@ -423,7 +423,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.148 2001-12-02 01:03:03 garetxe Exp $",
+	 "$Id: main.c,v 1.149 2001-12-10 20:29:49 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -865,7 +865,8 @@ static void shutdown_zapping(void)
     }
   global_channel_list = tveng_clear_tuned_channel(global_channel_list);
 
-  zcs_char(current_country -> name, "current_country");
+  if (current_country)
+    zcs_char(current_country -> name, "current_country");
 
   if (main_info->num_standards)
     zcs_int(main_info->standards[main_info -> cur_standard].hash,
@@ -1022,6 +1023,8 @@ static gboolean startup_zapping(gboolean load_plugins)
 	     "The country you are currently in", "current_country");
   current_country = 
     tveng_get_country_tune_by_name(zcg_char(NULL, "current_country"));
+  if (!current_country)
+    current_country = tveng_get_country_tune_by_id(0);
   zcc_char("/dev/video0", "The device file to open on startup",
 	   "video_device");
   zcc_bool(FALSE, "TRUE if Zapping should be started without sound",

@@ -34,6 +34,12 @@
 #include <tveng.h>
 #include <frequencies.h>
 
+#ifndef HAVE_NGETTEXT
+/* If ngettext isn't present, default to the usual clumsy test */
+#define ngettext(STRING1, STRING2, NPARM) ((NPARM) == 1 ? (STRING2) : \
+					   (STRING1))
+#endif
+
 /* in error_console.c, just adds the given message to the console */
 void ec_add_message(const gchar *text, gboolean show,
 		    GdkColor *color);

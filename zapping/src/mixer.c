@@ -163,11 +163,15 @@ int		mixer_set_recording_line(int	line)
   return -1; /* not found */
 }
 
+#ifdef USE_OSS
 static void add_dev_mixer_devices	(void);
+#endif
 
 void		startup_mixer	(void)
 {
+#ifdef USE_OSS
   add_dev_mixer_devices();
+#endif
   /* alsa, etc */
 }
 
@@ -237,11 +241,16 @@ destroy_lines			(device_entry	*dev)
  * Platform specific code follows.
  */
 /************************ /dev/mixer interface **************************/
+#ifdef USE_OSS
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <linux/soundcard.h>
+#ifdef HAVE_SYS_SOUNDCARD_H
+#include <sys/soundcard.h>
+#else if defined(HAVE_MACHINE_SOUNDCARD_H)
+#include <machine/soundcard.h>
+#endif
 #include <stdio.h>
 #include <unistd.h>
 
@@ -346,3 +355,4 @@ add_dev_mixer_devices		(void)
       close(fd);
     }
 }
+#endif

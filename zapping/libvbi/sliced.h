@@ -17,9 +17,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sliced.h,v 1.6 2001-09-11 07:13:41 mschimek Exp $ */
+/* $Id: sliced.h,v 1.7 2001-12-10 20:29:48 garetxe Exp $ */
 
-#include <stdint.h>
+#include <inttypes.h>
 
 /*
     Definition of sliced vbi data (vbi device interface),
