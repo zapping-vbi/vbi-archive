@@ -649,6 +649,9 @@ tv_rf_channel_next		(tv_rf_channel *	ch)
 			continue;
 
 		if (i == r->last) {
+			if (IS_RANGE_END (r + 1))
+				return FALSE;
+
 			get_channel (ch, r + 1, 0);
 		} else {
 			get_channel (ch, r, i - r->first + 1);
