@@ -1718,7 +1718,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=mp1e
- VERSION=1.9.4
+ VERSION=1.9.5cvs
 
 
 cat >>confdefs.h <<_ACEOF

@@ -143,7 +143,7 @@ noinst_LTLIBRARIES = libdevices.la
 INCLUDES = -D_GNU_SOURCE -D_REENTRANT -DFLOAT=float 	-include $(top_builddir)/config.h 	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations 	$(ALSA_CFLAGS)
 
 
-libdevices_la_SOURCES = 	afl.c alsa.c arts.c esd.c oss.c 	file.c raw.c v4l.c v4l2.c v4l25.c
+libdevices_la_SOURCES = 	afl.c 	alsa.c 	arts.c 	esd.c 	file.c 	oss.c 	raw.c 	v4l.c 	v4l2.c 	v4l25.c
 
 
 libdevices_la_LIBADD = $(ALSA_LIBS) $(ESD_LIBS)
@@ -156,7 +156,7 @@ LTLIBRARIES = $(noinst_LTLIBRARIES)
 
 libdevices_la_LDFLAGS =
 libdevices_la_DEPENDENCIES =
-am_libdevices_la_OBJECTS = afl.lo alsa.lo arts.lo esd.lo oss.lo file.lo 	raw.lo v4l.lo v4l2.lo v4l25.lo
+am_libdevices_la_OBJECTS = afl.lo alsa.lo arts.lo esd.lo file.lo oss.lo 	raw.lo v4l.lo v4l2.lo v4l25.lo
 libdevices_la_OBJECTS = $(am_libdevices_la_OBJECTS)
 
 DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)

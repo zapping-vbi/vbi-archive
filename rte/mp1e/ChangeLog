@@ -1,3 +1,9 @@
+2004-04-21    <mschimek@users.sf.net>
+
+	* common/device.c, common/device.h, common/structpr.pl,
+	  common/Makefile.am (libcommon_la_SOURCES), devices/v4l25.c:
+	  Added ioctl logging functions.
+
 2004-04-08	<mschimek@users.sf.net>
 
 	* devices/v4l25.c: Fixed incomplete v4l2_buffer
