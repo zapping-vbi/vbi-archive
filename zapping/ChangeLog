@@ -1,3 +1,9 @@
+2004-09-11    <mschimek@users.sf.net>
+
+	* src/main.c (main), libtv/screen.c (dga_query),
+	  zapping_setup_fb/zapping_setup_fb.c (main): Accept only
+	  --bpp 24 or 32.
+
 2004-09-09    <mschimek@users.sf.net>
 
 	* src/interface.c (create_zapping): Create a Zapping instance
