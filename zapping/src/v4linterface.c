@@ -1115,6 +1115,70 @@ store_control_values		(tveng_device_info *	info,
   *num_controls_p = num_controls;
 }
 
+void
+zconf_get_sources		(tveng_device_info *	info,
+				 gboolean               mute)
+{
+  gint video_input;
+  gint audio_input;
+  gint video_standard;
+  tveng_tuned_channel *ch;
+
+  video_input = zcg_int (NULL, "current_input");
+  if (video_input)
+    z_switch_video_input (video_input, info);
+
+  audio_input = zcg_int (NULL, "current_audio_input");
+  if (audio_input)
+    z_switch_audio_input (audio_input, info);
+
+  video_standard = zcg_int (NULL, "current_standard");
+  if (video_standard)
+    z_switch_standard (video_standard, info);
+
+  cur_tuned_channel = zcg_int (NULL, "cur_tuned_channel");
+  ch = tveng_tuned_channel_nth (global_channel_list,
+				(guint) cur_tuned_channel);
+  if (NULL != ch)
+    {
+      if (mute)
+	{
+	  tveng_tc_control *mute;
+
+	  if ((mute = tveng_tc_control_by_id (info,
+					      ch->controls,
+					      ch->num_controls,
+					      TV_CONTROL_ID_MUTE)))
+	    mute->value = 1; /* XXX sub-optimal */
+	}
+
+      z_switch_channel (ch, info);
+    }
+}
+
+void
+zconf_set_sources		(tveng_device_info *	info)
+{
+  const tv_video_line *vl;
+  const tv_audio_line *al;
+  const tv_video_standard *vs;
+
+  vl = tv_cur_video_input (info);
+  zcs_uint (vl ? vl->hash : 0, "current_input");
+
+  al = tv_cur_audio_input (info);
+  zcs_uint (al ? al->hash : 0, "current_audio_input");
+
+  vs = tv_cur_video_standard (info);
+  zcs_uint (vs ? vs->hash : 0, "current_standard");
+
+  zcs_int (cur_tuned_channel, "cur_tuned_channel");
+}
+
+
+
+
+
 /*
   Substitute the special search keywords by the appropiate thing,
   returns a newly allocated string, and g_free's the given string.
@@ -1754,8 +1818,7 @@ append_radio_menu_item		(GtkMenuShell **	menu_shell,
 
   gtk_menu_shell_append (*menu_shell, menu_item);
 
-  z_signal_connect_const (G_OBJECT (menu_item), "activate",
-			  handler, sm);
+  z_signal_connect_const (G_OBJECT (menu_item), "toggled", handler, sm);
 }
 
 /* Video standards */
@@ -1825,6 +1888,9 @@ on_video_standard_activate	(GtkMenuItem *		menu_item,
   const tv_video_standard *s;
   gboolean success;
   gint index;
+
+  if (!GTK_CHECK_MENU_ITEM (menu_item)->active)
+    return;
 
   menu_shell = GTK_MENU_SHELL (gtk_menu_item_get_submenu (sm->menu_item));
   if (!menu_shell)
@@ -1960,6 +2026,9 @@ on_audio_input_activate		(GtkMenuItem *		menu_item,
   const tv_audio_line *l;
   gboolean success;
   gint index;
+
+  if (!GTK_CHECK_MENU_ITEM (menu_item)->active)
+    return;
 
   menu_shell = GTK_MENU_SHELL (gtk_menu_item_get_submenu (sm->menu_item));
   if (!menu_shell)
@@ -2097,6 +2166,9 @@ on_video_input_activate		(GtkMenuItem *		menu_item,
   const tv_video_line *l;
   gboolean success;
   gint index;
+
+  if (!GTK_CHECK_MENU_ITEM (menu_item)->active)
+    return;
 
   menu_shell = GTK_MENU_SHELL (gtk_menu_item_get_submenu (sm->menu_item));
   if (!menu_shell)
