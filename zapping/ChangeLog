@@ -1,6 +1,6 @@
 2003-12-16    <mschimek@users.sf.net>
 
-	* help/man/zapping.xml: Added.
+	* help/man/zapping.xml, help/man/zapping_setup_fb.xml: Added.
 	* acinclude.m4: Added XML catalog check macros from gtk-doc.
 	* configure.in: Check for prereqs to rebuild man pages.
 	* help/man/Makefile.am: Modified to build man pages from
