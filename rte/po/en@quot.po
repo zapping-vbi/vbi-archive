@@ -27,7 +27,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: rte 0.5cvs\n"
-"POT-Creation-Date: 2002-09-04 05:21+0200\n"
+"POT-Creation-Date: 2002-09-05 08:37+0200\n"
 "PO-Revision-Date: 2002-07-08 11:01+0200\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -69,7 +69,7 @@ msgstr "Out of memory for mc buffer."
 msgid "Out of memory for video buffer."
 msgstr "Out of memory for video buffer."
 
-#: mp1e/video/mpeg1.c:2463 mp1e/video/mpeg1.c:2820 mp1e/audio/mp2.c:1152
+#: mp1e/video/mpeg1.c:2463 mp1e/video/mpeg1.c:2820 mp1e/audio/mp2.c:1161
 #: mp1e/b_mp1e.c:440 mp1e/b_mp1e.c:490 mp1e/b_mp1e.c:500 mp1e/b_mp1e.c:1090
 #: ffmpeg/b_ffmpeg.c:890 ffmpeg/b_ffmpeg.c:1142
 msgid "Out of memory."
@@ -87,7 +87,7 @@ msgstr "Multiplexer"
 msgid "Fake picture"
 msgstr "Fake picture"
 
-#: mp1e/video/mpeg1.c:2574 mp1e/audio/mp2.c:973 ffmpeg/b_ffmpeg.c:609
+#: mp1e/video/mpeg1.c:2574 mp1e/audio/mp2.c:982 ffmpeg/b_ffmpeg.c:609
 #: ffmpeg/b_ffmpeg.c:613
 msgid "Bit rate"
 msgstr "Bit rate"
@@ -171,53 +171,53 @@ msgstr "on"
 msgid "off"
 msgstr "off"
 
-#: mp1e/video/mpeg1.c:2638 mp1e/audio/mp2.c:1021
+#: mp1e/video/mpeg1.c:2638 mp1e/audio/mp2.c:1030
 #, c-format
 msgid "%f frames"
 msgstr "%f frames"
 
-#: mp1e/audio/mp2.c:954 ffmpeg/b_ffmpeg.c:577
+#: mp1e/audio/mp2.c:963 ffmpeg/b_ffmpeg.c:577
 msgid "Mono"
 msgstr "Mono"
 
-#: mp1e/audio/mp2.c:955 ffmpeg/b_ffmpeg.c:578
+#: mp1e/audio/mp2.c:964 ffmpeg/b_ffmpeg.c:578
 msgid "Stereo"
 msgstr "Stereo"
 
-#: mp1e/audio/mp2.c:957 ffmpeg/b_ffmpeg.c:580
+#: mp1e/audio/mp2.c:966 ffmpeg/b_ffmpeg.c:580
 msgid "Bilingual"
 msgstr "Bilingual"
 
-#: mp1e/audio/mp2.c:965
+#: mp1e/audio/mp2.c:974
 msgid "Static"
 msgstr "Static"
 
-#: mp1e/audio/mp2.c:966
+#: mp1e/audio/mp2.c:975
 msgid "Fast"
 msgstr "Fast"
 
-#: mp1e/audio/mp2.c:967
+#: mp1e/audio/mp2.c:976
 msgid "Accurate"
 msgstr "Accurate"
 
-#: mp1e/audio/mp2.c:975 ffmpeg/b_ffmpeg.c:611 ffmpeg/b_ffmpeg.c:615
+#: mp1e/audio/mp2.c:984 ffmpeg/b_ffmpeg.c:611 ffmpeg/b_ffmpeg.c:615
 msgid "Output bit rate, all channels together"
 msgstr "Output bit rate, all channels together"
 
-#: mp1e/audio/mp2.c:977 ffmpeg/b_ffmpeg.c:603 ffmpeg/b_ffmpeg.c:617
+#: mp1e/audio/mp2.c:986 ffmpeg/b_ffmpeg.c:603 ffmpeg/b_ffmpeg.c:617
 #: ffmpeg/b_ffmpeg.c:620
 msgid "Sampling frequency"
 msgstr "Sampling frequency"
 
-#: mp1e/audio/mp2.c:980 ffmpeg/b_ffmpeg.c:606
+#: mp1e/audio/mp2.c:989 ffmpeg/b_ffmpeg.c:606
 msgid "Mode"
 msgstr "Mode"
 
-#: mp1e/audio/mp2.c:983
+#: mp1e/audio/mp2.c:992
 msgid "Psychoacoustic analysis"
 msgstr "Psychoacoustic analysis"
 
-#: mp1e/audio/mp2.c:985
+#: mp1e/audio/mp2.c:994
 msgid ""
 "Speed/quality tradeoff. Selecting 'Accurate' is recommended below 80 kbit/s "
 "per channel, when you have bat ears or a little more CPU load doesn't matter."
@@ -225,26 +225,26 @@ msgstr ""
 "Speed/quality tradeoff. Selecting ‘Accurate’ is recommended below 80 kbit/s "
 "per channel, when you have bat ears or a little more CPU load doesn't matter."
 
-#: mp1e/audio/mp2.c:1005 ffmpeg/b_ffmpeg.c:663 ffmpeg/b_ffmpeg.c:667
+#: mp1e/audio/mp2.c:1014 ffmpeg/b_ffmpeg.c:663 ffmpeg/b_ffmpeg.c:667
 #, c-format
 msgid "%u kbit/s"
 msgstr "%u kbit/s"
 
-#: mp1e/audio/mp2.c:1010 ffmpeg/b_ffmpeg.c:658 ffmpeg/b_ffmpeg.c:671
+#: mp1e/audio/mp2.c:1019 ffmpeg/b_ffmpeg.c:658 ffmpeg/b_ffmpeg.c:671
 #: ffmpeg/b_ffmpeg.c:675
 #, c-format
 msgid "%u Hz"
 msgstr "%u Hz"
 
-#: mp1e/audio/mp2.c:1175 ffmpeg/b_ffmpeg.c:835
+#: mp1e/audio/mp2.c:1184 ffmpeg/b_ffmpeg.c:835
 msgid "MPEG-1 Audio Layer II"
 msgstr "MPEG-1 Audio Layer II"
 
-#: mp1e/audio/mp2.c:1194
+#: mp1e/audio/mp2.c:1203
 msgid "MPEG-2 Audio Layer II LFE"
 msgstr "MPEG-2 Audio Layer II LFE"
 
-#: mp1e/audio/mp2.c:1195
+#: mp1e/audio/mp2.c:1204
 msgid ""
 "MPEG-2 Low (Sampling) Frequency Extension to MPEG-1 Audio Layer II. Be "
 "warned not all MPEG video and audio players support MPEG-2 audio."
