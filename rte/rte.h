@@ -29,14 +29,14 @@
 #ifndef __RTELIB_H__
 #define __RTELIB_H__
 
-/*
- * Lib build ID, for debugging.
- */
-#define RTE_ID " $Id: rte.h,v 1.7 2001-09-23 21:04:25 mschimek Exp $ "
-
 #define RTE_MAJOR_VERSION 0
 #define RTE_MINOR_VERSION 4
 #define RTE_VERSION_STRING "0.4cvs"
+
+/*
+ * Lib build ID, for debugging.
+ */
+#define RTE_ID " $Id: rte.h,v 1.8 2001-09-25 09:29:11 mschimek Exp $ "
 
 /*
  * What are we going to encode, audio only, video only or both

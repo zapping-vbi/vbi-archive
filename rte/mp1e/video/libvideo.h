@@ -1,7 +1,7 @@
 /*
  *  MPEG-1 Real Time Encoder
  *
- *  Copyright (C) 1999-2000 Michael H. Schimek
+ *  Copyright (C) 1999-2001 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -17,11 +17,6 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mblock.h,v 1.3 2001-09-25 09:29:13 mschimek Exp $ */
+/* $Id: libvideo.h,v 1.1 2001-09-25 09:29:13 mschimek Exp $ */
 
-#ifndef MBLOCK_H
-#define MBLOCK_H
-
-/* OBSOLETE */
-
-#endif // MBLOCK_H
+#include "../rtepriv.h"

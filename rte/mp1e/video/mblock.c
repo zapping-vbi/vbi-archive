@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mblock.c,v 1.2 2001-08-22 01:28:10 mschimek Exp $ */
+/* $Id: mblock.c,v 1.3 2001-09-25 09:29:13 mschimek Exp $ */
 
 #include "video.h"
 #include "../common/math.h"
@@ -27,10 +27,10 @@ int			mb_col, mb_row,			// current
 			mb_last_col, mb_last_row,
 			mb_num;
 
-unsigned char *		oldref;				// past reference frame buffer
-unsigned char *		newref;				// future reference frame buffer
+uint8_t * newref;			/* future reference frame buffer */
+
 /*
- *  Packet reference buffer format is
+ *  Packed reference buffer format is
  *  [mb_height]
  *  [mb_width]  - for all macroblocks of a frame
  *  [6]         - Y0, Y2, Y1, Y3, Cb, Cr

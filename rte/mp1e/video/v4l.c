@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.8 2001-09-20 23:35:07 mschimek Exp $ */
+/* $Id: v4l.c,v 1.9 2001-09-25 09:29:13 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -241,14 +241,14 @@ v4l_init(void)
 		case VIDEO_MODE_PAL:
 		case VIDEO_MODE_SECAM:
 			printv(2, "Video standard is PAL/SECAM\n");
-			frame_rate_code = 3;
+			vseg.frame_rate_code = 3;
 			cap_time = 0;
 			frame_period = 1 / 25.0;
 			break;
 
 		case VIDEO_MODE_NTSC:
 			printv(2, "Video standard is NTSC\n");
-			frame_rate_code = 4;
+			vseg.frame_rate_code = 4;
 			cap_time = 0;
 			frame_period = 1001 / 30000.0;
 

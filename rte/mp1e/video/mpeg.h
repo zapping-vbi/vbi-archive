@@ -17,7 +17,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.h,v 1.2 2001-08-22 01:28:10 mschimek Exp $ */
+/* $Id: mpeg.h,v 1.3 2001-09-25 09:29:13 mschimek Exp $ */
+
+#ifndef MPEG_H
+#define MPEG_H
 
 #define PICTURE_START_CODE		0x00000100L
 #define SLICE_START_CODE		0x00000101L
@@ -69,3 +72,5 @@ extern const unsigned long long dct_dc_size_chroma_vlc[12];
 
 extern int vlc(unsigned long long, unsigned int *);
 extern int dct_coeff_vlc(int table, int run, int level, unsigned int *);
+
+#endif /* MPEG_H */

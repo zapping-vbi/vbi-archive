@@ -17,7 +17,7 @@
 #  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 
-# $Id: dct_mmx.s,v 1.2 2001-08-22 01:28:09 mschimek Exp $
+# $Id: dct_mmx.s,v 1.3 2001-09-25 09:29:13 mschimek Exp $
 
 	.text
 	.align		16
@@ -2417,35 +2417,35 @@ mmx_mpeg1_idct_intra2:
 
 mmx_copy_refblock:
 
-	movl		$mblock+3*6*128,%eax;
-	pushl		%ebx;
-	movl		$mb_address,%ebx;
-	movl		newref,%edx;
-	pushl		%esi;			
-	pushl		%edi;
+	movl	$mblock+3*6*128,%eax;
+	pushl	%ebx;
+	movl	$mb_address,%ebx;
+	movl	newref,%edx;
+	pushl	%esi;			
+	pushl	%edi;
 
-	.align		16
+	.align	16
 1:
-	addl		(%ebx),%edx;		movl		4(%ebx),%esi;
-	movq		(%eax),%mm0;		addl		$8,%ebx;
-	movq		1*8(%eax),%mm1;		leal		(%edx,%esi),%edi;
-	movq		2*8(%eax),%mm2;		packuswb 	%mm1,%mm0;
-	movq		3*8(%eax),%mm3;		movq 		%mm0,(%edx);		// 0
-	movq		4*8(%eax),%mm4;		packuswb	%mm3,%mm2;
-	movq		5*8(%eax),%mm5;		movq		%mm2,(%edx,%esi);	// 1
-	movq		6*8(%eax),%mm6;		packuswb 	%mm5,%mm4;
-	movq		7*8(%eax),%mm7;		movq 		%mm4,(%edx,%esi,2);	// 2
-	movq		8*8(%eax),%mm0;		packuswb	%mm7,%mm6;
-	movq		9*8(%eax),%mm1;		movq		%mm6,(%edi,%esi,2);	// 3
-	movq		10*8(%eax),%mm2;	packuswb 	%mm1,%mm0;
-	movq		11*8(%eax),%mm3;	movq 		%mm0,(%edx,%esi,4);	// 4
-	movq		12*8(%eax),%mm4;	leal		(%edi,%esi,4),%edi;
-	movq		13*8(%eax),%mm5;	packuswb	%mm3,%mm2;
-	movq		14*8(%eax),%mm6;	movq		%mm2,(%edi);		// 5
-	movq		15*8(%eax),%mm7;	packuswb 	%mm5,%mm4;
-	leal		128(%eax),%eax;		movq 		%mm4,(%edi,%esi);	// 6	
-	cmpl		$mb_address+6*8,%ebx;	packuswb	%mm7,%mm6;
-	movq		%mm6,(%edi,%esi,2);	jne		1b;			// 7
+	addl	(%ebx),%edx;		movl		4(%ebx),%esi;
+	movq	(%eax),%mm0;		addl		$8,%ebx;
+	movq	1*8(%eax),%mm1;		leal		(%edx,%esi),%edi;
+	movq	2*8(%eax),%mm2;		packuswb 	%mm1,%mm0;
+	movq	3*8(%eax),%mm3;		movq 		%mm0,(%edx);		// 0
+	movq	4*8(%eax),%mm4;		packuswb	%mm3,%mm2;
+	movq	5*8(%eax),%mm5;		movq		%mm2,(%edx,%esi);	// 1
+	movq	6*8(%eax),%mm6;		packuswb 	%mm5,%mm4;
+	movq	7*8(%eax),%mm7;		movq 		%mm4,(%edx,%esi,2);	// 2
+	movq	8*8(%eax),%mm0;		packuswb	%mm7,%mm6;
+	movq	9*8(%eax),%mm1;		movq		%mm6,(%edi,%esi,2);	// 3
+	movq	10*8(%eax),%mm2;	packuswb 	%mm1,%mm0;
+	movq	11*8(%eax),%mm3;	movq 		%mm0,(%edx,%esi,4);	// 4
+	movq	12*8(%eax),%mm4;	leal		(%edi,%esi,4),%edi;
+	movq	13*8(%eax),%mm5;	packuswb	%mm3,%mm2;
+	movq	14*8(%eax),%mm6;	movq		%mm2,(%edi);		// 5
+	movq	15*8(%eax),%mm7;	packuswb 	%mm5,%mm4;
+	leal	128(%eax),%eax;		movq 		%mm4,(%edi,%esi);	// 6
+	cmpl	$mb_address+6*8,%ebx;	packuswb	%mm7,%mm6;
+	movq	%mm6,(%edi,%esi,2);	jne		1b;			// 7
 
 	popl		%edi;			
 	popl		%esi;

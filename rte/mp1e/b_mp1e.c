@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.11 2001-09-23 19:45:44 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.12 2001-09-25 09:29:13 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -323,12 +323,12 @@ static int rte_fake_options(rte_context * context)
 		context->video_rate = RTE_RATE_3; /* default to PAL */
 	}
 
-	frame_rate_code = context->video_rate;
+	vseg.frame_rate_code = context->video_rate;
 
 	switch (context->video_format) {
 	case RTE_YUYV_PROGRESSIVE:
 	case RTE_YUYV_PROGRESSIVE_TEMPORAL:
-		frame_rate_code += 3;
+		vseg.frame_rate_code += 3;
 	case RTE_YUYV_VERTICAL_DECIMATION:
 	case RTE_YUYV_TEMPORAL_INTERPOLATION:
 	case RTE_YUYV_VERTICAL_INTERPOLATION:
@@ -422,7 +422,7 @@ static void rte_audio_init(backend_private *priv) /* init audio capture */
 {
 	if (modules & MOD_AUDIO) {
 		long long n = llroundn(((double) video_num_frames /
-					frame_rate_value[frame_rate_code])
+					frame_rate_value[vseg.frame_rate_code])
 				       / (1152.0 / sampling_rate));
 		
 		if (modules & MOD_VIDEO)
@@ -458,8 +458,8 @@ static void rte_video_init(backend_private *priv) /* init video capture */
 	if (modules & MOD_VIDEO) {
 		video_coding_size(width, height);
 
-		if (frame_rate > frame_rate_value[frame_rate_code])
-			frame_rate = frame_rate_value[frame_rate_code];
+		if (frame_rate > frame_rate_value[vseg.frame_rate_code])
+			frame_rate = frame_rate_value[vseg.frame_rate_code];
 
 		video_init(priv->mux);
 	}

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: file.c,v 1.4 2001-08-22 01:28:10 mschimek Exp $ */
+/* $Id: file.c,v 1.5 2001-09-25 09:29:13 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -281,7 +281,7 @@ file_init(void)
 			filter_labels[filter_mode]);
 	}
 
-	frame_rate_code = 3; // 24 Hz
+	vseg.frame_rate_code = 3; // 24 Hz
 
 	filter_init(pitch);
 

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.5 2001-08-22 01:28:10 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.6 2001-09-25 09:29:13 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -188,16 +188,16 @@ v4l2_init(void)
 	ASSERT("query current video standard",
 		IOCTL(fd, VIDIOC_G_STD, &vstd) == 0);
 
-	frame_rate_code = ((double) vstd.framerate.denominator /
-				    vstd.framerate.numerator < 29.0) ? 3 : 4;
+	vseg.frame_rate_code = ((double) vstd.framerate.denominator /
+				vstd.framerate.numerator < 29.0) ? 3 : 4;
 
-	if (frame_rate_code == 4 && grab_height == 288)
+	if (vseg.frame_rate_code == 4 && grab_height == 288)
 		grab_height = 240; // XXX DAU
-	if (frame_rate_code == 4 && grab_height == 576)
+	if (vseg.frame_rate_code == 4 && grab_height == 576)
 		grab_height = 480; // XXX DAU
 
 	if (PROGRESSIVE(filter_mode)) {
-		frame_rate_code += 3; // see frame_rate_value[]
+		vseg.frame_rate_code += 3; // see frame_rate_value[]
 		min_cap_buffers++;
 	}
 

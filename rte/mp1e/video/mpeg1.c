@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.7 2001-09-20 23:35:07 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.8 2001-09-25 09:29:13 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -41,81 +41,33 @@
 #include "../systems/systems.h"
 #include "vlc.h"
 #include "dct.h"
-#include "mpeg.h"
 #include "motion.h"
 #include "video.h"
 
-static int (* picture_i)(unsigned char *org0, unsigned char *org1);
-static int (* picture_p)(unsigned char *org0, unsigned char *org1,
-			 int dist, int forward_motion);
-static int (* picture_b)(unsigned char *org0, unsigned char *org1,
-			 int dist, int forward_motion, int backward_motion);
+video_context vseg __attribute__ ((aligned (32)));
 
-static unsigned int (* predict_forward)(unsigned char *from) reg(1);
-static unsigned int (* predict_bidirectional)(unsigned char *from1, unsigned char *from2,
-					      unsigned int *vmc1, unsigned int *vmc2);
-
-/**/
-
-#define MAX_P_SUCC 3	// Max. successive P pictures when overriding gop_sequence (error accumulation)
-#define MAX_B_SUCC 31	// Max. successive B pictures we can stack up
-
+/* XXX vlc_mmx.s */
 struct bs_rec		video_out;
 
- 
-int			frame_rate_code;
-
+/* XXX status report */
+int			video_frame_count;
 int			video_frames_dropped;
+double 			video_eff_bit_rate;
 
-int			video_frame_count;		// frames encoded (coding order)
+/* XXX options */
+int			motion;			// current search range
 
-static int		gop_frame_count,		// .. in current GOP (display order)
-			seq_frame_count;		// .. since last sequence header
-
-static double		skip_rate_acc,
-			drop_timeout,
-			time_per_frame,
-			frames_per_sec;
-
-static bool		insert_gop_header = FALSE;
-
-static bool		closed_gop;			// random access point, no forward ref
-static bool		referenced;			// by other P or B pictures
-
-static int		ni, np, nb, ob;			// picture types per GOP
-static int		Ei, Ep, Eb;
-static int		gop_count;
-static double		ei, ep, eb;
-static int		G0, Gn;				// estimated target bits per GOP
-static double		G4;
-static int		Tavg;				// estimated avg. bits per frame
-static int		Tmin;				// minimum target bits per frame
-static int		R;				// remaining bits in GOP
-volatile double		Ti, Tmb;
-
-static double		Xi, Xp, Xb;			// global complexity measure
-static double		d0i, d0p, d0b;			// virtual buffer fullness
-static double		r31;				// reaction parameter
-static double		avg_acti;			// average spatial activity
-static double		avg_actp;
-static int		p_succ, p_dist;
-
-static unsigned char 	seq_header_template[32] __attribute__ ((aligned (CACHE_LINE)));
-							// precompressed sequence header
-static char *		banner;
-static unsigned char *	zerop_template;			// precompressed empty P picture
-static int		Sz;				// .. size in bytes
-
-double video_eff_bit_rate;
-
-static consumer		cons;
-
-static int mb_cx_row, mb_cx_thresh;
-
-int			motion;				// current search range
-
-short *			mm_mbrow;			// mm_mbrow[8][mb_width * 16];
+/* XXX motion_mmx.s */
+short *			mm_mbrow;		// mm_mbrow[8][mb_width * 16];
 int			mm_buf_offs;
+
+/* XXX gui */
+unsigned int p_inter_bias = 65536 * 48,
+             b_inter_bias = 65536 * 96;
+int x_bias = 65536 * 31,
+    quant_max = 31;
+
+#define QS 1
 
 /* main.c */
 extern int		frames_per_seqhdr;
@@ -139,17 +91,8 @@ quant_res_intra[32] __attribute__ ((SECTION("video_tables") aligned (CACHE_LINE)
 extern bool		temporal_interpolation;
 
 extern int		preview;
-extern void		packed_preview(unsigned char *buffer, int mb_cols, int mb_rows);
-
-unsigned int p_inter_bias = 65536 * 48,
-             b_inter_bias = 65536 * 96;
-int x_bias = 65536 * 31,
-    quant_max = 31;
-
-#define QS 1
-
-fifo *			video_fifo;
-producer		video_prod;
+extern void		packed_preview(unsigned char *buffer,
+				       int mb_cols, int mb_rows);
 
 #include "dct_ieee.h"
 
@@ -195,17 +138,11 @@ do { int i, j, n;					\
 
 #endif
 
-
-
-
-
-
+#define elements(array) (sizeof(array) / sizeof(array[0]))
 
 /*
  *  Picture layer
  */
-
-#define B_SHARE 1.4
 
 #define macroblock_address(skipped)					\
 do {									\
@@ -228,37 +165,22 @@ do {									\
 static inline int
 tmp_picture_i(unsigned char *org0, unsigned char *org1, int motion)
 {
-	double act, act_sum;
 	int quant_sum;
-	int S, T, prev_quant, quant;
+	int S, prev_quant, quant;
 	struct bs_rec mark;
 	unsigned int var;
 	bool slice;
 
 	printv(3, "Encoding I picture #%d GOP #%d, ref=%c\n",
-		video_frame_count, gop_frame_count, "FT"[referenced]);
+		video_frame_count, vseg.gop_frame_count, "FT"[vseg.referenced]);
 
 	pr_start(21, "Picture I");
 
-	/* Initialize rate control parameters */
-
-	T = lroundn(R / ((ni + ei) + ((np + ep) * Xp + (nb + eb) * Xb / B_SHARE) / Xi));
-	/*
-	 *  T = lroundn(R / (+ (ni) * Xi / (Xi * 1.0)
-	 *		     + (np) * Xp / (Xi * 1.0)
-	 *		     + (nb) * Xb / (Xi * 1.4)));
-	 */
- 
-	if (T < Tmin)
-		T = Tmin;
-
-	Tmb = T / mb_num;
-	Ti = -d0i;
+	rc_picture_start(&vseg.rc, I_TYPE, mb_num);
 
 	quant_sum = 0;
-	act_sum = 0.0;
 
-	swap(oldref, newref);
+	swap(vseg.oldref, newref);
 
 	reset_mba();
 	reset_dct_pred();
@@ -271,7 +193,8 @@ tmp_picture_i(unsigned char *org0, unsigned char *org1, int motion)
 	bepilog(&video_out);
 
 	bputl(&video_out, PICTURE_START_CODE, 32);
-	bputl(&video_out, ((gop_frame_count & 1023) << 22) + (I_TYPE << 19) + (0 << 2), 32);
+	bputl(&video_out, ((vseg.gop_frame_count & 1023) << 22)
+	      + (I_TYPE << 19) + (0 << 2), 32);
 	/*
 	 *  temporal_reference [10], picture_coding_type [3], vbv_delay [16];
 	 *  extra_bit_picture '0', byte align '00'
@@ -298,17 +221,15 @@ tmp_picture_i(unsigned char *org0, unsigned char *org1, int motion)
 
 			/* Calculate quantization factor */
 
-			act_sum += act = var / VARQ + 1;
-			act = (2.0 * act + avg_acti) / (act + 2.0 * avg_acti);
-			quant = saturate(lroundn((bwritten(&video_out) - Ti) * r31 * act), 1, quant_max);
+			quant = rc_quant(&vseg.rc, MB_INTRA,
+					 var / VARQ + 1, 0.0,
+					 bwritten(&video_out), 0, quant_max);
 			quant = quant_res_intra[quant];
 			/*
 			 *  quant_res_intra halves the quantization factor resolution above 16 to
 			 *  reduce lookup table size (MMX DCT). Quality is already poor at 16,
 			 *  so it won't hurt very much.
 	                 */
-
-			Ti += Tmb;
 
 			if (!(TEST12 && motion))
 			if (quant >= 4 && quant > prev_quant &&
@@ -368,7 +289,7 @@ ZMB2(mblock[1], var);
 			quant_sum += quant;
 			prev_quant = quant;
 
-			if (__builtin_expect(referenced, 1)) {
+			if (__builtin_expect(vseg.referenced, 1)) {
 				pr_start(23, "IDCT intra");
 				mpeg1_idct_intra(quant);	// mblock[1] -> newref
 				pr_end(23);
@@ -376,7 +297,7 @@ ZMB2(mblock[1], var);
 				if (motion)
 					zero_forward_motion();
 
-				mba_col();
+				mba_col_incr();
 			}
 #if TEST_PREVIEW
 			if (preview > 1) {
@@ -386,7 +307,7 @@ ZMB2(mblock[1], var);
 #endif
 		}
 
-		mba_row();
+		mba_row_incr();
 	}
 
 	emms();
@@ -395,11 +316,7 @@ ZMB2(mblock[1], var);
 
 	S = bflush(&video_out);
 
-	avg_acti = act_sum / mb_num;
-
-	Xi = lroundn(S * (double) quant_sum / mb_num);
-
-	d0i += S - T; // bits encoded - estimated bits
+	rc_picture_end(&vseg.rc, I_TYPE, S, quant_sum, mb_num);
 
 	pr_end(21);
 
@@ -474,9 +391,8 @@ static inline int
 tmp_picture_p(unsigned char *org0, unsigned char *org1,
 	int motion, int dist, int forward_motion)
 {
-	double act, act_sumi, act_sump;
 	int quant_sum;
-	int S, T, quant, prev_quant, quant1 = 1;
+	int S, quant, prev_quant, quant1 = 1;
 	struct bs_rec mark;
 	struct motion M[1];
 	unsigned char *q1p;
@@ -492,14 +408,14 @@ tmp_picture_p(unsigned char *org0, unsigned char *org1,
 	}
 
 	printv(3, "Encoding P picture #%d GOP #%d, ref=%c, f_code=%d (%d)\n",
-		video_frame_count, gop_frame_count, "FT"[referenced],
+		video_frame_count, vseg.gop_frame_count, "FT"[vseg.referenced],
 		M[0].f_code, M[0].src_range);
 
 	pr_start(24, "Picture P");
 
 	/* Initialize rate control parameters */
 
-	swap(oldref, newref);
+	swap(vseg.oldref, newref);
 
 	reset_mba();
 
@@ -508,22 +424,12 @@ tmp_picture_p(unsigned char *org0, unsigned char *org1,
 		memcpy(newref, oldref, 64 * 6 * mb_num);
 #endif
 
-	T = lroundn(R / ((np + ep) + ((ni + ei) * Xi + (nb + eb) * Xb / B_SHARE) / Xp));
-
-	Ti = -d0p;
-
-	if (T < Tmin)
-		T = Tmin;
-
-	Tmb = T / mb_num;
+	rc_picture_start(&vseg.rc, P_TYPE, mb_num);
 
 	quant_sum = 0;
-	act_sump = 0.0;
-	act_sumi = 0.0;
 
 	reset_dct_pred();
 	
-
 	prev_quant = -100;
 	mb_count = 1;
 	mb_skipped = 0;
@@ -534,7 +440,8 @@ tmp_picture_p(unsigned char *org0, unsigned char *org1,
 
 	bputl(&video_out, PICTURE_START_CODE, 32);
 
-	bputl(&video_out, ((gop_frame_count & 1023) << 19) + (P_TYPE << 16) + 0, 29);
+	bputl(&video_out, ((vseg.gop_frame_count & 1023) << 19)
+	      + (P_TYPE << 16) + 0, 29);
 	bputl(&video_out, (0 << 10) + (M[0].f_code << 7) + (0 << 6), 11);
 	/*
 	 *  temporal_reference [10], picture_coding_type [3], vbv_delay [16];
@@ -550,10 +457,10 @@ tmp_picture_p(unsigned char *org0, unsigned char *org1,
 	bprolog(&video_out);
 
 	for (mb_row = 0; mb_row < mb_height; mb_row++) {
-		if (1 && __builtin_expect(mb_row == mb_cx_row &&
-		    intra_count >= mb_cx_thresh, 0)) {
+		if (1 && __builtin_expect(mb_row == vseg.mb_cx_row &&
+		    intra_count >= vseg.mb_cx_thresh, 0)) {
 			emms();
-			swap(oldref, newref);
+			swap(vseg.oldref, newref);
 			pr_event(43, "P/cx trap");
 			return 0;
 		}
@@ -572,17 +479,15 @@ tmp_picture_p(unsigned char *org0, unsigned char *org1,
 				pr_end(56);
 
 				pr_start(51, "Predict forward");
-				vmc = predict_forward_motion(&M[0], oldref, dist);
+				vmc = predict_forward_motion(&M[0], vseg.oldref, dist);
 				pr_end(51);
 			} else {
 				pr_start(51, "Predict forward");
-				vmc = predict_forward(oldref + mb_address.block[0].offset);
+				vmc = vseg.predict_forward(vseg.oldref + mb_address.block[0].offset);
 				pr_end(51);
 			}
 
 			emms();
-
-			act_sumi += act = var / VARQ + 1;
 
 			/* Encode macroblock */
 
@@ -592,22 +497,19 @@ tmp_picture_p(unsigned char *org0, unsigned char *org1,
 				 && (var < (LOWVAR / 6)))
 				|| vmc > p_inter_bias))
 			{
+				double act = var / VARQ + 1;
 				unsigned int code;
 				int length, i;
 
 				/* Calculate quantization factor */
 
-				act_sump += act;
-				act = (2.0 * act + avg_actp) / (act + 2.0 * avg_actp);
-
-				quant = lroundn((bwritten(&video_out) - Ti) * r31 * act);
-				quant = saturate(quant >> QS, 1, quant_max);
+				quant = rc_quant(&vseg.rc, MB_FORWARD,
+						 act, act,
+						 bwritten(&video_out), QS, quant_max);
 				quant = quant_res_intra[quant];
 
-//				if (quant >= 4 && abs(quant - prev_quant) <= 2)
+//				if (quant >= 4 && nbabs(quant - prev_quant) <= 2)
 //					quant = prev_quant;
-
-				Ti += Tmb;
 
 				intra_count++;
 ZMB1(var);
@@ -626,7 +528,7 @@ ZMB1(var);
 					M[0].PMV[1] = 0;
 				}
 
-				if (__builtin_expect(referenced, 1)) {
+				if (__builtin_expect(vseg.referenced, 1)) {
 					pr_start(23, "IDCT intra");
 					mpeg1_idct_intra(quant); // mblock[0] -> new
 					pr_end(23);
@@ -640,17 +542,13 @@ ZMB1(var);
 
 				/* Calculate quantization factor */
 
-				act_sump += act = vmc / VARQ + 1;
-				act = (2.0 * act + avg_actp) / (act + 2.0 * avg_actp);
-
-				quant = saturate(lroundn((bwritten(&video_out) - Ti) * r31 * act), 1, quant_max);
-
+				quant = rc_quant(&vseg.rc, MB_FORWARD,
+						 var / VARQ + 1, vmc / VARQ + 1,
+						 bwritten(&video_out), 0, quant_max);
 if (!T3RT) quant = 2;
 
-//				if (quant >= 4 && abs(quant - prev_quant) <= 2)
+//				if (quant >= 4 && nbabs(quant - prev_quant) <= 2)
 //					quant = prev_quant;
-
-				Ti += Tmb;
 
 				if (motion) {
 					dmv[0][0] = (M[0].MV[0] - M[0].PMV[0]) & M[0].f_mask;
@@ -671,7 +569,7 @@ if (!T3RT) quant = 2;
 
 					if (cbp == 0 && mb_count > 1 && mb_count < mb_num &&
 						(!motion || (M[0].MV[0] | M[0].MV[1]) == 0)) {
-						mmx_copy_refblock();
+		printv(0, "###\n");		mmx_copy_refblock();
 						i++;
 						break;
 					} else {
@@ -735,7 +633,7 @@ if (!T3RT) quant = 2;
 									quant1 = quant;
 								prev_quant = quant;
 				
-								if (__builtin_expect(referenced, 1)) {
+								if (__builtin_expect(vseg.referenced, 1)) {
 						    			pr_start(27, "IDCT inter");
 									mpeg1_idct_inter(quant, cbp); // [0] & [3]
 									pr_end(27);
@@ -761,7 +659,7 @@ if (!T3RT) quant = 2;
 				reset_dct_pred();
 			}
 
-			mba_col();
+			mba_col_incr();
 			mb_count++;
 #if TEST_PREVIEW
 			if (preview > 1) {
@@ -771,7 +669,7 @@ if (!T3RT) quant = 2;
 #endif
 		}
 
-		mba_row();
+		mba_row_incr();
 	}
 
 	emms();
@@ -785,12 +683,7 @@ if (!T3RT) quant = 2;
 	
 	*q1p |= (quant1 << 3);
 
-	avg_actp = act_sump / mb_num;
-	avg_acti = act_sumi / mb_num;
-
-	Xp = lroundn(S * (double) quant_sum / mb_num);
-
-	d0p += S - T;
+	rc_picture_end(&vseg.rc, P_TYPE, S, quant_sum, mb_num);
 
 	pr_end(24);
 
@@ -802,16 +695,13 @@ if (!T3RT) quant = 2;
 	return S >> 3;
 }
 
-#define GLITCH (0 && mb_row == 6 && mb_col == 13 && video_frame_count == 5)
-
 static inline int
 tmp_picture_b(unsigned char *org0, unsigned char *org1,
 	int motion, int dist, int forward_motion, int backward_motion)
 {
-	double act, act_sum;
 	short (* iblock)[6][8][8];
 	int quant_sum;
-	int S, T, quant, prev_quant, quant1 = 1;
+	int S, quant, prev_quant, quant1 = 1;
 	struct bs_rec mark;
 	unsigned char *q1p;
 	unsigned int var, vmc, vmcf, vmcb;
@@ -828,31 +718,16 @@ tmp_picture_b(unsigned char *org0, unsigned char *org1,
 	}
 
 	printv(3, "Encoding B picture #%d GOP #%d, fwd=%c, f_code=%d (%d), %d (%d)\n",
-		video_frame_count, gop_frame_count, "FT"[!closed_gop],
+		video_frame_count, vseg.gop_frame_count, "FT"[!vseg.closed_gop],
 		M[0].f_code, M[0].src_range, M[1].f_code, M[1].src_range);
 
 	pr_start(25, "Picture B");
 
-	/* Initialize rate control parameters */
-
 	reset_mba();
 
-	T = lroundn(R / (((ni + ei) * Xi + (np + ep) * Xp) * B_SHARE / Xb + (nb + eb)));
-	/*
-	 *  T = lroundn(R / (+ (ni + ei) * Xi * 1.4 / Xb
-	 *		     + (np + ep) * Xp * 1.4 / Xb
-	 *		     + (nb + eb) * Xb / Xb));
-	 */
-
-	Ti = -d0b;
-
-	if (T < Tmin)
-		T = Tmin;
-
-	Tmb = T / mb_num;
+	rc_picture_start(&vseg.rc, B_TYPE, mb_num);
 
 	quant_sum = 0;
-	act_sum = 0.0;
 
 	reset_dct_pred();
 
@@ -869,7 +744,8 @@ tmp_picture_b(unsigned char *org0, unsigned char *org1,
 
 	bputl(&video_out, PICTURE_START_CODE, 32);
 
-	bputl(&video_out, ((gop_frame_count & 1023) << 19) + (B_TYPE << 16) + 0, 29);
+	bputl(&video_out, ((vseg.gop_frame_count & 1023) << 19)
+	      + (B_TYPE << 16) + 0, 29);
 	bputl(&video_out, (0 << 10) + (M[0].f_code << 7) + (0 << 6)
 			            + (M[1].f_code << 3) + (0 << 2), 11);
 	/*
@@ -904,46 +780,21 @@ if (T3RI
 	 )))
 	goto skip_pred;
 
-			if (__builtin_expect(!closed_gop, 1)) {
+			if (__builtin_expect(!vseg.closed_gop, 1)) {
 				pr_start(52, "Predict bidirectional");
 
 				if (motion)
 					vmc = predict_bidirectional_motion(M, &vmcf, &vmcb, dist);
 				else
-					vmc = predict_bidirectional(
-						oldref + mb_address.block[0].offset,
+					vmc = vseg.predict_bidirectional(
+						vseg.oldref + mb_address.block[0].offset,
 						newref + mb_address.block[0].offset,
 						&vmcf, &vmcb);
 				pr_end(52);
 
 				macroblock_type = MB_INTERP;
 				iblock = &mblock[3];
-if (GLITCH) {
-    int i, j, k, l;
 
-    for (i = 0; i < 4; i++) {
-	long n, s, s2;
-
-	printv(1, "mblock #%d\n", i);
-	for (j = 0; j < 1; j++) {
-    	    printv(1, "block #%d:\n", j);
-    	    for (k = 0; k < 8; k++) {
-        	for (l = 0; l < 8; l++)
-            	    printv(1, "%3d ", mblock[i][j][k][l]);
-    		printv(1, "\n");
-    	    }
-	}
-
-	s = s2 = 0;
-	for (j = 0; j < 4 * 64; j++) {
-	    s += n = mblock[i][0][0][j];
-	    s2 += n * n;
-	}
-	n = s2 * 256 - (s * s);
-	printv(1, "act: %ld s=%ld s2=%ld\n", n, s, s2);
-    }
-    printv(1, "vmc=%d vmcf=%d vmcb=%d\n", vmc, vmcf, vmcb);
-}
 				if (vmcf <= vmcb && vmcf <= vmc) {
 					if (motion) {
 						/* -> dmv */
@@ -968,15 +819,11 @@ if (GLITCH) {
 					M[0].MV[0] = M[0].PMV[0];
 					vmc = predict_forward_motion(&M[1], newref, dist);
 				} else
-					vmc = predict_forward(newref + mb_address.block[0].offset);
+					vmc = vseg.predict_forward(newref + mb_address.block[0].offset);
 
 				macroblock_type = MB_BACKWARD;
 				iblock = &mblock[1];
 			}
-if (GLITCH) {
-    printv(1, "mb_type %d\n", macroblock_type);
-}
-
 skip_pred:
 			emms();
 
@@ -989,19 +836,16 @@ skip_pred:
 				|| vmc > p_inter_bias
 				))
 			{
+				double act = var / VARQ + 1;
 				unsigned int code;
 				int length, i;
 
 				/* Calculate quantization factor */
 
-				act_sum += act = var / VARQ + 1;
-				act = (2.0 * act + avg_actp) / (act + 2.0 * avg_actp);
-
-				quant = lroundn((bwritten(&video_out) - Ti) * r31 * act);
-				quant = saturate(quant >> QS, 1, quant_max);
+				quant = rc_quant(&vseg.rc, MB_FORWARD,
+						 act, act,
+						 bwritten(&video_out), QS, quant_max);
 				quant = quant_res_intra[quant];
-
-				Ti += Tmb;
 
 				macroblock_type = MB_INTRA;
 ZMB1(var);
@@ -1027,10 +871,9 @@ ZMB1(var);
 
 				/* Calculate quantization factor */
 
-				act_sum += act = vmc / VARQ + 1;
-				act = (2.0 * act + avg_actp) / (act + 2.0 * avg_actp);
-
-				quant = lroundn((bwritten(&video_out) - Ti) * r31 * act);
+				quant = rc_quant(&vseg.rc, MB_INTERP,
+						 var / VARQ + 1, vmc / VARQ + 1,
+						 bwritten(&video_out), 0, quant_max);
 
 				if (quant < 1) quant = 1;
 				else
@@ -1038,13 +881,8 @@ ZMB1(var);
 //				else
 				if (quant > quant_max) quant = quant_max;
 
-if (GLITCH) {
-    printv(1, "inter quant=%d\n", quant);
-}
 
 if (!T3RT) quant = 2;
-
-				Ti += Tmb;
 
 				if (motion) {
 					dmv[0][0] = (M[0].MV[0] - M[0].PMV[0]) & M[0].f_mask;
@@ -1173,13 +1011,13 @@ if (!T3RT) quant = 2;
 				reset_dct_pred();
 			}
 
-			mba_col();
+			mba_col_incr();
 
 			mb_count++;
 			mb_type_last = macroblock_type;
 		}
 
-		mba_row();
+		mba_row_incr();
 	}
 
 	emms();
@@ -1190,11 +1028,7 @@ if (!T3RT) quant = 2;
 
 	*q1p |= (quant1 << 3);
 
-	avg_actp = act_sum / mb_num;
-
-	Xb = lroundn(S * (double) quant_sum / mb_num);
-
-	d0b += S - T;
+	rc_picture_end(&vseg.rc, B_TYPE, S, quant_sum, mb_num);
 
 	pr_end(25);
 
@@ -1240,7 +1074,7 @@ picture_b_mc(unsigned char *org0, unsigned char *org1, int dist,
 }
 
 static int
-picture_zero(void)
+picture_zero(video_context *vc)
 {
 	unsigned int code;
 	int length, i;
@@ -1251,7 +1085,8 @@ picture_zero(void)
 
 	bputl(&video_out, PICTURE_START_CODE, 32);
 	
-	bputl(&video_out, ((gop_frame_count & 1023) << 19) + (P_TYPE << 16) + 0, 29);
+	bputl(&video_out, ((vc->gop_frame_count & 1023) << 19)
+	      + (P_TYPE << 16) + 0, 29);
 	bputl(&video_out, (0 << 10) + (1 << 7) + (0 << 6), 11);
 	/*
 	 *  temporal_reference [10], picture_coding_type [3], vbv_delay [16];
@@ -1293,7 +1128,7 @@ sequence_header(void)
 
 	printv(3, "Encoding sequence header\n");
 
-	switch (frame_rate_code) {
+	switch (vseg.frame_rate_code) {
 	case 1: // square pixels 23.97 Hz
 	case 2: // square pixels 24 Hz
 		aspect = 1;
@@ -1312,7 +1147,7 @@ sequence_header(void)
 		break;
 
 	default:
-		FAIL("Invalid frame_rate_code %d", frame_rate_code);
+		FAIL("Invalid frame_rate_code %d", vseg.frame_rate_code);
 	}
 
 	bit_rate = ceil(video_bit_rate / 400.0);
@@ -1321,17 +1156,17 @@ sequence_header(void)
 
 	bputl(&video_out, SEQUENCE_HEADER_CODE, 32);
 
-	bputl(&video_out, width & 0xFFF, 12);		// horizontal_size_value
-	bputl(&video_out, height & 0xFFF, 12);		// vertical_size_value
+	bputl(&video_out, width & 0xFFF, 12);		/* horizontal_size_value */
+	bputl(&video_out, height & 0xFFF, 12);		/* vertical_size_value */
 
-	bputl(&video_out, aspect, 4);			// aspect_ratio_information
-	bputl(&video_out, frame_rate_code, 4);		// frame_rate_code
-	bputl(&video_out, bit_rate & 0x3FFFF, 18);	// bit_rate_value
-	bputl(&video_out, 1, 1);			// marker_bit
-	bputl(&video_out, 0 & 0x3FF, 10);		// vbv_buffer_size_value
-	bputl(&video_out, 0, 1);			// constrained_parameters_flag
-	bputl(&video_out, 0, 1);			// load_intra_quantizer_matrix
-	bputl(&video_out, 0, 1);			// load_non_intra_quantizer_matrix
+	bputl(&video_out, aspect, 4);			/* aspect_ratio_information */
+	bputl(&video_out, vseg.frame_rate_code, 4);	/* frame_rate_code */
+	bputl(&video_out, bit_rate & 0x3FFFF, 18);	/* bit_rate_value */
+	bputl(&video_out, 1, 1);			/* marker_bit */
+	bputl(&video_out, 0 & 0x3FF, 10);		/* vbv_buffer_size_value */
+	bputl(&video_out, 0, 1);		/* constrained_parameters_flag */
+	bputl(&video_out, 0, 1);		/* load_intra_quantizer_matrix */
+	bputl(&video_out, 0, 1);		/* load_non_intra_quantizer_matrix */
 
 	bprolog(&video_out);
 
@@ -1352,10 +1187,6 @@ user_data(char *s)
 	}
 }
 
-
-
-
-
 #define Rvbr (1.0 / 64)
 
 static inline void
@@ -1363,18 +1194,11 @@ _send_full_buffer(producer *p, buffer *b)
 {
         if (b->used > 0)
 	        video_eff_bit_rate +=
-			((b->used * 8) * frames_per_sec
+			((b->used * 8) * vseg.frames_per_sec
 			 - video_eff_bit_rate) * Rvbr;
 
 	send_full_buffer(p, b);
 }
-
-
-static struct {
-	unsigned char * org[2];
-	buffer *	buffer;
-	double		time;
-} stack[MAX_B_SUCC], last, buddy, *this;
 
 static void
 promote(int n)
@@ -1385,41 +1209,44 @@ promote(int n)
 	for (i = 0; i < n; i++) {
 		printv(3, "Promoting stacked B picture #%d\n", i);
 
-		obuf = wait_empty_buffer(&video_prod);
-		referenced = TRUE;
-		Ep++; Eb--;
+		obuf = wait_empty_buffer(&vseg.prod);
+		vseg.referenced = TRUE;
+		vseg.rc.Ep++; vseg.rc.Eb--;
 
 		obuf->used = 0;
 
-		if (p_succ < MAX_P_SUCC) {
+		if (vseg.p_succ < MAX_P_SUCC) {
 			bstart(&video_out, obuf->data);
-			if ((obuf->used = picture_p(stack[i].org[0], stack[i].org[1], 1, motion))) {
+			if ((obuf->used = vseg.picture_p(vseg.stack[i].org[0],
+							 vseg.stack[i].org[1], 1,
+							 motion))) {
 				obuf->type = P_TYPE;
-				p_succ++;
-				p_dist = 0;
+				vseg.p_succ++;
+				vseg.p_dist = 0;
 			}
 		}
 
 		if (!obuf->used) {
-			Ei++; Ep--;
+			vseg.rc.Ei++; vseg.rc.Ep--;
 			bstart(&video_out, obuf->data);
-			obuf->used = picture_i(stack[i].org[0], stack[i].org[1]);
+			obuf->used = vseg.picture_i(vseg.stack[i].org[0],
+						    vseg.stack[i].org[1]);
 			obuf->type = I_TYPE;
-			p_succ = 0;
-			p_dist = 0;
+			vseg.p_succ = 0;
+			vseg.p_dist = 0;
 		}
 
-		if (stack[i].buffer)
-			send_empty_buffer(&cons, stack[i].buffer);
+		if (vseg.stack[i].buffer)
+			send_empty_buffer(&vseg.cons, vseg.stack[i].buffer);
 
 		obuf->offset = 1;
-		obuf->time = stack[i].time;
+		obuf->time = vseg.stack[i].time;
 
-		_send_full_buffer(&video_prod, obuf);
+		_send_full_buffer(&vseg.prod, obuf);
 
 		video_frame_count++;
-		seq_frame_count++;
-		gop_frame_count++;
+		vseg.seq_frame_count++;
+		vseg.gop_frame_count++;
 	}
 }
 
@@ -1429,57 +1256,59 @@ resume(int n)
 	int i;
 	buffer *obuf, *last = NULL;
 
-	referenced = FALSE;
-	p_succ = 0;
-	p_dist = 0;
+	vseg.referenced = FALSE;
+	vseg.p_succ = 0;
+	vseg.p_dist = 0;
 
 	for (i = 0; i < n; i++) {
-		if (!stack[i].org[0]) {
+		if (!vseg.stack[i].org[0]) {
 			assert(last != NULL);
 
-			obuf = wait_empty_buffer(&video_prod);
+			obuf = wait_empty_buffer(&vseg.prod);
 
 			printv(3, "Dupl'ing B picture #%d GOP #%d\n",
-				video_frame_count, gop_frame_count);
+				video_frame_count, vseg.gop_frame_count);
 
 			memcpy(obuf->data, last->data, last->used);
 			
 			((unsigned int *) obuf->data)[1] =
 				swab32((swab32(((unsigned int *) obuf->data)[1]) & ~(1023 << 22)) |
-					((gop_frame_count & 1023) << 22));
+					((vseg.gop_frame_count & 1023) << 22));
 
 			obuf->type = B_TYPE;
 			obuf->offset = 0;
 			obuf->used = last->used;
-			obuf->time = stack[i].time;
+			obuf->time = vseg.stack[i].time;
 
-			_send_full_buffer(&video_prod, last);
+			_send_full_buffer(&vseg.prod, last);
 		} else {
-			obuf = wait_empty_buffer(&video_prod);
+			obuf = wait_empty_buffer(&vseg.prod);
 			bstart(&video_out, obuf->data);
-			obuf->used = picture_b(stack[i].org[0], stack[i].org[1],
-				i + 1, (i + 1) * motion, (n - i) * motion);
+			obuf->used = vseg.picture_b(vseg.stack[i].org[0],
+						    vseg.stack[i].org[1],
+						    i + 1, (i + 1) * motion,
+						    (n - i) * motion);
 
-			if (stack[i].buffer)
-				send_empty_buffer(&cons, stack[i].buffer);
+			if (vseg.stack[i].buffer)
+				send_empty_buffer(&vseg.cons, vseg.stack[i].buffer);
 
 			obuf->type = B_TYPE;
 			obuf->offset = 0;
-			obuf->time = stack[i].time;
+			obuf->time = vseg.stack[i].time;
 
 			if (last)
-				_send_full_buffer(&video_prod, last);
+				_send_full_buffer(&vseg.prod, last);
 		}
 
 		last = obuf;
 
 		video_frame_count++;
-		seq_frame_count++;
-		gop_frame_count++;
+		vseg.seq_frame_count++;
+		vseg.gop_frame_count++;
 	}
 
 	if (last)
-		_send_full_buffer(&video_prod, last);
+		_send_full_buffer(&vseg.prod, last);
 }
 
 char video_do_reset = FALSE;
@@ -1496,44 +1325,45 @@ mpeg1_video_ipb(void *capture_fifo)
 	printv(3, "Video compression thread\n");
 
 	ASSERT("add video cons",
-		add_consumer((fifo *) capture_fifo, &cons));
+		add_consumer((fifo *) capture_fifo, &vseg.cons));
 
 	memset(&sstr, 0, sizeof(sstr));
 	sstr.this_module = MOD_VIDEO;
-	sstr.frame_period = time_per_frame;
+	sstr.frame_period = vseg.time_per_frame;
 
-	mp1e_sync_run_in(&sstr, &cons, NULL);
+	mp1e_sync_run_in(&sstr, &vseg.cons, NULL);
 
 	while (!done) {
+		stacked_frame *this = NULL;
 		int sp = 0;
 
 		for (;;) {
-			this = stack + sp;
+			this = vseg.stack + sp;
 
-			if (last.org[0]) {
+			if (vseg.last.org[0]) {
 				// Recover post dropped frame
-				*this = last;
-				last.org[0] = NULL;
+				*this = vseg.last;
+				vseg.last.org[0] = NULL;
 			} else {
 				if (temporal_interpolation) {
 					buffer *b;
 
-					this->buffer = buddy.buffer;
-					this->org[1] = buddy.org[0];
+					this->buffer = vseg.buddy.buffer;
+					this->org[1] = vseg.buddy.org[0];
 
-					b = wait_full_buffer(&cons);
+					b = wait_full_buffer(&vseg.cons);
 
 					if (b->used > 0) {
 						this->time = b->time;
 						this->org[0] = b->data;
 
 						if (b->data) {
-							buddy.buffer = b;
-							buddy.org[0] = b->data;
+							vseg.buddy.buffer = b;
+							vseg.buddy.org[0] = b->data;
 						}
 					} else {
 						this->org[0] = NULL;
-						send_empty_buffer(&cons, b);
+						send_empty_buffer(&vseg.cons, b);
 					}
 					
 					if (!this->org[1]) {
@@ -1544,14 +1374,14 @@ mpeg1_video_ipb(void *capture_fifo)
 					buffer *b;
 
 					this->buffer = b = 
-						wait_full_buffer(&cons);
+						wait_full_buffer(&vseg.cons);
 
 					if (b->used > 0) {
 						this->time = b->time;
 						this->org[0] = b->data;
 					} else {
 						this->org[0] = NULL;
-						send_empty_buffer(&cons, b);
+						send_empty_buffer(&vseg.cons, b);
 					}
 				}
 #if TEST_PREVIEW
@@ -1574,10 +1404,11 @@ mpeg1_video_ipb(void *capture_fifo)
 				printv(2, "Video: End of file\n");
 
 				if (this->org[0] && this->buffer)
-					send_empty_buffer(&cons, this->buffer);
+					send_empty_buffer(&vseg.cons, this->buffer);
 
-				if (buddy.org[0])
-					send_empty_buffer(&cons, buddy.buffer);
+				if (vseg.buddy.org[0])
+					send_empty_buffer(&vseg.cons,
+							  vseg.buddy.buffer);
 
 				while (*seq == 'B')
 					seq++;
@@ -1592,33 +1423,34 @@ mpeg1_video_ipb(void *capture_fifo)
 				goto next_frame; // finish with B*[PI]
 			}
 
-			skip_rate_acc += frame_rate;
+			vseg.skip_rate_acc += frame_rate;
 
-			if (last.time && last.time + drop_timeout < this->time) {
+			if (vseg.last.time
+			    && vseg.last.time + vseg.drop_timeout < this->time) {
 				// video_frames_dropped++;
 
-				last = *this;
+				vseg.last = *this;
 
 				this->org[0] = NULL;
-				this->time = last.time + time_per_frame;
+				this->time = vseg.last.time + vseg.time_per_frame;
 
-				if (skip_rate_acc >= frames_per_sec) {
+				if (vseg.skip_rate_acc >= vseg.frames_per_sec) {
 					video_frames_dropped++;
 					
 					if (sp >= 2 && *seq == 'B') { // Have BB, duplicate last B
 				    		goto next_frame;
 					} else // skip this
-						skip_rate_acc = 0;
+						vseg.skip_rate_acc = 0;
 				} // else we skip it anyway
 			} else
-				last.time = this->time;
+				vseg.last.time = this->time;
 
-			if (skip_rate_acc < frames_per_sec) {
+			if (vseg.skip_rate_acc < vseg.frames_per_sec) {
 				if (this->org[0] && this->buffer)
-					send_empty_buffer(&cons, this->buffer);
+					send_empty_buffer(&vseg.cons, this->buffer);
 
 				if (hack2) {
-					obuf = wait_empty_buffer(&video_prod);
+					obuf = wait_empty_buffer(&vseg.prod);
 
 					obuf->type = B_TYPE;
 					obuf->offset = 0;
@@ -1627,39 +1459,39 @@ mpeg1_video_ipb(void *capture_fifo)
 
 					memset(obuf->data, 0, 4);
 
-					_send_full_buffer(&video_prod, obuf);
+					_send_full_buffer(&vseg.prod, obuf);
 
 					video_frame_count++;
-					gop_frame_count++;
+					vseg.gop_frame_count++;
 					sp--;
 				} else {
-					assert(sp == 1 || gop_frame_count > 0);
+					assert(sp == 1 || vseg.gop_frame_count > 0);
 
 					promote(sp - 1);
 
-					assert(gop_frame_count > 0);
+					assert(vseg.gop_frame_count > 0);
 
 					printv(3, "Encoding 0 picture #%d GOP #%d\n",
-						video_frame_count, gop_frame_count);
+						video_frame_count, vseg.gop_frame_count);
 
-					obuf = wait_empty_buffer(&video_prod);
+					obuf = wait_empty_buffer(&vseg.prod);
 
-					memcpy(obuf->data, zerop_template, Sz);
+					memcpy(obuf->data, vseg.zerop_template, vseg.Sz);
 
 					((unsigned int *) obuf->data)[1] =
 						swab32((swab32(((unsigned int *) obuf->data)[1]) & ~(1023 << 22)) |
-							((gop_frame_count & 1023) << 22));
+							((vseg.gop_frame_count & 1023) << 22));
 
 					obuf->type = P_TYPE;
 					obuf->offset = 1;
-					obuf->used = Sz;
+					obuf->used = vseg.Sz;
 					obuf->time = this->time;
 
-					_send_full_buffer(&video_prod, obuf);
+					_send_full_buffer(&vseg.prod, obuf);
 
 					video_frame_count++;
-					gop_frame_count++;
-					p_dist++;
+					vseg.gop_frame_count++;
+					vseg.p_dist++;
 
 					sp = 0;
 				}
@@ -1667,7 +1499,7 @@ mpeg1_video_ipb(void *capture_fifo)
 				continue;
 			}
 next_frame:
-			skip_rate_acc -= frames_per_sec;
+			vseg.skip_rate_acc -= vseg.frames_per_sec;
 
 			if (*seq != 'B')
 				break;
@@ -1679,7 +1511,7 @@ next_frame:
 
 		/* Encode P or I picture plus sequence or GOP headers */
 
-		obuf = wait_empty_buffer(&video_prod);
+		obuf = wait_empty_buffer(&vseg.prod);
 		bstart(&video_out, obuf->data);
 
 		if (!*seq) {
@@ -1699,35 +1531,35 @@ if (video_do_reset) {
 
 			/* Sequence header */
 
-			if (seq_frame_count >= frames_per_seqhdr) {
+			if (vseg.seq_frame_count >= frames_per_seqhdr) {
 				printv(3, "[Sequence header]\n");
 
-				memcpy(video_out.p, seq_header_template, 16);
+				memcpy(video_out.p, vseg.seq_header_template, 16);
 				video_out.p += 16 * 8 / 64;
 
-				if (video_frame_count == 0 && banner)
-					user_data(banner);
+				if (video_frame_count == 0 && vseg.banner)
+					user_data(vseg.banner);
 
-				seq_frame_count = 0;
-				closed_gop = TRUE;
+				vseg.seq_frame_count = 0;
+				vseg.closed_gop = TRUE;
 			}
 
 			/* GOP header */
 
-			if (insert_gop_header) {
+			if (vseg.insert_gop_header) {
 				if (sp == 1)
-					closed_gop = TRUE;
+					vseg.closed_gop = TRUE;
 
-				printv(3, "[GOP header, closed=%c]\n", "FT"[closed_gop]);
+				printv(3, "[GOP header, closed=%c]\n", "FT"[vseg.closed_gop]);
 
 				bputl(&video_out, GROUP_START_CODE, 32);
-				bputl(&video_out, (closed_gop << 19) + (0 << 6), 32);
+				bputl(&video_out, (vseg.closed_gop << 19) + (0 << 6), 32);
 				/*
 				 *  time_code [25 w/marker_bit] omitted, closed_gop,
 				 *  broken_link '0', byte align [5]
 				 */
 
-				gop_frame_count = 0;
+				vseg.gop_frame_count = 0;
 			}
 
 			bprolog(&video_out);
@@ -1736,97 +1568,98 @@ if (video_do_reset) {
 			seq = gop_sequence;
 
 // XXX
-if (gop_count > 0) {
-ei = Ei / gop_count;
-ep = Ep / gop_count;
-eb = Eb / gop_count;
+if (vseg.rc.gop_count > 0) {
+vseg.rc.ei = vseg.rc.Ei / vseg.rc.gop_count;
+vseg.rc.ep = vseg.rc.Ep / vseg.rc.gop_count;
+vseg.rc.eb = vseg.rc.Eb / vseg.rc.gop_count;
 }
-gop_count++;
+vseg.rc.gop_count++;
 //printv(0, "Eit=%f Ept=%f Ebt=%f \n", ei, ep, eb);
 
-			printv(4, "Rewind sequence R=%d\n", R);
+			printv(4, "Rewind sequence R=%d\n", vseg.rc.R);
 
-			G0 = Gn;
-			ob = 0;
+			vseg.rc.G0 = vseg.rc.Gn;
+			vseg.rc.ob = 0;
 		}
 
 		/* Encode current or forward P or I picture */
 
-		gop_frame_count += sp - 1;
+		vseg.gop_frame_count += sp - 1;
 
-		referenced = (seq[1] == 'P') || (seq[1] == 'B') || (sp > 1) || preview;
+		vseg.referenced = (seq[1] == 'P') || (seq[1] == 'B')
+			|| (sp > 1) || preview;
 
 		obuf->used = 0;
 
-		if (*seq++ == 'P' && p_succ < MAX_P_SUCC) {
+		if (*seq++ == 'P' && vseg.p_succ < MAX_P_SUCC) {
 			struct bs_rec mark;
 
 			brewind(&mark, &video_out);
 
-			if ((obuf->used = picture_p(this->org[0], this->org[1], sp + p_dist, motion))) {
+			if ((obuf->used = vseg.picture_p(this->org[0], this->org[1], sp + vseg.p_dist, motion))) {
 				obuf->type = P_TYPE;
-				p_succ++;
-				p_dist = 0;
+				vseg.p_succ++;
+				vseg.p_dist = 0;
 			} else {
 				brewind(&video_out, &mark); // headers
 
-				obuf->used = picture_i(this->org[0], this->org[1]);
+				obuf->used = vseg.picture_i(this->org[0], this->org[1]);
 				obuf->type = I_TYPE;
-				p_succ = 0;
-				p_dist = 0;
+				vseg.p_succ = 0;
+				vseg.p_dist = 0;
 			}
 		} else {
-			obuf->used = picture_i(this->org[0], this->org[1]);
+			obuf->used = vseg.picture_i(this->org[0], this->org[1]);
 			obuf->type = I_TYPE;
-			p_succ = 0;
+			vseg.p_succ = 0;
 		}
 
 		if (this->buffer)
-			send_empty_buffer(&cons, this->buffer);
+			send_empty_buffer(&vseg.cons, this->buffer);
 
 		obuf->offset = sp;
 		obuf->time = this->time;
 
-		_send_full_buffer(&video_prod, obuf);
+		_send_full_buffer(&vseg.prod, obuf);
 
 		video_frame_count++;
-		seq_frame_count++;
+		vseg.seq_frame_count++;
 
 		/* Encode stacked B pictures */
 
-		gop_frame_count -= sp - 1;
+		vseg.gop_frame_count -= sp - 1;
 
 		resume(sp - 1);
 
 		sp = 0;
-		gop_frame_count++;
+		vseg.gop_frame_count++;
 
-		closed_gop = FALSE;
+		vseg.closed_gop = FALSE;
 	}
 
 finish:
 	/* Stream end code */
 
 	if (video_frame_count > 0) {
-		obuf = wait_empty_buffer(&video_prod);
+		obuf = wait_empty_buffer(&vseg.prod);
 		((unsigned int *) obuf->data)[0] = swab32(SEQUENCE_END_CODE);
 		obuf->type = 0;
 		obuf->offset = 1;
 		obuf->used = 4;
-		obuf->time = last.time += time_per_frame; /* not used */
-		_send_full_buffer(&video_prod, obuf);
+		obuf->time = vseg.last.time += vseg.time_per_frame; /* not used */
+		_send_full_buffer(&vseg.prod, obuf);
 	}
 
 	/* End of file */
 
-	obuf = wait_empty_buffer(&video_prod);
+	obuf = wait_empty_buffer(&vseg.prod);
 	obuf->type = 0;
 	obuf->offset = 1;
 	obuf->used = 0; /* EOF */
 	obuf->time = 0;
-	_send_full_buffer(&video_prod, obuf);
+	_send_full_buffer(&vseg.prod, obuf);
 
-	rem_consumer(&cons);
+	rem_consumer(&vseg.cons);
 
 	return NULL;
 }
@@ -1836,52 +1669,54 @@ video_reset(void)
 {
 	double x;
 
-	seq_frame_count = frames_per_seqhdr;
-	gop_frame_count = 0;
+	vseg.seq_frame_count = frames_per_seqhdr;
+	vseg.gop_frame_count = 0;
 
-	frames_per_sec = frame_rate_value[frame_rate_code];
-	skip_rate_acc = frames_per_sec - frame_rate + frames_per_sec / 2.0;
-	time_per_frame = 1.0 / frames_per_sec;
-	drop_timeout = time_per_frame * 1.5;
+	vseg.frames_per_sec = frame_rate_value[vseg.frame_rate_code];
+	vseg.skip_rate_acc = vseg.frames_per_sec - frame_rate + vseg.frames_per_sec / 2.0;
+	vseg.time_per_frame = 1.0 / vseg.frames_per_sec;
+	vseg.drop_timeout = vseg.time_per_frame * 1.5;
 
-	R	= 0;
-	r31	= (double) quant_max / lroundn(video_bit_rate / frame_rate * 1.0);
-	Tmin	= lroundn(video_bit_rate / frame_rate / 8.0);
-	avg_acti = 400.0;
-	avg_actp = 400.0;
+	vseg.rc.R	= 0;
+	vseg.rc.r31	= (double) quant_max / lroundn(video_bit_rate / frame_rate * 1.0);
+	vseg.rc.Tmin	= lroundn(video_bit_rate / frame_rate / 8.0);
+	vseg.rc.avg_acti = 400.0;
+	vseg.rc.avg_actp = 400.0;
 
-	Xi	= lroundn(160.0 * video_bit_rate / 115.0);
-	Xp	= lroundn( 60.0 * video_bit_rate / 115.0); 
-	Xb	= lroundn( 42.0 * video_bit_rate / 115.0); 
+	vseg.rc.Xi	= lroundn(160.0 * video_bit_rate / 115.0);
+	vseg.rc.Xp	= lroundn( 60.0 * video_bit_rate / 115.0); 
+	vseg.rc.Xb	= lroundn( 42.0 * video_bit_rate / 115.0); 
 
-	d0i	= 10.0 / r31;
-	d0p	= 10.0 / r31;
-	d0b	= 14.0 / r31;
+	vseg.rc.d0i	= 10.0 / vseg.rc.r31;
+	vseg.rc.d0p	= 10.0 / vseg.rc.r31;
+	vseg.rc.d0b	= 14.0 / vseg.rc.r31;
 
-	x	= frames_per_sec / frame_rate - 1.0;
+	x	= vseg.frames_per_sec / frame_rate - 1.0;
 
-	G0	= lroundn((ni + np + nb - ob) * video_bit_rate / frame_rate);
-	Gn	= lroundn((ni + np + nb) * video_bit_rate / frame_rate);
+	vseg.rc.G0	= lroundn((vseg.rc.ni + vseg.rc.np + vseg.rc.nb - vseg.rc.ob)
+				  * video_bit_rate / frame_rate);
+	vseg.rc.Gn	= lroundn((vseg.rc.ni + vseg.rc.np + vseg.rc.nb)
+				  * video_bit_rate / frame_rate);
 	
-	Gn	-= (ni + np + nb) * x * Sz;
+	vseg.rc.Gn	-= (vseg.rc.ni + vseg.rc.np + vseg.rc.nb) * x * vseg.Sz;
 
-	Tavg	= lroundn(video_bit_rate / frame_rate);
-	G4	= Gn * 4;
+	vseg.rc.Tavg	= lroundn(video_bit_rate / frame_rate);
+	vseg.rc.G4	= vseg.rc.Gn * 4;
 
-	R = G0 = Gn;
+	vseg.rc.R = vseg.rc.G0 = vseg.rc.Gn;
 
-	Ei = 0, Ep = 0, Eb = 0;
-	ei = 0, ep = 0, eb = 0;
-	gop_count = 0;
+	vseg.rc.Ei = 0, vseg.rc.Ep = 0, vseg.rc.Eb = 0;
+	vseg.rc.ei = 0, vseg.rc.ep = 0, vseg.rc.eb = 0;
+	vseg.rc.gop_count = 0;
 
-	bstart(&video_out, seq_header_template);
+	bstart(&video_out, vseg.seq_header_template);
 	assert(sequence_header() == 16);
 
 #if !REG_TEST
-	if (banner)
-		free(banner);
+	if (vseg.banner)
+		free(vseg.banner);
 
-	asprintf(&banner,
+	asprintf((char **) &vseg.banner,
 #ifdef ENABLE_DEBUGGING
 		anno ? "MP1E " VERSION " Test Stream G%dx%d b%2.2f f%2.1f F%d\nANNO: %s\n" :
 		       "MP1E " VERSION " Test Stream G%dx%d b%2.2f f%2.1f F%d\n",
@@ -1902,7 +1737,7 @@ alloc_buffers(int mb_num, int motion)
 	mm_buf_offs = 6 * 64 * mb_num;
 
 	ASSERT("allocate forward reference buffer",
-		(oldref = calloc_aligned(size, 4096)) != NULL);
+		(vseg.oldref = calloc_aligned(size, 4096)) != NULL);
 
 	ASSERT("allocate backward reference buffer",
 		(newref = calloc_aligned(size, 4096)) != NULL);
@@ -1955,15 +1790,15 @@ video_init(multiplexer *mux)
 
 		packed = FALSE;
 
-		picture_i = picture_i_mc;
-		picture_p = picture_p_mc;
-		picture_b = picture_b_mc;
+		vseg.picture_i = picture_i_mc;
+		vseg.picture_p = picture_p_mc;
+		vseg.picture_b = picture_b_mc;
 	} else {
 		motion = 0;
 
-		picture_i = picture_i_nomc;
-		picture_p = picture_p_nomc;
-		picture_b = picture_b_nomc;
+		vseg.picture_i = picture_i_nomc;
+		vseg.picture_p = picture_p_nomc;
+		vseg.picture_b = picture_b_nomc;
 	}
 
 	if (packed) {
@@ -1978,8 +1813,8 @@ video_init(multiplexer *mux)
 		mb_address.row.chrom	= 0;
 		mb_address.chrom_0	= mb_address.block[4].offset;
 
-		predict_forward = mmx_predict_forward_packed;
-		predict_bidirectional =	mmx_predict_bidirectional_packed;
+		vseg.predict_forward = mmx_predict_forward_packed;
+		vseg.predict_bidirectional = mmx_predict_bidirectional_packed;
 
 // 		predict_forward = predict_forward_packed;
 // 		predict_bidirectional = predict_bidirectional_packed;
@@ -1999,8 +1834,8 @@ video_init(multiplexer *mux)
 		mb_address.row.chrom	= mb_width * (8 * 7 - 16 * 15);
 		mb_address.chrom_0	= mb_address.block[4].offset;
 
-		predict_forward = mmx_predict_forward_planar;
-		predict_bidirectional =	predict_bidirectional_planar; // no MMX equv
+		vseg.predict_forward = mmx_predict_forward_planar;
+		vseg.predict_bidirectional = predict_bidirectional_planar; // no MMX equv
 	}
 
 	/**/
@@ -2011,18 +1846,20 @@ video_init(multiplexer *mux)
 
 	alloc_buffers(mb_num, motion);
 
-	bstart(&video_out, oldref);
-	Sz = picture_zero();
+	bstart(&video_out, vseg.oldref);
+	vseg.Sz = picture_zero(&vseg);
 
 	ASSERT("allocate 0P template, %d bytes",
-		(zerop_template = calloc_aligned(Sz * sizeof(unsigned char), 32)) != NULL, Sz);
+		(vseg.zerop_template =
+		 calloc_aligned(vseg.Sz * sizeof(unsigned char),
+				CACHE_LINE)) != NULL, vseg.Sz);
 
-	memcpy(zerop_template, oldref, Sz);
+	memcpy(vseg.zerop_template, vseg.oldref, vseg.Sz);
 
-	buddy.org[0] = NULL;
-	last.org[0] = NULL;
-	last.time = 0;
-	p_succ = 0;
+	vseg.buddy.org[0] = NULL;
+	vseg.last.org[0] = NULL;
+	vseg.last.time = 0;
+	vseg.p_succ = 0;
 
 	video_frames_dropped = 0;
 	video_frame_count = 0;
@@ -2033,58 +1870,60 @@ video_init(multiplexer *mux)
 
 	if (strchr(gop_sequence, 'P') ||
 	    strchr(gop_sequence, 'B'))
-		insert_gop_header = TRUE;
+		vseg.insert_gop_header = TRUE;
 
-	ni =
-	np =
-	nb = 0;
+	vseg.rc.ni =
+	vseg.rc.np =
+	vseg.rc.nb = 0;
 
 	bmax = 0;
 
 	for (i = 0; i < 1024; i++)
 		switch (gop_sequence[i]) {
 		case 'I':
-			ni++;
-			ob = 0;
+			vseg.rc.ni++;
+			vseg.rc.ob = 0;
 			break;
 
 		case 'P':
-			np++;
-			ob = 0;
+			vseg.rc.np++;
+			vseg.rc.ob = 0;
 			break;
 
 		case 'B':
-			nb++;
-			ob++;	// GOP overlapping B pictures
-			if (ob > bmax)
-				bmax = ob;
+			vseg.rc.nb++;
+			vseg.rc.ob++;	/* GOP overlapping B pictures (BB|I)*/
+			if (vseg.rc.ob > bmax)
+				bmax = vseg.rc.ob;
 			break;
 
 		default:
 			i = 1024;
 		}
 
-	if (bmax >= sizeof(stack) / sizeof(stack[0]))
-		FAIL("Too many successive B pictures");
+	if (bmax >= elements(vseg.stack))
+		FAIL("Too many successive B pictures, maximum %u",
+		     elements(vseg.stack) - 1);
 
 	{
-		mb_cx_row = mb_height;
-		mb_cx_thresh = 100000;
+		vseg.mb_cx_row = mb_height;
+		vseg.mb_cx_thresh = 100000;
 
 		if (mb_height >= 10) {
-			mb_cx_row /= 3;
-			mb_cx_thresh = lroundn(mb_cx_row * mb_width * 0.95);
+			vseg.mb_cx_row /= 3;
+			vseg.mb_cx_thresh =
+				lroundn(vseg.mb_cx_row * mb_width * 0.95);
 		}
 	}
 
 	video_reset();
 
 	{
-		video_fifo = mux_add_input_stream(mux,
+		vseg.fifo = mux_add_input_stream(mux,
 			VIDEO_STREAM, "video-mpeg1",
 			mb_num * 384 * 4, vid_buffers,
-			frames_per_sec, video_bit_rate);
+			vseg.frames_per_sec, video_bit_rate);
 
-		add_producer(video_fifo, &video_prod);
+		add_producer(vseg.fifo, &vseg.prod);
 	}
 }

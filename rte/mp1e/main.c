@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.9 2001-09-23 19:45:44 mschimek Exp $ */
+/* $Id: main.c,v 1.10 2001-09-25 09:29:13 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -265,7 +265,8 @@ main(int ac, char **av)
 
 	if (modules & MOD_AUDIO) {
 		char *modes[] = { "stereo", "joint stereo", "dual channel", "mono" };
-		long long n = llroundn(((double) video_num_frames / frame_rate_value[frame_rate_code])
+		long long n = llroundn(((double) video_num_frames
+					/ frame_rate_value[vseg.frame_rate_code])
 			/ (1152.0 / sampling_rate));
 
 		printv(1, "Audio compression %2.1f kHz%s %s at %d kbits/s (%1.1f : 1)\n",
@@ -295,8 +296,8 @@ main(int ac, char **av)
 	if (modules & MOD_VIDEO) {
 		video_coding_size(width, height);
 
-		if (frame_rate > frame_rate_value[frame_rate_code])
-			frame_rate = frame_rate_value[frame_rate_code];
+		if (frame_rate > frame_rate_value[vseg.frame_rate_code])
+			frame_rate = frame_rate_value[vseg.frame_rate_code];
 
 		printv(2, "Macroblocks %d x %d\n", mb_width, mb_height);
 
