@@ -149,7 +149,7 @@ set_slider(uint32_t freq, gpointer widget, tveng_device_info *info)
 
   gtk_widget_set_sensitive(hscale1, TRUE);
   adj = GTK_ADJUSTMENT(gtk_adjustment_new(freq -1, freq - 1e4, freq + 1e4,
-					 2e2, 1e3, 0));
+					 25, 1e3, 0));
 
   gtk_range_set_adjustment(GTK_RANGE(hscale1), adj);
   gtk_adjustment_set_value(adj, freq); /* ugly evil dirty hack */
@@ -598,6 +598,8 @@ on_add_channel_clicked                 (GtkButton       *button,
 	  gtk_entry_set_text(GTK_ENTRY(channel_name), buf);
 	  g_free(buf);
 	}
+      else
+	return; /* cancelled */
     }
 
   on_channel_name_activate(channel_name, user_data);
@@ -687,6 +689,8 @@ on_modify_channel_clicked              (GtkButton       *button,
   if (!ptr)
     return;
 
+  store_control_values(&tc.num_controls, &tc.controls, main_info);
+
   index = 0;
 
   ptr = GTK_CLIST(channel_list) -> row_list;
@@ -702,6 +706,7 @@ on_modify_channel_clicked              (GtkButton       *button,
       index++;
     }
 
+  g_free(tc.controls);
   build_channel_list(GTK_CLIST(channel_list), list);
 }
 
@@ -912,9 +917,13 @@ on_channel_name_activate               (GtkWidget       *editable,
       index++;
     }
 
+  store_control_values(&tc.num_controls, &tc.controls, main_info);
+
   list = tveng_insert_tuned_channel_sorted(&tc, list);
 
   gtk_object_set_data(GTK_OBJECT(channel_window), "list", list);
+
+  g_free(tc.controls);
 
   build_channel_list(GTK_CLIST(channel_list), list);
 
@@ -1103,7 +1112,7 @@ gint do_search (GtkWidget * searching)
     gtk_object_get_user_data(GTK_OBJECT(searching));
   GtkWidget * clist1 =
     lookup_widget(channel_list, "clist1");
-  gint strength;
+  gint strength, afc;
   gchar * tuned_name=NULL;
   tveng_channel * channel;
 
@@ -1113,15 +1122,36 @@ gint do_search (GtkWidget * searching)
 					current_country);
       g_assert(channel != NULL);
 
-      if ((-1 != tveng_get_signal_strength(&strength, NULL, main_info)) &&
+      if ((-1 != tveng_get_signal_strength(&strength, &afc, main_info)) &&
 	  (strength > 0))
 	{
 	  GtkWidget * channel_name =
 	    lookup_widget(channel_list, "channel_name");
+	  guint32 last_freq = channel->freq, last_afc = afc;
 
-	  //	  if (zconf_get_boolean(NULL, "/zapping/options/vbi/use_vbi"))
-	  //	    tuned_name = zvbi_get_name();
-	  // FIXME: Todo
+	  /* zvbi should store the station name if known from now */
+	  zvbi_name_unknown();
+	  /* wait afc code, receive some VBI data to get the station,
+	     etc */
+	  usleep(3e5);
+
+	  /* Fine search (untested) */
+	  while (afc && (afc != -last_afc))
+	    {
+	      /* Should be afc*50, but won't harm */
+	      if (-1 == tveng_tune_input(last_freq + afc*25, main_info))
+		break;
+	      usleep(2e5);
+	      if (-1 == tveng_get_signal_strength(&strength, &afc,
+						  main_info) ||
+		  !strength)
+		break;
+	      last_freq += afc*25;
+	    }
+
+	  if (zconf_get_boolean(NULL, "/zapping/options/vbi/use_vbi"))
+	    tuned_name = zvbi_get_name();
+
 	  if ((!zconf_get_boolean(NULL,
 				  "/zapping/options/vbi/use_vbi")) ||
 	      (!tuned_name))

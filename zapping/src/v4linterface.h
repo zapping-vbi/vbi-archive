@@ -57,6 +57,17 @@ void
 z_switch_channel		(tveng_tuned_channel	*channel,
 				 tveng_device_info	*info);
 
+
+/**
+ * Stores the current values of the known controls in the given
+ * struct. num_controls and list are filled in appropiately.
+ * used when saving 
+ */
+void
+store_control_values		(gint		*num_controls,
+				 tveng_tc_control **list,
+				 tveng_device_info *info);
+
 /* Do the startup/shutdown */
 void startup_v4linterface	(tveng_device_info *info);
 void shutdown_v4linterface	(void);

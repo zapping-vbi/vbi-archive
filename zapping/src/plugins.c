@@ -207,7 +207,7 @@ static gboolean plugin_load(gchar * file_name, struct plugin_info * info)
     {
       g_warning(
       _("Sorry, the version of the plugin cannot be parsed.\n"
-      "The version must be something like %%d[.%%d[%%d[other things]]]\n"
+	"The version must be something like %%d[.%%d[%%d[other things]]]\n"
 	"The given version is %s.\nError loading \"%s\" (%s)"),
       version, file_name, canonical_name);
       g_module_close(info -> handle);
@@ -495,7 +495,7 @@ gboolean plugin_running ( struct plugin_info * info)
   g_assert(info != NULL);
 
   if (!info->plugin_running)
-    return FALSE; /* If the plugin doesn't care, we shouldn't */
+    return FALSE; /* If the plugin doesn't care, we shouldn't either */
 
   return (*(info->plugin_running))();
 }

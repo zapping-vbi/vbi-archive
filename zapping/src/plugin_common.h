@@ -83,39 +83,6 @@ struct plugin_misc_info
   gint plugin_cathegory; /* Cathegories the plugin falls under */
 };
 
-/*
-  This struct holds all the info about a video sample pased to a
-  plugin. The plugin can write to all fields, but it should keep all
-  the data valid, since the same struct will be passed to the
-  remaining plugins.
-*/
-typedef struct {
-  struct tveng_frame_format	format;
-
-  union {
-    xvzImage			*xvimage; /* if xv present */
-    GdkImage			*gdkimage; /* otherwise */
-    gpointer			yuv_data; /* raw data */
-  } image;
-
-#define CAPTURE_BUNDLE_XV 1		/* XvImage */
-#define CAPTURE_BUNDLE_GDK 2		/* GdkImage */
-#define CAPTURE_BUNDLE_DATA 3		/* raw YUYV data */
-  gint		image_type;		/* type of data the bundle
-					   contains */
-
-  gpointer	data;			/* pointer to the data
-					   (writable) */
-
-  gint		image_size;		/* size of data, in bytes */
-
-  double	timestamp;		/* time when the bundle was
-					   captured */
-
-  fifo2		*_f;			/* fifo this bundle belongs to */
-  buffer2	*_b;			/* buffer this bundle belongs to */
-} capture_bundle;
-
 #ifndef ZAPPING /* If this is being included from a plugin, give them
 		   the correct prototypes for public symbols ( so
 		   compiling will give an error if defined differently) */

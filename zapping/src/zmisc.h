@@ -32,6 +32,7 @@
 #include <gdk-pixbuf/gdk-pixbuf.h>
 
 #include <tveng.h>
+#include <frequencies.h>
 
 /* in error_console.c, just adds the given message to the console */
 void ec_add_message(const gchar *text, gboolean show,

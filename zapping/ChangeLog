@@ -1,7 +1,38 @@
+24.07.2001	gui improvements <garetxe@users.sf.net>
+
+	* src/channel_editor.c: Doesn't add the channel if Cancel is
+	clicked on the new channel prompt.
+	* plugins/parrot: Made num_bundles configurable, size estimation
+	in the properties.
+
+22.07.2001	parrot gui <garetxe@users.sf.net>
+
+	* parrot.glade, parrot_strings.h: Added, gui for the parrot
+	plugin.
+	* src/ttxview.c: Cosmetic bugfix.
+
 21.07.2001	libvbi <mschimek@users.sf.net>
 
 	* Added aspect ratio event.
 	* Artificial 41st column for TTX pages.
+
+20.07.2001	zvbi station names <garetxe@users.sf.net>
+
+	* src/zvbi.c: Restored functionality to read channel names from
+	TTX.
+	* plugins/parrot: Play the "parrot" stream with the proper speed,
+	and fake timestamps so they are equal to the original ones.
+	* src/channel_editor.c: Added afc and zvbi_get_name support to the
+	autosearcher. afc is untested (i cannot test it).
+
+19.07.2001	Parrot buffer <garetxe@users.sf.net>
+
+	* src/ttxview.c: Restore old toolbar style when detaching the
+	view.
+	* plugins/parrot.c: Added parrot buffer plugin (unfinished, but
+	works).
+	* src/capture.c (set_bundle_filler): Plugins can now provide
+	custom data and override the standard tveng_read_frame routine.
 
 17.07.2001	libvbi/wss <mschimek@users.sf.net>
 
@@ -17,12 +48,30 @@
 	* Replaced CPU detection code. Hope this works for
 	  everyone.
 
+16.07.2001	fix aspect ratio <garetxe@users.sf.net>
+
+	* main.c: apply the aspect ratio setting to the tv screen, not to
+	the main window, including toolbar and menu in the geometry
+	computation.
+	* ttxview.c: Fixed a segv when vbi_search_next reported < 0, added
+	'Empty cache' message.
+	* libvbi/search.c: Made vbi_search_next return -2 when the cache
+	is empty and -3 when the error is unknown.
+	* plugins/mpeg: Adapted to the new (multi-backend) rte.
+
 15.07.2001	mpeg plugin <mschimek@users.sf.net>
 
 	* tveng.c: tveng_get_timestamp(), RETURN_UNTVLOCK()
 	  int cast of double time; symptom MPEG plugin a+v heisenbug
 	  in mp1e sync routines, delayed or inhibited recording. Added
 	  timestamp validation in mp1e.
+
+07.07.2001	save controls with channel <garetxe@users.sf.net>
+
+	* frequencies.c, main.c, v4linterface.c: The state of the controls
+	is saved when changing channels, and restored when switching back.
+	* zapping.glade: Added a global toggle to control this.
+	* pixmaps/gnome-television.h: Added, new icon.
 
 06.07.2001	mpeg plugin <mschimek@users.sf.net>
 

@@ -31,6 +31,40 @@
 #include "common/fifo.h"
 
 /*
+  This struct holds all the info about a video sample pased to a
+  plugin. The plugin can write to all fields, but it should keep all
+  the data valid, since the same struct will be passed to the
+  remaining plugins.
+*/
+typedef struct {
+  struct tveng_frame_format	format;
+
+  union {
+    xvzImage			*xvimage; /* if xv present */
+    GdkImage			*gdkimage; /* otherwise */
+    gpointer			yuv_data; /* raw data */
+  } image;
+
+#define CAPTURE_BUNDLE_XV 1		/* XvImage */
+#define CAPTURE_BUNDLE_GDK 2		/* GdkImage */
+#define CAPTURE_BUNDLE_DATA 3		/* raw YUYV data */
+  gint		image_type;		/* type of data the bundle
+					   contains */
+
+  gpointer	data;			/* pointer to the data
+					   (writable) */
+
+  gint		image_size;		/* size of data, in bytes */
+
+  double	timestamp;		/* time when the bundle was
+					   captured */
+
+  /* FIXME s/_f/f/g when fifo2 port finishes */
+  fifo2		*_f;			/* fifo this bundle belongs to */
+  buffer2	*_b;			/* buffer this bundle belongs to */
+} capture_bundle;
+
+/*
  * Inits the capture, setting the given widget as a destination.
  * Note that this only sets up the structs.
  * Returns FALSE on error
@@ -63,6 +97,25 @@ capture_stop(tveng_device_info * info);
 gboolean
 request_bundle_format(enum tveng_frame_pixformat pixformat, gint w, gint h);
 
+/*
+ * Builds the bundle with the given parameters.
+ */
+void
+build_bundle(capture_bundle *d, struct tveng_frame_format *format,
+	     fifo2 *f, buffer2 *b);
+
+/*
+ * Frees the memory used by the bundle.
+ */
+void clear_bundle(capture_bundle *d);
+
+/*
+ * Returns TRUE if the two bundles have the same image properties
+ * (width, height, pixformat, image_size...). If this function returns
+ * TRUE, then a memcpy(b->data, a->data, a->image_size) is safe.
+ */
+gboolean bundle_equal(capture_bundle *a, capture_bundle *b);
+
 /**
  * Locks the current capture format, so any call to
  * request_bundle_format will fail.
@@ -77,8 +130,19 @@ capture_lock(void);
 void
 capture_unlock(void);
 
-fifo *
-get_capture_fifo(void);
+/**
+ * Bundle filler. Allows plugins to provide frames from a variety of
+ * sources.
+ */
+typedef void (*BundleFiller)(capture_bundle *bundle,
+			     tveng_device_info *info);
+
+/**
+ * Sets the new bundle filler and returns the old one. If fill
+ * bundle is NULL, then the default filler is restored.
+ */
+BundleFiller set_bundle_filler(BundleFiller fill_bundle);
+
 fifo2 *
 get_capture_fifo2(void);
 

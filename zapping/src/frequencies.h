@@ -1,17 +1,21 @@
 #ifndef __FREQUENCIES_H__
 #define __FREQUENCIES_H__
 
-#include "tveng.h"
+#include <tveng.h>
 
-typedef struct{
+typedef struct {
   gchar * name;
   uint32_t freq;
-}
-tveng_channel;
+} tveng_channel;
+
+typedef struct {
+  gchar		name[32];
+  gfloat	value; /* from 0 to 1 */
+} tveng_tc_control;
 
 typedef struct _tveng_tuned_channel tveng_tuned_channel;
 
-struct _tveng_tuned_channel{
+struct _tveng_tuned_channel {
   gchar *name; /* Name given to the channel (RTL, Eurosport, whatever) */
   gchar *real_name; /* Channel we chose this one from ("35", for
 		       example) */
@@ -23,6 +27,9 @@ struct _tveng_tuned_channel{
   uint32_t freq; /* Frequence this channel is in (may be slightly
 		 different to the one specified by real_name due to
 		 fine tuning) */
+  gint num_controls; /* number of saved controls for this channel */
+  tveng_tc_control *controls; /* saved controls for this
+				 channel pointer */
 
   /* Don't use this to navigate through the tuned_channel list, use
      the API instead */
@@ -30,12 +37,11 @@ struct _tveng_tuned_channel{
   tveng_tuned_channel *next;
 };
 
-typedef struct{
+typedef struct {
   gchar * name;
   tveng_channel * channel_list;
   int chan_count;
-}
-tveng_channels;
+} tveng_channels;
 
 /* Returns the number of channel in an specific country */
 #define CHAN_COUNT(X) (sizeof(X)/sizeof(tveng_channel))
@@ -180,5 +186,12 @@ tveng_retrieve_tuned_channel_by_real_name (gchar * real_name, int
 tveng_tuned_channel*
 tveng_retrieve_tuned_channel_by_index (int index,
 				       tveng_tuned_channel * list);
+
+/**
+ * Returns TRUE if the given channel is in the given channel list.
+ */
+gboolean
+tveng_tuned_channel_in_list (tveng_tuned_channel * channel,
+			     tveng_tuned_channel * list);
 
 #endif

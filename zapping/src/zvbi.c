@@ -29,11 +29,13 @@
 #include <gnome.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <libvbi.h>
+#include <lang.h>
 #include <pthread.h>
 #include <ctype.h>
 #include <time.h>
 #include <pthread.h>
 #include <math.h>
+#include "../common/ucs-2.h"
 
 #include "tveng.h"
 /* Manages config values for zconf (it saves me some typing) */
@@ -68,11 +70,12 @@ static ZModel * vbi_model=NULL; /* notify to clients the open/closure
 				   of the device */
 static pthread_t zvbi_thread_id; /* VBI thread in libvbi */
 static pthread_mutex_t network_mutex;
+static gboolean station_name_known = FALSE;
+static gchar station_name[256];
 vbi_network current_network; /* current network info */
 
 /* symbol used by osd.c */
 int zvbi_page = 1, zvbi_subpage = ANY_SUB;	// caption 1 ... 8
-// int zvbi_page = 0x888, zvbi_subpage = ANY_SUB;// ttx 0x100 ... 0x8FF
 
 /**
  * The blink of items in the page is done by applying the patch once
@@ -234,6 +237,8 @@ void shutdown_zvbi(void)
 
   if (vbi)
     zvbi_close_device();
+
+  gtk_object_destroy(GTK_OBJECT(vbi_model));
 
   close(test_pipe[0]);
   close(test_pipe[1]);
@@ -1305,6 +1310,74 @@ notify_clients(int page, int subpage)
 }
 
 static void
+scan_header(int page, int subpage)
+{
+  struct fmt_page pg;
+  gint col, i=0;
+  attr_char *ac;
+  ucs2_t ucs2[256];
+  char *buf;
+
+  if (!vbi)
+    return;
+
+  if (vbi_fetch_vt_page(vbi, &pg, page, subpage, 1, 0))
+
+  /* Station name usually goes here */
+  for (col = 7; col < 16; col++)
+    {
+      ac = pg.text + col;
+
+      if (!ac->glyph || !gl_isalnum(ac->glyph))
+	/* prob. bad reception, abort */
+	return;
+
+      if (ac->glyph == GL_SPACE && i == 0)
+	continue;
+
+      ucs2[i++] = glyph2unicode(ac->glyph);
+    }
+
+  if (!i)
+    return;
+
+  /* remove spaces in the end */
+  for (col = i-1; col >= 0 && ucs2[col] == ' '; col--)
+    i = col;
+
+  if (!i)
+    return;
+
+  ucs2[i] = 0;
+
+  buf = ucs22local(ucs2);
+
+  if (!buf || !*buf)
+    return;
+
+  /* enhance */
+  if (station_name_known)
+    {
+      col = strlen(station_name);
+      for (i=0; i<strlen(buf) && i<255; i++)
+	if (col <= i || station_name[i] == ' ' ||
+	    (!isalnum(station_name[i]) && isalnum(buf[i])))
+	  station_name[i] = buf[i];
+      station_name[i] = 0;
+    }
+  /* just copy */
+  else
+    {
+      strncpy(station_name, buf, 255);
+      station_name[255] = 0;
+    }
+
+  free(buf);
+
+  station_name_known = TRUE;
+}
+
+static void
 notify_network(void)
 {
   GList *p;
@@ -1488,10 +1561,24 @@ event(vbi_event *ev, void *unused)
 	  notify_trigger(&link);
 	}
 #endif
+      /* scan header for station name */
+      scan_header(ev->pgno, ev->subno);
       break;
     case VBI_EVENT_NETWORK:
       pthread_mutex_lock(&network_mutex);
       memcpy(&current_network, ev->p, sizeof(vbi_network));
+      if (*current_network.label)
+	{
+	  strncpy(station_name, current_network.label, 255);
+	  station_name[255] = 0;
+	  station_name_known = TRUE;
+	}
+      else if (*current_network.call)
+	{
+	  strncpy(station_name, current_network.call, 255);
+	  station_name[255] = 0;
+	  station_name_known = TRUE;
+	}
       notify_network();
       pthread_mutex_unlock(&network_mutex);
       break;
@@ -1643,4 +1730,19 @@ build_vbi_info(void)
   update_vi(vbi_info);
 
   return vbi_info;
+}
+
+gchar *
+zvbi_get_name(void)
+{
+  if (!station_name_known || !vbi)
+    return NULL;
+
+  return g_strdup(station_name);
+}
+
+void
+zvbi_name_unknown(void)
+{
+  station_name_known = FALSE;
 }

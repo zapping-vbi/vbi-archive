@@ -32,7 +32,7 @@
 /*
  * Lib build ID, for debugging.
  */
-#define RTE_ID " $Id: rte.h,v 1.23 2001-07-07 08:46:54 mschimek Exp $ "
+#define RTE_ID " $Id: rte.h,v 1.24 2001-07-24 17:19:27 garetxe Exp $ "
 
 /*
  * What are we going to encode, audio only, video only or both
@@ -99,8 +99,8 @@ enum rte_frame_rate {
 enum rte_audio_mode {
 	RTE_AUDIO_MODE_MONO,
 	RTE_AUDIO_MODE_STEREO
-	/* fixme: what does this mean? */
 	/* mhs: see man page */
+	/* fixme: implement */
 //	RTE_AUDIO_MODE_DUAL_CHANNEL
 };
 
@@ -122,7 +122,7 @@ typedef struct {
 	enum rte_mux_mode mode;
 
 	/******** video parameters **********/
-	/* pixformat the passed video data is in */
+	/* pixformat the passed video data is in, defaults to YUV420 */
 	enum rte_pixformat video_format;
 	/* frame size */
 	int width, height;
@@ -137,6 +137,11 @@ typedef struct {
 
 	/* motion compensation search range */
 	int motion_min, motion_max;
+	/* Group of pictures sequence ('I'ntra, forward 'P'redicted,
+	   'B'idirectionally predicted), must start with 'I', 1023
+	   chars max, defaults to IBBPBBPBBPBB */
+	char gop_sequence[1024];
+
 
 	/******* audio parameters **********/
 	/* audio sampling rate in Hz, 44100 by default */
@@ -171,12 +176,25 @@ typedef void (*rteEncodeCallback)(rte_context * context,
 #define RTE_ENCODE_CALLBACK(function) ((rteEncodeCallback)function)
 
 /*
+  "I need seeking to this address" callback. Defaults to a
+  lseek(fd, offset, whence)
+  context: Context that created this data.
+  offset: Position in the file
+  whence: Where to start seeking from (see lseek)
+  user_data: Whatever you want
+*/
+typedef void (*rteSeekCallback)(rte_context * context,
+				off_t offset,
+				int whence,
+				void * user_data);
+
+#define RTE_SEEK_CALLBACK(function) ((rteSeekCallback)function)
+
+/*
   "I need more data" callback. The input thread will call this
-  callback whenever it thinks it will need some fresh
-  data to encode (usually it will go one or two samples ahead of the
-  encoder thread). The callbacks and the push() interfaces shouldn't
-  be used together (rte isn't designed with that in mind, but it could
-  work?).
+  callback whenever it needs some fresh data to encode. The callbacks
+  and the push() interfaces shouldn't be used together (rte isn't
+  designed with that in mind, but it could work).
   context: The context that asks for the data.
   data: Where should you write the data. It's a memchunk of
   context->video_bytes or context->audio_bytes (depending whether rte
@@ -241,10 +259,11 @@ int rte_init ( void );
   are used.
   Returns: The new context on startup, NULL on error.
   width, height: Width and height of the pushed frames, must be 16-multiplus
+  backend: Backend to use ("mp1e", ...). NULL for default backend (mp1e)
   user_data: Some data you would like to pass to the callback
 */
 rte_context * rte_context_new (int width, int height,
-			       enum rte_pixformat frame_format,
+			       const char *backend,
 			       void * user_data);
 
 /*
@@ -271,11 +290,14 @@ void rte_set_input (rte_context * context,
 /*
  * Sets the what should rte do with the encoded data.
  * encode_callback: Callback when an encoded packet is ready, can be NULL.
+ * seek_callback: Callback when the encoder needs moving the dest file
+ * pointer, can be NULL.
  * filename: if encode_callback is NULL, put the file where rte will write
  * the data here. No verification is done until the file is opened.
  */
 void rte_set_output (rte_context * context,
 		     rteEncodeCallback encode_callback,
+		     rteSeekCallback seek_callback,
 		     const char * filename);
 
 /*
@@ -283,19 +305,38 @@ void rte_set_output (rte_context * context,
   access is needed. Direct access to the struct fields is allowed when
   no getter is provided (this is to avoid API bloat), but you should
   NEVER change a field directly.
-  fixme: We need some functions to get stats (frame drop rate, bytes
-  written, etc)
 */
 /*
-  Sets the video parameters. If you want to leave output_video_bits
-  unmodified (for example), use context->output_video_bits
-  Returns 0 on error
+ * Asks the current backend for the available formats.
+ * n: index of the format we are querying. Starts from 0.
+ * mux_mode: If not NULL, the mux mode the format supports will be
+ * stored here. Ignored if it's NULL.
+ * Returns: NULL if the nth format doesn't exist and a statically
+ * allocated string that shouldn't be freed if it exists.
+ */
+char * rte_query_format (rte_context * context,
+			 int n,
+			 enum rte_mux_mode * mux_mode);
+
+/*
+ * Sets the encoding format for the context.
+ * format: Name of the format, as reported by rte_query_format.
+ * Returns: 0 on error.
+ */
+int rte_set_format (rte_context * context,
+		    const char * format);
+
+/*
+  Sets the video parameters. If you don't want to change any field of
+  these, just pass the current value. For example, if you don't want
+  to change the gop sequence, just pass context->gop_sequence.
 */
 int rte_set_video_parameters (rte_context * context,
 			      enum rte_pixformat video_format,
 			      int width, int height,
 			      enum rte_frame_rate video_rate,
-			      size_t output_video_bits);
+			      size_t output_video_bits,
+			      const char *gop_sequence
 
 /* Sets the audio parameters, 0 on error */
 int rte_set_audio_parameters (rte_context * context,
@@ -326,7 +367,7 @@ int rte_init_context ( rte_context * context );
  * If necessary, syncs the audio and video streams and starts
  * encoding. The context must be sucessfully inited before calling
  * this.
- * Returns1 on success.
+ * Returns 1 on success.
  */
 int rte_start_encoding ( rte_context * context );
 

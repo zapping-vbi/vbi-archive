@@ -1,5 +1,5 @@
-/* Screenshot saving plugin for Zapping
- * Copyright (C) 2000 Iñaki García Etxebarria
+/* Template plugin for Zapping
+ * Copyright (C) 2000-2001 Iñaki García Etxebarria
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -291,7 +291,7 @@ gboolean plugin_add_properties ( GnomePropertyBox * gpb )
 static
 gboolean plugin_activate_properties ( GnomePropertyBox * gpb, gint page )
 {
-  /* Return TRUE only if the given page have been builded by this
+  /* Return TRUE only if the given page have been built by this
      plugin, and apply any config changes here */
   return FALSE;
 }
@@ -300,7 +300,7 @@ static
 gboolean plugin_help_properties ( GnomePropertyBox * gpb, gint page )
 {
   /*
-    Return TRUE only if the given page have been builded by this
+    Return TRUE only if the given page have been built by this
     plugin, and show some help (or at least sth like ShowBox
     "Sorry, but the template plugin doesn't help you").
   */

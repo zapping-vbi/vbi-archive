@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.57 2001-07-15 15:22:07 mschimek Exp $ */
+/* $Id: rte.c,v 1.58 2001-07-24 17:19:26 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -28,23 +28,15 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <assert.h>
-#include "options.h"
-#include "common/fifo.h"
-#include "common/mmx.h"
-#include "common/math.h"
+#include <ctype.h>
+
+#include "common/fifo.h" /* fifos */
+#include "common/log.h" /* printv, verbose */
+#include "common/math.h" /* MAX, MIN */
+#include "video/video.h" /* video_look_ahead, MAX_WIDTH, MAX_HEIGHT */
 #include "rtepriv.h"
-#include "video/video.h"
-#include "audio/libaudio.h"
-#include "audio/mpeg.h"
-#include "video/mpeg.h"
-#include "systems/systems.h"
-#include "common/profile.h"
-#include "common/math.h"
-#include "common/log.h"
-#include "common/mmx.h"
-#include "common/bstream.h"
-#include "common/remote.h"
-#include "main.h"
+
+#define BACKEND backends[context->private->backend]
 
 /*
   BUGS:
@@ -57,37 +49,20 @@
       . Drop the lib dependencies to a minimum.
 */
 
-#define NUM_AUDIO_BUFFERS 8 /* audio buffers in the audio fifo */
-
-#define BLANK_BUFFER	1 /* the buffer was created by blank_callback,
-			     do not unref_callback it */
+#define NUM_AUDIO_BUFFERS 4 /* audio buffers in the audio fifo */
 
 rte_context * rte_global_context = NULL;
 
-/*
- * Global options from rte.
- */
-char *			my_name="rte";
-int			verbose=0;
+extern rte_backend_info b_mp1e_info;
+//extern rte_backend_info b_ffmpeg_info;
 
-fifo *			audio_cap_fifo;
-int			stereo;
-
-fifo *			video_cap_fifo;
-
-/* fixme: This is just to satisfy dependencies for now */
-void
-packed_preview(unsigned char *buffer, int mb_cols, int mb_rows)
+static rte_backend_info *backends[] = 
 {
-}
+	&b_mp1e_info/*,
+		      &b_ffmpeg_info*/
+};
 
-/* prototypes for main initialization (mp1e startup) */
-/* These routines are called in this order, they come from mp1e's main.c */
-static void rte_audio_startup(void); /* Startup video parameters */
-static void rte_compression_startup(void); /* Compression parameters */
-/* init routines */
-static void rte_audio_init(void); /* init audio capture */
-static void rte_video_init(void); /* init video capture */
+static const int num_backends = sizeof(backends)/sizeof(*backends);
 
 /* This must be kept in sync with fifo.h */
 static inline buffer *
@@ -122,14 +97,13 @@ blank_callback(rte_context * context, void *data, double *time,
 	*time = tv.tv_sec + tv.tv_usec/1e6;
 
 	/* set to 0's (avoid ugly noise on stop) */
-	/* XXX for video this is all green, set UV = 0x80 for black */
-	memset(data, 0, (stream == RTE_VIDEO) ?
-	       context->video_bytes : context->audio_bytes);
+	if (stream == RTE_AUDIO)
+		memset(data, 0, context->audio_bytes);
 }
 
 typedef long long int tsc_t;
 static tsc_t rdtsc(void) {
-    tsc_t tsc;
+	tsc_t tsc;
     asm ("\trdtsc\n" : "=A" (tsc));
     return tsc;
 }
@@ -190,6 +164,7 @@ wait_data(rte_context * context, int video)
 			}
 			continue;
 		}
+
 		/* wait for the push interface */
 		pthread_mutex_lock(&consumer->mutex);
 		pthread_cond_wait(&consumer->cond, &consumer->mutex);
@@ -284,11 +259,21 @@ static void default_write_callback ( rte_context * context,
 	}
 }
 
+/* The default seek callback */
+static void default_seek_callback ( rte_context * context,
+				    off_t offset,
+				    int whence,
+				    void * user_data)
+{
+	lseek(context->private->fd, offset, whence);
+}
+
 rte_context * rte_context_new (int width, int height,
-			       enum rte_pixformat frame_format,
+			       const char *backend,
 			       void * user_data)
 {
 	rte_context * context;
+	int priv_bytes=0, i;
 
 	if (rte_global_context)
 	{
@@ -304,20 +289,40 @@ rte_context * rte_context_new (int width, int height,
 		return NULL;
 	}
 	memset(context, 0, sizeof(rte_context));
-	context->private = malloc(sizeof(rte_context_private));
+
+	for (i=0; i<num_backends; i++)
+		priv_bytes = MAX(priv_bytes, backends[i]->priv_size);
+
+	context->private = malloc(priv_bytes);
 	if (!context->private)
 	{
 		rte_error(NULL, "malloc(): [%d] %s", errno, strerror(errno));
 		free(context);
 		return NULL;
 	}
-	memset(context->private, 0, sizeof(rte_context_private));
+	memset(context->private, 0, priv_bytes);
 	rte_global_context = context;
 
-	context->mode = RTE_AUDIO | RTE_VIDEO;
+	context->mode = RTE_AUDIO_AND_VIDEO;
 
-	if (!rte_set_video_parameters(context, frame_format, width,
-				      height, RTE_RATE_3, 2.3e6)) {
+	context->private->backend = -1;
+	if (!backend)
+		backend = "mp1e";
+	for (i=0; i<num_backends; i++)
+		if (!strcasecmp(backends[i]->name, backend))
+			context->private->backend = i;
+
+	if (context->private->backend == -1)
+	{
+		free(context->private);
+		free(context);
+		rte_error(NULL, "backend [%s] not found", backend);
+		return NULL;
+	}
+
+	if (!rte_set_video_parameters(context, RTE_YUV420,
+				      width, height, RTE_RATE_3, 2.3e6,
+				      "IBBPBBPBBPBB")) {
 		rte_error(NULL, "invalid video format: %s",
 			  context->error);
 
@@ -334,6 +339,8 @@ rte_context * rte_context_new (int width, int height,
 
 	context->private->user_data = user_data;
 	context->private->fd = -1;
+
+	BACKEND->context_new(context);
 
 	return (context);
 }
@@ -352,6 +359,8 @@ void * rte_context_destroy ( rte_context * context )
 		rte_stop(context);
 
 	if (context->private->inited) {
+		BACKEND->uninit_context(context);
+
 		if (context->mode & RTE_VIDEO) {
 			uninit_fifo(&context->private->vid);
 			mucon_destroy(&context->private->vid_consumer);
@@ -361,6 +370,8 @@ void * rte_context_destroy ( rte_context * context )
 			mucon_destroy(&context->private->aud_consumer);
 		}
 	}
+
+	BACKEND->context_destroy(context);
 
 	if (context->error)
 	{
@@ -410,11 +421,13 @@ void rte_set_input (rte_context * context,
 
 void rte_set_output (rte_context * context,
 		     rteEncodeCallback encode_callback,
+		     rteSeekCallback seek_callback,
 		     const char * filename)
 {
 	nullcheck(context, return);
 
 	context->private->encode_callback = encode_callback;
+	context->private->seek_callback = seek_callback;;
 
 	if (context->private->inited) {
 		rte_error(NULL, "context already inited");
@@ -430,6 +443,29 @@ void rte_set_output (rte_context * context,
 		context->file_name = NULL;
 }
 
+char * rte_query_format (rte_context * context,
+			 int n,
+			 enum rte_mux_mode * mux_mode)
+{
+	nullcheck(context, return NULL);
+
+	return BACKEND->query_format(context, n, mux_mode);
+}
+
+int rte_set_format (rte_context *context,
+		    const char *format)
+{
+	/* Validation is done at init_context time by the backend */
+	nullcheck(context, return 0);
+	nullcheck(format, return 0);
+
+	if (context->format)
+		free(context->format);
+
+	context->format = strdup(format);
+
+	return 1;
+}
 
 #define DECIMATING(mode) (mode == RTE_YUYV_VERTICAL_DECIMATION ||	\
 			  mode == RTE_YUYV_EXP_VERTICAL_DECIMATION)
@@ -438,8 +474,11 @@ int rte_set_video_parameters (rte_context * context,
 			      enum rte_pixformat frame_format,
 			      int width, int height,
 			      enum rte_frame_rate video_rate,
-			      size_t output_video_bits)
+			      size_t output_video_bits,
+			      const char *gop_sequence)
 {
+	int i;
+
 	nullcheck(context, return 0);
 
 	if (context->private->inited) {
@@ -460,6 +499,25 @@ int rte_set_video_parameters (rte_context * context,
 	}
 	if (video_rate <= RTE_RATE_NORATE) {
 		rte_error(context, "You must set the video rate");
+		return 0;
+	}
+	if (!gop_sequence) /* use current value, undocumented but logical */
+		gop_sequence = context->gop_sequence;
+	if (strlen(gop_sequence) > 1023)
+	{
+		rte_error(context, "gop too long (1023 chars max):\n%s",
+			  gop_sequence);
+		return 0;
+	}
+
+	for (i=0; i<strlen(gop_sequence); i++)
+		context->gop_sequence[i] = toupper(gop_sequence[i]);
+	context->gop_sequence[i] = 0;
+
+	if (strspn(context->gop_sequence, "IPB") !=
+	    strlen(context->gop_sequence))
+	{
+		rte_error(context, "Only I, P and B frames allowed");
 		return 0;
 	}
 
@@ -503,8 +561,6 @@ int rte_set_audio_parameters (rte_context * context,
 			      enum rte_audio_mode audio_mode,
 			      size_t output_audio_bits)
 {
-	int stereo;
-
 	nullcheck(context, return 0);
 
 	if (context->private->inited)
@@ -521,21 +577,6 @@ int rte_set_audio_parameters (rte_context * context,
 	context->audio_rate = audio_rate;
 	context->audio_mode = audio_mode;
 	context->output_audio_bits = output_audio_bits;
-
-	switch (context->audio_mode) {
-	case RTE_AUDIO_MODE_MONO:
-		stereo = 0;
-		break;
-	case RTE_AUDIO_MODE_STEREO:
-		stereo = 1;
-		break;
-		/* fixme:dual channel */
-	default:
-		stereo = 0;
-		break;
-	}
-
-	context->audio_bytes = 2 * (stereo+1) * 1632;
 
 	return 1;
 }
@@ -594,9 +635,6 @@ void * rte_get_user_data(rte_context * context)
 	return context->private->user_data;
 }
 
-/* translates the context options to the global mp1e options */
-static int rte_fake_options(rte_context * context);
-
 /* Prepare the context for encoding */
 int rte_init_context ( rte_context * context )
 {
@@ -623,10 +661,9 @@ int rte_init_context ( rte_context * context )
 		return 0;
 	}
 
-	if (context->mode & RTE_AUDIO)
-		mucon_init(&(context->private->aud_consumer));
-	if (context->mode & RTE_VIDEO)
-		mucon_init(&(context->private->vid_consumer));
+	/* Init the backend first */
+	if (!BACKEND->init_context(context))
+		return 0;
 
 	/* create needed fifos */
 	if (context->mode & RTE_VIDEO) {
@@ -636,9 +673,9 @@ int rte_init_context ( rte_context * context )
 		else
 			alloc_bytes = context->video_bytes;
 		if (2 > init_buffered_fifo(&(context->private->vid),
-					   "rte-video",
-					   video_look_ahead(gop_sequence),
-					   alloc_bytes)) {
+				   "rte-video",
+				   video_look_ahead(context->gop_sequence),
+				   alloc_bytes)) {
 			rte_error(context, "not enough mem");
 			return 0;
 		}
@@ -668,30 +705,6 @@ int rte_init_context ( rte_context * context )
 		context->private->aud.send_empty = audio_send_empty;
 	}
 	
-	/* FIXME: we need some checks here for callbacks */
-	if (!rte_fake_options(context)) {
-		if (context->mode & RTE_VIDEO)
-			uninit_fifo(&(context->private->vid));
-		if (context->mode & RTE_AUDIO)
-			uninit_fifo(&(context->private->aud));
-		return 0;
-	}
-
-	/* Now init the mp1e engine, as main would do */
-	rte_audio_startup();
-	rte_compression_startup();
-
-	rte_audio_init();
-	rte_video_init();
-
-	if (!output_init()) {
-		if (context->mode & RTE_VIDEO)
-			uninit_fifo(&(context->private->vid));
-		if (context->mode & RTE_AUDIO)
-			uninit_fifo(&(context->private->aud));
-		return 0;
-	}
-
 	if (context->file_name) {
 		context->private->fd = creat(context->file_name, 00644);
 		if (context->private->fd == -1) {
@@ -706,7 +719,14 @@ int rte_init_context ( rte_context * context )
 
 		context->private->encode_callback =
 			RTE_ENCODE_CALLBACK(default_write_callback);
+		context->private->seek_callback =
+			RTE_SEEK_CALLBACK(default_seek_callback);
 	}
+
+	if (context->mode & RTE_AUDIO)
+		mucon_init(&(context->private->aud_consumer));
+	if (context->mode & RTE_VIDEO)
+		mucon_init(&(context->private->vid_consumer));
 
 	/* Set up some fields */
 	context->private->last_video_buffer =
@@ -731,61 +751,8 @@ int rte_start_encoding (rte_context * context)
 	context->private->last_video_buffer =
 		context->private->last_audio_buffer = NULL;
 
-	remote_init(modules);
-
-	mux_thread_done = 0;
-
-	if (modules & MOD_AUDIO) {
-		ASSERT("create audio compression thread",
-			!pthread_create(&context->private->audio_thread_id,
-					NULL,
-					stereo ? mpeg_audio_layer_ii_stereo :
-					mpeg_audio_layer_ii_mono,
-					NULL));
-
-		printv(2, "Audio compression thread launched\n");
-	}
-
-	if (modules & MOD_VIDEO) {
-		ASSERT("create video compression thread",
-			!pthread_create(&context->private->video_thread_id,
-					NULL,
-					mpeg1_video_ipb,
-					NULL));
-
-		printv(2, "Video compression thread launched\n");
-	}
-
-	if ((modules == MOD_VIDEO || modules == MOD_AUDIO)
-		&& mux_syn >= 2)
-		mux_syn = 1; // compatibility
-
-	switch (mux_syn) {
-	case 0:
-		ASSERT("create stream nirvana thread",
-		       !pthread_create(&context->private->mux_thread, NULL,
-				       stream_sink, NULL));
-		break;
-	case 1:
-		ASSERT("create elementary stream thread",
-		       !pthread_create(&context->private->mux_thread, NULL,
-				       elementary_stream_bypass, NULL));
-		break;
-	case 2:
-		printv(1, "MPEG-1 Program Stream\n");
-		ASSERT("create mpeg1 system mux",
-		       !pthread_create(&context->private->mux_thread, NULL,
-				       mpeg1_system_mux, NULL));
-		break;
-	case 3:
-		printv(1, "MPEG-2 Program Stream\n");
-		ASSERT("create mpeg2 system mux",
-		       !pthread_create(&context->private->mux_thread, NULL,
-				       mpeg2_program_stream_mux, NULL));
-		break;
-	}
-
-	remote_start(0.0);
+	if (!BACKEND->start(context))
+		return 0;
 
 	context->private->encoding = 1;
 	context->private->bytes_out = 0;
@@ -844,28 +811,8 @@ void rte_stop ( rte_context * context )
 		pthread_cond_broadcast(&(context->private->vid_consumer.cond));
 	}
 
-	/* Tell the mp1e threads to shut down */
-	remote_stop(0.0); // now
-
-	/* Join the mux thread */
-	printv(2, "joining mux\n");
-	pthread_join(context->private->mux_thread, NULL);
-	mux_thread_done = 1;
-	printv(2, "mux joined\n");
-
-	if (context->mode & RTE_AUDIO) {
-		printv(2, "joining audio\n");
-		pthread_join(context->private->audio_thread_id, NULL);
-		printv(2, "audio joined\n");
-	}
-	if (context->mode & RTE_VIDEO) {
-		printv(2, "joining video\n");
-		pthread_join(context->private->video_thread_id, NULL);
-		printv(2, "video joined\n");
-	}
-
-	mux_cleanup();
-	output_end();
+	BACKEND->stop(context);
+	BACKEND->uninit_context(context);
 
 	context->private->inited = 0;
 
@@ -880,9 +827,6 @@ void rte_stop ( rte_context * context )
 
 	context->private->audio_data_callback = audio_callback;
 	context->private->video_data_callback = video_callback;
-//	pr_report();
-
-	/* mp1e is done (fixme: close preview if needed) */
 
 	if (context->private->fd > 0) {
 		close(context->private->fd);
@@ -1073,10 +1017,11 @@ int rte_get_verbosity ( rte_context * context )
 
 int rte_init ( void )
 {
-	cpu_type = cpu_detection();
+	int i;
 
-	if (cpu_type == CPU_UNKNOWN)
-		return 0;
+	for (i=0; i<num_backends; i++)
+		if (!backends[i]->init_backend())
+			return 0;
 
 	rte_global_context = NULL;
 
@@ -1095,146 +1040,5 @@ void rte_get_status ( rte_context * context,
 		return;
 	}
 
-	status->bytes_out = context->private->bytes_out;
-	status->processed_frames = video_frame_count;
-	status->dropped_frames = video_frames_dropped;
-}
-
-static int rte_fake_options(rte_context * context)
-{
-	int pitch;
-
-	ASSERT("guiroppaaaaa!\n", context != NULL);
-
-	modules = context->mode;
-	grab_width = saturate(context->width, 1, MAX_WIDTH);
-	grab_height = saturate(context->height, 1, MAX_HEIGHT);
-	if ((context->video_rate == RTE_RATE_NORATE) ||
-	    (context->video_rate > RTE_RATE_8)) {
-		rte_error(context, "Invalid frame rate: %d",
-			  context->video_rate);
-		context->video_rate = RTE_RATE_3; /* default to PAL */
-	}
-	frame_rate_code = context->video_rate;
-	switch (context->video_format) {
-	case RTE_YUYV_PROGRESSIVE:
-	case RTE_YUYV_PROGRESSIVE_TEMPORAL:
-		frame_rate_code += 3;
-	case RTE_YUYV_VERTICAL_DECIMATION:
-	case RTE_YUYV_TEMPORAL_INTERPOLATION:
-	case RTE_YUYV_VERTICAL_INTERPOLATION:
-	case RTE_YUYV_EXP:
-	case RTE_YUYV_EXP_VERTICAL_DECIMATION:
-	case RTE_YUYV_EXP2:
-		pitch = grab_width*2;
-		filter_mode =
-			(context->video_format-RTE_YUYV_VERTICAL_DECIMATION) + 
-			CM_YUYV_VERTICAL_DECIMATION;
-		break;
-	case RTE_YUYV:
-		filter_mode = CM_YUYV;
-		pitch = grab_width*2;
-		break;
-	case RTE_YUV420:
-		filter_mode = CM_YUV;
-		pitch = grab_width;
-		break;
-	case RTE_YVU420:
-		filter_mode = CM_YVU;
-		pitch = grab_width;
-		break;
-	default:
-		rte_error(context, "unknown pixformat %d", context->video_format);
-		return 0;
-	}
-	width = context->width;
-	height = context->height;
-
-	filter_init(pitch);
-	if ((width != grab_width) || (height != grab_height))
-		rte_error(NULL, "requested %dx%d, got %dx%d",
-			  grab_width, grab_height, width, height);
-	video_bit_rate = context->output_video_bits;
-	audio_bit_rate = context->output_audio_bits;
-	audio_bit_rate_stereo = audio_bit_rate * 2;
-
-	/* fixme: is audio_rate really needed? */
-	sampling_rate = context->audio_rate;
-	switch (context->audio_mode) {
-	case RTE_AUDIO_MODE_MONO:
-		audio_mode = AUDIO_MODE_MONO;
-		break;
-	case RTE_AUDIO_MODE_STEREO:
-		audio_mode = AUDIO_MODE_STEREO;
-		break;
-	default:
-		rte_error(context, "unknown audio mode %d",
-			  context->audio_mode);
-		return 0;
-	}
-
-	motion_min = context->motion_min;
-	motion_max = context->motion_max;
-
-	video_cap_fifo = &(context->private->vid);
-	audio_cap_fifo = &(context->private->aud);
-
-	return 1;
-}
-
-/* Startup video parameters */
-static void rte_audio_startup(void)
-{
-	if (modules & MOD_AUDIO) {
-		int psy_level = audio_mode / 10;
-		
-		audio_mode %= 10;
-		
-		stereo = (audio_mode != AUDIO_MODE_MONO);
-		audio_parameters(&sampling_rate, &audio_bit_rate);
-		
-		if ((audio_bit_rate >> stereo) < 80000 || psy_level >= 1) {
-			psycho_loops = MAX(psycho_loops, 1);
-			
-			if (sampling_rate < 32000 || psy_level >= 2)
-				psycho_loops = 2;
-			
-			psycho_loops = MAX(psycho_loops, 2);
-		}
-	}
-}
-
-/* FIXME: Subtitles support */
-
-/* Compression parameters */
-static void rte_compression_startup(void)
-{
-//	mucon_init(&mux_mucon);
-}
-
-static void rte_audio_init(void) /* init audio capture */
-{
-	if (modules & MOD_AUDIO) {
-		long long n = llroundn(((double) video_num_frames /
-					frame_rate_value[frame_rate_code])
-				       / (1152.0 / sampling_rate));
-		
-		if (modules & MOD_VIDEO)
-			audio_num_frames = MIN(n, (long long) INT_MAX);
-		
-		audio_init(sampling_rate, stereo, /* pcm_context* */
-			audio_mode, audio_bit_rate, psycho_loops);
-	}
-}
-
-static void rte_video_init(void) /* init video capture */
-{
-	if (modules & MOD_VIDEO) {
-		video_coding_size(width, height);
-
-		if (frame_rate > frame_rate_value[frame_rate_code])
-			frame_rate = frame_rate_value[frame_rate_code];
-
-		video_init();
-	}
+	BACKEND->status(context, status);
 }

@@ -145,6 +145,35 @@ p_zconf_resolve(const gchar * key, struct zconf_key * starting_dir);
 static struct zconf_key*
 p_zconf_create(const gchar * key, struct zconf_key * starting_dir);
 
+/**
+ * Sets the env vars describing the locale to "C", saves the results for
+ * a env_restore later on. Workaround for a bug in glib:
+ * printf uses the locale info to print float numbers (z.b., M_PI
+ * printed under a spanish locale is 3,14159... not 3.14159...). atof
+ * assumes the current locale is "C" when scanning floats.
+ */
+static gchar *old_locale = NULL;
+
+static void
+env_C(void)
+{
+  old_locale = g_strdup(setlocale(LC_ALL, NULL));
+
+  setlocale(LC_ALL, "C");
+}
+
+static void
+env_restore(void)
+{
+  if (!old_locale)
+    return;
+
+  setlocale(LC_ALL, old_locale);
+
+  g_free(old_locale);
+  old_locale = NULL;
+}
+
 /*
   Configuration saving/loading functions.
 */
@@ -240,12 +269,14 @@ zconf_init(const gchar * domain)
   /* Build the config tree from this entry */
   /* Examine the childs until we have a valid zconf_ root node */
   new_node = xmlDocGetRootElement(doc)-> children;
+  env_C();
   while ((new_node) && (!zconf_root))
     {
       p_zconf_parse(new_node, doc,
 		    &zconf_root, NULL);
       new_node = new_node -> next;
     }
+  env_restore();
 
   /* No root node found, return error */
   if (zconf_root == NULL)
@@ -285,7 +316,9 @@ gboolean zconf_close(void)
   xmlDocSetRootElement(doc, root_node);
   
   /* We build the doc now */
+  env_C();
   p_zconf_write(xmlDocGetRootElement(doc), doc, zconf_root);
+  env_restore();
 
   /* and we destroy the zconf tree */
   zconf_root = p_zconf_cut_branch(zconf_root);
@@ -394,7 +427,7 @@ void zconf_set_integer(gint new_value, const gchar * path)
 
       /* Free anything that was previously allocated here */
       if (key->contents)
-	free(key->contents);
+	g_free(key->contents);
 
       key -> contents = NULL;
       key -> type = ZCONF_TYPE_INTEGER;
@@ -502,7 +535,7 @@ gchar * zconf_get_string(gchar ** where, const gchar * path)
 /*
   Sets an string value to the given string.
 */
-void zconf_set_string(gchar * new_value, const gchar * path)
+void zconf_set_string(const gchar * new_value, const gchar * path)
 {
   struct zconf_key * key;
   zconf_we = TRUE; /* Start with an error */
@@ -533,7 +566,7 @@ void zconf_set_string(gchar * new_value, const gchar * path)
 
       /* Free anything that was previously allocated here */
       if (key->contents)
-	free(key->contents);
+	g_free(key->contents);
 
       key -> contents = NULL;
       key -> type = ZCONF_TYPE_STRING;
@@ -560,7 +593,7 @@ void zconf_set_string(gchar * new_value, const gchar * path)
   Creates an string value. Sets desc to NULL to leave it
   undocumented. Can fail if the given string is too large. FALSE on error.
 */
-gboolean zconf_create_string(gchar * value, const gchar * desc,
+gboolean zconf_create_string(const gchar * value, const gchar * desc,
 			     const gchar * path)
 {
   struct zconf_key * key;
@@ -671,7 +704,7 @@ void zconf_set_boolean(gboolean new_value, const gchar * path)
 
       /* Free anything that was previously allocated here */
       if (key->contents)
-	free(key->contents);
+	g_free(key->contents);
 
       key -> contents = NULL;
       key -> type = ZCONF_TYPE_BOOLEAN;
@@ -803,7 +836,7 @@ void zconf_set_float(gfloat new_value, const gchar * path)
 
       /* Free anything that was previously allocated here */
       if (key->contents)
-	free(key->contents);
+	g_free(key->contents);
 
       key -> contents = NULL;
       key -> type = ZCONF_TYPE_FLOAT;
@@ -1514,7 +1547,7 @@ p_zconf_create(const gchar * key, struct zconf_key * starting_dir)
     }
 
   /* The child didn't exist, create it */
-  sub_key = (struct zconf_key*) malloc(sizeof(struct zconf_key));
+  sub_key = (struct zconf_key*) g_malloc(sizeof(struct zconf_key));
   memset(sub_key, 0, sizeof(struct zconf_key));
   sub_key -> name = g_strdup(key_name_2);
   ptr = starting_dir -> full_path;

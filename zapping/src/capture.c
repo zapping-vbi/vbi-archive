@@ -55,7 +55,7 @@ static guint		idle_id=0;
 
 static gint		count=0; /* # of printed errors */
 
-static gboolean		capture_locked = FALSE;
+static gint		capture_locked = 0;
 
 static pthread_t	capture_thread_id;
 static fifo2		capture_fifo; /* capture_thread <-> main
@@ -160,7 +160,7 @@ gboolean request_default_format(gint w, gint h, tveng_device_info *info)
 void
 capture_lock(void)
 {
-  capture_locked = TRUE;
+  capture_locked++;
 }
 
 void
@@ -168,19 +168,20 @@ capture_unlock(void)
 {
   gint w, h;
 
-  if (capture_locked &&
-      capture_canvas)
+  if (capture_locked)
     {
-      /* request */
-      capture_locked = FALSE;
-
-      gdk_window_get_size(capture_canvas->window, &w, &h);
-
-      if (!request_default_format(w, h, main_info))
-	ShowBox(_("Cannot set a default capture format"),
-		GNOME_MESSAGE_BOX_WARNING);
+      capture_locked--;
+      if (!capture_locked &&
+	  capture_canvas)
+	{
+	  /* request */
+	  gdk_window_get_size(capture_canvas->window, &w, &h);
+	  
+	  if (!request_default_format(w, h, main_info))
+	    ShowBox(_("Cannot set a default capture format"),
+		    GNOME_MESSAGE_BOX_WARNING);
+	}
     }
-  capture_locked = FALSE;
 }
 
 /* check whether the two pixformats are compatible (not necessarily equal) */
@@ -210,13 +211,13 @@ request_bundle_format(enum tveng_frame_pixformat pixformat, gint w, gint h)
 {
   enum tveng_capture_mode cur_mode;
 
-  if (capture_locked)
-    return FALSE;
-
   if (w == current_format.width &&
       h == current_format.height &&
       pixformat == current_format.pixformat)
     return TRUE;
+
+  if (capture_locked)
+    return FALSE;
 
   tveng_update_capture_format(main_info);
   
@@ -248,7 +249,7 @@ request_bundle_format(enum tveng_frame_pixformat pixformat, gint w, gint h)
 }
 
 static void
-fill_bundle(capture_bundle *d, tveng_device_info *info)
+fill_bundle_tveng(capture_bundle *d, tveng_device_info *info)
 {
   g_assert(d != NULL);
 
@@ -284,6 +285,17 @@ fill_bundle(capture_bundle *d, tveng_device_info *info)
   tveng_mutex_unlock(info);
 }
 
+static BundleFiller fill_bundle = fill_bundle_tveng;
+
+BundleFiller set_bundle_filler(BundleFiller _fill_bundle)
+{
+  BundleFiller returned_value = fill_bundle;
+
+  fill_bundle = _fill_bundle ? _fill_bundle: fill_bundle_tveng;
+
+  return returned_value;
+}
+
 static volatile gboolean exit_capture_thread = FALSE;
 
 static void *
@@ -303,7 +315,6 @@ capture_thread (gpointer data)
 	  b->used = sizeof(capture_bundle);
 	  send_full_buffer2(&cf_producer, b);
 	}
-      usleep(2000); /* mhs: why? */
     }
 
   /* clear capture_fifo on exit */
@@ -335,7 +346,7 @@ on_capture_canvas_allocate             (GtkWidget       *widget,
 }
 
 /* Clear the bundle's contents, free mem, etc */
-static void
+void
 clear_bundle(capture_bundle *d)
 {
   switch (d->image_type)
@@ -355,7 +366,21 @@ clear_bundle(capture_bundle *d)
   d->image_type = d->image_size = 0;
 }
 
-static void
+gboolean
+bundle_equal(capture_bundle *a, capture_bundle *b)
+{
+  if (!a || !b || !a->image_type|| !b->image_type ||
+      !a->timestamp || !b->timestamp ||
+      a->format.pixformat != b->format.pixformat ||
+      a->format.width != b->format.width ||
+      a->format.height != b->format.height ||
+      a->image_size != b->image_size)
+    return FALSE;
+
+  return TRUE;
+}
+
+void
 build_bundle(capture_bundle *d, struct tveng_frame_format *format,
 	     fifo2 *f, buffer2 *b)
 {
@@ -398,13 +423,13 @@ build_bundle(capture_bundle *d, struct tveng_frame_format *format,
 	  d->data = d->image.yuv_data;
 	}
       break;
-
+      
     case TVENG_PIX_YVU420:
     case TVENG_PIX_YUV420:
       d->format.pixformat = format->pixformat;
       d->format.depth = 12;
       d->format.bpp = 1.5;
-
+      
       /* Try XV first */
 #ifndef FORCE_DATA
       if (have_xv &&
@@ -463,10 +488,10 @@ build_bundle(capture_bundle *d, struct tveng_frame_format *format,
 static void
 give_data_to_plugins(capture_bundle *d)
 {
-  struct vbi *vbi;
   GList *p;
-
 #if 0
+  struct vbi *vbi;
+
   if ((vbi = zvbi_get_object()))
     {
       /* XXX redundant if we're not in PAL/SECAM mode
@@ -483,7 +508,7 @@ give_data_to_plugins(capture_bundle *d)
       p = p->next;
     }
 }
-
+      
 static gint idle_handler(gpointer ignored)
 {
   buffer2 *b;
@@ -639,7 +664,8 @@ capture_start(GtkWidget * window, tveng_device_info *info)
 
   gdk_window_get_size(window->window, &w, &h);
 
-  have_xv = exit_capture_thread = capture_locked = FALSE;
+  have_xv = exit_capture_thread = FALSE;
+  capture_locked = 0;
 
   if (!disable_xv &&
       xvz_grab_port(info))
@@ -670,6 +696,9 @@ capture_start(GtkWidget * window, tveng_device_info *info)
   capture_canvas = window;
 
   count = 0;
+
+  /* set TVeng as the bundle filler */
+  set_bundle_filler(NULL);
 
   /* Capture started correctly */
   return 0;

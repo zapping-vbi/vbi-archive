@@ -1279,6 +1279,11 @@ tveng_insert_tuned_channel_sorted (tveng_tuned_channel * new_channel,
   channel_added->freq = new_channel->freq;
   channel_added->input = new_channel->input;
   channel_added->standard = new_channel->standard;
+  channel_added->num_controls = new_channel->num_controls;
+  if (new_channel->num_controls)
+    channel_added->controls =
+      g_memdup(new_channel->controls,
+	       channel_added->num_controls * sizeof(tveng_tc_control));
 
   /* OK, we are starting the list */
   if (!tc_ptr)
@@ -1380,6 +1385,11 @@ tveng_append_tuned_channel (tveng_tuned_channel * new_channel,
   channel_added->freq = new_channel->freq;
   channel_added->input = new_channel->input;
   channel_added->standard = new_channel->standard;
+  channel_added->num_controls = new_channel->num_controls;
+  if (new_channel->num_controls)
+    channel_added->controls =
+      g_memdup(new_channel->controls,
+	       channel_added->num_controls * sizeof(tveng_tc_control));
 
   /* OK, we are starting the list */
   if (!tc_ptr)
@@ -1518,6 +1528,7 @@ tveng_remove_tuned_channel (gchar * real_name, int id,
   g_free(tc_ptr -> name);
   g_free(tc_ptr -> real_name);
   g_free(tc_ptr -> country);
+  g_free(tc_ptr -> controls);
 
   if (list == tc_ptr) /* We are deleting the first item */
     list = tc_ptr -> next;
@@ -1546,6 +1557,7 @@ tveng_copy_tuned_channel(tveng_tuned_channel * dest,
   g_free(dest->name);
   g_free(dest->real_name);
   g_free(dest->country);
+  g_free(dest->controls);
 
   if (src->name)
     dest->name = g_strdup(src->name);
@@ -1566,6 +1578,13 @@ tveng_copy_tuned_channel(tveng_tuned_channel * dest,
   dest->accel_key = src->accel_key;
   dest->accel_mask = src->accel_mask;
   dest->freq = src->freq;
+  dest->num_controls = src->num_controls;
+
+  if (dest->num_controls)
+    dest->controls =
+      g_memdup(src->controls, dest->num_controls * sizeof(tveng_tc_control));
+  else
+    dest->controls = NULL;
 }
 
 /*
@@ -1660,4 +1679,11 @@ tveng_retrieve_tuned_channel_by_index (int index,
   g_assert_not_reached(); /* This shouldn't be reached if everything
 			     works */
   return NULL;
+}
+
+gboolean
+tveng_tuned_channel_in_list (tveng_tuned_channel * channel,
+			     tveng_tuned_channel * list)
+{
+  return (first_channel(channel) == first_channel(list));
 }

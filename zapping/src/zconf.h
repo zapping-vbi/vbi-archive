@@ -1,5 +1,5 @@
 /* Zapping (TV viewer for the Gnome Desktop)
- * Copyright (C) 2000 Iñaki García Etxebarria
+ * Copyright (C) 2000-2001 Iñaki García Etxebarria
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -60,7 +60,7 @@ gboolean zconf_close(void);
 gint zconf_error(void);
 
 /* 
-   In zconf there are four operations you can perform for each value:
+   In zconf there are three operations you can perform for each value:
    get: Gets the key value and fails if it doesn't exist.
    set: Sets a key value, and creates it (undocumented) if doesn't exist. 
    Never fails.
@@ -102,13 +102,13 @@ gchar * zconf_get_string(gchar ** where, const gchar * path);
 /*
   Sets an string value to the given string.
 */
-void zconf_set_string(gchar * new_value, const gchar * path);
+void zconf_set_string(const gchar * new_value, const gchar * path);
 
 /*
   Creates an string value. Sets desc to NULL to leave it
   undocumented. Can fail if the given string is too large. FALSE on error.
 */
-gboolean zconf_create_string(gchar * value, const gchar * desc,
+gboolean zconf_create_string(const gchar * value, const gchar * desc,
 			     const gchar * path);
 
 /*

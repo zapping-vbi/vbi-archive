@@ -669,6 +669,10 @@ static int tveng1_get_standards(tveng_device_info * info)
    */
   std_t = spec_t;
 #ifdef TVENG1_BTTV_PRESENT
+  /* rather poor, imho, but we shouldn't happily send a bttv private
+     ioctl to the innocent driver */
+  if (strstr(info->caps.name, "bt") || strstr(info->caps.name, "BT"))
+    
 #define BTTV_VERSION  	        _IOR('v' , BASE_VIDIOCPRIVATE+6, int)
   /* dirty hack time / v4l design flaw -- works with bttv only
    * this adds support for a few less common PAL versions */

@@ -21,6 +21,7 @@
 #endif
 
 #include <gnome.h>
+#include <libgnomeui/gnome-window-icon.h> /* only gnome 1.2 and above */
 #include <gdk/gdkx.h>
 #include <gnome-xml/tree.h>
 #include <gnome-xml/parser.h>
@@ -48,6 +49,8 @@
 extern enum tveng_capture_mode restore_mode; /* the mode set when we went
 						fullscreen */
 extern int cur_tuned_channel;
+/* from channel_editor.c */
+extern GtkWidget *ChannelWindow;
 
 /**** GLOBAL STUFF ****/
 
@@ -109,6 +112,9 @@ static gint timeout_handler(gpointer unused)
 {
   GdkGeometry geometry;
   GdkWindowHints hints=0;
+  GtkWidget *tv_screen;
+  gint tvs_w, tvs_h, mw_w, mw_h;
+  double rw = 0, rh=0;
 
   if ((flag_exit_program) || (!main_window->window))
     return 0;
@@ -125,16 +131,31 @@ static gint timeout_handler(gpointer unused)
       
       switch (zcg_int(NULL, "ratio")) {
       case 1:
-	geometry.min_aspect = geometry.max_aspect = 4.0/3.0;
-	hints |= GDK_HINT_ASPECT;
+	rw = 4;
+	rh = 3;
 	break;
       case 2:
-	geometry.min_aspect = geometry.max_aspect = 16.0/9.0;
-	hints |= GDK_HINT_ASPECT;
+	rw = 16;
+	rh = 9;
 	break;
       default:
 	break;
       }
+
+      if (rw)
+	{
+	  hints |= GDK_HINT_ASPECT;
+
+	  /* toolbars correction */
+	  tv_screen = lookup_widget(main_window, "tv_screen");
+	  gdk_window_get_size(tv_screen->window, &tvs_w, &tvs_h);
+	  gdk_window_get_size(main_window->window, &mw_w, &mw_h);
+
+	  rw = rw*(((double)mw_w)/tvs_w);
+	  rh = rh*(((double)mw_h)/tvs_h);
+
+	  geometry.min_aspect = geometry.max_aspect = rw/rh;
+	}
       
       gdk_window_set_geometry_hints(main_window->window, &geometry,
 				    hints);
@@ -338,12 +359,21 @@ int main(int argc, char * argv[])
   bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
   textdomain (PACKAGE);
 #endif
+
   /* Init gnome, libglade, modules and tveng */
   gnome_init_with_popt_table ("zapping", VERSION, argc, argv, options,
 			      0, NULL);
 
+  if (x11_get_bpp() < 15)
+    {
+      RunBox("The current depth (%i bpp) isn't supported by Zapping",
+	     GNOME_MESSAGE_BOX_ERROR, x11_get_bpp());
+      return 0;
+    }
+
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.115 2001-07-17 02:10:00 mschimek Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.116 2001-07-24 17:19:27 garetxe Exp $",
+	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU support... ");
   switch (cpu_detection())
     {
@@ -383,6 +413,8 @@ int main(int argc, char * argv[])
 
   D();
   glade_gnome_init();
+  D();
+  gnome_window_icon_set_default_from_file(PACKAGE_PIXMAPS_DIR "/gnome-television.png");
   D();
   if (!g_module_supported ())
     {
@@ -620,6 +652,9 @@ int main(int argc, char * argv[])
 	ShowBox(_("Capture mode couldn't be started:\n%s"),
 		GNOME_MESSAGE_BOX_ERROR, main_info->error);
   D();
+  if (-1 == tveng_set_mute(zcg_bool(NULL, "start_muted"), main_info))
+    printv("%s\n", main_info->error);
+  D();
   /* Restore the input and the standard */
   if (zcg_int(NULL, "current_input"))
     z_switch_input(zcg_int(NULL, "current_input"), main_info);
@@ -628,9 +663,6 @@ int main(int argc, char * argv[])
   z_switch_channel(tveng_retrieve_tuned_channel_by_index(cur_tuned_channel,
 							 global_channel_list),
 		   main_info);
-  D();
-  if (-1 == tveng_set_mute(zcg_bool(NULL, "start_muted"), main_info))
-    printv("%s\n", main_info->error);
   if (!command)
     {
       gtk_widget_show(main_window);
@@ -683,7 +715,7 @@ int main(int argc, char * argv[])
 
 static void shutdown_zapping(void)
 {
-  int i = 0;
+  int i = 0, j = 0;
   gchar * buffer = NULL;
   tveng_tuned_channel * channel;
 
@@ -692,8 +724,6 @@ static void shutdown_zapping(void)
   if (was_fullscreen)
     zcs_int(TVENG_CAPTURE_PREVIEW, "capture_mode");
 
-  tveng_set_mute(1, main_info);
-  
   /* Unloads all plugins, this tells them to save their config too */
   printv("plugins");
   plugin_unload_plugins(plugin_list);
@@ -706,6 +736,14 @@ static void shutdown_zapping(void)
 							  global_channel_list))
 	 != NULL)
     {
+      if ((i == cur_tuned_channel) &&
+	  !ChannelWindow) /* Having the channel editor open screws this
+			   logic up, do not save controls in this case */
+	{
+	  g_free(channel->controls);
+	  store_control_values(&channel->num_controls,
+			       &channel->controls, main_info);
+	}
       buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/name",
 			       i);
       zconf_create_string(channel->name, "Channel name", buffer);
@@ -742,6 +780,29 @@ static void shutdown_zapping(void)
       zconf_create_integer(channel->standard, "Attached standard", buffer);
       g_free(buffer);
 
+      buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/num_controls",
+			       i);
+      zconf_create_integer(channel->num_controls, "Saved controls", buffer);
+      g_free(buffer);
+
+      for (j = 0; j<channel->num_controls; j++)
+	{
+	  buffer =
+	    g_strdup_printf(ZCONF_DOMAIN
+			    "tuned_channels/%d/controls/%d/name",
+			    i, j);
+	  zconf_create_string(channel->controls[j].name, "Control name",
+			      buffer);
+	  g_free(buffer);
+	  buffer =
+	    g_strdup_printf(ZCONF_DOMAIN
+			    "tuned_channels/%d/controls/%d/value",
+			    i, j);
+	  zconf_create_float(channel->controls[j].value, "Control value",
+			     buffer);
+	  g_free(buffer);
+	}
+
       i++;
     }
   global_channel_list = tveng_clear_tuned_channel(global_channel_list);
@@ -759,6 +820,8 @@ static void shutdown_zapping(void)
 	    "current_input");
   else
     zcs_int(0, "current_input");
+
+  tveng_set_mute(1, main_info);
 
   /* Shutdown all other modules */
   printv(" callbacks");
@@ -818,9 +881,11 @@ static void shutdown_zapping(void)
 
 static gboolean startup_zapping()
 {
-  int i = 0;
+  int i = 0, j;
   gchar * buffer = NULL;
   gchar * buffer2 = NULL;
+  gchar * buffer3 = NULL;
+  gchar * buffer4 = NULL;
   tveng_tuned_channel new_channel;
   GList * p;
   D();
@@ -845,6 +910,8 @@ static gboolean startup_zapping()
 	   "start_muted");
   zcc_bool(TRUE, "TRUE if some flickering should be avoided in preview mode",
 	   "avoid_flicker");
+  zcc_bool(FALSE, "TRUE if the controls info should be saved with each "
+	   "channel", "save_controls");
   zcc_int(0, "Verbosity value given to zapping_setup_fb",
 	  "zapping_setup_fb_verbosity");
   zcc_int(0, "Ratio mode", "ratio");
@@ -897,6 +964,34 @@ static gboolean startup_zapping()
       zconf_get_integer(&new_channel.standard, buffer2);
       g_free(buffer2);
 
+      buffer2 = g_strconcat(buffer, "/num_controls", NULL);
+      zconf_get_integer(&new_channel.num_controls, buffer2);
+      g_free(buffer2);
+
+      buffer2 = g_strconcat(buffer, "/controls", NULL);
+      if (new_channel.num_controls)
+	new_channel.controls =
+	  g_malloc0(sizeof(tveng_tc_control) *
+		    new_channel.num_controls);
+      for (j = 0; j<new_channel.num_controls; j++)
+	{
+	  if (!zconf_get_nth(j, &buffer3, buffer2))
+	    {
+	      g_warning("Control %d of channel %d [%s] is malformed, skipping",
+			j, i, new_channel.name);
+	      continue;
+	    }
+	  buffer4 = g_strconcat(buffer3, "/name", NULL);
+	  strncpy(new_channel.controls[j].name,
+		  zconf_get_string(NULL, buffer4), 32);
+	  g_free(buffer4);
+	  buffer4 = g_strconcat(buffer3, "/value", NULL);
+	  zconf_get_float(&new_channel.controls[j].value, buffer4);
+	  g_free(buffer4);
+	  g_free(buffer3);
+	}
+      g_free(buffer2);
+
       new_channel.index = 0;
       global_channel_list =
 	tveng_append_tuned_channel(&new_channel, global_channel_list);
@@ -905,6 +1000,7 @@ static gboolean startup_zapping()
       g_free(new_channel.name);
       g_free(new_channel.real_name);
       g_free(new_channel.country);
+      g_free(new_channel.controls);
 
       g_free(buffer);
       i++;

@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.14 2001-06-23 02:50:44 mschimek Exp $ */
+/* $Id: search.c,v 1.15 2001-07-24 17:19:26 garetxe Exp $ */
 
 #include <stdlib.h>
 #include <ctype.h>
@@ -449,7 +449,8 @@ vbi_new_search(struct vbi *vbi,
  *  -1  Canceled by <progress>. *pg the current page,
  *      same as in success case except highlight. Another
  *      vbi_next_search() continues from this page.
- *  -2  An error occured, condition unclear. Call
+ *  -2  No pages in the cache.
+ *  -3  An error occured, condition unclear. Call
  *      vbi_delete_search and forget it.
  */
 int
@@ -492,6 +493,9 @@ vbi_next_search(void *p, struct fmt_page **pg, int dir)
 		*pg = &s->pg;
 		return 1;
 
+	case 0:
+		return -2;
+
 	case -1:
 		s->dir = 0;
 		return 0;
@@ -503,5 +507,5 @@ vbi_next_search(void *p, struct fmt_page **pg, int dir)
 		break;
 	}
 
-	return -2;
+	return -3;
 }

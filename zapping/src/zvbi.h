@@ -178,4 +178,18 @@ zvbi_get_model(void);
 GtkWidget *
 build_vbi_info(void);
 
+/*
+  Returns the g_strdup'ed name of the current station, if known, or
+  NULL. The returned value should be g_free'ed
+*/
+gchar *
+zvbi_get_name(void);
+
+/*
+  Clears the station_name_known flag. Useful when you are changing
+  freqs fast and you want to know the current station
+*/
+void
+zvbi_name_unknown(void);
+
 #endif /* zvbi.h */

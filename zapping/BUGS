@@ -4,8 +4,9 @@ Known bugs with zapping, don't report them
 ! == Bug that needs fixing, very important
 ------------------------------------------
 
-	! Something leaks horribly every n-milliseconds, memprof says
-	it's x11_add_clips. Weird, but needs fixing.
+	! Z crashes randomly with a segv. I cannot reproduce, but
+	happens at times, even when i'm doing nothing with it. I wish
+	i could get a backtrace.
 	! MPEG plugin crashes (rte, fifos?)
 rte:remote.c:112: Invalid timestamps from rte-audio: ..., 995206011,154335, 995206011,154335
 Check disabled for further examination

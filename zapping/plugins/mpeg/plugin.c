@@ -24,7 +24,6 @@
 /*
   TODO:
     . support for SECAM/NTSC/etc standards
-    . Dynamic stats.
 */
 
 /* This is the description of the plugin, change as appropiate */
@@ -181,84 +180,52 @@ void plugin_close(void)
 /*
  * Audio capture
  */
-#define BUFFER_SIZE (ESD_BUF_SIZE)
 static int		esd_recording_socket;
-static short *		abuffer;
-static int		scan_range;
-static int		look_ahead;
-static int		buffer_size;
-static int		samples_per_frame;
 
 static void
 read_audio(void * data, double * time, rte_context * context)
 {
-	static double rtime, utime;
-	static int left = 0;
-	static short *p;
 	int stereo = (context->audio_mode == RTE_AUDIO_MODE_STEREO) ? 1
 		: 0;
 	struct timeval tv;
 	int sampling_rate = context->audio_rate;
+	ssize_t r, n = context->audio_bytes;
 
-	if (left <= 0)
-	{
-		ssize_t r;
-		int n;
-
-		memcpy(abuffer, abuffer + scan_range, look_ahead *
-		       sizeof(abuffer[0]));
-
-		p = abuffer + look_ahead;
-		n = scan_range * sizeof(abuffer[0]);
-
-		while (n > 0) {
-			fd_set rdset;
-			int err;
-
-			FD_ZERO(&rdset);
-			FD_SET(esd_recording_socket, &rdset);
-			tv.tv_sec = 1;
-			tv.tv_usec = 0;
-			err = select(esd_recording_socket+1, &rdset,
-				   NULL, NULL, &tv);
-
-			if ((err == -1) || (err == 0))
-				continue;
-
-			r = read(esd_recording_socket, p, n);
-			
-			if (r < 0 && errno == EINTR)
-				continue;
-
-			if (r == 0) {
-				memset(p, 0, n);
-				break;
-			}
-
-			(char *) p += r;
-			n -= r;
+	while (n > 0) {
+		fd_set rdset;
+		int err;
+		
+		FD_ZERO(&rdset);
+		FD_SET(esd_recording_socket, &rdset);
+		tv.tv_sec = 1;
+		tv.tv_usec = 0;
+		err = select(esd_recording_socket+1, &rdset,
+			     NULL, NULL, &tv);
+		
+		if ((err == -1) || (err == 0))
+			continue;
+		
+		r = read(esd_recording_socket, data, n);
+		
+		if (r < 0 && errno == EINTR)
+			continue;
+		
+		if (r == 0) {
+			memset(data, 0, n);
+			break;
 		}
-
-		gettimeofday(&tv, NULL);
-
-		rtime = tv.tv_sec + tv.tv_usec / 1e6;
-		rtime -= (scan_range - n) / (double) sampling_rate;
-
-		left = scan_range - samples_per_frame;
-		p = abuffer;
-
-		*time = rtime;
-		memcpy(data, p, context->audio_bytes);
-		return;
+		
+		g_assert(r > 0);
+		
+		(char *) data += r;
+		n -= r;
 	}
 
-	utime = rtime + ((p - abuffer) >> stereo) / (double) sampling_rate;
-	left -= samples_per_frame;
-
-	p += samples_per_frame;
-
-	*time = utime;
-	memcpy(data, p, context->audio_bytes);
+	gettimeofday(&tv, NULL);
+	
+	*time = tv.tv_sec + tv.tv_usec / 1e6;
+	*time -= (((context->audio_bytes - n)/sizeof(short))>>stereo)
+		/ (double) sampling_rate;
 }
 
 static void
@@ -285,22 +252,6 @@ init_audio(gint rate, gboolean stereo)
   if (esd_recording_socket <= 0)
     return FALSE;
 
-  samples_per_frame = 1152 << stereo;
-  
-  scan_range = MAX(BUFFER_SIZE / sizeof(short) /
-		   samples_per_frame, 1) * samples_per_frame;
-  
-  look_ahead = (512 - 32) << stereo;
-  
-  buffer_size = (scan_range + look_ahead) * sizeof(abuffer[0]);
-
-  abuffer = malloc(buffer_size);
-
-  if (!abuffer)
-    return FALSE;
-
-  memset(abuffer, 0, buffer_size);
-
   return TRUE;
 }
 
@@ -309,9 +260,6 @@ close_audio(void)
 {
   close(esd_recording_socket);
   esd_recording_socket = -1;
-
-  if (abuffer)
-    free(abuffer);
 }
 
 /* Called when compressed data is ready */
@@ -417,9 +365,12 @@ void plugin_process_bundle ( capture_bundle * bundle )
 
   widget = lookup_widget(saving_dialog, "label12");
   buffer =
-    g_strdup_printf(_("%.1f MB : %d frames dropped : %d frames processed"),
+    g_strdup_printf(_("%.1f MB : %d %s dropped : %d %s processed"),
 		    status.bytes_out / ((double)(1<<20)),
-		    status.dropped_frames, status.processed_frames);
+		    status.dropped_frames,
+		    status.dropped_frames == 1 ? _("frame") : _("frames"),
+		    status.processed_frames,
+		    status.processed_frames == 1 ? _("frame") : _("frames"));
   gtk_label_set_text(GTK_LABEL(widget), buffer);
   g_free(buffer);
 }
@@ -494,8 +445,6 @@ gboolean plugin_start (void)
 	}
     }
 
-//  return FALSE;
-
   if (zmisc_switch_mode(TVENG_CAPTURE_READ, zapping_info))
     {
       ShowBox("This plugin needs to run in Capture mode, but"
@@ -504,8 +453,6 @@ gboolean plugin_start (void)
       return FALSE;
     }
 
-  /* FIXME: Size should be configurable */
-  /* FIXME: Won't work if YUYV isn't Z's current yuv pixformat */
   if (!request_bundle_format(tveng_pixformat, capture_w,
 			     capture_h))
     {
@@ -532,7 +479,7 @@ gboolean plugin_start (void)
 
   context =
     rte_context_new(zapping_info->format.width,
-		    zapping_info->format.height, pixformat,
+		    zapping_info->format.height, "mp1e",
 		    NULL);
   /* mhs: capture_fifo is not mc-able due to the capture_bundle
      write permission. */
@@ -589,18 +536,19 @@ gboolean plugin_start (void)
 	  return FALSE;
 	}
       fclose(file_fd);
-      rte_set_output(context, NULL, file_name);
+      rte_set_output(context, NULL, NULL, file_name);
       break;
     default:
       file_name = g_strdup("/dev/null");
-      rte_set_output(context, encode_callback, NULL);
+      rte_set_output(context, encode_callback, NULL, NULL);
       break;
     }
 
   /* Set video and audio rates */
-  rte_set_video_parameters(context, context->video_format,
+  rte_set_video_parameters(context, pixformat,
 			   context->width, context->height,
-			   context->video_rate, output_video_bits*1e6);
+			   context->video_rate, output_video_bits*1e6,
+			   context->gop_sequence);
   rte_set_audio_parameters(context, context->audio_rate,
 			   context->audio_mode, output_audio_bits*1e3);
 
@@ -750,8 +698,8 @@ void plugin_load_config (gchar * root_key)
   g_free(buffer);
 
   buffer = g_strconcat(root_key, "motion_comp", NULL);
-  zconf_create_integer(0, "Enable motion compensation", buffer);
-  motion_comp = !!zconf_get_integer(NULL, buffer);
+  zconf_create_boolean(FALSE, "Enable motion compensation", buffer);
+  motion_comp = !!zconf_get_boolean(NULL, buffer);
   g_free(buffer);
 
   buffer = g_strconcat(root_key, "capture_w", NULL);
@@ -803,7 +751,7 @@ void plugin_save_config (gchar * root_key)
   g_free(buffer);
 
   buffer = g_strconcat(root_key, "motion_comp", NULL);
-  zconf_set_integer(!!motion_comp, buffer);
+  zconf_set_boolean(!!motion_comp, buffer);
   g_free(buffer);
 
   buffer = g_strconcat(root_key, "capture_w", NULL);

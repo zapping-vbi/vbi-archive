@@ -13,7 +13,7 @@ test -e site_def.h || echo "/* Site specific definitions */" >site_def.h
 
 dnl These are the plugins we can build, they depend on the present
 dnl libs.
-PLUGINS_TO_BUILD="template lirc"
+PLUGINS_TO_BUILD="template lirc parrot"
 
 dnl ---------------------------------------------------------------------------
 dnl enable X extensions
@@ -311,13 +311,18 @@ if test "x${prefix}" = "xNONE"; then
   AC_DEFINE_UNQUOTED(PACKAGE_DATA_DIR,
 	"${ac_default_prefix}/${DATADIRNAME}/${PACKAGE}")
   PACKAGE_LIB_DIR="${ac_default_prefix}/lib/${PACKAGE}"
+  PACKAGE_PIXMAPS_DIR="${ac_default_prefix}/${DATADIRNAME}/pixmaps/${PACKAGE}"
 else
   AC_DEFINE_UNQUOTED(PACKAGE_LOCALE_DIR, "${prefix}/${DATADIRNAME}/locale")
   AC_DEFINE_UNQUOTED(PACKAGE_DATA_DIR, "${prefix}/${DATADIRNAME}/${PACKAGE}")
   PACKAGE_LIB_DIR="${prefix}/lib/${PACKAGE}"
+  PACKAGE_PIXMAPS_DIR="${prefix}/${DATADIRNAME}/pixmaps/${PACKAGE}"
 fi
 
 AC_DEFINE_UNQUOTED(PACKAGE_LIB_DIR, "${PACKAGE_LIB_DIR}")
+AC_SUBST(PACKAGE_LIB_DIR)
+AC_DEFINE_UNQUOTED(PACKAGE_PIXMAPS_DIR, "${PACKAGE_PIXMAPS_DIR}")
+AC_SUBST(PACKAGE_PIXMAPS_DIR)
 
 dnl ----------------------------------------------------------------------
 dnl Check for the Xv extension
@@ -349,17 +354,11 @@ AC_SUBST(X_XDPMS_LIBS)
 fi
 fi
 
-dnl Subst PACKAGE_PIXMAPS_DIR.
-PACKAGE_PIXMAPS_DIR="${datadir}/pixmaps/${PACKAGE}"
-AC_SUBST(PACKAGE_PIXMAPS_DIR)
-
 dnl Default dir for installing plugins
 PLUGIN_DEFAULT_DIR="${PACKAGE_LIB_DIR}/plugins"
 AC_SUBST(PLUGIN_DEFAULT_DIR)
 PLUGIN_DEFAULT_FLAGS="-Wall -Wno-unused -g -D_GNU_SOURCE"
 AC_SUBST(PLUGIN_DEFAULT_FLAGS)
-
-AC_SUBST(PACKAGE_LIB_DIR)
 
 CFLAGS="-D_GNU_SOURCE $CFLAGS"
 
@@ -380,11 +379,12 @@ help/man/Makefile
 plugins/Makefile
 common/Makefile
 zapping_setup_fb/Makefile
+plugins/alirc/Makefile
 plugins/lirc/Makefile
 plugins/mpeg/Makefile
+plugins/parrot/Makefile
 plugins/screenshot/Makefile
 plugins/template/Makefile
-plugins/alirc/Makefile
 ])
 
 echo "

@@ -21,12 +21,15 @@
 #endif
 
 #include <gnome.h>
+#include <math.h>
+#include <ctype.h>
 
 /* Routines for building GUI elements dependant on the v4l device
    (such as the number of inputs and so on) */
 #include "tveng.h"
 #include "v4linterface.h"
 #include "callbacks.h"
+#define ZCONF_DOMAIN "/zapping/options/main/"
 #include "zconf.h"
 #include "zmisc.h"
 #include "interface.h"
@@ -653,16 +656,103 @@ z_switch_standard		(int hash, tveng_device_info *info)
     zmodel_changed(z_input_model);
 }
 
+/* Returns a newly allocated copy of the string, normalized */
+static char* normalize(const char *string)
+{
+  int i = 0;
+  const char *strptr=string;
+  char *result;
+
+  t_assert(string != NULL);
+
+  result = strdup(string);
+
+  t_assert(result != NULL);
+
+  while (*strptr != 0) {
+    if (*strptr == '_' || *strptr == '-' || *strptr == ' ') {
+      strptr++;
+      continue;
+    }
+    result[i] = tolower(*strptr);
+
+    strptr++;
+    i++;
+  }
+  result[i] = 0;
+
+  return result;
+}
+
+/* nomalize and compare */
+static int normstrcmp (const char * in1, const char * in2)
+{
+  char *s1 = normalize(in1);
+  char *s2 = normalize(in2);
+
+  t_assert(in1 != NULL);
+  t_assert(in2 != NULL);
+
+  /* Compare the strings */
+  if (!strcmp(s1, s2)) {
+    free(s1);
+    free(s2);
+    return 1;
+  } else {
+    free(s1);
+    free(s2);
+    return 0;
+  }
+}
+
+static
+void load_control_values(gint num_controls,
+			 tveng_tc_control *list,
+			 tveng_device_info *info)
+{
+  gint i, j, value;
+  struct tveng_control *c;
+
+  for (i = 0; i<num_controls; i++)
+    for (j = 0; j<info->num_controls; j++)
+      if (normstrcmp(info->controls[j].name,
+		     list[i].name))
+	{
+	  c = &info->controls[j];
+	  value = rint(c->min + (c->max - c->min)*list[i].value);
+	  tveng_set_control(c, value, info);
+	}
+}
+
+/* Do not save the control values in the first switch_channel */
+static gboolean first_switch = TRUE;
+
 void
 z_switch_channel	(tveng_tuned_channel	*channel,
 			 tveng_device_info	*info)
 {
   int mute=0;
+  tveng_tuned_channel *tc;
+  gboolean in_global_list =
+    tveng_tuned_channel_in_list(channel, global_channel_list);
 
   if (!channel)
     return;
 
-  if (zconf_get_boolean(NULL, "/zapping/options/main/avoid_noise"))
+  if (in_global_list &&
+      (tc = tveng_retrieve_tuned_channel_by_index(cur_tuned_channel,
+						  global_channel_list)))
+    {
+      if (!first_switch)
+	{
+	  g_free(tc->controls);
+	  store_control_values(&tc->num_controls, &tc->controls, info);
+	}
+      else
+	first_switch = FALSE;
+    }
+
+  if (zcg_bool(NULL, "avoid_noise"))
     {
       mute = tveng_get_mute(info);
       
@@ -680,7 +770,7 @@ z_switch_channel	(tveng_tuned_channel	*channel,
     if (-1 == tveng_tune_input (channel->freq, info))
       ShowBox(info -> error, GNOME_MESSAGE_BOX_ERROR);
 
-  if (zconf_get_boolean(NULL, "/zapping/options/main/avoid_noise"))
+  if (zcg_bool(NULL, "avoid_noise"))
     {
       /* Sleep a little so the noise dissappears */
       usleep(100000);
@@ -689,9 +779,51 @@ z_switch_channel	(tveng_tuned_channel	*channel,
 	tveng_set_mute(0, info);
     }
 
-  cur_tuned_channel = channel->index;
+  if (in_global_list)
+    {
+      cur_tuned_channel = channel->index;
+      
+      update_channels_menu(lookup_widget(main_window, "Channels"),
+			   info);
+    }
 
-  update_channels_menu(lookup_widget(main_window, "Channels"), info);
+  if (channel->num_controls &&
+      zcg_bool(NULL, "save_controls"))
+    load_control_values(channel->num_controls, channel->controls,
+			info);
+
+  update_control_box(info);
+}
+
+void store_control_values(gint *num_controls,
+			  tveng_tc_control **list,
+			  tveng_device_info *info)
+{
+  gint i;
+  struct tveng_control *c;
+
+  g_assert(info != NULL);
+  g_assert(list != NULL);
+  g_assert(num_controls != NULL);
+
+  *num_controls = info->num_controls;
+
+  if (*num_controls)
+    {
+      *list = g_malloc(sizeof(tveng_tc_control) * *num_controls);
+      for (i = 0; i<*num_controls; i++)
+	{
+	  c = info->controls+i;
+	  strncpy((*list)[i].name, c->name, 32);
+	  if (c->max > c->min)
+	    (*list)[i].value = (((gfloat)c->cur_value)-c->min)/
+	      ((gfloat)c->max-c->min);
+	  else
+	    (*list)[i].value = 0;
+	}
+    }
+  else
+    *list = NULL;
 }
 
 void

@@ -1348,7 +1348,7 @@ static int p_tveng2_dqbuf(tveng_device_info * info)
       return -1;
     }
 
-  p_info -> last_timestamp = tmp_buffer.timestamp / 1e9;
+  p_info -> last_timestamp = tmp_buffer.timestamp /1e9;
 
   return (tmp_buffer.index);
 }
@@ -1574,11 +1574,9 @@ int tveng2_read_frame(void * where, unsigned int size,
 }
 
 /*
-  Gets the timestamp of the last read frame.
+  Gets the timestamp of the last read frame in seconds.
   Returns -1 on error, if the current mode isn't capture, or if we
-  haven't captured any frame yet. The timestamp is relative to when we
-  started streaming, and is calculated with the following formula:
-  timestamp = (sec*1000000+usec)*1000
+  haven't captured any frame yet.
 */
 static double tveng2_get_timestamp(tveng_device_info * info)
 {

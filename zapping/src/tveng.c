@@ -46,6 +46,7 @@
 
 #define TVLOCK		pthread_mutex_lock(&(info->private->mutex))
 #define UNTVLOCK	pthread_mutex_unlock(&(info->private->mutex))
+
 #define RETURN_UNTVLOCK(X) \
 do { __typeof__(X) _unlocked_result = X; \
      UNTVLOCK; \

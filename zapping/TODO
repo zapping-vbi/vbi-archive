@@ -1,17 +1,10 @@
 Outstanding issues for the next release (0.6.0)
 -----------------------------------------------
-	+ Revamp GUI for closed caption, program info, etc.
-	+ Make sure overlaying, capture etc works as smoothly as
-	possible under v4l.
-	+ Parrot buffer for observing parrots.
-	+ Add to the configure script and to the .spec deps the
-		dependency on mp1e (actually RTE).
-	+ Make the mpeg plugin work.
-	+ First run wizard.
-	+ Respect the control center settings regarding toolbar.
-	+ Make aspect ration relative to the tv_screen, not the whole
-	window (set_usize??)
-	+ Command-line to start in stereo mode.
+	+ Finish parrot buffer for observing parrots.
+	+ Find/draw some icons for the parrot buffer plugin.
+	+ fifo->fifo2
+	+ Fix country size field width.
+	+ Reorganize toolbar, etc.
 
 > 0.6.1
 	+ extend OSD to allow arbitrary strings, not just CC and ttx.
@@ -22,6 +15,7 @@ Outstanding issues for the next release (0.6.0)
 	+ Fullscreen channel tips.
 	+ GUI improvements (channel selection, controls, toolbar...),
 	channel submenus.
+	+ Revamp GUI for closed caption, program info, etc.
 	+ Screenshot preview.
 	+ Get thumbnails of all tuned channels.
 	+ --roottv switch (use Z as screensaver)

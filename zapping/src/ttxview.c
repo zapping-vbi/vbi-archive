@@ -124,6 +124,9 @@ typedef struct {
   guint			wait_page; /* last page requested */
   struct fmt_page	wait_pg; /* page we wait for */
   gboolean		wait_mode; /* waiting */
+
+  GtkToolbarStyle	toolbar_style; /* previous style of the
+					  toolbar (restored on detach) */
 } ttxview_data;
 
 struct bookmark {
@@ -273,6 +276,7 @@ shutdown_ttxview (void)
 
   gtk_object_destroy(GTK_OBJECT(model));
   gtk_object_destroy(GTK_OBJECT(refresh));
+  refresh = NULL;
 }
 
 static
@@ -544,9 +548,10 @@ remove_ttxview_instance			(ttxview_data	*data)
   gtk_signal_disconnect_by_func(GTK_OBJECT(data->vbi_model),
 				GTK_SIGNAL_FUNC(on_vbi_model_changed),
 				data);
-  gtk_signal_disconnect_by_func(GTK_OBJECT(refresh),
-				GTK_SIGNAL_FUNC(on_ttxview_refresh),
-				data);
+  if (refresh)
+    gtk_signal_disconnect_by_func(GTK_OBJECT(refresh),
+				  GTK_SIGNAL_FUNC(on_ttxview_refresh),
+				  data);
   g_free(data);
 }
 
@@ -1005,7 +1010,26 @@ void run_next				(GtkButton	*button,
       break;      
     case -1: /* cancelled */
       break;
-    case -2: /* error */
+    case -2: /* no pages in the cache */
+      if (search_progress)
+	{
+	  gtk_widget_set_sensitive(search_cancel, FALSE);
+	  gtk_widget_set_sensitive(search_next, TRUE);
+	  gtk_widget_set_sensitive(search_prev, TRUE);
+	  if (zcg_bool(NULL, "ure_backwards"))
+	    gnome_dialog_set_default(GNOME_DIALOG(search_progress),
+				     2);
+	  else
+	    gnome_dialog_set_default(GNOME_DIALOG(search_progress),
+				     1);
+	  gtk_label_set_text(GTK_LABEL(lookup_widget(search_cancel,
+						     "label97")),
+			     _("Empty cache"));
+	  gtk_widget_set_sensitive(lookup_widget(search_cancel,
+						 "progressbar2"), FALSE);
+	}
+      break;
+    case -3: /* unclear error, forget */
       break;
     default:
       g_message("Unknown search return code: %d",
@@ -1016,12 +1040,13 @@ void run_next				(GtkButton	*button,
   if (search_progress)
     gtk_object_set_user_data(GTK_OBJECT(search_progress), NULL);
   
-  if (return_code < 0)
+  if (return_code < 0 &&
+      return_code != -2)
     {
       if (search_progress)
 	gtk_widget_destroy(search_progress);
-
-      vbi_delete_search(context);
+      else
+	vbi_delete_search(context);
     }
 }
 
@@ -3555,6 +3580,7 @@ ttxview_attach			(GtkWidget	*parent,
 
   gtk_widget_show(data->toolbar);
 
+  data->toolbar_style = GTK_TOOLBAR(data->parent_toolbar)->style;
   gtk_toolbar_set_style(GTK_TOOLBAR(data->parent_toolbar), GTK_TOOLBAR_ICONS);
 
   gtk_toolbar_append_widget(GTK_TOOLBAR(data->parent_toolbar),
@@ -3606,7 +3632,7 @@ ttxview_detach			(GtkWidget	*parent)
 				data);
 
   gtk_toolbar_set_style(GTK_TOOLBAR(data->parent_toolbar),
-			GTK_TOOLBAR_BOTH);
+			data->toolbar_style);
 
   remove_ttxview_instance(data);
 
