@@ -41,6 +41,7 @@
 #endif /* _ */
 
 #include "x11stuff.h"
+#include "zmisc.h"
 
 /*
   Function prototypes for modules, NULL means not implemented or not
@@ -117,8 +118,6 @@ struct tveng_module_info {
   int	private_size;
 };
 
-#include "x11stuff.h"
-
 struct tveng_private {
   Display	*display;
   int		save_x, save_y;
@@ -149,68 +148,12 @@ struct tveng_private {
   tv_bool		quiet;
 };
 
-static inline void
-free_control			(tv_control *		tc)
-{
-	if (!tc)
-		return;
-
-	tv_callback_destroy (tc, &tc->_callback);
-
-	if (tc->label) {
-		free ((char *) tc->label);
-	}
-
-	if (tc->menu) {
-	      unsigned int i;
-
-	      for (i = 0; tc->menu[i]; i++) {
-		      free ((char *) tc->menu[i]);
-	      }
-
-	      free (tc->menu);
-	}
-
-	free (tc);
-}
-
-static inline tv_control *
+extern void
+free_control			(tv_control *		tc);
+extern tv_control *
 append_control			(tveng_device_info *	info,
 				 tv_control *		tc,
-				 unsigned int		size)
-{
-	tv_control **tcp;
-
-	for (tcp = &info->controls; *tcp; tcp = &(*tcp)->next)
-		;
-
-	if (size > 0) {
-		*tcp = malloc (size);
-
-		if (!*tcp) {
-			info->tveng_errno = errno;
-			t_error("malloc", info);
-			return NULL;
-		}
-
-		memcpy (*tcp, tc, size);
-
-		tc = *tcp;
-	} else {
-		*tcp = tc;
-	}
-
-	tc->next = NULL;
-
-	return tc;
-}
-
-#ifndef MAX
-#define MAX(X, Y) (((X) < (Y)) ? (Y) : (X))
-#endif
-#ifndef MIN
-#define MIN(X, Y) (((X) > (Y)) ? (Y) : (X))
-#endif
+				 unsigned int		size);
 
 /* check for hash collisions in info->inputs */
 static inline void
@@ -248,64 +191,10 @@ standard_collisions(tveng_device_info *info)
     }
 }
 
-static inline void
-tveng_copy_block (void *_src, void *_dest,
-		  int src_stride, int dest_stride,
-		  int lines)
-{
-  int min_stride = MIN (src_stride, dest_stride);
-
-  if (src_stride == dest_stride)
-    memcpy (_dest, _src, src_stride * lines);
-  else for (;lines; lines--, _src += src_stride, _dest += dest_stride)
-    memcpy (_dest, _src, min_stride);
-}
-
-static void
-tveng_copy_frame (unsigned char *src, tveng_image_data *where,
-		  tveng_device_info *info) __attribute__ ((unused));
-static void
-tveng_copy_frame (unsigned char *src, tveng_image_data *where,
-		  tveng_device_info *info)
-{
-  if (tveng_is_planar (info->format.pixformat))
-    {
-      unsigned char *y = where->planar.y, *u = where->planar.u,
-	*v = where->planar.v;
-      unsigned char *src_y, *src_u, *src_v;
-      /* Assume that we are aligned */
-      int bytes = info->format.height * info->format.width;
-      t_assert (info->format.pixformat == TVENG_PIX_YUV420 ||
-		info->format.pixformat == TVENG_PIX_YVU420);
-      if (info->priv->assume_yvu)
-	{
-	  unsigned char *t = u;
-	  u = v;
-	  v = t;
-	}
-      src_y = src;
-      src_u = src_y + bytes;
-      src_v = src_u + (bytes>>2);
-      if (info->format.pixformat == TVENG_PIX_YVU420)
-	{
-	  unsigned char *t = src_u;
-	  src_u = src_v;
-	  src_v = t;
-	}
-      tveng_copy_block (src_y, y, info->format.width,
-			where->planar.y_stride, info->format.height);
-      tveng_copy_block (src_u, u, info->format.width/2,
-			where->planar.uv_stride,
-			info->format.height/2);
-      tveng_copy_block (src_v, v, info->format.width/2,
-			where->planar.uv_stride,
-			info->format.height/2);
-    }
-  else /* linear */
-    tveng_copy_block (src, where->linear.data,
-		      info->format.bytesperline, where->linear.stride,
-		      info->format.height);
-}
+extern void
+tveng_copy_frame		(unsigned char *	src,
+				 tveng_image_data *	where,
+				 tveng_device_info *	info);
 
 struct _tv_mixer_interface {
 	const char *		name;
