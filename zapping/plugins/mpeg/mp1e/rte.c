@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.36 2000-11-04 20:38:02 garetxe Exp $ */
+/* $Id: rte.c,v 1.37 2000-11-10 21:02:18 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -77,6 +77,24 @@ fifo *			video_cap_fifo;
 void
 packed_preview(unsigned char *buffer, int mb_cols, int mb_rows)
 {
+}
+
+/*
+ * fixme: This is a hack to avoid infinite delay before joining
+ * mux_thread, that sometimes doesn't exit properly. Use rte_test to
+ * test the bug.
+ * Needs further investigation.
+ */
+static void*
+kill_the_mux_thread(void *p)
+{
+	pthread_t * thread_id = (pthread_t*) p;
+	usleep(500000); /* 0.5 secs, should be enough */
+
+	/* this will just fail if the thread doesn't exist by now */
+	pthread_cancel(*thread_id);
+
+	return NULL;
 }
 
 /* prototypes for main initialization (mp1e startup) */
@@ -798,6 +816,7 @@ void rte_stop ( rte_context * context )
 {
 	rteDataCallback audio_callback;
 	rteDataCallback video_callback;
+	pthread_t kill_the_mux_thread_id;
 
 	nullcheck(context, return);
 	
@@ -842,7 +861,11 @@ void rte_stop ( rte_context * context )
 
 	/* Join the mux thread */
 	printv(2, "joining mux\n");
+	pthread_create(&kill_the_mux_thread_id, NULL,
+		       kill_the_mux_thread, &(context->private->mux_thread));
 	pthread_join(context->private->mux_thread, NULL);
+	pthread_cancel(kill_the_mux_thread_id);
+	pthread_join(kill_the_mux_thread_id, NULL);
 	printv(2, "mux joined\n");
 
 	if (context->mode & RTE_AUDIO) {
