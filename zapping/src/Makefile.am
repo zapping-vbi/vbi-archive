@@ -41,6 +41,7 @@ zapping_SOURCES = \
 	tveng1.c tveng1.h \
 	tveng2.c tveng2.h \
 	tvengxv.c tvengxv.h \
+	tvengemu.c tvengemu.h \
 	v4linterface.c v4linterface.h \
 	x11stuff.c x11stuff.h \
 	video_xv.c \

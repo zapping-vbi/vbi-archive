@@ -1108,9 +1108,6 @@ tveng2_set_control(struct tveng_control * control, int value,
   t_assert(control != NULL);
   t_assert(info != NULL);
 
-  t_assert(control != NULL);
-  t_assert(info != NULL);
-
   /* Clip value to a valid one */
   if (value < control->min)
     value = control -> min;

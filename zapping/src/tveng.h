@@ -132,9 +132,9 @@ struct tveng_window{
 
 enum tveng_field
 {
-  TVENG_FIELD_ODD, /* Only odd field */
-  TVENG_FIELD_EVEN, /* Only even field */
-  TVENG_FIELD_BOTH /* Capture both field */
+  TVENG_FIELD_ODD, /* Odd field */
+  TVENG_FIELD_EVEN, /* Even field */
+  TVENG_FIELD_BOTH /* Capture both fields */
 };
 
 #ifndef TVENG_FRAME_PIXFORMAT
@@ -224,6 +224,7 @@ enum tveng_controller
   TVENG_CONTROLLER_V4L1, /* V4L1 controller (old V4l spec) */
   TVENG_CONTROLLER_V4L2, /* V4L2 controller (new v4l spec) */
   TVENG_CONTROLLER_XV,	 /* XVideo controller */
+  TVENG_CONTROLLER_EMU,	 /* Emulation controller */
   TVENG_CONTROLLER_MOTHER /* The wrapper controller (tveng.c) */
 };
 

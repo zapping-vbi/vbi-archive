@@ -1,5 +1,5 @@
 /* Zapping (TV viewer for the Gnome Desktop)
- * Copyright (C) 2000 Iñaki García Etxebarria
+ * Copyright (C) 2002 Iñaki García Etxebarria
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,20 +16,20 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ifndef __TVENGXV_H__
-#define __TVENGXV_H__
+#ifndef __TVENGEMU_H__
+#define __TVENGEMU_H__
 
 #include "tveng_private.h"
 
 /*
-  Inits the XVideo module, and fills in the given table.
+  Inits the EMU module, and fills in the given table.
 */
-void tvengxv_init_module(struct tveng_module_info *module_info);
+void tvengemu_init_module(struct tveng_module_info *module_info);
 
 /*
-  Prototypes for forward declaration, used only in tvengxv.c
+  Prototypes for forward declaration, used only in tvengemu.c
 */
-#ifdef TVENGXV_PROTOTYPES
+#ifdef TVENGEMU_PROTOTYPES
 /*
   Associates the given tveng_device_info with the given video
   device. On error it returns -1 and sets info->errno, info->error to
@@ -42,7 +42,7 @@ void tvengxv_init_module(struct tveng_module_info *module_info);
   info: The structure to be associated with the device
 */
 static
-int tvengxv_attach_device(const char* device_file,
+int tvengemu_attach_device(const char* device_file,
 			 enum tveng_attach_mode attach_mode,
 			 tveng_device_info * info);
 
@@ -57,7 +57,7 @@ int tvengxv_attach_device(const char* device_file,
   This function always succeeds.
 */
 static void
-tvengxv_describe_controller(char ** short_str, char ** long_str,
+tvengemu_describe_controller(char ** short_str, char ** long_str,
 			   tveng_device_info * info);
 
 /*
@@ -65,7 +65,7 @@ tvengxv_describe_controller(char ** short_str, char ** long_str,
   be called before reattaching a video device to the same object, but
   there is no need to call this before calling tveng_device_info_destroy.
 */
-static void tvengxv_close_device(tveng_device_info* info);
+static void tvengemu_close_device(tveng_device_info* info);
 
 /*
   Functions for controlling the video capture. All of them return -1
@@ -76,26 +76,35 @@ static void tvengxv_close_device(tveng_device_info* info);
   Returns the number of inputs in the given device and fills in info,
   allocating memory as needed
 */
-static int tvengxv_get_inputs(tveng_device_info * info);
+static int tvengemu_get_inputs(tveng_device_info * info);
 
 /*
   Sets the current input for the capture
 */
 static
-int tvengxv_set_input(struct tveng_enum_input * input, tveng_device_info
+int tvengemu_set_input(struct tveng_enum_input * input, tveng_device_info
 		     * info);
 
 /*
   Queries the device about its standards. Fills in info as appropiate
   and returns the number of standards in the device.
 */
-static int tvengxv_get_standards(tveng_device_info * info);
+static int tvengemu_get_standards(tveng_device_info * info);
 
 /*
   Sets the given standard as the current standard
 */
 static int 
-tvengxv_set_standard(struct tveng_enumstd * std, tveng_device_info * info);
+tvengemu_set_standard(struct tveng_enumstd * std, tveng_device_info * info);
+
+/* Updates the current capture format info. -1 if failed */
+static int
+tvengemu_update_capture_format(tveng_device_info * info);
+
+/* -1 if failed. Sets the format and fills in info -> format
+   with the correct values  */
+static int
+tvengemu_set_capture_format(tveng_device_info * info);
 
 /*
   Gets the current value of the controls, fills in info->controls
@@ -103,14 +112,14 @@ tvengxv_set_standard(struct tveng_enumstd * std, tveng_device_info * info);
   info->controls to get the values for each control. -1 on error
 */
 static int
-tvengxv_update_controls(tveng_device_info * info);
+tvengemu_update_controls(tveng_device_info * info);
 
 /*
   Sets the value for an specific control. The given value will be
   clipped between min and max values. Returns -1 on error
 */
 static int
-tvengxv_set_control(struct tveng_control * control, int value,
+tvengemu_set_control(struct tveng_control * control, int value,
 		   tveng_device_info * info);
 
 /*
@@ -118,20 +127,20 @@ tvengxv_set_control(struct tveng_control * control, int value,
   unmute (sound). -1 on error
 */
 static int
-tvengxv_get_mute(tveng_device_info * info);
+tvengemu_get_mute(tveng_device_info * info);
 
 /*
   Sets the value of the mute property. 0 means unmute (sound) and 1
   mute (no sound). -1 on error
 */
 static int
-tvengxv_set_mute(int value, tveng_device_info * info);
+tvengemu_set_mute(int value, tveng_device_info * info);
 
 /*
   Tunes the current input to the given freq. Returns -1 on error.
 */
 static int
-tvengxv_tune_input(uint32_t freq, tveng_device_info * info);
+tvengemu_tune_input(uint32_t freq, tveng_device_info * info);
 
 /*
   Gets the signal strength and the afc code. The afc code indicates
@@ -141,14 +150,14 @@ tvengxv_tune_input(uint32_t freq, tveng_device_info * info);
   that would mean ignore that parameter.
 */
 static int
-tvengxv_get_signal_strength (int *strength, int * afc,
+tvengemu_get_signal_strength (int *strength, int * afc,
 			    tveng_device_info * info);
 
 /*
   Stores in freq the currently tuned freq. Returns -1 on error.
 */
 static int
-tvengxv_get_tune(uint32_t * freq, tveng_device_info * info);
+tvengemu_get_tune(uint32_t * freq, tveng_device_info * info);
 
 /*
   Gets the minimum and maximum freq that the current input can
@@ -156,15 +165,60 @@ tvengxv_get_tune(uint32_t * freq, tveng_device_info * info);
   If any of the pointers is NULL, its value will not be filled.
 */
 static int
-tvengxv_get_tuner_bounds(uint32_t * min, uint32_t * max, tveng_device_info *
+tvengemu_get_tuner_bounds(uint32_t * min, uint32_t * max, tveng_device_info *
 			info);
+
+/*
+  Sets up the capture device so any read() call after this one
+  succeeds. Returns -1 on error.
+*/
+static int
+tvengemu_start_capturing(tveng_device_info * info);
+
+/* Tries to stop capturing. -1 on error. */
+static int
+tvengemu_stop_capturing(tveng_device_info * info);
+
+/* 
+   Reads a frame from the video device, storing the read data in
+   info->format.data
+   time: time to wait using select() in miliseconds
+   info: pointer to the video device info structure
+   Returns -1 on error, anything else on success.
+   Note: if you want this call to be non-blocking, call it with time=0
+*/
+static
+int tvengemu_read_frame(void * where, unsigned int size,
+		      unsigned int time, tveng_device_info * info);
+
+/*
+  Gets the timestamp of the last read frame in seconds.
+*/
+static
+double tvengemu_get_timestamp(tveng_device_info * info);
+
+/* 
+   Sets the capture buffer to an specific size. returns -1 on
+   error. Remember to check the value of width and height in the
+   format struct since it can be different to the one requested. 
+*/
+static
+int tvengemu_set_capture_size(int width, int height, tveng_device_info *
+			    info);
+
+/* 
+   Gets the actual size of the capture buffer in width and height.
+   -1 on error
+*/
+static
+int tvengemu_get_capture_size(int *width, int *height, tveng_device_info * info);
 
 /* XF86 Frame Buffer routines */
 /*
   Returns 1 if the device attached to info suports previewing, 0 otherwise
 */
 static int
-tvengxv_detect_preview (tveng_device_info * info);
+tvengemu_detect_preview (tveng_device_info * info);
 
 /*
   Sets the preview window dimensions to the given window.
@@ -176,7 +230,7 @@ tvengxv_detect_preview (tveng_device_info * info);
   it in.
 */
 static int
-tvengxv_set_preview_window(tveng_device_info * info);
+tvengemu_set_preview_window(tveng_device_info * info);
 
 /*
   Gets the current overlay window parameters.
@@ -184,16 +238,16 @@ tvengxv_set_preview_window(tveng_device_info * info);
   info   : The device to use
 */
 static int
-tvengxv_get_preview_window(tveng_device_info * info);
+tvengemu_get_preview_window(tveng_device_info * info);
 
-/* 
+/*
    Sets the previewing on/off.
    on : if 1, set preview on, if 0 off, other values are silently ignored
    info  : device to use for previewing
    Returns -1 on error, anything else on success
 */
 static int
-tvengxv_set_preview (int on, tveng_device_info * info);
+tvengemu_set_preview (int on, tveng_device_info * info);
 
 /* 
    Sets up everything and starts previewing.
@@ -202,12 +256,13 @@ tvengxv_set_preview (int on, tveng_device_info * info);
    Returns -1 on error.
 */
 static int
-tvengxv_start_previewing (tveng_device_info * info);
+tvengemu_start_previewing (tveng_device_info * info);
 
 /*
   Stops the fullscreen mode. Returns -1 on error
 */
 static int
-tvengxv_stop_previewing(tveng_device_info * info);
-#endif /* TVENGXV_PROTOTYPES */
-#endif /* TVENGXV.H */
+tvengemu_stop_previewing(tveng_device_info * info);
+
+#endif /* TVENGEMU_PROTOTYPES */
+#endif /* TVENGEMU.H */

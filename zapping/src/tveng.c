@@ -42,6 +42,7 @@
 #include "tveng1.h" /* V4L specific headers */
 #include "tveng2.h" /* V4L2 specific headers */
 #include "tvengxv.h" /* XVideo specific headers */
+#include "tvengemu.h" /* Emulation device */
 #include "tveng_private.h" /* private definitions */
 
 #define TVLOCK								\
@@ -74,7 +75,8 @@ typedef void (*tveng_controller)(struct tveng_module_info *info);
 static tveng_controller tveng_controllers[] = {
   tvengxv_init_module,
   tveng2_init_module,
-  tveng1_init_module
+  tveng1_init_module,
+  tvengemu_init_module
 };
 
 /* Initializes a tveng_device_info object */

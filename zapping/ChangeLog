@@ -1,3 +1,8 @@
+03.08.2002	TVeng emu <garetxe@users.sf.net>
+
+	* tvengemu.c: Created, manages a virtual device. Useful for
+	debugging without convenient hw.
+
 02.08.2002	Chroma+gtk2 fixes <garetxe@users.sf.net>
 
 	* overlay, fullscreen: Found and fixed the infamous "video not
