@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: zapping 0.7\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2003-11-29 05:43+0100\n"
-"PO-Revision-Date: 2003-12-01 15:30+0100\n"
+"PO-Revision-Date: 2003-12-04 15:30+0100\n"
 "Last-Translator: Morten Brix Pedersen <morten@wtf.dk>\n"
 "Language-Team: Danish <dansk@klid.dk>\n"
 "MIME-Version: 1.0\n"
@@ -128,7 +128,7 @@ msgstr "Skrifttype:"
 
 #: glade/zapping.glade2.h:28
 msgid "Favorite _picture sizes:"
-msgstr ""
+msgstr "Favorit _billed størrelser:"
 
 #: glade/zapping.glade2.h:29
 msgid "General options"
@@ -334,11 +334,11 @@ msgstr "Video enheds egenskaber"
 
 #: glade/zapping.glade2.h:78
 msgid "Western Europe and Turkey"
-msgstr ""
+msgstr "Vesteuropa og Tyrkiet"
 
 #: glade/zapping.glade2.h:79
 msgid "Western and Central Europe"
-msgstr ""
+msgstr "Vest- og centraleuropa"
 
 #: glade/zapping.glade2.h:80
 msgid "Window"
@@ -382,7 +382,7 @@ msgstr ""
 
 #: glade/zapping.glade2.h:90
 msgid "_Enter channels by:"
-msgstr "r"
+msgstr ""
 
 #: glade/zapping.glade2.h:91
 msgid "_Foreground color:"
@@ -406,7 +406,7 @@ msgstr "_KDE lyddæmon (ARTS)"
 
 #: glade/zapping.glade2.h:96
 msgid "_Mute on exit"
-msgstr ""
+msgstr "_Slå lyd fra ved afslutning"
 
 #: glade/zapping.glade2.h:97
 msgid "_No audio recording"
@@ -1030,7 +1030,7 @@ msgstr "_Kanaler"
 
 #: src/interface.c:551
 msgid "_New Teletext View"
-msgstr "_Ny Tekst-tv visning"
+msgstr "_Ny tekst-tv visning"
 
 #: src/interface.c:558
 msgid "_Mute"
@@ -1042,7 +1042,7 @@ msgstr "Vis menu og værktøjslinje"
 
 #: src/interface.c:577
 msgid "Keep window on top"
-msgstr ""
+msgstr "Altid øverste vindue"
 
 #: src/interface.c:690
 msgid "Ch. Up"
@@ -1366,11 +1366,11 @@ msgstr ""
 #: src/plugins.c:187
 #, c-format
 msgid "\"%s\" doesn't provide a version"
-msgstr ""
+msgstr "\"%s\" har ikke et versionsnummer"
 
 #: src/plugins.c:224
 msgid "Insufficient memory"
-msgstr ""
+msgstr "Ikke nok hukommelse"
 
 #: src/plugins.c:233
 msgid "No description available"
@@ -1418,7 +1418,7 @@ msgstr ""
 
 #: src/properties-handler.c:101
 msgid "Only monochrome is available\n"
-msgstr ""
+msgstr "Kun monokrom er tilgængelig\n"
 
 #: src/properties-handler.c:103
 msgid "The capture can be zoomed\n"
@@ -1441,25 +1441,23 @@ msgid "Camera"
 msgstr "Kamera"
 
 #: src/properties-handler.c:408
-#, fuzzy, c-format
+#, c-format
 msgid "Resize to %ux%u"
-msgstr "Ændr billedstørrelse til 768x576"
+msgstr "Ændr billedstørrelse til %ux%u"
 
 #. append
 #: src/properties-handler.c:776
 msgid "Width"
-msgstr ""
+msgstr "Bredde"
 
 #: src/properties-handler.c:776
-#, fuzzy
 msgid "Height"
-msgstr "Høj"
+msgstr "Højde"
 
 #. TRANSLATORS: Fullscreen video mode
 #: src/properties-handler.c:1024
-#, fuzzy
 msgid "Do not change"
-msgstr "Vis ikke"
+msgstr "Skift ikke"
 
 #: src/properties-handler.c:1028 src/tveng1.c:283 src/tveng2.c:463
 #: src/tveng25.c:321
@@ -1475,7 +1473,7 @@ msgstr ""
 #: src/properties-handler.c:1180 src/properties-handler.c:1462
 #: src/ttxview.c:3894
 msgid "VBI Options"
-msgstr "VBI Indstillinger"
+msgstr "VBI indstillinger"
 
 #: src/properties-handler.c:1181 src/properties-handler.c:1455
 msgid "Interactive TV"
@@ -1499,19 +1497,19 @@ msgid "Loading page %x..."
 msgstr "Henter side %x..."
 
 #: src/ttxview.c:433
-#, fuzzy, c-format
+#, c-format
 msgid "Loading page %x.%02x..."
-msgstr "Henter side %x..."
+msgstr "Henter side %x.%02x..."
 
 #: src/ttxview.c:536
-#, fuzzy, c-format
+#, c-format
 msgid " Page %x"
-msgstr "Side %x"
+msgstr " Side %x"
 
 #: src/ttxview.c:540
-#, fuzzy, c-format
+#, c-format
 msgid " Subpage %x"
-msgstr " Underside %d"
+msgstr " Underside %x"
 
 #: src/ttxview.c:688 src/ttxview.c:3143
 msgid "VBI has been disabled"
@@ -1534,28 +1532,25 @@ msgid "Selecting - press Shift key for table mode"
 msgstr ""
 
 #: src/ttxview.c:1906
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Cannot create directory %s:\n"
 "%s"
 msgstr ""
-"Kan ikke oprette mappe:\n"
-"%s\n"
+"Kan ikke oprette mappe %s:\n"
 "%s"
 
 #: src/ttxview.c:1979
-#, fuzzy
 msgid "Save as"
-msgstr "Gem som:"
+msgstr "Gem som"
 
 #: src/ttxview.c:2001
 msgid "Format:"
 msgstr "Format:"
 
 #: src/ttxview.c:2195
-#, fuzzy
 msgid "Text Color"
-msgstr "Tekst farver"
+msgstr "Tekstfarve"
 
 #: src/ttxview.c:2211 src/tveng2.c:430 src/tveng25.c:291 src/tvengbktr.c:272
 #: src/tvengbktr.c:284 src/tvengxv.c:523
@@ -1568,14 +1563,12 @@ msgid "Contrast"
 msgstr "Konstrast"
 
 #: src/ttxview.c:2571
-#, fuzzy
 msgid "Bookmarks"
 msgstr "Favoritter"
 
 #: src/ttxview.c:2617
-#, fuzzy
 msgid "Channel"
-msgstr "Kanaler"
+msgstr "Kanal"
 
 #: src/ttxview.c:2623
 msgid "Page"
@@ -1588,36 +1581,33 @@ msgstr "Beskrivelse"
 #: src/ttxview.c:2711
 #, c-format
 msgid "Added page %x.%02x to bookmarks"
-msgstr ""
+msgstr "Tilføjet side %x.%02x til favoritter"
 
 #: src/ttxview.c:2714
-#, fuzzy, c-format
+#, c-format
 msgid "Added page %x to bookmarks"
-msgstr "<%s> tilføjet til favoritter"
+msgstr "Tilføjet side %x til favoritter"
 
 #: src/ttxview.c:2768
-#, fuzzy
 msgid "_Add Bookmark"
-msgstr "Favoritter"
+msgstr "_Tilføj favorit"
 
 #: src/ttxview.c:2774
 msgid "_Edit Bookmarks..."
-msgstr "Rediger Favoritter..."
+msgstr "_Redigér favoritter..."
 
 #: src/ttxview.c:2967 src/ttxview.c:3173
-#, fuzzy
 msgid "Search text:"
-msgstr "Søge mønster:"
+msgstr "Søgetekst:"
 
 #: src/ttxview.c:2975
 #, c-format
 msgid "Found text on page %x.%02x:"
-msgstr ""
+msgstr "Fundet tekst på side %x.%02x:"
 
 #: src/ttxview.c:2982
-#, fuzzy
 msgid "Not found:"
-msgstr "Ikke fundet"
+msgstr "Ikke fundet:"
 
 #: src/ttxview.c:2993
 msgid "Page memory is empty"
@@ -1783,9 +1773,8 @@ msgid "Hold the current subpage"
 msgstr "Hold den nuværende underside"
 
 #: src/ttxview.c:4650
-#, fuzzy
 msgid "Reveal"
-msgstr "Generelt"
+msgstr ""
 
 #: src/ttxview.c:4650
 msgid "Reveal concealed text"
@@ -1796,13 +1785,12 @@ msgid "Volume"
 msgstr "Lydstyrke"
 
 #: src/tveng.c:2592
-#, fuzzy
 msgid "Cannot execute zapping_setup_fb."
-msgstr "Kald ikke zapping_setup_fb ved opstart"
+msgstr "Kunne ikke eksekvere zapping_setup_fb."
 
 #: src/tveng.c:2608
 msgid "zapping_setup_fb failed."
-msgstr ""
+msgstr "zapping_setup_fb fejlede."
 
 #: src/tveng.c:2613
 #, c-format
@@ -1811,7 +1799,7 @@ msgstr ""
 
 #: src/tveng.c:2620
 msgid "Unknown error in zapping_setup_fb."
-msgstr ""
+msgstr "Ukendt fejl i zapping_setup_Fb."
 
 #: src/tveng.c:3130 src/tveng.c:3151
 msgid "Filter"
@@ -2006,7 +1994,6 @@ msgid "Audio inputs"
 msgstr ""
 
 #: src/v4linterface.c:1915
-#, fuzzy
 msgid "Video inputs"
 msgstr ""
 
@@ -2042,13 +2029,11 @@ msgid "Preview will not work: %s"
 msgstr "Forvisning vil ikke virke: %s"
 
 #: src/zmisc.c:528
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Cannot start video overlay.\n"
 "%s"
 msgstr ""
-"Kan ikke gå tilbage til forrige mode%s:\n"
-"%s"
 
 #: src/zmisc.c:579
 #, c-format
@@ -2062,7 +2047,6 @@ msgid "VBI has been disabled, or it doesn't work."
 msgstr "VBI er blevet deaktiveret, eller virker ikke."
 
 #: src/zmisc.c:868
-#, fuzzy
 msgid "Hide the statusbar"
 msgstr "Gem statuslinjen"
 
