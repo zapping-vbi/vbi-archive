@@ -9,7 +9,7 @@ if test x$1 != x; then
 	exit
     fi
     ZSFB_DIR=`dirname $1`
-    ZSFB_PREFIX=`echo $ZSFB_DIR | sed s/\\\\/bin//g`
+    ZSFB_PREFIX=`echo $ZSFB_DIR | sed s/\\\\/s\\\\?bin//g`
     ZSFB=$1
 else
     ZSFB_DIR=`dirname $(which zapping_setup_fb)`
@@ -17,7 +17,7 @@ else
 	echo "Couldn't find zapping_setup_fb in */bin, quit."
 	exit
     fi
-    ZSFB_PREFIX=`echo $ZSFB_DIR | sed s/\\\\/bin//g`
+    ZSFB_PREFIX=`echo $ZSFB_DIR | sed s/\\\\/s\\\\?bin//g`
     ZSFB="$ZSFB_PREFIX/sbin/zapping_setup_fb"
     if test ! -f $ZSFB; then
 	echo "Cannot find $ZSFB, quit."
