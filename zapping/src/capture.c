@@ -50,8 +50,8 @@ extern gboolean			flag_exit_program;
 extern GList			*plugin_list;
 
 #define NUM_BUNDLES 6 /* in capture_fifo */
-static fifo		_capture_fifo;
-fifo			*capture_fifo = &_capture_fifo;
+static zf_fifo		_capture_fifo;
+zf_fifo			*capture_fifo = &_capture_fifo;
 static pthread_t	capture_thread_id; /* the producer */
 /* FIXME: there's something better needed */
 static volatile gboolean exit_capture_thread; /* controls capture_thread */
@@ -197,7 +197,7 @@ request_bundle_format(enum tveng_frame_pixformat pixformat, gint w, gint h)
 }
 
 static void
-free_bundle(buffer *b)
+free_bundle(zf_buffer *b)
 {
   clear_bundle(&((producer_buffer*)b)->vanilla);
   g_free(b);
@@ -361,21 +361,21 @@ static void *
 capture_thread (void *data)
 {
   tveng_device_info *info = (tveng_device_info*)data;
-  producer prod;
+  zf_producer prod;
   GList *plugin;
 
-  add_producer(capture_fifo, &prod);
+  zf_add_producer(capture_fifo, &prod);
 
   while (!exit_capture_thread)
     {
       producer_buffer *p =
-	(producer_buffer*)wait_empty_buffer(&prod);
+	(producer_buffer*)zf_wait_empty_buffer(&prod);
       capture_bundle *d = &(p->d.d);
 
       /* resent til the rebuilder gets it */
       if (p->dirty)
 	{
-	  send_full_buffer(&prod, (buffer*)p);
+	  zf_send_full_buffer(&prod, (zf_buffer*)p);
 	  continue;
 	}
 
@@ -392,7 +392,7 @@ capture_thread (void *data)
 	  p->d.b.used = 1; /* used==0 is eof */
 	  p->dirty = TRUE;
 	  p->vanilla.producer = &prod;
-	  send_full_buffer(&prod, (buffer*)p);
+	  zf_send_full_buffer(&prod, (zf_buffer*)p);
 	  pthread_mutex_unlock(&req_format_mutex);
 	  continue;
 	}
@@ -438,10 +438,10 @@ capture_thread (void *data)
 	  plugin = plugin->next;
 	}
 
-      send_full_buffer(&prod, (buffer*)p);
+      zf_send_full_buffer(&prod, (zf_buffer*)p);
     }
 
-  rem_producer(&prod);
+  zf_rem_producer(&prod);
 
   return NULL;
 }
@@ -681,10 +681,10 @@ clear_canvas (GtkWidget *canvas, gint w, gint h, gint iw, int ih)
  *	Passes the data to the serial_read plugins.
  */
 
-static consumer			cf_idle_consumer;
+static zf_consumer cf_idle_consumer;
 static gint idle_handler(gpointer ignored)
 {
-  buffer *b;
+  zf_buffer *b;
   capture_bundle *d;
   producer_buffer *p;
   capture_buffer *cb;
@@ -696,7 +696,7 @@ static gint idle_handler(gpointer ignored)
 
   print_info(main_window);
 
-  b = wait_full_buffer(&cf_idle_consumer);
+  b = zf_wait_full_buffer(&cf_idle_consumer);
 
   cb = (capture_buffer*)b;
   d = &(cb->d);
@@ -820,7 +820,7 @@ static gint idle_handler(gpointer ignored)
 	}
     }
 
-  send_empty_buffer(&cf_idle_consumer, b);
+  zf_send_empty_buffer(&cf_idle_consumer, b);
 
   return TRUE;
 }
@@ -852,7 +852,7 @@ capture_start(GtkWidget * window, tveng_device_info *info)
 
   memset(&req_format, 0, sizeof(req_format));
 
-  g_assert(add_consumer(capture_fifo, &cf_idle_consumer));
+  g_assert(zf_add_consumer(capture_fifo, &cf_idle_consumer));
 
   gdk_window_set_back_pixmap(window->window, NULL, FALSE);
 
@@ -905,7 +905,7 @@ capture_start(GtkWidget * window, tveng_device_info *info)
 void
 capture_stop(tveng_device_info *info)
 {
-  buffer *b;
+  zf_buffer *b;
   GList *p;
 
   gtk_idle_remove(idle_id);
@@ -920,12 +920,12 @@ capture_stop(tveng_device_info *info)
 
   exit_capture_thread = TRUE;
 
-  while ((b = recv_full_buffer(&cf_idle_consumer)))
-    send_empty_buffer(&cf_idle_consumer, b);
+  while ((b = zf_recv_full_buffer(&cf_idle_consumer)))
+    zf_send_empty_buffer(&cf_idle_consumer, b);
 
   pthread_join(capture_thread_id, NULL);
 
-  rem_consumer(&cf_idle_consumer);
+  zf_rem_consumer(&cf_idle_consumer);
 
   xvz_ungrab_port(info);
 
@@ -946,18 +946,18 @@ gboolean
 startup_capture(GtkWidget * widget)
 {
   gint i;
-  buffer *b;
+  zf_buffer *b;
 
   zcc_int(0, "Capture size under XVideo", "xvsize");
 
-  init_buffered_fifo(capture_fifo, "zapping-capture", 0, 0);
+  zf_init_buffered_fifo(capture_fifo, "zapping-capture", 0, 0);
 
   /* init the bundle-buffers */
   for (i=0; i<NUM_BUNDLES;i++)
     {
       g_assert((b = g_malloc0(sizeof(producer_buffer))));
       b->destroy = free_bundle;
-      add_buffer(capture_fifo, b);
+      zf_add_buffer(capture_fifo, b);
     }
 
   pthread_mutex_init(&req_format_mutex, NULL);
@@ -974,5 +974,5 @@ shutdown_capture(void)
 
   pthread_mutex_destroy(&req_format_mutex);
 
-  destroy_fifo(capture_fifo);
+  zf_destroy_fifo(capture_fifo);
 }

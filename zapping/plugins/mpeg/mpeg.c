@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.40 2002-12-14 00:39:47 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.41 2003-05-30 04:19:15 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -1403,7 +1403,7 @@ static void *			audio_buf;	/* preliminary */
 static int			audio_size;
 
 static tveng_device_info *	zapping_info;
-static consumer			mpeg_consumer;
+static zf_consumer		mpeg_consumer;
 
 /*
  *  Input/output
@@ -1427,13 +1427,13 @@ video_callback			(rte_context *		context,
 				 rte_codec *		codec,
 				 rte_buffer *		rb)
 {
-  buffer *b;
+  zf_buffer *b;
   struct tveng_frame_format *fmt;
 
   for (;;) {
     capture_buffer *cb;
     
-    cb = (capture_buffer *)(b = wait_full_buffer (&mpeg_consumer));
+    cb = (capture_buffer *)(b = zf_wait_full_buffer (&mpeg_consumer));
 
     fmt = &cb->d.format;
 
@@ -1444,7 +1444,7 @@ video_callback			(rte_context *		context,
 	b->time)
       break;
 
-    send_empty_buffer (&mpeg_consumer, b);
+    zf_send_empty_buffer (&mpeg_consumer, b);
   }
 
   rb->timestamp = b->time;
@@ -1460,7 +1460,7 @@ video_unref			(rte_context *		context,
 				 rte_codec *		codec,
 				 rte_buffer *		rb)
 {
-  send_empty_buffer (&mpeg_consumer, (buffer *) rb->user_data);
+  zf_send_empty_buffer (&mpeg_consumer, (zf_buffer *) rb->user_data);
   return TRUE;
 }
 
@@ -1652,7 +1652,7 @@ do_stop				(void)
 
   active = FALSE;
 
-  rem_consumer (&mpeg_consumer);
+  zf_rem_consumer (&mpeg_consumer);
 
   if (audio_handle)
     close_audio_device (audio_handle);
@@ -1908,7 +1908,7 @@ do_start			(const gchar *		file_name)
   /* don't let anyone mess with our settings from now on */
   capture_lock ();
 
-  add_consumer (capture_fifo, &mpeg_consumer);
+  zf_add_consumer (capture_fifo, &mpeg_consumer);
 
   if (!rte_start (context, 0.0, NULL, TRUE))
     {

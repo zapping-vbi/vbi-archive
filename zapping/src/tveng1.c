@@ -1043,7 +1043,6 @@ struct p_tveng1_audio_decoding_entry audio_decoding_modes[] =
 static char ** p_tveng1_test_audio_decode (tveng_device_info * info)
 {
   struct video_audio audio;
-  __u16 cur_value;
   int i, j;
   char ** list = NULL; /* The returned list of menu entries labels */
 

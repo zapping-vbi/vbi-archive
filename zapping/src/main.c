@@ -486,7 +486,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.171 2003-02-18 10:06:40 mschimek Exp $",
+	 "$Id: main.c,v 1.172 2003-05-30 04:19:00 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -1045,7 +1045,6 @@ static gboolean startup_zapping(gboolean load_plugins)
   gchar * buffer = NULL;
   gchar * buffer2 = NULL;
   gchar * buffer3 = NULL;
-  gchar * buffer4 = NULL;
   tveng_tuned_channel new_channel;
   GList * p;
   GtkObjectClass *button_class, *option_class;
@@ -1182,7 +1181,7 @@ static gboolean startup_zapping(gboolean load_plugins)
 	      }
           }
 	  {
-	    gchar *buf, *s;
+	    gchar *buf;
 	    
 	    buf = g_strconcat(buffer3, "/value", NULL);
 	    zconf_get_float(&new_channel.controls[j].value, buf);

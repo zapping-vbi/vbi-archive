@@ -15,7 +15,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.37 2002-06-25 04:35:40 mschimek Exp $ */
+/* $Id: fifo.c,v 1.38 2003-05-30 04:17:57 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -99,7 +99,7 @@ nop(void)
 }
 
 static void
-uninit_buffer(buffer *b)
+uninit_buffer(zf_buffer *b)
 {
 	if (b->allocated)
 		free_aligned(b->allocated);
@@ -110,7 +110,7 @@ uninit_buffer(buffer *b)
 
 /**
  * init_buffer:
- * @b: buffer *
+ * @b: zf_buffer *
  * @size: buffer memory to be allocated, in bytes < SSIZE_MAX.
  * 
  * Initialize a buffer structure erasing all prior
@@ -122,14 +122,14 @@ uninit_buffer(buffer *b)
  * Return value: 
  * The buffer pointer, or %NULL if the allocation failed.
  **/
-buffer *
-init_buffer(buffer *b, ssize_t size)
+zf_buffer *
+zf_init_buffer(zf_buffer *b, ssize_t size)
 {
 	ssize_t page_size = (ssize_t) sysconf(_SC_PAGESIZE);
 
-	memset(b, 0, sizeof(buffer));
+	memset(b, 0, sizeof(zf_buffer));
 
-	b->destroy = (void (*)(buffer *)) nop;
+	b->destroy = (void (*)(zf_buffer *)) nop;
 
 	if (size > 0) {
 		b->data =
@@ -148,7 +148,7 @@ init_buffer(buffer *b, ssize_t size)
 }
 
 static void
-free_buffer(buffer *b)
+free_buffer(zf_buffer *b)
 {
 	uninit_buffer(b);
 
@@ -167,15 +167,15 @@ free_buffer(buffer *b)
  * Return value: 
  * Buffer pointer, or %NULL if any allocation failed.
  **/
-buffer *
-alloc_buffer(ssize_t size)
+zf_buffer *
+zf_alloc_buffer(ssize_t size)
 {
-	buffer *b;
+	zf_buffer *b;
 
-	if (!(b = (buffer *) malloc(sizeof(buffer))))
+	if (!(b = (zf_buffer *) malloc(sizeof(zf_buffer))))
 		return NULL;
 
-	if (!init_buffer(b, size)) {
+	if (!zf_init_buffer(b, size)) {
 		free(b);
 		return NULL;
 	}
@@ -183,7 +183,7 @@ alloc_buffer(ssize_t size)
 	if (size > 0)
 		b->destroy = free_buffer;
 	else
-		b->destroy = (void (*)(buffer *)) free;
+		b->destroy = (void (*)(zf_buffer *)) free;
 
 	return b;
 }
@@ -219,7 +219,7 @@ mutex_co_lock(pthread_mutex_t *m1, pthread_mutex_t *m2)
 }
 
 static void
-dead_fifo(fifo *f)
+dead_fifo(zf_fifo *f)
 {
 	char *at = addr2line(__builtin_return_address(0));
 
@@ -235,9 +235,9 @@ dead_fifo(fifo *f)
 }
 
 static void
-dead_producer(producer *p)
+dead_producer(zf_producer *p)
 {
-	fifo *f = p->fifo;
+	zf_fifo *f = p->fifo;
 	char *at = addr2line(__builtin_return_address(0));
 
 	if (at)
@@ -253,9 +253,9 @@ dead_producer(producer *p)
 }
 
 static void
-dead_consumer(consumer *c)
+dead_consumer(zf_consumer *c)
 {
-	fifo *f = c->fifo;
+	zf_fifo *f = c->fifo;
 	char *at = addr2line(__builtin_return_address(0));
 
 	if (at)
@@ -276,25 +276,25 @@ dead_consumer(consumer *c)
 }
 
 static void
-uninit_fifo(fifo *f)
+uninit_fifo(zf_fifo *f)
 {
 	node *n;
 
-	f->destroy    = (void (*)(fifo *)) dead_fifo;
+	f->destroy    = (void (*)(zf_fifo *)) dead_fifo;
 
-	f->wait_empty = (void (*)(fifo *)) dead_fifo;
-	f->send_full  = (void (*)(producer *, buffer *)) dead_producer;
+	f->wait_empty = (void (*)(zf_fifo *)) dead_fifo;
+	f->send_full  = (void (*)(zf_producer *, zf_buffer *)) dead_producer;
 
-	f->wait_full  = (void (*)(fifo *)) dead_fifo;
-	f->send_empty = (void (*)(consumer *, buffer *)) dead_consumer;
+	f->wait_full  = (void (*)(zf_fifo *)) dead_fifo;
+	f->send_empty = (void (*)(zf_consumer *, zf_buffer *)) dead_consumer;
 
-	f->start      = (z_bool (*)(fifo *)) dead_fifo;
-	f->stop       = (void (*)(fifo *)) dead_fifo;
+	f->start      = (z_bool (*)(zf_fifo *)) dead_fifo;
+	f->stop       = (void (*)(zf_fifo *)) dead_fifo;
 
 	f->alloc_buffer = NULL;
 
 	while ((n = rem_tail(&f->buffers)))
-		destroy_buffer(PARENT(n, buffer, added));
+		zf_destroy_buffer(PARENT(n, zf_buffer, added));
 
 	destroy_list(&f->buffers);
 
@@ -309,7 +309,7 @@ uninit_fifo(fifo *f)
 
 /**
  * wait_full_buffer:
- * @c: consumer *
+ * @c: zf_consumer *
  * 
  * Suspends execution of the calling thread until a full buffer becomes
  * available for consumption. Otherwise identical to recv_full_buffer().
@@ -317,11 +317,11 @@ uninit_fifo(fifo *f)
  * Return value:
  * Buffer pointer, never %NULL.
  **/
-buffer *
-wait_full_buffer(consumer *c)
+zf_buffer *
+zf_wait_full_buffer(zf_consumer *c)
 {
-	fifo *f = c->fifo;
-	buffer *b;
+	zf_fifo *f = c->fifo;
+	zf_buffer *b;
 
 	_pthread_mutex_lock(&f->consumer->mutex);
 
@@ -341,7 +341,7 @@ wait_full_buffer(consumer *c)
 		f->c_reentry--;
 	}
 
-	c->next_buffer = PARENT(b->node.succ, buffer, node);
+	c->next_buffer = PARENT(b->node.succ, zf_buffer, node);
 
 	b->dequeued++;
 
@@ -356,7 +356,7 @@ wait_full_buffer(consumer *c)
 
 /**
  * wait_full_buffer_timeout:
- * @c: consumer *
+ * @c: zf_consumer *
  * @timeout: struct timespec *
  * 
  * Suspends execution of the calling thread until a full buffer becomes
@@ -366,11 +366,11 @@ wait_full_buffer(consumer *c)
  * Return value:
  * Buffer pointer, or %NULL if the timeout was reached.
  **/
-buffer *
-wait_full_buffer_timeout(consumer *c, struct timespec *timeout)
+zf_buffer *
+zf_wait_full_buffer_timeout(zf_consumer *c, struct timespec *timeout)
 {
-	fifo *f = c->fifo;
-	buffer *b;
+	zf_fifo *f = c->fifo;
+	zf_buffer *b;
 	int err = 0;
 
 	_pthread_mutex_lock(&f->consumer->mutex);
@@ -399,7 +399,7 @@ wait_full_buffer_timeout(consumer *c, struct timespec *timeout)
 		  }
 	}
 
-	c->next_buffer = (buffer *) b->node.succ;
+	c->next_buffer = (zf_buffer *) b->node.succ;
 
 	b->dequeued++;
 
@@ -426,11 +426,11 @@ wait_full_buffer_timeout(consumer *c, struct timespec *timeout)
  *
  *  f->consumers->mutex must be locked when calling this.
  */
-static buffer *
-unlink_full_buffer(fifo *f)
+static zf_buffer *
+unlink_full_buffer(zf_fifo *f)
 {
-	consumer *c;
-	buffer *b;
+	zf_consumer *c;
+	zf_buffer *b;
 
 	if (!f->unlink_full_buffers || f->consumers.members < 2)
 		return NULL;
@@ -447,12 +447,12 @@ unlink_full_buffer(fifo *f)
 		    && b->used > 0) {
 			for_all_nodes (c, &f->consumers, node)
 				if (c->next_buffer == b)
-					c->next_buffer = (buffer *) b->node.succ;
+					c->next_buffer = (zf_buffer *) b->node.succ;
 
 			b->consumers = 0;
 			b->dequeued = 0;
 
-			b = PARENT(unlink_node(&f->full, &b->node), buffer, node);
+			b = PARENT(unlink_node(&f->full, &b->node), zf_buffer, node);
 
 			return b;
 		}
@@ -470,7 +470,7 @@ wait_empty_buffer_cleanup(mucon *m)
 
 /**
  * wait_empty_buffer:
- * @p: producer *
+ * @p: zf_producer *
  * 
  * Suspends execution of the calling thread until an empty buffer becomes
  * available. Otherwise identical to recv_empty_buffer().
@@ -478,11 +478,11 @@ wait_empty_buffer_cleanup(mucon *m)
  * Return value:
  * Buffer pointer, never %NULL.
  **/
-buffer *
-wait_empty_buffer(producer *p)
+zf_buffer *
+zf_wait_empty_buffer(zf_producer *p)
 {
-	fifo *f = p->fifo;
-	buffer *b = NULL;
+	zf_fifo *f = p->fifo;
+	zf_buffer *b = NULL;
 	node n;
 
 	_pthread_mutex_lock(&f->producer->mutex);
@@ -490,7 +490,7 @@ wait_empty_buffer(producer *p)
 	if (!empty_list(&f->producer->list))
 		goto wait;
 
-	while (!(b = PARENT(rem_head(&f->empty), buffer, node))) {
+	while (!(b = PARENT(rem_head(&f->empty), zf_buffer, node))) {
 		mutex_co_lock(&f->producer->mutex, &f->consumer->mutex);
 
 		if ((b = unlink_full_buffer(f))) {
@@ -541,9 +541,9 @@ wait_empty_buffer(producer *p)
  *  for callback consumers which lack a virtual full queue.
  */
 static inline void
-send_empty_unbuffered(consumer *c, buffer *b)
+send_empty_unbuffered(zf_consumer *c, zf_buffer *b)
 {
-	fifo *f = c->fifo;
+	zf_fifo *f = c->fifo;
 
 	b->dequeued = 0;
 	b->consumers = 0;
@@ -561,9 +561,9 @@ send_empty_unbuffered(consumer *c, buffer *b)
  *  This is the buffered lower half of function send_empty_buffer().
  */
 void
-send_empty_buffered(consumer *c, buffer *b)
+zf_send_empty_buffered(zf_consumer *c, zf_buffer *b)
 {
-	fifo *f = c->fifo;
+	zf_fifo *f = c->fifo;
 
 	_pthread_mutex_lock(&f->consumer->mutex);
 
@@ -579,7 +579,7 @@ send_empty_buffered(consumer *c, buffer *b)
 
 	if (b->remove) {
 		unlink_node(&f->buffers, &b->added);
-		destroy_buffer(b);
+		zf_destroy_buffer(b);
 		return;
 	}
 
@@ -592,14 +592,14 @@ send_empty_buffered(consumer *c, buffer *b)
  *  b->dequeued, enqueued are zero.
  */
 static void
-send_full(producer *p, buffer *b)
+send_full(zf_producer *p, zf_buffer *b)
 {
-	fifo *f = p->fifo;
+	zf_fifo *f = p->fifo;
 
 	_pthread_mutex_lock(&f->consumer->mutex);
 
 	if ((b->consumers = f->consumers.members)) {
-		consumer *c;
+		zf_consumer *c;
 
 		/*
 		 *  c->next_buffer is NULL after the consumer dequeued all
@@ -615,7 +615,7 @@ send_full(producer *p, buffer *b)
 
 		pthread_cond_broadcast(&f->consumer->cond);
 	} else {
-		consumer c;
+		zf_consumer c;
 
 		_pthread_mutex_unlock(&f->consumer->mutex);
 
@@ -633,8 +633,8 @@ send_full(producer *p, buffer *b)
 
 /**
  * send_full_buffer:
- * @p: producer *
- * @b: buffer *
+ * @p: zf_producer *
+ * @b: zf_buffer *
  * 
  * Producers call this function when a previously dequeued empty
  * buffer has been filled and is ready for consumption. Dereferencing
@@ -670,7 +670,7 @@ send_full(producer *p, buffer *b)
  *            sent order.
  **/
 void
-send_full_buffer(producer *p, buffer *b)
+zf_send_full_buffer(zf_producer *p, zf_buffer *b)
 {
 	/* Migration prohibited, don't use this to add buffers to the fifo
 	   (n/a to asy callback producers) */
@@ -686,7 +686,7 @@ send_full_buffer(producer *p, buffer *b)
 	if (b->used > 0) {
 		asserts(!p->eof_sent);
 	} else {
-		fifo *f = p->fifo;
+		zf_fifo *f = p->fifo;
 
 		_pthread_mutex_lock(&f->producer->mutex);
 
@@ -721,7 +721,7 @@ send_full_buffer(producer *p, buffer *b)
 
 /**
  * rem_buffer:
- * @b: buffer *
+ * @b: zf_buffer *
  * 
  * Remove the buffer which has been previously added to its
  * fifo by add_buffer(), from the fifo and destroy it with
@@ -732,9 +732,9 @@ send_full_buffer(producer *p, buffer *b)
  * or scheduled for removal as soon as it has been consumed.
  **/
 void
-rem_buffer(buffer *b)
+zf_rem_buffer(zf_buffer *b)
 {
-	fifo *f = b->fifo;
+	zf_fifo *f = b->fifo;
 
 	_pthread_mutex_lock(&f->consumer->mutex);
 
@@ -751,15 +751,15 @@ rem_buffer(buffer *b)
 			unlink_node(&f->empty, &b->node);
 
 		unlink_node(&f->buffers, &b->added);
-		destroy_buffer(b);
+		zf_destroy_buffer(b);
 	} else
 		b->remove = TRUE;
 
 	_pthread_mutex_unlock(&f->consumer->mutex);
 }
 
-static buffer *
-attach_buffer(fifo *f, buffer *b)
+static zf_buffer *
+attach_buffer(zf_fifo *f, zf_buffer *b)
 {
 	if (!b)
 		return NULL;
@@ -781,8 +781,8 @@ attach_buffer(fifo *f, buffer *b)
 
 /**
  * add_buffer:
- * @f: fifo * 
- * @b: buffer *
+ * @f: zf_fifo * 
+ * @b: zf_buffer *
  * 
  * Add the buffer to the fifo buffers list and make it available
  * for use. No op when @b is %NULL. Be warned havoc may prevail
@@ -793,9 +793,9 @@ attach_buffer(fifo *f, buffer *b)
  * %FALSE when @b is %NULL.
  **/
 z_bool
-add_buffer(fifo *f, buffer *b)
+zf_add_buffer(zf_fifo *f, zf_buffer *b)
 {
-	consumer c;
+	zf_consumer c;
 
 	if (!attach_buffer(f, b))
 		return FALSE;
@@ -808,14 +808,14 @@ add_buffer(fifo *f, buffer *b)
 }
 
 static int
-init_fifo(fifo *f, char *name,
-	void (* custom_wait_empty)(fifo *),
-	void (* custom_send_full)(producer *, buffer *),
-	void (* custom_wait_full)(fifo *),
-	void (* custom_send_empty)(consumer *, buffer *),
+init_fifo(zf_fifo *f, char *name,
+	void (* custom_wait_empty)(zf_fifo *),
+	void (* custom_send_full)(zf_producer *, zf_buffer *),
+	void (* custom_wait_full)(zf_fifo *),
+	void (* custom_send_empty)(zf_consumer *, zf_buffer *),
 	int num_buffers, ssize_t buffer_size)
 {
-	memset(f, 0, sizeof(fifo));
+	memset(f, 0, sizeof(zf_fifo));
 
 	strncpy(f->name, name, sizeof(f->name) - 1);
 
@@ -826,12 +826,12 @@ init_fifo(fifo *f, char *name,
 	f->wait_full  = custom_wait_full;
 	f->send_empty = custom_send_empty;
 
-	f->start = (z_bool (*)(fifo *)) nop;
-	f->stop  = (void (*)(fifo *)) nop;
+	f->start = (z_bool (*)(zf_fifo *)) nop;
+	f->stop  = (void (*)(zf_fifo *)) nop;
 
 	f->destroy = uninit_fifo;
 
-	f->alloc_buffer = alloc_buffer;
+	f->alloc_buffer = zf_alloc_buffer;
 
 	init_list(&f->full);
 	init_list(&f->empty);
@@ -844,7 +844,7 @@ init_fifo(fifo *f, char *name,
 	init_list(&f->buffers);
 
 	for (; num_buffers > 0; num_buffers--) {
-		buffer *b;
+		zf_buffer *b;
 
 		if (!(b = attach_buffer(f, f->alloc_buffer(buffer_size)))) {
 			if (empty_list(&f->buffers)) {
@@ -862,7 +862,7 @@ init_fifo(fifo *f, char *name,
 
 /**
  * init_buffered_fifo:
- * @f: fifo *
+ * @f: zf_fifo *
  * @name: The fifo name, for debugging purposes. Will be copied.
  * @num_buffers: Number of buffer objects to allocate and add to the fifo as
  * with add_buffer().
@@ -877,16 +877,16 @@ init_fifo(fifo *f, char *name,
  * The number of buffers actually allocated.
  **/
 int
-init_buffered_fifo(fifo *f, char *name, int num_buffers, ssize_t buffer_size)
+zf_init_buffered_fifo(zf_fifo *f, char *name, int num_buffers, ssize_t buffer_size)
 {
 	return init_fifo(f, name,
-		NULL, send_full, NULL, send_empty_buffered,
+		NULL, send_full, NULL, zf_send_empty_buffered,
 		num_buffers, buffer_size);
 }
 
 /**
  * init_callback_fifo:
- * @f: fifo *
+ * @f: zf_fifo *
  * @name: The fifo name, for debugging purposes. Will be copied.
  * @custom_wait_empty: Custom functions, see below. NULL to get the default.
  * @custom_send_full: dto.
@@ -981,11 +981,11 @@ init_buffered_fifo(fifo *f, char *name, int num_buffers, ssize_t buffer_size)
  * The number of buffers actually allocated.
  **/
 int
-init_callback_fifo(fifo *f, char *name,
-	void (* custom_wait_empty)(fifo *),
-	void (* custom_send_full)(producer *, buffer *),
-	void (* custom_wait_full)(fifo *),
-	void (* custom_send_empty)(consumer *, buffer *),
+zf_init_callback_fifo(zf_fifo *f, char *name,
+	void (* custom_wait_empty)(zf_fifo *),
+	void (* custom_send_full)(zf_producer *, zf_buffer *),
+	void (* custom_wait_full)(zf_fifo *),
+	void (* custom_send_empty)(zf_consumer *, zf_buffer *),
 	int num_buffers, ssize_t buffer_size)
 {
 //	asserts((!!custom_wait_empty) != (!!custom_wait_full));
@@ -999,7 +999,7 @@ init_callback_fifo(fifo *f, char *name,
 		if (custom_wait_empty)
 			custom_send_empty = send_empty_unbuffered;
 		else
-			custom_send_empty = send_empty_buffered;
+			custom_send_empty = zf_send_empty_buffered;
 	}
 
 	return init_fifo(f, name,
@@ -1010,7 +1010,7 @@ init_callback_fifo(fifo *f, char *name,
 
 /**
  * rem_producer:
- * @p: producer *
+ * @p: zf_producer *
  * 
  * Detach a producer from its fifo. No resource tracking;
  * All previously dequeued buffers must be returned with
@@ -1020,9 +1020,9 @@ init_callback_fifo(fifo *f, char *name,
  * Safe to call after add_producer failed.
  **/
 void
-rem_producer(producer *p)
+zf_rem_producer(zf_producer *p)
 {
-	fifo *f;
+	zf_fifo *f;
 
 	if ((f = p->fifo)) {
 		_pthread_mutex_lock(&f->producer->mutex);
@@ -1047,8 +1047,8 @@ rem_producer(producer *p)
 
 /**
  * add_producer:
- * @f: fifo *
- * @p: producer *
+ * @f: zf_fifo *
+ * @p: zf_producer *
  *
  * Initialize the producer object and add the producer to an
  * already initialized fifo. The fifo will recycle old buffers
@@ -1062,8 +1062,8 @@ rem_producer(producer *p)
  * Return value: 
  * The producer pointer, or %NULL if the operation failed.
  **/
-producer *
-add_producer(fifo *f, producer *p)
+zf_producer *
+zf_add_producer(zf_fifo *f, zf_producer *p)
 {
 	p->fifo = f;
 
@@ -1089,7 +1089,7 @@ add_producer(fifo *f, producer *p)
 
 /**
  * rem_consumer:
- * @c: consumer *
+ * @c: zf_consumer *
  * 
  * Detach a consumer from its fifo. No resource tracking;
  * All previously dequeued buffers must be returned with
@@ -1099,15 +1099,15 @@ add_producer(fifo *f, producer *p)
  * Safe to call after add_consumer failed.
  **/
 void
-rem_consumer(consumer *c)
+zf_rem_consumer(zf_consumer *c)
 {
-	fifo *f;
+	zf_fifo *f;
 
 	if ((f = c->fifo)) {
 		_pthread_mutex_lock(&f->consumer->mutex);
 
 		if (rem_node(&f->consumers, &c->node)) {
-			buffer *b;
+			zf_buffer *b;
 
 			asserts(c->dequeued == 0);
 
@@ -1126,8 +1126,8 @@ rem_consumer(consumer *c)
 
 /**
  * add_consumer:
- * @f: fifo *
- * @c: consumer *
+ * @f: zf_fifo *
+ * @c: zf_consumer *
  * 
  * Initialize the consumer object and add the consumer to an
  * already initialized fifo. The consumer will not dequeue buffers
@@ -1140,11 +1140,11 @@ rem_consumer(consumer *c)
  * Return value: 
  * The consumer pointer, or %NULL if the operation failed.
  **/
-consumer *
-add_consumer(fifo *f, consumer *c)
+zf_consumer *
+zf_add_consumer(zf_fifo *f, zf_consumer *c)
 {
 	c->fifo = f;
-	c->next_buffer = (buffer *) &f->full.null;
+	c->next_buffer = (zf_buffer *) &f->full.null;
 	c->dequeued = 0;
 
 	mutex_bi_lock(&f->producer->mutex, &f->consumer->mutex);

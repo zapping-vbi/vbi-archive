@@ -172,7 +172,6 @@ image_put(xvzImage *image, GdkWindow *window, GdkGC *gc)
 {
   gint w, h;
   struct _xvzImagePrivate *pimage = image->priv;
-  int i;
 
   g_assert(window != NULL);
 

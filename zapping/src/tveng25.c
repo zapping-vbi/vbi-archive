@@ -1199,9 +1199,6 @@ tveng25_get_mute(tveng_device_info * info)
 static int
 tveng25_set_mute(int value, tveng_device_info * info)
 {
-  struct private_tveng25_device_info * p_info =
-    (struct private_tveng25_device_info*) info;
-
   if (tveng_set_control_by_id(V4L2_CID_AUDIO_MUTE, !!value, info) < 0)
       return -1;
 

@@ -55,7 +55,7 @@ typedef struct {
   double			timestamp;
 
   /* Who produced this bundle (read/only) */
-  struct producer		*producer;
+  zf_producer		*producer;
 } capture_bundle;
 
 /*
@@ -63,7 +63,7 @@ typedef struct {
  * of the capture fifo and wait_full buffers.
  */
 typedef struct {
-  buffer	b; /* this is read-only */
+  zf_buffer	b; /* this is read-only */
 
   capture_bundle d;
 } capture_buffer;
@@ -133,7 +133,7 @@ capture_lock(void);
 void
 capture_unlock(void);
 
-extern fifo	*capture_fifo;
+extern zf_fifo	*capture_fifo;
 
 #endif /* capture.h */
 
