@@ -199,18 +199,6 @@ tv_pixfmt_to_pixel_format	(tv_pixel_format *	format,
 				 enum tveng_frame_pixformat pixfmt,
 				 tv_color_space		color_space);
 
-/*
-static __inline__ unsigned int
-tveng_pixformat_bits_per_pixel	(enum tveng_frame_pixformat fmt)
-{
-  static const unsigned char bpp[] = {
-    16, 16, 24, 24, 32, 32, 12, 12, 16, 16, 8
-  };
-
-  return bpp[fmt];
-}
-*/
-
 /* This struct holds the structure of the captured frame */
 struct tveng_frame_format
 {
@@ -236,29 +224,6 @@ typedef union {
   } planar;
 } tveng_image_data;
 
-
-
-#if 0
-/* all frequencies in Hz */
-extern tv_bool
-tv_set_tuner_frequency		(tveng_device_info *	info,
-				 uint64_t		freq);
-extern tv_bool
-tv_get_tuner_frequency		(tveng_device_info *	info,
-				 uint64_t *		freq);
-extern tv_bool
-tv_set_tuner_channel		(tveng_device_info *	info,
-				 tv_rf_channel *	channel);
-/* Magnitude: negative bad, positive good signal quality.
- * Direction: negative below, positive above optimal tuner frequency.
- * Arbitrary units, must find limits by trial. Zero if value
- * is unknown or not applicable, NULL if don't care.
- */
-extern tv_bool
-tv_get_signal_strength		(tveng_device_info *	info,
-				 int *			magnitude,
-				 int *			direction);
-#endif
 
 
 
@@ -401,7 +366,16 @@ struct _tv_video_line {
 	tv_video_line_id	id;
 
 // tv_videostd_id ?
-// tv_tuner * ? min/max/step/freq ?
+
+	union {
+		struct {
+			unsigned int		minimum;
+			unsigned int		maximum;
+			unsigned int		step;
+
+			unsigned int		frequency;
+		}			tuner;
+	}			u;
 };
 
 static __inline__ tv_callback *
@@ -722,19 +696,7 @@ extern tv_bool
 tv_audio_update			(tveng_device_info *	info);
 
 /*
- *  Video overlay
- */
-
-/*
-  TODO:
-  capabilities:			setup:			window:
-  dma overlay			g|s_overlay_buffer	g|s_preview_window
-  dma overlay w/clipping	g|s_overlay_buffer	g|s_preview_window (w/clips)
-  chroma-key overlay		g|s_chroma_key		g|s_preview_window
-  xwindow frontend overlay	g|s_xwindow		g|s_preview_window
-  xwindow backend overlay	g|s_xwindow w/chroma	g|s_preview_window
-
-  plus source rectangle (zoom effect etc) where available.
+ *  Video overlay, see ROADMAP
  */
 
 typedef struct _tv_overlay_buffer tv_overlay_buffer;
@@ -746,20 +708,16 @@ struct _tv_overlay_buffer {
 	/* Frame buffer physical address. (XXX What is physical?) */
 	void *			base;			/* e.g. */
 
-	unsigned int		bytes_per_line;		/* 2048 (>= width) */
-	unsigned int		size;			/* 2048 * 768, bytes */
+	unsigned int		bytes_per_line;		/* >= width * bytes per pixel */
+	unsigned int		size;			/* >= bytes_per_line * height, bytes */
 	
-	unsigned int		width;			/* 1024 pixels */
-	unsigned int		height;			/* 768 */
+	unsigned int		width;			/* pixels */
+	unsigned int		height;
 
 	/* XXX rgb1? 1rgb? 1bgr? bgr1? le/be? pixfmt to be replaced
-	   by more accurate enumeration. depth and bpp to be replaced
-	   by pixfmt break-down client helper function. */
+	   by more accurate enumeration. */
 
 	enum tveng_frame_pixformat pixfmt;		/* TVENG_PIX_RGB555 */
-
-//	unsigned int		depth;			/* 15 */
-//	unsigned int		bits_per_pixel;		/* 16 */
 };
 
 /* Overlay clipping rectangle. These are regions you don't want
@@ -827,6 +785,11 @@ tv_clip_vector_add_clip_wh	(tv_clip_vector *	vector,
 	  (vector, x, y, x + width, y + height);
 }
 
+extern uint8_t *
+tv_clip_vector_to_clip_mask	(tv_clip_vector *	vector,
+				 unsigned int		width,
+				 unsigned int		height);
+
 static __inline__ void
 tv_clip_vector_init		(tv_clip_vector *	vector)
 {
@@ -882,10 +845,19 @@ tv_window_init			(tv_window *		window)
 
 enum tveng_capture_mode
 {
-  TVENG_NO_CAPTURE, /* Capture isn't active */
-  TVENG_CAPTURE_READ, /* Capture is through a read() call */
-  TVENG_CAPTURE_PREVIEW, /* Capture is through (fullscreen) previewing */
-  TVENG_CAPTURE_WINDOW /* Capture is through windowed overlays */
+  /* FIXME this describes window contents
+     and doesn't belong here since tveng maintains no windows.
+     Moreover some drivers [appear to, from client POV] support
+     capture and overlay simultaneously. */
+
+  TVENG_NO_CAPTURE,		/* Capture isn't active */
+  TVENG_CAPTURE_READ,		/* Capture is through a read() call */
+  TVENG_CAPTURE_PREVIEW,       	/* Capture is through fullscreen overlays */
+  TVENG_CAPTURE_WINDOW,		/* Capture is through windowed overlays */
+
+  /* Doesn't belong here either, but I don't want to break
+     too many things at once. */
+  TVENG_TELETEXT
 };
 
 /* The structure used to hold info about a video_device */
@@ -976,6 +948,13 @@ tv_get_video_input		(tveng_device_info *	info);
 extern tv_bool
 tv_set_video_input		(tveng_device_info *	info,
 				 const tv_video_line *	line);
+/* Current video input, frequencies in Hz */
+extern tv_bool
+tv_get_tuner_frequency		(tveng_device_info *	info,
+				 unsigned int *		frequency);
+extern tv_bool
+tv_set_tuner_frequency		(tveng_device_info *	info,
+				 unsigned int		frequency);
 /* Note this refers to the cur_video_input pointer: notify is called after
    it changed, possibly to NULL. Since this pointer always points to a video
    input list member NULL implies the list has been destroyed. The pointer
@@ -1178,12 +1157,6 @@ int
 tveng_set_standard_by_name(const char * name, tveng_device_info * info);
 
 /*
-  Tunes the current input to the given freq. Returns -1 on error.
-*/
-int
-tveng_tune_input(uint32_t freq, tveng_device_info * info);
-
-/*
   Gets the signal strength and the afc code. The afc code indicates
   how to get a better signal, if negative, tune higher, if negative,
   tune lower. 0 means no idea or feature not present in the current
@@ -1193,21 +1166,6 @@ tveng_tune_input(uint32_t freq, tveng_device_info * info);
 int
 tveng_get_signal_strength (int *strength, int * afc,
 			   tveng_device_info * info);
-
-/*
-  Stores in freq the currently tuned freq. Returns -1 on error.
-*/
-int
-tveng_get_tune(uint32_t * freq, tveng_device_info * info);
-
-/*
-  Gets the minimum and maximum freq that the current input can
-  tune. If there is no tuner in this input, -1 will be returned.
-  If any of the pointers is NULL, its value will not be filled.
-*/
-int
-tveng_get_tuner_bounds(uint32_t * min, uint32_t * max, tveng_device_info *
-		       info);
 
 /*
   Sets up the capture device so any read() call after this one
@@ -1560,6 +1518,9 @@ tveng_attach_mixer_line		(tveng_device_info *	info,
 fprintf(stderr, _("%s (%d): %s: assertion (%s) failed\n"), __FILE__, \
 __LINE__, __PRETTY_FUNCTION__, #condition); \
 exit(1);}
+
+#define t_warn(templ, args...)						\
+  fprintf (stderr, "%s:%u: " templ, __FILE__, __LINE__ ,##args );
 
 /* Builds a custom error message, doesn't use errno */
 #define t_error_msg(str_error, msg_error, info, args...) \
