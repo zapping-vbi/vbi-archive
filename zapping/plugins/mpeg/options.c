@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.2 2001-09-21 20:04:00 garetxe Exp $ */
+/* $Id: options.c,v 1.3 2001-10-08 05:50:53 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -69,37 +69,42 @@ on_option_control (GtkWidget *w, gpointer user_data)
   if (!opts->context || !opts->codec)
     return;
 
-  ro = rte_enum_option (opts->context, opts->codec, id);
+  ro = rte_enum_option (opts->codec, id);
 
   g_assert (ro != NULL);
 
   zcname = ro_zconf_name (opts, ro);
 
-  switch (ro->type)
+  if (ro->entries > 0)
     {
-      case RTE_OPTION_BOOL:
-	num = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (w));
-        if (rte_set_option (opts->context, opts->codec, ro->keyword, (int) num))
-	  zconf_set_boolean (num, zcname);
-	break;
-      case VBI_EXPORT_INT:
-	num = GTK_ADJUSTMENT (w)->value;
-        if (rte_set_option (opts->context, opts->codec, ro->keyword, (int) num))
-	  zconf_set_integer (num, zcname);
-	break;
-      case VBI_EXPORT_MENU:
-        num = (gint) gtk_object_get_data (GTK_OBJECT (w), "value");
-	if (rte_set_option (opts->context, opts->codec, ro->keyword, (int) num))
-	  zconf_set_integer (num, zcname);
-	break;
-      case VBI_EXPORT_STRING:
-	str = gtk_entry_get_text (GTK_ENTRY (w));
-        if (rte_set_option (opts->context, opts->codec, ro->keyword, (char *) str))
-	  zconf_set_string (str, zcname);
-	break;
-      default:
-	g_warning ("Miracle of type %d in on_option_control", ro->type);
+      num = (gint) gtk_object_get_data (GTK_OBJECT (w), "value");
+      if (rte_set_option_menu (opts->codec, ro->keyword, num))
+	zconf_set_integer (num, zcname);
     }
+  else
+    switch (ro->type)
+      {
+        case RTE_OPTION_BOOL:
+	  num = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (w));
+	  if (rte_set_option (opts->codec, ro->keyword, (int) num))
+	    zconf_set_boolean (num, zcname);
+	  break;
+        case VBI_EXPORT_INT:
+	  num = GTK_ADJUSTMENT (w)->value;
+	  if (rte_set_option (opts->codec, ro->keyword, (int) num))
+	    zconf_set_integer (num, zcname);
+	  break;
+        case VBI_EXPORT_MENU:
+	  g_assert_not_reached();
+	  break;
+        case VBI_EXPORT_STRING:
+	  str = gtk_entry_get_text (GTK_ENTRY (w));
+	  if (rte_set_option (opts->codec, ro->keyword, (char *) str))
+	    zconf_set_string (str, zcname);
+	  break;
+        default:
+	  g_warning ("Miracle of type %d in on_option_control", ro->type);
+      }
 
   g_free (zcname);
 }
@@ -157,9 +162,36 @@ create_menu (grte_options *opts, rte_option *ro, int index)
   saved = zconf_get_integer (NULL, zcname);
   g_free (zcname);
 
-  for (i = ro->min; i <= ro->max; i++)
+  for (i = 0; i < ro->entries; i++)
     {
-      menu_item = gtk_menu_item_new_with_label (_(ro->menu.label[i - ro->min]));
+      char *str;
+
+      switch (ro->type) 
+	{
+	  case RTE_OPTION_BOOL:
+	  case RTE_OPTION_INT:
+	    str = rte_print_option(opts->codec, ro->keyword, ro->menu.num[i]);
+	    break;
+	  case RTE_OPTION_REAL:
+	    str = rte_print_option(opts->codec, ro->keyword, ro->menu.dbl[i]);
+	    break;
+	  case RTE_OPTION_STRING:
+	    str = rte_print_option(opts->codec, ro->keyword, ro->menu.str[i]);
+	    break;
+	  case RTE_OPTION_MENU:
+	    str = rte_print_option(opts->codec, ro->keyword, i);
+	    break;
+	  default:
+	    g_warning ("Type %d of RTE option %s is not supported",
+		       ro->type, ro->keyword);
+	    abort();
+	}
+
+      g_assert(str != NULL);
+
+      menu_item = gtk_menu_item_new_with_label (str);
+
+      free(str);
 
       gtk_object_set_data (GTK_OBJECT (menu_item), "opts", opts);
       gtk_object_set_data (GTK_OBJECT (menu_item), "value", 
@@ -202,7 +234,7 @@ create_slider (grte_options *opts, rte_option *ro, int index)
   label = gtk_label_new (_(ro->label));
   gtk_widget_show (label);
 
-  adj = gtk_adjustment_new (ro->def.num, ro->min, ro->max, 1, 10, 10);
+  adj = gtk_adjustment_new (ro->def.num, ro->min.num, ro->max.num, 1, 10, 10);
   zconf_create_integer (ro->def.num, ro->tooltip, zcname);
   gtk_adjustment_set_value (GTK_ADJUSTMENT (adj),
 			    zconf_get_integer (NULL, zcname));
@@ -277,7 +309,7 @@ grte_options_create (rte_context *context, rte_codec *codec, gchar *zc_domain)
   rte_option *ro;
   int i;
 
-  if (!rte_enum_option (context, codec, 0))
+  if (!rte_enum_option (codec, 0))
     return NULL; /* no options */
 
   opts = g_malloc (sizeof (*opts));
@@ -295,28 +327,31 @@ grte_options_create (rte_context *context, rte_codec *codec, gchar *zc_domain)
   opts->table = gtk_table_new (1, 2, FALSE);
   gtk_widget_show (opts->table);
 
-  for (i = 0; (ro = rte_enum_option (context, codec, i)); i++)
+  for (i = 0; (ro = rte_enum_option (codec, i)); i++)
     {
-      switch (ro->type)
-	{
-	case RTE_OPTION_BOOL:
-	  create_checkbutton (opts, ro, i);
-	  break;
-	case RTE_OPTION_INT:
-	  create_slider (opts, ro, i);
-	  break;
-	case RTE_OPTION_MENU:
-	  create_menu (opts, ro, i);
-	  break;
-	case RTE_OPTION_STRING:
-	  create_entry (opts, ro, i);
-	  break;
+      if (ro->entries > 0)
+	create_menu (opts, ro, i);
+      else
+	switch (ro->type)
+	  {
+	    case RTE_OPTION_BOOL:
+	      create_checkbutton (opts, ro, i);
+	      break;
+	    case RTE_OPTION_INT:
+	      create_slider (opts, ro, i);
+	      break;
+	    case RTE_OPTION_MENU:
+	      g_assert_not_reached();
+	      break;
+	    case RTE_OPTION_STRING:
+	      create_entry (opts, ro, i);
+	      break;
 
-	default:
-	  g_warning ("Type %d of RTE option %s is not supported",
-		     ro->type, ro->keyword);
-	  continue;
-	}
+	    default:
+	      g_warning ("Type %d of RTE option %s is not supported",
+			 ro->type, ro->keyword);
+	      continue;
+	  }
     }
 
   gtk_container_add (GTK_CONTAINER (frame), opts->table);

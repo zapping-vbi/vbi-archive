@@ -1,3 +1,8 @@
+08.10.2001	<mschimek@users.sf.net>
+
+	* configure.in: Changed REQUIRED_RTE_VERSION to 0.4cvs.
+	* plugins/mpeg/options.c: Resynced with rte.h.
+
 01.10.2001	Channel editor improvements <garetxe@users.sf.net>
 
 	* channel_editor.c: Now the freq saved with the channel is the one
