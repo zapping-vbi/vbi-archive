@@ -185,6 +185,16 @@ else
   AC_DEFINE_UNQUOTED(PACKAGE_DATA_DIR, "${prefix}/${DATADIRNAME}/${PACKAGE}")
 fi
 
+dnl ----------------------------------------------------------------------
+dnl Check for the Xv extension
+dnl ----------------------------------------------------------------------
+AC_CHECK_LIB(Xv, XvShmPutImage, XV_PRESENT="yes",, $GTK_LIBS)
+if test "x$XV_PRESENT" = "xyes"; then
+AC_DEFINE(HAVE_LIBXV)
+X_XV_LIBS="-lXv"
+AC_SUBST(X_XV_LIBS)
+fi
+
 dnl Subst PACKAGE_PIXMAPS_DIR.
 PACKAGE_PIXMAPS_DIR="${datadir}/pixmaps/${PACKAGE}"
 AC_SUBST(PACKAGE_PIXMAPS_DIR)

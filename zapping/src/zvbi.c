@@ -487,6 +487,140 @@ pthread_mutex_t monitor_mutex = PTHREAD_MUTEX_INITIALIZER;
 static GList *monitor=NULL; /* List of all the pages marked to monitor */
 
 /*
+  FLOF (fast text) navigation. Given a x, tells which page/subpage it
+  corresponds to. It returns a code of -1 in page if it couldn't be
+  resolved, and FALSE.
+  Fast text navigation is the "color" navigation, emitted in the
+  bottom line of the teletext page.
+*/
+static gboolean
+zvbi_resolve_flof(gint x, struct vt_page *vtp, gint *page, gint *subpage)
+{
+  gint code= 7, i, c;
+  if ((!vbi) || (!vtp) || (!page) || (!subpage))
+    return FALSE;
+
+  if (!(vtp->flof))
+    return FALSE;
+
+  for (i=0; (i <= x) && (i<40); i++)
+    if ((c = vtp->data[24][i]) < 8) /* color code */
+      code = c; /* Store it for later on */
+
+  if (code >= 8) /* not found ... weird */
+    return FALSE;
+
+  code = " \0\1\2\3 \3 "[code]; /* color->link conversion table */
+  
+  if ((code > 6) || ((vtp->link[code].pgno & 0xff) == 0xff))
+    return FALSE;
+
+  *page = vtp->link[code].pgno;
+  *subpage = vtp->link[code].subno;
+
+  return TRUE;
+}
+
+#define notdigit(x) (!isdigit(x))
+
+static gboolean
+zvbi_check_subpage(gchar *p, int x, gint *n1, gint *n2)
+{
+    p += x;
+
+    if (x >= 0 && x < 42-5)
+	if (notdigit(p[1]) || notdigit(p[0]))
+	    if (isdigit(p[2]))
+		if (p[3] == '/' || p[3] == ':')
+		    if (isdigit(p[4]))
+			if (notdigit(p[5]) || notdigit(p[6]))
+			{
+			    *n1 = p[2] % 16;
+			    if (isdigit(p[1]))
+				*n1 += p[1] % 16 * 16;
+			    *n2 = p[4] % 16;
+			    if (isdigit(p[5]))
+				*n2 = *n2 * 16 + p[5] % 16;
+			    if ((*n2 > 0x99) || (*n1 > 0x99) ||
+				(*n1 > *n2))
+			      return FALSE;
+			    return TRUE;
+			}
+    return FALSE;
+}
+
+static gboolean
+zvbi_check_page(gchar *p, int x, gint *pgno, gint *subno)
+{
+    p += x;
+
+    if (x >= 0 && x < 42-4)
+      if (notdigit(p[0]) && notdigit(p[4]))
+	if (isdigit(p[1]))
+	  if (isdigit(p[2]))
+	    if (isdigit(p[3]))
+	      {
+		*pgno = p[1] % 16 * 256 + p[2] % 16 * 16 + p[3] % 16;
+		*subno = ANY_SUB;
+		if (*pgno >= 0x100 && *pgno <= 0x899)
+		  return TRUE;
+	      }
+    return FALSE;
+}
+
+/*
+  Text navigation.
+  Given the page, the x and y, tries to find a page number in that
+  position. In success, returns TRUE
+*/
+static gint
+zvbi_resolve_page(gint x, gint y, struct vt_page * vtp, gint *page,
+		  gint *subpage)
+{
+  struct fmt_page pg;
+  gint i, n1, n2;
+  gchar buffer[42]; /* The line and two spaces on the sides */
+
+  if ((y > 24) || (y < 0) || (x < 0) || (x > 39) || (!vbi) || (!vtp)
+      || (!page) || (!subpage))
+    return FALSE;
+
+  fmt_page(FALSE, &pg, vtp); /* It's easier to parse this way */
+  if (pg.hid & (1 << y))
+    y--;
+
+  if (y < 0)
+    return FALSE;
+
+  buffer[0] = buffer[41] = ' ';
+
+  for (i=1; i<41; i++)
+    buffer[i] = pg.data[y][i-1].ch;
+
+  for (i = -2; i < 1; i++)
+    if (zvbi_check_page(buffer, x+i, page, subpage))
+      return TRUE;
+
+  /* try to resolve subpage */
+  for (i = -4; i < 1; i++)
+    if (zvbi_check_subpage(buffer, x+i, &n1, &n2))
+      {
+	if ((cur_subpage != n1) && (cur_subpage != ANY_SUB))
+	  return FALSE; /* mismatch */
+	if (cur_subpage != ANY_SUB)
+	  n1 = cur_subpage;
+	n1 = dec2hex(hex2dec(n1)+1);
+	if (n1 > n2)
+	  n1 = 1;
+	*page = cur_page;
+	*subpage = n1;
+	return TRUE;
+      }
+
+  return FALSE;
+}
+
+/*
   Tells the VBI engine to monitor a page. This way you can know if the
   page has been updated since the last format_page, get_page.
 */
@@ -753,37 +887,10 @@ zvbi_update_pixbufs(gint page, gint subpage, gint w, gint h)
 }
 #endif /* HAVE_GDKPIXBUF */
 
-/* Called when the tv screen changes size */
-void
-zvbi_window_updated(GtkWidget * widget)
+static void
+zvbi_do_redraw(GtkWidget * widget, gint x, gint y, gint w, gint h)
 {
 #ifdef HAVE_GDKPIXBUF
-  gint width, height;
-#endif
-
-  if (!vbi_mode)
-    return;
-
-#ifdef HAVE_GDKPIXBUF
-  if (!widget->window)
-    return;
-
-  gdk_window_get_size(widget->window, &width, &height);
-  zvbi_update_pixbufs(cur_page, cur_subpage, width, height);
-
-  /* Draw the TXT */
-  zvbi_exposed(widget, 0, 0, width, height);
-#endif
-}
-
-/* called when the tv_screen receives an expose event */
-void
-zvbi_exposed(GtkWidget * widget, gint x, gint y, gint w, gint h)
-{
-#ifdef HAVE_GDKPIXBUF
-  if ((!scaled_teletext_page) || (!vbi_mode))
-    return;
-
   /* Some clipping, the pixbuf might not be the same size as the window */
   if (x>gdk_pixbuf_get_width(scaled_teletext_page))
     x = gdk_pixbuf_get_width(scaled_teletext_page);
@@ -806,6 +913,97 @@ zvbi_exposed(GtkWidget * widget, gint x, gint y, gint w, gint h)
 #endif
 }
 
+/* called when the tv_screen receives an expose event */
+static void
+on_zvbi_expose_event		(GtkWidget	*widget,
+				 GdkEvent	*event,
+				 gpointer	user_data)
+{
+  if ((!vbi) || (!scaled_teletext_page) || (!vbi_mode) ||
+      (event->type != GDK_EXPOSE))
+    return;
+
+  zvbi_do_redraw(widget, event->expose.area.x, event->expose.area.y,
+		 event->expose.area.width, event->expose.area.height);
+}
+
+static void
+on_zvbi_size_allocate			(GtkWidget	*widget,
+					 GtkAllocation	*allocation,
+					 gpointer	user_data)
+{
+  if ((!vbi_mode) || (!vbi))
+    return;
+
+#ifdef HAVE_GDKPIXBUF
+  if (!widget->window)
+    return;
+
+  zvbi_update_pixbufs(cur_page, cur_subpage, allocation->width,
+		      allocation->height);
+
+  /* Draw the TXT */
+  zvbi_do_redraw(widget, 0, 0, allocation->width, allocation->height);
+#endif  
+}
+
+static gboolean
+on_zvbi_button_press_event		(GtkWidget	*widget,
+					 GdkEvent	*event,
+					 gpointer	user_data)
+{
+  GdkEventButton * bevent = (GdkEventButton *)event;
+
+  struct vt_page vtp; /* This is a local copy of the current monitored
+		       page, to avoid locking for a long time */
+  gint w=0, h=0;
+  gint page, subpage;
+  gint x, y; /* coords in the 40*25 buffer */
+  gboolean result;
+
+  if ((event->type != GDK_BUTTON_PRESS) ||
+      (bevent->button != 1) ||
+      (!vbi) || (!vbi_mode) || (!monitor) || (!widget))
+    return FALSE;
+
+
+  pthread_mutex_lock(&(monitor_mutex));
+  memcpy(&vtp,
+	 &(((struct monitor_page*)g_list_first(monitor)->data)->vtp),
+	 sizeof(struct vt_page));
+  pthread_mutex_unlock(&(monitor_mutex));
+
+  /* Convert (scaled) image coords to 40*25 coords */
+  gdk_window_get_size(widget->window, &w, &h);
+
+  if ((!w) || (!h))
+    return FALSE;
+
+  x = (bevent->x*40)/w;
+  y = (bevent->y*25)/h;
+
+  if ((x<0) || (x>39) || (y < 0) || (y > 24))
+    return FALSE;
+
+  switch (y)
+    {
+    case 0: /* Header, no useful info there*/
+      break;
+    case 1 ... 23: /* body of the page */
+      result = zvbi_resolve_page(x, y, &vtp, &page, &subpage);
+      if (result)
+	zvbi_set_current_page(page, subpage);
+      break;
+    default: /* Bottom line, fast navigation */
+      if (!zvbi_resolve_flof(x, &vtp, &page, &subpage))
+	break;
+      zvbi_set_current_page(page, subpage);
+      break;
+    }
+
+  return FALSE;
+}
+
 /*
   Builds a GdkPixbuf version of the current teletext page, and updates
   it if neccesary.
@@ -818,16 +1016,20 @@ gpointer zvbi_build_current_teletext_page(GtkWidget *widget, struct
 {
 #ifdef HAVE_GDKPIXBUF
   gint w, h;
+  GtkAllocation dummy_alloc;
 #endif
 
-  if ((!vbi_mode) || (!format)) /* Just do nothing */
+  if ((!vbi) || (!vbi_mode) || (!format)) /* Just do nothing */
     return NULL;
 
 #ifdef HAVE_GDKPIXBUF
   gdk_window_get_size(widget->window, &w, &h);
 
+  dummy_alloc.width = w;
+  dummy_alloc.height = h;
+
   if (zvbi_update_pixbufs(cur_page, cur_subpage, w, h))
-    zvbi_window_updated(widget);
+    on_zvbi_size_allocate(widget, &dummy_alloc, NULL);
 
   if (!scaled_teletext_page)
     return NULL;
@@ -1120,185 +1322,23 @@ void zvbi_history_previous(void)
     }
 }
 
-/*
-  FLOF (fast text) navigation. Given a x, tells which page/subpage it
-  corresponds to. It returns a code of -1 in page if it couldn't be
-  resolved, and FALSE.
-  Fast text navigation is the "color" navigation, emitted in the
-  bottom line of the teletext page.
-*/
-static gboolean
-zvbi_resolve_flof(gint x, struct vt_page *vtp, gint *page, gint *subpage)
-{
-  gint code= 7, i, c;
-  if ((!vbi) || (!vtp) || (!page) || (!subpage))
-    return FALSE;
-
-  if (!(vtp->flof))
-    return FALSE;
-
-  for (i=0; (i <= x) && (i<40); i++)
-    if ((c = vtp->data[24][i]) < 8) /* color code */
-      code = c; /* Store it for later on */
-
-  if (code >= 8) /* not found ... weird */
-    return FALSE;
-
-  code = " \0\1\2\3 \3 "[code]; /* color->link conversion table */
-  
-  if ((code > 6) || ((vtp->link[code].pgno & 0xff) == 0xff))
-    return FALSE;
-
-  *page = vtp->link[code].pgno;
-  *subpage = vtp->link[code].subno;
-
-  return TRUE;
-}
-
-#define notdigit(x) (!isdigit(x))
-
-static gboolean
-zvbi_check_subpage(gchar *p, int x, gint *n1, gint *n2)
-{
-    p += x;
-
-    if (x >= 0 && x < 42-5)
-	if (notdigit(p[1]) || notdigit(p[0]))
-	    if (isdigit(p[2]))
-		if (p[3] == '/' || p[3] == ':')
-		    if (isdigit(p[4]))
-			if (notdigit(p[5]) || notdigit(p[6]))
-			{
-			    *n1 = p[2] % 16;
-			    if (isdigit(p[1]))
-				*n1 += p[1] % 16 * 16;
-			    *n2 = p[4] % 16;
-			    if (isdigit(p[5]))
-				*n2 = *n2 * 16 + p[5] % 16;
-			    if ((*n2 > 0x99) || (*n1 > 0x99) ||
-				(*n1 > *n2))
-			      return FALSE;
-			    return TRUE;
-			}
-    return FALSE;
-}
-
-static gboolean
-zvbi_check_page(gchar *p, int x, gint *pgno, gint *subno)
-{
-    p += x;
-
-    if (x >= 0 && x < 42-4)
-      if (notdigit(p[0]) && notdigit(p[4]))
-	if (isdigit(p[1]))
-	  if (isdigit(p[2]))
-	    if (isdigit(p[3]))
-	      {
-		*pgno = p[1] % 16 * 256 + p[2] % 16 * 16 + p[3] % 16;
-		*subno = ANY_SUB;
-		if (*pgno >= 0x100 && *pgno <= 0x899)
-		  return TRUE;
-	      }
-    return FALSE;
-}
-
-/*
-  Text navigation.
-  Given the page, the x and y, tries to find a page number in that
-  position. In success, returns TRUE
-*/
-static gint
-zvbi_resolve_page(gint x, gint y, struct vt_page * vtp, gint *page,
-		  gint *subpage)
-{
-  struct fmt_page pg;
-  gint i, n1, n2;
-  gchar buffer[42]; /* The line and two spaces on the sides */
-
-  if ((y > 24) || (y < 0) || (x < 0) || (x > 39) || (!vbi) || (!vtp)
-      || (!page) || (!subpage))
-    return FALSE;
-
-  fmt_page(FALSE, &pg, vtp); /* It's easier to parse this way */
-  if (pg.hid & (1 << y))
-    y--;
-
-  if (y < 0)
-    return FALSE;
-
-  buffer[0] = buffer[41] = ' ';
-
-  for (i=1; i<41; i++)
-    buffer[i] = pg.data[y][i-1].ch;
-
-  for (i = -2; i < 1; i++)
-    if (zvbi_check_page(buffer, x+i, page, subpage))
-      return TRUE;
-
-  /* try to resolve subpage */
-  for (i = -4; i < 1; i++)
-    if (zvbi_check_subpage(buffer, x+i, &n1, &n2))
-      {
-	if ((cur_subpage != n1) && (cur_subpage != ANY_SUB))
-	  return FALSE; /* mismatch */
-	if (cur_subpage != ANY_SUB)
-	  n1 = cur_subpage;
-	n1 = dec2hex(hex2dec(n1)+1);
-	if (n1 > n2)
-	  n1 = 1;
-	*page = cur_page;
-	*subpage = n1;
-	return TRUE;
-      }
-
-  return FALSE;
-}
-
-/* Manages a click on the tv_screen window */
 void
-zvbi_clicked_tvscreen(GtkWidget *widget, GdkEventButton *bevent)
+zvbi_set_widget(GtkWidget * widget)
 {
-  struct vt_page vtp; /* This is a local copy of the current monitored
-		       page, to avoid locking for a long time */
-  gint w=0, h=0;
-  gint page, subpage;
-  gint x, y; /* coords in the 40*25 buffer */
-  gboolean result;
+  GdkEventMask mask;
 
-  if ((!vbi) || (!vbi_mode) || (!monitor) || (!widget))
-    return;
+  mask = gdk_window_get_events(widget->window) | GDK_EXPOSURE_MASK |
+    GDK_BUTTON_PRESS_MASK;
 
-  pthread_mutex_lock(&(monitor_mutex));
-  memcpy(&vtp,
-	 &(((struct monitor_page*)g_list_first(monitor)->data)->vtp),
-	 sizeof(struct vt_page));
-  pthread_mutex_unlock(&(monitor_mutex));
+  gtk_signal_connect(GTK_OBJECT(widget), "expose-event",
+		     GTK_SIGNAL_FUNC(on_zvbi_expose_event),
+		     NULL);
 
-  /* Convert (scaled) image coords to 40*25 coords */
-  gdk_window_get_size(widget->window, &w, &h);
+  gtk_signal_connect(GTK_OBJECT(widget), "button-press-event",
+		     GTK_SIGNAL_FUNC(on_zvbi_button_press_event),
+		     NULL);
 
-  if ((!w) || (!h))
-    return;
-
-  x = (bevent->x*40)/w;
-  y = (bevent->y*25)/h;
-
-  if ((x<0) || (x>39) || (y < 0) || (y > 24))
-    return;
-
-  switch (y)
-    {
-    case 0: /* Header, no useful info there*/
-      break;
-    case 1 ... 23: /* body of the page / fixme: subpage support */
-      result = zvbi_resolve_page(x, y, &vtp, &page, &subpage);
-      if (result)
-	zvbi_set_current_page(page, subpage);
-      break;
-    default: /* Bottom line, fast navigation */
-      if (!zvbi_resolve_flof(x, &vtp, &page, &subpage))
-	break;
-      zvbi_set_current_page(page, subpage);
-      break;
-    }
+  gtk_signal_connect(GTK_OBJECT(widget), "size-allocate",
+		     GTK_SIGNAL_FUNC(on_zvbi_size_allocate),
+		     NULL);
 }

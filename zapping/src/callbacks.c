@@ -170,8 +170,6 @@ on_tv_screen_size_allocate             (GtkWidget       *widget,
                                         GtkAllocation   *allocation,
                                         gpointer         user_data)
 {
-  zvbi_window_updated(widget);
-
   if (main_info -> current_mode != TVENG_CAPTURE_READ)
     return;
 
@@ -405,7 +403,7 @@ on_videotext1_activate                 (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
 #ifndef HAVE_GDKPIXBUF
-  ShowBox(_("The videotext decoder needs GdkPixbuf, and\n"
+  ShowBox(_("The teletext decoder needs GdkPixbuf, and\n"
 	    "configure didn't find it."), GNOME_MESSAGE_BOX_INFO);
   return;
 #endif /* HAVE_GDKPIXBUF */
@@ -421,9 +419,6 @@ on_videotext1_activate                 (GtkMenuItem     *menuitem,
 
   /* start vbi code */
   zvbi_set_mode(TRUE);
-
-  /* Redraw the current page */
-  zvbi_window_updated(lookup_widget(main_window, "tv_screen"));
 }
 
 void
@@ -550,9 +545,6 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 
   if (event->type != GDK_BUTTON_PRESS)
     return FALSE;
-
-  if (bevent->button == 1)
-    zvbi_clicked_tvscreen(widget, bevent);
 
   if (bevent->button == 3)
     {

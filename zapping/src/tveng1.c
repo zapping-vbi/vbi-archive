@@ -487,9 +487,8 @@ int tveng1_set_input(struct tveng_enum_input * input,
   t_assert(info != NULL);
   t_assert(input != NULL);
 
-#ifdef TVENG_DEBUG
-  fprintf(stderr, "setting input %s\n", input->name);
-#endif
+  if (info->debug_level > 0)
+    fprintf(stderr, "setting input %s\n", input->name);
 
   /* If this input has no tuner, switch to an input with a tuner and
      set the given standard. This fixes the V4L1 design flaw */
@@ -504,11 +503,10 @@ int tveng1_set_input(struct tveng_enum_input * input,
 	if (i != info->num_inputs) /* found a candidate */
 	  {
 	    /* failing here isn't critical */
-#ifdef TVENG_DEBUG
-	    fprintf(stderr,
-		    "Tunerless input, switching to input #%d to set %s\n",
-		    i, info->default_standard);
-#endif
+	    if (info->debug_level > 0)
+	      fprintf(stderr,
+		      "Tunerless input, switching to input #%d to set %s\n",
+		      i, info->default_standard);
 	    for (j=0; j<info->num_inputs; j++)
 	      fprintf(stderr, "I %d) [%s]\n", j, info->inputs[j].name);
 	    for (j=0;j<info->num_standards; j++)

@@ -249,34 +249,7 @@ overlay_periodic_timeout(gpointer data)
   if (do_clean)
     overlay_status_changed(FALSE);
 
-  //  g_message("periodic called: %p, %s, %d", clips, do_clean ? "y" :
-  //	    "n", malloc_count);
-
   return TRUE; /* keep calling me */
-}
-
-/*
- * event handler for the client overlay window
- */
-static gboolean
-on_overlay_event             (GtkWidget       *widget,
-			      GdkEvent        *event,
-			      gpointer         user_data)
-{
-  switch (event->type)
-    {
-    case GDK_EXPOSE:
-      /* fixme: The VBI engine needn't be in the same widget as the
-       overlay */
-      zvbi_exposed(widget, event->expose.area.x, event->expose.area.y,
-		   event->expose.area.width,
-		   event->expose.area.height);
-      break;
-    default:
-      break;
-    }
-
-  return FALSE;
 }
 
 /*
@@ -347,10 +320,6 @@ startup_overlay(gboolean use_xv, GtkWidget * window, GtkWidget *
 {
   GdkEventMask mask; /* The GDK events we want to see */
 
-  gtk_signal_connect(GTK_OBJECT(window), "event",
-		     GTK_SIGNAL_FUNC(on_overlay_event),
-		     NULL);
-
   gtk_signal_connect(GTK_OBJECT(main_window), "event",
 		     GTK_SIGNAL_FUNC(on_main_overlay_event),
 		     NULL);
@@ -409,6 +378,11 @@ shutdown_overlay(gboolean do_cleanup)
 void
 overlay_sync(gboolean clean_screen)
 {
+  extern tveng_device_info *main_info;
+
+  if (main_info->current_mode != TVENG_CAPTURE_WINDOW)
+    return;
+
   gdk_window_get_size(tv_info.window->window, &tv_info.w, &tv_info.h);
   gdk_window_get_origin(tv_info.window->window, &tv_info.x,
 			&tv_info.y);

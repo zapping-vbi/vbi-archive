@@ -37,29 +37,38 @@
 #include "zvbi.h"
 #include "mmx.h"
 #include "overlay.h"
+#include "capture.h"
 #include "x11stuff.h"
 
 /* This comes from callbacks.c */
 extern enum tveng_capture_mode restore_mode; /* the mode set when we went
 						fullscreen */
 
-/* fixme: hack, remove */
-int forced_bpp=-1;
+/**** GLOBAL STUFF ****/
 
-/* These are accessed by callbacks.c as extern variables */
-tveng_device_info * main_info;
-gboolean flag_exit_program = FALSE;
-tveng_channels * current_country = NULL;
-GList * plugin_list = NULL;
-gboolean disable_preview = FALSE; /* TRUE if zapping_setup_fb didn't
-				     work */
-gboolean print_info_inited = FALSE;
-GtkWidget * main_window;
-gboolean was_fullscreen=FALSE; /* will be TRUE if when quitting we
-				  were fullscreen */
-static gboolean disable_vbi = FALSE; /* TRUE for disabling VBI support
-				      */
-static gint newbttv = -1; /* Compatibility with old bttv drivers */
+/* fixme: hack, remove */
+int			forced_bpp=-1;
+
+/* These are accessed by other modules as extern variables */
+tveng_device_info	*main_info;
+gboolean		flag_exit_program = FALSE;
+tveng_channels		*current_country = NULL;
+GList			*plugin_list = NULL;
+gboolean		disable_preview = FALSE;/* preview should be
+						   disabled */
+gboolean		print_info_inited = FALSE;
+GtkWidget		*main_window;
+gboolean		was_fullscreen=FALSE; /* will be TRUE if when
+						 quitting we were
+						 fullscreen */
+/*** END OF GLOBAL STUFF ***/
+
+static
+gboolean		disable_vbi = FALSE; /* TRUE for disabling VBI
+						support */
+static
+gint			newbttv = -1; /* Compatibility with old bttv
+					 drivers */
 
 void shutdown_zapping(void);
 gboolean startup_zapping(void);
@@ -359,6 +368,15 @@ int main(int argc, char * argv[])
   gtk_widget_show(main_window);
   while (gtk_events_pending() || (!tv_screen->window))
     gtk_main_iteration();
+  /* set the tv_screen as the destination window for Teletext */
+  zvbi_set_widget(tv_screen);
+  D();
+  if (!startup_capture(tv_screen))
+    {
+      g_warning("The capture couldn't be started");
+      tveng_device_info_destroy(main_info);
+      return 0;
+    }
   D();
   if ((!disable_preview) && (!startup_overlay(FALSE, tv_screen,
 					      main_window, main_info)))
@@ -428,6 +446,7 @@ int main(int argc, char * argv[])
       zconf_get_integer(&y, "/zapping/internal/callbacks/y");
       zconf_get_integer(&w, "/zapping/internal/callbacks/w");
       zconf_get_integer(&h, "/zapping/internal/callbacks/h");
+      printv("Restoring geometry: <%d,%d> <%d x %d>\n", x, y, w, h);
       gdk_window_move_resize(main_window->window, x, y, w, h);
     }
 
@@ -662,6 +681,10 @@ void shutdown_zapping(void)
    * Tell the overlay engine to shut down and to do a cleanup if necessary
    */
   shutdown_overlay(do_screen_cleanup);
+  /*
+   * Shuts down the capture engine
+   */
+  shutdown_capture();
 }
 
 gboolean startup_zapping()

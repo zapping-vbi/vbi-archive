@@ -35,10 +35,11 @@ zapping_SOURCES = \
 	tveng.c tveng.h \
 	x11stuff.c x11stuff.h \
 	overlay.c overlay.h \
+	capture.c capture.h \
 	zvbi.c zvbi.h \
 	strnatcmp.c strnatcmp.h
 
 zapping_LDADD = $(VBI_LIB) $(GNOME_LIBDIR) $(GNOMEUI_LIBS) \
 $(GDK_PIXBUF_LIBS) $(INTLLIBS) $(GNOME_XML_LIB) $(LIBGLADE_LIBS) \
-$(X_DGA_LIBS) $(PTHREAD_LIB)
+$(X_DGA_LIBS) $(X_XV_LIBS) $(PTHREAD_LIB)
 

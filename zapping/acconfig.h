@@ -4,6 +4,7 @@
 #undef HAVE_LC_MESSAGES
 #undef HAVE_STPCPY
 #undef HAVE_LIBSM
+#undef HAVE_LIBXV
 #undef PACKAGE_LOCALE_DIR
 #undef PACKAGE_DATA_DIR
 #undef PACKAGE_SOURCE_DIR
@@ -19,4 +20,4 @@
 #undef __i386__
 #undef __alpha__
 #undef __ppc__
-#undef __sparc__ 
+#undef __sparc__

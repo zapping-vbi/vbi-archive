@@ -390,8 +390,10 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	  info->format.pixformat = format;
 	  if ((tveng_set_capture_format(info) == -1) ||
 	      (info->format.pixformat != format))
-	    g_warning("Cap format invalid: %s (%d, %d)", info->error,
+	    g_warning("Capture format invalid: %s (%d, %d)", info->error,
 		      info->format.pixformat, format);
+	  printv("cap: setting %d, got %d\n", format,
+		 info->format.pixformat);
 	}
 
       return_value = tveng_start_capturing(info);
@@ -423,8 +425,10 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	  info->format.pixformat = format;
 	  if ((tveng_set_capture_format(info) == -1) ||
 	      (info->format.pixformat != format))
-	    g_warning("Prev format invalid: %s (%d, %d)", info->error,
+	    g_warning("Preview format invalid: %s (%d, %d)", info->error,
 		      info->format.pixformat, format);
+	  printv("prev: setting %d, got %d\n", format,
+		 info->format.pixformat);
 	}
 
       info->window.x = x;
@@ -453,8 +457,10 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	  info->format.pixformat = format;
 	  if ((tveng_set_capture_format(info) == -1) ||
 	      (info->format.pixformat != format))
-	    g_warning("Fulls format invalid: %s (%d, %d)", info->error,
+	    g_warning("Fullscreen format invalid: %s (%d, %d)", info->error,
 		      info->format.pixformat, format);
+	  printv("fulls: setting %d, got %d\n", format,
+		 info->format.pixformat);
 	}
 
       return_value = fullscreen_start(info);

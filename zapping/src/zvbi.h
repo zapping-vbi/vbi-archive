@@ -152,14 +152,6 @@ void
 zvbi_set_page_state(gint page, gint subpage, gint dirty, time_t
 		    last_change);
 
-/* Called when the tv screen changes size */
-void
-zvbi_window_updated(GtkWidget *widget);
-
-/* Called when the tv screen receives a expose event */
-void
-zvbi_exposed(GtkWidget *widget, gint x, gint y, gint w, gint h);
-
 /*
   Builds a GdkPixbuf version of the current teletext page, and updates
   it if neccesary.
@@ -212,8 +204,9 @@ void zvbi_history_next(void);
 */
 void zvbi_history_previous(void);
 
-/* Manages a click on the tv_screen window */
-void
-zvbi_clicked_tvscreen(GtkWidget *widget, GdkEventButton *bevent);
+/*
+  Sets the given widget as the ZVBI widget
+*/
+void zvbi_set_widget(GtkWidget * widget);
 
 #endif /* zvbi.h */
