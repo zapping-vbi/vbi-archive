@@ -432,27 +432,19 @@ frequency_tables [] =
   TABLE_END
 };
 
-static inline const struct table *
-find_table			(const char *		name)
-{
-	const struct table *t;
-
-	for (t = frequency_tables; !IS_TABLE_END (t); t++)
-		if (t->name == name) /* sic */
-			return t;
-	return NULL;
-}
-
-static inline void
+static void
 get_channel			(tv_rf_channel *	ch,
 				 const struct range *	r,
 				 unsigned int		i)
 {
-	snprintf (ch->channel_name, sizeof (ch->channel_name) - 1,
+	snprintf (ch->channel_name, sizeof (ch->channel_name),
 		  (r->flags & ALPHA) ? "%s%c" : "%s%u",
 		  r->prefix, r->first + i);
 
 	ch->frequency = (r->frequency + r->bandwidth * i) * 1000;
+
+	ch->_range = r;
+	ch->_channel = i;
 }
 
 static tv_bool
@@ -460,6 +452,8 @@ first_channel			(tv_rf_channel *	ch,
 				 const struct table *	t)
 {
 	const struct range *r;
+
+	ch->_table		= t;
 
 	ch->table_name		= t->name;
 
@@ -491,21 +485,22 @@ tv_rf_channel_table_prefix	(tv_rf_channel *	ch,
 	const struct table *t;
 	const struct range *r;
 
-	if ((t = find_table (ch->table_name)))
-		for (r = t->freq_ranges; !IS_RANGE_END (r); r++) {
-			const struct range *s;
+	t = ch->_table;
 
-			if (r->prefix[0] == 0)
-				continue;
+	for (r = t->freq_ranges; !IS_RANGE_END (r); r++) {
+		const struct range *s;
 
-			for (s = t->freq_ranges; s != r; s++)
-				if (0 == memcmp (s->prefix, r->prefix, sizeof (s->prefix)))
-					break;
+		if (r->prefix[0] == 0)
+			continue;
 
-			if (s == r /* unique */
-			    && 0 == index--)
-				return r->prefix;
-		}
+		for (s = t->freq_ranges; s != r; s++)
+			if (0 == memcmp (s->prefix, r->prefix, sizeof (s->prefix)))
+				break;
+
+		if (s == r /* unique */
+		    && 0 == index--)
+			return r->prefix;
+	}
 
 	return NULL;
 }
@@ -594,9 +589,12 @@ tv_rf_channel_next_table	(tv_rf_channel *	ch)
 {
 	const struct table *t;
 
-	if ((t = find_table (ch->table_name)))
-		if (!IS_TABLE_END (++t))
-			return first_channel (ch, t);
+	t = ch->_table;
+
+	++t;
+
+	if (!IS_TABLE_END (t))
+		return first_channel (ch, t);
 
 	return FALSE;
 }
@@ -625,8 +623,7 @@ tv_rf_channel_table_size	(tv_rf_channel *	ch)
 	const struct range *r;
 	unsigned int count = 0;
 
-	if (!(t = find_table (ch->table_name)))
-		return FALSE;
+	t = ch->_table;
 
 	for (r = t->freq_ranges; !IS_RANGE_END (r); r++)
 		count += r->last - r->first + 1;
@@ -643,8 +640,7 @@ tv_rf_channel_align	(tv_rf_channel *	ch)
 {
 	const struct table *t;
 
-	if (!(t = find_table (ch->table_name)))
-		return FALSE;
+	t = ch->_table;
 
 	return !!(t->freq_ranges[0].flags & ALIGN);
 }
@@ -666,9 +662,9 @@ tv_rf_channel_next_table_by_country
 {
 	const struct table *t;
 
-	if ((t = find_table (ch->table_name)))
-		t++;
-	else
+	t = ch->_table;
+
+	if (NULL == t)
 		t = frequency_tables;
 
 	return first_table_by_country (ch, &t, country);
@@ -694,10 +690,9 @@ tv_rf_channel_by_name		(tv_rf_channel *	ch,
 	tv_rf_channel ch1;
 	unsigned int i;
 
-	if (!(t = find_table (ch->table_name)))
-		return FALSE;
+	t = ch->_table;
 
-	for (r = t->freq_ranges; !IS_RANGE_END (r); r++)
+	for (r = t->freq_ranges; !IS_RANGE_END (r); r++) {
 		for (i = r->first; i <= r->last; i++) {
 			get_channel (&ch1, r, i - r->first);
 
@@ -708,6 +703,9 @@ tv_rf_channel_by_name		(tv_rf_channel *	ch,
 			}
 		}
 
+		ch->_range++;
+	}
+
 	return FALSE;
 }
 
@@ -716,8 +714,7 @@ tv_rf_channel_first		(tv_rf_channel *	ch)
 {
 	const struct table *t;
 
-	if (!(t = find_table (ch->table_name)))
-		return FALSE;
+	t = ch->_table;
 
 	get_channel (ch, t->freq_ranges, 0);
 
@@ -730,45 +727,25 @@ tv_rf_channel_first		(tv_rf_channel *	ch)
 tv_bool
 tv_rf_channel_next		(tv_rf_channel *	ch)
 {
-	const struct table *t;
 	const struct range *r;
-	unsigned int frequency;
 
-	if (!(t = find_table (ch->table_name)))
-		return FALSE;
+	r = ch->_range;
 
-	frequency = ch->frequency / 1000;
+	if ((r->first + ch->_channel + 1) >= (r->last)) {
+		++r;
 
-	for (r = t->freq_ranges; !IS_RANGE_END (r); r++) {
-		unsigned int i;
+		if (IS_RANGE_END (r))
+			return FALSE;
 
-		if (frequency < r->frequency)
-			continue;
-
-		i = frequency - r->frequency;
-
-		/* Errr. See France. */
-		if (i % r->bandwidth)
-			continue;
-
-		i = r->first + i / r->bandwidth;
-
-		if (i > r->last)
-			continue;
-
-		if (i == r->last) {
-			if (IS_RANGE_END (r + 1))
-				return FALSE;
-
-			get_channel (ch, r + 1, 0);
-		} else {
-			get_channel (ch, r, i - r->first + 1);
-		}
-
-		return TRUE;
+		ch->_range += 1;
+		ch->_channel = 0;
+	} else {
+		ch->_channel += 1;
 	}
 
-	return FALSE;
+	get_channel (ch, r, ch->_channel);
+
+	return TRUE;
 }
 
 /*
@@ -785,8 +762,7 @@ tv_rf_channel_by_frequency	(tv_rf_channel *	ch,
 	const struct range *r;
 	unsigned int i;
 
-	if (!(t = find_table (ch->table_name)))
-		return FALSE;
+	t = ch->_table;
 
 	frequency /= 1000;
 
@@ -800,6 +776,7 @@ tv_rf_channel_by_frequency	(tv_rf_channel *	ch,
 			continue;
 
 		get_channel (ch, r, i);
+
 		return TRUE;
 	}
 
@@ -821,11 +798,13 @@ tv_rf_channel_next_country	(tv_rf_channel *	ch)
 	const struct table *t;
 	const char *s = "";
 
-	if ((t = find_table (ch->table_name)))
-		for (s = t->countries; *s; s += 2)
-			if (s[0] == ch->country_code[0]
-			    && s[1] == ch->country_code[1])
-				break;
+	t = ch->_table;
+
+	for (s = t->countries; *s; s += 2)
+		if (s[0] == ch->country_code[0]
+		    && s[1] == ch->country_code[1])
+			break;
+
 	if (s[0] && s[2]) {
 		ch->country_code[0] = s[2];
 		ch->country_code[1] = s[3];
@@ -1132,7 +1111,7 @@ tveng_tuned_channel_new		(const tveng_tuned_channel *tc)
 
   if (!tc)
     {
-      memset (&empty_tc, 0, sizeof (empty_tc));
+      CLEAR (empty_tc);
 
       empty_tc.name = "";
       empty_tc.rf_name = "";
