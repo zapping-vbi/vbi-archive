@@ -20,12 +20,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder.c,v 1.4 2000-11-28 23:46:11 garetxe Exp $ */
+/* $Id: vbi_decoder.c,v 1.5 2000-11-30 09:36:34 mschimek Exp $ */
 
 /*
     TODO:
     - test streaming
-    - test v4l interface
     - write close functions
     - write T thread & multi consumer fifo
  */
@@ -994,6 +993,7 @@ open_v4l(struct vbi_capture **pvbi, char *dev_name,
 	}
 
 	max_rate = 0;
+
 #if HAVE_V4L_VBI_FORMAT
 
 	if (ioctl(vbi->fd, VIDIOCGVBIFMT, &vfmt) != -1) {
@@ -1008,6 +1008,16 @@ open_v4l(struct vbi_capture **pvbi, char *dev_name,
 
 			vfmt.start[0] = 1000;
 			vfmt.start[1] = 1000;
+
+			if (vbi->start[1] <= 0 || !vbi->count[1]) {
+				DIAG("driver clueless about video standard");
+				goto failure;
+			}
+
+			if (vbi->start[1] >= 286)
+				vbi->scanning = 625;
+			else
+				vbi->scanning = 525;
 
 			for (i = 0; vbi_services[i].id; i++) {
 				if (!(vbi_services[i].id & services))
@@ -1456,23 +1466,28 @@ open_v4l2(struct vbi_capture **pvbi, char *dev_name,
 			vfmt.fmt.vbi.start[1] = ((vbi->scanning == 625) ? 318 : 272) + V4L2_LINE;
 			vfmt.fmt.vbi.count[1] = 1;
 		}
+
+		if (!services) {
+			DIAG("device cannot capture requested data services");
+			goto failure;
+		}
+
+		if (ioctl(vbi->fd, VIDIOC_S_FMT, &vfmt) == -1) {
+			switch (errno) {
+			case EBUSY:
+				DIAG("device is already in use");
+				break;
+
+	    		default:
+				IODIAG("VBI parameters rejected (broken driver?)");
+			}
+
+			goto failure;
+		}
 	}
 
 	if (!services) {
 		DIAG("device cannot capture requested data services");
-		goto failure;
-	}
-
-	if (ioctl(vbi->fd, VIDIOC_S_FMT, &vfmt) == -1) {
-		switch (errno) {
-		case EBUSY:
-			DIAG("device is already in use");
-			break;
-
-    		default:
-			IODIAG("VBI parameters rejected (broken driver?)");
-		}
-
 		goto failure;
 	}
 
@@ -2211,7 +2226,7 @@ draw(struct vbi_capture *vbi, unsigned char *data1)
 		     * vbi->samples_per_line; i >= 0; i--)
 			*p++ = palette[(int) *data++];
 	} else {
-		unsigned short *p = ximgdata; // 64bit safe?
+		unsigned short *p = ximgdata; // 64 bit safe?
 
 		for (i = (vbi->count[0] + vbi->count[1])
 		     * vbi->samples_per_line; i >= 0; i--)

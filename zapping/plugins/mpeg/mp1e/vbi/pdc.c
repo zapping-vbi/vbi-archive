@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.c,v 1.1 2000-09-29 17:54:33 mschimek Exp $ */
+/* $Id: pdc.c,v 1.2 2000-11-30 09:36:38 mschimek Exp $ */
 
 #include "vbi.h"
 
@@ -42,15 +42,6 @@ decode_vps(unsigned char *buf)
 {
 	struct pdc_rec pdc;
 	int c, j;
-
-	for (j = 8; j <= 11; j++) {
-		c = unbip(buf + j * 2);
-
-		if (c < 0)
-			return; /* tx error */
-
-		buf[j] = c;
-	}
 
 	pdc.lci = 0;
 	pdc.luf = 0;

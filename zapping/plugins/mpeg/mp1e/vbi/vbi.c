@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.5 2000-11-01 08:59:18 mschimek Exp $ */
+/* $Id: vbi.c,v 1.6 2000-11-30 09:36:38 mschimek Exp $ */
 
 #include "../common/fifo.h"
 #include "../systems/mpeg.h"
@@ -32,7 +32,8 @@
 static int		lines;
 static int		vps_offset;
 static bool		do_pdc, do_subtitles;
-static struct decode_rec vpsd, ttxd;
+static struct bit_slicer
+			vpsd, ttxd;
 static unsigned char	buf[64];
 static fifo *		vbi_output_fifo;
 
@@ -97,7 +98,7 @@ vbi_thread(void *f) // XXX
 
 		vbi_frame_count++;
 
-		if (do_pdc && decode_nrz(&vpsd, ibuf->data + vps_offset, buf))
+		if (do_pdc && bit_slicer(&vpsd, ibuf->data + vps_offset, buf))
 			decode_vps(buf);
 
 		if (do_subtitles) {
@@ -108,7 +109,7 @@ vbi_thread(void *f) // XXX
 
 			if (vbi->interlaced) {
 				for (i = 0; i < (vbi->count[0] * 2 + 0); i += 2)
-					if (decode_nrz(&ttxd, ibuf->data + i * vbi->samples_per_line, buf))
+					if (bit_slicer(&ttxd, ibuf->data + i * vbi->samples_per_line, buf))
 						p += decode_ttx(p, buf, i);
 
 				if (p == p1) {
@@ -117,12 +118,12 @@ vbi_thread(void *f) // XXX
 				}
 
 				for (i = 1; i < (vbi->count[0] * 2 + 1); i += 2)
-					if (decode_nrz(&ttxd, ibuf->data + i * vbi->samples_per_line, buf))
+					if (bit_slicer(&ttxd, ibuf->data + i * vbi->samples_per_line, buf))
 						p += decode_ttx(p, buf, i);
 			} else {
 				// Top field
 				for (i = 0; i < vbi->count[0]; i++)
-					if (decode_nrz(&ttxd, ibuf->data + i * vbi->samples_per_line, buf))
+					if (bit_slicer(&ttxd, ibuf->data + i * vbi->samples_per_line, buf))
 						p += decode_ttx(p, buf, i);
 
 				if (p == p1) {
@@ -132,7 +133,7 @@ vbi_thread(void *f) // XXX
 
 				// Bottom field
 				for (; i < lines; i++)
-					if (decode_nrz(&ttxd, ibuf->data + i * vbi->samples_per_line, buf))
+					if (bit_slicer(&ttxd, ibuf->data + i * vbi->samples_per_line, buf))
 						p += decode_ttx(p, buf, i);
 			}
 
@@ -152,15 +153,15 @@ vbi_thread(void *f) // XXX
 
 			if (vbi->interlaced) {
 				for (i = 0; i < (vbi->count[0] * 2 + 0); i += 2)
-					if (decode_nrz(&ttxd, ibuf->data + i * vbi->samples_per_line, buf))
+					if (bit_slicer(&ttxd, ibuf->data + i * vbi->samples_per_line, buf))
 						decode_ttx(NULL, buf, i);
 
 				for (i = 1; i < (vbi->count[0] * 2 + 1); i += 2)
-					if (decode_nrz(&ttxd, ibuf->data + i * vbi->samples_per_line, buf))
+					if (bit_slicer(&ttxd, ibuf->data + i * vbi->samples_per_line, buf))
 						decode_ttx(NULL, buf, i);
 			} else
 				for (i = 0; i < lines; i++)
-					if (decode_nrz(&ttxd, ibuf->data + i * vbi->samples_per_line, buf))
+					if (bit_slicer(&ttxd, ibuf->data + i * vbi->samples_per_line, buf))
 						decode_ttx(NULL, buf, i);
 		}
 
@@ -188,11 +189,11 @@ vbi_init(fifo *f)
 
 	vps_offset = ((16 - (vbi->start[0] + 1)) << vbi->interlaced) * vbi->samples_per_line;
 
-	init_decoder(&vpsd, vbi->samples_per_line, vbi->sampling_rate,
-		5000000, 0x99515555, 0xFFFFFF00, 26);
+	init_bit_slicer(&vpsd, vbi->samples_per_line, vbi->sampling_rate,
+		5000000, 2500000, 0xAAAA8A99, 24, 0, 13, MOD_BIPHASE_MSB_ENDIAN);
 
-	init_decoder(&ttxd, vbi->samples_per_line, vbi->sampling_rate,
-		6937500, 0x27555500, 0xFFFF0000, 42);
+	init_bit_slicer(&ttxd, vbi->samples_per_line, vbi->sampling_rate,
+		6937500, 6937500, 0x00AAAAE4, 10, 6, 42, MOD_NRZ_LSB_ENDIAN);
 
 	do_pdc = FALSE;
 //	do_pdc = TRUE;

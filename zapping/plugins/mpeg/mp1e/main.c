@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.32 2000-11-11 02:32:21 mschimek Exp $ */
+/* $Id: main.c,v 1.33 2000-11-30 09:36:37 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -250,10 +250,10 @@ main(int ac, char **av)
 	}
 
 	if (modules & MOD_SUBTITLES) {
-		if (!*subtitle_pages)
-			printv(1, "Recording Teletext, verbatim\n");
-		else
+		if (subtitle_pages && *subtitle_pages)
 			printv(1, "Recording Teletext, page %s\n", subtitle_pages);
+		else
+			printv(1, "Recording Teletext, verbatim\n");
 
 		vbi_init(vbi_cap_fifo);
 	}

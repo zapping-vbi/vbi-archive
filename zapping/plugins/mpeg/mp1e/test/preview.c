@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: preview.c,v 1.5 2000-10-27 16:20:06 mschimek Exp $ */
+/* $Id: preview.c,v 1.6 2000-11-30 09:36:38 mschimek Exp $ */
 
 #if defined(HAVE_LIBXV) && defined (TEST_PREVIEW)
 
@@ -282,7 +282,7 @@ preview_init(int * argc, char ***argv)
 		FAIL("Xv extension not available");
 	}
 
-	if (version < 2 || revision < 2)
+	if (version < 2 || (version == 2 && revision < 2))
 		FAIL("Xv version number %d.%d mismatch, "
 			"should be 2.2 or later\n", version, revision);
 

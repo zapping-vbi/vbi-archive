@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.14 2000-10-27 19:15:18 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.15 2000-11-30 09:36:38 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -239,7 +239,7 @@ do {									\
 	bprolog(&video_out);						\
 } while (0)
 
-
+/* motion is borken and lacks f_code, join with /usr/src/mp1e */
 static const int motion = 0;
 static int MV[2][2] = {
 	{ 0, 0 },
@@ -835,7 +835,9 @@ picture_b(unsigned char *org0, unsigned char *org1)
 					newref + mb_address.block[0].offset,
 					&vmcf, &vmcb);
 				pr_end(52);
-if (1) {
+
+#define TEST3 0
+if (TEST3) {
 	int i, n, s, s2, j = 4 * 64;
 
 	for (i = s = s2 = 0; i < j; i++) {
@@ -874,7 +876,7 @@ if (1) {
 			}
 
 			emms();
-if (0)
+if (!TEST3)
 			vmc <<= 8;
 
 			/* Encode macroblock */

@@ -13,7 +13,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 
 #: src/main.c:92
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Sorry, but %s couldn't be opened:\n"
 "%s (%d)"
@@ -77,7 +77,7 @@ msgid ""
 "Should I try it?"
 msgstr ""
 "Das angegebene Gerät ist nicht \"/dev/video\".\n"
-"Trotzdem versuchen?"
+"Versuchen?"
 
 #: src/main.c:349
 #, c-format
@@ -102,21 +102,21 @@ msgid ", I will try starting capture mode"
 msgstr ", werde versuchen den Capture-Modus zu starten"
 
 #: src/main.c:483
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
 "%s"
 msgstr ""
-"Capture Modus konnte auch nicht gestartet werden:\n"
+"Capture-Modus konnte auch nicht gestartet werden:\n"
 "%s"
 
 #: src/main.c:496
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
 "%s"
 msgstr ""
-"Capture Modus konnte nicht gestartet werden:\n"
+"Capture-Modus konnte nicht gestartet werden:\n"
 "%s"
 
 #: src/main.c:644
@@ -135,7 +135,7 @@ msgstr ""
 "   - Nicht genug Speicher\n"
 "   - Sie haben keinen Schreibrechte auf $HOME/.zapping\n"
 "   - libxml funktioniert nicht (?)\n"
-"   - oder, wahrscheinlicher, Sie haben einen Fehlen in\n"
+"   - oder, wahrscheinlicher, Sie haben einen Fehler in\n"
 "     Zapping gefunden. Bitte kontaktieren Sie den Autor.\n"
 
 #: src/main.c:679
@@ -185,7 +185,7 @@ msgid ""
 "configure didn't find it."
 msgstr ""
 "Der Teletext-Dekoder braucht GdkPixbuf,\n"
-"und configure kann es nicht finden."
+"und configure konnte es nicht finden."
 
 #: src/callbacks.c:393
 msgid "VBI has been disabled, or it doesn't work."
@@ -275,7 +275,6 @@ msgstr "(Unbenannter Kanal)"
 msgid "(Unknown real channel)"
 msgstr ""
 
-# ## real?
 #: src/channel_editor.c:300 src/channel_editor.c:345 src/frequencies.c:1102
 msgid "(Unknown country)"
 msgstr "(Unbekanntes Land)"
@@ -310,6 +309,14 @@ msgstr ""
 #: src/v4linterface.c:387
 msgid "Available controls"
 msgstr "Einstellungen"
+
+#: src/tveng.c:150
+msgid "The current display depth isn't supported by TVeng"
+msgstr "Die momentane Farbtiefe wird von TVeng nicht unterstützt"
+
+#: src/tveng.c:168
+msgid "The device cannot be attached to any controller"
+msgstr "Es konnte kein Controller für dieses Gerät gefunden werden"
 
 #: src/tveng.c:227
 msgid "TV"
@@ -361,7 +368,7 @@ msgstr "Verstehe aktuelle Palette nicht"
 #. unknown
 #: src/tveng1.c:883 src/tveng2.c:811
 msgid "Cannot understand the given palette"
-msgstr "Verstehegegebene Palette nicht"
+msgstr "Verstehe gegebene Palette nicht"
 
 #: src/tveng1.c:965
 msgid "Mono"
@@ -467,11 +474,11 @@ msgstr ""
 
 #: src/tveng1.c:2062 src/tveng2.c:1649
 msgid "The capability field says that there is no overlay"
-msgstr ""
+msgstr "Overlay wird nicht unterstützt"
 
 #: src/tveng1.c:2280 src/tveng2.c:1850
 msgid "Warning: trying to stop preview with no capture active\n"
-msgstr ""
+msgstr "Warnung: Preview soll gestoppt werden obwohl nicht aktiv\n"
 
 # src/tveng.c:70
 #: src/tveng2.c:130
@@ -628,6 +635,8 @@ msgid ""
 "Check error: \"%s\" in plugin %s was supposed to be \"%s\" but it is:\"%s\". "
 "Hashes are 0x%x vs. 0x%x"
 msgstr ""
+"Kontrolle: \"%s\" im Plugin %s sollte \"%s\" sein, ist aber: \"%s\". "
+"Hashes sind 0x%x ggü. 0x%x"
 
 # src/tveng.c:70
 #: src/zmisc.c:186
@@ -652,16 +661,18 @@ msgid ""
 "Zapping cannot save configuration to disk\n"
 "You should have write permissions to your home dir..."
 msgstr ""
+"Zapping kann die Konfiguration nicht speichern\n"
+"Sie sollten schreiberlaubnis in ihrem Heimatverzeichnis haben..."
 
 #: src/zconf.c:372 src/zconf.c:507 src/zconf.c:641 src/zconf.c:769
 #, c-format
 msgid "Changing the value of %s from %s to %s"
-msgstr ""
+msgstr "Ändere den Wert von %s von %s zu %s"
 
 #: src/zconf.c:428 src/zconf.c:566 src/zconf.c:695 src/zconf.c:823
 #, c-format
 msgid "Trying to create %s as %s, but it existed before as %s"
-msgstr ""
+msgstr "Versuch %s als %s zu erstellen aber existierte bereits als %s"
 
 #: src/zconf.c:1012
 msgid "Integer"
@@ -710,7 +721,7 @@ msgstr "%s ist leer, sollte aber nicht leer sein"
 #: src/zconf.c:1313 src/zconf.c:1391
 #, c-format
 msgid "Removing %d consecutive slashes, this shouldn't happen"
-msgstr ""
+msgstr "Entferne %d aufeinander folgende Schrägstriche, das sollte nicht vorkommen"
 
 #: src/zconf.c:1330 src/zconf.c:1408 src/zconf.c:1446
 #, c-format
@@ -747,19 +758,19 @@ msgstr "Unterstützt Overlay.\n"
 
 #: src/properties.c:101
 msgid "Can chromakey the image.\n"
-msgstr ""
+msgstr "Kann das Bild Überblenden.\n"
 
 #: src/properties.c:103
 msgid "Clipping rectangles are supported.\n"
-msgstr ""
+msgstr "Clipping wird unterstützt.\n"
 
 #: src/properties.c:105
 msgid "Framebuffer memory is overwritten.\n"
-msgstr ""
+msgstr "Schreibt in Gerätespeicher.\n"
 
 #: src/properties.c:107
 msgid "The capture can be scaled.\n"
-msgstr ""
+msgstr "Skalieren ist möglich.\n"
 
 #: src/properties.c:109
 msgid "Only monochrome is available\n"
@@ -776,7 +787,7 @@ msgstr "Keine Eingänge vorhanden"
 
 #: src/properties.c:124
 msgid "Your video device has no inputs"
-msgstr ""
+msgstr "Ihr Videogerät hat keine Eingänge"
 
 #: src/properties.c:138
 #, c-format
@@ -829,7 +840,7 @@ msgstr ""
 
 #: src/channel_editor.c:555
 msgid "The specified frequence cannot be parsed"
-msgstr ""
+msgstr "Die Frequenzangabe konnte nicht verarbeitet werden"
 
 #: src/channel_editor.c:565
 msgid "Returned country tune id is invalid"
@@ -866,11 +877,11 @@ msgstr "Niedrig"
 
 #: src/plugin_properties.c:160
 msgid "Below normal"
-msgstr ""
+msgstr "Niedriger"
 
 #: src/plugin_properties.c:162
 msgid "Normal"
-msgstr ""
+msgstr "Normal"
 
 #: src/plugin_properties.c:164
 msgid "Very high"
@@ -882,7 +893,7 @@ msgstr "Hoch"
 
 #: src/plugin_properties.c:168
 msgid "Above normal"
-msgstr ""
+msgstr "Höher"
 
 #: src/plugin_properties.c:210
 msgid "This plugin has no public symbols"
@@ -900,6 +911,88 @@ msgstr "Das Plugin konnte leider nicht gestartet werden"
 msgid "Sorry, the plugin doesn't provide help for this"
 msgstr "Das Plugin bietet dazu leider keine Hilfe an"
 
+#: zapping_setup_fb/zapping_setup_fb.c:86
+msgid ""
+"Usage:\n"
+" zapping_setup_fb [OPTIONS], where OPTIONS stands for\n"
+" --device dev - The video device to open, /dev/video by default\n"
+" --display d  - The X display to use\n"
+" --bpp x      - Current X bpp\n"
+" --verbose    - Increments verbosity level\n"
+" --quiet      - Decrements verbosity level\n"
+" --help, -?   - Shows this message\n"
+" --usage      - The same as --help or -?\n"
+" --version    - Shows the program version\n"
+msgstr ""
+"Verwendung:\n"
+" zapping_setup_fb [OPTIONEN], mögliche Optionen sind\n"
+" --device dev - Zu öffnender Videotreiber, standardmäßig /dev/video\n"
+" --display d  - Zu benutzendes X Display\n"
+" --verbose    - Erhöht die Zahl der Diagnosemeldungen\n"
+" --quiet      - Veringert die Zahl der Meldungen\n"
+" --help, -?   - Zeigt diesen Text\n"
+" --usage      - Gleiche Funktion wie --help oder -?\n"
+" --version    - Zeigt die Versionsnummer des Programms\n"
+
+#: zapping_setup_fb/zapping_setup_fb.c:248
+msgid "Video device name seems to be missing\n"
+msgstr "Der Videogerätename scheint zu fehlen\n"
+
+#: zapping_setup_fb/zapping_setup_fb.c:256
+msgid "X display name seems to be missing\n"
+msgstr "Der Name des X Displays scheint zu fehlen\n"
+
+#: zapping_setup_fb/zapping_setup_fb.c:265
+msgid "Real bpp seems to be missing\n"
+msgstr "Angabe der tatsächlichen Farbtiefe scheint zu fehlen\n"
+
+#: zapping_setup_fb/zapping_setup_fb.c:267
+#, c-format
+msgid "Imposible to understand --bpp %s, ignored\n"
+msgstr "Verstehe --bpp %s nicht, wird ignoriert\n"
+
+#: zapping_setup_fb/zapping_setup_fb.c:288
+#, c-format
+msgid "Unknown command line option %s, ignoring it\n"
+msgstr "Unbekannte Kommandozeilenoption %s, wird ignoriert\n"
+
+#. Print a short copyright notice if we aren't totally quiet
+#: zapping_setup_fb/zapping_setup_fb.c:299
+msgid ""
+"(C) 2000 Iñaki García Etxebarria.\n"
+"This program is under the GNU General Public License.\n"
+msgstr ""
+"(C) 2000 Iñaki García Etxebarria.\n"
+"Das Programm darf im Rahmen der GNU General Public License weitergegeben "
+"werden.\n"
+
+#: zapping_setup_fb/zapping_setup_fb.c:324
+#, c-format
+msgid "Given device %s has dots in it, cannot use it\n"
+msgstr "Gerätename %s fehlerhaft, enthält Punkte\n"
+
+#: zapping_setup_fb/zapping_setup_fb.c:334
+#, c-format
+msgid "Given device %s is too short, cannot use it\n"
+msgstr "Gerätename %s zu kurz\n"
+
+#: zapping_setup_fb/zapping_setup_fb.c:342
+#, c-format
+msgid "Given device %s doesn't start with /dev/, cannot use it\n"
+msgstr "Gerätename %s fehlerhaft, beginnt nicht mit /dev/\n"
+
+# src/tveng.c:40
+#: zapping_setup_fb/zapping_setup_fb.c:357
+#, c-format
+msgid "Cannot open given device %s\n"
+msgstr "Kann das angegebene Gerät %s nicht öffnen\n"
+
+# src/tveng.c:40
+#: zapping_setup_fb/zapping_setup_fb.c:387
+#, c-format
+msgid "Cannot open display %s, quitting\n"
+msgstr "Kann Display \"%s\" nicht öffnen, beende mich\n"
+
 # src/interface.c:104
 #.
 #. * Translatable strings file generated by Glade.
@@ -916,7 +1009,7 @@ msgstr "Verwaltet die installierten Plugins"
 
 #: glade/glade_strings.c:9
 msgid "P_lugins"
-msgstr "Plugins"
+msgstr "P_lugins"
 
 # src/interface.c:336
 #: glade/glade_strings.c:10
@@ -926,7 +1019,7 @@ msgstr "Hier kann die Liste der Kanäle bearbeitet werden"
 # src/interface.c:29
 #: glade/glade_strings.c:11
 msgid "_TV Channels"
-msgstr "Fernsehkanäle"
+msgstr "_Fernsehkanäle"
 
 #: glade/glade_strings.c:12
 msgid "Use this to go fullscreen. Press ESC to return to Windowed mode"
@@ -936,7 +1029,7 @@ msgstr ""
 
 #: glade/glade_strings.c:13 glade/glade_strings.c:131
 msgid "Go _Fullscreen"
-msgstr "Vollbildmodus"
+msgstr "_Vollbildmodus"
 
 #: glade/glade_strings.c:14 glade/glade_strings.c:132
 msgid "Use this to start the windowed overlay mode"
@@ -944,7 +1037,7 @@ msgstr "Damit wird das Videofenster im Overlay-Modus gestartet"
 
 #: glade/glade_strings.c:15 glade/glade_strings.c:133
 msgid "Go _Previewing"
-msgstr "Overlay"
+msgstr "_Overlay"
 
 #: glade/glade_strings.c:16 glade/glade_strings.c:134
 msgid "Use this to start the windowed capture mode"
@@ -952,7 +1045,7 @@ msgstr "Damit wird das Videofenster im Capture-Modus gestartet"
 
 #: glade/glade_strings.c:17 glade/glade_strings.c:135
 msgid "Go _Capturing"
-msgstr "Video"
+msgstr "_Video"
 
 #: glade/glade_strings.c:18
 msgid "Use Zapping as a Teletext navigator"
@@ -960,11 +1053,11 @@ msgstr "Zapping als Teletext-Navigator benutzen"
 
 #: glade/glade_strings.c:19 glade/glade_strings.c:137
 msgid "_Teletext"
-msgstr "Teletext"
+msgstr "_Teletext"
 
 #: glade/glade_strings.c:20
 msgid "Go _Zapping"
-msgstr "Zapping"
+msgstr "_Zapping"
 
 #: glade/glade_strings.c:21
 msgid "Select the previous station in the channel list"
@@ -990,7 +1083,7 @@ msgstr "Gibt Informationen zu diesem Programm"
 
 #: glade/glade_strings.c:26
 msgid "_Main help"
-msgstr "Haupthilfe"
+msgstr "_Haupthilfe"
 
 #: glade/glade_strings.c:27
 msgid "Configure capture"
@@ -1062,6 +1155,8 @@ msgid ""
 "Autodetect\n"
 "Do not change mode\n"
 msgstr ""
+"Automatisch ermitteln\n"
+"Modus nicht verändern\n"
 
 #: glade/glade_strings.c:46
 msgid "Avoid noise while changing channels"
@@ -1212,7 +1307,7 @@ msgstr "Wählen Sie ihr Land und klicken Sie hier um die Kanäle abzusuchen"
 
 #: glade/glade_strings.c:87
 msgid "_Search for the available channels in the current country"
-msgstr "Suche Kanäle ab die in diesem Land benutzt werden"
+msgstr "_Suche Kanäle ab die in diesem Land benutzt werden"
 
 # src/interface.c:382
 #: glade/glade_strings.c:88
@@ -1232,7 +1327,7 @@ msgstr "Hier klicken wenn Sie fertig sind"
 # src/interface.c:432
 #: glade/glade_strings.c:91
 msgid "Click this button if you want to discard current changes"
-msgstr "Verwirft alle Veränderung"
+msgstr "Verwirft alle Änderung"
 
 # src/interface.c:432
 #: glade/glade_strings.c:92
@@ -1241,7 +1336,7 @@ msgstr "Anklicken um den aktuellen Kanal hinzuzufügen"
 
 #: glade/glade_strings.c:93
 msgid "_Add"
-msgstr "Hinzufügen"
+msgstr "_Hinzufügen"
 
 # src/interface.c:440
 #: glade/glade_strings.c:94
@@ -1251,7 +1346,7 @@ msgstr "Stellt die aktuellen Optionen für die gewählten Kanäle ein"
 
 #: glade/glade_strings.c:95
 msgid "_Modify"
-msgstr "Verändern"
+msgstr "_Verändern"
 
 # src/interface.c:440
 #: glade/glade_strings.c:96
@@ -1260,7 +1355,7 @@ msgstr "Anklicken um die gewählten Kanäle zu löschen"
 
 #: glade/glade_strings.c:97
 msgid "_Remove"
-msgstr "Löschen"
+msgstr "_Löschen"
 
 #: glade/glade_strings.c:98
 msgid "This shows some help about this dialog"
@@ -1277,7 +1372,7 @@ msgstr "Plugin ausführen"
 #: glade/glade_strings.c:102
 #, fuzzy
 msgid "_Start Plugin"
-msgstr "Plugin starten"
+msgstr "Plugin _starten"
 
 #: glade/glade_strings.c:103
 msgid "Stop this plugin"
@@ -1286,7 +1381,7 @@ msgstr "Plugin anhalten"
 #: glade/glade_strings.c:104
 #, fuzzy
 msgid "S_top Plugin"
-msgstr "Plugin anhalten"
+msgstr "Plugin _anhalten"
 
 #: glade/glade_strings.c:105
 msgid "Show the configuration options for this plugin"
@@ -1295,7 +1390,7 @@ msgstr "Zeige die Konfigurationsoptionen für dieses Plugin"
 #: glade/glade_strings.c:106
 #, fuzzy
 msgid "_Configure"
-msgstr "Konfigurieren"
+msgstr "_Konfigurieren"
 
 #: glade/glade_strings.c:107
 msgid "Plugins"
@@ -1447,7 +1542,7 @@ msgid ""
 "It will save the screenshots in JPEG format."
 msgstr ""
 "Mit diesem Plugin können Sie Standbilder\n"
-"im JPEG Format machen."
+"im JPEG Format speichern."
 
 #: plugins/screenshot/screenshot.c:37
 msgid "This plugin takes screenshots of the capture."
@@ -1503,7 +1598,7 @@ msgid ""
 msgstr ""
 "Die erste Option, das Verzeichnis, erlaubt ihnen anzugeben wo\n"
 "Standbilder gespeichert werden. Der Dateiname ist als\n"
-"save_dir/shot[1,2,3,...].png festgelegt.\n"
+"Verzeichnis/shot[1,2,3,...].png festgelegt.\n"
 "\n"
 "Die Qualitätsoption verändert den Kompressionsaufwand und die\n"
 "Dateigröße."
@@ -1558,38 +1653,37 @@ msgstr "Als MPEG kodieren."
 
 #: plugins/mpeg/plugin.c:393
 msgid "The only supported pixformats are YUYV and YUV420"
-msgstr ""
+msgstr "Es werden nur die Pixelformate YUYV und YUV 4:2:0 unterstützt "
 
 #: plugins/mpeg/plugin.c:496
 #, c-format
 msgid "RTE ID: %s"
-msgstr ""
+msgstr "RTE ID: %s"
 
 #: plugins/mpeg/plugin.c:501
 #, c-format
 msgid "Destination: %s"
-msgstr ""
+msgstr "Ziel: %s"
 
 #: plugins/mpeg/plugin.c:509
-#, fuzzy
 msgid "Audio only"
-msgstr "Audio Dekodierung"
+msgstr "Nur Ton"
 
 #: plugins/mpeg/plugin.c:512
 msgid "Video only"
-msgstr ""
+msgstr "Nur Bild"
 
 #: plugins/mpeg/plugin.c:515
 msgid "Audio and Video"
-msgstr ""
+msgstr "Bild und Ton"
 
 #: plugins/mpeg/mpeg_strings.c:21 plugins/mpeg/plugin.c:523
 msgid "Output video Mbits per second:"
-msgstr ""
+msgstr "Videoausgabe, Mbit/s:"
 
 #: plugins/mpeg/mpeg_strings.c:22 plugins/mpeg/plugin.c:525
 msgid "Output audio Kbits per second:"
-msgstr ""
+msgstr "Audioausgabe, kbit/s:"
 
 #: plugins/mpeg/plugin.c:675 plugins/mpeg/plugin.c:812
 msgid "MPEG"
@@ -1609,19 +1703,20 @@ msgid "window1"
 msgstr ""
 
 #: plugins/mpeg/mpeg_strings.c:8
-#, fuzzy
 msgid "What to do with the compressed stream"
-msgstr "Kompressionsqualität:"
+msgstr "Verarbeite:"
 
 #: plugins/mpeg/mpeg_strings.c:9
 msgid ""
 "Save to file\n"
 "/dev/null\n"
 msgstr ""
+"Datei\n"
+"Verwerfen\n"
 
 #: plugins/mpeg/mpeg_strings.c:12
 msgid "Whether to encode audio and/or video"
-msgstr ""
+msgstr "Soll Bild und/oder Ton komprimiert werden"
 
 #: plugins/mpeg/mpeg_strings.c:13
 msgid ""
@@ -1629,18 +1724,21 @@ msgid ""
 "Video only\n"
 "Audio and Video\n"
 msgstr ""
+"Nur Ton\n"
+"Nur Bild\n"
+"Bild und Ton\n"
 
 #: plugins/mpeg/mpeg_strings.c:17
 msgid "Write the encoded stream to:"
-msgstr ""
+msgstr "Speichere MPEG Datenstrom als:"
 
 #: plugins/mpeg/mpeg_strings.c:18
 msgid "MPEG file destination"
-msgstr ""
+msgstr "MPEG Zieldatei"
 
 #: plugins/mpeg/mpeg_strings.c:19
 msgid "Sets the dir where the encoded clips will be written to"
-msgstr ""
+msgstr "Legt das Verzeichnis für MPEG Dateien fest"
 
 #: plugins/mpeg/mpeg_strings.c:20
 msgid "Input / output"
@@ -1667,26 +1765,24 @@ msgstr "Hier klicken wenn Sie fertig sind"
 
 #: plugins/mpeg/mpeg_strings.c:27
 msgid "RTE id (for debugging)"
-msgstr ""
+msgstr "RTE id (zum Debuggen)"
 
 #: plugins/mpeg/mpeg_strings.c:28
 msgid "Destination"
-msgstr ""
+msgstr "Ziel"
 
 #: plugins/mpeg/mpeg_strings.c:29
 msgid "Mux mode"
-msgstr ""
+msgstr "Multiplexer Modus"
 
 #: plugins/mpeg/mpeg_strings.c:30
 msgid "Some more info: bit rates"
-msgstr ""
+msgstr "Zusatzinformation: Bitraten"
 
 #: plugins/mpeg/mpeg_strings.c:31
 msgid "Dinamic stats (dropped, output M's, etc)"
-msgstr ""
+msgstr "Dynamische Statistik"
 
-# ## adding?
-#, fuzzy
 #~ msgid "The current display depth isn't supported by TVeng"
 #~ msgstr "Die momentane Farbtiefe wird von TVeng nicht unterstützt"
 

@@ -18,6 +18,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+/* $Id: decode.c,v 1.2 2000-11-30 09:36:38 mschimek Exp $ */
+
+/* OBSOLETE */
+
 #include "../common/mmx.h"
 #include "../common/math.h"
 #include "vbi.h"

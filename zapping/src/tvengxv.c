@@ -73,6 +73,10 @@ struct private_tvengxv_device_info
   int volume_max, volume_min;
   Atom	colorkey;
   int colorkey_max, colorkey_min;
+  Atom	interlace;
+  int interlace_max, interlace_min;
+  Atom	filter;
+  int filter_max, filter_min;
 };
 
 /* Private, builds the controls structure */
@@ -99,7 +103,7 @@ p_tvengxv_open_device(tveng_device_info *info)
 				  &error_base))
     goto error1;
 
-  if (version < 2 || revision < 2)
+  if (version < 2 || (version == 2 && revision < 2))
     goto error1;
 
   if (Success != XvQueryAdaptors(dpy, root_window, &nAdaptors,
@@ -182,7 +186,8 @@ int tvengxv_attach_device(const char* device_file,
   /* clear the atoms */
   p_info->encoding = p_info->color = p_info->hue = p_info->saturation
     = p_info->brightness = p_info->contrast = p_info->freq =
-    p_info->mute = p_info->volume = p_info->colorkey = None;
+    p_info->mute = p_info->volume = p_info->colorkey =
+    p_info->interlace = p_info->filter = None;
 
   /* In this module, the given device file doesn't matter */
   info -> file_name = strdup(_("XVideo"));
@@ -216,6 +221,9 @@ int tvengxv_attach_device(const char* device_file,
   info -> attach_mode = attach_mode;
   /* Current capture mode is no capture at all */
   info -> current_mode = TVENG_NO_CAPTURE;
+
+  info->caps.flags = TVENG_CAPS_OVERLAY | TVENG_CAPS_CLIPPING;
+  info->caps.audios = 0;
 
   /* Build the atoms */
   at = XvQueryPortAttributes(dpy, p_info->port, &attributes);
@@ -267,27 +275,47 @@ int tvengxv_attach_device(const char* device_file,
 	}
       if (!strcmp("XV_FREQ", at[i].name))
 	{
+          info->caps.flags |= TVENG_CAPS_TUNER;
 	  p_info->freq = XInternAtom(dpy, "XV_FREQ", False);
 	  p_info->freq_max = at[i].max_value;
 	  p_info->freq_min = at[i].min_value;
 	}
       if (!strcmp("XV_MUTE", at[i].name))
 	{
+          info->caps.audios = 1;
 	  p_info->mute = XInternAtom(dpy, "XV_MUTE", False);
 	  p_info->mute_max = at[i].max_value;
 	  p_info->mute_min = at[i].min_value;
 	}
       if (!strcmp("XV_VOLUME", at[i].name))
 	{
+          info->caps.audios = 1;
 	  p_info->volume = XInternAtom(dpy, "XV_VOLUME", False);
 	  p_info->volume_max = at[i].max_value;
 	  p_info->volume_min = at[i].min_value;
 	}
       if (!strcmp("XV_COLORKEY", at[i].name))
 	{
+          info->caps.flags = TVENG_CAPS_CHROMAKEY;
 	  p_info->colorkey = XInternAtom(dpy, "XV_COLORKEY", False);
 	  p_info->colorkey_max = at[i].max_value;
 	  p_info->colorkey_min = at[i].min_value;
+	}
+      if (!strcmp("XV_INTERLACE", at[i].name))
+	{
+	  /*  0 = No (avoid interlace artefacts when scaling),
+	   *  1 = Yes, 2 = Doublescan 50/60 Hz (pm2.c feature)
+	   */
+	  p_info->interlace = XInternAtom(dpy, "XV_INTERLACE", False);
+	  p_info->interlace_max = at[i].max_value;
+	  p_info->interlace_min = at[i].min_value;
+	}
+      if (!strcmp("XV_FILTER", at[i].name))
+	{
+	  /* Boolean */
+	  p_info->filter = XInternAtom(dpy, "XV_FILTER", False);
+	  p_info->filter_max = at[i].max_value;
+	  p_info->filter_min = at[i].min_value;
 	}
     }
   /* We have a valid device, get some info about it */
@@ -330,9 +358,6 @@ int tvengxv_attach_device(const char* device_file,
   info->caps.channels = info->num_inputs;
   /* Let's go creative! */
   snprintf(info->caps.name, 32, "XVideo device");
-  info->caps.flags = TVENG_CAPS_TUNER | TVENG_CAPS_OVERLAY |
-    TVENG_CAPS_CHROMAKEY | TVENG_CAPS_CLIPPING;
-  info->caps.audios = 1;
   info->caps.minwidth = 32;
   info->caps.minheight = 32;
   info->caps.maxwidth = 1600;
@@ -467,14 +492,24 @@ tvengxv_get_inputs(tveng_device_info *info)
       info->inputs = realloc(info->inputs, (info->num_inputs+1)*
 			     sizeof(struct tveng_enum_input));
       info->inputs[info->num_inputs].id = i;
+      info->inputs[info->num_inputs].flags = 0;
       /* The XVideo extension provides very little info about encodings,
 	 we must just make something up */
-      info->inputs[info->num_inputs].tuners = 1;
-      snprintf(info->inputs[info->num_inputs].name, 32,
-	       input);
-      info->inputs[info->num_inputs].flags = TVENG_INPUT_TUNER |
-	TVENG_INPUT_AUDIO;
-      info->inputs[info->num_inputs].type = TVENG_INPUT_TYPE_TV;
+      if (p_info->freq != None)
+        {
+	  /* this encoding may refer to a baseband input though */
+          info->inputs[info->num_inputs].tuners = 1;
+          info->inputs[info->num_inputs].flags |= TVENG_INPUT_TUNER;
+          info->inputs[info->num_inputs].type = TVENG_INPUT_TYPE_TV;
+	}
+      else
+        {
+          info->inputs[info->num_inputs].tuners = 0;
+          info->inputs[info->num_inputs].type = TVENG_INPUT_TYPE_CAMERA;
+	}
+      if (p_info->volume != None || p_info->mute != None)
+        info->inputs[info->num_inputs].flags |= TVENG_INPUT_AUDIO;
+      snprintf(info->inputs[info->num_inputs].name, 32, input);
       info->num_inputs++;
     }
   /* Get the current input */
@@ -769,6 +804,30 @@ p_tvengxv_build_controls(tveng_device_info *info)
       if (p_tvengxv_append_control(&control, info) == -1)
 	return -1;
     }
+  if (p_info->interlace != None)
+    {
+      control.id = (int)p_info->interlace;
+      snprintf(control.name, 32, _("Interlace"));
+      control.min = p_info->interlace_min;
+      control.max = p_info->interlace_max;
+      control.type = TVENG_CONTROL_SLIDER; /* sic */
+      control.data = NULL;
+      if (p_tvengxv_append_control(&control, info) == -1)
+	return -1;
+    }
+  if (p_info->filter != None)
+    {
+      control.id = (int)p_info->filter;
+      snprintf(control.name, 32, _("Filter"));
+      control.min = p_info->filter_min;
+      control.max = p_info->filter_max;
+      control.type = TVENG_CONTROL_CHECKBOX;
+      control.data = NULL;
+      if (p_tvengxv_append_control(&control, info) == -1)
+	return -1;
+    }
+  /* fixme: Should we allow controls for freq, encoding and colorkey? */
+
   /* fill in with the proper values */
   return (tvengxv_update_controls(info));
 }
@@ -823,10 +882,11 @@ tvengxv_get_mute(tveng_device_info * info)
   t_assert(info != NULL);
 
   val = -1;
-  XvGetPortAttribute(info->private->display,
-		     p_info->port,
-		     p_info->mute,
-		     &val);
+  if (p_info->mute != None)
+    XvGetPortAttribute(info->private->display,
+		       p_info->port,
+		       p_info->mute,
+		       &val);
 
   return val;
 }
@@ -839,10 +899,11 @@ tvengxv_set_mute(int value, tveng_device_info * info)
 
   t_assert(info != NULL);
 
-  XvSetPortAttribute(info->private->display,
-		     p_info->port,
-		     p_info->mute,
-		     value);
+  if (p_info->mute != None)
+    XvSetPortAttribute(info->private->display,
+		       p_info->port,
+		       p_info->mute,
+		       value);
 
   return 0;
 }
@@ -855,10 +916,11 @@ tvengxv_tune_input(__u32 freq, tveng_device_info *info)
 
   t_assert(info != NULL);
 
-  XvSetPortAttribute(info->private->display,
-		     p_info->port,
-		     p_info->freq,
-		     freq*0.016);
+  if (p_info->freq != None)
+    XvSetPortAttribute(info->private->display,
+		       p_info->port,
+		       p_info->freq,
+		       freq*0.016);
 
   return 0;
 }
@@ -882,7 +944,7 @@ tvengxv_get_tune(__u32 * freq, tveng_device_info *info)
     (struct private_tvengxv_device_info*)info;
 
   t_assert(info != NULL);
-  if (!freq)
+  if (!freq || p_info->freq == None)
     return 0;
 
   XvGetPortAttribute(info->private->display,

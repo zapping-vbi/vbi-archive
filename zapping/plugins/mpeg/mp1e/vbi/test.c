@@ -1,7 +1,7 @@
 /*
  *  Copyright (C) 1999-2000 Michael H. Schimek
  *
- *  gcc -O2 decode.c tables.c v4l2.c test.c ../common/libcommon.a
+ *  gcc -O2 -DHAVE_MEMALIGN decode.c slicer.c tables.c v4l2.c test.c ../common/fifo.c
  *  ./a.out [/dev/vbi*]
  */
 
@@ -23,7 +23,7 @@
 char *				my_name;
 int				verbose = 0;
 
-static struct decode_rec	vpsd, ttxd;
+static struct bit_slicer	vpsd, ttxd;
 
 /*
  *  ETS 300 706 8.1 Odd parity
@@ -127,15 +127,6 @@ decode_vps2(unsigned char *buf)
 	static int l = 0;
 	int cni, pcs, pty, pil;
 	int c, j;
-
-	for (j = 0; j < 13; j++) {
-		c = unbip(buf + j * 2);
-
-		if (c < 0)
-			return; /* tx error */
-
-		buf[j] = c;
-	}
 
 	printf("\nVPS:\n");
 
@@ -377,11 +368,11 @@ main(int ac, char **av)
 
 	vbi = f->user_data;
 
-	init_decoder(&vpsd, vbi->samples_per_line, vbi->sampling_rate,
-		     5000000, 0x99515555, 0xFFFFFF00, 26);
+	init_bit_slicer(&vpsd, vbi->samples_per_line, vbi->sampling_rate,
+		5000000, 2500000, 0xAAAA8A99, 24, 0, 13, MOD_BIPHASE_MSB_ENDIAN);
 
-	init_decoder(&ttxd, vbi->samples_per_line, vbi->sampling_rate,
-		     6937500, 0x27555500, 0xFFFF0000, 42);
+	init_bit_slicer(&ttxd, vbi->samples_per_line, vbi->sampling_rate,
+		6937500, 6937500, 0x00AAAAE4, 10, 6, 42, MOD_NRZ_LSB_ENDIAN);
 
 	vps_offset = ((16 - (vbi->start[0] + 1)) << vbi->interlaced)
 		     * vbi->samples_per_line;
@@ -394,20 +385,20 @@ main(int ac, char **av)
 		if (!(b = wait_full_buffer(&vbi->fifo)))
 			break; // XXX EOF
 
-		if (decode_nrz(&vpsd, b->data + vps_offset, buf))
+		if (bit_slicer(&vpsd, b->data + vps_offset, buf))
 			decode_vps2(buf);
 
 		if (vbi->interlaced) {
 			for (i = 0; i < vbi->count[0] * 2; i += 2)
-				if (decode_nrz(&ttxd, b->data + i * vbi->samples_per_line, buf))
+				if (bit_slicer(&ttxd, b->data + i * vbi->samples_per_line, buf))
 					decode_ttx2(buf, i);
 
 			for (i = 1; i < (vbi->count[0] * 2 + 1); i += 2)
-				if (decode_nrz(&ttxd, b->data + i * vbi->samples_per_line, buf))
+				if (bit_slicer(&ttxd, b->data + i * vbi->samples_per_line, buf))
 					decode_ttx2(buf, i);
 		} else {
 			for (i = 0; i < vbi->count[0] + vbi->count[1]; i++)
-				if (decode_nrz(&ttxd, b->data + i * vbi->samples_per_line, buf))
+				if (bit_slicer(&ttxd, b->data + i * vbi->samples_per_line, buf))
 					decode_ttx2(buf, i);
 		}
 

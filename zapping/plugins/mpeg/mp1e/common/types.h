@@ -18,16 +18,16 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: types.h,v 1.2 2000-08-12 02:14:37 mschimek Exp $ */
+/* $Id: types.h,v 1.3 2000-11-30 09:36:37 mschimek Exp $ */
 
 #ifndef TYPES_H
 #define TYPES_H
 
 #include <stddef.h>
 
-#define TRUE 1
-#define FALSE 0
+enum { FALSE, TRUE };
 
 typedef unsigned char bool;
+typedef unsigned char uchar;
 
 #endif // TYPES_H

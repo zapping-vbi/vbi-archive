@@ -18,8 +18,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alloc.c,v 1.1 2000-08-09 09:40:14 mschimek Exp $ */
+/* $Id: alloc.c,v 1.2 2000-11-30 09:36:37 mschimek Exp $ */
 
+#include <stdlib.h>
 #include "math.h"
 
 #ifndef HAVE_MEMALIGN

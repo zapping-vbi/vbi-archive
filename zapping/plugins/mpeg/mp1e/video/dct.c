@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dct.c,v 1.8 2000-10-27 16:20:06 mschimek Exp $ */
+/* $Id: dct.c,v 1.9 2000-11-30 09:36:38 mschimek Exp $ */
 
 #include <assert.h>
 #include "../common/math.h"
@@ -232,6 +232,7 @@ init_dct(void)
 	c1x = MMXRW(((8 + 128 * 16) << 2) + 2);
 }
 
+/* XXX move */
 void
 mmx_new_inter_quant(int quant_scale)
 {

@@ -18,11 +18,13 @@
 #  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 
-# $Id: dct_mmx.s,v 1.5 2000-10-27 16:20:06 mschimek Exp $
+# $Id: dct_mmx.s,v 1.6 2000-11-30 09:36:38 mschimek Exp $
 
 	.text
 	.align		16
 	.globl		mmx_fdct_intra
+
+# scheduled for PMMX, could be faster on P6/K7
 
 mmx_fdct_intra:
 
@@ -882,6 +884,8 @@ mmx_fdct_inter:
 	popl		%ebx;
 	ret
 
+# not scheduled, will be 20% faster
+# autosched still unfinished, sigh
 	.text
 	.align		16
 	.globl		mmx_mpeg1_idct_inter
@@ -1615,6 +1619,8 @@ mmx_mpeg1_idct_inter:
 	popl %edi
 	ret
 
+# not scheduled, will be 20% faster
+# autosched still unfinished, sigh
 	.text
 	.align		16
 	.globl		mmx_mpeg1_idct_intra2
