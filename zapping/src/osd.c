@@ -26,9 +26,8 @@
 #undef GNOME_DISABLE_DEPRECATED
 #undef GDK_DISABLE_DEPRECATED
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
+#include "../site_def.h"
+#include "../config.h"
 
 #include <gnome.h>
 
@@ -41,6 +40,10 @@
 #include "properties.h"
 #include "interface.h"
 #include "globals.h"
+
+#ifndef OSD_TEST
+#define OSD_TEST 0
+#endif
 
 #define MAX_COLUMNS 48 /* TTX */
 #define MAX_ROWS 26 /* 25 for TTX plus one for OSD */
@@ -735,51 +738,79 @@ unref_color		(GdkColor *color, GdkColormap *cmap)
   g_free(color);
 }
 
-static void my_characters (void *ptr,
-			   const xmlChar *ch, int n)
+static gchar *
+remove_markup			(const gchar *		s)
 {
-  gchar *buf;
-  gint i, j;
+  GError *error = NULL;
+  gchar *d;
 
-  buf = g_malloc0(n*sizeof(char) + 1);
+  pango_parse_markup (s, -1, 0, NULL, &d, NULL, &error);
 
-  /* Skip line breaks */
-  for (i=j=0; i<n; i++)
-    if (ch[i] != '\n' && ch[i] != '\r')
-      buf[j++] = ch[i];
-
-  buf[j] = 0;
-
-  if (j > 0)
-    printf ("%s", buf);
-
-  g_free (buf);
-}
-
-/* Render in text mode, throw away markup */
-static void
-osd_render_markup_text	(gchar *buf)
-{
-  gchar *buf2;
-  xmlSAXHandler handler;
-
-  CLEAR (handler);
-
-  handler.startElement = NULL;
-  handler.endElement = NULL;
-  handler.characters = my_characters;
-
-  buf2 = g_strdup_printf("<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
-			 "<doc><text>%s</text></doc>    ",
-			 buf);
-
-  if (xmlSAXUserParseMemory(&handler, NULL, buf2, strlen(buf2)))
+  if (error)
     {
-      fprintf (stderr, "Cannot parse, printing literally:\n");
-      printf ("%s\n", buf2);
+      if (OSD_TEST)
+	fprintf (stderr, "%s:%u: Bad markup in \"%s\": %s\n",
+		 __FILE__, __LINE__, s, error->message);
+
+      g_error_free (error);
+
+      return NULL;
     }
 
-  g_free (buf2);
+  return d;
+}
+
+static void
+render_console			(const gchar *		s,
+				 gboolean		markup)
+{
+  GError *error = NULL;
+  gchar *plain_buf;
+  gchar *locale_buf;
+  gsize length;
+  guint i;
+
+  if (markup)
+    {
+      plain_buf = remove_markup (s);
+
+      if (!plain_buf)
+	return;
+    }
+  else
+    {
+      plain_buf = g_strdup (s);
+    }
+
+  for (i = 0; 0 != plain_buf[i]; ++i)
+    if ('\n' == plain_buf[i] ||
+	'\r' == plain_buf[i])
+      plain_buf[i] = ' ';
+
+  locale_buf = g_locale_from_utf8 (plain_buf, i, NULL, &length, &error);
+
+  if (error)
+    {
+      if (OSD_TEST)
+	fprintf (stderr, "%s:%u: Bad UTF-8 in \"%s\": %s\n",
+		 __FILE__, __LINE__, plain_buf, error->message);
+
+      g_error_free (error);
+    }
+  else
+    {
+      if (length > 0)
+	{
+	  fputs (locale_buf, stdout);
+	  
+	  if (locale_buf[length - 1] != '\n')
+	    fputc ('\n', stdout);
+	}
+
+      g_free (locale_buf);
+    }
+
+  g_free (plain_buf);
 }
 
 /* Render in OSD mode. Put markup to TRUE if the text contains pango
@@ -906,114 +937,131 @@ osd_render_osd		(void (*timeout_cb)(gboolean),
    timeout_cb(FALSE) when error, replaced.
 */
 void
-osd_render_markup (void (*timeout_cb)(gboolean),
-		   const char *string, ...)
+osd_render_markup		(osd_timeout_fn *	timeout_cb,
+				 const char *		template,
+				 ...)
 {
   gchar *buf;
   va_list args;
 
-  if (!string || !string[0])
+  buf = NULL;
+
+  if (!template || !template[0])
     goto failed;
 
-  va_start(args, string);
-  buf = g_strdup_vprintf(string, args);
-  va_end(args);
+  va_start (args, template);
 
-  if (!buf)
+  buf = g_strdup_vprintf (template, args);
+
+  va_end (args);
+
+  if (!buf || !buf[0])
     goto failed;
-
-  if (!buf[0])
-    {
-      g_free(buf);
-      goto failed;
-    }
 
   /* The different ways of drawing */
-  switch (zcg_int(NULL, "osd_type"))
+  switch (zcg_int (NULL, "osd_type"))
     {
     case 0: /* OSD */
-      clear_row(OSD_ROW, TRUE);
+      clear_row (OSD_ROW, TRUE);
       osd_render_osd (timeout_cb, buf, TRUE);
       break;
+
     case 1: /* Statusbar */
-      z_status_print_markup (buf, zcg_float(NULL, "timeout")*1000);
-      break;
+      {
+	gchar *plain_buf;
+
+	/* Color looks funny in status bar. */
+	if (!(plain_buf = remove_markup (buf)))
+	  break;
+
+	z_status_print (plain_buf, /* markup */ FALSE,
+			zcg_float (NULL, "timeout") * 1000,
+			/* hide */ FALSE);
+
+	g_free (plain_buf);
+
+	break;
+      }
+
     case 2: /* Console */
-      osd_render_markup_text (buf);
-      printf("\n");
+      render_console (buf, /* markup */ TRUE);
       break;
+
     case 3:
       break; /* Ignore */
+
     default:
-      g_assert_not_reached();
+      g_assert_not_reached ();
       break;
     }
 
-  g_free(buf);
+  g_free (buf);
 
   return;
 
  failed:
+  g_free (buf);
 
   if (timeout_cb)
-    timeout_cb(FALSE);
-
-  return;
+    timeout_cb (FALSE);
 }
 
 void
-osd_render		(void (*timeout_cb)(gboolean),
-			 const char *string, ...)
+osd_render			(osd_timeout_fn *	timeout_cb,
+				 const char *		template,
+				 ...)
 {
   gchar *buf;
   va_list args;
 
-  if (!string || !string[0])
+  buf = NULL;
+
+  if (!template || !template[0])
     goto failed;
 
-  va_start(args, string);
-  buf = g_strdup_vprintf(string, args);
-  va_end(args);
+  va_start (args, template);
 
-  if (!buf)
+  buf = g_strdup_vprintf (template, args);
+
+  va_end (args);
+
+  if (!buf || !buf[0])
     goto failed;
-
-  if (!buf[0])
-    {
-      g_free(buf);
-      goto failed;
-    }
 
   /* The different ways of drawing */
-  switch (zcg_int(NULL, "osd_type"))
+  switch (zcg_int (NULL, "osd_type"))
     {
     case 0: /* OSD */ 
-      clear_row(OSD_ROW, TRUE);
+      clear_row (OSD_ROW, TRUE);
       osd_render_osd (timeout_cb, buf, FALSE);
       break;
+
     case 1: /* Statusbar */
-      z_status_print (buf, zcg_float(NULL, "timeout")*1000);
+      z_status_print (buf, /* markup */ FALSE,
+		      zcg_float (NULL, "timeout") * 1000, /* hide */ FALSE);
       break;
+
     case 2: /* Console */
-      printf("%s\n", buf);
+      render_console (buf, /* markup */ FALSE);
       break;
+
     case 3:
       break; /* Ignore */
+
     default:
-      g_assert_not_reached();
+      g_assert_not_reached ();
       break;
     }
 
-  g_free(buf);
+  g_free (buf);
 
   return;
 
  failed:
+  g_free (buf);
 
   if (timeout_cb)
-    timeout_cb(FALSE);
-
-  return;
+    timeout_cb (FALSE);
 }
 
 /**
