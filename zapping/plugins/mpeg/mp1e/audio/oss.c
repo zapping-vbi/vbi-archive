@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: oss.c,v 1.6 2000-10-15 21:24:48 mschimek Exp $ */
+/* $Id: oss.c,v 1.7 2000-10-16 05:39:09 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,7 +48,7 @@
  *  PCM Device, OSS API
  */
 
-#define BUFFER_SIZE 32768 // bytes per read(), appx.
+#define BUFFER_SIZE 8192 // bytes per read(), appx.
 
 static int		fd, fd2;
 static short *		abuffer;

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alsa.c,v 1.1 2000-10-15 20:54:03 mschimek Exp $ */
+/* $Id: alsa.c,v 1.2 2000-10-16 05:39:09 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,7 +49,7 @@
  *  PCM Device, ALSA library
  */
 
-#define BUFFER_SIZE 32768 // bytes per read(), appx.
+#define BUFFER_SIZE 8192 // bytes per read(), appx.
 
 static snd_pcm_t *	handle;
 static short *		abuffer;
