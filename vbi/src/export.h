@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.h,v 1.8.2.1 2003-02-16 21:03:34 mschimek Exp $ */
+/* $Id: export.h,v 1.8.2.2 2003-04-29 05:49:55 mschimek Exp $ */
 
 #ifndef EXPORT_H
 #define EXPORT_H
@@ -258,41 +258,12 @@ extern char *			vbi_export_errstr(vbi_export *);
 
 /* Private */
 
-#ifndef DOXYGEN_SHOULD_IGNORE_THIS
-
 #include <stdarg.h>
 #include <stddef.h>
+#include <iconv.h>
 
-extern const char _zvbi_intl_domainname[];
-
-#ifndef _
-#  ifdef ENABLE_NLS
-#    include <libintl.h>
-#    define _(String) dgettext (_zvbi_intl_domainname, String)
-#    ifdef gettext_noop
-#      define N_(String) gettext_noop (String)
-#    else
-#      define N_(String) (String)
-#    endif
-#  else /* Stubs that do something close enough.  */
-#    define gettext(Msgid) ((const char *) (Msgid))
-#    define dgettext(Domainname, Msgid) ((const char *) (Msgid))
-#    define dcgettext(Domainname, Msgid, Category) ((const char *) (Msgid))
-#    define ngettext(Msgid1, Msgid2, N) \
-       ((N) == 1 ? (const char *) (Msgid1) : (const char *) (Msgid2))
-#    define dngettext(Domainname, Msgid1, Msgid2, N) \
-       ((N) == 1 ? (const char *) (Msgid1) : (const char *) (Msgid2))
-#    define dcngettext(Domainname, Msgid1, Msgid2, N, Category) \
-       ((N) == 1 ? (const char *) (Msgid1) : (const char *) (Msgid2))
-#    define textdomain(Domainname) ((const char *) (Domainname))
-#    define bindtextdomain(Domainname, Dirname) ((const char *) (Dirname))
-#    define bind_textdomain_codeset(Domainname, Codeset) ((const char *) (Codeset))
-#    define _(String) (String)
-#    define N_(String) (String)
-#  endif
-#endif
-
-#endif /* !DOXYGEN_SHOULD_IGNORE_THIS */
+#include "../config.h"
+#include "misc.h"
 
 typedef struct vbi_export_class vbi_export_class;
 
@@ -379,7 +350,33 @@ extern void			vbi_export_invalid_option(vbi_export *, const char *keyword, ...);
 extern char *			vbi_export_strdup(vbi_export *, char **d, const char *s);
 extern void			vbi_export_error_printf(vbi_export *, const char *templ, ...);
 
-extern int			vbi_ucs2be(void);
+/**
+ * @param cd Conversion object returned by vbi_iconv_open().
+ *
+ * Helper function for export modules to convert UCS-2 (as in
+ * vbi_page) to another format.
+ */
+static_inline void
+vbi_iconv_close			(iconv_t		cd)
+{
+	iconv_close (cd);
+}
+
+extern iconv_t
+vbi_iconv_open			(const char *		format,
+				 char **		dstp,
+				 unsigned int		dst_len);
+extern vbi_bool
+vbi_iconv			(iconv_t		cd,
+				 char **		dstp,
+				 unsigned int		dst_len,
+				 uint16_t *		src,
+				 unsigned int		src_len);
+extern vbi_bool
+vbi_iconv_unicode		(iconv_t		cd,
+				 char **		dstp,
+				 unsigned int		dst_len,
+				 uint16_t		unicode);
 
 /* Option info building */
 

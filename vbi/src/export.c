@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.13.2.1 2003-02-16 21:03:33 mschimek Exp $ */
+/* $Id: export.c,v 1.13.2.2 2003-04-29 05:49:45 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -119,6 +119,9 @@ vbi_register_export_module(vbi_export_class *new_module)
 	*xcp = new_module;
 }
 
+static void
+vbi_ucs2be			(void);
+
 /* AUTOREG not reliable, sigh. */
 static void
 initialize(void)
@@ -146,6 +149,8 @@ initialize(void)
 
 	pthread_once (&vbi_init_once, vbi_init);
 
+	vbi_ucs2be ();
+
 	if (!vbi_export_modules)
 		for (xcp = modules; *xcp; xcp++)
 			vbi_register_export_module(*xcp);
@@ -153,38 +158,158 @@ initialize(void)
 	initialized = TRUE;
 }
 
+static int ucs2_endian;
+
 /**
- * Helper function for export modules, since iconv seems
- * undecided what it really wants (not every iconv supports
- * UCS-2LE/BE).
- * 
- * @return 
- * 1 if iconv "UCS-2" is BE on this machine, 0 if LE,
- * -1 if unknown.
+ * Determine endianess of UCS-2, since iconv seems undecided
+ * what it really wants. Not every iconv implementation
+ * supports UCS-2LE/BE or machine endian.
  */
-/* XXX provide a vbi_iconv wrapper. */
-int
-vbi_ucs2be(void)
+static void
+vbi_ucs2be			(void)
 {
 	iconv_t cd;
 	char c = 'b', *cp = &c;
 	char uc[2] = { 'a', 'a' }, *up = uc;
 	size_t in = sizeof(c), out = sizeof(uc);
-	int endianess = -1;
 
-	if ((cd = iconv_open("UCS-2", /* from */ "ISO-8859-1")) != (iconv_t) -1) {
-		iconv(cd, (void *) &cp, &in, (void *) &up, &out);
+	cd = iconv_open ("UCS-2", /* from */ "ISO-8859-1");
+
+	if (cd != (iconv_t) -1) {
+		iconv (cd, (void *) &cp, &in, (void *) &up, &out);
 
 		if (uc[0] == 0 && uc[1] == 'b')
-			endianess = 1;
+			ucs2_endian = 1; /* big */
 		else if (uc[1] == 0 && uc[0] == 'b')
-			endianess = 0;
+			ucs2_endian = 0; /* little */
 
-		iconv_close(cd);
+		iconv_close (cd);
+	} else {
+		ucs2_endian = -1;
+	}
+}
+
+/**
+ * @param format Character set name for iconv() conversion,
+ *   for example "ISO-8859-1". When @c NULL, the default is UTF-8.
+ *
+ * Helper function for export modules to convert UCS-2 (as in
+ * vbi_page) to another format.
+ *
+ * @return
+ * (iconv_t) -1 when the conversion is not possible.
+ */
+iconv_t
+vbi_iconv_open			(const char *		format,
+				 char **		dstp,
+				 unsigned int		dst_len)
+{
+	iconv_t cd;
+	size_t n;
+
+	if (ucs2_endian == -1)
+		return 0;
+
+	if (format == NULL)
+		format = "UTF-8";
+
+	cd = iconv_open (format, "UCS-2");
+
+	if (cd != (iconv_t) -1) {
+		/* Write out the byte sequence to get into the
+		   initial state if this is necessary. */
+		n = iconv (cd, NULL, NULL, dstp, &dst_len);
+
+		if (n == (size_t) -1) {
+			vbi_iconv_close	(cd);
+			cd = (iconv_t) -1;
+		}
 	}
 
-	return endianess;
+	return cd;
 }
+
+/**
+ * @param cd Conversion object returned by vbi_iconv_open().
+ * @param dstp Pointer to buffer pointer holding the output,
+ *   will be incremented.
+ * @param dst_len Space available in the output buffer,
+ *   in bytes.
+ * @param src Source string in UCS-16 format.
+ * @param src_len Number of characters (not bytes) in the
+ *   source string.
+ *
+ * Helper function for export modules to convert UCS-2 (as in
+ * vbi_page) to another format. Characters not representable
+ * in the target format are converted to spaces (Unicode 0x0020).
+ *
+ * @return
+ * FALSE on unrecoverable error.
+ */
+vbi_bool
+vbi_iconv			(iconv_t		cd,
+				 char **		dstp,
+				 unsigned int		dst_len,
+				 uint16_t *		src,
+				 unsigned int		src_len)
+{
+	char in[2], *ip;
+	size_t li, r;
+
+	while (src_len > 0) {
+		in[0 + ucs2_endian] = *src;
+		in[1 - ucs2_endian] = *src >> 8;
+		ip = in;
+		li = sizeof (in);
+
+		r = iconv (cd, &ip, &li, dstp, &dst_len);
+
+		/* XXX 0x40 safe? */
+		if (r == -1 || (r == 1 && **dstp == 0x40 && *src != 0x0040)) {
+			/* non-convertible to space */
+
+			in[0 + ucs2_endian] = 0x20;
+			in[1 - ucs2_endian] = 0;
+			ip = in;
+			li = sizeof (in);
+
+			r = iconv (cd, &ip, &li, dstp, &dst_len);
+
+			if (r == -1 || (r == 1 && **dstp == 0x40))
+				return FALSE;
+		}
+
+		src++;
+		src_len--;
+	}
+
+	return TRUE;
+}
+
+/**
+ * @param cd Conversion object returned by vbi_iconv_open().
+ * @param dstp Pointer to buffer pointer holding the output,
+ *   will be incremented.
+ * @param dst_len Space available in the output buffer,
+ *   in bytes.
+ * @param unicode Single Unicode character.
+ *
+ * Helper function for export modules to convert UCS-2 (as in
+ * vbi_page) to another format. Characters not representable
+ * in the target format are converted to spaces (Unicode 0x0020).
+ *
+ * @return
+ * FALSE on unrecoverable error.
+ */
+vbi_bool
+vbi_iconv_unicode		(iconv_t		cd,
+				 char **		dstp,
+				 unsigned int		dst_len,
+				 uint16_t		unicode)
+{
+	return vbi_iconv (cd, dstp, dst_len, &unicode, 1);
+}
+
 
 /*
  *  This is old stuff, we'll see if it's still needed.
