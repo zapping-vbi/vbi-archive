@@ -459,16 +459,19 @@ static gint trigger_timeout		(gint	client_id)
 	  extern tveng_tuned_channel * global_channel_list;
 	  extern int cur_tuned_channel;
 	  tveng_tuned_channel *channel;
+	  gchar *name = NULL;
 
 	  if (*current_network.name)
-	    {
-	      channel = tveng_retrieve_tuned_channel_by_index(
-			 cur_tuned_channel, global_channel_list);
-	      if (!channel)
-		z_set_main_title(NULL, current_network.name);
-	      else if (!channel->name)
-		z_set_main_title(channel, current_network.name);
-	    }
+		  name = current_network.name;
+	  /* else switch away from known network */
+
+	  channel = tveng_retrieve_tuned_channel_by_index(
+		      cur_tuned_channel, global_channel_list);
+	  if (!channel)
+	    z_set_main_title(NULL, name);
+	  else if (!channel->name)
+	    z_set_main_title(channel, name);
+
 	  break;
 	}
       case TTX_BROKEN_PIPE:
@@ -479,7 +482,7 @@ static gint trigger_timeout		(gint	client_id)
 	acknowledge_trigger((vbi_link*)(&data.data));
 	break;
       default:
-	g_warning("Unkown message: %d", msg);
+	g_warning("Unknown message: %d", msg);
 	break;
       }
 
@@ -1601,7 +1604,13 @@ event(vbi_event *ev, void *unused)
     case VBI_EVENT_NETWORK:
       pthread_mutex_lock(&network_mutex);
       memcpy(&current_network, ev->p, sizeof(vbi_network));
-      if (*current_network.label)
+      if (*current_network.name)
+	{
+	  strncpy(station_name, current_network.name, 255);
+	  station_name[255] = 0;
+	  station_name_known = TRUE;
+	}
+      else if (*current_network.label)
 	{
 	  strncpy(station_name, current_network.label, 255);
 	  station_name[255] = 0;
@@ -1613,6 +1622,8 @@ event(vbi_event *ev, void *unused)
 	  station_name[255] = 0;
 	  station_name_known = TRUE;
 	}
+      else
+	  station_name_known = FALSE;
       notify_network();
       pthread_mutex_unlock(&network_mutex);
       break;

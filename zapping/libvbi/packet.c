@@ -35,7 +35,7 @@ dump_raw(struct vt_page *vtp, bool unham)
 	for (j = 0; j < 25; j++) {
 		if (unham)
 			for (i = 0; i < 40; i++)
-				printf("%01x ", hamm8a[vtp->data.lop.raw[j][i]] & 0xF);
+				printf("%01x ", hamm8(vtp->data.lop.raw[j][i]) & 0xF);
 		else
 			for (i = 0; i < 40; i++)
 				printf("%02x ", vtp->data.lop.raw[j][i]);
@@ -122,9 +122,9 @@ hamm8_page_number(pagenum *p, unsigned char *raw, int magazine)
 {
 	int b1, b2, b3, err, m;
 
-	err = b1 = hamm16a(raw + 0);
-	err |= b2 = hamm16a(raw + 2);
-	err |= b3 = hamm16a(raw + 4);
+	err = b1 = hamm16(raw + 0);
+	err |= b2 = hamm16(raw + 2);
+	err |= b3 = hamm16(raw + 4);
 
 	if (err < 0)
 		return FALSE;
@@ -152,8 +152,8 @@ parse_mot(magazine *mag, unsigned char *raw, int packet)
 			if (i == 10)
 				index += 6;
 
-			n0 = hamm8a[*raw++];
-			n1 = hamm8a[*raw++];
+			n0 = hamm8(*raw++);
+			n1 = hamm8(*raw++);
 
 			if ((n0 | n1) < 0)
 				continue;
@@ -168,9 +168,10 @@ parse_mot(magazine *mag, unsigned char *raw, int packet)
 	case 9 ... 14:
 	{
 		int index = (packet - 9) * 0x30 + 10;
-		char n0, n1;
 
 		for (i = 0; i < 20; index++, i++) {
+			char n0, n1;
+
 			if (i == 6 || i == 12) {
 				if (index == 0x100)
 					break;
@@ -178,8 +179,8 @@ parse_mot(magazine *mag, unsigned char *raw, int packet)
 					index += 10;
 			}
 
-			n0 = hamm8a[*raw++];
-			n1 = hamm8a[*raw++];
+			n0 = hamm8(*raw++);
+			n1 = hamm8(*raw++);
 
 			if ((n0 | n1) < 0)
 				continue;
@@ -200,13 +201,14 @@ parse_mot(magazine *mag, unsigned char *raw, int packet)
 	case 19 ... 20: /* level 2.5 pops */
 	{
 		pop_link *pop = mag->pop_link + (packet - 19) * 4;
-		char n[10];
 
 		for (i = 0; i < 4; raw += 10, pop++, i++) {
-			for (err = j = 0; j < 10; j++)
-				err |= n[j] = hamm8a[raw[j]];
+			char n[10];
 
-			if (err < 0) /* unused bytes poss. not hammed (^ N3) */
+			for (err = j = 0; j < 10; j++)
+				err |= n[j] = hamm8(raw[j]);
+
+			if (err < 0) /* XXX unused bytes poss. not hammed (^ N3) */
 				continue;
 
 			pop->pgno = (((n[0] & 7) ? : 8) << 8) + (n[1] << 4) + n[2];
@@ -241,7 +243,7 @@ parse_mot(magazine *mag, unsigned char *raw, int packet)
 
 		for (i = 0; i < 8; raw += 4, index++, i++) {
 			for (err = j = 0; j < 4; j++)
-				err |= n[j] = hamm8a[raw[j]];
+				err |= n[j] = hamm8(raw[j]);
 
 			if (err < 0)
 				continue;
@@ -265,11 +267,11 @@ parse_pop(struct vt_page *vtp, unsigned char *raw, int packet)
 	vt_triplet *trip;
 	int i;
 
-	if ((designation = hamm8a[raw[0]]) < 0)
+	if ((designation = hamm8(raw[0])) < 0)
 		return FALSE;
 
 	for (raw++, i = 0; i < 13; raw += 3, i++)
-		triplet[i] = hamm24a(raw);
+		triplet[i] = hamm24(raw);
 
 	if (packet == 26)
 		packet += designation;
@@ -511,7 +513,7 @@ parse_mip_page(struct vbi *vbi, struct vt_page *vtp,
 				    [(*subp_index % 13) * 3 + 1];
 		(*subp_index)++;
 
-		if ((subc = hamm16a(raw) | (hamm8a[raw[2]] << 8)) < 0)
+		if ((subc = hamm16(raw) | (hamm8(raw[2]) << 8)) < 0)
 			return FALSE;
 
 		if ((code & 15) == 1)
@@ -562,10 +564,10 @@ parse_mip(struct vbi *vbi, struct vt_page *vtp)
 			unsigned char *raw = vtp->data.unknown.raw[packet];
 
 			for (i = 0x00; i <= 0x09; raw += 2, i++)
-				if (!parse_mip_page(vbi, vtp, pgno + i, hamm16a(raw), &spi))
+				if (!parse_mip_page(vbi, vtp, pgno + i, hamm16(raw), &spi))
 					return FALSE;
 			for (i = 0x10; i <= 0x19; raw += 2, i++)
-				if (!parse_mip_page(vbi, vtp, pgno + i, hamm16a(raw), &spi))
+				if (!parse_mip_page(vbi, vtp, pgno + i, hamm16(raw), &spi))
 					return FALSE;
 		}
 
@@ -574,15 +576,18 @@ parse_mip(struct vbi *vbi, struct vt_page *vtp)
 			unsigned char *raw = vtp->data.unknown.raw[packet];
 
 			for (i = 0x0A; i <= 0x0F; raw += 2, i++)
-				if (!parse_mip_page(vbi, vtp, pgno + i, hamm16a(raw), &spi))
+				if (!parse_mip_page(vbi, vtp, pgno + i,
+						    hamm16(raw), &spi))
 					return FALSE;
 			if (packet == 14) /* 0xFA ... 0xFF */
 				break;
 			for (i = 0x1A; i <= 0x1F; raw += 2, i++)
-				if (!parse_mip_page(vbi, vtp, pgno + i, hamm16a(raw), &spi))
+				if (!parse_mip_page(vbi, vtp, pgno + i,
+						    hamm16(raw), &spi))
 					return FALSE;
 			for (i = 0x2A; i <= 0x2F; raw += 2, i++)
-				if (!parse_mip_page(vbi, vtp, pgno + i, hamm16a(raw), &spi))
+				if (!parse_mip_page(vbi, vtp, pgno + i,
+						    hamm16(raw), &spi))
 					return FALSE;
 		}
 
@@ -634,7 +639,7 @@ top_page_number(pagenum *p, unsigned char *raw)
 	int pgno, err, i;
 
 	for (err = i = 0; i < 8; i++)
-		err |= n[i] = hamm8a[raw[i]];
+		err |= n[i] = hamm8(raw[i]);
 
 	pgno = n[0] * 256 + n[1] * 16 + n[2];
 
@@ -662,7 +667,7 @@ parse_btt(struct vbi *vbi, unsigned char *raw, int packet)
 			for (j = 0; j < 10; index++, j++) {
 				struct page_info *pi = vbi->vt.page_info + index;
 
-				if ((code = hamm8a[*raw++]) < 0)
+				if ((code = hamm8(*raw++)) < 0)
 					break;
 
 				switch (code) {
@@ -791,7 +796,7 @@ parse_mpt(struct teletext *vt, unsigned char *raw, int packet)
 
 		for (i = 0; i < 4; i++) {
 			for (j = 0; j < 10; index++, j++)
-				if ((n = hamm8a[*raw++]) >= 0) {
+				if ((n = hamm8(*raw++)) >= 0) {
 					int code = vt->page_info[index].code;
 					int subc = vt->page_info[index].subcode;
 
@@ -1005,6 +1010,20 @@ station_lookup(vbi_cni_type type, int cni,
 	return 0;
 }
 
+static void
+unknown_cni(struct vbi *vbi, char *dl, int cni)
+{
+	if (cni == 0)
+		return;
+
+	fprintf(stderr,
+"This network broadcasts an unknown CNI of 0x%04x using a %s data line.\n"
+"If you see this message always when switching to this channel please\n"
+"report network name, country, CNI and data line at http://zapping.sf.net\n"
+"for inclusion in the Country and Network Identifier table. Thank you.\n",
+		cni, dl);
+}
+
 #define BSD_TEST 0 /* Broadcaster Service Data */
 
 #if BSD_TEST
@@ -1090,19 +1109,25 @@ vbi_vps(struct vbi *vbi, unsigned char *buf)
 		if (!id) {
 			vbi->network.name[0] = 0;
 			vbi->network.label[0] = 0;
-		} else if (id != vbi->network.nuid) {
-			vbi_event ev;
-
-			vbi->network.nuid = id;
+			unknown_cni(vbi, "VPS", cni);
+		} else {
 			strncpy(vbi->network.name, long_name, sizeof(vbi->network.name) - 1);
 			strncpy(vbi->network.label, short_name, sizeof(vbi->network.label) - 1);
+		}
+
+		if (id != vbi->network.nuid) {
+			vbi_event ev;
+
+			if (vbi->network.nuid != 0)
+				vbi_chsw_reset(vbi, id);
+
+			vbi->network.nuid = id;
 
 			ev.type = VBI_EVENT_NETWORK;
 			ev.p = &vbi->network;
 			vbi_send_event(vbi, &ev);
 		}
 
-		vbi->network.nuid = id;
 		vbi->network.cycle = 2;
 	}
 
@@ -1277,19 +1302,25 @@ parse_bsd(struct vbi *vbi, unsigned char *raw, int packet, int designation)
 				if (!id) {
 					vbi->network.name[0] = 0;
 					vbi->network.label[0] = 0;
-				} else if (id != vbi->network.nuid) {
-					vbi_event ev;
-
-					vbi->network.nuid = id;
+					unknown_cni(vbi, "8/30/1", cni);
+				} else {
 					strncpy(vbi->network.name, long_name, sizeof(vbi->network.name) - 1);
 					strncpy(vbi->network.label, short_name, sizeof(vbi->network.label) - 1);
+				}
+
+				if (id != vbi->network.nuid) {
+					vbi_event ev;
+
+					if (vbi->network.nuid != 0)
+						vbi_chsw_reset(vbi, id);
+
+					vbi->network.nuid = id;
 
 					ev.type = VBI_EVENT_NETWORK;
 					ev.p = &vbi->network;
 					vbi_send_event(vbi, &ev);
 				}
 
-				vbi->network.nuid = id;
 				vbi->network.cycle = 2;
 			}
 #if BSD_TEST
@@ -1335,7 +1366,7 @@ parse_bsd(struct vbi *vbi, unsigned char *raw, int packet, int designation)
 			printf("\nPacket 8/30/%d:\n", designation);
 #endif
 			for (err = i = 0; i < 7; i++) {
-				err |= t = hamm16a(raw + i * 2 + 6);
+				err |= t = hamm16(raw + i * 2 + 6);
 				n[i] = bit_reverse[t];
 			}
 
@@ -1360,19 +1391,25 @@ parse_bsd(struct vbi *vbi, unsigned char *raw, int packet, int designation)
 				if (!id) {
 					vbi->network.name[0] = 0;
 					vbi->network.label[0] = 0;
-				} else if (id != vbi->network.nuid) {
-					vbi_event ev;
-
-					vbi->network.nuid = id;
+					unknown_cni(vbi, "8/30/2", cni);
+				} else {
 					strncpy(vbi->network.name, long_name, sizeof(vbi->network.name) - 1);
 					strncpy(vbi->network.label, short_name, sizeof(vbi->network.label) - 1);
+				}
+
+				if (id != vbi->network.nuid) {
+					vbi_event ev;
+
+					if (vbi->network.nuid != 0)
+						vbi_chsw_reset(vbi, id);
+
+					vbi->network.nuid = id;
 
 					ev.type = VBI_EVENT_NETWORK;
 					ev.p = &vbi->network;
 					vbi_send_event(vbi, &ev);
 				}
 
-				vbi->network.nuid = id;
 				vbi->network.cycle = 2;
 			}
 
@@ -1439,29 +1476,541 @@ parse_bsd(struct vbi *vbi, unsigned char *raw, int packet, int designation)
 	return TRUE;
 }
 
+static int
+same_header(int cur_pgno, unsigned char *cur,
+	    int ref_pgno, unsigned char *ref)
+{
+	unsigned char buf[3];
+	int i, j = 21, err = 0;
+
+	if ((buf[2] = (cur_pgno & 15) + '0') > '9'
+	    || (buf[1] = ((cur_pgno >> 4) & 15) + '0') > '9') {
+		return -1; /* system page, unreliable */
+	}
+
+	buf[0] = (cur_pgno >> 8) + '0';
+
+	set_parity(buf, 3);
+
+	for (i = 0; i < 24; cur++, ref++, i++) {
+		/* Skip page number */
+		if (i < j
+		    && cur[0] == buf[0]
+		    && cur[1] == buf[1]
+		    && cur[2] == buf[2]) {
+			j = i; /* here, once */
+			i += 3;
+			cur += 3;
+			ref += 3;
+			continue;
+		}
+
+		err |= parity(*cur);
+		err |= parity(*ref);
+
+		if (*cur != *ref)
+			break;
+	}
+
+	if (err < 0) /* parity error, rare */
+		return -1; /* inconclusive */
+
+	if (i >= 24)
+		return TRUE;
+
+	/* Test false negative due to date transition */
+
+	if (((ref[24] * 256 + ref[25]) & 0x7F7F) == 0x3233
+	    && ((cur[24] * 256 + cur[25]) & 0x7F7F) == 0x3030) {
+		return -1; /* inconclusive */
+	}
+
+	/*
+	 *  The problem here is that individual pages or
+	 *  magazines from the same network can still differ.
+	 *  In fact I know examples, have no reasonable solution.
+	 */
+	return FALSE;
+}
+
+static inline bool
+store_lop(struct vbi *vbi, struct vt_page *vtp)
+{
+	struct page_info *pi;
+	vbi_event ev;
+	bool roll_header;
+	int i;
+
+	roll_header =
+		((vtp->flags & (  C5_NEWSFLASH
+				| C6_SUBTITLE 
+				| C7_SUPPRESS_HEADER
+				| C9_INTERRUPTED
+			        | C10_INHIBIT_DISPLAY)) == 0)
+		&& (vtp->pgno <= 0x199
+		    || (vtp->flags & C11_MAGAZINE_SERIAL));
+
+	/*
+	 *  We're not always notified about a channel switch,
+	 *  this code prevents a terrible mess in the cache.
+	 *
+	 *  The roll_header thing shall reduce false negatives,
+	 *  slows down detection of some stations, but does help.
+	 *  A little. Maybe this should be optional.
+	 */
+	if (roll_header) {
+		switch ((vbi->vt.header_page.pgno == 0) ? TRUE :
+			same_header(vtp->pgno, vtp->data.lop.raw[0] + 8,
+				    vbi->vt.header_page.pgno, vbi->vt.header)) {
+		case FALSE:
+			pthread_mutex_lock(&vbi->chswcd_mutex);
+			if (vbi->chswcd == 0)
+				vbi->chswcd = 40;
+			pthread_mutex_unlock(&vbi->chswcd_mutex);
+
+			return TRUE;
+#if 0
+			vbi->vt.header_page.pgno = vtp->pgno;
+			memcpy(vbi->vt.header, vtp->data.lop.raw[0] + 8, 32);
+			
+			vbi_chsw_reset(vbi, 0);
+#endif			
+		
+		case TRUE:
+			// fprintf(stderr, "+");
+			pthread_mutex_lock(&vbi->chswcd_mutex);
+			vbi->chswcd = 0;
+			pthread_mutex_unlock(&vbi->chswcd_mutex);
+			break;
+			
+		default: /* inconclusive */
+			pthread_mutex_lock(&vbi->chswcd_mutex);
+			if (vbi->chswcd > 0) {
+				pthread_mutex_unlock(&vbi->chswcd_mutex);
+				return TRUE;
+			}
+			pthread_mutex_unlock(&vbi->chswcd_mutex);
+			// fprintf(stderr, "/");
+			break;
+		}
+	} else {
+		// fprintf(stderr, "-");
+	}
+
+	/*
+	 *  Collect information about those pages
+	 *  not listed in MIP etc.
+	 */
+	pi = vbi->vt.page_info + vtp->pgno - 0x100;
+
+	if (pi->code == VBI_SUBTITLE_PAGE) {
+		if (pi->language == 0xFF)
+			pi->language = page_language(&vbi->vt, vtp, 0, 0);
+	} else if (pi->code == VBI_NO_PAGE || pi->code == VBI_UNKNOWN_PAGE)
+		pi->code = VBI_NORMAL_PAGE;
+
+	if (pi->subcode >= 0xFFFE || vtp->subno > pi->subcode)
+		pi->subcode = vtp->subno;
+
+	ev.p = NULL;
+
+	/*
+	 *  Determine if the header is usable for
+	 *  rolling page numbers and RTC.
+	 */
+	if (roll_header
+	    && memcmp(vbi->vt.header, vtp->data.lop.raw[0] + 8, 32) != 0) {
+		pthread_mutex_lock(&vbi->chswcd_mutex);
+
+		/*
+		 *  Don't accidentally compare new against new,
+		 *  has nothing to do with header flag.
+		 */
+		if (vbi->chswcd == 0) {
+			vbi->vt.header_page.pgno = vtp->pgno;
+			memcpy(vbi->vt.header,
+			       vtp->data.lop.raw[0] + 8, 32);
+
+			ev.p = vbi->vt.header;
+		}
+
+		pthread_mutex_unlock(&vbi->chswcd_mutex);
+
+		if (0) {
+			for (i = 0; i < 40; i++)
+				putchar(printable(vtp->data.unknown.raw[0][i]));
+			putchar('\r');
+			fflush(stdout);
+		}
+	}
+
+	ev.type = VBI_EVENT_PAGE;
+	ev.pgno = vtp->pgno;
+	ev.subno = vtp->subno;
+
+	if (vbi_cache_put(vbi, vtp))
+		vbi_send_event(vbi, &ev);
+
+	return TRUE;
+}
+
 #define TTX_EVENTS (VBI_EVENT_PAGE)
 #define BSD_EVENTS (VBI_EVENT_NETWORK)
+
+/*
+ *  Teletext packet 27, page linking
+ */
+static inline bool
+parse_27(struct vbi *vbi, unsigned char *p,
+	 struct vt_page *cvtp, int mag0)
+{
+	int designation, control;
+	int i;
+
+	if (cvtp->function == PAGE_FUNCTION_DISCARD)
+		return TRUE;
+
+	if ((designation = hamm8(*p)) < 0)
+		return FALSE;
+
+//	printf("Packet X/27/%d page %x\n", designation, cvtp->pgno);
+
+	switch (designation) {
+	case 0:
+		if ((control = hamm8(p[37])) < 0)
+			return FALSE;
+
+		/* printf("%x.%x X/27/%d %02x\n",
+		       cvtp->pgno, cvtp->subno, designation, control); */
+#if 0
+/*
+ *  CRC cannot be trusted, some stations transmit rubbish.
+ *  Link Control Byte bits 1 ... 3 cannot be trusted, ETS 300 706 is
+ *  inconclusive and not all stations follow the suggestions in ETR 287.
+ */
+		crc = p[38] + p[39] * 256;
+		/* printf("CRC: %04x\n", crc); */
+
+		if ((control & 7) == 0)
+			return FALSE;
+#endif
+		cvtp->data.unknown.flof = control >> 3; /* display row 24 */
+
+		/* fall through */
+	case 1:
+	case 2:
+	case 3:
+		for (p++, i = 0; i <= 5; p += 6, i++) {
+			if (!hamm8_page_number(cvtp->data.unknown.link
+					       + designation * 6 + i, p, mag0))
+				; /* return TRUE; */
+
+// printf("X/27/%d link[%d] page %03x/%03x\n", designation, i,
+//	cvtp->data.unknown.link[designation * 6 + i].pgno, cvtp->data.unknown.link[designation * 6 + i].subno);
+		}
+
+		break;
+
+	case 4:
+	case 5:
+		for (p++, i = 0; i <= 5; p += 6, i++) {
+			int t1, t2;
+
+			t1 = hamm24(p + 0);
+			t2 = hamm24(p + 3);
+
+			if ((t1 | t2) < 0)
+				return FALSE;
+
+			cvtp->data.unknown.link[designation * 6 + i].type = t1 & 3;
+			cvtp->data.unknown.link[designation * 6 + i].pgno =
+				((((t1 >> 12) & 0x7) ^ mag0) ? : 8) * 256
+				+ ((t1 >> 11) & 0x0F0) + ((t1 >> 7) & 0x00F);
+			cvtp->data.unknown.link[designation * 6 + i].subno =
+				(t2 >> 3) & 0xFFFF;
+if(0)
+ printf("X/27/%d link[%d] type %d page %03x subno %04x\n", designation, i,
+	cvtp->data.unknown.link[designation * 6 + i].type,
+	cvtp->data.unknown.link[designation * 6 + i].pgno,
+	cvtp->data.unknown.link[designation * 6 + i].subno);
+		}
+
+		break;
+	}
+
+	return TRUE;
+}
+
+/*
+ *  Teletext packets 28 and 29, Level 2.5/3.5 enhancement
+ */
+static inline bool
+parse_28_29(struct vbi *vbi, unsigned char *p,
+	 struct vt_page *cvtp, int mag8, int packet)
+{
+	int designation, function;
+	int triplets[13], *triplet = triplets, buf = 0, left = 0;
+	extension *ext;
+	int i, j, err = 0;
+
+	static int
+	bits(int count)
+	{
+		int r, n;
+
+		r = buf;
+
+		if ((n = count - left) > 0) {
+			r |= (buf = *triplet++) << left;
+			left = 18;
+		} else
+			n = count;
+
+		buf >>= n;
+		left -= n;
+
+		return r & ((1UL << count) - 1);
+	}
+
+	if ((designation = hamm8(*p)) < 0)
+		return FALSE;
+
+//	printf("Packet %d/%d/%d page %x\n", mag8, packet, designation, cvtp->pgno);
+
+	for (p++, i = 0; i < 13; p += 3, i++)
+		err |= triplet[i] = hamm24(p);
+
+	switch (designation) {
+	case 0: /* X/28/0, M/29/0 Level 2.5 */
+	case 4: /* X/28/4, M/29/4 Level 3.5 */
+		if (err < 0)
+			return FALSE;
+
+		function = bits(4);
+		bits(3); /* page coding ignored */
+
+//		printf("... function %d\n", function);
+
+		/*
+		 *  ZDF and BR3 transmit GPOP 1EE/.. with 1/28/0 function
+		 *  0 = PAGE_FUNCTION_LOP, should be PAGE_FUNCTION_GPOP.
+		 *  Makes no sense to me. Update: also encountered pages
+		 *  mFE and mFF with function = 0. Strange. 
+		 */
+		if (function != PAGE_FUNCTION_LOP && packet == 28) {
+			if (cvtp->function != PAGE_FUNCTION_UNKNOWN
+			    && cvtp->function != function)
+				return FALSE; /* XXX discard rpage? */
+
+// XXX rethink		cvtp->function = function;
+		}
+
+		if (function != PAGE_FUNCTION_LOP)
+			return FALSE;
+
+		/* XXX X/28/0 Format 2, distinguish how? */
+
+		ext = &vbi->vt.magazine[mag8].extension;
+
+		if (packet == 28) {
+			if (!cvtp->data.ext_lop.ext.designations) {
+				cvtp->data.ext_lop.ext = *ext;
+				cvtp->data.ext_lop.ext.designations <<= 16;
+				cvtp->data.lop.ext = TRUE;
+			}
+
+			ext = &cvtp->data.ext_lop.ext;
+		}
+
+		if (designation == 4 && (ext->designations & (1 << 0)))
+			bits(14 + 2 + 1 + 4);
+		else {
+			ext->char_set[0] = bits(7);
+			ext->char_set[1] = bits(7);
+
+			ext->fallback.left_side_panel = bits(1);
+			ext->fallback.right_side_panel = bits(1);
+
+			bits(1); /* panel status: level 2.5/3.5 */
+
+			ext->fallback.left_panel_columns =
+				bit_reverse[bits(4)] >> 4;
+
+			if (ext->fallback.left_side_panel
+			    | ext->fallback.right_side_panel)
+				ext->fallback.left_panel_columns =
+					ext->fallback.left_panel_columns ? : 16;
+		}
+
+		j = (designation == 4) ? 16 : 32;
+
+		for (i = j - 16; i < j; i++) {
+			attr_rgba col = bits(12);
+
+			if (i == 8) /* transparent */
+				continue;
+
+			col |= (col & 0xF00) << 8;
+			col &= 0xF00FF;
+			col |= (col & 0xF0) << 4;
+			col &= 0xF0F0F;
+
+			ext->colour_map[i] = col | (col << 4) | 0xFF000000UL;
+		}
+
+		if (designation == 4 && (ext->designations & (1 << 0)))
+			bits(10 + 1 + 3);
+		else {
+			ext->def_screen_colour = bits(5);
+			ext->def_row_colour = bits(5);
+
+			ext->fallback.black_bg_substitution = bits(1);
+
+			i = bits(3); /* colour table remapping */
+
+			ext->foreground_clut = "\00\00\00\10\10\20\20\20"[i];
+			ext->background_clut = "\00\10\20\10\20\10\20\30"[i];
+		}
+
+		ext->designations |= 1 << designation;
+
+		if (packet == 29) {
+			if (0 && designation == 4)
+				ext->designations &= ~(1 << 0);
+
+			/*
+			    XXX update
+			    inherited_mag_desig =
+			       page->extension.designations >> 16;
+			    new_mag_desig = 1 << designation;
+			    page_desig = page->extension.designations;
+			    if (((inherited_mag_desig | page_desig)
+			       & new_mag_desig) == 0)
+			    shortcut: AND of (inherited_mag_desig | page_desig)
+			      of all pages with extensions, no updates required
+			      in round 2++
+			    other option, all M/29/x should have been received
+			      within the maximum repetition interval of 20 s.
+			*/
+		}
+
+		return FALSE;
+
+	case 1: /* X/28/1, M/29/1 Level 3.5 DRCS CLUT */
+		ext = &vbi->vt.magazine[mag8].extension;
+
+		if (packet == 28) {
+			if (!cvtp->data.ext_lop.ext.designations) {
+				cvtp->data.ext_lop.ext = *ext;
+				cvtp->data.ext_lop.ext.designations <<= 16;
+				cvtp->data.lop.ext = TRUE;
+			}
+
+			ext = &cvtp->data.ext_lop.ext;
+			/* XXX TODO - lop? */
+		}
+
+		triplet++;
+
+		for (i = 0; i < 8; i++)
+			ext->drcs_clut[i + 2] = bit_reverse[bits(5)] >> 3;
+
+		for (i = 0; i < 32; i++)
+			ext->drcs_clut[i + 10] = bit_reverse[bits(5)] >> 3;
+
+		ext->designations |= 1 << 1;
+
+		if (0)
+			dump_extension(ext);
+
+		return FALSE;
+
+	case 3: /* X/28/3 Level 2.5, 3.5 DRCS download page */
+		if (packet == 29)
+			break; /* M/29/3 undefined */
+
+		if (err < 0)
+			return FALSE;
+
+		function = bits(4);
+		bits(3); /* page coding ignored */
+
+		if (function != PAGE_FUNCTION_GDRCS
+		    || function != PAGE_FUNCTION_DRCS)
+			return FALSE;
+
+		if (cvtp->function == PAGE_FUNCTION_UNKNOWN) {
+			memmove(cvtp->data.drcs.raw,
+				cvtp->data.unknown.raw,
+				sizeof(cvtp->data.drcs.raw));
+			cvtp->function = function;
+		} else if (cvtp->function != function) {
+			cvtp->function = PAGE_FUNCTION_DISCARD;
+			return 0;
+		}
+
+		bits(11);
+
+		for (i = 0; i < 48; i++)
+			cvtp->data.drcs.mode[i] = bits(4);
+
+	default: /* ? */
+		break;
+	}
+
+	return TRUE;
+}
+
+/*
+ *  Teletext packet 8/30, broadcast service data
+ */
+static inline bool
+parse_8_30(struct vbi *vbi, unsigned char *p, int packet)
+{
+	int designation;
+
+	if ((designation = hamm8(*p)) < 0)
+		return FALSE;
+
+//	printf("Packet 8/30/%d\n", designation);
+
+	if (designation > 4)
+		return TRUE; /* ignored */
+
+	if (vbi->event_mask & TTX_EVENTS) {
+		if (!hamm8_page_number(&vbi->vt.initial_page, p + 1, 0))
+			return FALSE;
+
+		if ((vbi->vt.initial_page.pgno & 0xFF) == 0xFF) {
+			vbi->vt.initial_page.pgno = 0x100;
+			vbi->vt.initial_page.subno = ANY_SUB;
+		}
+	}
+
+	if (vbi->event_mask & BSD_EVENTS)
+		return parse_bsd(vbi, p, packet, designation);
+
+	return TRUE;
+}
 
 bool
 vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 {
 	struct vt_page *cvtp;
 	struct raw_page *rvtp;
+	int pmag, mag0, mag8, packet;
 	magazine *mag;
-	int mag0, mag8;
-	int packet, designation;
-	int i, j, err = 0;
 
-	if ((packet = hamm16a(p)) < 0)
+	if ((pmag = hamm16(p)) < 0)
 		return FALSE;
 
-	mag0 = packet & 7;
+	mag0 = pmag & 7;
 	mag8 = mag0 ? : 8;
-	packet >>= 3;
+	packet = pmag >> 3;
 
-	if (packet != 30)
-		if (!(vbi->event_mask & TTX_EVENTS))
-			return TRUE;
+	if (packet < 30
+	    && !(vbi->event_mask & TTX_EVENTS))
+		return TRUE;
 
 	mag = vbi->vt.magazine + mag8;
 	rvtp = vbi->vt.raw_page + mag0;
@@ -1475,8 +2024,9 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 		int pgno, page, subpage, flags;
 		struct raw_page *curr;
 		struct vt_page *vtp;
+		int i;
 
-		if ((page = hamm16a(p)) < 0) {
+		if ((page = hamm16(p)) < 0) {
 			vbi_teletext_desync(vbi);
 //			printf("Hamming error in packet 0 page number\n");
 			return FALSE;
@@ -1484,10 +2034,10 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 
 		pgno = mag8 * 256 + page;
 
+		/*
+		 *  Store page terminated by new header.
+		 */
 		while ((curr = vbi->vt.current)) {
-			struct page_info *pi;
-			vbi_event ev;
-
 			vtp = curr->page;
 
 			if (vtp->flags & C11_MAGAZINE_SERIAL) {
@@ -1506,88 +2056,8 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 				break;
 
 			case PAGE_FUNCTION_LOP:
-				pi = vbi->vt.page_info + vtp->pgno - 0x100;
-
-				if (pi->code == VBI_SUBTITLE_PAGE) {
-					if (pi->language == 0xFF)
-						pi->language = page_language(&vbi->vt, vtp, 0, 0);
-				} else if (pi->code == VBI_NO_PAGE || pi->code == VBI_UNKNOWN_PAGE)
-					pi->code = VBI_NORMAL_PAGE;
-
-				if (pi->subcode >= 0xFFFE || vtp->subno > pi->subcode)
-					pi->subcode = vtp->subno;
-
-				ev.p = NULL;
-
-				if (!(vtp->flags & C9_INTERRUPTED)
-				    && (vtp->pgno <= 0x199 || (vtp->flags & C11_MAGAZINE_SERIAL))) {
-					if (memcmp(vbi->vt.header, vtp->data.lop.raw[0] + 8, 32) != 0) {
-						memcpy(vbi->vt.header, vtp->data.lop.raw[0] + 8, 32);
-						ev.p = vbi->vt.header;
-
-						if (0) {
-							for (i = 0; i < 40; i++)
-								putchar(printable(vtp->data.unknown.raw[0][i]));
-							putchar('\r');
-							fflush(stdout);
-						}
-					}
-				}
-#if 0 /* TESTING */
-				pthread_mutex_lock(&vbi->resync_mutex);
-
-				if (vbi->resync > 0) {
-					char buf[4];
-					int i, j = 21;
-
-fprintf(stderr, "compare teletext headers\n");
-
-					snprintf(buf, sizeof(buf), "%3x", vtp->pgno);
-for (i = 0; i < 3; i++)
-fprintf(stderr, "%02x ", buf[i]);
-fprintf(stderr, "\n");
-for (i = 0; i < 32; i++)
-fprintf(stderr, "%02x ", vtp->data.lop.raw[0][i + 8]);
-fprintf(stderr, "\n");
-for (i = 0; i < 32; i++)
-fprintf(stderr, "%02x ", vtp->data.lop.raw[0][i + 8] & 0x7F);
-fprintf(stderr, "\n");
-for (i = 0; i < 32; i++)
-fprintf(stderr, "%02x ", vbi->vt.alien_header[i]);
-fprintf(stderr, "\n");
-					for (i = 0; i < 24; i++) {
-						unsigned char *p =
-							vtp->data.lop.raw[0] + i + 8;
-
-						if (i < j
-						    && (p[0] & 0x7F) == buf[0]
-						    && (p[1] & 0x7F) == buf[1]
-						    && (p[2] & 0x7F) == buf[2]) {
-							j = i;
-							i += 3;
-							continue;
-						}
-
-						if (*p != vbi->vt.alien_header[i])
-							break;
-					}
-fprintf(stderr, "results %d %d\n", i, j);
-
-					if (i >= 24) {
-						vbi->resync = 0; /* no switch */
-fprintf(stderr, "equal\n");
-					}
-				}
-
-				pthread_mutex_unlock(&vbi->resync_mutex);
-#endif /* TESTING */
-
-				ev.type = VBI_EVENT_PAGE;
-				ev.pgno = vtp->pgno;
-				ev.subno = vtp->subno;
-
-				if (vbi_cache_put(vbi, vtp))
-			    		vbi_send_event(vbi, &ev);
+				if (!store_lop(vbi, vtp))
+					return FALSE;
 				break;
 
 			case PAGE_FUNCTION_DRCS:
@@ -1613,11 +2083,15 @@ fprintf(stderr, "equal\n");
 			break;
 		}
 
+		/*
+		 *  Prepare for new page.
+		 */
+
 		cvtp->pgno = pgno;
 		vbi->vt.current = rvtp;
 
-		subpage = hamm16a(p + 2) + hamm16a(p + 4) * 256;
-		flags = hamm16a(p + 6);
+		subpage = hamm16(p + 2) + hamm16(p + 4) * 256;
+		flags = hamm16(p + 6);
 
 		if (page == 0xFF || (subpage | flags) < 0) {
 			cvtp->function = PAGE_FUNCTION_DISCARD;
@@ -1638,7 +2112,7 @@ fprintf(stderr, "equal\n");
 		{
 			memset(&cvtp->data, 0, sizeof(cvtp->data));
 			memcpy(&cvtp->data, &vtp->data,
-				vtp_size(vtp) - sizeof(*vtp) + sizeof(vtp->data));
+			       vtp_size(vtp) - sizeof(*vtp) + sizeof(vtp->data));
 
 			/* XXX write cache directly | erc?*/
 			/* XXX data page update */
@@ -1746,6 +2220,10 @@ fprintf(stderr, "equal\n");
 				function = PAGE_FUNCTION_POP;
 				break;
 
+			case VBI_TRIGGER_DATA:
+				function = PAGE_FUNCTION_TRIGGER;
+				break;
+
 			case 0x52 ... 0x6F:	/* reserved */
 			case VBI_EPG_DATA:	/* EPG/NexTView transport layer */
 			case VBI_ACI:		/* ACI page */
@@ -1754,7 +2232,6 @@ fprintf(stderr, "equal\n");
 			case 0xE0 ... 0xE2:	/* data broadcasting */
 			case 0xE4:		/* data broadcasting */
 			case 0xF0 ... 0xF3:	/* broadcaster system page */
-			case 0xFC:		/* reserved */
 				function = PAGE_FUNCTION_DISCARD;
 				break;
 
@@ -1777,10 +2254,11 @@ fprintf(stderr, "equal\n");
 	}
 
 	case 1 ... 25:
-		switch (cvtp->function) {
-			char n;
-			int i;
+	{
+		char n;
+		int i;
 
+		switch (cvtp->function) {
 		case PAGE_FUNCTION_DISCARD:
 			return TRUE;
 
@@ -1826,8 +2304,8 @@ fprintf(stderr, "equal\n");
 				n |= parity(p[i]);
 			if (n < 0)
 				return FALSE;
-			memcpy(cvtp->data.unknown.raw[packet], p, 40);
-			break;
+
+			/* fall through */
 
 		case PAGE_FUNCTION_MIP:
 		default:
@@ -1837,12 +2315,18 @@ fprintf(stderr, "equal\n");
 
 		cvtp->lop_lines |= 1 << packet;
 
-		return TRUE;
+		break;
+	}
 
 	case 26:
 	{
 		int designation;
 		vt_triplet triplet;
+		int i;
+
+		/*
+		 *  Page enhancement packet
+		 */
 
 		switch (cvtp->function) {
 		case PAGE_FUNCTION_DISCARD:
@@ -1867,7 +2351,7 @@ fprintf(stderr, "equal\n");
 			break;
 		}
 
-		if ((designation = hamm8a[p[0]]) < 0)
+		if ((designation = hamm8(*p)) < 0)
 			return FALSE;
 
 		if (rvtp->num_triplets >= 16 * 13
@@ -1877,338 +2361,62 @@ fprintf(stderr, "equal\n");
 		}
 
 		for (p++, i = 0; i < 13; p += 3, i++) {
-			int t = hamm24(p, &err);
+			int t = hamm24(p);
+
+			if (t < 0)
+				break; /* XXX */
 
 			triplet.address = t & 0x3F;
 			triplet.mode = (t >> 6) & 0x1F;
 			triplet.data = t >> 11;
-// XXX if !err
+
 			cvtp->data.enh_lop.enh[rvtp->num_triplets++] = triplet;
 
-			if (0)
-				if (triplet.mode >= 6 && triplet.mode <= 13)
-					parse_x26_pdc(triplet.address, triplet.mode, triplet.data);
+			if (0
+			    && triplet.mode >= 6
+			    && triplet.mode <= 13)
+				parse_x26_pdc(triplet.address,
+					      triplet.mode, triplet.data);
 		}
 
 		cvtp->enh_lines |= 1 << designation;
 
-		return TRUE;
+		break;
 	}
 
 	case 27:
-	{
-		int designation, control;
-
-		if (cvtp->function == PAGE_FUNCTION_DISCARD)
-			return TRUE;
-
-		if ((designation = hamm8a[p[0]]) < 0)
-			return 4;
-
-//		printf("X/27/%d page %x\n", designation, cvtp->pgno);
-
-		switch (designation) {
-		case 0:
-			if ((control = hamm8a[p[37]]) < 0)
-				return 4;
-
-//			printf("%x/%x X/27/%d %02x\n", cvtp->pgno, cvtp->subno, designation, control);
-
-#if 0
-/* CRC cannot be trusted, some stations transmit rubbish. */
-/* Link Control Byte bits 1 ... 3 cannot be trusted, ETS 300 706 is
-   inconclusive and not all stations follow the suggestions in ETR 287. */
-
-			crc = p[38] + p[39] * 256;
-//			printf("CRC: %04x\n", crc);
-
-			if ((control & 7) == 0)
-				return 0;
-#endif
-			cvtp->data.unknown.flof = control >> 3; /* display row 24 */
-
-			/* fall through */
-
-		case 1:
-		case 2:
-		case 3:
-			for (p++, i = 0; i <= 5; p += 6, i++) {
-				if (!hamm8_page_number(cvtp->data.unknown.link
-				    + designation * 6 + i, p, mag0))
-				; //	return 1;
-
-// printf("X/27/%d link[%d] page %03x/%03x\n", designation, i,
-//	cvtp->data.unknown.link[designation * 6 + i].pgno, cvtp->data.unknown.link[designation * 6 + i].subno);
-			}
-
-			break;
-
-		case 4:
-		case 5:
-			for (p++, i = 0; i <= 5; p += 6, i++) {
-				int t1, t2;
-
-				t1 = hamm24(p + 0, &err);
-				t2 = hamm24(p + 3, &err);
-				if (err & 0xf000)
-					return 4;
-
-				cvtp->data.unknown.link[designation * 6 + i].type = t1 & 3;
-				cvtp->data.unknown.link[designation * 6 + i].pgno =
-					((((t1 >> 12) & 0x7) ^ mag0) ? : 8) * 256
-					+ ((t1 >> 11) & 0x0F0) + ((t1 >> 7) & 0x00F);
-				cvtp->data.unknown.link[designation * 6 + i].subno =
-					(t2 >> 3) & 0xFFFF;
-if(0)
- printf("X/27/%d link[%d] type %d page %03x subno %04x\n", designation, i,
-	cvtp->data.unknown.link[designation * 6 + i].type,
-	cvtp->data.unknown.link[designation * 6 + i].pgno,
-	cvtp->data.unknown.link[designation * 6 + i].subno);
-			}
-
-			break;
-		}
-
-		return 0;
-	}
+		if (!parse_27(vbi, p, cvtp, mag0))
+			return FALSE;
+		break;
 
 	case 28:
 		if (cvtp->function == PAGE_FUNCTION_DISCARD)
-			return TRUE;
+			break;
 
 		/* fall through */
-
 	case 29:
-	{
-		int designation, function;
-		int triplets[13], *triplet = triplets, buf = 0, left = 0;
-		extension *ext;
-
-		static int
-		bits(int count)
-		{
-			int r, n;
-
-			r = buf;
-			if ((n = count - left) > 0) {
-				r |= (buf = *triplet++) << left;
-				left = 18;
-			} else
-				n = count;
-			buf >>= n;
-			left -= n;
-
-			return r & ((1UL << count) - 1);
-		}
-
-		designation = hamm8(p, &err);
-		if (err & 0xf000)
-			return 4;
-
-//	printf("packet %d/%d/%d page %3x\n", mag8, packet, designation, cvtp->pgno);
-
-		for (p++, i = 0; i < 13; p += 3, i++)
-			triplet[i] = hamm24(p, &err);
-
-		switch (designation) {
-		case 0: /* X/28/0, M/29/0 Level 2.5 */
-		case 4: /* X/28/4, M/29/4 Level 3.5 */
-			if (err & 0xf000)
-				return 4;
-
-			function = bits(4);
-			bits(3); /* page coding ignored */
-
-//			printf("... function %d\n", function);
-
-			/*
-			 *  ZDF and BR3 transmit GPOP 1EE/.. with 1/28/0 function
-			 *  0 = PAGE_FUNCTION_LOP, should be PAGE_FUNCTION_GPOP.
-			 *  Makes no sense to me. Update: also encountered pages
-			 *  mFE and mFF with function = 0. Strange. 
-			 */
-			if (function != PAGE_FUNCTION_LOP && packet == 28) {
-				if (cvtp->function != PAGE_FUNCTION_UNKNOWN
-				    && cvtp->function != function)
-					return 0; /* XXX discard rpage? */
-
-// XXX rethink				cvtp->function = function;
-			}
-
-			if (function != PAGE_FUNCTION_LOP)
-				return 0;
-
-			/* XXX X/28/0 Format 2, distinguish how? */
-
-			ext = &vbi->vt.magazine[mag8].extension;
-
-			if (packet == 28) {
-				if (!cvtp->data.ext_lop.ext.designations) {
-					cvtp->data.ext_lop.ext = *ext;
-					cvtp->data.ext_lop.ext.designations <<= 16;
-					cvtp->data.lop.ext = TRUE;
-				}
-
-				ext = &cvtp->data.ext_lop.ext;
-			}
-
-			if (designation == 4 && (ext->designations & (1 << 0)))
-				bits(14 + 2 + 1 + 4);
-			else {
-				ext->char_set[0] = bits(7);
-				ext->char_set[1] = bits(7);
-
-				ext->fallback.left_side_panel = bits(1);
-				ext->fallback.right_side_panel = bits(1);
-
-				bits(1); /* panel status: level 2.5/3.5 */
-
-				ext->fallback.left_panel_columns = bit_reverse[bits(4)] >> 4;
-
-				if (ext->fallback.left_side_panel
-				    | ext->fallback.right_side_panel)
-					ext->fallback.left_panel_columns =
-						ext->fallback.left_panel_columns ? : 16;
-			}
-
-			j = (designation == 4) ? 16 : 32;
-
-			for (i = j - 16; i < j; i++) {
-				attr_rgba col = bits(12);
-
-				if (i == 8) /* transparent */
-					continue;
-
-				col |= (col & 0xF00) << 8;
-				col &= 0xF00FF;
-				col |= (col & 0xF0) << 4;
-				col &= 0xF0F0F;
-
-				ext->colour_map[i] = col | (col << 4) | 0xFF000000UL;
-			}
-
-			if (designation == 4 && (ext->designations & (1 << 0)))
-				bits(10 + 1 + 3);
-			else {
-				ext->def_screen_colour = bits(5);
-				ext->def_row_colour = bits(5);
-
-				ext->fallback.black_bg_substitution = bits(1);
-
-				i = bits(3); /* colour table remapping */
-
-				ext->foreground_clut = "\00\00\00\10\10\20\20\20"[i];
-				ext->background_clut = "\00\10\20\10\20\10\20\30"[i];
-			}
-
-			ext->designations |= 1 << designation;
-
-			if (packet == 29) {
-				if (0 && designation == 4)
-					ext->designations &= ~(1 << 0);
-
-				/*
-				    XXX update
-				    inherited_mag_desig = page->extension.designations >> 16;
-				    new_mag_desig = 1 << designation;
-				    page_desig = page->extension.designations;
-				     if (((inherited_mag_desig | page_desig) & new_mag_desig) == 0)
-				    shortcut: AND of (inherited_mag_desig | page_desig) of all pages
-				     with extensions, no updates required in round 2++
-				    other option, all M/29/x should have been received within the
-				    maximum repetition interval of 20 s.
-				 */
-			}
-
-			return 0;
-
-		case 1: /* X/28/1, M/29/1 Level 3.5 DRCS CLUT */
-
-			ext = &vbi->vt.magazine[mag8].extension;
-
-			if (packet == 28) {
-				if (!cvtp->data.ext_lop.ext.designations) {
-					cvtp->data.ext_lop.ext = *ext;
-					cvtp->data.ext_lop.ext.designations <<= 16;
-					cvtp->data.lop.ext = TRUE;
-				}
-
-				ext = &cvtp->data.ext_lop.ext;
-				/* XXX TODO - lop? */
-			}
-
-			triplet++;
-
-			for (i = 0; i < 8; i++)
-				ext->drcs_clut[i + 2] = bit_reverse[bits(5)] >> 3;
-
-			for (i = 0; i < 32; i++)
-				ext->drcs_clut[i + 10] = bit_reverse[bits(5)] >> 3;
-
-			ext->designations |= 1 << 1;
-
-			if (0)
-				dump_extension(ext);
-
-			return 0;
-
-		case 3: /* X/28/3 Level 2.5, 3.5 DRCS download page */
-			if (packet == 29)
-				break; /* M/29/3 undefined */
-
-			if (err & 0xf000)
-				return 4;
-
-			function = bits(4);
-			bits(3); /* page coding ignored */
-
-			if (function != PAGE_FUNCTION_GDRCS
-			    || function != PAGE_FUNCTION_DRCS)
-				return 0;
-
-			if (cvtp->function == PAGE_FUNCTION_UNKNOWN) {
-				memmove(cvtp->data.drcs.raw, cvtp->data.unknown.raw, sizeof(cvtp->data.drcs.raw));
-				cvtp->function = function;
-			} else if (cvtp->function != function) {
-				cvtp->function = PAGE_FUNCTION_DISCARD;
-				return 0;
-			}
-
-			bits(11);
-
-			for (i = 0; i < 48; i++)
-				cvtp->data.drcs.mode[i] = bits(4);
-		}
-
-		return 0;
-	}
+		if (!parse_28_29(vbi, p, cvtp, mag8, packet))
+			return FALSE;
+		break;
 
 	case 30:
-		if (mag8 != 8)
-			break;
-
-		if ((designation = hamm8a[*p]) < 0)
-			return FALSE;
-
-		if (designation > 4)
-			break;
-
-		if (vbi->event_mask & TTX_EVENTS) {
-			if (!hamm8_page_number(&vbi->vt.initial_page, p + 1, 0))
+	case 31:
+		/*
+		 *  IDL packet (ETS 300 708)
+		 */
+		switch (/* Channel */ pmag & 15) {
+		case 0: /* Packet 8/30 (ETS 300 706) */
+			if (!parse_8_30(vbi, p, packet))
 				return FALSE;
+			break;
 
-			if ((vbi->vt.initial_page.pgno & 0xFF) == 0xFF) {
-				vbi->vt.initial_page.pgno = 0x100;
-				vbi->vt.initial_page.subno = ANY_SUB;
-			}
+		default:
+#if TELEWEB_ALERT /* no 6.8 ??? */
+			fprintf(stderr, "TWA: %d\n", pmag & 0x0F);
+#endif
+			break;
 		}
 
-		if (vbi->event_mask & BSD_EVENTS)
-			return parse_bsd(vbi, p, packet, designation);
-
-		break;
-	
-	default:
 		break;
 	}
 
@@ -2220,15 +2428,66 @@ if(0)
  */
 static const attr_rgba
 default_colour_map[40] = {
-	0xFF000000, 0xFF0000FF, 0xFF00FF00, 0xFF00FFFF,	0xFFFF0000, 0xFFFF00FF, 0xFFFFFF00, 0xFFFFFFFF,
-	0xFF000000, 0xFF000077, 0xFF007700, 0xFF007777, 0xFF770000, 0xFF770077, 0xFF777700, 0xFF777777,
-	0xFF5500FF, 0xFF0077FF, 0xFF77FF00, 0xFFBBFFFF, 0xFFAACC00, 0xFF000055, 0xFF225566, 0xFF7777CC,
-	0xFF333333, 0xFF7777FF, 0xFF77FF77, 0xFF77FFFF, 0xFFFF7777, 0xFFFF77FF, 0xFFFFFF77, 0xFFDDDDDD,
+	0xFF000000, 0xFF0000FF, 0xFF00FF00, 0xFF00FFFF,
+	0xFFFF0000, 0xFFFF00FF, 0xFFFFFF00, 0xFFFFFFFF,
+	0xFF000000, 0xFF000077, 0xFF007700, 0xFF007777,
+	0xFF770000, 0xFF770077, 0xFF777700, 0xFF777777,
+	0xFF5500FF, 0xFF0077FF, 0xFF77FF00, 0xFFBBFFFF,
+	0xFFAACC00, 0xFF000055, 0xFF225566, 0xFF7777CC,
+	0xFF333333, 0xFF7777FF, 0xFF77FF77, 0xFF77FFFF,
+	0xFFFF7777, 0xFFFF77FF, 0xFFFFFF77, 0xFFDDDDDD,
 
 	/* Private colours */
 
-	0xFF000000, 0xFF99AAFF, 0xFF44EE00, 0xFF00DDFF, 0xFFFFAA99, 0xFFFF00FF, 0xFFFFFF00, 0xFFEEEEEE,
+	0xFF000000, 0xFF99AAFF, 0xFF44EE00, 0xFF00DDFF,
+	0xFFFFAA99, 0xFFFF00FF, 0xFFFFFF00, 0xFFEEEEEE,
 };
+
+/**
+ * vbi_set_default_region:
+ * @vbi: vbi decoder context
+ * @default_region: a value between 0 ... 80, index into
+ *   font_descriptors[] table, lang.c. The three lsb are
+ *   insignificant.
+ * 
+ * The original Teletext specification distinguished between
+ * eight national character sets. When more countries started
+ * to broadcast Teletext the three bit character set id was
+ * locally redefined and later extended to seven bits grouping
+ * the regional variations. Since some stations still transmit
+ * only the legacy id and we don't ship regional variants this
+ * function can be used to set a default for the extended bits.
+ * The factory default is 16.
+ **/
+void
+vbi_set_default_region(struct vbi *vbi, int default_region)
+{
+	int i;
+
+	if (default_region < 0 || default_region > 87)
+		return;
+
+	vbi->vt.region = default_region;
+
+	for (i = 0; i < 9; i++) {
+		extension *ext = &vbi->vt.magazine[i].extension;
+
+		ext->char_set[0] =
+		ext->char_set[1] =
+			default_region;
+	}
+}
+
+void
+vbi_set_teletext_level(struct vbi *vbi, int level)
+{
+	if (level < VBI_LEVEL_1)
+		level = VBI_LEVEL_1;
+	else if (level > VBI_LEVEL_3p5)
+		level = VBI_LEVEL_3p5;
+
+	vbi->vt.max_level = level;
+}
 
 void
 vbi_teletext_desync(struct vbi *vbi)
@@ -2283,70 +2542,18 @@ vbi_teletext_channel_switched(struct vbi *vbi)
 		memcpy(ext->colour_map, default_colour_map, sizeof(ext->colour_map));
 	}
 
+	vbi_set_default_region(vbi, vbi->vt.region);
+
 	vbi_teletext_desync(vbi);
-}
-
-/**
- * vbi_set_default_region:
- * @vbi: vbi decoder context
- * @default_region: a value between 0 ... 80, index into
- *   font_descriptors[] table, lang.c. The three lsb are
- *   insignificant.
- * 
- * The original Teletext specification distinguished between
- * eight national character sets. When more countries started
- * to broadcast Teletext the three bit character set id was
- * locally redefined and later extended to seven bits grouping
- * the regional variations. Since some stations still transmit
- * only the legacy id and we don't ship regional variants this
- * function can be used to set a default for the extended bits.
- * The factory default is 16.
- **/
-void
-vbi_set_default_region(struct vbi *vbi, int default_region)
-{
-	int i;
-
-	if (default_region < 0 || default_region > 87)
-		return;
-
-	for (i = 0; i < 9; i++) {
-		extension *ext = &vbi->vt.magazine[i].extension;
-
-		ext->char_set[0] =
-		ext->char_set[1] =
-			default_region;
-	}
-}
-
-void
-vbi_set_teletext_level(struct vbi *vbi, int level)
-{
-	if (level < VBI_LEVEL_1)
-		level = VBI_LEVEL_1;
-	else if (level > VBI_LEVEL_3p5)
-		level = VBI_LEVEL_3p5;
-
-	vbi->vt.max_level = level;
 }
 
 void
 vbi_init_teletext(struct vbi *vbi)
 {
-	extension *ext;
-	int i;
-
-	vbi_teletext_channel_switched(vbi);     /* Reset */
-
+	vbi->vt.region = 16;
 	vbi->vt.max_level = VBI_LEVEL_2p5;
 
-	for (i = 0; i < 9; i++) {
-		ext = &vbi->vt.magazine[i].extension;
-
-		ext->char_set[0] = 16;		/* Latin G0, G2, English subset */
-		ext->char_set[0] = 16;		/* Latin G0, English subset */
-						/* Region Western Europe and Turkey */
-	}
+	vbi_teletext_channel_switched(vbi);     /* Reset */
 }
 
 

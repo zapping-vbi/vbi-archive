@@ -36,13 +36,12 @@ size_t ucs2_strlen(const void *string)
   return i;
 }
 
-void*
+void *
 convert (const void *string, int bytes,
 	 const char *input, const char *output)
 {
   iconv_t ic;
-  char *new, *ob;
-  const char *ib;
+  char *new, *ib, *ob;
   size_t ibl, obl;
 
   if (!string) return NULL;
@@ -50,15 +49,12 @@ convert (const void *string, int bytes,
   ic = iconv_open (output, input);
   if (ic == (iconv_t) -1) return NULL;
   
-  ib = string;
+  ib = (char *) string;
   ibl = bytes;
   new = ob = (char*) calloc (1, sizeof(char) * (ibl * 6 + 2));
   obl = ibl * 6 + 2;
 
-#ifndef ICONV_CONST
-#define ICONV_CONST
-#endif  
-  iconv (ic, (ICONV_CONST char**)&ib, &ibl, &(ob), &obl);
+  iconv (ic, (void *) &ib, &ibl, (void *) &ob, &obl);
   
   *((unsigned short*)ob) = 0;
   

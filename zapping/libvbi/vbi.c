@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.69 2001-08-12 18:36:45 mschimek Exp $ */
+/* $Id: vbi.c,v 1.70 2001-08-14 16:36:48 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -293,26 +293,28 @@ decode_wss_cpr1204(struct vbi *vbi, unsigned char *buf)
 
 #include <sys/resource.h>
 
-static void
-channel_switched(struct vbi *vbi)
+void
+vbi_chsw_reset(struct vbi *vbi, nuid identified)
 {
 	nuid old_nuid = vbi->network.nuid;
 	vbi_event ev;
 
-return; /* unfinished */
+//	fprintf(stderr, "*** chsw identified=%d old nuid=%d\n", identified, old_nuid);
 
-	/* XXX cache */
+	vbi_cache_flush(vbi);
 
 	vbi_teletext_channel_switched(vbi);
 	vbi_caption_channel_switched(vbi);
 
-	memset(&vbi->network, 0, sizeof(&vbi->network));
+	if (identified == 0) {
+		memset(&vbi->network, 0, sizeof(vbi->network));
 
-	if (old_nuid) {
-		ev.type = VBI_EVENT_NETWORK;
-		ev.p = &vbi->network;
-		vbi_send_event(vbi, &ev);
-	}
+		if (old_nuid != 0) {
+			ev.type = VBI_EVENT_NETWORK;
+			ev.p = &vbi->network;
+			vbi_send_event(vbi, &ev);
+		}
+	} /* else already identified */
 
 	vbi_trigger_flush(vbi); /* sic? */
 
@@ -335,6 +337,14 @@ return; /* unfinished */
 	vbi->wss_last[1] = 0;
 	vbi->wss_rep_ct = 0;
 	vbi->wss_time = 0.0;
+
+	vbi->vt.header_page.pgno = 0;
+
+	pthread_mutex_lock(&vbi->chswcd_mutex);
+
+	vbi->chswcd = 0;
+
+	pthread_mutex_unlock(&vbi->chswcd_mutex);
 }
 
 static void *
@@ -371,29 +381,26 @@ mainloop(void *p)
 			 *  Since (dropped >= channel switch) we give
 			 *  ~1.5 s to refute, then assume a switch.
 			 */
-			pthread_mutex_lock(&vbi->resync_mutex);
+			pthread_mutex_lock(&vbi->chswcd_mutex);
 
-			if (vbi->resync == 0) {
-				memcpy(vbi->vt.alien_header, vbi->vt.header,
-				       sizeof(vbi->vt.alien_header));
-				vbi->resync = 40;
-			}
+			if (vbi->chswcd == 0)
+				vbi->chswcd = 40;
 
-			pthread_mutex_unlock(&vbi->resync_mutex);
+			pthread_mutex_unlock(&vbi->chswcd_mutex);
 
-// fprintf(stderr, "vbi frame/s dropped at %f, D=%f\n", b->time, b->time - vbi->time);
+			// fprintf(stderr, "vbi frame/s dropped at %f, D=%f\n", b->time, b->time - vbi->time);
 			if (vbi->event_mask & (VBI_EVENT_PAGE | VBI_EVENT_NETWORK))
 				vbi_teletext_desync(vbi);
 			if (vbi->event_mask & (VBI_EVENT_CAPTION | VBI_EVENT_NETWORK))
 				vbi_caption_desync(vbi);
 		} else {
-			pthread_mutex_lock(&vbi->resync_mutex);
+			pthread_mutex_lock(&vbi->chswcd_mutex);
 
-			if (vbi->resync > 0 && --vbi->resync == 0) {
-				pthread_mutex_unlock(&vbi->resync_mutex);
-				channel_switched(vbi);
+			if (vbi->chswcd > 0 && --vbi->chswcd == 0) {
+				pthread_mutex_unlock(&vbi->chswcd_mutex);
+				vbi_chsw_reset(vbi, 0);
 			} else
-				pthread_mutex_unlock(&vbi->resync_mutex);
+				pthread_mutex_unlock(&vbi->chswcd_mutex);
 		}
 
 		if (b->time > vbi->time)
@@ -436,14 +443,42 @@ mainloop(void *p)
 	return NULL;
 }
 
+/**
+ * vbi_channel_switched:
+ * @vbi: VBI decoding context
+ * @nuid: Set to zero until further
+ * 
+ * Call this after switching away from the channel (that is RF
+ * channel, baseband video line etc, precisely: the network) from
+ * which this context is receiving vbi data, to reset the context
+ * accordingly. The decoder attempts to detect channel switches
+ * automatically, but this is not 100 % reliable esp. without
+ * receiving and decoding Teletext or VPS. In the past only
+ * (re-)opening would reset the context. 
+ *
+ * Note the reset request is not executed until the next frame
+ * is about to be decoded, so you can still receive "old" events
+ * after calling this.
+ *
+ * Side effects: A reset deletes all Teletext pages previously
+ * stored in the cache [XXX change to "may delete", require
+ * nuid to access cached pages]. You may receive a
+ * VBI_EVENT_RATIO and VBI_EVENT_NETWORK revoking a previous
+ * event of the same kind. Note the possibility of sending a
+ * blank vbi_network to notify the event handler of the
+ * (autodetected) switch and the (temporary) inability to
+ * identify the new network.
+ **/
 void
-vbi_channel_switched(struct vbi *vbi)
+vbi_channel_switched(struct vbi *vbi, nuid nuid)
 {
-	pthread_mutex_lock(&vbi->resync_mutex);
+	/* XXX nuid */
 
-	vbi->resync = 1;
+	pthread_mutex_lock(&vbi->chswcd_mutex);
 
-	pthread_mutex_unlock(&vbi->resync_mutex);
+	vbi->chswcd = 1;
+
+	pthread_mutex_unlock(&vbi->chswcd_mutex);
 }
 
 /* TEST ONLY */
@@ -781,7 +816,7 @@ vbi_close(struct vbi *vbi)
 	vbi_trigger_flush(vbi);
 
 	pthread_mutex_destroy(&vbi->event_mutex);
-	pthread_mutex_destroy(&vbi->resync_mutex);
+	pthread_mutex_destroy(&vbi->chswcd_mutex);
 
 	rem_producer(&vbi->wss_producer);
 
@@ -833,7 +868,7 @@ vbi_open(fifo *source)
 
 	/* Initialize the decoder */
 
-	pthread_mutex_init(&vbi->resync_mutex, NULL);
+	pthread_mutex_init(&vbi->chswcd_mutex, NULL);
 	pthread_mutex_init(&vbi->event_mutex, NULL);
 
 	vbi->time = 0.0;
@@ -853,7 +888,7 @@ vbi_open(fifo *source)
 	if (pthread_create(&vbi->mainloop_thread_id, NULL, mainloop, vbi)) {
 		/* Or maybe not */
 		pthread_mutex_destroy(&vbi->event_mutex);
-		pthread_mutex_destroy(&vbi->resync_mutex);
+		pthread_mutex_destroy(&vbi->chswcd_mutex);
 		rem_producer(&vbi->wss_producer);
 		remove_filter(vbi);
 		vbi_cache_destroy(vbi);
@@ -862,5 +897,8 @@ vbi_open(fifo *source)
 		return NULL;
 	}
 
+#if TELEWEB_ALERT
+	fprintf(stderr, "TWA on\n");
+#endif
 	return vbi;
 }

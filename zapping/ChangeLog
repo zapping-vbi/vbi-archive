@@ -1,3 +1,10 @@
+14.08.2001	libvbi <mschimek@users.sf.net>
+
+	* Added explicit and autodetected channel switch. Note
+	  VBI_EVEN_NETWORK changed: vbi_network can be all zero
+	  now when switching away from a known channel.
+	* Updated CNI table.
+
 13.08.2001	capture code rewrite <garetxe@users.sf.net>
 
 	* src/capture.c: Rewrote/cleaned up the capture core to

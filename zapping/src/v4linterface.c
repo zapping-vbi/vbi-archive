@@ -758,7 +758,7 @@ gchar *substitute_keywords	(gchar		*string,
 	   else if (default_name)
 	     buffer = g_strdup(default_name);
 	   else
-	     buffer = g_strdup(_("Unnamed"));
+	     buffer = g_strdup(_("Unknown"));
 	   break;
 	 case 1:
 	   buffer = g_strdup_printf("%d", tc->index+1);
@@ -806,15 +806,17 @@ z_set_main_title	(tveng_tuned_channel	*channel,
 			 gchar *default_name)
 {
   tveng_tuned_channel ch;
-  gchar *buffer;
+  gchar *buffer = NULL;
 
   memset(&ch, 0, sizeof(ch));
 
   if (!channel)
     channel = &ch;
 
-  buffer = substitute_keywords(g_strdup(zcg_char(NULL, "title_format")),
-			       channel, default_name);
+  if (channel != &ch
+      || channel->name || default_name)
+    buffer = substitute_keywords(g_strdup(zcg_char(NULL, "title_format")),
+				 channel, default_name);
   if (buffer && *buffer)
     gtk_window_set_title(GTK_WINDOW(main_window), buffer);
   else

@@ -15,5 +15,18 @@ Known bugs with zapping, don't report them
 	* The standard is changed when changing modes (check, not sure)
 	* Capture won't work under PPC (endianess)
 	* Zapzilla: DRCS/double height char mistake on SWR?
+	* Zapzilla: No fallback on incomplete DRCS page?
+	* Zapzilla: Investigate RTC offset 41-8 instead of 41-9?
 	* Don't compile conv_gen.s if $host != x86
-	* libvbi: Withdraw network id on interruption
+
+
+
+
+
+
+
+
+
+
+
+

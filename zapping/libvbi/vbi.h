@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.h,v 1.33 2001-08-12 18:36:45 mschimek Exp $ */
+/* $Id: vbi.h,v 1.34 2001-08-14 16:36:48 mschimek Exp $ */
 
 #ifndef VBI_H
 #define VBI_H
@@ -54,11 +54,11 @@ struct vbi
 	fifo			*source;
 	double			time;
 
-	pthread_mutex_t		resync_mutex;
-        int                     resync;
-
         pthread_t		mainloop_thread_id;
 	int			quit;		/* XXX */
+
+	pthread_mutex_t		chswcd_mutex;
+        int                     chswcd;
 
 	vbi_network		network;
 
@@ -111,5 +111,11 @@ vbi_send_event(struct vbi *vbi, vbi_event *ev)
 }
 
 extern void		vbi_transp_colourmap(struct vbi *vbi, attr_rgba *d, attr_rgba *s, int entries);
+extern void             vbi_chsw_reset(struct vbi *vbi, nuid nuid);
 
 #endif /* VBI_H */
+
+
+
+
+

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvbi.h,v 1.45 2001-08-10 04:43:28 mschimek Exp $ */
+/* $Id: libvbi.h,v 1.46 2001-08-14 16:36:48 mschimek Exp $ */
 
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
@@ -294,9 +294,10 @@ typedef struct {
 
 #define	VBI_EVENT_NETWORK	(1 << 4)
 /*
- *  Some station/network identifier has been received, vbi_event.p is
- *  a vbi_network pointer. The event will not repeat*) unless a different
- *  identifier has been received and confirmed.
+ *  Some station/network identifier has been received or is no longer
+ *  transmitted (vbi_network all zero, eg. after a channel switch).
+ *  vbi_event.p is a vbi_network pointer. The event will not repeat*)
+ *  unless a different identifier has been received and confirmed.
  *
  *  Minimum time for recognition
  *
@@ -342,7 +343,7 @@ extern int		vbi_event_handler(struct vbi *vbi, int event_mask, void (* handler)(
 extern void		vbi_set_colour_level(struct vbi *vbi, int brig, int cont);
 extern void		vbi_push_video(struct vbi *vbi, void *data, int width,
 			       enum tveng_frame_pixformat fmt, double time);
-extern void             vbi_channel_switched(struct vbi *vbi);
+extern void             vbi_channel_switched(struct vbi *vbi, nuid nuid);
 extern void		vbi_close(struct vbi *vbi);
 extern struct vbi *	vbi_open(fifo *source);
 

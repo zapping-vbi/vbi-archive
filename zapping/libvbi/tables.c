@@ -1,7 +1,8 @@
 /*
  *  Zapzilla - Teletext / PDC tables
  *
- *  PDC and VPS CNI codes rev. 4, based on TR 101 231 EBU (2000-09): www.ebu.ch
+ *  PDC and VPS CNI codes rev. 5, based on
+ *    TR 101 231 EBU (2001-08): www.ebu.ch
  *  Programme type tables (PDC/EPG)
  *
  *  Copyright (C) 1999-2001 Michael H. Schimek
@@ -21,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: tables.c,v 1.6 2001-08-09 15:12:20 mschimek Exp $ */
+/* $Id: tables.c,v 1.7 2001-08-14 16:36:48 mschimek Exp $ */
 
 /*
     Packet 8/30 f1	Byte 13			Byte 14
@@ -315,7 +316,7 @@ country_names_en[] = {
  *  (Unified to create a unique station id where A.1 and B.1 overlap.)
  */
 struct {
-	short		id;		/* unique id 1++, currently the largest is 378 */
+	short		id;		/* unique id 1++, currently the largest is 380 */
 	short		country;
 	char *		short_name;	/* 8 chars (ISO 8859-1) */
 	char *		long_name;	/* (ISO 8859-1) */
@@ -324,11 +325,11 @@ struct {
 	unsigned short	cni3;		/* Packet X/26 */
 	unsigned short	cni4;		/* VPS */
 } PDC_VPS_CNI[] = {
-	{ 1,	BE, "BRTN TV1", "BRTN TV1",			0x3201, 0x1601, 0x3603, 0x0000 },
+	{ 1,	BE, "VRT TV1",  "VRT TV1",			0x3201, 0x1601, 0x3603, 0x0000 },
 	{ 2,	BE, "Ka2",	"Ka2",				0x3206, 0x1606, 0x3606, 0x0000 },
 	{ 3,	BE, "RTBF 1",	"RTBF 1",			0x3203, 0x0000, 0x0000, 0x0000 },
 	{ 4,	BE, "RTBF 2",	"RTBF 2",			0x3204, 0x0000, 0x0000, 0x0000 },
-	{ 5,	BE, "TV2",	"TV2",				0x3202, 0x1602, 0x3602, 0x0000 },
+	{ 5,    BE, "CANVAS",	"CANVAS",			0x3202, 0x1602, 0x3602, 0x0000 },
 	{ 6,	BE, "VT4",	"VT4",				0x0404, 0x1604, 0x3604, 0x0000 },
 	{ 7,	BE, "VTM",	"VTM",				0x3205, 0x1605, 0x3605, 0x0000 },
 
@@ -389,7 +390,7 @@ struct {
 	{ 54,	DE, "ONYX-TV",  "ONYX-TV",			0x0000, 0x0000, 0x0000, 0x0D7C },
 	{ 55,	DE, "QVC",	"QVC-Teleshopping",		0x5C49, 0x0000, 0x0000, 0x0D7D },
 	{ 56,	DE, "Nick.",	"Nickelodeon",			0x0000, 0x0000, 0x0000, 0x0D7E },
-	{ 57,	DE, "HSE",	"Home Shopping Europe",	        0x0000, 0x0000, 0x0000, 0x0D7F },
+	{ 57,	DE, "HSEurope",	"Home Shopping Europe",	        0x0000, 0x0000, 0x0000, 0x0D7F },
 
 	{ 58,	DE, "ORB-1",	"ORB-1 Regional",		0x0000, 0x0000, 0x0000, 0x0D81 },
 	{ 59,	DE, "ORB-3",	"ORB-3 Landesweit",		0x4982, 0x0000, 0x0000, 0x0D82 },
@@ -612,6 +613,7 @@ struct {
 	{ 242,	NL, "RTL 4",	"RTL 4",			0x3104, 0x4804, 0x3804, 0x0000 },
 	{ 243,	NL, "RTL 5",	"RTL 5",			0x3105, 0x4805, 0x3805, 0x0000 },
 	{ 244,	NL, "Veronica", "Veronica",			0x3106, 0x4806, 0x3806, 0x0000 },
+	{ 379,  NL, "The BOX",  "The BOX",			0x3120, 0x4820, 0x3820, 0x0000 },
 	{ 245,	NL, "NRK1",	"NRK1",				0x4701, 0x0000, 0x0000, 0x0000 },
 	{ 246,	NL, "NRK2",	"NRK2",				0x4703, 0x0000, 0x0000, 0x0000 },
 	{ 247,	NL, "TV 2",	"TV 2",				0x4702, 0x0000, 0x0000, 0x0000 },
@@ -676,6 +678,7 @@ struct {
 	{ 304,	TR, "TRT-3",	"TRT-3",			0x9003, 0x4303, 0x3303, 0x0000 },
 	{ 305,	TR, "TRT-4",	"TRT-4",			0x9004, 0x4304, 0x3304, 0x0000 },
 	{ 306,	TR, "TRT-INT",  "TRT-INT",			0x9005, 0x4305, 0x3305, 0x0000 },
+	/* ?? TRT-INT transmits 0x9001 */
 
 	{ 307,	GB, "ANGLIA",   "ANGLIA TV",			0xFB9C, 0x2C1C, 0x3C1C, 0x0000 },
 	{ 308,	GB, "BBC News", "BBC News 24",			0x4469, 0x2C69, 0x3C69, 0x0000 },
@@ -719,7 +722,9 @@ struct {
 	{ 346,	GB, "MERIDIAN", "MERIDIAN",			0x10E4, 0x2C34, 0x3C34, 0x0000 },
 	{ 347,	GB, "MOVIE CH", "MOVIE CHANNEL",		0xFCFB, 0x2C1B, 0x3C1B, 0x0000 },
 	{ 348,	GB, "MTV",	"MTV",				0x4D54, 0x2C14, 0x3C14, 0x0000 },
-	{ 349,	GB, "NBC",	"NBC Europe",			0x8E71, 0x2C31, 0x3C31, 0x0000 },
+	{ 380,  GB, "NGC",	"National Geographic Channel",  0x320B, 0x0000, 0x0000, 0x0000 },
+	{ 349,	GB, "NBC",	"NBC Europe",			0x8E71, 0x2C31, 0x3C31, 0x0E86 },
+	/* not in TR 101 231: 0x0E86 */
 	{ 350,	GB, "Nick.",	"Nickelodeon UK",		0xA460, 0x0000, 0x0000, 0x0000 },
 	{ 351,	GB, "Paramnt",  "Paramount Comedy Channel UK",	0xA465, 0x0000, 0x0000, 0x0000 },
 	{ 352,	GB, "QVC UK",	"QVC UK",			0x5C44, 0x0000, 0x0000, 0x0000 },

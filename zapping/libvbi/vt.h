@@ -120,14 +120,14 @@ typedef vt_triplet enhancement[16 * 13 + 1];
 #define ANY_SUB		0x3F7F
 #endif
 
-/*                              0xE03F7F 	national character subset and sub-page */
-#define C4_ERASE_PAGE		0x000080	/* erase previously stored packets */
-#define C5_NEWSFLASH		0x004000	/* box and overlay */
-#define C6_SUBTITLE		0x008000	/* box and overlay */
-#define C7_SUPPRESS_HEADER	0x010000	/* row 0 not to be displayed */
+/*                              0xE03F7F    nat. char. subset and sub-page */
+#define C4_ERASE_PAGE		0x000080 /* erase previously stored packets */
+#define C5_NEWSFLASH		0x004000 /* box and overlay */
+#define C6_SUBTITLE		0x008000 /* box and overlay */
+#define C7_SUPPRESS_HEADER	0x010000 /* row 0 not to be displayed */
 #define C8_UPDATE		0x020000
 #define C9_INTERRUPTED		0x040000
-#define C10_INHIBIT_DISPLAY	0x080000	/* rows 1-24 not to be displayed */
+#define C10_INHIBIT_DISPLAY	0x080000 /* rows 1-24 not to be displayed */
 #define C11_MAGAZINE_SERIAL	0x100000
 
 struct vt_page
@@ -240,6 +240,7 @@ vtp_size(struct vt_page *vtp)
 #define VBI_KEYWORD_SEARCH_LIST 0xF9
 #define VBI_TOP_BLOCK		0xFA
 #define VBI_TOP_GROUP		0xFB
+#define VBI_TRIGGER_DATA        0xFC
 #define VBI_ACI			0xFD
 #define VBI_TOP_PAGE		0xFE
 
@@ -312,11 +313,13 @@ typedef enum {
 struct teletext {
 	vbi_wst_level		max_level;
 
+	pagenum                 header_page;
 	unsigned char		header[32];
-	unsigned char		alien_header[32];
 
         pagenum		        initial_page;
 	magazine		magazine[9];		/* 1 ... 8; #0 unmodified level 1.5 default */
+
+	int                     region;
 
 	struct page_info {
 		unsigned 		code : 8;

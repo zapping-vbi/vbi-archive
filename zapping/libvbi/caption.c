@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.30 2001-08-10 04:43:28 mschimek Exp $ */
+/* $Id: caption.c,v 1.31 2001-08-14 16:36:48 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -366,7 +366,13 @@ xds_decoder(struct vbi *vbi, int class, int type, char *buffer, int length)
 				for (sum = 0; *s; s++)
 					sum = (sum >> 7) ^ hcrc[(sum ^ *s) & 0x7F];
 
-				vbi->network.nuid = sum & ((1UL << 31) - 1);
+				sum &= ((1UL << 31) - 1);
+				sum |= 1UL << 30;
+
+				if (vbi->network.nuid != 0)
+					vbi_chsw_reset(vbi, sum);
+
+				vbi->network.nuid = sum;
 
 				ev.type = VBI_EVENT_NETWORK;
 				ev.p = &vbi->network;

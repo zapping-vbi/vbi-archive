@@ -38,7 +38,7 @@ hash(int pgno)
 }
 
 void
-vbi_cache_destroy(struct vbi *vbi)
+vbi_cache_flush(struct vbi *vbi)
 {
 	struct cache *ca = vbi->cache;
 	cache_page *cp;
@@ -49,28 +49,18 @@ vbi_cache_destroy(struct vbi *vbi)
 			free(cp);
 		}
 
+	memset(ca->hi_subno, 0, sizeof(ca->hi_subno));
+}
+
+void
+vbi_cache_destroy(struct vbi *vbi)
+{
+	struct cache *ca = vbi->cache;
+
+	vbi_cache_flush(vbi);
+
 	free(ca);
 }
-
-static void
-cache_reset(struct cache *ca)
-{
-    cache_page *cp, *cpn;
-    int i;
-
-    for (i = 0; i < HASH_SIZE; ++i)
-	for (cp = (cache_page *) ca->hash[i].head;
-	     (cpn = (cache_page *) cp->node.succ); cp = cpn)
-	    if (cp->page.pgno / 256 != 9) // don't remove help pages
-	    {
-		rem_node(ca->hash + i, &cp->node);
-		free(cp);
-		ca->npages--;
-	    }
-    memset(ca->hi_subno, 0, sizeof(ca->hi_subno[0]) * 0x900);
-}
-
-
 
 /*
     Get a page from the cache.
