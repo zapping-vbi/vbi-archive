@@ -13,4 +13,9 @@ GETTEXTIZE_FLAGS="--copy --no-changelog"
     exit 1
 }
 
+cd mp1e
+echo libtoolize in mp1e/
+libtoolize --force --copy
+cd -
+
 . $srcdir/m4/autogen.sh

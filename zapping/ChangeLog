@@ -1,3 +1,7 @@
+19.06.2002	<mschimek@users.sf.net>
+
+	* src, glade, plugins: Added show tooltips option.
+
 17.06.2002	<mschimek@users.sf.net>
 
 	* m4, po, intl, config.rpath: Added because cannot use autogen.sh

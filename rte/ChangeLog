@@ -1,3 +1,7 @@
+2002-06-19	<mschimek@users.sf.net>
+
+	* common, macros: Contents moved elsewhere, dirs removed.
+
 2002-06-17	<mschimek@users.sf.net>
 
 	* m4, po, config.rpath: Added because cannot use autogen.sh
