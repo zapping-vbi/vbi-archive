@@ -1,3 +1,13 @@
+2003-11-16    <mschimek@users.sf.net>
+
+	* src/ttxview.c (ttxview_delete): Post destruction use of
+	  color_zmodel. 
+	  (on_main_menu_bookmarks_destroy): Post destruction use of
+	  bookmarks_zmodel.
+	  (on_ttxview_expose_event): Segv refreshing an exposed
+	  region when drawing area is smaller than window. Appears
+	  to "fix" that second bug as well.
+
 2003-11-15    <mschimek@users.sf.net>
 
 	* pixmaps/Makefile.am: Don't install built-in pixmaps.

@@ -1,17 +1,6 @@
 Known bugs in Zapping, don't report them
 ----------------------------------------
 
-* Closing Zapping when ttx child view is open crashes with
-  (zapping:31530): GLib-GObject-WARNING **: invalid uninstantiatable
-  type `<invalid>' in cast to `GObject' (zapping:31530):
-  GLib-GObject-WARNING **: instance of invalid non-instantiatable
-  type `<invalid>' (zapping:31530): GLib-GObject-CRITICAL **: file
-  gsignal.c: line 1926 (g_signal_handlers_disconnect_matched):
-  assertion `G_TYPE_CHECK_INSTANCE (instance)' failed
-* When controls window is open channel change mutes permanently.
-* TTX to video mode switch: "(zapping:14644): Gtk-WARNING
-  **: Toolbar position 8 is not a space", separator not removed.
-  (gtk 2.3)
 * TTX mode, channel switch in ch editor,
   SEGV in vbi_draw_vt_page_region
 * Edited channels, clicked ok, tc==NULL in tuned_channel_nth_name().
@@ -20,9 +9,10 @@ Known bugs in Zapping, don't report them
 * ** (zapping:14562): WARNING **: Group Allgemeine Optionen not found
   in the properties
 * Subtitle overlay must be restored.
-* Video and TTXView window size isn't always right on startup.
+* Video size isn't always right on startup.
 * TTXView main menu quit (commented out) keeps crashing.
 * TTX search: on the fly case and regex change doesnt work.
+* When controls window is open channel change mutes permanently.
 * Wrong window stacking layer of overlay window when
   Zapping restores no-xv fullscreen at startup.
 * (Zapping 0.6.7) Saving QVC-600 TTX page in HTML segfaults.
@@ -58,8 +48,6 @@ Needs more work later:
 * When a/v recording is started under high system load the
   timestamps may differ too much, triggering the mp1e
   "cannot sync" check and aborting Zapping.
-* V4L2 (0.20 and 2.5) RGB pixel formats are incorrectly defined.
-  Gerd Knorr notified, solution pending. Workaround is in place.
 * App specific toolbar_style is pointless. Gnome can already
   handle that for us, see gnome-app-helper.c. Or right click
   on the toolbar dock bevel. Note also Ctrl-Cursor to move
@@ -74,6 +62,15 @@ tvengxv.c
   some attribute names and ranges, and XvGetPortAttribute() will tell
   if they are implemented by the driver.
 * configure.in must check for different versions of xv.
+
+Kernel
+* V4L2 (0.20 and 2.5) RGB pixel formats are incorrectly defined.
+  Gerd Knorr notified, solution pending. Workaround is in place.
+
+GTK
+* TTX to video mode switch: "(zapping:14644): Gtk-WARNING
+  **: Toolbar position 8 is not a space", separator not removed.
+  This is gtk 2.3 bug #127092, no workaround.
 
 XFree86 stuff
 -------------
@@ -132,7 +129,7 @@ V4L XVideo driver (xc/programs/Xserver/hw/xfree86/drivers/v4l/v4l.c)
 
 NVidia driver (binary, not xf86)
 * Reports tv output port with type XvInputMask | XvVideoMask.
-  Should be XvOutputMask.
+  Should be XvOutputMask. Workaround in place.
 
 NeoMagic driver (xc/programs/Xserver/hw/xfree86/drivers/neomagic)
 * The only port is of type XvInputMask | XvImageMask | XvWindowMask |
@@ -151,4 +148,4 @@ Glint driver (xc/programs/Xserver/hw/xfree86/drivers/glint/pm2_video.c)
   namely V4L and SMI (xc/programs/Xserver/hw/xfree86/drivers/
   siliconmotion/smi_video.c), and both list it, but I wonder if it
   really belongs with attributes. This is no picture control and the
-  info is redundant with XvQueryEncodings().
+  info is redundant with XvQueryEncodings(). Workaround in place.
