@@ -1810,7 +1810,7 @@ int tveng_get_debug_level(tveng_device_info * info)
   return (info->debug_level);
 }
 
-void tveng_set_debug_level(tveng_device_info * info, int level)
+void tveng_set_debug_level(int level, tveng_device_info * info)
 {
   t_assert(info != NULL);
 

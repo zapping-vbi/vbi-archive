@@ -1,3 +1,12 @@
+24.1.2001	minor tweaks <garetxe@users.sourceforge.net>
+
+	* src/zmisc.c: Hide the pointer in fullscreen mode.
+	* src/overlay.c: Fixed tv_screen geometry changed handling.
+	* src/callbacks.c: Recompute gometry after modifying (hide, show,
+	resize) toolbar and menu.
+	* src/callbacks.c: Support for mouse wheel buttons 4 (channel up)
+	and 5 (channel down).
+
 23.1.2001	libunicode <garetxe@users.sourceforge.net>
 
 	* configure.in, zapping.spec.in: Added dependency on libunicode

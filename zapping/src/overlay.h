@@ -36,7 +36,7 @@ startup_overlay(GtkWidget * window, GtkWidget * main_window,
  * Stops the overlay engine.
  */
 void
-overlay_stop(tveng_device_info *info, GtkWidget *main_window);
+overlay_stop(tveng_device_info *info);
 
 /*
  * Shuts down the overlay engine

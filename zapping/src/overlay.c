@@ -309,6 +309,17 @@ on_main_overlay_event        (GtkWidget       *widget,
 }
 
 /*
+ * Called when the tv_screen geometry changes
+ */
+static void
+on_tv_screen_size_allocate             (GtkWidget       *widget,
+                                        GtkAllocation   *allocation,
+					gpointer	ignored)
+{
+  overlay_status_changed(FALSE);
+}
+
+/*
  * Called when the main overlay window is destroyed (shuts down the
  * timers)
  */
@@ -352,6 +363,10 @@ startup_overlay(GtkWidget * window, GtkWidget * main_window,
 		     GTK_SIGNAL_FUNC(on_main_overlay_delete_event),
 		     NULL);
 
+  gtk_signal_connect(GTK_OBJECT(window), "size-allocate",
+		     GTK_SIGNAL_FUNC(on_tv_screen_size_allocate),
+		     NULL);
+
   /*
     gdk has no [Sub]structureNotify wrapper, but a timer will
     do nicely.
@@ -388,14 +403,18 @@ startup_overlay(GtkWidget * window, GtkWidget * main_window,
  * Stops the overlay engine.
  */
 void
-overlay_stop(tveng_device_info *info, GtkWidget *main_window)
+overlay_stop(tveng_device_info *info)
 {
-  gtk_signal_disconnect_by_func(GTK_OBJECT(main_window),
+  gtk_signal_disconnect_by_func(GTK_OBJECT(tv_info.main_window),
 				GTK_SIGNAL_FUNC(on_main_overlay_event),
 				NULL);
 
-  gtk_signal_disconnect_by_func(GTK_OBJECT(main_window),
+  gtk_signal_disconnect_by_func(GTK_OBJECT(tv_info.main_window),
 				GTK_SIGNAL_FUNC(on_main_overlay_delete_event),
+				NULL);
+
+  gtk_signal_disconnect_by_func(GTK_OBJECT(tv_info.window),
+				GTK_SIGNAL_FUNC(on_tv_screen_size_allocate),
 				NULL);
 
   if (tv_info.clear_timeout_id >= 0)

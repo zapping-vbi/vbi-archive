@@ -196,16 +196,49 @@ void set_tooltip	(GtkWidget	*widget,
 		       "private tip, or, er, just babbling, you know");
 }
 
+static GdkCursor *fullscreen_cursor=NULL;
+
 static gint
 fullscreen_start(tveng_device_info * info)
 {
   GtkWidget * da; /* Drawing area */
+  GdkPixmap *source, *mask;
+  GdkColor fg = {0, 0, 0, 0};
+  GdkColor bg = {0, 0, 0, 0};
+
+#define empty_cursor_width 16
+#define empty_cursor_height 16
+  unsigned char empty_cursor_bits[] = {
+   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+  unsigned char empty_cursor_mask[] = {
+   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+  source = gdk_bitmap_create_from_data(NULL, empty_cursor_bits,
+				       empty_cursor_width,
+				       empty_cursor_height);
+
+  mask = gdk_bitmap_create_from_data(NULL, empty_cursor_mask,
+				     empty_cursor_width,
+				     empty_cursor_height);
 
   /* Add a black background */
   black_window = gtk_window_new( GTK_WINDOW_POPUP );
   da = gtk_drawing_area_new();
 
   gtk_widget_show(da);
+
+  if (fullscreen_cursor)
+    gdk_cursor_destroy(fullscreen_cursor);
+
+  fullscreen_cursor =
+    gdk_cursor_new_from_pixmap(source, mask, &fg, &bg, 8, 8);
+
+  gdk_pixmap_unref(source);
+  gdk_pixmap_unref(mask);
 
   gtk_container_add(GTK_CONTAINER(black_window), da);
   gtk_widget_set_usize(black_window, gdk_screen_width(),
@@ -214,6 +247,9 @@ fullscreen_start(tveng_device_info * info)
   gtk_widget_show(black_window);
   gtk_window_set_modal(GTK_WINDOW(black_window), TRUE);
   gdk_window_set_decorations(black_window->window, 0);
+
+  /* hide the cursor in fullscreen mode */
+  gdk_window_set_cursor(da->window, fullscreen_cursor);
 
   /* Draw on the drawing area */
   gdk_draw_rectangle(da -> window,
@@ -267,6 +303,11 @@ fullscreen_stop(tveng_device_info * info)
   /* Remove the black window */
   gtk_widget_destroy(black_window);
   x11_force_expose(0, 0, gdk_screen_width(), gdk_screen_height());
+
+  if (fullscreen_cursor)
+    gdk_cursor_destroy(fullscreen_cursor);
+
+  fullscreen_cursor = NULL;
 }
 
 /*
@@ -310,7 +351,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
       capture_stop(info);
       break;
     case TVENG_CAPTURE_WINDOW:
-      overlay_stop(info, main_window);
+      overlay_stop(info);
       break;
     default:
       break;

@@ -157,12 +157,14 @@ on_hide_controls1_activate             (GtkMenuItem     *menuitem,
       zcs_bool(FALSE, "hide_controls");
       gtk_widget_show(lookup_widget(main_window, "dockitem1"));
       gtk_widget_show(lookup_widget(main_window, "dockitem2")); 
+      gtk_widget_queue_resize(main_window);
     }
   else
     {
       zcs_bool(TRUE, "hide_controls");
       gtk_widget_hide(lookup_widget(main_window, "dockitem1"));
       gtk_widget_hide(lookup_widget(main_window, "dockitem2"));
+      gtk_widget_queue_resize(main_window);
     }
 }
 
@@ -361,6 +363,8 @@ on_videotext1_activate                 (GtkMenuItem     *menuitem,
 {
   /* Stop any current capture mode, and start TTX */
   zmisc_switch_mode(TVENG_NO_CAPTURE, main_info);
+
+  gtk_widget_queue_resize(main_window);
 }
 
 void
@@ -505,117 +509,132 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
   if (event->type != GDK_BUTTON_PRESS)
     return FALSE;
 
-  if (bevent->button == 3)
+  switch (bevent->button)
     {
-      GtkMenu * menu = GTK_MENU(create_popup_menu1());
-      GtkWidget * menuitem;
-      tveng_tuned_channel * tuned;
-      /* it needs to be realized before operating on it */
-      gtk_widget_realize(GTK_WIDGET(menu));
-      if ((main_info->num_inputs == 0) ||
-	  (!(main_info->inputs[main_info->cur_input].flags &
-	     TVENG_INPUT_TUNER)))
-	{
-	  menuitem = z_gtk_pixmap_menu_item_new(_("No tuner"),
-						GNOME_STOCK_PIXMAP_CLOSE);
-	  gtk_widget_set_sensitive(menuitem, FALSE);
-	  gtk_widget_show(menuitem);
-	  gtk_menu_insert(menu, menuitem, 1);
-	}
-      else if (tveng_tuned_channel_num() == 0)
-	{
-	  menuitem = z_gtk_pixmap_menu_item_new(_("No tuned channels"),
-						GNOME_STOCK_PIXMAP_CLOSE);
-	  gtk_widget_set_sensitive(menuitem, FALSE);
-	  gtk_widget_show(menuitem);
-	  gtk_menu_insert(menu, menuitem, 1);
-	}
-      else
-	for (i = tveng_tuned_channel_num()-1; i >= 0; i--)
+    case 3:
+      {
+	GtkMenu * menu = GTK_MENU(create_popup_menu1());
+	GtkWidget * menuitem;
+	tveng_tuned_channel * tuned;
+	/* it needs to be realized before operating on it */
+	gtk_widget_realize(GTK_WIDGET(menu));
+	if ((main_info->num_inputs == 0) ||
+	    (!(main_info->inputs[main_info->cur_input].flags &
+	       TVENG_INPUT_TUNER)))
 	  {
-	    tuned = tveng_retrieve_tuned_channel_by_index(i);
-	    g_assert(tuned != NULL);
-	    menuitem =
-	      z_gtk_pixmap_menu_item_new(tuned->name,
-					 GNOME_STOCK_PIXMAP_PROPERTIES);
-	    gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
-			       GTK_SIGNAL_FUNC(on_channel2_activate),
-			       GINT_TO_POINTER(i));
-	    gtk_object_set_user_data(GTK_OBJECT(menuitem), zapping);
+	    menuitem = z_gtk_pixmap_menu_item_new(_("No tuner"),
+						  GNOME_STOCK_PIXMAP_CLOSE);
+	    gtk_widget_set_sensitive(menuitem, FALSE);
 	    gtk_widget_show(menuitem);
 	    gtk_menu_insert(menu, menuitem, 1);
 	  }
-      if (disable_preview)
-	{
-	  widget = lookup_widget(GTK_WIDGET(menu), "go_fullscreen2");
-	  gtk_widget_set_sensitive(widget, FALSE);
-	  gtk_widget_hide(widget);
-	  widget = lookup_widget(GTK_WIDGET(menu), "go_previewing2");
-	  gtk_widget_set_sensitive(widget, FALSE);
-	  gtk_widget_hide(widget);
-	}
-      if (!zvbi_get_object())
-	{
-	  widget = lookup_widget(GTK_WIDGET(menu), "separador6");
-	  gtk_widget_set_sensitive(widget, FALSE);
-	  gtk_widget_hide(widget);
-	  widget = lookup_widget(GTK_WIDGET(menu), "videotext2");
-	  gtk_widget_set_sensitive(widget, FALSE);
-	  gtk_widget_hide(widget);
-	  widget = lookup_widget(GTK_WIDGET(menu), "new_ttxview2");
-	  gtk_widget_set_sensitive(widget, FALSE);
-	  gtk_widget_hide(widget);
-	}
-      /* Remove capturing item if it's redundant */
-      if ((!zvbi_get_object()) && (disable_preview))
-	{
-	  gtk_widget_hide(lookup_widget(GTK_WIDGET(menu),
-					"separador3"));
-	  widget = lookup_widget(GTK_WIDGET(menu), "go_capturing2");
-	  gtk_widget_set_sensitive(widget, FALSE);
-	  gtk_widget_hide(widget);
-	}
-      if (zcg_bool(NULL, "hide_extra"))
-	{
-	  widget = lookup_widget(GTK_WIDGET(menu), "hide_menubars1");
-	  change_pixmenuitem_label(widget, _("Show extra controls"));
-	  set_tooltip(widget,
-		      _("Show the Inputs and Standards menu"));
-	  spixmap =
-	    gnome_stock_pixmap_widget_at_size(widget,
-					      GNOME_STOCK_PIXMAP_BOOK_OPEN,
-					      16, 16);
-	  /************* THIS SHOULD NEVER BE DONE ***********/
-	  gtk_object_destroy(GTK_OBJECT(GTK_PIXMAP_MENU_ITEM(widget)->pixmap));
-	  GTK_PIXMAP_MENU_ITEM(widget)->pixmap = NULL;
-	  /********** BUT THERE'S NO OTHER WAY TO DO IT ******/
-	  gtk_pixmap_menu_item_set_pixmap(GTK_PIXMAP_MENU_ITEM(widget),
-					  spixmap);
-	  gtk_widget_show(spixmap);
-	}
-      if (zcg_bool(NULL, "hide_controls"))
-	{
-	  widget = lookup_widget(GTK_WIDGET(menu), "hide_controls1");
-	  change_pixmenuitem_label(widget, _("Show controls"));
-	  set_tooltip(widget,
-		      _("Show the menu and the toolbar"));
-	  spixmap =
-	    gnome_stock_pixmap_widget_at_size(widget,
-					      GNOME_STOCK_PIXMAP_BOOK_OPEN,
-					      16, 16);
-	  /************* THIS SHOULD NEVER BE DONE ***********/
-	  gtk_object_destroy(GTK_OBJECT(GTK_PIXMAP_MENU_ITEM(widget)->pixmap));
-	  GTK_PIXMAP_MENU_ITEM(widget)->pixmap = NULL;
-	  /********** BUT THERE'S NO OTHER WAY TO DO IT ******/
-	  gtk_pixmap_menu_item_set_pixmap(GTK_PIXMAP_MENU_ITEM(widget),
-					  spixmap);
-	  gtk_widget_show(spixmap);
-	}
-      process_ttxview_menu_popup(main_window, bevent, menu);
-      gtk_menu_popup(menu, NULL, NULL, NULL,
-		     NULL, bevent->button, bevent->time);
-      gtk_object_set_user_data(GTK_OBJECT(menu), zapping);
+	else if (tveng_tuned_channel_num() == 0)
+	  {
+	    menuitem = z_gtk_pixmap_menu_item_new(_("No tuned channels"),
+						  GNOME_STOCK_PIXMAP_CLOSE);
+	    gtk_widget_set_sensitive(menuitem, FALSE);
+	    gtk_widget_show(menuitem);
+	    gtk_menu_insert(menu, menuitem, 1);
+	  }
+	else
+	  for (i = tveng_tuned_channel_num()-1; i >= 0; i--)
+	    {
+	      tuned = tveng_retrieve_tuned_channel_by_index(i);
+	      g_assert(tuned != NULL);
+	      menuitem =
+		z_gtk_pixmap_menu_item_new(tuned->name,
+					   GNOME_STOCK_PIXMAP_PROPERTIES);
+	      gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
+				 GTK_SIGNAL_FUNC(on_channel2_activate),
+				 GINT_TO_POINTER(i));
+	      gtk_object_set_user_data(GTK_OBJECT(menuitem), zapping);
+	      gtk_widget_show(menuitem);
+	      gtk_menu_insert(menu, menuitem, 1);
+	    }
+	if (disable_preview)
+	  {
+	    widget = lookup_widget(GTK_WIDGET(menu), "go_fullscreen2");
+	    gtk_widget_set_sensitive(widget, FALSE);
+	    gtk_widget_hide(widget);
+	    widget = lookup_widget(GTK_WIDGET(menu), "go_previewing2");
+	    gtk_widget_set_sensitive(widget, FALSE);
+	    gtk_widget_hide(widget);
+	  }
+	if (!zvbi_get_object())
+	  {
+	    widget = lookup_widget(GTK_WIDGET(menu), "separador6");
+	    gtk_widget_set_sensitive(widget, FALSE);
+	    gtk_widget_hide(widget);
+	    widget = lookup_widget(GTK_WIDGET(menu), "videotext2");
+	    gtk_widget_set_sensitive(widget, FALSE);
+	    gtk_widget_hide(widget);
+	    widget = lookup_widget(GTK_WIDGET(menu), "new_ttxview2");
+	    gtk_widget_set_sensitive(widget, FALSE);
+	    gtk_widget_hide(widget);
+	  }
+	/* Remove capturing item if it's redundant */
+	if ((!zvbi_get_object()) && (disable_preview))
+	  {
+	    gtk_widget_hide(lookup_widget(GTK_WIDGET(menu),
+					  "separador3"));
+	    widget = lookup_widget(GTK_WIDGET(menu), "go_capturing2");
+	    gtk_widget_set_sensitive(widget, FALSE);
+	    gtk_widget_hide(widget);
+	  }
+	if (zcg_bool(NULL, "hide_extra"))
+	  {
+	    widget = lookup_widget(GTK_WIDGET(menu), "hide_menubars1");
+	    change_pixmenuitem_label(widget, _("Show extra controls"));
+	    set_tooltip(widget,
+			_("Show the Inputs and Standards menu"));
+	    spixmap =
+	      gnome_stock_pixmap_widget_at_size(widget,
+						GNOME_STOCK_PIXMAP_BOOK_OPEN,
+						16, 16);
+	    /************* THIS SHOULD NEVER BE DONE ***********/
+	    gtk_object_destroy(GTK_OBJECT(GTK_PIXMAP_MENU_ITEM(widget)->pixmap));
+	    GTK_PIXMAP_MENU_ITEM(widget)->pixmap = NULL;
+	    /********** BUT THERE'S NO OTHER WAY TO DO IT ******/
+	    gtk_pixmap_menu_item_set_pixmap(GTK_PIXMAP_MENU_ITEM(widget),
+					    spixmap);
+	    gtk_widget_show(spixmap);
+	  }
+	if (zcg_bool(NULL, "hide_controls"))
+	  {
+	    widget = lookup_widget(GTK_WIDGET(menu), "hide_controls1");
+	    change_pixmenuitem_label(widget, _("Show controls"));
+	    set_tooltip(widget,
+			_("Show the menu and the toolbar"));
+	    spixmap =
+	      gnome_stock_pixmap_widget_at_size(widget,
+						GNOME_STOCK_PIXMAP_BOOK_OPEN,
+						16, 16);
+	    /************* THIS SHOULD NEVER BE DONE ***********/
+	    gtk_object_destroy(GTK_OBJECT(GTK_PIXMAP_MENU_ITEM(widget)->pixmap));
+	    GTK_PIXMAP_MENU_ITEM(widget)->pixmap = NULL;
+	    /********** BUT THERE'S NO OTHER WAY TO DO IT ******/
+	    gtk_pixmap_menu_item_set_pixmap(GTK_PIXMAP_MENU_ITEM(widget),
+					    spixmap);
+	    gtk_widget_show(spixmap);
+	  }
+	process_ttxview_menu_popup(main_window, bevent, menu);
+	gtk_menu_popup(menu, NULL, NULL, NULL,
+		       NULL, bevent->button, bevent->time);
+	gtk_object_set_user_data(GTK_OBJECT(menu), zapping);
+      }
       return TRUE;
+    case 4:
+      on_channel_up1_activate(GTK_MENU_ITEM(lookup_widget(widget,
+							  "channel_up1")),
+			      NULL);
+      return TRUE;
+    case 5:
+      on_channel_down1_activate(GTK_MENU_ITEM(lookup_widget(widget,
+					      "channel_down1")),
+				NULL);
+      return TRUE;
+    default:
+      break;
     }
   return FALSE;
 }

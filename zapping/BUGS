@@ -7,3 +7,4 @@ Known bugs with zapping, don't report them
 	! Something leaks horribly every n-milliseconds, memprof says
 	it's x11_add_clips. Weird, but needs fixing.
 	* Need better no-overlay-present handling.
+	* Sometimes the geometry isn't correctly restored at startup.

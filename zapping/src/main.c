@@ -242,7 +242,7 @@ int main(int argc, char * argv[])
     newbttv = 0;
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.81 2001-01-23 23:28:51 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.82 2001-01-24 20:01:26 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -274,7 +274,7 @@ int main(int argc, char * argv[])
       g_error(_("Cannot get device info struct"));
       return -1;
     }
-  tveng_set_debug_level(main_info, debug_msg);
+  tveng_set_debug_level(debug_msg, main_info);
   tveng_set_xv_support(disable_xv, main_info);
   D();
   if (!startup_zapping())
@@ -350,18 +350,17 @@ int main(int argc, char * argv[])
       return -1;
     }
   D();
-  /* Mute the device while we are starting Zapping */
-  if (-1 == tveng_set_mute(1, main_info))
-    fprintf(stderr, "%s\n", main_info->error);
+  /* mute the device while we are starting up */
+  tveng_set_mute(1, main_info);
   D();
   main_window = create_zapping();
   D();
   tv_screen = lookup_widget(main_window, "tv_screen");
-  /* Avoid dumb resizes */
+  /* Avoid dumb resizes to 1 pixel height */
   gtk_signal_connect(GTK_OBJECT(tv_screen), "size-allocate",
 		     GTK_SIGNAL_FUNC(on_tv_screen_size_allocate), NULL);
   /* set periodically the geometry flags on the main window */
-  gtk_timeout_add(50, (GtkFunction)timeout_handler, NULL);
+  gtk_timeout_add(100, (GtkFunction)timeout_handler, NULL);
   /* ensure that the main window is realized */
   gtk_widget_show(main_window);
   while (!tv_screen->window)
@@ -468,6 +467,19 @@ int main(int argc, char * argv[])
 	ShowBox(_("Capture mode couldn't be started:\n%s"),
 		GNOME_MESSAGE_BOX_ERROR, main_info->error);
   D();
+  if (zconf_get_boolean(NULL, "/zapping/internal/callbacks/hide_controls"))
+    {
+      gtk_widget_hide(lookup_widget(main_window, "dockitem1"));
+      gtk_widget_hide(lookup_widget(main_window, "dockitem2"));
+      gtk_widget_queue_resize(main_window);
+    }
+  if (zconf_get_boolean(NULL, "/zapping/internal/callbacks/hide_extra"))
+    {
+      gtk_widget_hide(lookup_widget(main_window, "Inputs"));
+      gtk_widget_hide(lookup_widget(main_window, "Standards"));
+      gtk_widget_queue_resize(main_window);
+    }
+  D();
   /* Sets the coords to the previous values, if the users wants to */
   if (zcg_bool(NULL, "keep_geometry"))
     {
@@ -481,21 +493,10 @@ int main(int argc, char * argv[])
       gdk_window_move_resize(main_window->window, x, y, w, h);
     }
   D();
-  if (zconf_get_boolean(NULL, "/zapping/internal/callbacks/hide_controls"))
-    {
-      gtk_widget_hide(lookup_widget(main_window, "dockitem1"));
-      gtk_widget_hide(lookup_widget(main_window, "dockitem2"));
-    }
-  if (zconf_get_boolean(NULL, "/zapping/internal/callbacks/hide_extra"))
-    {
-      gtk_widget_hide(lookup_widget(main_window, "Inputs"));
-      gtk_widget_hide(lookup_widget(main_window, "Standards"));
-    }
-  D();
   gdk_window_set_back_pixmap(tv_screen->window, NULL, FALSE);
-  if (-1 == tveng_set_mute(zcg_bool(NULL, "start_muted"),
-			   main_info))
-    fprintf(stderr, "tveng_set_mute: %s\n", main_info->error);
+  D();
+  if (-1 == tveng_set_mute(zcg_bool(NULL, "start_muted"), main_info))
+    printv("%s\n", main_info->error);
   D(); printv("going into main loop...\n");
   /* That's it, now go to the main loop */
   gtk_main();
@@ -514,9 +515,6 @@ static void shutdown_zapping(void)
   tveng_tuned_channel * channel;
   gboolean do_screen_cleanup = FALSE;
 
-  /* Mute the device again */
-  tveng_set_mute(1, main_info);
-
   /* Stops any capture currently active */
   if (main_info->current_mode == TVENG_CAPTURE_WINDOW)
     do_screen_cleanup = TRUE;
@@ -524,6 +522,8 @@ static void shutdown_zapping(void)
   if (was_fullscreen)
     zcs_int(TVENG_CAPTURE_PREVIEW, "capture_mode");
 
+  tveng_set_mute(1, main_info);
+  
   /* Unloads all plugins, this tells them to save their config too */
   plugin_unload_plugins(plugin_list);
   plugin_list = NULL;
