@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-v4l.c,v 1.18 2003-10-16 18:16:11 mschimek Exp $";
+static char rcsid[] = "$Id: io-v4l.c,v 1.18.2.1 2004-01-27 21:05:29 tomzo Exp $";
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -55,6 +55,8 @@ static char rcsid[] = "$Id: io-v4l.c,v 1.18 2003-10-16 18:16:11 mschimek Exp $";
 #undef REQUIRE_SVBIFMT		/* else accept current parameters */
 #undef REQUIRE_VIDEOSTD		/* if clueless, assume PAL/SECAM */
 
+#define FLUSH_FRAME_COUNT       2
+
 #define printv(format, args...)						\
 do {									\
 	if (v->do_trace) {							\
@@ -83,6 +85,7 @@ typedef struct vbi_capture_v4l {
 	int			num_raw_buffers;
 
 	vbi_capture_buffer	sliced_buffer;
+	int			flush_frame_count;
 
 } vbi_capture_v4l;
 
@@ -166,8 +169,42 @@ failure:
 
 
 static int
+v4l_read_frame(vbi_capture_v4l *v, vbi_capture_buffer *raw, struct timeval *timeout)
+{
+	struct timeval tv;
+	int r;
+
+	if (v->has_select) {
+		tv = *timeout;
+
+		r = vbi_capture_io_select(v->fd, &tv);
+		if (r <= 0)
+			return r;
+	}
+
+	v->read_active = TRUE;
+
+	for (;;) {
+		pthread_testcancel();
+
+		r = read(v->fd, raw->data, raw->size);
+
+		if (r == -1 && (errno == EINTR || errno == ETIME))
+			continue;
+
+		if (r != raw->size) {
+			errno = EIO;
+			return -1;
+		}
+		else
+			break;
+	}
+	return 1;
+}
+
+static int
 v4l_read(vbi_capture *vc, vbi_capture_buffer **raw,
-	 vbi_capture_buffer **sliced, struct timeval *timeout)
+	 vbi_capture_buffer **sliced, struct timeval *timeout_orig)
 {
 	vbi_capture_v4l *v = PARENT(vc, vbi_capture_v4l, capture);
 	vbi_capture_buffer *my_raw = v->raw_buffer;
@@ -180,51 +217,29 @@ v4l_read(vbi_capture *vc, vbi_capture_buffer **raw,
 		return -1;
 	}
 
-	while (v->has_select) {
-		fd_set fds;
-
-		FD_ZERO(&fds);
-		FD_SET(v->fd, &fds);
-
-		tv = *timeout; /* Linux kernel overwrites this */
-
-		r = select(v->fd + 1, &fds, NULL, NULL, &tv);
-
-		if (r < 0 && errno == EINTR)
-			continue;
-
-		if (r <= 0)
-			return r; /* timeout or error */
-
-		break;
-	}
-
-	if (!raw)
+	if (raw == NULL)
 		raw = &my_raw;
-	if (!*raw)
+	if (*raw == NULL)
 		*raw = v->raw_buffer;
 	else
 		(*raw)->size = v->raw_buffer[0].size;
 
-	v->read_active = TRUE;
+	tv = *timeout_orig;
+	while (1)
+	{
+		r = v4l_read_frame(v, *raw, &tv);
+		if (r <= 0)
+			return r;
 
-	for (;;) {
-		/* from zapping/libvbi/v4lx.c */
-		pthread_testcancel();
-
-		r = read(v->fd, (*raw)->data, (*raw)->size);
-
-		if (r == -1 && (errno == EINTR || errno == ETIME))
-			continue;
-
-		if (r == (*raw)->size)
-			break;
+		if (v->flush_frame_count > 0) {
+			v->flush_frame_count -= 1;
+			printv("Skipping frame (%d remaining)\n", v->flush_frame_count);
+		}
 		else
-			return -1;
+			break;
 	}
 
 	gettimeofday(&tv, NULL);
-
 	(*raw)->timestamp = tv.tv_sec + tv.tv_usec * (1 / 1e6);
 
 	if (sliced) {
@@ -252,24 +267,13 @@ static void v4l_flush(vbi_capture *vc)
 	struct timeval tv;
 	int fd_flags = 0;
 	int r;
-	fd_set fds;
 
-	while (v->has_select) {
-		FD_ZERO(&fds);
-		FD_SET(v->fd, &fds);
-
+	if (v->has_select) {
 		memset(&tv, 0, sizeof(tv));
 
-		r = select(v->fd + 1, &fds, NULL, NULL, &tv);
-
-		if ((r < 0) && (errno == EINTR))
-			continue;
-
-		/* if no data is ready or an error occurred, return */
+		r = vbi_capture_io_select(v->fd, &tv);
 		if (r <= 0)
 			return;
-
-		break;
 	}
 
 	if (v->has_select == FALSE) {
@@ -717,23 +721,38 @@ v4l_delete(vbi_capture *vc)
 	free(v);
 }
 
+static vbi_bool
+v4l_setup(vbi_capture *vc, vbi_setup_parm *config)
+{
+	vbi_capture_v4l *v = PARENT(vc, vbi_capture_v4l, capture);
+	vbi_bool result;
+
+	switch (config->type)
+	{
+	    case VBI_SETUP_GET_FD_TYPE:
+		config->u.get_fd_type.has_select = v->has_select;
+		config->u.get_fd_type.is_device  = TRUE;
+		result = TRUE;
+		break;
+	    case VBI_SETUP_V4L_VIDEO_PATH:
+		if (v->p_video_name != NULL)
+			free(v->p_video_name);
+		v->p_video_name = strdup(config->u.v4l_video_path.p_dev_path);
+		result = TRUE;
+		break;
+	    default:
+		result = FALSE;
+		break;
+	}
+	return result;
+}
+
 static int
-v4l_get_read_fd(vbi_capture *vc)
+v4l_get_fd(vbi_capture *vc)
 {
 	vbi_capture_v4l *v = PARENT(vc, vbi_capture_v4l, capture);
 
 	return v->fd;
-}
-
-static int
-v4l_get_poll_fd(vbi_capture *vc)
-{
-	vbi_capture_v4l *v = PARENT(vc, vbi_capture_v4l, capture);
-
-	if (v->has_select)
-		return v->fd;
-	else
-		return -1;
 }
 
 static int
@@ -818,7 +837,8 @@ v4l_switch_channel(vbi_capture_v4l *v, int fd,
 		has_tuner = TRUE;
 	}
 
-	*p_has_tuner = has_tuner;
+	if (p_has_tuner != NULL)
+		*p_has_tuner = has_tuner;
 
 	printv("Successfully switched channel and/or frequency.\n");
 	return 0;
@@ -838,11 +858,14 @@ v4l_channel_change(vbi_capture *vc,
 	int video_fd = -1;
 	int result = -1;
 
-	if (chn_flags & VBI_CHN_FLUSH_ONLY)
+	if (chn_flags & VBI_CHN_PRIO_ONLY)
 		goto done;
 
-	if (p_chn_desc->type != 0) {
-		vbi_asprintf(errorstr, "Bad channel descriptor type");
+	if (chn_flags & VBI_CHN_FLUSH_ONLY)
+		goto flush;
+
+	if (p_chn_desc->type != VBI_CHN_DESC_TYPE_ANALOG) {
+		vbi_asprintf(errorstr, _("Not an analog channel descriptor type"));
 		goto failure;
 	}
 
@@ -869,7 +892,7 @@ v4l_channel_change(vbi_capture *vc,
 	/* if the caller requests a non-background prio, switch through VBI device.
 	** for background we only use the video device because it will only
 	** succeed if no video application is running */
-	if (chn_prio > 0) {
+	if (chn_prio > VBI_CHN_PRIO_BACKGROUND) {
 		printv("Attempt channel switch through VBI device...\n");
 		if (v4l_switch_channel(v, v->fd,
 				       p_chn_desc->u.analog.channel,
@@ -879,8 +902,9 @@ v4l_channel_change(vbi_capture *vc,
 				       p_has_tuner, errorstr) == 0) {
 
 			set_scanning_from_mode(v, mode, &strict);
-			*p_scanning = v->dec.scanning;
-			goto done;
+			if (p_scanning != NULL)
+				*p_scanning = v->dec.scanning;
+			goto flush;
 		}
 		/* ignore errors (driver may not support channel switching via VBI)
 		** Next try video device */
@@ -914,10 +938,13 @@ v4l_channel_change(vbi_capture *vc,
 		goto failure;
 
 	set_scanning_from_mode(v, mode, &strict);
-	*p_scanning = v->dec.scanning;
+	if (p_scanning != NULL)
+		*p_scanning = v->dec.scanning;
 
-done:
+flush:
+	v->flush_frame_count = FLUSH_FRAME_COUNT;
 	v4l_flush(vc);
+done:
 	result = 0;
 
 failure:
@@ -1187,8 +1214,8 @@ v4l_new(const char *dev_name, int given_fd, int scanning,
 
 	v->capture.parameters = v4l_parameters;
 	v->capture._delete = v4l_delete;
-	v->capture.get_fd = v4l_get_read_fd;
-	v->capture.get_poll_fd = v4l_get_poll_fd;
+	v->capture.setup = v4l_setup;
+	v->capture.get_fd = v4l_get_fd;
 	v->capture.read = v4l_read;
 	v->capture.add_services = v4l_add_services;
 	v->capture.channel_change = v4l_channel_change;
