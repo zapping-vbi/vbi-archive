@@ -103,9 +103,9 @@ tveng_get_id_of_channel (tveng_rf_channel *channel, tveng_rf_table *country);
 typedef struct _tv_rf_channel tv_rf_channel;
 
 /*
- *  tv_rf_channel represents one element in a three dimensional
- *  frequency table array. The country_code, table_name and
- *  channel_name uniquely identify a channel, the country_code
+ *  tv_rf_channel is a kind of iterator representing one element in
+ *  a three dimensional frequency table array. The country_code, table_name
+ *  and channel_name uniquely identify a channel, the country_code
  *  and table_name a frequency table. The tv_rf_channel functions
  *  move through the array. All strings are static.
  */
@@ -139,7 +139,10 @@ tv_rf_channel_next_table_by_country
 extern const char *
 tv_rf_channel_table_prefix	(tv_rf_channel *	ch,
 				 unsigned int		index);
-#define tv_rf_channel_first(ch) tv_rf_channel_nth (ch, 0)
+extern tv_bool
+tv_rf_channel_align		(tv_rf_channel *	ch);
+extern tv_bool
+tv_rf_channel_first		(tv_rf_channel *	ch);
 extern tv_bool
 tv_rf_channel_next		(tv_rf_channel *	ch);
 extern tv_bool
@@ -168,9 +171,15 @@ tveng_tuned_channel *
 tveng_tuned_channel_by_rf_name	(tveng_tuned_channel *	list,
 				 const gchar *		rf_name);
 void
-tveng_tuned_channel_insert	(tveng_tuned_channel **	list,
+tveng_tuned_channel_insert_replace
+				(tveng_tuned_channel **	list,
 				 tveng_tuned_channel *	tc,
-				 guint			index);
+				 guint			index,
+				 gboolean		replace);
+#define tveng_tuned_channel_insert(list, tc, index)			\
+  tveng_tuned_channel_insert_replace (list, tc, index, FALSE)
+#define tveng_tuned_channel_replace(list, tc, index)			\
+  tveng_tuned_channel_insert_replace (list, tc, index, TRUE)
 void
 tveng_tuned_channel_move	(tveng_tuned_channel **	list,
 				 tveng_tuned_channel *	tc,

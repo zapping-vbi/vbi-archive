@@ -35,10 +35,11 @@
 
 #define ALPHA	 (1 << 0) /* first ... last is alphabetic (ASCII) */
 #define UPSTREAM (1 << 1) /* Upstream channel (eg. cable modem) */
+#define ALIGN    (1 << 2) /* See tv_rf_channel_align() */
 
 struct range {
 	const char		prefix[3];
-	unsigned		flags		: 8;	/* ALPHA | UPSTREAM */
+	unsigned		flags		: 8;	/* ALPHA | ... */
 	unsigned 		first		: 8;	/* first channel number */
 	unsigned 		last		: 8;	/* last, inclusive */
 	unsigned		bandwidth	: 16;	/* kHz */
@@ -50,10 +51,10 @@ struct range {
 
 /* Some common ranges. */
 
-#define RANGE_EIA_2_4		{ "",  0,  2,  4, 6000,  55250 }
-#define RANGE_EIA_5_6		{ "",  0,  5,  6, 6000,  77250 }
-#define RANGE_EIA_VHF		{ "",  0,  7, 13, 6000, 175250 }
-#define RANGE_EIA_UHF		{ "",  0, 14, 83, 6000, 471250 }
+#define RANGE_EIA_2_4		{ "",  ALIGN,  2,  4, 6000,  55250 }
+#define RANGE_EIA_5_6		{ "",  ALIGN,  5,  6, 6000,  77250 }
+#define RANGE_EIA_VHF		{ "",  ALIGN,  7, 13, 6000, 175250 }
+#define RANGE_EIA_UHF		{ "",  ALIGN, 14, 83, 6000, 471250 }
 
 #define RANGE_CCIR_BAND_I	{ "E", 0,  2,  4, 7000,  48250 }
 #define RANGE_CCIR_SUBBAND	{ "L", 0,  1,  3, 7000,  69250 }
@@ -104,16 +105,16 @@ frequency_tables [] =
     N_("cable IRC"), /* Incrementally Related Carriers */
     TV_VIDEOSTD_NTSC_M,
     {
-      { "", 0, 1, 1, 6000, 73250 },
+      { "", ALIGN, 1, 1, 6000, 73250 },
       RANGE_EIA_2_4,
       RANGE_EIA_5_6,
       RANGE_EIA_VHF,
-      { "", 0,  14,  22, 6000, 121250 },  /* EIA Midband */
-      { "", 0,  23,  94, 6000, 217250 },  /* EIA Superband (23-36), Hyperband (37-53) */
-      { "", 0,  95,  96, 6000,  91250 },
-      { "", 0,  97,  99, 6000, 103250 },
-      { "", 0, 100, 125, 6000, 649250 },
-      { "T", UPSTREAM, 7, 14, 6000, 8250 },
+      { "", ALIGN,  14,  22, 6000, 121250 },  /* EIA Midband */
+      { "", ALIGN,  23,  94, 6000, 217250 },  /* EIA Superband (23-36), Hyperband (37-53) */
+      { "", ALIGN,  95,  96, 6000,  91250 },
+      { "", ALIGN,  97,  99, 6000, 103250 },
+      { "", ALIGN, 100, 125, 6000, 649250 },
+      { "T", ALIGN | UPSTREAM, 7, 14, 6000, 8250 },
       RANGE_END
     }
   }, {
@@ -122,16 +123,16 @@ frequency_tables [] =
     N_("cable HRC"), /* Harmonically Related Carriers */
     TV_VIDEOSTD_NTSC_M,
     {
-      { "", 0,   1,   1, 6000,  72000 },
-      { "", 0,   2,   4, 6000,  54000 },
-      { "", 0,   5,   6, 6000,  78000 },
-      { "", 0,   7,  13, 6000, 174000 },
-      { "", 0,  14,  22, 6000, 120000 },
-      { "", 0,  23,  94, 6000, 216000 },
-      { "", 0,  95,  96, 6000,  90000 },
-      { "", 0,  97,  99, 6000, 102000 },
-      { "", 0, 100, 125, 6000, 648000 },
-      { "T", UPSTREAM, 7, 14, 6000, 7000 },
+      { "", ALIGN,   1,   1, 6000,  72000 },
+      { "", ALIGN,   2,   4, 6000,  54000 },
+      { "", ALIGN,   5,   6, 6000,  78000 },
+      { "", ALIGN,   7,  13, 6000, 174000 },
+      { "", ALIGN,  14,  22, 6000, 120000 },
+      { "", ALIGN,  23,  94, 6000, 216000 },
+      { "", ALIGN,  95,  96, 6000,  90000 },
+      { "", ALIGN,  97,  99, 6000, 102000 },
+      { "", ALIGN, 100, 125, 6000, 648000 },
+      { "T", ALIGN | UPSTREAM, 7, 14, 6000, 7000 },
       RANGE_END
     }
   }, {
@@ -139,14 +140,14 @@ frequency_tables [] =
     "CA", N_("cable"),
     TV_VIDEOSTD_NTSC_M,
     {
-      { "", 0,   2,   4, 6000,  61750 },
-      { "", 0,   5,   6, 6000,  83750 },
-      { "", 0,   7,  13, 6000, 181750 },
-      { "", 0,  14,  22, 6000, 127750 },
-      { "", 0,  23,  94, 6000, 223750 },
-      { "", 0,  95,  95, 6000,  97750 },
-      { "", 0,  96,  99, 6000, 103750 },
-      { "", 0, 100, 125, 6000, 655750 },
+      { "", ALIGN,   2,   4, 6000,  61750 },
+      { "", ALIGN,   5,   6, 6000,  83750 },
+      { "", ALIGN,   7,  13, 6000, 181750 },
+      { "", ALIGN,  14,  22, 6000, 127750 },
+      { "", ALIGN,  23,  94, 6000, 223750 },
+      { "", ALIGN,  95,  95, 6000,  97750 },
+      { "", ALIGN,  96,  99, 6000, 103750 },
+      { "", ALIGN, 100, 125, 6000, 655750 },
       RANGE_END
     }
   }, {
@@ -154,21 +155,21 @@ frequency_tables [] =
     "JP", N_("broadcast"),
     TV_VIDEOSTD_NTSC_M_JP,
     {
-      { "", 0,  1,  3, 6000,  91250 },
-      { "", 0,  4,  7, 6000, 171250 },  /* NB #7 is 189250 */
-      { "", 0,  8, 12, 6000, 193250 },
-      { "", 0, 13, 62, 6000, 471250 },
+      { "", ALIGN,  1,  3, 6000,  91250 },
+      { "", ALIGN,  4,  7, 6000, 171250 },  /* NB #7 is 189250 */
+      { "", ALIGN,  8, 12, 6000, 193250 },
+      { "", ALIGN, 13, 62, 6000, 471250 },
       RANGE_END
     }
   }, {
-    "jp-cable", "Japan cable",
+    "jp-cable", "Japan cable", /* ALIGN? */
     "JP", N_("cable"),
     TV_VIDEOSTD_NTSC_M_JP,
     {
-      { "", 0, 13, 22, 6000, 109250 },
-      { "", 0, 23, 23, 6000, 223250 },
-      { "", 0, 24, 27, 6000, 231250 }, /* NB #27 is 249250 */
-      { "", 0, 28, 63, 6000, 253250 },
+      { "", ALIGN, 13, 22, 6000, 109250 },
+      { "", ALIGN, 23, 23, 6000, 223250 },
+      { "", ALIGN, 24, 27, 6000, 231250 }, /* NB #27 is 249250 */
+      { "", ALIGN, 28, 63, 6000, 253250 },
       RANGE_END
     }
   }, {
@@ -526,6 +527,21 @@ tv_rf_channel_table_size	(tv_rf_channel *	ch)
 }
 
 /*
+ *  Whether channels names should align with channel numbers,
+ *  US style.
+ */
+extern tv_bool
+tv_rf_channel_align	(tv_rf_channel *	ch)
+{
+	const struct table *t;
+
+	if (!(t = find_table (ch->table_name)))
+		return FALSE;
+
+	return !!(t->freq_ranges[0].flags & ALIGN);
+}
+
+/*
  *  Given an ISO 3166 country code (e.g. "US"), take the frequency
  *  table this RF channel is in and return the first
  *  RF channel of the next frequency table used in this country.
@@ -587,6 +603,19 @@ tv_rf_channel_by_name		(tv_rf_channel *	ch,
 	return FALSE;
 }
 
+tv_bool
+tv_rf_channel_first		(tv_rf_channel *	ch)
+{
+	const struct table *t;
+
+	if (!(t = find_table (ch->table_name)))
+		return FALSE;
+
+	get_channel (ch, t->freq_ranges, 0);
+
+	return TRUE;
+}
+
 /*
  *  Return the next RF channel in the same frequency table.
  */
@@ -596,7 +625,6 @@ tv_rf_channel_next		(tv_rf_channel *	ch)
 	const struct table *t;
 	const struct range *r;
 	unsigned int frequency;
-	unsigned int i;
 
 	if (!(t = find_table (ch->table_name)))
 		return FALSE;
@@ -604,17 +632,24 @@ tv_rf_channel_next		(tv_rf_channel *	ch)
 	frequency = ch->frequency / 1000;
 
 	for (r = t->freq_ranges; !IS_RANGE_END (r); r++) {
+		unsigned int i;
+
 		if (frequency < r->frequency)
 			continue;
 
-		i = r->first + (frequency - r->frequency) / r->bandwidth;
+		i = frequency - r->frequency;
 
-		if (i > r->last) {
+		/* Errr. See France. */
+		if (i % r->bandwidth)
 			continue;
-		} else if (i == r->last) {
-			if (IS_RANGE_END (++r))
-				break;
-			get_channel (ch, r, 0);
+
+		i = r->first + i / r->bandwidth;
+
+		if (i > r->last)
+			continue;
+
+		if (i == r->last) {
+			get_channel (ch, r + 1, 0);
 		} else {
 			get_channel (ch, r, i - r->first + 1);
 		}
@@ -775,57 +810,94 @@ tveng_tuned_channel_by_rf_name	(tveng_tuned_channel *	list,
 }
 
 void
-tveng_tuned_channel_insert	(tveng_tuned_channel **	list,
+tveng_tuned_channel_insert_replace
+				(tveng_tuned_channel **	list,
 				 tveng_tuned_channel *	tc,
-				 guint			index)
+				 guint			index,
+				 gboolean		replace)
 {
   tveng_tuned_channel *tci;
 
   g_assert (list != NULL);
   g_assert (tc != NULL);
 
-  if (!*list)
+  if (*list == NULL)
     {
-      tc->next = NULL;
-      tc->prev = NULL;
-      tc->index = 0;
+      if (replace && index > 0)
+	{
+	  *list = tveng_tuned_channel_new (NULL);
+	}
+      else
+	{
+	  tc->next = NULL;
+	  tc->prev = NULL;
+	  tc->index = 0;
 
-      *list = tc;
+	  *list = tc;
 
-      return;
+	  return;
+	}
     }
 
   for (tci = tveng_tuned_channel_first (*list);
        tci->index < index; tci = tci->next)
     if (!tci->next)
       {
-	tc->next = NULL;
-	tc->prev = tci;
-	tc->index = tci->index + 1;
+	if (replace && (tci->index + 1) < index)
+	  {
+	    tveng_tuned_channel *ntc;
 
-	tci->next = tc;
+	    ntc = tveng_tuned_channel_new (NULL);
 
-	return;
+	    ntc->prev = tci;
+	    ntc->index = tci->index + 1;
+
+	    tci->next = ntc;
+	  }
+	else
+	  {
+	    tc->next = NULL;
+	    tc->prev = tci;
+	    tc->index = tci->index + 1;
+
+	    tci->next = tc;
+
+	    return;
+	  }
       }
 
-  if (tci->prev)
+  if (replace && tci->index == index)
     {
-      index = tci->prev->index + 1;
-      tci->prev->next = tc;
+      tc->prev = tci->prev;
+      tc->next = tci->next;
+      tc->index = tci->index;
+
+      tc->prev->next = tc;
+      tc->next->prev = tc;
+
+      tveng_tuned_channel_delete (tci);
     }
-  else
+  else /* insert before tci */
     {
-      index = 0;
-      *list = tc;
+      if (tci->prev)
+	{
+	  index = tci->prev->index + 1;
+	  tci->prev->next = tc;
+	}
+      else
+	{
+	  index = 0;
+	  *list = tc;
+	}
+      
+      tc->prev = tci->prev;
+      tc->next = tci;
+      
+      tci->prev = tc;
+      
+      for (; tc; tc = tc->next)
+	tc->index = index++;
     }
-
-  tc->prev = tci->prev;
-  tc->next = tci;
-
-  tci->prev = tc;
-
-  for (; tc; tc = tc->next)
-    tc->index = index++;
 }
 
 void
@@ -913,10 +985,20 @@ tveng_tuned_channel *
 tveng_tuned_channel_new		(const tveng_tuned_channel *tc)
 {
   tveng_tuned_channel *new_tc;
-
-  g_assert (tc != NULL);
+  tveng_tuned_channel empty_tc;
 
   new_tc = g_malloc0 (sizeof (*new_tc));
+
+  if (!tc)
+    {
+      memset (&empty_tc, 0, sizeof (empty_tc));
+
+      empty_tc.name = "";
+      empty_tc.rf_name = "";
+      empty_tc.rf_table = "";
+
+      tc = &empty_tc;
+    }
 
   tveng_tuned_channel_copy (new_tc, tc);
 
