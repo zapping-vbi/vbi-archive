@@ -5,7 +5,17 @@
  * This provides a Python interface to the internal Zapping routines.
  */
 
-#include <Python.h>
+#ifdef _POSIX_C_SOURCE
+  /* python 2.3 redefines. ugh. */
+#  undef _POSIX_C_SOURCE
+#  include <Python.h>
+#  ifndef _POSIX_C_SOURCE
+#    define _POSIX_C_SOURCE 199506L
+#  endif
+#else
+#  include <Python.h>
+#endif
+
 #include <gtk/gtk.h>
 
 /* The zapping dictionary in case you want to add things
