@@ -10,7 +10,7 @@ developers. Feel free to use this routines in your own programs, just drop a
 note to the author if you do so.
 <header>RTE</header>
 Real Time Encoder. Takes the extremely fast <a
-href="http://sourceforge.net/project/showfiles.php?group_id=2599&amp;release_id=37012">mp1e</a>
+href="http://sourceforge.net/project/showfiles.php?group_id=2599">mp1e</a>
 encoding engine and
 the versatile engine from <a href="http://ffmpeg.sourceforge.net">ffmpeg</a>,
 and exposes them through a simple to use and extensible API. This is a very

@@ -11,5 +11,16 @@ support for different themes (works best with cookies enabled). Thanks a lot to
 <b>Carsten Menke</b>, he worked hard to create the excellent <i>Carsten</i>
 theme. I hope you like the new design.
 <header>0.6.0 released</header>
-0.6.0 has been released, blah, blah, blah.
+0.6.0 has been released, new in this release:
+<ul>
+<li>Aspect ratio autodetection and fixes</li>
+<li>Faster MPEG capture</li>
+<li>GUI improvements</li>
+<li>Standalone Zapzilla executable</li>
+<li>New alirc plugin</li>
+<li>Man pages</li>
+<li>Added Polish translation, updated de, es, fr</li>
+<li>Much more, see the <a href="changelog.php">ChangeLog</a>.</li>
+</ul>
+You can download Zapping from <a href="download.php">here</a>.
 </document>
