@@ -3,19 +3,14 @@ Known bugs in Zapping, don't report them
 
 Zapping 0.9:
 * bktr interface needs update, won't compile.
-* v4l video standard change broken.
-
-Zapping 0.8:
-* Doesn't run w/o DGA lib but configure doesn't fail either?
+* src/tveng1.c/p_tveng1_dequeue/CSYNC hangs with bttv when changing video
+  standard PAL NTSC PAL. Timeout SIGALRMs but doesn't EINTR.
 
 Zapping 0.7.2:
 * Fullscreen DMA overlay clips subtitles but not context menu and windows.
 * bktr: Closing and reopening /dev/bktr, /dev/tuner sometimes fails
   when /dev/vbi is open. Apparently close() does not call the driver
   close function before open(). Strange.
-* Teletext toolbar reorientation is broken with
-  gtk_toolbar_set_show_arrow FALSE (we use default TRUE now),
-  seems to be a Gtk+ bug.
 
 Zapping 0.7 bugs, need more work later:
 * Video size isn't always right on startup.

@@ -1,3 +1,25 @@
+2005-01-18    <mschimek@users.sf.net>
+
+	* src/tveng1.c (p_tveng1_dequeue): Timeout fix.
+	* plugins/deinterlace/DI_TomsMoComp/Makefile.am (INCLUDES): 
+	* plugins/deinterlace/DI_MoComp2/Makefile.am (INCLUDES): 
+	* plugins/deinterlace/DI_Misc/Makefile.am (INCLUDES): 
+	* plugins/deinterlace/DI_GreedyH/Makefile.am (INCLUDES):
+	  VPATH fix.
+	* src, plugins/teletext, plugins/mpeg/mpeg.h, libvbi,
+	  libtv/misc.h, common/intl-priv.h, common/fifo.c: Include config.h
+	  correction.
+	* libvbi/teletext_decoder.c, libvbi/teletext.c, libvbi/search.c,
+	  libvbi/packet-830.c, libvbi/misc.h (vbi3_printable), libvbi/hamm.h, 
+	  libvbi/hamm.c, libvbi/fontgen.c (xbm_write):
+	  hamm.c synchronized with libzvbi 0.2.12.
+	* libvbi/Makefile.am (EXTRA_DIST): s/fontgen/fontgen.c - what did I
+	  smoke?? 
+	  (CLEANFILES): Added fontgen.
+	* libvbi/Makefile.am, libtv/sse/Makefile.am, libtv/mmx/Makefile.am,
+	  libtv/avec/Makefile.am (INCLUDES): Need top_srcdir for config.h.
+	* libtv/screen.c (dga_query): Succeed without xf86dga, bug #1064597.
+
 2005-01-15    <mschimek@users.sf.net>
 
 	* plugins/screenshot/screenshot.c (ov511_grab_button_timeout,
