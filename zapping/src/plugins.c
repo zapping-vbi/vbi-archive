@@ -368,7 +368,9 @@ GList * plugin_load_plugins(gchar * directory, gchar * exp, GList * old)
   n = scandir(directory, &namelist, 0, alphasort);
   if (n < 0)
     {
-      perror("scandir");
+      /* Show error just when there is actually an error */
+      if (errno != ENOENT)
+	perror("scandir");
       return old;
     }
 

@@ -1037,39 +1037,19 @@ on_plugin_close_clicked                (GtkButton       *button,
   int i = 0;
   GList * ptr = GTK_CLIST(clist2) -> row_list;
   struct plugin_info * plug_info;
-  gchar buffer[256];
-  gchar * clist2_entries[4];
   
   while (ptr)
     {
+      plug_info = (struct plugin_info*)g_list_nth(plugin_list, i)->data;
       if (GTK_CLIST_ROW(ptr) -> state == GTK_STATE_SELECTED)
-	plugin_stop((struct plugin_info*)
-		    g_list_nth(plugin_list, i)->data);
+	{
+	  plugin_stop(plug_info);
+	  gtk_clist_set_text(GTK_CLIST(clist2), i, 3,
+			     plugin_running(plug_info) ? _("Yes") : _("No"));
+	}
       i++;
       ptr = ptr -> next;
     }
-  /* And now update the clist */
-  gtk_clist_freeze(GTK_CLIST(clist2));
-  gtk_clist_clear(GTK_CLIST(clist2));
-
-  ptr = g_list_first(plugin_list);
-
-  /* Add the plugins to the CList again */
-  while (ptr)
-    {
-      plug_info = (struct plugin_info*) ptr->data;
-      clist2_entries[0] = plugin_get_canonical_name(plug_info);
-      clist2_entries[1] = plugin_get_name(plug_info);
-      g_snprintf(buffer, 255, "%d.%d.%d", plug_info -> major, plug_info ->
-		 minor, plug_info -> micro);
-      clist2_entries[2] = buffer;
-      clist2_entries[3] = plugin_running(plug_info) ? _("Yes") : _("No");
-      gtk_clist_append(GTK_CLIST(clist2), clist2_entries);
-      ptr = ptr->next;
-    }
-
-  /* Show the changes */
-  gtk_clist_thaw(GTK_CLIST(clist2));
 }
 
 
@@ -1083,39 +1063,19 @@ on_plugin_apply_clicked                (GtkButton       *button,
   int i = 0;
   GList * ptr = GTK_CLIST(clist2) -> row_list;
   struct plugin_info * plug_info;
-  gchar buffer[256];
-  gchar * clist2_entries[4];
   
   while (ptr)
     {
+      plug_info = (struct plugin_info*)g_list_nth(plugin_list, i)->data;
       if (GTK_CLIST_ROW(ptr) -> state == GTK_STATE_SELECTED)
-	plugin_start((struct plugin_info*)
-		    g_list_nth(plugin_list, i)->data);
+	{
+	  plugin_start(plug_info);
+	  gtk_clist_set_text(GTK_CLIST(clist2), i, 3,
+			     plugin_running(plug_info) ? _("Yes") : _("No"));
+	}
       i++;
       ptr = ptr -> next;
     }
-  /* And now update the clist */
-  gtk_clist_freeze(GTK_CLIST(clist2));
-  gtk_clist_clear(GTK_CLIST(clist2));
-
-  ptr = g_list_first(plugin_list);
-
-  /* Add the plugins to the CList again */
-  while (ptr)
-    {
-      plug_info = (struct plugin_info*) ptr->data;
-      clist2_entries[0] = plugin_get_canonical_name(plug_info);
-      clist2_entries[1] = plugin_get_name(plug_info);
-      g_snprintf(buffer, 255, "%d.%d.%d", plug_info -> major, plug_info ->
-		 minor, plug_info -> micro);
-      clist2_entries[2] = buffer;
-      clist2_entries[3] = plugin_running(plug_info) ? _("Yes") : _("No");
-      gtk_clist_append(GTK_CLIST(clist2), clist2_entries);
-      ptr = ptr->next;
-    }
-
-  /* Show the changes */
-  gtk_clist_thaw(GTK_CLIST(clist2));
 }
 
 gboolean

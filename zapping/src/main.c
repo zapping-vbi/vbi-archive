@@ -182,23 +182,62 @@ main (int argc, char *argv[])
   GList * p; /* For traversing the plugins */
   struct plugin_info * plug_info;
 
+  /* This variables are for looking for plugins */
+  FILE * conf = fopen("/etc/ld.so.conf", "rt");
+  const char * LD_LIBRARY = getenv("LD_LIBRARY");
+  gchar buffer[1024]; /* some space for fgets() */
+  gchar * str_ptr, *str_ptr2;
+
 #ifndef NDEBUG
   int i;
 #endif
 
-  /* Load plugins */
-  plugin_list = plugin_load_plugins("/home/garetxe/cvs/plugins",
-				    ".zapping.so", plugin_list);
 
-  /* Scan some more places for plugins */
-  plugin_list = plugin_load_plugins("/usr/lib", 
-				    ".zapping.so", plugin_list);
+  /* Load plugins, following dlopen() search algorithm (just replacing
+     /etc/ld.so.cache for /etc/ld.so.conf) */
+  /* First try with items in LD_LIBRARY */
+  if (LD_LIBRARY)
+    {
+      str_ptr = g_strdup(LD_LIBRARY);
+      str_ptr2 = strtok(str_ptr, ":");
+      while (str_ptr2)
+	{
+	  /* Scan this token (possibly a dir) for plugins */
+	  plugin_list = plugin_load_plugins(str_ptr2, ".zapping.so",
+					    plugin_list);
+	  str_ptr2 = strtok(NULL, ":");
+	}
+      g_free(str_ptr);
+    }
+  /* Now get filenames from /etc/ld.so.conf if that exists */
+  if (conf)
+    {
+      buffer[sizeof(buffer)-1] = 0;
+      while (fgets(buffer, sizeof(buffer) -1, conf))
+	{
+	  if (buffer[0] == 0)
+	    continue; /* Avoid blank lines */
+	  /* Cut newline character if read */
+	  if (buffer[strlen(buffer)-1] == '\n')
+	    buffer[strlen(buffer)-1] = 0;
+	  plugin_list = plugin_load_plugins(buffer, ".zapping.so",
+					    plugin_list);
+	}
+      fclose(conf);
+    }
+  /* Now load plugins from /usr/lib and /lib */
+  plugin_list = plugin_load_plugins("/usr/lib", ".zapping.so",
+				    plugin_list);
+  plugin_list = plugin_load_plugins("/lib", ".zapping.so",
+				     plugin_list);
 
-  plugin_list = plugin_load_plugins("/usr/local/lib", 
-				    ".zapping.so", plugin_list);
-
-  plugin_list = plugin_load_plugins("/lib", 
-				    ".zapping.so", plugin_list);
+  /* Now get plugins from ~/.zapping_plugins */
+  if (getenv("HOME")) /* Home should always be defined */
+    {
+      str_ptr = g_strconcat(getenv("HOME"), "/.zapping_plugins", NULL);
+      plugin_list = plugin_load_plugins(str_ptr, ".zapping.so", plugin_list);
+      g_free(str_ptr);
+    }
 
 #ifdef ENABLE_NLS
   bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
@@ -329,13 +368,10 @@ main (int argc, char *argv[])
       flag_exit_program = FALSE;
 
 #ifndef NDEBUG
-      if (info.pix_format.fmt.pix.flags & V4L2_FMT_FLAG_BYTESPERLINE)
-	printf("Bytes per line field is valid\n");
-
       printf("Capture buffer is size %dx%dx%d\n", 
-	     info.pix_format.fmt.pix.width, 
-	     info.pix_format.fmt.pix.height,
-	     info.bpl);
+	     info.format.width, 
+	     info.format.height,
+	     info.format.bytesperline);
 
       printf("We have %d buffers\n", info.num_buffers);
 
@@ -389,7 +425,7 @@ main (int argc, char *argv[])
 		     but i've been so many hours without sleeping
 		     now... */
 		  memcpy(info.format.data, info.buffers[n].vmem,
-			 info.format.bytesperline * info.format.height);
+			 info.format.sizeimage);
 
 		  /* Feed all the plugins with this frame */
 		  p = g_list_first(plugin_list);
@@ -400,68 +436,68 @@ main (int argc, char *argv[])
 		      p = p->next;
 		    }
 
-		  switch (info.pix_format.fmt.pix.pixelformat)
+		  switch (info.format.pixformat)
 		    {
-		    case V4L2_PIX_FMT_BGR32:
+		    case TVENG_PIX_BGR32:
 		      info.ximage -> data = info.format.data;
 		      gdk_draw_image(da -> window,
 				     da -> style -> white_gc,
 				     info.image,
 				     0, 0, 0, 0,
-				     info.ppl,
-				     info.pix_format.fmt.pix.height);
+				     info.format.width,
+				     info.format.height);
 		      break;
 
-		    case V4L2_PIX_FMT_BGR24:
+		    case TVENG_PIX_BGR24:
 		      info.ximage -> data = info.format.data;
 		      gdk_draw_image(da -> window,
 				     da -> style -> white_gc,
 				     info.image,
 				     0, 0, 0, 0,
-				     info.ppl,
-				     info.pix_format.fmt.pix.height);
+				     info.format.width,
+				     info.format.height);
 		      break;
 
-		    case V4L2_PIX_FMT_RGB32:
+		    case TVENG_PIX_RGB32:
 		      gdk_draw_rgb_32_image(da -> window,
 					    da -> style -> white_gc,
 					    0, 0,
-					    info.ppl,
-					    info.pix_format.fmt.pix.height,
+					    info.format.width,
+					    info.format.height,
 					    GDK_RGB_DITHER_MAX,
 					    info.format.data,
-					    info.bpl);
+					    info.format.bytesperline);
 		      break;
-		    case V4L2_PIX_FMT_RGB24:
+		    case TVENG_PIX_RGB24:
 		      gdk_draw_rgb_image(da -> window,
 					 da -> style -> white_gc,
 					 0, 0, 
-					 info.ppl,
-					 info.pix_format.fmt.pix.height,
+					 info.format.width,
+					 info.format.height,
 					 GDK_RGB_DITHER_MAX,
 					 info.format.data,
-					 info.bpl);
+					 info.format.bytesperline);
 					 break;
 		      break;
-		    case V4L2_PIX_FMT_RGB565:
+		    case TVENG_PIX_RGB565:
 		      info.ximage -> data = info.format.data;
 
 		      gdk_draw_image(da -> window,
 				     da -> style -> white_gc,
 				     info.image,
 				     0, 0, 0, 0,
-				     info.ppl,
-				     info.pix_format.fmt.pix.height);
+				     info.format.width,
+				     info.format.height);
 		      break;
-		    case V4L2_PIX_FMT_RGB555:
+		    case TVENG_PIX_RGB555:
 		      info.ximage -> data = info.format.data;
 		      
 		      gdk_draw_image(da -> window,
 				     da -> style -> white_gc,
 				     info.image,
 				     0,0,0,0,
-				     info.ppl,
-				     info.pix_format.fmt.pix.height);
+				     info.format.width,
+				     info.format.height);
 		      break;
 		    default:
 #ifndef NDEBUG

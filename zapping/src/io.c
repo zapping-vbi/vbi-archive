@@ -74,14 +74,14 @@ zapping_save_png (FILE * handle,
   png_infop info_ptr;
   png_text text[2];
   int i=0;
-  __u32 cur_pixformat = info -> pix_format.fmt.pix.pixelformat;
+  __u32 cur_pixformat = info -> format.pixformat;
   gboolean set_bgr = FALSE; /* FALSE if RGB is on */
   gchar * dest = NULL; /* Where to store the converted buffer (always RGB) */
   LineConverter Converter = NULL; /* The line converter, could be NULL (no
 				      conversion) */
 
   /* A buffer for storing a converted row */
-  dest = (gchar*) malloc(info -> pix_format.fmt.pix.width * 3);
+  dest = (gchar*) malloc(info -> format.width * 3);
 
   if (!dest)
     {
@@ -112,36 +112,36 @@ zapping_save_png (FILE * handle,
       return FALSE;
     }
   
-  width = info -> pix_format.fmt.pix.width;
-  height = info -> pix_format.fmt.pix.height;
+  width = info -> format.width;
+  height = info -> format.height;
   depth = 8; /* We are always writing 0..255 */
   pixels = data;
-  rowstride = info -> bpl;
+  rowstride = info -> format.bytesperline;
 
   /* Make necessary format corrections */
   switch (cur_pixformat)
     {
-    case V4L2_PIX_FMT_RGB32:
+    case TVENG_PIX_RGB32:
       set_bgr = FALSE;
       Converter = (LineConverter) Convert_RGBA_RGB24;
       break;
-    case V4L2_PIX_FMT_RGB24:
+    case TVENG_PIX_RGB24:
       set_bgr = FALSE;
       Converter = NULL;
       break;
-    case V4L2_PIX_FMT_BGR32:
+    case TVENG_PIX_BGR32:
       set_bgr = TRUE;
       Converter = (LineConverter) Convert_RGBA_RGB24;
       break;
-    case V4L2_PIX_FMT_BGR24:
+    case TVENG_PIX_BGR24:
       set_bgr = TRUE;
       Converter = NULL; /* No conversion needed */
       break;
-    case V4L2_PIX_FMT_RGB565:
+    case TVENG_PIX_RGB565:
       set_bgr = TRUE; /* FIXME: Only if we are in an intel-like machine */
       Converter = (LineConverter) Convert_RGB565_RGB24;
       break;
-    case V4L2_PIX_FMT_RGB555:
+    case TVENG_PIX_RGB555:
       set_bgr = TRUE; /* FIXME: Only if we are in an intel-like
 			 machine */
       Converter = (LineConverter) Convert_RGB555_RGB24;

@@ -28,6 +28,9 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+/* This undef's are to avoid a couple of header warnings */
+#undef WNOHANG
+#undef WUNTRACED
 #include "tveng.h"
 
 /* I don't like using this, but I need it until someone tells me
@@ -638,19 +641,6 @@ gpointer tveng_start_capturing(tveng_device_info * info)
       return NULL;
     }
 
-  info -> ppl = info->pix_format.fmt.pix.width;
-
-  /* Set Bytes per line */
-  if (info -> pix_format.fmt.pix.flags & V4L2_FMT_FLAG_BYTESPERLINE)
-    {
-#ifndef NDEBUG
-      printf("Bytes per line set\n");
-#endif
-      info -> bpl = info -> pix_format.fmt.pix.bytesperline;
-    }
-  else /* try to estimate this value */
-    info -> bpl = info->ppl * ((info->pix_format.fmt.pix.depth+7) >> 3);
-
   info -> buffers = (tveng_vbuf*) malloc(rb.count*sizeof(tveng_vbuf));
   info -> num_buffers = rb.count;
 
@@ -721,10 +711,20 @@ gpointer tveng_start_capturing(tveng_device_info * info)
     }
   info -> format.width = info -> pix_format.fmt.pix.width;
   info -> format.height = info -> pix_format.fmt.pix.height;
-  info -> format.bytesperline = (info -> format.width) * (info ->
-							  format.bpp);
-  info -> format.data = (gpointer) malloc(info -> format.bytesperline
-					  * info -> format.height);
+  /* Set Bytes per line */
+  if (info -> pix_format.fmt.pix.flags & V4L2_FMT_FLAG_BYTESPERLINE)
+    {
+#ifndef NDEBUG
+      printf("Bytes per line set\n");
+#endif
+      info -> format.bytesperline = info->pix_format.fmt.pix.bytesperline;
+    }
+  else /* try to estimate this value */
+    info -> format.bytesperline = (info -> format.width) * (info ->
+							    format.bpp);
+  info -> format.sizeimage = info->format.bytesperline *
+    info->format.height;
+  info -> format.data = (gpointer) malloc(info->format.sizeimage);
   if (!(info -> format.data))
     printf("(%s) %d: Cannot allocate memory for info->format.data\n",
 	   __FILE__, __LINE__);
@@ -742,8 +742,8 @@ gpointer tveng_start_capturing(tveng_device_info * info)
   /* Create the XImage to hold the capture */
   info -> image = gdk_image_new(GDK_IMAGE_NORMAL,
 			       rgb_visual,
-			       info -> ppl,
-			       info -> pix_format.fmt.pix.height);
+			       info -> format.width,
+			       info -> format.height);
 
   image_private = (GdkImagePrivate*) info -> image;
   info -> ximage = image_private -> ximage;
@@ -804,6 +804,17 @@ int tveng_stop_capturing(tveng_device_info * info)
   info -> current_mode = TVENG_NO_CAPTURE;
 
   return 0; /* Success */
+}
+
+/* 
+   Reads a frame from the video device, storing the read data in
+   info->format.data
+   info: pointer to the video device info structure
+   Returns whatever read() returns
+*/
+int tveng_read_frame(tveng_device_info * info)
+{
+  return(read(info->fd, info->format.data, info->format.sizeimage));
 }
 
 /* Queues an specific buffer. -1 on error */

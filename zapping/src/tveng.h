@@ -91,6 +91,7 @@ struct tveng_frame_format
   int depth; /* Bits per pixel */
   enum tveng_frame_pixformat pixformat; /* The pixformat entry */
   int bpp; /* Bytes per pixel */
+  int sizeimage; /* Size in bytes of the image */
 };
 
 /* We need this for the callbacks */
@@ -140,8 +141,6 @@ typedef struct
   tveng_vbuf * buffers; /* Array of mmap'ed capture buffers */
   struct v4l2_format pix_format; /* pixel format of this device */
   struct tveng_frame_format format; /* pixel format of this device */
-  int bpl; /* Bytes per line */
-  int ppl; /* Pixels per line */
 
   /* Framebuffer info */
   struct v4l2_framebuffer fb;
@@ -309,6 +308,14 @@ gpointer tveng_start_capturing(tveng_device_info * info);
 
 /* Try to stop capturing. -1 on error */
 int tveng_stop_capturing(tveng_device_info * info);
+
+/* 
+   Reads a frame from the video device, storing the read data in
+   info->format.data
+   info: pointer to the video device info structure
+   Returns whatever read() returns
+*/
+int tveng_read_frame(tveng_device_info * info);
 
 /* dequeues next available buffer and returns it's id. -1 on error */
 int tveng_dqbuf(tveng_device_info * info);
