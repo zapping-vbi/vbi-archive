@@ -19,6 +19,7 @@
 #include <gdk/gdkx.h>
 #define ZCONF_DOMAIN "/zapping/options/main/"
 #include "zmisc.h"
+#include "zconf.h"
 #include "tveng.h"
 #include "interface.h"
 
@@ -352,6 +353,8 @@ void zmisc_refresh_tv_screen(gint x, gint y, gint w, gint h, gboolean
   if ((!w && !h) && (!x && !y))
     {
       zmisc_clear_area(0, 0, gdk_screen_width(), gdk_screen_height());
+      if (timeout_id)
+	gtk_timeout_remove(timeout_id);
       return;
     }
   

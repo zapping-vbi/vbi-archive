@@ -1,6 +1,8 @@
 Outstanding issues for the next release
 ---------------------------------------
-	+ Update channel editor help (and shots)	
+	+ Update channel editor help (and shots) - docs in general
+	+ Any plugin should be able to switch to read mode and the
+switch back.
 	+ Modify the web page to point to
 http://sourceforge.net/projects/zapping
 	+ Check that tarball and RPM installations work perfectly

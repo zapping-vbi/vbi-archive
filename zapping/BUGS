@@ -12,6 +12,8 @@ fullscreen.
 - how does xawtv do it?
 	! Find the cause for those /dev/dsp busy error messages (libesd
 <= 0.2.8 broken?)
+	! Various (possible) leaks in the X code.
+	* The clips and the window in V4L are quite "personal"
 	* Add support in TVeng for tuner-less cards.
 	* YUV support if i have the time.
 	* Somehow the docs aren't displayed with the GnomeHelpBrowser
