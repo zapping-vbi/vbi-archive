@@ -20,13 +20,15 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.14 2001-02-21 23:19:51 garetxe Exp $ */
+/* $Id: caption.c,v 1.15 2001-02-22 14:15:49 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <assert.h>
+
+#include "vbi.h"
 
 #if TEST
 #include "hamm.c"
@@ -40,12 +42,13 @@
 #define OSD_JUST_CC /* just the cc_* declarations */
 #include "../src/osd.h"
 
-#define XDS_DISABLE 0
-#define ITV_DISABLE 0
+#define XDS_DEBUG 0
+#define ITV_DISABLE 1
 
 #endif
 
 #define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 #include "cc.h"
 
@@ -62,6 +65,8 @@
 #define XDS_UNDEFINED		6	/* proprietary format */
 
 #define XDS_END			15
+
+#if XDS_DEBUG
 
 static char *mpaa_rating[8]	= { "n/a", "G", "PG", "PG-13", "R", "NC-17", "X", "not rated" };
 static char *us_tv_rating[8]	= { "not rated", "TV-Y", "TV-Y7", "TV-G", "TV-PG", "TV-14", "TV-MA", "not rated" };
@@ -98,14 +103,38 @@ day_names[] = {
 	"0?", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
 };
 
-static inline void
-xds_decoder(int class, int type, char *buffer, int length)
+#endif /* XDS_DEBUG */
+
+static int
+xds_strfu(char *d, char *s, int len)
 {
-	int i;
+	int c, neq = 0;
+
+	for (; len > 0 && *s <= 0x20; s++, len--);
+
+	for (; len > 0; s++, len--) {
+		c = MAX(0x20, *s);
+		neq |= *d ^ c;
+		*d++ = c;
+	}
+
+	neq |= *d;
+	*d = 0;
+
+	return neq;
+}
+
+static inline void
+xds_decoder(struct vbi *vbi, int class, int type, char *buffer, int length)
+{
+	int i __attribute__ ((unused));
+
+	// assert(length > 0 && length < 32);
 
 	switch (class) {
 	case XDS_CURRENT:
 	case XDS_FUTURE:
+#if XDS_DEBUG
 		if (class == XDS_CURRENT)
 			printf("Current ");
 		else
@@ -223,29 +252,52 @@ xds_decoder(int class, int type, char *buffer, int length)
 			break;
 		}
 
+#endif /* XDS_DEBUG */
+
 		break;
 
 	case XDS_CHANNEL:
 		switch (type) {
 		case 1:		/* network name */
+			if (xds_strfu(vbi->network.name, buffer, length)) {
+				vbi->network.cycle = 1;
+			} else if (vbi->network.cycle == 1) {
+				vbi_send(vbi, VBI_EVENT_NETWORK, 0, 0, 0, 0, 0, &vbi->network);
+				vbi->network.cycle = 2;
+			}
+#if XDS_DEBUG
 			printf("Network name: '");
 			for (i = 0; i < length; i++)
 				putchar(printable(buffer[i]));
 			printf("'\n");
+#endif
 			break;
 
 		case 2:		/* network call letters */
+			if (xds_strfu(vbi->network.call, buffer, length)) {
+				if (vbi->network.cycle != 1) {
+					vbi->network.name[0] = 0;
+					vbi->network.cycle = 0;
+				}
+			}
+#if XDS_DEBUG
 			printf("Network call letters: '");
 			for (i = 0; i < length; i++)
 				putchar(printable(buffer[i]));
 			printf("'\n");
+#endif
 			break;
 
 		case 3:		/* channel tape delay */
 			if (length != 2)
 				return;
+
+			vbi->network.tape_delay =
+				(buffer[1] & 31) * 60 + (buffer[0] & 63);
+#if XDS_DEBUG
 			printf("Channel tape delay: %02d:%02d",
 				buffer[1] & 31, buffer[0] & 63);
+#endif
 			break;
 
 		default:
@@ -256,6 +308,7 @@ xds_decoder(int class, int type, char *buffer, int length)
 		break;
 
 	case XDS_MISC:
+#if XDS_DEBUG
 		switch (type) {
 		case 1:		/* time of day */
 			if (length != 6)
@@ -313,26 +366,26 @@ xds_decoder(int class, int type, char *buffer, int length)
 			break;
 		}
 
+#endif /* XDS_DEBUG */
+
 		break;
 
 	default:
+#if XDS_DEBUG
 		printf("<unknown %d/%02x length %d>\n", class, type, length);
+#endif
 		break;
 	}
 }
 
 static void
-xds_separator(struct caption *cc, unsigned char *buf)
+xds_separator(struct vbi *vbi, unsigned char *buf)
 {
+	struct caption *cc = &vbi->cc;
 	xds_sub_packet *sp = cc->curr_sp;
 	int c1 = parity(buf[0]);
 	int c2 = parity(buf[1]);
 	int class, type;
-
-#if XDS_DISABLE
-	return;
-#endif
-
 
 //	printf("XDS %02x %02x\n", buf[0], buf[1]);
 
@@ -389,7 +442,7 @@ xds_separator(struct caption *cc, unsigned char *buf)
 		} else if (sp->count <= 2) {
 //			printf("XDS ignore empty packet %d/0x%02x\n", class, type);
 		} else {
-			xds_decoder(class, type, sp->buffer, sp->count - 2);
+			xds_decoder(vbi, class, type, sp->buffer, sp->count - 2);
 /*
 	for (i = 0; i < sp->count - 2; i++)
 		printf("%c", printable(sp->buffer[i]));
@@ -1097,8 +1150,9 @@ caption_command(struct caption *cc,
 }
 
 void
-vbi_caption_dispatcher(struct caption *cc, int line, unsigned char *buf)
+vbi_caption_dispatcher(struct vbi *vbi, int line, unsigned char *buf)
 {
+	struct caption *cc = &vbi->cc;
 	char c1 = buf[0] & 0x7F;
 	int field2 = 1, i;
 
@@ -1116,17 +1170,17 @@ vbi_caption_dispatcher(struct caption *cc, int line, unsigned char *buf)
 			if (c1 == 0)
 				return;
 			else if (c1 <= 0x0F) {
-				xds_separator(cc, buf);
+				xds_separator(vbi, buf);
 				cc->xds = (c1 != XDS_END);
 				return;
 			} else if (c1 <= 0x1F) {
 				cc->xds = FALSE;
 			} else if (cc->xds) {
-				xds_separator(cc, buf);
+				xds_separator(vbi, buf);
 				return;
 			}
 		} else if (cc->xds) {
-			xds_separator(cc, buf);
+			xds_separator(vbi, buf);
 			return;
 		}
 		
@@ -1345,7 +1399,7 @@ XEvent			event;
 XImage *		ximage;
 ushort *		ximgdata;
 
-struct caption		caption;
+struct vbi		vbi;
 int			draw_page = -1; /* page number, -1 all */
 int			shift = 0, step = 3;
 int			sh_first, sh_last;
@@ -1704,7 +1758,7 @@ printc(char c)
 
 	buf[0] = odd(c);
 	buf[1] = 0x80;
-	dispatch_caption(&caption, buf, FALSE);
+	vbi_caption_dispatcher(&vbi, buf, FALSE);
 
 	xevent(33333);
 }
@@ -1717,13 +1771,13 @@ prints(char *s)
 	for (; s[0] && s[1]; s += 2) {
 		buf[0] = odd(s[0]);
 		buf[1] = odd(s[1]);
-		dispatch_caption(&caption, buf, FALSE);
+		vbi_caption_dispatcher(&vbi, buf, FALSE);
 	}
 
 	if (s[0]) {
 		buf[0] = odd(s[0]);
 		buf[1] = 0x80;
-		dispatch_caption(&caption, buf, FALSE);
+		vbi_caption_dispatcher(&vbi, buf, FALSE);
 	}
 
 	xevent(33333);
@@ -1737,7 +1791,7 @@ cmd(unsigned int n)
 	buf[0] = odd(n >> 8);
 	buf[1] = odd(n & 0x7F);
 
-	dispatch_caption(&caption, buf, FALSE);
+	vbi_caption_dispatcher(&vbi, buf, FALSE);
 
 	xevent(33333);
 }
@@ -1815,7 +1869,7 @@ sample_alpha(void)
 			if (i > 0 && i < (items - 1))
 				continue; /* temp fix */
 
-			dispatch_caption(&caption, cc, i > 0);
+			vbi_caption_dispatcher(&vbi, cc, i > 0);
 
 			xevent(dt * 1e6);
 		}
@@ -1858,7 +1912,7 @@ sample_beta(void)
 //			printf(" %3d %02x %02x ", line & 0xFFF, cc[0] & 0x7F, cc[1] & 0x7F);
 //			printf(" %c%c\n", printable(cc[0]), printable(cc[1]));
 
-			dispatch_caption(&caption, cc, line >> 15);
+			vbi_caption_dispatcher(&vbi, cc, line >> 15);
 
 			xevent(dt * 1e6);
 		}
@@ -1965,7 +2019,7 @@ main(int ac, char **av)
 	if (!init_window(ac, av))
 		exit(EXIT_FAILURE);
 
-	vbi_init_caption(&caption);
+	vbi_init_caption(&vbi.caption);
 
 	if (isatty(STDIN_FILENO))
 		hello_world();

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.18 2001-01-30 23:27:16 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.19 2001-02-22 14:15:51 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -1958,7 +1958,8 @@ video_init(void)
 
 	video_reset();
 
-	video_fifo = mux_add_input_stream(VIDEO_STREAM,
+	video_fifo = mux_add_input_stream(
+		VIDEO_STREAM, "video-mpeg1",
 		mb_num * 384 * 4, vid_buffers,
 		frames_per_sec, video_bit_rate, video_cap_fifo);
 }

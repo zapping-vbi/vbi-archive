@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: oss.c,v 1.11 2000-12-15 00:14:19 garetxe Exp $ */
+/* $Id: oss.c,v 1.12 2001-02-22 14:15:51 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -199,7 +199,8 @@ open_pcm_oss(char *dev_name, int sampling_rate, bool stereo)
 		printv(3, "Dsp buffer size %i\n", frag_size);
 	}
 
-	ASSERT("init pcm/oss capture fifo", init_callback_fifo(&oss->pcm.fifo,
+	ASSERT("init pcm/oss capture fifo", init_callback_fifo(
+		&oss->pcm.fifo, "audio-oss",
 		wait_full, send_empty, NULL, NULL, 1, buffer_size));
 
 	oss->pcm.fifo.buffers[0].data = NULL;

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.8 2000-12-15 00:14:19 garetxe Exp $ */
+/* $Id: v4l2.c,v 1.9 2001-02-22 14:15:51 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -335,7 +335,8 @@ v4l2_init(void)
 
 	printv(2, "%d capture buffers granted\n", vrbuf.count);
 
-	ASSERT("init capture fifo", init_callback_fifo(&cap_fifo,
+	ASSERT("init capture fifo", init_callback_fifo(
+		&cap_fifo, "video-v4l2",
 		wait_full, send_empty, NULL, NULL, vrbuf.count, 0));
 
 	cap_fifo.start = capture_on;

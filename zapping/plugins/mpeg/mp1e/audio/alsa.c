@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alsa.c,v 1.9 2001-01-06 21:00:27 mschimek Exp $ */
+/* $Id: alsa.c,v 1.10 2001-02-22 14:15:51 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -228,7 +228,8 @@ open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo)
 		setup.format.rate, setup.format.voices,
 		setup.buf.stream.queue_size);
 
-	ASSERT("init pcm/alsa capture fifo", init_callback_fifo(audio_cap_fifo = &alsa->pcm.fifo,
+	ASSERT("init pcm/alsa capture fifo", init_callback_fifo(
+		audio_cap_fifo = &alsa->pcm.fifo, "audio-alsa",
 		wait_full, send_empty, NULL, NULL, 1, buffer_size));
 
 	alsa->pcm.fifo.start = start;

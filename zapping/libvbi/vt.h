@@ -291,7 +291,7 @@ struct teletext {
 	struct raw_page		*current;
 };
 
-struct vbi; /* parent of struct teletext, here for vbi->cache */
+struct vbi; /* parent of struct teletext */
 
 extern void		vbi_init_teletext(struct teletext *vt);
 extern bool		vbi_teletext_packet(struct vbi *vbi, unsigned char *p);

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.7 2000-12-15 07:20:31 mschimek Exp $ */
+/* $Id: vbi.c,v 1.8 2001-02-22 14:15:51 mschimek Exp $ */
 
 #include "../common/fifo.h"
 #include "../systems/mpeg.h"
@@ -206,7 +206,8 @@ vbi_init(fifo *f)
 
 		init_dvb_packet_filter(vbi, subtitle_pages);
 
-		vbi_output_fifo = mux_add_input_stream(PRIVATE_STREAM_1,
+		vbi_output_fifo = mux_add_input_stream(
+			PRIVATE_STREAM_1, "vbi-ps1",
 			32 * 46, 5, 25.0, 294400 /* peak */, &vbi->fifo);
 	}
 

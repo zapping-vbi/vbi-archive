@@ -8,10 +8,10 @@
 #include <string.h>
 #include <ctype.h>
 #include <assert.h>
-#include "libvbi.h"
 #include "vt.h"
 #include "export.h"
 #include "vbi.h"
+#include "libvbi.h"
 #include "hamm.h"
 #include "lang.h"
 #include "../common/types.h"

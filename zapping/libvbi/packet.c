@@ -46,8 +46,9 @@ vbi_send(struct vbi *vbi, int type, int pgno, int subno, int i1, int i2, int i3,
     ev->i3 = i3;
     ev->p1 = p1;
 
-    for (cl = (void *) vbi->clients->first; (cln = (void *) cl->node->next); cl = cln)
-	cl->handler(cl->data, ev);
+	for (cl = (void *) vbi->clients->first; (cln = (void *) cl->node->next); cl = cln)
+		if (cl->event_mask & type)
+			cl->handler(cl->data, ev);
 }
 
 static void
@@ -728,38 +729,27 @@ vbi_convert_page(struct vbi *vbi, struct vt_page *vtp, bool cached, page_functio
 	}
 }
 
-/*
- *  Station identification for automatic channel programming
- *  and multi-channel cache; Programme status display.
- *
- *  XXX interface to be defined
- */
-
 typedef enum {
 	CNI_NONE,
 	CNI_VPS,	/* VPS format */
 	CNI_8301,	/* Teletext packet 8/30 format 1 */
 	CNI_8302,	/* Teletext packet 8/30 format 2 */
 	CNI_X26		/* Teletext packet X/26 local enhancement */
-} cni_type;
-
-typedef struct {
-	cni_type	type;
-	int		code;
-} cni;
+} vbi_cni_type;
 
 static bool
-station_lookup(cni *cni, char **country, char **short_name, char **long_name)
+station_lookup(vbi_cni_type type, int cni,
+	char **country, char **short_name, char **long_name)
 {
-	int j, code = cni->code;
+	int j;
 
-	if (!code)
+	if (!cni)
 		return FALSE;
 
-	switch (cni->type) {
+	switch (type) {
 	case CNI_8301:
 		for (j = 0; PDC_CNI[j].short_name; j++)
-			if (PDC_CNI[j].cni1 == code) {
+			if (PDC_CNI[j].cni1 == cni) {
 				*country = country_names_en[PDC_CNI[j].country];
 				*short_name = PDC_CNI[j].short_name;
 				*long_name = PDC_CNI[j].long_name;
@@ -769,23 +759,23 @@ station_lookup(cni *cni, char **country, char **short_name, char **long_name)
 
 	case CNI_8302:
 		for (j = 0; PDC_CNI[j].short_name; j++)
-			if (PDC_CNI[j].cni2 == code) {
+			if (PDC_CNI[j].cni2 == cni) {
 				*country = country_names_en[PDC_CNI[j].country];
 				*short_name = PDC_CNI[j].short_name;
 				*long_name = PDC_CNI[j].long_name;
 				return TRUE;
 			}
 
-		code &= 0x0FFF;
+		cni &= 0x0FFF;
 
 		/* fall through */
 
 	case CNI_VPS:
-		/* if (code == 0x0DC3) in decoder
-			code = mark ? 0x0DC2 : 0x0DC1; */
+		/* if (cni == 0x0DC3) in decoder
+			cni = mark ? 0x0DC2 : 0x0DC1; */
 
 		for (j = 0; VPS_CNI[j].short_name; j++)
-			if (VPS_CNI[j].cni == code) {
+			if (VPS_CNI[j].cni == cni) {
 				*country = country_names_en[VPS_CNI[j].country];
 				*short_name = VPS_CNI[j].short_name;
 				*long_name = VPS_CNI[j].long_name;
@@ -795,7 +785,7 @@ station_lookup(cni *cni, char **country, char **short_name, char **long_name)
 
 	case CNI_X26:
 		for (j = 0; PDC_CNI[j].short_name; j++)
-			if (PDC_CNI[j].cni3 == code) {
+			if (PDC_CNI[j].cni3 == cni) {
 				*country = country_names_en[PDC_CNI[j].country];
 				*short_name = PDC_CNI[j].short_name;
 				*long_name = PDC_CNI[j].long_name;
@@ -812,7 +802,9 @@ station_lookup(cni *cni, char **country, char **short_name, char **long_name)
 	return FALSE;
 }
 
-/* Test only */
+#define BSD_TEST 0
+
+#if BSD_TEST
 
 static const char *month_names[] = {
 	"0?", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug",
@@ -869,12 +861,14 @@ dump_pty(int pty)
 	putchar('\n');
 }
 
+#endif /* BSD_TEST */
+
 static void
 parse_x26_pdc(int address, int mode, int data)
 {
 	static int day, month, lto, caf, duration;
 	static int hour[2], min[2], mi = 0;
-	cni c;
+	int cni;
 
 	if (mode != 6 && address < 40)
 		return;
@@ -887,16 +881,15 @@ parse_x26_pdc(int address, int mode, int data)
 		break;
 
 	case 8:
-		c.type = CNI_X26;
-		c.code = address * 256 + data;
+		cni = address * 256 + data;
 
 		if (0) { /* country and network identifier */
 			char *country, *short_name, *long_name;
 
-			if (station_lookup(&c, &country, &short_name, &long_name))
+			if (station_lookup(CNI_X26, cni, &country, &short_name, &long_name))
 				printf("X/26 country: %s\n... station: %s\n", country, long_name);
 			else
-				printf("X/26 unknown CNI %04x\n", c.code);
+				printf("X/26 unknown CNI %04x\n", cni);
 		}
 
 		return;
@@ -923,15 +916,21 @@ parse_x26_pdc(int address, int mode, int data)
 		break;
 
 	case 13:
+#if BSD_TEST
 		if (0) {
 			printf("X/26 pty series: %d\n", address == 0x30);
 			dump_pty(data | 0x80);
 		}
+
+#endif /* BSD_TEST */
+
 		break;
 
 	default:
 		return;
 	}
+
+#if BSD_TEST
 
 	/*
 	 *  It's life, but not as we know it...
@@ -942,10 +941,11 @@ parse_x26_pdc(int address, int mode, int data)
 			lto, caf, duration,
 			day, month_names[month],
 			hour[0], min[0], hour[1], min[1]);
+#endif /* BSD_TEST */
 }
 
 static bool
-parse_bsd(unsigned char *raw, int packet, int designation)
+parse_bsd(struct vbi *vbi, unsigned char *raw, int packet, int designation)
 {
 	int err, i;
 
@@ -959,23 +959,42 @@ parse_bsd(unsigned char *raw, int packet, int designation)
 			break;
 
 		if (designation <= 1) {
-			cni c;
+			char *short_name, *long_name;
+			char *country;
+			int cni;
+#if BSD_TEST
+			printf("\nPacket 8/30/%d:\n", designation);
+#endif
+			cni = bit_reverse[raw[7]] * 256 + bit_reverse[raw[8]];
 
-//			printf("\nPacket 8/30/%d:\n", designation);
-
-			c.type = CNI_8301;
-			c.code = bit_reverse[raw[7]] * 256 + bit_reverse[raw[8]];
-
-			if (0) { /* country and network identifier */
-				char *country, *short_name, *long_name;
-
-				if (station_lookup(&c, &country, &short_name, &long_name))
+			if (cni != vbi->network.cni_8301) {
+				vbi->network.cni_8301 = cni;
+				/* XXX ouch.
+				if (vbi->network.cycle != 3
+				    || vbi->network.cni_vps == 0
+				    || vbi->network.cni_8302 == 0) */
+					vbi->network.cycle = 1;
+			} else if (vbi->network.cycle == 1) {
+				if (!station_lookup(CNI_8301, cni, &country, &short_name, &long_name)) {
+					vbi->network.name[0] = 0;
+					vbi->network.label[0] = 0;
+					vbi->network.cycle = 2;
+				} else {
+					strncpy(vbi->network.name, long_name, sizeof(vbi->network.name) - 1);
+					strncpy(vbi->network.label, short_name, sizeof(vbi->network.label) - 1);
+					vbi_send(vbi, VBI_EVENT_NETWORK, 0, 0, 0, 0, 0, &vbi->network);
+					vbi->network.cycle = 3;
+				}
+			}
+#if BSD_TEST
+			if (1) { /* country and network identifier */
+				if (station_lookup(CNI_8301, cni, &country, &short_name, &long_name))
 					printf("... country: %s\n... station: %s\n", country, long_name);
 				else
-					printf("... unknown CNI %04x\n", c.code);
+					printf("... unknown CNI %04x\n", cni);
 			}
 
-			if (0) { /* local time */
+			if (1) { /* local time */
 				int lto, mjd, utc_h, utc_m, utc_s;
 				struct tm tm;
 				time_t ti;
@@ -999,12 +1018,16 @@ parse_bsd(unsigned char *raw, int packet, int designation)
 					mjd, tm.tm_mday, month_names[tm.tm_mon + 1], tm.tm_year + 1900,
 					utc_h, utc_m, utc_s, (raw[9] & 0x80) ? '-' : '+', lto >> 1, (lto & 1) * 30);
 			}
+#endif /* BSD_TEST */
+
 		} else /* if (designation <= 3) */ {
-			int t, n[7], pil, pty, pcs;
-			cni c;
-
-//			printf("\nPacket 8/30/%d:\n", designation);
-
+			int t, n[7];
+			char *short_name, *long_name;
+			char *country;
+			int cni;
+#if BSD_TEST
+			printf("\nPacket 8/30/%d:\n", designation);
+#endif
 			for (err = i = 0; i < 7; i++) {
 				err |= t = hamm16a(raw + i * 2 + 6);
 				n[i] = bit_reverse[t];
@@ -1013,36 +1036,52 @@ parse_bsd(unsigned char *raw, int packet, int designation)
 			if (err < 0)
 				return FALSE;
 
-			c.type = CNI_8302;
-			c.code = + ((n[4] & 0x03) << 10)
-				 + ((n[5] & 0xC0) << 2)
-				 + (n[2] & 0xC0)
-				 + (n[5] & 0x3F)
-				 + ((n[1] & 0x0F) << 12);
+			cni = + ((n[4] & 0x03) << 10)
+			      + ((n[5] & 0xC0) << 2)
+			      + (n[2] & 0xC0)
+			      + (n[5] & 0x3F)
+			      + ((n[1] & 0x0F) << 12);
 
-			if (c.code == 0x0DC3)
-				c.code = (n[2] & 0x10) ? 0x0DC2 : 0x0DC1;
+			if (cni == 0x0DC3)
+				cni = (n[2] & 0x10) ? 0x0DC2 : 0x0DC1;
 
-			pcs = n[1] >> 6;
-			pil = ((n[2] & 0x3F) << 14) + (n[3] << 6) + (n[4] >> 2);
-			pty = n[6];
-
-			if (0) { /* country and network identifier */
-				char *country, *short_name, *long_name;
-
-				if (station_lookup(&c, &country, &short_name, &long_name))
-					printf("... country: %s\n... station: %s\n", country, long_name);
-				else
-					printf("... unknown CNI %04x\n", c.code);
+			if (cni != vbi->network.cni_8302) {
+				vbi->network.cni_8302 = cni;
+				/* if (vbi->network.cycle != 3
+				    || vbi->network.cni_vps == 0
+				    || vbi->network.cni_8301 == 0) */
+					vbi->network.cycle = 1;
+			} else if (vbi->network.cycle == 1) {
+				if (!station_lookup(CNI_8302, cni, &country, &short_name, &long_name)) {
+					vbi->network.name[0] = 0;
+					vbi->network.label[0] = 0;
+					vbi->network.cycle = 2;
+				} else {
+					strncpy(vbi->network.name, long_name, sizeof(vbi->network.name) - 1);
+					strncpy(vbi->network.label, short_name, sizeof(vbi->network.label) - 1);
+					vbi_send(vbi, VBI_EVENT_NETWORK, 0, 0, 0, 0, 0, &vbi->network);
+					vbi->network.cycle = 3;
+				}
 			}
 
-			if (0) { /* PDC data */
-				int lci, luf, prf, mi;
+#if BSD_TEST
+			if (1) { /* country and network identifier */
+				char *country, *short_name, *long_name;
+
+				if (station_lookup(CNI_8302, cni, &country, &short_name, &long_name))
+					printf("... country: %s\n... station: %s\n", country, long_name);
+				else
+					printf("... unknown CNI %04x\n", cni);
+			}
+
+			if (1) { /* PDC data */
+				int lci, luf, prf, mi, pil;
 
 				lci = (n[0] >> 2) & 3;
 				luf = !!(n[0] & 2);
 				prf = n[0] & 1;
 				mi = !!(n[1] & 0x20);
+				pil = ((n[2] & 0x3F) << 14) + (n[3] << 6) + (n[4] >> 2);
 
 				printf("... label channel %d: update %d,"
 				       " prepare to record %d, mode %d\n",
@@ -1050,18 +1089,26 @@ parse_bsd(unsigned char *raw, int packet, int designation)
 				dump_pil(pil);
 			}
 
-			if (0) {
+			if (1) {
+				int pty, pcs;
+
+				pcs = n[1] >> 6;
+				pty = n[6];
+
 				printf("... analog audio: %s\n", pcs_names[pcs]);
 				dump_pty(pty);
 			}
+#endif /* BSD_TEST */
+
 		}
 
+#if BSD_TEST
 		/*
 		 *  "transmission status message, e.g. the programme title",
 		 *  "default G0 set". Render like subtitles a la TV or lang.c
 		 *  translation to latin etc?
 		 */
-		if (0) { 
+		if (1) { 
 			printf("... status: \"");
 
 			for (i = 20; i < 40; i++) {
@@ -1073,6 +1120,7 @@ parse_bsd(unsigned char *raw, int packet, int designation)
 
 			printf("\"\n");
 		}
+#endif
 
 		return TRUE;
 	}
@@ -1081,7 +1129,8 @@ parse_bsd(unsigned char *raw, int packet, int designation)
 }
 
 
-
+#define TTX_EVENTS (VBI_EVENT_PAGE | VBI_EVENT_HEADER)
+#define BSD_EVENTS (VBI_EVENT_NETWORK)
 
 bool
 vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
@@ -1098,9 +1147,13 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 
 	mag0 = packet & 7;
 	mag8 = mag0 ? : 8;
-	mag = vbi->vt.magazine + mag8;
 	packet >>= 3;
 
+	if (packet != 30)
+		if (!(vbi->event_mask & TTX_EVENTS))
+			return TRUE;
+
+	mag = vbi->vt.magazine + mag8;
 	rvtp = vbi->vt.raw_page + mag0;
 	cvtp = rvtp->page;
 
@@ -1709,15 +1762,18 @@ if(0)
 		if (designation > 4)
 			break;
 
-		if (!hamm8_page_number(&vbi->vt.initial_page, p + 1, 0))
-			return FALSE;
+		if (vbi->event_mask & TTX_EVENTS) {
+			if (!hamm8_page_number(&vbi->vt.initial_page, p + 1, 0))
+				return FALSE;
 
-		if ((vbi->vt.initial_page.pgno & 0xFF) == 0xFF) {
-			vbi->vt.initial_page.pgno = 0x100;
-			vbi->vt.initial_page.subno = ANY_SUB;
+			if ((vbi->vt.initial_page.pgno & 0xFF) == 0xFF) {
+				vbi->vt.initial_page.pgno = 0x100;
+				vbi->vt.initial_page.subno = ANY_SUB;
+			}
 		}
 
-		return parse_bsd(p, packet, designation);
+		if (vbi->event_mask & BSD_EVENTS)
+			return parse_bsd(vbi, p, packet, designation);
 
 	default:
 		break;

@@ -155,7 +155,7 @@ zvbi_open_device(void)
   if (vbi->cache)
     vbi->cache->op->mode(vbi->cache, CACHE_MODE_ERC, erc);
 
-  vbi_add_handler(vbi, event, NULL);
+  vbi_add_handler(vbi, ~0, event, NULL);
 
   last_info.name = NULL;
   last_info.hour = last_info.min = last_info.sec = -1;
@@ -949,6 +949,11 @@ event(struct dl_head *reqs, vbi_event *ev)
 	    }
 	}
 	pthread_mutex_unlock(&(last_info.mutex));
+	break;
+
+    case VBI_EVENT_NETWORK:
+	printf("Station name: '%s'\n",
+		((vbi_network *) ev->p1)->name);
 	break;
 
     default:

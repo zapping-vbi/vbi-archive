@@ -9,6 +9,7 @@
 //#include "lang.h"
 
 #include "../common/types.h"
+#include "libvbi.h"
 
 // #define PLL_ADJUST	4
 
@@ -20,6 +21,9 @@ struct vbi
 
 	int			quit; // stoopid
 
+	int			event_mask;
+	vbi_network		network;
+
 	struct teletext		vt;
 	struct caption		cc;
 
@@ -29,7 +33,7 @@ struct vbi
 
 struct vbi *vbi_open(char *vbi_dev_name, struct cache *ca, int fine_tune);
 void vbi_close(struct vbi *vbi);
-int vbi_add_handler(struct vbi *vbi, void *handler, void *data);
+int vbi_add_handler(struct vbi *vbi, int event_mask, void *handler, void *data);
 void vbi_del_handler(struct vbi *vbi, void *handler, void *data);
 
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.7 2001-01-24 22:48:52 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.8 2001-02-22 14:15:51 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -220,7 +220,8 @@ open_v4l2(struct v4l2_context *v4l2, char *dev_name)
 
 		printv(2, "%d vbi capture buffers granted\n", vrbuf.count);
 
-		ASSERT("init vbi capture fifo", init_callback_fifo(&v4l2->vbi.fifo,
+		ASSERT("init vbi capture fifo", init_callback_fifo(
+			&v4l2->vbi.fifo, "vbi-v4l2-stream",
 			wait_full_stream, send_empty_stream, NULL, NULL, vrbuf.count, 0));
 
 		v4l2->vbi.fifo.start = capture_on;
@@ -260,7 +261,8 @@ open_v4l2(struct v4l2_context *v4l2, char *dev_name)
 	} else {
 		printv(2, "Using V4L2 VBI read interface\n");
 
-		ASSERT("init vbi capture fifo", init_callback_fifo(&v4l2->vbi.fifo,
+		ASSERT("init vbi capture fifo", init_callback_fifo(
+			&v4l2->vbi.fifo, "vbi-v4l2-read",
 			wait_full_read, send_empty_read, NULL, NULL, buffer_size, 1));
 
 		v4l2->vbi.fifo.user_data = v4l2;
@@ -328,7 +330,8 @@ open_vbi_v4l2(char *dev_name)
 
 		buffer_size = 32 * 2048;
 
-		ASSERT("init vbi capture fifo", init_callback_fifo(&v4l2->vbi.fifo,
+		ASSERT("init vbi capture fifo", init_callback_fifo(
+			&v4l2->vbi.fifo, "vbi-v4l",
 			wait_full_read, send_empty_read, NULL, NULL, buffer_size, 1));
 
 		v4l2->vbi.fifo.user_data = v4l2;

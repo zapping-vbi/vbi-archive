@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.9 2000-12-15 00:14:19 garetxe Exp $ */
+/* $Id: v4l.c,v 1.10 2001-02-22 14:15:51 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -181,7 +181,8 @@ v4l_init(void)
 
 	ASSERT("map capture buffer", (int)buf_base != -1);
 
-	ASSERT("init capture fifo", init_callback_fifo(&cap_fifo,
+	ASSERT("init capture fifo", init_callback_fifo(
+		&cap_fifo, "video-v4l",
 		wait_full, NULL, NULL, NULL, buf.frames, 0));
 
 	cap_fifo.start = capture_on;

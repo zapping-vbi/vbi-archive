@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.11 2000-12-15 23:26:46 garetxe Exp $ */
+/* $Id: mp2.c,v 1.12 2001-02-22 14:15:51 mschimek Exp $ */
 
 #include <limits.h>
 #include "../common/log.h"
@@ -310,7 +310,8 @@ audio_init(int sampling_freq, int stereo, int audio_mode, int bit_rate, int psyc
 
 	mp2->frame_period = SAMPLES_PER_FRAME / (double) sampling_freq;
 
-	audio_fifo = mux_add_input_stream(AUDIO_STREAM,
+	audio_fifo = mux_add_input_stream(
+		AUDIO_STREAM, "audio-mp2",
 		2048 * channels, aud_buffers,
 		sampling_freq / (double) SAMPLES_PER_FRAME, bit_rate, audio_cap_fifo);
 }

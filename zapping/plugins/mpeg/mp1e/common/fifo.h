@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.15 2000-12-16 00:27:50 garetxe Exp $ */
+/* $Id: fifo.h,v 1.16 2001-02-22 14:15:51 mschimek Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -114,8 +114,8 @@ extern void	uninit_buffer(buffer *b);
 extern int	alloc_buffer_vec(buffer **bpp, int num_buffers, int buffer_size);
 extern void	free_buffer_vec(buffer *bvec, int num_buffers);
 
-extern int	init_buffered_fifo(fifo *f, mucon *consumer, int num_buffers, int buffer_size);
-extern int	init_callback_fifo(fifo *f, buffer * (* wait_full)(fifo *), void (* send_empty)(fifo *, buffer *), buffer * (* wait_empty)(fifo *), void (* send_full)(fifo *, buffer *), int num_buffers, int buffer_size);
+extern int	init_buffered_fifo(fifo *f, char *name, mucon *consumer, int num_buffers, int buffer_size);
+extern int	init_callback_fifo(fifo *f, char *name, buffer * (* wait_full)(fifo *), void (* send_empty)(fifo *, buffer *), buffer * (* wait_empty)(fifo *), void (* send_full)(fifo *, buffer *), int num_buffers, int buffer_size);
 extern int	num_buffers_queued(fifo *f);
 extern void	remove_consumer(fifo *f);
 

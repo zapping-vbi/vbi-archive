@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.11 2000-12-16 00:27:50 garetxe Exp $ */
+/* $Id: fifo.c,v 1.12 2001-02-22 14:15:51 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -246,7 +246,7 @@ key_destroy_callback(void *param)
 }
 
 int
-init_callback_fifo(fifo *f,
+init_callback_fifo(fifo *f, char *name,
 	buffer * (* custom_wait_full)(fifo *),
 	void     (* custom_send_empty)(fifo *, buffer *),
 	buffer * (* custom_wait_empty)(fifo *),
@@ -293,9 +293,10 @@ init_callback_fifo(fifo *f,
 }
 
 int
-init_buffered_fifo(fifo *f, mucon *consumer, int num_buffers, int buffer_size)
+init_buffered_fifo(fifo *f, char *name,
+	mucon *consumer, int num_buffers, int buffer_size)
 {
-	init_callback_fifo(f, NULL, NULL, NULL, NULL,
+	init_callback_fifo(f, name, NULL, NULL, NULL, NULL,
 		num_buffers, buffer_size);
 
 	if (num_buffers > 0 && f->num_buffers <= 0)

@@ -21,12 +21,16 @@
 #include "sliced.h"
 
 int
-vbi_add_handler(struct vbi *vbi, void *handler, void *data)
+vbi_add_handler(struct vbi *vbi, int event_mask, void *handler, void *data)
 {
     struct vbi_client *cl;
 
     if (!(cl = malloc(sizeof(*cl))))
 	return -1;
+
+	cl->event_mask = event_mask;
+	vbi->event_mask |= event_mask;
+
     cl->handler = handler;
     cl->data = data;
     dl_insert_last(vbi->clients, cl->node);
@@ -44,6 +48,13 @@ vbi_del_handler(struct vbi *vbi, void *handler, void *data)
 	    dl_remove(cl->node);
 	    break;
 	}
+
+
+	vbi->event_mask = 0;
+
+    for (cl = (void *) vbi->clients->first; cl->node->next; cl = (void *) cl->node->next)
+	vbi->event_mask |= cl->event_mask;
+
     return;
 }
 
@@ -77,7 +88,7 @@ vbi_mainloop(void *p)
 			if (s->id & SLICED_TELETEXT_B)
 				vbi_teletext_packet(vbi, s->data);
 			if (s->id & SLICED_CAPTION)
-				vbi_caption_dispatcher(&vbi->cc, s->line, s->data);
+				vbi_caption_dispatcher(vbi, s->line, s->data);
 /*
 			if (s->id & SLICED_VPS)
 				vbi_vps(vbi, s->data);
@@ -104,7 +115,7 @@ vbi_mainloop(void *p)
 /* examples */
 // #define FILTER_REM 0
 // #define FILTER_ADD SLICED_CAPTION
-// #define SAMPLE "libvbi/samples/s5"
+// #define SAMPLE "libvbi/samples/s7"
 
 // #define FILTER_REM SLICED_TELETEXT_B
 // #define FILTER_ADD SLICED_TELETEXT_B

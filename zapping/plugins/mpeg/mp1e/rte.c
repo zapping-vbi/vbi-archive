@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.43 2001-01-09 06:26:12 mschimek Exp $ */
+/* $Id: rte.c,v 1.44 2001-02-22 14:15:51 mschimek Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -710,7 +710,7 @@ int rte_init_context ( rte_context * context )
 		if (context->private->video_buffered)
 			alloc_bytes = 0; /* no need for preallocated
 					    mem */
-		if (2 > init_buffered_fifo(&(context->private->vid), NULL,
+		if (2 > init_buffered_fifo(&(context->private->vid), "rte-video", NULL,
 					   /*&(context->private->vid_consumer)*/
 				       video_look_ahead(gop_sequence),
 					   alloc_bytes)) {
@@ -728,7 +728,7 @@ int rte_init_context ( rte_context * context )
 			alloc_bytes = context->audio_bytes;
 		else
 			alloc_bytes = 0;
-		if (4 > init_buffered_fifo(&(context->private->aud),
+		if (4 > init_buffered_fifo(&(context->private->aud), "rte-audio",
 					   NULL, /*&(context->private->aud_consumer)*/
 				   NUM_AUDIO_BUFFERS, alloc_bytes)) {
 			uninit_fifo(&(context->private->vid));

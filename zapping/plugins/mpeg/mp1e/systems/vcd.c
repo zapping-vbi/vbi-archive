@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vcd.c,v 1.1 2001-01-24 22:48:52 mschimek Exp $ */
+/* $Id: vcd.c,v 1.2 2001-02-22 14:15:51 mschimek Exp $ */
 
 /*
  *  This code creates a stream suitable for mkvcdfs as vcdmplex
@@ -398,6 +398,13 @@ reschedule:
 			p = px;
 			str->ptr += m;
 			str->left -= m;
+
+			if (!str->left) {
+				send_empty_buffer(&str->fifo, str->buf);
+
+				str->buf = NULL;
+				str->dts += str->ticks_per_frame;
+			}
 		} else {
 			put(p + m + 6, 0x0F, 1);
 			pl = p += m + 7;

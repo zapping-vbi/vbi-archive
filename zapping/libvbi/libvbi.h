@@ -6,10 +6,8 @@
 #define __LIBVBI_H__
 
 #include <vt.h>
-#include <vbi.h>	/* XXX */
 //#include <lang.h>
 #include <dllist.h>
-#include <export.h>
 
 /*
     public interface:
@@ -103,22 +101,58 @@ extern void *		vbi_new_search(struct vbi *vbi, int pgno, int subno,
 extern int		vbi_next_search(void *p, struct fmt_page **pg, int dir);
 
 /*
+ *  Network identification.
+ *
+ *  All strings are ISO 8859-1, local language, and NUL terminated.
+ *  Prepare for empty strings.
+ */
+
+typedef struct {
+	char			name[33];		/* descriptive name */
+	char			label[9];		/* short name (TTX/VPS) */
+	char			call[33];		/* network call letters (XDS) */
+
+	int			tape_delay;		/* tape delay, minutes (XDS) */
+
+	/* Private */
+
+	int			cni_vps;
+	int			cni_8301;
+	int			cni_8302;
+	int			cni_x26;
+
+	int			cycle;
+} vbi_network;
+
+/*
  *  Event
  */
 
-typedef enum {
-	VBI_EVENT_NONE = 0,
-	VBI_EVENT_CLOSE,
-	VBI_EVENT_PAGE,		// p1:vt_page	i1:query-flag
-	VBI_EVENT_HEADER,	// i1:pgno  i2:subno  i3:flags  p1:data
-	VBI_EVENT_XPACKET,	// i1:mag  i2:pkt  i3:errors  p1:data
-	VBI_EVENT_RESET,	// ./.
-	VBI_EVENT_TIMER,	// ./.
-} vbi_event_type;
+#define VBI_EVENT_NONE		0
+#define	VBI_EVENT_CLOSE		(1 << 0)
+#define	VBI_EVENT_PAGE		(1 << 1)	// p1:vt_page	i1:query-flag
+#define	VBI_EVENT_HEADER	(1 << 2)	// i1:pgno  i2:subno  i3:flags  p1:data
+#define	VBI_EVENT_NETWORK	(1 << 3)
+/*
+ *  Some station/network identifier has been received, vbi_event.p1 is
+ *  a vbi_network pointer. The event will not repeat unless a different
+ *  identifier has been received and confirmed.
+ *
+ *  Minimum time for recognition
+ *
+ *  VPS (DE/AT/CH only):	0.08 s
+ *  Teletext PDC, 8/30:		2 s
+ *  Teletext X/26:		unknown
+ *  XDS (US only):		unknown, between 0.1x to 10x seconds
+ */
+
+#define	VBI_EVENT_XPACKET	(1 << 4)	// i1:mag  i2:pkt  i3:errors  p1:data
+#define	VBI_EVENT_RESET		(1 << 5)	// ./.
+#define	VBI_EVENT_TIMER		(1 << 6)	// ./.
 
 typedef struct
 {
-	vbi_event_type		type;
+	int			type;
 	int			pgno;
 	int			subno;
 
@@ -131,8 +165,12 @@ typedef struct
 struct vbi_client
 {
     struct dl_node node[1];
+	int			event_mask;
     void (*handler)(void *data, vbi_event *ev);
     void *data;
 };
+
+#include <vbi.h>	/* XXX */
+#include <export.h>
 
 #endif /* __LIBVBI_H__ */

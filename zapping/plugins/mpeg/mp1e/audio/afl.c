@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: afl.c,v 1.4 2000-12-15 00:14:19 garetxe Exp $ */
+/* $Id: afl.c,v 1.5 2001-02-22 14:15:51 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -180,7 +180,8 @@ open_pcm_afl(char *name, int ignored1, bool ignored2)
 
 	buffer_size = (afl->scan_range + afl->look_ahead) * sizeof(short);
 
-	ASSERT("init pcm/afl capture fifo", init_callback_fifo(&afl->pcm.fifo,
+	ASSERT("init pcm/afl capture fifo", init_callback_fifo(
+		&afl->pcm.fifo, "audio-afl",
 		wait_full, send_empty, NULL, NULL, 1, buffer_size));
 
 	afl->pcm.fifo.buffers[0].data = NULL;
