@@ -1581,6 +1581,41 @@ add_channel_entries			(GtkMenuShell *menu,
   return sth;
 }
 
+gdouble
+videostd_inquiry(void)
+{
+  GtkWidget *dialog, *option, *check;
+  gint std_hint;
+
+  std_hint = zconf_get_integer (NULL, "/zapping/options/main/std_hint");
+
+  if (std_hint >= 1)
+    goto ok;
+
+  dialog = build_widget ("videostd_inquiry", NULL);
+  option = lookup_widget (dialog, "optionmenu24");
+  check = lookup_widget (dialog, "checkbutton15");
+
+  if (GTK_RESPONSE_ACCEPT != gtk_dialog_run (GTK_DIALOG (dialog)))
+    {
+      gtk_widget_destroy(dialog);
+      return -1;
+    }
+
+  std_hint = 1 + z_option_menu_get_active (option);
+
+  if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (check)))
+    zconf_set_integer (std_hint, "/zapping/options/main/std_hint");
+
+ ok:
+  if (std_hint == 1)
+    return 30000.0 / 1001;
+  else if (std_hint >= 2)
+    return 25.0;
+  else
+    return -1;
+}
+ 
 void
 startup_v4linterface(tveng_device_info *info)
 {

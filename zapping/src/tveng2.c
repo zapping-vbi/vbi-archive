@@ -48,13 +48,18 @@
 #include "tveng.h"
 #define TVENG2_PROTOTYPES 1
 #include "tveng2.h"
-#include "../common/videodev2.h" /* the V4L2 definitions */
-#include "../common/types.h"
 
-#define CLEAR(v) memset (&(v), 0, sizeof (v))
+#include "zmisc.h"
 
-/* TFR repeats the ioctl when interrupted (EINTR) */
-#define IOCTL(fd, cmd, data) (TEMP_FAILURE_RETRY(ioctl(fd, cmd, data)))
+/*
+ *  Kernel interface
+ */
+#include "../common/videodev2.h"
+#include "../common/fprintf_videodev2.h"
+
+#define v4l2_ioctl(fd, cmd, arg)					\
+(IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
+ device_ioctl (fd, cmd, arg, 0 /* stderr */, fprintf_ioctl_arg))
 
 struct control {
 	tv_dev_control		dev;
@@ -63,6 +68,8 @@ struct control {
 
 #define C(l) PARENT (l, struct control, dev)
 #define CC(l) PARENT (l, struct control, dev.pub)
+
+
 
 struct tveng2_vbuf
 {
@@ -113,7 +120,7 @@ static int p_tveng2_open_device_file(int flags, tveng_device_info * info)
   memset(&caps, 0, sizeof(struct v4l2_capability));
   memset(&fb, 0, sizeof(struct v4l2_framebuffer));
 
-  if (IOCTL(info->fd, VIDIOC_QUERYCAP, &caps) != 0)
+  if (v4l2_ioctl(info->fd, VIDIOC_QUERYCAP, &caps) != 0)
     {
       info -> tveng_errno = errno;
       t_error("VIDIOC_QUERYCAP", info);
@@ -176,7 +183,7 @@ static int p_tveng2_open_device_file(int flags, tveng_device_info * info)
     {
       info->caps.flags |= TVENG_CAPS_OVERLAY;
       /* Collect more info about the overlay mode */
-      if (IOCTL(info->fd, VIDIOC_G_FBUF, &fb) != 0)
+      if (v4l2_ioctl(info->fd, VIDIOC_G_FBUF, &fb) != 0)
 	{
 	  if (fb.flags & V4L2_FBUF_CAP_CHROMAKEY)
 	    info->caps.flags |= TVENG_CAPS_CHROMAKEY;
@@ -422,7 +429,6 @@ static void tveng2_close_device(tveng_device_info * info)
 static
 int tveng2_get_inputs(tveng_device_info * info)
 {
-  struct v4l2_input input;
   int i;
 
   t_assert(info != NULL);
@@ -436,9 +442,11 @@ int tveng2_get_inputs(tveng_device_info * info)
 
   for (i=0;;i++)
     {
+      struct v4l2_input input;
+
       memset(&input, 0, sizeof(struct v4l2_input));
       input.index = i;
-      if (IOCTL(info->fd, VIDIOC_ENUMINPUT, &input) != 0)
+      if (v4l2_ioctl(info->fd, VIDIOC_ENUMINPUT, &input) != 0)
 	break;
       info->inputs = realloc(info->inputs, (i+1)*
 			     sizeof(struct tveng_enum_input));
@@ -467,8 +475,9 @@ int tveng2_get_inputs(tveng_device_info * info)
 
   if (i) /* If there is any input present, switch to the first one */
     {
-      input.index = 0;
-      if (IOCTL(info->fd, VIDIOC_S_INPUT, &input) != 0)
+      int index = 0;
+
+      if (v4l2_ioctl(info->fd, VIDIOC_S_INPUT, &index) != 0)
 	{
 	  info -> tveng_errno = errno;
 	  t_error("VIDIOC_S_INPUT", info);
@@ -488,7 +497,7 @@ int tveng2_set_input(struct tveng_enum_input * input,
 {
   enum tveng_capture_mode current_mode;
   enum tveng_frame_pixformat pixformat;
-  struct v4l2_input new_input;
+  //  struct v4l2_input new_input;
   int retcode;
 
   t_assert(info != NULL);
@@ -498,12 +507,16 @@ int tveng2_set_input(struct tveng_enum_input * input,
 
   current_mode = tveng_stop_everything(info);
 
-      new_input.index = input->id;
-      if ((retcode = IOCTL(info->fd, VIDIOC_S_INPUT, &new_input)) != 0)
+  //      new_input.index = input->id;
+  {
+    int index = input->id;
+
+      if ((retcode = v4l2_ioctl(info->fd, VIDIOC_S_INPUT, &index)) != 0)
 	{
 	  info -> tveng_errno = errno;
 	  t_error("VIDIOC_S_INPUT", info);
 	}
+  }
 
   info->format.pixformat = pixformat;
   tveng_set_capture_format(info);
@@ -582,7 +595,7 @@ int tveng2_get_standards(tveng_device_info * info)
     {
       memset(&enumstd, 0, sizeof (struct v4l2_enumstd));
       enumstd.index = i;
-      if (IOCTL(info->fd, VIDIOC_ENUMSTD, &enumstd) != 0)
+      if (v4l2_ioctl(info->fd, VIDIOC_ENUMSTD, &enumstd) != 0)
 	break;
 
       /* Check that this standard is supported by the current input */
@@ -634,7 +647,7 @@ int tveng2_get_standards(tveng_device_info * info)
 
   /* Get the current standard */
   memset(&std, 0, sizeof(struct v4l2_standard));
-  if (IOCTL(info->fd, VIDIOC_G_STD, &std) != 0)
+  if (v4l2_ioctl(info->fd, VIDIOC_G_STD, &std) != 0)
     {
       info->tveng_errno = errno;
       t_error("VIDIOC_G_STD", info);
@@ -677,7 +690,7 @@ int tveng2_set_standard(struct tveng_enumstd * std, tveng_device_info * info)
   /* Get info about the standard we are going to set */
   memset(&enumstd, 0, sizeof(struct v4l2_enumstd));
   enumstd.index = std -> id;
-  if (IOCTL(info->fd, VIDIOC_ENUMSTD, &enumstd) != 0)
+  if (v4l2_ioctl(info->fd, VIDIOC_ENUMSTD, &enumstd) != 0)
     {
       info->tveng_errno = errno;
       t_error("VIDIOC_ENUMSTD", info);
@@ -686,7 +699,7 @@ int tveng2_set_standard(struct tveng_enumstd * std, tveng_device_info * info)
     }
 
   /* Now set it */
-  if ((retcode = IOCTL(info->fd, VIDIOC_S_STD, &(enumstd.std))) != 0)
+  if ((retcode = v4l2_ioctl(info->fd, VIDIOC_S_STD, &(enumstd.std))) != 0)
     {
       info->tveng_errno = errno;
       t_error("VIDIOC_S_STD", info);
@@ -715,7 +728,7 @@ tveng2_update_capture_format(tveng_device_info * info)
   memset(&window, 0, sizeof(struct v4l2_window));
 
   format.type = V4L2_BUF_TYPE_CAPTURE;
-  if (IOCTL(info->fd, VIDIOC_G_FMT, &format) != 0)
+  if (v4l2_ioctl(info->fd, VIDIOC_G_FMT, &format) != 0)
     {
       info->tveng_errno = errno;
       t_error("VIDIOC_G_FMT", info);
@@ -786,7 +799,7 @@ tveng2_update_capture_format(tveng_device_info * info)
     };
   /* mhs: moved down here because tveng2_read_frame blamed
      info -> format.sizeimage != size after G_WIN failed */
-  if (IOCTL(info->fd, VIDIOC_G_WIN, &window) != 0)
+  if (v4l2_ioctl(info->fd, VIDIOC_G_WIN, &window) != 0)
     {
       info->tveng_errno = errno;
       t_error("VIDIOC_G_WIN", info);
@@ -886,7 +899,7 @@ tveng2_set_capture_format(tveng_device_info * info)
   format.fmt.pix.flags = V4L2_FMT_FLAG_INTERLACED;
 
   /* everything is set up */
-  if (IOCTL(info->fd, VIDIOC_S_FMT, &format) != 0)
+  if (v4l2_ioctl(info->fd, VIDIOC_S_FMT, &format) != 0)
     {
       info->tveng_errno = errno;
       t_error("VIDIOC_S_FMT", info);
@@ -973,7 +986,7 @@ update_control			(struct private_tveng2_device_info *p_info,
 
 	ctrl.id = c->id;
 
-	if (-1 == IOCTL (p_info->info.fd, VIDIOC_G_CTRL, &ctrl)) {
+	if (-1 == v4l2_ioctl (p_info->info.fd, VIDIOC_G_CTRL, &ctrl)) {
 		p_info->info.tveng_errno = errno;
 		t_error("VIDIOC_G_CTRL", &p_info->info);
 		return FALSE;
@@ -1022,10 +1035,10 @@ tveng2_set_control		(tveng_device_info *	info,
 				[p_info->info.cur_input].id;
 
 			/* XXX */
-			if (0 == IOCTL(info -> fd, VIDIOC_G_TUNER, &tuner)) {
+			if (0 == v4l2_ioctl(info -> fd, VIDIOC_G_TUNER, &tuner)) {
 				tuner.audmode = "\0\1\3\2"[value];
 
-				if (0 == IOCTL(info -> fd, VIDIOC_S_TUNER, &tuner)) {
+				if (0 == v4l2_ioctl(info -> fd, VIDIOC_S_TUNER, &tuner)) {
 					p_info->audio_mode = value;
 				}
 			}
@@ -1039,7 +1052,7 @@ tveng2_set_control		(tveng_device_info *	info,
 	ctrl.id = C(tdc)->id;
 	ctrl.value = value;
 
-	if (-1 == IOCTL(p_info->info.fd, VIDIOC_S_CTRL, &ctrl)) {
+	if (-1 == v4l2_ioctl(p_info->info.fd, VIDIOC_S_CTRL, &ctrl)) {
 		p_info->info.tveng_errno = errno;
 		t_error("VIDIOC_S_CTRL", &p_info->info);
 		return FALSE;
@@ -1076,7 +1089,7 @@ add_control			(tveng_device_info *	info,
 	qc.id = id;
 
 	/* XXX */
-	if (-1 == IOCTL (info->fd, VIDIOC_QUERYCTRL, &qc))
+	if (-1 == v4l2_ioctl (info->fd, VIDIOC_QUERYCTRL, &qc))
 		return FALSE;
 
 	if (qc.flags & (V4L2_CTRL_FLAG_DISABLED | V4L2_CTRL_FLAG_GRABBED))
@@ -1122,7 +1135,7 @@ add_control			(tveng_device_info *	info,
 			qm.id = qc.id;
 			qm.index = j;
 
-			if (0 == IOCTL (info->fd, VIDIOC_QUERYMENU, &qm)) {
+			if (0 == v4l2_ioctl (info->fd, VIDIOC_QUERYMENU, &qm)) {
 				if (!(c->dev.pub.menu[j] = strndup(_(qm.name), 32)))
 					goto failure;
 			} else {
@@ -1173,7 +1186,7 @@ p_tveng2_build_controls(tveng_device_info * info)
 		memset(&tuner, 0, sizeof(tuner));
 		tuner.input = info->inputs[info->cur_input].id;
 
-		if (IOCTL(info->fd, VIDIOC_G_TUNER, &tuner) == 0) {
+		if (v4l2_ioctl(info->fd, VIDIOC_G_TUNER, &tuner) == 0) {
 			/* NB this is not implemented in bttv 0.8.45 */
 			if (tuner.capability & (V4L2_TUNER_CAP_STEREO
 						| V4L2_TUNER_CAP_LANG2)) {
@@ -1240,7 +1253,7 @@ tveng2_tune_input(uint32_t _freq, tveng_device_info * info)
 
   /* Get more info about this tuner */
   tuner_info.input = info->inputs[info->cur_input].id;
-  if (IOCTL(info -> fd, VIDIOC_G_TUNER, &tuner_info) != 0)
+  if (v4l2_ioctl(info -> fd, VIDIOC_G_TUNER, &tuner_info) != 0)
     {
       info->tveng_errno = errno;
       t_error("VIDIOC_G_TUNER", info);
@@ -1258,7 +1271,7 @@ tveng2_tune_input(uint32_t _freq, tveng_device_info * info)
     freq = tuner_info.rangelow;
   
   /* OK, everything is set up, try to tune it */
-  if (IOCTL(info -> fd, VIDIOC_S_FREQ, &freq) != 0)
+  if (v4l2_ioctl(info -> fd, VIDIOC_S_FREQ, &freq) != 0)
     {
       info->tveng_errno = errno;
       t_error("VIDIOC_S_FREQ", info);
@@ -1290,7 +1303,7 @@ tveng2_get_signal_strength (int *strength, int * afc,
     return -1;
 
   tuner.input = info->inputs[info->cur_input].id;
-  if (IOCTL(info -> fd, VIDIOC_G_TUNER, &tuner) != 0)
+  if (v4l2_ioctl(info -> fd, VIDIOC_G_TUNER, &tuner) != 0)
     {
       info->tveng_errno = errno;
       t_error("VIDIOC_G_TUNER", info);
@@ -1353,7 +1366,7 @@ tveng2_get_tune(uint32_t * freq, tveng_device_info * info)
       return -1;
     }
 
-  if (IOCTL(info->fd, VIDIOC_G_FREQ, &real_freq) != 0)
+  if (v4l2_ioctl(info->fd, VIDIOC_G_FREQ, &real_freq) != 0)
     {
       info->tveng_errno = errno;
       t_error("VIDIOC_G_FREQ", info);
@@ -1361,7 +1374,7 @@ tveng2_get_tune(uint32_t * freq, tveng_device_info * info)
     }
   /* Get more info about this tuner */
   tuner.input = info->inputs[info->cur_input].id;
-  if (IOCTL(info -> fd, VIDIOC_G_TUNER, &tuner) != 0)
+  if (v4l2_ioctl(info -> fd, VIDIOC_G_TUNER, &tuner) != 0)
     {
       info->tveng_errno = errno;
       t_error("VIDIOC_G_TUNER", info);
@@ -1397,7 +1410,7 @@ tveng2_get_tuner_bounds(uint32_t * min, uint32_t * max, tveng_device_info *
 
   /* Get info about the current tuner */
   tuner.input = info->inputs[info->cur_input].id;
-  if (IOCTL(info -> fd, VIDIOC_G_TUNER, &tuner) != 0)
+  if (v4l2_ioctl(info -> fd, VIDIOC_G_TUNER, &tuner) != 0)
     {
       info->tveng_errno = errno;
       t_error("VIDIOC_G_TUNER", info);
@@ -1440,7 +1453,7 @@ static int p_tveng2_qbuf(int index, tveng_device_info * info)
   tmp_buffer.type = p_info -> buffers[0].vidbuf.type;
   tmp_buffer.index = index;
 
-  if (IOCTL(info->fd, VIDIOC_QBUF, &tmp_buffer) != 0)
+  if (v4l2_ioctl(info->fd, VIDIOC_QBUF, &tmp_buffer) != 0)
     {
       info->tveng_errno = errno;
       t_error("VIDIOC_QBUF", info);
@@ -1461,7 +1474,7 @@ static int p_tveng2_dqbuf(tveng_device_info * info)
 
   tmp_buffer.type = p_info -> buffers[0].vidbuf.type;
 
-  if (IOCTL(info->fd, VIDIOC_DQBUF, &tmp_buffer) != 0)
+  if (v4l2_ioctl(info->fd, VIDIOC_DQBUF, &tmp_buffer) != 0)
     {
       info->tveng_errno = errno;
       t_error("VIDIOC_DQBUF", info);
@@ -1498,7 +1511,7 @@ tveng2_start_capturing(tveng_device_info * info)
 
   rb.count = 8; /* This is a good number(tm) */
   rb.type = V4L2_BUF_TYPE_CAPTURE;
-  if (IOCTL(info->fd, VIDIOC_REQBUFS, &rb) != 0)
+  if (v4l2_ioctl(info->fd, VIDIOC_REQBUFS, &rb) != 0)
     {
       info->tveng_errno = errno;
       t_error("VIDIOC_REQBUFS", info);
@@ -1520,7 +1533,7 @@ tveng2_start_capturing(tveng_device_info * info)
     {
       p_info -> buffers[i].vidbuf.index = i;
       p_info -> buffers[i].vidbuf.type = V4L2_BUF_TYPE_CAPTURE;
-      if (IOCTL(info->fd, VIDIOC_QUERYBUF,
+      if (v4l2_ioctl(info->fd, VIDIOC_QUERYBUF,
 		&(p_info->buffers[i].vidbuf)) != 0)
 	{
 	  info->tveng_errno = errno;
@@ -1555,7 +1568,7 @@ tveng2_start_capturing(tveng_device_info * info)
 
   /* Turn on streaming */
   i = V4L2_BUF_TYPE_CAPTURE;
-  if (IOCTL(info->fd, VIDIOC_STREAMON, &i) != 0)
+  if (v4l2_ioctl(info->fd, VIDIOC_STREAMON, &i) != 0)
     {
       info->tveng_errno = errno;
       t_error("VIDIOC_STREAMON", info);
@@ -1588,7 +1601,7 @@ tveng2_stop_capturing(tveng_device_info * info)
 
   /* Turn streaming off */
   i = V4L2_BUF_TYPE_CAPTURE;
-  if (IOCTL(info->fd, VIDIOC_STREAMOFF, &i) != 0)
+  if (v4l2_ioctl(info->fd, VIDIOC_STREAMOFF, &i) != 0)
     {
       info->tveng_errno = errno;
       t_error("VIDIOC_STREAMOFF", info);
@@ -1785,7 +1798,7 @@ tveng2_detect_preview (tveng_device_info * info)
     }
 
   /* Get the current framebuffer info */
-  if (IOCTL(info -> fd, VIDIOC_G_FBUF, &fb) != 0)
+  if (v4l2_ioctl(info -> fd, VIDIOC_G_FBUF, &fb) != 0)
     {
       info->tveng_errno = errno;
       t_error("VIDIOCGFBUF", info);
@@ -1857,7 +1870,7 @@ tveng2_set_preview_window(tveng_device_info * info)
   tveng_set_preview_off(info);
 
   /* Set the new window */
-  if (IOCTL(info->fd, VIDIOC_S_WIN, &window) != 0)
+  if (v4l2_ioctl(info->fd, VIDIOC_S_WIN, &window) != 0)
     {
       info->tveng_errno = errno;
       t_error("VIDIOC_S_WIN", info);
@@ -1901,7 +1914,7 @@ tveng2_set_preview (int on, tveng_device_info * info)
   if ((on < 0) || (on > 1))
     return 0;
 
-  if (IOCTL(info->fd, VIDIOC_PREVIEW, on ? &one : &zero) != 0)
+  if (v4l2_ioctl(info->fd, VIDIOC_PREVIEW, on ? &one : &zero) != 0)
     {
       info->tveng_errno = errno;
       t_error("VIDIOC_PREVIEW", info);

@@ -42,6 +42,7 @@
 #include "tveng.h"
 #include "tveng1.h" /* V4L specific headers */
 #include "tveng2.h" /* V4L2 specific headers */
+#include "tveng25.h" /* V4L2 2.5 specific headers */
 #include "tvengxv.h" /* XVideo specific headers */
 #include "tvengemu.h" /* Emulation device */
 #include "tveng_private.h" /* private definitions */
@@ -88,6 +89,7 @@ struct control {
 typedef void (*tveng_controller)(struct tveng_module_info *info);
 static tveng_controller tveng_controllers[] = {
   tvengxv_init_module,
+  tveng25_init_module,
   tveng2_init_module,
   tveng1_init_module,
   tvengemu_init_module
@@ -2378,7 +2380,7 @@ void tveng_mutex_unlock(tveng_device_info * info)
  *  Simple callback mechanism
  */
 
-struct tv_callback_node {
+struct _tv_callback_node {
 	tv_callback_node *	next;
 	tv_callback_node **	pred;
 	tv_bool			(* notify)(void *, void *);

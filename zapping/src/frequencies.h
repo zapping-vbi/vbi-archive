@@ -100,16 +100,16 @@ int
 tveng_get_id_of_channel (tveng_rf_channel *channel, tveng_rf_table *country);
 
 
+typedef struct _tv_rf_channel tv_rf_channel;
 
 /*
  *  tv_rf_channel represents one element in a three dimensional
  *  frequency table array. The country_code, table_name and
  *  channel_name uniquely identify a channel, the country_code
  *  and table_name a frequency table. The tv_rf_channel functions
- *  move through the array. All strings are static, feel free
- *  to copy.
+ *  move through the array. All strings are static.
  */
-typedef struct {
+struct _tv_rf_channel {
 	char		country_code[4];	/* ASCII ISO 3166, e.g. "US" */
 	const char *	table_name;		/* ASCII identifier, e.g. "ccir" */
 	const char *	domain;			/* UTF8 localized, e.g. "cable" */
@@ -117,7 +117,7 @@ typedef struct {
 	unsigned int	frequency;		/* Hz */
 	unsigned int	bandwidth;		/* Hz */
 	unsigned int	video_standards;	/* future stuff */
-} tv_rf_channel;
+};
 
 #define tv_rf_channel_first_table(ch) tv_rf_channel_nth_table (ch, 0)
 extern tv_bool

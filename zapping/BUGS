@@ -5,31 +5,35 @@ Known bugs with zapping, don't report them
 ------------------------------------------
 
 	* bttv 0.9.5 seems to crash the X server whenever
-	  XvPutImage is called (field ANY not handled?). 
+	  XvPutImage is called (field ANY not handled?).
+	  Gerd notified, promised fix in 0.9.6.
 	* v4l/v4l2 fbuf params must be validated in case
 	  setup_fb failed, but were initialized before.
 	  Try modifying XF86Config, then restart the X session.
 	  (Not a safety/security matter, just wrong bpl/bpp.)
 	* resize menu key accel doesn't work?
+	* Need to handle BadAtom errors resulting from Xv out
+	  of video memory. Currently gdk just aborts the app.
 	* Need better no-overlay-present handling.
-	! RPM creates incorrect zsfb.capps
+	* Some routine starting --no-xv overlay clamps against
+	  info->caps.min when the window is smaller, and
+	  seems to forget to clip the overhang.
 	* Capture won't work under PPC (endianess)
 	* Look for endianness problems.
 	* vbi eats too much CPU, investigate.
 	~ Zapzilla: Calls fetch_page more often than necessary,
 	  investigate.
-	~ Zapzilla: what's v4lx doing on standard change?
+	* Zapzilla: what's v4lx doing on standard change?
+	  Changing the video standard breaks vbi decoding.
 	* check on_trigger_clicked
 	* Overlay (no XVideo) under E is broken, shading the window
 	  isn't correctly detected.
 	* Do not assert on ESD timeout
 	* Bug in save window geometry, reported by Pawel.
 	* Auto-overlays search result pages.
-	* zsfb.capps conflicts with RPM relocation.
 	* config.h is also full of hardcoded paths.
 	* Tooltips don't work as expected.
 	* Spinslider minimum sizes.
-	* Changing the video standard breaks vbi decoding.
 	* Bad reception breaks vbi decoding: i/o error.
 	* Channel editor: up/down scroll-to doesn't work right,
 	  although this may be a gtk bug.

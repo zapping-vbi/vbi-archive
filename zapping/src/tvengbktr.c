@@ -54,7 +54,7 @@
 #include "../common/videodev2.h" /* the V4L2 definitions */
 #include "../common/types.h"
 
-#define CLEAR(v) memset (&(v), 0, sizeof (v))
+#include "zmisc.h"
 
 /* TFR repeats the ioctl when interrupted (EINTR) */
 #define IOCTL(fd, cmd, data) (TEMP_FAILURE_RETRY(ioctl(fd, cmd, data)))

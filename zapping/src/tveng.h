@@ -238,7 +238,7 @@ struct tveng_enumstd{
   char name[32]; /* Canonical name for the standard */
   int width; /* width (double of uninterlaced width) */
   int height; /* height (double of uninterlaced height) */
-  double frame_rate; /* nominal frames/s (eg. PAL 25) */
+  double frame_rate; /* nominal frames/s (eg. PAL 25) */ 
 };
 
 /* Convenience construction for managing image data */
@@ -272,6 +272,7 @@ struct tveng_enum_input{
   int tuners; /* Number of tuners for this input */
   int flags; /* Flags for this channel */
   enum tveng_input_type type; /* The type for this input */
+  int tuner_id; /* ad-hoc for v4l25, to be replaced */
 };
 
 
@@ -283,7 +284,7 @@ typedef int tv_bool;
 #undef FALSE
 #define FALSE 0
 
-typedef struct tv_callback_node tv_callback_node;
+typedef struct _tv_callback_node tv_callback_node;
 
 extern tv_callback_node *
 tv_callback_add			(tv_callback_node **	list,

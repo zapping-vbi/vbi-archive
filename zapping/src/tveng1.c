@@ -28,11 +28,9 @@
 
 #ifdef ENABLE_V4L
 #include <stdio.h>
-#include <sys/ioctl.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/ioctl.h>
 #include <sys/file.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -57,10 +55,16 @@
 
 #define TVENG1_PROTOTYPES 1
 #include "tveng1.h"
+
+/*
+ *  Kernel interface
+ */
 #include "../common/videodev.h"
+#include "../common/fprintf_videodev.h"
 
-
-
+#define v4l_ioctl(fd, cmd, arg)						\
+(IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
+ device_ioctl (fd, cmd, arg, 0 /* stderr */, fprintf_ioctl_arg))
 
 /*
  *  Private control IDs. In v4l the control concept doesn't exist.
@@ -134,20 +138,6 @@ struct private_tveng1_device_info
 /* Private, builds the controls structure */
 static int
 p_tveng1_build_controls(tveng_device_info * info);
-
-/* to do */
-static int
-v4l_ioctl			(int			fd,
-				 unsigned int		cmd,
-				 void *			arg)
-{
-  int err;
-
-  do err = ioctl (fd, cmd, arg);
-  while (-1 == err && EINTR == errno);
-
-  return err;
-}
 
 /*
   Return fd for the device file opened. Checks if the device is a
@@ -528,6 +518,7 @@ static int tveng1_get_inputs(tveng_device_info * info)
 
   for (i=0;i<info->caps.channels;i++)
     {
+      CLEAR (channel);
       channel.channel = i;
       if (v4l_ioctl(info->fd, VIDIOCGCHAN, &channel))
 	continue;
@@ -564,6 +555,7 @@ static int tveng1_get_inputs(tveng_device_info * info)
 
   if (i) /* If there is any channel, switch to the first one */
     {
+      CLEAR (channel);
       channel.channel = 0;
       if (v4l_ioctl(info->fd, VIDIOCGCHAN, &channel))
 	{
@@ -599,6 +591,7 @@ int tveng1_set_input(struct tveng_enum_input * input,
   current_mode = tveng_stop_everything(info);
 
   /* Fill in the channel with the appropiate info */
+  CLEAR (channel);
   channel.channel = input->id;
   if (v4l_ioctl(info->fd, VIDIOCGCHAN, &channel))
     {
@@ -689,9 +682,12 @@ static int tveng1_get_standards(tveng_device_info * info)
   if (strstr(info->caps.name, "bt") || strstr(info->caps.name, "BT"))
     
 #define BTTV_VERSION  	        _IOR('v' , BASE_VIDIOCPRIVATE+6, int)
+#define IOCTL_ARG_TYPE_CHECK_BTTV_VERSION(x) ((void) 0)
   /* dirty hack time / v4l design flaw -- works with bttv only
    * this adds support for a few less common PAL versions */
-  if (-1 != v4l_ioctl(info->fd,BTTV_VERSION,0)) {
+  /* returns version number or -1 */
+
+  if (-1 != v4l_ioctl(info->fd,BTTV_VERSION, (int *) 0)) {
     std_t = bttv_t;
   }
 #endif  
@@ -736,6 +732,7 @@ static int tveng1_get_standards(tveng_device_info * info)
 
   standard_collisions(info);
 
+  CLEAR (channel);
   /* Get the current standard if this input has a tuner */
   if (info->inputs[info->cur_input].tuners)
     channel.channel = info->inputs[info->cur_input].id;
@@ -793,6 +790,7 @@ int tveng1_set_standard(struct tveng_enumstd * std, tveng_device_info * info)
       for (i=0; i<info->num_inputs; i++)
 	if (info->inputs[i].tuners)
 	  {
+	    CLEAR (schan);
 	    schan.channel = info->inputs[i].id;
 	    if (v4l_ioctl(info->fd, VIDIOCGCHAN, &schan))
 	      continue; /* not valid */
@@ -817,6 +815,7 @@ int tveng1_set_standard(struct tveng_enumstd * std, tveng_device_info * info)
       /* restore current input */
       /* no error checking, try to get as far as we can */
       fprintf(stderr, "Restoring %s\n", info->inputs[info->cur_input].name);
+#warning
       schan.channel = info->inputs[info->cur_input].id;
       printf("%d [%s]\n", v4l_ioctl(info->fd, VIDIOCGCHAN, &schan), schan.name);
       printf("%d\n", v4l_ioctl(info->fd, VIDIOCSCHAN, &schan));
@@ -824,6 +823,7 @@ int tveng1_set_standard(struct tveng_enumstd * std, tveng_device_info * info)
   /* The current input can do itself */
   else if (info->inputs[info->cur_input].tuners)
     {
+      CLEAR (channel);
       /* Fill in the channel with the appropiate info */
       channel.channel = info->inputs[info->cur_input].id;
       if (v4l_ioctl(info->fd, VIDIOCGCHAN, &channel))
@@ -1570,7 +1570,7 @@ p_tveng1_build_controls(tveng_device_info * info)
 static int
 tveng1_tune_input(uint32_t freq, tveng_device_info * info)
 {
-  uint32_t new_freq;
+  unsigned long new_freq;
   struct video_tuner tuner;
 
   memset(&tuner, 0, sizeof(struct video_tuner));
@@ -1671,7 +1671,7 @@ tveng1_get_signal_strength (int *strength, int * afc,
 static int
 tveng1_get_tune(uint32_t * freq, tveng_device_info * info)
 {
-  uint32_t real_freq;
+  unsigned long real_freq;
   struct video_tuner tuner;
 
   t_assert(info != NULL);

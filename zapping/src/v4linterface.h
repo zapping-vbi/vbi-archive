@@ -86,4 +86,7 @@ add_channel_entries		(GtkMenuShell *menu,
 /* Do the startup/shutdown */
 void startup_v4linterface	(tveng_device_info *info);
 void shutdown_v4linterface	(void);
+
+extern gdouble videostd_inquiry(void);
+
 #endif

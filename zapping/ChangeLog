@@ -1,3 +1,30 @@
+20.2.2003	<mschimek@users.sf.net>
+
+	* common/Makefile.am, common/device.c, common/device.h,
+	  common/structpr_gen.pl: Added script to generate ioctl
+	  argument printing and testing functions, and the respective
+	  support functions.
+	* src/oss.c, src/tveng1.c, src/tveng2.c, src/tveng25.c:
+	  Use new ioctl facilities.
+
+	V4L2 Linux 2.5 port (finished):
+	* src/tveng.c, src/tveng.h: Updates for tveng25.c.
+	* src/tveng25.c, src/tveng25.h: Misc. fixes, compiles and seems
+	  to work correct now (although more polishing is needed, e.g.
+	  scaling).
+
+	* src/tvengemu.c, src/tvengemu.h: Compile fixes.
+
+19.2.2003	<mschimek@users.sf.net>
+
+	* configure.in, plugins/Makefile.am, plugins/mpeg/options.c,
+	  plugins/mpeg/schedule.c, plugins/mpeg/mpeg.c, plugins/mpeg/mpeg.h:
+	  Recording plugin compiles again, removed librte 0.4 support.
+	  Doesn't work however.
+	* glade/zapping.glade2, src/v4linterface.c, src/v4linterface.h:
+	  Ported videostd question from 0.6.6.
+	* plugins/mpeg/mpeg.c: Ported 0.6.6 fixes.
+
 18.2.2003	<mschimek@users.sf.net>
 
 	* po/LINGUAS, po/da.po, THANKS: Added Danish translation

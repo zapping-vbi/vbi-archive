@@ -416,7 +416,7 @@ void capture_stop (void)
   stores it in width, height. If nothing gives a size, then uses some
   defaults.
 */
-static void
+static gboolean
 find_request_size (capture_fmt *fmt, gint *width, gint *height)
 {
   gint i;
@@ -425,20 +425,21 @@ find_request_size (capture_fmt *fmt, gint *width, gint *height)
       {
 	*width = formats[i].fmt.width;
 	*height = formats[i].fmt.height;
-	return;
+	return TRUE;
       }
 
   if (fmt && fmt->locked)
     {
       *width = fmt->width;
       *height = fmt->height;
-      return;
+      return TRUE;
     }
 
   /* Not specified, use config defaults */
   /* FIXME: Query zconf and use the values in there */
   *width = 320;
   *height = 240;
+  return FALSE;
 }
 
 /*
@@ -548,9 +549,12 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
   /* Request the new format to TVeng (should succeed) [id] */
   memcpy (&prev_fmt, &info->format, sizeof (prev_fmt));
   info->format.pixformat = id;
+#warning
   find_request_size (fmt, &req_w, &req_h);
-  info->format.width = req_w;
-  info->format.height = req_h;
+    {
+      info->format.width = req_w;
+      info->format.height = req_h;
+    }
   printv ("Setting TVeng mode %s [%d x %d]\n", mode2str(id), req_w,
 	  req_h);
 XX();

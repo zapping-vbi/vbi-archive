@@ -351,18 +351,6 @@ x11_window_viewable(GdkWindow *window)
   return ((wts.map_state & IsViewable) ? TRUE : FALSE);
 }
 
-void
-unusedx11_root_geometry		(unsigned int *		width,
-				 unsigned int *		height)
-{
-  Window d1;
-  int d2;
-
-  XGetGeometry (GDK_DISPLAY (),
-                DefaultRootWindow (GDK_DISPLAY ()),
-		&d1, &d2, &d2, width, height, &d2, &d2);
-}
-
 /*
  *  Window property & event helpers
  */

@@ -237,7 +237,8 @@ tvengemu_set_preview (int on, tveng_device_info * info);
    Returns -1 on error.
 */
 static int
-tvengemu_start_previewing (tveng_device_info * info);
+tvengemu_start_previewing (tveng_device_info * info,
+			   x11_dga_parameters *unused);
 
 /*
   Stops the fullscreen mode. Returns -1 on error

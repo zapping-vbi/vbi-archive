@@ -19,11 +19,11 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.19.2.3 2002-12-24 15:26:17 mschimek Exp $ */
+/* $Id: options.c,v 1.19.2.4 2003-02-21 19:07:57 mschimek Exp $ */
 
 #include "plugin_common.h"
 
-#if defined(HAVE_LIBRTE4) || defined(HAVE_LIBRTE5)
+#ifdef HAVE_LIBRTE
 
 #include <math.h>
 
@@ -76,16 +76,12 @@ do_option_control (GtkWidget *w, gpointer user_data)
   g_assert (opts && keyword);
 
   if (!opts->context || !opts->codec
-      || !(ro = rte_codec_option_info_keyword (opts->codec, keyword)))
+      || !(ro = rte_codec_option_info_by_keyword (opts->codec, keyword)))
     return;
 
   /* rte_option_set errors ignored */
 
-#ifdef HAVE_LIBRTE4
-  if (ro->entries > 0)
-#else
   if (ro->menu.num)
-#endif
     {
       val.num = (gint) g_object_get_data (G_OBJECT (w), "idx");
       rte_codec_option_menu_set (opts->codec, ro->keyword, val.num);
@@ -189,21 +185,12 @@ create_menu (grte_options *opts, rte_option_info *ro, int index)
   option_menu = gtk_option_menu_new ();
   menu = gtk_menu_new ();
 
-#ifdef HAVE_LIBRTE4
-  g_assert (ro->entries > 0);
-
-  if (!rte_codec_option_menu_get (opts->codec, ro->keyword, &current))
-    current = 0;
-
-  for (i = 0; i < ro->entries; i++)
-#else /* LIBRTE5 */
   g_assert (ro->menu.num != NULL);
 
   if (!rte_codec_option_menu_get (opts->codec, ro->keyword, &current))
     current = 0;
 
   for (i = ro->min.num; i <= ro->max.num; i++)
-#endif
     {
       char *str;
 
@@ -461,13 +448,8 @@ grte_options_create (rte_context *context, rte_codec *codec)
  *  All functions accessing this tree below.
  */
 
-#ifdef HAVE_LIBRTE4
-#define CONFIGS "/"
-#define CODECS "/"
-#else
 #define CONFIGS "/configs/"
 #define CODECS "/codecs/"
-#endif
 
 /**
  * grte_options_load:
@@ -670,11 +652,7 @@ grte_codec_create_menu		(rte_context *		context,
 
   g_assert ((cxinfo = rte_context_info_by_context (context)));
 
-#ifdef HAVE_LIBRTE4
-  if (1) /* "None" permitted? */
-#else
   if (cxinfo->min_elementary[stream_type] != 1) /* "None" permitted? */
-#endif
     {
       menu_item = gtk_menu_item_new_with_label (_("None"));
       gtk_widget_show (menu_item);
@@ -712,8 +690,6 @@ grte_codec_create_menu		(rte_context *		context,
   return menu;
 }
 
-#ifdef HAVE_LIBRTE5
-
 /**
  * grte_num_codecs:
  * @context: 
@@ -744,8 +720,6 @@ grte_num_codecs			(rte_context *		context,
 
   return count;
 }
-
-#endif /* HAVE_LIBRTE5 */
 
 /**
  * grte_codec_load:
@@ -784,11 +758,8 @@ grte_codec_load			(rte_context *		context,
 
   if (keyword && keyword[0])
     {
-#ifdef HAVE_LIBRTE4
-      codec = rte_codec_set (context, stream_type, 0, (char *) keyword);
-#else /* LIBRTE5 */
       codec = rte_set_codec (context, keyword, 0, NULL);
-#endif
+
       if (codec)
 	{
 	  zcname = g_strconcat (zc_root, CONFIGS, zc_conf, CODECS, keyword, NULL);
@@ -975,11 +946,7 @@ grte_context_load		(const gchar *		zc_root,
       g_free (zcname);
     }
 
-#ifdef HAVE_LIBRTE4
-  context = rte_context_new (352, 288, (char *) keyword, NULL);
-#else
   context = rte_context_new (keyword, NULL, NULL);
-#endif
 
   if (!context)
     return NULL;
