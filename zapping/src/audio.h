@@ -1,6 +1,8 @@
 #ifndef __AUDIO_H__
 #define __AUDIO_H__
 
+#include "tveng.h"
+
 enum audio_format {
   /* More to come when we need more */
   AUDIO_FORMAT_S16_LE
@@ -33,10 +35,13 @@ void
 read_audio_data (gpointer handle, gpointer dest, gint num_bytes,
 		 double *timestamp);
 
+void
+reset_quiet			(tveng_device_info *	info,
+				 guint			delay);
 gboolean
-set_mute				(gint	        mode,
-					 gboolean	controls,
-					 gboolean	osd);
+set_mute			(gint		        mode,
+				 gboolean		controls,
+				 gboolean		osd);
 
 extern void mixer_setup ( void );
 
@@ -64,10 +69,5 @@ typedef struct {
   void		(*add_props)(GtkBox *vbox);
   void		(*apply_props)(GtkBox *vbox);
 } audio_backend_info;
-
-extern gboolean
-audio_set_mute			(gint			mute);
-extern gboolean
-audio_get_mute			(gint *			mute);
 
 #endif /* audio.h */

@@ -16,6 +16,9 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+/* $Id: audio.c,v 1.12.2.8 2003-03-06 21:52:32 mschimek Exp $ */
+
+#include "../site_def.h"
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -68,15 +71,16 @@ typedef struct mhandle {
 
 void mixer_setup ( void )
 {
-  int cur_line = zcg_int(NULL, "record_source");
+#warning
+  if (mixer && mixer_line)
+    {
+      if (mixer->rec_gain)
+	tv_mixer_line_set_volume (mixer->rec_gain,
+				  mixer->rec_gain->reset,
+				  mixer->rec_gain->reset);
 
-  if (!cur_line)
-    return; /* Use system settings */
-
-  cur_line--;
-
-  mixer_set_recording_line(cur_line);
-  mixer_set_volume(cur_line, zcg_int(NULL, "record_volume"));
+      tv_mixer_line_record (mixer_line, /* exclusive */ TRUE);
+    }
 }
 
 /* Generic stuff */
@@ -150,6 +154,7 @@ on_backend_activate	(GObject		*menuitem,
   gtk_widget_set_sensitive(boxes[index], TRUE);
 }
 
+#if 0
 static void
 build_mixer_lines		(GtkWidget	*optionmenu)
 {
@@ -191,6 +196,110 @@ on_record_source_changed	(GtkOptionMenu	*optionmenu,
 
   gtk_adjustment_changed(adj);
 }
+#endif
+
+/*
+ *  Soundcard mixer selection
+ */
+
+#ifndef AUDIO_MIXER_LOG_FP
+#define AUDIO_MIXER_LOG_FP 0 /* stderr */
+#endif
+
+static void
+on_mixer_enable_toggled		(GtkToggleButton *	togglebutton,
+				 gpointer		user_data)
+{
+  GtkWidget *table = user_data;
+  gboolean active;
+
+  active = gtk_toggle_button_get_active (togglebutton);
+  gtk_widget_set_sensitive (table, active);
+}
+
+static void
+mixer_select			(GtkWidget *		table,
+				 void *			user_data,
+				 tv_device_node *	n)
+{
+  GtkWidget *menu;
+  GtkWidget *optionmenu;
+
+  if ((optionmenu = g_object_get_data (G_OBJECT (table), "mixer_lines")))
+    {
+      gtk_widget_destroy (optionmenu);
+      optionmenu = NULL;
+    }
+
+  if (n)
+    {
+      tv_mixer *mixer;
+      tv_mixer_line *line;
+      guint hash = -1;
+      guint index;
+
+      mixer = PARENT (n, tv_mixer, node);
+      g_assert (mixer->inputs != NULL);
+
+      if (0 == strcmp (zcg_char (NULL, "mixer_device"), n->device))
+	hash = zcg_int (NULL, "mixer_input");
+
+      optionmenu = gtk_option_menu_new ();
+      gtk_widget_show (optionmenu);
+
+      menu = gtk_menu_new ();
+      gtk_widget_show (menu);
+      gtk_option_menu_set_menu (GTK_OPTION_MENU (optionmenu), menu);
+  
+      index = 0;
+
+      for (line = mixer->inputs; line; line = line->next)
+	{
+	  GtkWidget *menu_item;
+	  
+	  menu_item = gtk_menu_item_new_with_label (line->label);
+	  gtk_widget_show (menu_item);
+	  gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
+
+	  if (index == 0 || line->hash == hash)
+	    gtk_option_menu_set_history (GTK_OPTION_MENU (optionmenu), index);
+
+	  index++;
+	}
+
+      if (mixer->inputs->next == NULL)
+	gtk_widget_set_sensitive (GTK_WIDGET (optionmenu), FALSE);
+
+      gtk_table_attach (GTK_TABLE (table), optionmenu, 1, 1 + 1, 3, 3 + 1,
+			GTK_FILL | GTK_EXPAND, 0, 0, 0);
+    }
+
+  g_object_set_data (G_OBJECT (table), "mixer_lines", optionmenu);
+}
+
+static tv_device_node *
+mixer_open			(GtkWidget *		table,
+				 void *			user_data,
+				 tv_device_node *	list,
+				 const char *		name)
+{
+  tv_mixer *m;
+  tv_device_node *n;
+
+  if ((n = tv_device_node_find (list, name)))
+    return n;
+
+  /* FIXME report errors */
+  if ((m = tv_mixer_open (AUDIO_MIXER_LOG_FP, name)))
+    {
+      if (m->inputs != NULL)
+	return &m->node;
+
+      tv_mixer_close (m);
+    }
+
+  return NULL;
+}
 
 /* Audio */
 static void
@@ -204,9 +313,6 @@ audio_setup		(GtkWidget	*page)
   GtkWidget *menuitem;
   GtkWidget *menu = gtk_menu_new();
   guint cur_backend = zcg_int(NULL, "backend");
-  GtkWidget *record_source = lookup_widget(page, "record_source");
-  gint cur_input = zcg_int(NULL, "record_source");
-  GtkWidget *record_volume = lookup_widget(page, "record_volume");
   guint i;
 
   /* Hook on dialog destruction so there's no mem leak */
@@ -245,27 +351,60 @@ audio_setup		(GtkWidget	*page)
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
     zconf_get_boolean(NULL, "/zapping/options/main/avoid_noise"));
 
-  /* Force use of mixer for volume control */
-  widget = lookup_widget(page, "force_mixer");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-    zconf_get_boolean(NULL, "/zapping/options/audio/force_mixer"));
-
   /* Start zapping muted */
   widget = lookup_widget(page, "checkbutton3");
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
     zconf_get_boolean(NULL, "/zapping/options/main/start_muted"));
 
-  /* Recording source and volume */
-  build_mixer_lines(record_source);
-  z_option_menu_set_active(record_source, cur_input);
-  g_signal_connect(G_OBJECT(record_source), "changed",
-		   G_CALLBACK(on_record_source_changed),
-		   record_volume);
-  on_record_source_changed(GTK_OPTION_MENU (record_source),
-			   GTK_RANGE(record_volume));
-  
-  gtk_adjustment_set_value(gtk_range_get_adjustment(GTK_RANGE(record_volume)),
-			   zcg_int(NULL, "record_volume"));
+  {
+    tv_mixer *m;
+    tv_device_node *list, *n;
+    GtkWidget *checkbutton;
+    GtkWidget *alignment;
+    GtkWidget *table;
+    GtkWidget *label;
+
+    /* Mixer selection */
+
+    /* FIXME use abstract mixer */
+    m = tv_mixer_scan (AUDIO_MIXER_LOG_FP);
+    list = m ? &m->node : NULL;
+
+    /* Only real soundcards. We have to handle video devices differently. */
+    for (n = list; n;)
+      if (PARENT (n, tv_mixer, node)->inputs == NULL)
+	{
+	  tv_device_node *next = n->next;
+	  tv_device_node_delete (&list, n, FALSE);
+	  n = next;
+	}
+      else
+	{
+	  n = n->next;
+	}
+
+    alignment = lookup_widget (page, "mixer_table_alignment");
+    table = z_device_entry_new (NULL, list, zcg_char (NULL, "mixer_device"),
+				mixer_open, mixer_select, NULL);
+    gtk_widget_show (table);
+    gtk_container_add (GTK_CONTAINER (alignment), table);
+    register_widget (table, "mixer_table");
+
+    label = gtk_label_new (_("Input:"));
+    gtk_widget_show (label);
+    gtk_label_set_justify (GTK_LABEL (label), GTK_JUSTIFY_LEFT);
+    gtk_misc_set_alignment (GTK_MISC (label), 0, 0.5);
+    gtk_misc_set_padding (GTK_MISC (label), 3, 3);
+    gtk_table_attach (GTK_TABLE (table), label,
+		      0, 1, 3, 3 + 1, GTK_FILL, 0, 0, 0);
+
+    checkbutton = lookup_widget (page, "force_mixer");
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (checkbutton),
+				  zcg_bool (NULL, "force_mixer"));
+    on_mixer_enable_toggled (GTK_TOGGLE_BUTTON (checkbutton), table);
+    g_signal_connect (G_OBJECT (checkbutton), "toggled",
+		      G_CALLBACK (on_mixer_enable_toggled), table);
+  }
 }
 
 static void
@@ -275,8 +414,7 @@ audio_apply		(GtkWidget	*page)
   GtkWidget *audio_backends;
   gint selected;
   GtkWidget **boxes;
-  GtkWidget *record_source;
-  GtkWidget *record_volume;
+  tv_device_node *n;  
 
   widget = lookup_widget(page, "checkbutton1"); /* avoid noise */
   zconf_set_boolean(gtk_toggle_button_get_active(
@@ -285,6 +423,33 @@ audio_apply		(GtkWidget	*page)
   widget = lookup_widget(page, "force_mixer");
   zconf_set_boolean(gtk_toggle_button_get_active(
 	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/audio/force_mixer");
+
+  widget = lookup_widget (page, "mixer_table");
+  if ((n = z_device_entry_selected (widget)))
+    {
+      tv_mixer_line *l;
+      gint index;
+
+      zcs_char (n->device, "mixer_device");
+      widget = g_object_get_data (G_OBJECT (widget), "mixer_lines");
+      index = z_option_menu_get_active (widget);
+
+      for (l = PARENT (n, tv_mixer, node)->inputs; l; l = l->next)
+	if (index-- == 0)
+	  {
+	    zcs_int (l->hash, "mixer_input");
+	    break;
+	  }
+    }
+  {
+    tveng_tc_control *tcc;
+    guint num_controls;
+
+    store_control_values (main_info, &tcc, &num_controls);
+    startup_mixer ();
+    update_control_box (main_info);
+    load_control_values (main_info, tcc, num_controls, FALSE);
+  }
 
   widget = lookup_widget(page, "checkbutton3"); /* start muted */
   zconf_set_boolean(gtk_toggle_button_get_active(
@@ -300,13 +465,6 @@ audio_apply		(GtkWidget	*page)
     backends[selected]->apply_props(GTK_BOX(boxes[selected]));
 
   zcs_int(selected, "backend");
-
-  record_source = lookup_widget(page, "record_source");
-  zcs_int(z_option_menu_get_active(record_source), "record_source");
-
-  record_volume = lookup_widget(page, "record_volume");
-  zcs_int((int) gtk_range_get_adjustment(GTK_RANGE(record_volume))->value,
-	  "record_volume");
 }
 
 static void
@@ -323,113 +481,38 @@ add				(GtkDialog	*dialog)
   standard_properties_add(dialog, groups, acount(groups), "zapping.glade2");
 }
 
-gboolean
-audio_set_mute			(gint			mute)
+
+
+
+
+
+static guint			quiet_timeout_handle = 0;
+
+static gboolean
+quiet_timeout			(gpointer		user_data)
 {
-  int cur_line = zcg_int (NULL, "record_source");
-  gboolean force = zcg_bool (NULL, "force_mixer");
-
-  if (main_info->audio_mutable && !force)
-    {
-      if (tveng_set_mute (!!mute, main_info) < 0)
-        {
-	  printv ("tveng_set_mute failed\n");
-	  return FALSE;
-	}
-    }
-  else if (cur_line > 0) /* !use system settings */
-    {
-      if (mixer_set_mute (cur_line - 1, !!mute) < 0)
-	{
-	  printv ("mixer_set_mute failed\n");
-	  return FALSE;
-	}
-
-      tveng_set_mute (0, main_info);
-    }
-
-  return TRUE;
+  tv_quiet_set (main_info, FALSE);
+  return FALSE; /* don't call again */
 }
 
-gboolean
-audio_get_mute			(gint *			mute)
+void
+reset_quiet			(tveng_device_info *	info,
+				 guint			delay)
 {
-  int cur_line = zcg_int (NULL, "record_source");
-  gboolean force = zcg_bool (NULL, "force_mixer");
+  if (quiet_timeout_handle)
+    gtk_timeout_remove (quiet_timeout_handle);
 
-  if (main_info->audio_mutable && !force)
-    {
-      if ((*mute = tveng_get_mute (main_info)) < 0)
-        {
-          printv ("tveng_get_mute failed\n");
-          return FALSE;
-        }
-    }
-  else if (cur_line > 0) /* !use system settings */
-    {
-      if ((*mute = mixer_get_mute (cur_line - 1)) < 0)
-        {
-          printv ("mixer_get_mute failed\n");
-          return FALSE;
-        }
-    }
-
-  return TRUE;
-}	
-
-
-static PyObject*
-py_volume_incr			(PyObject *self, PyObject *args)
-{
-  int cur_line = zcg_int (NULL, "record_source");
-  int min, max, range, step, cur;
-  int value = +1;
-  int ok = PyArg_ParseTuple (args, "|i", &value);
-
-  if (!ok)
-    g_error ("zapping.volume_incr(|i)");
-
-  if (value < -100 || value > +100)
-    goto done;
-
-  if (!cur_line)
-    goto done;
-
-  cur_line--; /* 0 is "system setting" */
-
-  if (mixer_get_bounds (cur_line, &min, &max) == -1)
-    goto done;
-
-  range = max - min + 1;
-  step = (int)(((double) value) * range / 100.0);
-  if (value != 0 && step == 0)
-    step = (value >> 31) | 1;
-
-  cur = zcg_int(NULL, "record_volume");
-
-  cur += step;
-
-  if (cur > max)
-    cur = max;
-  else if (cur < min)
-    cur = min;
-
-  if (mixer_set_volume(cur_line, cur) == -1)
-    goto done;
-
-  zcs_int(cur, "record_volume");
-
-#ifdef HAVE_LIBZVBI
-  /* NLS: Record volume */
-  osd_render_markup(NULL, _("<span foreground=\"blue\">%3d %%</span>"),
-		    (cur - min) * 100 / range);
-#endif
-
- done:
-  Py_INCREF(Py_None);
-
-  return Py_None;
+  quiet_timeout_handle =
+    gtk_timeout_add (delay /* ms */, quiet_timeout, NULL);
 }
+
+
+
+
+
+
+
+
 
 /*
  *  Global mute function. XXX switch to callbacks.
@@ -454,7 +537,8 @@ set_mute				(gint	        mode,
 
   if (mode >= 2)
     {
-      if (!audio_get_mute (&mute))
+      mute = tv_mute_get (main_info, TRUE);
+      if (mute == -1)
         goto failure;
 
       if (mode == 2)
@@ -466,7 +550,7 @@ set_mute				(gint	        mode,
   /* Set new state */
 
   if (mode <= 2)
-    if (!audio_set_mute (mute))
+    if (-1 == tv_mute_set (main_info, mute))
       goto failure;
 
   /* Update GUI */
@@ -543,8 +627,8 @@ void startup_audio ( void )
   prepend_property_handler(&audio_handler);
 
   zcc_int(0, "Default audio backend", "backend");
-  zcc_int(0, "Recording source", "record_source");
-  zcc_int(0xffff, "Recording volume", "record_volume");
+  zcc_char ("", "Mixer device", "mixer_device");
+  zcc_int (-1, "Mixer input line (hash)", "mixer_input");
 
   for (i=0; i<num_backends; i++)
     if (backends[i]->init)
@@ -552,8 +636,6 @@ void startup_audio ( void )
 
   cmd_register ("mute", py_mute, METH_VARARGS,
 		"Toggles the mute state", "zapping.mute([new_state])");
-  cmd_register ("volume_incr", py_volume_incr, METH_VARARGS,
-		"Changes the sounds volume", "zapping.volume_incr(-10)");
 }
 
 void shutdown_audio ( void )
