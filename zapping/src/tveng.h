@@ -135,12 +135,14 @@ enum tveng_field
 /* The format of a pixel, similar to the V4L2 ones, but they aren't
    fourcc'ed */
 enum tveng_frame_pixformat{
-  TVENG_PIX_RGB555, /* This one isn't supported yet */
+  TVENG_PIX_RGB555,
   TVENG_PIX_RGB565,
   TVENG_PIX_RGB24,
   TVENG_PIX_BGR24,
   TVENG_PIX_RGB32,
-  TVENG_PIX_BGR32
+  TVENG_PIX_BGR32,
+  TVENG_PIX_GREY /* this one is used just when querying the device, it
+		  isn't supported by TVeng */
 };
 
 /* This struct holds the structure of the captured frame */
@@ -250,8 +252,10 @@ typedef struct
   /* The supported controls */
   struct tveng_control * controls;
 
+  /* Debugging/error reporting stuff */
   int tveng_errno; /* Numerical id of the last error, 0 == success */
   char * error; /* points to the last error message */
+  int debug_level; /* 0 for no errors, increase for greater verbosity */
 
   /* Consider the following as private data, you don't need to access
      this */
@@ -677,6 +681,12 @@ int tveng_restart_everything (enum tveng_capture_mode mode,
 /* Sets the timestamps relative to the current time */
 void tveng_start_timer(tveng_device_info * info);
 
+/* get the current debug level */
+int tveng_get_debug_level(tveng_device_info * info);
+
+/* set the debug level. The value will be clipped to valid values */
+void tveng_set_debug_level(tveng_device_info * info);
+
 /* Sanity checks should use this */
 #define t_assert(condition) if (!(condition)) { \
 fprintf(stderr, _("%s (%d): %s: assertion (%s) failed\n"), __FILE__, \
@@ -685,12 +695,14 @@ exit(1);}
 
 /* Builds an error message that lets me debug much better */
 #define t_error(str_error, info) \
-t_error_msg(str_error, strerror(info->tveng_errno), info)
+t_error_msg(str_error, strerror(info->tveng_errno), info);
 
 /* Builds a custom error message, doesn't use errno */
-#define t_error_msg(str_error, msg_error, info) \
+#define t_error_msg(str_error, msg_error, info) do { \
 snprintf(info->error, 256, _("[%s] %s (line %d)\n%s failed: %s"), \
-__FILE__, __PRETTY_FUNCTION__, __LINE__, str_error, msg_error)
+__FILE__, __PRETTY_FUNCTION__, __LINE__, str_error, msg_error); \
+fprintf(stderr, "[TVeng] %s\n", info->error); \
+} while (0)
 
 /* Defines a point that should never be reached */
 #define t_assert_not_reached() \

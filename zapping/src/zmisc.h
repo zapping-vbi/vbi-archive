@@ -123,14 +123,6 @@ zimage_destroy(void);
 GtkWidget * z_gtk_pixmap_menu_item_new(const gchar * label,
 				       const gchar * icon);
 
-/* Announces that the tv_screen has moved. This routine refreshes the
-   old placement of the window if neccesary */
-void zmisc_refresh_tv_screen(gint x, gint y, gint w, gint h, gboolean
-			     obscured);
-
-/* Clears any timers zmisc could use (the Zapping window is to be closed) */
-void zmisc_clear_timers(void);
-
 /*
   does the mode switching. Since this requires more than just using
   tveng, a new routine is needed.

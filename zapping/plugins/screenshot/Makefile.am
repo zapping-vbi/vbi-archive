@@ -11,5 +11,6 @@ CFLAGS = -Wall -Wno-unused # Avoid warnings about undeclared statics
 INCLUDES = \
 -I$(top_srcdir)/intl \
 -I$(includedir)	\
+$(ARCH_CFLAGS) \
 $(GNOME_INCLUDEDIR) \
 -I$(top_srcdir)/src ## Let the plugin access Zapping headers

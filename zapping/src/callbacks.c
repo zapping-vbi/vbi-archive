@@ -97,7 +97,6 @@ on_exit2_activate                      (GtkMenuItem     *menuitem,
   GtkWidget * widget = lookup_widget(GTK_WIDGET(menuitem), "zapping");
   GList * p;
   UpdateCoords(widget->window);
-  zmisc_clear_timers();
 
   /* Tell the widget that the GUI is going to be closed */
   p = g_list_first(plugin_list);
@@ -160,7 +159,6 @@ on_zapping_delete_event                (GtkWidget       *widget,
   GList * p;
   flag_exit_program = TRUE;
   UpdateCoords(widget->window);
-  zmisc_clear_timers();
 
   /* Tell the widget that the GUI is going to be closed */
   p = g_list_first(plugin_list);
@@ -199,96 +197,6 @@ on_tv_screen_size_allocate             (GtkWidget       *widget,
     }
 
   zimage_reallocate(main_info->format.width, main_info->format.height);
-}
-
-gboolean
-on_zapping_configure_event             (GtkWidget       *widget,
-                                        GdkEvent        *event,
-                                        gpointer         user_data)
-{
-  GtkWidget * tv_screen;
-  int x, y, w, h;
-  gboolean obscured = FALSE;
-
-  if (main_info->current_mode != TVENG_CAPTURE_WINDOW)
-    return FALSE;
-
-  switch (event->type) {
-  case GDK_CONFIGURE:
-    break;
-  case GDK_DELETE:
-    break;
-  case GDK_NO_EXPOSE:
-    break;
-  case GDK_UNMAP: /* iconized */
-    obscured = TRUE; break;
-    /*  case GDK_FOCUS_CHANGE:
-	break;*/
-  default:
-    return FALSE;
-  }
-
-  tv_screen = lookup_widget(widget, "tv_screen");
-
-  gdk_window_get_origin(tv_screen->window, &x, &y);
-  gdk_window_get_size(tv_screen->window, &w, &h);
-
-  zmisc_refresh_tv_screen(x, y, w, h, obscured);
-  
-  return FALSE;
-}
-
-gboolean
-on_tv_screen_configure_event           (GtkWidget       *widget,
-                                        GdkEvent        *event,
-                                        gpointer         user_data)
-{
-  GtkWidget * tv_screen;
-  int x, y, w, h;
-  gboolean obscured = FALSE;
-  extern gboolean ignore_next_expose;
-  GdkEventExpose *exp = (GdkEventExpose*) event;
-
-  switch (event->type) {
-  case GDK_CONFIGURE:
-    break;
-  case GDK_DELETE:
-    break;
-  case GDK_EXPOSE:
-    /* Update the TXT window */
-    zvbi_exposed(widget, exp->area.x, exp->area.y, exp->area.width,
-		 exp->area.height);
-    if (ignore_next_expose)
-      {
-	ignore_next_expose = FALSE;
-	return FALSE;
-      }
-    break;
-  case GDK_MAP:
-    break;
-  case GDK_UNMAP:
-    break;
-  case GDK_VISIBILITY_NOTIFY:
-    if(((GdkEventVisibility*)event)->state == GDK_VISIBILITY_FULLY_OBSCURED)
-      obscured = TRUE;
-    break;
-  case GDK_NO_EXPOSE:
-    break;
-  default:
-    return FALSE;
-  }
-
-  if (main_info->current_mode != TVENG_CAPTURE_WINDOW)
-    return FALSE;
-
-  tv_screen = lookup_widget(widget, "tv_screen");
-
-  gdk_window_get_origin(tv_screen->window, &x, &y);
-  gdk_window_get_size(tv_screen->window, &w, &h);
-
-  zmisc_refresh_tv_screen(x, y, w, h, obscured);
-
-  return TRUE;
 }
 
 /* Activate an standard */
@@ -633,53 +541,15 @@ void
 on_go_capturing2_activate              (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
-  gint w,h;
-  GtkWidget *widget=lookup_widget(main_window, "tv_screen");
-  GtkAllocation dummy_alloc;
-
-  zvbi_set_mode(FALSE);
-  
-  if (main_info->current_mode == TVENG_CAPTURE_READ)
-    return;
-
-  if (tveng_start_capturing(main_info) == -1)
+  if (zmisc_switch_mode(TVENG_CAPTURE_READ, main_info) == -1)
     ShowBox(main_info->error, GNOME_MESSAGE_BOX_ERROR);
-
-  /* Fake a resize (to the actual size), this will update all capture
-     structs */
-  gdk_window_get_size(widget -> window, &w, &h);
-
-  dummy_alloc.width = w;
-  dummy_alloc.height = h;
-  on_tv_screen_size_allocate(widget, &dummy_alloc, NULL);
 }
 
 void
 on_go_previewing2_activate             (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
-  gint x, y, w, h;
-
-  if (main_info->current_mode == TVENG_CAPTURE_WINDOW)
-    return;
-
-  if (disable_preview)
-    return;
-
-  zvbi_set_mode(FALSE);
-
-  gdk_window_get_origin(lookup_widget(main_window,
-				      "tv_screen")->window, &x, &y);
-  gdk_window_get_size(lookup_widget(main_window, "tv_screen")->window,
-		      &w, &h);  
-
-  main_info->window.x = x;
-  main_info->window.y = y;
-  main_info->window.width = w;
-  main_info->window.height = h;
-  main_info->window.clipcount = 0;
-  tveng_set_preview_window(main_info);
-  if (tveng_start_window(main_info) == -1)
+  if (zmisc_switch_mode(TVENG_CAPTURE_WINDOW, main_info) == -1)
     ShowBox(main_info->error, GNOME_MESSAGE_BOX_ERROR);
 }
 
@@ -800,7 +670,8 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
       GtkMenu * menu = GTK_MENU(create_popup_menu1());
       GtkWidget * menuitem;
       tveng_tuned_channel * tuned;
-      
+      /* it needs to be realized before operating on it */
+      gtk_widget_realize(GTK_WIDGET(menu));
       if (!(main_info->inputs[main_info->cur_input].flags &
 	    TVENG_INPUT_TUNER))
 	{
@@ -808,7 +679,7 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 						GNOME_STOCK_PIXMAP_CLOSE);
 	  gtk_widget_set_sensitive(menuitem, FALSE);
 	  gtk_widget_show(menuitem);
-	  gtk_menu_prepend(menu, menuitem);
+	  gtk_menu_insert(menu, menuitem, 1);
 	}
       else if (tveng_tuned_channel_num() == 0)
 	{
@@ -816,7 +687,7 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 						GNOME_STOCK_PIXMAP_CLOSE);
 	  gtk_widget_set_sensitive(menuitem, FALSE);
 	  gtk_widget_show(menuitem);
-	  gtk_menu_prepend(menu, menuitem);
+	  gtk_menu_insert(menu, menuitem, 1);
 	}
       else
 	for (i = tveng_tuned_channel_num()-1; i >= 0; i--)
@@ -831,9 +702,8 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 			       GINT_TO_POINTER(i));
 	    gtk_object_set_user_data(GTK_OBJECT(menuitem), zapping);
 	    gtk_widget_show(menuitem);
-	    gtk_menu_prepend(menu, menuitem);
+	    gtk_menu_insert(menu, menuitem, 1);
 	  }
-      
       if (disable_preview)
 	{
 	  widget = lookup_widget(GTK_WIDGET(menu), "go_fullscreen2");
@@ -843,7 +713,6 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 	  gtk_widget_set_sensitive(widget, FALSE);
 	  gtk_widget_hide(widget);
 	}
-
       if (!zvbi_get_object())
 	{
 	  widget = lookup_widget(GTK_WIDGET(menu), "separador6");
@@ -853,7 +722,6 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 	  gtk_widget_set_sensitive(widget, FALSE);
 	  gtk_widget_hide(widget);
 	}
-
       /* Remove capturing item if it's redundant */
       if ((!zvbi_get_object()) && (disable_preview))
 	{
@@ -863,7 +731,6 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 	  gtk_widget_set_sensitive(widget, FALSE);
 	  gtk_widget_hide(widget);
 	}
-
       gtk_menu_popup(menu, NULL, NULL, NULL,
 		     NULL, bevent->button, bevent->time);
       gtk_object_set_user_data(GTK_OBJECT(menu), zapping);

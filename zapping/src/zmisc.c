@@ -20,7 +20,6 @@
 #  include <config.h>
 #endif
 
-#include <gdk/gdkx.h>
 #define ZCONF_DOMAIN "/zapping/options/main/"
 #include "zmisc.h"
 #include "zconf.h"
@@ -28,19 +27,14 @@
 #include "interface.h"
 #include "callbacks.h"
 #include "zvbi.h"
+#include "x11stuff.h"
+#include "overlay.h"
 
 extern tveng_device_info * main_info;
 extern GtkWidget * main_window;
 extern gboolean disable_preview; /* TRUE if preview won't work */
 static GdkImage * zimage = NULL; /* The buffer that holds the capture */
-static gint oldx=-1, oldy=-1, oldw=-1, oldh=-1; /* Last geometry of the
-					    Zapping window */
-static gint curx, cury, curw=-1, curh=-1;
-/* current geometry of the window */
-static gboolean obscured = FALSE;
-gboolean ignore_next_expose = FALSE;
 gboolean debug_msg=FALSE; /* Debugging messages on or off */
-static guint timeout_id = 0;
 
 /*
   Prints a message box showing an error, with the location of the code
@@ -151,7 +145,7 @@ zimage_reallocate(int new_width, int new_height)
 	{
 	  old_size = zimage->height* zimage->bpl;
 	  new_size = new_zimage->height * new_zimage->bpl;
-	  new_data = ((GdkImagePrivate*)new_zimage) -> ximage-> data;
+	  new_data = zimage_get_data(new_zimage);
 	  if (old_size > new_size)
 	    memcpy(new_data, zimage_get_data(zimage), new_size);
 	  else
@@ -181,7 +175,7 @@ zimage_get(void)
 gpointer
 zimage_get_data( GdkImage * image)
 {
-  return (((GdkImagePrivate*)image) -> ximage-> data);
+  return (x11_get_data(image));
 }
 
 /*
@@ -232,198 +226,40 @@ GtkWidget * z_gtk_pixmap_menu_item_new(const gchar * label,
   return (pixmap_menu_item);
 }
 
-/* adds a clip to the given struct, reallocating if needed */
-static
-void zmisc_add_clip(int x1, int y1, int x2, int y2,
-		    struct tveng_clip ** clips, gint* num_clips);
-
-static
-void zmisc_add_clip(int x1, int y1, int x2, int y2,
-		    struct tveng_clip ** clips, gint* num_clips)
+/*
+  Given a bpp (bites per pixel) and the endianess, returns the proper
+  TVeng RGB mode.
+  returns -1 if the mode is unknown.
+*/
+static enum tveng_frame_pixformat
+zmisc_resolve_pixformat(int bpp, GdkByteOrder byte_order)
 {
-  /* the border is because of the possible dword-alignings */
-  *clips = realloc(*clips, ((*num_clips)+1)*sizeof(struct tveng_clip));
-  (*clips)[*num_clips].x = x1;
-  (*clips)[*num_clips].y = y1;
-  (*clips)[*num_clips].width = x2-x1;
-  (*clips)[*num_clips].height = y2-y1;
-  (*num_clips)++;
-}
-
-/* Gets all the clips */
-void zmisc_get_clips(void);
-
-void zmisc_get_clips(void)
-{
-  struct tveng_clip * clips = NULL;
-  int x1,y1,x2,y2;
-  Display *dpy = GDK_DISPLAY();
-  XWindowAttributes wts;
-  Window root, me, rroot, parent, *children;
-  uint nchildren, i;
-  gint num_clips=0;
-  int wx, wy, wwidth, wheight, swidth, sheight;
-
-  wx = main_info -> window.x;
-  wy = main_info -> window.y;
-  wwidth = wx + main_info -> window.width;
-  wheight = wy + main_info -> window.height;
-  swidth = gdk_screen_width();
-  sheight = gdk_screen_height();
-  if (wx<0)
-    zmisc_add_clip(0, 0, (uint)(-wx), wheight, &clips, &num_clips);
-  if (wy<0)
-    zmisc_add_clip(0, 0, wwidth, (uint)(-wy), &clips, &num_clips);
-  if ((wx+wwidth) > swidth)
-    zmisc_add_clip(swidth-wx, 0, wwidth, wheight, &clips,
-		   &num_clips);
-  if ((wy+wheight) > sheight)
-    zmisc_add_clip(0, sheight-wy, wwidth, wheight, &clips, &num_clips);
-  
-  root=GDK_ROOT_WINDOW();
-  me=GDK_WINDOW_XWINDOW(lookup_widget(main_window, "tv_screen")->window);
-
-  for (;;) {
-    XQueryTree(dpy, me, &rroot, &parent, &children, &nchildren);
-    XFree((char *) children);
-    if (root == parent)
+  switch (bpp)
+    {
+    case 15:
+      return TVENG_PIX_RGB555;
       break;
-    me = parent;
-  }
-  XQueryTree(dpy, root, &rroot, &parent, &children, &nchildren);
-    
-  for (i = 0; i < nchildren; i++)
-    if (children[i]==me)
+    case 16:
+      return TVENG_PIX_RGB565;
       break;
-  
-  for (i++; i<nchildren; i++) {
-    XGetWindowAttributes(dpy, children[i], &wts);
-    if (!(wts.map_state & IsViewable))
-      continue;
-    
-    x1=wts.x-main_info->window.x;
-    y1=wts.y-main_info->window.y;
-    x2=x1+wts.width+2*wts.border_width;
-    y2=y1+wts.height+2*wts.border_width;
-    if ((x2 < 0) || (x1 > (int)wwidth) || (y2 < 0) || (y1 > (int)wheight))
-      continue;
-    
-    if (x1<0)      	     x1=0;
-    if (y1<0)            y1=0;
-    if (x2>(int)wwidth)  x2=wwidth;
-    if (y2>(int)wheight) y2=wheight;
-    zmisc_add_clip(x1, y1, x2, y2, &clips, &num_clips);
-  }
-  XFree((char *) children);
-  
-  main_info->window.clipcount = num_clips;
-  main_info->window.clips = clips;
-  tveng_set_preview_window(main_info);
-
-  if (clips)
-    free(clips);
-}
-
-/* Force an expose event in the given area */
-static 
-void zmisc_clear_area(gint x, gint y, gint width, gint height);
-
-static GtkWidget * clear_window = NULL;
-
-static
-void zmisc_clear_area(gint x, gint y, gint width, gint height)
-{
-  if (!clear_window)
-    {
-      clear_window = gtk_window_new( GTK_WINDOW_POPUP );
-
-      gtk_widget_set_uposition(clear_window, x, y);
-      gtk_widget_set_usize(clear_window, width, height);
+    case 24:
+      if (byte_order == GDK_MSB_FIRST)
+	return TVENG_PIX_RGB24;
+      else
+	return TVENG_PIX_BGR24;
+      break;
+    case 32:
+      if (byte_order == GDK_MSB_FIRST)
+	return TVENG_PIX_RGB32;
+      else
+	return TVENG_PIX_BGR32;
+      break;
+    default:
+      g_warning("Unrecognized image bpp: %d",
+		bpp);
+      break;
     }
-
-  gtk_widget_show(clear_window);
-  gdk_window_set_decorations(clear_window->window, 0);
-  gdk_window_move_resize(clear_window->window, x, y, width, height);
-
-  gtk_widget_hide(clear_window);
-}
-
-static
-gint zmisc_timeout_done (gpointer data);
-
-static
-gint zmisc_timeout_done (gpointer data)
-{
-  *((guint*)data) = 0;
-  if (main_info->current_mode == TVENG_CAPTURE_WINDOW)
-    {
-      main_info->window.x = curx;
-      main_info->window.y = cury;
-      main_info->window.width = curw;
-      main_info->window.height = curh;
-      main_info->window.clipcount = 0;
-      tveng_set_preview_window(main_info);
-      zmisc_get_clips(); /* fills main_info->window.clips and calls
-			    tveng_set_window */
-      if (!obscured)
-	tveng_set_preview_on(main_info);
-    }
-
-  return FALSE; /* destroy the timeout */
-}
-
-/* Announces that the tv_screen has moved. This routine refreshes the
-   old placement of the window if neccesary */
-void zmisc_refresh_tv_screen(gint x, gint y, gint w, gint h, gboolean
-			     obscured_param)
-{
-  gint timeout_length = 100; /* 0.1 sec */
-
-  curx = x; cury = y; curw = w; curh = h; obscured = obscured_param;
-
-  /* Just do the update (exitting zapping) */
-  if ((!w && !h) && (!x && !y))
-    {
-      zmisc_clear_area(0, 0, gdk_screen_width(), gdk_screen_height());
-      if (timeout_id)
-	gtk_timeout_remove(timeout_id);
-      return;
-    }
-  
-  if (timeout_id == 0) {
-    if (main_info->current_mode == TVENG_CAPTURE_WINDOW)
-      tveng_set_preview_off(main_info);
-
-    if (main_info -> current_mode == TVENG_CAPTURE_WINDOW)
-      {
-	if (zcg_bool(NULL, "avoid_flicker"))
-	  zmisc_clear_area(main_info->window.x, main_info->window.y,
-			   main_info->window.width,
-			   main_info->window.height);
-	else
-	  zmisc_clear_area(0, 0, gdk_screen_width(), gdk_screen_height());
-
-	ignore_next_expose = TRUE;
-      }
-    timeout_id = gtk_timeout_add(timeout_length, zmisc_timeout_done,
-				 &timeout_id);
-  }
-  else {
-    gtk_timeout_remove(timeout_id);
-    timeout_id = gtk_timeout_add(timeout_length, zmisc_timeout_done,
-				 &timeout_id);
-  }
-  gdk_window_get_origin(main_window->window, &oldx, &oldy);
-  gdk_window_get_size(main_window->window, &oldw, &oldh);
-}
-
-/* Clears any timers zmisc could use (the Zapping window is to be closed) */
-void zmisc_clear_timers(void)
-{
-  if (timeout_id != 0)
-    gtk_timeout_remove(timeout_id);
-
-  timeout_id = 0;
+  return -1;
 }
 
 /*
@@ -441,6 +277,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   int return_value = 0;
   GtkAllocation dummy_alloc;
   gint x, y, w, h;
+  enum tveng_frame_pixformat format;
 
   g_assert(info != NULL);
   g_assert(main_window != NULL);
@@ -468,6 +305,16 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   switch (new_mode)
     {
     case TVENG_CAPTURE_READ:
+      format = zmisc_resolve_pixformat(x11_get_bpp(),
+				       x11_get_byte_order());
+
+      if (format != -1)
+	{
+	  info->format.pixformat = format;
+	  if (info->format.pixformat != format)
+	    g_warning("Couldn't set format correctly: %s", info->error);
+	}
+
       return_value = tveng_start_capturing(info);
       if (return_value != -1)
 	{
@@ -483,6 +330,18 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	g_warning("preview has been disabled");
 	return -1;
       }
+
+      format = zmisc_resolve_pixformat(tveng_get_display_depth(info),
+				       x11_get_byte_order());
+
+      if (format != -1)
+	{
+	  info->format.pixformat = format;
+	  tveng_set_capture_format(info);
+	  if (info->format.pixformat != format)
+	    g_warning("Couldn't set format correctly: %s", info->error);
+	}
+
       info->window.x = x;
       info->window.y = y;
       info->window.width = w;
@@ -491,7 +350,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
       tveng_set_preview_window(info);
       return_value = tveng_start_window(info);
       if (return_value != -1)
-	zmisc_refresh_tv_screen(x, y, w, h, FALSE);
+	overlay_sync(TRUE);
       else
 	g_warning(info->error);
       break;
@@ -500,6 +359,16 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	g_warning("preview has been disabled");
 	return -1;
       }
+
+      format = zmisc_resolve_pixformat(tveng_get_display_depth(info),
+				       x11_get_byte_order());
+      if (format != -1)
+	{
+	  info->format.pixformat = format;
+	  tveng_set_capture_format(info);
+	  if (info->format.pixformat != format)
+	    g_warning("Couldn't set format correctly: %s", info->error);
+	}
       on_go_fullscreen1_activate(
        GTK_MENU_ITEM(lookup_widget(tv_screen, "go_fullscreen1")),
        NULL);

@@ -2,6 +2,9 @@ Outstanding issues for the next release
 ---------------------------------------
 	+ Write the mpeg plugin (this is a MUST)
 	+ VBI can be opened/closed while running, try.
+	+ Make the 640x480 auto-choosing configurable.
+	+ XGetScreenSaver
+	+ make the channel ordering configurable
 	+ Bug fixes
 	> Release 0.5.5
 	+ Subtitles support

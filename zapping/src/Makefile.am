@@ -3,6 +3,7 @@
 INCLUDES = \
 -I$(top_srcdir)/libvbi \
 -I$(top_srcdir)/intl \
+$(ARCH_CFLAGS) \
 $(GNOME_INCLUDEDIR) \
 $(GDK_PIXBUF_CFLAGS)
 
@@ -15,6 +16,9 @@ EXTRA_DIST = videodev.h videodev2.h plugin_common.h ROADMAP
 
 zapping_SOURCES = \
 	main.c \
+	yuv2rgb_mmx.c \
+	mmx.c mmx.h \
+	yuv2rgb.c yuv2rgb.h \
 	interface.c interface.h \
 	callbacks.c callbacks.h \
 	frequencies.c frequencies.h \
@@ -30,6 +34,8 @@ zapping_SOURCES = \
 	tveng1.c tveng1.h \
 	tveng2.c tveng2.h \
 	tveng.c tveng.h \
+	x11stuff.c x11stuff.h \
+	overlay.c overlay.h \
 	zvbi.c zvbi.h \
 	strnatcmp.c strnatcmp.h
 

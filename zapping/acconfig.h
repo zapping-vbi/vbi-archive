@@ -13,3 +13,10 @@
 #undef HAVE_GDKPIXBUF
 #undef TVENG_DISABLE_IOCTL_TESTS
 #undef TVENG_DEBUG
+// Set if MMX support will be built
+#undef USE_MMX
+// Architecture
+#undef __i386__
+#undef __alpha__
+#undef __ppc__
+#undef __sparc__ 

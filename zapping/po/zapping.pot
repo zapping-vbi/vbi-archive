@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-09-23 17:50+0200\n"
+"POT-Creation-Date: 2000-10-05 00:05+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -46,61 +46,61 @@ msgstr ""
 msgid "NORM"
 msgstr ""
 
-#: src/main.c:173
+#: src/main.c:188
 msgid "Sorry, but there is no module support"
 msgstr ""
 
-#: src/main.c:182
+#: src/main.c:197
 msgid "Cannot get device info struct"
 msgstr ""
 
-#: src/main.c:188
+#: src/main.c:203
 msgid "Zapping couldn't be started"
 msgstr ""
 
-#: src/main.c:226
+#: src/main.c:241
 msgid ""
 "The specified device isn't \"/dev/video\".\n"
 "Should I try it?"
 msgstr ""
 
-#: src/main.c:247
+#: src/main.c:262
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:366
+#: src/main.c:387
 #, c-format
 msgid ""
 "Cannot restore previous mode%s:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:369
+#: src/main.c:390
 msgid ", I will try starting capture mode"
 msgstr ""
 
-#: src/main.c:373
+#: src/main.c:394
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:386
+#: src/main.c:407
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:454
+#: src/main.c:475
 msgid "There is no allocated mem for the capture"
 msgstr ""
 
-#: src/main.c:585
+#: src/main.c:606
 msgid ""
 "ZConf could not be closed properly , your\n"
 "configuration will be lost.\n"
@@ -112,18 +112,18 @@ msgid ""
 "     Zapping. Please contact the author.\n"
 msgstr ""
 
-#: src/main.c:619
+#: src/main.c:640
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr ""
 
-#: src/main.c:686
+#: src/main.c:707
 #, c-format
 msgid ""
 "Sorry, but %s couldn't be opened:\n"
 "%s (%d)"
 msgstr ""
 
-#: src/main.c:690
+#: src/main.c:711
 msgid "There's no GdkPixbuf support, VBI has been disabled"
 msgstr ""
 
@@ -145,44 +145,44 @@ msgstr ""
 msgid "A TV viewer for the Gnome Desktop Environment"
 msgstr ""
 
-#: src/callbacks.c:328
+#: src/callbacks.c:236
 msgid "Cannot set input"
 msgstr ""
 
-#: src/callbacks.c:347
+#: src/callbacks.c:255
 #, c-format
 msgid "Cannot tune given channel %d (no such channel)\n"
 msgstr ""
 
 #. Set the
 #. input freq
-#: src/callbacks.c:362
+#: src/callbacks.c:270
 msgid "Cannot tune input"
 msgstr ""
 
-#: src/callbacks.c:515
+#: src/callbacks.c:423
 msgid "Sorry, but cannot go fullscreen"
 msgstr ""
 
-#: src/callbacks.c:592
+#: src/callbacks.c:500
 msgid "I cannot find the main zapping window, weird..."
 msgstr ""
 
-#: src/callbacks.c:611
+#: src/callbacks.c:519
 msgid ""
 "The videotext decoder needs GdkPixbuf, and\n"
 "configure didn't find it."
 msgstr ""
 
-#: src/callbacks.c:617
+#: src/callbacks.c:525
 msgid "VBI has been disabled, or it doesn't work."
 msgstr ""
 
-#: src/callbacks.c:807 src/v4linterface.c:161
+#: src/callbacks.c:676 src/v4linterface.c:161
 msgid "No tuner"
 msgstr ""
 
-#: src/callbacks.c:815 src/v4linterface.c:163
+#: src/callbacks.c:684 src/v4linterface.c:163
 msgid "No tuned channels"
 msgstr ""
 
@@ -329,7 +329,7 @@ msgstr ""
 msgid "Cannot figure out X depth"
 msgstr ""
 
-#: src/tveng.c:1749
+#: src/tveng.c:1751
 msgid "Warning: trying to stop window with no capture active\n"
 msgstr ""
 
@@ -368,22 +368,22 @@ msgstr ""
 msgid "Input number %d doesn't appear to exist"
 msgstr ""
 
-#: src/tveng1.c:770 src/tveng2.c:672
+#: src/tveng1.c:770 src/tveng2.c:674
 #, c-format
 msgid "Standard %s doesn't appear to exist"
 msgstr ""
 
-#: src/tveng1.c:788 src/tveng2.c:690
+#: src/tveng1.c:788 src/tveng2.c:692
 #, c-format
 msgid "Standard %d doesn't appear to exist"
 msgstr ""
 
-#: src/tveng1.c:850 src/tveng2.c:773
+#: src/tveng1.c:850 src/tveng2.c:779
 msgid "Cannot understand the actual palette"
 msgstr ""
 
 #. unknown
-#: src/tveng1.c:924 src/tveng2.c:829
+#: src/tveng1.c:924 src/tveng2.c:836
 msgid "Cannot understand the given palette"
 msgstr ""
 
@@ -403,12 +403,11 @@ msgstr ""
 msgid "Alternate 2"
 msgstr ""
 
-#: src/tveng1.c:1164 src/tveng1.c:1660 src/tveng1.c:1673 src/tveng2.c:939
-#: src/tveng2.c:1224 src/tveng2.c:1237
+#: src/tveng1.c:1164 src/tveng1.c:1660 src/tveng1.c:1673 src/tveng2.c:946
 msgid "Mute"
 msgstr ""
 
-#: src/tveng1.c:1175 src/tveng2.c:938
+#: src/tveng1.c:1175 src/tveng2.c:945
 msgid "Volume"
 msgstr ""
 
@@ -416,11 +415,11 @@ msgstr ""
 msgid "Bass"
 msgstr ""
 
-#: src/tveng1.c:1197 src/tveng2.c:941
+#: src/tveng1.c:1197 src/tveng2.c:948
 msgid "Treble"
 msgstr ""
 
-#: src/tveng1.c:1212 src/tveng2.c:940
+#: src/tveng1.c:1212 src/tveng2.c:947
 msgid "Balance"
 msgstr ""
 
@@ -428,11 +427,11 @@ msgstr ""
 msgid "Audio Decoding"
 msgstr ""
 
-#: src/tveng1.c:1239 src/tveng2.c:921
+#: src/tveng1.c:1239 src/tveng2.c:928
 msgid "Brightness"
 msgstr ""
 
-#: src/tveng1.c:1248 src/tveng2.c:924
+#: src/tveng1.c:1248 src/tveng2.c:931
 msgid "Hue"
 msgstr ""
 
@@ -440,7 +439,7 @@ msgstr ""
 msgid "Colour"
 msgstr ""
 
-#: src/tveng1.c:1266 src/tveng2.c:922
+#: src/tveng1.c:1266 src/tveng2.c:929
 msgid "Contrast"
 msgstr ""
 
@@ -463,21 +462,21 @@ msgstr ""
 msgid "Unknown video control: %s (%d)"
 msgstr ""
 
-#: src/tveng1.c:1553 src/tveng1.c:1583 src/tveng2.c:1114 src/tveng2.c:1145
+#: src/tveng1.c:1553 src/tveng1.c:1583 src/tveng2.c:1121 src/tveng2.c:1152
 #, c-format
 msgid "Cannot find control \"%s\" in the list of controls"
 msgstr ""
 
-#: src/tveng1.c:1622 src/tveng1.c:1647 src/tveng2.c:1185 src/tveng2.c:1211
+#: src/tveng1.c:1622 src/tveng1.c:1647 src/tveng2.c:1192 src/tveng2.c:1218
 #, c-format
 msgid "Cannot find control %d in the list of controls"
 msgstr ""
 
-#: src/tveng1.c:1796 src/tveng2.c:1365
+#: src/tveng1.c:1796 src/tveng2.c:1374
 msgid "There are no tuners for the active input"
 msgstr ""
 
-#: src/tveng1.c:1945 src/tveng2.c:1596
+#: src/tveng1.c:1945 src/tveng2.c:1605
 msgid "Warning: trying to stop capture with no capture active\n"
 msgstr ""
 
@@ -489,19 +488,19 @@ msgstr ""
 msgid "Grabber chip can't sync (no station tuned in?)"
 msgstr ""
 
-#: src/tveng1.c:2123 src/tveng2.c:1654
+#: src/tveng1.c:2123 src/tveng2.c:1663
 msgid "Current capture mode is not READ"
 msgstr ""
 
-#: src/tveng1.c:2132 src/tveng2.c:1663
+#: src/tveng1.c:2132 src/tveng2.c:1672
 msgid "Size check failed, quitting to avoid segfault"
 msgstr ""
 
-#: src/tveng1.c:2245 src/tveng2.c:1797
+#: src/tveng1.c:2245 src/tveng2.c:1806
 msgid "The capability field says that there is no overlay"
 msgstr ""
 
-#: src/tveng1.c:2461 src/tveng2.c:1998
+#: src/tveng1.c:2463 src/tveng2.c:2015
 msgid "Warning: trying to stop preview with no capture active\n"
 msgstr ""
 
@@ -520,76 +519,76 @@ msgstr ""
 msgid "Sorry, but \"%s\" has no tuner"
 msgstr ""
 
-#: src/tveng2.c:923
+#: src/tveng2.c:930
 msgid "Saturation"
 msgstr ""
 
-#: src/tveng2.c:925
+#: src/tveng2.c:932
 msgid "Whiteness"
 msgstr ""
 
-#: src/tveng2.c:926
+#: src/tveng2.c:933
 msgid "Black level"
 msgstr ""
 
-#: src/tveng2.c:927
+#: src/tveng2.c:934
 msgid "White balance"
 msgstr ""
 
-#: src/tveng2.c:928
+#: src/tveng2.c:935
 msgid "Do white balance"
 msgstr ""
 
-#: src/tveng2.c:929
+#: src/tveng2.c:936
 msgid "Red balance"
 msgstr ""
 
-#: src/tveng2.c:930
+#: src/tveng2.c:937
 msgid "Blue balance"
 msgstr ""
 
-#: src/tveng2.c:931
+#: src/tveng2.c:938
 msgid "Gamma"
 msgstr ""
 
-#: src/tveng2.c:932
+#: src/tveng2.c:939
 msgid "Exposure"
 msgstr ""
 
-#: src/tveng2.c:933
+#: src/tveng2.c:940
 msgid "Gain"
 msgstr ""
 
-#: src/tveng2.c:934
+#: src/tveng2.c:941
 msgid "HCenter"
 msgstr ""
 
-#: src/tveng2.c:935
+#: src/tveng2.c:942
 msgid "VCenter"
 msgstr ""
 
-#: src/tveng2.c:936
+#: src/tveng2.c:943
 msgid "Horizontal flipping"
 msgstr ""
 
-#: src/tveng2.c:937
+#: src/tveng2.c:944
 msgid "Vertical flipping"
 msgstr ""
 
-#: src/tveng2.c:942
+#: src/tveng2.c:949
 msgid "Loudness"
 msgstr ""
 
-#: src/tveng2.c:992
+#: src/tveng2.c:999
 msgid "<Broken menu entry>"
 msgstr ""
 
-#: src/tveng2.c:1002
+#: src/tveng2.c:1009
 #, c-format
 msgid "V4L2: Unknown control type 0x%x (%s)\n"
 msgstr ""
 
-#: src/tveng2.c:1533
+#: src/tveng2.c:1542
 msgid "Not enough buffers"
 msgstr ""
 
@@ -642,7 +641,7 @@ msgid ""
 "Hashes are 0x%x vs. 0x%x"
 msgstr ""
 
-#: src/zmisc.c:141
+#: src/zmisc.c:135
 #, c-format
 msgid ""
 "Sorry, but a %dx%d image couldn't be allocated, the image will not be "

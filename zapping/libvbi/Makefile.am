@@ -3,7 +3,7 @@ noinst_LIBRARIES = libvbi.a
 EXTRA_DIST = font1.xbm font2.xbm README
 
 ## Avoid warning messages (i'm not going to maintain this code)
-CFLAGS = -w
+CFLAGS = -w $(ARCH_CFLAGS)
 
 libvbi_a_SOURCES = \
 	cache.c cache.h \

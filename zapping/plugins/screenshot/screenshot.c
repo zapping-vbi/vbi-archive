@@ -670,6 +670,19 @@ start_saving_screenshot (gpointer data_to_save,
     case TVENG_PIX_RGB555:
       data->set_bgr = TRUE;
       break;
+    default:
+      ShowBox("The current pixformat isn't supported",
+	      GNOME_MESSAGE_BOX_ERROR);
+
+      g_free(buffer);
+      jpeg_finish_compress(&(data->cinfo));
+      jpeg_destroy_compress(&(data->cinfo));
+      fclose(data->handle);
+      free(data->line_data);
+      free(data->data);
+      free(data);
+      
+      return;
     }
 
   data -> window = gtk_window_new(GTK_WINDOW_DIALOG);
@@ -708,7 +721,6 @@ start_saving_screenshot (gpointer data_to_save,
       g_timeout_add(50, (GSourceFunc)thread_manager, data);
       break;
     }
-
 }
 
 /* Swaps the R and the B components of a RGB (BGR) image */
@@ -763,6 +775,9 @@ static void * saver_thread(void * _data)
     case TVENG_PIX_RGB555:
       Converter = (LineConverter) Convert_RGB555_RGB24;
       break;
+    default:
+      fprintf(stderr, "pixformat not supported");
+      goto finish; /* thread cleanup */
     }
 
   pixels = (gchar*) data->data;
@@ -789,6 +804,7 @@ static void * saver_thread(void * _data)
 	done_writing = TRUE;
     }
 
+ finish:
   jpeg_finish_compress(&(data->cinfo));
   jpeg_destroy_compress(&(data->cinfo));
   fclose(data->handle);

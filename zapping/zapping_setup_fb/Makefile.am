@@ -1,8 +1,9 @@
 ## Process this file with automake to produce Makefile.in
 
 INCLUDES = \
-	-I$(top_srcdir)/intl \
-	$(GNOME_INCLUDEDIR)
+-I$(top_srcdir)/intl \
+$(ARCH_CFLAGS) \
+$(GNOME_INCLUDEDIR)
 
 bin_PROGRAMS = zapping_setup_fb
 

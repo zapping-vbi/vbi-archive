@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.5 2000-09-26 22:12:56 garetxe Exp $ */
+/* $Id: v4l.c,v 1.6 2000-10-05 19:04:49 garetxe Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -62,7 +62,7 @@ wait_full(fifo *f)
 
 	vmmap.frame = oldcframe;
 	ASSERT("enqueue capture buffer",
-	       ioctl(fd, VIDIOCMCAPTURE, &vmmap) == 0);e
+	       ioctl(fd, VIDIOCMCAPTURE, &vmmap) == 0);
 
 	while (r < 0)
 	{

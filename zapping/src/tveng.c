@@ -156,7 +156,7 @@ int tveng_attach_device(const char* device_file,
   info -> fd = 0;
   /* Try first to attach it as a V4L2 device */
   if (-1 != tveng2_attach_device(device_file, attach_mode, info))
-      goto success;
+    goto success;
 
   info -> fd = 0;
   /* Now try it as a V4L device */
@@ -1381,8 +1381,8 @@ tveng_set_preview_window(tveng_device_info * info)
 {
   t_assert(info != NULL);
 
+  info->window.x = (info->window.x+3) & ~3;
   info->window.width = (info->window.width+3) & ~3;
-  info->window.height = (info->window.height+3) & ~3;
   if (info->window.height < info->caps.minheight)
     info->window.height = info->caps.minheight;
   if (info->window.height > info->caps.maxheight)
@@ -1729,6 +1729,8 @@ tveng_start_window (tveng_device_info * info)
   if (!tveng_detect_preview(info))
     /* We shouldn't be reaching this if the app is well programmed */
     t_assert_not_reached();
+
+  tveng_set_preview_window(info);
 
   if (tveng_set_preview_on(info) == -1)
     return -1;

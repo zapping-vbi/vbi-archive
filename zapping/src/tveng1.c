@@ -2278,7 +2278,7 @@ tveng1_set_preview_window(tveng_device_info * info)
   struct video_window v4l_window;
   struct video_clip * clips=NULL;
   enum tveng_capture_mode mode;
-  int i;
+  int i, dx;
 
   t_assert(info != NULL);
   t_assert(info-> window.clipcount >= 0);
@@ -2286,10 +2286,11 @@ tveng1_set_preview_window(tveng_device_info * info)
   memset(&v4l_window, 0, sizeof(struct video_window));
 
   /* We do not set the chromakey value */
-  v4l_window.x = info->window.x;
+  v4l_window.x = (info->window.x+3) & ~3; /* dword align */
+  dx = v4l_window.x - info->window.x;
   v4l_window.y = info->window.y;
-  v4l_window.width = (info->window.width+3) & ~3;
-  v4l_window.height = (info->window.height+3) & ~3;
+  v4l_window.width = (info->window.width-dx+3) & ~3;
+  v4l_window.height = info->window.height;
   v4l_window.clipcount = info->window.clipcount;
   v4l_window.clips = NULL;
   if (v4l_window.clipcount)
@@ -2307,6 +2308,7 @@ tveng1_set_preview_window(tveng_device_info * info)
       v4l_window.clips = clips;
       for (i=0;i<v4l_window.clipcount;i++)
 	{
+	  /* The clip seems to be always dword-aligned, reflect that */
 	  v4l_window.clips[i].x = info->window.clips[i].x;
 	  v4l_window.clips[i].y = info->window.clips[i].y;
 	  v4l_window.clips[i].width = info->window.clips[i].width;

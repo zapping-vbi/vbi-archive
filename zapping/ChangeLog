@@ -1,3 +1,25 @@
+5.10.2000	Russian frequency table <garetxe@eusers.sourceforge.net>
+
+	* src/frequencies.c: Added russian frequency table, donated by
+	Eugene Crosser.
+
+5.10.2000	overlay rewritten <garetxe@users.sourceforge.net>
+
+	* configure.in: Added check for CPU type and presence of MMX.
+	* src/yuv2rgb.c:
+	* src/yuv2rgb.h:
+	* src/yuv2rgb_mmx: YUV->RGB transform routines, with MMX
+	aceleration supported.
+	* src/mmx.h:
+	* src/mmx.c: MMX detecting and handling helper functions.
+	* src/overlay.{ch}: Overlay handling code, completely
+	rewritten. Now it works perfectly, just a bit of necessary
+	flicker.
+	* src/x11stuff.{ch}: Low-level X11 stuff. I'll try to stick with
+	GDK in the rest of Zapping for the sake of clarity.
+	* src/tveng2.c: Some fixes to make it work with the newest bttv2
+	and videodevX.
+
 23.9.2000	back again <garetxe@users.sourceforge.net>
 
 	* src/main.c: Added option for supporting old bttv devices.

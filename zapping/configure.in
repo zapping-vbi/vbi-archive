@@ -119,6 +119,50 @@ AC_DEFINE(LIBXML_CHILDS),
 AC_MSG_RESULT(children))
 
 dnl ----------------------------------------------------------------------
+dnl Check whether an intel arch is present, and enable MMX support
+dnl ----------------------------------------------------------------------
+YUV2RGB_MMX=""
+HAVE_MMX="no"
+ARCH_CFLAGS=""
+case "$host_alias" in
+i?86-* | k?-*) dnl catch i386,i486,i586,i686,k6,k7
+	AC_DEFINE(__i386__) 
+	case "$host_alias" in
+		i386-*) dnl who are we kidding?
+			HAVE_MMX="yes"			
+			ARCH_CFLAGS="-march=m386";;
+		i486-*)
+			HAVE_MMX="yes"			
+			ARCH_CFLAGS="-march=m486";;
+		i586-*)
+			HAVE_MMX="yes"			
+			ARCH_CFLAGS="-march=pentium";;
+		i686-*)
+			HAVE_MMX="yes"			
+			ARCH_CFLAGS="-march=pentiumpro";;
+		k6-*)
+			HAVE_MMX="yes"			
+			ARCH_CFLAGS="-march=k6";;
+		k7-*)
+			HAVE_MMX="yes"			
+			ARCH_CFLAGS="-march=k7";;
+	esac;;
+alpha*-*) AC_DEFINE(__alpha__);;
+sparc-*) 
+	AC_DEFINE(__sparc__)
+	ARCH_CFLAGS="-mcpu=ultrasparc -mvis";;
+ppc-*) AC_DEFINE(__ppc__);;
+powerpc-*) AC_DEFINE(__ppc__);;
+*) ;;
+esac
+
+if test "x$HAVE_MMX" = "xyes"; then
+	AC_DEFINE(USE_MMX)
+fi
+
+AC_SUBST(ARCH_CFLAGS)
+
+dnl ----------------------------------------------------------------------
 dnl Check for existance of xmlDocGetRootNode and friends
 dnl ----------------------------------------------------------------------
 AC_CHECK_LIB(xml, xmlDocGetRootNode,, AC_DEFINE(LIBXML_NO_ROOT))
@@ -171,6 +215,7 @@ echo "
 	----------------		-----
 	GdkPixbuf			$HAVE_GDK_PIXBUF
 	JPEG lib			$HAVE_JPEG
+	MMX support			$HAVE_MMX
 
 	Plugins to build
 	----------------

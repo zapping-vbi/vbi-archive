@@ -639,6 +639,7 @@ int tveng2_set_standard(struct tveng_enumstd * std, tveng_device_info * info)
     {
       info->tveng_errno = errno;
       t_error("VIDIOC_ENUMSTD", info);
+      tveng_restart_everything(current_mode, info);
       return -1;
     }
 
@@ -647,9 +648,10 @@ int tveng2_set_standard(struct tveng_enumstd * std, tveng_device_info * info)
     {
       info->tveng_errno = errno;
       t_error("VIDIOC_S_STD", info);
+      tveng_restart_everything(current_mode, info);
       return -1;
     }
-
+  
   info->cur_standard = std->index;
 
   /* Start capturing again as if nothing had happened */
@@ -767,10 +769,15 @@ tveng2_update_capture_format(tveng_device_info * info)
       info->format.depth = 32;
       info->format.pixformat = TVENG_PIX_BGR32;
       break;
+    case V4L2_PIX_FMT_GREY:
+      info->format.depth = 8;
+      info->format.pixformat = TVENG_PIX_GREY;
+      break;
     default:
       info->tveng_errno = -1; /* unknown */
       t_error_msg("switch()",
 		  _("Cannot understand the actual palette"), info);
+
       return -1;    
     };
   info->window.x = window.x;
@@ -1221,7 +1228,7 @@ int
 tveng2_get_mute(tveng_device_info * info)
 {
   int returned_value;
-  if (tveng2_get_control_by_name(_("Mute"), &returned_value, info) ==
+  if (tveng2_get_control_by_id(V4L2_CID_AUDIO_MUTE, &returned_value, info) ==
       -1)
     return -1;
   return returned_value;
@@ -1234,7 +1241,7 @@ tveng2_get_mute(tveng_device_info * info)
 int
 tveng2_set_mute(int value, tveng_device_info * info)
 {
-  return (tveng2_set_control_by_name(_("Mute"), value, info));
+  return (tveng2_set_control_by_id(V4L2_CID_AUDIO_MUTE, value, info));
 }
 
 /*
@@ -1322,7 +1329,9 @@ tveng2_get_signal_strength (int *strength, int * afc,
 	good reception) and the disadvantage that it will find too
 	many stations... but better too many than too few :-)
       */
-#if 1
+#if 0
+      /* update: bttv2 does use the signal field, so lets use it
+	 instead */
       if (tuner.signal)
 	*strength = tuner.signal;
       else if (tuner.afc == 0)
@@ -1330,7 +1339,7 @@ tveng2_get_signal_strength (int *strength, int * afc,
       else
 	*strength = 0;
 #else
-      /* This is the correct method, but probably it won't work */
+      /* This is the correct method, but it doesn't always work */
       *strength = tuner.signal;
 #endif
     }
@@ -1837,10 +1846,10 @@ tveng2_set_preview_window(tveng_device_info * info)
   memset(&window, 0, sizeof(struct v4l2_window));
 
   /* We do not set the chromakey value */
-  window.x = info->window.x;
+  window.x = (info->window.x+3) & ~3;
   window.y = info->window.y;
-  window.width = (info->window.width+3) & ~3;
-  window.height = (info->window.height+3) & ~3;
+  window.width = info->window.width & ~3;
+  window.height = info->window.height;
   window.clipcount = info->window.clipcount;
   if (window.clipcount == 0)
     window.clips = NULL;

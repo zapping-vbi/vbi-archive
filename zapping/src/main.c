@@ -36,8 +36,8 @@
 #include "frequencies.h"
 #include "sound.h"
 #include "zvbi.h"
-
-/* fixme: Find out why VBI makes the new kernel go nuts */
+#include "mmx.h"
+#include "overlay.h"
 
 /* This comes from callbacks.c */
 extern enum tveng_capture_mode restore_mode; /* the mode set when we went
@@ -166,6 +166,21 @@ int main(int argc, char * argv[])
     newbttv = 0;
 
   printv("%s %s, build date: %s\n", "Zapping", VERSION, __DATE__);
+  switch (mm_support())
+    {
+    case 3:
+      printv("Cyrix MMX / Extended MMX. MMX enabled.\n");
+      break;
+    case 5:
+      printv("AMD MMX / 3DNow!. MMX enabled.\n");
+      break;
+    default:
+      if (mmx_ok())
+	printv("MMX enabled.\n");
+      else
+	printv("MMX not detected. Using plain C.\n");
+      break;
+    }
   glade_gnome_init();
   D();
   if (!g_module_supported ())
@@ -279,6 +294,20 @@ int main(int argc, char * argv[])
   D();
   tv_screen = lookup_widget(main_window, "tv_screen");
   printv("tv_screen is %p\n", (gpointer)tv_screen);
+  g_assert(tv_screen != NULL);
+  /* ensure that the main window is realized */
+  gtk_widget_show(main_window);
+  while (gtk_events_pending() || (!tv_screen->window))
+    gtk_main_iteration();
+  D();
+  if ((!disable_preview) && (!startup_overlay(FALSE, tv_screen,
+					      main_window, main_info)))
+    {
+      g_warning("The overlay handler couldn't be loaded, overlay will"
+		" be disabled");
+      disable_preview = FALSE;
+    }
+  D();
   /* Add the plugins to the GUI */
   p = g_list_first(plugin_list);
   while (p)
@@ -287,7 +316,6 @@ int main(int argc, char * argv[])
 		     (struct plugin_info*)p->data);
       p = p->next;
     }
-
   /* Disable preview if needed */
   if (disable_preview)
     {
@@ -324,7 +352,6 @@ int main(int argc, char * argv[])
 			       FALSE);
       gtk_widget_hide(lookup_widget(main_window, "view1"));      
     }
-  gtk_widget_show(main_window);
   D();
   /* Restore the input and the standard */
   tveng_set_input_by_index(zcg_int(NULL, "current_input"), main_info);
@@ -333,9 +360,6 @@ int main(int argc, char * argv[])
   D();
   update_standards_menu(main_window, main_info);
   D();
-  /* Process all events */
-  while (gtk_events_pending())
-    gtk_main_iteration();
 
   /* Sets the coords to the previous values, if the users wants to */
   if (zcg_bool(NULL, "keep_geometry"))
@@ -347,9 +371,6 @@ int main(int argc, char * argv[])
       gdk_window_move_resize(main_window->window, x, y, w, h);
     }
 
-  /* Process all events */
-  while (gtk_events_pending())
-    gtk_main_iteration();
   D();
   if (-1 == tveng_set_mute(zcg_bool(NULL, "start_muted"),
 			   main_info))
@@ -599,10 +620,10 @@ void shutdown_zapping(void)
   /* Destroy the image that holds the capture */
   zimage_destroy();
 
-  /* refresh the tv screen (in case we were in windowed preview mode)
+  /*
+   * Tell the overlay engine to shut down and to do a cleanup if necessary
    */
-  if (do_screen_cleanup)
-    zmisc_refresh_tv_screen(0, 0, 0, 0, FALSE);
+  shutdown_overlay(do_screen_cleanup);
 }
 
 gboolean startup_zapping()
