@@ -2,7 +2,9 @@
 
 lib_LTLIBRARIES = libzvbi.la
 
+BUILT_SOURCES = version.h libzvbi.h
 EXTRA_DIST = wstfont2.xbm ccfont2.xbm
+CLEANFILES = $(BUILT_SOURCES)
 
 INCLUDES  = -W -Wall -Wunused -Wfloat-equal \
 	-Wpointer-arith -Wbad-function-cast -Wcast-qual -Wcast-align \
@@ -44,21 +46,19 @@ libzvbiinclude_HEADERS = libzvbi.h
 libzvbi_la_LIBADD = $(PTHREAD_LIB) $(PNG_LIB) $(UNICODE_LIBS)
 libzvbi_la_LDFLAGS = -version-info $(LIBZVBI_SO_VERSION)
 
-BUILT_SOURCES = version.h libzvbi.h
-
 version.h:
 	echo -e "\n#define VBI_VERSION_MAJOR" `echo @VERSION@ \
 	 | sed "s/[^0-9.]//g" \
 	 | sed "s/\./\\\\\n#define VBI_VERSION_MINOR /" \
 	 | sed "s/\./\\\\\n#define VBI_VERSION_MICRO /"` >> $@
 
-LIBZVBI_HDRS = misc.h bcd.h event.h format.h lang.h export.h cache.h search.h \
-	   sliced.h decoder.h io.h exp-gfx.h exp-txt.h cc.h vt.h tables.h \
-	   vbi.h
+LIBZVBI_HDRS = misc.h bcd.h hamm.h event.h format.h lang.h export.h \
+	cache.h search.h sliced.h decoder.h io.h exp-gfx.h exp-txt.h \
+	cc.h vt.h tables.h vbi.h
 
 # Concat the header files in this order and filter out all lines
 #   before "^/* Public", after "^/* Private" and between "^/**"..."**/$"
-libzvbi.h: $(LIBZVBI_HDRS)
+libzvbi.h: version.h $(LIBZVBI_HDRS)
 	sed -ne "1,/\*\//p" $(srcdir)/vbi.h > $@
 	echo -e "\n/* Generated file, do not edit! */" >> $@
 	echo -e "\n#ifndef __LIBZVBI_H__\n#define __LIBZVBI_H__" >> $@
