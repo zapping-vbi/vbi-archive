@@ -20,14 +20,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_ffmpeg.h,v 1.5 2002-09-26 20:43:50 mschimek Exp $ */
+/* $Id: b_ffmpeg.h,v 1.6 2002-09-27 23:56:54 mschimek Exp $ */
 
 #ifndef B_FFMPEG_H
 #define B_FFMPEG_H
 
 #include "site_def.h"
 #include "config.h"
-#include "rtepriv.h"
+#include "../src/rtepriv.h"
 
 #include <stddef.h>
 
@@ -116,7 +116,7 @@ typedef struct {
 	rte_context_class	rte;
 	AVFormat *		av;
 	unsigned int		options;
-	ffmpeg_codec_class *	codecs[];
+	ffmpeg_codec_class *	codecs[16];
 } ffmpeg_context_class;
 
 PCAST(FXC, ffmpeg_context_class, rte_context_class, rte);
