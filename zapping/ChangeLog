@@ -1,3 +1,8 @@
+05.07.2001	libvbi <mschimek@users.sf.net>
+
+	* rewrote common/list.h
+	* replaced libvbi/dllist.h
+
 02.07.2001	assorted fixes <garetxe@users.sf.net>
 
 	* channel_editor: Pops up a dialog box asking for the new channel

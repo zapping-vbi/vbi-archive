@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.15 2001-07-02 08:15:51 mschimek Exp $ */
+/* $Id: fifo.c,v 1.16 2001-07-05 08:25:30 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -567,7 +567,7 @@ dead_consumer(consumer *c)
 static void
 uninit_fifo2(fifo2 *f)
 {
-	node2 *n;
+	node3 *n;
 
 	f->destroy    = (void (*)(fifo2 *)) dead_fifo;
 
@@ -580,19 +580,18 @@ uninit_fifo2(fifo2 *f)
 	f->start      = (bool (*)(fifo2 *)) dead_fifo;
 	f->stop       = (void (*)(fifo2 *)) dead_fifo;
 
-	while ((n = rem_tail2(&f->buffers)))
+	while ((n = rem_tail3(&f->buffers)))
 		destroy_buffer(PARENT(n, buffer2, added));
 
-	/* No warnings */
-	destroy_invalid_list(&f->buffers);
+	destroy_list(&f->buffers);
 
 	mucon_destroy(&f->pro);
 	mucon_destroy(&f->con);
 
-	destroy_invalid_list(&f->full);
-	destroy_invalid_list(&f->empty);
-	destroy_invalid_list(&f->producers);
-	destroy_invalid_list(&f->consumers);
+	destroy_list(&f->full);
+	destroy_list(&f->empty);
+	destroy_list(&f->producers);
+	destroy_list(&f->consumers);
 }
 
 /**
@@ -613,7 +612,7 @@ wait_full_buffer2(consumer *c)
 
 	pthread_mutex_lock(&f->consumer->mutex);
 
-	while (!(b = c->next_buffer)) {
+	while (!(b = c->next_buffer)->node.succ) {
 		if (f->c_reentry++ || !f->wait_full) {
 			/* Free resources which may block other consumers */
 			pthread_cleanup_push((void (*)(void *))
@@ -629,7 +628,7 @@ wait_full_buffer2(consumer *c)
 		f->c_reentry--;
 	}
 
-	c->next_buffer = (buffer2 *) b->node.next;
+	c->next_buffer = (buffer2 *) b->node.succ;
 
 	b->dequeued++;
 
@@ -665,7 +664,8 @@ unlink_full_buffer(fifo2 *f)
 	if (!f->unlink_full_buffers || f->consumers.members < 2)
 		return NULL;
 
-	for (b = (buffer2 *) f->full.head; b; b = (buffer2 *) b->node.next) {
+	for (b = (buffer2 *) f->full.head; b->node.succ;
+	     b = (buffer2 *) b->node.succ) {
 		if (0)
 			printf("Unlink cand %p <%s> en=%d de=%d co=%d us=%d\n",
 				b, (char *) b->data,
@@ -676,16 +676,16 @@ unlink_full_buffer(fifo2 *f)
 		    && (b->enqueued * 2) >= b->consumers
 		    && b->used > 0) {
 			for (c = (consumer *) f->consumers.head;
-			     c; c = (consumer *) c->node.next) {
+			     c->node.succ; c = (consumer *) c->node.succ) {
 				if (c->next_buffer == b) {
-					c->next_buffer = (buffer2 *) b->node.next;
+					c->next_buffer = (buffer2 *) b->node.succ;
 				}
 			}
 
 			b->consumers = 0;
 			b->dequeued = 0;
 
-			b = PARENT(rem_node2(&f->full, &b->node), buffer2, node);
+			b = PARENT(rem_node3(&f->full, &b->node), buffer2, node);
 
 			return b;
 		}
@@ -697,7 +697,7 @@ unlink_full_buffer(fifo2 *f)
 static void
 wait_empty_buffer_cleanup(mucon *m)
 {
-	rem_head_u(&m->list);
+	rem_head3(&m->list);
 	pthread_mutex_unlock(&m->mutex);
 }
 
@@ -716,14 +716,14 @@ wait_empty_buffer2(producer *p)
 {
 	fifo2 *f = p->fifo;
 	buffer2 *b = NULL;
-	node2 n;
+	node3 n;
 
 	pthread_mutex_lock(&f->producer->mutex);
 
-	if (!empty_list_u(&f->producer->list))
+	if (!empty_list3(&f->producer->list))
 		goto wait;
 
-	while (!(b = PARENT(rem_head2(&f->empty), buffer2, node))) {
+	while (!(b = PARENT(rem_head3(&f->empty), buffer2, node))) {
 		mutex_co_lock(&f->producer->mutex, &f->consumer->mutex);
 
 		if ((b = unlink_full_buffer(f))) {
@@ -738,7 +738,7 @@ wait_empty_buffer2(producer *p)
 			pthread_cleanup_push((void (*)(void *))
 				wait_empty_buffer_cleanup, f->producer);
 
-			add_tail_u(&f->producer->list, &n);
+			add_tail3(&f->producer->list, &n);
 
 			/*
 			 *  Assure first come first served
@@ -749,7 +749,7 @@ wait_empty_buffer2(producer *p)
 
 			pthread_cleanup_pop(0);
 
-		    	rem_head_u(&f->producer->list);
+		    	rem_head3(&f->producer->list);
 		} else {
 			pthread_mutex_unlock(&f->producer->mutex);	
 			f->wait_empty(f);
@@ -781,7 +781,7 @@ send_empty_unbuffered(consumer *c, buffer2 *b)
 
 	pthread_mutex_lock(&f->producer->mutex);
 
-	add_head2(&f->empty, &b->node);
+	add_head3(&f->empty, &b->node);
 
 	pthread_mutex_unlock(&f->producer->mutex);
 
@@ -799,7 +799,7 @@ send_empty_buffered(consumer *c, buffer2 *b)
 	pthread_mutex_lock(&f->consumer->mutex);
 
 	if (++b->enqueued >= b->consumers)
-		rem_node2(&f->full, &b->node);
+		rem_node3(&f->full, &b->node);
 	else
 		b = NULL;
 
@@ -809,7 +809,7 @@ send_empty_buffered(consumer *c, buffer2 *b)
 		return;
 
 	if (b->remove) {
-		rem_node2(&f->buffers, &b->added);
+		rem_node3(&f->buffers, &b->added);
 		destroy_buffer(b);
 		return;
 	}
@@ -836,11 +836,12 @@ send_full2(producer *p, buffer2 *b)
 		 *  c->next_buffer is NULL after the consumer dequeued all
 		 *  buffers from the virtual f->full queue.
 		 */
-		for (c = (consumer *) f->consumers.head; c; c = (consumer *) c->node.next)
-			if (!c->next_buffer)
+		for (c = (consumer *) f->consumers.head; c->node.succ;
+		     c = (consumer *) c->node.succ)
+			if (!c->next_buffer->node.succ)
 				c->next_buffer = b;
 
-		add_tail2(&f->full, &b->node);
+		add_tail3(&f->full, &b->node);
 
 		pthread_mutex_unlock(&f->consumer->mutex);
 
@@ -923,13 +924,13 @@ send_full_buffer2(producer *p, buffer2 *b)
 		if (!p->eof_sent)
 			f->eof_count++;
 
-		if (f->eof_count < list_members2(&f->producers)) {
+		if (f->eof_count < list_members3(&f->producers)) {
 			b->consumers = 0;
 			b->used = -1;
 			b->error = EINVAL;
 			b->errstr = NULL;
 
-			add_head2(&f->empty, &b->node);
+			add_head3(&f->empty, &b->node);
 
 			p->eof_sent = TRUE;
 
@@ -978,9 +979,9 @@ rem_buffer(buffer2 *b)
 	 */
 	if (b->consumers == 0) {
 		if (b->dequeued == 0)
-			rem_node2(&f->empty, &b->node);
+			rem_node3(&f->empty, &b->node);
 
-		rem_node2(&f->buffers, &b->added);
+		rem_node3(&f->buffers, &b->added);
 		destroy_buffer(b);
 	} else
 		b->remove = TRUE;
@@ -1004,7 +1005,7 @@ attach_buffer(fifo2 *f, buffer2 *b)
 	b->used = -1;
 	b->error = EINVAL;
 
-	add_tail2(&f->buffers, &b->added);
+	add_tail3(&f->buffers, &b->added);
 
 	return b;
 }
@@ -1061,31 +1062,31 @@ init_fifo(fifo2 *f, char *name,
 
 	f->destroy = uninit_fifo2;
 
-	init_list2(&f->full);
-	init_list2(&f->empty);
-	init_list2(&f->producers);
-	init_list2(&f->consumers);
+	init_list3(&f->full);
+	init_list3(&f->empty);
+	init_list3(&f->producers);
+	init_list3(&f->consumers);
 
 	mucon_init(f->producer = &f->pro);
 	mucon_init(f->consumer = &f->con);
 
-	init_list2(&f->buffers);
+	init_list3(&f->buffers);
 
 	for (; num_buffers > 0; num_buffers--) {
 		buffer2 *b;
 
 		if (!(b = attach_buffer(f, alloc_buffer(buffer_size)))) {
-			if (empty_list2(&f->buffers)) {
+			if (empty_list3(&f->buffers)) {
 				uninit_fifo2(f);
 				return 0;
 			} else
 				break;
 		}
 
-		add_tail2(&f->empty, &b->node);
+		add_tail3(&f->empty, &b->node);
 	}
 
-	return list_members2(&f->buffers);
+	return list_members3(&f->buffers);
 }
 
 /**
@@ -1254,7 +1255,7 @@ rem_producer(producer *p)
 		if (p->eof_sent)
 			f->eof_count--;
 
-	rem_node2(&f->producers, &p->node);
+	rem_node3(&f->producers, &p->node);
 
 	pthread_mutex_unlock(&f->producer->mutex);
 
@@ -1292,9 +1293,9 @@ add_producer(fifo2 *f, producer *p)
 	 *  Callback producers are individuals and finished
 	 *  fifos remain finished. (Just in case.)
 	 */
-	if ((empty_list2(&f->producers) || !f->wait_full)
-	    && f->eof_count <= list_members2(&f->consumers))
-		add_tail2(&f->producers, &p->node);
+	if ((empty_list3(&f->producers) || !f->wait_full)
+	    && f->eof_count <= list_members3(&f->consumers))
+		add_tail3(&f->producers, &p->node);
 	else
 		p = NULL;
 
@@ -1321,7 +1322,7 @@ rem_consumer(consumer *c)
 
 	pthread_mutex_lock(&f->consumer->mutex);
 
-	rem_node2(&f->consumers, &c->node);
+	rem_node3(&f->consumers, &c->node);
 
 	pthread_mutex_unlock(&f->consumer->mutex);
 
@@ -1348,7 +1349,7 @@ consumer *
 add_consumer(fifo2 *f, consumer *c)
 {
 	c->fifo = f;
-	c->next_buffer = NULL;
+	c->next_buffer = (buffer2 *) &f->full.null;
 	c->dequeued = 0;
 
 	mutex_bi_lock(&f->producer->mutex, &f->consumer->mutex);
@@ -1357,9 +1358,9 @@ add_consumer(fifo2 *f, consumer *c)
 	 *  Callback consumers are individuals and finished
 	 *  fifos are inhibited for new consumers. (Just in case.)
 	 */
-	if ((empty_list2(&f->consumers) || !f->wait_empty)
-	    && f->eof_count <= list_members2(&f->consumers))
-		add_tail2(&f->consumers, &c->node);
+	if ((empty_list3(&f->consumers) || !f->wait_empty)
+	    && f->eof_count <= list_members3(&f->consumers))
+		add_tail3(&f->consumers, &c->node);
 	else
 		c = NULL;
 

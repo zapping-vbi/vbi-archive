@@ -1,11 +1,11 @@
 /*
  *  Fifo test
  *
- *  gcc -g fifotest.c -ofifotest -lpthread
+ *  gcc -g -Wall fifotest.c -ofifotest -lpthread
  *
  */
 
-/* $Id: fifotest.c,v 1.3 2001-07-02 08:15:51 mschimek Exp $ */
+/* $Id: fifotest.c,v 1.4 2001-07-05 08:25:30 mschimek Exp $ */
 
 #define _GNU_SOURCE 1
 #define _REENTRANT 1

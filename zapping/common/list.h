@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: list.h,v 1.6 2001-06-30 10:33:46 mschimek Exp $ */
+/* $Id: list.h,v 1.7 2001-07-05 08:25:30 mschimek Exp $ */
 
 #ifndef LIST_H
 #define LIST_H
@@ -161,23 +161,36 @@ rem_node(list *l, node *n)
  *  node parameters. The number of members must not
  *  exceed INT_MAX.
  *
- *  Traverse list:
- *  for (node = list->head; node; node = node->next)
+ *  Traverse:
+ *  for (node = list->head; node->succ; node = node->succ)
+ *
+ *  Remove:
+ *  for (n1 = list->head; (n2 = n1->succ); n1 = n2)
+ *  	rem_node(n1);
  */
 
-typedef struct node2 node2; // preliminary
-typedef struct list2 list2;
+typedef struct node3 node3; // preliminary
+typedef struct list3 list3;
+typedef struct xlist xlist;
 
-struct node2 {
-	node2 *			next;
-	node2 *			prev;
+struct node3 {
+	node3 *			succ;
+	node3 *			pred;
 };
 
-struct list2 {
-	node2 *			head;
-	node2 *			tail;
-	pthread_rwlock_t	rwlock;
+struct list3 {
+	node3 *			head;
+	node3 *			null;
+	node3 *			tail;
 	int			members;
+};
+
+struct xlist {
+	node3 *			head;
+	node3 *			null;
+	node3 *			tail;
+	int			members;
+	pthread_rwlock_t	rwlock;
 };
 
 /**
@@ -189,64 +202,72 @@ struct list2 {
  * Does not free the list object or any nodes.
  **/
 static inline void
-destroy_list(list2 *l)
+destroy_xlist(xlist *l)
 {
 	assert(l->members == 0);
 	assert(pthread_rwlock_destroy(&l->rwlock) == 0);
 }
 
 static inline void
-destroy_list_u(list2 *l)
+destroy_list(list3 *l)
 {
 }
 
 static inline void
-destroy_invalid_list(list2 *l)
+destroy_invalid_xlist(xlist *l)
 {
 	pthread_rwlock_destroy(&l->rwlock);
 }
 
 /**
  * init_list:
- * @l: list2 * 
+ * @l: list3 * 
  * 
- * Initialize a list. Static initialization to all zero is
- * sufficient when the rwlock is not used.
- *
  * Return value:
  * The list pointer.
  **/
-static inline list2 *
-init_list2(list2 *l)
+static inline list3 *
+init_list3(list3 *l)
 {
-	assert(pthread_rwlock_init(&l->rwlock, NULL) == 0);
-
-	l->head = (node2 *) 0;
-	l->tail = (node2 *) 0;
+	l->head = (node3 *) &l->null;
+	l->null = (node3 *) 0;
+	l->tail = (node3 *) &l->head;
 
 	l->members = 0;
 
 	return l;
 }
 
-static inline list2 *
-init_list_u(list2 *l)
+static inline xlist *
+init_xlist(xlist *l)
 {
-	memset(l, 0, sizeof(*l));
+	assert(pthread_rwlock_init(&l->rwlock, NULL) == 0);
+
+	l->head = (node3 *) &l->null;
+	l->null = (node3 *) 0;
+	l->tail = (node3 *) &l->head;
+
+	l->members = 0;
 
 	return l;
 }
 
 /**
  * list_members:
- * @l: list2 *
+ * @l: list3 *
  * 
  * Return value:
  * Number of nodes linked in the list. You can read
  * l->members directly when the rwlock is unused.
  **/
 static inline unsigned int
-list_members2(list2 *l)
+list_members3(list3 *l)
+{
+	return l->members;
+}
+
+static inline unsigned int
+list_xmembers(xlist *l)
 {
 	int members;
 
@@ -257,67 +278,53 @@ list_members2(list2 *l)
 	return members;
 }
 
-static inline unsigned int
-list_members_u(list2 *l)
-{
-	return l->members;
-}
-
 /**
  * empty_list:
- * @l: list2 *
+ * @l: list3 *
  * 
  * Return value:
  * 1 if the list is empty, 0 otherwise. You can read
  * l->members directly when the rwlock is unused.
  **/
 static inline int
-empty_list2(list2 *l)
-{
-	return list_members2(l) == 0;
-}
-
-static inline int
-empty_list_u(list2 *l)
+empty_list3(list3 *l)
 {
 	return l->members == 0;
 }
 
+static inline int
+empty_xlist(xlist *l)
+{
+	return list_xmembers(l) == 0;
+}
+
 /**
- * add_head2:
- * @l: list2 * 
- * @n: node2 *
+ * add_head:
+ * @l: list3 *
+ * @n: node3 *
  * 
  * Add node at the head of the list.
  *
  * Return value:
  * The node pointer.
  **/
-static inline node2 *
-add_head_u(list2 *l, node2 *n)
+static inline node3 *
+add_head3(list3 *l, node3 *n)
 {
-	node2 *head = l->head;
-
-	n->next = head;
-	n->prev = (node2 *) 0;
-
-	if (head)
-		head->prev = n;
-
-	if (!l->tail)
-		l->tail = n;
-
+	n->pred = (node3 *) &l->head;
+	n->succ = l->head;
+	l->head->pred = n;
 	l->head = n;
 	l->members++;
 
 	return n;
 }
 
-static inline node2 *
-add_head2(list2 *l, node2 *n)
+static inline node3 *
+add_xhead(xlist *l, node3 *n)
 {
 	pthread_rwlock_wrlock(&l->rwlock);
-	n = add_head_u(l, n);
+	n = add_head3((list3 *) l, n);
 	pthread_rwlock_unlock(&l->rwlock);
 
 	return n;
@@ -325,39 +332,31 @@ add_head2(list2 *l, node2 *n)
 
 /**
  * add_tail:
- * @l: list2 * 
- * @n: node2 *
+ * @l: list3 *
+ * @n: node3 *
  * 
  * Add node at the end of the list.
  * 
  * Return value: 
  * The node pointer.
  **/
-static inline node2 *
-add_tail_u(list2 *l, node2 *n)
+static inline node3 *
+add_tail3(list3 *l, node3 *n)
 {
-	node2 *tail = l->tail;
-
-	n->next = (node2 *) 0;
-	n->prev = tail;
-
-	if (tail)
-		tail->next = n;
-
-	if (!l->head)
-		l->head = n;
-
+	n->succ = (node3 *) &l->null;
+	n->pred = l->tail;
+	l->tail->succ = n;
 	l->tail = n;
 	l->members++;
 
 	return n;
 }
 
-static inline node2 *
-add_tail2(list2 *l, node2 *n)
+static inline node3 *
+add_xtail(xlist *l, node3 *n)
 {
 	pthread_rwlock_wrlock(&l->rwlock);
-	n = add_tail_u(l, n);
+	n = add_tail3((list3 *) l, n);
 	pthread_rwlock_unlock(&l->rwlock);
 
 	return n;
@@ -365,39 +364,35 @@ add_tail2(list2 *l, node2 *n)
 
 /**
  * rem_head:
- * @l: list2 *
+ * @l: list3 *
  * 
  * Remove first node of the list.
  * 
  * Return value: 
  * Node pointer, or NULL if the list is empty.
  **/
-static inline node2 *
-rem_head_u(list2 *l)
+static inline node3 *
+rem_head3(list3 *l)
 {
-	node2 *n;
+	node3 *n = l->head, *s = n->succ;
 
-	if ((n = l->head)) {
-		node2 *head = l->head = n->next;
-
-		if (head)
-			head->prev = (node2 *) 0;
-		else
-			l->tail = (node2 *) 0;
-
+	if (s) {
+		s->pred = (node3 *) &l->head;
+		l->head = s;
 		l->members--;
+		return n;
 	}
 
-	return n;
+	return NULL;
 }
 
-static inline node2 *
-rem_head2(list2 *l)
+static inline node3 *
+rem_xhead(xlist *l)
 {
-	node2 *n;
+	node3 *n;
 
 	pthread_rwlock_wrlock(&l->rwlock);
-	n = rem_head_u(l);
+	n = rem_head3((list3 *) l);
 	pthread_rwlock_unlock(&l->rwlock);
 
 	return n;
@@ -405,39 +400,35 @@ rem_head2(list2 *l)
 
 /**
  * rem_tail:
- * @l: list2 *
+ * @l: list3 *
  * 
  * Remove last node of the list.
  * 
  * Return value: 
  * Node pointer, or NULL if the list is empty.
  **/
-static inline node2 *
-rem_tail_u(list2 *l)
+static inline node3 *
+rem_tail3(list3 *l)
 {
-	node2 *n;
+	node3 *n = l->tail, *p = n->pred;
 
-	if ((n = l->tail)) {
-		node2 *tail = l->tail = n->prev;
-
-		if (tail)
-			tail->next = (node2 *) 0;
-		else
-			l->head = (node2 *) 0;
-
+	if (p) {
+		p->succ = (node3 *) &l->null;
+		l->tail = p;
 		l->members--;
+		return n;
 	}
 
-	return n;
+	return NULL;
 }
 
-static inline node2 *
-rem_tail2(list2 *l)
+static inline node3 *
+rem_xtail(xlist *l)
 {
-	node2 *n;
+	node3 *n;
 
 	pthread_rwlock_wrlock(&l->rwlock);
-	n = rem_tail_u(l);
+	n = rem_tail3((list3 *) l);
 	pthread_rwlock_unlock(&l->rwlock);
 
 	return n;
@@ -445,43 +436,30 @@ rem_tail2(list2 *l)
 
 /**
  * rem_node:
- * @l: list2 *
- * @n: node2 *
+ * @l: list3 *
+ * @n: node3 *
  * 
- * Remove the node from the list. The node must
+ * Remove the node from its list. The node must
  * be a member of the list, not verified.
  * 
  * Return value: 
  * The node pointer.
  **/
-static inline node2 *
-rem_node_u(list2 *l, node2 *n)
+static inline node3 *
+rem_node3(list3 *l, node3 *n)
 {
-	node2 *next, *prev;
-
-	next = n->next;
-	prev = n->prev;
-
-	if (next)
-		next->prev = prev;
-	else
-		l->tail = prev;
-
-	if (prev)
-		prev->next = next;
-	else
-		l->head = next;
-
+	n->pred->succ = n->succ;
+	n->succ->pred = n->pred;
 	l->members--;
 
 	return n;
 }
 
-static inline node2 *
-rem_node2(list2 *l, node2 *n)
+static inline node3 *
+rem_xnode(xlist *l, node3 *n)
 {
 	pthread_rwlock_wrlock(&l->rwlock);
-	n = rem_node_u(l, n);
+	n = rem_node3((list3 *) l, n);
 	pthread_rwlock_unlock(&l->rwlock);
 
 	return n;

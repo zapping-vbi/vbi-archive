@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.14 2001-07-02 08:15:51 mschimek Exp $ */
+/* $Id: fifo.h,v 1.15 2001-07-05 08:25:30 mschimek Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -393,7 +393,7 @@ typedef struct consumer consumer;
 typedef struct producer producer;
 
 struct buffer2 {
-	node2 			node;		/* fifo->full/empty */
+	node3 			node;		/* fifo->full/empty */
 	fifo2 *			fifo;
 
 	/*
@@ -443,7 +443,7 @@ struct buffer2 {
 
 	/* Owner private */
 
-	node2			added;		/* fifo->buffers */
+	node3			added;		/* fifo->buffers */
 
 	unsigned char *		allocated;
 	ssize_t			size;
@@ -454,17 +454,17 @@ struct buffer2 {
 };
 
 struct fifo2 {
-	node2			node;		/* owner private */
+	node3			node;		/* owner private */
 
 	char			name[64];	/* for debug messages */
 
 	mucon			pro, con;
 
-	list2			full;		/* FIFO */
-	list2			empty;		/* LIFO */
+	list3			full;		/* FIFO */
+	list3			empty;		/* LIFO */
 
-	list2			producers;
-	list2			consumers;
+	list3			producers;
+	list3			consumers;
 
 	int			p_reentry;
 	int			c_reentry;
@@ -476,7 +476,7 @@ struct fifo2 {
 	mucon *			producer;	/* -> pro */
 	mucon *			consumer;	/* -> con */
 
-	list2			buffers;	/* add/rem_buffer */
+	list3			buffers;	/* add/rem_buffer */
 
 	bool			unlink_full_buffers; /* default true */
 
@@ -495,7 +495,7 @@ struct fifo2 {
 };
 
 struct producer {
-	node2			node;		/* fifo->producers */
+	node3			node;		/* fifo->producers */
 	fifo2 *			fifo;
 
 	int			dequeued;	/* bookkeeping */
@@ -503,7 +503,7 @@ struct producer {
 };
 
 struct consumer {
-	node2			node;		/* fifo->consumers */
+	node3			node;		/* fifo->consumers */
 	fifo2 *			fifo;
 
 	buffer2 *		next_buffer;	/* virtual pointer */
@@ -580,8 +580,8 @@ recv_full_buffer2(consumer *c)
 
 	pthread_mutex_lock(&f->consumer->mutex);
 
-	if ((b = c->next_buffer)) {
-		c->next_buffer = (buffer2 *) b->node.next;
+	if ((b = c->next_buffer)->node.succ) {
+		c->next_buffer = (buffer2 *) b->node.succ;
 		b->dequeued++;
 	}
 
@@ -617,7 +617,7 @@ unget_full_buffer2(consumer *c, buffer2 *b)
 
 	pthread_mutex_lock(&f->consumer->mutex);
 
-	assert(c->next_buffer == (buffer2 *) b->node.next);
+	assert(c->next_buffer == (buffer2 *) b->node.succ);
 
 	b->dequeued--;
 
@@ -671,7 +671,7 @@ recv_empty_buffer2(producer *p)
 
 	pthread_mutex_lock(&f->producer->mutex);
 
-	b = PARENT(rem_head2(&f->empty), buffer2, node);
+	b = PARENT(rem_head3(&f->empty), buffer2, node);
 
 	pthread_mutex_unlock(&f->producer->mutex);
 
@@ -709,7 +709,7 @@ unget_empty_buffer2(producer *p, buffer2 *b)
 
 	pthread_mutex_lock(&f->producer->mutex);
 
-	add_tail2(&f->empty, &b->node);
+	add_tail3(&f->empty, &b->node);
 
 	pthread_mutex_unlock(&f->producer->mutex);
 }

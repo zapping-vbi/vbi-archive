@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
-#include "dllist.h"
+#include "../common/list.h"
 #include "cache.h"
 #include <stdio.h>
 /*
@@ -18,7 +18,7 @@
 
 struct cache_page
 {
-    struct dl_node node[1];
+    node3 node[1];
     struct vt_page page[1];
 
     /* dynamic size, no fields below */
@@ -39,10 +39,7 @@ cache_close(struct cache *ca)
     int i;
 
     for (i = 0; i < HASH_SIZE; ++i)
-	while (!dl_empty(ca->hash + i))
-	{
-	    cp = (void *) ca->hash[i].first;
-	    dl_remove(cp->node);
+	while ((cp = (struct cache_page *) rem_head3(ca->hash + i))) {
 	    free(cp);
 	}
     free(ca);
@@ -55,10 +52,11 @@ cache_reset(struct cache *ca)
     int i;
 
     for (i = 0; i < HASH_SIZE; ++i)
-	for (cp = (void *) ca->hash[i].first; (cpn = (void *) cp->node->next); cp = cpn)
+	for (cp = (struct cache_page *) ca->hash[i].head;
+	     (cpn = (struct cache_page *) cp->node->succ); cp = cpn)
 	    if (cp->page->pgno / 256 != 9) // don't remove help pages
 	    {
-		dl_remove(cp->node);
+		rem_node3(ca->hash + i, cp->node);
 		free(cp);
 		ca->npages--;
 	    }
@@ -78,12 +76,13 @@ cache_get(struct cache *ca, int pgno, int subno, int subno_mask)
     struct cache_page *cp;
     int h = hash(pgno);
 
-    for (cp = (void *) ca->hash[h].first; cp->node->next; cp = (void *) cp->node->next) {
+    for (cp = (struct cache_page *) ca->hash[h].head;
+	 cp->node->succ; cp = (struct cache_page *) cp->node->succ) {
 	if (cp->page->pgno == pgno)
 	    if (subno == ANY_SUB || (cp->page->subno & subno_mask) == subno)
 	    {
 		// found, move to front (make it 'new')
-		dl_insert_first(ca->hash + h, dl_remove(cp->node));
+		add_head3(ca->hash + h, rem_node3(ca->hash + h, cp->node));
 		return cp->page;
 	    }
 	}
@@ -104,24 +103,24 @@ cache_put(struct cache *ca, struct vt_page *vtp)
     int size = vtp_size(vtp);
 
 
-    for (cp = (void *) ca->hash[h].first;
-     cp->node->next; cp = (void *) cp->node->next)
+    for (cp = (struct cache_page *) ca->hash[h].head;
+         cp->node->succ; cp = (struct cache_page *) cp->node->succ)
 	if (cp->page->pgno == vtp->pgno && cp->page->subno == vtp->subno)
 	    break;
 
-	if (cp->node->next) {
+	if (cp->node->succ) {
 		if (vtp_size(cp->page) == size) {
 			// move to front.
-			dl_insert_first(ca->hash + h, dl_remove(cp->node));
+			add_head3(ca->hash + h, rem_node3(ca->hash + h, cp->node));
 		} else {
 			struct cache_page *new_cp;
 
 			if (!(new_cp = malloc(sizeof(*cp) - sizeof(cp->page) + size)))
 				return 0;
-			dl_remove(cp->node);
+			rem_node3(ca->hash + h, cp->node);
 			free(cp);
 			cp = new_cp;
-			dl_insert_first(ca->hash + h, cp->node);
+			add_head3(ca->hash + h, cp->node);
 		}
 	} else {
 		if (!(cp = malloc(sizeof(*cp) - sizeof(cp->page) + size)))
@@ -129,7 +128,7 @@ cache_put(struct cache *ca, struct vt_page *vtp)
 		if (vtp->subno >= ca->hi_subno[vtp->pgno])
 			ca->hi_subno[vtp->pgno] = vtp->subno + 1;
 		ca->npages++;
-		dl_insert_first(ca->hash + h, cp->node);
+		add_head3(ca->hash + h, cp->node);
 	}
 
 	memcpy(cp->page, vtp, size);
@@ -153,7 +152,8 @@ cache_lookup(struct cache *ca, int pgno, int subno)
     struct cache_page *cp;
     int h = hash(pgno);
 
-    for (cp = (void *) ca->hash[h].first; cp->node->next; cp = (void *) cp->node->next)
+    for (cp = (struct cache_page *) ca->hash[h].head;
+	 cp->node->succ; cp = (struct cache_page *) cp->node->succ)
 	if (cp->page->pgno == pgno)
 	    if (subno == ANY_SUB || cp->page->subno == subno)
 		return cp->page;
@@ -283,7 +283,7 @@ cache_open(void)
 	goto fail1;
 
     for (i = 0; i < HASH_SIZE; ++i)
-	dl_init(ca->hash + i);
+	init_list3(ca->hash + i);
 
     memset(ca->hi_subno, 0, sizeof(ca->hi_subno));
     ca->erc = 1;
