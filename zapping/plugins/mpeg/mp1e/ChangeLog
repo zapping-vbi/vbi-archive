@@ -1,3 +1,9 @@
+2001-08-01	<garetxe@users.sf.net>
+
+	* ffmpeg/: Added ffmpeg backend, taken from ffmpeg cvs
+	(http://ffmpeg.sf.net). Needs a lot of work, but most modes
+	already encode.
+
 2001-08-01	<mschimek@users.sf.net>
 
 	* video/mpeg1.c: Fixed fifo eof handling.

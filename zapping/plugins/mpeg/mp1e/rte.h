@@ -32,7 +32,7 @@
 /*
  * Lib build ID, for debugging.
  */
-#define RTE_ID " $Id: rte.h,v 1.26 2001-07-28 13:19:40 garetxe Exp $ "
+#define RTE_ID " $Id: rte.h,v 1.27 2001-08-01 18:33:02 garetxe Exp $ "
 
 /*
  * What are we going to encode, audio only, video only or both
@@ -183,11 +183,14 @@ typedef void (*rteEncodeCallback)(rte_context * context,
   offset: Position in the file
   whence: Where to start seeking from (see lseek)
   user_data: Whatever you want
+  Returns: The offset from the beginning of the file in bytes, or
+  (off_t)-1 in case of error. This is the same value as lseek returns
+  (see 'man lseek')
 */
-typedef void (*rteSeekCallback)(rte_context * context,
-				off_t offset,
-				int whence,
-				void * user_data);
+typedef off_t (*rteSeekCallback)(rte_context * context,
+				 off_t offset,
+				 int whence,
+				 void * user_data);
 
 #define RTE_SEEK_CALLBACK(function) ((rteSeekCallback)function)
 

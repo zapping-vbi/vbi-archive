@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = video audio vbi common systems test
+SUBDIRS = video audio vbi common systems test ffmpeg
 
 lib_LTLIBRARIES = librte.la
 
@@ -14,12 +14,16 @@ man_MANS = mp1e.1
 EXTRA_DIST = common/videodev.h common/videodev2.h \
 	mp1e.lsm.in mp1e.spec.in mp1e.spec $(man_MANS)
 
+ffmpeg = ffmpeg/libffmpeg.la ffmpeg/libav/libav.la \
+ffmpeg/libavcodec/libavcodec.la ffmpeg/libavcodec/i386/libi386.la \
+ffmpeg/libavcodec/libac3/libac3.la ffmpeg/libavcodec/mpglib/libmpglib.la
+
 librteincludedir = $(includedir)
 librteinclude_HEADERS = rte.h
 librte_la_SOURCES = global_data.c options.h \
 		rte.c rte.h rtepriv.h main.h b_mp1e.c
 librte_la_LIBADD = video/libvideo_rte.la audio/libaudio_rte.la \
-	systems/libsystems_rte.la common/libcommon.la -lpthread -lm
+systems/libsystems_rte.la common/libcommon.la $(ffmpeg) -lpthread -lm
 librte_la_LDFLAGS = -export-dynamic
 
 mp1e_SOURCES = main.c main.h \

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.60 2001-07-27 05:52:24 mschimek Exp $ */
+/* $Id: rte.c,v 1.61 2001-08-01 18:33:02 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -55,12 +55,12 @@
 rte_context * rte_global_context = NULL;
 
 extern rte_backend_info b_mp1e_info;
-//extern rte_backend_info b_ffmpeg_info;
+extern rte_backend_info b_ffmpeg_info;
 
 static rte_backend_info *backends[] = 
 {
-	&b_mp1e_info/*,
-		      &b_ffmpeg_info*/
+	&b_mp1e_info,
+	&b_ffmpeg_info
 };
 
 static const int num_backends = sizeof(backends)/sizeof(*backends);
@@ -256,12 +256,12 @@ static void default_write_callback ( rte_context * context,
 }
 
 /* The default seek callback */
-static void default_seek_callback ( rte_context * context,
-				    off_t offset,
-				    int whence,
-				    void * user_data)
+static off_t default_seek_callback ( rte_context * context,
+				     off_t offset,
+				     int whence,
+				     void * user_data)
 {
-	lseek(context->private->fd, offset, whence);
+	return lseek(context->private->fd, offset, whence);
 }
 
 rte_context * rte_context_new (int width, int height,
