@@ -1961,9 +1961,10 @@ tuned_channel_nth_name		(guint			index)
 
   tc = nth_channel (index);
 
-  g_assert (tc != NULL);
-
-  return tc->name ? tc->name : _("Unnamed");
+  if (!tc /* huh? */ || !tc->name)
+    return _("Unnamed");
+  else
+    return tc->name;
 }
 
 /* Returns whether something (useful) was added */

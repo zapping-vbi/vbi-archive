@@ -2464,7 +2464,7 @@ static int p_tveng1_queue(tveng_device_info * info)
 static inline double
 p_tveng1_timestamp(struct private_tveng1_device_info *p_info)
 {
-  double now = current_time();
+  double now = zf_current_time();
   double stamp;
 
   if (p_info->capture_time > 0) {

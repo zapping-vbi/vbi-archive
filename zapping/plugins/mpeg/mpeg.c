@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.36.2.11 2003-10-07 18:33:38 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.36.2.12 2003-10-20 21:34:40 mschimek Exp $ */
 
 #include "src/plugin_common.h"
 
@@ -104,7 +104,7 @@ static void *			audio_buf;	/* preliminary */
 static int			audio_size;
 
 static tveng_device_info *	zapping_info;
-static consumer			mpeg_consumer;
+static zf_consumer			mpeg_consumer;
 
 /*
  *  Input/output
@@ -128,16 +128,16 @@ video_callback			(rte_context *		context,
 				 rte_codec *		codec,
 				 rte_buffer *		rb)
 {
-  buffer *b;
+  zf_buffer *b;
   struct tveng_frame_format *fmt;
 
 #if 1
   for (;;) {
-    b = wait_full_buffer (&mpeg_consumer);
+    b = zf_wait_full_buffer (&mpeg_consumer);
     if (b->data)
       break;
 fprintf(stderr, "bad buffer\n");
-    send_empty_buffer (&mpeg_consumer, b);
+    zf_send_empty_buffer (&mpeg_consumer, b);
   }
 #else
   for (;;) {
@@ -170,7 +170,7 @@ video_unref			(rte_context *		context,
 				 rte_codec *		codec,
 				 rte_buffer *		rb)
 {
-  send_empty_buffer (&mpeg_consumer, (buffer *) rb->user_data);
+  zf_send_empty_buffer (&mpeg_consumer, (zf_buffer *) rb->user_data);
   return TRUE;
 }
 
@@ -362,7 +362,7 @@ do_stop				(void)
 
   active = FALSE;
 
-  rem_consumer (&mpeg_consumer);
+  zf_rem_consumer (&mpeg_consumer);
 
   if (audio_handle)
     close_audio_device (audio_handle);
@@ -640,13 +640,13 @@ do_start			(const gchar *		file_name)
   //  capture_lock ();
 
   if (video_codec)
-    add_consumer (capture_fifo, &mpeg_consumer);
+    zf_add_consumer (capture_fifo, &mpeg_consumer);
 
   if (!rte_start (context, 0.0, NULL, TRUE))
     {
       ShowBox ("Cannot start encoding: %s", GTK_MESSAGE_ERROR,
 	       rte_errstr (context));
-      rem_consumer (&mpeg_consumer);
+      zf_rem_consumer (&mpeg_consumer);
       //      capture_unlock ();
       active = FALSE;
       goto failed;

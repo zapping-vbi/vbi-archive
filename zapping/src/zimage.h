@@ -25,7 +25,7 @@ typedef struct {
  */
 typedef struct {
   /* the parent struct */
-  buffer b;
+  zf_buffer b;
   /* time this frame was captured (same as b.time) */
   double timestamp;
 } capture_frame;

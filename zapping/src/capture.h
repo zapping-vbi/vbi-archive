@@ -114,7 +114,7 @@ void remove_capture_handler (gint id);
 /*
  * The capture fifo.
  */
-extern fifo *capture_fifo;
+extern zf_fifo *capture_fifo;
 
 /*
  * Returns the zimage with the given pixformat contained in the

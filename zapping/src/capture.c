@@ -48,8 +48,8 @@
 
 /* The capture fifo */
 #define NUM_BUNDLES 6 /* in capture_fifo */
-static fifo				_capture_fifo;
-fifo					*capture_fifo = &_capture_fifo;
+static zf_fifo				_capture_fifo;
+zf_fifo					*capture_fifo = &_capture_fifo;
 /* The frame producer */
 static pthread_t			capture_thread_id;
 static volatile gboolean		exit_capture_thread;
@@ -99,7 +99,7 @@ static void broadcast (capture_event event)
 }
 
 static void
-free_bundle (buffer *b)
+free_bundle (zf_buffer *b)
 {
   producer_buffer *pb = (producer_buffer *) b;
   gint i;
@@ -174,14 +174,14 @@ static void *
 capture_thread (void *data)
 {
   tveng_device_info *info = (tveng_device_info*)data;
-  producer prod;
+  zf_producer prod;
 
-  add_producer(capture_fifo, &prod);
+  zf_add_producer(capture_fifo, &prod);
 
   while (!exit_capture_thread)
     {
       producer_buffer *p =
-	(producer_buffer*)wait_empty_buffer(&prod);
+	(producer_buffer*)zf_wait_empty_buffer(&prod);
 
       /*
 	check whether this buffer needs rebuilding. We don't do it
@@ -199,7 +199,7 @@ capture_thread (void *data)
 	{
 	  /* schedule for rebuilding in the main thread */
 	  p->frame.b.used = 1; /* used==0 indicates eof */
-	  send_full_buffer(&prod, &p->frame.b);
+	  zf_send_full_buffer(&prod, &p->frame.b);
 	  pthread_rwlock_unlock (&size_rwlock);
 	  continue;
 	}
@@ -214,10 +214,10 @@ capture_thread (void *data)
       else
 	p->frame.b.used = 1;
 
-      send_full_buffer(&prod, &p->frame.b);
+      zf_send_full_buffer(&prod, &p->frame.b);
     }
 
-  rem_producer(&prod);
+  zf_rem_producer(&prod);
 
   return NULL;
 }
@@ -302,11 +302,11 @@ scan_device		(tveng_device_info	*info)
  *	Passes the data to the serial_read plugins.
  */
 
-static consumer			__ctc, *cf_timeout_consumer = &__ctc;
+static zf_consumer		__ctc, *cf_timeout_consumer = &__ctc;
 static gint			idle_id;
 static gint idle_handler(gpointer _info)
 {
-  buffer *b;
+  zf_buffer *b;
   struct timespec t;
   struct timeval now;
   producer_buffer *pb;
@@ -323,7 +323,7 @@ static gint idle_handler(gpointer _info)
       t.tv_sec ++;
     }
 
-  b = wait_full_buffer_timeout (cf_timeout_consumer, &t);
+  b = zf_wait_full_buffer_timeout (cf_timeout_consumer, &t);
   if (!b)
     return TRUE; /* keep calling me */
 
@@ -377,7 +377,7 @@ static gint idle_handler(gpointer _info)
       pb->tag = request_id; /* Done */
     }
 
-  send_empty_buffer (cf_timeout_consumer, b);
+  zf_send_empty_buffer (cf_timeout_consumer, b);
 
   return TRUE; /* keep calling me */
 }
@@ -401,7 +401,7 @@ on_capture_canvas_allocate             (GtkWidget       *widget,
 gint capture_start (tveng_device_info *info)
 {
   int i;
-  buffer *b;
+  zf_buffer *b;
 
   if (tveng_start_capturing (info) == -1)
     {
@@ -410,16 +410,16 @@ gint capture_start (tveng_device_info *info)
       return FALSE;
     }
 
-  init_buffered_fifo (capture_fifo, "zapping-capture", 0, 0);
+  zf_init_buffered_fifo (capture_fifo, "zapping-capture", 0, 0);
 
   for (i=0; i<NUM_BUNDLES; i++)
     {
       g_assert ((b = g_malloc0(sizeof(producer_buffer))));
       b->destroy = free_bundle;
-      add_buffer (capture_fifo, b);
+      zf_add_buffer (capture_fifo, b);
     }
 
-  add_consumer (capture_fifo, cf_timeout_consumer);
+  zf_add_consumer (capture_fifo, cf_timeout_consumer);
 
   exit_capture_thread = FALSE;
   g_assert (!pthread_create (&capture_thread_id, NULL, capture_thread,
@@ -441,7 +441,7 @@ gint capture_start (tveng_device_info *info)
 void capture_stop (void)
 {
   GList *p;
-  buffer *b;
+  zf_buffer *b;
 
   /* XXX */
   g_signal_handlers_disconnect_by_func
@@ -465,9 +465,9 @@ void capture_stop (void)
   /* Let the capture thread go to a better place */
   exit_capture_thread = TRUE;
   /* empty full queue and remove timeout consumer */
-  while ((b = recv_full_buffer (cf_timeout_consumer)))
-    send_empty_buffer (cf_timeout_consumer, b);
-  rem_consumer (cf_timeout_consumer);
+  while ((b = zf_recv_full_buffer (cf_timeout_consumer)))
+    zf_send_empty_buffer (cf_timeout_consumer, b);
+  zf_rem_consumer (cf_timeout_consumer);
   pthread_join (capture_thread_id, NULL);
 
   /* Free handlers and formats */
@@ -479,7 +479,7 @@ void capture_stop (void)
   formats = NULL;
   num_formats = 0;
 
-  destroy_fifo (capture_fifo);
+  zf_destroy_fifo (capture_fifo);
 }
 
 /*

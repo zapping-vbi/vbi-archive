@@ -352,7 +352,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.165.2.23 2003-10-07 18:32:55 mschimek Exp $",
+	 "$Id: main.c,v 1.165.2.24 2003-10-20 21:34:27 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -594,6 +594,8 @@ int main(int argc, char * argv[])
 
   if (unmutable)
     {
+#warning
+fprintf(stderr, "UNMUTABLE\n");
       /* FIXME this can change at runtime, the mute button
          should update just like the controls box. */
       /* has no mute function */

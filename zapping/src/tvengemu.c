@@ -435,7 +435,7 @@ static double
 tvengemu_get_timestamp (tveng_device_info *info)
 {
   /* Don't kill me, Michael ;-) */
-  return current_time ();
+  return zf_current_time ();
 }
 
 static int
