@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.h,v 1.8 2001-03-17 07:44:29 mschimek Exp $ */
+/* $Id: options.h,v 1.9 2001-05-15 02:03:33 mschimek Exp $ */
 
 extern char *		cap_dev;
 extern char *		pcm_dev;
@@ -42,6 +42,7 @@ extern char *		anno;
 extern int		luma_only;
 extern int		motion_min;
 extern int		motion_max;
+extern int		hack2;
 
 /* Audio */
 

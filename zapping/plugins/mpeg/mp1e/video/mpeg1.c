@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.28 2001-05-09 22:33:21 garetxe Exp $ */
+/* $Id: mpeg1.c,v 1.29 2001-05-15 02:03:34 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -1515,35 +1515,53 @@ mpeg1_video_ipb(void *unused)
 				if (this->org[0] && this->buffer)
 					send_empty_buffer(video_cap_fifo, this->buffer);
 
-				assert(sp == 1 || gop_frame_count > 0);
+				if (hack2) {
+					obuf = wait_empty_buffer(video_fifo);
 
-				promote(sp - 1);
+					obuf->type = B_TYPE;
+					obuf->offset = 0;
+					obuf->used = 4;
+					obuf->time = this->time;
 
-				assert(gop_frame_count > 0);
+					memset(obuf->data, 0, 4);
 
-				printv(3, "Encoding 0 picture #%d GOP #%d\n",
-					video_frame_count, gop_frame_count);
+					_send_full_buffer(video_fifo, obuf);
 
-				obuf = wait_empty_buffer(video_fifo);
+					video_frame_count++;
+					gop_frame_count++;
+					sp--;
+				} else {
+					assert(sp == 1 || gop_frame_count > 0);
 
-				memcpy(obuf->data, zerop_template, Sz);
+					promote(sp - 1);
 
-				((unsigned int *) obuf->data)[1] =
-					swab32((swab32(((unsigned int *) obuf->data)[1]) & ~(1023 << 22)) |
-						((gop_frame_count & 1023) << 22));
+					assert(gop_frame_count > 0);
 
-				obuf->type = P_TYPE;
-				obuf->offset = 1;
-				obuf->used = Sz;
-				obuf->time = this->time;
+					printv(3, "Encoding 0 picture #%d GOP #%d\n",
+						video_frame_count, gop_frame_count);
 
-				_send_full_buffer(video_fifo, obuf);
+					obuf = wait_empty_buffer(video_fifo);
 
-				video_frame_count++;
-				gop_frame_count++;
-				p_dist++;
+					memcpy(obuf->data, zerop_template, Sz);
 
-				sp = 0;
+					((unsigned int *) obuf->data)[1] =
+						swab32((swab32(((unsigned int *) obuf->data)[1]) & ~(1023 << 22)) |
+							((gop_frame_count & 1023) << 22));
+
+					obuf->type = P_TYPE;
+					obuf->offset = 1;
+					obuf->used = Sz;
+					obuf->time = this->time;
+
+					_send_full_buffer(video_fifo, obuf);
+
+					video_frame_count++;
+					gop_frame_count++;
+					p_dist++;
+
+					sp = 0;
+				}
+
 				continue;
 			}
 next_frame:

@@ -1,15 +1,16 @@
 /*
  *  MPEG-1 Real Time Encoder
- *  Motion compensation V3.1.34
+ *  Motion compensation V3.1.35
  *
  *  Copyright (C) 2001 Michael H. Schimek
  *
  *  Reg test: make && ./mp1e -R4,16 -b2.3 -vvvv -m1 -c files/tennis/grab%04u.ppm >rec.mpg; cmp rec.mpg ref.mpg; echo -e "\7Done"
  *  use ref25.mpg after rev. 25
+ *  use ref34.mpg after rev. 34
  *  Motion test: add -b4, -gIPIP or -gIBIB, set T3RT 0, T3RI 0
  */
 
-/* $Id: motion.c,v 1.1 2001-05-07 13:06:06 mschimek Exp $ */
+/* $Id: motion.c,v 1.2 2001-05-15 02:03:34 mschimek Exp $ */
 
 #define TEST3p1 1	/* enable */
 #define T3RT 1		/* use prediction (zero prediction error if 0) */
@@ -946,144 +947,291 @@ mmx_psse(char t[16][16], char *p, int pitch)
 {
 	asm volatile ("
 		movq		(%0),%%mm0;
-		movq		(%0,%2),%%mm3;
-
 		movq		(%1),%%mm1;
+		movq		8(%0),%%mm4;
+
 		movq		%%mm0,%%mm2;
+		movq		%%mm1,%%mm3;
 		pcmpgtb		%%mm1,%%mm2;		// 1 < 0
 		psubb		%%mm0,%%mm1;		// 1 = 1 - 0
-		movq		%%mm1,%%mm7;
-		punpcklbw	%%mm2,%%mm7;
+		movq		%%mm1,%%mm6;
+		punpcklbw	%%mm2,%%mm6;
+		pmullw		%%mm6,%%mm6;
 		punpckhbw	%%mm2,%%mm1;
-		pmullw		%%mm7,%%mm7;
 		pmullw		%%mm1,%%mm1;
-		paddusw		%%mm1,%%mm7;
+		paddusw		%%mm1,%%mm6;
 
-		movq		8(%0),%%mm0;
 		movq		8(%1),%%mm1;
+
+		psrlq		$32,%%mm0;
+		movq		%%mm4,%%mm2;
+		psllq		$32,%%mm2;
+		por		%%mm2,%%mm0;
+
 		movq		%%mm0,%%mm2;
+		pcmpgtb		%%mm3,%%mm2;
+		psubb		%%mm0,%%mm3;
+		movq		%%mm3,%%mm7;
+		punpcklbw	%%mm2,%%mm7;
+		pmullw		%%mm7,%%mm7;
+		punpckhbw	%%mm2,%%mm3;
+		pmullw		%%mm3,%%mm3;
+		movq		(%0,%2),%%mm5;
+		paddusw		%%mm3,%%mm7;
+
+		movq		%%mm4,%%mm2;
+		movq		%%mm1,%%mm3;
 		pcmpgtb		%%mm1,%%mm2;
-		psubb		%%mm0,%%mm1;
+		psubb		%%mm4,%%mm1;
 		movq		%%mm1,%%mm0;
 		punpcklbw	%%mm2,%%mm0;
-		punpckhbw	%%mm2,%%mm1;
 		pmullw		%%mm0,%%mm0;
+		paddusw		%%mm0,%%mm6;
+		movd		16(%0),%%mm0;
+		punpckhbw	%%mm2,%%mm1;
 		pmullw		%%mm1,%%mm1;
+		paddusw		%%mm1,%%mm6;
+
+		movq		16(%1),%%mm1;
+
+		psrlq		$32,%%mm4;
+		psllq		$32,%%mm0;
+		por		%%mm4,%%mm0;
+
+		movq		%%mm0,%%mm2;
+		pcmpgtb		%%mm3,%%mm2;
+		psubb		%%mm0,%%mm3;
+		movq		%%mm3,%%mm0;
+		punpcklbw	%%mm2,%%mm0;
+		pmullw		%%mm0,%%mm0;
 		paddusw		%%mm0,%%mm7;
-		paddusw		%%mm1,%%mm7;
-
-		movq		8*16(%1),%%mm1;
-		movq		%%mm3,%%mm2;
-		pcmpgtb		%%mm1,%%mm2;
-		psubb		%%mm3,%%mm1;
-		movq		%%mm1,%%mm3;
-		punpcklbw	%%mm2,%%mm3;
-		punpckhbw	%%mm2,%%mm1;
+		movq		8(%0,%2),%%mm0;
+		punpckhbw	%%mm2,%%mm3;
 		pmullw		%%mm3,%%mm3;
-		pmullw		%%mm1,%%mm1;
 		paddusw		%%mm3,%%mm7;
-		paddusw		%%mm1,%%mm7;
 
-		movq		8(%0,%2),%%mm3;
-		movq		8*16+8(%1),%%mm1;
-		movq		%%mm3,%%mm2;
-		pcmpgtb		%%mm1,%%mm2;
-		psubb		%%mm3,%%mm1;
+		movq		%%mm5,%%mm2;
 		movq		%%mm1,%%mm3;
-		punpcklbw	%%mm2,%%mm3;
+		pcmpgtb		%%mm1,%%mm2;
+		psubb		%%mm5,%%mm1;
+		movq		%%mm1,%%mm4;
+		punpcklbw	%%mm2,%%mm4;
+		pmullw		%%mm4,%%mm4;
+		paddusw		%%mm4,%%mm6;
+		movq		24(%1),%%mm4;
 		punpckhbw	%%mm2,%%mm1;
-		pmullw		%%mm3,%%mm3;
 		pmullw		%%mm1,%%mm1;
-		paddusw		%%mm3,%%mm7;
+		paddusw		%%mm1,%%mm6;
+
+		psrlq		$32,%%mm5;
+		movq		%%mm0,%%mm1;
+		psllq		$32,%%mm1;
+		por		%%mm1,%%mm5;
+
+		movq		%%mm5,%%mm2;
+		pcmpgtb		%%mm3,%%mm2;
+		psubb		%%mm5,%%mm3;
+		movd		16(%0,%2),%%mm5;
+		movq		%%mm3,%%mm1;
+		punpcklbw	%%mm2,%%mm1;
+		pmullw		%%mm1,%%mm1;
 		paddusw		%%mm1,%%mm7;
+		punpckhbw	%%mm2,%%mm3;
+		pmullw		%%mm3,%%mm3;
+		paddusw		%%mm3,%%mm7;
+
+		movq		%%mm0,%%mm2;
+		movq		%%mm4,%%mm3;
+		pcmpgtb		%%mm4,%%mm2;
+		psubb		%%mm0,%%mm4;
+		movq		%%mm4,%%mm1;
+		punpcklbw	%%mm2,%%mm1;
+		pmullw		%%mm1,%%mm1;
+		paddusw		%%mm1,%%mm6;
+		movq		bbmin,%%mm1;
+		punpckhbw	%%mm2,%%mm4;
+		movq		bbdxy,%%mm2;
+		pmullw		%%mm4,%%mm4;
+
+		psrlq		$32,%%mm0;
+		paddusw		%%mm4,%%mm6;
+		movq		crdxy,%%mm4;
+		psllq		$32,%%mm5;
+		psubw		c1_15w,%%mm6;
+		por		%%mm5,%%mm0;
+		paddb		c4,%%mm4;
+
+		movq		%%mm0,%%mm5;
+		pcmpgtb		%%mm3,%%mm5;
+		psubb		%%mm0,%%mm3;
+		movq		%%mm3,%%mm0;
+		punpcklbw	%%mm5,%%mm0;
+		pmullw		%%mm0,%%mm0;
+		paddusw		%%mm0,%%mm7;
+		punpckhbw	%%mm5,%%mm3;
+		pmullw		%%mm3,%%mm3;
+		paddusw		%%mm3,%%mm7;
+
+		movq		%%mm4,%%mm0;
+
+		movq		%%mm1,%%mm5;
+		pcmpgtw		%%mm6,%%mm5;
+		movq		%%mm1,%%mm3;
+		pxor		%%mm6,%%mm3;
+		pand		%%mm5,%%mm3;
+		pxor		%%mm3,%%mm6;
+		pxor		%%mm3,%%mm1;
+		pxor		%%mm4,%%mm2;
+		pand		%%mm2,%%mm5;
+		pxor		%%mm5,%%mm4;
+		pxor		%%mm4,%%mm2;
+
+		movq		%%mm6,%%mm5;
+		psllq		$16,%%mm6;
+		psrlq		$48,%%mm5;
+		por		%%mm5,%%mm6;
+		movq		%%mm4,%%mm5;
+		psllq		$16,%%mm4;
+		psrlq		$48,%%mm5;
+		por		%%mm5,%%mm4;
+
+		movq		%%mm1,%%mm5;
+		pcmpgtw		%%mm6,%%mm5;
+		movq		%%mm1,%%mm3;
+		pxor		%%mm6,%%mm3;
+		pand		%%mm5,%%mm3;
+		pxor		%%mm3,%%mm6;
+		pxor		%%mm3,%%mm1;
+		pxor		%%mm4,%%mm2;
+		pand		%%mm2,%%mm5;
+		pxor		%%mm5,%%mm4;
+		pxor		%%mm4,%%mm2;
+
+		movq		%%mm6,%%mm5;
+		psllq		$16,%%mm6;
+		psrlq		$48,%%mm5;
+		por		%%mm5,%%mm6;
+		movq		%%mm4,%%mm5;
+		psllq		$16,%%mm4;
+		psrlq		$48,%%mm5;
+		por		%%mm5,%%mm4;
 
 		psubw		c1_15w,%%mm7;
-		movq		crdxy,%%mm4;
 
-		    paddb		c4,%%mm4;
-		    movq		%%mm4,crdxy;
-
-		movq		bbmin,%%mm1;
-		movq		bbdxy,%%mm5;
-
-		movq		%%mm1,%%mm2;
-		pcmpgtw		%%mm7,%%mm2;		// mm1 > mm0
-
+		movq		%%mm1,%%mm5;
+		pcmpgtw		%%mm6,%%mm5;
 		movq		%%mm1,%%mm3;
-		pxor		%%mm7,%%mm3;
-		pand		%%mm2,%%mm3;
-		pxor		%%mm3,%%mm7;
+		pxor		%%mm6,%%mm3;
+		pand		%%mm5,%%mm3;
+		pxor		%%mm3,%%mm6;
 		pxor		%%mm3,%%mm1;
-		pxor		%%mm4,%%mm5;
-		pand		%%mm5,%%mm2;
-		pxor		%%mm2,%%mm4;
-		pxor		%%mm4,%%mm5;
+		pxor		%%mm4,%%mm2;
+		pand		%%mm2,%%mm5;
+		pxor		%%mm5,%%mm4;
+		pxor		%%mm4,%%mm2;
 
-		movq		%%mm7,%%mm2;
-		psllq		$16,%%mm7;
-		psrlq		$48,%%mm2;
-		por		%%mm2,%%mm7;
-		movq		%%mm4,%%mm2;
+		paddb		c4,%%mm0;
+
+		movq		%%mm6,%%mm5;
+		psllq		$16,%%mm6;
+		psrlq		$48,%%mm5;
+		por		%%mm5,%%mm6;
+		movq		%%mm4,%%mm5;
 		psllq		$16,%%mm4;
-		psrlq		$48,%%mm2;
-		por		%%mm2,%%mm4;
+		psrlq		$48,%%mm5;
+		por		%%mm5,%%mm4;
 
-		movq		%%mm1,%%mm2;
-		pcmpgtw		%%mm7,%%mm2;
+		    movq		%%mm0,crdxy;
+
+		movq		%%mm1,%%mm5;
+		pcmpgtw		%%mm6,%%mm5;
+		movq		%%mm1,%%mm3;
+		pxor		%%mm6,%%mm3;
+		pand		%%mm5,%%mm3;
+		pxor		%%mm3,%%mm6;
+		pxor		%%mm3,%%mm1;
+		pxor		%%mm4,%%mm2;
+		pand		%%mm2,%%mm5;
+		pxor		%%mm5,%%mm4;
+		pxor		%%mm4,%%mm2;
+
+		movq		%%mm1,%%mm5;
+		pcmpgtw		%%mm7,%%mm5;
 		movq		%%mm1,%%mm3;
 		pxor		%%mm7,%%mm3;
-		pand		%%mm2,%%mm3;
+		pand		%%mm5,%%mm3;
 		pxor		%%mm3,%%mm7;
 		pxor		%%mm3,%%mm1;
-		pxor		%%mm4,%%mm5;
-		pand		%%mm5,%%mm2;
-		pxor		%%mm2,%%mm4;
-		pxor		%%mm4,%%mm5;
+		pxor		%%mm0,%%mm2;
+		pand		%%mm2,%%mm5;
+		pxor		%%mm5,%%mm0;
+		pxor		%%mm0,%%mm2;
 
-		movq		%%mm7,%%mm2;
+		movq		%%mm7,%%mm5;
 		psllq		$16,%%mm7;
-		psrlq		$48,%%mm2;
-		por		%%mm2,%%mm7;
-		movq		%%mm4,%%mm2;
-		psllq		$16,%%mm4;
-		psrlq		$48,%%mm2;
-		por		%%mm2,%%mm4;
+		psrlq		$48,%%mm5;
+		por		%%mm5,%%mm7;
+		movq		%%mm0,%%mm5;
+		psllq		$16,%%mm0;
+		psrlq		$48,%%mm5;
+		por		%%mm5,%%mm0;
 
-		movq		%%mm1,%%mm2;
-		pcmpgtw		%%mm7,%%mm2;
+		movq		%%mm1,%%mm5;
+		pcmpgtw		%%mm7,%%mm5;
 		movq		%%mm1,%%mm3;
 		pxor		%%mm7,%%mm3;
-		pand		%%mm2,%%mm3;
+		pand		%%mm5,%%mm3;
 		pxor		%%mm3,%%mm7;
 		pxor		%%mm3,%%mm1;
-		pxor		%%mm4,%%mm5;
-		pand		%%mm5,%%mm2;
-		pxor		%%mm2,%%mm4;
-		pxor		%%mm4,%%mm5;
+		pxor		%%mm0,%%mm2;
+		pand		%%mm2,%%mm5;
+		pxor		%%mm5,%%mm0;
+		pxor		%%mm0,%%mm2;
 
-		movq		%%mm7,%%mm2;
+		movq		%%mm7,%%mm5;
 		psllq		$16,%%mm7;
-		psrlq		$48,%%mm2;
-		por		%%mm2,%%mm7;
-		movq		%%mm4,%%mm2;
-		psllq		$16,%%mm4;
-		psrlq		$48,%%mm2;
-		por		%%mm2,%%mm4;
+		psrlq		$48,%%mm5;
+		por		%%mm5,%%mm7;
+		movq		%%mm0,%%mm5;
+		psllq		$16,%%mm0;
+		psrlq		$48,%%mm5;
+		por		%%mm5,%%mm0;
 
-		movq		%%mm1,%%mm2;
-		pcmpgtw		%%mm7,%%mm2;
+		movq		%%mm1,%%mm5;
+		pcmpgtw		%%mm7,%%mm5;
 		movq		%%mm1,%%mm3;
 		pxor		%%mm7,%%mm3;
-		pand		%%mm2,%%mm3;
+		pand		%%mm5,%%mm3;
 		pxor		%%mm3,%%mm7;
 		pxor		%%mm3,%%mm1;
-		pxor		%%mm4,%%mm5;
-		pand		%%mm5,%%mm2;
-		pxor		%%mm2,%%mm4;
-		pxor		%%mm4,%%mm5;
+		pxor		%%mm0,%%mm2;
+		pand		%%mm2,%%mm5;
+		pxor		%%mm5,%%mm0;
+		pxor		%%mm0,%%mm2;
+
+		movq		%%mm7,%%mm5;
+		psllq		$16,%%mm7;
+		psrlq		$48,%%mm5;
+		por		%%mm5,%%mm7;
+		movq		%%mm0,%%mm5;
+		psllq		$16,%%mm0;
+		psrlq		$48,%%mm5;
+		por		%%mm5,%%mm0;
+
+		movq		%%mm1,%%mm5;
+		pcmpgtw		%%mm7,%%mm5;
+		movq		%%mm1,%%mm3;
+		pxor		%%mm7,%%mm3;
+		pand		%%mm5,%%mm3;
+		pxor		%%mm3,%%mm7;
+		pxor		%%mm3,%%mm1;
+		pxor		%%mm0,%%mm2;
+		pand		%%mm2,%%mm5;
+		pxor		%%mm5,%%mm0;
+		pxor		%%mm0,%%mm2;
 
 		movq		%%mm1,bbmin;
-		movq		%%mm5,bbdxy;
+		movq		%%mm2,bbdxy;
 
 	" :: "r" (p), "r" (t), "r" (pitch * 8 /* ch */) : "memory");
 }
@@ -1204,8 +1352,8 @@ load_pref(char t[16][16])
 		movq		%%mm1,%%mm2;
 		punpcklbw	%%mm1,%%mm1;
 		punpckhbw	%%mm2,%%mm2;
-		movq		%%mm1,16*8+0(%1);
-		movq		%%mm2,16*8+8(%1);
+		movq		%%mm1,16(%1);
+		movq		%%mm2,24(%1);
 
 	" :: "S" (&mblock[0][0][0][0]), "D" (&t[0][0]) : "memory");
 }
@@ -1591,18 +1739,28 @@ search(int *dhx, int *dhy, int dir,
 	int iright, idown;
 
 	hrange = (range + 7) & ~7;
-	vrange = range;
+	vrange = (range + 1) & ~1;
 
-	/*
-	 *  XXX should ensure 8 full samples width, move
-	 *  inwards at left and right image boundaries and
-	 *  optimize psse for multiple of 8 (is 4), for
-	 *  alignment and punpck rotation.
-	 */
-	x0 = x - (hrange >> 1); if (x0 < 0) x0 = 0;
-	y0 = y - (vrange >> 1); if (y0 < 0) y0 = 0;
-	x1 = x + (hrange >> 1); if (x1 > 352 - 16) x1 = 352 - 16;
-	y1 = y + (vrange >> 1); if (y1 > 288 - 16) y1 = 288 - 16;
+	x0 = x - (hrange >> 1);	y0 = y - (vrange >> 1);
+	x1 = x + (hrange >> 1);	y1 = y + (vrange >> 1);
+
+	if (x0 < 0) {
+		x0 = 0;
+		x1 = hrange;
+	} else if (x1 > mb_last_col * 16) {
+		x1 = mb_last_col * 16;
+		x0 = x1 - hrange;
+	}
+
+	if (y0 < 0) {
+		y0 = 0;
+		y1 = vrange;
+	} else if (y1 > mb_last_row * 16) {
+		y1 = mb_last_row * 16;
+		y0 = y1 - vrange;
+	}
+
+	assert(((x1 - x0) & 7) == 0);
 
 	bbmin = MMXRW(0xFFFE - 0x8000);
 	bbdxy = MMXRW(0x0000);
@@ -1617,7 +1775,7 @@ search(int *dhx, int *dhy, int dir,
 			crdxy.b[k * 2 + 1] = j - y;
 		}
 
-		for (i = x0; i < x1; i += 4)
+		for (i = x0; i < x1; i += 8)
 			mmx_psse(tbuf, p + i, 352);
 	}
 
@@ -1664,7 +1822,7 @@ search(int *dhx, int *dhy, int dir,
 	 *  Boundary deltas are often +0,+0; Otherwise FHF occurs rarely.
 	 */
 	dx -= ((x + dx) >= (352 - 16) * 2);
-	dy -= ((y + dy) >= (288 - 16) * 2);
+	dy -= ((y + dy) >= (mb_last_row * 16) * 2);
 	dx += ((x + dx) <= x0 * 2);
 	dy += ((y + dy) <= y0 * 2);
 
@@ -1777,7 +1935,7 @@ t4_edu(int dir, int *dxp, int *dyp, int sx, int sy,
 	x0 = x - (max_range >> 1); if (x0 < 0) x0 = 0;
 	y0 = y - (max_range >> 1); if (y0 < 0) y0 = 0;
 	x1 = x + (max_range >> 1); if (x1 > 352 - 16) x1 = 352 - 16;
-	y1 = y + (max_range >> 1); if (y1 > 288 - 16) y1 = 288 - 16;
+	y1 = y + (max_range >> 1); if (y1 > mb_last_row * 16) y1 = mb_last_row * 16;
 
 	if (xs - hrange < x0) {
 		xs = x0 + hrange;

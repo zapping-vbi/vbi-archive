@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.15 2001-03-22 08:28:47 mschimek Exp $ */
+/* $Id: options.c,v 1.16 2001-05-15 02:03:33 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -112,6 +112,7 @@ usage(FILE *fi)
 
 static const struct option
 long_options[] = {
+	{ "hack2",			required_argument, NULL, '2' },
 	{ "audio_mode",			required_argument, NULL, 'a' },
 	{ "video_bit_rate",		required_argument, NULL, 'b' },
 	{ "capture_device",		required_argument, NULL, 'c' },
@@ -245,6 +246,10 @@ parse_option(int c)
 	int i;
 
 	switch (c) {
+		case '2':
+			hack2 = TRUE;
+			break;
+
 		case 'a':
 			if ((audio_mode = suboption(audio_options, 4, audio_mode)) < 0)
 				return FALSE;
@@ -522,7 +527,7 @@ options(int ac, char **av)
 	if (!isatty(STDIN_FILENO))
 		options_from_file("stdin", FALSE);
 
-	while ((c = getopt_long(ac, av, "a:b:c:f:g:hi:lm:n:p:r:s:vwx:A:B:F:G:H:I:M:PR:S:T:VX:",
+	while ((c = getopt_long(ac, av, "2a:b:c:f:g:hi:lm:n:p:r:s:vwx:A:B:F:G:H:I:M:PR:S:T:VX:",
 		long_options, &index)) != -1)
 		if (!parse_option(c))
 			usage(stderr);

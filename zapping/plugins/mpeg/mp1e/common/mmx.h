@@ -48,14 +48,15 @@ typedef	union {
  *  identifying the actual model or brand name.
  */
 #define CPU_UNKNOWN		0	/* no MMX */
-#define	CPU_PENTIUM_MMX		1	/* MMX; late P5 */
-#define CPU_PENTIUM_II		2	/* MMX, CMOV; any P6 */
-#define	CPU_PENTIUM_III		3	/* MMX, CMOV, SSE; any P6 */
-#define	CPU_PENTIUM_IV		4	/* MMX, CMOV, SSE, SSE2; any P8 */
+#define	CPU_PENTIUM_MMX		1	/* MMX; late P5 core */
+#define CPU_PENTIUM_II		2	/* MMX, CMOV; any P6 core */
+#define	CPU_PENTIUM_III		3	/* MMX, CMOV, SSE; any P6 core and Itanium x86 */
+#define	CPU_PENTIUM_4		4	/* MMX, CMOV, SSE, SSE2; any P8 core */
 #define CPU_K6_2		5	/* MMX, 3DNOW; K6-2/K6-III */
-#define CPU_ATHLON		6	/* MMX, MMX-EXT, 3DNOW, 3DNOW-EXT, CMOV, SSE; Athlon/Duron */
-#define CPU_CYRIX_MII		7	/* MMX, CMOV; */
-#define CPU_CYRIX_III		8	/* MMX, MMX-EXT, 3DNOW, CMOV; */
+#define CPU_ATHLON		6	/* MMX, 3DNOW, AMD 3DNOW ext, CMOV, SSE int; K7 core */
+#define CPU_CYRIX_MII		7	/* MMX, CMOV */
+#define CPU_CYRIX_III		8	/* MMX, Cyrix MMX ext, 3DNOW, CMOV */
+/* AMD Hammer family, presumably Athlon + SSE2; K8 core */
 
 extern int cpu_detection(void);
 
