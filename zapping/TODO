@@ -1,6 +1,7 @@
 Outstanding issues for the next release
 ---------------------------------------
 	+ Write the mpeg plugin (this is a MUST)
+	+ VBI can be opened/closed while running, try.
 	+ Bug fixes
 	> Release 0.5.4
 	+ Subtitles support

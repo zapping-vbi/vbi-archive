@@ -1,3 +1,11 @@
+13.9.2000	Teletext processed <garetxe@users.sourceforge.net>
+
+	* src/zvbi.c, src/main.c: The teletext image is now received by
+	the plugins, so it can be processed.
+	* src/plugins.c: The plugin_sample struct no longer contains a
+	GdkImage.
+	* plugins/screenshot: Now it saves the current teletext page too.
+
 12.9.2000	JPEG screenshots <garetxe@users.sourceforge.net>
 
 	* plugins/screenshot.c: Now it uses JPEG format instead of PNG.

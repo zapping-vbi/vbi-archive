@@ -29,6 +29,6 @@
 extern void *                   output_thread(void * unused);
 extern int                      output_init(void);
 extern void                     output_end(void);
-extern _buffer *                 output(_buffer *);
+extern _buffer *                output(_buffer *);
 
-#endif
+#endif // OUTPUT.H

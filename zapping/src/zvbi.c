@@ -809,21 +809,51 @@ zvbi_exposed(GtkWidget * widget, gint x, gint y, gint w, gint h)
 /*
   Builds a GdkPixbuf version of the current teletext page, and updates
   it if neccesary.
+  If there's a teletext page rendered (even the loading... page),
+  returns a pointer to that data, and fills in the struct with data
+  about that image.
 */
-void zvbi_build_current_teletext_page(GtkWidget *widget)
+gpointer zvbi_build_current_teletext_page(GtkWidget *widget, struct
+					  tveng_frame_format * format)
 {
 #ifdef HAVE_GDKPIXBUF
   gint w, h;
 #endif
 
-  if (!vbi_mode) /* Just do nothing */
-    return;
+  if ((!vbi_mode) || (!format)) /* Just do nothing */
+    return NULL;
 
 #ifdef HAVE_GDKPIXBUF
   gdk_window_get_size(widget->window, &w, &h);
 
   if (zvbi_update_pixbufs(cur_page, cur_subpage, w, h))
     zvbi_window_updated(widget);
+
+  if (!scaled_teletext_page)
+    return NULL;
+
+  format->width = gdk_pixbuf_get_width(scaled_teletext_page);
+  format->height = gdk_pixbuf_get_height(scaled_teletext_page);
+  format->bytesperline =
+    gdk_pixbuf_get_rowstride(scaled_teletext_page);
+  if (gdk_pixbuf_get_has_alpha(scaled_teletext_page))
+    {
+      format->depth = 32;
+      format->pixformat = TVENG_PIX_RGB32;
+      format->bpp = 4;
+    }
+  else
+    {
+      format->depth = 24;
+      format->pixformat = TVENG_PIX_RGB24;
+      format->bpp = 3;
+    }
+  format->sizeimage = format->bytesperline*format->height;
+
+  return (gdk_pixbuf_get_pixels(scaled_teletext_page));
+
+#else
+  return NULL;
 #endif /* HAVE_GDKPIXBUF */
 }
 
@@ -1263,8 +1293,6 @@ zvbi_clicked_tvscreen(GtkWidget *widget, GdkEventButton *bevent)
     case 1 ... 23: /* body of the page / fixme: subpage support */
       result = zvbi_resolve_page(x, y, &vtp, &page, &subpage);
       if (result)
-	//      if ((page > 0x100) && (page < 0x899) && (subpage > 0) &&
-	//	  (subpage < 0x100))
 	zvbi_set_current_page(page, subpage);
       break;
     default: /* Bottom line, fast navigation */

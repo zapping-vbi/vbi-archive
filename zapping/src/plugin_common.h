@@ -86,7 +86,6 @@ struct plugin_misc_info
 typedef struct
 {
   /* VIDEO fields */
-  GdkImage * image; /* Pointer to the image as a GdkImage */
   gpointer video_data; /* The data contained in the image */
   __s64 v_timestamp; /*
 		       Timestamp for this video frame, format is:

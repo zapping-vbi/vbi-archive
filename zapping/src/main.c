@@ -83,6 +83,7 @@ int main(int argc, char * argv[])
   GdkWindowHints hints;
   plugin_sample sample; /* The a/v sample passed to the plugins */
   gint x_bpp = -1;
+
   const struct poptOption options[] = {
     {
       "bpp",
@@ -122,7 +123,7 @@ int main(int argc, char * argv[])
   /* Init gnome, libglade, modules and tveng */
   gnome_init_with_popt_table ("zapping", VERSION, argc, argv, options,
 			      0, NULL);
-  printv("%s %s, build date: %s", "Zapping", VERSION, __DATE__);
+  printv("%s %s, build date: %s\n", "Zapping", VERSION, __DATE__);
   glade_gnome_init();
   D();
   if (!g_module_supported ())
@@ -235,7 +236,7 @@ int main(int argc, char * argv[])
     }
   D();
   tv_screen = lookup_widget(main_window, "tv_screen");
-  printv("tv_screen is %p", (gpointer)tv_screen);
+  printv("tv_screen is %p\n", (gpointer)tv_screen);
   /* Add the plugins to the GUI */
   p = g_list_first(plugin_list);
   while (p)
@@ -310,7 +311,7 @@ int main(int argc, char * argv[])
   if (-1 == tveng_set_mute(zcg_bool(NULL, "start_muted"),
 			   main_info))
     fprintf(stderr, "tveng_set_mute: %s\n", main_info->error);
-  D(); printv("switching to mode %d (%d)", zcg_int(NULL,
+  D(); printv("switching to mode %d (%d)\n", zcg_int(NULL,
 						   "capture_mode"),
 	      TVENG_CAPTURE_READ);
   /* Start the capture in the last mode */
@@ -341,9 +342,11 @@ int main(int argc, char * argv[])
       if (zmisc_switch_mode(TVENG_CAPTURE_READ, main_info) == -1)
 	ShowBox(_("Capture mode couldn't be started:\n%s"),
 		GNOME_MESSAGE_BOX_ERROR, main_info->error);
-  D(); printv("going into main loop...");
+  D(); printv("going into main loop...\n");
   while (!flag_exit_program)
     {
+      /* Stop precessing for a while */
+      //      usleep(10000);
       while (gtk_events_pending())
 	gtk_main_iteration(); /* Check for UI changes */
 
@@ -387,9 +390,13 @@ int main(int argc, char * argv[])
       /* VBI decoding support */
       if (zvbi_get_mode())
 	{
-	  zvbi_build_current_teletext_page(tv_screen);
-	  usleep(50000);
-	  continue;
+	  usleep(10000);
+	  memset(&sample, 0, sizeof(plugin_sample));
+	  sample.video_data =
+	    zvbi_build_current_teletext_page(tv_screen, &(sample.format));
+	  if (!sample.video_data)
+	    continue;
+	  goto give_data_to_plugins;
 	}
 
       /* We are probably viewing fullscreen, just do nothing */
@@ -417,14 +424,14 @@ int main(int argc, char * argv[])
 	  continue;
 	}
 
-      /* Give the image to the plugins too */
       memset(&sample, 0, sizeof(plugin_sample));
       memcpy(&(sample.format), &(main_info->format),
 	     sizeof(struct tveng_frame_format));
       sample.video_data  = zimage_get_data(zimage_get());
-      sample.image       = zimage_get();
-      sample.v_timestamp = tveng_get_timestamp(main_info);
 
+    give_data_to_plugins:
+      /* Give the image to the plugins too */
+      sample.v_timestamp = tveng_get_timestamp(main_info);
       sample.audio_data  = si->buffer;
       sample.audio_size  = si->size;
       sample.audio_bits  = si->bits;
@@ -436,17 +443,21 @@ int main(int argc, char * argv[])
       while (p)
 	{
 	  plugin_process_sample(&sample, (struct plugin_info*)p->data);
-	  /* Update the gdkimage, since it may have changed */
-	  zimage_reallocate(sample.format.width, sample.format.height);
 	  p = p->next;
 	}
 
-      gdk_draw_image(tv_screen -> window,
-		     tv_screen -> style -> white_gc,
-		     zimage_get(),
-		     0, 0, 0, 0,
-		     sample.format.width,
-		     sample.format.height);
+      if (main_info->current_mode == TVENG_CAPTURE_READ)
+	{
+	  /* Update the gdkimage, since it may have changed */
+	  zimage_reallocate(sample.format.width, sample.format.height);
+
+	  gdk_draw_image(tv_screen -> window,
+			 tv_screen -> style -> white_gc,
+			 zimage_get(),
+			 0, 0, 0, 0,
+			 sample.format.width,
+			 sample.format.height);
+	}
     }
 
   /* Closes all fd's, writes the config to HD, and that kind of things

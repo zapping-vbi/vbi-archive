@@ -61,13 +61,13 @@ extern gboolean debug_msg;
 #define D() \
 do { \
   if (debug_msg) \
-    g_message("Line %d, routine %s", __LINE__, __PRETTY_FUNCTION__); \
+    fprintf(stderr, "Line %d, routine %s\n", __LINE__, __PRETTY_FUNCTION__); \
 } while (FALSE)
 
 #define printv(format, args...) \
 do { \
   if (debug_msg) \
-    g_message(format ,##args); \
+    fprintf(stderr, format ,##args); \
 } while (FALSE)
 
 /*

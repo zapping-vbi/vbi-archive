@@ -22,8 +22,10 @@
 #include <string.h>
 #include <stdio.h>
 #include <sys/types.h>
+#include <sys/time.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <limits.h>
 #include "options.h"
 #include "common/fifo.h"
 #include "common/mmx.h"
@@ -33,16 +35,31 @@
 #include "video/video.h" /* fixme: video_unget_frame and friends */
 #include "audio/audio.h" /* fixme: audio_read prots. */
 #include "audio/mpeg.h"
+#include "video/mpeg.h"
+#include "systems/systems.h"
+#include "common/profile.h"
+#include "common/math.h"
+#include "common/log.h"
+#include "common/mmx.h"
+#include "common/bstream.h"
 #include "main.h"
 
 /*
   BUGS:
       . Callbacks + push doesn't work yet.
+      . It isn't reentrant.
 */
 
 rte_context * rte_global_context = NULL;
+pthread_t mux_thread; /* Multiplexer thread */ 
 
 #define RC(X)  ((rte_context*)X)
+
+/* prototypes for main initialization (mp1e core startup) */
+/* These routines are called in this order, they come from mp1e's main.c */
+static void rte_audio_startup(void); /* Startup video parameters */
+static void rte_video_startup(void); /* Startup audio parameters */
+static void rte_compression_startup(void); /* Compression parameters */
 
 #define rte_error(context, format, args...) \
 { \
@@ -621,6 +638,47 @@ int rte_start ( rte_context * context )
 	if (!rte_fake_options(context))
 		return 0;
 
+	/* Now init the mp1e engine, as main would do */
+	rte_audio_startup();
+	rte_video_startup();
+	rte_compression_startup();
+
+	/* fixme: clean this up */
+	if (mux_mode & 2) {
+		char *modes[] = { "stereo", "joint stereo", "dual channel", "mono" };
+		long long n = llroundn(((double) video_num_frames / frame_rate_value[frame_rate_code])
+			/ (1152.0 / sampling_rate));
+
+		printv(1, "Audio compression %2.1f kHz%s %s at %d kbits/s (%1.1f : 1)\n",
+			sampling_rate / (double) 1000, sampling_rate < 32000 ? " (MPEG-2)" : "", modes[audio_mode],
+			audio_bit_rate / 1000, (double) sampling_rate * (16 << stereo) / audio_bit_rate);
+
+		if (mux_mode & 1)
+			audio_num_frames = MIN(n, (long long) INT_MAX);
+
+		audio_init();
+	}
+
+	if (mux_mode & 1) {
+		video_coding_size(width, height);
+
+		if (frame_rate > frame_rate_value[frame_rate_code])
+			frame_rate = frame_rate_value[frame_rate_code];
+
+		printv(2, "Macroblocks %d x %d\n", mb_width, mb_height);
+
+		printv(1, "Video compression %d x %d, %2.1f frames/s at %1.2f Mbits/s (%1.1f : 1)\n",
+			width, height, (double) frame_rate,
+			video_bit_rate / 1e6, (width * height * 1.5 * 8 * frame_rate) / video_bit_rate);
+
+		video_init();
+
+#if TEST_PREVIEW
+		if (preview > 0)
+			preview_init();
+#endif
+	}
+
 	if (context->file_name) {
 		context->private->fd = creat(context->file_name, 00644);
 		if (context->private->fd == -1) {
@@ -705,13 +763,66 @@ int rte_start ( rte_context * context )
 		}
 	}
 
-	/* Now init the engine, as main would do */
-	
+	ASSERT("open output files", output_init() >= 0);
+
+	ASSERT("create output thread",
+	       !pthread_create(&output_thread_id, NULL, output_thread, NULL));
+
+//	if ((mux_mode & 3) == 3)
+//		synchronize_capture_modules();
+
+	printv(3, "\nWir sind jetz hier.\n");
+
+	if (mux_mode & 2) {
+		ASSERT("create audio compression thread",
+			!pthread_create(&audio_thread_id, NULL,
+			stereo ? mpeg_audio_layer_ii_stereo :
+				 mpeg_audio_layer_ii_mono, NULL));
+
+		printv(2, "Audio compression thread launched\n");
+	}
+
+	if (mux_mode & 1) {
+		ASSERT("create video compression thread",
+			!pthread_create(&video_thread_id, NULL,
+				mpeg1_video_ipb, NULL));
+
+		printv(2, "Video compression thread launched\n");
+	}
+
+	if ((mux_mode & 3) != 3)
+		mux_syn = 0;
+
+	/*
+	 *  XXX Thread these, not UI.
+	 *  Async completion indicator?? 
+	 */
+	switch (mux_syn) {
+	case 0:
+		ASSERT("create elementary stream thread",
+		       !pthread_create(&mux_thread, NULL,
+				       elementary_stream_bypass, NULL));
+		break;
+	case 1:
+		ASSERT("create mpeg1 system mux",
+		       !pthread_create(&mux_thread, NULL,
+				       mpeg1_system_mux, NULL));
+		break;
+	case 2:
+		printv(1, "MPEG-2 Program Stream");
+		ASSERT("create mpeg1 system mux",
+		       !pthread_create(&mux_thread, NULL,
+				       mpeg2_program_stream_mux, NULL));
+		break;
+	}
+
 	return 1;
 }
 
 void rte_stop ( rte_context * context )
 {
+	struct timeval tv;
+
 	if (!context)
 	{
 		rte_error(NULL, "context == NULL");
@@ -719,6 +830,20 @@ void rte_stop ( rte_context * context )
 	}
 
 	context->private->encoding = 0;
+
+	/* Tell the mp1e threads to shut down */
+	gettimeofday(&tv, NULL);
+
+	video_stop_time =
+	audio_stop_time = tv.tv_sec + tv.tv_usec / 1e6;
+
+	/* Join them */
+	pthread_join(mux_thread, NULL);
+
+	mux_cleanup();
+
+	output_end();
+	/* mp1e is done (fixme: close preview too) */
 
 	/* Free the mem in the fifos */
 	if (context->mode & 1) {
@@ -1091,4 +1216,59 @@ static int rte_fake_options(rte_context * context)
 		return 0;
 	}
 	return 1;
+}
+
+/* Startup video parameters */
+static void rte_audio_startup(void)
+{
+	if (mux_mode & 2) {
+		struct stat st;
+		int psy_level = audio_mode / 10;
+		
+		audio_mode %= 10;
+		
+		stereo = (audio_mode != AUDIO_MODE_MONO);
+		audio_parameters(&sampling_rate, &audio_bit_rate);
+		
+		if ((audio_bit_rate >> stereo) < 80000 || psy_level >= 1) {
+			psycho_loops = MAX(psycho_loops, 1);
+			
+			if (sampling_rate < 32000 || psy_level >= 2)
+				psycho_loops = 2;
+			
+			psycho_loops = MAX(psycho_loops, 2);
+		}
+	}
+}
+
+/* Startup audio parameters */
+static void rte_video_startup(void)
+{
+	if (mux_mode & 1) {
+		struct stat st;
+		{
+			char *s = gop_sequence;
+			int count = 0;
+
+			min_cap_buffers = 0;
+
+			do {
+				if (*s == 'B')
+					count++;
+				else {
+					if (count > min_cap_buffers)
+						min_cap_buffers = count;
+					count = 0;
+				}
+			} while (*s++);
+
+			min_cap_buffers++;
+		}
+	}
+}
+
+/* Compression parameters */
+static void rte_compression_startup(void)
+{
+	mucon_init(&mux_mucon);
 }

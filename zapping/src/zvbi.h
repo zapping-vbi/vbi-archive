@@ -34,6 +34,7 @@
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #endif
 #include <libvbi.h>
+#include "tveng.h"
 
 /* Open the configured VBI device, FALSE on error */
 gboolean
@@ -159,8 +160,15 @@ zvbi_window_updated(GtkWidget *widget);
 void
 zvbi_exposed(GtkWidget *widget, gint x, gint y, gint w, gint h);
 
-/* Builds the GdkPixbuf version of the current teletext page */
-void zvbi_build_current_teletext_page(GtkWidget *widget);
+/*
+  Builds a GdkPixbuf version of the current teletext page, and updates
+  it if neccesary.
+  If there's a teletext page rendered (even the loading... page),
+  returns a pointer to that data, and fills in the struct with data
+  about that image.
+*/
+gpointer zvbi_build_current_teletext_page(GtkWidget *widget, struct
+					  tveng_frame_format * format);
 
 /* Sets the current page/subpage */
 void zvbi_set_current_page(gint page, gint subpage);

@@ -74,11 +74,14 @@ RANLIB = @RANLIB@
 TEST_MODULES = @TEST_MODULES@
 VERSION = @VERSION@
 
-noinst_LIBRARIES = libsystems.a
+noinst_LIBRARIES = libsystems.a librtesystems.a
 
 INCLUDES = -D_GNU_SOURCE -D_REENTRANT
 
 libsystems_a_SOURCES =  	mpeg1.c mpeg2.c mpeg.h 	output.c output.h 	stream.c stream.h 	systems.h
+
+
+librtesystems_a_SOURCES =  	mpeg1.c mpeg2.c mpeg.h 	rte_output.c output.h 	stream.c stream.h 	systems.h
 
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_CLEAN_FILES = 
@@ -95,6 +98,8 @@ X_EXTRA_LIBS = @X_EXTRA_LIBS@
 X_PRE_LIBS = @X_PRE_LIBS@
 libsystems_a_LIBADD = 
 libsystems_a_OBJECTS =  mpeg1.o mpeg2.o output.o stream.o
+librtesystems_a_LIBADD = 
+librtesystems_a_OBJECTS =  mpeg1.o mpeg2.o rte_output.o stream.o
 AR = ar
 CFLAGS = @CFLAGS@
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -108,9 +113,10 @@ DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
 TAR = gtar
 GZIP_ENV = --best
-DEP_FILES =  .deps/mpeg1.P .deps/mpeg2.P .deps/output.P .deps/stream.P
-SOURCES = $(libsystems_a_SOURCES)
-OBJECTS = $(libsystems_a_OBJECTS)
+DEP_FILES =  .deps/mpeg1.P .deps/mpeg2.P .deps/output.P \
+.deps/rte_output.P .deps/stream.P
+SOURCES = $(libsystems_a_SOURCES) $(librtesystems_a_SOURCES)
+OBJECTS = $(libsystems_a_OBJECTS) $(librtesystems_a_OBJECTS)
 
 all: all-redirect
 .SUFFIXES:
@@ -168,6 +174,11 @@ libsystems.a: $(libsystems_a_OBJECTS) $(libsystems_a_DEPENDENCIES)
 	-rm -f libsystems.a
 	$(AR) cru libsystems.a $(libsystems_a_OBJECTS) $(libsystems_a_LIBADD)
 	$(RANLIB) libsystems.a
+
+librtesystems.a: $(librtesystems_a_OBJECTS) $(librtesystems_a_DEPENDENCIES)
+	-rm -f librtesystems.a
+	$(AR) cru librtesystems.a $(librtesystems_a_OBJECTS) $(librtesystems_a_LIBADD)
+	$(RANLIB) librtesystems.a
 
 tags: TAGS
 

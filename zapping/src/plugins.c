@@ -505,7 +505,6 @@ void plugin_process_sample (plugin_sample * sample, struct plugin_info
 {
   g_assert(info != NULL);
   g_return_if_fail(sample != NULL);
-  g_return_if_fail(sample -> image != NULL);
   g_return_if_fail(sample -> video_data != NULL);
 
   if (info -> plugin_process_sample)

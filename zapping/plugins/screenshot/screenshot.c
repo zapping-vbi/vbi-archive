@@ -241,11 +241,17 @@ void plugin_close(void)
 static
 gboolean plugin_start (void)
 {
-  /* if we aren't in capture mode, switch to it */
-  zmisc_switch_mode(TVENG_CAPTURE_READ, zapping_info);
-
-  if (zapping_info->current_mode != TVENG_CAPTURE_READ)
-    return FALSE; /* unable to set the mode */
+  /*
+   * Switch to capture mode if we aren't viewing Teletext (associated
+   * with TVENG_NO_CAPTURE)
+   */
+  if (zapping_info->current_mode != TVENG_NO_CAPTURE)
+    {
+      zmisc_switch_mode(TVENG_CAPTURE_READ, zapping_info);
+      
+      if (zapping_info->current_mode != TVENG_CAPTURE_READ)
+	return FALSE; /* unable to set the mode */
+    }
 
   save_screenshot = 2;
 
@@ -389,7 +395,7 @@ void plugin_add_properties ( GnomePropertyBox * gpb )
 
   /* The quality slider */
   box = gtk_hbox_new (FALSE, 0);
-  label = gtk_label_new(_("Quality of the compressed image"));
+  label = gtk_label_new(_("Quality of the compressed image:"));
   gtk_widget_show(label);
   gtk_box_pack_start_defaults(GTK_BOX (box), label);
 
@@ -458,7 +464,7 @@ gboolean plugin_help_properties ( GnomePropertyBox * gpb, gint page )
   gchar * help =
 N_("The first option, the screenshot dir, lets you specify where\n"
    "will the screenshots be saved. The file name will be:\n"
-   "save_dir/shot[1,2,3,...].png\n\n"
+   "save_dir/shot[1,2,3,...].jpeg\n\n"
    "The quality option lets you choose how much info will be\n"
    "discarded when compressing the JPEG."
 );
@@ -560,7 +566,7 @@ start_saving_screenshot (gpointer data_to_save,
 
   gchar * window_title;
   gchar * buffer = NULL;
-  gint image_index = 1; /* Start by save_dir/shot1.png */
+  gint image_index = 1; /* Start by save_dir/shot1.jpeg */
 
   if (!data)
     {

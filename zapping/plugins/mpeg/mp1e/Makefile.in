@@ -76,16 +76,22 @@ VERSION = @VERSION@
 
 SUBDIRS = audio common systems test video
 
-bin_PROGRAMS = mp1e
+bin_PROGRAMS = mp1e rte_test
 
 INCLUDES = -D_GNU_SOURCE -D_REENTRANT
 
 EXTRA_DIST = videodev1.h videodev2.h mp1e.lsm.in
 
-mp1e_SOURCES = main.c 	options.c options.h 	rte.c rte.h rtepriv.h 	convert_ry.c convert_ry.h
+mp1e_SOURCES = main.c 	options.c options.h
 
 
 mp1e_LDADD = video/libvideo.a audio/libaudio.a systems/libsystems.a common/libcommon.a $(TEST_MODULES) $(X_LIBS) -lm -lpthread
+
+
+rte_test_SOURCES = rte_test_main.c 		options.c options.h 		rte.c rte.h rtepriv.h 		convert_ry.c convert_ry.h
+
+
+rte_test_LDADD = video/libvideo.a audio/libaudio.a systems/librtesystems.a common/libcommon.a $(TEST_MODULES) $(X_LIBS) -lm -lpthread
 
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
@@ -101,10 +107,14 @@ X_CFLAGS = @X_CFLAGS@
 X_LIBS = @X_LIBS@
 X_EXTRA_LIBS = @X_EXTRA_LIBS@
 X_PRE_LIBS = @X_PRE_LIBS@
-mp1e_OBJECTS =  main.o options.o rte.o convert_ry.o
+mp1e_OBJECTS =  main.o options.o
 mp1e_DEPENDENCIES =  video/libvideo.a audio/libaudio.a \
 systems/libsystems.a common/libcommon.a
 mp1e_LDFLAGS = 
+rte_test_OBJECTS =  rte_test_main.o options.o rte.o convert_ry.o
+rte_test_DEPENDENCIES =  video/libvideo.a audio/libaudio.a \
+systems/librtesystems.a common/libcommon.a
+rte_test_LDFLAGS = 
 CFLAGS = @CFLAGS@
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -120,9 +130,10 @@ DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
 TAR = gtar
 GZIP_ENV = --best
-DEP_FILES =  .deps/convert_ry.P .deps/main.P .deps/options.P .deps/rte.P
-SOURCES = $(mp1e_SOURCES)
-OBJECTS = $(mp1e_OBJECTS)
+DEP_FILES =  .deps/convert_ry.P .deps/main.P .deps/options.P .deps/rte.P \
+.deps/rte_test_main.P
+SOURCES = $(mp1e_SOURCES) $(rte_test_SOURCES)
+OBJECTS = $(mp1e_OBJECTS) $(rte_test_OBJECTS)
 
 all: all-redirect
 .SUFFIXES:
@@ -204,6 +215,10 @@ maintainer-clean-libtool:
 mp1e: $(mp1e_OBJECTS) $(mp1e_DEPENDENCIES)
 	@rm -f mp1e
 	$(LINK) $(mp1e_LDFLAGS) $(mp1e_OBJECTS) $(mp1e_LDADD) $(LIBS)
+
+rte_test: $(rte_test_OBJECTS) $(rte_test_DEPENDENCIES)
+	@rm -f rte_test
+	$(LINK) $(rte_test_LDFLAGS) $(rte_test_OBJECTS) $(rte_test_LDADD) $(LIBS)
 
 # This directory's subdirectories are mostly independent; you can cd
 # into them and run `make' without going through this Makefile.
