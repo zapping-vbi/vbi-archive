@@ -87,6 +87,8 @@ parse(xmlDocPtr doc, FILE *fp, int index)
     fprintf(fp, pages[index][NAME]);
 
   print("header2");
+  print_icon_header(fp);
+  print("header3");
 
   print("abstract1");
 
@@ -224,7 +226,7 @@ int main(int argc, char *argv[])
 	padding: 2;
     }
   --></style>
-  <link rel="Shortcut Icon" href="http://zapping.sourceforge.net/bookmark.ico">
+½header3
   </head>
 
 ½abstract1

@@ -87,6 +87,8 @@ parse(xmlDocPtr doc, FILE *fp, int index)
   fprintf(fp, "-->\n");
 
   print("header");
+  print_icon_header(fp);
+  print("header2");
 
   print("TV_SET1");
 
@@ -224,7 +226,7 @@ input.theme {
     font-family: arial,sans-serif;
  }
 --></style>
-<link rel="Shortcut Icon" href="http://zapping.sourceforge.net/bookmark.ico">
+½header2
 </head>
 ½TV_SET1
 <body bgcolor="#000000" link="yellow" vlink="yellow" text="#FFFFFF">

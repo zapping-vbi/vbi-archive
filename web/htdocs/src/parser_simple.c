@@ -84,6 +84,8 @@ parse(xmlDocPtr doc, FILE *fp, int index)
     fprintf(fp, pages[index][NAME]);
 
   print("header2");
+  print_icon_header(fp);
+  print("header3");
 
   sprintf(buf, "TOC_%d", index);
   print(buf);
@@ -158,7 +160,7 @@ int main(int argc, char *argv[])
     <title>½
 ½header2
 </title>
-  <link rel="Shortcut Icon" href="http://zapping.sourceforge.net/bookmark.ico">
+½header3
   </head>
 <body bgcolor="#FFFFFF">
 <center>

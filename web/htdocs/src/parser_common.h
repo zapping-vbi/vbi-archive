@@ -263,3 +263,10 @@ parse_contents(xmlDocPtr doc, FILE *fp, const char *filename)
       node = node->next;
     }
 }
+
+static void
+print_icon_header(FILE *fp)
+{
+  fprintf(fp,
+	  "<link REL=\"icon\" HREF=\"/bookmark.ico\" TYPE=\"image/png\">\n");
+}
