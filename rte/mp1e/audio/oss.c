@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: oss.c,v 1.9 2001-10-07 10:55:51 mschimek Exp $ */
+/* $Id: oss.c,v 1.10 2001-10-16 21:49:54 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -179,7 +179,8 @@ open_pcm_oss(char *dev_name, int sampling_rate, bool stereo)
 
 	ASSERT("set OSS PCM sampling rate %d Hz",
 		IOCTL(oss->fd, SNDCTL_DSP_SPEED, &oss_speed) == 0
-		&& oss_speed == sampling_rate, sampling_rate);
+		&& abs(oss_speed - sampling_rate) < (sampling_rate / 50),
+		sampling_rate);
 
 	if (IOCTL(oss->fd, SNDCTL_DSP_GETBLKSIZE, &oss_frag_size) != 0)
 		oss_frag_size = 4096; /* bytes */
@@ -245,7 +246,7 @@ mix_init(void)
 	int fd;
 
 	if ((fd = open(mix_dev, O_RDWR)) == -1) {
-		printv(2, "Cannot open mixer %s (%d, %s) (ignored)\n", mix_dev, errno, strerror(errno));
+		printv(1, "Cannot open mixer %s (%d, %s) (ignored)\n", mix_dev, errno, strerror(errno));
 		return;
 	}
 

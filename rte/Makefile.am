@@ -27,4 +27,4 @@ librte_la_LDFLAGS = -export-dynamic -release @VERSION@
 rte_test_SOURCES = rte_test_main.c
 
 rte_test_INCLUDES = $(ESD_CFLAGS)
-rte_test_LDADD = $(ESD_LIBS) -lpthread .libs/librte.a
+rte_test_LDADD = $(ESD_LIBS) -lpthread -lm .libs/librte.a
