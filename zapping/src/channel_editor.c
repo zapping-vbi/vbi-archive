@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: channel_editor.c,v 1.37.2.10 2003-03-26 07:38:06 mschimek Exp $ */
+/* $Id: channel_editor.c,v 1.37.2.11 2003-07-29 03:44:26 mschimek Exp $ */
 
 /*
   TODO:
@@ -152,7 +152,7 @@ tunable_input			(channel_editor *	ce,
 				 const tveng_device_info *info,
 				 const tveng_tuned_channel *tc)
 {
-  struct tveng_enum_input *input;
+  const tv_video_line *l;
 
   if (!ce->have_tuners)
     return FALSE;
@@ -160,9 +160,9 @@ tunable_input			(channel_editor *	ce,
   if (tc->input == DONT_CHANGE)
     return TRUE;
 
-  input = tveng_find_input_by_hash (tc->input, info);
+  l = tv_video_input_by_hash ((tveng_device_info *) info, tc->input);
 
-  return (input && input->tuners > 0);
+  return (l && l->type == TV_VIDEO_LINE_TYPE_TUNER);
 }
 
 #define VALID_ITER(iter, list_store)					\
@@ -450,8 +450,8 @@ entry_fine_tuning_set		(channel_editor *	ce,
     }
 
   if (frequency == 0
-      || info->num_inputs == 0
-      || info->inputs[info->cur_input].tuners == 0)
+      || !info->cur_video_input
+      || info->cur_video_input->type != TV_VIDEO_LINE_TYPE_TUNER)
     gtk_widget_set_sensitive (ce->entry_fine_tuning, FALSE);
   else
     gtk_widget_set_sensitive (ce->entry_fine_tuning, TRUE);
@@ -681,7 +681,7 @@ on_channel_search_clicked	(GtkButton *		search,
   GtkWidget *vbox;
   GtkWidget *dialog_action_area;
   GtkWidget *cancel;
-  guint id;
+  const tv_video_line *l;
 
   if (ce->search)
     return;
@@ -733,13 +733,15 @@ on_channel_search_clicked	(GtkButton *		search,
   cs->channel = 0;
   cs->iteration = 0;
 
-  for (id = 0; id < main_info->num_inputs; id++)
-    if (main_info->inputs[id].tuners > 0)
+  for (l = tv_next_video_input (main_info, NULL);
+       l; l = tv_next_video_input (main_info, l))
+    if (l->type == TV_VIDEO_LINE_TYPE_TUNER)
       break;
 
-  g_assert (id < main_info->num_inputs);
+  g_assert (l != NULL);
 
-  tveng_set_input_by_id (id, main_info); /* XXX consider tuners > 1 */
+  tv_set_video_input (main_info, l);
+  /* XXX consider multiple tuners */
 
   cs->timeout_handle = gtk_timeout_add (100 /* ms */,
 					station_search_timeout, ce);
@@ -1029,8 +1031,11 @@ on_entry_input_changed		(GtkOptionMenu *	entry_input,
     }
   else
     {
-      tc->input = main_info->inputs[id - 1].hash;
-      tveng_set_input_by_id (id - 1, main_info);
+      const tv_video_line *l;
+
+      l = tv_nth_video_input (main_info, id - 1);
+      tc->input = l->hash;
+      tv_set_video_input (main_info, l);
     }
 
   for (; tc_last != tc; tc_last = tc_last->prev)
@@ -1086,8 +1091,11 @@ on_entry_standard_changed	(GtkOptionMenu *	entry_standard,
     }
   else
     {
-      tc->standard = main_info->standards[id - 1].hash;
-      tveng_set_standard_by_id (id - 1, main_info);
+      const tv_video_standard *s;
+
+      s = tv_nth_video_standard (main_info, id - 1);
+      tc->standard = s->hash;
+      tv_set_video_standard (main_info, s);
     }
 
   for (; tc_last != tc; tc_last = tc_last->prev)
@@ -1140,14 +1148,20 @@ on_channel_selection_changed	(GtkTreeSelection *	selection,
 
   BLOCK (entry_input, changed,
          {
-	   struct tveng_enum_input *input;
-	   guint id = 0;
+	   const tv_video_line *l;
+	   guint index;
+
+	   l = NULL;
+	   index = 0;
 
 	   if (tc->input != DONT_CHANGE)
-	     if ((input = tveng_find_input_by_hash (tc->input, main_info)))
-	       id = input->index + 1;
+	     for (l = tv_next_video_input (main_info, NULL);
+		  l; l = tv_next_video_input (main_info, l), ++index)
+	       if (l->hash == tc->input)
+		 break;
 
-	   z_option_menu_set_active (GTK_WIDGET (ce->entry_input), id);
+	   if (l)
+	     z_option_menu_set_active (GTK_WIDGET (ce->entry_input), index);
 	 }
   );
 
@@ -1157,19 +1171,25 @@ on_channel_selection_changed	(GtkTreeSelection *	selection,
 
   BLOCK (entry_standard, changed,
 	 {
-	   struct tveng_enumstd *standard;
-	   guint id = 0;
+	   const tv_video_standard *s;
+	   guint index;
 
 	   /* Standards depend on current input */
 	   gtk_widget_destroy (gtk_option_menu_get_menu (ce->entry_standard));
 	   gtk_option_menu_set_menu (ce->entry_standard,
 				     GTK_WIDGET (create_standard_menu (ce)));
 
-	   if (tc->standard != DONT_CHANGE)
-	     if ((standard = tveng_find_standard_by_hash (tc->standard, main_info)))
-	       id = standard->index + 1;
+	   s = NULL;
+	   index = 0;
 
-	   z_option_menu_set_active (GTK_WIDGET (ce->entry_standard), id);
+	   if (tc->standard != DONT_CHANGE)
+	     for (s = tv_next_video_standard (main_info, NULL);
+		  s; s = tv_next_video_standard (main_info, s), ++index)
+	       if (s->hash == tc->standard)
+		 break;
+
+	   if (s)
+	     z_option_menu_set_active (GTK_WIDGET (ce->entry_standard), index);
 	 }
   );
 
@@ -1272,12 +1292,12 @@ set_func_input			(GtkTreeViewColumn *	column,
 				 gpointer		data)
 {
   tveng_tuned_channel *tc = tree_model_tuned_channel (model, iter);
-  struct tveng_enum_input *input;
+  const tv_video_line *l;
   gchar *input_name = NULL;
 
   if (tc->input != DONT_CHANGE)
-    if ((input = tveng_find_input_by_hash (tc->input, main_info)))
-      input_name = input->name;
+    if ((l = tv_video_input_by_hash (main_info, tc->input)))
+      input_name = l->label;
 
   g_object_set (GTK_CELL_RENDERER (cell), "text", input_name, NULL);
 }
@@ -1315,12 +1335,12 @@ set_func_standard		(GtkTreeViewColumn *	column,
 				 gpointer		data)
 {
   tveng_tuned_channel *tc = tree_model_tuned_channel (model, iter);
-  struct tveng_enumstd *standard;
+  const tv_video_standard *s;
   gchar *standard_name = NULL;
 
   if (tc->standard != DONT_CHANGE)
-    if ((standard = tveng_find_standard_by_hash (tc->standard, main_info)))
-      standard_name = standard->name;
+    if ((s = tv_video_standard_by_hash (main_info, tc->standard)))
+      standard_name = s->label;
 
   g_object_set (GTK_CELL_RENDERER (cell), "text", standard_name, NULL);
 }
@@ -1612,7 +1632,7 @@ create_input_menu		(channel_editor *	ce)
 {
   GtkMenu *menu;
   GtkWidget *menu_item;
-  guint i;
+  const tv_video_line *l;
 
   menu = GTK_MENU (gtk_menu_new ());
 
@@ -1620,9 +1640,10 @@ create_input_menu		(channel_editor *	ce)
   gtk_widget_show (menu_item);
   gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
 
-  for (i = 0; i < main_info->num_inputs; i++)
+  for (l = tv_next_video_input (main_info, NULL);
+       l; l = tv_next_video_input (main_info, l))
     {
-      menu_item = gtk_menu_item_new_with_label (main_info->inputs[i].name);
+      menu_item = gtk_menu_item_new_with_label (l->label);
       gtk_widget_show (menu_item);
       gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
     }
@@ -1635,7 +1656,7 @@ create_standard_menu		(channel_editor *	ce)
 {
   GtkMenu *menu;
   GtkWidget *menu_item;
-  guint i;
+  const tv_video_standard *s;
 
   menu = GTK_MENU (gtk_menu_new ());
 
@@ -1643,9 +1664,10 @@ create_standard_menu		(channel_editor *	ce)
   gtk_widget_show (menu_item);
   gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
 
-  for (i = 0; i < main_info->num_standards; i++)
+  for (s = tv_next_video_standard (main_info, NULL);
+       s; s = tv_next_video_standard (main_info, s))
     {
-      menu_item = gtk_menu_item_new_with_label (main_info->standards[i].name);
+      menu_item = gtk_menu_item_new_with_label (s->label);
       gtk_widget_show (menu_item);
       gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
     }
@@ -1657,7 +1679,7 @@ static GtkWidget *
 create_channel_editor		(void)
 {
   struct channel_editor *ce;
-  guint id;
+  const tv_video_line *l;
 
   ce = g_malloc (sizeof (*ce));
 
@@ -1665,11 +1687,12 @@ create_channel_editor		(void)
 
   ce->search = NULL;
 
-  for (id = 0; id < main_info->num_inputs; id++)
-    if (main_info->inputs[id].tuners > 0)
+  for (l = tv_next_video_input (main_info, NULL);
+       l; l = tv_next_video_input (main_info, l))
+    if (l->type == TV_VIDEO_LINE_TYPE_TUNER)
       break;
 
-  ce->have_tuners = (id < main_info->num_inputs);
+  ce->have_tuners = (l != NULL);
 
   /* Build dialog */
 
