@@ -8,11 +8,11 @@ BUILT_SOURCES = \
 EXTRA_DIST = \
 	$(BUILT_SOURCES) \
 	wstfont2.pbm \
-	fontgen
+	fontgen.c
 
 CLEANFILES = $(BUILT_SOURCES)
 
-INCLUDES = -D_GNU_SOURCE -D_REENTRANT $(UNICODE_CFLAGS)
+INCLUDES = -I$(top_srcdir) -D_GNU_SOURCE -D_REENTRANT $(UNICODE_CFLAGS)
 
 libvbi_a_SOURCES = \
 	bcd.c bcd.h \
@@ -43,7 +43,8 @@ libvbi_a_SOURCES = \
 	ure.c ure.h \
 	vt.h
 
-wstfont2.xbm: wstfont2.pbm fontgen Makefile.am
+wstfont2.xbm: wstfont2.pbm fontgen.c Makefile.am
+	gcc $(top_srcdir)/libvbi/fontgen.c -o$(top_builddir)/libvbi/fontgen
 	$(top_builddir)/libvbi/fontgen xbm wstfont2 10 < $< > $@
 
 # must prevent link conflict with libvbi 0.2
