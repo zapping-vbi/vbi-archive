@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.30 2002-02-25 06:22:19 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.31 2002-03-19 19:25:47 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -36,7 +36,8 @@
 #include "common/math.h"
 #include "video/libvideo.h"
 #include "audio/libaudio.h"
-#include "systems/systems.h"
+#include "systems/libsystems.h"
+#include "systems/mpeg.h"
 #include "common/profile.h"
 #include "common/log.h"
 #include "common/mmx.h"
@@ -54,6 +55,10 @@ extern rte_context_class	mp1e_mpeg1_ps_context;
 extern rte_context_class	mp1e_mpeg1_vcd_context;
 extern rte_context_class	mp1e_mpeg1_video_context;
 extern rte_context_class	mp1e_mpeg1_audio_context;
+
+/* FIXME */
+static const int		video_buffers = 2*8;	/* video compression -> mux */
+static const int		audio_buffers = 2*32;	/* audio compression -> mux */
 
 /* Legacy */
 
@@ -169,6 +174,7 @@ context_start(rte_context *context, double timestamp,
 
 /* Input / Output */
 
+/* Elementary stream output */
 static void
 send_full_cp(producer *p, buffer *b)
 {
@@ -189,6 +195,30 @@ send_full_cp(producer *p, buffer *b)
 	add_head(&p->fifo->empty, &b->node);
 }
 
+/* Need this since muxes have no output fifo yet */
+static buffer *
+mux_out(struct multiplexer *mux, buffer *b)
+{
+	mp1e_context *mx = PARENT(mux, mp1e_context, mux);
+	rte_buffer wb;
+
+	if (!b)
+		return &mx->mux_buffer;
+
+	if (b->used != 0) {
+		wb.data = b->data;
+		wb.size = b->used;
+		
+		if (!mx->write_cb(&mx->context, NULL, &wb)) {
+				/* XXX what now? */
+		}
+	} else { /* EOF */
+		mx->write_cb(&mx->context, NULL, NULL);
+	}
+
+	return b;
+}
+
 static void
 reset_output(rte_context *context)
 {
@@ -202,7 +232,11 @@ reset_output(rte_context *context)
 		rem_consumer(&md->cons);
 		destroy_fifo(md->output);
 	} else {
-		assert(0); /* FIXME */
+		mx->mux.mux_output = NULL;
+
+		destroy_buffer(&mx->mux_buffer);
+
+		mux_destroy(&mx->mux);
 	}
 
 	context->status = RTE_STATUS_NEW;
@@ -292,7 +326,61 @@ set_output(rte_context *context,
 
 		mp1e_sync_init(&mx->sync, modules, modules);
        	} else {
-		assert(0); /* FIXME */
+		rte_codec *codec;
+
+		if (!mux_init(&mx->mux, NULL)) {
+			return FALSE;
+		}
+
+		for (codec = mx->codecs; codec; codec = codec->next) {
+			mp1e_codec *md = PARENT(codec, mp1e_codec, codec);
+			rte_codec_class *dc = md->codec.class;
+
+			switch (dc->public.stream_type) {
+			case RTE_STREAM_VIDEO:
+				md->output = mux_add_input_stream(&mx->mux,
+					VIDEO_STREAM + md->codec.stream_index,
+					"mp1e-coded-video-mpeg1",
+					md->output_buffer_size,
+					video_buffers,
+					md->output_frame_rate,
+					md->output_bit_rate);
+				break;
+
+			case RTE_STREAM_AUDIO:
+				md->output = mux_add_input_stream(&mx->mux,
+					AUDIO_STREAM + md->codec.stream_index,
+					"mp1e-coded-audio-mp2",
+					1 << (ffsr(md->output_buffer_size) + 1),
+					audio_buffers,
+					md->output_frame_rate,
+					md->output_bit_rate);
+				break;
+
+			default:
+				assert(!"reached");
+			}
+
+			if (!md->output) {
+				mux_destroy(&mx->mux);
+				rte_error_printf(context, _("Out of memory."));
+				return FALSE;
+			}
+		}
+
+		/* vcd buffer is hardcoded 2324, hd default 2048 */
+		/* XXX recalculate codec->mux fifo lenght before changing */
+		if (!init_buffer(&mx->mux_buffer,
+				 (xc == &mp1e_mpeg1_video_context) ? 4096 : 2048)) {
+			mux_destroy(&mx->mux);
+			rte_error_printf(context, _("Out of memory."));
+			return FALSE;
+		}
+
+		mx->write_cb = write_cb;
+		mx->mux.mux_output = mux_out;
+
+		mp1e_sync_init(&mx->sync, modules, modules);
 	}
 
 	context->status = RTE_STATUS_READY;
