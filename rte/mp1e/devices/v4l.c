@@ -5,7 +5,7 @@
  *
  *  Based on code by Justin Schoeman,
  *  modified by Iñaki G. Etxebarria,
- *  and more code from ffmpeg by Gerard Lantau.
+ *  and more code from ffmpeg by Fabrice Bellard.
  *  Read fixes and AIW hack by Nikolai Zhubr.
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -23,7 +23,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.5 2002-09-04 21:27:00 mschimek Exp $ */
+/* $Id: v4l.c,v 1.6 2002-11-11 21:31:24 zhubr Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -112,16 +112,15 @@ v4l_cap_thread(void *unused)
 		b = wait_empty_buffer(&cap_prod);
 
 		if (use_mmap) {
-			gb_buf.frame = gb_frame;
-
-		    	ASSERT("VIDIOCMCAPTURE",
-				IOCTL(fd, VIDIOCMCAPTURE, &gb_buf) >= 0);
-
-			gb_frame = (gb_frame+1) % gb_buffers.frames;
+			int num_frame2 = (gb_frame+1) % gb_buffers.frames;
 
 			/* mw: rationally EAGAIN should be returned, instead we get EINVAL, grrr */
 			if (IOCTL(fd, VIDIOCSYNC, &gb_frame) < 0)
 				ASSERT("VIDIOCSYNC", errno == EAGAIN || errno == EINVAL);
+			if (fix_interlaced) {
+				if (IOCTL(fd, VIDIOCSYNC, &num_frame2) < 0)
+					ASSERT("VIDIOCSYNC", errno == EAGAIN || errno == EINVAL);
+			}
 
 			b->time = timestamp2(b);
 
@@ -141,6 +140,17 @@ v4l_cap_thread(void *unused)
 			}
 
 			b->used = b->size;
+			
+			gb_buf.frame = gb_frame;
+		    	ASSERT("VIDIOCMCAPTURE",
+				IOCTL(fd, VIDIOCMCAPTURE, &gb_buf) >= 0);
+			gb_frame = (gb_frame+1) % gb_buffers.frames;
+			if (fix_interlaced) {
+				gb_buf.frame = (gb_buf.frame+1) % gb_buffers.frames;
+		    		ASSERT("VIDIOCMCAPTURE",
+					IOCTL(fd, VIDIOCMCAPTURE, &gb_buf) >= 0);
+				gb_frame = (gb_frame+1) % gb_buffers.frames;
+			}
 		} else {
 			unsigned char *p = b->data;
 			ssize_t r, n = b->size;
@@ -229,7 +239,7 @@ v4l_init(rte_video_stream_params *par, struct filter_param *fp)
 	struct video_picture vpict;
 	int min_cap_buffers = video_look_ahead(gop_sequence);
 	unsigned long buf_size;
-	int max_height, width1, height1;
+	int max_height, width1, height1, filter_mode1;
 	int buf_count;
 	int retry;
 
@@ -331,11 +341,12 @@ v4l_init(rte_video_stream_params *par, struct filter_param *fp)
 
 	width1 = par->width;
 	height1 = par->height;
+	filter_mode1 = filter_mode;
 
 	if (DECIMATING_HOR(filter_mode))
-		par->width = (width1 * 2 + 31) & -32;
+		par->width = width1 * 2;
 	else
-		par->width  = (width1 + 15) & -16;
+		par->width  = width1;
 
 	if (DECIMATING_VERT(filter_mode))
 		par->height = (height1 * 2 + 31) & -32;
@@ -399,21 +410,24 @@ v4l_init(rte_video_stream_params *par, struct filter_param *fp)
 				     "probably none of YUV 4:2:0 or 4:2:2 (YUYV) are supported",
 				     cap_dev);
 
-			if (filter_mode == CM_YUV) {
+			if (YUV420(filter_mode)) {
 				filter_mode = CM_YUYV;
 				vpict.palette = VIDEO_PALETTE_YUYV;
 			} else {
 				filter_mode = CM_YUV;
 				vpict.palette = VIDEO_PALETTE_YUV420P;
-				par->width = (width1 + 15) & -16;
-				par->height = (height1 + 15) & -16;
+				par->width = width1;
+				par->height = height1;
 			}
 		}
 
 		if (YUV420(filter_mode) && fix_interlaced)
 			FAIL("-K mode requires YUYV, sorry.\n");
 		
+		filter_mode1 = filter_mode;
+
 		for (;;) {
+			int auto_size = 0;
 			CLEAR(&vwin);
 			vwin.width = par->width;
 			vwin.height = par->height;
@@ -422,23 +436,33 @@ v4l_init(rte_video_stream_params *par, struct filter_param *fp)
 			if (IOCTL(fd, VIDIOCSWIN, &vwin) == 0)
 				break;
 
-			if (fix_interlaced)
-				FAIL("VIDIOCSWIN %d x %d failed. "
-				     "Sorry, cannot help you here.\n",
-				     par->width, par->height);
+			if ((fix_interlaced)||(!DECIMATING(filter_mode))) {
+				struct video_window vwin2;
+				CLEAR(&vwin2);
+				if ((auto_size==0)&&(IOCTL(fd, VIDIOCGWIN, &vwin2) == 0)) {
+					printv(1, "WARNING: the driver refused to grab %dx%d, trying %dx%d instead.\n", vwin.width, vwin.height, vwin2.width, vwin2.height);
+					auto_size = 1;
+					filter_mode = filter_mode1;
+					par->height = vwin2.height;
+					par->width = vwin2.width;
+					continue;
+				}
+				FAIL("Failed to set the grab size of %s to %dx%d, "
+				       "suggest other -s, -G, -F values",
+				       cap_dev, width1, height1);
+			}
 
 			/*
 			 *  When we're decimating a smaller image
 			 *  size without decimation may work. 
 			 */
-			ASSERT("set the grab size of %s to %dx%d, "
-			       "suggest other -s, -G, -F values",
-			       DECIMATING(filter_mode),
-			       cap_dev, vwin.width, vwin.height);
 
-			filter_mode = CM_YUYV_VERTICAL_INTERPOLATION;
-			par->width = (height1 + 15) & -16;
-			par->height = (height1 + 15) & -16;
+			if (YUV420(filter_mode))
+				filter_mode = CM_YUV;
+			else
+				filter_mode = CM_YUYV_VERTICAL_INTERPOLATION;
+			par->width = width1;
+			par->height = height1;
 		}
 
 		par->width = vwin.width;
@@ -470,8 +494,13 @@ v4l_init(rte_video_stream_params *par, struct filter_param *fp)
 		printv(2, "Grab 1st frame and set capture format and dimensions.\n");
 		/* @:-} IMHO */
 
+		retry = 0;
+		r = 1;
+
+while ((retry <= 2)&&(r!=0)) {  // XXX Kept old indenting for now to make readable diff here.
+
 		CLEAR(&gb_buf);
-		gb_buf.frame = (gb_frame+1) % gb_buffers.frames;
+		gb_buf.frame = 0;
 		gb_buf.width = par->width;
 		gb_buf.height = par->height;
 
@@ -480,14 +509,9 @@ v4l_init(rte_video_stream_params *par, struct filter_param *fp)
 		else
 			gb_buf.format = VIDEO_PALETTE_YUYV;
 
-		retry = 0;
-
 		while ((r = IOCTL(fd, VIDIOCMCAPTURE, &gb_buf)) != 0 && errno != EAGAIN) {
 			printv(2, "Image filter %d, palette %d not accepted.\n",
 				filter_mode, gb_buf.format);
-
-			if (fix_interlaced)
-				FAIL("-K mode requires YUYV, sorry.\n");
 
 			if (gb_buf.format == VIDEO_PALETTE_YUYV) {
 				gb_buf.format = VIDEO_PALETTE_YUV422;
@@ -514,11 +538,39 @@ v4l_init(rte_video_stream_params *par, struct filter_param *fp)
     		if (r != 0 && errno == EAGAIN)
 			FAIL("%s does not receive a video signal.\n", cap_dev);
 
-		ASSERT("start capturing (VIDIOCMCAPTURE) from %s, maybe the device doesn't\n"
-		       "support YUV 4:2:0 or 4:2:2 (YUYV), or the grab size %dx%d is not suitable.\n"
-		       "Different -s, -G, -F values may help.",
-		       r >= 0,
-		       cap_dev, gb_buf.width, gb_buf.height);
+		if (r < 0) {
+			struct video_window vwin2;
+			CLEAR(&vwin2);
+			if (IOCTL(fd, VIDIOCGWIN, &vwin2) == 0) {
+					printv(1, "WARNING: the driver refused to grab %dx%d, trying %dx%d instead.\n", gb_buf.width, gb_buf.height, vwin2.width, vwin2.height);
+					par->height = vwin2.height;
+					par->width = vwin2.width;
+					filter_mode = filter_mode1;
+					CLEAR(&vpict);
+					if (IOCTL(fd, VIDIOCGPICT, &vpict) == 0) {
+						switch (vpict.palette) {
+						case VIDEO_PALETTE_YUV420P:
+							filter_mode = CM_YUV;
+							break;
+						case VIDEO_PALETTE_YUYV:
+						case VIDEO_PALETTE_YUV422:
+							filter_mode = CM_YUYV;
+							break;
+						}
+					}
+					continue;
+			}	
+			FAIL("Failed to start capturing (VIDIOCMCAPTURE) from %s, maybe the device doesn't\n"
+			       "support YUV 4:2:0 or 4:2:2 (YUYV), or the grab size %dx%d is not suitable.\n"
+			       "Different -s, -G, -F values may help.",
+			       cap_dev, gb_buf.width, gb_buf.height);
+		}
+}
+		/* In case there are many buffers make full use of them */
+		for (gb_buf.frame=1; gb_buf.frame < gb_buffers.frames; gb_buf.frame++)
+			ASSERT("queue remaining free buffers (VIDIOCMCAPTURE) of %s\n",
+				IOCTL(fd, VIDIOCMCAPTURE, &gb_buf)==0,
+				cap_dev);
 
 		par->width = gb_buf.width;
 		par->height = gb_buf.height;
@@ -528,6 +580,9 @@ v4l_init(rte_video_stream_params *par, struct filter_param *fp)
 		width = par->width;
 	if (height > par->height)
 		height = par->height;
+
+	if (YUV420(filter_mode) && fix_interlaced)
+		FAIL("-K mode requires YUYV, sorry.\n");
 
 	if (fix_interlaced)
 		par->sample_aspect = video_sampling_aspect (par->frame_rate,
