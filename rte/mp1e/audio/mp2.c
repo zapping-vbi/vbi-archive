@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.29 2002-05-07 06:39:01 mschimek Exp $ */
+/* $Id: mp2.c,v 1.30 2002-05-10 09:53:42 mschimek Exp $ */
 
 #include <limits.h>
 
@@ -104,6 +104,10 @@ next_buffer(mp2_context *mp2, buffer *buf, int channels, double elapsed)
 		if (buf->used <= 0) {
 			send_empty_buffer(&mp2->cons, buf);
 			terminate(mp2);
+		}
+
+		if (test_mode & 0x200) {
+			memset(buf->data, 0, buf->used);
 		}
 
 		pthread_mutex_lock(&mp2->codec.codec.mutex);

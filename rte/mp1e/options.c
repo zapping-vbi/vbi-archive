@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.14 2002-05-07 06:39:45 mschimek Exp $ */
+/* $Id: options.c,v 1.15 2002-05-10 09:53:53 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -454,7 +454,8 @@ parse_option(int c)
 
 	case 't':
 		/*
-		  1 - audio fft, filter and dct test
+		  Test routines (values can be added):
+		  1 - audio fft, filter and mdct test
 		  2 - video
 		  4 - DONT USE
 		  8 - video frame dropping test (20%)
@@ -462,7 +463,8 @@ parse_option(int c)
 		  32 - deliberate sampling rate mismatch
 		  64 - store raw audio data (driver interface test)
 		  128 - randomize video
-		  256 - enable clock drift code
+		  0x100 - enable clock drift code
+		  0x200 - fixed video pattern, silent audio
 		*/
 		test_mode = strtol(optarg, NULL, 0);
 		break;

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.29 2002-05-09 21:03:57 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.30 2002-05-10 09:53:20 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -1716,11 +1716,24 @@ thread_body(mpeg1_context *mpeg1)
 				this->buffer = b = wait_full_buffer(&mpeg1->cons);
 
 				if (b->used > 0) {
-					if ((test_mode & 8) && (rand() % 100) < 20) {
-						printv(3, "Forced drop #%lld\n", video_frame_count + sp);
-						send_empty_buffer(&mpeg1->cons, this->buffer);
+					if (test_mode) {
+						if ((test_mode & 8)
+						    && (rand() % 100) < 20) {
+							printv(3, "Forced drop #%lld\n", video_frame_count + sp);
+							send_empty_buffer(&mpeg1->cons, this->buffer);
 
-						continue;
+							continue;
+						}
+						
+						if (test_mode & 0x200) {
+							int i = 0;
+							
+							for (i = 0; i < b->used; i++) {
+								((uint8_t *) b->data)[i] =
+									(((i >> 4) ^ (i >> 10))
+									 & 1) - 1;
+							}		
+						}
 					}
 
 					this->org = b->data;
