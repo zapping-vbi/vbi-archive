@@ -39,13 +39,15 @@
 #include <sys/mman.h>
 #undef WNOHANG
 #undef WUNTRACED
-#include <linux/kernel.h>
-#include <linux/fs.h>
+//#include <linux/kernel.h>
+//#include <linux/fs.h>
 #include <errno.h>
 #include <math.h>
 #include <endian.h>
 
 #include "common/fifo.h" /* current_time() */
+
+#define MINOR(dev) ((dev) & 0xff)
 
 /* 
    This works around a bug bttv appears to have with the mute
@@ -71,14 +73,14 @@ static __inline__ void IOCTL_ARG_TYPE_CHECK_BTTV_VERSION (int *arg) {}
    and errno code. */
 #define v4l_ioctl(info, cmd, arg)					\
 (IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
- ((0 == device_ioctl ((info)->log_fp, fprintf_ioctl_arg,		\
+ ((0 == device_ioctl ((info)->log_fp, fprint_ioctl_arg,			\
 		      (info)->fd, cmd, (void *)(arg))) ?		\
   0 : (ioctl_failure (info, __FILE__, __PRETTY_FUNCTION__,		\
 		      __LINE__, # cmd), -1)))
 
 #define v4l_ioctl_nf(info, cmd, arg)					\
 (IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
- device_ioctl ((info)->log_fp, fprintf_ioctl_arg,			\
+ device_ioctl ((info)->log_fp, fprint_ioctl_arg,			\
 		      (info)->fd, cmd, (void *)(arg)))
 
 struct video_input {
@@ -2005,7 +2007,7 @@ tveng1_ioctl			(tveng_device_info *	info,
 				 int			cmd,
 				 char *			arg)
 {
-	return device_ioctl (info->log_fp, fprintf_ioctl_arg,
+	return device_ioctl (info->log_fp, fprint_ioctl_arg,
 			     info->fd, cmd, arg);
 }
 
@@ -2370,7 +2372,8 @@ tveng1_start_capturing(tveng_device_info * info)
 
   t_assert (p_info->mmbuf.frames > 0);
 
-  /* bttv 0.8.x wants PROT_WRITE although AFAIK we don't. */
+  /* NB PROT_WRITE required since bttv 0.8,
+     client may write mmapped buffers too. */
   p_info->mmaped_data = (char *) mmap (0, p_info->mmbuf.size,
 				       PROT_READ | PROT_WRITE,
 				       MAP_SHARED, info->fd, 0);
