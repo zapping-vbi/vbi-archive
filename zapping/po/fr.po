@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.7\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-04-21 07:57+0200\n"
+"POT-Creation-Date: 2004-05-26 03:57+0200\n"
 "PO-Revision-Date: 2003-12-08 08:11+0100\n"
 "Last-Translator: Christian Marillat <marillat.christian@wanadoo.fr>\n"
 "Language-Team: French <fr@li.org>\n"
@@ -41,7 +41,7 @@ msgstr "Avancé"
 msgid "Arabic"
 msgstr "Arabe"
 
-#: glade/zapping.glade2.h:6 src/audio.c:520 src/audio.c:525 src/tveng1.c:677
+#: glade/zapping.glade2.h:6 src/audio.c:520 src/audio.c:525 src/tveng1.c:679
 #: src/tveng2.c:613 src/tveng25.c:471
 msgid "Audio"
 msgstr "Audio"
@@ -206,7 +206,7 @@ msgstr "Pas d'affichage"
 msgid "OK, let's go on"
 msgstr "OK, laissez faire"
 
-#: glade/zapping.glade2.h:48 src/osd.c:1306
+#: glade/zapping.glade2.h:48 src/osd.c:1318
 msgid "OSD"
 msgstr "OSD"
 
@@ -335,7 +335,7 @@ msgstr "Contenu de la _barre de titre :"
 msgid "VBI options"
 msgstr "Options VBI"
 
-#: glade/zapping.glade2.h:77 src/main.c:157 src/properties-handler.c:1583
+#: glade/zapping.glade2.h:77 src/main.c:158 src/properties-handler.c:1583
 #: src/properties-handler.c:1591
 msgid "Video"
 msgstr "Vidéo"
@@ -470,18 +470,18 @@ msgstr "Vous permet de contrôler zapping avec lirc"
 
 #. hash collision code
 #. Warn
-#: plugins/alirc/alirc.c:267 plugins/mpeg/mpeg.c:2105
+#: plugins/alirc/alirc.c:267 plugins/mpeg/mpeg.c:2110
 #: plugins/screenshot/screenshot.c:162
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr "Check erreur : \"%s\" du greffon %s has hash 0x%x vs. 0x%x"
 
-#: plugins/mpeg/mpeg.c:418
+#: plugins/mpeg/mpeg.c:419
 #, c-format
 msgid "Format %s is incomplete, please configure the video or audio codec."
 msgstr "Le format %s est incomplet, configurer le codec video ou audio."
 
-#: plugins/mpeg/mpeg.c:649
+#: plugins/mpeg/mpeg.c:654
 #, c-format
 msgid ""
 "Cannot create destination directory:\n"
@@ -492,46 +492,46 @@ msgstr ""
 "%s\n"
 "%s"
 
-#: plugins/mpeg/mpeg.c:661
+#: plugins/mpeg/mpeg.c:666
 #, c-format
 msgid "Cannot create file %s: %s\n"
 msgstr "Ne peut créer le fichier %s : %s\n"
 
-#: plugins/mpeg/mpeg.c:1247
+#: plugins/mpeg/mpeg.c:1252
 msgid "New format"
 msgstr "Nouveau format"
 
-#: plugins/mpeg/mpeg.c:1248
+#: plugins/mpeg/mpeg.c:1253
 msgid "Format name:"
 msgstr "Nom du format :"
 
-#: plugins/mpeg/mpeg.c:1422 plugins/mpeg/mpeg.c:2039
+#: plugins/mpeg/mpeg.c:1427 plugins/mpeg/mpeg.c:2044
 #: plugins/screenshot/screenshot.c:554 plugins/screenshot/screenshot.c:1464
 msgid "Plugins"
 msgstr "Greffons"
 
-#: plugins/mpeg/mpeg.c:1422 plugins/mpeg/mpeg.c:1900 plugins/mpeg/mpeg.c:1923
-#: plugins/mpeg/mpeg.c:2028 plugins/mpeg/mpeg_properties.glade2.h:6
+#: plugins/mpeg/mpeg.c:1427 plugins/mpeg/mpeg.c:1905 plugins/mpeg/mpeg.c:1928
+#: plugins/mpeg/mpeg.c:2033 plugins/mpeg/mpeg_properties.glade2.h:6
 msgid "Record"
 msgstr "Enregistrement"
 
-#: plugins/mpeg/mpeg.c:1711
+#: plugins/mpeg/mpeg.c:1716
 msgid "Not implemented yet"
 msgstr "Pas encore implémenté"
 
-#: plugins/mpeg/mpeg.c:1885
+#: plugins/mpeg/mpeg.c:1890
 msgid "Record a video stream"
 msgstr "Enregistrer le flux vidéo"
 
-#: plugins/mpeg/mpeg.c:1974
+#: plugins/mpeg/mpeg.c:1979
 msgid "Audio/Video Recorder"
 msgstr "Enregistrement Audio/Video"
 
-#: plugins/mpeg/mpeg.c:1977
+#: plugins/mpeg/mpeg.c:1982
 msgid "This plugin records video and audio into a file"
 msgstr "Ce greffon enregistre les flux image et audio dans un fichier"
 
-#: plugins/mpeg/mpeg.c:1980
+#: plugins/mpeg/mpeg.c:1985
 msgid "Record video and audio."
 msgstr "Enregistrer la vidéo et l'audio."
 
@@ -747,7 +747,7 @@ msgstr "images avant la capture"
 msgid "Input:"
 msgstr "Entrée :"
 
-#: src/audio.c:531 src/keyboard.c:1144 src/osd.c:1311
+#: src/audio.c:531 src/keyboard.c:1144 src/osd.c:1323
 #: src/properties-handler.c:1606 src/properties.c:942
 msgid "General Options"
 msgstr "Options Générale"
@@ -760,79 +760,79 @@ msgstr ""
 msgid "<span foreground=\"yellow\">Audio on</span>"
 msgstr ""
 
-#: src/capture.c:432
+#: src/capture.c:450
 #, c-format
 msgid "Cannot start capturing: %s"
 msgstr "Ne peut démarrer la capture : %s"
 
-#: src/channel_editor.c:582
+#: src/channel_editor.c:583
 #, c-format
 msgid "Channel: %s   Found: %u"
 msgstr "Chaîne : %s   Trouvé : %u"
 
-#: src/channel_editor.c:691
+#: src/channel_editor.c:701
 msgid "Searching..."
 msgstr "Recherche..."
 
-#: src/channel_editor.c:1428
+#: src/channel_editor.c:1438
 msgid "Select the frequency table used in your country"
 msgstr "Sélectionnez la table de fréquence utilisée dans votre pays"
 
-#: src/channel_editor.c:1572
+#: src/channel_editor.c:1582
 msgid "Ch. Name"
 msgstr "Nom Ch."
 
 # glade/glade_strings.c:149, glade/glade_strings.c:155
-#: src/channel_editor.c:1577
+#: src/channel_editor.c:1587
 msgid "Freq (MHz)"
 msgstr "Freq (MHz)"
 
 #. append
-#: src/channel_editor.c:1630
+#: src/channel_editor.c:1640
 msgid "Channel name"
 msgstr "Nom de la chaîne"
 
 #. append
-#: src/channel_editor.c:1634
+#: src/channel_editor.c:1644
 msgid "Video input"
 msgstr "Entrée vidéo"
 
 #. append
-#: src/channel_editor.c:1638
+#: src/channel_editor.c:1648
 msgid "RF Channel"
 msgstr "Chaîne RF"
 
 #. append
-#: src/channel_editor.c:1642
+#: src/channel_editor.c:1652
 msgid "Video standard"
 msgstr "Standard vidéo"
 
 #. append
-#: src/channel_editor.c:1646 src/keyboard.c:437
+#: src/channel_editor.c:1656 src/keyboard.c:437
 msgid "Accelerator"
 msgstr "Accelerateur"
 
-#: src/channel_editor.c:1661
+#: src/channel_editor.c:1671
 msgid "Do not change input"
 msgstr "Ne pas changer l'entrée"
 
-#: src/channel_editor.c:1685
+#: src/channel_editor.c:1695
 msgid "Do not change standard"
 msgstr "Ne pas changer le standard"
 
-#: src/channel_editor.c:1724
+#: src/channel_editor.c:1734
 msgid "Channel editor"
 msgstr "Éditeur de chaîne"
 
-#: src/channel_editor.c:1748
+#: src/channel_editor.c:1758
 msgid "Region"
 msgstr "Région"
 
-#: src/channel_editor.c:1784
+#: src/channel_editor.c:1794
 msgid "Automatic station _search"
 msgstr "Recherche automatique des _stations"
 
-#: src/channel_editor.c:1790
+#: src/channel_editor.c:1800
 msgid ""
 "Select a suitable frequency table, then click here to search through all "
 "channels in the table and add the received stations to the channel list."
@@ -841,49 +841,49 @@ msgstr ""
 "rechercher à travers toutes les chaînes de la table et ajouter les stations "
 "reçues dans la liste des chaînes."
 
-#: src/channel_editor.c:1796
+#: src/channel_editor.c:1806
 msgid "Add all _channels"
 msgstr "Ajouter toutes les _chaînes"
 
-#: src/channel_editor.c:1803
+#: src/channel_editor.c:1813
 msgid "Add all channels in the frequency table to the channel list."
 msgstr ""
 "Ajouter toutes les chaînes de la table de fréquence dans la liste des "
 "chaînes."
 
-#: src/channel_editor.c:1807
+#: src/channel_editor.c:1817
 msgid "_Import XawTV configuration"
 msgstr "_Importer la configuration d'XawTV"
 
-#: src/channel_editor.c:1834
+#: src/channel_editor.c:1844
 msgid "Channel List"
 msgstr "Liste des chaînes"
 
-#: src/channel_editor.c:1869
+#: src/channel_editor.c:1879
 msgid "Edit channel"
 msgstr "Éditer la chaîne"
 
-#: src/channel_editor.c:1885
+#: src/channel_editor.c:1895
 msgid "Name:"
 msgstr "Nom :"
 
-#: src/channel_editor.c:1894
+#: src/channel_editor.c:1904
 msgid "Video input:"
 msgstr "Entrée vidéo :"
 
-#: src/channel_editor.c:1905
+#: src/channel_editor.c:1915
 msgid "Fine tuning:"
 msgstr "Ajustement fin :"
 
-#: src/channel_editor.c:1910
+#: src/channel_editor.c:1920
 msgid "MHz"
 msgstr "MHz"
 
-#: src/channel_editor.c:1919
+#: src/channel_editor.c:1929
 msgid "Video standard:"
 msgstr "Standard vidéo :"
 
-#: src/channel_editor.c:1930
+#: src/channel_editor.c:1940
 msgid "Accelerator:"
 msgstr "Accelerateur :"
 
@@ -936,7 +936,7 @@ msgstr "cable"
 msgid "Autocom cable"
 msgstr "Cable autocom"
 
-#: src/fullscreen.c:278
+#: src/fullscreen.c:281
 msgid "No XFree86 DGA extension.\n"
 msgstr "Pas d'extension XFree86 DGA.\n"
 
@@ -1016,7 +1016,7 @@ msgstr "Ch. Bas"
 msgid "Switch to lower channel"
 msgstr "Changer pour la chaîne la plus basse"
 
-#: src/interface.c:702 src/v4linterface.c:630
+#: src/interface.c:702 src/v4linterface.c:631
 msgid "Controls"
 msgstr "Contrôles"
 
@@ -1024,7 +1024,7 @@ msgstr "Contrôles"
 msgid "Change picture controls"
 msgstr "Régler l'image et le son"
 
-#: src/interface.c:709 src/main.c:154 src/tveng.c:1966 src/tveng1.c:749
+#: src/interface.c:709 src/main.c:155 src/tveng.c:1966 src/tveng1.c:751
 #: src/tveng2.c:451 src/tveng25.c:310 src/tvengxv.c:529
 msgid "Mute"
 msgstr "Sourdine"
@@ -1037,7 +1037,7 @@ msgstr "Basculer le son on ou off"
 msgid "Activate Teletext mode"
 msgstr "Activer le mode Télétexte"
 
-#: src/interface.c:722 src/main.c:156
+#: src/interface.c:722 src/main.c:157
 msgid "Subtitles"
 msgstr "Sous-titres"
 
@@ -1069,142 +1069,11 @@ msgstr "Commande"
 msgid "Shortcut"
 msgstr "Raccourcis"
 
-#: src/main.c:155
+#: src/main.c:156
 msgid "Teletext"
 msgstr "Télétexte"
 
-#: src/main.c:216
-msgid "Kernel video device"
-msgstr "Périphérique vidéo du noyau"
-
-#: src/main.c:217
-msgid "FILENAME"
-msgstr "FILENAME"
-
-#: src/main.c:228 src/main.c:246
-msgid "XVideo video input port"
-msgstr "Entrée vidéo XVideo"
-
-#: src/main.c:237
-msgid "XVideo image overlay port"
-msgstr "Interface pour l'overlay image XVideo"
-
-#: src/main.c:255
-msgid "Disable XVideo video input support"
-msgstr "Déactiver le support XVideo pour l'entrée vidéo"
-
-#: src/main.c:264
-msgid "Disable XVideo image overlay support"
-msgstr "Déactiver le support XVideo de l'overlay"
-
-#: src/main.c:273
-msgid "Disable XVideo extension support"
-msgstr "Déactiver le support XVideo"
-
-#: src/main.c:285
-msgid "Disable video overlay"
-msgstr "Déactiver l'overlay vidéo"
-
-#: src/main.c:294
-msgid "X display is remote, disable video overlay"
-msgstr "L'affichage de X est distant, dé-activation de l'overlay vidéo"
-
-#: src/main.c:303
-msgid "Disable VBI support"
-msgstr "Déactiver le support VBI"
-
-#: src/main.c:312
-msgid "Disable plugins"
-msgstr "Déactiver les greffons"
-
-#. TRANSLATORS: --no-zsfb command line option.
-#: src/main.c:326 src/main.c:381 src/main.c:390
-msgid "Obsolete"
-msgstr "Obsolète"
-
-#: src/main.c:335
-msgid "Color depth of the X display"
-msgstr "Nombres de couleurs du display X"
-
-#: src/main.c:336
-msgid "BPP"
-msgstr "BPP"
-
-#: src/main.c:344 src/zapzilla.c:74
-msgid "Print debug messages"
-msgstr "Afficher les messages de déboguage"
-
-#: src/main.c:362
-msgid "Force dword alignment of the overlay window"
-msgstr "Forcer l'alignement en dword pour la fenêtre d'overlay"
-
-#: src/main.c:371
-msgid "Execute the given command and exit"
-msgstr "Exécuter la commande donnée et quitter"
-
-#: src/main.c:372
-msgid "CMD"
-msgstr "CMD"
-
-#: src/main.c:474
-msgid "Sorry, but there is no module support in GLib"
-msgstr "Désolé, mais il n'y a pas le support des modules dans Glib"
-
-#: src/main.c:523
-msgid "Cannot get device info struct"
-msgstr "Impossible d'obtenir les infos du périphérique"
-
-#: src/main.c:532
-msgid "Zapping couldn't be started"
-msgstr "Zapping ne peut pas démarrer"
-
-#: src/main.c:590
-#, c-format
-msgid "Couldn't open %s, try other devices?"
-msgstr "Ne peut ouvrir %s, dois-je essayer un autre périphérique ?"
-
-#: src/main.c:615
-#, c-format
-msgid "%s suceeded, setting it as the new default"
-msgstr "%s avec succès, prendre comme le nouveau défaut"
-
-#: src/main.c:626
-#, c-format
-msgid ""
-"Sorry, but \"%s\" could not be opened:\n"
-"%s"
-msgstr ""
-"Désolé, mais \"%s\" ne peut pas être ouvert :\n"
-"%s"
-
-#: src/main.c:740
-#, c-format
-msgid ""
-"Cannot restore previous mode, will try capture mode:\n"
-"%s"
-msgstr ""
-"Ne peut restaurer le mode précédent, essaie en mode capture :\n"
-"%s"
-
-#: src/main.c:743
-#, c-format
-msgid ""
-"Cannot restore previous mode:\n"
-"%s"
-msgstr ""
-"Ne peut restaurer le mode précédent :\n"
-"%s"
-
-#: src/main.c:748
-#, c-format
-msgid ""
-"Capture mode couldn't be started either:\n"
-"%s"
-msgstr ""
-"La capture ne peut pas être faites soit :\n"
-"%s"
-
-#: src/main.c:761
+#: src/main.c:243 src/main.c:272
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
@@ -1213,7 +1082,138 @@ msgstr ""
 "Le mode capture ne peut être démarré :\n"
 "%s"
 
-#: src/main.c:1042 src/zapzilla.c:165
+#: src/main.c:257
+#, c-format
+msgid ""
+"Cannot restore previous mode, will try capture mode:\n"
+"%s"
+msgstr ""
+"Ne peut restaurer le mode précédent, essaie en mode capture :\n"
+"%s"
+
+#: src/main.c:263
+#, c-format
+msgid ""
+"Capture mode couldn't be started either:\n"
+"%s"
+msgstr ""
+"La capture ne peut pas être faites soit :\n"
+"%s"
+
+#: src/main.c:266
+#, c-format
+msgid ""
+"Cannot restore previous mode:\n"
+"%s"
+msgstr ""
+"Ne peut restaurer le mode précédent :\n"
+"%s"
+
+#: src/main.c:325
+msgid "Kernel video device"
+msgstr "Périphérique vidéo du noyau"
+
+#: src/main.c:326
+msgid "FILENAME"
+msgstr "FILENAME"
+
+#: src/main.c:337 src/main.c:355
+msgid "XVideo video input port"
+msgstr "Entrée vidéo XVideo"
+
+#: src/main.c:346
+msgid "XVideo image overlay port"
+msgstr "Interface pour l'overlay image XVideo"
+
+#: src/main.c:364
+msgid "Disable XVideo video input support"
+msgstr "Déactiver le support XVideo pour l'entrée vidéo"
+
+#: src/main.c:373
+msgid "Disable XVideo image overlay support"
+msgstr "Déactiver le support XVideo de l'overlay"
+
+#: src/main.c:382
+msgid "Disable XVideo extension support"
+msgstr "Déactiver le support XVideo"
+
+#: src/main.c:394
+msgid "Disable video overlay"
+msgstr "Déactiver l'overlay vidéo"
+
+#: src/main.c:403
+msgid "X display is remote, disable video overlay"
+msgstr "L'affichage de X est distant, dé-activation de l'overlay vidéo"
+
+#: src/main.c:412
+msgid "Disable VBI support"
+msgstr "Déactiver le support VBI"
+
+#: src/main.c:421
+msgid "Disable plugins"
+msgstr "Déactiver les greffons"
+
+#. TRANSLATORS: --no-zsfb command line option.
+#: src/main.c:435 src/main.c:490 src/main.c:499
+msgid "Obsolete"
+msgstr "Obsolète"
+
+#: src/main.c:444
+msgid "Color depth of the X display"
+msgstr "Nombres de couleurs du display X"
+
+#: src/main.c:445
+msgid "BPP"
+msgstr "BPP"
+
+#: src/main.c:453 src/zapzilla.c:74
+msgid "Print debug messages"
+msgstr "Afficher les messages de déboguage"
+
+#: src/main.c:471
+msgid "Force dword alignment of the overlay window"
+msgstr "Forcer l'alignement en dword pour la fenêtre d'overlay"
+
+#: src/main.c:480
+msgid "Execute the given command and exit"
+msgstr "Exécuter la commande donnée et quitter"
+
+#: src/main.c:481
+msgid "CMD"
+msgstr "CMD"
+
+#: src/main.c:583
+msgid "Sorry, but there is no module support in GLib"
+msgstr "Désolé, mais il n'y a pas le support des modules dans Glib"
+
+#: src/main.c:632
+msgid "Cannot get device info struct"
+msgstr "Impossible d'obtenir les infos du périphérique"
+
+#: src/main.c:641
+msgid "Zapping couldn't be started"
+msgstr "Zapping ne peut pas démarrer"
+
+#: src/main.c:699
+#, c-format
+msgid "Couldn't open %s, try other devices?"
+msgstr "Ne peut ouvrir %s, dois-je essayer un autre périphérique ?"
+
+#: src/main.c:724
+#, c-format
+msgid "%s suceeded, setting it as the new default"
+msgstr "%s avec succès, prendre comme le nouveau défaut"
+
+#: src/main.c:735
+#, c-format
+msgid ""
+"Sorry, but \"%s\" could not be opened:\n"
+"%s"
+msgstr ""
+"Désolé, mais \"%s\" ne peut pas être ouvert :\n"
+"%s"
+
+#: src/main.c:1070 src/zapzilla.c:165
 #, c-format
 msgid ""
 "ZConf could not be closed properly , your\n"
@@ -1234,7 +1234,7 @@ msgstr ""
 "   - ou, plus sûrement, vous venez de trouver un bogue dans\n"
 "     %s. Contactez l'auteur SVP.\n"
 
-#: src/main.c:1070
+#: src/main.c:1098
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Désolé, Zapping est incapable de créer la configuration par défaut"
 
@@ -1454,7 +1454,7 @@ msgstr "Utiliser la valeur par défaut du bureau (%s)"
 msgid "Do not change"
 msgstr "Ne pas changer"
 
-#: src/properties-handler.c:1167 src/tveng1.c:283 src/tveng2.c:464
+#: src/properties-handler.c:1167 src/tveng1.c:285 src/tveng2.c:464
 #: src/tveng25.c:321
 msgid "Automatic"
 msgstr "Automatique"
@@ -1807,19 +1807,19 @@ msgstr "Filtre"
 msgid "Colorkey"
 msgstr "Colorkey"
 
-#: src/tveng1.c:284 src/tveng2.c:465 src/tveng25.c:322 src/zvbi.c:134
+#: src/tveng1.c:286 src/tveng2.c:465 src/tveng25.c:322 src/zvbi.c:134
 msgid "Mono"
 msgstr "Mono"
 
-#: src/tveng1.c:285 src/tveng2.c:466 src/tveng25.c:323 src/zvbi.c:135
+#: src/tveng1.c:287 src/tveng2.c:466 src/tveng25.c:323 src/zvbi.c:135
 msgid "Stereo"
 msgstr "Stéréo"
 
-#: src/tveng1.c:286 src/tveng2.c:467 src/tveng25.c:324
+#: src/tveng1.c:288 src/tveng2.c:467 src/tveng25.c:324
 msgid "Alternate 1"
 msgstr "Alternate 1"
 
-#: src/tveng1.c:287 src/tveng2.c:468 src/tveng25.c:325
+#: src/tveng1.c:289 src/tveng2.c:468 src/tveng25.c:325
 msgid "Alternate 2"
 msgstr "Alternate 2"
 
@@ -1912,17 +1912,17 @@ msgstr "Loudness"
 msgid "Bass"
 msgstr "Grave"
 
-#: src/tveng2.c:1768 src/tveng25.c:1100
+#: src/tveng2.c:1769 src/tveng25.c:1100
 #, c-format
 msgid "%s doesn't look like a valid capture device"
 msgstr "%s n'est pas un périphérique de capture valide"
 
-#: src/tveng2.c:1779 src/tveng25.c:1112
+#: src/tveng2.c:1780 src/tveng25.c:1112
 #, c-format
 msgid "Sorry, but \"%s\" cannot do streaming"
 msgstr "Désolé, mais \"%s\" ne peu pas faire de streaming"
 
-#: src/tveng2.c:1789
+#: src/tveng2.c:1790
 #, c-format
 msgid "Sorry, but \"%s\" cannot do select() on file descriptors"
 msgstr "Désolé, mais \"%s\" ne peu sélectionné le descripteur de fichier"
@@ -1961,42 +1961,42 @@ msgstr "Balayage double"
 
 #. TRANSLATORS: In controls box, color picker control,
 #. something like "Adjust Chroma-Key" for overlay.
-#: src/v4linterface.c:465
+#: src/v4linterface.c:466
 #, c-format
 msgid "Adjust %s"
 msgstr "Ajuster %s"
 
-#: src/v4linterface.c:1071 src/zmisc.c:1786
+#: src/v4linterface.c:1072 src/zmisc.c:1786
 msgid "Unknown"
 msgstr "Inconnu"
 
-#: src/v4linterface.c:1080 src/v4linterface.c:2015
+#: src/v4linterface.c:1081 src/v4linterface.c:2018
 msgid "Unnamed"
 msgstr "Sans nom"
 
-#: src/v4linterface.c:1089
+#: src/v4linterface.c:1090
 msgid "No input"
 msgstr "Pas d'entrée"
 
-#: src/v4linterface.c:1100
+#: src/v4linterface.c:1101
 msgid "No standard"
 msgstr "Pas de standard"
 
-#: src/v4linterface.c:1916
+#: src/v4linterface.c:1919
 msgid "Video standards"
 msgstr "Standards vidéo"
 
-#: src/v4linterface.c:1933
+#: src/v4linterface.c:1936
 msgid "Audio inputs"
 msgstr "Entrées Audio"
 
-#: src/v4linterface.c:1946
+#: src/v4linterface.c:1949
 msgid "Video inputs"
 msgstr "Entrée vidéo"
 
 #. TRANSLATORS: This is displayed in the channel menu when
 #. the channel list is empty.
-#: src/v4linterface.c:2043
+#: src/v4linterface.c:2046
 msgid "No channels"
 msgstr "Pas de chaîne"
 
