@@ -19,12 +19,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: context.c,v 1.15 2004-08-13 01:22:08 mschimek Exp $ */
+/* $Id: context.c,v 1.16 2005-02-25 18:17:20 mschimek Exp $ */
 
 #include "config.h"
 
 #ifdef HAVE_LARGEFILE64
-#define _LARGEFILE64_SOURCE
+#  define _LARGEFILE64_SOURCE
 #endif
 
 #include "rtepriv.h"
@@ -36,6 +36,10 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <limits.h>
+
+#ifndef INT64_MAX
+#  define INT64_MAX 9223372036854775807LL
+#endif
 
 #define xc context->_class
 
@@ -584,7 +588,7 @@ rte_context_option_get(rte_context *context, const char *keyword,
 /**
  * @param context Initialized rte_context as returned by rte_context_new().
  * @param keyword Keyword identifying the option as in rte_option_info.
- * @param Varargs New value to set.
+ * @param ... New value to set.
  *
  * Sets the value of the option. Make sure you are casting the
  * value to the correct type (int, double, char *).
@@ -624,7 +628,7 @@ rte_context_option_set(rte_context *context, const char *keyword, ...)
 /**
  * @param context Initialized rte_context as returned by rte_context_new().
  * @param keyword Keyword identifying the option as in rte_option_info.
- * @param Varargs Option value.
+ * @param ... Option value.
  *
  * Return a string representation of the option value. When for example
  * the option is a memory size, a value of 2048 may result in a string
@@ -1025,7 +1029,7 @@ new_output_fd(rte_context *context, rte_io_method new_method, int new_fd)
 
 /**
  * @param context Initialized rte_context as returned by rte_context_new().
- * @param file_name File descriptor to write to.
+ * @param fd File descriptor to write to.
  *
  * Sets the output mode for the context and makes the context ready
  * to start encoding. All output of the codec will be written into the
