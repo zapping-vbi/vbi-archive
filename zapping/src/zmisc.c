@@ -45,7 +45,6 @@
 #include "capture.h"
 #include "fullscreen.h"
 #include "v4linterface.h"
-
 #include "zvbi.h"
 #include "osd.h"
 #include "remote.h"
@@ -254,6 +253,8 @@ on_zapping_key_press            (GtkWidget *            widget,
                                  GdkEventKey *          event,
                                  gpointer *             user_data);
 
+#ifdef HAVE_LIBZVBI
+
 static gboolean
 on_key_press                    (GtkWidget *            widget,
                                  GdkEventKey *          event,
@@ -263,6 +264,8 @@ on_key_press                    (GtkWidget *            widget,
           || on_user_key_press (widget, event, NULL)
           || on_picture_size_key_press (widget, event, NULL));
 }
+
+#endif
 
 static gboolean
 on_button_press			(GtkWidget *		widget _unused_,
@@ -2779,7 +2782,7 @@ z_gconf_value_get		(gpointer		result,
       switch (type)
 	{
 	case GCONF_VALUE_STRING:
-	  *((gchar *) result) = gconf_value_get_string (value);
+	  *((gchar **) result) = gconf_value_get_string (value);
 	  break;
 
 	case GCONF_VALUE_INT:

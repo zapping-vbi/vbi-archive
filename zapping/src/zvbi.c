@@ -1460,6 +1460,8 @@ vbi_gui_sensitive		(gboolean		on)
     }
 }
 
+#ifdef HAVE_LIBZVBI
+
 static void
 on_vbi_prefs_changed		(const gchar *		key _unused_,
 				 gboolean *		new_value,
@@ -1562,6 +1564,8 @@ on_vbi_device_changed		(const gchar *		key _unused_,
 	}
     }
 }
+
+#endif /* HAVE_LIBZVBI */
 
 void
 shutdown_zvbi			(void)
