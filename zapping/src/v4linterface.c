@@ -1363,6 +1363,7 @@ static gchar			kp_chsel_buf[8];
 static gint			kp_chsel_prefix;
 static gboolean			kp_clear;
 static gboolean			kp_lirc; /* XXX */
+static gint			kp_timeout_id = -1;
 
 static gint
 channel_txl			(void)
@@ -1406,12 +1407,26 @@ kp_timeout			(gboolean		timer)
 }
 
 static gboolean
+kp_timeout2			(gpointer		user_data)
+{
+  kp_timeout (TRUE);
+
+  kp_timeout_id = -1;
+
+  return FALSE; /* don't call again */
+}
+
+static gboolean
 kp_key_press			(GdkEventKey *		event,
 				 gint			txl)
 {
+  if (kp_timeout_id > 0)
+    g_source_remove (kp_timeout_id);
+
+  kp_timeout_id = -1;
+
   switch (event->keyval)
     {
-#ifdef HAVE_LIBZVBI /* FIXME */
     case GDK_KP_0 ... GDK_KP_9:
       {
 	tveng_tuned_channel *tc;
@@ -1459,9 +1474,14 @@ kp_key_press			(GdkEventKey *		event,
 	  }
 
 	kp_clear = FALSE;
+#ifdef HAVE_LIBZVBI
 	osd_render_markup (kp_timeout,
 			   ("<span foreground=\"green\">%s</span>"),
 			   kp_chsel_buf);
+#else
+	kp_timeout_id =
+	  g_timeout_add (1500, (GSourceFunc) kp_timeout2, NULL);
+#endif
 	kp_clear = TRUE;
 
 	if (txl == 0)
@@ -1516,10 +1536,15 @@ kp_key_press			(GdkEventKey *		event,
 	}
 
       kp_clear = TRUE;
+#ifdef HAVE_LIBZVBI /* FIXME should no rely on OSD clear time */
       osd_render_markup (kp_timeout,
 			 "<span foreground=\"black\">/</span>");
+#else
+      kp_timeout_id =
+	g_timeout_add (1500, (GSourceFunc) kp_timeout2, NULL);
+#endif
       return TRUE;
-
+ 
     case GDK_KP_Enter:
       kp_enter (txl);
 
@@ -1527,7 +1552,6 @@ kp_key_press			(GdkEventKey *		event,
       kp_chsel_prefix = 0;
 
       return TRUE;
-#endif
 
     default:
       break;
