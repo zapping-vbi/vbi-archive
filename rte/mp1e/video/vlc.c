@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vlc.c,v 1.3 2001-10-07 10:55:51 mschimek Exp $ */
+/* $Id: vlc.c,v 1.4 2002-06-12 04:00:17 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -31,277 +31,11 @@
 // XXX
 int			dc_dct_pred[2][3];
 
-/*
- *  Tables
- */
-
-VLC2	mp1e_coded_block_pattern[64]		align(CACHE_LINE);
-VLC2	mp1e_macroblock_address_increment[33]	align(CACHE_LINE);
-VLCM	mp1e_motion_vector_component[480]	align(CACHE_LINE);
-
-/*
- *  ISO/IEC 13818-2 Table B-2
- *  Variable length codes for macroblock_type in I-pictures
- *
- *  '1' Intra
- *  '01 xxxxx' Intra, Quant
- */
-
-/*
- *  ISO/IEC 13818-2 Table B-3
- *  Variable length codes for macroblock_type in P-pictures
- *
- *  '1' MC, Coded
- *  '01' No MC, Coded
- *  '001' MC, Not Coded
- *  '0001 1' Intra
- *  '0001 0' MC, Coded, Quant
- *  '0000 1' No MC, Coded, Quant
- *  '0000 01' Intra, Quant
- */
-
-/*
- *  ISO/IEC 13818-2 Table B-4
- *  Variable length codes for macroblock_type in B-pictures
- */
-VLC4
-mp1e_macroblock_type_b_nomc_quant[4] align(16) =
-{
-	{ 0x0020, 11, 0 }, /* '0000 01 xxxxx' (Intra, Quant) */
-	{ 0x0183, 13, 2 }, /* '0000 11 xxxxx 11' (Fwd, Coded, Quant, MV (0, 0)) */
-	{ 0x0103, 13, 2 }, /* '0000 10 xxxxx 11' (Bwd, Coded, Quant, MV (0, 0)) */
-	{ 0x040F, 14, 4 }  /* '0001 0 xxxxx 11 11' (Interp, Coded, Quant, */
-			   /*                       FMV (0, 0), BMV (0, 0)) */
-};
-
-VLC2
-mp1e_macroblock_type_b_nomc[4] align(8) =
-{
-	{ 0x03, 5 }, /* '0001 1' (Intra) */
-	{ 0x0F, 6 }, /* '0011  11' (Fwd, Coded, MV (0, 0)) */
-	{ 0x0F, 5 }, /* '011  11' (Bwd, Coded, MV (0, 0)) */
-	{ 0x3F, 6 }, /* '11  11 11' (Interp, Coded, FMV (0, 0), BMV (0, 0)) */
-};
-
-VLC2
-mp1e_macroblock_type_b_nomc_notc[4] align(8) =
-{
-	{ 0, 0 },    /* Intra always coded */
-	{ 0x0B, 6 }, /* '0010  11' (Fwd, Not Coded, MV (0, 0)) */
-	{ 0x0B, 5 }, /* '010  11' (Bwd, Not Coded, MV (0, 0)) */
-	{ 0x2F, 6 }, /* '10  11 11' (Interp, Not Coded, FMV (0, 0), BMV (0, 0)) */
-};
-
-VLC2
-mp1e_macroblock_type_b_quant[4] align(8) =
-{
-	{ 0x020, 11 }, /* '0000 01 xxxxx' (Intra, Quant) */
-	{ 0x060, 11 }, /* '0000 11 xxxxx' (Fwd, Coded, Quant) */
-	{ 0x040, 11 }, /* '0000 10 xxxxx' (Bwd, Coded, Quant) */
-	{ 0x040, 10 }  /* '0001 0 xxxxx' (Interp, Coded, Quant) */
-};
-
-#if 0
-
-/* Systematic VLCs */
-
-VLC2
-mp1e_macroblock_type_b[4] align(8) =
-{
-	{ 0x03, 5 }, /* '0001 1' (Intra) */
-	{ 0x03, 4 }, /* '0011' (Fwd, Coded) */
-	{ 0x03, 3 }, /* '011' (Bwd, Coded) */
-	{ 0x03, 2 }, /* '11' (Interp, Coded) */
-};
-
-VLC2
-mp1e_macroblock_type_b_notc[4] align(8) =
-{
-	{ 0, 0 },    /* Intra always coded */
-	{ 0x02, 4 }, /* '0010' (Fwd, Not Coded) */
-	{ 0x02, 3 }, /* '010' (Bwd, Not Coded) */
-	{ 0x02, 2 }, /* '10' (Interp, Not Coded) */
-};
-
-#endif
-
-unsigned char	mp1e_iscan[8][8]		align(CACHE_LINE);
-
-VLC8		mp1e_dc_vlc_intra[5][12]	align(CACHE_LINE);
-VLC2		mp1e_ac_vlc_zero[176]		align(CACHE_LINE);
-VLC2		mp1e_ac_vlc_one[176]		align(CACHE_LINE);
+#include "vlc_tables.h"
 
 // XXX
 extern short		mblock[7][6][8][8];
 extern struct bs_rec	video_out;
-extern const char 	cbp_order[6];
-
-void
-mp1e_vlc_init(void)
-{
-	int i, j;
-	unsigned int code;
-	int dct_dc_size;
-	int run, level, length;
-	int f_code;
-
-	/* Variable length codes for macroblock address increment */
-
-	for (i = 0; i < 33; i++) {
-		mp1e_macroblock_address_increment[i].length =
-			mp1e_vlc(macroblock_address_increment_vlc[i], &code);
-		mp1e_macroblock_address_increment[i].code = code;
-		assert(code <= UCHAR_MAX);
-	}
-
-	/* Variable length codes for coded block pattern */
-
-	for (i = 0; i < 64; i++) {
-		int j, k;
-
-		for (j = k = 0; k < 6; k++)
-			if (i & (1 << k))
-				j |= 0x20 >> cbp_order[k]; /* (5 - k) */
-
-		mp1e_coded_block_pattern[i].length =
-			mp1e_vlc(coded_block_pattern_vlc[j], &code);
-
-		mp1e_coded_block_pattern[i].code = code;
-		assert(code <= UCHAR_MAX);
-	}
-
-	/* Variable length codes for motion vector component */
-
-	for (f_code = F_CODE_MIN; f_code <= F_CODE_MAX; f_code++) {
-		int r_size = f_code - 1;
-		int f1 = (1 << r_size) - 1;
-
-		for (i = 0; i < 16 << f_code; i++) {
-			int motion_code, motion_residual;
-			int delta = (i < (16 << r_size)) ? i : i - (16 << f_code);
-
-			motion_code = (abs(delta) + f1) >> r_size;
-			motion_residual = (abs(delta) + f1) & f1;
-
-			length = mp1e_vlc(motion_code_vlc[motion_code], &code);
-
-			if (motion_code != 0) {
-				code = code * 2 + (delta < 0); /* sign */
-				length++;
-			}
-
-			if (f_code > 1 && motion_code != 0) {
-				code = (code << r_size) + motion_residual;
-				length += r_size;
-			}
-
-			assert(code < (1 << 12) && length < 16);
-
-			mp1e_motion_vector_component[f1 * 32 + i].code = code;
-			mp1e_motion_vector_component[f1 * 32 + i].length = length;
-#if 0
-			fprintf(stderr, "MV %02x %-2d ", i, delta);
-
-			for (j = length - 1; j >= 0; j--)
-				fprintf(stderr, "%d", (code & (1 << j)) > 0);
-
-			fprintf(stderr, "\n");
-#endif
-		}
-	}
-
-	/* Variable length codes for intra DC coefficient */
-
-	for (dct_dc_size = 0; dct_dc_size < 12; dct_dc_size++) {
-		/* Intra DC luma VLC */
-		mp1e_dc_vlc_intra[0][dct_dc_size].length =
-			mp1e_vlc(dct_dc_size_luma_vlc[dct_dc_size], &code)
-			+ dct_dc_size;
-		mp1e_dc_vlc_intra[0][dct_dc_size].code = code << dct_dc_size;
-
-		/* Intra DC luma VLC with EOB ('10' table B-14) of prev. block */
-		mp1e_dc_vlc_intra[1][dct_dc_size].length =
-			mp1e_vlc(dct_dc_size_luma_vlc[dct_dc_size], &code)
-			+ dct_dc_size + 2;
-		mp1e_dc_vlc_intra[1][dct_dc_size].code =
-			((0x2 << mp1e_vlc(dct_dc_size_luma_vlc[dct_dc_size],
-				     &code)) | code) << dct_dc_size;
-
-		/* Intra DC chroma VLC with EOB of previous block */
-		mp1e_dc_vlc_intra[2][dct_dc_size].length =
-			mp1e_vlc(dct_dc_size_chroma_vlc[dct_dc_size], &code)
-			+ dct_dc_size + 2;
-		mp1e_dc_vlc_intra[2][dct_dc_size].code =
-			((0x2 << mp1e_vlc(dct_dc_size_chroma_vlc[dct_dc_size],
-				     &code)) | code) << dct_dc_size;
-
-		/* Intra DC luma VLC with EOB ('0110' table B-15) of prev. block */
-		mp1e_dc_vlc_intra[3][dct_dc_size].length =
-			mp1e_vlc(dct_dc_size_luma_vlc[dct_dc_size], &code)
-			+ dct_dc_size + 4;
-		mp1e_dc_vlc_intra[3][dct_dc_size].code =
-			((0x6 << mp1e_vlc(dct_dc_size_luma_vlc[dct_dc_size],
-				     &code)) | code) << dct_dc_size;
-
-		/* Intra DC chroma VLC with EOB of previous block */
-		mp1e_dc_vlc_intra[4][dct_dc_size].length =
-			mp1e_vlc(dct_dc_size_chroma_vlc[dct_dc_size], &code)
-			+ dct_dc_size + 4;
-		mp1e_dc_vlc_intra[4][dct_dc_size].code =
-			((0x6 << mp1e_vlc(dct_dc_size_chroma_vlc[dct_dc_size],
-				     &code)) | code) << dct_dc_size;
-	}
-
-	/* Variable length codes for AC coefficients (table B-14) */
-
-	for (i = run = 0; run < 64; run++) {
-		assert(i <= elements(mp1e_ac_vlc_zero));
-
-		mp1e_ac_vlc_zero[j = i++].code = run;
-
-		for (level = 1;
-		     (length = mp1e_dct_coeff_vlc(0, run, level, &code)) > 0;
-		     level++, i++) {
-			assert(i < elements(mp1e_ac_vlc_zero));
-			assert((code << 1) <= UCHAR_MAX);
-
-			mp1e_ac_vlc_zero[i].length = length + 1;
-			mp1e_ac_vlc_zero[i].code = code << 1; /* sign 0 */
-		}
-
-		mp1e_ac_vlc_zero[j].length = i - j;
-	}
-
-	/* Variable length codes for AC coefficients (table B-15) */
-
-	for (i = run = 0; run < 64; run++) {
-		assert(i <= elements(mp1e_ac_vlc_one));
-
-		mp1e_ac_vlc_one[j = i++].code = run;
-
-		for (level = 1;
-		     (length = mp1e_dct_coeff_vlc(1, run, level, &code)) > 0;
-		     level++, i++) {
-			assert(i < elements(mp1e_ac_vlc_one));
-			assert((code << 0) <= UCHAR_MAX);
-
-			mp1e_ac_vlc_one[i].length = length + 1;
-			mp1e_ac_vlc_one[i].code = code << 0;
-			/* no sign (would need 9 bits) */
-		}
-
-		mp1e_ac_vlc_zero[j].length = i - j;
-	}
-
-	/*
-	 *  Forward zig-zag scanning pattern
-	 */
-	for (i = 0; i < 64; i++) {
-		/* iscan[0][63 - scan[0][0][i]] = (i & 7) * 8 + (i >> 3); */
-		mp1e_iscan[0][(scan[0][0][i] - 1) & 63] =
-			(i & 7) * 8 + (i >> 3);
-	}
-}
 
 /* Reference */
 
@@ -312,8 +46,8 @@ mp1e_mpeg1_encode_intra(void)
 {
 	int v;
 
-	int
-	encode_block(short block[8][8], int *dc_pred, VLC8 *dc_vlc)
+	static int
+	encode_block(short block[8][8], int *dc_pred, const VLC8 *dc_vlc)
 	{
 		/* DC coefficient */
 
@@ -327,9 +61,9 @@ mp1e_mpeg1_encode_intra(void)
 				" bsrl		%1,%0\n"
 				" jnz		1f\n"
 				" movl		$-1,%0\n"
-		    	        "1:\n"
+				"1:\n"
 				" incl		%0\n"
-			: "=&r" (size) : "r" (abs(val)));
+				: "=&r" (size) : "r" (abs(val)));
 
 			if (val < 0) {
 				val--;
@@ -344,45 +78,46 @@ mp1e_mpeg1_encode_intra(void)
 		/* AC coefficients */
 
 		{
-			VLC2 *p = ac_vlc_zero;
+			const VLC2 *q = mp1e_ac_vlc_zero;
 			int i;
 
 			for (i = 1; i < 64; i++) {
-	    			int ulevel, slevel = block[0][iscan[0][(i - 1) & 63]];
+				int ulevel, slevel = block[0][mp1e_iscan[0][(i - 1) & 63]];
 
 				if (slevel) {
 					ulevel = abs(slevel);
 
-		    			if (ulevel < (int) p->length) {
-						p += ulevel;
-						bputl(&video_out, p->code | ((slevel >> 31) & 1), p->length);
+					if (ulevel < (int) q->length) {
+						q += q->code + ulevel;
+						bputl(&video_out, q->code | ((slevel >> 31) & 1), q->length);
 					} else {
-		    				int len;
+						int len, run = q - mp1e_ac_vlc_zero;
 
-		    				if (slevel > 127) {
+						if (slevel > 127) {
 							if (slevel > 255)
 								return 1;
 							/* %000001 escape, 6 bit run, %00000000, slevel & 0xFF */
-							slevel = 0x0400000 | (p->code << 16) | (slevel & 0xFF);
+							slevel = 0x0400000 | (run << 16) | (slevel & 0xFF);
 							len = 28;
 						} else if (slevel < -127) {
 							if (slevel < -255)
 								return 1;
 							/* %000001 escape, 6 bit run, %10000000, slevel (sic) & 0xFF */
-							slevel = 0x0408000 | (p->code << 16) | (slevel & 0xFF);
+							slevel = 0x0408000 | (run << 16) | (slevel & 0xFF);
 							len = 28;
 						} else {
 							/* %000001 escape, 6 bit run, slevel & 0xFF */
-							slevel = (1 << 14) | (p->code << 8) | (slevel & 0xFF);
+							slevel = (1 << 14) | (run << 8) | (slevel & 0xFF);
 							len = 20;
 						}
 
 						bputl(&video_out, slevel, len);
 					}
 
-					p = ac_vlc_zero; /* run = 0 */
-				} else
-					p += p->length; /* run++ */
+					q = mp1e_ac_vlc_zero; /* run = 0 */
+				} else {
+					q++; /* run++ */
+				}
 			}
 		}
 
@@ -393,12 +128,12 @@ mp1e_mpeg1_encode_intra(void)
 	dc_dct_pred[1][1] = dc_dct_pred[0][1];
 	dc_dct_pred[1][2] = dc_dct_pred[0][2];
 
-	v  = encode_block(mblock[1][0], &dc_dct_pred[0][0], dc_vlc_intra[0]);
-	v |= encode_block(mblock[1][2], &dc_dct_pred[0][0], dc_vlc_intra[1]);
-	v |= encode_block(mblock[1][1], &dc_dct_pred[0][0], dc_vlc_intra[1]);
-	v |= encode_block(mblock[1][3], &dc_dct_pred[0][0], dc_vlc_intra[1]);
-	v |= encode_block(mblock[1][4], &dc_dct_pred[0][1], dc_vlc_intra[2]);
-	v |= encode_block(mblock[1][5], &dc_dct_pred[0][2], dc_vlc_intra[2]);
+	v  = encode_block(mblock[1][0], &dc_dct_pred[0][0], mp1e_dc_vlc_intra[0]);
+	v |= encode_block(mblock[1][2], &dc_dct_pred[0][0], mp1e_dc_vlc_intra[1]);
+	v |= encode_block(mblock[1][1], &dc_dct_pred[0][0], mp1e_dc_vlc_intra[1]);
+	v |= encode_block(mblock[1][3], &dc_dct_pred[0][0], mp1e_dc_vlc_intra[1]);
+	v |= encode_block(mblock[1][4], &dc_dct_pred[0][1], mp1e_dc_vlc_intra[2]);
+	v |= encode_block(mblock[1][5], &dc_dct_pred[0][2], mp1e_dc_vlc_intra[2]);
 
 	bputl(&video_out, 0x2, 2); /* EOB '10' (ISO 13818-2 table B-14) */
 
@@ -422,13 +157,13 @@ mp1e_mpeg1_encode_inter(short iblock[6][8][8], unsigned int cbp)
 {
 	int v = 0;
 
-	int
+	static int
 	encode_block(short block[8][8])
 	{
-		VLC2 *p = ac_vlc_zero; /* ISO 13818-2 table B-14 */
-    		int i = 1, len, ulevel, slevel;
+		const VLC2 *p = mp1e_ac_vlc_zero; /* ISO 13818-2 table B-14 */
+    		int i = 1, ulevel, slevel;
 
-		/* DC coefficient */
+		/* AC coefficient 0 */
 
 		ulevel = abs(slevel = block[0][0]);
 
@@ -440,37 +175,39 @@ mp1e_mpeg1_encode_inter(short iblock[6][8][8], unsigned int cbp)
 		/* AC coefficients */
 
 		while (i < 64) {
-	    		if ((slevel = block[0][iscan[0][(i - 1) & 63]])) {
+	    		if ((slevel = block[0][mp1e_iscan[0][(i - 1) & 63]])) {
 				ulevel = abs(slevel);
 
 		    		if (ulevel < (int) p->length) {
-					p += ulevel;
+					p += p->code + ulevel;
 					bputl(&video_out, p->code | ((slevel >> 31) & 1), p->length);
 				} else {
+					int len, run = p - mp1e_ac_vlc_zero;
+
 		    			if (slevel > 127) {
 						if (slevel > 255)
 							return 1;
 						/* %000001 escape, 6 bit run, %00000000, slevel & 0xFF */
-						slevel = 0x0400000 | (p->code << 16) | (slevel & 0xFF);
+						slevel = 0x0400000 | (run << 16) | (slevel & 0xFF);
 						len = 28;
 					} else if (slevel < -127) {
 						if (slevel < -255)
 							return 1;
 						/* %000001 escape, 6 bit run, %10000000, slevel (sic) & 0xFF */
-						slevel = 0x0408000 | (p->code << 16) | (slevel & 0xFF);
+						slevel = 0x0408000 | (run << 16) | (slevel & 0xFF);
 						len = 28;
 					} else {
 						/* %000001 escape, 6 bit run, slevel & 0xFF */
-						slevel = (1 << 14) | (p->code << 8) | (slevel & 0xFF);
+						slevel = (1 << 14) | (run << 8) | (slevel & 0xFF);
 						len = 20;
 					}
 
 					bputl(&video_out, slevel, len);
 				}
 
-				p = ac_vlc_zero; /* run = 0 */
+				p = mp1e_ac_vlc_zero; /* run = 0 */
 			} else
-			        p += p->length; /* run++ */
+			        p++; /* run++ */
 			i++;
 		}
 

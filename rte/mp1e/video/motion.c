@@ -18,19 +18,19 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: motion.c,v 1.9 2002-05-13 05:38:42 mschimek Exp $ */
+/* $Id: motion.c,v 1.10 2002-06-12 04:00:14 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
 
-#include "site_def.h"
+#include "../site_def.h"
 
 #include <stdio.h>
 #include <assert.h>
-#include "common/mmx.h"
-#include "common/math.h"
-#include "common/profile.h"
+#include "../common/mmx.h"
+#include "../common/math.h"
+#include "../common/profile.h"
 #include "video.h"
 #include "motion.h"
 

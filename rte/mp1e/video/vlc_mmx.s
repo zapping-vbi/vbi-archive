@@ -17,7 +17,7 @@
 #  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 
-# $Id: vlc_mmx.s,v 1.3 2001-10-07 10:55:51 mschimek Exp $
+# $Id: vlc_mmx.s,v 1.4 2002-06-12 04:00:17 mschimek Exp $
 
 # int
 # p6_mpeg1_encode_intra(void)
@@ -103,25 +103,27 @@ mp1e_p6_mpeg1_encode_intra:
 
 	.align 16
 
-2:	movswl		(%esi,%ebx,2),%eax;		
-	movzbl		1(%edi),%ecx;
-	testl		%eax,%eax;			
+2:	movswl		(%esi,%ebx,2),%eax;
+	testl		%eax,%eax;
 	jne		3f;
-	movzbl		mp1e_iscan+63(%esp),%ebx;		
+	movzbl		mp1e_iscan+63(%esp),%ebx;
+	addl		$2,%edi;
 	incl		%esp;
-	leal		(%edi,%ecx,2),%edi;
 	jle		2b;
 	movd		%mm6,%esp;
 	ret;
 
-3:	cdq;
+3:	movzbl		1(%edi),%ecx;
+	cdq;
 	xorl		%edx,%eax;
-	subl		%edx,%eax;			
-	cmpl		%ecx,%eax;			
+	subl		%edx,%eax;
+	cmpl		%ecx,%eax;
+	movzbl		(%edi),%ecx;
+	leal		(%eax,%ecx),%ecx;
 	jge		5f;
-	movzbl		(%edi,%eax,2),%ebx;
-	movzbl		1(%edi,%eax,2),%ecx;			
+	movzbl		(%edi,%ecx,2),%ebx;
 	subl		%edx,%ebx;
+	movzbl		1(%edi,%ecx,2),%ecx;
 	addl		%ecx,%ebp;
 4:	movl		$64,%edi;
 	movd		%ebx,%mm2;			
@@ -137,20 +139,20 @@ mp1e_p6_mpeg1_encode_intra:
 	movd		%mm6,%esp;
 	ret;
 
-5:	movzbl		(%edi),%ecx;			
+5:	subl		$mp1e_ac_vlc_zero,%edi;
 	movswl		(%esi,%ebx,2),%edx;		
 	cmpl		$127,%eax;
 	jg		6f;
 	andl		$255,%edx;			
-	sall		$8,%ecx;
-	leal		16384(%ecx,%edx),%ebx;
+	sall		$8-1,%edi;
+	leal		16384(%edi,%edx),%ebx;
 	addl		$20,%ebp;
 	jmp		4b;
 
-6:	sall		$16,%ecx;			
+6:	sall		$16-1,%edi;			
 	andl		$33023,%edx;			
 	cmpl		$255,%eax;			
-	leal		4194304(%ecx,%edx),%ebx;
+	leal		4194304(%edi,%edx),%ebx;
 	addl		$28,%ebp;
 	jle		4b;
 
@@ -266,11 +268,10 @@ mp1e_p6_mpeg1_encode_inter:
 
 3:	movswl		(%esi,%ebp,2),%eax;		
 	testl		%eax,%eax;			
-	movzbl		1(%edi),%ecx;
 	jne		4f;
 	movzbl		mp1e_iscan+63(%esp),%ebp;		
+	addl		$2,%edi;
 	incl		%esp;
-	leal		(%edi,%ecx,2),%edi;		
 	jle		3b;
 
 0:	movl		%ebx,video_out;
@@ -280,14 +281,17 @@ mp1e_p6_mpeg1_encode_inter:
 	movl		$2,%edx;		
 	jmp		mmx_bputl;
 
-4:	cdq;
+4:	movzbl		1(%edi),%ecx;
+	cdq;
 	xorl		%edx,%eax;
 	subl		%edx,%eax;
 	cmpl		%ecx,%eax;			
+	movzbl		(%edi),%ecx;
+	leal		(%eax,%ecx),%ecx;
 	jge		5f;
-	movzbl		(%edi,%eax,2),%ebp;
-	addb		1(%edi,%eax,2),%bl;
+	movzbl		(%edi,%ecx,2),%ebp;
 	subl		%edx,%ebp;
+	addb		1(%edi,%ecx,2),%bl;
 9:	movl		$64,%edi;
 	movd		%ebp,%mm2;
 	subl		%ebx,%edi;
@@ -303,20 +307,20 @@ mp1e_p6_mpeg1_encode_inter:
 
 	.align 16
 
-5:	movswl		(%esi,%ebp,2),%ebp;
-	movzbl		(%edi),%ecx;
+5:	subl		$mp1e_ac_vlc_zero,%edi;
 	cmpl		$127,%eax;
+	movswl		(%esi,%ebp,2),%ebp;
 	jg		6f;
-	sall		$8,%ecx;
+	sall		$8-1,%edi;
 	andl		$255,%ebp;			
-	leal		16384(%ecx,%ebp),%ebp;		
+	leal		16384(%edi,%ebp),%ebp;		
 	addb		$20,%bl;
 	jmp		9b;
 
-6:	cmpl		$255,%eax;
-	sall		$16,%ecx;			
+6:	sall		$16-1,%edi;
+	cmpl		$255,%eax;			
 	andl		$33023,%ebp;			
-	leal		4194304(%ecx,%ebp),%ebp;	
+	leal		4194304(%edi,%ebp),%ebp;	
 	addb		$28,%bl;
 	jle		9b;
 

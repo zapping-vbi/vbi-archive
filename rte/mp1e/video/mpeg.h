@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.h,v 1.5 2002-02-08 15:03:11 mschimek Exp $ */
+/* $Id: mpeg.h,v 1.6 2002-06-12 04:00:15 mschimek Exp $ */
 
 #ifndef MPEG_H
 #define MPEG_H
@@ -63,13 +63,7 @@ extern const double frame_rate_value[16];
 extern const double aspect_ratio_value[16];
 extern const unsigned char default_intra_quant_matrix[8][8];
 extern const unsigned char default_inter_quant_matrix[8][8];
-extern const unsigned char scan[2][8][8];
 extern const unsigned char quantiser_scale[2][32];
-extern const unsigned long long macroblock_address_increment_vlc[33];
-extern const unsigned long long coded_block_pattern_vlc[64];
-extern const unsigned long long motion_code_vlc[17];
-extern const unsigned long long dct_dc_size_luma_vlc[12];
-extern const unsigned long long dct_dc_size_chroma_vlc[12];
 
 extern int mp1e_vlc(unsigned long long, unsigned int *);
 extern int mp1e_dct_coeff_vlc(int table, int run, int level, unsigned int *);
