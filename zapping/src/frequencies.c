@@ -731,7 +731,7 @@ tv_rf_channel_next		(tv_rf_channel *	ch)
 
 	r = ch->_range;
 
-	if ((r->first + ch->_channel + 1) >= (r->last)) {
+	if ((r->first + ch->_channel + 1) > (r->last)) {
 		++r;
 
 		if (IS_RANGE_END (r))
