@@ -276,7 +276,7 @@ set_audio_capability		(struct private_tveng25_device_info *p_info)
 	if (p_info->info.audio_capability != cap) {
 		p_info->info.audio_capability = cap;
 		tv_callback_notify (&p_info->info, &p_info->info,
-				    p_info->info.priv->audio_callback);
+				    p_info->info.audio_callback);
 	}
 }
 
@@ -303,7 +303,7 @@ set_audio_reception		(struct private_tveng25_device_info *p_info,
 		p_info->info.audio_reception[1] = rec[1];
 
 		tv_callback_notify (&p_info->info, &p_info->info,
-				    p_info->info.priv->audio_callback);
+				    p_info->info.audio_callback);
 	}
 }
 
@@ -370,7 +370,7 @@ set_audio_mode			(tveng_device_info *	info,
 	if (info->audio_mode != mode) {
 		info->audio_mode = mode;
 		tv_callback_notify (&p_info->info, &p_info->info,
-				    p_info->info.priv->audio_callback);
+				    p_info->info.audio_callback);
 	}
 
 	return TRUE;
@@ -693,7 +693,7 @@ set_video_standard		(tveng_device_info *	info,
 			return TRUE;
 	}
 
-  pixfmt = info->capture_format.pixfmt;
+  pixfmt = info->capture.format.pixfmt;
   current_mode = p_tveng_stop_everything(info, &overlay_was_active);
 
 	videostd_set = s->videostd_set;
@@ -706,8 +706,8 @@ set_video_standard		(tveng_device_info *	info,
 	}
 
 /* XXX bad idea */
-  info->capture_format.pixfmt = pixfmt;
-  p_tveng_set_capture_format(info);
+  info->capture.format.pixfmt = pixfmt;
+  p_tv_set_capture_format(info, &info->capture.format);
   p_tveng_restart_everything(current_mode, overlay_was_active, info);
 
   return (0 == r);
@@ -842,7 +842,7 @@ set_tuner_frequency		(tveng_device_info *	info,
 			struct v4l2_buffer buffer;
 
 			tv_clear_image (p_info->buffers[i].vmem, 0,
-					&info->capture_format);
+					&info->capture.format);
 
 			CLEAR (buffer);
 			buffer.type = p_info->buffers[i].vidbuf.type;
@@ -888,7 +888,7 @@ get_video_input			(tveng_device_info *	info)
 	}
 
 	info->cur_video_input = l;
-	tv_callback_notify (info, info, info->priv->video_input_callback);
+	tv_callback_notify (info, info, info->video_input_callback);
 
 	if (l) {
 		/* Implies get_video_standard() and set_audio_capability(). */
@@ -915,7 +915,7 @@ set_video_input			(tveng_device_info *	info,
 				return TRUE;
 	}
 
-	pixfmt = info->capture_format.pixfmt;
+	pixfmt = info->capture.format.pixfmt;
 	capture_mode = p_tveng_stop_everything(info, &overlay_was_active);
 
 	index = CVI (l)->index;
@@ -933,8 +933,8 @@ set_video_input			(tveng_device_info *	info,
 		set_audio_mode (info, info->audio_mode);
 	}
 
-	info->capture_format.pixfmt = pixfmt;
-	p_tveng_set_capture_format(info);
+	info->capture.format.pixfmt = pixfmt;
+	p_tv_set_capture_format(info, &info->capture.format);
 
 	/* XXX Start capturing again as if nothing had happened */
 	p_tveng_restart_everything (capture_mode, overlay_was_active, info);
@@ -1071,26 +1071,26 @@ get_overlay_buffer		(tveng_device_info *	info)
 
 	/* XXX fb.capability, fb.flags ignored */
 
-	CLEAR (info->overlay_buffer);
+	CLEAR (info->overlay.buffer);
 
-	info->overlay_buffer.format.pixfmt =
+	info->overlay.buffer.format.pixfmt =
 		pixelformat_to_pixfmt (fb.fmt.pixelformat);
 
-	if (TV_PIXFMT_UNKNOWN == info->overlay_buffer.format.pixfmt)
+	if (TV_PIXFMT_UNKNOWN == info->overlay.buffer.format.pixfmt)
 		return TRUE;
 
-	info->overlay_buffer.base = (unsigned long) fb.base;
+	info->overlay.buffer.base = (unsigned long) fb.base;
 
-	info->overlay_buffer.format.width		= fb.fmt.width;
-	info->overlay_buffer.format.height		= fb.fmt.height;
+	info->overlay.buffer.format.width		= fb.fmt.width;
+	info->overlay.buffer.format.height		= fb.fmt.height;
 
-	info->overlay_buffer.format.bytes_per_line	= fb.fmt.bytesperline;
+	info->overlay.buffer.format.bytes_per_line	= fb.fmt.bytesperline;
 
 	if (0 == fb.fmt.sizeimage) {
-		info->overlay_buffer.format.size =
+		info->overlay.buffer.format.size =
 			fb.fmt.bytesperline * fb.fmt.height;
 	} else {
-		info->overlay_buffer.format.size = fb.fmt.sizeimage;
+		info->overlay.buffer.format.size = fb.fmt.sizeimage;
 	}
 
 	return TRUE;
@@ -1110,10 +1110,10 @@ get_overlay_window		(tveng_device_info *	info)
 	if (-1 == v4l25_ioctl (info, VIDIOC_G_FMT, &format))
 		return FALSE;
 
-	info->overlay_window.x		= format.fmt.win.w.left;
-	info->overlay_window.y		= format.fmt.win.w.top;
-	info->overlay_window.width	= format.fmt.win.w.width;
-	info->overlay_window.height	= format.fmt.win.w.height;
+	info->overlay.window.x		= format.fmt.win.w.left;
+	info->overlay.window.y		= format.fmt.win.w.top;
+	info->overlay.window.width	= format.fmt.win.w.width;
+	info->overlay.window.height	= format.fmt.win.w.height;
 
 	/* Clips cannot be read back, we assume no change. */
 
@@ -1121,7 +1121,7 @@ get_overlay_window		(tveng_device_info *	info)
 }
 
 static tv_bool
-set_overlay_window		(tveng_device_info *	info,
+set_overlay_window_clipvec	(tveng_device_info *	info,
 				 const tv_window *	w,
 				 const tv_clip_vector *	v)
 {
@@ -1163,8 +1163,8 @@ set_overlay_window		(tveng_device_info *	info,
 
 	format.type			= V4L2_BUF_TYPE_VIDEO_OVERLAY;
 
-	format.fmt.win.w.left		= w->x - info->overlay_buffer.x;
-	format.fmt.win.w.top		= w->y - info->overlay_buffer.y;
+	format.fmt.win.w.left		= w->x - info->overlay.buffer.x;
+	format.fmt.win.w.top		= w->y - info->overlay.buffer.y;
 
 	format.fmt.win.w.width		= w->width;
 	format.fmt.win.w.height		= w->height;
@@ -1183,10 +1183,10 @@ set_overlay_window		(tveng_device_info *	info,
 
 	/* Actual window size. */
 
-	info->overlay_window.x		= format.fmt.win.w.left;
-	info->overlay_window.y		= format.fmt.win.w.top;
-	info->overlay_window.width	= format.fmt.win.w.width;
-	info->overlay_window.height	= format.fmt.win.w.height;
+	info->overlay.window.x		= format.fmt.win.w.left;
+	info->overlay.window.y		= format.fmt.win.w.top;
+	info->overlay.window.width	= format.fmt.win.w.width;
+	info->overlay.window.height	= format.fmt.win.w.height;
 
 	return TRUE;
 }
@@ -1206,26 +1206,31 @@ enable_overlay			(tveng_device_info *	info,
 }
 
 
-static void
-tveng25_set_chromakey		(uint32_t chroma, tveng_device_info *info)
+static tv_bool
+set_overlay_window_chromakey	(tveng_device_info *	info,
+				 const tv_window *	window,
+				 unsigned int		chromakey)
 {
   struct private_tveng25_device_info * p_info =
     (struct private_tveng25_device_info*) info;
+  tv_clip_vector vec;
 
-  p_info->chroma = chroma;
+  p_info->chroma = chromakey;
 
-  /* Will be set in the next set_window call */
+  CLEAR (vec);
+
+  return set_overlay_window_clipvec (info, window, &vec);
 }
 
-static int
-tveng25_get_chromakey		(uint32_t *chroma, tveng_device_info *info)
+static tv_bool
+get_overlay_chromakey		(tveng_device_info *	info)
 {
   struct private_tveng25_device_info * p_info =
     (struct private_tveng25_device_info*) info;
 
-  *chroma = p_info->chroma;
+  info->overlay.chromakey = p_info->chroma;
 
-  return 0;
+  return TRUE;
 }
 
 /*
@@ -1256,10 +1261,10 @@ image_format_from_format	(tv_image_format *	f,
 			      vfmt->fmt.pix.height,
 			      bytes_per_line,
 			      pixfmt,
-			      0);
+			      TV_COLOR_SPACE_UNKNOWN);
 
 	/* bttv 0.9.5 bug: */
-	/* assert (f->fmt.pix.sizeimage >= info->capture_format.size); */
+	/* assert (f->fmt.pix.sizeimage >= info->capture.format.size); */
 
 	if (vfmt->fmt.pix.sizeimage > f->size)
 		f->size = vfmt->fmt.pix.sizeimage;
@@ -1280,14 +1285,14 @@ get_capture_format		(tveng_device_info *	info)
 		return FALSE;
 
 	/* Error ignored. */
-	image_format_from_format (&info->capture_format, &format);
+	image_format_from_format (&info->capture.format, &format);
 
 	return TRUE;
 }
 
 static tv_bool
 set_capture_format		(tveng_device_info *	info,
-				 const tv_image_format *f)
+				 const tv_image_format *fmt)
 {
 	struct v4l2_format format;
 
@@ -1296,17 +1301,17 @@ set_capture_format		(tveng_device_info *	info,
 	format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
 	/* bttv 0.9.14 YUV 4:2:0: see BUGS. */
-	format.fmt.pix.pixelformat = pixfmt_to_pixelformat (f->pixfmt);
+	format.fmt.pix.pixelformat = pixfmt_to_pixelformat (fmt->pixfmt);
 
 	if (0 == format.fmt.pix.pixelformat) {
 		info->tveng_errno = -1; /* unknown */
 		t_error_msg ("", "Bad pixfmt %u %s", info,
-			     f->pixfmt, tv_pixfmt_name (f->pixfmt));
+			     fmt->pixfmt, tv_pixfmt_name (fmt->pixfmt));
 		return FALSE;
 	}
 
-	format.fmt.pix.width		= f->width;
-	format.fmt.pix.height		= f->height;
+	format.fmt.pix.width		= fmt->width;
+	format.fmt.pix.height		= fmt->height;
 
 	format.fmt.pix.bytesperline	= 0; /* minimum please */
 	format.fmt.pix.sizeimage	= 0; /* ditto */
@@ -1322,7 +1327,7 @@ set_capture_format		(tveng_device_info *	info,
 	/* Actual image size. */
 
 	/* Error ignored. */
-	image_format_from_format (&info->capture_format, &format);
+	image_format_from_format (&info->capture.format, &format);
 
 	return TRUE;
 }
@@ -1379,7 +1384,7 @@ get_supported_pixfmt_set	(tveng_device_info *	info)
 			continue;
 
 		/* Error ignored. */
-		image_format_from_format (&info->capture_format, &format);
+		image_format_from_format (&info->capture.format, &format);
 
 		pixfmt_set |= TV_PIXFMT_SET (pixfmt);
 	}
@@ -1554,43 +1559,6 @@ static void tveng25_close_device(tveng_device_info * info)
   in case of error, so any value != -1 should be considered valid
   (unless explicitly stated in the description of the function) 
 */
-
-static int
-tveng25_update_capture_format(tveng_device_info * info)
-{
-	return get_capture_format (info) ? 0 : -1;
-}
-
-
-static int
-tveng25_set_capture_format(tveng_device_info * info)
-{
-  capture_mode capture_mode;
-  gboolean overlay_was_active;
-  tv_pixfmt pixfmt;
-  int result;
-
-  pixfmt = info->capture_format.pixfmt;
-  capture_mode = p_tveng_stop_everything(info, &overlay_was_active);
-  info->capture_format.pixfmt = pixfmt;
-
-  result = set_capture_format(info, &info->capture_format) ? 0 : -1;
-
-  /* Start capturing again as if nothing had happened */
-  p_tveng_restart_everything(capture_mode, overlay_was_active, info);
-
-  return result;
-}
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1823,7 +1791,7 @@ tveng25_start_capturing(tveng_device_info * info)
 	}
 
       tv_clear_image (p_info->buffers[i].vmem, 0,
-		      &info->capture_format);
+		      &info->capture.format);
 
 	/* Queue the buffer */
       if (p_tveng25_qbuf(i, info) == -1)
@@ -2127,27 +2095,42 @@ int tveng25_attach_device(const char* device_file,
 
 	/* Overlay */
 
+	CLEAR (info->overlay);
+
 	if (info->caps.flags & TVENG_CAPS_OVERLAY) {
+		info->overlay.get_buffer = get_overlay_buffer;
+		info->overlay.set_window_clipvec =
+			set_overlay_window_clipvec;
+		info->overlay.get_window = get_overlay_window;
+		info->overlay.set_window_chromakey =
+			set_overlay_window_chromakey;
+		info->overlay.get_chromakey = get_overlay_chromakey;
+		info->overlay.enable = enable_overlay;
+
 		if (!get_overlay_buffer (info))
 			goto failure;
 
 		if (!get_overlay_window (info))
 			goto failure;
-	} else {
-		CLEAR (info->overlay_buffer);
-		CLEAR (info->overlay_window);
 	}
 
 	/* Capture */
 
+	CLEAR (info->capture);
+
 	if (info->caps.flags & TVENG_CAPS_CAPTURE) {
+		info->capture.get_format = get_capture_format;
+		info->capture.set_format = set_capture_format;
+		info->capture.start_capturing = tveng25_start_capturing;
+		info->capture.stop_capturing = tveng25_stop_capturing;
+		info->capture.read_frame = tveng25_read_frame;
+		info->capture.get_timestamp = tveng25_get_timestamp;
+
 		if (!get_capture_format (info))
 			goto failure;
 
-		info->supported_pixfmt_set = get_supported_pixfmt_set (info);
-	} else {
-		CLEAR (info->capture_format);
-		info->supported_pixfmt_set = TV_PIXFMT_SET_EMPTY;
+		info->capture.supported_pixfmt_set =
+			get_supported_pixfmt_set (info);
 	}
 
   /* Init the private info struct */
@@ -2176,21 +2159,8 @@ static struct tveng_module_info tveng25_module_info = {
   .get_control			= get_control,
   .set_audio_mode		= set_audio_mode,
 
-  .update_capture_format =	tveng25_update_capture_format,
-  .set_capture_format =		tveng25_set_capture_format,
-  .get_signal_strength =	tveng25_get_signal_strength,
-  .start_capturing =		tveng25_start_capturing,
-  .stop_capturing =		tveng25_stop_capturing,
-  .read_frame =			tveng25_read_frame,
-  .get_timestamp =		tveng25_get_timestamp,
+  .get_signal_strength = tveng25_get_signal_strength,
 
-  .get_overlay_buffer		= get_overlay_buffer,
-  .set_overlay_window		= set_overlay_window,
-  .get_overlay_window		= get_overlay_window,
-  .enable_overlay		= enable_overlay,
-
-  .get_chromakey =		tveng25_get_chromakey,
-  .set_chromakey =		tveng25_set_chromakey,
 
   .private_size =		sizeof(struct private_tveng25_device_info)
 };
