@@ -59,7 +59,7 @@
  */
 #include <linux/types.h> /* __u32 etc */
 #include "common/videodev25.h"
-#include "common/fprintf_videodev25.h"
+#include "common/_videodev25.h"
 
 #define v4l25_ioctl(info, cmd, arg)					\
 (IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
@@ -696,7 +696,10 @@ set_tuner_frequency		(tveng_device_info *	info,
 			tv_clear_image (p_info->buffers[i].vmem, 0,
 					&info->format);
 
+			CLEAR (buffer);
+
 			buffer.type = p_info->buffers[i].vidbuf.type;
+			buffer.memory = V4L2_MEMORY_MMAP;
 			buffer.index = i;
 
 			if (-1 == v4l25_ioctl (info, VIDIOC_QBUF, &buffer)) {
@@ -1408,15 +1411,23 @@ tveng25_update_capture_format(tveng_device_info * info)
       return -1;    
   }
 
+  /* bttv 0.9.12 bug: returns bpl = width * bpp, w/bpp > 1 if planar YUV */
+  format.fmt.pix.bytesperline =
+    format.fmt.pix.width * tv_pixfmt_bytes_per_pixel (info->format.pixfmt);
+
   tv_image_format_init (&info->format,
 			format.fmt.pix.width,
 			format.fmt.pix.height,
 			format.fmt.pix.bytesperline,
 			info->format.pixfmt, 0);
 
+  assert (format.fmt.pix.sizeimage >= info->format.size);
+
   if (format.fmt.pix.sizeimage > info->format.size)
 	  info->format.size = format.fmt.pix.sizeimage;
 
+
+#if 1
   CLEAR (format);
 
   format.type = V4L2_BUF_TYPE_VIDEO_OVERLAY;
@@ -1432,7 +1443,7 @@ tveng25_update_capture_format(tveng_device_info * info)
   info->overlay_window.clip_vector.vector = NULL;
   info->overlay_window.clip_vector.size = 0;
   info->overlay_window.clip_vector.capacity = 0;
-
+#endif
   return 0;
 }
 
@@ -1596,7 +1607,10 @@ static int p_tveng25_qbuf(int index, tveng_device_info * info)
 
   t_assert(info != NULL);
 
+  CLEAR (tmp_buffer);
+
   tmp_buffer.type = p_info -> buffers[0].vidbuf.type;
+  tmp_buffer.memory = V4L2_MEMORY_MMAP;
   tmp_buffer.index = index;
 
   if (-1 == v4l25_ioctl (info, VIDIOC_QBUF, &tmp_buffer))
@@ -1614,7 +1628,10 @@ static int p_tveng25_dqbuf(tveng_device_info * info)
   
   t_assert(info != NULL);
 
+  CLEAR (tmp_buffer);
+
   tmp_buffer.type = p_info -> buffers[0].vidbuf.type;
+  tmp_buffer.memory = V4L2_MEMORY_MMAP;
 
   /* NB this blocks */
   if (-1 == v4l25_ioctl (info, VIDIOC_DQBUF, &tmp_buffer))
@@ -1671,8 +1688,11 @@ tveng25_start_capturing(tveng_device_info * info)
 
   for (i = 0; i < rb.count; i++)
     {
+      CLEAR (p_info->buffers[i].vidbuf.index);
+
       p_info -> buffers[i].vidbuf.index = i;
       p_info -> buffers[i].vidbuf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+      p_info -> buffers[i].vidbuf.memory = V4L2_MEMORY_MMAP;
 
       if (-1 == v4l25_ioctl (info, VIDIOC_QUERYBUF,
 			     &p_info->buffers[i].vidbuf))
