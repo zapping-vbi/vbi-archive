@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vt.h,v 1.4.2.6 2004-02-13 02:15:27 mschimek Exp $ */
+/* $Id: vt.h,v 1.4.2.7 2004-02-18 07:53:31 mschimek Exp $ */
 
 #ifndef VT_H
 #define VT_H
@@ -443,17 +443,17 @@ extern void		vbi_teletext_set_default_region(vbi_decoder *vbi, int default_regio
 extern void		vbi_teletext_set_level(vbi_decoder *vbi, int level);
 /** @} */
 
+
 /**
  * @addtogroup Cache
  * @{
  */
 
 typedef enum {
-	VBI_END = 0,
 	/**
 	 * Format only the first row.
 	 */
-	VBI_HEADER_ONLY,
+	VBI_HEADER_ONLY = 0x37138F00,
 	/**
 	 * Add an artificial 41st column. Often column 0 of a page
 	 * contains all black spaces, unlike column 39. This will
@@ -491,15 +491,16 @@ extern const uint8_t *
 vbi_page_drcs_data		(const vbi_page *	pg,
 				 unsigned int		unicode);
 
-extern vbi_page *	vbi_fetch_vt_page(vbi_decoder *vbi,
-		  		vbi_pgno		pgno,
-				vbi_subno		subno,
-					  ...);
 extern vbi_page *
-vbi_fetch_vt_page_va (vbi_decoder *vbi,
-		  		vbi_pgno		pgno,
-				vbi_subno		subno,
-		      va_list ap);
+vbi_fetch_vt_page		(vbi_decoder *		vbi,
+				 vbi_pgno		pgno,
+				 vbi_subno		subno,
+				 ...);
+extern vbi_page *
+vbi_fetch_vt_page_va_list	(vbi_decoder *		vbi,
+				 vbi_pgno		pgno,
+				 vbi_subno		subno,
+				 va_list		format_options);
 
 extern int		vbi_page_title(vbi_decoder *vbi, int pgno, int subno, char *buf);
 /** @} */
