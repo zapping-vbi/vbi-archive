@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.10 2001-10-07 10:55:51 mschimek Exp $ */
+/* $Id: v4l.c,v 1.11 2001-10-16 11:18:18 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -53,7 +53,9 @@ static struct video_mmap	gb_buf;
 static struct video_mbuf	gb_buffers;
 static unsigned char *		video_buf;
 
-static double			cap_time, frame_period;
+static double			cap_time;
+static double			frame_period_near;
+static double			frame_period_far;
 
 #define IOCTL(fd, cmd, data) (TEMP_FAILURE_RETRY(ioctl(fd, cmd, data)))
 
@@ -68,19 +70,20 @@ static double			cap_time, frame_period;
 static inline void
 timestamp(buffer *b)
 {
-	double now, dt, ddt, q;
+	double now = current_time();
 
-	/* FIXME: UNTESTED */
+	if (cap_time > 0) {
+		double dt = now - cap_time;
+		double ddt = frame_period_far - dt;
 
-	now = current_time();
-	dt = now - cap_time;
-	ddt = fabs(dt - frame_period);
-
-	if (cap_time > 0 && ddt < frame_period * 1.5) {
-		q = 128 * ddt / frame_period;
-		frame_period = ddt * MIN(q, 0.999) + dt;
-		b->time = cap_time;
-		cap_time += frame_period;
+		if (frame_period_near < frame_period_far * 1.5) {
+			frame_period_near = (frame_period_near - dt) * 0.8 + dt;
+			frame_period_far = ddt * 0.9999 + dt;
+			b->time = cap_time += frame_period_far;
+		} else {
+			frame_period_near = frame_period_far;
+			b->time = cap_time = now;
+		}
 	} else {
 		b->time = cap_time = now;
 	}
@@ -173,7 +176,7 @@ restore_audio(void)
 			  mode == CM_YUYV_EXP_VERTICAL_DECIMATION)
 
 fifo *
-v4l_init(void)
+v4l_init(double *frame_rate)
 {
 	struct video_capability vcap;
 	int min_cap_buffers = video_look_ahead(gop_sequence);
@@ -243,16 +246,18 @@ v4l_init(void)
 		case VIDEO_MODE_PAL:
 		case VIDEO_MODE_SECAM:
 			printv(2, "Video standard is PAL/SECAM\n");
-			vseg.frame_rate_code = 3;
+//			vseg.frame_rate_code = 3;
 			cap_time = 0;
-			frame_period = 1 / 25.0;
+			frame_period_near =
+			frame_period_far = 1 / 25.0;
 			break;
 
 		case VIDEO_MODE_NTSC:
 			printv(2, "Video standard is NTSC\n");
-			vseg.frame_rate_code = 4;
+//			vseg.frame_rate_code = 4;
 			cap_time = 0;
-			frame_period = 1001 / 30000.0;
+			frame_period_near =
+			frame_period_far = 1001 / 30000.0;
 
 			if (grab_height == 288) /* that's the default, assuming PAL */
 				height = aligned_height = grab_height = 240;
@@ -265,6 +270,8 @@ v4l_init(void)
 			FAIL("Current video standard #%d unknown.\n", vtuner.mode);
 			break;
 		}
+
+		*frame_rate = 1.0 / frame_period_far;
 	}
 
 	if (IOCTL(fd, VIDIOCGMBUF, &gb_buffers) == -1) {

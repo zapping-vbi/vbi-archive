@@ -772,6 +772,41 @@ z_build_path(const gchar *path, gchar **error_description)
   return TRUE;
 }
 
+/* See ttx export for a demo */
+void
+z_on_electric_filename (GtkWidget *w, gpointer user_data)
+{
+  gchar **bpp = (gchar **) user_data;
+  gchar *basename = (gchar *)
+    gtk_object_get_data (GTK_OBJECT (w), "basename");
+  gchar *name = gtk_entry_get_text (GTK_ENTRY (w));
+  gint len, baselen;
+
+  g_assert(basename != NULL);
+  baselen = strlen(basename);
+
+  /* Tack basename on if no name or ends with '/' */
+  if ((len = strlen(name)) == 0 || name[len - 1] == '/')
+    {
+      gtk_entry_append_text (GTK_ENTRY (w), basename);
+      gtk_entry_set_position (GTK_ENTRY (w), len);
+    }
+  /* Cut off basename if not prepended by '/' */
+  else if (len > baselen
+	   && strcmp(&name[len - baselen], basename) == 0
+	   && name[len - baselen - 1] != '/')
+    {
+      name = g_strndup(name, len - baselen);
+      gtk_entry_set_text (GTK_ENTRY (w), name);
+      g_free(name);
+    }
+  else if (bpp)
+    {
+      g_free(*bpp);
+      *bpp = g_strdup(name);
+    }
+}
+
 static void
 set_orientation_recursive	(GtkToolbar	*toolbar,
 				 GtkOrientation orientation)

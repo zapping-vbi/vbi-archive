@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.12 2001-10-08 05:49:43 mschimek Exp $ */
+/* $Id: rte.c,v 1.13 2001-10-16 11:18:10 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -249,6 +249,9 @@ rte_context * rte_context_new (int width, int height,
 {
 	rte_context * context;
 	int priv_bytes=0, i;
+
+fprintf(stderr, "rte out of order\n");
+abort();
 
 	context = malloc(sizeof(rte_context));
 
@@ -620,7 +623,7 @@ int rte_init_context ( rte_context * context )
 	}
 
 	/* Init the backend first */
-	if (!BACKEND->init_context(context))
+	if (!BACKEND->pre_init_context(context))
 		return 0;
 
 	/* create needed fifos */
@@ -693,6 +696,13 @@ int rte_init_context ( rte_context * context )
 		context->private->seek_callback =
 			RTE_SEEK_CALLBACK(default_seek_callback);
 	}
+
+	/*
+	 *  post_init needs initialized fifos
+	 */
+	if (BACKEND->post_init_context
+	    && !BACKEND->post_init_context(context))
+		return 0;
 
 	/* Set up some fields */
 	context->private->last_video_buffer =
@@ -1017,7 +1027,7 @@ void rte_get_status ( rte_context * context,
  * or the index is out of bounds.
  **/
 rte_codec_info *
-rte_enum_codec(rte_context *context, int index)
+rte_codec_enum(rte_context *context, int index)
 {
 	nullcheck(context, return NULL);
 
@@ -1030,7 +1040,7 @@ rte_enum_codec(rte_context *context, int index)
 }
 
 rte_codec *
-rte_get_codec(rte_context *context, rte_stream_type stream_type,
+rte_codec_get(rte_context *context, rte_stream_type stream_type,
 	      int stream_index, char **codec_keyword_p)
 {
 	nullcheck(context, return NULL);
@@ -1072,7 +1082,7 @@ rte_get_codec(rte_context *context, rte_stream_type stream_type,
  * rte_set_mode and vice versa.
  **/
 rte_codec *
-rte_set_codec(rte_context *context, rte_stream_type stream_type,
+rte_codec_set(rte_context *context, rte_stream_type stream_type,
 	      int stream_index, char *codec_keyword)
 {
 	nullcheck(context, return NULL);
@@ -1085,7 +1095,7 @@ rte_set_codec(rte_context *context, rte_stream_type stream_type,
 }
 
 rte_option *
-rte_enum_option(rte_codec *codec, int index)
+rte_option_enum(rte_codec *codec, int index)
 {
 	rte_context *context = NULL;
 
@@ -1099,7 +1109,7 @@ rte_enum_option(rte_codec *codec, int index)
 }
 
 int
-rte_get_option(rte_codec *codec, char *keyword, rte_option_value *v)
+rte_option_get(rte_codec *codec, char *keyword, rte_option_value *v)
 {
 	rte_context *context = NULL;
 
@@ -1113,7 +1123,7 @@ rte_get_option(rte_codec *codec, char *keyword, rte_option_value *v)
 }
 
 int
-rte_set_option(rte_codec *codec, char *keyword, ...)
+rte_option_set(rte_codec *codec, char *keyword, ...)
 {
 	rte_context *context = NULL;
 	va_list args;
@@ -1135,7 +1145,7 @@ rte_set_option(rte_codec *codec, char *keyword, ...)
 }
 
 int
-rte_get_option_menu(rte_codec *codec, char *keyword, int *entry)
+rte_option_get_menu(rte_codec *codec, char *keyword, int *entry)
 {
 	rte_option *option;
 	rte_option_value val;
@@ -1147,13 +1157,13 @@ rte_get_option_menu(rte_codec *codec, char *keyword, int *entry)
 
 	*entry = 0;
 
-	for (i = 0; (option = rte_enum_option(codec, i)); i++)
+	for (i = 0; (option = rte_option_enum(codec, i)); i++)
 		if (strcmp(option->keyword, keyword) == 0)
 			break;
 
 	if (!option
 	    || option->entries == 0
-	    || !rte_get_option(codec, keyword, &val))
+	    || !rte_option_get(codec, keyword, &val))
 		return 0;
 
 	r = 0;
@@ -1195,7 +1205,7 @@ rte_get_option_menu(rte_codec *codec, char *keyword, int *entry)
 }
 
 int
-rte_set_option_menu(rte_codec *codec, char *keyword, int entry)
+rte_option_set_menu(rte_codec *codec, char *keyword, int entry)
 {
 	rte_option *option;
 	int i;
@@ -1203,7 +1213,7 @@ rte_set_option_menu(rte_codec *codec, char *keyword, int entry)
 	nullcheck(codec, return 0);
 	nullcheck(keyword, return 0);
 
-	for (i = 0; (option = rte_enum_option(codec, i)); i++)
+	for (i = 0; (option = rte_option_enum(codec, i)); i++)
 		if (strcmp(option->keyword, keyword) == 0)
 			break;
 	if (!option || entry < 0 || entry >= option->entries)
@@ -1214,22 +1224,22 @@ rte_set_option_menu(rte_codec *codec, char *keyword, int entry)
 	case RTE_OPTION_INT:
 		if (!option->menu.num)
 			return 0;
-		return rte_set_option(codec, keyword,
+		return rte_option_set(codec, keyword,
 				      option->menu.num[entry]);
 	case RTE_OPTION_REAL:
 		if (!option->menu.dbl)
 			return 0;
-		return rte_set_option(codec, keyword,
+		return rte_option_set(codec, keyword,
 				      option->menu.dbl[entry]);
 	case RTE_OPTION_STRING:
 		if (!option->menu.str)
 			return 0;
-		return rte_set_option(codec, keyword,
+		return rte_option_set(codec, keyword,
 				      option->menu.str[entry]);
 	case RTE_OPTION_MENU:
 		if (!option->menu.str)
 			return 0;
-		return rte_set_option(codec, keyword, entry);
+		return rte_option_set(codec, keyword, entry);
 	default:
 		assert(!"reached");
 		return 0;
@@ -1237,7 +1247,7 @@ rte_set_option_menu(rte_codec *codec, char *keyword, int entry)
 }
 
 char *
-rte_print_option(rte_codec *codec, char *keyword, ...)
+rte_option_print(rte_codec *codec, char *keyword, ...)
 {
 	rte_context *context = NULL;
 	va_list args;
@@ -1256,4 +1266,18 @@ rte_print_option(rte_codec *codec, char *keyword, ...)
 	va_end(args);
 
 	return r;
+}
+
+int
+rte_set_parameters(rte_codec *codec, rte_stream_parameters *rsp)
+{
+	rte_context *context = NULL;
+
+	nullcheck(codec, return 0);
+	nullcheck((context = codec->context), return 0);
+
+	if (!BACKEND->set_parameters)
+		return 0;
+
+	return BACKEND->set_parameters(codec, rsp);
 }

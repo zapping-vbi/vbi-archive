@@ -260,6 +260,3 @@ zconf_create_boolean(value, desc, ZCONF_DOMAIN key)
 #endif /* ZCONF_DOMAIN */
 
 #endif /* ZCONF.H */
-
-
-

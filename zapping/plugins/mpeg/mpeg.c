@@ -16,9 +16,11 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.14 2001-10-14 10:15:50 garetxe Exp $ */
+/* $Id: mpeg.c,v 1.15 2001-10-16 11:17:05 mschimek Exp $ */
 
 #include "plugin_common.h"
+
+#undef HAVE_LIBRTE /* work in progress */
 
 #ifdef HAVE_LIBRTE
 
@@ -77,6 +79,9 @@ static gchar *audio_input_file;
 
 static rte_codec *audio_codec;
 static GtkWidget *audio_options;
+
+static rte_codec *video_codec;
+static GtkWidget *video_options;
 
 
 
@@ -183,6 +188,7 @@ destroy_options(GtkWidget **options_p)
 static rte_context *
 recycle_context(rte_context *c)
 {
+  destroy_options(&video_options);
   destroy_options(&audio_options);
 
   if (c)
@@ -342,7 +348,8 @@ audio_data_callback(rte_context * context, void * data, double * time, enum
     read_audio(data, time, context);
 #ifdef USE_OSS
   else if (oss_fd != -1)
-    read_audio_oss(data, time, context);
+//    read_audio_oss(data, time, context);
+      mpeg_plugin_read_audio_oss(data, time, context);
 #endif
   else
     g_assert_not_reached();  
@@ -354,6 +361,11 @@ init_audio(gint rate, gboolean stereo)
 #ifdef USE_OSS
   if (audio_input_mode == 1)
     {
+      if (!mpeg_plugin_open_pcm_oss(audio_input_file, 44100, stereo, context))
+        return FALSE;
+      oss_fd = 1000;
+      return TRUE;
+#if 0
       int Format = AFMT_S16_LE;
       int Stereo = !!stereo;
       int Speed = rate;
@@ -374,6 +386,7 @@ init_audio(gint rate, gboolean stereo)
       close(oss_fd);
       oss_fd = -1;
       return FALSE;
+#endif
     }
   else
 #endif /* USE_OSS */
@@ -402,7 +415,8 @@ close_audio(void)
   esd_recording_socket = -1;
 #if USE_OSS
   if (oss_fd != -1)
-    close(oss_fd);
+    mpeg_plugin_close_pcm_oss(context);
+//    close(oss_fd);
   oss_fd = -1;
 #endif
 }
@@ -540,6 +554,7 @@ gboolean plugin_start (void)
 {
   enum rte_pixformat pixformat;
   enum tveng_frame_pixformat tveng_pixformat;
+  rte_stream_parameters params;
   gchar * file_name = NULL;
   GtkWidget * widget;
   FILE * file_fd;
@@ -626,13 +641,43 @@ gboolean plugin_start (void)
 
 //  g_assert(context == NULL);
 
+
   if ((mux_mode+1) & 1)
-    if (!init_audio(44100, FALSE))
-      {
-	ShowBox("Couldn't open the audio input device",
-		GNOME_MESSAGE_BOX_ERROR);
-	return FALSE;
-      }
+    {
+      gchar *keyword = zconf_get_string(NULL, "/zapping/test/audio_codec");
+      gchar *zc_domain;
+
+      /* FIXME */
+      if (!(audio_codec =
+	    rte_codec_set(context, RTE_STREAM_AUDIO, 0, keyword)))
+	{
+	  ShowBox("Couldn't open the audio codec",
+		  GNOME_MESSAGE_BOX_ERROR);
+	  return FALSE;
+	}
+
+      zc_domain = g_strdup_printf("/zapping/test/%s", keyword);
+
+      if (!grte_options_load(audio_codec, zc_domain))
+	{
+	  ShowBox("Couldn't initialize the audio codec",
+		  GNOME_MESSAGE_BOX_ERROR);
+	  return FALSE;
+	}
+
+      g_free(zc_domain);
+
+      memset(&params, 0, sizeof(params));
+      g_assert(rte_set_parameters(audio_codec, &params));
+
+      if (!init_audio(params.str.audio.sampling_freq,
+		      params.str.audio.channels > 1))
+	{
+	  ShowBox("Couldn't open the audio input device",
+		  GNOME_MESSAGE_BOX_ERROR);
+	  return FALSE;
+	}
+    }
 
 //  context =
 //    rte_context_new(zapping_info->format.width,
@@ -700,6 +745,8 @@ gboolean plugin_start (void)
     }
 
   /* Set video and audio rates */
+
+  if ((mux_mode+1) & 2) // have video
   rte_set_video_parameters(context, pixformat,
 			   zapping_info->format.width,
 			   zapping_info->format.height,
@@ -1063,15 +1110,16 @@ on_audio_input_changed                (GtkWidget * changed_widget,
   switch (z_option_menu_get_active(lookup_widget(changed_widget,
 						 "optionmenu3")))
     {
-    case 1:
+    case 1: /* OSS */
       gtk_widget_set_sensitive(lookup_widget(changed_widget,
 					     "fileentry2"), TRUE);
       break;
-    default:
+    default: /* ESD */
       gtk_widget_set_sensitive(lookup_widget(changed_widget,
 					     "fileentry2"), FALSE);
       break;
     }
+
   gnome_property_box_changed (propertybox);
 }
 
@@ -1106,11 +1154,11 @@ set_audio_codec (GtkWidget *mpeg_properties, GtkWidget *menu)
   if (keyword)
     {
       g_assert((audio_codec =
-                rte_set_codec(context, RTE_STREAM_AUDIO, 0, keyword)));
+                rte_codec_set(context, RTE_STREAM_AUDIO, 0, keyword)));
     }
   else
     {
-      rte_set_codec(context, RTE_STREAM_AUDIO, 0, NULL);
+      rte_codec_set(context, RTE_STREAM_AUDIO, 0, NULL);
       audio_codec = NULL;
     }
 
@@ -1119,6 +1167,9 @@ set_audio_codec (GtkWidget *mpeg_properties, GtkWidget *menu)
       gchar *zc_domain = g_strdup_printf("/zapping/test/%s", keyword);
 
       audio_source_sensitive (mpeg_properties, TRUE);
+
+      // XXX
+      zconf_create_string(keyword, "preliminary", "/zapping/test/audio_codec");
 
       audio_options = grte_options_create (context, audio_codec, zc_domain);
 
@@ -1137,7 +1188,12 @@ set_audio_codec (GtkWidget *mpeg_properties, GtkWidget *menu)
       g_free (zc_domain);
     }
   else
-    audio_source_sensitive (mpeg_properties, FALSE);
+    {
+      audio_source_sensitive (mpeg_properties, FALSE);
+
+      // XXX
+      zconf_create_string("", "preliminary", "/zapping/test/audio_codec");
+    }
 }
 
 static void
@@ -1166,7 +1222,7 @@ create_audio_menu (GtkWidget *menu, gint *default_item)
   gtk_widget_show (menu_item);
   gtk_menu_append (GTK_MENU (menu), menu_item);
 
-  for (i = 0; (info = rte_enum_codec (context, i)); i++)
+  for (i = 0; (info = rte_codec_enum (context, i)); i++)
     {
       if (info->stream_type != RTE_STREAM_AUDIO)
         continue;
@@ -1185,7 +1241,120 @@ create_audio_menu (GtkWidget *menu, gint *default_item)
   return items;
 }
 
-/* End of audio GUI */
+/*
+ *  Video GUI (merge with audio later)
+ */
+
+static void
+set_video_codec (GtkWidget *mpeg_properties, GtkWidget *menu)
+{
+  GtkWidget *table = lookup_widget (mpeg_properties, "table2");
+  GtkWidget *menu_item = gtk_menu_get_active (GTK_MENU (menu));
+  char *keyword;
+
+  g_assert (table && menu_item);
+
+  keyword = gtk_object_get_data (GTK_OBJECT (menu_item), "keyword");
+
+  destroy_options(&video_options);
+
+  if (keyword)
+    {
+      g_assert((video_codec =
+                rte_codec_set(context, RTE_STREAM_VIDEO, 0, keyword)));
+    }
+  else
+    {
+      rte_codec_set(context, RTE_STREAM_VIDEO, 0, NULL);
+      video_codec = NULL;
+    }
+
+  if (video_codec)
+    {
+      gchar *zc_domain = g_strdup_printf("/zapping/test/%s", keyword);
+
+      // XXX
+      zconf_create_string(keyword, "preliminary", "/zapping/test/video_codec");
+
+      video_options = grte_options_create (context, video_codec, zc_domain);
+
+      if (video_options)
+        {
+          gtk_widget_show (video_options);
+          gtk_table_attach (GTK_TABLE (table), video_options, 0, 2, 3, 4,
+			    (GtkAttachOptions) (GTK_FILL),
+			    (GtkAttachOptions) (0), 3, 3);
+
+	  gtk_signal_connect_object (GTK_OBJECT(video_options), "destroy",
+				     GTK_SIGNAL_FUNC (nullify),
+				     (GtkObject*)(&video_options));
+	}
+
+      g_free (zc_domain);
+    }
+  else
+    {
+      // XXX
+      zconf_create_string("", "preliminary", "/zapping/test/video_codec");
+    }
+}
+
+static void
+on_video_codec_changed                (GtkWidget * changed_widget,
+				       GnomePropertyBox *propertybox)
+{
+  GtkWidget *mpeg_properties = mpeg_prop_from_gpb (propertybox);
+
+  set_video_codec (mpeg_properties, changed_widget);
+  gnome_property_box_changed (propertybox);
+}
+
+static gint
+create_video_menu (GtkWidget *menu, gint *default_item)
+{
+  GtkWidget *menu_item;
+  rte_codec_info *info;
+  gint items = 0;
+  int i;
+
+  menu_item = gtk_menu_item_new_with_label (_("None"));
+  if (!1) /* "None" permitted? */
+    {
+       gtk_widget_set_sensitive (menu_item, FALSE);
+    }
+  gtk_widget_show (menu_item);
+  gtk_menu_append (GTK_MENU (menu), menu_item);
+
+  // XXX it makes no sense to display a menu when there's
+  // really no choice
+  for (i = 0; (info = rte_codec_enum (context, i)); i++)
+    {
+      if (info->stream_type != RTE_STREAM_VIDEO)
+        continue;
+
+      menu_item = gtk_menu_item_new_with_label (_(info->label));
+      gtk_object_set_data (GTK_OBJECT (menu_item), "keyword", info->keyword);
+      set_tooltip (menu_item, _(info->tooltip));
+      gtk_widget_show (menu_item);
+      gtk_menu_append (GTK_MENU (menu), menu_item);
+
+      items++;
+    }
+
+  *default_item = 1;
+
+  return items;
+}
+
+/* End of audio/video GUI */
+
+static void
+on_filename_changed                (GtkWidget * changed_widget,
+				    GnomePropertyBox *propertybox)
+{
+  //  z_on_electric_filename (changed_widget, NULL);
+  gnome_property_box_changed (propertybox);
+}
 
 static
 gboolean plugin_add_properties ( GnomePropertyBox * gpb )
@@ -1208,8 +1377,10 @@ gboolean plugin_add_properties ( GnomePropertyBox * gpb )
   widget = lookup_widget(mpeg_properties, "fileentry1");
   widget = gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(widget));
   gtk_entry_set_text(GTK_ENTRY(widget), save_dir);
+  // XXX basen.ame
+  gtk_object_set_data (GTK_OBJECT (widget), "basename", (gpointer) ".mpg");
   gtk_signal_connect(GTK_OBJECT(widget), "changed",
-		     on_property_item_changed, gpb);
+		     on_filename_changed, gpb);
 
   widget = lookup_widget(mpeg_properties, "optionmenu2");
   gtk_option_menu_set_history(GTK_OPTION_MENU(widget), mux_mode);
@@ -1288,6 +1459,23 @@ gboolean plugin_add_properties ( GnomePropertyBox * gpb )
 		        "deactivate", on_audio_codec_changed, gpb);
 
     set_audio_codec (mpeg_properties, menu);
+
+    /**/
+
+    widget = lookup_widget(mpeg_properties, "optionmenu6");
+
+    if ((menu = gtk_option_menu_get_menu (GTK_OPTION_MENU(widget))))
+      gtk_widget_destroy(menu);
+    menu = gtk_menu_new();
+
+    create_video_menu (menu, &default_item);
+
+    gtk_option_menu_set_menu (GTK_OPTION_MENU(widget), menu);
+    gtk_option_menu_set_history (GTK_OPTION_MENU(widget), default_item);
+    gtk_signal_connect (GTK_OBJECT(GTK_OPTION_MENU(widget)->menu),
+		        "deactivate", on_video_codec_changed, gpb);
+
+    set_video_codec (mpeg_properties, menu);
   }
 
   gtk_widget_show(mpeg_properties);

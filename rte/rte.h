@@ -36,7 +36,7 @@
 /*
  * Lib build ID, for debugging.
  */
-#define RTE_ID " $Id: rte.h,v 1.11 2001-10-08 05:49:43 mschimek Exp $ "
+#define RTE_ID " $Id: rte.h,v 1.12 2001-10-16 11:18:10 mschimek Exp $ "
 
 /*
  * What are we going to encode, audio only, video only or both
@@ -510,20 +510,6 @@ typedef enum {
   RTE_PIXFMT_MAX = 31
 } rte_pixfmt;
 
-#define RTE_PIXFMTS_YUV420	(1UL << RTE_PIXFMT_YUV420)
-#define RTE_PIXFMTS_YUYV	(1UL << RTE_PIXFMT_YUYV)
-#define RTE_PIXFMTS_YVYU	(1UL << RTE_PIXFMT_YVYU)
-#define RTE_PIXFMTS_UYVY	(1UL << RTE_PIXFMT_UYVY)
-#define RTE_PIXFMTS_VYUY	(1UL << RTE_PIXFMT_VYUY)
-#define RTE_PIXFMTS_RGB32	(1UL << RTE_PIXFMT_RGB32)
-#define RTE_PIXFMTS_BGR32	(1UL << RTE_PIXFMT_BGR32)
-#define RTE_PIXFMTS_RGB24	(1UL << RTE_PIXFMT_RGB24)
-#define RTE_PIXFMTS_BGR24	(1UL << RTE_PIXFMT_BGR24)
-#define RTE_PIXFMTS_RGB16	(1UL << RTE_PIXFMT_RGB16)
-#define RTE_PIXFMTS_BGR16	(1UL << RTE_PIXFMT_BGR16)
-#define RTE_PIXFMTS_RGB15	(1UL << RTE_PIXFMT_RGB15)
-#define RTE_PIXFMTS_BGR15	(1UL << RTE_PIXFMT_BGR15)
-
 typedef enum {
   RTE_SNDFMT_S8 = 1,
   RTE_SNDFMT_U8,
@@ -534,8 +520,6 @@ typedef enum {
   /* ... */
   RTE_SNDFMT_MAX = 31
 } rte_sndfmt;
-
-#define RTE_SNDFMTS_S16LE	(1UL << RTE_SNDFMT_S16LE)
 
 typedef enum {
   RTE_VBIFMT_TELETEXT_B_L10_625 = 1,
@@ -570,26 +554,41 @@ typedef enum {
 #define RTE_VBIFMTS_RESERVED1		(1UL << RTE_VBIFMT_RESERVED1)
 #define RTE_VBIFMTS_RESERVED2		(1UL << RTE_VBIFMT_RESERVED2)
 
+typedef struct rte_codec rte_codec; /* opaque */
+
+typedef struct rte_codec_info {
+  rte_stream_type	stream_type;
+  char *		keyword;
+  char *		label;		/* gettext()ized _N() */
+  char *		tooltip;	/* or NULL, gettext()ized _N() */
+} rte_codec_info;
+
+extern rte_codec_info *rte_codec_enum(rte_context *context, int index);
+
+extern rte_codec *rte_codec_get(rte_context *, rte_stream_type, int, char **);
+extern rte_codec *rte_codec_set(rte_context *, rte_stream_type, int, char *);
+
 typedef enum {
-  RTE_OPTION_BOOL = 1,		/* TRUE (1) or FALSE (0), def.num */
-  RTE_OPTION_INT,		/* Integer min - max inclusive, def.num */
-  RTE_OPTION_REAL,		/* Real min - max inclusive, def.dbl */
-  RTE_OPTION_STRING,		/* Arbitrary string, def.str */
-  RTE_OPTION_MENU,		/* Integer value, string menu */
+  RTE_OPTION_BOOL = 1,
+  RTE_OPTION_INT,
+  RTE_OPTION_REAL,
+  RTE_OPTION_STRING,
+  RTE_OPTION_MENU,
 } rte_option_type;
 
-typedef union {
+typedef union rte_option_value {
   int			num;
-  char *		str;	/* gettext()ized _N() */
+  char *		str;		/* gettext()ized _N() */
   double		dbl;
 } rte_option_value;
 
-typedef struct {
+typedef struct rte_option {
   rte_option_type	type;
   char *		keyword;
   char *		label;		/* gettext()ized _N() */
   rte_option_value	def;		/* default (reset) */
   rte_option_value	min, max;
+  rte_option_value	step;
   union {
     int *                 num;
     char **               str;
@@ -599,29 +598,54 @@ typedef struct {
   char *		tooltip;	/* or NULL, gettext()ized _N() */
 } rte_option;
 
-typedef struct rte_codec_info {
-  rte_stream_type	stream_type;
-  unsigned long		stream_formats;
-
-  char *		keyword;
-
-  char *		label;		/* or NULL, gettext()ized _N() */
-  char *		tooltip;	/* or NULL, gettext()ized _N() */
-} rte_codec_info;
-
-extern rte_codec_info *rte_enum_codec(rte_context *context, int index);
-
-typedef struct rte_codec rte_codec; /* opaque */
-
-extern rte_codec *rte_get_codec(rte_context *, rte_stream_type, int, char **);
-extern rte_codec *rte_set_codec(rte_context *, rte_stream_type, int, char *);
-
-extern rte_option *rte_enum_option(rte_codec *, int);
+extern rte_option *rte_option_enum(rte_codec *, int);
 /*** 'set' copies string values, 'get' and 'print' strings must be free()ed */
-extern int rte_get_option(rte_codec *, char *, rte_option_value *);
-extern int rte_set_option(rte_codec *, char *, ...);
-extern int rte_get_option_menu(rte_codec *, char *, int *);
-extern int rte_set_option_menu(rte_codec *, char *, int);
-extern char *rte_print_option(rte_codec *, char *, ...);
+extern int rte_option_get(rte_codec *, char *, rte_option_value *);
+extern int rte_option_set(rte_codec *, char *, ...);
+extern int rte_option_get_menu(rte_codec *, char *, int *);
+extern int rte_option_set_menu(rte_codec *, char *, int);
+extern char *rte_option_print(rte_codec *, char *, ...);
+
+#define RTE_OPTION_BOUNDS_INITIALIZER_(type_, def_, min_, max_, step_)	\
+  { type_ = def_ }, { type_ = min_ }, { type_ = max_ }, { type_ = step_ }
+
+#define RTE_OPTION_BOOL_INITIALIZER(key_, label_, def_, tip_)		\
+  { RTE_OPTION_BOOL, key_, label_,					\
+    RTE_OPTION_BOUNDS_INITIALIZER_(.num, def_, 0, 1, 1),		\
+    { .num = NULL }, 0, tip_ }
+
+#define RTE_OPTION_INT_INITIALIZER(key_, label_, def_, min_, max_,	\
+  step_, menu_, entries_, tip_) { RTE_OPTION_INT, key_, label_,		\
+    RTE_OPTION_BOUNDS_INITIALIZER_(.num, def_, min_, max_, step_),	\
+    { .num = menu_ }, entries_, tip_ }
+
+#define RTE_OPTION_REAL_INITIALIZER(key_, label_, def_, min_, max_,	\
+  step_, menu_, entries_, tip_) { RTE_OPTION_REAL, key_, label_,	\
+    RTE_OPTION_BOUNDS_INITIALIZER_(.dbl, def_, min_, max_, step_),	\
+    { .dbl = menu_ }, entries_, tip_ }
+
+#define RTE_OPTION_STRING_INITIALIZER(key_, label_, def_, menu_,	\
+  entries_, tip_) { RTE_OPTION_STRING, key_, label_,			\
+    RTE_OPTION_BOUNDS_INITIALIZER_(.str, def_, NULL, NULL, NULL),	\
+    { .str = menu_ }, entries_, tip_ }
+
+#define RTE_OPTION_MENU_INITIALIZER(key_, label_, def_, menu_,		\
+  entries_, tip_) { RTE_OPTION_MENU, key_, label_,			\
+    RTE_OPTION_BOUNDS_INITIALIZER_(.num, def_, 0, (entries_) - 1, 1),	\
+    { .str = menu_ }, entries_, tip_ }
+
+typedef struct rte_stream_parameters {
+  union {
+    struct rte_audio_stream_parameters {
+      rte_sndfmt	    sndfmt;
+      int		    sampling_freq;	/* Hz */
+      int		    channels;		/* mono: 1, stereo: 2 */
+      int		    fragment_size;	/* bytes */
+    }			  audio;
+    char		  pad[128];
+  }			str;
+} rte_stream_parameters;
+
+extern int rte_set_parameters(rte_codec *codec, rte_stream_parameters *rsp);
 
 #endif /* rtelib.h */

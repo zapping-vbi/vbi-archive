@@ -1,3 +1,8 @@
+2001-10-14	<mschimek@users.sf.net>
+
+	* mpeg1.c: Fixed drop & stop bug, fixed off-by-one frame_rate_code.
+	* added rte_parameters and status.
+
 2001-10-01	<mschimek@users.sf.net>
 
 	* audio: Polished the timestamping, some bad changes since

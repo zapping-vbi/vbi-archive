@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: video.h,v 1.7 2001-10-08 05:49:44 mschimek Exp $ */
+/* $Id: video.h,v 1.8 2001-10-16 11:18:18 mschimek Exp $ */
 
 #ifndef VIDEO_H
 #define VIDEO_H
@@ -201,16 +201,18 @@ typedef struct stacked_frame {
 	double		time;
 } stacked_frame;
 
-typedef struct video_context {
+typedef struct mpeg1_context mpeg1_context;
+
+struct mpeg1_context {
 	uint8_t		seq_header_template[32];
 
 	uint8_t *	zerop_template;		/* empty P picture */
 	int		Sz;			/* .. size in bytes */
 
-	int		(* picture_i)(uint8_t *org);
-	int		(* picture_p)(uint8_t *org,
+	int		(* picture_i)(mpeg1_context *, uint8_t *org);
+	int		(* picture_p)(mpeg1_context *, uint8_t *org,
 				      int dist, int forward_motion);
-	int		(* picture_b)(uint8_t *org,
+	int		(* picture_b)(mpeg1_context *, uint8_t *org,
 				      int dist, int forward_motion,
 				      int backward_motion);
 
@@ -280,10 +282,9 @@ typedef struct video_context {
 	bool		motion_compensation;
 	bool		monochrome;
 	char *		anno;
+};
 
-} video_context;
-
-extern video_context vseg;
+extern mpeg1_context vseg;
 
 extern uint8_t * newref;	/* future reference frame buffer */
 
@@ -349,9 +350,9 @@ extern long long	video_frames_dropped;
 extern void *		mpeg1_video_ipb(void *capture_fifo);
 
 extern void		conv_init(int);
-extern fifo *		v4l_init(void);
-extern fifo *		v4l2_init(void);
-extern fifo *		file_init(void);
+extern fifo *		v4l_init(double *frame_rate);
+extern fifo *		v4l2_init(double *frame_rate);
+extern fifo *		file_init(double *frame_rate);
 extern void		filter_init(int pitch);
 extern void		video_coding_size(int width, int height);
 extern int		video_look_ahead(char *gop_sequence);

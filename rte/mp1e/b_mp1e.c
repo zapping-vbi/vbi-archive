@@ -3,6 +3,7 @@
  *  mp1e backend
  *
  *  Copyright (C) 2000-2001 Iñaki García Etxebarria
+ *  Modified 2001 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.15 2001-10-08 05:49:44 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.16 2001-10-16 11:18:12 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -138,8 +139,7 @@ init_context			(rte_context	*context)
 
 	if (context->mode & RTE_AUDIO)
 	{
-		/* x8, let's see */
-		context->audio_bytes = 8 * SAMPLES_PER_FRAME * sizeof(short);
+		context->audio_bytes = 4096 * sizeof(short);
 
 		switch (context->audio_mode)
 		{
@@ -172,6 +172,27 @@ init_context			(rte_context	*context)
 		rte_error(context, "Cannot init output");
 		mux_free(priv->mux);
 		return 0;
+	}
+
+	return 1;
+}
+
+/* preliminary; fifos must be ready at this point */
+
+static int
+post_init_context		(rte_context	*context)
+{
+	backend_private *priv = (backend_private*)context->private;
+
+	if (modules & MOD_AUDIO) {
+		mp1e_mp2_init(priv->audio_codec, MOD_AUDIO, &priv->priv.aud,
+			      priv->mux, RTE_SNDFMT_S16LE);
+	}
+
+	if (modules & MOD_VIDEO) {
+		video_init(priv->video_codec, cpu_type, width, height,
+			   motion_min, motion_max, /* preliminary */
+			   &priv->priv.vid, MOD_VIDEO, priv->mux);
 	}
 
 	return 1;
@@ -213,8 +234,8 @@ start			(rte_context	*context)
 		ASSERT("create video compression thread",
 			!pthread_create(&priv->video_thread_id,
 					NULL,
-					mpeg1_video_ipb,
-					(fifo *) &(context->private->vid)));
+					mpeg1_video_ipb, priv->video_codec));
+				//	(fifo *) &(context->private->vid)));
 
 		printv(2, "Video compression thread launched\n");
 	}
@@ -264,8 +285,6 @@ stop			(rte_context	*context)
 	printv(2, "joining mux\n");
 	pthread_join(priv->mux_thread, NULL);
 	printv(2, "mux joined\n");
-
-//	pr_report();
 }
 
 static char*
@@ -324,12 +343,13 @@ static int rte_fake_options(rte_context * context)
 		context->video_rate = RTE_RATE_3; /* default to PAL */
 	}
 
-	vseg.frame_rate_code = context->video_rate;
+//	vseg.frame_rate_code = context->video_rate;
+#warning
 
 	switch (context->video_format) {
 	case RTE_YUYV_PROGRESSIVE:
 	case RTE_YUYV_PROGRESSIVE_TEMPORAL:
-		vseg.frame_rate_code += 3;
+//		vseg.frame_rate_code += 3;
 	case RTE_YUYV_VERTICAL_DECIMATION:
 	case RTE_YUYV_TEMPORAL_INTERPOLATION:
 	case RTE_YUYV_VERTICAL_INTERPOLATION:
@@ -422,10 +442,11 @@ static void rte_audio_startup(void)
 static void rte_audio_init(backend_private *priv) /* init audio capture */
 {
 	if (modules & MOD_AUDIO) {
+#warning
 		if (modules & MOD_VIDEO)
-			audio_num_frames = llroundn(((double) video_num_frames /
-						     frame_rate_value[vseg.frame_rate_code])
-						    / (1152.0 / sampling_rate));
+//			audio_num_frames = llroundn(((double) video_num_frames /
+//						     frame_rate_value[vseg.frame_rate_code])
+//						    / (1152.0 / sampling_rate));
 		/* preliminary */
 
 		if (!priv->audio_codec) {
@@ -442,9 +463,6 @@ static void rte_audio_init(backend_private *priv) /* init audio capture */
 						 (int) "\1\3\2\0"[audio_mode]);
 			rte_helper_set_option_va(priv->audio_codec, "psycho", (int) psycho_loops);
 		}
-
-		mp1e_mp2_init(priv->audio_codec, MOD_AUDIO, &priv->priv.aud,
-			      priv->mux, RTE_SNDFMT_S16LE);
 	}
 }
 
@@ -452,9 +470,9 @@ static void rte_video_init(backend_private *priv) /* init video capture */
 {
 	if (modules & MOD_VIDEO) {
 		video_coding_size(width, height);
-
-		if (frame_rate > frame_rate_value[vseg.frame_rate_code])
-			frame_rate = frame_rate_value[vseg.frame_rate_code];
+#warning
+//		if (frame_rate > frame_rate_value[vseg.frame_rate_code])
+//			frame_rate = frame_rate_value[vseg.frame_rate_code];
 
 		/* preliminary */
 
@@ -475,10 +493,6 @@ static void rte_video_init(backend_private *priv) /* init video capture */
 			rte_helper_set_option_va(priv->video_codec, "monochrome", !!luma_only);
 			rte_helper_set_option_va(priv->video_codec, "anno", anno);
 		}
-
-		video_init(cpu_type, width, height,
-			   motion_min, motion_max, /* preliminary */
-			   MOD_VIDEO, priv->mux);
 	}
 }
 
@@ -488,8 +502,6 @@ static rte_codec_class
 mp1e_vbi_codec = {
 	.public = {
 		.stream_type = RTE_STREAM_SLICED_VBI,
-		.stream_formats = RTE_VBIFMTS_TELETEXT_B_L10_625 |
-		                  RTE_VBIFMTS_TELETEXT_B_L25_625,
 		.keyword = "dvb_vbi",
 		.label = "DVB VBI Stream (Subtitles)",
 		.tooltip = "Note the recording of Teletext and Closed Caption "
@@ -531,9 +543,9 @@ get_codec(rte_context *context, rte_stream_type stream_type,
 
 	switch (stream_type) {
 	case RTE_STREAM_VIDEO:
-		codec = (rte_codec *) 1;
-		if (priv->codec_set & 0x01)
-			info = &mp1e_mpeg1_video_codec;
+		/* find in stream table */
+		if ((codec = priv->video_codec))
+			info = priv->video_codec->class;
 		else
 			goto bad;
 		break;
@@ -590,13 +602,21 @@ set_codec(rte_context *context, rte_stream_type stream_type,
 
 	switch (stream_type) {
 	case RTE_STREAM_VIDEO:
-		/* preliminary */
-		if (codec_keyword) {
-			codec = (rte_codec *) 1;
-			priv->codec_set |= 1 << 0;
-		} else {
-			priv->codec_set &= ~(1 << 0);
+		if (priv->video_codec) {
+			priv->video_codec->class->delete(priv->video_codec);
+			priv->video_codec = NULL;
+			/* preliminary */ priv->codec_set &= ~(1 << 0);
 		}
+
+		if (codec_keyword) {
+			codec = codec_table[i]->new();
+
+			if ((priv->video_codec = codec)) {
+				codec->context = context;
+				priv->codec_set |= 1 << 0;
+			}
+		}
+
 		break;
 
 	case RTE_STREAM_AUDIO:
@@ -611,7 +631,7 @@ set_codec(rte_context *context, rte_stream_type stream_type,
 
 			if ((priv->audio_codec = codec)) {
 				codec->context = context;
-				priv->codec_set |= 1 << 0;
+				priv->codec_set |= 1 << 1;
 			}
 		}
 
@@ -656,7 +676,7 @@ enum_option(rte_codec *codec, int index)
 		return NULL; /* TODO */
 
 	default:
-		return codec->class->enum_option(codec, index);
+		return codec->class->option_enum(codec, index);
 	}
 }
 
@@ -674,7 +694,7 @@ get_option(rte_codec *codec, char *keyword, rte_option_value *v)
 		return 0; /* TODO */
 
 	default:
-		return codec->class->get_option(codec, keyword, v);
+		return codec->class->option_get(codec, keyword, v);
 	}
 }
 
@@ -690,7 +710,7 @@ set_option(rte_codec *codec, char *keyword, va_list args)
 		return 0; /* TODO */
 
 	default:
-		return codec->class->set_option(codec, keyword, args);
+		return codec->class->option_set(codec, keyword, args);
 	}
 }
 
@@ -706,8 +726,36 @@ print_option(rte_codec *codec, char *keyword, va_list args)
 		return 0; /* TODO */
 
 	default:
-		return codec->class->print_option(codec, keyword, args);
+		return codec->class->option_print(codec, keyword, args);
 	}
+}
+
+static int
+set_parameters(rte_codec *codec, rte_stream_parameters *rsp)
+{
+	rte_context *context = codec->context;
+	backend_private *priv = (backend_private *) context->private;
+	rte_option_value val;
+
+#warning EEEK! unfinished
+
+	if (codec != priv->audio_codec)
+		return 0;
+
+	/* ignore all input */
+
+	rsp->str.audio.sndfmt = RTE_SNDFMT_S16LE;
+
+	assert(rte_option_get(codec, "sampling_rate", &val));
+	rsp->str.audio.sampling_freq = val.num;
+
+	assert(rte_option_get(codec, "audio_mode", &val));
+	rsp->str.audio.channels = (val.num == 0 /* XXX */) ? 1 : 2;
+
+	rsp->str.audio.fragment_size =
+		context->audio_bytes =
+			2048 * sizeof(short) * rsp->str.audio.channels;
+	return 1;
 }
 
 const
@@ -719,6 +767,7 @@ rte_backend_info b_mp1e_info =
 	context_new,
 	context_destroy,
 	init_context,
+	post_init_context,
 	uninit_context,
 	start,
 	stop,
@@ -733,4 +782,6 @@ rte_backend_info b_mp1e_info =
 	.get_option		= get_option,
 	.set_option		= set_option,
 	.print_option		= print_option,
+
+	.set_parameters		= set_parameters,
 };

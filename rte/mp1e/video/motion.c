@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: motion.c,v 1.4 2001-09-25 09:29:13 mschimek Exp $ */
+/* $Id: motion.c,v 1.5 2001-10-16 11:18:17 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -3623,7 +3623,7 @@ predict_forward_motion(struct motion *M, unsigned char *from, int dist)
 }
 
 unsigned int
-predict_bidirectional_motion(struct motion *M,
+predict_bidirectional_motion(mpeg1_context *mpeg1, struct motion *M,
 	unsigned int *vmc1, unsigned int *vmc2, int bdist /* forward */)
 {
 	int i, j, si, sf, sb;
@@ -3637,7 +3637,7 @@ predict_bidirectional_motion(struct motion *M,
 	pmy2 = &M[1].MV[1];
 
 	if (0 && pdx[mb_row][mb_col] < 127) {
-		sf = t4_edu(vseg.oldref, pmx1, pmy1,
+		sf = t4_edu(mpeg1->oldref, pmx1, pmy1,
 			+pdx[mb_row][mb_col] * bdist / pdist,
 			+pdy[mb_row][mb_col] * bdist / pdist,
 			MIN(M[0].src_range, 8), M[0].max_range,
@@ -3648,7 +3648,7 @@ predict_bidirectional_motion(struct motion *M,
 			MIN(M[1].src_range, 8), M[1].max_range,
 			mblock[2]); // 2 + 4
 	} else {
-		sf = search(pmx1, pmy1, vseg.oldref,
+		sf = search(pmx1, pmy1, mpeg1->oldref,
 			mb_col * 16, mb_row * 16,
 			M[0].src_range, mblock[1]); // 1 + 3
 		sb = search(pmx2, pmy2, newref,

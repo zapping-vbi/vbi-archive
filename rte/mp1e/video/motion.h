@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: motion.h,v 1.2 2001-08-22 01:28:10 mschimek Exp $ */
+/* $Id: motion.h,v 1.3 2001-10-16 11:18:18 mschimek Exp $ */
 
 #ifndef MOTION_H
 #define MOTION_H
@@ -45,7 +45,7 @@ extern unsigned int	predict_bidirectional_packed(unsigned char *from1, unsigned 
 extern unsigned int	predict_bidirectional_planar(unsigned char *from1, unsigned char *from2, unsigned int *vmc1, unsigned int *vmc2);
 
 extern unsigned int	predict_forward_motion(struct motion *M, unsigned char *, int);
-extern unsigned int	predict_bidirectional_motion(struct motion *M, unsigned int *, unsigned int *, int);
+extern unsigned int	predict_bidirectional_motion(mpeg1_context *mpeg1, struct motion *M, unsigned int *, unsigned int *, int);
 
 extern void		zero_forward_motion(void);
 extern void		t7(int range, int dist);

@@ -15,7 +15,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.33 2001-10-08 19:48:47 garetxe Exp $ */
+/* $Id: fifo.c,v 1.34 2001-10-16 11:17:04 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -344,6 +344,8 @@ wait_full_buffer(consumer *c)
 
 	c->dequeued++;
 
+//	fprintf(stderr, "WFB %s b=%p dq=%d\n", f->name, b, c->dequeued);
+
 	return b;
 }
 
@@ -523,6 +525,8 @@ wait_empty_buffer(producer *p)
 
 	b->dequeued = 1;
 	p->dequeued++;
+
+//	fprintf(stderr, "WEB %s b=%p dq=%d\n", f->name, b, p->dequeued);
 
 	return b;
 }

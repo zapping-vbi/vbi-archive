@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_ffmpeg.c,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
+/* $Id: b_ffmpeg.c,v 1.3 2001-10-16 11:18:12 mschimek Exp $ */
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
@@ -488,6 +488,7 @@ rte_backend_info b_ffmpeg_info =
 	context_new,
 	context_destroy,
 	init_context,
+	NULL, /* no post_init_context */
 	uninit_context,
 	start,
 	stop,

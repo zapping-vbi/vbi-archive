@@ -1894,41 +1894,6 @@ create_export_options (GtkWidget *table, vbi_export *exp)
     }
 }
 
-static void
-on_export_filename			(GtkWidget *w,
-					 gpointer user_data)
-{
-  gchar **bpp = (gchar **) user_data;
-  gchar *basename = (gchar *)
-    gtk_object_get_data (GTK_OBJECT (w), "basename");
-  gchar *name = gtk_entry_get_text (GTK_ENTRY (w));
-  gint len, baselen;
-
-  g_assert(bpp != NULL && basename != NULL);
-  baselen = strlen(basename);
-
-  /* Tack basename on if no name or ends with '/' */
-  if ((len = strlen(name)) == 0 || name[len - 1] == '/')
-    {
-      gtk_entry_append_text (GTK_ENTRY (w), basename);
-      gtk_entry_set_position (GTK_ENTRY (w), len);
-    }
-  /* Cut off basename if not prepended by '/' */
-  else if (len > baselen
-	   && strcmp(&name[len - baselen], basename) == 0
-	   && name[len - baselen - 1] != '/')
-    {
-      name = g_strndup(name, len - baselen);
-      gtk_entry_set_text (GTK_ENTRY (w), name);
-      g_free(name);
-    }
-  else
-    {
-      g_free(*bpp);
-      *bpp = g_strdup(name);
-    }
-}
-
 static GtkWidget *
 create_export_dialog (gchar **bpp,
 		      gchar *basename,
@@ -1973,7 +1938,7 @@ create_export_dialog (gchar **bpp,
   gtk_object_set_data (GTK_OBJECT (w), "basename", (gpointer) basename);
   gtk_entry_set_text(GTK_ENTRY(w), *bpp);
   gtk_signal_connect (GTK_OBJECT (w), "changed",
-		      GTK_SIGNAL_FUNC (on_export_filename),
+		      GTK_SIGNAL_FUNC (z_on_electric_filename),
 		      (gpointer) bpp);
 
   if (vbi_export_query_option(exp, 0))

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: preview.c,v 1.4 2001-10-08 05:49:44 mschimek Exp $ */
+/* $Id: preview.c,v 1.5 2001-10-16 11:18:17 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -110,11 +110,11 @@ on_capture_param_changed(GtkAdjustment *adj,
 
 	switch (i) {
 	case 0:
-		value = value * 1e6;
-		if (value != vseg.video_bit_rate) {
-			vseg.video_bit_rate = value;
-			video_do_reset = 1;
-		}
+//		value = value * 1e6;
+//		if (value != vseg.video_bit_rate) {
+//			vseg.video_bit_rate = value;
+//			video_do_reset = 1;
+//		}
 		break;
 	case 1:
 		force_drop_rate = value;

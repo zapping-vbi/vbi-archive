@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rtepriv.h,v 1.9 2001-10-08 05:49:44 mschimek Exp $
+ * $Id: rtepriv.h,v 1.10 2001-10-16 11:18:11 mschimek Exp $
  * Private stuff in the context.
  */
 
@@ -37,20 +37,39 @@ typedef void (*_rte_filter)(const char * src, char * dest, int width,
 /* for the sake of clarity, prototype of wait_data in rte.c */
 typedef void (*_wait_data)(rte_context *context, int video);
 
+
+
 typedef struct rte_codec_class {
-	rte_codec_info		public;
+	rte_codec_info	public;
 
-	rte_codec *		(* new)(void);
-	void			(* delete)(rte_codec *);
+	rte_codec *	(* new)(void);
+	void		(* delete)(rte_codec *);
 
-	rte_option *		(* enum_option)(rte_codec *, int index);
-	int			(* get_option)(rte_codec *, char *, rte_option_value *);
-	int			(* set_option)(rte_codec *, char *, va_list);
-	char *			(* print_option)(rte_codec *, char *, va_list);
+	rte_option *	(* option_enum)(rte_codec *, int index);
+	int		(* option_get)(rte_codec *, char *, rte_option_value *);
+	int		(* option_set)(rte_codec *, char *, va_list);
+	char *		(* option_print)(rte_codec *, char *, va_list);
 } rte_codec_class;
+
+typedef enum {
+	/* new -> */
+	RTE_STATUS_NEW = 1,
+	/* accept options, parameters -> */
+	RTE_STATUS_READY,
+	/* option change -> RTE_STATUS_NEW, start -> */
+	RTE_STATUS_RUNNING,
+	/* pause? */
+	/* stop -> */
+	RTE_STATUS_STOPPED,
+} rte_codec_status;
+
+/* mutex for thread safe access
+ and status report (bytes out etc) ? */
 
 struct rte_codec {
 	rte_codec *		next;
+
+	rte_codec_status	status;
 
 	rte_context *		context;
 	rte_codec_class *	class;
@@ -59,6 +78,8 @@ struct rte_codec {
 
 	/* append codec private stuff */
 };
+
+
 
 typedef struct {
 	char		*name;
@@ -70,7 +91,8 @@ typedef struct {
 	void		(*context_new)(rte_context * context);
 	/* Free context specific structs and context->format */
 	void		(*context_destroy)(rte_context * context);
-	int		(*init_context)(rte_context * context);
+	int		(*pre_init_context)(rte_context * context);
+	int		(*post_init_context)(rte_context * context);
 	void		(*uninit_context)(rte_context * context);
 	int		(*start)(rte_context * context);
 	void		(*stop)(rte_context * context);
@@ -94,6 +116,9 @@ typedef struct {
 	int		(* get_option)(rte_codec *, char *, rte_option_value *);
 	int		(* set_option)(rte_codec *, char *, va_list);
 	char *		(* print_option)(rte_codec *, char *, va_list);
+
+	int		(* set_parameters)(rte_codec *, rte_stream_parameters *);
+
 } rte_backend_info;
 
 #define RC(X) ((rte_context*)X)
@@ -168,7 +193,7 @@ rte_helper_set_option_va(rte_codec *codec, char *keyword, ...)
 	int r;
 
 	va_start(args, keyword);
-	r = codec->class->set_option(codec, keyword, args);
+	r = codec->class->option_set(codec, keyword, args);
 	va_end(args);
 
 	return r;
@@ -180,7 +205,7 @@ rte_helper_reset_options(rte_codec *codec)
 	rte_option *option;
 	int r = 1, i = 0;
 
-	while (r && (option = codec->class->enum_option(codec, i++))) {
+	while (r && (option = codec->class->option_enum(codec, i++))) {
 		switch (option->type) {
 		case RTE_OPTION_INT:
 		case RTE_OPTION_BOOL:

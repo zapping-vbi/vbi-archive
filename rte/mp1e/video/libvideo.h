@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvideo.h,v 1.3 2001-10-08 05:49:44 mschimek Exp $ */
+/* $Id: libvideo.h,v 1.4 2001-10-16 11:18:17 mschimek Exp $ */
 
 #include "../rtepriv.h"
 #include "../systems/libsystems.h"
@@ -26,7 +26,9 @@
 
 extern rte_codec_class	mp1e_mpeg1_video_codec;
 
-extern void		video_init(int cpu_type,
-				   int coded_width, int coded_height,
-				   int motion_min, int motion_max,
-				   unsigned int module, multiplexer *mux);
+extern void
+video_init(rte_codec *codec, int cpu_type,
+	   int coded_width, int coded_height,
+	   int motion_min, int motion_max,
+	   fifo *capture_fifo,
+	   unsigned int module, multiplexer *mux);

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vlc.h,v 1.3 2001-10-07 10:55:51 mschimek Exp $ */
+/* $Id: vlc.h,v 1.4 2001-10-16 11:18:18 mschimek Exp $ */
 
 #ifndef VLC_H
 #define VLC_H
@@ -94,11 +94,11 @@ struct motion {
 };
 
 static inline void
-motion_init(struct motion *m, int range)
+motion_init(mpeg1_context *mpeg1, struct motion *m, int range)
 {
 	int f;
 
-	range = saturate(range, vseg.motion_min, vseg.motion_max);
+	range = saturate(range, mpeg1->motion_min, mpeg1->motion_max);
 	f = saturate(ffsr(range - 1) - 1, F_CODE_MIN, F_CODE_MAX);
 	m->max_range = 4 << f;
 	m->src_range = saturate(range, 4, 4 << f);

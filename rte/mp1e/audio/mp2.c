@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.11 2001-10-08 05:49:44 mschimek Exp $ */
+/* $Id: mp2.c,v 1.12 2001-10-16 11:18:13 mschimek Exp $ */
 
 #include <limits.h>
 #include "../common/log.h"
@@ -67,7 +67,7 @@ sfsPerScfsi[4] __attribute__ ((aligned (4))) = {
 };
 
 /* XXX remove */
-mp2_context aseg __attribute__ ((aligned (4096)));
+// mp2_context aseg __attribute__ ((aligned (4096)));
 
 /* XXX remove */
 extern long long	audio_num_frames;
@@ -562,7 +562,8 @@ audio_frame(mp2_context *mp2, int channels)
 void *
 mp1e_mp2_thread(void *p)
 {
-	mp2_context *mp2 = p ? PARENT(p, mp2_context, codec) : &aseg;
+//	mp2_context *mp2 = p ? PARENT(p, mp2_context, codec) : &aseg;
+	mp2_context *mp2 = PARENT(p, mp2_context, codec);
 	int frame_frac = 0, channels;
 
 	// fpu_control(FPCW_PRECISION_SINGLE, FPCW_PRECISION_MASK);
@@ -651,6 +652,10 @@ mp1e_mp2_init(rte_codec *codec, unsigned int module,
 	mp2_context *mp2 = PARENT(codec, mp2_context, codec);
 	int sb, min_sg, bit_rate, bit_rate_per_ch;
 	int channels, table, sampling_freq, temp;
+
+
+// XXX status test
+
 
 	channels = 1 + (mp2->audio_mode != AUDIO_MODE_MONO);
 
@@ -907,40 +912,31 @@ menu_psycho[] = {
 
 static rte_option
 mpeg1_options[] = {
-		/*
-		 *  type, unique keyword (for command line etc), label,
-		 *  default (union), minimum, maximum, menu (union), tooltip
-		 */
-	{
-		RTE_OPTION_INT,		"bit_rate",	N_("Bit rate"),
-		{ .num = 80000 }, { .num = 32000 }, { .num = 384000 },
-		{ .num = (int *) &bit_rate_value[MPEG_VERSION_1][1] }, 14,
-		N_("Output bit rate, all channels together")
-	}, {
-		RTE_OPTION_INT,		"sampling_rate", N_("Sampling frequency"),
-		{ .num = 44100 }, { .num = 32000 }, { .num = 48000 },
-		{ .num = (int *) &sampling_freq_value[MPEG_VERSION_1][0] }, 3,
-		NULL
-	}, {
-		RTE_OPTION_MENU,	"audio_mode",	N_("Mode"),
-		{ .num = 0 }, { .num = 0 }, { .num = elements(menu_audio_mode) - 1 },
-		{ .str = menu_audio_mode }, elements(menu_audio_mode),
-		NULL
-	}, {
-		RTE_OPTION_MENU,	"psycho",	N_("Psychoacoustic analysis"),
-		{ .num = 0 }, { .num = 0 }, { .num = elements(menu_psycho) - 1 },
-		{ .str = menu_psycho }, elements(menu_psycho),
-		N_("Speed/quality tradeoff. Selecting 'Accurate' is recommended "
-		   "below 80 kbit/s per channel, when you have bat ears or a "
-		   "little more CPU load doesn't matter.")
-	},
+	RTE_OPTION_INT_INITIALIZER
+	  ("bit_rate", N_("Bit rate"),
+	   80000, 32000, 384000, 1,
+	   (int *) &bit_rate_value[MPEG_VERSION_1][1], 14,
+	   N_("Output bit rate, all channels together")),
+	RTE_OPTION_INT_INITIALIZER
+	  ("sampling_rate", N_("Sampling frequency"),
+	   44100, 32000, 48000, 1,
+	   (int *) &sampling_freq_value[MPEG_VERSION_1][0], 3, (NULL)),
+	RTE_OPTION_MENU_INITIALIZER
+	  ("audio_mode", N_("Mode"),
+	   0, menu_audio_mode, elements(menu_audio_mode), (NULL)),
+	RTE_OPTION_MENU_INITIALIZER
+	  ("psycho", N_("Psychoacoustic analysis"),
+	   0, menu_psycho, elements(menu_psycho),
+	   N_("Speed/quality tradeoff. Selecting 'Accurate' is recommended "
+	      "below 80 kbit/s per channel, when you have bat ears or a "
+	      "little more CPU load doesn't matter.")),
 };
 
 static rte_option
 mpeg2_options[elements(mpeg1_options)];
 
 static rte_option *
-enum_option(rte_codec *codec, int index)
+option_enum(rte_codec *codec, int index)
 {
 	mp2_context *mp2 = PARENT(codec, mp2_context, codec);
 
@@ -958,7 +954,7 @@ enum_option(rte_codec *codec, int index)
 }
 
 static int
-get_option(rte_codec *codec, char *keyword, rte_option_value *v)
+option_get(rte_codec *codec, char *keyword, rte_option_value *v)
 {
 	mp2_context *mp2 = PARENT(codec, mp2_context, codec);
 
@@ -998,9 +994,13 @@ ivec_imin(int *vec, int size, int val)
 }
 
 static int
-set_option(rte_codec *codec, char *keyword, va_list args)
+option_set(rte_codec *codec, char *keyword, va_list args)
 {
 	mp2_context *mp2 = PARENT(codec, mp2_context, codec);
+
+	if (mp2->codec.status != RTE_STATUS_NEW
+	    && mp2->codec.status != RTE_STATUS_READY)
+		return 0;
 
 	if (strcmp(keyword, "bit_rate") == 0) {
 		mp2->bit_rate_code =
@@ -1026,11 +1026,13 @@ set_option(rte_codec *codec, char *keyword, va_list args)
 	} else
 		return 0;
 
+	mp2->codec.status = RTE_STATUS_NEW; /* not ready */
+
 	return 1;
 }
 
 static char *
-print_option(rte_codec *codec, char *keyword, va_list args)
+option_print(rte_codec *codec, char *keyword, va_list args)
 {
 	mp2_context *mp2 = PARENT(codec, mp2_context, codec);
 	char buf[80];
@@ -1066,7 +1068,10 @@ codec_delete(rte_codec *codec)
 {
 	mp2_context *mp2 = PARENT(codec, mp2_context, codec);
 
-	free_aligned(mp2);
+	if (codec->status == RTE_STATUS_RUNNING)
+		fprintf(stderr, "mp1e bug warning: attempt to delete running mp2 codec\n");
+	else
+		free_aligned(mp2);
 }
 
 static rte_codec *
@@ -1096,6 +1101,8 @@ codec_new(int mpeg_version)
 		assert(!"reached");
 	}
 
+	mp2->codec.status = RTE_STATUS_NEW;
+
 	rte_helper_reset_options(&mp2->codec);
 
 	return &mp2->codec;
@@ -1111,7 +1118,6 @@ rte_codec_class
 mp1e_mpeg1_layer2_codec = {
 	.public = {
 		.stream_type = RTE_STREAM_AUDIO,
-		.stream_formats = RTE_SNDFMTS_S16LE,
 		.keyword = "mpeg1_audio_layer2",
 		.label = N_("MPEG-1 Audio Layer II"),
 	},
@@ -1119,10 +1125,10 @@ mp1e_mpeg1_layer2_codec = {
 	.new		= codec_mpeg1_new,
 	.delete         = codec_delete,
 
-	.enum_option	= enum_option,
-	.get_option	= get_option,
-	.set_option	= set_option,
-	.print_option	= print_option,
+	.option_enum	= option_enum,
+	.option_get	= option_get,
+	.option_set	= option_set,
+	.option_print	= option_print,
 };
 
 static rte_codec *
@@ -1135,7 +1141,6 @@ rte_codec_class
 mp1e_mpeg2_layer2_codec = {
 	.public = {
 		.stream_type = RTE_STREAM_AUDIO,
-		.stream_formats = RTE_SNDFMTS_S16LE,
 		.keyword = "mpeg2_audio_layer2",
 		.label = N_("MPEG-2 Audio Layer II LFE"),
 		.tooltip = N_("MPEG-2 Low (Sampling) Frequency Extension to MPEG-1 "
@@ -1146,10 +1151,10 @@ mp1e_mpeg2_layer2_codec = {
 	.new			= codec_mpeg2_new,
 	.delete         	= codec_delete,
 
-	.enum_option		= enum_option,
-	.get_option		= get_option,
-	.set_option		= set_option,
-	.print_option		= print_option,
+	.option_enum		= option_enum,
+	.option_get		= option_get,
+	.option_set		= option_set,
+	.option_print		= option_print,
 };
 
 static void mp1e_mp2(void) __attribute__ ((constructor));

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: file.c,v 1.5 2001-09-25 09:29:13 mschimek Exp $ */
+/* $Id: file.c,v 1.6 2001-10-16 11:18:17 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -244,7 +244,7 @@ wait_full(fifo *f)
 }
 
 fifo *
-file_init(void)
+file_init(double *frame_rate)
 {
 	int len = strlen(cap_dev);
 	int aligned_width;
@@ -281,7 +281,8 @@ file_init(void)
 			filter_labels[filter_mode]);
 	}
 
-	vseg.frame_rate_code = 3; // 24 Hz
+	*frame_rate = 24.0;
+	//vseg.frame_rate_code = 3; // 24 Hz
 
 	filter_init(pitch);
 

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.7 2001-10-07 10:55:51 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.8 2001-10-16 11:18:18 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -57,6 +57,9 @@ static struct v4l2_requestbuffers vrbuf;
 
 static struct v4l2_control	old_mute;
 
+static double			cap_time;
+static double			frame_period_near;
+static double			frame_period_far;
 
 #define VIDIOC_PSB _IOW('v', 193, int)
 
@@ -76,6 +79,28 @@ le4cc2str(int n)
 	return buf;
 }
 
+static inline void
+timestamp(buffer *b)
+{
+	double now = current_time();
+
+	if (cap_time > 0) {
+		double dt = now - cap_time;
+		double ddt = frame_period_far - dt;
+
+		if (frame_period_near < frame_period_far * 1.5) {
+			frame_period_near = (frame_period_near - dt) * 0.8 + dt;
+			frame_period_far = ddt * 0.9999 + dt;
+			b->time = cap_time += frame_period_far;
+		} else {
+			frame_period_near = frame_period_far;
+			b->time = cap_time = now;
+		}
+	} else {
+		b->time = cap_time = now;
+	}
+}
+
 static bool
 capture_on(fifo *unused)
 {
@@ -93,7 +118,8 @@ wait_full(fifo *f)
 	buffer *b;
 	int r = -1;
 
-	while (r <= 0) {
+drop:
+	for (r = -1; r <= 0;) {
 		FD_ZERO(&fds);
 		FD_SET(fd, &fds);
 
@@ -118,7 +144,14 @@ wait_full(fifo *f)
 
 	b = buffers + vbuf.index;
 
-#if 1
+#if 0
+	if (1 && (rand() % 100) > 95) {
+		fprintf(stderr, "drop\n");
+		goto drop;
+	}
+
+	timestamp(b);
+#elif 1
 	b->time = vbuf.timestamp * (1 / 1e9); // UST, currently TOD
 #else
 	b->time = current_time();
@@ -156,7 +189,7 @@ mute_restore(void)
 			   mode == CM_YUYV_PROGRESSIVE_TEMPORAL)
 
 fifo *
-v4l2_init(void)
+v4l2_init(double *frame_rate)
 {
 	int aligned_width;
 	int aligned_height;
@@ -189,16 +222,20 @@ v4l2_init(void)
 	ASSERT("query current video standard",
 		IOCTL(fd, VIDIOC_G_STD, &vstd) == 0);
 
-	vseg.frame_rate_code = ((double) vstd.framerate.denominator /
-				vstd.framerate.numerator < 29.0) ? 3 : 4;
+	*frame_rate = (double) vstd.framerate.denominator /
+				vstd.framerate.numerator;
+	frame_period_near =
+	frame_period_far = 1.0 / *frame_rate;
+	cap_time = 0.0;
 
-	if (vseg.frame_rate_code == 4 && grab_height == 288)
+	if (*frame_rate > 29.0 && grab_height == 288)
 		grab_height = 240; // XXX DAU
-	if (vseg.frame_rate_code == 4 && grab_height == 576)
+	if (*frame_rate > 29.0 && grab_height == 576)
 		grab_height = 480; // XXX DAU
 
 	if (PROGRESSIVE(filter_mode)) {
-		vseg.frame_rate_code += 3; // see frame_rate_value[]
+		FAIL("Sorry, progressive mode out of order\n");
+//		vseg.frame_rate_code += 3; // see frame_rate_value[]
 		min_cap_buffers++;
 	}
 
@@ -414,6 +451,3 @@ v4l2_init(void)
 }
 
 #endif // V4L2
-
-
-

@@ -26,6 +26,7 @@
 	* fifos: added recv_full_buffer_timeout to solve problems in
 	vbi_close.
 
+>>>>>>> 1.281
 08.10.2001	<mschimek@users.sf.net>
 
 	* configure.in: Changed REQUIRED_RTE_VERSION to 0.4cvs.

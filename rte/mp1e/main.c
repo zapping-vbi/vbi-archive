@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.13 2001-10-08 05:49:44 mschimek Exp $ */
+/* $Id: main.c,v 1.14 2001-10-16 11:18:12 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -120,7 +120,8 @@ main(int ac, char **av)
 {
 	sigset_t block_mask;
 	/* XXX encapsulation */
-	struct pcm_context *pcm;
+	struct pcm_context *pcm = 0;
+	double c_frame_rate;
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
 	program_invocation_short_name =
@@ -237,10 +238,10 @@ main(int ac, char **av)
 		ASSERT("create video context", video_codec);
 
 		if (!stat(cap_dev, &st) && S_ISCHR(st.st_mode)) {
-			if (!(video_cap_fifo = v4l2_init()))
-				video_cap_fifo = v4l_init();
+			if (!(video_cap_fifo = v4l2_init(&c_frame_rate)))
+				video_cap_fifo = v4l_init(&c_frame_rate);
 		} else
-			video_cap_fifo = file_init();
+			video_cap_fifo = file_init(&c_frame_rate);
 	}
 
 	if (modules & MOD_SUBTITLES) {
@@ -260,8 +261,7 @@ main(int ac, char **av)
 
 	if (modules & MOD_AUDIO) {
 		char *modes[] = { "stereo", "joint stereo", "dual channel", "mono" };
-		long long n = llroundn(((double) video_num_frames
-					/ frame_rate_value[vseg.frame_rate_code])
+		long long n = llroundn(((double) video_num_frames / c_frame_rate)
 				       / (1152.0 / sampling_rate));
 
 		printv(1, "Audio compression %2.1f kHz%s %s at %d kbits/s (%1.1f : 1)\n",
@@ -292,8 +292,8 @@ main(int ac, char **av)
 	if (modules & MOD_VIDEO) {
 		video_coding_size(width, height);
 
-		if (frame_rate > frame_rate_value[vseg.frame_rate_code])
-			frame_rate = frame_rate_value[vseg.frame_rate_code];
+		if (frame_rate > c_frame_rate)
+			frame_rate = c_frame_rate;
 
 		printv(2, "Macroblocks %d x %d\n", mb_width, mb_height);
 
@@ -309,7 +309,7 @@ main(int ac, char **av)
 		/* Initialize video codec */
 
 		rte_helper_set_option_va(video_codec, "bit_rate", video_bit_rate);
-		/* rte_helper_set_option_va(video_codec, "coded_frame_rate", ?); */
+		rte_helper_set_option_va(video_codec, "coded_frame_rate", c_frame_rate);
 		rte_helper_set_option_va(video_codec, "virtual_frame_rate",
 					 frame_rate);
 		rte_helper_set_option_va(video_codec, "skip_method", !!hack2);
@@ -319,9 +319,9 @@ main(int ac, char **av)
 		rte_helper_set_option_va(video_codec, "monochrome", !!luma_only);
 		rte_helper_set_option_va(video_codec, "anno", anno);
 
-		video_init(cpu_type, width, height,
+		video_init(video_codec, cpu_type, width, height,
 			   motion_min, motion_max,
-			   MOD_VIDEO, mux);
+			   video_cap_fifo, MOD_VIDEO, mux);
 
 #if TEST_PREVIEW
 		if (preview > 0) {
@@ -370,7 +370,7 @@ main(int ac, char **av)
 	if (modules & MOD_VIDEO) {
 		ASSERT("create video compression thread",
 			!pthread_create(&video_thread_id, NULL,
-				mpeg1_video_ipb, video_cap_fifo));
+				mpeg1_video_ipb, video_codec));
 
 		printv(2, "Video compression thread launched\n");
 	}

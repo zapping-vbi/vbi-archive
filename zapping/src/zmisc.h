@@ -308,6 +308,11 @@ z_widget_add_accelerator	(GtkWidget	*widget,
 gboolean
 z_build_path(const gchar *path, gchar **error_description);
 
+/* See ttxview.c
+ */
+void
+z_on_electric_filename (GtkWidget *w, gpointer user_data);
+
 /**
  * Makes the toolbar modify its children toolbars to always
  * mimic its oriention and style.

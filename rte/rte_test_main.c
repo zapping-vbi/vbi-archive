@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rte_test_main.c,v 1.8 2001-10-08 05:49:43 mschimek Exp $
+ * $Id: rte_test_main.c,v 1.9 2001-10-16 11:18:11 mschimek Exp $
  * This is a simple RTE test.
  */
 
@@ -521,23 +521,22 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "mp1e: MPEG-1 Program Stream\n");
 
 		fprintf(stderr, "Elementary stream codecs:\n");
-		for (i = 0; (info = rte_enum_codec(context, i)); i++)
-			fprintf(stderr, "%2d %08lx %s\n",
+		for (i = 0; (info = rte_codec_enum(context, i)); i++)
+			fprintf(stderr, "%2d %s\n",
 				info->stream_type,
-				info->stream_formats,
 				info->label);
 
 		if (mux_mode & RTE_AUDIO) {
-			codec = rte_set_codec(context, RTE_STREAM_AUDIO, 0,
+			codec = rte_codec_set(context, RTE_STREAM_AUDIO, 0,
 					      "mpeg1-audio-layer2");
 
 			fprintf(stderr, "Audio options:\n");
-			for (i = 0; (option = rte_enum_option(codec, i)); i++)
+			for (i = 0; (option = rte_option_enum(codec, i)); i++)
 				fprintf(stderr, "%2d %s\n", i, option->label);
 		}
 
 		if (mux_mode & RTE_VIDEO) {
-			codec = rte_set_codec(context, RTE_STREAM_VIDEO, 0,
+			codec = rte_codec_set(context, RTE_STREAM_VIDEO, 0,
 					      "mpeg1-video");
 		}
 	} else {
