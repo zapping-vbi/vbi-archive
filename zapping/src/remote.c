@@ -205,7 +205,7 @@ gpointer remote_command(gchar *command, gpointer arg)
  *  Zapping commands Mk II
  */
 
-#define CMD_LOG 0
+#define CMD_LOG 1
 
 typedef struct command {
   struct command *		next;

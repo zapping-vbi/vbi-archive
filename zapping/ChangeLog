@@ -1,7 +1,18 @@
+21.03.2002	Fixes <mschimek@users.sf.net>
+
+	* src/callbacks.c: quit_cmd() didn't work correctly when
+	  called from Quit menu, fixed. Added subtitle_overlay
+	  command to replace the toggle function of switch_mode teletext.
+	* src/zapzilla.c: Added quit command (for [q]).
+	
 19.03.2002	<mschimek@users.sf.net>
 
 	* src/zvbi.c: Experimental change re zapping-Bugs-527786.
 	* configure.in: Added runtime tests for arts, unicode, xml.
+	* callbacks.c: switch_mode_cmd() to current not remebered
+	  as last mode. Extended restore_mode_cmd() to swap between
+	  current/last or requested/last. Added "swap_mode" synonym.
+	* keyboard.c: Replaced switch_mode by swap_mode.
 
 15.03.2002	<mschimek@users.sf.net>
 

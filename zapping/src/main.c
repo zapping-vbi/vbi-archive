@@ -57,8 +57,8 @@ char *program_invocation_short_name;
 #endif
 
 /* This comes from callbacks.c */
-extern enum tveng_capture_mode restore_mode; /* the mode set when we went
-						fullscreen */
+extern enum tveng_capture_mode last_mode;
+
 extern int cur_tuned_channel;
 /* from channel_editor.c */
 extern GtkWidget *ChannelWindow;
@@ -462,7 +462,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.159 2002-03-19 19:25:11 mschimek Exp $",
+	 "$Id: main.c,v 1.160 2002-03-21 18:08:24 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -747,9 +747,9 @@ int main(int argc, char * argv[])
       else
 	{
 	  /* in callbacks.c */
-	  extern enum tveng_capture_mode restore_mode;
+	  extern enum tveng_capture_mode last_mode;
 
-	  restore_mode = TVENG_CAPTURE_WINDOW;
+	  last_mode = TVENG_CAPTURE_WINDOW;
 	}
     }
   else /* preview disabled */
@@ -1009,7 +1009,9 @@ static gboolean startup_zapping(gboolean load_plugins)
   D();
   startup_remote ();
   cmd_register ("switch_mode", switch_mode_cmd, NULL);
-  cmd_register ("restore_mode", restore_mode_cmd, NULL);
+  cmd_register ("toggle_mode", toggle_mode_cmd, NULL);
+  cmd_register ("restore_mode", toggle_mode_cmd, NULL); /* synonym for compat */
+  cmd_register ("subtitle_overlay", subtitle_overlay_cmd, NULL);
   cmd_register ("quit", quit_cmd, NULL);
   D();
   /* Starts the configuration engine */

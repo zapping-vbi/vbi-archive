@@ -499,19 +499,12 @@
 	  <child_name>Toolbar:button</child_name>
 	  <name>videotext3</name>
 	  <tooltip>Activate Teletext mode</tooltip>
-	  <accelerator>
-	    <modifiers>GDK_CONTROL_MASK</modifiers>
-	    <key>GDK_t</key>
-	    <signal>clicked</signal>
-	  </accelerator>
-	  <signal>
-	    <name>clicked</name>
-	    <handler>on_remote_command1</handler>
-	    <data>switch_mode teletext</data>
-	    <last_modification_time>Mon, 04 Mar 2002 04:52:51 GMT</last_modification_time>
-	  </signal>
 	  <label>Teletext</label>
 	  <stock_pixmap>GNOME_STOCK_PIXMAP_ALIGN_JUSTIFY</stock_pixmap>
+	  <signal>
+	    <name>pressed</name>
+	    <handler>on_videotext3_pressed</handler>
+	  </signal>
 	</widget>
       </widget>
     </widget>
@@ -1006,7 +999,7 @@
 	  <widget>
 	    <class>GtkLabel</class>
 	    <name>label920</name>
-	    <label>Entered channel numbers refer to:</label>
+	    <label>Keypad channel switching:</label>
 	    <justify>GTK_JUSTIFY_CENTER</justify>
 	    <wrap>False</wrap>
 	    <xalign>1</xalign>
@@ -1085,8 +1078,9 @@
 	    <class>GtkOptionMenu</class>
 	    <name>optionmenu23</name>
 	    <can_focus>True</can_focus>
-	    <items>Channel list
-RF channel number
+	    <items>Disabled
+By channel list entry
+By RF channel number
 </items>
 	    <initial_choice>0</initial_choice>
 	    <child>

@@ -41,6 +41,7 @@
 #include "ttxview.h"
 #include "zvbi.h"
 #include "osd.h"
+#include "remote.h"
 
 extern tveng_device_info * main_info;
 extern volatile gboolean flag_exit_program;
@@ -265,22 +266,22 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 #ifdef HAVE_LIBZVBI
   if (!flag_exit_program)
     {
+      GtkWidget *w = lookup_widget (main_window, "videotext3"); /* toolbar */
+
       if (new_mode != TVENG_NO_CAPTURE)
 	{
 	  gtk_widget_hide(lookup_widget(main_window, "appbar2"));
+
 	  ttxview_detach(main_window);
-	  set_stock_pixmap(lookup_widget(main_window, "videotext3"),
-			   GNOME_STOCK_PIXMAP_ALIGN_JUSTIFY);
-	  set_tooltip(lookup_widget(main_window, "videotext3"),
-		      _("Use Zapping as a Teletext navigator"));
+
+	  set_stock_pixmap(w, GNOME_STOCK_PIXMAP_ALIGN_JUSTIFY);
+	  set_tooltip(w, _("Use Zapping as a Teletext navigator"));
 	}
       else
 	{
-	  set_stock_pixmap(lookup_widget(main_window, "videotext3"),
-			   GNOME_STOCK_PIXMAP_TABLE_FILL);
-	  set_tooltip(lookup_widget(main_window, "videotext3"),
-		      _("Return to windowed mode and use the current "
-			"page as subtitles"));
+	  set_stock_pixmap(w, GNOME_STOCK_PIXMAP_TABLE_FILL);
+	  set_tooltip(w, _("Return to windowed mode and use the current "
+			   "page as subtitles"));
 	}
     }
 

@@ -6,6 +6,8 @@ Outstanding issues for the next release (0.6.4)
 
 > Somewhen...
 	+ Improve documentation.
+	+ Switching subtitles on/off needs improvement.
+	+ Fullscreen integrates badly into desktop, eg. context menu.
 	+ vbi: add toggle button to disable CC/TTX decoding
           (independent of station name decoding, that is). Mind
 	  listing subtitles. Should also disable trigger

@@ -526,6 +526,8 @@ on_user_key_press			(GtkWidget *	widget,
   key.key = gdk_keyval_to_lower (event->keyval);
   key.mask = event->state;
 
+  /* fprintf(stderr, "key %x %x\n", key.key, key.mask); */
+
   for (kb = kb_list; kb; kb = kb->next)
     if (z_key_equal (kb->key, key))
       {
@@ -551,19 +553,19 @@ static struct {
    *  all defined in zapping.glade.
    */
   { 0,			GDK_a,			"mute" }, /* XawTV */
-  { CTRL + ALT,		GDK_c,			"switch_mode capture" },
-  { 0,			GDK_c,			"switch_mode capture" }, /* new */
+  { CTRL + ALT,		GDK_c,			"toggle_mode capture" },
+  { 0,			GDK_c,			"toggle_mode capture" }, /* new */
   { SHIFT,		GDK_c,			"ttx_open_new" },
   /* { 0,		GDK_c,			"ttx_open_new" }, REPLACED */
-  { 0,			GDK_f,			"switch_mode fullscreen" }, /* new */
+  { 0,			GDK_f,			"toggle_mode fullscreen" }, /* new */
   { 0,			GDK_g,			"quickshot ppm" }, /* XawTV */
   { 0,			GDK_h,			"ttx_hold" },
   { SHIFT,		GDK_h,			"ttx_hold" },
   { 0,			GDK_j,			"quickshot jpeg" }, /* XawTV */
   { CTRL + ALT,		GDK_n,			"ttx_open_new" },
   { 0,			GDK_n,			"ttx_open_new" }, /* new */
-  { CTRL + ALT,		GDK_p,			"switch_mode preview" },
-  { 0,			GDK_p,			"switch_mode preview" }, /* new */
+  { CTRL + ALT,		GDK_p,			"toggle_mode preview" },
+  { 0,			GDK_p,			"toggle_mode preview" }, /* new */
   { 0,			GDK_q,			"quit" }, /* XawTV */
   { SHIFT,		GDK_r,			"ttx_reveal" },
   { 0,			GDK_r,			"record" }, /* XawTV */
@@ -596,8 +598,8 @@ static struct {
   { 0,			GDK_KP_Right,		"ttx_subpage_incr +1" },
   { 0,			GDK_KP_Add,		"ttx_subpage_incr +1" },
   { 0,			GDK_KP_Subtract,	"ttx_subpage_incr -1" },
-  { 0,			GDK_Escape,		"restore_mode" },
-  { 0,			GDK_F11,		"restore_mode" },
+  { 0,			GDK_Escape,		"toggle_mode" },
+  { 0,			GDK_F11,		"toggle_mode fullscreen" },
 };
 
 static const gint num_default_key_bindings =

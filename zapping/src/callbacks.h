@@ -41,11 +41,18 @@ switch_mode_cmd				(GtkWidget *	widget,
 					 gchar **	argv,
 					 gpointer	user_data);
 gboolean
-restore_mode_cmd			(GtkWidget *	widget,
+toggle_mode_cmd				(GtkWidget *	widget,
 					 gint		argc,
 					 gchar **	argv,
 					 gpointer	user_data);
-
+gboolean
+subtitle_overlay_cmd			(GtkWidget *	widget,
+					 gint		argc,
+					 gchar **	argv,
+					 gpointer	user_data);
+void
+on_videotext3_pressed			(GtkWidget	*w,
+					 gpointer	user_data);
 void
 on_mute1_toggled			(GtkWidget	*widget,
 					 gpointer	user_data);

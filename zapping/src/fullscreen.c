@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.20 2002-03-06 00:53:49 mschimek Exp $
+ * $Id: fullscreen.c,v 1.21 2002-03-21 18:08:23 mschimek Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -46,7 +46,7 @@ extern GtkWidget * main_window;
 
 extern tveng_tuned_channel *global_channel_list;
 
-extern enum tveng_capture_mode restore_mode;
+extern enum tveng_capture_mode last_mode;
 
 extern tveng_device_info *main_info;
 
@@ -71,7 +71,7 @@ on_fullscreen_event			(GtkWidget *	widget,
 	  extern gboolean was_fullscreen;
 
 	  was_fullscreen = TRUE;
-	  zmisc_switch_mode(restore_mode, main_info);
+	  zmisc_switch_mode(last_mode, main_info);
 	  cmd_execute (GTK_WIDGET (exit2), "quit");
 
 	  return TRUE;
@@ -84,7 +84,7 @@ on_fullscreen_event			(GtkWidget *	widget,
     }
   else if (event->type == GDK_BUTTON_PRESS)
     {
-      zmisc_switch_mode(restore_mode, main_info);
+      zmisc_switch_mode(last_mode, main_info);
       return TRUE;
     }
 

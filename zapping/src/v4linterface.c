@@ -964,11 +964,11 @@ static void
 kp_timeout				(gboolean timer)
 {
   gchar *vec[2] = { 0, kp_chsel_buf };
+  gint txl = zconf_get_integer (NULL, "/zapping/options/main/channel_txl");
 
-  if (timer)
+  if (timer && txl >= 0) /* -1 disable, 0 list entry, 1 RF channel */
     {
-      if (!isdigit(kp_chsel_buf[0])
-	  || zconf_get_integer (NULL, "/zapping/options/main/channel_txl"))
+      if (!isdigit(kp_chsel_buf[0]) || txl >= 1)
 	lookup_channel_cmd (NULL, 2, vec, NULL);
       else
 	set_channel_cmd (NULL, 2, vec, NULL);
@@ -991,64 +991,66 @@ on_channel_key_press			(GtkWidget *	widget,
   tveng_tuned_channel *tc;
   const gchar *prefix;
   z_key key;
-  int i;
+  int txl, i;
 
-  switch (event->keyval)
-    {
+  txl = zconf_get_integer (NULL, "/zapping/options/main/channel_txl");
+
+  if (txl >= 0) /* !disabled */
+    switch (event->keyval)
+      {
 #ifdef HAVE_LIBZVBI
-    case GDK_KP_0 ... GDK_KP_9:
-      i = strlen (kp_chsel_buf);
+      case GDK_KP_0 ... GDK_KP_9:
+	i = strlen (kp_chsel_buf);
 
-      if (i >= sizeof (kp_chsel_buf) - 1)
-	memcpy (kp_chsel_buf, kp_chsel_buf + 1, i--);
+	if (i >= sizeof (kp_chsel_buf) - 1)
+	  memcpy (kp_chsel_buf, kp_chsel_buf + 1, i--);
 
-      kp_chsel_buf[i] = event->keyval - GDK_KP_0 + '0';
-      kp_chsel_buf[i + 1] = 0;
+	kp_chsel_buf[i] = event->keyval - GDK_KP_0 + '0';
+	kp_chsel_buf[i + 1] = 0;
 
-    show:
-      kp_clear = FALSE;
-      /* NLS: Channel name being entered on numeric keypad */
-      osd_render_sgml (kp_timeout, _("<green>%s</green>"), kp_chsel_buf);
-      kp_clear = TRUE;
+      show:
+	kp_clear = FALSE;
+	/* NLS: Channel name being entered on numeric keypad */
+	osd_render_sgml (kp_timeout, _("<green>%s</green>"), kp_chsel_buf);
+	kp_clear = TRUE;
 
-      return TRUE;
+	return TRUE;
 
-    case GDK_KP_Decimal:
-      /* Run through all RF channel prefixes incl. nil (== clear) */
+      case GDK_KP_Decimal:
+	/* Run through all RF channel prefixes incl. nil (== clear) */
 
-      prefix = current_country->prefixes[kp_chsel_prefix];
+	prefix = current_country->prefixes[kp_chsel_prefix];
 
-      if (prefix)
-	{
-	  strncpy (kp_chsel_buf, prefix, sizeof (kp_chsel_buf) - 1);
-	  kp_chsel_prefix++;
-	  goto show;
-	}
-      else
-	{
-	  kp_clear = TRUE;
-	  osd_render_sgml (kp_timeout, "<black>/</black>");
-	}
+	if (prefix)
+	  {
+	    strncpy (kp_chsel_buf, prefix, sizeof (kp_chsel_buf) - 1);
+	    kp_chsel_prefix++;
+	    goto show;
+	  }
+	else
+	  {
+	    kp_clear = TRUE;
+	    osd_render_sgml (kp_timeout, "<black>/</black>");
+	  }
 
-      return TRUE;
+	return TRUE;
 
-    case GDK_KP_Enter:
-      if (!isdigit (kp_chsel_buf[0])
-	  || zconf_get_integer (NULL, "/zapping/options/main/channel_txl"))
-	lookup_channel_cmd (NULL, 2, vec, NULL);
-      else
-	set_channel_cmd (NULL, 2, vec, NULL);
+      case GDK_KP_Enter:
+	if (!isdigit (kp_chsel_buf[0]) || txl >= 1)
+	  lookup_channel_cmd (NULL, 2, vec, NULL);
+	else
+	  set_channel_cmd (NULL, 2, vec, NULL);
 
-      kp_chsel_buf[0] = 0;
-      kp_chsel_prefix = 0;
+	kp_chsel_buf[0] = 0;
+	kp_chsel_prefix = 0;
 
-      return TRUE;
+	return TRUE;
 
 #endif /* HAVE_LIBZVBI */
 
-    default:
-      break;
-    }
+      default:
+	break;
+      }
 
   /* Channel accelerators */
 
