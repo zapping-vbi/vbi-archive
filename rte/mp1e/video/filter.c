@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: filter.c,v 1.9 2002-08-22 22:01:45 mschimek Exp $ */
+/* $Id: filter.c,v 1.10 2002-09-08 02:20:53 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "../common/mmx.h"
@@ -212,8 +212,8 @@ filter_init(rte_video_stream_params *par, struct filter_param *fp)
 	fp->uv_stride	= fp->stride >> 1;
 
 	fp->offset	= par->stride * off_y + off_x * y_bpp;
-	fp->u_offset	= uv_size * u + (fp->offset >> 2);
-	fp->v_offset	= uv_size * v + (fp->offset >> 2);
+	fp->u_offset    = uv_size * u + (fp->uv_stride * (off_y >> 1) + (off_x >> 1));
+	fp->v_offset    = uv_size * v + (fp->uv_stride * (off_y >> 1) + (off_x >> 1));
 
 	printv(2, "Filter '%s'\n", filter_labels[filter_mode]);
  /*
