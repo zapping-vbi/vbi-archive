@@ -22,7 +22,8 @@
 extern GList * plugin_list;
 
 /* This shouldn't be public */
-void plugin_foreach_free(struct plugin_info * info, void * user_data);
+static void plugin_foreach_free(struct plugin_info * info, void *
+				user_data);
 
 /* Loads a plugin, returns TRUE if the plugin seems usable and FALSE
    in case of error. Shows an error box describing the error in case
@@ -31,10 +32,7 @@ void plugin_foreach_free(struct plugin_info * info, void * user_data);
    info: Structure that holds all the info about the plugin, and will
          be passed to the rest of functions in this library.
 */
-
-gboolean plugin_load(gchar * file_name, struct plugin_info * info);
-
-gboolean plugin_load(gchar * file_name, struct plugin_info * info)
+static gboolean plugin_load(gchar * file_name, struct plugin_info * info)
 {
   /* This variables are for querying the symbols */
   gint i = 0;
@@ -280,11 +278,8 @@ void plugin_unload(struct plugin_info * info)
 /*
   This is the bridge given to the plugins.
 */
-gboolean plugin_bridge (gpointer * ptr, gchar * plugin, gchar *
-			symbol, gchar * type, gint hash);
-
-gboolean plugin_bridge (gpointer * ptr, gchar * plugin, gchar *
-			symbol, gchar * type, gint hash)
+static gboolean plugin_bridge (gpointer * ptr, gchar * plugin, gchar *
+			       symbol, gchar * type, gint hash)
 {
   gint i;
   GList * list = g_list_first(plugin_list); /* From main.c */
@@ -570,11 +565,8 @@ gint plugin_get_priority (struct plugin_info * info)
 /* Loads all the valid plugins in the given directory, and appends them to
    the given GList. It returns the new GList. The plugins should
    contain exp in their filename (usually called with exp = .zapping.so) */
-GList * plugin_load_plugins_in_dir( gchar * directory, gchar * exp,
-				    GList * old );
-
-GList * plugin_load_plugins_in_dir( gchar * directory, gchar * exp,
-				    GList * old )
+static GList * plugin_load_plugins_in_dir( gchar * directory, gchar * exp,
+					   GList * old )
 {
   struct dirent ** namelist;
   int n; /* Number of scanned items */
@@ -676,9 +668,7 @@ GList * plugin_load_plugins_in_dir( gchar * directory, gchar * exp,
 }
 
 /* This is the function used to sort the plugins by priority */
-gint plugin_sorter (struct plugin_info * a, struct plugin_info * b);
-
-gint plugin_sorter (struct plugin_info * a, struct plugin_info * b)
+static gint plugin_sorter (struct plugin_info * a, struct plugin_info * b)
 {
   g_assert(a != NULL);
   g_assert(b != NULL);
@@ -770,7 +760,7 @@ GList * plugin_load_plugins ( void )
 }
 
 /* This function is called from g_list_foreach */
-void plugin_foreach_free(struct plugin_info * info, void * user_data)
+static void plugin_foreach_free(struct plugin_info * info, void * user_data)
 {
   plugin_save_config(info);
   plugin_unload(info);
