@@ -4,8 +4,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.5\n"
-"POT-Creation-Date: 2001-08-25 16:46+0200\n"
-"PO-Revision-Date: 2001-08-25 10:48+0000\n"
+"POT-Creation-Date: 2001-09-08 19:52+0200\n"
+"PO-Revision-Date: 2001-09-08 17:59+0000\n"
 "Last-Translator: Pawe³ Sakowski <pawel@sakowski.eu.org>\n"
 "Language-Team: Polish <pl@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -218,75 +218,75 @@ msgstr "Na³ó¿ tê stronê"
 msgid "Return to windowed mode and use the current page as subtitles"
 msgstr "Powróæ do trybu okienkowego i u¿yj aktualnej strony jako napisów"
 
-#: src/frequencies.c:1055
+#: src/frequencies.c:1057
 msgid "us-bcast"
 msgstr "USA-eter"
 
-#: src/frequencies.c:1056
+#: src/frequencies.c:1058
 msgid "us-cable"
 msgstr "USA-kabel"
 
-#: src/frequencies.c:1057
+#: src/frequencies.c:1059
 msgid "us-cable-hrc"
 msgstr "USA-kabel-hrc"
 
-#: src/frequencies.c:1058
+#: src/frequencies.c:1060
 msgid "japan-bcast"
 msgstr "Japonia-eter"
 
-#: src/frequencies.c:1059
+#: src/frequencies.c:1061
 msgid "japan-cable"
 msgstr "Japonia-kabel"
 
-#: src/frequencies.c:1060
+#: src/frequencies.c:1062
 msgid "europe"
 msgstr "Europa"
 
-#: src/frequencies.c:1061
+#: src/frequencies.c:1063
 msgid "europe-east"
 msgstr "Europa wschodnia"
 
-#: src/frequencies.c:1062
+#: src/frequencies.c:1064
 msgid "italy"
 msgstr "W³ochy"
 
-#: src/frequencies.c:1063
+#: src/frequencies.c:1065
 msgid "newzealand"
 msgstr "Nowa Zelandia"
 
-#: src/frequencies.c:1064
+#: src/frequencies.c:1066
 msgid "australia"
 msgstr "Australia"
 
-#: src/frequencies.c:1065
+#: src/frequencies.c:1067
 msgid "ireland"
 msgstr "Irlandia"
 
-#: src/frequencies.c:1066
+#: src/frequencies.c:1068
 msgid "france"
 msgstr "Francja"
 
-#: src/frequencies.c:1067
+#: src/frequencies.c:1069
 msgid "russia"
 msgstr "Rosja"
 
-#: src/frequencies.c:1068
+#: src/frequencies.c:1070
 msgid "south africa"
 msgstr "RPA"
 
-#: src/frequencies.c:1069
+#: src/frequencies.c:1071
 msgid "china"
 msgstr "Chiny"
 
-#: src/frequencies.c:1267 src/frequencies.c:1373 src/frequencies.c:1565
+#: src/frequencies.c:1269 src/frequencies.c:1375 src/frequencies.c:1556
 msgid "(Unnamed channel)"
 msgstr "(Nienazwany kana³)"
 
-#: src/frequencies.c:1271 src/frequencies.c:1377 src/frequencies.c:1569
+#: src/frequencies.c:1273 src/frequencies.c:1379 src/frequencies.c:1560
 msgid "(Unknown real channel)"
 msgstr "(Nieznany prawdziwy kana³)"
 
-#: src/frequencies.c:1275 src/frequencies.c:1381 src/frequencies.c:1573
+#: src/frequencies.c:1277 src/frequencies.c:1383 src/frequencies.c:1564
 msgid "(Unknown country)"
 msgstr "(Nieznane pañstwo)"
 
@@ -323,7 +323,7 @@ msgstr "Wej¶cia"
 msgid "No tuned channels"
 msgstr "Brak ustawionych kana³ów"
 
-#: src/zvbi.c:138
+#: src/zvbi.c:139
 #, c-format
 msgid ""
 "Sorry, but %s couldn't be opened:\n"
@@ -333,11 +333,11 @@ msgstr ""
 "%s (%s)"
 
 #. pixmaps not installed
-#: src/zvbi.c:397
+#: src/zvbi.c:399
 msgid "Click me"
 msgstr "Kliknij na mnie"
 
-#: src/zvbi.c:431
+#: src/zvbi.c:433
 msgid ""
 "Open this link with the predetermined Web browser.\n"
 "You can configure this in the GNOME Control Center, under Handlers/Url "
@@ -347,21 +347,21 @@ msgstr ""
 "Mo¿esz j± skonfigurowaæ w Centrum Sterowania GNOME pod Obs³uga dokumentów/"
 "Obs³uga URL"
 
-#: src/zvbi.c:438
+#: src/zvbi.c:440
 #, c-format
 msgid " %s: Teletext Page %x"
 msgstr "%s: Strona Teletekstu %x"
 
-#: src/zvbi.c:441
+#: src/zvbi.c:443
 #, c-format
 msgid " Teletext Page %x"
 msgstr " Strona Teletekstu %x"
 
-#: src/zvbi.c:442
+#: src/zvbi.c:444
 msgid "Open this page with Zapzilla"
 msgstr "Otwórz t± stronê w Zapzilli"
 
-#: src/zvbi.c:535
+#: src/zvbi.c:537
 msgid ""
 "This probably means that the required driver isn't loaded. Add to your /etc/"
 "modules.conf the line:\n"
@@ -377,7 +377,7 @@ msgstr ""
 "i utwórz /dev/vbi0 przy u¿yciu mknod. Je¶li to nie zadzia³a, mo¿esz wy³±czyæ "
 "VBI w menu Ustawienia/Preferencje/Opcje VBI/W³±cz dekodowanie VBI."
 
-#: src/zvbi.c:547
+#: src/zvbi.c:549
 #, c-format
 msgid ""
 "Failed to access vbi device:\n"
@@ -389,12 +389,12 @@ msgstr ""
 "%s"
 
 #. should not happen
-#: src/zvbi.c:550
+#: src/zvbi.c:552
 #, c-format
 msgid "Failed to access vbi device %s, cause unknown.\n"
 msgstr "Nie mogê uzyskaæ dostêpu do urz±dzenia vbi %s, przyczyna nieznana.\n"
 
-#: src/zvbi.c:1749
+#: src/zvbi.c:1752
 #, c-format
 msgid "%d minute"
 msgid_plural "%d minutes"
@@ -402,7 +402,7 @@ msgstr[0] "%d minuta"
 msgstr[1] "%d minuty"
 msgstr[2] "%d minut"
 
-#: src/zvbi.c:1751
+#: src/zvbi.c:1754
 #, c-format
 msgid "%d h %d m"
 msgstr "%d godz. %d min."
@@ -638,25 +638,25 @@ msgstr ""
 msgid "Use Zapping as a Teletext navigator [Ctrl+Alt+T]"
 msgstr "U¿yj Zappingu jako nawigatora teletekstu [Ctrl+Alt+T]"
 
-#: src/zmisc.c:338
+#: src/zmisc.c:344
 #, c-format
 msgid "Preview will not work: %s"
 msgstr "Podgl±d nie zadzia³a: %s"
 
-#: src/zmisc.c:420
+#: src/zmisc.c:426
 msgid "VBI has been disabled, or it doesn't work."
 msgstr "VBI zosta³ wy³±czony albo nie dzia³a."
 
-#: src/zmisc.c:667
+#: src/zmisc.c:673
 msgid "The path must start with /"
 msgstr "¦cie¿ka musi siê zaczynaæ od /"
 
-#: src/zmisc.c:682
+#: src/zmisc.c:688
 #, c-format
 msgid "Cannot create %s: %s"
 msgstr "Nie mogê utworzyæ %s: %s"
 
-#: src/zmisc.c:695
+#: src/zmisc.c:701
 #, c-format
 msgid "%s is not a directory"
 msgstr "%s nie jest katalogiem"
@@ -739,23 +739,23 @@ msgstr ""
 "Niestety, wtyczka, która utworzy³a tê stronê aktywn± nie udostêpnia dla niej "
 "pomocy."
 
-#: src/channel_editor.c:214
+#: src/channel_editor.c:315
 msgid "Do not change standard"
 msgstr "Nie zmieniaj standardu"
 
-#: src/channel_editor.c:235
+#: src/channel_editor.c:336
 msgid "Do not change input"
 msgstr "Nie zmieniaj wej¶cia"
 
-#: src/channel_editor.c:643
+#: src/channel_editor.c:744
 msgid "Add Channel"
 msgstr "Dodaj Kana³"
 
-#: src/channel_editor.c:643
+#: src/channel_editor.c:744
 msgid "New channel name:"
 msgstr "Nowa nazwa kana³u:"
 
-#: src/channel_editor.c:1307
+#: src/channel_editor.c:1380
 #, c-format
 msgid ""
 "Channel autosearching won't work with XVideo.\n"
@@ -770,7 +770,7 @@ msgstr ""
 "Wyst±pi³ b³±d:\n"
 "%s"
 
-#: src/channel_editor.c:1313
+#: src/channel_editor.c:1386
 msgid "Your current V4L/V4L2 driver cannot do channel autosearching, sorry"
 msgstr ""
 "Niestety, twój aktualny sterownik V4L/V4L2 nie potrafi przeszukiwaæ kana³ów"
@@ -823,7 +823,7 @@ msgstr "Niestety, nie mo¿na uruchomiæ wtyczki"
 msgid "Sorry, the plugin doesn't provide help for this"
 msgstr "Niestety, wtyczka nie udostêpnia pomocy dla tego"
 
-#: src/ttxview.c:173 src/ttxview.c:1218
+#: src/ttxview.c:173 src/ttxview.c:1243
 msgid "VBI has been disabled"
 msgstr "VBI zosta³ wy³±czony"
 
@@ -865,62 +865,62 @@ msgstr " Podstrona %d"
 msgid "The cache has been cleared"
 msgstr "Pamiêæ podrêczna zosta³a wyczyszczona"
 
-#: src/ttxview.c:910 src/ttxview.c:938
+#: src/ttxview.c:922 src/ttxview.c:963
 msgid "No other subpage in the cache"
 msgstr "Brak innej podstrony w pamiêci podrêcznej"
 
-#: src/ttxview.c:1010
+#: src/ttxview.c:1035
 msgid "Found"
 msgstr "Znaleziono"
 
-#: src/ttxview.c:1029
+#: src/ttxview.c:1054
 msgid "Not found"
 msgstr "Nie znaleziono"
 
-#: src/ttxview.c:1050
+#: src/ttxview.c:1075
 msgid "Empty cache"
 msgstr "Pamiêæ podrêczna pusta"
 
-#: src/ttxview.c:1173
+#: src/ttxview.c:1198
 #, c-format
 msgid "Scanning %x.%02x"
 msgstr "Przeszukujê %x.%02x"
 
-#: src/ttxview.c:1509
+#: src/ttxview.c:1534
 #, c-format
 msgid "<%s> added to the bookmarks"
 msgstr "<%s> zosta³ dodany do zak³adek"
 
-#: src/ttxview.c:1572
+#: src/ttxview.c:1597
 msgid "Any subpage"
 msgstr "Dowolna podstrona"
 
-#: src/ttxview.c:1914
+#: src/ttxview.c:1939
 #, c-format
 msgid "Export %s"
 msgstr "Eksportuj %s"
 
-#: src/ttxview.c:1928
+#: src/ttxview.c:1953
 msgid "Save as:"
 msgstr "Zapisz jako:"
 
-#: src/ttxview.c:1933
+#: src/ttxview.c:1958
 msgid "Select file you'll be exporting to"
 msgstr "Wybierz plik, do którego bêdziesz eksportowaæ"
 
-#: src/ttxview.c:1948
+#: src/ttxview.c:1973
 msgid "Options"
 msgstr "Opcje"
 
-#: src/ttxview.c:2130 src/ttxview.c:2947
+#: src/ttxview.c:2155 src/ttxview.c:2972
 msgid "No page loaded"
 msgstr "Brak za³adowanej strony"
 
-#: glade/glade_strings.c:225 src/ttxview.c:2136
+#: glade/glade_strings.c:225 src/ttxview.c:2161
 msgid "Zapzilla"
 msgstr "Zapzilla"
 
-#: src/ttxview.c:2190
+#: src/ttxview.c:2215
 #, c-format
 msgid ""
 "Cannot create destination dir for Zapzilla export:\n"
@@ -931,94 +931,94 @@ msgstr ""
 "%s\n"
 "%s"
 
-#: src/ttxview.c:2209
+#: src/ttxview.c:2234
 #, c-format
 msgid "Export to %s failed: %s"
 msgstr "Eksport do %s nie powiód³ siê: %s"
 
-#: src/ttxview.c:2218
+#: src/ttxview.c:2243
 #, c-format
 msgid "%s saved"
 msgstr "%s zachowany"
 
-#: src/ttxview.c:2230
+#: src/ttxview.c:2255
 #, c-format
 msgid "Export failed: %s"
 msgstr "Eksport siê nie powiód³: %s"
 
-#: src/ttxview.c:2398
+#: src/ttxview.c:2423
 #, c-format
 msgid "Caption %x - %s"
 msgstr "Nag³ówek %x - %s"
 
-#: src/ttxview.c:2400
+#: src/ttxview.c:2425
 #, c-format
 msgid "Text %x - %s"
 msgstr "Tekst %x - %s"
 
-#: src/ttxview.c:2404
+#: src/ttxview.c:2429
 #, c-format
 msgid "Caption %x"
 msgstr "Nag³ówek0 %x"
 
-#: src/ttxview.c:2406
+#: src/ttxview.c:2431
 #, c-format
 msgid "Text %x"
 msgstr "Tekst %x"
 
-#: src/ttxview.c:2432
+#: src/ttxview.c:2457
 #, c-format
 msgid "%x: Unknown language"
 msgstr "%x: Nieznany jêzyk"
 
-#: src/ttxview.c:2445 src/ttxview.c:2460 src/ttxview.c:2484 src/ttxview.c:2500
-#: src/ttxview.c:2516 src/ttxview.c:2532 src/ttxview.c:2548
+#: src/ttxview.c:2470 src/ttxview.c:2485 src/ttxview.c:2509 src/ttxview.c:2525
+#: src/ttxview.c:2541 src/ttxview.c:2557 src/ttxview.c:2573
 #, c-format
 msgid "Page %x"
 msgstr "Strona %x"
 
-#: src/ttxview.c:2454
+#: src/ttxview.c:2479
 msgid "Index"
 msgstr "Indeks"
 
-#: src/ttxview.c:2478
+#: src/ttxview.c:2503
 msgid "Now and Next"
 msgstr "Teraz i nastêpne"
 
-#: src/ttxview.c:2494
+#: src/ttxview.c:2519
 msgid "Current program"
 msgstr "Aktualny program"
 
-#: src/ttxview.c:2510
+#: src/ttxview.c:2535
 msgid "Program Index"
 msgstr "Indeks programów"
 
-#: src/ttxview.c:2526
+#: src/ttxview.c:2551
 msgid "Program Schedule"
 msgstr "Program TV"
 
-#: src/ttxview.c:2542
+#: src/ttxview.c:2567
 msgid "Program Warning"
 msgstr "Ostrze¿enie o programie"
 
-#: src/ttxview.c:2562
+#: src/ttxview.c:2587
 msgid "Subtitles"
 msgstr "Napisy"
 
-#: src/ttxview.c:2564
+#: src/ttxview.c:2589
 msgid "Select subtitles page"
 msgstr "Wybierz stronê z napisami"
 
-#: src/ttxview.c:2637
+#: src/ttxview.c:2662
 #, c-format
 msgid "%s in %s"
 msgstr "%s w %s"
 
-#: src/ttxview.c:2956
+#: src/ttxview.c:2981
 msgid "Selecting - hold Shift for table mode"
 msgstr "Wybieranie - przytrzymaj Shift dla trybu tabeli"
 
-#: src/ttxview.c:3076
+#: src/ttxview.c:3101
 msgid "Selection copied to clipboard"
 msgstr "Wybór skopiowany do schowka"
 
@@ -1654,7 +1654,7 @@ msgstr "Otwórz listê znanych klawiszy"
 
 #: glade/glade_strings.c:176
 msgid "..."
-msgstr ""
+msgstr "..."
 
 #: glade/glade_strings.c:177
 msgid "Save the changes and leave the dialog"
@@ -2081,7 +2081,7 @@ msgstr "Ta wtyczka robi zrzuty przechwytywanego obrazu."
 
 #. hash collision code
 #. Warn
-#: plugins/alirc/alirc.c:231 plugins/lirc/lirc.c:133 plugins/mpeg/mpeg.c:116
+#: plugins/alirc/alirc.c:231 plugins/lirc/lirc.c:133 plugins/mpeg/mpeg.c:118
 #: plugins/parrot/parrot.c:141 plugins/screenshot/screenshot.c:192
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
@@ -2290,7 +2290,7 @@ msgstr "Ta wtyczka koduje strumieñ obrazu i d¼wiêku do pliku MPEG"
 msgid "Encode the stream as MPEG."
 msgstr "Zakoduj strumieñ jako MPEG."
 
-#: plugins/mpeg/mpeg.c:337
+#: plugins/mpeg/mpeg.c:438
 #, c-format
 msgid "%d frame dropped"
 msgid_plural "%d frames dropped"
@@ -2298,7 +2298,7 @@ msgstr[0] "porzucono %d ramkê"
 msgstr[1] "porzucono %d ramki"
 msgstr[2] "porzucono %d ramek"
 
-#: plugins/mpeg/mpeg.c:341
+#: plugins/mpeg/mpeg.c:442
 #, c-format
 msgid "%d frame processed"
 msgid_plural "%d frames processed"
@@ -2306,12 +2306,12 @@ msgstr[0] "przetworzono %d ramkê"
 msgstr[1] "przetworzono %d ramki"
 msgstr[2] "przetworzono %d ramek"
 
-#: plugins/mpeg/mpeg.c:345
+#: plugins/mpeg/mpeg.c:446
 #, c-format
 msgid "%.1f MB : %s : %s"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:416
+#: plugins/mpeg/mpeg.c:517
 #, c-format
 msgid ""
 "Cannot create destination dir for clips:\n"
@@ -2322,19 +2322,19 @@ msgstr ""
 "%s\n"
 "%s"
 
-#: plugins/mpeg/mpeg.c:427
+#: plugins/mpeg/mpeg.c:528
 msgid "Synchronization under V4L1"
 msgstr "Synchronizacja pod V4L1"
 
-#: plugins/mpeg/mpeg.c:429
+#: plugins/mpeg/mpeg.c:530
 msgid "Do not show this again"
 msgstr "Nie pokazuj tego ponownie"
 
-#: plugins/mpeg/mpeg.c:430
+#: plugins/mpeg/mpeg.c:531
 msgid "V4L2 page"
 msgstr "Strona V4L2"
 
-#: plugins/mpeg/mpeg.c:433
+#: plugins/mpeg/mpeg.c:534
 msgid ""
 "You are using a V4L1 driver, so synchronization\n"
 "between audio and video will not be very good.\n"
@@ -2348,47 +2348,47 @@ msgstr ""
 "synchronizacj±, wiêc mo¿esz ich spróbowaæ, je¶li\n"
 "nie jeste¶ zadowolony z wyników."
 
-#: plugins/mpeg/mpeg.c:612
+#: plugins/mpeg/mpeg.c:713
 #, c-format
 msgid "RTE ID: %s"
 msgstr "Identyfikator RTE: %s"
 
-#: plugins/mpeg/mpeg.c:617
+#: plugins/mpeg/mpeg.c:718
 #, c-format
 msgid "Destination: %s"
 msgstr "Cel: %s"
 
-#: plugins/mpeg/mpeg.c:625 plugins/mpeg/mpeg_strings.c:12
+#: plugins/mpeg/mpeg.c:726 plugins/mpeg/mpeg_strings.c:12
 msgid "Audio only"
 msgstr "Tylko d¼wiêk"
 
-#: plugins/mpeg/mpeg.c:628 plugins/mpeg/mpeg_strings.c:13
+#: plugins/mpeg/mpeg.c:729 plugins/mpeg/mpeg_strings.c:13
 msgid "Video only"
 msgstr "Tylko obraz"
 
-#: plugins/mpeg/mpeg.c:631 plugins/mpeg/mpeg_strings.c:14
+#: plugins/mpeg/mpeg.c:732 plugins/mpeg/mpeg_strings.c:14
 msgid "Audio and Video"
 msgstr "D¼wiêk i obraz"
 
-#: plugins/mpeg/mpeg.c:642 plugins/mpeg/mpeg.c:654
-#: plugins/mpeg/mpeg_strings.c:23
+#: plugins/mpeg/mpeg.c:743 plugins/mpeg/mpeg.c:755
+#: plugins/mpeg/mpeg_strings.c:27
 msgid "Output audio Kbits per second:"
 msgstr "Ilo¶æ d¼wiêku w kbit/s:"
 
-#: plugins/mpeg/mpeg.c:648 plugins/mpeg/mpeg.c:656
-#: plugins/mpeg/mpeg_strings.c:22
+#: plugins/mpeg/mpeg.c:749 plugins/mpeg/mpeg.c:757
+#: plugins/mpeg/mpeg_strings.c:26
 msgid "Output video Mbits per second:"
 msgstr "Ilo¶æ obrazu w Mbit/s:"
 
-#: plugins/mpeg/mpeg.c:664
+#: plugins/mpeg/mpeg.c:765
 msgid "Waiting for frames..."
 msgstr "Czekam na ramki..."
 
-#: plugins/mpeg/mpeg.c:859 plugins/mpeg/mpeg.c:1015
+#: plugins/mpeg/mpeg.c:1016 plugins/mpeg/mpeg.c:1207
 msgid "MPEG"
 msgstr "MPEG"
 
-#: plugins/mpeg/mpeg.c:1016
+#: plugins/mpeg/mpeg.c:1208
 msgid "Store the data as MPEG"
 msgstr "Zachowaj dane jako MPEG"
 
@@ -2434,50 +2434,66 @@ msgid "Sets the dir where the encoded clips will be written to"
 msgstr "Ustawia katalog, do którego bêd± zapisywane zakodowane klipy"
 
 #: plugins/mpeg/mpeg_strings.c:19
+msgid "Audio device:"
+msgstr "Urz±dzenie audio:"
+
+#: plugins/mpeg/mpeg_strings.c:20
+msgid "Select the audio input type you would like to use"
+msgstr "Wybierz typ wej¶cia audio, którego chcesz u¿ywaæ"
+
+#: plugins/mpeg/mpeg_strings.c:21
+msgid "Audio device"
+msgstr "Urz±dzenie audio"
+
+#: plugins/mpeg/mpeg_strings.c:22
+msgid "Select the audio device to open"
+msgstr "Wybierz urz±dzenie audio do otwarcia"
+
+#: plugins/mpeg/mpeg_strings.c:23
 msgid "Capture Width:"
 msgstr "Szeroko¶æ przechwytywania:"
 
-#: plugins/mpeg/mpeg_strings.c:20
+#: plugins/mpeg/mpeg_strings.c:24
 msgid "Capture Height:"
 msgstr "Wysoko¶æ przechwytywania:"
 
-#: plugins/mpeg/mpeg_strings.c:21
+#: plugins/mpeg/mpeg_strings.c:25
 msgid "Input / output"
 msgstr "Wej¶cie / wyj¶cie"
 
-#: plugins/mpeg/mpeg_strings.c:24
+#: plugins/mpeg/mpeg_strings.c:28
 msgid "Engine verbosity (output goes to stderr):"
 msgstr "Rozwlek³o¶æ mechanizmu (wyj¶cie idzie na stderr):"
 
-#: plugins/mpeg/mpeg_strings.c:25
+#: plugins/mpeg/mpeg_strings.c:29
 msgid "Compression parameters"
 msgstr "Parametry kompresji"
 
-#: plugins/mpeg/mpeg_strings.c:26
+#: plugins/mpeg/mpeg_strings.c:30
 msgid "Saving MPEG"
 msgstr "Zachowujê MPEG"
 
-#: plugins/mpeg/mpeg_strings.c:27
+#: plugins/mpeg/mpeg_strings.c:31
 msgid "Press this when you are done"
 msgstr "Wcijnij, kiedy skoñczysz"
 
-#: plugins/mpeg/mpeg_strings.c:28
+#: plugins/mpeg/mpeg_strings.c:32
 msgid "RTE id (for debugging)"
 msgstr "Identyfikator RTE (dla odpluskwiania)"
 
-#: plugins/mpeg/mpeg_strings.c:29
+#: plugins/mpeg/mpeg_strings.c:33
 msgid "Destination"
 msgstr "Opis"
 
-#: plugins/mpeg/mpeg_strings.c:30
+#: plugins/mpeg/mpeg_strings.c:34
 msgid "Mux mode"
 msgstr "Tryb mux"
 
-#: plugins/mpeg/mpeg_strings.c:31
+#: plugins/mpeg/mpeg_strings.c:35
 msgid "Some more info: bit rates"
 msgstr "Wiêcej informacji: tempo bitowe"
 
-#: plugins/mpeg/mpeg_strings.c:32
+#: plugins/mpeg/mpeg_strings.c:36
 msgid "Dinamic stats (dropped, output M's, etc)"
 msgstr "Dynamiczne statystyki (porzucone, ilo¶æ wyj¶cia, itp.)"
 
@@ -2553,59 +2569,59 @@ msgstr ""
 "przechwytywania (rozmiar okna, g³êbia obrazu, itp.) mo¿e znacz±co zmieniæ tê "
 "warto¶æ."
 
-#: libvbi/exp-gfx.c:470
+#: libvbi/exp-gfx.c:473
 msgid "Correct aspect ratio"
 msgstr "Popraw proporcje ekranu"
 
-#: libvbi/exp-gfx.c:471
+#: libvbi/exp-gfx.c:474
 msgid ""
 "Approach an image aspect ratio similar to a real TV, this will add redundant "
 "information"
 msgstr ""
 "Zbli¿a proporcje obrazu do prawdziwej TV, doda to nadmiarowe informacje"
 
-#: libvbi/exp-gfx.c:504 libvbi/exp-gfx.c:768
+#: libvbi/exp-gfx.c:507 libvbi/exp-gfx.c:771
 #, c-format
 msgid "Unable to allocate %d KB image buffer"
 msgstr "Nie mogê zaallokowaæ %d kB bufora obrazu"
 
-#: libvbi/exp-gfx.c:516 libvbi/exp-gfx.c:774 libvbi/exp-html.c:300
+#: libvbi/exp-gfx.c:519 libvbi/exp-gfx.c:777 libvbi/exp-html.c:330
 #: libvbi/exp-vtx.c:119
 #, c-format
 msgid "Cannot create file '%s': %s"
 msgstr "Nie mogê utworzyæ pliku '%s': %s"
 
-#: libvbi/exp-gfx.c:615
+#: libvbi/exp-gfx.c:618
 msgid "PPM"
 msgstr "PPM"
 
-#: libvbi/exp-gfx.c:616
-msgid "Export this page as PPM image"
-msgstr "Eksportuj tê stronê jako obraz PPM"
+#: libvbi/exp-gfx.c:619
+msgid "Export this page as raw PPM image"
+msgstr "Eksportuj tê stronê jako czysty obraz PPM"
 
-#: libvbi/exp-gfx.c:835 libvbi/exp-html.c:504
+#: libvbi/exp-gfx.c:838 libvbi/exp-html.c:207
 #, c-format
 msgid "Teletext Page %3x.%x"
 msgstr "Strona teletekstu %3x.%x"
 
-#: libvbi/exp-gfx.c:837 libvbi/exp-html.c:506
+#: libvbi/exp-gfx.c:840 libvbi/exp-html.c:209
 #, c-format
 msgid "Teletext Page %3x"
 msgstr "Strona teletekstu %3x"
 
-#: libvbi/exp-gfx.c:903
+#: libvbi/exp-gfx.c:906
 msgid "PNG"
 msgstr "PNG"
 
-#: libvbi/exp-gfx.c:904
+#: libvbi/exp-gfx.c:907
 msgid "Export this page as PNG image"
 msgstr "Eksportuj tê stronê jako obraz PNG"
 
-#: libvbi/exp-html.c:100 libvbi/exp-txt.c:52 libvbi/exp-txt.c:70
+#: libvbi/exp-html.c:100 libvbi/exp-txt.c:51 libvbi/exp-txt.c:69
 msgid "Graphics char"
 msgstr "Znak grafiki"
 
-#: libvbi/exp-html.c:101 libvbi/exp-txt.c:53 libvbi/exp-txt.c:71
+#: libvbi/exp-html.c:101 libvbi/exp-txt.c:52 libvbi/exp-txt.c:70
 msgid ""
 "Replacement for block graphic characters: a single character or decimal (32) "
 "or hex (0x20) code"
@@ -2629,100 +2645,100 @@ msgstr "Nag³ówek HTML"
 msgid "Include HTML page header"
 msgstr "Zawrzyj nag³ówek strony HTML"
 
-#: libvbi/exp-html.c:295
+#.
+#. *  "lang=\"en\" refers to the page title "Teletext Page..."
+#. *  below, specify "de", "fr", "es" etc.
+#.
+#: libvbi/exp-html.c:197
+msgid "<title lang=\"en\">"
+msgstr "<title lang=\"pl\">"
+
+#: libvbi/exp-html.c:325
 #, c-format
 msgid "Character conversion Unicode -> %s not supported"
 msgstr "Konwersja znaków Unicode -> %s nie obs³ugiwana"
 
-#.
-#. *  "lang=\"en\" refers to "Teletext Page..." below,
-#. *  specify "de", "fr", "es" etc.
-#.
-#: libvbi/exp-html.c:494
-msgid "<title lang=\"en\">"
-msgstr "<title lang=\"pl\">"
-
-#: libvbi/exp-html.c:701
+#: libvbi/exp-html.c:687
 msgid "HTML"
 msgstr "HTML"
 
-#: libvbi/exp-html.c:702
+#: libvbi/exp-html.c:688
 msgid "Export this page as HTML page"
 msgstr "Eksportuj tê stronê jako stronê HTML"
 
-#: libvbi/exp-txt.c:45
+#: libvbi/exp-txt.c:44
 msgid "Black"
 msgstr "Czarny"
 
-#: libvbi/exp-txt.c:45
+#: libvbi/exp-txt.c:44
 msgid "Red"
 msgstr "Czerwony"
 
-#: libvbi/exp-txt.c:45
+#: libvbi/exp-txt.c:44
 msgid "Green"
 msgstr "Zielony"
 
-#: libvbi/exp-txt.c:45
+#: libvbi/exp-txt.c:44
 msgid "Yellow"
 msgstr "¯ó³ty"
 
-#: libvbi/exp-txt.c:46
+#: libvbi/exp-txt.c:45
 msgid "Blue"
 msgstr "Niebieski"
 
-#: libvbi/exp-txt.c:46
+#: libvbi/exp-txt.c:45
 msgid "Magenta"
 msgstr "Fioletowy"
 
-#: libvbi/exp-txt.c:46
+#: libvbi/exp-txt.c:45
 msgid "Cyan"
 msgstr "B³êkitny"
 
-#: libvbi/exp-txt.c:46
+#: libvbi/exp-txt.c:45
 msgid "White"
 msgstr "Bia³y"
 
-#: libvbi/exp-txt.c:47
+#: libvbi/exp-txt.c:46
 msgid "Any"
 msgstr "Dowolny"
 
-#: libvbi/exp-txt.c:55 libvbi/exp-txt.c:73
+#: libvbi/exp-txt.c:54 libvbi/exp-txt.c:72
 msgid "Foreground"
 msgstr "Pierwszy plan"
 
-#: libvbi/exp-txt.c:56 libvbi/exp-txt.c:74
+#: libvbi/exp-txt.c:55 libvbi/exp-txt.c:73
 msgid "Assumed terminal foreground color"
 msgstr "Przypuszczalny kolor pierwszego planu terminala"
 
-#: libvbi/exp-txt.c:58 libvbi/exp-txt.c:76
+#: libvbi/exp-txt.c:57 libvbi/exp-txt.c:75
 msgid "Background"
 msgstr "T³o"
 
-#: libvbi/exp-txt.c:59 libvbi/exp-txt.c:77
+#: libvbi/exp-txt.c:58 libvbi/exp-txt.c:76
 msgid "Assumed terminal background color"
 msgstr "Przypuszczalny kolor t³a terminala"
 
-#: libvbi/exp-txt.c:61
+#: libvbi/exp-txt.c:60
 msgid "ANSI colors"
 msgstr "Kolory ANSI"
 
-#: libvbi/exp-txt.c:62
+#: libvbi/exp-txt.c:61
 msgid "Insert ANSI color escape codes"
 msgstr "Wstaw kody kolorów ANSI"
 
-#: libvbi/exp-txt.c:126
+#: libvbi/exp-txt.c:125
 msgid "ASCII"
 msgstr "ASCII"
 
-#: libvbi/exp-txt.c:127
+#: libvbi/exp-txt.c:126
 msgid "Export this page as ASCII text"
 msgstr "Eksporuj tê stronê jako tekst ASCII"
 
-#: libvbi/exp-txt.c:141
+#: libvbi/exp-txt.c:140
 msgid "ANSI"
 msgstr "ANSI"
 
-#: libvbi/exp-txt.c:142
+#: libvbi/exp-txt.c:141
 msgid "Export this page as ANSI text"
 msgstr "Eksportuj tê stronê jako tekst ANSI"
 
@@ -2749,43 +2765,43 @@ msgstr ""
 "Eksportuje tê stronê jako plik w formacie VTX, u¿ywanym przez VideoteXt i "
 "vbidecode"
 
-#: libvbi/v4lx.c:132
+#: libvbi/v4lx.c:130
 msgid "Please contact the Zapzilla maintainers at <http://zapping.sf.net>."
 msgstr "Skontaktuj siê z autorami Zapzilli pod <http://zapping.sf.net>."
 
-#: libvbi/v4lx.c:164 libvbi/v4lx.c:229
+#: libvbi/v4lx.c:162 libvbi/v4lx.c:227
 msgid "V4L/V4L2 VBI interface: Failed to read from the device"
 msgstr "Interfejs VBI V4L/V4L2: Nie mogê czytaæ z urz±dzenia"
 
-#: libvbi/v4lx.c:579
+#: libvbi/v4lx.c:572
 msgid "driver unknown"
 msgstr "sterownik nieznany"
 
-#: libvbi/v4lx.c:585 libvbi/v4lx.c:1091
+#: libvbi/v4lx.c:578 libvbi/v4lx.c:1084
 msgid "Virtual memory exhausted.\n"
 msgstr "Pamiêæ wirtualna wyczerpana.\n"
 
-#: libvbi/v4lx.c:591 libvbi/v4lx.c:1097
+#: libvbi/v4lx.c:584 libvbi/v4lx.c:1090
 #, c-format
 msgid "Cannot open '%s': %d, %s."
 msgstr "Nie mogê otworzyæ '%s': %d, %s."
 
-#: libvbi/v4lx.c:619 libvbi/v4lx.c:1114
+#: libvbi/v4lx.c:612 libvbi/v4lx.c:1107
 #, c-format
 msgid "%s (%s) is not a raw VBI device.\n"
 msgstr "%s (%s) nie jest surowym urz±dzeniem VBI.\n"
 
-#: libvbi/v4lx.c:650 libvbi/v4lx.c:1156
+#: libvbi/v4lx.c:643 libvbi/v4lx.c:1149
 #, c-format
 msgid "Sorry, %s (%s) cannot capture the requested data services.\n"
 msgstr "Niestety, %s (%s) nie mo¿e przechwytywaæ ¿±danych us³ug danych.\n"
 
-#: libvbi/v4lx.c:678 libvbi/v4lx.c:1183
+#: libvbi/v4lx.c:671 libvbi/v4lx.c:1176
 #, c-format
 msgid "%s (%s) is already in use.\n"
 msgstr "%s (%s) jest ju¿ u¿ywany.\n"
 
-#: libvbi/v4lx.c:683 libvbi/v4lx.c:1199
+#: libvbi/v4lx.c:676 libvbi/v4lx.c:1192
 #, c-format
 msgid ""
 "Could not set the vbi capture parameters for %s (%s), possibly a driver bug. "
@@ -2794,34 +2810,34 @@ msgstr ""
 "Nie mogê ustawiæ parametrów przechwytywania vbi dla %s (%s), prawdopodobnie "
 "b³±d sterownika. %s\n"
 
-#: libvbi/v4lx.c:697 libvbi/v4lx.c:1227
+#: libvbi/v4lx.c:690 libvbi/v4lx.c:1220
 #, c-format
 msgid "%s (%s) offers unknown vbi sampling format #%d. %s"
 msgstr "%s (%s) oferuje nieznany format próbkowania vbi #%d. %s"
 
-#: libvbi/v4lx.c:733
+#: libvbi/v4lx.c:726
 #, c-format
 msgid "Cannot capture with %s (%s), has no standard vbi interface.\n"
 msgstr ""
 "Nie mogê przechwytywaæ z %s (%s), nie ma standardowego interfejsu vbi.\n"
 
-#: libvbi/v4lx.c:741 libvbi/v4lx.c:807
+#: libvbi/v4lx.c:734 libvbi/v4lx.c:800
 #, c-format
 msgid "Cannot set or determine current videostandard of %s (%s).\n"
 msgstr "Nie mogê ustawiæ ani okre¶liæ aktualnego standardu wideo %s (%s).\n"
 
-#: libvbi/v4lx.c:778
+#: libvbi/v4lx.c:771
 #, c-format
 msgid "%s (%s) reports improbable vbi frame size. %s\n"
 msgstr "%s (%s) zg³asza nieprawdopodobny rozmiar ramki vbi. %s\n"
 
-#: libvbi/v4lx.c:791 libvbi/v4lx.c:839 libvbi/v4lx.c:1244
+#: libvbi/v4lx.c:784 libvbi/v4lx.c:832 libvbi/v4lx.c:1237
 #, c-format
 msgid "Sorry, %s (%s) cannot capture any of the requested data services.\n"
 msgstr ""
 "Niestety, %s (%s) nie mo¿e przechwytywaæ ¿adnej z ¿±danych us³ug danych.\n"
 
-#: libvbi/v4lx.c:830 libvbi/v4lx.c:1235
+#: libvbi/v4lx.c:823 libvbi/v4lx.c:1228
 #, c-format
 msgid ""
 "Cannot capture the requested data services with %s (%s), the sampling "
@@ -2830,39 +2846,39 @@ msgstr ""
 "Nie mogê przechwytywaæ ¿±danych us³ug danych z %s (%s), czêstotliwo¶æ "
 "próbkowania jest za niska.\n"
 
-#: libvbi/v4lx.c:856 libvbi/v4lx.c:864 libvbi/v4lx.c:1261 libvbi/v4lx.c:1269
-#: libvbi/v4lx.c:1366 libvbi/v4lx.c:1374
+#: libvbi/v4lx.c:849 libvbi/v4lx.c:857 libvbi/v4lx.c:1254 libvbi/v4lx.c:1262
+#: libvbi/v4lx.c:1359 libvbi/v4lx.c:1367
 #, c-format
 msgid "Not enough memory to allocate vbi data buffers (%d KB).\n"
 msgstr "Brakuje pamiêci dla zaallokowania buforów danych vbi (%d kB).\n"
 
-#: libvbi/v4lx.c:877 libvbi/v4lx.c:1389
+#: libvbi/v4lx.c:870 libvbi/v4lx.c:1382
 #, c-format
 msgid "Not enough memory to allocate vbi capture buffer (%d KB).\n"
 msgstr "Brakuje pamiêci na zaalloowanie bufora przechwytywania vbi (%d kB).\n"
 
-#: libvbi/v4lx.c:946
+#: libvbi/v4lx.c:939
 msgid "V4L2 VBI interface: Capture stalled, no station tuned in?"
 msgstr "Interfejs VBI V4L2: Przechwytywanie stoi, brak ustawionej stacji?"
 
-#: libvbi/v4lx.c:958
+#: libvbi/v4lx.c:951
 msgid "V4L2 VBI interface: Failed to read from the device"
 msgstr "Interfejs VBI V4L2: Nie mogê czytaæ z urz±dzenia"
 
-#: libvbi/v4lx.c:974
+#: libvbi/v4lx.c:967
 msgid "V4L2 VBI interface: Cannot dequeue buffer, driver or application bug?"
 msgstr ""
 "Interfejs VBI V4L2: Nie mogê odkolejkowaæ bufora, b³±d sterownika albo "
 "aplikacji?"
 
-#: libvbi/v4lx.c:995
+#: libvbi/v4lx.c:988
 msgid "V4L2 VBI interface: Cannot enqueue buffer, driver or application bug?"
 msgstr ""
 "Interfejs VBI V4L2: Nie mogê zakolejkowaæ bufora, b³±d sterownika albo "
 "aplikacji?"
 
 #. mandatory, http://www.thedirks.org/v4l2/v4l2dsi.htm
-#: libvbi/v4lx.c:1123
+#: libvbi/v4lx.c:1116
 #, c-format
 msgid ""
 "Cannot query current videostandard of %s (%s): %d, %s. Probably a driver "
@@ -2871,12 +2887,12 @@ msgstr ""
 "Nie mogê uzyskaæ aktualnego standardu wideo %s (%s): %d, %s. Prawdopodobnie "
 "b³±d urz±dzenia.\n"
 
-#: libvbi/v4lx.c:1145
+#: libvbi/v4lx.c:1138
 #, c-format
 msgid "Cannot query current vbi parameters of %s (%s): %d, %s.\n"
 msgstr "Nie mogê uzyskaæ parametrów vbi %s (%s): %d, %s.\n"
 
-#: libvbi/v4lx.c:1285
+#: libvbi/v4lx.c:1278
 #, c-format
 msgid ""
 "Cannot request streaming i/o buffers from %s (%s): %d, %s. Driver bug?\n"
@@ -2884,27 +2900,27 @@ msgstr ""
 "Nie mogê uzyskaæ buforów strumieni we/wy od %s (%s): %d, %s. B³±d "
 "sterownika?\n"
 
-#: libvbi/v4lx.c:1291
+#: libvbi/v4lx.c:1284
 #, c-format
 msgid "%s (%s) granted no streaming i/o buffers, physical memory exhausted?\n"
 msgstr ""
 "%s (%s) nie przydzieli³ buforów strumieni we/wy, wyczerpana pamiêæ "
 "fizyczna?\n"
 
-#: libvbi/v4lx.c:1308
+#: libvbi/v4lx.c:1301
 #, c-format
 msgid "Querying streaming i/o buffer #%d from %s (%s) failed: %d, %s.\n"
 msgstr ""
 "Uzyskanie bufora strumienia we/wy #%d od %s (%d) nie powiod³o siê: %d, %s.\n"
 
-#: libvbi/v4lx.c:1322
+#: libvbi/v4lx.c:1315
 #, c-format
 msgid "Memory mapping streaming i/o buffer #%d from %s (%s) failed: %d, %s.\n"
 msgstr ""
 "Mapowanie pamiêci bufora strumienia we/wy #%d od %s (%s) nie powiod³o siê: %"
 "d, %s.\n"
 
-#: libvbi/v4lx.c:1346
+#: libvbi/v4lx.c:1339
 #, c-format
 msgid ""
 "Cannot enqueue streaming i/o buffer #%d to %s (%s): %d, %s. Driver bug?\n"
@@ -2912,7 +2928,7 @@ msgstr ""
 "Nie mogê zakolejkowaæ bufora strumienia we/wy #%d od %s (%s): %d, %s. B³±d "
 "sterownika?\n"
 
-#: libvbi/v4lx.c:1399
+#: libvbi/v4lx.c:1392
 #, c-format
 msgid ""
 "%s (%s) lacks a vbi read interface, possibly an output only device or a "
