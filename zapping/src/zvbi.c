@@ -53,6 +53,10 @@
 #undef FALSE
 #include "common/fifo.h"
 
+#ifndef ZVBI_CAPTURE_THREAD_DEBUG
+#define ZVBI_CAPTURE_THREAD_DEBUG 0
+#endif
+
 /*
   Quality-speed tradeoff when scaling+antialiasing the page:
   - GDK_INTERP_NEAREST: Very fast scaling but visually pure rubbish
@@ -238,13 +242,22 @@ capturing_thread (void *x)
 
     b = zf_wait_empty_buffer (&p);
 
+  retry:
     switch (vbi_capture_read_sliced (capture, (vbi_sliced *) b->data,
 				     &lines, &b->time, &timeout))
       {
       case 1: /* ok */
+	if (ZVBI_CAPTURE_THREAD_DEBUG)
+	  {
+	    fprintf (stdout, ".");
+	    fflush (stdout);
+	  }
 	break;
 
       case 0: /* timeout */
+	if (ZVBI_CAPTURE_THREAD_DEBUG)
+	  fprintf (stderr, "Timeout in VBI capture thread %d %d\n",
+		   timeout.tv_sec, timeout.tv_usec);
 #if 0
 	for (; stacked > 0; stacked--)
 	  send_full_buffer (&p, PARENT (rem_head(&stack), buffer, node));
@@ -258,6 +271,13 @@ capturing_thread (void *x)
 	goto abort;
 
       default: /* error */
+	if (ZVBI_CAPTURE_THREAD_DEBUG)
+	  fprintf (stderr, "Error %d, %s in VBI capture thread\n",
+		   errno, strerror (errno));
+	if (EIO == errno) {
+	  usleep (10000); /* prevent busy loop */
+	  goto retry; /* XXX */
+	}
 #if 0
 	for (; stacked > 0; stacked--)
 	  send_full_buffer (&p, PARENT (rem_head(&stack), buffer, node));
@@ -314,6 +334,7 @@ capturing_thread (void *x)
   }
 
  abort:
+  fprintf (stderr, "VBI capture thread terminates\n");
 
   zf_rem_producer (&p);
 
@@ -354,7 +375,7 @@ join (char *who, pthread_t id, gboolean *ack, gint timeout)
   return timeout;
 }
 
-/* XXX vbi must be restarted on video std change. is it?*/
+/* XXX vbi must be restarted on video std change. does it? */
 
 static gboolean
 threads_init (const gchar *dev_name, int given_fd)
@@ -2128,7 +2149,7 @@ py_closed_caption		(PyObject *		self,
     active = !zconf_get_boolean (NULL, key);
 
   if (ZVBI_CAPTION_DEBUG)
-    fprintf (stderr, "CC enable %d\n", active);
+    fprintf (stderr, "CC active: %d\n", active);
 
   zconf_set_boolean (active, key);
 
