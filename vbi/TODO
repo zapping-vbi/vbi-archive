@@ -1,4 +1,4 @@
-$Id: TODO,v 1.11.2.4 2004-01-30 00:43:02 mschimek Exp $
+$Id: TODO,v 1.11.2.5 2004-02-13 02:15:26 mschimek Exp $
 
 Version 0.3
 
@@ -7,9 +7,7 @@ Version 0.3
 * Rename export options: text s/format/encoding. html s/css/sthbetter.
 * Events suck badly. Change to query functions (fetch page, station
   name, aspect ratio, ...) and just notify apps of changes.
-* vbi_page split into public and private, allocate when fetched.
-  - Almost complete, just a new interface needed.
-* Finish vbi_fetch_* reference counting. Don't forget POP/DRCS pages.
+* Option list instead of export flags?
 * Need a replacement for vbi_teletext_set_default_region(), this is
   better done at vbi_fetch_*. And we need the ability to override
   fonts completely, grep Changelog BBC Prime.
@@ -18,10 +16,8 @@ Version 0.3
 * search.c: Add vbi_wst_level.
 * packet.c: Add filter for data pages (EPG etc).
   - vbi_decoder_hook stuff, not used yet.
-* Add VPT decoder.
-  - PDC A/B parser in src/teletext.c complete except for
-    query functions.
 * VR triggers from VPS/PDC/XDS.
+  - decoders complete, events missing.
 * Program info from TTX (8/30 and VPS/PDC).
 * Can we replace ASCII/Latin-1/local by a single char set?
   Perhaps UTF-8?
@@ -31,7 +27,6 @@ Version 0.3
 * Improve TTX page cache.
 * Streaming subtitles (as opposed to exporting single pages).
 * Not relocatable (bindtextdomain)
-* exp-gfx.c: draw_*_page_region different formats, custom fonts.
 * TTX export: Make blockgfx replacement smarter.
 * Think about ttx header samples (p100) for stations not transmitting
   a CNI (instead of guessing the name from ttx). May use VTX to create
@@ -50,6 +45,11 @@ Version 0.3
    - control
    - pixfmt
    + basic open, close, read, mmap, ioctl
+
+Version 0.4
+
+* Better support for custom fonts. For once, a TT font containing the
+  special characters (block graphics etc) would be useful.
 
 -------------------------------------------------------------------------------
 Ideas? Drop us a note at http://zapping.sourceforge.net.

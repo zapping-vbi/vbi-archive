@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.6.2.5 2004-01-30 00:40:59 mschimek Exp $ */
+/* $Id: vbi.c,v 1.6.2.6 2004-02-13 02:15:27 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -46,6 +46,7 @@
 #include "format.h"
 #include "wss.h"
 #include "version.h"
+#include "vps.h"
 
 /**
  * @mainpage ZVBI - VBI Decoding Library
@@ -980,4 +981,48 @@ vbi_log_printf			(const char *		function,
 	log_function (function, buf, log_user_data);
 
 	errno = temp;
+}
+
+void
+vbi_page_private_dump		(const vbi_page_private *pgp,
+				 unsigned int		mode,
+				 FILE *			fp)
+{
+	unsigned int row;
+	unsigned int column;
+	vbi_char *acp;
+
+	acp = pgp->pg.text;
+
+	for (row = 0; row < pgp->pg.rows; ++row) {
+		fprintf (fp, "%2u: ", row);
+
+		for (column = 0; column < pgp->pg.columns; ++column) {
+			unsigned int c;
+
+			switch (mode) {
+			case 0:
+				c = acp->unicode;
+				if (c < 0x20 || c >= 0x7F)
+					c = '.';
+				fputc (c, fp);
+				break;
+
+			case 1:
+				fprintf (fp, "%04x ", acp->unicode);
+				break;
+
+			case 2:
+				fprintf (fp, "%04xF%uB%uS%uO%u ",
+					 acp->unicode,
+					 acp->foreground, acp->background,
+					 acp->size, acp->opacity);
+				break;
+			}
+
+			++acp;
+		}
+
+		fputc ('\n', fp);
+	}
 }

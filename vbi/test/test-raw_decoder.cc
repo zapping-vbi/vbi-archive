@@ -3,7 +3,7 @@
  *  Copyright (C) 2004 Michael H. Schimek
  */
 
-/* $Id: test-raw_decoder.cc,v 1.1.2.1 2004-01-30 00:43:03 mschimek Exp $ */
+/* $Id: test-raw_decoder.cc,v 1.1.2.2 2004-02-13 02:15:27 mschimek Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -297,7 +297,7 @@ test_video			(const vbi_sampling_par *sp,
 
 		sp2.sampling_format = pixfmt;
 		sp2.bytes_per_line = sp2.samples_per_line
-			* VBI_PIXFMT_BYTES_PER_PIXEL (pixfmt);
+			* vbi_pixfmt_bytes_per_pixel (pixfmt);
 
 		/* Check bit slicer looks at Y/G */
 		if (VBI_PIXFMT_IS_YUV (pixfmt))

@@ -1,4 +1,5 @@
-#exp-gfx.c TODO
+# TODO - font layout changed
+#
 #noinst_PROGRAMS = x11font
 #
 #EXTRA_DIST = README

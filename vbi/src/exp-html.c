@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.6.2.2 2003-06-16 06:05:24 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.6.2.3 2004-02-13 02:15:27 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -243,7 +243,9 @@ header(html_instance *html, vbi_page *pg)
 	const char *lang = NULL;
 	const char *dir = NULL;
 
-	switch (pg->font[0] - vbi_font_descriptors) {
+#warning todo
+//	switch (pg->font[0] - vbi_font_descriptors) {
+	switch(0) {
 	case 0:	 /* English */
 	case 16: /* English */
 		lang = "en";

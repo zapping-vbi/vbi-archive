@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vt.h,v 1.4.2.5 2004-01-30 00:41:36 mschimek Exp $ */
+/* $Id: vt.h,v 1.4.2.6 2004-02-13 02:15:27 mschimek Exp $ */
 
 #ifndef VT_H
 #define VT_H
@@ -62,6 +62,9 @@ typedef enum {
 	PAGE_FUNCTION_MPT,
 	PAGE_FUNCTION_MPT_EX
 } page_function;
+
+extern const char *
+page_function_name		(page_function		function);
 
 /**
  * @internal
@@ -124,8 +127,9 @@ struct _vt_extension {
 
 	ext_fallback	fallback;
 
-	uint8_t		drcs_clut[2 * 1 + 2 * 4 + 2 * 16];
-						/* f/b, dclut4, dclut16 */
+	/** f/b, dclut4, dclut16; see also vbi_page. */
+	vbi_color	drcs_clut[2 * 1 + 2 * 4 + 2 * 16];
+
 	vbi_rgba	color_map[40];
 };
 
@@ -330,11 +334,14 @@ typedef enum {
  */
 typedef enum {
 	LOCAL_ENHANCEMENT_DATA = 0,
-	OBJ_TYPE_NONE = 0,
-	OBJ_TYPE_ACTIVE,
-	OBJ_TYPE_ADAPTIVE,
-	OBJ_TYPE_PASSIVE
+	OBJECT_TYPE_NONE = 0,
+	OBJECT_TYPE_ACTIVE,
+	OBJECT_TYPE_ADAPTIVE,
+	OBJECT_TYPE_PASSIVE
 } object_type;
+
+extern const char *
+object_type_name		(object_type		type);
 
 /**
  * @internal
@@ -380,6 +387,8 @@ struct raw_page {
 };
 
 /* Public */
+
+#include <stdarg.h>
 
 /**
  * @ingroup Service
@@ -438,19 +447,59 @@ extern void		vbi_teletext_set_level(vbi_decoder *vbi, int level);
  * @addtogroup Cache
  * @{
  */
-typedef enum {
-	VBI_HEADER_ONLY		= 1 << 0,
-	VBI_41_COLUMNS		= 1 << 1,
-	VBI_NAVIGATION		= 1 << 2,
-	VBI_HYPERLINKS		= 1 << 3,
-	VBI_PDC_LINKS		= 1 << 4,
-} vbi_format_flags;
 
-extern vbi_bool		vbi_fetch_vt_page(vbi_decoder *vbi, vbi_page *pg,
+typedef enum {
+	VBI_END = 0,
+	/**
+	 * Format only the first row.
+	 */
+	VBI_HEADER_ONLY,
+	/**
+	 * Add an artificial 41st column. Often column 0 of a page
+	 * contains all black spaces, unlike column 39. This will
+	 * result in a more balanced view.
+	 */
+	VBI_41_COLUMNS,
+	/**
+	 * Enable TOP or FLOF navigation in row 25.
+	 */
+	VBI_NAVIGATION,
+	/**
+	 * Scan the page for page numbers, URLs, e-mail addresses
+	 * etc. and create hyperlinks.
+	 */
+	VBI_HYPERLINKS,
+	/**
+	 * Scan the page for PDC Method A/B preselection data
+	 * and create a PDC table and links.
+	 */
+	VBI_PDC_LINKS,
+	/**
+	 * Format the page at the given Teletext implementation level.
+	 * Parameter: vbi_wst_level.
+	 */
+	VBI_WST_LEVEL,
+} vbi_format_option;
+
+extern vbi_page *
+vbi_page_new			(void);
+extern void
+vbi_page_delete			(vbi_page *		pg);
+extern vbi_page *
+vbi_page_copy			(const vbi_page *	pg);
+extern const uint8_t *
+vbi_page_drcs_data		(const vbi_page *	pg,
+				 unsigned int		unicode);
+
+extern vbi_page *	vbi_fetch_vt_page(vbi_decoder *vbi,
 		  		vbi_pgno		pgno,
 				vbi_subno		subno,
-				vbi_wst_level		max_level,
-					  vbi_format_flags	flags);
+					  ...);
+extern vbi_page *
+vbi_fetch_vt_page_va (vbi_decoder *vbi,
+		  		vbi_pgno		pgno,
+				vbi_subno		subno,
+		      va_list ap);
 
 extern int		vbi_page_title(vbi_decoder *vbi, int pgno, int subno, char *buf);
 /** @} */
@@ -473,17 +522,7 @@ vbi_page_home_link		(const vbi_page *	pg,
 {
 	vbi_page_nav_enum (pg, ld, 5);
 }
-#warning
-typedef struct _vbi_pdc_preselection vbi_pdc_preselection;
-extern vbi_bool
-vbi_page_pdc_link		(const vbi_page *	pg,
-				 vbi_pdc_preselection *	pl,
-				 unsigned int		column,
-				 unsigned int		row);
-extern vbi_bool
-vbi_page_pdc_enum		(const vbi_page *	pg,
-				 vbi_pdc_preselection *	pl,
-				 unsigned int		index);
+
 /** @} */
 
 /* Private */
@@ -499,15 +538,5 @@ extern vbi_bool		vbi_convert_cached_page	(vbi_decoder *		vbi,
 						 const vt_page **	vtpp,
 						 page_function		new_function);
 
-extern void		vbi_decode_vps(vbi_decoder *vbi, uint8_t *p);
-
-/* teletext.c */
-
-extern int
-vbi_format_vt_page		(vbi_decoder *vbi,
-				 vbi_page *xpg,
-				 const vt_page *xvtp,
-				 vbi_wst_level		max_level,
-				 vbi_format_flags	flags);
 
 #endif

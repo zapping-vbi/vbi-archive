@@ -1,3 +1,69 @@
+2004-02-13    <mschimek@users.sf.net>
+
+	* xds.c, xds.h: New file. XDS code moved here from caption.c. New
+	  vbi_xds_demux interface. New public functions to decode various
+	  XDS packets.
+	* vps.c, vps.h: New file. Existing VPS code moved here from
+	  packet.c. New public functions to decode various parts of a
+	  VPS packet.
+	* pdc.c, pdc.h: New file. New vbi_pil type with helper macros. New
+	  vbi_program_id for VPS, PDC, XDS VCR triggers. New
+	  vbi_preselection for PDC A/B VPT. New functions to resolve PDC
+	  link, traverse PDC table.
+	* network.c, network.h: New file. Nuid and vbi_network stuff moved
+	  here. Changed vbi_nuid type. New enum vbi_cni_type. New functions
+	  to convert between CNI and nuid, to create nuids, to brake down
+	  nuids.
+	* network.c: Moved CNI tables from tables.c here.
+	* graphics.c: New file. Pixfmt code moved here from sampling.c.
+	* graphics.h: New file. Pixfmt definitions moved here from
+	  sampling.h. Added vbi_image_format. Merged
+	  vbi_pixfmt_bytes_per_pixel function and macro.
+	* fontgen.c: Tool to prepare fonts for exp-gfx.c.
+	* test/export.c: Command line format options, dump PDC data option. 
+	* test/caption.c (draw_row): vbi_draw_cc_page_region() changed.
+	* src/ccfont2.xbm: Replaced by ccfont3.pbm (which is much
+	  smaller), xbm for inclusion in exp-gfx.c will be created by
+	  fontconv at compile time. Changed character size from frame
+	  to field.
+	* src/wstfont2.xbm: Replaced by wstfont2.pbm (which is much
+	  smaller), xbm for inclusion in exp-gfx.c will be created by
+	  fontconv at compile time.
+	* src/teletext.c: Moved most PDC code into pdc.c, pdc.h. s/struct
+	  temp/vbi_page_private. Added vbi_page allocation code. Replaced
+	  format flags by format option va_list. Cleaned up a bit. 
+	* src/tables.c, src/tables.h: Moved CNI table into network.c.
+	* src/search.c: s/vbi_page/vbi_page_private.
+	* src/sampling.c, src/sampling.h: Moved pixfmt code into graphics.c,
+	  graphics.h.
+	* src/packet.c: Moved station lookup code into network.c,
+	  network.h. Moved PDC code into pdc.c, pdc.h. Moved VPS code into
+	  vps.c, vps.h.
+	  (eacem_trigger): s/vbi_page/vbi_page_private.
+	* src/packet.c, src/packet.h (page_function_name, object_type_name):
+	  New enum to string function for teletext.c progress logging.
+	* src/misc.h: Preliminary nuid stuff moved into network.h. 
+	* src/format.h: text array in vbi_page was too small, fixed. DRCS
+	  pointers and various private fields moved into vbi_page_private
+	  parent structure. For clarity drcs_clut now defined as vbi_color
+	  table. New VBI_SCALE (line doubling) export flag. 
+	* src/export.c (initialze): Graphics export restored. 
+	* src/exp-gfx.c: init_gfx() removed, fonts are now prepared at
+	  compile time. CC font now single field, added line doubling option
+	  instead. Rewrote drawing functions for output in all RGB pixel
+	  formats.
+	* src/exp-gfx.c, src/exp-gfx.h: Cleaned up vbi_draw
+	  interface. Removed deprecated vbi_get_max_rendered_size().
+	* src/event.h: Moved struct vbi_network into network.h. 
+	* src/caption.c, src/caption.h: Moved XDS decoder into xds.c, xds.h.
+	  Use new vbi_xds_demux interface. 
+	* src/cache.c, src/cache.h: vbi_cache_ref() added to create new
+	  reference on existing page in teletext.c.
+	  (vbi_unref_page): Obsolete.
+	* src/bit_slicer.c, src/sampling.c, test/test-raw_decoder.cc: Merged
+	  vbi_pixfmt_bytes_per_pixel function and macro.  
+	* src/Makefile.am: New font conversion tool, various new files.
+
 2004-01-24    <mschimek@users.sf.net>
 
 	* src/bcd.c (vbi_dec2bcd): __builtin_expect fix.

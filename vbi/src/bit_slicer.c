@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bit_slicer.c,v 1.1.2.1 2004-01-30 00:39:17 mschimek Exp $ */
+/* $Id: bit_slicer.c,v 1.1.2.2 2004-02-13 02:15:27 mschimek Exp $ */
 
 #include <stdlib.h>
 
@@ -81,9 +81,9 @@
 do {									\
 	const uint8_t *r;						\
 									\
-	r = (raw) + ((index) >> 8) * VBI_PIXFMT_BYTES_PER_PIXEL (fmt);	\
+	r = (raw) + ((index) >> 8) * vbi_pixfmt_bytes_per_pixel (fmt);	\
 	raw0 = GREEN (r + 0, fmt);					\
-	raw1 = GREEN (r + VBI_PIXFMT_BYTES_PER_PIXEL (fmt), fmt);	\
+	raw1 = GREEN (r + vbi_pixfmt_bytes_per_pixel (fmt), fmt);	\
 	raw0 = (int)(raw1 - raw0) * ((index) & 255) + (raw0 << 8);	\
 } while (0)
 
@@ -113,7 +113,7 @@ bit_slicer_##fmt		(vbi_bit_slicer *	bs,		\
 	for (i = bs->cri_bytes; i > 0; --i) {				\
 		tr = bs->thresh >> thresh_frac;				\
 		raw0 = GREEN (raw, VBI_PIXFMT_##fmt);			\
-		raw1 = GREEN (raw + VBI_PIXFMT_BYTES_PER_PIXEL		\
+		raw1 = GREEN (raw + vbi_pixfmt_bytes_per_pixel		\
 			      (VBI_PIXFMT_##fmt), VBI_PIXFMT_##fmt);	\
 		raw1 -= raw0;						\
 		bs->thresh += (int)(raw0 - tr) * (int)ABS ((int) raw1);	\
@@ -145,7 +145,7 @@ bit_slicer_##fmt		(vbi_bit_slicer *	bs,		\
 				t += raw1;				\
 		}							\
 									\
-		raw += VBI_PIXFMT_BYTES_PER_PIXEL (VBI_PIXFMT_##fmt);	\
+		raw += vbi_pixfmt_bytes_per_pixel (VBI_PIXFMT_##fmt);	\
 	}								\
 									\
 	bs->thresh = thresh0;						\

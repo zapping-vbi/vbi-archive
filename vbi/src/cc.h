@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cc.h,v 1.2.2.2 2003-06-16 06:04:19 mschimek Exp $ */
+/* $Id: cc.h,v 1.2.2.3 2004-02-13 02:15:27 mschimek Exp $ */
 
 #ifndef CC_H
 #define CC_H
@@ -27,17 +27,12 @@
 
 #include "bcd.h"
 #include "format.h"
+#include "xds.h"
 
 #ifndef VBI_DECODER
 #define VBI_DECODER
 typedef struct vbi_decoder vbi_decoder;
 #endif
-
-typedef struct {
-	int			count;
-	int			chksum;
-	char			buffer[32];		/* ASCII */
-} xds_sub_packet;
 
 typedef enum {
 	MODE_NONE,
@@ -85,8 +80,7 @@ struct caption {
 	 */
 	cc_channel		channel[9];
 
-	xds_sub_packet		sub_packet[4][0x18];
-	xds_sub_packet *	curr_sp;
+	vbi_xds_demux		xds_demux;
 	int			xds;
 
 	unsigned char		itv_buf[256];

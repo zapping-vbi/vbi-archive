@@ -22,12 +22,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.h,v 1.5.2.4 2004-01-30 00:41:20 mschimek Exp $ */
+/* $Id: vbi.h,v 1.5.2.5 2004-02-13 02:15:27 mschimek Exp $ */
 
 #ifndef VBI_H
 #define VBI_H
 
 #include <pthread.h>
+#include <stdarg.h>
 
 #include "vt.h"
 #include "cc.h"
@@ -255,6 +256,59 @@ vbi_set_log_fn			(vbi_log_fn *		function,
 /** @} */
 
 /* Private */
+
+#define VBI_PAGE_PRIVATE_MAGIC 0x7540c4f2
+
+typedef struct vbi_page_private {
+	vbi_page		pg;
+
+	unsigned int		magic;
+
+	const vt_magazine *	mag;
+	const vt_extension *	ext;
+
+	const vt_page *		vtp;
+
+	vbi_wst_level		max_level;
+	vbi_bool		pdc_links;
+
+	pdc_program		pdc_table [25];
+	unsigned int		pdc_table_size;
+
+	const vt_page *		drcs_vtp[32];
+
+	struct vbi_font_descr *	font[2];
+
+//	uint32_t		double_height_lower;	/* legacy */
+
+	/* 0 header, 1 other rows. */
+	vbi_opacity		page_opacity[2];
+	vbi_opacity		boxed_opacity[2];
+
+	/* Navigation related, see vbi_page_nav_link(). For
+	   simplicity nav_index[] points from each character
+	   in the TOP/FLOF row 25 (max 64 columns) to the
+	   corresponding nav_link element. */
+	vt_pagenum		nav_link[6];
+	uint8_t			nav_index[64];
+} vbi_page_private;
+
+extern void
+vbi_page_private_dump		(const vbi_page_private *pgp,
+				 unsigned int		mode,
+				 FILE *			fp);
+
+/* teletext.c */
+extern vbi_bool
+vbi_format_vt_page_va		(vbi_decoder *		vbi,
+				 vbi_page_private *	pgp,
+				 const vt_page *	vtp,
+				 va_list		ap);
+extern vbi_bool
+vbi_format_vt_page		(vbi_decoder *		vbi,
+				 vbi_page_private *	pgp,
+				 const vt_page *	vtp,
+				 ...);
 
 extern pthread_once_t	vbi_init_once;
 extern void		vbi_init(void);

@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: trigger.c,v 1.4.2.2 2003-09-24 18:49:57 mschimek Exp $ */
+/* $Id: trigger.c,v 1.4.2.3 2004-02-13 02:15:27 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -222,7 +222,8 @@ parse_eacem(vbi_trigger *t, unsigned char *s1, unsigned int nuid, double now)
 
 		if (c == '[' || c == '(') {
 			int delim = (c == '[') ? ']' : ')';
-			unsigned char *attr, *text = "";
+			unsigned char *attr;
+			const unsigned char *text = "";
 			vbi_bool quote = FALSE;
 
 			attr = d = buf;
@@ -362,12 +363,17 @@ parse_eacem(vbi_trigger *t, unsigned char *s1, unsigned int nuid, double now)
 			return NULL;
 
 		if (cni > 0) {
+#warning
+#if 0
 			for (p = vbi_cni_table; p->name; p++)
 				if (p->cni1 == cni || p->cni4 == cni)
 					break;
 			if (!p->name)
 				return NULL;
+
 			t->link.nuid = p->id;
+#endif
+			return NULL;
 		} else
 			t->link.nuid = nuid;
 
