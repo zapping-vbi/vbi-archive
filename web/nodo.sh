@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: nodo.sh,v 1.2 2004-04-30 02:15:46 mschimek Exp $
+# $Id: nodo.sh,v 1.3 2004-05-02 02:15:58 mschimek Exp $
 #
 # Execute a command as user nobody.
 # Be careful what you do, this creates a temporary CGI script.
@@ -15,12 +15,11 @@ script=cgi-bin/nobody-temp-$$
 
 umask 666
 
-cat <<EOF >$script
-#!/bin/sh
-echo Content-type: text/plain
-echo
-($*) 2>&1
-EOF
+# cat <<here not possible
+echo '#!/bin/sh' >$script
+echo 'echo Content-type: text/plain' >>$script
+echo 'echo' >>$script
+echo '(' $* ') 2>&1' >>$script
 
 chmod a+rx $script
 
