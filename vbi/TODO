@@ -1,4 +1,4 @@
-$Id: TODO,v 1.11 2002-10-22 04:43:46 mschimek Exp $
+$Id: TODO,v 1.11.2.1 2003-05-02 10:44:49 mschimek Exp $
 
 Version 0.3
 
@@ -10,9 +10,10 @@ Version 0.3
 * decoder.c: Having a public vbi_decoder and vbi_bit_slicer is bad.
   Should be both opaque (except slicer in vbi_decoder),
   with new public vbi_sampling_parameters structure.
-* print should translate linefeeds to target charset (wchar...)
+  Tom suggested a trace parameter in raw decoder initialization.
 * io: Add io-dvb. Generally speaking the i/o api is poor,
-  should be improved.
+  should be improved. Take a look at
+  http://www.baycom.org/~tom/alevt-dvb.patch
 * search.c: Add vbi_wst_level.
 * packet.c: Add filter for data pages (EPG etc).
 * Add VPT decoder.
@@ -34,6 +35,7 @@ Version 0.3
   samples.
 * SGML error reporting. (Not sure anymore if this is
   really worth the trouble.)
+* i18n: exporting static strings N_("foo") is a bad idea.
 
 -------------------------------------------------------------------------------
 Ideas? Drop us a note at http://zapping.sourceforge.net.

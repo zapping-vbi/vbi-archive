@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.h,v 1.5 2002-10-22 04:42:40 mschimek Exp $ */
+/* $Id: exp-txt.h,v 1.5.2.1 2003-05-02 10:44:49 mschimek Exp $ */
 
 #ifndef EXP_TXT_H
 #define EXP_TXT_H
@@ -34,42 +34,26 @@
  * @addtogroup Render
  * @{
  */
-extern int		vbi_print_page_region(vbi_page *pg, char *buf, int size,
-					      const char *format, vbi_bool table, vbi_bool ltr,
-					      int column, int row, int width, int height);
-
-/**
- * @param pg Source page.
- * @param buf Memory location to hold the output.
- * @param size Size of the buffer in bytes. The function fails
- *   when the data exceeds the buffer capacity.
- * @param format Character set name for iconv() conversion,
- *   for example "ISO-8859-1".
- * @param table When @c FALSE, runs of spaces at the start and
- *   end of rows will be collapsed into single spaces, blank
- *   lines are suppressed.
- * @param ltr Currently ignored, please set to @c TRUE.
- * 
- * Print a Teletext or Closed Caption vbi_page, rows separated
- * by linefeeds "\n", in the desired format. All character attributes
- * and colors will be lost. Graphics characters, DRCS and all
- * characters not representable in the target format will be replaced
- * by spaces.
- * 
- * @return
- * Number of bytes written into @a buf, a value of zero when
- * some error occurred. In this case @a buf may contain incomplete
- * data. Note this function does not append a terminating null
- * character.
- **/
-static_inline int
-vbi_print_page(vbi_page *pg, char *buf, int size,
-	       const char *format, vbi_bool table, vbi_bool ltr)
-{
-	return vbi_print_page_region(pg, buf, size,
-				     format, table, ltr,
-				     0, 0, pg->columns, pg->rows);
-}
+extern unsigned int
+vbi_print_page_region		(vbi_page *		pg,
+				 char *			buf,
+				 unsigned int		buf_size,
+				 const char *		format,
+				 const char *		separator,
+				 unsigned int		sep_size,
+				 vbi_bool		table,
+				 vbi_bool		rtl,
+				 unsigned int		column,
+				 unsigned int		row,
+				 unsigned int		width,
+				 unsigned int		height);
+extern unsigned int
+vbi_print_page			(vbi_page *		pg,
+				 char *			buf,
+				 unsigned int		buf_size,
+				 const char *		format,
+				 vbi_bool		table,
+				 vbi_bool		rtl);
 /** @} */
 
 /* Private */

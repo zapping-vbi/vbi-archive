@@ -1,3 +1,79 @@
+2003-05-02	<mschimek@users.sf.net>
+
+	* src/io-v4l2k.c: Missed one of Tom's fixes.
+
+2003-04-26	<mschimek@users.sf.net>
+
+	* src/decoder.c: Refactored and cleaned up bit slicer.
+	  Refactored raw decoder, namly CPR1204 CRC.
+	* src/export.c, src/export.h: Added vbi_iconv helper
+	  functions to better hide the nasty details of UCS-2
+	  conversion.
+	* src/exp-html.c: Const correction, use vbi_iconv.
+	* src/exp-txt.c, src/exp-txt.h (vbi_print_page_region):
+	  Improved interface. Default format UTF-8, custom and
+	  iconv'ed line separator, rtl option. Untested.
+	* src/exp-txt.c, src/exp-txt.h (vbi_print_page):
+	  De-inlined for interface compatibility.
+	* src/exp-txt.c: Consider wchar_t, use vbi_iconv,
+	  cleanup.
+        * src/format.h: vbi_char.reserved became pdc link flag.
+	  Correct types for pgno, subno in vbi_page, unsigned
+	  rows, columns.
+	* src/hamm.c, src/hamm.h (vbi_hamm24): Const correction.
+	* src/hamm.h: Enabled i686 parity check optimization
+	  (use parity status flag, no branch). Const corrections.
+	* src/misc.h: Missing brackets in PARENT macro. Target
+	  cpu check for code optimization. ANSI-C versions of
+	  GCC optimized helper macros.
+	* src/packet.c: s/pagenum/vt_pagenum.
+	* src/teletext.c: Improved PDC-A decoder, updated PDC-B
+	  decoder. No user interface yet.
+	* src/teletext.c: Rudimentary private vbi_page, some
+	  internal interface simplifications and cleanups.
+	* src/teletext.c (enhance): Extracted subfunctions,
+	  a major porting obstacle.
+	* src/vt.h: Cleanups.
+
+2003-04-26	<mschimek@users.sf.net>
+
+	* src/decoder.c (vbi_raw_decoder_add_services): There was
+	  a bug in the loop across the pattern array which caused
+	  heap corruption. Fix by Tom Zoerner. He also added some
+	  debug output, for now conditionally compiled in.
+	* src/decoder.c  (vbi_raw_decoder_remove_services): In the
+	  pattern array job indices were not adapted. Fix by Tom.
+	* src/io-v4l.c (set_parameters): ioctl(VIDIOCSVBIFMT)
+	  result EINVAL led to a FALSE result value and regardless
+	  of the "strict" level to an abort. Actually EINVAL must
+	  be expected. Fix by Tom.
+	* src/io-v4l.c (v4l_new): v->dec.offset default values for
+	  scanning == 625 were refused by vbi_raw_decoder_add_services().
+	  Changed to be identical to the 525 case. Fix by Tom.
+	  See zapping-misc 2003-04-23 for details.
+
+2003-04-17	<mschimek@users.sf.net>
+
+	* src/Makefile.am: Autogenerate version.h.
+	* src/vbi.c, src/vbi.h: Added vbi_version(). 
+
+2003-03-05	<mschimek@users.sf.net>
+
+	* src/exp-txt.c, src/exp-txt.h: Improved vbi_print_page(),
+	  vbi_print_page_region(). Added a separator parameter, linefeed
+	  separator translates to desired format (e.g. UCS-2),
+	  right-to-left scanning supported now. Export also iconv-erts
+	  terminal control codes and linefeeds.
+	* src/hamm.c, src/hamm.h: const/unsigned corrections.
+
+2003-03-01	<mschimek@users.sf.net>
+
+	* src/bcd.h (vbi_bcd2dec, vbi_dec2bcd): Changed precision to
+	  four bcd digits.
+	* src/bcd.h: Added vbi_sub_bcd(), vbi_neg_bcd(), 64-bit clean.
+	* test/cpptest.cc: Added bcd test routines, rudimentary C++
+	  interface.
+
 2003-02-15	<mschimek@users.sf.net>
 
 	* src/io-v4l2k.c: Fixed video standard detection.

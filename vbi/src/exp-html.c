@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.6 2002-10-22 04:42:40 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.6.2.1 2003-05-02 10:44:49 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -239,7 +239,9 @@ title(html_instance *html, vbi_page *pg)
 static vbi_bool
 header(html_instance *html, vbi_page *pg)
 {
-	char *charset, *lang = NULL, *dir = NULL;
+	const char *charset;
+	const char *lang = NULL;
+	const char *dir = NULL;
 
 	switch (pg->font[0] - vbi_font_descriptors) {
 	case 0:	 /* English */
@@ -346,7 +348,9 @@ header(html_instance *html, vbi_page *pg)
 		break;
 	}
 
-	if ((html->cd = iconv_open(charset, "UCS-2")) == (iconv_t) -1) {
+	html->cd = vbi_iconv_open (charset, NULL, 0); // XXX
+
+	if (html->cd == (iconv_t) -1) {
 		vbi_export_error_printf(&html->export,
 					_("Character conversion Unicode (UCS-2) "
 					  "to %s not supported."), charset);
@@ -421,15 +425,9 @@ static vbi_bool
 export(vbi_export *e, FILE *fp, vbi_page *pgp)
 {
 	html_instance *html = PARENT(e, html_instance, export);
-	int endian = vbi_ucs2be();
 	vbi_page pg;
 	vbi_char *acp;
 	int i, j;
-
-	if (endian < 0) {
-		vbi_export_error_printf(&html->export, _("Character conversion failed."));
-		return FALSE;
-	}
 
 	pg = *pgp;
 
@@ -653,20 +651,18 @@ export(vbi_export *e, FILE *fp, vbi_page *pgp)
 			}
 
 			if (vbi_is_print(acp[j].unicode)) {
-				char in[2], out[1], *ip = in, *op = out;
-				size_t li = sizeof(in), lo = sizeof(out);
+				char buf[16], *bp = buf;
 
-				in[0 + endian] = acp[j].unicode;
-				in[1 - endian] = acp[j].unicode >> 8;
-
-				if (iconv(html->cd, (void *) &ip, &li, (void *) &op, &lo) == -1
-				    || (out[0] == 0x40 && acp[j].unicode != 0x0040))
-					fprintf(html->fp, "&#%u;", acp[j].unicode);
+				// XXX w_char
+				if (vbi_iconv_unicode (html->cd, &bp, sizeof (buf), acp[j].unicode))
+  					escaped_fputc(html->fp, buf[0]);
 				else
-					escaped_fputc(html->fp, out[0]);
+					fprintf(html->fp, "&#%u;", acp[j].unicode);
 			} else if (vbi_is_gfx(acp[j].unicode)) {
+				// XXX w_char
 				putc(html->gfx_chr, html->fp);
 			} else {
+				// XXX w_char
 				putc(0x20, html->fp);
 			}
 		}
@@ -702,7 +698,7 @@ export(vbi_export *e, FILE *fp, vbi_page *pgp)
 
 	putc('\n', html->fp);
 
-	iconv_close(html->cd);
+	vbi_iconv_close(html->cd);
 
 	if (ferror(html->fp)) {
 		vbi_export_write_error(e);

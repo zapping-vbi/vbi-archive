@@ -1,7 +1,7 @@
 /*
  *  libzvbi - Teletext cache
  *
- *  Copyright (C) 2001, 2002 Michael H. Schimek
+ *  Copyright (C) 2001-2003 Michael H. Schimek
  *
  *  Based on code from AleVT 1.5.1
  *  Copyright (C) 1998, 1999 Edgar Toernig <froese@gmx.de>

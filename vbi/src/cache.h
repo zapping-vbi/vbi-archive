@@ -1,7 +1,7 @@
 /*
  *  libzvbi - Teletext page cache
  *
- *  Copyright (C) 2001, 2002 Michael H. Schimek
+ *  Copyright (C) 2001-2003 Michael H. Schimek
  *
  *  Based on code from AleVT 1.5.1
  *  Copyright (C) 1998, 1999 Edgar Toernig
@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cache.h,v 1.2.2.1 2003-02-16 21:03:30 mschimek Exp $ */
+/* $Id: cache.h,v 1.2.2.2 2003-05-02 10:44:49 mschimek Exp $ */
 
 #ifndef CACHE_H
 #define CACHE_H
