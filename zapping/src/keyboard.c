@@ -564,7 +564,10 @@ static struct {
   { 0,			GDK_j,			"quickshot jpeg" }, /* XawTV */
   { CTRL + ALT,		GDK_n,			"ttx_open_new" },
   { 0,			GDK_n,			"ttx_open_new" }, /* new */
+  { CTRL + ALT,		GDK_o,			"toggle_mode preview" },
+  { 0,			GDK_o,			"toggle_mode preview" },
   { CTRL + ALT,		GDK_p,			"toggle_mode preview" },
+  { CTRL,		GDK_p,			"toggle_mode preview" },
   { 0,			GDK_p,			"toggle_mode preview" }, /* new */
   { 0,			GDK_q,			"quit" }, /* XawTV */
   { SHIFT,		GDK_r,			"ttx_reveal" },

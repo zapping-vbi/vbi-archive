@@ -171,7 +171,7 @@
 		<key>GDK_F</key>
 		<signal>activate</signal>
 	      </accelerator>
-	      <label>Go _Fullscreen</label>
+	      <label>_Fullscreen</label>
 	      <right_justify>False</right_justify>
 	      <stock_icon>GNOME_STOCK_MENU_EXEC</stock_icon>
 	    </widget>
@@ -182,10 +182,10 @@
 	      <tooltip>Switch to windowed overlay mode</tooltip>
 	      <accelerator>
 		<modifiers>GDK_CONTROL_MASK</modifiers>
-		<key>GDK_P</key>
+		<key>GDK_O</key>
 		<signal>activate</signal>
 	      </accelerator>
-	      <label>Go _Previewing</label>
+	      <label>_Overlay mode</label>
 	      <right_justify>False</right_justify>
 	      <stock_icon>GNOME_STOCK_MENU_EXEC</stock_icon>
 	    </widget>
@@ -199,14 +199,14 @@
 		<key>GDK_C</key>
 		<signal>activate</signal>
 	      </accelerator>
-	      <label>Go _Capturing</label>
+	      <label>_Capture mode</label>
 	      <right_justify>False</right_justify>
 	      <stock_icon>GNOME_STOCK_MENU_EXEC</stock_icon>
 	    </widget>
 
 	    <widget>
 	      <class>GtkMenuItem</class>
-	      <name>separador5</name>
+	      <name>separator11</name>
 	      <right_justify>False</right_justify>
 	    </widget>
 
@@ -225,7 +225,7 @@
 	    </widget>
 
 	    <widget>
-	      <class>GtkPixmapMenuItem</class>
+	      <class>GtkMenuItem</class>
 	      <name>new_ttxview</name>
 	      <accelerator>
 		<modifiers>GDK_CONTROL_MASK</modifiers>
@@ -234,7 +234,12 @@
 	      </accelerator>
 	      <label>_New Teletext View</label>
 	      <right_justify>False</right_justify>
-	      <stock_icon>GNOME_STOCK_MENU_ALIGN_JUSTIFY</stock_icon>
+	    </widget>
+
+	    <widget>
+	      <class>GtkMenuItem</class>
+	      <name>separador5</name>
+	      <right_justify>False</right_justify>
 	    </widget>
 
 	    <widget>
@@ -3573,7 +3578,7 @@ Open automatically
       <key>GDK_F</key>
       <signal>activate</signal>
     </accelerator>
-    <label>Go _Fullscreen</label>
+    <label>_Fullscreen</label>
     <right_justify>False</right_justify>
     <stock_icon>GNOME_STOCK_MENU_EXEC</stock_icon>
   </widget>
@@ -3583,10 +3588,10 @@ Open automatically
     <name>go_previewing2</name>
     <accelerator>
       <modifiers>GDK_CONTROL_MASK</modifiers>
-      <key>GDK_P</key>
+      <key>GDK_O</key>
       <signal>activate</signal>
     </accelerator>
-    <label>Go _Previewing</label>
+    <label>_Overlay mode</label>
     <right_justify>False</right_justify>
     <stock_icon>GNOME_STOCK_MENU_EXEC</stock_icon>
   </widget>
@@ -3599,7 +3604,7 @@ Open automatically
       <key>GDK_C</key>
       <signal>activate</signal>
     </accelerator>
-    <label>Go _Capturing</label>
+    <label>_Capture mode</label>
     <right_justify>False</right_justify>
     <stock_icon>GNOME_STOCK_MENU_EXEC</stock_icon>
   </widget>
