@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.27 2001-07-28 06:55:57 mschimek Exp $ */
+/* $Id: v4lx.c,v 1.28 2001-07-31 12:59:50 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -46,6 +46,25 @@
 #include "decoder.h"
 #include "../common/math.h"
 #include "../common/fifo.h"
+
+#ifdef ENABLE_NLS
+#    include <libintl.h>
+#    define _(String) gettext (String)
+#    ifdef gettext_noop
+#        define N_(String) gettext_noop (String)
+#    else
+#        define N_(String) (String)
+#    endif
+#else
+/* Stubs that do something close enough.  */
+#    define textdomain(String) (String)
+#    define gettext(String) (String)
+#    define dgettext(Domain,Message) (Message)
+#    define dcgettext(Domain,Message,Type) (Message)
+#    define bindtextdomain(Domain,Directory) (Domain)
+#    define _(String) (String)
+#    define N_(String) (String)
+#endif
 
 #define IODIAG(templ, args...) //fprintf(stderr, templ ": %s (%d)\n" ,##args , strerror(errno), errno)/* with errno */
 #define DIAG(templ, args...) //fprintf(stderr, templ,##args)
@@ -104,38 +123,40 @@ wait_full_read(fifo2 *f)
 
 	b = wait_empty_buffer2(&vbi->producer);
 
-	do {
-		for (;;) {
-			// XXX use select if possible to set read timeout
-			pthread_testcancel();
+	for (;;) {
+		// XXX use select if possible to set read timeout
+		pthread_testcancel();
 
-			r = read(vbi->fd, vbi->raw_buffer[0].data,
-				 vbi->raw_buffer[0].size);
+		r = read(vbi->fd, vbi->raw_buffer[0].data,
+			 vbi->raw_buffer[0].size);
 
-			if (r == vbi->raw_buffer[0].size)
-				break;
+		if (r == vbi->raw_buffer[0].size)
+			break;
 
-			if (r == -1
-			    && (errno == EINTR || errno == ETIME))
-				continue;
+		if (r == -1
+		    && (errno == EINTR || errno == ETIME))
+			continue;
 
-			IODIAG("VBI read error");
+		b->used = -1;
+		b->error = errno;
+		b->errstr = _("V4L/V4L2 VBI interface: Failed to read from the device");
 
-			b->used = -1;
-			b->error = errno;
+		send_full_buffer2(&vbi->producer, b);
 
-			send_full_buffer2(&vbi->producer, b);
+		return;
+	}
 
-			return;
-		}
+	b->data = b->allocated;
+	b->time = current_time();
 
-		b->data = b->allocated;
-		b->time = current_time();
+	b->used = sizeof(vbi_sliced) *
+		vbi_decoder(&vbi->dec, vbi->raw_buffer[0].data,
+			    (vbi_sliced *) b->data);
 
-		b->used = sizeof(vbi_sliced) *
-			vbi_decoder(&vbi->dec, vbi->raw_buffer[0].data,
-				    (vbi_sliced *) b->data);
-	} while (b->used == 0);
+	if (b->used == 0) {
+		((vbi_sliced *) b->data)->id = 0; /* nothing */
+		b->used = sizeof(vbi_sliced); /* zero means EOF */
+	}
 
 	send_full_buffer2(&vbi->producer, b);
 
@@ -162,37 +183,44 @@ read_thread(void *p)
 	for (;;) {
 		b = wait_empty_buffer2(&vbi->producer);
 
-		do {
-			for (;;) {
-				// XXX use select if possible to set read timeout
-				pthread_testcancel();
+		for (;;) {
+			// XXX use select if possible to set read timeout
+			pthread_testcancel();
 
-				r = read(vbi->fd, vbi->raw_buffer[0].data,
-					 vbi->raw_buffer[0].size);
+			r = read(vbi->fd, vbi->raw_buffer[0].data,
+				 vbi->raw_buffer[0].size);
 
-				if (r == vbi->raw_buffer[0].size)
-					break;
+			if (r == vbi->raw_buffer[0].size)
+				break;
 
-				if (r == -1
-				    && (errno == EINTR || errno == ETIME))
-					continue;
+			if (r == -1
+			    && (errno == EINTR || errno == ETIME))
+				continue;
 
-				IODIAG("VBI read error");
+			for (; stacked > 0; stacked--)
+				send_full_buffer2(&vbi->producer,
+					PARENT(rem_head3(&stack), buffer2, node));
 
-				for (; stacked > 0; stacked--)
-					send_full_buffer2(&vbi->producer,
-						PARENT(rem_head3(&stack), buffer2, node));
+			b->used = -1;
+			b->error = errno;
+			b->errstr = _("V4L/V4L2 VBI interface: Failed to read from the device");
 
-				assert(!"read error in v4lx read thread"); /* XXX */
-			}
+			send_full_buffer2(&vbi->producer, b);
 
-			b->data = b->allocated;
-			b->time = current_time();
+			return NULL; /* XXX */
+		}
 
-			b->used = sizeof(vbi_sliced) *
-				vbi_decoder(&vbi->dec, vbi->raw_buffer[0].data,
-					    (vbi_sliced *) b->data);
-		} while (b->used == 0);
+		b->data = b->allocated;
+		b->time = current_time();
+
+		b->used = sizeof(vbi_sliced) *
+			vbi_decoder(&vbi->dec, vbi->raw_buffer[0].data,
+				    (vbi_sliced *) b->data);
+
+		if (b->used == 0) {
+			((vbi_sliced *) b->data)->id = 0; /* nothing */
+			b->used = sizeof(vbi_sliced); /* zero means EOF */
+		}
 
 		/*
 		 *  This curious construct compensates temporary shifts
@@ -274,7 +302,6 @@ start_read(fifo2 *f)
 
 	rem_consumer(&c);
 
-	// XXX thread?
 	return FALSE;
 }
 
@@ -708,7 +735,7 @@ failure:
  *  Streaming I/O Interface
  */
 
-static void
+static void *
 wait_full_stream(fifo2 *f)
 {
 	vbi_device *vbi = PARENT(f, vbi_device, fifo);
@@ -721,75 +748,92 @@ wait_full_stream(fifo2 *f)
 	while (vbi->buffered) {
 		b = wait_empty_buffer2(&vbi->producer);
 
-		do {
-			r = -1;
+		r = -1;
 
-			while (r <= 0) {
-				struct timeval tv;
+		while (r <= 0) {
+			struct timeval tv;
 
-				FD_ZERO(&fds);
-				FD_SET(vbi->fd, &fds);
+			FD_ZERO(&fds);
+			FD_SET(vbi->fd, &fds);
 
-				tv.tv_sec = 2;
-				tv.tv_usec = 0;
+			tv.tv_sec = 2;
+			tv.tv_usec = 0;
 
-				pthread_testcancel();
-				r = select(vbi->fd + 1, &fds, NULL, NULL, &tv);
+			pthread_testcancel();
 
-				if (r < 0 && errno == EINTR)
-					continue;
+			r = select(vbi->fd + 1, &fds, NULL, NULL, &tv);
 
-				if (r == 0) { /* timeout */
-					DIAG("VBI capture stalled, no station tuned in?");
-					b->used = -1;
-					b->error = ETIME;
-					send_full_buffer2(&vbi->producer, b);
-					if (vbi->buffered)
-						continue; /* XXX */
-					return;
-				} else if (r < 0) {
-					IODIAG("Unknown VBI select failure");
-					b->used = -1;
-					b->error = errno;
-					send_full_buffer2(&vbi->producer, b);
-					if (vbi->buffered)
-						assert(0); /* XXX */
-					return;
-				}
-			}
+			if (r < 0 && errno == EINTR)
+				continue;
 
-			vbuf.type = vbi->btype;
+			if (r == 0) {
+				/* timeout */
+				b->used = -1;
+				b->error = ETIME;
+				b->errstr = _("V4L2 VBI interface: Capture stalled, "
+					      "no station tuned in?");
 
-			if (ioctl(vbi->fd, VIDIOC_DQBUF, &vbuf) == -1) {
-				IODIAG("Cannot dequeue streaming I/O VBI buffer "
-					"(broken driver or application?)");
+				send_full_buffer2(&vbi->producer, b);
+
+				if (vbi->buffered)
+					continue; /* XXX yes? */
+
+				return NULL;
+			} else if (r < 0) {
 				b->used = -1;
 				b->error = errno;
+				b->errstr = _("V4L2 VBI interface: Failed to read from the device");
+
 				send_full_buffer2(&vbi->producer, b);
+
 				if (vbi->buffered)
-					assert(0); /* XXX */
-				return;
+					return NULL; /* XXX */
+
+				return NULL;
 			}
+		}
 
-			b->data = b->allocated;
-			b->time = time = vbuf.timestamp / 1e9;
+		vbuf.type = vbi->btype;
 
-			b->used = sizeof(vbi_sliced) *
-				vbi_decoder(&vbi->dec, vbi->raw_buffer[vbuf.index].data,
-					    (vbi_sliced *) b->data);
+		if (ioctl(vbi->fd, VIDIOC_DQBUF, &vbuf) == -1) {
+			b->used = -1;
+			b->error = errno;
+			b->errstr = _("V4L2 VBI interface: Cannot dequeue "
+				      "buffer, driver or application bug?");
 
-			if (ioctl(vbi->fd, VIDIOC_QBUF, &vbuf) == -1) {
-				IODIAG("Cannot enqueue streaming I/O VBI buffer "
-					"(broken driver?)");
-				b->used = -1;
-				b->error = errno;
-				send_full_buffer2(&vbi->producer, b);
-				if (vbi->buffered)
-					assert(0); /* XXX */
-				return;
-			}
+			send_full_buffer2(&vbi->producer, b);
 
-		} while (b->used == 0);
+			if (vbi->buffered)
+				return NULL; /* XXX */
+
+			return NULL;
+		}
+
+		b->data = b->allocated;
+		b->time = time = vbuf.timestamp / 1e9;
+
+		b->used = sizeof(vbi_sliced) *
+			vbi_decoder(&vbi->dec, vbi->raw_buffer[vbuf.index].data,
+				    (vbi_sliced *) b->data);
+
+		if (ioctl(vbi->fd, VIDIOC_QBUF, &vbuf) == -1) {
+			b->used = -1;
+			b->error = errno;
+			b->errstr = _("V4L2 VBI interface: Cannot enqueue "
+				      "buffer, driver or application bug?");
+
+			send_full_buffer2(&vbi->producer, b);
+
+			if (vbi->buffered)
+				return NULL; /* XXX */
+
+			return NULL;
+		}
+
+		if (b->used == 0) {
+			((vbi_sliced *) b->data)->id = 0; /* nothing */
+			b->used = sizeof(vbi_sliced); /* zero means EOF */
+		}
 
 #if WSS_TEST
 		if (vbi->wss_slicer_fn) {
@@ -815,6 +859,8 @@ wait_full_stream(fifo2 *f)
 		send_full_buffer2(&vbi->producer, b);
 
 	} /* loop if buffered (we're a thread) */
+
+	return NULL;
 }
 
 static bool
@@ -1008,7 +1054,7 @@ open_v4l2(vbi_device **pvbi, char *dev_name,
 			}
 		} else {
 			if (!init_callback_fifo2(&vbi->fifo, "vbi-v4l2-stream",
-			    NULL, NULL, wait_full_stream, NULL, fifo_depth,
+			    NULL, NULL, (void (*)(fifo2 *)) wait_full_stream, NULL, fifo_depth,
 			    sizeof(vbi_sliced) * (vbi->dec.count[0] + vbi->dec.count[1]))) {
 				goto failure;
 			}
@@ -1320,6 +1366,7 @@ vbi_close_v4lx(fifo2 *f)
 	free(vbi);
 }
 
+/* given_fd points to an opened video device, or -1, ignored for V4L2 */
 fifo2 *
 vbi_open_v4lx(char *dev_name, int given_fd, int buffered, int fifo_depth)
 {

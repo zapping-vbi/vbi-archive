@@ -1,3 +1,8 @@
+31.07.2001	libvbi <mschimek@users.sf.net>
+
+	* v4lx.c: Fixed blank vbi bug.
+	* libvbi: Rewrote open sequence.
+
 29.07.2001	parrot fixes <mschimek@users.sf.net>
 
 	* x11stuff.c: Check success of shmget et al.

@@ -1,3 +1,25 @@
+/*
+ *  Zapzilla/libvbi
+ *
+ *  Copyright (C) 2001 Michael H. Schimek
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+
+/* $Id: vbi.c,v 1.65 2001-07-31 12:59:50 mschimek Exp $ */
+
 #include "site_def.h"
 
 #include <stdio.h>
@@ -32,7 +54,7 @@
  *  VBI_EVENT_PAGE, loading the cache with Teletext pages) is disabled.
  *  Mind the vbi fifo producer which isn't controlled from here.
  *
- *  Safe to call from a handler or thread other than vbi_mainloop.
+ *  Safe to call from a handler or thread other than mainloop.
  *  Returns boolean success.
  */
 int
@@ -261,24 +283,21 @@ decode_wss_cpr1204(struct vbi *vbi, unsigned char *buf)
 #define SLICED_CAPTION		(SLICED_CAPTION_625_F1 | SLICED_CAPTION_625 \
 				 | SLICED_CAPTION_525_F1 | SLICED_CAPTION_525)
 
-#define FIFO_DEPTH 30
-
-void *
-vbi_mainloop(void *p)
+static void *
+mainloop(void *p)
 {
 	struct vbi *vbi = p;
+	vbi_event ev;
 	vbi_sliced *s;
 	consumer c;
 	int items;
 
-	assert(add_consumer(vbi->fifo, &c));
+	assert(add_consumer(vbi->source, &c));
 
 	while (!vbi->quit) {
 		buffer2 *b = wait_full_buffer2(&c);
 
 		if (b->used <= 0) {
-			vbi_event ev;
-
 			/* ack */
 			send_empty_buffer2(&c, b);
 
@@ -328,6 +347,9 @@ vbi_mainloop(void *p)
 			vbi_eacem_trigger(vbi,
 				"<http://zapping.sourceforge.net>[n:Zapping][5450]");
 	}
+
+	ev.type = VBI_EVENT_CLOSE;
+	vbi_send_event(vbi, &ev);
 
 	rem_consumer(&c);
 
@@ -464,7 +486,7 @@ add_filter(struct vbi *vbi)
 	filter.pass = FILTER_REM ^ -1;
 	filter.add = FILTER_ADD;
 
-	filter.old_fifo = vbi->fifo;
+	filter.old_fifo = vbi->source;
 
 	assert(add_consumer(filter.old_fifo, &filter.old_consumer));
 
@@ -473,7 +495,7 @@ add_filter(struct vbi *vbi)
 
 	assert(add_producer(&filter.fifo, &filter.producer));
 
-	vbi->fifo = &filter.fifo;
+	vbi->source = &filter.fifo;
 }
 
 static void
@@ -484,7 +506,7 @@ remove_filter(struct vbi *vbi)
 
 	rem_consumer(&filter.old_consumer);
 
-	vbi->fifo = filter.old_fifo;
+	vbi->source = filter.old_fifo;
 
 	filter.old_fifo = NULL;
 
@@ -659,74 +681,93 @@ vbi_push_video(struct vbi *vbi, void *video_data,
 		unget_empty_buffer2(&vbi->wss_producer, b);
 }
 
-struct vbi *
-vbi_open(char *vbi_name, struct cache *ca, int given_fd)
+void
+vbi_close(struct vbi *vbi)
 {
-    struct vbi *vbi;
+	vbi->quit = TRUE;
 
-    if (!(vbi = calloc(1, sizeof(*vbi))))
-    {
-//	error("out of memory");
-	goto fail1;
-    }
+	pthread_join(vbi->mainloop_thread_id, NULL);
 
-    vbi->fifo = vbi_open_v4lx(vbi_name, given_fd, 1, FIFO_DEPTH);
+	vbi_trigger_flush(vbi);
 
-    if (!vbi->fifo)
-    {
-//	ioerror(vbi_name);
-	goto fail2;
-    }
+	pthread_mutex_destroy(&vbi->event_mutex);
 
+	rem_producer(&vbi->wss_producer);
+
+	remove_filter(vbi);
+
+	vbi->cache->op->close(vbi->cache);
+
+	free(vbi);
+}
+
+/*
+ *  Note1 this will fork off a vbi thread decoding vbi data
+ *  and calling all event handlers. To join this thread and
+ *  free all memory associated with libvbi you must call
+ *  vbi_close. Libvbi should be reentrant, so you can create
+ *  any number of decoding instances (even with the same
+ *  source fifo).
+ *
+ *  Note2 fifo != producer; You can add, remove, replace
+ *  a sliced vbi data producer before or after vbi_open and
+ *  after vbi_close.
+ */
+struct vbi *
+vbi_open(fifo2 *source)
+{
+	struct vbi *vbi;
+
+	if (!(vbi = calloc(1, sizeof(*vbi))))
+		return NULL;
+
+	vbi->cache = cache_open();
+
+
+	/* Our sliced VBI data source */
+
+	vbi->source = source;
 
 	add_filter(vbi);
 
-	/* NB the vbi fifo has TWO producers now (and they don't even know :-) */
-	assert(add_producer(vbi->fifo, &vbi->wss_producer));
+
+	/* Second (internal) source, the RGB WSS decoder */	
+
+	assert(add_producer(vbi->source, &vbi->wss_producer));
 
 	vbi->video_fmt = -1;
 	vbi->video_width = -1;		
 	vbi->video_time = 0.0;
 
 
-    vbi->cache = ca;
+	/* Initialize the decoder */
 
 	pthread_mutex_init(&vbi->event_mutex, NULL);
 
 	vbi->time = 0.0;
 
 	vbi_init_teletext(&vbi->vt);
-	vbi_init_caption(vbi);
 
 	vbi->vt.max_level = VBI_LEVEL_2p5;
+
+	vbi_init_caption(vbi);
 
 	vbi->brightness	= 128;
 	vbi->contrast	= 64;
 
+
+	/* Here we go */
+
+	if (pthread_create(&vbi->mainloop_thread_id, NULL, mainloop, vbi)) {
+		/* Or maybe not */
+		pthread_mutex_destroy(&vbi->event_mutex);
+		rem_producer(&vbi->wss_producer);
+		remove_filter(vbi);
+		vbi->cache->op->close(vbi->cache);
+		free(vbi);
+
+		return NULL;
+	}
+
 	return vbi;
-
-fail2:
-    free(vbi);
-fail1:
-    return 0;
-}
-
-void
-vbi_close(struct vbi *vbi)
-{
-	vbi_event ev;
-
-	ev.type = VBI_EVENT_CLOSE;
-	vbi_send_event(vbi, &ev);
-
-    if (vbi->cache)
-	vbi->cache->op->close(vbi->cache);
-
-	remove_filter(vbi);
-
-    vbi_close_v4lx(vbi->fifo);
-
-	vbi_trigger_flush(vbi);
-
-	free(vbi);
 }

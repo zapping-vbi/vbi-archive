@@ -1,5 +1,29 @@
+/*
+ *  Zapzilla/libvbi
+ *
+ *  Copyright (C) 2001 Michael H. Schimek
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+
+/* $Id: vbi.h,v 1.29 2001-07-31 12:59:50 mschimek Exp $ */
+
 #ifndef VBI_H
 #define VBI_H
+
+/* Private */
 
 #include <pthread.h>
 
@@ -25,10 +49,13 @@ struct event_handler {
 
 struct vbi
 {
-    struct cache *cache;
+    struct cache *cache; /* TODO */
 
-	int			quit; // stoopid
+	fifo2			*source;
+	double			time;
 
+	pthread_t		mainloop_thread_id;
+	int			quit;		/* XXX */
 
 	vbi_network		network;
 	vbi_trigger *		triggers;
@@ -36,8 +63,6 @@ struct vbi
 
 	int			brightness;
 	int			contrast;
-
-	double			time;
 
 	struct teletext		vt;
 	struct caption		cc;
@@ -50,9 +75,6 @@ struct vbi
 	unsigned char		wss_last[2];
 	int			wss_rep_ct;
 	double			wss_time;
-
-    // sliced data source
-    fifo2			*fifo;
 
 	/* Property of the vbi_push_video caller */
 

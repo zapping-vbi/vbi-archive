@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.19 2001-07-21 11:52:25 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.20 2001-07-31 12:59:50 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -488,7 +488,7 @@ html_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pgp)
 		}
 
 		if (pg.pgno < 0x100)
-			fprintf(fp, "Closed Caption"); /* no i18n */
+			fprintf(fp, "Closed Caption"); /* no i18n, is a proper name */
 		else if (pg.subno != ANY_SUB)
 			fprintf(fp, _("Teletext Page %3x.%x"), pg.pgno, pg.subno);
 		else

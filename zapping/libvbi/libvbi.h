@@ -19,12 +19,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvbi.h,v 1.40 2001-07-21 11:52:25 mschimek Exp $ */
+/* $Id: libvbi.h,v 1.41 2001-07-31 12:59:50 mschimek Exp $ */
 
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
 
 #include "../src/tveng.h" /* tveng_frame_pixformat */
+#include "../common/fifo.h"
 #include "format.h"
 
 /*
@@ -329,15 +330,12 @@ typedef struct {
 
 extern int		vbi_event_handler(struct vbi *vbi, int event_mask, void (* handler)(vbi_event *, void *), void *user_data); 
 
-
-struct cache;
-/* given_fd points to an opened video device, or -1, ignored for V4L2 */
-struct vbi *vbi_open(char *vbi_dev_name, struct cache *ca, int given_fd);
-void vbi_close(struct vbi *vbi);
-extern void *	vbi_mainloop(void *p);
 /* Affects vbi_fetch_*_page(), the fmt_page, not export */
 extern void		vbi_set_colour_level(struct vbi *vbi, int brig, int cont);
 extern void		vbi_push_video(struct vbi *vbi, void *data, int width, enum tveng_frame_pixformat fmt, double time);
+
+extern void		vbi_close(struct vbi *vbi);
+extern struct vbi *	vbi_open(fifo2 *source);
 
 /*
  *  Export (export.c)
@@ -347,8 +345,8 @@ typedef struct vbi_export vbi_export; /* opaque type */
 
 typedef struct {
 	char *			keyword;
-	char *			label;		/* or NULL, i18n */
-	char *			tooltip;	/* or NULL, i18n */
+	char *			label;		/* or NULL, gettext()ized */
+	char *			tooltip;	/* or NULL, gettext()ized */
 } vbi_export_module;
 
 typedef enum {
@@ -361,14 +359,14 @@ typedef enum {
 typedef struct {
 	vbi_export_option_type	type;
 	char *			keyword;
-	char *			label;		/* i18n */
+	char *			label;		/* gettext()ized */
 	union {
-		char *			str;	/* i18n */
+		char *			str;	/* gettext()ized */
 		int			num;
 	}			def;
 	int			min, max;
-	char **			menu;		/* max - min + 1 entries, i18n */
-	char *			tooltip;	/* or NULL, i18n */
+	char **			menu;		/* max - min + 1 entries, gettext()ized */
+	char *			tooltip;	/* or NULL, gettext()ized */
 } vbi_export_option;
 
 extern vbi_export_module *vbi_export_enum(int index);
@@ -386,8 +384,6 @@ extern int		vbi_export_file(vbi_export *e, FILE *fp, struct fmt_page *pg);
 /* XXX */
 void vbi_get_max_rendered_size(int *w, int *h);
 void vbi_get_vt_cell_size(int *w, int *h);
-
-
 
 #include "vbi.h" /* XXX cache */
 

@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.6.0cvs\n"
-"POT-Creation-Date: 2001-07-29 02:02+0200\n"
+"POT-Creation-Date: 2001-07-31 10:56+0200\n"
 "PO-Revision-Date: 2001-07-04 18:08+0200\n"
 "Last-Translator: Christian Marillat <marillat.christian@wanadoo.fr>\n"
 "Language-Team: French <fr@li.org>\n"
@@ -78,29 +78,29 @@ msgstr "PIXFORMAT"
 msgid "Redirect the error messages to the console"
 msgstr ""
 
-#: src/main.c:423
+#: src/main.c:424
 msgid "Sorry, but there is no module support in GLib"
 msgstr "Désolé, mais il n'y a pas le support des modules dans Glib"
 
-#: src/main.c:431
+#: src/main.c:432
 msgid "Cannot get device info struct"
 msgstr "Impossible d'obtenir les infos du device"
 
-#: src/main.c:440
+#: src/main.c:441
 msgid "Zapping couldn't be started"
 msgstr "Zapping ne peut pas démarrer."
 
-#: src/main.c:496
+#: src/main.c:497
 #, c-format
 msgid "Couldn't open %s, should I try some common options?"
 msgstr "Ne peut ouvrir %s, dois-je essayer des options plus commune ?"
 
-#: src/main.c:530
+#: src/main.c:531
 #, c-format
 msgid "%s suceeded, setting it as the new default"
 msgstr "%s avec succès, la configuration est la nouvelle par défaut"
 
-#: src/main.c:539
+#: src/main.c:540
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
@@ -109,7 +109,7 @@ msgstr ""
 "Désolé, mais \"%s\" ne peut pas être ouvert :\n"
 "%s"
 
-#: src/main.c:639
+#: src/main.c:640
 #, c-format
 msgid ""
 "Cannot restore previous mode%s:\n"
@@ -118,11 +118,11 @@ msgstr ""
 "Impossible de restorer le précédent mode%s:\n"
 "%s"
 
-#: src/main.c:642
+#: src/main.c:643
 msgid ", I will try starting capture mode"
 msgstr ", je vais essayer de démarrer la capture de fenêtre"
 
-#: src/main.c:646
+#: src/main.c:647
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
@@ -131,7 +131,7 @@ msgstr ""
 "La capture ne peut pas être faites :\n"
 "%s"
 
-#: src/main.c:659
+#: src/main.c:660
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
@@ -140,15 +140,16 @@ msgstr ""
 "La capture d'écran ne peut être démarrée :\n"
 "%s"
 
-#: src/callbacks.c:185 src/callbacks.c:452 src/main.c:687
+#: src/callbacks.c:185 src/callbacks.c:452 src/main.c:688
 msgid "Show controls"
 msgstr "Voir les contrôles"
 
-#: src/callbacks.c:186 src/callbacks.c:453 src/main.c:688
+#: src/callbacks.c:186 src/callbacks.c:453 src/main.c:689
 msgid "Show the menu and the toolbar"
 msgstr "Voir le menu et la barre d'outils"
 
-#: src/main.c:864
+#: src/main.c:865 src/zapzilla.c:152
+#, fuzzy, c-format
 msgid ""
 "ZConf could not be closed properly , your\n"
 "configuration will be lost.\n"
@@ -157,7 +158,7 @@ msgid ""
 "   - You do not have permissions to write to $HOME/.zapping\n"
 "   - libxml is non-functional (?)\n"
 "   - or, more probably, you have found a bug in\n"
-"     Zapping. Please contact the author.\n"
+"     %s. Please contact the author.\n"
 msgstr ""
 "ZConf ne peut pas être fermé proprement, votre\n"
 "configuration sera perdu.\n"
@@ -168,7 +169,7 @@ msgstr ""
 "   - ou, plus sûrement, vous venez de trouver un bug dans\n"
 "     Zapping. Contacter l'auteur SVP.\n"
 
-#: src/main.c:890
+#: src/main.c:891
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Désolé, Zapping n'est pas capable de créer la configuration"
 
@@ -186,27 +187,6 @@ msgstr "Zapping ne peut pas démarrer."
 #, c-format
 msgid "Couldn't open %s, exitting"
 msgstr ""
-
-#: src/zapzilla.c:152
-#, fuzzy
-msgid ""
-"ZConf could not be closed properly , your\n"
-"configuration will be lost.\n"
-"Possible causes for this are:\n"
-"   - There is not enough free memory\n"
-"   - You do not have permissions to write to $HOME/.zapping\n"
-"   - libxml is non-functional (?)\n"
-"   - or, more probably, you have found a bug in\n"
-"     Zapzilla. Please contact the author.\n"
-msgstr ""
-"ZConf ne peut pas être fermé proprement, votre\n"
-"configuration sera perdu.\n"
-"Le causes possibles sont :\n"
-"   - Il n'y a plus de mémoire libre\n"
-"   - Vous n'avez pas la permission d'écrire dans $HOME/.zapping\n"
-"   - libxml ne fonctionne pas (?)\n"
-"   - ou, plus sûrement, vous venez de trouver un bug dans\n"
-"     Zapping. Contacter l'auteur SVP.\n"
 
 #: src/zapzilla.c:170
 #, fuzzy
@@ -337,7 +317,7 @@ msgstr "Entrée TV"
 msgid "No standard"
 msgstr "Pas de standards valable"
 
-#: src/zvbi.c:132
+#: src/zvbi.c:133
 #, c-format
 msgid ""
 "Sorry, but %s couldn't be opened:\n"
@@ -376,16 +356,16 @@ msgstr "Page Teletext %x"
 msgid "Open this page with Zapzilla"
 msgstr "Ouvrir ceci avec Zapzilla"
 
-#: src/zvbi.c:551
-#, c-format
+#: src/zvbi.c:504
+#, fuzzy, c-format
 msgid ""
 "VBI: %s couldn't be opened: %d, %s\n"
 "This probably means that the required driver isn't loaded, add to your "
 "/etc/modules.conf the line:\n"
-"alias char-major-81-224 bttv (replace bttv with the name of your video "
+"alias char-major-81-224 bttv (replace bttv by the name of your video "
 "driver)\n"
-"and create /dev/vbi0 appropiately. If this doesn't work, you can disable VBI "
-"in Settings/Preferences/VBI options/Enable VBI decoding."
+"and with mknod create /dev/vbi0 appropriately. If this doesn't work, you can "
+"disable VBI in Settings/Preferences/VBI options/Enable VBI decoding."
 msgstr ""
 "VBI: %s ne peut être ouvert : %d, %s\n"
 "Cela veut probablement dire que le pilote n'a pas été chargé, ajoutez dans "
@@ -395,20 +375,20 @@ msgstr ""
 "et créez /dev/vbi0 . Si ceci ne marche pas, vous pouvez déactiver le VBI "
 "dans Paramètres/Préférences/options VBI/Activer le décodage VBI."
 
-#: src/zvbi.c:1676
+#: src/zvbi.c:1669
 #, c-format
 msgid "%d %s"
 msgstr "%d %s"
 
-#: src/zvbi.c:1677
+#: src/zvbi.c:1670
 msgid "minute"
 msgstr "minute"
 
-#: src/zvbi.c:1677
+#: src/zvbi.c:1670
 msgid "minutes"
 msgstr "minutes"
 
-#: src/zvbi.c:1679
+#: src/zvbi.c:1672
 #, c-format
 msgid "%d h %d m"
 msgstr "%d h %d m"
@@ -2816,6 +2796,26 @@ msgid ""
 msgstr ""
 "Exporter cette page en un fichier VTX, le format utilisé par Videotext et "
 "vbidecode"
+
+#, fuzzy
+#~ msgid ""
+#~ "ZConf could not be closed properly , your\n"
+#~ "configuration will be lost.\n"
+#~ "Possible causes for this are:\n"
+#~ "   - There is not enough free memory\n"
+#~ "   - You do not have permissions to write to $HOME/.zapping\n"
+#~ "   - libxml is non-functional (?)\n"
+#~ "   - or, more probably, you have found a bug in\n"
+#~ "     Zapzilla. Please contact the author.\n"
+#~ msgstr ""
+#~ "ZConf ne peut pas être fermé proprement, votre\n"
+#~ "configuration sera perdu.\n"
+#~ "Le causes possibles sont :\n"
+#~ "   - Il n'y a plus de mémoire libre\n"
+#~ "   - Vous n'avez pas la permission d'écrire dans $HOME/.zapping\n"
+#~ "   - libxml ne fonctionne pas (?)\n"
+#~ "   - ou, plus sûrement, vous venez de trouver un bug dans\n"
+#~ "     Zapping. Contacter l'auteur SVP.\n"
 
 #~ msgid "Show extra controls"
 #~ msgstr "Voir les contrôles extra"

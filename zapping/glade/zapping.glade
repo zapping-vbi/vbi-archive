@@ -449,6 +449,13 @@
 	</widget>
 
 	<widget>
+	  <class>GtkVSeparator</class>
+	  <name>sep1</name>
+	  <width>8</width>
+          <height>30</height> 
+	</widget>
+
+	<widget>
 	  <class>GtkButton</class>
 	  <child_name>Toolbar:button</child_name>
 	  <name>button1</name>

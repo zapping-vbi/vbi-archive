@@ -69,7 +69,7 @@ static gboolean osd_status = FALSE;
 
 static gint input_id = 0;
 
-extern int test_pipe[2];
+extern int osd_pipe[2];
 
 static void osd_event		(gpointer	   data,
                                  gint              source, 
@@ -91,7 +91,7 @@ startup_osd(void)
 
   osd_started = TRUE;
 
-  input_id = gdk_input_add(test_pipe[0], GDK_INPUT_READ,
+  input_id = gdk_input_add(osd_pipe[0], GDK_INPUT_READ,
 			   osd_event, NULL);
 
   osd_model = ZMODEL(zmodel_new());
@@ -676,7 +676,7 @@ osd_event			(gpointer	   data,
   if (!vbi)
     return;
 
-  if (read(test_pipe[0], dummy, 16 /* flush */) <= 0
+  if (read(osd_pipe[0], dummy, 16 /* flush */) <= 0
       || !osd_status)
     return;
 

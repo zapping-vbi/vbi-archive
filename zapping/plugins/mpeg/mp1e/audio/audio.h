@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.h,v 1.10 2001-07-27 05:52:24 mschimek Exp $ */
+/* $Id: audio.h,v 1.11 2001-07-31 12:59:50 mschimek Exp $ */
 
 #include <pthread.h>
 #include "../common/fifo.h"
@@ -103,7 +103,16 @@ extern struct audio_seg
 	FLOAT *			h_save_oldest;
 	int			psycho_loops;
 
+	unsigned char		wrap[(SAMPLES_PER_FRAME + 512 - 32) * 4]
+		__attribute__ ((aligned (CACHE_LINE)));
+
 	/* Misc */
+
+	consumer		cons;
+	buffer2 *		ibuf;
+	unsigned char		*p, *o;
+	int			left, offs;
+	double			time;
 
 	unsigned int		header_template;
 	double			frame_period;

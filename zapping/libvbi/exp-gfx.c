@@ -23,7 +23,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.36 2001-07-24 20:47:04 garetxe Exp $ */
+/* $Id: exp-gfx.c,v 1.37 2001-07-31 12:59:50 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -801,7 +801,7 @@ png_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg)
 		 *  see png spec for other
 		 */
 		if (pg->pgno < 0x100)
-			sprintf(s, "Closed Caption"); /* no i18n */
+			sprintf(s, "Closed Caption"); /* no i18n, is a proper name */
 		else if (pg->subno != ANY_SUB)
 			sprintf(s, _("Teletext Page %3x.%x"), pg->pgno, pg->subno);
 		else

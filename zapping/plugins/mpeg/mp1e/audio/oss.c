@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: oss.c,v 1.18 2001-07-27 05:52:24 mschimek Exp $ */
+/* $Id: oss.c,v 1.19 2001-07-31 12:59:50 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -65,6 +65,57 @@ struct oss_context {
 	int			left;
 	double			time;
 };
+
+#define FLAT 0
+#if FLAT
+
+static void
+wait_full(fifo2 *f)
+{
+	struct oss_context *oss = f->user_data;
+	buffer2 *b = PARENT(f->buffers.head, buffer2, added);
+	struct audio_buf_info info;
+	unsigned char *p;
+	ssize_t r, n;
+
+	assert(b->data == NULL); /* no queue */
+
+	for (p = b->allocated, n = b->size; n > 0;) {
+		r = read(oss->fd, p, n);
+
+		if (r < 0 && errno == EINTR)
+			continue;
+
+		if (r == 0) {
+			memset(p, 0, n); // redundant except 2|4 multiple
+			break;
+		}
+
+		ASSERT("read PCM data, %d bytes", r > 0, n);
+
+		p += r;
+		n -= r;
+	}
+
+	oss->time = current_time();
+
+	ASSERT("SNDCTL_DSP_GETISPACE",
+		IOCTL(oss->fd, SNDCTL_DSP_GETISPACE, &info) == 0);
+
+	if (TEST)
+		write(oss->fd2, b->allocated, b->size);
+
+	oss->time -=
+		((b->size - (n + info.bytes) / sizeof(short)) >> oss->pcm.stereo)
+			/ (double) oss->pcm.sampling_rate;
+
+	b->time = oss->time;
+	b->data = b->allocated;
+
+	send_full_buffer2(&oss->pcm.producer, b);
+}
+
+#else /* !FLAT */
 
 /*
  *  Read window: samples_per_frame (1152 * channels) + look_ahead
@@ -149,6 +200,8 @@ wait_full(fifo2 *f)
 	send_full_buffer2(&oss->pcm.producer, b);
 }
 
+#endif
+
 static void
 send_empty(consumer *c, buffer2 *b)
 {
@@ -222,7 +275,14 @@ open_pcm_oss(char *dev_name, int sampling_rate, bool stereo)
 	b = PARENT(oss->pcm.fifo.buffers.head, buffer2, added);
 
 	b->data = NULL;
+
+#if FLAT
+	b->used = b->size;
+	b->offset = 0;
+#else
 	b->used = (oss->samples_per_frame + oss->look_ahead) * sizeof(short);
+	b->offset = oss->look_ahead * sizeof(short);
+#endif
 
 	return &oss->pcm.fifo;
 }

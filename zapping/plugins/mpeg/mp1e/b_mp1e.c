@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.3 2001-07-27 05:52:24 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.4 2001-07-31 12:59:50 mschimek Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -123,6 +123,8 @@ context_destroy			(rte_context	*context)
  *  Read window: samples_per_frame (1152 * channels) + look_ahead
  *  (480 * channels); from subband window size 512 samples, step
  *  width 32 samples (32 * 3 * 12 total)
+ *
+ *  XXX can be removed; -> mp2.c/fetch_samples()
  */
 static void
 wait_full(fifo2 *f)
@@ -240,6 +242,7 @@ init_context			(rte_context	*context)
 		b->data = NULL;
 		b->used = (priv->samples_per_frame + priv->look_ahead)
 			* sizeof(short);
+		b->offset = priv->look_ahead * sizeof(short);
 
 		priv->aud.user_data = context;
 		priv->left = 0;

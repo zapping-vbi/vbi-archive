@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: 0.5.8cvs\n"
-"POT-Creation-Date: 2001-07-29 02:02+0200\n"
+"POT-Creation-Date: 2001-07-31 10:56+0200\n"
 "PO-Revision-Date: 2000-11-18 17:00+0300\n"
 "Last-Translator: Sergey Nikulin <sergey-nikulin@mail.ru>\n"
 "Language-Team: LANGUAGE <ru@li.org>\n"
@@ -79,37 +79,37 @@ msgstr ""
 msgid "Redirect the error messages to the console"
 msgstr ""
 
-#: src/main.c:423
+#: src/main.c:424
 #, fuzzy
 msgid "Sorry, but there is no module support in GLib"
 msgstr "Извините, нет поддержки модулей"
 
-#: src/main.c:431
+#: src/main.c:432
 msgid "Cannot get device info struct"
 msgstr "Не могу получить информацию об устройстве"
 
-#: src/main.c:440
+#: src/main.c:441
 msgid "Zapping couldn't be started"
 msgstr "Zapping не может стартовать"
 
-#: src/main.c:496
+#: src/main.c:497
 #, c-format
 msgid "Couldn't open %s, should I try some common options?"
 msgstr ""
 
-#: src/main.c:530
+#: src/main.c:531
 #, c-format
 msgid "%s suceeded, setting it as the new default"
 msgstr ""
 
-#: src/main.c:539
+#: src/main.c:540
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
 "%s"
 msgstr "Извините, но \"%s\" не может быть открыт:%s"
 
-#: src/main.c:639
+#: src/main.c:640
 #, c-format
 msgid ""
 "Cannot restore previous mode%s:\n"
@@ -118,11 +118,11 @@ msgstr ""
 "Не могу восстановить предыдущий режим%s:\n"
 "%s"
 
-#: src/main.c:642
+#: src/main.c:643
 msgid ", I will try starting capture mode"
 msgstr ", я попробую запустить режим захвата"
 
-#: src/main.c:646
+#: src/main.c:647
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
@@ -131,7 +131,7 @@ msgstr ""
 "Режим захвата не может быть запущен из-за:\n"
 "%s"
 
-#: src/main.c:659
+#: src/main.c:660
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
@@ -140,16 +140,17 @@ msgstr ""
 "Режим захвата не может быть запущен:\n"
 "%s"
 
-#: src/callbacks.c:185 src/callbacks.c:452 src/main.c:687
+#: src/callbacks.c:185 src/callbacks.c:452 src/main.c:688
 #, fuzzy
 msgid "Show controls"
 msgstr "Настройки"
 
-#: src/callbacks.c:186 src/callbacks.c:453 src/main.c:688
+#: src/callbacks.c:186 src/callbacks.c:453 src/main.c:689
 msgid "Show the menu and the toolbar"
 msgstr ""
 
-#: src/main.c:864
+#: src/main.c:865 src/zapzilla.c:152
+#, fuzzy, c-format
 msgid ""
 "ZConf could not be closed properly , your\n"
 "configuration will be lost.\n"
@@ -158,7 +159,7 @@ msgid ""
 "   - You do not have permissions to write to $HOME/.zapping\n"
 "   - libxml is non-functional (?)\n"
 "   - or, more probably, you have found a bug in\n"
-"     Zapping. Please contact the author.\n"
+"     %s. Please contact the author.\n"
 msgstr ""
 "ZConf не может быть закрыт корректно, ваша\n"
 "конфигурация будет потеряна.\n"
@@ -169,7 +170,7 @@ msgstr ""
 "   - или, что более вероятно, вы нашли баг в\n"
 "     Zapping. Пожалуйста свяжитесь с автором.\n"
 
-#: src/main.c:890
+#: src/main.c:891
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Извините, Zapping не может создать конфигурационное дерево"
 
@@ -187,27 +188,6 @@ msgstr "Zapping не может стартовать"
 #, c-format
 msgid "Couldn't open %s, exitting"
 msgstr ""
-
-#: src/zapzilla.c:152
-#, fuzzy
-msgid ""
-"ZConf could not be closed properly , your\n"
-"configuration will be lost.\n"
-"Possible causes for this are:\n"
-"   - There is not enough free memory\n"
-"   - You do not have permissions to write to $HOME/.zapping\n"
-"   - libxml is non-functional (?)\n"
-"   - or, more probably, you have found a bug in\n"
-"     Zapzilla. Please contact the author.\n"
-msgstr ""
-"ZConf не может быть закрыт корректно, ваша\n"
-"конфигурация будет потеряна.\n"
-"Возможные причины этого:\n"
-"   - Недостаточно памяти\n"
-"   - У вас недостаточно прав для записи  $HOME/.zapping\n"
-"   - libxml не работает (?)\n"
-"   - или, что более вероятно, вы нашли баг в\n"
-"     Zapping. Пожалуйста свяжитесь с автором.\n"
 
 #: src/zapzilla.c:170
 #, fuzzy
@@ -338,7 +318,7 @@ msgstr "TV вход"
 msgid "No standard"
 msgstr "Нет доступных стандартов"
 
-#: src/zvbi.c:132
+#: src/zvbi.c:133
 #, c-format
 msgid ""
 "Sorry, but %s couldn't be opened:\n"
@@ -371,33 +351,33 @@ msgstr "_Телетекст"
 msgid "Open this page with Zapzilla"
 msgstr ""
 
-#: src/zvbi.c:551
+#: src/zvbi.c:504
 #, c-format
 msgid ""
 "VBI: %s couldn't be opened: %d, %s\n"
 "This probably means that the required driver isn't loaded, add to your "
 "/etc/modules.conf the line:\n"
-"alias char-major-81-224 bttv (replace bttv with the name of your video "
+"alias char-major-81-224 bttv (replace bttv by the name of your video "
 "driver)\n"
-"and create /dev/vbi0 appropiately. If this doesn't work, you can disable VBI "
-"in Settings/Preferences/VBI options/Enable VBI decoding."
+"and with mknod create /dev/vbi0 appropriately. If this doesn't work, you can "
+"disable VBI in Settings/Preferences/VBI options/Enable VBI decoding."
 msgstr ""
 
-#: src/zvbi.c:1676
+#: src/zvbi.c:1669
 #, c-format
 msgid "%d %s"
 msgstr ""
 
-#: src/zvbi.c:1677
+#: src/zvbi.c:1670
 #, fuzzy
 msgid "minute"
 msgstr "Отключить звук"
 
-#: src/zvbi.c:1677
+#: src/zvbi.c:1670
 msgid "minutes"
 msgstr ""
 
-#: src/zvbi.c:1679
+#: src/zvbi.c:1672
 #, c-format
 msgid "%d h %d m"
 msgstr ""
@@ -2835,6 +2815,26 @@ msgstr ""
 msgid ""
 "Export this page as VTX file, the format used by VideoteXt and vbidecode"
 msgstr ""
+
+#, fuzzy
+#~ msgid ""
+#~ "ZConf could not be closed properly , your\n"
+#~ "configuration will be lost.\n"
+#~ "Possible causes for this are:\n"
+#~ "   - There is not enough free memory\n"
+#~ "   - You do not have permissions to write to $HOME/.zapping\n"
+#~ "   - libxml is non-functional (?)\n"
+#~ "   - or, more probably, you have found a bug in\n"
+#~ "     Zapzilla. Please contact the author.\n"
+#~ msgstr ""
+#~ "ZConf не может быть закрыт корректно, ваша\n"
+#~ "конфигурация будет потеряна.\n"
+#~ "Возможные причины этого:\n"
+#~ "   - Недостаточно памяти\n"
+#~ "   - У вас недостаточно прав для записи  $HOME/.zapping\n"
+#~ "   - libxml не работает (?)\n"
+#~ "   - или, что более вероятно, вы нашли баг в\n"
+#~ "     Zapping. Пожалуйста свяжитесь с автором.\n"
 
 #~ msgid "Go _Zapping"
 #~ msgstr "В _Zapping"

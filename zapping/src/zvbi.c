@@ -29,6 +29,7 @@
 #include <gnome.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <libvbi.h>
+#include <v4lx.h> /* one of possibly several vbi driver interfaces */
 #include <lang.h>
 #include <pthread.h>
 #include <ctype.h>
@@ -68,7 +69,7 @@ extern tveng_device_info *main_info;
 static struct vbi *vbi=NULL; /* holds the vbi object */
 static ZModel * vbi_model=NULL; /* notify to clients the open/closure
 				   of the device */
-static pthread_t zvbi_thread_id; /* VBI thread in libvbi */
+static fifo2 *vbi_source=NULL; /* source of vbi data for libvbi */
 static pthread_mutex_t network_mutex;
 static gboolean station_name_known = FALSE;
 static gchar station_name[256];
@@ -200,7 +201,7 @@ on_vbi_prefs_changed		(const gchar *key,
     }
 }
 
-int test_pipe[2];
+int osd_pipe[2];
 
 void
 startup_zvbi(void)
@@ -231,9 +232,8 @@ startup_zvbi(void)
   pthread_mutex_init(&network_mutex, NULL);
   memset(&current_network, 0, sizeof(current_network));
 
-  if (pipe(test_pipe)) {
-    RunBox("pipe! pipe! duh.\n%s", GNOME_MESSAGE_BOX_ERROR,
-	   strerror(errno));
+  if (pipe(osd_pipe)) {
+    g_warning("Cannot create osd pipe");
     exit(EXIT_FAILURE);
   }
 #endif
@@ -248,8 +248,8 @@ void shutdown_zvbi(void)
 
   gtk_object_destroy(GTK_OBJECT(vbi_model));
 
-  close(test_pipe[0]);
-  close(test_pipe[1]);
+  close(osd_pipe[0]);
+  close(osd_pipe[1]);
 }
 
 static void cc_event(vbi_event *ev, void *data)
@@ -495,47 +495,53 @@ zvbi_open_device(char *device)
   else
     given_fd = -1;
   D();
-  if (!(vbi = vbi_open(device, cache_open(), given_fd)))
+    vbi_source = vbi_open_v4lx(device, given_fd,
+			       1 /* buffered */, 30 /* fifo depth */);
+  if (!vbi_source)
     {
-      g_warning("cannot open %s, vbi services will be disabled",
-		device);
-      goto error;
+      D();
+      // XXX check errno to avoid the ever popular "error: no error"
+      ShowBox(_("VBI: %s couldn't be opened: %d, %s\n"
+	        "This probably means that the required driver isn't loaded, "
+		"add to your /etc/modules.conf the line:\n"
+	        "alias char-major-81-224 bttv (replace bttv by the name "
+	        "of your video driver)\n"
+                "and with mknod create /dev/vbi0 appropriately. If this "
+		"doesn't work, you can disable VBI in Settings/Preferences/VBI "
+		"options/Enable VBI decoding."),
+	      GNOME_MESSAGE_BOX_ERROR, device, errno, strerror(errno));
+      D();
+      return FALSE;
     }
   D();
-  if (vbi->cache)
-    vbi->cache->op->mode(vbi->cache, CACHE_MODE_ERC, 1);
-  D();
-  g_assert(vbi_event_handler(vbi, ~0, event, NULL) != 0);
-  D();
-  if (pthread_create(&zvbi_thread_id, NULL, vbi_mainloop, vbi))
+  if (!(vbi = vbi_open(vbi_source)))
     {
-      vbi_event_handler(vbi, 0, event, NULL);
-      vbi_close(vbi);
-      vbi = NULL;
-      goto error;
+      D();
+      /* This shouldn't happen unless vmem is exhausted */
+      g_warning("Cannot open libvbi, vbi services will be disabled");
+      D();
+      return FALSE;
     }
   D();
+  /* Enter something valid or accept the default */
   index = zcg_int(NULL, "default_region");
-  if (index < 0)
-    index = 0;
-  if (index > 7)
-    index = 7;
-  vbi_set_default_region(vbi, region_mapping[index]);
-  D();
+  if (index >= 0 && index <= 7)
+    vbi_set_default_region(vbi, region_mapping[index]);
   index = zcg_int(NULL, "teletext_level");
-  if (index < 0)
-    index = 0;
-  if (index > 3)
-    index = 3;
-  vbi_set_teletext_level(vbi, index);
+  if (index >= 0 && index <= 3)
+    vbi_set_teletext_level(vbi, index);
+  D();
+  /* Send all events to our main event handler */
+  g_assert(vbi_event_handler(vbi, ~0, event, NULL) != 0);
   D();
   pthread_mutex_init(&clients_mutex, NULL);
   D();
   zmodel_changed(vbi_model);
   D();
+  /* Send OSD relevant events to our OSD event handler */
   g_assert(vbi_event_handler(vbi,
 			     VBI_EVENT_CAPTION | VBI_EVENT_PAGE,
-			     cc_event, test_pipe) != 0);
+			     cc_event, osd_pipe) != 0);
   D();
   if (trigger_client_id >= 0)
     unregister_ttx_client(trigger_client_id);
@@ -545,19 +551,6 @@ zvbi_open_device(char *device)
   trigger_timeout_id = gtk_timeout_add(100, (GtkFunction)trigger_timeout,
 				       GINT_TO_POINTER(trigger_client_id));
   return TRUE;
-
- error:
-  D();
-  ShowBox(_("VBI: %s couldn't be opened: %d, %s\n"
-	    "This probably means that the required driver isn't loaded, "
-	    "add to your /etc/modules.conf the line:\n"
-	    "alias char-major-81-224 bttv (replace bttv with the name "
-	    "of your video driver)\n"
-	    "and create /dev/vbi0 appropiately. If this doesn't work, you "
-	    "can disable VBI in Settings/Preferences/VBI "
-	    "options/Enable VBI decoding."),
-	  GNOME_MESSAGE_BOX_ERROR, device, errno, strerror(errno));
-  D();
 #endif
   return FALSE;
 }
@@ -581,12 +574,6 @@ zvbi_close_device(void)
 
   trigger_client_id = trigger_timeout_id = -1;
 
-  /* FIXME: How could we do this cleanly? (vbi->quit has no effect if
-     there's no valid vbi data, wait sleeps forever) */
-  vbi->quit = TRUE;
-  pthread_join(zvbi_thread_id, NULL);
-  vbi_event_handler(vbi, 0, event, NULL);
-
   pthread_mutex_lock(&clients_mutex);
   destruction = g_list_first(ttx_clients);
   while (destruction)
@@ -598,8 +585,12 @@ zvbi_close_device(void)
   ttx_clients = NULL;
   pthread_mutex_unlock(&clients_mutex);
   pthread_mutex_destroy(&clients_mutex);
+
   vbi_close(vbi);
   vbi = NULL;
+
+  vbi_close_v4lx(vbi_source);
+  vbi_source = NULL;
 
   zmodel_changed(vbi_model);
 }

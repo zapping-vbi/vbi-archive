@@ -1,3 +1,7 @@
+2001-07-31	<mschimek@users.sf.net>
+
+	* Added optional input fifo wrapper to mp2 encoder.
+
 2001-07-28	<mschimek@users.sf.net>
 
 	* Converted remaining fifos to fifo2.

@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.24 2001-07-28 06:55:57 mschimek Exp $ */
+/* $Id: fifo.c,v 1.25 2001-07-31 12:59:50 mschimek Exp $ */
 
 #define FIFO_C
 
@@ -996,7 +996,7 @@ send_full2(producer *p, buffer2 *b)
  *            will be recycled. Sending non-zero b->used after EOF
  *            is not permitted.
  * b->error   Copy of errno if appropriate, zero otherwise.
- * b->errstr  Pointer to a localized error message for display
+ * b->errstr  Pointer to a gettext()ized error message for display
  *            to the user if appropriate, %NULL otherwise. Shall not
  *            include strerror(errno), but rather hint the attempted
  *            action (e.g. "tried to read foo", errno = [no such file]).

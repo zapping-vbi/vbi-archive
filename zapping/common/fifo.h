@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.21 2001-07-28 06:55:57 mschimek Exp $ */
+/* $Id: fifo.h,v 1.22 2001-07-31 12:59:50 mschimek Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -409,8 +409,8 @@ struct buffer2 {
 	unsigned char *		data;		/* mandatory */
 	ssize_t			used;
 
-	int			error;
-	char *			errstr;
+	int			error;		/* copy of errno */
+	char *			errstr;		/* gettext()ized, may be NULL */
 
 	/* Owner private */
 
@@ -730,6 +730,7 @@ extern consumer	*		add_consumer(fifo2 *f, consumer *c);
 
 /* XXX TBD */
 /* start only *after* adding a consumer? */
+/* mp-fifos? */
 static inline bool
 start_fifo2(fifo2 *f)
 {

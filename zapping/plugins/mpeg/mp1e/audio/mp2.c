@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.16 2001-07-28 06:55:57 mschimek Exp $ */
+/* $Id: mp2.c,v 1.17 2001-07-31 12:59:50 mschimek Exp $ */
 
 #include <limits.h>
 #include "../common/log.h"
@@ -30,6 +30,7 @@
 #include "../common/bstream.h"
 #include "../common/math.h"
 #include "../common/remote.h"
+#include "../common/alloc.h"
 #include "audio.h"
 #include "../systems/systems.h"
 #include "../systems/mpeg.h"
@@ -294,6 +295,12 @@ audio_init(int sampling_freq, int stereo, int audio_mode, int bit_rate, int psyc
 	mp2->h_save_old    = mp2->h_save[0][1];
 	mp2->h_save_oldest = mp2->h_save[0][0];
 
+	mp2->ibuf = NULL;
+	mp2->o = mp2->wrap;
+	mp2->left = 0;
+	mp2->offs = 0;
+	mp2->time = 0.0;
+
 	binit_write(&mp2->out);
 
 	mp2->header_template =
@@ -320,6 +327,133 @@ audio_init(int sampling_freq, int stereo, int audio_mode, int bit_rate, int psyc
 }
 
 /*
+ *  mode #1
+ *    buffer 0:	       zero[0 .. o - 1] samples[0 .. s - 1]
+ *                     ^ b->data        ^ b->time
+ *                     |---------------> b->offset
+ *      b->used = o + s bytes; b->offset = o bytes;
+ *
+ *    buffer 1 .. n:   samples[s - o .. t - 1] samples[t .. u - 1]
+ *                     ^ b->data               ^ b->time
+ *                     |----------------------> b->offset
+ *      b->used = o + (u - t) bytes; b->offset = o bytes;
+ *
+ *    b->offset should be >= (480 << stereo) samples to be advantageous
+ *    for this encoder, b->used should be b->offset + n * (1152 << stereo)
+ *    samples, with 1 <= n <= oo, preferably large n. b->used and b->offset
+ *    can vary, but IF ONE b->offset >= (480 << stereo) samples, ALL have
+ *    to be, including buffer 0.
+ *
+ *  mode #2
+ *    buffer 0:	       samples[0 .. s - 1]
+ *                     ^ b->data, b->time
+ *      b->used = s bytes; b->offset = 0;
+ *
+ *    buffer 1 .. n:   samples[s .. t - 1]
+ *                     ^ b->data, b->time
+ *      b->used = (t - s) bytes; b->offset = 0;
+ *
+ *    b->used can vary, should be a multiple of 32 << stereo samples and
+ *    larger buffers are advantageous.
+ *
+ *  b->used and b->offset must be a multiple of (2 << stereo),
+ *  b->data pointer to 16 bit signed samples, native endianess.
+ *
+ *  The audio frame (1152 << stereo samples + look-ahead) containing the stop
+ *  time or EOF sample (EOF, that is the would-be first sample at
+ *  b->data[b->offset] in a buffer with b->used == 0) is not encoded.
+ *
+ *  TODO: frame dropping, clock drift
+ */
+static inline short *
+fetch_samples(struct audio_seg *mp2, double *btime, int stereo)
+{
+	int spf = SAMPLES_PER_FRAME << (stereo + 1), la = (512 - 32) << (stereo + 1);
+	buffer2 *buf = mp2->ibuf;
+	int todo, avail;
+
+	if (mp2->audio_frame_count > audio_num_frames) {
+		if (buf)
+			send_empty_buffer2(&mp2->cons, buf);
+		goto terminate;
+	}
+
+	if (mp2->left >= spf && buf->used - mp2->left >= la) {
+//		printv(1, "fetch-zc1 left=%d hist=%d \n", mp2->left, buf->used - mp2->left);
+		mp2->o = mp2->p - la;
+		mp2->p += spf;
+		mp2->left -= spf;
+	} else {
+		if (mp2->offs < la) {
+//			printv(1, "fetch-cp1 offs=%d \n", mp2->offs);
+			memcpy(mp2->wrap, mp2->o + spf, la);
+		}
+
+		mp2->o = mp2->wrap;
+
+		for (todo = spf; todo > 0; todo -= avail) {
+			if (mp2->left == 0) {
+				if (buf)
+					send_empty_buffer2(&mp2->cons, buf);
+
+				mp2->ibuf = buf = wait_full_buffer2(&mp2->cons);
+
+				if (mp2->time == 0.0) { // XXX frame dropping, clock drift
+					mp2->time = buf->time;
+				}
+
+				if (buf->used <= 0) {
+		    			send_empty_buffer2(&mp2->cons, buf);
+					goto terminate;
+				} else {
+					mp2->offs = buf->offset;
+					mp2->p = buf->data + mp2->offs;
+					mp2->left = buf->used - mp2->offs;
+				}
+
+				if (mp2->left >= todo && todo >= spf && mp2->offs >= la) {
+//					printv(1, "fetch-zc2 left=%d hist=%d \n", mp2->left, mp2->offs);
+					mp2->o = mp2->p - la;
+					mp2->p += spf;
+					mp2->left -= spf;
+					break;
+				}
+			}
+
+			avail = MIN(mp2->left, todo);
+
+//			printv(1, "fetch-cp2 todo=%d avail=%d \n", todo, avail);
+			memcpy(mp2->o + la + spf - todo, mp2->p, avail);
+
+			mp2->p += avail;
+			mp2->left -= avail;
+		}
+	}
+
+	if (remote_break(mp2->time, mp2->frame_period)) {
+		if (buf)
+			send_empty_buffer2(&mp2->cons, buf);
+		goto terminate;
+	}
+
+	*btime = mp2->time;
+	mp2->time += mp2->frame_period; /* XXX */
+
+	mp2->audio_frame_count++;
+
+	return (short *) mp2->o;
+
+terminate:
+	printv(2, "Audio: End of file\n");
+
+	buf = wait_empty_buffer2(&audio_prod);
+	buf->used = 0;
+	send_full_buffer2(&audio_prod, buf);
+
+	pthread_exit(NULL);
+}
+
+/*
  *  Bits available in current frame
  */
 static inline int
@@ -338,24 +472,6 @@ adbits(struct audio_seg *mp2)
 	mp2->spf_lag -= mp2->spf_rest;
 
 	return adb;
-}
-
-static void
-terminate(void)
-{
-	buffer2 *obuf;
-	extern volatile int mux_thread_done;
-
-	printv(2, "Audio: End of file\n");
-
-	while (!mux_thread_done) {
-		obuf = wait_empty_buffer2(&audio_prod);
-		obuf->used = 0;
-		// XXX other?
-		send_full_buffer2(&audio_prod, obuf);
-	}
-
-	pthread_exit(NULL);
 }
 
 /*
@@ -477,45 +593,29 @@ scale_quant(struct audio_seg *mp2, int channels)
 void *
 mpeg_audio_layer_ii_mono(void *cap_fifo)
 {
-	consumer cons;
-
 	// fpu_control(FPCW_PRECISION_SINGLE, FPCW_PRECISION_MASK);
 
 	ASSERT("add audio consumer",
-		add_consumer((fifo2 *) cap_fifo, &cons));
+		add_consumer((fifo2 *) cap_fifo, &aseg.cons));
 
-	remote_sync(&cons, MOD_AUDIO, aseg.frame_period);
+	remote_sync(&aseg.cons, MOD_AUDIO, aseg.frame_period);
 
 	for (;;) {
-		buffer2 *ibuf;
 		buffer2 *obuf;
 		unsigned int adb, bpf;
 		double time;
+		short *p;
 
 		// FDCT and psychoacoustic analysis
 
-		if (aseg.audio_frame_count > audio_num_frames)
-			terminate();
-
-		ibuf = wait_full_buffer2(&cons);
-
-		if (!ibuf || ibuf->used == 0
-		    || remote_break(ibuf->time, aseg.frame_period)) {
-			if (ibuf)
-				send_empty_buffer2(&cons, ibuf);
-			terminate();
-		}
-
-		time = ibuf->time;
-
-		aseg.audio_frame_count++;
+		p = fetch_samples(&aseg, &time, 0);
 
 		pr_start(38, "Audio frame (1152 samples)");
 		pr_start(35, "Subband filter x 36");
 
-		// DUMP((short *) ibuf->data, 0, 1152);
+		// DUMP(p, 0, 1152 + 480);
 
-		mmx_filter_mono(&aseg, (short *) ibuf->data, aseg.sb_samples[0][0][0]);
+		mmx_filter_mono(&aseg, p, aseg.sb_samples[0][0][0]);
 
 		// DUMP(aseg.sb_samples[0][0][0], 0, 3 * SCALE_BLOCK * SBLIMIT);
 
@@ -523,11 +623,11 @@ mpeg_audio_layer_ii_mono(void *cap_fifo)
 
 		pr_start(34, "Psychoacoustic analysis");
 
-		psycho(&aseg, (short *) ibuf->data, aseg.mnr[0], 1);
+		psycho(&aseg, p, aseg.mnr[0], 1);
 
 		pr_end(34);
 
-		send_empty_buffer2(&cons, ibuf);
+		/* send_empty_buffer2(&aseg.cons, aseg.ibuf); */
 
 		pr_start(36, "Bit twiddling");
 
@@ -660,45 +760,29 @@ mpeg_audio_layer_ii_mono(void *cap_fifo)
 void *
 mpeg_audio_layer_ii_stereo(void *cap_fifo)
 {
-	consumer cons;
-
 	// fpu_control(FPCW_PRECISION_SINGLE, FPCW_PRECISION_MASK);
 
 	ASSERT("add audio consumer",
-		add_consumer((fifo2 *) cap_fifo, &cons));
+		add_consumer((fifo2 *) cap_fifo, &aseg.cons));
 
-	remote_sync(&cons, MOD_AUDIO, aseg.frame_period);
+	remote_sync(&aseg.cons, MOD_AUDIO, aseg.frame_period);
 
 	for (;;) {
-		buffer2 *ibuf;
 		buffer2 *obuf;
 		unsigned int adb, bpf;
 		double time;
+		short *p;
 
 		// FDCT and psychoacoustic analysis
 
-		if (aseg.audio_frame_count > audio_num_frames)
-			terminate();
-
-		ibuf = wait_full_buffer2(&cons);
-
-		if (!ibuf || ibuf->used == 0
-		    || remote_break(ibuf->time, aseg.frame_period)) {
-			if (ibuf)
-				send_empty_buffer2(&cons, ibuf);
-			terminate();
-		}
-
-		time = ibuf->time;
-
-		aseg.audio_frame_count++;
+		p = fetch_samples(&aseg, &time, 1);
 
 		pr_start(38, "Audio frame (2304 samples)");
 		pr_start(35, "Subband filter x 72");
 
-		// DUMP((short *) ibuf->data, 0, 2 * 1152);
+		// DUMP(p, 0, 2 * 1152);
 
-		mmx_filter_stereo(&aseg, (short *) ibuf->data, aseg.sb_samples[0][0][0]);
+		mmx_filter_stereo(&aseg, p, aseg.sb_samples[0][0][0]);
 
 		// DUMP(aseg.sb_samples[0][0][0], 0, 2 * 3 * SCALE_BLOCK * SBLIMIT);
 
@@ -706,12 +790,12 @@ mpeg_audio_layer_ii_stereo(void *cap_fifo)
 
 		pr_start(34, "Psychoacoustic analysis");
 
-		psycho(&aseg, ((short *) ibuf->data),     aseg.mnr[0], 2);
-		psycho(&aseg, ((short *) ibuf->data) + 1, aseg.mnr[1], 2);
+		psycho(&aseg, p,     aseg.mnr[0], 2);
+		psycho(&aseg, p + 1, aseg.mnr[1], 2);
 
 		pr_end(34);
 
-		send_empty_buffer2(&cons, ibuf);
+		/* send_empty_buffer2(&aseg.cons, aseg.ibuf); */
 
 		pr_start(36, "Bit twiddling");
 
