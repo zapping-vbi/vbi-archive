@@ -94,9 +94,11 @@ startup_osd(void)
   input_id = gdk_input_add(test_pipe[0], GDK_INPUT_READ,
 			   osd_event, NULL);
 
-  g_assert(vbi_event_handler(vbi,
-  VBI_EVENT_CAPTION | VBI_EVENT_PAGE,
-                             cc_event, test_pipe) != 0);
+  if (vbi) /* FIXME: This doesn't belong here, but zvbi (osd isn't vbi
+	      specific, vbi can be opened at a later time) */
+    g_assert(vbi_event_handler(vbi,
+			       VBI_EVENT_CAPTION | VBI_EVENT_PAGE,
+			       cc_event, test_pipe) != 0);
 
   pthread_mutex_unlock(&osd_mutex);
 }
@@ -111,8 +113,8 @@ shutdown_osd(void)
 
   pthread_mutex_lock(&osd_mutex);
 
-// oops: vbi == 0 here?
-//  vbi_event_handler(vbi, 0, cc_event, NULL);
+  if (vbi)
+    vbi_event_handler(vbi, 0, cc_event, NULL);
 
   osd_clear();
 

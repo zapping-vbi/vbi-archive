@@ -16,6 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 #include "plugin_common.h"
+#ifdef HAVE_LIBJPEG
 #include <pthread.h>
 #include <jpeglib.h> /* jpeg compression */
 #include <gdk-pixbuf/gdk-pixbuf.h> /* previews */
@@ -1012,3 +1013,5 @@ Convert_YUYV_RGB24 (gint w, guchar *src, guchar *dest )
 
   return where_have_we_written;
 }
+#else // !HAVE_LIBJPEG
+#endif

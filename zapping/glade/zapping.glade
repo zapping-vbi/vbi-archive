@@ -1162,20 +1162,6 @@ Do not change mode
 	</widget>
 
 	<widget>
-	  <class>GtkCheckButton</class>
-	  <name>checkbutton8</name>
-	  <can_focus>True</can_focus>
-	  <label>Try to correct errors when decoding</label>
-	  <active>False</active>
-	  <draw_indicator>True</draw_indicator>
-	  <child>
-	    <padding>0</padding>
-	    <expand>False</expand>
-	    <fill>False</fill>
-	  </child>
-	</widget>
-
-	<widget>
 	  <class>GtkHBox</class>
 	  <name>hbox19</name>
 	  <homogeneous>True</homogeneous>
@@ -1619,6 +1605,7 @@ in the next release of this program.</label>
 	  <last_modification_time>Tue, 20 Jun 2000 13:54:19 GMT</last_modification_time>
 	</signal>
 	<label>_Search for the available channels in the current country</label>
+	<relief>GTK_RELIEF_NORMAL</relief>
 	<child>
 	  <padding>0</padding>
 	  <expand>False</expand>
@@ -1842,6 +1829,7 @@ in the next release of this program.</label>
 	  <last_modification_time>Sun, 09 Jan 2000 17:38:24 GMT</last_modification_time>
 	</signal>
 	<stock_button>GNOME_STOCK_BUTTON_OK</stock_button>
+	<relief>GTK_RELIEF_NORMAL</relief>
 	<child>
 	  <padding>0</padding>
 	  <expand>False</expand>
@@ -1860,6 +1848,7 @@ in the next release of this program.</label>
 	  <last_modification_time>Wed, 19 Apr 2000 21:52:04 GMT</last_modification_time>
 	</signal>
 	<stock_button>GNOME_STOCK_BUTTON_CANCEL</stock_button>
+	<relief>GTK_RELIEF_NORMAL</relief>
 	<child>
 	  <padding>0</padding>
 	  <expand>False</expand>
@@ -1878,6 +1867,7 @@ in the next release of this program.</label>
 	  <last_modification_time>Mon, 10 Jan 2000 23:20:50 GMT</last_modification_time>
 	</signal>
 	<label>_Add</label>
+	<relief>GTK_RELIEF_NORMAL</relief>
 	<child>
 	  <padding>0</padding>
 	  <expand>False</expand>
@@ -1896,6 +1886,7 @@ in the next release of this program.</label>
 	  <last_modification_time>Thu, 20 Jul 2000 15:44:39 GMT</last_modification_time>
 	</signal>
 	<label>_Modify</label>
+	<relief>GTK_RELIEF_NORMAL</relief>
 	<child>
 	  <padding>0</padding>
 	  <expand>False</expand>
@@ -1914,6 +1905,7 @@ in the next release of this program.</label>
 	  <last_modification_time>Mon, 10 Jan 2000 23:21:05 GMT</last_modification_time>
 	</signal>
 	<label>_Remove</label>
+	<relief>GTK_RELIEF_NORMAL</relief>
 	<child>
 	  <padding>0</padding>
 	  <expand>False</expand>
@@ -1932,6 +1924,7 @@ in the next release of this program.</label>
 	  <last_modification_time>Wed, 19 Apr 2000 21:51:51 GMT</last_modification_time>
 	</signal>
 	<stock_button>GNOME_STOCK_BUTTON_HELP</stock_button>
+	<relief>GTK_RELIEF_NORMAL</relief>
 	<child>
 	  <padding>0</padding>
 	  <expand>False</expand>
@@ -2003,6 +1996,7 @@ in the next release of this program.</label>
 	    <last_modification_time>Sat, 03 Jun 2000 21:01:24 GMT</last_modification_time>
 	  </signal>
 	  <stock_button>GNOME_STOCK_BUTTON_OK</stock_button>
+	  <relief>GTK_RELIEF_NORMAL</relief>
 	  <child>
 	    <padding>0</padding>
 	    <expand>True</expand>
@@ -2021,6 +2015,7 @@ in the next release of this program.</label>
 	    <last_modification_time>Sat, 03 Jun 2000 21:01:29 GMT</last_modification_time>
 	  </signal>
 	  <label>_Start Plugin</label>
+	  <relief>GTK_RELIEF_NORMAL</relief>
 	  <child>
 	    <padding>0</padding>
 	    <expand>True</expand>
@@ -2039,6 +2034,7 @@ in the next release of this program.</label>
 	    <last_modification_time>Sat, 03 Jun 2000 21:01:33 GMT</last_modification_time>
 	  </signal>
 	  <label>S_top Plugin</label>
+	  <relief>GTK_RELIEF_NORMAL</relief>
 	  <child>
 	    <padding>0</padding>
 	    <expand>True</expand>
@@ -2057,6 +2053,7 @@ in the next release of this program.</label>
 	    <last_modification_time>Sat, 03 Jun 2000 21:01:38 GMT</last_modification_time>
 	  </signal>
 	  <label>_Configure</label>
+	  <relief>GTK_RELIEF_NORMAL</relief>
 	  <child>
 	    <padding>0</padding>
 	    <expand>True</expand>
@@ -2801,6 +2798,7 @@ in the next release of this program.</label>
 	  <last_modification_time>Tue, 20 Jun 2000 14:09:10 GMT</last_modification_time>
 	</signal>
 	<stock_button>GNOME_STOCK_BUTTON_CANCEL</stock_button>
+	<relief>GTK_RELIEF_NORMAL</relief>
 	<child>
 	  <padding>0</padding>
 	  <expand>False</expand>
@@ -2981,6 +2979,7 @@ in the next release of this program.</label>
 	      <tooltip>Previous subpage in the cache [Left]</tooltip>
 	      <can_focus>True</can_focus>
 	      <label>&lt;&lt;</label>
+	      <relief>GTK_RELIEF_NORMAL</relief>
 	      <child>
 		<padding>0</padding>
 		<expand>False</expand>
@@ -3003,6 +3002,7 @@ in the next release of this program.</label>
 		<signal>clicked</signal>
 	      </accelerator>
 	      <label>&lt;</label>
+	      <relief>GTK_RELIEF_NORMAL</relief>
 	      <child>
 		<padding>0</padding>
 		<expand>False</expand>
@@ -3014,6 +3014,7 @@ in the next release of this program.</label>
 	      <class>GtkToggleButton</class>
 	      <name>ttxview_hold</name>
 	      <tooltip>Hold the current subpage [H]</tooltip>
+	      <relief>GTK_RELIEF_NORMAL</relief>
 	      <active>False</active>
 	      <child>
 		<padding>0</padding>
@@ -3056,6 +3057,7 @@ in the next release of this program.</label>
 		<signal>clicked</signal>
 	      </accelerator>
 	      <label>&gt;</label>
+	      <relief>GTK_RELIEF_NORMAL</relief>
 	      <child>
 		<padding>0</padding>
 		<expand>False</expand>
@@ -3069,6 +3071,7 @@ in the next release of this program.</label>
 	      <tooltip>Next subpage in the cache [Right]</tooltip>
 	      <can_focus>True</can_focus>
 	      <label>&gt;&gt;</label>
+	      <relief>GTK_RELIEF_NORMAL</relief>
 	      <child>
 		<padding>0</padding>
 		<expand>False</expand>
@@ -3382,6 +3385,7 @@ in the next release of this program.</label>
 	    <signal>clicked</signal>
 	  </accelerator>
 	  <label>Remove Bookmark</label>
+	  <relief>GTK_RELIEF_NORMAL</relief>
 	  <child>
 	    <padding>0</padding>
 	    <expand>False</expand>
@@ -3395,6 +3399,7 @@ in the next release of this program.</label>
 	  <tooltip>Click here when you are done</tooltip>
 	  <can_focus>True</can_focus>
 	  <stock_button>GNOME_STOCK_BUTTON_CLOSE</stock_button>
+	  <relief>GTK_RELIEF_NORMAL</relief>
 	  <child>
 	    <padding>0</padding>
 	    <expand>False</expand>

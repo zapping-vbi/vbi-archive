@@ -202,6 +202,35 @@ zconf_type_string(enum zconf_type type);
   description is kept untouched.
 */
 
+/*
+  Hooks handling. Any client can put a hook into a given key, it will
+  be called when the value of the key is changed.
+*/
+
+typedef gboolean (*ZConfHook) ( const gchar * key, gpointer data );
+
+/*
+  key: The key we hook to.
+  hook: The routine to be called.
+  data: data to be passed to the hook.
+*/
+void
+zconf_add_hook(const gchar * key, ZConfHook hook, gpointer data);
+
+/*
+  Removes the given hook from the key.
+  key: the key to remove the hook from.
+  hook: The hook function to remove
+  data: the data passed to that function
+*/
+void
+zconf_remove_hook(const gchar * key, ZConfHook hook, gpointer data);
+
+/*
+  Touches the key, triggering any callbacks without modifying the key
+*/
+void
+zconf_touch(const gchar * key);
 #ifdef ZCONF_DOMAIN
 #define zcs_int(var, key) \
 zconf_set_integer(var,  ZCONF_DOMAIN key)

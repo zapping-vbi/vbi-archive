@@ -166,19 +166,17 @@ gboolean on_zapping_key_press		(GtkWidget	*widget,
 static void
 startup_teletext(void)
 {
-  /*
-   * fixme: this appears to be a bug in the bttv2 driver, if we open
-   * the vbi device and then the video device, the video device cannot
-   * be opened (-EBUSY)
-   * if we open video and then vbi it works.
-   */
+  startup_zvbi();
+
 #ifdef HAVE_GDKPIXBUF
   if (disable_vbi)
     zconf_set_boolean(FALSE, "/zapping/options/vbi/enable_vbi");
-  if ((!zvbi_open_device()) &&
-      (zconf_get_boolean(NULL, "/zapping/options/vbi/enable_vbi")))
-    ShowBox(_("Sorry, but %s couldn't be opened:\n%s (%d)"),
-	    GNOME_MESSAGE_BOX_ERROR, "/dev/vbi", strerror(errno), errno);
+
+  /* Make the vbi module open the device */
+  D();
+  zconf_touch("/zapping/options/vbi/enable_vbi");
+  D();
+
 #else
   if (zconf_get_boolean(NULL, "/zapping/options/vbi/enable_vbi"))
     ShowBox(_("There's no GdkPixbuf support, VBI has been disabled"),
@@ -285,7 +283,7 @@ int main(int argc, char * argv[])
 			      0, NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.92 2001-02-24 00:07:11 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.93 2001-02-28 22:37:10 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -476,41 +474,16 @@ int main(int argc, char * argv[])
 				     FALSE);
     }
   D();
-  /* disable VBI if needed */
-  if (!zvbi_get_object())
-    {
-      printv("VBI disabled, removing GUI items\n");
-      gtk_widget_set_sensitive(lookup_widget(main_window, "separador5"),
-			       FALSE);
-      gtk_widget_hide(lookup_widget(main_window, "separador5"));
-      gtk_widget_set_sensitive(lookup_widget(main_window, "videotext1"),
-			       FALSE);
-      gtk_widget_hide(lookup_widget(main_window, "videotext1"));
-      gtk_widget_set_sensitive(lookup_widget(main_window, "videotext3"),
-			       FALSE);
-      gtk_widget_hide(lookup_widget(main_window, "videotext3"));
-      gtk_widget_set_sensitive(lookup_widget(main_window, "new_ttxview"),
-			       FALSE);
-      gtk_widget_hide(lookup_widget(main_window, "new_ttxview"));
-      gtk_widget_set_sensitive(lookup_widget(main_window,
-					     "closed_caption1"),
-			       FALSE);
-      gtk_widget_hide(lookup_widget(main_window, "closed_caption1"));
-      gtk_widget_hide(lookup_widget(main_window, "separator8"));
-      /* Set the capture mode to a default value and disable VBI */
-      if (zcg_int(NULL, "capture_mode") == TVENG_NO_CAPTURE)
-	zcs_int(TVENG_CAPTURE_READ, "capture_mode");
-    }
-  D();
   /* Disable the View menu completely if it is redundant */
+  /* FIXME */
   if ((!zvbi_get_object()) && (disable_preview))
     {
       gtk_widget_set_sensitive(lookup_widget(main_window, "go_capturing2"),
 			       FALSE);
-      gtk_widget_hide(lookup_widget(main_window, "go_capturing2"));
-      gtk_widget_set_sensitive(lookup_widget(main_window, "view1"),
-			       FALSE);
-      gtk_widget_hide(lookup_widget(main_window, "view1"));      
+      //      gtk_widget_hide(lookup_widget(main_window, "go_capturing2"));
+      //      gtk_widget_set_sensitive(lookup_widget(main_window, "view1"),
+      //			       FALSE);
+      //      gtk_widget_hide(lookup_widget(main_window, "view1"));
     }
   D();
   printv("switching to mode %d (%d)\n", zcg_int(NULL,
@@ -647,10 +620,6 @@ static void shutdown_zapping(void)
   printv(" callbacks");
   shutdown_callbacks();
 
-  /* Shut down vbi */
-  printv(" vbi");
-  zvbi_close_device();
-
   /*
    * Shuts down the teletext view
    */
@@ -662,6 +631,10 @@ static void shutdown_zapping(void)
    */
   printv(" osd");
   shutdown_osd();
+
+  /* Shut down vbi */
+  printv(" vbi");
+  shutdown_zvbi();
 
   /* Save the config and show an error if something failed */
   printv(" config");

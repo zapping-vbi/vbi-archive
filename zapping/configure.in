@@ -68,6 +68,7 @@ AC_CHECK_LIB(jpeg, jpeg_destroy_compress, JPEG_LIB="-ljpeg", HAVE_JPEG="no")
 dnl The screenshot plugin requires libjpeg
 if test "$HAVE_JPEG" = "yes"; then
 	PLUGINS_TO_BUILD="$PLUGINS_TO_BUILD screenshot"
+	AC_DEFINE(HAVE_LIBJPEG)
 fi
 AC_SUBST(JPEG_LIB)
 
@@ -117,9 +118,12 @@ AC_CHECK_LIB(rte, rte_start_encoding, HAVE_RTE="yes", HAVE_RTE="no")
 dnl The mpeg plugin requires RTE
 if test "$HAVE_RTE" = "yes"; then
 	PLUGINS_TO_BUILD="$PLUGINS_TO_BUILD mpeg"
+	AC_DEFINE(HAVE_LIBRTE)
+	RTE_LIB="-lrte"
 else
 	AC_MSG_WARN([*** RTE not found, MPEG capture will be disabled ***])
 fi
+AC_SUBST(RTE_LIB)
 
 GNOME_COMPILE_WARNINGS
 GNOME_X_CHECKS

@@ -1,1 +1,1 @@
-SUBDIRS = $(PLUGINS_TO_BUILD)
+SUBDIRS = template screenshot mpeg

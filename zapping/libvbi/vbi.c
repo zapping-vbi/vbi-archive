@@ -289,7 +289,7 @@ remove_filter(struct vbi *vbi)
 
 
 struct vbi *
-vbi_open(char *vbi_name, struct cache *ca, int fine_tune)
+vbi_open(char *vbi_name, struct cache *ca)
 {
     struct vbi *vbi;
     extern void open_vbi(void);

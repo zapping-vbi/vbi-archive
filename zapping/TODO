@@ -4,7 +4,6 @@ Outstanding issues for the next release
 	+ VBI can be opened/closed while running, try (we also need
 	some vbi_streamon, vbi_streamoff to suspend temporarily
 	streaming while changing inputs or standards).
-	+ Configurable Vidmode
 	+ Parrot buffer for observing parrots.
 	+ Add to the configure script and to the .spec deps the
 		dependency on mp1e (actually RTE) and the mpeg plugin.

@@ -44,6 +44,7 @@
 #include <string.h>
 #include "zconf.h"
 #include "zmisc.h" /* Misc common stuff */
+#include "zmodel.h"
 
 /*
   Work around these little annoying incompatibilities between libxml 1
@@ -71,6 +72,17 @@ struct zconf_key
   gpointer contents; /* Its contents */
   struct zconf_key * parent; /* A pointer to the parent node */
   GList * tree; /* A list to the children of the key */
+  ZModel * model; /* for hooks */
+  GList * hooked; /* struct zconf_hook */
+};
+
+/*
+  Connected to the key
+*/
+struct zconf_hook
+{
+  ZConfHook	callback;
+  gpointer	data;
 };
 
 /* Global values that control the library */
@@ -98,14 +110,14 @@ static gchar * zconf_buffer = NULL; /* A global buffer some functions share */
   Translates a xml doc to a zconf_key value, creating subtrees as
   necessary. Allocates memory for key and modifies its value too.
 */
-void
+static void
 p_zconf_parse(xmlNodePtr node, xmlDocPtr doc, struct zconf_key ** key,
 	      struct zconf_key * parent);
 
 /*
   Translates a zconf_key value with its children to a xml doc.
 */
-void
+static void
 p_zconf_write(xmlNodePtr node, xmlDocPtr doc, struct zconf_key * key);
 
 /*
@@ -114,14 +126,14 @@ p_zconf_write(xmlNodePtr node, xmlDocPtr doc, struct zconf_key * key);
   NOTE: Not very fast, if I have spare time (:DDDDDDDDDD) i should
   speed this up a bit. Always returns NULL
 */
-gpointer
+static gpointer
 p_zconf_cut_branch(struct zconf_key * key);
 
 /*
   Resolves the given path, returning the key associated to the (relative)
   path. It will return NULL if the key is not found
 */
-struct zconf_key*
+static struct zconf_key*
 p_zconf_resolve(const gchar * key, struct zconf_key * starting_dir);
 
 /*
@@ -129,7 +141,7 @@ p_zconf_resolve(const gchar * key, struct zconf_key * starting_dir);
   the path a valid (relative to starting_dir) one. Never fails, and
   returns the last node (if path is xxx/yyy/zzz, returns a pointer to zzz).
 */
-struct zconf_key*
+static struct zconf_key*
 p_zconf_create(const gchar * key, struct zconf_key * starting_dir);
 
 /*
@@ -389,6 +401,10 @@ void zconf_set_integer(gint new_value, const gchar * path)
   *((gint*)key->contents) = new_value;
 
   zconf_we = FALSE;
+
+  /* notify of the change */
+  if (key->model)
+    zmodel_changed(key->model);
 }
 
 /*
@@ -527,6 +543,10 @@ void zconf_set_string(gchar * new_value, const gchar * path)
   key->contents = g_strdup(new_value);
 
   zconf_we = FALSE;
+
+  /* notify of the change */
+  if (key->model)
+    zmodel_changed(key->model);
 }
 
 /*
@@ -658,6 +678,10 @@ void zconf_set_boolean(gboolean new_value, const gchar * path)
   *((gboolean*)key->contents) = new_value;
 
   zconf_we = FALSE;
+
+  /* notify of the change */
+  if (key->model)
+    zmodel_changed(key->model);
 }
 
 /*
@@ -786,6 +810,10 @@ void zconf_set_float(gfloat new_value, const gchar * path)
   *((gfloat*)key->contents) = new_value;
 
   zconf_we = FALSE;
+
+  /* notify of the change */
+  if (key->model)
+    zmodel_changed(key->model);
 }
 
 /*
@@ -1038,7 +1066,7 @@ zconf_type_string(enum zconf_type type)
   Translates a xml doc to a zconf_key value, creating subtrees as
   necessary. Allocates memory for key and modifies its value too.
 */
-void
+static void
 p_zconf_parse(xmlNodePtr node, xmlDocPtr doc, struct zconf_key ** skey,
 	      struct zconf_key * parent)
 {
@@ -1189,7 +1217,7 @@ p_zconf_parse(xmlNodePtr node, xmlDocPtr doc, struct zconf_key ** skey,
 /*
   Translates a zconf_key value with its children to a xml doc.
 */
-void
+static void
 p_zconf_write(xmlNodePtr node, xmlDocPtr doc, struct zconf_key * key)
 {
   GList * sub_key;
@@ -1255,7 +1283,7 @@ p_zconf_write(xmlNodePtr node, xmlDocPtr doc, struct zconf_key * key)
   NOTE: Not very fast, if I have spare time (:DDDDDDDDDD) i should
   speed this up a bit. Always returns NULL
 */
-gpointer
+static gpointer
 p_zconf_cut_branch(struct zconf_key * key)
 {
   GList * p;
@@ -1268,7 +1296,14 @@ p_zconf_cut_branch(struct zconf_key * key)
   g_free(key -> full_path);
   g_free(key -> contents);
   g_free(key -> description);
+  if (key->model)
+    gtk_object_destroy(GTK_OBJECT(key->model));
 
+  for (p = g_list_first(key->hooked); p; p = p->next)
+    g_free(p->data);
+
+  g_list_free(key->hooked);
+  
   /* Call this recursively for our children */
   do
     {
@@ -1293,7 +1328,7 @@ p_zconf_cut_branch(struct zconf_key * key)
   Resolves the given path, returning the key associated to the (relative)
   path. It will return NULL if the key is not found
 */
-struct zconf_key*
+static struct zconf_key*
 p_zconf_resolve(const gchar * key, struct zconf_key * starting_dir)
 {
   gchar key_name[256]; /* The key name */
@@ -1373,7 +1408,7 @@ p_zconf_resolve(const gchar * key, struct zconf_key * starting_dir)
   the path a valid (relative to starting_dir) one. Never fails, and
   returns the last node (if path is xxx/yyy/zzz, returns a pointer to zzz).
 */
-struct zconf_key *
+static struct zconf_key *
 p_zconf_create(const gchar * key, struct zconf_key * starting_dir)
 {
   gchar key_name[256], key_name_2[256]; /* The key name */
@@ -1488,4 +1523,122 @@ p_zconf_create(const gchar * key, struct zconf_key * starting_dir)
 
   /* Go on with the recursion */
   return p_zconf_create(&(key[j]), sub_key);
+}
+
+/* HOOKS HANDLING */
+static
+void on_key_model_changed		(GtkObject	*model,
+					 struct	zconf_hook *hook)
+{
+  struct zconf_key *key = gtk_object_get_user_data(model);
+
+  g_assert(key != NULL);
+  g_assert(hook != NULL);
+  g_assert(hook->callback != NULL);
+
+  hook->callback(key->full_path, hook->data);
+}
+
+void
+zconf_add_hook(const gchar * key_name, ZConfHook callback, gpointer data)
+{
+  struct zconf_key *key;
+  struct zconf_hook *hook;
+
+  g_assert(key_name != NULL);
+  g_assert(callback != NULL);
+
+  key = p_zconf_resolve(key_name, zconf_root);
+
+  if (!key)
+    {
+      g_warning("\"%s\" not found while trying to add hook for it", key_name);
+      return;
+    }
+
+  if (!key->model)
+    {
+      key->model = ZMODEL(zmodel_new());
+      gtk_object_set_user_data(GTK_OBJECT(key->model), key);
+    }
+
+  hook = g_malloc(sizeof(struct zconf_hook));
+
+  hook->callback = callback;
+  hook->data = data;
+
+  key->hooked = g_list_append(key->hooked, hook);
+
+  gtk_signal_connect(GTK_OBJECT(key->model), "changed",
+		     GTK_SIGNAL_FUNC(on_key_model_changed),
+		     hook);
+}
+
+void
+zconf_remove_hook(const gchar * key_name, ZConfHook callback, gpointer data)
+{
+  struct zconf_key *key;
+  struct zconf_hook *hook = NULL;
+  GList *p;
+
+  g_assert(key_name != NULL);
+  g_assert(callback != NULL);
+
+  key = p_zconf_resolve(key_name, zconf_root);
+
+  if (!key)
+    {
+      g_warning("\"%s\" not found while trying to remove hook from it",
+		key_name);
+      return;
+    }
+
+  if (!key->model)
+    {
+      g_warning("While removing \"%s\": no hooks for that", key_name);
+      return;
+    }
+
+  for (p = g_list_first(key->hooked); p; p = p->next)
+    {
+      if ((((struct zconf_hook*)p->data)->callback == callback) &&
+	  (((struct zconf_hook*)p->data)->data == data))
+	hook = p->data;
+    }
+
+  if (!hook)
+    {
+      g_warning("Canot find hook for %p in %s", callback, key_name);
+      return;
+    }
+
+  key->hooked = g_list_remove(key->hooked, hook);
+
+  gtk_signal_disconnect_by_func(GTK_OBJECT(key->model),
+				GTK_SIGNAL_FUNC(on_key_model_changed),
+				hook);
+
+  g_free(hook);
+}
+
+void
+zconf_touch(const gchar * key_name)
+{
+  struct zconf_key *key;
+
+  g_assert(key_name != NULL);
+
+  key = p_zconf_resolve(key_name, zconf_root);
+
+  if (!key)
+    {
+      g_warning("\"%s\" not found while trying to touch it",
+		key_name);
+      return;
+    }
+
+  if (!key->model)
+    return;
+
+  zmodel_changed(key->model);
 }

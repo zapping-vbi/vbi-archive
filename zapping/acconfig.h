@@ -17,6 +17,8 @@
 #undef LIBXML_CHILDS
 #undef LIBXML_NO_ROOT
 #undef HAVE_GDKPIXBUF
+#undef HAVE_LIBJPEG
+#undef HAVE_LIBRTE
 #undef TVENG_ENABLE_IOCTL_TESTS
 // Set if MMX support will be built
 #undef USE_MMX

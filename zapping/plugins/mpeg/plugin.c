@@ -16,6 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 #include "plugin_common.h"
+#ifdef HAVE_LIBRTE
 #include <glade/glade.h>
 #include <esd.h>
 #include <rte.h>
@@ -881,4 +882,9 @@ on_mpeg_button1_clicked			(GtkButton	*button,
 
   stop_encoding = TRUE;
 }
-
+#else
+/**
+ * Load the plugin saying that it has been disabled due to RTE
+ * missing, and tell the place to get it, with a handy "Goto.." button.
+ */
+#endif

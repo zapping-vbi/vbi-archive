@@ -57,14 +57,6 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
   /* Widget for assigning the callbacks (generic) */
   GtkWidget * widget;
 
-  if (NULL == zapping_properties)
-    {
-      ShowBox(_("The properties dialog could not be opened\n"
-		"Check the location of zapping.glade"),
-	      GNOME_MESSAGE_BOX_ERROR);
-      return;
-    }
-
   /* Connect the widgets to the apropiate callbacks, so the Apply
      button works correctly. Set the correct values too */
 
@@ -281,15 +273,6 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
 		     GTK_SIGNAL_FUNC(on_property_item_changed),
 		     zapping_properties);
 
-  /* erc (Error correction) */
-  widget = lookup_widget(zapping_properties, "checkbutton8");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-    zconf_get_boolean(NULL, "/zapping/options/vbi/erc"));
-
-  gtk_signal_connect(GTK_OBJECT(widget), "toggled",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
   /* Default region */
   widget = lookup_widget(zapping_properties, "optionmenu3");
   gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
@@ -338,6 +321,7 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
   gchar * text; /* Pointer to returned text */
   GList * p; /* For traversing the plugins */
   gint index;
+
   static int region_mapping[8] = {
     0, /* WCE */
     8, /* EE */
@@ -440,10 +424,6 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
       zconf_set_integer(index, "/zapping/options/vbi/default_region");
       if (zvbi_get_object())
 	vbi_set_default_region(zvbi_get_object(), region_mapping[index]);
-
-      widget = lookup_widget(pbox, "checkbutton8"); /* erc */
-      zconf_set_boolean(gtk_toggle_button_get_active(
-	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/vbi/erc");
 
       /* Directory for exporting */
       widget = lookup_widget(pbox, "fileentry3");

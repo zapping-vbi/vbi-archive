@@ -2249,8 +2249,8 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
 	gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ttxview_hold));
       gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ttxview_hold), !active);
       break;
-    case GDK_C:
-    case GDK_c:
+    case GDK_R:
+    case GDK_r:
       active =
 	gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ttxview_reveal));
       gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ttxview_reveal),

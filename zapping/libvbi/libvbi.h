@@ -176,7 +176,7 @@ extern int		vbi_event_handler(struct vbi *vbi, int event_mask, void (* handler)(
 
 
 struct cache;
-struct vbi *vbi_open(char *vbi_dev_name, struct cache *ca, int fine_tune);
+struct vbi *vbi_open(char *vbi_dev_name, struct cache *ca);
 void vbi_close(struct vbi *vbi);
 extern void *	vbi_mainloop(void *p);
 

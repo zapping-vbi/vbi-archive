@@ -40,10 +40,14 @@
 #include "zconf.h"
 #include "zvbi.h"
 #include "zmisc.h"
+#include "interface.h"
 
 #undef TRUE
 #undef FALSE
 #include "../common/fifo.h"
+
+extern GtkWidget *main_window;
+extern tveng_device_info *main_info;
 
 /*
   Quality-speed tradeoff when scaling+antialiasing the page:
@@ -112,14 +116,102 @@ static struct {
   int hour, min, sec;
 } last_info;
 
+static void
+on_vbi_prefs_changed		(const gchar *key,
+				 gpointer data)
+{
+  /* Try to open the device */
+  if (!vbi && zcg_bool(NULL, "enable_vbi"))
+    {
+      g_message("Opening the device");
+      if (!zvbi_open_device())
+	{
+	  ShowBox(_("Sorry, but %s couldn't be opened:\n%s (%d)"),
+		  GNOME_MESSAGE_BOX_ERROR, "/dev/vbi",
+		  strerror(errno), errno);
+	}
+    }
+  if (vbi && !zcg_bool(NULL, "enable_vbi"))
+    {
+      g_message("closing the device");
+      /* TTX mode */
+      if (main_info->current_mode == TVENG_NO_CAPTURE)
+	zmisc_switch_mode(TVENG_CAPTURE_WINDOW, main_info);
+      zvbi_close_device();
+    }
+
+  /* disable VBI if needed */
+  if (!zvbi_get_object())
+    {
+      printv("VBI disabled, removing GUI items\n");
+      gtk_widget_set_sensitive(lookup_widget(main_window, "separador5"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "separador5"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "videotext1"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "videotext1"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "videotext3"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "videotext3"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "new_ttxview"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "new_ttxview"));
+      gtk_widget_set_sensitive(lookup_widget(main_window,
+					     "closed_caption1"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "closed_caption1"));
+      gtk_widget_hide(lookup_widget(main_window, "separator8"));
+      /* Set the capture mode to a default value and disable VBI */
+      if (zcg_int(NULL, "capture_mode") == TVENG_NO_CAPTURE)
+	zcs_int(TVENG_CAPTURE_READ, "capture_mode");
+    }
+  else
+    {
+      printv("VBI enabled, removing GUI items\n");
+      gtk_widget_set_sensitive(lookup_widget(main_window, "separador5"),
+			       TRUE);
+      gtk_widget_show(lookup_widget(main_window, "separador5"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "videotext1"),
+			       TRUE);
+      gtk_widget_show(lookup_widget(main_window, "videotext1"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "videotext3"),
+			       TRUE);
+      gtk_widget_show(lookup_widget(main_window, "videotext3"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "new_ttxview"),
+			       TRUE);
+      gtk_widget_show(lookup_widget(main_window, "new_ttxview"));
+      gtk_widget_set_sensitive(lookup_widget(main_window,
+					     "closed_caption1"),
+			       TRUE);
+      gtk_widget_show(lookup_widget(main_window, "closed_caption1"));
+      gtk_widget_show(lookup_widget(main_window, "separator8"));
+    }
+}
+
+void
+startup_zvbi(void)
+{
+  zcc_bool(FALSE, "Enable VBI decoding", "enable_vbi");
+  zcc_bool(TRUE, "Use VBI for getting station names", "use_vbi");
+  zcc_char("/dev/vbi", "VBI device", "vbi_device");
+  zcc_int(0, "Default TTX region", "default_region");
+
+  zconf_add_hook("/zapping/options/vbi/enable_vbi",
+		 (ZConfHook)on_vbi_prefs_changed, (gpointer)0xdeadbeef);
+}
+
+void shutdown_zvbi(void)
+{
+  if (vbi)
+    zvbi_close_device();
+}
+
 int test_pipe[2];
 
 /* Open the configured VBI device, FALSE on error */
 gboolean
 zvbi_open_device(void)
 {
-  gint finetune;
-  gboolean erc;
   gchar *device;
   gint index;
   static int region_mapping[8] = {
@@ -133,36 +225,25 @@ zvbi_open_device(void)
     80 /* I */
   };
 
-  zcc_bool(FALSE, "Enable VBI decoding", "enable_vbi");
-  zcc_bool(TRUE, "Use VBI for getting station names", "use_vbi");
-  zcc_char("/dev/vbi", "VBI device", "vbi_device");
-  zcc_bool(TRUE, "Error correction", "erc");
-  zcc_int(999, "Finetune range", "finetune");
-  zcc_int(0, "Default TTX region", "default_region");
-  srand(time(NULL));
-
   if ((vbi) || (!zcg_bool(NULL, "enable_vbi")))
     return FALSE; /* this code isn't reentrant */
 
   device = zcg_char(NULL, "vbi_device");
-  finetune = zcg_int(NULL, "finetune");
-  erc = zcg_bool(NULL, "erc");
 
-/* XXX never closed */
   if (pipe(test_pipe)) {
     fprintf(stderr, "pipe! pipe! duh.\n");
     exit(EXIT_FAILURE);
   }
 
-  if (!(vbi = vbi_open(device, cache_open(), finetune)))
+  if (!(vbi = vbi_open(device, cache_open())))
     {
       g_warning("cannot open %s, vbi services will be disabled",
 		device);
-      return FALSE;
+      goto error;
     }
 
   if (vbi->cache)
-    vbi->cache->op->mode(vbi->cache, CACHE_MODE_ERC, erc);
+    vbi->cache->op->mode(vbi->cache, CACHE_MODE_ERC, 1);
 
   vbi_event_handler(vbi, ~0, event, NULL);
 
@@ -177,7 +258,7 @@ zvbi_open_device(void)
       vbi_event_handler(vbi, 0, event, NULL);
       vbi_close(vbi);
       vbi = NULL;
-      return FALSE;
+      goto error;
     }
 
   index = zcg_int(NULL, "default_region");
@@ -189,6 +270,48 @@ zvbi_open_device(void)
   pthread_mutex_init(&clients_mutex, NULL);
 
   return TRUE;
+
+ error:
+
+  ShowBox(_("VBI: %s couldn't be opened: %d, %s"),
+	  GNOME_MESSAGE_BOX_ERROR, device, errno, strerror(errno));
+  return FALSE;
+}
+
+/* down the road */
+static void remove_client(struct ttx_client* client);
+
+/* Closes the VBI device */
+void
+zvbi_close_device(void)
+{
+  GList * destruction;
+
+  if (!vbi) /* disabled */
+    return;
+
+  vbi->quit = 1;
+  pthread_join(zvbi_thread_id, NULL);
+
+  pthread_mutex_destroy(&(last_info.mutex));
+  pthread_cond_destroy(&(last_info.xpacket_cond));
+
+  vbi_event_handler(vbi, 0, event, NULL);
+  pthread_mutex_lock(&clients_mutex);
+  destruction = g_list_first(ttx_clients);
+  while (destruction)
+    {
+      remove_client((struct ttx_client*) destruction->data);
+      destruction = destruction->next;
+    }
+  g_list_free(ttx_clients);
+  ttx_clients = NULL;
+  pthread_mutex_unlock(&clients_mutex);
+  pthread_mutex_destroy(&clients_mutex);
+  vbi_close(vbi);
+  vbi = NULL;
+  close(test_pipe[0]);
+  close(test_pipe[1]);
 }
 
 static void
@@ -847,37 +970,6 @@ render_ttx_mask(int id, GdkBitmap *mask)
       pthread_mutex_unlock(&client->mutex);
     }
   pthread_mutex_unlock(&clients_mutex);
-}
-
-/* Closes the VBI device */
-void
-zvbi_close_device(void)
-{
-  GList * destruction;
-
-  if (!vbi) /* disabled */
-    return;
-
-  vbi->quit = 1;
-  pthread_join(zvbi_thread_id, NULL);
-
-  pthread_mutex_destroy(&(last_info.mutex));
-  pthread_cond_destroy(&(last_info.xpacket_cond));
-
-  vbi_event_handler(vbi, 0, event, NULL);
-  pthread_mutex_lock(&clients_mutex);
-  destruction = g_list_first(ttx_clients);
-  while (destruction)
-    {
-      remove_client((struct ttx_client*) destruction->data);
-      destruction = destruction->next;
-    }
-  g_list_free(ttx_clients);
-  ttx_clients = NULL;
-  pthread_mutex_unlock(&clients_mutex);
-  pthread_mutex_destroy(&clients_mutex);
-  vbi_close(vbi);
-  vbi = NULL;
 }
 
 /*

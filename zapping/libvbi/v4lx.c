@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.6 2001-02-10 20:51:10 garetxe Exp $ */
+/* $Id: v4lx.c,v 1.7 2001-02-28 22:37:10 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -331,11 +331,12 @@ open_v4l(vbi_device **pvbi, char *dev_name,
 	if (ioctl(vbi->fd, VIDIOCGVBIFMT, &vfmt) == -1) {
 		if (!vbi->dec.scanning
 		    && vbi->dec.start[1] > 0
-		    && vbi->dec.count[1])
+		    && vbi->dec.count[1]) {
 			if (vbi->dec.start[1] >= 286)
 				vbi->dec.scanning = 625;
 			else
 				vbi->dec.scanning = 525;
+		}
 
 		/* Speculative, vbi_format is not documented */
 		if (strict >= 0 && vbi->dec.scanning) {

@@ -1,3 +1,9 @@
+28.2.2001	zconfhook <garetxe@users.sourceforge.net>
+
+	* zconf.c: Added gconfish notification mechanism, now the vbi
+	device can be opened/closed using the properties dialog, V4L open
+	fails.
+
 27.2.2001	osd <mschimek@users.sourceforge.net>
 
 	* osd.c: Pipe replaced fifo/timer event queue. Moved
