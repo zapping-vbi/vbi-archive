@@ -52,6 +52,7 @@ void
 z_switch_channel		(tveng_tuned_channel	*channel,
 				 tveng_device_info	*info);
 
+
 gboolean
 channel_key_press		(GdkEventKey *		event);
 
@@ -66,15 +67,23 @@ on_channel_key_press		(GtkWidget *	widget,
 void
 z_set_main_title		(tveng_tuned_channel	*channel,
 				 gchar *default_name);
-/**
- * Stores the current values of the known controls in the given
- * struct. num_controls and list are filled in appropiately.
- * used when saving 
- */
+
+extern tveng_tc_control *
+zconf_get_controls		(guint			num_controls,
+				 const gchar *		path);
+extern void
+zconf_create_controls		(tveng_tc_control *	tcc,
+				 guint			num_controls,
+				 const gchar *		path);
+extern gint
+load_control_values		(tveng_device_info *	info,
+				 tveng_tc_control *	tcc,
+				 guint			num_controls,
+				 gboolean		skip_mute);
 void
-store_control_values		(gint		*num_controls,
-				 tveng_tc_control **list,
-				 tveng_device_info *info);
+store_control_values		(tveng_device_info *	info,
+				 tveng_tc_control **	tcc,
+				 guint *		num_controls);
 
 /* Returns whether something (useful) was added */
 gboolean
