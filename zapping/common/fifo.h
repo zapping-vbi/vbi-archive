@@ -15,7 +15,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.32 2004-12-07 17:30:39 mschimek Exp $ */
+/* $Id: fifo.h,v 1.33 2005-01-08 14:42:31 mschimek Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -353,7 +353,11 @@ zf_recv_empty_buffer(zf_producer *p)
 	return b;
 }
 
-extern zf_buffer *		zf_wait_empty_buffer(zf_producer *p);
+extern zf_buffer *
+zf_wait_empty_buffer		(zf_producer *		p);
+extern zf_buffer *
+zf_wait_empty_buffer_timeout	(zf_producer *		p,
+				 struct timespec *	timeout);
 
 /**
  * unget_empty_buffer:
