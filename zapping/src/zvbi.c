@@ -536,8 +536,14 @@ event_handler			(vbi_event *		ev,
 
 /* ------------------------------------------------------------------------- */
 
-/* Future stuff */
+#if VBI_VERSION_MAJOR == 0
+#if VBI_VERSION_MINOR == 2
+#if VBI_VERSION_MICRO < 10
 typedef struct _vbi_dvb_demux vbi_dvb_demux;
+#endif
+#endif
+#endif
+
 extern unsigned int
 _vbi_dvb_demux_cor		(vbi_dvb_demux *	dx,
 				 vbi_sliced *		sliced,
