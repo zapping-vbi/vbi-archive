@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rte_test_main.c,v 1.12 2000-10-15 21:24:48 mschimek Exp $
+ * $Id: rte_test_main.c,v 1.13 2000-10-17 21:55:41 garetxe Exp $
  * This is a simple RTE test.
  */
 
@@ -223,7 +223,7 @@ init_video(const char * cap_dev, int * width, int * height)
 /*
  * Reduce the buffer size if you loose some frames in the beginning.
  */
-#define BUFFER_SIZE 32768 // bytes per read(), appx.
+#define BUFFER_SIZE 1024*8 // bytes per read(), appx.
 static int		fd2;
 #else /* use esd */
 #define BUFFER_SIZE (ESD_BUF_SIZE*4)
@@ -378,8 +378,6 @@ read_audio(void * data, double * time, rte_context * context)
 	utime = rtime + ((p - abuffer) >> stereo) / (double) sampling_rate;
 	left -= samples_per_frame;
 
-	/* fixme: take esd latency into account */
-
 	p += samples_per_frame;
 
 	*time = utime;
@@ -490,10 +488,8 @@ int main(int argc, char *argv[])
 
 	srand(time(NULL));
 
-	width *= (rand()%30)+10;
-	height *= (rand()%30)+10;
-
-	width = 320; height = 240;
+	width *= (rand()%20)+10;
+	height *= (rand()%20)+10;
 
 	fprintf(stderr, "%d x %d\n", width, height);
 
@@ -528,7 +524,7 @@ int main(int argc, char *argv[])
 		memset(abuffer, 0, buffer_size);
 	}
 
-	fprintf(stderr, "start encoding\n");
+	fprintf(stderr, "preparing context for encoding\n");
 
 	if (!rte_init_context(context)) {
 		fprintf(stderr, "cannot init the context: %s\n",
@@ -539,6 +535,9 @@ int main(int argc, char *argv[])
 
 	if (mux_mode & RTE_MUX_AUDIO)
 		pthread_create(&audio_thread_id, NULL, audio_thread, context);
+
+	if ((mux_mode & RTE_MUX_AUDIO) && (mux_mode & RTE_MUX_VIDEO))
+		fprintf(stderr, "syncing streams\n");
 
 	if (!rte_start_encoding(context)) {
 		fprintf(stderr, "cannot start encoding: %s\n",
@@ -552,22 +551,15 @@ int main(int argc, char *argv[])
 	// let rte encode video for some time
 	sleep(sleep_time);
 	
-	fprintf(stderr, "done encoding\n");
-
 	// Stop pushing before stopping the context
 	thread_exit_signal = 1;
 	if (mux_mode & RTE_MUX_AUDIO)
 		pthread_join(audio_thread_id, NULL);
 
-	// stop encoding.
-	rte_stop(context);
+	fprintf(stderr, "done encoding\n");
 
-	fprintf(stderr, "context stopped\n");
-
-	// destroy the object
+	// destroy the object (calls rte_stop if necessary)
 	rte_context_destroy(context);
-
-	fprintf(stderr, "exiting\n");
 
 #ifdef USE_ESD
 	if (mux_mode & RTE_MUX_AUDIO)

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: global_data.c,v 1.2 2000-10-15 21:24:48 mschimek Exp $ */
+/* $Id: global_data.c,v 1.3 2000-10-17 21:55:41 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,7 +50,11 @@ char *			cap_dev			= "/dev/video";
 #ifdef HAVE_LIBASOUND
 char *			pcm_dev			= "alsa/0-0";
 #else
+#ifdef USE_ESD
+char *			pcm_dev			= "esd";
+#else
 char *			pcm_dev			= "/dev/dsp";
+#endif
 #endif
 char *			mix_dev			= "/dev/mixer";
 char *			vbi_dev			= "/dev/vbi";

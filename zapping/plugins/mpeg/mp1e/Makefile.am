@@ -13,7 +13,7 @@ mp1e_SOURCES = main.c \
 
 mp1e_LDADD = video/libvideo.a audio/libaudio.a vbi/libvbi.a \
 systems/libsystems.a common/libcommon.a $(TEST_MODULES) $(X_LIBS) -lm \
--lpthread
+-lpthread $(ESD_LIBS)
 
 rte_test_SOURCES = rte_test_main.c \
 		global_data.c options.h \

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.h,v 1.5 2000-10-15 21:24:48 mschimek Exp $ */
+/* $Id: audio.h,v 1.6 2000-10-17 21:55:42 garetxe Exp $ */
 
 #include <pthread.h>
 #include "../common/fifo.h"
@@ -44,3 +44,7 @@ extern void		alsa_pcm_init(void);
 /* tsp.c */
 
 extern void		tsp_init(void);
+
+/* esd.c */
+
+extern void		esd_pcm_init(void);

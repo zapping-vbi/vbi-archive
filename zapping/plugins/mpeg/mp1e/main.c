@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.25 2000-10-17 06:18:45 mschimek Exp $ */
+/* $Id: main.c,v 1.26 2000-10-17 21:55:41 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -167,6 +167,10 @@ main(int ac, char **av)
 			audio_parameters(&sampling_rate, &audio_bit_rate);
 			mix_init(); // XXX OSS
 			alsa_pcm_init();
+		} else if (!strncmp(pcm_dev, "esd", 3)) {
+			audio_parameters(&sampling_rate, &audio_bit_rate);
+			mix_init(); /* fixme: esd_mix_init? */
+			esd_pcm_init();
 		} else {
 			ASSERT("probe '%s'", !stat(pcm_dev, &st), pcm_dev);
 

@@ -17,7 +17,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-/* $Id: rte.c,v 1.28 2000-10-15 21:24:48 mschimek Exp $ */
+/* $Id: rte.c,v 1.29 2000-10-17 21:55:41 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -261,8 +261,6 @@ rte_context * rte_context_new (int width, int height,
 		}
 		
 		context->file_name = strdup(file);
-		fprintf(stderr, "context->file_name: %s, file: %s\n",
-			context->file_name, file);
 	}
 
 	context->private->audio_data_callback = audio_data_callback;
@@ -307,11 +305,8 @@ void * rte_context_destroy ( rte_context * context )
 		free(context->error);
 
 	if (context->file_name) {
-		fprintf(stderr, "file_name: %s\n", context->file_name);
 		free(context->file_name);
 	}
-
-	fprintf(stderr, "file_name freed\n");
 
 	free(context->private);
 	free(context);
