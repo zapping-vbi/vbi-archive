@@ -700,7 +700,7 @@ load_key_bindings			(void)
 {
   gchar *buffer;
   gchar *cmd_txl;
-  gchar *command;
+  const gchar *command;
   z_key key;
   gint i;
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: channel_editor.c,v 1.37.2.6 2003-01-03 06:55:56 mschimek Exp $ */
+/* $Id: channel_editor.c,v 1.37.2.7 2003-01-08 14:52:54 mschimek Exp $ */
 
 /*
   TODO:
@@ -25,7 +25,7 @@
   * write lock channel list
   * notify other modules (ttx bookmarks, schedule etc) about changes
   * device column
-  * wizard, better country selection
+  * wizard
   * channel merging e.g.
     12 FooBar +              key
        + dev1 tuner E5 fine  key
@@ -45,6 +45,7 @@
 #include "globals.h"
 #include "zvbi.h"
 #include "v4linterface.h"
+#include "i18n.h"
 
 #include "channel_editor.h"
 
@@ -57,12 +58,20 @@ struct station_search
   GtkProgressBar *	progressbar;
 
   guint			timeout_handle;
+
+  tv_rf_channel		ch;
   guint			channel;
+
   guint			found;
   guint			iteration;
   gint			freq;
   gint			strength;
   gint			afc;
+};
+
+struct country {
+  gchar *		table_name;
+  gchar *		gui_name;
 };
 
 enum {
@@ -80,6 +89,7 @@ struct channel_editor
   GtkBox *		vbox;
 
   GtkOptionMenu *	country_menu;
+  GArray *		country_table;
 
   GtkButton *		channel_search;
   GtkButton *		add_all_channels;
@@ -124,7 +134,7 @@ static GtkMenu *
 create_standard_menu		(channel_editor *	ce);
 
 static GtkListStore *
-create_freq_list_model		(const tveng_rf_table *	rf);
+create_freq_list_model		(const tv_rf_channel *	table);
 
 static void
 on_channel_selection_changed	(GtkTreeSelection *	selection,
@@ -338,8 +348,7 @@ channel_list_get_selection	(const channel_editor *	ce,
 static gchar *
 rf_channel_string		(const tveng_tuned_channel *tc)
 {
-  return g_strdup_printf ("%s  %s  %.2f MHz",
-			  _(tc->country),
+  return g_strdup_printf ("%s  %.2f MHz",
 			  tc->rf_name,
 			  tc->freq / 1000.0);
 }
@@ -403,19 +412,19 @@ channel_list_add_tuned_channel	(channel_editor *	ce,
 static void
 entry_fine_tuning_set		(channel_editor *	ce,
 				 const tveng_device_info *info,
-				 guint			freq)
+				 guint			frequency)
 {
   GtkAdjustment *spin_adj = z_spinslider_get_spin_adj (ce->entry_fine_tuning);
   GtkAdjustment *hscale_adj = z_spinslider_get_hscale_adj (ce->entry_fine_tuning);
 
-  if (freq > 0)
+  if (frequency > 0)
     {
       double dfreq;
 
-      freq += 25;
-      freq -= freq % 50;
+      frequency += 500;
+      frequency -= frequency % 1000;
 
-      dfreq = freq * 1e-3; /* MHz */
+      dfreq = frequency * 1e-6; /* MHz */
 
       spin_adj->value = dfreq;
       spin_adj->lower = 5;
@@ -439,7 +448,7 @@ entry_fine_tuning_set		(channel_editor *	ce,
       z_spinslider_set_reset_value (ce->entry_fine_tuning, dfreq);
     }
 
-  if (freq == 0
+  if (frequency == 0
       || info->num_inputs == 0
       || info->inputs[info->cur_input].tuners == 0)
     gtk_widget_set_sensitive (ce->entry_fine_tuning, FALSE);
@@ -492,20 +501,35 @@ channel_buttons_set_sensitive	(channel_editor *	ce,
  */
 
 static void
+current_rf_channel_table	(channel_editor *	ce,
+				 tv_rf_channel *	ch,
+				 const gchar **		rf_table)
+{
+  struct country *c;
+  guint i;
+
+  i = z_option_menu_get_active (GTK_WIDGET (ce->country_menu));
+  c = &g_array_index (ce->country_table, struct country, i);
+
+  if (rf_table)
+    *rf_table = c->table_name;
+
+  if (!tv_rf_channel_table_by_name (ch, c->table_name))
+    g_assert_not_reached ();
+}
+
+static void
 on_country_menu_changed		(GtkOptionMenu *	country_menu,
 				 channel_editor *	ce)
 {
-  tveng_rf_table *rf;
-  guint index;
+  tv_rf_channel ch;
+  const gchar *rf_table;
 
-  index = z_option_menu_get_active (GTK_WIDGET (country_menu));
-  rf = tveng_get_country_tune_by_id (index);
+  current_rf_channel_table (ce, &ch, &rf_table);
 
-  g_assert (rf != NULL);
+  zconf_set_string (rf_table, "/zapping/options/main/current_country");
 
-  current_country = rf;
-
-  ce->freq_model = create_freq_list_model (rf);
+  ce->freq_model = create_freq_list_model (&ch);
   gtk_tree_view_set_model (ce->freq_treeview, GTK_TREE_MODEL (ce->freq_model));
 }
 
@@ -537,7 +561,6 @@ station_search_timeout		(gpointer		p)
 {
   channel_editor *ce = p;
   station_search *cs = ce->search;
-  tveng_rf_channel *ch;
   tveng_tuned_channel tc;
   gchar *station_name;
   gint strength, afc;
@@ -549,26 +572,17 @@ station_search_timeout		(gpointer		p)
     {
       gchar *buf;
 
-      /* Next channel */
-
-      if (cs->channel >= current_country->channel_count)
-	{
-	  gtk_widget_destroy (GTK_WIDGET (cs->station_search));
-	  return FALSE; /* remove timer */
-	}
+      /* New channel */
 
       gtk_progress_bar_set_fraction (cs->progressbar,
-				     cs->channel / (gdouble)
-				     current_country->channel_count);
-
-      ch = tveng_get_channel_by_id (cs->channel, current_country);
+	 cs->channel / (gdouble) tv_rf_channel_table_size (&cs->ch));
 
       buf = g_strdup_printf (_("Channel: %s   Found: %u"),
-			     ch->name, cs->found);
+			     cs->ch.channel_name, cs->found);
       gtk_label_set_text (cs->label, buf);
       g_free (buf);
 
-      cs->freq = ch->freq;
+      cs->freq = cs->ch.frequency / 1000;
       cs->strength = 0;
 
       if (-1 == tveng_tune_input (cs->freq, main_info))
@@ -627,17 +641,14 @@ station_search_timeout		(gpointer		p)
   return TRUE; /* continue */
 
  add_default:
-  ch = tveng_get_channel_by_id (cs->channel, current_country);
-  station_name = g_strdup (ch->name);
+  station_name = g_strdup (cs->ch.channel_name);
 
  add_station:
-  ch = tveng_get_channel_by_id (cs->channel, current_country);
-
   memset (&tc, 0, sizeof (tc));
-  tc.name = station_name;
-  tc.rf_name = (gchar *) ch->name;
-  tc.country = (gchar *) current_country->name;
-  tc.freq = cs->freq;
+  tc.name	= station_name;
+  tc.rf_name	= (gchar *) cs->ch.channel_name;
+  tc.rf_table	= (gchar *) cs->ch.table_name;
+  tc.freq	= cs->freq;
 
   channel_list_add_tuned_channel (ce, &global_channel_list, &tc);
 
@@ -647,6 +658,12 @@ station_search_timeout		(gpointer		p)
  next_channel:
   cs->channel++;
   cs->iteration = 0;
+
+  if (!tv_rf_channel_next (&cs->ch))
+    {
+      gtk_widget_destroy (GTK_WIDGET (cs->station_search));
+      return FALSE; /* remove timer */
+    }
 
   return TRUE; /* continue */
 }
@@ -708,6 +725,7 @@ on_channel_search_clicked	(GtkButton *		search,
 
   gtk_widget_set_sensitive (GTK_WIDGET (ce->vbox), FALSE);
 
+  current_rf_channel_table (ce, &cs->ch, NULL);
   cs->channel = 0;
   cs->iteration = 0;
 
@@ -727,21 +745,23 @@ static void
 on_add_all_channels_clicked	(GtkButton *		add_all_channels,
 				 channel_editor *	ce)
 {
-  tveng_rf_channel *ch;
+  tv_rf_channel ch;
   tveng_tuned_channel tc;
-  guint i;
 
-  for (i = 0; (ch = tveng_get_channel_by_id (i, current_country)); i++)
+  memset (&tc, 0, sizeof (tc));
+
+  current_rf_channel_table (ce, &ch, NULL);
+
+  do
     {
-      memset (&tc, 0, sizeof (tc));
-
-      tc.name = (gchar *) ch->name;
-      tc.rf_name = (gchar *) ch->name;
-      tc.country = (gchar *) current_country->name;
-      tc.freq = ch->freq;
+      tc.name		= (gchar *) ch.channel_name;
+      tc.rf_name	= (gchar *) ch.channel_name;
+      tc.rf_table	= (gchar *) ch.table_name;
+      tc.freq		= ch.frequency / 1000;
 
       channel_list_add_tuned_channel (ce, &global_channel_list, &tc);
     }
+  while (tv_rf_channel_next (&ch));
 }
 
 static void
@@ -751,8 +771,9 @@ on_freq_selection_changed	(GtkTreeSelection *	selection,
   GtkTreeIter first, last;
   GtkTreeIter freq_iter;
   tveng_tuned_channel *tc, *tc_first, *tc_last;
-  tveng_rf_channel *ch;
+  tv_rf_channel ch;
   gchar *name;
+  gboolean success;
 
   if (!gtk_tree_selection_get_selected (selection, NULL, &freq_iter))
     return;
@@ -763,28 +784,29 @@ on_freq_selection_changed	(GtkTreeSelection *	selection,
   gtk_tree_model_get (GTK_TREE_MODEL (ce->freq_model), &freq_iter,
 		      FL_NAME, &name, -1);
 
-  ch = tveng_get_channel_by_name (name, current_country);
+  current_rf_channel_table (ce, &ch, NULL);
+  success = tv_rf_channel_by_name (&ch, name);
 
   g_free (name);
 
-  if (!ch)
+  if (!success)
     return;
 
   for (tc = tc_first;; tc = tc->next)
     {
-      if (0 != strcmp (tc->country, current_country->name))
+      if (0 != strcmp (tc->rf_table, ch.table_name))
 	{
-	  g_free (tc->country);
-	  tc->country = g_strdup (current_country->name);
+	  g_free (tc->rf_table);
+	  tc->rf_table = g_strdup (ch.table_name);
 	}
 
-      if (0 != strcmp (tc->rf_name, ch->name))
+      if (0 != strcmp (tc->rf_name, ch.channel_name))
 	{
 	  g_free (tc->rf_name);
-	  tc->rf_name = g_strdup (ch->name);
+	  tc->rf_name = g_strdup (ch.channel_name);
 	}
 
-      tc->freq = ch->freq;
+      tc->freq = ch.frequency / 1000;
 
       if (tc == tc_last)
 	break;
@@ -792,8 +814,8 @@ on_freq_selection_changed	(GtkTreeSelection *	selection,
 
   if (tunable_input (ce, main_info, tc_first))
     {
-      entry_fine_tuning_set (ce, main_info, ch->freq);
-      tveng_tune_input (ch->freq, main_info);
+      entry_fine_tuning_set (ce, main_info, ch.frequency);
+      tveng_tune_input (ch.frequency / 1000, main_info);
     }
 
   channel_list_rows_changed (ce, &first, &last);
@@ -870,7 +892,7 @@ on_channel_add_clicked		(GtkButton *		channel_add,
 
   tc.name = "";
   tc.rf_name = "";
-  tc.country = "";
+  tc.rf_table = "";
 
   if (channel_list_get_selection (ce, &iter, NULL, NULL, NULL))
     {
@@ -1101,7 +1123,7 @@ on_channel_selection_changed	(GtkTreeSelection *	selection,
 
   SIGNAL_HANDLER_BLOCK (ce->spinslider_adj,
 			(gpointer) on_entry_fine_tuning_value_changed,
-			entry_fine_tuning_set (ce, main_info, tc->freq));
+			entry_fine_tuning_set (ce, main_info, tc->freq * 1000));
 
   BLOCK (entry_standard, changed,
 	 {
@@ -1159,6 +1181,18 @@ on_channel_editor_destroy	(GtkObject *		unused,
       global_channel_list = ce->old_channel_list;
       ce->old_channel_list = NULL;
     }
+
+  {
+    struct country *c;
+
+    for (c = &g_array_index (ce->country_table, struct country, 0); c->table_name; c++)
+      {
+	g_free (c->table_name);
+	g_free (c->gui_name);
+      }
+
+    g_array_free (ce->country_table, /* elements */ FALSE);
+  }
 
   g_free (ce);
 
@@ -1298,63 +1332,138 @@ set_func_key			(GtkTreeViewColumn *	column,
   g_signal_connect (G_OBJECT (ce->object), #signal,			\
 		    G_CALLBACK (on_ ## object ## _ ## signal), ce)
 
+static gint
+country_compare			(struct country *	c1,
+				 struct country *	c2)
+{
+  return g_utf8_collate (c1->gui_name, c2->gui_name);
+}
+
 static GtkWidget *
 create_country_menu		(channel_editor *	ce)
 {
   GtkWidget *country_menu;
   GtkWidget *menu;
-  tveng_rf_table *rf;
-  guint i;
+  tv_rf_channel ch;
+  const gchar *table_name;
+  const gchar *country_code;
+  gchar buf[4];
+  gint hist, i;
+  struct country *c;
 
   country_menu = gtk_option_menu_new ();
   gtk_widget_show (country_menu);
   gtk_tooltips_set_tip (ce->tooltips, country_menu,
-			_("Select here the frequency table "
+			_("Select the frequency table "
 			  "used in your country"), NULL);
 
   menu = gtk_menu_new ();
   gtk_option_menu_set_menu (GTK_OPTION_MENU (country_menu), menu);
 
-  for (i = 0; (rf = tveng_get_country_tune_by_id (i)); i++)
+  tv_rf_channel_first_table (&ch);
+
+  ce->country_table = g_array_new (/* zero_term */ TRUE,
+				   /* clear */ FALSE,
+				   sizeof (struct country));
+  do {
+    do {
+      const char *country_name;
+
+      if ((country_name = iso3166_to_country_name (ch.country_code)))
+	{
+	  struct country c;
+
+	  c.table_name = g_strconcat (ch.country_code, "@", ch.table_name, NULL);
+
+	  if (ch.domain)
+	    c.gui_name = g_strdup_printf ("%s (%s)", country_name, ch.domain);
+	  else
+	    c.gui_name = g_strdup (country_name);
+
+	  g_array_append_val (ce->country_table, c);
+	}
+    } while (tv_rf_channel_next_country (&ch));
+  } while (tv_rf_channel_next_table (&ch));
+
+  g_array_sort (ce->country_table, (GCompareFunc) country_compare);
+
+  /*
+   *  Default country, table or both
+   *  from e.g. "", "FR", "FR@ccir", "ccir", "Europe" (old current_country)
+   */
+  table_name = zconf_get_string (NULL, "/zapping/options/main/current_country");
+  country_code = locale_country ();
+
+  if (table_name
+      && g_ascii_isalpha (table_name[0])
+      && g_ascii_isalpha (table_name[1])
+      && '@' == table_name[2])
+    {
+      buf[0] = table_name[0];
+      buf[1] = table_name[1];
+      buf[2] = 0;
+      country_code = buf;
+      table_name += 3;
+    }
+
+  if (table_name
+      && 0 == table_name[0])
+    table_name = NULL;
+
+  hist = -1;
+  i = 0;
+
+  for (c = &g_array_index (ce->country_table, struct country, 0);
+       c->table_name; c++)
     {
       GtkWidget *item;
 
-      item = gtk_menu_item_new_with_label (_(rf->name));
+      item = gtk_menu_item_new_with_label (c->gui_name);
       gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
       gtk_widget_show (item);
+
+      if (hist < 0)
+	if (!table_name || 0 == strcmp (c->table_name + 3, table_name))
+	  if (!country_code || 0 == strncmp (c->table_name, country_code, 2))
+	    hist = i;
+      i++;
     }
 
-  g_assert (i > 0);
+  if (hist < 0)
+    hist = 0; /* any */
+  else if (!table_name)
+    zconf_set_string (g_array_index (ce->country_table, struct country, hist).table_name,
+		      "/zapping/options/main/current_country");
 
-  gtk_option_menu_set_history (GTK_OPTION_MENU (country_menu),
-			       tveng_get_id_of_country_tune
-			       (current_country));
+  gtk_option_menu_set_history (GTK_OPTION_MENU (country_menu), hist);
+
   return country_menu;
 }
 
 static GtkListStore *
-create_freq_list_model		(const tveng_rf_table *	rf)
+create_freq_list_model		(const tv_rf_channel *	table)
 {
   GtkListStore *model;
-  tveng_rf_channel *ch;
-  guint i;
+  tv_rf_channel ch;
 
   model = gtk_list_store_new (FL_NUM_COLUMNS,
 			      G_TYPE_STRING,	/* name */
 			      G_TYPE_STRING);	/* freq */
+  ch = *table;
 
-  for (i = 0; (ch = tveng_get_channel_by_id (i, rf)); i++)
+  do
     {
       gchar freq[256];
       GtkTreeIter iter;
 
-      g_snprintf (freq, sizeof (freq) - 1, "%.2f", ch->freq / 1000.0);
+      g_snprintf (freq, sizeof (freq) - 1, "%.2f", ch.frequency / 1e6);
 
       gtk_list_store_append (model, &iter);
       gtk_list_store_set (model, &iter,
-			  FL_NAME, ch->name,
+			  FL_NAME, ch.channel_name,
 			  FL_FREQ, freq, -1);
     }
+  while (tv_rf_channel_next (&ch));
 
   return model;
 }
@@ -1365,6 +1474,7 @@ create_freq_treeview		(channel_editor *	ce)
   GtkWidget *scrolledwindow;
   GtkCellRenderer *renderer;
   GtkTreeViewColumn *column;
+  tv_rf_channel ch;
 
   scrolledwindow = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_show (scrolledwindow);
@@ -1381,7 +1491,8 @@ create_freq_treeview		(channel_editor *	ce)
   gtk_tree_selection_set_mode (ce->freq_selection, GTK_SELECTION_SINGLE);
   CONNECT (freq_selection, changed);
 
-  ce->freq_model = create_freq_list_model (current_country);
+  current_rf_channel_table (ce, &ch, NULL);
+  ce->freq_model = create_freq_list_model (&ch);
   gtk_tree_view_set_model (ce->freq_treeview, GTK_TREE_MODEL (ce->freq_model));
 
   renderer = gtk_cell_renderer_text_new ();
@@ -1617,10 +1728,9 @@ create_channel_editor		(void)
 				      "table to the channel list."), NULL);
 	    }
 	    
-	    label = gtk_label_new (_("When your country or the required table "
-				     "is not present please notify the author,\n"
-				     "adding the table if possible, for inclusion "
-				     "in the next release of this program."));
+	    label = gtk_label_new (_("When your country is not listed or misrepresented please send an e-mail,\n"
+				     "if possible including the correct frequency table, to zapping-misc@lists.sf.net."));
+
 	    gtk_widget_show (label);
 	    gtk_box_pack_start (GTK_BOX (vbox), label, TRUE, TRUE, 0);
 	  }

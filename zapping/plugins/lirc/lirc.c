@@ -253,7 +253,8 @@ static
 void plugin_load_config (gchar * root_key)
 {
   gchar *buffer;
-  gchar *button, *action;
+  const gchar *button;
+  gchar *action;
   int i=0;
   action_list_item *item;
 

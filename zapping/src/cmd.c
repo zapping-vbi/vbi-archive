@@ -33,7 +33,7 @@
 #include "zmisc.h"
 #include "zconf.h"
 #include "globals.h"
-#include "mixer.h"
+#include "audio.h"
 
 static PyObject* py_quit (PyObject *self, PyObject *args)
 {

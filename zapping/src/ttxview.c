@@ -3806,7 +3806,8 @@ gboolean
 startup_ttxview (void)
 {
   gint i=0;
-  gchar *buffer, *buffer2, *buffer3;
+  gchar *buffer, *buffer2;
+  const gchar *buffer3;
   gint page, subpage;
 
   ttxview_model = ZMODEL(zmodel_new());

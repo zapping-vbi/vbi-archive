@@ -4,7 +4,6 @@ enum tveng_capture_mode	last_mode;
 GtkWidget		*ChannelWindow;
 tveng_device_info	*main_info = NULL;
 volatile gboolean	flag_exit_program = FALSE;
-tveng_rf_table		*current_country = NULL;
 GList			*plugin_list = NULL;
 /* preview should be disabled */
 gint			disable_preview = FALSE;

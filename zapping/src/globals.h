@@ -9,7 +9,6 @@ extern enum tveng_capture_mode	last_mode;
 extern GtkWidget		*ChannelWindow;
 extern tveng_device_info	*main_info;
 extern volatile gboolean	flag_exit_program;
-extern tveng_rf_table		*current_country;
 extern GList			*plugin_list;
 /* preview should be disabled */
 extern gint			disable_preview;

@@ -81,6 +81,7 @@ struct private_tveng1_device_info
   int muted; /* 0 if the device is muted, 1 otherwise. A workaround
 		for a bttv problem. */
 #endif
+  int audio_mode; /* auto, mono, stereo, ... */
   char * mmaped_data; /* A pointer to the data mmap() returned */
   struct video_mbuf mmbuf; /* Info about the location of the frames */
   int queued, dequeued; /* The index of the [de]queued frames */
@@ -1021,6 +1022,7 @@ struct p_tveng1_audio_decoding_entry
 static
 struct p_tveng1_audio_decoding_entry audio_decoding_modes[] =
 {
+  { N_("Automatic"), 0 },
   { N_("Mono"), VIDEO_SOUND_MONO },
   { N_("Stereo"), VIDEO_SOUND_STEREO },
   { N_("Alternate 1"), VIDEO_SOUND_LANG1 },
@@ -1035,7 +1037,6 @@ struct p_tveng1_audio_decoding_entry audio_decoding_modes[] =
 static char ** p_tveng1_test_audio_decode (tveng_device_info * info)
 {
   struct video_audio audio;
-  __u16 cur_value;
   int i, j;
   char ** list = NULL; /* The returned list of menu entries labels */
 
@@ -1049,7 +1050,15 @@ static char ** p_tveng1_test_audio_decode (tveng_device_info * info)
       return NULL;
     }
 
-  cur_value = audio.mode;
+  /*
+   *  FIXME
+   *  According to /linux/Documentation/video4linux/API.html
+   *  audio.mode is the "mode the audio input is in". The bttv driver
+   *  returns the received audio on read, a set, not the selected
+   *  mode and not capabilities. One write a single bit must be
+   *  set, zero selects autodetection.
+   */
+
   for (i = 0; i<num_audio_decoding_modes; i++)
     {
       audio.mode = audio_decoding_modes[i].id;
@@ -1057,25 +1066,13 @@ static char ** p_tveng1_test_audio_decode (tveng_device_info * info)
 	{
 	  info->tveng_errno = errno;
 	  t_error("VIDIOCSAUDIO", info);
-	  if (list)
-	    {
-	      for (j=0; j<i; j++)
-		free(list[j]);
-	      free(list);
-	    }
-	  return NULL;
+	  goto failure;
 	}
       if (ioctl(info->fd, VIDIOCGAUDIO, &audio))
 	{
 	  info->tveng_errno = errno;
 	  t_error("VIDIOCGAUDIO", info);
-	  if (list)
-	    {
-	      for (j=0; j<i; j++)
-		free(list[j]);
-	      free(list);
-	    }
-	  return NULL;
+	  goto failure;
 	}
       /* Ok, add this id */
       list = realloc(list, sizeof(char*) * (i+1));
@@ -1083,19 +1080,14 @@ static char ** p_tveng1_test_audio_decode (tveng_device_info * info)
       list[i] = strdup(audio_decoding_modes[i].label);
     }
 
-  /* restore previous mode */
-  audio.mode = cur_value;
+  /* FIXME restore previous mode */
+  /* audio.mode = cur_value; */
+  audio.mode = 0; /* autodetect */
   if (ioctl(info->fd, VIDIOCSAUDIO, &audio))
     {
       info->tveng_errno = errno;
       t_error("VIDIOCSAUDIO", info);
-      if (list)
-	{
-	  for (j=0; j<i; j++)
-	    free(list[j]);
-	  free(list);
-	}
-      return NULL;
+      goto failure;
     }
 
   /* Add the NULL at the end of the list */
@@ -1103,6 +1095,18 @@ static char ** p_tveng1_test_audio_decode (tveng_device_info * info)
   list[i] = NULL;
 
   return list; /* Success, the control apparently works */
+
+failure:
+  audio.mode = 0; /* autodetect */
+  ioctl(info->fd, VIDIOCSAUDIO, &audio);
+
+  if (list)
+    {
+      for (j=0; j<(i+1); j++)
+        free(list[j]);
+      free(list);
+    }
+  return NULL;
 }
 
 
@@ -1261,7 +1265,7 @@ p_tveng1_build_controls(tveng_device_info * info)
       control.id = P_TVENG1_C_AUDIO_DECODING;
       snprintf(control.name, 32, _("Audio"));
       control.min = 0;
-      control.max = 3;
+      control.max = 4; /* XXX */
       control.type = TVENG_CONTROL_MENU;
       /* Build entries, will be NULL if no entries exist */
       control.data = p_tveng1_test_audio_decode(info);
@@ -1360,6 +1364,7 @@ tveng1_update_controls(tveng_device_info * info)
 	  break;
 	case P_TVENG1_C_AUDIO_DECODING:
 	  for (j = 0; j<num_audio_decoding_modes; j++)
+#if 0 /* FIXME bttv */
 	    if (audio.mode == audio_decoding_modes[j].id)
 	      {
 		control -> cur_value = j;
@@ -1372,6 +1377,9 @@ tveng1_update_controls(tveng_device_info * info)
 			  info, audio.mode);
 	      break;
 	    }
+#else
+	  control->cur_value = p_info->audio_mode;	
+#endif
 	  break;
 
 	/* Video controls */
@@ -1467,7 +1475,7 @@ tveng1_set_control(struct tveng_control * control, int value,
 	  break;
 	case P_TVENG1_C_AUDIO_DECODING:
 	  t_assert(value < num_audio_decoding_modes);
-	  audio.mode = audio_decoding_modes[value].id;
+	  p_info->audio_mode = value;
 	  break;
 
 	default:
@@ -1483,6 +1491,8 @@ tveng1_set_control(struct tveng_control * control, int value,
       if (p_info->muted)
 	audio.flags |= VIDEO_AUDIO_MUTE;
 #endif
+      /* See above */
+      audio.mode = audio_decoding_modes[p_info->audio_mode].id;
 
       /* Set the control */
       if (ioctl(info->fd, VIDIOCSAUDIO, &audio))

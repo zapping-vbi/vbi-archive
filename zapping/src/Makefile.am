@@ -70,7 +70,8 @@ zapping_SOURCES = \
 	ttxview.c ttxview.h \
 	properties-handler.c properties-handler.h \
 	plugin_properties.c plugin_properties.h \
-	channel_editor.c channel_editor.h
+	channel_editor.c channel_editor.h \
+	i18n.c i18n.h
 
 zapping_LDADD = $(gen_conv_lib) $(COMMON_LIB) $(PACKAGE_LIBS) \
 $(PYTHON_LIBS) $(X_LIBS) $(X_DGA_LIBS) $(X_XV_LIBS) $(X_XDPMS_LIBS) \

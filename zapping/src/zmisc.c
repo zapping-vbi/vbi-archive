@@ -898,32 +898,32 @@ z_replace_filename_extension (gchar *filename, gchar *new_ext)
 }
 
 gchar *
-z_build_filename (gchar *dirname, gchar *filename)
+z_build_filename (const gchar *dirname, const gchar *filename)
 {
-  gchar *name;
+  gchar *name, *dir;
   gint trailing_slashes = 0, i;
 
   if (!dirname || strlen (dirname) == 0)
     return g_strdup (filename);
 
-  dirname = g_strdup (dirname);
-  g_strstrip (dirname);
+  dir = g_strdup (dirname);
+  g_strstrip (dir);
 
-  for (i = strlen (dirname); i > 0 && dirname[i - 1] == '/'; i--)
+  for (i = strlen (dir); i > 0 && dir[i - 1] == '/'; i--)
     trailing_slashes++;
 
   if (trailing_slashes <= 0)
-    name = g_strconcat (dirname, "/", filename, NULL);
+    name = g_strconcat (dir, "/", filename, NULL);
   else if (trailing_slashes == 1)
-    name = g_strconcat (dirname, filename, NULL);
+    name = g_strconcat (dir, filename, NULL);
   else
     {
-      gchar *temp = g_strndup (dirname, i + 1);
-      name = g_strconcat (dirname, filename, NULL);
+      gchar *temp = g_strndup (dir, i + 1);
+      name = g_strconcat (dir, filename, NULL);
       g_free (temp);
     }
 
-  g_free (dirname);
+  g_free (dir);
 
   return name;
 }

@@ -281,7 +281,6 @@ static void
 create_menu			(struct control_window *cb,
 				 tveng_device_info *	info,
 				 tveng_control *	ctrl)
-
 {
   GtkWidget *label; /* This shows what the menu is for */
   GtkWidget *option_menu; /* The option menu */
@@ -1030,7 +1029,6 @@ py_set_channel				(PyObject *self, PyObject *args)
 
   num_channels = tveng_tuned_channel_num(global_channel_list);
 
-  /* IMHO it's wrong to start at 0, but compatibility rules. */
   if (i >= 0 && i < num_channels)
     {
       select_channel(i);
@@ -1069,23 +1067,34 @@ py_lookup_channel			(PyObject *self, PyObject *args)
   py_return_false;
 }
 
-static gchar			kp_chsel_buf[5];
+static gchar			kp_chsel_buf[8];
 static gint			kp_chsel_prefix;
 static gboolean			kp_clear;
 static gboolean			kp_lirc; /* XXX */
+
+static void
+kp_enter			(gint			txl)
+{
+  tveng_tuned_channel *tc;
+
+  if (!isdigit (kp_chsel_buf[0]) || txl >= 1)
+    tc = tveng_tuned_channel_by_rf_name (global_channel_list, kp_chsel_buf);
+  else
+    tc = tveng_tuned_channel_nth (global_channel_list, atoi (kp_chsel_buf));
+
+  if (tc)
+    z_switch_channel (tc, main_info);
+}
 
 static void
 kp_timeout			(gboolean		timer)
 {
   gint txl = zconf_get_integer (NULL, "/zapping/options/main/channel_txl");
 
-  if (timer && (txl >= 0 || kp_lirc)) /* txl: -1 disable, 0 list entry, 1 RF channel */
-    {
-      if (!isdigit (kp_chsel_buf[0]) || txl >= 1)
-	cmd_run_printf ("zapping.lookup_channel('%s')", kp_chsel_buf);
-      else
-	cmd_run_printf ("zapping.set_channel(%s)", kp_chsel_buf);
-    }
+  if (timer
+      && (txl >= 0 || kp_lirc) /* txl: -1 disable, 0 list entry, 1 RF channel */
+      && kp_chsel_buf[0] != 0)
+    kp_enter (txl);
 
   if (kp_clear)
     {
@@ -1098,57 +1107,119 @@ static gboolean
 kp_key_press			(GdkEventKey *		event,
 				 gint			txl)
 {
-  extern tveng_rf_table *current_country; /* Currently selected contry */
-  const gchar *prefix;
-  int i;
-
   switch (event->keyval)
     {
-#ifdef HAVE_LIBZVBI
+#ifdef HAVE_LIBZVBI /* FIXME */
     case GDK_KP_0 ... GDK_KP_9:
-      i = strlen (kp_chsel_buf);
+      {
+	const tveng_tuned_channel *tc;
+	gint len;
 
-      if (i >= sizeof (kp_chsel_buf) - 1)
-	memcpy (kp_chsel_buf, kp_chsel_buf + 1, i--);
+	len = strlen (kp_chsel_buf);
 
-      kp_chsel_buf[i] = event->keyval - GDK_KP_0 + '0';
-      kp_chsel_buf[i + 1] = 0;
+	if (len >= sizeof (kp_chsel_buf) - 1)
+	  memcpy (kp_chsel_buf, kp_chsel_buf + 1, len--);
 
-    show:
-      kp_clear = FALSE;
-      /* NLS: Channel name being entered on numeric keypad */
-      osd_render_markup (kp_timeout,
-			 _("<span foreground=\"green\">%s</span>"),
-			 kp_chsel_buf);
-      kp_clear = TRUE;
+	kp_chsel_buf[len] = event->keyval - GDK_KP_0 + '0';
+	kp_chsel_buf[len + 1] = 0;
 
-      return TRUE;
+      show:
+	tc = NULL;
+
+	if (txl == 1)
+	  {
+	    guint match = 0;
+
+	    /* RF channel name completion */
+
+	    len = strlen (kp_chsel_buf);
+
+	    for (tc = tveng_tuned_channel_first (global_channel_list);
+		 tc; tc = tc->next)
+	      if (!tc->rf_name || tc->rf_name[0] == 0)
+		{
+		  continue;
+		}
+	      else if (0 == strncmp (tc->rf_name, kp_chsel_buf, len))
+		{
+		  if (strlen (tc->rf_name) == len)
+		    break; /* exact match */
+
+		  if (match++ > 0)
+		    {
+		      tc = NULL;
+		      break; /* ambiguous */
+		    }
+		}
+
+	    if (tc)
+	      strncpy (kp_chsel_buf, tc->rf_name, sizeof (kp_chsel_buf) - 1);
+	  }
+
+	kp_clear = FALSE;
+	/* TRANSLATORS: Channel name being entered on numeric keypad */
+	osd_render_markup (kp_timeout, _("<span foreground=\"green\">%s</span>"),
+			   kp_chsel_buf);
+	kp_clear = TRUE;
+
+	if (txl == 0)
+	  {
+	    guint num = atoi (kp_chsel_buf);
+
+	    /* Switch to channel if the number is unambiguous */
+
+	    if (num == 0 || (num * 10) >= tveng_tuned_channel_num (global_channel_list))
+	      tc = tveng_tuned_channel_nth (global_channel_list, num);
+	  }
+
+	if (!tc)
+	  return TRUE; /* unknown channel */
+
+	z_switch_channel (tc, main_info);
+
+	kp_chsel_buf[0] = 0;
+	kp_chsel_prefix = 0;
+
+	return TRUE;
+      }
 
     case GDK_KP_Decimal:
-      /* Run through all RF channel prefixes incl. nil (== clear) */
-
-      prefix = current_country->prefixes[kp_chsel_prefix];
-
-      if (prefix)
+      if (txl >= 1)
 	{
-	  strncpy (kp_chsel_buf, prefix, sizeof (kp_chsel_buf) - 1);
-	  kp_chsel_prefix++;
-	  goto show;
-	}
-      else
-	{
-	  kp_clear = TRUE;
-	  osd_render_markup (kp_timeout,
-			     "<span foreground=\"black\">/</span>");
+	  const tveng_tuned_channel *tc;
+	  const gchar *rf_table;
+	  tv_rf_channel ch;
+	  const char *prefix;
+
+	  /* Run through all RF channel prefixes incl. nil (== clear) */
+
+	  if (!(rf_table = zconf_get_string (NULL, "/zapping/options/main/current_country")))
+	    {
+	      tc = tveng_tuned_channel_nth (global_channel_list, cur_tuned_channel);
+
+	      if (!tc || !(rf_table = tc->rf_table) || rf_table[0] == 0)
+		return TRUE; /* dead key */
+	    }
+
+	  if (!tv_rf_channel_table_by_name (&ch, rf_table))
+	    return TRUE; /* dead key */
+
+	  if ((prefix = tv_rf_channel_table_prefix (&ch, kp_chsel_prefix)))
+	    {
+	      strncpy (kp_chsel_buf, prefix, sizeof (kp_chsel_buf) - 1);
+	      kp_chsel_buf[sizeof (kp_chsel_buf) - 1] = 0;
+	      kp_chsel_prefix++;
+	      goto show;
+	    }
 	}
 
+      kp_clear = TRUE;
+      osd_render_markup (kp_timeout,
+			 "<span foreground=\"black\">/</span>");
       return TRUE;
 
     case GDK_KP_Enter:
-      if (!isdigit (kp_chsel_buf[0]) || txl >= 1)
-	cmd_run_printf ("zapping.lookup_channel('%s')", kp_chsel_buf);
-      else
-	cmd_run_printf ("zapping.set_channel(%s)", kp_chsel_buf);
+      kp_enter (txl);
 
       kp_chsel_buf[0] = 0;
       kp_chsel_prefix = 0;
@@ -1231,6 +1302,7 @@ void store_control_values(gint *num_controls,
 	{
 	  c = info->controls+i;
 	  strncpy((*list)[i].name, c->name, 32);
+	  (*list)[i].name[31] = 0;
 	  if (c->max > c->min)
 	    (*list)[i].value = (((gfloat)c->cur_value)-c->min)/
 	      ((gfloat)c->max-c->min);

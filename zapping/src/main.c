@@ -53,6 +53,7 @@
 #include "globals.h"
 #include "plugin_properties.h"
 #include "channel_editor.h"
+#include "i18n.h"
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
 char *program_invocation_name;
@@ -434,7 +435,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.165.2.10 2003-01-04 07:54:43 mschimek Exp $",
+	 "$Id: main.c,v 1.165.2.11 2003-01-08 14:52:54 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -841,7 +842,7 @@ static void shutdown_zapping(void)
       SAVE_CONFIG (z_key,   accel,        accel,        "Accelerator key");
       /* historic "real_name", changed to less confusing rf_name */
       SAVE_CONFIG (string,  rf_name,      real_name,    "RF channel name");
-      SAVE_CONFIG (string,  country,      country,      "Country the channel is in");
+      SAVE_CONFIG (string,  rf_table,     country,      "RF channel table");
       SAVE_CONFIG (integer, input,        input,        "Attached input");
       SAVE_CONFIG (integer, standard,     standard,     "Attached standard");
       SAVE_CONFIG (integer, num_controls, num_controls, "Saved controls");
@@ -864,9 +865,6 @@ static void shutdown_zapping(void)
     }
 
   tveng_tuned_channel_list_delete (&global_channel_list);
-
-  if (current_country)
-    zcs_char(current_country -> name, "current_country");
 
   if (main_info->num_standards)
     zcs_int(main_info->standards[main_info -> cur_standard].hash,
@@ -1006,12 +1004,19 @@ static gboolean startup_zapping(gboolean load_plugins)
   zcc_bool(FALSE, "Keep main window on top", "keep_on_top");
   zcc_bool(TRUE, "Show tooltips", "show_tooltips");
   zcc_bool(TRUE, "Resize by fixed increments", "fixed_increments");
+
+#if 0
   zcc_char(tveng_get_country_tune_by_id(0)->name,
 	     "The country you are currently in", "current_country");
   current_country = 
     tveng_get_country_tune_by_name(zcg_char(NULL, "current_country"));
   if (!current_country)
     current_country = tveng_get_country_tune_by_id(0);
+#else
+  /* last selected frequency table */
+  zcc_char ("", "The country you are currently in", "current_country");
+#endif
+
   zcc_char("/dev/video0", "The device file to open on startup",
 	   "video_device");
   zcc_bool(FALSE, "TRUE if Zapping should be started without sound",
@@ -1058,7 +1063,7 @@ static gboolean startup_zapping(gboolean load_plugins)
       LOAD_CONFIG (string,  rf_name,      real_name);
       LOAD_CONFIG (integer, freq,         freq);
       LOAD_CONFIG (z_key,   accel,        accel);
-      LOAD_CONFIG (string,  country,      country);
+      LOAD_CONFIG (string,  rf_table,     country);
       LOAD_CONFIG (integer, input,        input);
       LOAD_CONFIG (integer, standard,     standard);
       LOAD_CONFIG (integer, num_controls, num_controls);
@@ -1094,7 +1099,7 @@ static gboolean startup_zapping(gboolean load_plugins)
       /* Free the previously allocated mem */
       g_free(new_channel.name);
       g_free(new_channel.rf_name);
-      g_free(new_channel.country);
+      g_free(new_channel.rf_table);
       g_free(new_channel.controls);
 
       g_free(buffer);

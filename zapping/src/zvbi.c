@@ -353,7 +353,7 @@ join (char *who, pthread_t id, gboolean *ack, gint timeout)
 // XXX vbi must be restarted on video std change. is it?
 
 static gboolean
-threads_init (gchar *dev_name, int given_fd)
+threads_init (const gchar *dev_name, int given_fd)
 {
   gchar *failed = _("VBI initialization failed.\n%s");
   gchar *memory = _("Ran out of memory.");
@@ -765,7 +765,7 @@ static gint trigger_timeout		(gint	client_id)
 
 /* Open the configured VBI device, FALSE on error */
 gboolean
-zvbi_open_device(char *device)
+zvbi_open_device(const char *device)
 {
   gint index;
   int given_fd;
@@ -2224,7 +2224,7 @@ update_vi_program			(struct vi_data *data)
       && pi->audio[0].mode != VBI_AUDIO_MODE_UNKNOWN
       && pi->audio[1].mode != VBI_AUDIO_MODE_UNKNOWN)
     {
-      gchar *l1, *l2;
+      const gchar *l1, *l2;
 
       /* XXX Latin-1 */
       l1 = pi->audio[0].language;
@@ -2254,7 +2254,7 @@ update_vi_program			(struct vi_data *data)
 	   && pi->audio[0].mode != VBI_AUDIO_MODE_UNKNOWN)
     {
       /* XXX Latin-1 */
-      gchar *l1 = pi->audio[0].language;
+      const gchar *l1 = pi->audio[0].language;
 
       if (l1)
 	snprintf(buffer, sizeof(buffer) - 1,

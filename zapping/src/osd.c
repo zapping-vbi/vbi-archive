@@ -785,7 +785,7 @@ osd_render_osd		(void (*timeout_cb)(gboolean),
   PangoFontDescription *pfd = NULL;
   GdkGC *gc = gdk_gc_new (patch->window);
   GdkColormap *cmap = gdk_window_get_colormap (patch->window);
-  gchar *fname = zcg_char (NULL, "font");
+  const gchar *fname = zcg_char (NULL, "font");
   PangoRectangle logical, ink;
   GdkColor *bg;
   gint w, h;

@@ -97,7 +97,7 @@ void zconf_create_integer(gint new_value, const gchar * desc,
   if where is not NULL, zconf will g_strdup the string itself, and
   place a pointer to it in where, that should be freed later with g_free.
 */
-gchar * zconf_get_string(gchar ** where, const gchar * path);
+const gchar * zconf_get_string(gchar ** where, const gchar * path);
 
 /*
   Sets an string value to the given string.

@@ -327,7 +327,7 @@ z_build_path(const gchar *path, gchar **error_description);
  * path in the future.
  */
 gchar *
-z_build_filename (gchar *dirname, gchar *filename);
+z_build_filename (const gchar *dirname, const gchar *filename);
 
 /* See ttxview.c
  */

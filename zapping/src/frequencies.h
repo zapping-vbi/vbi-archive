@@ -26,12 +26,14 @@ typedef struct _tveng_tuned_channel tveng_tuned_channel;
 
 struct _tveng_tuned_channel {
   gchar *			name;		/* Station (RTL, Eurosport, whatever) */
+
+  gchar *			rf_table;
   gchar *			rf_name;	/* RF channel ("35", for example) */
+
   int input, standard; /* Attached input, standard or 0 */
 
   z_key				accel;		/* key to select this channel */
 
-  gchar *country; /* The country this channel is in */
   int index; /* Index in the tuned_channel list */
   uint32_t			freq;		/* Frequency of this RF channel in kHz
 						   (may differ from RF table due to fine tuning) */
@@ -97,6 +99,64 @@ tveng_get_channel_by_id (int id, const tveng_rf_table *country);
 int
 tveng_get_id_of_channel (tveng_rf_channel *channel, tveng_rf_table *country);
 
+
+
+typedef int tv_bool;
+
+/*
+ *  tv_rf_channel represents one element in a three dimensional
+ *  frequency table array. The country_code, table_name and
+ *  channel_name uniquely identify a channel, the country_code
+ *  and table_name a frequency table. The tv_rf_channel functions
+ *  move through the array. All strings are static, feel free
+ *  to copy.
+ */
+typedef struct {
+	char		country_code[4];	/* ASCII ISO 3166, e.g. "US" */
+	const char *	table_name;		/* ASCII identifier, e.g. "ccir" */
+	const char *	domain;			/* UTF8 localized, e.g. "cable" */
+	char		channel_name[8];	/* UTF8 prefix & channel number, e.g. "S21" */
+	unsigned int	frequency;		/* Hz */
+	unsigned int	bandwidth;		/* Hz */
+	unsigned int	video_standards;	/* future stuff */
+} tv_rf_channel;
+
+#define tv_rf_channel_first_table(ch) tv_rf_channel_nth_table (ch, 0)
+extern tv_bool
+tv_rf_channel_next_table	(tv_rf_channel *	ch);
+extern tv_bool
+tv_rf_channel_nth_table		(tv_rf_channel *	ch,
+				 unsigned int		index);
+extern unsigned int
+tv_rf_channel_table_size	(tv_rf_channel *	ch);
+extern tv_bool
+tv_rf_channel_table_by_name	(tv_rf_channel *	ch,
+				 const char *		name);
+#define tv_rf_channel_first_table_by_country(ch, country_code) \
+	tv_rf_channel_table_by_name (ch, country_code)
+extern tv_bool
+tv_rf_channel_next_table_by_country
+				(tv_rf_channel *	ch,
+				 const char *		country_code);
+extern const char *
+tv_rf_channel_table_prefix	(tv_rf_channel *	ch,
+				 unsigned int		index);
+#define tv_rf_channel_first(ch) tv_rf_channel_nth (ch, 0)
+extern tv_bool
+tv_rf_channel_next		(tv_rf_channel *	ch);
+extern tv_bool
+tv_rf_channel_nth		(tv_rf_channel *	ch,
+				 unsigned int		index);
+extern tv_bool
+tv_rf_channel_by_name		(tv_rf_channel *	ch,
+				 const char *		name);
+extern tv_bool
+tv_rf_channel_by_frequency	(tv_rf_channel *	ch,
+				 unsigned int		frequency);
+extern tv_bool
+tv_rf_channel_next_country	(tv_rf_channel *	ch);
+
+/* ---- */
 
 tveng_tuned_channel *
 tveng_tuned_channel_first	(const tveng_tuned_channel *list);

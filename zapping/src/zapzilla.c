@@ -63,7 +63,7 @@ extern int zapzilla_main(int argc, char * argv[]);
 
 int zapzilla_main(int argc, char * argv[])
 {
-  char *vbi_device = NULL;
+  const char *vbi_device = NULL;
   const struct poptOption options[] = {
     {
       "debug",
@@ -101,7 +101,7 @@ int zapzilla_main(int argc, char * argv[])
 		      NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: zapzilla.c,v 1.4.2.1 2002-07-19 20:53:48 garetxe Exp $",
+	 "$Id: zapzilla.c,v 1.4.2.2 2003-01-08 14:52:55 mschimek Exp $",
 	 "Zapzilla", VERSION, __DATE__);
   D();
   /* FIXME: Find something better */

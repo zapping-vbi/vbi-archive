@@ -242,6 +242,8 @@ enum tveng_control_property {
   TVENG_CTRL_PROP_HUE,
 };
 
+#if 0 /* future */
+
 typedef int tv_bool;
 
 #undef TRUE
@@ -250,11 +252,10 @@ typedef int tv_bool;
 #define FALSE 0
 
 /* XXX private */
-typedef struct callback_node *	callback_node;
+typedef struct callback_node *callback_node;
 struct callback_node {
 	callback_node *		next;
 	tv_bool			(* action)(void *, void *);
-	void			(* remove)(void *, void *);
 	void *			user_data;
 	unsigned int		blocked;
 };
@@ -279,12 +280,30 @@ typedef enum {
 } tv_control_id;
 
 typedef enum {
-	TV_CONTROL_TYPE_INTEGER,	/* integer [min, max] */
-	TV_CONTROL_TYPE_BOOLEAN,	/* integer [0, 1] */
-	TV_CONTROL_TYPE_MENU,		/* list of named options */
-	TV_CONTROL_TYPE_ACTION,		/* setting has one-time effect */
-	TV_CONTROL_TYPE_COLOR		/* RGB color entry */
+	TV_CONTROL_TYPE_INTEGER,		/* integer [min, max] */
+	TV_CONTROL_TYPE_BOOLEAN,		/* integer [0, 1] */
+	TV_CONTROL_TYPE_CHOICE,			/* multiple choice */
+	TV_CONTROL_TYPE_ACTION,			/* setting has one-time effect */
+	TV_CONTROL_TYPE_COLOR			/* RGB color entry */
 } tv_control_type;
+
+typedef struct tv_control tv_control;
+struct tv_control {
+	tv_control_id		id;
+	tv_control_type		type;
+	const char *		name;		/* localized */
+	const char **		menu;		/* localized */
+	unsigned int		selectable;	/* menu item 1 << n */
+	tv_bool			enabled;
+	int			minimum;
+	int			maximum;
+	int			default_value;
+	int			last_value;	/* not current value */
+};
+
+typedef void tv_control_callback (tv_control *, void *);
+
+#endif /* future */
 
 /* The controller we are using for this device */
 enum tveng_controller
@@ -311,9 +330,6 @@ struct tveng_control{
   char ** data; /* If this is a menu entry, pointer to a array of
 		   pointers to the labels, ended by a NULL pointer */
   enum tveng_controller controller; /* controller owning this control */
-
-  /* add callback list to notify clients when
-     (set, get, update). ideally this would use SigC */
 };
 
 enum tveng_capture_mode
