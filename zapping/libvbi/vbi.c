@@ -61,7 +61,7 @@ vbi_send_page(struct vbi *vbi, struct raw_page *rvtp, int page)
 	if (rvtp->page->pgno % 256 != page)
 	{
 	    rvtp->page->flags &= ~PG_ACTIVE;
-	    enhance(rvtp->enh, rvtp->page);
+//	    enhance(rvtp->enh, rvtp->page);
 	    if (vbi->cache)
 		cvtp = vbi->cache->op->put(vbi->cache, rvtp->page);
 	    vbi_send(vbi, EV_PAGE, 0, 0, 0, cvtp ?: rvtp->page);
@@ -91,10 +91,10 @@ void
 vbi_set_default_region(struct vbi *vbi, int default_region)
 {
 	int i;
-	struct vt_extension *ext;
+	vt_extension *ext;
 
 	for (i = 0; i < 8; i++) {
-		ext = vbi->magazine_extension + i;
+		ext = &vbi->magazine[i].extension;
 
 		ext->char_set[0] =
 		ext->char_set[1] =
@@ -105,16 +105,24 @@ vbi_set_default_region(struct vbi *vbi, int default_region)
 void
 reset_magazines(struct vbi *vbi)
 {
-	struct vt_extension *ext;
+	magazine *mag;
+	vt_extension *ext;
 	int i, j;
 
 	vbi->initial_page.pgno = 0x100;
-	vbi->initial_page.subno = 0x3F7F; /* any */
+	vbi->initial_page.subno = ANY_SUB;
+
+	memset(vbi->magazine, 0, sizeof(vbi->magazine));
 
 	for (i = 0; i < 8; i++) {
-		ext = vbi->magazine_extension + i;
+		mag = vbi->magazine + i;
 
-		ext->designations		= 0;
+		for (j = 0; j < 16; j++) {
+			mag->pop_link[j].pgno = 0x0FF;		/* unused */
+			mag->drcs_link[j] = 0x0FF;		/* unused */
+		}
+
+		ext = &mag->extension;
 
 		ext->char_set[0]		= 16;		/* Latin G0, G2, English subset */
 		ext->char_set[0]		= 16;		/* Latin G0, English subset */
@@ -122,13 +130,8 @@ reset_magazines(struct vbi *vbi)
 
 		ext->def_screen_colour		= BLACK;	/* A.5 */
 		ext->def_row_colour		= BLACK;	/* A.5 */
-		ext->black_bg_substitution	= FALSE;
 		ext->foreground_clut		= 0;
 		ext->background_clut		= 0;
-
-		ext->left_side_panel		= FALSE;
-		ext->right_side_panel		= FALSE;
-		ext->left_panel_columns		= 0;		/* sum 16 */
 
 		for (j = 0; j < 8; j++)
 			ext->dclut4[0][j] = j & 3;
@@ -142,7 +145,7 @@ reset_magazines(struct vbi *vbi)
 }
 
 static void
-dump_extension(struct vt_extension *ext)
+dump_extension(vt_extension *ext)
 {
 	int i;
 
@@ -152,9 +155,10 @@ dump_extension(struct vt_extension *ext)
 	printf("default screen col %d row col %d\n",
 		ext->def_screen_colour, ext->def_row_colour);
 	printf("bbg subst %d colour table remapping %d, %d\n",
-		ext->black_bg_substitution, ext->foreground_clut, ext->background_clut);
+		ext->fallback.black_bg_substitution, ext->foreground_clut, ext->background_clut);
 	printf("panel left %d right %d left columns %d\n",
-		ext->left_side_panel, ext->right_side_panel, ext->left_panel_columns);
+		ext->fallback.left_side_panel, ext->fallback.right_side_panel,
+		ext->fallback.left_panel_columns);
 	printf("colour map (bgr):\n");
 	for (i = 0; i <= 31; i++) {
 		printf("%03x, ", ext->colour_map[i]);
@@ -278,7 +282,202 @@ hamm8_page_number(vt_pagenum *pn, u8 *raw, int magazine)
 }
 
 
+
+
+
+
+
+
+/* XXX 10.6.1 partial */
+static inline int
+parse_mot(magazine *mag, int packet, u8 *p)
+{
+	char nibble[40], *np = nibble;
+	int err = 0, i;
+	int index;
+
+	for (i = 0; i < 40; i++)
+		nibble[i] = hamm8(p + i, &err);
+
+	if (err & 0xf000)
+		return 0;
+
+	switch (packet) {
+	case 1 ... 8:
+		index = (packet - 1) << 5;
+
+		for (i = 0; i < 20; np += 2, index++, i++) {
+			if (i == 10)
+				index += 6;
+
+			mag->pop_lut[index] = np[0] & 7;
+			mag->drcs_lut[index] = np[1] & 7;
+		}
+
+		return 0;
+
+	case 9 ... 14:
+		index = (packet - 9) * 3;
+
+		for (i = 0; i < 20; np += 2, index++, i++) {
+			if (i == 6 || i == 12) {
+				if (index == 0x100)
+					break;
+				else
+					index += 10;
+			}
+
+			mag->pop_lut[index] = np[0] & 7;
+			mag->drcs_lut[index] = np[1] & 7;
+		}
+
+	case 15 ... 18: /* not used */
+		return 0;
+
+	case 22 ... 23:	/* level 3.5 pops */
+		packet--;
+
+	case 19 ... 20: /* level 2.5 pops */
+	{
+		pop_link *pop = mag->pop_link + (packet - 19) * 4;
+
+		for (i = 0; i < 4; np += 10, pop++, i++) {
+			pop->pgno = (((np[0] & 7) ? : 8) << 8) + (np[1] << 4) + np[2];
+
+			/* np[3] number of subpages ignored */
+
+			if (p[4] & 1)
+				memset(&pop->fallback, 0, sizeof(pop->fallback));
+			else {
+				int n = (np[4] >> 1) & 3;
+
+				pop->fallback.black_bg_substitution = np[4] >> 3;
+				pop->fallback.left_side_panel = n & 1;
+				pop->fallback.right_side_panel = n >> 1;
+				pop->fallback.left_panel_columns = "\00\20\20\10"[n];
+			}
+
+			pop->default_obj[0].type = np[5] & 3;
+			pop->default_obj[0].address = (np[7] << 4) + np[6];
+			pop->default_obj[1].type = np[5] >> 2;
+			pop->default_obj[1].address = (np[9] << 4) + np[8];
+		}
+
+		return 0;
+	}
+
+	case 21:	/* level 2.5 drcs */
+	case 24:	/* level 3.5 drcs */
+		index = (packet == 21) ? 0 : 8;
+
+		for (i = 0; i < 8; np += 4, index++, i++) {
+			mag->drcs_link[index] = (((np[0] & 7) ? : 8) << 8) + (np[1] << 4) + np[2];
+
+			/* np[3] number of subpages ignored */
+		}
+
+		return 0;
+	}
+
+	return 0;
+}
+
+static bool
+parse_pop(struct vt_page *vtp, int packet, u8 *p)
+{
+	int designation, triplet[13];
+	vt_triplet *trip;
+	int i, err = 0;
+
+printf("POP %x/%d/%d\n", vtp->pgno, vtp->subno, packet);
+
+	if ((designation = hamm8a[p[0]]) < 0)
+		return FALSE;
+
+	for (p++, i = 0; i < 13; p += 3, i++)
+		triplet[i] = hamm24(p, &err);
+	if (err & 0xf000)
+		return FALSE;
+
+	if (packet == 26)
+		packet += designation;
+
+	switch (packet) {
+	case 1 ... 2:
+		if (!(designation & 1))
+			return FALSE; /* fixed usage */
+
+	case 3 ... 4:
+		if (designation & 1) {
+			int index = (packet - 1) * 26;
+
+			for (index += 2, i = 1; i < 13; index += 2, i++) {
+				vtp->_data.pop.pointer[index + 0] = triplet[i] & 0x1FF;
+				vtp->_data.pop.pointer[index + 1] = triplet[i] >> 9;
+			}
+
+			return TRUE;
+		}
+
+		/* fall through */
+
+	case 5 ... 42:
+		trip = vtp->_data.pop.triplet + (packet - 3) * 13;
+
+		for (i = 0; i < 13; trip++, i++) {
+			trip->address = triplet[i] & 0x3F;
+			trip->mode = (triplet[i] >> 6) & 0x1F;
+			trip->data = triplet[i] >> 11;
+			trip->stop = !((~triplet[i]) & 0x7FF);
+// printf("TR %d ad %d %02x mo %02x da %d %02x\n",
+//    trip - vtp->_data.pop.triplet, trip->address, trip->address, trip->mode, trip->data, trip->data);
+		}
+
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+bool
+convert_pop(struct vt_page *vtp, page_function function)
+{
+	struct vt_page page;
+	int i;
+
+	if (vtp->function != PAGE_FUNCTION_UNKNOWN)
+		return FALSE;
+
+	page.pgno = 0;
+	page.subno = 0;
+
+	memset(page._data.pop.pointer, 0xFF, sizeof(page._data.pop.pointer));
+	memset(page._data.pop.triplet, 0xFF, sizeof(page._data.pop.triplet));
+
+	for (i = 1; i <= 25; i++)
+		if (vtp->lines & (1 << i))
+			if (!parse_pop(&page, i, vtp->_data.unknown.raw[i]))
+				return FALSE;
+
+	memcpy(&page._data.pop.triplet[23 * 13],
+		vtp->_data.unknown.triplet, sizeof(vtp->_data.unknown.triplet));
+
+	vtp->function = function;
+	vtp->coding = PAGE_CODING_TRIPLETS;
+
+	memcpy(&vtp->_data, &page._data, sizeof(page._data));
+
+for (i = 0; i < 24 * 4; i++)
+    printf("pointer %d: %d\n", i, vtp->_data.pop.pointer[i]);
+
+	return TRUE;
+}
+
+
+
 // process one videotext packet
+
+/* XXX!!! p read-only */
 
 static int
 vt_packet(struct vbi *vbi, u8 *p)
@@ -305,12 +504,15 @@ vt_packet(struct vbi *vbi, u8 *p)
 	case 0:
 	{
 	    int b1, b2, b3, b4;
+	    struct vt_page *vtp;
+	    u8 raw[40];
 
 	    b1 = hamm16(p, &err);	// page number
 	    b2 = hamm16(p+2, &err);	// subpage number + flags
 	    b3 = hamm16(p+4, &err);	// subpage number + flags
 	    b4 = hamm16(p+6, &err);	// language code + more flags
 
+// printf("out %x %x\n", vbi->ppage->page->pgno, rvtp->page->pgno);
 	    if (vbi->ppage->page->flags & PG_MAGSERIAL)
 		vbi_send_page(vbi, vbi->ppage, b1);
 	    vbi_send_page(vbi, rvtp, b1);
@@ -318,11 +520,13 @@ vt_packet(struct vbi *vbi, u8 *p)
 	    if (err & 0xf000)
 		return 4;
 
-	    memcpy(cvtp->raw[0]+0, p, 40);
+	    memcpy(raw, p, 40);
 	    cvtp->errors = (err >> 8) + chk_parity(p + 8, 32);;
+
 	    cvtp->pgno = mag8 * 256 + b1;
 	    cvtp->subno = (b2 + b3 * 256) & 0x3f7f;
 	    cvtp->lang = "\0\4\2\6\1\5\3\7"[b4 >> 5] + (latin1 ? 0 : 8);
+// printf("incoming %x\n", cvtp->pgno);
 
 	    cvtp->national = bit_reverse[b4] & 7;
 
@@ -330,7 +534,7 @@ vt_packet(struct vbi *vbi, u8 *p)
 	    cvtp->flags |= b3 & 0xc0;
 	    cvtp->flags |= (b2 & 0x80) >> 2;
 	    cvtp->lines = 1;
-	    cvtp->flof = 0;
+	    cvtp->_data.unknown.flof = 0;
 	    vbi->ppage = rvtp;
 
 
@@ -339,70 +543,114 @@ vt_packet(struct vbi *vbi, u8 *p)
 
 	    if (b1 == 0xff)
 		return 0;
-
 	    cvtp->flags |= PG_ACTIVE;
-	    cvtp->function = PAGE_FUNCTION_UNKNOWN;
-	    cvtp->coding = PAGE_CODING_UNKNOWN;
-	    init_enhance(rvtp->enh);
-	    memcpy(cvtp->data[0]+0, p, 40);
-	    memset(cvtp->data[0]+40, ' ', sizeof(cvtp->data)-40);
-	    memset(cvtp->raw[0]+40, ' ', sizeof(cvtp->raw)-40);
-	    rvtp->extension.designations = 0;
-	    cvtp->num_triplets = 0;
-	    cvtp->vbi = vbi;
 
-		for (i = 0; i < 24; i++) {
-			cvtp->link[i].pgno = 0x0FF;
-			cvtp->link[i].subno = 0x3F7F;
-			cvtp->enh_link[i >> 1].pgno = 0x0FF;
-			cvtp->enh_link[i >> 1].subno = 0xFFFF;
+
+		if (!(cvtp->flags & C4_ERASE_PAGE)
+		    && (vtp = vbi->cache->op->get(vbi->cache, cvtp->pgno, cvtp->subno, 0xFFFF))) {
+			memcpy(&cvtp->_data, &vtp->_data, sizeof(cvtp->_data));
+			/* XXX write cache directly */
+			/* XXX data page update */
+
+			cvtp->function = vtp->function;
+			cvtp->coding = vtp->coding;
+
+			if (cvtp->function == PAGE_FUNCTION_UNKNOWN
+			    || cvtp->function == PAGE_FUNCTION_LOP)
+				memcpy(cvtp->_data.unknown.raw[0] + 0, raw, 40);
+		} else {
+			if (b1 == 0xFE) {
+				cvtp->function = PAGE_FUNCTION_MOT;
+				cvtp->coding = PAGE_CODING_HAMMING84;
+			} else {
+				cvtp->function = PAGE_FUNCTION_UNKNOWN;
+				cvtp->coding = PAGE_CODING_UNKNOWN;
+			}
+
+	    memcpy(cvtp->data[0] + 0, p, 40);
+	    memset(cvtp->data[0]+40, ' ', sizeof(cvtp->data)-40);
+
+			memcpy(cvtp->_data.unknown.raw[0] + 0, raw, 40);
+			memset(cvtp->_data.unknown.raw[0] + 40, ' ', sizeof(cvtp->_data.unknown.raw) - 40);
+
+			for (i = 0; i < 24; i++) {
+				cvtp->_data.unknown.link[i].pgno = 0x0FF;
+				cvtp->_data.unknown.link[i].subno = 0x3F7F;
+			}
+
+			for (i = 0; i < 12; i++) {
+				cvtp->_data.unknown.link[i + 24].pgno = 0x0FF;
+				cvtp->_data.unknown.link[i + 24].subno = 0xFFFF;
+			}
+
+			memset(cvtp->_data.unknown.triplet, 0xFF, sizeof(cvtp->_data.unknown.triplet));
 		}
 
+	    rvtp->extension.designations = 0;
+	    rvtp->num_triplets = 0;
+	    cvtp->vbi = vbi;
+
+//if (cvtp->pgno == 0x1EE) {
+//    printf("H2 %p 1EE func %d\n", cvtp, cvtp->function);
+//}
 	    return 0;
 	}
 
 	case 1 ... 24:
-	{
-		memcpy(cvtp->raw[pkt], p, 40);
-
-	     err = chk_parity(p, 40);
-
 	    if (~cvtp->flags & PG_ACTIVE)
 		return 0;
+
+		switch (cvtp->function) {
+		case PAGE_FUNCTION_MOT:
+			if (parse_mot(vbi->magazine + mag8 - 1, pkt, p))
+				return 0;
+			break;
+
+		case PAGE_FUNCTION_POP:
+		case PAGE_FUNCTION_GPOP:
+			if (parse_pop(cvtp, pkt, p))
+				return 0;
+			break;
+
+		default:
+			memcpy(cvtp->_data.unknown.raw[pkt], p, 40);
+
+	    err = chk_parity(p, 40);
 	    cvtp->errors += err;
-	    cvtp->lines |= 1 << pkt;
 	    conv2latin(p, 40, cvtp->lang);
 	    memcpy(cvtp->data[pkt], p, 40);
-	    return 0;
-	}
+
+			break;
+		}
+
+		cvtp->lines |= 1 << pkt;
+
+		return 0;
 
 	/* X/25: keyword search ...? */
 
 	case 26:
 	{
 		int designation;
-		unsigned int t;
 		vt_triplet triplet;
 
 	    if (~cvtp->flags & PG_ACTIVE)
 		return 0;
 
-		designation = hamm8(p, &err);
-		if (err & 0xf000)
+		if ((designation = hamm8a[p[0]]) < 0)
 			return 4;
 
-		if (cvtp->num_triplets >= 16 * 13
-		    || cvtp->num_triplets != designation * 13
-		    || (cvtp->num_triplets > 0
-			&& cvtp->triplets[cvtp->num_triplets - 1].stop)) { /* XXX correct? */
-			cvtp->num_triplets = -1;
+		if (rvtp->num_triplets >= 16 * 13 || rvtp->num_triplets != designation * 13) {
+			rvtp->num_triplets = -1;
 			return 0;
 		}
 
-//	fprintf(stderr, "packet %d/%d/%d page %x/%x\n", mag8, pkt, designation, cvtp->pgno, cvtp->subno);
+//fprintf(stderr, "%d %p packet %d/%d/%d page %x/%x\n",
+//    cvtp->function, cvtp,
+//    mag8, pkt, designation, cvtp->pgno, cvtp->subno);
 
 		for (p++, i = 0; i < 13; p += 3, i++) {
-			t = hamm24(p, &err);
+			int t = hamm24(p, &err);
 
 			triplet.address = t & 0x3F;
 			triplet.mode = (t >> 6) & 0x1F;
@@ -413,7 +661,7 @@ vt_packet(struct vbi *vbi, u8 *p)
 //	printf("triplet %02x %02x %02x %d\n",
 //		triplet.address, triplet.mode, triplet.data, triplet.stop);
 
-			cvtp->triplets[cvtp->num_triplets++] = triplet;
+			cvtp->_data.unknown.triplet[rvtp->num_triplets++] = triplet;
 		}
 
 		return 0;
@@ -426,31 +674,33 @@ vt_packet(struct vbi *vbi, u8 *p)
 	    if (~cvtp->flags & PG_ACTIVE)
 		return 0; // -1 flushes all pages.  we may never resync again :(
 
-		designation = hamm8(p, &err);
-		if (err & 0xf000)
+		if ((designation = hamm8a[p[0]]) < 0)
 			return 4;
 
-//printf("X/27/%d\n", designation);
+// printf("X/27/%d\n", designation);
+
 		switch (designation) {
 		case 0:
-			control = hamm8(p + 37, &err);
-			if (err & 0xf000)
+			if ((control = hamm8a[p[37]]) < 0)
 				return 4;
-//printf("X/27/%d %02x\n", designation, control);
 
-			crc = p[38] + p[39] * 256;
+// printf("X/27/%d %02x\n", designation, control);
+
+			/* crc = p[38] + p[39] * 256; */
 
 			if ((control & 7) != 7)
 				return 0; /* local COP */
 
-			cvtp->flof = control >> 3; /* display row 24 */
+			cvtp->_data.unknown.flof = control >> 3; /* display row 24 */
 
 			/* fall through */
+
 		case 1:
 		case 2:
 		case 3:
 			for (p++, i = 0; i <= 5; p += 6, i++) {
-				if (!hamm8_page_number(cvtp->link + designation * 6 + i, p, mag))
+				if (!hamm8_page_number(cvtp->_data.unknown.link
+				    + designation * 6 + i, p, mag))
 					return 1;
 
 // printf("X/27/%d link[%d] page %03x/%03x\n", designation, i,
@@ -469,16 +719,16 @@ vt_packet(struct vbi *vbi, u8 *p)
 				if (err & 0xf000)
 					return 4;
 
-				cvtp->enh_link[designation * 6 - 24 + i].type = t1 & 3;
-				cvtp->enh_link[designation * 6 - 24 + i].pgno =
+				cvtp->_data.unknown.link[24 + designation * 6 - 24 + i].type = t1 & 3;
+				cvtp->_data.unknown.link[24 + designation * 6 - 24 + i].pgno =
 					((((t1 >> 12) & 0x7) ^ mag) ? : 8) * 256
 					+ ((t1 >> 11) & 0x0F0) + ((t1 >> 7) & 0x00F);
-				cvtp->enh_link[designation * 6 - 24 + i].subno =
+				cvtp->_data.unknown.link[designation * 6 - 24 + i].subno =
 					(t2 >> 3) & 0xFFFF;
-printf("X/27/%d enh_link[%d] type %d page %03x subno %04x\n", designation, i,
-	cvtp->enh_link[designation * 6 - 24 + i].type,
-	cvtp->enh_link[designation * 6 - 24 + i].pgno,
-	cvtp->enh_link[designation * 6 - 24 + i].subno);
+// printf("X/27/%d enh_link[%d] type %d page %03x subno %04x\n", designation, i,
+//	cvtp->enh_link[designation * 6 - 24 + i].type,
+//	cvtp->enh_link[designation * 6 - 24 + i].pgno,
+//	cvtp->enh_link[designation * 6 - 24 + i].subno);
 			}
 
 			break;
@@ -492,7 +742,7 @@ printf("X/27/%d enh_link[%d] type %d page %03x subno %04x\n", designation, i,
 	{
 		int designation, function, coding;
 		int triplets[13], *triplet = triplets, buf = 0, left = 0;
-		struct vt_extension *x;
+		vt_extension *ext;
 
 		static int
 		bits(int count)
@@ -529,7 +779,12 @@ printf("X/27/%d enh_link[%d] type %d page %03x subno %04x\n", designation, i,
 			function = bits(4);
 			coding = bits(3);
 
-			if (pkt == 28) {
+			/*
+			 *  ZDF and BR3 transmit GPOP 1EE/.. with 1/28/0 function
+			 *  0 = PAGE_FUNCTION_LOP, should be PAGE_FUNCTION_GPOP.
+			 *  Makes no sense to me.
+			 */
+			if (0 && pkt == 28) {
 				if (cvtp->function != PAGE_FUNCTION_UNKNOWN
 				    && cvtp->function != function)
 					return 0; /* XXX discard rpage? */
@@ -544,61 +799,62 @@ printf("X/27/%d enh_link[%d] type %d page %03x subno %04x\n", designation, i,
 
 			/* XXX X/28/0 Format 2, distinguish how? */
 
-			x = vbi->magazine_extension + mag8 - 1;
+			ext = &vbi->magazine[mag8 - 1].extension;
 
 			if (pkt == 28) {
 				if (!rvtp->extension.designations) {
-					memcpy(&rvtp->extension, x, sizeof(rvtp->extension));
+					memcpy(&rvtp->extension, ext, sizeof(rvtp->extension));
 					rvtp->extension.designations <<= 16;
 				}
 
-				x = &rvtp->extension;
+				ext = &rvtp->extension;
 			}
 
-			if (designation == 4 && (x->designations & (1 << 0)))
+			if (designation == 4 && (ext->designations & (1 << 0)))
 				bits(14 + 2 + 1 + 4);
 			else {
-				x->char_set[0] = bits(7);
-				x->char_set[1] = bits(7);
+				ext->char_set[0] = bits(7);
+				ext->char_set[1] = bits(7);
 
-				x->left_side_panel = bits(1);
-				x->right_side_panel = bits(1);
+				ext->fallback.left_side_panel = bits(1);
+				ext->fallback.right_side_panel = bits(1);
 
 				bits(1); /* panel status: level 2.5/3.5 */
 
-				x->left_panel_columns = bit_reverse[bits(4)] >> 4;
+				ext->fallback.left_panel_columns = bit_reverse[bits(4)] >> 4;
 
-				if (x->left_side_panel | x->right_side_panel)
-					x->left_panel_columns =
-						x->left_panel_columns ? : 16;
+				if (ext->fallback.left_side_panel
+				    | ext->fallback.right_side_panel)
+					ext->fallback.left_panel_columns =
+						ext->fallback.left_panel_columns ? : 16;
 			}
 
 			if (designation == 4)
 				for (i = 0; i <= 15; i++)
-					x->colour_map[i] = bits(12);
+					ext->colour_map[i] = bits(12);
 			else
 				for (i = 16; i <= 31; i++)
-					x->colour_map[i] = bits(12);
+					ext->colour_map[i] = bits(12);
 
-			if (designation == 4 && (x->designations & (1 << 0)))
+			if (designation == 4 && (ext->designations & (1 << 0)))
 				bits(10 + 1 + 3);
 			else {
-				x->def_screen_colour = bits(5);
-				x->def_row_colour = bits(5);
+				ext->def_screen_colour = bits(5);
+				ext->def_row_colour = bits(5);
 
-				x->black_bg_substitution = bits(1);
+				ext->fallback.black_bg_substitution = bits(1);
 
 				i = bits(3); /* colour table remapping */
 
-				x->foreground_clut = "\00\00\00\10\10\20\20\20"[i];
-				x->background_clut = "\00\10\20\10\20\10\20\30"[i];
+				ext->foreground_clut = "\00\00\00\10\10\20\20\20"[i];
+				ext->background_clut = "\00\10\20\10\20\10\20\30"[i];
 			}
 
-			x->designations |= 1 << designation;
+			ext->designations |= 1 << designation;
 
 			if (pkt == 29) {
 				if (0 && designation == 4)
-					x->designations &= ~(1 << 0);
+					ext->designations &= ~(1 << 0);
 
 				/*
 				    XXX update
@@ -613,34 +869,36 @@ printf("X/27/%d enh_link[%d] type %d page %03x subno %04x\n", designation, i,
 				 */
 			}
 
-//	dump_extension(x);
-
+// if (cvtp->pgno==0x1EE) {
+// 	dump_extension(ext);
+// exit(EXIT_SUCCESS);
+// }
 			return 0;
 
 		case 1: /* X/28/1, M/29/1 Level 3.5 DRCS CLUT */
 
-			x = vbi->magazine_extension + mag8 - 1;
+			ext = &vbi->magazine[mag8 - 1].extension;
 
 			if (pkt == 28) {
 				if (!rvtp->extension.designations) {
-					memcpy(&rvtp->extension, x, sizeof(rvtp->extension));
+					memcpy(&rvtp->extension, ext, sizeof(rvtp->extension));
 					rvtp->extension.designations = 0;
 				}
 
-				x = &rvtp->extension;
+				ext = &rvtp->extension;
 			}
 
 			triplet++;
 
 			for (i = 0; i < 8; i++)
-				x->dclut4[0][i] = bit_reverse[bits(5)] >> 3;
+				ext->dclut4[0][i] = bit_reverse[bits(5)] >> 3;
 
 			for (i = 0; i < 32; i++)
-				x->dclut16[0][i] = bit_reverse[bits(5)] >> 3;
+				ext->dclut16[0][i] = bit_reverse[bits(5)] >> 3;
 
-			x->designations |= 1 << 1;
+			ext->designations |= 1 << 1;
 
-//	dump_extension(x);
+//	dump_extension(ext);
 
 			return 0;
 
@@ -847,7 +1105,7 @@ vbi_query_page(struct vbi *vbi, int pgno, int subno)
     struct vt_page *vtp = 0;
 
     if (vbi->cache)
-	vtp = vbi->cache->op->get(vbi->cache, pgno, subno);
+	vtp = vbi->cache->op->get(vbi->cache, pgno, subno, 0xFFFF);
     if (vtp == 0)
     {
 	// EV_PAGE will come later...

@@ -85,19 +85,20 @@ cache_reset(struct cache *ca)
 */
 
 static struct vt_page *
-cache_get(struct cache *ca, int pgno, int subno)
+cache_get(struct cache *ca, int pgno, int subno, int subno_mask)
 {
     struct cache_page *cp;
     int h = hash(pgno);
 
-    for (cp = $ ca->hash[h].first; cp->node->next; cp = $ cp->node->next)
+    for (cp = $ ca->hash[h].first; cp->node->next; cp = $ cp->node->next) {
 	if (cp->page->pgno == pgno)
-	    if (subno == ANY_SUB || cp->page->subno == subno)
+	    if (subno == ANY_SUB || (cp->page->subno & subno_mask) == subno)
 	    {
 		// found, move to front (make it 'new')
 		dl_insert_first(ca->hash + h, dl_remove(cp->node));
 		return cp->page;
 	    }
+	}
     return 0;
 }
 

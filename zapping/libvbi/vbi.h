@@ -10,6 +10,8 @@
   libvbi.h exports this globally :-(
  */
 
+#include "../common/types.h"
+
 // #define PLL_ADJUST	4
 
 typedef enum {
@@ -25,8 +27,9 @@ struct raw_page
 {
     struct vt_page page[1];
     struct enhance enh[1];
-	struct vt_extension	extension;
+	vt_extension		extension;
 	u8			drcs_mode[48];
+	int			num_triplets;
 };
 
 #define BUFS 4
@@ -43,8 +46,10 @@ struct vbi
     int bpl;			// bytes per line
     u32 seq;
     // magazine defaults
+
 	vt_pagenum		initial_page;
-	struct vt_extension	magazine_extension[8];
+	magazine		magazine[8];
+
     // page assembly
     struct raw_page rpage[8];	// one for each magazin
     struct raw_page *ppage;	// points to page of previous pkt0
@@ -74,5 +79,7 @@ int v4l_vbi_setup_dev(struct vbi *vbi);
 void out_of_sync(struct vbi *vbi);
 int vbi_line(struct vbi *vbi, u8 *p);
 void vbi_set_default_region(struct vbi *vbi, int default_region);
+
+extern bool		convert_pop(struct vt_page *vtp, page_function function);
 
 #endif

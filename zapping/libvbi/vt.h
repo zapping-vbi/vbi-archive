@@ -67,29 +67,35 @@ typedef enum {
 	PAGE_CODING_META84
 } page_coding;
 
+
+
 /*
     Only a minority of pages need this
  */
-struct vt_extension {
+typedef struct {
+	char		black_bg_substitution;
+	char		left_side_panel;
+	char		right_side_panel;
+	char		left_panel_columns;
+} vt_ext_fallback;
+
+typedef struct {
 	unsigned int	designations;
 
 	char		char_set[2];		/* primary, secondary */
 
 	char		def_screen_colour;
 	char		def_row_colour;
-	char		black_bg_substitution;
 	char		foreground_clut;	/* 0, 8, 16, 24 */
 	char		background_clut;
 
-	char		left_side_panel;
-	char		right_side_panel;
-	char		left_panel_columns;
+	vt_ext_fallback	fallback;
 
 	u8		dclut4[2][4];		/* global, normal */
 	u8		dclut16[2][16];
 
 	u16		colour_map[32];
-};
+} vt_extension;
 
 typedef struct vt_triplet {
 	unsigned	stop : 8;
@@ -104,6 +110,8 @@ typedef struct vt_pagenum {
 	unsigned	subno : 16;
 } vt_pagenum;
 
+#define NO_PAGE(pgno) (((pgno) & 0xFF) == 0xFF)
+
 struct vt_page
 {
 	page_function		function;
@@ -117,22 +125,64 @@ struct vt_page
     u32 lines;		// 1 bit for each line received
     u8 data[25][40];	// page contents
 
-	int			flof;			/* FastText, display row 24 */
-	vt_pagenum		link[4 * 6];		/* X/27/0-3 links */
-	vt_pagenum		enh_link[2 * 6];	/* X/27/4-5 links */	
-	struct vt_extension *	extension;
+	union {
+		struct {
+			u8		raw[25][40];
+			vt_triplet	triplet[16 * 13 + 1];
+			vt_pagenum	link[6 * 6];		/* X/27/0-5 links */
+			vt_extension *	extension;
+			int		flof;			/* FastText, display row 24 */
+		}		unknown, lop;
+		struct {
+			u16		pointer[96];
+			vt_triplet	triplet[39 * 13 + 1];
+		}		gpop, pop;
+	}		_data;
 
 	/* added temporarily: */
-	u8			raw[25][40];
-	int			num_triplets;
-	vt_triplet		triplets[16 * 13];
-	struct vbi *		vbi;
+	struct vbi *	vbi;
 };
 
+#define C4_ERASE_PAGE		0x20	/* erase previously stored packets */
 #define C5_NEWSFLASH		0x40	/* box and overlay */
 #define C6_SUBTITLE		0x80	/* box and overlay */
 #define C7_SUPPRESS_HEADER	0x01	/* row 0 not to be displayed */
 #define C10_INHIBIT_DISPLAY	0x08	/* rows 1-24 not to be displayed */
+
+
+typedef enum {
+	OBJ_TYPE_NONE,
+	OBJ_TYPE_ACTIVE,
+	OBJ_TYPE_ADAPTIVE,
+	OBJ_TYPE_PASSIVE
+} object_type;
+
+/*
+ *  MOT default, POP and GPOP
+ *
+ *  n8  n7  n6  n5  n4  n3  n2  n1  n0
+ *  packet  triplet lsb ----- s1 -----
+ */
+typedef int object_address;
+
+typedef struct {
+	int		pgno;
+	vt_ext_fallback	fallback;
+	struct {
+		object_type	type;
+		object_address	address;
+	}		default_obj[2];
+} pop_link;
+
+typedef struct {
+	vt_extension	extension;
+	unsigned char	pop_lut[256];
+    	pop_link	pop_link[16];
+	unsigned char	drcs_lut[256];
+	int		drcs_link[16];	/* pgno */
+} magazine;
+
+
 
 
 

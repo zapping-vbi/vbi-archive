@@ -25,7 +25,7 @@ struct cache_page
 struct cache_ops
 {
     void (*close)(struct cache *ca);
-    struct vt_page *(*get)(struct cache *ca, int pgno, int subno);
+    struct vt_page *(*get)(struct cache *ca, int pgno, int subno, int subno_mask);
     struct vt_page *(*put)(struct cache *ca, struct vt_page *vtp);
     void (*reset)(struct cache *ca);
     struct vt_page *(*foreach_pg)(struct cache *ca, int pgno, int subno,

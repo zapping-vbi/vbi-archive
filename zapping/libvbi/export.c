@@ -7,6 +7,7 @@
 #include "misc.h"
 #include "export.h"
 #include "vbi.h"
+#include "hamm.h"
 
 #include "../common/types.h"
 #include "../common/math.h"
@@ -670,6 +671,7 @@ glyph(character_set s, national_subset n, int c)
 	}
 }
 
+
 #undef printv
 #define printv printf
 // #define printv(templ, ...)
@@ -715,11 +717,95 @@ compose(int glyph, int mark)
 	return glyph;
 }
 
+static int hum = 0;
+
+static vt_triplet *
+resolve_obj_address(struct vbi *vbi, object_type type,
+	int pgno, object_address address, page_function function)
+{
+	int s1, packet, pointer;
+	struct vt_page *vtp;
+	vt_triplet *trip;
+	int i;
+
+	s1 = address & 15;
+	packet = ((address >> 7) & 3) + 1;
+	i = ((address >> 5) & 3) * 3 + type;
+
+	printv("obj invocation, source page %03x/%04x, "
+		"pointer packet %d triplet %d\n", pgno, s1, packet, i);
+
+	vtp = vbi->cache->op->get(vbi->cache, pgno, s1, 0x000F);
+
+	if (!vtp) {
+		printv("... page not cached\n");
+		return 0;
+	}
+
+	if (vtp->function == PAGE_FUNCTION_UNKNOWN) {
+int k, l;
+/*
+for (k = 0; k < 24; k++) {
+for (l = 0; l < 40; l++)
+    printv("%c", printable(vtp->_data.unknown.raw[k][l]));
+printv("\n");
+}
+*/
+		if (!convert_pop(vtp, function)) {
+			printv("... no pop page or hamming error\n");
+			return 0;
+		}
+	} else if (vtp->function != function) {
+		printv("... source page wrong function %d, expected %d\n",
+			vtp->function, function);
+		return 0;
+	}
+
+	pointer = vtp->_data.pop.pointer[
+		(packet - 1) * 24 + i * 2 + ((address >> 4) & 1)];
+//pointer = vtp->_data.pop.pointer[hum & 7];
+
+printv("... triplet pointer %d\n", pointer);
+
+	if (pointer > 506) {
+		printv("... triplet pointer out of bounds (%d)\n", pointer);
+		return 0;
+	}
+
+	packet = (pointer / 13) + 3;
+
+	if (packet <= 25) {
+		printv("... object start in packet %d, triplet %d (pointer %d)\n",
+			packet, pointer % 13, pointer);
+//		return 0;
+	} else {
+		printv("... object start in packet 26/%d, triplet %d (pointer %d)\n",
+			packet - 26, pointer % 13, pointer);
+//		return 0;
+	}		
+
+	trip = vtp->_data.pop.triplet + pointer;
+
+	printv("obj 1st: ad 0x%02x mo 0x%04x dat %d=0x%x\n",
+		trip->address, trip->mode, trip->data, trip->data);
+
+	address ^= trip->address << 7;
+	address ^= trip->data;
+
+	if (trip->mode != (type + 0x14) || (address & 0x1FF)) {
+		printv("... no object definition\n");
+//		return 0;
+	}
+
+	return trip + 1;
+}
+
+
+
 static void
 new_enhance(struct fmt_page *pg, struct vt_page *vtp,
-	int invc_row, int invc_column)
+	vt_triplet *p, int invc_row, int invc_column)
 {
-	vt_triplet *p;
 	int active_column, active_row;
 	int offset_column, offset_row;
 	int min_column, i, j;
@@ -728,8 +814,8 @@ new_enhance(struct fmt_page *pg, struct vt_page *vtp,
 	attr_char *acp;
 	u8 *rawp;
 
-	if (vtp->num_triplets <= 0) /* XXX */
-		return;
+//	if (vtp->num_triplets <= 0) /* XXX */
+//		return;
 
 	active_column = 0;
 	active_row = 0;
@@ -737,18 +823,18 @@ new_enhance(struct fmt_page *pg, struct vt_page *vtp,
 	offset_column = 0;
 	offset_row = 0;
 
-	rawp = vtp->raw[0];
-	acp = pg->data[0];
-	min_column = 0;
+	rawp = vtp->_data.lop.raw[invc_row];
+	acp = pg->data[invc_row];
+	min_column = (invc_row == 0) ? 8 : 0;
 
 	{
-		struct vt_extension *ext;
+		vt_extension *ext;
 		int char_set;
 
 		g0_g2_font = font_d_table;
 
-		if (!(ext = vtp->extension))
-			ext = &vtp->vbi->magazine_extension[(vtp->pgno >> 8) - 1];
+		if (!(ext = vtp->_data.unknown.extension))
+			ext = &vtp->vbi->magazine[(vtp->pgno >> 8) - 1].extension;
 
 		char_set = ext->char_set[0];
 
@@ -765,8 +851,7 @@ new_enhance(struct fmt_page *pg, struct vt_page *vtp,
 
 	font = g0_g2_font;
 
-	/* XXX */
-	for (p = vtp->triplets, i = 0; i < vtp->num_triplets;/**/ p++, i++) {
+	for (;; p++) {
 		if (p->stop)
 			break;
 
@@ -795,7 +880,7 @@ new_enhance(struct fmt_page *pg, struct vt_page *vtp,
 					row = 0;
 				else
 					row = (p->address - 40) ? : 24;
-#if 0
+#if 0 /* TODO */
 				if (s == 0) {
 					int colour = p->data & 0x1F;
 					// addressed row
@@ -825,7 +910,7 @@ new_enhance(struct fmt_page *pg, struct vt_page *vtp,
 					if (invc_row + row > 24)
 						acp = NULL;
 					else {
-						rawp = vtp->raw[invc_row + row];
+						rawp = vtp->_data.unknown.raw[invc_row + row];
 						acp = pg->data[invc_row + row];
 
 						min_column = (invc_row + row == 0) ? 8 : 0;
@@ -843,11 +928,11 @@ new_enhance(struct fmt_page *pg, struct vt_page *vtp,
 			case 0x10:		/* origin modifier */
 				if (p->data >= 72)
 					break; /* invalid */
-				
+			
 				offset_column = p->data;
 				offset_row = p->address - 40;
 
-				printv("enh origin modifier %d %d\n", offset_column, offset_row);
+				printv("enh origin modifier col %+d row %+d\n", offset_column, offset_row);
 
 				break;
 
@@ -855,11 +940,12 @@ new_enhance(struct fmt_page *pg, struct vt_page *vtp,
 			{
 				int source = (p->address >> 3) & 3;
 				int type = p->mode & 3;
-				
+				vt_triplet *trip; 
+
 				/* TODO */
 
 				printv("enh obj invocation source %d type %d\n", source, type);
-				
+
 				if (source == 0)
 					break; /* illegal */
 				else if (source == 1) { /* local */
@@ -868,9 +954,42 @@ new_enhance(struct fmt_page *pg, struct vt_page *vtp,
 					
 					if (triplet > 12)
 						break; /* invalid */
-					printv("... local obj %d/%d\n", designation, triplet);
-										
+					printv("... local obj %d/%d\n", designation, triplet);					
 				} else {
+					magazine *mag = vtp->vbi->magazine + (vtp->pgno >> 8) - 1;
+					int pgno;
+
+					/* XXX X/27 */
+
+					{
+						int i;
+
+						if (source == 3)
+							i = 0; /* GPOP */
+						else if (!(i = mag->pop_lut[vtp->pgno & 0xFF])) {
+							printf("... MOT pop_lut empty\n");
+							break; /* has no link (yet?) */
+						}
+
+						pgno = mag->pop_link[i].pgno;
+					}
+
+					if (NO_PAGE(pgno)) {
+						printf("... dead link\n");
+						break;
+					}
+
+					printv("... %s obj\n", (source == 3) ? "global" : "public");
+
+					trip = resolve_obj_address(vtp->vbi, type, pgno,
+						(p->address << 7) + p->data,
+						(source == 3) ? PAGE_FUNCTION_GPOP : PAGE_FUNCTION_POP);
+
+					/* unfinished -- type */
+					if (trip) {
+						new_enhance(pg, vtp, trip, offset_row, offset_column);
+						printf("object done\n");
+					}
 				}
 
 				offset_column = 0;
@@ -882,11 +1001,8 @@ new_enhance(struct fmt_page *pg, struct vt_page *vtp,
 			/* case 0x14: reserved */
 
 			case 0x15 ... 0x17:	/* object definition */
-				/* TODO (skip here? abort?) */
-
 				printv("enh obj definition 0x%02x 0x%02x\n", p->mode, p->data);
-				
-				break;
+				return;
 
 			case 0x18:		/* drcs mode */
 				/* TODO */
@@ -898,8 +1014,7 @@ new_enhance(struct fmt_page *pg, struct vt_page *vtp,
 			/* case 0x19 ... 0x1E: reserved */
 			
 			case 0x1F:		/* termination marker */
-				i = vtp->num_triplets; /* XXX */
-				break;
+				return;
 			}
 		} else {
 			/* column address triplets */
@@ -912,7 +1027,7 @@ new_enhance(struct fmt_page *pg, struct vt_page *vtp,
 
 				if (s == 0 && acp) {
 					int foreground = p->data & 0x1F;
-
+#if 1
 					j = MAX(min_column, invc_column + active_column);
 
 					for (; j < 40; j++) {
@@ -925,7 +1040,7 @@ new_enhance(struct fmt_page *pg, struct vt_page *vtp,
 						if (raw == 0x00 || raw == 0x10)
 							break;
 					}
-
+#endif
 					printv("enh col %d foreground %d\n", active_column, foreground);
 				}
 				
@@ -960,7 +1075,7 @@ new_enhance(struct fmt_page *pg, struct vt_page *vtp,
 
 				if (s == 0 && acp) {
 					int background = p->data & 0x1F;
-
+#if 1
 					j = MAX(min_column, invc_column + active_column);
 
 					for (; j < 40; j++) {
@@ -973,7 +1088,7 @@ new_enhance(struct fmt_page *pg, struct vt_page *vtp,
 
 						acp[j].background = background;
 					}
-
+#endif
 					printv("enh col %d background %d\n", active_column, background);
 				}
 
@@ -1099,7 +1214,7 @@ vbi_resolve_flof(int x, struct vt_page *vtp, int *page, int *subpage)
 	if ((!vtp) || (!page) || (!subpage))
 		return FALSE;
 	
-	if (!(vtp->flof))
+	if (!(vtp->_data.lop.flof))
 		return FALSE;
 	
 	for (i=0; (i <= x) && (i<40); i++)
@@ -1111,11 +1226,11 @@ vbi_resolve_flof(int x, struct vt_page *vtp, int *page, int *subpage)
 	
 	code = " \0\1\2\3 \3 "[code]; /* color->link conversion table */
 	
-	if ((code > 6) || ((vtp->link[code].pgno & 0xff) == 0xff))
+	if ((code > 6) || ((vtp->_data.lop.link[code].pgno & 0xff) == 0xff))
 		return FALSE;
 	
-	*page = vtp->link[code].pgno;
-	*subpage = vtp->link[code].subno; /* 0x3f7f handled? */
+	*page = vtp->_data.lop.link[code].pgno;
+	*subpage = vtp->_data.lop.link[code].subno; /* 0x3f7f handled? */
 	
 	return TRUE;
 }
@@ -1220,21 +1335,22 @@ void
 fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 {
 	char buf[16];
-	struct vt_extension *ext;
+	vt_extension *ext;
 	struct font_d *g0_font[2];
 	int column, row, i;
 	int display_rows;
-	int page, subpage;
 
-	display_rows = vtp->flof ? 25 : 24;
+// XXX page function check
+
+	display_rows = vtp->_data.lop.flof ? 25 : 24;
 
 	sprintf(buf, "\2%x.%02x\7", vtp->pgno, vtp->subno & 0xff);
 
 	g0_font[0] = font_d_table;
 	g0_font[1] = font_d_table;
 
-	if (!(ext = vtp->extension))
-		ext = &vtp->vbi->magazine_extension[(vtp->pgno >> 8) - 1];
+	if (!(ext = vtp->_data.lop.extension))
+		ext = &vtp->vbi->magazine[(vtp->pgno >> 8) - 1].extension;
 
 	for (i = 0; i < 2; i++) {
 		int char_set = ext->char_set[i];
@@ -1308,7 +1424,7 @@ fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 		for (column = 0; column < W; ++column) {
 			int raw;
 
-			raw = vtp->raw[0][i++] & 0x7F; /* XXX parity */
+			raw = vtp->_data.lop.raw[0][i++] & 0x7F; /* XXX parity */
 
 			if (row == 0 && column < 8)
 				raw = buf[column];
@@ -1385,12 +1501,13 @@ fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 				break;
 
 			case 0x0A:		/* end box */
-				if (column < 39 && vtp->raw[0][i] == 0x0a)
+			// XXX parity
+				if (column < 39 && vtp->_data.lop.raw[0][i] == 0x0a)
 					ac.opacity = page_opacity;
 				break;
 
 			case 0x0B:		/* start box */
-				if (column < 39 && vtp->raw[0][i] == 0x0b)
+				if (column < 39 && vtp->_data.lop.raw[0][i] == 0x0b)
 					ac.opacity = boxed_opacity;
 				break;
 
@@ -1466,7 +1583,7 @@ fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 		}
 	}
 
-	if (!vtp->flof) {
+	if (!vtp->_data.lop.flof) {
 		attr_char ac;
 
 		memset(&ac, 0, sizeof(ac));
@@ -1483,7 +1600,7 @@ fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 			pg->data[24][column] = ac;
 	}
 
-	new_enhance(pg, vtp, 0, 0);
+	new_enhance(pg, vtp, vtp->_data.lop.triplet, 0, 0);
 
 	if (0) /* Test */
 		for (row = 1; row < 24; row++)
@@ -1511,6 +1628,8 @@ fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 
 	for (row = 0; row < display_rows; row++)
 		for (column = 0; column < W; column++) {
+			int page, subpage;
+
 			if (!vbi_resolve_page(column, row, vtp, &page,
 					      &subpage, pg))
 				page = subpage = 0;
