@@ -10,6 +10,9 @@ typedef struct {
   void (*apply) ( GnomeDialog *dialog, GtkWidget *page );
   /* Called when the help button is pressed */
   void (*help) ( GnomeDialog *dialog, GtkWidget *page );
+  /* Called when the Cancel button is pressed for a modified
+     page. @page is the modified page */
+  void (*cancel) ( GnomeDialog *dialog, GtkWidget *page );
 } property_handler;
 
 /* Register a set of callbacks to manage the properties */
@@ -115,6 +118,8 @@ typedef struct {
   void		(*apply)(GtkWidget *widget);
   /* Help about this page (or NULL) */
   void		(*help)(GtkWidget *widget);
+  /* See apply */
+  void		(*cancel)(GtkWidget *widget);
 } SidebarEntry;
 
 typedef struct {

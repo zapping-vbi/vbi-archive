@@ -31,7 +31,7 @@
  *	gnome_property_box_changed is gone to a better place.
  *	- When apply is hit, the apply method of the handlers owning
  *	the 'dirty' pages is called, passing the dirty page.
- *	- Similarly for help.
+ *	- Similarly for help and cancel.
  *	- The rest of the housekeeping is left to the handlers.
  */
 #ifdef HAVE_CONFIG_H
@@ -350,6 +350,26 @@ generic_apply			(GnomeDialog	*dialog)
 }
 
 static void
+generic_cancel			(GnomeDialog	*dialog)
+{
+  gint i = 0;
+  GtkWidget *page;
+  GtkNotebook *notebook =
+    GTK_NOTEBOOK(lookup_widget(GTK_WIDGET(dialog), "properties-notebook"));
+
+  while ((page = gtk_notebook_get_nth_page(notebook, i++)))
+    {
+      property_handler *handler = (property_handler*)
+	gtk_object_get_data(GTK_OBJECT(page), "property-handler");
+
+      if (handler && handler->cancel)
+	handler->cancel(dialog, page);
+
+      gtk_object_set_data(GTK_OBJECT(page), "properties-dirty", NULL);
+    }
+}
+
+static void
 on_properties_ok_clicked	(GtkWidget	*button,
 				 GnomeDialog	*dialog)
 {
@@ -371,6 +391,8 @@ static void
 on_properties_cancel_clicked	(GtkWidget	*button,
 				 GnomeDialog	*dialog)
 {
+  generic_cancel(dialog);
+
   gnome_dialog_close(dialog);
 }
 
@@ -534,10 +556,8 @@ build_properties_contents	(GnomeDialog	*dialog)
   register_widget(GTK_WIDGET(notebook), "properties-notebook");
 
   /* Put our logo when nothing is selected yet */
-  logo = z_pixmap_new_from_file(PACKAGE_PIXMAPS_DIR "/logo.png");
-  if (logo)
+  if ((logo = z_load_pixmap ("logo.png")));
     {
-      gtk_widget_show(logo);
       gtk_notebook_append_page(notebook, logo, gtk_label_new(""));
       page_count ++; /* No handler for this page */
     }
@@ -793,29 +813,39 @@ standard_properties_add		(GnomeDialog	*dialog,
     {
       append_properties_group(dialog, _(groups[i].label));
 
-      for (j = 0; j<groups[i].num_items; j++)
+      for (j = 0; j < groups[i].num_items; j++)
 	{
-	  const gchar *icon_name = groups[i].items[j].icon_name;
-	  gchar *pixmap_path = (groups[i].items[j].icon_source ==
-				ICON_ZAPPING) ?
-	    g_strdup_printf("%s/%s", PACKAGE_PIXMAPS_DIR, icon_name) :
-	    g_strdup(gnome_pixmap_file(icon_name)); /* FIXME: leak?? */
-	  GtkWidget *pixmap = z_pixmap_new_from_file(pixmap_path);
-	  GtkWidget *page = build_widget(groups[i].items[j].widget,
-					 glade_file);
+	  GtkWidget *pixmap;
+	  GtkWidget *page;
+
+	  if (groups[i].items[j].icon_source ==	ICON_ZAPPING)
+	    {
+	      pixmap = z_load_pixmap (groups[i].items[j].icon_name);
+	    }
+	  else
+	    {
+	      gchar *pixmap_path = g_strdup (gnome_pixmap_file
+	      	(groups[i].items[j].icon_name)); /* FIXME: leak?? */
+
+	      pixmap = z_pixmap_new_from_file (pixmap_path);
+
+	      g_free(pixmap_path);
+	    }
+
+	  page = build_widget(groups[i].items[j].widget, glade_file);
 
 	  gtk_object_set_data(GTK_OBJECT(page), "apply",
 			      groups[i].items[j].apply);
 	  gtk_object_set_data(GTK_OBJECT(page), "help",
 			      groups[i].items[j].help);
+	  gtk_object_set_data(GTK_OBJECT(page), "cancel",
+			      groups[i].items[j].cancel);
 
 	  append_properties_page(dialog, _(groups[i].label),
 				 _(groups[i].items[j].label),
 				 pixmap, page);
 
 	  groups[i].items[j].setup(page);
-
-	  g_free(pixmap_path);
 	}
     }
 }
@@ -846,6 +876,17 @@ help		(GnomeDialog	*dialog,
 	    GNOME_MESSAGE_BOX_WARNING);
 }
 
+static void
+cancel		(GnomeDialog	*dialog,
+		 GtkWidget	*page)
+{
+  void (*page_cancel)(GtkWidget *page) =
+    gtk_object_get_data(GTK_OBJECT(page), "cancel");
+
+  if (page_cancel)
+    page_cancel(page);
+}
+
 void prepend_property_handler (property_handler *p)
 {
   gint i;
@@ -869,6 +910,9 @@ void prepend_property_handler (property_handler *p)
   if (!handlers[0].help)
     handlers[0].help = help;
 
+  if (!handlers[0].cancel)
+    handlers[0].cancel = cancel;
+
   num_handlers++;
 }
 
@@ -888,6 +932,9 @@ void append_property_handler (property_handler *p)
 
   if (!handlers[num_handlers].help)
     handlers[num_handlers].help = help;
+
+  if (!handlers[num_handlers].cancel)
+    handlers[num_handlers].cancel = cancel;
 
   num_handlers++;
 }
