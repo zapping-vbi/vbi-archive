@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.6\n"
-"POT-Creation-Date: 2002-03-23 15:14+0100\n"
+"POT-Creation-Date: 2002-03-25 13:49+0100\n"
 "PO-Revision-Date: 2001-08-31 01:29+01:00\n"
 "Last-Translator: <snout@ctrl-c.liu.se>\n"
 "Language-Team: Swedish <sv@li.org>\n"
@@ -826,7 +826,7 @@ msgstr "Återställ"
 msgid "Zapping Properties"
 msgstr "Egenskaper"
 
-#: src/properties-handler.c:708 src/properties.c:913
+#: src/keyboard.c:811 src/properties-handler.c:708 src/properties.c:913
 #, fuzzy
 msgid "General Options"
 msgstr "Diverse val"
@@ -1201,6 +1201,57 @@ msgstr "Markera - håll Skift för tabell-läge"
 #: src/ttxview.c:3125
 msgid "Selection copied to clipboard"
 msgstr "Markering kopierad till urklipp"
+
+# src/frequencies.c:827
+#: src/oss.c:174
+#, fuzzy
+msgid "Audio device:"
+msgstr "Bild och ljud"
+
+#: src/oss.c:177
+#, fuzzy
+msgid "Select the audio device"
+msgstr "Välj VBI-enhet"
+
+#: src/oss.c:204
+#, c-format
+msgid "The given audio device \"%s\" doesn't exist"
+msgstr ""
+
+#: src/keyboard.c:79 src/keyboard.c:101
+#, fuzzy
+msgid "Ctrl+"
+msgstr "Ctrl"
+
+#: src/keyboard.c:80 src/keyboard.c:102
+#, fuzzy
+msgid "Alt+"
+msgstr "Alt"
+
+#: src/keyboard.c:81 src/keyboard.c:103
+#, fuzzy
+msgid "Shift+"
+msgstr "Skift"
+
+#: src/keyboard.c:434
+msgid "Ctrl"
+msgstr "Ctrl"
+
+#: src/keyboard.c:438
+msgid "Alt"
+msgstr "Alt"
+
+#: src/keyboard.c:442
+msgid "Shift"
+msgstr "Skift"
+
+#: src/keyboard.c:450
+msgid "Key table..."
+msgstr ""
+
+#: glade/glade_strings.c:110 src/keyboard.c:807
+msgid "Keyboard"
+msgstr ""
 
 # src/interface.c:104
 #.
@@ -1632,10 +1683,6 @@ msgstr "Tangenter"
 
 #: glade/glade_strings.c:109
 msgid "Command"
-msgstr ""
-
-#: glade/glade_strings.c:110
-msgid "Keyboard"
 msgstr ""
 
 #: glade/glade_strings.c:111
@@ -2302,7 +2349,6 @@ msgid "Select here the channel you want to tune"
 msgstr "Här väljer du kanalen du vill ställa in"
 
 #: glade/glade_strings.c:300 glade/glade_strings.c:305
-#: plugins/mpeg/mpeg_strings.c:30
 #, fuzzy
 msgid "Station"
 msgstr "Fyllnad"
@@ -2597,17 +2643,17 @@ msgstr ""
 msgid "Save screenshot"
 msgstr "Stillbild"
 
-#: plugins/mpeg/mpeg_strings.c:60 plugins/screenshot/screenshot_strings.c:17
+#: plugins/mpeg/mpeg_strings.c:30 plugins/screenshot/screenshot_strings.c:17
 #, fuzzy
 msgid "Configure the properties for this plugin"
 msgstr "Visa konfigurationsvalen för denna plugin"
 
-#: plugins/mpeg/mpeg_strings.c:61 plugins/screenshot/screenshot_strings.c:18
+#: plugins/mpeg/mpeg_strings.c:31 plugins/screenshot/screenshot_strings.c:18
 #, fuzzy
 msgid "Configure"
 msgstr "_Konfigurera"
 
-#: plugins/mpeg/mpeg_strings.c:63 plugins/screenshot/screenshot_strings.c:20
+#: plugins/mpeg/mpeg_strings.c:33 plugins/screenshot/screenshot_strings.c:20
 #, fuzzy
 msgid "Destination file"
 msgstr "Destination"
@@ -2621,8 +2667,7 @@ msgstr ""
 #. * Add this file to your project's POTFILES.in.
 #. * DO NOT compile it as part of your application.
 #.
-#: plugins/mpeg/mpeg_strings.c:7 plugins/mpeg/mpeg_strings.c:40
-#: plugins/screenshot/screenshot_strings.c:22
+#: plugins/mpeg/mpeg_strings.c:7 plugins/screenshot/screenshot_strings.c:22
 #, fuzzy
 msgid "Format:"
 msgstr "Normal"
@@ -2700,7 +2745,7 @@ msgstr "stänga av"
 msgid "1"
 msgstr "1"
 
-#: plugins/lirc/lirc.c:659 plugins/mpeg/mpeg_strings.c:56
+#: plugins/lirc/lirc.c:659
 msgid "Add"
 msgstr "Lägg till"
 
@@ -2956,165 +3001,79 @@ msgid "Dynamic stats (dropped, output M's, etc)"
 msgstr "Dynamisk statistik (Bytes sparade, etc.)"
 
 #: plugins/mpeg/mpeg_strings.c:29
-#, fuzzy
-msgid "Recording Schedule"
-msgstr "Programtablå"
-
-#: plugins/mpeg/mpeg_strings.c:31
-#, fuzzy
-msgid "Start"
-msgstr "Fyllnad"
-
-#: plugins/mpeg/mpeg_strings.c:32
-msgid "End"
-msgstr ""
-
-#: plugins/mpeg/mpeg_strings.c:33
-msgid "VPS/PDC"
-msgstr ""
-
-#: plugins/mpeg/mpeg_strings.c:34
-#, fuzzy
-msgid "Repeat"
-msgstr "Återställ"
-
-#: plugins/mpeg/mpeg_strings.c:35
-#, fuzzy
-msgid "Format"
-msgstr "Normal"
-
-#: plugins/mpeg/mpeg_strings.c:36
-#, fuzzy
-msgid "Station:"
-msgstr "Fyllnad"
-
-#: plugins/mpeg/mpeg_strings.c:37
-#, fuzzy
-msgid "Start:"
-msgstr "Fyllnad"
-
-#: plugins/mpeg/mpeg_strings.c:38
-msgid "End:"
-msgstr ""
-
-#: plugins/mpeg/mpeg_strings.c:39
-msgid "VPS/PDC:"
-msgstr ""
-
-#: plugins/mpeg/mpeg_strings.c:41
-msgid "2200"
-msgstr ""
-
-# src/v4l2interface.c:139
-#: plugins/mpeg/mpeg_strings.c:42
-#, fuzzy
-msgid "No"
-msgstr "Kein Tuner"
-
-# src/frequencies.c:823
-#: plugins/mpeg/mpeg_strings.c:43
-#, fuzzy
-msgid "Daily"
-msgstr "Italien"
-
-#: plugins/mpeg/mpeg_strings.c:44
-msgid "Monday-Friday"
-msgstr ""
-
-#: plugins/mpeg/mpeg_strings.c:45
-msgid "Monday-Saturday"
-msgstr ""
-
-#: plugins/mpeg/mpeg_strings.c:46
-msgid "Weekly"
-msgstr ""
-
-#: plugins/mpeg/mpeg_strings.c:47
-msgid "Bi-Weekly"
-msgstr ""
-
-#: plugins/mpeg/mpeg_strings.c:48
-msgid "Monthly"
-msgstr ""
-
-#: plugins/mpeg/mpeg_strings.c:49
-#, fuzzy
-msgid "Repeat:"
-msgstr "Återställ"
-
-#: plugins/mpeg/mpeg_strings.c:50
-msgid "Code:"
-msgstr ""
-
-#: plugins/mpeg/mpeg_strings.c:51
-msgid "VCRPlus"
-msgstr ""
-
-# src/v4l2interface.c:344
-#: plugins/mpeg/mpeg_strings.c:52
-#, fuzzy
-msgid "VideoPlus"
-msgstr "Endast bild"
-
-#: plugins/mpeg/mpeg_strings.c:53
-msgid "ShowView"
-msgstr ""
-
-#: plugins/mpeg/mpeg_strings.c:54
-#, fuzzy
-msgid "Default"
-msgstr "Standardaktion:"
-
-#: plugins/mpeg/mpeg_strings.c:55
-#, fuzzy
-msgid "Edit..."
-msgstr "..."
-
-#: plugins/mpeg/mpeg_strings.c:57
-#, fuzzy
-msgid "Remove"
-msgstr "_Radera"
-
-#: plugins/mpeg/mpeg_strings.c:58
-#, fuzzy
-msgid "Modify"
-msgstr "_Modifiera"
-
-#: plugins/mpeg/mpeg_strings.c:59
 msgid "Save mpeg"
 msgstr ""
 
-#: plugins/mpeg/mpeg_strings.c:62
+#: plugins/mpeg/mpeg_strings.c:32
 #, fuzzy
 msgid "Destination file:"
 msgstr "Destination"
 
-#: plugins/mpeg/mpeg_strings.c:64
-msgid ""
-"This is the first time you run the plugin,\n"
-"please take a moment to configure it to your tastes.\n"
-"Clicking the button will open the preferences."
-msgstr ""
-
-#: plugins/mpeg/mpeg_strings.c:67
 #, fuzzy
-msgid "Info"
-msgstr "VBI-info"
+#~ msgid "Recording Schedule"
+#~ msgstr "Programtablå"
+
+#, fuzzy
+#~ msgid "Start"
+#~ msgstr "Fyllnad"
+
+#, fuzzy
+#~ msgid "Repeat"
+#~ msgstr "Återställ"
+
+#, fuzzy
+#~ msgid "Format"
+#~ msgstr "Normal"
+
+#, fuzzy
+#~ msgid "Station:"
+#~ msgstr "Fyllnad"
+
+#, fuzzy
+#~ msgid "Start:"
+#~ msgstr "Fyllnad"
+
+# src/v4l2interface.c:139
+#, fuzzy
+#~ msgid "No"
+#~ msgstr "Kein Tuner"
+
+# src/frequencies.c:823
+#, fuzzy
+#~ msgid "Daily"
+#~ msgstr "Italien"
+
+#, fuzzy
+#~ msgid "Repeat:"
+#~ msgstr "Återställ"
+
+# src/v4l2interface.c:344
+#, fuzzy
+#~ msgid "VideoPlus"
+#~ msgstr "Endast bild"
+
+#, fuzzy
+#~ msgid "Default"
+#~ msgstr "Standardaktion:"
+
+#, fuzzy
+#~ msgid "Edit..."
+#~ msgstr "..."
+
+#, fuzzy
+#~ msgid "Remove"
+#~ msgstr "_Radera"
+
+#, fuzzy
+#~ msgid "Modify"
+#~ msgstr "_Modifiera"
+
+#, fuzzy
+#~ msgid "Info"
+#~ msgstr "VBI-info"
 
 #~ msgid "Use Zapping as a Teletext navigator [Ctrl+Alt+T]"
 #~ msgstr "Använda Zapping som Teletext-Navigator [Ctrl-Alt-T]"
-
-#, fuzzy
-#~ msgid "Ctrl+"
-#~ msgstr "Ctrl"
-
-#, fuzzy
-#~ msgid "Alt+"
-#~ msgstr "Alt"
-
-#, fuzzy
-#~ msgid "Shift+"
-#~ msgstr "Skift"
 
 #~ msgid "Configure capture [Ctrl+C]"
 #~ msgstr "Ställ in inspelningsläget [Ctrl-C]"
@@ -3124,15 +3083,6 @@ msgstr "VBI-info"
 
 #~ msgid "Exit TTX mode [Esc]"
 #~ msgstr "Avsluta teletextläge [Esc]"
-
-#~ msgid "Ctrl"
-#~ msgstr "Ctrl"
-
-#~ msgid "Shift"
-#~ msgstr "Skift"
-
-#~ msgid "Alt"
-#~ msgstr "Alt"
 
 # src/interface.c:382
 #~ msgid "Enter here the key you want to attach to this channel"
@@ -3302,11 +3252,6 @@ msgstr "VBI-info"
 #~ msgid "Compression parameters"
 #~ msgstr "Kompressionsparameter"
 
-# src/frequencies.c:827
-#, fuzzy
-#~ msgid "Audio device:"
-#~ msgstr "Bild och ljud"
-
 #, fuzzy
 #~ msgid "Select the audio input type you would like to use"
 #~ msgstr "Välj VBI-enhet"
@@ -3315,10 +3260,6 @@ msgstr "VBI-info"
 #, fuzzy
 #~ msgid "Audio device"
 #~ msgstr "Bild och ljud"
-
-#, fuzzy
-#~ msgid "Select the audio device to open"
-#~ msgstr "Välj VBI-enhet"
 
 #~ msgid "Parrot buffer plugin"
 #~ msgstr "Papegojplugin"

@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.119 2002-03-23 14:05:56 mschimek Exp $
+dnl $Id: configure.in,v 1.120 2002-03-27 00:57:53 mschimek Exp $
 
 AC_INIT(src/callbacks.c)
 AM_INIT_AUTOMAKE(zapping, 0.6.3)
@@ -544,3 +544,4 @@ echo "
 for x in $PLUGINS_TO_BUILD; do
   echo "        "$x
 done
+
