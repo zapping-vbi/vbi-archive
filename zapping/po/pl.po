@@ -4,8 +4,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.5\n"
-"POT-Creation-Date: 2002-04-10 18:05+0200\n"
-"PO-Revision-Date: 2001-12-15 18:35+0000\n"
+"POT-Creation-Date: 2002-04-29 18:08+0200\n"
+"PO-Revision-Date: 2002-05-10 16:08+0000\n"
 "Last-Translator: Pawe³ Sakowski <pawel@sakowski.eu.org>\n"
 "Language-Team: Polish <pl@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -292,9 +292,8 @@ msgid "China"
 msgstr "Chiny"
 
 #: src/frequencies.c:1109
-#, fuzzy
 msgid "Pakistan cable"
-msgstr "Japonia kabel"
+msgstr "Pakistan kabel"
 
 #: src/frequencies.c:1305 src/frequencies.c:1410 src/frequencies.c:1589
 msgid "(Unnamed channel)"
@@ -848,10 +847,10 @@ msgid "TV input"
 msgstr "Wej¶cie TV"
 
 #: src/properties-handler.c:124
-#, fuzzy, c-format
+#, c-format
 msgid "%s with %d tuner"
 msgid_plural "%s with %d tuners"
-msgstr[0] "%s z tunerem"
+msgstr[0] "%s z %d tunerem"
 msgstr[1] "%s z %d tunerami"
 msgstr[2] "%s z %d tunerami"
 
@@ -1036,7 +1035,8 @@ msgstr "Dowolna podstrona"
 msgid "Export %s"
 msgstr "Eksportuj %s"
 
-#: plugins/screenshot/screenshot_strings.c:19 src/ttxview.c:1986
+#: plugins/mpeg/mpeg_strings.c:36 plugins/screenshot/screenshot_strings.c:19
+#: src/ttxview.c:1986
 msgid "Save as:"
 msgstr "Zapisz jako:"
 
@@ -1427,23 +1427,20 @@ msgstr ""
 "wej¶cia)."
 
 #: glade/glade_strings.c:64
-#, fuzzy
 msgid "Show toolbar as:"
-msgstr "Poka¿ kontrolki"
+msgstr "Poka¿ pasek narzêdzi jako:"
 
 #: glade/glade_strings.c:65
 msgid "Icons"
-msgstr ""
+msgstr "Ikony"
 
 #: glade/glade_strings.c:66
-#, fuzzy
 msgid "Text"
-msgstr "Nastêpna"
+msgstr "Tekst"
 
 #: glade/glade_strings.c:67
-#, fuzzy
 msgid "Icons and text"
-msgstr "Teraz i nastêpne"
+msgstr "Ikony i tekst"
 
 #: glade/glade_strings.c:69
 msgid ""
@@ -1860,8 +1857,8 @@ msgstr "Zatrzymaj tê wtyczkê"
 msgid "S_top Plugin"
 msgstr "_Zatrzymaj wtyczkê"
 
-#: glade/glade_strings.c:190 plugins/lirc/lirc.c:375 plugins/mpeg/mpeg.c:1100
-#: plugins/mpeg/mpeg.c:1127 plugins/mpeg/mpeg.c:1192
+#: glade/glade_strings.c:190 plugins/lirc/lirc.c:375 plugins/mpeg/mpeg.c:1830
+#: plugins/mpeg/mpeg.c:1857 plugins/mpeg/mpeg.c:1922
 #: plugins/screenshot/screenshot.c:577 plugins/screenshot/screenshot.c:1418
 msgid "Plugins"
 msgstr "Wtyczki"
@@ -1959,6 +1956,7 @@ msgid "Searching..."
 msgstr "Szukam..."
 
 #: glade/glade_strings.c:224 glade/glade_strings.c:274
+#: plugins/mpeg/mpeg_strings.c:40
 msgid "%P %%"
 msgstr "%P%%"
 
@@ -2382,7 +2380,7 @@ msgstr "Ta wtyczka robi zrzuty przechwytywanego obrazu."
 
 #. hash collision code
 #. Warn
-#: plugins/alirc/alirc.c:231 plugins/lirc/lirc.c:134 plugins/mpeg/mpeg.c:167
+#: plugins/alirc/alirc.c:231 plugins/lirc/lirc.c:134 plugins/mpeg/mpeg.c:178
 #: plugins/screenshot/screenshot.c:173
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
@@ -2536,7 +2534,8 @@ msgstr "Skonfiguruj w³a¶ciwo¶ci tej wtyczki"
 msgid "Configure"
 msgstr "Konfiguruj"
 
-#: plugins/mpeg/mpeg_strings.c:33 plugins/screenshot/screenshot_strings.c:20
+#: plugins/mpeg/mpeg_strings.c:33 plugins/mpeg/mpeg_strings.c:39
+#: plugins/screenshot/screenshot_strings.c:20
 msgid "Destination file"
 msgstr "Plik docelowy"
 
@@ -2549,7 +2548,8 @@ msgstr "Jako¶æ:"
 #. * Add this file to your project's POTFILES.in.
 #. * DO NOT compile it as part of your application.
 #.
-#: plugins/mpeg/mpeg_strings.c:7 plugins/screenshot/screenshot_strings.c:22
+#: plugins/mpeg/mpeg_strings.c:7 plugins/mpeg/mpeg_strings.c:35
+#: plugins/screenshot/screenshot_strings.c:22
 msgid "Format:"
 msgstr "Format:"
 
@@ -2672,20 +2672,20 @@ msgstr ""
 msgid "Lets you control zapping through lirc"
 msgstr "Pozwala kontrolowaæ zapping przez lirc"
 
-#: plugins/mpeg/mpeg.c:64
+#: plugins/mpeg/mpeg.c:65
 msgid "MPEG encoder"
 msgstr "Koder MPEG"
 
-#: plugins/mpeg/mpeg.c:66
+#: plugins/mpeg/mpeg.c:67
 msgid "This plugin encodes the image and audio stream into a MPEG file"
 msgstr "Ta wtyczka koduje strumieñ obrazu i d¼wiêku do pliku MPEG"
 
-#: plugins/mpeg/mpeg.c:68
+#: plugins/mpeg/mpeg.c:69
 msgid "Encode the stream as MPEG."
 msgstr "Zakoduj strumieñ jako MPEG."
 
 #. NB *_frames display will wrap after two years.
-#: plugins/mpeg/mpeg.c:305
+#: plugins/mpeg/mpeg.c:325
 #, c-format
 msgid "%d frame dropped"
 msgid_plural "%d frames dropped"
@@ -2693,7 +2693,7 @@ msgstr[0] "porzucono %d ramkê"
 msgstr[1] "porzucono %d ramki"
 msgstr[2] "porzucono %d ramek"
 
-#: plugins/mpeg/mpeg.c:309
+#: plugins/mpeg/mpeg.c:329
 #, c-format
 msgid "%d frame processed"
 msgid_plural "%d frames processed"
@@ -2701,24 +2701,24 @@ msgstr[0] "przetworzono %d ramkê"
 msgstr[1] "przetworzono %d ramki"
 msgstr[2] "przetworzono %d ramek"
 
-#: plugins/mpeg/mpeg.c:313
+#: plugins/mpeg/mpeg.c:333
 #, c-format
 msgid "%s : %s"
 msgstr "%s : %s"
 
-#: plugins/mpeg/mpeg.c:403
+#: plugins/mpeg/mpeg.c:476 plugins/mpeg/mpeg.c:856
 msgid "Synchronization under V4L1"
 msgstr "Synchronizacja pod V4L1"
 
-#: plugins/mpeg/mpeg.c:405
+#: plugins/mpeg/mpeg.c:478 plugins/mpeg/mpeg.c:858
 msgid "Do not show this again"
 msgstr "Nie pokazuj tego ponownie"
 
-#: plugins/mpeg/mpeg.c:406
+#: plugins/mpeg/mpeg.c:479 plugins/mpeg/mpeg.c:859
 msgid "V4L2 page"
 msgstr "Strona V4L2"
 
-#: plugins/mpeg/mpeg.c:409
+#: plugins/mpeg/mpeg.c:482 plugins/mpeg/mpeg.c:862
 msgid ""
 "You are using a V4L1 driver, so synchronization\n"
 "between audio and video will not be very good.\n"
@@ -2732,7 +2732,7 @@ msgstr ""
 "synchronizacj±, wiêc mo¿esz ich spróbowaæ, je¶li\n"
 "nie jeste¶ zadowolony z wyników."
 
-#: plugins/mpeg/mpeg.c:558
+#: plugins/mpeg/mpeg.c:631 plugins/mpeg/mpeg.c:1283
 #, c-format
 msgid ""
 "Cannot create destination dir for clips:\n"
@@ -2743,46 +2743,55 @@ msgstr ""
 "%s\n"
 "%s"
 
-#: plugins/mpeg/mpeg.c:629
+#: plugins/mpeg/mpeg.c:702 plugins/mpeg/mpeg.c:1049
 #, c-format
 msgid "RTE ID: %s"
 msgstr "Identyfikator RTE: %s"
 
-#: plugins/mpeg/mpeg.c:635 plugins/mpeg/mpeg.c:637
+#: plugins/mpeg/mpeg.c:708 plugins/mpeg/mpeg.c:710 plugins/mpeg/mpeg.c:1055
+#: plugins/mpeg/mpeg.c:1057
 #, c-format
 msgid "Destination: %s"
 msgstr "Cel: %s"
 
-#: plugins/mpeg/mpeg.c:645
+#: plugins/mpeg/mpeg.c:718 plugins/mpeg/mpeg.c:1065
 msgid "Audio only"
 msgstr "Tylko d¼wiêk"
 
-#: plugins/mpeg/mpeg.c:648
+#: plugins/mpeg/mpeg.c:721 plugins/mpeg/mpeg.c:1068
 msgid "Video only"
 msgstr "Tylko obraz"
 
-#: plugins/mpeg/mpeg.c:651
+#: plugins/mpeg/mpeg.c:724 plugins/mpeg/mpeg.c:1071
 msgid "Audio and Video"
 msgstr "D¼wiêk i obraz"
 
-#: plugins/mpeg/mpeg.c:668 plugins/mpeg/mpeg.c:676
+#: plugins/mpeg/mpeg.c:741 plugins/mpeg/mpeg.c:749 plugins/mpeg/mpeg.c:1088
+#: plugins/mpeg/mpeg.c:1096
 msgid "Output audio kbits per second:"
 msgstr "Ilo¶æ d¼wiêku w kbit/s:"
 
-#: plugins/mpeg/mpeg.c:672 plugins/mpeg/mpeg.c:678
+#: plugins/mpeg/mpeg.c:745 plugins/mpeg/mpeg.c:751 plugins/mpeg/mpeg.c:1092
+#: plugins/mpeg/mpeg.c:1098
 msgid "Output video Mbits per second:"
 msgstr "Ilo¶æ obrazu w Mbit/s:"
 
-#: plugins/mpeg/mpeg.c:685
+#: plugins/mpeg/mpeg.c:758 plugins/mpeg/mpeg.c:1105
 msgid "Waiting for frames..."
 msgstr "Czekam na ramki..."
 
-#: plugins/mpeg/mpeg.c:1096 plugins/mpeg/mpeg.c:1127 plugins/mpeg/mpeg.c:1192
-#: plugins/mpeg/mpeg.c:1233
+#. XXX more info please
+#: plugins/mpeg/mpeg.c:1295
+#, c-format
+msgid "Cannot create file %s: %s\n"
+msgstr "Nie mogê utworzyæ pliku %s: %s\n"
+
+#: plugins/mpeg/mpeg.c:1826 plugins/mpeg/mpeg.c:1857 plugins/mpeg/mpeg.c:1922
+#: plugins/mpeg/mpeg.c:1963
 msgid "MPEG"
 msgstr "MPEG"
 
-#: plugins/mpeg/mpeg.c:1117
+#: plugins/mpeg/mpeg.c:1847
 msgid ""
 "This is the first time you run the plugin,\n"
 "please take a moment to configure it to your tastes.\n"
@@ -2790,15 +2799,15 @@ msgstr ""
 "Uruchamiasz tê wtyczkê pierwszy raz,\n"
 "po¶wiêæ chwilê, ¿eby dostosowaæ j± do swoich upodobañ.\n"
 
-#: plugins/mpeg/mpeg.c:1120
+#: plugins/mpeg/mpeg.c:1850
 msgid "Open preferences"
 msgstr "Otwórz ustawienia"
 
-#: plugins/mpeg/mpeg.c:1218
+#: plugins/mpeg/mpeg.c:1948
 msgid "Start recording"
 msgstr "Rozpocznij nagrywanie"
 
-#: plugins/mpeg/mpeg.c:1268
+#: plugins/mpeg/mpeg.c:1998
 msgid "Record as MPEG"
 msgstr "Nagraj jako MPEG"
 
@@ -2882,8 +2891,22 @@ msgstr "Zachowaj mpeg"
 msgid "Destination file:"
 msgstr "Plik docelowy:"
 
-#~ msgid "%s"
-#~ msgstr "%s"
+#: plugins/mpeg/mpeg_strings.c:34 plugins/mpeg/mpeg_strings.c:42
+msgid "Record"
+msgstr "Nagraj"
 
-#~ msgid "%s with a tuner"
-#~ msgstr "%s z tunerem"
+#: plugins/mpeg/mpeg_strings.c:37
+msgid "Default"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:38
+msgid "Configure..."
+msgstr "Konfiguruj..."
+
+#: plugins/mpeg/mpeg_strings.c:41
+msgid "Stop"
+msgstr "Stop"
+
+#: plugins/mpeg/mpeg_strings.c:43
+msgid "Pause"
+msgstr "Pauza"
