@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.36.2.7 2003-06-16 06:10:15 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.36.2.8 2003-07-29 03:37:08 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -32,6 +32,7 @@
 #include "audio.h"
 #include "mpeg.h"
 #include "properties.h"
+#include "pixmaps.h"
 
 #include "../../src/v4linterface.h" /* videostd_inquiry; preliminary */
 
@@ -485,9 +486,13 @@ do_start			(const gchar *		file_name)
 	      par->pixfmt = RTE_PIXFMT_YUYV;
 	      /* defaults */
 	    }
-	  
-	  //	  if (!zapping_info->num_standards)
-	  if (1)
+
+	  if (zapping_info->cur_video_standard)
+	    {
+	      captured_frame_rate =
+		zapping_info->cur_video_standard->frame_rate;
+	    }
+	  else
 	    {
 	      captured_frame_rate = videostd_inquiry ();
 	      
@@ -497,11 +502,6 @@ do_start			(const gchar *		file_name)
 		  context_enc = NULL;
 		  return FALSE;
 		}
-	    }
-	  else
-	    {
-	      captured_frame_rate = zapping_info->standards
-		[zapping_info->cur_standard].frame_rate;
 	    }
 
 	  /* not supported by all codecs */
@@ -1578,26 +1578,26 @@ saving_dialog_new		(gboolean		recording)
 
   saving_dialog = build_widget ("window3", "mpeg_properties.glade2");
 
-  if ((pixmap = z_load_pixmap ("time.png")))
+  if ((pixmap = z_gtk_image_new_from_pixdata (&time_png)))
     gtk_table_attach (GTK_TABLE (lookup_widget (saving_dialog, "table4")),
 		      pixmap, 0, 1, 0, 1, 0, 0, 3, 0);
-  if ((pixmap = z_load_pixmap ("drop.png")))
+  if ((pixmap = z_gtk_image_new_from_pixdata (&drop_png)))
     gtk_table_attach (GTK_TABLE (lookup_widget (saving_dialog, "table5")),
 		      pixmap, 0, 1, 0, 1, 0, 0, 3, 0);
-  if ((pixmap = z_load_pixmap ("disk_empty.png")))
+  if ((pixmap = z_gtk_image_new_from_pixdata (&disk_empty_png)))
     gtk_table_attach (GTK_TABLE (lookup_widget (saving_dialog, "table7")),
 		      pixmap, 0, 1, 0, 1, 0, 0, 3, 0);
-  if ((pixmap = z_load_pixmap ("volume.png")))
+  if ((pixmap = z_gtk_image_new_from_pixdata (&volume_png)))
     gtk_table_attach (GTK_TABLE (lookup_widget (saving_dialog, "table8")),
 		      pixmap, 0, 1, 0, 1, 0, 0, 3, 0);
 
-  if ((pixmap = z_load_pixmap ("record.png")))
+  if ((pixmap = z_gtk_image_new_from_pixdata (&record_png)))
    gtk_box_pack_start (GTK_BOX (lookup_widget (saving_dialog, "hbox20")),
 		       pixmap, FALSE, FALSE, 0);
-  if ((pixmap = z_load_pixmap ("pause.png")))
+  if ((pixmap = z_gtk_image_new_from_pixdata (&pause_png)))
    gtk_box_pack_start (GTK_BOX (lookup_widget (saving_dialog, "hbox22")),
 		       pixmap, FALSE, FALSE, 0);
-  if ((pixmap = z_load_pixmap ("stop.png")))
+  if ((pixmap = z_gtk_image_new_from_pixdata (&stop_png)))
    gtk_box_pack_start (GTK_BOX (lookup_widget (saving_dialog, "hbox24")),
 		       pixmap, FALSE, FALSE, 0);
 
@@ -1819,7 +1819,9 @@ plugin_add_gui			(GnomeApp *		app)
   GtkWidget *tmp_toolbar_icon;
   gint sig_id;
 
-  tmp_toolbar_icon = z_load_pixmap ("recordtb.png");
+  tmp_toolbar_icon =
+    gtk_image_new_from_stock ("zapping-recordtb",
+			      GTK_ICON_SIZE_LARGE_TOOLBAR);
 
   button = gtk_toolbar_append_item (GTK_TOOLBAR (toolbar1),
 				    _("Record"),
