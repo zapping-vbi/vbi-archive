@@ -1,7 +1,7 @@
 #
 #  MPEG-1 Real Time Encoder
 # 
-#  Copyright (C) 1999-2000 Michael H. Schimek
+#  Copyright (C) 1999-2001 Michael H. Schimek
 # 
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 #  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 
-# $Id: vlc_mmx.s,v 1.2 2000-09-25 17:08:57 mschimek Exp $
+# $Id: vlc_mmx.s,v 1.3 2001-06-29 01:29:10 mschimek Exp $
 
 # int
 # p6_mpeg1_encode_intra(void)
@@ -31,13 +31,11 @@ p6_mpeg1_encode_intra:
 
 	pushl		%ebp;
 	pushl		%edi;
-	pushl		%edx;
 	leal		dc_vlc_intra,%edi;
 	pushl		%esi;
 	leal		mblock+0*128+768,%esi;
 	pushl		%ebx;
 	movl		video_out,%ebp;
-	pushl		%ecx;
 	movl		dc_dct_pred,%ebx;
 	call		1f;
 	movswl		mblock+0*128+768,%ebx;
@@ -71,19 +69,17 @@ p6_mpeg1_encode_intra:
 	movl		$2,%ecx;
 	movl		$2,%edx;
 	call		bputl;
-	movl		(%esp),%ecx;
-	movl		4(%esp),%ebx;
-	movl		8(%esp),%esi;
+	movl		(%esp),%ebx;
+	movl		4(%esp),%esi;
 	xorl		%eax,%eax;
-	movl		12(%esp),%edx;
-	movl		16(%esp),%edi;
-	movl		20(%esp),%ebp;
-	leal		24(%esp),%esp;
+	movl		8(%esp),%edi;
+	movl		12(%esp),%ebp;
+	leal		16(%esp),%esp;
 	ret;
 
 	.align	16
 
-1:	movl		%esp,mm8;
+1:	movd		%esp,%mm6;
 	movl		$0,%ecx;
 	movswl		(%esi),%eax;			
 	subl		%ebx,%eax;
@@ -112,7 +108,7 @@ p6_mpeg1_encode_intra:
 	incl		%esp;
 	leal		(%edi,%ecx,2),%edi;
 	jle		2b;
-	movl		mm8,%esp;
+	movd		%mm6,%esp;
 	ret;
 
 3:	cdq;
@@ -135,7 +131,7 @@ p6_mpeg1_encode_intra:
 	incl		%esp;			
 	por		%mm2,%mm7;
 	jle		2b;
-	movl		mm8,%esp;
+	movd		%mm6,%esp;
 	ret;
 
 5:	movzbl		(%edi),%ecx;			
@@ -155,14 +151,12 @@ p6_mpeg1_encode_intra:
 	addl		$28,%ebp;
 	jle		4b;
 
-	movl		$4,%esp;
+	movd		%mm6,%esp;
 	movl		$1,%eax;
-	addl		mm8,%esp;
-	popl		%ecx;				
+	addl		$4,%esp;
 	popl		%ebx;
-	popl		%esi;				
-	popl		%edx;
-	popl		%edi;				
+	popl		%esi;
+	popl		%edi;
 	popl		%ebp;
 	ret;
 
@@ -192,7 +186,7 @@ p6_mpeg1_encode_intra:
 	movl		%eax,(%ecx);			
 	movl		%edx,video_out+4;		
 	jle		2b;
-	movl		mm8,%esp;
+	movd		%mm6,%esp;
 	ret;
 
 # int
@@ -249,7 +243,7 @@ p6_mpeg1_encode_inter:
 
 1:	movswl		(%esi),%eax;
 	movl		$0,%ebp;
-	movl		%esp,mm8;	
+	movd		%esp,%mm6;
 	movl		video_out,%ebx;
 	movl		$-63,%esp;
 	leal		ac_vlc_zero,%edi;		
@@ -275,7 +269,7 @@ p6_mpeg1_encode_inter:
 	jle		3b;
 
 0:	movl		%ebx,video_out;
-	movl		mm8,%esp;
+	movd		%mm6,%esp;
 	movl		$video_out,%eax;
 	movl		$2,%ecx;
 	movl		$2,%edx;		
@@ -321,11 +315,11 @@ p6_mpeg1_encode_inter:
 	addb		$28,%bl;
 	jle		9b;
 
-	movl		$4,%esp;
-	addl		mm8,%esp;
+	movd		%mm6,%esp;
+	movl		$1,%eax;
+	addl		$4,%esp;
 	popl		%ebx;
 	popl		%edi;
-	movl		$1,%eax;
 	popl		%ebp;
 	popl		%esi;
 	ret;

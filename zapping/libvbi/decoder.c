@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: decoder.c,v 1.6 2001-06-23 02:50:44 mschimek Exp $ */
+/* $Id: decoder.c,v 1.7 2001-06-29 01:29:09 mschimek Exp $ */
 
 /*
     XXX NTSC transmits 0-4 (AFAIS) CC packets per frame,
@@ -28,6 +28,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include "decoder.h"
 #include "../common/math.h"
 
@@ -36,28 +37,61 @@
  */
 
 #define OVERSAMPLING 4		// 1, 2, 4, 8
+#define THRESH_FRAC 9
 
 static inline int
-sample(unsigned char *raw, int offs)
+sample(struct bit_slicer *d, unsigned char *raw, int offs, int bpp)
 {
 	unsigned char frac = offs;
+	int raw0, raw1;
 
-	raw += offs >> 8;
+	switch (bpp) {
+	case 15:
+		raw += (offs >> 8) * 2;
+		raw0 = (raw[0] + raw[1] * 256) & 0x03E0;
+		raw1 = (raw[2] + raw[3] * 256) & 0x03E0;
+		return (raw1 - raw0) * frac + (raw0 << 8);
 
-	return (raw[1] - raw[0]) * frac + (raw[0] << 8);
+	case 16:
+		raw += (offs >> 8) * 2;
+		raw0 = (raw[0] + raw[1] * 256) & 0x07E0;
+		raw1 = (raw[2] + raw[3] * 256) & 0x07E0;
+		return (raw1 - raw0) * frac + (raw0 << 8);
+
+	default:
+		raw += (offs >> 8) * bpp;
+		return (raw[bpp] - raw[0]) * frac + (raw[0] << 8);
+	}
 }
 
-bool
-bit_slicer(struct bit_slicer *d, unsigned char *raw, unsigned char *buf)
+static inline bool
+bit_slicer_tmp(struct bit_slicer *d, unsigned char *raw, unsigned char *buf, int bpp)
 {
-	int i, j, k, cl = 0, thresh0 = d->thresh;
+	int i, j, k, cl = 0, thresh0 = d->thresh, tr;
 	unsigned int c = 0, t;
-	unsigned char b, b1 = 0, tr;
+	unsigned char b, b1 = 0;
+	int raw0, raw1, mask;
 
-	for (i = d->cri_bytes; i > 0; raw++, i--) {
-		tr = d->thresh >> 9;
-		d->thresh += ((int) raw[0] - tr) * nbabs(raw[1] - raw[0]);
-		t = raw[0] * OVERSAMPLING;
+	raw += d->skip;
+
+	if (bpp == 15)
+		mask = 0x03E0;
+	else if (bpp == 16)
+		mask = 0x07E0;
+
+	for (i = d->cri_bytes; i > 0; raw += (bpp == 15 || bpp == 16) ? 2 : bpp, i--) {
+		if (bpp == 15 || bpp == 16) {
+			raw0 = (raw[0] + raw[1] * 256) & mask;
+			raw1 = (raw[2] + raw[3] * 256) & mask;
+			tr = d->thresh >> THRESH_FRAC;
+			d->thresh += ((raw0 - tr) * (int) nbabs(raw1 - raw0)) >>
+				((bpp == 15) ? 2 : 3);
+			t = raw0 * OVERSAMPLING;
+		} else {
+			tr = d->thresh >> THRESH_FRAC;
+			d->thresh += ((int) raw[0] - tr) * (int) nbabs(raw[bpp] - raw[0]);
+			t = raw[0] * OVERSAMPLING;
+		}
 
 		for (j = OVERSAMPLING; j > 0; j--) {
 			b = ((t + (OVERSAMPLING / 2)) / OVERSAMPLING >= tr);
@@ -74,10 +108,11 @@ bit_slicer(struct bit_slicer *d, unsigned char *raw, unsigned char *buf)
 
 					if ((c & d->cri_mask) == d->cri) {
 						i = d->phase_shift;
+						tr *= 256;
 						c = 0;
 
 						for (j = d->frc_bits; j > 0; j--) {
-							c = c * 2 + (sample(raw, i) >= (tr * 256));
+							c = c * 2 + (sample(d, raw, i, bpp) >= tr);
     							i += d->step;
 						}
 
@@ -88,7 +123,7 @@ bit_slicer(struct bit_slicer *d, unsigned char *raw, unsigned char *buf)
 						case 3:
 							for (j = 0; j < d->payload; j++) {
 					    			c >>= 1;
-								c += (sample(raw, i) >= tr) << 7;
+								c += (sample(d, raw, i, bpp) >= tr) << 7;
 			    					i += d->step;
 
 								if ((j & 7) == 7)
@@ -100,7 +135,7 @@ bit_slicer(struct bit_slicer *d, unsigned char *raw, unsigned char *buf)
 
 						case 2:
 							for (j = 0; j < d->payload; j++) {
-								c = c * 2 + (sample(raw, i) >= tr);
+								c = c * 2 + (sample(d, raw, i, bpp) >= tr);
 			    					i += d->step;
 
 								if ((j & 7) == 7)
@@ -114,7 +149,7 @@ bit_slicer(struct bit_slicer *d, unsigned char *raw, unsigned char *buf)
 							for (j = d->payload; j > 0; j--) {
 								for (k = 0; k < 8; k++) {
 						    			c >>= 1;
-									c += (sample(raw, i) >= tr * 256) << 7;
+									c += (sample(d, raw, i, bpp) >= tr) << 7;
 			    						i += d->step;
 								}
 
@@ -126,7 +161,7 @@ bit_slicer(struct bit_slicer *d, unsigned char *raw, unsigned char *buf)
 						case 0:
 							for (j = d->payload; j > 0; j--) {
 								for (k = 0; k < 8; k++) {
-									c = c * 2 + (sample(raw, i) >= tr * 256);
+									c = c * 2 + (sample(d, raw, i, bpp) >= tr);
 			    						i += d->step;
 								}
 
@@ -144,8 +179,13 @@ bit_slicer(struct bit_slicer *d, unsigned char *raw, unsigned char *buf)
 			b1 = b;
 
 			if (OVERSAMPLING > 1) {
-				t += raw[1];
-				t -= raw[0];
+				if (bpp == 15 || bpp == 16) {
+					t += raw1;
+					t -= raw0;
+				} else {
+					t += raw[bpp];
+					t -= raw[0];
+				}
 			}
 		}
 	}
@@ -155,22 +195,102 @@ bit_slicer(struct bit_slicer *d, unsigned char *raw, unsigned char *buf)
 	return FALSE;
 }
 
-void
+bool
+bit_slicer_1(struct bit_slicer *d, unsigned char *raw, unsigned char *buf)
+{
+	return bit_slicer_tmp(d, raw, buf, 1);
+}
+
+static bool
+bit_slicer_2(struct bit_slicer *d, unsigned char *raw, unsigned char *buf)
+{
+	return bit_slicer_tmp(d, raw, buf, 2);
+}
+
+static bool
+bit_slicer_3(struct bit_slicer *d, unsigned char *raw, unsigned char *buf)
+{
+	return bit_slicer_tmp(d, raw, buf, 3);
+}
+
+static bool
+bit_slicer_4(struct bit_slicer *d, unsigned char *raw, unsigned char *buf)
+{
+	return bit_slicer_tmp(d, raw, buf, 4);
+}
+
+static bool
+bit_slicer_5551(struct bit_slicer *d, unsigned char *raw, unsigned char *buf)
+{
+	return bit_slicer_tmp(d, raw, buf, 15);
+}
+
+static bool
+bit_slicer_565(struct bit_slicer *d, unsigned char *raw, unsigned char *buf)
+{
+	return bit_slicer_tmp(d, raw, buf, 16);
+}
+
+bit_slicer_fn *
 init_bit_slicer(struct bit_slicer *d,
-	int raw_bytes, int sampling_rate, int cri_rate, int bit_rate,
+	int raw_samples, int sampling_rate, int cri_rate, int bit_rate,
 	unsigned int cri_frc, unsigned int cri_mask,
-	int cri_bits, int frc_bits, int payload, int modulation)
+	int cri_bits, int frc_bits, int payload, int modulation, int fmt)
 {
 	unsigned int c_mask = (unsigned int)(-(cri_bits > 0)) >> (32 - cri_bits);
 	unsigned int f_mask = (unsigned int)(-(frc_bits > 0)) >> (32 - frc_bits);
+	void *bsf = bit_slicer_1;
+	int gsh = 0;
+
+	switch (fmt) {
+	case 0: /* RGB / BGR 888 */
+		bsf = bit_slicer_3;
+		d->skip = 1;
+		break;
+
+	case 1: /* RGBA / BGRA 8888 */
+		bsf = bit_slicer_4;
+		d->skip = 1;
+		break;
+
+	case 2: /* RGB / BGR 565 */
+		bsf = bit_slicer_565;
+		gsh = 3; /* (green << 3) & 0x07E0 */
+		d->skip = 0;
+		break;
+
+	case 3: /* RGB / BGR 5551 */
+		bsf = bit_slicer_5551;
+		gsh = 2; /* (green << 2) & 0x03E0 */
+		d->skip = 0;
+		break;
+
+	case 8: /* YUV 4:2:0 */
+		bsf = bit_slicer_1;
+		d->skip = 0;
+		break;
+
+	case 9: /* YUYV / YVYU */
+		bsf = bit_slicer_2;
+		d->skip = 0;
+		break;
+
+	case 10: /* UYVY / VYUY */
+		bsf = bit_slicer_2;
+		d->skip = 1;
+		break;
+
+	default:
+		assert(0);
+	}
 
 	d->cri_mask		= cri_mask & c_mask;
 	d->cri		 	= (cri_frc >> frc_bits) & d->cri_mask;
-	d->cri_bytes		= raw_bytes
+	d->cri_bytes		= raw_samples
 		- ((long long) sampling_rate * (payload + frc_bits)) / bit_rate;
 	d->cri_rate		= cri_rate;
 	d->oversampling_rate	= sampling_rate * OVERSAMPLING;
-	d->thresh		= 105 << 9;
+	d->thresh		= 105 << (THRESH_FRAC + gsh);
 	d->frc			= cri_frc & f_mask;
 	d->frc_bits		= frc_bits;
 	d->step			= sampling_rate * 256.0 / bit_rate;
@@ -198,6 +318,8 @@ init_bit_slicer(struct bit_slicer *d,
 			         + sampling_rate * 256.0 / bit_rate * .25 + 128;
 		break;
 	}
+
+	return bsf;
 }
 
 /*
@@ -333,7 +455,7 @@ vbi_decoder(struct vbi_decoder *vbi, unsigned char *raw1, vbi_sliced *out1)
 		for (pat = pattern;; pat++) {
 			if ((j = *pat) > 0) {
 				job = vbi->jobs + (j - 1);
-				if (!bit_slicer(&job->slicer, raw + job->offset, out->data))
+				if (!bit_slicer_1(&job->slicer, raw + job->offset, out->data))
 					continue;
 				if (job->id == SLICED_WSS_CPR1204) {
 					const int poly = (1 << 6) + (1 << 1) + 1;
@@ -545,7 +667,8 @@ add_vbi_services(struct vbi_decoder *vbi, unsigned int services, int strict)
 				vbi_services[i].cri_bits,
 				vbi_services[i].frc_bits,
 				vbi_services[i].payload,
-				vbi_services[i].modulation);
+				vbi_services[i].modulation,
+				8 /* YUV 4:2:0 (sort of) */);
 
 		if (job >= vbi->jobs + vbi->num_jobs)
 			vbi->num_jobs++;

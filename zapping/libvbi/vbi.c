@@ -114,7 +114,7 @@ decode_wss_625(struct vbi *vbi, unsigned char *buf)
 	if (!(parity & 1))
 		return;
 
-	if (0) {
+	if (1) {
 		static const char *formats[] = {
 			"Full format 4:3, 576 lines",
 			"Letterbox 14:9 centre, 504 lines",

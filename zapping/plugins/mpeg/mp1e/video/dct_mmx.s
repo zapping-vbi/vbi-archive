@@ -1,7 +1,7 @@
 #
 #  MPEG-1 Real Time Encoder
 # 
-#  Copyright (C) 1999-2000 Michael H. Schimek
+#  Copyright (C) 1999-2001 Michael H. Schimek
 # 
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 #  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 
-# $Id: dct_mmx.s,v 1.6 2000-11-30 09:36:38 mschimek Exp $
+# $Id: dct_mmx.s,v 1.7 2001-06-29 01:29:10 mschimek Exp $
 
 	.text
 	.align		16
@@ -28,9 +28,11 @@
 
 mmx_fdct_intra:
 
-	pushl		%esi;				movzbl		ltp(%eax),%esi;
-	pushl		%ecx;				sall		$7,%esi;
-	movzbl		mmx_q_fdct_intra_sh(%eax),%eax;	xorl		%ecx,%ecx;
+	pushl		%esi;
+	movzbl		ltp(%eax),%esi;
+	xorl		%ecx,%ecx;
+	movzbl		mmx_q_fdct_intra_sh(%eax),%eax;
+	sall		$7,%esi;
 	movl		%eax,csh;			decl		%eax;
 	bts		%eax,%ecx;			addl		$mmx_q_fdct_intra_q_lut,%esi;
 	pushl		%ebx;				addl		$16,%eax;
@@ -248,8 +250,7 @@ mmx_fdct_intra:
 	movq		%mm4,2*16-128+768(%eax);	psraw		%mm2,%mm1;
 	movq		%mm1,6*16-128+768(%eax);	jne		1b;
 
-	popl		%ebx;			
-	popl		%ecx;				
+	popl		%ebx;				
 	popl		%esi;
 	ret
 
@@ -262,7 +263,7 @@ mmx_fdct_inter:
 	pushl		%ebx;				movl		$mblock+768*2,%ebx;
 	pushl		%esi;				cmpl		%eax,%ebx;
 	pushl		%edi;				movl		%eax,%esi;
-	pushl		%ecx;				movl		$0,%eax;
+	movl		$0,%eax;
 	movl		$mblock-128,%edi;		movl		$6,%ecx;
 	jne		1f;
 	movl		$mblock+768*1,%ebx;
@@ -877,7 +878,6 @@ mmx_fdct_inter:
 	decl		%ecx;
 	jne		1b;
 
-	popl		%ecx;
 	popl		%edi;
 	popl		%esi;
 	xorb		$63,%al;
@@ -2413,11 +2413,9 @@ mmx_mpeg1_idct_intra2:
 
 mmx_copy_refblock:
 
-	pushl		%eax;
 	movl		$mblock+3*6*128,%eax;
 	pushl		%ebx;
 	movl		$mb_address,%ebx;
-	pushl		%edx;			
 	movl		newref,%edx;
 	pushl		%esi;			
 	pushl		%edi;
@@ -2447,7 +2445,5 @@ mmx_copy_refblock:
 
 	popl		%edi;			
 	popl		%esi;
-	popl		%edx;			
 	popl		%ebx;			
-	popl		%eax;
 	ret;

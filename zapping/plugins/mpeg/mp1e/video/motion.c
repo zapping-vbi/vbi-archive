@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: motion.c,v 1.9 2001-06-23 02:50:44 mschimek Exp $ */
+/* $Id: motion.c,v 1.10 2001-06-29 01:29:10 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -1951,27 +1951,27 @@ search(int *dhx, int *dhy, unsigned char *from,
 	hrange = (range > 8) ? ((range + 15) & -16) >> 1 : 4; 
 	vrange >>= 2;
 
-	if (x0 < 0) {
+	if (__builtin_expect(x0 < 0, 0)) {
 		x0 = 0;
 		x1 = hrange;
-	} else if (x1 > mb_last_col * 16) {
+	} else if (__builtin_expect(x1 > mb_last_col * 16, 0)) {
 		x1 = mb_last_col * 16;
 		x0 = x1 - hrange;
 	}
-				if (y0 < 0) {
+				if (__builtin_expect(y0 < 0, 0)) {
 					y0 = 0;
 					y1 = vrange;
-				} else if (y1 > mb_last_row * 16) {
+				} else if (__builtin_expect(y1 > mb_last_row * 16, 0)) {
 					y1 = mb_last_row * 16;
 					y0 = y1 - vrange;
 				}
-
+/*
 	if (!((x1 - x0) == 4 || ((x1 - x0) & 7) == 0)) {
 		fprintf(stderr, "x0=%d x1=%d hrange=%d range=%d\n",
 			x0, x1, hrange, range);
 	}
 	assert((x1 - x0) == 4 || ((x1 - x0) & 7) == 0);
-
+*/
 	bbmin = MMXRW(0xFFFE - 0x8000);
 	bbdxy = MMXRW(0x0000);
 
@@ -1984,7 +1984,7 @@ search(int *dhx, int *dhy, unsigned char *from,
 		crdy0.b[k * 2 + 1] = y0 - y - 1;
 	}
 
-	if ((x1 - x0) > 4)
+	if (__builtin_expect((x1 - x0) > 4, 1))
 		for (j = y0; j < y1; p += mb_address.block[0].pitch, j++) {
 			asm volatile (
 				" movq		crdy0,%mm0;\n"
@@ -2032,7 +2032,7 @@ search(int *dhx, int *dhy, unsigned char *from,
 	*dhx = dx * 2;		*dhy = dy * 2;
 
 #if TEST11
-	if (min < (16 * 256) && !(dx | dy)) {
+	if (__builtin_expect(min < (16 * 256) && !(dx | dy), 0)) {
 
 	x *= 2;			y *= 2;
 	dx *= 2;		dy *= 2;
@@ -2117,7 +2117,7 @@ search(int *dhx, int *dhy, unsigned char *from,
 	 *  the usual case. We use sad2h, avoiding another sad routine.
 	 *  XXX the second result should be used.
 	 */
-	if ((dx | dy) & 1) {
+	if (__builtin_expect((dx | dy) & 1, 0)) {
 		// act = sad1(tbuf, *pat1, iright, idown); mini[1][1] = act;
 		act = mmx_sad2h(tbuf, *pat1, idown, &act2);
 		mini[1][1] = iright ? act2 : act;

@@ -18,7 +18,7 @@
 #  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 
-# $Id: motion_mmx.s,v 1.6 2001-06-05 17:52:08 mschimek Exp $
+# $Id: motion_mmx.s,v 1.7 2001-06-29 01:29:10 mschimek Exp $
 
 		.text
 		.align		16
@@ -26,7 +26,6 @@
 
 mmx_predict_forward_packed:
 
-		pushl		%ecx
 		pxor		%mm5,%mm5;
 		movl		$mblock,%ecx
 		movq		(%eax),%mm0;
@@ -147,7 +146,6 @@ mmx_predict_forward_packed:
 		pslld		$8,%mm7;
 		movd		%mm7,%eax;
 		subl		%ecx,%eax;
-		popl		%ecx
 		ret
 
 		.text
@@ -165,7 +163,6 @@ mmx_predict_forward_planar:
 		pxor		%mm7,%mm7;
 		pushl		%ebx
 		movl		$mblock,%ebx
-		pushl		%ecx
 		movl		mb_address+4,%ecx
 		leal		8(%eax,%ecx,8),%esi
 
@@ -326,7 +323,6 @@ mmx_predict_forward_planar:
 		leal		32(%ecx),%ecx;
 		jne		1b;
 
-		popl		%ecx
 		popl		%ebx
 		popl		%esi
 		popl		%edi

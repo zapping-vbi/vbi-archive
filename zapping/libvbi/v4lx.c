@@ -18,7 +18,8 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.20 2001-06-28 20:05:25 garetxe Exp $ */
+/* $Id: v4lx.c,v 1.21 2001-06-29 01:29:09 mschimek Exp $ */
+
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
@@ -65,6 +66,7 @@ typedef struct {
 
 	struct vbi_decoder	dec;			/* raw vbi decoder context */
 
+	bit_slicer_fn *		wss_slicer_fn;
 	struct bit_slicer	wss_slicer;
 
 	int			fd;
@@ -83,9 +85,7 @@ typedef struct {
 
 #define WSS_TEST 0
 #if WSS_TEST
-
 static unsigned char wss_test_data[768 * 4];
-
 #endif
 
 /*
@@ -131,7 +131,6 @@ wait_full_read(fifo *f)
 	b->used = sizeof(vbi_sliced) *
 		vbi_decoder(&vbi->dec, vbi->raw_buffer[0].data,
 			    (vbi_sliced *) b->data);
-
 	return b;
 }
 
@@ -204,16 +203,39 @@ read_thread(void *p)
 				stacked++;
 				continue;
 			}
-		} else /* (back) on track */ 
+		} else { /* (back) on track */ 
 			for (stacked_time = 0.0; stacked > 0; stacked--) {
 				buffer *b = (buffer *) rem_head(&stack);
 
 				b->time = last_time += vbi->time_per_frame; 
 				send_full_buffer(f, b);
 			}
+		}
 
 		last_time = b->time;
 		send_full_buffer(f, b);
+
+#if WSS_TEST
+		if (vbi->wss_slicer_fn) {
+			static unsigned char temp[2];
+			vbi_sliced *s;
+
+			if (vbi->wss_slicer_fn(&vbi->wss_slicer, wss_test_data, temp)) {
+				b = wait_empty_buffer(f);
+
+				s = (void *) b->data = b->allocated;
+				s->id = SLICED_WSS_625;
+				s->line = 23;
+				s->data[0] = temp[0];
+				s->data[1] = temp[1];
+
+				b->time = last_time;
+				b->used = sizeof(vbi_sliced);
+
+				send_full_buffer(f, b);
+			}
+		}
+#endif
 	}
 
 	return NULL;
@@ -676,6 +698,7 @@ wait_full_stream(fifo *f)
 	vbi_device *vbi = PARENT(f, vbi_device, fifo);
 	struct v4l2_buffer vbuf;
 	struct timeval tv;
+	double time;
 	fd_set fds;
 	buffer *b;
 	int r;
@@ -721,7 +744,7 @@ wait_full_stream(fifo *f)
 		}
 
 		b->data = b->allocated;
-		b->time = vbuf.timestamp / 1e9;
+		b->time = time = vbuf.timestamp / 1e9;
 
 		b->used = sizeof(vbi_sliced) *
 			vbi_decoder(&vbi->dec, vbi->raw_buffer[vbuf.index].data,
@@ -739,6 +762,27 @@ wait_full_stream(fifo *f)
 			send_full_buffer(f, b);
 		else
 			return b;
+#if WSS_TEST
+		if (vbi->wss_slicer_fn) {
+			static unsigned char temp[2];
+			vbi_sliced *s;
+
+			if (vbi->wss_slicer_fn(&vbi->wss_slicer, wss_test_data, temp)) {
+				b = wait_empty_buffer(f);
+
+				s = (void *) b->data = b->allocated;
+				s->id = SLICED_WSS_625;
+				s->line = 23;
+				s->data[0] = temp[0];
+				s->data[1] = temp[1];
+
+				b->time = time;
+				b->used = sizeof(vbi_sliced);
+
+				send_full_buffer(f, b);
+			}
+		}
+#endif
 	}
 
 	return NULL;
@@ -1069,8 +1113,10 @@ open_v4l2(vbi_device **pvbi, char *dev_name,
 
 #if WSS_TEST
 
+/* 0001 0100 000 000 == Full 4:3, PALPlus, other flags zero */
+
 static const unsigned char
-genuine_pal_wss_green[768] = {
+genuine_pal_wss_green[720] = {
 	 54, 76, 92, 82, 81, 73, 63, 91,200,254,253,183,162,233,246,195,
 	190,224,247,237,203,150, 80, 23, 53,103, 93, 38, 61,172,244,243,
 	240,202,214,251,233,125, 44, 34, 59, 95, 86, 40, 54,149,235,255,
@@ -1102,15 +1148,37 @@ genuine_pal_wss_green[768] = {
 static void
 wss_test_init(vbi_device *vbi)
 {
+	static const int std_widths[] = {
+		768, 704, 640, 384, 352, 320, 192, 176, 160, -160
+	};
 	unsigned char *p = wss_test_data;
-	int i, g, r, mode, bpp;
+	int i, j, g, fmt, width, spl, bpp = 0;
+	int sampling_rate;
 
-	mode = 0;
+	printf("WSS test enabled\n");
 
-	for (i = 0; i < 768; i++) {
-		g = genuine_pal_wss_green[i];
+	fmt = 2;	/* see below */
+	width = 352;	/* pixels per line; assume a line length
+			   of 52 usec, i.e. no clipping */
 
-		switch (mode) {
+	/* use this for capture widths reported by the driver, not scaled images */
+	for (i = 0; width < ((std_widths[i] + std_widths[i + 1]) >> 1); i++);
+
+	spl = std_widths[i]; /* samples in 52 usec */
+	sampling_rate = spl / 52.148e-6;
+
+	memset(wss_test_data, 0, sizeof wss_test_data);
+
+	for (i = 0; i < width; i++) {
+		double off = i * 704 / (double) spl;
+
+		j = off;
+		off -= j;
+
+		g = (genuine_pal_wss_green[j + 1] * off
+		    + genuine_pal_wss_green[j + 0] * (1 - off));
+
+		switch (fmt) {
 		case 0: /* RGB / BGR 888 */
 			*p++ = rand();
 			*p++ = g;
@@ -1128,7 +1196,7 @@ wss_test_init(vbi_device *vbi)
 
 		case 2: /* RGB / BGR 565 */
 			g <<= 3;
-			g ^= rand & 0xF81F;
+			g ^= rand() & 0xF81F;
 			*p++ = g;
 			*p++ = g >> 8;
 			bpp = 2;
@@ -1136,54 +1204,35 @@ wss_test_init(vbi_device *vbi)
 
 		case 3: /* RGB / BGR 5551 */
 			g <<= 2;
-			g ^= rand & 0xFC1F;
+			g ^= rand() & 0xFC1F;
 			*p++ = g;
 			*p++ = g >> 8;
 			bpp = 2;
 			break;
+
+		case 8: /* YUV 4:2:0 */
+			*p++ = g;
+			bpp = 1;
+			break;
+
+		case 9: /* YUYV / YVYU */
+			*p++ = g;
+			*p++ = rand();
+			bpp = 2;
+			break;
+
+		case 10: /* UYVY / VYUY */
+			*p++ = rand();
+			*p++ = g;
+			bpp = 2;
+			break;
+		}
 	}
 
-	unsigned int c_mask = (unsigned int)(-(cri_bits > 0)) >> (32 - cri_bits);
-	unsigned int f_mask = (unsigned int)(-(frc_bits > 0)) >> (32 - frc_bits);
-
-	d->cri_mask		= cri_mask & c_mask;
-	d->cri		 	= (cri_frc >> frc_bits) & d->cri_mask;
-	d->cri_bytes		= raw_bytes
-		- ((long long) sampling_rate * (payload + frc_bits)) / bit_rate;
-	d->cri_rate		= cri_rate;
-	d->oversampling_rate	= sampling_rate * OVERSAMPLING;
-	d->thresh		= 105 << 9;
-	d->frc			= cri_frc & f_mask;
-	d->frc_bits		= frc_bits;
-	d->step			= sampling_rate * 256.0 / bit_rate;
-
-	if (payload & 7) {
-		d->payload	= payload;
-		d->endian	= 3;
-	} else {
-		d->payload	= payload >> 3;
-		d->endian	= 1;
-	}
-
-	switch (modulation) {
-	case MOD_NRZ_MSB_ENDIAN:
-		d->endian--;
-	case MOD_NRZ_LSB_ENDIAN:
-		d->phase_shift = sampling_rate * 256.0 / cri_rate * .5
-			         + sampling_rate * 256.0 / bit_rate * .5 + 128;
-		break;
-
-	case MOD_BIPHASE_MSB_ENDIAN:
-		d->endian--;
-	case MOD_BIPHASE_LSB_ENDIAN:
-		d->phase_shift = sampling_rate * 256.0 / cri_rate * .5
-			         + sampling_rate * 256.0 / bit_rate * .25 + 128;
-		break;
-	}
-
+	vbi->wss_slicer_fn =
 	init_bit_slicer(&vbi->wss_slicer, 
-		int raw_bytes,
-		int sampling_rate, 
+		width,
+		sampling_rate, 
 		/* cri_rate */ 5000000, 
 		/* bit_rate */ 833333,
 		/* cri_frc */ 0xC71E3C1F, 
@@ -1191,14 +1240,11 @@ wss_test_init(vbi_device *vbi)
 		/* cri_bits */ 32, 
 		/* frc_bits */ 0, 
 		/* payload */ 14 * 1,
-		MOD_BIPHASE_LSB_ENDIAN);
+		MOD_BIPHASE_LSB_ENDIAN,
+		fmt);
 }
 
 #endif
-
-
-
-
 
 #define SLICED_TELETEXT_B	(SLICED_TELETEXT_B_L10_625 | SLICED_TELETEXT_B_L25_625)
 #define SLICED_CAPTION		(SLICED_CAPTION_625_F1 | SLICED_CAPTION_625 \
@@ -1252,6 +1298,10 @@ vbi_open_v4lx(char *dev_name, int given_fd, int buffered, int fifo_depth)
 	if (r < 0)
 		goto failure;
 
+#if WSS_TEST
+	wss_test_init(vbi);
+#endif
+
 	if (!start_fifo(&vbi->fifo)) /* XXX consider moving this into vbi_mainloop */
 		goto failure;
 
@@ -1267,6 +1317,7 @@ failure:
 #else /* !ENABLE_V4L */
 
 #include "../common/fifo.h"
+#include "v4lx.h"
 
 /* Stubs for systems without V4L */
 

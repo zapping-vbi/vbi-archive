@@ -74,14 +74,17 @@ extern int cpu_detection(void);
 #  define FPU_REGS
 #  define SECTION(x)
 #  define emms() asm("\temms\n")
+#  define __builtin_expect(exp, c) (exp)
 # elif __GNUC_MINOR__ < 95 /* egcs [2.91.66] */
 #  define FPU_REGS
 #  define SECTION(x)
 #  define emms() asm("\temms\n")
+#  define __builtin_expect(exp, c) (exp)
 # else /* egcs [2.95.2] */
 #  define FPU_REGS , "st", "st(1)", "st(2)", "st(3)", "st(4)", "st(5)", "st(6)", "st(7)"
 #  define SECTION(x) section (x), 
 #  define emms() do { asm volatile ("\temms\n" ::: "cc" FPU_REGS); } while(0)
+#  define __builtin_expect(exp, c) (exp)
 # endif
 #else
 # error Sorry, your GCC does not exist.

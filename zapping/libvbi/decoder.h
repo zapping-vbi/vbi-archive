@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: decoder.h,v 1.3 2001-06-23 02:50:44 mschimek Exp $ */
+/* $Id: decoder.h,v 1.4 2001-06-29 01:29:09 mschimek Exp $ */
 
 /*
     Only device specific code includes this file.
@@ -48,12 +48,13 @@ struct bit_slicer {
 	int		frc_bits;
 	int		payload;
 	int		endian;
+	int		skip;
 };
 
-bool			(* bit_slicer_fp)(struct bit_slicer *d, void *raw, unsigned char *buf);
+typedef bool (bit_slicer_fn)(struct bit_slicer *d, void *raw, unsigned char *buf);
 
-extern void		init_bit_slicer(struct bit_slicer *d, int raw_bytes, int sampling_rate, int cri_rate, int bit_rate, unsigned int cri_frc, unsigned int cri_mask, int cri_bits, int frc_bits, int payload, int modulation);
-extern bool		bit_slicer(struct bit_slicer *d, unsigned char *raw, unsigned char *buf);
+extern bit_slicer_fn *	init_bit_slicer(struct bit_slicer *d, int raw_samples, int sampling_rate, int cri_rate, int bit_rate, unsigned int cri_frc, unsigned int cri_mask, int cri_bits, int frc_bits, int payload, int modulation, int fmt);
+extern bool		bit_slicer_1(struct bit_slicer *d, unsigned char *raw, unsigned char *buf);
 
 /* Data services */
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.37 2001-06-18 12:33:58 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.38 2001-06-29 01:29:10 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -159,6 +159,8 @@ fifo *			video_fifo;
 #define T3RI 1
 #endif
 
+#define VARQ 65536.0
+
 #if TEST12
 #define LOWVAR 3000000
 #define ZMB1						\
@@ -190,8 +192,20 @@ do { int i, j, n;					\
 
 #endif
 
-#define HOT_AIR 0
+#define USE_SACT 1
+static inline int
+sact(int mb)
+{
+	int i, n, s, s2, j = 4 * 64;
 
+	for (i = s = s2 = 0; i < j; i++) {
+		s += n = mblock[mb][0][0][i];
+		s2 += n * n;
+	}
+
+	n = (unsigned int) s2 * 256 - (s * s);
+	return n;
+}
 
 
 
@@ -209,7 +223,7 @@ do { int i, j, n;					\
 #define macroblock_address(skipped)					\
 do {									\
 	/* this isn't really justified, better limit mb_skipped */	\
-	for (i = (skipped); i >= 33; i -= 33)				\
+	for (i = (skipped); __builtin_expect(i >= 33, 0); i -= 33)	\
 		bputl(&video_out, 0x008, 11); /* mb addr escape */	\
 									\
 	code = macroblock_address_increment[i].code;			\
@@ -287,6 +301,10 @@ tmp_picture_i(unsigned char *org0, unsigned char *org1, int motion)
 			var = (*filter)(org0, org1); // -> mblock[0]
 			pr_end(41);
 
+#if USE_SACT
+			var = sact(0);
+#endif
+
 			if (motion) {
 				pr_start(56, "MB sum");
 				mmx_mbsum(newref + mm_buf_offs); // mblock[0]
@@ -297,7 +315,7 @@ tmp_picture_i(unsigned char *org0, unsigned char *org1, int motion)
 
 			/* Calculate quantization factor */
 
-			act_sum += act = var / 65536.0 + 1;
+			act_sum += act = var / VARQ + 1;
 			act = (2.0 * act + avg_acti) / (act + 2.0 * avg_acti);
 			quant = saturate(lroundn((bwritten(&video_out) - Ti) * r31 * act), 1, quant_max);
 			quant = quant_res_intra[quant];
@@ -328,7 +346,7 @@ if (motion)
 ZMB2;
 				bepilog(&video_out);
 
-				if (!slice) {
+				if (__builtin_expect(!slice, 0)) {
 					bstartq(SLICE_START_CODE);
 					bcatq((quant << 3) + 0x3, 8);
 					bputq(&video_out, 40);
@@ -348,7 +366,7 @@ ZMB2;
 
 				pr_start(44, "Encode intra");
 
-				if (!mpeg1_encode_intra()) { // mblock[1]
+				if (__builtin_expect(!mpeg1_encode_intra(), 1)) { // mblock[1]
 					pr_end(44);
 					break;
 				}
@@ -367,7 +385,7 @@ ZMB2;
 			quant_sum += quant;
 			prev_quant = quant;
 
-			if (referenced) {
+			if (__builtin_expect(referenced, 1)) {
 				pr_start(23, "IDCT intra");
 				mpeg1_idct_intra(quant);	// mblock[1] -> newref
 				pr_end(23);
@@ -451,7 +469,8 @@ ZMB2;									\
 									\
 		pr_start(44, "Encode intra");				\
 									\
-		if (!mpeg1_encode_intra()) { /* mblock[1] */		\
+		if (__builtin_expect(!mpeg1_encode_intra(), 1)) {	\
+					    /* mblock[1] */		\
 			pr_end(44);					\
 			break;						\
 		}							\
@@ -547,8 +566,8 @@ tmp_picture_p(unsigned char *org0, unsigned char *org1, int dist, int forward_mo
 	bprolog(&video_out);
 
 	for (mb_row = 0; mb_row < mb_height; mb_row++) {
-		if (1 && mb_row == mb_cx_row &&
-		    intra_count >= mb_cx_thresh) {
+		if (1 && __builtin_expect(mb_row == mb_cx_row &&
+		    intra_count >= mb_cx_thresh, 0)) {
 			emms();
 			swap(oldref, newref);
 			pr_event(43, "P/cx trap");
@@ -576,17 +595,21 @@ tmp_picture_p(unsigned char *org0, unsigned char *org1, int dist, int forward_mo
 				vmc = predict_forward(oldref + mb_address.block[0].offset);
 				pr_end(51);
 			}
+#if USE_SACT
+			var = sact(0);
+			vmc = sact(1);
+#endif
 
 			emms();
 
-			act_sumi += act = var / 65536.0 + 1;
+			act_sumi += act = var / VARQ + 1;
 
 			/* Encode macroblock */
 
 			if (T3RI
 			    && ((TEST12
 				 && !__builtin_constant_p(forward_motion)
-				 && var < (LOWVAR / 6))
+				 && (var < (LOWVAR / 6)))
 				|| vmc > p_inter_bias))
 			{
 				unsigned int code;
@@ -623,7 +646,7 @@ ZMB1;
 					M[0].PMV[1] = 0;
 				}
 
-				if (referenced) {
+				if (__builtin_expect(referenced, 1)) {
 					pr_start(23, "IDCT intra");
 					mpeg1_idct_intra(quant); // mblock[0] -> new
 					pr_end(23);
@@ -637,7 +660,7 @@ ZMB1;
 
 				/* Calculate quantization factor */
 
-				act_sump += act = vmc / 65536.0 + 1;
+				act_sump += act = vmc / VARQ + 1;
 				act = (2.0 * act + avg_actp) / (act + 2.0 * avg_actp);
 
 				quant = saturate(lroundn((bwritten(&video_out) - Ti) * r31 * act), 1, quant_max);
@@ -735,7 +758,7 @@ if (!T3RT) quant = 2;
 									quant1 = quant;
 								prev_quant = quant;
 				
-								if (referenced) {
+								if (__builtin_expect(referenced, 1)) {
 						    			pr_start(27, "IDCT inter");
 									mpeg1_idct_inter(quant, cbp); // [0] & [3]
 									pr_end(27);
@@ -898,10 +921,11 @@ tmp_picture_b(unsigned char *org0, unsigned char *org1, int dist,
 if (T3RI
     && ((TEST12
          && !__builtin_constant_p(forward_motion)
-	 && var < (int)(LOWVAR / (6 * B_SHARE)))))
+	 && (var < (int)(LOWVAR / (6 * B_SHARE)))
+	 )))
 	goto skip_pred;
 
-			if (!closed_gop) {
+			if (__builtin_expect(!closed_gop, 1)) {
 				pr_start(52, "Predict bidirectional");
 
 				if (!__builtin_constant_p(forward_motion))
@@ -912,6 +936,12 @@ if (T3RI
 						newref + mb_address.block[0].offset,
 						&vmcf, &vmcb);
 				pr_end(52);
+#if USE_SACT
+			var  = sact(0);
+			vmcf = sact(1);
+			vmcb = sact(2);
+			vmc  = sact(3);
+#endif
 
 #define TEST3 0
 if (TEST3) {
@@ -982,7 +1012,7 @@ if (!TEST3)
 			if (T3RI
 			    && ((TEST12
 				 && !__builtin_constant_p(forward_motion)
-				 && var < (int)(LOWVAR / (6 * B_SHARE)))
+				 && (var < (int)(LOWVAR / (6 * B_SHARE))))
 				|| vmc > p_inter_bias))
 			{
 				unsigned int code;
@@ -990,7 +1020,7 @@ if (!TEST3)
 
 				/* Calculate quantization factor */
 
-				act_sum += act = var / 65536.0 + 1;
+				act_sum += act = var / VARQ + 1;
 				act = (2.0 * act + avg_actp) / (act + 2.0 * avg_actp);
 
 				quant = lroundn((bwritten(&video_out) - Ti) * r31 * act);
@@ -1023,7 +1053,7 @@ ZMB1;
 
 				/* Calculate quantization factor */
 
-				act_sum += act = vmc / 65536.0 + 1;
+				act_sum += act = vmc / VARQ + 1;
 				act = (2.0 * act + avg_actp) / (act + 2.0 * avg_actp);
 
     quant = saturate(lroundn((bwritten(&video_out) - Ti) * r31 * act), 1, quant_max);
@@ -1117,7 +1147,7 @@ if (!T3RT) quant = 2;
 
 			pr_start(46, "Encode inter");
 
-			if (!mpeg1_encode_inter(mblock[0], cbp)) {
+			if (__builtin_expect(!mpeg1_encode_inter(mblock[0], cbp), 1)) {
 				pr_end(46);
 
 				bprolog(&video_out);
