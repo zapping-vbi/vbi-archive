@@ -57,11 +57,11 @@ vdr_open			(void)
     signal(SIGPIPE, vdr_close);
     
     if (!(proto_ent=getprotobyname("TCP"))) {
-         fprintf(stderr, "vdr: getprotobyname failed\n");
+         printv("vdr: getprotobyname failed\n");
          return FALSE;
     }
     if ((vdr_sock=socket(PF_INET, SOCK_STREAM, proto_ent->p_proto)) < 0) {
-         fprintf(stderr, "vdr: socket failed\n");
+         printv("vdr: socket failed\n");
          return FALSE;
     }
     vdr_sockaddr.sin_family = PF_INET;
@@ -71,7 +71,7 @@ vdr_open			(void)
     vdr_sockaddr.sin_addr.s_addr = htonl( INADDR_LOOPBACK );
     setsockopt(vdr_sock,SOL_SOCKET,SO_REUSEADDR,&opt,sizeof(opt));
     if (connect(vdr_sock, (struct sockaddr *)&vdr_sockaddr, sizeof(vdr_sockaddr))) {
-         fprintf(stderr, "vdr: connect failed\n");        
+         printv("vdr: connect failed\n");        
          return FALSE;
     }
     fcntl(vdr_sock,F_SETFL,O_NONBLOCK);
@@ -83,7 +83,7 @@ vdr_open			(void)
       if (read(vdr_sock, &c, 1) < 0) {
         if( errno == EAGAIN )
 	  continue;
-	fprintf(stderr, "vdr: initial read failed");
+	printv("vdr: initial read failed");
         close(vdr_sock);
 	vdr_sock = -1;
 	break;
@@ -134,8 +134,8 @@ py_vdr				(PyObject *		self,
 
       if (r != l)
 	{
-	  fprintf (stderr, "vdr write failed: %u %s (%d/%u)",
-		   errno, strerror (errno), r, l);
+	  printv ("vdr write failed: %u %s (%d/%u)",
+		  errno, strerror (errno), r, l);
 	  close(vdr_sock);
 	  vdr_sock = -1;
 	  goto failure;
@@ -147,8 +147,8 @@ py_vdr				(PyObject *		self,
 	if (read(vdr_sock, &c, 1) < 0) {
 	  if (EAGAIN == errno || EINTR == errno)
 	    continue;
-	  fprintf (stderr, "vdr read failed: %u %s",
-		   errno, strerror (errno));
+	  printv ("vdr read failed: %u %s",
+		  errno, strerror (errno));
 	  close(vdr_sock);
 	  vdr_sock = -1;
 	  break;
