@@ -212,6 +212,7 @@ startup_zvbi(void)
   zcc_int(1, "Station related links", "st_trigger");
   zcc_int(1, "Sponsor messages", "sp_trigger");
   zcc_int(1, "Operator messages", "op_trigger");
+  zcc_int(INTERP_MODE, "Quality speed tradeoff", "qstradeoff");
 
   zconf_add_hook("/zapping/options/vbi/enable_vbi",
 		 (ZConfHook)on_vbi_prefs_changed,
@@ -668,7 +669,7 @@ register_ttx_client(void)
 		       0, 0,
 		       (double) w / gdk_pixbuf_get_width(simple),
 		       (double) h / gdk_pixbuf_get_height(simple),
-		       INTERP_MODE);
+		       zcg_int(NULL, "qstradeoff"));
       z_pixbuf_copy_area(client->unscaled_on, 0, 0, w, h,
 			   client->unscaled_off, 0, 0);
       gdk_pixbuf_unref(simple);
@@ -898,9 +899,11 @@ add_patch(struct ttx_client *client, int col, int row, attr_char *ac,
   if (client->w > 0  &&  client->h > 0  && sh > 0)
     {
       patch.scaled_on =
-	z_pixbuf_scale_simple(patch.unscaled_on, sw, sh, INTERP_MODE);
+	z_pixbuf_scale_simple(patch.unscaled_on,
+			      sw, sh, zcg_int(NULL, "qstradeoff"));
       patch.scaled_off =
-	z_pixbuf_scale_simple(patch.unscaled_off, sw, sh, INTERP_MODE);
+	z_pixbuf_scale_simple(patch.unscaled_off, sw, sh,
+			      zcg_int(NULL, "qstradeoff"));
     }
 
   if (!destiny)
@@ -935,12 +938,12 @@ resize_patches(struct ttx_client *client)
 	gdk_pixbuf_unref(client->patches[i].scaled_on);
       client->patches[i].scaled_on =
 	z_pixbuf_scale_simple(client->patches[i].unscaled_on,
-				sw, sh, INTERP_MODE);
+				sw, sh, zcg_int(NULL, "qstradeoff"));
       if (client->patches[i].scaled_off)
 	gdk_pixbuf_unref(client->patches[i].scaled_off);
       client->patches[i].scaled_off =
 	z_pixbuf_scale_simple(client->patches[i].unscaled_off,
-				sw, sh, INTERP_MODE);
+				sw, sh, zcg_int(NULL, "qstradeoff"));
       client->patches[i].dirty = TRUE;
     }
 }
@@ -1105,7 +1108,7 @@ build_client_page(struct ttx_client *client, int page, int subpage)
 			   (double)
 			   gdk_pixbuf_get_height(client->unscaled_on) /
 			   gdk_pixbuf_get_height(simple),
-			   INTERP_MODE);
+			   zcg_int(NULL, "qstradeoff"));
 	  z_pixbuf_copy_area(client->unscaled_on, 0, 0,
 			       gdk_pixbuf_get_width(client->unscaled_on),
 			       gdk_pixbuf_get_height(client->unscaled_off),
@@ -1127,7 +1130,7 @@ build_client_page(struct ttx_client *client, int page, int subpage)
 		     gdk_pixbuf_get_width(client->unscaled_on),
 		     (double) client->h /
 		      gdk_pixbuf_get_height(client->unscaled_on),
-		     INTERP_MODE);
+		     zcg_int(NULL, "qstradeoff"));
 
   build_patches(client);
   refresh_ttx_page_intern(client, NULL);
@@ -1371,7 +1374,7 @@ void resize_ttx_page(int id, int w, int h)
 			     gdk_pixbuf_get_width(client->unscaled_on),
 			     (double) h /
 			     gdk_pixbuf_get_height(client->unscaled_on),
-			     INTERP_MODE);
+			     zcg_int(NULL, "qstradeoff"));
 	  client->w = w;
 	  client->h = h;
 

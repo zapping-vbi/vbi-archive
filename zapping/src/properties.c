@@ -305,6 +305,16 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
 		     GTK_SIGNAL_FUNC(on_property_item_changed),
 		     zapping_properties);
 
+  /* Quality/speed tradeoff */
+  widget = lookup_widget(zapping_properties, "optionmenu21");
+  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
+    zconf_get_integer(NULL,
+		      "/zapping/options/vbi/qstradeoff"));
+
+  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+
   /* Destination for Zapzilla exports */
   widget = lookup_widget(zapping_properties, "fileentry3");
   widget = gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(widget));
@@ -528,6 +538,17 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
       zconf_set_integer(index, "/zapping/options/vbi/teletext_level");
       if (zvbi_get_object())
 	vbi_set_teletext_level(zvbi_get_object(), index);
+
+      /* Quality/speed tradeoff */
+      widget = lookup_widget(pbox, "optionmenu21");
+      index = z_option_menu_get_active(widget);
+
+      if (index < 0)
+	index = 0;
+      if (index > 3)
+	index = 3;
+
+      zconf_set_integer(index, "/zapping/options/vbi/qstradeoff");
 
       /* Directory for exporting */
       widget = lookup_widget(pbox, "fileentry3");

@@ -4,6 +4,8 @@
 	capture isn't buffered push. Core when buffered push and lock with
 	YVU420 (probably RGB too, untested). Probably bugs in plugin.c
 	and capture.c.
+	* glade/zapping.glade: Configurable Q/S tradeoff when doing the
+	scaling of the TTX pages.
 
 25.05.2001	<garetxe@users.sf.net>
 
