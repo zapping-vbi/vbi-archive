@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.36 2002-09-07 01:47:52 mschimek Exp $ */
+/* $Id: main.c,v 1.37 2002-09-08 23:43:25 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -389,8 +389,8 @@ main(int ac, char **av)
 	char *errstr = NULL;
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
-	program_invocation_short_name =
-	program_invocation_name = argv[0];
+	program_invocation_short_name = av[0]
+	program_invocation_name = av[0];
 #endif
 
 	options(ac, av);
