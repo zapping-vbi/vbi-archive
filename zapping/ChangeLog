@@ -4,6 +4,8 @@
 
 2005-02-14    <mschimek@users.sf.net>
 
+	* Makefile.am (EXTRA_DIST): Added ChangeLog.01, ChangeLog.03.
+	* ChangeLog: Split to speed up cvs commits.
 	* src/main.c (main): shutdown_remote() moved here to fix quit
 	  menu crash (indirectly finalized Python from py_quit function).
 	* src/v4linterface.c: s/t_assert/g_assert.

@@ -24,6 +24,8 @@ EXTRA_DIST = \
 	acinclude.m4 \
 	autogen.sh \
 	BUGS \
+	ChangeLog.01 \
+	ChangeLog.03 \
 	intltool-extract.in \
 	intltool-merge.in \
 	intltool-update.in \
