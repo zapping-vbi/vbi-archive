@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_divx4linux.h,v 1.3 2002-12-14 00:48:49 mschimek Exp $ */
+/* $Id: b_divx4linux.h,v 1.4 2004-04-09 05:13:57 mschimek Exp $ */
 
 #ifndef B_DIVX4LINUX_H
 #define B_DIVX4LINUX_H
@@ -29,17 +29,6 @@
 
 #include <stddef.h>
 #include <encore2.h>
-
-#define ENCORE4_VERSION 20010807
-#define ENCORE5_VERSION 20020304
-
-typedef struct {
-	int x_dim, y_dim;
-	float framerate;
-	int bitrate, unused0, unused1, unused2, unused3, unused4;
-	int max_key_interval, use_bidirect, deinterlace, quality, obmc;
-	void *handle;
-} ENC_PARAM4;
 
 #define PARENT(ptr, type, member)					\
         ((type *)(((char *) ptr) - offsetof(type, member)))
@@ -56,8 +45,19 @@ typedef struct {
 
 	void *			handle;
 
-	ENC_PARAM4		enc_param4;
-	ENC_PARAM		enc_param5;
+	/* Options */
+
+	int			bit_rate;
+	int			max_key_interval;
+	int			quality;
+	rte_bool		use_bidirect;
+	rte_bool		obmc;
+	rte_bool		deinterlace;
+
+	int			x_dim;
+	int			y_dim;
+	double			frame_rate;
+
 	ENC_FRAME		enc_frame;
 	ENC_RESULT		enc_result;
 
