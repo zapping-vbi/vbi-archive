@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: trigger.c,v 1.6 2001-09-02 03:25:58 mschimek Exp $ */
+/* $Id: trigger.c,v 1.7 2001-11-23 00:52:00 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -627,7 +627,7 @@ vbi_eacem_trigger(struct vbi *vbi, unsigned char *s)
 	vbi_trigger t;
 
 	while ((s = parse_eacem(&t, s, vbi->network.ev.network.nuid, vbi->time))) {
-		if (0)
+		if (1)
 			fprintf(stderr, "At %f eacem link type %d '%s', <%s> '%s', "
 				"%08x %03x.%04x, exp %f, pri %d %d, auto %d; "
 				"fire %f view %d del %d\n",

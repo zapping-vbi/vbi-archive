@@ -602,9 +602,10 @@ eacem_trigger(struct vbi *vbi, struct vt_page *vtp)
 {
 	struct fmt_page pg;
 	unsigned char *s;
-	int i;
+	int i, j;
 
-	if (0)
+fprintf(stderr, "EACEM\n");
+	if (1)
 		dump_raw(vtp, FALSE);
 
 	if (!(vbi->event_mask & VBI_EVENT_TRIGGER))
@@ -615,9 +616,9 @@ eacem_trigger(struct vbi *vbi, struct vt_page *vtp)
 
 	s = (unsigned char *) pg.text;
 
-	for (i = 40; i < 25 * 40; i++)
-		*s++ = glyph2latin(pg.text[i].glyph);
-
+	for (i = 1; i < 25; i++)
+		for (j = 0; j < 40; j++)
+			*s++ = glyph2latin(pg.text[i * 41 + j].glyph);
 	*s = 0;
 
 	vbi_eacem_trigger(vbi, (unsigned char *) pg.text);

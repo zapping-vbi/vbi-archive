@@ -5,13 +5,12 @@ Known bugs with zapping, don't report them
 ------------------------------------------
 
 	* Need better no-overlay-present handling.
-	* vbi eats too much CPU, investigate.
 	* Capture won't work under PPC (endianess)
-	* Zapzilla: No fallback on incomplete DRCS page?
+	* Look for endianness problems.
+	* vbi eats too much CPU, investigate.
 	~ Zapzilla: Calls fetch_page more often than necessary,
 	  investigate.
 	~ Zapzilla: what's v4lx doing on standard change?
-	* Look for endianness problems.
 	* Disabling vbi decoding leaves last known station
           name from vbi on display.
 	* Mpeg plugin/mp1e very low frame rate interrupts display,
@@ -20,15 +19,14 @@ Known bugs with zapping, don't report them
 	  both displayed and recorded, apparently due to incorrect scan
 	  line pitch. Happened with my driver and the v4l2 sample driver
 	  alike, so I suspect a bug in the capture routines.
-	! With very bad signal i often get:
-zapping: fifo.c:684: send_full_buffer called from /home/garetxe/cvs/zapping/libvbi/v4lx.c:1029: Assertion "!p->eof_sent" failed
-Abortado
-	* top index doesnt work
-	* channel editior: input: add tuner;
+	* channel editor: input: add tuner;
 	  standard: don't change behaves strange.
 	  w/o tuner freq display is wrong.
 	* sometimes crash at termination.
 	* eacem triggers broken?
+
+
+
 
 
 

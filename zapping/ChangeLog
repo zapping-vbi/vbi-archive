@@ -1,3 +1,16 @@
+22.11.2001	Fixes <mschimek@users.sf.net>
+
+	* libvbi: "bad signal -> eof_sent", probably due to exceeding
+	  the select timeout limit (cant test mmapped vbi) triggering
+	  a fatal error considered eof. Read interface not affected.
+	  Timeouts are ignored now, however a better response is
+	  warranted, revisit at a later date.
+	* teletext.c, ttxview.c: TOP index fixes: insufficient pg init,
+	  wrong char set, next subpage didn't work, char size heisenbug
+	  (compiler?).
+	* teletext.c, vbi_page_title: Use correct national character set.
+	* teletext.c: [default] object invocation did not recursively abort.
+
 20.11.2001	Fixes <mschimek@users.sf.net>
 
 	* libvbi/caption.c: Fixed CR display update.

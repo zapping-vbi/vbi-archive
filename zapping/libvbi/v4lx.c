@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.37 2001-09-11 07:13:41 mschimek Exp $ */
+/* $Id: v4lx.c,v 1.38 2001-11-23 00:52:00 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -935,6 +935,7 @@ wait_full_stream(fifo *f)
 				continue;
 
 			if (r == 0) {
+#if 0 /* non-fatal, but should be handled somehow, rethink */
 				/* timeout */
 				b->used = -1;
 				b->error = ETIME;
@@ -947,6 +948,7 @@ wait_full_stream(fifo *f)
 					continue; /* XXX yes? */
 
 				return NULL;
+#endif
 			} else if (r < 0) {
 				b->used = -1;
 				b->error = errno;

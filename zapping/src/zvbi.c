@@ -304,6 +304,7 @@ on_trigger_clicked			(gpointer	ignored,
 
     case VBI_LINK_PAGE:
     case VBI_LINK_SUBPAGE:
+fprintf(stderr, "trigger->page %d\n", trigger->page);
       open_in_new_ttxview(trigger->page, trigger->subpage);
       break;
 

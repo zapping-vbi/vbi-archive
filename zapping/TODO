@@ -3,9 +3,11 @@ Outstanding issues for the next release (0.6.2)
 > 0.6.2
 	+ Improve documentation.
 	+ TTX export: Make blockgfx replacement smarter.
-	+ vbi: add toggle button to disable CC/TTX decoding. Mind
+	+ vbi: add toggle button to disable CC/TTX decoding
+          (independent of station name decoding, that is). Mind
 	  listing subtitles. Should also disable trigger
           decoding when all set to ignore.
+	+ XDS program info & TTX program name.
 	+ Properties icons.
 
 > 0.6.3
@@ -30,9 +32,13 @@ Outstanding issues for the next release (0.6.2)
 > Somewhen...
 	+ Do realtime effects to the image, plainly wonderful, see
 	http://matsu-www.is.titech.ac.jp/~fukuchi/rooms/EffecTV/index.html
-	? Add a link to http://www.firstlinux.com/articles/zapping.shtml
-	  on the Z homepage. There was another french review, URL?
 	+ More compression formats.
+	+ Trigger: Close should remember it had been clicked already
+	  when a trigger is merely repeated.
+	+ Recording schedule.
 
 please tell me about anything you think it's worth adding. 
 garetxe@users.sourceforge.net
+
+
+

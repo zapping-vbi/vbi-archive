@@ -121,6 +121,10 @@ flof_links(struct fmt_page *pg, struct vt_page *vtp)
  *  TOP navigation
  */
 
+static void character_set_designation(struct vbi_font_descr **font,
+				      extension *ext, struct vt_page *vtp);
+static void screen_colour(struct fmt_page *pg, int flags, int colour);
+
 static bool
 top_label(struct vbi *vbi, struct fmt_page *pg, struct vbi_font_descr *font,
 	  int index, int pgno, int foreground, int ff)
@@ -239,12 +243,14 @@ top_navigation_bar(struct vbi *vbi, struct fmt_page *pg,
 }
 
 static ait_entry *
-next_ait(struct vbi *vbi, int pgno, int subno)
+next_ait(struct vbi *vbi, int pgno, int subno, struct vt_page **mvtp)
 {
 	struct vt_page *vtp;
 	ait_entry *ait, *mait = NULL;
 	int mpgno = 0xFFF, msubno = 0xFFFF;
 	int i, j;
+
+	*mvtp = NULL;
 
 	for (i = 0; i < 8; i++) {
 		if (vbi->vt.btt_link[i].type == 2) {
@@ -275,6 +281,7 @@ next_ait(struct vbi *vbi, int pgno, int subno)
 				mait = ait;
 				mpgno = ait->page.pgno;
 				msubno = ait->page.subno;
+				*mvtp = vtp;
 			}
 		}
 	}
@@ -285,7 +292,7 @@ next_ait(struct vbi *vbi, int pgno, int subno)
 static int
 top_index(struct vbi *vbi, struct fmt_page *pg, int subno)
 {
-	static void screen_colour(struct fmt_page *pg, int flags, int colour);
+	struct vt_page *vtp;
 	attr_char ac, *acp;
 	ait_entry *ait;
 	int i, j, k, n, lines;
@@ -293,7 +300,8 @@ top_index(struct vbi *vbi, struct fmt_page *pg, int subno)
 	extension *ext;
 
 	pg->vbi = vbi;
-	pg->subno = subno;
+
+	subno = bcd2dec(subno);
 
 	pg->rows = ROWS;
 	pg->columns = EXT_COLUMNS;
@@ -303,8 +311,17 @@ top_index(struct vbi *vbi, struct fmt_page *pg, int subno)
 	pg->dirty.roll = 0;
 
 	ext = &vbi->vt.magazine[0].extension;
+
 	screen_colour(pg, 0, 32 + BLUE);
+
 	vbi_transp_colourmap(vbi, pg->colour_map, ext->colour_map, 40);
+
+	pg->drcs_clut = ext->drcs_clut;
+
+	pg->page_opacity[0] = pg->boxed_opacity[0] =
+	pg->page_opacity[1] = pg->boxed_opacity[1] = OPAQUE;
+
+	memset(pg->drcs, 0, sizeof(pg->drcs));
 
 	memset(&ac, 0, sizeof(ac));
 
@@ -312,6 +329,7 @@ top_index(struct vbi *vbi, struct fmt_page *pg, int subno)
 	ac.background	= 32 + BLUE;
 	ac.opacity	= OPAQUE;
 	ac.glyph	= GL_SPACE;
+	ac.size		= NORMAL;
 
 	for (i = 0; i < EXT_COLUMNS * ROWS; i++)
 		pg->text[i] = ac;
@@ -319,7 +337,7 @@ top_index(struct vbi *vbi, struct fmt_page *pg, int subno)
 	ac.size = DOUBLE_SIZE;
 
 	for (i = 0; i < 5; i++) {
-		// this asks for i18n and some2glyph :-P
+		// XXX this asks for i18n and some2glyph :-P
 		ac.glyph = "INDEX"[i];
 		pg->text[1 * EXT_COLUMNS + 2 + i * 2] = ac;
 	}
@@ -331,9 +349,12 @@ top_index(struct vbi *vbi, struct fmt_page *pg, int subno)
 	xpgno = 0;
 	xsubno = 0;
 
-	while ((ait = next_ait(vbi, xpgno, xsubno))) {
+	while ((ait = next_ait(vbi, xpgno, xsubno, &vtp))) {
 		xpgno = ait->page.pgno;
 		xsubno = ait->page.subno;
+
+		/* No docs, correct? */
+		character_set_designation(pg->font, ext, vtp);
 
 		if (subno > 0) {
 			if (lines-- == 0) {
@@ -358,13 +379,13 @@ top_index(struct vbi *vbi, struct fmt_page *pg, int subno)
     			k = 1;
 		}
 
-		for (j = 0; j <= i; j++) { // XXX font
+		for (j = 0; j <= i; j++) {
 			acp[k + j].glyph = glyph_lookup(pg->font[0]->G0,
 				pg->font[0]->subset,
 				(ait->text[j] < 0x20) ? 0x20 : ait->text[j]);
 		}
 
-		for (k += i + 2; k <= 34; k++)
+		for (k += i + 2; k <= 33; k++)
 			acp[k].glyph = '.';
 
 		for (j = 0; j < 3; j++) {
@@ -605,17 +626,34 @@ vbi_resolve_home(struct fmt_page *pg, vbi_link *ld)
 	ld->subpage = pg->nav_link[5].subno;
 }
 
+static inline void
+ait_title(struct vbi *vbi, struct vt_page *vtp, ait_entry *ait, char *buf)
+{
+	struct vbi_font_descr *font[2];
+	int i;
+
+	character_set_designation(font, &vbi->vt.magazine[0].extension, vtp);
+
+	for (i = 11; i >= 0; i--)
+		if (ait->text[i] > 0x20)
+			break;
+	buf[i + 1] = 0;
+
+	for (; i >= 0; i--)
+		buf[i] = glyph2latin(glyph_lookup(
+			font[0]->G0, font[0]->subset,
+			(ait->text[i] < 0x20) ?	0x20 : ait->text[i]));
+}
+
 /*
  *  Try find a page title for the bookmarks.
  *  TRUE if success, buf min 41 chars.
  *
  *  TODO: FLOF, TTX character set, buf character set (currently Latin-1 assumed).
- *  XXX bug: incorrect use of national subset.
  */
 int
 vbi_page_title(struct vbi *vbi, int pgno, int subno, char *buf)
 {
-	struct vbi_font_descr *font;
 	struct vt_page *vtp;
 	ait_entry *ait;
 	int i, j;
@@ -637,19 +675,7 @@ vbi_page_title(struct vbi *vbi, int pgno, int subno, char *buf)
 
 				for (ait = vtp->data.ait, j = 0; j < 46; ait++, j++)
 					if (ait->page.pgno == pgno) {
-						font = font_descriptors + 0; // XXX
-
-						for (i = 11; i >= 0; i--)
-							if (ait->text[i] > 0x20)
-								break;
-
-						buf[i + 1] = 0;
-
-						for (; i >= 0; i--)
-							buf[i] = glyph2latin(glyph_lookup(
-								font->G0, font->subset,
-								(ait->text[i] < 0x20) ?
-									0x20 : ait->text[i]));
+						ait_title(vbi, vtp, ait, buf);
 						return TRUE;
 					}
 			}
@@ -660,7 +686,41 @@ vbi_page_title(struct vbi *vbi, int pgno, int subno, char *buf)
 	return FALSE;
 }
 
-/* ------------------------------------------------------------------ */
+/*
+ *  Teletext page formatting
+ */
+
+static void
+character_set_designation(struct vbi_font_descr **font,
+			  extension *ext, struct vt_page *vtp)
+{
+	int i;
+
+#ifdef LIBVBI_TTX_OVERRIDE_CHAR_SET
+
+	font[0] = font_descriptors + LIBVBI_TTX_OVERRIDE_CHAR_SET;
+	font[1] = font_descriptors + LIBVBI_TTX_OVERRIDE_CHAR_SET;
+
+	fprintf(stderr, "override char set with %d\n",
+		LIBVBI_TTX_OVERRIDE_CHAR_SET);
+#else
+
+	font[0] = font_descriptors + 0;
+	font[1] = font_descriptors + 0;
+
+	for (i = 0; i < 2; i++) {
+		int char_set = ext->char_set[i];
+
+		if (VALID_CHARACTER_SET(char_set))
+			font[i] = font_descriptors + char_set;
+
+		char_set = (char_set & ~7) + vtp->national;
+
+		if (VALID_CHARACTER_SET(char_set))
+			font[i] = font_descriptors + char_set;
+	}
+#endif
+}
 
 static void
 screen_colour(struct fmt_page *pg, int flags, int colour)
@@ -1157,10 +1217,11 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 				row = inv_row + active_row;
 				column = inv_column + active_column;
 
-				enhance(vbi, mag, ext, pg, vtp, new_type, trip,
-					remaining_max_triplets,
-					row + offset_row, column + offset_column,
-					max_level, header_only);
+				if (!enhance(vbi, mag, ext, pg, vtp, new_type, trip,
+					     remaining_max_triplets,
+					     row + offset_row, column + offset_column,
+					     max_level, header_only))
+					return FALSE;
 
 				printv("... object done\n");
 
@@ -1651,7 +1712,10 @@ default_object_invocation(struct vbi *vbi, magazine *mag,
 		if (!trip)
 			return FALSE;
 
-		enhance(vbi, mag, ext, pg, vtp, type, trip, remaining_max_triplets, 0, 0, max_level, header_only);
+		if (!enhance(vbi, mag, ext, pg, vtp, type, trip,
+			     remaining_max_triplets, 0, 0, max_level,
+			     header_only))
+			return FALSE;
 	}
 
 	return TRUE;
@@ -1700,31 +1764,7 @@ vbi_format_page(struct vbi *vbi,
 
 	/* Character set designation */
 
-#ifdef LIBVBI_TTX_OVERRIDE_CHAR_SET
-
-	pg->font[0] = font_descriptors + LIBVBI_TTX_OVERRIDE_CHAR_SET;
-	pg->font[1] = font_descriptors + LIBVBI_TTX_OVERRIDE_CHAR_SET;
-
-	fprintf(stderr, "override char set with %d\n",
-		LIBVBI_TTX_OVERRIDE_CHAR_SET);
-#else
-
-	pg->font[0] = font_descriptors + 0;
-	pg->font[1] = font_descriptors + 0;
-
-	for (i = 0; i < 2; i++) {
-		int char_set = ext->char_set[i];
-
-		if (VALID_CHARACTER_SET(char_set))
-			pg->font[i] = font_descriptors + char_set;
-
-		char_set = (char_set & ~7) + vtp->national;
-
-		if (VALID_CHARACTER_SET(char_set))
-			pg->font[i] = font_descriptors + char_set;
-	}
-
-#endif
+	character_set_designation(pg->font, ext, vtp);
 
 	/* Colours */
 
@@ -1757,6 +1797,8 @@ vbi_format_page(struct vbi *vbi,
 	/* Current page number in header */
 
 	sprintf(buf, "\2%x.%02x\7", vtp->pgno, vtp->subno & 0xff);
+
+	/* Level 1 formatting */
 
 	i = 0;
 	pg->double_height_lower = 0;
@@ -2055,9 +2097,10 @@ vbi_fetch_vt_page(struct vbi *vbi, struct fmt_page *pg,
 
 		if (!vbi->vt.top || !top_index(vbi, pg, subno))
 			return 0;
-// XXX broken
+
 		pg->nuid = vbi->network.ev.network.nuid;
 		pg->pgno = 0x900;
+		pg->subno = subno;
 
 		post_enhance(pg, ROWS);
 
@@ -2076,3 +2119,15 @@ vbi_fetch_vt_page(struct vbi *vbi, struct fmt_page *pg,
 			vbi->vt.max_level, display_rows, navigation);
 	}
 }
+
+
+
+
+
+
+
+
+
+
+
+

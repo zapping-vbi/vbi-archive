@@ -87,6 +87,8 @@ static void dec_model_count(void)
 
 #define TXCOLOR_DOMAIN "/zapping/options/text/"
 
+#define TOP_INDEX_PAGE 0x900
+
 /* targets for the clipboard */
 enum
 {
@@ -516,7 +518,7 @@ load_page (int page, int subpage, ttxview_data *data,
   gtk_label_set_text(GTK_LABEL(ttxview_url), buffer);
   g_free(buffer);
 
-  if ((page >= 0x100) && (page <= 0x900))
+  if ((page >= 0x100) && (page <= 0x900 /* 0x900 == top index */))
     {
       if (subpage == ANY_SUB)
 	buffer = g_strdup_printf(_("Loading page %x..."), page);
@@ -920,17 +922,21 @@ static
 void on_ttxview_prev_sp_cache_clicked	(GtkWidget	*widget,
 					 ttxview_data	*data)
 {
-  int subpage = ANY_SUB; /* compiler happy */
-
   nullcheck();
 
-  if (data->fmt_page->pgno == 0x900 ||
-      (((subpage = find_prev_subpage(data, data->subpage)) >= 0) &&
-       (subpage != data->subpage)))
-    load_page(data->fmt_page->pgno, subpage, data, NULL);
-  else if (data->appbar)
-    gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
-			    _("No other subpage in the cache"));
+  if (data->fmt_page->pgno == TOP_INDEX_PAGE)
+    load_page(data->fmt_page->pgno,
+	      add_bcd(data->subpage, 0x99) & 0xFF, data, NULL);
+  else
+    {
+      int subpage = find_prev_subpage(data, data->subpage);
+
+      if (subpage >= 0 && subpage != data->subpage)
+	load_page(data->fmt_page->pgno, subpage, data, NULL);
+      else if (data->appbar)
+	gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
+				_("No other subpage in the cache"));
+    }
 }
 
 static
@@ -962,16 +968,21 @@ static
 void on_ttxview_next_sp_cache_clicked	(GtkWidget	*widget,
 					 ttxview_data	*data)
 {
-  int subpage;
-
   nullcheck();
 
-  if (((subpage = find_next_subpage(data, data->subpage)) >= 0) &&
-      (subpage != data->subpage))
-    load_page(data->fmt_page->pgno, subpage, data, NULL);
-  else if (data->appbar)
-    gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
-			    _("No other subpage in the cache"));
+  if (data->fmt_page->pgno == TOP_INDEX_PAGE)
+    load_page(data->fmt_page->pgno,
+	      add_bcd(data->subpage, 0x01), data, NULL);
+  else
+    {
+      int subpage = find_next_subpage(data, data->subpage);
+
+      if (subpage >= 0 && subpage != data->subpage)
+	load_page(data->fmt_page->pgno, subpage, data, NULL);
+      else if (data->appbar)
+	gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
+				_("No other subpage in the cache"));
+    }
 }
 
 static
@@ -3255,10 +3266,10 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
       if (data->page >= 0x100)
 	data->page = 0;
       data->page = (data->page<<4)+event->keyval-GDK_0;
-      if (data->page == 0x999)
-        data->page = 0x900;
+      if (data->page == 0x999) /* faster typing than 900 */
+        data->page = TOP_INDEX_PAGE;
       if (data->page > 0x900)
-	data->page = 0x900; /* 900 == top index (preliminary) */
+	data->page = TOP_INDEX_PAGE; /* 0x900 */
       if (data->page >= 0x100)
 	load_page(data->page, ANY_SUB, data, NULL);
       else
@@ -3282,7 +3293,7 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
 	data->page = 0;
       data->page = (data->page<<4)+event->keyval-GDK_KP_0;
       if (data->page > 0x900)
-	data->page = 0x900;
+	data->page = TOP_INDEX_PAGE; /* 0x900 */
       if (data->page >= 0x100)
 	load_page(data->page, ANY_SUB, data, NULL);
       else
