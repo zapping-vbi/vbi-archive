@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.h,v 1.8 2002-05-07 06:39:54 mschimek Exp $ */
+/* $Id: options.h,v 1.9 2002-08-22 22:02:19 mschimek Exp $ */
 
 extern int		test_mode;
 
@@ -32,6 +32,7 @@ extern int		split_sequence;
 
 /* Video */
 
+extern int		m2i;
 extern int		width;
 extern int		height;
 extern int		grab_width;
@@ -43,6 +44,7 @@ extern char *		gop_sequence;
 // extern int		frames_per_seqhdr;
 extern int		filter_mode;
 extern double		frame_rate;
+extern double		sample_aspect;
 extern int		preview;
 extern char *		anno;
 extern int		luma_only;
@@ -81,5 +83,9 @@ extern int		vid_buffers;
 extern int		aud_buffers;
 
 extern int		cpu_type;
+
+/* AIW hacks */
+extern double		source_fps;
+extern int		fix_interlaced;
 
 extern void		options(int ac, char **av);

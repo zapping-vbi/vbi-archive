@@ -17,7 +17,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.16 2002-06-19 19:56:05 mschimek Exp $ */
+/* $Id: options.c,v 1.17 2002-08-22 22:02:08 mschimek Exp $ */
+
+#include "site_def.h"
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -59,7 +61,7 @@ usage(FILE *fi)
 {
 	fprintf(fi,
 		"Real time MPEG-1 encoder " VERSION "\n"
-		"Copyright (C) 1999-2001 Michael H. Schimek\n"
+		"Copyright (C) 1999-2002 Michael H. Schimek\n"
 		"\n"
 		"This is free software licensed without a fee under the terms of the\n"
 		"GNU General Public License Version 2. NO WARRANTIES.\n"
@@ -125,10 +127,11 @@ usage(FILE *fi)
 	exit((fi == stderr) ? EXIT_FAILURE : EXIT_SUCCESS);
 }
 
-#define OPT_STR "2a:b:c:e:f:g:hi:lm:n:o:p:r:s:t:vwx:zA:C:B:F:G:H:I:M:PR:S:T:VX:"
+#define OPT_STR "02a:b:c:e:f:g:hi:lm:n:o:p:r:s:t:vwx:zA:C:B:F:G:H:I:J:KL:M:PR:S:T:VX:"
 
 static const struct option
 long_options[] = {
+	{ "mpeg2",			no_argument,	   NULL, '0' }, /* testing */
 	{ "hack2",			required_argument, NULL, '2' },
 	{ "audio_mode",			required_argument, NULL, 'a' },
 	{ "video_bit_rate",		required_argument, NULL, 'b' },
@@ -158,6 +161,9 @@ long_options[] = {
 	{ "grab_size",			required_argument, NULL, 'G' },
 	{ "frames_per_seq_header",	required_argument, NULL, 'H' },
 	{ "vbi_device",			required_argument, NULL, 'I' },
+        { "source_fps",                 required_argument, NULL, 'J' }, /* AIW */
+        { "half_rate",                  no_argument,       NULL, 'K' }, /* AIW */
+	{ "sample_aspect",		required_argument, NULL, 'L' },
 	{ "mute",			required_argument, NULL, 'M' },
 	{ "preview",			required_argument, NULL, 'P' },
 	{ "motion",			required_argument, NULL, 'R' },
@@ -325,6 +331,12 @@ parse_option(int c)
 	int i;
 
 	switch (c) {
+	case '0':
+#ifdef OPTIONS_M2I
+		m2i = 1;
+#endif
+		break;
+
 	case '2':
 		skip_method = 1; /* compatibility */
 		break;
@@ -560,6 +572,20 @@ parse_option(int c)
 		vbi_dev = strdup(optarg);
 		break;
 
+	case 'J':
+		source_fps = strtod(optarg, NULL);
+		if (source_fps <= 0.0)
+			return FALSE;
+		break;
+
+	case 'K':
+		fix_interlaced=1;
+                break;
+
+	case 'L':
+		sample_aspect = strtod (optarg, NULL);
+		break;
+
 	case 'M':
 		mute = suboption(mute_options, 3, mute);
 		if (mute < 0 || mute > 2)
@@ -641,7 +667,7 @@ bark(void)
 		FAIL("Image size must be <= grab size\n");
 
 	if (have_letterbox)
-		height = height * 3 / 4;
+		height = height * 3 / 4; /* 16:9 */
 
 	if (gop_sequence[0] != 'I' ||
 	    strspn(gop_sequence, "IPB") != strlen(gop_sequence) ||
