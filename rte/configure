@@ -1675,7 +1675,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=rte
- VERSION=0.5cvs
+ VERSION=0.5
 
 
 cat >>confdefs.h <<_ACEOF

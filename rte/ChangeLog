@@ -1,3 +1,8 @@
+2002-09-28	<mschimek@users.sf.net>
+
+	* ffmpeg/ffmpeg.h, ffmpeg/ffmpeg.c: Corrections for gcc 2.9x
+	  compatibility. 
+
 2002-09-23	<mschimek@users.sf.net>
 
 	* configure.in, Makefile.am: Added divx4linux.
