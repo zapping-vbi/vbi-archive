@@ -1,8 +1,15 @@
 Known bugs in Zapping, don't report them
 ----------------------------------------
 
+* Recording plugin: newly configured format doesn't
+  appear in recording window on clicking ok.
+* Recording: on start hangs and/or causes xlib error.
+* Recording: stop hangs.
+* Where's the fscking mute button?
+* Cursor keys don't work in TTX child window. 
 * TTX mode, channel switch in ch editor,
   SEGV in vbi_draw_vt_page_region
+* Edited channels, clicked ok, tc==NULL in tuned_channel_nth_name().
 * V4L2 (0.20 and 2.5) RGB pixel formats are incorrectly defined.
   Gerd Knorr notified, solution pending. Workaround is in place.
 * tvengxv (pm2, not v4l) lists no standards and inputs.
@@ -142,4 +149,4 @@ NeoMagic driver (xc/programs/Xserver/hw/xfree86/drivers/neomagic)
 
 Savage driver (xc/programs/Xserver/hw/xfree86/drivers/savage/savage_video.c)
 * Minor nit: comment says YV12, I420 == 4:1:1, actually 4:2:0. The
-  alleged 2:1:1 is really a half width 4:2:2, there no such thing as 2:1:1.
+  alleged 2:1:1 is really a half width 4:2:2, there's no such thing as 2:1:1.

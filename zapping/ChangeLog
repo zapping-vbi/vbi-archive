@@ -1,3 +1,19 @@
+2003-10-20    <mschimek@users.sf.net>
+
+	* plugins/mpeg/options.c: Locale to UTF-8 fixes.
+	* common/fifo.h, common/fifo.c, src, plugins/mpeg: Prefixed
+	  fifo functions and types to prevent linker accidents because
+	  the fifo functions aren't binary compatible with their rte
+	  clones if rte was compiled with linuxthreads and zapping
+	  with nptl, or vice versa. Ported from 0.6 branch.
+
+2003-10-17    <mschimek@users.sf.net>
+
+	* src/frequencies.c (tv_rf_channel_next): Off-by-one error
+	  skipping last channel in range.
+	* src/channel_editor.c (station_search_timeout): Incomplete
+	  frequency change on 09-24.
+
 2003-10-14    <mschimek@users.sf.net>
 
 	* src/tveng.c (tveng_unset_xv_port): Only #ifdef USE_XV.
