@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: channel_editor.c,v 1.37.2.17 2003-11-26 07:16:23 mschimek Exp $ */
+/* $Id: channel_editor.c,v 1.37.2.18 2003-11-28 18:36:57 mschimek Exp $ */
 
 /*
   TODO:
@@ -1559,8 +1559,9 @@ create_freq_treeview		(channel_editor *	ce)
   gtk_tree_view_set_model (ce->freq_treeview, GTK_TREE_MODEL (ce->freq_model));
 
   renderer = gtk_cell_renderer_text_new ();
+  /* TRANSLATORS: RF channel name in frequency table. */
   column = gtk_tree_view_column_new_with_attributes
-    (_("Name"), renderer, "text", FL_NAME, NULL);
+    (_("Ch. Name"), renderer, "text", FL_NAME, NULL);
   gtk_tree_view_append_column (ce->freq_treeview, column);  
 	  
   renderer = gtk_cell_renderer_text_new ();
@@ -1618,23 +1619,23 @@ create_channel_treeview		(channel_editor *	ce)
      gtk_cell_renderer_text_new (), set_func_index, ce, NULL);
 
   gtk_tree_view_insert_column_with_data_func
-    (ce->channel_treeview, -1 /* append */, _("Name"),
+    (ce->channel_treeview, -1 /* append */, _("Channel name"),
      gtk_cell_renderer_text_new (), set_func_name, ce, NULL);
 
   gtk_tree_view_insert_column_with_data_func
-    (ce->channel_treeview, -1 /* append */, _("Input"),
+    (ce->channel_treeview, -1 /* append */, _("Video input"),
      gtk_cell_renderer_text_new (), set_func_input, ce, NULL);
 
   gtk_tree_view_insert_column_with_data_func
-    (ce->channel_treeview, -1 /* append */, _("Channel"),
+    (ce->channel_treeview, -1 /* append */, _("RF Channel"),
      gtk_cell_renderer_text_new (), set_func_channel, ce, NULL);
 
   gtk_tree_view_insert_column_with_data_func
-    (ce->channel_treeview, -1 /* append */, _("Standard"),
+    (ce->channel_treeview, -1 /* append */, _("Video standard"),
      gtk_cell_renderer_text_new (), set_func_standard, ce, NULL);
   
   gtk_tree_view_insert_column_with_data_func
-    (ce->channel_treeview, -1 /* append */, _("Key"),
+    (ce->channel_treeview, -1 /* append */, _("Accelerator"),
      gtk_cell_renderer_text_new (), set_func_key, ce, NULL);
   
   return scrolledwindow;
@@ -1805,7 +1806,7 @@ create_channel_editor		(void)
 	    }
 
 #if 0
-	    label = gtk_label_new (_("When your country is not listed or "
+	    label = gtk_label_new (("When your country is not listed or "
 				     "misrepresented please send an e-mail,\n"
 				     "if possible including the correct "
 				     "frequency table, to zapping-misc@lists.sf.net."));
@@ -1873,7 +1874,7 @@ create_channel_editor		(void)
 	gtk_table_set_row_spacings (ce->entry_table, 3);
 	gtk_table_set_col_spacings (ce->entry_table, 3);
 
-	LABEL ("Name:", 0, 0);
+	LABEL (_("Name:"), 0, 0);
   
 	ce->entry_name = GTK_ENTRY (gtk_entry_new ());
 	gtk_widget_show (GTK_WIDGET (ce->entry_name));
@@ -1882,7 +1883,7 @@ create_channel_editor		(void)
 			  (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
 			  (GtkAttachOptions)(0), 0, 0);
 
-	LABEL ("Input:", 0, 1);
+	LABEL (_("Video input:"), 0, 1);
 
 	ce->entry_input = GTK_OPTION_MENU (gtk_option_menu_new ());
 	gtk_widget_show (GTK_WIDGET (ce->entry_input));
@@ -1893,7 +1894,7 @@ create_channel_editor		(void)
 	gtk_option_menu_set_menu (ce->entry_input,
 				  GTK_WIDGET (create_input_menu (ce)));
 
-	LABEL ("Fine tuning:", 0, 2);
+	LABEL (_("Fine tuning:"), 0, 2);
 
 	ce->spinslider_adj = GTK_ADJUSTMENT
 	  (gtk_adjustment_new (0, 0, 0, 0, 0, 0));
@@ -1907,7 +1908,7 @@ create_channel_editor		(void)
 	g_signal_connect (G_OBJECT (ce->spinslider_adj), "value-changed",
 			  G_CALLBACK (on_entry_fine_tuning_value_changed), ce);
 
-	LABEL ("Video standard:", 0, 3);
+	LABEL (_("Video standard:"), 0, 3);
 
 	ce->entry_standard = GTK_OPTION_MENU (gtk_option_menu_new ());
 	gtk_widget_show (GTK_WIDGET (ce->entry_standard));
@@ -1918,7 +1919,7 @@ create_channel_editor		(void)
 	menu = gtk_menu_new ();
 	gtk_option_menu_set_menu (ce->entry_standard, menu);
 
-	LABEL ("Keyboard shortcut:", 0, 4);
+	LABEL (_("Accelerator:"), 0, 4);
 
 	ce->entry_accel = z_key_entry_new ();
 	gtk_widget_show (ce->entry_accel);
@@ -1930,7 +1931,7 @@ create_channel_editor		(void)
       }
     }
   }
- 
+
   {
     GtkWidget *dialog_action_area;
 
