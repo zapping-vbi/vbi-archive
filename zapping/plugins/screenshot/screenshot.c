@@ -586,9 +586,9 @@ void plugin_add_gui (GnomeApp * app)
     {
       GtkWidget *tmp_toolbar_icon;
 
-      tmp_toolbar_icon = z_load_pixmap ("screenshot.png");
-//	gtk_image_new_from_stock (GTK_STOCK_SELECT_COLOR,
-//				  GTK_ICON_SIZE_LARGE_TOOLBAR);
+      tmp_toolbar_icon =
+	gtk_image_new_from_stock ("zapping-screenshot",
+				  GTK_ICON_SIZE_LARGE_TOOLBAR);
 
       button = gtk_toolbar_append_item (GTK_TOOLBAR (toolbar),
 					_("Screenshot"),
@@ -779,14 +779,14 @@ execute_command (screenshot_data *data)
     {
       env[envc++] = g_strdup_printf ("CHANNEL_ALIAS=%s", tc->name);
       env[envc++] = g_strdup_printf ("CHANNEL_ID=%s", tc->rf_name);
-      if (zapping_info->num_standards)
+      if (zapping_info->cur_video_standard)
 	env[envc++] =
 	  g_strdup_printf ("CURRENT_STANDARD=%s",
-	    zapping_info->standards[zapping_info->cur_standard].name);
-      if (zapping_info->num_inputs)
+	    zapping_info->cur_video_standard->label);
+      if (zapping_info->cur_video_input)
 	env[envc++] =
 	  g_strdup_printf ("CURRENT_INPUT=%s",
-	    zapping_info->inputs[zapping_info->cur_input].name);
+	    zapping_info->cur_video_input->label);
     }
 
   gnome_execute_async_with_env (NULL, argc, argv, envc, env);
