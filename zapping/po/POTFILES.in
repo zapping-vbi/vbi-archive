@@ -1,0 +1,11 @@
+# List of source files containing translatable strings.
+
+src/main.c
+src/interface.c
+src/callbacks.c
+src/support.c
+src/frequencies.c
+src/v4l2interface.c
+src/tveng.c
+src/io.c
+src/zapping_setup_fb/zapping_setup_fb.c

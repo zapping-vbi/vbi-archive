@@ -1,0 +1,12 @@
+Outstanding issues for the next release
+---------------------------------------
+	+ Add plugin support and convert PNG saving into a plugin
+	+ Add some sort of AVI capture
+	+ Report "Control always 0 first time it's read" bug
+	+ Add perfomance test (full v4l2 /dev/video use implemented?)
+	+ Add the help for the Properties
+	+ Full i18n
+	+ Add desktop (and root menu) entries
+	+ Get rid of those annoying warnings about io.c
+	+ Fix all fixme's
+	+ Bug Track
