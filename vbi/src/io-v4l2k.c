@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-v4l2k.c,v 1.2.2.8 2004-04-08 23:36:25 mschimek Exp $";
+static char rcsid[] = "$Id: io-v4l2k.c,v 1.2.2.9 2004-04-09 05:17:20 mschimek Exp $";
 
 /*
  *  Around Oct-Nov 2002 the V4L2 API was revised for inclusion into
@@ -99,6 +99,8 @@ v4l2_stream(vbi_capture *vc, vbi_capture_buffer **raw,
 	vbi_capture_v4l2 *v = PARENT(vc, vbi_capture_v4l2, capture);
 	struct v4l2_buffer vbuf;
 	double time;
+
+	memset (&vbuf, 0, sizeof (vbuf));
 
 	if (v->enqueue == -2) {
 		if (IOCTL(v->fd, VIDIOC_STREAMON, &v->btype) == -1)
@@ -598,6 +600,8 @@ vbi_capture_v4l2k_new		(const char *		dev_name,
 		v->capture.read = v4l2_stream;
 
 		printv("Fifo initialized\nRequesting streaming i/o buffers\n");
+
+		memset (&vrbuf, 0, sizeof (vrbuf));
 
 		vrbuf.type = v->btype;
 		vrbuf.memory = V4L2_MEMORY_MMAP;
