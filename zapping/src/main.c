@@ -69,7 +69,7 @@ static gboolean		disable_vbi = FALSE; /* TRUE for disabling VBI
 						support */
 
 
-static void shutdown_zapping(void);
+void shutdown_zapping(void);
 static gboolean startup_zapping(gboolean load_plugins,
 				tveng_device_info *info);
 
@@ -248,7 +248,7 @@ restore_last_capture_mode		(void)
 {
   /* Start the capture in the last mode */
 
-  if (disable_preview)
+  if (disable_overlay)
     {
       if (-1 == zmisc_switch_mode (DISPLAY_MODE_WINDOW,
 				   CAPTURE_MODE_READ,
@@ -303,7 +303,6 @@ extern int zapzilla_main(int argc, char * argv[]);
 
 int main(int argc, char * argv[])
 {
-  GtkWidget * tvscreen;
   GList * p;
   gint x_bpp = -1;
   gint dword_align = FALSE;
@@ -552,6 +551,10 @@ int main(int argc, char * argv[])
   program_invocation_short_name = g_get_prgname();
 #endif
 
+  gconf_client = gconf_client_get_default ();
+  gconf_client_add_dir (gconf_client, "/apps/zapping",
+                        GCONF_CLIENT_PRELOAD_NONE, NULL);
+
   if (x11_get_bpp() < 15)
     {
       RunBox("The current depth (%i bpp) isn't supported by Zapping",
@@ -560,7 +563,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.184 2004-09-14 04:46:30 mschimek Exp $",
+	 "$Id: main.c,v 1.185 2004-09-20 04:37:23 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -849,34 +852,33 @@ int main(int argc, char * argv[])
   D();
   startup_zvbi();
   D();
-  zapping = ZAPPING (create_zapping ());
+  zapping = ZAPPING (zapping_new ());
+  gtk_widget_show(GTK_WIDGET (zapping));
   zapping->info = info;
   D();
-  tvscreen = lookup_widget(GTK_WIDGET (zapping), "tv-screen");
+
   g_signal_connect(G_OBJECT(zapping),
 		     "key-press-event",
 		     G_CALLBACK(on_zapping_key_press), NULL);
 
-  /* Once again hiding doesn't work earlier... */
-  gtk_widget_hide (lookup_widget (GTK_WIDGET (zapping), "appbar2"));
-  gtk_widget_queue_resize (GTK_WIDGET (zapping));
-
   /* ensure that the main window is realized */
-  gtk_widget_realize(tvscreen);
   gtk_widget_realize(GTK_WIDGET (zapping));
-  while (!tvscreen->window)
+  while (!GTK_WIDGET (zapping->video)->window)
     z_update_gui();
   D();
 
   if (0 && !mutable)
     {
+      GtkAction *action;
+
       /* FIXME the device we open initially might not be mutable,
          but could be later when we switch btw capture and overlay. */
       /* FIXME this can change at runtime, the mute button
          should update just like the controls box. */
       /* has no mute function */
-      gtk_widget_hide(lookup_widget(GTK_WIDGET (zapping),
-				    "toolbar-mute"));
+      action = gtk_action_group_get_action (zapping->generic_action_group,
+					    "Mute");
+      gtk_action_set_visible (action, FALSE);
       D();
     }
   D();
@@ -889,15 +891,18 @@ int main(int argc, char * argv[])
     }
 
   /* Disable preview if needed */
-  if (disable_preview)
+  if (disable_overlay)
     {
+      GtkAction *action;
+
       printv("Preview disabled, removing GUI items\n");
-      gtk_widget_set_sensitive(lookup_widget(GTK_WIDGET (zapping), "go_previewing2"),
-			       FALSE);
-      gtk_widget_hide(lookup_widget(GTK_WIDGET (zapping), "go_previewing2"));
-      gtk_widget_set_sensitive(lookup_widget(GTK_WIDGET (zapping), "go_fullscreen1"),
-			       FALSE);
-      gtk_widget_hide(lookup_widget(GTK_WIDGET (zapping), "go_fullscreen1"));
+
+      action = gtk_action_group_get_action (zapping->generic_action_group,
+					    "Fullscreen");
+      gtk_action_set_sensitive (action, FALSE);
+      action = gtk_action_group_get_action (zapping->generic_action_group,
+					    "Overlay");
+      gtk_action_set_sensitive (action, FALSE);
     }
   D();
   startup_capture();
@@ -924,7 +929,7 @@ int main(int argc, char * argv[])
   D();
   startup_channel_editor ();
   D();
-  osd_set_window(tvscreen);
+  osd_set_window(GTK_WIDGET (zapping->video));
   D();
   xawtv_ipc_init (GTK_WIDGET (zapping));
   D();
@@ -940,17 +945,7 @@ int main(int argc, char * argv[])
       printv("switching to mode %d (%d)\n",
 	     zcg_int (NULL, "capture_mode"), OLD_TVENG_CAPTURE_READ);
       D();
-      x11_window_on_top (GTK_WINDOW (zapping), zconf_get_boolean
-			 (NULL, "/zapping/options/main/keep_on_top"));
-      D();
-      zconf_touch ("/zapping/internal/callbacks/hide_controls");
-      D();
       resize_timeout(NULL);
-      /* FIXME prolly belongs elsewhere */
-      /* hide toolbars and co. if necessary */
-      if (zconf_get_boolean(NULL, "/zapping/internal/callbacks/hide_controls"))
-	python_command (NULL, "zapping.hide_controls(1)");
-      D();
       /* Sets the coords to the previous values, if the users wants to */
       if (zcg_bool(NULL, "keep_geometry"))
 	g_timeout_add (500, (GSourceFunc) resize_timeout, NULL);
@@ -965,13 +960,14 @@ int main(int argc, char * argv[])
       printv("running command \"%s\"\n", command);
       python_command (NULL, command);
     }
+
   /* Closes all fd's, writes the config to HD, and that kind of things
-   */
-  shutdown_zapping();
+     shutdown_zapping(); moved to zapping.c */
+
   return 0;
 }
 
-static void shutdown_zapping(void)
+void shutdown_zapping(void)
 {
   guint i = 0;
   gchar * buffer = NULL;
@@ -1210,7 +1206,7 @@ static gboolean startup_zapping(gboolean load_plugins,
   /* Sets defaults for zconf */
   zcc_bool(TRUE, "Save and restore zapping geometry (non ICCM compliant)", 
 	   "keep_geometry");
-  zcc_bool(FALSE, "Keep main window on top", "keep_on_top");
+
   zcc_bool(TRUE, "Show tooltips", "show_tooltips");
   zcc_bool(TRUE, "Resize by fixed increments", "fixed_increments");
 
@@ -1250,8 +1246,6 @@ static gboolean startup_zapping(gboolean load_plugins,
   zcc_int(8 /* TVENG_PIX_YUYV */, "Pixformat used with XVideo capture",
 	  "yuv_format");
   zcc_bool(FALSE, "In videotext mode", "videotext_mode");
-  zconf_create_boolean(FALSE, "Hide controls",
-		       "/zapping/internal/callbacks/hide_controls");
   zcc_bool(FALSE, "Keep main window above other windows", "keep_on_top");
   zcc_int(-1, "Icons, text, text below, text beside", "toolbar_style");
 
