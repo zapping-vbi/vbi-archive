@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.h,v 1.7 2002-02-08 15:03:10 mschimek Exp $ */
+/* $Id: options.h,v 1.8 2002-05-07 06:39:54 mschimek Exp $ */
 
 extern int		test_mode;
 
@@ -26,7 +26,9 @@ extern char *		pcm_dev;
 extern char *		mix_dev;
 extern char *		vbi_dev;
 
-extern int              outFileFD;
+extern char		outFile[256];
+extern int		outFileFD;
+extern int		split_sequence;
 
 /* Video */
 
@@ -35,7 +37,7 @@ extern int		height;
 extern int		grab_width;
 extern int		grab_height;
 extern int		video_bit_rate;
-extern long long	video_num_frames;
+extern double		video_num_frames;
 extern long long	video_num_secs;
 extern char *		gop_sequence;
 // extern int		frames_per_seqhdr;
@@ -52,7 +54,7 @@ extern int		skip_method;
 
 extern int		audio_bit_rate;
 extern int		audio_bit_rate_stereo;
-extern long long	audio_num_frames;
+extern double		audio_num_frames;
 extern long long	audio_num_secs;
 extern int		sampling_rate;
 extern int		mix_line;

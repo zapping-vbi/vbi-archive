@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.13 2002-04-12 03:12:40 mschimek Exp $ */
+/* $Id: options.c,v 1.14 2002-05-07 06:39:45 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -125,7 +125,7 @@ usage(FILE *fi)
 	exit((fi == stderr) ? EXIT_FAILURE : EXIT_SUCCESS);
 }
 
-#define OPT_STR "2a:b:c:e:f:g:hi:lm:n:o:p:r:s:t:vwx:A:C:B:F:G:H:I:M:PR:S:T:VX:"
+#define OPT_STR "2a:b:c:e:f:g:hi:lm:n:o:p:r:s:t:vwx:zA:C:B:F:G:H:I:M:PR:S:T:VX:"
 
 static const struct option
 long_options[] = {
@@ -150,6 +150,7 @@ long_options[] = {
 	{ "verbose",			optional_argument, NULL, 'v' },
 	{ "mono",			no_argument,	   NULL, 'w' },
 	{ "mixer_device",		required_argument, NULL, 'x' },
+	{ "split",			no_argument,	   NULL, 'z' },
 	{ "anno",			required_argument, NULL, 'A' },
 	{ "audio_bit_rate",		required_argument, NULL, 'B' },
 	{ "cpu",			required_argument, NULL, 'C' },
@@ -324,299 +325,299 @@ parse_option(int c)
 	int i;
 
 	switch (c) {
-		case '2':
-			skip_method = 1; /* compatibility */
-			break;
+	case '2':
+		skip_method = 1; /* compatibility */
+		break;
 
-		case 'a':
-			if ((audio_mode = suboption(audio_options, 4, audio_mode)) < 0)
-				return FALSE;
-			/*
-			 *  0 = stereo, 1 = joint stereo, 2 = dual channel, 3 = mono;
-			 *  To override psychoacoustic analysis trade-off:
-			 *  +0  level 0 (no analysis)
-			 *  +10 level 1
-			 *  +20 level 2 (full analysis)
-			 *
-			 *  Higher levels are forced at low bit rates.
-			 */
-			break;
+	case 'a':
+		if ((audio_mode = suboption(audio_options, 4, audio_mode)) < 0)
+			return FALSE;
+		/*
+		 *  0 = stereo, 1 = joint stereo, 2 = dual channel, 3 = mono;
+		 *  To override psychoacoustic analysis trade-off:
+		 *  +0  level 0 (no analysis)
+		 *  +10 level 1
+		 *  +20 level 2 (full analysis)
+		 *
+		 *  Higher levels are forced at low bit rates.
+		 */
+		break;
 
-		case 'b': // video bit rate (bits/s, kbit/s or Mbits/s)
-		{
-			double rate = strtod(optarg, NULL);
+	case 'b': // video bit rate (bits/s, kbit/s or Mbits/s)
+	{
+		double rate = strtod(optarg, NULL);
 			
-			if (rate >= 20e3)
-				video_bit_rate = rate;
-			else if (rate >= 20)
-				video_bit_rate = rate * 1e3;
-			else
-				video_bit_rate = rate * 1e6;
+		if (rate >= 20e3)
+			video_bit_rate = rate;
+		else if (rate >= 20)
+			video_bit_rate = rate * 1e3;
+		else
+			video_bit_rate = rate * 1e6;
 
-			if (video_bit_rate < 32000 ||
-			    video_bit_rate > 20e6)
-				return FALSE;
+		if (video_bit_rate < 32000 ||
+		    video_bit_rate > 20e6)
+			return FALSE;
 
-			break;
-		}
+		break;
+	}
 
-		case 'c':
-			cap_dev = strdup(optarg);
-			break;
+	case 'c':
+		cap_dev = strdup(optarg);
+		break;
 
-		case 'e':
-			if ((skip_method = suboption(skip_options, 3, 0)) < 0)
-				return FALSE;
-			break;
+	case 'e':
+		if ((skip_method = suboption(skip_options, 3, 0)) < 0)
+			return FALSE;
+		break;
 
-		case 'f':
-			frame_rate = strtod(optarg, NULL);
-			if (frame_rate <= 0.0)
-				return FALSE;
-			break;
+	case 'f':
+		frame_rate = strtod(optarg, NULL);
+		if (frame_rate <= 0.0)
+			return FALSE;
+		break;
 
-		case 'g':
-		{
-			int i, len = strlen(optarg);
+	case 'g':
+	{
+		int i, len = strlen(optarg);
 
-			if (len == 0)
-				break;
-
-			gop_sequence = strdup(optarg);
-
-			for (i = 0; i < len; i++)
-				gop_sequence[i] = toupper(gop_sequence[i]);
-
-			break;
-		}
-
-		case 'm':
-			modules = multi_suboption(mux_options, 5, modules);
-			if (modules <= 0 || modules > 7)
-				return FALSE;
+		if (len == 0)
 			break;
 
-		case 'n':
-			if (strchr(optarg, ':')) {
-				int video_num_secs;
-				char *s = optarg;
+		gop_sequence = strdup(optarg);
 
-				video_num_secs = 3600 * strtol(s, &s, 0);
+		for (i = 0; i < len; i++)
+			gop_sequence[i] = toupper(gop_sequence[i]);
+
+		break;
+	}
+
+	case 'm':
+		modules = multi_suboption(mux_options, 5, modules);
+		if (modules <= 0 || modules > 7)
+			return FALSE;
+		break;
+
+	case 'n':
+		if (strchr(optarg, ':')) {
+			int video_num_secs;
+			char *s = optarg;
+
+			video_num_secs = 3600 * strtol(s, &s, 0);
+			while (*s && !isalnum(*s)) s++;
+			if (*s) {
+				video_num_secs += 60 * strtol(s, &s, 0);
 				while (*s && !isalnum(*s)) s++;
-				if (*s) {
-					video_num_secs += 60 * strtol(s, &s, 0);
-					while (*s && !isalnum(*s)) s++;
-					if (*s)
-						video_num_secs += strtol(s, &s, 0);
-				}
-				audio_num_secs = video_num_secs;
-			} else {
-				audio_num_frames = strtol(optarg, NULL, 0);
-				video_num_frames = audio_num_frames; 
+				if (*s)
+					video_num_secs += strtol(s, &s, 0);
 			}
-			break;
-
-		case 'h':
-			usage(stdout);
-			break;
-
-		case 'i':
-			options_from_file(optarg, TRUE);
-			break;
-
-		case 'l':
-			have_letterbox = TRUE;
-			break;
-
-                case 'o':
-                        outFileFD = open(optarg, 
-					 O_CREAT | O_WRONLY | O_TRUNC | O_LARGEFILE,
-					 S_IRUSR | S_IWUSR | S_IRGRP
-					 | S_IWGRP | S_IROTH | S_IWOTH);
-			ASSERT("open output file '%s'", outFileFD != -1, optarg);
-			break;
-
-		case 'p':
-			pcm_dev = strdup(optarg);
-			break;
-
-		case 'r':
-			sscanf(optarg, "%d,%d", &mix_line, &mix_volume);
-			if (mix_line < 0 || mix_line > 30 ||
-			    mix_volume < 0 || mix_volume > 100)
-				return FALSE;
-			break;
-
-	        case 's':
-			have_image_size = TRUE;
-			sscanf(optarg, "%dx%d", &width, &height);
-			if (width < 1 || width > MAX_WIDTH ||
-			    height < 1 || height > MAX_HEIGHT)
-				return FALSE;
-			break;
-
-		case 't':
-			/*
-			  1 - audio fft, filter and dct test
-			  2 - video
-			  4 - DONT USE
-			  8 - video frame dropping test (20%)
-			  16 - video effective bit rate
-			  32 - deliberate sampling rate mismatch
-			  64 - store raw audio data (driver interface test)
-			  128 - randomize video
-			  256 - enable clock drift code
-			 */
-			test_mode = strtol(optarg, NULL, 0);
-			break;
-
-		case 'v':
-			if (optarg)
-				verbose = strtol(optarg, NULL, 0);
-			else
-				verbose++;
-			break;
-
-		case 'w':
-			luma_only = !luma_only;
-			break;
-
-		case 'x':
-			mix_dev = strdup(optarg);
-			break;
-
-		case 'A':
-			anno = strdup(optarg);
-			break;
-
-		case 'B': // audio bit rate (bits/s or kbits/s)
-		{
-			double rate = strtod(optarg, NULL);
-
-			if (rate >= 1e3)
-				audio_bit_rate = rate;
-			else
-				audio_bit_rate = rate * 1e3;
-
-			have_audio_bit_rate = TRUE;
-
-			break;
+			audio_num_secs = video_num_secs;
+		} else {
+			audio_num_frames = strtod(optarg, NULL);
+			video_num_frames = audio_num_frames; 
 		}
+		break;
 
-		case 'C':
-			if ((cpu_type = suboption(cpu_options, 9, 0)) < 0)
-				return FALSE;
-			break;
+	case 'h':
+		usage(stdout);
+		break;
 
-		case 'F':
-			filter_mode = strtol(optarg, NULL, 0);
-			if (filter_mode <= 0 ||
-			    filter_mode >= CM_NUM_MODES)
-				return FALSE;
-			have_filter = TRUE;
-			break;
+	case 'i':
+		options_from_file(optarg, TRUE);
+		break;
 
-	        case 'G':
-			have_grab_size = TRUE;
-			sscanf(optarg, "%dx%d", &grab_width, &grab_height);
-			if (width < 1 || width > MAX_WIDTH ||
-			    height < 1 || height > MAX_HEIGHT)
-				return FALSE;
-			break;
+	case 'l':
+		have_letterbox = TRUE;
+		break;
 
-	        case 'H':
-			break;
+	case 'o':
+		strncpy(outFile, optarg, sizeof(outFile) - 1);
+		break;
 
-			/* 
-			   obsolete, ignored
+	case 'p':
+		pcm_dev = strdup(optarg);
+		break;
+
+	case 'r':
+		sscanf(optarg, "%d,%d", &mix_line, &mix_volume);
+		if (mix_line < 0 || mix_line > 30 ||
+		    mix_volume < 0 || mix_volume > 100)
+			return FALSE;
+		break;
+
+	case 's':
+		have_image_size = TRUE;
+		sscanf(optarg, "%dx%d", &width, &height);
+		if (width < 1 || width > MAX_WIDTH ||
+		    height < 1 || height > MAX_HEIGHT)
+			return FALSE;
+		break;
+
+	case 't':
+		/*
+		  1 - audio fft, filter and dct test
+		  2 - video
+		  4 - DONT USE
+		  8 - video frame dropping test (20%)
+		  16 - video effective bit rate
+		  32 - deliberate sampling rate mismatch
+		  64 - store raw audio data (driver interface test)
+		  128 - randomize video
+		  256 - enable clock drift code
+		*/
+		test_mode = strtol(optarg, NULL, 0);
+		break;
+
+	case 'v':
+		if (optarg)
+			verbose = strtol(optarg, NULL, 0);
+		else
+			verbose++;
+		break;
+
+	case 'w':
+		luma_only = !luma_only;
+		break;
+
+	case 'x':
+		mix_dev = strdup(optarg);
+		break;
+
+	case 'z':
+		split_sequence = TRUE;
+		break;
+
+	case 'A':
+		anno = strdup(optarg);
+		break;
+
+	case 'B': // audio bit rate (bits/s or kbits/s)
+	{
+		double rate = strtod(optarg, NULL);
+
+		if (rate >= 1e3)
+			audio_bit_rate = rate;
+		else
+			audio_bit_rate = rate * 1e3;
+
+		have_audio_bit_rate = TRUE;
+
+		break;
+	}
+
+	case 'C':
+		if ((cpu_type = suboption(cpu_options, 9, 0)) < 0)
+			return FALSE;
+		break;
+
+	case 'F':
+		filter_mode = strtol(optarg, NULL, 0);
+		if (filter_mode <= 0 ||
+		    filter_mode >= CM_NUM_MODES)
+			return FALSE;
+		have_filter = TRUE;
+		break;
+
+	case 'G':
+		have_grab_size = TRUE;
+		sscanf(optarg, "%dx%d", &grab_width, &grab_height);
+		if (width < 1 || width > MAX_WIDTH ||
+		    height < 1 || height > MAX_HEIGHT)
+			return FALSE;
+		break;
+
+	case 'H':
+		break;
+
+		/* 
+		   obsolete, ignored
 			   
-			   frames_per_seqhdr = strtol(optarg, NULL, 0);
+		   frames_per_seqhdr = strtol(optarg, NULL, 0);
 			   
-			   if (frames_per_seqhdr < 1)
-			           return FALSE;
-.BI "\-H, \-\-frames_per_seq_header " n
-.RS
-The sequence header in an MPEG-1 video stream contains information
-such as the picture size and rate, and is therefore essential for a
-player. For archiving it's sufficient to encode only one header.
-If you want to stream the file, the player may have missed the initial
-header. This option allows to repeat the header at certain regular
-intervals, the default is appx. two seconds. When you concatenate
-MPEG streams (simply with "cat") using different compression
-parameters, you may also want to repeat the header to ensure random
-access will pick up the correct parameters.
-.P
-Note whatever you specify the header is not inserted more often than
-once in each group of pictures (see above). A reasonable value may
-be 25 or 30, that is one header per second.
-.RE
-.TP
-			*/
+		   if (frames_per_seqhdr < 1)
+		   return FALSE;
+		   .BI "\-H, \-\-frames_per_seq_header " n
+		   .RS
+		   The sequence header in an MPEG-1 video stream contains information
+		   such as the picture size and rate, and is therefore essential for a
+		   player. For archiving it's sufficient to encode only one header.
+		   If you want to stream the file, the player may have missed the initial
+		   header. This option allows to repeat the header at certain regular
+		   intervals, the default is appx. two seconds. When you concatenate
+		   MPEG streams (simply with "cat") using different compression
+		   parameters, you may also want to repeat the header to ensure random
+		   access will pick up the correct parameters.
+		   .P
+		   Note whatever you specify the header is not inserted more often than
+		   once in each group of pictures (see above). A reasonable value may
+		   be 25 or 30, that is one header per second.
+		   .RE
+		   .TP
+		*/
 
-		case 'I':
-			vbi_dev = strdup(optarg);
-			break;
+	case 'I':
+		vbi_dev = strdup(optarg);
+		break;
 
-		case 'M':
-			mute = suboption(mute_options, 3, mute);
-			if (mute < 0 || mute > 2)
-				return FALSE;
-			break;
+	case 'M':
+		mute = suboption(mute_options, 3, mute);
+		if (mute < 0 || mute > 2)
+			return FALSE;
+		break;
 
-		case 'P':
+	case 'P':
 #if !TEST_PREVIEW
-			FAIL("Not configured for preview\n");
+		FAIL("Not configured for preview\n");
 #endif
-			preview++;
+		preview++;
+		break;
+
+	case 'R':
+		motion_max = 0;
+		sscanf(optarg, "%d,%d", &motion_min, &motion_max);
+		if (!motion_max)
+			motion_max = motion_min;
+		if (!motion_min)
 			break;
-
-		case 'R':
-			motion_max = 0;
-			sscanf(optarg, "%d,%d", &motion_min, &motion_max);
-			if (!motion_max)
-				motion_max = motion_min;
-			if (!motion_min)
-				break;
-			if (!have_filter)
-				filter_mode = CM_YUYV_VERTICAL_INTERPOLATION;
-			for (i = 0; i < 2; i++) {
-				if (motion_min > motion_max)
-					swap(motion_min, motion_max);
-				if (motion_min < 4)
-					motion_min = 4;
-				if (motion_max > 64)
-					motion_max = 64;
-			}
-			break;
-
-		case 'S': // audio sampling rate (Hz or kHz)
-		{
-			double rate = strtod(optarg, NULL);
-
-			if (rate >= 1e3)
-				sampling_rate = rate;
-			else
-				sampling_rate = rate * 1e3;
-
-			break;
+		if (!have_filter)
+			filter_mode = CM_YUYV_VERTICAL_INTERPOLATION;
+		for (i = 0; i < 2; i++) {
+			if (motion_min > motion_max)
+				swap(motion_min, motion_max);
+			if (motion_min < 4)
+				motion_min = 4;
+			if (motion_max > 64)
+				motion_max = 64;
 		}
+		break;
 
-		case 'T':
-			subtitle_pages = strdup(optarg);
-			break;
+	case 'S': // audio sampling rate (Hz or kHz)
+	{
+		double rate = strtod(optarg, NULL);
 
-		case 'V':
-			puts("mp1e" " " VERSION " (" __DATE__ ")");
-			exit(EXIT_SUCCESS);
+		if (rate >= 1e3)
+			sampling_rate = rate;
+		else
+			sampling_rate = rate * 1e3;
 
-		case 'X':
-			mux_syn = suboption(mux_syn_options, 5, 2);
-			if (mux_syn < 0 || mux_syn > 4)
-				return FALSE;
-			break;
+		break;
+	}
 
-		default:
-			usage(stderr);
+	case 'T':
+		subtitle_pages = strdup(optarg);
+		break;
+
+	case 'V':
+		puts("mp1e" " " VERSION " (" __DATE__ ")");
+		exit(EXIT_SUCCESS);
+
+	case 'X':
+		mux_syn = suboption(mux_syn_options, 5, 2);
+		if (mux_syn < 0 || mux_syn > 4)
+			return FALSE;
+		break;
+
+	default:
+		usage(stderr);
 	}
 
 	return TRUE;
@@ -648,9 +649,9 @@ bark(void)
 		     "'P' (forward predicted), and 'B' (bidirectionally predicted) in any\n"
 		     "order headed by an 'I' picture.", gop_sequence);
 
-	if (audio_num_frames > 1000 && audio_num_frames < INT_MAX && verbose > 0)
+	if (audio_num_frames > 1000 && audio_num_frames < DBL_MAX && verbose > 0)
 		fprintf(stderr, "Hint: you can write -n h:m[:s] instead of -n %lld\n",
-			audio_num_frames);
+			(long long) audio_num_frames);
 
 	have_audio_bit_rate = FALSE;
 	have_image_size = FALSE;
@@ -695,6 +696,7 @@ options(int ac, char **av)
 				break;
 			}
 		}
+
 		if (c >= 0)
 			options_from_file("stdin", FALSE);
 	}
@@ -710,4 +712,10 @@ options(int ac, char **av)
 
 //	if (motion_min && motion_max)
 //		cap_buffers *= 2;
+
+	if (split_sequence && !outFile[0])
+		FAIL("You must specify an output file name with the\n"
+		     "-o option when using the -z|--split option.");
 }
+
+

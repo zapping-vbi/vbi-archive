@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: global_data.c,v 1.11 2002-02-08 15:03:10 mschimek Exp $ */
+/* $Id: global_data.c,v 1.12 2002-05-07 06:39:59 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -46,7 +46,9 @@
  */
 int			test_mode		= 0;
 
+char 			outFile[256];
 int			outFileFD		= STDOUT_FILENO;
+int			split_sequence		= FALSE;
 
 int			modules			= 3;			// 1 = Video, 2 = Audio, 4 = VBI
 int			mux_syn			= 2;			// 0 = null, elementary, MPEG-1, MPEG-2 PS 
@@ -73,7 +75,7 @@ int			grab_width		= 352;
 int			grab_height		= 288;
 // defaults to width/height if given
 int			video_bit_rate		= 2300000;
-long long		video_num_frames	= INT_MAX; /* XXX rounding */
+double			video_num_frames	= DBL_MAX;
 long long		video_num_secs		= INT_MAX;
 char *			gop_sequence		= "IBBPBBPBBPBB";
 // int			frames_per_seqhdr	= 50;
@@ -88,7 +90,7 @@ int			skip_method		= 0;			// compatible
 
 int			audio_bit_rate		= 80000;
 int			audio_bit_rate_stereo	= 160000;
-long long		audio_num_frames	= INT_MAX;
+double			audio_num_frames	= DBL_MAX;
 long long		audio_num_secs		= INT_MAX;
 int			sampling_rate		= 44100;
 int			mix_line		= SOUND_MIXER_LINE;	// soundcard.h
