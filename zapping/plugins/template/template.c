@@ -67,7 +67,8 @@ gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
     SYMBOL(plugin_load_config, 0x1234),
     SYMBOL(plugin_save_config, 0x1234),
     SYMBOL(plugin_running, 0x1234),
-    SYMBOL(plugin_process_bundle, 0x1234),
+    SYMBOL(plugin_write_bundle, 0x1234),
+    SYMBOL(plugin_read_bundle, 0x1234),
     SYMBOL(plugin_get_public_info, 0x1234),
     /* These three shouldn't be exported, since there are no
        configuration options */
@@ -217,8 +218,16 @@ void plugin_save_config (gchar * root_key)
   /* Save here any other config keys you need to save */
 }
 
+/*
+  Write access to the bundle. You can do almost whatever you want
+  with the given struct (see the limitations in capture.h), but
+  remember that the resulting struct will be passed verbatim to the
+  rest of the plugins, so produce something valid :-)
+  Also, you shouldn't make any X (or GTK, for that matter) in this
+  function, since it's run on a thread different to the main one.
+*/
 static
-void plugin_process_bundle ( capture_bundle * bundle )
+void plugin_write_bundle ( capture_bundle * bundle )
 {
   /* If the plugin isn't active, it shouldn't do anything */
   if (!active)
@@ -226,6 +235,15 @@ void plugin_process_bundle ( capture_bundle * bundle )
 
   /* Do any changes to the image here and update the struct
      accordingly */
+}
+
+/*
+  Read only access to the bundle. You can do X or GTK calls from here,
+  but you shouldn't modify the members of the struct.
+*/
+static
+void plugin_read_bundle ( capture_bundle * bundle )
+{
 }
 
 static

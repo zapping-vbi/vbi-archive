@@ -32,38 +32,43 @@
 
 /*
   This struct holds all the info about a video sample pased to a
-  plugin. The plugin can write to all fields, but it should keep all
-  the data valid, since the same struct will be passed to the
-  remaining plugins.
+  plugin.
 */
 typedef struct {
-  struct tveng_frame_format	format;
+  struct tveng_frame_format	format; /* described pixformat, size,
+					   etc, see tveng.h */
+
+  /* type of data the bundle contains */
+  enum {
+    CAPTURE_BUNDLE_XV=1,	/* XvImage */
+    CAPTURE_BUNDLE_GDK,		/* GdkImage */
+    CAPTURE_BUNDLE_DATA		/* raw YUV data */
+  } image_type;
 
   union {
-    xvzImage			*xvimage; /* if xv present */
-    GdkImage			*gdkimage; /* otherwise */
-    gpointer			yuv_data; /* raw data */
+    xvzImage			*xvimage; /* _XV */
+    GdkImage			*gdkimage; /* _GDK */
+    gpointer			yuv_data; /* _DATA */
   } image;
 
-#define CAPTURE_BUNDLE_XV 1		/* XvImage */
-#define CAPTURE_BUNDLE_GDK 2		/* GdkImage */
-#define CAPTURE_BUNDLE_DATA 3		/* raw YUYV data */
-  gint		image_type;		/* type of data the bundle
-					   contains */
+  /* data contained in the image; size etc is described by format */
+  gpointer			data;
+  /* time this bundle was created */
+  double			timestamp;
 
-  gpointer	data;			/* pointer to the data
-					   (writable) */
-
-  gint		image_size;		/* size of data, in bytes */
-
-  double	timestamp;		/* time when the bundle was
-					   captured */
-
-  /* mhs: try to avoid; redundant when capture_bundle
-     becomes parent of buffer. */
-  fifo		*f;			/* fifo this bundle belongs to */
-  buffer	*b;			/* buffer this bundle belongs to */
+  /* Who produced this bundle (read/only) */
+  producer			*producer;
 } capture_bundle;
+
+/*
+ * capture buffer. consumer plugins can add them to the consumer list
+ * of the capture fifo and wait_full buffers.
+ */
+typedef struct {
+  buffer	b; /* this is read-only */
+
+  capture_bundle d;
+} capture_buffer;
 
 /*
  * Inits the capture, setting the given widget as a destination.
@@ -77,7 +82,7 @@ startup_capture(GtkWidget * widget);
  * Releases the capture structs.
  */
 void
-shutdown_capture(tveng_device_info * info);
+shutdown_capture(void);
 
 /*
  * Starts capturing to the given widget, returns -1 on error
@@ -89,7 +94,7 @@ capture_start(GtkWidget *widget, tveng_device_info * info);
  * Stops capturing
  */
 void
-capture_stop(tveng_device_info * info);
+capture_stop(tveng_device_info *info);
 
 /*
  * Requests that the bundles produced from now on have the given
@@ -102,8 +107,7 @@ request_bundle_format(enum tveng_frame_pixformat pixformat, gint w, gint h);
  * Builds the bundle with the given parameters.
  */
 void
-build_bundle(capture_bundle *d, struct tveng_frame_format *format,
-	     fifo *f, buffer *b);
+build_bundle(capture_bundle *d, struct tveng_frame_format *format);
 
 /*
  * Frees the memory used by the bundle.
@@ -143,9 +147,6 @@ typedef void (*BundleFiller)(capture_bundle *bundle,
  * bundle is NULL, then the default filler is restored.
  */
 BundleFiller set_bundle_filler(BundleFiller fill_bundle);
-
-fifo *
-get_capture_fifo(void);
 
 #endif /* capture.h */
 

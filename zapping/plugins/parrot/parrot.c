@@ -114,7 +114,7 @@ gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
     SYMBOL(plugin_load_config, 0x1234),
     SYMBOL(plugin_save_config, 0x1234),
     SYMBOL(plugin_running, 0x1234),
-    SYMBOL(plugin_process_bundle, 0x1234),
+    SYMBOL(plugin_read_bundle, 0x1234),
     /* These three shouldn't be exported, since there are no
        configuration options */
     SYMBOL(plugin_add_properties, 0x1234),
@@ -252,12 +252,12 @@ parrot_filler(capture_bundle *bundle, tveng_device_info *info)
 
   /* no available frames */
   if (start_pos == read_index)
-    memset(bundle->data, 0, bundle->image_size);
+    memset(bundle->data, 0, bundle->format.sizeimage);
   else
     {
       double now;
 
-      memcpy(bundle->data, d->data, bundle->image_size);
+      memcpy(bundle->data, d->data, bundle->format.sizeimage);
       now = current_time();
       
       if (last_timestamp > 0)
@@ -364,7 +364,7 @@ void plugin_save_config (gchar * root_key)
 }
 
 static
-void plugin_process_bundle ( capture_bundle * bundle )
+void plugin_read_bundle ( capture_bundle * bundle )
 {
   capture_bundle *d;
   struct timeval tv;
@@ -392,14 +392,14 @@ void plugin_process_bundle ( capture_bundle * bundle )
   if (!bundle_equal(d, bundle))
     {
       clear_bundle(d);
-      build_bundle(d, &bundle->format, NULL, NULL);
+      build_bundle(d, &bundle->format);
       d->timestamp = bundle->timestamp; /* shouldn't be 0 */
     }
 
   if (bundle_equal(d, bundle))
     {
       d->timestamp = bundle->timestamp;
-      memcpy(d->data, bundle->data, d->image_size);
+      memcpy(d->data, bundle->data, d->format.sizeimage);
     }
 
   pthread_rwlock_unlock(rwlock);

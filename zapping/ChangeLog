@@ -1,3 +1,10 @@
+13.08.2001	capture code rewrite <garetxe@users.sf.net>
+
+	* src/capture.c: Rewrote/cleaned up the capture core to
+	differenciate between read/write serial plugins and allow for
+	other producer/consumers (this one not yet tested).
+	* plugins/mpeg: Commented out lip-sync warning.
+
 9.08.2001	z_build_path <garetxe@users.sf.net>
 
 	* zmisc.c: Added z_build_path.

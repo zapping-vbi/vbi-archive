@@ -105,7 +105,8 @@ static gboolean plugin_start ( void ) __attribute__ ((unused)) ;
 static void plugin_stop( void ) __attribute__ ((unused)) ;
 static void plugin_load_config ( gchar * root_key ) __attribute__ ((unused)) ;
 static void plugin_save_config ( gchar * root_key ) __attribute__ ((unused)) ;
-static void plugin_process_bundle( capture_bundle * bundle ) __attribute__ ((unused)) ;
+static void plugin_write_bundle( capture_bundle * bundle ) __attribute__ ((unused)) ;
+static void plugin_read_bundle( capture_bundle * bundle ) __attribute__ ((unused)) ;
 static void plugin_capture_stop( void ) __attribute__ ((unused)) ;
 static
 gboolean plugin_get_public_info (gint index, gpointer * ptr, gchar **

@@ -375,7 +375,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.123 2001-08-06 23:28:40 garetxe Exp $",
+	 "$Id: main.c,v 1.124 2001-08-13 00:10:23 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU support... ");
   switch (cpu_detection())
@@ -855,7 +855,7 @@ static void shutdown_zapping(void)
    * Shuts down the capture engine
    */
   printv(" capture");
-  shutdown_capture(main_info);
+  shutdown_capture();
 
   /* Close */
   printv(" video device");

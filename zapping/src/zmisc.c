@@ -242,21 +242,24 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 
   muted = tveng_get_mute(info);
   mode = info->current_mode;
-  tveng_stop_everything(info);
 
   /* Stop current capture mode */
   switch (mode)
     {
     case TVENG_CAPTURE_PREVIEW:
+      tveng_stop_everything(info);
       fullscreen_stop(info);
       break;
     case TVENG_CAPTURE_READ:
       capture_stop(info);
+      tveng_stop_everything(info);
       break;
     case TVENG_CAPTURE_WINDOW:
+      tveng_stop_everything(info);
       overlay_stop(info);
       break;
     default:
+      tveng_stop_everything(info);
       break;
     }
   if (new_mode != TVENG_NO_CAPTURE)

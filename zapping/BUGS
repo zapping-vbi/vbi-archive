@@ -10,7 +10,6 @@ Known bugs with zapping, don't report them
 	! Sometimes segv when doing:
 		start in capture mode, middle-click to fs,
 		middle-click to restore [probably parrot plugin].
-	* Need better handling of no /dev/video0.
 	* Need better no-overlay-present handling.
 	* vbi eats too much CPU, investigate.
 	* The standard is changed when changing modes (check, not sure)

@@ -127,9 +127,13 @@ static gboolean plugin_load(gchar * file_name, struct plugin_info * info)
 		       (gpointer*)&(info->plugin_running)))
     info->plugin_running = NULL;
 
-  if (!(*plugin_get_symbol)("plugin_process_bundle", 0x1234,
-		       (gpointer*)&(info->plugin_process_bundle)))
-    info->plugin_process_bundle = NULL;
+  if (!(*plugin_get_symbol)("plugin_write_bundle", 0x1234,
+		       (gpointer*)&(info->plugin_write_bundle)))
+    info->plugin_write_bundle = NULL;
+
+  if (!(*plugin_get_symbol)("plugin_read_bundle", 0x1234,
+		       (gpointer*)&(info->plugin_read_bundle)))
+    info->plugin_read_bundle = NULL;
 
   if (!(*plugin_get_symbol)("plugin_capture_stop", 0x1234,
 		       (gpointer*)&(info->plugin_capture_stop)))
@@ -500,15 +504,26 @@ gboolean plugin_running ( struct plugin_info * info)
   return (*(info->plugin_running))();
 }
 
-void plugin_process_bundle (capture_bundle * bundle, struct plugin_info
-			    * info)
+void plugin_write_bundle (capture_bundle * bundle, struct plugin_info
+			  * info)
 {
   g_assert(info != NULL);
   g_return_if_fail(bundle != NULL);
   g_return_if_fail(bundle -> image_type != 0);
 
-  if (info -> plugin_process_bundle)
-    (*info->plugin_process_bundle)(bundle);
+  if (info -> plugin_write_bundle)
+    (*info->plugin_write_bundle)(bundle);
+}
+
+void plugin_read_bundle (capture_bundle * bundle, struct plugin_info
+			 * info)
+{
+  g_assert(info != NULL);
+  g_return_if_fail(bundle != NULL);
+  g_return_if_fail(bundle -> image_type != 0);
+
+  if (info -> plugin_read_bundle)
+    (*info->plugin_read_bundle)(bundle);
 }
 
 void plugin_capture_stop (struct plugin_info * info)

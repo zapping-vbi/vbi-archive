@@ -85,7 +85,7 @@ gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
     SYMBOL(plugin_start, 0x1234),
     SYMBOL(plugin_load_config, 0x1234),
     SYMBOL(plugin_save_config, 0x1234),
-    SYMBOL(plugin_process_bundle, 0x1234),
+    SYMBOL(plugin_read_bundle, 0x1234),
     SYMBOL(plugin_capture_stop, 0x1234),
     SYMBOL(plugin_get_public_info, 0x1234),
     SYMBOL(plugin_add_properties, 0x1234),
@@ -318,7 +318,7 @@ static gboolean buffered_video = FALSE; /* FIXME: Segfault when
 					   bundles require resizing */
 
 static
-void plugin_process_bundle ( capture_bundle * bundle )
+void plugin_read_bundle ( capture_bundle * bundle )
 {
   rte_buffer rbuf;
   struct rte_status_info status;
@@ -422,6 +422,7 @@ gboolean plugin_start (void)
       return FALSE;
     }
 
+#if 0
   if (lip_sync_warning &&
       zapping_info->current_controller == TVENG_CONTROLLER_V4L1)
     {
@@ -457,6 +458,7 @@ gboolean plugin_start (void)
 	  break;
 	}
     }
+#endif
 
   if (zmisc_switch_mode(TVENG_CAPTURE_READ, zapping_info))
     {
