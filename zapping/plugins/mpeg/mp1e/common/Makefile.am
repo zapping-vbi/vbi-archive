@@ -9,4 +9,5 @@ libcommon_a_SOURCES = \
 	list.h log.h math.h \
 	mmx.c mmx.h \
 	profile.c profile.h \
-	threads.h types.h
+	threads.h types.h \
+	remote.c remote.h

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.24 2000-10-15 21:24:48 mschimek Exp $ */
+/* $Id: main.c,v 1.25 2000-10-17 06:18:45 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,6 +49,7 @@
 #include "common/log.h"
 #include "common/mmx.h"
 #include "common/bstream.h"
+#include "common/remote.h"
 #include "options.h"
 
 char *			my_name;
@@ -93,6 +94,7 @@ static void
 terminate(int signum)
 {
 	struct timeval tv;
+	double now;
 
 	printv(3, "Received termination signal\n");
 
@@ -100,13 +102,25 @@ terminate(int signum)
 
 	gettimeofday(&tv, NULL);
 
+	now = tv.tv_sec + tv.tv_usec / 1e6;
+
+#if USE_REMOTE
+	if (1)
+		remote_stop(0.0); // past times: stop asap
+		// XXX mutexes and signals don't mix
+	else {
+		printv(0, "Deferred stop in 3 seconds\n");
+		remote_stop(now + 3.0);
+		// XXX allow cancelling
+	}
+#else
 	video_stop_time =
 	vbi_stop_time =
 	audio_stop_time = tv.tv_sec + tv.tv_usec / 1e6;
-
 // XXX unsafe? atomic set, once only, potential rc
+#endif
 
-	printv(1, "\nStop at %f\n", video_stop_time);
+	printv(1, "\nStop at %f\n", now);
 }
 
 int
@@ -244,7 +258,13 @@ main(int ac, char **av)
 
 	ASSERT("initialize output routine", init_output_stdout());
 
+#if USE_REMOTE
+	// pause loop? >>
+
+	remote_init(modules);
+#else
 	synchronize_capture_modules(TRUE);
+#endif
 
 	if (modules & MOD_AUDIO) {
 		ASSERT("create audio compression thread",
@@ -302,6 +322,24 @@ main(int ac, char **av)
 		break;
 	}
 
+#if USE_REMOTE
+	/*
+	 *  Engines are running (ie. capturing),
+	 *  let's hit the record button.
+	 */
+	if (1)
+    		remote_start(0.0); // past times: start as soon as possible
+	else {
+		struct timeval tv;
+
+		printv(0, "Deferred start in 3 seconds\n");
+
+		gettimeofday(&tv, NULL);
+
+    		remote_start(3.0 + tv.tv_sec + tv.tv_usec / 1e6);
+	}
+#endif
+
 #if 0
 	// unsafe: numframes, stop_time < mux finish time, cuts off end code
 	/* wait until completition (SIGINT handler) */
@@ -324,6 +362,9 @@ main(int ac, char **av)
    #3, compression from files fakes timestamps, Ctrl-C no workee.
 */
 	pthread_join(mux_thread, NULL);
+
+	// cancel & join all threads here
+	// << pause loop? XXX make threads re-enter safe, counters etc.
 
 	mux_cleanup();
 

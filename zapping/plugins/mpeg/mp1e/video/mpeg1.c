@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.9 2000-09-29 17:54:33 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.10 2000-10-17 06:19:52 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -31,6 +31,7 @@
 #include "../common/bstream.h"
 #include "../common/fifo.h"
 #include "../common/alloc.h"
+#include "../common/remote.h"
 #include "vlc.h"
 #include "dct.h"
 #include "predict.h"
@@ -1421,6 +1422,10 @@ mpeg1_video_ipb(void *unused)
 
 	printv(3, "Video compression thread\n");
 
+#if USE_REMOTE
+	remote_sync(video_cap_fifo, MOD_VIDEO, time_per_frame);
+#endif
+
 	while (!done) {
 		int sp = 0;
 
@@ -1476,8 +1481,13 @@ mpeg1_video_ipb(void *unused)
 
 			sp++;
 
+#if USE_REMOTE
+			if (!this->org[0] || remote_break(this->time, time_per_frame) ||
+			    video_frame_count + sp > video_num_frames) {
+#else
 			if (!this->org[0] || this->time >= video_stop_time ||
 			    video_frame_count + sp > video_num_frames) {
+#endif
 				printv(2, "Video: End of file\n");
 
 				if (this->org[0] && this->buffer)

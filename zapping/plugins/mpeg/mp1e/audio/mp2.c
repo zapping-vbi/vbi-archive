@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.7 2000-10-15 20:54:14 mschimek Exp $ */
+/* $Id: mp2.c,v 1.8 2000-10-17 06:18:45 mschimek Exp $ */
 
 #include <limits.h>
 #include "../options.h"
@@ -28,6 +28,7 @@
 #include "../common/profile.h"
 #include "../common/bstream.h"
 #include "../common/math.h"
+#include "../common/remote.h"
 #include "mpeg.h"
 #include "audio.h"
 #include "../systems/systems.h"
@@ -116,7 +117,7 @@ double			avg_slots_per_frame,
 			frac_SpF,
 			slot_lag;
 int			whole_SpF;
-
+double			frame_period;
 
 void
 audio_parameters(int *sampling_freq, int *bit_rate)
@@ -327,6 +328,8 @@ audio_init(void)
 
 	audio_frame_count = 0;
 
+	frame_period = SAMPLES_PER_FRAME / (double) sampling_freq;
+
 	audio_fifo = mux_add_input_stream(AUDIO_STREAM,
 		2048 << stereo, aud_buffers,
 		sampling_freq / (double) SAMPLES_PER_FRAME, bit_rate, audio_cap_fifo);
@@ -351,6 +354,10 @@ void *
 mpeg_audio_layer_ii_mono(void *unused)
 {
 	// fpu_control(FPCW_PRECISION_SINGLE, FPCW_PRECISION_MASK);
+
+#if USE_REMOTE
+	remote_sync(audio_cap_fifo, MOD_AUDIO, frame_period);
+#endif
 
 	for (;;) {
 		buffer *ibuf, *obuf;
@@ -377,7 +384,11 @@ mpeg_audio_layer_ii_mono(void *unused)
 
 		ibuf = wait_full_buffer(audio_cap_fifo);
 
+#if USE_REMOTE
+		if (!ibuf || remote_break(ibuf->time, frame_period)) {
+#else
 		if (!ibuf || ibuf->time >= audio_stop_time) {
+#endif
 			if (ibuf)
 				send_empty_buffer(audio_cap_fifo, ibuf);
 			terminate();
@@ -630,6 +641,10 @@ mpeg_audio_layer_ii_stereo(void *unused)
 {
 	// fpu_control(FPCW_PRECISION_SINGLE, FPCW_PRECISION_MASK);
 
+#if USE_REMOTE
+	remote_sync(audio_cap_fifo, MOD_AUDIO, frame_period);
+#endif
+
 	for (;;) {
 		buffer *ibuf, *obuf;
 		unsigned int adb, bpf;
@@ -655,7 +670,11 @@ mpeg_audio_layer_ii_stereo(void *unused)
 
 		ibuf = wait_full_buffer(audio_cap_fifo);
 
+#if USE_REMOTE
+		if (!ibuf || remote_break(ibuf->time, frame_period)) {
+#else
 		if (!ibuf || ibuf->time >= audio_stop_time) {
+#endif
 			if (ibuf)
 				send_empty_buffer(audio_cap_fifo, ibuf);
 			terminate();
