@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.c,v 1.6 2005-01-08 14:54:20 mschimek Exp $ */
+/* $Id: misc.c,v 1.7 2005-01-31 07:09:49 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -101,7 +101,7 @@ _vbi3_asprintf			(char **		dstp,
 				 ...)
 {
 	char *buf;
-	int size;
+	unsigned int size;
 	int temp;
 
 	assert (NULL != dstp);
@@ -129,7 +129,7 @@ _vbi3_asprintf			(char **		dstp,
 		if (len < 0) {
 			/* Not enough. */
 			size *= 2;
-		} else if (len < size) {
+		} else if ((unsigned int) len < size) {
 			*dstp = buf;
 			errno = temp;
 			return len;
