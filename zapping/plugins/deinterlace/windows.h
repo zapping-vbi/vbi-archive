@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: windows.h,v 1.3 2005-01-20 01:38:33 mschimek Exp $ */
+/* $Id: windows.h,v 1.4 2005-01-27 04:20:20 mschimek Exp $ */
 
 #ifndef WINDOWS_H
 #define WINDOWS_H
@@ -77,15 +77,15 @@ typedef struct {
 } RECT;
 
 #ifndef FALSE
-#define FALSE 0
+#  define FALSE 0
 #endif
 
 #ifndef TRUE
-#define TRUE 1
+#  define TRUE 1
 #endif
 
 #ifndef NULL
-#define NULL ((void *) 0)
+#  define NULL ((void *) 0)
 #endif
 
 #define WM_APP 0

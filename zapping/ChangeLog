@@ -1,3 +1,40 @@
+2005-01-27    <mschimek@users.sf.net>
+
+	* plugins/deinterlace/Makefile.am,
+	  plugins/deinterlace/DI_GreedyH/Makefile.am,
+	  plugins/deinterlace/DI_Misc/Makefile.am,
+	  plugins/deinterlace/DI_MoComp2/Makefile.am,
+	  plugins/deinterlace/DI_TomsMoComp/Makefile.am:
+	  Added files missing in distribution.
+	* src/zvbi.c: Define vbi_dvb_demux only if we have old libzvbi.
+	* src/tvengbktr.c: Updated.
+	* src/tveng25.c: Choose fprint_ioctl function at runtime.
+	(dequeue_buffer, flush_buffers): EINTR check is redundant.
+	* src/tveng1.c (p_tveng1_dequeue): Must bypass device_ioctl() to
+	  get EINTR for timeout.
+	* libvbi/Makefile.am (wstfont2.xbm): Don't rebuild fontgen if
+	  wstfont2.xbm is up to date.
+	* libvbi/search.c (vbi3_search_next_va_list, vbi3_search_next):
+	  Const parameter fix in replacement funcs.
+	* libvbi/fontgen.c (pbm_read): s/ssize_t/size_t fread return type.
+	* libvbi/teletext_decoder.c (vbi3_teletext_decoder_get_network): Fixed.
+
+2005-01-26    <mschimek@users.sf.net>
+
+	* Makefile.am (SUBDIRS): Added test.
+	* libvbi/teletext.c (vbi3_page_get_teletext_link): Fixed index check.
+	* libvbi/teletext_decoder.c (decode_packet_0): Discard regular pages
+	  with non-bcd subno, these are probably defective.
+	(decode_packet_0): Parallel transmission fix fixed.
+	* plugins/teletext/view.c
+	(teletext_view_vbi3_link_from_pointer_position): Fully
+	  initialize link, just in case.
+	(home_action): Expect vbi3_page_get_home_link failure.
+
+	* plugins/teletext/main.c (ttxview_popup_menu_new):
+	  vbi3_link_destroy() crashed on
+	  teletext_view_vbi3_link_from_pointer_position() failure.
+
 2005-01-22    <mschimek@users.sf.net>
 
 	* libvbi/hamm.h (vbi3_unham8): Must return signed int.

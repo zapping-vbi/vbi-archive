@@ -17,8 +17,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.c,v 1.1 2004-10-03 10:03:45 mschimek Exp $ */
+/* $Id: misc.c,v 1.2 2005-01-27 04:20:19 mschimek Exp $ */
 
+#include <stdlib.h>		/* malloc() */
 #include "misc.h"
 
 #ifndef HAVE_STRLCPY

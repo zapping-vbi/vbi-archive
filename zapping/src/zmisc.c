@@ -2661,7 +2661,7 @@ z_object_set_const_data		(GObject *		object,
 				 const gchar *		key,
 				 const void *		data)
 {
-  g_object_set_data (object, key, data);
+  g_object_set_data (object, key, /* const cast */ data);
 }
 
 void
@@ -2688,7 +2688,10 @@ z_signal_connect_const		(gpointer		instance,
 				 GCallback		c_handler,
 				 const void *		data)
 {
-  return g_signal_connect (instance, detailed_signal, c_handler, data);
+  return g_signal_connect (instance,
+			   detailed_signal,
+			   c_handler,
+			   /* const cast */ data);
 }
 
 gulong
@@ -2696,7 +2699,8 @@ z_signal_connect_python		(gpointer		instance,
 				 const gchar *		detailed_signal,
 				 const gchar *		command)
 {
-  return g_signal_connect (instance, detailed_signal,
+  return g_signal_connect (instance,
+			   detailed_signal,
 			   G_CALLBACK (on_python_command1),
-			   command);
+			   /* const cast */ command);
 }

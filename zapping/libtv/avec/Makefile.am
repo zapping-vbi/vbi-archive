@@ -10,8 +10,6 @@ AM_CFLAGS = -O3 -fomit-frame-pointer -D_REENTRANT \
 
 INCLUDES = -I$(top_srcdir)
 
-EXTRA_DIST = \
-	clear_block.h
-
 libavec_a_SOURCES = \
-	avec.c avec.h
+	avec.c avec.h \
+	clear_block.h
