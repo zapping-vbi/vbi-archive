@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext.c,v 1.7.2.6 2004-02-13 02:10:55 mschimek Exp $ */
+/* $Id: teletext.c,v 1.7.2.7 2004-02-18 07:54:10 mschimek Exp $ */
 
 #include "../config.h"
 #include "site_def.h"
@@ -109,6 +109,26 @@ character_set_designation	(vbi_font_descr *	font[2],
 			font[i] = vbi_font_descriptors + char_set;
 	}
 #endif
+}
+
+unsigned int
+vbi_page_character_set		(const vbi_page *	pg,
+				 unsigned int		level)
+{
+	const vbi_page_private *pgp;
+	unsigned int code;
+
+	PGP_CHECK (0);
+
+	if (level > 1)
+		level = 1;
+
+	code = pgp->font[level] - vbi_font_descriptors;
+
+	if (VALID_CHARACTER_SET (code))
+		return code;
+	else
+		return 0;
 }
 
 static void
@@ -675,7 +695,7 @@ get_drcs_page			(vbi_page_private *	pgp,
 {
 	const vt_page *vtp;
 
-	vtp = vbi_cache_get (pgp->pg.vbi, nuid, pgno, subno, 0x000F,
+	vtp = vbi_cache_get (pgp->pg.vbi, NUID0, pgno, subno, 0x000F,
 			     /* user_access */ FALSE);
 
 	if (!vtp) {
@@ -2167,6 +2187,8 @@ hyperlinks			(vbi_page_private *		t,
 	buffer[j + 1] = ' ';
 	buffer[j + 2] = 0;
 
+	CLEAR (link);
+
 	i = 0;
 
 	while (i < 40) {
@@ -2180,7 +2202,7 @@ hyperlinks			(vbi_page_private *		t,
 		i = end;
 	}
 
-	for (i = j = 0; i < 40; ++i) {
+	for (i = 0, j = 1; i < 40; ++i) {
 		if (acp[i].size == VBI_OVER_TOP
 		    || acp[i].size == VBI_OVER_BOTTOM)
 			continue;
@@ -2697,15 +2719,11 @@ top_index(vbi_decoder *vbi, vbi_page *pg, int subno, int columns)
 
 	screen_color(pg, 0, 32 + VBI_BLUE);
 
-	vbi_transp_colormap (vbi, pg->color_map,
-			     ext->color_map, N_ELEMENTS (pg->color_map));
+	assert (sizeof (pg->color_map) == sizeof (ext->color_map));
+	memcpy (pg->color_map, ext->color_map, sizeof (pg->color_map));
 
-	assert (sizeof (pg->drcs_clut)
-		== sizeof (ext->drcs_clut));
-
-	memcpy (pg->drcs_clut,
-		ext->drcs_clut,
-		sizeof (pg->drcs_clut));
+	assert (sizeof (pg->drcs_clut) == sizeof (ext->drcs_clut));
+	memcpy (pg->drcs_clut, ext->drcs_clut, sizeof (pg->drcs_clut));
 
 /*
 	pg->page_opacity[0] = VBI_OPAQUE;
@@ -2969,7 +2987,7 @@ vbi_page_nav_enum		(const vbi_page *	pg,
  * @param Initialized vbi_decoder context.
  * @param pgp Place to store the formatted page.
  * @param vtp Raw Teletext page.
- * @param ap Format option list.
+ * @param format_options Format option list.
  * 
  * See vbi_format_vt_page().
  *
@@ -2977,10 +2995,10 @@ vbi_page_nav_enum		(const vbi_page *	pg,
  * @c TRUE if the page could be formatted.
  */
 vbi_bool
-vbi_format_vt_page_va		(vbi_decoder *		vbi,
+vbi_format_vt_page_va_list	(vbi_decoder *		vbi,
 				 vbi_page_private *	pgp,
 				 const vt_page *	vtp,
-				 va_list		ap)
+				 va_list		format_options)
 {
 	vbi_bool option_navigation;
 	vbi_bool option_hyperlinks;
@@ -3022,42 +3040,42 @@ vbi_format_vt_page_va		(vbi_decoder *		vbi,
 	for (;;) {
 		vbi_format_option option;
 
-		option = va_arg (ap, vbi_format_option);
+		option = va_arg (format_options, vbi_format_option);
 
 		switch (option) {
-		case VBI_END: /* zero */
-			break;
-
 		case VBI_HEADER_ONLY:
-			pgp->pg.rows = va_arg (ap, vbi_bool) ? 1 : 25;
+			pgp->pg.rows =
+				va_arg (format_options, vbi_bool) ? 1 : 25;
 			break;
 
 		case VBI_41_COLUMNS:
-			pgp->pg.columns = va_arg (ap, vbi_bool) ? 41 : 40;
+			pgp->pg.columns =
+				va_arg (format_options, vbi_bool) ? 41 : 40;
 			break;
 
 		case VBI_NAVIGATION:
-			option_navigation = va_arg (ap, vbi_bool);
+			option_navigation = va_arg (format_options, vbi_bool);
 			break;
 
 		case VBI_HYPERLINKS:
-			option_hyperlinks = va_arg (ap, vbi_bool);
+			option_hyperlinks = va_arg (format_options, vbi_bool);
 			break;
 
 		case VBI_PDC_LINKS:
-			pgp->pdc_links = va_arg (ap, vbi_bool);
+			pgp->pdc_links = va_arg (format_options, vbi_bool);
 			break;
 
 		case VBI_WST_LEVEL:
-			pgp->max_level = va_arg (ap, vbi_wst_level);
+			pgp->max_level =
+				va_arg (format_options, vbi_wst_level);
 			break;
 
 		default:
-			option = VBI_END;
+			option = 0;
 			break;
 		}
 
-		if (VBI_END == option)
+		if (0 == option)
 			break;
 	}
 
@@ -3080,16 +3098,12 @@ vbi_format_vt_page_va		(vbi_decoder *		vbi,
 
 	screen_color (&pgp->pg, vtp->flags, pgp->ext->def_screen_color);
 
-// XXX here?
-	vbi_transp_colormap (vbi, pgp->pg.color_map,
-			     pgp->ext->color_map,
-			     N_ELEMENTS (pgp->pg.color_map));
+	assert (sizeof (pgp->pg.color_map) == sizeof (pgp->ext->color_map));
+	memcpy (pgp->pg.color_map, pgp->ext->color_map,
+		sizeof (pgp->pg.color_map));
 
-	assert (sizeof (pgp->pg.drcs_clut)
-		== sizeof (pgp->ext->drcs_clut));
-
-	memcpy (pgp->pg.drcs_clut,
-		pgp->ext->drcs_clut,
+	assert (sizeof (pgp->pg.drcs_clut) == sizeof (pgp->ext->drcs_clut));
+	memcpy (pgp->pg.drcs_clut, pgp->ext->drcs_clut,
 		sizeof (pgp->pg.drcs_clut));
 
 	/* Opacity */
@@ -3192,6 +3206,9 @@ vbi_format_vt_page_va		(vbi_decoder *		vbi,
 	if (41 == pgp->pg.columns)
 		column_41 (pgp);
 
+	if (0)
+		vbi_page_private_dump (pgp, 2, stderr);
+
 	return TRUE;
 }
 
@@ -3214,13 +3231,11 @@ vbi_format_vt_page		(vbi_decoder *		vbi,
 				 ...)
 {
 	vbi_bool r;
-	va_list ap;
+	va_list format_options;
 
-	va_start (ap, vtp);
-
-	r = vbi_format_vt_page_va (vbi, pgp, vtp, ap);
-
-	va_end (ap);
+	va_start (format_options, vtp);
+	r = vbi_format_vt_page_va_list (vbi, pgp, vtp, format_options);
+	va_end (format_options);
 
 	return r;
 }
@@ -3230,7 +3245,7 @@ vbi_format_vt_page		(vbi_decoder *		vbi,
  * @param pg Place to store the formatted page.
  * @param pgno Page number of the page to fetch, see vbi_pgno.
  * @param subno Subpage number to fetch (optional @c VBI_ANY_SUBNO).
- * @param ap Format option list, see vbi_fetch_vt_page() for details.
+ * @param format_options Format option list, see vbi_fetch_vt_page() for details.
  * 
  * Fetches a Teletext page designated by @a pgno and @a subno from the
  * cache, formats and stores it in @a pg. Formatting is limited to row
@@ -3246,10 +3261,10 @@ vbi_format_vt_page		(vbi_decoder *		vbi,
  * lower level.
  */
 vbi_page *
-vbi_fetch_vt_page_va		(vbi_decoder *		vbi,
+vbi_fetch_vt_page_va_list	(vbi_decoder *		vbi,
 				 vbi_pgno		pgno,
 				 vbi_subno		subno,
-				 va_list		ap)
+				 va_list		format_options)
 {
 	vbi_page *pg;
 	vbi_page_private *pgp;
@@ -3275,38 +3290,37 @@ vbi_fetch_vt_page_va		(vbi_decoder *		vbi,
 		for (;;) {
 			vbi_format_option option;
 
-			option = va_arg (ap, vbi_format_option);
+			option = va_arg (format_options, vbi_format_option);
 
 			switch (option) {
-			case VBI_END: /* zero */
-				break;
-
 			case VBI_HEADER_ONLY:
-				pgp->pg.rows = va_arg (ap, vbi_bool) ?
+				pgp->pg.rows =
+					va_arg (format_options, vbi_bool) ?
 					1 : 25;
 				break;
 
 			case VBI_41_COLUMNS:
-				pgp->pg.columns = va_arg (ap, vbi_bool) ?
+				pgp->pg.columns =
+					va_arg (format_options, vbi_bool) ?
 					41 : 40;
 				break;
 
 			case VBI_NAVIGATION:
 			case VBI_HYPERLINKS:
 			case VBI_PDC_LINKS:
-				va_arg (ap, vbi_bool);
+				va_arg (format_options, vbi_bool);
 				break;
 
 			case VBI_WST_LEVEL:
-				va_arg (ap, vbi_wst_level);
+				va_arg (format_options, vbi_wst_level);
 				break;
 
 			default:
-				option = VBI_END;
+				option = 0;
 				break;
 			}
 
-			if (VBI_END == option)
+			if (0 == option)
 				break;
 		}
 
@@ -3336,7 +3350,8 @@ vbi_fetch_vt_page_va		(vbi_decoder *		vbi,
 			return NULL;
 		}
 
-		if (!vbi_format_vt_page_va (vbi, pgp, vtp, ap)) {
+		if (!vbi_format_vt_page_va_list (vbi, pgp, vtp,
+						 format_options)) {
 			vbi_page_delete (&pgp->pg);
 			return NULL;
 		}
@@ -3374,20 +3389,18 @@ vbi_fetch_vt_page		(vbi_decoder *		vbi,
 				 ...)
 {
 	vbi_page *pg;
-	va_list ap;
+	va_list format_options;
 
-	va_start (ap, subno);
-
-	pg = vbi_fetch_vt_page_va (vbi, pgno, subno, ap);
-
-	va_end (ap);
+	va_start (format_options, subno);
+	pg = vbi_fetch_vt_page_va_list (vbi, pgno, subno, format_options);
+	va_end (format_options);
 
 	return pg;
 }
 
 /**
  * @param pg A vbi_page allocated with vbi_page_new(),
- *   vbi_fetch_vt_page() or vbi_fetch_vt_page_va().
+ *   vbi_fetch_vt_page() or vbi_fetch_vt_page_va_list().
  *
  * Creates a copy of the vbi_page.
  *
@@ -3435,7 +3448,7 @@ vbi_page_copy			(const vbi_page *	pg)
 
 /**
  * @param pg A vbi_page allocated with vbi_page_new(),
- *   vbi_fetch_vt_page() or vbi_fetch_vt_page_va().
+ *   vbi_fetch_vt_page() or vbi_fetch_vt_page_va_list().
  *
  * Deletes a vbi_page.
  */
