@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.27 2000-10-21 22:40:10 garetxe Exp $ */
+/* $Id: main.c,v 1.28 2000-10-21 23:28:23 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -342,14 +342,6 @@ main(int ac, char **av)
 	}
 #endif
 
-#if 0
-	// unsafe: numframes, stop_time < mux finish time, cuts off end code
-	/* wait until completition (SIGINT handler) */
-	do {
-		usleep(100000); /* 0.1 s*/
-		gettimeofday(&tv, NULL);
-	} while (audio_stop_time > (tv.tv_sec + tv.tv_usec / 1e6));
-#endif
 /*
    Suffice to suspend execution until mux_thread terminates.
 

@@ -17,7 +17,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-/* $Id: rte.c,v 1.29 2000-10-17 21:55:41 garetxe Exp $ */
+/* $Id: rte.c,v 1.30 2000-10-21 23:28:23 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -32,8 +32,8 @@
 #include "common/math.h"
 #include "rtepriv.h"
 #include "convert_ry.h"
-#include "video/video.h" /* fixme: video_unget_frame and friends */
-#include "audio/audio.h" /* fixme: audio_read prots. */
+#include "video/video.h"
+#include "audio/audio.h"
 #include "audio/mpeg.h"
 #include "video/mpeg.h"
 #include "systems/systems.h"
@@ -46,12 +46,9 @@
 
 /*
   BUGS:
-      . Callbacks + push doesn't work yet.
       . It isn't reentrant.
-      . Plenty of unknown bugs
 */
 
-#define NUM_VIDEO_BUFFERS 8 /* video buffers in the video fifo */
 #define NUM_AUDIO_BUFFERS 8 /* audio buffers in the audio fifo */
 
 rte_context * rte_global_context = NULL;
@@ -71,15 +68,10 @@ int			stereo;
 
 fifo *			video_cap_fifo;
 
-//int			min_cap_buffers = MIN(NUM_AUDIO_BUFFERS,
-//					      NUM_VIDEO_BUFFERS);
-// grep video_look_ahead
-
 /* prototypes for main initialization (mp1e startup) */
 /* fixme: preview support (whew, XV is really nice!) */
 /* These routines are called in this order, they come from mp1e's main.c */
 static void rte_audio_startup(void); /* Startup video parameters */
-static void rte_video_startup(void); /* Startup audio parameters */
 static void rte_compression_startup(void); /* Compression parameters */
 /* init routines */
 static void rte_audio_init(void); /* init audio capture */
@@ -614,7 +606,6 @@ int rte_init_context ( rte_context * context )
 
 	/* Now init the mp1e engine, as main would do */
 	rte_audio_startup();
-	rte_video_startup();
 	rte_compression_startup();
 
 	rte_audio_init();
@@ -667,9 +658,9 @@ int rte_init_context ( rte_context * context )
 			break;
 		}
 
-		if (4 > init_buffered_fifo(&(context->private->vid),
-			&(context->private->vid_consumer), alloc_bytes,
-					   NUM_VIDEO_BUFFERS)) {
+		if (2 > init_buffered_fifo(&(context->private->vid),
+			  &(context->private->vid_consumer), alloc_bytes,
+				       video_look_ahead(gop_sequence))) {
 			rte_error(context, "not enough mem");
 			return 0;
 		}
@@ -1034,31 +1025,6 @@ static void rte_audio_startup(void)
 			psycho_loops = MAX(psycho_loops, 2);
 		}
 	}
-}
-
-/* Startup audio parameters */
-static void rte_video_startup(void)
-{
-#if 0 /* obsolete -> video_look_ahead */
-	if (modules & MOD_VIDEO) {
-		char *s = gop_sequence;
-		int count = 0;
-		
-		min_cap_buffers = 0;
-		
-		do {
-			if (*s == 'B')
-				count++;
-			else {
-				if (count > min_cap_buffers)
-					min_cap_buffers = count;
-					count = 0;
-			}
-		} while (*s++);
-		
-		min_cap_buffers++;
-	}
-#endif
 }
 
 /* FIXME: Subtitles support (when it gets into the bttv 2 driver?) */
