@@ -1,3 +1,32 @@
+2004-11-11    <mschimek@users.sf.net>
+
+	* Release 0.8
+
+2004-11-10    <mschimek@users.sf.net>
+
+	* libvbi/Makefile.am (EXTRA_DIST): fontgen.c, not fontgen.
+	* libvbi/search.c (vbi3_search_next_va_list, vbi3_search_next):
+	  Constness fix in no-search section.
+	* libvbi/conv.c: Have to prepare for byte-reversed UCS-2
+	  iconv on FreeBSD, sigh.
+	* src/zmisc.c, src/zvbi.c: Without-zvbi fixes.
+
+2004-11-09    <mschimek@users.sf.net>
+
+	* README, TODO, NEWS, help/C/figures/zapzilla.png,
+	  help/C/zapzilla.xml, help/C/settings.xml: Updated for 0.8.
+	* plugins/teletext/window.c: Fixed button-press-event, must
+	  watch view, not entire window.
+	* src/zapping.c: Fixed button-press-event, must
+	  watch zvideo, not the entire window.
+	* plugins/teletext/view.c: FLOF/TOP navigation optional,
+	  a GConf key without preferences.
+	* zapping.schemas: Added plugins/teletext/view/navigation.
+	* libvbi/teletext.c (keyword): Short-by-one URL strings fixed.
+	* plugins/teletext/view.c (class_init),
+	  plugins/teletext/window.c (instance_init): Prefixed custom
+	  view signals, just in case.
+
 2004-11-08    <mschimek@users.sf.net>
 
 	* libvbi/teletext_decoder.c (reset): Send network event too.

@@ -17,7 +17,7 @@ SUBDIRS = \
 	plugins \
 	help \
 	$(ZSFB_DIRS) \
-	src 
+	src
 
 EXTRA_DIST = \
 	acinclude.m4 \

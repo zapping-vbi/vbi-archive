@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.8 2004-11-09 06:59:43 mschimek Exp $ */
+/* $Id: main.c,v 1.9 2004-11-11 14:35:41 mschimek Exp $ */
 
 #include "config.h"
 
@@ -208,8 +208,6 @@ channel_switch			(const tveng_tuned_channel *channel,
       /* XXX this is weak, better use a hash or CNIs. */
       nk.user_data = (void *)(channel->index + 1);
     }
-
-  fprintf (stderr, "CHANNEL SW %p\n", channel);
 
   vbi3_teletext_decoder_reset (td,
 			       channel ? &nk : NULL,

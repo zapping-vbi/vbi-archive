@@ -17,10 +17,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: callback.c,v 1.2 2004-11-03 06:52:24 mschimek Exp $ */
+/* $Id: callback.c,v 1.3 2004-11-11 14:35:40 mschimek Exp $ */
 
 #include <assert.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include "callback.h"
 
 struct _tv_callback {

@@ -2,7 +2,7 @@
 
 noinst_LIBRARIES = libtv.a
 
-INCLUDES = $(X_CFLAGS) -D_REENTRANT
+INCLUDES = -I$(top_srcdir) $(X_CFLAGS) -D_REENTRANT
 
 libtv_a_SOURCES = \
 	callback.c callback.h \
