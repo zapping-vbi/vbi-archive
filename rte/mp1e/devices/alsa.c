@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alsa.c,v 1.7 2003-01-03 05:33:45 mschimek Exp $ */
+/* $Id: alsa.c,v 1.8 2003-01-15 23:34:04 mschimek Exp $ */
 
 #include "../common/log.h" 
 #include "../audio/audio.h"
@@ -287,7 +287,7 @@ select_sample_format		(alsa_context *		alsa,
 		     snd_pcm_hw_params_set_channels
 		     (alsa->handle, params, 1 + stereo), 1 + stereo);
 
-	channels = snd_pcm_hw_params_get_channels (params);
+	snd_pcm_hw_params_get_channels (params, &channels);
 
 	if (channels != (1 + stereo))
 		FAIL ("Unable to set PCM number of channels to %d\n", 1 + stereo);
@@ -305,7 +305,7 @@ open_pcm_alsa			(const char *		dev_name,
 	snd_pcm_info_t *info;
 	snd_pcm_hw_params_t *params;
 	snd_pcm_sw_params_t *swparams;
-	unsigned int buffer_size;
+	snd_pcm_uframes_t buffer_size;
 	snd_output_t *logs;
 	int err;
 	buffer *b;
@@ -363,9 +363,9 @@ open_pcm_alsa			(const char *		dev_name,
 
 	ASSERT_ALSA ("set PCM sampling rate %d Hz",
 		     snd_pcm_hw_params_set_rate_near
-		     (alsa->handle, params, sampling_rate, NULL), sampling_rate);
+		     (alsa->handle, params, &sampling_rate, NULL), sampling_rate);
 
-	snd_pcm_hw_params_get_rate (params, &sampling_rate);
+	snd_pcm_hw_params_get_rate (params, &sampling_rate, NULL);
 
 	alsa->pcm.sampling_rate = sampling_rate;
 
@@ -384,7 +384,7 @@ open_pcm_alsa			(const char *		dev_name,
 
 	ASSERT_ALSA ("set PCM DMA period size",
 		     snd_pcm_hw_params_set_period_size_near
-		     (alsa->handle, params, alsa->period_size, 0));
+		     (alsa->handle, params, &alsa->period_size, 0));
 
 	err = snd_pcm_hw_params (alsa->handle, params);
 
@@ -402,11 +402,12 @@ open_pcm_alsa			(const char *		dev_name,
 
 	/* FIXME this must determine the minimum number of coded video and
 	   audio buffers to prevent overflow in the mux */
-	alsa->period_size = snd_pcm_hw_params_get_period_size (params, 0);
-	buffer_size = snd_pcm_hw_params_get_buffer_size (params);
+	snd_pcm_hw_params_get_period_size (params, &alsa->period_size, 0);
+	snd_pcm_hw_params_get_buffer_size (params, &buffer_size);
 
 	if (buffer_size < (alsa->period_size * 2))
-		FAIL ("Bad buffer_size/period_size: %d/%d", buffer_size, (int) alsa->period_size);
+		FAIL ("Bad buffer_size/period_size: %d/%d",
+		      (int) buffer_size, (int) alsa->period_size);
 
 	for (alsa->chunk_bytes = alsa->period_size;
 	     alsa->chunk_bytes >= 4096;
@@ -417,7 +418,7 @@ open_pcm_alsa			(const char *		dev_name,
 	alsa->chunk_time = alsa->chunk_bytes * alsa->frame_time / alsa->frame_bytes;
 
 	printv (2, "Bounds buffer = %u fr; period = %u fr; chunk = %u B, %f s\n",
-		buffer_size, (int) alsa->period_size,
+		(int) buffer_size, (int) alsa->period_size,
 		alsa->chunk_bytes, alsa->chunk_time);
 
 	ASSERT_ALSA ("obtain PCM sw configuration",
