@@ -1,3 +1,7 @@
+30.08.2001	Select audio device <garetxe@users.sf.net>
+
+	* plugins/mpeg/mpeg.c: Added audio input device selection.
+
 26.08.2001	<mschimek@users.sf.net>
 
 	* src/gen_conv.*: Added rgb2yuv functions, for now MMX only. 

@@ -65,6 +65,8 @@ static gint output_mode; /* 0:file, 1:/dev/null */
 static gint mux_mode; /* 0:audio, 1:video, 2:both */
 static gint capture_w, capture_h;
 static gboolean motion_comp; /* bool */
+static gint audio_input_mode; /* 0:esd, 1:oss */
+static gchar *audio_input_file;
 
 static gboolean on_delete_event(GtkWidget *widget, GdkEvent
 				*event, gpointer user_data);
@@ -204,9 +206,15 @@ read_audio(void * data, double * time, rte_context * context)
 		tv.tv_usec = 0;
 		err = select(esd_recording_socket+1, &rdset,
 			     NULL, NULL, &tv);
-		
-		if ((err == -1) || (err == 0))
-			continue;
+
+		if (!err)
+		  {
+		    memset(data, 0, n);
+		    g_warning("ESD select timeout!");
+		    break;
+		  }
+
+		g_assert(err > 0 && "Select on ESD descriptor");
 		
 		r = read(esd_recording_socket, data, n);
 		
@@ -236,7 +244,6 @@ read_audio(void * data, double * time, rte_context * context)
 #include <linux/soundcard.h>
 
 static int		oss_fd = -1;
-extern char *		oss_device_name;
 
 /* TFR repeats the ioctl when interrupted (EINTR) */
 #define IOCTL(fd, cmd, data) (TEMP_FAILURE_RETRY(ioctl(fd, cmd, data)))
@@ -290,7 +297,7 @@ audio_data_callback(rte_context * context, void * data, double * time, enum
 
   if (esd_recording_socket != -1)
     read_audio(data, time, context);
-#if USE_OSS
+#ifdef USE_OSS
   else if (oss_fd != -1)
     read_audio_oss(data, time, context);
 #endif
@@ -301,14 +308,14 @@ audio_data_callback(rte_context * context, void * data, double * time, enum
 static gboolean
 init_audio(gint rate, gboolean stereo)
 {
-#if USE_OSS
-  if (oss_device_name)
+#ifdef USE_OSS
+  if (audio_input_mode == 1)
     {
       int Format = AFMT_S16_LE;
       int Stereo = !!stereo;
       int Speed = 44100;
 
-      if ((oss_fd = open(oss_device_name, O_RDONLY)) == -1)
+      if ((oss_fd = open(audio_input_file, O_RDONLY)) == -1)
         return FALSE;
 
       if ((IOCTL(oss_fd, SNDCTL_DSP_SETFMT, &Format) == -1))
@@ -578,7 +585,7 @@ gboolean plugin_start (void)
   if ((mux_mode+1) & 1)
     if (!init_audio(44100, FALSE))
       {
-	ShowBox("Couldn't open the ESD device for capturing audio",
+	ShowBox("Couldn't open the audio input device",
 		GNOME_MESSAGE_BOX_ERROR);
 	return FALSE;
       }
@@ -806,12 +813,20 @@ void plugin_load_config (gchar * root_key)
   zconf_create_integer(0, "Where will we send the encoded stream",
 		       buffer);
   output_mode = zconf_get_integer(NULL, buffer);
+  if (output_mode < 0)
+    output_mode = 0;
+  else if (output_mode > 1)
+    output_mode = 1;
   g_free(buffer);
 
   buffer = g_strconcat(root_key, "mux_mode", NULL);
   zconf_create_integer(2, "Which kind of stream are we going to produce",
 		       buffer);
   mux_mode = zconf_get_integer(NULL, buffer);
+  if (mux_mode < 0)
+    mux_mode = 0;
+  else if (mux_mode > 2)
+    mux_mode = 2;
   g_free(buffer);
 
   buffer = g_strconcat(root_key, "motion_comp", NULL);
@@ -832,6 +847,25 @@ void plugin_load_config (gchar * root_key)
   buffer = g_strconcat(root_key, "lip_sync_warning", NULL);
   zconf_create_boolean(TRUE, "Warning about lip sync with V4L", buffer);
   lip_sync_warning = zconf_get_boolean(NULL, buffer);
+  g_free(buffer);
+
+  buffer = g_strconcat(root_key, "audio_input_mode", NULL);
+  zconf_create_integer(0, "Audio controller to use", buffer);
+  audio_input_mode = zconf_get_integer(NULL, buffer);
+  if (audio_input_mode < 0)
+    audio_input_mode = 0;
+#ifndef USE_OSS
+  audio_input_mode = 0;
+#else
+  if (audio_input_mode > 1)
+    audio_input_mode = 1;
+#endif
+  g_free(buffer);
+
+  buffer = g_strconcat(root_key, "audio_input_file", NULL);
+  zconf_create_string("/dev/dsp",
+		      "Audio device for the OSS controller", buffer);
+  zconf_get_string(&audio_input_file, buffer);
   g_free(buffer);
 
   g_free(default_save_dir);
@@ -881,6 +915,15 @@ void plugin_save_config (gchar * root_key)
 
   buffer = g_strconcat(root_key, "lip_sync_warning", NULL);
   zconf_set_boolean(lip_sync_warning, buffer);
+  g_free(buffer);
+
+  buffer = g_strconcat(root_key, "audio_input_mode", NULL);
+  zconf_set_integer(audio_input_mode, buffer);
+  g_free(buffer);
+
+  buffer = g_strconcat(root_key, "audio_input_file", NULL);
+  zconf_set_string(audio_input_file, buffer);
+  g_free(audio_input_file);
   g_free(buffer);
 }
 
@@ -936,12 +979,32 @@ on_property_item_changed              (GtkWidget * changed_widget,
   gnome_property_box_changed (propertybox);
 }
 
+static void
+on_audio_input_changed                (GtkWidget * changed_widget,
+				       GnomePropertyBox *propertybox)
+{
+  switch (z_option_menu_get_active(lookup_widget(changed_widget,
+						 "optionmenu3")))
+    {
+    case 1:
+      gtk_widget_set_sensitive(lookup_widget(changed_widget,
+					     "fileentry2"), TRUE);
+      break;
+    default:
+      gtk_widget_set_sensitive(lookup_widget(changed_widget,
+					     "fileentry2"), FALSE);
+      break;
+    }
+  gnome_property_box_changed (propertybox);
+}
+
 static
 gboolean plugin_add_properties ( GnomePropertyBox * gpb )
 {
   GtkWidget *mpeg_properties;
   GtkWidget *label;
   GtkWidget * widget;
+  GtkWidget *menu, *menu_item;
   GtkAdjustment * adj;
   gint page;
 
@@ -963,6 +1026,30 @@ gboolean plugin_add_properties ( GnomePropertyBox * gpb )
   gtk_option_menu_set_history(GTK_OPTION_MENU(widget), mux_mode);
   gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu),
 		     "deactivate", on_property_item_changed, gpb);
+
+  widget = lookup_widget(mpeg_properties, "optionmenu3");
+  if ((menu = gtk_option_menu_get_menu (GTK_OPTION_MENU(widget))))
+    gtk_widget_destroy(menu);
+  menu = gtk_menu_new();
+  menu_item = gtk_menu_item_new_with_label("ESD");
+  gtk_widget_show(menu_item);
+  gtk_menu_append(GTK_MENU(menu), menu_item);
+#ifdef USE_OSS
+  menu_item = gtk_menu_item_new_with_label("OSS");
+  gtk_widget_show(menu_item);
+  gtk_menu_append(GTK_MENU(menu), menu_item);
+#endif
+  gtk_option_menu_set_menu (GTK_OPTION_MENU(widget), menu);
+  gtk_option_menu_set_history(GTK_OPTION_MENU(widget), audio_input_mode);
+  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu),
+		     "deactivate", on_audio_input_changed, gpb);
+
+  widget = lookup_widget(mpeg_properties, "fileentry2");
+  gtk_widget_set_sensitive(widget, audio_input_mode);
+  widget = gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(widget));
+  gtk_entry_set_text(GTK_ENTRY(widget), audio_input_file);
+  gtk_signal_connect(GTK_OBJECT(widget), "changed",
+		     on_property_item_changed, gpb);
 
   widget = lookup_widget(mpeg_properties, "checkmotion");
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget), motion_comp);
@@ -1034,6 +1121,17 @@ gboolean plugin_activate_properties ( GnomePropertyBox * gpb, gint page )
       widget = GTK_WIDGET(GTK_OPTION_MENU(widget)->menu);
       mux_mode = g_list_index(GTK_MENU_SHELL(widget)->children,
 			      gtk_menu_get_active(GTK_MENU(widget)));
+
+      widget = lookup_widget(mpeg_properties, "optionmenu3");
+      widget = GTK_WIDGET(GTK_OPTION_MENU(widget)->menu);
+      audio_input_mode = g_list_index(GTK_MENU_SHELL(widget)->children,
+				      gtk_menu_get_active(GTK_MENU(widget)));
+
+      widget = lookup_widget(mpeg_properties, "fileentry2");
+      g_free(audio_input_file);
+      audio_input_file =
+	gnome_file_entry_get_full_path(GNOME_FILE_ENTRY(widget),
+				       FALSE);
 
       widget = lookup_widget(mpeg_properties, "checkmotion");
       motion_comp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget));
