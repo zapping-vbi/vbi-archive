@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dlist.h,v 1.1.2.1 2004-03-31 00:41:34 mschimek Exp $ */
+/* $Id: dlist.h,v 1.1.2.2 2004-04-04 21:45:40 mschimek Exp $ */
 
 #ifndef DLIST_H
 #define DLIST_H
@@ -65,7 +65,7 @@ for (p = PARENT ((l)->tail, __typeof__ (* p), _node);			\
      (p1 = PARENT ((p)->_node.pred, typeof (* p1), _node)); p = p1)
 
 /** Destroys list l (not its nodes). */
-vbi_inline void
+static void
 list_destroy			(list *			l)
 {
 	CLEAR (*l);

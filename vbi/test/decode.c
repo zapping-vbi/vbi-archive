@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: decode.c,v 1.1.2.1 2004-02-25 17:27:23 mschimek Exp $ */
+/* $Id: decode.c,v 1.1.2.2 2004-04-04 21:45:49 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -168,7 +168,7 @@ packet_8302			(const uint8_t		buffer[42],
 
 	printf ("Packet 8/30/%u cni=%x ", designation, cni);
 
-	vbi_program_id_dump (&pi, stdout);
+	_vbi_program_id_dump (&pi, stdout);
 
 	dump_nuid (pi.nuid);
 }
@@ -289,7 +289,7 @@ vps				(uint8_t		buffer[13],
 		
 		printf ("VPS L%3u cni=%x ", line, cni);
 
-		vbi_program_id_dump (&pi, stdout);
+		_vbi_program_id_dump (&pi, stdout);
 
 		dump_nuid (pi.nuid);
 	}

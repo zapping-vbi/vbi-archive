@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vt.h,v 1.4.2.11 2004-04-03 02:04:48 mschimek Exp $ */
+/* $Id: vt.h,v 1.4.2.12 2004-04-04 21:45:40 mschimek Exp $ */
 
 #ifndef VT_H
 #define VT_H
@@ -33,6 +33,8 @@
 #include "bcd.h"
 #include "format.h"
 #include "lang.h"
+#include "pdc.h"
+#include "pfc_demux.h"
 
 #ifndef VBI_DECODER
 #define VBI_DECODER
@@ -159,9 +161,7 @@ drcs_mode_name			(drcs_mode		mode);
 /** @internal */
 #define DRCS_PTUS_PER_PAGE 48
 
-/**
- * @internal
- */
+/** @internal */
 typedef struct {
 	page_function		function;
 
@@ -199,31 +199,71 @@ typedef struct _triplet triplet;
 
 /* Level one page extension */
 
+/**
+ * @internal
+ * 9.4.2.2 X/28/0, X/28/4 and
+ * 10.6.4 MOT POP link fallback flags.
+ */
 typedef struct {
-	int		black_bg_substitution;
+	vbi_bool	black_bg_substitution;
+
 	int		left_panel_columns;
 	int		right_panel_columns;
 } ext_fallback;
 
 #define VBI_TRANSPARENT_BLACK 8
 
+/**
+ * @internal
+ * 9.4.2 Packet X/28
+ * 9.5 Packet M/29
+ */
 typedef struct {
+	/**
+	 * We have data from packets X/28 (in lop) or M/29 (in magazine)
+	 * with this set of designations. Magazine is always valid,
+	 * LOP should fall back to magazine unless these bits are set:
+	 *
+	 * - 1 << 4 color_map[0 ... 15] is valid
+	 * - 1 << 1 drcs_clut[] is valid
+	 * - 1 << 0 or
+	 *   1 << 4 everything else is valid.
+	 */
 	unsigned int		designations;
 
-	vbi_character_set_code	charset_code[2]; /* primary, secondary */
-	vbi_bool		charset_valid;
+	/** Primary and secondary character set. */
+	vbi_character_set_code	charset_code[2];
 
-	int			def_screen_color;
-	int			def_row_color;
+	/** Blah. */
+	unsigned int		def_screen_color;
+	unsigned int		def_row_color;
 
-	int			foreground_clut; /* 0, 8, 16, 24 */
-	int			background_clut;
+	/**
+	 * Adding these values (0, 8, 16, 24) to character color
+	 * 0 ... 7 gives index into color_map[] below.
+	 */ 
+	unsigned int		foreground_clut;
+	unsigned int		background_clut;
 
 	ext_fallback		fallback;
 
-	/** f/b, dclut4, dclut16; see also vbi_page. */
-	vbi_color		drcs_clut[2 * 1 + 2 * 4 + 2 * 16];
+	/**
+	 * - 2 dummy entries, 12x10x1 (G)DRCS use the color_map[]
+	 *     like built-in chars.
+	 * - 4 entries for 12x10x2 GDRCS pixel 0 ... 3 to color_map[].
+	 * - 4 more for local DRCS
+	 * - 16 entries for 12x10x4 and 6x5x4 GDRCS pixel 0 ... 15
+	 *      to color_map[].
+	 * - 16 more for local DRCS.
+	 */
+	vbi_color		drcs_clut[2 + 2 * 4 + 2 * 16];
 
+	/**
+	 * CLUTs 0 ... 4 of 8 colors each. CLUT 2 & 3 are redefinable
+	 * at Level 2.5, CLUT 0 to 3 at Level 3.5, except color_map[8]
+	 * which is "transparent" color (VBI_TRANSPARENT_BLACK).
+	 * CLUT 4 contains libzvbi private colors which never change.
+	 */
 	vbi_rgba		color_map[40];
 } extension;
 
@@ -231,35 +271,41 @@ extern void
 extension_dump			(const extension *	ext,
 				 FILE *			fp);
 
+/** @internal */
 typedef struct {
 	pagenum			page;
 	uint8_t			text[12];
 } ait_title;
 
+/** @internal */
 typedef triplet enhancement[16 * 13 + 1];
 
-#define NO_PAGE(pgno) (((pgno) & 0xFF) == 0xFF)
-
-/*                              0xE03F7F    nat. char. subset and sub-page */
-#define C4_ERASE_PAGE		0x000080 /* erase previously stored packets */
-#define C5_NEWSFLASH		0x004000 /* box and overlay */
-#define C6_SUBTITLE		0x008000 /* box and overlay */
-#define C7_SUPPRESS_HEADER	0x010000 /* row 0 not to be displayed */
+/**
+ * @internal
+ * 9.3.1.3 Control bits (0xE03F7F),
+ * 15.2 National subset C12-C14,
+ * B.6 Transmission rules for enhancement data.
+ */
+#define C4_ERASE_PAGE		0x000080
+#define C5_NEWSFLASH		0x004000
+#define C6_SUBTITLE		0x008000
+#define C7_SUPPRESS_HEADER	0x010000
 #define C8_UPDATE		0x020000
 #define C9_INTERRUPTED		0x040000
-#define C10_INHIBIT_DISPLAY	0x080000 /* rows 1-24 not to be displayed */
+#define C10_INHIBIT_DISPLAY	0x080000
 #define C11_MAGAZINE_SERIAL	0x100000
+#define C12_CONTINUE		0x200000
+#define C13_CHANGES		0x400000
+#define C14_RESERVED		0x800000
 
 /* Level one page */
 
 struct lop {
 	uint8_t			raw[26][40];
-	pagenum		link[6 * 6];	/* X/27/0-5 links */
+	pagenum			link[6 * 6];	/* X/27/0-5 links */
 	vbi_bool		have_flof;
-	vbi_bool		ext;
+	vbi_bool		have_ext;
 };
-
-typedef struct _vt_page vt_page;
 
 /**
  * @internal
@@ -270,7 +316,7 @@ typedef struct _vt_page vt_page;
  * thus not directly accessible by the client. Note the size
  * (of the union) will vary in order to save cache memory.
  **/
-struct _vt_page {
+typedef struct {
 	/**
 	 * Defines the page function and which member of the
 	 * union applies.
@@ -352,7 +398,7 @@ struct _vt_page {
 	 *  Dynamic size, add no fields below unless
 	 *  vt_page is statically allocated.
 	 */
-};
+} vt_page;
 
 /**
  * @internal
@@ -364,31 +410,31 @@ struct _vt_page {
 vbi_inline unsigned int
 vt_page_size			(const vt_page *	vtp)
 {
-	const unsigned int header_size = sizeof(*vtp) - sizeof(vtp->data);
+	const unsigned int header_size = sizeof (*vtp) - sizeof (vtp->data);
 
 	switch (vtp->function) {
 	case PAGE_FUNCTION_UNKNOWN:
 	case PAGE_FUNCTION_LOP:
-		if (vtp->data.lop.ext)
-			return header_size + sizeof(vtp->data.ext_lop);
+		if (vtp->x28_designations & 0x13)
+			return header_size + sizeof (vtp->data.ext_lop);
 		else if (vtp->x26_designations)
-			return header_size + sizeof(vtp->data.enh_lop);
+			return header_size + sizeof (vtp->data.enh_lop);
 		else
-			return header_size + sizeof(vtp->data.lop);
+			return header_size + sizeof (vtp->data.lop);
 
 	case PAGE_FUNCTION_GPOP:
 	case PAGE_FUNCTION_POP:
-		return header_size + sizeof(vtp->data.pop);
+		return header_size + sizeof (vtp->data.pop);
 
 	case PAGE_FUNCTION_GDRCS:
 	case PAGE_FUNCTION_DRCS:
-		return header_size + sizeof(vtp->data.drcs);
+		return header_size + sizeof (vtp->data.drcs);
 
 	case PAGE_FUNCTION_AIT:
-		return header_size + sizeof(vtp->data.ait);
+		return header_size + sizeof (vtp->data.ait);
 
 	default:
-		return sizeof(*vtp);
+		return sizeof (*vtp);
 	}
 }
 
@@ -404,16 +450,20 @@ vt_page_copy			(vt_page *		tvtp,
 /**
  * @internal
  *
+ * 12.3.1 Table 28 Mode 10001, 10101 - Object invocation,
+ * object definition.
+ *
  * MOT default, POP and GPOP object address.
  *
  * n8  n7  n6  n5  n4  n3  n2  n1  n0
  * packet  triplet lsb ----- s1 -----
- *
- * According to ETS 300 706, Section 12.3.1, Table 28
- * (under Mode 10001 - Object Invocation ff.)
  */
 typedef int object_address;
 
+/**
+ * @internal
+ * 10.6.4 MOT object links
+ */
 typedef struct {
 	vbi_pgno		pgno;
 	ext_fallback		fallback;
@@ -423,12 +473,25 @@ typedef struct {
 	}			default_obj[2];
 } pop_link;
 
+/**
+ * @internal
+ * Magazine defaults.
+ */
 typedef struct {
+	/** Default extension. */
 	extension		extension;
 
-	uint8_t			pop_lut[256];
-	uint8_t			drcs_lut[256];
+	/**
+	 * Page number to pop_link[] and drcs_link[] for default
+	 * object invocation. Valid range is 0 ... 7, broken -1.
+	 */
+	uint8_t			pop_lut[0x100];
+	uint8_t			drcs_lut[0x100];
 
+	/**
+	 * Level 2.5 or 3.5, 1 global and 7 local links to POP/DRCS
+	 * page. Unused or broken: NO_PAGE (pgno).
+	 */
     	pop_link		pop_link[2][8];
 	vbi_pgno		drcs_link[2][8];
 } magazine;
@@ -489,13 +552,42 @@ typedef struct {
 } page_stat;
 
 typedef struct {
-        pagenum			initial_page;
-	magazine		magazines[9];	/* 1 ... 8; #0 unmodified level 1.5 default */
-	page_stat		pages[0x800];
+	vbi_nuid		client_nuid;
+	vbi_nuid		received_nuid;
 
+	/**
+	 * Last received program ID, sorted by vbi_program_id.channel.
+	 */
+	vbi_program_id		program_id[6];
+
+	/* Caption data. */
+
+	/* Teletext data. */
+
+	/** Pages cached now and ever. */
+	unsigned int		n_pages;
+	unsigned int		max_pages;
+
+	/** Usually 100. */
+        pagenum			initial_page;
+
+	/** BTT links to TOP pages. */
 	pagenum			btt_link[2 * 5];
-	vbi_bool		have_top;		/* use top navigation, flof overrides */
+	vbi_bool		have_top;
+
+	magazine		_magazines[8];
+
+	/** Last packet 8/30 Status Display, with parity. */
+	uint8_t			status[20];
+
+	page_stat		_pages[0x800];
 } vt_network;
+
+extern void
+vt_network_init			(vt_network *		vtn);
+extern void
+vt_network_dump			(const vt_network *	vtn,
+				 FILE *			fp);
 
 /** @internal */
 vbi_inline magazine *
@@ -503,8 +595,11 @@ vt_network_magazine		(vt_network *		vtn,
 				 vbi_pgno		pgno)
 {
 	assert (pgno >= 0x100 && pgno <= 0x8FF);
-	return vtn->magazines + (pgno >> 8);
+	return vtn->_magazines - 1 + (pgno >> 8);
 }
+
+extern const magazine *
+_vbi_teletext_decoder_default_magazine (void);
 
 /** @internal */
 vbi_inline page_stat *
@@ -512,23 +607,23 @@ vt_network_page_stat		(vt_network *		vtn,
 				 vbi_pgno		pgno)
 {
 	assert (pgno >= 0x100 && pgno <= 0x8FF);
-	return vtn->pages - 0x100 + pgno;
+	return vtn->_pages - 0x100 + pgno;
 }
 
 typedef struct _vbi_teletext_decoder vbi_teletext_decoder;
 
 struct _vbi_teletext_decoder {
-//	vbi_wst_level		max_level;
-
 	vt_network		network[1];
-
-	pagenum			header_page;
-	uint8_t			header[40];
-
-//	int			region;
 
 	vt_page			buffer[8];
 	vt_page	*		current;
+
+	/** Page Function Clear EPG Data. */
+	vbi_pfc_demux		epg_stream[2];
+
+	/** Used for channel switch detection. */
+	pagenum			header_page;
+	uint8_t			header[40];
 };
 
 /* Public */

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.c,v 1.1.2.3 2004-03-31 00:41:34 mschimek Exp $ */
+/* $Id: pdc.c,v 1.1.2.4 2004-04-04 21:45:40 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -58,12 +58,6 @@ vbi_pil_dump			(vbi_pil		pil,
 		fputs ("Continue", fp);
 		break;
 
-	case VBI_PIL_NO_TIME:
-		fputs ("No time", fp);
-		break;
-
-	/* ZDF line 329: 15-01 30:63 -? */
-
 	default:
 		fprintf (fp, "%05x (%02u-%02u %02u:%02u)",
 			 pil,
@@ -72,11 +66,42 @@ vbi_pil_dump			(vbi_pil		pil,
 	}
 }
 
+/** internal */
+void
+_vbi_program_id_init		(vbi_program_id *	pid,
+				 vbi_pid_channel	channel)
+{
+	assert (NULL != pid);
+
+	pid->nuid		= VBI_NUID_UNKNOWN;
+
+	pid->channel		= channel;
+
+	pid->month		= 0;
+	pid->day		= 0;
+	pid->hour		= 0;
+	pid->minute		= 0;
+
+	pid->pil		= VBI_PIL_TIMER_CONTROL;
+
+	pid->length		= 0;
+
+	pid->luf		= FALSE;
+	pid->mi			= FALSE;
+	pid->prf		= FALSE;
+
+	pid->pcs_audio		= VBI_PCS_AUDIO_UNKNOWN;
+
+	pid->pty		= 0; /* none / unknown */
+
+	pid->tape_delayed	= FALSE;
+}
+
 /**
  * @internal
  */
 void
-vbi_program_id_dump		(const vbi_program_id *	pi,
+_vbi_program_id_dump		(const vbi_program_id *	pid,
 				 FILE *			fp)
 {
 	static const char *pcs_audio [] = {
@@ -86,25 +111,25 @@ vbi_program_id_dump		(const vbi_program_id *	pi,
 		"BILINGUAL"
 	};
 
-	fprintf (fp, "nuid=%llx ", pi->nuid);
+	fprintf (fp, "nuid=%llx ch=%u", pid->nuid, pid->channel);
 
 	if (0) {
 		fprintf (fp, "%02u-%02u %02u:%02u pil=",
-			 pi->month + 1, pi->day + 1,
-			 pi->hour, pi->minute);
+			 pid->month + 1, pid->day + 1,
+			 pid->hour, pid->minute);
 	} else {
 		fprintf (fp, "pil=");
 	}
 
-	vbi_pil_dump (pi->pil, fp);
+	vbi_pil_dump (pid->pil, fp);
 
 	fprintf (fp, " length=%u "
-		 "lci=%u luf=%u mi=%u prf=%u "
+		 "luf=%u mi=%u prf=%u "
 		 "pcs=%s pty=%02x td=%u\n",
-		 pi->length,
-		 pi->lci, pi->luf, pi->mi, pi->prf,
-		 pcs_audio[pi->pcs_audio],
-		 pi->pty, pi->tape_delayed);
+		 pid->length,
+		 pid->luf, pid->mi, pid->prf,
+		 pcs_audio[pid->pcs_audio],
+		 pid->pty, pid->tape_delayed);
 }
 
 /**

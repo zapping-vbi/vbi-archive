@@ -124,10 +124,10 @@ cache_page_dump			(const cache_page *	cp,
 	fprintf (stderr, "page %x.%x ", cp->page.pgno, cp->page.subno);
 
 	if ((cs = cp->stat)) {
-		const page_stat *ps = cs->pages + cp->page.pgno - 0x100;
+		const page_stat *ps = cs->network._pages + cp->page.pgno - 0x100;
 
 		fprintf (stderr, "nuid=%08x/%08x C%u/L%u/S%04x sub %u/%u (%u-%u) ",
-			 cs->client_nuid, cs->received_nuid,
+			 cs->network.client_nuid, cs->network.received_nuid,
 			 ps->page_type, ps->charset_code, ps->subcode,
 			 ps->n_subpages, ps->max_subpages,
 			 ps->subno_min, ps->subno_max);
@@ -148,8 +148,8 @@ cache_stat_dump			(const cache_stat *	cs,
 	if (cs)
 		fprintf (stderr, "cache_stat nuid=%08x/%08x "
 			 "pages=%u/%u locked=%u ref=%u%c",
-			 cs->client_nuid, cs->received_nuid,
-			 cs->num_pages, cs->max_pages,
+			 cs->network.client_nuid, cs->network.received_nuid,
+			 cs->network.n_pages, cs->network.max_pages,
 			 cs->locked_pages,
 			 cs->ref_count,
 			 lf);
@@ -168,12 +168,12 @@ cache_stat_remove_page		(cache_page *		cp)
 
 	cp->stat = NULL;
 
-	cs->num_pages--;
+	cs->network.n_pages--;
 
 	if (CACHE_DEBUG)
 		cs->locked_pages -= (cp->ref_count > 0);
 
-	ps = cs->pages + cp->page.pgno - 0x100;
+	ps = cs->network._pages + cp->page.pgno - 0x100;
 
 	ps->n_subpages--;
 }
@@ -187,12 +187,12 @@ cache_stat_add_page		(cache_stat *		cs,
 
 	cp->stat = cs;
 
-	cs->num_pages++;
+	cs->network.n_pages++;
 
-	if (cs->num_pages > cs->max_pages)
-		cs->max_pages = cs->num_pages;
+	if (cs->network.n_pages > cs->network.max_pages)
+		cs->network.max_pages = cs->network.n_pages;
 
-	ps = cs->pages + cp->page.pgno - 0x100;
+	ps = cs->network._pages + cp->page.pgno - 0x100;
 
 	ps->n_subpages++;
 
@@ -280,7 +280,7 @@ cache_stat_from_nuid		(cache *		ca,
 	cache_stat *cs;
 
 	for_all_nodes (cs, &ca->stations, node)
-		if (cs->client_nuid == client_nuid) {
+		if (cs->network.client_nuid == client_nuid) {
 			if (__builtin_expect (!is_head (&ca->stations, &cs->node), 0)) {
 				/* Probably needed again soon. */
 				unlink_node (&cs->node);
@@ -648,7 +648,7 @@ vbi_cache_foreach		(vbi_decoder *		vbi,
 
 	cs = cache_stat_from_nuid (ca, client_nuid);
 
-	if (!cs || cs->num_pages == 0)
+	if (!cs || cs->network.n_pages == 0)
 		return 0;
 
 	if ((cp = page_lookup (ca, cs, pgno, subno, ~0, &hash_list))) {
@@ -658,7 +658,7 @@ vbi_cache_foreach		(vbi_decoder *		vbi,
 		subno = 0;
 	}
 
-	ps = cs->pages + pgno - 0x100;
+	ps = cs->network._pages + pgno - 0x100;
 
 	for (;;) {
 		if (cp) {
@@ -683,7 +683,7 @@ vbi_cache_foreach		(vbi_decoder *		vbi,
 
 				if (pgno < 0x100) {
 					pgno = 0x8FF;
-					ps = cs->pages + 0x7FF;
+					ps = cs->network._pages + 0x7FF;
 					wrapped = 1;
 				}
 
@@ -694,7 +694,7 @@ vbi_cache_foreach		(vbi_decoder *		vbi,
 
 				if (pgno > 0x8FF) {
 					pgno = 0x100;
-					ps = cs->pages + 0x000;
+					ps = cs->network._pages + 0x000;
 					wrapped = 1;
 				}
 
@@ -725,7 +725,7 @@ cache_stations_flush		(cache *		ca)
 				cache_stat_dump (cs, '\n');
 			}
 
-			if (cs->num_pages > 0)
+			if (cs->network.n_pages > 0)
 				delete_all_by_nuid (ca, cs);
 
 			unlink_node (&cs->node);
@@ -765,15 +765,15 @@ cache_stat_create		(cache *		ca,
 			}
 		}
 
-		if (cs->num_pages > 0)
+		if (cs->network.n_pages > 0)
 			delete_all_by_nuid (ca, cs);
 
-		cs->num_pages = 0;
-		cs->max_pages = 0;
+		cs->network.n_pages = 0;
+		cs->network.max_pages = 0;
 		cs->locked_pages = 0;
 		cs->ref_count = 0;
 
-		CLEAR (cs->pages);
+		CLEAR (cs->network._pages);
 
 		unlink_node (&cs->node);
 	} else {
@@ -783,8 +783,8 @@ cache_stat_create		(cache *		ca,
 		++ca->num_stations;
 	}
 
-	cs->client_nuid = client_nuid;
-	cs->received_nuid = client_nuid;
+	cs->network.client_nuid = client_nuid;
+	cs->network.received_nuid = client_nuid;
 
 	add_head (&ca->stations, &cs->node);
 

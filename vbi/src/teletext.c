@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext.c,v 1.7.2.10 2004-04-03 00:07:55 mschimek Exp $ */
+/* $Id: teletext.c,v 1.7.2.11 2004-04-04 21:45:40 mschimek Exp $ */
 
 #include "../config.h"
 #include "site_def.h"
@@ -92,7 +92,7 @@ character_set_designation	(const vbi_character_set *char_set[2],
 
 		code = default_code;
 
-		if (ext->charset_valid)
+		if (ext->designations & (1 << 0))
 			code = ext->charset_code[i];
 
 		cs = vbi_character_set_from_code ((code & ~7) + vtp->national);
@@ -720,7 +720,7 @@ get_drcs_page			(vbi_page_private *	pgp,
 	return NULL;
 }
 
-vbi_inline vbi_bool
+static vbi_bool
 reference_drcs_page		(vbi_page_private *	pgp,
 				 unsigned int		normal,
 				 unsigned int		plane,
@@ -2721,7 +2721,7 @@ top_index(vbi_decoder *vbi, vbi_page *pg, int subno, int columns)
 	pg->dirty.y1 = 25 - 1;
 	pg->dirty.roll = 0;
 
-	ext = &vbi->vt.network->magazines[0].extension;
+	ext = &_vbi_teletext_decoder_default_magazine()->extension;
 
 	screen_color(pg, 0, 32 + VBI_BLUE);
 
@@ -2837,11 +2837,11 @@ do_ait_title			(vbi_decoder *		vbi,
 	  const ait_title *ait, char *buf)
 {
 	const vbi_character_set *char_set[2];
+	const extension *ext;
 	int i;
 
-	character_set_designation (char_set, 0,
-				   &vbi->vt.network->
-				   magazines[0].extension, vtp);
+	ext = &_vbi_teletext_decoder_default_magazine()->extension;
+	character_set_designation (char_set, 0, ext, vtp);
 
 	for (i = 11; i >= 0; i--)
 		if (ait->text[i] > 0x20)
@@ -3107,10 +3107,10 @@ vbi_format_vt_page_va_list	(vbi_decoder *		vbi,
 	/* Magazine and extension defaults */
 
 	pgp->mag = (pgp->max_level <= VBI_WST_LEVEL_1p5) ?
-		&vbi->vt.network->magazines[0] /* default magazine */
+		_vbi_teletext_decoder_default_magazine ()
 		: vt_network_magazine (vbi->vt.network, vtp->pgno);
 
-	if (vtp->data.lop.ext)
+	if (vtp->x28_designations & 0x11)
 		pgp->ext = &vtp->data.ext_lop.ext;
 	else
 		pgp->ext = &pgp->mag->extension;

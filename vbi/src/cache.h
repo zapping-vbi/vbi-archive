@@ -21,12 +21,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cache.h,v 1.2.2.7 2004-04-03 00:07:55 mschimek Exp $ */
+/* $Id: cache.h,v 1.2.2.8 2004-04-04 21:45:40 mschimek Exp $ */
 
 #ifndef CACHE_H
 #define CACHE_H
 
-#include "vt.h" /* vt_page */
+#include "vt.h" /* vt_page, vt_network */
 #include "dlist.h"
 
 #ifndef VBI_DECODER
@@ -43,23 +43,17 @@ typedef struct cache cache;
 struct cache_stat {
 	node			node;		/* network chain */
 
-	vbi_nuid		client_nuid;
-	vbi_nuid		received_nuid;
-
-	unsigned int		num_pages;	/* how many cached */
-	unsigned int		max_pages;	/* cached and deleted */
-
 	unsigned int		ref_count;
 	unsigned int		locked_pages;
 
-	page_stat		pages[0x800];
+	vt_network		network;
 };
 
 vbi_inline page_stat *
 vbi_page_stat			(cache_stat *		cs,
 				 vbi_pgno		pgno)
 {
-	return cs->pages + pgno - 0x100;
+	return cs->network._pages + pgno - 0x100;
 }
 
 /* Public */

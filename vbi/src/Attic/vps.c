@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vps.c,v 1.1.2.2 2004-02-25 17:28:11 mschimek Exp $ */
+/* $Id: vps.c,v 1.1.2.3 2004-04-04 21:45:40 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -103,6 +103,8 @@ vbi_decode_vps_pdc		(vbi_program_id *	pi,
 
 	pi->nuid	= vbi_nuid_from_cni (VBI_CNI_TYPE_VPS, cni);
 
+	pi->channel	= VBI_PID_CHANNEL_VPS;
+
 	pi->pil		= (+ ((buffer[ 8] & 0x3F) << 14)
 			   +  (buffer[ 9] << 6)
 			   +  (buffer[10] >> 2));
@@ -114,7 +116,6 @@ vbi_decode_vps_pdc		(vbi_program_id *	pi,
 
 	pi->length	= 0; /* unknown */
 
-	pi->lci		= 0; /* just one label channel */
 	pi->luf		= FALSE; /* no update, just pil */
 	pi->mi		= FALSE; /* label is not 30 s early */
 	pi->prf		= FALSE; /* prepare to record unknown */

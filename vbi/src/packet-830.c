@@ -17,8 +17,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet-830.c,v 1.1.2.1 2004-02-25 17:35:29 mschimek Exp $ */
+/* $Id: packet-830.c,v 1.1.2.2 2004-04-04 21:45:40 mschimek Exp $ */
 
+#include "bcd.h"
 #include "hamm.h"
 #include "packet-830.h"
 
@@ -215,7 +216,8 @@ vbi_decode_teletext_8302_pdc	(vbi_program_id *	pi,
 
 	pi->nuid	= vbi_nuid_from_cni (VBI_CNI_TYPE_8302, cni);
 
-	pi->lci		= (b[6] >> 2) & 3;
+	pi->channel	= (b[6] >> 2) & 3;
+
 	pi->luf		= !!(b[6] & 2);
 	pi->prf		= b[6] & 1;
 

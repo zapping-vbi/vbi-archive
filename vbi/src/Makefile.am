@@ -46,9 +46,8 @@ libzvbi_la_SOURCES = \
 	io-v4l2.c videodev2.h \
 	io-v4l.c videodev.h \
 	packet.c \
-	packet-830.c packet-830.h \
-	packet-pfc.c packet-pfc.h \
 	pdc.c pdc.h \
+	pfc_demux.c pfc_demux.h \
 	raw_decoder.c raw_decoder.h \
 	sampling.c sampling.h \
 	search.c search.h \
@@ -97,7 +96,7 @@ LIBZVBI_HDRS = \
 	conv.h \
 	exp-gfx.h \
 	exp-txt.h \
-	xds.h cc.h vps.h packet-pfc.h packet-830.h vt.h tables.h vbi.h
+	xds.h cc.h vps.h pfc_demux.h packet-830.h vt.h tables.h vbi.h
 
 # Concat the header files in this order and filter out all lines
 #   before "^/* Public", after "^/* Private" and between "^/**"..."**/$"

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds.c,v 1.1.2.5 2004-04-03 02:04:48 mschimek Exp $ */
+/* $Id: xds.c,v 1.1.2.6 2004-04-04 21:45:40 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -834,35 +834,37 @@ vbi_decode_xds_time_zone	(unsigned int *		hours_west,
  */
 vbi_bool
 vbi_decode_xds_impulse_capture_id
-				(vbi_program_id *	pi,
+				(vbi_program_id *	pid,
 				 const uint8_t *	buffer,
 				 unsigned int		buffer_size)
 {
 	unsigned int hour;
 	unsigned int min;
 
-	assert (NULL != pi);
+	assert (NULL != pid);
 	assert (NULL != buffer);
 
 	if (6 != buffer_size)
 		return FALSE;
 
-	pi->nuid = VBI_NUID_UNKNOWN;
+	pid->nuid	= VBI_NUID_UNKNOWN;
+
+	pid->channel	= VBI_PID_CHANNEL_XDS; 
 
 	/* TZ UTC */
 
-	pi->minute	= buffer[0] & 63;
-	pi->hour	= buffer[1] & 31;
-	pi->day		= buffer[2] & 31;
-	pi->month	= buffer[3] & 15;
+	pid->minute	= buffer[0] & 63;
+	pid->hour	= buffer[1] & 31;
+	pid->day		= buffer[2] & 31;
+	pid->month	= buffer[3] & 15;
 
-	if (pi->minute > 59
-	    || pi->hour > 23
-	    || pi->day > 30
-	    || pi->month > 11)
+	if (pid->minute > 59
+	    || pid->hour > 23
+	    || pid->day > 30
+	    || pid->month > 11)
 		return FALSE;
 
-	pi->pil = VBI_PIL (pi->day + 1, pi->month + 1, pi->hour, pi->minute);
+	pid->pil = VBI_PIL (pid->day + 1, pid->month + 1, pid->hour, pid->minute);
 
 	min  = buffer[4] & 63;
 	hour = buffer[5] & 63;
@@ -870,17 +872,16 @@ vbi_decode_xds_impulse_capture_id
 	if (min > 59)
 		return FALSE;
 
-	pi->length = hour * 60 + min;
+	pid->length = hour * 60 + min;
 
-	pi->lci = 0; /* just one label channel */
-	pi->luf	= FALSE; /* no update, just id */
-	pi->mi 	= FALSE; /* id is not 30 s early */
-	pi->prf	= FALSE; /* prepare to record unknown */
+	pid->luf	= FALSE; /* no update, just id */
+	pid->mi 	= FALSE; /* id is not 30 s early */
+	pid->prf	= FALSE; /* prepare to record unknown */
 
-	pi->pcs_audio = VBI_PCS_AUDIO_UNKNOWN;
-	pi->pty	= 0; /* none / unknown */
+	pid->pcs_audio = VBI_PCS_AUDIO_UNKNOWN;
+	pid->pty	= 0; /* none / unknown */
 
-	pi->tape_delayed = !!(buffer[3] & 0x10);
+	pid->tape_delayed = !!(buffer[3] & 0x10);
 
 	return TRUE;
 }
@@ -924,18 +925,18 @@ decode_misc			(vbi_decoder *		vbi,
 
 	case VBI_XDS_MISC_IMPULSE_CAPTURE_ID:
 	{
-		vbi_program_id pi;
+		vbi_program_id pid;
 
 		dec_log ("IMPULSE_CAPTURE_ID ");
 
 		if (!vbi_decode_xds_impulse_capture_id
-		    (&pi, buffer, buffer_size))
+		    (&pid, buffer, buffer_size))
 			return;
 
 		dec_log ("20XX-%02u-%02u %02u:%02u UTC length %02u:%02u ",
-			 pi.month + 1, pi.day + 1,
-			 pi.hour, pi.minute,
-			 pi.length / 60, pi.length % 60);
+			 pid.month + 1, pid.day + 1,
+			 pid.hour, pid.minute,
+			 pid.length / 60, pid.length % 60);
 
 		if (XDS_DECODER_LOG)
 			fprint_date_flags (stderr, buffer);

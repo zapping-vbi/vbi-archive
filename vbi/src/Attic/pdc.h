@@ -17,19 +17,21 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.h,v 1.1.2.3 2004-03-31 00:41:34 mschimek Exp $ */
+/* $Id: pdc.h,v 1.1.2.4 2004-04-04 21:45:40 mschimek Exp $ */
 
-#ifndef PDC_H
-#define PDC_H
+#ifndef __ZVBI_PDC_H__
+#define __ZVBI_PDC_H__
 
-#include <stdio.h>
-
-#include "misc.h"
-#include "network.h"
-#include "format.h"
+#include <inttypes.h>		/* uint8_t */
+#include <stdio.h>		/* FILE */
+#include <time.h>		/* time_t */
+#include "macros.h"
+#include "network.h"		/* vbi_nuid */
+#include "format.h"		/* vbi_page */
 
 /* Public */
-#include <time.h>
+
+VBI_BEGIN_DECLS
 
 /**
  * PDC Programme Identification Label
@@ -55,7 +57,6 @@ enum {
 	VBI_PIL_INHIBIT_TERMINATE	= VBI_PIL (15, 0, 30, 63),
 	VBI_PIL_INTERRUPT		= VBI_PIL (15, 0, 29, 63),
 	VBI_PIL_CONTINUE		= VBI_PIL (15, 0, 28, 63),
-	VBI_PIL_NO_TIME			= VBI_PIL (15, 31, 31, 63)
 };
 
 /* Private */
@@ -64,6 +65,17 @@ extern void
 vbi_pil_dump			(vbi_pil		pil,
 				 FILE *			fp);
 /* Public */
+
+/**
+ */
+typedef enum {
+	VBI_PID_CHANNEL_LCI_0 = 0,
+	VBI_PID_CHANNEL_LCI_1,
+	VBI_PID_CHANNEL_LCI_2,
+	VBI_PID_CHANNEL_LCI_3,
+	VBI_PID_CHANNEL_VPS,
+	VBI_PID_CHANNEL_XDS
+} vbi_pid_channel;
 
 /**
  * PDC Programme Control Status, Audio
@@ -80,6 +92,8 @@ typedef struct {
 	 * Network identifier, VBI_NUID_UNKNOWN if unknown.
 	 */
 	vbi_nuid		nuid;
+
+	vbi_pid_channel		channel;
 
 	/**
 	 * Month, day, hour and minute are the first announced starting
@@ -104,8 +118,6 @@ typedef struct {
 	 */
 	unsigned int		length;
 
-	/** PDC label channel identifier. */
-	unsigned int		lci;
 	/** PDC label update flag. */
 	vbi_bool		luf;
 	/** PDC mode identifier. */
@@ -130,7 +142,10 @@ typedef struct {
 /* Private */
 
 extern void
-vbi_program_id_dump		(const vbi_program_id *	pi,
+_vbi_program_id_init		(vbi_program_id *	pid,
+				 vbi_pid_channel	channel);
+extern void
+_vbi_program_id_dump		(const vbi_program_id *	pid,
 				 FILE *			fp);
 /* Public */
 
@@ -311,4 +326,10 @@ vbi_page_mark_pdc		(vbi_page *		pg,
 				 const pdc_program *	pbegin,
 				 const pdc_program *	pend);
 
-#endif /* PDC_H */
+/* Public */
+
+VBI_END_DECLS
+
+/* Private */
+
+#endif /* __ZVBI_PDC_H__ */

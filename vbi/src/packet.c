@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet.c,v 1.9.2.10 2004-04-03 00:07:55 mschimek Exp $ */
+/* $Id: packet.c,v 1.9.2.11 2004-04-04 21:45:40 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -37,6 +37,8 @@
 #include "export.h"
 #include "tables.h"
 #include "vbi.h"
+
+typedef void *vbi_cache;
 
 #ifndef FPC
 #define FPC 0
@@ -1177,6 +1179,7 @@ decode_mip_page_func		(vbi_teletext_decoder *	td,
 	case 0x7F:	    /* VBI_PROGR_INDEX, single page */
 	case 0x80:	    /* VBI_NOT_PUBLIC */
 	case 0x81:	    /* VBI_PROGR_SCHEDULE, single page */
+	case 0xE3:	    /* VBI_PFC_EPG_DATA */
 	case 0xE4:	    /* VBI_PFC_DATA */
 	case 0xE7:	    /* VBI_SYSTEM_PAGE, e.g. MOT and MIP */
 	case 0xF9:	    /* VBI_KEYWORD_SEARCH_LIST, single page */
@@ -1281,11 +1284,6 @@ decode_mip_page_func		(vbi_teletext_decoder *	td,
 	case 0xF7:	    /* displayable system page */
 		page_type = code;
 		subcode = old_subcode;
-		break;
-
-	case 0xE3:	    /* VBI_PFC_EPG_DATA */
-		page_type = code;
-		subcode = 0;
 		break;
 
 	case 0xE8 ... 0xEB:
@@ -1683,41 +1681,6 @@ _vbi_convert_cached_page	(vbi_decoder *		vbi,
 
 #if 0
 
-static int
-page_language(const vbi_teletext_decoder *vt, const vt_page *vtp, int pgno, int national)
-{
-	const magazine *mag;
-	const extension *ext;
-	int char_set;
-	int lang = -1; /***/
-
-	if (vtp) {
-		if (vtp->function != PAGE_FUNCTION_LOP)
-			return lang;
-
-		pgno = vtp->pgno;
-		national = vtp->national;
-	}
-
-	mag = (vt->max_level <= VBI_WST_LEVEL_1p5) ?
-		vt->magazine : vt->magazine + (pgno >> 8);
-
-	ext = (vtp && vtp->data.lop.ext) ?
-		&vtp->data.ext_lop.ext : &mag->extension;
-
-	char_set = ext->charset_code[0];
-
-	if (vbi_character_set_from_code (char_set))
-		lang = char_set;
-
-	char_set = (char_set & ~7) + national;
-
-	if (vbi_character_set_from_code (char_set))
-		lang = char_set;
-
-	return lang;
-}
-
 static void
 eacem_trigger(vbi_decoder *vbi, const vt_page *vtp)
 {
@@ -1750,8 +1713,42 @@ eacem_trigger(vbi_decoder *vbi, const vt_page *vtp)
 
 #endif
 
+static vbi_character_set_code
+page_charset_code		(vbi_teletext_decoder *	td,
+				 const vt_page *	vtp)
+{
+	vbi_character_set_code code;
+	const magazine *mag;
 
+	if (vtp->x28_designations
+	    & vtp->data.ext_lop.ext.designations & 0x11) {
+		code = (vtp->data.ext_lop.ext.charset_code[0]
+			& (unsigned int) ~7) + vtp->national;
 
+		if (vbi_character_set_from_code (code))
+			return code;
+
+		code = vtp->data.ext_lop.ext.charset_code[0];
+
+		if (vbi_character_set_from_code (code))
+			return code;
+	}
+
+	mag = vt_network_magazine (td->network, vtp->pgno);
+
+	code = (mag->extension.charset_code[0] &
+		(unsigned int) ~7) + vtp->national;
+
+	if (vbi_character_set_from_code (code))
+		return code;
+
+	code = mag->extension.charset_code[0];
+
+	if (vbi_character_set_from_code (code))
+		return code;
+
+	return 0xFF; /* unknown */
+}
 
 /* 9.3.1 Teletext packet 0, Page Header. */
 
@@ -1985,9 +1982,9 @@ store_page			(vbi_decoder * vbi,
 			else
 				ps->page_type = VBI_NORMAL_PAGE;
 
-//			if (0xFF == ps->charset_code)
-//				ps->charset_code =
-//					page_charset_code (td, vtp);
+			if (0xFF == ps->charset_code)
+				ps->charset_code =
+					page_charset_code (td, vtp);
 
 			break;
 
@@ -1995,9 +1992,9 @@ store_page			(vbi_decoder * vbi,
 			if (vtp->flags & C6_SUBTITLE)
 				ps->page_type = VBI_SUBTITLE_PAGE;
 
-//			if (0xFF == ps->charset_code)
-//				ps->charset_code =
-//					page_charset_code (td, vtp);
+			if (0xFF == ps->charset_code)
+				ps->charset_code =
+					page_charset_code (td, vtp);
 
 			break;
 
@@ -2010,15 +2007,15 @@ store_page			(vbi_decoder * vbi,
 		case VBI_NOW_AND_NEXT:
 		case VBI_PROGR_INDEX:
 		case VBI_PROGR_SCHEDULE:
-//			if (0xFF == ps->charset_code)
-//				ps->charset_code =
-//					page_charset_code (td, vtp);
+			if (0xFF == ps->charset_code)
+				ps->charset_code =
+					page_charset_code (td, vtp);
 			break;
 
 		case VBI_SUBTITLE_PAGE:
 			if (vtp->flags & C6_SUBTITLE) {
 				/* Keep up-to-date, just in case. */
-//				ps->charset_code = page_charset_code (td, vtp);
+				ps->charset_code = page_charset_code (td, vtp);
 			} else {
 				/* Fixes bug in ORF1 BTT. */
 				ps->page_type = VBI_NORMAL_PAGE;
@@ -2186,6 +2183,16 @@ store_page			(vbi_decoder * vbi,
 		vbi_cache_put(vbi, NUID0, vtp, /* new ref */ FALSE);
 		break;
 	}
+}
+
+static vbi_bool
+epg_callback			(vbi_pfc_demux *	pc,
+				 void *			user_data,
+				 const vbi_pfc_block *	block)
+{
+	vbi_teletext_decoder *td = user_data;
+
+	// TODO
 }
 
 static vbi_bool
@@ -2484,8 +2491,21 @@ decode_packet_0			(vbi_decoder *		vbi,
 			break;
 
 		case VBI_PFC_EPG_DATA:
+		{
 			vtp->function = PAGE_FUNCTION_EPG;
+
+			if (0 == td->epg_stream[0].block.pgno) {
+				_vbi_pfc_demux_init (&td->epg_stream[0],
+						     vtp->pgno, 1,
+						     epg_callback, td);
+
+				_vbi_pfc_demux_init (&td->epg_stream[1],
+						     vtp->pgno, 2,
+						     epg_callback, td);
+			}
+
 			break;
+		}
 
 		case VBI_NOT_PUBLIC:
 		case VBI_CA_DATA:
@@ -3220,7 +3240,7 @@ decode_packet_28_29		(vbi_teletext_decoder *	td,
 
 /* 9.8 Teletext packet 8/30, broadcast service data. */
 
-#define _830_LOG 1
+#define _830_LOG 0
 
 static void
 network_event			(vbi_teletext_decoder *	td,
@@ -3453,10 +3473,8 @@ vbi_decode_teletext(vbi_decoder *vbi,
 			break;
 
 		case PAGE_FUNCTION_EPG:
-#if 0 // TODO
-			parse_page_clear(vbi->epg_pc + ((vtp->subno >> 8) & 1), p, packet);
-#endif
-			break;
+			// TODO
+			return TRUE;
 
 		case PAGE_FUNCTION_LOP:
 		case PAGE_FUNCTION_TRIGGER:
@@ -3543,42 +3561,8 @@ vbi_decode_teletext(vbi_decoder *vbi,
 }
 
 
-/**
- * @param vbi Initialized vbi decoding context.
- * @param default_region A value between 0 ... 80, index into
- *   the Teletext character set table according to ETS 300 706,
- *   Section 15 (or libzvbi source file lang.c). The three last
- *   significant bits will be replaced.
- *
- * The original Teletext specification distinguished between
- * eight national character sets. When more countries started
- * to broadcast Teletext the three bit character set id was
- * locally redefined and later extended to seven bits grouping
- * the regional variants. Since some stations still transmit
- * only the legacy three bit id and we don't ship regional variants
- * of this decoder as TV manufacturers do, this function can be used to
- * set a default for the extended bits. The "factory default" is 16.
- */
-#if 0
-void
-vbi_teletext_set_default_region(vbi_decoder *vbi, int default_region)
-{
-	int i;
 
-	if (default_region < 0 || default_region > 87)
-		return;
 
-	vbi->vt.region = default_region;
-
-	for (i = 0; i < 9; i++) {
-		vt_extension *ext = &vbi->vt.magazine[i].extension;
-
-		ext->char_set[0] =
-		ext->char_set[1] =
-			default_region;
-	}
-}
-#endif
 
 
 /**
@@ -3601,13 +3585,58 @@ vbi_teletext_desync(vbi_decoder *vbi)
 
 	vbi->vt.current = NULL;
 
-#if 0 // TODO
-	vbi_reset_page_clear(vbi->epg_pc + 0);
-	vbi_reset_page_clear(vbi->epg_pc + 1);
+	vbi_pfc_demux_reset (&vbi->vt.epg_stream[0]);
+	vbi_pfc_demux_reset (&vbi->vt.epg_stream[1]);
+}
 
-	vbi->epg_pc[0].pfc.stream = 1;
-	vbi->epg_pc[1].pfc.stream = 2;
-#endif
+
+
+static void
+extension_init			(extension *		ext)
+{
+	unsigned int i;
+
+	CLEAR (*ext);
+
+	ext->def_screen_color	= VBI_BLACK;	/* A.5 */
+	ext->def_row_color	= VBI_BLACK;	/* A.5 */
+
+	for (i = 0; i < 8; ++i)
+		ext->drcs_clut[2 + i] = i & 3;
+
+	for (i = 0; i < 32; ++i)
+		ext->drcs_clut[2 + 8 + i] = i & 15;
+
+	memcpy (ext->color_map, default_color_map,
+		sizeof (ext->color_map));
+}
+
+static void
+magazine_init			(magazine *		mag)
+{
+	extension_init (&mag->extension);
+
+	/* Valid range 0 ... 7. */
+	memset (mag->pop_lut, -1, sizeof (mag->pop_lut));
+	memset (mag->drcs_lut, -1, sizeof (mag->pop_lut));
+
+	/* NO_PAGE (pgno): (pgno & 0xFF) == 0xFF. */
+	memset (mag->pop_link, -1, sizeof (mag->pop_link));
+	memset (mag->drcs_link, -1, sizeof (mag->drcs_link));
+}
+
+/**
+ * @internal
+ */
+const magazine *
+_vbi_teletext_decoder_default_magazine (void)
+{
+	static magazine default_magazine;
+
+	if (!NO_PAGE (default_magazine.pop_link[0][0].pgno))
+		magazine_init (&default_magazine);
+
+	return &default_magazine;
 }
 
 static void
@@ -3617,9 +3646,35 @@ page_stat_init			(page_stat *		ps)
 
 	ps->page_type		= VBI_UNKNOWN_PAGE;
 	ps->charset_code	= 0xFF;
-	ps->subcode		= 0xFFFF;
+	ps->subcode		= SUBCODE_UNKNOWN;
 }
 
+void
+vt_network_init			(vt_network *		vtn)
+{
+	vbi_pid_channel ch;
+	unsigned int i;
+
+	for (ch = VBI_PID_CHANNEL_LCI_0;
+	     ch <= VBI_PID_CHANNEL_LCI_3; ++ch)
+		_vbi_program_id_init (&vtn->program_id[ch], ch);
+
+	/* D.3: In absence of packet 8/30/0 ... 4 assume page 100. */
+	vtn->initial_page.function	= PAGE_FUNCTION_LOP;
+	vtn->initial_page.pgno		= 0x100;
+	vtn->initial_page.subno		= VBI_ANY_SUBNO;
+
+	for (i = 0; i < N_ELEMENTS (vtn->_magazines); ++i)
+		magazine_init (&vtn->_magazines[i]);
+
+	for (i = 0; i < N_ELEMENTS (vtn->_pages); ++i)
+		page_stat_init (&vtn->_pages[i]);
+
+	/* NO_PAGE (pgno): (pgno & 0xFF) == 0xFF. */
+	memset (vtn->btt_link, -1, sizeof (vtn->btt_link));
+
+	vtn->have_top = FALSE;
+}
 
 /**
  * @param vbi Initialized vbi decoding context.
@@ -3637,45 +3692,13 @@ vbi_teletext_channel_switched(vbi_decoder *vbi)
 
 	vtn = vbi->vt.network;
 
-	vtn->initial_page.function	= PAGE_FUNCTION_LOP;
-	vtn->initial_page.pgno		= 0x100;
-	vtn->initial_page.subno		= VBI_ANY_SUBNO;
+	vt_network_init (vbi->vt.network);
 
-	vtn->have_top = FALSE;
+	vbi->vt.epg_stream[0].block.pgno = 0;
+	vbi->vt.epg_stream[1].block.pgno = 0;
 
-	for (i = 0; i < N_ELEMENTS (vtn->pages); ++i)
-		page_stat_init (vtn->pages + i);
-
-	/* Magazine defaults */
-
-	CLEAR (vtn->magazines);
-
-	for (i = 0; i < 9; i++) {
-		mag = vtn->magazines + i;
-
-		for (j = 0; j < 16; j++) {
-			mag->pop_link[0][j].pgno = 0x0FF;	/* unused */
-			mag->drcs_link[0][j] = 0x0FF;		/* unused */
-		}
-
-		ext = &mag->extension;
-
-		ext->def_screen_color		= VBI_BLACK;	/* A.5 */
-		ext->def_row_color		= VBI_BLACK;	/* A.5 */
-		ext->foreground_clut		= 0;
-		ext->background_clut		= 0;
-
-		for (j = 0; j < 8; j++)
-			ext->drcs_clut[j + 2] = j & 3;
-
-		for (j = 0; j < 32; j++)
-			ext->drcs_clut[j + 10] = j & 15;
-
-		memcpy(ext->color_map, default_color_map,
-		       sizeof(ext->color_map));
-	}
-
-//	vbi_teletext_set_default_region(vbi, vtn->region);
+	vbi->vt.header_page.pgno = 0;
+	CLEAR (vbi->vt.header);
 
 	vbi_teletext_desync(vbi);
 }
@@ -3703,6 +3726,117 @@ vbi_teletext_destroy(vbi_decoder *vbi)
 void
 vbi_teletext_init(vbi_decoder *vbi)
 {
-
 	vbi_teletext_channel_switched(vbi);     /* Reset */
+}
+
+
+
+static void
+reset				(vbi_teletext_decoder *	td,
+				 vbi_nuid		nuid,
+				 int			delay)
+{
+//	if (delay < 0) {
+//		/* Canceled. */
+//		td->reset_delay = 0;
+//		return;
+//	} else if (delay > 0) {
+//		td->reset_delay = MIN (td->reset_delay, (unsigned int) delay);
+//		return;
+//	}
+
+//	td->reset_delay = 0;
+
+//	_vbi_cache_release_network (td->cache, td->network);
+
+//	if (VBI_NUID_NONE == nuid)
+//		nuid = vbi_temporary_nuid ();
+
+//	vpn = _vbi_cache_new_network (td->cache, nuid);
+//	assert (NULL != vpn);
+
+vt_network_init (&td->network);
+
+	td->epg_stream[0].block.pgno = 0;
+	td->epg_stream[1].block.pgno = 0;
+
+	td->header_page.pgno = 0;
+	CLEAR (td->header);
+
+//	_vbi_teletext_decoder_resync (td);
+}
+
+void
+vbi_teletext_decoder_reset	(vbi_teletext_decoder *	td,
+				 vbi_nuid		nuid)
+{
+//	td->virtual_reset (td, nuid, 0 /* now */);
+}
+
+void
+_vbi_teletext_decoder_destroy	(vbi_teletext_decoder *	td)
+{
+	assert (NULL != td);
+
+//	_vbi_event_handlers_destroy (&td->handlers);
+
+//	_vbi_cache_release_network (td->cache, td->network);
+
+	/* Delete if we hold the last reference. */
+//	vbi_cache_delete (td->cache);
+
+	CLEAR (*td);
+}
+
+vbi_bool
+_vbi_teletext_decoder_init	(vbi_teletext_decoder *	td,
+				 vbi_cache *		ca,
+				 vbi_nuid		nuid)
+{
+	assert (NULL != td);
+
+	CLEAR (*td);
+
+//	if (ca) /* create new reference */
+//		td->cache = _vbi_cache_copy (ca);
+//	else
+//		td->cache = vbi_cache_new ();
+
+//	if (!td->cache)
+//		return FALSE;
+
+//	td->virtual_reset = reset;
+
+//	_vbi_event_handlers_init (&td->handlers);
+
+	reset (td, nuid, 0 /* now */);
+}
+
+void
+vbi_teletext_decoder_delete	(vbi_teletext_decoder *	td)
+{
+	if (NULL == td)
+		return;
+
+	_vbi_teletext_decoder_destroy (td);
+
+	free (td);
+}
+
+vbi_teletext_decoder *
+vbi_teletext_decoder_new	(vbi_cache *		ca)
+{
+	vbi_teletext_decoder *td;
+
+	if (!(td = malloc (sizeof (*td)))) {
+		vbi_log_printf (__FUNCTION__, "Out of memory");
+		return NULL;
+	}
+
+        if (!_vbi_teletext_decoder_init (td, ca, VBI_NUID_NONE)) {
+		free (td);
+		td = NULL;
+	}
+
+	return td;
 }
