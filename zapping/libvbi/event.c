@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: event.c,v 1.2 2005-01-08 14:54:20 mschimek Exp $ */
+/* $Id: event.c,v 1.3 2005-01-31 07:03:28 mschimek Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>		/* malloc() */
@@ -69,6 +69,8 @@ _vbi3_event_name			(unsigned int		event)
 	CASE (LOCAL_TIME)
 	CASE (PROG_ID)
 
+	default:
+		break;
 	}
 
 	return NULL;
@@ -205,6 +207,8 @@ _vbi3_event_handler_list_remove	(_vbi3_event_handler_list *es,
 	assert (NULL != eh);
 
 	ehp = &es->first;
+
+	event_union = 0;
 
 	while ((eh1 = *ehp)) {
 		if (eh == eh1) {
