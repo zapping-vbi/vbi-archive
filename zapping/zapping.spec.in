@@ -1,19 +1,15 @@
-%define  prefix  /usr
-%define  ver @VERSION@
-
 Name: zapping
-Version: %{ver}
+Version: @VERSION@
 Release: 1
 Summary: a TV viewer for Gnome
 Copyright: GPL
 Group: Applications/Multimedia
-Source: http://download.sourceforge.net/zapping/zapping-%{ver}.tar.gz
+Source: http://download.sourceforge.net/zapping/zapping-%{version}.tar.bz2
 URL: http://zapping.sourceforge.net
 Packager: Iñaki García Etxebarria <garetxe@users.sourceforge.net>
-Buildroot: /var/tmp/%{name}-root
+Buildroot: %{_tmppath}/%{name}-root
 BuildPrereq: libglade-devel libxml-devel
 PreReq: /sbin/install-info
-Docdir: 	%{prefix}/doc
 
 Requires: gtk+ >= 1.2.6
 Requires: gnome-libs >= 1.0.40
@@ -21,6 +17,7 @@ Requires: libxml >= 1.4.0
 Requires: libglade >= 0.9
 Requires: gdk-pixbuf >= 0.8
 Requires: libunicode >= 0.4
+Requires: /usr/bin/consolehelper
 
 %description
 GNOME (GNU Network Object Model Environment) is a user-friendly set of
@@ -35,40 +32,46 @@ features, plus extensibility through a plugin system.
 %setup -q
 
 %build
-./configure --prefix %prefix
+CFLAGS=$RPM_OPT_FLAGS ./configure --prefix=%{_prefix}
 make
 
 %install
-[ -n "$RPM_BUILD_ROOT" -a "$RPM_BUILD_ROOT" != / ] && rm -rf $RPM_BUILD_ROOT
+rm -rf $RPM_BUILD_ROOT
 
-make prefix=$RPM_BUILD_ROOT%{prefix} install
+make prefix=%{buildroot}%{_prefix} install
+
+%post
+pushd %{_bindir} > /dev/null 2>&1
+    ln -sf consolehelper zapping_setup_fb
+popd > /dev/null 2>&1
+
+%preun
+rm -f %{_bindir}/zapping_setup_fb > /dev/null 2>&1
 
 %clean
-[ -n "$RPM_BUILD_ROOT" -a "$RPM_BUILD_ROOT" != / ] && rm -rf $RPM_BUILD_ROOT
+rm -rf $RPM_BUILD_ROOT
 
 %files
 
-%defattr (4555, root, root)
-%{prefix}/bin/zapping_setup_fb
-
-%defattr (0555, root, root)
-%{prefix}/bin/zapping
-%{prefix}/share/zapping/plugins/*.zapping.so
-%{prefix}/share/zapping/plugins/*.zapping.so.0.0.0
-
-%defattr (0444, root, root, 0555)
-%{prefix}/share/zapping/*.glade
-%{prefix}/share/gnome/help/zapping/C/*.jpeg
-%{prefix}/share/gnome/help/zapping/C/*.html
-%{prefix}/share/gnome/help/zapping/C/*.dat
-%{prefix}/share/pixmaps/zapping/*
-%{prefix}/share/gnome/apps/Multimedia/zapping.desktop
-%{prefix}/share/locale/*/*/*
-
-%defattr (0444, root, root, 0555)
-%doc AUTHORS THANKS ChangeLog README README.plugins COPYING TODO BUGS po/zapping.pot NEWS
+%defattr (-, root, root)
+%doc AUTHORS THANKS ChangeLog README README.plugins COPYING TODO BUGS
+%doc po/zapping.pot
+%config(noreplace) %{_sysconfdir}/pam.d/zapping_setup_fb
+%config(noreplace) %{_sysconfdir}/security/console.apps/zapping_setup_fb
+%{_bindir}/zapping
+%{_sbindir}/zapping_setup_fb
+%{_libdir}/zapping
+%{_datadir}/zapping
+%{_datadir}/gnome/help/zapping
+%{_datadir}/pixmaps/zapping
+%{_datadir}/gnome/apps/Multimedia/zapping.desktop
+%{_datadir}/locale/*/*/*
 
 %changelog
+* Fri Feb  2 2001 Tim Powers <timp@redhat.com>
+	- pamified zapping_setup_fb, now no need for suid root bits, and no
+	crippling of the app :)
+
 * Thu Sep 12 2000 Iñaki García Etxebarria <garetxe@users.sourceforge.net>
 	- Removed the LibPng dependency, now libjpeg is used.
 

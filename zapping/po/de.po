@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.5\n"
-"POT-Creation-Date: 2001-02-02 21:26+0000\n"
+"POT-Creation-Date: 2001-02-03 22:37+0000\n"
 "PO-Revision-Date: 2000-11-04 16:00+0100\n"
 "Last-Translator: Michael H. Schimek <mschimek@users.sourceforge.net>\n"
 "Language-Team: German <de@li.org>\n"

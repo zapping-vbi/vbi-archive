@@ -11,3 +11,5 @@ Known bugs with zapping, don't report them
 	  jumping to a FLOF/TOP/nnn linked page.
 	* Sometimes the geometry isn't correctly restored at startup.
 	! Sometimes the program hangs when exiting.
+	* The input (and probably the standard) are changed when
+	changing modes.

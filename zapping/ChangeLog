@@ -1,3 +1,10 @@
+3.2.2001	ZSFB goes PAM <garetxe@users.sourceforge.net>
+
+	* zapping_setup_fb: Uses PAM if available, as explained by Tim
+	Powers.
+	* plugins: they get installed now under $(prefix)/lib/zapping/plugins,
+	that's more polite, according to informed sources :-)
+
 2.2.2001	/dev/video0 <garetxe@users.sourceforge.net>
 
 	* s/dev\/video/dev\/video0/g: rationale: In RH 7.1 beta (Fisher),

@@ -685,11 +685,11 @@ GList * plugin_load_plugins ( void )
   FILE * fd;
   gint i;
 
-  /* First load plugins in $(prefix)/share/zapping/plugins */
-#ifdef PACKAGE_DATA_DIR
-  buffer = PACKAGE_DATA_DIR;
+  /* First load plugins in $(prefix)/lib/zapping/plugins */
+#ifdef PACKAGE_LIB_DIR
+  buffer = PACKAGE_LIB_DIR;
 #else
-  buffer = "/usr/share/zapping"; /* Choose by default this location */
+  buffer = "/usr/lib/zapping"; /* Choose by default this location */
 #endif
 
   g_assert(strlen(buffer) > 0);

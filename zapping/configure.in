@@ -99,6 +99,16 @@ else
 	ftp://ftp.gnome.org/pub/GNOME/unstable/sources])
 fi
 
+dnl ---------------------------------------------------------------------
+dnl consolehelper, PAM authentication for zapping_setup_fb
+dnl ---------------------------------------------------------------------
+AC_PATH_PROG(CONSOLEHELPER_LOCATION, consolehelper, "")
+if test "x$CONSOLEHELPER_LOCATION" = "x"; then
+	AC_MSG_RESULT([consolehelper not found, using setuid binary])
+fi
+AC_SUBST(CONSOLEHELPER_LOCATION)
+AM_CONDITIONAL(SUID_ZSFB, test x$CONSOLEHELPER_LOCATION = x)
+
 dnl ----------------------------------------------------------------------
 dnl Check for RTE, the MPEG encoder
 dnl ----------------------------------------------------------------------
@@ -208,16 +218,20 @@ dnl Add the languages which your application supports here.
 ALL_LINGUAS="de es fr ru"
 AM_GNU_GETTEXT
 
-dnl Set PACKAGE_LOCALE_DIR and PACKAGE_DATA_DIR in config.h.
+dnl Set PACKAGE_*_DIR in config.h.
 if test "x${prefix}" = "xNONE"; then
   AC_DEFINE_UNQUOTED(PACKAGE_LOCALE_DIR,
 	"${ac_default_prefix}/${DATADIRNAME}/locale")
   AC_DEFINE_UNQUOTED(PACKAGE_DATA_DIR,
 	"${ac_default_prefix}/${DATADIRNAME}/${PACKAGE}")
+  PACKAGE_LIB_DIR="${ac_default_prefix}/lib/${PACKAGE}"
 else
   AC_DEFINE_UNQUOTED(PACKAGE_LOCALE_DIR, "${prefix}/${DATADIRNAME}/locale")
   AC_DEFINE_UNQUOTED(PACKAGE_DATA_DIR, "${prefix}/${DATADIRNAME}/${PACKAGE}")
+  PACKAGE_LIB_DIR="${prefix}/lib/${PACKAGE}"
 fi
+
+AC_DEFINE_UNQUOTED(PACKAGE_LIB_DIR, "${PACKAGE_LIB_DIR}")
 
 dnl ----------------------------------------------------------------------
 dnl Check for the Xv extension
@@ -232,6 +246,11 @@ fi
 dnl Subst PACKAGE_PIXMAPS_DIR.
 PACKAGE_PIXMAPS_DIR="${datadir}/pixmaps/${PACKAGE}"
 AC_SUBST(PACKAGE_PIXMAPS_DIR)
+
+dnl Default dir for installing plugins
+PLUGIN_DEFAULT_DIR="${PACKAGE_LIB_DIR}/plugins"
+AC_SUBST(PLUGIN_DEFAULT_DIR)
+AC_SUBST(PACKAGE_LIB_DIR)
 
 AC_SUBST(PLUGINS_TO_BUILD)
 

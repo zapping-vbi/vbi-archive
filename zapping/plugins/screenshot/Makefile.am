@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-plugindir = $(prefix)/share/zapping/plugins
+plugindir = $(PLUGIN_DEFAULT_DIR)
 
 plugin_LTLIBRARIES = libscreenshot.zapping.la
 

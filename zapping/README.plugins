@@ -24,7 +24,7 @@ Where will zapping look for plugins
 
 The program will search for plugins in the following locations:
 
-. $(prefix)/share/zapping/plugins, where $prefix usually is /usr or
+. $(prefix)/lib/zapping/plugins, where $prefix usually is /usr or
   /usr/local. This is determined when configuring.
 . $HOME/.zapping/plugins, if that dir exists.
 . All the directories listed in the file $HOME/.zapping/plugin_dirs,
