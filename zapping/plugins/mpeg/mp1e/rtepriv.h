@@ -22,8 +22,10 @@
 #define __RTEPRIV_H__
 #include "rte.h"
 
-/* fixme: this symbol will make namespace collisions, change it */
 extern rte_context * rte_global_context;
+
+typedef void (*_rte_filter)(const char * src, char * dest, int width,
+			    int height);
 
 /*
   Private things we don't want people to see, we can play with this
@@ -56,6 +58,7 @@ struct _rte_context_private {
 	pthread_t audio_fetcher_id; /* id of the video fetcher thread */
 	pthread_mutex_t audio_mutex; /* mutex for the fetcher */
 	pthread_cond_t audio_cond; /* cond for the fetcher */
+	_rte_filter rgbfilter; /* the filter used for conversion, if any */
 };
 
 #endif /* rtepriv.h */

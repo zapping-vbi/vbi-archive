@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.11 2000-08-12 02:14:37 mschimek Exp $ */
+/* $Id: main.c,v 1.12 2000-08-24 17:53:52 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -184,7 +184,7 @@ void * audio_emulation_thread (void * ptr)
 int emulation_thread_init ( void )
 {
 	rte_context * context;
-	int do_test = 3; /* 1 == push, 2 == callbacks, 3 == both */
+	int do_test = 1; /* 1 == push, 2 == callbacks, 3 == both */
 	rteDataCallback callback;
 	enum rte_pixformat format;
 

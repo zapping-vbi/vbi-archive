@@ -30,7 +30,7 @@
 #include "common/math.h"
 #include "rtepriv.h"
 #include "video/video.h" /* fixme: video_unget_frame and friends */
-#include "audio/audio.h" /* fixme: audio_read, audio_unget prots. */
+#include "audio/audio.h" /* fixme: audio_read prots. */
 #include "audio/mpeg.h"
 
 /*
@@ -353,6 +353,7 @@ void rte_set_video_parameters (rte_context * context,
 	context->video_rate = video_rate;
 	context->output_video_bits = output_video_bits;
 	context->video_bytes = context->width * context->height;
+	context->private->rgbfilter = NULL;
 
 	switch (frame_format)
 	{
@@ -361,6 +362,30 @@ void rte_set_video_parameters (rte_context * context,
 		break;
 	case RTE_YUV420:
 		context->video_bytes *= 1.5;
+		break;
+	case RTE_RGB555:
+		context->video_bytes *= 1.5;
+		context->private->rgbfilter = convert_rgb555_ycbcr420;
+		break;
+	case RTE_RGB565:
+		context->video_bytes *= 1.5;
+		context->private->rgbfilter = convert_rgb565_ycbcr420;
+		break;
+	case RTE_RGB24:
+		context->video_bytes *= 1.5;
+		context->private->rgbfilter = convert_rgb24_ycbcr420;
+		break;
+	case RTE_BGR24:
+		context->video_bytes *= 1.5;
+		context->private->rgbfilter = convert_bgr24_ycbcr420;
+		break;
+	case RTE_RGB32:
+		context->video_bytes *= 1.5;
+		context->private->rgbfilter = convert_rgb32_ycbcr420;
+		break;
+	case RTE_BGR32:
+		context->video_bytes *= 1.5;
+		context->private->rgbfilter = convert_bgr32_ycbcr420;
 		break;
 	default:
 		rte_error(context, "unhandled pixformat: %d", frame_format);
@@ -903,25 +928,6 @@ static void
 audio_input_done(fifo *f, buffer *b)
 {
 	free(b);
-}
-
-/* obsolete, fifo routines implement unget now */
-/* audio_unget = audio_input_unget */
-static void
-audio_input_unget(buffer *b)
-{
-	rte_context * context = rte_global_context; /* fixme: avoid global */
-	short *p = (short *) b->data;
-
-	free(b);
-
-	ASSERT("Ungetting an incorrect buffer\n",
-	       p == (short*)context->private->a_ubuffer->data);
-
-	ASSERT("You shouldn't unget audio twice, core!\n",
-	       context->private->a_again == 0);
-
-	context->private->a_again = 1;
 }
 
 static fifo		rte_audio_cap_fifo;

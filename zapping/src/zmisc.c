@@ -309,8 +309,8 @@ void zmisc_clear_area(gint x, gint y, gint width, gint height)
     {
       clear_window = gtk_window_new( GTK_WINDOW_POPUP );
 
-      /*      gtk_widget_set_uposition(clear_window, x, y);
-	      gtk_widget_set_usize(clear_window, width, height);*/
+      gtk_widget_set_uposition(clear_window, x, y);
+      gtk_widget_set_usize(clear_window, width, height);
     }
 
   gtk_widget_show(clear_window);
@@ -352,7 +352,7 @@ void zmisc_refresh_tv_screen(gint x, gint y, gint w, gint h, gboolean
   gint timeout_length = 100; /* 0.1 sec */
 
   curx = x; cury = y; curw = w; curh = h; obscured = obscured_param;
-  
+
   /* Just do the update (exitting zapping) */
   if ((!w && !h) && (!x && !y))
     {

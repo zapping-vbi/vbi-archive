@@ -42,13 +42,14 @@ enum rte_mux_mode {
 */
 enum rte_pixformat {
 	RTE_YUYV, /* YCbYCr linear, 2 bytes per pixel */
-	RTE_YUV420 /* Planar Y:Cb:Cr 1.5 bytes per pixel */
-/*	RTE_RGB555,
+	RTE_YUV420, /* Planar Y:Cb:Cr 1.5 bytes per pixel */
+	/* RGB modes, get converted to YUV420 */
+	RTE_RGB555,
 	RTE_RGB565,
 	RTE_BGR24,
 	RTE_RGB24,
 	RTE_BGR32,
-	RTE_RGB32 */
+	RTE_RGB32
 	/* more formats to come ... */
 };
 

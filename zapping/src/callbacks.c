@@ -214,8 +214,8 @@ on_zapping_configure_event             (GtkWidget       *widget,
     break;
   case GDK_UNMAP: /* iconized */
     obscured = TRUE; break;
-  case GDK_FOCUS_CHANGE:
-    break;
+    /*  case GDK_FOCUS_CHANGE:
+	break;*/
   default:
     return FALSE;
   }

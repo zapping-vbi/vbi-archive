@@ -1,3 +1,11 @@
+24.8.2000	back to work <garetxe@users.sourceforge.net>
+
+	* po/fr.po: Updated the french translation (Christian Marillat)
+	* src/callbacks.c: The focus change no longer makes the overlay
+	refresh (was a bit visually unpleasant)
+	* src/tveng[12].c: Added a configure option to avoid initial
+	channel and standard selection.
+
 27.7.2000	mode switching <garetxe@users.sourceforge.net>
 
 	* src/zmisc.c: Added a routine for switching modes correctly.

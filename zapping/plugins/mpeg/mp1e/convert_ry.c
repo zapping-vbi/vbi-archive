@@ -34,7 +34,7 @@
 #include "video/video.h" /* fixme: video_unget_frame and friends */
 #include "audio/audio.h" /* fixme: audio_read, audio_unget prots. */
 #include "audio/mpeg.h"
-// #include "convert_ry.h"
+#include "convert_ry.h"
 
 /* 1 if the tables contain useful data */
 static int convert_started = 0;
@@ -90,9 +90,9 @@ static void convert_init_tables( void )
   r, g, b: pointer to the first component in the image
   y, cb, cr: pointer to the places to store the data.
 */
-static void convert_rgb_ycbcr(const char *_r, const char *_g,
-			      const char *_b, int jump, int width,
-			      int height, char *_y, char *_cb, char *_cr)
+void convert_rgb_ycbcr(const char *_r, const char *_g,
+		       const char *_b, int jump, int width,
+		       int height, char *_y, char *_cb, char *_cr)
 {
 	int x, j;
 	const char *r = _r, *g = _g, *b = _b;
@@ -190,9 +190,9 @@ static void convert_rgb_ycbcr(const char *_r, const char *_g,
 /*
   Generic converter from RGB555 to YCbCr420, YCrCb420
 */
-static void convert_rgb555_ycbcr(const char *_src, int width, int
-				 height, char *_y, char *_cb,
-				 char *_cr)
+void convert_rgb555_ycbcr(const char *_src, int width, int
+			  height, char *_y, char *_cb,
+			  char *_cr)
 {
 	int x, j;
 	const short *src = (short*) _src;
@@ -270,9 +270,9 @@ static void convert_rgb555_ycbcr(const char *_src, int width, int
 /*
   Generic converter from RGB565 to YCbCr420, YCrCb420
 */
-static void convert_rgb565_ycbcr(const char *_src, int width, int
-				 height, char *_y, char *_cb,
-				 char *_cr)
+void convert_rgb565_ycbcr(const char *_src, int width, int
+			  height, char *_y, char *_cb,
+			  char *_cr)
 {
 	int x, j;
 	const short *src = (short*) _src;

@@ -58,7 +58,7 @@
 #ifndef N_
 #define N_(String) (String)
 #endif
-#endif
+#endif /* gettext */
 
 /* The video device capabilities flags */
 #define TVENG_CAPS_CAPTURE 1 /* Can capture to memory */
