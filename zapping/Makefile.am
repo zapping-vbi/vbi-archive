@@ -38,6 +38,12 @@ desktopdir = $(datadir)/applications
 desktop_DATA = zapping.desktop
 @INTLTOOL_DESKTOP_RULE@
 
+DISTCLEANFILES = \
+	intltool-extract \
+	intltool-merge \
+	intltool-update \
+	zapping.desktop
+
 if GCONF_SCHEMAS_INSTALL
 install-data-local:
 	GCONF_CONFIG_SOURCE=$(GCONF_SCHEMA_CONFIG_SOURCE) \
@@ -49,3 +55,12 @@ else
 install-data-local:
 uninstall-local:
 endif
+
+# configure creates site_def.h if it doesn't already exist.
+distcleancheck_listfiles = \
+	find . -name site_def.h -prune -o -type f -print
+
+# make uninstall leaves a scrollkeeper contents skeleton in pkglocalstatedir
+# behind make distuninstallcheck shall ignore.
+distuninstallcheck_listfiles = \
+	find . -name scrollkeeper -prune -o -type f -print
