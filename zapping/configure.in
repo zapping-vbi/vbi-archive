@@ -296,14 +296,18 @@ if test "x$HAVE_MMX" = "xyes"; then
 	if test "x$AS_LOCATION" != "x"; then
 		AS_VERSION=`$AS_LOCATION --version | grep GNU`
 		if test "x$AS_VERSION" != "x"; then
-			GEN_CONV_S="gen_conv.s"
-			AC_SUBST(GEN_CONV_S)
-			GEN_CONV_O="gen_conv.o"
-			AC_SUBST(GEN_CONV_O)
+			GEN_CONV="gen_conv.s"
 			AC_DEFINE(HAVE_GAS)
 		fi
 	fi
 fi
+
+if test "x$GEN_CONV" == "x"; then
+	GEN_CONV="gen_conv.c"
+	touch src/gen_conv.c
+fi
+
+AC_SUBST(GEN_CONV)
 
 AC_SUBST(ARCH_CFLAGS)
 
