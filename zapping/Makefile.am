@@ -45,10 +45,10 @@ schema_DATA = zapping.schemas
 if GCONF_SCHEMAS_INSTALL
 install-data-local:
 	GCONF_CONFIG_SOURCE=$(GCONF_SCHEMA_CONFIG_SOURCE) \
-	gconftool-2 --makefile-install-rule $(srcdir)/zapping.schemas
+	gconftool-2 --makefile-install-rule $(top_builddir)/zapping.schemas
 uninstall-local:
 	GCONF_CONFIG_SOURCE=$(GCONF_SCHEMA_CONFIG_SOURCE) \
-	gconftool-2 --makefile-uninstall-rule $(srcdir)/zapping.schemas
+	gconftool-2 --makefile-uninstall-rule $(top_builddir)/zapping.schemas
 else
 install-data-local:
 uninstall-local:
