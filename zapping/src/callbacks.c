@@ -109,12 +109,13 @@ void
 on_plugin_writing1_activate            (GtkMenuItem     *menuitem,
 					gpointer         user_data)
 {
-  static GnomeHelpMenuEntry help_ref = { "zapping",
+  static GnomeHelpMenuEntry help_ref = { NULL,
 					 "plugin_devel.html" };
   enum tveng_capture_mode cur_mode;
 
   cur_mode = tveng_stop_everything(main_info);
 
+  help_ref.name = gnome_app_id;
   gnome_help_display (NULL, &help_ref);
 
   if (tveng_restart_everything(cur_mode, main_info) == -1)
@@ -125,12 +126,13 @@ void
 on_main_help1_activate                 (GtkMenuItem     *menuitem,
 					gpointer         user_data)
 {
-  static GnomeHelpMenuEntry help_ref = { "zapping",
+  static GnomeHelpMenuEntry help_ref = { NULL,
 					 "index.html" };
   enum tveng_capture_mode cur_mode;
 
   cur_mode = tveng_stop_everything(main_info);
 
+  help_ref.name = gnome_app_id;
   gnome_help_display (NULL, &help_ref);
 
   if (tveng_restart_everything(cur_mode, main_info) == -1)

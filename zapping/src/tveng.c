@@ -131,7 +131,8 @@ int tveng_attach_device(const char* device_file,
   switch (tveng_get_display_depth(info))
     {
     case 16:
-      /*case 15:*/ /* fixme: not yet supported */
+      /*case 15:*/ /* fixme: not yet supported, it doesn't work in my
+	box (due to the X server, that doesn't support this depth) */
     case 24:
     case 32:
       break;
@@ -241,10 +242,8 @@ int tveng_get_inputs(tveng_device_info * info)
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_get_inputs(info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_get_inputs(info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -269,10 +268,8 @@ int tveng_set_input(struct tveng_enum_input * input,
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_set_input(input, info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_set_input(input, info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -297,10 +294,8 @@ tveng_set_input_by_name(const char * input_name, tveng_device_info * info)
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_set_input_by_name(input_name, info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_set_input_by_name(input_name, info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -325,10 +320,8 @@ tveng_set_input_by_id(int id, tveng_device_info * info)
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_set_input_by_id(id, info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_set_input_by_id(id, info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -352,10 +345,8 @@ tveng_set_input_by_index(int index, tveng_device_info * info)
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_set_input_by_index(index, info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_set_input_by_index(index, info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -381,10 +372,8 @@ int tveng_get_standards(tveng_device_info * info)
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_get_standards(info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_get_standards(info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -409,10 +398,8 @@ int tveng_set_standard(struct tveng_enumstd * std, tveng_device_info * info)
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_set_standard(std, info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_set_standard(std, info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -437,10 +424,8 @@ tveng_set_standard_by_name(char * name, tveng_device_info * info)
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_set_standard_by_name(name, info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_set_standard_by_name(name, info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -464,10 +449,8 @@ tveng_set_standard_by_id(int id, tveng_device_info * info)
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_set_standard_by_id(id, info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_set_standard_by_id(id, info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -491,10 +474,8 @@ tveng_set_standard_by_index(int index, tveng_device_info * info)
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_set_standard_by_index(index, info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_set_standard_by_index(index, info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -516,10 +497,8 @@ tveng_update_capture_format(tveng_device_info * info)
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_update_capture_format(info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_update_capture_format(info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -542,10 +521,8 @@ tveng_set_capture_format(tveng_device_info * info)
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_set_capture_format(info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_set_capture_format(info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -571,10 +548,8 @@ tveng_update_controls(tveng_device_info * info)
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_update_controls(info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_update_controls(info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -601,10 +576,8 @@ tveng_set_control(struct tveng_control * control, int value,
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_set_control(control, value, info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_set_control(control, value, info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -634,11 +607,9 @@ tveng_get_control_by_name(const char * control_name,
     case TVENG_CONTROLLER_V4L1:
       return tveng1_get_control_by_name(control_name,
 					cur_value, info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_get_control_by_name(control_name,
 					cur_value, info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -669,11 +640,9 @@ tveng_set_control_by_name(const char * control_name,
     case TVENG_CONTROLLER_V4L1:
       return tveng1_set_control_by_name(control_name,
 					new_value, info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_set_control_by_name(control_name,
 					new_value, info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -699,10 +668,8 @@ tveng_get_control_by_id(int cid, int * cur_value,
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_get_control_by_id(cid, cur_value, info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_get_control_by_id(cid, cur_value, info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -726,10 +693,8 @@ int tveng_set_control_by_id(int cid, int new_value,
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_set_control_by_id(cid, new_value, info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_set_control_by_id(cid, new_value, info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -754,10 +719,8 @@ tveng_get_mute(tveng_device_info * info)
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_get_mute(info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_get_mute(info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -782,10 +745,8 @@ tveng_set_mute(int value, tveng_device_info * info)
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_set_mute(value, info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_set_mute(value, info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -809,10 +770,8 @@ tveng_tune_input(__u32 freq, tveng_device_info * info)
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_tune_input(freq, info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_tune_input(freq, info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -841,10 +800,8 @@ tveng_get_signal_strength (int *strength, int * afc,
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_get_signal_strength(strength, afc, info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_get_signal_strength(strength, afc, info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -868,10 +825,8 @@ tveng_get_tune(__u32 * freq, tveng_device_info * info)
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_get_tune(freq, info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_get_tune(freq, info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -898,10 +853,8 @@ tveng_get_tuner_bounds(__u32 * min, __u32 * max, tveng_device_info *
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_get_tuner_bounds(min, max, info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_get_tuner_bounds(min, max, info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -926,10 +879,8 @@ tveng_start_capturing(tveng_device_info * info)
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_start_capturing(info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_start_capturing(info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -951,10 +902,8 @@ tveng_stop_capturing(tveng_device_info * info)
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_stop_capturing(info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_stop_capturing(info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -987,10 +936,8 @@ int tveng_read_frame(void * where, unsigned int size,
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_read_frame(where, size, time, info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_read_frame(where, size, time, info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -1017,10 +964,8 @@ int tveng_set_capture_size(int width, int height, tveng_device_info * info)
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_set_capture_size(width, height, info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_set_capture_size(width, height, info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -1044,10 +989,8 @@ int tveng_get_capture_size(int *width, int *height, tveng_device_info * info)
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_get_capture_size(width, height, info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_get_capture_size(width, height, info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -1125,10 +1068,8 @@ tveng_detect_preview (tveng_device_info * info)
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_detect_preview(info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_detect_preview(info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -1294,10 +1235,8 @@ tveng_set_preview_window(tveng_device_info * info)
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_set_preview_window(info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_set_preview_window(info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -1323,10 +1262,8 @@ tveng_get_preview_window(tveng_device_info * info)
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_get_preview_window(info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_get_preview_window(info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -1353,10 +1290,8 @@ tveng_set_preview (int on, tveng_device_info * info)
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_set_preview(on, info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_set_preview(on, info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -1404,10 +1339,8 @@ tveng_start_previewing (tveng_device_info * info)
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_start_previewing(info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_start_previewing(info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -1431,10 +1364,8 @@ tveng_stop_previewing(tveng_device_info * info)
       break;
     case TVENG_CONTROLLER_V4L1:
       return tveng1_stop_previewing(info);
-      break;
     case TVENG_CONTROLLER_V4L2:
       return tveng2_stop_previewing(info);
-      break;
     default:
       t_assert_not_reached();
     }
@@ -1496,4 +1427,3 @@ int tveng_restart_everything (enum tveng_capture_mode mode,
     }
   return 0; /* Success */
 }
-

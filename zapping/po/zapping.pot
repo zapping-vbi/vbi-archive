@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-05-31 23:11+0200\n"
+"POT-Creation-Date: 2000-06-01 11:46+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -77,26 +77,26 @@ msgstr ""
 msgid "A TV viewer for the Gnome Desktop Environment"
 msgstr ""
 
-#: src/callbacks.c:214
+#: src/callbacks.c:216
 msgid "Cannot set input"
 msgstr ""
 
-#: src/callbacks.c:233
+#: src/callbacks.c:235
 #, c-format
 msgid "Cannot tune given channel %d (no such channel)\n"
 msgstr ""
 
 #. Set the
 #. input freq
-#: src/callbacks.c:248
+#: src/callbacks.c:250
 msgid "Cannot tune input"
 msgstr ""
 
-#: src/callbacks.c:377
+#: src/callbacks.c:379
 msgid "Sorry, but cannot go fullscreen"
 msgstr ""
 
-#: src/callbacks.c:413
+#: src/callbacks.c:415
 msgid "I cannot find the main zapping window, weird..."
 msgstr ""
 

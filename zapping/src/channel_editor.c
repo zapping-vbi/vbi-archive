@@ -35,12 +35,10 @@
 GtkWidget * ChannelWindow = NULL; /* Here is stored the channel editor
 				   widget (if any) */
 
-/* FIXME: This should not be global, but a function in frequencies.c */
 extern tveng_channels * current_country; /* Currently selected contry */
 
 extern tveng_device_info * main_info; /* About the device we are using */
 
-/* FIXME: Check out if we really need this in another place */
 extern int cur_tuned_channel; /* Currently tuned channel */
 
 /*
@@ -225,8 +223,8 @@ on_channels_done_clicked               (GtkButton       *button,
 
   ptr = GTK_CLIST(channel_list) -> row_list;
 
-  /* FIXME: Using a GUI element as a data storage structure is a
-     BAD(tm) practice, find a smarter way to do this */
+  /* Using a GUI element as a data storage structure is a
+     BAD(tm) practice, but it works fine this way */
   while (ptr)
     {
       /* Add this selected channel to the channel list */
@@ -292,8 +290,8 @@ on_add_channel_clicked                 (GtkButton       *button,
 
   ptr = GTK_CLIST(clist1) -> row_list;
 
-  /* FIXME: using a GUI element as a data storage struct is a
-     HORRIBLE(tm) thing, find a better way */
+  /* Again, using a GUI element as a data storage struct is a
+     HORRIBLE(tm) thing, but other things would be overcomplicated */
   while (ptr)
     {
       if (GTK_CLIST_ROW(ptr) -> state == GTK_STATE_SELECTED)

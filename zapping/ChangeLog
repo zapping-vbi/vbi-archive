@@ -1,3 +1,10 @@
+01.6.2000	Bug fixes <garetxe@users.sourceforge.net>
+
+	* everything: Lots of bugs and fixme's have been corrected. Some
+	code cleanups have been made too.
+	* configure.in: Changed release number from 0.5.0pre1 to 0.5.0. I
+	plan to release tomorrow.
+
 29.5.2000	Tveng2 done <garetxe@users.sourceforge.net>
 
 	* tveng2.c:

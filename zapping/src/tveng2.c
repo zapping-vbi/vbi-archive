@@ -620,12 +620,9 @@ int tveng2_get_standards(tveng_device_info * info)
       }
 
   if (i == info->num_standards) /* Current standard not found */
-    {
-      /* Set the first standard as active */
-      fprintf(stderr, "FIXME: current standard not found");
-      tveng2_set_standard(&(info->standards[0]), info);
-    }
-
+    /* Set the first standard as active */
+    tveng2_set_standard(&(info->standards[0]), info);
+  
   return (info->num_standards);
 }
 
