@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-lib_LTLIBRARIES = libzvbi.la
+lib_LTLIBRARIES = libzvbi-0.3.la
 
 BUILT_SOURCES = version.h zvbi.h wstfont2.xbm ccfont3.xbm \
 	_videodev.h _videodev2.h _videodev2k.h
@@ -52,7 +52,7 @@ INSTALLHDRS = \
 	xds_demux.h \
 	xds_decoder.h
 
-libzvbi_la_SOURCES = $(INSTALLHDRS) \
+libzvbi_0_3_la_SOURCES = $(INSTALLHDRS) \
 	bcd.c \
 	bit_slicer.c \
 	cache.c cache.h \
@@ -98,8 +98,8 @@ libzvbi_la_SOURCES = $(INSTALLHDRS) \
 	xds_demux.c \
 	xds_decoder.c
 
-libzvbiincludedir = $(includedir)/zvbi-0.3/zvbi
-libzvbiinclude_HEADERS = $(INSTALLHDRS) version.h zvbi.h
+libzvbi_0_3includedir = $(includedir)/zvbi-0.3/zvbi
+libzvbi_0_3include_HEADERS = $(INSTALLHDRS) version.h zvbi.h
 
 exp-gfx.c: wstfont2.xbm ccfont3.xbm
 
@@ -108,8 +108,8 @@ wstfont2.xbm: wstfont2.pbm fontgen Makefile.in
 ccfont3.xbm: ccfont3.pbm fontgen Makefile.in
 	$(top_builddir)/src/fontgen xbm ccfont3 13 < $< > $@
 
-libzvbi_la_LIBADD = $(PTHREAD_LIB) $(PNG_LIB) $(UNICODE_LIBS)
-libzvbi_la_LDFLAGS = -version-info $(LIBZVBI_SO_VERSION)
+libzvbi_0_3_la_LIBADD = $(PTHREAD_LIB) $(PNG_LIB) $(UNICODE_LIBS)
+libzvbi_0_3_la_LDFLAGS = -version-info $(LIBZVBI_SO_VERSION)
 
 _videodev.h: Makefile.am structpr.pl videodev.h
 	$(srcdir)/structpr.pl <$(srcdir)/videodev.h \

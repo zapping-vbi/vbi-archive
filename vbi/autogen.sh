@@ -5,8 +5,9 @@ srcdir=`dirname $0`
 test -z "$srcdir" && srcdir=.
 
 PACKAGE=libzvbi
+ACLOCAL_FLAGS="$ACLOCAL_FLAGS -I m4"
 
-# automake --copy: no links please (nfs)
+# automake --copy: no links please (NFS)
 GETTEXTIZE_FLAGS="--copy --no-changelog"
 am_opt="--copy"
 

@@ -1,16 +1,25 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.18.2.5 2004-04-17 05:52:05 mschimek Exp $
+dnl $Id: configure.in,v 1.18.2.6 2004-04-19 03:39:53 mschimek Exp $
 
 AC_INIT(configure.in)
 AM_INIT_AUTOMAKE(zvbi, 0.3.0cvs)
 AM_CONFIG_HEADER(config.h)
 AM_ACLOCAL_INCLUDE(m4)
 
-dnl curr (added interf) : rev (of curr) : age (curr-age compat)
-AC_SUBST(LIBZVBI_SO_VERSION, [3:0:0])
+dnl [current:revision:age]
+dnl Any change: ++revision
+dnl Interface added: ++current, revision = 0
+dnl age = last binary compatible version - current
+AC_SUBST(LIBZVBI_SO_VERSION, [0:0:0])
+
+dnl Note zvbi-0.3.pc.in and src/Makefile.am need an update when the library
+dnl becomes source incompatible: -0.3 -> -0.4, _0_3 -> _0_4.
 
 AC_PROG_CC
+
+dnl For tests only.
 AC_PROG_CXX
+
 AM_PROG_LIBTOOL
 
 test -e site_def.h || cat <<EOF >site_def.h
