@@ -26,6 +26,13 @@
 
 #ifdef HAVE_LIBZVBI
 
+#ifdef ENABLE_NLS
+#  include <libintl.h>
+#  define V_(String) dgettext("zvbi", String)
+#else
+#  define V_(String) (String)
+#endif
+
 #include <gnome.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <gdk/gdkx.h>
@@ -1743,11 +1750,11 @@ create_export_entry (GtkWidget *table, vbi_option_info *oi,
   GtkWidget *label;
   GtkWidget *entry;
 
-  label = gtk_label_new (_(oi->label));
+  label = gtk_label_new (V_(oi->label));
   gtk_widget_show (label);
 
   entry = gtk_entry_new ();
-  z_tooltip_set (entry, _(oi->tooltip));
+  z_tooltip_set (entry, V_(oi->tooltip));
   gtk_widget_show (entry);
   zconf_create_string (oi->def.str, oi->tooltip, zcname);
   gtk_entry_set_text (GTK_ENTRY (entry),
@@ -1780,7 +1787,7 @@ create_export_menu (GtkWidget *table, vbi_option_info *oi,
   gchar buf[256];
   gint i, saved;
 
-  label = gtk_label_new (_(oi->label));
+  label = gtk_label_new (V_(oi->label));
   gtk_widget_show (label);
 
   option_menu = gtk_option_menu_new ();
@@ -1803,7 +1810,7 @@ create_export_menu (GtkWidget *table, vbi_option_info *oi,
 	  strncpy (buf, oi->menu.str[i], sizeof(buf) - 1);
 	  break;
 	case VBI_OPTION_MENU:
-	  strncpy (buf, _(oi->menu.str[i]), sizeof(buf) - 1);
+	  strncpy (buf, V_(oi->menu.str[i]), sizeof(buf) - 1);
 	  break;
 	default:
 	  g_warning ("Unknown export option type %d "
@@ -1830,7 +1837,7 @@ create_export_menu (GtkWidget *table, vbi_option_info *oi,
   gtk_option_menu_set_history (GTK_OPTION_MENU (option_menu), saved);
   g_free (zcname);
   gtk_widget_show (menu);
-  z_tooltip_set (option_menu, _(oi->tooltip));
+  z_tooltip_set (option_menu, V_(oi->tooltip));
   gtk_widget_show (option_menu);
 
   gtk_table_resize (GTK_TABLE (table), index + 1, 2);
@@ -1852,7 +1859,7 @@ create_export_slider (GtkWidget *table, vbi_option_info *oi,
   GtkObject *adj; /* Adjustment object for the slider */
   gchar *zcname = xo_zconf_name(exp, oi);
 
-  label = gtk_label_new (_(oi->label));
+  label = gtk_label_new (V_(oi->label));
   gtk_widget_show (label);
 
   if (oi->type == VBI_OPTION_INT)
@@ -1882,7 +1889,7 @@ create_export_slider (GtkWidget *table, vbi_option_info *oi,
   hscale = gtk_hscale_new (GTK_ADJUSTMENT (adj));
   gtk_scale_set_value_pos (GTK_SCALE (hscale), GTK_POS_LEFT);
   gtk_scale_set_digits (GTK_SCALE (hscale), 0);
-  z_tooltip_set (hscale, _(oi->tooltip));
+  z_tooltip_set (hscale, V_(oi->tooltip));
   gtk_widget_show (hscale);
 
   gtk_table_resize (GTK_TABLE (table), index + 1, 2);
@@ -1902,11 +1909,11 @@ create_export_checkbutton (GtkWidget *table, vbi_option_info *oi,
   GtkWidget *cb;
   gchar *zcname = xo_zconf_name(exp, oi);
 
-  cb = gtk_check_button_new_with_label (_(oi->label));
+  cb = gtk_check_button_new_with_label (V_(oi->label));
   zconf_create_boolean (oi->def.num, oi->tooltip, zcname);
 
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (cb), FALSE);
-  z_tooltip_set (cb, _(oi->tooltip));
+  z_tooltip_set (cb, V_(oi->tooltip));
   gtk_widget_show (cb);
 
   gtk_object_set_data (GTK_OBJECT (cb), "key", oi->keyword);

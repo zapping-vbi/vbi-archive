@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.36 2002-06-25 04:34:25 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.37 2002-09-26 20:35:33 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -479,7 +479,7 @@ real_plugin_start (const gchar *file_name)
       captured_frame_rate = zapping_info->standards[
 	      zapping_info->cur_standard].frame_rate;
 
-      g_assert (rte_option_set (video_codec, "coded_frame_rate",
+      /* g_assert */ (rte_option_set (video_codec, "coded_frame_rate",
 				(double) captured_frame_rate));
     }
 
@@ -1608,6 +1608,8 @@ saving_dialog_status_disable		(void)
 static void
 saving_dialog_status_enable	(rte_context *		context)
 {
+  g_assert (saving_dialog != NULL);
+
   if (audio_codec)
     {
       gtk_signal_connect (GTK_OBJECT (lookup_widget (saving_dialog, "volume")),
@@ -1762,12 +1764,12 @@ do_start			(const gchar *		file_name)
       captured_frame_rate = zapping_info->standards[
 	zapping_info->cur_standard].frame_rate;
 
-      g_assert (rte_codec_option_set (video_codec, "coded_frame_rate",
+      /* g_assert */ (rte_codec_option_set (video_codec, "coded_frame_rate",
 				      (double) captured_frame_rate));
 
       par->frame_rate = captured_frame_rate;
 
-      if (!rte_codec_parameters_set (video_codec, &video_params))
+      if (!rte_parameters_set (video_codec, &video_params))
 	{
 	  rte_context_delete (context);
 	  context_enc = NULL;
@@ -1788,7 +1790,7 @@ do_start			(const gchar *		file_name)
 
       /* XXX improve */
 
-      g_assert (rte_codec_parameters_set (audio_codec, &audio_params));
+      g_assert (rte_parameters_set (audio_codec, &audio_params));
 
       audio_handle = open_audio_device (par->channels > 1,
 					par->sampling_freq,
@@ -1810,12 +1812,12 @@ do_start			(const gchar *		file_name)
 
   if (audio_codec)
     { // XXX
-      rte_set_input_callback_active (audio_codec, audio_callback, NULL, NULL);
+      rte_set_input_callback_master (audio_codec, audio_callback, NULL, NULL);
     }
 
   if (video_codec)
     { // XXX
-      rte_set_input_callback_active (video_codec, video_callback,
+      rte_set_input_callback_master (video_codec, video_callback,
 				     video_unref, NULL);
     }
 
@@ -2157,7 +2159,7 @@ select_codec			(GtkWidget *		mpeg_properties,
     }
   else
     {
-      rte_codec_remove (context_prop, stream_type, 0);
+      rte_remove_codec (context_prop, stream_type, 0);
     }
 }
 
@@ -2606,7 +2608,7 @@ file_format_ext			(const gchar *		conf_name)
   if (!context)
     return NULL;
 
-  info = rte_context_info_context (context);
+  info = rte_context_info_by_context (context);
 
   if (!info->extension)
     {
@@ -2965,6 +2967,8 @@ quickrec_cmd			(GtkWidget *		widget,
 
   ext = file_format_ext (record_config_name);
   name = find_unused_name (NULL, record_option_filename, ext);
+
+  saving_dialog_new ();
 
   success = do_start (name);
 
