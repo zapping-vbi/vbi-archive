@@ -1,5 +1,0 @@
-$Id: BUGS,v 1.20 2005-01-22 18:11:28 mschimek Exp $
-
-* v4l and v4l2 i/o can ignore timeout parameter
-  > maybe a sleep() loop works, but what about timestamping?
-* vbi_page.text[1056] < 26 * 41. D'oh! (fixed in 0.3)
