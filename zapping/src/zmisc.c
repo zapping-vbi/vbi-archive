@@ -234,6 +234,23 @@ z_set_sensitive_with_tooltip	(GtkWidget *		widget,
 
 /**************************************************************************/
 
+void
+z_set_window_bg			(GtkWidget *		widget,
+				 GdkColor *		color)
+{
+  GdkRectangle rect;
+
+  gtk_widget_modify_bg (widget, GTK_STATE_NORMAL, color);
+
+  rect.x = 0;
+  rect.y = 0;
+  rect.width = widget->allocation.width;
+  rect.height = widget->allocation.height;
+
+  gdk_window_invalidate_rect (widget->window, &rect, /* children */ FALSE);
+  gdk_window_process_updates (widget->window, /* children */ FALSE);
+}
+
 int
 zmisc_restore_previous_mode(tveng_device_info * info)
 {
@@ -281,21 +298,11 @@ zmisc_stop (tveng_device_info *info)
     }
 
   {
-    GdkColor col = { 0, 0, 0, 0 };
-    GdkRectangle rect;
-    GtkWidget *tv_screen;
+    GdkColor color;
 
-    tv_screen = lookup_widget (main_window, "tv-screen");
+    CLEAR (color);
 
-    gtk_widget_modify_bg (tv_screen, GTK_STATE_NORMAL, &col);
-
-    rect.x = 0;
-    rect.y = 0;
-    rect.width = tv_screen->allocation.width;
-    rect.height = tv_screen->allocation.height;
-
-    gdk_window_invalidate_rect (tv_screen->window,
-				&rect, /* children */ FALSE);
+    z_set_window_bg (lookup_widget (main_window, "tv-screen"), &color);
   }
 }
 
