@@ -262,16 +262,13 @@ main				(int			argc,
 
 	  switch (bpp_arg)
 	    {
-	    case 8:
-	    case 15:
-	    case 16:
 	    case 24:
 	    case 32:
 	      break;
 
 	    default:
 	      message (1, "Invalid bpp argument %d. Expected "
-		       "color depth 8, 15, 16, 24 or 32.\n", bpp_arg);
+		       "24 or 32.\n", bpp_arg);
 	      goto failure;
 	    }
 	  

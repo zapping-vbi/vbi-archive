@@ -560,7 +560,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.182 2004-09-10 04:50:22 mschimek Exp $",
+	 "$Id: main.c,v 1.183 2004-09-12 03:29:25 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -617,6 +617,21 @@ int main(int argc, char * argv[])
     }
 
   have_wm_hints = wm_hints_detect ();
+
+  switch (x_bpp)
+    {
+    case -1:
+    case 24:
+    case 32:
+      break;
+
+    default:
+      if (debug_msg)
+	fprintf (stderr, "Invalid bpp option %d (ignored). Expected "
+		       "24 or 32.\n", x_bpp);
+      x_bpp = -1;
+      break;
+    }
 
 #if 0 /* Gtk 2.2 */
   display_name = gdk_display_get_name (gdk_display_get_default ());

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: screen.c,v 1.2 2004-09-10 09:09:47 mschimek Exp $ */
+/* $Id: screen.c,v 1.3 2004-09-12 03:29:40 mschimek Exp $ */
 
 #include <stdlib.h>		/* calloc(), free() */
 #include <X11/Xlib.h>
@@ -273,9 +273,9 @@ dga_query			(tv_screen *		list,
 	}
 
 	switch (bpp_hint) {
-	case 16:
 	case 24:
 	case 32:
+		format.color_depth = 24;
 		format.bits_per_pixel = bpp_hint;
 		break;
 
