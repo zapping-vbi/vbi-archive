@@ -103,6 +103,8 @@ struct tveng_caps{
   int minwidth, minheight; /* minimum capture dimensions */
 };
 
+typedef struct _tveng_device_info tveng_device_info;
+
 
 
 
@@ -115,130 +117,6 @@ typedef int tv_bool;
 #define TRUE 1
 #undef FALSE
 #define FALSE 0
-
-
-
-
-enum tveng_field
-{
-  TVENG_FIELD_ODD, /* Odd field */
-  TVENG_FIELD_EVEN, /* Even field */
-  TVENG_FIELD_BOTH /* Capture both fields */
-};
-
-#ifndef TVENG_FRAME_PIXFORMAT
-#define TVENG_FRAME_PIXFORMAT
-
-/* The format of a pixel, similar to the V4L2 ones, but they aren't
-   fourcc'ed. Keep this in sync with libvbi/decoder.h */
-enum tveng_frame_pixformat{
-  TVENG_PIX_FIRST = 0,
-  /* common rgb formats */
-  TVENG_PIX_RGB555 = TVENG_PIX_FIRST,	/* G2G1G0R4R3R2R1R0 ??B4B3B2B1B0G4G3 */
-  TVENG_PIX_RGB565,			/* G2G1G0R4R3R2R1R0 B4B3B2B1B0G5G4G3 */
-  TVENG_PIX_RGB24,			/* RR GG BB RR GG BB */
-  TVENG_PIX_BGR24,			/* BB GG RR BB GG RR */
-  TVENG_PIX_RGB32,			/* RR GG BB ?? RR GG BB ?? */
-  TVENG_PIX_BGR32,			/* BB GG RR ?? BB GG RR ?? */
-  /* common YUV formats */
-  /* note: V4L API doesn't support YVU420. V4L2 API doesn't support
-     YUV420, but videodev2.h does */
-  TVENG_PIX_YVU420,
-  TVENG_PIX_YUV420,
-  TVENG_PIX_YUYV,
-  TVENG_PIX_UYVY,
-  TVENG_PIX_GREY, /* this one is used just when querying the device, it
-		     isn't supported by TVeng */
-  TVENG_PIX_LAST = TVENG_PIX_GREY
-};
-
-#endif /* TVENG_FRAME_PIXFORMAT */
-
-typedef enum {
-	TV_COLOR_SPACE_UNKNOWN,		/* to do */
-} tv_color_space;
-
-/* Broken-down pixel format. */
-
-typedef struct _tv_pixel_format tv_pixel_format;
-
-struct _tv_pixel_format {				/* examples */
-	enum tveng_frame_pixformat
-				pixfmt;			/* RGB555	YVU420 */
-	tv_color_space		color_space;		/* RGB		JFIF */
-	unsigned int		bits_per_pixel;		/* 16		12 */
-	unsigned int		color_depth;		/* 15		12 */
-	unsigned int		uv_hscale;		/* n/a		2 */
-	unsigned int		uv_vscale;		/* n/a		2 */
-	unsigned		big_endian	: 1;	/* FALSE	FALSE */
-	union {
-		struct {
-			unsigned int		r;	/* 0x001F */
-			unsigned int		g;	/* 0x03E0 */
-			unsigned int		b;	/* 0x7C00 */
-			unsigned int		a;	/* 0x8000 */
-		}			rgb;
-		struct {
-			unsigned int		y;	/*		0xFF */
-			unsigned int		u;	/*		0xFF */
-			unsigned int		v;	/*		0xFF */
-			unsigned int		a;	/*		0x00 */
-		}			yuv;
-	}			mask;
-};
-
-extern tv_bool
-tv_pixfmt_to_pixel_format	(tv_pixel_format *	format,
-				 enum tveng_frame_pixformat pixfmt,
-				 tv_color_space		color_space);
-
-/* This struct holds the structure of the captured frame */
-struct tveng_frame_format
-{
-  int width, height; /* Dimensions of the capture */
-  /* NOTE: bpl doesn't make sense for planar modes, avoid using it. */
-  int bytesperline; /* Bytes per scan line */
-  int depth; /* Bits per pixel */
-  enum tveng_frame_pixformat pixformat; /* The pixformat entry */
-  double bpp; /* Bytes per pixel */
-  int sizeimage; /* Size in bytes of the image */
-};
-
-/* Convenience construction for managing image data */
-typedef union {
-  struct {
-    void*	data; /* Data, usually in rgb or yuyv formats */
-    int		stride; /* bytes per line */
-  } linear;
-  struct {
-    void	*y, *u, *v; /* Pointers to the different fields */
-    int		y_stride; /* bytes per line of the Y field */
-    int		uv_stride; /* bytes per line of U or V fields */
-  } planar;
-} tveng_image_data;
-
-
-
-
-
-typedef struct _tveng_device_info tveng_device_info;
-
-/* The controller we are using for this device */
-enum tveng_controller
-{
-  TVENG_CONTROLLER_NONE, /* No controller set */
-  TVENG_CONTROLLER_V4L1, /* V4L1 controller (old V4l spec) */
-  TVENG_CONTROLLER_V4L2, /* V4L2 controller (new v4l spec) */
-  TVENG_CONTROLLER_XV,	 /* XVideo controller */
-  TVENG_CONTROLLER_EMU,	 /* Emulation controller */
-  TVENG_CONTROLLER_MOTHER /* The wrapper controller (tveng.c) */
-};
-
-
-
-/*
- *  New stuff
- */
 
 /*
  *  Callbacks
@@ -469,68 +347,79 @@ tv_audio_line_add_callback	(tv_audio_line *	line,
  *  Video standards
  */
 
-/* tv_video_standard_id values, copied from V4L2 2.5. Should be
-   TV_VIDEO_STANDARD_ID_PAL_B etc to follow the scheme, but
-   let's keep it reasonable. */
-enum {
-	TV_VIDEOSTD_UNKNOWN	= 0,
+/* Copied from V4L2 2.5, keep order. */
 
-     	TV_VIDEOSTD_PAL_B	= (1 << 0),
-	TV_VIDEOSTD_PAL_B1	= (1 << 1),
-	TV_VIDEOSTD_PAL_G	= (1 << 2),
-	TV_VIDEOSTD_PAL_H	= (1 << 3),
-	TV_VIDEOSTD_PAL_I	= (1 << 4),
-	TV_VIDEOSTD_PAL_D	= (1 << 5),
-	TV_VIDEOSTD_PAL_D1	= (1 << 6),
-	TV_VIDEOSTD_PAL_K	= (1 << 7),
+typedef enum {
+     	TV_VIDEOSTD_PAL_B = 0, /* none, unknown? FIXME */
+	TV_VIDEOSTD_PAL_B1,
+	TV_VIDEOSTD_PAL_G,
+	TV_VIDEOSTD_PAL_H,
 
-	TV_VIDEOSTD_PAL_M	= (1 << 8),
-	TV_VIDEOSTD_PAL_N	= (1 << 9),
-	TV_VIDEOSTD_PAL_NC	= (1 << 10),
+	TV_VIDEOSTD_PAL_I,
+	TV_VIDEOSTD_PAL_D,
+	TV_VIDEOSTD_PAL_D1,
+	TV_VIDEOSTD_PAL_K,
 
-	TV_VIDEOSTD_NTSC_M	= (1 << 12),
-	TV_VIDEOSTD_NTSC_M_JP	= (1 << 13),
+	TV_VIDEOSTD_PAL_M = 8,
+	TV_VIDEOSTD_PAL_N,
+	TV_VIDEOSTD_PAL_NC,
 
-	TV_VIDEOSTD_SECAM_B	= (1 << 16),
-	TV_VIDEOSTD_SECAM_D	= (1 << 17),
-	TV_VIDEOSTD_SECAM_G	= (1 << 18),
-	TV_VIDEOSTD_SECAM_H	= (1 << 19),
-	TV_VIDEOSTD_SECAM_K	= (1 << 20),
-	TV_VIDEOSTD_SECAM_K1	= (1 << 21),
-	TV_VIDEOSTD_SECAM_L	= (1 << 22),
+	TV_VIDEOSTD_NTSC_M = 12,
+	TV_VIDEOSTD_NTSC_M_JP,
 
-	TV_VIDEOSTD_PAL_BG	= (TV_VIDEOSTD_PAL_B
-				   + TV_VIDEOSTD_PAL_B1
-				   + TV_VIDEOSTD_PAL_G),
-	TV_VIDEOSTD_PAL_DK	= (TV_VIDEOSTD_PAL_D
-				   + TV_VIDEOSTD_PAL_D1
-				   + TV_VIDEOSTD_PAL_K),
-	TV_VIDEOSTD_PAL		= (TV_VIDEOSTD_PAL_BG
-				   + TV_VIDEOSTD_PAL_DK
-				   + TV_VIDEOSTD_PAL_H
-				   + TV_VIDEOSTD_PAL_I),
-	TV_VIDEOSTD_NTSC	= (TV_VIDEOSTD_NTSC_M
-				   + TV_VIDEOSTD_NTSC_M_JP),
-	TV_VIDEOSTD_SECAM	= (TV_VIDEOSTD_SECAM_B
-				   + TV_VIDEOSTD_SECAM_D
-				   + TV_VIDEOSTD_SECAM_G
-				   + TV_VIDEOSTD_SECAM_H
-				   + TV_VIDEOSTD_SECAM_K
-				   + TV_VIDEOSTD_SECAM_K1
-				   + TV_VIDEOSTD_SECAM_L),
-	TV_VIDEOSTD_525_60	= (TV_VIDEOSTD_PAL_M
-				   + TV_VIDEOSTD_NTSC),
-	TV_VIDEOSTD_625_50	= (TV_VIDEOSTD_PAL
-				   + TV_VIDEOSTD_PAL_N
-				   + TV_VIDEOSTD_PAL_NC
-				   + TV_VIDEOSTD_SECAM),
-	TV_VIDEOSTD_ALL		= (TV_VIDEOSTD_525_60
-				   + TV_VIDEOSTD_625_50)
-};
+	TV_VIDEOSTD_SECAM_B = 16,
+	TV_VIDEOSTD_SECAM_D,
+	TV_VIDEOSTD_SECAM_G,
+	TV_VIDEOSTD_SECAM_H,
 
-#define TV_VIDEOSTD_CUSTOM ((~ (tv_video_standard_id) 0) << 32)
+	TV_VIDEOSTD_SECAM_K,
+	TV_VIDEOSTD_SECAM_K1,
+	TV_VIDEOSTD_SECAM_L,
 
-typedef uint64_t tv_video_standard_id;
+	TV_VIDEOSTD_CUSTOM_BEGIN = 32,
+	TV_VIDEOSTD_CUSTOM_END = 63
+} tv_videostd;
+
+#define TV_MAX_VIDEOSTDS 64
+
+typedef uint64_t tv_videostd_set;
+
+#define TV_VIDEOSTD_SET(videostd) (((tv_videostd_set) 1) << (videostd))
+
+#define TV_VIDEOSTD_SET_UNKNOWN 0
+#define TV_VIDEOSTD_SET_EMPTY 0
+#define TV_VIDEOSTD_SET_PAL_BG (+ TV_VIDEOSTD_SET (TV_VIDEOSTD_PAL_B)	\
+				+ TV_VIDEOSTD_SET (TV_VIDEOSTD_PAL_B1)	\
+				+ TV_VIDEOSTD_SET (TV_VIDEOSTD_PAL_G))
+#define TV_VIDEOSTD_SET_PAL_DK (+ TV_VIDEOSTD_SET (TV_VIDEOSTD_PAL_D)	\
+				+ TV_VIDEOSTD_SET (TV_VIDEOSTD_PAL_D1)	\
+				+ TV_VIDEOSTD_SET (TV_VIDEOSTD_PAL_K))
+#define TV_VIDEOSTD_SET_PAL    (+ TV_VIDEOSTD_SET_PAL_BG		\
+				+ TV_VIDEOSTD_SET_PAL_DK		\
+				+ TV_VIDEOSTD_SET (TV_VIDEOSTD_PAL_H)	\
+				+ TV_VIDEOSTD_SET (TV_VIDEOSTD_PAL_I))
+#define TV_VIDEOSTD_SET_NTSC   (+ TV_VIDEOSTD_SET (TV_VIDEOSTD_NTSC_M)	\
+				+ TV_VIDEOSTD_SET (TV_VIDEOSTD_NTSC_M_JP))
+#define TV_VIDEOSTD_SET_SECAM  (+ TV_VIDEOSTD_SET (TV_VIDEOSTD_SECAM_B)	\
+				+ TV_VIDEOSTD_SET (TV_VIDEOSTD_SECAM_D)	\
+				+ TV_VIDEOSTD_SET (TV_VIDEOSTD_SECAM_G)	\
+				+ TV_VIDEOSTD_SET (TV_VIDEOSTD_SECAM_H)	\
+				+ TV_VIDEOSTD_SET (TV_VIDEOSTD_SECAM_K)	\
+				+ TV_VIDEOSTD_SET (TV_VIDEOSTD_SECAM_K1)\
+				+ TV_VIDEOSTD_SET (TV_VIDEOSTD_SECAM_L))
+#define TV_VIDEOSTD_SET_525_60 (+ TV_VIDEOSTD_SET (TV_VIDEOSTD_PAL_M)	\
+				+ TV_VIDEOSTD_SET_NTSC)
+#define TV_VIDEOSTD_SET_625_50 (+ TV_VIDEOSTD_SET_PAL			\
+				+ TV_VIDEOSTD_SET (TV_VIDEOSTD_PAL_N)	\
+				+ TV_VIDEOSTD_SET (TV_VIDEOSTD_PAL_NC)	\
+				+ TV_VIDEOSTD_SET_SECAM)
+#define TV_VIDEOSTD_SET_ALL    (+ TV_VIDEOSTD_SET_525_60		\
+				+ TV_VIDEOSTD_SET_625_50)
+
+#define TV_VIDEOSTD_SET_CUSTOM ((~TV_VIDEOSTD_SET_EMPTY) << TV_VIDEOSTD_CUSTOM)
+
+extern const char *
+tv_videostd_name		(tv_videostd		videostd);
 
 typedef struct _tv_video_standard tv_video_standard;
 
@@ -546,7 +435,7 @@ struct _tv_video_standard {
 	   exactly, or doesn't care about the difference (hardware
 	   switches automatically, difference not applicable to
 	   baseband input, etc). */
-	tv_video_standard_id	id;
+	tv_videostd_set		videostd_set;
 
 	/* Nominal frame size, e.g. 640 x 480, assuming square
 	   pixel sampling. */
@@ -661,6 +550,7 @@ tv_control_add_callback		(tv_control *		control,
  *  Audio modes
  */
 
+/* XXX this is a set, no enum */
 typedef enum {
 	TV_AUDIO_CAPABILITY_NONE,
 	TV_AUDIO_CAPABILITY_AUTO	= (1 << 0),
@@ -691,6 +581,274 @@ extern tv_bool
 tv_audio_update			(tveng_device_info *	info);
 
 /*
+ *  Pixel format
+ */
+
+typedef enum {
+	TV_PIXFMT_NONE,
+	TV_PIXFMT_UNKNOWN = TV_PIXFMT_NONE,
+
+	TV_PIXFMT_RESERVED0,
+
+	/* Planar YUV formats */
+
+	TV_PIXFMT_YUV444,		/* 4x4 4x4 4x4 */
+	TV_PIXFMT_YVU444,
+	TV_PIXFMT_YUV422,		/* 4x4 2x4 2x4 */
+	TV_PIXFMT_YVU422,
+	TV_PIXFMT_YUV411,		/* 4x4 1x4 1x4 */
+	TV_PIXFMT_YVU411,
+	TV_PIXFMT_YUV420,		/* 4x4 2x2 2x2 */
+	TV_PIXFMT_YVU420,
+	TV_PIXFMT_YUV410,		/* 4x4 1x1 1x1 */
+	TV_PIXFMT_YVU410,
+
+	/* Packed YUV formats */	/* reg msb..lsb -> memory byte 0..3 */
+
+	TV_PIXFMT_YUVA24_LE,		/* AVUY -> LE  Y U V A  BE  A V U Y */
+	TV_PIXFMT_YUVA24_BE,
+	TV_PIXFMT_YVUA24_LE,		/* AUVY -> LE  Y V U A  BE  A U V Y */
+	TV_PIXFMT_YVUA24_BE,
+
+	TV_PIXFMT_AVUY24_BE = TV_PIXFMT_YUVA24_LE,
+	TV_PIXFMT_AVUY24_LE,		/* YUVA -> LE  A V U Y  BE  Y U V A */
+	TV_PIXFMT_AUVY24_BE,
+	TV_PIXFMT_AUVY24_LE,		/* YVUA -> LE  A U V Y  BE  Y V U A */
+
+	TV_PIXFMT_YUV24_LE,		/*  VUY -> LE  Y U V  BE  V U Y */
+	TV_PIXFMT_YUV24_BE,
+	TV_PIXFMT_YVU24_LE,		/*  UVY -> LE  Y V U  BE  U V Y */
+	TV_PIXFMT_YVU24_BE,
+
+	TV_PIXFMT_VUY24_BE = TV_PIXFMT_YUV24_LE,
+	TV_PIXFMT_VUY24_LE,		/*  YUV -> LE  V U Y  BE  Y U V */
+	TV_PIXFMT_UVY24_BE,
+	TV_PIXFMT_UVY24_LE,		/*  YVU -> LE  U V Y  BE  Y V U */
+
+	TV_PIXFMT_YUYV,			/* Y0 U Y1 V in memory */
+	TV_PIXFMT_YVYU,			/* Y0 V Y1 U */
+	TV_PIXFMT_UYVY,			/* U Y0 V Y1 */
+	TV_PIXFMT_VYUY,			/* V Y0 U Y1 */
+
+	TV_PIXFMT_RESERVED1,
+	TV_PIXFMT_Y8,			/* Y */
+
+	TV_PIXFMT_RESERVED2,
+	TV_PIXFMT_RESERVED3,
+
+	/* Packed RGB formats */
+
+	TV_PIXFMT_RGBA24_LE,		/* ABGR -> LE  R G B A  BE  A B G R */
+	TV_PIXFMT_RGBA24_BE,
+	TV_PIXFMT_BGRA24_LE,		/* ARGB -> LE  B G R A  BE  A R G B */
+	TV_PIXFMT_BGRA24_BE,
+
+	TV_PIXFMT_ABGR24_BE = TV_PIXFMT_RGBA24_LE,
+	TV_PIXFMT_ABGR24_LE,		/* RGBA -> LE  A B G R  BE  R G B A */
+	TV_PIXFMT_ARGB24_BE,
+	TV_PIXFMT_ARGB24_LE,		/* BGRA -> LE  A R G B  BE  B G R A */
+
+	TV_PIXFMT_RGB24_LE,		/*  BGR -> LE  R G B  BE  B G R */
+	TV_PIXFMT_BGR24_LE,		/*  RGB -> LE  B G R  BE  R G B */
+
+	TV_PIXFMT_BGR24_BE = TV_PIXFMT_RGB24_LE,
+	TV_PIXFMT_RGB24_BE,
+
+	TV_PIXFMT_RGB16_LE,		/* bbbbbggggggrrrrr msb..lsb */
+	TV_PIXFMT_RGB16_BE,
+	TV_PIXFMT_BGR16_LE,		/* rrrrrggggggbbbbb */
+	TV_PIXFMT_BGR16_BE,
+
+	TV_PIXFMT_RGBA15_LE,		/* abbbbbgggggrrrrr */
+	TV_PIXFMT_RGBA15_BE,
+	TV_PIXFMT_BGRA15_LE,		/* arrrrrgggggbbbbb */
+	TV_PIXFMT_BGRA15_BE,
+	TV_PIXFMT_ARGB15_LE,		/* bbbbbgggggrrrrra */
+	TV_PIXFMT_ARGB15_BE,
+	TV_PIXFMT_ABGR15_LE,		/* rrrrrgggggbbbbba */
+	TV_PIXFMT_ABGR15_BE,
+
+	TV_PIXFMT_RGBA12_LE,		/* aaaabbbbggggrrrr */
+	TV_PIXFMT_RGBA12_BE,
+	TV_PIXFMT_BGRA12_LE,		/* aaaarrrrggggbbbb */
+	TV_PIXFMT_BGRA12_BE,
+	TV_PIXFMT_ARGB12_LE,		/* bbbbggggrrrraaaa */
+	TV_PIXFMT_ARGB12_BE,
+	TV_PIXFMT_ABGR12_LE,		/* rrrrggggbbbbaaaa */
+	TV_PIXFMT_ABGR12_BE,
+
+	TV_PIXFMT_RGB8,			/* bbgggrrr */
+	TV_PIXFMT_BGR8,			/* rrrgggbb */
+
+	TV_PIXFMT_RGBA7,		/* abbgggrr */
+	TV_PIXFMT_BGRA7,		/* arrgggbb */
+	TV_PIXFMT_ARGB7,		/* bbgggrra */
+	TV_PIXFMT_ABGR7			/* rrgggbba */
+} tv_pixfmt;
+
+#define TV_MAX_PIXFMTS 64
+
+typedef uint64_t tv_pixfmt_set;
+
+#define TV_PIXFMT_SET(pixfmt) (((tv_pixfmt_set) 1) << (pixfmt))
+
+#define TV_PIXFMT_SET_UNKNOWN 0
+#define TV_PIXFMT_SET_EMPTY 0
+#define TV_PIXFMT_SET_YUV_PLANAR (+ TV_PIXFMT_SET (TV_PIXFMT_YUV444)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_YVU444)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_YUV422)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_YVU422)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_YUV411)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_YVU411)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_YUV420)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_YVU420)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_YUV410)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_YVU410))
+#define TV_PIXFMT_SET_YUVA24     (+ TV_PIXFMT_SET (TV_PIXFMT_YUVA24_LE)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_YUVA24_BE)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_YVUA24_LE)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_YVUA24_BE))
+#define TV_PIXFMT_SET_YUV24	 (+ TV_PIXFMT_SET (TV_PIXFMT_YUV24_LE)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_YUV24_BE)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_YVU24_LE)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_YVU24_BE))
+#define TV_PIXFMT_SET_YUYV	 (+ TV_PIXFMT_SET (TV_PIXFMT_YUYV)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_YVYU)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_UYVY)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_VYUY))
+#define TV_PIXFMT_SET_YUV_PACKED (+ TV_PIXFMT_SET_YUVA24		\
+				  + TV_PIXFMT_SET_YUV24			\
+				  + TV_PIXFMT_SET_YUYV			\
+				  + TV_PIXFMT_SET (TV_PIXFMT_Y8))
+#define TV_PIXFMT_SET_YUV	 (+ TV_PIXFMT_SET_YUV_PLANAR		\
+				  + TV_PIXFMT_SET_YUV_PACKED)
+#define TV_PIXFMT_SET_RGBA24	 (+ TV_PIXFMT_SET (TV_PIXFMT_RGBA24_LE)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_RGBA24_BE)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_BGRA24_LE)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_BGRA24_BE))
+#define TV_PIXFMT_SET_RGB24	 (+ TV_PIXFMT_SET (TV_PIXFMT_RGB24_LE)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_BGR24_LE))
+#define TV_PIXFMT_SET_RGB16	 (+ TV_PIXFMT_SET (TV_PIXFMT_RGB16_LE)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_RGB16_BE)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_BGR16_LE)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_BGR16_BE))
+#define TV_PIXFMT_SET_RGB15	 (+ TV_PIXFMT_SET (TV_PIXFMT_RGBA15_LE)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_RGBA15_BE)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_BGRA15_LE)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_BGRA15_BE)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_ARGB15_LE)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_ARGB15_BE)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_ABGR15_LE)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_ABGR15_BE))
+#define TV_PIXFMT_SET_RGB12	 (+ TV_PIXFMT_SET (TV_PIXFMT_RGBA12_LE)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_RGBA12_BE)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_BGRA12_LE)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_BGRA12_BE)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_ARGB12_LE)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_ARGB12_BE)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_ABGR12_LE)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_ABGR12_BE))
+#define TV_PIXFMT_SET_RGB8	 (+ TV_PIXFMT_SET (TV_PIXFMT_RGB8)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_BGR8))
+#define TV_PIXFMT_SET_RGB7	 (+ TV_PIXFMT_SET (TV_PIXFMT_RGBA7)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_BGRA7)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_ARGB7)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_ABGR7))
+#define TV_PIXFMT_SET_RGB_PACKED (+ TV_PIXFMT_SET_RGBA24		\
+				  + TV_PIXFMT_SET_RGB24			\
+				  + TV_PIXFMT_SET_RGB16			\
+				  + TV_PIXFMT_SET_RGB15			\
+				  + TV_PIXFMT_SET_RGB12			\
+				  + TV_PIXFMT_SET_RGB8			\
+				  + TV_PIXFMT_SET_RGB7)
+#define TV_PIXFMT_SET_RGB	    TV_PIXFMT_SET_RGB_PACKED
+#define TV_PIXFMT_SET_PLANAR	    TV_PIXFMT_SET_YUV_PLANAR
+#define TV_PIXFMT_SET_PACKED	 (+ TV_PIXFMT_SET_YUV_PACKED		\
+				  + TV_PIXFMT_SET_RGB_PACKED)
+#define TV_PIXFMT_SET_ALL	 (+ TV_PIXFMT_SET_YUV			\
+				  + TV_PIXFMT_SET_RGB)
+
+/* For further classification see tv_pixel_format. */
+#define TV_PIXFMT_IS_YUV(pixfmt)					\
+	(0 != (TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_YUV))
+#define TV_PIXFMT_IS_RGB(pixfmt)					\
+	(0 != (TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_RGB))
+#define TV_PIXFMT_IS_PLANAR(pixfmt)					\
+	(0 != (TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_PLANAR))
+#define TV_PIXFMT_IS_PACKED(pixfmt)					\
+	(0 != (TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_PACKED))
+
+extern const char *
+tv_pixfmt_name			(tv_pixfmt		pixfmt);
+
+/*
+ *  Broken-down pixel format
+ */
+
+typedef struct _tv_pixel_format tv_pixel_format;
+
+struct _tv_pixel_format {
+	tv_pixfmt		pixfmt;
+	unsigned int		reserved;		/* color space */
+	unsigned int		bits_per_pixel;		/* packed or Y plane */
+	unsigned int		color_depth;
+	unsigned int		uv_hscale;		/* 1, 2, 4 */
+	unsigned int		uv_vscale;		/* 1, 2, 4 */
+	unsigned		big_endian	: 1;
+	unsigned		planar		: 1;
+	unsigned		vu_order	: 1;
+	unsigned		_reserved	: 29;
+	union {
+		struct {
+			unsigned int		r;
+			unsigned int		g;
+			unsigned int		b;
+			unsigned int		a;
+		}			rgb;
+		struct {
+			unsigned int		y;
+			unsigned int		u;
+			unsigned int		v;
+			unsigned int		a;
+		}			yuv;
+	}			mask;
+};
+
+extern tv_bool
+tv_pixfmt_to_pixel_format	(tv_pixel_format *	format,
+				 tv_pixfmt		pixfmt,
+				 unsigned int		reserved);
+extern tv_bool
+tv_pixel_format_to_pixfmt	(tv_pixel_format *	format);
+
+/*
+ *  Video capture
+ */
+
+/* This struct holds the structure of the captured frame */
+struct tveng_frame_format
+{
+  int width, height; /* Dimensions of the capture */
+  int bytesperline; /* Bytes per scan line (packed or Y plane) */
+  tv_pixfmt pixfmt;
+  int sizeimage; /* Size in bytes of the image */
+};
+
+/* Convenience construction for managing image data */
+typedef union {
+  struct {
+    void*	data; /* Data, usually in rgb or yuyv formats */
+    int		stride; /* bytes per line */
+  } linear;
+  struct {
+    void	*y, *u, *v; /* Pointers to the different fields */
+    int		y_stride; /* bytes per line of the Y field */
+    int		uv_stride; /* bytes per line of U or V fields */
+  } planar;
+} tveng_image_data;
+
+
+/*
  *  Video overlay, see ROADMAP
  */
 
@@ -701,18 +859,15 @@ typedef struct _tv_overlay_buffer tv_overlay_buffer;
    of the graphics card's video memory. */
 struct _tv_overlay_buffer {
 	/* Frame buffer physical address. (XXX What is physical?) */
-	void *			base;			/* e.g. */
+	void *			base;
 
 	unsigned int		bytes_per_line;		/* >= width * bytes per pixel */
 	unsigned int		size;			/* >= bytes_per_line * height, bytes */
-	
+
 	unsigned int		width;			/* pixels */
 	unsigned int		height;
 
-	/* XXX rgb1? 1rgb? 1bgr? bgr1? le/be? pixfmt to be replaced
-	   by more accurate enumeration. */
-
-	enum tveng_frame_pixformat pixfmt;		/* TVENG_PIX_RGB555 */
+	tv_pixfmt		pixfmt;
 };
 
 /* Overlay clipping rectangle. These are regions you don't want
@@ -740,8 +895,6 @@ tv_clip_equal			(const tv_clip *	clip1,
 			      (clip1->width ^ clip2->width) |
 			      (clip1->height ^ clip2->height)));
 }
-
-/* Imitating STL vector... */
 
 typedef struct _tv_clip_vector tv_clip_vector;
 
@@ -853,6 +1006,17 @@ enum tveng_capture_mode
   /* Doesn't belong here either, but I don't want to break
      too many things at once. */
   TVENG_TELETEXT
+};
+
+/* The controller we are using for this device */
+enum tveng_controller
+{
+  TVENG_CONTROLLER_NONE, /* No controller set */
+  TVENG_CONTROLLER_V4L1, /* V4L1 controller (old V4l spec) */
+  TVENG_CONTROLLER_V4L2, /* V4L2 controller (new v4l spec) */
+  TVENG_CONTROLLER_XV,	 /* XVideo controller */
+  TVENG_CONTROLLER_EMU,	 /* Emulation controller */
+  TVENG_CONTROLLER_MOTHER /* The wrapper controller (tveng.c) */
 };
 
 /* The structure used to hold info about a video_device */
@@ -1006,7 +1170,7 @@ tv_set_video_standard		(tveng_device_info *	info,
 				 const tv_video_standard *standard);
 extern tv_bool
 tv_set_video_standard_by_id	(tveng_device_info *	info,
-				 tv_video_standard_id	id);
+				 tv_videostd_set	videostd_set);
 /* See add_video_input_callback note. The standard list can change with
    a video input change. If so, the entire list will be rebuilt, calling
    notify at least once after the pointer changed to NULL. */
@@ -1308,17 +1472,11 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info);
 void tveng_unset_xv_port(tveng_device_info *info);
 #endif
 
-/* Returns 1 if XVideo can be used for overlaying */
-int tveng_detect_xv_overlay(tveng_device_info *info);
 
 /* Assume destination buffer is YVU instead of YUV in the next
    read_frame's. Only has effect if the mode is PIX_YUV420 and the
    controller is V4L1. assume is by default 0 */
 void tveng_assume_yvu(int assume, tveng_device_info *info);
-
-/* Returns 1 is the given pixformat has a planar structure, 0
-   otherwise */
-int tveng_is_planar (enum tveng_frame_pixformat fmt);
 
 /*
   OV511 specific code:
