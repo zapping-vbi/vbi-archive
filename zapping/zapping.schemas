@@ -21,6 +21,16 @@
    </locale>
   </schema>
   <schema>
+   <key>/schemas/apps/zapping/window/keep_on_top</key>
+   <applyto>/apps/zapping/window/keep_on_top</applyto>
+   <owner>Zapping</owner>
+   <type>bool</type>
+   <default>0</default>
+   <locale name="C">
+    <short>Keep the main window above other windows.</short>
+   </locale>
+  </schema>
+  <schema>
    <key>/schemas/apps/zapping/plugins/teletext/default_charset</key>
    <applyto>/apps/zapping/plugins/teletext/default_charset</applyto>
    <owner>Zapping</owner>
@@ -659,6 +669,19 @@ period).</short>
    <default>0</default>
    <locale name="C">
     <short>Switch to full capture size for screenshot.</short>
+   </locale>
+  </schema>
+  <schema>
+   <key>/schemas/apps/zapping/plugins/deinterlace/resolution</key>
+   <applyto>/apps/zapping/plugins/deinterlace/resolution</applyto>
+   <owner>Zapping</owner>
+   <type>string</type>
+   <default>high</default>
+   <locale name="C">
+    <short>Horizontal image resolution in deinterlace mode.</short>
+    <long>When your CPU is too slow to use the desired deinterlace mode
+you can reduce the horizontal resolution. Valid values: low, medium,
+high.</long>
    </locale>
   </schema>
  </schemalist>
