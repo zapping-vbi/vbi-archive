@@ -787,6 +787,37 @@ z_build_path(const gchar *path, gchar **error_description)
   return TRUE;
 }
 
+gchar *
+z_replace_filename_extension (gchar *filename, gchar *new_ext)
+{
+  gchar *name, *ext;
+  gint len;
+
+  if (!filename)
+    return NULL;
+
+  len = strlen (filename);
+
+  /* last '.' in last part of name */
+  for (ext = filename + len - 1;
+       ext > filename && *ext != '.' && *ext != '/';
+       ext--);
+
+  if (*ext != '.')
+    return g_strdup (filename);
+
+  len = ext - filename;
+
+  if (!new_ext)
+    return g_strndup(filename, len);
+
+  name = g_malloc (len + strlen (new_ext) + 2);
+  memcpy (name, filename, len + 1);
+  strcpy (name + len + 1, new_ext);
+
+  return name;
+}
+
 /* See ttx export for a demo */
 void
 z_on_electric_filename (GtkWidget *w, gpointer user_data)
@@ -795,13 +826,25 @@ z_on_electric_filename (GtkWidget *w, gpointer user_data)
   gchar *basename = (gchar *)
     gtk_object_get_data (GTK_OBJECT (w), "basename");
   gchar *name = gtk_entry_get_text (GTK_ENTRY (w));
-  gint len, baselen;
+  gchar *baseext, *ext;
+  gint len, baselen, baseextlen;
 
   g_assert(basename != NULL);
   baselen = strlen(basename);
+  /* last '.' in basename */
+  for (baseext = basename + baselen - 1; baseext > basename
+	 && *baseext != '.'; baseext--);
+  baseextlen = (*baseext == '.') ?
+    baselen - (baseext - basename) : 0;
+
+  len = strlen(name);
+  /* last '/' in name */
+  for (ext = name + len - 1; ext > name && *ext != '/'; ext--);
+  /* first '.' in last part of name */
+  for (; *ext && *ext != '.'; ext++);
 
   /* Tack basename on if no name or ends with '/' */
-  if ((len = strlen(name)) == 0 || name[len - 1] == '/')
+  if (len == 0 || name[len - 1] == '/')
     {
       gtk_entry_append_text (GTK_ENTRY (w), basename);
       gtk_entry_set_position (GTK_ENTRY (w), len);
@@ -812,6 +855,21 @@ z_on_electric_filename (GtkWidget *w, gpointer user_data)
 	   && name[len - baselen - 1] != '/')
     {
       name = g_strndup(name, len - baselen);
+      gtk_entry_set_text (GTK_ENTRY (w), name);
+      /* Attach baseext if none already left of basename */
+      if (baseextlen > 0 && ext < (name + len - baselen))
+	{
+	  gtk_entry_append_text (GTK_ENTRY (w), baseext);
+	  gtk_entry_set_position (GTK_ENTRY (w), len - baselen);
+	}
+      g_free(name);
+    }
+  /* Cut off baseext when duplicate */
+  else if (baseextlen > 0 && len > baseextlen
+	   && strcmp(&name[len - baseextlen], baseext) == 0
+	   && ext < (name + len - baseextlen))
+    {
+      name = g_strndup(name, len - baseextlen);
       gtk_entry_set_text (GTK_ENTRY (w), name);
       g_free(name);
     }
@@ -1029,18 +1087,20 @@ find_unused_name (const gchar * dir, const gchar * prefix,
 		  const gchar * suffix)
 {
   gint index = 1;
-  gchar * buf = NULL;
+  gchar * buf = NULL, *dot;
   struct stat sb;
+
+  dot = (suffix[0] == '.') ? "" : ".";
 
   while (TRUE)
     {
       /* Add a slash if needed */
       if ((!*dir) || (dir[strlen(dir)-1] != '/'))
-	buf = g_strdup_printf("%s/%s%d%s", dir, prefix, index++,
-			      suffix);
+	buf = g_strdup_printf("%s/%s%d%s%s", dir, prefix, index++,
+			      dot, suffix);
       else
-	buf = g_strdup_printf("%s%s%d%s", dir, prefix, index++,
-			      suffix);
+	buf = g_strdup_printf("%s%s%d%s%s", dir, prefix, index++,
+			      dot, suffix);
 
       /* Try to query file availability */
       /*

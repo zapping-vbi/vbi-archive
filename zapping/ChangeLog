@@ -1,3 +1,12 @@
+8.12.2001	JPEG plugin <mschimek@users.sf.net>
+
+	* Rewrote jpeg plugin. New attractions: screenshot dialog
+	  got a format selector, quality slider and preview,
+	  output size estimation. Like [Ctrl-S] the image is now
+	  grabbed on [S] rather than OK (could be optional).
+	  Added PPM backend. Electrified file name entry. Rest
+	  tomorrow.
+
 7.12.2001	<mschimek@users.sf.net>
 
 	* v4linterface.c: Added new title bar vars $(title), $(rating),

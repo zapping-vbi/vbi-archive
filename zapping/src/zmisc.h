@@ -320,6 +320,11 @@ z_build_path(const gchar *path, gchar **error_description);
 void
 z_on_electric_filename (GtkWidget *w, gpointer user_data);
 
+/* The returned string must be g_free()ed.
+ */
+extern gchar *
+z_replace_filename_extension (gchar *filename, gchar *new_ext);
+
 /**
  * Makes the toolbar modify its children toolbars to always
  * mimic its oriention and style.

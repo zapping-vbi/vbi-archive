@@ -1,5 +1,7 @@
-/* Screenshot saving plugin for Zapping
+/*
+ * Screenshot saving plugin for Zapping
  * Copyright (C) 2000-2001 Iñaki García Etxebarria
+ * Copyright (C) 2001 Michael H. Schimek
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,17 +17,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-#include "plugin_common.h"
+#include "screenshot.h"
 #include "yuv2rgb.h"
 #include "ttxview.h"
 #include "properties.h"
-#ifdef HAVE_LIBJPEG
-#include <pthread.h>
 #include <gdk-pixbuf/gdk-pixbuf.h> /* previews */
-/* avoid redefinition warning */
-#undef HAVE_STDLIB_H
-#undef HAVE_STDDEF_H
-#include <jpeglib.h> /* jpeg compression */
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/file.h> /* flock */
@@ -41,19 +37,19 @@ static const gchar str_canonical_name[] = "screenshot";
 static const gchar str_descriptive_name[] =
 N_("Screenshot saver");
 static const gchar str_description[] =
-N_("You can use this plugin to take screenshots of what you are"
-" actually watching in TV.\nIt will save the screenshots in JPEG"
-" format.");
+N_("With this plugin you can take screen shots of the program "
+   "you are watching and save them in various formats.");
 static const gchar str_short_description[] = 
-N_("This plugin takes screenshots of the capture.");
-static const gchar str_author[] = "Iñaki García Etxebarria";
+N_("This plugin takes screenshots of the video capture.");
+static const gchar str_author[] =
+"Iñaki García Etxebarria & Michael H. Schimek";
 /* The format of the version string must be
    %d[[.%d[.%d]][other_things]], where the things between [] aren't
    needed, and if not present, 0 will be assumed */
-static const gchar str_version[] = "0.7";
+static const gchar str_version[] = "0.8";
 
 /* Set to TRUE when plugin_close is called */
-static gboolean close_everything = FALSE;
+gboolean screenshot_close_everything = FALSE;
 
 /* Number of threads currently running (so we can know when are all of
    them closed) */
@@ -67,19 +63,15 @@ static gchar * command = NULL;
 
 static gint quality; /* Quality of the compressed image */
 
+/* Last format (screenshot_backend.keyword) */
+static gchar *format = NULL;
+
 static tveng_device_info * zapping_info = NULL; /* Info about the
 						   video device */
-static gchar *save_screenshot_file_name = NULL; /* file name to save
-						   (tmp. loc.) */
 
 /* Properties handling code */
 static void
 properties_add			(GnomeDialog	*dialog);
-
-/*
-  1 when the plugin should save the next frame
-*/
-static gint save_screenshot = 0; 
 
 /* Callbacks */
 static void
@@ -89,12 +81,12 @@ static void
 on_screenshot_button_fast_clicked	(GtkButton       *button,
 					 gpointer         user_data);
 
-
-/* Conversions between different RGB pixel formats */
 /*
-  These Convert... functions are exported through the symbol mechanism
-  so other plugins can use them too.
-*/
+ *  Conversions between different RGB pixel formats
+ *
+ *  These functions are exported through the symbol mechanism
+ *  so other plugins can use them too.
+ */
 static gchar *Convert_RGB565_RGB24 (gint width, gchar* src, gchar* dest);
 static gchar *Convert_BGR565_RGB24 (gint width, gchar* src, gchar* dest);
 static gchar *Convert_RGB555_RGB24 (gint width, gchar* src, gchar* dest);
@@ -105,54 +97,28 @@ static gchar *Convert_BGR24_RGB24 (gint width, gchar* src, gchar* dest);
 static gchar *Convert_YUYV_RGB24 (gint w, guchar *src, guchar *dest);
 static gchar *Convert_Null (gint width, gchar *src, gchar *dest);
 
-/* The definition of a line converter function */
-/* The purpose of this kind of functions is to convert one line of src
- into one line of dest */
-typedef gchar* (*LineConverter) (gint width, gchar* src, gchar* dest);
+/*
+ *  plugin_read_bundle interface
+ */
+static screenshot_data *grab_data;
+static int grab_countdown = 0;
 
-static LineConverter Converter_select(enum tveng_frame_pixformat);
+/*
+ *  Encoding backends
+ */
+extern screenshot_backend screenshot_backend_jpeg;
+extern screenshot_backend screenshot_backend_ppm;
 
-struct backend_private {
-  struct jpeg_compress_struct cinfo;	/* Compression parameters */
-  struct jpeg_error_mgr jerr;		/* Error handler */
-};
-
-/* This struct is shared between the main and the saving thread */
-struct screenshot_data
+static struct screenshot_backend *
+backends[] =
 {
-  gpointer data; /* Pointer to the allocated data */
-  gpointer line_data; /* A line of the image */
-  struct tveng_frame_format format; /* The format of the data to save */
-  gint lines; /* Lines saved by the thread */
-  gboolean done; /* TRUE when done saving */
-  gboolean close; /* TRUE if the plugin should close itself */
-  pthread_t thread; /* The thread responsible for this data */
-  GtkWidget * window; /* The window that contains the progressbar */
-  FILE * handle; /* Handle to the file we are saving */
-  gchar *path; /* path to the file we are saving */
-
-  LineConverter Converter;
-  struct backend_private private;
+#ifdef HAVE_LIBJPEG
+  &screenshot_backend_jpeg,
+#endif
+  &screenshot_backend_ppm,
+  NULL
 };
 
-
-/* This one starts a new thread that saves the current screenshot */
-static void
-start_saving_screenshot (gpointer data_to_save,
-			 const gchar *path,
-			 struct tveng_frame_format * format);
-
-/*
-  This routine is the one that takes care of saving the image. It runs
-  in another thread.
-*/
-static void * saver_thread(void * _data);
-
-/*
-  This callback is used to update the progressbar and removing the
-  finished threads.
-*/
-static gboolean thread_manager (struct screenshot_data * data);
 
 /*
   Callback when the WM tries to destroy the progress window, cancel
@@ -162,10 +128,6 @@ static gboolean
 on_progress_delete_event               (GtkWidget       *widget,
 					GdkEvent        *event,
                                         struct screenshot_data * data);
-
-
-
-static void bgr2rgb(gchar * data, gint npixels);
 
 gint plugin_get_protocol ( void )
 {
@@ -297,7 +259,7 @@ gboolean plugin_init ( PluginBridge bridge, tveng_device_info * info )
 static
 void plugin_close(void)
 {
-  close_everything = TRUE;
+  screenshot_close_everything = TRUE;
 
   if (ogb_timeout_id >= 0)
     {
@@ -314,57 +276,10 @@ void plugin_close(void)
 }
 
 static gboolean
-real_plugin_start	(const gchar	*dest_path)
+plugin_start (void)
 {
-  struct tveng_frame_format format;
-  GdkPixbuf	*pixbuf;
-
-  /*
-   * Switch to capture mode if we aren't viewing Teletext (associated
-   * with TVENG_NO_CAPTURE)
-   */
-  if (zapping_info->current_mode != TVENG_NO_CAPTURE)
-    {
-      zmisc_switch_mode(TVENG_CAPTURE_READ, zapping_info);
-      
-      if (zapping_info->current_mode != TVENG_CAPTURE_READ)
-	return FALSE; /* unable to set the mode */
-    }
-  /* request TTX render */
-  else if ((pixbuf =
-	    ttxview_get_scaled_ttx_page(GTK_WIDGET(z_main_window()))))
-    {
-      format.width = gdk_pixbuf_get_width(pixbuf);
-      format.height = gdk_pixbuf_get_height(pixbuf);
-      format.bpp = 4;
-      format.depth = 32;
-      format.pixformat = TVENG_PIX_RGB32;
-      format.bytesperline = gdk_pixbuf_get_rowstride(pixbuf);
-      start_saving_screenshot(gdk_pixbuf_get_pixels(pixbuf),
-			      dest_path,
-			      &format);
-      return TRUE;
-    }
-  else
-    return FALSE;
-
-  save_screenshot = 2;
-
-  save_screenshot_file_name = g_strdup(dest_path);
-
-  /* If everything has been ok, set the active flags and return TRUE
-   */
+  on_screenshot_button_fast_clicked (NULL, NULL);
   return TRUE;
-}
-
-static
-gboolean plugin_start (void)
-{
-  gchar *filename = find_unused_name(save_dir, "shot", ".jpeg");
-  gint result = real_plugin_start(filename);
-  g_free(filename);
-
-  return result;
 }
 
 static
@@ -381,6 +296,11 @@ void plugin_load_config (gchar * root_key)
 		       buffer);
   quality = zconf_get_integer(NULL, buffer);
   g_free(buffer);
+
+  buffer = g_strconcat (root_key, "format", NULL);
+  zconf_create_string ("jpeg", "File format", buffer);
+  zconf_get_string (&format, buffer);
+  g_free (buffer);
 
   buffer = g_strconcat(root_key, "save_dir", NULL);
   zconf_create_string(default_save_dir,
@@ -413,32 +333,16 @@ void plugin_save_config (gchar * root_key)
   zconf_set_integer(quality, buffer);
   g_free(buffer);
 
+  buffer = g_strconcat (root_key, "format", NULL);
+  zconf_set_string (format, buffer);
+  g_free (buffer);
+
   buffer = g_strconcat(root_key, "command", NULL);
   zconf_set_string(command, buffer);
   g_free(buffer);
 
   g_free(save_dir);
   g_free(command);
-}
-
-static
-void plugin_read_bundle ( capture_bundle * bundle )
-{
-  if (!save_screenshot)
-    return;
-  else if (save_screenshot == 1)
-    {
-      if (save_screenshot_file_name)
-	start_saving_screenshot(bundle->data,
-				save_screenshot_file_name,
-				&(bundle->format));
-      g_free(save_screenshot_file_name);
-      save_screenshot_file_name = NULL;
-      
-      save_screenshot = 0;
-    }
-  else
-    save_screenshot --;
 }
 
 static
@@ -542,9 +446,9 @@ screenshot_help			(GtkWidget	*widget)
   gchar * help =
     N_("The first option, the screenshot dir, lets you specify where\n"
        "will the screenshots be saved. The file name will be:\n"
-       "save_dir/shot[1,2,3,...].jpeg\n\n"
+       "save_dir/shot[1,2,3,...].ext\n\n"
        "The quality option lets you choose how much info will be\n"
-       "discarded when compressing the JPEG.\n\n"
+       "discarded when compressing the image.\n\n"
        "The command will be run after writing to disk the screenshot,\n"
        "with the environmental variables $SCREENSHOT_PATH, $CHANNEL_ALIAS,\n"
        "$CHANNEL_ID, $CURRENT_STANDARD, $CURRENT_INPUT set to their\n"
@@ -582,7 +486,7 @@ void plugin_add_gui (GnomeApp * app)
   button = gtk_toolbar_append_element(GTK_TOOLBAR(toolbar1),
 				      GTK_TOOLBAR_CHILD_BUTTON, NULL,
 				      _("Screenshot"),
-				      _("Take a JPEG screenshot [s, Ctrl+s]"),
+				      _("Take a screenshot [s, Ctrl+s]"),
 				      NULL, tmp_toolbar_icon,
 				      on_screenshot_button_clicked,
 				      NULL);
@@ -634,393 +538,698 @@ struct plugin_misc_info * plugin_get_misc_info (void)
   return (&returned_struct);
 }
 
-/* User defined functions */
 static void
-on_screenshot_button_clicked		(GtkButton       *button,
-					 gpointer         user_data)
+screenshot_destroy (screenshot_data *data)
 {
-  /* Normal invocation, configure and start */
-  GtkWidget *dialog;
-  GtkEntry *entry;
-  gchar *filename;
-  GtkWidget *properties;
+  if (!data)
+    return;
 
-  dialog = build_widget("dialog1", PACKAGE_DATA_DIR "/screenshot.glade");
-  entry = GTK_ENTRY(lookup_widget(dialog, "entry"));
-  gnome_dialog_editable_enters(GNOME_DIALOG(dialog), GTK_EDITABLE (entry));
-  gnome_dialog_set_default(GNOME_DIALOG(dialog), 0);
-  filename = find_unused_name(save_dir, "shot", ".jpeg");
-  gtk_entry_set_text(entry, filename);
-  g_free(filename);
-  gtk_entry_select_region(entry, 0, -1);
+  data->lines = 0;
 
-  gnome_dialog_set_parent(GNOME_DIALOG(dialog), z_main_window());
-  gtk_widget_grab_focus(GTK_WIDGET(entry));
-
-  /*
-   * -1 or 1 if cancelled.
-   */
-  switch (gnome_dialog_run_and_close (GNOME_DIALOG (dialog)))
+  if (data->filename)
     {
-    case 0: /* OK */
-      filename = g_strdup(gtk_entry_get_text(entry));
-      if (filename)
-	real_plugin_start (filename);
-      g_free(filename);
-      break;
-    case 2: /* Configure */
-      properties = build_properties_dialog();
-      open_properties_page(properties,
-			   _("Plugins"), _("Screenshot"));
-      gnome_dialog_run(GNOME_DIALOG(properties));
-      break;
-    default: /* Cancel */
-      break;
+      if (data->io_fp)
+	unlink (data->filename);
+
+      g_free (data->filename);
     }
 
-  gtk_widget_destroy(GTK_WIDGET(dialog));
+  if (data->command)
+    g_free (data->command);
+
+  if (data->status_window)
+    gtk_widget_destroy (data->status_window);
+
+  if (data->io_buffer)
+    g_free (data->io_buffer);
+
+  data->io_buffer_size = 0;
+  data->io_buffer_used = 0;
+
+  data->io_flush = NULL;
+
+  if (data->io_fp)
+    fclose (data->io_fp);
+
+  if (data->error)
+    g_free (data->error);
+
+  data->Converter = NULL;
+
+  if (data->line_data)
+    g_free (data->line_data);
+
+  if (data->data)
+    g_free (data->data);
+
+  if (data->auto_filename)
+    g_free (data->auto_filename);
+
+  if (data->pixbuf)
+    gdk_pixbuf_unref (data->pixbuf);
+
+  if (data->dialog)
+    gtk_widget_destroy (data->dialog);
+
+  g_free (data);
 }
 
-static void
-on_screenshot_button_fast_clicked	(GtkButton       *button,
-					 gpointer         user_data)
+static screenshot_data *
+screenshot_new (void)
 {
-  plugin_start ();
+    gint i;
+    gint private_max = 0;
+
+    for (i = 0; backends[i]; i++)
+      if (backends[i]->sizeof_private > private_max)
+        private_max = backends[i]->sizeof_private;
+
+    return (screenshot_data *)
+      g_malloc0 (sizeof (screenshot_data) + private_max);
 }
-
-
-/**************/
 
 static gboolean
-backend_init(struct screenshot_data *data)
+io_buffer_init (screenshot_data *data, gint size)
 {
-  struct backend_private *priv = &data->private;
+  data->io_buffer = g_malloc (size);
 
-  priv->cinfo.err = jpeg_std_error(&priv->jerr);
-  jpeg_create_compress(&priv->cinfo);
-  jpeg_stdio_dest(&priv->cinfo, data->handle);
-  priv->cinfo.image_width = data->format.width;
-  priv->cinfo.image_height = data->format.height;
-  priv->cinfo.input_components = 3;
-  priv->cinfo.in_color_space = JCS_RGB;
-  jpeg_set_defaults(&priv->cinfo);
-  jpeg_set_quality(&priv->cinfo, quality, TRUE);
+  if (!data->io_buffer)
+    return FALSE;
 
-  jpeg_start_compress(&priv->cinfo, TRUE);
+  data->io_buffer_size = size;
+  data->io_buffer_used = 0;
 
   return TRUE;
 }
 
 static gboolean
-backend_save(struct screenshot_data *data, LineConverter Converter)
+io_flush_stdio (screenshot_data *data, gint size)
 {
-  struct backend_private *priv = &data->private;
-  gchar *pixels, *row_pointer;
-  gint rowstride;
+  if (data->thread_abort)
+    return FALSE;
 
-  pixels = (gchar *) data->data;
-  rowstride = data->format.bytesperline;
-
-  for (data->lines = 0; data->lines < data->format.height; data->lines++)
+  if (fwrite (data->io_buffer, 1, size, data->io_fp) != size)
     {
-      if (close_everything || data->close)
-	break;
-
-      row_pointer = (data->Converter)(data->format.width, pixels,
-				      (gchar *) data->line_data);
-
-      jpeg_write_scanlines(&priv->cinfo, (JSAMPROW *) &row_pointer, 1);
-
-      pixels += rowstride;
+      data->error = g_strconcat(_("Error while writing screenshot\n"),
+				data->filename, "\n",
+				strerror (errno), NULL);
+      data->thread_abort = TRUE;
+      return FALSE;
     }
 
-  jpeg_finish_compress(&priv->cinfo);
-  jpeg_destroy_compress(&priv->cinfo);
+  data->io_buffer_used += size;
 
   return TRUE;
 }
 
-/*****************/
-
-/* This one starts a new thread that saves the current screenshot */
-static void
-start_saving_screenshot (gpointer data_to_save,
-			 const gchar *path,
-			 struct tveng_frame_format * format)
+static gboolean
+io_flush_memory (screenshot_data *data, gint size)
 {
-  struct screenshot_data * data = (struct screenshot_data*)
-    g_malloc0(sizeof(struct screenshot_data));
-
-  GtkWidget * vbox;
-  GtkWidget * label;
-  GtkWidget * progressbar;
-  uint8_t *y, *u, *v, *t;
-  gchar *b, *dir = g_dirname(path);
-
-  if (!z_build_path(dir, &b))
+  if (data->io_buffer_used > 0)
     {
-      ShowBox(_("Cannot create destination dir for screenshots:\n%s\n%s"),
-	      GNOME_MESSAGE_BOX_WARNING, dir, b);
-      g_free(b);
-      g_free(dir);
-      return;
-    }
-  g_free(dir);
-
-  if (format->pixformat == TVENG_PIX_YVU420 ||
-      format->pixformat == TVENG_PIX_YUV420)
-    data -> data = g_malloc(format->width * format->height *
-			    ((x11_get_bpp()+7)>>3));
-  else
-    data -> data = g_malloc(format->bytesperline * format->height);
-
-  data->line_data = g_malloc(format->width*3);
-
-  if (format->pixformat == TVENG_PIX_YVU420 ||
-      format->pixformat == TVENG_PIX_YUV420)
-    {
-      y = (uint8_t*) data_to_save;
-      u = y + (format->width*format->height);
-      v = u + (format->width*format->height)/4;
-      if (format->pixformat == TVENG_PIX_YVU420)
-	{ t = u; u = v; v = t; }
-      
-      yuv2rgb(data->data, y, u, v, format->width, format->height,
-	      format->width * ((x11_get_bpp()+7)>>3),
-	      format->width, format->width*0.5);
-
-      memcpy(&data->format, format, sizeof(struct tveng_frame_format));
-      data->format.pixformat =
-	zmisc_resolve_pixformat(x11_get_bpp(), x11_get_byte_order());
-      data->format.bytesperline = format->width *
-	((x11_get_bpp()+7)>>3);
-      data->format.depth = x11_get_bpp();
-      /* unfortunate election of names :-( */
-      data->format.bpp = (x11_get_bpp()+7)>>3;
-      data->format.sizeimage = data->format.bytesperline * format->height;
-    }
-  else
-    {
-      memcpy(&data->format, format, sizeof(struct tveng_frame_format));
-      memcpy(data->data, data_to_save, format->bytesperline *
-	     format->height);
+      data->thread_abort = TRUE;
+      return FALSE; /* output exceeds data->io_buffer_size */
     }
 
-  /* Create this file */
-  if (!(data->handle = fopen(path, "wb")))
-    {
-      gchar * window_title;
+  data->io_buffer_used = size;
 
-      window_title = g_strconcat(_("Sorry, but I cannot write\n"),
-				 path,
-				 _("\nThe image won't be saved.\n"),
-				 strerror(errno),
-				 NULL);
-
-      ShowBox(window_title,
-	      GNOME_MESSAGE_BOX_ERROR);
-
-      g_free(window_title);
-      g_free(data->line_data);
-      g_free(data->data);
-      g_free(data);
-
-      return;
-    }  
-
-  data->Converter = Converter_select (data->format.pixformat);
-
-  if (!data->Converter)
-    {
-      ShowBox("The current pixformat isn't supported",
-	      GNOME_MESSAGE_BOX_ERROR);
-
-      fclose(data->handle);
-      g_free(data->line_data);
-      g_free(data->data);
-      g_free(data);
-      
-      return;
-    }
-
-  backend_init(data);
-
-  data -> window = gtk_window_new(GTK_WINDOW_DIALOG);
-  progressbar =
-    gtk_progress_bar_new_with_adjustment(
-      GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, 100, 1,
-					10, 10)));
-  gtk_widget_show(progressbar);
-  vbox = gtk_vbox_new (FALSE, 0);
-  label = gtk_label_new(path);
-  data->path = g_strdup(path);
-  gtk_widget_show(label);
-  gtk_box_pack_start_defaults(GTK_BOX(vbox),label);
-  gtk_box_pack_start_defaults(GTK_BOX(vbox), progressbar);
-  gtk_widget_show(vbox);
-  gtk_container_add (GTK_CONTAINER(data->window), vbox);
-  gtk_window_set_title(GTK_WINDOW(data->window), _("Saving..."));
-  gtk_window_set_modal(GTK_WINDOW(data->window), FALSE);
-  gtk_object_set_data(GTK_OBJECT(data->window), "progressbar", progressbar);
-  gtk_signal_connect(GTK_OBJECT(data->window), "delete-event",
-		     (GtkSignalFunc)on_progress_delete_event, data);
-  gtk_widget_show (data->window);
-
-  switch (pthread_create(&(data->thread), NULL,
-			 saver_thread, data))
-    {
-    case ENOMEM:
-      ShowBox(_("Sorry, not enough resources for creating a new thread"), 
-	      GNOME_MESSAGE_BOX_ERROR);
-      break;
-    case EAGAIN:
-      ShowBox(_("There are too many threads"), GNOME_MESSAGE_BOX_ERROR);
-      break;
-    case 0:
-      num_threads++;
-      g_timeout_add(50, (GSourceFunc)thread_manager, data);
-      break;
-    }
+  return TRUE;
 }
 
-/*
-  This routine is the one that takes care of saving the image. It runs
-  in another thread.
-*/
-static void * saver_thread(void * _data)
+static void
+execute_command (screenshot_data *data)
 {
-  struct screenshot_data * data = (struct screenshot_data *) _data;
-  LineConverter Converter = NULL; /* The line converter, could be NULL (no
-				      conversion) */
-  gint rowstride;
-  gchar * pixels, *row_pointer = NULL;
-  gboolean done_writing = FALSE;
+  extern int cur_tuned_channel;
+  extern tveng_tuned_channel *global_channel_list;
+  tveng_tuned_channel *tc;
   char *argv[10];
   int argc = 0;
   char *env[10];
   int envc = 0;
   int i;
 
-  data -> done = FALSE;
-  data -> close = FALSE;
+  /* Invoke through sh */
+  argv[argc++] = "sh";
+  argv[argc++] = "-c";
+  argv[argc++] = data->command;
 
-  /* Set up the necessary converter */
-  switch (data->format.pixformat)
+  /* FIXME */
+  env[envc++] = g_strdup_printf ("SCREENSHOT_PATH=%s", data->filename);
+
+  /* XXX thread safe? prolly not */
+  tc = tveng_retrieve_tuned_channel_by_index
+    (cur_tuned_channel, global_channel_list);
+
+  if (tc)
     {
-    case TVENG_PIX_RGB32:
-      Converter = (LineConverter) Convert_RGBA_RGB24;
-      break;
-    case TVENG_PIX_RGB24:
-      Converter = NULL;
-      break;
-    case TVENG_PIX_BGR32:
-      Converter = (LineConverter) Convert_RGBA_RGB24;
-      break;
-    case TVENG_PIX_BGR24:
-      Converter = NULL; /* No conversion needed */
-      break;
-    case TVENG_PIX_RGB565:
-      Converter = (LineConverter) Convert_RGB565_RGB24;
-      break;
-    case TVENG_PIX_RGB555:
-      Converter = (LineConverter) Convert_RGB555_RGB24;
-      break;
-    case TVENG_PIX_YUYV:
-      Converter = (LineConverter) Convert_YUYV_RGB24;
-      break;
-    default:
-      g_assert_not_reached();
+      env[envc++] = g_strdup_printf ("CHANNEL_ALIAS=%s", tc->name);
+      env[envc++] = g_strdup_printf ("CHANNEL_ID=%s", tc->real_name);
+      if (zapping_info->num_standards)
+	env[envc++] =
+	  g_strdup_printf ("CURRENT_STANDARD=%s",
+	    zapping_info->standards[zapping_info->cur_standard].name);
+      if (zapping_info->num_inputs)
+	env[envc++] =
+	  g_strdup_printf ("CURRENT_INPUT=%s",
+	    zapping_info->inputs[zapping_info->cur_input].name);
     }
 
-  backend_save(data, Converter);
+  gnome_execute_async_with_env (NULL, argc, argv, envc, env);
 
-  fclose(data->handle);
-
-  data->done = TRUE;
-
-  /* Attempt to run command if it isn't empty */
-  if (command && *command)
-    {
-      extern int cur_tuned_channel;
-      extern tveng_tuned_channel *global_channel_list;
-      tveng_tuned_channel *tc =
-	tveng_retrieve_tuned_channel_by_index(cur_tuned_channel,
-					      global_channel_list);
-      /* Invoke through sh */
-      argv[argc++] = "sh";
-      argv[argc++] = "-c";
-      argv[argc++] = command;
-      /* FIXME */
-      env[envc++] = g_strdup_printf("SCREENSHOT_PATH=%s", data->path);
-      if (tc)
-	{
-	  env[envc++] = g_strdup_printf("CHANNEL_ALIAS=%s", tc->name);
-	  env[envc++] = g_strdup_printf("CHANNEL_ID=%s",
-					tc->real_name);
-	  if (zapping_info->num_standards)
-	    env[envc++] =
-	      g_strdup_printf("CURRENT_STANDARD=%s",
-		zapping_info->standards[zapping_info->cur_standard].name);
-	  if (zapping_info->num_inputs)
-	    env[envc++] =
-	      g_strdup_printf("CURRENT_INPUT=%s",
-		zapping_info->inputs[zapping_info->cur_input].name);
-	}
-      gnome_execute_async_with_env(NULL, argc, argv, envc, env);
-      for (i=0; i<envc; i++)
-	g_free(env[i]);
-    }
-
-  return NULL;
+  for (i = 0; i < envc; i++)
+    g_free (env[i]);
 }
 
-/*
-  This callback is used to update the progressbar and removing the
-  finished threads.
-*/
-static gboolean thread_manager (struct screenshot_data * data)
+static void *
+screenshot_saving_thread (void *_data)
 {
-  gfloat done = ((gfloat)data->lines)/data->format.height;
-  GtkWidget * progressbar;
-  gpointer result;
+  screenshot_data *data = (screenshot_data *) _data;
 
-  if (data->window)
+  data->backend->save (data);
+
+  if (data->thread_abort || data->error)
     {
-      progressbar = 
-	gtk_object_get_data(GTK_OBJECT(data->window), "progressbar");
-      gtk_progress_set_value(GTK_PROGRESS(progressbar), done*100);
+      unlink (data->filename);
+      fclose (data->io_fp);
     }
-
-  if (data -> done)
+  else if (fclose (data->io_fp) != 0)
     {
-      if (data->window)
-	gtk_widget_destroy(data->window);
-      pthread_join(data->thread, &result);
-      g_free(data -> path);
-      g_free(data -> data);
-      g_free(data -> line_data);
-      g_free(data);
-      num_threads--;
-      return FALSE; /* Remove the timeout */
+      data->error = g_strconcat(_("Error while writing screenshot\n"),
+				data->filename, "\n",
+				strerror(errno), NULL);
+      unlink (data->filename);
+      data->thread_abort = TRUE;
     }
+  else if (data->command)
+    execute_command (data);
 
-  return TRUE; /* Keep calling */
+  data->io_fp = NULL;
+
+  data->status = 5; /* thread done */
+
+  return NULL;
 }
 
 static gboolean
 on_progress_delete_event               (GtkWidget       *widget,
 					GdkEvent        *event,
-					struct screenshot_data * data)
+					screenshot_data *data)
 {
-  data -> close = TRUE; /* Tell the plugin to stop working */
-  data -> window = NULL; /* It is being destroyed */
+  data->thread_abort = TRUE; /* thread shall abort */
+  data->status_window = NULL; /* will be destroyed */
 
-  return FALSE; /* destroy it, yes */
+  return FALSE; /* destroy window */
+}
+
+static GtkWidget *
+create_status_window (screenshot_data *data,
+		      gchar *filename)
+{
+  GtkWidget *window;
+  GtkWidget *vbox;
+  GtkWidget *label;
+  GtkWidget *progressbar;
+
+  label = gtk_label_new (filename);
+  gtk_widget_show (label);
+
+  progressbar =
+    gtk_progress_bar_new_with_adjustment (
+      GTK_ADJUSTMENT (gtk_adjustment_new (0, 0, 100, 1, 10, 10)));
+  gtk_widget_show (progressbar);
+
+  vbox = gtk_vbox_new (FALSE, 0);
+  gtk_box_pack_start_defaults (GTK_BOX (vbox), label);
+  gtk_box_pack_start_defaults (GTK_BOX (vbox), progressbar);
+  gtk_widget_show (vbox);
+
+  window = gtk_window_new (GTK_WINDOW_DIALOG);
+  gtk_container_add (GTK_CONTAINER (window), vbox);
+  gtk_window_set_title (GTK_WINDOW (window), _("Saving..."));
+  gtk_window_set_modal (GTK_WINDOW (window), FALSE);
+  gtk_object_set_data (GTK_OBJECT (window), "progressbar", progressbar);
+  gtk_signal_connect (GTK_OBJECT (window), "delete-event",
+		      (GtkSignalFunc) on_progress_delete_event, data);
+  gtk_widget_show (window);
+
+  return window;
+}
+
+static gboolean
+screenshot_save (screenshot_data *data,
+		 gchar *filename)
+{
+  GtkWindow *window;
+  gchar *b, *dir;
+
+  dir = g_dirname (filename);
+
+  if (!z_build_path (dir, &b))
+    {
+      ShowBox (_("Cannot create directory:\n%s\n%s"),
+	       GNOME_MESSAGE_BOX_WARNING, dir, b);
+      g_free (b);
+      g_free (dir);
+      return FALSE;
+    }
+
+  g_free (dir);
+
+  if (!(data->io_fp = fopen (filename, "wb")))
+    {
+      gchar *window_title;
+
+      window_title = g_strconcat (_("Sorry, but I cannot write\n"),
+				  filename,
+				  _("\nThe image won't be saved.\n"),
+				  strerror (errno),
+				  NULL);
+      ShowBox (window_title, GNOME_MESSAGE_BOX_ERROR);
+      g_free (window_title);
+      return FALSE;
+    }
+
+  data->filename = g_strdup (filename);
+
+  if (!data->io_buffer)
+    if (!io_buffer_init (data, 1 << 10))
+      return FALSE;
+
+  data->io_flush = io_flush_stdio;
+
+  if (!data->backend->init (data, /* write */ TRUE, quality))
+    return FALSE;
+
+  data->status_window = create_status_window (data, filename);
+
+  if (command && command[0])
+    data->command = g_strdup (command); /* may change until */
+
+  data->thread_abort = FALSE;
+
+  data->lines = 0;
+
+  switch (pthread_create (&data->saving_thread, NULL,
+			  screenshot_saving_thread, data))
+    {
+    case ENOMEM:
+      ShowBox (_("Sorry, not enough resources to create a new thread"), 
+	       GNOME_MESSAGE_BOX_ERROR);
+      return FALSE;
+
+    case EAGAIN:
+      ShowBox (_("There are too many threads"),
+	       GNOME_MESSAGE_BOX_ERROR);
+      return FALSE;
+
+    case 0:
+      num_threads++;
+      grab_data = NULL; /* permit new request */
+      data->status = 4; /* monitoring */
+      return TRUE;
+
+    default:
+      return FALSE;
+    }
+}
+
+#define PREVIEW_WIDTH 192
+#define PREVIEW_HEIGHT 144
+
+static void
+preview (screenshot_data *data)
+{
+  gpointer old_data;
+  struct tveng_frame_format old_format;
+
+  g_assert (data && data->drawingarea && data->pixbuf);
+
+  old_data = data->data;
+  old_format = data->format;
+
+  // XXX asserts image size >= preview size
+
+  data->data += (int)
+    (((data->format.width - PREVIEW_WIDTH) >> 1)
+     * data->format.bpp
+     + ((data->format.height - PREVIEW_HEIGHT) >> 1)
+     * data->format.bytesperline);
+
+  data->format.width = PREVIEW_WIDTH;
+  data->format.height = PREVIEW_HEIGHT;
+
+  if (data->backend->load)
+    {
+      if (!data->io_buffer)
+	if (!io_buffer_init (data, PREVIEW_WIDTH
+			     * PREVIEW_HEIGHT * 4))
+	  goto restore;
+
+      data->io_flush = io_flush_memory;
+      data->io_buffer_used = 0;
+
+      if (!data->backend->init (data, /* write */ TRUE, quality))
+	goto restore;
+
+      data->backend->save (data);
+
+      if (data->thread_abort)
+	goto restore;
+
+      data->size_est = data->io_buffer_used
+	* (double)(old_format.width * old_format.height)
+	/ (double)(PREVIEW_WIDTH * PREVIEW_HEIGHT);
+
+      if (!data->backend->init (data, /* write */ FALSE, 0))
+	goto restore;
+
+      data->backend->load (data, gdk_pixbuf_get_pixels (data->pixbuf),
+			   gdk_pixbuf_get_rowstride (data->pixbuf));
+    }
+  else /* backend doesn't support preview (lossless format?) */
+    {
+      gint line, rowstride;
+      gchar *s, *d, *row;
+
+      s = data->data;
+      d = gdk_pixbuf_get_pixels (data->pixbuf);
+      rowstride = gdk_pixbuf_get_rowstride (data->pixbuf);
+
+      for (line = 0; line < data->format.height; line++)
+	{
+	  (data->Converter)(data->format.width, s, d);
+	  s += data->format.bytesperline;
+	  d += rowstride;
+	}
+
+      data->size_est = data->backend->bpp_est
+	* (double)(old_format.width * old_format.height);
+    }
+
+ restore:
+  data->format = old_format;
+  data->data = old_data;
+}
+
+static gboolean
+on_drawingarea_expose_event             (GtkWidget      *widget,
+                                         GdkEventExpose *event,
+                                         screenshot_data *data)
+{
+  gchar buf[80];
+
+  gdk_pixbuf_render_to_drawable (data->pixbuf, data->drawingarea->window,
+				 data->drawingarea->style->white_gc,
+				 0, 0, 0, 0,
+				 PREVIEW_WIDTH, PREVIEW_HEIGHT,
+				 GDK_RGB_DITHER_NORMAL, 0, 0);
+
+  if (data->size_est < (double)(1 << 20))
+    snprintf (buf, sizeof(buf) - 1, _("appx %.2f kB"),
+	      data->size_est / (double)(1 << 10));
+  else
+    snprintf (buf, sizeof(buf) - 1, _("appx %.2f MB"),
+	      data->size_est / (double)(1 << 20));
+
+  gtk_label_set_text (GTK_LABEL (data->size_label), buf);
+
+  return FALSE;
+}
+
+static gboolean
+on_quality_changed                      (GtkWidget      *widget,
+                                         screenshot_data *data)
+{
+  gint new_quality = GTK_ADJUSTMENT (widget)->value;  
+
+  if (quality == new_quality)
+    return FALSE;
+
+  quality = new_quality;
+
+  preview (data);
+  on_drawingarea_expose_event (widget, NULL, data);
+
+  return FALSE;
+}                                                
+
+static screenshot_backend *
+find_backend (gchar *keyword)
+{
+    gint i;
+
+    if (keyword)
+      for (i = 0; backends[i]; i++)
+	if (strcmp(keyword, backends[i]->keyword) == 0)
+	  return backends[i];
+
+    g_assert (backends[0] != NULL);
+
+    return backends[0];
+}
+
+static void
+on_format_changed                     (GtkWidget *menu,
+				       screenshot_data *data)
+{
+  GtkWidget *menu_item = gtk_menu_get_active (GTK_MENU (menu));
+  gchar *keyword, *name;
+
+  keyword = gtk_object_get_data (GTK_OBJECT (menu_item), "keyword");
+
+  data->backend = find_backend (keyword);
+
+  g_assert (data->backend);
+
+  gtk_widget_set_sensitive(data->quality_slider,
+			   data->backend->quality);
+
+  name = gtk_entry_get_text (data->entry);
+  name = z_replace_filename_extension (name, data->backend->extension);
+  gtk_entry_set_text (data->entry, name);
+  g_free (name);
+
+  preview (data);
+  on_drawingarea_expose_event (menu, NULL, data);
+}
+
+static void
+build_dialog (screenshot_data *data)
+{
+  GtkWidget *widget;
+  GtkWidget *menu, *menu_item;
+  GtkWidget *quality_slider;
+  GtkAdjustment *adj;
+  gchar *filename;
+  gint default_item = 0;
+  gint i;
+
+  data->dialog = build_widget ("dialog1",
+			       PACKAGE_DATA_DIR "/screenshot.glade");
+  /* Format menu */
+
+  widget = lookup_widget (data->dialog, "optionmenu1");
+
+  if ((menu = gtk_option_menu_get_menu (GTK_OPTION_MENU (widget))))
+    gtk_widget_destroy (menu);
+
+  menu = gtk_menu_new ();
+
+  g_assert (backends[0] != NULL);
+
+  for (i = 0; backends[i]; i++)
+    {
+      menu_item = gtk_menu_item_new_with_label (_(backends[i]->label));
+      gtk_object_set_data (GTK_OBJECT (menu_item), "keyword",
+			   backends[i]->keyword);
+      gtk_widget_show (menu_item);
+      gtk_menu_append (GTK_MENU (menu), menu_item);
+
+      if (strcmp (format, backends[i]->keyword) == 0)
+	default_item = i;
+    }
+
+  gtk_option_menu_set_menu (GTK_OPTION_MENU (widget), menu);
+  gtk_option_menu_set_history (GTK_OPTION_MENU (widget), default_item);
+  gtk_signal_connect (GTK_OBJECT (GTK_OPTION_MENU (widget)->menu),
+  		      "deactivate", on_format_changed, data);
+
+  data->backend = backends[default_item];
+
+  /* File entry */
+
+  data->entry = GTK_ENTRY (lookup_widget (data->dialog, "entry"));
+/* mhs doesn't like this. mhs will make this optional.
+  gnome_dialog_editable_enters (GNOME_DIALOG (data->dialog),
+				GTK_EDITABLE (data->entry));
+*/
+  gnome_dialog_set_default (GNOME_DIALOG (data->dialog), 0);
+  filename = find_unused_name (save_dir, "shot",
+			       data->backend->extension);
+  data->auto_filename = g_strdup (g_basename (filename));
+  gtk_entry_set_text (data->entry, filename);
+  g_free (filename);
+  gtk_object_set_data (GTK_OBJECT (data->entry),
+		       "basename", (gpointer) data->auto_filename);
+  gtk_signal_connect (GTK_OBJECT (data->entry), "changed",
+		      GTK_SIGNAL_FUNC (z_on_electric_filename),
+		      (gpointer) NULL);
+  gtk_entry_select_region (data->entry, 0, -1);
+
+  /* Preview */
+
+  data->pixbuf = gdk_pixbuf_new (GDK_COLORSPACE_RGB,
+				 /* has_alpha */ FALSE,
+				 /* bits_per_sample */ 8,
+				 PREVIEW_WIDTH, PREVIEW_HEIGHT);
+
+  data->drawingarea = lookup_widget (data->dialog, "drawingarea1");
+  data->size_label = lookup_widget (data->dialog, "label7");
+  gdk_window_set_back_pixmap (data->drawingarea->window, NULL, FALSE);
+  preview (data);
+  gtk_signal_connect (GTK_OBJECT (data->drawingarea), "expose-event",
+		      GTK_SIGNAL_FUNC (on_drawingarea_expose_event),
+		      data);
+
+  /* Quality slider */
+
+  data->quality_slider = lookup_widget (data->dialog, "hscale1");
+  adj = gtk_range_get_adjustment (GTK_RANGE (data->quality_slider));
+  gtk_adjustment_set_value (GTK_ADJUSTMENT (adj), quality);
+  gtk_signal_connect (GTK_OBJECT (adj), "value-changed",
+		      GTK_SIGNAL_FUNC (on_quality_changed), data);
+
+  gtk_widget_set_sensitive(data->quality_slider,
+			   data->backend->quality);
+
+  gnome_dialog_set_parent (GNOME_DIALOG (data->dialog),
+			   z_main_window ());
+
+  gtk_widget_grab_focus (GTK_WIDGET (data->entry));
 }
 
 /*
- *  Conversions
+ *  This timer callback controls the progress of image saving.
+ *  I [mhs] promise to never ever write something ugly like this
+ *  again in my whole life, but for now I see no easy way around.
+ *
+ *  XXX non-atomic reads
  */
+static gboolean
+screenshot_timeout (screenshot_data *data)
+{
+  gchar *filename;
+  gpointer result;
+
+  switch (data->status)
+    {
+    case 0:
+    case 1: /* waiting for image */
+      if (data->lines-- <= 0)
+	{
+	  grab_data = NULL;
+	  screenshot_destroy (data);
+	  return FALSE; /* remove */
+	}
+
+      break;
+
+    case 2: /* quick start */
+      data->backend = find_backend (format);
+      filename = find_unused_name (save_dir, "shot",
+				   data->backend->extension);
+    
+      if (!screenshot_save (data, filename))
+	{
+	  grab_data = NULL;
+	  screenshot_destroy (data);
+	  return FALSE; /* remove */
+	}
+
+      break;
+
+    case 3: /* dialog */
+      build_dialog (data);
+
+      /*
+       * -1 or 1 if cancelled.
+       */
+      switch (gnome_dialog_run_and_close (GNOME_DIALOG (data->dialog)))
+	{
+	case 0: /* OK */
+	  filename = g_strdup (gtk_entry_get_text (data->entry));
+
+	  gtk_widget_destroy (GTK_WIDGET (data->dialog));
+	  data->dialog = NULL;
+
+	  if (filename)
+	    if (!screenshot_save (data, filename))
+	      {
+		grab_data = NULL;
+		screenshot_destroy (data);
+		g_free (filename);
+		return FALSE; /* remove */
+	      }
+
+	  g_free (filename);
+
+	  break;
+
+	case 2: /* Configure */
+	  {
+	    GtkWidget *properties;
+
+	    grab_data = NULL;
+	    screenshot_destroy (data);
+
+	    properties = build_properties_dialog ();
+
+	    open_properties_page (properties,
+				  _("Plugins"), _("Screenshot"));
+
+	    gnome_dialog_run (GNOME_DIALOG (properties));
+
+	    return FALSE; /* remove */
+	  }
+
+	default: /* Cancel */
+	  grab_data = NULL;
+	  screenshot_destroy (data);
+	  return FALSE; /* remove */
+	}
+
+      break;
+
+    case 4: /* monitoring */
+      if (data->status_window)
+	{
+	  GtkWidget *progressbar;
+	  gfloat progress = 100 * data->lines
+	    / (gfloat) data->format.height;
+
+	  progressbar = gtk_object_get_data
+	    (GTK_OBJECT (data->status_window), "progressbar");
+	  gtk_progress_set_value (GTK_PROGRESS (progressbar), progress);
+	}
+
+      break;
+
+    case 5: /* thread done */
+      pthread_join (data->saving_thread, &result);
+      num_threads--;
+
+      if (data->error)
+	ShowBox(data->error, GNOME_MESSAGE_BOX_ERROR);
+
+      /* fall through */
+
+    default:
+      screenshot_destroy (data);
+      return FALSE; /* remove the timer */
+    }
+
+  return TRUE; /* resume */
+}
 
 /* XXX ENDIANESS */
 
@@ -1124,7 +1333,7 @@ Convert_BGR555_RGB24 (gint width, gchar* src, gchar* dest)
   return where_have_we_written;
 }
 
-/* Removes the last byte (suppoosedly alpha channel info) from the
+/* Removes the last byte (supposedly alpha channel info) from the
    image */
 static gchar *
 Convert_RGBA_RGB24 (gint width, gchar* src, gchar* dest)
@@ -1226,52 +1435,185 @@ Convert_YUYV_RGB24 (gint w, guchar *src, guchar *dest)
   return where_have_we_written;
 }
 
-/* Converts any format known to mankind to any other identical format */
 static gchar *
-Convert_Null (gint width, gchar* src, gchar* dest)
+Convert_RGB24_RGB24 (gint width, gchar* src, gchar* dest)
 {
-  return src;
+  memcpy (dest, src, width * 3);
+  return dest;
 }
 
-static LineConverter
-Converter_select(enum tveng_frame_pixformat pixformat)
-{
-  LineConverter Converter;
+#define SWAP(a, b) \
+  do { __typeof__ (a) _t = (b); (b) = (a); (a) = _t; } while (0)
 
-  switch (pixformat)
+static gboolean
+copy_image (screenshot_data *data,
+	    gpointer image, struct tveng_frame_format *format)
+{
+  if (format->pixformat == TVENG_PIX_YVU420 ||
+      format->pixformat == TVENG_PIX_YUV420)
     {
-    case TVENG_PIX_RGB32:
-      Converter = (LineConverter) Convert_RGBA_RGB24;
-      break;
-    case TVENG_PIX_RGB24:
-      Converter = (LineConverter) Convert_Null;
-      break;
-    case TVENG_PIX_BGR32:
-      Converter = (LineConverter) Convert_BGRA_RGB24;
-      break;
-    case TVENG_PIX_BGR24:
-      Converter = (LineConverter) Convert_BGR24_RGB24;
-      break;
-    case TVENG_PIX_RGB565:
-      Converter = (LineConverter) Convert_BGR565_RGB24;
-      break;
-    case TVENG_PIX_RGB555:
-      Converter = (LineConverter) Convert_BGR555_RGB24;
-      break;
-    case TVENG_PIX_YUYV:
-      Converter = (LineConverter) Convert_YUYV_RGB24;
-      break;
-    default:
-      Converter = NULL;
+      gint yuv_bpp = (x11_get_bpp () + 7) >> 3;
+      gint yuv_bytesperline = format->width * yuv_bpp;
+      uint8_t *y, *u, *v;
+
+      data->data = g_malloc (yuv_bytesperline * format->height);
+
+      y = (uint8_t *) image;
+      u = y + (format->width * format->height);
+      v = u + ((format->width * format->height) >> 2);
+
+      if (format->pixformat == TVENG_PIX_YVU420)
+	SWAP (u, v);
+
+      yuv2rgb (data->data, y, u, v, format->width, format->height,
+	       yuv_bytesperline, format->width, format->width * 0.5);
+
+      memcpy (&data->format, format, sizeof(data->format));
+
+      data->format.pixformat =
+	zmisc_resolve_pixformat (x11_get_bpp (), x11_get_byte_order ());
+      data->format.bytesperline = yuv_bytesperline;
+      data->format.depth = x11_get_bpp();
+      /* unfortunate election of names :-( */
+      data->format.bpp = yuv_bpp;
+      data->format.sizeimage = data->format.bytesperline * format->height;
+    }
+  else
+    {
+      data->data = g_malloc (format->bytesperline * format->height);
+
+      memcpy (&data->format, format, sizeof(data->format));
+
+      memcpy (data->data, image, format->bytesperline *
+	      format->height);
     }
 
-  return Converter;
+  data->line_data = g_malloc (data->format.width * 3);
+
+  switch (data->format.pixformat)
+    {
+    case TVENG_PIX_RGB32:
+      data->Converter = (LineConverter) Convert_RGBA_RGB24;
+      break;
+    case TVENG_PIX_RGB24:
+      data->Converter = (LineConverter) Convert_RGB24_RGB24;
+      break;
+    case TVENG_PIX_BGR32:
+      data->Converter = (LineConverter) Convert_BGRA_RGB24;
+      break;
+    case TVENG_PIX_BGR24:
+      data->Converter = (LineConverter) Convert_BGR24_RGB24;
+      break;
+    case TVENG_PIX_RGB565:
+      data->Converter = (LineConverter) Convert_BGR565_RGB24;
+      break;
+    case TVENG_PIX_RGB555:
+      data->Converter = (LineConverter) Convert_BGR555_RGB24;
+      break;
+    case TVENG_PIX_YUYV:
+      data->Converter = (LineConverter) Convert_YUYV_RGB24;
+      break;
+    default:
+      ShowBox("The current pixformat isn't supported",
+	      GNOME_MESSAGE_BOX_ERROR);
+      return FALSE;
+    }
+
+  return TRUE;
 }
 
-#else // !HAVE_LIBJPEG
-#endif
+static void
+plugin_read_bundle (capture_bundle *bundle)
+{
+  if (grab_data && grab_countdown > 0)
+    if (grab_countdown-- == 1)
+      {
+	if (copy_image (grab_data, bundle->data, &bundle->format))
+	  grab_data->status += 2; /* data ready */
+	else
+	  grab_data->status = -1; /* timeout abort yourself */
+      }
+}
 
+static gboolean
+screenshot_grab (gint dialog)
+{
+  GdkPixbuf *pixbuf;
+  screenshot_data *data;
 
+  if (grab_data)
+    return FALSE; /* request pending */
 
+  data = screenshot_new ();
 
+  grab_countdown = 0;
+  grab_data = data;
 
+  /*
+   *  Switch to capture mode if we aren't viewing Teletext
+   *  (associated with TVENG_NO_CAPTURE)
+   */
+  if (zapping_info->current_mode != TVENG_NO_CAPTURE)
+    {
+      zmisc_switch_mode (TVENG_CAPTURE_READ, zapping_info);
+
+      if (zapping_info->current_mode != TVENG_CAPTURE_READ)
+	{
+	  screenshot_destroy (data);
+	  return FALSE; /* unable to set the mode */
+	}
+    }
+  /*
+   *  Otherwise request TTX image 
+   *  XXX Option: include subtitles
+   */
+  else if ((pixbuf =
+	    ttxview_get_scaled_ttx_page (GTK_WIDGET (z_main_window ()))))
+    {
+      struct tveng_frame_format format;
+
+      format.width = gdk_pixbuf_get_width (pixbuf);
+      format.height = gdk_pixbuf_get_height (pixbuf);
+      format.bpp = 4;
+      format.depth = 32;
+      format.pixformat = TVENG_PIX_RGB32;
+      format.bytesperline = gdk_pixbuf_get_rowstride (pixbuf);
+
+      if (!copy_image (data, gdk_pixbuf_get_pixels (pixbuf), &format))
+	{
+	  screenshot_destroy (data);
+	  return FALSE;
+	}
+
+      data->status = dialog + 2; /* image data is ready */
+
+      g_timeout_add (50, (GSourceFunc) screenshot_timeout, data);
+
+      return TRUE;
+    }
+  else
+    return FALSE;
+
+  grab_countdown = 2; /* take 2nd image */
+
+  data->status = dialog; /* wait for image data (event sub) */
+  data->lines = 2000 / 50; /* abort after 2 sec */
+
+  g_timeout_add (50, (GSourceFunc) screenshot_timeout, data);
+
+  return TRUE;
+}
+
+static void
+on_screenshot_button_clicked		(GtkButton       *button,
+					 gpointer         user_data)
+{
+  screenshot_grab (1);
+}
+
+static void
+on_screenshot_button_fast_clicked	(GtkButton       *button,
+					 gpointer         user_data)
+{
+  screenshot_grab (0);
+}
