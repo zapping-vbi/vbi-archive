@@ -93,8 +93,8 @@
    </locale>
   </schema>
   <schema>
-   <key>/schemas/apps/zapping/blank_cursor_time</key>
-   <applyto>/apps/zapping/blank_cursor_time</applyto>
+   <key>/schemas/apps/zapping/blank_cursor_timeout</key>
+   <applyto>/apps/zapping/blank_cursor_timeout</applyto>
    <owner>Zapping</owner>
    <type>int</type>
    <default>1500</default>

@@ -1,3 +1,19 @@
+2004-10-22    <mschimek@users.sf.net>
+
+	* src/zmisc.c (zmisc_switch_mode),
+	  src/fullscreen.c (set_blank_timeout): Changed gconf_client_get
+	  to z_gconf_get.
+	* src/zmisc.c, src/zmisc.h: Added helper functions to get and set
+	  gconf keys with error reporting and warning about unset keys,
+	  also used internally.
+	* src/zmisc.c, src/zmisc.h: New add_notify helpers with error
+	  reporting and initial get, and helpers to automatically update
+	  gconf-based variables in time critical path.
+	* src/zmisc.c, src/zmisc.h (z_menu_shell_chop_off): Helper for
+	  dynamic menu updates.
+	* plugins/teletext/main.c (preferences_action): Don't localize
+	  property names, the property routines won't find them.
+
 2004-10-13    <mschimek@users.sf.net>
 
 	* src/zmisc.c (z_gconf_combo_box_new, z_gconf_get_string_enum):
