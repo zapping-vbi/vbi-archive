@@ -25,7 +25,8 @@ typedef enum {
 
 typedef struct fmt_char
 {
-    u8 ch, attr; // aletv
+    u16 ch;  // alevt
+    u8 attr; // alevt
 	unsigned	underline	: 1;
 	unsigned	flash		: 1;
 	unsigned	size		: 3;
@@ -46,6 +47,7 @@ struct fmt_page
 {
     struct vt_page *vtp;
     struct fmt_char data[H][W];
+    unsigned int colour_map[32];
 };
 
 struct export

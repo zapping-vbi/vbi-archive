@@ -25,7 +25,6 @@ struct raw_page
 {
     struct vt_page page[1];
     struct enhance enh[1];
-	u8			raw[25][40];
 	struct vt_extension	extension;
 	u8			drcs_mode[48];
 };

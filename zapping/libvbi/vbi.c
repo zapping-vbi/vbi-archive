@@ -13,6 +13,8 @@
 #include "lang.h"
 #include "export.h"
 
+void reset_magazines(struct vbi *vbi);
+
 void
 out_of_sync(struct vbi *vbi)
 {
@@ -54,7 +56,7 @@ vbi_send_page(struct vbi *vbi, struct raw_page *rvtp, int page)
 	/* curiosity hack */
 /*	if (rvtp->page->function == PAGE_FUNCTION_GDRCS
 	    || rvtp->page->function == PAGE_FUNCTION_DRCS)
-		dump_drcs_download(rvtp->raw, rvtp->drcs_mode);
+		dump_drcs_download(rvtp->page->raw, rvtp->drcs_mode);
 */
 	if (rvtp->page->pgno % 256 != page)
 	{
@@ -141,8 +143,7 @@ default_colour_map[32] = {
     0x333, 0x77F, 0x7F7, 0x7FF, 0xF77, 0xF7F, 0xFF7, 0xDDD
 };
 
-/* Caller? */
-void
+static void
 reset_magazines(struct vbi *vbi)
 {
 	struct vt_extension *x;
@@ -153,8 +154,9 @@ reset_magazines(struct vbi *vbi)
 
 		x->designations			= 0;
 
-		x->primary_char_set		= 0;		/* Latin G0, G2, English subset */
-		x->secondary_char_set		= 0;		/* Latin G0, English subset */
+		x->primary_char_set		= 16;		/* Latin G0, G2, English subset */
+		x->secondary_char_set		= 16;		/* Latin G0, English subset */
+								/* National group western Europe and Turkey */
 
 		x->def_screen_colour		= BLACK;	/* A.5 */
 		x->def_row_colour		= BLACK;	/* A.5 */
@@ -344,6 +346,9 @@ vt_packet(struct vbi *vbi, u8 *p)
 	    cvtp->pgno = mag8 * 256 + b1;
 	    cvtp->subno = (b2 + b3 * 256) & 0x3f7f;
 	    cvtp->lang = "\0\4\2\6\1\5\3\7"[b4 >> 5] + (latin1 ? 0 : 8);
+
+	    cvtp->national = bit_reverse[b4] & 7;
+
 	    cvtp->flags = b4 & 0x1f;
 	    cvtp->flags |= b3 & 0xc0;
 	    cvtp->flags |= (b2 & 0x80) >> 2;
@@ -365,13 +370,15 @@ vt_packet(struct vbi *vbi, u8 *p)
 	    init_enhance(rvtp->enh);
 	    memcpy(cvtp->data[0]+0, p, 40);
 	    memset(cvtp->data[0]+40, ' ', sizeof(cvtp->data)-40);
+	    memset(cvtp->raw[0]+40, ' ', sizeof(cvtp->raw)-40);
 	    rvtp->extension.designations = 0;
+	    cvtp->vbi = vbi;
 	    return 0;
 	}
 
 	case 1 ... 24:
 	{
-		memcpy(rvtp->raw[pkt], p, 40);
+		memcpy(cvtp->raw[pkt], p, 40);
 
 	    pll_add(vbi, 1, err = chk_parity(p, 40));
 
@@ -403,7 +410,7 @@ vt_packet(struct vbi *vbi, u8 *p)
 	    if (err & 0xf000)
 		return 4;
 
-//	    printf("enhance on %x/%x\n", cvtp->pgno, cvtp->subno);
+//    printf("enhance on %x/%x\n", cvtp->pgno, cvtp->subno);
 	    add_enhance(rvtp->enh, d, t);
 	    return 0;
 	}
@@ -823,6 +830,7 @@ vbi_open(char *vbi_name, struct cache *ca, int fine_tune, int big_buf)
     vbi->seq = 0;
     out_of_sync(vbi);
     vbi->ppage = vbi->rpage;
+    reset_magazines(vbi);
 
     vbi_pll_reset(vbi, fine_tune);
     // now done by sliced device
@@ -872,5 +880,6 @@ vbi_reset(struct vbi *vbi)
 {
     if (vbi->cache)
 	vbi->cache->op->reset(vbi->cache);
+    reset_magazines(vbi);
     vbi_send(vbi, EV_RESET, 0, 0, 0, 0);
 }

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.6 2000-11-30 09:36:38 mschimek Exp $ */
+/* $Id: vbi.c,v 1.7 2000-12-15 07:20:31 mschimek Exp $ */
 
 #include "../common/fifo.h"
 #include "../systems/mpeg.h"
@@ -41,6 +41,7 @@ extern int		video_num_frames;
 
 /*
  *  ETS 300 706 -- Enhanced Teletext specification
+ *  XXX somewhere here is a flaw, forgot what it was
  */
 
 static int

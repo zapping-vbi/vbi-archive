@@ -450,6 +450,7 @@ zvbi_render_page_rgba(struct fmt_page *pg, gint *width, gint *height,
   unsigned char * extra_mem;
   int x, y;
   gint rowstride;
+  /* obsolete, fmt_page provides a colour map */
   unsigned char rgb8[][4]={{  0,  0,  0,  0},
 			   {255,  0,  0,  0},
 			   {  0,255,  0,  0},
@@ -477,13 +478,16 @@ zvbi_render_page_rgba(struct fmt_page *pg, gint *width, gint *height,
 
   rowstride = *width;
 
-  for (x=0;x<8;x++)
-    rgb8[x][3] = alpha[x];
-
+  for (x=0;x<32;x++) {
+    rgb8[x & 7][3] = alpha[x & 7];
+    pg->colour_map[x] |= alpha[x & 7] << 24;
+  }
+  
   for (y=0;y<*height;y++)
     for (x=0; x<*width;x++)
       ((gint32*)extra_mem)[y*rowstride+x] =
-	((gint32*)rgb8)[mem[y*rowstride+x]];
+//	((gint32*)rgb8)[mem[y*rowstride+x]];
+	pg->colour_map[mem[y*rowstride+x]]; /* 0x00BBGGRR */
 
   free(mem);
   return extra_mem;

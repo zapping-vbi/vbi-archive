@@ -37,6 +37,10 @@ struct vt_event
 #define KEY_DEL		2007
 #define KEY_INS		2008
 
+/*
+ *
+ */
+
 typedef enum {
 	PAGE_FUNCTION_UNKNOWN = -1,
 	PAGE_FUNCTION_LOP,
@@ -92,6 +96,8 @@ struct vt_page
 {
 	page_function		function;
 	page_coding		coding;
+	int			national;
+
     int pgno, subno;	// the wanted page number
     int lang;		// language code
     int flags;		// misc flags (see PG_xxx below)
@@ -103,7 +109,12 @@ struct vt_page
 	int pgno;
 	int subno;
     } link[6];		// FastText links (FLOF)
+
 	struct vt_extension *	extension;
+
+	/* added temporarily: */
+	u8			raw[25][40];
+	struct vbi *		vbi;
 };
 
 #define C5_NEWSFLASH		0x40	/* box and overlay */
@@ -125,18 +136,6 @@ struct vt_page
 #define PG_ACTIVE	0x100	// currently fetching this page
 
 #define ANY_SUB		0x3f7f	// universal subpage number
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 #endif
