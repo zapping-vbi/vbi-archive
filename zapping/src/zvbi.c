@@ -184,7 +184,9 @@ decoding_thread (void *p)
     if (b->used <= 0) {
       send_empty_buffer (&c, b);
       if (b->used < 0)
-	fprintf (stderr, "I/O error in decoding thread, aborting.\n");
+	fprintf (stderr, "I/O error #%d in decoding thread:\n"
+		"%s\nAborting.\n",
+		b->error, b->errorstr);
       break;
     }
 
@@ -236,6 +238,7 @@ capturing_thread (void *x)
 
     b = wait_empty_buffer (&p);
 
+redo:
     switch (vbi_capture_read_sliced (capture, (vbi_sliced *) b->data,
 				     &lines, &b->time, &timeout))
       {
@@ -243,6 +246,10 @@ capturing_thread (void *x)
 	break;
 
       case 0: /* timeout */
+#ifdef USE_VBI_PROXY
+	fprintf (stderr, "VBI read timeout ignored\n");
+	goto redo;
+#endif
 #if 0
 	for (; stacked > 0; stacked--)
 	  send_full_buffer (&p, PARENT (rem_head(&stack), buffer, node));
@@ -260,6 +267,10 @@ capturing_thread (void *x)
 	for (; stacked > 0; stacked--)
 	  send_full_buffer (&p, PARENT (rem_head(&stack), buffer, node));
 #endif
+
+	if (errno == EAGAIN) /* proxyd */
+	  goto redo;
+
 	b->used = -1;
 	b->error = errno;
 	b->errorstr = _("V4L/V4L2 VBI interface: Failed to read from the device");
@@ -383,6 +394,26 @@ threads_init (gchar *dev_name, int given_fd)
 
   D();
 
+#ifdef USE_VBI_PROXY
+  {
+    // XXX experimental; not yet part of libzvbi.
+    extern vbi_capture *
+    vbi_capture_proxy_new(const char *dev_name, int buffers, int scanning,
+                      unsigned int *services, int strict,
+                      char **pp_errorstr, vbi_bool trace);
+
+    capture = vbi_capture_proxy_new (dev_name, 20 /* buffers */, 625 /* XXX */,
+                                     &services, /* strict */ -1,
+				     &_errstr, TRUE /*!!debug_msg*/);
+
+    fprintf (stderr, "Using VBI proxyd: vbi_capture=%p errstr='%s'\n",
+	     capture, _errstr);
+  }
+
+  if (!capture)
+#endif
+  {
+
   if (!(capture = vbi_capture_v4l2_new (dev_name, 20 /* buffers */,
                                         &services, /* strict */ -1,
 					&_errstr, !!debug_msg)))
@@ -411,7 +442,8 @@ threads_init (gchar *dev_name, int given_fd)
 	  return FALSE;
 	}
     }
-
+  }
+  
   D();
 
   // XXX when we have WSS625, disable video sampling
