@@ -351,6 +351,9 @@ rebuild_buffer			(producer_buffer *	pb,
 
 	  pb->images[i] = zimage_new ((tv_pixfmt) i, fmt->width, fmt->height);
 
+	  /* At least the memory backend should "display" this. */
+	  g_assert (NULL != pb->images[i]);
+
 	done:
 	  if (0)
 	    fprintf (stderr, "rebuilt %p %s, capture %s\n",
@@ -362,7 +365,17 @@ rebuild_buffer			(producer_buffer *	pb,
 	}
     }
 
-  g_assert (pb->src_image != NULL);
+  /* Possible if none of the capture formats supported by the driver are
+     directly displayable or have been requested for other purposes. */
+  if (NULL == pb->src_image)
+    {
+      i = (guint) fmt->pixel_format->pixfmt;
+
+      pb->images[i] = zimage_new ((tv_pixfmt) i, fmt->width, fmt->height);
+      g_assert (NULL != pb->images[i]);
+
+      pb->src_image = pb->images[i];
+    }
 
   pb->tag = request_id; /* Done */
 }
