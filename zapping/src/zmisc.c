@@ -276,11 +276,11 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   int return_value = 0;
   gint x, y, w, h;
   enum tveng_frame_pixformat format;
-  gint muted;
   gchar * old_input = NULL;
   gchar * old_standard = NULL;
   enum tveng_capture_mode mode;
   extern int disable_overlay;
+  gint muted;
 
   g_assert(info != NULL);
   g_assert(main_window != NULL);
@@ -303,9 +303,14 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   gdk_window_get_geometry(tv_screen->window, NULL, NULL, &w, &h, NULL);
   gdk_window_get_origin(tv_screen->window, &x, &y);
 
-  // FIXME
-  if (!audio_get_mute (&muted))
-    muted = -1;
+#if 0 /* XXX should use quiet_set, but that can't handle yet
+         how the controls are rebuilt when switching btw
+         v4l <-> xv. */
+  if ((avoid_noise = zcg_bool (NULL, "avoid_noise")))
+    tv_quiet_set (main_info, TRUE);
+#else
+  muted = tv_mute_get (main_info, FALSE);
+#endif
 
   mode = info->current_mode;
 
@@ -548,9 +553,13 @@ XX();
   /* Updating the properties is not so useful, and it isn't so easy,
      since there might be multiple properties dialogs open */
 
-  /* Restore mute state */
-  if (muted >= 0)
-    set_mute (!!muted, FALSE, FALSE);
+#if 0
+  if (avoid_noise)
+    reset_quiet (main_info, /* delay ms */ 300);
+#else
+  if (muted != -1)
+    tv_mute_set (main_info, muted);
+#endif
 
   /* Update the controls window if it's open */
   update_control_box(info);
@@ -1354,9 +1363,9 @@ find_unused_name		(const gchar *		dir,
  *  [12345___|<>] unit [-<>--------][Reset]
  */
 
-typedef struct z_spinslider z_spinslider;
+typedef struct _z_spinslider z_spinslider;
 
-struct z_spinslider
+struct _z_spinslider
 {
   GtkWidget *		hbox;
   GtkAdjustment *	spin_adj;
@@ -1602,6 +1611,279 @@ z_spinslider_new		(GtkAdjustment *	spin_adj,
   return sp->hbox;
 }
 
+/*
+ *  "Device entry"
+ *
+ *  Device:	 Foo Inc. Mk II
+ *  Driver:	 Foo 0.0.1
+ *  Device file: [/dev/foo__________][v]
+ */
+
+typedef struct _z_device_entry z_device_entry;
+
+struct _z_device_entry
+{
+  GtkWidget *		table;
+  GtkWidget *		device;
+  GtkWidget *		driver;
+  GtkWidget *		combo;
+
+  guint			timeout;
+
+  tv_device_node *	list;
+  tv_device_node *	selected;
+
+  z_device_entry_open_fn *open_fn;
+  z_device_entry_select_fn *select_fn;
+
+  void *		user_data;
+};
+
+static void
+z_device_entry_destroy		(gpointer		data)
+{
+  z_device_entry *de = data;
+
+  if (de->timeout != ~0)
+    gtk_timeout_remove (de->timeout);
+
+  tv_device_node_delete_list (&de->list);
+
+  g_free (de);
+}
+
+tv_device_node *
+z_device_entry_selected		(GtkWidget *		table)
+{
+  z_device_entry *de = g_object_get_data (G_OBJECT (table), "z_device_entry");
+
+  g_assert (de != NULL);
+  return de->selected;
+}
+
+static void
+z_device_entry_select		(z_device_entry *	de,
+				 tv_device_node *	n)
+{
+  const gchar *device = "";
+  const gchar *driver = "";
+  gchar *s = NULL;
+
+  de->selected = n;
+
+  if (de->select_fn)
+    de->select_fn (de->table, de->user_data, n);
+
+  if (n)
+    {
+      if (n->label)
+	device = n->label;
+
+      if (n->driver && n->version)
+	driver = s = g_strdup_printf ("%s %s", n->driver, n->version);
+      else if (n->driver)
+	driver = n->driver;
+    }
+
+  gtk_label_set_text (GTK_LABEL (de->device), device);
+  gtk_label_set_text (GTK_LABEL (de->driver), driver);
+
+  g_free (s);
+}
+
+static GtkWidget *
+z_device_entry_label_new	(const char *		text,
+				 guint			padding)
+{
+  GtkWidget *label;
+
+  label = gtk_label_new (text);
+  gtk_widget_show (label);
+  gtk_label_set_justify (GTK_LABEL (label), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label), padding, padding);
+
+  return label;
+}
+
+static void
+on_z_device_entry_changed	(GtkEntry *		entry,
+				 gpointer		user_data);
+
+static void
+z_device_entry_relist		(z_device_entry *	de)
+{
+  tv_device_node *n;
+
+  if (de->combo)
+    gtk_widget_destroy (de->combo);
+  de->combo = gtk_combo_new ();
+  gtk_widget_show (de->combo);
+
+  for (n = de->list; n; n = n->next)
+    {
+      GtkWidget *item;
+      GtkWidget *label;
+      gchar *s;
+
+      /* XXX deprecated, although the GtkCombo description elaborates:
+	 "The drop-down list is a GtkList widget and can be accessed
+	 using the list member of the GtkCombo. List elements can contain
+	 arbitrary widgets, [by appending GtkListItems to the list]" */
+      extern GtkWidget *gtk_list_item_new (void);
+
+      item = gtk_list_item_new ();
+      gtk_widget_show (item);
+
+      /* XXX Perhaps add an icon indicating if the device is
+         present but busy (v4l...), or the user has no access permission. */
+
+      if (n->driver && n->label)
+	s = g_strdup_printf ("%s (%s %s)", n->device, n->driver, n->label);
+      else if (n->driver || n->label)
+	s = g_strdup_printf ("%s (%s)", n->device,
+			     n->driver ? n->driver : n->label);
+      else
+	s = g_strdup (n->device);
+
+      label = z_device_entry_label_new (s, 0);
+      g_free (s);
+
+      gtk_container_add (GTK_CONTAINER (item), label);
+      gtk_combo_set_item_string (GTK_COMBO (de->combo), GTK_ITEM (item), n->device);
+      gtk_container_add (GTK_CONTAINER (GTK_COMBO (de->combo)->list), item);
+    }
+
+    gtk_table_attach (GTK_TABLE (de->table), de->combo, 1, 2, 2, 2 + 1,
+  	    GTK_FILL | GTK_EXPAND, 0, 0, 0);
+
+    g_signal_connect (G_OBJECT (GTK_COMBO (de->combo)->entry),
+  	    "changed", G_CALLBACK (on_z_device_entry_changed), de);
+}
+
+static gboolean
+on_z_device_entry_timeout	(gpointer		user_data)
+{
+  z_device_entry *de = user_data;
+  tv_device_node *n;
+  const gchar *s;
+
+  s = gtk_entry_get_text (GTK_ENTRY (GTK_COMBO (de->combo)->entry));
+
+  if (s && s[0])
+    if ((n = de->open_fn (de->table, de->user_data, de->list, s)))
+      {
+	tv_device_node_add (&de->list, n);
+	z_device_entry_relist (de);
+	z_device_entry_select (de, n);
+	return FALSE;
+      }
+
+  z_device_entry_select (de, NULL);
+
+  return FALSE; /* don't call again */
+}
+
+static void
+on_z_device_entry_changed	(GtkEntry *		entry,
+				 gpointer		user_data)
+{
+  z_device_entry *de = user_data;
+  tv_device_node *n;
+  const gchar *s;
+
+  if (de->timeout != ~0)
+    {
+      gtk_timeout_remove (de->timeout);
+      de->timeout = ~0;
+    }
+
+  s = gtk_entry_get_text (entry);
+
+  if (s && s[0])
+    {
+      for (n = de->list; n; n = n->next)
+	if (0 == strcmp (s, n->device))
+	  {
+	    z_device_entry_select (de, n);
+	    return;
+	  }
+
+      z_device_entry_select (de, NULL);
+      
+      de->timeout = gtk_timeout_add (1000 /* ms */,
+				     on_z_device_entry_timeout, de);
+    }
+  else
+    {
+      z_device_entry_select (de, NULL);
+    }
+}
+
+static void
+z_device_entry_table_pair	(z_device_entry *	de,
+				 gint			row,
+				 const char *		label,
+				 GtkWidget *		crank)
+{
+  gtk_table_attach (GTK_TABLE (de->table), z_device_entry_label_new (label, 3),
+		    0, 1, row, row + 1, GTK_FILL, 0, 0, 0);
+  if (crank)
+    {
+      gtk_widget_show (crank);
+      gtk_table_attach (GTK_TABLE (de->table), crank, 1, 2, row, row + 1,
+			GTK_FILL | GTK_EXPAND, 0, 0, 0);
+    }
+}
+
+GtkWidget *
+z_device_entry_new		(const gchar *		prompt,
+				 tv_device_node *	list,
+				 const gchar *		current_device,
+				 z_device_entry_open_fn *open_fn,
+				 z_device_entry_select_fn *select_fn,
+				 void *			user_data)
+{
+  z_device_entry *de;
+
+  g_assert (open_fn != NULL);
+
+  de = g_malloc0 (sizeof (*de));
+
+  de->open_fn = open_fn;
+  de->select_fn = select_fn;
+  de->user_data = user_data;
+
+  de->timeout = ~0;
+
+  de->table = gtk_table_new (3, 2, FALSE);
+  gtk_widget_show (de->table);
+  g_object_set_data_full (G_OBJECT (de->table), "z_device_entry", de,
+			  (GDestroyNotify) z_device_entry_destroy);
+
+  de->device = z_device_entry_label_new ("", 3);
+  de->driver = z_device_entry_label_new ("", 3);
+
+  z_device_entry_table_pair (de, 0, _("Device:"), de->device);
+  z_device_entry_table_pair (de, 1, _("Driver:"), de->driver);
+  z_device_entry_table_pair (de, 2, prompt ? prompt : _("Device file:"), NULL);
+
+  de->list = list;
+
+  z_device_entry_relist (de);
+
+  gtk_entry_set_text (GTK_ENTRY (GTK_COMBO (de->combo)->entry), "");
+
+  if (current_device && current_device[0])
+    gtk_entry_set_text (GTK_ENTRY (GTK_COMBO (de->combo)->entry),
+			current_device);
+  else if (list)
+    gtk_entry_set_text (GTK_ENTRY (GTK_COMBO (de->combo)->entry),
+			list->device);
+
+  return de->table;
+}
+
 /**
  * z_widget_add_accelerator:
  * @widget: 
@@ -1721,6 +2003,11 @@ icon_factory_add_pixdata	(GtkIconFactory *	factory,
 
 #endif
 
+gboolean
+z_icon_factory_add_default_files
+				(const gchar *		stock_id,
+				 const gchar *		filename,
+				 ...);
 gboolean
 z_icon_factory_add_default_files
 				(const gchar *		stock_id,

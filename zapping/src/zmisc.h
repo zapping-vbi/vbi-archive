@@ -506,6 +506,27 @@ z_spinslider_set_reset_value	(GtkWidget *hbox,
 void
 z_spinslider_adjustment_changed	(GtkWidget *hbox);
 
+typedef tv_device_node *
+z_device_entry_open_fn		(GtkWidget *		table,
+				 void *			user_data,
+				 tv_device_node *	list,
+				 const gchar *		entered);
+typedef void
+z_device_entry_select_fn	(GtkWidget *		table,
+				 void *			user_data,
+				 tv_device_node *	n);
+
+/* ATTN maintains & deletes list */
+GtkWidget *
+z_device_entry_new		(const gchar *		prompt,
+				 tv_device_node *	list,
+				 const gchar *		current_device,
+				 z_device_entry_open_fn *open_fn,
+				 z_device_entry_select_fn *select_fn,
+				 void *			user_data);
+tv_device_node *
+z_device_entry_selected		(GtkWidget *		table);
+
 /* Makes the given entry emit the response to the dialog when
    activated */
 void
