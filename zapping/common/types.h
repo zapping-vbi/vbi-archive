@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: types.h,v 1.6.2.2 2003-02-18 07:56:20 mschimek Exp $ */
+/* $Id: types.h,v 1.6.2.3 2003-07-29 03:43:49 mschimek Exp $ */
 
 #ifndef TYPES_H
 #define TYPES_H
@@ -36,8 +36,9 @@ typedef unsigned char z_bool;
  *  a <ptr> to one of its <members>.
  */
 #undef PARENT
-#define PARENT(ptr, type, member) \
-	((type *)(((char *)(ptr)) - offsetof(type, member)))
+#define PARENT(_ptr, _type, _member)					\
+	({ char *_p = (char *)(_ptr); (_p != 0) ?			\
+	  (_type *)(_p - offsetof (_type, _member)) : (_type *) 0; })
 
 /*
  *  Same as libc assert, but also reports the caller.
