@@ -23,7 +23,7 @@ INCLUDES = \
 	-Wwrite-strings -Winline -Wmissing-prototypes \
 	-Wmissing-declarations
 #	-Wpadded -Wconversion
-INCLUDES += -D_REENTRANT -D_XOPEN_SOURCE -D_BSD_SOURCE
+INCLUDES += -D_REENTRANT # -D_XOPEN_SOURCE -D_BSD_SOURCE
 INCLUDES += $(X_CFLAGS) $(UNICODE_CFLAGS)
 
 INSTALLHDRS = \

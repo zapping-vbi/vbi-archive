@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zvbi 0.2.2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-05-01 17:43+0200\n"
+"POT-Creation-Date: 2004-07-15 17:23+0200\n"
 "PO-Revision-Date: 2002-01-08 14:34+0100\n"
 "Last-Translator: Iñaki García Etxebarria <garetxe@users.sourceforge.net>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -15,17 +15,11 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1\n"
 
-#. TRANSLATORS: Title of TOP Index page,
-#. for now please Latin-1 or ASCII only
-#: src/teletext.c:3315
-msgid "TOP Index"
-msgstr "Indice TOP"
-
-#: src/exp-gfx.c:1463
+#: src/exp-gfx.c:1466
 msgid "Correct aspect ratio"
 msgstr "Relación de aspecto correcta"
 
-#: src/exp-gfx.c:1464
+#: src/exp-gfx.c:1467
 msgid ""
 "Approach an image aspect ratio similar to a real TV. This will double the "
 "image size."
@@ -33,47 +27,47 @@ msgstr ""
 "Aproximar una relación de tamaños similar a una TV real, esto duplicará el "
 "tamaño de la imagen."
 
-#: src/exp-gfx.c:1533 src/exp-gfx.c:1778
+#: src/exp-gfx.c:1536 src/exp-gfx.c:1781
 #, c-format
 msgid "Unable to allocate %d KB image buffer."
 msgstr "No se puede reservar un buffer de %d KB."
 
-#: src/exp-gfx.c:1604
+#: src/exp-gfx.c:1607
 msgid "PPM"
 msgstr "PPM"
 
-#: src/exp-gfx.c:1605
+#: src/exp-gfx.c:1608
 msgid "Export this page as raw PPM image"
 msgstr "Exportar la página actual como PPM"
 
-#: src/exp-gfx.c:1769
+#: src/exp-gfx.c:1772
 #, c-format
 msgid "Unable to allocate %d byte buffer."
 msgstr "No se puede reservar un buffer de %d KB."
 
-#: src/exp-gfx.c:1907 src/exp-html.c:520
+#: src/exp-gfx.c:1910 src/exp-html.c:524
 #, c-format
 msgid "Teletext Page %3x.%x"
 msgstr "Página de Teletexto %3x.%x"
 
-#: src/exp-gfx.c:1911 src/exp-html.c:523
+#: src/exp-gfx.c:1914 src/exp-html.c:527
 #, c-format
 msgid "Teletext Page %3x"
 msgstr "Página de Teletexto %3x"
 
-#: src/exp-gfx.c:1973
+#: src/exp-gfx.c:1977
 msgid "PNG"
 msgstr "PNG"
 
-#: src/exp-gfx.c:1974
+#: src/exp-gfx.c:1978
 msgid "Export this page as PNG image"
 msgstr "Exportar la página actual como PNG"
 
-#: src/exp-html.c:98 src/exp-txt.c:127
+#: src/exp-html.c:102 src/exp-txt.c:127
 msgid "Graphics char"
 msgstr "Caracter gráfico"
 
-#: src/exp-html.c:99 src/exp-txt.c:128
+#: src/exp-html.c:103 src/exp-txt.c:128
 msgid ""
 "Replacement for block graphic characters: a single character or decimal (32) "
 "or hex (0x20) code"
@@ -81,43 +75,43 @@ msgstr ""
 "Sustituto para los caracteres gráficos de bloque: un único caracter o un "
 "código decimal (32) o hexadecimal (0x20)"
 
-#: src/exp-html.c:102 src/exp-txt.c:131
+#: src/exp-html.c:106 src/exp-txt.c:131
 #, fuzzy
 msgid "ASCII art"
 msgstr "ASCII"
 
-#: src/exp-html.c:103 src/exp-txt.c:132
+#: src/exp-html.c:107 src/exp-txt.c:132
 msgid "Replace graphic characters by ASCII art"
 msgstr ""
 
-#: src/exp-html.c:105
+#: src/exp-html.c:109
 msgid "Color (CSS)"
 msgstr "Color (CSS)"
 
-#: src/exp-html.c:106
+#: src/exp-html.c:110
 msgid "Store the page colors using CSS attributes"
 msgstr "Guardar los colores de la página utilizando atributos CSS"
 
-#: src/exp-html.c:108
+#: src/exp-html.c:112
 msgid "HTML header"
 msgstr "Cabecera HTML"
 
-#: src/exp-html.c:109
+#: src/exp-html.c:113
 msgid "Include HTML page header"
 msgstr "Incluir la cabecera de la página HTML"
 
 #. TRANSLATORS: "lang=\"en\" refers to the page title
 #. "Teletext Page ...". Please specify "de", "fr", "es"
 #. etc.
-#: src/exp-html.c:509
+#: src/exp-html.c:513
 msgid "<title lang=\"en\">"
 msgstr "<title lang=\"es\">"
 
-#: src/exp-html.c:818
+#: src/exp-html.c:835
 msgid "HTML"
 msgstr "HTML"
 
-#: src/exp-html.c:819
+#: src/exp-html.c:836
 msgid "Export this page as HTML page"
 msgstr "Exportar la página actual como HTML"
 
@@ -196,23 +190,23 @@ msgstr "Texto"
 msgid "Export this page as text file"
 msgstr "Exportar la página actual como texto"
 
-#: src/exp-vtx.c:74
+#: src/exp-vtx.c:75
 msgid "Can only export Teletext pages."
 msgstr "Sólo se pueden exportar páginas de Teletexto."
 
-#: src/exp-vtx.c:86
+#: src/exp-vtx.c:82
 msgid "Page is not cached, sorry."
 msgstr "La página no está en la caché, lo siento."
 
-#: src/exp-vtx.c:95
+#: src/exp-vtx.c:91
 msgid "Cannot export this page, not displayable."
 msgstr "No se puede exportar esta página, no se puede mostrar"
 
-#: src/exp-vtx.c:136
+#: src/exp-vtx.c:128
 msgid "VTX"
 msgstr "VTX"
 
-#: src/exp-vtx.c:137
+#: src/exp-vtx.c:129
 msgid ""
 "Export this page as VTX file, the format used by VideoteXt and vbidecode"
 msgstr ""
@@ -446,6 +440,9 @@ msgstr "No se puede establecer o determinar el estándar actual de %s (%s)."
 #: src/io-v4l.c:919 src/io-v4l.c:929
 msgid "V4L interface not compiled."
 msgstr "Interfaz V4L no compilado."
+
+#~ msgid "TOP Index"
+#~ msgstr "Indice TOP"
 
 #~ msgid "Character conversion Unicode (UCS-2) to %s not supported."
 #~ msgstr "Conversión de caracter Unicode (UCS-2) -> %s no soportada."

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bit_slicer.c,v 1.1.2.6 2004-07-09 16:10:51 mschimek Exp $ */
+/* $Id: bit_slicer.c,v 1.1.2.7 2004-07-16 00:08:18 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -555,8 +555,8 @@ _vbi_bit_slicer_init		(vbi_bit_slicer *	bs,
 		> (samples_per_line - sample_offset))) {
 		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"%u samples_per_line too small for "
-				"sample_offset %u + cri_bits %u (%u samples) "
-				"+ frc_bits %u and payload_bits %u "
+				"sample_offset %u + %u cri_bits (%u samples) "
+				"+ %u frc_bits and %u payload_bits "
 				"(%u samples)\n",
 				samples_per_line, sample_offset,
 				cri_bits, cri_samples,

@@ -112,15 +112,13 @@ ttx_next(void)
 }
 
 static void
-read_sim(uint8_t *raw_data, vbi_sliced *sliced_data,
+read_sim(uint8_t *raw_data, unsigned int raw_size, vbi_sliced *sliced_data,
 	 int *lines, double *timestamp)
 {
 	vbi_sliced sliced[50];
 	int j;
 
-	memset (raw_data, 0,
-		(_sp.count[0] + _sp.count[1])
-		* _sp.bytes_per_line);
+	memset (raw_data, 0, raw_size);
 
 	*timestamp = sim_time;
 
@@ -231,7 +229,7 @@ read_sim(uint8_t *raw_data, vbi_sliced *sliced_data,
 		}
 	}
 
-	_vbi_test_image_vbi (raw_data, 0, &_sp, sliced, j);
+	_vbi_test_image_vbi (raw_data, raw_size, &_sp, sliced, j);
 
 	*lines = vbi_raw_decoder_decode (_rd, sliced_data,
 					 /* FIXME */ 50, raw_data);

@@ -18,12 +18,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: intl-priv.h,v 1.1.2.1 2004-03-31 00:41:34 mschimek Exp $ */
+/* $Id: intl-priv.h,v 1.1.2.2 2004-07-16 00:08:18 mschimek Exp $ */
 
 #ifndef INTL_PRIV_H
 #define INTL_PRIV_H
-
-#include "../config.h"
 
 #include "intl.h"
 

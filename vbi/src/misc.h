@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.2.2.12 2004-07-09 16:10:52 mschimek Exp $ */
+/* $Id: misc.h,v 1.2.2.13 2004-07-16 00:08:18 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
@@ -189,26 +189,26 @@ vbi_log_printf			(const char *		function,
 #define COPY(d, s) /* useful to copy arrays, otherwise use assignment */ \
 	(assert (sizeof (d) == sizeof (s)), memcpy (d, s, sizeof (d)))
 
-/* Use this instead of strncpy(). */
+/* Use this instead of strncpy(), is a BSD/GNU extension.*/
 #ifdef HAVE_STRLCPY
-#  define vbi_strlcpy(d, s, size) strlcpy (d, s, size)
+#  define _vbi_strlcpy(d, s, size) strlcpy (d, s, size)
 #else
 extern size_t
-vbi_strlcpy			(char *			d,
+_vbi_strlcpy			(char *			d,
 				 const char *		s,
 				 size_t			size);
 #endif
 
-/* strndup is a GNU extension. */
+/* strndup is a BSD/GNU extension. */
 #ifdef HAVE_STRNDUP
-#  define vbi_strndup(s, size) strndup (s, size)
+#  define _vbi_strndup(s, size) strndup (s, size)
 #else
 extern char *
-vbi_strndup			(const char *		s,
+_vbi_strndup			(const char *		s,
 				 size_t			size);
 #endif
 
-#define STRCOPY(d, s) (vbi_strlcpy (d, s, sizeof (d)) < sizeof (d))
+#define STRCOPY(d, s) (_vbi_strlcpy (d, s, sizeof (d)) < sizeof (d))
 
 /* Copy bits through mask. */
 #define COPY_SET_MASK(to, from, mask)					\

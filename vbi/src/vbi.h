@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.h,v 1.5.2.15 2004-07-09 16:10:54 mschimek Exp $ */
+/* $Id: vbi.h,v 1.5.2.16 2004-07-16 00:08:19 mschimek Exp $ */
 
 #ifndef VBI_H
 #define VBI_H
@@ -51,10 +51,9 @@ extern void
 vbi_set_log_fn			(vbi_log_fn *		function,
 				 void *			user_data);
 
-/* Private */
 extern void
 _vbi_asprintf			(char **		errstr,
-				 char *			templ,
+				 const char *		templ,
 				 ...);
 
 VBI_END_DECLS

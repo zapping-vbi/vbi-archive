@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-bktr.c,v 1.2.2.7 2004-05-12 01:40:44 mschimek Exp $";
+static char rcsid[] = "$Id: io-bktr.c,v 1.2.2.8 2004-07-16 00:08:18 mschimek Exp $";
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -263,7 +263,7 @@ vbi_capture_bktr_new		(const char *		dev_name,
 
 	printv("Guessed videostandard %d\n", v->dec.scanning);
 
-	v->dec.sampling_format = VBI_PIXFMT_YUV420;
+	v->dec.sampling_format = VBI_PIXFMT_Y8;
 
 	if (*services & ~(VBI_SLICED_VBI_525 | VBI_SLICED_VBI_625)) {
 		*services = vbi_raw_decoder_add_services (&v->dec, *services, strict);

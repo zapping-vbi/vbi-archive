@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.c,v 1.1.2.8 2004-07-09 16:10:53 mschimek Exp $ */
+/* $Id: pdc.c,v 1.1.2.9 2004-07-16 00:08:18 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -69,6 +69,7 @@ _vbi_pil_dump			(vbi_pil		pil,
 			 VBI_PIL_DAY (pil),
 			 VBI_PIL_HOUR (pil),
 			 VBI_PIL_MINUTE (pil));
+		break;
 	}
 }
 

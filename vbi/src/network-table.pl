@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: network-table.pl,v 1.1.2.1 2004-07-09 16:16:29 mschimek Exp $
+# $Id: network-table.pl,v 1.1.2.2 2004-07-16 00:08:18 mschimek Exp $
 
 use strict;
 use XML::Simple;   # http://search.cpan.org/search?query=XML::Simple

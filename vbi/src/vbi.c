@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.6.2.18 2004-07-09 16:10:54 mschimek Exp $ */
+/* $Id: vbi.c,v 1.6.2.19 2004-07-16 00:08:19 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -114,12 +114,14 @@ vbi_version			(unsigned int *		major,
 		+ (VBI_VERSION_MICRO << 0));
 }
 
+#ifndef HAVE_STRLCPY
+
 /**
  * @internal
  * strlcpy() is a BSD/GNU extension.
  */
 size_t
-vbi_strlcpy			(char *			dst1,
+_vbi_strlcpy			(char *			dst1,
 				 const char *		src,
 				 size_t			size)
 {
@@ -138,12 +140,16 @@ vbi_strlcpy			(char *			dst1,
 	return dst - dst1;
 }
 
+#endif /* !HAVE_STRLCPY */
+
+#ifndef HAVE_STRNDUP
+
 /**
  * @internal
  * strndup() is a BSD/GNU extension.
  */
 char *
-vbi_strndup			(const char *		s,
+_vbi_strndup			(const char *		s,
 				 size_t			len)
 {
 	size_t n;
@@ -162,12 +168,14 @@ vbi_strndup			(const char *		s,
 	return r;
 }
 
+#endif /* !HAVE_STRNDUP */
+
 /**
  * @internal
  * asprintf() is a GNU extension.
  */
 void
-_vbi_asprintf(char **errstr, char *templ, ...)
+_vbi_asprintf(char **errstr, const char *templ, ...)
 {
 	char buf[512];
 	va_list ap;

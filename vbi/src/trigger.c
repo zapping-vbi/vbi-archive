@@ -18,13 +18,15 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: trigger.c,v 1.4.2.6 2004-07-09 16:10:54 mschimek Exp $ */
+/* $Id: trigger.c,v 1.4.2.7 2004-07-16 00:08:19 mschimek Exp $ */
 
 /*
    Based on EACEM TP 14-99-16 "Data Broadcasting", rev 0.8;
    ATVEF "Enhanced Content Specification", v1.1 (www.atvef.com);
    and http://developer.webtv.net
  */
+
+#include "../config.h"
 
 #include <stdio.h>		/* FILE */
 #include <stdlib.h>		/* malloc() */
@@ -34,7 +36,7 @@
 #include <limits.h>		/* INT_MAX */
 #include <math.h>		/* fabs() */
 #include "conv.h"		/* _vbi_strdup_locale_utf8() */
-#include "misc.h"		/* CLEAR(), strndup() */
+#include "misc.h"		/* CLEAR(), _vbi_strndup() */
 #include "trigger.h"
 
 struct _vbi_trigger {
@@ -378,7 +380,7 @@ _vbi_trigger_from_eacem		(_vbi_trigger *		t,
 					goto failure;
 			}
 
-			t->link.url = vbi_strndup (begin + 1, s - begin - 1);
+			t->link.url = _vbi_strndup (begin + 1, s - begin - 1);
 			if (!t->link.url)
 				goto failure;
 
@@ -582,7 +584,7 @@ _vbi_trigger_from_atvef		(_vbi_trigger *		t,
 					goto failure;
 			}
 
-			t->link.url = vbi_strndup (begin + 1, s - begin - 1);
+			t->link.url = _vbi_strndup (begin + 1, s - begin - 1);
 			if (!t->link.url)
 				goto failure;
 

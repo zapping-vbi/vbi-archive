@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext.c,v 1.7.2.17 2004-07-09 16:10:54 mschimek Exp $ */
+/* $Id: teletext.c,v 1.7.2.18 2004-07-16 00:08:18 mschimek Exp $ */
 
 #include "../config.h"
 #include "site_def.h"
@@ -2729,9 +2729,9 @@ keyword				(vbi_link *		ld,
 				return FALSE;
 
 			strcpy (url, "mailto:");
-			vbi_strlcpy (url + 7, s1 - recipient, recipient);
+			_vbi_strlcpy (url + 7, s1 - recipient, recipient);
 			url[recipient + 7] = '@';
-			vbi_strlcpy (url + recipient + 7, s1 + len, address);
+			_vbi_strlcpy (url + recipient + 7, s1 + len, address);
 
 			vbi_link_init (ld);
 
@@ -2750,7 +2750,7 @@ keyword				(vbi_link *		ld,
 				return FALSE;
 
 			strcpy (url, proto);
-			vbi_strlcpy (url + plen, buf + *start, len);
+			_vbi_strlcpy (url + plen, buf + *start, len);
 
 			vbi_link_init (ld);
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: wss.c,v 1.2.2.2 2004-07-09 16:10:54 mschimek Exp $ */
+/* $Id: wss.c,v 1.2.2.3 2004-07-16 00:08:19 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -125,7 +125,7 @@ void
 _vbi_aspect_ratio_dump		(const vbi_aspect_ratio *ar,
 				 FILE *			fp)
 {
-	fprintf (fp, "active=%u-%u,%u-%u ratio=%f film=%u sub=%s,%s",
+	fprintf (fp, "active=%u-%u,%u-%u ratio=%f film=%u subt=%s,%s",
 		 ar->start[0], ar->start[0] + ar->count[0] - 1,
 		 ar->start[1], ar->start[1] + ar->count[1] - 1,
 		 ar->ratio, ar->film_mode,

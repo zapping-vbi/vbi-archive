@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: network.c,v 1.1.2.7 2004-07-09 16:10:52 mschimek Exp $ */
+/* $Id: network.c,v 1.1.2.8 2004-07-16 00:08:18 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -421,9 +421,9 @@ vbi_network_set_cni		(vbi_network *		nk,
 	if (0 == nk->country_code[0]) {
 		assert (p->country < N_ELEMENTS (country_table));
 
-		vbi_strlcpy (nk->country_code,
-			     country_table[p->country].country_code,
-			     sizeof (nk->country_code));
+		_vbi_strlcpy (nk->country_code,
+			      country_table[p->country].country_code,
+			      sizeof (nk->country_code));
 	}
 
 	return TRUE;
@@ -438,7 +438,7 @@ vbi_network_set_call_sign	(vbi_network *		nk,
 	assert (NULL != nk);
 	assert (NULL != call_sign);
 
-	vbi_strlcpy (nk->call_sign, call_sign, sizeof (nk->call_sign));
+	_vbi_strlcpy (nk->call_sign, call_sign, sizeof (nk->call_sign));
 
 	if (0 == nk->country_code[0]) {
 		const char *country_code;
@@ -489,9 +489,9 @@ vbi_network_set_call_sign	(vbi_network *		nk,
 			break;
 		}
 
-		vbi_strlcpy (nk->country_code,
-			     country_code,
-			     sizeof (nk->country_code));
+		_vbi_strlcpy (nk->country_code,
+			      country_code,
+			      sizeof (nk->country_code));
 	}
 
 	return TRUE;

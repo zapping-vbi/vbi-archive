@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: capture.c,v 1.7.2.6 2004-07-09 16:10:55 mschimek Exp $ */
+/* $Id: capture.c,v 1.7.2.7 2004-07-16 00:08:19 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -297,7 +297,8 @@ mainloop(void)
 		int r;
 
 		if (do_sim) {
-			read_sim(raw, sliced, &lines, &timestamp);
+			read_sim(raw, src_w * src_h,
+				 sliced, &lines, &timestamp);
 			r = 1;
 		} else if (do_read) {
 			r = vbi_capture_read(cap, raw, sliced,
@@ -479,7 +480,7 @@ main(int argc, char **argv)
 
 	vbi_raw_decoder_get_sampling_par (rd, &sp);
 
-	assert (sp.sampling_format == VBI_PIXFMT_YUV420);
+	assert (sp.sampling_format == VBI_PIXFMT_Y8);
 
 	src_w = sp.bytes_per_line / 1;
 	src_h = sp.count[0] + sp.count[1];
