@@ -24,6 +24,8 @@
   This file is separated so zapping doesn't need to know about V4L[2]
 */
 
+#include "../site_def.h"
+
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
@@ -35,6 +37,7 @@
 #include <X11/Xutil.h>
 #include <ctype.h>
 #include <assert.h>
+#include <dirent.h>
 
 /* This undef's are to avoid a couple of header warnings */
 #undef WNOHANG
@@ -79,12 +82,14 @@ do {									\
 
 /* for xv */
 struct control {
-  tv_dev_control	dev;
+  tv_control		pub;
+  tveng_device_info *	info;
   Atom			atom;
+  tv_mixer_line *	line;
+  tv_callback_node *	line_cb;
 };
 
-#define C(l) PARENT (l, struct control, dev)
-#define CC(l) PARENT (l, struct control, dev.pub)
+#define C(l) PARENT (l, struct control, pub)
 
 typedef void (*tveng_controller)(struct tveng_module_info *info);
 static tveng_controller tveng_controllers[] = {
@@ -94,6 +99,15 @@ static tveng_controller tveng_controllers[] = {
   tveng1_init_module,
   tvengemu_init_module
 };
+
+/*
+static void
+deref_callback			(void *			object,
+				 void *			user_data)
+{
+	*((void **) user_data) = NULL;
+}
+*/
 
 /* Initializes a tveng_device_info object */
 tveng_device_info * tveng_device_info_new(Display * display, int bpp)
@@ -109,7 +123,7 @@ tveng_device_info * tveng_device_info_new(Display * display, int bpp)
        i++)
     {
       tveng_controllers[i](&module_info);
-      needed_mem = MAX(needed_mem, module_info.private_size);
+      needed_mem = MAX(needed_mem, (size_t) module_info.private_size);
     }
 
   t_assert(needed_mem > 0);
@@ -185,12 +199,6 @@ void tveng_device_info_destroy(tveng_device_info * info)
   free(info);
 }
 
-static void
-deref_callback			(void *			object,
-				 void *			user_data)
-{
-	*((void **) user_data) = NULL;
-}
 
 /*
   Associates the given tveng_device_info with the given video
@@ -267,12 +275,21 @@ int tveng_attach_device(const char* device_file,
   {
     info->priv->control_mute = NULL;
     info->audio_mutable = 0;
+
+    /* Add mixer controls */
+    /* XXX the mixer_line should be property of a virtual
+       device, but until we're there... */
+    if (mixer && mixer_line)
+      tveng_attach_mixer_line (info, mixer, mixer_line);
+
     num_controls = 0;
 
     for (tc = info->controls; tc; tc = tc->next) {
-      if (tc->id == TV_CONTROL_ID_MUTE && info->priv->control_mute == NULL) {
-	if (tv_control_callback_add (tc, NULL, (void *) deref_callback,
-				     &info->priv->control_mute))
+      if (tc->id == TV_CONTROL_ID_MUTE
+	  && (!tc->ignore)
+	  && info->priv->control_mute == NULL) {
+	//	if (tv_control_callback_add (tc, NULL, (void *) deref_callback,
+	//			     &info->priv->control_mute))
 	  {
 	    info->priv->control_mute = tc;
 	    info->audio_mutable = 1; /* preliminary */
@@ -417,8 +434,13 @@ void tveng_close_device(tveng_device_info * info)
 
   tveng_stop_everything(info);
 
+  /* remove mixer controls */
+  tveng_attach_mixer_line (info, NULL, NULL);
+
   if (info->priv->module.close_device)
     info->priv->module.close_device(info);
+
+  info->priv->control_mute = NULL;
 
   UNTVLOCK;
 }
@@ -823,17 +845,13 @@ XX();
 
 tv_callback_node *
 tv_control_callback_add		(tv_control *		control,
-				 tv_bool		(* notify)(tv_control *, void *user_data),
+				 void			(* notify)(tv_control *, void *user_data),
 				 void			(* destroy)(tv_control *, void *user_data),
 				 void *			user_data)
 {
-	tv_dev_control *tdc;
+	t_assert (control != NULL);
 
-	assert (control != NULL);
-
-	tdc = PARENT (control, tv_dev_control, pub);
-
-	return tv_callback_add (&tdc->callback,
+	return tv_callback_add (&control->_callback,
 				(void *) notify,
 				(void *) destroy,
 				user_data);
@@ -842,66 +860,97 @@ tv_control_callback_add		(tv_control *		control,
 static int
 update_xv_control (tveng_device_info * info, struct control *c)
 {
-#ifdef USE_XV
-      if ((c->atom == info->priv->filter) &&
-	  (info->priv->port != None))
-	{
-	  XvGetPortAttribute(info->priv->display,
-			     info->priv->port,
-			     info->priv->filter,
-			     &c->dev.pub.value);
-	}
-      else if ((c->atom == info->priv->double_buffer) &&
-	       (info->priv->port))
-	{
-	  XvGetPortAttribute(info->priv->display,
-			     info->priv->port,
-			     info->priv->double_buffer,
-			     &c->dev.pub.value);
-	}
-      else if ((c->atom == info->priv->colorkey) &&
-	       (info->priv->port != None))
-	{
-	  int r,g,b, val;
-	  int rm=0xff, gm=0xff, bm=0xff, rs=16, gs=8, bs=0; /* masks, shifts */
-	  XvGetPortAttribute(info->priv->display,
-			     info->priv->port,
-			     info->priv->colorkey,
-			     &(val));
-	  /* Adjust colorkey to the current pixformat */
-	  switch (info->priv->current_bpp)
-	    {
-	    case 15:
-	      rm = gm = bm = 0xf8;
-	      rs = 7; gs = 2; bs = -3;
-	      break;
-	    case 16:
-	      rm = bm = 0xf8; gm = 0xfc;
-	      rs = 8; gs = 3; bs = -3;
-	      break;
-	    default:
-	      break;
-	    }
-	  if (rs > 0)
-	    r = val >> rs;
-	  else
-	    r = val << -rs;
-	  r &= rm;
-	  if (gs > 0)
-	    g = val >> gs;
-	  else
-	    g = val << -gs;
-	  g &= gm;
-	  if (bs > 0)
-	    b = val >> bs;
-	  else
-	    b = val << -bs;
-	  b &= bm;
-	  c->dev.pub.value = (r<<16)+(g<<8)+b;
-	}
-#endif
+  int value;
 
+  if (c->pub.id == TV_CONTROL_ID_VOLUME
+      || c->pub.id == TV_CONTROL_ID_MUTE)
+    {
+      tv_mixer_line *line;
+
+      line = c->line;
+      t_assert (line != NULL);
+
+      if (!tv_mixer_line_update (line))
+	return -1;
+
+      if (c->pub.id == TV_CONTROL_ID_VOLUME)
+	value = (line->volume[0] + line->volume[1] + 1) >> 1;
+      else
+	value = !!(line->muted);
+    }
+
+#ifdef USE_XV
+  else if ((c->atom == info->priv->filter) &&
+	   (info->priv->port != None))
+    {
+      XvGetPortAttribute(info->priv->display,
+			 info->priv->port,
+			 info->priv->filter,
+			 &value);
+    }
+  else if ((c->atom == info->priv->double_buffer) &&
+	   (info->priv->port != None))
+    {
+      XvGetPortAttribute(info->priv->display,
+			 info->priv->port,
+			 info->priv->double_buffer,
+			 &value);
+    }
+  else if ((c->atom == info->priv->colorkey) &&
+	   (info->priv->port != None))
+    {
+      int r,g,b, val;
+      int rm=0xff, gm=0xff, bm=0xff, rs=16, gs=8, bs=0; /* masks, shifts */
+
+      XvGetPortAttribute(info->priv->display,
+			 info->priv->port,
+			 info->priv->colorkey,
+			 &(val));
+
+      /* Adjust colorkey to the current pixformat */
+      switch (info->priv->current_bpp)
+	{
+	case 15:
+	  rm = gm = bm = 0xf8;
+	  rs = 7; gs = 2; bs = -3;
+	  break;
+	case 16:
+	  rm = bm = 0xf8; gm = 0xfc;
+	  rs = 8; gs = 3; bs = -3;
+	  break;
+	default:
+	  break;
+	}
+      if (rs > 0)
+	r = val >> rs;
+      else
+	r = val << -rs;
+      r &= rm;
+      if (gs > 0)
+	g = val >> gs;
+      else
+	g = val << -gs;
+      g &= gm;
+      if (bs > 0)
+	b = val >> bs;
+      else
+	b = val << -bs;
+      b &= bm;
+      value = (r<<16)+(g<<8)+b;
+    }
+#endif
+  else
+    {
       return 0;
+    }
+
+  if (c->pub.value != value)
+    {
+      c->pub.value = value;
+      tv_callback_notify (&c->pub, c->pub._callback);
+    }
+
+  return 0;
 }
 
 int
@@ -914,16 +963,16 @@ tveng_update_control(tv_control *control,
 
   TVLOCK;
 
-  if (CC(control)->dev.device == NULL /* TVENG_CONTROLLER_MOTHER */) {
-    update_xv_control (info, CC(control));
-    UNTVLOCK;
-    return 0;
-  }
-
-  info = CC(control)->dev.device; /* XXX */
+  if (info->priv->quiet)
+    if (control->id == TV_CONTROL_ID_MUTE
+	|| control->id == TV_CONTROL_ID_VOLUME)
+      RETURN_UNTVLOCK (0);
+  
+  if (control->_device == NULL /* TVENG_CONTROLLER_MOTHER */)
+    RETURN_UNTVLOCK (update_xv_control (info, C(control)));
 
   if (info->priv->module.update_control)
-    RETURN_UNTVLOCK(info->priv->module.update_control (info, &CC(control)->dev));
+    RETURN_UNTVLOCK(info->priv->module.update_control (info, control));
 
   TVUNSUPPORTED;
   UNTVLOCK;
@@ -940,10 +989,12 @@ tveng_update_controls(tveng_device_info * info)
 
   TVLOCK;
 
+  /* FIXME quiet */
+
   /* Update the controls we maintain */
   for (tc = info->controls; tc; tc = tc->next)
-    if (CC(tc)->dev.device == NULL /* TVENG_CONTROLLER_MOTHER */)
-      update_xv_control (info, CC(tc));
+    if (tc->_device == NULL /* TVENG_CONTROLLER_MOTHER */)
+      update_xv_control (info, C(tc));
 
   if (info->priv->module.update_control)
     RETURN_UNTVLOCK(info->priv->module.update_control (info, NULL) ? 0 : -1);
@@ -954,40 +1005,81 @@ tveng_update_controls(tveng_device_info * info)
 }
 
 /*
-  Sets the value for an specific control. The given value will be
-  clipped between min and max values. Returns -1 on error
-*/
-int
-tveng_set_control(tv_control * control, int value,
-		  tveng_device_info * info)
+ *  When setting the mixer volume we must ensure the
+ *  video device is unmuted and volume at maximum.
+ */
+static void
+reset_video_volume		(tveng_device_info *	info,
+				 guint			mute)
 {
-  struct control *c;
+  tv_control *tc;
 
-  t_assert(info != NULL);
-  t_assert(control != NULL);
-  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
-
-  TVLOCK;
-
-  c = CC(control);
-
-  if (value < control->minimum)
-    value = control->minimum;
-  else if (value > control->maximum)
-    value = control->maximum;
-
-  if (c->dev.device == NULL /* TVENG_CONTROLLER_MOTHER */)
+  for (tc = info->controls; tc; tc = tc->next)
     {
+      if (tc->_device != NULL)
+	switch (tc->id)
+	  {
+	  case TV_CONTROL_ID_VOLUME:
+	    if (info->priv->module.set_control)
+	      /* Error ignored */
+	      info->priv->module.set_control (info, tc, tc->maximum);
+	    break;
+
+	  case TV_CONTROL_ID_MUTE:
+	    if (info->priv->module.set_control)
+	      /* Error ignored */
+	      info->priv->module.set_control (info, tc, mute);
+	    break;
+
+	  default:
+	    break;
+	  }
+    }
+} 
+
+static int
+set_control			(struct control * c, int value,
+				 tv_bool rvv,
+				 tveng_device_info * info)
+{
+  int r = 0;
+
+  if (value < c->pub.minimum)
+    value = c->pub.minimum;
+  else if (value > c->pub.maximum)
+    value = c->pub.maximum;
+
+  if (info->priv->quiet)
+    if (c->pub.id == TV_CONTROL_ID_VOLUME
+	|| c->pub.id == TV_CONTROL_ID_MUTE)
+      goto set_and_notify;
+
+  if (c->pub._device == NULL /* TVENG_CONTROLLER_MOTHER */)
+    {
+      if (c->pub.id == TV_CONTROL_ID_VOLUME)
+	{
+	  t_assert (c->line != NULL);
+	  r = tv_mixer_line_set_volume (c->line, value, value) ? 0 : -1;
+	  if (rvv)
+	    reset_video_volume (info, 0);
+	  value = (c->line->volume[0] + c->line->volume[1] + 1) >> 1;
+	}
+      else if (c->pub.id == TV_CONTROL_ID_MUTE)
+	{
+	  t_assert (c->line != NULL);
+	  r = tv_mixer_line_set_mute (c->line, value) ? 0 : -1;
+	  if (!value && rvv)
+	    reset_video_volume (info, 0);
+	  value = c->line->muted;
+	}
 #ifdef USE_XV
-      if ((c->atom == info->priv->filter) &&
+      else if ((c->atom == info->priv->filter) &&
 	  (info->priv->port != None))
 	{
 	  XvSetPortAttribute(info->priv->display,
 			     info->priv->port,
 			     info->priv->filter,
 			     value);
-	  UNTVLOCK;
-	  return 0;
 	}
       else if ((c->atom == info->priv->double_buffer) &&
 	       (info->priv->port != None))
@@ -996,8 +1088,6 @@ tveng_set_control(tv_control * control, int value,
 			     info->priv->port,
 			     info->priv->double_buffer,
 			     value);
-	  UNTVLOCK;
-	  return 0;
 	}
       else if ((c->atom == info->priv->colorkey) &&
 	       (info->priv->port != None))
@@ -1038,25 +1128,48 @@ tveng_set_control(tv_control * control, int value,
 			     info->priv->port,
 			     info->priv->colorkey,
 			     value);
-	  UNTVLOCK;
-	  return 0;
 	}
       else
 #endif
 	{
-	  assert (0);
+	  t_assert (0);
 	  return -1;
 	}
+
+    set_and_notify:
+      if (c->pub.value != value)
+	{
+	  c->pub.value = value;
+	  tv_callback_notify (&c->pub, c->pub._callback);
+	}
+
+      return r;
     }
 
-  info = c->dev.device; /* XXX */
+  info = c->pub._device; /* XXX */
 
   if (info->priv->module.set_control)
-    RETURN_UNTVLOCK (info->priv->module.set_control (info, &c->dev, value) ? 0 : -1);
+    return info->priv->module.set_control (info, &c->pub, value) ? 0 : -1;
 
   TVUNSUPPORTED;
-  UNTVLOCK;
+
   return -1;
+}
+
+/*
+  Sets the value for a specific control. The given value will be
+  clipped between min and max values. Returns -1 on error
+*/
+int
+tveng_set_control(tv_control * control, int value,
+		  tveng_device_info * info)
+{
+  t_assert(info != NULL);
+  t_assert(control != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
+  TVLOCK;
+  RETURN_UNTVLOCK (set_control (C(control), value, TRUE, info));
 }
 
 /*
@@ -1141,13 +1254,14 @@ tveng_set_control_by_name(const char * control_name,
   Gets the value of a control, given its control id. -1 on error (or
   cid not found). The result is stored in cur_value.
 */
+#if 0
 int
 tveng_get_control_by_id(int cid, int * cur_value,
 			tveng_device_info * info)
 {
-  assert (0);
+  t_assert (0);
 
-#if 0
+
   int i;
   int value;
   tv_dev_control *tc;
@@ -1180,19 +1294,20 @@ tveng_get_control_by_id(int cid, int * cur_value,
 	      "Cannot find control %d in the list of controls",
 	      info, cid);
   UNTVLOCK;
-#endif
+
   return -1;
 }
-
+#endif
 /*
   Sets a control by its id. Returns -1 on error
 */
+#if 0
 int tveng_set_control_by_id(int cid, int new_value,
 			    tveng_device_info * info)
 {
-  assert (0);
+  t_assert (0);
 
-#if 0
+
   int i;
   tv_dev_control *tc;
 
@@ -1212,65 +1327,429 @@ int tveng_set_control_by_id(int cid, int new_value,
 	      "Cannot find control %d in the list of controls",
 	      info, cid);
   UNTVLOCK;
+
+  return -1;
+}
 #endif
-  return -1;
+
+/*
+ *  AUDIO ROUTINES
+ */
+
+#ifndef TVENG_MIXER_VOLUME_DEBUG
+#define TVENG_MIXER_VOLUME_DEBUG 0
+#endif
+
+/*
+ *  This is a mixer control. Notify when the underlying
+ *  mixer line changes.
+ */
+static void
+mixer_line_notify_cb		(tv_mixer_line *	line,
+				 void *			user_data)
+{
+  struct control *c = user_data;
+  tv_control *tc;
+  int value;
+
+  t_assert (line == c->line);
+
+  tc = &c->pub;
+
+  if (tc->id == TV_CONTROL_ID_VOLUME)
+    {
+      tc->minimum = line->minimum;
+      tc->maximum = line->maximum;
+      tc->step = line->step;
+      tc->reset = line->reset;
+
+      value = (line->volume[0] + line->volume[1] + 1) >> 1;
+    }
+  else /* TV_CONTROL_ID_MUTE */
+    {
+      tc->reset = 0;
+      tc->minimum = 0;
+      tc->maximum = 1;
+      tc->step = 1;
+
+      value = line->muted;
+    }
+
+  if (!c->info->priv->quiet)
+    {
+      tc->value = value;
+      tv_callback_notify (tc, tc->_callback);
+    }
 }
 
 /*
-  Gets the value of the mute property. 1 means mute (no sound) and 0
-  unmute (sound). -1 on error
-*/
-int
-tveng_get_mute(tveng_device_info * info)
+ *  This is a mixer control. When the underlying mixer line
+ *  disappears, remove the control and make the corresponding
+ *  video device control visible again.
+ *
+ *  XXX c->info->priv->quiet?
+ */
+static void
+mixer_line_destroy_cb		(tv_mixer_line *	line,
+				 void *			user_data)
+{
+  struct control *c = user_data;
+  tv_control *tc, **tcp;
+  tv_control_id id;
+
+  t_assert (line == c->line);
+
+  id = c->pub.id;
+
+  if (id == TV_CONTROL_ID_MUTE)
+    {
+      c->info->priv->control_mute = NULL;
+      c->info->audio_mutable = 0; /* preliminary */
+    }
+
+  for (tcp = &c->info->controls; (tc = *tcp);)
+    {
+      if (tc == &c->pub)
+	{
+	  tv_callback_destroy (tc, &tc->_callback);
+	  *tcp = tc->next;
+	  free (tc);
+	  continue;
+	}
+      else if (tc->id == id)
+	{
+	  tc->ignore = FALSE;
+
+	  if (id == TV_CONTROL_ID_MUTE)
+	    {
+	      c->info->priv->control_mute = tc;
+	      c->info->audio_mutable = 1; /* preliminary */
+	    }
+	}
+
+      tcp = &tc->next;
+    }
+}
+
+/*
+ *  When line != NULL this adds a mixer control, hiding the
+ *  corresponding video device (volume or mute) control.
+ *  When line == NULL the old state is restored.
+ */
+static void
+mixer_replace			(tveng_device_info *	info,
+				 tv_mixer_line *	line,
+				 tv_control_id		id)
+{
+  tv_control *tc, **tcp, *orig;
+  tv_bool done = FALSE;
+  struct control *c;
+
+  orig = NULL;
+
+  for (tcp = &info->controls; (tc = *tcp);)
+    {
+      if (tc->id == id)
+	{
+	  if (tc->_device == NULL)
+	    {
+	      struct control *c = PARENT (tc, struct control, pub);
+
+	      if (line)
+		{
+		  /* Replace mixer line */
+
+		  tv_callback_remove (c->line_cb);
+
+		  c->line = line;
+
+		  c->line_cb = tv_mixer_line_callback_add
+		    (line, mixer_line_notify_cb,
+		     mixer_line_destroy_cb, c);
+		  t_assert (c->line_cb != NULL); /* XXX */
+
+		  mixer_line_notify_cb (line, c);
+
+		  done = TRUE;
+		}
+	      else
+		{
+		  /* Remove mixer line & control */
+
+		  tv_callback_destroy (tc, &tc->_callback);
+		  tv_callback_remove (c->line_cb);
+
+		  *tcp = tc->next;
+		  free (tc);
+
+		  done = TRUE;
+		  continue;
+		}
+	    }
+	  else /* video device control */
+	    {
+	      if (!TVENG_MIXER_VOLUME_DEBUG)
+		tc->ignore = (line != NULL);
+
+	      orig = tc;
+	    }
+	}
+
+      tcp = &tc->next;
+    }
+
+  if (done || !line)
+    return;
+
+  /* Add mixer control */
+
+  c = calloc (1, sizeof (*c));
+  t_assert (c != NULL); /* XXX */
+
+  c->pub.id = id;
+
+  if (id == TV_CONTROL_ID_VOLUME)
+    {
+      c->pub.type = TV_CONTROL_TYPE_INTEGER;
+      if (TVENG_MIXER_VOLUME_DEBUG)
+	c->pub.label = "Mixer volume";
+      else
+	c->pub.label = _("Volume");
+    }
+  else
+    {
+      c->pub.type = TV_CONTROL_TYPE_BOOLEAN;
+      if (TVENG_MIXER_VOLUME_DEBUG)
+	c->pub.label = "Mixer mute";
+      else
+	c->pub.label = _("Mute");
+    }
+
+  c->info = info;
+  c->line = line;
+
+  c->line_cb = tv_mixer_line_callback_add
+    (line, mixer_line_notify_cb,
+     mixer_line_destroy_cb, c);
+  t_assert (c->line_cb != NULL); /* XXX */
+
+  mixer_line_notify_cb (line, c);
+
+  if (orig)
+    {
+      c->pub.next = orig->next;
+      orig->next = &c->pub;
+    }
+  else
+    {
+      *tcp = &c->pub;
+    }
+}
+
+/*
+ *  This provisional function logically attaches a
+ *  soundcard audio input to a video device.
+ *
+ *  Two configurations use this: TV cards with an audio
+ *  loopback to a soundcard, and TV cards without audio,
+ *  where the audio source (e.g. VCR, microphone) 
+ *  connects directly to a soundcard.
+ *
+ *  The function adds an audio mixer volume and mute control,
+ *  and sets tv_control->ignore on any video device volume and
+ *  mute controls. Tveng will also care to set the video device
+ *  controls when mixer controls are changed.
+ *
+ *  To get rid of the mixer controls, call with line NULL or
+ *  just delete the mixer struct.
+ *
+ *  NB control values are not copied when replacing controls.
+ */
+void
+tveng_attach_mixer_line		(tveng_device_info *	info,
+				 tv_mixer *		mixer,
+				 tv_mixer_line *	line)
 {
   tv_control *tc;
+
+  info->priv->control_mute = NULL;
+  info->audio_mutable = 0;
+
+  if (mixer && mixer_line)
+    printv ("Attaching mixer %s (%s %s), line %s\n",
+	    mixer->node.device,
+	    mixer->node.label,
+	    mixer->node.driver,
+	    mixer_line->label);
+  else
+    printv ("Removing mixer\n");
+
+  mixer_replace (info, line, TV_CONTROL_ID_VOLUME);
+  mixer_replace (info, line, TV_CONTROL_ID_MUTE);
+
+  for (tc = info->controls; tc; tc = tc->next)
+    if (tc->id == TV_CONTROL_ID_MUTE && !tc->ignore)
+      {
+	info->priv->control_mute = tc;
+	info->audio_mutable = 1; /* preliminary */
+	break;
+      }
+}
+
+/*
+ *  This function implements a second mute switch closer
+ *  to the hardware. The 'quiet' state is not visible to the
+ *  mute or volume controls or their callbacks, takes priority
+ *  and can only be changed with this function.
+ *
+ *  Intention is that only the user changes audio controls, while
+ *  this switch is flipped under program control, such as when
+ *  switching channels.
+ */
+void
+tv_quiet_set			(tveng_device_info *	info,
+				 tv_bool		quiet)
+{
+  t_assert (info != NULL);
+
+  TVLOCK;
+
+  if (info->priv->quiet != quiet)
+    {
+      tv_control *tc;
+      tv_bool reset;
+
+      info->priv->quiet = quiet;
+
+      reset = FALSE;
+
+      for (tc = info->controls; tc; tc = tc->next)
+	{
+	  if (!tc->ignore)
+	    {
+	      if (tc->id == TV_CONTROL_ID_VOLUME)
+		{
+		  if (!quiet)
+		    {
+		      set_control (C(tc), tc->value, FALSE, info);
+		      reset |= (tc->_device == NULL);
+		    }
+		}
+	      else if (tc->id == TV_CONTROL_ID_MUTE)
+		{
+		  if (quiet)
+		    {
+		      if (tc->_device == NULL)
+			{
+			  struct control *c = PARENT (tc, struct control, pub);
+
+			  t_assert (c->line != NULL);
+			  tv_mixer_line_set_mute (c->line, TRUE);
+			}
+		      else if (info->priv->module.set_control)
+			{
+			  tv_callback_node *cb = tc->_callback;
+			  int old_value = tc->value;
+
+			  tc->_callback = NULL;
+			  info->priv->module.set_control (info, tc, TRUE);
+			  tc->_callback = cb;
+			  tc->value = old_value;
+			}
+		    }
+		  else /* !quiet */
+		    {
+		      set_control (C(tc), tc->value, FALSE, info);
+		      reset |= (tc->_device == NULL);
+		    }
+		}
+	    }
+	}
+
+      if (reset && !quiet)
+	reset_video_volume (info, FALSE);
+    }
+
+  UNTVLOCK;
+}
+
+/*
+ *  This is a shortcut to get the mute control state. When @update
+ *  is TRUE the control is updated from the driver, otherwise
+ *  it returns the last known state.
+ *  1 = muted (no sound), 0 = unmuted, -1 = error
+ */
+int
+tv_mute_get			(tveng_device_info *	info,
+				 tv_bool		update)
+{
+  tv_control *tc;
+
+  t_assert (info != NULL);
+  t_assert (info->current_controller != TVENG_CONTROLLER_NONE);
+
+  // XXX TVLOCK;
+
+  if ((tc = info->priv->control_mute))
+    {
+      if (update && (-1 == tveng_update_control (tc, info)))
+	return -1;
+      else
+	return tc->value;
+    }
+
+  TVLOCK;
+  TVUNSUPPORTED;
+  RETURN_UNTVLOCK (-1);
+}
+
+/*
+ *  This is a shortcut to set the mute control state.
+ *  0 = ok, -1 = error.
+ */
+int
+tv_mute_set			(tveng_device_info *	info,
+				 tv_bool		mute)
+{
+  tv_control *tc;
+  int r = -1;
 
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
   TVLOCK;
 
-  if ((tc = info->priv->control_mute)) {
-    info = CC(tc)->dev.device; /* XXX */
-    if (!info->priv->module.update_control (info, &CC(tc)->dev))
-      RETURN_UNTVLOCK (-1);
-    else
-      RETURN_UNTVLOCK (tc->value);
-  }
+  if ((tc = info->priv->control_mute))
+    r = set_control (C(tc), mute, TRUE, info);
+  else
+    TVUNSUPPORTED;
 
-  TVUNSUPPORTED;
-  UNTVLOCK;
-  return -1;
+  RETURN_UNTVLOCK(r);
 }
 
 /*
-  Sets the value of the mute property. 0 means unmute (sound) and 1
-  mute (no sound). -1 on error
-
-  Currently this is just a shortcut to access the
-  mute control, if any, but that may change in the future.
-*/
-int
-tveng_set_mute(int value, tveng_device_info * info)
+ *  This is a shortcut to add a callback to the mute control.
+ */
+tv_callback_node *
+tv_mute_callback_add		(tveng_device_info *	info,
+				 void			(* notify)(tveng_device_info *, void *user_data),
+				 void			(* destroy)(tveng_device_info *, void *user_data),
+				 void *			user_data)
 {
   tv_control *tc;
 
-  t_assert(info != NULL);
-  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+  t_assert (info != NULL);
 
-  TVLOCK;
+  if (!(tc = info->priv->control_mute))
+    return NULL;
 
-  if ((tc = info->priv->control_mute)) {
-    info = CC(tc)->dev.device; /* XXX */
-
-    RETURN_UNTVLOCK (info->priv->module.set_control
-		     (info, &CC(tc)->dev, !!value) ? 0 : -1);
-  }
-
-  TVUNSUPPORTED;
-  UNTVLOCK;
-  return -1;
+  return tv_callback_add (&tc->_callback,
+			  (void *) notify,
+			  (void *) destroy,
+			  user_data);
 }
+
+
 
 /*
   Tunes the current input to the given freq. Returns -1 on error.
@@ -2178,14 +2657,14 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
 	    info->priv->filter = XInternAtom(dpy, "XV_FILTER",
 						False);
 	    c.atom = info->priv->filter;
-	    if (!(c.dev.pub.label = strdup (_("Filter"))))
+	    if (!(c.pub.label = strdup (_("Filter"))))
 	      goto failure;
-	    c.dev.pub.minimum = at[i].min_value;
-	    c.dev.pub.maximum = at[i].max_value;
-	    c.dev.pub.type = TV_CONTROL_TYPE_BOOLEAN;
-	    c.dev.pub.menu = NULL;
-	    c.dev.device = NULL; /* TVENG_CONTROLLER_MOTHER; */
-	    if (!append_control(info, &c.dev.pub, sizeof (c)))
+	    c.pub.minimum = at[i].min_value;
+	    c.pub.maximum = at[i].max_value;
+	    c.pub.type = TV_CONTROL_TYPE_BOOLEAN;
+	    c.pub.menu = NULL;
+	    c.pub._device = NULL; /* TVENG_CONTROLLER_MOTHER; */
+	    if (!append_control(info, &c.pub, sizeof (c)))
 	      {
 	      failure:
 		UNTVLOCK;
@@ -2198,14 +2677,14 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
 	    info->priv->double_buffer = XInternAtom(dpy, "XV_DOUBLE_BUFFER",
 						       False);
 	    c.atom = info->priv->double_buffer;
-	    if (!(c.dev.pub.label = strdup (_("Filter"))))
+	    if (!(c.pub.label = strdup (_("Filter"))))
 	      goto failure2;
-	    c.dev.pub.minimum = at[i].min_value;
-	    c.dev.pub.maximum = at[i].max_value;
-	    c.dev.pub.type = TV_CONTROL_TYPE_BOOLEAN;
-	    c.dev.pub.menu = NULL;
-	    c.dev.device = NULL; /* TVENG_CONTROLLER_MOTHER; */
-	    if (!append_control(info, &c.dev.pub, sizeof (c)))
+	    c.pub.minimum = at[i].min_value;
+	    c.pub.maximum = at[i].max_value;
+	    c.pub.type = TV_CONTROL_TYPE_BOOLEAN;
+	    c.pub.menu = NULL;
+	    c.pub._device = NULL; /* TVENG_CONTROLLER_MOTHER; */
+	    if (!append_control(info, &c.pub, sizeof (c)))
 	      {
 	      failure2:
 		UNTVLOCK;
@@ -2218,14 +2697,14 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
 	    info->priv->colorkey = XInternAtom(dpy, "XV_COLORKEY",
 						False);
 	    c.atom = info->priv->colorkey;
-	    if (!(c.dev.pub.label = strdup (_("Colorkey"))))
+	    if (!(c.pub.label = strdup (_("Colorkey"))))
 	      goto failure3;
-	    c.dev.pub.minimum = at[i].min_value;
-	    c.dev.pub.maximum = at[i].max_value;
-	    c.dev.pub.type = TV_CONTROL_TYPE_COLOR;
-	    c.dev.pub.menu = NULL;
-	    c.dev.device = NULL; /* TVENG_CONTROLLER_MOTHER; */
-	    if (!append_control(info, &c.dev.pub, sizeof (c)))
+	    c.pub.minimum = at[i].min_value;
+	    c.pub.maximum = at[i].max_value;
+	    c.pub.type = TV_CONTROL_TYPE_COLOR;
+	    c.pub.menu = NULL;
+	    c.pub._device = NULL; /* TVENG_CONTROLLER_MOTHER; */
+	    if (!append_control(info, &c.pub, sizeof (c)))
 	      {
 	      failure3:
 		UNTVLOCK;
@@ -2376,14 +2855,34 @@ void tveng_mutex_unlock(tveng_device_info * info)
   UNTVLOCK;
 }
 
+char *
+tveng_strdup_printf(const char *templ, ...)
+{
+  char *s, buf[512];
+  va_list ap;
+  int temp;
+
+  temp = errno;
+
+  va_start(ap, templ);
+  vsnprintf(buf, sizeof(buf) - 1, templ, ap);
+  va_end(ap);
+
+  s = strdup(buf);
+
+  errno = temp;
+
+  return s;
+}
+
 /*
- *  Simple callback mechanism
+ *  Simple callback mechanism 
  */
 
 struct _tv_callback_node {
 	tv_callback_node *	next;
 	tv_callback_node **	pred;
-	tv_bool			(* notify)(void *, void *);
+	void			(* notify)(void *, void *);
 	void			(* destroy)(void *, void *);
 	void *			user_data;
 	unsigned int		blocked;
@@ -2398,17 +2897,19 @@ struct _tv_callback_node {
  */
 tv_callback_node *
 tv_callback_add			(tv_callback_node **	list,
-				 tv_bool		(* notify)(void *, void *user_data),
+				 void			(* notify)(void *, void *user_data),
 				 void			(* destroy)(void *, void *user_data),
 				 void *			user_data)
 {
 	tv_callback_node *cb;
 
+	t_assert (list != NULL);
+
 	for (; (cb = *list); list = &cb->next)
 		;
 
 	if (!(cb = calloc (1, sizeof (*cb))))
-		return FALSE;
+		return NULL;
 
 	*list = cb;
 
@@ -2431,6 +2932,8 @@ void
 tv_callback_remove		(tv_callback_node *	cb)
 {
 	if (cb) {
+		if (cb->next)
+			cb->next->pred = cb->pred;
 		*(cb->pred) = cb->next;
 		free (cb);
 	}
@@ -2445,6 +2948,9 @@ tv_callback_destroy		(void *			object,
 				 tv_callback_node **	list)
 {
 	tv_callback_node *cb;
+
+	t_assert (object != NULL);
+	t_assert (list != NULL);
 
 	while ((cb = *list)) {
 		*list = cb->next;
@@ -2489,7 +2995,184 @@ tv_callback_notify		(void *			object,
 {
 	const tv_callback_node *cb;
 
+	t_assert (object != NULL);
+
 	for (cb = list; cb; cb = cb->next)
 		if (cb->notify && cb->blocked == 0)
 			cb->notify (object, cb->user_data);
 }
+
+/*
+ *  Device nodes
+ */
+
+tv_device_node *
+tv_device_node_add		(tv_device_node **	list,
+				 tv_device_node *	node)
+{
+	t_assert (list != NULL);
+
+	if (!node)
+		return NULL;
+
+	while (*list)
+		list = &(*list)->next;
+
+	*list = node;
+	node->next = NULL;
+
+	return node;
+}
+
+tv_device_node *
+tv_device_node_remove		(tv_device_node **	list,
+				 tv_device_node *	node)
+{
+	if (node) {
+		while (*list && *list != node)
+			list = &(*list)->next;
+
+		*list = node->next;
+		node->next = NULL;
+	}
+
+	return node;
+}
+
+void
+tv_device_node_delete		(tv_device_node **	list,
+				 tv_device_node *	node,
+				 tv_bool		restore)
+{
+	if (node) {
+		if (list) {
+			while (*list && *list != node)
+				list = &(*list)->next;
+
+			*list = node->next;
+		}
+
+		if (node->destroy)
+			node->destroy (node, restore);
+	}
+}
+
+static void
+destroy_device_node		(tv_device_node *	node,
+				 tv_bool		restore)
+{
+	if (!node)
+		return;
+
+	free (node->label);
+	free (node->bus);
+	free (node->driver);
+	free (node->version);
+	free (node->device);
+	free (node);
+}
+
+tv_device_node *
+tv_device_node_new		(const char *		label,
+				 const char *		bus,
+				 const char *		driver,
+				 const char *		version,
+				 const char *		device,
+				 unsigned int		size)
+{
+	tv_device_node *node;
+
+	if (!(node = calloc (1, MAX (size, sizeof (*node)))))
+		return NULL;
+
+	node->destroy = destroy_device_node;
+
+#define STR_COPY(s) if (s && !(node->s = strdup (s))) goto error;
+
+	STR_COPY (label);
+	STR_COPY (bus);
+	STR_COPY (driver);
+	STR_COPY (version);
+	STR_COPY (device);
+
+	return node;
+
+ error:
+	destroy_device_node (node, FALSE);
+	return NULL;
+}
+
+tv_device_node *
+tv_device_node_find		(tv_device_node *	list,
+				 const char *		name)
+{
+	struct stat st;
+
+	if (-1 == stat (name, &st))
+		return FALSE;
+
+	for (; list; list = list->next) {
+		struct stat lst;
+
+		if (0 == strcmp (list->device, name))
+			return list;
+
+		if (-1 == stat (list->device, &lst))
+			continue;
+
+		if ((S_ISCHR (lst.st_mode) && S_ISCHR (st.st_mode))
+		    || (S_ISBLK (lst.st_mode) && S_ISBLK (st.st_mode))) {
+			/* Major and minor device number */
+			if (lst.st_rdev == st.st_rdev)
+				return list;
+		}
+	}
+
+	return NULL;
+}
+
+#if 0
+	tv_device_node *head = NULL;
+	struct dirent dirent, *pdirent = &dirent;
+	DIR *dir = NULL;
+
+	t_assert (filter != NULL);
+
+	if (!list)
+		list = &head;
+
+	for (; names && *names && names[0][0]; names++) {
+		tv_device_node *node;
+
+		if (find_node (*list, *names))
+			continue;
+
+		if ((node = filter (*names)))
+			tv_device_node_append (list, node);
+	}
+
+	if (path && (dir = opendir (path))) {
+		while (0 == readdir_r (dir, &dirent, &pdirent) && pdirent) {
+			tv_device_node *node;
+			char *s;
+
+			if (!(s = malloc (strlen (path) + strlen (dirent.d_name) + 2)))
+				continue;
+
+			strcpy (s, path);
+			if (s[0])
+				strcat (s, "/");
+			strcat (s, dirent.d_name);
+
+			if (find_node (*list, s))
+				continue;
+
+			if ((node = filter (s)))
+				tv_device_node_append (list, node);
+		}
+
+		closedir (dir);
+	}
+
+	return *list;
+#endif
