@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alirc.c,v 1.7 2004-08-13 01:00:27 mschimek Exp $ */
+/* $Id: alirc.c,v 1.8 2004-09-10 04:53:39 mschimek Exp $ */
 
 /* XXX gtk_input */
 #undef GTK_DISABLE_DEPRECATED
@@ -54,35 +54,35 @@ static gboolean active = FALSE;
 /* global lirc config struct */
 static struct lirc_config *config = NULL;
 /* lirc io_tag */
-static int lirc_iotag;
+static guint lirc_iotag;
 /* our link to the device struct */
 static tveng_device_info *tveng_info;
 /* when comming out of fullscreen, goto this mode */
 /* in case we start in fullscreen give it some sane return mode */
-static enum tveng_capture_mode windowedmode = TVENG_CAPTURE_READ;
+static display_mode windowedmode_d = DISPLAY_MODE_WINDOW;
+static capture_mode windowedmode_c = CAPTURE_MODE_READ;
 /* last channel set to and the timestamp it has */
-static unsigned long setchan_time;
-static int setchan;
 
 static void
-legacy_zoom			(const gchar *		args)
+legacy_zoom			(const gchar *		args _unused_)
 {
-  if (tveng_info->current_mode == TVENG_CAPTURE_PREVIEW)
+  if (DISPLAY_MODE_FULLSCREEN == zapping->display_mode
+      && CAPTURE_MODE_OVERLAY == tveng_info->capture_mode)
     {
       const gchar *s;
 
-      switch (windowedmode)
+      switch (((int)windowedmode_d) | windowedmode_c)
 	{
-	case TVENG_CAPTURE_READ:
+	case DISPLAY_MODE_WINDOW | CAPTURE_MODE_READ:
 	  s = "capture";
 	  break;
-	case TVENG_CAPTURE_PREVIEW:
+	case DISPLAY_MODE_FULLSCREEN | CAPTURE_MODE_OVERLAY:
 	  s = "fullscreen";
 	  break;
-	case TVENG_CAPTURE_WINDOW:
+	case DISPLAY_MODE_WINDOW | CAPTURE_MODE_OVERLAY:
 	  s = "preview";
 	  break;
-	case TVENG_NO_CAPTURE:
+	case DISPLAY_MODE_NONE | CAPTURE_MODE_NONE:
 	  s = "teletext";
 	  break;
 	default:
@@ -94,7 +94,8 @@ legacy_zoom			(const gchar *		args)
     }
   else
     {
-      windowedmode = tveng_info->current_mode;
+      windowedmode_d = zapping->display_mode;
+      windowedmode_c = tveng_info->capture_mode;
       python_command (NULL, "zapping.switch_mode('fullscreen')");
     }
 }
@@ -203,8 +204,23 @@ run_command			(const gchar *		s)
   python_command (NULL, s);
 }
 
+static void 
+plugin_stop(void) {
+  /* Most times we cannot be stopped while we are stopped */
+  if (!active)
+    return;
+  /* stop it, we were active so */
+  gtk_input_remove(lirc_iotag);
+  lirc_freeconfig(config);
+  printv("alirc: Freed config struct\n");
+  lirc_deinit();
+  printv("alirc: Lirc deinitialized\n");
+  /* Stop anything the plugin is doing and set the flag */
+  active = FALSE;
+}
+
 static void
-lirc_receive(gpointer *data,int fd) {
+lirc_receive(gpointer *data _unused_, int fd _unused_) {
   /* activity on the lirc socket, so let's check */
   char *string;
   char *command;
@@ -231,54 +247,6 @@ gint plugin_get_protocol ( void )
 {
   /* You don't need to modify this function */
   return PLUGIN_PROTOCOL;
-}
-
-/* Return FALSE if we aren't able to access a symbol, you should only
-   need to edit the pointer table, not the code */
-gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
-{
-  /* Usually this table is the only thing you will need to change */
-  struct plugin_exported_symbol table_of_symbols[] =
-  {
-    SYMBOL(plugin_get_info, 0x1234),
-    SYMBOL(plugin_init, 0x1234),
-    SYMBOL(plugin_close, 0x1234),
-    SYMBOL(plugin_start, 0x1234),
-    SYMBOL(plugin_stop, 0x1234),
-    SYMBOL(plugin_load_config, 0x1234),
-    SYMBOL(plugin_save_config, 0x1234),
-    SYMBOL(plugin_running, 0x1234),
-    SYMBOL(plugin_get_misc_info, 0x1234)
-  };
-  gint num_exported_symbols =
-    sizeof(table_of_symbols)/sizeof(struct plugin_exported_symbol);
-  gint i;
-
-  /* Try to find the given symbol in the table of exported symbols
-   of the plugin */
-  for (i=0; i<num_exported_symbols; i++)
-    if (!strcmp(table_of_symbols[i].symbol, name))
-      {
-	if (table_of_symbols[i].hash != hash)
-	  {
-	    if (ptr)
-	      *ptr = GINT_TO_POINTER(0x3); /* hash collision code */
-	    /* Warn */
-	    g_warning(_("Check error: \"%s\" in plugin %s "
-		       "has hash 0x%x vs. 0x%x"), name,
-		      str_canonical_name, 
-		      table_of_symbols[i].hash,
-		      hash);
-	    return FALSE;
-	  }
-	if (ptr)
-	  *ptr = table_of_symbols[i].ptr;
-	return TRUE; /* Success */
-      }
-
-  if (ptr)
-    *ptr = GINT_TO_POINTER(0x2); /* Symbol not found in the plugin */
-  return FALSE;
 }
 
 static
@@ -312,30 +280,6 @@ void plugin_get_info (const gchar ** canonical_name,
 }
 
 static gboolean 
-plugin_init (PluginBridge bridge, tveng_device_info * info) {
-  /* Do any startup you need here, and return FALSE on error */
-  printv("alirc plugin: init\n");
-  tveng_info = info;
-
-  /* If this is set, autostarting is on (we should start now) */
-  if (active) {
-    active = FALSE; /* autostarting, so we're not really active */
-    return plugin_start();
-  }
-
-  return TRUE;
-}
-
-static void 
-plugin_close(void) {
-  /* If we were working, stop the work */
-  if (active)
-    plugin_stop();
-
-  /* Any cleanups would go here (closing fd's and so on) */
-}
-
-static gboolean 
 plugin_start (void) {
   /* In most plugins, you don't want to be started twice */
   int fd; 
@@ -363,19 +307,28 @@ plugin_start (void) {
   return TRUE;
 }
 
+static gboolean 
+plugin_init (PluginBridge bridge _unused_, tveng_device_info * info) {
+  /* Do any startup you need here, and return FALSE on error */
+  printv("alirc plugin: init\n");
+  tveng_info = info;
+
+  /* If this is set, autostarting is on (we should start now) */
+  if (active) {
+    active = FALSE; /* autostarting, so we're not really active */
+    return plugin_start();
+  }
+
+  return TRUE;
+}
+
 static void 
-plugin_stop(void) {
-  /* Most times we cannot be stopped while we are stopped */
-  if (!active)
-    return;
-  /* stop it, we were active so */
-  gtk_input_remove(lirc_iotag);
-  lirc_freeconfig(config);
-  printv("alirc: Freed config struct\n");
-  lirc_deinit();
-  printv("alirc: Lirc deinitialized\n");
-  /* Stop anything the plugin is doing and set the flag */
-  active = FALSE;
+plugin_close(void) {
+  /* If we were working, stop the work */
+  if (active)
+    plugin_stop();
+
+  /* Any cleanups would go here (closing fd's and so on) */
 }
 
 static void 
@@ -422,6 +375,54 @@ plugin_misc_info * plugin_get_misc_info (void) {
     priority (just to put an example)
   */
   return (&returned_struct);
+}
+
+/* Return FALSE if we aren't able to access a symbol, you should only
+   need to edit the pointer table, not the code */
+gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
+{
+  /* Usually this table is the only thing you will need to change */
+  const struct plugin_exported_symbol table_of_symbols[] =
+  {
+    SYMBOL(plugin_get_info, 0x1234),
+    SYMBOL(plugin_init, 0x1234),
+    SYMBOL(plugin_close, 0x1234),
+    SYMBOL(plugin_start, 0x1234),
+    SYMBOL(plugin_stop, 0x1234),
+    SYMBOL(plugin_load_config, 0x1234),
+    SYMBOL(plugin_save_config, 0x1234),
+    SYMBOL(plugin_running, 0x1234),
+    SYMBOL(plugin_get_misc_info, 0x1234)
+  };
+  gint num_exported_symbols =
+    sizeof(table_of_symbols)/sizeof(struct plugin_exported_symbol);
+  gint i;
+
+  /* Try to find the given symbol in the table of exported symbols
+   of the plugin */
+  for (i=0; i<num_exported_symbols; i++)
+    if (!strcmp(table_of_symbols[i].symbol, name))
+      {
+	if (table_of_symbols[i].hash != hash)
+	  {
+	    if (ptr)
+	      *ptr = GINT_TO_POINTER(0x3); /* hash collision code */
+	    /* Warn */
+	    g_warning(_("Check error: \"%s\" in plugin %s "
+		       "has hash 0x%x vs. 0x%x"), name,
+		      str_canonical_name, 
+		      table_of_symbols[i].hash,
+		      hash);
+	    return FALSE;
+	  }
+	if (ptr)
+	  *ptr = table_of_symbols[i].ptr;
+	return TRUE; /* Success */
+      }
+
+  if (ptr)
+    *ptr = GINT_TO_POINTER(0x2); /* Symbol not found in the plugin */
+  return FALSE;
 }
 
 #endif /* ifdef HAVE_LIRC */

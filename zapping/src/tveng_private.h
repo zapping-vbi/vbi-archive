@@ -53,22 +53,22 @@
   if (tveng_restart_everything(cur_mode, info) == -1)
      ... show error dialog ...
 */
-enum tveng_capture_mode tveng_stop_everything (tveng_device_info *info,
-					       gboolean *overlay_was_active);
+capture_mode tveng_stop_everything (tveng_device_info *info,
+				    gboolean *overlay_was_active);
 /*
   Restarts the given capture mode. See the comments on
   tveng_stop_everything. Returns -1 on error.
 */
-int tveng_restart_everything (enum tveng_capture_mode mode,
+int tveng_restart_everything (capture_mode mode,
 			      gboolean overlay_was_active,
 			      tveng_device_info * info);
 
 int p_tveng_set_preview_window(tveng_device_info * info);
 int p_tveng_set_preview (int on, tveng_device_info * info);
-enum tveng_capture_mode 
+capture_mode 
 p_tveng_stop_everything (tveng_device_info * info,
 			 gboolean * overlay_was_active);
-int p_tveng_restart_everything (enum tveng_capture_mode mode,
+int p_tveng_restart_everything (capture_mode mode,
 				gboolean overlay_was_active,
 				tveng_device_info * info);
 int p_tveng_set_capture_format(tveng_device_info * info);
@@ -85,16 +85,16 @@ tv_callback_notify		(tveng_device_info *	info,
 */
 struct tveng_module_info {
   int	(*attach_device)(const char* device_file,
+			 Window window,
 			 enum tveng_attach_mode  attach_mode,
 			 tveng_device_info * info);
-  void	(*describe_controller)(char **short_str, char **long_str,
+  void	(*describe_controller)(const char **short_str, const char **long_str,
 			       tveng_device_info *info);
   void	(*close_device)(tveng_device_info *info);
 	/*
 	 */
 	int		(* ioctl)		(tveng_device_info *,
-						 int,
-
+						 unsigned int,
 						 char *);
 
 
@@ -163,7 +163,8 @@ struct tveng_module_info {
 						 Window,
 						 GC);
 	tv_bool		(* set_overlay_window)	(tveng_device_info *,
-						 const tv_window *);
+						 const tv_window *,
+						 const tv_clip_vector *);
 	tv_bool		(* get_overlay_window)	(tveng_device_info *);
 	tv_bool		(* enable_overlay)	(tveng_device_info *,
 						 tv_bool);
@@ -347,8 +348,8 @@ struct _tv_mixer_interface {
 	 *  tv_dev_audio_line.changed. Does not unmute.
 	 */
 	tv_bool			(* set_volume)		(tv_audio_line *,
-							 unsigned int left,
-							 unsigned int right);
+							 int left,
+							 int right);
 	/*
 	 *  Mute (TRUE) or unmute (FALSE) mixer line and update
 	 *  tv_audio_line.muted accordingly. May call
