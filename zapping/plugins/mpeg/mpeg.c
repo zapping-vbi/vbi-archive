@@ -16,13 +16,14 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.31 2002-03-06 00:53:49 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.32 2002-04-20 06:37:41 mschimek Exp $ */
 
 #include "plugin_common.h"
 
-#ifdef HAVE_LIBRTE
+#if defined(HAVE_LIBRTE4) || defined(HAVE_LIBRTE5)
 
 #include <glade/glade.h>
+#include <gdk-pixbuf/gdk-pixbuf.h>
 
 #include "audio.h"
 #include "mpeg.h"
@@ -76,6 +77,10 @@ static volatile gboolean active = FALSE;
 
 /* The context we are encoding to */
 static rte_context * context_enc = NULL;
+#ifdef HAVE_LIBRTE5
+static rte_stream_parameters audio_params;
+static rte_stream_parameters video_params;
+#endif /* HAVE_LIBRTE5 */
 
 /* Info about the video device */
 static tveng_device_info * zapping_info = NULL;
@@ -89,7 +94,8 @@ static gboolean lip_sync_warning = TRUE;
 /* The consumer for capture_fifo */
 static consumer mpeg_consumer;
 /* This updates the GUI */
-static gint update_timeout_id;
+static gint update_timeout_id = -1;
+static gint volume_update_timeout_id = -1;
 /* Whether the plugin has been configured */
 static gboolean configured = FALSE;
 
@@ -103,6 +109,11 @@ static enum {
   OUTPUT_DEV_NULL
 } output_mode; /* 0:file, 1:/dev/null */
 static gint capture_w, capture_h;
+#ifdef HAVE_LIBRTE5
+/* Preliminary */
+static void *audio_buf;
+static int audio_size;
+#endif /* HAVE_LIBRTE5 */
 
 /* Properties handling code */
 static void
@@ -226,12 +237,14 @@ gboolean plugin_init ( PluginBridge bridge, tveng_device_info * info )
 
   zapping_info = info;
 
+#ifdef HAVE_LIBRTE4
   if (!rte_init ())
     {
       ShowBox ("RTE cannot be inited in this box (no MMX?)\n",
 	      GNOME_MESSAGE_BOX_ERROR);
       return FALSE;
     }
+#endif /* HAVE_LIBRTE4 */
 
   append_property_handler(&mpeg_handler);
 
@@ -247,11 +260,17 @@ void plugin_close (void)
   if (active)
     {
       if (context_enc)
-	rte_context_destroy (context_enc);
+	rte_context_delete (context_enc);
       context_enc = NULL;
 
+#ifdef HAVE_LIBRTE5
+      if (audio_buf)
+	free (audio_buf);
+      audio_buf = NULL;
+#endif /* HAVE_LIBRTE5 */
+
       if (context_prop)
-	rte_context_destroy (context_prop);
+	rte_context_delete (context_prop);
       context_prop = NULL;
 
       if (audio_handle)
@@ -265,6 +284,7 @@ void plugin_close (void)
 static gint
 update_timeout (rte_context *context)
 {
+#ifndef HAVE_LIBRTE5
   struct rte_status_info status;
   GtkWidget *widget;
   gchar *buffer,*dropbuf,*procbuf;
@@ -316,9 +336,58 @@ update_timeout (rte_context *context)
   g_free (buffer);
   g_free (dropbuf);
   g_free (procbuf);
+#else /* HAVE_LIBRTE5 */
+  static gchar buf[64];
+  rte_status status;
+  GtkWidget *widget;
+  gint h, m, s;
+  GtkRequisition req;
+  
+
+  if (!active || !saving_dialog)
+    {
+      update_timeout_id = -1;
+      return FALSE;
+    }
+
+  rte_context_status (context, &status);
+
+  if (status.valid & RTE_STATUS_CODED_TIME)
+    {
+      s  = status.coded_time;
+      m  = s / 60;
+      s -= m * 60;
+      h  = m / 60;
+      m -= h * 60;
+      h %= 99;
+
+      snprintf(buf, sizeof(buf) - 1, "%02u:%02u:%02u", h, m, s);
+
+      widget = lookup_widget (saving_dialog, "elapsed");
+      gtk_label_set_text (GTK_LABEL (widget), buf);
+    }
+
+  if (1)
+    {
+      snprintf(buf, sizeof(buf) - 1, "%.1f MB",
+	       (status.bytes_out + ((1 << 20) / 10 - 1))
+	       * (1.0 / (1 << 20)));
+
+      widget = lookup_widget (saving_dialog, "bytes");
+      gtk_label_set_text (GTK_LABEL (widget), buf);
+    }
+
+#warning TODO
+#endif /* HAVE_LIBRTE5 */
 
   return TRUE;
 }
+
+#ifdef HAVE_LIBRTE4
+
+/*
+ *  Input/output
+ */
 
 static void
 audio_data_callback (rte_context *context, void *data, double *time,
@@ -372,6 +441,10 @@ video_unref_callback (rte_context *context, rte_buffer *buf)
 {
   send_empty_buffer (&mpeg_consumer, (buffer*)buf->user_data);
 }
+
+/*
+ *  Initialization
+ */
 
 static gboolean
 real_plugin_start (const gchar *file_name)
@@ -703,6 +776,572 @@ real_plugin_start (const gchar *file_name)
   return FALSE;
 }
 
+#endif /* HAVE_LIBRTE4 */
+
+#ifdef HAVE_LIBRTE5
+
+/*
+ *  Input/output
+ */
+
+static rte_bool
+audio_callback (rte_context *context, rte_codec *codec, rte_buffer *buffer)
+{
+  buffer->data = audio_buf;
+  buffer->size = audio_size;
+
+  read_audio_data (audio_handle, buffer->data, buffer->size, &buffer->timestamp);
+  return TRUE;
+}
+
+static rte_bool
+video_callback (rte_context *context, rte_codec *codec, rte_buffer *rb)
+{
+  buffer *b;
+  struct tveng_frame_format *fmt;
+
+  for (;;) {
+    capture_buffer *cb = (capture_buffer *)
+      (b = wait_full_buffer (&mpeg_consumer));
+
+    fmt = &cb->d.format;
+
+#ifdef HAVE_LIBRTE4
+    if (cb->d.image_type &&
+	fmt->height == context->height &&
+	fmt->width == context->width &&
+	fmt->sizeimage == context->video_bytes &&
+	b->time)
+      break;
+#else
+    if (cb->d.image_type &&
+	fmt->height == video_params.video.height &&
+	fmt->width == video_params.video.width &&
+	/* fmt->sizeimage == context->video_bytes && */
+	b->time)
+      break;
+#endif
+
+    send_empty_buffer (&mpeg_consumer, b);
+  }
+
+  rb->timestamp = b->time;
+  rb->data = b->data;
+  rb->size = 1; /* XXX don't care 4 now */
+  rb->user_data = b;
+
+  return TRUE;
+}
+
+static rte_bool
+video_unref (rte_context *context, rte_codec *codec, rte_buffer *rb)
+{
+  send_empty_buffer (&mpeg_consumer, (buffer *) rb->user_data);
+  return TRUE;
+}
+
+/*
+ *  Initialization
+ */
+
+static void
+sync_warning (void)
+{
+  GtkWidget *dialog, *label;
+
+  if (lip_sync_warning &&
+      zapping_info->current_controller == TVENG_CONTROLLER_V4L1)
+    {
+      dialog =
+	gnome_dialog_new (_("Synchronization under V4L1"),
+			 GNOME_STOCK_BUTTON_OK,
+			 _("Do not show this again"),
+			 _("V4L2 page"),
+			 NULL);
+      label =
+	gtk_label_new (_("You are using a V4L1 driver, so synchronization\n"
+			"between audio and video will not be very good.\n"
+			"V4L2 drivers provide a much better sync,\n"
+			"you might want to try those if you aren't\n"
+			"satisfied with the results."));
+
+      gtk_box_pack_start (GTK_BOX (GNOME_DIALOG (dialog)->vbox), label,
+			 TRUE, TRUE, 0);
+
+      gtk_widget_show (label);
+
+      gnome_dialog_set_default (GNOME_DIALOG (dialog), 1);
+
+      switch (gnome_dialog_run_and_close (GNOME_DIALOG (dialog)))
+	{
+	case 1:
+	  lip_sync_warning = FALSE;
+	  break;
+	case 2:
+	  gnome_url_show ("http://www.thedirks.org/v4l2");
+	  break;
+	default:
+	  break;
+	}
+    }
+}
+
+static GtkWidget *
+z_load_pixmap (gchar *name)
+{
+  GtkWidget *pixmap;
+  gchar *buffer;
+
+  buffer = g_strdup_printf ("%s/%s", PACKAGE_PIXMAPS_DIR, name);
+
+  pixmap = z_pixmap_new_from_file (buffer);
+
+  g_free (buffer);
+
+  if (pixmap)
+    gtk_widget_show (pixmap);
+
+  return pixmap;
+}
+
+static gboolean
+volume_expose (GtkWidget *widget, GdkEventExpose *event, gpointer data)
+{
+  gint max[2] = { 0, 0 };
+  char *p, *e;
+  gint w, h;
+
+  /* ********* ATTN S16LE assumed */
+  for (p = ((char *) audio_buf) + 1,
+	 e = (char *)(audio_buf + audio_size) - 2;
+       p < e; p += 32)
+    {
+      gint n;
+
+      n = abs(p[0]);
+      if (n > max[0])
+	max[0] = n;
+
+      n = abs(p[2]);
+      if (n > max[1])
+	max[1] = n;
+    }
+
+  gdk_window_clear_area (widget->window,
+			 event->area.x, event->area.y,
+			 event->area.width, event->area.height);
+
+  gdk_gc_set_clip_rectangle (widget->style->fg_gc[widget->state], &event->area);
+
+  h = (widget->allocation.height - 1) >> 1;
+  w = widget->allocation.width * max[0] / 128;
+
+  if (audio_params.audio.channels == 1)
+    {
+      gdk_draw_rectangle (widget->window,
+			  widget->style->fg_gc[widget->state],
+			  TRUE, 0, h >> 1, MAX(1, w), h);
+    }
+  else 
+    {
+      gdk_draw_rectangle (widget->window,
+			  widget->style->fg_gc[widget->state],
+			  TRUE, 0, 0, MAX(1, w), h);
+
+      w = widget->allocation.width * max[1] / 128;
+
+      gdk_draw_rectangle (widget->window,
+			  widget->style->fg_gc[widget->state],
+			  TRUE, 0, h + 1, MAX(1, w), h);
+    }
+
+  gdk_gc_set_clip_rectangle (widget->style->fg_gc[widget->state], NULL);
+
+  return TRUE;
+}
+
+static gint
+volume_update_timeout (rte_context *context)
+{
+  if (!active || !saving_dialog)
+    {
+      volume_update_timeout_id = -1;
+      return FALSE;
+    }
+
+  gtk_widget_queue_draw_area (lookup_widget (saving_dialog, "volume"),
+			      0, 0, 0x7FFF, 0x7FFF);
+  return TRUE;
+}
+
+static void
+init_saving_dialog (rte_context *context, rte_codec *video_codec,
+		    rte_codec *audio_codec, const gchar *file_name)
+{
+  GtkWidget *widget, *pixmap;
+  gchar * buffer;
+  GtkWidget *dialog, *label;
+
+  if (saving_dialog)
+    gtk_widget_destroy (saving_dialog);
+
+  saving_dialog =
+    build_widget ("window3", PACKAGE_DATA_DIR "/mpeg_properties.glade");
+
+  gtk_widget_set_sensitive (lookup_widget (saving_dialog, "table3"), FALSE);
+
+  if ((pixmap = z_load_pixmap ("time.png")))
+    gtk_table_attach (GTK_TABLE (lookup_widget (saving_dialog, "table4")),
+		      pixmap, 0, 1, 0, 1, 0, 0, 3, 0);
+  if ((pixmap = z_load_pixmap ("drop.png")))
+    gtk_table_attach (GTK_TABLE (lookup_widget (saving_dialog, "table5")),
+		      pixmap, 0, 1, 0, 1, 0, 0, 3, 0);
+  if ((pixmap = z_load_pixmap ("disk_empty.png")))
+    gtk_table_attach (GTK_TABLE (lookup_widget (saving_dialog, "table7")),
+		      pixmap, 0, 1, 0, 1, 0, 0, 3, 0);
+  if ((pixmap = z_load_pixmap ("volume.png")))
+    gtk_table_attach (GTK_TABLE (lookup_widget (saving_dialog, "table8")),
+		      pixmap, 0, 1, 0, 1, 0, 0, 3, 0);
+
+  if ((pixmap = z_load_pixmap ("record.png")))
+   gtk_box_pack_start (GTK_BOX (lookup_widget (saving_dialog, "hbox20")),
+		       pixmap, FALSE, FALSE, 0);
+  if ((pixmap = z_load_pixmap ("pause.png")))
+   gtk_box_pack_start (GTK_BOX (lookup_widget (saving_dialog, "hbox22")),
+		       pixmap, FALSE, FALSE, 0);
+  if ((pixmap = z_load_pixmap ("stop.png")))
+   gtk_box_pack_start (GTK_BOX (lookup_widget (saving_dialog, "hbox24")),
+		       pixmap, FALSE, FALSE, 0);
+
+  gtk_widget_set_sensitive (lookup_widget (saving_dialog, "record"), FALSE);
+  gtk_widget_set_sensitive (lookup_widget (saving_dialog, "pause"), FALSE);
+
+  gtk_signal_connect (GTK_OBJECT (saving_dialog), "delete-event",
+		     GTK_SIGNAL_FUNC (on_delete_event),
+		     NULL);
+
+  widget = lookup_widget (saving_dialog, "volume");
+  gtk_signal_connect (GTK_OBJECT (widget), "expose-event",
+		     GTK_SIGNAL_FUNC (volume_expose),
+		     NULL);
+
+  widget = lookup_widget (saving_dialog, "stop");
+  gtk_signal_connect (GTK_OBJECT (widget), "clicked",
+		     GTK_SIGNAL_FUNC (on_button_clicked),
+		     NULL);
+
+#if 0
+
+  saving_dialog =
+    build_widget ("dialog1", PACKAGE_DATA_DIR
+		 "/mpeg_properties.glade");
+
+  gtk_signal_connect (GTK_OBJECT (saving_dialog), "delete-event",
+		     GTK_SIGNAL_FUNC (on_delete_event),
+		     NULL);
+  widget = lookup_widget (saving_dialog, "button1");
+  gtk_signal_connect (GTK_OBJECT (widget), "clicked",
+		     GTK_SIGNAL_FUNC (on_button_clicked),
+		     NULL);
+
+  /* Set the fields on the control window */
+  widget = lookup_widget (saving_dialog, "label13");
+  buffer = g_strdup_printf (_("RTE ID: %s"), "0.5 exp");
+  gtk_label_set_text (GTK_LABEL (widget), buffer);
+  g_free (buffer);
+
+  widget = lookup_widget (saving_dialog, "label9");
+  if (output_mode == OUTPUT_FILE)
+    buffer = g_strdup_printf (_("Destination: %s"), file_name);
+  else
+    buffer = g_strdup_printf (_("Destination: %s"), "/dev/null");
+  gtk_label_set_text (GTK_LABEL (widget), buffer);
+  g_free (buffer);
+
+  widget = lookup_widget (saving_dialog, "label10");
+  switch ((!!video_codec) * 2 + (!!audio_codec))
+    {
+      case 1:
+	buffer = _("Audio only");
+	break;
+      case 2:
+	buffer = _("Video only");
+	break;
+      default:
+	buffer = _("Audio and Video");
+	break;
+    }
+  gtk_label_set_text (GTK_LABEL (widget), buffer);
+
+  widget = lookup_widget (saving_dialog, "label11");
+  {
+    rte_option_value val1, val2;
+
+    if (audio_codec)
+      rte_codec_option_get (audio_codec, "bit_rate", &val1);
+
+    if (video_codec)
+      rte_codec_option_get (video_codec, "bit_rate", &val2);
+
+    if (!video_codec)
+      buffer = g_strdup_printf ("%s %g",
+			       _("Output audio kbits per second:"),
+			       val1.num / 1e3);
+    else if (!audio_codec)
+      buffer = g_strdup_printf ("%s %g",
+			       _("Output video Mbits per second:"),
+			       val2.num / 1e6);
+    else
+      buffer = g_strdup_printf ("%s %g\n%s %g",
+			       _("Output audio kbits per second:"),
+			       val1.num / 1e3,
+			       _("Output video Mbits per second:"),
+			       val2.num / 1e6);
+  }
+  gtk_label_set_text (GTK_LABEL (widget), buffer);
+  g_free (buffer);
+
+  widget = lookup_widget (saving_dialog, "label12");
+  gtk_label_set_text (GTK_LABEL (widget), _("Waiting for frames..."));
+
+#endif
+
+  update_timeout_id =
+    gtk_timeout_add (500, (GtkFunction) update_timeout, context);
+  volume_update_timeout_id =
+    gtk_timeout_add (125, (GtkFunction) volume_update_timeout, context);
+
+  gtk_widget_show (saving_dialog);
+}
+
+static gboolean
+real_plugin_start (const gchar *file_name)
+{
+  rte_context *context;
+  rte_codec *audio_codec, *video_codec;
+
+  /* it would be better to gray out the button and set insensitive */
+  if (active)
+    {
+      ShowBox ("The plugin is running!", GNOME_MESSAGE_BOX_WARNING);
+      return FALSE;
+    }
+
+  /* sync_warning (void); */
+
+  g_assert (context_enc == NULL);
+
+  context = grte_context_load (MPEG_CONFIG, NULL, &audio_codec, &video_codec);
+
+  if (!context)
+    {
+      ShowBox ("Couldn't create the mpeg encoding context",
+	       GNOME_MESSAGE_BOX_ERROR);
+      return FALSE;
+    }
+
+  context_enc = context;
+
+  if (0)
+    fprintf (stderr, "codecs: a%p v%p\n", audio_codec, video_codec);
+
+  captured_frame_rate = 0.0;
+
+  if (video_codec)
+    {
+      enum tveng_frame_pixformat tveng_pixformat;
+      rte_video_stream_params *par = &video_params.video;
+
+      memset (par, 0, sizeof (*par));
+
+      if (zmisc_switch_mode (TVENG_CAPTURE_READ, zapping_info))
+	{
+	  rte_context_delete (context);
+	  context_enc = NULL;
+
+	  ShowBox ("This plugin needs to run in Capture mode, but"
+		   " couldn't switch to that mode:\n%s",
+		   GNOME_MESSAGE_BOX_INFO, zapping_info->error);
+	  return FALSE;
+	}
+
+      tveng_pixformat =
+	zconf_get_integer (NULL, "/zapping/options/main/yuv_format");
+
+      if (!request_bundle_format (tveng_pixformat,
+				  capture_w, capture_h))
+	{
+	  rte_context_delete (context);
+	  context_enc = NULL;
+
+	  ShowBox ("Cannot switch to %s capture format",
+		   GNOME_MESSAGE_BOX_ERROR,
+		   (tveng_pixformat == TVENG_PIX_YVU420) ?
+		   "YUV 4:2:0" : "YUV 4:2:2");
+	  return FALSE;
+	}
+
+      par->width = zapping_info->format.width;
+      par->height = zapping_info->format.height;
+
+      if (tveng_pixformat == TVENG_PIX_YVU420)
+	{
+	  par->pixfmt = RTE_PIXFMT_YUV420;
+	  par->stride = par->width;
+	  par->uv_stride = par->stride >> 1;
+	  par->v_offset = par->stride * par->height;
+	  par->u_offset = par->v_offset * 5 / 4;
+	}
+      else
+	{
+	  par->pixfmt = RTE_PIXFMT_YUYV;
+	  /* defaults */
+	}
+
+      if (!zapping_info->num_standards)
+	{
+	  rte_context_delete (context);
+	  context_enc = NULL;
+
+	  /* FIXME */
+
+	  ShowBox ("Unable to determine current video standard",
+		   GNOME_MESSAGE_BOX_ERROR);
+	  return FALSE; 
+	}
+
+      captured_frame_rate = zapping_info->standards[
+	zapping_info->cur_standard].frame_rate;
+
+      g_assert (rte_codec_option_set (video_codec, "coded_frame_rate",
+				      (double) captured_frame_rate));
+
+      par->frame_rate = captured_frame_rate;
+
+      if (!rte_codec_parameters_set (video_codec, &video_params))
+	{
+	  rte_context_delete (context);
+	  context_enc = NULL;
+
+	  /* FIXME */
+
+	  ShowBox ("Oops.",
+		   GNOME_MESSAGE_BOX_ERROR);
+	  return FALSE; 
+	}
+    }
+
+  if (audio_codec)
+    {
+      rte_audio_stream_params *par = &audio_params.audio;
+
+      memset (par, 0, sizeof (*par));
+
+      /* XXX improve */
+
+      g_assert (rte_codec_parameters_set (audio_codec, &audio_params));
+
+      audio_handle = open_audio_device (par->channels > 1,
+					par->sampling_freq,
+					AUDIO_FORMAT_S16_LE);
+      if (!audio_handle)
+	{
+	  ShowBox ("Couldn't open the audio device",
+		   GNOME_MESSAGE_BOX_ERROR);
+	  goto failed;
+	}
+
+      if (!(audio_buf = malloc(audio_size = par->fragment_size)))
+	{
+	  ShowBox ("Couldn't open the audio device",
+		   GNOME_MESSAGE_BOX_ERROR);
+	  goto failed;
+	}
+
+      if (!video_codec) /* FIXME mp2 only */
+	captured_frame_rate = par->sampling_freq / 1152.0;
+    }
+
+  if (audio_codec)
+    { // XXX
+      rte_set_input_callback_active (audio_codec, audio_callback, NULL, NULL);
+    }
+
+  if (video_codec)
+    { // XXX
+      rte_set_input_callback_active (video_codec, video_callback,
+				     video_unref, NULL);
+    }
+
+  if (output_mode == OUTPUT_FILE)
+    {
+      gchar *dir = g_dirname(file_name);
+      gchar *error_msg;
+
+      if (!z_build_path (dir, &error_msg))
+	{
+	  ShowBox (_("Cannot create destination dir for clips:\n%s\n%s"),
+		   GNOME_MESSAGE_BOX_WARNING, dir, error_msg);
+	  g_free (error_msg);
+	  g_free (dir);
+	  goto failed;
+	}
+
+      g_free(dir);
+
+      if (!rte_set_output_file (context, file_name))
+        {
+	  // XXX more info please
+	  ShowBox (_("Cannot create file %s: %s\n"),
+		   GNOME_MESSAGE_BOX_WARNING,
+		   file_name, rte_errstr (context));
+	  goto failed;
+	}
+    }
+  else
+    {
+      g_assert (rte_set_output_discard (context));
+    }
+
+  active = TRUE;
+
+  /* don't let anyone mess with our settings from now on */
+  capture_lock ();
+
+  add_consumer (capture_fifo, &mpeg_consumer);
+
+  if (!rte_start (context, 0.0, NULL, TRUE))
+    {
+      ShowBox ("Cannot start encoding: %s", GNOME_MESSAGE_BOX_ERROR,
+	       rte_errstr (context));
+      rem_consumer (&mpeg_consumer);
+      capture_unlock ();
+      active = FALSE;
+      goto failed;
+    }
+
+  init_saving_dialog (context, video_codec, audio_codec, file_name);
+
+  return TRUE;
+
+ failed:
+  if (context_enc)
+    rte_context_delete (context_enc);
+  context_enc = NULL;
+
+  if (audio_buf)
+    free (audio_buf);
+  audio_buf = NULL;
+
+  if (audio_handle)
+    close_audio_device (audio_handle);
+  audio_handle = NULL;
+
+  return FALSE;
+}
+
+#endif /* HAVE_LIBRTE5 */
+
 static
 gboolean plugin_start (void)
 {
@@ -719,7 +1358,7 @@ do_stop (void)
   if (!active)
     return;
 
-  rte_context_destroy (context_enc);
+  rte_context_delete (context_enc);
   context_enc = NULL;
 
   if (saving_dialog)
@@ -739,9 +1378,21 @@ do_stop (void)
       update_timeout_id = -1;
     }
 
+  if (volume_update_timeout_id >= 0)
+    {
+      gtk_timeout_remove (volume_update_timeout_id);
+      volume_update_timeout_id = -1;
+    }
+
   if (audio_handle)
     close_audio_device (audio_handle);
   audio_handle = NULL;
+
+#ifdef HAVE_LIBRTE5
+  if (audio_buf)
+    free (audio_buf);
+  audio_buf = NULL;
+#endif
 
   capture_unlock ();
 }
@@ -912,7 +1563,11 @@ select_codec (GtkWidget *mpeg_properties, GtkWidget *menu,
     }
   else
     {
+#ifndef HAVE_LIBRTE5
       rte_codec_set (context_prop, stream_type, 0, NULL);
+#else /* HAVE_LIBRTE5 */
+      rte_codec_remove (context_prop, stream_type, 0);
+#endif /* HAVE_LIBRTE5 */
     }
 }
 
@@ -929,6 +1584,67 @@ on_video_codec_changed                (GtkWidget * changed_widget,
 {
   select_codec (mpeg_properties, changed_widget, RTE_STREAM_VIDEO);
 }
+
+#ifdef HAVE_LIBRTE5
+
+static void
+attach_codec_menu (GtkWidget *mpeg_properties, gint page, gchar *widget_name,
+		   rte_stream_type stream_type)
+{
+  GtkWidget *menu, *menu_item;
+  GtkWidget *widget, *notebook;
+  gint default_item;
+  void (* on_changed) (GtkWidget *, GtkWidget *) = 0;
+
+  switch (stream_type)
+    {
+      case RTE_STREAM_AUDIO:
+	on_changed = on_audio_codec_changed;
+	break;
+      case RTE_STREAM_VIDEO:
+	on_changed = on_video_codec_changed;
+	break;
+      default:
+	g_assert_not_reached ();
+    }
+
+  notebook = lookup_widget (GTK_WIDGET (mpeg_properties), "notebook1");
+  widget = gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook), page);
+
+  switch (grte_num_codecs (context_prop, stream_type, NULL))
+    {
+    case 0:
+      gtk_widget_set_sensitive (gtk_notebook_get_tab_label
+				(GTK_NOTEBOOK (notebook), widget), FALSE);
+      gtk_widget_set_sensitive (widget, FALSE);
+      break;
+
+    case 1:
+    default:
+      gtk_widget_set_sensitive (gtk_notebook_get_tab_label
+				(GTK_NOTEBOOK (notebook), widget), TRUE);
+      gtk_widget_set_sensitive (widget, TRUE);
+      break;
+    }
+
+  widget = lookup_widget (mpeg_properties, widget_name);
+
+  if ((menu = gtk_option_menu_get_menu (GTK_OPTION_MENU (widget))))
+    gtk_widget_destroy (menu);
+
+  menu = grte_codec_create_menu (context_prop, MPEG_CONFIG, stream_type, &default_item);
+
+  g_assert (menu);
+
+  gtk_option_menu_set_menu (GTK_OPTION_MENU (widget), menu);
+  gtk_option_menu_set_history (GTK_OPTION_MENU (widget), default_item);
+  gtk_signal_connect (GTK_OBJECT (GTK_OPTION_MENU (widget)->menu),
+		      "deactivate", on_changed, mpeg_properties);
+
+  select_codec (mpeg_properties, menu, stream_type);
+}
+
+#else /* !HAVE_LIBRTE5 */
 
 static void
 attach_codec_menu (GtkWidget *mpeg_properties, gchar *widget_name,
@@ -968,6 +1684,8 @@ attach_codec_menu (GtkWidget *mpeg_properties, gchar *widget_name,
   select_codec (mpeg_properties, menu, stream_type);
 }
 
+#endif /* !HAVE_LIBRTE5 */
+
 static void
 select_format (GtkWidget *mpeg_properties, GtkWidget *menu)
 {
@@ -977,12 +1695,24 @@ select_format (GtkWidget *mpeg_properties, GtkWidget *menu)
   keyword = gtk_object_get_data (GTK_OBJECT (menu_item), "keyword");
 
   if (context_prop)
-    rte_context_destroy (context_prop);
+    rte_context_delete (context_prop);
+
+#ifdef HAVE_LIBRTE5
+
+  // XXX err?
+  context_prop = rte_context_new (keyword, NULL, NULL);
+
+  attach_codec_menu (mpeg_properties, 2, "optionmenu5", RTE_STREAM_AUDIO);
+  attach_codec_menu (mpeg_properties, 1, "optionmenu6", RTE_STREAM_VIDEO);
+
+#else /* !HAVE_LIBRTE5 */
 
   context_prop = rte_context_new (352, 288, keyword, NULL);
 
   attach_codec_menu (mpeg_properties, "optionmenu5", RTE_STREAM_AUDIO);
   attach_codec_menu (mpeg_properties, "optionmenu6", RTE_STREAM_VIDEO);
+
+#endif /* !HAVE_LIBRTE5 */
 }
 
 static void
