@@ -281,6 +281,32 @@ static PyObject* py_hide_controls (PyObject *self, PyObject *args)
   py_return_none;
 }
 
+static PyObject* py_keep_on_top (PyObject *self, PyObject *args)
+{
+  extern gboolean have_wm_hints;
+  int keep = 2; /* toggle */
+  int ok = PyArg_ParseTuple (args, "|i", &keep);
+  GtkWidget *menu;
+
+  if (!ok)
+    g_error ("zapping.keep_on_top(|i)");
+
+  if (have_wm_hints)
+    {
+      if (keep > 1)
+        keep = !zconf_get_boolean (NULL, "/zapping/options/main/keep_on_top");
+
+      zconf_set_boolean (keep, "/zapping/options/main/keep_on_top");
+
+      menu = lookup_widget (main_window, "keep_window_on_top2");
+      gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu), !!keep);
+
+      window_on_top (GTK_WINDOW (main_window), keep);
+    }
+
+  py_return_none;
+}
+
 static PyObject *py_help (PyObject *self, PyObject *args)
 {
   gnome_help_display ("index.html", NULL, NULL);
@@ -317,6 +343,10 @@ startup_cmd (void)
 		"zapping.hide_controls([1])");
   cmd_register ("help", py_help, METH_VARARGS,
 		_("Opens the help page"), "zapping.help()"); 
+  cmd_register ("keep_on_top", py_keep_on_top, METH_VARARGS,
+		_("Whether to keep the video window on top of all "
+		  "other windows (if supported by the window manager)"),
+		"zapping.keep_on_top([1])");
 }
 
 void
