@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alsa.c,v 1.16 2002-02-20 19:58:33 garetxe Exp $ */
+/* $Id: alsa.c,v 1.17 2002-04-12 03:12:50 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -62,6 +62,7 @@ do {									\
 
 extern int test_mode;
 /* 64 - capture raw audio as ./raw-audio */
+/* 256 - clock drift code */
 
 #if !defined(SND_LIB_MAJOR) || (SND_LIB_MAJOR == 0 && SND_LIB_MINOR < 9)
 
@@ -173,27 +174,25 @@ wait_full(fifo *f)
 		- (frag - alsa->curr_frag) * alsa->tfmem.ref;
 
 	if (alsa->time > 0) {
-#if 1
-		alsa->time += alsa->tfmem.ref;
-#else
-		double dt = now - alsa->time;
+		if (test_mode & 256) {
+			double dt = now - alsa->time;
 
-		if (dt - alsa->tfmem.err > alsa->tfmem.ref * 1.98) {
-			/* data lost, out of sync; XXX 1.98 bad */
-			alsa->time = now;
-#if 0
-			printv(0, "alsa dropped dt=%f t/b=%f\n",
-				 dt, alsa->tfmem.ref);
-#endif
+			if (dt - alsa->tfmem.err > alsa->tfmem.ref * 1.98) {
+				/* data lost, out of sync; XXX 1.98 bad */
+				alsa->time = now;
+
+				printv(0, "alsa dropped dt=%f t/b=%f\n",
+					 dt, alsa->tfmem.ref);
+			} else {
+				alsa->time += mp1e_timestamp_filter
+					(&alsa->tfmem, dt, 0.05, 1e-7, 0.08);
+			}
+
+			ALSA_TIME_LOG(printv(0, "alsa %f dt %+f err %+f t/b %+f\n",
+				now, dt, alsa->tfmem.err, alsa->tfmem.ref));
 		} else {
-			alsa->time += mp1e_timestamp_filter
-				(&alsa->tfmem, dt, 0.05, 1e-7, 0.08);
+			alsa->time += alsa->tfmem.ref;
 		}
-#if 0
-		printv(0, "alsa %f dt %+f err %+f t/b %+f\n",
-		       now, dt, alsa->tfmem.err, alsa->tfmem.ref);
-#endif
-#endif
 	} else {
 		snd_pcm_channel_status_t status;
 		double stime;

@@ -1,3 +1,11 @@
+2002-04-11	<mschimek@users.sf.net>
+
+	* Added clock drift code switch (-t256).
+
+2002-04-10	<mschimek@users.sf.net>
+
+	* b_mp1e.c: Couldn't link rte w/o outFileFD and mux_syn.
+
 2002-04-09	<mschimek@users.sf.net>
 
 	* main.c: Virtual frame rate was limited to capture rate

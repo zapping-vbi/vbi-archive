@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.32 2002-03-23 14:06:26 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.33 2002-04-12 03:12:40 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -60,7 +60,7 @@ extern rte_context_class	mp1e_mpeg1_audio_context;
 static const int		video_buffers = 2*8;	/* video compression -> mux */
 static const int		audio_buffers = 2*32;	/* audio compression -> mux */
 
-/* Legacy */
+/* Legacy, will be removed */
 
 int				verbose = 0;
 int				test_mode = 0;
@@ -70,7 +70,8 @@ int				width, height;
 int				motion_min, motion_max;
 double				frame_rate;
 int				luma_only;
-
+int				outFileFD;
+int				mux_syn;
 
 void packed_preview(unsigned char *buffer, int mb_cols, int mb_rows) { }
 void preview_init(int *argc, char ***argv) { }

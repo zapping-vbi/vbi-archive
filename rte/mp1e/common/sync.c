@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sync.c,v 1.6 2002-02-25 06:22:19 mschimek Exp $ */
+/* $Id: sync.c,v 1.7 2002-04-12 03:12:50 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "sync.h"
@@ -150,7 +150,7 @@ mp1e_sync_run_in(sync_main *mn, sync_stream *str, consumer *c, int *frame_frac)
 			continue;
 		}
 
-		/* FIXME must not FAIL */
+		/* FIXME must not FAIL w/rte */
 		if (0) // because rte sends in duplicate b->time, but that's ok.
 		if (b->time <= last_time)
 			FAIL("Invalid timestamps from %s: ..., %f, %f\n",

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: oss.c,v 1.17 2002-02-08 15:03:11 mschimek Exp $ */
+/* $Id: oss.c,v 1.18 2002-04-12 03:12:50 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -50,6 +50,7 @@
 
 extern int test_mode;
 /* 64 - capture raw audio as ./raw-audio */
+/* 256 - clock drift code */
 
 /*
  *  OSS PCM Device
@@ -138,28 +139,27 @@ wait_full(fifo *f)
 	 *  (one irq per fragment, fragment equal buffer to read as
 	 *  early as possible) plus unknown hw/driver buffering
 	 *  plus unknown irq delay. That's far too inaccurate for
-	 *  my taste, hence the filter.
+	 *  resampling and drop detection, hence the filter.
 	 */
 	if (oss->time > 0) {
-#if 1
-		oss->time += oss->tfmem.ref;
-#else
-		double dt = now - oss->time;
+		if (test_mode & 256) {
+			double dt = now - oss->time;
 
-		if (dt - oss->tfmem.err > oss->tfmem.ref * 1.98) {
-			/* data lost, out of sync; XXX 1.98 bad */
-			oss->time = now;
-#if 0
-			printv(0, "audio dropped dt=%f\n", dt);
-#endif
+			if (dt - oss->tfmem.err > oss->tfmem.ref * 1.98) {
+				/* data lost, out of sync; XXX 1.98 bad */
+				oss->time = now;
+
+				printv(0, "audio dropped, dt=%f\n", dt);
+			} else {
+				oss->time += mp1e_timestamp_filter
+					(&oss->tfmem, dt, 0.05, 1e-7, 0.08);
+			}
+
+			OSS_TIME_LOG(printv(0, "oss %f dt %+f err %+f t/b %+f\n",
+					    now, dt, oss->tfmem.err, oss->tfmem.ref));
 		} else {
-			oss->time += mp1e_timestamp_filter
-				(&oss->tfmem, dt, 0.05, 1e-7, 0.08);
+			oss->time += oss->tfmem.ref;
 		}
-
-		OSS_TIME_LOG(printv(0, "oss %f dt %+f err %+f t/b %+f\n",
-				    now, dt, oss->tfmem.err, oss->tfmem.ref));
-#endif
 	} else
 		oss->time = now;
 

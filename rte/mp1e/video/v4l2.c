@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.14 2002-03-10 07:22:15 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.15 2002-04-12 03:12:50 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -225,16 +225,20 @@ drop:
 #endif
 	b = buffers + vbuf.index;
 
-	if (test_mode & 64)
+	if (test_mode & 128)
 		randomize(b->data, width * height);
-
+	if (test_mode & 256) {
+		b->time = vbuf.timestamp * (1 / 1e9); // UST, currently TOD
+	} else {
 #if defined(V4L2_TF_TEST)
-	b->time = timestamp2(b);
+		b->time = timestamp2(b);
 #elif defined(V4L2_TOD_STAMPS)
-	b->time = current_time();
+		b->time = current_time();
 #else
-	b->time = vbuf.timestamp * (1 / 1e9); // UST, currently TOD
+		b->time = vbuf.timestamp * (1 / 1e9); // UST, currently TOD
 #endif
+	}
+
 	send_full_buffer(&cap_prod, b);
 }
 

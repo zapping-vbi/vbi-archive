@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.12 2002-03-12 18:14:56 mschimek Exp $ */
+/* $Id: options.c,v 1.13 2002-04-12 03:12:40 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -463,7 +463,9 @@ parse_option(int c)
 			  8 - video frame dropping test (20%)
 			  16 - video effective bit rate
 			  32 - deliberate sampling rate mismatch
-			  64 - randomize video
+			  64 - store raw audio data (driver interface test)
+			  128 - randomize video
+			  256 - enable clock drift code
 			 */
 			test_mode = strtol(optarg, NULL, 0);
 			break;

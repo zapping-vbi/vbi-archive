@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.26 2002-03-12 18:15:26 mschimek Exp $ */
+/* $Id: mp2.c,v 1.27 2002-04-12 03:12:50 mschimek Exp $ */
 
 #include <limits.h>
 
@@ -90,6 +90,7 @@ terminate(mp2_context *mp2)
 static inline buffer *
 next_buffer(mp2_context *mp2, buffer *buf, int channels, double elapsed)
 {
+	extern int test_mode;
 	double period, drift;
 
 	if (!buf || mp2->incr > 1) {
@@ -131,8 +132,9 @@ next_buffer(mp2_context *mp2, buffer *buf, int channels, double elapsed)
 
 	if (mp2->incr < 1)
 		mp2->incr = 1;
-/* FIXME */
-mp2->incr = 0x10000;
+
+	if (!(test_mode & 256)) /* FIXME */
+		mp2->incr = 0x10000;
 
 	return buf;
 }
