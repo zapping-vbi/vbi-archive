@@ -229,7 +229,11 @@ zconf_init(const gchar * domain)
   /* This is blocking, and will freeze the GUI, but shouldn't take
      long */
   zconf_file = g_strdup(buffer); 
-  doc = xmlParseFile(zconf_file);
+  doc = NULL;
+  if (g_file_test (zconf_file, G_FILE_TEST_EXISTS)) {
+    /* Spits out an error message if the file does not exist, hence. */
+    doc = xmlParseFile(zconf_file);
+  }
 
   if (!doc) /* There isn't any doc to parse */
     {
@@ -335,7 +339,7 @@ gboolean zconf_close(void)
 /*
   Returns the last error zconf generated, 0 means the last operation
   was ok. It is useful for checking ambiguous return values:
-  if ((!zconf_get_integer(...)) && zconf_error())
+  if ((!zconf_get_int(...)) && zconf_error())
      Show_Error_Message();
   else
      Show_Success_Message();
@@ -351,7 +355,7 @@ gint zconf_error(void)
   is not NULL, the value is also stored in the location pointed to by
   where.
 */
-gint zconf_get_integer(gint * where, const gchar * path)
+gint zconf_get_int(gint * where, const gchar * path)
 {
   struct zconf_key * key;
   zconf_we = TRUE; /* Start with an error */
@@ -386,7 +390,7 @@ gint zconf_get_integer(gint * where, const gchar * path)
 /*
   Sets an integer value, creating the path to it if needed.
 */
-void zconf_set_integer(gint new_value, const gchar * path)
+void zconf_set_int(gint new_value, const gchar * path)
 {
   struct zconf_key * key;
   zconf_we = TRUE; /* Start with an error */
@@ -444,7 +448,7 @@ void zconf_set_integer(gint new_value, const gchar * path)
   value. Set it to NULL for leaving it undocumented (a empty string is
   considered as a documented value)
 */
-void zconf_create_integer(gint new_value, const gchar * desc,
+void zconf_create_int(gint new_value, const gchar * desc,
 			  const gchar * path)
 {
   struct zconf_key * key;
@@ -482,6 +486,22 @@ void zconf_create_integer(gint new_value, const gchar * desc,
     key->description = g_strdup(desc);
 
   zconf_we = FALSE;
+}
+
+guint zconf_get_uint(guint * where, const gchar * path)
+{
+  return (guint) zconf_get_int ((gint *) where, path);
+}
+
+void zconf_set_uint(guint new_value, const gchar * path)
+{
+  zconf_set_int ((gint) new_value, path);
+}
+
+void zconf_create_uint(guint new_value, const gchar * desc,
+		       const gchar * path)
+{
+  zconf_create_int ((gint) new_value, desc, path);
 }
 
 /*
@@ -976,7 +996,7 @@ gboolean zconf_set_description(const gchar * desc, const gchar * path)
   string, and it will only be valid until the next zconf call. if
   where is not NULL, a new copy will be g_strdup()'ed there.
 */
-gchar * zconf_get_nth(gint index, gchar ** where, const gchar * path)
+gchar * zconf_get_nth(guint index, gchar ** where, const gchar * path)
 {
   struct zconf_key * key;
   struct zconf_key * subkey; /* The found key */
@@ -987,7 +1007,6 @@ gchar * zconf_get_nth(gint index, gchar ** where, const gchar * path)
   g_assert(*path != 0);
   g_assert(zconf_started == TRUE);
   g_assert(zconf_root != NULL);
-  g_assert(index >= 0);
 
   key = p_zconf_resolve(path, zconf_root);
 
@@ -1073,7 +1092,7 @@ enum zconf_type zconf_get_type(const gchar * path)
   allocated, it may be overwritten the next time you call any zconf
   function. Always succeeds (returns [Unknown] if the type is unknown :-)
 */
-char *
+const char *
 zconf_type_string(enum zconf_type type)
 {
   switch (type)
@@ -1269,7 +1288,7 @@ p_zconf_write(xmlNodePtr node, xmlDocPtr doc, struct zconf_key * key)
   GList * sub_key;
   xmlNodePtr new_node; /* The node we are about to add */
   gchar * str_value = NULL; /* Value in plain text */
-  gchar * str_type = NULL; /* String describing the type */
+  const gchar * str_type = NULL; /* String describing the type */
 
   g_assert(key != NULL);
   g_assert(doc != NULL);
@@ -1751,7 +1770,7 @@ zconf_touch(const gchar * key_name)
  */
 
 void
-zconf_hook_widget_show		(const gchar *		key,
+zconf_hook_widget_show		(const gchar *		key _unused_,
 				 gpointer		new_value_ptr,
 				 gpointer		user_data)
 {
@@ -1765,7 +1784,7 @@ zconf_hook_widget_show		(const gchar *		key,
 }
 
 void
-zconf_hook_toggle_button	(const gchar *		key,
+zconf_hook_toggle_button	(const gchar *		key _unused_,
 				 gpointer		new_value_ptr,
 				 gpointer		user_data)
 {
@@ -1777,7 +1796,7 @@ zconf_hook_toggle_button	(const gchar *		key,
 }
 
 void
-zconf_hook_check_menu		(const gchar *		key,
+zconf_hook_check_menu		(const gchar *		key _unused_,
 				 gpointer		new_value_ptr,
 				 gpointer		user_data)
 {

@@ -76,18 +76,23 @@ gint zconf_error(void);
   is not NULL, the value is also stored in the location pointed to by
   where.
 */
-gint zconf_get_integer(gint * where, const gchar * path);
+gint zconf_get_int(gint * where, const gchar * path);
 /*
   Sets an integer value
 */
-void zconf_set_integer(gint new_value, const gchar * path);
+void zconf_set_int(gint new_value, const gchar * path);
 /*
   Sets a default integer value. desc is the description for the
   value. Set it to NULL for leaving it undocumented (a empty string is
   considered as a documented value)
 */
-void zconf_create_integer(gint new_value, const gchar * desc,
+void zconf_create_int(gint new_value, const gchar * desc,
 			  const gchar * path);
+
+guint zconf_get_uint(guint * where, const gchar * path);
+void zconf_set_uint(guint new_value, const gchar * path);
+void zconf_create_uint(guint new_value, const gchar * desc,
+		       const gchar * path);
 
 /*
   Gets a string value. The returned string is statically allocated,
@@ -173,7 +178,7 @@ gboolean zconf_set_description(const gchar * desc, const gchar * path);
   string, and it will only be valid until the next zconf call. if
   where is not NULL, a new copy will be g_strdup()'ed there.
 */
-gchar * zconf_get_nth(gint index, gchar ** where, const gchar * path);
+gchar * zconf_get_nth(guint nth, gchar ** where, const gchar * path);
 
 /*
   Removes a key from the database. All the keys descendant from this
@@ -192,7 +197,7 @@ enum zconf_type zconf_get_type(const gchar * key);
   allocated, it may be overwritten the next time you call any zconf
   function. Always succeeds (returns [Unknown] if the type is unknown :-)
 */
-char *
+const char *
 zconf_type_string(enum zconf_type type);
 
 /*
@@ -254,29 +259,40 @@ zconf_touch(const gchar * key);
 
 #ifdef ZCONF_DOMAIN
 #define zcs_int(var, key) \
-zconf_set_integer(var,  ZCONF_DOMAIN key)
+zconf_set_int(var,  ZCONF_DOMAIN key)
 #define zcg_int(where, key) \
-zconf_get_integer(where, ZCONF_DOMAIN key)
+zconf_get_int(where, ZCONF_DOMAIN key)
 #define zcc_int(value, desc, key) \
-zconf_create_integer(value, desc, ZCONF_DOMAIN key)
+zconf_create_int(value, desc, ZCONF_DOMAIN key)
+
+#define zcs_uint(var, key) \
+zconf_set_uint(var,  ZCONF_DOMAIN key)
+#define zcg_uint(where, key) \
+zconf_get_uint(where, ZCONF_DOMAIN key)
+#define zcc_uint(value, desc, key) \
+zconf_create_uint(value, desc, ZCONF_DOMAIN key)
+
 #define zcs_float(var, key) \
 zconf_set_float(var,  ZCONF_DOMAIN key)
 #define zcg_float(where, key) \
 zconf_get_float(where, ZCONF_DOMAIN key)
 #define zcc_float(value, desc, key) \
 zconf_create_float(value, desc, ZCONF_DOMAIN key)
+
 #define zcs_char(var, key) \
 zconf_set_string(var,  ZCONF_DOMAIN key)
 #define zcg_char(where, key) \
 zconf_get_string(where, ZCONF_DOMAIN key)
 #define zcc_char(value, desc, key) \
 zconf_create_string(value, desc, ZCONF_DOMAIN key)
+
 #define zcs_bool(var, key) \
 zconf_set_boolean(var,  ZCONF_DOMAIN key)
 #define zcg_bool(where, key) \
 zconf_get_boolean(where, ZCONF_DOMAIN key)
 #define zcc_bool(value, desc, key) \
 zconf_create_boolean(value, desc, ZCONF_DOMAIN key)
+
 #define zcs_z_key(var, key) \
 zconf_set_z_key(var, ZCONF_DOMAIN key)
 #define zcg_z_key(where, key) \
