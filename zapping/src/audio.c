@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.c,v 1.24 2004-05-17 20:46:52 mschimek Exp $ */
+/* $Id: audio.c,v 1.25 2004-09-10 04:52:09 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu */
 #undef GTK_DISABLE_DEPRECATED
@@ -66,7 +66,7 @@ void mixer_setup ( void )
 }
 
 gpointer
-open_audio_device (gboolean stereo, gint rate, enum audio_format
+open_audio_device (gboolean stereo, guint rate, enum audio_format
 		   format)
 {
   const gchar *audio_source;
@@ -126,7 +126,7 @@ close_audio_device (gpointer handle)
 }
 
 void
-read_audio_data (gpointer handle, gpointer dest, gint num_bytes,
+read_audio_data (gpointer handle, gpointer dest, guint num_bytes,
 		 double *timestamp)
 {
   mhandle *mh = handle;
@@ -250,7 +250,7 @@ devices_audio_mixer_apply	(GtkWidget *		page)
 	  for (l = PARENT (n, tv_mixer, node)->inputs; l; l = l->_next)
 	    if (0 == index--)
 	      {
-		zcs_int (l->hash, "mixer_input");
+		zcs_int ((int) l->hash, "mixer_input");
 		break;
 	      }
 	}
@@ -266,10 +266,10 @@ devices_audio_apply		(GtkWidget *		page)
   devices_audio_source_apply (page);
   devices_audio_mixer_apply (page);
 
-  store_control_values (main_info, &tcc, &num_controls);
-  startup_mixer ();
-  update_control_box (main_info);
-  load_control_values (main_info, tcc, num_controls);
+  store_control_values (zapping->info, &tcc, &num_controls);
+  startup_mixer (zapping->info);
+  update_control_box (zapping->info);
+  load_control_values (zapping->info, tcc, num_controls);
 }
 
 static void
@@ -287,10 +287,10 @@ on_enable_device_entry_toggled	(GtkToggleButton *	toggle_button,
 }
 
 static tv_device_node *
-devices_audio_kernel_open	(GtkWidget *		table,
+devices_audio_kernel_open	(GtkWidget *		table _unused_,
 				 tv_device_node *	list,
 				 const char *		name,
-				 gpointer		user_data)
+				 gpointer		user_data _unused_)
 {
   tv_device_node *n;
 
@@ -362,7 +362,7 @@ devices_audio_source_setup	(GtkWidget *		page)
 static void
 devices_audio_mixer_select	(GtkWidget *		table,
 				 tv_device_node *	n,
-				 gpointer		user_data)
+				 gpointer		user_data _unused_)
 {
   GtkWidget *menu;
   GtkWidget *optionmenu;
@@ -377,7 +377,7 @@ devices_audio_mixer_select	(GtkWidget *		table,
     {
       tv_mixer *mixer;
       tv_audio_line *line;
-      guint hash = -1;
+      guint hash = (guint) -1;
       guint index;
 
       mixer = PARENT (n, tv_mixer, node);
@@ -420,10 +420,10 @@ devices_audio_mixer_select	(GtkWidget *		table,
 }
 
 static tv_device_node *
-devices_audio_mixer_open	(GtkWidget *		table,
+devices_audio_mixer_open	(GtkWidget *		table _unused_,
 				 tv_device_node *	list,
 				 const char *		name,
-				 gpointer		user_data)
+				 gpointer		user_data _unused_)
 {
   tv_mixer *m;
   tv_device_node *n;
@@ -498,7 +498,7 @@ devices_audio_mixer_setup	(GtkWidget *		page)
   label = gtk_label_new (_("Input:"));
   gtk_widget_show (label);
   gtk_label_set_justify (GTK_LABEL (label), GTK_JUSTIFY_LEFT);
-  gtk_misc_set_alignment (GTK_MISC (label), 0, 0.5);
+  gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label), 3, 3);
   gtk_table_attach (GTK_TABLE (table), label,
 		    0, 0 + 1,
@@ -539,17 +539,17 @@ properties_add			(GtkDialog *		dialog)
  *  Mute stuff
  */
 
-static guint		quiet_timeout_id = -1;
+static guint		quiet_timeout_id = NO_SOURCE_ID;
 
 static gboolean
-quiet_timeout			(gpointer		user_data)
+quiet_timeout			(gpointer		user_data _unused_)
 {
-  tv_quiet_set (main_info, FALSE);
+  tv_quiet_set (zapping->info, FALSE);
   return FALSE; /* don't call again */
 }
 
 void
-reset_quiet			(tveng_device_info *	info,
+reset_quiet			(tveng_device_info *	info _unused_,
 				 guint			delay)
 {
   if (quiet_timeout_id > 0)
@@ -562,7 +562,7 @@ reset_quiet			(tveng_device_info *	info,
     }
   else
     {
-      tv_quiet_set (main_info, FALSE);
+      tv_quiet_set (zapping->info, FALSE);
     }
 }
 
@@ -574,7 +574,7 @@ reset_quiet			(tveng_device_info *	info,
  */
 gboolean
 set_mute				(gint	        mode,
-					 gboolean	controls,
+					 gboolean	controls _unused_,
 					 gboolean	osd)
 {
   static gboolean recursion = FALSE;
@@ -589,7 +589,7 @@ set_mute				(gint	        mode,
 
   if (mode >= 2)
     {
-      mute = tv_mute_get (main_info, TRUE);
+      mute = tv_mute_get (zapping->info, TRUE);
       if (mute == -1)
         goto failure;
 
@@ -602,7 +602,7 @@ set_mute				(gint	        mode,
   /* Set new state */
 
   if (mode <= 2)
-    if (-1 == tv_mute_set (main_info, mute))
+    if (-1 == tv_mute_set (zapping->info, mute))
       goto failure;
 
   /* Update GUI */
@@ -611,14 +611,14 @@ set_mute				(gint	        mode,
     GtkWidget *button;
     GtkCheckMenuItem *check;
 
-    button = lookup_widget (main_window, "toolbar-mute");
+    button = lookup_widget (GTK_WIDGET (zapping), "toolbar-mute");
 
     if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (button)) != mute)
 	SIGNAL_BLOCK (button, "toggled",
 		      gtk_toggle_button_set_active
 		      (GTK_TOGGLE_BUTTON (button), mute));
 
-    check = GTK_CHECK_MENU_ITEM (lookup_widget (main_window, "mute2"));
+    check = GTK_CHECK_MENU_ITEM (lookup_widget (GTK_WIDGET (zapping), "mute2"));
 
     if (check->active != mute)
 	SIGNAL_BLOCK (check, "toggled",
@@ -634,9 +634,10 @@ set_mute				(gint	        mode,
 	BonoboDockItem *dock_item;
 
 	dock_item = gnome_app_get_dock_item_by_name
-	  (GNOME_APP (main_window), GNOME_APP_TOOLBAR_NAME);
+	  (&zapping->app, GNOME_APP_TOOLBAR_NAME);
 
-	if (main_info->current_mode == TVENG_CAPTURE_PREVIEW
+	if (DISPLAY_MODE_BACKGROUND == zapping->display_mode
+	    || DISPLAY_MODE_FULLSCREEN == zapping->display_mode
 	    || !GTK_WIDGET_VISIBLE (GTK_WIDGET (dock_item)))
 	  osd_render_markup_printf (NULL, mute ?
 			     _("<span foreground=\"blue\">Audio off</span>") :
@@ -653,12 +654,12 @@ set_mute				(gint	        mode,
 }
 
 static PyObject *
-py_mute				(PyObject *		self,
+py_mute				(PyObject *		self _unused_,
 				 PyObject *		args)
 {
   int value = 2; /* toggle by default */
 
-  if (!PyArg_ParseTuple (args, "|i", &value))
+  if (!ParseTuple (args, "|i", &value))
     {
       g_warning ("zapping.mute(|i)");
       py_return_false;

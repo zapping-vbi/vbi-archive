@@ -81,7 +81,7 @@ typedef struct {
   gint			tag;
   /* Images we can build for this buffer */
 
-  gint			num_images;
+  guint			num_images;
   zimage		*images[TV_MAX_PIXFMTS];
   gboolean		converted[TV_MAX_PIXFMTS];
   /* The source image and its index in images */
@@ -104,7 +104,7 @@ static void
 free_bundle (zf_buffer *b)
 {
   producer_buffer *pb = (producer_buffer *) b;
-  gint i;
+  guint i;
 
   for (i = 0; i < pb->num_images; i++)
     zimage_unref (pb->images[i]);
@@ -151,7 +151,6 @@ build_mask (gboolean allow_suggested)
 static gboolean
 compatible (producer_buffer *p, tveng_device_info *info)
 {
-  gint i;
   tv_pixfmt_set avail_mask = 0;
   gint retvalue;
 
@@ -167,6 +166,8 @@ compatible (producer_buffer *p, tveng_device_info *info)
     }
   else /* size is ok, check pixformat */
     {
+      guint i;
+
       for (i = 0; i < p->num_images; i++)
 	avail_mask |= TV_PIXFMT_SET (p->images[i]->fmt.pixfmt);
 
@@ -272,7 +273,7 @@ scan_device		(tveng_device_info	*info)
       g_free (key);
       key = g_strdup_printf (ZCONF_DOMAIN "%x/available_formats",
 			     info->signature);
-      zconf_get_integer (&supported, key);
+      zconf_get_int (&supported, key);
       // zconf_get_string (&s, key);
       g_free (key);
       // supported = atoll (s); !!
@@ -313,7 +314,7 @@ scan_device		(tveng_device_info	*info)
   g_free (key);
   key = g_strdup_printf (ZCONF_DOMAIN "%x/available_formats",
 			 info->signature);
-  zconf_create_integer (supported, "Bitmaps of available pixformats", key);
+  zconf_create_int (supported, "Bitmaps of available pixformats", key);
   // s = g_strdup_printf ("%llu", supported);
   // zconf_create_string (s, "Bitmaps of available pixfmts", key);
   // g_free (s);
@@ -337,7 +338,7 @@ scan_device		(tveng_device_info	*info)
  */
 
 static zf_consumer		__ctc, *cf_timeout_consumer = &__ctc;
-static gint			idle_id;
+static guint			idle_id;
 static gint idle_handler(gpointer _info)
 {
   zf_buffer *b;
@@ -381,7 +382,7 @@ static gint idle_handler(gpointer _info)
   else /* Rebuild time */
     {
       tv_pixfmt_set mask = build_mask (TRUE);
-      int i;
+      unsigned int i;
 
       /* Remove items in the current array */
       for (i = 0; i < pb->num_images; i++)
@@ -395,7 +396,8 @@ static gint idle_handler(gpointer _info)
 	if (TV_PIXFMT_SET (i) & (mask | TV_PIXFMT_SET (info->format.pixfmt)))
 	  {
 	    pb->images[pb->num_images] =
-	      zimage_new (i, info->format.width,
+	      zimage_new (i,
+			  info->format.width,
 			  info->format.height);
 
 	    if (info->format.pixfmt == i)
@@ -418,7 +420,7 @@ static gint idle_handler(gpointer _info)
 }
 
 static void
-on_capture_canvas_allocate             (GtkWidget       *widget,
+on_capture_canvas_allocate             (GtkWidget       *widget _unused_,
                                         GtkAllocation   *allocation,
                                         tveng_device_info *info)
 {
@@ -458,17 +460,18 @@ gint capture_start (tveng_device_info *info)
 
   exit_capture_thread = FALSE;
   g_assert (!pthread_create (&capture_thread_id, NULL, capture_thread,
-			     main_info));
+			     zapping->info));
 
-  available_pixfmts = scan_device (main_info);
+  available_pixfmts = scan_device (zapping->info);
 
   idle_id = g_idle_add ((GSourceFunc) idle_handler, info);
 
   /* XXX */
-  g_signal_connect (G_OBJECT (lookup_widget (main_window, "tv-screen")),
+  g_signal_connect (G_OBJECT (lookup_widget (GTK_WIDGET (zapping),
+					     "tv-screen")),
 		    "size-allocate",
 		    GTK_SIGNAL_FUNC (on_capture_canvas_allocate),
-		    main_info);
+		    zapping->info);
 
   return TRUE;
 }
@@ -480,9 +483,9 @@ void capture_stop (void)
 
   /* XXX */
   g_signal_handlers_disconnect_by_func
-    (G_OBJECT (lookup_widget (main_window, "tv-screen")),
+    (G_OBJECT (lookup_widget (GTK_WIDGET (zapping), "tv-screen")),
      GTK_SIGNAL_FUNC (on_capture_canvas_allocate),
-     main_info);
+     zapping->info);
 
   /* First tell all well-behaved consumers to stop */
   broadcast (CAPTURE_STOP);
@@ -494,9 +497,9 @@ void capture_stop (void)
     }  
 
   /* Stop our marvellous consumer */
-  if (idle_id > 0)
+  if (NO_SOURCE_ID != idle_id)
     g_source_remove (idle_id);
-  idle_id = -1;
+  idle_id = NO_SOURCE_ID;
 
   /* Let the capture thread go to a better place */
   exit_capture_thread = TRUE;
@@ -558,7 +561,7 @@ find_request_size (capture_fmt *fmt, gint *width, gint *height)
   {
     GtkWidget *widget;
 
-    widget = lookup_widget (main_window, "tv-screen");
+    widget = lookup_widget (GTK_WIDGET (zapping), "tv-screen");
 
     *width = MAX (64, widget->allocation.width);
     *height = MAX (64 * 3/4, widget->allocation.height);
@@ -593,7 +596,7 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
   static gint counter = 0;
   gint conversions = 999;
   tv_image_format prev_fmt;
-  gint req_w, req_h;
+  guint req_w, req_h;
   gboolean fixed_size;
 
   req_mask = fmt ? TV_PIXFMT_SET (fmt->pixfmt) : TV_PIXFMT_SET_EMPTY;
@@ -720,8 +723,8 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
 	  memcpy (&info->format, &prev_fmt, sizeof (prev_fmt));
 
 	  if (tveng_set_capture_format (info) != -1)
-	    if (info->current_mode == TVENG_NO_CAPTURE
-		|| info->current_mode == TVENG_TELETEXT)
+	    if (info->capture_mode == CAPTURE_MODE_NONE
+		|| info->capture_mode == CAPTURE_MODE_TELETEXT)
 	      tveng_start_capturing (info);
 	  _pthread_rwlock_unlock (&fmt_rwlock);
 	  return -1;
@@ -768,7 +771,7 @@ gint request_capture_format (capture_fmt *fmt)
 
   printv ("%s requested\n", tv_pixfmt_name (fmt->pixfmt));
 
-  return request_capture_format_real (fmt, TRUE, TRUE, main_info);
+  return request_capture_format_real (fmt, TRUE, TRUE, zapping->info);
 }
 
 gint suggest_capture_format (capture_fmt *fmt)
@@ -777,7 +780,7 @@ gint suggest_capture_format (capture_fmt *fmt)
 
   printv ("%s suggested\n", tv_pixfmt_name (fmt->pixfmt));
 
-  return request_capture_format_real (fmt, FALSE, TRUE, main_info);
+  return request_capture_format_real (fmt, FALSE, TRUE, zapping->info);
 }
 
 void release_capture_format (gint id)
@@ -801,7 +804,7 @@ void release_capture_format (gint id)
 
   _pthread_rwlock_unlock (&fmt_rwlock);
 
-  request_capture_format_real (NULL, FALSE, TRUE, main_info);
+  request_capture_format_real (NULL, FALSE, TRUE, zapping->info);
 }
 
 void
@@ -855,7 +858,7 @@ zimage*
 retrieve_frame (capture_frame *frame,
 		tv_pixfmt pixfmt)
 {
-  gint i;
+  guint i;
   producer_buffer *pb = (producer_buffer*)frame;
 
   for (i=0; i<pb->num_images; i++)
@@ -870,7 +873,8 @@ retrieve_frame (capture_frame *frame,
 	    if (id == -1)
 	      return NULL;
 
-	    csconvert (id, &src->data, &dest->data, src->fmt.width,
+	    csconvert (id, &src->data, &dest->data,
+		       src->fmt.width,
 		       src->fmt.height);
 
 	    pb->converted[i] = TRUE;
