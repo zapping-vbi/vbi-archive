@@ -16,12 +16,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: clear_block.h,v 1.1 2004-12-11 11:46:21 mschimek Exp $ */
+/* $Id: clear_block.h,v 1.2 2005-01-08 14:43:32 mschimek Exp $ */
 
 #include <inttypes.h>
 #include <altivec.h>
+#include "libtv/macros.h"
 #include "avec.h"
-#include "../macros.h"
 
 /* Template for AltiVec clear_block functions. */
 
