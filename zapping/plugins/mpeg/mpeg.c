@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.39 2002-10-04 16:50:43 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.40 2002-12-14 00:39:47 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -473,11 +473,14 @@ real_plugin_start (const gchar *file_name)
 
 	  ShowBox ("Unable to determine current video standard",
 		   GNOME_MESSAGE_BOX_ERROR);
+
 	  return FALSE;
 	}
-  
-      captured_frame_rate = zapping_info->standards[
-	      zapping_info->cur_standard].frame_rate;
+      else
+        {
+	  captured_frame_rate = zapping_info->standards
+	    [zapping_info->cur_standard].frame_rate;
+        }
 
       /* g_assert */ (rte_option_set (video_codec, "coded_frame_rate",
 				(double) captured_frame_rate));
@@ -1330,6 +1333,7 @@ on_button_clicked			 (GtkButton	*button,
 #include "audio.h"
 #include "mpeg.h"
 #include "properties.h"
+#include "v4linterface.h"
 
 /*
   TODO:
@@ -1382,6 +1386,9 @@ static GtkWidget *		saving_popup;
 
 static volatile gboolean	active;
 
+/* XXX */
+static volatile gint		stopped;
+
 static rte_context *		context_enc;
 static rte_codec *		audio_codec;
 static rte_codec *		video_codec;
@@ -1424,8 +1431,9 @@ video_callback			(rte_context *		context,
   struct tveng_frame_format *fmt;
 
   for (;;) {
-    capture_buffer *cb = (capture_buffer *)
-      (b = wait_full_buffer (&mpeg_consumer));
+    capture_buffer *cb;
+    
+    cb = (capture_buffer *)(b = wait_full_buffer (&mpeg_consumer));
 
     fmt = &cb->d.format;
 
@@ -1663,6 +1671,7 @@ do_start			(const gchar *		file_name)
   rte_context *context;
   gdouble captured_frame_rate;
   gint width, height;
+  gint retry;
 
   if (active)
     return FALSE;
@@ -1720,66 +1729,109 @@ do_start			(const gchar *		file_name)
       tveng_pixformat =
 	zconf_get_integer (NULL, "/zapping/options/main/yuv_format");
 
-      if (!request_bundle_format (tveng_pixformat, width, height))
-	{
-	  rte_context_delete (context);
-	  context_enc = NULL;
+      for (retry = 0;; retry++)
+        {
+	  if (retry == 2)
+	    {
+	      ShowBox ("Cannot switch to requested capture format",
+		       GNOME_MESSAGE_BOX_ERROR);
+	      return FALSE;
+	    }
 
-	  ShowBox ("Cannot switch to %s capture format",
-		   GNOME_MESSAGE_BOX_ERROR,
-		   (tveng_pixformat == TVENG_PIX_YVU420) ?
-		   "YUV 4:2:0" : "YUV 4:2:2");
-	  return FALSE;
-	}
+	  if (!request_bundle_format (tveng_pixformat, width, height))
+	    {
+	      rte_context_delete (context);
+	      context_enc = NULL;
 
-      par->width = zapping_info->format.width;
-      par->height = zapping_info->format.height;
+	      ShowBox ("Cannot switch to %s capture format",
+		       GNOME_MESSAGE_BOX_ERROR,
+		       (tveng_pixformat == TVENG_PIX_YVU420) ?
+		       "YUV 4:2:0" : "YUV 4:2:2");
+	      return FALSE;
+	    }
 
-      if (tveng_pixformat == TVENG_PIX_YVU420)
-	{
-	  par->pixfmt = RTE_PIXFMT_YUV420;
-	  par->stride = par->width;
-	  par->uv_stride = par->stride >> 1;
-	  par->v_offset = par->stride * par->height;
-	  par->u_offset = par->v_offset * 5 / 4;
-	}
-      else
-	{
-	  par->pixfmt = RTE_PIXFMT_YUYV;
-	  /* defaults */
-	}
+	  par->width = zapping_info->format.width;
+	  par->height = zapping_info->format.height;
 
-      if (!zapping_info->num_standards)
-	{
-	  rte_context_delete (context);
-	  context_enc = NULL;
+	  if (tveng_pixformat == TVENG_PIX_YVU420)
+	    {
+	      par->pixfmt = RTE_PIXFMT_YUV420;
+	      par->stride = par->width;
+	      par->uv_stride = par->stride >> 1;
+	      par->v_offset = par->stride * par->height;
+	      par->u_offset = par->v_offset * 5 / 4;
+	    }
+	  else
+	    {
+	      par->pixfmt = RTE_PIXFMT_YUYV;
+	      /* defaults */
+	    }
 
-	  /* FIXME */
+	  if (!zapping_info->num_standards)
+	    {
+	      captured_frame_rate = videostd_inquiry ();
 
-	  ShowBox ("Unable to determine current video standard",
-		   GNOME_MESSAGE_BOX_ERROR);
-	  return FALSE; 
-	}
+	      if (captured_frame_rate < 0.0)
+		{
+		  rte_context_delete (context);
+		  context_enc = NULL;
+		  return FALSE;
+		}
+	    }
+	  else
+	    {
+	      captured_frame_rate = zapping_info->standards
+		[zapping_info->cur_standard].frame_rate;
+	    }
 
-      captured_frame_rate = zapping_info->standards[
-	zapping_info->cur_standard].frame_rate;
+	  /* g_assert */ (rte_codec_option_set (video_codec, "coded_frame_rate",
+						(double) captured_frame_rate));
 
-      /* g_assert */ (rte_codec_option_set (video_codec, "coded_frame_rate",
-				      (double) captured_frame_rate));
+	  par->frame_rate = captured_frame_rate;
 
-      par->frame_rate = captured_frame_rate;
+	  if (!rte_parameters_set (video_codec, &video_params))
+	    {
+	      rte_context_delete (context);
+	      context_enc = NULL;
 
-      if (!rte_parameters_set (video_codec, &video_params))
-	{
-	  rte_context_delete (context);
-	  context_enc = NULL;
+	      /* FIXME */
 
-	  /* FIXME */
+	      ShowBox ("Oops, catched a bug.",
+		       GNOME_MESSAGE_BOX_ERROR);
+	      return FALSE; 
+	    }
 
-	  ShowBox ("Oops, catched a bug.",
-		   GNOME_MESSAGE_BOX_ERROR);
-	  return FALSE; 
-	}
+	  if (par->width != zapping_info->format.width
+	      || par->height != zapping_info->format.height)
+	    {
+	      width = par->width;
+	      height = par->height;
+	      continue;
+	    }
+	  else if (par->pixfmt == RTE_PIXFMT_YUV420)
+	    {
+	      if (tveng_pixformat != TVENG_PIX_YVU420)
+		{
+		  tveng_pixformat = TVENG_PIX_YVU420;
+		  continue;
+		}
+	    }
+	  else if (par->pixfmt == RTE_PIXFMT_YUYV)
+	    {
+	      if (tveng_pixformat != TVENG_PIX_YUYV)
+		{
+		  tveng_pixformat = TVENG_PIX_YUYV;
+		  continue;
+		}
+	    }
+	  else
+	    {
+	      tveng_pixformat = TVENG_PIX_YUYV;
+	      continue;
+	    }
+
+	  break;
+	} /* retry loop */
     }
 
   if (audio_codec)
@@ -2293,6 +2345,20 @@ select_file_format		(GtkWidget *		mpeg_properties,
 
   attach_codec_menu (mpeg_properties, 2, "optionmenu12", conf_name, RTE_STREAM_AUDIO);
   attach_codec_menu (mpeg_properties, 1, "optionmenu11", conf_name, RTE_STREAM_VIDEO);
+
+  /* preliminary */
+  {
+    rte_context_info *ci = rte_context_info_by_context (context);
+    GtkWidget *widget;
+
+    if (ci && 0 == strcmp (ci->keyword, "mp1e_mpeg1_vcd"))
+      ci = NULL;
+
+    widget = lookup_widget (mpeg_properties, "spinbutton9");
+    gtk_widget_set_sensitive (widget, !!ci);
+    widget = lookup_widget (mpeg_properties, "spinbutton10");
+    gtk_widget_set_sensitive (widget, !!ci);
+  }
 }
 
 static void
@@ -2757,7 +2823,9 @@ on_saving_record_clicked	(GtkButton *		button,
     }
   else
     {
+      active = TRUE;
       gtk_toggle_button_set_active (record, FALSE);
+      active = FALSE;
     }
 
   return;
@@ -2907,7 +2975,7 @@ saving_dialog_new		(gboolean		recording)
 
   record = lookup_widget (saving_dialog, "record");
   if (recording) {
-    gtk_toggle_button_set_active (record, TRUE);
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (record), TRUE);
     gtk_widget_set_sensitive (record, FALSE);
   }
   gtk_signal_connect (GTK_OBJECT (record), "clicked",
@@ -2991,7 +3059,6 @@ quickrec_cmd			(GtkWidget *		widget,
     GtkToggleButton *record;
 
     record = GTK_TOGGLE_BUTTON (lookup_widget (saving_dialog, "record"));
-
   } else {
     saving_dialog_delete ();
   }
