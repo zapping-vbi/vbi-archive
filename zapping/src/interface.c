@@ -129,7 +129,9 @@ build_widget			(const gchar *		name,
 {
   GladeXML *xml;
   GtkWidget *widget;
+  GtkWidget *top_level;
   gchar *path;
+  gpointer data;
 
   if (!file)
     file = "zapping.glade";
@@ -155,6 +157,15 @@ build_widget			(const gchar *		name,
     }
 
   glade_xml_signal_autoconnect (xml);
+
+  /*
+   *  Add tooltips to our global list. Too bad glade has no callback.
+   */
+  for (top_level = widget; top_level->parent; top_level = top_level->parent)
+    ;
+  if ((data = gtk_object_get_data (GTK_OBJECT (top_level),
+				   "libglade::GladeXML::tooltips")))
+    z_tooltips_add (GTK_TOOLTIPS (data));
 
   g_free (path);
 
@@ -219,10 +230,10 @@ create_zapping (void)
                                   GTK_TOOLBAR_CHILD_TOGGLEBUTTON,
                                   NULL,
                                   _("Mute"),
-                                  _("Switch audio on and off"),
-				  NULL,
+                                  NULL, NULL,
                                   z_load_pixmap ("mute.png"),
 				  NULL, NULL, 3);
+  z_tooltip_set (w, _("Switch audio on and off"));
   gtk_object_set_data (GTK_OBJECT (widget), "registered-widget-tb-mute", w);
   gtk_widget_show (w);
 
