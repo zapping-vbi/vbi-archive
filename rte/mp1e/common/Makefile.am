@@ -1,6 +1,6 @@
 noinst_LTLIBRARIES = libcommon.la
 
-INCLUDES=-D_GNU_SOURCE -D_REENTRANT
+INCLUDES = -D_GNU_SOURCE -D_REENTRANT
 
 libcommon_la_SOURCES = \
 	alloc.c alloc.h \

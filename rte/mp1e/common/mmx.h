@@ -56,13 +56,11 @@ typedef	union {
 #define CPU_ATHLON		6	/* MMX, 3DNOW, AMD 3DNOW ext, CMOV, SSE int; K7 core */
 #define CPU_CYRIX_MII		7	/* MMX, CMOV */
 #define CPU_CYRIX_III		8	/* MMX, Cyrix MMX ext, 3DNOW, CMOV */
-/* AMD Palomino? MMX, 3DNOW, AMD 3DNOW ext, CMOV, SSE int, SSE flt; ? */
-/* AMD Hammer family, presumably Athlon + SSE2; K8 core */
 
 extern int cpu_detection(void);
 
 #if __GNUC__ == 3
-# if __GNUC_MINOR__ > 0
+# if __GNUC_MINOR__ > 1
 #  warning Compilation with your version of gcc is untested,
 #  warning may fail or create incorrect code.
 # endif
