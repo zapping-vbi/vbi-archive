@@ -1,0 +1,5 @@
+2001-08-07	<mschimek@users.sf.net>
+
+	* rte: output error caused hang, ssize_t typo. Todo: MPEG plugin
+	  should abort on error.
+	* Deleted old fifo code.

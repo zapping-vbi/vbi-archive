@@ -10,4 +10,4 @@ libcommon_la_SOURCES = \
 	mmx.c mmx.h \
 	profile.c profile.h \
 	threads.h types.h \
-	remote.c remote.h
+	sync.c sync.h

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alsa.c,v 1.1.1.1 2001-08-07 22:09:46 garetxe Exp $ */
+/* $Id: alsa.c,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -71,10 +71,10 @@ struct alsa_context {
 /* XXX Clock drift & overflow detection missing */
 
 static void
-wait_full(fifo2 *f)
+wait_full(fifo *f)
 {
 	struct alsa_context *alsa = f->user_data;
-	buffer2 *b = PARENT(f->buffers.head, buffer2, added);
+	buffer *b = PARENT(f->buffers.head, buffer, added);
 
 	assert(b->data == NULL); /* no queue */
 
@@ -128,7 +128,7 @@ wait_full(fifo2 *f)
 		b->time = alsa->time;
 		b->data = b->allocated;
 
-		send_full_buffer2(&alsa->pcm.producer, b);
+		send_full_buffer(&alsa->pcm.producer, b);
 		return;
 	}
 
@@ -141,19 +141,19 @@ wait_full(fifo2 *f)
 
 	b->data = (unsigned char *) alsa->p;
 
-	send_full_buffer2(&alsa->pcm.producer, b);
+	send_full_buffer(&alsa->pcm.producer, b);
 }
 
 static void
-send_empty(consumer *c, buffer2 *b)
+send_empty(consumer *c, buffer *b)
 {
 	// XXX
-	rem_node3(&c->fifo->full, &b->node);
+	rem_node(&c->fifo->full, &b->node);
 	b->data = NULL;
 }
 
 static bool
-start(fifo2 *f)
+start(fifo *f)
 {
 	struct alsa_context *alsa = f->user_data;
 	int err;
@@ -165,7 +165,7 @@ start(fifo2 *f)
 	return TRUE;
 }
 
-fifo2 *
+fifo *
 open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo)
 {
 	struct alsa_context *alsa;
@@ -173,7 +173,7 @@ open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo)
 	snd_pcm_channel_params_t params;
 	snd_pcm_channel_setup_t setup;
 	int card = 0, device = 0, buffer_size;
-	buffer2 *b;
+	buffer *b;
 	int err;
 
 	while (*dev_name && !isdigit(*dev_name))
@@ -236,7 +236,7 @@ open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo)
 		setup.format.rate, setup.format.voices,
 		setup.buf.stream.queue_size);
 
-	ASSERT("init alsa fifo", init_callback_fifo2(
+	ASSERT("init alsa fifo", init_callback_fifo(
 		&alsa->pcm.fifo, "audio-alsa",
 		NULL, NULL, wait_full, send_empty,
 		1, buffer_size));
@@ -247,7 +247,7 @@ open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo)
 	alsa->pcm.fifo.user_data = alsa;
 	alsa->pcm.fifo.start = start;
 
-	b = PARENT(alsa->pcm.fifo.buffers.head, buffer2, added);
+	b = PARENT(alsa->pcm.fifo.buffers.head, buffer, added);
 
 	b->data = NULL;
 	b->used = (alsa->samples_per_frame + alsa->look_ahead) * sizeof(short);

@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.1.1.1 2001-08-07 22:09:45 garetxe Exp $ */
+/* $Id: mp2.c,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
 
 #include <limits.h>
 #include "../common/log.h"
@@ -29,7 +29,7 @@
 #include "../common/profile.h"
 #include "../common/bstream.h"
 #include "../common/math.h"
-#include "../common/remote.h"
+#include "../common/sync.h"
 #include "../common/alloc.h"
 #include "audio.h"
 #include "../systems/systems.h"
@@ -71,7 +71,7 @@ sfsPerScfsi[4] __attribute__ ((aligned (4))) = {
 
 struct audio_seg aseg __attribute__ ((aligned (4096)));
 
-fifo2 *			audio_fifo;
+fifo *			audio_fifo;
 static producer		audio_prod;
 
 extern int		audio_num_frames;
@@ -135,7 +135,8 @@ audio_parameters(int *sampling_freq, int *bit_rate)
 
 
 void
-audio_init(int sampling_freq, int stereo, int audio_mode, int bit_rate, int psycho_loops)
+audio_init(int sampling_freq, int stereo, int audio_mode,
+	int bit_rate, int psycho_loops, multiplexer *mux)
 {
 	int mpeg_version, sampling_freq_code, bit_rate_code;
 	int sb, min_sg, bit_rate_per_ch;
@@ -321,7 +322,7 @@ audio_init(int sampling_freq, int stereo, int audio_mode, int bit_rate, int psyc
 
 	mp2->frame_period = SAMPLES_PER_FRAME / (double) sampling_freq;
 
-	audio_fifo = mux_add_input_stream(
+	audio_fifo = mux_add_input_stream(mux,
 		AUDIO_STREAM, "audio-mp2",
 		2048 * channels, aud_buffers,
 		sampling_freq / (double) SAMPLES_PER_FRAME, bit_rate);
@@ -372,12 +373,12 @@ static inline short *
 fetch_samples(struct audio_seg *mp2, double *btime, int stereo)
 {
 	int spf = SAMPLES_PER_FRAME << (stereo + 1), la = (512 - 32) << (stereo + 1);
-	buffer2 *buf = mp2->ibuf;
+	buffer *buf = mp2->ibuf;
 	int todo, avail;
 
 	if (audio_frame_count > audio_num_frames) {
 		if (buf)
-			send_empty_buffer2(&mp2->cons, buf);
+			send_empty_buffer(&mp2->cons, buf);
 		goto terminate;
 	}
 
@@ -397,16 +398,16 @@ fetch_samples(struct audio_seg *mp2, double *btime, int stereo)
 		for (todo = spf; todo > 0; todo -= avail) {
 			if (mp2->left == 0) {
 				if (buf)
-					send_empty_buffer2(&mp2->cons, buf);
+					send_empty_buffer(&mp2->cons, buf);
 
-				mp2->ibuf = buf = wait_full_buffer2(&mp2->cons);
+				mp2->ibuf = buf = wait_full_buffer(&mp2->cons);
 
 				if (mp2->time == 0.0) { // XXX frame dropping, clock drift
 					mp2->time = buf->time;
 				}
 
 				if (buf->used <= 0) {
-		    			send_empty_buffer2(&mp2->cons, buf);
+		    			send_empty_buffer(&mp2->cons, buf);
 					goto terminate;
 				} else {
 					mp2->offs = buf->offset;
@@ -433,9 +434,9 @@ fetch_samples(struct audio_seg *mp2, double *btime, int stereo)
 		}
 	}
 
-	if (remote_break(MOD_AUDIO, mp2->time, mp2->frame_period)) {
+	if (sync_break(MOD_AUDIO, mp2->time, mp2->frame_period)) {
 		if (buf)
-			send_empty_buffer2(&mp2->cons, buf);
+			send_empty_buffer(&mp2->cons, buf);
 		goto terminate;
 	}
 
@@ -449,9 +450,9 @@ fetch_samples(struct audio_seg *mp2, double *btime, int stereo)
 terminate:
 	printv(2, "Audio: End of file\n");
 
-	buf = wait_empty_buffer2(&audio_prod);
+	buf = wait_empty_buffer(&audio_prod);
 	buf->used = 0;
-	send_full_buffer2(&audio_prod, buf);
+	send_full_buffer(&audio_prod, buf);
 
 	pthread_exit(NULL);
 }
@@ -599,12 +600,12 @@ mpeg_audio_layer_ii_mono(void *cap_fifo)
 	// fpu_control(FPCW_PRECISION_SINGLE, FPCW_PRECISION_MASK);
 
 	ASSERT("add audio consumer",
-		add_consumer((fifo2 *) cap_fifo, &aseg.cons));
+		add_consumer((fifo *) cap_fifo, &aseg.cons));
 
-	remote_sync(&aseg.cons, MOD_AUDIO, aseg.frame_period);
+	sync_sync(&aseg.cons, MOD_AUDIO, aseg.frame_period);
 
 	for (;;) {
-		buffer2 *obuf;
+		buffer *obuf;
 		unsigned int adb, bpf;
 		double time;
 		short *p;
@@ -685,7 +686,7 @@ mpeg_audio_layer_ii_mono(void *cap_fifo)
 
 		pr_end(36);
 
-		obuf = wait_empty_buffer2(&audio_prod);
+		obuf = wait_empty_buffer(&audio_prod);
 
 		bstart(&aseg.out, obuf->data);
 
@@ -754,7 +755,7 @@ mpeg_audio_layer_ii_mono(void *cap_fifo)
 		obuf->used = bpf;
 		obuf->time = time;
 
-		send_full_buffer2(&audio_prod, obuf);
+		send_full_buffer(&audio_prod, obuf);
 	}
 
 	return NULL; // never
@@ -766,12 +767,12 @@ mpeg_audio_layer_ii_stereo(void *cap_fifo)
 	// fpu_control(FPCW_PRECISION_SINGLE, FPCW_PRECISION_MASK);
 
 	ASSERT("add audio consumer",
-		add_consumer((fifo2 *) cap_fifo, &aseg.cons));
+		add_consumer((fifo *) cap_fifo, &aseg.cons));
 
-	remote_sync(&aseg.cons, MOD_AUDIO, aseg.frame_period);
+	sync_sync(&aseg.cons, MOD_AUDIO, aseg.frame_period);
 
 	for (;;) {
-		buffer2 *obuf;
+		buffer *obuf;
 		unsigned int adb, bpf;
 		double time;
 		short *p;
@@ -858,7 +859,7 @@ mpeg_audio_layer_ii_stereo(void *cap_fifo)
 
 		pr_end(36);
 
-		obuf = wait_empty_buffer2(&audio_prod);
+		obuf = wait_empty_buffer(&audio_prod);
 
 		bstart(&aseg.out, obuf->data);
 
@@ -965,7 +966,7 @@ mpeg_audio_layer_ii_stereo(void *cap_fifo)
 		obuf->used = bpf;
 		obuf->time = time;
 
-		send_full_buffer2(&audio_prod, obuf);
+		send_full_buffer(&audio_prod, obuf);
 	}
 
 	return NULL; // never

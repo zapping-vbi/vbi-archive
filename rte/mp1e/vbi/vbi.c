@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.1.1.1 2001-08-07 22:09:25 garetxe Exp $ */
+/* $Id: vbi.c,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -27,7 +27,7 @@
 #include "../systems/systems.h"
 #include "../common/alloc.h"
 #include "../common/log.h"
-#include "../common/remote.h"
+#include "../common/sync.h"
 #include "../options.h"
 #include "vbi.h"
 #include "tables.h"
@@ -39,7 +39,7 @@
 #endif
 
 static bool		do_pdc, do_subtitles;
-static fifo2 *		vbi_output_fifo;
+static fifo *		vbi_output_fifo;
 static producer         vbi_prod;
 
 extern int		video_num_frames;
@@ -87,28 +87,28 @@ void *
 vbi_thread(void *F)
 {
 	consumer cons;
-	buffer2 *obuf = NULL, *ibuf;
+	buffer *obuf = NULL, *ibuf;
 	unsigned char *p = NULL, *p1 = NULL;
 	int vbi_frame_count = 0;
 	int items, parity = -1;
 	vbi_sliced *s;
 
-	ASSERT("add vbi cons", add_consumer((fifo2 *) F, &cons));
+	ASSERT("add vbi cons", add_consumer((fifo *) F, &cons));
 
 	if (do_subtitles)
-		remote_sync(&cons, MOD_SUBTITLES, 1 / 25.0);
+		sync_sync(&cons, MOD_SUBTITLES, 1 / 25.0);
 
 	while (vbi_frame_count < video_num_frames) { // XXX video XXX pdc
-		if (!(ibuf = wait_full_buffer2(&cons)) || ibuf->used <= 0)
+		if (!(ibuf = wait_full_buffer(&cons)) || ibuf->used <= 0)
 			break; // EOF or error
 
 		if (do_subtitles) {
-			if (remote_break(MOD_SUBTITLES, ibuf->time, 1 / 25.0)) {
-				send_empty_buffer2(&cons, ibuf);
+			if (sync_break(MOD_SUBTITLES, ibuf->time, 1 / 25.0)) {
+				send_empty_buffer(&cons, ibuf);
 				break;
 			}
 
-			obuf = wait_empty_buffer2(&vbi_prod);
+			obuf = wait_empty_buffer(&vbi_prod);
 			p1 = p = obuf->data;
 
 			parity = 0;
@@ -148,19 +148,19 @@ vbi_thread(void *F)
 			obuf->time = ibuf->time;
 			obuf->used = p - obuf->data;
 
-			send_full_buffer2(&vbi_prod, obuf);
+			send_full_buffer(&vbi_prod, obuf);
 		}
 
-		send_empty_buffer2(&cons, ibuf);
+		send_empty_buffer(&cons, ibuf);
 	}
 
 	printv(2, "VBI: End of file\n");
 
 	if (do_subtitles)
 		for (;;) {
-			obuf = wait_empty_buffer2(&vbi_prod);
+			obuf = wait_empty_buffer(&vbi_prod);
 			obuf->used = 0;
-			send_full_buffer2(&vbi_prod, obuf);
+			send_full_buffer(&vbi_prod, obuf);
 		}
 
 	rem_consumer(&cons);
@@ -169,7 +169,7 @@ vbi_thread(void *F)
 }
 
 void
-vbi_init(fifo2 *f)
+vbi_init(fifo *f, multiplexer *mux)
 {
 	do_pdc = DO_PDC;
 
@@ -180,7 +180,7 @@ vbi_init(fifo2 *f)
 
 		init_dvb_packet_filter(subtitle_pages);
 
-		vbi_output_fifo = mux_add_input_stream(
+		vbi_output_fifo = mux_add_input_stream(mux,
 			PRIVATE_STREAM_1, "vbi-ps1",
 			32 * 46, 5, 25.0, 294400 /* peak */);
 

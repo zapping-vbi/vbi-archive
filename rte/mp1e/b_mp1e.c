@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.1.1.1 2001-08-07 22:09:18 garetxe Exp $ */
+/* $Id: b_mp1e.c,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -41,7 +41,7 @@
 #include "common/log.h"
 #include "common/mmx.h"
 #include "common/bstream.h"
-#include "common/remote.h"
+#include "common/sync.h"
 #include "common/fifo.h"
 #include "main.h"
 
@@ -49,6 +49,8 @@
 
 typedef struct {
 	rte_context_private	priv;
+
+	multiplexer *mux;
 
 	pthread_t mux_thread; /* mp1e multiplexer thread */
 	pthread_t video_thread_id; /* video encoder thread */
@@ -61,8 +63,8 @@ static int rte_fake_options(rte_context * context);
 /* These routines are called in this order, they come from mp1e's main.c */
 static void rte_audio_startup(void); /* Startup video parameters */
 /* init routines */
-static void rte_audio_init(void); /* init audio capture */
-static void rte_video_init(void); /* init video capture */
+static void rte_audio_init(backend_private *priv); /* init audio capture */
+static void rte_video_init(backend_private *priv); /* init video capture */
 
 /*
  * Global options from rte.
@@ -106,7 +108,7 @@ context_destroy			(rte_context	*context)
 static int
 init_context			(rte_context	*context)
 {
-//	backend_private *priv = (backend_private*)context->private;
+	backend_private *priv = (backend_private*)context->private;
 
 	if (!context->format)
 	{
@@ -140,14 +142,21 @@ init_context			(rte_context	*context)
 		return 0;
 
 	/* Init the mp1e engine, as main would do */
+	if (!(priv->mux = mux_alloc()))
+	{
+		rte_error(context, "Cannot init output");
+		return 0;
+	}
+
 	rte_audio_startup();
 
-	rte_audio_init();
-	rte_video_init();
+	rte_audio_init(priv);
+	rte_video_init(priv);
 
 	if (!output_init())
 	{
 		rte_error(context, "Cannot init output");
+		mux_free(priv->mux);
 		return 0;
 	}
 
@@ -157,13 +166,15 @@ init_context			(rte_context	*context)
 static void
 uninit_context			(rte_context	*context)
 {
-//	backend_private *priv = (backend_private*)context->private;
+	backend_private *priv = (backend_private*)context->private;
 
 	output_end();
 
 	if (gop_sequence)
 		free(gop_sequence);
 	gop_sequence = NULL;
+
+	mux_free(priv->mux);
 }
 
 static int
@@ -171,7 +182,7 @@ start			(rte_context	*context)
 {
 	backend_private *priv = (backend_private*)context->private;
 
-	remote_init(modules);
+	sync_init(modules);
 
 	if (modules & MOD_AUDIO) {
 		ASSERT("create audio compression thread",
@@ -179,7 +190,7 @@ start			(rte_context	*context)
 					NULL,
 					stereo ? mpeg_audio_layer_ii_stereo :
 					         mpeg_audio_layer_ii_mono,
-					(fifo2 *) &(context->private->aud)));
+					(fifo *) &(context->private->aud)));
 
 		printv(2, "Audio compression thread launched\n");
 	}
@@ -189,7 +200,7 @@ start			(rte_context	*context)
 			!pthread_create(&priv->video_thread_id,
 					NULL,
 					mpeg1_video_ipb,
-					(fifo2 *) &(context->private->vid)));
+					(fifo *) &(context->private->vid)));
 
 		printv(2, "Video compression thread launched\n");
 	}
@@ -202,28 +213,28 @@ start			(rte_context	*context)
 	case 0:
 		ASSERT("create stream nirvana thread",
 		       !pthread_create(&priv->mux_thread, NULL,
-				       stream_sink, NULL));
+				       stream_sink, priv->mux));
 		break;
 	case 1:
 		ASSERT("create elementary stream thread",
 		       !pthread_create(&priv->mux_thread, NULL,
-				       elementary_stream_bypass, NULL));
+				       elementary_stream_bypass, priv->mux));
 		break;
 	case 2:
 		printv(1, "MPEG-1 Program Stream\n");
 		ASSERT("create mpeg1 system mux",
 		       !pthread_create(&priv->mux_thread, NULL,
-				       mpeg1_system_mux, NULL));
+				       mpeg1_system_mux, priv->mux));
 		break;
 	case 3:
 		printv(1, "MPEG-2 Program Stream\n");
 		ASSERT("create mpeg2 system mux",
 		       !pthread_create(&priv->mux_thread, NULL,
-				       mpeg2_program_stream_mux, NULL));
+				       mpeg2_program_stream_mux, priv->mux));
 		break;
 	}
 
-	remote_start(0.0);
+	sync_start(0.0);
 
 	return 1;
 }
@@ -234,7 +245,7 @@ stop			(rte_context	*context)
 	backend_private *priv = (backend_private*)context->private;
 
 	/* Tell the mp1e threads to shut down */
-	remote_stop(0.0); // now
+	sync_stop(0.0); // now
 
 	if (context->mode & RTE_VIDEO) {
 		printv(2, "joining video\n");
@@ -252,8 +263,6 @@ stop			(rte_context	*context)
 	printv(2, "joining mux\n");
 	pthread_join(priv->mux_thread, NULL);
 	printv(2, "mux joined\n");
-
-	mux_cleanup();
 
 //	pr_report();
 }
@@ -394,7 +403,7 @@ static void rte_audio_startup(void)
 
 /* FIXME: Subtitles support */
 
-static void rte_audio_init(void) /* init audio capture */
+static void rte_audio_init(backend_private *priv) /* init audio capture */
 {
 	if (modules & MOD_AUDIO) {
 		long long n = llroundn(((double) video_num_frames /
@@ -405,11 +414,11 @@ static void rte_audio_init(void) /* init audio capture */
 			audio_num_frames = MIN(n, (long long) INT_MAX);
 		
 		audio_init(sampling_rate, stereo, /* pcm_context */
-			audio_mode, audio_bit_rate, psycho_loops);
+			audio_mode, audio_bit_rate, psycho_loops, priv->mux);
 	}
 }
 
-static void rte_video_init(void) /* init video capture */
+static void rte_video_init(backend_private *priv) /* init video capture */
 {
 	if (modules & MOD_VIDEO) {
 		video_coding_size(width, height);
@@ -417,7 +426,7 @@ static void rte_video_init(void) /* init video capture */
 		if (frame_rate > frame_rate_value[frame_rate_code])
 			frame_rate = frame_rate_value[frame_rate_code];
 
-		video_init();
+		video_init(priv->mux);
 	}
 }
 

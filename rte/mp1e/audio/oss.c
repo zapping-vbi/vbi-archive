@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: oss.c,v 1.1.1.1 2001-08-07 22:09:46 garetxe Exp $ */
+/* $Id: oss.c,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -123,10 +123,10 @@ wait_full(fifo2 *f)
  *  width 32 samples (32 * 3 * 12 total)
  */
 static void
-wait_full(fifo2 *f)
+wait_full(fifo *f)
 {
 	struct oss_context *oss = f->user_data;
-	buffer2 *b = PARENT(f->buffers.head, buffer2, added);
+	buffer *b = PARENT(f->buffers.head, buffer, added);
 
 	assert(b->data == NULL); /* no queue */
 
@@ -184,7 +184,7 @@ wait_full(fifo2 *f)
 		b->time = oss->time;
 		b->data = b->allocated;
 
-		send_full_buffer2(&oss->pcm.producer, b);
+		send_full_buffer(&oss->pcm.producer, b);
 		return;
 	}
 
@@ -197,21 +197,21 @@ wait_full(fifo2 *f)
 
 	b->data = (unsigned char *) oss->p;
 
-	send_full_buffer2(&oss->pcm.producer, b);
+	send_full_buffer(&oss->pcm.producer, b);
 }
 
 #endif
 
 static void
-send_empty(consumer *c, buffer2 *b)
+send_empty(consumer *c, buffer *b)
 {
 	// XXX
-	rem_node3(&c->fifo->full, &b->node);
+	rem_node(&c->fifo->full, &b->node);
 
 	b->data = NULL;
 }
 
-fifo2 *
+fifo *
 open_pcm_oss(char *dev_name, int sampling_rate, bool stereo)
 {
 	struct oss_context *oss;
@@ -219,7 +219,7 @@ open_pcm_oss(char *dev_name, int sampling_rate, bool stereo)
 	int oss_speed = sampling_rate;
 	int oss_stereo = stereo;
 	int buffer_size;
-	buffer2 *b;
+	buffer *b;
 
 	ASSERT("allocate pcm context",
 		(oss = calloc(1, sizeof(struct oss_context))));
@@ -262,7 +262,7 @@ open_pcm_oss(char *dev_name, int sampling_rate, bool stereo)
 		printv(3, "Dsp buffer size %i\n", frag_size);
 	}
 
-	ASSERT("init oss fifo",	init_callback_fifo2(
+	ASSERT("init oss fifo",	init_callback_fifo(
 		&oss->pcm.fifo, "audio-oss",
 		NULL, NULL, wait_full, send_empty,
 		1, buffer_size));
@@ -272,7 +272,7 @@ open_pcm_oss(char *dev_name, int sampling_rate, bool stereo)
 
 	oss->pcm.fifo.user_data = oss;
 
-	b = PARENT(oss->pcm.fifo.buffers.head, buffer2, added);
+	b = PARENT(oss->pcm.fifo.buffers.head, buffer, added);
 
 	b->data = NULL;
 

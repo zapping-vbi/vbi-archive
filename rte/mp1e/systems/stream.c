@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: stream.c,v 1.1.1.1 2001-08-07 22:10:18 garetxe Exp $ */
+/* $Id: stream.c,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,7 +33,6 @@
 #include "../options.h"
 #include "mpeg.h"
 #include "systems.h"
-#include "stream.h"
 
 list3			mux_input_streams;
 

@@ -18,354 +18,25 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.22 2001-07-31 12:59:50 mschimek Exp $ */
+/* $Id: fifo.h,v 1.23 2001-08-08 05:23:27 mschimek Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
 
-#include "list.h"
-#include "threads.h"
-
 #include <stdlib.h>
 #include <sys/time.h>
 
-/*
-  TODO:
-  - Use the waiting variable
-    + Stealing buffers from slow consumers
-  
-  - Interface changes:
-    + We should remove wait_full callback in favour of something like
-	fill_buffer, and do the fifo managing ourselves, not the producer.
-*/
-
-/*
-  Refcount of the buffer:
-  INC() -> The buffer has been appended to a consumer's full list
-  DEC() -> The buffer has been send_empty'ed.
-  == 0  -> The buffer is sent empty
-*/
-typedef struct {
-	node 			node;
-	int			index;
-	int			refcount; /* 0: last unref */
-
-	/* prod. r/w, cons. r/o */
-
-	int			type;
-	int			offset;
-	double			time;
-
-	unsigned char *		data;
-	long			used;		/* bytes */
-
-	/* owner private */
-
-	unsigned char *		allocated;	/* by init_fifo etc */
-	long			size;		/* bytes */
-
-	void *			user_data;
-	int			rte_flags;	/* rte internal use */
-} buffer;
-
-typedef struct _fifo fifo;
-
-typedef struct {
-	node			node; /* in f->consumers */
-
-	list			full; /* buffers ready for use */
-	int			waiting; /* in full */
-
-	pthread_t		owner; /* creator */
-
-	mucon			consumer;
-	fifo			*f; /* owner */
-
-	int			killable; /* defaults to 1 */
-	int			zombie; /* this was killed, but it
-					   stays with us a bit
-					   longer... */
-} coninfo;
-
-struct _fifo {
-	mucon			producer;
-	mucon			mbackup;
-
-	char			name[64];
-
-	/* Consumers */
-	list			consumers;
-	pthread_rwlock_t	consumers_rwlock; /* wrlock on
-						     consumers change */
-
-	list			limbo; /* zombies stay here until they
-					definitively die */
-	pthread_mutex_t		limbo_mutex;
-
-	pthread_key_t		consumer_key;
-
-	/* Producer */
-	list			empty;		/* LIFO */
-	list			backup;		/* FIFO */
-
-	buffer *		(* wait_full)(struct _fifo *);
-	void			(* send_empty)(struct _fifo *, buffer *);
-
-	bool			(* start)(struct _fifo *);
-	void			(* uninit)(struct _fifo *);
-
-	/* owner private */
-
-	buffer *		buffers;
-	int			num_buffers;
-	void			(* send_full)(struct _fifo *, buffer *);
-
-	void *			user_data;
-};
-
-extern bool	init_buffer(buffer *b, int size);
-extern void	uninit_buffer(buffer *b);
-extern int	alloc_buffer_vec(buffer **bpp, int num_buffers, int buffer_size);
-extern void	free_buffer_vec(buffer *bvec, int num_buffers);
-
-extern int	init_buffered_fifo(fifo *f, char *name, int num_buffers, int buffer_size);
-extern int	init_callback_fifo(fifo *f, char *name, buffer * (* wait_full)(fifo *), void (* send_empty)(fifo *, buffer *), int num_buffers, int buffer_size);
-extern coninfo *create_consumer(fifo *f);
-/* If on, and buffers aren't processed, the consumer will be
-   automatically removed from the fifo's consumer list */
-extern void set_killable(fifo *f, int on);
-extern void kill_zombies(fifo *f);
-
-#define VALID_BUFFER(f, b) \
-	((b)->index < (f)->num_buffers && (f)->buffers + (b)->index == (b))
-
-/*
- *     send_full_buffer, +->-+ wait_full_buffer,
- *  bcast consumer mucon |   | wait consumer mucon
- *                       |   |
- *            (producer) |   | (consumer)
- *                       |   |
- *    wait_empty_buffer, +-<-+ send_empty_buffer,
- *   wait producer mucon       bcast producer mucon
- */
-static inline coninfo*
-query_consumer(fifo *f)
-{
-	coninfo *current=pthread_getspecific(f->consumer_key);
-
-	if (current && !current->zombie)
-		return current;
-	else {
-		if (current) {
-			/* pending destroy sequence */
-			pthread_mutex_lock(&f->limbo_mutex);
-			unlink_node(&(f->limbo), (node*)current);
-			pthread_mutex_unlock(&f->limbo_mutex);
-			free(current);
-			pthread_setspecific(f->consumer_key, NULL);
-		}
-
-		return create_consumer(f);
-	}
-}
-
-static inline bool
-start_fifo(fifo *f)
-{
-	return f->start(f);
-}
-
-/*
-    Stop and destroy fifo.
- */
-static inline void
-uninit_fifo(fifo *f)
-{
-	f->uninit(f);
-}
-
-static inline void
-send_full_buffer(fifo *f, buffer *b)
-{
-	f->send_full(f, b);
-}
-
-static inline void
-unget_full_buffer(fifo *f, buffer *b)
-{
-	coninfo *consumer;
-
-	pthread_rwlock_rdlock(&f->consumers_rwlock);
-	consumer = query_consumer(f);
-	pthread_mutex_lock(&consumer->consumer.mutex);
-
-	add_head(&consumer->full, &b->node);
-	consumer->waiting++;
-
-	pthread_mutex_unlock(&consumer->consumer.mutex);
-	pthread_cond_broadcast(&consumer->consumer.cond);
-	pthread_rwlock_unlock(&f->consumers_rwlock);
-}
-
-/**
- * f->consumers_rwlock must be locked.
- * consumer is the consumer that got the buffer and wishes to propagate,
- * the buffer isn't put in his full list.
- */
-static inline void
-propagate_buffer(fifo *f, buffer *b, coninfo *consumer)
-{
-	coninfo *p = (coninfo*)f->consumers.head;
-
-	while (p) {
-		if (p != consumer) {
-			pthread_mutex_lock(&(p->consumer.mutex));
-			add_tail(&(p->full), &b->node);
-			p->waiting++;
-			b->refcount++;
-			pthread_mutex_unlock(&(p->consumer.mutex));
-			pthread_cond_broadcast(&(p->consumer.cond));
-		}
-		p = (coninfo*)(p->node.next);
-	}
-
-	/* FIXME: better mbackup */
-	if (empty_list(&f->consumers)) {
-		/* store it for later use */
-		b->refcount = 1;
-		pthread_mutex_lock(&f->mbackup.mutex);
-		add_tail(&f->backup, &b->node);
-		pthread_mutex_unlock(&f->mbackup.mutex);
-	}
-}
-
-extern buffer * wait_full_buffer(fifo *f);
-
-static inline buffer *
-recv_full_buffer(fifo *f)
-{
-	buffer *b;
-	coninfo *consumer;
-
-	pthread_rwlock_rdlock(&f->consumers_rwlock);
-	consumer = query_consumer(f);
-
-	pthread_mutex_lock(&consumer->consumer.mutex);
-	b = (buffer*) rem_head(&consumer->full);
-	if (b)
-		consumer->waiting--;
-	pthread_mutex_unlock(&consumer->consumer.mutex);
-
-	if ((!b) && (f->wait_full)) {
-		b = f->wait_full(f);
-		if (b) {
-			b->refcount = 1;
-			propagate_buffer(f, b, consumer);
-		}
-	}
-
-	pthread_rwlock_unlock(&f->consumers_rwlock);
-
-	return b;
-}
-
-static inline void
-send_empty_buffer(fifo *f, buffer *b)
-{
-	if ((--(b->refcount)) <= 0 )
-		f->send_empty(f, b);
-}
-
-#define inc_buffer_refcount(b) ((b)->refcount++)
-
-static inline buffer *
-wait_empty_buffer(fifo *f)
-{
-	buffer *b;
-
-	pthread_rwlock_rdlock(&f->consumers_rwlock);
-      	if (empty_list(&f->consumers) &&
-	    empty_list(&f->empty)) {
-		b = (buffer*) rem_head(&f->backup);
-		if (b) {
-			b->refcount = 0;
-			send_empty_buffer(f, b);
-		}
-	}
-	pthread_rwlock_unlock(&f->consumers_rwlock);
-
-	/* FIXME: steal, be bad in a polite way */
-	pthread_mutex_lock(&f->producer.mutex);
-
-	b = (buffer *) rem_head(&f->empty);
-
-	if (!b) {
-	  pthread_mutex_unlock(&f->producer.mutex);
-
-	  kill_zombies(f);
-
-	  pthread_mutex_lock(&f->producer.mutex);
-
-	  while (!(b = (buffer *) rem_head(&f->empty)))
-	    pthread_cond_wait(&f->producer.cond,
-			      &f->producer.mutex);
-	} else
-		/* otherwise producer cannot be cancelled without consumers */
-		pthread_testcancel();
-
-	pthread_mutex_unlock(&f->producer.mutex);
-
-	b->refcount = 0;
-
-	return b;
-}
-
-static inline buffer *
-recv_empty_buffer(fifo *f)
-{
-	buffer *b;
-
-	pthread_rwlock_rdlock(&f->consumers_rwlock);
-	if (empty_list(&f->consumers) &&
-	    empty_list(&f->empty)) {
-		b = (buffer*) rem_head(&f->backup);
-		if (b) {
-			b->refcount = 0;
-			send_empty_buffer(f, b);
-		}
-	}
-	pthread_rwlock_unlock(&f->consumers_rwlock);
-
-	pthread_mutex_lock(&f->producer.mutex);
-
-	b = (buffer *) rem_head(&f->empty);
-
-	pthread_mutex_unlock(&f->producer.mutex);
-
-	if (!b)
-		kill_zombies(f);
-	else
-		b->refcount = 0;
-
-	return b;
-}
-
-#ifndef FIFO_C
-#define fifo _oops_another_old_fifo_
-#endif
-
-/*
- *  NEW STUFF
- */
-
-typedef struct fifo2 fifo2;
-typedef struct buffer2 buffer2;
+#include "list.h"
+#include "threads.h"
+
+typedef struct fifo fifo;
+typedef struct buffer buffer;
 typedef struct consumer consumer;
 typedef struct producer producer;
 
-struct buffer2 {
-	node3 			node;		/* fifo->full/empty */
-	fifo2 *			fifo;
+struct buffer {
+	node 			node;		/* fifo->full/empty */
+	fifo *			fifo;
 
 	/*
 	 *  These fields are used for the "virtual full queue".
@@ -414,12 +85,12 @@ struct buffer2 {
 
 	/* Owner private */
 
-	node3			added;		/* fifo->buffers */
+	node			added;		/* fifo->buffers */
 
 	unsigned char *		allocated;
 	ssize_t			size;
 
-	void			(* destroy)(buffer2 *);
+	void			(* destroy)(buffer *);
 
 	void *			user_data;
 
@@ -427,18 +98,18 @@ struct buffer2 {
 	int			rte_flags;	/* rte internal use */
 };
 
-struct fifo2 {
-	node3			node;		/* owner private */
+struct fifo {
+	node			node;		/* owner private */
 
 	char			name[64];	/* for debug messages */
 
 	mucon			pro, con;
 
-	list3			full;		/* FIFO */
-	list3			empty;		/* LIFO */
+	list			full;		/* FIFO */
+	list			empty;		/* LIFO */
 
-	list3			producers;
-	list3			consumers;
+	list			producers;
+	list			consumers;
 
 	int			p_reentry;
 	int			c_reentry;
@@ -450,37 +121,37 @@ struct fifo2 {
 	mucon *			producer;	/* -> pro */
 	mucon *			consumer;	/* -> con */
 
-	list3			buffers;	/* add/rem_buffer */
+	list			buffers;	/* add/rem_buffer */
 
 	bool			unlink_full_buffers; /* default true */
 
-	void			(* wait_empty)(fifo2 *);
-	void			(* send_full)(producer *, buffer2 *);
+	void			(* wait_empty)(fifo *);
+	void			(* send_full)(producer *, buffer *);
 
-	void			(* wait_full)(fifo2 *);
-	void			(* send_empty)(consumer *, buffer2 *);
+	void			(* wait_full)(fifo *);
+	void			(* send_empty)(consumer *, buffer *);
 
-	bool			(* start)(fifo2 *);
-	void			(* stop)(fifo2 *);
+	bool			(* start)(fifo *);
+	void			(* stop)(fifo *);
 
-	void			(* destroy)(fifo2 *);
+	void			(* destroy)(fifo *);
 
 	void *			user_data;
 };
 
 struct producer {
-	node3			node;		/* fifo->producers */
-	fifo2 *			fifo;
+	node			node;		/* fifo->producers */
+	fifo *			fifo;
 
 	int			dequeued;	/* bookkeeping */
 	bool			eof_sent;
 };
 
 struct consumer {
-	node3			node;		/* fifo->consumers */
-	fifo2 *			fifo;
+	node			node;		/* fifo->consumers */
+	fifo *			fifo;
 
-	buffer2 *		next_buffer;	/* virtual pointer */
+	buffer *		next_buffer;	/* virtual pointer */
 	int			dequeued;	/* bookkeeping */
 };
 
@@ -507,25 +178,25 @@ current_time(void)
 
 /**
  * destroy_buffer:
- * @b: buffer2 *
+ * @b: buffer *
  * 
  * Free all resources associated with the buffer. This is a
  * low-level function, don't call it for buffers which have
  * been added to a fifo. No op when @b is %NULL.
  **/
 static inline void
-destroy_buffer(buffer2 *b)
+destroy_buffer(buffer *b)
 {
 	if (b && b->destroy)
 		b->destroy(b);
 }
 
-extern buffer2 *		init_buffer2(buffer2 *, ssize_t);
-extern buffer2 *		alloc_buffer(ssize_t);
+extern buffer *		init_buffer(buffer *, ssize_t);
+extern buffer *		alloc_buffer(ssize_t);
 
 /**
  * destroy_fifo:
- * @f: fifo2 *
+ * @f: fifo *
  * 
  * Free all resources associated with the fifo, including all
  * buffers. Make sure no threads are using the fifo and no
@@ -538,7 +209,7 @@ extern buffer2 *		alloc_buffer(ssize_t);
  * No op when @f is %NULL.
  **/
 static inline void
-destroy_fifo(fifo2 *f)
+destroy_fifo(fifo *f)
 {
 	if (f && f->destroy)
 		f->destroy(f);
@@ -567,16 +238,16 @@ destroy_fifo(fifo2 *f)
  * Return value:
  * Buffer pointer, or %NULL if the full queue is empty.
  **/
-static inline buffer2 *
-recv_full_buffer2(consumer *c)
+static inline buffer *
+recv_full_buffer(consumer *c)
 {
-	fifo2 *f = c->fifo;
-	buffer2 *b;
+	fifo *f = c->fifo;
+	buffer *b;
 
 	pthread_mutex_lock(&f->consumer->mutex);
 
 	if ((b = c->next_buffer)->node.succ) {
-		c->next_buffer = (buffer2 *) b->node.succ;
+		c->next_buffer = (buffer *) b->node.succ;
 		b->dequeued++;
 		c->dequeued++;
 	} else
@@ -587,12 +258,12 @@ recv_full_buffer2(consumer *c)
 	return b;
 }
 
-extern buffer2 *		wait_full_buffer2(consumer *c);
+extern buffer *		wait_full_buffer(consumer *c);
 
 /**
  * unget_full_buffer:
  * @c: consumer *
- * @b: buffer2 *
+ * @b: buffer *
  * 
  * Put buffer @b, dequeued with wait_full_buffer() or recv_full_buffer()
  * and not yet returned with send_empty_buffer(), back on the full queue
@@ -601,9 +272,9 @@ extern buffer2 *		wait_full_buffer2(consumer *c);
  * recently dequeued.
  **/
 static inline void
-unget_full_buffer2(consumer *c, buffer2 *b)
+unget_full_buffer(consumer *c, buffer *b)
 {
-	fifo2 *f = c->fifo;
+	fifo *f = c->fifo;
 
 	/* Migration prohibited */
 	assert(c->fifo == b->fifo);
@@ -612,7 +283,7 @@ unget_full_buffer2(consumer *c, buffer2 *b)
 
 	pthread_mutex_lock(&f->consumer->mutex);
 
-	assert(c->next_buffer == (buffer2 *) b->node.succ);
+	assert(c->next_buffer == (buffer *) b->node.succ);
 
 	b->dequeued--;
 
@@ -631,7 +302,7 @@ unget_full_buffer2(consumer *c, buffer2 *b)
  * buffer is not permitted.
  **/
 static inline void
-send_empty_buffer2(consumer *c, buffer2 *b)
+send_empty_buffer(consumer *c, buffer *b)
 {
 	/* Migration prohibited */
 	assert(c->fifo == b->fifo);
@@ -642,7 +313,7 @@ send_empty_buffer2(consumer *c, buffer2 *b)
 }
 
 /* XXX rethink */
-extern void			send_empty_buffered(consumer *c, buffer2 *b);
+extern void			send_empty_buffered(consumer *c, buffer *b);
 
 /**
  * recv_empty_buffer:
@@ -661,15 +332,15 @@ extern void			send_empty_buffered(consumer *c, buffer2 *b);
  * Return value:
  * Buffer pointer, or %NULL if the empty queue is empty.
  **/
-static inline buffer2 *
-recv_empty_buffer2(producer *p)
+static inline buffer *
+recv_empty_buffer(producer *p)
 {
-	fifo2 *f = p->fifo;
-	buffer2 *b;
+	fifo *f = p->fifo;
+	buffer *b;
 
 	pthread_mutex_lock(&f->producer->mutex);
 
-	b = PARENT(rem_head3(&f->empty), buffer2, node);
+	b = PARENT(rem_head(&f->empty), buffer, node);
 
 	pthread_mutex_unlock(&f->producer->mutex);
 
@@ -681,7 +352,7 @@ recv_empty_buffer2(producer *p)
 	return b;
 }
 
-extern buffer2 *		wait_empty_buffer2(producer *p);
+extern buffer *		wait_empty_buffer(producer *p);
 
 /**
  * unget_empty_buffer:
@@ -697,9 +368,9 @@ extern buffer2 *		wait_empty_buffer2(producer *p);
  * recv_empty_buffer() will not necessarily succeed.
  **/
 static inline void
-unget_empty_buffer2(producer *p, buffer2 *b)
+unget_empty_buffer(producer *p, buffer *b)
 {
-	fifo2 *f = p->fifo;
+	fifo *f = p->fifo;
 
 	/* Migration prohibited, don't use this to add buffers to the fifo */
 	assert(p->fifo == b->fifo && b->dequeued == 1);
@@ -709,30 +380,30 @@ unget_empty_buffer2(producer *p, buffer2 *b)
 
 	pthread_mutex_lock(&f->producer->mutex);
 
-	add_tail3(&f->empty, &b->node);
+	add_tail(&f->empty, &b->node);
 
 	pthread_mutex_unlock(&f->producer->mutex);
 }
 
-extern void			send_full_buffer2(producer *p, buffer2 *b);
+extern void			send_full_buffer(producer *p, buffer *b);
 
-extern void			rem_buffer(buffer2 *b);
-extern bool			add_buffer(fifo2 *f, buffer2 *b);
+extern void			rem_buffer(buffer *b);
+extern bool			add_buffer(fifo *f, buffer *b);
 
-extern int			init_buffered_fifo2(fifo2 *f, char *name, int num_buffers, ssize_t buffer_size);
-extern int			init_callback_fifo2(fifo2 *f, char *name, void (* custom_wait_empty)(fifo2 *), void (* custom_send_full)(producer *, buffer2 *), void (* custom_wait_full)(fifo2 *), void (* custom_send_empty)(consumer *, buffer2 *), int num_buffers, ssize_t buffer_size);
+extern int			init_buffered_fifo(fifo *f, char *name, int num_buffers, ssize_t buffer_size);
+extern int			init_callback_fifo(fifo *f, char *name, void (* custom_wait_empty)(fifo *), void (* custom_send_full)(producer *, buffer *), void (* custom_wait_full)(fifo *), void (* custom_send_empty)(consumer *, buffer *), int num_buffers, ssize_t buffer_size);
 
 extern void			rem_producer(producer *p);
-extern producer *		add_producer(fifo2 *f, producer *p);
+extern producer *		add_producer(fifo *f, producer *p);
 
 extern void			rem_consumer(consumer *c);
-extern consumer	*		add_consumer(fifo2 *f, consumer *c);
+extern consumer	*		add_consumer(fifo *f, consumer *c);
 
 /* XXX TBD */
 /* start only *after* adding a consumer? */
 /* mp-fifos? */
 static inline bool
-start_fifo2(fifo2 *f)
+start_fifo(fifo *f)
 {
 	return f->start(f);
 }

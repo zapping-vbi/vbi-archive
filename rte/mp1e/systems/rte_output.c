@@ -33,15 +33,14 @@
 #include "../common/fifo.h"
 #include "../common/log.h"
 #include "systems.h"
-#include "stream.h"
 #include "../../rtepriv.h"
 
-buffer2 *		(* mux_output)(buffer2 *b);
+buffer *		(* mux_output)(buffer *b);
 
-static buffer2		mux_buffer;
+static buffer		mux_buffer;
 
-static buffer2 *
-output(buffer2 *mbuf)
+static buffer *
+output(buffer *mbuf)
 {
 	if (!mbuf)
 		return &mux_buffer;
@@ -68,7 +67,7 @@ output(buffer2 *mbuf)
 int
 output_init( void )
 {
-	if (!init_buffer2(&mux_buffer, PACKET_SIZE))
+	if (!init_buffer(&mux_buffer, PACKET_SIZE))
 		return FALSE;
 
 	mux_output = output;

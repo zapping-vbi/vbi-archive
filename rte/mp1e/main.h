@@ -45,7 +45,8 @@ extern void options(int ac, char **av);
 
 extern void preview_init(void);
 
-extern void video_init(void);
+#include "systems/libsystems.h"
+extern void video_init(multiplexer *mux);
 
 extern volatile int program_shutdown;
 

@@ -69,7 +69,7 @@ extern tveng_device_info *main_info;
 static struct vbi *vbi=NULL; /* holds the vbi object */
 static ZModel * vbi_model=NULL; /* notify to clients the open/closure
 				   of the device */
-static fifo2 *vbi_source=NULL; /* source of vbi data for libvbi */
+static fifo *vbi_source=NULL; /* source of vbi data for libvbi */
 static pthread_mutex_t network_mutex;
 static gboolean station_name_known = FALSE;
 static gchar station_name[256];
@@ -95,7 +95,7 @@ struct ttx_patch {
 };
 
 struct ttx_client {
-  fifo2		mqueue;
+  fifo		mqueue;
   producer	mqueue_prod;
   consumer	mqueue_cons;
   int		page, subpage; /* monitored page, subpage */
@@ -612,9 +612,9 @@ send_ttx_message(struct ttx_client *client,
 		 void *data, int bytes)
 {
   ttx_message_data *d;
-  buffer2 *b;
+  buffer *b;
   
-  b = wait_empty_buffer2(&client->mqueue_prod);
+  b = wait_empty_buffer(&client->mqueue_prod);
 
   d = (ttx_message_data*)b->data;
   d->msg = message;
@@ -623,7 +623,7 @@ send_ttx_message(struct ttx_client *client,
   if (data)
     memcpy(&(d->data), data, bytes);
 
-  send_full_buffer2(&client->mqueue_prod, b);
+  send_full_buffer(&client->mqueue_prod, b);
 }
 
 static void
@@ -694,7 +694,7 @@ register_ttx_client(void)
       gdk_pixbuf_unref(simple);
     }
 
-  g_assert(init_buffered_fifo2(
+  g_assert(init_buffered_fifo(
            &client->mqueue, "zvbi-mqueue",
 	   16, sizeof(ttx_message_data)) > 0);
 
@@ -769,7 +769,7 @@ enum ttx_message
 peek_ttx_message(int id, ttx_message_data *data)
 {
   struct ttx_client *client;
-  buffer2 *b;
+  buffer *b;
   enum ttx_message message;
   ttx_message_data *d;
 
@@ -777,13 +777,13 @@ peek_ttx_message(int id, ttx_message_data *data)
 
   if ((client = find_client(id)))
     {
-      b = recv_full_buffer2(&client->mqueue_cons);
+      b = recv_full_buffer(&client->mqueue_cons);
       if (b)
 	{
 	  d = (ttx_message_data*)b->data;
 	  message = d->msg;
 	  memcpy(data, d, sizeof(ttx_message_data));
-	  send_empty_buffer2(&client->mqueue_cons, b);
+	  send_empty_buffer(&client->mqueue_cons, b);
 	}
       else
 	message = TTX_NONE;
@@ -800,7 +800,7 @@ enum ttx_message
 get_ttx_message(int id, ttx_message_data *data)
 {
   struct ttx_client *client;
-  buffer2 *b;
+  buffer *b;
   enum ttx_message message;
   ttx_message_data *d;
 
@@ -808,12 +808,12 @@ get_ttx_message(int id, ttx_message_data *data)
 
   if ((client = find_client(id)))
     {
-      b = wait_full_buffer2(&client->mqueue_cons);
+      b = wait_full_buffer(&client->mqueue_cons);
       g_assert(b != NULL);
       d = (ttx_message_data*)b->data;
       message = d->msg;
       memcpy(data, d, sizeof(ttx_message_data));
-      send_empty_buffer2(&client->mqueue_cons, b);
+      send_empty_buffer(&client->mqueue_cons, b);
     }
   else
     message = TTX_BROKEN_PIPE;
@@ -826,10 +826,10 @@ get_ttx_message(int id, ttx_message_data *data)
 static void
 clear_message_queue(struct ttx_client *client)
 {
-  buffer2 *b;
+  buffer *b;
 
-  while ((b=recv_full_buffer2(&client->mqueue_cons)))
-    send_empty_buffer2(&client->mqueue_cons, b);
+  while ((b=recv_full_buffer(&client->mqueue_cons)))
+    send_empty_buffer(&client->mqueue_cons, b);
 }
 
 void

@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.1.1.1 2001-08-07 22:09:53 garetxe Exp $ */
+/* $Id: v4l.c,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -42,7 +42,7 @@
 #warning The V4L interface has not been tested.
 
 static int			fd;
-static fifo2			cap_fifo;
+static fifo			cap_fifo;
 static producer			cap_prod;
 
 static struct video_capability	vcap;
@@ -67,7 +67,7 @@ static pthread_t		thread_id;
 static void *
 v4l_cap_thread(void *unused)
 {
-	buffer2 *b;
+	buffer *b;
 	int cframe;
 	int r;
 
@@ -84,7 +84,7 @@ v4l_cap_thread(void *unused)
 		/* Just in case wait_empty never waits */
 		pthread_testcancel();
 
-		b = wait_empty_buffer2(&cap_prod);
+		b = wait_empty_buffer(&cap_prod);
 
 		r = IOCTL(fd, VIDIOCSYNC, &cframe);
 
@@ -102,7 +102,7 @@ v4l_cap_thread(void *unused)
 			IOCTL(fd, VIDIOCMCAPTURE, &vmmap) == 0,
 			cframe);
 
-		send_full_buffer2(&cap_prod, b);
+		send_full_buffer(&cap_prod, b);
 
 		if (++cframe >= buf.frames)
 			cframe = 0;
@@ -120,7 +120,7 @@ restore_audio(void)
 	IOCTL(fd, VIDIOCSAUDIO, &old_vaud);
 }
 
-fifo2 *
+fifo *
 v4l_init(void)
 {
 	int min_cap_buffers = video_look_ahead(gop_sequence);
@@ -205,7 +205,7 @@ v4l_init(void)
 
 	ASSERT("map capture buffers", buf_base != -1);
 
-	ASSERT("initialize v4l fifo", init_buffered_fifo2(
+	ASSERT("initialize v4l fifo", init_buffered_fifo(
 		&cap_fifo, "video-v4l2",
 		buf_count, buf_size));
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vcd.c,v 1.1.1.1 2001-08-07 22:10:16 garetxe Exp $ */
+/* $Id: vcd.c,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
 
 /*
  *  This code creates a stream suitable for mkvcdfs as vcdmplex
@@ -48,7 +48,6 @@
 #include "../options.h"
 #include "mpeg.h"
 #include "systems.h"
-#include "stream.h"
 
 #define put(p, val, bytes)						\
 do {									\
@@ -166,9 +165,9 @@ padding_packet(unsigned char *p, int size)
 static inline bool
 next_access_unit(stream *str, double *ppts, unsigned char *ph)
 {
-	buffer2 *buf;
+	buffer *buf;
 
-	str->buf = buf = wait_full_buffer2(&str->cons);
+	str->buf = buf = wait_full_buffer(&str->cons);
 
 	str->ptr  = buf->data;
 	str->left = buf->used;
@@ -223,14 +222,14 @@ next_access_unit(stream *str, double *ppts, unsigned char *ph)
 #define LARGE_DTS 1E30
 
 static inline stream *
-schedule(void)
+schedule(multiplexer *mux)
 {
 	double dtsi_min = LARGE_DTS;
 	stream *s, *str;
 
 	str = NULL;
 
-	for_all_nodes (s, &mux_input_streams, fifo.node) {
+	for_all_nodes (s, &mux->streams, fifo.node) {
 		double dtsi = s->dts;
 
 		if (s->buf)
@@ -246,12 +245,12 @@ schedule(void)
 }
 
 void *
-vcd_system_mux(void *unused)
+vcd_system_mux(void *muxp)
 {
+	multiplexer *mux = muxp;
 	unsigned char *p, *ph, *ps, *pl, *px;
 	unsigned long bytes_out = 0;
 	unsigned int packet_count;
-	unsigned int packet_size;
 	double system_rate, system_rate_bound;
 	double system_overhead;
 	double ticks_per_pack, tscr;
@@ -259,7 +258,7 @@ vcd_system_mux(void *unused)
 	stream *str, *video_stream = NULL;
 	stream *audio_stream = NULL;
 	bool do_pad = TRUE;
-	buffer2 *buf;
+	buffer *buf;
 
 	{
 		double preload_delay;
@@ -268,7 +267,7 @@ vcd_system_mux(void *unused)
 		int preload = 0;
 		int bit_rate = 0;
 
-		for_all_nodes (str, &mux_input_streams, fifo.node) {
+		for_all_nodes (str, &mux->streams, fifo.node) {
 			str->buf = NULL;
 			bit_rate += str->bit_rate;
 			str->eff_bit_rate = str->bit_rate;
@@ -285,14 +284,14 @@ vcd_system_mux(void *unused)
 					do_pad = FALSE;
 			}
 
-			buf = wait_full_buffer2(&str->cons);
+			buf = wait_full_buffer(&str->cons);
 
 			if (buf->used <= 0) /* XXX */
 				FAIL("Premature end of file / error");
 
 	    		preload += buf->used;
 
-			unget_full_buffer2(&str->cons, buf);
+			unget_full_buffer(&str->cons, buf);
 
 			nstreams++;
 		}
@@ -305,9 +304,7 @@ vcd_system_mux(void *unused)
 		assert(buf && buf->size >= 512
 		           && buf->size <= 32768);
 
-		packet_size = buf->size;
-
-		system_overhead = packet_size / (packet_size - SYSTEM_HEADER_SIZE - PACK_HEADER_SIZE);
+		system_overhead = mux->packet_size / (mux->packet_size - SYSTEM_HEADER_SIZE - PACK_HEADER_SIZE);
 		system_rate = system_rate_bound = bit_rate * system_overhead / 8;
 
 		/* Frames must arrive completely before decoding starts */
@@ -315,9 +312,9 @@ vcd_system_mux(void *unused)
 			/ system_rate_bound * SYSTEM_TICKS;
 
 		scr = 36000;
-		ticks_per_pack = packet_size / system_rate_bound * SYSTEM_TICKS;
+		ticks_per_pack = mux->packet_size / system_rate_bound * SYSTEM_TICKS;
 
-		for_all_nodes (str, &mux_input_streams, fifo.node) {
+		for_all_nodes (str, &mux->streams, fifo.node) {
 			/* Video PTS is delayed by one frame */
 			if (!IS_VIDEO_STREAM(str->stream_id)) {
 				str->pts_offset = (double) SYSTEM_TICKS / (video_frame_rate * 1.0);
@@ -369,7 +366,7 @@ vcd_system_mux(void *unused)
 
 		/* XXX target system rate 75 * 2324 B/s */
 reschedule:
-		if (!(str = schedule()))
+		if (!(str = schedule(mux)))
 			break;
 
 		pts = -1;
@@ -398,7 +395,7 @@ reschedule:
 			str->left -= m;
 
 			if (!str->left) {
-				send_empty_buffer2(&str->cons, str->buf);
+				send_empty_buffer(&str->cons, str->buf);
 
 				str->buf = NULL;
 				str->dts += str->ticks_per_frame;
@@ -436,7 +433,7 @@ reschedule:
 				str->left -= n;
 
 				if (!str->left) {
-					send_empty_buffer2(&str->cons, str->buf);
+					send_empty_buffer(&str->cons, str->buf);
 
 					str->buf = NULL;
 					str->dts += str->ticks_per_frame;

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.1.1.1 2001-08-07 22:09:13 garetxe Exp $ */
+/* $Id: rte.c,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -86,7 +86,7 @@ static inline void
 wait_data(rte_context * context, int video)
 {
 	producer *p;
-	buffer2 *b;
+	buffer *b;
 	/* *_callback are volatile, access by reference */
 	rteDataCallback *data_callback;
 	rteBufferCallback *buffer_callback;
@@ -110,7 +110,7 @@ wait_data(rte_context * context, int video)
 	}
 
 	if (*data_callback) {
-		b = wait_empty_buffer2(p);
+		b = wait_empty_buffer(p);
 
 		(*data_callback)(context, b->data, &(b->time),
 				 stream, context->private->user_data);
@@ -121,14 +121,14 @@ wait_data(rte_context * context, int video)
 			b->rte_flags &= ~BLANK_BUFFER;
 
 		b->used = bytes;
-		send_full_buffer2(p, b);
+		send_full_buffer(p, b);
 		return;
 	} else if (*buffer_callback) {
 		for (;;) {
 			(*buffer_callback)(context, &rbuf, stream);
 
 			if (rbuf.data) {
-				b = wait_empty_buffer2(p);
+				b = wait_empty_buffer(p);
 
 				b->data = rbuf.data;
 				b->used = bytes;
@@ -136,12 +136,12 @@ wait_data(rte_context * context, int video)
 				b->user_data = rbuf.user_data;
 				b->rte_flags &= ~BLANK_BUFFER;
 
-				send_full_buffer2(p, b);
+				send_full_buffer(p, b);
 				return;
 			}
 		}
 	} else {
-		fifo2 *f = p->fifo;
+		fifo *f = p->fifo;
 	
 		/* XXX Oops, we are *not* a callback producer */
 
@@ -160,22 +160,22 @@ wait_data(rte_context * context, int video)
 }
 
 static void
-video_wait_full(fifo2 *f)
+video_wait_full(fifo *f)
 {
 	wait_data((rte_context *) f->user_data, 1);
 }
 
 static void
-audio_wait_full(fifo2 *f)
+audio_wait_full(fifo *f)
 {
 	wait_data((rte_context *) f->user_data, 0);
 }
 
 static void
-video_send_empty(consumer *c, buffer2 *b)
+video_send_empty(consumer *c, buffer *b)
 {
 	rte_buffer rbuf;
-	fifo2 *f = c->fifo;
+	fifo *f = c->fifo;
 	rteUnrefCallback unref_callback =
 		((rte_context*)f->user_data)->private->video_unref_callback;
 
@@ -192,10 +192,10 @@ video_send_empty(consumer *c, buffer2 *b)
 }
 
 static void
-audio_send_empty(consumer *c, buffer2 *b)
+audio_send_empty(consumer *c, buffer *b)
 {
 	rte_buffer rbuf;
-	fifo2 *f = c->fifo;
+	fifo *f = c->fifo;
 	rteUnrefCallback unref_callback =
 		((rte_context*)f->user_data)->private->audio_unref_callback;
 
@@ -216,7 +216,7 @@ static void default_write_callback ( rte_context * context,
 				     void * data, size_t size,
 				     void * user_data )
 {
-	size_t r;
+	ssize_t r;
 
 	while (size) {
 		r = write(context->private->fd, data, size);
@@ -646,7 +646,7 @@ int rte_init_context ( rte_context * context )
 		else
 			alloc_bytes = context->video_bytes;
 
-		if (2 > init_callback_fifo2(
+		if (2 > init_callback_fifo(
 			&(context->private->vid), "rte-video",
 			NULL, NULL, video_wait_full, video_send_empty,
 			video_look_ahead(context->gop_sequence), alloc_bytes)) {
@@ -666,7 +666,7 @@ int rte_init_context ( rte_context * context )
 		else
 			alloc_bytes = 0;
 
-		if (4 > init_callback_fifo2(
+		if (4 > init_callback_fifo(
 			&(context->private->aud), "rte-audio",
 			NULL, NULL, audio_wait_full, audio_send_empty,
 			NUM_AUDIO_BUFFERS, alloc_bytes)) {
@@ -756,7 +756,7 @@ void rte_stop ( rte_context * context )
 
 	if ((context->mode & RTE_AUDIO) &&
 	    (context->private->audio_interface == RTE_PUSH)) {
-		buffer2 *b = context->private->last_audio_buffer;
+		buffer *b = context->private->last_audio_buffer;
 
 		/* set to dead end */
 		context->private->audio_data_callback = blank_callback;
@@ -764,13 +764,13 @@ void rte_stop ( rte_context * context )
 		if (b) {
 			context->private->last_audio_buffer = NULL;
 			b->used = 0; /* EOF */
-			send_full_buffer2(&(context->private->aud_prod), b);
+			send_full_buffer(&(context->private->aud_prod), b);
 		}
 	}
 
 	if ((context->mode & RTE_VIDEO) &&
 	    (context->private->video_interface == RTE_PUSH)) {
-		buffer2 *b = context->private->last_video_buffer;
+		buffer *b = context->private->last_video_buffer;
 
 		/* set to dead end */
 		context->private->video_data_callback = blank_callback;
@@ -778,7 +778,7 @@ void rte_stop ( rte_context * context )
 		if (b) {
 			context->private->last_video_buffer = NULL;
 			b->used = 0; /* EOF */
-			send_full_buffer2(&(context->private->vid_prod), b);
+			send_full_buffer(&(context->private->vid_prod), b);
 		}
 	}
 
@@ -842,12 +842,12 @@ void * rte_push_video_data ( rte_context * context, void * data,
 		ASSERT("size check", context->video_bytes ==
 		       context->private->last_video_buffer->size);
 
-		send_full_buffer2(&(context->private->vid_prod),
+		send_full_buffer(&(context->private->vid_prod),
 				 context->private->last_video_buffer);
 	}
 
 	context->private->last_video_buffer =
-		wait_empty_buffer2(&(context->private->vid_prod));
+		wait_empty_buffer(&(context->private->vid_prod));
 
 	return context->private->last_video_buffer->data;
 }
@@ -855,7 +855,7 @@ void * rte_push_video_data ( rte_context * context, void * data,
 void rte_push_video_buffer ( rte_context * context,
 			     rte_buffer * rbuf )
 {
-	buffer2 * b;
+	buffer * b;
 	nullcheck(context, return);
 
 	if (!context->private->inited) {
@@ -878,14 +878,14 @@ void rte_push_video_buffer ( rte_context * context,
 		return;
 	}
 
-	b = wait_empty_buffer2(&(context->private->vid_prod));
+	b = wait_empty_buffer(&(context->private->vid_prod));
 
 	b->time = rbuf->time;
 	b->data = rbuf->data;
 	b->used = context->video_bytes;
 	b->user_data = rbuf->user_data;
 
-	send_full_buffer2(&(context->private->vid_prod), b);
+	send_full_buffer(&(context->private->vid_prod), b);
 }
 
 void * rte_push_audio_data ( rte_context * context, void * data,
@@ -924,12 +924,12 @@ void * rte_push_audio_data ( rte_context * context, void * data,
 		context->private->last_audio_buffer->time = time;
 		context->private->last_audio_buffer->used = context->audio_bytes;
 
-		send_full_buffer2(&(context->private->aud_prod),
+		send_full_buffer(&(context->private->aud_prod),
 				 context->private->last_audio_buffer);
 	}
 
 	context->private->last_audio_buffer =
-		wait_empty_buffer2(&(context->private->aud_prod));
+		wait_empty_buffer(&(context->private->aud_prod));
 
 	return context->private->last_audio_buffer->data;
 }
@@ -937,7 +937,7 @@ void * rte_push_audio_data ( rte_context * context, void * data,
 void rte_push_audio_buffer ( rte_context * context,
 			     rte_buffer * rbuf )
 {
-	buffer2 * b;
+	buffer * b;
 	nullcheck(context, return);
 
 	if (!context->private->inited) {
@@ -960,14 +960,14 @@ void rte_push_audio_buffer ( rte_context * context,
 		return;
 	}
 
-	b = wait_empty_buffer2(&(context->private->aud_prod));
+	b = wait_empty_buffer(&(context->private->aud_prod));
 
 	b->time = rbuf->time;
 	b->data = rbuf->data;
 	b->used = context->audio_bytes;
 	b->user_data = rbuf->user_data;
 
-	send_full_buffer2(&(context->private->aud_prod), b);
+	send_full_buffer(&(context->private->aud_prod), b);
 }
 
 void rte_set_verbosity ( rte_context * context, int level )

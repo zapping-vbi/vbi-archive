@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.1.1.1 2001-08-07 22:10:04 garetxe Exp $ */
+/* $Id: mpeg1.c,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -37,7 +37,7 @@
 #include "../common/bstream.h"
 #include "../common/fifo.h"
 #include "../common/alloc.h"
-#include "../common/remote.h"
+#include "../common/sync.h"
 #include "../systems/mpeg.h"
 #include "../systems/systems.h"
 #include "vlc.h"
@@ -149,7 +149,7 @@ int x_bias = 65536 * 31,
 
 #define QS 1
 
-fifo2 *			video_fifo;
+fifo *			video_fifo;
 producer		video_prod;
 
 #include "dct_ieee.h"
@@ -1360,20 +1360,20 @@ user_data(char *s)
 #define Rvbr (1.0 / 64)
 
 static inline void
-_send_full_buffer(producer *p, buffer2 *b)
+_send_full_buffer(producer *p, buffer *b)
 {
         if (b->used > 0)
 	        video_eff_bit_rate +=
 			((b->used * 8) * frames_per_sec
 			 - video_eff_bit_rate) * Rvbr;
 
-	send_full_buffer2(p, b);
+	send_full_buffer(p, b);
 }
 
 
 static struct {
 	unsigned char * org[2];
-	buffer2 *	buffer;
+	buffer *	buffer;
 	double		time;
 } stack[MAX_B_SUCC], last, buddy, *this;
 
@@ -1381,12 +1381,12 @@ static void
 promote(int n)
 {
 	int i;
-	buffer2 *obuf;
+	buffer *obuf;
 
 	for (i = 0; i < n; i++) {
 		printv(3, "Promoting stacked B picture #%d\n", i);
 
-		obuf = wait_empty_buffer2(&video_prod);
+		obuf = wait_empty_buffer(&video_prod);
 		referenced = TRUE;
 		Ep++; Eb--;
 
@@ -1411,7 +1411,7 @@ promote(int n)
 		}
 
 		if (stack[i].buffer)
-			send_empty_buffer2(&cons, stack[i].buffer);
+			send_empty_buffer(&cons, stack[i].buffer);
 
 		obuf->offset = 1;
 		obuf->time = stack[i].time;
@@ -1428,7 +1428,7 @@ static void
 resume(int n)
 {
 	int i;
-	buffer2 *obuf, *last = NULL;
+	buffer *obuf, *last = NULL;
 
 	referenced = FALSE;
 	p_succ = 0;
@@ -1438,7 +1438,7 @@ resume(int n)
 		if (!stack[i].org[0]) {
 			assert(last != NULL);
 
-			obuf = wait_empty_buffer2(&video_prod);
+			obuf = wait_empty_buffer(&video_prod);
 
 			printv(3, "Dupl'ing B picture #%d GOP #%d\n",
 				video_frame_count, gop_frame_count);
@@ -1456,13 +1456,13 @@ resume(int n)
 
 			_send_full_buffer(&video_prod, last);
 		} else {
-			obuf = wait_empty_buffer2(&video_prod);
+			obuf = wait_empty_buffer(&video_prod);
 			bstart(&video_out, obuf->data);
 			obuf->used = picture_b(stack[i].org[0], stack[i].org[1],
 				i + 1, (i + 1) * motion, (n - i) * motion);
 
 			if (stack[i].buffer)
-				send_empty_buffer2(&cons, stack[i].buffer);
+				send_empty_buffer(&cons, stack[i].buffer);
 
 			obuf->type = B_TYPE;
 			obuf->offset = 0;
@@ -1491,14 +1491,14 @@ mpeg1_video_ipb(void *capture_fifo)
 {
 	bool done = FALSE;
 	char *seq = "";
-	buffer2 *obuf;
+	buffer *obuf;
 
 	printv(3, "Video compression thread\n");
 
 	ASSERT("add video cons",
-		add_consumer((fifo2 *) capture_fifo, &cons));
+		add_consumer((fifo *) capture_fifo, &cons));
 
-	remote_sync(&cons, MOD_VIDEO, time_per_frame);
+	sync_sync(&cons, MOD_VIDEO, time_per_frame);
 
 	while (!done) {
 		int sp = 0;
@@ -1512,12 +1512,12 @@ mpeg1_video_ipb(void *capture_fifo)
 				last.org[0] = NULL;
 			} else {
 				if (temporal_interpolation) {
-					buffer2 *b;
+					buffer *b;
 
 					this->buffer = buddy.buffer;
 					this->org[1] = buddy.org[0];
 
-					b = wait_full_buffer2(&cons);
+					b = wait_full_buffer(&cons);
 
 					if (b->used > 0) {
 						this->time = b->time;
@@ -1529,7 +1529,7 @@ mpeg1_video_ipb(void *capture_fifo)
 						}
 					} else {
 						this->org[0] = NULL;
-						send_empty_buffer2(&cons, b);
+						send_empty_buffer(&cons, b);
 					}
 					
 					if (!this->org[1]) {
@@ -1537,17 +1537,17 @@ mpeg1_video_ipb(void *capture_fifo)
 						this->org[1] = this->org[0];
 					}
 				} else {
-					buffer2 *b;
+					buffer *b;
 
 					this->buffer = b = 
-						wait_full_buffer2(&cons);
+						wait_full_buffer(&cons);
 
 					if (b->used > 0) {
 						this->time = b->time;
 						this->org[0] = b->data;
 					} else {
 						this->org[0] = NULL;
-						send_empty_buffer2(&cons, b);
+						send_empty_buffer(&cons, b);
 					}
 				}
 #if TEST_PREVIEW
@@ -1564,15 +1564,15 @@ mpeg1_video_ipb(void *capture_fifo)
 
 			sp++;
 
-			if (!this->org[0] || remote_break(MOD_VIDEO, this->time, time_per_frame) ||
+			if (!this->org[0] || sync_break(MOD_VIDEO, this->time, time_per_frame) ||
 			    video_frame_count + sp > video_num_frames) {
 				printv(2, "Video: End of file\n");
 
 				if (this->org[0] && this->buffer)
-					send_empty_buffer2(&cons, this->buffer);
+					send_empty_buffer(&cons, this->buffer);
 
 				if (buddy.org[0])
-					send_empty_buffer2(&cons, buddy.buffer);
+					send_empty_buffer(&cons, buddy.buffer);
 
 				while (*seq == 'B')
 					seq++;
@@ -1610,10 +1610,10 @@ mpeg1_video_ipb(void *capture_fifo)
 
 			if (skip_rate_acc < frames_per_sec) {
 				if (this->org[0] && this->buffer)
-					send_empty_buffer2(&cons, this->buffer);
+					send_empty_buffer(&cons, this->buffer);
 
 				if (hack2) {
-					obuf = wait_empty_buffer2(&video_prod);
+					obuf = wait_empty_buffer(&video_prod);
 
 					obuf->type = B_TYPE;
 					obuf->offset = 0;
@@ -1637,7 +1637,7 @@ mpeg1_video_ipb(void *capture_fifo)
 					printv(3, "Encoding 0 picture #%d GOP #%d\n",
 						video_frame_count, gop_frame_count);
 
-					obuf = wait_empty_buffer2(&video_prod);
+					obuf = wait_empty_buffer(&video_prod);
 
 					memcpy(obuf->data, zerop_template, Sz);
 
@@ -1674,7 +1674,7 @@ next_frame:
 
 		/* Encode P or I picture plus sequence or GOP headers */
 
-		obuf = wait_empty_buffer2(&video_prod);
+		obuf = wait_empty_buffer(&video_prod);
 		bstart(&video_out, obuf->data);
 
 		if (!*seq) {
@@ -1777,7 +1777,7 @@ gop_count++;
 		}
 
 		if (this->buffer)
-			send_empty_buffer2(&cons, this->buffer);
+			send_empty_buffer(&cons, this->buffer);
 
 		obuf->offset = sp;
 		obuf->time = this->time;
@@ -1803,7 +1803,7 @@ finish:
 	/* Stream end code */
 
 	if (video_frame_count > 0) {
-		obuf = wait_empty_buffer2(&video_prod);
+		obuf = wait_empty_buffer(&video_prod);
 		((unsigned int *) obuf->data)[0] = swab32(SEQUENCE_END_CODE);
 		obuf->type = 0;
 		obuf->offset = 1;
@@ -1814,7 +1814,7 @@ finish:
 
 	/* End of file */
 
-	obuf = wait_empty_buffer2(&video_prod);
+	obuf = wait_empty_buffer(&video_prod);
 	obuf->type = 0;
 	obuf->offset = 1;
 	obuf->used = 0; /* EOF */
@@ -1907,7 +1907,7 @@ alloc_buffers(int mb_num, int motion)
 
 
 void
-video_init(void)
+video_init(multiplexer *mux)
 {
 	bool packed = TRUE;
 	int bmax, i;
@@ -2070,7 +2070,7 @@ video_init(void)
 	video_reset();
 
 	{
-		video_fifo = mux_add_input_stream(
+		video_fifo = mux_add_input_stream(mux,
 			VIDEO_STREAM, "video-mpeg1",
 			mb_num * 384 * 4, vid_buffers,
 			frames_per_sec, video_bit_rate);

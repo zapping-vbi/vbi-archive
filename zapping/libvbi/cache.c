@@ -18,7 +18,7 @@
 
 struct cache_page
 {
-    node3 node[1];
+    node node[1];
     struct vt_page page[1];
 
     /* dynamic size, no fields below */
@@ -39,7 +39,7 @@ cache_close(struct cache *ca)
     int i;
 
     for (i = 0; i < HASH_SIZE; ++i)
-	while ((cp = PARENT(rem_head3(ca->hash + i), struct cache_page, node[0]))) {
+	while ((cp = PARENT(rem_head(ca->hash + i), struct cache_page, node[0]))) {
 	    free(cp);
 	}
     free(ca);
@@ -56,7 +56,7 @@ cache_reset(struct cache *ca)
 	     (cpn = (struct cache_page *) cp->node->succ); cp = cpn)
 	    if (cp->page->pgno / 256 != 9) // don't remove help pages
 	    {
-		rem_node3(ca->hash + i, cp->node);
+		rem_node(ca->hash + i, cp->node);
 		free(cp);
 		ca->npages--;
 	    }
@@ -82,7 +82,7 @@ cache_get(struct cache *ca, int pgno, int subno, int subno_mask)
 	    if (subno == ANY_SUB || (cp->page->subno & subno_mask) == subno)
 	    {
 		// found, move to front (make it 'new')
-		add_head3(ca->hash + h, rem_node3(ca->hash + h, cp->node));
+		add_head(ca->hash + h, rem_node(ca->hash + h, cp->node));
 		return cp->page;
 	    }
 	}
@@ -111,16 +111,16 @@ cache_put(struct cache *ca, struct vt_page *vtp)
 	if (cp->node->succ) {
 		if (vtp_size(cp->page) == size) {
 			// move to front.
-			add_head3(ca->hash + h, rem_node3(ca->hash + h, cp->node));
+			add_head(ca->hash + h, rem_node(ca->hash + h, cp->node));
 		} else {
 			struct cache_page *new_cp;
 
 			if (!(new_cp = malloc(sizeof(*cp) - sizeof(cp->page) + size)))
 				return 0;
-			rem_node3(ca->hash + h, cp->node);
+			rem_node(ca->hash + h, cp->node);
 			free(cp);
 			cp = new_cp;
-			add_head3(ca->hash + h, cp->node);
+			add_head(ca->hash + h, cp->node);
 		}
 	} else {
 		if (!(cp = malloc(sizeof(*cp) - sizeof(cp->page) + size)))
@@ -128,7 +128,7 @@ cache_put(struct cache *ca, struct vt_page *vtp)
 		if (vtp->subno >= ca->hi_subno[vtp->pgno])
 			ca->hi_subno[vtp->pgno] = vtp->subno + 1;
 		ca->npages++;
-		add_head3(ca->hash + h, cp->node);
+		add_head(ca->hash + h, cp->node);
 	}
 
 	memcpy(cp->page, vtp, size);
@@ -283,7 +283,7 @@ cache_open(void)
 	goto fail1;
 
     for (i = 0; i < HASH_SIZE; ++i)
-	init_list3(ca->hash + i);
+	init_list(ca->hash + i);
 
     memset(ca->hi_subno, 0, sizeof(ca->hi_subno));
     ca->erc = 1;

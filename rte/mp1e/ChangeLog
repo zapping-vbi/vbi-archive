@@ -1,3 +1,8 @@
+2001-08-08	<mschimek@users.sf.net>
+
+	* New mux context. (Wanted to replace output stuff but that
+	  needs more preparation.)
+
 2001-08-06	<mschimek@users.sf.net>
 
 	* ffmpeg: crash due to cpuid bug, updated from ffmpeg cvs.

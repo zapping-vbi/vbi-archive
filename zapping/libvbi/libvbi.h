@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvbi.h,v 1.42 2001-08-07 12:56:14 mschimek Exp $ */
+/* $Id: libvbi.h,v 1.43 2001-08-08 05:23:27 mschimek Exp $ */
 
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
@@ -336,7 +336,7 @@ extern void		vbi_set_colour_level(struct vbi *vbi, int brig, int cont);
 extern void		vbi_push_video(struct vbi *vbi, void *data, int width, enum tveng_frame_pixformat fmt, double time);
 
 extern void		vbi_close(struct vbi *vbi);
-extern struct vbi *	vbi_open(fifo2 *source);
+extern struct vbi *	vbi_open(fifo *source);
 
 /*
  *  Export (export.c)
@@ -389,3 +389,16 @@ void vbi_get_vt_cell_size(int *w, int *h);
 #include "vbi.h" /* XXX cache */
 
 #endif /* __LIBVBI_H__ */
+
+
+
+
+
+
+
+
+
+
+
+
+

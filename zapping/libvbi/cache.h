@@ -8,7 +8,7 @@
 
 struct cache
 {
-    list3 hash[HASH_SIZE];
+    list hash[HASH_SIZE];
     int erc;			// error reduction circuit on
     int npages;
     unsigned short hi_subno[0x9ff + 1];	// 0:pg not in cache, 1-3f80:highest subno + 1

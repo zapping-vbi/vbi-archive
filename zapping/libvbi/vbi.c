@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.65 2001-07-31 12:59:50 mschimek Exp $ */
+/* $Id: vbi.c,v 1.66 2001-08-08 05:23:27 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -295,11 +295,11 @@ mainloop(void *p)
 	assert(add_consumer(vbi->source, &c));
 
 	while (!vbi->quit) {
-		buffer2 *b = wait_full_buffer2(&c);
+		buffer *b = wait_full_buffer(&c);
 
 		if (b->used <= 0) {
 			/* ack */
-			send_empty_buffer2(&c, b);
+			send_empty_buffer(&c, b);
 
 			/* EOF? Well, shouldn't happen */
 			ev.type = VBI_EVENT_IO_ERROR;
@@ -338,7 +338,7 @@ mainloop(void *p)
 			items--;
 		}
 
-		send_empty_buffer2(&c, b);
+		send_empty_buffer(&c, b);
 
 		if (vbi->event_mask & VBI_EVENT_TRIGGER)
 			vbi_deferred_trigger(vbi);
@@ -383,11 +383,11 @@ mainloop(void *p)
  */
 
 struct {
-	fifo2			fifo;
+	fifo			fifo;
 	producer		producer;
-	buffer2			buf;
+	buffer			buf;
 
-	fifo2 *			old_fifo;
+	fifo *			old_fifo;
 	consumer		old_consumer;
 
 	vbi_sliced		sliced[60];
@@ -397,15 +397,15 @@ struct {
 } filter;
 
 static void
-wait_full_filter(fifo2 *f)
+wait_full_filter(fifo *f)
 {
 	int items, index, line;
 	vbi_sliced *s, *d;
 	char buf[256];
-	buffer2 *b;
+	buffer *b;
 	int i;
 
-	b = wait_full_buffer2(&filter.old_consumer);
+	b = wait_full_buffer(&filter.old_consumer);
 
 	if (b->used <= 0) {
 		filter.buf.time = b->time;
@@ -413,8 +413,8 @@ wait_full_filter(fifo2 *f)
 		filter.buf.error = -1;
 		filter.buf.errstr = NULL;
 
-		send_empty_buffer2(&filter.old_consumer, b);
-		send_full_buffer2(&filter.producer, b);
+		send_empty_buffer(&filter.old_consumer, b);
+		send_full_buffer(&filter.producer, b);
 
 		return;
 	}
@@ -468,8 +468,8 @@ wait_full_filter(fifo2 *f)
 	filter.buf.used = (d - filter.sliced) * sizeof(vbi_sliced);
 	filter.buf.time = b->time;
 
-	send_empty_buffer2(&filter.old_consumer, b);
-	send_full_buffer2(&filter.producer, b);
+	send_empty_buffer(&filter.old_consumer, b);
+	send_full_buffer(&filter.producer, b);
 }
 
 static void
@@ -490,7 +490,7 @@ add_filter(struct vbi *vbi)
 
 	assert(add_consumer(filter.old_fifo, &filter.old_consumer));
 
-	init_callback_fifo2(&filter.fifo, "vbi-filter",
+	init_callback_fifo(&filter.fifo, "vbi-filter",
 		NULL, NULL, wait_full_filter, NULL, 0, 0);
 
 	assert(add_producer(&filter.fifo, &filter.producer));
@@ -626,7 +626,7 @@ vbi_push_video(struct vbi *vbi, void *video_data,
 	};
 	int sampling_rate, spl;
 	vbi_sliced *s;
-	buffer2 *b;
+	buffer *b;
 	int i;
 
 	if (fmt != vbi->video_fmt || width != vbi->video_width) {
@@ -663,7 +663,7 @@ vbi_push_video(struct vbi *vbi, void *video_data,
 	 *  *we* are actually the rogue thread, don't attempt to wait,
 	 *  the WSS datagram will repeat anyway.
 	 */
-	if (!(b = recv_empty_buffer2(&vbi->wss_producer)))
+	if (!(b = recv_empty_buffer(&vbi->wss_producer)))
 		return;
 
 	s = (void *) b->data = b->allocated;
@@ -676,9 +676,9 @@ vbi_push_video(struct vbi *vbi, void *video_data,
 				    (the consumer has to, fifo ignores time) */
 		b->used = sizeof(vbi_sliced);
 
-		send_full_buffer2(&vbi->wss_producer, b);
+		send_full_buffer(&vbi->wss_producer, b);
 	} else
-		unget_empty_buffer2(&vbi->wss_producer, b);
+		unget_empty_buffer(&vbi->wss_producer, b);
 }
 
 void
@@ -714,7 +714,7 @@ vbi_close(struct vbi *vbi)
  *  after vbi_close.
  */
 struct vbi *
-vbi_open(fifo2 *source)
+vbi_open(fifo *source)
 {
 	struct vbi *vbi;
 

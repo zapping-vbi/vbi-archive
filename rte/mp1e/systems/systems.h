@@ -18,33 +18,53 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: systems.h,v 1.1.1.1 2001-08-07 22:10:16 garetxe Exp $ */
+/* $Id: systems.h,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
 
-#ifndef __SYSTEMS_H__
-#define __SYSTEMS_H__
+#include "libsystems.h"
 
-//extern mucon			mux_mucon;
-extern int			bytes_out;
+#include "../common/log.h"
+#include "../common/types.h"
+#include "../common/fifo.h"
 
-extern double			get_idle(void);
+#define PACKET_SIZE		2048
+#define PACKETS_PER_PACK	16
+#define PAD_PACKETS		FALSE
+#define CONST_BIT_RATE		FALSE
+#define PAYLOAD_ALIGNMENT	1
 
-extern void *			stream_sink(void *unused);
-extern void *			mpeg1_system_mux(void *unused);
-extern void *			mpeg2_program_stream_mux(void *unused);
-extern void *			elementary_stream_bypass(void *unused);
-extern void *			vcd_system_mux(void *unused);
+extern buffer *		(* mux_output)(buffer *b);
 
-extern char *			mpeg_header_name(unsigned int code);
+typedef struct stream stream;
 
-extern bool			init_output_stdout(void);
-extern void *                   output_thread(void * unused);
-extern int                      output_init(void);
-extern void                     output_end(void);
+struct stream {
+	fifo			fifo;
+	consumer		cons;
 
-extern list3			mux_input_streams;
-extern void			mux_cleanup(void);
-extern fifo2 *			mux_add_input_stream(int stream_id, char *name,
-					int max_size, int buffers,
-					double frame_rate, int bit_rate);
+	int			stream_id;
 
-#endif
+	int			bit_rate;
+	double			frame_rate;
+
+	buffer *		buf;
+	unsigned char *		ptr;
+	int			left;
+
+	double			dts;
+	double			pts_offset;
+
+	double			eff_bit_rate;
+
+	double			ticks_per_frame;
+	double			ticks_per_byte;
+
+	double			cap_t0;
+	int			frame_count;
+};
+
+struct multiplexer {
+	list			streams;
+	fifo *			output;
+	producer 		prod;
+
+	int			packet_size;
+};

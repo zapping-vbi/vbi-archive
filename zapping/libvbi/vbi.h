@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.h,v 1.29 2001-07-31 12:59:50 mschimek Exp $ */
+/* $Id: vbi.h,v 1.30 2001-08-08 05:23:27 mschimek Exp $ */
 
 #ifndef VBI_H
 #define VBI_H
@@ -51,7 +51,7 @@ struct vbi
 {
     struct cache *cache; /* TODO */
 
-	fifo2			*source;
+	fifo			*source;
 	double			time;
 
 	pthread_t		mainloop_thread_id;

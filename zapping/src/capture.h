@@ -61,8 +61,8 @@ typedef struct {
 
   /* mhs: try to avoid; redundant when capture_bundle
      becomes parent of buffer. */
-  fifo2		*f;			/* fifo this bundle belongs to */
-  buffer2	*b;			/* buffer this bundle belongs to */
+  fifo		*f;			/* fifo this bundle belongs to */
+  buffer	*b;			/* buffer this bundle belongs to */
 } capture_bundle;
 
 /*
@@ -103,7 +103,7 @@ request_bundle_format(enum tveng_frame_pixformat pixformat, gint w, gint h);
  */
 void
 build_bundle(capture_bundle *d, struct tveng_frame_format *format,
-	     fifo2 *f, buffer2 *b);
+	     fifo *f, buffer *b);
 
 /*
  * Frees the memory used by the bundle.
@@ -144,7 +144,12 @@ typedef void (*BundleFiller)(capture_bundle *bundle,
  */
 BundleFiller set_bundle_filler(BundleFiller fill_bundle);
 
-fifo2 *
-get_capture_fifo2(void);
+fifo *
+get_capture_fifo(void);
 
 #endif /* capture.h */
+
+
+
+
+

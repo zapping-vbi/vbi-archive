@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: afl.c,v 1.1.1.1 2001-08-07 22:09:37 garetxe Exp $ */
+/* $Id: afl.c,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -208,7 +208,7 @@ open_pcm_afl(char *name, int ignored1, bool ignored2)
 
 #else // !HAVE_LIBAUDIOFILE
 
-fifo2 *
+fifo *
 open_pcm_afl(char *name, int ignored1, bool ignored2)
 {
 	FAIL("Audio compression from file requires libaudiofile:\n"

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: file.c,v 1.1.1.1 2001-08-07 22:10:00 garetxe Exp $ */
+/* $Id: file.c,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -32,7 +32,7 @@
 
 enum { FREE = 0, BUSY };
 
-static fifo2			cap_fifo;
+static fifo			cap_fifo;
 static producer			cap_prod;
 
 static int			buffer_size;
@@ -212,13 +212,13 @@ ppm_read(unsigned char *d1, char *name_template, int count)
 }
 
 static void
-wait_full(fifo2 *f)
+wait_full(fifo *f)
 {
 	static double time = 0.0;
 	static int count = 0;
-	buffer2 *b;
+	buffer *b;
 
-	b = wait_empty_buffer2(&cap_prod);
+	b = wait_empty_buffer(&cap_prod);
 
 	b->time = time;
 
@@ -228,12 +228,12 @@ wait_full(fifo2 *f)
 
 	case -1:
 		b->used = 0; /* EOF */
-		send_full_buffer2(&cap_prod, b);
+		send_full_buffer(&cap_prod, b);
 		return;
 
 	default:
 		b->used = buffer_size;
-		send_full_buffer2(&cap_prod, b);
+		send_full_buffer(&cap_prod, b);
 		break;
 	}
 
@@ -242,7 +242,7 @@ wait_full(fifo2 *f)
 	count++;
 }
 
-fifo2 *
+fifo *
 file_init(void)
 {
 	int len = strlen(cap_dev);
@@ -284,7 +284,7 @@ file_init(void)
 
 	filter_init(pitch);
 
-	ASSERT("init capture fifo", init_callback_fifo2(
+	ASSERT("init capture fifo", init_callback_fifo(
 		&cap_fifo, "video-ppm",
 		NULL, NULL, wait_full, NULL,
 		video_look_ahead(gop_sequence), buffer_size));

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.h,v 1.1.1.1 2001-08-07 22:09:51 garetxe Exp $ */
+/* $Id: audio.h,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
 
 #include <pthread.h>
 #include "../common/fifo.h"
@@ -26,7 +26,7 @@
 #include "mpeg.h"
 
 struct pcm_context {
-	fifo2		fifo;
+	fifo		fifo;
 	producer	producer;
 
 	int		sampling_rate;
@@ -109,7 +109,7 @@ extern struct audio_seg
 	/* Misc */
 
 	consumer		cons;
-	buffer2 *		ibuf;
+	buffer *		ibuf;
 	unsigned char		*p, *o;
 	int			left, offs;
 	double			time;

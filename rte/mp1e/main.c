@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.1.1.1 2001-08-07 22:09:19 garetxe Exp $ */
+/* $Id: main.c,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -54,7 +54,7 @@
 #include "common/log.h"
 #include "common/mmx.h"
 #include "common/bstream.h"
-#include "common/remote.h"
+#include "common/sync.h"
 #include "options.h"
 
 char *			my_name;
@@ -62,16 +62,17 @@ int			verbose;
 int			debug_msg; /* v4lx.c */
 
 static pthread_t	audio_thread_id;
-static fifo2 *		audio_cap_fifo;
+static fifo *		audio_cap_fifo;
 int			stereo;
 
 pthread_t		video_thread_id;
-static fifo2 *		video_cap_fifo;
+static fifo *		video_cap_fifo;
 void			(* video_start)(void);
 
 static pthread_t	vbi_thread_id;
-static fifo2 *		vbi_cap_fifo;
+static fifo *		vbi_cap_fifo;
 
+static multiplexer *	mux;
 pthread_t               output_thread_id;
 
 pthread_t		gtk_main_id;
@@ -85,7 +86,7 @@ extern void options(int ac, char **av);
 
 extern void preview_init(int *argc, char ***argv);
 
-extern void video_init(void);
+extern void video_init(multiplexer *mux);
 
 
 static void
@@ -100,11 +101,11 @@ terminate(int signum)
 	now = current_time();
 
 	if (1)
-		remote_stop(0.0); // past times: stop asap
+		sync_stop(0.0); // past times: stop asap
 		// XXX NOT SAFE mutexes and signals don't mix
 	else {
 		printv(0, "Deferred stop in 3 seconds\n");
-		remote_stop(now + 3.0);
+		sync_stop(now + 3.0);
 		// XXX allow cancelling
 	}
 
@@ -115,7 +116,6 @@ int
 main(int ac, char **av)
 {
 	sigset_t block_mask;
-	pthread_t mux_thread; /* Multiplexer thread */
 
 	my_name = av[0];
 
@@ -191,7 +191,7 @@ main(int ac, char **av)
 				audio_cap_fifo = open_pcm_oss(pcm_dev, sampling_rate, stereo);
 			} else {
 				struct pcm_context {
-					fifo2		fifo;
+					fifo		fifo;
 					int		sampling_rate;
 					bool		stereo;
 				} *pcm;
@@ -242,7 +242,7 @@ main(int ac, char **av)
 
 	/* Compression init */
 
-//	mucon_init(&mux_mucon);
+	mux = mux_alloc();
 
 	if (modules & MOD_AUDIO) {
 		char *modes[] = { "stereo", "joint stereo", "dual channel", "mono" };
@@ -257,7 +257,7 @@ main(int ac, char **av)
 			audio_num_frames = MIN(n, (long long) INT_MAX);
 
 		audio_init(sampling_rate, stereo, /* pcm_context* */
-			audio_mode, audio_bit_rate, psycho_loops);
+			audio_mode, audio_bit_rate, psycho_loops, mux);
 	}
 
 	if (modules & MOD_VIDEO) {
@@ -277,7 +277,7 @@ main(int ac, char **av)
 		else
 			printv(1, "Motion compensation %d-%d\n", motion_min, motion_max);
 
-		video_init();
+		video_init(mux);
 
 #if TEST_PREVIEW
 		if (preview > 0) {
@@ -296,14 +296,14 @@ main(int ac, char **av)
 		else
 			printv(1, "Recording Teletext, verbatim\n");
 
-		vbi_init(vbi_cap_fifo);
+		vbi_init(vbi_cap_fifo, mux);
 	}
 
 	ASSERT("initialize output routine", init_output_stdout());
 
 	// pause loop? >>
 
-	remote_init(modules);
+	sync_init(modules);
 
 	if (modules & MOD_AUDIO) {
 		ASSERT("create audio compression thread",
@@ -334,71 +334,34 @@ main(int ac, char **av)
 	sigprocmask(SIG_UNBLOCK, &block_mask, NULL);
 	// Unblock only in main thread
 
-	if ((modules == MOD_VIDEO || modules == MOD_AUDIO)
-		&& mux_syn >= 2)
+	if ((modules == MOD_VIDEO || modules == MOD_AUDIO) && mux_syn >= 2)
 		mux_syn = 1; // compatibility
+
+	sync_start(0.0);
 
 	switch (mux_syn) {
 	case 0:
-		ASSERT("create stream nirvana thread",
-		       !pthread_create(&mux_thread, NULL,
-				       stream_sink, NULL));
+		stream_sink(mux);
 		break;
 	case 1:
-		ASSERT("create elementary stream thread",
-		       !pthread_create(&mux_thread, NULL,
-				       elementary_stream_bypass, NULL));
+		elementary_stream_bypass(mux);
 		break;
 	case 2:
-		ASSERT("create mpeg1 system mux",
-		       !pthread_create(&mux_thread, NULL,
-				       mpeg1_system_mux, NULL));
+		mpeg1_system_mux(mux);
 		break;
 	case 3:
 		printv(1, "MPEG-2 Program Stream\n");
-		ASSERT("create mpeg2 system mux",
-		       !pthread_create(&mux_thread, NULL,
-				       mpeg2_program_stream_mux, NULL));
+		mpeg2_program_stream_mux(mux);
 		break;
 	case 4:
 		printv(1, "VCD MPEG-1 Stream\n");
-		ASSERT("create vcd mpeg1 system mux",
-		       !pthread_create(&mux_thread, NULL,
-				       vcd_system_mux, NULL));
+		vcd_system_mux(mux);
 		break;
 	}
 
-	/*
-	 *  Engines are running (ie. capturing),
-	 *  let's hit the record button.
-	 */
-	if (1)
-    		remote_start(0.0); // past times: start as soon as possible
-	else {
-		printv(0, "Deferred start in 3 seconds\n");
-
-    		remote_start(3.0 + current_time());
-	}
-
-/*
-   Suffice to suspend execution until mux_thread terminates.
-
-   #1, still no way to wake up eg. an X11 event loop when
-   num_frames have been done. Only a stop button routine
-   could suspend until termination. fd? For async feedback
-   in general?
-
-   #2, stop_time must be protected by a mutex to guarantee
-   atomic reads. Problem: mutexes & signal handlers don't mix.
-
-   #3, compression from files fakes timestamps, Ctrl-C no workee.
-*/
-	pthread_join(mux_thread, NULL);
-
-	// cancel & join all threads here
 	// << pause loop? XXX make threads re-enter safe, counters etc.
 
-	mux_cleanup();
+	mux_free(mux);
 
 	printv(1, "\n%s: Done.\n", my_name);
 

@@ -58,7 +58,7 @@ static gint		count=0; /* # of printed errors */
 static gint		capture_locked = 0;
 
 static pthread_t	capture_thread_id;
-static fifo2		capture_fifo; /* capture_thread <-> main
+static fifo		capture_fifo; /* capture_thread <-> main
 					 thread, uses bundles */
 static producer		cf_producer;
 static consumer		cf_idle_consumer;
@@ -301,19 +301,19 @@ static volatile gboolean exit_capture_thread = FALSE;
 static void *
 capture_thread (gpointer data)
 {
-  buffer2 *b;
+  buffer *b;
   capture_bundle *d;
   tveng_device_info *info = (tveng_device_info *)data;
 
   while (!exit_capture_thread)
     {
-      b = recv_empty_buffer2(&cf_producer);
+      b = recv_empty_buffer(&cf_producer);
       if (b)
 	{
 	  d = (capture_bundle *) b->data;
 	  fill_bundle(d, info);
 	  b->used = sizeof(capture_bundle);
-	  send_full_buffer2(&cf_producer, b);
+	  send_full_buffer(&cf_producer, b);
 	}
     }
 
@@ -385,7 +385,7 @@ bundle_equal(capture_bundle *a, capture_bundle *b)
 
 void
 build_bundle(capture_bundle *d, struct tveng_frame_format *format,
-	     fifo2 *f, buffer2 *b)
+	     fifo *f, buffer *b)
 {
   g_assert(d != NULL);
   g_assert(format != NULL);
@@ -514,7 +514,7 @@ give_data_to_plugins(capture_bundle *d)
       
 static gint idle_handler(gpointer ignored)
 {
-  buffer2 *b;
+  buffer *b;
   capture_bundle *d;
   gint w, h, iw, ih;
 
@@ -523,7 +523,7 @@ static gint idle_handler(gpointer ignored)
 
   print_info(main_window);
 
-  b = recv_full_buffer2(&cf_idle_consumer);
+  b = recv_full_buffer(&cf_idle_consumer);
 
   if (!b)
     {
@@ -544,7 +544,7 @@ static gint idle_handler(gpointer ignored)
     {
       clear_bundle(d);
       build_bundle(d, &current_format, &capture_fifo, b);
-      send_empty_buffer2(&cf_idle_consumer, b);
+      send_empty_buffer(&cf_idle_consumer, b);
       return TRUE; /* done */
     }
   
@@ -642,7 +642,7 @@ static gint idle_handler(gpointer ignored)
       break;
     }
   
-  send_empty_buffer2(&cf_idle_consumer, b);
+  send_empty_buffer(&cf_idle_consumer, b);
 
   return TRUE;
 }
@@ -658,7 +658,7 @@ capture_start(GtkWidget * window, tveng_device_info *info)
 
   memset(&current_format, 0, sizeof(current_format));
 
-  g_assert(init_buffered_fifo2(&capture_fifo, "zapping-capture", 8,
+  g_assert(init_buffered_fifo(&capture_fifo, "zapping-capture", 8,
 			      sizeof(capture_bundle)));
   g_assert(add_producer(&capture_fifo, &cf_producer));
   g_assert(add_consumer(&capture_fifo, &cf_idle_consumer));
@@ -710,7 +710,7 @@ capture_start(GtkWidget * window, tveng_device_info *info)
 void
 capture_stop(tveng_device_info *info)
 {
-  buffer2 *b;
+  buffer *b;
   GList *p;
 
   gtk_idle_remove(idle_id);
@@ -725,8 +725,8 @@ capture_stop(tveng_device_info *info)
 
   exit_capture_thread = TRUE;
 
-  while ((b = recv_full_buffer2(&cf_idle_consumer)))
-    send_empty_buffer2(&cf_idle_consumer, b);
+  while ((b = recv_full_buffer(&cf_idle_consumer)))
+    send_empty_buffer(&cf_idle_consumer, b);
 
   pthread_join(capture_thread_id, NULL);
 

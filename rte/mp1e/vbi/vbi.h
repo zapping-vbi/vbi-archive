@@ -18,13 +18,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.h,v 1.1.1.1 2001-08-07 22:09:25 garetxe Exp $ */
+/* $Id: vbi.h,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
 
 #include "../common/types.h"
 #include "../common/fifo.h"
 
 struct vbi_context {
-	fifo2		fifo;
+	fifo		fifo;
 };
 
 /* pdc.c */

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.1.1.1 2001-08-07 22:10:11 garetxe Exp $ */
+/* $Id: v4l2.c,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -46,9 +46,9 @@
 #ifdef V4L2_MAJOR_VERSION
 
 static int			fd;
-static fifo2			cap_fifo;
+static fifo			cap_fifo;
 static producer			cap_prod;
-static buffer2 *		buffers;
+static buffer *		        buffers;
 
 static struct v4l2_capability	vcap;
 static struct v4l2_standard	vstd;
@@ -78,7 +78,7 @@ le4cc2str(int n)
 }
 
 static bool
-capture_on(fifo2 *unused)
+capture_on(fifo *unused)
 {
 	int str_type = V4L2_BUF_TYPE_CAPTURE;
 
@@ -86,12 +86,12 @@ capture_on(fifo2 *unused)
 }
 
 static void
-wait_full(fifo2 *f)
+wait_full(fifo *f)
 {
 	struct v4l2_buffer vbuf;
 	struct timeval tv;
 	fd_set fds;
-	buffer2 *b;
+	buffer *b;
 	int r = -1;
 
 	while (r <= 0) {
@@ -124,18 +124,18 @@ wait_full(fifo2 *f)
 #else
 	b->time = current_time();
 #endif
-	send_full_buffer2(&cap_prod, b);
+	send_full_buffer(&cap_prod, b);
 }
 
 /* Attention buffers are returned out of order */
 
 static void
-send_empty(consumer *c, buffer2 *b)
+send_empty(consumer *c, buffer *b)
 {
 	struct v4l2_buffer vbuf;
 
 	// XXX
-	rem_node3(&c->fifo->full, &b->node);
+	rem_node(&c->fifo->full, &b->node);
 
 	vbuf.type = V4L2_BUF_TYPE_CAPTURE;
 	vbuf.index = b - buffers;
@@ -156,7 +156,7 @@ mute_restore(void)
 #define PROGRESSIVE(mode) (mode == CM_YUYV_PROGRESSIVE || \
 			   mode == CM_YUYV_PROGRESSIVE_TEMPORAL)
 
-fifo2 *
+fifo *
 v4l2_init(void)
 {
 	int aligned_width;
@@ -364,9 +364,9 @@ v4l2_init(void)
 	printv(2, "%d capture buffers granted\n", vrbuf.count);
 
 	ASSERT("allocate capture buffers",
-		(buffers = calloc(vrbuf.count, sizeof(buffer2))));
+		(buffers = calloc(vrbuf.count, sizeof(buffer))));
 
-	init_callback_fifo2(&cap_fifo, "video-v4l2",
+	init_callback_fifo(&cap_fifo, "video-v4l2",
 		NULL, NULL, wait_full, send_empty, 0, 0);
 
 	ASSERT("init capture producer",

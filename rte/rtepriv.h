@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rtepriv.h,v 1.1.1.1 2001-08-07 22:09:18 garetxe Exp $
+ * $Id: rtepriv.h,v 1.2 2001-08-08 05:24:36 mschimek Exp $
  * Private stuff in the context.
  */
 
@@ -36,7 +36,7 @@ typedef void (*_rte_filter)(const char * src, char * dest, int width,
 			    int height);
 
 /* for the sake of clarity, prototype of wait_data in rte.c */
-typedef buffer* (*_wait_data)(rte_context *context, int video);
+typedef void (*_wait_data)(rte_context *context, int video);
 
 typedef struct {
 	char		*name;
@@ -100,13 +100,13 @@ struct _rte_context_private {
 	int video_buffered; /* whether the video uses buffers or memcpy */
 	int fd; /* file descriptor of the file we are saving */
 	void * user_data; /* user data given to the callback */
-	fifo2 vid, aud; /* callback fifos for pushing */
+	fifo vid, aud; /* callback fifos for pushing */
 	producer vid_prod, aud_prod;
 	int depth; /* video bit depth (bytes per pixel, includes
 		      packing) */
-	buffer2 * last_video_buffer; /* video buffer the app should be
+	buffer * last_video_buffer; /* video buffer the app should be
 				       encoding to */
-	buffer2 * last_audio_buffer; /* audio buffer */
+	buffer * last_audio_buffer; /* audio buffer */
 	unsigned long int bytes_out; /* sent bytes */
 };
 

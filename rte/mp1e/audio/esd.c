@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: esd.c,v 1.1.1.1 2001-08-07 22:09:44 garetxe Exp $ */
+/* $Id: esd.c,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -64,10 +64,10 @@ struct esd_context {
 };
 
 static void
-wait_full(fifo2 *f)
+wait_full(fifo *f)
 {
 	struct esd_context *esd = f->user_data;
-	buffer2 *b = PARENT(f->buffers.head, buffer2, added);
+	buffer *b = PARENT(f->buffers.head, buffer, added);
 
 	assert(b->data == NULL); /* no queue */
 
@@ -122,7 +122,7 @@ wait_full(fifo2 *f)
 		b->time = esd->time;
 		b->data = b->allocated;
 
-		send_full_buffer2(&esd->pcm.producer, b);
+		send_full_buffer(&esd->pcm.producer, b);
 		return;
 	}
 
@@ -135,24 +135,24 @@ wait_full(fifo2 *f)
 
 	b->data = (unsigned char *) esd->p;
 
-	send_full_buffer2(&esd->pcm.producer, b);
+	send_full_buffer(&esd->pcm.producer, b);
 }
 
 static void
-send_empty(consumer *c, buffer2 *b)
+send_empty(consumer *c, buffer *b)
 {
 	// XXX
-	rem_node3(&c->fifo->full, &b->node);
+	rem_node(&c->fifo->full, &b->node);
 	b->data = NULL;
 }
 
-fifo2 *
+fifo *
 open_pcm_esd(char *unused, int sampling_rate, bool stereo)
 {
 	struct esd_context *esd;
 	esd_format_t format;
 	int buffer_size;
-	buffer2 *b;
+	buffer *b;
 
 	ASSERT("allocate pcm context",
 		(esd = calloc(1, sizeof(struct esd_context))));
@@ -181,7 +181,7 @@ open_pcm_esd(char *unused, int sampling_rate, bool stereo)
 
 	printv(2, "Opened ESD socket\n");
 
-	ASSERT("init esd fifo",	init_callback_fifo2(
+	ASSERT("init esd fifo",	init_callback_fifo(
 		&esd->pcm.fifo, "audio-esd",
 		NULL, NULL, wait_full, send_empty,
 		1, buffer_size));
@@ -191,7 +191,7 @@ open_pcm_esd(char *unused, int sampling_rate, bool stereo)
 
 	esd->pcm.fifo.user_data = esd;
 
-	b = PARENT(esd->pcm.fifo.buffers.head, buffer2, added);
+	b = PARENT(esd->pcm.fifo.buffers.head, buffer, added);
 
 	b->data = NULL;
 	b->used = (esd->samples_per_frame + esd->look_ahead) * sizeof(short);

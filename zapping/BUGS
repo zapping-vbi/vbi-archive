@@ -17,4 +17,3 @@ Known bugs with zapping, don't report them
 	* Capture won't work under PPC (endianess)
 	* Zapzilla: DRCS/double height char mistake on SWR?
 	* MPEG: hang on output error [assigned to mhs]
-
