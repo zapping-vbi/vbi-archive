@@ -5,7 +5,7 @@
 Zapping -- Linux TV Viewer -- News page
 </title>
 <!--
-	Generated from news.xml on Thu May  9 22:33:10 2002
+	Generated from news.xml on Fri Oct  4 18:33:14 2002
 -->
 <meta name="description" content="Zapping is a TV Viewer Software for Linux/Unix. Zapping is Open Source and has the ability to use plugins, it has also nice extra build in features.">
 <meta name="language" content="en-us">
@@ -144,43 +144,27 @@ input.theme {
 height="480" alt=""></td>
 
 <!-- ###### Begin Text Table of Contents ############################### -->
-<td width="100%" height="100%" bgcolor="#000099" valign="top"><center><h2>New release</h2></center><ul><li><b>Zapping</b> 0.6.4
+<td width="100%" height="100%" bgcolor="#000099" valign="top"><center><h2>New release</h2></center><ul><li><b>Zapping</b> 0.6.5
+	  <p>It's been a long time since 0.6.4, much too long, but finally
+          the beast arrived. Main change this time is the switch from rte 0.4 to
+          0.5, our high speed audio/video recording library. The recording plugin
+          will not work with rte 0.4 unless you compile Zapping yourself.</p>
+	  
+	  <p>RTE 0.5 adds a lot more formats besides MPEG-1 using ffmpeg and divx4linux,
+          possibly even more in the future. Along with the new codecs comes a new
+          recording dialog which allows users to save recording configurations
+          under different names.</p>
 
-        <p>This is mostly a bugfix release, no new features. When you
-	use this version you should also install zvbi 0.1.1 which
-        adds more fixes.</p></li><li><b>zvbi</b> 0.1.1
+	  <p>This is the last release of Zapping using Gnome 1. The next version
+	  0.7 will require Gnome 2, so please stop asking now. :-) If you like to
+	  live on the bleeding edge, the tree is in CVS, branch zapping-gnome2.
+	  It will move to the HEAD trunk at the appropriate time.</p></li><li><b>RTE</b> 0.5
 
-        <p>Bug fixes.</p></li><li><b>Zapping</b> 0.6.3 
+        <p>Well, see above. Want to help? The documentation of librte
+	is now <a href="doc/librte">online</a>.</p></li><li><b>ZVBI</b> 0.2.2
 
-        <p>A new year, a new release, a new maintainer. This
-	release does not include all improvements planned for 0.6.3,
-	but it's over three months since the last release, without an
-	end in sight. Future versions will be released at shorter
-	intervals.</p><p>The main difference to 0.6.2 is the extraction of the
-        Zapping vbi decoder into a separate package "zvbi".
-        Motivation was to clean up and re-use the component in
-        other applications, it may also encourage more frequent
-	updates and reduce the size of binaries. Zapping can be
-	compiled without zvbi, but a lot of functionality depends
-	on the zvbi library, so you should really get it. The
-	dependency is compiled into the Zapping	binary packages,
-	so they need zvbi to install.</p><p>Other changes:</p><ul><li>Recording source and volume can be selected in
-          preferences. Currently only the OSS /dev/mixer is
-          supported. (And yes, ffmpeg support is underway.)</li><li>For our US and Canadian users Zapping now looks for
-          XDS program title, start and end times, rating etc. and
-          can display this information in the title bar or a
-          program info window.</li><li>Complete rewrite of the screenshot plugin. Better
-          dialog, supports JPEG and PPM (possibly more, inquire
-          within), has quality preview and on-the-fly
-          deinterlacing.</li><li>Some channel editor improvements.</li><li>The "snapshot button" present on ov511 web cams is
-          scanned and does what it's supposed to.</li><li>Pointer disappears and reappears screen-saver
-          style.</li><li>Some Teletext export improvements.</li><li>New mute audio toolbar button.</li><li>Channel numbers can be entered on the numeric keypad,
-          either by channel memory number (European style) or RF
-          channel number (US style).</li><li>Preliminary volume up/down function.</li><li>Most of the keybord shortcuts are configurable
-          now.</li><li>And the usual set of bug fixes and new bugs.</li></ul><br><br></li><li><b>zvbi</b> 0.1 
-
-        <p>First release of the Zapping vbi decoder as a standalone
-        library.</p></li></ul><a href="download.php">Download instructions</a>.
+        <p>Bug fixes. The documentation of libzvbi is also
+	<a href="doc/libzvbi">online</a>.</p></li></ul><a href="download.php">Download instructions</a>.
 
 </td>
 <!-- ################# End Text Table of Contents ############################### -->

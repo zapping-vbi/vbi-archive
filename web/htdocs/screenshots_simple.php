@@ -2,7 +2,7 @@
 	"http://www.w3.org/TR/html4/loose.dtd">
 <html>
   <!--
-  Generated from screenshots.xml on Thu May  9 22:33:10 2002
+  Generated from screenshots.xml on Fri Oct  4 18:33:14 2002
   -->
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">

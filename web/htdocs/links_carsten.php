@@ -5,7 +5,7 @@
 Zapping -- Linux TV Viewer -- Links
 </title>
 <!--
-	Generated from links.xml on Thu May  9 22:33:10 2002
+	Generated from links.xml on Fri Oct  4 18:33:14 2002
 -->
 <meta name="description" content="Zapping is a TV Viewer Software for Linux/Unix. Zapping is Open Source and has the ability to use plugins, it has also nice extra build in features.">
 <meta name="language" content="en-us">
@@ -151,11 +151,13 @@ height="480" alt=""></td>
   <ul><li>XawTV: <a href="http://bytesex.org/xawtv/">http://bytesex.org/xawtv/</a>.
       Very widespread app, with useful tools.</li><li>KWinTV: <a href="http://kwintv.sourceforge.net">http://kwintv.sourceforge.net</a>.
       KDE app, quite easy to use GUI.</li><li>AleVT: <a href="http://www.goron.de/~froese">http://www.goron.de/~froese</a>.
-      Good TTX decoder, probably the second best around. ;-)</li></ul><center><h2>Developer info</h2></center><ul><li><a href="http://roadrunner.swansea.uk.linux.org/v4l.shtml">V4L</a>,
+      Teletext browser.</li></ul><center><h2>Developer info</h2></center><ul><li><a href="http://roadrunner.swansea.uk.linux.org/v4l.shtml">V4L</a>,
     the video interface present in stable kernels.</li><li><a href="http://www.thedirks.org/v4l2/">V4L2</a>, a new and better
     API for video.</li><li><a href="http://developer.gnome.org">developer.gnome.org</a>, the
     place for gnome programming info.</li><li><a href="http://www.rahul.net/kenton/xsites.framed.html">X11</a>.
-    Tons of info about X programming.</li></ul></td>
+    Tons of info about X programming.</li><li><a href="doc/libzvbi">Documentation of libzvbi</a>, our vbi decoding
+    library. Feedback and patches are appreciated.</li><li><a href="doc/librte">Documentation of librte</a>, our real time
+    audio/video recording library. Feedback and patches are appreciated.</li></ul></td>
 <!-- ################# End Text Table of Contents ############################### -->
 
 <td width="10" height="100%" class="rightborder"><img src="images_carsten/bar-right.png" width="10" height="480" alt=""></td>

@@ -2,7 +2,7 @@
 	"http://www.w3.org/TR/html4/loose.dtd">
 <html>
   <!--
-  Generated from index_simple.xml on Thu May  9 22:33:10 2002
+  Generated from index_simple.xml on Fri Oct  4 18:33:14 2002
   -->
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
@@ -20,43 +20,27 @@ project page</a> |
 <img SRC="images_simple/logo.jpeg" ALT="[Zapping Logo]" height=168 width=436>
 </p>
 </center>
-<center><h3>New release</h3></center><ul><li><b>Zapping</b> 0.6.4
+<center><h3>New release</h3></center><ul><li><b>Zapping</b> 0.6.5
+	  <p>It's been a long time since 0.6.4, much too long, but finally
+          the beast arrived. Main change this time is the switch from rte 0.4 to
+          0.5, our high speed audio/video recording library. The recording plugin
+          will not work with rte 0.4 unless you compile Zapping yourself.</p>
+	  
+	  <p>RTE 0.5 adds a lot more formats besides MPEG-1 using ffmpeg and divx4linux,
+          possibly even more in the future. Along with the new codecs comes a new
+          recording dialog which allows users to save recording configurations
+          under different names.</p>
 
-        <p>This is mostly a bugfix release, no new features. When you
-	use this version you should also install zvbi 0.1.1 which
-        adds more fixes.</p></li><li><b>zvbi</b> 0.1.1
+	  <p>This is the last release of Zapping using Gnome 1. The next version
+	  0.7 will require Gnome 2, so please stop asking now. :-) If you like to
+	  live on the bleeding edge, the tree is in CVS, branch zapping-gnome2.
+	  It will move to the HEAD trunk at the appropriate time.</p></li><li><b>RTE</b> 0.5
 
-        <p>Bug fixes.</p></li><li><b>Zapping</b> 0.6.3 
+        <p>Well, see above. Want to help? The documentation of librte
+	is now <a href="doc/librte">online</a>.</p></li><li><b>ZVBI</b> 0.2.2
 
-        <p>A new year, a new release, a new maintainer. This
-	release does not include all improvements planned for 0.6.3,
-	but it's over three months since the last release, without an
-	end in sight. Future versions will be released at shorter
-	intervals.</p><p>The main difference to 0.6.2 is the extraction of the
-        Zapping vbi decoder into a separate package "zvbi".
-        Motivation was to clean up and re-use the component in
-        other applications, it may also encourage more frequent
-	updates and reduce the size of binaries. Zapping can be
-	compiled without zvbi, but a lot of functionality depends
-	on the zvbi library, so you should really get it. The
-	dependency is compiled into the Zapping	binary packages,
-	so they need zvbi to install.</p><p>Other changes:</p><ul><li>Recording source and volume can be selected in
-          preferences. Currently only the OSS /dev/mixer is
-          supported. (And yes, ffmpeg support is underway.)</li><li>For our US and Canadian users Zapping now looks for
-          XDS program title, start and end times, rating etc. and
-          can display this information in the title bar or a
-          program info window.</li><li>Complete rewrite of the screenshot plugin. Better
-          dialog, supports JPEG and PPM (possibly more, inquire
-          within), has quality preview and on-the-fly
-          deinterlacing.</li><li>Some channel editor improvements.</li><li>The "snapshot button" present on ov511 web cams is
-          scanned and does what it's supposed to.</li><li>Pointer disappears and reappears screen-saver
-          style.</li><li>Some Teletext export improvements.</li><li>New mute audio toolbar button.</li><li>Channel numbers can be entered on the numeric keypad,
-          either by channel memory number (European style) or RF
-          channel number (US style).</li><li>Preliminary volume up/down function.</li><li>Most of the keybord shortcuts are configurable
-          now.</li><li>And the usual set of bug fixes and new bugs.</li></ul><br><br></li><li><b>zvbi</b> 0.1 
-
-        <p>First release of the Zapping vbi decoder as a standalone
-        library.</p></li></ul><a href="download.php">Download instructions</a>.
+        <p>Bug fixes. The documentation of libzvbi is also
+	<a href="doc/libzvbi">online</a>.</p></li></ul><a href="download.php">Download instructions</a>.
 
 <a name="index"></a><center><h2>General info</h2></center>
 <center><h3>What is Zapping?</h3></center>
@@ -183,24 +167,23 @@ mailing list page</a>.
   <ul><li>XawTV: <a href="http://bytesex.org/xawtv/">http://bytesex.org/xawtv/</a>.
       Very widespread app, with useful tools.</li><li>KWinTV: <a href="http://kwintv.sourceforge.net">http://kwintv.sourceforge.net</a>.
       KDE app, quite easy to use GUI.</li><li>AleVT: <a href="http://www.goron.de/~froese">http://www.goron.de/~froese</a>.
-      Good TTX decoder, probably the second best around. ;-)</li></ul><center><h3>Developer info</h3></center><ul><li><a href="http://roadrunner.swansea.uk.linux.org/v4l.shtml">V4L</a>,
+      Teletext browser.</li></ul><center><h3>Developer info</h3></center><ul><li><a href="http://roadrunner.swansea.uk.linux.org/v4l.shtml">V4L</a>,
     the video interface present in stable kernels.</li><li><a href="http://www.thedirks.org/v4l2/">V4L2</a>, a new and better
     API for video.</li><li><a href="http://developer.gnome.org">developer.gnome.org</a>, the
     place for gnome programming info.</li><li><a href="http://www.rahul.net/kenton/xsites.framed.html">X11</a>.
-    Tons of info about X programming.</li></ul><a name="resources"></a><center><h2>Stuff we wrote</h2></center>
+    Tons of info about X programming.</li><li><a href="doc/libzvbi">Documentation of libzvbi</a>, our vbi decoding
+    library. Feedback and patches are appreciated.</li><li><a href="doc/librte">Documentation of librte</a>, our real time
+    audio/video recording library. Feedback and patches are appreciated.</li></ul><a name="resources"></a><center><h2>Stuff we wrote</h2></center>
 <center><h3>What can be found in here</h3></center>
     Below are links or info about code we wrote that could be
-    useful for other developers. Feel free to use this routines in
-    your own programs, just drop a note to the author if you do so.
+    useful for other developers. Feel free to use these routines in
+    your own programs. Feedback and patches are appreciated.
 
     <center><h3>RTE</h3></center><p>Real Time Encoder. Takes the extremely fast <a href="http://sourceforge.net/project/showfiles.php?group_id=2599">mp1e</a>
-    encoding engine and exposes it through a simple to use and
-    extensible API. This is a very good choice if you plan to add
-    some sort of realtime compression to your project, but don't
-    want to go through the mess of writing an encoder when there
-    are already excellent choices out there. You just have to
-    provide the audio/video data, RTE will take care of the rest.</p><p>This module is currently in transition to version 0.5,
-    with a more robust and versatile API.</p><br><br><b>Downloading:</b> There are some packages released with each
+    encoding engine, ffmpeg and divx4linux and provides a simple and
+    extensible API tailored to the needs of a Gnome application. Just
+    provide the audio/video data, RTE will take care of the rest.</p><p>Documentation is included, and for a quick overview now
+    <a href="doc/librte">online</a>.</p><br><br><b>Downloading:</b> There are some packages released with each
     Zapping version, but since rte is heavily worked on, you are
     encouraged to check out the rte module from Zapping <a href="download.php#CVS">CVS</a>. 
 
@@ -229,7 +212,8 @@ mailing list page</a>.
 
     <center><h3>ZVBI library</h3></center>
     The Zapping/Zapzilla vbi decoding routines, now a standalone
-    library. Some may call this a libc of vbi.<br><br><b>Downloading:</b> See the Zapping download page. <br><br><p>I would like to thank <a href="http://sourceforge.net"><img
+    library. Documentation is included and <a href="doc/librte">online</a>.
+    <br><br><b>Downloading:</b> See the Zapping download page. <br><br><p>I would like to thank <a href="http://sourceforge.net"><img
 SRC="http://sourceforge.net/sflogo.php?group_id=2599&amp;type=1"
 BORDER=0 height=31 width=88 ALT="Sourceforge Logo"></a>
 for hosting this site and supporting Open Software

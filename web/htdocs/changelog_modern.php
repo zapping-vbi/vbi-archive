@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
   <!--
-  Generated from changelog.xml on Thu May  9 22:33:10 2002
+  Generated from changelog.xml on Fri Oct  4 18:33:14 2002
   -->
   <head>
     <title>ChangeLog</title>

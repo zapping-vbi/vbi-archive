@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
   <!--
-  Generated from links_modern.xml on Thu May  9 22:33:10 2002
+  Generated from links_modern.xml on Fri Oct  4 18:33:14 2002
   -->
   <head>
     <title>Links to useful stuff</title>
@@ -181,24 +181,23 @@
   <ul><li>XawTV: <a href="http://bytesex.org/xawtv/">http://bytesex.org/xawtv/</a>.
       Very widespread app, with useful tools.</li><li>KWinTV: <a href="http://kwintv.sourceforge.net">http://kwintv.sourceforge.net</a>.
       KDE app, quite easy to use GUI.</li><li>AleVT: <a href="http://www.goron.de/~froese">http://www.goron.de/~froese</a>.
-      Good TTX decoder, probably the second best around. ;-)</li></ul><h2>Developer info</h2><ul><li><a href="http://roadrunner.swansea.uk.linux.org/v4l.shtml">V4L</a>,
+      Teletext browser.</li></ul><h2>Developer info</h2><ul><li><a href="http://roadrunner.swansea.uk.linux.org/v4l.shtml">V4L</a>,
     the video interface present in stable kernels.</li><li><a href="http://www.thedirks.org/v4l2/">V4L2</a>, a new and better
     API for video.</li><li><a href="http://developer.gnome.org">developer.gnome.org</a>, the
     place for gnome programming info.</li><li><a href="http://www.rahul.net/kenton/xsites.framed.html">X11</a>.
-    Tons of info about X programming.</li></ul><a name="resources"></a>
+    Tons of info about X programming.</li><li><a href="doc/libzvbi">Documentation of libzvbi</a>, our vbi decoding
+    library. Feedback and patches are appreciated.</li><li><a href="doc/librte">Documentation of librte</a>, our real time
+    audio/video recording library. Feedback and patches are appreciated.</li></ul><a name="resources"></a>
 <h2>What can be found in here</h2>
     Below are links or info about code we wrote that could be
-    useful for other developers. Feel free to use this routines in
-    your own programs, just drop a note to the author if you do so.
+    useful for other developers. Feel free to use these routines in
+    your own programs. Feedback and patches are appreciated.
 
     <h2>RTE</h2><p>Real Time Encoder. Takes the extremely fast <a href="http://sourceforge.net/project/showfiles.php?group_id=2599">mp1e</a>
-    encoding engine and exposes it through a simple to use and
-    extensible API. This is a very good choice if you plan to add
-    some sort of realtime compression to your project, but don't
-    want to go through the mess of writing an encoder when there
-    are already excellent choices out there. You just have to
-    provide the audio/video data, RTE will take care of the rest.</p><p>This module is currently in transition to version 0.5,
-    with a more robust and versatile API.</p><br><br><b>Downloading:</b> There are some packages released with each
+    encoding engine, ffmpeg and divx4linux and provides a simple and
+    extensible API tailored to the needs of a Gnome application. Just
+    provide the audio/video data, RTE will take care of the rest.</p><p>Documentation is included, and for a quick overview now
+    <a href="doc/librte">online</a>.</p><br><br><b>Downloading:</b> There are some packages released with each
     Zapping version, but since rte is heavily worked on, you are
     encouraged to check out the rte module from Zapping <a href="download.php#CVS">CVS</a>. 
 
@@ -227,7 +226,8 @@
 
     <h2>ZVBI library</h2>
     The Zapping/Zapzilla vbi decoding routines, now a standalone
-    library. Some may call this a libc of vbi.<br><br><b>Downloading:</b> See the Zapping download page. <br><br>              </td>
+    library. Documentation is included and <a href="doc/librte">online</a>.
+    <br><br><b>Downloading:</b> See the Zapping download page. <br><br>              </td>
             </tr>
           </table>
         </td>

@@ -5,7 +5,7 @@
 Zapping -- Linux TV Viewer -- Resources
 </title>
 <!--
-	Generated from resources.xml on Thu May  9 22:33:10 2002
+	Generated from resources.xml on Fri Oct  4 18:33:14 2002
 -->
 <meta name="description" content="Zapping is a TV Viewer Software for Linux/Unix. Zapping is Open Source and has the ability to use plugins, it has also nice extra build in features.">
 <meta name="language" content="en-us">
@@ -146,17 +146,14 @@ height="480" alt=""></td>
 <!-- ###### Begin Text Table of Contents ############################### -->
 <td width="100%" height="100%" bgcolor="#000099" valign="top"><center><h2>What can be found in here</h2></center>
     Below are links or info about code we wrote that could be
-    useful for other developers. Feel free to use this routines in
-    your own programs, just drop a note to the author if you do so.
+    useful for other developers. Feel free to use these routines in
+    your own programs. Feedback and patches are appreciated.
 
     <center><h2>RTE</h2></center><p>Real Time Encoder. Takes the extremely fast <a href="http://sourceforge.net/project/showfiles.php?group_id=2599">mp1e</a>
-    encoding engine and exposes it through a simple to use and
-    extensible API. This is a very good choice if you plan to add
-    some sort of realtime compression to your project, but don't
-    want to go through the mess of writing an encoder when there
-    are already excellent choices out there. You just have to
-    provide the audio/video data, RTE will take care of the rest.</p><p>This module is currently in transition to version 0.5,
-    with a more robust and versatile API.</p><br><br><b>Downloading:</b> There are some packages released with each
+    encoding engine, ffmpeg and divx4linux and provides a simple and
+    extensible API tailored to the needs of a Gnome application. Just
+    provide the audio/video data, RTE will take care of the rest.</p><p>Documentation is included, and for a quick overview now
+    <a href="doc/librte">online</a>.</p><br><br><b>Downloading:</b> There are some packages released with each
     Zapping version, but since rte is heavily worked on, you are
     encouraged to check out the rte module from Zapping <a href="download.php#CVS">CVS</a>. 
 
@@ -185,7 +182,8 @@ height="480" alt=""></td>
 
     <center><h2>ZVBI library</h2></center>
     The Zapping/Zapzilla vbi decoding routines, now a standalone
-    library. Some may call this a libc of vbi.<br><br><b>Downloading:</b> See the Zapping download page. <br><br></td>
+    library. Documentation is included and <a href="doc/librte">online</a>.
+    <br><br><b>Downloading:</b> See the Zapping download page. <br><br></td>
 <!-- ################# End Text Table of Contents ############################### -->
 
 <td width="10" height="100%" class="rightborder"><img src="images_carsten/bar-right.png" width="10" height="480" alt=""></td>
