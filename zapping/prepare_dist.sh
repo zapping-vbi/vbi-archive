@@ -12,6 +12,8 @@
 # Modified 2002-09-01 Michael H. Schimek <mschimek@users.sf.net>
 # - added RPM_OPTIONS
 # - added cvs tag hint
+# Modified 2003-05-25 Michael H. Schimek <mschimek@users.sf.net>
+# - added check for new rpmbuild
 ##############################################################################
 ## Get the package name and version from configure.in
 PACKAGE_VER=`grep 'AM_INIT_AUTOMAKE(' configure.in`
@@ -56,7 +58,7 @@ gunzip -c $PACKAGE-$VER.tar.gz >$PACKAGE-$VER.tar
 bzip2 -f --repetitive-best $PACKAGE-$VER.tar
 
 RPM_DIR=""
-## redhat
+## RedHat
 if [ -d /usr/src/redhat ]; then
     RPM_DIR="/usr/src/redhat"
 ## SuSE, normal user
@@ -69,11 +71,14 @@ elif [ -d /usr/src/packages ]; then
 elif [ -d /usr/src/RPM ]; then
     RPM_DIR=/usr/src/RPM
 fi
+## RedHat 9 builder
+bob=`which rpmbuild` || bob="rpm"
+
 if ! test "x$RPM_DIR" = "x"; then
     clear && echo "Building the RPM"
 	     echo "----------------" && echo
     cp $PACKAGE-$VER.tar.bz2 $RPM_DIR/SOURCES
-    rpm $RPM_OPTIONS -ba --clean $PACKAGE.spec || exit 1
+    $bob $RPM_OPTIONS -ba --clean $PACKAGE.spec || exit 1
     rm $RPM_DIR/SOURCES/$PACKAGE-$VER.tar.bz2
 fi
 

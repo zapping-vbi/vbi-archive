@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.6.6\n"
-"POT-Creation-Date: 2003-02-16 22:07+0100\n"
+"POT-Creation-Date: 2003-05-29 11:52+0200\n"
 "PO-Revision-Date: 2003-02-17 22:30+0100\n"
 "Last-Translator: Morten Brix Pedersen <morten@wtf.dk>\n"
 "Language-Team: n/a\n"
@@ -13,93 +13,97 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: src/main.c:338
+#: src/main.c:339
 msgid "Video device to use"
 msgstr "Video enhed der skal bruges"
 
-#: src/main.c:339 src/zapzilla.c:88
+#: src/main.c:340 src/zapzilla.c:88
 msgid "DEVICE"
 msgstr "ENHED"
 
-#: src/main.c:347
+#: src/main.c:348
 msgid "Disable plugins support"
 msgstr "Slå plugin-understøttelse fra"
 
-#: src/main.c:356
+#: src/main.c:357
 msgid "Disable VBI support"
 msgstr "Slå VBI-understøttelse fra"
 
-#: src/main.c:365
+#: src/main.c:366
 msgid "Disable XVideo extension support"
 msgstr "Slå understøttelse for XVideo-udvidelse fra"
 
-#: src/main.c:374
+#: src/main.c:375
+msgid "XVideo port for overlay. Default is first usable"
+msgstr ""
+
+#: src/main.c:384
 msgid "X11 display is remote. This basically disables video overlay"
 msgstr ""
 
-#: src/main.c:383
+#: src/main.c:393
 msgid "Do not call zapping_setup_fb on startup"
 msgstr "Kald ikke zapping_setup_fb ved opstart"
 
-#: src/main.c:392
+#: src/main.c:402
 msgid "Color depth of the X display"
 msgstr "X's farvedybde"
 
-#: src/main.c:393
+#: src/main.c:403
 msgid "BPP"
 msgstr "BPP"
 
-#: src/main.c:401 src/zapzilla.c:78
+#: src/main.c:411 src/zapzilla.c:78
 msgid "Set debug messages on"
 msgstr "Slå fejlsøgnings beskeder til"
 
-#: src/main.c:410
+#: src/main.c:420
 msgid "Force dword aligning of the overlay window"
 msgstr ""
 
-#: src/main.c:419
+#: src/main.c:429
 msgid "Execute the given command and exit"
 msgstr "Eksekver den givne kommando og afslut"
 
-#: src/main.c:420
+#: src/main.c:430
 msgid "CMD"
 msgstr "KMD"
 
-#: src/main.c:428
+#: src/main.c:438
 msgid "Pixformat for XVideo capture mode [YUYV | YVU420]"
 msgstr "Pixel-format for XVideo mode [YUYV | YVU420]"
 
-#: src/main.c:429
+#: src/main.c:439
 msgid "PIXFORMAT"
 msgstr ""
 
-#: src/main.c:437 src/zapzilla.c:96
+#: src/main.c:447 src/zapzilla.c:96
 msgid "Redirect the error messages to the console"
 msgstr "Omdirigér fejl beskeder til konsollen"
 
-#: src/main.c:525
+#: src/main.c:535
 msgid "Sorry, but there is no module support in GLib"
 msgstr "Der er desværre ingen modul understøttelse i GLib."
 
-#: src/main.c:535
+#: src/main.c:545
 msgid "Cannot get device info struct"
 msgstr "Kan ikke få fat i enheds-information struct"
 
-#: src/main.c:544
+#: src/main.c:554
 msgid "Zapping couldn't be started"
 msgstr "Zapping kunne ikke startes"
 
-#: src/main.c:605
+#: src/main.c:615
 #, c-format
 msgid "Couldn't open %s, should I try some common options?"
 msgstr "Kunne ikke åbne %s, skal jeg prøve nogen andre typiske tilvalg?"
 
-#: src/main.c:639
+#: src/main.c:649
 #, c-format
 msgid "%s suceeded, setting it as the new default"
 msgstr "%s lykkedes, sætter denne som den nye standard"
 
-#: src/main.c:648
+#: src/main.c:658
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
@@ -108,7 +112,7 @@ msgstr ""
 "\"%s\" kunne ikke åbnes:\n"
 "%s"
 
-#: src/main.c:768
+#: src/main.c:778
 #, c-format
 msgid ""
 "Cannot restore previous mode%s:\n"
@@ -117,33 +121,33 @@ msgstr ""
 "Kan ikke gå tilbage til forrige mode%s:\n"
 "%s"
 
-#: src/main.c:771
+#: src/main.c:781
 msgid ", I will try starting capture mode"
 msgstr ""
 
-#: src/main.c:775
+#: src/main.c:785
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:788
+#: src/main.c:798
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:820 src/callbacks.c:501 src/callbacks.c:630
+#: src/main.c:830 src/callbacks.c:503 src/callbacks.c:632
 msgid "Show controls"
 msgstr "Vis kontroller"
 
-#: src/main.c:821 src/callbacks.c:502 src/callbacks.c:631
+#: src/main.c:831 src/callbacks.c:504 src/callbacks.c:633
 msgid "Show the menu and the toolbar"
 msgstr "Vis menuen og værktøjslinjen"
 
-#: src/main.c:1016 src/zapzilla.c:175
+#: src/main.c:1026 src/zapzilla.c:175
 #, c-format
 msgid ""
 "ZConf could not be closed properly , your\n"
@@ -156,7 +160,7 @@ msgid ""
 "     %s. Please contact the author.\n"
 msgstr ""
 
-#: src/main.c:1053
+#: src/main.c:1062
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Zapping kunne ikke oprette opsætnings-træet"
 
@@ -172,7 +176,7 @@ msgstr "Zapzilla kunne ikke startes"
 msgid "Sorry, Zapzilla is unable to create the config tree"
 msgstr "Zapzilla kunne ikke oprette opsætnings-træet"
 
-#: src/interface.c:232 src/tveng1.c:1194 src/tveng1.c:1549 src/tveng1.c:1562
+#: src/interface.c:232 src/tveng1.c:1193 src/tveng1.c:1548 src/tveng1.c:1561
 #: src/tveng2.c:948
 msgid "Mute"
 msgstr "Slå lyd fra"
@@ -185,7 +189,7 @@ msgstr "Slå lyd til og fra"
 msgid "A TV viewer for the Gnome Desktop Environment"
 msgstr "Et TV-program til Gnome miljøet"
 
-#: src/callbacks.c:147
+#: src/callbacks.c:149
 #, c-format
 msgid ""
 "%s:\n"
@@ -194,27 +198,27 @@ msgstr ""
 "%s:\n"
 "Prøv at køre \"zapping_fix_overlay\" som root i en konsol"
 
-#: src/callbacks.c:373
+#: src/callbacks.c:375
 msgid "<blue>audio off</blue>"
 msgstr "<blue>lyd fra</blue>"
 
-#: src/callbacks.c:374
+#: src/callbacks.c:376
 msgid "<yellow>AUDIO ON</yellow>"
 msgstr "<yellow>LYD TIL</yellow>"
 
-#: src/callbacks.c:488
+#: src/callbacks.c:490
 msgid "Hide controls"
 msgstr "Gem kontroller"
 
-#: src/callbacks.c:489
+#: src/callbacks.c:491
 msgid "Hide the menu and the toolbar"
 msgstr "Gem menuen og værktøjslinjen"
 
-#: src/callbacks.c:608
+#: src/callbacks.c:610
 msgid "Overlay this page"
 msgstr ""
 
-#: src/callbacks.c:609 src/zmisc.c:356
+#: src/callbacks.c:611 src/zmisc.c:356
 msgid "Return to windowed mode and use the current page as subtitles"
 msgstr ""
 
@@ -311,7 +315,7 @@ msgstr "Justér %s"
 msgid "Available controls"
 msgstr "Ledige indstillinger"
 
-#: src/v4linterface.c:664 src/zvbi.c:2105
+#: src/v4linterface.c:664 src/zvbi.c:2137
 msgid "Unknown"
 msgstr "Ukendt"
 
@@ -385,15 +389,15 @@ msgstr ""
 msgid "Unknown Audio"
 msgstr "Ukendt Lyd"
 
-#: src/zvbi.c:252
+#: src/zvbi.c:259
 msgid "V4L/V4L2 VBI interface timeout"
 msgstr ""
 
-#: src/zvbi.c:265
+#: src/zvbi.c:276
 msgid "V4L/V4L2 VBI interface: Failed to read from the device"
 msgstr ""
 
-#: src/zvbi.c:360
+#: src/zvbi.c:371
 #, c-format
 msgid ""
 "VBI initialization failed.\n"
@@ -402,15 +406,15 @@ msgstr ""
 "VBI initialisering fejlede.\n"
 "%s"
 
-#: src/zvbi.c:361
+#: src/zvbi.c:372
 msgid "Ran out of memory."
 msgstr "Løb tør for hukommelse."
 
-#: src/zvbi.c:362
+#: src/zvbi.c:373
 msgid "Out of resources to start a new thread."
 msgstr "Ikke flere ressourcer til at skabe ny tråd."
 
-#: src/zvbi.c:364
+#: src/zvbi.c:375
 msgid ""
 "This probably means that the required driver isn't loaded. Add to your /etc/"
 "modules.conf the line:\n"
@@ -420,60 +424,60 @@ msgid ""
 "disable VBI in Settings/Preferences/VBI options/Enable VBI decoding."
 msgstr ""
 
-#: src/zvbi.c:716
+#: src/zvbi.c:748
 msgid "Click me"
 msgstr "Klik på mig"
 
-#: src/zvbi.c:751
+#: src/zvbi.c:783
 msgid ""
 "Open this link with the predetermined Web browser.\n"
 "You can configure this in the GNOME Control Center, under Handlers/Url "
 "Navigator"
 msgstr ""
 
-#: src/zvbi.c:758
+#: src/zvbi.c:790
 #, c-format
 msgid " %s: Teletext Page %x"
 msgstr " %s: Tekst-tv Side %x"
 
-#: src/zvbi.c:761
+#: src/zvbi.c:793
 #, c-format
 msgid " Teletext Page %x"
 msgstr " Tekst-tv Side %x"
 
-#: src/zvbi.c:762
+#: src/zvbi.c:794
 msgid "Open this page with Zapzilla"
 msgstr "Åben denne side med Zapzilla"
 
-#: src/zvbi.c:2110
+#: src/zvbi.c:2142
 msgid "n/a"
 msgstr "ikke tilgængelig"
 
-#: src/zvbi.c:2114
+#: src/zvbi.c:2146
 msgid "none"
 msgstr "ingen"
 
-#: src/zvbi.c:2117
+#: src/zvbi.c:2149
 #, c-format
 msgid "%d minute"
 msgid_plural "%d minutes"
 msgstr[0] "%d minut"
 msgstr[1] "%d minutter"
 
-#: src/zvbi.c:2119
+#: src/zvbi.c:2151
 #, c-format
 msgid "%d h %d m"
 msgstr "%d t %d m"
 
-#: src/zvbi.c:2151 src/ttxview.c:2545
+#: src/zvbi.c:2183 src/ttxview.c:2554
 msgid "Current program"
 msgstr "Nuværende program"
 
-#: src/zvbi.c:2172
+#: src/zvbi.c:2204
 msgid "%d %b  %I:%M %p    "
 msgstr "%d %b  %I:%M %p    "
 
-#: src/zvbi.c:2194
+#: src/zvbi.c:2226
 #, c-format
 msgid ""
 "\n"
@@ -482,21 +486,21 @@ msgstr ""
 "\n"
 "Længde: %ut%02u (%ut%02u tilbage)"
 
-#: src/zvbi.c:2202
+#: src/zvbi.c:2234
 #, c-format
 msgid "Length: %uh%02u"
 msgstr "Længde: %ut%02u"
 
-#: src/zvbi.c:2209
+#: src/zvbi.c:2241
 #, c-format
 msgid "Elapsed: %uh%02u"
 msgstr "Tid gået: %ut%02u"
 
-#: src/zvbi.c:2232 src/zvbi.c:2234
+#: src/zvbi.c:2264 src/zvbi.c:2266
 msgid "unknown language"
 msgstr "ukendt sprog"
 
-#: src/zvbi.c:2237
+#: src/zvbi.c:2269
 #, c-format
 msgid ""
 "Channel 1: %s (%s)\n"
@@ -505,7 +509,7 @@ msgstr ""
 "Kanal 1: %s (%s)\n"
 "Kanal 2: %s (%s)"
 
-#: src/zvbi.c:2245
+#: src/zvbi.c:2277
 #, c-format
 msgid ""
 "Channel 1: %s\n"
@@ -514,26 +518,26 @@ msgstr ""
 "Kanal 1: %s\n"
 "Kanal 2: %s"
 
-#: src/zvbi.c:2258
+#: src/zvbi.c:2290
 #, c-format
 msgid "Audio: %s (%s)"
 msgstr "Lyd: %s (%s)"
 
-#: src/zvbi.c:2263
+#: src/zvbi.c:2295
 #, c-format
 msgid "Audio: %s"
 msgstr "Lyd: %s"
 
-#: src/zvbi.c:2282
+#: src/zvbi.c:2314
 #, c-format
 msgid "Captioned %s"
 msgstr "Fangede %s"
 
-#: src/zvbi.c:2282
+#: src/zvbi.c:2314
 msgid "Captioned"
 msgstr "Fanget"
 
-#: src/zvbi.c:2366 src/zvbi.c:2627
+#: src/zvbi.c:2398 src/zvbi.c:2659
 msgid "Not rated"
 msgstr ""
 
@@ -569,43 +573,43 @@ msgstr "Alternativ 1"
 msgid "Alternate 2"
 msgstr "Alternativ 2"
 
-#: src/tveng1.c:1149 src/tveng2.c:929
+#: src/tveng1.c:1148 src/tveng2.c:929
 msgid "Brightness"
 msgstr "Lysstyrke"
 
-#: src/tveng1.c:1159 src/tveng2.c:932
+#: src/tveng1.c:1158 src/tveng2.c:932
 msgid "Hue"
 msgstr "Farvetone"
 
-#: src/tveng1.c:1169
+#: src/tveng1.c:1168
 msgid "Colour"
 msgstr "Farve"
 
-#: src/tveng1.c:1179 src/tveng2.c:930
+#: src/tveng1.c:1178 src/tveng2.c:930
 msgid "Contrast"
 msgstr "Konstrast"
 
-#: src/tveng1.c:1207 src/tveng2.c:947
+#: src/tveng1.c:1206 src/tveng2.c:947
 msgid "Volume"
 msgstr "Lydstyrke"
 
-#: src/tveng1.c:1219 src/tveng2.c:954
+#: src/tveng1.c:1218 src/tveng2.c:954
 msgid "Bass"
 msgstr "Bas"
 
-#: src/tveng1.c:1231 src/tveng2.c:952
+#: src/tveng1.c:1230 src/tveng2.c:952
 msgid "Treble"
 msgstr ""
 
-#: src/tveng1.c:1246 src/tveng2.c:950
+#: src/tveng1.c:1245 src/tveng2.c:950
 msgid "Balance"
 msgstr "Balance"
 
-#: src/tveng1.c:1259
+#: src/tveng1.c:1258
 msgid "Audio Decoding"
 msgstr ""
 
-#: src/tveng1.c:1685
+#: src/tveng1.c:1684
 msgid "There are no tuners for the active input"
 msgstr ""
 
@@ -923,7 +927,7 @@ msgstr ""
 msgid "Sorry, but the plugin couldn't be started"
 msgstr ""
 
-#: src/ttxview.c:186 src/ttxview.c:762 src/ttxview.c:1358
+#: src/ttxview.c:186 src/ttxview.c:771 src/ttxview.c:1367
 msgid "VBI has been disabled"
 msgstr "VBI er blevet deaktiveret"
 
@@ -937,81 +941,81 @@ msgstr "Henter side %x..."
 msgid "Loading subpage %x..."
 msgstr "Henter underside %x..."
 
-#: src/ttxview.c:408 src/ttxview.c:700
+#: src/ttxview.c:408 src/ttxview.c:709
 msgid "Warning: Page not valid"
 msgstr "Advarsel: Siden er ikke gyldig"
 
-#: src/ttxview.c:529
+#: src/ttxview.c:538
 msgid "Text export failed"
 msgstr "Tekst-eksportering fejlede"
 
-#: src/ttxview.c:603
+#: src/ttxview.c:612
 #, c-format
 msgid " Page %d"
 msgstr " Side %d"
 
-#: src/ttxview.c:607
+#: src/ttxview.c:616
 #, c-format
 msgid " Subpage %d"
 msgstr " Underside %d"
 
-#: src/ttxview.c:711
+#: src/ttxview.c:720
 msgid "The cache has been cleared"
 msgstr "Mellemlagret (cache) er blevet ryddet"
 
-#: src/ttxview.c:1068 src/ttxview.c:1089
+#: src/ttxview.c:1077 src/ttxview.c:1098
 msgid "No other subpage in the cache"
 msgstr "Ingen andre underside i mellemlagret (cachen)"
 
-#: src/ttxview.c:1152
+#: src/ttxview.c:1161
 msgid "Found"
 msgstr "Fundet"
 
-#: src/ttxview.c:1170
+#: src/ttxview.c:1179
 msgid "Not found"
 msgstr "Ikke fundet"
 
-#: src/ttxview.c:1190
+#: src/ttxview.c:1199
 msgid "Empty cache"
 msgstr "Tomt mellemlager (cache)"
 
-#: src/ttxview.c:1313
+#: src/ttxview.c:1322
 #, c-format
 msgid "Scanning %x.%02x"
 msgstr "Skanner %x.%02x"
 
-#: src/ttxview.c:1567
+#: src/ttxview.c:1576
 #, c-format
 msgid "<%s> added to the bookmarks"
 msgstr "<%s> tilføjet til favoritter"
 
-#: src/ttxview.c:1630
+#: src/ttxview.c:1639
 msgid "Any subpage"
 msgstr "Hvilken som helst underisde"
 
-#: src/ttxview.c:1979
+#: src/ttxview.c:1988
 #, c-format
 msgid "Export %s"
 msgstr "Eksporter %s"
 
-#: src/ttxview.c:1993 plugins/screenshot/screenshot_strings.c:19
+#: src/ttxview.c:2002 plugins/screenshot/screenshot_strings.c:19
 #: plugins/mpeg/mpeg_strings.c:36
 msgid "Save as:"
 msgstr "Gem som:"
 
-#: src/ttxview.c:1998
+#: src/ttxview.c:2007
 msgid "Select file you'll be exporting to"
 msgstr "Vælg filen du vil eksportere til"
 
-#: src/ttxview.c:2013
+#: src/ttxview.c:2022
 msgid "Options"
 msgstr "Indstillinger"
 
-#: src/ttxview.c:2043 src/ttxview.c:3003
+#: src/ttxview.c:2052 src/ttxview.c:3012
 msgid "No page loaded"
 msgstr "Ingen side hentet"
 
-#: src/ttxview.c:2103
+#: src/ttxview.c:2112
 #, c-format
 msgid ""
 "Cannot create destination dir for Zapzilla export:\n"
@@ -1022,90 +1026,90 @@ msgstr ""
 "%s\n"
 "%s"
 
-#: src/ttxview.c:2122
+#: src/ttxview.c:2131
 #, c-format
 msgid "Export to %s failed: %s"
 msgstr "Eksport til %s fejlede: %s"
 
-#: src/ttxview.c:2131
+#: src/ttxview.c:2140
 #, c-format
 msgid "%s saved"
 msgstr "%s gemt"
 
-#: src/ttxview.c:2143
+#: src/ttxview.c:2152
 #, c-format
 msgid "Export failed: %s"
 msgstr "Eksport fejlede: %s"
 
-#: src/ttxview.c:2451
+#: src/ttxview.c:2460
 #, c-format
 msgid "Caption %x - %s"
 msgstr ""
 
-#: src/ttxview.c:2453
+#: src/ttxview.c:2462
 #, c-format
 msgid "Text %x - %s"
 msgstr "Tekst %x - %s"
 
-#: src/ttxview.c:2457
+#: src/ttxview.c:2466
 #, c-format
 msgid "Caption %x"
 msgstr ""
 
-#: src/ttxview.c:2459
+#: src/ttxview.c:2468
 #, c-format
 msgid "Text %x"
 msgstr "Tekst %x"
 
-#: src/ttxview.c:2484
+#: src/ttxview.c:2493
 #, c-format
 msgid "%x: Unknown language"
 msgstr "%x: Ukendt sprog"
 
-#: src/ttxview.c:2496 src/ttxview.c:2511 src/ttxview.c:2535 src/ttxview.c:2551
-#: src/ttxview.c:2567 src/ttxview.c:2583 src/ttxview.c:2599
+#: src/ttxview.c:2505 src/ttxview.c:2520 src/ttxview.c:2544 src/ttxview.c:2560
+#: src/ttxview.c:2576 src/ttxview.c:2592 src/ttxview.c:2608
 #, c-format
 msgid "Page %x"
 msgstr "Side %x"
 
-#: src/ttxview.c:2505
+#: src/ttxview.c:2514
 msgid "Index"
 msgstr "Indeks"
 
-#: src/ttxview.c:2529
+#: src/ttxview.c:2538
 msgid "Now and Next"
 msgstr "Nu og Næste"
 
-#: src/ttxview.c:2561
+#: src/ttxview.c:2570
 msgid "Program Index"
 msgstr ""
 
-#: src/ttxview.c:2577
+#: src/ttxview.c:2586
 msgid "Program Schedule"
 msgstr ""
 
-#: src/ttxview.c:2593
+#: src/ttxview.c:2602
 msgid "Program Warning"
 msgstr ""
 
-#: src/ttxview.c:2613
+#: src/ttxview.c:2622
 msgid "Subtitles"
 msgstr "Undertekster"
 
-#: src/ttxview.c:2615
+#: src/ttxview.c:2624
 msgid "Select subtitles page"
 msgstr ""
 
-#: src/ttxview.c:2688
+#: src/ttxview.c:2697
 #, c-format
 msgid "%s in %s"
 msgstr ""
 
-#: src/ttxview.c:3012
+#: src/ttxview.c:3021
 msgid "Selecting - hold Shift for table mode"
 msgstr ""
 
-#: src/ttxview.c:3132
+#: src/ttxview.c:3141
 msgid "Selection copied to clipboard"
 msgstr ""
 
@@ -1791,8 +1795,8 @@ msgstr "Stop this plugin"
 msgid "S_top Plugin"
 msgstr "S_top Plugin"
 
-#: glade/glade_strings.c:189 plugins/screenshot/screenshot.c:576
-#: plugins/screenshot/screenshot.c:1423 plugins/lirc/lirc.c:382
+#: glade/glade_strings.c:189 plugins/screenshot/screenshot.c:579
+#: plugins/screenshot/screenshot.c:1426 plugins/lirc/lirc.c:382
 #: plugins/mpeg/mpeg.c:1096 plugins/mpeg/mpeg.c:1123 plugins/mpeg/mpeg.c:1187
 #: plugins/mpeg/mpeg.c:2734 plugins/mpeg/mpeg.c:3336
 msgid "Plugins"
@@ -2300,19 +2304,19 @@ msgstr ""
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:454
+#: plugins/screenshot/screenshot.c:457
 msgid "Converts a row in RGB565 format to RGB24. Returns the destination."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:460
+#: plugins/screenshot/screenshot.c:463
 msgid "Converts a row in RGB555 format to RGB24. Returns the destination."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:466
+#: plugins/screenshot/screenshot.c:469
 msgid "Converts a row in RGBA format to RGB24. Returns the destination."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:557
+#: plugins/screenshot/screenshot.c:560
 msgid ""
 "The first option lets you specify where screenshots are to be\n"
 "saved. The file name will be: dir/shot[1,2,3,...].ext\n"
@@ -2324,24 +2328,24 @@ msgid ""
 "\n"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:572 plugins/screenshot/screenshot.c:604
-#: plugins/screenshot/screenshot.c:1423
+#: plugins/screenshot/screenshot.c:575 plugins/screenshot/screenshot.c:607
+#: plugins/screenshot/screenshot.c:1426
 msgid "Screenshot"
 msgstr "Skærmbillede"
 
-#: plugins/screenshot/screenshot.c:609
+#: plugins/screenshot/screenshot.c:612
 msgid "Take a screenshot"
 msgstr "Tag et billede af skærmen"
 
-#: plugins/screenshot/screenshot.c:742 plugins/screenshot/screenshot.c:843
+#: plugins/screenshot/screenshot.c:745 plugins/screenshot/screenshot.c:846
 msgid "Error while writing screenshot\n"
 msgstr "Fejl ved skrivning af skærmbillede\n"
 
-#: plugins/screenshot/screenshot.c:895
+#: plugins/screenshot/screenshot.c:898
 msgid "Saving..."
 msgstr "Gemmer..."
 
-#: plugins/screenshot/screenshot.c:915
+#: plugins/screenshot/screenshot.c:918
 #, c-format
 msgid ""
 "Cannot create directory:\n"
@@ -2352,11 +2356,11 @@ msgstr ""
 "%s\n"
 "%s"
 
-#: plugins/screenshot/screenshot.c:928
+#: plugins/screenshot/screenshot.c:931
 msgid "Sorry, but I cannot write\n"
 msgstr "Jeg kan ikke skrive\n"
 
-#: plugins/screenshot/screenshot.c:930
+#: plugins/screenshot/screenshot.c:933
 msgid ""
 "\n"
 "The image won't be saved.\n"
@@ -2364,29 +2368,29 @@ msgstr ""
 "\n"
 "Billedet vil ikke blive gemt.\n"
 
-#: plugins/screenshot/screenshot.c:961
+#: plugins/screenshot/screenshot.c:964
 msgid "Sorry, not enough resources to create a new thread"
 msgstr "Der er ikke nok ressourcer til at oprette en ny tråd"
 
-#: plugins/screenshot/screenshot.c:966
+#: plugins/screenshot/screenshot.c:969
 msgid "There are too many threads"
 msgstr "Der er for mange tråde"
 
-#: plugins/screenshot/screenshot.c:1106
+#: plugins/screenshot/screenshot.c:1109
 #, c-format
 msgid "appx %u KB"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:1109
+#: plugins/screenshot/screenshot.c:1112
 #, c-format
 msgid "appx %.2f MB"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:1174 plugins/screenshot/screenshot.c:1293
+#: plugins/screenshot/screenshot.c:1177 plugins/screenshot/screenshot.c:1296
 msgid "This format has no quality option"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:1329
+#: plugins/screenshot/screenshot.c:1332
 msgid "Only useful with full size, unscaled picture (480 or 576 lines)"
 msgstr ""
 

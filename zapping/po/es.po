@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.6.5\n"
-"POT-Creation-Date: 2003-02-18 12:47+0100\n"
+"POT-Creation-Date: 2003-05-29 11:52+0200\n"
 "PO-Revision-Date: 2002-03-28 16:56+0100\n"
 "Last-Translator: Iñaki García Etxebarria <garetxe@users.sourceforge.net>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -146,11 +146,11 @@ msgstr ""
 "%s"
 
 # src/interface.c:247
-#: src/main.c:830 src/callbacks.c:501 src/callbacks.c:630
+#: src/main.c:830 src/callbacks.c:503 src/callbacks.c:632
 msgid "Show controls"
 msgstr "Mostrar controles"
 
-#: src/main.c:831 src/callbacks.c:502 src/callbacks.c:631
+#: src/main.c:831 src/callbacks.c:504 src/callbacks.c:633
 msgid "Show the menu and the toolbar"
 msgstr "Mostrar el menu y la barra de herramientas"
 
@@ -174,7 +174,7 @@ msgstr ""
 "   - o, más probablemente, esto es un fallo de %s.\n"
 "     Por favor contacte con el autor.\n"
 
-#: src/main.c:1063
+#: src/main.c:1062
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Zapping no puede crear la configuración"
 
@@ -190,7 +190,7 @@ msgstr "Zapzilla no se pudo iniciar"
 msgid "Sorry, Zapzilla is unable to create the config tree"
 msgstr "Zapzilla no puede crear la configuración"
 
-#: src/interface.c:232 src/tveng1.c:1194 src/tveng1.c:1549 src/tveng1.c:1562
+#: src/interface.c:232 src/tveng1.c:1193 src/tveng1.c:1548 src/tveng1.c:1561
 #: src/tveng2.c:948
 msgid "Mute"
 msgstr "Silencio"
@@ -203,7 +203,7 @@ msgstr "Conmutar el estado del audio"
 msgid "A TV viewer for the Gnome Desktop Environment"
 msgstr "La televisión para Gnome"
 
-#: src/callbacks.c:147
+#: src/callbacks.c:149
 #, c-format
 msgid ""
 "%s:\n"
@@ -212,28 +212,28 @@ msgstr ""
 "%s:\n"
 "Trate de ejecutar como root \"zapping_fix_overlay\" en una terminal"
 
-#: src/callbacks.c:373
+#: src/callbacks.c:375
 msgid "<blue>audio off</blue>"
 msgstr "<blue>audio apagado</blue>"
 
-#: src/callbacks.c:374
+#: src/callbacks.c:376
 msgid "<yellow>AUDIO ON</yellow>"
 msgstr "<yellow>AUDIO ENCENDIDO</yellow>"
 
 # src/v4l2interface.c:344
-#: src/callbacks.c:488
+#: src/callbacks.c:490
 msgid "Hide controls"
 msgstr "Ocultar controles"
 
-#: src/callbacks.c:489
+#: src/callbacks.c:491
 msgid "Hide the menu and the toolbar"
 msgstr "Ocultar el menu y la barra"
 
-#: src/callbacks.c:608
+#: src/callbacks.c:610
 msgid "Overlay this page"
 msgstr "TTX->Subtítulos"
 
-#: src/callbacks.c:609 src/zmisc.c:356
+#: src/callbacks.c:611 src/zmisc.c:356
 msgid "Return to windowed mode and use the current page as subtitles"
 msgstr "Volver al modo ventana y utilizar la página actual como subtítulos"
 
@@ -345,7 +345,7 @@ msgstr "Ajustar %s"
 msgid "Available controls"
 msgstr "Controles disponibles"
 
-#: src/v4linterface.c:664 src/zvbi.c:2105
+#: src/v4linterface.c:664 src/zvbi.c:2137
 msgid "Unknown"
 msgstr "Desconocido"
 
@@ -421,15 +421,15 @@ msgstr "Servicio de datos"
 msgid "Unknown Audio"
 msgstr "Audio desconocido"
 
-#: src/zvbi.c:252
+#: src/zvbi.c:259
 msgid "V4L/V4L2 VBI interface timeout"
 msgstr "Exceso de tiempo en el interfaz VBI V4L/V4L2"
 
-#: src/zvbi.c:265
+#: src/zvbi.c:276
 msgid "V4L/V4L2 VBI interface: Failed to read from the device"
 msgstr "Interfaz VBI V4L/V4L2: Fallo al leer del dispositivo"
 
-#: src/zvbi.c:360
+#: src/zvbi.c:371
 #, c-format
 msgid ""
 "VBI initialization failed.\n"
@@ -438,15 +438,15 @@ msgstr ""
 "La inicialización VBI falló.\n"
 "%s"
 
-#: src/zvbi.c:361
+#: src/zvbi.c:372
 msgid "Ran out of memory."
 msgstr "Se quedó sin memoria disponible."
 
-#: src/zvbi.c:362
+#: src/zvbi.c:373
 msgid "Out of resources to start a new thread."
 msgstr "Sin recursos para crear un nuevo hilo."
 
-#: src/zvbi.c:364
+#: src/zvbi.c:375
 msgid ""
 "This probably means that the required driver isn't loaded. Add to your /etc/"
 "modules.conf the line:\n"
@@ -463,11 +463,11 @@ msgstr ""
 "desactivar VBI en Configuración/Preferencias/Opciones VBI/Habilitar\n"
 "decodificación VBI"
 
-#: src/zvbi.c:716
+#: src/zvbi.c:748
 msgid "Click me"
 msgstr "Púlsame"
 
-#: src/zvbi.c:751
+#: src/zvbi.c:783
 msgid ""
 "Open this link with the predetermined Web browser.\n"
 "You can configure this in the GNOME Control Center, under Handlers/Url "
@@ -477,49 +477,49 @@ msgstr ""
 "Puedes configurar esto en el Centro de Control GNOME, bajo\n"
 "Manejadores/Navegador de URLs"
 
-#: src/zvbi.c:758
+#: src/zvbi.c:790
 #, c-format
 msgid " %s: Teletext Page %x"
 msgstr " %s: Página de Teletexto %x"
 
-#: src/zvbi.c:761
+#: src/zvbi.c:793
 #, c-format
 msgid " Teletext Page %x"
 msgstr "Página de Teletexto %x"
 
-#: src/zvbi.c:762
+#: src/zvbi.c:794
 msgid "Open this page with Zapzilla"
 msgstr "Abrir esta página con Zapzilla"
 
-#: src/zvbi.c:2110
+#: src/zvbi.c:2142
 msgid "n/a"
 msgstr "n/a"
 
-#: src/zvbi.c:2114
+#: src/zvbi.c:2146
 msgid "none"
 msgstr "ninguno"
 
-#: src/zvbi.c:2117
+#: src/zvbi.c:2149
 #, c-format
 msgid "%d minute"
 msgid_plural "%d minutes"
 msgstr[0] "%d minuto"
 msgstr[1] "%d minutos"
 
-#: src/zvbi.c:2119
+#: src/zvbi.c:2151
 #, c-format
 msgid "%d h %d m"
 msgstr "%d h %d m"
 
-#: src/zvbi.c:2151 src/ttxview.c:2545
+#: src/zvbi.c:2183 src/ttxview.c:2554
 msgid "Current program"
 msgstr "Programa actual"
 
-#: src/zvbi.c:2172
+#: src/zvbi.c:2204
 msgid "%d %b  %I:%M %p    "
 msgstr "%d %b  %I:%M %p    "
 
-#: src/zvbi.c:2194
+#: src/zvbi.c:2226
 #, c-format
 msgid ""
 "\n"
@@ -528,21 +528,21 @@ msgstr ""
 "\n"
 "Longitud: %uh%02u (quedan %uh%02u)"
 
-#: src/zvbi.c:2202
+#: src/zvbi.c:2234
 #, c-format
 msgid "Length: %uh%02u"
 msgstr "Longitud: %uh%02u"
 
-#: src/zvbi.c:2209
+#: src/zvbi.c:2241
 #, c-format
 msgid "Elapsed: %uh%02u"
 msgstr "Transcurridos: %uh%02u"
 
-#: src/zvbi.c:2232 src/zvbi.c:2234
+#: src/zvbi.c:2264 src/zvbi.c:2266
 msgid "unknown language"
 msgstr "idioma desconocido"
 
-#: src/zvbi.c:2237
+#: src/zvbi.c:2269
 #, c-format
 msgid ""
 "Channel 1: %s (%s)\n"
@@ -551,7 +551,7 @@ msgstr ""
 "Canal 1: %s (%s)\n"
 "Canal 2: %s (%s)"
 
-#: src/zvbi.c:2245
+#: src/zvbi.c:2277
 #, c-format
 msgid ""
 "Channel 1: %s\n"
@@ -560,26 +560,26 @@ msgstr ""
 "Canal 1: %s\n"
 "Canal 2: %s"
 
-#: src/zvbi.c:2258
+#: src/zvbi.c:2290
 #, c-format
 msgid "Audio: %s (%s)"
 msgstr "Audio: %s (%s)"
 
-#: src/zvbi.c:2263
+#: src/zvbi.c:2295
 #, c-format
 msgid "Audio: %s"
 msgstr "Audio: %s"
 
-#: src/zvbi.c:2282
+#: src/zvbi.c:2314
 #, c-format
 msgid "Captioned %s"
 msgstr "Subtitulado %s"
 
-#: src/zvbi.c:2282
+#: src/zvbi.c:2314
 msgid "Captioned"
 msgstr "Subtitulado"
 
-#: src/zvbi.c:2366 src/zvbi.c:2627
+#: src/zvbi.c:2398 src/zvbi.c:2659
 msgid "Not rated"
 msgstr "Sin calificar"
 
@@ -616,45 +616,45 @@ msgstr "Alternativo 1"
 msgid "Alternate 2"
 msgstr "Alternativo 2"
 
-#: src/tveng1.c:1149 src/tveng2.c:929
+#: src/tveng1.c:1148 src/tveng2.c:929
 msgid "Brightness"
 msgstr "Brillo"
 
-#: src/tveng1.c:1159 src/tveng2.c:932
+#: src/tveng1.c:1158 src/tveng2.c:932
 msgid "Hue"
 msgstr "Intensidad"
 
-#: src/tveng1.c:1169
+#: src/tveng1.c:1168
 msgid "Colour"
 msgstr "Color"
 
 # src/interface.c:247
-#: src/tveng1.c:1179 src/tveng2.c:930
+#: src/tveng1.c:1178 src/tveng2.c:930
 msgid "Contrast"
 msgstr "Contraste"
 
-#: src/tveng1.c:1207 src/tveng2.c:947
+#: src/tveng1.c:1206 src/tveng2.c:947
 msgid "Volume"
 msgstr "Volumen"
 
-#: src/tveng1.c:1219 src/tveng2.c:954
+#: src/tveng1.c:1218 src/tveng2.c:954
 msgid "Bass"
 msgstr "Bajos"
 
-#: src/tveng1.c:1231 src/tveng2.c:952
+#: src/tveng1.c:1230 src/tveng2.c:952
 msgid "Treble"
 msgstr "Trémolo"
 
 # src/frequencies.c:827
-#: src/tveng1.c:1246 src/tveng2.c:950
+#: src/tveng1.c:1245 src/tveng2.c:950
 msgid "Balance"
 msgstr "Balance"
 
-#: src/tveng1.c:1259
+#: src/tveng1.c:1258
 msgid "Audio Decoding"
 msgstr "Decodificación de audio"
 
-#: src/tveng1.c:1685
+#: src/tveng1.c:1684
 msgid "There are no tuners for the active input"
 msgstr "No hay sintonizadores en la entrada actual"
 
@@ -991,7 +991,7 @@ msgstr "Lista de símbolos exportados por el plugin"
 msgid "Sorry, but the plugin couldn't be started"
 msgstr "Lo siento, el plugin no puede ser iniciado"
 
-#: src/ttxview.c:186 src/ttxview.c:762 src/ttxview.c:1358
+#: src/ttxview.c:186 src/ttxview.c:771 src/ttxview.c:1367
 msgid "VBI has been disabled"
 msgstr "VBI ha sido dishabilitado"
 
@@ -1005,81 +1005,81 @@ msgstr "Cargando página %x..."
 msgid "Loading subpage %x..."
 msgstr "Cargando subpágina %x..."
 
-#: src/ttxview.c:408 src/ttxview.c:700
+#: src/ttxview.c:408 src/ttxview.c:709
 msgid "Warning: Page not valid"
 msgstr "Aviso: Página no válida"
 
-#: src/ttxview.c:529
+#: src/ttxview.c:538
 msgid "Text export failed"
 msgstr "Fallo al exportar a texto"
 
-#: src/ttxview.c:603
+#: src/ttxview.c:612
 #, c-format
 msgid " Page %d"
 msgstr "Página %d"
 
-#: src/ttxview.c:607
+#: src/ttxview.c:616
 #, c-format
 msgid " Subpage %d"
 msgstr " Subpágina %d"
 
-#: src/ttxview.c:711
+#: src/ttxview.c:720
 msgid "The cache has been cleared"
 msgstr "La cache ha sido borrada"
 
-#: src/ttxview.c:1068 src/ttxview.c:1089
+#: src/ttxview.c:1077 src/ttxview.c:1098
 msgid "No other subpage in the cache"
 msgstr "Ninguna otra subpágina en la cache"
 
-#: src/ttxview.c:1152
+#: src/ttxview.c:1161
 msgid "Found"
 msgstr "Encontrado"
 
-#: src/ttxview.c:1170
+#: src/ttxview.c:1179
 msgid "Not found"
 msgstr "No encontrado"
 
-#: src/ttxview.c:1190
+#: src/ttxview.c:1199
 msgid "Empty cache"
 msgstr "Cache vacía"
 
-#: src/ttxview.c:1313
+#: src/ttxview.c:1322
 #, c-format
 msgid "Scanning %x.%02x"
 msgstr "Analizando %x.%02x"
 
-#: src/ttxview.c:1567
+#: src/ttxview.c:1576
 #, c-format
 msgid "<%s> added to the bookmarks"
 msgstr "<%s> añadido a los marcadores"
 
-#: src/ttxview.c:1630
+#: src/ttxview.c:1639
 msgid "Any subpage"
 msgstr "Cualquier subpágina"
 
-#: src/ttxview.c:1979
+#: src/ttxview.c:1988
 #, c-format
 msgid "Export %s"
 msgstr "Exportar %s"
 
-#: src/ttxview.c:1993 plugins/screenshot/screenshot_strings.c:19
+#: src/ttxview.c:2002 plugins/screenshot/screenshot_strings.c:19
 #: plugins/mpeg/mpeg_strings.c:36
 msgid "Save as:"
 msgstr "Guardar como:"
 
-#: src/ttxview.c:1998
+#: src/ttxview.c:2007
 msgid "Select file you'll be exporting to"
 msgstr "Selecciona el fichero donde exportar"
 
-#: src/ttxview.c:2013
+#: src/ttxview.c:2022
 msgid "Options"
 msgstr "Opciones"
 
-#: src/ttxview.c:2043 src/ttxview.c:3003
+#: src/ttxview.c:2052 src/ttxview.c:3012
 msgid "No page loaded"
 msgstr "Ninguna página cargada"
 
-#: src/ttxview.c:2103
+#: src/ttxview.c:2112
 #, c-format
 msgid ""
 "Cannot create destination dir for Zapzilla export:\n"
@@ -1090,90 +1090,90 @@ msgstr ""
 "%s\n"
 "%s"
 
-#: src/ttxview.c:2122
+#: src/ttxview.c:2131
 #, c-format
 msgid "Export to %s failed: %s"
 msgstr "Fallo al exportar a %s: %s"
 
-#: src/ttxview.c:2131
+#: src/ttxview.c:2140
 #, c-format
 msgid "%s saved"
 msgstr "%s guardada"
 
-#: src/ttxview.c:2143
+#: src/ttxview.c:2152
 #, c-format
 msgid "Export failed: %s"
 msgstr "Exportar falló: %s"
 
-#: src/ttxview.c:2451
+#: src/ttxview.c:2460
 #, c-format
 msgid "Caption %x - %s"
 msgstr "Subtítulos %x - %s"
 
-#: src/ttxview.c:2453
+#: src/ttxview.c:2462
 #, c-format
 msgid "Text %x - %s"
 msgstr "Texto %x - %s"
 
-#: src/ttxview.c:2457
+#: src/ttxview.c:2466
 #, c-format
 msgid "Caption %x"
 msgstr "Subtítulos %x"
 
-#: src/ttxview.c:2459
+#: src/ttxview.c:2468
 #, c-format
 msgid "Text %x"
 msgstr "Texto %x"
 
-#: src/ttxview.c:2484
+#: src/ttxview.c:2493
 #, c-format
 msgid "%x: Unknown language"
 msgstr "%x: Idioma desconocido"
 
-#: src/ttxview.c:2496 src/ttxview.c:2511 src/ttxview.c:2535 src/ttxview.c:2551
-#: src/ttxview.c:2567 src/ttxview.c:2583 src/ttxview.c:2599
+#: src/ttxview.c:2505 src/ttxview.c:2520 src/ttxview.c:2544 src/ttxview.c:2560
+#: src/ttxview.c:2576 src/ttxview.c:2592 src/ttxview.c:2608
 #, c-format
 msgid "Page %x"
 msgstr "Página %x"
 
-#: src/ttxview.c:2505
+#: src/ttxview.c:2514
 msgid "Index"
 msgstr "Índice"
 
-#: src/ttxview.c:2529
+#: src/ttxview.c:2538
 msgid "Now and Next"
 msgstr "Acto y seguido"
 
-#: src/ttxview.c:2561
+#: src/ttxview.c:2570
 msgid "Program Index"
 msgstr "Índice de programas"
 
-#: src/ttxview.c:2577
+#: src/ttxview.c:2586
 msgid "Program Schedule"
 msgstr "Horario de emisión"
 
-#: src/ttxview.c:2593
+#: src/ttxview.c:2602
 msgid "Program Warning"
 msgstr "Aviso del programa"
 
-#: src/ttxview.c:2613
+#: src/ttxview.c:2622
 msgid "Subtitles"
 msgstr "Subtítulos"
 
-#: src/ttxview.c:2615
+#: src/ttxview.c:2624
 msgid "Select subtitles page"
 msgstr "Selecciona la página de subtítulos"
 
-#: src/ttxview.c:2688
+#: src/ttxview.c:2697
 #, c-format
 msgid "%s in %s"
 msgstr "%s en %s"
 
-#: src/ttxview.c:3012
+#: src/ttxview.c:3021
 msgid "Selecting - hold Shift for table mode"
 msgstr "Seleccionando - pulse Shift para modo tabla"
 
-#: src/ttxview.c:3132
+#: src/ttxview.c:3141
 msgid "Selection copied to clipboard"
 msgstr "Selección copiada al portapapeles"
 
@@ -1894,8 +1894,8 @@ msgstr "Parar el plugin"
 msgid "S_top Plugin"
 msgstr "_Parar el plugin"
 
-#: glade/glade_strings.c:189 plugins/screenshot/screenshot.c:576
-#: plugins/screenshot/screenshot.c:1423 plugins/lirc/lirc.c:382
+#: glade/glade_strings.c:189 plugins/screenshot/screenshot.c:579
+#: plugins/screenshot/screenshot.c:1426 plugins/lirc/lirc.c:382
 #: plugins/mpeg/mpeg.c:1096 plugins/mpeg/mpeg.c:1123 plugins/mpeg/mpeg.c:1187
 #: plugins/mpeg/mpeg.c:2734 plugins/mpeg/mpeg.c:3336
 msgid "Plugins"
@@ -2435,19 +2435,19 @@ msgstr "Este plugin toma un screenshot de lo que estés viendo."
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr "Error de comprobación: \"%s\" en el plugin %s tiene hash 0x%x vs. 0x%x"
 
-#: plugins/screenshot/screenshot.c:454
+#: plugins/screenshot/screenshot.c:457
 msgid "Converts a row in RGB565 format to RGB24. Returns the destination."
 msgstr "Convierte una fila de RGB565 a RGB24. Devuelve el destino."
 
-#: plugins/screenshot/screenshot.c:460
+#: plugins/screenshot/screenshot.c:463
 msgid "Converts a row in RGB555 format to RGB24. Returns the destination."
 msgstr "Convierte una fila de RGB555 a RGB24. Devuelve el destino."
 
-#: plugins/screenshot/screenshot.c:466
+#: plugins/screenshot/screenshot.c:469
 msgid "Converts a row in RGBA format to RGB24. Returns the destination."
 msgstr "Convierte una fila de RGBA a RGB24. Devuelve el destino."
 
-#: plugins/screenshot/screenshot.c:557
+#: plugins/screenshot/screenshot.c:560
 msgid ""
 "The first option lets you specify where screenshots are to be\n"
 "saved. The file name will be: dir/shot[1,2,3,...].ext\n"
@@ -2468,24 +2468,24 @@ msgstr ""
 "su valor correcto.\n"
 "\n"
 
-#: plugins/screenshot/screenshot.c:572 plugins/screenshot/screenshot.c:604
-#: plugins/screenshot/screenshot.c:1423
+#: plugins/screenshot/screenshot.c:575 plugins/screenshot/screenshot.c:607
+#: plugins/screenshot/screenshot.c:1426
 msgid "Screenshot"
 msgstr "Screenshot"
 
-#: plugins/screenshot/screenshot.c:609
+#: plugins/screenshot/screenshot.c:612
 msgid "Take a screenshot"
 msgstr "Graba un screenshot"
 
-#: plugins/screenshot/screenshot.c:742 plugins/screenshot/screenshot.c:843
+#: plugins/screenshot/screenshot.c:745 plugins/screenshot/screenshot.c:846
 msgid "Error while writing screenshot\n"
 msgstr "Error al escribir el screenshot\n"
 
-#: plugins/screenshot/screenshot.c:895
+#: plugins/screenshot/screenshot.c:898
 msgid "Saving..."
 msgstr "Guardando..."
 
-#: plugins/screenshot/screenshot.c:915
+#: plugins/screenshot/screenshot.c:918
 #, c-format
 msgid ""
 "Cannot create directory:\n"
@@ -2497,11 +2497,11 @@ msgstr ""
 "%s"
 
 # src/tveng.c:70
-#: plugins/screenshot/screenshot.c:928
+#: plugins/screenshot/screenshot.c:931
 msgid "Sorry, but I cannot write\n"
 msgstr "No se puede escribir.\n"
 
-#: plugins/screenshot/screenshot.c:930
+#: plugins/screenshot/screenshot.c:933
 msgid ""
 "\n"
 "The image won't be saved.\n"
@@ -2509,29 +2509,29 @@ msgstr ""
 "\n"
 "No se guardará la imagen.\n"
 
-#: plugins/screenshot/screenshot.c:961
+#: plugins/screenshot/screenshot.c:964
 msgid "Sorry, not enough resources to create a new thread"
 msgstr "No hay suficientes recursos para crear un nuevo hilo, lo siento"
 
-#: plugins/screenshot/screenshot.c:966
+#: plugins/screenshot/screenshot.c:969
 msgid "There are too many threads"
 msgstr "Demasiados hilos"
 
-#: plugins/screenshot/screenshot.c:1106
+#: plugins/screenshot/screenshot.c:1109
 #, c-format
 msgid "appx %u KB"
 msgstr "aproximadamente %u KB"
 
-#: plugins/screenshot/screenshot.c:1109
+#: plugins/screenshot/screenshot.c:1112
 #, c-format
 msgid "appx %.2f MB"
 msgstr "aproximadamente %.2f MB"
 
-#: plugins/screenshot/screenshot.c:1174 plugins/screenshot/screenshot.c:1293
+#: plugins/screenshot/screenshot.c:1177 plugins/screenshot/screenshot.c:1296
 msgid "This format has no quality option"
 msgstr "Este formato no tiene opción de calidad"
 
-#: plugins/screenshot/screenshot.c:1329
+#: plugins/screenshot/screenshot.c:1332
 msgid "Only useful with full size, unscaled picture (480 or 576 lines)"
 msgstr "Sólo es útil a tamaño completo, imagen no escalada (480 o 576 líneas)"
 

@@ -1,6 +1,12 @@
 New stuff, refer to the ChangeLog for a more detailed description of
 the changes.
 
+0.6.7
+-----
+Fixes a bug in the screenshot plugin, crashing Zapping on exit,
+and triggered by the nptl library on RedHat 9. In the RPM it
+was unavoidable to require newer versions of libc and libpng.
+
 0.6.6
 -----
 Hi folks. Following the last Gnome 1 release of Zapping I'm proud
