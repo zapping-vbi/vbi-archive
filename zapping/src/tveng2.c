@@ -109,7 +109,7 @@ static int p_tveng2_open_device_file(int flags, tveng_device_info * info)
       return -1;
     }
 
-  if (!(caps.flags & V4L2_FLAG_TUNER))
+  /*  if (!(caps.flags & V4L2_FLAG_TUNER))
     {
       info -> tveng_errno = -1;
       snprintf(info->error, 255, 
@@ -117,7 +117,7 @@ static int p_tveng2_open_device_file(int flags, tveng_device_info * info)
 	       info -> file_name);
       close(info -> fd);
       return -1;
-    }
+      }*/
 
   /* Copy capability info */
   snprintf(info->caps.name, 32, caps.name);

@@ -413,11 +413,11 @@ int tveng1_get_inputs(tveng_device_info * info)
   info->num_inputs = 0;
   info->cur_input = 0;
 
-  for (i=0;;i++)
+  for (i=0;i<info->caps.channels;i++)
     {
       channel.channel = i;
       if (ioctl(info->fd, VIDIOCGCHAN, &channel))
-	break;
+	continue;
       info->inputs = realloc(info->inputs, (i+1)*
 			     sizeof(struct tveng_enum_input));
       info->inputs[i].id = i;
