@@ -7,7 +7,8 @@ PIXMAPS = \
 	gnome-monitor.png \
 	gnome-oscilloscope.png \
 	gnome-session.png \
-	gnome-shutdown.png
+	gnome-shutdown.png \
+	teletext48.png
 
 BUILTIN_PIXMAPS = \
 	up.png \
