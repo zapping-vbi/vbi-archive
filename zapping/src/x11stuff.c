@@ -1163,7 +1163,8 @@ find_xscreensaver_window	(Display *		display,
                                           _XA_SCREENSAVER_VERSION,
                                           XA_STRING, &nitems, &vec))
         {
-	  assert (0 == nitems);
+	  /* FIXME not true; anything to free here?
+	  assert (0 == nitems); */
 
 	  XSetErrorHandler (old_error_handler);
           *window_return = kids[i];

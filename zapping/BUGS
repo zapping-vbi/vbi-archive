@@ -10,7 +10,6 @@ Known bugs in Zapping, don't report them
   (btw overlay and fullscreen IIRC).
 * Fullscreen doesn't work in libzvbi-less Zapping, does
   in other versions (with --no-xv, using DMA).
-* ./configure --enable-pam is untested.
 * Must check if "no audio recording" works.
 * Edited channels, clicked ok, tc==NULL in tuned_channel_nth_name().
 * Pointer does not properly reappear in windowed mode.

@@ -131,10 +131,12 @@ drop_root_privileges		(void)
     }
   else if (ROOT_UID == uid)
     {
+#if 0 /* cannot distinguish between root and consolehelper */
       message (1, "You should not run %s as root,\n"
 	       "better use consolehelper, sudo, su or set the "
 	       "SUID flag with chmod +s.\n",
 	       program_invocation_name);
+#endif
     }
 }
 
