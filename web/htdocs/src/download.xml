@@ -78,7 +78,7 @@ href="http://cvs.sourceforge.net/cvstarballs/zapping-cvsroot.tar.gz">snapshots</
 of the CVS tree.
 <header>Downloading HTTP</header>
 You can get the releases through HTTP, just follow <a
-href="http://sourceforge.net/project/showfiles.php?group_id=2599&amp;package_id=2569">
+href="http://sourceforge.net/project/showfiles.php?group_id=2599&amp;amp;package_id=2569">
 this link</a> and download the latest version.
 <p>
 You can also see all the releases directly from the Sourceforge
