@@ -11,7 +11,7 @@
 
       <para>In this section you can select the device file name of
 the kernel device to be used in <link linkend="zapping-video-modes">capture mode</link>. On Linux common names are:</para>
-      <simplelist>
+      <simplelist type="vert">
         <member><filename>/dev/video</filename></member>
         <member><filename>/dev/video0</filename></member>
         <member><filename>/dev/video1</filename></member>
@@ -20,7 +20,7 @@ the kernel device to be used in <link linkend="zapping-video-modes">capture mode
         <member><filename>/dev/v4l/video0</filename></member>
       </simplelist>
       <para>On FreeBSD:</para>
-      <simplelist>
+      <simplelist type="vert">
         <member><filename>/dev/bktr</filename></member>
         <member><filename>/dev/bktr0</filename></member>
         <member><filename>/dev/bktr1</filename></member>
@@ -34,7 +34,13 @@ the kernel device to be used in <link linkend="zapping-video-modes">capture mode
       <title>Audio Device</title>
 
       <para>Here you can select an audio device to <link linkend="zapping-record">record sound</link>. Usually a kernel device is the best choice. If your TV card has audio sampling hardware and the driver supports this, you can also select the TV card as recording device. This will free the soundcard to record from other sources.</para>
-      <para>Common kernel device names are <filename>/dev/dsp</filename>, <filename>/dev/dsp0</filename>, <filename>/dev/dsp1</filename> and so on. Click on the down arrow of the device file entry to see a list of devices found by Zapping.</para>
+      <para>Common kernel device names are:</para>
+      <simplelist type="vert">
+        <member><filename>/dev/dsp</filename></member>
+        <member><filename>/dev/dsp0</filename></member>
+        <member><filename>/dev/dsp1</filename></member>
+      </simplelist>
+      <para>and so on. Click on the down arrow of the device file entry to see a list of devices found by Zapping.</para>
       <para>If the audio output of your TV card connects to an audio input of your soundcard, or when your TV card has no audio capabilities, you will want to select <guilabel>Control volume with soundcard mixer</guilabel>. This has two advantages:</para>
       <itemizedlist>
         <listitem>
@@ -45,7 +51,13 @@ the kernel device to be used in <link linkend="zapping-video-modes">capture mode
         </listitem>
       </itemizedlist>
       <para>When you select a kernel device as audio recording device, you should also enable this option to determine the correct audio input line.</para>
-      <para>Common mixer device names are <filename>/dev/mixer</filename>, <filename>/dev/mixer0</filename>, <filename>/dev/mixer1</filename> and so on. Click on the down arrow of the device file entry to see a list of devices found by Zapping.</para>
+      <para>Common mixer device names are:</para>
+      <simplelist type="vert">
+        <member><filename>/dev/mixer</filename></member>
+        <member><filename>/dev/mixer0</filename></member>
+        <member><filename>/dev/mixer1</filename></member>
+      </simplelist>
+      <para>and so on. Click on the down arrow of the device file entry to see a list of devices found by Zapping.</para>
     </sect2>
 
     <sect2 id="zapping-settings-main">
@@ -148,15 +160,15 @@ the kernel device to be used in <link linkend="zapping-video-modes">capture mode
             <para>With the XVideo extension the image scaling hardware of your graphics card can be used to display captured video at almost any size. Here you can select the size of the <emphasis>captured</emphasis> video when using XVideo:</para>
             <variablelist>
               <varlistentry>
-                <term><guilabel>320 &#151; 240</guilabel></term>
+                <term><guilabel>320 &times; 240</guilabel></term>
                 <listitem>
-                  <para>Fixed size 320 &#151; 240 pixels</para>
+                  <para>Fixed size 320 &times; 240 pixels.</para>
                 </listitem>
               </varlistentry>
               <varlistentry>
                 <term><guilabel>Interlaced (window size)</guilabel></term>
                 <listitem>
-                  <para>The largest size supported by the video capture hardware, or the window size if smaller</para>
+                  <para>The largest size supported by the video capture hardware, or the window size if smaller. You may want to enable the deinterlacer (see below) to reduce interlace artefacts.</para>
                 </listitem>
               </varlistentry>
               <varlistentry>
@@ -249,7 +261,7 @@ the kernel device to be used in <link linkend="zapping-video-modes">capture mode
           <term><guilabel>Device file</guilabel></term>
           <listitem>
             <para>A dedicated kernel device is necessary to capture VBI data. If this is supported by your TV card and its driver, you can select the VBI device here. Common names are:</para>
-            <simplelist>
+            <simplelist type="vert">
               <member><filename>/dev/vbi</filename></member>
               <member><filename>/dev/vbi0</filename></member>
               <member><filename>/dev/vbi1</filename></member>
@@ -466,26 +478,26 @@ the kernel device to be used in <link linkend="zapping-video-modes">capture mode
           <term>Video (Greedy, High Motion)</term>
           <listitem>
             <para>This method works at two levels. By default, at the Basic Level, it is a normal deinterlace method, with the following features:</para>
-            <simplelist>
-              <member>A merge of Blended Clip, Greedy Low Motion, and some new stuff</member>
-              <member>Greedy implied pulldown, like the Greedy Low Motion method</member>
-              <member>Parm blending like the Blended Clip method, for less sizzling.</member>
-              <member>Lookahead motion detection</member>
-              <member>Diagonal Jaggie Reduction to smooth out the stair step effect in moving diagonal lines. This is accomplish by horizontally smoothing only the rapidly moving pixels, leaving the stationary ones alone. If a diagonal edge is not moving then it won't be jagged anyway under Greedy High Motion.</member>
-              <member>Slider adjustments for Max Comb, Motion Threshold, and Motion Sensitivity. However the defaults should be okay for most cases.</member>
-            </simplelist>
+            <itemizedlist>
+              <listitem><para>A merge of Blended Clip, Greedy Low Motion, and some new stuff</para></listitem>
+              <listitem><para>Greedy implied pulldown, like the Greedy Low Motion method</para></listitem>
+              <listitem><para>Parm blending like the Blended Clip method, for less sizzling.</para></listitem>
+              <listitem><para>Lookahead motion detection</para></listitem>
+              <listitem><para>Diagonal Jaggie Reduction to smooth out the stair step effect in moving diagonal lines. This is accomplish by horizontally smoothing only the rapidly moving pixels, leaving the stationary ones alone. If a diagonal edge is not moving then it won't be jagged anyway under Greedy High Motion.</para></listitem>
+              <listitem><para>Slider adjustments for Max Comb, Motion Threshold, and Motion Sensitivity. However the defaults should be okay for most cases.</para></listitem>
+            </itemizedlist>
             <para>Basic Level is compatible with all MMX, Pentium II, AMD K6-II, K6-III, Celeron and above machines. Performance will probably be about that of the Greedy 2-Frame method.</para>
             <para>There is also an Advanced Level (experimental) which is invoked if you check any of the boxes in the panel. A machine supporting the Intel SSE instruction set is needed. The Advanced options should run on Athlons, Intel P-III, P4, and the faster Celerons.</para>
             <!-- When using the Advanced Features Greedy (HM) maintains its own internal history of the last 4 video input fields. This means it must be able to examine every field and you can't use it at the same time as DScaler's regular Auto_Pulldown option. So if you are going to use the advanced options, please first be sure the Settings/Deinterlace/Auto_Pulldown option is not checked. -->
             <para>Using the Advanced Options is <!-- also --> very sensitive to machine performance and dropped frames, so you may have to lower your Resolution if you get jerkiness. <!-- It's also best to have Hurry_When_Late=0 in the DScaler.ini file. --></para>
             <para>The new check box enabled features are:</para>
-            <simplelist>
-              <member>Built in 3:2, 2:2, and n:m Pulldown. This does pulldown matching, not removal, so all frames are displayed. I think this eventually will work better with video overlays and live TV viewing that is extensively edited, but it still needs improvement.</member>
-              <member>In-Between Frames. This gives judder reduction for those of us with fixed 60 HZ RTPV's. In a 3:2 pulldown situation it will select an appropriate pair of fields to average once out of every 5 frames. This can effectively display every new input frame 2 1/ 2 times. It will cause a small amount of motion blur every fifth frame but I personally leave it turned on all the time now for a smoother film picture sequence. It will also work with 2:2 pulldown (I think) but there one half of the frames will be averaged and the motion blur may not be acceptable.</member>
-              <member>Adjustable Edge Enhancement. This is due to an idea posted by this forum's MR. Wigggles. It enhances only a small amount, on the horizontal axis. When turned on you can use a slider to adjust it.</member>
-              <member>Adjustable Median Filter. Also due to Mr. Wigggles, this can help filter noise. However if set over about 3-5 it will also cause motion artifacts on fast moving scenes. Also has a slider.</member>
-              <member>Vertical Filter. This is a post-deinterlace software vertical filter that can remove both noise and some leftover deinterlace artifacts. It gives results similar to the hardware version available on the Advanced Video Flags screen, but not so extreme and without the jitter.</member>
-            </simplelist>
+            <itemizedlist>
+              <listitem><para>Built in 3:2, 2:2, and n:m Pulldown. This does pulldown matching, not removal, so all frames are displayed. I think this eventually will work better with video overlays and live TV viewing that is extensively edited, but it still needs improvement.</para></listitem>
+              <listitem><para>In-Between Frames. This gives judder reduction for those of us with fixed 60 HZ RTPV's. In a 3:2 pulldown situation it will select an appropriate pair of fields to average once out of every 5 frames. This can effectively display every new input frame 2 1/ 2 times. It will cause a small amount of motion blur every fifth frame but I personally leave it turned on all the time now for a smoother film picture sequence. It will also work with 2:2 pulldown (I think) but there one half of the frames will be averaged and the motion blur may not be acceptable.</para></listitem>
+              <listitem><para>Adjustable Edge Enhancement. This is due to an idea posted by this forum's MR. Wigggles. It enhances only a small amount, on the horizontal axis. When turned on you can use a slider to adjust it.</para></listitem>
+              <listitem><para>Adjustable Median Filter. Also due to Mr. Wigggles, this can help filter noise. However if set over about 3-5 it will also cause motion artifacts on fast moving scenes. Also has a slider.</para></listitem>
+              <listitem><para>Vertical Filter. This is a post-deinterlace software vertical filter that can remove both noise and some leftover deinterlace artifacts. It gives results similar to the hardware version available on the Advanced Video Flags screen, but not so extreme and without the jitter.</para></listitem>
+            </itemizedlist>
           </listitem>
         </varlistentry>
         <varlistentry>
@@ -547,6 +559,7 @@ Local Variables:
 mode: sgml
 coding: utf-8
 sgml-parent-document: "zapping.xml"
+comment-auto-fill-only-comments: t
 indent-tabs-mode: nil
 End:
   -->
