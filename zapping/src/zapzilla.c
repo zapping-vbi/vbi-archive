@@ -40,6 +40,18 @@ static gboolean startup_zapzilla(void);
 extern volatile gboolean	flag_exit_program;
 extern gint			console_errors;
 
+static gboolean
+quit_cmd				(GtkWidget *	widget,
+					 gint		argc,
+					 gchar **	argv,
+					 gpointer	user_data)
+{
+  flag_exit_program = TRUE;
+  gtk_main_quit();
+
+  return TRUE;
+}
+
 static void
 on_ttxview_model_changed		(ZModel		*model,
 					 gpointer	data)
@@ -99,7 +111,7 @@ int zapzilla_main(int argc, char * argv[])
 			      0, NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: zapzilla.c,v 1.3 2002-03-06 00:53:49 mschimek Exp $",
+	 "$Id: zapzilla.c,v 1.4 2002-03-21 18:07:27 mschimek Exp $",
 	 "Zapzilla", VERSION, __DATE__);
   glade_gnome_init();
   D();
@@ -178,6 +190,8 @@ static void shutdown_zapzilla(void)
 
 static gboolean startup_zapzilla()
 {
+  cmd_register ("quit", quit_cmd, NULL);
+
   startup_remote ();
   D();
 
