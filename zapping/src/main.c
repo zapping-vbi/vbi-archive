@@ -88,8 +88,6 @@ static void
 startup_teletext(void)
 {
 #ifdef HAVE_LIBZVBI
-  startup_zvbi();
-
   if (disable_vbi)
     zconf_set_boolean(FALSE, "/zapping/options/vbi/enable_vbi");
 
@@ -140,6 +138,7 @@ gint resize_timeout		( gpointer ignored )
 #include "pixmaps/recordtb.h"
 #include "pixmaps/mute.h"
 #include "pixmaps/teletext.h"
+#include "pixmaps/subtitle.h"
 #include "pixmaps/video.h"
 #include "pixmaps/screenshot.h"
 
@@ -152,9 +151,10 @@ static void
 init_zapping_stock		(void)
 {
   static const GtkStockItem items [] = {
-    { "zapping-mute",	  N_("Mute"),	  0, 0, NULL },
-    { "zapping-teletext", N_("Teletext"), 0, 0, NULL },
-    { "zapping-video",	  N_("Video"),	  0, 0, NULL },
+    { "zapping-mute",	  N_("Mute"),	   0, 0, NULL },
+    { "zapping-teletext", N_("Teletext"),  0, 0, NULL },
+    { "zapping-subtitle", N_("Subtitles"), 0, 0, NULL },
+    { "zapping-video",	  N_("Video"),	   0, 0, NULL },
   };
   GtkStockItem item;
 
@@ -171,6 +171,7 @@ init_zapping_stock		(void)
 
   z_icon_factory_add_pixdata ("zapping-mute", &mute_png);
   z_icon_factory_add_pixdata ("zapping-teletext", &teletext_png);
+  z_icon_factory_add_pixdata ("zapping-subtitle", &subtitle_png);
   z_icon_factory_add_pixdata ("zapping-video", &video_png);
 }
 
@@ -403,7 +404,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.165.2.27 2003-11-13 05:29:36 mschimek Exp $",
+	 "$Id: main.c,v 1.165.2.28 2003-11-26 07:15:44 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -623,6 +624,10 @@ int main(int argc, char * argv[])
   x11_screensaver_control (zconf_get_boolean
 			   (NULL, "/zapping/options/main/disable_screensaver"));
   D();
+#ifdef HAVE_LIBZVBI
+  startup_zvbi();
+  D();
+#endif
   main_window = create_zapping();
   D();
   tv_screen = lookup_widget(main_window, "tv-screen");
@@ -640,8 +645,6 @@ int main(int argc, char * argv[])
   while (!tv_screen->window)
     z_update_gui();
   D();
-
-      D();
 
   if (0 && !mutable)
     {
@@ -698,12 +701,7 @@ int main(int argc, char * argv[])
   startup_channel_editor ();
   D();
   osd_set_window(tv_screen);
-#ifdef HAVE_LIBZVBI
-  gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM
-       (lookup_widget(main_window, "closed_caption1")),
-       zconf_get_boolean(NULL, "/zapping/internal/callbacks/closed_caption"));
-  D();
-#endif
+
   printv("switching to mode %d (%d)\n",
 	 zcg_int (NULL, "capture_mode"), TVENG_CAPTURE_READ);
 
@@ -810,12 +808,7 @@ int main(int argc, char * argv[])
       /* hide toolbars and co. if necessary */
       if (zconf_get_boolean(NULL, "/zapping/internal/callbacks/hide_controls"))
 	python_command (NULL, "zapping.hide_controls(1)");
-#ifdef HAVE_LIBZVBI
-      /* setup subtitles page button */
-      zconf_get_integer(&zvbi_page,
-			"/zapping/internal/callbacks/zvbi_page");
       D();
-#endif
       /* Sets the coords to the previous values, if the users wants to */
       if (zcg_bool(NULL, "keep_geometry"))
 	g_timeout_add (500, (GSourceFunc) resize_timeout, NULL);
@@ -918,6 +911,8 @@ static void shutdown_zapping(void)
 	  zconf_create_controls (channel->controls, channel->num_controls, buffer);
 	  g_free (buffer);
 	}
+
+      SAVE_CONFIG (integer, caption_pgno, caption_pgno, "Default subtitle page");
 
       i++;
     }
@@ -1124,6 +1119,8 @@ static gboolean startup_zapping(gboolean load_plugins)
       LOAD_CONFIG (integer, num_controls, num_controls);
 
       new_channel.controls = zconf_get_controls (new_channel.num_controls, buffer);
+
+      LOAD_CONFIG (integer, caption_pgno, caption_pgno);
 
       tveng_tuned_channel_insert (&global_channel_list,
 				  tveng_tuned_channel_new (&new_channel),
