@@ -43,7 +43,11 @@ struct _rte_context_private {
 	char * error; /* last error */
 	void * user_data; /* user data given to the callback */
 	fifo aud, vid; /* fifos for pushing */
-	void * audio; /* Audio data */
+	int depth; /* video bit depth (bytes per pixel, includes
+		      packing) */
+	buffer * last_video_buffer; /* video buffer the app should be
+				       encoding to */
+	buffer * last_audio_buffer; /* audio buffer */
 };
 
 #define RC(X)  ((rte_context*)X)
@@ -61,6 +65,28 @@ struct _rte_context_private {
 	else \
 		fprintf(stderr, "rte - %s (%d): " format ".\n", \
 			__PRETTY_FUNCTION__, __LINE__ ,##args); \
+}
+
+static inline void
+fetch_data(rte_context * context, int video)
+{
+	buffer * buf;
+	fifo * f;
+	
+	if (!context->private->data_callback)
+		return;
+
+	if (video)
+		f = &(context->private->vid);
+	else
+		f = &(context->private->aud);
+
+	buf = new_buffer(f);
+
+	context->private->data_callback(buf->data, &(buf->time), video,
+					context, context->private->user_data);
+
+	send_out_buffer(f, buf);
 }
 
 /* The default write data callback */
@@ -117,6 +143,9 @@ rte_context * rte_context_new (char * file,
 		return NULL;
 	}
 
+	memset(context, 0, sizeof(rte_context));
+	memset(context->private, 0, sizeof(rte_context_private));
+
 	if (rate == RTE_RATE_NORATE)
 	{
 		free(context->private);
@@ -134,8 +163,6 @@ rte_context * rte_context_new (char * file,
 		return NULL;
 	}
 
-
-	memset(context->private, 0, sizeof(rte_context_private));
 
 	if (encode_callback)
 		context->private->encode_callback = encode_callback;
@@ -171,6 +198,10 @@ rte_context * rte_context_new (char * file,
 	context->bits = 16;
 	context->output_audio_bits = 80000;
 	context->output_video_bits = 2000000;
+
+	/* FIXME: set up audio_bytes and video_bytes */
+
+	context->mode = RTE_MUX_VIDEO_AND_AUDIO;
 
 	return (context);
 }
@@ -224,6 +255,8 @@ void rte_set_video_parameters (rte_context * context,
 	context->height = height;
 	context->video_rate = video_rate;
 	context->output_video_bits = output_video_bits;
+
+	/* FIXME: Update video_bytes */
 }
 
 int rte_start ( rte_context * context )
@@ -240,7 +273,21 @@ int rte_start ( rte_context * context )
 		return 0;
 	}
 
-	/* FIXME: do this */
+	/* Hopefully 8 frames is more than enough (we should only go
+	   2-3 frames ahead) */
+	if (context->mode & 1)
+	{
+		init_fifo(&(context->private->vid), "video input",
+			  context->video_bytes, 8);
+		fetch_data(context, 1);
+	}
+	if (context->mode & 2)
+	{
+		init_fifo(&(context->private->aud), "audio input",
+			  context->audio_bytes, 8);
+		fetch_data(context, 0);
+	}
+
 	context->private->encoding = 1;
 	return 1;
 }
@@ -253,18 +300,109 @@ void rte_stop ( rte_context * context )
 		return;
 	}
 
-	/* FIXME: do this too */
+	/* Free the mem in the fifos */
+	if (context->mode & 1)
+		free_fifo(&(context->private->vid));
+	if (context->mode & 2)
+		free_fifo(&(context->private->aud));
+
 	context->private->encoding = 0;
 }
 
 /* Input handling functions */
-void rte_push_video_data ( rte_context * context, void * data,
-			   double * time )
+void * rte_push_video_data ( rte_context * context, void * data,
+			   double time )
 {
-  //	context->private->
+	buffer * buf;
+
+	if (!context) {
+		rte_error(NULL, "context == NULL");
+		return NULL;
+	}
+	if (!context->private->encoding) {
+		rte_error(context, "the context isn't encoding, call rte_start");
+		return NULL;
+	}
+	if (!(context->mode & 1)) {
+		rte_error(context, "Mux isn't prepared to encode video!");
+		return NULL;
+	}
+
+	buf = new_buffer(&(context->private->vid));
+
+	ASSERT("Arrr... stick to the usage, please\n",
+	       (context->private->last_video_buffer && data)
+	       || (!context->private->last_video_buffer && !data));
+
+	if (data) {
+		ASSERT("you haven't written to the provided buffer!\n",
+		       data == context->private->last_video_buffer->data);
+
+		context->private->last_video_buffer->time = time;
+
+		send_out_buffer(&(context->private->vid),
+				context->private->last_video_buffer);
+	}
+
+	context->private->last_video_buffer = buf;
+
+	return buf->data;
+}
+
+void * rte_push_audio_data ( rte_context * context, void * data,
+			     double time )
+{
+	buffer * buf;
+
+	if (!context) {
+		rte_error(NULL, "context == NULL");
+		return NULL;
+	}
+	if (!context->private->encoding) {
+		rte_error(context, "the context isn't encoding, call rte_start");
+		return NULL;
+	}
+	if (!(context->mode & 2)) {
+		rte_error(context, "Mux isn't prepared to encode audio!");
+		return NULL;
+	}
+
+	buf = new_buffer(&(context->private->aud));
+
+	ASSERT("Arrr... stick to the usage, please\n",
+	       (context->private->last_audio_buffer && data)
+	       || (!context->private->last_audio_buffer && !data));
+
+	if (data) {
+		ASSERT("you haven't written to the provided buffer!\n",
+		       data == context->private->last_audio_buffer->data);
+
+		context->private->last_audio_buffer->time = time;
+
+		send_out_buffer(&(context->private->aud),
+				context->private->last_audio_buffer);
+	}
+
+	context->private->last_audio_buffer = buf;
+
+	return buf->data;
 }
 
 char * rte_last_error ( rte_context * context )
 {
 	return (context->private->error);
+}
+
+/* video_start = video_input_start */
+static void
+video_input_start ( void )
+{
+	/* Nothing needs to be done here, it will be removed */
+}
+
+/* video_wait_frame = video_input_wait_frame */
+static unsigned char *
+video_input_wait_frame (double *ftime, int *buf_index)
+{
+	return NULL;
 }

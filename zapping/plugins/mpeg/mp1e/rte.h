@@ -28,9 +28,9 @@
   What are we going to encode, audio only, video only or both
 */
 enum rte_mux_mode {
-	RTE_MUX_AUDIO_AND_VIDEO,
+	RTE_MUX_VIDEO_ONLY = 1,
 	RTE_MUX_AUDIO_ONLY,
-	RTE_MUX_VIDEO_ONLY
+	RTE_MUX_VIDEO_AND_AUDIO
 };
 
 /*
@@ -93,6 +93,9 @@ typedef struct {
 	/* output video bits per second, defaults to 2000000 */
 	size_t output_video_bits;
 
+	/* size in bytes of a complete frame */
+	int video_bytes;
+	
 	/******* audio parameters **********/
 	/* audio sampling rate in kHz, 44100 by default */
 	int audio_rate; 
@@ -102,9 +105,11 @@ typedef struct {
 	enum rte_audio_mode audio_mode;
 	/* output audio bits per second, defaults to 80000 */
 	size_t output_audio_bits;
+	/* size in bytes of an audio frame */
+	int audio_bytes;
 
 	/* Number of encoded bytes written */
-	size_t bytes;
+	size_t bytes_written;
 
 	/* Pointer to the private data of this struct */
 	rte_context_private * private;
@@ -133,17 +138,16 @@ typedef int (*rteEncodeCallback)(void * data,
   data to encode (usually it will go one or two samples ahead of the
   encoder thread). The callbacks and the push() interfaces can be used
   together.
-  data: Set this pointer to the data you have ready. rte will copy
-  this data, but it won't free it
-  Size: size in bytes of the data you are returning. For video it must
-  match the size of a complete frame.
-  time: timestamp for the data
-  video: 1 if we are asking for a video frame, 0 for audio
-  context: Context asking for this data
-  user_data: Pointer passed to rte_context_new
+  data: Where should you write the data. It's a memchunk of
+  context->video_bytes or context->audio_bytes (depending whether rte
+  asks for video or audio), and you should fill it (i.e., a video
+  frame of audio_bytes of audio).
+  time: Push here the timestamp for your frame.
+  video: 1 if rte requests video, 0 if audio.
+  context: The context that asks for the data.
+  user_data: User data passed to rte_context_new
 */
-typedef int (*rteDataCallback)(void ** data,
-			       size_t * size,
+typedef int (*rteDataCallback)(void * data,
 			       double * time,
 			       int video,
 			       rte_context * context,
@@ -221,20 +225,35 @@ void rte_stop ( rte_context * context );
 
 /*
   Pushes a video frame into the given encoding context.
-  data: Pointer to the data to encode, it must be as described.
+  data: Pointer to the data to encode, it must be a complete frame as
+  described in the context.
   time: Timestamp given to the frame, in seconds
+  Returns: A pointer to the buffer where you should write the next
+  frame. This way a redundant memcpy() is avoided. You can call
+  push_video_data with data = NULL to get the first buffer.
+  The size allocated for the buffer is in context->video_bytes
+
+  void * ptr = rte_push_video_data(context, NULL, 0);
+  do {
+  double time = get_data_from_video_source(ptr);
+  ptr = rte_push_video_data(context, ptr, time);
+  } while (data_available);
 */
-void rte_push_video_data ( rte_context * context, void * data,
-			   double * time );
+void * rte_push_video_data ( rte_context * context, void * data,
+			     double time );
 
 /*
-  Pushes an audio frame into the given encoding context.
-  data: Pointer to the data to encode, it must be as described.
-  time: Timestamp given to the audio data, in seconds
-  length: Length in bytes of the data.
+  Pushes an audio sample into the given encoding context. The usage is
+  similar to push_video_data.
+  When you push one sample, it is assumed that it contains
+  context->audio_bytes of audio data with the current context audio
+  parameters.
+  data: pointer to the data to encode.
+  time: Timestamp given to the frame, in seconds.
+  Returns: A pointer to the buffer where you should write the next sample
 */
-void rte_push_audio_data ( rte_context * context, void * data,
-			   double * time, size_t length );
+void * rte_push_audio_data ( rte_context * context, void * data,
+			     double time );
 
 /*
   Returns: a pointer to the last error. The returned string is

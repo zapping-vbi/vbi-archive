@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.1 2000-07-04 17:40:20 garetxe Exp $ */
+/* $Id: fifo.h,v 1.2 2000-07-06 10:58:47 garetxe Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -74,6 +74,7 @@ typedef struct {
 	unsigned char *		buffer;
 	int			size;
 	double			time;
+	int                     index; /* index in fifo.buffer */
 } buffer;
 
 typedef struct {
@@ -84,6 +85,7 @@ typedef struct {
 	list			empty;
 
 	buffer			buffer[64];
+	int                     num_buffers;
 
 	/* MUX parameters */	
 
@@ -110,13 +112,32 @@ init_fifo(fifo *f, char *purpose, int size, int buffers)
 			 f->buffer[i].buffer =
 			 calloc_aligned(size, 32)) != NULL, purpose, i);
 
+		f->buffer[i].index = i;
+		f->buffer[i].size = size;
+
 		add_tail(&f->empty, &f->buffer[i].node);
 	}
 
 	pthread_mutex_init(&f->mutex, NULL);
 	pthread_cond_init(&f->cond, NULL);
 
+	f->num_buffers = i;
+
 	return i;
+}
+
+static inline void
+free_fifo(fifo * f)
+{
+	int i;
+
+	for (i = 0; i < f->num_buffers; i++)
+		free(f->buffer[i].data);
+
+	pthread_mutex_destroy(&f->mutex);
+	pthread_cond_destroy(&f->cond);
+
+	memset(f, 0, sizeof(fifo));
 }
 
 static inline buffer *
