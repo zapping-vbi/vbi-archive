@@ -378,6 +378,7 @@ capture_thread (void *data)
       pthread_mutex_unlock(&req_format_mutex);
 	
       fill_bundle_tveng(&p->vanilla, info);
+      p->d.b.time = p->vanilla.timestamp;
 
       /* Now pass the buffer to the modifying plugins */
       memcpy(d, &p->vanilla, sizeof(*d));

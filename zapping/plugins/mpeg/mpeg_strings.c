@@ -12,6 +12,7 @@ gchar *s = N_("Whether to encode audio and/or video");
 gchar *s = N_("Audio only");
 gchar *s = N_("Video only");
 gchar *s = N_("Audio and Video");
+gchar *s = N_("Use motion compensation");
 gchar *s = N_("Write the encoded stream to:");
 gchar *s = N_("MPEG file destination");
 gchar *s = N_("Sets the dir where the encoded clips will be written to");

@@ -148,6 +148,8 @@ typedef void (*BundleFiller)(capture_bundle *bundle,
  */
 BundleFiller set_bundle_filler(BundleFiller fill_bundle);
 
+extern fifo	*capture_fifo;
+
 #endif /* capture.h */
 
 

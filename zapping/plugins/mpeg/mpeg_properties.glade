@@ -80,9 +80,9 @@ Audio and Video
       </widget>
 
       <widget>
-        <class>GtkCheckButton</class>
-        <name>checkmotion</name>
-        <can_focus>True</can_focus>
+	<class>GtkCheckButton</class>
+	<name>checkmotion</name>
+	<can_focus>True</can_focus>
 	<label>Use motion compensation</label>
 	<active>False</active>
 	<draw_indicator>True</draw_indicator>
@@ -432,11 +432,6 @@ Audio and Video
 <widget>
   <class>GtkDialog</class>
   <name>dialog1</name>
-  <signal>
-    <name>delete_event</name>
-    <handler>on_mpeg_dialog1_delete_event</handler>
-    <last_modification_time>Thu, 09 Nov 2000 21:12:26 GMT</last_modification_time>
-  </signal>
   <title>Saving MPEG</title>
   <type>GTK_WINDOW_TOPLEVEL</type>
   <position>GTK_WIN_POS_NONE</position>
@@ -471,11 +466,6 @@ Audio and Video
 	<name>button1</name>
 	<tooltip>Press this when you are done</tooltip>
 	<can_focus>True</can_focus>
-	<signal>
-	  <name>clicked</name>
-	  <handler>on_mpeg_button1_clicked</handler>
-	  <last_modification_time>Thu, 09 Nov 2000 21:19:07 GMT</last_modification_time>
-	</signal>
 	<stock_button>GNOME_STOCK_BUTTON_CLOSE</stock_button>
 	<relief>GTK_RELIEF_NORMAL</relief>
 	<child>

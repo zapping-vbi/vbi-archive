@@ -28,8 +28,8 @@ Outstanding issues for the next release (0.6.0)
 	  should be "?" (preferably a nice pixmap), and "?" as kbd
 	  shortcut. Verify no other language dependent accels exist.
 	+ Improve documentation.
-	+ Avoid bundle memcpy in MPEG plugin. The V4L unsync warning is
-	  useless btw when we get no proper ESD timestamps either. :-(
+	+ The V4L unsync warning is useless btw when we get no proper
+        	ESD timestamps either. :-(
 	+ Make controls move faster with the keyb, and avoid rounding
 	issues (maxvalue never reached because of integer rounding)
 	+ In ttx export: instead of "export dir", chop off and remember

@@ -49,6 +49,10 @@ static tveng_device_info * zapping_info = NULL;
 static GtkWidget * saving_dialog = NULL;
 /* Show the warning about sync with V4L */
 static gboolean lip_sync_warning = TRUE;
+/* The consumer for capture_fifo */
+static consumer mpeg_consumer;
+/* This updates the GUI */
+static gint update_timeout_id;
 
 /* Plugin options */
 /* Compressor options */
@@ -62,9 +66,9 @@ static gint mux_mode; /* 0:audio, 1:video, 2:both */
 static gint capture_w, capture_h;
 static gboolean motion_comp; /* bool */
 
-gboolean on_mpeg_dialog1_delete_event(GtkWidget *widget, GdkEvent
-				      *event, gpointer user_data);
-void on_mpeg_button1_clicked(GtkButton *button, gpointer user_data);
+static gboolean on_delete_event(GtkWidget *widget, GdkEvent
+				*event, gpointer user_data);
+static void on_button_clicked(GtkButton *button, gpointer user_data);
 
 gint plugin_get_protocol ( void )
 {
@@ -85,7 +89,6 @@ gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
     SYMBOL(plugin_start, 0x1234),
     SYMBOL(plugin_load_config, 0x1234),
     SYMBOL(plugin_save_config, 0x1234),
-    SYMBOL(plugin_read_bundle, 0x1234),
     SYMBOL(plugin_capture_stop, 0x1234),
     SYMBOL(plugin_get_public_info, 0x1234),
     SYMBOL(plugin_add_properties, 0x1234),
@@ -314,58 +317,20 @@ resolve_filename(const gchar * dir, const gchar * prefix,
 }
 
 static gpointer data_dest;
-static gboolean buffered_video = FALSE; /* FIXME: Segfault when
-					   bundles require resizing */
 
 static
-void plugin_read_bundle ( capture_bundle * bundle )
+gint update_timeout ( rte_context *context )
 {
-  rte_buffer rbuf;
   struct rte_status_info status;
   GtkWidget *widget;
   gchar *buffer;
 
-  if (!active || !context)
-    return;
-
-  if (mux_mode == 0)
-    goto audio_only;  
-
-  if (!bundle || !bundle->data ||
-      !bundle->image_type)
-    return;
-
-  /* format check */
-  if ((bundle->format.sizeimage != context->video_bytes) ||
-      (bundle->format.width != context->width) ||
-      (bundle->format.height != context->height))
-    return;
-
-  if (!buffered_video)
+  if (!active || !saving_dialog)
     {
-      if (!data_dest)
-	data_dest = rte_push_video_data(context, NULL, 0);
-
-      memcpy(data_dest, bundle->data, bundle->format.sizeimage);
-
-      data_dest =
-	rte_push_video_data(context, data_dest, bundle->timestamp);
-    }
-  else
-    {
-      g_assert_not_reached(); /* capture_fifo not mc-able */
-#if 0
-      inc_buffer_refcount(bundle->b);
-      
-      rbuf.user_data = bundle->b;
-      rbuf.time = bundle->timestamp;
-      rbuf.data = bundle->data;
-      
-      rte_push_video_buffer(context, &rbuf);
-#endif
+      update_timeout_id = -1;
+      return FALSE;
     }
 
- audio_only:
   rte_get_status(context, &status);
 
   widget = lookup_widget(saving_dialog, "label12");
@@ -378,19 +343,29 @@ void plugin_read_bundle ( capture_bundle * bundle )
 		    status.processed_frames == 1 ? _("frame") : _("frames"));
   gtk_label_set_text(GTK_LABEL(widget), buffer);
   g_free(buffer);
+
+  return TRUE;
 }
 
 static void
-video_unref_buffer(rte_context *context, rte_buffer *buf)
+video_buffer_callback(rte_context *context,
+		      rte_buffer *rb,
+		      enum rte_mux_mode stream)
 {
-  g_assert_not_reached(); /* capture_fifo not mc-able */
+  buffer *b;
 
-#if 0
-  fifo *capture_fifo = rte_get_user_data(context);
-  g_assert(capture_fifo != NULL);
+  g_assert(stream == RTE_VIDEO);
+    
+  b = wait_full_buffer(&mpeg_consumer);
+  rb->time = b->time;
+  rb->data = b->data;
+  rb->user_data = b;
+}
 
-  send_empty_buffer(capture_fifo, (buffer*)buf->user_data);
-#endif
+static void
+video_unref_callback(rte_context *context, rte_buffer *buf)
+{
+  send_empty_buffer(&mpeg_consumer, (buffer*)buf->user_data);
 }
 
 static
@@ -496,9 +471,6 @@ gboolean plugin_start (void)
     rte_context_new(zapping_info->format.width,
 		    zapping_info->format.height, "mp1e",
 		    NULL);
-  /* mhs: capture_fifo is not mc-able due to the capture_bundle
-     write permission. */
-//		    get_capture_fifo());
 
   if (!context)
     {
@@ -520,15 +492,15 @@ gboolean plugin_start (void)
       break;
     case 1:
       rte_set_mode(context, RTE_VIDEO);
-      rte_set_input(context, RTE_VIDEO, RTE_PUSH, buffered_video, NULL,
-		    NULL, buffered_video ? video_unref_buffer : NULL);
+      rte_set_input(context, RTE_VIDEO, RTE_CALLBACKS, TRUE, NULL,
+		    video_buffer_callback, video_unref_callback);
       break;
     default:
       rte_set_mode(context, RTE_AUDIO | RTE_VIDEO);
       rte_set_input(context, RTE_AUDIO, RTE_CALLBACKS, FALSE,
 		    audio_data_callback, NULL, NULL);
-      rte_set_input(context, RTE_VIDEO, RTE_PUSH, buffered_video, NULL,
-		    NULL, buffered_video ? video_unref_buffer : NULL);
+      rte_set_input(context, RTE_VIDEO, RTE_CALLBACKS, TRUE, NULL,
+		    video_buffer_callback, video_unref_callback);
       break;
     }
 
@@ -583,6 +555,8 @@ gboolean plugin_start (void)
   /* don't let anyone mess with our settings from now on */
   capture_lock();
 
+  add_consumer(capture_fifo, &mpeg_consumer);
+
   if (!rte_start_encoding(context))
     {
       ShowBox("Cannot start encoding: %s", GNOME_MESSAGE_BOX_ERROR,
@@ -591,6 +565,7 @@ gboolean plugin_start (void)
       if ((mux_mode+1) & 1)
 	close_audio();
       active = FALSE;
+      rem_consumer(&mpeg_consumer);
       capture_unlock();
       return FALSE;
     }
@@ -601,6 +576,14 @@ gboolean plugin_start (void)
   saving_dialog =
     build_widget("dialog1", PACKAGE_DATA_DIR
 		 "/mpeg_properties.glade");
+
+  gtk_signal_connect(GTK_OBJECT(saving_dialog), "delete-event",
+		     GTK_SIGNAL_FUNC(on_delete_event),
+		     NULL);
+  widget = lookup_widget(saving_dialog, "button1");
+  gtk_signal_connect(GTK_OBJECT(widget), "clicked",
+		     GTK_SIGNAL_FUNC(on_button_clicked),
+		     NULL);
 
   /* Set the fields on the control window */
   widget = lookup_widget(saving_dialog, "label13");
@@ -659,6 +642,9 @@ gboolean plugin_start (void)
   gtk_label_set_text(GTK_LABEL(widget), _("Waiting for frames..."));
 
   g_free(file_name);
+
+  update_timeout_id =
+    gtk_timeout_add(50, (GtkFunction)update_timeout, context);
 
   gtk_widget_show(saving_dialog);
 
@@ -789,13 +775,23 @@ do_stop(void)
     return;
 
   if (saving_dialog)
-    gtk_widget_destroy(saving_dialog);
+    {
+      gtk_widget_destroy(saving_dialog);
 
-  saving_dialog = NULL;
+      saving_dialog = NULL;
+    }
 
   active = FALSE;
 
   context = rte_context_destroy(context);
+
+  rem_consumer(&mpeg_consumer);
+
+  if (update_timeout_id >= 0)
+    {
+      gtk_timeout_remove(update_timeout_id);
+      update_timeout_id = -1;
+    }
 
   if ((mux_mode+1) & 1)
     close_audio();
@@ -1044,8 +1040,8 @@ struct plugin_misc_info * plugin_get_misc_info (void)
  * Callback telling that the X in the dialog has been closed, we
  * should stop capturing.
 */
-gboolean
-on_mpeg_dialog1_delete_event		(GtkWidget	*widget,
+static gboolean
+on_delete_event         		(GtkWidget	*widget,
 					 GdkEvent	*event,
 					 gpointer	user_data)
 {
@@ -1059,8 +1055,8 @@ on_mpeg_dialog1_delete_event		(GtkWidget	*widget,
 /*
  * Stop capturing pressed.
  */
-void
-on_mpeg_button1_clicked			(GtkButton	*button,
+static void
+on_button_clicked			(GtkButton	*button,
 					 gpointer	user_data)
 {
   g_assert(saving_dialog != NULL);

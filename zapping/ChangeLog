@@ -1,3 +1,7 @@
+14.08.2001	mpeg plugin <garetxe@users.sf.net>
+
+	* plugins/mpeg: Avoided memcpy using mc fifos.
+
 14.08.2001	libvbi <mschimek@users.sf.net>
 
 	* Added explicit and autodetected channel switch. Note
