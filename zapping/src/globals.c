@@ -5,10 +5,9 @@ capture_mode		last_cmode;
 GtkWidget		*ChannelWindow;
 volatile gboolean	flag_exit_program = FALSE;
 GList			*plugin_list = NULL;
-/* preview should be disabled */
-gint			disable_preview = FALSE;
 /* Whether the device can be attached as XV */
 gboolean		xv_present = FALSE;
+GConfClient *		gconf_client;
 
 /* Disable XVideo support */
 gint			disable_xv		= FALSE;

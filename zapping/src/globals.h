@@ -1,6 +1,7 @@
 #ifndef __GLOBALS_H__
 #define __GLOBALS_H__
 
+#include <gconf/gconf-client.h>
 #include "tveng.h"
 #include "frequencies.h"
 #include "x11stuff.h"
@@ -14,10 +15,9 @@ capture_mode		last_cmode;
 extern GtkWidget		*ChannelWindow;
 extern volatile gboolean	flag_exit_program;
 extern GList			*plugin_list;
-/* preview should be disabled */
-extern gint			disable_preview;
 /* Whether the device can be attached as XV */
 extern gboolean			xv_present;
+extern GConfClient *		gconf_client;
 
 /* XVideo should be disabled */
 extern gint			disable_xv;
