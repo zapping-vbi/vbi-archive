@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.5\n"
 "POT-Creation-Date: 2001-09-18 01:27+0200\n"
-"PO-Revision-Date: 2001-09-01 02:38+0200\n"
+"PO-Revision-Date: 2001-09-20 23:28+02:00\n"
 "Last-Translator: Michael H. Schimek <mschimek@users.sourceforge.net>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -1293,7 +1293,7 @@ msgstr ""
 
 #: glade/glade_strings.c:64
 msgid "Main Window"
-msgstr ""
+msgstr "Hauptfenster"
 
 #: glade/glade_strings.c:65
 msgid "Avoid noise while changing channels"
@@ -1339,61 +1339,57 @@ msgstr "Nur Bild"
 
 #: glade/glade_strings.c:73
 msgid "How to show extra info:"
-msgstr ""
+msgstr "Zusatzinfo anzeigen:"
 
 #: glade/glade_strings.c:74
 msgid ""
 "Extra information, such as notifying of channel changes, can be reported in "
 "many different ways. Select here the variant you like most."
-msgstr ""
+msgstr "Zusatzinformationen, z. B. beim Kanalwechsel, können auf verschiedene Weise angezeigt werden. Stellen Sie hier Ihre bevorzugte Variante ein."
 
 #: glade/glade_strings.c:75
 msgid "On Screen Display (OSD)"
-msgstr ""
+msgstr "On Screen Display (OSD)"
 
 #: glade/glade_strings.c:76
 msgid "Status Bar"
-msgstr ""
+msgstr "Statuszeile"
 
 #: glade/glade_strings.c:77
-#, fuzzy
 msgid "Console"
-msgstr "Konsole leeren"
+msgstr "Konsole"
 
 #: glade/glade_strings.c:78
-#, fuzzy
 msgid "Do not show"
-msgstr "Nicht mehr anzeigen"
+msgstr "Nichts anzeigen"
 
 #: glade/glade_strings.c:79
 msgid "Font used for OSD:"
-msgstr ""
+msgstr "Zeichensatz für OSD:"
 
 #: glade/glade_strings.c:80
 msgid "Select OSD font"
-msgstr ""
+msgstr "OSD Zeichensatz wählen"
 
 #: glade/glade_strings.c:81
 msgid "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz"
-msgstr ""
+msgstr "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz"
 
 #: glade/glade_strings.c:82
-#, fuzzy
 msgid "Default foreground color for OSD:"
-msgstr "Ursprüngliche Textfarbe der Konsole"
+msgstr "Standard Textfarbe für OSD:"
 
 #: glade/glade_strings.c:83 glade/glade_strings.c:85
 msgid "Elija un color"
 msgstr ""
 
 #: glade/glade_strings.c:84
-#, fuzzy
 msgid "Default background color for OSD:"
-msgstr "Ursprüngliche Hintergrundfarbe der Konsole"
+msgstr "Standard Hintergrundfarbe für OSD"
 
 #: glade/glade_strings.c:86
 msgid "OSD"
-msgstr ""
+msgstr "OSD"
 
 #: glade/glade_strings.c:87
 msgid "General options"
@@ -1411,12 +1407,11 @@ msgstr "VBI zur Ermittlung von Sendernamen verwenden"
 msgid ""
 "If you select this option, TTX pages marked as subtitles and opened in the "
 "main window will automagically switch to TV mode and overlay themselves."
-msgstr ""
+msgstr "Wenn Sie diese Option wählen wird bei der Darstellung von Teletext Untertitelseiten im Hauptfenster automatisch in den TV Modus geschaltet und die Seite überblendet."
 
 #: glade/glade_strings.c:91
-#, fuzzy
 msgid "Overlay subtitle pages automatically"
-msgstr "Automatisch Öffnen"
+msgstr "Untertitelseiten automatisch überblenden"
 
 #: glade/glade_strings.c:93
 msgid "Select the VBI device"
@@ -2320,13 +2315,13 @@ msgstr "Kompressionsqualität:"
 
 #: plugins/screenshot/screenshot_strings.c:10
 msgid "After saving the screenshot, run the command:"
-msgstr ""
+msgstr "Nach dem Speichern den Befehl ausführen:"
 
 #: plugins/screenshot/screenshot_strings.c:11
 msgid ""
 "If this entry isn't empty, Zapping will try to run the given command each "
 "time you save a screenshot."
-msgstr ""
+msgstr "Wenn angegeben führt Zapping diesen Befehl jedes Mal nach dem Speichern eines Standbilds aus."
 
 #: plugins/lirc/lirc.c:39
 msgid "LIRC plugin"
@@ -2466,7 +2461,7 @@ msgstr[1] ""
 #: plugins/mpeg/mpeg.c:489
 #, c-format
 msgid "%.1f MB : %s : %s"
-msgstr ""
+msgstr "%.1f MB : %s : %s"
 
 #: plugins/mpeg/mpeg.c:560
 #, c-format
@@ -2625,11 +2620,11 @@ msgstr "Bild und Ton"
 
 #: plugins/mpeg/mpeg_strings.c:26
 msgid "Codec:"
-msgstr ""
+msgstr "Codec:"
 
 #: plugins/mpeg/mpeg_strings.c:27
 msgid "Select the audio input type you would like to use"
-msgstr ""
+msgstr "Wählen Sie die gewünschte Audioschnittstelle"
 
 # src/frequencies.c:827
 #: plugins/mpeg/mpeg_strings.c:28

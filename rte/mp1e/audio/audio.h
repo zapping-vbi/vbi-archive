@@ -17,20 +17,15 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.h,v 1.3 2001-08-22 01:28:07 mschimek Exp $ */
+/* $Id: audio.h,v 1.4 2001-09-20 23:35:07 mschimek Exp $ */
 
 #include <pthread.h>
 #include "../common/fifo.h"
 #include "../common/bstream.h"
+#include "../common/sync.h"
+
+#include "libaudio.h"
 #include "mpeg.h"
-
-struct pcm_context {
-	fifo		fifo;
-	producer	producer;
-
-	int		sampling_rate;
-	bool		stereo;
-};
 
 #define BLKSIZE 1024
 #define HBLKSIZE 513
@@ -109,9 +104,9 @@ extern struct audio_seg
 
 	consumer		cons;
 	buffer *		ibuf;
-	unsigned char		*p, *o;
-	int			left, offs;
+	int			i16, e16;
 	double			time;
+	synchr_stream 		sstr;
 
 	unsigned int		header_template;
 	double			frame_period;

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.5 2001-09-03 05:26:07 mschimek Exp $ */
+/* $Id: vbi.c,v 1.6 2001-09-20 23:35:07 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -85,6 +85,7 @@ teletext_packet(unsigned char *p, unsigned char *buf, int line)
 void *
 vbi_thread(void *F)
 {
+	synchr_stream sstr;
 	consumer cons;
 	buffer *obuf = NULL, *ibuf;
 	unsigned char *p = NULL, *p1 = NULL;
@@ -94,15 +95,19 @@ vbi_thread(void *F)
 
 	ASSERT("add vbi cons", add_consumer((fifo *) F, &cons));
 
+	memset(&sstr, 0, sizeof(sstr));
+	sstr.this_module = MOD_SUBTITLES;
+	sstr.frame_period = 1 / 25.0; /* for now PAL/SECAM only */
+
 	if (do_subtitles)
-		sync_sync(&cons, MOD_SUBTITLES, 1 / 25.0, 0);
+		mp1e_sync_run_in(&sstr, &cons, NULL);
 
 	while (vbi_frame_count < video_num_frames) { // XXX video XXX pdc
 		if (!(ibuf = wait_full_buffer(&cons)) || ibuf->used <= 0)
 			break; // EOF or error
 
 		if (do_subtitles) {
-			if (sync_break(MOD_SUBTITLES, ibuf->time, 1 / 25.0)) {
+			if (mp1e_sync_break(&sstr, ibuf->time, 1 / 25.0, NULL)) {
 				send_empty_buffer(&cons, ibuf);
 				break;
 			}

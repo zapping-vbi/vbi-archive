@@ -3,6 +3,7 @@
  *  ESD [Enlightened Sound Daemon] interface
  *
  *  Copyright (C) 2000 Iñaki G.E.
+ *  Modified 2001-09 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,48 +20,28 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: esd.c,v 1.5 2001-09-07 22:34:19 mschimek Exp $ */
+/* $Id: esd.c,v 1.6 2001-09-20 23:35:07 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <assert.h>
-#include <sys/mman.h>
-#include <sys/time.h>
-#include <sys/ioctl.h>
-#include <asm/types.h>
-#include <linux/soundcard.h>
+#include "../common/log.h"
 
-#include "../common/log.h" 
-#include "../common/mmx.h" 
-#include "../common/math.h" 
-#include "../common/alloc.h"
 #include "audio.h"
 
-#ifdef USE_ESD
+#ifdef HAVE_ESD
+
+#include <unistd.h>
+#include <math.h>
 
 #include <esd.h>
-
-#define BUFFER_SIZE (ESD_BUF_SIZE) // bytes per read(), appx.
 
 struct esd_context {
 	struct pcm_context	pcm;
 
 	int			socket;
-	int			scan_range;
-	int			look_ahead;
-	int			samples_per_frame;
-	short *			p;
-	int			left;
-	double			time;
+	double			time, buffer_period;
 };
 
 static void
@@ -68,72 +49,54 @@ wait_full(fifo *f)
 {
 	struct esd_context *esd = f->user_data;
 	buffer *b = PARENT(f->buffers.head, buffer, added);
+	struct timeval tv;
+	unsigned char *p;
+	ssize_t r, n;
+	double dt, now;
 
 	assert(b->data == NULL); /* no queue */
 
-	if (esd->left <= 0) {
-		struct timeval tv;
-		unsigned char *p;
-		ssize_t r, n;
+	for (p = b->allocated, n = b->size; n > 0;) {
+		fd_set rdset;
 
-		memcpy(b->allocated, (short *) b->allocated + esd->scan_range,
-			esd->look_ahead * sizeof(short));
+		FD_ZERO(&rdset);
+		FD_SET(esd->socket, &rdset);
+		tv.tv_sec = 2;
+		tv.tv_usec = 0;
+		r = select(esd->socket+1, &rdset,
+			     NULL, NULL, &tv);
 
-		p = b->allocated + esd->look_ahead * sizeof(short);
-		n = esd->scan_range * sizeof(short);
+		if (r == 0)
+			FAIL("ESD read timeout");
+		else if (r < 0)
+			FAIL("ESD select error (%d, %s)",
+				errno, strerror(errno));
 
-		while (n > 0) {
-			fd_set rdset;
-			int err;
+		r = read(esd->socket, p, n);
 
-			FD_ZERO(&rdset);
-			FD_SET(esd->socket, &rdset);
-			tv.tv_sec = 1;
-			tv.tv_usec = 0;
-			err = select(esd->socket+1, &rdset,
-				   NULL, NULL, &tv);
-
-			if ((err == -1) || (err == 0))
-				continue;
-
-			r = read(esd->socket, p, n);
-			
-			if (r < 0 && errno == EINTR)
-				continue;
-
-			if (r == 0) {
-				memset(p, 0, n);
-				break;
-			}
-
-			ASSERT("read PCM data, %d bytes", r > 0, n);
-
-			p += r;
-			n -= r;
+		if (r < 0) {
+			ASSERT("read PCM data, %d bytes", errno == EINTR, n);
+			continue;
 		}
 
-		esd->time = current_time()
-			- ((esd->scan_range - n / sizeof(short)) >> esd->pcm.stereo)
-				/ (double) esd->pcm.sampling_rate;
-
-		esd->p = (short *) b->allocated;
-		esd->left = esd->scan_range - esd->samples_per_frame;
-
-		b->time = esd->time;
-		b->data = b->allocated;
-
-		send_full_buffer(&esd->pcm.producer, b);
-		return;
+		p += r;
+		n -= r;
 	}
 
-	b->time = esd->time
-		+ ((esd->p - (short *) b->allocated) >> esd->pcm.stereo)
-			/ (double) esd->pcm.sampling_rate;
+	now = current_time();
+	dt = now - esd->time;
 
-	esd->p += esd->samples_per_frame;
-	esd->left -= esd->samples_per_frame;
+	if (esd->time > 0
+	    && fabs(dt - esd->buffer_period) < esd->buffer_period * 0.1) {
+		b->time = esd->time;
+		esd->buffer_period = (esd->buffer_period - dt) * 0.9 + dt;
+		esd->time += esd->buffer_period;
+	} else {
+		esd->time = now;
+		b->time = now - esd->buffer_period;
+	}
 
-	b->data = (unsigned char *) esd->p;
+	b->data = b->allocated;
 
 	send_full_buffer(&esd->pcm.producer, b);
 }
@@ -143,6 +106,7 @@ send_empty(consumer *c, buffer *b)
 {
 	// XXX
 	unlink_node(&c->fifo->full, &b->node);
+
 	b->data = NULL;
 }
 
@@ -160,26 +124,25 @@ open_pcm_esd(char *unused, int sampling_rate, bool stereo)
 	esd->pcm.sampling_rate = sampling_rate;
 	esd->pcm.stereo = stereo;
 
-	esd->samples_per_frame = SAMPLES_PER_FRAME << stereo;
-	esd->scan_range = MAX(BUFFER_SIZE / sizeof(short) / esd->samples_per_frame, 1) * esd->samples_per_frame;
-	esd->look_ahead = (512 - 32) << stereo;
+	buffer_size = 1 << (10 + (sampling_rate > 24000));
 
-	buffer_size = (esd->scan_range + esd->look_ahead) * sizeof(short);
+	esd->time = 0;
+	esd->buffer_period = buffer_size / (double) sampling_rate;
 
-	format = ESD_STREAM | ESD_RECORD | ESD_BITS16;
+	buffer_size <<= stereo + 1;
 
-	if (stereo)
-		format |= ESD_STEREO;
-	else
-		format |= ESD_MONO;
+	format = ESD_STREAM | ESD_RECORD | ESD_BITS16
+		| (stereo ? ESD_STEREO : ESD_MONO);
 
 	esd->socket =
 		esd_record_stream_fallback(format, sampling_rate, NULL, NULL);
 
-	if (esd->socket <= 0)
-		FAIL("Couldn't create esd recording socket");
+	ASSERT("open ESD socket", esd->socket > 0);
 
 	printv(2, "Opened ESD socket\n");
+	printv(3, "ESD format 0x%08x, %d Hz %s, buffer %d bytes = %f s\n",
+		format, sampling_rate, stereo ? "stereo" : "mono",
+		buffer_size, esd->buffer_period);
 
 	ASSERT("init esd fifo",	init_callback_fifo(
 		&esd->pcm.fifo, "audio-esd",
@@ -194,19 +157,19 @@ open_pcm_esd(char *unused, int sampling_rate, bool stereo)
 	b = PARENT(esd->pcm.fifo.buffers.head, buffer, added);
 
 	b->data = NULL;
-	b->used = (esd->samples_per_frame + esd->look_ahead) * sizeof(short);
-	b->offset = esd->look_ahead * sizeof(short);
+	b->used = b->size;
+	b->offset = 0;
 
 	return &esd->pcm.fifo;
 }
 
-#else // !USE_ESD
+#else /* !HAVE_ESD */
 
 fifo *
 open_pcm_esd(char *dev_name, int sampling_rate, bool stereo)
 {
 	FAIL("Not compiled with ESD interface.\n"
-	     "More about ESD at http://www.tux.org/~ricdude/EsounD.html\n");
+	     "For more info about ESD visit http://www.tux.org/~ricdude/EsounD.html\n");
 }
 
-#endif // !USE_ESD
+#endif /* !HAVE_ESD */

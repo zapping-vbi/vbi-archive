@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.9 2001-09-13 17:15:44 garetxe Exp $ */
+/* $Id: b_mp1e.c,v 1.10 2001-09-20 23:35:07 mschimek Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -188,7 +188,14 @@ start			(rte_context	*context)
 {
 	backend_private *priv = (backend_private*)context->private;
 
-	sync_init(modules);
+	if (modules & MOD_VIDEO)
+		/* Use video as time base (broadcast and v4l2 assumed) */
+		mp1e_sync_init(modules, MOD_VIDEO);
+	else if (modules & MOD_SUBTITLES)
+		mp1e_sync_init(modules, MOD_SUBTITLES);
+	else
+		mp1e_sync_init(modules, MOD_AUDIO);
+	/* else mp1e_sync_init(modules, 0); use TOD */
 
 	if (modules & MOD_AUDIO) {
 		ASSERT("create audio compression thread",
@@ -227,7 +234,7 @@ start			(rte_context	*context)
 		break;
 	}
 
-	sync_start(0.0);
+	mp1e_sync_start(0.0);
 
 	return 1;
 }
@@ -238,7 +245,7 @@ stop			(rte_context	*context)
 	backend_private *priv = (backend_private*)context->private;
 
 	/* Tell the mp1e threads to shut down */
-	sync_stop(0.0); // now
+	mp1e_sync_stop(0.0); // now
 
 	if (context->mode & RTE_VIDEO) {
 		printv(2, "joining video\n");

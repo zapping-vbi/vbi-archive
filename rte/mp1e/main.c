@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.7 2001-09-13 17:15:44 garetxe Exp $ */
+/* $Id: main.c,v 1.8 2001-09-20 23:35:07 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -105,11 +105,11 @@ terminate(int signum)
 	now = current_time();
 
 	if (1)
-		sync_stop(0.0); // past times: stop asap
+		mp1e_sync_stop(0.0); // past times: stop asap
 		// XXX NOT SAFE mutexes and signals don't mix
 	else {
 		printv(0, "Deferred stop in 3 seconds\n");
-		sync_stop(now + 3.0);
+		mp1e_sync_stop(now + 3.0);
 		// XXX allow cancelling
 	}
 
@@ -182,38 +182,38 @@ main(int ac, char **av)
 
 		stereo = (audio_mode != AUDIO_MODE_MONO);
 
-		if (!strncmp(pcm_dev, "alsa", 4)) {
+		if (!strncasecmp(pcm_dev, "alsa", 4)) {
 			audio_parameters(&sampling_rate, &audio_bit_rate);
 			mix_init(); // OSS
 			audio_cap_fifo = open_pcm_alsa(pcm_dev, sampling_rate, stereo);
-		} else if (!strncmp(pcm_dev, "esd", 3)) {
+		} else if (!strcasecmp(pcm_dev, "esd")) {
 			audio_parameters(&sampling_rate, &audio_bit_rate);
 			mix_init(); /* fixme: esd_mix_init? */
 			audio_cap_fifo = open_pcm_esd(pcm_dev, sampling_rate, stereo);
 		} else {
-			ASSERT("probe '%s'", !stat(pcm_dev, &st), pcm_dev);
+			ASSERT("test file type of '%s'", !stat(pcm_dev, &st), pcm_dev);
 
 			if (S_ISCHR(st.st_mode)) {
 				audio_parameters(&sampling_rate, &audio_bit_rate);
 				mix_init();
 				audio_cap_fifo = open_pcm_oss(pcm_dev, sampling_rate, stereo);
 			} else {
-				struct pcm_context {
-					fifo		fifo;
-					int		sampling_rate;
-					bool		stereo;
-				} *pcm;
-			
+				/* XXX encapsulation */
+				struct pcm_context *pcm;
+
 				audio_cap_fifo = open_pcm_afl(pcm_dev, sampling_rate, stereo);
-				// pick up file parameters (preliminary)
 				pcm = (struct pcm_context *) audio_cap_fifo->user_data;
 				stereo = pcm->stereo;
 				sampling_rate = pcm->sampling_rate;
+				/* This not to override joint/bilingual */
 				if (audio_mode == AUDIO_MODE_MONO && stereo)
 					audio_mode = AUDIO_MODE_STEREO;
 				else if (audio_mode != AUDIO_MODE_MONO && !stereo)
 					audio_mode = AUDIO_MODE_MONO;
 				audio_parameters(&sampling_rate, &audio_bit_rate);
+				if (sampling_rate != pcm->sampling_rate) /* XXX */
+					FAIL("Cannot encode file '%s' with sampling rate %d Hz, sorry.",
+						pcm_dev, pcm->sampling_rate);
 			}
 		}
 
@@ -311,7 +311,17 @@ main(int ac, char **av)
 
 	// pause loop? >>
 
-	sync_init(modules);
+#if 0 /* TEST */
+	mp1e_sync_init(modules, 0); /* TOD reference */
+#else
+	if (modules & MOD_VIDEO)
+		/* Use video as time base (broadcast and v4l2 assumed) */
+		mp1e_sync_init(modules, MOD_VIDEO);
+	else if (modules & MOD_SUBTITLES)
+		mp1e_sync_init(modules, MOD_SUBTITLES);
+	else
+		mp1e_sync_init(modules, MOD_AUDIO);
+#endif
 
 	if (modules & MOD_AUDIO) {
 		ASSERT("create audio compression thread",
@@ -345,7 +355,7 @@ main(int ac, char **av)
 	if ((modules == MOD_VIDEO || modules == MOD_AUDIO) && mux_syn >= 2)
 		mux_syn = 1; // compatibility
 
-	sync_start(0.0);
+	mp1e_sync_start(0.0);
 
 	switch (mux_syn) {
 	case 0:

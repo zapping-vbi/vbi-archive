@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.6 2001-09-07 05:09:35 mschimek Exp $ */
+/* $Id: mp2.c,v 1.7 2001-09-20 23:35:07 mschimek Exp $ */
 
 #include <limits.h>
 #include "../common/log.h"
@@ -28,7 +28,6 @@
 #include "../common/profile.h"
 #include "../common/bstream.h"
 #include "../common/math.h"
-#include "../common/sync.h"
 #include "../common/alloc.h"
 #include "audio.h"
 #include "../systems/systems.h"
@@ -192,7 +191,8 @@ audio_init(int sampling_freq, int stereo, int audio_mode,
 		if (subband_group[table][sb - 1] < min_sg)
 			min_sg = subband_group[table][sb - 1];
 
-	printv(3, "Audio table #%d, %d Hz\n", table, mp2->sampling_freq * mp2->sblimit / 32);
+	printv(3, "Audio table #%d, %d Hz cut-off\n",
+		table, sampling_freq * mp2->sblimit / 32);
 
 	mp2->sum_nbal = 0;
 
@@ -297,12 +297,6 @@ audio_init(int sampling_freq, int stereo, int audio_mode,
 	mp2->h_save_old    = mp2->h_save[0][1];
 	mp2->h_save_oldest = mp2->h_save[0][0];
 
-	mp2->ibuf = NULL;
-	mp2->o = mp2->wrap;
-	mp2->left = 0;
-	mp2->offs = 0;
-	mp2->time = 0.0;
-
 	binit_write(&mp2->out);
 
 	mp2->header_template =
@@ -329,124 +323,11 @@ audio_init(int sampling_freq, int stereo, int audio_mode,
 	add_producer(audio_fifo, &audio_prod);
 }
 
-/*
- *  mode #1
- *    buffer 0:	       zero[0 .. o - 1] samples[0 .. s - 1]
- *                     ^ b->data        ^ b->time
- *                     |---------------> b->offset
- *      b->used = o + s bytes; b->offset = o bytes;
- *
- *    buffer 1 .. n:   samples[s - o .. t - 1] samples[t .. u - 1]
- *                     ^ b->data               ^ b->time
- *                     |----------------------> b->offset
- *      b->used = o + (u - t) bytes; b->offset = o bytes;
- *
- *    b->offset should be >= (480 << stereo) samples to be advantageous
- *    for this encoder, b->used should be b->offset + n * (1152 << stereo)
- *    samples, with 1 <= n <= oo, preferably large n. b->used and b->offset
- *    can vary, but IF ONE b->offset >= (480 << stereo) samples, ALL have
- *    to be, including buffer 0.
- *
- *  mode #2
- *    buffer 0:	       samples[0 .. s - 1]
- *                     ^ b->data, b->time
- *      b->used = s bytes; b->offset = 0;
- *
- *    buffer 1 .. n:   samples[s .. t - 1]
- *                     ^ b->data, b->time
- *      b->used = (t - s) bytes; b->offset = 0;
- *
- *    b->used can vary, should be a multiple of 32 << stereo samples and
- *    larger buffers are advantageous.
- *
- *  b->used and b->offset must be a multiple of (2 << stereo),
- *  b->data pointer to 16 bit signed samples, native endianess.
- *
- *  The audio frame (1152 << stereo samples + look-ahead) containing the stop
- *  time or EOF sample (EOF, that is the would-be first sample at
- *  b->data[b->offset] in a buffer with b->used == 0) is not encoded.
- *
- *  TODO: frame dropping, clock drift
- */
-static inline short *
-fetch_samples(struct audio_seg *mp2, double *btime, int stereo)
+static void
+terminate(void)
 {
-	int spf = SAMPLES_PER_FRAME << (stereo + 1), la = (512 - 32) << (stereo + 1);
-	buffer *buf = mp2->ibuf;
-	int todo, avail;
+	buffer *buf;
 
-	if (audio_frame_count > audio_num_frames) {
-		if (buf)
-			send_empty_buffer(&mp2->cons, buf);
-		goto terminate;
-	}
-
-	if (mp2->left >= spf && buf->used - mp2->left >= la) {
-//		printv(1, "fetch-zc1 left=%d hist=%d \n", mp2->left, buf->used - mp2->left);
-		mp2->o = mp2->p - la;
-		mp2->p += spf;
-		mp2->left -= spf;
-	} else {
-		if (mp2->offs < la) {
-//			printv(1, "fetch-cp1 offs=%d \n", mp2->offs);
-			memcpy(mp2->wrap, mp2->o + spf, la);
-		}
-
-		mp2->o = mp2->wrap;
-
-		for (todo = spf; todo > 0; todo -= avail) {
-			if (mp2->left == 0) {
-				if (buf)
-					send_empty_buffer(&mp2->cons, buf);
-
-				mp2->ibuf = buf = wait_full_buffer(&mp2->cons);
-
-				if (mp2->time == 0.0) { // XXX frame dropping, clock drift
-					mp2->time = buf->time;
-				}
-
-				if (buf->used <= 0) {
-		    			send_empty_buffer(&mp2->cons, buf);
-					goto terminate;
-				} else {
-					mp2->offs = buf->offset;
-					mp2->p = buf->data + mp2->offs;
-					mp2->left = buf->used - mp2->offs;
-				}
-
-				if (mp2->left >= todo && todo >= spf && mp2->offs >= la) {
-//					printv(1, "fetch-zc2 left=%d hist=%d \n", mp2->left, mp2->offs);
-					mp2->o = mp2->p - la;
-					mp2->p += spf;
-					mp2->left -= spf;
-					break;
-				}
-			}
-
-			avail = MIN(mp2->left, todo);
-
-//			printv(1, "fetch-cp2 todo=%d avail=%d \n", todo, avail);
-			memcpy(mp2->o + la + spf - todo, mp2->p, avail);
-
-			mp2->p += avail;
-			mp2->left -= avail;
-		}
-	}
-
-	if (sync_break(MOD_AUDIO, mp2->time, mp2->frame_period)) {
-		if (buf)
-			send_empty_buffer(&mp2->cons, buf);
-		goto terminate;
-	}
-
-	*btime = mp2->time;
-	mp2->time += mp2->frame_period; /* XXX */
-
-	audio_frame_count++;
-
-	return (short *) mp2->o;
-
-terminate:
 	printv(2, "Audio: End of file\n");
 
 	buf = wait_empty_buffer(&audio_prod);
@@ -454,6 +335,81 @@ terminate:
 	send_full_buffer(&audio_prod, buf);
 
 	pthread_exit(NULL);
+}
+
+static inline short *
+fetch_samples(struct audio_seg *mp2, double *nominal_time, int stereo)
+{
+	int spf = SAMPLES_PER_FRAME << (stereo + 1);
+	int la = (512 - 32) << (stereo + 1);
+	buffer *buf = mp2->ibuf;
+	unsigned char *o;
+	int todo, incr;
+	double drift;
+
+	if (audio_frame_count++ > audio_num_frames
+	    || mp1e_sync_break(&mp2->sstr, buf->time
+		+ (((mp2->i16 >> 16) << (stereo + 1)) - buf->offset)
+		    * mp2->sstr.byte_period, mp2->frame_period, &drift)) {
+		send_empty_buffer(&mp2->cons, buf);
+		terminate();
+	}
+
+	incr = ((mp2->frame_period + drift) / mp2->frame_period) * (double)(1 << 16);
+
+	if (incr < 0) incr = 0;
+
+	memcpy(mp2->wrap, mp2->wrap + spf, la);
+
+	o = mp2->wrap + la;
+
+	for (todo = spf; todo > 0; todo -= sizeof(short) << stereo) {
+		if (mp2->i16 >= mp2->e16) {
+			send_empty_buffer(&mp2->cons, buf);
+			mp2->ibuf = buf = wait_full_buffer(&mp2->cons);
+
+			if (buf->used <= 0) {
+				send_empty_buffer(&mp2->cons, buf);
+				terminate();
+			} else {
+				assert(buf->used < (1 << 15));
+
+				mp2->i16 = buf->offset << (16 - 1 - stereo);
+				mp2->e16 = buf->used << (16 - 1 - stereo);
+			}
+		}
+
+		memcpy(o, buf->data + ((mp2->i16 >> 16) << (stereo + 1)),
+			sizeof(short) << stereo);
+
+		o += sizeof(short) << stereo;
+		mp2->i16 += incr;
+	}
+
+	*nominal_time = mp2->time;
+	mp2->time += mp2->frame_period;
+
+	return (short *) mp2->wrap;
+}
+
+static inline void
+fetch_init(struct audio_seg *mp2, int frame_frac, int stereo)
+{
+	buffer *buf;
+
+	mp2->ibuf = buf = wait_full_buffer(&mp2->cons);
+
+	if (buf->used <= 0) {
+		send_empty_buffer(&mp2->cons, buf);
+		terminate();
+	}
+
+	assert(buf->used < (1 << 15));
+
+	mp2->i16 = (buf->offset + frame_frac) << (16 - 1 - stereo);
+	mp2->e16 = buf->used << (16 - 1 - stereo);
+
+	memset(mp2->wrap, 0, sizeof(mp2->wrap));
 }
 
 /*
@@ -601,7 +557,19 @@ mpeg_audio_layer_ii_mono(void *cap_fifo)
 	ASSERT("add audio consumer",
 		add_consumer((fifo *) cap_fifo, &aseg.cons));
 
-	sync_sync(&aseg.cons, MOD_AUDIO, aseg.sampling_freq, 1 * sizeof(short));
+	{
+		int frame_frac = 0;
+
+		memset(&aseg.sstr, 0, sizeof(aseg.sstr));
+		aseg.sstr.this_module = MOD_AUDIO;
+		aseg.sstr.bytes_per_sample = 1 * sizeof(short);
+		aseg.sstr.byte_period = 1.0 / (aseg.sampling_freq
+					       * 1 * sizeof(short));
+
+		mp1e_sync_run_in(&aseg.sstr, &aseg.cons, &frame_frac);
+
+		fetch_init(&aseg, frame_frac, 0);
+	}
 
 	for (;;) {
 		buffer *obuf;
@@ -768,7 +736,19 @@ mpeg_audio_layer_ii_stereo(void *cap_fifo)
 	ASSERT("add audio consumer",
 		add_consumer((fifo *) cap_fifo, &aseg.cons));
 
-	sync_sync(&aseg.cons, MOD_AUDIO, aseg.sampling_freq, 2 * sizeof(short));
+	{
+		int frame_frac = 0;
+
+		memset(&aseg.sstr, 0, sizeof(aseg.sstr));
+		aseg.sstr.this_module = MOD_AUDIO;
+		aseg.sstr.bytes_per_sample = 2 * sizeof(short);
+		aseg.sstr.byte_period = 1.0 / (aseg.sampling_freq
+					       * 2 * sizeof(short));
+
+		mp1e_sync_run_in(&aseg.sstr, &aseg.cons, &frame_frac);
+
+		fetch_init(&aseg, frame_frac, 1);
+	}
 
 	for (;;) {
 		buffer *obuf;

@@ -1,6 +1,6 @@
 /*
  *  MPEG-1 Real Time Encoder
- *  Audio File Library (libaudiofile) Interface
+ *  SGI Audio File Library (libaudiofile) interface
  *
  *  Copyright (C) 2000-2001 Michael H. Schimek
  *
@@ -18,43 +18,32 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: afl.c,v 1.5 2001-09-07 22:34:19 mschimek Exp $ */
+/* $Id: afl.c,v 1.6 2001-09-20 23:35:07 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
 
-#include <stdio.h>
-#include <stdlib.h>
 #include "../common/log.h"
-#include "../common/fifo.h"
+#include "audio.h"
 
 #if HAVE_LIBAUDIOFILE
 
-#include <string.h>
-#include <time.h>
-#include <unistd.h>
-#include <errno.h>
-#include <sys/time.h>
+/*
+ *  SGI Audio File Library
+ *  (Linux incarnation by M. Pruett, 2000-10-10)
+ *
+ *  XXX error handling is missing
+ */
 
 #include <audiofile.h>
-
-#include "audio.h"
 #include "../common/math.h"
-#include "../common/alloc.h"
-
-#define BUFFER_SIZE 8192 // bytes
 
 struct afl_context {
 	struct pcm_context	pcm;
 
 	AFfilehandle		file;
-	int			scan_range;
-	int			look_ahead;
-	int			samples_per_frame;
-	double			time, frame_period;
-	short *			p;
-	int			left;
+	double			time, buffer_period;
 	bool			eof;
 };
 
@@ -63,51 +52,31 @@ wait_full(fifo *f)
 {
 	struct afl_context *afl = f->user_data;
 	buffer *b = PARENT(f->buffers.head, buffer, added);
+	ssize_t r;
 
 	assert(b->data == NULL); /* no queue */
 
-	if (afl->left <= 0) {
-		ssize_t r;
+	b->time = afl->time;
+	b->data = b->allocated;
 
-		if (afl->eof) {
-			b->used = 0;
-			send_full_buffer(&afl->pcm.producer, b);
-			return;
-		}
-
-		memcpy(b->allocated, (short *) b->allocated + afl->scan_range,
-			afl->look_ahead * sizeof(short));
-
-		afl->p = (short *) b->allocated;
-		afl->left = afl->scan_range - afl->samples_per_frame;
-
-		r = afReadFrames(afl->file, AF_DEFAULT_TRACK,
-			b->allocated + afl->look_ahead * sizeof(short),
-			afl->scan_range >> afl->pcm.stereo) << afl->pcm.stereo;
-
-		if (r < afl->scan_range) {
-			memset((short *) b->allocated + afl->look_ahead + r,
-				0, (afl->scan_range - r) * sizeof(short));
-
-			afl->left -= MAX(r - afl->look_ahead, 0);
-			afl->eof = TRUE;
-
-			if (afl->left < afl->samples_per_frame) {
-				b->used = 0; /* EOF */
-				send_full_buffer(&afl->pcm.producer, b);
-			}
-		}
-
-		b->data = b->allocated;
-	} else {
-		afl->p += afl->samples_per_frame;
-		afl->left -= afl->samples_per_frame;
-
-		b->data = (unsigned char *) afl->p;
+	if (afl->eof) {
+		b->used = 0;
+		send_full_buffer(&afl->pcm.producer, b);
+		return;
 	}
 
-	b->time = afl->time;
-	afl->time += afl->frame_period;
+	afl->time += afl->buffer_period;
+
+	r = afReadFrames(afl->file, AF_DEFAULT_TRACK,
+		b->allocated, b->size >> (afl->pcm.stereo + 1))
+			<< (afl->pcm.stereo + 1);
+
+	if (r < b->size) {
+		memset(b->allocated + r, 0, b->size - r);
+
+		afl->eof = TRUE;
+		b->used = r;
+	}
 
 	send_full_buffer(&afl->pcm.producer, b);
 }
@@ -117,6 +86,7 @@ send_empty(consumer *c, buffer *b)
 {
 	// XXX
 	rem_node(&c->fifo->full, &b->node);
+
 	b->data = NULL;
 }
 
@@ -124,7 +94,7 @@ fifo *
 open_pcm_afl(char *name, int ignored1, bool ignored2)
 {
 	struct afl_context *afl;
-	int buffer_size;
+	int buffer_size = 8192;
 	int version, channels, rate;
 	buffer *b;
 
@@ -169,23 +139,22 @@ open_pcm_afl(char *name, int ignored1, bool ignored2)
 	printv(2, "Sampling rate %d Hz, %s\n",
 		afl->pcm.sampling_rate, afl->pcm.stereo ? "stereo" : "mono");
 
-	ASSERT("set virtual sample format",
+	ASSERT("set virtual sample format (signed 16 bit)",
 		0 == afSetVirtualSampleFormat(afl->file,
 			AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16));
 
-	ASSERT("set virtual byte order",
+	ASSERT("set virtual byte order (little endian)",
 		0 == afSetVirtualByteOrder(afl->file,
 			AF_DEFAULT_TRACK, AF_BYTEORDER_LITTLEENDIAN));
 
-	afl->samples_per_frame = SAMPLES_PER_FRAME << afl->pcm.stereo;
-	afl->scan_range = MAX(BUFFER_SIZE / sizeof(short)
-		/ afl->samples_per_frame, 1) * afl->samples_per_frame;
-	afl->look_ahead = (512 - 32) << afl->pcm.stereo;
-
-	afl->time = 0.0; // source offline, don't synchronize
-	afl->frame_period = SAMPLES_PER_FRAME / (double) afl->pcm.sampling_rate;
-
-	buffer_size = (afl->scan_range + afl->look_ahead) * sizeof(short);
+	/*
+	 *  Note a stream starting at time 0.0 is not subject to
+	 *  initial synchronization but to clock drift compensation
+	 *  unless the stream is chosen as reference clock.
+	 */
+	afl->time = 0.0;
+	afl->buffer_period = buffer_size
+		/ (double)(afl->pcm.sampling_rate << (afl->pcm.stereo + 1));
 
 	ASSERT("init afl fifo",	init_callback_fifo(
 		&afl->pcm.fifo, "audio-afl",
@@ -200,13 +169,13 @@ open_pcm_afl(char *name, int ignored1, bool ignored2)
 	b = PARENT(afl->pcm.fifo.buffers.head, buffer, added);
 
 	b->data = NULL;
-	b->used = (afl->samples_per_frame + afl->look_ahead) * sizeof(short);
-	b->offset = afl->look_ahead * sizeof(short);
+	b->used = b->size;
+	b->offset = 0;
 
 	return &afl->pcm.fifo;
 }
 
-#else // !HAVE_LIBAUDIOFILE
+#else /* !HAVE_LIBAUDIOFILE */
 
 fifo *
 open_pcm_afl(char *name, int ignored1, bool ignored2)
@@ -215,4 +184,4 @@ open_pcm_afl(char *name, int ignored1, bool ignored2)
 		"http://www.68k.org/~michael/audiofile\n");
 }
 
-#endif // !HAVE_LIBAUDIOFILE
+#endif /* !HAVE_LIBAUDIOFILE */

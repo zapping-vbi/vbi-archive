@@ -1,7 +1,34 @@
+2001-09-20	audio clock drift extravaganza <mschimek@users.sf.net>
+
+	* oss.c: Found a timestamp bug (ispace sign, code obsolete), audio
+	  data wrap-around code removed, timestamping rewritten from scratch,
+	  explict allocation of DMA fragments, OSS optional.
+	* alsa.c: Replaced audio data wrap-around by flat buffer code, added
+	  timestamp low-pass, added ALSA-0.9 interface (preliminary, is
+	  untested and needs better time stamping), both optional.
+	* esd.c: Replaced audio data wrap-around by flat buffer code, added
+	  timestamp low-pass (more a protection for the clock drift algo,
+	  there's no good method to avoid a constant lag caused by esd
+	  overhead, if any).
+	* afl.c: Replaced audio data wrap-around by flat buffer code,
+	  fixed sampling rate bug introduced 2001-07-27, AFL wasn't
+	  mentioned in the man page although available in earlier versions.
+	* mp2.c: Bug in audio sync code (obsolete), rewrote sampling
+	  device interface from scratch, removed zero-copy option, added
+	  clock drift compensation code.
+	* sync.c: Extended sync_break for clock drift compensation.
+	* configure.in: New alsalib test, driver interface summary.
+	* v4l.c: Added timestamp low-pass (esd.c comment applies).
+
 2001-09-13	user data to mux_alloc <garetxe@users.sf.net>
 
 	* systems: pass down user_data to mux_output, needed for getting
 	rid of rte_global_context.
+
+2001-09-12	<mschimek@users.sf.net>
+
+	* Made the initial audio sync sample accurate (admit that's a bit
+	  overkill) and fixed a minor bug in sync.c.
 
 2001-09-07	audio noise bug <mschimek@users.sf.net>
 

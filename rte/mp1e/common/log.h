@@ -49,6 +49,10 @@ do {									\
 			program_invocation_short_name			\
 			 ,##args, errno, strerror(errno));		\
 		exit(EXIT_FAILURE);					\
+	} else if (0) {							\
+		fprintf(stderr,	"%s:" __FILE__ ":" ISTF1(__LINE__) ": "	\
+			what " - ok\n",	program_invocation_short_name	\
+			 ,##args);					\
 	}								\
 } while (0)
 

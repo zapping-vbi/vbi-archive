@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: global_data.c,v 1.4 2001-09-07 22:34:16 mschimek Exp $ */
+/* $Id: global_data.c,v 1.5 2001-09-20 23:35:07 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -49,13 +49,18 @@ int			modules			= 3;			// 1 = Video, 2 = Audio, 4 = VBI
 int			mux_syn			= 2;			// 0 = null, elementary, MPEG-1, MPEG-2 PS 
 
 char *			cap_dev			= "/dev/video";
+
 #if defined(HAVE_LIBASOUND)
-char *			pcm_dev			= "alsa-0,0";
+/* alsa 0.5: card #0, device #0; 0.9: "default" */
+char *			pcm_dev			= "alsa";
+#elif defined(HAVE_OSS)
+char *			pcm_dev			= "/dev/dsp";
 #elif defined(USE_ESD)
 char *			pcm_dev			= "esd";
 #else
-char *			pcm_dev			= "/dev/dsp";
+char *			pcm_dev			= "";
 #endif
+
 char *			mix_dev			= "/dev/mixer";
 char *			vbi_dev			= "/dev/vbi";
 

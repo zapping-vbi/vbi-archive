@@ -1,8 +1,8 @@
 /*
  *  MPEG-1 Real Time Encoder
- *  Open Sound System Interface
+ *  Open Sound System interface
  *
- *  Copyright (C) 1999-2000 Michael H. Schimek
+ *  Copyright (C) 1999-2001 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -18,32 +18,32 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: oss.c,v 1.6 2001-09-11 13:13:56 mschimek Exp $ */
+/* $Id: oss.c,v 1.7 2001-09-20 23:35:07 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
 
-#include <stdio.h>
-#include <stdlib.h>
+#include "../common/log.h"
+
+#include "audio.h"
+
+#ifdef HAVE_OSS
+
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <errno.h>
-#include <assert.h>
-#include <sys/mman.h>
 #include <sys/time.h>
 #include <sys/ioctl.h>
-#include <asm/types.h>
-#include <linux/soundcard.h>
-#include "../common/log.h" 
-#include "../common/mmx.h" 
-#include "../common/math.h" 
-#include "../common/alloc.h"
-#include "audio.h"
 
-#define IOCTL(fd, cmd, data) (TEMP_FAILURE_RETRY(ioctl(fd, cmd, data)))
+#include <sys/soundcard.h>
+
+#include "../common/math.h" 
+
+#define IOCTL(fd, cmd, data)						\
+({ int __result; do __result = ioctl(fd, cmd, data);			\
+   while (__result == -1L && errno == EINTR); __result; })
 
 #define TEST 0
 
@@ -51,22 +51,12 @@
  *  OSS PCM Device
  */
 
-#define BUFFER_SIZE 8192 // bytes per read(), appx.
-
 struct oss_context {
 	struct pcm_context	pcm;
 
 	int			fd, fd2;
-	int			scan_range;
-	int			look_ahead;
-	int			samples_per_frame;
-	short *			p;
-	int			left;
-	double			time;
+	double			time, buffer_period;
 };
-
-#define FLAT 0
-#if FLAT
 
 static void
 wait_full(fifo *f)
@@ -74,132 +64,70 @@ wait_full(fifo *f)
 	struct oss_context *oss = f->user_data;
 	buffer *b = PARENT(f->buffers.head, buffer, added);
 	struct audio_buf_info info;
+	struct timeval tv1, tv2;
 	unsigned char *p;
 	ssize_t r, n;
+	double now, dt;
 
 	assert(b->data == NULL); /* no queue */
 
 	for (p = b->allocated, n = b->size; n > 0;) {
 		r = read(oss->fd, p, n);
 
-		if (r < 0 && errno == EINTR)
+		if (r < 0) {
+			ASSERT("read PCM data, %d bytes", errno == EINTR, n);
 			continue;
-
-		if (r == 0) {
-			memset(p, 0, n); // redundant except 2|4 multiple
+		} else if (r == 0) {
+			memset(p, 0, n); /* redundant except 2|4 multiple (panic?) */
 			break;
 		}
-
-		ASSERT("read PCM data, %d bytes", r > 0, n);
 
 		p += r;
 		n -= r;
 	}
 
-	oss->time = current_time();
+	r = 5; /* abort */
 
-	ASSERT("SNDCTL_DSP_GETISPACE",
-		IOCTL(oss->fd, SNDCTL_DSP_GETISPACE, &info) == 0);
+	/*
+	 *  This can't be expected more accurate than one audio fragment size
+	 *  (the accuracy of SNDCTL_DSP_GETISPACE, each fragment one irq) but
+	 *  will exclude the possibility of a CPU loss before or after tv1.
+	 */
+	do {
+		gettimeofday(&tv1, NULL);
 
-	if (TEST)
-		write(oss->fd2, b->allocated, b->size);
+		if (ioctl(oss->fd, SNDCTL_DSP_GETISPACE, &info) != 0) {
+			ASSERT("SNDCTL_DSP_GETISPACE", errno != EINTR);
+			continue;
+		}
 
-	oss->time -=
-		((b->size - (n + info.bytes) / sizeof(short)) >> oss->pcm.stereo)
-			/ (double) oss->pcm.sampling_rate;
+		gettimeofday(&tv2, NULL);
 
-	b->time = oss->time;
+		tv2.tv_sec -= tv1.tv_sec;
+		tv2.tv_usec -= tv1.tv_usec + (tv2.tv_sec ? 1000000 : 0);
+	} while ((tv2.tv_sec > 1 || tv2.tv_usec > 100) && r--);
+
+	now = tv1.tv_sec + tv1.tv_usec * (1 / 1e6);
+
+	if ((n -= info.bytes) == 0) /* usually */
+		now -= oss->buffer_period;
+	else
+		now -= (b->size - n) * oss->buffer_period / (double) b->size;
+
+	dt = now - oss->time;
+
+	if (oss->time > 0
+	    && fabs(dt - oss->buffer_period) < oss->buffer_period * 0.1) {
+		b->time = oss->time;
+		oss->buffer_period = (oss->buffer_period - dt) * 0.95 + dt;
+		oss->time += oss->buffer_period;
+	} else
+		b->time = oss->time = now;
+
 	b->data = b->allocated;
 
 	send_full_buffer(&oss->pcm.producer, b);
 }
-
-#else /* !FLAT */
-
-/*
- *  Read window: samples_per_frame (1152 * channels) + look_ahead
- *  (480 * channels); from subband window size 512 samples, step
- *  width 32 samples (32 * 3 * 12 total)
- */
-static void
-wait_full(fifo *f)
-{
-	struct oss_context *oss = f->user_data;
-	buffer *b = PARENT(f->buffers.head, buffer, added);
-
-	assert(b->data == NULL); /* no queue */
-
-	if (oss->left <= 0) {
-		struct audio_buf_info info;
-		unsigned char *p;
-		ssize_t r, n;
-/*
-		if (first) {
-			p = b->allocated;
-			n = (oss->scan_range + oss->look_ahead) * sizeof(short);
-			first = FALSE;
-		} else
-*/
-		{
-			memcpy(b->allocated, (short *) b->allocated + oss->scan_range,
-				oss->look_ahead * sizeof(short));
-
-			p = b->allocated + oss->look_ahead * sizeof(short);
-			n = oss->scan_range * sizeof(short);
-		}
-
-		while (n > 0) {
-			r = read(oss->fd, p, n);
-
-			if (r < 0 && errno == EINTR)
-				continue;
-
-			if (r == 0) {
-				memset(p, 0, n);
-				break;
-			}
-
-			ASSERT("read PCM data, %d bytes", r > 0, n);
-
-			p += r;
-			n -= r;
-		}
-
-		oss->time = current_time();
-
-		ASSERT("SNDCTL_DSP_GETISPACE",
-			IOCTL(oss->fd, SNDCTL_DSP_GETISPACE, &info) == 0);
-
-		if (TEST)
-			write(oss->fd2, b->allocated, oss->scan_range * sizeof(short));
-
-		oss->time -=
-			((oss->scan_range - (n + info.bytes) / sizeof(short)) >> oss->pcm.stereo)
-				/ (double) oss->pcm.sampling_rate;
-
-		oss->p = (short *) b->allocated;
-		oss->left = oss->scan_range - oss->samples_per_frame;
-
-		b->time = oss->time;
-		b->data = b->allocated;
-
-		send_full_buffer(&oss->pcm.producer, b);
-		return;
-	}
-
-	b->time = oss->time
-		+ ((oss->p - (short *) b->allocated) >> oss->pcm.stereo)
-			/ (double) oss->pcm.sampling_rate;
-
-	oss->p += oss->samples_per_frame;
-	oss->left -= oss->samples_per_frame;
-
-	b->data = (unsigned char *) oss->p;
-
-	send_full_buffer(&oss->pcm.producer, b);
-}
-
-#endif
 
 static void
 send_empty(consumer *c, buffer *b)
@@ -217,7 +145,8 @@ open_pcm_oss(char *dev_name, int sampling_rate, bool stereo)
 	int oss_format = AFMT_S16_LE;
 	int oss_speed = sampling_rate;
 	int oss_stereo = stereo;
-	int buffer_size;
+	int oss_frag_size;
+	int dma_size = 128 << (10 + !!stereo); /* bytes */
 	buffer *b;
 
 	ASSERT("allocate pcm context",
@@ -226,45 +155,51 @@ open_pcm_oss(char *dev_name, int sampling_rate, bool stereo)
 	oss->pcm.sampling_rate = sampling_rate;
 	oss->pcm.stereo = stereo;
 
-	oss->samples_per_frame = SAMPLES_PER_FRAME << stereo;
-	oss->scan_range = MAX(BUFFER_SIZE / sizeof(short) / oss->samples_per_frame, 1) * oss->samples_per_frame;
-	oss->look_ahead = (512 - 32) << stereo;
-
-	buffer_size = (oss->scan_range + oss->look_ahead) * sizeof(short);
-
 	if (TEST)
 		ASSERT("open raw", (oss->fd2 = open("raw", O_WRONLY | O_CREAT)) != -1);
 
-	ASSERT("open OSS PCM device %s", /* XXX O_NONBLOCK? */
+	ASSERT("open OSS PCM device '%s'",
 		(oss->fd = open(dev_name, O_RDONLY)) != -1, dev_name);
 
 	printv(2, "Opened OSS PCM device %s\n", dev_name);
+#if 1
+	oss_frag_size = 11 /* 2^11 = 2048 bytes */
+		+ (sampling_rate > 24000)
+		+ (!!stereo);
 
+	oss_frag_size += (saturate(dma_size, 2 << oss_frag_size, 1 << 20)
+			  / (1 << oss_frag_size)) << 16;
+
+	while (IOCTL(oss->fd, SNDCTL_DSP_SETFRAGMENT, &oss_frag_size) != 0)
+		if ((oss_frag_size -= 1 << 16) < (2 << 16))
+			break;
+#endif
 	ASSERT("set OSS PCM AFMT_S16_LE",
 		IOCTL(oss->fd, SNDCTL_DSP_SETFMT, &oss_format) == 0);
 
 	ASSERT("set OSS PCM %d channels",
-		IOCTL(oss->fd, SNDCTL_DSP_STEREO, &oss_stereo) == 0, oss_stereo + 1);
+		IOCTL(oss->fd, SNDCTL_DSP_STEREO, &oss_stereo) == 0, stereo + 1);
 
 	ASSERT("set OSS PCM sampling rate %d Hz",
-		IOCTL(oss->fd, SNDCTL_DSP_SPEED, &oss_speed) == 0, oss_speed);
+		IOCTL(oss->fd, SNDCTL_DSP_SPEED, &oss_speed) == 0
+		&& oss_speed == sampling_rate, sampling_rate);
 
-	printv(3, "Set %s to signed 16 bit little endian, %d Hz, %s\n",
-		dev_name, oss->pcm.sampling_rate, oss->pcm.stereo ? "stereo" : "mono");
+	if (IOCTL(oss->fd, SNDCTL_DSP_GETBLKSIZE, &oss_frag_size) != 0)
+		oss_frag_size = 4096; /* bytes */
 
-	if (verbose > 2) {
-		int frag_size;
+	oss->time = 0.0;
+	oss->buffer_period = oss_frag_size
+		/ (double)(sampling_rate * sizeof(short) << stereo);
 
-		ASSERT("SNDCTL_DSP_GETBLKSIZE",
-			IOCTL(oss->fd, SNDCTL_DSP_GETBLKSIZE, &frag_size) == 0);
-
-		printv(3, "Dsp buffer size %i\n", frag_size);
-	}
+	printv(3, "Set %s to signed 16 bit little endian, %d Hz, %s, buffer size %d bytes\n",
+		dev_name, oss->pcm.sampling_rate,
+		oss->pcm.stereo ? "stereo" : "mono",
+		oss_frag_size);
 
 	ASSERT("init oss fifo",	init_callback_fifo(
 		&oss->pcm.fifo, "audio-oss",
 		NULL, NULL, wait_full, send_empty,
-		1, buffer_size));
+		1, oss_frag_size));
 
 	ASSERT("init oss producer",
 		add_producer(&oss->pcm.fifo, &oss->pcm.producer));
@@ -274,18 +209,11 @@ open_pcm_oss(char *dev_name, int sampling_rate, bool stereo)
 	b = PARENT(oss->pcm.fifo.buffers.head, buffer, added);
 
 	b->data = NULL;
-
-#if FLAT
 	b->used = b->size;
 	b->offset = 0;
-#else
-	b->used = (oss->samples_per_frame + oss->look_ahead) * sizeof(short);
-	b->offset = oss->look_ahead * sizeof(short);
-#endif
 
 	return &oss->pcm.fifo;
 }
-
 
 /*
  *  OSS Mixer Device
@@ -340,7 +268,7 @@ mix_init(void)
 		mix_dev, mix_line, sources[mix_line], mix_volume);
 }
 
-// Enumerate available recording sources for usage()
+/* Enumerate available recording sources for usage() */
 
 char *
 mix_sources(void)
@@ -368,3 +296,24 @@ mix_sources(void)
 
 	return str;
 }
+
+#else /* !HAVE_OSS */
+
+fifo *
+open_pcm_oss(char *dev_name, int sampling_rate, bool stereo)
+{
+	FAIL("Not compiled with OSS interface.");
+}
+
+void
+mix_init(void)
+{
+}
+
+char *
+mix_sources(void)
+{
+	return "none";
+}
+
+#endif /* !HAVE_OSS */

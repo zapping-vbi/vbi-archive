@@ -1,7 +1,7 @@
 /*
  *  MPEG-1 Real Time Encoder
  *
- *  Copyright (C) 1999-2000 Michael H. Schimek
+ *  Copyright (C) 1999-2001 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -17,13 +17,16 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sync.h,v 1.3 2001-09-03 05:26:07 mschimek Exp $ */
+/* $Id: sync.h,v 1.4 2001-09-20 23:35:07 mschimek Exp $ */
 
 #ifndef SYNC_H
 #define SYNC_H
 
 #include "threads.h"
 #include "fifo.h"
+#include "log.h"
+
+typedef unsigned int sync_module;
 
 struct synchr {
 	mucon			mucon;
@@ -32,41 +35,32 @@ struct synchr {
 	double			stop_time;
 	double			front_time;
 
-	unsigned int		modules;
-	unsigned int		vote;
+	sync_module		modules;
+	sync_module		vote;
+
+	double			ref_warp;
+	sync_module		time_base;
 };
 
+typedef struct synchr_stream {
+	sync_module		this_module;
+
+	double			start_ref;
+	double			elapsed;
+
+	double			byte_period;
+	double			frame_period;
+
+	int			bytes_per_sample;	/* power of 2 */
+} synchr_stream;
+
+/* GGG */
 extern struct synchr synchr;
 
-extern void	sync_init(unsigned int modules);
-extern bool	sync_start(double time);
-extern bool	sync_stop(double time);
-extern bool	sync_sync(consumer *c, unsigned int this_module, double sample_period, int bytes_per_sample);
+extern void	mp1e_sync_init(unsigned int modules, unsigned int time_base);
+extern bool	mp1e_sync_start(double time);
+extern bool	mp1e_sync_stop(double time);
+extern bool	mp1e_sync_run_in(synchr_stream *str, consumer *c, int *frame_frac);
+extern int	mp1e_sync_break(synchr_stream *str, double cap_time, double cap_period, double *drift);
 
-static inline int
-sync_break(unsigned int this_module, double time, double frame_period)
-{
-	pthread_mutex_lock(&synchr.mucon.mutex);
-
-	if (time >= synchr.stop_time) {
-		pthread_mutex_unlock(&synchr.mucon.mutex);
-		printv(4, "sync_break %08x, %f, stop_time %f\n",
-			this_module, time, synchr.stop_time);
-		return TRUE;
-	}
-
-	synchr.front_time = time + frame_period;
-
-	pthread_mutex_unlock(&synchr.mucon.mutex);
-
-	return FALSE;
-}
-
-#endif // SYNC_H
-
-
-
-
-
-
-
+#endif /* SYNC_H */

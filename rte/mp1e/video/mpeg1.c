@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.6 2001-09-03 05:26:07 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.7 2001-09-20 23:35:07 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -1488,6 +1488,7 @@ int force_drop_rate = 0;
 void *
 mpeg1_video_ipb(void *capture_fifo)
 {
+	synchr_stream sstr;
 	bool done = FALSE;
 	char *seq = "";
 	buffer *obuf;
@@ -1497,7 +1498,11 @@ mpeg1_video_ipb(void *capture_fifo)
 	ASSERT("add video cons",
 		add_consumer((fifo *) capture_fifo, &cons));
 
-	sync_sync(&cons, MOD_VIDEO, time_per_frame, 0);
+	memset(&sstr, 0, sizeof(sstr));
+	sstr.this_module = MOD_VIDEO;
+	sstr.frame_period = time_per_frame;
+
+	mp1e_sync_run_in(&sstr, &cons, NULL);
 
 	while (!done) {
 		int sp = 0;
@@ -1563,8 +1568,9 @@ mpeg1_video_ipb(void *capture_fifo)
 
 			sp++;
 
-			if (!this->org[0] || sync_break(MOD_VIDEO, this->time, time_per_frame) ||
-			    video_frame_count + sp > video_num_frames) {
+			if (!this->org[0]
+			    || mp1e_sync_break(&sstr, this->time, sstr.frame_period, NULL)
+			    || video_frame_count + sp > video_num_frames) {
 				printv(2, "Video: End of file\n");
 
 				if (this->org[0] && this->buffer)

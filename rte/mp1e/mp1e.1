@@ -1,4 +1,4 @@
-.TH MP1E 1 "$Date: 2001-09-11 13:13:56 $" "mp1e manual" \" -*- nroff -*-
+.TH MP1E 1 "$Date: 2001-09-20 23:35:07 $" "mp1e manual" \" -*- nroff -*-
 .SH NAME
 mp1e \- realtime MPEG-1 audio/video encoder
 .SH SYNOPSIS
@@ -6,17 +6,17 @@ mp1e [options] [<Config File] >MPEG stream
 .SH DESCRIPTION
 .B mp1e
 reads images from a V4L or V4L2 compatible device, audio samples from
-a OSS, ALSA or ESD compatible device, encodes them as MPEG-1 a/v stream
-and writes the result to standard output.
+a OSS, ALSA or ESD compatible device or file, encodes them as MPEG-1
+a/v stream and writes the result to standard output.
 .P
 Note
 .B mp1e
-runs fastest, and audio synchronization is best when using V4L2 and
-ALSA. The V4L interface is slow and has not been tested because I don't
-have a V4L device. Due to overhead ESD isn't well suited for synchronous
-recording and should be avoided. Bug reports are welcome, patches even
-more. See the bottom of this manual page for contact addresses. Contributors
-will be supported as much as possible and adequately credited.
+runs fastest, and audio synchronization (including clock drift compensation)
+is best when using V4L2 and ALSA or native OSS. The V4L interface is slow
+and not frequently tested because I don't have a V4L device. Bug reports are
+welcome, patches even more. See the bottom of this manual page for contact
+addresses. Contributors will be supported as much as possible and adequately
+credited.
 .P
 An MMX enhanced x86 CPU is required, this should be at least a Pentium
 II 400 or equivalent. Without motion compensation a Pentium II 233 is
@@ -233,15 +233,35 @@ send the process a SIGTERM signal.
 .TP
 .BI "\-p, \-\-pcm_device " name
 .RS
-Specifies the audio capture device. For OSS devices this is
-usually "/dev/dsp". If you have ALSA installed (libasound)
+Specifies the audio capture device.
+.IP \(bu
+For OSS devices (Open Sound System, as shipped with Linux 2.2 and
+2.4 kernels) this is usually "/dev/dsp".
+.IP \(bu
+If you have ALSA 0.5 installed (libasound)
 use "alsa-c,d" where c stands for the card number and
-d for the device number, usually both zero. To capture
-audio from ESD, enter "esd". Type
-.B mp1e -h
-to see the default.
+d for the device number, usually both zero. If you have ALSA
+0.9 installed enter "alsa/device_name", for example "alsa/default".
+The ALSA 0.9 interface is experimental, in other words it doesn't
+work for me (but so does arecord) and sync is still suboptimal. In
+either case "alsa" alone will select the default device.
+.IP \(bu
+To capture audio from ESD (the Enlightened Sound Daemon), write "esd".
+.IP \(bu
+To encode audio from a file using libaudiofile (AIFF, WAV, .au format
+etc) specify the file name and then add -v and watch it fly. :-) The
+sampling frequency and number of channels encoded in the file take
+priority over the respective
+.B mp1e
+options. Sorry, no conversion. The video stream, if any, is synchronized by
+assuming audio starts at the same instant the first video frame has
+been captured and the audio data is subject to clock drift compensation
+taking the video clock as reference. (Any stream or the system clock
+could be reference, but there's no command line option yet.)
 .P
-In terms of audio/video synchronization ALSA works best.
+Type
+.B mp1e -h
+to see the default PCM device.
 .RE
 .TP
 .BI "\-r, \-\-rec_source " n,m

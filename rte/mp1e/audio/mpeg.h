@@ -18,11 +18,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.h,v 1.3 2001-09-07 05:09:35 mschimek Exp $ */
+/* $Id: mpeg.h,v 1.4 2001-09-20 23:35:07 mschimek Exp $ */
 
-#define MPEG_VERSION_1           	3 // ISO/IEC 11172-3
-#define MPEG_VERSION_2			2 // ISO/IEC 13818-3
-#define MPEG_VERSION_2_5		0 // not supported
+#define MPEG_VERSION_1           	3 /* ISO/IEC 11172-3 */
+#define MPEG_VERSION_2			2 /* ISO/IEC 13818-3 */
+#define MPEG_VERSION_2_5		0 /* Fraunhofer extension, not supported */
 #define MPEG_VERSIONS			4
 
 #define LAYER_II			2
@@ -44,8 +44,8 @@
 #define HEADER_BITS			32
 
 struct absthr_rec {
-	int			line;	// fft higher line
-	float			thr;	// absolute threshold (dB)
+	int			line;	/* fft higher line */
+	float			thr;	/* absolute threshold (dB) */
 };
 
 extern const int		bit_rate_value[MPEG_VERSIONS][16];
@@ -59,6 +59,3 @@ extern const unsigned char	pack_table[NUM_SG];
 extern const float		SNR[18];
 extern const double		C[512];
 extern const struct absthr_rec	absthr[6][134];
-
-
-

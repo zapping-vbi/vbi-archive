@@ -29,10 +29,12 @@
 #ifndef __RTELIB_H__
 #define __RTELIB_H__
 
+#warning add version ids
+
 /*
  * Lib build ID, for debugging.
  */
-#define RTE_ID " $Id: rte.h,v 1.4 2001-09-11 13:13:56 mschimek Exp $ "
+#define RTE_ID " $Id: rte.h,v 1.5 2001-09-20 23:35:07 mschimek Exp $ "
 
 /*
  * What are we going to encode, audio only, video only or both

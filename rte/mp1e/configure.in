@@ -1,11 +1,13 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.7 2001-09-12 23:06:49 garetxe Exp $
+dnl $Id: configure.in,v 1.8 2001-09-20 23:35:07 mschimek Exp $
 
 AC_INIT(configure.in)
-AM_INIT_AUTOMAKE(mp1e, 1.9.1)
+AM_INIT_AUTOMAKE(mp1e, 1.9.2)
 AM_CONFIG_HEADER(config.h)
 
 AM_PROG_LIBTOOL
+
+AM_ACLOCAL_INCLUDE(macros)
 
 test -e site_def.h || cat <<EOF >site_def.h
 /* Site specific definitions */
@@ -66,22 +68,28 @@ dnl MMX emulator for testing purposes
 dnl
 AC_CHECK_LIB(mmxemu, mmxemu_configure)
 
+dnl ---------------------------------------------------------------------------
+dnl Driver interfaces (mp1e cli frontend only)
+dnl ---------------------------------------------------------------------------
+
+dnl
+dnl OSS support
+dnl
+have_oss=no
+AC_CHECK_HEADER(sys/soundcard.h,
+	[have_oss=yes
+	 AC_DEFINE(HAVE_OSS, 1, [Define if the OSS API is available])])
+
 dnl
 dnl ALSA support (libasound)
 dnl
-AC_CHECK_HEADER(sys/asoundlib.h,
-	AC_CHECK_LIB(asound, snd_pcm_plugin_read))
+have_libasound=no
+AM_PATH_ALSA_([0.5.9], have_libasound=yes, true)
 
 dnl
-dnl Audio File library (libaudiofile)
-dnl for audio compression from WAV etc
+dnl EsounD support
 dnl
-AC_CHECK_HEADER(audiofile.h,
-	AC_CHECK_LIB(audiofile, afSetVirtualSampleFormat))
-
-dnl
-dnl EoundD support
-dnl
+have_esd=no
 AC_MSG_CHECKING(for EsounD)
 ESD_VERSION=`esd-config --version`
 if test $? -eq 0; then
@@ -90,10 +98,22 @@ if test $? -eq 0; then
 	ESD_CFLAGS=`esd-config --cflags`
 	AC_SUBST(ESD_CFLAGS)
 	AC_SUBST(ESD_LIBS)
-	AC_DEFINE(USE_ESD, 1, [Define if you have ESD.])
+	have_esd=yes
+	AC_DEFINE(HAVE_ESD, 1, [Define if you have ESD.])
 else
-	AC_MSG_RESULT([no, ESD won't be used])
+	AC_MSG_RESULT([not present])
 fi
+
+dnl
+dnl Audio File library (libaudiofile)
+dnl for audio compression from WAV etc
+dnl
+have_audiofile=yes
+AC_CHECK_HEADER(audiofile.h,
+	AC_CHECK_LIB(audiofile, afSetVirtualSampleFormat,,
+		have_audiofile=no), have_audiofile=no)
+
+dnl ---------------------------------------------------------------------------
 
 dnl
 dnl XVideo support (libxv)
@@ -128,3 +148,14 @@ test/Makefile
 mp1e.lsm
 mp1e.spec
 ])
+
+echo "
+	Mp1e frontend driver interfaces
+	-------------------------------
+	Video For Linux				yes
+	Video For Linux Two			yes
+	Open Sound System			$have_oss
+	Advanced Linux Sound Architecture	$have_libasound
+	Enlightened Sound Daemon		$have_esd
+	SGI Audio File Library			$have_audiofile
+"

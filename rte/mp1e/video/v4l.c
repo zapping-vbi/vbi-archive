@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.7 2001-08-19 10:58:35 mschimek Exp $ */
+/* $Id: v4l.c,v 1.8 2001-09-20 23:35:07 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -53,6 +53,8 @@ static struct video_mmap	gb_buf;
 static struct video_mbuf	gb_buffers;
 static unsigned char *		video_buf;
 
+static double			cap_time, frame_period;
+
 #define IOCTL(fd, cmd, data) (TEMP_FAILURE_RETRY(ioctl(fd, cmd, data)))
 
 /*
@@ -63,20 +65,29 @@ static unsigned char *		video_buf;
  * What a moron's moronic moronity. See v4l2.c for a slick interface.
  */
 
+static inline void
+timestamp(buffer *b)
+{
+	double now, dt;
+
+	now = current_time();
+	dt = now - cap_time;
+
+	if (cap_time > 0
+	    && fabs(dt - frame_period) < frame_period * 0.1) {
+		b->time = cap_time;
+		frame_period = (frame_period - dt) * 0.9 + dt;
+		cap_time += frame_period;
+	} else {
+		cap_time = now;
+		b->time = now - frame_period;
+	}
+}
+
 static void *
 v4l_cap_thread(void *unused)
 {
 	buffer *b;
-
-#if 0
-// garetxe: this starts overlay
-	if (!use_mmap) {
-		int val = 1;
-
-		ASSERT("start capturing (VIDIOCCAPTURE)",
-			IOCTL(fd, VIDIOCCAPTURE, &val) == 0);
-	}
-#endif
 
 	for (;;) {
 		/* Just in case wait_empty_buffer never waits */
@@ -95,7 +106,7 @@ v4l_cap_thread(void *unused)
 			if (IOCTL(fd, VIDIOCSYNC, &gb_frame) < 0)
 				ASSERT("VIDIOCSYNC", errno == EAGAIN);
 
-			b->time = current_time();
+			timestamp(b);
 
 			/* NB: typ. 3-20 MB/s, a horrible waste of cycles. */
 			if (filter_mode != CM_YVU)
@@ -136,7 +147,8 @@ v4l_cap_thread(void *unused)
 				n -= r;
 			}
 
-			b->time = current_time();
+			timestamp(b);
+
 			b->used = b->size;
 		}
 
@@ -230,11 +242,15 @@ v4l_init(void)
 		case VIDEO_MODE_SECAM:
 			printv(2, "Video standard is PAL/SECAM\n");
 			frame_rate_code = 3;
+			cap_time = 0;
+			frame_period = 1 / 25.0;
 			break;
 
 		case VIDEO_MODE_NTSC:
 			printv(2, "Video standard is NTSC\n");
 			frame_rate_code = 4;
+			cap_time = 0;
+			frame_period = 1001 / 30000.0;
 
 			if (grab_height == 288) /* that's the default, assuming PAL */
 				height = aligned_height = grab_height = 240;
