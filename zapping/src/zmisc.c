@@ -413,6 +413,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
     {
     case TVENG_TELETEXT:
     case TVENG_NO_CAPTURE:
+      python_command_printf (main_window, "zapping.closed_caption(0)");
       osd_clear();
       osd_unset_window();
       break;
@@ -625,12 +626,18 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
     }
 
   /* Restore old input if we found it earlier */
+  /*
   if (old_input != NULL)
     if (-1 == tveng_set_input_by_name(old_input, info))
       g_warning("couldn't restore old input");
   if (old_standard != NULL)
     if (-1 == tveng_set_standard_by_name(old_standard, info))
       g_warning("couldn't restore old standard");
+  */
+  if (old_input != NULL)
+    tveng_set_input_by_name(old_input, info);
+  if (old_standard != NULL)
+    tveng_set_standard_by_name(old_standard, info);
 
   g_free (old_input);
   g_free (old_standard);
@@ -1308,30 +1315,6 @@ on_style_changed		(GtkToolbar	*toolbar,
     }
 }
 */
-
-void zmisc_overlay_subtitles	(gint page)
-{
-#ifdef HAVE_LIBZVBI
-  GtkWidget *closed_caption1;
-
-  zvbi_page = page;
-  
-  zconf_set_integer(zvbi_page,
-		    "/zapping/internal/callbacks/zvbi_page");
-  zconf_set_boolean(TRUE, "/zapping/internal/callbacks/closed_caption");
-
-  if (main_info->current_mode == TVENG_NO_CAPTURE)
-    zmisc_restore_previous_mode(main_info);
-
-  osd_clear();
-  
-  closed_caption1 =
-    lookup_widget(main_window, "closed_caption1");
-  gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(closed_caption1),
-				 TRUE);
-#endif /* HAVE_LIBZVBI */
-}
-
 
 GtkWidget *
 z_load_pixmap			(const gchar *		name)
