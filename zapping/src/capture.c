@@ -42,7 +42,6 @@
 #include "capture.h"
 #include "csconvert.h"
 #include "globals.h"
-#include "video.h"
 
 /* The capture fifo */
 #define NUM_BUNDLES 6 /* in capture_fifo */
