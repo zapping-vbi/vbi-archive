@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.8 2005-01-31 07:21:34 mschimek Exp $ */
+/* $Id: misc.h,v 1.9 2005-02-18 07:55:50 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
@@ -259,12 +259,6 @@ vbi3_printable			(int			c)
 
 	return c;
 }
-
-#ifndef __BYTE_ORDER
-/* Should be __LITTLE_ENDIAN or __BIG_ENDIAN, but I guess
-   that's a GNU/Linuxism. Alternatives? */
-#  define __BYTE_ORDER __UNKNOWN_BYTE_ORDER
-#endif
 
 /* TODO */
 #define vbi3_malloc malloc
