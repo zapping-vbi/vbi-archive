@@ -16,29 +16,40 @@ INCLUDES += -D_REENTRANT -D_POSIX_SOURCE
 INCLUDES += $(X_CFLAGS) $(UNICODE_CFLAGS)
 
 libzvbi_la_SOURCES = \
-	decoder.c decoder.h sliced.h \
+	bcd.c bcd.h \
+	bit_slicer.c bit_slicer.h \
+	cache.c cache.h \
+	caption.c cc.h \
+	event.h \
+	export.c export.h \
+	exp-html.c \
+	exp-templ.c \
+	exp-txt.c exp-txt.h \
+	exp-vtx.c \
+	format.h \
+	hamm.c hamm.h \
+	lang.c lang.h \
+	misc.h \
 	io.c io.h \
 	io-bktr.c \
+	io-sim.c io-sim.h \
 	io-v4l2k.c videodev2k.h \
 	io-v4l2.c videodev2.h \
 	io-v4l.c videodev.h \
-	vbi.c vbi.h event.h \
-	packet.c teletext.c vt.h \
-	caption.c cc.h \
-	trigger.c trigger.h \
-	wss.c wss.h \
-	search.c search.h ure.c ure.h \
-	cache.c cache.h \
-	export.c export.h format.h \
-	exp-txt.c exp-txt.h \
-	exp-gfx.c exp-gfx.h \
-	exp-html.c \
-	exp-vtx.c \
-	exp-templ.c \
-	hamm.c hamm.h \
-	lang.c lang.h \
+	packet.c \
+	raw_decoder.c raw_decoder.h \
+	sampling.c sampling.h \
+	search.c search.h \
+	sliced.h \
 	tables.c tables.h \
-	misc.h bcd.h
+	teletext.c \
+	trigger.c trigger.h \
+	ure.c ure.h \
+	vbi.c vbi.h \
+	vt.h \
+	wss.c wss.h
+
+# TODO	exp-gfx.c exp-gfx.h 
 
 libzvbiincludedir = $(includedir)
 libzvbiinclude_HEADERS = libzvbi.h
@@ -52,9 +63,19 @@ version.h:
 	 | sed "s/\./\\\\\n#define VBI_VERSION_MINOR /" \
 	 | sed "s/\./\\\\\n#define VBI_VERSION_MICRO /"` >> $@
 
-LIBZVBI_HDRS = misc.h bcd.h hamm.h event.h format.h lang.h export.h \
-	cache.h search.h sliced.h decoder.h io.h exp-gfx.h exp-txt.h \
+LIBZVBI_HDRS = \
+	misc.h \
+	bcd.h hamm.h event.h format.h lang.h export.h \
+	cache.h search.h \
+	sliced.h \
+	sampling.h \
+	bit_slicer.h \
+	raw_decoder.h \
+	io.h \
+	io-sim.h \
+	exp-txt.h \
 	cc.h vt.h tables.h vbi.h
+# TODO exp-gfx.h
 
 # Concat the header files in this order and filter out all lines
 #   before "^/* Public", after "^/* Private" and between "^/**"..."**/$"
