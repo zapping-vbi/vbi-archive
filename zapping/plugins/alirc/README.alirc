@@ -32,3 +32,6 @@ Why another lirc plugin for zapping?
 
  How do we solve this, simply use gdk_input_add instead of an extra thread
  and use the lirc_client library, like any good lirc client app would
+
+ For configuration please see the Zapping built-in documentation
+ (menu Help > Contents).

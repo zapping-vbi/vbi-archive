@@ -257,7 +257,7 @@ capturing_thread (void *x)
       case 0: /* timeout */
 	if (ZVBI_CAPTURE_THREAD_DEBUG)
 	  fprintf (stderr, "Timeout in VBI capture thread %d %d\n",
-		   timeout.tv_sec, timeout.tv_usec);
+		   (int) timeout.tv_sec, (int) timeout.tv_usec);
 #if 0
 	for (; stacked > 0; stacked--)
 	  send_full_buffer (&p, PARENT (rem_head(&stack), buffer, node));

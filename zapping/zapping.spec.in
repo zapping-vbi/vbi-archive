@@ -1,74 +1,58 @@
-Name: zapping
-Version: @VERSION@
-Release: 1
-Summary: a TV viewer for Gnome
-Copyright: GPL
-Group: Applications/Multimedia
-URL: http://zapping.sourceforge.net
-Packager: Michael H. Schimek <mschimek@users.sourceforge.net>
-Source: ftp://zapping.sourceforge.net/pub/zapping/@VERSION@/zapping-@VERSION@.tar.bz2
-Buildroot: %{_tmppath}/%{name}-root
-BuildPrereq: libglade-devel libxml-devel
-PreReq: /sbin/install-info
-# Not relocatable Prefix: @GNOME_PREFIX@ (now @prefix@)
-%define prefx @prefix@
-
-Requires: gnome-libs >= 1.0.40
-Requires: libxml >= 1.4.0
-Requires: libglade >= 0.9
-Requires: gdk-pixbuf >= 0.8
-Requires: libunicode >= 0.4
-Requires: gettext >= 0.11.2
-Requires: /usr/bin/consolehelper
-Requires: zvbi >= 0.2
-Requires: rte >= 0.5
+Name:		zapping
+Summary:	TV viewer for Gnome
+Version:	@VERSION@
+Release:	1
+License:	GPL
+Group:		Applications/Multimedia
+URL:		http://zapping.sourceforge.net/
+Source:		http://prdownloads.sourceforge.net/zapping/%{name}-%{version}.tar.bz2
+Packager:	Michael H. Schimek <mschimek@users.sourceforge.net>
+Buildroot:	%{_tmppath}/%{name}-%{version}-root
+BuildPrereq:	libglade-devel libxml-devel
+PreReq:		/sbin/install-info
 
 %description
-This is a TV viewer for the GNOME desktop. It has all the needed
-features, plus extensibility through a plugin system.
+Zapping is a TV viewer for the GNOME desktop.
 
 %prep
 %setup -q
 
 %build
-./configure --with-gnome-prefix=%{prefx}
+%configure
 make
 
 %install
 rm -rf %{buildroot}
 make DESTDIR=%{buildroot} install
+%find_lang %{name}
 
 %post
-pushd %{prefx}/bin > /dev/null 2>&1
-    ln -sf @CONSOLEHELPER_LOCATION@ zapping_setup_fb
-    ln -sf zapping zapzilla
-popd > /dev/null 2>&1
+pushd %{_bindir} >/dev/null 2>&1
+  ln -sf @CONSOLEHELPER_LOCATION@ zapping_setup_fb
+popd >/dev/null 2>&1
 
 %preun
-rm -f %{prefx}/bin/zapping_setup_fb > /dev/null 2>&1
-rm -f %{prefx}/bin/zapzilla > /dev/null 2>&1
+rm -f %{_bindir}/zapping_setup_fb >/dev/null 2>&1
 
 %clean
 rm -rf %{buildroot}
 
 %files
 %defattr (-, root, root)
-%doc AUTHORS THANKS ChangeLog README README.plugins COPYING TODO BUGS
+%doc AUTHORS BUGS ChangeLog COPYING NEWS README README.plugins THANKS TODO
 %doc plugins/alirc/README.alirc
 %config(noreplace) /etc/pam.d/zapping_setup_fb
 %config(noreplace) /etc/security/console.apps/zapping_setup_fb
-%{prefx}/bin/zapping
-%{prefx}/bin/zapping_fix_overlay
-%{prefx}/sbin/zapping_setup_fb
-%{prefx}/lib/zapping
-%{prefx}/share/zapping
-%{prefx}/share/gnome/help/zapping
-%{prefx}/share/pixmaps/zapping
-%{prefx}/share/gnome/apps/Multimedia/zapping.desktop
-%{prefx}/share/locale/*/*/*
-%{prefx}/man/man1/*
+%{_bindir}/*
+%{_sbindir}/*
+%{_libdir}/*
+%{_prefix}/share/*
+%{_mandir}/*
 
 %changelog
+* Sat Jul 10 2004 Michael H. Schimek <mschimek@users.sourceforge.net>
+- Updated for 0.7.
+
 * Thu Nov 20 2003 Michael H. Schimek <mschimek@users.sourceforge.net>
 - s/GNOME_PREFIX/prefix.
 

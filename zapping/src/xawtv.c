@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xawtv.c,v 1.7 2004-05-24 01:57:13 mschimek Exp $ */
+/* $Id: xawtv.c,v 1.8 2004-07-11 04:57:32 mschimek Exp $ */
 
 /*
    XawTV compatibility functions:
@@ -574,6 +574,8 @@ xawtv_command_setstation	(int			argc,
   long int nr;
   char *end;
   tveng_tuned_channel *ch;
+
+  ch = NULL;
 
   if (1 == argc)
     return FALSE;
