@@ -18,10 +18,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.1 2000-08-09 09:40:14 mschimek Exp $ */
+/* $Id: fifo.c,v 1.2 2000-08-10 01:18:59 mschimek Exp $ */
 
 #include "fifo.h"
 #include "alloc.h"
+#include "mmx.h"
 
 void
 uninit_buffer(buffer *b)
@@ -30,7 +31,7 @@ uninit_buffer(buffer *b)
 		free(b->allocated);
 
 	b->allocated = NULL;
-	b->size = 0;
+	b->_size = 0;
 }
 
 bool
@@ -44,12 +45,12 @@ init_buffer(buffer *b, int size)
 	if (size > 0) {
 		b->data =
 		b->allocated =
-			calloc_aligned(size, size < 4096 ? 32 : 4096);
+			calloc_aligned(size, size < 4096 ? CACHE_LINE : 4096);
 
 		if (!b->allocated)
 			return FALSE;
 
-		b->size = size;
+		b->_size = size;
 	}
 
 	return TRUE;
@@ -73,7 +74,7 @@ uninit_fifo(fifo * f)
 }
 
 int
-init_fifo(fifo *f, mucon *consumer, int size, int num_buffers)
+init_buffered_fifo(fifo *f, mucon *consumer, int size, int num_buffers)
 {
 	int i;
 
@@ -81,7 +82,7 @@ init_fifo(fifo *f, mucon *consumer, int size, int num_buffers)
 
 	mucon_init(&f->producer);
 	f->consumer = consumer; /* NB the consumer mucon can be shared,
-				   eg. video, audio -> mux */
+				   cf. video, audio -> mux */
 
 	if (!(f->buffers = calloc(num_buffers, sizeof(buffer))))
 		return 0;

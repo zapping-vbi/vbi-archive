@@ -18,19 +18,36 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.h,v 1.1 2000-07-05 18:09:34 mschimek Exp $ */
+/* $Id: mpeg.h,v 1.2 2000-08-10 01:18:59 mschimek Exp $ */
 
-#define PACKET_START_CODE	0x00000100L
-#define ISO_END_CODE		0x000001B9L
-#define PACK_START_CODE		0x000001BAL
-#define SYSTEM_HEADER_CODE	0x000001BBL
+#define PACKET_START_CODE		0x00000100L	// + stream_id
+#define ISO_END_CODE			0x000001B9L
+#define MPEG_PROGRAM_END_CODE		0x000001B9L
+#define PACK_START_CODE			0x000001BAL
+#define SYSTEM_HEADER_CODE		0x000001BBL
 
-#define AUDIO_STREAM_0		0xC0
-#define VIDEO_STREAM_0		0xE0
+#define ALL_AUDIO_STREAMS		0xB8
+#define ALL_VIDEO_STREAMS		0xB9
 
-#define MARKER_SCR		2
-#define MARKER_DTS		1
-#define MARKER_PTS_ONLY		2
-#define MARKER_PTS		3
+#define PROGRAM_STREAM_MAP		0xBC
+#define PRIVATE_STREAM_1		0xBD
+#define PADDING_STREAM			0xBE
+#define PRIVATE_STREAM_2		0xBF
+#define AUDIO_STREAM			0xC0		// 0xC0 ... 0xDF
+#define VIDEO_STREAM			0xE0		// 0xE0 ... 0xEF
+#define ECM_STREAM			0xF0
+#define EMM_STREAM			0xF1
+#define DSM_CC_STREAM			0xF2
+#define ISO_13522_STREAM		0xF3
+/* RESERVED_STREAM 0xF4 ... 0xFE */
+#define PROGRAM_STREAM_DIRECTORY	0xFF
 
-#define SYSTEM_TICKS		90000
+#define IS_AUDIO_STREAM(stream_id) (((unsigned int)(stream_id) & (~0x1F)) == AUDIO_STREAM)
+#define IS_VIDEO_STREAM(stream_id) (((unsigned int)(stream_id) & (~0x0F)) == VIDEO_STREAM)
+
+#define MARKER_SCR			2
+#define MARKER_DTS			1
+#define MARKER_PTS_ONLY			2
+#define MARKER_PTS			3
+
+#define SYSTEM_TICKS			90000

@@ -1,6 +1,6 @@
-# $Id: Makefile.in,v 1.1 2000-07-04 17:40:20 garetxe Exp $
+# $Id: Makefile.in,v 1.2 2000-08-10 01:18:59 mschimek Exp $
 
-OBJS	= common.o mpeg1.o output.o
+OBJS	= mpeg1.o mpeg2.o stream.o output.o
 
 all: $(OBJS)
 	$(LD) -r $(OBJS) -o systems.o

@@ -18,380 +18,473 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.3 2000-08-09 09:41:36 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.4 2000-08-10 01:18:59 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <assert.h>
 #include "../video/mpeg.h"
 #include "../video/video.h"
 #include "../audio/mpeg.h"
 #include "../audio/audio.h"
-#include "../options.h"
+#include "../common/log.h"
 #include "../common/fifo.h"
 #include "../common/math.h"
-#include "../common/log.h"
+#include "../options.h"
 #include "mpeg.h"
 #include "systems.h"
+#include "stream.h"
 
-/*
- *  Simple MPEG-1 systems multiplexer for
- *  one video and one audio CBR stream.
- */
+#define put(p, val, bytes)						\
+do {									\
+	unsigned int v = val;						\
+									\
+	switch (bytes) {						\
+	case 4:								\
+		*((unsigned int *)(p)) = swab32(v);			\
+		break;							\
+	case 3:	(p)[bytes - 3] = v >> 16;				\
+	case 2:	(p)[bytes - 2] = v >> 8;				\
+	case 1:	(p)[bytes - 1] = v;					\
+	}								\
+} while (0)
 
-#define 			PACKET_SIZE		2048	// including any headers
-#define 			PACKETS_PER_PACK	16
-
-extern int			stereo;
-extern volatile int		quit_please;
-
-/*
- *  This routine must execute after capturing has started,
- *  but prior to compression and mux. Called only once to synchronize
- *  because the compression threads compensate frame dropping locally
- *  and we [will] use a PLL algorithm for clock drift compensation.
- */
-void
-mpeg1_system_run_in(void)
+static inline unsigned char *
+time_stamp(unsigned char *p, int marker, double system_time)
 {
-	int vindex;
-	void *ap = NULL, *vp = NULL;
-	double atime, vtime, d, max_d = 0.75 / frame_rate_value[frame_rate_code];
+	long long ts = llroundn(system_time);
 
-	ASSERT("allocate mux buffer, %d bytes",
-		(mux_buffer.data =
-		 mux_buffer.buffer = calloc_aligned(PACKET_SIZE, CACHE_LINE)) != NULL, PACKET_SIZE);
+	p[0] = (marker << 4) + ((ts >> 29) & 0xE) + 1;
+	p[1] = ((long) ts >> 22);
+	p[2] = ((long) ts >> 14) | 1;
+	p[3] = ((long) ts >> 7);
+	p[4] = (long) ts * 2 + 1;
+	/*
+	 *  marker [4], TS [32..30], marker_bit,
+	 *  TS [29..15], marker_bit,
+	 *  TS [14..0], marker_bit
+	 */
 
-	for (;;) {
-		if (!ap)
-			ap = audio_read(&atime);
-		if (!vp)
-			vp = video_wait_frame(&vtime, &vindex);
-		if (!ap || !vp)
-			FAIL("Premature end of file");
+	return p + 5;
+}
 
-		printv(3, "Sync vtime=%f, atime=%f\n", vtime, atime);
+#define PACK_HEADER_SIZE 12
+#define SCR_offset 8
 
-		d = vtime - atime;
+static inline unsigned char *
+pack_header(unsigned char *p, double scr, double system_rate)
+{
+	int mux_rate = ((unsigned int) ceil(system_rate + 49)) / 50;
 
-		if (fabs(d) <= max_d) {
-			break;
-		}
+	// assert(mux_rate > 0);
 
-		if (d < 0) {
-			video_frame_done(vindex);
-			vp = NULL;
+	put(p, PACK_START_CODE, 4);
+	time_stamp(p + 4, MARKER_SCR, scr);
+	put(p + 9, (mux_rate >> 15) | 0x80, 1);
+	put(p + 10, mux_rate >> 7, 1);
+	put(p + 11, (mux_rate << 1) | 1, 1);
+	/*
+	 *  pack_start_code [32], system_clock_reference [40],
+	 *  marker_bit, program_mux_rate, marker_bit
+	 */
+
+	return p + 12;
+}
+
+#define SYSTEM_HEADER_SIZE(nstr) (12 + (nstr) * 3)
+
+static inline unsigned char *
+system_header(unsigned char *p, double system_rate_bound)
+{
+	int mux_rate_bound = ((unsigned int) ceil(system_rate_bound + 49)) / 50;
+	int audio_bound = 0;
+	int video_bound = 0;
+	unsigned char *ph;
+	stream *str;
+
+	// assert(mux_rate_bound > 0);
+
+	ph = p;
+	p += 12;
+
+	for (str = (stream *) mux_input_streams.head; str; str = (stream *) str->node.next) {
+		put(p, str->stream_id, 1);
+
+		if (IS_VIDEO_STREAM(str->stream_id)) {
+			put(p + 1, (0x3 << 14) + (1 << 13) + ((40960 + 1023) >> 10), 2);
+			video_bound++;
+		} else if (IS_AUDIO_STREAM(str->stream_id)) {
+			put(p + 1, (0x3 << 14) + (0 << 13) + ((4096 + 127) >> 7), 2);
+			audio_bound++;
+		} else if (0 < (1 << (13 + 7))) {
+			put(p + 1, (0x3 << 14) + (0 << 13) + ((0 + 127) >> 7), 2);
 		} else
-			ap = NULL;
+			put(p + 1, (0x3 << 14) + (1 << 13) + ((0 + 1023) >> 10), 2);
+			/* '11', buffer_bound_scale, buffer_size_bound [13] */
+
+		p += 3;
 	}
 
-	video_unget_frame(vindex);
-	audio_unget(ap);
+	put(ph, SYSTEM_HEADER_CODE, 4);
+	put(ph + 4, p - ph - 6, 2);
+	put(ph + 6, (mux_rate_bound >> 15) | 0x80, 1);
+	put(ph + 7, mux_rate_bound >> 7, 1);
+	put(ph + 8, (mux_rate_bound << 1) | 1, 1);
+	put(ph + 9, (audio_bound << 2) + (0 << 1) + (0 << 0), 1);
+	put(ph + 10, (0 << 7) + (0 << 6) + (0x1 << 5) + (video_bound << 0), 1);
+	put(ph + 11, 0xFF, 1);
+	/*
+	 *  system_header_start_code [32], header_length [16],
+	 *  marker_bit, rate_bound [22], marker_bit,
+	 *  audio_bound [6], fixed_flag, CSPS_flag,
+	 *  system_audio_lock_flag, system_video_lock_flag,
+	 *  marker_bit, video_bound [5], reserved_byte [8]
+	 */
+
+	return p;
 }
 
-static inline void
-putt(unsigned char *d, int mark, unsigned int time)
+#define PACKET_HEADER_SIZE 16
+
+static inline unsigned char *
+packet_header(unsigned char *p, stream *str)
 {
-	d[0] = (mark << 4) | (time >> 29) | 1;
-	d[1] = time >> 22;
-	d[2] = (time >> 14) | 1;
-	d[3] = time >> 7;
-	d[4] = (time << 1) | 1;
+	put(p, PACKET_START_CODE + str->stream_id, 4);
+	put(p + 4, 0xFFFFFFFF, 4);
+	put(p + 8, 0xFFFFFFFF, 4);
+	put(p + 12, 0xFFFFFF0F, 4);
+
+	return p + PACKET_HEADER_SIZE;
 }
 
-static inline void
-put4(unsigned char *d, unsigned int n)
+#define CDLOG 0
+
+#if CDLOG
+static FILE *cdlog;
+#endif
+
+#define Rvid (1.0 / 1024)
+#define Raud (0.0)
+
+static inline bool
+next_access_unit(stream *str, double *ppts, unsigned char *ph)
 {
-	*((unsigned int *) d) = swab32(n);
+	buffer *buf;
+
+	str->buf = buf = wait_full_buffer(&str->fifo);
+
+	str->ptr  = buf->data;
+	str->left = buf->used;
+
+	if (!str->left)
+		return FALSE;
+
+	if (IS_VIDEO_STREAM(str->stream_id))
+		str->eff_bit_rate = str->eff_bit_rate * (1.0 - Rvid) +
+			(buf->used * 8 * str->frame_rate) * Rvid;
+
+#if CDLOG
+	if (IS_VIDEO_STREAM(str->stream_id)) {
+		double stime = str->cap_t0 +
+			(str->frame_count + buf->offset - 1) / str->frame_rate;
+
+		fprintf(cdlog, "%02x: I%15.10f S%15.10f %+15.10f\n",
+			str->stream_id, buf->time, stime, buf->time - stime);
+
+		str->frame_count++;
+	} else if (IS_AUDIO_STREAM(str->stream_id)) {
+		double stime = str->cap_t0 + str->frame_count / str->frame_rate;
+
+		fprintf(cdlog, "%02x: I%15.10f S%15.10f %+15.10f\n",
+			str->stream_id, buf->time, stime, buf->time - stime);
+
+		str->frame_count++;
+	}
+#endif
+
+	if (ph) {
+		/*
+		 *  Add DTS/PTS of first access unit
+		 *  commencing in packet.
+		 */
+		if (IS_VIDEO_STREAM(str->stream_id)) {
+			/*
+			 *  d/o  IBBPBBIBBPBBP
+			 *  c/o  IPBBIBBPBBPBB
+			 *  DTS  0123456789ABC
+			 *  PTS  1423756A89DBC
+			 */
+			switch (buf->type) {
+			case I_TYPE:
+			case P_TYPE:
+				*ppts = str->dts + str->ticks_per_frame * buf->offset; // reorder delay
+				time_stamp(ph +  6, MARKER_PTS, *ppts);
+				time_stamp(ph + 11, MARKER_DTS, str->dts);
+				break;
+			
+			case B_TYPE:
+				*ppts = str->dts; // delay always 0
+				time_stamp(ph +  6, MARKER_PTS, *ppts);
+				time_stamp(ph + 11, MARKER_DTS, str->dts);
+				break;
+
+			default:
+				/* no time stamp */
+			}
+		} else if (IS_AUDIO_STREAM(str->stream_id)) {
+			*ppts = str->dts + str->pts_offset;
+			time_stamp(ph + 11, MARKER_PTS_ONLY, *ppts);
+		}
+	}
+
+	str->ticks_per_byte = str->ticks_per_frame / str->left;
+
+	return TRUE;
 }
 
-static inline void
-put3(unsigned char *d, unsigned int n)
-{
-	d[0] = n >> 16;
-	d[1] = n >> 8;
-	d[2] = n;
-}
+#define LARGE_DTS 1E30
 
-static inline void
-put2(unsigned char *d, unsigned int n)
+static inline stream *
+schedule(void)
 {
-	d[0] = n >> 8;
-	d[1] = n;
+	double dtsi_min = LARGE_DTS;
+	stream *s, *str;
+
+	s = (stream *) mux_input_streams.head;
+	str = NULL;
+
+	while (s) {
+		double dtsi = s->dts;
+
+		if (s->buf)
+			dtsi += (s->ptr - s->buf->data) * s->ticks_per_byte;
+
+		if (dtsi < dtsi_min) {
+			str = s;
+			dtsi_min = dtsi;
+		}
+
+		s = (stream *) s->node.next;
+	}
+
+	return str;
 }
 
 void *
 mpeg1_system_mux(void *unused)
 {
-	unsigned int video_frame = 0, packet = 0, mux_rate_code;
-	double system_rate = 0, scr, pack_tick;
-	_buffer *vbuf, *abuf;
-	bool done = FALSE;
-	_buffer *mbuf = &mux_buffer;
+	unsigned char *p, *ph, *ps, *px;
+	unsigned long bytes_out = 0;
+	unsigned int pack_packet_count = PACKETS_PER_PACK;
+	unsigned int packet_count = 0;
+	unsigned int pack_count = 0;
+	unsigned int packet_size;
+	double system_rate, system_rate_bound;
+	double system_overhead;
+	double ticks_per_pack;
+	double scr, pts, front_pts = 0.0;
+	buffer *buf;
+	stream *str;
 
-	// Get sizes of pending first frames
-
-	pthread_mutex_lock(&mux_mutex);
-
-	while (!(vbuf = (_buffer *) vid.full.head))
-		pthread_cond_wait(&mux_cond, &mux_mutex);
-
-	while (!(abuf = (_buffer *) aud.full.head))
-		pthread_cond_wait(&mux_cond, &mux_mutex);
-
-	pthread_mutex_unlock(&mux_mutex);
-
-	if (!abuf->size || !vbuf->size)
-		FAIL("Premature end of file");
-
-	// Rate control
+#if CDLOG
+	if ((cdlog = fopen("cdlog", "w"))) {
+		fprintf(cdlog, "Clock drift\n\n");
+	}
+#endif
 
 	{
-		double overhead = PACKET_SIZE / (PACKET_SIZE - (16.0 + 30.0 / PACKETS_PER_PACK));
-		double delay;
+		double preload_delay;
+		double video_frame_rate = DBL_MAX;
+		int nstreams = 0;
+		int preload = 0;
+		int bit_rate = 0;
 
-		system_rate = ((video_bit_rate + (audio_bit_rate << stereo)) / 8) * overhead;
+		for (str = (stream *) mux_input_streams.head; str; str = (stream *) str->node.next) {
+			bit_rate += str->bit_rate;
+			str->eff_bit_rate = str->bit_rate;
+			str->ticks_per_frame = (double) SYSTEM_TICKS / str->frame_rate;
 
-		mux_rate_code = 0x800001 + ((unsigned int)((ceil(system_rate) + 49) / 50) << 1);
+			if (IS_VIDEO_STREAM(str->stream_id) && str->frame_rate < video_frame_rate)
+				video_frame_rate = frame_rate;
 
-		scr = 8 /* SCR field offset */ / system_rate * SYSTEM_TICKS;
+			buf = wait_full_buffer(&str->fifo);
 
-		pack_tick = (PACKET_SIZE * PACKETS_PER_PACK) / system_rate * SYSTEM_TICKS;
+			if (!buf->used)
+				FAIL("Premature end of file");
 
-		vid.tick = (double) SYSTEM_TICKS / frame_rate_value[frame_rate_code];
-		aud.tick = (double) SYSTEM_TICKS * 1152 / sampling_rate;
+			str->cap_t0 = buf->time;
+	    		preload += buf->used;
 
-		vid.rtick = 1.0 / frame_rate_value[frame_rate_code];
-		aud.rtick = 1152.0 / sampling_rate;
-		vid.rtime = 0.0;
-		aud.rtime = 0.0;
+			unget_full_buffer(&str->fifo, buf);
 
-		delay = (vbuf->size + abuf->size) * overhead + 30.0;
+			nstreams++;
+		}
 
-		vid.dts = delay / system_rate * SYSTEM_TICKS;
-		aud.dts = vid.dts + vid.tick * 1.0; // 1.0 .. 2.0
+		buf = mux_output(NULL);
 
-		vid.time = 0;
-		aud.time = 0;
+		assert(buf
+		       && buf->_size >= 512
+		       && buf->_size <= 32768);
 
-		printv(3,
-			"system_rate=%.2f byte/s, mux_rate_code=0x%06x,\n"
-			"scr=%.2f st, pack_tick=%.2f st,\n"
-			"frame_tick=%.2f,%.2f st, dts=%.2f,%.2f st,\n",
-			system_rate, mux_rate_code, scr, pack_tick,
-			vid.tick, aud.tick, vid.dts, aud.dts);
+		packet_size = buf->_size;
+
+		system_overhead = packet_size / (packet_size
+			- (SYSTEM_HEADER_SIZE(nstreams) + PACK_HEADER_SIZE / PACKETS_PER_PACK));
+
+		system_rate = system_rate_bound = bit_rate * system_overhead / 8;
+
+		/* Frames must arrive completely before decoding starts */
+		preload_delay = (preload * system_overhead + PACK_HEADER_SIZE)
+			/ system_rate_bound * SYSTEM_TICKS;
+
+		scr = SCR_offset / system_rate_bound * SYSTEM_TICKS;
+		ticks_per_pack = (packet_size * PACKETS_PER_PACK) / system_rate_bound * SYSTEM_TICKS;
+
+		for (str = (stream *) mux_input_streams.head; str; str = (stream *) str->node.next) {
+			/* Video PTS is delayed by one frame */
+			if (IS_AUDIO_STREAM(str->stream_id)) {
+				str->pts_offset = (double) SYSTEM_TICKS / (video_frame_rate * 1.0);
+				/* + 0.1 to schedule video frames first */
+				str->dts = preload_delay + 0.1;
+			} else
+				str->dts = preload_delay;
+		}
 	}
 
-	// Packet loop
+	/* Packet loop */
 
-	while (!done) {
-		_fifo *f;
-		int empty = PACKET_SIZE;
-		unsigned char *ph, *p = mbuf->data;
-		double pts;
+	for (;;) {
+		p = buf->data;
+		px = p + buf->_size;
 
-		if ((packet % PACKETS_PER_PACK) == 0) {
-			put4(p, PACK_START_CODE);
-			putt(p + 4, MARKER_SCR, floor(scr + 0.5));
-			put3(p + 9, mux_rate_code);
+		/* Pack header, system header */
 
-			put4(p + 12, SYSTEM_HEADER_CODE);
-			put2(p + 16, 6 + 3 + 3);
-			put3(p + 18, mux_rate_code);
-			put3(p + 21, 0x07E1FF);
-			put3(p + 24, (AUDIO_STREAM_0 << 16) | 0xC000 | 32);
-			put3(p + 27, (VIDEO_STREAM_0 << 16) | 0xE000 | 40);
+		if (pack_packet_count >= PACKETS_PER_PACK) {
+			printv(4, "Pack #%d, scr=%f\n",	pack_count++, scr);
 
-			printv(4, "Pack #%d, scr=%f\n",
-				packet / PACKETS_PER_PACK, scr);
+			p = pack_header(p, scr, system_rate);
+			p = system_header(p, system_rate_bound);
 
-			scr += pack_tick;
+			if (0)
+				scr += ticks_per_pack;
+			else {
+				int bit_rate = 0;
 
-			p += 30;
-			empty -= 30;
+				for (str = (stream *) mux_input_streams.head; str; str = (stream *) str->node.next)
+					bit_rate += str->eff_bit_rate;
 
-			get_idle();
+				system_rate = bit_rate * system_overhead / 8;
+				scr += (packet_size * PACKETS_PER_PACK) / system_rate * SYSTEM_TICKS;
+			}
+
+			pack_packet_count = 0;
 		}
 
-		f = (vid.time <= aud.time) ? &vid : &aud;
+reschedule:
+		if (!(str = schedule()))
+			break;
 
-		{
-			ph = p;
+		ph = p;
+		ps = p;
 
-			((unsigned int *) p)[0] = swab32(PACKET_START_CODE + ((f == &vid) ? VIDEO_STREAM_0 : AUDIO_STREAM_0));
-			((unsigned int *) p)[1] = swab32(((empty - 6) << 16) + 0xFFFF);
-			((unsigned int *) p)[2] = 0xFFFFFFFF;
-			((unsigned int *) p)[3] = 0x0FFFFFFF;
+		p = packet_header(p, str);
 
-			p += 16;
-			empty -= 16;
-		}
-
-		// Packet fill loop
+		/* Packet fill loop */
 
 		pts = -1;
 
-		while (empty > 0) {
-			if (f->left == 0) {
-				pthread_mutex_lock(&mux_mutex);
+		while (p < px) {
+			int n;
 
-				for (;;) {
-					if ((f->buf = (_buffer *) rem_head(&f->full)))
-						break;
+			if (str->left == 0) {
+				if (!next_access_unit(str, &pts, ph)) {
+					str->dts = LARGE_DTS * 2.0; // don't schedule stream
 
-					pthread_cond_wait(&mux_cond, &mux_mutex);
-				}
-
-				pthread_mutex_unlock(&mux_mutex);
-
-				f->ptr  = f->buf->data;
-				f->left = f->buf->size;
-				f->rtime += f->rtick;
-
-				if (!f->left)
-					FAIL("Oops, not prepared for EOF.");
-
-				if (f == &vid) {
-					if (ph) {
-						pts = vid.dts + vid.tick;
-
-						putt(ph +  6, MARKER_PTS, floor(pts + 0.5));
-						putt(ph + 11, MARKER_DTS, floor(vid.dts + 0.5));
-						mbuf->size = p - mbuf->data;
-						mbuf = output(mbuf);
-						ph = NULL;
+					if (ph + PACKET_HEADER_SIZE == p) {
+						/* no payload */
+						p = ps;
+						goto reschedule;
 					}
 
-					video_frame++;
-				} else {
-					if (ph)	{
-						pts = aud.dts;
-
-						putt(ph + 11, MARKER_PTS_ONLY, pts);
-						mbuf->size = p - mbuf->data;
-						mbuf = output(mbuf);
-						ph = NULL;
+					if (FILL_UP) {
+						memset(p, 0, px - p);
+						p = px;
 					}
+
+					break;
 				}
 
-				f->dts += f->tick;
-				f->tpb  = f->tick / f->left;
+				ph = NULL;
 			}
 
-			if (f->left < empty) {
-				if (ph) {
-					memcpy(p, f->ptr, f->left);
-					p += f->left;
-				} else {
-					memcpy(mbuf->data, f->ptr, mbuf->size = f->left);
-					mbuf = output(mbuf);
-				}
+			n = MIN(str->left, px - p);
 
-				f->time += f->tpb * f->left;
-				empty     -= f->left;
-				f->left  = 0;
-			} else {
-				if (ph)	{
-					mbuf->size = p - mbuf->data;
-					mbuf = output(mbuf);
-					ph = NULL;
-				}
+			memcpy(p, str->ptr, n);
 
-				memcpy(mbuf->data, f->ptr, mbuf->size = empty);
-				mbuf = output(mbuf);
+			str->left -= n;
 
-				f->time += f->tpb * empty;
-				f->ptr  += empty;
-				f->left -= empty;
-				empty      = 0;
+			if (!str->left) {
+				send_empty_buffer(&str->fifo, str->buf);
+
+				str->buf = NULL;
+				str->dts += str->ticks_per_frame;
 			}
 
-			if (f->left == 0) {
-				_empty_buffer(f, f->buf);
+			p += n;
 
-				if (f == &vid)
-					if (video_frame >= video_num_frames || quit_please) {
-						if (!ph)
-							p = mbuf->data;
-
-						if (empty >= 8) { // XXX
-							((unsigned int *) p)[0] = swab32(SEQUENCE_END_CODE);
-							((unsigned int *) p)[1] = swab32(ISO_END_CODE);
-
-							p += 8;
-							empty -= 8;
-						}
-
-						memset(p, 0, empty);
-
-						mbuf->size = p - mbuf->data + empty;
-						mbuf = output(mbuf);
-
-						if (aud.left > 0) {
-							// XXX does not stop audio in time
-
-							ASSERT("(ugly hack)", aud.left < (PACKET_SIZE - 16));
-
-							memset(mbuf->data, 0, PACKET_SIZE);
-
-							((unsigned int *) mbuf->data)[0] = swab32(PACKET_START_CODE + AUDIO_STREAM_0);
-							((unsigned int *) mbuf->data)[1] = swab32(((PACKET_SIZE - 6) << 16) + 0xFFFF);
-							((unsigned int *) mbuf->data)[2] = 0xFFFFFFFF;
-							((unsigned int *) mbuf->data)[3] = 0x0FFFFFFF;
-
-							memcpy(mbuf->data + 16, aud.ptr, aud.left);
-
-							mbuf->size = PACKET_SIZE;
-							mbuf = output(mbuf);
-						}
-
-						printv(1, "\n%s: %d video frames done.\n",
-							my_name, video_frame);
-
-						empty = 0;
-						done = 1;
-					}
-			}
-/*
-			if (verbose > 3) {
-				int al = aud.in, vl = vid.in;
-				if (al < aud.out) al += aud.max;
-				if (vl < vid.out) vl += vid.max;
-				al = 100 * (al - aud.out) / aud.max;
-				vl = 100 * (vl - vid.out) / vid.max;
-				printv(4, "fifo load=%3d%%,%3d%%\n", vl, al);
-			}
-*/
-		} // while (empty > 0)
+			str->ptr += n;
+		}
 
 		printv(4, "Packet #%d %s, pts=%f\n",
-			packet, (f == &vid) ? "video" : "audio", pts);
+			packet_count, mpeg_header_name(str->stream_id), pts);
 
-		if (verbose > 0) {
+		((unsigned short *) ps)[2] = swab16(p - ps - 6);
+
+		bytes_out += buf->used = p - buf->data;
+
+		buf = mux_output(buf);
+
+		assert(buf
+			&& buf->_size >= 512
+			&& buf->_size <= 32768);
+
+		packet_count++;
+		pack_packet_count++;
+
+		if (pts > front_pts)
+			front_pts = pts;
+
+		if (verbose > 0 && (packet_count & 3) == 0) {
+			double system_load = 1.0 - get_idle();
 			int min, sec;
 
-			sec = bytes_out / system_rate;
+			sec = front_pts / SYSTEM_TICKS;
 			min = sec / 60;
 			sec -= min * 60;
 
 			if (video_frames_dropped > 0)
 				printv(1, "%d:%02d (%.1f MB), %.2f %% dropped, system load %.1f %%  %c",
-					min, sec, bytes_out / ((double)(1 << 20)),
+					min, sec, bytes_out / (double)(1 << 20),
 					100.0 * video_frames_dropped / video_frame_count,
-					100.0 * (1.0 - system_idle), (verbose > 3) ? '\n' : '\r');
+					100.0 * system_load, (verbose > 3) ? '\n' : '\r');
 			else
 				printv(1, "%d:%02d (%.1f MB), system load %.1f %%  %c",
-					min, sec, bytes_out / ((double)(1 << 20)),
-					100.0 * (1.0 - system_idle), (verbose > 3) ? '\n' : '\r');
+					min, sec, bytes_out / (double)(1 << 20),
+					100.0 * system_load, (verbose > 3) ? '\n' : '\r');
 
 			fflush(stderr);
 		}
+	}
 
-		packet++;
+	p = buf->data;
 
-	} // while (!done)
+	*((unsigned int *) p) = swab32(ISO_END_CODE);
+	buf->used = 4;
+
+	mux_output(buf);
 
 	return NULL;
 }

@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.3 2000-08-09 09:41:36 mschimek Exp $ */
+/* $Id: mp2.c,v 1.4 2000-08-10 01:18:59 mschimek Exp $ */
 
 #include <limits.h>
 #include "../options.h"
@@ -30,6 +30,8 @@
 #include "../common/math.h"
 #include "mpeg.h"
 #include "audio.h"
+#include "../systems/systems.h"
+#include "../systems/mpeg.h"
 
 /* filter.c */
 
@@ -92,6 +94,7 @@ static struct audio_seg
 
 } aseg __attribute__ ((aligned (4096)));
 
+fifo *			audio_fifo;
 int			mpeg_version;
 int			bit_rate_code;
 int			sampling_freq_code;
@@ -166,7 +169,7 @@ audio_parameters(int *sampling_freq, int *bit_rate)
 void
 audio_init(void)
 {
-	int sb, bit_rate_per_ch, sampling_freq;
+	int sb, bit_rate, bit_rate_per_ch, sampling_freq;
 
 	if (audio_mode == AUDIO_MODE_JOINT_STEREO)
 		audio_mode = AUDIO_MODE_STEREO;
@@ -175,7 +178,8 @@ audio_init(void)
 
 	binit_write(&aseg.out);
 
-        bit_rate_per_ch = bit_rate_value[mpeg_version][bit_rate_code] / channels;
+        bit_rate = bit_rate_value[mpeg_version][bit_rate_code];
+        bit_rate_per_ch = bit_rate / channels;
         sampling_freq = sampling_freq_value[mpeg_version][sampling_freq_code];
 
 	if (mpeg_version == MPEG_VERSION_2)
@@ -301,7 +305,7 @@ audio_init(void)
 
 	memcpy(aseg.spattern, spattern, sizeof(spattern));
 
-    	avg_slots_per_frame = ((double) bit_rate_value[mpeg_version][bit_rate_code] / BITS_PER_SLOT) /
+    	avg_slots_per_frame = ((double) bit_rate / BITS_PER_SLOT) /
 			      ((double) sampling_freq_value[mpeg_version][sampling_freq_code] / SAMPLES_PER_FRAME);
 
 	whole_SpF = floor(avg_slots_per_frame);
@@ -322,26 +326,27 @@ audio_init(void)
 
 	audio_frame_count = 0;
 
-	// fpu_control(FPCW_PRECISION_SINGLE, FPCW_PRECISION_MASK);
+	audio_fifo = mux_add_input_stream(AUDIO_STREAM,
+		2048 << stereo, aud_buffers,
+		sampling_freq / (double) SAMPLES_PER_FRAME, bit_rate);
 }
 
 void *
-audio_compression_thread(void *unused)
+mpeg_audio_layer_ii_mono(void *unused)
 {
+	// fpu_control(FPCW_PRECISION_SINGLE, FPCW_PRECISION_MASK);
+
 	for (;;) {
-		_buffer *obuf;
+		buffer *obuf;
 		unsigned int adb, bpf;
 		double stime;
 
 		header_template &= ~(1 << 9);
 		adb = whole_SpF * BITS_PER_SLOT;
 
-		if (slot_lag > (frac_SpF - 1.0))
-		{
+		if (slot_lag > (frac_SpF - 1.0)) {
 			slot_lag -= frac_SpF;
-		}
-		else
-		{
+		} else {
 			header_template |= 1 << 9; /* padded */
 			adb += BITS_PER_SLOT;
 			slot_lag += (1.0 - frac_SpF);
@@ -359,9 +364,9 @@ audio_compression_thread(void *unused)
 			    stime >= audio_stop_time) {
 				printv(2, "Audio: End of file\n");
 
-				obuf = _new_buffer(&aud);
-				obuf->size = 0;
-				_send_buffer(&aud, obuf);
+				obuf = wait_empty_buffer(audio_fifo);
+				obuf->used = 0;
+				send_full_buffer(audio_fifo, obuf);
 				continue;
 			}
 
@@ -374,7 +379,7 @@ audio_compression_thread(void *unused)
 
 			pr_end(35);
 
-			pr_start(34, "Psychoaccoustic analysis");
+			pr_start(34, "Psychoacoustic analysis");
 
 			psycho(p, aseg.mnr[0], 1);
 
@@ -526,7 +531,7 @@ audio_compression_thread(void *unused)
 
 		pr_end(36);
 
-		obuf = _new_buffer(&aud);
+		obuf = wait_empty_buffer(audio_fifo);
 
 		bstart(&aseg.out, obuf->data);
 
@@ -595,32 +600,31 @@ audio_compression_thread(void *unused)
 		while (((char *) aseg.out.p - (char *) aseg.out.p1) < bpf)
 			*((unsigned int *)(aseg.out.p))++ = 0;
 
-		obuf->size = bpf;
+		obuf->used = bpf;
 		obuf->time = stime;
 
-		_send_buffer(&aud, obuf);
+		send_full_buffer(audio_fifo, obuf);
 	}
 
 	return NULL; // never
 }
 
 void *
-stereo_audio_compression_thread(void *unused)
+mpeg_audio_layer_ii_stereo(void *unused)
 {
+	// fpu_control(FPCW_PRECISION_SINGLE, FPCW_PRECISION_MASK);
+
 	for (;;) {
-		_buffer *obuf;
+		buffer *obuf;
 		unsigned int adb, bpf;
 		double stime;
 
 		header_template &= ~(1 << 9);
 		adb = whole_SpF * BITS_PER_SLOT;
 
-		if (slot_lag > (frac_SpF - 1.0))
-		{
+		if (slot_lag > (frac_SpF - 1.0)) {
 			slot_lag -= frac_SpF;
-		}
-		else
-		{
+		} else {
 			header_template |= 1 << 9; /* padded */
 			adb += BITS_PER_SLOT;
 			slot_lag += (1.0 - frac_SpF);
@@ -638,9 +642,9 @@ stereo_audio_compression_thread(void *unused)
 			    stime >= audio_stop_time) {
 				printv(2, "Audio: End of file\n");
 
-				obuf = _new_buffer(&aud);
-				obuf->size = 0;
-				_send_buffer(&aud, obuf);
+				obuf = wait_empty_buffer(audio_fifo);
+				obuf->used = 0;
+				send_full_buffer(audio_fifo, obuf);
 				continue;
 			}
 
@@ -653,7 +657,7 @@ stereo_audio_compression_thread(void *unused)
 
 			pr_end(35);
 
-			pr_start(34, "Psychoaccoustic analysis");
+			pr_start(34, "Psychoacoustic analysis");
 
 			psycho(p,     aseg.mnr[0], 2);
 			psycho(p + 1, aseg.mnr[1], 2);
@@ -814,7 +818,7 @@ stereo_audio_compression_thread(void *unused)
 
 		pr_end(36);
 
-		obuf = _new_buffer(&aud);
+		obuf = wait_empty_buffer(audio_fifo);
 
 		bstart(&aseg.out, obuf->data);
 
@@ -925,10 +929,10 @@ stereo_audio_compression_thread(void *unused)
 		pr_end(37);
 		pr_end(38);
 
-		obuf->size = bpf;
+		obuf->used = bpf;
 		obuf->time = stime;
 
-		_send_buffer(&aud, obuf);
+		send_full_buffer(audio_fifo, obuf);
 	}
 
 	return NULL; // never

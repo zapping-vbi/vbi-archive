@@ -18,13 +18,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.h,v 1.2 2000-07-05 18:09:34 mschimek Exp $ */
-
-extern int		mux_mode;
+/* $Id: options.h,v 1.3 2000-08-10 01:18:58 mschimek Exp $ */
 
 extern char *		cap_dev;
 extern char *		pcm_dev;
 extern char *		mix_dev;
+
+/* Video */
 
 extern int		width;
 extern int		height;
@@ -38,6 +38,9 @@ extern int		filter_mode;
 extern double		frame_rate;
 extern int		preview;
 extern char *		anno;
+extern int		luma_only;
+
+/* Audio */
 
 extern int		audio_bit_rate;
 extern int		audio_bit_rate_stereo;
@@ -47,7 +50,12 @@ extern int		mix_line;
 extern int		mix_volume;
 extern int		audio_mode;
 extern int		psycho_loops;
-extern int		mute;
+extern int		mute; // bttv specific
+
+/* Multiplexer */
+
+extern int		mux_mode;
+extern int		mux_syn;
 
 extern int		cap_buffers;
 extern int		vid_buffers;

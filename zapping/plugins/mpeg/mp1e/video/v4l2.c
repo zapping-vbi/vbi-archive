@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.2 2000-08-09 09:41:36 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.3 2000-08-10 01:18:59 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -222,6 +222,7 @@ v4l2_init(void)
 
 		probed_modes |= 1 << filter_mode;
 
+		vfmt.type = V4L2_BUF_TYPE_CAPTURE;
 		vfmt.fmt.pix.width = aligned_width;
 		vfmt.fmt.pix.height = aligned_height;
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.3 2000-08-09 09:42:39 mschimek Exp $ */
+/* $Id: options.c,v 1.4 2000-08-10 01:18:58 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,7 +31,7 @@
 #include <asm/types.h>
 #include <linux/videodev.h>
 #include <linux/soundcard.h>
-//#include "misc.h"
+#include "common/types.h"
 #include "common/log.h"
 #include "common/fifo.h"
 #include "video/video.h"
@@ -39,10 +39,11 @@
 #include "audio/mpeg.h"
 
 /*
- *  Factory defaults
+ *  Factory defaults, use system wide configuration file to customize
  */
 
-int			mux_mode		= 3;			// 1 = Video, 2 = Audio, 3 = Both
+int			mux_mode		= 3;			// 1 = Video, Audio, Both
+int			mux_syn			= 1;			// 0 = elementary, MPEG-1, MPEG-2 PS 
 
 char *			cap_dev			= "/dev/video";
 char *			pcm_dev			= "/dev/dsp";
@@ -52,30 +53,32 @@ int			width			= 352;
 int			height			= 288;
 int			grab_width		= 352;
 int			grab_height		= 288;
-int			video_bit_rate		= 2000000;
+int			video_bit_rate		= 2300000;
 int			video_num_frames	= INT_MAX;
 char *			gop_sequence		= "IBBPBBPBBPBB";
 int			frames_per_seqhdr	= INT_MAX;
 int			filter_mode		= CM_YUV;
-double			frame_rate		= 1000.0;		// Frames per second
-int			preview			= 0;
+double			frame_rate		= 1000.0;
+int			preview			= 0;			// 0 = none, XvImage/Tk, progressive
 char *			anno			= NULL;
+int			luma_only		= 0;			// boolean
 
 int			audio_bit_rate		= 80000;
 int			audio_bit_rate_stereo	= 160000;
 int			audio_num_frames	= INT_MAX;
 int			sampling_rate		= 44100;
-int			mix_line		= SOUND_MIXER_LINE;	// See soundcard.h
+int			mix_line		= SOUND_MIXER_LINE;	// soundcard.h
 int			mix_volume		= 80;			// 0 <= n <= 100
-int			audio_mode		= AUDIO_MODE_MONO;	// See ./mpeg.h
-int			psycho_loops		= 0;			// Minimum audio quality
-int			mute			= 0;
+int			audio_mode		= AUDIO_MODE_MONO;
+int			psycho_loops		= 0;			// 0 = static, low, hi quality
+int			mute			= 0;			// bttv specific, boolean
 
-int			cap_buffers		= 12;			// Capture -> video compression
-int			vid_buffers		= 6;			// Video compression -> Mux
-int			aud_buffers		= 20;			// Audio compression -> Mux
+int			cap_buffers		= 12;			// capture -> video compression
+int			vid_buffers		= 6;			// video compression -> mux
+int			aud_buffers		= 20;			// audio compression -> mux
 
 static const char *mux_options[] = { "", "video", "audio", "video_and_audio" };
+static const char *mux_syn_options[] = { "bypass", "mpeg1", "mpeg2-ps" };
 static const char *audio_options[] = { "stereo", "", "dual_channel", "mono" };
 static const char *mute_options[] = { "unmute", "mute", "ignore" };
 
@@ -106,12 +109,12 @@ usage(FILE *fi)
 		" -n frames      Number of video (audio) frames to encode\n"
 		"                or until termination (Ctrl-C). To break\n"
 		"                immediately hit Ctrl-\\                      years\n"
-		" -s wxh         Image size (centered)                       %d x %d pixels\n"
+		" -s wxh         Image size (centred)                        %d x %d pixels\n"
 		" -G wxh         Grab size, multiple of 16 x 16              %d x %d pixels\n"
 		" -H frames      Repeat sequence header every n frames,\n"
 		"                n > 0. Helps random access                  never repeated\n"
-#ifdef HAVE_LIBXV
-		" -P             XvImage Preview (test)                      disabled\n"
+#if TEST_PREVIEW && defined(HAVE_LIBXV)
+		" -P             XvImage Preview (test mode)                 disabled\n"
 #endif
 		"\n"
 		" -a mode        Audio mode 0 = stereo, 2 = dual channel,\n"
@@ -156,6 +159,7 @@ long_options[] = {
 	{ "rec_source",			required_argument, NULL, 'r' },
 	{ "image_size",			required_argument, NULL, 's' },
 	{ "verbose",			optional_argument, NULL, 'v' },
+	{ "bw",				no_argument,	   NULL, 'w' },
 	{ "mixer_device",		required_argument, NULL, 'x' },
 	{ "anno",			required_argument, NULL, 'A' },
 	{ "audio_bit_rate",		required_argument, NULL, 'B' },
@@ -166,6 +170,7 @@ long_options[] = {
 	{ "preview",			required_argument, NULL, 'P' },
 	{ "sampling_rate",		required_argument, NULL, 'S' },
 	{ "version",			no_argument,	   NULL, 'V' },
+	{ "mux",			required_argument, NULL, 'X' },
 	{ NULL }
 };
 
@@ -272,7 +277,7 @@ parse_option(int c)
 				return FALSE;
 			/*
 			 *  0 = stereo, 1 = joint stereo, 2 = dual channel, 3 = mono;
-			 *  To override psychoacoustic analysis trade off:
+			 *  To override psychoacoustic analysis trade-off:
 			 *  +0  level 0 (no analysis)
 			 *  +10 level 1
 			 *  +20 level 2 (full analysis)
@@ -373,6 +378,10 @@ parse_option(int c)
 				verbose++;
 			break;
 
+		case 'w':
+			luma_only = !luma_only;
+			break;
+
 		case 'x':
 			mix_dev = strdup(optarg);
 			break;
@@ -445,6 +454,12 @@ parse_option(int c)
 			puts("mp1e" " " VERSION);
 			exit(EXIT_SUCCESS);
 
+		case 'X':
+			mux_syn = suboption(mux_syn_options, 3, 1);
+			if (mux_syn < 0 || mux_syn > 2)
+				return FALSE;
+			break;
+
 		default:
 			usage(stderr);
 	}
@@ -452,7 +467,7 @@ parse_option(int c)
 	return TRUE;
 }
 
-void
+static void
 bark(void)
 {
 	if ((audio_mode & 3) != AUDIO_MODE_MONO && !have_audio_bit_rate)
@@ -509,7 +524,7 @@ options(int ac, char **av)
 	if (!isatty(STDIN_FILENO))
 		options_from_file("stdin", FALSE);
 
-	while ((c = getopt_long(ac, av, "a:b:c:f:g:hi:lm:n:p:r:s:vA:B:F:G:H:x:PS:V",
+	while ((c = getopt_long(ac, av, "a:b:c:f:g:hi:lm:n:p:r:s:vwx:A:B:F:G:H:PS:VX:",
 		long_options, &index)) != -1)
 		if (!parse_option(c))
 			usage(stderr);

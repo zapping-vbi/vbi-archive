@@ -34,72 +34,88 @@
 #include "../common/log.h"
 #include "../rtepriv.h"
 #include "systems.h"
+#include "stream.h"
 
-extern pthread_t        output_thread_id;
+buffer *		(* mux_output)(buffer *b);
 
-static _fifo             out;
+static buffer		mux_buffer;
+
+static buffer *
+output_stdout(buffer *b)
+{
+	unsigned char *s;
+	ssize_t r, n;
+
+	if (!b)
+		return &mux_buffer;
+
+	s = b->data;
+	n = b->used;
+
+	while (n > 0) {
+		r = write(STDOUT_FILENO, s, n);
+
+		if (r < 0 && errno == EINTR)
+			continue;
+
+		ASSERT("write", r >= 0);
+
+		s += r;
+		n -= r;
+	}
+
+	return b;
+}
+
+bool
+init_output_stdout(void)
+{
+	ASSERT("allocate mux buffer, %d bytes",
+		init_buffer(&mux_buffer, PACKET_SIZE), PACKET_SIZE);
+	/*
+	 *  Attn: mux_buffer.size determines the packet size, not PACKET_SIZE.
+	 *  All buffers shall have the same size, returning used <= size.
+	 */
+
+	mux_output = output_stdout;
+
+	return TRUE;
+}
+
+#if 0
+
+static buffer *
+output_buffered(buffer *b)
+{
+	if (b)
+		send_full_buffer(output_fifo, b);
+
+	return wait_empty_buffer(output_fifo);
+}
+
+#endif
+
+static _fifo            out;
 static int              out_buffers = 8;
 static size_t           out_buffer_size;
 
 extern int		stereo;
+extern pthread_t        output_thread_id;
 
-int
-output_init( void )
-{
-	/* we need this later for the size check */
-	switch (mux_mode & 3) {
-	case 1:
-		out_buffer_size = mb_num * 384 * 4;
-		break;
-	case 2:
-		out_buffer_size = 2048 << stereo;
-		break;
-	case 3:
-		out_buffer_size = PACKET_SIZE;
-		break;
-	}
-
-	out_buffers = _init_fifo(&out, "output", out_buffer_size,
-				out_buffers);
-
-	return (out_buffers > 4 ? 1 : 0);
-}
-
-void
-output_end ( void )
-{
-	_buffer * buf;
-	
-	pthread_cancel(output_thread_id);
-	pthread_join(output_thread_id, NULL);
-
-	while ((buf = (_buffer *) rem_head(&out.full)))
-	{
-		if (!buf->size)
-			break;
-		rte_global_context->private->encode_callback(buf->data, buf->size,
-			   rte_global_context, rte_global_context->private->user_data);
-		_empty_buffer(&out, buf);
-	}
-}
-
-/*
-  If the output callback is NULL, we should call do_real_output
-  directly from here, and avoid the fifo thing.
-*/
-_buffer *
-output(_buffer *mbuf)
+static buffer *
+output(buffer *mbuf)
 {
 	_buffer *obuf;
 
-	bytes_out += mbuf->size;
+	if (!mbuf)
+		return &mux_buffer;
 
 	obuf = _new_buffer(&out);
 
-	assert(out_buffer_size >= mbuf->size);
+	assert(out_buffer_size >= mbuf->used);
 
-	memcpy(obuf->data, mbuf->data, mbuf->size);
-	obuf->size = mbuf->size;
+	memcpy(obuf->data, mbuf->data, mbuf->used);
+	obuf->size = mbuf->used;
 
 	_send_out_buffer(&out, obuf);
 
@@ -131,4 +147,58 @@ output_thread (void * unused)
 	}
 
 	return NULL;
+}
+
+int
+output_init( void )
+{
+	/* we need this later for the size check */
+	switch (mux_mode & 3) {
+	case 1:
+		out_buffer_size = mb_num * 384 * 4;
+		break;
+	case 2:
+		out_buffer_size = 2048 << stereo;
+		break;
+	case 3:
+		out_buffer_size = PACKET_SIZE;
+		break;
+	}
+
+	if (!init_buffer(&mux_buffer, PACKET_SIZE))
+		return 0;
+
+	out_buffers = _init_fifo(&out, "output", out_buffer_size,
+				out_buffers);
+
+	if (out_buffers < 5) {
+		uninit_buffer(&mux_buffer);
+		_free_fifo(&out);
+		return 0;
+	}
+
+	mux_output = output;
+
+	return 1;
+}
+
+void
+output_end ( void )
+{
+	_buffer * buf;
+	
+	pthread_cancel(output_thread_id);
+	pthread_join(output_thread_id, NULL);
+
+	while ((buf = (_buffer *) rem_head(&out.full)))
+	{
+		if (!buf->size)
+			break;
+		rte_global_context->private->encode_callback(buf->data, buf->size,
+			   rte_global_context, rte_global_context->private->user_data);
+		_empty_buffer(&out, buf);
+	}
+
+	uninit_buffer(&mux_buffer);
+	_free_fifo(&out);
 }

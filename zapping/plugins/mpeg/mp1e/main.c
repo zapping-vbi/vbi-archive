@@ -18,9 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.8 2000-08-09 09:42:39 mschimek Exp $ */
-
-#define MAIN_C
+/* $Id: main.c,v 1.9 2000-08-10 01:18:58 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,13 +45,15 @@
 #include "video/video.h"
 #include "audio/audio.h"
 #include "systems/systems.h"
-//#include "misc.h"
 #include "common/profile.h"
 #include "common/math.h"
 #include "common/log.h"
 #include "common/mmx.h"
 #include "common/bstream.h"
 #include "options.h"
+
+#define RTE 1
+
 #include "rtepriv.h"
 
 char *			my_name;
@@ -62,13 +62,13 @@ int			verbose;
 double			video_stop_time = 1e30;
 double			audio_stop_time = 1e30;
 
-_fifo			aud;
+fifo			aud;
 pthread_t		audio_thread_id;
 short *			(* audio_read)(double *);
 void			(* audio_unget)(short *);
 int			stereo;
 
-_fifo			vid;
+fifo			vid;
 pthread_t		video_thread_id;
 void			(* video_start)(void);
 unsigned char *		(* video_wait_frame)(double *, int *);
@@ -93,7 +93,8 @@ extern void preview_init(void);
 extern void audio_init(void);
 extern void video_init(void);
 
-volatile int quit_please = 0;
+#if RTE
+
 volatile int program_shutdown = 0;
 
 pthread_t video_emulation_thread_id;
@@ -215,6 +216,7 @@ int emulation_thread_init ( void )
 	default:
 		printv(1, "filter mode not supported: %d\n", filter_mode);
 		format = RTE_YUYV;
+// XXX bug; try ./mp1e -F3 ...
 		break;
 	}
 
@@ -238,45 +240,44 @@ int emulation_thread_init ( void )
 	return 1;
 }
 
-void
+#endif // RTE
+
+static void
 terminate(int signum)
 {
 	struct timeval tv;
-	static volatile int entry = 0;
 
 	printv(3, "Received termination signal\n");
 
-	entry++;
-
 	ASSERT("re-install termination handler", signal(signum, terminate) != SIG_ERR);
 
-	if (entry == 1) {
-		gettimeofday(&tv, NULL);
-		video_stop_time = tv.tv_sec + tv.tv_usec / 1e6;
-		
-		if (mux_mode == 2)
-			audio_stop_time = video_stop_time;
+	gettimeofday(&tv, NULL);
 
-		printv(1, "\nStop\n");
-	}
+	video_stop_time =
+	audio_stop_time = tv.tv_sec + tv.tv_usec / 1e6;
 
-	quit_please = 1;
+// XXX unsafe? atomic set, once only, potential rc
+
+	printv(1, "\nStop\n");
 }
 
 int
 main(int ac, char **av)
 {
-	my_name = av[0];
+	sigset_t block_mask;
 
-	options(ac, av);
+	my_name = av[0];
 
 	if (!cpu_id(ARCH_PENTIUM_MMX))
 		FAIL("Sorry, this program requires an MMX enhanced CPU");
 
-	ASSERT("install termination handler", signal(SIGINT, terminate) != SIG_ERR);
+	options(ac, av);
 
-	pthread_mutex_init(&mux_mutex, NULL);
-	pthread_cond_init(&mux_cond, NULL);
+	sigemptyset(&block_mask);
+	sigaddset(&block_mask, SIGINT);
+	sigprocmask(SIG_BLOCK, &block_mask, NULL);
+
+	ASSERT("install termination handler", signal(SIGINT, terminate) != SIG_ERR);
 
 #if TEST_PREVIEW
 	if (preview > 0)
@@ -350,6 +351,8 @@ main(int ac, char **av)
 
 	/* Compression init */
 
+	mucon_init(&mux_mucon);
+
 	if (mux_mode & 2) {
 		char *modes[] = { "stereo", "joint stereo", "dual channel", "mono" };
 
@@ -357,12 +360,10 @@ main(int ac, char **av)
 			sampling_rate / (double) 1000, sampling_rate < 32000 ? " (MPEG-2)" : "", modes[audio_mode],
 			audio_bit_rate / 1000, (double) sampling_rate * (16 << stereo) / audio_bit_rate);
 
-		aud_buffers = _init_fifo(&aud, "audio compression", 2048 << stereo, aud_buffers);
-
-		printv(2, "Allocated %d audio compression buffers\n", aud_buffers);
-
 		if (mux_mode & 1)
-			audio_num_frames = INT_MAX;
+			audio_num_frames =
+				lroundn((frame_rate_value[frame_rate_code] / video_num_frames)
+					/ (1152.0 / sampling_rate));
 
 		audio_init();
 	}
@@ -379,18 +380,16 @@ main(int ac, char **av)
 			width, height, (double) frame_rate,
 			video_bit_rate / 1e6, (width * height * 1.5 * 8 * frame_rate) / video_bit_rate);
 
-		vid_buffers = _init_fifo(&vid, "video compression", mb_num * 384 * 4, vid_buffers);
-
-		printv(2, "Allocated %d video compression buffers\n", vid_buffers);
-
 		video_init();
 
 #if TEST_PREVIEW
 		if (preview > 0)
 			preview_init();
 #endif
-		video_start();
+		video_start(); // bah. need a start/restart function, prob. start_time
 	}
+
+#if RTE
 
 	if (!emulation_thread_init())
 		return 0;
@@ -402,28 +401,59 @@ main(int ac, char **av)
 
 	printv(2, "Output thread launched\n");
 
+#else // !RTE
+
+	ASSERT("initialize output routine", init_output_stdout());
+
+#endif // !RTE
+
 	if ((mux_mode & 3) == 3)
-		mpeg1_system_run_in();
+		synchronize_capture_modules();
 
 	if (mux_mode & 2) {
 		ASSERT("create audio compression thread",
 			!pthread_create(&audio_thread_id, NULL,
-			stereo ? stereo_audio_compression_thread : audio_compression_thread, NULL));
+			stereo ? mpeg_audio_layer_ii_stereo :
+				 mpeg_audio_layer_ii_mono, NULL));
 
 		printv(2, "Audio compression thread launched\n");
 	}
 
 	if (mux_mode & 1) {
 		ASSERT("create video compression thread",
-			!pthread_create(&video_thread_id, NULL, video_compression_thread, NULL));
+			!pthread_create(&video_thread_id, NULL,
+				mpeg1_video_ipb, NULL));
 
 		printv(2, "Video compression thread launched\n");
 	}
 
-	if ((mux_mode & 3) == 3)
+	sigprocmask(SIG_UNBLOCK, &block_mask, NULL);
+	// Unblock only in main thread
+
+	if ((mux_mode & 3) != 3)
+		mux_syn = 0;
+
+	/*
+	 *  XXX Thread these, not UI.
+	 *  Async completion indicator?? 
+	 */
+	switch (mux_syn) {
+	case 0:
+		elementary_stream_bypass(NULL);
+		break;
+	case 1:
 		mpeg1_system_mux(NULL);
-	else
-		stream_output((mux_mode == 1) ? &vid : &aud);
+		break;
+	case 2:
+		mpeg2_program_stream_mux(NULL);
+		break;
+	}
+
+	mux_cleanup();
+
+	printv(1, "\n%s: Done.\n", my_name);
+
+#if RTE
 
 	printv(2, "Doing cleanup\n");
 
@@ -449,6 +479,8 @@ main(int ac, char **av)
 	printv(3, "done\n");
 
 	printv(2, "\nCleanup done, bye...\n");
+
+#endif // RTE
 
 	pr_report();
 

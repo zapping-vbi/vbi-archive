@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: filter.c,v 1.2 2000-08-09 09:41:36 mschimek Exp $ */
+/* $Id: filter.c,v 1.3 2000-08-10 01:18:59 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "../common/mmx.h"
@@ -89,6 +89,43 @@ YUYV_422(unsigned char *buffer, unsigned char *unused)
 
 	return s2 * 256 - (s * s); // luma spatial activity
 }
+
+static int (* color_pred)(unsigned char *, unsigned char *);
+
+/* Hum. Could add rendered subpictures. */
+
+static int
+color_trap(unsigned char *buffer1, unsigned char *buffer2)
+{
+	int r = color_pred(buffer1, buffer2);
+
+	asm ("
+		movq	c128,%%mm0;
+		movq	%%mm0,(%0);	movq	%%mm0,1*8(%0);
+		movq	%%mm0,2*8(%0);	movq	%%mm0,3*8(%0);
+		movq	%%mm0,4*8(%0);	movq	%%mm0,5*8(%0);
+		movq	%%mm0,6*8(%0);	movq	%%mm0,7*8(%0);
+		movq	%%mm0,8*8(%0);	movq	%%mm0,9*8(%0);
+		movq	%%mm0,10*8(%0);	movq	%%mm0,11*8(%0);
+		movq	%%mm0,12*8(%0);	movq	%%mm0,13*8(%0);
+		movq	%%mm0,14*8(%0);	movq	%%mm0,15*8(%0);
+		movq	%%mm0,16*8(%0);	movq	%%mm0,17*8(%0);
+		movq	%%mm0,18*8(%0);	movq	%%mm0,19*8(%0);
+		movq	%%mm0,20*8(%0);	movq	%%mm0,21*8(%0);
+		movq	%%mm0,22*8(%0);	movq	%%mm0,23*8(%0);
+		movq	%%mm0,24*8(%0);	movq	%%mm0,25*8(%0);
+		movq	%%mm0,26*8(%0);	movq	%%mm0,27*8(%0);
+		movq	%%mm0,28*8(%0);	movq	%%mm0,29*8(%0);
+		movq	%%mm0,30*8(%0);	movq	%%mm0,31*8(%0);
+	"
+	:: "D" (&mblock[0][4][0][0]) : "cc", "memory" FPU_REGS);
+
+	return r;
+}
+
+
+
+
 
 /* Experimental low pass filter */
 
@@ -438,4 +475,9 @@ filter_init(int pitch)
 	filter_v_offs += uv_size * 5;
 
 	printv(2, "Filter '%s'\n", filter_labels[filter_mode]);
+
+	if (luma_only) {
+		color_pred = filter;
+		filter = color_trap;
+	}
 }

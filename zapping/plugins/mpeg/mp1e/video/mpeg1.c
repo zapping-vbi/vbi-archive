@@ -18,22 +18,26 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.4 2000-08-09 09:41:36 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.5 2000-08-10 01:18:59 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
-#include "../common/log.h"
 #include "../common/profile.h"
+#include "../options.h"
 #include "../common/math.h"
-#include "../common/fifo.h"
+#include "../common/types.h"
+#include "../common/log.h"
 #include "../common/mmx.h"
 #include "../common/bstream.h"
-#include "../options.h"
+#include "../common/fifo.h"
+#include "../common/alloc.h"
 #include "vlc.h"
 #include "dct.h"
 #include "predict.h"
 #include "mpeg.h"
 #include "video.h"
+#include "../systems/mpeg.h"
+#include "../systems/systems.h"
 
 
 
@@ -83,7 +87,6 @@ volatile double		Ti, Tmb;
 
 static double		Xi, Xp, Xb;			// global complexity measure
 static double		d0i, d0p, d0b;			// virtual buffer fullness
-static int		Ddb;
 static double		r31;				// reaction parameter
 static double		avg_act;			// average spatial activity
 static int		p_succ;
@@ -156,6 +159,8 @@ extern void		packed_preview(unsigned char *buffer, int mb_cols, int mb_rows);
 int p_inter_bias = 65536 * 48,
     b_inter_bias = 65536 * 96,
     quant_max = 31;
+
+fifo *			video_fifo;
 
 #include "dct/ieee.h"
 
@@ -287,6 +292,11 @@ do {									\
 } while (0)
 
 
+static const int motion = 0;
+static int MV[2][2] = {
+	{ 0, 0 },
+	{ 0, 0 }
+};
 
 static int
 picture_i(unsigned char *org0, unsigned char *org1)
@@ -515,6 +525,11 @@ picture_p(unsigned char *org0, unsigned char *org1)
 
 	reset_dct_pred();
 	
+	if (motion) {
+		PMV[0][0] = 0;
+		PMV[0][1] = 0;
+	}
+
 	prev_quant = -100;
 	mb_count = 1;
 	mb_skipped = 0;
@@ -599,6 +614,11 @@ quant = quant_res_intra[saturate(quant >> 1, 1, quant_max)];
 
 				mb_skipped = 0;
 
+				if (motion) {
+					PMV[0][0] = 0;
+					PMV[0][1] = 0;
+				}
+
 				if (referenced) {
 					pr_start(23, "IDCT intra");
 					mpeg1_idct_intra(new); // mblock[0] -> new
@@ -621,6 +641,21 @@ lroundn((bwritten(&video_out) - Ti) * r31 * act), 2, quant_max)];
 
 				Ti += Tmb;
 
+				if (motion) {
+					if (mb_row > 0 && mb_row < (mb_height - 1) &&
+					    mb_col > 0 && mb_col < (mb_width - 1)) {
+						MV[0][0] = (rand() & 3) - 2;
+						MV[0][1] = (rand() & 3) - 2;
+					} else
+						memset(MV, 0, sizeof MV);
+
+					dmv[0] = (MV[0][0] - PMV[0][0]) & 0x7F;
+					dmv[1] = (MV[0][1] - PMV[0][1]) & 0x7F;
+
+					PMV[0][0] = MV[0][0];
+					PMV[0][1] = MV[0][1];
+				}
+
 				brewind(&mark, &video_out);
 
 				for (;;) {
@@ -632,8 +667,15 @@ lroundn((bwritten(&video_out) - Ti) * r31 * act), 2, quant_max)];
 					cbp = fdct_inter(mblock[1]); // mblock[1] -> mblock[0]
 					pr_end(26);
 
-					if (cbp == 0 && mb_count > 1 && mb_count < mb_num) {
+					if (cbp == 0 && mb_count > 1 && mb_count < mb_num &&
+						(!motion || (dmv[0] | dmv[1]) == 0)) {
+
 						__builtin_memcpy(new, old, 6 * 64);
+
+						if (motion) {
+							PMV[0][0] = 0;
+							PMV[0][1] = 0;
+						}
 
 						i++;
 
@@ -646,7 +688,12 @@ lroundn((bwritten(&video_out) - Ti) * r31 * act), 2, quant_max)];
 						i = 0;
 
 						if (cbp == 0) {
-							{
+							if (motion) {
+								bcatq(1, 3);
+								motion_vector(dmv);
+								bputq(&video_out, length + 3);
+								/* macroblock_type '001' (P MC, Not Coded) */
+							} else {
 								bcatq(7, 5);
 								bputq(&video_out, length + 5);
 								/* macroblock_type '001' (P MC, Not Coded), '11' MV(0, 0) */
@@ -656,7 +703,22 @@ lroundn((bwritten(&video_out) - Ti) * r31 * act), 2, quant_max)];
 							__builtin_memcpy(new, old, 6 * 64);
 							break;
 						} else {
-							{
+							if (motion && (MV[0][0] | MV[0][1])) {
+								if (prev_quant != quant) {
+									bcatq((2 << 5) + quant, 10);
+									length += 10;
+									/* macroblock_type '0001 0' (P MC, Coded, Quant), quantiser_scale_code 'xxxxx' */
+								} else {
+									bcatq(1, 1);
+									length += 1;
+									/* macroblock_type '1' (P MC, Coded) */
+								}
+
+								motion_vector(dmv);
+								len = coded_block_pattern[cbp].length; // 3..9
+								bcatq(coded_block_pattern[cbp].code, len);
+								bputq(&video_out, length + len);
+							} else {
 								if (prev_quant != quant) {
 									bcatq((1 << 5) + quant, 10);
 									length += 10;
@@ -801,6 +863,13 @@ picture_b(unsigned char *org0, unsigned char *org1)
 
 	reset_dct_pred();
 
+	if (motion) {
+		PMV[0][0] = 0;
+		PMV[0][1] = 0;
+		PMV[1][0] = 0;
+		PMV[1][1] = 0;
+	}
+
 	prev_quant = -100;
 
 	mb_count = 1;
@@ -910,6 +979,12 @@ picture_b(unsigned char *org0, unsigned char *org1)
 
 				mb_skipped = 0;
 
+				if (motion) {
+					PMV[0][0] = 0;
+					PMV[0][1] = 0;
+					PMV[1][0] = 0;
+					PMV[1][1] = 0;
+				}
 			} else {
 				unsigned int cbp;
 				int dmv[2][2], len, length, i;
@@ -927,6 +1002,44 @@ picture_b(unsigned char *org0, unsigned char *org1)
 
 				Ti += Tmb;
 
+				if (motion) {
+					if (mb_row > 0 && mb_row < (mb_height - 1) &&
+					    mb_col > 0 && mb_col < (mb_width - 1)) {
+						MV[0][0] = (rand() & 3) - 2;
+						MV[0][1] = (rand() & 3) - 2;
+						MV[1][0] = (rand() & 3) - 2;
+						MV[1][1] = (rand() & 3) - 2;
+					} else
+						memset(MV, 0, sizeof MV);
+
+					if (macroblock_type == MB_FORWARD) {
+						dmv[0][0] = (MV[0][0] - PMV[0][0]) & 0x7F;
+						dmv[0][1] = (MV[0][1] - PMV[0][1]) & 0x7F;
+						dmv[1][0] = 0;
+						dmv[1][1] = 0;
+						PMV[0][0] = MV[0][0];
+						PMV[0][1] = MV[0][1];
+					} else
+					if (macroblock_type == MB_BACKWARD) {
+						dmv[0][0] = (MV[1][0] - PMV[1][0]) & 0x7F;
+						dmv[0][1] = (MV[1][1] - PMV[1][1]) & 0x7F;
+						dmv[1][0] = 0;
+						dmv[1][1] = 0;
+						PMV[1][0] = MV[1][0];
+						PMV[1][1] = MV[1][1];
+					} else
+					if (macroblock_type == MB_INTERP) {
+						dmv[0][0] = (MV[0][0] - PMV[0][0]) & 0x7F;
+						dmv[0][1] = (MV[0][1] - PMV[0][1]) & 0x7F;
+						dmv[1][0] = (MV[1][0] - PMV[1][0]) & 0x7F;
+						dmv[1][1] = (MV[1][1] - PMV[1][1]) & 0x7F;
+						PMV[0][0] = MV[0][0];
+						PMV[0][1] = MV[0][1];
+						PMV[1][0] = MV[1][0];
+						PMV[1][1] = MV[1][1];
+					}
+				}
+
 				brewind(&mark, &video_out);
 
 				for (;;) {
@@ -942,7 +1055,7 @@ picture_b(unsigned char *org0, unsigned char *org1)
 	    && macroblock_type == mb_type_last
 	    /* && not first of slice */
 	    && mb_count < mb_num
-	    && 1) {
+	    && (!motion || (dmv[0][0] | dmv[0][1] | dmv[1][0] | dmv[1][1]) == 0)) {
 		/* not reset PMV here */
 		i++;
 		break;
@@ -954,7 +1067,16 @@ picture_b(unsigned char *org0, unsigned char *org1)
 		i = 0;
 
 		if (cbp == 0) {
-			{
+			if (motion) {
+				len = 5 - macroblock_type;
+				bcatq(2, len);
+				/* macroblock_type (B Not Coded, see vlc.c) */
+
+				motion_vector(dmv[0]);
+
+				if (macroblock_type == MB_INTERP)
+					motion_vector(dmv[1]);
+			} else {
 				len = macroblock_type_b_nomc_notc[macroblock_type].length; // 5..6
 				bcatq(macroblock_type_b_nomc_notc[macroblock_type].code, len);
 			}
@@ -964,7 +1086,24 @@ picture_b(unsigned char *org0, unsigned char *org1)
 
 			break;
 		} else {
-			{
+			if (motion) {
+				if (prev_quant != quant) {
+					len = macroblock_type_b_quant[macroblock_type].length;
+					bcatq(macroblock_type_b_quant[macroblock_type].code
+						+ quant, len);
+				} else {
+					len = 5 - macroblock_type;
+					bcatq(3, len);
+					/* macroblock_type (B Coded, see vlc.c) */
+				}
+
+				length += len;
+
+				motion_vector(dmv[0]);
+
+				if (macroblock_type == MB_INTERP)
+					motion_vector(dmv[1]);
+			} else {
 				if (prev_quant != quant) {
 					len = macroblock_type_b_nomc_quant[macroblock_type].length; // 13..14
 					bcatq(macroblock_type_b_nomc_quant[macroblock_type].code
@@ -1166,14 +1305,14 @@ user_data(char *s)
 
 
 static inline void
-__send_buffer(_fifo *f, _buffer *b)
+_send_full_buffer(fifo *f, buffer *b)
 {
-	bits += b->size * 8;
+	bits += b->used * 8;
 	counts += 1.0 / 25.0;
 
 //	printv(0, "%8.0f\n", gbits);
 
-	_send_buffer(f, b);
+	send_full_buffer(f, b);
 }
 
 static struct {
@@ -1186,12 +1325,12 @@ static inline void
 promote(int n)
 {
 	int i;
-	_buffer *obuf;
+	buffer *obuf;
 
 	for (i = 0; i < n; i++) {
 		printv(3, "Promoting stacked B picture #%d\n", i);
 
-		obuf = _new_buffer(&vid);
+		obuf = wait_empty_buffer(video_fifo);
 		bstart(&video_out, obuf->data);
 		referenced = TRUE;
 		Eb--;
@@ -1199,19 +1338,23 @@ promote(int n)
 		if (p_succ >= MAX_P_SUCC) {
 			p_succ = 0;
 			Ei++;
-			obuf->size = picture_i(stack[i].org[0], stack[i].org[1]);
+			obuf->used = picture_i(stack[i].org[0], stack[i].org[1]);
+			obuf->type = I_TYPE;
 		} else {
 			p_succ++;
 			Ep++;
-			obuf->size = picture_p(stack[i].org[0], stack[i].org[1]);
+			obuf->used = picture_p(stack[i].org[0], stack[i].org[1]);
+			obuf->type = P_TYPE;
 		}
 
 		if (stack[i].index >= 0)
 			video_frame_done(stack[i].index);
+//			video_frame_done(stack[i].buffer);
 
+		obuf->offset = 1;
 		obuf->time = stack[i].time;
 
-		__send_buffer(&vid, obuf);
+		_send_full_buffer(video_fifo, obuf);
 
 		video_frame_count++;
 		seq_frame_count++;
@@ -1223,7 +1366,7 @@ static inline void
 resume(int n)
 {
 	int i;
-	_buffer *obuf, *last = NULL;
+	buffer *obuf, *last = NULL;
 
 	referenced = FALSE;
 	p_succ = 0;
@@ -1232,28 +1375,33 @@ resume(int n)
 		if (!stack[i].org[0]) {
 			assert(last != NULL);
 
-			obuf = _new_buffer(&vid);
+			obuf = wait_empty_buffer(video_fifo);
 
-			memcpy(obuf->data, last->data, last->size);
+			memcpy(obuf->data, last->data, last->used);
 			((unsigned int *) obuf->data)[1] |=
 				swab32((gop_frame_count & 1023) << 22);
 
-			obuf->size = last->size;
+			obuf->type = B_TYPE;
+			obuf->offset = 0;
+			obuf->used = last->used;
 			obuf->time = stack[i].time;
 
-			__send_buffer(&vid, last);
+			_send_full_buffer(video_fifo, last);
 		} else {
-			obuf = _new_buffer(&vid);
+			obuf = wait_empty_buffer(video_fifo);
 			bstart(&video_out, obuf->data);
-			obuf->size = picture_b(stack[i].org[0], stack[i].org[1]);
+			obuf->used = picture_b(stack[i].org[0], stack[i].org[1]);
 
 			if (stack[i].index >= 0)
 				video_frame_done(stack[i].index);
+//				video_frame_done(stack[i].buffer);
 
+			obuf->type = B_TYPE;
+			obuf->offset = 0;
 			obuf->time = stack[i].time;
 
 			if (last)
-				__send_buffer(&vid, last);
+				_send_full_buffer(video_fifo, last);
 		}
 
 		last = obuf;
@@ -1264,18 +1412,18 @@ resume(int n)
 	}
 
 	if (last)
-		__send_buffer(&vid, last);
+		_send_full_buffer(video_fifo, last);
 }
 
 char video_do_reset = FALSE;
 int force_drop_rate = 0;
 
 void *
-video_compression_thread(void *unused)
+mpeg1_video_ipb(void *unused)
 {
 	bool done = FALSE;
 	char *seq = "";
-	_buffer *obuf;
+	buffer *obuf;
 int d3 = 3;
 
 	printv(3, "Video compression thread\n");
@@ -1292,35 +1440,64 @@ int d3 = 3;
 				last.org[0] = NULL;
 			} else {
 				if (temporal_interpolation) {
-					int index;
+                                        int index;
+ 
+                                        this->index = buddy.index;
+                                        this->org[1] = buddy.org[0];
+                                        this->org[0] = video_wait_frame(&this->time, &index);
 
-					this->index = buddy.index;
+                                        if (this->org[0]) {
+                                                buddy.index = index;
+                                                buddy.org[0] = this->org[0];
+                                        }
+
+                                        if (!this->org[1]) {
+                                                this->index = -1;
+                                                this->org[1] = this->org[0];                                                 
+					}
+/*
+					buffer *b;
+
+					this->buffer = buddy.buffer;
 					this->org[1] = buddy.org[0];
-					this->org[0] = video_wait_frame(&this->time, &index);
+
+					b = video_wait_frame();
+					this->time = b->time;
+					this->org[0] = b->data; 
 
 					if (this->org[0]) {
-						buddy.index = index;
+						buddy.buffer = b;
 						buddy.org[0] = this->org[0];
 					}
 
 					if (!this->org[1]) {
-						this->index = -1;
+						this->buffer = NULL;
 						this->org[1] = this->org[0];
 					}
-				} else
-					this->org[0] = video_wait_frame(&this->time, &this->index);
+*/
+				} else {
+                        		this->org[0] = video_wait_frame(&this->time, &this->index);
+/*
+					buffer *b;
+
+					this->buffer = b = video_wait_frame();
+					this->time = b->time;
+					this->org[0] = b->data;
+*/
+				}
 #if TEST_PREVIEW
 				if (this->org[0] && (rand() % 100) < force_drop_rate) {
 					printv(3, "Forced drop #%d\n", video_frame_count + sp);
 					if (this->index >= 0)
 						video_frame_done(this->index);
+//					if (this->buffer)
+//						video_frame_done(this->buffer);
 					continue;
 				}
 #endif
 			}
 
-			if (++sp >= sizeof(stack) / sizeof(stack[0]))
-				FAIL("Too many successive B pictures");
+			sp++;
 
 			if (!this->org[0] || this->time >= video_stop_time ||
 			    video_frame_count + sp > video_num_frames) {
@@ -1328,9 +1505,12 @@ int d3 = 3;
 
 				if (this->org[0] && this->index >= 0)
 					video_frame_done(this->index);
+//				if (this->org[0] && this->buffer)
+//					video_frame_done(this->buffer);
 
 				if (buddy.org[0])
 					video_frame_done(buddy.index);
+//					video_frame_done(buddy.buffer);
 
 				while (*seq == 'B')
 					seq++;
@@ -1369,6 +1549,8 @@ int d3 = 3;
 			if (skip_rate_acc < frames_per_sec) {
 				if (this->org[0] && this->index >= 0)
 					video_frame_done(this->index);
+//				if (this->org[0] && this->buffer)
+//					video_frame_done(this->buffer);
 
 				assert(sp == 1 || gop_frame_count > 0);
 
@@ -1376,16 +1558,18 @@ int d3 = 3;
 
 				assert(gop_frame_count > 0);
 
-				obuf = _new_buffer(&vid);
+				obuf = wait_empty_buffer(video_fifo);
 
 				memcpy(obuf->data, zerop_template, Sz);
 				((unsigned int *) obuf->data)[1] |=
 					swab32((gop_frame_count & 1023) << 22);
 
-				obuf->size = Sz;
+				obuf->type = P_TYPE;
+				obuf->offset = 1;
+				obuf->used = Sz;
 				obuf->time = this->time;
 
-				__send_buffer(&vid, obuf);
+				_send_full_buffer(video_fifo, obuf);
 
 				video_frame_count++;
 				gop_frame_count++;
@@ -1406,7 +1590,7 @@ next_frame:
 
 		/* Encode P or I picture plus sequence or GOP headers */
 
-		obuf = _new_buffer(&vid);
+		obuf = wait_empty_buffer(video_fifo);
 		bstart(&video_out, obuf->data);
 
 		if (!*seq) {
@@ -1491,18 +1675,23 @@ d3 = 3;
 
 		if (*seq++ == 'I') {
 			p_succ = 0;
-			obuf->size = picture_i(this->org[0], this->org[1]);
+			obuf->used = picture_i(this->org[0], this->org[1]);
+			obuf->type = I_TYPE;
 		} else {
 			p_succ++;
-			obuf->size = picture_p(this->org[0], this->org[1]);
+			obuf->used = picture_p(this->org[0], this->org[1]);
+			obuf->type = P_TYPE;
 		}
 
 		if (this->index >= 0)
 			video_frame_done(this->index);
+//		if (this->buffer)
+//			video_frame_done(this->buffer);
 
+		obuf->offset = sp;
 		obuf->time = this->time;
 
-		__send_buffer(&vid, obuf);
+		_send_full_buffer(video_fifo, obuf);
 
 		video_frame_count++;
 		seq_frame_count++;
@@ -1521,16 +1710,22 @@ d3 = 3;
 
 finish:
 	if (video_frame_count > 0) {
-		obuf = _new_buffer(&vid);
+		obuf = wait_empty_buffer(video_fifo);
 		((unsigned int *) obuf->data)[0] = swab32(SEQUENCE_END_CODE);
-		obuf->size = 4;
-		__send_buffer(&vid, obuf);
+		obuf->type = 0;
+		obuf->offset = 1;
+		obuf->used = 4;
+		obuf->time = last.time += time_per_frame;
+		_send_full_buffer(video_fifo, obuf);
 	}
 
 	for (;;) {
-		obuf = _new_buffer(&vid);
-		obuf->size = 0; // EOF mark
-		__send_buffer(&vid, obuf);
+		obuf = wait_empty_buffer(video_fifo);
+		obuf->type = 0;
+		obuf->offset = 1;
+		obuf->used = 0; // EOF mark
+		obuf->time = last.time += time_per_frame;
+		_send_full_buffer(video_fifo, obuf);
 	}
 
 	return NULL; // never
@@ -1595,6 +1790,7 @@ void
 video_init(void)
 {
 	int i;
+	int bmax;
 
 	binit_write(&video_out);
 
@@ -1630,9 +1826,11 @@ video_init(void)
 	    strchr(gop_sequence, 'B'))
 		insert_gop_header = TRUE;
 
-	ni	=
-	np	=
-	nb	= 0;
+	ni =
+	np =
+	nb = 0;
+
+	bmax = 0;
 
 	for (i = 0; i < 1024; i++)
 		switch (gop_sequence[i]) {
@@ -1649,13 +1847,42 @@ video_init(void)
 		case 'B':
 			nb++;
 			ob++;	// GOP overlapping B pictures
+			if (ob > bmax)
+				bmax = ob;
 			break;
 
 		default:
 			i = 1024;
 		}
 
-
+	if (bmax >= sizeof(stack) / sizeof(stack[0]))
+		FAIL("Too many successive B pictures");
+/*
+	if (preview) {
+		for (i = 0; i < 4; i++)
+			mb_address[0].pitch = lalign(mb_width * 16, CACHE_LINE);
+		mb_address[1].offset = 0;
+		mb_address[2].offset = 8 - mb_address[0].pitch * 16;
+		mb_address[3].offset = 0;
+		mb_address[4].pitch =
+		mb_address[5].pitch = mb_address[0].pitch >> 1;
+		mb_address[5].offset = mb_address[4].pitch * mb_height;
+	} else if (motion) {
+		for (i = 0; i < 4; i++)
+			mb_address[0].pitch = lalign(mb_width * 16, CACHE_LINE);
+		mb_address[1].offset = 0;
+		mb_address[2].offset = 8 - mb_address[0].pitch * 16;
+		mb_address[3].offset = 0;
+		mb_address[4].pitch = 8;
+		mb_address[5].pitch = 8;
+		mb_address[5].offset = 64;
+	} else { // not used
+		for (i = 0; i < 6; i++) {
+			mb_address[i].offset = 64;
+			mb_address[i].pitch = 8;
+		}
+	}
+*/
 	mb_cx_row = mb_height;
 	mb_cx_thresh = 100000;
 
@@ -1665,4 +1892,8 @@ video_init(void)
 	}
 
 	video_reset();
+
+	video_fifo = mux_add_input_stream(VIDEO_STREAM,
+		mb_num * 384 * 4, vid_buffers,
+		frames_per_sec, video_bit_rate);
 }

@@ -18,16 +18,16 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.h,v 1.2 2000-08-09 09:41:36 mschimek Exp $ */
+/* $Id: audio.h,v 1.3 2000-08-10 01:18:59 mschimek Exp $ */
 
 #include <pthread.h>
 #include "../common/fifo.h"
 
-extern _fifo		aud;
+extern fifo		aud;
 extern pthread_t	audio_thread_id;
 
-extern void *		audio_compression_thread(void *unused);
-extern void *		stereo_audio_compression_thread(void *unused);
+extern void *		mpeg_audio_layer_ii_mono(void *unused);
+extern void *		mpeg_audio_layer_ii_stereo(void *unused);
 extern void		audio_parameters(int *sampling_freq, int *bit_rate);
 
 extern short *		(* audio_read)(double *);
