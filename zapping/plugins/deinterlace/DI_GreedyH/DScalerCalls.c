@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// $Id: DScalerCalls.c,v 1.1 2005-01-08 14:54:23 mschimek Exp $
+// $Id: DScalerCalls.c,v 1.2 2005-02-05 22:21:31 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 //      trbarry@trbarry.com
@@ -29,6 +29,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1  2005/01/08 14:54:23  mschimek
+// *** empty log message ***
+//
 // Revision 1.3  2001/11/25 04:33:37  trbarry
 // Fix for TDeinterlace_Info. Also release UN-Filter code, 5-tap V & H sharp/soft filters optimized to reverse excessive filtering (or EE?)
 //
@@ -105,13 +108,13 @@ extern void InitDScaler(int AutoPulldown, int MedianFilter, int VerticalFilter,
         }
     }
 */
-    
+
+/* mhs Huh? GreedyUseVertFilter is undefined in DScaler.    
     if (VerticalFilter)
     {
-#warning undefined
-/*      GreedyUseVertFilter = TRUE; */
+        GreedyUseVertFilter = TRUE;
     }
-    
+*/
     if (EdgeEnhance)
     {
         GreedyUseHSharpness = TRUE;
