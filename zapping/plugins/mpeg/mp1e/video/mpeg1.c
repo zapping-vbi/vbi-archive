@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.6 2000-08-12 02:14:37 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.7 2000-09-23 03:57:54 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -1317,7 +1317,7 @@ _send_full_buffer(fifo *f, buffer *b)
 
 static struct {
 	unsigned char * org[2];
-	int		index;
+	buffer *	buffer;
 	double		time;
 } stack[MAX_B_SUCC], last, buddy, *this;
 
@@ -1347,9 +1347,8 @@ promote(int n)
 			obuf->type = P_TYPE;
 		}
 
-		if (stack[i].index >= 0)
-			video_frame_done(stack[i].index);
-//			video_frame_done(stack[i].buffer);
+		if (stack[i].buffer)
+			send_empty_buffer(video_cap_fifo, stack[i].buffer);
 
 		obuf->offset = 1;
 		obuf->time = stack[i].time;
@@ -1392,9 +1391,8 @@ resume(int n)
 			bstart(&video_out, obuf->data);
 			obuf->used = picture_b(stack[i].org[0], stack[i].org[1]);
 
-			if (stack[i].index >= 0)
-				video_frame_done(stack[i].index);
-//				video_frame_done(stack[i].buffer);
+			if (stack[i].buffer)
+				send_empty_buffer(video_cap_fifo, stack[i].buffer);
 
 			obuf->type = B_TYPE;
 			obuf->offset = 0;
@@ -1440,58 +1438,42 @@ int d3 = 3;
 				last.org[0] = NULL;
 			} else {
 				if (temporal_interpolation) {
-                                        int index;
- 
-                                        this->index = buddy.index;
-                                        this->org[1] = buddy.org[0];
-                                        this->org[0] = video_wait_frame(&this->time, &index);
-
-                                        if (this->org[0]) {
-                                                buddy.index = index;
-                                                buddy.org[0] = this->org[0];
-                                        }
-
-                                        if (!this->org[1]) {
-                                                this->index = -1;
-                                                this->org[1] = this->org[0];                                                 
-					}
-/*
 					buffer *b;
 
 					this->buffer = buddy.buffer;
 					this->org[1] = buddy.org[0];
 
-					b = video_wait_frame();
-					this->time = b->time;
-					this->org[0] = b->data; 
+					if ((b = wait_full_buffer(video_cap_fifo))) {
+						this->time = b->time;
+						this->org[0] = b->data;
 
-					if (this->org[0]) {
-						buddy.buffer = b;
-						buddy.org[0] = this->org[0];
+						if (b->data) {
+							buddy.buffer = b;
+							buddy.org[0] = b->data;
+						}
 					}
 
 					if (!this->org[1]) {
 						this->buffer = NULL;
 						this->org[1] = this->org[0];
 					}
-*/
 				} else {
-                        		this->org[0] = video_wait_frame(&this->time, &this->index);
-/*
 					buffer *b;
 
-					this->buffer = b = video_wait_frame();
-					this->time = b->time;
-					this->org[0] = b->data;
-*/
+					this->buffer = b = wait_full_buffer(video_cap_fifo);
+
+					if (b) {
+						this->time = b->time;
+						this->org[0] = b->data;
+					}
 				}
 #if TEST_PREVIEW
 				if (this->org[0] && (rand() % 100) < force_drop_rate) {
 					printv(3, "Forced drop #%d\n", video_frame_count + sp);
-					if (this->index >= 0)
-						video_frame_done(this->index);
-//					if (this->buffer)
-//						video_frame_done(this->buffer);
+
+					if (this->buffer)
+						send_empty_buffer(video_cap_fifo, this->buffer);
+
 					continue;
 				}
 #endif
@@ -1503,14 +1485,11 @@ int d3 = 3;
 			    video_frame_count + sp > video_num_frames) {
 				printv(2, "Video: End of file\n");
 
-				if (this->org[0] && this->index >= 0)
-					video_frame_done(this->index);
-//				if (this->org[0] && this->buffer)
-//					video_frame_done(this->buffer);
+				if (this->org[0] && this->buffer)
+					send_empty_buffer(video_cap_fifo, this->buffer);
 
 				if (buddy.org[0])
-					video_frame_done(buddy.index);
-//					video_frame_done(buddy.buffer);
+					send_empty_buffer(video_cap_fifo, buddy.buffer);
 
 				while (*seq == 'B')
 					seq++;
@@ -1547,10 +1526,8 @@ int d3 = 3;
 				last.time = this->time;
 
 			if (skip_rate_acc < frames_per_sec) {
-				if (this->org[0] && this->index >= 0)
-					video_frame_done(this->index);
-//				if (this->org[0] && this->buffer)
-//					video_frame_done(this->buffer);
+				if (this->org[0] && this->buffer)
+					send_empty_buffer(video_cap_fifo, this->buffer);
 
 				assert(sp == 1 || gop_frame_count > 0);
 
@@ -1683,10 +1660,8 @@ d3 = 3;
 			obuf->type = P_TYPE;
 		}
 
-		if (this->index >= 0)
-			video_frame_done(this->index);
-//		if (this->buffer)
-//			video_frame_done(this->buffer);
+		if (this->buffer)
+			send_empty_buffer(video_cap_fifo, this->buffer);
 
 		obuf->offset = sp;
 		obuf->time = this->time;

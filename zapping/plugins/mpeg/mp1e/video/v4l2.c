@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.5 2000-08-27 21:40:08 garetxe Exp $ */
+/* $Id: v4l2.c,v 1.6 2000-09-23 03:57:54 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -37,8 +37,7 @@
 #ifdef V4L2_MAJOR_VERSION
 
 static int			fd;
-static int			uindex = -1;
-static unsigned char *		cap_buffer[256];
+static fifo 			cap_fifo;
 
 static struct v4l2_capability	vcap;
 static struct v4l2_standard	vstd;
@@ -49,6 +48,8 @@ static struct v4l2_requestbuffers vrbuf;
 static struct v4l2_control	old_mute;
 
 extern int			min_cap_buffers;
+
+#define VIDIOC_PSB _IOW('v', 193, int)
 
 static char *
 le4cc2str(int n)
@@ -74,61 +75,55 @@ capture_on(void)
 	ASSERT("activate capturing", ioctl(fd, VIDIOC_STREAMON, &str_type) == 0);
 }
 
-static unsigned char *
-wait_frame(double *ftime, int *buf_index)
+static buffer *
+wait_full(fifo *f)
 {
-	static double utime;
+	struct timeval tv;
+	fd_set fds;
+	buffer *b;
 	int r = -1;
 
-	if (uindex >= 0) {
-		*buf_index = uindex;
-		uindex = -1;
-		*ftime = utime;
-	} else
-	while (r <= 0)
-	{
- 		fd_set fds;
-
+	while (r <= 0) {
 		FD_ZERO(&fds);
 		FD_SET(fd, &fds);
 
-		// XXX time out if no response
-		r = select(fd + 1, &fds, NULL, NULL, NULL);
+		tv.tv_sec = 2;
+		tv.tv_usec = 0;
+
+		r = select(fd + 1, &fds, NULL, NULL, &tv);
 
 		if (r < 0 && errno == EINTR)
 			continue;
 
+		if (r == 0)
+			FAIL("Video capture timeout");
+
 		ASSERT("execute select", r > 0);
-
-		vbuf.type = V4L2_BUF_TYPE_CAPTURE;
-
-		ASSERT("dequeue capture buffer", ioctl(fd, VIDIOC_DQBUF, &vbuf) == 0);
-#if 1
-		*ftime = utime = vbuf.timestamp / 1e9; // UST, currently TOD
-#else
-		gettimeofday(&tv, NULL);
-		*ftime = utime = tv.tv_sec + tv.tv_usec / 1e6;
-#endif
-		*buf_index = vbuf.index;
 	}
 
-	return cap_buffer[*buf_index];
+	vbuf.type = V4L2_BUF_TYPE_CAPTURE;
+
+	ASSERT("dequeue capture buffer", ioctl(fd, VIDIOC_DQBUF, &vbuf) == 0);
+
+	b = cap_fifo.buffers + vbuf.index;
+
+#if 1
+	b->time = vbuf.timestamp / 1e9; // UST, currently TOD
+#else
+	gettimeofday(&tv, NULL);
+	b->time = tv.tv_sec + tv.tv_usec / 1e6;
+#endif
+
+    	return b;
 }
 
 static void
-frame_done(int buf_index)
+send_empty(fifo *f, buffer *b)
 {
 	vbuf.type = V4L2_BUF_TYPE_CAPTURE;
-	vbuf.index = buf_index;
+	vbuf.index = b->index;
 
 	ASSERT("enqueue capture buffer", ioctl(fd, VIDIOC_QBUF, &vbuf) == 0);
-}
-
-static void
-unget_frame(int buf_index)
-{
-	assert(uindex < 0);
-	uindex = buf_index;
 }
 
 static void
@@ -316,6 +311,20 @@ v4l2_init(void)
 	printv(2, "Image format '%s' %d x %d granted\n",
 		le4cc2str(vfmt.fmt.pix.pixelformat), vfmt.fmt.pix.width, vfmt.fmt.pix.height);
 
+#ifdef TEST_PREVIEW
+
+	if (grab_width * grab_height < 128000) {
+		int b = 12;
+		ioctl(fd, VIDIOC_PSB, &b);
+	} else if (grab_width * grab_height < 256000) {
+		int b = 6;
+		ioctl(fd, VIDIOC_PSB, &b);
+	} else {
+		int b = 2;
+		ioctl(fd, VIDIOC_PSB, &b);
+	}
+#endif
+
 	vrbuf.type = V4L2_BUF_TYPE_CAPTURE;
 	vrbuf.count = MAX(cap_buffers, min_cap_buffers);
 
@@ -326,37 +335,45 @@ v4l2_init(void)
 
 	printv(2, "%d capture buffers granted\n", vrbuf.count);
 
+	ASSERT("init capture fifo", init_callback_fifo(&cap_fifo,
+		wait_full, send_empty, NULL, NULL, 0, vrbuf.count));
 
 	// Map capture buffers
 
-	for (cap_buffers = 0; cap_buffers < vrbuf.count; cap_buffers++) {
+	cap_fifo.num_buffers = 0;
+
+	while (cap_fifo.num_buffers < vrbuf.count) {
+		unsigned char *p;
+
 		vbuf.type = V4L2_BUF_TYPE_CAPTURE;
-		vbuf.index = cap_buffers;
+		vbuf.index = cap_fifo.num_buffers;
 
-		printv(3, "Mapping capture buffer #%d\n", cap_buffers);
+		printv(3, "Mapping capture buffer #%d\n", cap_fifo.num_buffers);
 
-		ASSERT("query capture buffer #%d", ioctl(fd, VIDIOC_QUERYBUF, &vbuf) == 0, cap_buffers);
+		ASSERT("query capture buffer #%d", ioctl(fd, VIDIOC_QUERYBUF, &vbuf) == 0,
+			cap_fifo.num_buffers);
 
-		cap_buffer[cap_buffers] = mmap(NULL, vbuf.length, PROT_READ,
-			MAP_SHARED, fd, vbuf.offset);
+		p = mmap(NULL, vbuf.length, PROT_READ, MAP_SHARED, fd, vbuf.offset);
 
-		if ((int) cap_buffer[cap_buffers] == -1) {
-			if (errno == ENOMEM && cap_buffers > 0)
+		if ((int) p == -1) {
+			if (errno == ENOMEM && cap_fifo.num_buffers > 0)
 				break;
 			else
-				ASSERT("map capture buffer #%d", 0, cap_buffers);
-		}
+				ASSERT("map capture buffer #%d", 0, cap_fifo.num_buffers);
+		} else
+			cap_fifo.buffers[cap_fifo.num_buffers].data = p;
 
-		ASSERT("enqueue capture buffer #%d", ioctl(fd, VIDIOC_QBUF, &vbuf) == 0, cap_buffers);
+		ASSERT("enqueue capture buffer #%d",
+			ioctl(fd, VIDIOC_QBUF, &vbuf) == 0, vbuf.index);
+
+		cap_fifo.num_buffers++;
 	}
 
-	if (cap_buffers < min_cap_buffers)
+	if (cap_fifo.num_buffers < min_cap_buffers)
 		FAIL("Cannot allocate enough (%d) capture buffers", min_cap_buffers);
 
+	video_cap_fifo = &cap_fifo;
 	video_start = capture_on;
-	video_wait_frame = wait_frame;
-	video_frame_done = frame_done;
-	video_unget_frame = unget_frame;
 }
 
 #endif // V4L2

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: file.c,v 1.2 2000-08-09 09:41:36 mschimek Exp $ */
+/* $Id: file.c,v 1.3 2000-09-23 03:57:54 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -29,11 +29,12 @@
 
 #define FILTER_MODE CM_YUYV // CM_YUV | CM_YUYV
 
-static unsigned char *	img_buffer[256];
-static int		buffer_size = 0;
-static char		busy[256];
-static int		uindex = -1;
+enum { FREE = 0, BUSY };
+
+static fifo		cap_fifo;
 static int		width0, height0;
+
+extern int		min_cap_buffers;
 
 static int
 ppm_getc(FILE *fi)
@@ -213,35 +214,24 @@ start(void)
 {
 }
 
-static unsigned char *
-wait_frame(double *ftime, int *buf_index)
+static buffer *
+wait_full(fifo *f)
 {
-	static double time = 0.0, utime;
+	static double time = 0.0;
 	static int count = 0;
+	buffer *b;
 	int i;
 
-	if (uindex >= 0) {
-		i = uindex;
-		uindex = -1;
-		*ftime = utime;
-
-		return img_buffer[i];
-	}
-
-	for (i = 0; i < cap_buffers; i++)
-		if (!busy[i])
+	for (i = 0, b = cap_fifo.buffers; i < cap_fifo.num_buffers; i++, b++)
+		if (b->type == FREE)
 			break;
 
-	assert(i < cap_buffers);
+	assert(i < cap_fifo.num_buffers);
 
-	if (!img_buffer[i])
-		ASSERT("allocate image buffer, %d bytes",
-			(img_buffer[i] = calloc_aligned(buffer_size, 32)) != NULL, buffer_size);
+	b->type = BUSY;
+	b->time = time;
 
-	*buf_index = i;
-	*ftime = time;
-
-	switch (ppm_read(img_buffer[i], cap_dev, count)) {
+	switch (ppm_read(b->data, cap_dev, count)) {
 	case 0:
 		exit(EXIT_FAILURE);
 
@@ -249,31 +239,23 @@ wait_frame(double *ftime, int *buf_index)
 		return NULL; // End of file
 	}
 
-	busy[i] = 1;
-
 	time += 1.0 / 24.0;
 	count++;
 
-	return img_buffer[i];
+	return b;
 }
 
 static void
-frame_done(int buf_index)
+send_empty(fifo *f, buffer *b)
 {
-	busy[buf_index] = 0;
-}
-
-static void
-unget_frame(int buf_index)
-{
-	assert(uindex < 0);
-	uindex = buf_index;
+	b->type = FREE;
 }
 
 void
 file_init(void)
 {
 	int len = strlen(cap_dev);
+	int buffer_size;
 	int aligned_width;
 	int aligned_height;
 	int pitch;
@@ -312,11 +294,12 @@ file_init(void)
 
 	filter_init(pitch);
 
+	ASSERT("init capture fifo", init_callback_fifo(&cap_fifo,
+		wait_full, send_empty, NULL, NULL, buffer_size, min_cap_buffers));
+
 	printv(2, "Reading images %d x %d named '%s'\n",
 		width, height, cap_dev);
 
 	video_start = start;
-	video_wait_frame = wait_frame;
-	video_frame_done = frame_done;
-	video_unget_frame = unget_frame;
+	video_cap_fifo = &cap_fifo;
 }

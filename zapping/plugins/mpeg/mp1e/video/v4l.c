@@ -16,9 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.2 2000-08-09 09:41:36 mschimek Exp $ */
-
-#warning The V4L interface has not been tested.
+/* $Id: v4l.c,v 1.3 2000-09-23 03:57:54 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -33,6 +31,14 @@
 #include "../common/math.h"
 #include "../options.h"
 #include "video.h"
+
+void
+v4l_init(void)
+{
+	FAIL("V4L interface is unmaintained.\n");
+}
+
+#if 0
 
 static int			cap_fd;
 static int			uindex = -1;
@@ -184,3 +190,5 @@ v4l_init(void)
 	video_frame_done = frame_done;
 	video_unget_frame = unget_frame;
 }
+
+#endif // 0
