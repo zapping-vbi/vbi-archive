@@ -17,10 +17,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.33 2002-05-13 05:38:00 mschimek Exp $ */
+/* $Id: main.c,v 1.34 2002-06-19 19:56:34 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include "config.h"
 #endif
 
 #include <stdio.h>
