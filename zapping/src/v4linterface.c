@@ -133,6 +133,13 @@ on_tv_control_destroy		(tv_control *		ctrl,
   c->tvcb = NULL;
 }
 
+static void
+free_control			(struct control *	c)
+{
+  tv_callback_remove (c->tvcb);
+  g_free (c);
+}
+
 static struct control *
 add_control			(struct control_window *cb,
 				 tveng_device_info *	info,
@@ -184,8 +191,11 @@ add_control			(struct control_window *cb,
     g_signal_connect (object, signal, G_CALLBACK (g_callback), c);
 
   if (tv_callback)
-    c->tvcb = tv_control_callback_add (ctrl, tv_callback,
-				       on_tv_control_destroy, c);
+    {
+      c->tvcb = tv_control_callback_add (ctrl, tv_callback,
+					 on_tv_control_destroy, c);
+    }
+
   *cp = c;
 
   return c;
@@ -256,6 +266,8 @@ create_slider			(struct control_window *cb,
   GObject *adj; /* Adjustment object for the slider */
   GtkWidget *spinslider;
 
+  /* XXX use tv_control.step */
+
   adj = G_OBJECT (gtk_adjustment_new (ctrl->value,
 				      ctrl->minimum, ctrl->maximum,
 				      1, 10, 10));
@@ -276,11 +288,18 @@ on_control_checkbutton_toggled	(GtkToggleButton *	tb,
 {
   struct control *c = user_data;
 
-  TV_CALLBACK_BLOCK (c->tvcb, tveng_set_control
-		     (c->ctrl, gtk_toggle_button_get_active (tb), c->info));
-
-  /* Update tool button & menu XXX switch to callback */
-  set_mute (3, /* controls */ FALSE, /* osd */ FALSE);
+  if (c->ctrl->id == TV_CONTROL_ID_MUTE)
+    {
+      TV_CALLBACK_BLOCK (c->tvcb, tv_mute_set
+			 (c->info, gtk_toggle_button_get_active (tb)));
+      /* Update tool button & menu XXX switch to callback */
+      set_mute (3, /* controls */ FALSE, /* osd */ FALSE);
+    }
+  else
+    {
+      TV_CALLBACK_BLOCK (c->tvcb, tveng_set_control
+			 (c->ctrl, gtk_toggle_button_get_active (tb), c->info));
+    }
 }
 
 static void
@@ -446,7 +465,7 @@ add_controls			(struct control_window *cb,
       while ((c = cb->controls))
 	{
 	  cb->controls = c->next;
-	  g_free (c);
+	  free_control (c);
 	}
       
       gtk_container_remove (GTK_CONTAINER (cb->window), cb->hbox);
@@ -466,8 +485,11 @@ add_controls			(struct control_window *cb,
   cb->table = NULL;
   cb->index = 0;
 
-    for (ctrl = info->controls; ctrl; ctrl = ctrl->next, cb->index++)
+    for (ctrl = info->controls; ctrl; ctrl = ctrl->next)
     {
+      if (ctrl->ignore)
+	continue;
+
       if ((cb->index % 20) == 0)
 	{
 	  if (cb->table)
@@ -506,6 +528,8 @@ add_controls			(struct control_window *cb,
 		     ctrl->type, ctrl->label);
 	  continue;
 	}
+
+      cb->index++;
     }
 
   if (cb->table)
@@ -556,8 +580,7 @@ on_control_window_destroy	(GtkWidget *		widget,
   while ((c = cb->controls))
     {
       cb->controls = c->next;
-      tv_callback_remove (c->tvcb);
-      g_free (c);
+      free_control (c);
     }
 
   g_free (cb);
@@ -617,6 +640,9 @@ update_control_box		(tveng_device_info *	info)
 
   for (ctrl = info->controls; ctrl; ctrl = ctrl->next)
     {
+      if (ctrl->ignore)
+	continue;
+
       /* XXX Is this safe? Unlikely. */
       if (!c || c->ctrl != ctrl)
 	goto rebuild;
@@ -759,21 +785,172 @@ static int normstrcmp (const char * in1, const char * in2)
   }
 }
 
-static
-void load_control_values(gint num_controls,
-			 tveng_tc_control *list,
-			 tveng_device_info *info)
+tveng_tc_control *
+zconf_get_controls		(guint			num_controls,
+				 const gchar *		path)
 {
-  gint i, value;
-  tv_control *ctrl;
+  tveng_tc_control *tcc;
+  gchar *array;
+  guint i;
 
-  for (i = 0; i<num_controls; i++)
-    for (ctrl = info->controls; ctrl; ctrl = ctrl->next)
-      if (normstrcmp(ctrl->label, list[i].name))
+  if (num_controls == 0)
+    return NULL;
+
+  tcc = g_malloc0 (sizeof (*tcc) * num_controls);
+  array = g_strconcat (path, "/controls", NULL);
+
+  for (i = 0; i < num_controls; i++)
+    {
+      gchar *control;
+      gchar *name;
+      const gchar *s;
+
+      if (!zconf_get_nth (i, &control, array))
 	{
-	  value = rint(ctrl->minimum + (ctrl->maximum - ctrl->minimum)*list[i].value);
-	  tveng_set_control(ctrl, value, info);
+	  g_warning ("Saved control %u is malformed, skipping", i);
+	  continue;
 	}
+  
+      name = g_strconcat (control, "/name", NULL);
+      s = zconf_get_string (NULL, name);
+      g_free (name);
+
+      if (!s)
+	{
+	  g_free (control);
+	  continue;
+	}
+
+      strncpy (tcc[i].name, s, 32);
+
+      name = g_strconcat (control, "/value", NULL);
+      zconf_get_float (&tcc[i].value, name);
+      g_free (name);
+
+      g_free (control);
+    }
+
+  g_free (array);
+
+  return tcc;
+}
+
+void
+zconf_create_controls		(tveng_tc_control *	tcc,
+				 guint			num_controls,
+				 const gchar *		path)
+{
+  guint i;
+
+  for (i = 0; i < num_controls; i++)
+    {
+      gchar *name;
+
+      name = g_strdup_printf ("%s/controls/%d/name", path, i);
+      zconf_create_string (tcc[i].name, "Control name", name);
+      g_free (name);
+
+      name = g_strdup_printf ("%s/controls/%d/value", path, i);
+      zconf_create_float (tcc[i].value, "Control value", name);
+      g_free (name);
+    }
+}
+
+gint
+load_control_values		(tveng_device_info *	info,
+				 tveng_tc_control *	tcc,
+				 guint			num_controls,
+				 gboolean		skip_mute)
+{
+  tv_control *ctrl;
+  guint i;
+  gint mute = 0;
+
+  g_assert (info != NULL);
+
+  if (!tcc || num_controls == 0)
+    return 0;
+
+  for (ctrl = info->controls; ctrl; ctrl = ctrl->next)
+    if (!ctrl->ignore)
+      for (i = 0; i < num_controls; i++)
+	if (normstrcmp (ctrl->label, tcc[i].name))
+	  {
+	    gint value;
+
+	    value = rint (ctrl->minimum
+			  + (ctrl->maximum - ctrl->minimum)
+			  * tcc[i].value);
+
+	    if (ctrl->id == TV_CONTROL_ID_MUTE)
+	      {
+		if (skip_mute)
+		  mute = value;
+		else
+		  set_mute (value, /* controls */ TRUE, /* osd */ FALSE);
+	      }
+	    else
+	      {
+		tveng_set_control (ctrl, value, info);
+	      }
+
+	    break;
+	  }
+
+  return mute;
+}
+
+void
+store_control_values		(tveng_device_info *	info,
+				 tveng_tc_control **	tccp,
+				 guint *		num_controls_p)
+{
+  tveng_tc_control *tcc;
+  guint num_controls;
+  tv_control *ctrl;
+  guint i;
+
+  g_assert (info != NULL);
+  g_assert (tccp != NULL);
+  g_assert (num_controls_p != NULL);
+
+  tcc = NULL;
+  num_controls = 0;
+
+  for (ctrl = info->controls; ctrl; ctrl = ctrl->next)
+    if (!ctrl->ignore)
+      num_controls++;
+
+  if (num_controls > 0)
+    {
+      tcc = g_malloc (sizeof (*tcc) * num_controls);
+
+      ctrl = info->controls;
+
+      for (i = 0; i < num_controls; ctrl = ctrl->next)
+	{
+	  int value;
+
+	  if (ctrl->ignore)
+	    continue;
+
+	  value = ctrl->value;
+
+	  strncpy (tcc[i].name, ctrl->label, 32);
+	  tcc[i].name[31] = 0;
+
+	  if (ctrl->maximum > ctrl->minimum)
+	    tcc[i].value = (((gfloat) value) - ctrl->minimum)
+	      / ((gfloat) ctrl->maximum - ctrl->minimum);
+	  else
+	    tcc[i].value = 0;
+
+	  i++;
+	}
+    }
+
+  *tccp = tcc;
+  *num_controls_p = num_controls;
 }
 
 /*
@@ -910,10 +1087,10 @@ z_set_main_title	(tveng_tuned_channel	*channel,
 static gboolean first_switch = TRUE;
 
 void
-z_switch_channel	(tveng_tuned_channel	*channel,
-			 tveng_device_info	*info)
+z_switch_channel		(tveng_tuned_channel *	channel,
+				 tveng_device_info *	info)
 {
-  gint muted;
+  gboolean avoid_noise;
   gboolean was_first_switch = first_switch;
   tveng_tuned_channel *tc;
   gboolean in_global_list;
@@ -930,8 +1107,7 @@ z_switch_channel	(tveng_tuned_channel	*channel,
 	{
 	  g_free(tc->controls);
 	  if (zcg_bool(NULL, "save_controls"))
-	    store_control_values(&tc->num_controls, &tc->controls,
-				 info);
+	    store_control_values(info, &tc->controls, &tc->num_controls);
 	  else
 	    {
 	      tc->num_controls = 0;
@@ -942,20 +1118,8 @@ z_switch_channel	(tveng_tuned_channel	*channel,
 	first_switch = FALSE;
     }
 
-  muted = -1;
-
-  if (zcg_bool (NULL, "avoid_noise"))
-    {
-      if (audio_get_mute (&muted))
-	{
-	  if (muted == FALSE)
-	    set_mute (1, /* controls */ FALSE, /* osd */ FALSE);
-	}
-      else
-	{
-	  muted = -1;
-	}
-    }
+  if ((avoid_noise = zcg_bool (NULL, "avoid_noise")))
+    tv_quiet_set (main_info, TRUE);
 
   freeze_update();
 
@@ -969,18 +1133,12 @@ z_switch_channel	(tveng_tuned_channel	*channel,
   if (channel->standard)
     z_switch_standard(channel->standard, info);
 
+  if (avoid_noise)
+    reset_quiet (main_info, /* delay ms */ 500);
+
   if (info->num_inputs && info->inputs[info->cur_input].tuners)
     if (-1 == tveng_tune_input (channel->freq, info))
       ShowBox(info -> error, GTK_MESSAGE_ERROR);
-
-  if (zcg_bool(NULL, "avoid_noise"))
-    {
-      /* Sleep a little so the noise disappears */
-      usleep(100000);
-
-      if (muted == 0) /* was on (and no error) */
-	set_mute (0, FALSE, FALSE);
-    }
 
   if (in_global_list)
     z_set_main_title(channel, NULL);
@@ -989,10 +1147,10 @@ z_switch_channel	(tveng_tuned_channel	*channel,
 
   thaw_update();
 
-  if (channel->num_controls &&
-      zcg_bool(NULL, "save_controls"))
-    load_control_values(channel->num_controls, channel->controls,
-			info);
+  if (channel->num_controls && zcg_bool(NULL, "save_controls"))
+    /* XXX should we save mute state per-channel? */
+    load_control_values(info, channel->controls,
+			channel->num_controls, /* skip_mute */ TRUE);
 
   update_control_box(info);
 
@@ -1117,6 +1275,20 @@ static gint			kp_chsel_prefix;
 static gboolean			kp_clear;
 static gboolean			kp_lirc; /* XXX */
 
+static gint
+channel_txl			(void)
+{
+  gint txl;
+
+  /* 0 = channel list number, 1 = RF channel number */
+  txl = zconf_get_integer (NULL, "/zapping/options/main/channel_txl");
+
+  if (txl < 0)
+    txl = 0; /* historical: -1 disabled keypad channel number entering */
+
+  return txl;
+}
+
 static void
 kp_enter			(gint			txl)
 {
@@ -1134,12 +1306,8 @@ kp_enter			(gint			txl)
 static void
 kp_timeout			(gboolean		timer)
 {
-  gint txl = zconf_get_integer (NULL, "/zapping/options/main/channel_txl");
-
-  if (timer
-      && (txl >= 0 || kp_lirc) /* txl: -1 disable, 0 list entry, 1 RF channel */
-      && kp_chsel_buf[0] != 0)
-    kp_enter (txl);
+  if (timer && kp_chsel_buf[0] != 0)
+    kp_enter (channel_txl ());
 
   if (kp_clear)
     {
@@ -1285,13 +1453,9 @@ kp_key_press			(GdkEventKey *		event,
 gboolean
 channel_key_press		(GdkEventKey *		event)
 {
-  gint txl;
-
-  txl = zconf_get_integer (NULL, "/zapping/options/main/channel_txl");
-
   kp_lirc = TRUE;
 
-  return kp_key_press (event, txl);
+  return kp_key_press (event, channel_txl ());
 }
 
 gboolean
@@ -1301,12 +1465,10 @@ on_channel_key_press			(GtkWidget *	widget,
 {
   tveng_tuned_channel *tc;
   z_key key;
-  gint txl, i;
+  gint i;
 
-  txl = zconf_get_integer (NULL, "/zapping/options/main/channel_txl");
-
-  if (txl >= 0) /* !disabled */
-    if (kp_key_press (event, txl))
+  if (1) /* XXX !disabled */
+    if (kp_key_press (event, channel_txl ()))
       {
 	kp_lirc = FALSE;
 	return TRUE;
@@ -1325,40 +1487,6 @@ on_channel_key_press			(GtkWidget *	widget,
       }
 
   return FALSE; /* not for us, pass it on */
-}
-
-void store_control_values(gint *num_controls,
-			  tveng_tc_control **list,
-			  tveng_device_info *info)
-{
-  gint i;
-  tv_control *ctrl;
-
-  g_assert(info != NULL);
-  g_assert(list != NULL);
-  g_assert(num_controls != NULL);
-
-  *num_controls = 0;
-  for (ctrl = info->controls; ctrl; ctrl = ctrl->next)
-    (*num_controls)++;
-
-  if (*num_controls)
-    {
-      *list = g_malloc(sizeof(tveng_tc_control) * *num_controls);
-      ctrl = info->controls;
-      for (i = 0; i<*num_controls; ctrl = ctrl->next, i++)
-	{
-	  strncpy((*list)[i].name, ctrl->label, 32);
-	  (*list)[i].name[31] = 0;
-	  if (ctrl->maximum > ctrl->minimum)
-	    (*list)[i].value = (((gfloat)ctrl->value)-ctrl->minimum)/
-	      ((gfloat)ctrl->maximum-ctrl->minimum);
-	  else
-	    (*list)[i].value = 0;
-	}
-    }
-  else
-    *list = NULL;
 }
 
 /* Activate an input */
@@ -1615,7 +1743,90 @@ videostd_inquiry(void)
   else
     return -1;
 }
- 
+
+/*
+ *  Preliminary. This should create an object such that we can write:
+ *  zapping.control('volume').value += 1;
+ *  But for now I just copied py_volume_incr().
+ */
+static PyObject*
+py_control_incr			(PyObject *self, PyObject *args)
+{
+  static const struct {
+    tv_control_id	id;
+    const gchar *	name;
+  } controls[] = {
+    { TV_CONTROL_ID_BRIGHTNESS,	"brightness" },
+    { TV_CONTROL_ID_CONTRAST,	"contrast" },
+    { TV_CONTROL_ID_SATURATION,	"saturation" },
+    { TV_CONTROL_ID_HUE,	"hue" },
+    { TV_CONTROL_ID_MUTE,	"mute" },
+    { TV_CONTROL_ID_VOLUME,	"volume" },
+    { TV_CONTROL_ID_BASS,	"bass" },
+    { TV_CONTROL_ID_TREBLE,	"treble" },
+  };
+  char *control_name;
+  int increment, ok;
+  const tv_control *tc;
+  guint i;
+
+  increment = +1;
+
+  ok = PyArg_ParseTuple (args, "s|i", &control_name, &increment);
+
+  if (!ok)
+    g_error ("zapping.control_incr(s|i)");
+
+  for (i = 0; i < N_ELEMENTS (controls); i++)
+    if (0 == strcmp (controls[i].name, control_name))
+      break;
+
+  if (i >= N_ELEMENTS (controls))
+    goto done;
+
+  for (tc = main_info->controls; tc; tc = tc->next)
+    if (tc->id == controls[i].id && !tc->ignore)
+      break;
+
+  if (!tc)
+    goto done;
+
+  switch (tc->type)
+    {
+    case TV_CONTROL_TYPE_INTEGER:
+    case TV_CONTROL_TYPE_BOOLEAN:
+    case TV_CONTROL_TYPE_CHOICE:
+      break;
+
+    default:
+      goto done;
+    }
+
+  if (tc->id == TV_CONTROL_ID_MUTE)
+    {
+      set_mute ((increment > 0) ? TRUE : FALSE, TRUE, TRUE);
+    }
+  else
+    {
+      if (-1 == tveng_update_control ((tv_control *) tc, main_info))
+	goto done;
+
+      tveng_set_control ((tv_control *) tc, tc->value + increment * tc->step, main_info);
+
+#ifdef HAVE_LIBZVBI
+      /* TRANSLATORS: Control change OSD (%s name, %d new value in percent) */
+      osd_render_markup (NULL, _("<span foreground=\"blue\">%s %d %%</span>"),
+			 tc->label, (tc->value - tc->minimum)
+			 * 100 / (tc->maximum - tc->minimum));
+#endif
+    }
+
+ done:
+  Py_INCREF(Py_None);
+
+  return Py_None;
+}
+
 void
 startup_v4linterface(tveng_device_info *info)
 {
@@ -1639,6 +1850,8 @@ startup_v4linterface(tveng_device_info *info)
 		"zapping.lookup_channel('Linux TV')");
   cmd_register ("control_box", py_control_box, METH_VARARGS,
 		_("Opens the control box"), "zapping.control_box()");
+  cmd_register ("control_incr", py_control_incr, METH_VARARGS,
+		_("Increment control value"), "zapping.control_incr('volume', -1)");
 
   zcc_char("Zapping: $(alias)", "Title format Z will use", "title_format");
   zcc_bool(FALSE, "Swap the page Up/Down bindings", "swap_up_down");
