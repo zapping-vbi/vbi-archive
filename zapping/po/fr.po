@@ -1,11 +1,11 @@
-# French translation for Zapping. -*- coding: latin-1 -*-
+# French translation for Zapping.
 # Christian Marillat <marillat.christian@wanadoo.fr>, 2000, 2001, 2002.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: zapping 0.6.3\n"
+"Project-Id-Version: zapping 0.6.5\n"
 "POT-Creation-Date: 2002-09-26 22:16+0200\n"
-"PO-Revision-Date: 2002-03-20 15:36+0100\n"
+"PO-Revision-Date: 2002-09-27 19:00+0200\n"
 "Last-Translator: Christian Marillat <marillat.christian@wanadoo.fr>\n"
 "Language-Team: French <fr@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -239,9 +239,8 @@ msgid "US cable-hrc"
 msgstr "Cable-hrc US"
 
 #: src/frequencies.c:1229
-#, fuzzy
 msgid "Canada cable"
-msgstr "Cable Japon"
+msgstr "Cable Canada"
 
 #: src/frequencies.c:1230
 msgid "Japan terrestrial"
@@ -292,9 +291,8 @@ msgid "China"
 msgstr "Chine"
 
 #: src/frequencies.c:1242
-#, fuzzy
 msgid "Pakistan cable"
-msgstr "Cable Japon"
+msgstr "Cable Pakistan"
 
 #: src/frequencies.c:1438 src/frequencies.c:1543 src/frequencies.c:1722
 msgid "(Unnamed channel)"
@@ -475,11 +473,11 @@ msgid "none"
 msgstr "rien"
 
 #: src/zvbi.c:2118
-#, fuzzy, c-format
+#, c-format
 msgid "%d minute"
 msgid_plural "%d minutes"
 msgstr[0] "%d minute"
-msgstr[1] "%d minute"
+msgstr[1] "%d minutes"
 
 #: src/zvbi.c:2120
 #, c-format
@@ -832,7 +830,7 @@ msgid "TV input"
 msgstr "Entrée TV"
 
 #: src/properties-handler.c:125
-#, fuzzy, c-format
+#, c-format
 msgid "%s with %d tuner"
 msgid_plural "%s with %d tuners"
 msgstr[0] "%s avec %d tuner"
@@ -1193,49 +1191,40 @@ msgid "P_lugins"
 msgstr "_Greffons"
 
 #: glade/glade_strings.c:10
-#, fuzzy
 msgid "Edit the channel list"
-msgstr "Éditer la chaîne"
+msgstr "Éditer la liste des chaînes"
 
 #: glade/glade_strings.c:11
 msgid "_TV Channels"
 msgstr "Chaînes _TV"
 
 #: glade/glade_strings.c:12
-#, fuzzy
 msgid "Switch to fullscreen mode. Press ESC to return to windowed mode"
-msgstr ""
-"Utilisez ceci pour le plein écran. Appuyez sur ESC pour retourner en mode "
-"fenêtre"
+msgstr "Basculer en mode plein écran. Appuyez sur ESC pour retourner en mode fenêtre"
 
 #: glade/glade_strings.c:13 glade/glade_strings.c:201
-#, fuzzy
 msgid "_Fullscreen"
-msgstr "P_lein écran"
+msgstr "_Plein écran"
 
 #: glade/glade_strings.c:14
-#, fuzzy
 msgid "Switch to windowed overlay mode"
-msgstr "Utiliser ceci pour démarrer le mode overlay"
+msgstr "Basculer en mode overlay en fenêtre"
 
 #: glade/glade_strings.c:15 glade/glade_strings.c:202
 msgid "_Overlay mode"
-msgstr ""
+msgstr "Mode _Overlay"
 
 #: glade/glade_strings.c:16
-#, fuzzy
 msgid "Switch to windowed capture mode"
-msgstr "Utiliser ceci pour démarrer la capture en fenêtre"
+msgstr "Basculer en mode capture en fenêtre"
 
 #: glade/glade_strings.c:17 glade/glade_strings.c:203
-#, fuzzy
 msgid "_Capture mode"
-msgstr "Largeur de la capture :"
+msgstr "Mode _Capture"
 
 #: glade/glade_strings.c:18
-#, fuzzy
 msgid "Switch to Teletext mode"
-msgstr "Activer le mode Télétexte"
+msgstr "Basculer en mode Télétexte"
 
 #: glade/glade_strings.c:19 glade/glade_strings.c:204
 msgid "_Teletext"
@@ -1246,9 +1235,8 @@ msgid "_New Teletext View"
 msgstr "_Nouvelle vue Télétexte"
 
 #: glade/glade_strings.c:21
-#, fuzzy
 msgid "Info about the currently tuned network"
-msgstr "Infos à propos du réseau courant"
+msgstr "Infos à propos du réseau courant accordé"
 
 #: glade/glade_strings.c:22 glade/glade_strings.c:312
 msgid "Network Info"
@@ -1263,16 +1251,14 @@ msgid "_Mute"
 msgstr "_Sourdine"
 
 #: glade/glade_strings.c:26
-#, fuzzy
 msgid "Switch subtitles on and off"
-msgstr "Basculer le son on et off"
+msgstr "Basculer les sous-titres on et off"
 
 #: glade/glade_strings.c:27
 msgid "_Subtitles"
 msgstr "_Sous-titres"
 
 #: glade/glade_strings.c:28 glade/glade_strings.c:207
-#, fuzzy
 msgid "Hide menu and toolbar"
 msgstr "Cacher le menu et la barre d'outils"
 
@@ -1354,16 +1340,15 @@ msgstr "Sauver la position de la fenêtre (certains WM n'aime pas ça)"
 
 #: glade/glade_strings.c:48
 msgid "Keep window on top"
-msgstr ""
+msgstr "Garder la fenêtre au premier plan"
 
 #: glade/glade_strings.c:49
 msgid "Resize using fixed increments"
 msgstr "Re dimensionner en utilisant un incrément fixe"
 
 #: glade/glade_strings.c:50
-#, fuzzy
 msgid "Show tooltips"
-msgstr "Voir les contrôles"
+msgstr "Afficher les bulles d'aide"
 
 #: glade/glade_strings.c:51
 msgid "Numeric keypad channel switching:"
@@ -1416,23 +1401,20 @@ msgstr ""
 "$(freq), $(standard) et $(input) seront remplacés par leurs valeurs."
 
 #: glade/glade_strings.c:62
-#, fuzzy
 msgid "Show toolbar as:"
-msgstr "Voir les contrôles"
+msgstr "Afficher les contrôles comme :"
 
 #: glade/glade_strings.c:63
 msgid "Icons"
-msgstr ""
+msgstr "Icônes"
 
 #: glade/glade_strings.c:64
-#, fuzzy
 msgid "Text"
-msgstr "Suivant"
+msgstr "Texte"
 
 #: glade/glade_strings.c:65
-#, fuzzy
 msgid "Icons and text"
-msgstr "Maintenant et suivant"
+msgstr "Icônes et texte"
 
 #: glade/glade_strings.c:67
 msgid ""
@@ -2024,14 +2006,12 @@ msgid "_Open in new window"
 msgstr "_Ouvrir dans une autre fenêtre"
 
 #: glade/glade_strings.c:235
-#, fuzzy
 msgid "_Search page cache..."
-msgstr "Chercher dans le cache"
+msgstr "Chercher dans le cache..."
 
 #: glade/glade_strings.c:236
-#, fuzzy
 msgid "_Export this page"
-msgstr "Overlay de cette page"
+msgstr "_Exporter cette page"
 
 #: glade/glade_strings.c:237
 msgid "_Bookmarks"
@@ -2437,20 +2417,20 @@ msgstr "Il y a trop de threads"
 #: plugins/screenshot/screenshot.c:1106
 #, c-format
 msgid "appx %u KB"
-msgstr "appx %u Ko"
+msgstr "environ %u Ko"
 
 #: plugins/screenshot/screenshot.c:1109
 #, c-format
 msgid "appx %.2f MB"
-msgstr "appx %.2f Mo"
+msgstr "environ %.2f Mo"
 
 #: plugins/screenshot/screenshot.c:1174 plugins/screenshot/screenshot.c:1293
 msgid "This format has no quality option"
-msgstr ""
+msgstr "Ce format n'a pas d'option pour la qualité"
 
 #: plugins/screenshot/screenshot.c:1329
 msgid "Only useful with full size, unscaled picture (480 or 576 lines)"
-msgstr ""
+msgstr "Seulement utilisable avec de grande résolution (480 ou 576 lignes)"
 
 #: plugins/screenshot/screenshot_strings.c:7
 msgid "Select here the directory where screenshots will be saved"
@@ -2659,15 +2639,15 @@ msgstr "Encoder le flux vidéo en MPEG."
 #, c-format
 msgid "%d frame dropped"
 msgid_plural "%d frames dropped"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d trame sautée"
+msgstr[1] "%d trames sautées"
 
 #: plugins/mpeg/mpeg.c:284
 #, c-format
 msgid "%d frame processed"
 msgid_plural "%d frames processed"
-msgstr[0] "%d frame traité"
-msgstr[1] "%d frames traités"
+msgstr[0] "%d trame traitée"
+msgstr[1] "%d trames traitées"
 
 #: plugins/mpeg/mpeg.c:288
 #, c-format
@@ -2714,7 +2694,7 @@ msgstr ""
 #: plugins/mpeg/mpeg.c:611
 #, c-format
 msgid "RTE ID: %s"
-msgstr "RTE ID: %s"
+msgstr "ID RTE : %s"
 
 #: plugins/mpeg/mpeg.c:617 plugins/mpeg/mpeg.c:619
 #, c-format
@@ -2773,52 +2753,49 @@ msgstr "Enregistrer en MPEG"
 #: plugins/mpeg/mpeg.c:1688
 #, c-format
 msgid "Format %s is incomplete, please configure the video or audio codec."
-msgstr ""
+msgstr "Le format %s est incomplet, configurer le codec video ou audio."
 
 #: plugins/mpeg/mpeg.c:1831
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Cannot create destination directory:\n"
 "%s\n"
 "%s"
 msgstr ""
-"Ne peut créer le répertoire de destination pour les clips vidéo :\n"
+"Ne peut créer le répertoire de destination :\n"
 "%s\n"
 "%s"
 
 #: plugins/mpeg/mpeg.c:1843
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot create file %s: %s\n"
-msgstr "Ne peut créer %s : %s"
+msgstr "Ne peut créer le fichier %s : %s\n"
 
 #: plugins/mpeg/mpeg.c:2668 plugins/mpeg/mpeg.c:3099 plugins/mpeg/mpeg.c:3123
 #: plugins/mpeg/mpeg.c:3233 plugins/mpeg/mpeg_strings.c:34
 #: plugins/mpeg/mpeg_strings.c:41
-#, fuzzy
 msgid "Record"
-msgstr "Enregistrer en MPEG"
+msgstr "Enregistrement"
 
 #: plugins/mpeg/mpeg.c:2912
 msgid "Not implemented yet"
-msgstr ""
+msgstr "Pas encore implémenté"
 
 #: plugins/mpeg/mpeg.c:3083
-#, fuzzy
 msgid "Recording dialog"
-msgstr "Volume d'enregistrement :"
+msgstr "Boite d'enregistrement"
 
 #: plugins/mpeg/mpeg.c:3174
 msgid "Audio/Video Recorder"
-msgstr ""
+msgstr "Enregistrement Audio/Video"
 
 #: plugins/mpeg/mpeg.c:3177
-#, fuzzy
 msgid "This plugin records video and audio into a file"
-msgstr "Ce greffon encode les flux image et audio en un fichier MPEG"
+msgstr "Ce greffon enregistre les flux image et audio dans un fichier"
 
 #: plugins/mpeg/mpeg.c:3180
 msgid "Record video and audio."
-msgstr ""
+msgstr "Enregistrer la vidéo et l'audio."
 
 #: plugins/mpeg/mpeg_strings.c:8
 msgid "What to do with the compressed stream"
@@ -2903,101 +2880,25 @@ msgid "Destination file:"
 msgstr "Fichier de destination :"
 
 #: plugins/mpeg/mpeg_strings.c:37
-#, fuzzy
 msgid "Configure..."
-msgstr "Configurer"
+msgstr "Configurer..."
 
 #: plugins/mpeg/mpeg_strings.c:40
-#, fuzzy
 msgid "Stop"
-msgstr "Stéréo"
+msgstr "Stop"
 
 #: plugins/mpeg/mpeg_strings.c:42
-#, fuzzy
 msgid "Pause"
-msgstr "Page"
+msgstr "Pause"
 
 #: plugins/mpeg/mpeg_strings.c:47
-#, fuzzy
 msgid "File format"
-msgstr "Format :"
+msgstr "Format du fichier :"
 
 #: plugins/mpeg/mpeg_strings.c:54
-#, fuzzy
 msgid "New Format"
-msgstr "Format :"
+msgstr "Nouveau Format"
 
 #: plugins/mpeg/mpeg_strings.c:55
-#, fuzzy
 msgid "Format name:"
-msgstr "Format :"
-
-#~ msgid "Manages the installed plug-ins"
-#~ msgstr "Gestion des greffons installés"
-
-#~ msgid "Edit here the channels you have tuned"
-#~ msgstr "Éditer la chaîne qui a été réglée"
-
-#~ msgid "Go _Previewing"
-#~ msgstr "Faire la _Pré-visualisation"
-
-#~ msgid "Go _Capturing"
-#~ msgstr "Faire la _Capture"
-
-#~ msgid "Starts the Teletext decoder in a new window"
-#~ msgstr "Démarrer le décodeur Télétexte dans une nouvelle fenêtre"
-
-#~ msgid "Toggle Subtitles Display (if transmitted)"
-#~ msgstr "Sélectionner l'affichage des sous-titres (si transmis)"
-
-#~ msgid "Hide toolbar"
-#~ msgstr "Cacher la barre d'outils"
-
-#~ msgid "You can get here some info about this program"
-#~ msgstr "Vous pouvez obtenir quelques infos a propos de ce programme"
-
-#~ msgid "Use this for starting the fullscreen mode"
-#~ msgstr "Utilisé ceci pour démarrer le mode plein écran"
-
-#~ msgid "Use Zapping as a teletext navigator"
-#~ msgstr "Utiliser Zapping comme un navigateur Télétexte"
-
-#~ msgid "Resize the main window, hide/show toolbars"
-#~ msgstr ""
-#~ "Re dimensionner la fenêtre principale, cacher/voir la barre d'outils"
-
-#~ msgid "Open this link in a new window"
-#~ msgstr "Ouvrir ce lien dans une autre fenêtre"
-
-#~ msgid "Search for a given pattern in the cache"
-#~ msgstr "Chercher un motif donné dans le cache"
-
-#~ msgid "_Search..."
-#~ msgstr "_Recherche..."
-
-#~ msgid "Export the current page to different formats"
-#~ msgstr "Exporter la page courante dans différent format"
-
-#~ msgid "_Export"
-#~ msgstr "_Exportation"
-
-#~ msgid "Manage your bookmarks"
-#~ msgstr "Arranger vos signets"
-
-#~ msgid "Add the current page to the bookmarks"
-#~ msgstr "Ajouter la page courante aux signets"
-
-#~ msgid "Use this dialog to delete any bookmarks you wish to remove"
-#~ msgstr ""
-#~ "Utilisez cette boîte de dialogue pour effacer les signets que vous voulez "
-#~ "enlever"
-
-#, fuzzy
-#~ msgid "(C) Iaki Garca Etxebarria"
-#~ msgstr "(C) Iñaki García Etxebarria"
-
-#~ msgid "%s"
-#~ msgstr "%s"
-
-#~ msgid "%s with a tuner"
-#~ msgstr "%s avec un tuner"
+msgstr "Nom du format :"
