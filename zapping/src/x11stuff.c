@@ -307,7 +307,7 @@ _x11_force_expose(gint x, gint y, gint w, gint h)
     event.width = wts.width;
     event.height = wts.height;
     XSendEvent(GDK_DISPLAY(), children[i], False,
-	       ExposureMask, (XEvent*)&event);
+  	       ExposureMask, (XEvent*)&event);
   }
   XSync (GDK_DISPLAY(), False);
   XSetErrorHandler(olderror);
@@ -331,6 +331,14 @@ x11_window_viewable(GdkWindow *window)
   return ((wts.map_state & IsViewable) ? TRUE : FALSE);
 }
 
+static gint
+stop_xscreensaver_timeout (gpointer unused)
+{
+  system ("xscreensaver-command -deactivate >&- 2>&- &");
+
+  return TRUE;
+}
+
 /*
  * Sets the X screen saver on/off
  */
@@ -343,6 +351,7 @@ x11_set_screensaver(gboolean on)
   int dummy;
 #endif
   static int timeout=-2, interval, prefer_blanking, allow_exposures;
+  static gint gtimeout = -1;
 
   if (on) {
     if (timeout == -2) {
@@ -351,6 +360,8 @@ x11_set_screensaver(gboolean on)
     }
     XSetScreenSaver(GDK_DISPLAY(), timeout, interval, prefer_blanking,
 		    allow_exposures);
+    gtk_timeout_remove(gtimeout);
+    gtimeout = -1;
 #ifdef USE_XDPMS
     if ( (DPMSQueryExtension(GDK_DISPLAY(), &dummy, &dummy) ) &&
 	 (DPMSCapable(GDK_DISPLAY())) && (dpms_was_on) )
@@ -359,10 +370,13 @@ x11_set_screensaver(gboolean on)
   } else {
     XGetScreenSaver(GDK_DISPLAY(), &timeout, &interval,
 		    &prefer_blanking, &allow_exposures);
-    /* FIXME: this doesn't appear to work yet (it should, according to
-       man, what am i missing?) */
+    /* This disables the builtin X screensaver... */
     XSetScreenSaver(GDK_DISPLAY(), 0, interval, prefer_blanking,
 		    allow_exposures);
+    /* and this XScreensaver. */
+    //    gtimeout = gtk_timeout_add(55000, stop_xscreensaver_timeout, NULL);
+    gtimeout = gtk_timeout_add(5000, stop_xscreensaver_timeout, NULL);
+
 #ifdef USE_XDPMS
     if ( (DPMSQueryExtension(GDK_DISPLAY(), &dummy, &dummy)) &&
 	 (DPMSCapable(GDK_DISPLAY())) ) {
