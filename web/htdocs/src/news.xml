@@ -10,6 +10,18 @@ HTML tags can be used freely in the body.
 
     <ul>
       <li>
+        <b>Zapping</b> 0.6.4
+
+        <p>This is mostly a bugfix release, no new features. When you
+	use this version you should also install zvbi 0.1.1 which
+        adds more fixes.</p>
+      </li>
+      <li>
+        <b>zvbi</b> 0.1.1
+
+        <p>Bug fixes.</p>
+      </li>
+      <li>
         <b>Zapping</b> 0.6.3 
 
         <p>A new year, a new release, a new maintainer. This
