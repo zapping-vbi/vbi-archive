@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.5 2001-08-11 14:47:53 garetxe Exp $ */
+/* $Id: v4l.c,v 1.6 2001-08-12 18:37:01 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -169,6 +169,10 @@ v4l_init(void)
 	unsigned long buf_size;
 	int buf_count;
 
+	/* FIXME */
+	if (filter_mode == CM_YUYV_VERTICAL_DECIMATION)
+		filter_mode = CM_YUYV;
+
 	grab_width = width = saturate(width, 1, MAX_WIDTH);
 	grab_height = height = saturate(height, 1, MAX_HEIGHT);
 
@@ -250,6 +254,9 @@ v4l_init(void)
 	if (IOCTL(fd, VIDIOCGMBUF, &gb_buffers) == -1) {
 		struct video_window	win;
 		struct video_picture	pict;
+
+		FAIL("V4L read interface does not work, sorry.\n"
+		    "Please send patches to zapping-misc@lists.sf.net.\n");
 
 		printv(2, "VIDICGMBUF failed, using read interface\n");
 

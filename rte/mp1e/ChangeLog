@@ -2,6 +2,7 @@
 
 	* Managed to confuse Intel and AT&T syntax in motion.c only
 	  newer 'as' would understand. Converted to AT&T.
+	* video/v4l.c: Didn't work, rewrote, let's see.
 
 2001-08-08	<mschimek@users.sf.net>
 

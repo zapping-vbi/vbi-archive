@@ -313,6 +313,7 @@ struct teletext {
 	vbi_wst_level		max_level;
 
 	unsigned char		header[32];
+	unsigned char		alien_header[32];
 
         pagenum		        initial_page;
 	magazine		magazine[9];		/* 1 ... 8; #0 unmodified level 1.5 default */

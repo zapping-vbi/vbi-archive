@@ -1533,6 +1533,54 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 						}
 					}
 				}
+#if 0 /* TESTING */
+				pthread_mutex_lock(&vbi->resync_mutex);
+
+				if (vbi->resync > 0) {
+					char buf[4];
+					int i, j = 21;
+
+fprintf(stderr, "compare teletext headers\n");
+
+					snprintf(buf, sizeof(buf), "%3x", vtp->pgno);
+for (i = 0; i < 3; i++)
+fprintf(stderr, "%02x ", buf[i]);
+fprintf(stderr, "\n");
+for (i = 0; i < 32; i++)
+fprintf(stderr, "%02x ", vtp->data.lop.raw[0][i + 8]);
+fprintf(stderr, "\n");
+for (i = 0; i < 32; i++)
+fprintf(stderr, "%02x ", vtp->data.lop.raw[0][i + 8] & 0x7F);
+fprintf(stderr, "\n");
+for (i = 0; i < 32; i++)
+fprintf(stderr, "%02x ", vbi->vt.alien_header[i]);
+fprintf(stderr, "\n");
+					for (i = 0; i < 24; i++) {
+						unsigned char *p =
+							vtp->data.lop.raw[0] + i + 8;
+
+						if (i < j
+						    && (p[0] & 0x7F) == buf[0]
+						    && (p[1] & 0x7F) == buf[1]
+						    && (p[2] & 0x7F) == buf[2]) {
+							j = i;
+							i += 3;
+							continue;
+						}
+
+						if (*p != vbi->vt.alien_header[i])
+							break;
+					}
+fprintf(stderr, "results %d %d\n", i, j);
+
+					if (i >= 24) {
+						vbi->resync = 0; /* no switch */
+fprintf(stderr, "equal\n");
+					}
+				}
+
+				pthread_mutex_unlock(&vbi->resync_mutex);
+#endif /* TESTING */
 
 				ev.type = VBI_EVENT_PAGE;
 				ev.pgno = vtp->pgno;

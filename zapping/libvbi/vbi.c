@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.68 2001-08-10 04:43:28 mschimek Exp $ */
+/* $Id: vbi.c,v 1.69 2001-08-12 18:36:45 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -352,6 +352,7 @@ mainloop(void *p)
 
 	while (!vbi->quit) {
 		buffer *b = wait_full_buffer(&c);
+		double d = b->time - vbi->time;
 
 		if (b->used <= 0) {
 			/* ack */
@@ -364,15 +365,19 @@ mainloop(void *p)
 			break;
 		}
 
-		if (vbi->time > 0 && (b->time - vbi->time) > 0.055) {
+		if (vbi->time > 0
+		    && (d < 0.025 || d > 0.050)) {
 			/*
 			 *  Since (dropped >= channel switch) we give
 			 *  ~1.5 s to refute, then assume a switch.
 			 */
 			pthread_mutex_lock(&vbi->resync_mutex);
 
-			if (vbi->resync > 0)
+			if (vbi->resync == 0) {
+				memcpy(vbi->vt.alien_header, vbi->vt.header,
+				       sizeof(vbi->vt.alien_header));
 				vbi->resync = 40;
+			}
 
 			pthread_mutex_unlock(&vbi->resync_mutex);
 
@@ -859,8 +864,3 @@ vbi_open(fifo *source)
 
 	return vbi;
 }
-
-
-
-
-
