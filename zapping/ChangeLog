@@ -4,6 +4,8 @@
 	inputs can set the std when there's a tuner in the card.
 	* screenshot: Made the ov511 button polling a
 	timeout+thread. Rather inelegant, but we don't have much choice.
+	* po: Dumped the ngettext emulation and require the real thing
+	(>0.10.36). It won't be a problem except for people building from cvs.
 
 16.12.2001	pl.po updated <garetxe@users.sf.net>
 

@@ -17,6 +17,7 @@ Requires: libxml >= 1.4.0
 Requires: libglade >= 0.9
 Requires: gdk-pixbuf >= 0.8
 Requires: libunicode >= 0.4
+Requires: gettext >= 0.10.36
 Requires: /usr/bin/consolehelper
 
 %description
