@@ -1682,7 +1682,7 @@ int tveng2_read_frame(void * where, unsigned int size,
   FD_ZERO(&rdset);
   FD_SET(info->fd, &rdset);
   timeout.tv_sec = 0;
-  timeout.tv_usec = time;
+  timeout.tv_usec = time*1000;
   n = select(info->fd +1, &rdset, NULL, NULL, &timeout);
   if (n == -1)
     {

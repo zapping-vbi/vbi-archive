@@ -15,6 +15,7 @@ zapping_SOURCES = \
 	callbacks.c callbacks.h \
 	frequencies.c frequencies.h \
 	v4linterface.c v4linterface.h \
+	sound.c sound.h \
 	plugins.c plugins.h \
 	zconf.c zconf.h \
 	zmisc.c zmisc.h \
@@ -23,7 +24,7 @@ zapping_SOURCES = \
 	plugin_properties.c callbacks.h \
 	tveng1.c tveng1.h \
 	tveng2.c tveng2.h \
-	tveng.c tveng.h 
+	tveng.c tveng.h
 
 zapping_LDADD = $(GNOME_LIBDIR) $(GNOMEUI_LIBS) $(INTLLIBS) \
 $(GNOME_XML_LIB) $(LIBGLADE_LIBS) $(X_DGA_LIBS) $(PTHREAD_LIB) $(PNG_LIB)

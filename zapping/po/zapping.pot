@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-06-04 11:33+0200\n"
+"POT-Creation-Date: 2000-06-04 22:36+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -14,36 +14,36 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: ENCODING\n"
 
-#: src/main.c:87
+#: src/main.c:88
 msgid "Sorry, but there is no module support"
 msgstr ""
 
-#: src/main.c:96
+#: src/main.c:97
 msgid "Cannot get device info struct"
 msgstr ""
 
-#: src/main.c:105
+#: src/main.c:106
 msgid "Zapping couldn't be started"
 msgstr ""
 
-#: src/main.c:140
+#: src/main.c:141
 msgid ""
 "The specified device isn't \"/dev/video\".\n"
 "Should I try it?"
 msgstr ""
 
-#: src/main.c:161
+#: src/main.c:162
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:265
+#: src/main.c:266
 msgid "There is no allocated mem for the capture"
 msgstr ""
 
-#: src/main.c:349
+#: src/main.c:353
 msgid ""
 "ZConf could not be closed properly , your\n"
 "configuration will be lost.\n"
@@ -55,7 +55,7 @@ msgid ""
 "     Zapping. Please contact the author.\n"
 msgstr ""
 
-#: src/main.c:378
+#: src/main.c:382
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr ""
 

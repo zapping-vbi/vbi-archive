@@ -35,6 +35,7 @@
 #include "plugins.h"
 #include "zconf.h"
 #include "frequencies.h"
+#include "sound.h"
 
 /* These are accessed by callbacks.c as extern variables */
 tveng_device_info * main_info;
@@ -341,6 +342,9 @@ void shutdown_zapping(void)
 
   zcs_char(current_country -> name, "current_country");
 
+  /* Shutdown sound */
+  shutdown_sound();
+
   /* Shutdown all other modules */
   shutdown_callbacks();
 
@@ -433,6 +437,10 @@ gboolean startup_zapping()
   if (!startup_callbacks())
     return FALSE;
 
+  /* Start sound capturing */
+  if (!startup_sound())
+    return FALSE;
+
   /* Loads the modules */
   plugin_list = plugin_load_plugins();
 
@@ -452,5 +460,6 @@ gboolean startup_zapping()
 	}
       p = p->next;
     }
+
   return TRUE;
 }

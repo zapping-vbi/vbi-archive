@@ -3,6 +3,7 @@
 	* src/plugin_properties.c:
 	* glade/zapping.glade: Dialog layout redesigned, now the plugins
 	are configurable from the plugin_properties dialog too.
+	* src/sound.[ch]: Preliminary esd sound support added.
 	
 02.6.2000	First problems fixed <garetxe@users.sourceforge.net>
 
