@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.21 2003-11-29 19:43:22 mschimek Exp $ */
+/* $Id: options.c,v 1.22 2004-08-13 01:11:23 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu -> ? */
 #undef GTK_DISABLE_DEPRECATED
@@ -521,8 +521,13 @@ grte_options_load		(rte_codec *		codec,
 
   for (i = 0; (ro = rte_codec_option_info_enum (codec, i)); i++)
     {
-      gchar *zcname = g_strconcat (zc_domain, "/", ro->keyword, NULL);
+      gchar *zcname;
       rte_option_value val;
+
+      if (!ro->label)
+	continue; /* experts only */
+
+      zcname = g_strconcat (zc_domain, "/", ro->keyword, NULL);
 
       switch (ro->type)
 	{
