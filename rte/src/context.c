@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: context.c,v 1.9 2002-08-22 22:09:36 mschimek Exp $ */
+/* $Id: context.c,v 1.10 2002-09-26 20:43:41 mschimek Exp $ */
 
 #include "config.h"
 #include "rtepriv.h"
@@ -54,10 +54,13 @@ static const unsigned int num_backends =
 static pthread_once_t init_once = PTHREAD_ONCE_INIT;
 
 static void
-init_backends(void)
+init_backends			(void)
 {
 	unsigned int i;
 
+#ifdef ENABLE_NLS
+	bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
+#endif
 	for (i = 0; i < num_backends; i++)
 		if (backends[i]->backend_init)
 			backends[i]->backend_init();
@@ -83,7 +86,7 @@ rte_context_info_enum(unsigned int index)
 	rte_context_class *rxc;
 	unsigned int i, j;
 
-	pthread_once(&init_once, init_backends);
+	pthread_once (&init_once, init_backends);
 
 	for (j = 0; j < num_backends; j++)
 		if (backends[j]->context_enum)
@@ -111,7 +114,7 @@ rte_context_info_by_keyword(const char *keyword)
 	rte_context_class *rxc;
 	unsigned int i, j, keylen;
 
-	pthread_once(&init_once, init_backends);
+	pthread_once (&init_once, init_backends);
 
 	if (!keyword)
 		return NULL;
@@ -188,11 +191,11 @@ rte_context_new(const char *keyword, void *user_data, char **errstr)
 		*errstr = NULL;
 
 	if (!keyword) {
-		rte_asprintf(errstr, _("No format keyword\n"));
+		rte_asprintf(errstr, "No format keyword\n");
 		nullcheck(keyword, return NULL);
 	}
 
-	pthread_once(&init_once, init_backends);
+	pthread_once (&init_once, init_backends);
 
 	for (keylen = 0; keyword[keylen] && keylen < (sizeof(key) - 1)
 	     && keyword[keylen] != ';' && keyword[keylen] != ',';
@@ -223,7 +226,7 @@ rte_context_new(const char *keyword, void *user_data, char **errstr)
 	} else if (!rxc->_new || error) {
 		if (errstr) {
 			if (error)
-				rte_asprintf(errstr, _("Encoder '%s' not available: %s"),
+				rte_asprintf(errstr, _("Encoder '%s' not available. %s"),
 					     rxc->_public.label ? _(rxc->_public.label) : key, error);
 			else
 				rte_asprintf(errstr, _("Encoder '%s' not available."),
@@ -240,7 +243,7 @@ rte_context_new(const char *keyword, void *user_data, char **errstr)
 
 	if (!context) {
 		if (error) {
-			rte_asprintf(errstr, _("Cannot create new encoding context '%s': %s"),
+			rte_asprintf(errstr, _("Cannot create new encoding context '%s'. %s"),
 				     rxc->_public.label ? _(rxc->_public.label) : key, error);
 			free(error);
 		} else {
