@@ -1,16 +1,14 @@
-# translation of verynew.po to Italian
 # translation of zapping.po to Italian
-# translation of zapping.po to Italian  -*- coding: utf-8 -*-
 # Zapping (a Gnome TV viewer) / Zapping (Visualizzatore TV per Gnome)
 # Zapping italian translation
 # Pino Toscano <toscano.pino@tiscali.it>, 2002, 2003, 2004, 2005.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: verynew\n"
+"Project-Id-Version: zapping\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2005-02-28 23:53+0100\n"
-"PO-Revision-Date: 2005-02-08 13:32+0100\n"
+"PO-Revision-Date: 2005-03-03 10:54+0100\n"
 "Last-Translator: Pino Toscano <toscano.pino@tiscali.it>\n"
 "Language-Team: Italian <kde-i18n-it@kde.org>\n"
 "MIME-Version: 1.0\n"
@@ -534,8 +532,7 @@ msgid "VTX"
 msgstr "VTX"
 
 #: libvbi/exp-vtx.c:131
-msgid ""
-"Export this page as VTX file, the format used by VideoteXt and vbidecode"
+msgid "Export this page as VTX file, the format used by VideoteXt and vbidecode"
 msgstr ""
 "Esporta questa pagina come file VTX, il formato usato da VideoteXt e "
 "vbidecode"
@@ -1528,9 +1525,8 @@ msgid "<span foreground=\"yellow\">Audio on</span>"
 msgstr "<span foreground=\"yellow\">Audio attivo</span>"
 
 #: src/capture.c:894
-#, fuzzy
 msgid "Cannot stop capturing while recording."
-msgstr "Impossibile iniziare a catturare: %s"
+msgstr "Impossibile fermare la cattura durante una registrazione."
 
 #: src/capture.c:969
 #, c-format
@@ -1618,8 +1614,7 @@ msgstr "Aggiungi tutti i _canali"
 
 #: src/channel_editor.c:1822
 msgid "Add all channels in the frequency table to the channel list."
-msgstr ""
-"Aggiungi tutti i canali della tavola delle frequenze alla lista dei canali."
+msgstr "Aggiungi tutti i canali della tavola delle frequenze alla lista dei canali."
 
 #: src/channel_editor.c:1826
 msgid "_Import XawTV configuration"
@@ -2640,36 +2635,39 @@ msgstr "Zapping Visualizzatore TV"
 
 #: zapping.schemas.in.h:1
 msgid "Default Teletext character set."
-msgstr ""
+msgstr "Insieme di caratteri predefinito del televideo."
 
 #: zapping.schemas.in.h:2
-msgid ""
-"Default Teletext home page, usually 100. Valid values range from 100 to 899."
+msgid "Default Teletext home page, usually 100. Valid values range from 100 to 899."
 msgstr ""
+"Pagina d'avvio predefinita del televideo, di solito 100. I valori validi "
+"variano da 100 a 899."
 
 #: zapping.schemas.in.h:3
-#, fuzzy
 msgid "Default Teletext home page."
-msgstr "Possibile solo l'esportazione di pagine del Televideo."
+msgstr "Pagina d'avvio predefinita del televideo."
 
 #: zapping.schemas.in.h:4
-#, fuzzy
 msgid "Deinterlace option."
-msgstr "Plugin di deinterlacciamento"
+msgstr "Opzioni del deinterlacciamento."
 
 #: zapping.schemas.in.h:5
 msgid "Display delay of second field (0.0 to 1.0 of one frame period)."
 msgstr ""
 
 #: zapping.schemas.in.h:6
+#, fuzzy
 msgid ""
 "Enable navigation elements in the bottom row of the Teletext page. Valid "
 "values: disabled, flof_top1 (FLOF or TOP style 1), flof_top2 (TOP style 2)."
 msgstr ""
+"Abilita gli elementi di navigazione nella riga in basso della pagina del "
+"televideo. Valori validi: [disabled, flof_top1 (FLOF or TOP style 1), "
+"flof_top2 (TOP style 2)]."
 
 #: zapping.schemas.in.h:7
 msgid "Enable navigation elements."
-msgstr ""
+msgstr "Abilita elementi di navigazione."
 
 #: zapping.schemas.in.h:8
 msgid "Horizontal image resolution in deinterlace mode."
@@ -2677,22 +2675,23 @@ msgstr ""
 
 #: zapping.schemas.in.h:9
 msgid "Keep the main window above other windows."
-msgstr ""
+msgstr "Tieni la finestra principale sopra le altre finestre."
 
 #: zapping.schemas.in.h:10
 msgid "Maximum number of networks in the Teletext page cache."
-msgstr ""
+msgstr "Massimo numero di reti nella cache delle pagine del televideo."
 
 #: zapping.schemas.in.h:11
 msgid "Maximum size of the Teletext page cache in bytes."
-msgstr ""
+msgstr "Massima dimensione della cache delle pagine del televideo in byte."
 
 #: zapping.schemas.in.h:12
-#, fuzzy
 msgid ""
 "Quality/speed trade-off when scaling and anti-aliasing Teletext pages. Valid "
 "values: nearest, tiles, bilinear, hyper."
-msgstr "Compromesso qualità/velocità quando scala e migliora la pagina."
+msgstr ""
+"Compromesso qualità/velocità quando scala e migliora la pagina. Valori "
+"validi: più vicino, tessere, bilineare, iper."
 
 #: zapping.schemas.in.h:13
 msgid "Reverse the temporal field order."
@@ -2711,24 +2710,23 @@ msgstr ""
 
 #: zapping.schemas.in.h:16
 msgid "Search all channels in the Teletext page memory."
-msgstr ""
+msgstr "Cerca in tutti i canali nella memoria delle pagine del televideo."
 
 #: zapping.schemas.in.h:17
 msgid "Show a menu bar in the main window."
-msgstr ""
+msgstr "Mostra una barra dei menu nella finestra principale."
 
 #: zapping.schemas.in.h:18
 msgid "Show a status bar in Teletext windows."
-msgstr ""
+msgstr "Mostra una barra di stato nelle finestre del televideo."
 
 #: zapping.schemas.in.h:19
-#, fuzzy
 msgid "Show a toolbar in Teletext windows."
-msgstr "Apri una nuova finestra di Televideo"
+msgstr "Mostra una barra degli strumenti nelle finestre del televideo."
 
 #: zapping.schemas.in.h:20
 msgid "Show a toolbar in the main window."
-msgstr ""
+msgstr "Mostra una barra degli strumenti nella finestra principale."
 
 #: zapping.schemas.in.h:21
 #, fuzzy
@@ -2747,16 +2745,15 @@ msgstr ""
 
 #: zapping.schemas.in.h:22
 msgid "Switch to full capture size for screenshot."
-msgstr ""
+msgstr "Passa alla dimensione massima di cattura per le istantanee."
 
 #: zapping.schemas.in.h:23
-#, fuzzy
 msgid "Teletext implementation level."
-msgstr "Implemen_tazione del Televideo:"
+msgstr "Livello di implementazione del televideo."
 
 #: zapping.schemas.in.h:24
 msgid "Teletext implementation level. Valid values: 1, 1.5, 2.5, 3.5."
-msgstr ""
+msgstr "Livello di implementazione del televideo. Valori validi: 1, 1.5, 2.5, 3.5."
 
 #: zapping.schemas.in.h:25
 #, fuzzy
@@ -2765,20 +2762,19 @@ msgstr "Pagina successiva nella cronologia"
 
 #: zapping.schemas.in.h:26
 msgid "Text brightness, valid values range from 0 to 255."
-msgstr ""
+msgstr "Luminosità del testo, valori validi variano da 0 a 255."
 
 #: zapping.schemas.in.h:27
 msgid "Text contrast, valid values range from -128 to 127."
-msgstr ""
+msgstr "Contrasto del testo, valori validi variano da -128 a 127."
 
 #: zapping.schemas.in.h:28
-#, fuzzy
 msgid "The Teletext search is case insensitive."
-msgstr "Non d_istinguere MAIUSCOLE/minuscole"
+msgstr "La ricerca del televideo non distingue maiuscole/minuscole."
 
 #: zapping.schemas.in.h:29
 msgid "The Teletext search text is a regular expression."
-msgstr ""
+msgstr "Il testo di ricerca del televideo è un'espressione regolare."
 
 #: zapping.schemas.in.h:30
 msgid ""
@@ -2789,14 +2785,18 @@ msgstr ""
 
 #: zapping.schemas.in.h:31
 msgid "Time to wait until blanking the pointer."
-msgstr ""
+msgstr "Tempo di attesa prima di nascondere il puntatore."
 
 #: zapping.schemas.in.h:32
 msgid "Update the clock in the Teletext page header."
-msgstr ""
+msgstr "Aggiorna l'orologio nell'intestazione di ogni pagina del televideo."
 
 #: zapping.schemas.in.h:33
 msgid ""
 "When your CPU is too slow to use the desired deinterlace mode you can reduce "
 "the horizontal resolution. Valid values: low, medium, high."
 msgstr ""
+"Quando la CPU è troppo lenta per poter usare la modalità di "
+"deinterlacciamento desiderata, puoi ridurre la risoluzione orizzontale. "
+"Valori validi: bassa, media, alta."
+
