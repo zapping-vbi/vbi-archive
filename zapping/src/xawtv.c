@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xawtv.c,v 1.4 2004-05-17 20:46:53 mschimek Exp $ */
+/* $Id: xawtv.c,v 1.5 2004-05-17 23:36:37 mschimek Exp $ */
 
 /*
    XawTV compatibility functions:
@@ -39,6 +39,7 @@
 #include "remote.h"
 #include "osd.h"
 #include "globals.h"
+#include "v4linterface.h"
 
 #ifndef XAWTV_CONFIG_TEST
 #define XAWTV_CONFIG_TEST 0
@@ -779,6 +780,69 @@ static GdkAtom _GA_ZAPPING_REMOTE;
 static GdkAtom _GA_STRING;
 
 static gboolean
+xawtv_command_setstation	(int			argc,
+				 char **		argv)
+{
+  long int nr;
+  char *end;
+  tveng_tuned_channel *ch;
+
+  if (1 == argc)
+    return FALSE;
+
+  if (0 == strcmp (argv[1], "next"))
+    {
+      python_command (NULL, "zapping.channel_up()");
+      return TRUE;
+    }
+
+  if (0 == strcmp (argv[1], "prev"))
+    {
+      python_command (NULL, "zapping.channel_down()");
+      return TRUE;
+    }
+
+  if (0 == strcmp (argv[1], "back"))
+    {
+      /* TODO */
+      return FALSE;
+    }
+
+  nr = strtol (argv[1], &end, 0);
+
+  if (0 == *end)
+    {
+      tveng_tuned_channel *ch;
+
+      if (!(ch = tveng_tuned_channel_nth (global_channel_list, nr)))
+	{
+	  fprintf (stderr, "Invalid channel number %ld\n", nr);
+	  return FALSE;
+	}
+    }
+  else
+    {
+      gchar *t;
+
+      if (!(t = g_locale_to_utf8 (argv[1], -1, NULL, NULL, NULL)))
+	return FALSE;
+
+      if (!(ch = tveng_tuned_channel_by_name (global_channel_list, t)))
+	{
+	  g_free (t);
+	  fprintf (stderr, "Cannot find channel '%s'\n", argv[1]);
+	  return FALSE;
+	}
+
+      g_free (t);
+    }
+
+  z_switch_channel (ch, main_info);
+
+  return TRUE;
+}
+
+static gboolean
 xawtv_command_vtx		(int			argc,
 				 char **		argv)
 {
@@ -1057,10 +1121,11 @@ xawtv_command			(int			argc,
       return TRUE;
     }
 
+  if (0 == strcmp (argv[0], "setstation"))
+    return xawtv_command_setstation (argc, argv);
+
   if (0 == strcmp (argv[0], "vtx"))
-    {
-      return xawtv_command_vtx (argc, argv);
-    }
+    return xawtv_command_vtx (argc, argv);
 
   fprintf (stderr, "Command '%s' not implemented\n", argv[0]);
 
