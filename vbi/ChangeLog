@@ -1,3 +1,15 @@
+2003-01-26	<tomzo@users.sf.net>
+
+        Periodic check-in for ongoing proxy implementation:
+        * proxyd.c: implemented priority based scheduler for channel change
+          requests
+        * proxy-test.c: added support for testing channel change priorities
+        * io-*.c, io.h: added generic setup function; added support for
+          buffer flush after channel changes
+        * videodev2k.h: updated with snapshot video4linux-20040121
+        * decoder.c: bugfix for WSS
+        Note: interface change requires adaption of proxy clients
+
 2003-10-16	<mschimek@users.sf.net>
 
 	* src/bcd.h (vbi_dec2bcd, vbi_bcd2dec, vbi_add_bcd,
