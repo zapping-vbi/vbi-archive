@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.c,v 1.1.2.5 2004-04-05 04:42:27 mschimek Exp $ */
+/* $Id: pdc.c,v 1.1.2.6 2004-04-15 00:11:16 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -111,7 +111,7 @@ _vbi_program_id_dump		(const vbi_program_id *	pid,
 		"BILINGUAL"
 	};
 
-	fprintf (fp, "nuid=%llx ch=%u", pid->nuid, pid->channel);
+	fprintf (fp, "nuid=%llx ch=%u ", pid->nuid, pid->channel);
 
 	if (0) {
 		fprintf (fp, "%02u-%02u %02u:%02u pil=",

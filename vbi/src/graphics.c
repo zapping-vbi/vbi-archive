@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: graphics.c,v 1.1.2.3 2004-04-03 00:07:55 mschimek Exp $ */
+/* $Id: graphics.c,v 1.1.2.4 2004-04-15 00:11:16 mschimek Exp $ */
 
 #include "graphics.h"
 
@@ -112,10 +112,10 @@ _vbi_pixfmt_bytes_per_pixel	(vbi_pixfmt		pixfmt)
 {
 	vbi_pixfmt_set set = VBI_PIXFMT_SET (pixfmt);
 
-	if (set & (VBI_PIXFMT_SET_4 | VBI_PIXFMT_SET_3))
-		return (set & VBI_PIXFMT_SET_4) ? 4 : 3;
-	else if (set & (VBI_PIXFMT_SET_2 | VBI_PIXFMT_SET_1))
-		return (set & VBI_PIXFMT_SET_2) ? 2 : 1;
+	if (set & (_VBI_PIXFMT_SET_4 | _VBI_PIXFMT_SET_3))
+		return (set & _VBI_PIXFMT_SET_4) ? 4 : 3;
+	else if (set & (_VBI_PIXFMT_SET_2 | _VBI_PIXFMT_SET_1))
+		return (set & _VBI_PIXFMT_SET_2) ? 2 : 1;
 
 	return 0;
 }

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-bktr.c,v 1.2.2.5 2004-04-08 23:36:25 mschimek Exp $";
+static char rcsid[] = "$Id: io-bktr.c,v 1.2.2.6 2004-04-15 00:11:16 mschimek Exp $";
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -42,6 +42,8 @@ static char rcsid[] = "$Id: io-bktr.c,v 1.2.2.5 2004-04-08 23:36:25 mschimek Exp
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <pthread.h>
+
+#define log_fp 0
 
 #define printv(format, args...)						\
 do {									\
@@ -163,7 +165,7 @@ bktr_delete(vbi_capture *vc)
 		free(v->raw_buffer[v->num_raw_buffers - 1].data);
 
 	if (v->fd != -1)
-		close(v->fd);
+		device_close(log_fp, v->fd);
 
 	free(v);
 }
@@ -209,7 +211,7 @@ vbi_capture_bktr_new		(const char *		dev_name,
 	v->capture._delete = bktr_delete;
 	v->capture.get_fd = bktr_fd;
 
-	if ((v->fd = open(dev_name, O_RDONLY)) == -1) {
+	if ((v->fd = device_open(log_fp, dev_name, O_RDONLY)) == -1) {
 		vbi_asprintf(errstr, _("Cannot open '%s': %d, %s."),
 			     dev_name, errno, strerror(errno));
 		goto io_error;

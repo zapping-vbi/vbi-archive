@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-v4l.c,v 1.9.2.8 2004-04-08 23:36:25 mschimek Exp $";
+static char rcsid[] = "$Id: io-v4l.c,v 1.9.2.9 2004-04-15 00:11:16 mschimek Exp $";
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -44,13 +44,19 @@ static char rcsid[] = "$Id: io-v4l.c,v 1.9.2.8 2004-04-08 23:36:25 mschimek Exp 
 #include <pthread.h>
 
 #include "videodev.h"
+#include "_videodev.h"
 
-/* same as ioctl(), but repeat if interrupted */
-#define IOCTL(fd, cmd, data)						\
-({ int __result; do __result = ioctl(fd, cmd, data);			\
-   while (__result == -1L && errno == EINTR); __result; })
+#define log_fp 0
+
+/* This macro checks at compile time if the arg type is correct,
+   repeats the ioctl if interrupted (EINTR), and logs the args
+   and result if log_fp is non-zero. */
+#define _ioctl(fd, cmd, arg)						\
+(IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
+ device_ioctl (log_fp, fprintf_ioctl_arg, fd, cmd, (void *)(arg)))
 
 #define BTTV_VBISIZE		_IOR('v' , BASE_VIDIOCPRIVATE+8, int)
+static __inline__ void IOCTL_ARG_TYPE_CHECK_BTTV_VBISIZE (int *arg) {}
 
 #undef REQUIRE_SELECT
 #undef REQUIRE_SVBIFMT		/* else accept current parameters */
@@ -192,7 +198,7 @@ reverse_lookup(int fd, struct stat *vbi_stat, vbi_bool trace)
 	struct video_capability vcap;
 	struct video_unit vunit;
 
-	if (IOCTL(fd, VIDIOCGCAP, &vcap) != 0) {
+	if (_ioctl (fd, VIDIOCGCAP, &vcap) != 0) {
 		printv("Driver doesn't support VIDIOCGCAP, probably not v4l\n");
 		return FALSE;
 	}
@@ -202,7 +208,7 @@ reverse_lookup(int fd, struct stat *vbi_stat, vbi_bool trace)
 		return FALSE;
 	}
 
-	if (IOCTL(fd, VIDIOCGUNIT, &vunit) != 0) {
+	if (_ioctl (fd, VIDIOCGUNIT, &vunit) != 0) {
 		printv("Driver doesn't support VIDIOCGUNIT\n");
 		return FALSE;
 	}
@@ -226,11 +232,11 @@ get_videostd(int fd, int *mode, vbi_bool trace)
 	memset(&vtuner, 0, sizeof(vtuner));
 	memset(&vchan, 0, sizeof(vchan));
 
-	if (IOCTL(fd, VIDIOCGTUNER, &vtuner) != -1) {
+	if (_ioctl (fd, VIDIOCGTUNER, &vtuner) != -1) {
 		printv("Driver supports VIDIOCGTUNER: %d\n", vtuner.mode);
 		*mode = vtuner.mode;
 		return TRUE;
-	} else if (IOCTL(fd, VIDIOCGCHAN, &vchan) != -1) {
+	} else if (_ioctl (fd, VIDIOCGCHAN, &vchan) != -1) {
 		printv("Driver supports VIDIOCGCHAN: %d\n", vchan.norm);
 		*mode = vchan.norm;
 		return TRUE;
@@ -265,7 +271,7 @@ probe_video_device(char *name, struct stat *vbi_stat,
 		return FALSE;
 	}
 
-	if (!(fd = open(name, O_RDONLY | O_TRUNC))) {
+	if (!(fd = device_open(log_fp, name, O_RDONLY | O_TRUNC, 0))) {
 		printv("Cannot open %s: %d, %s\n", name, errno, strerror(errno));
 		perm_check(name, trace);
 		return FALSE;
@@ -273,11 +279,11 @@ probe_video_device(char *name, struct stat *vbi_stat,
 
 	if (!reverse_lookup(fd, vbi_stat, trace)
 	    || !get_videostd(fd, mode, trace)) {
-		close(fd);
+		device_close(log_fp, fd);
 		return FALSE;
 	}
 
-	close(fd);
+	device_close(log_fp, fd);
 
 	return TRUE;
 }
@@ -455,7 +461,7 @@ set_parameters(vbi_capture_v4l *v, struct vbi_format *vfmt, int *max_rate,
 		vfmt->count[1] = 1;
 	}
 
-	if (IOCTL(v->fd, VIDIOCSVBIFMT, vfmt) == 0)
+	if (_ioctl (v->fd, VIDIOCSVBIFMT, vfmt) == 0)
 		return TRUE;
 
 	switch (errno) {
@@ -510,7 +516,7 @@ v4l_delete(vbi_capture *vc)
 		free(v->raw_buffer[v->num_raw_buffers - 1].data);
 
 	if (v->fd != -1)
-		close(v->fd);
+		device_close(log_fp, v->fd);
 
 	free(v);
 }
@@ -566,7 +572,7 @@ v4l_new(const char *dev_name, int given_fd, int scanning,
 	v->capture._delete = v4l_delete;
 	v->capture.get_fd = v4l_fd;
 
-	if ((v->fd = open(dev_name, O_RDONLY)) == -1) {
+	if ((v->fd = device_open(log_fp, dev_name, O_RDONLY, 0)) == -1) {
 		vbi_asprintf(errorstr, _("Cannot open '%s': %d, %s."),
 			     dev_name, errno, strerror(errno));
 		perm_check(dev_name, trace);
@@ -575,7 +581,7 @@ v4l_new(const char *dev_name, int given_fd, int scanning,
 
 	printv("Opened %s\n", dev_name);
 
-	if (IOCTL(v->fd, VIDIOCGCAP, &vcap) == -1) {
+	if (_ioctl (v->fd, VIDIOCGCAP, &vcap) == -1) {
 		/*
 		 *  Older bttv drivers don't support any
 		 *  v4l ioctls, let's see if we can guess the beast.
@@ -610,7 +616,7 @@ v4l_new(const char *dev_name, int given_fd, int scanning,
 	max_rate = 0;
 
 	/* May need a rewrite */
-	if (IOCTL(v->fd, VIDIOCGVBIFMT, &vfmt) == 0) {
+	if (_ioctl (v->fd, VIDIOCGVBIFMT, &vfmt) == 0) {
 		if (v->dec.sampling.start[1] > 0 && v->dec.sampling.count[1]) {
 			if (v->dec.sampling.start[1] >= 286)
 				v->dec.sampling.videostd_set = VBI_VIDEOSTD_SET_625_50;
@@ -670,7 +676,7 @@ v4l_new(const char *dev_name, int given_fd, int scanning,
 		/*
 		 *  If a more reliable method exists to identify the bttv
 		 *  driver I'll be glad to hear about it. Lesson: Don't
-		 *  call a v4l private IOCTL without knowing who's
+		 *  call a v4l private ioctl  without knowing who's
 		 *  listening. All we know at this point: It's a csf, and
 		 *  it may be a v4l device.
 		 *  garetxe: This isn't reliable, bttv doesn't return
@@ -696,7 +702,7 @@ v4l_new(const char *dev_name, int given_fd, int scanning,
 
 		printv("Attempt to determine vbi frame size\n");
 
-		if ((size = IOCTL(v->fd, BTTV_VBISIZE, 0)) == -1) {
+		if ((size = _ioctl (v->fd, BTTV_VBISIZE, 0)) == -1) {
 			printv("Driver does not support BTTV_VBISIZE, "
 				"assume old BTTV driver\n");
 			v->dec.sampling.count[0] = 16;

@@ -17,9 +17,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io.c,v 1.4.2.1 2004-04-08 23:36:25 mschimek Exp $ */
+/* $Id: io.c,v 1.4.2.2 2004-04-15 00:11:16 mschimek Exp $ */
 
 #include <assert.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <errno.h>
 
 #include "io-priv.h"
 
@@ -282,4 +286,199 @@ vbi_capture_delete(vbi_capture *capture)
 {
 	if (capture)
 		capture->_delete(capture);
+}
+
+
+
+/* Helper functions to the log communication between the library and drivers.
+   FIXME remove fp arg, call user log function instead (0.3). */
+
+void
+fprintf_symbolic		(FILE *			fp,
+				 int			mode,
+				 unsigned long		value,
+				 ...)
+{
+	unsigned int i, j = 0;
+	unsigned long v;
+	const char *s;
+	va_list ap;
+
+	if (mode == 0) {
+		unsigned int n[2] = { 0, 0 };
+
+		va_start (ap, value);
+
+		for (i = 0; (s = va_arg (ap, const char *)); i++) {
+			v = va_arg (ap, unsigned long);
+			n[((v & (v - 1)) == 0)]++; /* single bit */
+		}
+
+		/* 1-enum, 2-set flags, 3-all flags */
+		mode = 1 + (n[1] > n[0]);
+
+		va_end (ap); 
+	}
+
+	va_start (ap, value);
+
+	for (i = 0; (s = va_arg (ap, const char *)); i++) {
+		v = va_arg (ap, unsigned long);
+		if (mode == 3 || v == value
+		    || (mode == 2 && (v & value))) {
+			fprintf (fp, "%s%s%s", j++ ? "|" : "",
+				 (mode == 3 && (v & value) == 0) ?
+				 "!" : "", s);
+			value &= ~v;
+		}
+	}
+
+	if (0 == value && 0 == j)
+		fputc ('0', fp);
+	else if (value)
+		fprintf (fp, "%s0x%lx", j ? "|" : "", value);
+
+	va_end (ap); 
+}
+
+void
+fprintf_unknown_cmd		(FILE *			fp,
+				 unsigned int		cmd,
+				 void *			arg)
+{
+	fprintf (fp, "<unknown cmd 0x%x %c%c arg=%p size=%u>",
+		 cmd, IOCTL_READ (cmd) ? 'R' : 'r',
+		 IOCTL_WRITE (cmd) ? 'W' : 'w',
+		 arg, IOCTL_ARG_SIZE (cmd)); 
+}
+
+/**
+ * @internal
+ * Drop-in for open(). Logs the request on fp if given.
+ */
+int
+device_open			(FILE *			fp,
+				 const char *		pathname,
+				 int			flags,
+				 mode_t			mode)
+{
+	int fd;
+
+	fd = open (pathname, flags, mode);
+
+	if (fp)	{
+		int saved_errno;
+
+		saved_errno = errno;
+
+		fprintf (fp, "%d = open (\"%s\", ", fd, pathname);
+		fprintf_symbolic (fp, 2, flags,
+				  "RDONLY", O_RDONLY,
+				  "WRONLY", O_WRONLY,
+				  "RDWR", O_RDWR,
+				  "CREAT", O_CREAT,
+				  "EXCL", O_EXCL,
+				  "TRUNC", O_TRUNC,
+				  "APPEND", O_APPEND,
+				  "NONBLOCK", O_NONBLOCK,
+				  0);
+		fprintf (fp, ", 0%o)", mode);
+
+		if (-1 == fd) {
+			fprintf (fp, ", errno=%d, %s\n",
+				 saved_errno, strerror (saved_errno));
+		} else {
+			fputc ('\n', fp);
+		}
+
+		errno = saved_errno;
+	}
+
+	return fd;
+}
+
+/**
+ * @internal
+ * Drop-in for close(). Logs the request on fp if given.
+ */
+int
+device_close			(FILE *			fp,
+				 int			fd)
+{
+	int err;
+
+	err = close (fd);
+
+	if (err) {
+		int saved_errno;
+
+		saved_errno = errno;
+
+		if (-1 == err) {
+			fprintf (fp, "%d = close (%d), errno=%d, %s\n",
+				 err, fd, saved_errno, strerror (saved_errno));
+		} else {
+			fprintf (fp, "%d = close (%d)\n", err, fd);
+		}
+
+		errno = saved_errno;
+	}
+
+	return err;
+}
+
+/**
+ * @internal
+ * Drop-in for ioctl(). Logs the request on fp if given. You must supply
+ * a function printing the arguments, structpr.pl generates one for you
+ * from a header file.
+ */
+int
+device_ioctl			(FILE *			fp,
+				 ioctl_log_fn *		fn,
+				 int			fd,
+				 unsigned int		cmd,
+				 void *			arg)
+{
+	int buf[256];
+	int err;
+
+	if (fp && IOCTL_WRITE (cmd)) {
+		assert (sizeof (buf) >= IOCTL_ARG_SIZE (cmd));
+		memcpy (buf, arg, IOCTL_ARG_SIZE (cmd));
+	}
+
+	do err = ioctl (fd, cmd, arg);
+	while (-1 == err && EINTR == errno);
+
+	if (fp && fn) {
+		int saved_errno;
+
+		saved_errno = errno;
+
+		fprintf (fp, "%d = ", err);
+
+		fn (fp, cmd, 0, NULL);
+
+		fputc ('(', fp);
+      
+		if (IOCTL_WRITE (cmd))
+			fn (fp, cmd, IOCTL_READ (cmd) ? 2 : 0, &buf);
+
+		if (-1 == err) {
+			fprintf (fp, "), errno = %d, %s\n",
+				 errno, strerror (errno));
+		} else {
+			if (IOCTL_READ (cmd)) {
+				fputs (") -> (", fp);
+				fn (fp, cmd, IOCTL_WRITE (cmd) ? 1 : 0, arg);
+			}
+
+			fputs (")\n", fp);
+		}
+
+		errno = saved_errno;
+	}
+
+	return err;
 }

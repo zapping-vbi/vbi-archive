@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-v4l2.c,v 1.12.2.8 2004-04-08 23:36:25 mschimek Exp $";
+static char rcsid[] = "$Id: io-v4l2.c,v 1.12.2.9 2004-04-15 00:11:16 mschimek Exp $";
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -45,11 +45,17 @@ static char rcsid[] = "$Id: io-v4l2.c,v 1.12.2.8 2004-04-08 23:36:25 mschimek Ex
 #include <pthread.h>
 
 #include "videodev2.h"
+#include "_videodev2.h"
 
-/* same as ioctl(), but repeat if interrupted */
-#define IOCTL(fd, cmd, data)						\
-({ int __result; do __result = ioctl(fd, cmd, data);			\
-   while (__result == -1L && errno == EINTR); __result; })
+#define log_fp 0
+
+/* This macro checks at compile time if the arg type is correct,
+   repeats the ioctl if interrupted (EINTR), and logs the args
+   and result if log_fp is non-zero. */
+#define _ioctl(fd, cmd, arg)						\
+(IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
+ device_ioctl (log_fp, fprintf_ioctl_arg, fd, cmd, (void *)(arg)))
+
 
 #define V4L2_LINE 0 /* API rev. Nov 2000 (-1 -> 0) */
 
@@ -98,13 +104,13 @@ v4l2_stream(vbi_capture *vc, vbi_capture_buffer **raw,
 	double time;
 
 	if (v->enqueue == -2) {
-		if (IOCTL(v->fd, VIDIOC_STREAMON, &v->btype) == -1)
+		if (_ioctl (v->fd, VIDIOC_STREAMON, &v->btype) == -1)
 			return -1;
 	} else if (v->enqueue >= 0) {
 		vbuf.type = v->btype;
 		vbuf.index = v->enqueue;
 
-		if (IOCTL(v->fd, VIDIOC_QBUF, &vbuf) == -1)
+		if (_ioctl (v->fd, VIDIOC_QBUF, &vbuf) == -1)
 			return -1;
 	}
 
@@ -133,7 +139,7 @@ v4l2_stream(vbi_capture *vc, vbi_capture_buffer **raw,
 
 	vbuf.type = v->btype;
 
-	if (IOCTL(v->fd, VIDIOC_DQBUF, &vbuf) == -1)
+	if (_ioctl (v->fd, VIDIOC_DQBUF, &vbuf) == -1)
 		return -1;
 
 	time = vbuf.timestamp / 1e9;
@@ -174,7 +180,7 @@ v4l2_stream(vbi_capture *vc, vbi_capture_buffer **raw,
 	}
 
 	if (v->enqueue == -1) {
-		if (IOCTL(v->fd, VIDIOC_QBUF, &vbuf) == -1)
+		if (_ioctl (v->fd, VIDIOC_QBUF, &vbuf) == -1)
 			return -1;
 	}
 
@@ -284,7 +290,7 @@ v4l2_delete(vbi_capture *vc)
 			free(v->raw_buffer[v->num_raw_buffers - 1].data);
 
 	if (v->fd != -1)
-		close(v->fd);
+		device_close(log_fp, v->fd);
 
 	free(v);
 }
@@ -343,8 +349,8 @@ vbi_capture_v4l2_new(const char *dev_name, int buffers,
 	v->capture.get_fd = v4l2_fd;
 
 	/* O_RDWR required for PROT_WRITE */
-	if ((v->fd = open(dev_name, O_RDWR)) == -1) {
-		if ((v->fd = open(dev_name, O_RDONLY)) == -1) {
+	if ((v->fd = device_open(log_fp, dev_name, O_RDWR, 0)) == -1) {
+		if ((v->fd = device_open(log_fp, dev_name, O_RDONLY, 0)) == -1) {
 			vbi_asprintf(errorstr, _("Cannot open '%s': %d, %s."),
 				     dev_name, errno, strerror(errno));
 			goto io_error;
@@ -353,7 +359,7 @@ vbi_capture_v4l2_new(const char *dev_name, int buffers,
 
 	printv("Opened %s\n", dev_name);
 
-	if (IOCTL(v->fd, VIDIOC_QUERYCAP, &vcap) == -1) {
+	if (_ioctl (v->fd, VIDIOC_QUERYCAP, &vcap) == -1) {
 /*
 		vbi_asprintf(errorstr, _("Cannot identify '%s': %d, %s."),
 			     dev_name, errno, strerror(errno));
@@ -387,7 +393,7 @@ vbi_capture_v4l2_new(const char *dev_name, int buffers,
 #endif
 
 	/* mandatory, http://www.thedirks.org/v4l2/v4l2dsi.htm */
-	if (IOCTL(v->fd, VIDIOC_G_STD, &vstd) == -1) {
+	if (_ioctl (v->fd, VIDIOC_G_STD, &vstd) == -1) {
 		vbi_asprintf(errorstr, _("Cannot query current videostandard of %s (%s): %d, %s."),
 			     dev_name, vcap.name, errno, strerror(errno));
 		guess = _("Probably a driver bug.");
@@ -416,7 +422,7 @@ vbi_capture_v4l2_new(const char *dev_name, int buffers,
 
 	printv("Querying current vbi parameters... ");
 
-	if ((g_fmt = IOCTL(v->fd, VIDIOC_G_FMT, &vfmt)) == -1) {
+	if ((g_fmt = _ioctl (v->fd, VIDIOC_G_FMT, &vfmt)) == -1) {
 		printv("failed\n");
 #ifdef REQUIRE_G_FMT
 		vbi_asprintf(errorstr, _("Cannot query current vbi parameters of %s (%s): %d, %s."),
@@ -466,7 +472,7 @@ vbi_capture_v4l2_new(const char *dev_name, int buffers,
 		if (trace)
 			print_vfmt("VBI capture parameters requested: ", &vfmt);
 
-		if (IOCTL(v->fd, VIDIOC_S_FMT, &vfmt) == -1) {
+		if (_ioctl (v->fd, VIDIOC_S_FMT, &vfmt) == -1) {
 			switch (errno) {
 			case EBUSY:
 #ifndef REQUIRE_S_FMT
@@ -491,7 +497,7 @@ vbi_capture_v4l2_new(const char *dev_name, int buffers,
 				vfmt.fmt.vbi.start[1] = 313;
 				vfmt.fmt.vbi.count[1] = 16;
 
-				if (IOCTL(v->fd, VIDIOC_S_FMT, &vfmt) == -1) {
+				if (_ioctl (v->fd, VIDIOC_S_FMT, &vfmt) == -1) {
 			default:
 					vbi_asprintf(errorstr, _("Could not set the vbi capture parameters "
 							       "for %s (%s): %d, %s."),
@@ -598,7 +604,7 @@ vbi_capture_v4l2_new(const char *dev_name, int buffers,
 		vrbuf.type = v->btype;
 		vrbuf.count = buffers;
 
-		if (IOCTL(v->fd, VIDIOC_REQBUFS, &vrbuf) == -1) {
+		if (_ioctl (v->fd, VIDIOC_REQBUFS, &vrbuf) == -1) {
 			vbi_asprintf(errorstr, _("Cannot request streaming i/o buffers "
 					       "from %s (%s): %d, %s."),
 				     dev_name, vcap.name, errno, strerror(errno));
@@ -631,7 +637,7 @@ vbi_capture_v4l2_new(const char *dev_name, int buffers,
 			vbuf.type = v->btype;
 			vbuf.index = v->num_raw_buffers;
 
-			if (IOCTL(v->fd, VIDIOC_QUERYBUF, &vbuf) == -1) {
+			if (_ioctl (v->fd, VIDIOC_QUERYBUF, &vbuf) == -1) {
 				vbi_asprintf(errorstr, _("Querying streaming i/o buffer #%d "
 						       "from %s (%s) failed: %d, %s."),
 					     v->num_raw_buffers, dev_name, vcap.name,
@@ -677,7 +683,7 @@ vbi_capture_v4l2_new(const char *dev_name, int buffers,
 				}
 			}
 
-			if (IOCTL(v->fd, VIDIOC_QBUF, &vbuf) == -1) {
+			if (_ioctl (v->fd, VIDIOC_QBUF, &vbuf) == -1) {
 				vbi_asprintf(errorstr, _("Cannot enqueue streaming i/o buffer #%d "
 						       "to %s (%s): %d, %s."),
 					     v->num_raw_buffers, dev_name, vcap.name,
