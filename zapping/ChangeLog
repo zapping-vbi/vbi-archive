@@ -2,6 +2,8 @@
 
 	* src/tveng.c: Now the debug level can be changed using
 	tveng_set_debug_level.
+	* src/sound: Removed sound support. It wasn't used, and it was
+	causing some problems.
 
 24.10.2000	MPEG plugin started <garetxe@users.sourceforge.net>
 

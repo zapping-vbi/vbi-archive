@@ -92,16 +92,6 @@ typedef struct
 		       timestamp = (sec*1000000+usec)*1000
 		     */
   struct tveng_frame_format format; /* Format of the frame */
-
-  /* AUDIO fields */
-  gpointer audio_data; /* The audio data */
-  gint audio_size; /* Number of bytes available in audio_data, can be 0 */
-  gint audio_bits; /* Bits per sample, usually 16 */
-  gint audio_rate; /* Audio sampling rate, usually 44100 (44.1 kHz) */
-  __s64 a_timestamp; /*
-		       Audio timestamp, same format as the video
-		       timestamp
-		     */
 }
 plugin_sample;
 

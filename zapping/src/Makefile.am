@@ -23,7 +23,6 @@ zapping_SOURCES = \
 	callbacks.c callbacks.h \
 	frequencies.c frequencies.h \
 	v4linterface.c v4linterface.h \
-	sound.c sound.h \
 	plugins.c plugins.h \
 	zconf.c zconf.h \
 	zmisc.c zmisc.h \
