@@ -68,6 +68,7 @@ vbi_send_page(struct vbi *vbi, struct raw_page *rvtp, int page)
 #define PLL_ERROR	4	// if this err val is crossed, readjust
 //#define PLL_ADJUST	4	// max/min adjust (10th of bitlength)
 
+/* OBSOLETE */
 static void
 pll_add(struct vbi *vbi, int n, int err)
 {
@@ -100,6 +101,7 @@ pll_add(struct vbi *vbi, int n, int err)
     vbi->pll_err = 0;
 }
 
+/* OBSOLETE */
 void
 vbi_pll_reset(struct vbi *vbi, int fine_tune)
 {
@@ -117,7 +119,7 @@ vbi_pll_reset(struct vbi *vbi, int fine_tune)
 // process one videotext packet
 
 static int
-vt_line(struct vbi *vbi, u8 *p)
+vt_packet(struct vbi *vbi, u8 *p)
 {
     struct vt_page *cvtp;
     struct raw_page *rvtp;
@@ -269,8 +271,42 @@ vt_line(struct vbi *vbi, u8 *p)
     return 0;
 }
 
-// process one raw vbi line
+#include "../common/fifo.h"
+#include "v4lx.h"
+#include "sliced.h"
 
+#define SLICED_TELETEXT_B \
+	(SLICED_TELETEXT_B_L10_625 | SLICED_TELETEXT_B_L25_625)
+
+/*
+    Preliminary bottom half of the Teletext thread,
+    called by zvbi.c/zvbi_thread(). Note fifo is
+    unbuffered yet.
+ */
+void
+vbi_teletext(struct vbi *vbi, buffer *b)
+{
+    vbi_sliced *s;
+    int items;
+
+    /* call out_of_sync if timestamp delta > 1.5 * frame period */
+
+    s = (vbi_sliced *) b->data;
+    items = b->used / sizeof(vbi_sliced);
+
+    while (items) {
+	if (s->id & SLICED_TELETEXT_B)
+	    vt_packet(vbi, s->data);
+
+	items--;
+	s++;
+    }
+}
+
+
+
+// process one raw vbi line
+/* OBSOLETE */
 int
 vbi_line(struct vbi *vbi, u8 *p)
 {
@@ -329,7 +365,7 @@ vbi_line(struct vbi *vbi, u8 *p)
 	    if (data[0] != 0x27)	// really 11100100? (rev order!)
 		return -3;
 
-	    if ((i = vt_line(vbi, data+1)))
+	    if ((i = vt_packet(vbi, data+1)))
 	      {
 		if (i < 0)
 		  pll_add(vbi, 2, -i);
@@ -373,6 +409,8 @@ vbi_open(char *vbi_name, struct cache *ca, int fine_tune, int big_buf)
 {
     static int inited = 0;
     struct vbi *vbi;
+    extern void open_vbi(void);
+    
     
     if (not inited)
 	lang_init();
@@ -384,18 +422,13 @@ vbi_open(char *vbi_name, struct cache *ca, int fine_tune, int big_buf)
 	goto fail1;
     }
 
-    if ((vbi->fd = open(vbi_name, O_RDONLY)) == -1)
+    vbi->fifo = open_vbi_v4lx(vbi_name);
+
+    if (!vbi->fifo)
     {
 	ioerror(vbi_name);
 	goto fail2;
     }
-
-    if (big_buf != -1)
-	error("-oldbttv/-newbttv is obsolete.  option ignored.");
-
-    if ((v4l2_vbi_setup_dev(vbi) == -1) &&
-	(v4l_vbi_setup_dev(vbi) == -1))
-	goto fail3;
 
     vbi->cache = ca;
 
@@ -405,12 +438,11 @@ vbi_open(char *vbi_name, struct cache *ca, int fine_tune, int big_buf)
     vbi->ppage = vbi->rpage;
 
     vbi_pll_reset(vbi, fine_tune);
-    /* now done by v4l2 and v4l modules */
-    //    fdset_add_fd(fds, vbi->fd, vbi_handler, vbi);
+    // now done by sliced device
+    ///* now done by v4l2 and v4l modules */
+    ////    fdset_add_fd(fds, vbi->fd, vbi_handler, vbi);
     return vbi;
 
-fail3:
-    close(vbi->fd);
 fail2:
     free(vbi);
 fail1:
@@ -420,10 +452,13 @@ fail1:
 void
 vbi_close(struct vbi *vbi)
 {
-    fdset_del_fd(fds, vbi->fd);
+//    fdset_del_fd(fds, vbi->fd);
     if (vbi->cache)
 	vbi->cache->op->close(vbi->cache);
-    close(vbi->fd);
+
+    close_vbi_v4lx(vbi->fifo);
+//    close(vbi->fd);
+
     free(vbi);
 }
 
