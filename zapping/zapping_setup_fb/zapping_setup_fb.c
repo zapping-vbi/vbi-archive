@@ -351,7 +351,7 @@ main				(int			argc,
 	       xs->target.format.height,
 	       xs->target.format.size,
 	       xs->target.format.bytes_per_line,
-	       tv_pixfmt_name (xs->target.format.pixfmt));
+	       tv_pixfmt_name (xs->target.format.pixel_format->pixfmt));
     }
 
   if (-1 == screen_number)

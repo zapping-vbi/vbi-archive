@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include "common/fifo.h"
+#include "common/device.h"
 #include <tveng.h>
 
 #define TVENGEMU_PROTOTYPES
@@ -41,6 +42,9 @@ struct private_tvengemu_device_info
   uint32_t		freq; /* Current freq */
   uint32_t		freq_min, freq_max; /* tuner bounds */
   uint32_t		chromakey; /* overlay chroma */
+
+  struct timeval	sample_time;
+  int64_t		stream_time;
 };
 
 #define P_INFO(p) PARENT (p, struct private_tvengemu_device_info, info)
@@ -132,7 +136,7 @@ add_controls			(tveng_device_info *	info)
 
 static tv_bool
 set_video_standard		(tveng_device_info *	info,
-				 const tv_video_standard *ts)
+				 tv_video_standard *	ts)
 {
 	fprintf (stderr, "emu::set_standard '%s'\n", ts->label);
 
@@ -144,13 +148,13 @@ set_video_standard		(tveng_device_info *	info,
 static void
 add_standards			(tveng_device_info *	info)
 {
-	append_video_standard (&info->video_standards, TV_VIDEOSTD_SET_PAL,
+	append_video_standard (&info->panel.video_standards, TV_VIDEOSTD_SET_PAL,
 			       "PAL", "PAL", sizeof (tv_video_standard));
 
-	append_video_standard (&info->video_standards, TV_VIDEOSTD_SET_NTSC,
+	append_video_standard (&info->panel.video_standards, TV_VIDEOSTD_SET_NTSC,
 			       "NTSC", "NTSC", sizeof (tv_video_standard));
 
-	info->cur_video_standard = info->video_standards;
+	info->panel.cur_video_standard = info->panel.video_standards;
 }
 
 static tv_bool
@@ -167,8 +171,16 @@ set_tuner_frequency		(tveng_device_info *	info,
 }
 
 static tv_bool
+get_signal_strength		(tveng_device_info *	info _unused_,
+				 int *			strength _unused_,
+				 int *			afc _unused_)
+{
+	return TRUE;
+}
+
+static tv_bool
 set_video_input			(tveng_device_info *	info,
-				 const tv_video_line *	tl)
+				 tv_video_line *	tl)
 {
 	fprintf (stderr, "emu::set_video_input '%s'\n", tl->label);
 
@@ -182,52 +194,20 @@ add_video_inputs		(tveng_device_info *	info)
 {
 	tv_video_line *l;
 
-	l = append_video_line (&info->video_inputs, TV_VIDEO_LINE_TYPE_TUNER,
+	l = append_video_line (&info->panel.video_inputs, TV_VIDEO_LINE_TYPE_TUNER,
 			       "Tuner", "Tuner", sizeof (tv_video_line));
 
 	l->_parent = info;
 
-	l = append_video_line (&info->video_inputs, TV_VIDEO_LINE_TYPE_BASEBAND,
+	l = append_video_line (&info->panel.video_inputs, TV_VIDEO_LINE_TYPE_BASEBAND,
 			       "Composite", "Composite", sizeof (tv_video_line));
 
 	l->_parent = info;
 
-	info->cur_video_input = info->video_inputs;
+	info->panel.cur_video_input = info->panel.video_inputs;
 }
 
 
-static struct tveng_caps caps = {
-  name:		"Emulation device",
-  flags:	TVENG_CAPS_CAPTURE | TVENG_CAPS_TUNER |
-  TVENG_CAPS_TELETEXT | TVENG_CAPS_OVERLAY | TVENG_CAPS_CLIPPING,
-  channels:	2,
-  audios:	1,
-  maxwidth:	768,
-  maxheight:	576,
-  minwidth:	32,
-  minheight:	32
-};
-
-/*
-  Stores in short_str and long_str (if they are non-null) the
-  description of the current controller. The enum value can be found in
-  info->current_controller.
-  For example, V4L2 controller would say:
-  short_str: 'V4L2'
-  long_str: 'Video4Linux 2'
-  info->current_controller: TVENG_CONTROLLER_V4L2
-  This function always succeeds.
-*/
-static void
-tvengemu_describe_controller(const char ** short_str, const char ** long_str,
-			     tveng_device_info * info)
-{
-  t_assert(info != NULL);
-  if (short_str)
-    *short_str = "EMU";
-  if (long_str)
-    *long_str = "Emulation driver";
-}
 
 /* Closes a device opened with tveng_init_device */
 static void tvengemu_close_device(tveng_device_info * info)
@@ -247,6 +227,13 @@ static void tvengemu_close_device(tveng_device_info * info)
 	free_controls (info);
 	free_video_standards (info);
 	free_video_inputs (info);
+
+	free (info->node.device);
+	info->node.device = NULL;
+
+	/* Don't free other info->node strings, these are static. */
+
+	CLEAR (info->node);
 }
 
 static tv_bool
@@ -264,59 +251,37 @@ set_capture_format		(tveng_device_info *	info,
 	return TRUE;
 }
 
-
-static int
-tvengemu_get_signal_strength (int *strength, int *afc,
-			      tveng_device_info *info)
+static tv_bool
+capture_enable			(tveng_device_info *	info,
+				 tv_bool		enable)
 {
-  t_assert (info != NULL);
+	struct private_tvengemu_device_info *p_info = P_INFO (info);
 
-  if (!info->cur_video_input
-      || (info->cur_video_input->type
-	  != TV_VIDEO_LINE_TYPE_TUNER))
-    return -1;
+	if (enable) {
+		gboolean dummy;
 
-  if (strength)
-    *strength = 0;
+		p_tveng_stop_everything (info, &dummy);
 
-  if (afc)
-    *afc = 0;
+		info->capture_mode = CAPTURE_MODE_READ;
 
-  return 0;
-}
+		gettimeofday (&p_info->sample_time, /* tz */ NULL);
 
+		p_info->stream_time = 0;
+	} else {
+		info->capture_mode = CAPTURE_MODE_NONE;
+	}
 
-
-
-static int
-tvengemu_start_capturing (tveng_device_info *info)
-{
-  gboolean dummy;
-
-  t_assert (info != NULL);
-
-  p_tveng_stop_everything (info, &dummy);
-
-  info->capture_mode = CAPTURE_MODE_READ;
-
-  return 0;
+	return TRUE;
 }
 
 static int
-tvengemu_stop_capturing (tveng_device_info *info)
+read_frame			(tveng_device_info *	info,
+				 tv_capture_buffer *	buffer _unused_,
+				 const struct timeval *	timeout _unused_)
 {
-  t_assert (info != NULL);
+  struct private_tvengemu_device_info *p_info = P_INFO (info);
+  struct timeval adv;
 
-  info->capture_mode = CAPTURE_MODE_NONE;
-
-  return 0;
-}
-
-static int
-tvengemu_read_frame (tveng_image_data *where _unused_,
-		     unsigned int time _unused_,
-		     tveng_device_info *info)
-{
   t_assert (info != NULL);
 
   if (info -> capture_mode != CAPTURE_MODE_READ)
@@ -328,23 +293,27 @@ tvengemu_read_frame (tveng_image_data *where _unused_,
     }
 
   usleep ((unsigned int)(1e6 / 40));
+
+  if (buffer) {
+    buffer->sample_time = p_info->sample_time;
+    buffer->stream_time = p_info->stream_time;
+  }
+
+  adv.tv_sec = 0;
+  adv.tv_usec = info->panel.cur_video_standard->frame_ticks * 1000 / 90;
+  timeval_add (&p_info->sample_time, &p_info->sample_time, &adv);
+
+  p_info->stream_time += info->panel.cur_video_standard->frame_ticks;
  
-  return 0;
+  return 1; /* success */
 }
-
-static double
-tvengemu_get_timestamp (tveng_device_info *info _unused_)
-{
-  /* Don't kill me, Michael ;-) */
-  return zf_current_time ();
-}
-
 
 static tv_bool
 set_overlay_buffer		(tveng_device_info *	info,
 				 const tv_overlay_buffer *t)
 {
 	P_INFO (info)->overlay_buffer = *t;
+
 	return TRUE;
 }
 
@@ -373,8 +342,7 @@ set_overlay_window_chromakey	(tveng_device_info *	info,
 				 const tv_window *	w _unused_,
 				 unsigned int		chromakey)
 {
-  struct private_tvengemu_device_info * p_info =
-    (struct private_tvengemu_device_info*) info;
+  struct private_tvengemu_device_info *p_info = P_INFO (info);
 
   p_info -> chromakey = chromakey;
   return TRUE;
@@ -414,8 +382,28 @@ int tvengemu_attach_device(const char* device_file,
 			   enum tveng_attach_mode attach_mode,
 			   tveng_device_info * info)
 {
-  struct private_tvengemu_device_info * p_info =
-    (struct private_tvengemu_device_info*) info;
+  static const tv_device_node node = {
+    .label	= "Emulated device",
+    .bus	= NULL,
+    .driver	= "Emulator",
+    .version	= "0.1",
+  };
+  static const struct tveng_caps caps = {
+    .name	= "Emulated device",
+    .flags	= (TVENG_CAPS_CAPTURE |
+		   TVENG_CAPS_TUNER |
+		   TVENG_CAPS_TELETEXT |
+		   TVENG_CAPS_OVERLAY |
+		   TVENG_CAPS_CLIPPING),
+    .channels	= 2,
+    .audios	= 1,
+    .maxwidth	= 768,
+    .maxheight	= 576,
+    .minwidth	= 32,
+    .minheight	= 32
+  };
+
+  struct private_tvengemu_device_info * p_info = P_INFO (info);
 
   t_assert (device_file != NULL);
   t_assert (info != NULL);
@@ -423,13 +411,24 @@ int tvengemu_attach_device(const char* device_file,
   if (-1 != info->fd)
     tveng_close_device (info);
 
+  info->node = node;
+
+  /* XXX error */
+  info->node.device = strdup (device_file);
+
   info -> file_name = strdup (device_file);
 
-  memcpy (&info->caps, &caps, sizeof (caps));
+  info->caps = caps;
 
   info -> attach_mode = attach_mode;
   info -> capture_mode = CAPTURE_MODE_NONE;
   info -> fd = 0xdeadbeef;
+
+  info->panel.set_video_input = set_video_input;
+  info->panel.set_tuner_frequency = set_tuner_frequency;
+  info->panel.get_signal_strength = get_signal_strength;
+  info->panel.set_video_standard = set_video_standard;
+  info->panel.set_control = set_control;
 
   add_video_inputs (info);
   add_standards (info);
@@ -451,15 +450,15 @@ int tvengemu_attach_device(const char* device_file,
 
   info->capture.get_format = get_capture_format;
   info->capture.set_format = set_capture_format;
-  info->capture.start_capturing = tvengemu_start_capturing;
-  info->capture.stop_capturing = tvengemu_stop_capturing;
-  info->capture.read_frame = tvengemu_read_frame;
-  info->capture.get_timestamp = tvengemu_get_timestamp;
+  info->capture.enable = capture_enable;
+  info->capture.read_frame = read_frame;
 
   /* Set up some capture parameters */
-  info->capture.format.width = info->cur_video_standard->frame_width / 2;
-  info->capture.format.height = info->cur_video_standard->frame_height / 2;
-  info->capture.format.pixfmt = TV_PIXFMT_YVU420;
+  info->capture.supported_pixfmt_set = TV_PIXFMT_SET_ALL;
+  info->capture.format.width = info->panel.cur_video_standard->frame_width / 2;
+  info->capture.format.height = info->panel.cur_video_standard->frame_height / 2;
+  info->capture.format.pixel_format =
+    tv_pixel_format_from_pixfmt (TV_PIXFMT_YVU420);
   get_capture_format (info);
 
   /* Overlay window setup */
@@ -488,15 +487,9 @@ int tvengemu_attach_device(const char* device_file,
 
 static struct tveng_module_info tvengemu_module_info = {
   attach_device:		tvengemu_attach_device,
-  describe_controller:		tvengemu_describe_controller,
   close_device:			tvengemu_close_device,
 
-  .set_video_input		= set_video_input,
-  .set_tuner_frequency		= set_tuner_frequency,
-  .set_video_standard		= set_video_standard,
-  .set_control			= set_control,
-
-  .get_signal_strength = tvengemu_get_signal_strength,
+  .interface_label		= "Emulation",
 
   private_size:			sizeof(struct private_tvengemu_device_info)
 };

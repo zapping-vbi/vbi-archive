@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: screen.c,v 1.5 2004-12-07 17:30:39 mschimek Exp $ */
+/* $Id: screen.c,v 1.6 2005-01-08 14:41:55 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -342,7 +342,8 @@ display_pixfmt			(tv_screen *		list,
 		return FALSE;
 
 	for (; list; list = list->next)
-		list->target.format.pixfmt = pixfmt;
+		list->target.format.pixel_format =
+			tv_pixel_format_from_pixfmt (pixfmt);
 
 	return TRUE;
 }
@@ -477,7 +478,8 @@ dga_query			(tv_screen *		list,
 		int memsize;	/* ? */
 
 		/* Must always be set. */
-		list->target.format.pixfmt = pixfmt;
+		list->target.format.pixel_format =
+			tv_pixel_format_from_pixfmt (pixfmt);
 
 		/* Fortunately these functions refer to physical screens,
 		   not the virtual Xinerama screen. */
@@ -519,11 +521,11 @@ dga_query			(tv_screen *		list,
 		list->target.format.width = list->width;
 		list->target.format.height = list->height;
 
-		list->target.format.bytes_per_line =
+		list->target.format.bytes_per_line[0] =
 			list->width * tv_pixfmt_bytes_per_pixel (pixfmt);
 
 		list->target.format.size =
-			list->height * list->target.format.bytes_per_line;
+			list->height * list->target.format.bytes_per_line[0];
 	}
 
 	return TRUE;

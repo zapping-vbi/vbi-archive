@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l25.c,v 1.7 2004-12-07 17:26:58 mschimek Exp $ */
+/* $Id: v4l25.c,v 1.8 2005-01-08 14:41:35 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -40,7 +40,7 @@
 
 #define v4l25_ioctl(fd, cmd, arg)					\
   (IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
-   device_ioctl (log_fp, fprint_ioctl_arg, fd, cmd, arg))
+   device_ioctl (log_fp, fprint_v4l25_ioctl_arg, fd, cmd, arg))
 
 int
 setup_v4l25			(const char *		device_name,
@@ -99,8 +99,7 @@ setup_v4l25			(const char *		device_name,
   fb.fmt.width		= buffer->format.width;
   fb.fmt.height		= buffer->format.height;
 
-  pf = tv_pixel_format_from_pixfmt (buffer->format.pixfmt);
-  assert (NULL != pf);
+  pf = buffer->format.pixel_format;
 
   switch (pf->color_depth)
     {

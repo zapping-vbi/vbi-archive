@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pixel_format.c,v 1.2 2004-12-07 17:26:19 mschimek Exp $ */
+/* $Id: pixel_format.c,v 1.3 2005-01-08 14:42:12 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"		/* Z_BYTE_ORDER */
@@ -118,7 +118,8 @@ tv_pixfmt_name			(tv_pixfmt		pixfmt)
 #define PIXEL_FORMAT(pixfmt, colspc, bits_per_pixel, color_depth,	\
 		     uv_hshift, uv_vshift, big_endian, planar,		\
 		     vu_order, r, g, b, a)				\
-	{ pixfmt,							\
+	{ #pixfmt,							\
+	  TV_PIXFMT_##pixfmt,						\
 	  colspc,							\
 	  bits_per_pixel,						\
 	  color_depth,							\
@@ -132,14 +133,14 @@ tv_pixfmt_name			(tv_pixfmt		pixfmt)
 #if Z_BYTE_ORDER == Z_LITTLE_ENDIAN
 #  define PACKED(fmt, colspc, bits_per_pixel, color_depth, big_endian,	\
                  vu_order, x, y, z, a)					\
-	[TV_PIXFMT_##fmt] = PIXEL_FORMAT (TV_PIXFMT_##fmt, colspc,	\
+	[TV_PIXFMT_##fmt] = PIXEL_FORMAT (fmt, colspc,			\
         	bits_per_pixel, color_depth, 0, 0, big_endian,		\
 		FALSE, vu_order, x, y, z, a)
 
 #elif Z_BYTE_ORDER == Z_BIG_ENDIAN
 #  define PACKED(fmt, colspc, bits_per_pixel, color_depth, big_endian,	\
 	         vu_order, x, y, z, a)					\
-	[TV_PIXFMT_##fmt] = PIXEL_FORMAT (TV_PIXFMT_##fmt, colspc,	\
+	[TV_PIXFMT_##fmt] = PIXEL_FORMAT (fmt, colspc,			\
         	bits_per_pixel, color_depth, 0, 0, !(big_endian),	\
 		FALSE, vu_order, x, y, z, a)
 #else
@@ -147,8 +148,7 @@ tv_pixfmt_name			(tv_pixfmt		pixfmt)
 #endif
 
 #define PLANAR(fmt, color_depth, uv_hshift, uv_vshift, vu_order)	\
-	[TV_PIXFMT_##fmt] = PIXEL_FORMAT (TV_PIXFMT_##fmt,		\
-		TV_COLSPC_YUV, 8,					\
+	[TV_PIXFMT_##fmt] = PIXEL_FORMAT (fmt, TV_COLSPC_YUV, 8,	\
 		color_depth, uv_hshift,	uv_vshift, FALSE, TRUE,		\
 		vu_order, 0xFF, 0xFF, 0xFF, 0)
 
@@ -159,8 +159,7 @@ tv_pixfmt_name			(tv_pixfmt		pixfmt)
 	       bpp, 24,  TRUE, vu_order, x, y, z, a)
 
 #define YUYV(fmt, vu_order)						\
-	[TV_PIXFMT_##fmt] = PIXEL_FORMAT (TV_PIXFMT_##fmt,		\
-		TV_COLSPC_YUV, 16,					\
+	[TV_PIXFMT_##fmt] = PIXEL_FORMAT (fmt, TV_COLSPC_YUV, 16,	\
 		16, 0, 0, FALSE, FALSE, vu_order, 0xFF, 0xFF, 0xFF, 0)
 
 #define PACKED_RGB24(fmt, bpp, x, y, z, a)				\
@@ -176,8 +175,8 @@ tv_pixfmt_name			(tv_pixfmt		pixfmt)
 	       16, 16,  TRUE, FALSE, x, y, z, a)
 
 #define PACKED8(fmt, x, y, z, a)					\
-	[TV_PIXFMT_##fmt] = PIXEL_FORMAT (TV_PIXFMT_##fmt,		\
-		TV_COLSPC_RGB, 8, 8, 0, 0, FALSE, FALSE, FALSE, x, y, z, a)
+	[TV_PIXFMT_##fmt] = PIXEL_FORMAT (fmt, TV_COLSPC_RGB, 8, 8,	\
+		0, 0, FALSE, FALSE, FALSE, x, y, z, a)
 
 static const tv_pixel_format
 pixel_formats [] = {
@@ -203,7 +202,7 @@ pixel_formats [] = {
 	YUYV (UYVY, FALSE),
 	YUYV (VYUY,  TRUE),
 
-	[TV_PIXFMT_Y8] = PIXEL_FORMAT (TV_PIXFMT_Y8, TV_COLSPC_YUV, 8, 8,
+	[TV_PIXFMT_Y8] = PIXEL_FORMAT (Y8, TV_COLSPC_YUV, 8, 8,
 				       0, 0, FALSE, FALSE, FALSE,
 				       0xFF, 0, 0, 0),
 

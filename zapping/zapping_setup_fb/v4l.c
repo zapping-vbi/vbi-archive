@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.7 2004-12-07 17:26:32 mschimek Exp $ */
+/* $Id: v4l.c,v 1.8 2005-01-08 14:41:25 mschimek Exp $ */
 
 #include "config.h"
 #include "zapping_setup_fb.h"
@@ -36,7 +36,7 @@
 
 #define v4l_ioctl(fd, cmd, arg)						\
   (IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
-   device_ioctl (log_fp, fprint_ioctl_arg, fd, cmd, arg))
+   device_ioctl (log_fp, fprint_v4l_ioctl_arg, fd, cmd, arg))
 
 int
 setup_v4l			(const char *		device_name,
@@ -84,8 +84,7 @@ setup_v4l			(const char *		device_name,
   fb.width		= buffer->format.width;
   fb.height		= buffer->format.height;
 
-  pf = tv_pixel_format_from_pixfmt (buffer->format.pixfmt);
-  assert (NULL != pf);
+  pf = buffer->format.pixel_format;
 
   if (32 == pf->bits_per_pixel)
     fb.depth		= 32; /* depth 24 bpp 32 */
