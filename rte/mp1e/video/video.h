@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: video.h,v 1.19 2002-05-13 05:37:49 mschimek Exp $ */
+/* $Id: video.h,v 1.20 2002-08-22 22:03:49 mschimek Exp $ */
 
 #ifndef VIDEO_H
 #define VIDEO_H
@@ -411,8 +411,10 @@ extern void *		mpeg1_video_ipb(void *capture_fifo);
 extern void		conv_init(int);
 extern void		filter_init(rte_video_stream_params *par,
 				    struct filter_param *fp);
-extern void		video_coding_size(int width, int height);
+extern void		video_coding_size(int width, int height, rte_bool field);
 extern int		video_look_ahead(char *gop_sequence);
+extern double		video_sampling_aspect(double frame_rate,
+				unsigned int width, unsigned int height);
 
 /* don't change order */
 /* XXX rethink */
@@ -426,8 +428,8 @@ enum {
 	CM_YUYV_PROGRESSIVE,
 	CM_YUYV_PROGRESSIVE_TEMPORAL,
 	CM_YUV_VERTICAL_DECIMATION,
-	CM_YUYV_EXP_VERTICAL_DECIMATION,
-	CM_YUYV_EXP2,
+	CM_YUYV_HORIZONTAL_DECIMATION,
+	CM_YUYV_QUAD_DECIMATION,
 	CM_YVU,
 	CM_NUM_MODES
 };
