@@ -135,7 +135,10 @@ void update_channels_menu(GtkWidget* widget, tveng_device_info * info)
   NewMenu = gtk_menu_new ();
   
   /* Check whether the current input has a tuner attached */
-  tunes = info->inputs[info->cur_input].flags & TVENG_INPUT_TUNER;
+  if (info->num_inputs == 0)
+    tunes = FALSE;
+  else
+    tunes = info->inputs[info->cur_input].flags & TVENG_INPUT_TUNER;
 
   /* If no tuned channels show error not sensitive */
   if (tveng_tuned_channel_num() == 0)
@@ -158,7 +161,8 @@ void update_channels_menu(GtkWidget* widget, tveng_device_info * info)
       }
   else
     {
-      if (! (info->inputs[info->cur_input].flags & TVENG_INPUT_TUNER))
+      if ((info->num_inputs == 0) ||
+	  (! (info->inputs[info->cur_input].flags & TVENG_INPUT_TUNER)))
 	menu_item = gtk_menu_item_new_with_label(_("No tuner"));
       else
 	menu_item = gtk_menu_item_new_with_label(_("No tuned channels"));

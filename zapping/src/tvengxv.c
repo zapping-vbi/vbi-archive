@@ -136,7 +136,7 @@ p_tvengxv_open_device(tveng_device_info *info)
 
   /* create the atom that handles the encoding */
   at = XvQueryPortAttributes(dpy, p_info->port, &attributes);
-  if (!at)
+  if ((!at) && (attributes <= 0))
     goto error4;
 
   XvFreeAdaptorInfo(pAdaptors);

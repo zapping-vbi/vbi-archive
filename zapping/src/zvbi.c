@@ -1333,10 +1333,7 @@ void zvbi_history_previous(void)
 void
 zvbi_set_widget(GtkWidget * widget)
 {
-  GdkEventMask mask;
-
-  mask = gdk_window_get_events(widget->window) | GDK_EXPOSURE_MASK |
-    GDK_BUTTON_PRESS_MASK;
+  gtk_widget_add_events(widget, GDK_EXPOSURE_MASK | GDK_BUTTON_PRESS_MASK);
 
   gtk_signal_connect(GTK_OBJECT(widget), "expose-event",
 		     GTK_SIGNAL_FUNC(on_zvbi_expose_event),
