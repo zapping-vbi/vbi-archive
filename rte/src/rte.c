@@ -235,6 +235,17 @@ rte_codec_set(rte_context *context,
 			     codec_keyword);
 }
 
+void
+rte_codec_remove(rte_context *context,
+		 rte_stream_type stream_type,
+		 int stream_index)
+{
+	nullcheck(context, return);
+	nullcheck(xc->codec_set, return);
+
+	xc->codec_set(context, stream_type, stream_index, NULL);
+}
+
 rte_codec *
 rte_codec_get(rte_context *context, rte_stream_type stream_type,
 	      int stream_index)
@@ -479,7 +490,7 @@ rte_codec_option_info_keyword(rte_codec *codec, const char *keyword)
 	rte_option_info *ro;
 	int i;
 
-	nullcheck(codec, return 0);
+	nullcheck(codec, return NULL);
 
 	if (!dc->option_enum)
 		return NULL;
@@ -520,7 +531,7 @@ rte_codec_option_set(rte_codec *codec, const char *keyword, ...)
 
 	va_end(args);
 
-	return FALSE;
+	return r;
 }
 
 char *
@@ -541,6 +552,186 @@ rte_codec_option_print(rte_codec *codec, const char *keyword, ...)
 	va_end(args);
 
 	return r;
+}
+
+/**
+ * rte_codec_option_menu_get:
+ * @codec: Pointer to a #rte_codec returned by rte_codec_get() or
+ *	   rte_codec_set().
+ * @keyword: Keyword identifying the option, as in #rte_option_info.
+ * @entry: A place to store the current menu entry.
+ * 
+ * Similar to rte_codec_option_get() this function queries the current
+ * value of the named option, but returns this value as number of the
+ * corresponding menu entry. Naturally this must be an option with
+ * menu, else this function will fail.
+ * 
+ * Return value: 
+ * %TRUE on success, otherwise @value remained unchanged.
+ **/
+rte_bool
+rte_codec_option_menu_get(rte_codec *codec, const char *keyword, int *entry)
+{
+	rte_option_info *oi;
+	rte_option_value val;
+	rte_bool r;
+	int i;
+
+	if (!(oi = rte_codec_option_info_keyword(codec, keyword)))
+		return FALSE;
+
+	if (!rte_codec_option_get(codec, keyword, &val))
+		return FALSE;
+
+	r = FALSE;
+
+	for (i = 0; i <= oi->max.num; i++) {
+		switch (oi->type) {
+		case RTE_OPTION_BOOL:
+		case RTE_OPTION_INT:
+			if (!oi->menu.num)
+				return FALSE;
+			r = (oi->menu.num[i] == val.num);
+			break;
+
+		case RTE_OPTION_REAL:
+			if (!oi->menu.dbl)
+				return FALSE;
+			r = (oi->menu.dbl[i] == val.dbl);
+			break;
+
+		case RTE_OPTION_MENU:
+			r = (i == val.num);
+			break;
+
+		default:
+			fprintf(stderr, __PRETTY_FUNCTION__
+				": unknown export option type %d\n", oi->type);
+			exit(EXIT_FAILURE);
+		}
+
+		if (r) {
+			*entry = i;
+			break;
+		}
+	}
+
+	return r;
+}
+
+/**
+ * rte_codec_option_menu_set:
+ * @codec: Pointer to a #rte_codec returned by rte_codec_get() or
+ *	   rte_codec_set().
+ * @keyword: Keyword identifying the option, as in #rte_option_info.
+ * @entry: Menu entry to be selected.
+ * 
+ * Similar to rte_codec_option_set() this function sets the value of
+ * the named option, however it does so by number of the corresponding
+ * menu entry. Naturally this must be an option with menu, else
+ * this function will fail.
+ * 
+ * Return value: 
+ * %TRUE on success, otherwise the option is not changed.
+ **/
+rte_bool
+rte_codec_option_menu_set(rte_codec *codec, const char *keyword, int entry)
+{
+	rte_option_info *oi;
+
+	if (!(oi = rte_codec_option_info_keyword(codec, keyword)))
+		return FALSE;
+
+	if (entry < 0 || entry > oi->max.num)
+		return FALSE;
+
+	switch (oi->type) {
+	case RTE_OPTION_BOOL:
+	case RTE_OPTION_INT:
+		if (!oi->menu.num)
+			return FALSE;
+		return rte_codec_option_set(codec,
+			keyword, oi->menu.num[entry]);
+
+	case RTE_OPTION_REAL:
+		if (!oi->menu.dbl)
+			return FALSE;
+		return rte_codec_option_set(codec,
+			keyword, oi->menu.dbl[entry]);
+
+	case RTE_OPTION_MENU:
+		return rte_codec_option_set(codec, keyword, entry);
+
+	default:
+		fprintf(stderr, __PRETTY_FUNCTION__
+			": unknown export option type %d\n", oi->type);
+		exit(EXIT_FAILURE);
+	}
+}
+
+/**
+ * rte_codec_options_reset:
+ * @codec: Pointer to a #rte_codec returned by rte_codec_get() or
+ *	   rte_codec_set().
+ * 
+ * RTE internal function to reset all options of a codec to their
+ * default.
+ * 
+ * Return value: 
+ * %TRUE on success.
+ **/
+rte_bool
+rte_codec_options_reset(rte_codec *codec)
+{
+	rte_option_info *oi;
+	rte_bool r;
+	int i;
+
+	for (i = 0; (oi = rte_codec_option_info_enum(codec, i)); i++) {
+		switch (oi->type) {
+		case RTE_OPTION_BOOL:
+		case RTE_OPTION_INT:
+			if (oi->menu.num)
+				r = rte_codec_option_set(codec, oi->keyword,
+							 oi->menu.num[oi->def.num]);
+			else
+				r = rte_codec_option_set(codec, oi->keyword,
+							 oi->def.num);
+			break;
+
+		case RTE_OPTION_REAL:
+			if (oi->menu.dbl)
+				r = rte_codec_option_set(codec, oi->keyword,
+							 oi->menu.dbl[oi->def.num]);
+			else
+				r = rte_codec_option_set(codec, oi->keyword, 
+							 oi->def.dbl);
+			break;
+
+		case RTE_OPTION_STRING:
+			if (oi->menu.str)
+				r = rte_codec_option_set(codec, oi->keyword,
+							 oi->menu.str[oi->def.num]);
+			else
+				r = rte_codec_option_set(codec, oi->keyword, 
+							 oi->def.str);
+			break;
+
+		case RTE_OPTION_MENU:
+			r = rte_codec_option_set(codec, oi->keyword, oi->def.num);
+			break;
+
+		default:
+			fprintf(stderr, __PRETTY_FUNCTION__
+				": unknown codec option type %d\n", oi->type);
+			exit(EXIT_FAILURE);
+		}
+
+		if (!r)
+			return FALSE;
+	}
+
+	return TRUE;
 }
 
 rte_option_info *
@@ -601,7 +792,7 @@ rte_context_option_set(rte_context *context, const char *keyword, ...)
 
 	va_end(args);
 
-	return FALSE;
+	return r;
 }
 
 char *
@@ -622,6 +813,184 @@ rte_context_option_print(rte_context *context, const char *keyword, ...)
 	va_end(args);
 
 	return r;
+}
+
+/**
+ * rte_context_option_menu_get:
+ * @context: Initialized #rte_context as returned by rte_context_new().
+ * @keyword: Keyword identifying the option, as in #rte_option_info.
+ * @entry: A place to store the current menu entry.
+ * 
+ * Similar to rte_context_option_get() this function queries the current
+ * value of the named option, but returns this value as number of the
+ * corresponding menu entry. Naturally this must be an option with
+ * menu, else this function will fail.
+ * 
+ * Return value: 
+ * %TRUE on success, otherwise @value remained unchanged.
+ **/
+rte_bool
+rte_context_option_menu_get(rte_context *context, const char *keyword, int *entry)
+{
+	rte_option_info *oi;
+	rte_option_value val;
+	rte_bool r;
+	int i;
+
+	if (!(oi = rte_context_option_info_keyword(context, keyword)))
+		return FALSE;
+
+	if (!rte_context_option_get(context, keyword, &val))
+		return FALSE;
+
+	r = FALSE;
+
+	for (i = 0; i <= oi->max.num; i++) {
+		switch (oi->type) {
+		case RTE_OPTION_BOOL:
+		case RTE_OPTION_INT:
+			if (!oi->menu.num)
+				return FALSE;
+			r = (oi->menu.num[i] == val.num);
+			break;
+
+		case RTE_OPTION_REAL:
+			if (!oi->menu.dbl)
+				return FALSE;
+			r = (oi->menu.dbl[i] == val.dbl);
+			break;
+
+		case RTE_OPTION_MENU:
+			r = (i == val.num);
+			break;
+
+		default:
+			fprintf(stderr, __PRETTY_FUNCTION__
+				": unknown export option type %d\n", oi->type);
+			exit(EXIT_FAILURE);
+		}
+
+		if (r) {
+			*entry = i;
+			break;
+		}
+	}
+
+	return r;
+}
+
+/**
+ * rte_context_option_menu_set:
+ * @context: Initialized #rte_context as returned by rte_context_new().
+ * @keyword: Keyword identifying the option, as in #rte_option_info.
+ * @entry: Menu entry to be selected.
+ * 
+ * Similar to rte_context_option_set() this function sets the value of
+ * the named option, however it does so by number of the corresponding
+ * menu entry. Naturally this must be an option with menu, else
+ * this function will fail.
+ * 
+ * Return value: 
+ * %TRUE on success, otherwise the option is not changed.
+ **/
+rte_bool
+rte_context_option_menu_set(rte_context *context, const char *keyword, int entry)
+{
+	rte_option_info *oi;
+
+	if (!(oi = rte_context_option_info_keyword(context, keyword)))
+		return FALSE;
+
+	if (entry < 0 || entry > oi->max.num)
+		return FALSE;
+
+	switch (oi->type) {
+	case RTE_OPTION_BOOL:
+	case RTE_OPTION_INT:
+		if (!oi->menu.num)
+			return FALSE;
+		return rte_context_option_set(context,
+			keyword, oi->menu.num[entry]);
+
+	case RTE_OPTION_REAL:
+		if (!oi->menu.dbl)
+			return FALSE;
+		return rte_context_option_set(context,
+			keyword, oi->menu.dbl[entry]);
+
+	case RTE_OPTION_MENU:
+		return rte_context_option_set(context, keyword, entry);
+
+	default:
+		fprintf(stderr, __PRETTY_FUNCTION__
+			": unknown export option type %d\n", oi->type);
+		exit(EXIT_FAILURE);
+	}
+}
+
+/**
+ * rte_context_options_reset:
+ * @context: Initialized #rte_context as returned by rte_context_new().
+ * 
+ * RTE internal function to reset all options of a context to their
+ * default.
+ * 
+ * Return value: 
+ * %TRUE on success.
+ **/
+rte_bool
+rte_context_options_reset(rte_context *context)
+{
+	rte_option_info *oi;
+	rte_bool r;
+	int i;
+
+	for (i = 0; (oi = rte_context_option_info_enum(context, i)); i++) {
+		switch (oi->type) {
+		case RTE_OPTION_BOOL:
+		case RTE_OPTION_INT:
+			if (oi->menu.num)
+				r = rte_context_option_set(context, oi->keyword,
+							   oi->menu.num[oi->def.num]);
+			else
+				r = rte_context_option_set(context, oi->keyword,
+							   oi->def.num);
+			break;
+
+		case RTE_OPTION_REAL:
+			if (oi->menu.dbl)
+				r = rte_context_option_set(context, oi->keyword,
+							   oi->menu.dbl[oi->def.num]);
+			else
+				r = rte_context_option_set(context, oi->keyword,
+							   oi->def.dbl);
+			break;
+
+		case RTE_OPTION_STRING:
+			if (oi->menu.str)
+				r = rte_context_option_set(context, oi->keyword,
+							   oi->menu.str[oi->def.num]);
+			else
+				r = rte_context_option_set(context, oi->keyword, 
+							   oi->def.str);
+			break;
+
+		case RTE_OPTION_MENU:
+			r = rte_context_option_set(context, oi->keyword,
+						   oi->def.num);
+			break;
+
+		default:
+			fprintf(stderr, __PRETTY_FUNCTION__
+				": unknown context option type %d\n", oi->type);
+			exit(EXIT_FAILURE);
+		}
+
+		if (!r)
+			return FALSE;
+	}
+
+	return TRUE;
 }
 
 rte_status_info *
