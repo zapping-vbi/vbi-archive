@@ -31,6 +31,7 @@ src/plugin_properties.c
 src/plugins.c
 src/properties-handler.c
 src/properties.c
+src/subtitle.c
 src/tveng.c
 src/tveng1.c
 src/tveng2.c
