@@ -15,10 +15,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.1 2002-02-25 06:22:19 mschimek Exp $ */
+/* $Id: fifo.c,v 1.2 2002-06-19 19:57:45 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include "../config.h"
 #endif
 
 #include <stdio.h>
