@@ -1,3 +1,9 @@
+2004-10-10    <mschimek@users.sf.net>
+
+	* help/C/commands.xml: Updated switch_mode, toggle_mode.
+	* src/cmd.c (py_switch_mode, py_toggle_mode): Extended to switch
+	  display mode and capture mode at once.
+
 2004-10-09    <mschimek@users.sf.net>
 
 	* src/audio.c (set_mute): OSD related crash fix by Sjoerd Simons.
