@@ -37,7 +37,7 @@
 #include "interface.h"
 #include "remote.h"
 #include "x11stuff.h"
-#include "common/fifo.h"
+#include "../common/fifo.h"
 #include "capture.h"
 #include "frequencies.h"
 #include "globals.h"

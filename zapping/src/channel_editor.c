@@ -32,7 +32,8 @@
 #include "remote.h"
 #include "frequencies.h"
 #include "globals.h"
-#include "channel_editor.h"
+#warning #include "channel_editor.h"
+//#include "channel_editor.h"
 
 /* Shorten a bit the usual stuff */
 #define LOOKUP(X) GtkWidget *X = lookup_widget(channel_editor, #X)

@@ -21,7 +21,7 @@
 #endif
 
 #include <gnome.h>
-#include "common/fifo.h" // current_time()
+#include "../common/fifo.h" // current_time()
 #include <math.h>
 #include <unistd.h>
 
@@ -353,9 +353,11 @@ py_volume_incr			(PyObject *self, PyObject *args)
 
   zcs_int(cur, "record_volume");
 
+#ifdef HAVE_LIBZVBI
   /* NLS: Record volume */
   osd_render_sgml(NULL, _("<blue>%3d %%</blue>"),
 		  (cur - min) * 100 / range);
+#endif
 
  done:
   Py_INCREF(Py_None);

@@ -34,7 +34,7 @@
 #include "zmisc.h"
 #include "osd.h"
 #include "remote.h"
-#include "common/math.h"
+#include "../common/math.h"
 #include "properties.h"
 #include "interface.h"
 #include "globals.h"

@@ -52,7 +52,8 @@
 #include "keyboard.h"
 #include "globals.h"
 #include "plugin_properties.h"
-#include "channel_editor.h"
+#warning #include "channel_editor.h"
+//#include "channel_editor.h"
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
 char *program_invocation_name;
@@ -434,7 +435,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.165.2.4 2002-10-07 20:09:26 garetxe Exp $",
+	 "$Id: main.c,v 1.165.2.5 2002-10-10 04:26:40 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())

@@ -56,7 +56,7 @@
 #include <X11/extensions/xf86dga.h>
 #endif
 
-#include "common/fifo.h" /* current_time() */
+#include "../common/fifo.h" /* current_time() */
 
 /* 
    This works around a bug bttv appears to have with the mute
@@ -66,7 +66,7 @@
 
 #define TVENG1_PROTOTYPES 1
 #include "tveng1.h"
-#include "common/videodev.h"
+#include "../common/videodev.h"
 
 /*
   If this is enabled, some specific features of the bttv driver are
