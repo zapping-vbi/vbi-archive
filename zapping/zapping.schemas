@@ -92,5 +92,18 @@
     <short>Show status bar in Teletext windows.</short>
    </locale>
   </schema>
+  <schema>
+   <key>/schemas/apps/zapping/blank_cursor_time</key>
+   <applyto>/apps/zapping/blank_cursor_time</applyto>
+   <owner>Zapping</owner>
+   <type>int</type>
+   <default>1500</default>
+   <locale name="C">
+    <short>Time to wait until blanking the pointer.</short>
+    <long>This is the time in milliseconds Zapping will wait between
+ pointer movements and blanking the pointer when over the video. A
+ value of zero disables this feature.</long>
+   </locale>
+  </schema>
  </schemalist>
 </gconfschemafile>
