@@ -35,125 +35,50 @@
 #include "ttxview.h"
 
 void
-on_zapping_delete_event			(GtkWidget	*widget,
-					 gpointer	unused)
+on_zapping_delete_event		(GtkWidget *		widget,
+				 gpointer		user_data)
 {
-  cmd_run("zapping.quit()");
+  python_command (widget, "zapping.quit()");
 }
 
 gboolean
-on_tv_screen_button_press_event        (GtkWidget       *widget,
-					GdkEvent        *event,
-					gpointer        user_data)
+on_tv_screen_button_press_event	(GtkWidget *		widget,
+				 GdkEventButton *	event,
+				 gpointer		user_data)
 {
-  GdkEventButton * bevent = (GdkEventButton *) event;
-  GList *p;
-
-  if (event->type != GDK_BUTTON_PRESS)
-    return TRUE;
-
-  switch (bevent->button)
+  switch (event->button)
     {
+    case 2:
+      if (main_info->current_mode == TVENG_TELETEXT)
+	return FALSE; /* pass_on */
+
+      python_command (widget, "zapping.switch_mode('fullscreen')");
+
+      return TRUE; /* handled */
+
     case 3:
       {
-	GtkMenuShell *menu;
-	GtkWidget *mw;
+	GtkWidget *menu;
 
-	menu = GTK_MENU_SHELL (create_popup_menu1 ());
-	mw = GTK_WIDGET (menu);
+	menu = create_popup_menu1 (event);
 
-	add_channel_entries(menu, 1, 10, main_info);
+	gtk_menu_popup (GTK_MENU (menu), NULL, NULL, NULL,
+			NULL, event->button, event->time);
 
-	if (disable_preview)
-	  {
-	    widget = lookup_widget (mw, "go_fullscreen2");
-	    gtk_widget_set_sensitive(widget, FALSE);
-	    gtk_widget_hide(widget);
-	    widget = lookup_widget(mw, "go_previewing2");
-	    gtk_widget_set_sensitive(widget, FALSE);
-	    gtk_widget_hide(widget);
-	  }
-
-#ifdef HAVE_LIBZVBI
-	if (!zvbi_get_object())
-#endif
-	  {
-	    widget = lookup_widget(mw, "separador6");
-	    gtk_widget_set_sensitive(widget, FALSE);
-	    gtk_widget_hide(widget);
-	    widget = lookup_widget(mw, "videotext2");
-	    gtk_widget_set_sensitive(widget, FALSE);
-	    gtk_widget_hide(widget);
-	    widget = lookup_widget(mw, "new_ttxview2");
-	    gtk_widget_set_sensitive(widget, FALSE);
-	    gtk_widget_hide(widget);
-	  }
-#ifdef HAVE_LIBZVBI
-	else if (main_info->current_mode == TVENG_NO_CAPTURE)
-	  {
-	    widget = lookup_widget(mw, "videotext2");
-	    z_change_menuitem(widget,
-			      "gnome-stock-table-fill",
-			      _("Overlay this page"),
-			      _("Return to windowed mode and use the current "
-				"page as subtitles"));
-	  }
-
-	/* Remove capturing item if it's redundant */
-	if ((!zvbi_get_object()) && (disable_preview))
-#else
-	if (disable_preview)
-#endif
-	  {
-	    gtk_widget_hide(lookup_widget(mw,
-					  "separador3"));
-	    widget = lookup_widget(mw, "go_capturing2");
-	    gtk_widget_set_sensitive(widget, FALSE);
-	    gtk_widget_hide(widget);
-	  }
-
-	{
-	  GtkCheckMenuItem *item;
-	  gboolean hide;
-
-	  item = GTK_CHECK_MENU_ITEM (lookup_widget (mw, "hide_controls1"));
-	  hide = zcg_bool (NULL, "hide_controls");
-
-	  if (hide == item->active)
-	    gtk_check_menu_item_set_active (item, !hide);
-	}
-
-#ifdef HAVE_LIBZVBI
-	process_ttxview_menu_popup(main_window, bevent, menu);
-#endif
-
-	/* Let plugins add their GUI to this context menu */
-	p = g_list_first(plugin_list);
-	while (p)
-	  {
-	    plugin_process_popup_menu(main_window, bevent,
-				      GTK_MENU (menu),
-			      (struct plugin_info*)p->data);
-	    p = p->next;
-	  }
-	gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL,
-		       NULL, bevent->button, bevent->time);
+	return TRUE; /* handled */
       }
-      return TRUE;
+
     case 4:
-      cmd_run ("zapping.channel_up()");
-      return TRUE;
+      python_command (widget, "zapping.channel_up()");
+      return TRUE; /* handled */
+
     case 5:
-      cmd_run ("zapping.channel_down()");
-      return TRUE;
-    case 2:
-      if (main_info->current_mode == TVENG_NO_CAPTURE)
-	return FALSE;
-      cmd_run ("zapping.switch_mode('fullscreen')");
-      break;
+      python_command (widget, "zapping.channel_down()");
+      return TRUE; /* handled */
+
     default:
       break;
     }
 
-  return TRUE;
+  return FALSE; /* pass on */
 }
