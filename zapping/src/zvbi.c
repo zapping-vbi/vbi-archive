@@ -726,6 +726,20 @@ get_ttx_fmt_page(int id)
   return result;
 }
 
+GdkPixbuf *
+get_scaled_ttx_page (int id)
+{
+  GdkPixbuf *result = NULL;
+  struct ttx_client *client;
+
+  pthread_mutex_lock(&clients_mutex);
+  if ((client = find_client(id)))
+    result = client->scaled;
+  pthread_mutex_unlock(&clients_mutex);
+
+  return result;
+}
+
 enum ttx_message
 peek_ttx_message(int id, ttx_message_data *data)
 {
@@ -983,11 +997,12 @@ refresh_ttx_page_intern(struct ttx_client *client, GtkWidget *drawable)
       if (!p->vanilla_only)
 	{
 	  p->phase = (p->phase + 1) % 20;
-	  if (p->phase > 5)
+	  if ((p->phase != 0) && (p->phase != 5))
 	    continue;
-	  else if (p->phase == 5)
+
+	  if (p->phase == 5)
 	    scaled = p->scaled_on;
-	  else
+	  else /* phase == 0 */
 	    scaled = p->scaled_off;
 	}
       else

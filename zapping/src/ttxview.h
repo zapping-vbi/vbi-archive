@@ -48,6 +48,14 @@ void
 ttxview_detach			(GtkWidget	*parent);
 
 /**
+ * Returns the scaled pixbuf for the given widget acting as a
+ * TTXView. The return value is volatile blah, blah, blah. See zvbi.h,
+ * get_scaled_ttx_page. Can return NULL.
+ */
+GdkPixbuf *
+ttxview_get_scaled_ttx_page	(GtkWidget	*parent);
+
+/**
  * If the given widget is a window acting as a TTXView, add to the
  * given popup menu the TTXView entries
  */

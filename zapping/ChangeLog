@@ -1,3 +1,7 @@
+25.05.2001	<garetxe@users.sf.net>
+
+	* plugins/screenshot: YVU420, TTX capture.
+
 24.05.2001	<mschimek@users.sourceforge.net>
 
 	* plugins/lirc/lirc.c: lirc_page fixed in plugin_add_properties

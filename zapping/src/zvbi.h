@@ -29,6 +29,8 @@
 #  include <config.h>
 #endif
 
+#include <gdk-pixbuf/gdk-pixbuf.h>
+
 #include <libvbi.h>
 #include "tveng.h"
 #include "zmodel.h"
@@ -107,6 +109,14 @@ void ttx_unfreeze(int id);
  * Returns a pointer to the formatted page the client is rendering
  */
 struct fmt_page* get_ttx_fmt_page(int id);
+
+/*
+ * Returns a pointer to the scaled version of the page. Consider the
+ * returned pixbuf as volatile, i.e., any other ttx_ call on the same
+ * client can invalidate the returned pointer.
+ * Can return NULL if the scaled version doesn't exist, etc...
+ */
+GdkPixbuf * get_scaled_ttx_page(int id);
 
 /*
  * Resizes the rendered size of the page

@@ -2406,6 +2406,18 @@ process_ttxview_menu_popup		(GtkWidget	*widget,
     build_subtitles_submenu(widget, GTK_MENU(popup), !data);
 }
 
+GdkPixbuf*
+ttxview_get_scaled_ttx_page		(GtkWidget	*parent)
+{
+  ttxview_data	*data = (ttxview_data*)
+    gtk_object_get_data(GTK_OBJECT(main_window), "ttxview_data");
+
+  if (!data)
+    return NULL;
+
+  return get_scaled_ttx_page(data->id);
+}
+
 /**
  * Returns a freshly allocated region exactly like rect.
  */

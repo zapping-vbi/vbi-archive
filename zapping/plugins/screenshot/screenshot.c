@@ -16,6 +16,8 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 #include "plugin_common.h"
+#include "yuv2rgb.h"
+#include "ttxview.h"
 #ifdef HAVE_LIBJPEG
 #include <pthread.h>
 #include <jpeglib.h> /* jpeg compression */
@@ -248,6 +250,12 @@ void plugin_close(void)
 static
 gboolean plugin_start (void)
 {
+  struct tveng_frame_format format;
+  GdkPixbuf	*pixbuf;
+  /* FIXME: There should be a cleaner way to do these things from
+     plugins */
+  extern GtkWidget	*main_window;
+
   /*
    * Switch to capture mode if we aren't viewing Teletext (associated
    * with TVENG_NO_CAPTURE)
@@ -259,6 +267,21 @@ gboolean plugin_start (void)
       if (zapping_info->current_mode != TVENG_CAPTURE_READ)
 	return FALSE; /* unable to set the mode */
     }
+  /* request TTX render */
+  else if ((pixbuf = ttxview_get_scaled_ttx_page(main_window)))
+    {
+      format.width = gdk_pixbuf_get_width(pixbuf);
+      format.height = gdk_pixbuf_get_height(pixbuf);
+      format.bpp = 4;
+      format.depth = 32;
+      format.pixformat = TVENG_PIX_RGB32;
+      format.bytesperline = gdk_pixbuf_get_rowstride(pixbuf);
+      start_saving_screenshot(gdk_pixbuf_get_pixels(pixbuf),
+			      &format);
+      return TRUE;
+    }
+  else
+    return FALSE;
 
   save_screenshot = 2;
 
@@ -554,6 +577,7 @@ start_saving_screenshot (gpointer data_to_save,
   GtkWidget * vbox;
   GtkWidget * label;
   GtkWidget * progressbar;
+  uint8_t *y, *u, *v, *t;
 
   gchar * window_title;
   gchar * buffer = NULL;
@@ -568,7 +592,13 @@ start_saving_screenshot (gpointer data_to_save,
 
   memset(data, 0, sizeof(struct screenshot_data));
 
-  data -> data = malloc(format->bytesperline * format->height);
+  if (format->pixformat == TVENG_PIX_YVU420 ||
+      format->pixformat == TVENG_PIX_YUV420)
+    data -> data = malloc(format->width * format->height *
+			  ((x11_get_bpp()+7)>>3));
+  else
+    data -> data = malloc(format->bytesperline * format->height);
+
   if (!data->data)
     {
       g_free(data);
@@ -585,8 +615,35 @@ start_saving_screenshot (gpointer data_to_save,
       return;
     }
 
-  memcpy(&data->format, format, sizeof(struct tveng_frame_format));
-  memcpy(data->data, data_to_save, format->bytesperline * format->height);
+  if (format->pixformat == TVENG_PIX_YVU420 ||
+      format->pixformat == TVENG_PIX_YUV420)
+    {
+      y = (uint8_t*) data_to_save;
+      u = y + (format->width*format->height);
+      v = u + (format->width*format->height)/4;
+      if (format->pixformat == TVENG_PIX_YVU420)
+	{ t = u; u = v; v = t; }
+      
+      yuv2rgb(data->data, y, u, v, format->width, format->height,
+	      format->width * ((x11_get_bpp()+7)>>3),
+	      format->width, format->width*0.5);
+
+      memcpy(&data->format, format, sizeof(struct tveng_frame_format));
+      data->format.pixformat =
+	zmisc_resolve_pixformat(x11_get_bpp(), x11_get_byte_order());
+      data->format.bytesperline = format->width *
+	((x11_get_bpp()+7)>>3);
+      data->format.depth = x11_get_bpp();
+      /* unfortunate election of names :-( */
+      data->format.bpp = (x11_get_bpp()+7)>>3;
+      data->format.sizeimage = data->format.bytesperline * format->height;
+    }
+  else
+    {
+      memcpy(&data->format, format, sizeof(struct tveng_frame_format));
+      memcpy(data->data, data_to_save, format->bytesperline *
+	     format->height);
+    }
 
   /* Find a suitable file name to save */
   data -> handle = NULL;
@@ -630,7 +687,7 @@ start_saving_screenshot (gpointer data_to_save,
   data -> set_bgr = FALSE;
 
   /* Check if BGR must be used */
-  switch (format->pixformat)
+  switch (data->format.pixformat)
     {
     case TVENG_PIX_RGB32:
       data->set_bgr = FALSE;
