@@ -25,11 +25,13 @@
 #endif
 
 #include <stddef.h>
-#include "../common/math.h"
+#include "common/math.h"
 
 #include <gnome.h>
 #include "strnatcmp.h"
 #include "frequencies.h"
+
+#include "zmisc.h"
 
 /* FIXME video standards need a review. */
 
@@ -38,12 +40,14 @@
 #define ALIGN    (1 << 2) /* See tv_rf_channel_align() */
 
 struct range {
+	/* Note the prefixes must match the XawTV tables to
+	   properly parse the .xawtv config file. */
 	const char		prefix[3];
 	unsigned		flags		: 8;	/* ALPHA | ... */
 	unsigned 		first		: 8;	/* first channel number */
 	unsigned 		last		: 8;	/* last, inclusive */
 	unsigned		bandwidth	: 16;	/* kHz */
-	unsigned		frequency	: 32;	/* kHz */
+	unsigned		frequency	: 32;	/* of first channel, kHz */
 };
 
 #define RANGE_END		{ "", 0, 0, 0, 0, 0 }
@@ -56,39 +60,35 @@ struct range {
 #define RANGE_EIA_VHF		{ "",  ALIGN,  7, 13, 6000, 175250 }
 #define RANGE_EIA_UHF		{ "",  ALIGN, 14, 83, 6000, 471250 }
 
-#define RANGE_CCIR_BAND_I	{ "E", 0,  2,  4, 7000,  48250 }
-#define RANGE_CCIR_SUBBAND	{ "L", 0,  1,  3, 7000,  69250 }
-/* CCIR Band II FM 88-108 MHz */
-#define RANGE_CCIR_USB		{ "S", 0,  1, 10, 7000, 105250 } /* Lower Hyperband */
-#define RANGE_CCIR_BAND_III	{ "E", 0,  5, 12, 7000, 175250 }
-#define RANGE_CCIR_OSB		{ "S", 0, 11, 20, 7000, 231250 } /* Upper Hyperband */
-#define RANGE_CCIR_ESB		{ "S", 0, 21, 41, 8000, 303250 } /* Extended Hyperband */
-#define RANGE_CCIR_UHF		{ "",  0, 21, 69, 8000, 471250 } /* Band IV (21-37), Band V (38-69) */
-
-#define RANGES_CCIR {							\
-	RANGE_CCIR_BAND_I, RANGE_CCIR_SUBBAND, RANGE_CCIR_USB,		\
-	RANGE_CCIR_BAND_III,						\
-	RANGE_CCIR_OSB, RANGE_CCIR_ESB,	RANGE_CCIR_UHF,			\
-	RANGE_END							\
-}
+/* "E"? "S0"? "SE"? Anyway, have to keep that for XawTV compatibility. */
+#define RANGE_CCIR_BAND_I	{ "E",  0,  2,  4, 7000,  48250 }
+#define RANGE_CCIR_SUBBAND	{ "S0", 0,  1,  3, 7000,  69250 }
+/* CCIR Band II FM 88-108 MHz here */
+#define RANGE_CCIR_USB		{ "SE", 0,  1, 10, 7000, 105250 } /* Lower Hyperband */
+#define RANGE_CCIR_BAND_III	{ "E",  0,  5, 12, 7000, 175250 }
+#define RANGE_CCIR_OSB		{ "SE", 0, 11, 20, 7000, 231250 } /* Upper Hyperband */
+#define RANGE_CCIR_ESB		{ "S",  0, 21, 41, 8000, 303250 } /* Extended Hyperband */
+#define RANGE_CCIR_UHF		{ "",   0, 21, 69, 8000, 471250 } /* Band IV (21-37), Band V (38-69) */
 
 struct table {
 	const char *		name;			/* Canonical table name for config */
-	const char * old_name;
+	const char *		name_zapping;	        /* Old Zapping table name */
+	const char *		name_xawtv;		/* XawTV table name */
 	const char *		countries;		/* ISO 3166 2-char */
-	const char *		domain;
+	const char *		domain;			/* e.g. "cable" */
 	unsigned int		video_standards;	/* set of TV_VIDEOSTD_XXX */
-	struct range		freq_ranges [12];
+	struct range		freq_ranges [40];	/* XXX see "ie" table */
 };
 
-#define TABLE_END { NULL, NULL, NULL, NULL, 0, { RANGE_END } }
+#define TABLE_END { NULL, NULL, NULL, NULL, NULL, 0, { RANGE_END } }
 #define IS_TABLE_END(t) ((t)->name == NULL)
 
 static const struct table
 frequency_tables [] =
 {
   {
-    "eia", "US terrestrial",
+    /* http://www.eia.org/ */
+    "eia", "US terrestrial", "us-bcast",
     "US" "CA",
     N_("broadcast"),
     TV_VIDEOSTD_NTSC_M,
@@ -100,9 +100,10 @@ frequency_tables [] =
       RANGE_END
     }
   }, {
-    "eia-irc", "US cable",
-    "US",
-    N_("cable IRC"), /* Incrementally Related Carriers */
+    /* IRC: Incrementally Related Carriers */
+    "eia-irc", "US cable", "us-cable",
+    "US" "CA",
+    N_("cable IRC"),
     TV_VIDEOSTD_NTSC_M,
     {
       { "", ALIGN, 1, 1, 6000, 73250 },
@@ -118,9 +119,10 @@ frequency_tables [] =
       RANGE_END
     }
   }, {
-    "eia-hrc", "US cable-hrc",
-    "US",
-    N_("cable HRC"), /* Harmonically Related Carriers */
+    /* HRC: Harmonically Related Carriers */
+    "eia-hrc", "US cable-hrc", "us-cable-hrc",
+    "US" "CA",
+    N_("cable HRC"),
     TV_VIDEOSTD_NTSC_M,
     {
       { "", ALIGN,   1,   1, 6000,  72000 },
@@ -135,8 +137,9 @@ frequency_tables [] =
       { "T", ALIGN | UPSTREAM, 7, 14, 6000, 7000 },
       RANGE_END
     }
+#if 0 /* XXX apparently not, check this */
   }, {
-    "ca-cable", "Canada cable",
+    "ca-cable", "Canada cable", "canada-cable",
     "CA", N_("cable"),
     TV_VIDEOSTD_NTSC_M,
     {
@@ -150,8 +153,9 @@ frequency_tables [] =
       { "", ALIGN, 100, 125, 6000, 655750 },
       RANGE_END
     }
+#endif
   }, {
-    "jp", "Japan terrestrial",
+    "jp", "Japan terrestrial", "japan-bcast",
     "JP", N_("broadcast"),
     TV_VIDEOSTD_NTSC_M_JP,
     {
@@ -162,7 +166,7 @@ frequency_tables [] =
       RANGE_END
     }
   }, {
-    "jp-cable", "Japan cable", /* ALIGN? */
+    "jp-cable", "Japan cable", "japan-cable", /* ALIGN? */
     "JP", N_("cable"),
     TV_VIDEOSTD_NTSC_M_JP,
     {
@@ -173,14 +177,28 @@ frequency_tables [] =
       RANGE_END
     }
   }, {
-    "ccir", "Europe",
+    /* CCIR is now ITU-R. http://www.itu.int/ */
+    /* Not all countries use all bands, maybe we should
+       split this table accordingly. */
+    "ccir", "Europe", "europe-west",
     "AT" "BE" "CH" "DE" "DK" "ES" "FI" "GR"
-    "NL" "NO" "PT" "SE" "UK",
+    "KH" "MY" "NL" "NO" "PT" "SE" "SG" "TH"
+    "UK",
     NULL,
     TV_VIDEOSTD_PAL_B | TV_VIDEOSTD_PAL_G, /* I in UK? */
-    RANGES_CCIR
+    {
+      RANGE_CCIR_BAND_I,
+      RANGE_CCIR_SUBBAND,
+      RANGE_CCIR_USB,
+      RANGE_CCIR_BAND_III,
+      RANGE_CCIR_OSB,
+      RANGE_CCIR_ESB,
+      RANGE_CCIR_UHF,
+      RANGE_END
+    }
   }, {
-    "au", "Australia", "AU", NULL, TV_VIDEOSTD_PAL_B, /* I? */
+    "au", "Australia", "australia",
+    "AU", NULL, TV_VIDEOSTD_PAL_B, /* I? */
     {
       { "", 0,  0,  0, 7000,  46250 },
       { "", 0,  1,  2, 7000,  57250 },
@@ -192,7 +210,7 @@ frequency_tables [] =
       RANGE_END
     }
   }, {
-    "au-optus", "Australia Optus",
+    "au-optus", "Australia Optus", "australia-optus",
     "AU", "Optus",
     TV_VIDEOSTD_PAL_B, /* I? */
     {
@@ -205,40 +223,52 @@ frequency_tables [] =
       RANGE_END
     }
   }, {
-    "it", "Italy", "IT", NULL, TV_VIDEOSTD_PAL_B,
+    "it", "Italy", "italy",
+    "IT", NULL,
+    TV_VIDEOSTD_PAL_B,
     {
-      { "", 0,  2,  2, 7000,  53750 }, /* Band I (A-B) */
-      { "", 0,  3,  3, 7000,  62250 },
-      { "", 0,  4,  4, 7000,  82250 }, /* Band II (C) */
-      { "", 0,  5,  5, 7000, 175250 }, /* Band III (D-H) */
-      { "", 0,  6,  6, 7000, 183250 },
-      { "", 0,  7,  7, 7000, 192250 },
-      { "", 0,  8,  8, 7000, 201250 },
-      { "", 0,  9,  9, 7000, 210250 },
-      { "", 0, 11, 12, 7000, 217250 }, /* Band III (H1-H2) */
-      RANGE_END
-    }
-  }, {
-    "oirt", "Eastern Europe",
-    "AL" "BA" "BG" "CZ"
-    "HR" "HU" "MK" "PL"
-    "RO" "SK" "YU",
-    NULL,
-    0, /* STD? */
-    {
-      { "R", 0,  1,  1, 7000,  49750 }, /* Band I (R1-R3) ... */
-      { "R", 0,  2,  2, 7000,  59250 },
-      { "R", 0,  3,  4, 7000,  77250 }, /* Band II (R4-R5) ... */
-      { "R", 0,  5,  5, 7000,  93250 },
-      { "R", 0,  6, 12, 8000, 175250 }, /* Band III ... */
-      { "S", 0,  1,  8, 8000, 111250 },
-      { "S", 0, 11, 19, 8000, 231250 },
-      { "S", 0, 21, 41, 8000, 303250 },
+      { "", ALPHA, 'A', 'A', 7000,  53750 }, /* Band I (A-B) */
+      { "", ALPHA, 'B', 'B', 7000,  62250 },
+      { "", ALPHA, 'C', 'C', 7000,  82250 }, /* Band II (C) */
+      { "", ALPHA, 'D', 'D', 7000, 175250 }, /* Band III (D-H) */
+      { "", ALPHA, 'E', 'E', 7000, 183250 },
+      { "", ALPHA, 'F', 'F', 7000, 192250 },
+      { "", ALPHA, 'G', 'G', 7000, 201250 },
+      { "", ALPHA, 'H', 'H', 7000, 210250 },
+      { "H",    0,   1,   2, 7000, 217250 }, /* Band III (H1-H2) */
       RANGE_CCIR_UHF,
       RANGE_END
     }
   }, {
-    "pl-atk", "Poland Autocom cable",
+    /* OIRT unexists, merged with EBU in 1993. */
+    "oirt", "Eastern Europe", "europe-east",
+    "AL" "BA" "BG" "CZ" "HR" "HU" "MK" "PL"
+    "RO" "SK" "YU",
+    NULL,
+    0, /* STD? */
+    {
+      { "R",  0,  1,  1, 7000,  49750 }, /* Band I (R1-R3) ... */
+      { "R",  0,  2,  2, 7000,  59250 },
+      { "R",  0,  3,  4, 7000,  77250 }, /* Band II (R4-R5) ... */
+      { "R",  0,  5,  5, 7000,  93250 },
+      RANGE_CCIR_USB,
+      { "SR", 0,  1,  8, 8000, 111250 },
+      { "R",  0,  6, 12, 8000, 175250 }, /* Band III ... */
+      { "SR", 0, 11, 18, 8000, 231250 },
+/* XXX which one is right? */
+#if 1 /* XawTV */
+      { "S",  0, 19, 40, 8000, 295250 },
+#else /* ? */
+      { "S",  0, 11, 19, 8000, 231250 },
+      { "S",  0, 21, 41, 8000, 303250 },
+#endif
+      RANGE_CCIR_UHF,
+      RANGE_END
+    }
+
+
+  }, {
+    "pl-atk", "Poland Autocom cable", NULL,
     /* TRANSLATORS: Leave "Autocom" untranslated. */
     "PL", N_("Autocom cable"),
     0, /* STD? */
@@ -252,40 +282,90 @@ frequency_tables [] =
       RANGE_END
     }
   }, {
-    "ru", "Russia",
-    "RU", NULL, /* OIRT Russia */
+    /* OIRT Russia (?) */
+    "ru", "Russia", "russia",
+    "RU", NULL,
     0, /* STD? */
     {
-      { "", 0,  1,  1, 8000,  48500 },
-      { "", 0,  2,  2, 8000,  58000 },
-      { "", 0,  3,  5, 8000,  76000 },
-      { "", 0,  6, 12, 8000, 174000 },
-      { "", 0, 21, 60, 8000, 470000 },
+/* XXX which one is right? */
+#if 1 /* XawTV */
+      { "R",  0,  1,  1, 7000,  49750 }, /* Band I (R1-R3) ... */
+      { "R",  0,  2,  2, 7000,  59250 },
+      { "R",  0,  3,  4, 7000,  77250 }, /* Band II (R4-R5) ... */
+      { "R",  0,  5,  5, 7000,  93250 },
+      { "SR", 0,  1,  8, 8000, 111250 },
+      { "R",  0,  6, 12, 8000, 175250 }, /* Band III ... */
+      { "SR", 0, 11, 18, 8000, 231250 },
+      { "S",  0, 19, 40, 8000, 295250 },
+#else /* ? */
+      { "",   0,  1,  1, 8000,  48500 },
+      { "",   0,  2,  2, 8000,  58000 },
+      { "",   0,  3,  5, 8000,  76000 },
+      { "",   0,  6, 12, 8000, 174000 },
+      { "",   0, 21, 60, 8000, 470000 },
+#endif
+      RANGE_CCIR_UHF,
       RANGE_END
     }
   }, {
-    "ie", "Ireland", "IE", NULL, TV_VIDEOSTD_PAL_I,
+    "ie", "Ireland", "ireland",
+    "IE",
+    NULL, TV_VIDEOSTD_PAL_I,
     {
+/* XXX which one is right? And WTF? */
+#if 1 /* XawTV */
+      { "A", 0,  0,  0, 8000,  45750 },
+      { "A", 0,  1,  1, 8000,  48000 },
+      { "A", 0,  2,  2, 8000,  53570 },
+      { "A", 0,  3,  3, 8000,  56000 },
+      { "A", 0,  4,  4, 8000,  61750 },
+      { "A", 0,  5,  5, 8000,  64000 },
+      { "A", 0,  6,  6, 8000,  175250 },
+      { "A", 0,  7,  7, 8000,  176000 },
+      { "A", 0,  8,  8, 8000,  183250 },
+      { "A", 0,  9,  9, 8000,  184000 },
+      { "A", 0, 10, 10, 8000,  191250 },
+      { "A", 0, 11, 11, 8000,  192000 },
+      { "A", 0, 12, 12, 8000,  199250 },
+      { "A", 0, 13, 13, 8000,  200000 },
+      { "A", 0, 14, 14, 8000,  207250 },
+      { "A", 0, 15, 15, 8000,  208000 },
+      { "A", 0, 16, 16, 8000,  215250 },
+      { "A", 0, 17, 17, 8000,  216000 },
+      { "A", 0, 18, 19, 8000,  224000 },
+      { "A", 0, 20, 29, 8000,  248000 },
+      { "A", 0, 30, 31, 8000,  344000 },
+      { "A", 0, 32, 33, 8000,  408000 },
+      { "A", 0, 34, 34, 8000,  448000 },
+      { "A", 0, 35, 35, 8000,  480000 },
+      { "A", 0, 36, 36, 8000,  520000 },
+#else
       { "", 0,  0,  2, 8000,  45750 }, /* Band I (A-C) */
       { "", 0,  3,  8, 8000, 175750 }, /* Band III (D-J) */
+#endif
       RANGE_CCIR_UHF,
       RANGE_END
     }
   }, {
-    "fr", "France", "FR", NULL, TV_VIDEOSTD_SECAM_L,
+    "fr", "France", "france",
+    "FR",
+    NULL, TV_VIDEOSTD_SECAM_L,
     {
-      { "K", 0, 1,  1, 7000,  47750 },
-      { "K", 0, 2,  2, 7000,  55750 },
-      { "K", 0, 3,  3, 7000,  60500 },
-      { "K", 0, 4,  4, 7000,  63750 },
-      { "K", 0, 5, 10, 8000, 176000 }, /* Band III (K5-K10) */
+      { "K0", 0,  1,  1, 7000,  47750 },
+      { "K0", 0,  2,  2, 7000,  55750 },
+      { "K0", 0,  3,  3, 7000,  60500 },
+      { "K0", 0,  4,  4, 7000,  63750 },
+      { "K0", 0,  5,  9, 8000, 176000 }, /* Band III (K5-K10) */
+      { "K",  0, 10, 10, 8000, 216000 },
       { "K", ALPHA, 'B', 'Q', 12000, 116750 }, /* former System E (1984) (KB-KQ) */
-      { "H", 0, 1, 19, 8000, 303250 },
+      { "H0", 0,  1,  9, 8000, 303250 },
+      { "H",  0, 10, 19, 8000, 375250 },
       RANGE_CCIR_UHF,
       RANGE_END
     }
   }, {
-    "nz", "New Zealand", "NZ", NULL, 0, /* STD? */
+    "nz", "New Zealand", "newzealand",
+    "NZ", NULL, 0, /* STD? */
     {
       { "", 0, 1,  1, 7000,  45250 },
       { "", 0, 2,  3, 7000,  55250 },
@@ -297,15 +377,24 @@ frequency_tables [] =
       RANGE_END
     }
   }, {
-    "za", "South Africa", "ZA", NULL, 0, /* STD? */
+    "za", "South Africa", "southafrica",
+    "ZA",
+    NULL, 0, /* STD? */
     {
+/* XXX which one is right? */
+#if 1 /* XawTV */
+      { "", 0,  1, 13, 8000, 175250 }, /* Band III */
+#else /* ? */
       { "", 0,  4, 11, 8000, 175250 }, /* Band III (4-11) */
       { "", 0, 13, 13, 8000, 247430 }, /* Band III (247,43 sic) */
+#endif
       RANGE_CCIR_UHF,
       RANGE_END
     }
   }, {
-    "cn-pal", "China", "CN", NULL, 0, /* STD? */
+    "cn", "China", "china-bcast",
+    "CN",
+    NULL, 0, /* STD? */
     {
       { "", 0,  1,  3, 8000,  49750 },
       { "", 0,  4,  5, 8000,  77250 },
@@ -314,23 +403,34 @@ frequency_tables [] =
       RANGE_END
     }
   }, {
-    "ar", "Argentina", "AR", NULL, TV_VIDEOSTD_PAL_NC,
+    "ar", "Argentina", "argentina",
+    "AR",
+    NULL, TV_VIDEOSTD_PAL_NC,
     {
-      { "", 0,  1,  3, 6000,  56250 },
-      { "", 0,  4,  4, 6000,  78250 },
-      { "", 0,  5,  5, 6000,  84250 },
-      { "", 0,  6, 12, 6000, 176250 },
-      { "", 0, 13, 21, 6000, 122250 },
-      { "", 0, 22, 93, 6000, 218250 },
+      /* Prefix "0" from XawTV. */
+      { "0", 0,  1,  3, 6000,  56250 },
+      { "0", 0,  4,  4, 6000,  78250 },
+      { "0", 0,  5,  5, 6000,  84250 },
+      { "0", 0,  6, 12, 6000, 176250 },
+      { "0", 0, 13, 21, 6000, 122250 },
+      { "0", 0, 22, 93, 6000, 218250 },
+      RANGE_END
+    }
+  }, {
+    /* Like CCIR, except Band I & III differently numbered */
+    "id", NULL, NULL,
+    "ID",
+    NULL, TV_VIDEOSTD_PAL_B | TV_VIDEOSTD_PAL_G,
+    {
+      { "", 0,  1,  3, 7000,  48250 },
+      { "", 0,  4, 11, 7000, 175250 },
+      RANGE_CCIR_UHF,
       RANGE_END
     }
   },
 
   TABLE_END
 };
-
-static const unsigned int num_frequency_tables =
-	sizeof (frequency_tables) / sizeof (*frequency_tables);
 
 static inline const struct table *
 find_table			(const char *		name)
@@ -433,6 +533,9 @@ first_table_by_country		(tv_rf_channel *	ch,
  *  Return the first RF channel of the first frequency table
  *  with this name, either country code or table name or both
  *  separated by an at-sign (e.g. "DE@ccir").
+ *
+ *  The older Zapping frequency table name or a XawTV table
+ *  name will match too.
  */
 tv_bool
 tv_rf_channel_table_by_name	(tv_rf_channel *	ch,
@@ -447,13 +550,15 @@ tv_rf_channel_table_by_name	(tv_rf_channel *	ch,
 
 	for (t = frequency_tables; !IS_TABLE_END (t); t++)
 		if (0 == strcmp (t->name, name)
-		    || 0 == strcmp (t->old_name, name))
+		    || (t->name_zapping && 0 == strcmp (t->name_zapping, name))
+		    || (t->name_xawtv && 0 == strcmp (t->name_xawtv, name)))
 			return first_channel (ch, t);
 
 	/* Country code "US" or with modifier "US@eia-terr" */
 
 	if (name[0] && name[1]) {
 		tv_rf_channel ch2;
+		const char *modifier;
 
 		t = frequency_tables;
 
@@ -462,9 +567,12 @@ tv_rf_channel_table_by_name	(tv_rf_channel *	ch,
 		else if (name[2] != '@')
 			return FALSE;
 
+		modifier = name + 3;
+
 		for (; first_table_by_country (&ch2, &t, name); t++) {
-			if (0 == strcmp (t->name, name + 3)
-			    || 0 == strcmp (t->old_name, name + 3)) {
+			if (0 == strcmp (t->name, modifier)
+			    || (t->name_zapping && 0 == strcmp (t->name_zapping, modifier))
+			    || (t->name_xawtv && 0 == strcmp (t->name_xawtv, modifier))) {
 				*ch = ch2;
 				return TRUE;
 			}
@@ -500,7 +608,7 @@ tv_bool
 tv_rf_channel_nth_table		(tv_rf_channel *	ch,
 				 unsigned int		index)
 {
-	if (index >= num_frequency_tables)
+	if (index >= N_ELEMENTS (frequency_tables))
 		return FALSE;
 
 	return first_channel (ch, frequency_tables + index);
@@ -768,10 +876,10 @@ tveng_tuned_channel_by_string	(tveng_tuned_channel *	list,
   tveng_tuned_channel *tc;
   gchar *s, *t;
 
-  if (!name)
+  if (!name || !list)
     return NULL;
 
-  g_assert (list && list->prev == NULL);
+  g_assert (list->prev == NULL);
 
   t = g_utf8_casefold (name, -1);
   s = g_utf8_normalize (t, -1, G_NORMALIZE_DEFAULT);
@@ -972,7 +1080,7 @@ tveng_tuned_channel_copy	(tveng_tuned_channel *	d,
   d->rf_table		= g_utf8_normalize (s->rf_table ? s->rf_table : "",
 					    -1, G_NORMALIZE_DEFAULT);
   d->accel		= s->accel;
-  d->freq		= s->freq;
+  d->frequ		= s->frequ;
   d->input		= s->input;
   d->standard		= s->standard;
   d->num_controls	= s->num_controls;
