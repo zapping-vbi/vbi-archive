@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_ffmpeg.c,v 1.16 2002-12-25 09:44:14 mschimek Exp $ */
+/* $Id: b_ffmpeg.c,v 1.17 2004-05-22 04:58:38 mschimek Exp $ */
 
 #include <limits.h>
 #include "b_ffmpeg.h"
@@ -42,13 +42,15 @@ status				(rte_context *		context,
 				 unsigned int		size)
 {
 	if (codec) {
-		pthread_mutex_lock (&codec->mutex);
+//		if (0 != pthread_mutex_trylock (&codec->mutex))
+//			return;
 		memcpy (status, &FD (codec)->status, size);
-		pthread_mutex_unlock (&codec->mutex);
+//		pthread_mutex_unlock (&codec->mutex);
 	} else {
-		pthread_mutex_lock (&context->mutex);
+//		if (0 != pthread_mutex_trylock (&context->mutex))
+//			return;
 		memcpy (status, &FX (context)->status, size);
-		pthread_mutex_unlock (&context->mutex);
+//		pthread_mutex_unlock (&context->mutex);
 	}
 }
 
@@ -745,8 +747,9 @@ parameters_set			(rte_codec *		codec,
 		case RTE_PIXFMT_YUV420:
 			fd->input_pix_fmt =
 			avcc->pix_fmt = PIX_FMT_YUV420P;
-			rsp->video.u_offset = rsp->video.width * rsp->video.height;
-			rsp->video.v_offset = rsp->video.u_offset >> 2;
+			/* Sic. see zapping mpeg plugin */
+			rsp->video.v_offset = rsp->video.width * rsp->video.height;
+			rsp->video.u_offset = rsp->video.v_offset * 5 / 4;
 			rsp->video.stride = rsp->video.width;
 			rsp->video.uv_stride = rsp->video.width >> 1;
 			break;
