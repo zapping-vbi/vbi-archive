@@ -1193,7 +1193,11 @@ z_switch_channel		(tveng_tuned_channel *	channel,
 	    }
 	}
       else
-	first_switch = FALSE;
+	{
+	  first_switch = FALSE;
+	}
+
+      tc->caption_pgno = zvbi_caption_pgno;
     }
 
   /* Always: if ((avoid_noise = zcg_bool (NULL, "avoid_noise"))) */
@@ -1233,6 +1237,11 @@ z_switch_channel		(tveng_tuned_channel *	channel,
   update_control_box(info);
 
 #ifdef HAVE_LIBZVBI
+  zvbi_caption_pgno = channel->caption_pgno;
+
+  if (zvbi_caption_pgno <= 0)
+    python_command_printf (NULL, "zapping.closed_caption(0)");
+
   zvbi_channel_switched();
 
   if (info->current_mode == TVENG_CAPTURE_PREVIEW)
