@@ -25,23 +25,27 @@
 #include <gdk/gdk.h>
 #include <gtk/gtk.h>
 
-extern void		startup_keyboard		(void);
-extern void		shutdown_keyboard		(void);
+extern void
+startup_keyboard		(void);
+extern void
+shutdown_keyboard		(void);
 
 typedef struct z_key {
   guint			key;
   guint			mask;
 } z_key;
 
-extern gchar *		z_key_name			(z_key key);
-extern z_key		z_key_from_name			(const gchar *name);
+extern gchar *
+z_key_name			(z_key			key);
+extern z_key
+z_key_from_name			(const gchar *		name);
 
 /*
  *  Note: keyvals are supposed to be lower case.
  */
 static inline gboolean
-z_key_equal			(z_key		key1,
-				 z_key		key2)
+z_key_equal			(z_key			key1,
+				 z_key			key2)
 {
   const guint mask = GDK_CONTROL_MASK | GDK_MOD1_MASK | GDK_SHIFT_MASK;
 
@@ -51,25 +55,35 @@ z_key_equal			(z_key		key1,
   return ((key1.key | (key1.mask & mask)) == 0);
 }
 
-extern void		zconf_create_z_key		(z_key		key,
-							 const gchar * 	desc,
-							 const gchar *	path);
-extern void		zconf_set_z_key			(z_key		key,
-							 const gchar *	path);
-extern z_key		zconf_get_z_key			(z_key *	keyp,
-							 const gchar *	path);
+extern void
+zconf_create_z_key		(z_key			key,
+				 const gchar *	 	desc,
+				 const gchar *		path);
+extern void
+zconf_set_z_key			(z_key			key,
+				 const gchar *		path);
+extern z_key
+zconf_get_z_key			(z_key *		keyp,
+				 const gchar *		path);
 
-extern GtkWidget *	z_key_entry_new			(void);
-extern void		z_key_entry_set_key		(GtkWidget	*hbox,
-							 z_key		key);
-extern z_key		z_key_entry_get_key		(GtkWidget	*hbox);
+extern GtkWidget *
+z_key_entry_new			(void);
+extern GtkWidget *
+z_key_entry_entry		(GtkWidget *		hbox);
+extern void
+z_key_entry_set_key		(GtkWidget *		hbox,
+				 z_key			key);
+extern z_key
+z_key_entry_get_key		(GtkWidget *		hbox);
 
-extern void		z_widget_add_accelerator	(GtkWidget	*widget,
-							 const gchar	*accel_signal,
-							 guint		accel_key,
-							 guint		accel_mods);
+extern void
+z_widget_add_accelerator	(GtkWidget *		widget,
+				 const gchar *		accel_signal,
+				 guint			accel_key,
+				 guint			accel_mods);
+extern gboolean
+on_user_key_press		(GtkWidget *		widget,
+				 GdkEventKey *		event,
+				 gpointer		user_data);
 
-extern gboolean		on_user_key_press		(GtkWidget *	widget,
-							 GdkEventKey *	event,
-							 gpointer	user_data);
 #endif /* KEYBOARD_H */
