@@ -11,7 +11,7 @@ PKG_NAME="zapping"
 
 (test -f $srcdir/configure.in) || {
     echo -n "**Error**: Directory "\`$srcdir\'" does not look like the"
-    echo " top-level directory"
+    echo " top-level $PKG_NAME directory"
     exit 1
 }
 
