@@ -220,6 +220,8 @@ int tveng1_attach_device(const char* device_file,
   if (info -> fd) /* If the device is already attached, detach it */
     tveng_close_device(info);
 
+  info->audio_mutable = 0;
+
   info -> file_name = strdup(device_file);
   if (!(info -> file_name))
     {
@@ -1181,6 +1183,7 @@ p_tveng1_build_controls(tveng_device_info * info)
 	  control.controller = TVENG_CONTROLLER_V4L1;
 	  if (p_tveng_append_control(&control, info) == -1)
 	    return -1;
+	  info->audio_mutable = 1;
 	}
       if (audio.flags & VIDEO_AUDIO_VOLUME)
 	{

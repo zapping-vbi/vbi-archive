@@ -202,6 +202,8 @@ int tvengxv_attach_device(const char* device_file,
   if (info -> fd) /* If the device is already attached, detach it */
     tveng_close_device(info);
 
+  info->audio_mutable = 0;
+
   /* clear the atoms */
   p_info->encoding = p_info->color = p_info->hue = p_info->saturation
     = p_info->brightness = p_info->contrast = p_info->freq =
@@ -310,6 +312,7 @@ int tvengxv_attach_device(const char* device_file,
       else if (!strcmp("XV_MUTE", at[i].name))
 	{
           info->caps.audios = 1;
+	  info->audio_mutable = 1;
 	  p_info->mute = XInternAtom(dpy, "XV_MUTE", False);
 	  p_info->mute_max = at[i].max_value;
 	  p_info->mute_min = at[i].min_value;
