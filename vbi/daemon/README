@@ -21,54 +21,61 @@ In particular there are some TV apps which always open the VBI device
 (for subtitles, WSS or whatever) so it's currently impossible to capture
 any of the above data services in the background.
 
-As a second, optional feature, the proxy may in the future be used to
-coordinate channel changes between multiple VBI background applications
-or between video and VBI apps;  the latter is mainly interesting for
-v4l2 drivers, where it's no longer possible to determine if a TV app
-is running before switching the channel in a background app (these apps
-relied on the fact that v4l1 devices can be opened only once.)  Hence
-VBI apps currently may annoy v4l2 users by switching the channel while
-you're watching TV. [MHS: In the meantime the v4l2 api defines an
-optional interface allowing apps to set a device access priority.] 
+As a second feature, the proxy can also coordinate channel changes
+between background VBI "data harvesting" applications. Such apps would
+register a channel request with the proxy together with a priority and
+expected time of use and the proxy will then grant those requests
+according to priority and previous grants in a round-robin way. It will
+also attempt to detect if interactive applications are active and refrain
+from channel changes during that time.
 
 One drawback of the proxy is that it requires to adapt all cooperating
-VBI clients.  For most applications which already use libzvbi the required
+VBI clients.  Although in theory it would have been possible to write
+a VBI loopback driver which simulates a regular v4l device but routes
+all I/O back to the proxy in userspace. But this would have had the
+drawback that only raw data could have been distributed and would have
+been to be sliced by every application, which is a considerable waste
+of CPU time.  Hence it was decided not to use that approach and instead
+position the proxy at slicer level.
+
+For most applications which already use libzvbi the required
 work is however expected to be minimal: just one additional function call
-before calling the regular device open functions.  Again other applications
-(e.g. alevt) which are still based on v4l1 can be easily changed to use
-libzvbi.  Hopefully the solution will be simple and elegant enough to
-convince the authors to invest the necessary effort to switch to libzvbi
-(or at least implement the protocol) in subsequent releases of their
-software.
+before calling the regular device open functions.  Other applications
+(e.g. alevt) which are still based on v4l1 can often easily be changed to
+use libzvbi simply by exchanging open/read system calls with the respective
+libzvbi calls and skipping the app's own slicing.
+
+Hopefully the solution is elegant enough to convince the authors to
+invest the necessary effort to switch to libzvbi (or at least implement
+the protocol) in subsequent releases of their software.
 
 
-2003-04-27
-----------
+Current status
+--------------
 
-I've got a working prototype for the VBI proxy based on libzvbi. Both
-nxtvepg and alevt are already adapted for it.  Now you can run nxtvepg
-and alevt in parallel, or multiple instances of alevt etc.  The client
-interface to the proxy will probably not change (except for a few
-additional functions to control channel changes) so authors could
-already start to adapt their apps if interested.  Note the proxy daemon
-is not complete yet, esp. dynamically merging different service requests
-(i.e. services which read different VBI regions) might not work, it's
-also not optimized at all yet.
+The proxy is still in development, but the basic service is operational.
+See below for a detailed list of open points.  If you want to try it out,
+check out libzvbi from CVS at http://zapping.sourceforge.net/.  In the
+test sub-directory there's a small programme called "proxy-text.c" which
+allows to dump teletext or VPS via the proxy.  Various parameters can be
+configured by command line options, use -help for a list.
 
-I've made a demo proxy client "proxy-test" which serves as an example
-how to work with libzvbi.  The daemon is called "proxyd".  Both apps
-print usage info with -help. You can also look at my patch for alevt or
-nxtvepg/epgvbi/btdrv4linux.c inside switch USE_LIBZVBI.  The effort for
-the adaption should be only a few hours.
+For further demos you get from http://nxtvepg.sourceforge.net/tmp a
+nxtvepg pre-release (enable -DUSE_LIBZVBI in the Makefile) or modify
+alevt-1.6.1 with a patch from the same directory, or use xawdecode from
+http://xawdecode.sourceforge.net/download/
 
-If you're using a v4l2 driver you should upgrade to the latest version
-from http://bytesex.org/snapshot/ and apply my patches from the above
-tmp directory.
+Then you can run nxtvepg and alevt in parallel, or multiple instances of
+alevt etc.  The client interface to the proxy will probably not change
+(except for a few additional functions to control channel changes) so
+authors could already start to adapt their apps if interested.
 
 If you've got any questions, feel free to ask.
 
-2003-05-10
-----------
+
+
+TODO list
+---------
 
 This is an unordered list of open points (i.e. unimplemented or yet
 undecided) regarding the proxy.  Any comments or help appreciated.
@@ -95,12 +102,7 @@ The list will be updated in CVS along with the implementation.
   be used.
 - save errno upon device errors deep down, e.g. in proxy-msg.c into io struct
   to make sure it's not overwritten higher up in the return path
-- automatically reconnect to daemon after error? (optional)
-- currently vbi_capture_fd() returns -1 for proxy clients; instead the new
-  get_poll_fd() func has to be used: this raises a backwards compatibility
-  problem for clients which only use it for select anyways.  Could be avoided
-  if it would be changed to only one get_fd() func and a 2nd one which
-  returns if the fd (i) supports v4l ioctls and (ii) select/poll(2)
+- optionally suspend capturing while wrong channel is tuned?
 
 - channel change notifications: daemon must distribute event notifications
   to all connected clients; also v4l2k can detect channel changes with the
@@ -109,20 +111,18 @@ The list will be updated in CVS along with the implementation.
   return code or errno could be used, or an event hander function.  In both
   cases the user would have to call a config function first to enable these
   notifications.
-- schedule channel change requests at background prio (evel 0) at multiple
-  sub-prio levels, e.g. immanent VPS/PDC, initial load, update, check;
-  (see also discussion on mailing list)
-- implement client-side channel change handling for background level,
-  i.e. request scheduling from daemon, but don't do the change until the
-  scheduler sends a grant.
-- channel change: skip 1-2 frames; still undecided if this should be done
-  in the io-x modules or by the user or daemon.
 - inform clients about video norm changes: e.g. sampling rate may change
   (only relevant for raw data though), frame rate changes -> must be
   considered when evaluating time stamps to detect dropped frames;
   number of VBI lines may change, client may want to change service IDs.
   Probably only for clients which explicitly enable this; others could
   simply be starved.
+- schedule channel change requests at background prio (level 0) at multiple
+  sub-prio levels, e.g. immanent VPS/PDC, initial load, update, check;
+  (see also discussion on mailing list)
+- implement client-side channel change handling for background level,
+  i.e. request scheduling from daemon, but don't do the change until the
+  scheduler sends a grant.
 - DVB channel changes (http://www.linuxtv.org/developer/dvb_api.xml)
 - channel_switch in io-v4l2.c module is still missing (relevant API parts
   differ from v4l2k); also test io-v4l2.c::add_services against bttv8
@@ -131,7 +131,6 @@ The list will be updated in CVS along with the implementation.
 - possibly add a generic capture client config function to:
   + pass proxy background scheduler settings: prio, sub-prio etc.
   + report channel events: TV channel/freq. change, norm change
-  + enable auto-reconnect to proxy daemon
   + set video device path (v4l1 for channel changes & norm query)
   + sequence counter instead of time stamp in vbi_capture_buffer (v4l1 bttv)
 - v4l2 API extensions:
@@ -139,7 +138,9 @@ The list will be updated in CVS along with the implementation.
   + channel change event notification
   + CGUNIT to check if two nodes refer to the same piece of hardware?
     possibly extend struct v4l2_capability?
+  + S_CTRL with flags to describe function group
   + STREAMOFF to stop cature when using read()?  Else the device has to be
     closed and re-opend to allow S_FMT, e.g. during add_services
+  + EIO von DQBUF: timeout, buffer must be requeued - undocumented! what for?
 
 -tom
