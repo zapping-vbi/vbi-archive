@@ -218,10 +218,26 @@
    Wether audio is muted.
 
  * zapping.volume_incr([n])
-   Preliminary command to change the audio recording volume,
-   specifically of the recording line selected in Preferences >
-   General > Audio of the OSS mixer /dev/mixer. The number
-   is a percentage (-100 to +100) added to the current volume.
+   This provisional command changed the audio recording volume,
+   it is NO LONGER SUPPORTED.
+
+   As a replacement use zapping.control_incr('volume'[, n]) to
+   change the soundcard mixer or video device volume as configured
+   in the preferences dialog. Note that changing the volume does
+   not unmute.
+
+ Controls
+
+ * zapping.control_incr('name'[, n])
+   Advance the control value by n units, usually +1 or -1, default
+   is +1. The following names are presently recognized:
+   'brightness' - Picture brightness
+   'contrast'   - Picture contrast
+   'saturation' - Picture color saturation
+   'hue'        - Picture color hue
+   'volume'     - Audio volume
+   'bass'       - Audio bass
+   'treble'	- Audio treble
 
  Plugins
 
