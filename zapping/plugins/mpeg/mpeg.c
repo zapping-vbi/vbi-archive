@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.36.2.8 2003-07-29 03:37:08 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.36.2.9 2003-08-24 23:53:50 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -1351,17 +1351,7 @@ on_saving_format_changed   	(GtkWidget *		menu,
   entry = lookup_widget (saving_dialog, "entry1");
 
   ext = file_format_ext (record_config_menu_active (configs));
-
-  name = g_object_get_data (G_OBJECT (entry), "basename");
-  name = z_replace_filename_extension (name, ext);
-  g_object_set_data_full (G_OBJECT (entry), "basename",
-			    name, (GtkDestroyNotify) g_free);
-
-  name = (gchar*)gtk_entry_get_text (GTK_ENTRY (entry));
-  name = z_replace_filename_extension (name , ext);
-  gtk_entry_set_text (GTK_ENTRY (entry), name);
-  g_free (name);
-
+  z_electric_replace_extension (entry, ext);
   g_free (ext);
 }
 
@@ -1375,8 +1365,9 @@ on_saving_configure_clicked	(GtkButton *		button,
 
   gtk_widget_set_sensitive (saving_dialog, FALSE);
 
-  cmd_run_printf ("zapping.properties('%s', '%s')",
-		  _("Plugins"), _("Record"));
+  python_command_printf (GTK_WIDGET (button),
+			 "zapping.properties('%s', '%s')",
+			 _("Plugins"), _("Record"));
 
   gtk_widget_set_sensitive (saving_dialog, TRUE);
 
@@ -1826,7 +1817,7 @@ plugin_add_gui			(GnomeApp *		app)
   button = gtk_toolbar_append_item (GTK_TOOLBAR (toolbar1),
 				    _("Record"),
 				    _(tooltip), NULL, tmp_toolbar_icon,
-				    GTK_SIGNAL_FUNC (on_remote_command1),
+				    GTK_SIGNAL_FUNC (on_python_command1),
 				    (gpointer)((const gchar *)
 					       "zapping.record()"));
 
@@ -1852,7 +1843,7 @@ plugin_process_popup_menu	(GtkWidget *		widget,
   z_tooltip_set (menuitem, _(tooltip));
 
   g_signal_connect (G_OBJECT (menuitem), "activate",
-		    (GtkSignalFunc) on_remote_command1,
+		    (GtkSignalFunc) on_python_command1,
 		    (gpointer)((const gchar *) "zapping.record()"));
 
   gtk_widget_show (menuitem);
