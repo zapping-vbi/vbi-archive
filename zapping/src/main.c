@@ -246,7 +246,7 @@ int main(int argc, char * argv[])
     newbttv = 0;
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.72 2000-12-26 17:23:35 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.73 2000-12-30 16:06:16 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -418,6 +418,8 @@ int main(int argc, char * argv[])
   update_standards_menu(main_window, main_info);
   D();
   startup_teletext();
+  D();
+  startup_ttxview();
   D();
   /* disable VBI if needed */
   if (!zvbi_get_object())
@@ -646,6 +648,11 @@ static void shutdown_zapping(void)
   zcs_bool(zvbi_get_mode(), "videotext_mode");
   zvbi_close_device();
 
+  /*
+   * Shuts down the teletext view
+   */
+  shutdown_ttxview();
+
   /* Save the config and show an error if something failed */
   if (!zconf_close())
     ShowBox(_("ZConf could not be closed properly , your\n"
@@ -704,7 +711,7 @@ static gboolean startup_zapping()
   zcc_int(0, "Verbosity value given to zapping_setup_fb",
 	  "zapping_setup_fb_verbosity");
   zcc_int(0, "Ratio mode", "ratio");
-  zcc_int(!0, "Change the video mode when going fullscreen", "change_mode");
+  zcc_int(0, "Change the video mode when going fullscreen", "change_mode");
   zcc_int(0, "Current standard", "current_standard");
   zcc_int(0, "Current input", "current_input");
   zcc_int(TVENG_CAPTURE_WINDOW, "Current capture mode", "capture_mode");

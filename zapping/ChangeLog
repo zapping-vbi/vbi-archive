@@ -1,3 +1,11 @@
+30.12.2000	Faster rendering, bookmarks <garetxe@users.sourceforge.net>
+
+	* glade/zapping.glade: [<<][<][>][>>]
+	* src/ttxview.c: Added bookmarks. They cannot be removed yet (edit
+	by hand zapping.conf)
+	* src/zmisc.c: Got rid of redundant malloc, free's, it should
+	be faster now.
+
 28.12.2000	YAGR <garetxe@users.sourceforge.net>
 
 	* glade/zapping.glade: Yet another GUi revamp. We are getting

@@ -23,5 +23,7 @@
 #endif
 
 GtkWidget *build_ttxview(void);
+gboolean startup_ttxview(void);
+void shutdown_ttxview(void);
 
 #endif

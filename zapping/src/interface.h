@@ -25,4 +25,6 @@ GtkWidget* create_popup_menu1 (void);
 GtkWidget* create_searching (void);
 GtkWidget* create_txtcontrols (void);
 GtkWidget* create_ttxview (void);
+GtkWidget* create_ttxview_popup (void);
+GtkWidget* create_prompt (void);
 #endif

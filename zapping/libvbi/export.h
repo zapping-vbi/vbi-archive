@@ -101,19 +101,12 @@ char *export_mkname(struct export *e, char *fmt, struct vt_page *vtp, char *usr)
 struct export *export_open(char *fmt);
 void export_close(struct export *e);
 int export(struct export *e, struct vt_page *vtp, char *user_str);
+void vbi_draw_page(struct fmt_page *pg, void *data);
+void vbi_get_rendered_size(int *w, int *h);
 
 /* formats the vtp page into a more easily usable format */
 //void
 //fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp, );
-
-/*
-  renders the formatted page into mem (1byte per pixel, paletted) and
-  stores in width and height the dimensions in pixels.
-  Returns a newly allocated buffer holding the image.
-    {mhs} output is 0xAABBGGRR now
-*/
-unsigned int *
-mem_output(struct fmt_page *pg, int *width, int *height);
 
 #define dec2hex(dec) \
   (((int)(dec)%10) + ((((int)(dec)/10)%10)<<4) + ((((int)(dec)/100)%10)*256))

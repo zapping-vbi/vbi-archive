@@ -2982,16 +2982,24 @@ in the next release of this program.</label>
 
 	    <widget>
 	      <class>GtkButton</class>
+	      <name>ttxview_prev_sp_cache</name>
+	      <tooltip>Previous subpage in the cache [Left]</tooltip>
+	      <can_focus>True</can_focus>
+	      <label>&lt;&lt;</label>
+	      <child>
+		<padding>0</padding>
+		<expand>False</expand>
+		<fill>False</fill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkButton</class>
 	      <name>ttxview_prev_subpage</name>
-	      <tooltip>Previous subpage [&lt;][-]</tooltip>
+	      <tooltip>Previous subpage [-]</tooltip>
 	      <accelerator>
 		<modifiers>0</modifiers>
 		<key>GDK_KP_Subtract</key>
-		<signal>clicked</signal>
-	      </accelerator>
-	      <accelerator>
-		<modifiers>0</modifiers>
-		<key>GDK_less</key>
 		<signal>clicked</signal>
 	      </accelerator>
 	      <accelerator>
@@ -3051,7 +3059,7 @@ in the next release of this program.</label>
 	    <widget>
 	      <class>GtkButton</class>
 	      <name>ttxview_next_subpage</name>
-	      <tooltip>Next subpage [&gt;][+]</tooltip>
+	      <tooltip>Next subpage [+]</tooltip>
 	      <accelerator>
 		<modifiers>0</modifiers>
 		<key>GDK_KP_Add</key>
@@ -3059,20 +3067,23 @@ in the next release of this program.</label>
 	      </accelerator>
 	      <accelerator>
 		<modifiers>0</modifiers>
-		<key>GDK_greater</key>
-		<signal>clicked</signal>
-	      </accelerator>
-	      <accelerator>
-		<modifiers>0</modifiers>
 		<key>GDK_plus</key>
 		<signal>clicked</signal>
 	      </accelerator>
-	      <accelerator>
-		<modifiers>GDK_SHIFT_MASK</modifiers>
-		<key>GDK_less</key>
-		<signal>clicked</signal>
-	      </accelerator>
 	      <label>&gt;</label>
+	      <child>
+		<padding>0</padding>
+		<expand>False</expand>
+		<fill>False</fill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkButton</class>
+	      <name>ttxview_next_sp_cache</name>
+	      <tooltip>Next subpage in the cache [Right]</tooltip>
+	      <can_focus>True</can_focus>
+	      <label>&gt;&gt;</label>
 	      <child>
 		<padding>0</padding>
 		<expand>False</expand>
@@ -3129,6 +3140,99 @@ in the next release of this program.</label>
       <expand>True</expand>
       <fill>True</fill>
     </child>
+  </widget>
+</widget>
+
+<widget>
+  <class>GtkMenu</class>
+  <name>ttxview_popup</name>
+
+  <widget>
+    <class>GtkPixmapMenuItem</class>
+    <name>open_in_new_window1</name>
+    <tooltip>Open this link in a new window</tooltip>
+    <label>Open in new window</label>
+    <right_justify>False</right_justify>
+    <stock_icon>GNOME_STOCK_MENU_NEW</stock_icon>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>separator8</name>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkPixmapMenuItem</class>
+    <name>search1</name>
+    <tooltip>Search for a given pattern in the cache</tooltip>
+    <label>Search</label>
+    <right_justify>False</right_justify>
+    <stock_icon>GNOME_STOCK_MENU_SEARCH</stock_icon>
+  </widget>
+
+  <widget>
+    <class>GtkPixmapMenuItem</class>
+    <name>export1</name>
+    <tooltip>Export the current page to different formats</tooltip>
+    <label>Export</label>
+    <right_justify>False</right_justify>
+    <stock_icon>GNOME_STOCK_MENU_CONVERT</stock_icon>
+
+    <widget>
+      <class>GtkMenu</class>
+      <name>export1_menu</name>
+
+      <widget>
+	<class>GtkMenuItem</class>
+	<name>html1</name>
+	<label>HTML</label>
+	<right_justify>False</right_justify>
+      </widget>
+
+      <widget>
+	<class>GtkMenuItem</class>
+	<name>ppm1</name>
+	<label>PPM</label>
+	<right_justify>False</right_justify>
+      </widget>
+
+      <widget>
+	<class>GtkMenuItem</class>
+	<name>ascii1</name>
+	<label>ASCII</label>
+	<right_justify>False</right_justify>
+      </widget>
+    </widget>
+  </widget>
+
+  <widget>
+    <class>GtkPixmapMenuItem</class>
+    <name>bookmarks1</name>
+    <tooltip>Manage your bookmarks</tooltip>
+    <label>Bookmarks</label>
+    <right_justify>False</right_justify>
+    <stock_icon>GNOME_STOCK_MENU_INDEX</stock_icon>
+
+    <widget>
+      <class>GtkMenu</class>
+      <name>bookmarks1_menu</name>
+
+      <widget>
+	<class>GtkPixmapMenuItem</class>
+	<name>add_bookmark</name>
+	<tooltip>Add the current page to the bookmarks</tooltip>
+	<label>Add current page</label>
+	<right_justify>False</right_justify>
+	<stock_icon>GNOME_STOCK_MENU_PROP</stock_icon>
+      </widget>
+
+      <widget>
+	<class>GtkMenuItem</class>
+	<name>separator9</name>
+	<right_justify>False</right_justify>
+      </widget>
+    </widget>
   </widget>
 </widget>
 

@@ -223,13 +223,14 @@ draw_drcs(unsigned int *canvas, unsigned char *src, unsigned int *pen, int glyph
 	}
 }
 
-static void
-draw_page(struct fmt_page *pg, unsigned int *canvas)
+void
+vbi_draw_page(struct fmt_page *pg, void *data)
 {
 	unsigned int pen[64];
 	int row, column;
 	attr_char *ac;
 	int i;
+	unsigned int *canvas = (unsigned int*)data;
 
 	for (i = 2; i < 64; i++)
 		pen[i] = pg->colour_map[pg->drcs_clut[i]];
@@ -323,26 +324,11 @@ return 0;
   return 0;
 }
 
-/* garetxe: This doesn't make sense in alevt, but it's useful in other
- contexts */
-unsigned int *
-mem_output(struct fmt_page *pg, int *width, int *height)
+/* We could just export WW and WH too.. */
+void vbi_get_rendered_size(int *w, int *h)
 {
-  unsigned int *mem;
-
-  if ((!pg) || (!width) || (!height))
-    return (unsigned int *) -1;
-
-  mem = malloc(CW * CH * W * H * sizeof(unsigned int));
-  if (!mem)
-    {
-      perror("malloc");
-      return NULL;
-    }
-
-  *width = WW;
-  *height = WH;
-
-  draw_page(pg, mem);
-  return mem;
+  if (w)
+    *w = WW;
+  if (h)
+    *h = WH;
 }

@@ -64,7 +64,7 @@
   - GDK_INTERP_HYPER: Slower than Bilinear, slightly better at very
 			high (>3x) scalings
 */
-#define INTERP_MODE GDK_INTERP_HYPER
+#define INTERP_MODE GDK_INTERP_BILINEAR
 
 static struct vbi *vbi=NULL; /* holds the vbi object */
 static GtkWidget* txtcontrols=NULL; /* GUI controller for the TXT */
@@ -209,8 +209,7 @@ remove_client(struct ttx_client *client)
 {
   uninit_fifo(&client->mqueue);
   pthread_mutex_destroy(&client->mutex);
-  if (client->unscaled)
-    gdk_pixbuf_unref(client->unscaled);
+  gdk_pixbuf_unref(client->unscaled);
   if (client->scaled)
     gdk_pixbuf_unref(client->scaled);
   g_free(client);
@@ -223,6 +222,8 @@ register_ttx_client(void)
   static int id;
   struct ttx_client *client;
   gchar *filename;
+  int w, h; /* of the unscaled image */
+  GdkPixbuf *simple;
 
   pthread_mutex_lock(&clients_mutex);
   client = g_malloc(sizeof(struct ttx_client));
@@ -233,8 +234,24 @@ register_ttx_client(void)
   filename = g_strdup_printf("%s/%s%d.jpeg", PACKAGE_DATA_DIR,
 			     "../pixmaps/zapping/vt_loading",
 			     (rand()%2)+1);
-  client->unscaled = gdk_pixbuf_new_from_file(filename);
+  vbi_get_rendered_size(&w, &h);
+  client->unscaled = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, w,
+				  h);
+  
+  simple = gdk_pixbuf_new_from_file(filename);
   g_free(filename);
+  if (simple)
+    {
+      gdk_pixbuf_scale(simple,
+		       client->unscaled, 0, 0, w, h,
+		       0, 0,
+		       (double) w / gdk_pixbuf_get_width(simple),
+		       (double) h / gdk_pixbuf_get_height(simple),
+		       INTERP_MODE);
+      gdk_pixbuf_unref(simple);
+    }
+
+  g_assert(client->unscaled != NULL);
   g_assert(init_buffered_fifo(&client->mqueue, NULL, 16, 0) > 0);
   ttx_clients = g_list_append(ttx_clients, client);
   pthread_mutex_unlock(&clients_mutex);
@@ -354,17 +371,8 @@ unregister_ttx_client(int id)
 }
 
 static void
-free_pixbuf_mem(guchar *pixels, gpointer data)
-{
-  free(pixels);
-}
-
-static void
 build_client_page(struct ttx_client *client, struct vt_page *vtp)
 {
-  guchar *mem;
-  int width, height;
-
   g_assert(client != NULL);
   g_assert(vtp != NULL);
 
@@ -373,26 +381,23 @@ build_client_page(struct ttx_client *client, struct vt_page *vtp)
   fmt_page(FALSE, &client->fp, vtp);
   client->fp.vtp = &client->vtp;
   
-  if (client->unscaled)
-    gdk_pixbuf_unref(client->unscaled);
-  mem = (guchar*) mem_output(&client->fp, &width, &height);
-  if (mem)
-    client->unscaled =
-      gdk_pixbuf_new_from_data(mem, GDK_COLORSPACE_RGB, TRUE, 8,
-			       width, height, width*4,
-			       free_pixbuf_mem, NULL);
-  else
-    client->unscaled = NULL;
-  if (client->unscaled)
-    {
-      if (client->scaled)
-	gdk_pixbuf_unref(client->scaled);
-      client->scaled = NULL;
-      if ((client->w > 0) && (client->h > 0))
-	client->scaled = gdk_pixbuf_scale_simple(client->unscaled,
-						 client->w, client->h,
-						 INTERP_MODE);
-    }
+  vbi_draw_page(&client->fp, gdk_pixbuf_get_pixels(client->unscaled));
+
+  if ((!client->scaled) &&
+      (client->w > 0) &&
+      (client->h > 0))
+    client->scaled = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8,
+				    client->w, client->h);
+  if (client->scaled)
+    gdk_pixbuf_scale(client->unscaled,
+		     client->scaled, 0, 0, client->w, client->h,
+		     0, 0,
+		     (double) client->w /
+		     gdk_pixbuf_get_width(client->unscaled),
+		     (double) client->h /
+			 gdk_pixbuf_get_height(client->unscaled),
+		     INTERP_MODE);
+  
   pthread_mutex_unlock(&client->mutex);
 }
 
@@ -474,32 +479,43 @@ void render_ttx_page(int id, GdkDrawable *drawable,
   if ((client = find_client(id)))
     {
       pthread_mutex_lock(&client->mutex);
-      if (client->unscaled)
+
+      if ((client->w != w) ||
+	  (client->h != h))
 	{
-	  if ((client->w != w) ||
-	      (client->h != h))
-	    {
-	      if (client->scaled)
-		gdk_pixbuf_unref(client->scaled);
-	      client->scaled = gdk_pixbuf_scale_simple(client->unscaled,
-						       w, h,
-						       INTERP_MODE);
-	      client->w = w;
-	      client->h = h;
-	    }
-	  
 	  if (client->scaled)
-	    {
-	      gdk_pixbuf_render_to_drawable(client->scaled,
-					    drawable,
-					    gc,
-					    0, 0, 0, 0, w, h,
-					    GDK_RGB_DITHER_NONE, 0,
-					    0);
-	      gdk_pixbuf_render_threshold_alpha(client->scaled, mask,
-						0, 0, 0, 0, w, h, 127);
-	    }
+	    gdk_pixbuf_unref(client->scaled);
+	  client->scaled = NULL;
+	  if ((w > 0) &&
+	      (h > 0))
+	    client->scaled = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8,
+					    w, h);
+	  if (client->scaled)
+	    gdk_pixbuf_scale(client->unscaled,
+			     client->scaled, 0, 0, w, h,
+			     0, 0,
+			     (double) w /
+			     gdk_pixbuf_get_width(client->unscaled),
+			     (double) h /
+			     gdk_pixbuf_get_height(client->unscaled),
+			     INTERP_MODE);
+	  
+	  client->w = w;
+	  client->h = h;
 	}
+	  
+      if (client->scaled)
+	{
+	  gdk_pixbuf_render_to_drawable(client->scaled,
+					drawable,
+					gc,
+					0, 0, 0, 0, w, h,
+					GDK_RGB_DITHER_NONE, 0,
+					0);
+	  gdk_pixbuf_render_threshold_alpha(client->scaled, mask,
+					    0, 0, 0, 0, w, h, 127);
+	}
+
       pthread_mutex_unlock(&client->mutex);
     }
   pthread_mutex_unlock(&clients_mutex);
@@ -799,7 +815,8 @@ zvbi_render_page(struct fmt_page *pg, gint *width, gint *height)
   if ((!vbi) || (!width) || (!height) || (!pg))
     return NULL;
 
-  return mem_output(pg, width, height);
+  //  return mem_output(pg, width, height);
+  return NULL;
 }
 
 /*

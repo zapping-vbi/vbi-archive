@@ -91,6 +91,19 @@ GtkWidget * ShowBoxReal(const gchar * sourcefile,
 			const gchar * message_box_type,
 			gboolean blocking, gboolean modal);
 
+/**
+ * Asks for a string, returning it, or NULL if it the operation was
+ * cancelled
+ * main_window: Parent of the Dialog to be created, or NULL
+ * title: Title of the dialog
+ * prompt: Prompt, or NULL if it shouldn't be shown
+ * default_text: Default text to appear, or NULL
+ * Returns: The returned string should be g_free'd
+ */
+gchar*
+Prompt (GtkWidget *main_window, const gchar *title,
+	const gchar *prompt, const gchar *default_text);
+
 /*
   Creates a GtkPixmapMenuEntry with the desired pixmap and the
   desired label. The pixmap is a stock GNOME pixmap.

@@ -173,3 +173,15 @@ create_ttxview (void)
 {
   return build_widget("ttxview", PACKAGE_DATA_DIR "/zapping.glade");
 }
+
+GtkWidget*
+create_ttxview_popup (void)
+{
+  return build_widget("ttxview_popup", PACKAGE_DATA_DIR "/zapping.glade");
+}
+
+GtkWidget*
+create_prompt (void)
+{
+  return build_widget("prompt", PACKAGE_DATA_DIR "/zapping.glade");
+}

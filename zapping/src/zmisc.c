@@ -98,6 +98,52 @@ GtkWidget * ShowBoxReal(const gchar * sourcefile,
   return dialog;
 }
 
+gchar*
+Prompt (GtkWidget *main_window, const gchar *title,
+	const gchar *prompt,  const gchar *default_text)
+{
+  GtkWidget * dialog;
+  GtkVBox * vbox;
+  GtkWidget *label, *entry;
+  gchar *buffer = NULL;
+
+  dialog = gnome_dialog_new(title,
+			    GNOME_STOCK_BUTTON_OK,
+			    GNOME_STOCK_BUTTON_CANCEL,
+			    NULL);
+  if (main_window)
+    gnome_dialog_set_parent(GNOME_DIALOG (dialog), GTK_WINDOW(main_window));
+  gnome_dialog_close_hides(GNOME_DIALOG (dialog), TRUE);
+  gnome_dialog_set_default(GNOME_DIALOG (dialog), 0);
+
+  gtk_window_set_title(GTK_WINDOW (dialog), title);
+  gtk_window_set_modal(GTK_WINDOW (dialog), TRUE);
+  vbox = GTK_VBOX(GNOME_DIALOG(dialog)->vbox);
+  if (prompt)
+    {
+      label = gtk_label_new(prompt);
+      gtk_box_pack_start_defaults(GTK_BOX(vbox), label);
+      gtk_widget_show(label);
+    }
+  entry = gtk_entry_new();
+  gtk_box_pack_start_defaults(GTK_BOX(vbox), entry);
+  gtk_widget_show(entry);
+  gnome_dialog_editable_enters(GNOME_DIALOG(dialog), GTK_EDITABLE (entry));
+  gtk_widget_grab_focus(entry);
+  if (default_text)
+    {
+      gtk_entry_set_text(GTK_ENTRY(entry), default_text);
+      gtk_entry_select_region(GTK_ENTRY(entry), 0, -1);
+    }
+
+  if (!gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
+    buffer = g_strdup(gtk_entry_get_text(GTK_ENTRY(entry)));
+
+  gtk_widget_destroy(dialog);
+  
+  return buffer;
+}
+
 /*
   Creates a GtkPixmapMenuEntry with the desired pixmap and the
   desired label.
