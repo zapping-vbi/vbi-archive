@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: link.c,v 1.2 2005-01-08 14:54:20 mschimek Exp $ */
+/* $Id: link.c,v 1.3 2005-01-31 07:10:03 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -125,10 +125,10 @@ vbi3_bool
 vbi3_link_copy			(vbi3_link *		dst,
 				 const vbi3_link *	src)
 {
+	assert (NULL != dst);
+
 	if (dst == src)
 		return TRUE;
-
-	assert (NULL != dst);
 
 	if (!src) {
 		vbi3_link_init (dst);
