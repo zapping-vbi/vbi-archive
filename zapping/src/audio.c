@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.c,v 1.12.2.14 2003-11-15 15:16:15 mschimek Exp $ */
+/* $Id: audio.c,v 1.12.2.15 2003-11-20 20:01:18 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu */
 #undef GTK_DISABLE_DEPRECATED
@@ -677,8 +677,10 @@ void startup_audio ( void )
   zcc_char ("", "Mixer device", "mixer_device");
   zcc_int (-1, "Mixer input line (hash)", "mixer_input");
 
-  zcc_bool (FALSE, "Mute when Zapping is started", "start_muted");
-  zcc_bool (TRUE, "Mute on exit", "quit_muted");
+  zconf_create_boolean (FALSE, "Mute when Zapping is started",
+			"/zapping/options/main/start_muted");
+  zconf_create_boolean (TRUE, "Mute on exit",
+			"/zapping/options/main/quit_muted");
 
   if (esd_backend.init)
     esd_backend.init ();
