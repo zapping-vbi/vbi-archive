@@ -144,8 +144,10 @@ struct private_tveng1_device_info
 {
   tveng_device_info info; /* Info field, inherited */
 #ifdef TVENG1_BTTV_MUTE_BUG_WORKAROUND
-//  int muted; /* 0 if the device is muted, 1 otherwise. A workaround
-//		for a bttv problem. */
+#if 0
+   int muted; /* 0 if the device is muted, 1 otherwise. A workaround
+		for a bttv problem. */
+#endif
 #endif
   int audio_mode; /* auto, mono, stereo, ... */
   char * mmaped_data; /* A pointer to the data mmap() returned */
@@ -945,7 +947,7 @@ set_standard			(tveng_device_info *	info,
 		if (channel.norm == norm)
 			goto success;
 
-		// XXX
+		/* XXX */
 		current_mode = p_tveng_stop_everything(info);
 
 		channel.norm = norm;
@@ -967,11 +969,11 @@ set_standard			(tveng_device_info *	info,
 			goto success;
 
 		if (!(tuner.flags & VIDEO_TUNER_NORM)) {
-			errno = -1; // FIXME
+			errno = -1; /* FIXME */
 			goto failure; /* not setable */
 		}
 
-		// XXX
+		/* XXX */
 		current_mode = p_tveng_stop_everything(info);
 
 		tuner.mode = norm;
@@ -992,7 +994,7 @@ set_standard			(tveng_device_info *	info,
 				break;
 
 		if (!l) {
-			errno = -1; // FIXME
+			errno = -1; /* FIXME */
 			goto failure;
 		}
 
@@ -1008,7 +1010,7 @@ set_standard			(tveng_device_info *	info,
 
 		switched = FALSE;
 
-		// XXX
+		/* XXX */
 		current_mode = p_tveng_stop_everything(info);
 
 		if (-1 == (r = v4l_ioctl (info, VIDIOCSCHAN, &channel)))
@@ -1259,6 +1261,16 @@ set_tuner_frequency		(tveng_device_info *	info,
 	  set_control (info, p_info->control_mute,
 		       p_info->control_mute->value);
 
+	if (TVENG_CAPTURE_READ == info->current_mode) {
+		unsigned int i;
+
+		for (i = 0; i < p_info->mmbuf.frames; ++i) {
+			tv_clear_image (p_info->mmaped_data
+					+ p_info->mmbuf.offsets[i], 0,
+					&info->format);
+		}
+	}
+
  store:
 	store_frequency (info, vi, new_freq);
 
@@ -1456,6 +1468,7 @@ get_overlay_buffer		(tveng_device_info *	info,
 	if (!tv_image_format_init (&t->format,
 				   buffer.width,
 				   buffer.height,
+				   0,
 				   pig_depth_to_pixfmt (buffer.depth),
 				   0))
 		goto failure;
@@ -1850,7 +1863,7 @@ int tveng1_attach_device(const char* device_file,
 	info->video_standards = NULL;
 	info->cur_video_standard = NULL;
 
-	// XXX error
+	/* XXX error */
 	update_video_input_list (info);
 
   /* Query present controls */
@@ -1861,7 +1874,7 @@ int tveng1_attach_device(const char* device_file,
 #ifdef TVENG1_BTTV_MUTE_BUG_WORKAROUND
   /* Mute the device, so we know for sure which is the mute value on
      startup */
-//  tveng1_set_mute(0, info);
+/*  tveng1_set_mute(0, info); */
 #endif
 
   /* Set up the palette according to the one present in the system */
@@ -1876,6 +1889,7 @@ int tveng1_attach_device(const char* device_file,
   if (!tv_image_format_init (&info->format,
 			     (info->caps.minwidth + info->caps.maxwidth) / 2, 
 			     (info->caps.minheight + info->caps.maxheight) / 2,
+			     0,
 			     pig_depth_to_pixfmt (error),
 			     0)) {
     info -> tveng_errno = -1;
@@ -2018,6 +2032,7 @@ tveng1_update_capture_format(tveng_device_info * info)
   if (!tv_image_format_init (&info->format,
 			     window.width,
 			     window.height,
+			     0,
 			     palette_to_pixfmt (pict.palette),
 			     0)) {
       info->tveng_errno = -1; /* unknown */
@@ -2031,7 +2046,7 @@ tveng1_update_capture_format(tveng_device_info * info)
   info->overlay_window.width = window.width;
   info->overlay_window.height = window.height;
   /* These two are write-only */
-// tv_clip_vector_clear (&info->overlay_window.clip_vector);
+/* tv_clip_vector_clear (&info->overlay_window.clip_vector); */
 
 
 
@@ -2485,7 +2500,7 @@ p_tveng1_timestamp_init(tveng_device_info *info)
   struct private_tveng1_device_info *p_info =
     (struct private_tveng1_device_info *) info;
   double rate = info->cur_video_standard ?
-	  info->cur_video_standard->frame_rate : 25; // XXX
+	  info->cur_video_standard->frame_rate : 25; /* XXX*/
 
   p_info->capture_time = 0.0;
   p_info->frame_period_near = p_info->frame_period_far = 1.0 / rate;
