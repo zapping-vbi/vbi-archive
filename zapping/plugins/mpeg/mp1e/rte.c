@@ -34,6 +34,7 @@
   TODO:
       . Calculate video_bytes and audio_bytes
       . Audio interface with the core mp1e
+      . Check for MAXWIDTH and MAXHEIGHT
       . Setters and getters
 */
 
@@ -106,7 +107,6 @@ fetch_data(rte_context * context, int video)
 
 	context->private->data_callback(buf->data, &(buf->time), video,
 					context, context->private->user_data);
-
 	send_out_buffer(f, buf);
 }
 
@@ -143,18 +143,24 @@ video_input_thread ( void * ptr )
 	rte_context * context = ptr;
 	rte_context_private * priv = context->private;
 
+	pthread_mutex_lock(&(priv->video_mutex));
+
 	while (priv->encoding) {
-		pthread_mutex_lock(&(priv->video_mutex));
 		while (priv->video_pending == 0)
 			pthread_cond_wait(&(priv->video_cond),
 					  &(priv->video_mutex));
+
 		/* < 0 means exit thread */
 		while (priv->video_pending > 0) {
+			pthread_mutex_unlock(&(priv->video_mutex));
 			fetch_data(context, 1);
+			pthread_mutex_lock(&(priv->video_mutex));
 			priv->video_pending --;
 		}
-		pthread_mutex_unlock(&(priv->video_mutex));
 	}
+
+	pthread_mutex_unlock(&(priv->video_mutex));
+
 	return NULL;
 }
 
@@ -164,19 +170,25 @@ audio_input_thread ( void * ptr )
 	rte_context * context = ptr;
 	rte_context_private * priv = context->private;
 
+	pthread_mutex_lock(&(priv->audio_mutex));
+
 	while (priv->encoding) {
-		pthread_mutex_lock(&(priv->audio_mutex));
 		while (priv->audio_pending == 0)
 			pthread_cond_wait(&(priv->audio_cond),
 					  &(priv->audio_mutex));
 
 		/* < 0 means exit thread */
 		while (priv->audio_pending > 0) {
+			pthread_mutex_unlock(&(priv->audio_mutex));
 			fetch_data(context, 0);
+			pthread_mutex_lock(&(priv->audio_mutex));
+
 			priv->audio_pending --;
 		}
-		pthread_mutex_unlock(&(priv->audio_mutex));
 	}
+
+	pthread_mutex_unlock(&(priv->audio_mutex));
+
 	return NULL;
 }
 
@@ -210,25 +222,30 @@ rte_context * rte_context_new (char * file,
 			       rteDataCallback data_callback,
 			       void * user_data)
 {
-	rte_context * context =
-		malloc(sizeof(rte_context));
+	rte_context * context;
+
+	if (global_context)
+	{
+		rte_error(NULL, "Sorry, but there is already a context");
+		return NULL;
+	}
+
+	context = malloc(sizeof(rte_context));
 
 	if (!context)
 	{
 		rte_error(NULL, "malloc(): [%d] %s", errno, strerror(errno));
 		return NULL;
 	}
+	memset(context, 0, sizeof(rte_context));
 	context->private = malloc(sizeof(rte_context_private));
 	if (!context->private)
 	{
-		free(context);
 		rte_error(NULL, "malloc(): [%d] %s", errno, strerror(errno));
+		free(context);
 		return NULL;
 	}
-
-	memset(context, 0, sizeof(rte_context));
 	memset(context->private, 0, sizeof(rte_context_private));
-
 	if (rate == RTE_RATE_NORATE)
 	{
 		free(context->private);
@@ -236,7 +253,6 @@ rte_context * rte_context_new (char * file,
 		rte_error(NULL, "frame rate can't be 0");
 		return NULL;
 	}
-
 	if ((width % 16) || (height % 16) ||
 	    (width <= 0) || (height <= 0)) {
 		free(context->private);
@@ -268,13 +284,13 @@ rte_context * rte_context_new (char * file,
 			rte_error(NULL, "file == callback == NULL");
 			return NULL;
 		}
-		context->private->fd = creat(file, 00755);
+/*		context->private->fd = creat(file, 00755);
 		if (context->private->fd < 0) {
 			rte_error(NULL, "creat(): [%d] %s", errno, strerror(errno));
 			free(context->private);
 			free(context);
 			return NULL;
-		}
+			}*/
 	}
 
 	context->audio_rate = 44100;
@@ -282,9 +298,12 @@ rte_context * rte_context_new (char * file,
 	context->output_audio_bits = 80000;
 	context->output_video_bits = 2000000;
 
-	/* FIXME: set up audio_bytes and video_bytes */
+	/* No padding needed, YUYV by default */
+	context->video_bytes = context->width * context->height * 2;
 
 	context->mode = RTE_MUX_VIDEO_AND_AUDIO;
+
+	global_context = context;
 
 	return (context);
 }
@@ -297,6 +316,12 @@ void * rte_context_destroy ( rte_context * context )
 		return NULL;
 	}
 
+	if (context != global_context)
+	{
+		rte_error(NULL, "Sorry, the given context hasn't been created by rte");
+		return NULL;
+	}
+
 	if (context->private->encoding)
 		rte_stop(context);
 
@@ -304,6 +329,8 @@ void * rte_context_destroy ( rte_context * context )
 		free(context->private->error);
 	free(context->private);
 	free(context);
+
+	global_context = NULL;
 
 	return NULL;
 }
@@ -338,8 +365,20 @@ void rte_set_video_parameters (rte_context * context,
 	context->height = height;
 	context->video_rate = video_rate;
 	context->output_video_bits = output_video_bits;
+	context->video_bytes = context->width * context->height;
 
-	/* FIXME: Update video_bytes */
+	switch (frame_format)
+	{
+	case RTE_YUYV:
+		context->video_bytes *= 2;
+		break;
+	case RTE_YUV420:
+		context->video_bytes *= 1.5;
+		break;
+	default:
+		rte_error(context, "unhandled pixformat: %d", frame_format);
+		break;
+	}
 }
 
 int rte_start ( rte_context * context )
@@ -357,9 +396,10 @@ int rte_start ( rte_context * context )
 	}
 
 	context->private->v_ubuffer = -1;
+	context->private->encoding = 1;
 
 	/* Hopefully 8 frames is more than enough (we should only go
-	   2-3 frames ahead) */
+	   2-3 frames ahead). With 16 buffers we lose few frames */
 	if (context->mode & 1)
 	{
 		init_fifo(&(context->private->vid), "video input",
@@ -391,7 +431,6 @@ int rte_start ( rte_context * context )
 		}
 	}
 
-	context->private->encoding = 1;
 	return 1;
 }
 

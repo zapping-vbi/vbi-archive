@@ -37,9 +37,11 @@ enum rte_mux_mode {
   Supported pixformats. This is the pixformat the pushed video frames
   will be pushed in, the output (encoded) format is the one specified
   by the MPEG standard (YCbCr)
+  The YUV formats are in the YCbCr colorspace
 */
 enum rte_pixformat {
-	RTE_YCbCr /* The obvious one :-) */
+	RTE_YUYV, /* YCbYCr linear, 2 bytes per pixel */
+	RTE_YUV420 /* Planar Y:Cb:Cr 1.5 bytes per pixel */
 /*	RTE_RGB555,
 	RTE_RGB565,
 	RTE_BGR24,
@@ -147,7 +149,7 @@ typedef int (*rteEncodeCallback)(void * data,
   context: The context that asks for the data.
   user_data: User data passed to rte_context_new
 */
-typedef int (*rteDataCallback)(void * data,
+typedef void (*rteDataCallback)(void * data,
 			       double * time,
 			       int video,
 			       rte_context * context,
@@ -261,6 +263,6 @@ void * rte_push_audio_data ( rte_context * context, void * data,
 */
 char * rte_last_error ( rte_context * context );
 
-extern rte_context * global_context;
+//extern rte_context * global_context;
 
 #endif /* rtelib.h */

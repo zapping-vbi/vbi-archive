@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.2 2000-07-06 10:58:47 garetxe Exp $ */
+/* $Id: fifo.h,v 1.3 2000-07-12 21:11:05 garetxe Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -180,6 +180,7 @@ send_out_buffer(fifo *f, buffer *b)
 	add_tail(&f->full, &b->node);
 
 	pthread_mutex_unlock(&f->mutex);
+
 	pthread_cond_broadcast(&f->cond);
 }
 
@@ -191,6 +192,7 @@ empty_buffer(fifo *f, buffer *b)
 	add_tail(&f->empty, &b->node);
 
 	pthread_mutex_unlock(&f->mutex);
+
 	pthread_cond_broadcast(&f->cond);
 }
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.3 2000-07-05 18:09:34 mschimek Exp $ */
+/* $Id: main.c,v 1.4 2000-07-12 21:11:05 garetxe Exp $ */
 
 #define MAIN_C
 
@@ -53,6 +53,7 @@
 #include "options.h"
 #include "mmx.h"
 #include "bstream.h"
+#include "rte.h"
 
 char *			my_name;
 int			verbose;
@@ -93,6 +94,85 @@ extern void video_init(void);
 
 volatile int quit_please = 0;
 volatile int program_shutdown = 0;
+
+pthread_t video_emulation_thread_id;
+
+unsigned char *		(* ye_olde_wait_frame)(double *, int *);
+void			(* ye_olde_frame_done)(int);
+
+void video_data_callback(void * data, double * time, int video,
+			 rte_context * context, void * user_data)
+{
+	int frame;
+
+	if (!video)
+		return;
+
+	memcpy(data, ye_olde_wait_frame(time, &frame), context->video_bytes);
+	ye_olde_frame_done(frame);
+}
+
+void * video_emulation_thread (void * ptr)
+{
+	int frame;
+	double timestamp;
+	unsigned char * data;
+	rte_context * context = (rte_context *)ptr;
+
+	data = rte_push_video_data(context, NULL, 0);
+	for (;;) {
+		memcpy(data, ye_olde_wait_frame(&timestamp, &frame),
+		       context->video_bytes);
+		data = rte_push_video_data(context, data, timestamp);
+		ye_olde_frame_done(frame);
+	}
+}
+
+/*
+  This is just for a preliminary testing, loads of things need to be
+  done before this gets really functional.
+  push + callbacks don't work together yet, but separately they
+  do. Does anybody really want to use them toghether?
+  The push interface works great, not much more CPU usage and nearly
+  no lost frames; the callbacks one needs a bit more CPU, and drops
+  some more frames, but works fine too.
+*/
+int emulation_thread_init ( void )
+{
+	rte_context * context;
+	int do_test = 2; /* 1 == push, 2 == callbacks, 3 == both */
+	rteDataCallback callback;
+
+	ye_olde_wait_frame = video_wait_frame;
+	ye_olde_frame_done = video_frame_done;
+
+	if (!rte_init())
+		return 0;
+
+	if (do_test & 2)
+		callback = RTE_DATA_CALLBACK(video_data_callback);
+	else
+		callback = NULL;
+
+	context = rte_context_new("temp.mpeg", width, height, RTE_RATE_3,
+				  NULL, callback, NULL);
+
+	if (!context)
+		return 0;
+
+	if (!rte_start(context))
+	{
+		fprintf(stderr, "%s\n", rte_last_error(context));
+		rte_context_destroy(context);
+		return 0;
+	}
+
+	if (do_test & 1)
+		pthread_create(&video_emulation_thread_id, NULL,
+			       video_emulation_thread, context);
+
+	return 1;
+}
 
 void
 terminate(int signum)
@@ -255,6 +335,9 @@ main(int ac, char **av)
 
 	printv(2, "Output thread launched\n");
 
+	if (!emulation_thread_init())
+		return 0;
+
 	if ((mux_mode & 3) == 3)
 		mpeg1_system_run_in();
 
@@ -282,11 +365,6 @@ main(int ac, char **av)
 
 	program_shutdown = 1;
 
-	printv(3, "\noutput thread... ");
-
-	output_end();
-	printv(3, "done\n");
-
 	if (mux_mode & 1) {
 		printv(3, "\nvideo thread... ");
 		pthread_cancel(video_thread_id);
@@ -300,6 +378,11 @@ main(int ac, char **av)
 		pthread_join(audio_thread_id, NULL);
 		printv(3, "done\n");
 	}
+
+	printv(3, "\noutput thread... ");
+
+	output_end();
+	printv(3, "done\n");
 
 	printv(2, "\nCleanup done, bye...\n");
 

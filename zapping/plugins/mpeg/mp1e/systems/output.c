@@ -99,6 +99,8 @@ output_end ( void )
 
 	while ((buf = (buffer *) rem_head(&out.full)))
 	{
+		if (!buf->size)
+			break;
 		do_real_output(buf->data, buf->size);
 		empty_buffer(&out, buf);
 	}

@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.2 2000-07-05 18:09:34 mschimek Exp $
+# $Id: Makefile.in,v 1.3 2000-07-12 21:11:05 garetxe Exp $
 
 CFLAGS	= -Wall @OPT@ @X_CFLAGS@
 DEFS	= -D_GNU_SOURCE -D_REENTRANT @DEFS@ -DVERSION=\"@VERSION@\"
@@ -17,10 +17,10 @@ all: configure $(OBJS)
 	-$(MAKE) -C video/mpeg_stat
 	-ln -s video/mpeg_stat/mpeg_stat stat
 	-if test "@TEST_MODULES@" != ""; then $(MAKE) -C test; fi
-	$(CC) $(CFLAGS) $(OBJS) $(MODULES) $(LIBS) -s -o $(TARGET);
+	$(CC) $(CFLAGS) $(OBJS) $(MODULES) $(LIBS) -g -o $(TARGET);
 
 %.o: %.c
-	$(CC) $(CFLAGS) $(DEFS) -c $< -o $@
+	$(CC) $(CFLAGS) $(DEFS) -g -c $< -o $@
 
 clean:
 	-$(MAKE) clean -C audio
