@@ -32,7 +32,7 @@
 /*
  * Lib build ID, for debugging.
  */
-#define RTE_ID " $Id: rte.h,v 1.21 2001-05-27 22:21:07 garetxe Exp $ "
+#define RTE_ID " $Id: rte.h,v 1.22 2001-05-28 16:10:29 garetxe Exp $ "
 
 /*
  * What are we going to encode, audio only, video only or both
@@ -100,6 +100,15 @@ enum rte_audio_mode {
 	RTE_AUDIO_MODE_STEREO
 	/* fixme: what does this mean? */
 //	RTE_AUDIO_MODE_DUAL_CHANNEL
+};
+
+/*
+ * Some numbers about the running encoding process.
+ */
+struct rte_status_info {
+	int	processed_frames; /* video frames that went into the encoder */
+	int	dropped_frames;	  /* dropped frames */
+	unsigned long int bytes_out; /* compressed bytes written */
 };
 
 typedef struct _rte_context_private rte_context_private;
@@ -383,6 +392,13 @@ void rte_set_verbosity ( rte_context * context, int level );
  * Returns the current verbosity value
  */
 int rte_get_verbosity ( rte_context * context );
+
+/*
+ * Fills in the status structure. If the context isn't encoding the
+ * struct is cleared with zeros.
+ */
+void rte_get_status( rte_context * context,
+		     struct rte_status_info * info );
 
 /*
  * Some useful stuff

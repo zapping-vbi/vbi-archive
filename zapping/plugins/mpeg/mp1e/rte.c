@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.53 2001-05-27 22:21:07 garetxe Exp $ */
+/* $Id: rte.c,v 1.54 2001-05-28 16:10:29 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -754,6 +754,7 @@ int rte_start_encoding (rte_context * context)
 	remote_start(0.0);
 
 	context->private->encoding = 1;
+	context->private->bytes_out = 0;
 
 	return 1;
 }
@@ -1044,6 +1045,23 @@ int rte_init ( void )
 	rte_global_context = NULL;
 
 	return 1;
+}
+
+void rte_get_status ( rte_context * context,
+		      struct rte_status_info * status )
+{
+	nullcheck(context, return);
+	nullcheck(status, return);
+
+	if (!context->private->inited ||
+	    !context->private->encoding) {
+		memset(status, 0, sizeof(struct rte_status_info));
+		return;
+	}
+
+	status->bytes_out = context->private->bytes_out;
+	status->processed_frames = video_frame_count;
+	status->dropped_frames = video_frames_dropped;
 }
 
 static int rte_fake_options(rte_context * context)

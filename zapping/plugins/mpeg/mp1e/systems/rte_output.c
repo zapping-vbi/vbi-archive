@@ -53,6 +53,8 @@ output(buffer *mbuf)
 		return mbuf;
 	}
 
+	rte_global_context->private->bytes_out += mbuf->used;
+
 	rte_global_context->private->
 		encode_callback(rte_global_context,
 				mbuf->data,

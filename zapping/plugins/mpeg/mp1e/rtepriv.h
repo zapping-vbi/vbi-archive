@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rtepriv.h,v 1.12 2001-04-07 14:48:36 garetxe Exp $
+ * $Id: rtepriv.h,v 1.13 2001-05-28 16:10:29 garetxe Exp $
  * Private stuff in the context.
  */
 
@@ -82,6 +82,7 @@ struct _rte_context_private {
 	buffer * last_video_buffer; /* video buffer the app should be
 				       encoding to */
 	buffer * last_audio_buffer; /* audio buffer */
+	unsigned long int bytes_out; /* sent bytes */
 };
 
 /* Some macros for avoiding repetitive typing */

@@ -356,8 +356,6 @@ xv_mode_id(char * fourcc)
 #define UYVY xv_mode_id("UYVY") /* UYVY (packed, 16 bits) */
 #define YUY2 xv_mode_id("YUY2") /* YUYV (packed, 16 bits) */
 
-#define XV_MODE (zcg_int(NULL, "yuv_format") == TVENG_PIX_YUYV ? YUY2 : YV12)
-
 static XvPortID		xvport; /* Xv port we will use */
 static gboolean		port_grabbed = FALSE; /* We own a port */
 
@@ -366,12 +364,14 @@ extern gint		disable_xv; /* TRUE if XV should be disabled */
 /**
  * Create a new XV image with the given attributes, returns NULL on error.
  */
-xvzImage * xvzImage_new(gint w, gint h)
+xvzImage * xvzImage_new(enum tveng_frame_pixformat pixformat,
+			gint w, gint h)
 {
   xvzImage *new_image = g_malloc0(sizeof(xvzImage));
   struct _xvzImagePrivate * pimage = new_image->private =
     g_malloc0(sizeof(struct _xvzImagePrivate));
   void * image_data = NULL;
+  unsigned int xvmode = (pixformat == TVENG_PIX_YUYV) ? YUY2 : YV12;
 
   if (!port_grabbed)
     {
@@ -385,7 +385,7 @@ xvzImage * xvzImage_new(gint w, gint h)
 
 #ifdef USE_XV_SHM
   memset(&pimage->shminfo, 0, sizeof(XShmSegmentInfo));
-  pimage->image = XvShmCreateImage(GDK_DISPLAY(), xvport, XV_MODE, NULL,
+  pimage->image = XvShmCreateImage(GDK_DISPLAY(), xvport, xvmode, NULL,
 				   w, h, &pimage->shminfo);
   if (pimage->image)
     pimage->uses_shm = TRUE;
@@ -402,7 +402,7 @@ xvzImage * xvzImage_new(gint w, gint h)
 	  return NULL;
 	}
       pimage->image =
-	XvCreateImage(GDK_DISPLAY(), xvport, XV_MODE,
+	XvCreateImage(GDK_DISPLAY(), xvport, xvmode,
 		      image_data, w, h);
     }
 
@@ -597,7 +597,8 @@ gboolean xvz_grab_port(tveng_device_info *info)
 		continue;
 
 	      for (k=0; k<nImgFormats; k++)
-		if (pImgFormats[k].id == XV_MODE)
+		if (pImgFormats[k].id == YUY2 ||
+		    pImgFormats[k].id == YV12)
 		  goto adaptor_found;
 
 	      XvUngrabPort(dpy, xvport, CurrentTime);

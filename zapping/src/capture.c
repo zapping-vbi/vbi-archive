@@ -367,7 +367,7 @@ build_bundle(capture_bundle *d, struct tveng_frame_format *format,
       d->format.bpp = 2;
       if (have_xv &&
 	  (d->image.xvimage =
-	   xvzImage_new(format->width, format->height)))
+	   xvzImage_new(TVENG_PIX_YUYV, format->width, format->height)))
 	{
 	  d->image_type = CAPTURE_BUNDLE_XV;
 	  d->format.width = d->image.xvimage->w;
@@ -401,7 +401,8 @@ build_bundle(capture_bundle *d, struct tveng_frame_format *format,
 #else
       if (!have_xv &&
 #endif
-	  (d->image.xvimage = xvzImage_new(format->width, format->height)))
+	  (d->image.xvimage =
+	   xvzImage_new(TVENG_PIX_YVU420, format->width, format->height)))
 	{
 	  d->image_type = CAPTURE_BUNDLE_XV;
 	  d->format.width = d->image.xvimage->w;

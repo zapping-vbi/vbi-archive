@@ -88,7 +88,8 @@ typedef struct {
 /**
  * Create a new XV image with the given attributes, returns NULL on error.
  */
-xvzImage * xvzImage_new(gint width, gint height);
+xvzImage * xvzImage_new(enum tveng_frame_pixformat pixformat,
+			gint width, gint height);
 
 /**
  * Puts the image in the given drawable, scales to the drawable's size.

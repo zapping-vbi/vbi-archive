@@ -332,7 +332,7 @@ int main(int argc, char * argv[])
 			      0, NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.110 2001-05-14 22:51:42 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.111 2001-05-28 16:10:29 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -825,7 +825,7 @@ static gboolean startup_zapping()
   zcc_int(0, "Current input", "current_input");
   zcc_int(TVENG_CAPTURE_WINDOW, "Current capture mode", "capture_mode");
   zcc_int(TVENG_CAPTURE_WINDOW, "Previous capture mode", "previous_mode");
-  zcc_int(TVENG_PIX_YVU420, "Pixformat used with XVideo capture",
+  zcc_int(TVENG_PIX_YUYV, "Pixformat used with XVideo capture",
 	  "yuv_format");
   zcc_bool(FALSE, "In videotext mode", "videotext_mode");
   zconf_create_boolean(FALSE, "Hide controls",

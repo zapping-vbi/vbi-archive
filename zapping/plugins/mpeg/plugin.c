@@ -58,6 +58,7 @@ static gint engine_verbosity;
 static gchar* save_dir;
 static gint output_mode; /* 0:file, 1:/dev/null */
 static gint mux_mode; /* 0:audio, 1:video, 2:both */
+static gint capture_w, capture_h;
 
 gboolean on_mpeg_dialog1_delete_event(GtkWidget *widget, GdkEvent
 				      *event, gpointer user_data);
@@ -371,6 +372,9 @@ static
 void plugin_process_bundle ( capture_bundle * bundle )
 {
   rte_buffer rbuf;
+  struct rte_status_info status;
+  GtkWidget *widget;
+  gchar *buffer;
 
   if (!active || !context || !bundle || !bundle->data ||
       !bundle->image_type || !mux_mode)
@@ -402,6 +406,16 @@ void plugin_process_bundle ( capture_bundle * bundle )
       
       rte_push_video_buffer(context, &rbuf);
     }
+
+  rte_get_status(context, &status);
+
+  widget = lookup_widget(saving_dialog, "label12");
+  buffer =
+    g_strdup_printf(_("%.1f MB : %d frames dropped : %d frames processed"),
+		    status.bytes_out / ((double)(1<<20)),
+		    status.dropped_frames, status.processed_frames);
+  gtk_label_set_text(GTK_LABEL(widget), buffer);
+  g_free(buffer);
 }
 
 static void
@@ -416,7 +430,9 @@ video_unref_buffer(rte_context *context, rte_buffer *buf)
 static
 gboolean plugin_start (void)
 {
-  enum rte_pixformat pixformat = RTE_YUV420;
+  enum rte_pixformat pixformat;
+  enum tveng_frame_pixformat tveng_pixformat =
+    zconf_get_integer(NULL, "/zapping/options/main/yuv_format");
   gchar * file_name = NULL;
   GtkWidget * widget;
   FILE * file_fd;
@@ -439,26 +455,19 @@ gboolean plugin_start (void)
 
   /* FIXME: Size should be configurable */
   /* FIXME: Won't work if YUYV isn't Z's current yuv pixformat */
-  if (!request_bundle_format(TVENG_PIX_YVU420, 384, 288))
+  if (!request_bundle_format(tveng_pixformat, capture_w,
+			     capture_h))
     {
-      ShowBox("Cannot switch to YUYV capture format",
-	      GNOME_MESSAGE_BOX_ERROR);
+      ShowBox("Cannot switch to %s capture format",
+	      GNOME_MESSAGE_BOX_ERROR,
+	      (tveng_pixformat == TVENG_PIX_YVU420) ? "YVU420" : "YUYV");
       return FALSE;
     }
 
-  switch (zapping_info->format.pixformat)
-    {
-    case TVENG_PIX_YUYV:
-      pixformat = RTE_YUYV;
-      break;
-    case TVENG_PIX_YVU420:
-      pixformat = RTE_YVU420;
-      break;
-    default:
-      ShowBox(_("The only supported pixformats are YUYV and YVU420"),
-	      GNOME_MESSAGE_BOX_ERROR);
-      return FALSE;
-    }
+  if (tveng_pixformat == TVENG_PIX_YVU420)
+    pixformat = RTE_YVU420;
+  else
+    pixformat = RTE_YUYV;
 
   g_assert(context == NULL);
 
@@ -600,16 +609,34 @@ gboolean plugin_start (void)
   gtk_label_set_text(GTK_LABEL(widget), buffer);
 
   widget = lookup_widget(saving_dialog, "label11");
-  buffer =
-    g_strdup_printf("%s %g\n%s %g",
-		    _("Output video Mbits per second:"),
-		    context->output_video_bits/1e6,
-		    _("Output audio Kbits per second:"),
-		    context->output_audio_bits/1e3);
+  switch (mux_mode)
+    {
+    case 0:
+      buffer =
+	g_strdup_printf("%s %g",
+			_("Output audio Kbits per second:"),
+			context->output_audio_bits/1e3);
+      break;
+    case 1:
+      buffer =
+	g_strdup_printf("%s %g",
+			_("Output video Mbits per second:"),
+			context->output_video_bits/1e6);
+      break;
+    default:
+      buffer =
+	g_strdup_printf("%s %g\n%s %g",
+			_("Output audio Kbits per second:"),
+			context->output_audio_bits/1e3,
+			_("Output video Mbits per second:"),
+			context->output_video_bits/1e6);
+      break;
+    }
   gtk_label_set_text(GTK_LABEL(widget), buffer);
   g_free(buffer);
 
-  /* fixme: label12 : dinamic stats */
+  widget = lookup_widget(saving_dialog, "label12");
+  gtk_label_set_text(GTK_LABEL(widget), _("Waiting for frames..."));
 
   g_free(file_name);
 
@@ -665,6 +692,16 @@ void plugin_load_config (gchar * root_key)
   mux_mode = zconf_get_integer(NULL, buffer);
   g_free(buffer);
 
+  buffer = g_strconcat(root_key, "capture_w", NULL);
+  zconf_create_integer(384, "Capture Width", buffer);
+  capture_w = zconf_get_integer(NULL, buffer);
+  g_free(buffer);
+
+  buffer = g_strconcat(root_key, "capture_h", NULL);
+  zconf_create_integer(288, "Capture height", buffer);
+  capture_h = zconf_get_integer(NULL, buffer);
+  g_free(buffer);
+
   g_free(default_save_dir);
 }
 
@@ -696,6 +733,14 @@ void plugin_save_config (gchar * root_key)
 
   buffer = g_strconcat(root_key, "mux_mode", NULL);
   zconf_set_integer(mux_mode, buffer);
+  g_free(buffer);
+
+  buffer = g_strconcat(root_key, "capture_w", NULL);
+  zconf_set_integer(capture_w, buffer);
+  g_free(buffer);
+
+  buffer = g_strconcat(root_key, "capture_h", NULL);
+  zconf_set_integer(capture_h, buffer);
   g_free(buffer);
 }
 
@@ -763,6 +808,16 @@ void plugin_add_properties ( GnomePropertyBox * gpb )
   gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu),
 		     "deactivate", on_property_item_changed, gpb);
 
+  widget = lookup_widget(mpeg_properties, "spinbutton3");
+  gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget), capture_w);
+  gtk_signal_connect(GTK_OBJECT(widget), "changed",
+		     on_property_item_changed, gpb);
+
+  widget = lookup_widget(mpeg_properties, "spinbutton4");
+  gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget), capture_h);
+  gtk_signal_connect(GTK_OBJECT(widget), "changed",
+		     on_property_item_changed, gpb);
+
   widget = lookup_widget(mpeg_properties, "optionmenu1");
   gtk_option_menu_set_history(GTK_OPTION_MENU(widget), output_mode);
   gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu),
@@ -825,6 +880,16 @@ gboolean plugin_activate_properties ( GnomePropertyBox * gpb, gint page )
       widget = lookup_widget(mpeg_properties, "spinbutton1");
       engine_verbosity =
 	gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widget));
+
+      widget = lookup_widget(mpeg_properties, "spinbutton3");
+      capture_w =
+	gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widget));
+      capture_w &= ~15;
+
+      widget = lookup_widget(mpeg_properties, "spinbutton4");
+      capture_h =
+	gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widget));
+      capture_h &= ~15;
       
       widget = lookup_widget(mpeg_properties, "hscale1");
       adj = gtk_range_get_adjustment(GTK_RANGE(widget));
