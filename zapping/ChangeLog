@@ -1,3 +1,10 @@
+25.8.2000	mode switch when needed <garetxe@users.sourceforge.net>
+
+	* plugins/screenshot: Now switchs to capture mode automagically
+	when overlay. Doesn't switch back, though.
+	* src/zmisc.c: ShowBox now accepts parameters (like sprintf,
+	printf and friends)
+
 24.8.2000	back to work <garetxe@users.sourceforge.net>
 
 	* po/fr.po: Updated the french translation (Christian Marillat)

@@ -214,6 +214,7 @@ int main(int argc, char * argv[])
   /* Disable preview if needed */
   if (disable_preview)
     {
+      g_message("Preview disabled, removing GUI items");
       gtk_widget_set_sensitive(lookup_widget(main_window, "view1"),
 			       FALSE);
       gtk_widget_hide(lookup_widget(main_window, "view1"));
@@ -254,23 +255,25 @@ int main(int argc, char * argv[])
 
   /* Start the capture in the last mode */
   if (!disable_preview)
-    switch (zcg_int(NULL, "capture_mode"))
-      {
-      case TVENG_CAPTURE_PREVIEW:
-	on_go_fullscreen1_activate(GTK_MENU_ITEM(lookup_widget(main_window, "go_fullscreen1")), NULL);
-	restore_mode = TVENG_CAPTURE_WINDOW;
-	if (main_info->current_mode == TVENG_CAPTURE_PREVIEW)
-	  break;
-      case TVENG_CAPTURE_READ:
-	on_go_capturing2_activate(GTK_MENU_ITEM(lookup_widget(main_window, "go_capturing2")), NULL);
-	if (main_info->current_mode == TVENG_CAPTURE_READ)
-	  break;
-      default:
-	on_go_previewing2_activate(GTK_MENU_ITEM(lookup_widget(main_window, "go_previewing2")), NULL);
-	break;
-      }
+    {
+      if (zmisc_switch_mode(zcg_int(NULL, "capture_mode"), main_info)
+	  == -1)
+	{
+	  ShowBox(_("Cannot restore previous mode%s:\n%s"),
+		  GNOME_MESSAGE_BOX_ERROR,
+		  (zcg_int(NULL, "capture_mode") == TVENG_CAPTURE_READ) ? ""
+		  : _(", I will try starting capture mode"),
+		  main_info->error);
+	  if ((zcg_int(NULL, "capture_mode") != TVENG_CAPTURE_READ) &&
+	      (zmisc_switch_mode(TVENG_CAPTURE_READ, main_info) == -1))
+	    ShowBox(_("Capture mode couldn't be started either:\n%s"),
+		    GNOME_MESSAGE_BOX_ERROR, main_info->error);
+	}
+    }
   else /* preview disabled */
-    on_go_capturing2_activate(GTK_MENU_ITEM(lookup_widget(main_window, "go_capturing2")), NULL);
+      if (zmisc_switch_mode(TVENG_CAPTURE_READ, main_info) == -1)
+	ShowBox(_("Capture mode couldn't be started:\n%s"),
+		GNOME_MESSAGE_BOX_ERROR, main_info->error);
 
   while (!flag_exit_program)
     {

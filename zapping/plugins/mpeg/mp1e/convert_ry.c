@@ -104,8 +104,8 @@ void convert_rgb_ycbcr(const char *_r, const char *_g,
 	CHECK("validate args", y != NULL);
 	CHECK("validate args", cb != NULL);
 	CHECK("validate args", cr != NULL);
-	CHECK("validate args", (width&~3) == 0);
-	CHECK("validate args", (height&~1) == 0);
+	CHECK("validate args", (width&3) == 0);
+	CHECK("validate args", (height&1) == 0);
 
 	convert_init_tables();
 
@@ -114,7 +114,7 @@ void convert_rgb_ycbcr(const char *_r, const char *_g,
 	{
 		for (x=0;x<width; x+= 2)
 		{
-			register int R, G, B;
+			int R, G, B;
 			R = *r;
 			G = *g;
 			B = *b;
@@ -155,7 +155,7 @@ void convert_rgb_ycbcr(const char *_r, const char *_g,
 	{
 		for (x=0;x<width; x+= 2)
 		{
-			register int R, G, B;
+			int R, G, B;
 			R = *r;
 			G = *g;
 			B = *b;
@@ -202,8 +202,8 @@ void convert_rgb555_ycbcr(const char *_src, int width, int
 	CHECK("validate args", y != NULL);
 	CHECK("validate args", cb != NULL);
 	CHECK("validate args", cr != NULL);
-	CHECK("validate args", (width&~3) == 0);
-	CHECK("validate args", (height&~1) == 0);
+	CHECK("validate args", (width&3) == 0);
+	CHECK("validate args", (height&1) == 0);
 
 	convert_init_tables();
 
@@ -230,11 +230,11 @@ void convert_rgb555_ycbcr(const char *_src, int width, int
 		}
 		/* Skip the even line */
 		y += width;
-		src += (width<<1);
+		src += width;
 	}
 
 	/* Now go for the even lines */
-	src = ((short*)_src) + (width<<1);
+	src = ((short*)_src) + width;
 	y = _y + width;
 	cb = _cb;
 	cr = _cr;
@@ -263,7 +263,7 @@ void convert_rgb555_ycbcr(const char *_src, int width, int
 		}
 		/* Skip the odd line */
 		y += width;
-		src += width<<1;
+		src += width;
 	}
 }
 
@@ -282,8 +282,8 @@ void convert_rgb565_ycbcr(const char *_src, int width, int
 	CHECK("validate args", y != NULL);
 	CHECK("validate args", cb != NULL);
 	CHECK("validate args", cr != NULL);
-	CHECK("validate args", (width&~3) == 0);
-	CHECK("validate args", (height&~1) == 0);
+	CHECK("validate args", (width&3) == 0);
+	CHECK("validate args", (height&1) == 0);
 
 	convert_init_tables();
 
@@ -292,7 +292,7 @@ void convert_rgb565_ycbcr(const char *_src, int width, int
 	{
 		for (x=0;x<width; x+= 2)
 		{
-			register int R, G, B;
+			int R, G, B;
 			R = ((*src)&31)<<3;
 			G = (((*src)&(63<<5)))>>3;
 			B = ((*(src++))&(31<<11))>>8;
@@ -308,14 +308,14 @@ void convert_rgb565_ycbcr(const char *_src, int width, int
 			*(cb++) += conv_rcb[R] + conv_gcb[G] + conv_gcr[B];
 			*(cr++) += conv_rcr[R] + conv_gcr[G] + conv_bcr[B];
 		}
-		/* Skip the even line */
+		/* Skip the odd line */
 		y += width;
-		src += (width<<1);
+		src += width;
 	}
 
 
-	/* Now go for the even lines */
-	src = ((short*)_src) + (width<<1);
+	/* Now go for the odd lines */
+	src = ((short*)_src) + width;
 	y = _y + width;
 	cb = _cb;
 	cr = _cr;
@@ -324,7 +324,7 @@ void convert_rgb565_ycbcr(const char *_src, int width, int
 	{
 		for (x=0;x<width; x+= 2)
 		{
-			register int R, G, B;
+			int R, G, B;
 			R = ((*src)&31)<<3;
 			G = (((*src)&(63<<5)))>>3;
 			B = ((*(src++))&(31<<11))>>8;
@@ -342,9 +342,9 @@ void convert_rgb565_ycbcr(const char *_src, int width, int
 			*(cr++) = ((*cb + conv_rcr[R] + conv_gcr[G] +
 				    conv_bcr[B]) >> 16) + 128;
 		}
-		/* Skip the odd line */
+		/* Skip the even line */
 		y += width;
-		src += width<<1;
+		src += width;
 	}
 }
 
@@ -536,7 +536,7 @@ convert_rgb565_ycbcr420(const char * src, char * dest, int width, int
 			height)
 {
 	convert_rgb565_ycbcr(src, width, height, dest,
-			     dest+(width*height), dest+((width*height)*5/4));
+			     dest+(width*height), dest+(((width*height)*5)/4));
 }
 
 /**

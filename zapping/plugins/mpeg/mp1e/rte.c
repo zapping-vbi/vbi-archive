@@ -999,6 +999,13 @@ static int rte_fake_options(rte_context * context)
 		pitch = grab_width*2;
 		break;
 	case RTE_YUV420:
+		/* the RGB modes get converted to this mode too */
+	case RTE_RGB555:
+	case RTE_RGB565:
+	case RTE_RGB24:
+	case RTE_BGR24:
+	case RTE_RGB32:
+	case RTE_BGR32:
 		filter_mode = CM_YUV;
 		pitch = grab_width;
 		break;

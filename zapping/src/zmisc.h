@@ -29,9 +29,13 @@
 
 /* With precompiler aid we can print much more useful info */
 /* This shows a non-modal, non-blocking message box */
-#define ShowBox(MSG, MSGTYPE) \
-ShowBoxReal(__FILE__, __LINE__, G_GNUC_PRETTY_FUNCTION, \
-MSG, MSGTYPE, FALSE, FALSE)
+#define ShowBox(MSG, MSGTYPE, args...) \
+do { \
+  gchar * tmp_str = g_strdup_printf(MSG,##args); \
+  ShowBoxReal(__FILE__, __LINE__, G_GNUC_PRETTY_FUNCTION, \
+	      tmp_str, MSGTYPE, FALSE, FALSE); \
+  g_free(tmp_str); \
+} while (FALSE)
 
 /* This one shows a modal, non-blocking message box */
 #define ShowBoxModal(MSG, MSGTYPE) \

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.12 2000-08-24 17:53:52 garetxe Exp $ */
+/* $Id: main.c,v 1.13 2000-08-25 16:21:35 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -134,6 +134,7 @@ void * video_emulation_thread (void * ptr)
 	double timestamp;
 	unsigned char * data;
 	void * video_data;
+
 	rte_context * context = (rte_context *)ptr;
 
 	data = rte_push_video_data(context, NULL, 0);
@@ -223,9 +224,6 @@ int emulation_thread_init ( void )
 // XXX bug; try ./mp1e -F3 ...
 		break;
 	}
-
-	rte_set_video_parameters(context, format, width, height,
-				 frame_rate_code, video_bit_rate);
 
 	if (!rte_start(context))
 	{

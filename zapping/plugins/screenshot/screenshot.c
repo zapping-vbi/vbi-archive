@@ -58,10 +58,9 @@ static tveng_device_info * zapping_info = NULL; /* Info about the
 						   video device */
 
 /*
-  TRUE if plugin_start has been called and plugin_process_frame
-  hasn't
+  1 when the plugin should save the next frame
 */
-static gboolean save_screenshot = FALSE; 
+static gint save_screenshot = 0; 
 
 /* Callbacks */
 static void
@@ -242,11 +241,13 @@ void plugin_close(void)
 static
 gboolean plugin_start (void)
 {
+  /* if we aren't in capture mode, switch to it */
+  zmisc_switch_mode(TVENG_CAPTURE_READ, zapping_info);
+
   if (zapping_info->current_mode != TVENG_CAPTURE_READ)
-    ShowBox(_("You aren't in capture mode. Please switch to it before"
-	      " using this plugin."), GNOME_MESSAGE_BOX_INFO);
-  else
-    save_screenshot = TRUE;
+    return FALSE; /* unable to set the mode */
+
+  save_screenshot = 2;
 
   /* If everything has been ok, set the active flags and return TRUE
    */
@@ -292,11 +293,15 @@ void plugin_save_config (gchar * root_key)
 static
 void plugin_process_sample(plugin_sample * sample)
 {
-  if (save_screenshot)
+  if (!save_screenshot)
+    return;
+  else if (save_screenshot == 1)
     {
       start_saving_screenshot(sample->video_data, &(sample->format));
-      save_screenshot = FALSE;
+      save_screenshot = 0;
     }
+  else
+    save_screenshot --;
 }
 
 static

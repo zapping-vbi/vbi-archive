@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-08-24 15:27+0200\n"
+"POT-Creation-Date: 2000-08-25 14:00+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -36,6 +36,31 @@ msgstr ""
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
+"%s"
+msgstr ""
+
+#: src/main.c:260
+#, c-format
+msgid ""
+"Cannot restore previous mode%s:\n"
+"%s"
+msgstr ""
+
+#: src/main.c:263
+msgid ", I will try starting capture mode"
+msgstr ""
+
+#: src/main.c:267
+#, c-format
+msgid ""
+"Capture mode couldn't be started either:\n"
+"%s"
+msgstr ""
+
+#: src/main.c:272
+#, c-format
+msgid ""
+"Capture mode couldn't be started:\n"
 "%s"
 msgstr ""
 
@@ -1312,7 +1337,7 @@ msgstr ""
 
 #: plugins/screenshot/screenshot.c:246
 msgid ""
-"You aren't in capture mode. Please switch to it before using this plugin."
+"You aren't in capture mode. Please switch to it before using this plugin"
 msgstr ""
 
 #: plugins/screenshot/screenshot.c:312
