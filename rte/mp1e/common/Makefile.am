@@ -15,5 +15,6 @@ libcommon_la_SOURCES = \
 	threads.h types.h \
 	sync.c sync.h
 
-EXTRA_DIST = videodev.h videodev2.h
+EXTRA_DIST = videodev.h videodev2.h videodev25.h
+
 

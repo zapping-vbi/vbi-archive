@@ -1,3 +1,9 @@
+2003-01-15	<mschimek@users.sf.net>
+
+	* common/videodev25.h, devices/v4l25.c, main.c: Added
+	  v4l2 (Linux 2.5) interface, untested.
+	* devices/alsa.c: "New API" corrections.
+
 2003-01-02	<mschimek@users.sf.net>
 
 	* macros/alsa.m4: Updated from ALSA 0.9.0rc6.

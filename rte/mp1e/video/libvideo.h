@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvideo.h,v 1.9 2002-08-22 22:04:22 mschimek Exp $ */
+/* $Id: libvideo.h,v 1.10 2003-01-15 23:38:23 mschimek Exp $ */
 
 #include "rtepriv.h"
 #include "../systems/libsystems.h"
@@ -49,6 +49,7 @@ struct filter_param;
 
 extern fifo *		v4l_init(rte_video_stream_params *par, struct filter_param *fp);
 extern fifo *		v4l2_init(rte_video_stream_params *par, struct filter_param *fp);
+extern fifo *		v4l25_init(rte_video_stream_params *par, struct filter_param *fp);
 extern fifo *		file_init(rte_video_stream_params *par, struct filter_param *fp);
 extern fifo *		raw_init(rte_video_stream_params *par, struct filter_param *fp);
 
