@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: remote.c,v 1.2 2000-10-27 19:15:18 mschimek Exp $ */
+/* $Id: remote.c,v 1.3 2000-11-03 06:18:26 mschimek Exp $ */
 
 #include <float.h>
 #include "remote.h"
@@ -51,6 +51,8 @@ remote_start(double time)
 	}
 
 	remote.start_time = time;
+
+	pthread_cond_broadcast(&remote.mucon.cond);
 
 	pthread_mutex_unlock(&remote.mucon.mutex);
 
@@ -91,13 +93,15 @@ remote_sync(fifo *input_fifo, unsigned int this_module, double frame_period)
 	pthread_mutex_lock(&remote.mucon.mutex);
 
 	for (;;) {
-		if (b->time == 0.0) { // not live
-			printv(4, "RS %02x: accept start_time %f for %f, voted %02x/%02x\n",
-				this_module, remote.start_time, b->time,
-				remote.vote, remote.modules);
-			if ((remote.vote |= this_module) == remote.modules)
-				break;
-			pthread_cond_broadcast(&remote.mucon.cond);
+		if (b->time == 0.0) { // offline
+			if (remote.start_time < DBL_MAX) {
+				printv(4, "RS %02x: accept start_time %f for %f, voted %02x/%02x\n",
+					this_module, remote.start_time, b->time,
+					remote.vote, remote.modules);
+				if ((remote.vote |= this_module) == remote.modules)
+					break;
+				pthread_cond_broadcast(&remote.mucon.cond);
+			}
 			pthread_cond_wait(&remote.mucon.cond, &remote.mucon.mutex);
 			continue;
 		}

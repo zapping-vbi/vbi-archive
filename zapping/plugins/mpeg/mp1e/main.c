@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.30 2000-11-01 08:59:18 mschimek Exp $ */
+/* $Id: main.c,v 1.31 2000-11-03 06:18:24 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -146,12 +146,12 @@ main(int ac, char **av)
 
 		if (!strncmp(pcm_dev, "alsa", 4)) {
 			audio_parameters(&sampling_rate, &audio_bit_rate);
-			mix_init(); // XXX OSS
-			open_pcm_alsa(pcm_dev, sampling_rate, stereo);
+			mix_init(); // OSS
+			audio_cap_fifo = open_pcm_alsa(pcm_dev, sampling_rate, stereo);
 		} else if (!strncmp(pcm_dev, "esd", 3)) {
 			audio_parameters(&sampling_rate, &audio_bit_rate);
 			mix_init(); /* fixme: esd_mix_init? */
-			esd_pcm_init();
+			audio_cap_fifo = open_pcm_esd(pcm_dev, sampling_rate, stereo);
 		} else {
 			ASSERT("probe '%s'", !stat(pcm_dev, &st), pcm_dev);
 
@@ -160,8 +160,17 @@ main(int ac, char **av)
 				mix_init();
 				audio_cap_fifo = open_pcm_oss(pcm_dev, sampling_rate, stereo);
 			} else {
-				tsp_init();
-				// pick up file parameters
+				struct pcm_context *pcm;
+			
+				audio_cap_fifo = open_pcm_afl(pcm_dev, sampling_rate, stereo);
+				// pick up file parameters (preliminary)
+				pcm = (struct pcm_context *) audio_cap_fifo->user_data;
+				stereo = pcm->stereo;
+				sampling_rate = pcm->sampling_rate;
+				if (audio_mode == AUDIO_MODE_MONO && stereo)
+					audio_mode = AUDIO_MODE_STEREO;
+				else if (audio_mode != AUDIO_MODE_MONO && !stereo)
+					audio_mode = AUDIO_MODE_MONO;
 				audio_parameters(&sampling_rate, &audio_bit_rate);
 			}
 		}

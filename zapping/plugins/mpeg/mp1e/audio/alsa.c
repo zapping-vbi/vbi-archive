@@ -1,6 +1,6 @@
 /*
  *  MPEG Real Time Encoder
- *  ALSA Interface (draft)
+ *  Advanced Linux Sound Architecture Interface (draft)
  *
  *  Copyright (C) 2000 Michael H. Schimek
  *
@@ -19,11 +19,16 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alsa.c,v 1.4 2000-11-01 08:59:18 mschimek Exp $ */
+/* $Id: alsa.c,v 1.5 2000-11-03 06:18:26 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "../common/log.h" 
+
+#ifdef HAVE_LIBASOUND
+
 #include <string.h>
+#include <ctype.h>
 #include <time.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -33,23 +38,19 @@
 #include <sys/time.h>
 #include <sys/ioctl.h>
 #include <asm/types.h>
-#include "../common/log.h" 
+#include <sys/asoundlib.h>
 #include "../common/mmx.h" 
 #include "../common/math.h" 
 #include "audio.h"
 #include "mpeg.h"
 
-#ifdef HAVE_LIBASOUND
-
-#include <sys/asoundlib.h>
-
 /*
- *  PCM Device, ALSA library
+ *  ALSA Library PCM Device
  */
 
 #define BUFFER_SIZE 8192 // bytes per read(), appx.
 
-static struct alsa_context {
+struct alsa_context {
 	struct pcm_context	pcm;
 
 	snd_pcm_t *		handle;
@@ -62,8 +63,7 @@ static struct alsa_context {
 	double			time;
 };
 
-// XXX only one buffer at a time, not checked
-// XXX clock drift & overflow detection
+/* XXX Clock drift & overflow detection missing */
 
 static buffer *
 wait_full(fifo *f)
@@ -71,8 +71,10 @@ wait_full(fifo *f)
 	struct alsa_context *alsa = f->user_data;
 	buffer *b = f->buffers;
 
-	if (alsa->left <= 0)
-	{
+	if (b->data)
+		return NULL; // no queue
+
+	if (alsa->left <= 0) {
 		ssize_t r, n, m;
 		unsigned char *p;
 
@@ -140,6 +142,7 @@ wait_full(fifo *f)
 static void
 send_empty(fifo *f, buffer *b)
 {
+	b->data = NULL;
 }
 
 fifo *
@@ -149,8 +152,13 @@ open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo)
 	snd_pcm_channel_info_t info;
 	snd_pcm_channel_params_t params;
 	snd_pcm_channel_setup_t setup;
-	int buffer_size;
+	int card = 0, device = 0, buffer_size;
 	int err;
+
+	while (*dev_name && !isdigit(*dev_name))
+		dev_name++;
+
+	sscanf(dev_name, "%d,%d", &card, &device);
 
 	ASSERT("allocate pcm context",
 		(alsa = calloc(1, sizeof(struct alsa_context))));
@@ -159,8 +167,8 @@ open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo)
 	alsa->pcm.stereo = stereo;
 
 	alsa->samples_per_frame = SAMPLES_PER_FRAME << stereo;
-	alsa->scan_range = MAX(BUFFER_SIZE / sizeof(short) / alsa->samples_per_frame, 1)
-			  * alsa->samples_per_frame;
+	alsa->scan_range = MAX(BUFFER_SIZE / sizeof(short) 
+		/ alsa->samples_per_frame, 1) * alsa->samples_per_frame;
 	alsa->look_ahead = (512 - 32) << stereo;
 	alsa->scan_time = (alsa->scan_range >> stereo)
 			   / (double) sampling_rate;
@@ -168,16 +176,17 @@ open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo)
 
 	buffer_size = (alsa->scan_range + alsa->look_ahead) * sizeof(short);
 
-	if ((err = snd_pcm_open(&alsa->handle, 0, 0, SND_PCM_OPEN_CAPTURE)) < 0)
-		FAIL("Cannot open ALSA device 0,0 (%d, %s)", err, snd_strerror(err));
-	// XXX 0,0
+	if ((err = snd_pcm_open(&alsa->handle, card, device, SND_PCM_OPEN_CAPTURE)) < 0)
+		FAIL("Cannot open ALSA card %d,%d (%d, %s)",
+			card, device, err, snd_strerror(err));
 
 	info.channel = SND_PCM_CHANNEL_CAPTURE;
 
 	if ((err = snd_pcm_plugin_info(alsa->handle, &info)) < 0)
 		FAIL("Cannot obtain ALSA device info (%d, %s)", err, snd_strerror(err));
 
-	printv(2, "Opened ALSA PCM plugin device\n");
+	printv(2, "Opened ALSA PCM plugin, card #%d device #%d\n",
+		card, device);
 
 	memset(&params, 0, sizeof(params));
 
@@ -212,6 +221,9 @@ open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo)
 	ASSERT("init pcm/alsa capture fifo", init_callback_fifo(audio_cap_fifo = &alsa->pcm.fifo,
 		wait_full, send_empty, NULL, NULL, buffer_size, 1));
 
+	alsa->pcm.fifo.buffers[0].data = NULL;
+	alsa->pcm.fifo.buffers[0].used =
+		(alsa->samples_per_frame + alsa->look_ahead) * sizeof(short);
 	alsa->pcm.fifo.user_data = alsa;
 
 	return &alsa->pcm.fifo;

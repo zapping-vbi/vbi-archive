@@ -1,5 +1,6 @@
 /*
  *  MPEG-1 Real Time Encoder
+ *  Open Sound System Interface
  *
  *  Copyright (C) 1999-2000 Michael H. Schimek
  *
@@ -18,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: oss.c,v 1.8 2000-11-01 08:59:18 mschimek Exp $ */
+/* $Id: oss.c,v 1.9 2000-11-03 06:18:26 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -60,21 +61,18 @@ struct oss_context {
 };
 
 /*
- *  Read window: samples_per_frame (1152 * channels) + look_ahead (480 * channels);
- *  Subband window size 512 samples, step width 32 samples (32 * 3 * 12 total)
+ *  Read window: samples_per_frame (1152 * channels) + look_ahead
+ *  (480 * channels); from subband window size 512 samples, step
+ *  width 32 samples (32 * 3 * 12 total)
  */
-
-// XXX only one at a time, not checked
 static buffer *
 wait_full(fifo *f)
 {
 	struct oss_context *oss = f->user_data;
 	buffer *b = f->buffers;
 
-	if (b->type)
-		return NULL;
-
-	b->type = -1;
+	if (b->data)
+		return NULL; // no queue
 
 	if (oss->left <= 0) {
 		struct audio_buf_info info;
@@ -149,7 +147,7 @@ wait_full(fifo *f)
 static void
 send_empty(fifo *f, buffer *b)
 {
-	b->type = 0;
+	b->data = NULL;
 }
 
 fifo *
@@ -205,6 +203,9 @@ open_pcm_oss(char *dev_name, int sampling_rate, bool stereo)
 	ASSERT("init pcm/oss capture fifo", init_callback_fifo(&oss->pcm.fifo,
 		wait_full, send_empty, NULL, NULL, buffer_size, 1));
 
+	oss->pcm.fifo.buffers[0].data = NULL;
+	oss->pcm.fifo.buffers[0].used =
+		(oss->samples_per_frame + oss->look_ahead) * sizeof(short);
 	oss->pcm.fifo.user_data = oss;
 
 	return &oss->pcm.fifo;
