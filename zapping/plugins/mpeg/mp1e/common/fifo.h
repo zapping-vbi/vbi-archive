@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.13 2000-12-15 23:26:46 garetxe Exp $ */
+/* $Id: fifo.h,v 1.14 2000-12-16 00:21:58 garetxe Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -79,14 +79,17 @@ typedef struct {
 
 struct _fifo {
 	mucon			producer;
+	mucon			mbackup;
 
 	/* Consumers */
 	coninfo *		consumers;
 	pthread_rwlock_t	consumers_rwlock;
 	int			num_consumers;
 	pthread_key_t		consumer_key;
+
 	/* Producer */
 	list			empty;		/* LIFO */
+	list			backup;		/* FIFO */
 
 	buffer *		(* wait_full)(struct _fifo *);
 	void			(* send_empty)(struct _fifo *, buffer *);
@@ -132,6 +135,7 @@ query_consumer(fifo *f, list **full, mucon **consumer)
 {
 	int i;
 	coninfo *current=pthread_getspecific(f->consumer_key);
+	buffer *b;
 
 	if (current) {
 		if (full)
@@ -163,6 +167,11 @@ query_consumer(fifo *f, list **full, mucon **consumer)
 	if (consumer)
 		*consumer = &(f->consumers[i].consumer);
 	f->num_consumers++;
+	/* Send the kept buffers to this consumer */
+	pthread_mutex_lock(&f->mbackup.mutex);
+	while ((b = (buffer*) rem_head(&f->backup)))
+		add_tail(&(f->consumers[i].full), &b->node);
+	pthread_mutex_unlock(&f->mbackup.mutex);
 
 	pthread_rwlock_unlock(&f->consumers_rwlock);
 	pthread_rwlock_rdlock(&f->consumers_rwlock);

@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.9 2000-12-15 23:26:46 garetxe Exp $ */
+/* $Id: fifo.c,v 1.10 2000-12-16 00:21:58 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -173,6 +173,7 @@ uninit(fifo * f)
 		free_buffer_vec(f->buffers, f->num_buffers);
 
 	mucon_destroy(&f->producer);
+	mucon_destroy(&f->mbackup);
 
 	memset(f, 0, sizeof(fifo));
 
@@ -216,8 +217,11 @@ send_full(fifo *f, buffer *b)
 			pthread_cond_broadcast(&(f->consumers[i].consumer.cond));
 		}
 	} else {
+		/* store it for later use */
 		b->refcount = 1;
-		send_empty(f, b);
+		pthread_mutex_lock(&f->mbackup.mutex);
+		add_tail(&f->backup, &b->node);
+		pthread_mutex_unlock(&f->mbackup.mutex);
 	}
 	
 	pthread_rwlock_unlock(&f->consumers_rwlock);
@@ -266,6 +270,7 @@ init_callback_fifo(fifo *f,
 	pthread_key_create(&f->consumer_key, key_destroy_callback);
 
 	mucon_init(&f->producer);
+	mucon_init(&f->mbackup);
 
 	f->wait_full  = custom_wait_full  ? custom_wait_full  : NULL;
 	f->send_empty = custom_send_empty ? custom_send_empty : send_empty;

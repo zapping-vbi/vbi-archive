@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.3 2000-12-15 23:26:46 garetxe Exp $ */
+/* $Id: fifo.h,v 1.4 2000-12-16 00:21:57 garetxe Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -30,9 +30,10 @@
 
 /*
   TODO:
-  - Store some buffers in fifos without consumers (producer-side).
-  - Killing dead consumers
-  - Stealing buffers from slow consumers
+  - Use the occupancy variable
+    + Killing dead consumers
+    + Stealing buffers from slow consumers
+  
   - Interface changes:
     + Callbacks: send_full not allowed
     + Consumer mucons no longer pertinent.
@@ -72,6 +73,7 @@ typedef struct _fifo fifo;
 
 typedef struct {
 	list			full;
+	int			occupancy; /* of full */
 	mucon			consumer;
 	fifo			*f;
 	int			index; /* in consumers */
@@ -79,14 +81,17 @@ typedef struct {
 
 struct _fifo {
 	mucon			producer;
+	mucon			mbackup;
 
 	/* Consumers */
 	coninfo *		consumers;
 	pthread_rwlock_t	consumers_rwlock;
 	int			num_consumers;
 	pthread_key_t		consumer_key;
+
 	/* Producer */
 	list			empty;		/* LIFO */
+	list			backup;		/* FIFO */
 
 	buffer *		(* wait_full)(struct _fifo *);
 	void			(* send_empty)(struct _fifo *, buffer *);
@@ -127,19 +132,15 @@ extern void	remove_consumer(fifo *f);
  *   wait producer mucon       bcast producer mucon
  */
 
-static inline void
-query_consumer(fifo *f, list **full, mucon **consumer)
+static inline coninfo*
+query_consumer(fifo *f)
 {
 	int i;
 	coninfo *current=pthread_getspecific(f->consumer_key);
+	buffer *b;
 
-	if (current) {
-		if (full)
-			*full = &(current->full);
-		if (consumer)
-			*consumer = &(current->consumer);
-		return;
-	}
+	if (current)
+		return current;
 	
 	/* nonexistant, create a new entry for the current thread */
 	/* no recursive rwlocks, this is non-atomic */
@@ -158,14 +159,19 @@ query_consumer(fifo *f, list **full, mucon **consumer)
 	f->consumers[i].f = f;
 	pthread_setspecific(f->consumer_key, &(f->consumers[i]));
 	mucon_init(&(f->consumers[i].consumer));
-	if (full)
-		*full = &(f->consumers[i].full);
-	if (consumer)
-		*consumer = &(f->consumers[i].consumer);
 	f->num_consumers++;
+	/* Send the kept buffers to this consumer */
+	pthread_mutex_lock(&f->mbackup.mutex);
+	while ((b = (buffer*) rem_head(&f->backup))) {
+		add_tail(&(f->consumers[i].full), &b->node);
+		f->consumers[i].occupancy++;
+	}
+	pthread_mutex_unlock(&f->mbackup.mutex);
 
 	pthread_rwlock_unlock(&f->consumers_rwlock);
 	pthread_rwlock_rdlock(&f->consumers_rwlock);
+
+	return &(f->consumers[i]);
 }
 
 static inline bool
@@ -193,16 +199,17 @@ send_full_buffer(fifo *f, buffer *b)
 static inline void
 unget_full_buffer(fifo *f, buffer *b)
 {
-	list *full; mucon *consumer;
+	coninfo *consumer;
 
 	pthread_rwlock_rdlock(&f->consumers_rwlock);
-	query_consumer(f, &full, &consumer);
-	pthread_mutex_lock(&consumer->mutex);
+	consumer = query_consumer(f);
+	pthread_mutex_lock(&consumer->consumer.mutex);
 
-	add_head(full, &b->node);
+	add_head(&consumer->full, &b->node);
+	consumer->occupancy++;
 
-	pthread_mutex_unlock(&consumer->mutex);
-	pthread_cond_broadcast(&consumer->cond);
+	pthread_mutex_unlock(&consumer->consumer.mutex);
+	pthread_cond_broadcast(&consumer->consumer.cond);
 	pthread_rwlock_unlock(&f->consumers_rwlock);
 }
 
@@ -210,29 +217,32 @@ static inline buffer *
 wait_full_buffer(fifo *f)
 {
 	buffer *b;
-	list *full; mucon *consumer;
+	coninfo *consumer;
 
 	pthread_rwlock_rdlock(&f->consumers_rwlock);
-	query_consumer(f, &full, &consumer);
+	consumer = query_consumer(f);
 
-	pthread_mutex_lock(&consumer->mutex);
-	b = (buffer*) rem_head(full);
-	pthread_mutex_unlock(&consumer->mutex);
+	pthread_mutex_lock(&consumer->consumer.mutex);
+	b = (buffer*) rem_head(&consumer->full);
+	if (b)
+		consumer->occupancy--;
+	pthread_mutex_unlock(&consumer->consumer.mutex);
 
 	if ((!b) && (f->wait_full)) {
 		/* Send a new buffer to all consumers */
 		while (!b)
 			b = f->wait_full(f);
 		send_full_buffer(f, b);
-		b = (buffer*) rem_head(full); /* Should always work */
+		b = (buffer*) rem_head(&consumer->full);
+		consumer->occupancy--;
 	} else if (!b) {
-		pthread_mutex_lock(&consumer->mutex);
+		pthread_mutex_lock(&consumer->consumer.mutex);
 
-		while (!(b = (buffer *) rem_head(full)))
-			pthread_cond_wait(&consumer->cond,
-					  &consumer->mutex);
-		
-		pthread_mutex_unlock(&consumer->mutex);
+		while (!(b = (buffer *) rem_head(&consumer->full)))
+			pthread_cond_wait(&consumer->consumer.cond,
+					  &consumer->consumer.mutex);
+		consumer->occupancy--;
+		pthread_mutex_unlock(&consumer->consumer.mutex);
 	}
 
 	pthread_rwlock_unlock(&f->consumers_rwlock);
@@ -244,21 +254,24 @@ static inline buffer *
 recv_full_buffer(fifo *f)
 {
 	buffer *b;
-	list *full; mucon *consumer;
+	coninfo *consumer;
 
 	pthread_rwlock_rdlock(&f->consumers_rwlock);
-	query_consumer(f, &full, &consumer);
+	consumer = query_consumer(f);
 
-	pthread_mutex_lock(&consumer->mutex);
-	b = (buffer*) rem_head(full);
-	pthread_mutex_unlock(&consumer->mutex);
+	pthread_mutex_lock(&consumer->consumer.mutex);
+	b = (buffer*) rem_head(&consumer->full);
+	if (b)
+		consumer->occupancy--;
+	pthread_mutex_unlock(&consumer->consumer.mutex);
 
 	if ((!b) && (f->wait_full)) {
 		/* Send a new buffer to all consumers */
 		b = f->wait_full(f);
 		if (b) {
 			send_full_buffer(f, b);
-			b = (buffer*) rem_head(full); /* Should always work */
+			b = (buffer*) rem_head(&consumer->full);
+			consumer->occupancy--;
 		}
 	}
 

@@ -16,12 +16,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.3 2000-12-15 23:26:46 garetxe Exp $ */
+/* $Id: fifo.c,v 1.4 2000-12-16 00:21:56 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <assert.h>
 #include "fifo.h"
 #include "alloc.h"
 
@@ -126,8 +127,11 @@ dealloc_consumer_info(fifo *f, int index)
 	mucon *consumer=&(f->consumers[index].consumer);
 
 	pthread_mutex_lock(&(consumer->mutex));
-	while ((b = (buffer*) rem_head(full)))
+	while ((b = (buffer*) rem_head(full))) {
 		send_empty_buffer(f, b);
+		f->consumers[index].occupancy--;
+	}
+	assert(f->consumers[index].occupancy == 0);
 	pthread_mutex_unlock(&(consumer->mutex));
 	mucon_destroy(consumer);
 
@@ -173,6 +177,7 @@ uninit(fifo * f)
 		free_buffer_vec(f->buffers, f->num_buffers);
 
 	mucon_destroy(&f->producer);
+	mucon_destroy(&f->mbackup);
 
 	memset(f, 0, sizeof(fifo));
 
@@ -212,12 +217,16 @@ send_full(fifo *f, buffer *b)
 		for (i=0; i<f->num_consumers; i++) {
 			pthread_mutex_lock(&(f->consumers[i].consumer.mutex));
 			add_tail(&(f->consumers[i].full), &b->node);
+			f->consumers[i].occupancy++;
 			pthread_mutex_unlock(&(f->consumers[i].consumer.mutex));
 			pthread_cond_broadcast(&(f->consumers[i].consumer.cond));
 		}
 	} else {
+		/* store it for later use */
 		b->refcount = 1;
-		send_empty(f, b);
+		pthread_mutex_lock(&f->mbackup.mutex);
+		add_tail(&f->backup, &b->node);
+		pthread_mutex_unlock(&f->mbackup.mutex);
 	}
 	
 	pthread_rwlock_unlock(&f->consumers_rwlock);
@@ -266,6 +275,7 @@ init_callback_fifo(fifo *f,
 	pthread_key_create(&f->consumer_key, key_destroy_callback);
 
 	mucon_init(&f->producer);
+	mucon_init(&f->mbackup);
 
 	f->wait_full  = custom_wait_full  ? custom_wait_full  : NULL;
 	f->send_empty = custom_send_empty ? custom_send_empty : send_empty;
