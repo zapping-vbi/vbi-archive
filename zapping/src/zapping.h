@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping.h,v 1.4 2004-09-26 13:33:12 mschimek Exp $ */
+/* $Id: zapping.h,v 1.5 2004-10-09 02:52:28 mschimek Exp $ */
 
 #ifndef ZAPPING_H
 #define ZAPPING_H
@@ -42,10 +42,9 @@ G_BEGIN_DECLS
   TYPE_ZAPPING, ZappingClass))
 
 typedef enum {
-  DISPLAY_MODE_NONE			= 0x00,
-  DISPLAY_MODE_WINDOW			= 0x10,
-  DISPLAY_MODE_BACKGROUND		= 0x20,
-  DISPLAY_MODE_FULLSCREEN		= 0x30,
+  DISPLAY_MODE_WINDOW			= 0x00,
+  DISPLAY_MODE_BACKGROUND		= 0x10,
+  DISPLAY_MODE_FULLSCREEN		= 0x20,
 } display_mode;
 
 typedef enum {

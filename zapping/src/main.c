@@ -567,7 +567,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.186 2004-09-22 21:24:56 mschimek Exp $",
+	 "$Id: main.c,v 1.187 2004-10-09 02:52:28 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -856,6 +856,8 @@ int main(int argc, char * argv[])
   D();
   startup_zvbi();
   D();
+  /*  startup_subtitle();*/
+  D();
   zapping = ZAPPING (zapping_new ());
   gtk_widget_show(GTK_WIDGET (zapping));
   zapping->info = info;
@@ -993,6 +995,10 @@ void shutdown_zapping(void)
   plugin_list = NULL;
 
   /* Shut down vbi */
+
+  printv(" subtitles\n");
+  /* shutdown_subtitle(); */
+
   printv(" vbi\n");
   shutdown_zvbi();
 

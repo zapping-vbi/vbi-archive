@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fullscreen.c,v 1.31 2004-10-04 02:44:08 mschimek Exp $ */
+/* $Id: fullscreen.c,v 1.32 2004-10-09 02:52:28 mschimek Exp $ */
 
 /**
  * Fullscreen mode handling
@@ -297,7 +297,7 @@ stop_fullscreen			(void)
       g_assert_not_reached ();
     }
 
-  zapping->display_mode = DISPLAY_MODE_NONE;
+  zapping->display_mode = DISPLAY_MODE_WINDOW;
   zapping->info->capture_mode = CAPTURE_MODE_NONE;
 
   x11_vidmode_restore (svidmodes, &old_vidmode);

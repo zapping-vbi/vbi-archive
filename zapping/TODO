@@ -1,6 +1,12 @@
 Outstanding issues for future releases
 --------------------------------------
 
+* Prefs > Video: "Fullscreen screen resolution" might be a better name.
+* Fullscreen should always fill the visible screen, even if "no
+  change" of resolution has been selected. Additionally Zapping should
+  monitor the resolution and adjust dynamically, in case the user
+  switches with NK+/- or randr (background display mode!). Holy Jebus
+  all the work and few will ever notice...
 * With the new Teletext plugin interface it would be trivial
   to create a split display showing 2, 4, 9, ... pages at
   once and with a little more effort split video/teletext,

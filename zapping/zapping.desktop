@@ -1,15 +1,14 @@
 [Desktop Entry]
 Version=0.9
 Encoding=UTF-8
-Name=Zapping
+Name=Zapping TV Viewer
+Name[de]=Zapping Fernseher
+Name[es]=Zapping Pantalla de TV
+Name[fr]=Zapping Visualiseur de TV
+Name[it]=Zapping Visualizzatore TV
+Name[nl]=Zapping TV Tuner
+Name[pl]=Zapping Program TV
+Name[sv]=Zapping TV-visare
 Type=Application
-Comment=TV viewer
-Comment[de]=TV Betrachter
-Comment[es]=Pantalla de TV
-Comment[fr]=Visualiseur de TV
-Comment[it]=Visualizzatore TV
-Comment[nl]=TV tuner
-Comment[pl]=Program TV
-Comment[sv]=TV-visare
 Exec=zapping
 Icon=zapping/gnome-television.png

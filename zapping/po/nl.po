@@ -2277,8 +2277,8 @@ msgid "Open this page with Zapzilla"
 msgstr "Open deze pagina met Zapzilla"
 
 #: zapping.desktop.in.h:1
-msgid "TV viewer"
-msgstr "TV tuner"
+msgid "Zapping TV Viewer"
+msgstr "Zapping TV Tuner"
 
 # src/v4l2interface.c:344
 #, fuzzy

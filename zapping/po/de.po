@@ -2262,8 +2262,8 @@ msgid "Open this page with Zapzilla"
 msgstr "Seite mit Zapzilla öffnen"
 
 #: zapping.desktop.in.h:1
-msgid "TV viewer"
-msgstr "TV Betrachter"
+msgid "Zapping TV Viewer"
+msgstr "Zapping Fernseher"
 
 #~ msgid "_Toolbar"
 #~ msgstr "_Werkzeugleiste"

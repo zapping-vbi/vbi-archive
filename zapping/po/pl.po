@@ -2305,8 +2305,8 @@ msgid "Open this page with Zapzilla"
 msgstr "Otwórz tą stronę w Zapzilli"
 
 #: zapping.desktop.in.h:1
-msgid "TV viewer"
-msgstr "Program TV"
+msgid "Zapping TV Viewer"
+msgstr "Zapping Program TV"
 
 msgid "Avoid noise while ch_anging channels"
 msgstr "_Unikaj szumu podczas zmiany kanałów"

@@ -455,7 +455,6 @@ zmisc_stop (tveng_device_info *info)
       break;
 
     case DISPLAY_MODE_WINDOW | CAPTURE_MODE_READ:
-    case CAPTURE_MODE_READ:
       capture_stop();
       video_uninit ();
       tveng_stop_capturing(info);
@@ -2528,7 +2527,7 @@ from_old_tveng_capture_mode	(display_mode *		dmode,
       return;
     }
 
-  *dmode = DISPLAY_MODE_NONE;
+  *dmode = DISPLAY_MODE_WINDOW;
   *cmode = CAPTURE_MODE_NONE;
 }
 
@@ -2542,9 +2541,6 @@ to_old_tveng_capture_mode	(display_mode 		dmode,
 
   switch (dmode)
     {
-    case DISPLAY_MODE_NONE:
-      mode = OLD_TVENG_NO_CAPTURE; break;
-
     case DISPLAY_MODE_WINDOW:
       switch (cmode)
 	{

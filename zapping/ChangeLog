@@ -1,3 +1,16 @@
+2004-10-08    <mschimek@users.sf.net>
+
+	* help/C/zapzilla.xml, help/C/zapping.xml, help/C/settings.xml,
+	  help/C/commands.xml: Syntax fixes.
+	* zapping.desktop.in, po: Merged comment into name, not like
+	  everyone knows what zapping means. 
+	* Makefile.am (install-data-local): s/gconftool/gconftool-2.
+	* plugins/alirc/alirc.c (legacy_zoom): Better to use py_toggle_mode.
+	* src/cmd.c (py_switch_mode), src/fullscreen.c (stop_fullscreen),
+	  src/zmisc.c (to_old_tveng_capture_mode), src/zapping.h:
+	  DISPLAY_MODE_NONE considered harmful, made WINDOW the
+	  default and fallback.
+
 2004-10-04    <mschimek@users.sf.net>
 
 	* Release 0.7.2.

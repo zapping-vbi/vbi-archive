@@ -75,7 +75,7 @@ static PyObject* py_quit (PyObject *self _unused_,
 						  zapping->info->capture_mode),
 		 "/zapping/options/main/capture_mode");
 
-  zmisc_switch_mode (DISPLAY_MODE_NONE,
+  zmisc_switch_mode (DISPLAY_MODE_WINDOW,
 		     CAPTURE_MODE_NONE,
 		     zapping->info);
 
@@ -162,7 +162,7 @@ py_switch_mode			(PyObject *		self _unused_,
       ShowBox ("Unknown display mode \"%s\", possible choices are:\n"
 	       "preview, fullscreen, capture and teletext",
 	       GTK_MESSAGE_ERROR, mode_str);
-      new_dmode = DISPLAY_MODE_NONE;
+      new_dmode = old_dmode;
       new_cmode = CAPTURE_MODE_NONE;
     }
 

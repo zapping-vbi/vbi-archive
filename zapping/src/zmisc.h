@@ -240,7 +240,7 @@ extern int debug_msg;
 #define D() \
 do { \
   if (debug_msg) \
-    fprintf(stderr, "Line %d, routine %s\n", __LINE__, __PRETTY_FUNCTION__); \
+    fprintf(stderr, "%s:%s:%u\n", __FILE__, __PRETTY_FUNCTION__, __LINE__); \
 } while (FALSE)
 
 #undef printv

@@ -18,17 +18,17 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: device.c,v 1.6 2004-09-10 04:58:51 mschimek Exp $ */
+/* $Id: device.c,v 1.7 2004-10-09 02:52:23 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
 #include <assert.h>
 
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
-#include <sys/mman.h>
+#include <fcntl.h>		/* open() */
+#include <unistd.h>		/* close(), mmap(), munmap() */
+#include <sys/ioctl.h>		/* ioctl() */
+#include <sys/mman.h>		/* mmap(), munmap() */
 #include <errno.h>
 
 #include "device.h"

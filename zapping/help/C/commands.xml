@@ -5,7 +5,7 @@
     <title>Command Line</title>
 
     <para>Commands can be given on the command line when Zapping starts. This was intended to change video device properties, the program terminates after executing the command.</para>
-    <userinput>zapping -c "command"</userinput>
+    <para><userinput>zapping -c "command"</userinput></para>
     <para>A separate, lightweight tool is planned for this purpose, and to send commands to a running Zapping process. Up to version 0.6.x these commands are available:</para>
 
     <variablelist>

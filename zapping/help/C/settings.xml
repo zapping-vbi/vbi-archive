@@ -148,9 +148,9 @@ the kernel device to be used in <link linkend="zapping-video-modes">capture mode
             <para>With the XVideo extension the image scaling hardware of your graphics card can be used to display captured video at almost any size. Here you can select the size of the <emphasis>captured</emphasis> video when using XVideo:</para>
             <variablelist>
               <varlistentry>
-                <term><guilabel>320 × 240</guilabel></term>
+                <term><guilabel>320 &#151; 240</guilabel></term>
                 <listitem>
-                  <para>Fixed size 320 × 240 pixels</para>
+                  <para>Fixed size 320 &#151; 240 pixels</para>
                 </listitem>
               </varlistentry>
               <varlistentry>

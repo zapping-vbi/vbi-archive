@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alirc.c,v 1.9 2004-10-04 02:48:15 mschimek Exp $ */
+/* $Id: alirc.c,v 1.10 2004-10-09 02:52:24 mschimek Exp $ */
 
 /* XXX gtk_input */
 #undef GTK_DISABLE_DEPRECATED
@@ -57,47 +57,11 @@ static struct lirc_config *config = NULL;
 static guint lirc_iotag;
 /* our link to the device struct */
 static tveng_device_info *tveng_info;
-/* when comming out of fullscreen, goto this mode */
-/* in case we start in fullscreen give it some sane return mode */
-static display_mode windowedmode_d = DISPLAY_MODE_WINDOW;
-static capture_mode windowedmode_c = CAPTURE_MODE_READ;
-/* last channel set to and the timestamp it has */
 
 static void
 legacy_zoom			(const gchar *		args _unused_)
 {
-  if (DISPLAY_MODE_FULLSCREEN == zapping->display_mode
-      && CAPTURE_MODE_OVERLAY == tveng_info->capture_mode)
-    {
-      const gchar *s = "";
-
-      switch (((int)windowedmode_d) | windowedmode_c)
-	{
-	case DISPLAY_MODE_WINDOW | CAPTURE_MODE_READ:
-	  s = "capture";
-	  break;
-	case DISPLAY_MODE_FULLSCREEN | CAPTURE_MODE_OVERLAY:
-	  s = "fullscreen";
-	  break;
-	case DISPLAY_MODE_WINDOW | CAPTURE_MODE_OVERLAY:
-	  s = "preview";
-	  break;
-	case DISPLAY_MODE_NONE | CAPTURE_MODE_NONE:
-	  s = "teletext";
-	  break;
-	default:
-	  g_assert_not_reached ();
-	  break;
-	}
-
-      python_command_printf (NULL, "zapping.switch_mode('%s')", s);
-    }
-  else
-    {
-      windowedmode_d = zapping->display_mode;
-      windowedmode_c = tveng_info->capture_mode;
-      python_command (NULL, "zapping.switch_mode('fullscreen')");
-    }
+  python_command (NULL, "zapping.toggle_mode('fullscreen')");
 }
 
 static void

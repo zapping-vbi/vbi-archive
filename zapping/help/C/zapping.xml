@@ -96,6 +96,7 @@ EndSection
 	  <term>BKTR kernel driver (FreeBSD)</term>
 	  <listitem>
 	    <para>Zapping can capture video, capture VBI (Teletext and Closed Caption) data and overlay video with this driver. For installation and configuration of the driver please consult the FreeBSD handbook.</para>
+	  </listitem>
 	</varlistentry>
 	<varlistentry>
 	  <term>XVideo drivers</term>
@@ -229,7 +230,7 @@ EndSection
     <sect2 id="zapping-record">
       <title>Record video and audio</title>
       <para>To record video and/or audio click on the <guilabel>Record</guilabel> button in the toolbar or press the <keycap>R</keycap> key. A dialog will open where you can choose a file name and format. Click on the <guilabel>Record</guilabel> button in the dialog to start recording, on the <guilabel>Stop</guilabel> button to stop.</para>
-      <para>File formats can be configured in <link ulink="zapping-settings-recording">preferences</link>. You can create different configurations and name them as desired.</para>
+      <para>File formats can be configured in <link linkend="zapping-settings-recording">preferences</link>. You can create different configurations and name them as desired.</para>
       <para>Video recording is only possible if your TV card and its driver supports video capturing in realtime. Video compression hardware is not yet supported.</para>
       <para>Currently recording is not supported on FreeBSD.</para>
     </sect2>

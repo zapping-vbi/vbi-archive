@@ -1,8 +1,7 @@
 [Desktop Entry]
 Version=0.9
 Encoding=UTF-8
-Name=Zapping
+_Name=Zapping TV Viewer
 Type=Application
-_Comment=TV viewer
 Exec=zapping
 Icon=zapping/gnome-television.png

@@ -794,6 +794,7 @@ z_switch_standard		(guint hash, tveng_device_info *info)
 #ifdef HAVE_LIBZVBI
   if ((vbi = zvbi_get_object ()))
     {
+      /* XXX should avoid this if same scanning. */
       zvbi_close_device ();
     }
 #endif
