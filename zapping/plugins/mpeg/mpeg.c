@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.54 2005-01-20 01:38:34 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.55 2005-02-12 13:30:46 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu -> ? */
 #undef GTK_DISABLE_DEPRECATED
@@ -435,8 +435,8 @@ do_start			(const gchar *		file_name)
 
       par = &video_params.video;
 
-      if (zmisc_switch_mode (DISPLAY_MODE_WINDOW,
-			     CAPTURE_MODE_READ, zapping_info))
+      if (-1 == zmisc_switch_mode (DISPLAY_MODE_WINDOW,
+				   CAPTURE_MODE_READ, zapping_info))
 	{
 	  rte_context_delete (context);
 	  context_enc = NULL;
