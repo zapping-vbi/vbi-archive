@@ -1078,7 +1078,7 @@ gchar *substitute_keywords	(gchar		*string,
 	   if (tc->rf_name)
 	     buffer = g_strdup(tc->rf_name);
 	   else
-	     buffer = g_strdup(_("No id"));
+	     buffer = g_strdup(_("Unnamed"));
 	   break;
 	 case 3:
 	   {
@@ -1197,7 +1197,9 @@ z_switch_channel		(tveng_tuned_channel *	channel,
 	  first_switch = FALSE;
 	}
 
+#ifdef HAVE_LIBZVBI
       tc->caption_pgno = zvbi_caption_pgno;
+#endif
     }
 
   /* Always: if ((avoid_noise = zcg_bool (NULL, "avoid_noise"))) */
@@ -1246,7 +1248,7 @@ z_switch_channel		(tveng_tuned_channel *	channel,
 
   if (info->current_mode == TVENG_CAPTURE_PREVIEW)
     osd_render_markup (NULL,
-	_("<span foreground=\"yellow\">%s</span>"), channel->name);
+	("<span foreground=\"yellow\">%s</span>"), channel->name);
 #endif
 }
 
@@ -1457,8 +1459,7 @@ kp_key_press			(GdkEventKey *		event,
 	  }
 
 	kp_clear = FALSE;
-	/* TRANSLATORS: Channel name being entered on numeric keypad */
-	osd_render_markup (kp_timeout, _("<span foreground=\"green\">%s</span>"),
+	osd_render_markup (kp_timeout, ("<span foreground=\"green\">%s</span>"),
 			   kp_chsel_buf);
 	kp_clear = TRUE;
 
@@ -1978,7 +1979,8 @@ tuned_channel_nth_name		(guint			index)
 
   tc = nth_channel (index);
 
-  if (!tc /* huh? */ || !tc->name)
+  /* huh? */
+  if (!tc || !tc->name)
     return _("Unnamed");
   else
     return tc->name;
@@ -2001,11 +2003,13 @@ add_channel_entries			(GtkMenuShell *menu,
 
   if (num_channels == 0)
     {
-      GtkWidget *menu_item;
-
       /* This doesn't count as something added */
 
-      menu_item = z_gtk_pixmap_menu_item_new (_("No tuned channels"),
+      GtkWidget *menu_item;
+
+      /* TRANSLATORS: This is displayed in the channel menu when
+         the channel list is empty. */
+      menu_item = z_gtk_pixmap_menu_item_new (_("No channels"),
 					      GTK_STOCK_CLOSE);
       gtk_widget_set_sensitive (menu_item, FALSE);
       gtk_widget_show (menu_item);
@@ -2188,8 +2192,7 @@ py_control_incr			(PyObject *self, PyObject *args)
       tveng_set_control ((tv_control *) tc, tc->value + increment * tc->step, main_info);
 
 #ifdef HAVE_LIBZVBI
-      /* TRANSLATORS: Control change OSD (%s name, %d new value in percent) */
-      osd_render_markup (NULL, _("<span foreground=\"blue\">%s %d %%</span>"),
+      osd_render_markup (NULL, ("<span foreground=\"blue\">%s %d %%</span>"),
 			 tc->label, (tc->value - tc->minimum)
 			 * 100 / (tc->maximum - tc->minimum));
 #endif
