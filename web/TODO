@@ -1,4 +1,4 @@
-$Id: TODO,v 1.4 2004-04-17 05:53:24 mschimek Exp $
+$Id: TODO,v 1.5 2004-04-17 07:48:57 mschimek Exp $
 
 + Can we get our own 404 page? Yes! .htaccess & ErrorDocument.
 + Examine suggestion of mboedick at ./ to add to .htaccess
