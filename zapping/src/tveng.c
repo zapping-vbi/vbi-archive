@@ -209,6 +209,8 @@ int tveng_attach_device(const char* device_file,
       tveng_describe_controller(&short_str, &long_str, info);
       fprintf(stderr, "Device: %s [%s - %s]\n", info->file_name,
 	      short_str, long_str);
+      fprintf(stderr, "Detected framebuffer depth: %d\n",
+	      tveng_get_display_depth(info));
       if (info->private->default_standard)
 	fprintf(stderr, "On tunerless inputs, the norm defaults to %s\n",
 		info->private->default_standard);

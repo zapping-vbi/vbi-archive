@@ -10,7 +10,7 @@ EXTRA_DIST = zapping_setup_fb.pam
 if SUID_ZSFB
 install-binPROGRAMS: $(bin_PROGRAMS)
 	$(mkinstalldirs) $(DESTDIR)$(bindir)
-	$(INSTALL) -m455 -o root -g root zapping_setup_fb $(DESTDIR)$(bindir)
+	$(INSTALL) -m4755 -o root -g root zapping_setup_fb $(DESTDIR)$(bindir)
 
 uninstall-binPROGRAMS:
 	rm -f $(DESTDIR)$(bindir)/zapping_setup_fb
