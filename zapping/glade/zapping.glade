@@ -200,7 +200,6 @@
 	<widget>
 	  <class>GtkMenuItem</class>
 	  <name>go_zapping1</name>
-	  <tooltip>Options for when going Zapping</tooltip>
 	  <label>Go _Zapping</label>
 	  <right_justify>False</right_justify>
 
@@ -260,6 +259,7 @@
 	    <widget>
 	      <class>GtkPixmapMenuItem</class>
 	      <name>main_help1</name>
+	      <tooltip>You can get here some info about this program</tooltip>
 	      <signal>
 		<name>activate</name>
 		<handler>on_main_help1_activate</handler>
@@ -384,6 +384,11 @@
     <handler>on_zapping_properties_help</handler>
     <last_modification_time>Thu, 27 Jan 2000 18:00:21 GMT</last_modification_time>
   </signal>
+  <position>GTK_WIN_POS_NONE</position>
+  <modal>False</modal>
+  <allow_shrink>False</allow_shrink>
+  <allow_grow>False</allow_grow>
+  <auto_shrink>False</auto_shrink>
 
   <widget>
     <class>GtkNotebook</class>

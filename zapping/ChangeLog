@@ -1,3 +1,11 @@
+13.6.2000	Sound fixes <garetxe@users.sourceforge.net>
+
+	* src/sound.c: Some fixes have been made, now it should be
+	somewhat faster. It is yet untested.
+	* src/tveng.c: Added support for 15 bpp screen depth.
+	* zapping.spec.in: Fixed, now it adds the translations to the RPM
+	correctly.
+
 12.6.2000	Docs added <garetxe@users.sourceforge.net>
 
 	* help/C/channel_editor.html: Added.

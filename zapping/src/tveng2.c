@@ -281,6 +281,9 @@ int tveng2_attach_device(const char* device_file,
 
   switch(error)
     {
+    case 15:
+      info->format.pixformat = TVENG_PIX_RGB555;
+      break;
     case 16:
       info->format.pixformat = TVENG_PIX_RGB565;
       break;
@@ -308,6 +311,7 @@ int tveng2_attach_device(const char* device_file,
       tveng2_close_device(info);
       return -1;
     }
+
   return info -> fd;
 }
 
@@ -583,9 +587,9 @@ int tveng2_get_standards(tveng_device_info * info)
 
       /* Check that this standard is supported by the current input */
       if ((enumstd.inputs & (1 << info->cur_input)) == 0)
-	break; /* Unsupported by the current input */
+	continue; /* Unsupported by the current input */
 
-      info->standards = realloc(info->standards, 
+      info->standards = realloc(info->standards,
 				(count+1)*sizeof(struct tveng_enumstd));
       info->standards[count].index = count;
       info->standards[count].id = i;
@@ -775,6 +779,10 @@ tveng2_update_capture_format(tveng_device_info * info)
   info->format.sizeimage = format.fmt.pix.sizeimage;
   switch (format.fmt.pix.pixelformat)
     {
+    case V4L2_PIX_FMT_RGB555:
+      info->format.depth = 15;
+      info->format.pixformat = TVENG_PIX_RGB555;
+      break;
     case V4L2_PIX_FMT_RGB565:
       info->format.depth = 16;
       info->format.pixformat = TVENG_PIX_RGB565;
@@ -830,6 +838,10 @@ tveng2_set_capture_format(tveng_device_info * info)
   /* Transform the given palette value into a V4L value */
   switch(info->format.pixformat)
     {
+    case TVENG_PIX_RGB555:
+      format.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB555;
+      format.fmt.pix.depth = 15;
+      break;
     case TVENG_PIX_RGB565:
       format.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB565;
       format.fmt.pix.depth = 16;

@@ -279,6 +279,9 @@ int tveng1_attach_device(const char* device_file,
 
   switch(error)
     {
+    case 15:
+      info->format.pixformat = TVENG_PIX_RGB555;
+      break;
     case 16:
       info->format.pixformat = TVENG_PIX_RGB565;
       break;
@@ -794,6 +797,10 @@ tveng1_update_capture_format(tveng_device_info * info)
   /* Transform the palette value into a tveng value */
   switch(pict.palette)
     {
+    case VIDEO_PALETTE_RGB555:
+      info->format.depth = 15;
+      info->format.pixformat = TVENG_PIX_RGB555;
+      break;
     case VIDEO_PALETTE_RGB565:
       info->format.depth = 16;
       info->format.pixformat = TVENG_PIX_RGB565;
@@ -861,6 +868,10 @@ tveng1_set_capture_format(tveng_device_info * info)
   /* Transform the given palette value into a V4L value */
   switch(info->format.pixformat)
     {
+    case TVENG_PIX_RGB555:
+      pict.palette = VIDEO_PALETTE_RGB555;
+      pict.depth = 15;
+      break;
     case TVENG_PIX_RGB565:
       pict.palette = VIDEO_PALETTE_RGB565;
       pict.depth = 16;
@@ -1931,6 +1942,9 @@ static int p_tveng1_queue(tveng_device_info * info)
   /* Fill in the mmaped_buffer struct */
   switch(info->format.pixformat)
     {
+    case TVENG_PIX_RGB555:
+      bm.format = VIDEO_PALETTE_RGB555;
+      break;
     case TVENG_PIX_RGB565:
       bm.format = VIDEO_PALETTE_RGB565;
       break;
@@ -1989,6 +2003,9 @@ static int p_tveng1_dequeue(void * where, tveng_device_info * info)
   /* Fill in the mmaped_buffer struct */
   switch(info->format.pixformat)
     {
+    case TVENG_PIX_RGB555:
+      bm.format = VIDEO_PALETTE_RGB555;
+      break;
     case TVENG_PIX_RGB565:
       bm.format = VIDEO_PALETTE_RGB565;
       break;

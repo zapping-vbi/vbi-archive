@@ -39,6 +39,7 @@
 #include "sound.h"
 
 #define MAX_SOUND_MEM 1024*1024 /* each sound buffer should be 1M maximum */
+#define MIN_SOUND_MEM 1024*16 /* Minimum buffer size allocated */
 
 struct soundbuffer
 {
@@ -110,14 +111,14 @@ gboolean startup_sound ( void )
   pthread_mutex_init(&si.mutex, NULL);
 
   pthread_mutex_init(&si.sb[0].mutex, NULL);
-  si.sb[0].buffer = NULL;
+  si.sb[0].buffer = malloc(MIN_SOUND_MEM);
   si.sb[0].write_pointer = 0;
-  si.sb[0].buffer_size = 0;
+  si.sb[0].buffer_size = MIN_SOUND_MEM;
 
   pthread_mutex_init(&si.sb[1].mutex, NULL);
-  si.sb[1].buffer = NULL;
+  si.sb[1].buffer = malloc(MIN_SOUND_MEM);
   si.sb[1].write_pointer = 0;
-  si.sb[1].buffer_size = 0;
+  si.sb[1].buffer_size = MIN_SOUND_MEM;
   si.switch_buffers = FALSE;
 
   if (pthread_create(&si.saving_thread, NULL, sound_capturing_thread,
@@ -125,6 +126,12 @@ gboolean startup_sound ( void )
     {
       esd_close(si.esd_recording_socket);
       esd_close(si.esd_playing_socket);
+      g_free(si.sb[0].buffer);
+      g_free(si.sb[1].buffer);
+
+      pthread_mutex_destroy(&si.mutex);
+      pthread_mutex_destroy(&si.sb[0].mutex);
+      pthread_mutex_destroy(&si.sb[1].mutex);
 
       RunBox("Cannot create a new thread", GNOME_MESSAGE_BOX_ERROR);
       return FALSE;
@@ -233,6 +240,8 @@ struct soundinfo * sound_create_struct( void )
 
   returned_struct -> rate = 44100;
   returned_struct -> bits = 16;
+  returned_struct -> buffer_size = MIN_SOUND_MEM;
+  returned_struct -> buffer = malloc(MIN_SOUND_MEM);
 
   return (returned_struct);
 }

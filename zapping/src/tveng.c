@@ -126,9 +126,8 @@ int tveng_attach_device(const char* device_file,
   */
   switch (tveng_get_display_depth(info))
     {
+    case 15:
     case 16:
-      /*case 15:*/ /* fixme: not yet supported, it doesn't work in my
-	box (due to the X server, that doesn't support this depth) */
     case 24:
     case 32:
       break;
