@@ -1486,7 +1486,7 @@ x11_screensaver_set		(unsigned int		level)
 	    {
 	      /* Error ignored. */
 	      system ("dcop kdesktop KScreensaverIface "
-		      "enable true &>/dev/null");
+		      "enable true >/dev/null 2>&1");
 	    }
 #endif
 	}
@@ -1518,7 +1518,7 @@ x11_screensaver_set		(unsigned int		level)
 	    {
 	      /* Error ignored. */
 	      system ("dcop kdesktop KScreensaverIface "
-		      "enable false &>/dev/null");
+		      "enable false >/dev/null 2>&1");
 	    }
 #endif
 	}
@@ -1610,9 +1610,15 @@ x11_screensaver_init		(void)
 
 #ifndef __NetBSD__
   /* Stolen from xawdecode, untested. */
+  /* Original syntax:
+     dcop kdesktop KScreensaverIface isEnabled \
+     2>/dev/null | grep true &>/dev/null
+     Csh cannot redirect two streams. Sh cannot >& file or &> file.
+     Going with POSIX.2 syntax (bash, sh, not csh). */
+
   kscreensaver =
-    (0 == system ("dcop kdesktop KScreensaverIface isEnabled "
-		  "2>/dev/null | grep true &>/dev/null"));
+    (0 == system ("( dcop kdesktop KScreensaverIface isEnabled 2>/dev/null"
+		  "| grep true ) >/dev/null 2>&1"));
 
   printv ("KScreensaver %spresent\n", kscreensaver ? "" : "not ");
 #endif
