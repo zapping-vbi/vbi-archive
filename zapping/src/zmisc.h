@@ -595,6 +595,22 @@ extern gboolean
 z_overwrite_file		(GtkWindow *		parent,
 				 const gchar *		filename);
 
+enum old_tveng_capture_mode
+{
+  /* We keep this for config compatibility. */
+  OLD_TVENG_NO_CAPTURE,		/* Capture isn't active */
+  OLD_TVENG_CAPTURE_READ,	/* Capture is through windowed read() call */
+  OLD_TVENG_CAPTURE_PREVIEW,   	/* Capture is through fullscreen overlays */
+  OLD_TVENG_CAPTURE_WINDOW,	/* Capture is through windowed overlays */
+  OLD_TVENG_TELETEXT,		/* Teletext in window */
+
+  OLD_TVENG_FULLSCREEN_READ,
+  OLD_TVENG_FULLSCREEN_TELETEXT,
+  OLD_TVENG_BACKGROUND_READ,
+  OLD_TVENG_BACKGROUND_PREVIEW,
+  OLD_TVENG_BACKGROUND_TELETEXT,
+};
+
 void
 from_old_tveng_capture_mode	(display_mode *		dmode,
 				 capture_mode *		cmode,

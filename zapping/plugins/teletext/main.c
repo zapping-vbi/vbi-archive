@@ -699,7 +699,7 @@ properties_add			(GtkDialog *		dialog)
 {
   static const SidebarEntry se = {
     .label		= N_("Teletext"),
-    .icon_name		= "teletext.png",
+    .icon_name		= "teletext48.png",
     .create		= create_preferences,
     .cancel		= cancel_preferences,
     .help_link_id	= "zapping-settings-vbi",

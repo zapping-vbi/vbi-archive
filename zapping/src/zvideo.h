@@ -42,6 +42,8 @@ struct _ZVideo
 
   /*< private >*/
 
+  gboolean		size_magic;
+
   guint			min_width;
   guint			min_height;
 

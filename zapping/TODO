@@ -1,6 +1,7 @@
 Outstanding issues for future releases
 --------------------------------------
 
+* Mouse wheel needs testing.
 * keyboard: there are too many conflicts between the Zapping
   and Xawtv mapping, better add an option to prefs.
 * Suppress mute function of keypad enter when entering
@@ -12,8 +13,6 @@ Outstanding issues for future releases
   gtk_alignment_set_padding() (gtk 2.4).
 * tv_set_overlay_buffer: Check DGA presence before calling
   zsfb. Test with Xnest.
-* Fullscreen: When the user preselected a vidmode Z should not try
-  to overlay the whole screen.
 * Keyboard preferences: Python commands should not be visible,
   by default. Use GtkAction?
 * Recording: like mixer volume, substitute tv card brightness and
@@ -44,7 +43,6 @@ Outstanding issues for future releases
   Make widgets insensitive if we have no previous page
   and cannot lookup. Unselect and sensitive in
   Teletext mode.
-* Fullscreen integrates badly into desktop, eg. context menu.
 * vbi: add toggle button to disable CC/TTX decoding
   (independent of station name decoding, that is). Mind
   listing subtitles. Should also disable trigger

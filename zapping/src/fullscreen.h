@@ -19,8 +19,9 @@
 #ifndef FULLSCREEN_H
 #define FULLSCREEN_H
 
-gboolean
-start_fullscreen		(void);
+extern gboolean
+start_fullscreen		(display_mode		dmode,
+				 capture_mode		cmode);
 extern void
 stop_fullscreen			(void);
 

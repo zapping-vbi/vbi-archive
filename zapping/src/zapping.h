@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping.h,v 1.3 2004-09-22 21:29:16 mschimek Exp $ */
+/* $Id: zapping.h,v 1.4 2004-09-26 13:33:12 mschimek Exp $ */
 
 #ifndef ZAPPING_H
 #define ZAPPING_H
@@ -75,8 +75,10 @@ struct _Zapping
   GtkToolbar *		toolbar;
   gboolean		toolbar_added;
   GnomeAppBar *		appbar;
+  gboolean		appbar_added;
   GtkBox *		contents;
   ZVideo *		video;
+  gboolean		decorated;
 };
 
 struct _ZappingClass
@@ -89,8 +91,8 @@ zapping_get_type		(void) G_GNUC_CONST;
 extern GtkWidget *
 zapping_new			(void);
 extern void
-zapping_enable_appbar		(Zapping *		z,
-				 gboolean		show);
+zapping_view_appbar		(Zapping *		z,
+				 gboolean		view);
 extern void
 zapping_rebuild_channel_menu	(Zapping *		z);
 extern void

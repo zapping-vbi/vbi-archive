@@ -648,18 +648,6 @@ typedef enum {
   CAPTURE_MODE_TELETEXT,
 } capture_mode;
 
-enum old_tveng_capture_mode
-{
-  /* We keep this for config compatibility. */
-
-  OLD_TVENG_NO_CAPTURE,		/* Capture isn't active */
-  OLD_TVENG_CAPTURE_READ,	/* Capture is through windowed read() call */
-  OLD_TVENG_CAPTURE_PREVIEW,   	/* Capture is through fullscreen overlays */
-  OLD_TVENG_CAPTURE_WINDOW,	/* Capture is through windowed overlays */
-  OLD_TVENG_TELETEXT,		/* Teletext in window */
-};
-
-
 /* The controller we are using for this device */
 enum tveng_controller
 {
