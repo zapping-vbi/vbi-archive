@@ -18,20 +18,22 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io.c,v 1.9 2002-10-02 02:18:03 mschimek Exp $ */
+/* $Id: io.c,v 1.10 2002-12-14 00:45:17 mschimek Exp $ */
 
 #undef NDEBUG
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <string.h>
 #include <assert.h>
-#include <getopt.h>
 #include <math.h>
-#include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <unistd.h>
+#ifdef HAVE_GETOPT_LONG
+#include <getopt.h>
+#endif
 
 #include "librte.h"
 
@@ -407,6 +409,7 @@ seek_cb(rte_context *context, off64_t offset, int whence)
 
 static const char *short_options = "d:o:q:s:x:";
 
+#ifdef HAVE_GETOPT_LONG
 static const struct option
 long_options[] = {
 	{ "cm",			no_argument,		&io_mode,		1 },
@@ -421,6 +424,9 @@ long_options[] = {
 	{ "output",		required_argument,	NULL,			'o' },
 	{ 0, 0, 0, 0 }
 };
+#else
+#define getopt_long(ac, av, s, l, i) getopt(ac, av, s)
+#endif
 
 /* XXX remove */
 void ccmalloc_atexit(void);

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: info.c,v 1.13 2002-09-26 20:47:36 mschimek Exp $ */
+/* $Id: info.c,v 1.14 2002-12-14 00:45:26 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -30,8 +30,11 @@
 #include <string.h>
 #include <ctype.h>
 #include <assert.h>
-#include <getopt.h>
 #include <locale.h>
+#include <unistd.h>
+#ifdef HAVE_GETOPT_LONG
+#include <getopt.h>
+#endif
 
 #include "librte.h"
 
@@ -615,12 +618,16 @@ show_contexts (void)
 
 static const char *short_options = "cb";
 
+#ifdef HAVE_GETOPT_LONG
 static const struct option
 long_options[] = {
 	{ "check", no_argument, NULL, 'c' },
 	{ "brief", no_argument, NULL, 'b' },
 	{ 0, 0, 0, 0 }
 };
+#else
+#define getopt_long(ac, av, s, l, i) getopt(ac, av, s)
+#endif
 
 int
 main (int argc, char **argv)
