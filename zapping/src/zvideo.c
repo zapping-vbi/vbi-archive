@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zvideo.c,v 1.1.2.6 2003-11-04 21:09:22 mschimek Exp $ */
+/* $Id: zvideo.c,v 1.1.2.7 2003-11-15 15:12:27 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -85,7 +85,7 @@ z_video_set_cursor		(ZVideo *		video,
 
       video->blanked_cursor_type = cursor_type;
 
-      if (video->blank_cursor_timeout_id != -1)
+      if (video->blank_cursor_timeout_id > 0)
 	g_source_remove (video->blank_cursor_timeout_id);
 
       if (video->blank_cursor_timeout > 0)
@@ -588,7 +588,7 @@ destroy				(GtkObject *		object)
   ZVideo *video = (ZVideo *) object;
   GtkWidget *toplevel;
 
-  if (video->blank_cursor_timeout_id != -1)
+  if (video->blank_cursor_timeout_id > 0)
     g_source_remove (video->blank_cursor_timeout_id);
 
   if ((toplevel = get_toplevel_window (video)))
