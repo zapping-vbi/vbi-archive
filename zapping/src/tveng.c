@@ -499,7 +499,8 @@ int tveng_attach_device(const char* device_file,
     }
 
   UNTVLOCK;
-  return info->fd;
+  return info->fd; /* XXX not all devices have fd,
+		      fake fd (tvengxv) is dangerous. */
 }
 
 /*
