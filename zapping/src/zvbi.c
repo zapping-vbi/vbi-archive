@@ -454,7 +454,7 @@ scan_header			(vbi_page *		pg _unused_)
 
 
 
-int osd_pipe[2];
+int osd_pipe[2] = { -1, -1 };
 
 static void
 cc_event_handler		(vbi_event *		ev,
@@ -482,7 +482,7 @@ cc_event_handler		(vbi_event *		ev,
   write (pipe[1], "x", 1);
 }
 
-int ttx_pipe[2];
+int ttx_pipe[2] = { -1, -1 };
 
 /* This is called when we receive a page, header, etc. */
 static void
@@ -645,7 +645,10 @@ decoder_giofunc			(GIOChannel *		source _unused_,
   zf_buffer *b;
 
   if (read (ttx_pipe[0], dummy, 16 /* flush */) <= 0)
-    return TRUE;
+    {
+      /* Error or EOF, don't call again. */
+      return FALSE;
+    }
 
   while ((b = zf_recv_full_buffer (&channel_consumer)))
     {
@@ -861,7 +864,7 @@ capturing_thread (void *x _unused_)
 
 	zf_send_full_buffer (&p, b);
 
-	if (channel)
+	if (-1 != ttx_pipe[1])
 	  write (ttx_pipe[1], "x", 1);
 
 	goto abort;
@@ -884,7 +887,7 @@ capturing_thread (void *x _unused_)
 
 	zf_send_full_buffer (&p, b);
 
-	if (channel)
+	if (-1 != ttx_pipe[1])
 	  write (ttx_pipe[1], "x", 1);
 
 	goto abort;
@@ -931,13 +934,20 @@ capturing_thread (void *x _unused_)
 
     zf_send_full_buffer(&p, b);
 
-    if (channel)
+    if (-1 != ttx_pipe[1])
       write (ttx_pipe[1], "x", 1);
   }
 
  abort:
   if (ZVBI_CAPTURE_THREAD_DEBUG)
     fprintf (stderr, "VBI capture thread terminates\n");
+
+  if (-1 != ttx_pipe[1])
+    {
+      /* Send EOF and close. */
+      close (ttx_pipe[1]);
+      ttx_pipe[1] = -1;
+    }
 
   zf_rem_producer (&p);
 
@@ -1050,6 +1060,12 @@ destroy_threads			(void)
 	  /* Undo g_io_add_watch(). */
 	  g_source_remove (channel_id);
 
+	  if (-1 != ttx_pipe[0])
+	    {
+	      close (ttx_pipe[0]);
+	      ttx_pipe[0] = -1;
+	    }
+
 	  g_io_channel_unref (channel);
 	  channel = NULL;
 
@@ -1140,15 +1156,6 @@ init_threads			(const gchar *		dev_name,
 {
   gchar *failed = _("VBI initialization failed.\n%s");
   gchar *memory = _("Ran out of memory.");
-  gchar *thread = _("Out of resources to start a new thread.");
-  gchar *mknod_hint = _(
-	"This probably means that the required driver isn't loaded. "
-	"Add to your /etc/modules.conf the line:\n"
-	"alias char-major-81-224 bttv (replace bttv by the name "
-	"of your video driver)\n"
-        "and with mknod create /dev/vbi0 appropriately. If this "
-	"doesn't work, you can disable VBI in Settings/Preferences/VBI "
-	"options/Enable VBI decoding.");
   unsigned int services = SERVICES;
   char *errstr;
   int buffer_size;
@@ -1249,7 +1256,15 @@ init_threads			(const gchar *		dev_name,
 		    case ENOENT:
 		    case ENXIO:
 		    case ENODEV:
-		      s = g_strconcat (t, "\n", mknod_hint, NULL);
+		      s = g_strconcat (t, "\n",
+				       _(
+	"This probably means that the required driver isn't loaded. "
+	"Add to your /etc/modules.conf the line:\n"
+	"alias char-major-81-224 bttv (replace bttv by the name "
+	"of your video driver)\n"
+        "and with mknod create /dev/vbi0 appropriately. If this "
+	"doesn't work, you can disable VBI in Settings/Preferences/VBI "
+	"options/Enable VBI decoding."), NULL);
 		      RunBox (failed, GTK_MESSAGE_ERROR, s);
 		      g_free (s);
 		      break;
@@ -1305,6 +1320,12 @@ init_threads			(const gchar *		dev_name,
 
   assert (zf_add_consumer (&sliced_fifo, &channel_consumer));
 
+  if (pipe (ttx_pipe))
+    {
+      g_warning ("Cannot create ttx pipe");
+      exit (EXIT_FAILURE);
+    }
+
   channel = g_io_channel_unix_new (ttx_pipe[0]);
 
   channel_id =
@@ -1345,7 +1366,8 @@ init_threads			(const gchar *		dev_name,
     {
       if (pthread_create (&capturer_id, NULL, capturing_thread, NULL))
 	{
-	  ShowBox(failed, GTK_MESSAGE_ERROR, thread);
+	  ShowBox(failed, GTK_MESSAGE_ERROR,
+		  _("Out of resources to start a new thread."));
 	  zf_destroy_fifo (&sliced_fifo);
 	  destroy_capture ();
 	  return FALSE;
@@ -1599,9 +1621,6 @@ shutdown_zvbi			(void)
 
   D();
 
-  close (ttx_pipe[1]);
-  close (ttx_pipe[0]);
-
   close (osd_pipe[1]);
   close (osd_pipe[0]);
 
@@ -1652,12 +1671,6 @@ startup_zvbi			(void)
   if (pipe (osd_pipe))
     {
       g_warning ("Cannot create osd pipe");
-      exit (EXIT_FAILURE);
-    }
-
-  if (pipe (ttx_pipe))
-    {
-      g_warning ("Cannot create ttx pipe");
       exit (EXIT_FAILURE);
     }
 
