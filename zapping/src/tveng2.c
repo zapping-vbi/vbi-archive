@@ -280,17 +280,18 @@ static int
 tveng2_set_capture_format(tveng_device_info * info)
 {
   enum tveng_capture_mode current_mode;
+  gboolean overlay_was_active;
   tv_pixfmt pixfmt;
   int result;
 
   pixfmt = info->format.pixfmt;
-  current_mode = p_tveng_stop_everything(info);
+  current_mode = p_tveng_stop_everything(info, &overlay_was_active);
   info->format.pixfmt = pixfmt;
 
   result = set_capture_format(info);
 
   /* Start capturing again as if nothing had happened */
-  p_tveng_restart_everything(current_mode, info);
+  p_tveng_restart_everything(current_mode, overlay_was_active, info);
 
   return result;
 }
@@ -710,12 +711,25 @@ static tv_bool
 set_standard			(tveng_device_info *	info,
 				 const tv_video_standard *s)
 {
+	struct v4l2_standard standard;
+	const tv_video_standard *t;
   enum tveng_capture_mode current_mode;
+  gboolean overlay_was_active;
   tv_pixfmt pixfmt;
-  int r;
+	int r;
+
+	CLEAR (standard);
+
+	if (0 == v4l2_ioctl (info, VIDIOC_G_STD, &standard)) {
+		for_all (t, info->video_standards)
+			if (compare_standard (&S(t)->enumstd.std, &standard))
+				break;
+		if (t == s)
+			return TRUE;
+	}
 
   pixfmt = info->format.pixfmt;
-  current_mode = p_tveng_stop_everything(info);
+  current_mode = p_tveng_stop_everything(info, &overlay_was_active);
 
 	r = v4l2_ioctl (info, VIDIOC_S_STD, &S(s)->enumstd.std);
 
@@ -725,7 +739,7 @@ set_standard			(tveng_device_info *	info,
 /* XXX bad idea */
   info->format.pixfmt = pixfmt;
   p_tveng_set_capture_format(info);
-  p_tveng_restart_everything(current_mode, info);
+  p_tveng_restart_everything(current_mode, overlay_was_active, info);
 
   return (0 == r);
 }
@@ -995,6 +1009,7 @@ set_video_input			(tveng_device_info *	info,
 				 const tv_video_line *	l)
 {
 	enum tveng_capture_mode current_mode;
+	gboolean overlay_was_active;
 	tv_pixfmt pixfmt;
 
 	if (info->cur_video_input) {
@@ -1006,7 +1021,7 @@ set_video_input			(tveng_device_info *	info,
 	}
 
 	pixfmt = info->format.pixfmt;
-	current_mode = p_tveng_stop_everything(info);
+	current_mode = p_tveng_stop_everything(info, &overlay_was_active);
 
 	if (-1 == v4l2_ioctl (info, VIDIOC_S_INPUT, &VI (l)->index))
 		return FALSE;
@@ -1027,7 +1042,7 @@ set_video_input			(tveng_device_info *	info,
 	p_tveng_set_capture_format(info);
 
 	/* XXX Start capturing again as if nothing had happened */
-	p_tveng_restart_everything (current_mode, info);
+	p_tveng_restart_everything (current_mode, overlay_was_active, info);
 
 	return TRUE;
 }
@@ -1274,11 +1289,12 @@ tveng2_start_capturing(tveng_device_info * info)
   struct v4l2_requestbuffers rb;
   struct private_tveng2_device_info * p_info =
     (struct private_tveng2_device_info*) info;
+  gboolean dummy;
   int i;
 
   t_assert(info != NULL);
 
-  p_tveng_stop_everything(info);
+  p_tveng_stop_everything(info, &dummy);
 
   t_assert(info -> current_mode == TVENG_NO_CAPTURE);
   t_assert(p_info->num_buffers == 0);
@@ -1495,6 +1511,7 @@ static
 int tveng2_set_capture_size(int width, int height, tveng_device_info * info)
 {
   enum tveng_capture_mode current_mode;
+  gboolean overlay_was_active;
   int retcode;
 
   t_assert(info != NULL);
@@ -1503,7 +1520,7 @@ int tveng2_set_capture_size(int width, int height, tveng_device_info * info)
 
   tveng2_update_capture_format(info);
 
-  current_mode = p_tveng_stop_everything(info);
+  current_mode = p_tveng_stop_everything(info, &overlay_was_active);
 
   if (width < info->caps.minwidth)
     width = info->caps.minwidth;
@@ -1519,7 +1536,8 @@ int tveng2_set_capture_size(int width, int height, tveng_device_info * info)
   retcode = tveng2_set_capture_format(info);
 
   /* Restart capture again */
-  if (p_tveng_restart_everything(current_mode, info) == -1)
+  if (p_tveng_restart_everything(current_mode,
+				 overlay_was_active, info) == -1)
     retcode = -1;
 
   return retcode;
@@ -1972,7 +1990,9 @@ tveng2_describe_controller(char ** short_str, char ** long_str,
 /* Closes a device opened with tveng_init_device */
 static void tveng2_close_device(tveng_device_info * info)
 {
-  p_tveng_stop_everything(info);
+  gboolean dummy;
+
+  p_tveng_stop_everything(info, &dummy);
 
   device_close (info->log_fp, info->fd);
   info -> fd = 0;
