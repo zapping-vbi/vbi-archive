@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.27 2002-03-12 18:20:23 mschimek Exp $ */
+/* $Id: main.c,v 1.28 2002-03-16 16:32:00 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -491,6 +491,12 @@ main(int ac, char **av)
 		ASSERT("set audio parameters",
 		       audio_codec->class->parameters_set(audio_codec, &rsp));
 
+		/* XXX move into codec */
+		if (   (sampling_rate >= 32000 && audio_mode == 3 && audio_bit_rate > 192000)
+		    || (sampling_rate >= 32000 && audio_mode != 3 && audio_bit_rate < 64000))
+			printv(0, "Warning: audio bit rate %d bits/s exceeds decoder requirements, "
+			       "stream will not be standard compliant.\n", audio_bit_rate);
+
 		/* preliminary */
 		{
 			mp1e_codec *meta = PARENT(audio_codec, mp1e_codec, codec);
@@ -510,7 +516,7 @@ main(int ac, char **av)
 	if (modules & MOD_VIDEO) {
 		video_coding_size(width, height);
 
-		if (frame_rate > video_params.video.frame_rate)
+		if (frame_rate > video_params.video.frame_rate || mux_syn == 4 /* vcd */)
 			frame_rate = video_params.video.frame_rate;
 
 		printv(2, "Macroblocks %d x %d\n", mb_width, mb_height);
@@ -649,7 +655,27 @@ main(int ac, char **av)
 	case 4:
 		if (modules != MOD_VIDEO + MOD_AUDIO)
 			FAIL("Please add option -m3 (audio + video) for VCD\n");
-		printv(1, "VCD MPEG-1 Stream\n");
+		if (audio_mode == 3)
+		  	printv(0, "Warning: audio mode mono is not VCD 1.x compliant.\n");
+		if (audio_bit_rate != 224000)
+		  	printv(0, "Warning: audio bit rate %d kbit/s is not VCD 1.x compliant. "
+			       "Should be 224 kbit/s.\n", audio_bit_rate / 1000);
+		if (sampling_rate < 32000)
+		  	printv(0, "Warning: audio sampling rate %d Hz is not VCD 1.x compliant.\n",
+			       sampling_rate);
+		else if (sampling_rate != 44100)
+		  	printv(0, "Warning: audio sampling rate %d Hz is probably not "
+			       "VCD 1.x compliant. Suggest 44100 Hz.\n", sampling_rate);
+		if (width > 352
+		    || (frame_rate < 29 && height > 288)
+		    || (frame_rate >= 29 && height > 240))
+		  	printv(0, "Warning: image size %d x %d pixels is not VCD 1.x compliant, "
+			       "Should be 352 x 240 (PAL/NTSC) or 352 x 288 (PAL).\n", width, height);
+		if (video_bit_rate != 1152000)
+		  	printv(0, "Warning: video bit rate %d kbit/s is not VCD 1.x compliant. "
+			       "Should be 1152 kbit/s.\n", video_bit_rate / 1000);
+		printv(1, "VCD %s MPEG-1 Stream\n",
+		       (frame_rate < 29) ? "1.1" : "1.0");
 		vcd_system_mux(mux);
 		break;
 	}
