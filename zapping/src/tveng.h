@@ -1211,20 +1211,6 @@ exit(1);}
 #define t_warn(templ, args...)						\
   fprintf (stderr, "%s:%u: " templ, __FILE__, __LINE__ ,##args );
 
-/* Builds a custom error message, doesn't use errno */
-#define t_error_msg(str_error, msg_error, info, args...) \
-do { \
-  char temp_error_buffer[256]; \
-  temp_error_buffer[255] = 0; \
-  snprintf(temp_error_buffer, 255, "[%s] %s (line %d)\n%s failed: %s", \
-	   __FILE__, __PRETTY_FUNCTION__, __LINE__, str_error, msg_error); \
-  (info)->error[255] = 0; \
-  snprintf((info)->error, 255, temp_error_buffer ,##args); \
-  if ((info)->debug_level) \
-    fprintf(stderr, "TVeng: %s\n", (info)->error); \
-} while (0)
-
-
 #define tv_error_msg(info, template, args...)				\
 do {									\
   snprintf ((info)->error, 255, template ,##args );			\
@@ -1234,8 +1220,9 @@ do {									\
 } while (0)
 
 /* Builds an error message that lets me debug much better */
-#define t_error(str_error, info) \
-t_error_msg((str_error), strerror((info)->tveng_errno), (info));
+#define t_error(str_error, info)					\
+  tv_error_msg ((info), "%s: %d, %s", (str_error),			\
+	        (info)->tveng_errno, strerror((info)->tveng_errno))
 
 /* Defines a point that should never be reached */
 #define t_assert_not_reached() do {\
