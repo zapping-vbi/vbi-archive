@@ -1,31 +1,34 @@
 /*
- *  Zapping (TV viewer for the Gnome Desktop)
+ *  Zapping TV viewer
  *
- * Copyright (C) 2001 Iñaki García Etxebarria
- * Copyright (C) 2003 Michael H. Schimek
+ *  Copyright (C) 2000, 2001, 2002 Iñaki García Etxebarria
+ *  Copyright (C) 2000, 2001, 2002, 2003, 2004 Michael H. Schimek
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bookmark.c,v 1.1 2004-09-22 21:29:07 mschimek Exp $ */
+/* $Id: bookmark.c,v 1.2 2004-11-03 06:44:51 mschimek Exp $ */
+
+#include "libvbi/top_title.h"
+#include "main.h"
+#include "bookmark.h"
 
 #define ZCONF_DOMAIN "/zapping/ttxview/"
-#include "zconf.h"
-#include "zmisc.h"
-
-#include "bookmark.h"
+#include "src/zconf.h"
+#include "src/zmisc.h"
+#include "src/v4linterface.h"
 
 void
 bookmark_delete			(bookmark *		b)
@@ -35,6 +38,11 @@ bookmark_delete			(bookmark *		b)
 
   g_free (b->channel);
   g_free (b->description);
+
+  page_num_destroy (&b->pn);
+
+  CLEAR (*b);
+
   g_free (b);
 }
 
@@ -47,7 +55,7 @@ bookmark_list_destroy		(bookmark_list *	bl)
 
   g_object_unref (G_OBJECT (bl->zmodel));
 
-  CLEAR (bl);
+  CLEAR (*bl);
 }
 
 void
@@ -55,7 +63,7 @@ bookmark_list_init		(bookmark_list *	bl)
 {
   g_assert (NULL != bl);
 
-  bl->bookmarks = NULL;
+  CLEAR (*bl);
 
   bl->zmodel = ZMODEL (zmodel_new ());
 }
@@ -75,11 +83,13 @@ bookmark_list_remove_all	(bookmark_list *	bl)
 bookmark *
 bookmark_list_add		(bookmark_list *	bl,
 				 const gchar *		channel,
-				 vbi_pgno		pgno,
-				 vbi_subno		subno,
+				 const vbi3_network *	nk,
+				 vbi3_pgno		pgno,
+				 vbi3_subno		subno,
 				 const gchar *		description)
 {
   bookmark *b;
+  vbi3_bool success;
 
   g_assert (NULL != bl);
 
@@ -87,8 +97,11 @@ bookmark_list_add		(bookmark_list *	bl,
 
   b->channel = (channel && *channel) ? g_strdup (channel) : NULL;
 
-  b->pgno = pgno;
-  b->subno = subno;
+  success = vbi3_network_copy (&b->pn.network, nk);
+  g_assert (success);
+
+  b->pn.pgno = pgno;
+  b->pn.subno = subno;
 
   b->description = (description && *description) ?
     g_strdup (description) : NULL;
@@ -98,6 +111,7 @@ bookmark_list_add		(bookmark_list *	bl,
   return b;
 }
 
+/* XXX save vbi3_network */
 void
 bookmark_list_save		(const bookmark_list *	bl)
 {
@@ -128,9 +142,9 @@ bookmark_list_save		(const bookmark_list *	bl)
 	}
 
       strcpy (buf + n, "page");
-      zconf_create_int (b->pgno, "Page", buf);
+      zconf_create_int (b->pn.pgno, "Page", buf);
       strcpy (buf + n, "subpage");
-      zconf_create_int (b->subno, "Subpage", buf);
+      zconf_create_int (b->pn.subno, "Subpage", buf);
 
       if (b->description)
 	{
@@ -142,6 +156,7 @@ bookmark_list_save		(const bookmark_list *	bl)
     }
 }
 
+/* XXX load vbi3_network */
 void
 bookmark_list_load		(bookmark_list *	bl)
 {
@@ -177,13 +192,246 @@ bookmark_list_load		(bookmark_list *	bl)
       descr = zconf_get_string (NULL, buffer2);
       g_free (buffer2);
 
-      bookmark_list_add (bl, channel, pgno, subno, descr);
+      bookmark_list_add (bl, channel,
+			 NULL,
+			 (vbi3_pgno) pgno,
+			 (vbi3_subno) subno,
+			 descr);
 
       g_free (buffer);
 
       ++i;
     }
 }
+
+/*
+	Bookmark menu
+*/
+
+static void
+set_transient_for		(GtkWindow *		window,
+				 TeletextView *		view)
+{
+  GtkWidget *parent;
+
+  parent = GTK_WIDGET (view);
+
+  for (;;)
+    {
+      if (!parent)
+	return;
+
+      if (GTK_IS_WINDOW (parent))
+	break;
+      
+      parent = parent->parent;
+    }
+
+  gtk_window_set_transient_for (window,	GTK_WINDOW (parent));
+}
+
+static void
+on_add_bookmark_activate	(GtkWidget *		menu_item _unused_,
+				 TeletextView *		view)
+{
+  tveng_tuned_channel *channel;
+  vbi3_top_title tt;
+
+  if (!view->pg)
+    return;
+
+  channel = tveng_tuned_channel_nth (global_channel_list,
+				     (unsigned int) cur_tuned_channel);
+
+  if (td && vbi3_teletext_decoder_get_top_title (td, &tt,
+						view->pg->network,
+						view->pg->pgno,
+						view->pg->subno))
+    {
+      bookmark_list_add (&bookmarks,
+			 channel ? channel->name : NULL,
+			 view->pg->network,
+			 view->pg->pgno,
+			 view->pg->subno,
+			 tt.title);
+
+      vbi3_top_title_destroy (&tt);
+    }
+  else
+    {
+      bookmark_list_add (&bookmarks,
+			 channel ? channel->name : NULL,
+			 view->pg->network,
+			 view->pg->pgno,
+			 view->pg->subno,
+			 NULL);
+    }
+
+  zmodel_changed (bookmarks.zmodel);
+
+  if (view->appbar)
+    {
+      gchar *buffer;
+
+      if (view->pg->subno && VBI3_ANY_SUBNO != view->pg->subno)
+	buffer = g_strdup_printf (_("Added page %x.%02x to bookmarks"),
+				  view->pg->pgno,
+				  view->pg->subno);
+      else
+	buffer = g_strdup_printf (_("Added page %x to bookmarks"),
+				  view->pg->pgno);
+
+      gnome_appbar_set_status (GNOME_APPBAR (view->appbar), buffer);
+
+      g_free (buffer);
+    }
+}
+
+static void
+on_edit_bookmarks_activate	(GtkWidget *		menu_item _unused_,
+				 TeletextView *		view)
+{
+  GtkWidget *widget;
+
+  if (bookmarks_dialog)
+    {
+      gtk_window_present (GTK_WINDOW (bookmarks_dialog));
+    }
+  else if ((widget = bookmark_editor_new (&bookmarks)))
+    {
+      set_transient_for (GTK_WINDOW (widget), view);
+      gtk_widget_show_all (widget);
+    }
+}
+
+/* XXX use vbi3_network */
+static void
+on_bookmark_menu_item_activate	(GtkWidget *		menu_item,
+				 TeletextView *		data)
+{
+  bookmark *b;
+  GList *glist;
+
+  b = g_object_get_data (G_OBJECT (menu_item), "bookmark");
+
+  for (glist = bookmarks.bookmarks; glist; glist = glist->next)
+    if (glist->data == b)
+      break;
+
+  if (!glist)
+    return;
+
+  if (zapping->info
+      && global_channel_list
+      && b->channel)
+    {
+      tveng_tuned_channel *channel;
+
+      channel = tveng_tuned_channel_by_name (global_channel_list,
+					     b->channel);
+      if (channel)
+	z_switch_channel (channel, zapping->info);
+    }
+
+  teletext_view_load_page (data, &anonymous_network, b->pn.pgno, b->pn.subno);
+}
+
+static GnomeUIInfo
+bookmarks_uiinfo [] = {
+  {
+    GNOME_APP_UI_ITEM, N_("_Add Bookmark"), NULL,
+    G_CALLBACK (on_add_bookmark_activate), NULL, NULL,
+    GNOME_APP_PIXMAP_STOCK, GTK_STOCK_ADD,
+    GDK_D, (GdkModifierType) GDK_CONTROL_MASK, NULL
+  },
+  {
+    GNOME_APP_UI_ITEM, N_("_Edit Bookmarks..."), NULL,
+    G_CALLBACK (on_edit_bookmarks_activate), NULL, NULL,
+    GNOME_APP_PIXMAP_NONE, NULL,
+    GDK_B, (GdkModifierType) GDK_CONTROL_MASK, NULL
+  },
+  GNOMEUIINFO_END
+};
+
+/* XXX use vbi3_network */
+GtkWidget *
+bookmarks_menu_new		(TeletextView *		view)
+{
+  GtkMenuShell *menu;
+  GtkWidget *widget;
+  GList *glist;
+
+  menu = GTK_MENU_SHELL (gtk_menu_new ());
+
+  bookmarks_uiinfo[0].user_data = view;
+  bookmarks_uiinfo[1].user_data = view;
+
+  gnome_app_fill_menu (menu,
+		       bookmarks_uiinfo,
+		       /* accel */ NULL,
+		       /* mnemo */ TRUE,
+		       /* position */ 0);
+
+  if (!bookmarks.bookmarks)
+    return GTK_WIDGET (menu);
+
+  widget = gtk_separator_menu_item_new ();
+  gtk_widget_show (widget);
+  gtk_menu_shell_append (menu, widget);
+
+  for (glist = bookmarks.bookmarks; glist; glist = glist->next)
+    {
+      bookmark *b;
+      GtkWidget *menu_item;
+      const gchar *tmpl;
+      gchar *buffer;
+      gchar *channel;
+
+      b = (bookmark * ) glist->data;
+
+      if (b->pn.subno != VBI3_ANY_SUBNO)
+	tmpl = "%s%s%x.%x";
+      else
+	tmpl = "%s%s%x";
+
+      channel = b->channel;
+      if (channel && !*channel)
+	channel = NULL;
+
+      buffer = g_strdup_printf (tmpl,
+				channel ? channel : "",
+				channel ? " " : "",
+				b->pn.pgno,
+				b->pn.subno);
+
+      if (b->description && *b->description)
+	{
+	  menu_item = z_gtk_pixmap_menu_item_new (b->description,
+						  GTK_STOCK_JUMP_TO);
+	  z_tooltip_set (menu_item, buffer);
+	}
+      else
+	{
+	  menu_item = z_gtk_pixmap_menu_item_new (buffer, GTK_STOCK_JUMP_TO);
+	}
+
+      gtk_widget_show (menu_item);
+
+      g_object_set_data (G_OBJECT (menu_item), "bookmark", b);
+      g_signal_connect (G_OBJECT (menu_item), "activate",
+			G_CALLBACK (on_bookmark_menu_item_activate), view);
+
+      gtk_menu_shell_append (menu, menu_item);
+
+      g_free (buffer);
+    }
+
+  return GTK_WIDGET (menu);
+}
+
+/*
+	Bookmark editor
+*/
 
 enum {
   BOOKMARK_COLUMN_CHANNEL,
@@ -212,7 +460,7 @@ page_cell_data_func		(GtkTreeViewColumn *	column _unused_,
 		      BOOKMARK_COLUMN_SUBNO,	&subno,
 		      -1);
 
-  if (subno && subno != VBI_ANY_SUBNO)
+  if (subno && subno != VBI3_ANY_SUBNO)
     g_snprintf (buf, sizeof (buf), "%x.%02x", pgno & 0xFFF, subno & 0xFF);
   else
     g_snprintf (buf, sizeof (buf), "%x", pgno & 0xFFF);
@@ -272,6 +520,7 @@ on_cancel_clicked		(GtkWidget *		widget,
   gtk_widget_destroy (widget);
 }
 
+/* XXX use vbi3_network */
 static gboolean
 foreach_add			(GtkTreeModel *		model,
 				 GtkTreePath *		path _unused_,
@@ -291,9 +540,11 @@ foreach_add			(GtkTreeModel *		model,
 		      BOOKMARK_COLUMN_DESCRIPTION,	&descr,
 		      -1);
 
-  bookmark_list_add (sp->bl, channel,
-		     (vbi_pgno) pgno,
-		     (vbi_subno) subno, descr);
+  bookmark_list_add (sp->bl,
+		     channel,
+		     NULL,
+		     (vbi3_pgno) pgno,
+		     (vbi3_subno) subno, descr);
 
   return FALSE; /* continue */
 }
@@ -417,6 +668,7 @@ instance_init			(GTypeInstance *	instance,
 		    G_CALLBACK (on_ok_clicked), sp);
 }
 
+/* XXX use vbi3_network */
 static void
 append				(BookmarkEditor *	sp,
 				 const bookmark *	b)
@@ -431,8 +683,8 @@ append				(BookmarkEditor *	sp,
   gtk_list_store_append (sp->store, &iter);
   gtk_list_store_set (sp->store, &iter,
 		      BOOKMARK_COLUMN_CHANNEL,		channel,
-		      BOOKMARK_COLUMN_PGNO,		b->pgno,
-		      BOOKMARK_COLUMN_SUBNO,		b->subno,
+		      BOOKMARK_COLUMN_PGNO,		b->pn.pgno,
+		      BOOKMARK_COLUMN_SUBNO,		b->pn.subno,
 		      BOOKMARK_COLUMN_DESCRIPTION,	description,
 		      BOOKMARK_COLUMN_EDITABLE,		TRUE,
 		      -1);
