@@ -321,13 +321,10 @@ open_pcm			(void *			unused,
 		ioctl (p->fd, OSS_GETVERSION, &version);
 
 		if (version > 0) {
-			p->node.version = tv_strdup_printf
-				("OSS %u.%u.%u",
-				 (version >> 16) & 0xFF,
-				 (version >> 8) & 0xFF,
-				 (version >> 0) & 0xFF);
-
-			if (!p->node.version)
+			if (_tv_asprintf (&p->node.version, "OSS %u.%u.%u",
+					  (version >> 16) & 0xFF,
+					  (version >> 8) & 0xFF,
+					  (version >> 0) & 0xFF) < 0)
 				goto error;
 		}
 	}
@@ -403,6 +400,10 @@ oss_pcm_scan			(void *			unused,
 
 #define VOL_MIN 1	/* 0 = muted */
 #define VOL_MAX 100
+
+#ifndef SOUND_MASK_PHONEIN
+#define SOUND_MASK_PHONEIN 0
+#endif
 
 #ifndef SOUND_MIXER_READ_OUTMASK
 #define SOUND_MIXER_READ_OUTMASK MIXER_READ (SOUND_MIXER_OUTMASK)
@@ -971,8 +972,8 @@ open_mixer			(const tv_mixer_interface *mi,
 	if (mixer_ioctl (m->fd, SOUND_MIXER_INFO, &m->mixer_info)) {
 		if (m->mixer_info.name[0]) {
 			m->pub.node.label =
-				tv_strndup (m->mixer_info.name,
-					    N_ELEMENTS (m->mixer_info.name));
+				_tv_strndup (m->mixer_info.name,
+					     N_ELEMENTS (m->mixer_info.name));
 
 			if (!m->pub.node.label)
 				goto error;
@@ -980,8 +981,8 @@ open_mixer			(const tv_mixer_interface *mi,
 
 		if (m->mixer_info.id[0]) {
 			m->pub.node.driver =
-				tv_strndup (m->mixer_info.id,
-					    N_ELEMENTS (m->mixer_info.id));
+				_tv_strndup (m->mixer_info.id,
+					     N_ELEMENTS (m->mixer_info.id));
 
 			if (!m->pub.node.driver)
 				goto error;
@@ -1008,13 +1009,10 @@ open_mixer			(const tv_mixer_interface *mi,
 	mixer_ioctl (m->fd, OSS_GETVERSION, &m->version);
 
 	if (m->version > 0) {
-		m->pub.node.version = tv_strdup_printf
-			("OSS %u.%u.%u",
-			 (m->version >> 16) & 0xFF,
-			 (m->version >> 8) & 0xFF,
-			 (m->version >> 0) & 0xFF);
-
-		if (!m->pub.node.version)
+		if (_tv_asprintf (&m->pub.node.version, "OSS %u.%u.%u",
+				  (m->version >> 16) & 0xFF,
+				  (m->version >> 8) & 0xFF,
+				  (m->version >> 0) & 0xFF) < 0)
 			goto error;
 	}
 #endif
