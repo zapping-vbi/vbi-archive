@@ -5,6 +5,7 @@
 #include "tveng.h"
 #include "frequencies.h"
 #include "x11stuff.h"
+#include "mixer.h"
 
 extern enum tveng_capture_mode	last_mode;
 extern GtkWidget		*ChannelWindow;
@@ -27,4 +28,7 @@ extern gboolean			have_wm_hints;
 extern x11_dga_parameters	dga_param;
 extern int			debug_msg;
 extern gint			cur_tuned_channel;
+/* XXX Move this into virtual device context when ready. */
+extern tv_mixer *		mixer;
+extern tv_mixer_line *		mixer_line;
 #endif
