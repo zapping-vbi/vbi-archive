@@ -1,5 +1,6 @@
-$Id: BUGS,v 1.7 2002-10-04 13:51:22 mschimek Exp $
+$Id: BUGS,v 1.8 2004-08-13 01:22:05 mschimek Exp $
 
+* -r sets source output volume instead of rec gain.
 * video/mpeg1.c: GOP_RULE is not nationalized.
 * -k -J -K -L -F9 -F10 undocumented
 * desaturation out of order

@@ -17,17 +17,17 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alloc.h,v 1.8 2004-04-09 05:16:45 mschimek Exp $ */
+/* $Id: alloc.h,v 1.9 2004-08-13 01:22:06 mschimek Exp $ */
 
 #ifndef ALLOC_H
 #define ALLOC_H
 
 #include <stdlib.h>
 #include <string.h>
-#include <malloc.h>
 #include "types.h"
 
 #ifdef HAVE_MEMALIGN
+#include <malloc.h>
 #define free_aligned(p) free(p)
 #else
 #define free_aligned(p) free(((void **) p)[-1])

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: context.c,v 1.14 2004-06-06 12:57:26 mschimek Exp $ */
+/* $Id: context.c,v 1.15 2004-08-13 01:22:08 mschimek Exp $ */
 
 #include "config.h"
 
@@ -1095,7 +1095,7 @@ rte_set_output_file(rte_context *context, const char *filename)
 		  S_IROTH | S_IWOTH);
 #else
 #warning Large files not supported on 32 bit system.
-	struct rlimit lim;
+	struct rlimit rl;
 	int fd;
 
 	nullcheck(context, return FALSE);

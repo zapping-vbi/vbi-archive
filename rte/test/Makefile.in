@@ -164,7 +164,9 @@ INCLUDES = -I$(top_srcdir)/src -I$(top_builddir)/src $(COMMON_INCLUDES) \
 	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
 
 
-LDADD = $(top_builddir)/src/.libs/librte.a $(PTHREAD_LIB) -lm
+LDADD = $(top_builddir)/src/.libs/librte.a $(PTHREAD_LIB) -lm \
+	$(LTLIBICONV) $(LTLIBINTL)
+
 subdir = test
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
