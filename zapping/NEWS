@@ -1,6 +1,25 @@
 New stuff, refer to the ChangeLog for a more detailed description of
 the changes.
 
+Zapping 0.9.3, 2004-04-05
+-------------------------
+This is a bugfix release.
+
+- Two deinterlace modules segfaulted when compiled with
+  -fomit-frame-pointer option.
+- The v4l driver interface did not timestamp images causing a
+  synchronization failure in librte.
+- An assert (c->dequeued == 0) failed when recording with the mp1e
+  codec stopped.  This is a work-around for a bug also fixed in
+  librte-0.5.6.
+- Using the bktr driver, video input and channel changes were
+  blocked in Teletext mode.
+- Zapping did not properly restore the last video standard on
+  startup.  Apparent with the bktr driver, possibly others.
+- Zapping did not maintain the current video and audio input and
+  video standard on capture mode changes.  Apparent with the
+  bktr driver, possibly others.
+
 Zapping 0.9.2, 2004-02-28
 -------------------------
 This is a bugfix release.
