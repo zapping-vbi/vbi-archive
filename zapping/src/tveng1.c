@@ -1242,12 +1242,6 @@ set_tuner_frequency		(tveng_device_info *	info,
 		if (old_freq == new_freq)
 			goto store;
 
-  /* To 'fix' the current behaviour of bttv, i don't like
-     it too much (it mutes the input if the signal strength
-     is too low) */
-  if (p_info->control_mute)
-    update_control (info, p_info->control_mute);
-
 	if (-1 == v4l_ioctl (info, VIDIOCSFREQ, &new_freq)) {
 		store_frequency (info, vi, old_freq);
 
@@ -1257,10 +1251,13 @@ set_tuner_frequency		(tveng_device_info *	info,
 		return FALSE;
 	}
 
-  /* Restore the mute status. This makes bttv behave like i want */
-  if (p_info->control_mute)
-     set_control (info, p_info->control_mute,
-		p_info->control_mute->value);
+	/* Bttv mutes the input if the signal strength is too
+	   low, we don't want that. However usually the quiet
+	   switch will be set anyway. */
+	if (p_info->control_mute
+	    && !info->priv->quiet)
+	  set_control (info, p_info->control_mute,
+		       p_info->control_mute->value);
 
  store:
 	store_frequency (info, vi, new_freq);

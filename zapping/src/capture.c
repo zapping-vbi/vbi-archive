@@ -273,6 +273,8 @@ scan_device		(tveng_device_info	*info)
   for (pixfmt = 0; pixfmt < TV_MAX_PIXFMTS; pixfmt++)
     if (TV_PIXFMT_SET_ALL & TV_PIXFMT_SET (pixfmt))
       {
+	/* FIXME other code assumes info->format is the
+	   current format, not the one we request. */
 	info->format.pixfmt = pixfmt;
 
 	if (0 == tveng_set_capture_format (info))

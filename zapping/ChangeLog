@@ -1,3 +1,25 @@
+2003-11-20    <mschimek@users.sf.net>
+
+	* pixmaps/Makefile.am: Added subtitle.png. 
+	* configure.in: Accidentally replaced default prefix by
+	  dirname which gdk-pixbuf-csource, that's some/bin.
+	  Was a bad idea to begin with, removed.
+	* configure.in, zapping.spec.in, prepare_dist.sh:
+	  Configure --with-gnome-prefix option asks for user
+	  confusion, removed and its applications replaced
+	  by --prefix.
+	* prepare_dist.sh: Updated to match configure.in.
+	* configure.in: Must not expand prefix var in configure.in.
+	* src/Makefile.am: Moved -DZSFB_DIR to configure.in.
+
+2003-11-19    <mschimek@users.sf.net>
+
+	* src/tveng.c (update_xv_control): Channel change muted
+	  permanently when controls window was open due to missing
+	  quiet handling in p_tveng_update_controls(), fixed here.
+	* src/audio.c (startup_audio): Wrong zconf key when setting
+	  start/quit muted to defaults.
+
 2003-11-17    <mschimek@users.sf.net>
 
 	* src/zvbi.c (rolling_headers): Preliminary fix of invalid

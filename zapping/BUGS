@@ -10,7 +10,6 @@ Known bugs in Zapping, don't report them
 * Subtitle overlay must be restored.
 * Video size isn't always right on startup.
 * TTX search: on the fly case and regex change doesnt work.
-* When controls window is open channel change mutes permanently.
 * Wrong window stacking layer of overlay window when
   Zapping restores no-xv fullscreen at startup.
 * (Zapping 0.6.7) Saving QVC-600 TTX page in HTML segfaults.
