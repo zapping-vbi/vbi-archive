@@ -40,22 +40,22 @@
 
 static GdkWindow	*window = NULL;
 static GdkGC		*gc = NULL, *black_gc = NULL;
-static enum tveng_frame_pixformat x11_fmt;
+static tv_pixfmt	x11_pixfmt;
 
 struct _zimage_private {
   GdkImage		*image;
 };
 
 static zimage*
-image_new (enum tveng_frame_pixformat fmt, gint w, gint h)
+image_new (tv_pixfmt pixfmt, gint w, gint h)
 {
   zimage *new_image;
   zimage_private *pimage;
   GdkImage *image = gdk_image_new (GDK_IMAGE_FASTEST,
 				   gdk_visual_get_system (), w, h);
 
-  g_assert (fmt == x11_fmt);
-  g_assert (! tveng_is_planar(fmt));
+  g_assert (pixfmt == x11_pixfmt);
+  g_assert (TV_PIXFMT_IS_PLANAR (pixfmt));
 
   if (!image)
     return NULL;
@@ -74,11 +74,9 @@ image_new (enum tveng_frame_pixformat fmt, gint w, gint h)
 
   new_image->fmt.width = w;
   new_image->fmt.height = h;
-  new_image->fmt.pixformat = fmt;
+  new_image->fmt.pixfmt = pixfmt;
   new_image->fmt.bytesperline = image->bpl;
   new_image->fmt.sizeimage = image->bpl*image->height;
-  new_image->fmt.depth = image->depth;
-  new_image->fmt.bpp = image->bpp;
   new_image->data.linear.data = image->mem;
   new_image->data.linear.stride = image->bpl;
 
@@ -174,7 +172,7 @@ suggest_format (void)
 {
   capture_fmt fmt;
 
-  fmt.fmt = x11_fmt;
+  fmt.pixfmt = x11_pixfmt;
   fmt.locked = FALSE;
 
   return (suggest_capture_format (&fmt) != -1);
@@ -193,10 +191,9 @@ static video_backend x11 = {
 void add_backend_x11 (void);
 void add_backend_x11 (void)
 {
-  x11_fmt = zmisc_resolve_pixformat (x11_get_bpp (),
-				     x11_get_byte_order ());
+  x11_pixfmt = dga_param.pixfmt;
 
-  g_assert (x11_fmt != -1);
+  g_assert (TV_PIXFMT_UNKNOWN != x11_pixfmt);
 
-  register_video_backend (x11_fmt, &x11);
+  register_video_backend (x11_pixfmt, &x11);
 }
