@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.c,v 1.9 2005-02-10 07:55:12 mschimek Exp $ */
+/* $Id: image_format.c,v 1.10 2005-02-18 07:56:00 mschimek Exp $ */
 
 #include <string.h>		/* memset() */
 #include <assert.h>
@@ -226,22 +226,6 @@ tv_image_format_is_valid	(const tv_image_format *format)
 	return TRUE;
 }
 
-#if Z_BYTE_ORDER == Z_LITTLE_ENDIAN
-#  define SWAB16(m) (m)
-#  define SWAB32(m) (m)
-#elif Z_BYTE_ORDER == Z_BIG_ENDIAN
-#  define SWAB16(m)							\
-	(+ (((m) & 0xFF00) >> 8)					\
-	 + (((m) & 0x00FF) << 8))
-#  define SWAB32(m)							\
-	(+ (((m) & 0xFF000000) >> 24)					\
-	 + (((m) & 0x00FF0000) >> 8)					\
-	 + (((m) & 0x0000FF00) << 8)					\
-	 + (((m) & 0x000000FF) << 24))
-#else
-#  error unknown endianess
-#endif
-
 static void
 clear_block1			(void *			d,
 				 unsigned int		value,
@@ -281,11 +265,26 @@ clear_block3			(void *			d,
 	for (; height > 0; --height) {
 		unsigned int count;
 
-		for (count = width; count > 0; --count) {
-			p[0] = value;
-			p[1] = value >> 8;
-			p[2] = value >> 16;
-			p += 3;
+		switch (Z_BYTE_ORDER) {
+		case Z_LITTLE_ENDIAN:
+			for (count = width; count > 0; --count) {
+				p[0] = value;
+				p[1] = value >> 8;
+				p[2] = value >> 16;
+				p += 3;
+			}
+
+			break;
+
+		case Z_BIG_ENDIAN:
+			for (count = width; count > 0; --count) {
+				p[0] = value >> 16;
+				p[1] = value >> 8;
+				p[2] = value;
+				p += 3;
+			}
+
+			break;
 		}
 
 		p += padding;
@@ -342,14 +341,15 @@ tv_clear_image			(void *			image,
 	assert (NULL != format);
 
 #ifdef HAVE_ALTIVEC
-	if (UNTESTED_SIMD &&
-	    0 == ((unsigned long) image | format->bytes_per_line[0]) % 16)
+	if (UNTESTED_SIMD
+	    && (cpu_features & CPU_FEATURE_ALTIVEC)
+	    && 0 == ((unsigned long) image | format->bytes_per_line[0]) % 16)
 		clear_block = clear_block_altivec;
 	else
 #endif
 #ifdef HAVE_SSE
-	if (UNTESTED_SIMD &&
-	    (cpu_features & CPU_FEATURE_SSE))
+	if (UNTESTED_SIMD
+	    && (cpu_features & CPU_FEATURE_SSE))
 		clear_block = clear_block_mmx_nt;
 	else
 #endif
@@ -357,7 +357,7 @@ tv_clear_image			(void *			image,
 	if (cpu_features & CPU_FEATURE_MMX)
 		clear_block = clear_block_mmx;
 	else
-#endif	
+#endif
 		clear_block = clear_block_generic;
 
 	pf = format->pixel_format;
@@ -396,6 +396,8 @@ tv_clear_image			(void *			image,
 	}
 
 	switch (pf->pixfmt) {
+		unsigned int value = 0;
+
 	case TV_PIXFMT_NONE:
 	case TV_PIXFMT_RESERVED0:
 	case TV_PIXFMT_RESERVED1:
@@ -405,16 +407,24 @@ tv_clear_image			(void *			image,
 
 	case TV_PIXFMT_YUV24_LE:
 	case TV_PIXFMT_YVU24_LE:
-		/* Note value is always LE: 0xVVUUYY */
-		clear_block[2] (data + format->offset[0], 0x808000,
+		switch (Z_BYTE_ORDER) {
+		case Z_LITTLE_ENDIAN: value = 0x808000; break;
+		case Z_BIG_ENDIAN:    value = 0x008080; break;
+		}
+
+		clear_block[2] (data + format->offset[0], value,
 				format->width, format->height,
 				format->bytes_per_line[0]);
 		return TRUE;
 
 	case TV_PIXFMT_YUV24_BE:
 	case TV_PIXFMT_YVU24_BE:
-		/* Note value is always LE: 0xYYUUVV */
-		clear_block[2] (data + format->offset[0], 0x008080,
+		switch (Z_BYTE_ORDER) {
+		case Z_LITTLE_ENDIAN: value = 0x008080; break;
+		case Z_BIG_ENDIAN:    value = 0x808000; break;
+		}
+
+		clear_block[2] (data + format->offset[0], value,
 				format->width, format->height,
 				format->bytes_per_line[0]);
 		return TRUE;
@@ -433,7 +443,12 @@ tv_clear_image			(void *			image,
 		if (format->width & 1)
 			return FALSE;
 
-		clear_block[3] (data + format->offset[0], SWAB32 (0x80008000),
+		switch (Z_BYTE_ORDER) {
+		case Z_LITTLE_ENDIAN: value = 0x80008000; break;
+		case Z_BIG_ENDIAN:    value = 0x00800080; break;
+		}
+
+		clear_block[3] (data + format->offset[0], value,
 				format->width >> 1, format->height,
 				format->bytes_per_line[0]);
 		return TRUE;
@@ -443,7 +458,12 @@ tv_clear_image			(void *			image,
 		if (format->width & 1)
 			return FALSE;
 
-		clear_block[3] (data + format->offset[0], SWAB32 (0x00800080),
+		switch (Z_BYTE_ORDER) {
+		case Z_LITTLE_ENDIAN: value = 0x00800080; break;
+		case Z_BIG_ENDIAN:    value = 0x80008000; break;
+		}
+
+		clear_block[3] (data + format->offset[0], value,
 				format->width >> 1, format->height,
 				format->bytes_per_line[0]);
 		return TRUE;
@@ -514,6 +534,7 @@ tv_clear_image			(void *			image,
  * Copies @a n_bytes from @a src to @a dst using vector instructions and
  * cache bypassing loads and stores, if available. The function works faster
  * if @a src and @a dst are multiples of 8 or 16.
+ *
  * XXX unchecked
  */
 void
@@ -525,8 +546,8 @@ tv_memcpy			(void *			dst,
 		return;
 
 #ifdef HAVE_SSE
-	if (UNTESTED_SIMD &&
-	    (cpu_features & CPU_FEATURE_SSE))
+	if (UNTESTED_SIMD
+	    && (cpu_features & CPU_FEATURE_SSE))
 		if (0 == ((unsigned long) dst | (unsigned long) src) % 16)
 			return memcpy_sse_nt (dst, src, n_bytes);
 #endif
@@ -597,8 +618,8 @@ tv_copy_image			(void *			dst_image,
 	assert (dst_format->pixel_format == src_format->pixel_format);
 
 #ifdef HAVE_SSE
-	if (UNTESTED_SIMD &&
-	    (cpu_features & CPU_FEATURE_SSE))
+	if (UNTESTED_SIMD
+	    && (cpu_features & CPU_FEATURE_SSE))
 		copy_block = copy_block1_sse_nt;
 	else
 #endif
