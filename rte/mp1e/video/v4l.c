@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.6 2001-08-12 18:37:01 mschimek Exp $ */
+/* $Id: v4l.c,v 1.7 2001-08-19 10:58:35 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -39,8 +39,6 @@
 #include "../common/math.h"
 #include "../options.h"
 #include "video.h"
-
-#warning The V4L interface has not been tested.
 
 static int			fd;
 static fifo			cap_fifo;

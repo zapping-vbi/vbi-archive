@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.3 2001-08-19 10:58:35 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -297,6 +297,9 @@ mpeg1_system_mux(void *muxp)
 	buffer *buf;
 	stream *str;
 
+	pthread_cleanup_push((void (*)(void *)) pthread_rwlock_unlock, (void *) &mux->streams.rwlock);
+	assert(pthread_rwlock_rdlock(&mux->streams.rwlock) == 0);
+
 #if CDLOG
 	if ((cdlog = fopen("cdlog", "w"))) {
 		fprintf(cdlog, "Clock drift\n\n");
@@ -504,6 +507,8 @@ reschedule:
 		buf->used = 4;
 
 	mux_output(buf);
+
+	pthread_cleanup_pop(1);
 
 	return NULL;
 }

@@ -1,3 +1,10 @@
+2001-08-19	rte fix <mschimek@users.sf.net>
+
+	* mp1e_b.c didn't select a multiplexer, static default mpeg1-ps,
+	  set to elementary when only one stream present for mp1e cli compat.
+	* Improved checks in multiplexers.
+	* Cloned AC_CHECK_FUNCS(program_invocation_name) from Zapping.
+
 2001-08-10	<mschimek@users.sf.net>
 
 	* Managed to confuse Intel and AT&T syntax in motion.c only

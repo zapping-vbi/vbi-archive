@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.3 2001-08-15 23:16:16 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.4 2001-08-19 10:58:35 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -181,7 +181,7 @@ v4l2_init(void)
 	    !(vcap.flags & V4L2_FLAG_SELECT))
 		FAIL("%s ('%s') does not support streaming/select(2),\n"
 			"%s will not work with the v4l2 read(2) interface.",
-			cap_dev, vcap.name, my_name);
+			cap_dev, vcap.name, program_invocation_short_name);
 
 	printv(2, "Opened %s ('%s')\n", cap_dev, vcap.name);
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vcd.c,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
+/* $Id: vcd.c,v 1.3 2001-08-19 10:58:35 mschimek Exp $ */
 
 /*
  *  This code creates a stream suitable for mkvcdfs as vcdmplex
@@ -260,6 +260,9 @@ vcd_system_mux(void *muxp)
 	bool do_pad = TRUE;
 	buffer *buf;
 
+	pthread_cleanup_push((void (*)(void *)) pthread_rwlock_unlock, (void *) &mux->streams.rwlock);
+	assert(pthread_rwlock_rdlock(&mux->streams.rwlock) == 0);
+
 	{
 		double preload_delay;
 		double video_frame_rate = DBL_MAX;
@@ -489,6 +492,8 @@ reschedule:
 	buf->used = 4;
 
 	mux_output(buf);
+
+	pthread_cleanup_pop(1);
 
 	return NULL;
 }

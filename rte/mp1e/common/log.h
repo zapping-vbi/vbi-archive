@@ -21,12 +21,20 @@
 #ifndef LOG_H
 #define LOG_H
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
 
-extern char *		my_name;
+#ifndef HAVE_PROGRAM_INVOCATION_NAME
+extern char *		program_invocation_name;
+extern char *		program_invocation_short_name;
+#endif
+
 extern int		verbose;
 
 #define ISTF2(x) #x
@@ -39,7 +47,8 @@ do {									\
 	if (!(cond)) {							\
 		fprintf(stderr,	"%s:" __FILE__ ":" ISTF1(__LINE__) ": "	\
 			"Failed to " what " (%d, %s)\n",		\
-			my_name ,##args, errno, strerror(errno));	\
+			program_invocation_short_name			\
+			 ,##args, errno, strerror(errno));		\
 		exit(EXIT_FAILURE);					\
 	}								\
 } while (0)
@@ -51,7 +60,7 @@ do {									\
 	if (!(cond)) {							\
 		fprintf(stderr,	"%s:" __FILE__ ":" ISTF1(__LINE__) ": "	\
 			"Failed to " what "\n",				\
-			my_name ,##args);				\
+			program_invocation_short_name ,##args);		\
 		exit(EXIT_FAILURE);					\
 	}								\
 } while (0)
@@ -62,7 +71,8 @@ do {								\
 	if (!(cond)) {						\
 		fprintf(stderr, "%s (" __FILE__ "@%d): "	\
 			"Failed to " what " (%d, %s)\n",	\
-			my_name, __LINE__ ,##args,		\
+			program_invocation_short_name,		\
+			__LINE__ ,##args,			\
 			errno, strerror(errno));		\
 			return;					\
 	}							\
@@ -73,7 +83,7 @@ do {								\
 #define FAIL(why, args...)						\
 do {									\
 	fprintf(stderr,	"%s:" __FILE__ ":" ISTF1(__LINE__) ": "		\
-		why "\n", my_name ,##args);				\
+		why "\n", program_invocation_short_name ,##args);	\
 	exit(EXIT_FAILURE);						\
 } while (0)
 
@@ -91,6 +101,7 @@ do {								\
 
 #define printv(level, format, args...)				\
     ((verbose >= level) ? fprintf(stderr,			\
-	/* "%s: " */ format /*, my_name */ ,##args) : 0)
+	/* "%s: " */ format					\
+	/*, program_invocation_short_name */ ,##args) : 0)
 
 #endif

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.1.1.1 2001-08-07 22:09:24 garetxe Exp $ */
+/* $Id: options.c,v 1.2 2001-08-19 10:58:34 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -112,7 +112,7 @@ usage(FILE *fi)
 		"the compressed stream will be sent to standard output. See the\n"
 		"mp1e manual page for details.\n",
 
-		my_name, mux_options[modules], (double) video_bit_rate / 1e6,
+		program_invocation_name, mux_options[modules], (double) video_bit_rate / 1e6,
 		cap_dev, gop_sequence, width, height, grab_width, grab_height,
 		motion_min, motion_max,
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: systems.c,v 1.1 2001-08-08 05:37:54 mschimek Exp $ */
+/* $Id: systems.c,v 1.2 2001-08-19 10:58:35 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,13 +41,15 @@ mux_free(multiplexer *mux)
 
 	asserts(mux != NULL);
 
-	while ((str = PARENT(rem_head(&mux->streams),
+	while ((str = PARENT(rem_xhead(&mux->streams),
 			     stream, fifo.node))) {
 		destroy_fifo(&str->fifo);
 		free(str);
 	}
 
-	destroy_list(&mux->streams);
+	destroy_xlist(&mux->streams);
+
+	memset(mux, 0, sizeof(*mux));
 
 	free(mux);
 }
@@ -60,7 +62,7 @@ mux_alloc(void)
 	if (!(mux = calloc(1, sizeof(*mux))))
 		return NULL;
 
-	init_list(&mux->streams);
+	init_xlist(&mux->streams);
 
 	/* a) should be an argument, 
 	   b) this func should init the output fifo */
@@ -77,8 +79,6 @@ mux_alloc(void)
  *  buffers	1++
  *  frame_rate	24 Hz
  *  bit_rate	upper bound
- *
- *  Buffers' .data is supposed to contain a valid pointer.
  */
 
 fifo *
@@ -86,9 +86,19 @@ mux_add_input_stream(multiplexer *mux, int stream_id, char *name,
 	int max_size, int buffers, double frame_rate, int bit_rate)
 {
 	stream *str;
+	int r;
 
-	if (!(str = calloc(1, sizeof(stream))))
+	/*
+	 *  Returns EBUSY while the mux runs.
+	 */
+	if ((r = pthread_rwlock_trywrlock(&mux->streams.rwlock)) != 0) {
+		errno = r;
 		return NULL;
+	}
+
+	if (!(str = calloc(1, sizeof(stream)))) {
+		return NULL;
+	}
 
 	str->stream_id = stream_id;
 	str->frame_rate = frame_rate;
@@ -103,7 +113,9 @@ mux_add_input_stream(multiplexer *mux, int stream_id, char *name,
 
 	add_consumer(&str->fifo, &str->cons);
 
-	add_tail(&mux->streams, &str->fifo.node);
+	add_tail((list *) &mux->streams, &str->fifo.node);
+
+	pthread_rwlock_unlock(&mux->streams.rwlock);
 
 	return &str->fifo;
 }
@@ -113,14 +125,17 @@ stream_sink(void *muxp)
 {
 	multiplexer *mux = muxp;
 	unsigned long long bytes_out = 0;
-	int num_streams = 0;
+	int num_streams;
 	buffer *buf = NULL;
 	stream *str;
 
-	for_all_nodes (str, &mux->streams, fifo.node) {
+	pthread_cleanup_push((void (*)(void *)) pthread_rwlock_unlock, (void *) &mux->streams.rwlock);
+	assert(pthread_rwlock_rdlock(&mux->streams.rwlock) == 0);
+
+	for_all_nodes (str, &mux->streams, fifo.node)
 		str->left = 1;
-		num_streams++;
-	}
+
+	num_streams = list_members((list *) &mux->streams);
 
 	while (num_streams > 0) {
 		for_all_nodes (str, &mux->streams, fifo.node)
@@ -150,6 +165,8 @@ stream_sink(void *muxp)
 		}
 	}
 
+	pthread_cleanup_pop(1);
+
 	return NULL;
 }
 
@@ -166,10 +183,12 @@ elementary_stream_bypass(void *muxp)
 	double system_load;
 	stream *str;
 
-	if (!(str = (stream *) mux->streams.head)) {
-		printv(1, "No elementary stream");
-		return NULL;
-	}
+	pthread_cleanup_push((void (*)(void *)) pthread_rwlock_unlock, (void *) &mux->streams.rwlock);
+	assert(pthread_rwlock_rdlock(&mux->streams.rwlock) == 0);
+
+	assert(list_members((list *) &mux->streams) == 1);
+
+	str = PARENT(mux->streams.head, stream, fifo.node);
 
 	for (;;) {
 		buffer *buf;
@@ -222,6 +241,8 @@ elementary_stream_bypass(void *muxp)
 			fflush(stderr);
 		}
 	}
+
+	pthread_cleanup_pop(1);
 
 	return NULL;
 }

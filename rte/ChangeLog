@@ -1,3 +1,7 @@
+2001-08-19	<mschimek@users.sf.net>
+
+	* Cloned AC_CHECK_FUNCS(program_invocation_name) from Zapping.
+
 2001-08-08	<garetxe@users.sf.net>
 
 	* Made prepare_dist work properly, rte.rpm and mp1e.rpm can be

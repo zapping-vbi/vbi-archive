@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.4 2001-08-17 00:13:48 garetxe Exp $ */
+/* $Id: b_mp1e.c,v 1.5 2001-08-19 10:58:34 mschimek Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -69,7 +69,6 @@ static void rte_video_init(backend_private *priv); /* init video capture */
 /*
  * Global options from rte.
  */
-char *			my_name="rte";
 int			verbose=0;
 int			stereo;
 
@@ -201,32 +200,19 @@ start			(rte_context	*context)
 		printv(2, "Video compression thread launched\n");
 	}
 
-	if ((modules == MOD_VIDEO || modules == MOD_AUDIO)
-		&& mux_syn >= 2)
-		mux_syn = 1; // compatibility
-
-	switch (mux_syn) {
-	case 0:
-		ASSERT("create stream nirvana thread",
-		       !pthread_create(&priv->mux_thread, NULL,
-				       stream_sink, priv->mux));
-		break;
-	case 1:
+	switch (modules) {
+	case MOD_VIDEO:
+	case MOD_AUDIO:
 		ASSERT("create elementary stream thread",
 		       !pthread_create(&priv->mux_thread, NULL,
 				       elementary_stream_bypass, priv->mux));
 		break;
-	case 2:
+
+	default: /* both */
 		printv(1, "MPEG-1 Program Stream\n");
 		ASSERT("create mpeg1 system mux",
 		       !pthread_create(&priv->mux_thread, NULL,
 				       mpeg1_system_mux, priv->mux));
-		break;
-	case 3:
-		printv(1, "MPEG-2 Program Stream\n");
-		ASSERT("create mpeg2 system mux",
-		       !pthread_create(&priv->mux_thread, NULL,
-				       mpeg2_program_stream_mux, priv->mux));
 		break;
 	}
 

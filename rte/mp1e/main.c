@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
+/* $Id: main.c,v 1.3 2001-08-19 10:58:34 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -57,7 +57,11 @@
 #include "common/sync.h"
 #include "options.h"
 
-char *			my_name;
+#ifndef HAVE_PROGRAM_INVOCATION_NAME
+char *			program_invocation_name;
+char *			program_invocation_short_name;
+#endif
+
 int			verbose;
 int			debug_msg; /* v4lx.c */
 
@@ -117,7 +121,10 @@ main(int ac, char **av)
 {
 	sigset_t block_mask;
 
-	my_name = av[0];
+#ifndef HAVE_PROGRAM_INVOCATION_NAME
+	program_invocation_short_name =
+	program_invocation_name = argv[0];
+#endif
 
 	options(ac, av);
 
@@ -331,8 +338,8 @@ main(int ac, char **av)
 		printv(2, "VBI thread launched\n");
 	}
 
-	sigprocmask(SIG_UNBLOCK, &block_mask, NULL);
 	// Unblock only in main thread
+	sigprocmask(SIG_UNBLOCK, &block_mask, NULL);
 
 	if ((modules == MOD_VIDEO || modules == MOD_AUDIO) && mux_syn >= 2)
 		mux_syn = 1; // compatibility
@@ -344,6 +351,8 @@ main(int ac, char **av)
 		stream_sink(mux);
 		break;
 	case 1:
+		if (popcnt(modules) > 1)
+			FAIL("No elementary stream, change option -m or -X");
 		elementary_stream_bypass(mux);
 		break;
 	case 2:
@@ -354,6 +363,8 @@ main(int ac, char **av)
 		mpeg2_program_stream_mux(mux);
 		break;
 	case 4:
+		if (modules != MOD_VIDEO + MOD_AUDIO)
+			FAIL("Please add option -m3 (audio + video) for VCD\n");
 		printv(1, "VCD MPEG-1 Stream\n");
 		vcd_system_mux(mux);
 		break;
@@ -363,7 +374,7 @@ main(int ac, char **av)
 
 	mux_free(mux);
 
-	printv(1, "\n%s: Done.\n", my_name);
+	printv(1, "\n%s: Done.\n", program_invocation_short_name);
 
 	pr_report();
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rte_test_main.c,v 1.2 2001-08-17 00:13:48 garetxe Exp $
+ * $Id: rte_test_main.c,v 1.3 2001-08-19 10:58:34 mschimek Exp $
  * This is a simple RTE test.
  */
 
@@ -45,6 +45,11 @@
 #include <linux/soundcard.h>
 #else
 #include <esd.h>
+#endif
+
+#ifndef HAVE_PROGRAM_INVOCATION_NAME
+char *program_invocation_name;
+char *program_invocation_short_name;
 #endif
 
 #define TEST_VIDEO_FORMAT RTE_YUYV /* or RTE_YUYV, etc... */
@@ -137,7 +142,7 @@ init_video(const char * cap_dev, int * width, int * height)
 	    !(vcap.flags & V4L2_FLAG_SELECT))
 		FAIL("%s ('%s') does not support streaming/select(2),\n"
 			"%s will not work with the v4l2 read(2) interface.",
-			cap_dev, vcap.name, my_name);
+			cap_dev, vcap.name, program_invocation_short_name);
 
 	ASSERT("query current video standard", ioctl(fd, VIDIOC_G_STD, &vstd) == 0);
 
@@ -443,6 +448,11 @@ int main(int argc, char *argv[])
 	void * dest_ptr = NULL;
 	int i=0;
 	enum rte_mux_mode mux_mode_query;
+
+#ifndef HAVE_PROGRAM_INVOCATION_NAME
+	program_invocation_short_name =
+	program_invocation_name = argv[0];
+#endif
 
 	if (!rte_init()) {
 		fprintf(stderr, "RTE couldn't be inited\n");

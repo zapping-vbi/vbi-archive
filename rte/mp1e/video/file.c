@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: file.c,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
+/* $Id: file.c,v 1.3 2001-08-19 10:58:35 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -110,7 +110,8 @@ ppm_read(unsigned char *d1, char *name_template, int count)
 	ASSERT("read image file '%s'", !ferror(fi), name);
 
 	if (n != 2 || buf[0] != 'P' || buf[1] != '6') {
-		fprintf(stderr, "%s: '%s' is not a raw .ppm file\n", my_name, name);
+		fprintf(stderr, "%s: '%s' is not a raw .ppm file\n",
+			program_invocation_short_name, name);
 		return 0;
 	}
 
@@ -119,7 +120,8 @@ ppm_read(unsigned char *d1, char *name_template, int count)
 	ASSERT("read image file", ppm_getint(fi, &maxcol));
 
 	if (w <= 0 || h <= 0) {
-		fprintf(stderr, "%s: '%s' is corrupted\n", my_name, name);
+		fprintf(stderr, "%s: '%s' is corrupted\n",
+			program_invocation_short_name, name);
 		return 0;
 	}
 
