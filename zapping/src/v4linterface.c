@@ -736,10 +736,14 @@ z_switch_video_input		(guint hash, tveng_device_info *info)
     }
 
   old_mode = tv_get_capture_mode (info);
-  if (CAPTURE_MODE_READ == old_mode) {
-    if (!capture_stop ())
-      return FALSE;
-  }
+  if (CAPTURE_MODE_READ == old_mode)
+    {
+      if (!capture_stop ())
+	{
+	  ShowBox ("%s", GTK_MESSAGE_ERROR, tv_get_errstr (info));
+	  return FALSE;
+	}
+    }
 
   if (!tv_set_video_input (info, l))
     {
@@ -829,6 +833,8 @@ z_switch_standard		(guint hash, tveng_device_info *info)
     {
       if (!capture_stop ())
 	{
+	  ShowBox ("%s", GTK_MESSAGE_ERROR, tv_get_errstr (info));
+
 #ifdef HAVE_LIBZVBI
 	  if (vbi)
 	    {
