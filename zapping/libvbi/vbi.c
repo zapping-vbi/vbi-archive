@@ -151,6 +151,10 @@ vbi_mainloop(void *p)
 
 		if (vbi->event_mask & VBI_EVENT_TRIGGER)
 			vbi_deferred_trigger(vbi);
+
+		if (1 && (rand() % 511) == 0)
+			vbi_eacem_trigger(vbi,
+				"<http://zapping.sourceforge.net>[n:Zapping][5450]");
 	}
 
 	return NULL;

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvbi.h,v 1.32 2001-04-11 17:30:31 garetxe Exp $ */
+/* $Id: libvbi.h,v 1.33 2001-04-12 19:06:20 mschimek Exp $ */
 
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
@@ -116,12 +116,10 @@ typedef enum {
 typedef struct {
 	vbi_link_type			type;
 
-	/* garetxe: The vbi_link is to be memcpy'ed around, these
-	   shouldn't be pointers to avoid hackery in zvbi */
-	unsigned char *			name;
+	unsigned char 			name[80];
 
-	unsigned char *			url;
-	unsigned char *			script;
+	unsigned char			url[256];
+	unsigned char			script[256];
 
 	unsigned int                    nuid;
 	int				page;
@@ -132,10 +130,6 @@ typedef struct {
 	int				itv_type;
 	int				priority;
 	int				autoload;
-
-	/* Private */
-
-	unsigned char			buf[256];
 } vbi_link;
 
 extern void		vbi_resolve_link(struct fmt_page *pg, int column, int row, vbi_link *ld);

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.24 2001-03-31 11:10:26 garetxe Exp $ */
+/* $Id: mpeg1.c,v 1.25 2001-04-12 19:06:20 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -195,6 +195,7 @@ motion_dmv(struct motion *m, int dmv[2])
 #if PACKED
 #define T3RT 1
 #define T3RI 1
+#define PSKIP 0
 static const int motion = 0;
 #else
 static int motion = 8 * 256;
@@ -648,9 +649,9 @@ if (!T3RT) quant = 2;
 					cbp = fdct_inter(mblock[1]); // mblock[1] -> mblock[0]
 					pr_end(26);
 
-					// something is wrong here - but what?
-					if (0 && cbp == 0 && mb_count > 1 && mb_count < mb_num &&
+					if (cbp == 0 && mb_count > 1 && mb_count < mb_num &&
 						(!motion || (M.MV[0] | M.MV[1]) == 0)) {
+						mmx_copy_refblock();
 						i++;
 						break;
 					} else {

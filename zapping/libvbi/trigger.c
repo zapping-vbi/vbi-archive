@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: trigger.c,v 1.1 2001-04-05 19:56:33 mschimek Exp $ */
+/* $Id: trigger.c,v 1.2 2001-04-12 19:06:20 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,7 +48,7 @@ struct _vbi_trigger {
 static bool
 verify_checksum(unsigned char *s, int count, int checksum)
 {
-	register long sum = checksum;
+	register unsigned long sum = checksum;
 
 	for (; count > 1; count -= 2) {
 		sum += *s++ << 8;
@@ -59,9 +59,9 @@ verify_checksum(unsigned char *s, int count, int checksum)
 		sum += *s << 8;
 
 	while (sum >= (1 << 16))
-		sum = (sum & 0xFFFFL) + (sum >> 16);
+		sum = (sum & 0xFFFFUL) + (sum >> 16);
 
-	return sum == 0xFFFFL;
+	return sum == 0xFFFFUL;
 }
 
 static int
@@ -169,13 +169,14 @@ parse_eacem(vbi_trigger *t, unsigned char *s1, unsigned int nuid, double now)
 		"active", "countdown", "delete", "expires",
 		"name", "priority", "script"
 	};
+	unsigned char buf[256];
 	unsigned char *s, *e, *d, *dx;
 	int active, countdown;
 	int c;
 
-	t->link.url       = NULL;
-	t->link.name      = NULL;
-	t->link.script    = NULL;
+	t->link.url[0]    = 0;
+	t->link.name[0]   = 0;
+	t->link.script[0] = 0;
 	t->link.priority  = 9;
 	t->link.expires   = 0.0;
 	t->link.autoload  = FALSE;
@@ -184,9 +185,6 @@ parse_eacem(vbi_trigger *t, unsigned char *s1, unsigned int nuid, double now)
 	t->view		  = 'w';
 	t->link.itv_type  = 0;
 	active		  = INT_MAX;
-
-	d = t->link.buf;
-	dx = t->link.buf + sizeof(t->link.buf) - 2;
 
 	for (s = s1;; s++) {
 		e = s;
@@ -197,7 +195,10 @@ parse_eacem(vbi_trigger *t, unsigned char *s1, unsigned int nuid, double now)
 			if (s != s1)
 				return NULL;
 
-			for (t->link.url = d, s++; (c = *s) != '>'; s++)
+			d = t->link.url;
+			dx = d + sizeof(t->link.url) - 2;
+
+			for (s++; (c = *s) != '>'; s++)
 				if (c && d < dx)
 					*d++ = c;
 				else
@@ -210,7 +211,10 @@ parse_eacem(vbi_trigger *t, unsigned char *s1, unsigned int nuid, double now)
 			unsigned char *attr, *text = "";
 			bool quote = FALSE;
 
-			for (attr = d, s++; c = *s, c != ':' && c != delim; s++) {
+			attr = d = buf;
+			dx = d + sizeof(buf) - 2;
+
+			for (s++; c = *s, c != ':' && c != delim; s++) {
 				if (c == '%') {
 					if ((c = parse_hex(s + 1, 2)) < 0x20)
 						return NULL;
@@ -232,8 +236,11 @@ parse_eacem(vbi_trigger *t, unsigned char *s1, unsigned int nuid, double now)
 
 			if (c != ':') {
 				if (!verify_checksum(s1, e - s1,
-						       strtoul(attr, NULL, 16)))
+						     strtoul(attr, NULL, 16))) {
+					if (0)
+						fprintf(stderr, "checksum mismatch\n");
 					return NULL;
+				}
 
 				break;
 			}
@@ -261,7 +268,6 @@ parse_eacem(vbi_trigger *t, unsigned char *s1, unsigned int nuid, double now)
 				active = parse_time(text);
 			       	if (active < 0)
 					return NULL;
-				d = attr;
 				break;
 
 			case 1: /* countdown */
@@ -269,34 +275,30 @@ parse_eacem(vbi_trigger *t, unsigned char *s1, unsigned int nuid, double now)
 				if (countdown < 0)
 					return NULL;
 				t->fire = now + countdown / 25.0;
-				d = attr;
 				break;
 
 			case 2: /* delete */
 				t->delete = TRUE;
-				d = attr;
 				break;
 
                         case 3: /* expires */
 				t->link.expires = parse_date(text);
 				if (t->link.expires == (time_t) -1)
 					return NULL;
-				d = attr;
 				break;
 
 			case 4: /* name */
-				t->link.name = text;
+				strncpy(t->link.name, text, sizeof(t->link.name) - 1);
 				break;
 
                         case 5: /* priority */
 				t->link.priority = strtoul(text, NULL, 10);
 				if (t->link.priority > 9)
 					return NULL;
-				d = attr;
 				break;
 
 			case 6: /* script */
-				t->link.script = text;
+				strncpy(t->link.script, text, sizeof(t->link.script) - 1);
 				break;
 
 			default:
@@ -310,6 +312,7 @@ parse_eacem(vbi_trigger *t, unsigned char *s1, unsigned int nuid, double now)
 
 	if (t->link.expires <= 0.0)
 		t->link.expires = t->fire + active / 25.0;
+		/* EACEM eqv PAL/SECAM land, 25 fps */
 
 	if (!t->link.url)
 		return NULL;
@@ -370,13 +373,13 @@ parse_atvef(vbi_trigger *t, unsigned char *s1, double now)
 		"program", "network", "station", "sponsor",
 		"operator", "tve"
 	};
+	unsigned char buf[256];
 	unsigned char *s, *e, *d, *dx;
-	unsigned char *tve;
 	int c;
 
-	t->link.url       = NULL;
-	t->link.name      = NULL;
-	t->link.script    = NULL;
+	t->link.url[0]    = 0;
+	t->link.name[0]   = 0;
+	t->link.script[0] = 0;
 	t->link.priority  = 9;
 	t->fire      = now;
 	t->link.expires   = 0.0;
@@ -384,9 +387,6 @@ parse_atvef(vbi_trigger *t, unsigned char *s1, double now)
 	t->delete    = FALSE;
 	t->view      = 'w';
 	t->link.itv_type  = 0;
-
-	d = t->link.buf;
-	dx = t->link.buf + sizeof(t->link.buf) - 2;
 
 	for (s = s1;; s++) {
 		e = s;
@@ -396,7 +396,10 @@ parse_atvef(vbi_trigger *t, unsigned char *s1, double now)
 			if (s != s1)
 				return NULL;
 
-			for (t->link.url = d, s++; (c = *s) != '>'; s++)
+			d = t->link.url;
+			dx = d + sizeof(t->link.url) - 1;
+
+			for (s++; (c = *s) != '>'; s++)
 				if (c && d < dx)
 					*d++ = c;
 				else
@@ -408,7 +411,10 @@ parse_atvef(vbi_trigger *t, unsigned char *s1, double now)
 			unsigned char *attr, *text = "";
 			bool quote = FALSE;
 
-			for (attr = d, s++; c = *s, c != ':' && c != ']'; s++) {
+			attr = d = buf;
+			dx = d + sizeof(buf) - 2;
+
+			for (s++; c = *s, c != ':' && c != ']'; s++) {
 				if (c == '%') {
 					if ((c = parse_hex(s + 1, 2)) < 0x20)
 						return NULL;
@@ -468,45 +474,40 @@ parse_atvef(vbi_trigger *t, unsigned char *s1, double now)
 					sizeof(attributes) / sizeof(attributes[0]))) {
 			case 0: /* auto */
 				t->link.autoload = parse_bool(text);
-				d = attr;
 				break;
 
 			case 1: /* expires */
 				t->link.expires = parse_date(text);
 				if (t->link.expires < 0.0)
 					return NULL;
-				d = attr;
 				break;
 
 			case 2: /* name */
-				t->link.name = text;
+				strncpy(t->link.name, text, sizeof(t->link.name) - 1);
 				break;
 
 			case 3: /* script */
-				t->link.script = text;
+				strncpy(t->link.script, text, sizeof(t->link.script) - 1);
 				break;
 
 			case 4: /* type */
 				t->link.itv_type = keyword(text, type_attrs,
 					sizeof(type_attrs) / sizeof(type_attrs[0])) + 1;
-				d = attr;
 				break;
 
 			case 5: /* time */
 				t->fire = parse_date(text);
 				if (t->fire < 0.0)
 					return NULL;
-				d = attr;
 				break;
 
 			case 6: /* tve */
 			case 7: /* tve-level */
-				tve = text;
+				/* ignored */
 				break;
 
 			case 8: /* view (tve == v) */
 				t->view = *text;
-				d = attr;
 				break;
 
 			default:

@@ -1,2 +1,3 @@
-1550 MHz
-990 MHz
+2001-04-12	<mschimek@users.sourceforge.net>
+
+	* Fixed p-frame skipped mb bug.

@@ -268,13 +268,28 @@ acknowledge_trigger			(vbi_link	*link)
   gtk_widget_show(pix);
   gtk_container_add(GTK_CONTAINER(button), pix);
 
-  /* FIXME: Show more fields (type, itv...) */
+  /* FIXME: Show more fields (type, itv...)
+   * {mhs}:
+   * type is not for users.
+   * nuid identifies the network (or 0), same code as vbi_network.nuid.
+   *   Only for PAGE/SUBPAGE links or triggers.
+   * expires is the time (seconds and fractions since epoch (-> time_t/timeval))
+   *   until the target is valid.
+   * autoload requests to open the target without user
+   *   confirmation (ATVEF flag).
+   * itv_type (ATVEF) and priority (EACEM) are intended for filtering
+   *   -> preferences, and display priority. EACEM priorities are:
+   *	 emergency = 0 (never blocked)
+   *     high = 1 or 2
+   *     medium = 3, 4 or 5
+   *     low = 6, 7, 8 or 9 (default 9)
+   */
   memcpy(&last_trigger_link, link->url, 256);
   gtk_signal_connect(GTK_OBJECT(button), "clicked",
 		     GTK_SIGNAL_FUNC(on_trigger_clicked), NULL);
 
   set_tooltip(button,
-	      _("Open this link with the predeterminated Web browser.\n"
+	      _("Open this link with the predetermined Web browser.\n"
 		"You can configure this in the GNOME Control Center, "
 		"under Handlers/Url Navigator"));
 
@@ -450,23 +465,6 @@ send_ttx_message(struct ttx_client *client,
   buffer *b = wait_empty_buffer(&client->mqueue);
   d = (ttx_message_data*)b->data;
   d->msg = message;
-  if (message == TTX_TRIGGER)
-    {
-      /* Convert these into indexes */
-      vbi_link *ld = data;
-      if (ld->name)
-	ld->name = (char*)(ld->name - ld->buf);
-      else
-	ld->name = (char*)0xdeadbeef;
-      if (ld->url)
-	ld->url = (char*)(ld->url - ld->buf);
-      else
-	ld->url = (char*)0xdeadbeef;
-      if (ld->script)
-	ld->script = (char*)(ld->script - ld->buf);
-      else
-	ld->script = (char*)0xdeadbeef;
-    }
   g_assert(bytes <= sizeof(ttx_message_data));
   if (data)
     memcpy(&(d->data), data, bytes);
@@ -611,23 +609,6 @@ peek_ttx_message(int id, ttx_message_data *data)
 	  message = d->msg;
 	  memcpy(data, d, sizeof(ttx_message_data));
 	  send_empty_buffer(&client->mqueue, b);
-	  /* FIXME: fix this in libvbi instead of here */
-	  if (message == TTX_TRIGGER)
-	    {
-	      vbi_link *ld = &(data->data.link);
-	      if (ld->url != ((unsigned char*)0xdeadbeef))
-		ld->url = ld->buf + (int)ld->url;
-	      else 
-		ld->url = NULL;
-	      if (ld->name != ((unsigned char*)0xdeadbeef))
-		ld->name = ld->buf + (int)ld->name;
-	      else
-		ld->name = NULL;
-	      if (ld->script != ((unsigned char*)0xdeadbeef))
-		ld->script = ld->buf + (int)ld->script;
-	      else
-		ld->script = NULL;
-	    }
 	}
       else
 	message = TTX_NONE;
@@ -658,23 +639,6 @@ get_ttx_message(int id, ttx_message_data *data)
       message = d->msg;
       memcpy(data, d, sizeof(ttx_message_data));
       send_empty_buffer(&client->mqueue, b);
-      /* FIXME: fix this in libvbi instead of here */
-      if (message == TTX_TRIGGER)
-	{
-	  vbi_link *ld = &(data->data.link);
-	  if (ld->url != (unsigned char*)0xdeadbeef)
-	    ld->url = ld->buf + (int)ld->url;
-	  else 
-	    ld->url = NULL;
-	  if (ld->name != (unsigned char*)0xdeadbeef)
-	    ld->name = ld->buf + (int)ld->name;
-	  else
-	    ld->name = NULL;
-	  if (ld->script != (unsigned char*)0xdeadbeef)
-	    ld->script = ld->buf + (int)ld->script;
-	  else
-	    ld->script = NULL;
-	}
     }
   else
     message = TTX_BROKEN_PIPE;
@@ -1277,7 +1241,11 @@ event(vbi_event *ev, void *unused)
       pthread_mutex_unlock(&network_mutex);
       break;
     case VBI_EVENT_TRIGGER:
-      notify_trigger((vbi_link *) ev->p);
+      fprintf(stderr, "Trigger event, name=%s url=%s\n",
+        ((vbi_link *) ev->p)->name,
+        ((vbi_link *) ev->p)->url);
+      // crashed
+      // notify_trigger((vbi_link *) ev->p);
       break;
       
     default:
