@@ -1,3 +1,8 @@
+29.05.2001	<mschimek@users.sf.net>
+
+	* list.h: double linked now
+	* fifotest.c: added
+
 28.05.2001	alirc plugin <garetxe@users.sf.net>
 
 	* plugins/alirc: 'Another lirc plugin', by Sjoerd Simons
