@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I../src $(COMMON_INCLUDES) 
+INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/common $(COMMON_INCLUDES) 
 
 bin_PROGRAMS = zapping_setup_fb
 bin_SCRIPTS = zapping_fix_overlay
