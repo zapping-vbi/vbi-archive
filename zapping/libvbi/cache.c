@@ -673,7 +673,8 @@ cache_network_unref		(cache_network *	cn)
 
 	if (0 == cn->ref_count) {
 		vbi3_log_printf (VBI3_DEBUG, __FUNCTION__,
-				"Unreferenced network %p", cn);
+				 "Unreferenced network %p",
+				 (void *) cn);
 		return;
 	} else if (1 == cn->ref_count) {
 		cn->ref_count = 0;
@@ -1067,7 +1068,8 @@ cache_page_unref		(cache_page *		cp)
 
 	if (0 == cp->ref_count) {
 		vbi3_log_printf (VBI3_DEBUG, __FUNCTION__,
-				"Unreferenced page %p", cp);
+				 "Unreferenced page %p",
+				 (void *) cp);
 		return;
 	}
 
@@ -1590,6 +1592,8 @@ vbi3_cache_remove_event_handler	(vbi3_cache *		ca,
 				 vbi3_event_cb *	callback,
 				 void *			user_data)
 {
+	assert (NULL != ca);
+
 	_vbi3_event_handler_list_remove_by_callback
 		(&ca->handlers, callback, user_data);
 }
@@ -1622,6 +1626,8 @@ vbi3_cache_add_event_handler	(vbi3_cache *		ca,
 				 vbi3_event_cb *	callback,
 				 void *			user_data)
 {
+	assert (NULL != ca);
+
 	event_mask &= VBI3_EVENT_REMOVE_NETWORK;
 
 	if (0 == event_mask)
