@@ -1,8 +1,7 @@
 /*
  *  MPEG-1 Real Time Encoder
- *  Zero displacement inter prediction macros
  *
- *  Copyright (C) 1999-2000 Michael H. Schimek
+ *  Copyright (C) 2001 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,9 +18,32 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: predict.h,v 1.3 2000-11-01 13:48:22 mschimek Exp $ */
+/* $Id: motion.h,v 1.1 2001-06-01 20:24:35 mschimek Exp $ */
 
+#include "vlc.h"
 #include "mblock.h"
+
+extern int		motion;
+extern int		mm_buf_offs;
+
+extern int		predict_forward_motion(struct motion *M, unsigned char *, int);
+extern int		predict_bidirectional_motion(struct motion *M, int *, int *, int);
+
+extern void		zero_forward_motion(void);
+extern void		t7(int range, int dist);
+
+/* motion_mmx.s */
+
+/*
+    ATTN uses mblock[4] as permanent scratch in picture_i|p();
+    source mblock[0], dest mm_row, mm_mbrow, bp;
+    uses mb_row|col
+*/
+extern void		mmx_mbsum(char * /* eax */) __attribute__ ((regparm (1)));
+
+extern int		mmx_sad(unsigned char t[16][16] /* eax */,
+				unsigned char *p /* edx */,
+				int pitch /* ecx */) __attribute__ ((regparm (3)));
 
 /*
  *  Forward prediction (P frames only)

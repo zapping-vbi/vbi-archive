@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.32 2001-05-31 19:40:50 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.33 2001-06-01 20:24:35 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -38,13 +38,13 @@
 #include "../common/fifo.h"
 #include "../common/alloc.h"
 #include "../common/remote.h"
-#include "vlc.h"
-#include "dct.h"
-#include "predict.h"
-#include "mpeg.h"
-#include "video.h"
 #include "../systems/mpeg.h"
 #include "../systems/systems.h"
+#include "vlc.h"
+#include "dct.h"
+#include "mpeg.h"
+#include "motion.h"
+#include "video.h"
 
 /**/
 
@@ -109,6 +109,8 @@ double video_eff_bit_rate;
 
 static int mb_cx_row, mb_cx_thresh;
 
+int mm_buf_offs;
+
 /* main.c */
 extern int		frames_per_seqhdr;
 extern int		video_num_frames;
@@ -126,7 +128,9 @@ extern double		video_stop_time;
 extern int p6_predict_forward_packed(unsigned char *) reg(1);
 extern int p6_predict_forward_planar(unsigned char *) reg(1);
 
-#ifndef REG_TEST
+#if REG_TEST
+#define PACKED 0
+#else
 #define PACKED 1
 #endif
 
@@ -162,6 +166,18 @@ int p_inter_bias = 65536 * 48,
 fifo *			video_fifo;
 
 #include "dct_ieee.h"
+
+
+
+
+
+
+
+
+
+
+
+
 
 /*
  *  Picture layer
@@ -201,20 +217,36 @@ motion_dmv(struct motion *m, int dmv[2])
 }
 
 #if PACKED
-#define T3RT 1
-#define T3RI 1
+
 #define PSKIP 0
-static const int motion = 0;
-const int mm_row; // ld dead end
-const int mm_mbrow;
-#define zero_forward_motion()
+#undef T3RT
+#define T3RT 1
+#undef T3RI
+#define T3RI 1
+
+int motion = 0;
+//const int mm_row; // ld dead end
+//const int mm_mbrow;
+// #define zero_forward_motion()
 // garetxe: XXX workaround for build problems
 #define ZMB1
 #define ZMB2
 #define PBF 4
-#else
-static int motion = 8 * 256;
-#include "motion.c"
+
+#else // !PACKED
+
+#define TEST3p1 1	/* enable */
+// #define AUTOR 1	/* search range estimation (P frames only) */
+#define T3P1_25 1	/* rev. >= 25, bidi results changed */
+#ifndef T3RT
+#define T3RT 1
+#endif
+#ifndef T3RI
+#define T3RI 1
+#endif
+
+int motion = 8 * 256;
+
 #if 1
 #define ZMB1						\
 do {							\
@@ -240,10 +272,14 @@ do { int i, j, n;					\
 #define ZMB2
 #define PBF 4
 #endif
+
 #endif
 
+
+
+
 static int
-picture_i(unsigned char *org0, unsigned char *org1)
+picture_i(unsigned char *org0, unsigned char *org1, int motion)
 {
 	double act, act_sum;
 	int quant_sum;
@@ -276,9 +312,6 @@ picture_i(unsigned char *org0, unsigned char *org1)
 	act_sum = 0.0;
 
 	swap(oldref, newref);
-#if TEST3p1
-	t0();
-#endif
 
 	reset_mba();
 	reset_dct_pred();
@@ -307,9 +340,13 @@ picture_i(unsigned char *org0, unsigned char *org1)
 			pr_start(41, "Filter");
 			var = (*filter)(org0, org1); // -> mblock[0]
 			pr_end(41);
-#if TEST3p1
-			t1();
-#endif
+
+			if (motion) {
+				pr_start(56, "MB sum");
+				mmx_mbsum(newref + mm_buf_offs); // mblock[0]
+				pr_end(56);
+			}
+
 			emms();
 
 			/* Calculate quantization factor */
@@ -385,7 +422,9 @@ ZMB2;
 				mpeg1_idct_intra(quant);	// mblock[1] -> newref
 				pr_end(23);
 
-				zero_forward_motion();
+				if (motion)
+					zero_forward_motion();
+
 				mba_col();
 			}
 #if TEST_PREVIEW
@@ -400,10 +439,6 @@ ZMB2;
 	}
 
 	emms();
-
-#if TEST3p1
-	t2();
-#endif
 
 	/* Rate control */
 
@@ -424,14 +459,6 @@ ZMB2;
 
 	return S >> 3;
 }
-
-
-
-
-
-
-
-
 
 #define pb_intra_mb(f)							\
 do {									\
@@ -506,7 +533,7 @@ picture_p(unsigned char *org0, unsigned char *org1, int dist, int forward_motion
 	int mb_skipped, mb_count;
 	int intra_count = 0;
 
-	if (motion)
+	if (forward_motion)
 		motion_init(&M, (dist * forward_motion) >> 8);
 	else {
 		M.f_code = 1;
@@ -522,9 +549,7 @@ picture_p(unsigned char *org0, unsigned char *org1, int dist, int forward_motion
 	/* Initialize rate control parameters */
 
 	swap(oldref, newref);
-#if TEST3p1
-	t0();
-#endif
+
 	reset_mba();
 
 #if TEST_PREVIEW
@@ -589,19 +614,20 @@ picture_p(unsigned char *org0, unsigned char *org1, int dist, int forward_motion
 			pr_start(41, "Filter");
 			var = (*filter)(org0, org1); // -> mblock[0]
 			pr_end(41);
-#if TEST3p1
-			t1();
-#endif
-			pr_start(51, "Predict forward");
 
-#if TEST3p1
-			if (motion)
+			if (forward_motion) {
+				pr_start(56, "MB sum");
+				mmx_mbsum(newref + mm_buf_offs); // mblock[0]
+				pr_end(56);
+
+				pr_start(51, "Predict forward");
 				vmc = predict_forward_motion(&M, oldref, dist);
-			else
-#endif
+				pr_end(51);
+			} else {
+				pr_start(51, "Predict forward");
 				vmc = predict_forward(oldref + mb_address.block[0].offset);
-
-			pr_end(51);
+				pr_end(51);
+			}
 
 			emms();
 
@@ -639,7 +665,7 @@ ZMB1;
 
 				mb_skipped = 0;
 
-				if (motion)
+				if (forward_motion)
 					reset_pmv(&M);
 
 				if (referenced) {
@@ -647,7 +673,8 @@ ZMB1;
 					mpeg1_idct_intra(quant); // mblock[0] -> new
 					pr_end(23);
 
-					zero_forward_motion();
+					if (forward_motion)
+						zero_forward_motion();
 				}
 			} else {
 				unsigned int cbp;
@@ -667,7 +694,7 @@ if (!T3RT) quant = 2;
 
 				Ti += Tmb;
 
-				if (motion) {
+				if (forward_motion) {
 #if HOT_AIR
  					if (mb_row > 0 && mb_row < (mb_height - 1) &&
  					    mb_col > 0 && mb_col < (mb_width - 1)) {
@@ -691,7 +718,7 @@ if (!T3RT) quant = 2;
 					pr_end(26);
 
 					if (cbp == 0 && mb_count > 1 && mb_count < mb_num &&
-						(!motion || (M.MV[0] | M.MV[1]) == 0)) {
+						(!forward_motion || (M.MV[0] | M.MV[1]) == 0)) {
 						mmx_copy_refblock();
 						i++;
 						break;
@@ -703,7 +730,7 @@ if (!T3RT) quant = 2;
 						i = 0;
 
 						if (cbp == 0) {
-							if (motion) {
+							if (forward_motion) {
 								bcatq(1, 3);
 								motion_vector(&M, dmv);
 								bputq(&video_out, length + 3);
@@ -718,7 +745,7 @@ if (!T3RT) quant = 2;
 							mmx_copy_refblock();
 							break;
 						} else {
-							if (motion && (M.MV[0] | M.MV[1])) {
+							if (forward_motion && (M.MV[0] | M.MV[1])) {
 								if (prev_quant != quant) {
 									bcatq((2 << 5) + quant, 10);
 									length += 10;
@@ -802,7 +829,6 @@ if (!T3RT) quant = 2;
 	emms();
 
 #if TEST3p1
-	t2();
 	t7(M.src_range, dist);
 #endif
 
@@ -924,12 +950,10 @@ picture_b(unsigned char *org0, unsigned char *org1, int dist,
 
 			if (!closed_gop) {
 				pr_start(52, "Predict bidirectional");
-#if TEST3p1
+
 				if (motion)
-					vmc = predict_bidirectional_motion(M, oldref, newref,
-						&vmcf, &vmcb, dist);
+					vmc = predict_bidirectional_motion(M, &vmcf, &vmcb, dist);
 				else
-#endif
 					vmc = predict_bidirectional(
 						oldref + mb_address.block[0].offset,
 						newref + mb_address.block[0].offset,
@@ -970,7 +994,11 @@ if (TEST3) {
 					iblock = &mblock[2];
 				}
 			} else {
-				vmc = predict_backward(newref + mb_address.block[0].offset);
+				if (motion)
+					vmc = predict_forward_motion(&M[1], newref, dist);
+				else
+					vmc = predict_forward(newref + mb_address.block[0].offset);
+
 				macroblock_type = MB_BACKWARD;
 				iblock = &mblock[1];
 			}
@@ -1174,10 +1202,6 @@ if (!T3RT) quant = 2;
 
 	emms();
 
-#if TEST3p1
-	t8();
-#endif
-
 	/* Rate control */
 
 	S = bflush(&video_out);
@@ -1354,7 +1378,7 @@ promote(int n)
 		if (!obuf->used) {
 			Ei++; Ep--;
 			bstart(&video_out, obuf->data);
-			obuf->used = picture_i(stack[i].org[0], stack[i].org[1]);
+			obuf->used = picture_i(stack[i].org[0], stack[i].org[1], motion);
 			obuf->type = I_TYPE;
 			p_succ = 0;
 			p_dist = 0;
@@ -1705,13 +1729,13 @@ gop_count++;
 			} else {
 				brewind(&video_out, &mark); // headers
 
-				obuf->used = picture_i(this->org[0], this->org[1]);
+				obuf->used = picture_i(this->org[0], this->org[1], motion);
 				obuf->type = I_TYPE;
 				p_succ = 0;
 				p_dist = 0;
 			}
 		} else {
-			obuf->used = picture_i(this->org[0], this->org[1]);
+			obuf->used = picture_i(this->org[0], this->org[1], motion);
 			obuf->type = I_TYPE;
 			p_succ = 0;
 		}
@@ -1824,6 +1848,23 @@ G0 = Gn;
 #endif
 }
 
+static bool
+alloc_buffers(int mb_num, int motion)
+{
+	int size = (motion ? 10 * 64 : 6 * 64) * mb_num;
+
+	mm_buf_offs = 6 * 64 * mb_num;
+
+	ASSERT("allocate forward reference buffer",
+		(oldref = calloc_aligned(size, 4096)) != NULL);
+
+	ASSERT("allocate backward reference buffer",
+		(newref = calloc_aligned(size, 4096)) != NULL);
+
+	return TRUE;
+}
+
+
 void
 video_init(void)
 {
@@ -1834,11 +1875,7 @@ video_init(void)
 
 	vlc_init();
 
-	ASSERT("allocate forward reference buffer",
-		(oldref = calloc_aligned(mb_num * 6 * 64 * sizeof(unsigned char), 4096)) != NULL);
-
-	ASSERT("allocate backward reference buffer",
-		(newref = calloc_aligned(mb_num * 6 * 64 * sizeof(unsigned char), 4096)) != NULL);
+	alloc_buffers(mb_num, motion);
 
 	bstart(&video_out, oldref);
 	Sz = picture_zero();
@@ -1895,7 +1932,6 @@ video_init(void)
 
 	if (bmax >= sizeof(stack) / sizeof(stack[0]))
 		FAIL("Too many successive B pictures");
-
 
 #if PACKED
 		for (i = 0; i < 6; i++) {

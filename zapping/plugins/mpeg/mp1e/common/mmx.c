@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mmx.c,v 1.6 2001-05-12 21:08:33 mschimek Exp $ */
+/* $Id: mmx.c,v 1.7 2001-06-01 20:24:35 mschimek Exp $ */
 
 #include <stdlib.h>
 #include "log.h"
@@ -140,7 +140,7 @@ cpu_detection(void)
 		cpuid(&c, 1);
 
 		if (FEATURE(INTEL_MMX | INTEL_CMOV | INTEL_SSE | INTEL_SSE2))
-			FAIL("Pentium 4 detected, enable MPEG-4.\n");
+			return CPU_PENTIUM_4;
 		if (FEATURE(INTEL_MMX | INTEL_CMOV | INTEL_SSE))		
 			return CPU_PENTIUM_III;
 		if (FEATURE(INTEL_MMX | INTEL_CMOV))

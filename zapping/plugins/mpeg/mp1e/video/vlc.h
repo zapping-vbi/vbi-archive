@@ -18,7 +18,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vlc.h,v 1.6 2001-04-19 23:54:21 mschimek Exp $ */
+/* $Id: vlc.h,v 1.7 2001-06-01 20:24:35 mschimek Exp $ */
+
+#ifndef VLC_H
+#define VLC_H
 
 #include "../common/math.h"
 #include "../options.h"
@@ -111,3 +114,5 @@ motion_init(struct motion *m, int range)
 
 	reset_pmv(m);
 }
+
+#endif // VLC_H

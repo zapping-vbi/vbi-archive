@@ -1,3 +1,5 @@
+#include "site_def.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -163,21 +165,29 @@ vbi_mainloop(void *p)
 
 /* TEST ONLY */
 
-/* tinker here */
+#ifndef FILTER_REM
 #define FILTER_REM 0
+#endif
+#ifndef FILTER_ADD
 #define FILTER_ADD 0
-#define SAMPLE "libvbi/samples/"
+#endif
+#ifndef SAMPLE
+#define SAMPLE ""
+#endif
 
-/* examples */
-// #define FILTER_REM 0
-// #define FILTER_ADD SLICED_CAPTION
-// #define SAMPLE "libvbi/samples/s4"
-
-// #define FILTER_REM SLICED_TELETEXT_B
-// #define FILTER_ADD SLICED_TELETEXT_B
-// #define SAMPLE "libvbi/samples/t1-swr"
-
-// #define FILTER_* (SLICED_TELETEXT_B | SLICED_CAPTION | SLICED_VPS)
+/*
+ * Examples, put the #defines into site_def.h
+ *
+ * #define FILTER_REM 0
+ * #define FILTER_ADD SLICED_CAPTION
+ * #define SAMPLE "libvbi/samples/s4"
+ *
+ * #define FILTER_REM SLICED_TELETEXT_B
+ * #define FILTER_ADD SLICED_TELETEXT_B
+ * #define SAMPLE "libvbi/samples/t1-swr"
+ *
+ * #define FILTER_* (SLICED_TELETEXT_B | SLICED_CAPTION | SLICED_VPS)
+ */
 
 struct {
 	fifo			fifo;

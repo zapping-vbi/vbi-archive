@@ -1,3 +1,9 @@
+2001-06-01	<mschimek@users.sourceforge.net>
+
+	* Rewrote configure.in; added config.h
+	* Fixed closed_gop B-motion bug
+	* Integrating motion, unfinished
+
 2001-05-27	<garetxe@users.sf.net>
 
 	* Fixed rte buffered push capture, removed the possibility of

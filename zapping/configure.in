@@ -9,6 +9,8 @@ AM_ACLOCAL_INCLUDE(macros)
 
 AM_PROG_LIBTOOL
 
+test -e site_def.h || echo "/* Site specific definitions */" >site_def.h
+
 dnl These are the plugins we can build, they depend on the present
 dnl libs.
 PLUGINS_TO_BUILD="template lirc"

@@ -5,6 +5,9 @@
 # all the new files to release are placed under the ver-release dir.
 # (C) Iñaki García Etxebarria 2000-2001, under the GPL and stuff
 # Adapted for mp1e/rte
+#
+# Modified 2001-06-01 Michael H. Schimek <mschimek@users.sf.net>
+# - bzip2 (0.9.0c) -c didn't, changed to -f, added --repetitive-best
 ##############################################################################
 ## Get the version from configure.in
 PACKAGE=mp1e
@@ -30,7 +33,8 @@ make || exit 1
 clear && echo "Creating the .tar.gz and .tar.bz2 distros"
 	 echo "-----------------------------------------" && echo
 make dist || exit 1
-gunzip -c $PACKAGE-$VER.tar.gz | bzip2 -c > $PACKAGE-$VER.tar.bz2
+gunzip -c $PACKAGE-$VER.tar.gz >$PACKAGE-$VER.tar
+bzip2 -f --repetitive-best $PACKAGE-$VER.tar
 
 clear && echo "Building the RPM"
 	 echo "----------------" && echo

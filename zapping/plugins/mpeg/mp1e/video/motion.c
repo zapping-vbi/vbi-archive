@@ -1,8 +1,22 @@
 /*
  *  MPEG-1 Real Time Encoder
- *  Motion compensation V3.1.35
+ *  Motion compensation V3.1.36
  *
  *  Copyright (C) 2001 Michael H. Schimek
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  *  Reg test: make && ./mp1e -R4,16 -b2.3 -vvvv -m1 -c files/tennis/grab%04u.ppm >rec.mpg; cmp rec.mpg ref.mpg; echo -e "\7Done"
  *  use ref25.mpg after rev. 25 *** dead branch, use ref39.mpg
@@ -10,13 +24,32 @@
  *  Motion test: add -b4, -gIPIP or -gIBIB, set T3RT 0, T3RI 0
  */
 
-/* $Id: motion.c,v 1.4 2001-05-31 19:52:59 mschimek Exp $ */
+/* $Id: motion.c,v 1.5 2001-06-01 20:24:35 mschimek Exp $ */
 
-#define TEST3p1 1	/* enable */
-#define T3RT 1		/* use prediction (zero prediction error if 0) */
-#define T3RI 1		/* use intra macroblocks (else f/b/i only) */
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
+#include "site_def.h"
+
+#include <stdio.h>
+#include <assert.h>
+#include "common/mmx.h"
+#include "common/math.h"
+#include "common/profile.h"
+#include "mblock.h"
+#include "motion.h"
+
 #define AUTOR 1		/* search range estimation (P frames only) */
-#define T3P1_25 1	/* rev. >= 25, bidi results changed */
+
+#ifndef T3RT
+#define T3RT 1
+#endif
+
+// XXX alias mblock
+unsigned char tbuf[16][16] __attribute__ ((aligned (32)));
+
+mmx_t bbmin, bbdxy, crdxy, crdy0;
 
 /*
     vvv                           |||
@@ -31,8 +64,11 @@ unsigned char temp2h[20][16] __attribute__ ((aligned (32)));
 unsigned char temp2v[20][16] __attribute__ ((aligned (32)));
 unsigned char temp11[20][16] __attribute__ ((aligned (32)));
 
+short mm_row[352] __attribute__ ((aligned (32)));
+short mm_mbrow[7][352] __attribute__ ((aligned (32)));
+
 static inline void
-load_interp(unsigned char *p, int pitch, int dx, int dy)
+mmx_load_interp(unsigned char *p, int pitch, int dx, int dy)
 {
 	unsigned char *p1 = p + dx + dy * pitch;
 	int y;
@@ -440,13 +476,6 @@ load_interp(unsigned char *p, int pitch, int dx, int dy)
 	" :: "S" (p1 + y * pitch), "c" (y * 16), "r" (y) : "memory");
 }
 
-/* motion_mmx.s */
-
-extern int mmx_sad(
-	unsigned char t[16][16] /* eax */,
-	unsigned char *p /* edx */,
-	int pitch /* ecx */) __attribute__ ((regparm (3)));
-
 mmx_t m1; // XXX
 
 static unsigned int
@@ -837,7 +866,7 @@ mmx_sad2v(unsigned char ref[16][16], typeof(temp22) temp, int hx, int *r2)
 }
 
 static inline void
-load_ref(unsigned char t[16][16])
+mmx_load_ref(unsigned char t[16][16])
 {
 	asm ("
 		movq		0*16+0(%0),%%mm0;
@@ -939,8 +968,6 @@ load_ref(unsigned char t[16][16])
 
 	" :: "S" (&mblock[0][0][0][0]), "D" (&t[0][0]) : "memory");
 }
-
-mmx_t bbmin, bbdxy, crdxy, crdy0;
 
 static inline void
 mmx_psse(char t[16][16], char *p, int pitch)
@@ -1265,7 +1292,7 @@ mmx_psse(char t[16][16], char *p, int pitch)
 }
 
 static inline void
-load_pref(char t[16][16])
+mmx_load_pref(char t[16][16])
 {
 	asm volatile ("
 		movq		0*16+0(%0),%%mm0;
@@ -1386,43 +1413,8 @@ load_pref(char t[16][16])
 	" :: "S" (&mblock[0][0][0][0]), "D" (&t[0][0]) : "memory");
 }
 
-short mm_row[352] __attribute__ ((aligned (32)));
-short mm_mbrow[7][352] __attribute__ ((aligned (32)));
-static char mm_buf[2][288][352] __attribute__ ((aligned (32)));
-static char (* bp[2])[288][352] = { &mm_buf[0], &mm_buf[1] };
-
-// XXX alias mblock
-unsigned char tbuf[16][16] __attribute__ ((aligned (32)));
-
-static inline void
-t0(void)
-{
-	swap(bp[0], bp[1]);
-}
-
-/* motion_mmx.s */
-
-/*
-    ATTN uses mblock[4] as permanent scratch in picture_i|p();
-    source mblock[0], dest mm_row, mm_mbrow, bp;
-    uses mb_row|col, hardcoded 22x18 MBs
-*/
-extern void mmx_mbsum(
-	char (* bp)[288][352] /* eax */) __attribute__ ((regparm (1)));
-
-static inline void
-t1(void)
-{
-	mmx_mbsum(bp[1]);
-}
-
-static void
-t2(void)
-{
-}
-
 static inline int
-predict(unsigned char *from, int d2x, int d2y,
+mmx_predict(unsigned char *from, int d2x, int d2y,
       typeof (temp22) *ibuf, int iright, int idown, short dest[6][8][8])
 {
 	unsigned char *p, *q;
@@ -1753,11 +1745,10 @@ predict(unsigned char *from, int d2x, int d2y,
 }
 
 static int
-search(int *dhx, int *dhy, int dir,
+search(int *dhx, int *dhy, unsigned char *from,
        int x, int y, int range, short dest[6][8][8])
 {
 	typeof (temp22) *pat1, *pat2, *pat3, *pat4;
-	unsigned char *from = dir ? newref : oldref;
 	int act, act2, min, mini[3][3];
 	int i, j, k, dx, dy, ii, jj;
 	int hrange, vrange;
@@ -1792,9 +1783,9 @@ search(int *dhx, int *dhy, int dir,
 	bbmin = MMXRW(0xFFFE - 0x8000);
 	bbdxy = MMXRW(0x0000);
 
-	load_pref(tbuf);
+	mmx_load_pref(tbuf);
 
-	p = (*bp[dir])[0] + y0 * mb_address.block[0].pitch;
+	p = from + mm_buf_offs + y0 * mb_address.block[0].pitch;
 
 	for (k = 0; k < 4; k++) {
 		crdy0.b[k * 2 + 0] = x0 - x + k - 4;
@@ -1815,7 +1806,7 @@ search(int *dhx, int *dhy, int dir,
 
 	p = from + x + y * mb_address.block[0].pitch;
 
-	load_ref(tbuf);
+	mmx_load_ref(tbuf);
 
 	min = mmx_sad(tbuf, p, mb_address.block[0].pitch);
 	min -= (min >> 3);
@@ -1835,6 +1826,43 @@ search(int *dhx, int *dhy, int dir,
 	}
 
 	*dhx = dx * 2;		*dhy = dy * 2;
+
+#if TEST11
+	if (min < (16 * 256) && (nbabs(dx) | nbabs(dy)) < 2) {
+
+	x *= 2;			y *= 2;
+	dx *= 2;		dy *= 2;
+	ii = dx;		jj = dy;
+
+	dx -= ((x + dx) >= (mb_last_col * 16) * 2);
+	dy -= ((y + dy) >= (mb_last_row * 16) * 2);
+
+	ii -= dx;		jj -= dy; // default halfs from fine sad >> 3
+
+	/* XXX inefficient */
+	mmx_load_interp(from, mb_address.block[0].pitch,
+		(x + dx - 1) >> 1, (y + dy - 1) >> 1);
+
+	pat1 = &temp11;
+	pat2 = &temp2v;
+	pat3 = &temp2h;
+	pat4 = &temp22;
+
+	iright = ((dx ^ 1) & 1);
+	idown = ((dy ^ 1) & 1);
+
+	if (dx & 1) {
+		swap(pat1, pat3);
+		swap(pat2, pat4);
+	}
+
+	if (dy & 1) {
+		swap(pat1, pat2);
+		swap(pat3, pat4);
+	}
+		goto bail_out;
+	}
+#endif
 
 	/* half sample refinement */
 
@@ -1859,7 +1887,7 @@ search(int *dhx, int *dhy, int dir,
 
 	mini[1][1] = min;
 
-	load_interp(from, mb_address.block[0].pitch,
+	mmx_load_interp(from, mb_address.block[0].pitch,
 		(x + dx - 1) >> 1, (y + dy - 1) >> 1);
 
 	pat1 = &temp11;
@@ -1917,6 +1945,7 @@ search(int *dhx, int *dhy, int dir,
 		}
 	}
 
+bail_out:
 	if (ii == 0) {
 		ibuf = pat1;
 		if (jj != 0) {
@@ -1932,11 +1961,11 @@ search(int *dhx, int *dhy, int dir,
 		}
 	}
 
-	return predict(from, *dhx, *dhy, ibuf, iright, idown, dest);
+	return mmx_predict(from, *dhx, *dhy, ibuf, iright, idown, dest);
 }
 
 static int
-t4_edu(int dir, int *dxp, int *dyp, int sx, int sy,
+t4_edu(unsigned char *ref, int *dxp, int *dyp, int sx, int sy,
 	int src_range, int max_range, short dest[6][8][8])
 {
 	int x, y, xs, ys;
@@ -1973,7 +2002,7 @@ t4_edu(int dir, int *dxp, int *dyp, int sx, int sy,
 		ys = y1 - vrange;
 	}
 
-	s = search(dxp, dyp, dir, xs, ys, src_range, dest);
+	s = search(dxp, dyp, ref, xs, ys, src_range, dest);
 
 	*dxp += (xs - x) * 2;
 	*dyp += (ys - y) * 2;
@@ -1986,7 +2015,7 @@ t4_edu(int dir, int *dxp, int *dyp, int sx, int sy,
 static double qmsum = 0.0;
 static int qmcount = 0;
 
-static void
+void
 t7(int range, int dist)
 {
 	double m, q;
@@ -2010,22 +2039,17 @@ t7(int range, int dist)
 		motion = q * 256;
 }
 
-static void
-t8(void)
-{
-}
-
 static int pdx[18][22];
 static int pdy[18][22];
 static int pdist;
 
-static void
+void
 zero_forward_motion(void)
 {
 	pdx[mb_row][mb_col] = 127;
 }
 
-static int
+int
 predict_forward_motion(struct motion *M, unsigned char *from, int dist)
 {
 	int i, s;
@@ -2034,7 +2058,7 @@ predict_forward_motion(struct motion *M, unsigned char *from, int dist)
 	pmx = &M[0].MV[0];
 	pmy = &M[0].MV[1];
 
-	s = search(pmx, pmy, 0,
+	s = search(pmx, pmy, from,
 		mb_col * 16, mb_row * 16,
 		M[0].src_range, mblock[1]); // 1 + 3
 
@@ -2060,9 +2084,8 @@ predict_forward_motion(struct motion *M, unsigned char *from, int dist)
 	return s;
 }
 
-static int
+int
 predict_bidirectional_motion(struct motion *M,
-	unsigned char *from1, unsigned char *from2,
 	int *vmc1, int *vmc2, int bdist /* forward */)
 {
 	int i, j, si, sf, sb;
@@ -2076,21 +2099,21 @@ predict_bidirectional_motion(struct motion *M,
 	pmy2 = &M[1].MV[1];
 
 	if (0 && pdx[mb_row][mb_col] < 127) {
-		sf = t4_edu(0, pmx1, pmy1,
+		sf = t4_edu(oldref, pmx1, pmy1,
 			+pdx[mb_row][mb_col] * bdist / pdist,
 			+pdy[mb_row][mb_col] * bdist / pdist,
 			MIN(M[0].src_range, 8), M[0].max_range,
 			mblock[1]); // 1 + 3
-		sb = t4_edu(1, pmx2, pmy2,
+		sb = t4_edu(newref, pmx2, pmy2,
 			-pdx[mb_row][mb_col] * fdist / pdist,
 			-pdy[mb_row][mb_col] * fdist / pdist,
 			MIN(M[1].src_range, 8), M[1].max_range,
 			mblock[2]); // 2 + 4
 	} else {
-		sf = search(pmx1, pmy1, 0,
+		sf = search(pmx1, pmy1, oldref,
 			mb_col * 16, mb_row * 16,
 			M[0].src_range, mblock[1]); // 1 + 3
-		sb = search(pmx2, pmy2, 1,
+		sb = search(pmx2, pmy2, newref,
 			mb_col * 16, mb_row * 16,
 			M[1].src_range, mblock[2]); // 2 + 4
 
