@@ -19,8 +19,8 @@
 /*
   You can use this code as the template for your own plugins. If you
   have any doubts after reading this and the docs, please contact the
-  author. Declaring things as static isn't needed, it is just to make
-  clear what is to be exported and what isn't.
+  author. Declaring things as static is required, otherwise the
+  dinamic linker and the compiler will go nuts.
 */
 
 /* This is the description of the plugin, change as appropiate */
@@ -40,22 +40,85 @@ static const gchar str_version[] = "1.0gamma";
 /* Active status of the plugin */
 static gboolean active = FALSE;
 
-gint zp_protocol ( void )
+static void yoyo_dado ( void );
+
+/*
+  Declaration of the static symbols of the plugin. Refer to the docs
+  to know what does each of these functions do
+*/
+gint plugin_get_protocol ( void )
 {
   /* You don't need to modify this function */
   return PLUGIN_PROTOCOL;
 }
 
-gboolean zp_running (void)
+/* Return FALSE if we aren't able to access a symbol, you should only
+   need to edit the pointer table, not the code */
+gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
+{
+  /* Usually this table is the only thing you will need to change */
+  struct plugin_exported_symbol table_of_symbols[] =
+  {
+    SYMBOL(plugin_get_info, 0x1234),
+    SYMBOL(plugin_init, 0x1234),
+    SYMBOL(plugin_close, 0x1234),
+    SYMBOL(plugin_start, 0x1234),
+    SYMBOL(plugin_stop, 0x1234),
+    SYMBOL(plugin_load_config, 0x1234),
+    SYMBOL(plugin_save_config, 0x1234),
+    SYMBOL(plugin_running, 0x1234),
+    SYMBOL(plugin_process_frame, 0x1234),
+    SYMBOL(plugin_get_public_info, 0x1234),
+    SYMBOL(plugin_add_properties, 0x1234),
+    SYMBOL(plugin_activate_properties, 0x1234),
+    SYMBOL(plugin_help_properties, 0x1234),
+    SYMBOL(plugin_add_gui, 0x1234),
+    SYMBOL(plugin_remove_gui, 0x1234),
+    SYMBOL(plugin_get_priority, 0x1234)
+  };
+  gint num_exported_symbols =
+    sizeof(table_of_symbols)/sizeof(struct plugin_exported_symbol);
+  gint i;
+
+  /* Try to find the given symbol in the table of exported symbols
+   of the plugin */
+  for (i=0; i<num_exported_symbols; i++)
+    if (!strcmp(table_of_symbols[i].symbol, name))
+      {
+	if (table_of_symbols[i].hash != hash)
+	  {
+	    if (ptr)
+	      *ptr = GINT_TO_POINTER(0x3); /* hash collision code */
+	    /* Warn */
+	    g_warning(_("Check error: \"%s\" in plugin %s"
+		       "has hash 0x%x vs. 0x%x"), name,
+		      str_canonical_name, 
+		      table_of_symbols[i].hash,
+		      hash);
+	    return FALSE;
+	  }
+	if (ptr)
+	  *ptr = table_of_symbols[i].ptr;
+	return TRUE; /* Success */
+      }
+
+  if (ptr)
+    *ptr = GINT_TO_POINTER(0x2); /* Symbol not found in the plugin */
+  return FALSE;
+}
+
+static
+gboolean plugin_running (void)
 {
   /* This will usually be like this too */
   return active;
 }
 
-void zp_get_info (gchar ** canonical_name, gchar **
-		  descriptive_name, gchar ** description, gchar **
-		  short_description, gchar ** author, gchar **
-		  version)
+static
+void plugin_get_info (gchar ** canonical_name, gchar **
+			descriptive_name, gchar ** description, gchar **
+			short_description, gchar ** author, gchar **
+			version)
 {
   /* Usually, this one doesn't need modification either */
   if (canonical_name)
@@ -72,27 +135,29 @@ void zp_get_info (gchar ** canonical_name, gchar **
     *version = _(str_version);
 }
 
-gboolean zp_init (PluginBridge bridge, tveng_device_info * info)
+static
+gboolean plugin_init (PluginBridge bridge, tveng_device_info * info)
 {
   /* Do any startup you need here, and return FALSE on error */
 
   /* If this is set, autostarting is on (we should start now) */
   if (active)
-    return zp_start();
-
+    return plugin_start();
   return TRUE;
 }
 
-void zp_close(void)
+static
+void plugin_close(void)
 {
   /* If we were working, stop the work */
   if (active)
-    zp_stop();
+    plugin_stop();
 
   /* Any cleanups would go here (closing fd's and so on) */
 }
 
-gboolean zp_start (void)
+static
+gboolean plugin_start (void)
 {
   /* In most plugins, you don't want to be started twice */
   if (active)
@@ -106,7 +171,8 @@ gboolean zp_start (void)
   return TRUE;
 }
 
-void zp_stop(void)
+static
+void plugin_stop(void)
 {
   /* Most times we cannot be stopped while we are stopped */
   if (!active)
@@ -116,9 +182,11 @@ void zp_stop(void)
   active = FALSE;
 }
 
-void zp_load_config (gchar * root_key)
+static
+void plugin_load_config (gchar * root_key)
 {
   gchar * buffer;
+
   /* The autostart config value is compulsory, you shouldn't need to
      change the following */
   buffer = g_strconcat(root_key, "autostart", NULL);
@@ -132,7 +200,8 @@ void zp_load_config (gchar * root_key)
   /* Load here any other config key */
 }
 
-void zp_save_config (gchar * root_key)
+static
+void plugin_save_config (gchar * root_key)
 {
   gchar * buffer;
 
@@ -141,34 +210,33 @@ void zp_save_config (gchar * root_key)
   zconf_set_boolean(active, buffer);
   g_free(buffer);
 
-  /* Save here any other config keys you need to save*/
+  /* Save here any other config keys you need to save */
 }
 
-GdkImage * zp_process_frame(GdkImage * image, gpointer data,
-			    struct tveng_frame_format * format)
+static
+GdkImage * plugin_process_frame(GdkImage * image, gpointer data,
+				  struct tveng_frame_format * format)
 {
   /* If the plugin isn't active, it shouldn't do anything */
   if (!active)
     return image;
 
-  /*
-    Return the modified data (the same as the supplied on, in this
-    case).
-  */
+  /* Do any changes to the image here */
+  
   return image;
 }
 
-void yoyo_dado ( void );
+static
 void yoyo_dado ( void )
 {
-  /* What a incredible waste of resources, isn't it? ;-DDD */
-  ShowBox("Yoyo-Dado !!", GNOME_MESSAGE_BOX_INFO);
+  ShowBox("Yoyo-Dado", GNOME_MESSAGE_BOX_INFO);
 }
 
 
-gboolean zp_get_public_info (gint index, gpointer * ptr, gchar **
-			     symbol, gchar ** description, gchar **
-			     type, gint * hash)
+static
+gboolean plugin_get_public_info (gint index, gpointer * ptr, gchar **
+				   symbol, gchar ** description, gchar **
+				   type, gint * hash)
 {
   /*
     This plugin exports a dummy function that basically does
@@ -207,20 +275,23 @@ gboolean zp_get_public_info (gint index, gpointer * ptr, gchar **
   return TRUE; /* Exported */
 }
 
-void zp_add_properties ( GnomePropertyBox * gpb )
+static
+void plugin_add_properties ( GnomePropertyBox * gpb )
 {
   /* Here you would add a page to the property box. Define this
      function only if you are going to add something to the box */
 }
 
-gboolean zp_activate_properties ( GnomePropertyBox * gpb, gint page )
+static
+gboolean plugin_activate_properties ( GnomePropertyBox * gpb, gint page )
 {
   /* Return TRUE only if the given page have been builded by this
      plugin, and apply any config changes here */
   return FALSE;
 }
 
-gboolean zp_help_properties ( GnomePropertyBox * gpb, gint page )
+static
+gboolean plugin_help_properties ( GnomePropertyBox * gpb, gint page )
 {
   /*
     Return TRUE only if the given page have been builded by this
@@ -230,7 +301,8 @@ gboolean zp_help_properties ( GnomePropertyBox * gpb, gint page )
   return FALSE;
 }
 
-void zp_add_gui (GnomeApp * app)
+static
+void plugin_add_gui (GnomeApp * app)
 {
   /*
     Define this function only if you are going to do something to the
@@ -238,18 +310,20 @@ void zp_add_gui (GnomeApp * app)
   */
 }
 
-void zp_remove_gui (GnomeApp * app)
+static
+void plugin_remove_gui (GnomeApp * app)
 {
   /*
-    Define this function if you have defined previously zp_add_gui
+    Define this function if you have defined previously plugin_add_gui
    */
 }
 
-gint zp_get_priority (void)
+static
+gint plugin_get_priority (void)
 {
   /*
-    Tell that the template plugin should be run with a high priority
-    (just to put an example)
+    Tell that the template plugin should be run with a somewhat high
+    priority (just to put an example)
   */
   return 5;
 }

@@ -1,13 +1,9 @@
 Outstanding issues for the next release
 ---------------------------------------
-	+ Use GdkPixmap instead of GdkImage
 	+ Create tveng2 (tveng V4L2 version)
 	+ Add timestamps to TVeng
 	+ Fix all the bugs in BUGS
-	+ Put a bit of order into CVS and automake files...
 	+ Add desktop (and root menu) entries
-	+ Report "Control always 0 first time it's read" bug
-	+ Add perfomance test (full v4l2 /dev/video use implemented?)
 	+ Add the help for the Properties
 	+ Full i18n
 	+ Fix all fixme's

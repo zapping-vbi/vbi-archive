@@ -1,3 +1,13 @@
+20.5.2000	Back into coding <garetxe@users.sourceforge.net>
+
+	* /me: I'm very busy with my finals, i won't have much time for
+	coding this month (and half of the next one) :(	
+	* plugins.c:
+	* plugin_common.h: New plugin structure, more flexible.
+	* plugins/template/template.c:
+	* plugins/screenshot/screenshot.c: Adapted to the new API.
+	* tveng: Started rewriting the V4L2 controller.
+	
 30.4.2000	Screenshot saver <garetxe@users.sourceforge.net>
 
 	* plugins/screenshot/screenshot.c: Finished.

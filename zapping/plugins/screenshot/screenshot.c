@@ -16,7 +16,6 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 #include "plugin_common.h"
-#include "png_saver.h"
 #include <pthread.h>
 #include <png.h>
 
@@ -42,10 +41,7 @@ static const gchar str_author[] = "Iñaki García Etxebarria";
    needed, and if not present, 0 will be assumed */
 static const gchar str_version[] = "0.6";
 
-/* Active status of the plugin */
-static gboolean active = FALSE;
-
-/* Set to TRUE when zp_close is called */
+/* Set to TRUE when plugin_close is called */
 static gboolean close_everything = FALSE;
 
 /* Number of threads currently running (so we can know when are all of
@@ -99,13 +95,13 @@ struct screenshot_data
   This routine is the one that takes care of saving the image. It runs
   in another thread.
 */
-void * saver_thread(void * _data);
+static void * saver_thread(void * _data);
 
 /*
   This callback is used to update the progressbar and removing the
   finished threads.
 */
-gboolean thread_manager (struct screenshot_data * data);
+static gboolean thread_manager (struct screenshot_data * data);
 
 /*
   Callback when the WM tries to destroy the progress window, cancel
@@ -138,19 +134,66 @@ Convert_RGBA_RGB24 (gint width, gchar* src, gchar* dest);
  into one line of dest */
 typedef gchar* (*LineConverter) (gint width, gchar* src, gchar* dest);
 
-gint zp_protocol ( void )
+gint plugin_get_protocol ( void )
 {
   /* You don't need to modify this function */
   return PLUGIN_PROTOCOL;
 }
 
-gboolean zp_running (void)
+/* Return FALSE if we aren't able to access a symbol, you should only
+   need to edit the pointer table, not the code */
+gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
 {
-  /* This will usually be like this too */
-  return active;
+  /* Usually this table is the only thing you will need to change */
+  struct plugin_exported_symbol table_of_symbols[] =
+  {
+    SYMBOL(plugin_get_info, 0x1234),
+    SYMBOL(plugin_close, 0x1234),
+    SYMBOL(plugin_start, 0x1234),
+    SYMBOL(plugin_load_config, 0x1234),
+    SYMBOL(plugin_save_config, 0x1234),
+    SYMBOL(plugin_process_frame, 0x1234),
+    SYMBOL(plugin_get_public_info, 0x1234),
+    SYMBOL(plugin_add_properties, 0x1234),
+    SYMBOL(plugin_activate_properties, 0x1234),
+    SYMBOL(plugin_help_properties, 0x1234),
+    SYMBOL(plugin_add_gui, 0x1234),
+    SYMBOL(plugin_remove_gui, 0x1234),
+    SYMBOL(plugin_get_priority, 0x1234)
+  };
+  gint num_exported_symbols =
+    sizeof(table_of_symbols)/sizeof(struct plugin_exported_symbol);
+  gint i;
+
+  /* Try to find the given symbol in the table of exported symbols
+   of the plugin */
+  for (i=0; i<num_exported_symbols; i++)
+    if (!strcmp(table_of_symbols[i].symbol, name))
+      {
+	if (table_of_symbols[i].hash != hash)
+	  {
+	    if (ptr)
+	      *ptr = GINT_TO_POINTER(0x3); /* hash collision code */
+	    /* Warn */
+	    g_warning(_("Check error: \"%s\" in plugin %s"
+		       "has hash 0x%x vs. 0x%x"), name,
+		      str_canonical_name, 
+		      table_of_symbols[i].hash,
+		      hash);
+	    return FALSE;
+	  }
+	if (ptr)
+	  *ptr = table_of_symbols[i].ptr;
+	return TRUE; /* Success */
+      }
+
+  if (ptr)
+    *ptr = GINT_TO_POINTER(0x2); /* Symbol not found in the plugin */
+  return FALSE;
 }
 
-void zp_get_info (gchar ** canonical_name, gchar **
+static
+void plugin_get_info (gchar ** canonical_name, gchar **
 		  descriptive_name, gchar ** description, gchar **
 		  short_description, gchar ** author, gchar **
 		  version)
@@ -170,21 +213,9 @@ void zp_get_info (gchar ** canonical_name, gchar **
     *version = _(str_version);
 }
 
-gboolean zp_init (PluginBridge bridge, tveng_device_info * info)
+static
+void plugin_close(void)
 {
-  /* If this is set, autostarting is on (we should start now) */
-  if (active)
-    return zp_start();
-
-  return TRUE;
-}
-
-void zp_close(void)
-{
-  /* If we were working, stop the work */
-  if (active)
-    zp_stop();
-
   close_everything = TRUE;
 
   while (num_threads) /* Wait until all threads exit cleanly */
@@ -196,43 +227,20 @@ void zp_close(void)
     }
 }
 
-gboolean zp_start (void)
+static
+gboolean plugin_start (void)
 {
-  /* In most plugins, you don't want to be started twice */
-  if (active)
-    return TRUE;
-
   save_screenshot = TRUE;
 
   /* If everything has been ok, set the active flags and return TRUE
    */
-  active = TRUE;
   return TRUE;
 }
 
-void zp_stop(void)
-{
-  /* Most times we cannot be stopped while we are stopped */
-  if (!active)
-    return;
-
-  /* Stop anything the plugin is doing and set the flag */
-  active = FALSE;
-}
-
-void zp_load_config (gchar * root_key)
+static
+void plugin_load_config (gchar * root_key)
 {
   gchar * buffer;
-
-  /* The autostart config value is compulsory, you shouldn't need to
-     change the following */
-  buffer = g_strconcat(root_key, "autostart", NULL);
-  /* Create sets a default value for a key, check src/zconf.h */
-  zconf_create_boolean(FALSE,
-		       _("Whether the plugin should start"
-			 " automatically when opening Zapping"), buffer);
-  active = zconf_get_boolean(NULL, buffer);
-  g_free(buffer);
 
   buffer = g_strconcat(root_key, "interlaced", NULL);
   zconf_create_boolean(TRUE,
@@ -249,14 +257,10 @@ void zp_load_config (gchar * root_key)
   g_free(buffer);
 }
 
-void zp_save_config (gchar * root_key)
+static
+void plugin_save_config (gchar * root_key)
 {
   gchar * buffer;
-
-  /* This one is compulsory, you won't need to change it */
-  buffer = g_strconcat(root_key, "autostart", NULL);
-  zconf_set_boolean(active, buffer);
-  g_free(buffer);
 
   buffer = g_strconcat(root_key, "save_dir", NULL);
   zconf_set_string(save_dir, buffer);
@@ -269,13 +273,10 @@ void zp_save_config (gchar * root_key)
   g_free(save_dir);
 }
 
-GdkImage * zp_process_frame(GdkImage * image, gpointer data,
-			    struct tveng_frame_format *  format)
+static
+GdkImage * plugin_process_frame(GdkImage * image, gpointer data,
+				struct tveng_frame_format *  format)
 {
-  /* If the plugin isn't active, it shouldn't do anything */
-  if (!active)
-    return image;
-
   if (save_screenshot)
     {
       start_saving_screenshot(data, format);
@@ -289,7 +290,8 @@ GdkImage * zp_process_frame(GdkImage * image, gpointer data,
   return image;
 }
 
-gboolean zp_get_public_info (gint index, gpointer * ptr, gchar **
+static
+gboolean plugin_get_public_info (gint index, gpointer * ptr, gchar **
 			     symbol, gchar ** description, gchar **
 			     type, gint * hash)
 {
@@ -298,19 +300,19 @@ gboolean zp_get_public_info (gint index, gpointer * ptr, gchar **
   {
     {
       Convert_RGB565_RGB24, "Convert_RGB565_RGB24",
-      N_("Converts a row in RGB565 format to RGB24. Returns the destination"),
+      N_("Converts a row in RGB565 format to RGB24. Returns the destination."),
       "gchar * Convert_RGB16_RGB24 ( gint width, gchar * src, gchar * dest);",
       0x1234
     },
     {
       Convert_RGB555_RGB24, "Convert_RGB555_RGB24",
-      N_("Converts a row in RGB555 format to RGB24. Returns the destination"),
+      N_("Converts a row in RGB555 format to RGB24. Returns the destination."),
       "gchar * Convert_RGB15_RGB24 ( gint width, gchar * src, gchar * dest);",
       0x1234
     },
     {
       Convert_RGBA_RGB24, "Convert_RGBA_RGB24",
-      N_("Converts a row in RGBA format to RGB24. Returns the destination"),
+      N_("Converts a row in RGBA format to RGB24. Returns the destination."),
       "gchar * Convert_RGBA_RGB24 ( gint width, gchar * src, gchar * dest);",
       0x1234
     }
@@ -335,7 +337,8 @@ gboolean zp_get_public_info (gint index, gpointer * ptr, gchar **
   return TRUE; /* Exported */
 }
 
-void zp_add_properties ( GnomePropertyBox * gpb )
+static
+void plugin_add_properties ( GnomePropertyBox * gpb )
 {
   GtkWidget * label;
   GtkBox * vbox; /* the page added to the notebook */
@@ -387,7 +390,8 @@ void zp_add_properties ( GnomePropertyBox * gpb )
 		      GINT_TO_POINTER( page ));
 }
 
-gboolean zp_activate_properties ( GnomePropertyBox * gpb, gint page )
+static
+gboolean plugin_activate_properties ( GnomePropertyBox * gpb, gint page )
 {
   /* Return TRUE only if the given page have been builded by this
      plugin, and apply any config changes here */
@@ -414,7 +418,8 @@ gboolean zp_activate_properties ( GnomePropertyBox * gpb, gint page )
   return FALSE;
 }
 
-gboolean zp_help_properties ( GnomePropertyBox * gpb, gint page )
+static
+gboolean plugin_help_properties ( GnomePropertyBox * gpb, gint page )
 {
   /*
     Return TRUE only if the given page have been builded by this
@@ -439,7 +444,8 @@ N_("The first option, the screenshot dir, lets you specify where\n"
   return FALSE;
 }
 
-void zp_add_gui (GnomeApp * app)
+static
+void plugin_add_gui (GnomeApp * app)
 {
   GtkWidget * toolbar1 = lookup_widget(GTK_WIDGET(app), "toolbar1");
   GtkWidget * button; /* The button to add */
@@ -465,7 +471,8 @@ void zp_add_gui (GnomeApp * app)
   gtk_widget_show(button);
 }
 
-void zp_remove_gui (GnomeApp * app)
+static
+void plugin_remove_gui (GnomeApp * app)
 {
   GtkWidget * button = 
     GTK_WIDGET(gtk_object_get_data(GTK_OBJECT(app),
@@ -475,7 +482,8 @@ void zp_remove_gui (GnomeApp * app)
   gtk_container_remove(GTK_CONTAINER(toolbar1), button);
 }
 
-gint zp_get_priority (void)
+static
+gint plugin_get_priority (void)
 {
   /*
     This plugin must be run after all the other plugins, because we
@@ -489,7 +497,7 @@ static void
 on_screenshot_button_clicked          (GtkButton       *button,
 				       gpointer         user_data)
 {
-  zp_start ();
+  plugin_start ();
 }
 
 static void
@@ -522,7 +530,6 @@ start_saving_screenshot (gpointer data_to_save,
     {
       /* Probably there is no mem even for this, but try anyway */
       g_warning(_("Sorry, not enough mem"));
-      active = FALSE;
       return;
     }
 
@@ -533,7 +540,6 @@ start_saving_screenshot (gpointer data_to_save,
     {
       g_free(data);
       g_warning(_("Sorry, not enough mem"));
-      active = FALSE;
       return;
     }
 
@@ -543,7 +549,6 @@ start_saving_screenshot (gpointer data_to_save,
       g_free(data->data);
       g_free(data);
       g_warning(_("Sorry, not enough mem"));
-      active = FALSE;
       return;
     }
 
@@ -585,7 +590,6 @@ start_saving_screenshot (gpointer data_to_save,
       free(data->line_data);
       free(data->data);
       free(data);
-      active = FALSE;
 
       return;
     }  
@@ -601,7 +605,6 @@ start_saving_screenshot (gpointer data_to_save,
 
       ShowBox(_("Cannot init the first PNG saving structure"),
 	      GNOME_MESSAGE_BOX_ERROR);
-      active = FALSE;
 
       return;
     }
@@ -617,7 +620,6 @@ start_saving_screenshot (gpointer data_to_save,
 
       ShowBox(_("Cannot init the second PNG saving structure"),
 	      GNOME_MESSAGE_BOX_ERROR);
-      active = FALSE;
 
       return;
     }
@@ -708,14 +710,13 @@ start_saving_screenshot (gpointer data_to_save,
       break;
     }
 
-  active = FALSE; /* Done, now the work is done by the thread */
 }
 
 /*
   This routine is the one that takes care of saving the image. It runs
   in another thread.
 */
-void * saver_thread(void * _data)
+static void * saver_thread(void * _data)
 {
   struct screenshot_data * data = (struct screenshot_data *) _data;
   LineConverter Converter = NULL; /* The line converter, could be NULL (no
@@ -794,7 +795,7 @@ void * saver_thread(void * _data)
   This callback is used to update the progressbar and removing the
   finished threads.
 */
-gboolean thread_manager (struct screenshot_data * data)
+static gboolean thread_manager (struct screenshot_data * data)
 {
   gfloat done = ((gfloat)data->lines)/data->format.height;
   GtkWidget * progressbar;
