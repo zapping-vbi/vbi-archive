@@ -221,6 +221,7 @@ glade/Makefile
 help/Makefile
 help/C/Makefile
 plugins/Makefile
+common/Makefile
 zapping_setup_fb/Makefile
 plugins/template/Makefile
 plugins/screenshot/Makefile

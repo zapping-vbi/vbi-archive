@@ -10,6 +10,7 @@ $(GDK_PIXBUF_CFLAGS)
 bin_PROGRAMS = zapping
 
 VBI_LIB = $(top_srcdir)/libvbi/libvbi.a
+COMMON_LIB = $(top_srcdir)/common/libcommon.a
 
 ## Don't forget to put these files into the distribution
 EXTRA_DIST = videodev.h videodev2.h plugin_common.h ROADMAP
@@ -41,7 +42,7 @@ zapping_SOURCES = \
 	remote.c remote.h \
 	strnatcmp.c strnatcmp.h
 
-zapping_LDADD = $(VBI_LIB) $(GNOME_LIBDIR) $(GNOMEUI_LIBS) \
+zapping_LDADD = $(VBI_LIB) $(COMMON_LIB) $(GNOME_LIBDIR) $(GNOMEUI_LIBS) \
 $(GDK_PIXBUF_LIBS) $(INTLLIBS) $(GNOME_XML_LIB) $(LIBGLADE_LIBS) \
 $(X_DGA_LIBS) $(X_XV_LIBS) $(PTHREAD_LIB)
 
