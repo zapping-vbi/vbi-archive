@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fontgen.c,v 1.4 2005-01-19 04:12:37 mschimek Exp $ */
+/* $Id: fontgen.c,v 1.5 2005-01-27 04:15:03 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -82,7 +82,7 @@ static void
 pbm_read			(void)
 {
 	FILE *fp;
-	ssize_t n;
+	size_t n;
 	size_t image_size;
 	uint8_t buf[2];
 
@@ -109,7 +109,7 @@ pbm_read			(void)
 
 	n = fread (image, 1, image_size, fp);
 
-	if (n < (ssize_t) image_size) {
+	if (n < image_size) {
 		perror ("read error or unexpected eof");
 		exit (EXIT_FAILURE);
 	}
