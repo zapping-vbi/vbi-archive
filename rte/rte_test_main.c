@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rte_test_main.c,v 1.3 2001-08-19 10:58:34 mschimek Exp $
+ * $Id: rte_test_main.c,v 1.4 2001-09-07 05:09:34 mschimek Exp $
  * This is a simple RTE test.
  */
 
@@ -428,7 +428,7 @@ int main(int argc, char *argv[])
 	int sleep_time = 10;
 	int audio_rate=44100, stereo=1;
 #if 1
-	char * video_device = "/dev/video0";
+	char * video_device = "/dev/video4";
 	char * audio_device = "/dev/audio";
 	char * backend = "mp1e";
 	char * format="mpeg1", *extension = ".mpeg";
@@ -503,8 +503,41 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
-	/* set whether we will be encoding audio and/or video */
-	rte_set_mode(context, mux_mode);
+	if (strcmp(backend, "mp1e") == 0) {
+
+		/* Experimental */
+
+		rte_codec_info *info;
+		rte_codec *codec;
+		rte_option *option;
+
+		/* TODO, printed just for the effect :-) */
+		fprintf(stderr, "mp1e: MPEG-1 Program Stream\n");
+
+		fprintf(stderr, "Elementary stream codecs:\n");
+		for (i = 0; (info = rte_enum_codec(context, i)); i++)
+			fprintf(stderr, "%2d %08lx %s\n",
+				info->stream_type,
+				info->stream_formats,
+				info->label);
+
+		if (mux_mode & RTE_AUDIO) {
+			codec = rte_set_codec(context, RTE_STREAM_AUDIO, 0,
+					      "mpeg1-audio-layer2");
+
+			fprintf(stderr, "Audio options:\n");
+			for (i = 0; (option = rte_enum_option(context, codec, i)); i++)
+				fprintf(stderr, "%2d %s\n", i, option->label);
+		}
+
+		if (mux_mode & RTE_VIDEO) {
+			codec = rte_set_codec(context, RTE_STREAM_VIDEO, 0,
+					      "mpeg1-video");
+		}
+	} else {
+		/* set whether we will be encoding audio and/or video */
+		rte_set_mode(context, mux_mode);
+	}
 
 	if (mux_mode & RTE_AUDIO) {
 		if (!rte_set_audio_parameters(context, audio_rate, stereo ?

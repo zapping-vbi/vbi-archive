@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.h,v 1.2 2001-08-22 01:28:07 mschimek Exp $ */
+/* $Id: mpeg.h,v 1.3 2001-09-07 05:09:35 mschimek Exp $ */
 
 #define MPEG_VERSION_1           	3 // ISO/IEC 11172-3
 #define MPEG_VERSION_2			2 // ISO/IEC 13818-3
@@ -59,3 +59,6 @@ extern const unsigned char	pack_table[NUM_SG];
 extern const float		SNR[18];
 extern const double		C[512];
 extern const struct absthr_rec	absthr[6][134];
+
+
+

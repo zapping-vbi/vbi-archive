@@ -32,7 +32,7 @@
 /*
  * Lib build ID, for debugging.
  */
-#define RTE_ID " $Id: rte.h,v 1.2 2001-09-06 18:07:07 mschimek Exp $ "
+#define RTE_ID " $Id: rte.h,v 1.3 2001-09-07 05:09:34 mschimek Exp $ "
 
 /*
  * What are we going to encode, audio only, video only or both
@@ -575,7 +575,7 @@ typedef struct {
   char *		tooltip;	/* or NULL, gettext()ized _N() */
 } rte_option;
 
-typedef struct rte_codec_descr {
+typedef struct rte_codec_info {
   rte_stream_type	stream_type;
   unsigned long		stream_formats;
 
@@ -583,26 +583,16 @@ typedef struct rte_codec_descr {
 
   char *		label;		/* or NULL, gettext()ized _N() */
   char *		tooltip;	/* or NULL, gettext()ized _N() */
-} rte_codec_descr;
+} rte_codec_info;
 
-extern rte_codec_descr *rte_enum_codec(rte_context *context, int index);
+extern rte_codec_info *rte_enum_codec(rte_context *context, int index);
 
 typedef struct rte_codec rte_codec; /* opaque */
 
-extern rte_codec *rte_set_input_codec(rte_context *context,
-  rte_stream_type stream_type, /* eg. RTE_STREAM_VIDEO */
-  int stream_index, /* eg. 0 of MPEG-1 audio 0 ... 31 (future ext) */
-  char *codec_keyword, /* from rte_codec_descr.keyword or canonical */
-  /* same as rte_set_input(): */
-  enum rte_interface interface,
-  int buffered,
-  rteDataCallback data_callback,
-  rteBufferCallback buffer_callback,
-  rteUnrefCallback unref_callback);
+extern rte_codec *rte_set_codec(rte_context *context,
+  rte_stream_type stream_type, int stream_index, char *codec_keyword);
 
-extern rte_option *rte_enum_option(rte_codec *codec, int index);
-extern int rte_set_option(rte_codec *codec,
-  char *option_keyword, /* from rte_option.keyword or canonical */
-  ...); /* whatever the option requires */
+extern rte_option *rte_enum_option(rte_context *, rte_codec *, int index);
+extern int rte_set_option(rte_context *, rte_codec *, char *option_keyword, ...);
 
 #endif /* rtelib.h */

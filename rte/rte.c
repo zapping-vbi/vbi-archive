@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.4 2001-09-02 03:26:58 mschimek Exp $ */
+/* $Id: rte.c,v 1.5 2001-09-07 05:09:34 mschimek Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -1014,4 +1014,103 @@ void rte_get_status ( rte_context * context,
 	}
 
 	BACKEND->status(context, status);
+}
+
+/* Experimental */
+
+/**
+ * rte_enum_codec:
+ * @context: Initialized rte_context.
+ * @index: Index into the codec table, 0 ... n.
+ * 
+ * Enumerates elementary stream codecs available for the selected
+ * backend / file / mux format. You should start at index 0, incrementing.
+ * Assume a subsequent call to this function will overwrite the returned
+ * codec description.
+ * 
+ * Return value:
+ * Pointer to a rte_codec_info structure, %NULL if the context is invalid
+ * or the index is out of bounds.
+ **/
+rte_codec_info *
+rte_enum_codec(rte_context *context, int index)
+{
+	nullcheck(context, return NULL);
+
+	/* XXX check backend validity */
+
+	if (!BACKEND->enum_codec)
+		return NULL;
+
+	return BACKEND->enum_codec(context, index);
+}
+
+/**
+ * rte_set_codec:
+ * @context: Initialized rte_context.
+ * @stream_type: RTE_STREAM_VIDEO, _AUDIO, ...
+ * @stream_index: Stream number.
+ * @codec_keyword: Codec identifier, e.g. from rte_codec_info.
+ * 
+ * Select the codec identified by @codec_keyword to encode the @stream_type
+ * data as elementary stream number @stream_index. The stream number refers
+ * for example to one of the 16 video or 32 audio streams contained in a
+ * MPEG-1 program stream, but you should pass 0 for now.
+ *
+ * Setting a codec resets all properties of the codec for this stream type
+ * and index. Passing a %NULL pointer as @codec_keyword withdraws encoding
+ * of this stream type and index.
+ * 
+ * Return value: 
+ * Pointer to an opaque rte_codec object (not even the RTE frontend knows
+ * for sure what this is :-). On error %NULL is returned, which may be caused,
+ * apart of invalid parameters, by an unknown @codec_keyword or a @stream_type
+ * not suitable for the selected backend / mux / file format.
+ *
+ * Compatibility: 
+ * Calling this function with @stream_type VIDEO and/or AUDIO replaces
+ * rte_set_mode and vice versa.
+ **/
+rte_codec *
+rte_set_codec(rte_context *context, rte_stream_type stream_type,
+	      int stream_index, char *codec_keyword)
+{
+	nullcheck(context, return NULL);
+
+	if (!BACKEND->set_codec)
+		return NULL;
+
+	return BACKEND->set_codec(context, stream_type,
+				  stream_index, codec_keyword);
+}
+
+rte_option *
+rte_enum_option(rte_context *context, rte_codec *codec, int index)
+{
+	nullcheck(context, return NULL);
+
+	if (!BACKEND->enum_option)
+		return NULL;
+
+	return BACKEND->enum_option(context, codec, index);
+}
+
+int
+rte_set_option(rte_context *context, rte_codec *codec, char *option_keyword, ...)
+{
+	va_list args;
+	int r;
+
+	nullcheck(context, return 0);
+
+	if (!BACKEND->set_option)
+		return 0;
+
+	va_start(args, option_keyword);
+
+	r = BACKEND->set_option(context, codec, option_keyword, args);
+
+	va_end(args);
+
+	return r;
 }

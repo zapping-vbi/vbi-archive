@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rtepriv.h,v 1.2 2001-08-08 05:24:36 mschimek Exp $
+ * $Id: rtepriv.h,v 1.3 2001-09-07 05:09:34 mschimek Exp $
  * Private stuff in the context.
  */
 
@@ -57,6 +57,13 @@ typedef struct {
 					enum rte_mux_mode *mux_mode);
 	void		(*status)(rte_context * context,
 				  struct rte_status_info *status);
+	/* Experimental */
+	rte_codec_info *(* enum_codec)(rte_context *context, int index);
+	rte_codec *	(* set_codec)(rte_context *context,
+				      rte_stream_type stream_type,
+				      int stream_index, char *keyword);
+	rte_option *	(* enum_option)(rte_context *, rte_codec *, int index);
+	int		(* set_option)(rte_context *, rte_codec *, char *, va_list);
 } rte_backend_info;
 
 #define RC(X) ((rte_context*)X)
@@ -107,6 +114,7 @@ struct _rte_context_private {
 	buffer * last_video_buffer; /* video buffer the app should be
 				       encoding to */
 	buffer * last_audio_buffer; /* audio buffer */
+/* XXX 64 bit please, 4 GB is easily exceeded */
 	unsigned long int bytes_out; /* sent bytes */
 };
 
