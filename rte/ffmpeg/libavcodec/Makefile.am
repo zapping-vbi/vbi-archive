@@ -5,6 +5,7 @@ noinst_LTLIBRARIES = libavcodec.la
 SUBDIRS = i386
 
 INCLUDES = -D_REENTRANT -DHAVE_AV_CONFIG_H -include $(top_builddir)/config.h \
+	-D__CPU__=686 \
 	-Wall -Wunused -Wmissing-declarations
 
 ### using builtin liba52 or runtime linked liba52.so.0
