@@ -27,9 +27,20 @@
 #include <gnome.h>
 
 /* With precompiler aid we can print much more useful info */
+/* This shows a non-modal, non-blocking message box */
 #define ShowBox(MSG, MSGTYPE) \
 ShowBoxReal(__FILE__, __LINE__, G_GNUC_PRETTY_FUNCTION, \
-MSG, MSGTYPE)
+MSG, MSGTYPE, FALSE, FALSE)
+
+/* This one shows a modal, non-blocking message box */
+#define ShowBoxModal(MSG, MSGTYPE) \
+ShowBoxReal(__FILE__, __LINE__, G_GNUC_PRETTY_FUNCTION, \
+MSG, MSGTYPE, FALSE, TRUE)
+
+/* This one shows a modal, blocking message box */
+#define RunBox(MSG, MSGTYPE) \
+ShowBoxReal(__FILE__, __LINE__, G_GNUC_PRETTY_FUNCTION, \
+MSG, MSGTYPE, TRUE, TRUE)
 
 /*
   Prints a message box showing an error, with the location of the code
@@ -39,7 +50,8 @@ int ShowBoxReal(const gchar * sourcefile,
 		const gint line,
 		const gchar * func,
 		const gchar * message,
-		const gchar * message_box_type);
+		const gchar * message_box_type,
+		gboolean blocking, gboolean modal);
 
 /*
   Resizes the image to a new size. If this is the same as the old

@@ -158,11 +158,98 @@ gpointer zp_process_frame(gpointer data, struct tveng_frame_format *
   return data;
 }
 
+void yoyo_dado ( void );
+void yoyo_dado ( void )
+{
+  /* What a incredible waste of resources, isn't it? ;-DDD */
+  ShowBox("Yoyo-Dado !!", GNOME_MESSAGE_BOX_INFO);
+}
+
+
+gboolean zp_get_public_info (gint index, gpointer * ptr, gchar **
+			     symbol, gchar ** description, gchar **
+			     type, gint * hash)
+{
+  /*
+    This plugin exports a dummy function that basically does
+    nothing. You don't need to export anything if you don't want to.
+    The plugin_exported_symbol is defined for your convenience, you
+    don't need to use if you don't want to.
+   */
+  struct plugin_exported_symbol symbols[] =
+  {
+    {
+      /* Note that in this symbol the returned symbol name and the
+	 "real" name are different, this is perfectly legal, but it
+	 isn't a good practice. */
+      yoyo_dado, "yoyo-dado",
+      N_("Example of an exported symbol, does nothing useful"),
+      "void yoyo-dado ( void );", 0x1234
+    }
+  };
+  gint num_exported_symbols =
+    sizeof(symbols)/sizeof(struct plugin_exported_symbol);
+
+  if ((index >= num_exported_symbols) || (index < 0))
+    return FALSE;
+
+  if (ptr)
+    *ptr = symbols[index].ptr;
+  if (symbol)
+    *symbol = symbols[index].symbol;
+  if (description)
+    *description = _(symbols[index].description);
+  if (type)
+    *type = symbols[index].type;
+  if (hash)
+    *hash = symbols[index].hash;
+
+  return TRUE; /* Exported */
+}
+
+void zp_add_properties ( GnomePropertyBox * gpb )
+{
+  /* Here you would add a page to the property box. Define this
+     function only if you are going to add something to the box */
+}
+
+gboolean zp_activate_properties ( GnomePropertyBox * gpb, gint page )
+{
+  /* Return TRUE only if the given page have been builded by this
+     plugin, and apply any config changes here */
+  return FALSE;
+}
+
+gboolean zp_help_properties ( GnomePropertyBox * gpb, gint page )
+{
+  /*
+    Return TRUE only if the given page have been builded by this
+    plugin, and show some help (or at least sth like ShowBox
+    "Sorry, but the template plugin doesn't help you").
+  */
+  return FALSE;
+}
+
+void zp_add_gui (GnomeApp * app)
+{
+  /*
+    Define this function only if you are going to do something to the
+    main Zapping window.
+  */
+}
+
+void zp_remove_gui (GnomeApp * app)
+{
+  /*
+    Define this function if you have defined previously zp_add_gui
+   */
+}
+
 gint zp_get_priority (void)
 {
   /*
     Tell that the template plugin should be run with a high priority
     (just to put an example)
   */
-  return -5;
+  return 5;
 }

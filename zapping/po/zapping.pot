@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-04-28 23:52+0200\n"
+"POT-Creation-Date: 2000-04-30 00:28+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -46,27 +46,27 @@ msgid ""
 "%s"
 msgstr ""
 
-#: src/main.c:242
+#: src/main.c:247
 msgid "There is no allocated mem for the capture"
 msgstr ""
 
-#: src/main.c:297
+#: src/main.c:302
 msgid "Channel name"
 msgstr ""
 
-#: src/main.c:301
+#: src/main.c:306
 msgid "Tuning frequence"
 msgstr ""
 
-#: src/main.c:305
+#: src/main.c:310
 msgid "Real channel name"
 msgstr ""
 
-#: src/main.c:310
+#: src/main.c:315
 msgid "Country the channel is in"
 msgstr ""
 
-#: src/main.c:322
+#: src/main.c:327
 msgid ""
 "ZConf could not be closed properly , your\n"
 "configuration will be lost.\n"
@@ -78,28 +78,28 @@ msgid ""
 "     Zapping. Please contact the author.\n"
 msgstr ""
 
-#: src/main.c:351
+#: src/main.c:356
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr ""
 
 #. Sets defaults for zconf
-#: src/main.c:356
+#: src/main.c:361
 msgid "Save and restore zapping geometry (non ICCM compliant)"
 msgstr ""
 
-#: src/main.c:359
+#: src/main.c:364
 msgid "The country you are currently in"
 msgstr ""
 
-#: src/main.c:362
+#: src/main.c:367
 msgid "The device file to open on startup"
 msgstr ""
 
-#: src/main.c:364
+#: src/main.c:369
 msgid "TRUE if Zapping should be started without sound"
 msgstr ""
 
-#: src/main.c:366
+#: src/main.c:371
 msgid "Verbosity value given to zapping_setup_fb"
 msgstr ""
 
@@ -474,18 +474,18 @@ msgstr ""
 msgid "Warning: trying to stop preview with no capture active\n"
 msgstr ""
 
-#: src/plugins.c:161
+#: src/plugins.c:159
 #, c-format
 msgid ""
 "\"%s\" seems to be a valid plugin, but it doesn't provide a canonical name."
 msgstr ""
 
-#: src/plugins.c:170
+#: src/plugins.c:168
 #, c-format
 msgid "\"%s\" doesn't provide a version"
 msgstr ""
 
-#: src/plugins.c:179
+#: src/plugins.c:177
 msgid ""
 "Sorry, the version of the plugin cannot be parsed.\n"
 "The version must be something like %%d[.%%d[%%d[other things]]]\n"
@@ -493,21 +493,28 @@ msgid ""
 "Error loading \"%s\" (%s)"
 msgstr ""
 
-#: src/plugins.c:206
+#: src/plugins.c:204
 #, c-format
 msgid "There wasn't enough mem for allocating symbol %d in %s"
 msgstr ""
 
-#: src/plugins.c:216
+#: src/plugins.c:214
 msgid "[No description provided]"
 msgstr ""
 
 #. Warn
-#: src/plugins.c:304
+#: src/plugins.c:302
 #, c-format
 msgid ""
 "Check error: \"%s\" in plugin %s was supposed to be \"%s\" but it is:\"%s\". "
 "Hashes are %d vs. %d"
+msgstr ""
+
+#: src/zmisc.c:89
+#, c-format
+msgid ""
+"Sorry, but a %dx%d image couldn't be allocated, the image will not be "
+"changed."
 msgstr ""
 
 #. For translators: This will be precceeded by the domain (program) name
@@ -678,13 +685,13 @@ msgstr ""
 msgid "%s with %d tuners"
 msgstr ""
 
-#: src/properties.c:282
+#: src/properties.c:284
 msgid "No plugin accepts this page."
 msgstr ""
 
-#: src/properties.c:312
+#: src/properties.c:316
 msgid ""
-"The plugin that created the active page doesn'tprovide help for it. Sorry."
+"The plugin that created the active page doesn't provide help for it. Sorry."
 msgstr ""
 
 #: src/channel_editor.c:124
@@ -742,15 +749,43 @@ msgstr ""
 msgid "Sorry, but no plugins have been loaded"
 msgstr ""
 
-#: src/plugin_properties.c:183
+#: src/plugin_properties.c:156
+msgid "Very low"
+msgstr ""
+
+#: src/plugin_properties.c:158
+msgid "Low"
+msgstr ""
+
+#: src/plugin_properties.c:160
+msgid "Below normal"
+msgstr ""
+
+#: src/plugin_properties.c:162
+msgid "Normal"
+msgstr ""
+
+#: src/plugin_properties.c:164
+msgid "Very high"
+msgstr ""
+
+#: src/plugin_properties.c:166
+msgid "High"
+msgstr ""
+
+#: src/plugin_properties.c:168
+msgid "Above normal"
+msgstr ""
+
+#: src/plugin_properties.c:201
 msgid "This plugin has no public symbols"
 msgstr ""
 
-#: src/plugin_properties.c:204
+#: src/plugin_properties.c:223
 msgid "List of symbols exported by the plugin"
 msgstr ""
 
-#: src/plugin_properties.c:259
+#: src/plugin_properties.c:278
 msgid "Sorry, but the plugin couldn't be started"
 msgstr ""
 
@@ -982,106 +1017,102 @@ msgid "label68 (Plugin short description)"
 msgstr ""
 
 #: glade/glade_strings.c:48
-msgid "File:"
-msgstr ""
-
-#: glade/glade_strings.c:49
 msgid "This is the file where the plugin is located"
 msgstr ""
 
-#: glade/glade_strings.c:50
+#: glade/glade_strings.c:49
 msgid "text2"
 msgstr ""
 
-#: glade/glade_strings.c:51
+#: glade/glade_strings.c:50
 msgid "Canonical name:"
 msgstr ""
 
-#: glade/glade_strings.c:52
+#: glade/glade_strings.c:51
 msgid "label69"
 msgstr ""
 
-#: glade/glade_strings.c:53
+#: glade/glade_strings.c:52
 msgid "Author:"
 msgstr ""
 
-#: glade/glade_strings.c:54
+#: glade/glade_strings.c:53
 msgid "label71"
 msgstr ""
 
-#: glade/glade_strings.c:55
+#: glade/glade_strings.c:54
 msgid "Plugin version:"
 msgstr ""
 
-#: glade/glade_strings.c:56
+#: glade/glade_strings.c:55
 msgid "label72"
 msgstr ""
 
-#: glade/glade_strings.c:57
+#: glade/glade_strings.c:56
 msgid "Plugin priority:"
 msgstr ""
 
-#: glade/glade_strings.c:58
+#: glade/glade_strings.c:57
 msgid "label73"
 msgstr ""
 
-#: glade/glade_strings.c:59
+#: glade/glade_strings.c:58
 msgid "Plugin description"
 msgstr ""
 
-#: glade/glade_strings.c:60
+#: glade/glade_strings.c:59
 msgid "text1"
 msgstr ""
 
-#: glade/glade_strings.c:61
+#: glade/glade_strings.c:60
 msgid "label76"
 msgstr ""
 
-#: glade/glade_strings.c:62
+#: glade/glade_strings.c:61
 msgid "Symbol"
 msgstr ""
 
-#: glade/glade_strings.c:63
+#: glade/glade_strings.c:62
 msgid "Hash"
 msgstr ""
 
-#: glade/glade_strings.c:64
+#: glade/glade_strings.c:63
 msgid "label74 (prototype)"
 msgstr ""
 
-#: glade/glade_strings.c:65
+#: glade/glade_strings.c:64
 msgid "label75 (symbol description)"
 msgstr ""
 
-#: glade/glade_strings.c:66
+#: glade/glade_strings.c:65
 msgid "Click here when you are done with the plugins"
 msgstr ""
 
-#: glade/glade_strings.c:67
+#: glade/glade_strings.c:66
 msgid "Activate (start) the plugin"
 msgstr ""
 
-#: glade/glade_strings.c:68
+#: glade/glade_strings.c:67
 msgid "Start Plugin"
 msgstr ""
 
-#: glade/glade_strings.c:69
+#: glade/glade_strings.c:68
 msgid "Stop the plugin"
 msgstr ""
 
-#: glade/glade_strings.c:70
+#: glade/glade_strings.c:69
 msgid "Stop Plugin"
 msgstr ""
 
-#: glade/glade_strings.c:71
+#: glade/glade_strings.c:70
 msgid "dialog1"
 msgstr ""
 
-#: glade/glade_strings.c:72
+#: glade/glade_strings.c:71
 msgid "Channel choosing"
 msgstr ""
 
-#: glade/glade_strings.c:73
+#: glade/glade_strings.c:72
 msgid ""
 "Choose here the channels you want to use.\n"
 "If your country is not listed, please find out the frequencies used for\n"
@@ -1089,100 +1120,148 @@ msgid ""
 "in the next release of this program."
 msgstr ""
 
-#: glade/glade_strings.c:77
+#: glade/glade_strings.c:76
 msgid "Select here the country you are in"
 msgstr ""
 
-#: glade/glade_strings.c:78
+#: glade/glade_strings.c:77
 msgid "Dummy country\n"
 msgstr ""
 
-#: glade/glade_strings.c:80
+#: glade/glade_strings.c:79
 msgid "Select here the channel you want to tune"
 msgstr ""
 
-#: glade/glade_strings.c:81 glade/glade_strings.c:84
+#: glade/glade_strings.c:80 glade/glade_strings.c:83
 msgid "Channel"
 msgstr ""
 
-#: glade/glade_strings.c:82
+#: glade/glade_strings.c:81
 msgid "Freq (kHz)"
 msgstr ""
 
-#: glade/glade_strings.c:83
+#: glade/glade_strings.c:82
 msgid "Alias"
 msgstr ""
 
-#: glade/glade_strings.c:85
+#: glade/glade_strings.c:84
 msgid "Country"
 msgstr ""
 
-#: glade/glade_strings.c:86
+#: glade/glade_strings.c:85
 msgid "kHz"
 msgstr ""
 
-#: glade/glade_strings.c:87
+#: glade/glade_strings.c:86
 msgid "label43"
 msgstr ""
 
-#: glade/glade_strings.c:88
+#: glade/glade_strings.c:87
 msgid "This tries to find the best signal around this frequence"
 msgstr ""
 
-#: glade/glade_strings.c:89
+#: glade/glade_strings.c:88
 msgid "A_utoTune"
 msgstr ""
 
-#: glade/glade_strings.c:90
+#: glade/glade_strings.c:89
 msgid "Enter here the alias you want to give to this channel:"
 msgstr ""
 
-#: glade/glade_strings.c:91
+#: glade/glade_strings.c:90
 msgid "Enter here the name you want to give to this channel"
 msgstr ""
 
-#: glade/glade_strings.c:92
+#: glade/glade_strings.c:91
 msgid "Click here when you are done"
 msgstr ""
 
-#: glade/glade_strings.c:93
+#: glade/glade_strings.c:92
 msgid "Click this button if you want to discard current changes"
 msgstr ""
 
-#: glade/glade_strings.c:94
+#: glade/glade_strings.c:93
 msgid "Click here to add current channel"
 msgstr ""
 
-#: glade/glade_strings.c:95
+#: glade/glade_strings.c:94
 msgid "_Add"
 msgstr ""
 
-#: glade/glade_strings.c:96
+#: glade/glade_strings.c:95
 msgid "Click here to delete selected channels"
 msgstr ""
 
-#: glade/glade_strings.c:97
+#: glade/glade_strings.c:96
 msgid "_Remove"
 msgstr ""
 
-#: glade/glade_strings.c:98
+#: glade/glade_strings.c:97
 msgid "This shows some help about this dialog"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:29
+#: plugins/screenshot/screenshot.c:28
 msgid "Screenshot saver"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:31
+#: plugins/screenshot/screenshot.c:30
 msgid ""
-"This plugin takes the current capture and saves it as a PNG screenshot.\n"
-"You should configure it before using through the Properties dialog."
+"You can use this plugin to take screenshots of what you are actually "
+"watching in TV.\n"
+"It will save the screenshots in PNG format."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:35
-msgid "Takes a screenshot of the capture"
+#: plugins/screenshot/screenshot.c:34
+msgid "This plugin takes screenshots of the capture."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:129
+#: plugins/screenshot/screenshot.c:156
 msgid "Whether the plugin should start automatically when opening Zapping"
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:163
+msgid "Whether interlacing should be used"
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:170
+msgid "The directory where screenshot will be written to"
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:223
+msgid "PNG saver"
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:227
+msgid "Select here the directory where screenshots will be saved"
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:233
+msgid "Select directory to save screenshots"
+msgstr ""
+
+#. The interlaced checkbutton
+#: plugins/screenshot/screenshot.c:250
+msgid "Save interlaced PNG"
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:304
+msgid ""
+"The first option, the screenshot dir, lets you specify where\n"
+"will the screenshots be saved. The file name will be:\n"
+"save_dir/shot[1,2,3,...].png\n"
+"\n"
+"The interlacing lets you specify if the saved image will be\n"
+"interlaced. This allows image viewers load it progressively."
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:331
+msgid "Screenshot"
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:332
+msgid "Take a PNG screenshot"
+msgstr ""
+
+#: plugins/screenshot/screenshot.c:391
+msgid "We should start saving here"
 msgstr ""

@@ -82,8 +82,8 @@ int main(int argc, char * argv[])
 
   if (!g_module_supported ())
     {
-      ShowBox(_("Sorry, but there is no module support"),
-	      GNOME_MESSAGE_BOX_ERROR);
+      RunBox(_("Sorry, but there is no module support"),
+	     GNOME_MESSAGE_BOX_ERROR);
       return 0;
     }
 
@@ -100,7 +100,7 @@ int main(int argc, char * argv[])
   */
   if (!startup_zapping())
     {
-      ShowBox(_("Zapping couldn't be started"),
+      RunBox(_("Zapping couldn't be started"),
 	      GNOME_MESSAGE_BOX_ERROR);
       tveng_device_info_destroy(main_info);
       return 0;
@@ -165,7 +165,7 @@ int main(int argc, char * argv[])
 			zcg_char(NULL, "video_device"),
 			main_info->error);
 
-      ShowBox(buffer, GNOME_MESSAGE_BOX_ERROR);
+      RunBox(buffer, GNOME_MESSAGE_BOX_ERROR);
 
       g_free(buffer);
 

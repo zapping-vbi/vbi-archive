@@ -1,4 +1,11 @@
-28.4.2000	Plugins working <garetxe@users.sourceofrge.net>
+29.4.2000	Screenshot saver <garetxe@users.sourceforge.net>
+
+	* plugins/template/template.c: Finished.
+	* src/Makefile.am: Added pthread support.
+	* src/zmisc.c:
+	* src/zmisc.h: Added some blocking, modal variations of ShowBox.
+	
+28.4.2000	Plugins working <garetxe@users.sourceforge.net>
 
 	* src/plugins.c: some bugs (misfeatures ;) corrected, it now works
 	as expected.

@@ -882,8 +882,8 @@
 <widget>
   <class>GtkWindow</class>
   <name>plugin_properties</name>
-  <width>472</width>
-  <height>346</height>
+  <width>501</width>
+  <height>414</height>
   <visible>False</visible>
   <signal>
     <name>delete_event</name>
@@ -931,7 +931,7 @@
 	<widget>
 	  <class>GtkCList</class>
 	  <name>plugin_list</name>
-	  <width>140</width>
+	  <width>80</width>
 	  <height>27</height>
 	  <can_focus>True</can_focus>
 	  <signal>
@@ -963,6 +963,7 @@
       <widget>
 	<class>GtkVBox</class>
 	<name>vbox12</name>
+	<width>308</width>
 	<homogeneous>False</homogeneous>
 	<spacing>5</spacing>
 	<child>
@@ -1006,55 +1007,18 @@
 	</widget>
 
 	<widget>
-	  <class>GtkHBox</class>
-	  <name>hbox9</name>
-	  <homogeneous>True</homogeneous>
-	  <spacing>0</spacing>
+	  <class>GtkText</class>
+	  <name>text2</name>
+	  <height>40</height>
+	  <tooltip>This is the file where the plugin is located</tooltip>
+	  <can_focus>True</can_focus>
+	  <editable>False</editable>
+	  <text>text2</text>
 	  <child>
 	    <padding>0</padding>
 	    <expand>False</expand>
 	    <fill>False</fill>
 	  </child>
-
-	  <widget>
-	    <class>GtkLabel</class>
-	    <name>label51</name>
-	    <label>File:</label>
-	    <justify>GTK_JUSTIFY_CENTER</justify>
-	    <wrap>False</wrap>
-	    <xalign>0.5</xalign>
-	    <yalign>0.5</yalign>
-	    <xpad>0</xpad>
-	    <ypad>0</ypad>
-	    <child>
-	      <padding>0</padding>
-	      <expand>False</expand>
-	      <fill>False</fill>
-	    </child>
-	  </widget>
-
-	  <widget>
-	    <class>GtkScrolledWindow</class>
-	    <name>scrolledwindow10</name>
-	    <hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
-	    <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
-	    <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
-	    <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
-	    <child>
-	      <padding>0</padding>
-	      <expand>True</expand>
-	      <fill>True</fill>
-	    </child>
-
-	    <widget>
-	      <class>GtkText</class>
-	      <name>text2</name>
-	      <tooltip>This is the file where the plugin is located</tooltip>
-	      <can_focus>True</can_focus>
-	      <editable>False</editable>
-	      <text>text2</text>
-	    </widget>
-	  </widget>
 	</widget>
 
 	<widget>
@@ -1315,7 +1279,7 @@
 		<last_modification_time>Thu, 27 Apr 2000 13:05:31 GMT</last_modification_time>
 	      </signal>
 	      <columns>2</columns>
-	      <column_widths>184,80</column_widths>
+	      <column_widths>171,80</column_widths>
 	      <selection_mode>GTK_SELECTION_BROWSE</selection_mode>
 	      <show_titles>True</show_titles>
 	      <shadow_type>GTK_SHADOW_IN</shadow_type>

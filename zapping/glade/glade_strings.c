@@ -45,7 +45,6 @@ gchar *s = N_("Plugin properties");
 gchar *s = N_("Modules");
 gchar *s = N_("label67 (Plugin name)");
 gchar *s = N_("label68 (Plugin short description)");
-gchar *s = N_("File:");
 gchar *s = N_("This is the file where the plugin is located");
 gchar *s = N_("text2");
 gchar *s = N_("Canonical name:");

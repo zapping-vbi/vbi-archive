@@ -233,10 +233,12 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
   GtkWidget * pbox = GTK_WIDGET(gnomepropertybox); /* Very long name */
   gchar * text; /* Pointer to returned text */
   GList * p; /* For traversing the plugins */
-  
+
   /* Apply just the given page */
   switch (arg1)
     {
+    case -1:
+      break; /* End of the calls */
     case 0:
       widget = lookup_widget(pbox, "fileentry1"); /* Video device entry
 						    */
@@ -296,6 +298,8 @@ on_zapping_properties_help             (GnomePropertyBox *gnomepropertybox,
 
   switch (arg1)
     {
+    case -1:
+      break; /* end of the calls */
     case 0:
     case 1:
       gnome_help_display(NULL, &help_ref);
@@ -310,7 +314,7 @@ on_zapping_properties_help             (GnomePropertyBox *gnomepropertybox,
 	}
       if (p == NULL)
 	ShowBox(_("The plugin that created the active page doesn't"
-		  "provide help for it. Sorry."),
+		  " provide help for it. Sorry."),
 		GNOME_MESSAGE_BOX_INFO);
     }
 }
