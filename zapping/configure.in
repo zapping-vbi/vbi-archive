@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.110 2002-01-13 09:52:21 mschimek Exp $
+dnl $Id: configure.in,v 1.111 2002-01-17 19:58:21 garetxe Exp $
 
 AC_INIT(src/callbacks.c)
 AM_INIT_AUTOMAKE(zapping, 0.6.3cvs)
@@ -161,7 +161,7 @@ HAVE_ZVBI="yes"
 dnl check for function and declaration in newest version
 AC_CHECK_LIB(zvbi, vbi_decoder_new,
   AC_EGREP_HEADER(vbi_decoder, libzvbi.h, true, HAVE_ZVBI=no),
-    HAVE_ZVBI=no, -lunicode)
+    HAVE_ZVBI=no, $UNICODE_LIBS)
 if test "$HAVE_ZVBI" = "yes"; then
 	AC_DEFINE(HAVE_LIBZVBI)
 	ZVBI_LIB="-lzvbi"
