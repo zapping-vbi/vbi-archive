@@ -56,6 +56,7 @@
 
 #include "libtv/overlay_buffer.h"
 #include "libtv/clip_vector.h"
+#include "libtv/callback.h"
 
 /* The video device capabilities flags */
 #define TVENG_CAPS_CAPTURE 1 /* Can capture to memory */
@@ -118,38 +119,6 @@ typedef struct _tveng_device_info tveng_device_info;
 
 
 
-
-/*
- *  Callbacks
- */
-
-typedef struct _tv_callback tv_callback;
-
-typedef void
-tv_callback_fn			(void *			object,
-				 void *			user_data);
-
-extern tv_callback *
-tv_callback_add			(tv_callback **		list,
-				 tv_callback_fn *	notify,
-				 tv_callback_fn *	destroy,
-				 void *			user_data);
-extern void
-tv_callback_remove		(tv_callback *		cb);
-extern void
-tv_callback_destroy		(void *			object,
-				 tv_callback **		list);
-extern void
-tv_callback_block		(tv_callback *		cb);
-extern void
-tv_callback_unblock		(tv_callback *		cb);
-
-#define TV_CALLBACK_BLOCK(cb, statement)				\
-do {									\
-	tv_callback_block (cb);						\
-	statement;							\
-	tv_callback_unblock (cb);					\
-} while (0)
 
 /*
  *  Devices
