@@ -688,4 +688,103 @@ z_build_path(const gchar *path, gchar **error_description)
   return TRUE;
 }
 
+static void
+set_orientation_recursive	(GtkToolbar	*toolbar,
+				 GtkOrientation orientation)
+{
+  GList *p = toolbar->children;
+  GtkToolbarChild *child;
 
+  while (p)
+    {
+      child = (GtkToolbarChild*)p->data;
+      
+      if (child->type == GTK_TOOLBAR_CHILD_WIDGET &&
+	  GTK_IS_TOOLBAR(child->widget))
+	set_orientation_recursive(GTK_TOOLBAR(child->widget), orientation);
+      p = p->next;
+    }
+
+  gtk_toolbar_set_orientation(toolbar, orientation);
+}
+
+static void
+on_orientation_changed		(GtkToolbar	*toolbar,
+				 GtkOrientation	orientation,
+				 gpointer	data)
+{
+  GList *p;
+  GtkToolbarChild *child;
+
+  if (!toolbar)
+    return;
+
+  p = toolbar->children;
+
+  while (p)
+    {
+      child = (GtkToolbarChild*)p->data;
+
+      if (child->type == GTK_TOOLBAR_CHILD_WIDGET &&
+	  GTK_IS_TOOLBAR(child->widget))
+	set_orientation_recursive(GTK_TOOLBAR(child->widget), orientation);
+      p = p->next;
+    }  
+}
+
+static void
+set_style_recursive		(GtkToolbar	*toolbar,
+				 GtkToolbarStyle style)
+{
+  GList *p = toolbar->children;
+  GtkToolbarChild *child;
+
+  while (p)
+    {
+      child = (GtkToolbarChild*)p->data;
+      
+      if (child->type == GTK_TOOLBAR_CHILD_WIDGET &&
+	  GTK_IS_TOOLBAR(child->widget))
+	set_style_recursive(GTK_TOOLBAR(child->widget), style);
+      p = p->next;
+    }
+
+  gtk_toolbar_set_style(toolbar, style);
+}
+
+static void
+on_style_changed		(GtkToolbar	*toolbar,
+				 GtkToolbarStyle style,
+				 gpointer	data)
+{
+  GList *p;
+  GtkToolbarChild *child;
+
+  if (!toolbar)
+    return;
+
+  p = toolbar->children;
+
+  while (p)
+    {
+      child = (GtkToolbarChild*)p->data;
+
+      if (child->type == GTK_TOOLBAR_CHILD_WIDGET &&
+	  GTK_IS_TOOLBAR(child->widget))
+	set_style_recursive(GTK_TOOLBAR(child->widget), style);
+      p = p->next;
+    }
+}
+
+void
+propagate_toolbar_changes	(GtkWidget	*toolbar)
+{
+  g_return_if_fail (GTK_IS_TOOLBAR(toolbar));
+
+  gtk_signal_connect(GTK_OBJECT(toolbar), "style-changed",
+		     GTK_SIGNAL_FUNC(on_style_changed),
+		     NULL);
+  gtk_signal_connect(GTK_OBJECT(toolbar), "orientation-changed",
+		     GTK_SIGNAL_FUNC(on_orientation_changed),
+		     NULL);
+}

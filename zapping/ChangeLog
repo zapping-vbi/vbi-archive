@@ -2,6 +2,9 @@
 
 	* pl.po: Commited pl translation, contributed by Paweł Sakowski.
 		 Thanks!
+	* zmisc.c: Fixed button hor/vert aligning in toolbars when the
+	orientation changes. Left the '<[Subpage]>' group always
+	horizontal because it made more sense.
 
 17.08.2001	many channels <garetxe@users.sf.net>
 

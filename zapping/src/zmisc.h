@@ -298,4 +298,11 @@ z_pixbuf_scale_simple		(GdkPixbuf	*source,
 gboolean
 z_build_path(const gchar *path, gchar **error_description);
 
+/**
+ * Makes the toolbar modify its children toolbars to always reflect
+ * mimic its oriention and style.
+ */
+void
+propagate_toolbar_changes	(GtkWidget	*toolbar);
+
 #endif /* ZMISC.H */

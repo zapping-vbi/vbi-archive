@@ -395,7 +395,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.126 2001-08-17 20:59:08 garetxe Exp $",
+	 "$Id: main.c,v 1.127 2001-08-18 21:40:52 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU support... ");
   switch (cpu_detection())
@@ -583,6 +583,7 @@ int main(int argc, char * argv[])
 		   GNOME_STOCK_PIXMAP_UP);
   set_stock_pixmap(lookup_widget(main_window, "channel_down"),
 		   GNOME_STOCK_PIXMAP_DOWN);
+  propagate_toolbar_changes(lookup_widget(main_window, "toolbar1"));
   /* hidden menuitem trick for getting cheap accels */
   gtk_widget_hide(lookup_widget(main_window, "toggle_muted1"));
   D();

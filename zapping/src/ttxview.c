@@ -891,7 +891,7 @@ void on_ttxview_reveal_toggled		(GtkToggleButton *button,
 }
 
 static
-void on_ttxview_prev_sp_cache_clicked	(GtkButton	*button,
+void on_ttxview_prev_sp_cache_clicked	(GtkWidget	*widget,
 					 ttxview_data	*data)
 {
   int subpage = ANY_SUB; /* compiler happy */
@@ -920,7 +920,7 @@ void on_ttxview_prev_subpage_clicked	(GtkButton	*button,
 }
 
 static
-void on_ttxview_next_sp_cache_clicked	(GtkButton	*button,
+void on_ttxview_next_sp_cache_clicked	(GtkWidget	*widget,
 					 ttxview_data	*data)
 {
   int subpage;
@@ -3320,13 +3320,11 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
       break;
     case GDK_KP_Left:
     case GDK_Left:
-      on_ttxview_prev_sp_cache_clicked(GTK_BUTTON(lookup_widget(data->toolbar,
-				     "ttxview_prev_sp_cache")), data);
+      on_ttxview_prev_sp_cache_clicked(data->toolbar, data);
       break;
     case GDK_KP_Right:
     case GDK_Right:
-      on_ttxview_next_sp_cache_clicked(GTK_BUTTON(lookup_widget(data->toolbar,
-				     "ttxview_next_sp_cache")), data);
+      on_ttxview_next_sp_cache_clicked(data->toolbar, data);
       break;
     case GDK_Home:
     case GDK_KP_Home:
@@ -3463,14 +3461,6 @@ build_ttxview(void)
 		     GTK_SIGNAL_FUNC(on_ttxview_history_next_clicked),
 		     data);
   gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
-		     "ttxview_prev_sp_cache")), "clicked",
-		     GTK_SIGNAL_FUNC(on_ttxview_prev_sp_cache_clicked),
-		     data);
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
-		     "ttxview_next_sp_cache")), "clicked",
-		     GTK_SIGNAL_FUNC(on_ttxview_next_sp_cache_clicked),
-		     data);
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
 		     "ttxview_reveal")), "toggled",
 		     GTK_SIGNAL_FUNC(on_ttxview_reveal_toggled),
 		     data);
@@ -3516,7 +3506,10 @@ build_ttxview(void)
 
   data->blink_timeout = gtk_timeout_add(BLINK_CYCLE / 4, ttxview_blink, data);
 
-  gtk_toolbar_set_style(GTK_TOOLBAR(data->toolbar), GTK_TOOLBAR_ICONS);
+  propagate_toolbar_changes(data->toolbar);
+  gtk_toolbar_set_style(GTK_TOOLBAR(data->toolbar),
+			GTK_TOOLBAR_ICONS);
+
   gtk_widget_set_usize(ttxview, 360, 400);
   gtk_widget_realize(ttxview);
   gdk_window_set_back_pixmap(data->da->window, NULL, FALSE);
@@ -3530,31 +3523,6 @@ build_ttxview(void)
   inc_model_count();
 
   return (ttxview);
-}
-
-static void
-set_toolbar_style_recursive	(GtkToolbar	*toolbar,
-				 GtkToolbarStyle style)
-{
-  GList *p;
-  GtkToolbarChild *child;
-
-  if (!toolbar)
-    return;
-
-  p = toolbar->children;
-
-  while (p)
-    {
-      child = (GtkToolbarChild*)p->data;
-
-      if (child->type == GTK_TOOLBAR_CHILD_WIDGET &&
-	  GTK_IS_TOOLBAR(child->widget))
-	set_toolbar_style_recursive(GTK_TOOLBAR(child->widget), style);
-      p = p->next;
-    }
-
-  gtk_toolbar_set_style(toolbar, style);
 }
 
 void
@@ -3638,14 +3606,6 @@ ttxview_attach			(GtkWidget	*parent,
 		     GTK_SIGNAL_FUNC(on_ttxview_history_next_clicked),
 		     data);
   gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
-		     "ttxview_prev_sp_cache")), "clicked",
-		     GTK_SIGNAL_FUNC(on_ttxview_prev_sp_cache_clicked),
-		     data);
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
-		     "ttxview_next_sp_cache")), "clicked",
-		     GTK_SIGNAL_FUNC(on_ttxview_next_sp_cache_clicked),
-		     data);
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->toolbar,
 		     "ttxview_reveal")), "toggled",
 		     GTK_SIGNAL_FUNC(on_ttxview_reveal_toggled),
 		     data);
@@ -3704,8 +3664,9 @@ ttxview_attach			(GtkWidget	*parent,
   gtk_widget_show(data->toolbar);
 
   data->toolbar_style = GTK_TOOLBAR(data->parent_toolbar)->style;
-  set_toolbar_style_recursive(GTK_TOOLBAR(data->parent_toolbar),
-			      GTK_TOOLBAR_ICONS);
+
+  gtk_toolbar_set_style(GTK_TOOLBAR(data->parent_toolbar),
+			GTK_TOOLBAR_ICONS);
 
   gtk_toolbar_prepend_space(GTK_TOOLBAR(data->toolbar));
   gtk_toolbar_append_widget(GTK_TOOLBAR(data->parent_toolbar),
@@ -3760,8 +3721,8 @@ ttxview_detach			(GtkWidget	*parent)
 				GTK_SIGNAL_FUNC(selection_clear),
 				data);
 
-  set_toolbar_style_recursive(GTK_TOOLBAR(data->parent_toolbar),
-			      data->toolbar_style);
+  gtk_toolbar_set_style(GTK_TOOLBAR(data->parent_toolbar),
+			data->toolbar_style);
 
   remove_ttxview_instance(data);
 

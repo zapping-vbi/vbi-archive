@@ -3754,7 +3754,7 @@ in the next release of this program.</label>
       <placement>GNOME_DOCK_TOP</placement>
       <band>0</band>
       <position>0</position>
-      <offset>24</offset>
+      <offset>60</offset>
       <locked>False</locked>
       <exclusive>True</exclusive>
       <never_floating>False</never_floating>
@@ -3819,16 +3819,59 @@ in the next release of this program.</label>
 	</widget>
 
 	<widget>
+	  <class>GtkFrame</class>
+	  <name>frame2</name>
+	  <label_xalign>0</label_xalign>
+	  <shadow_type>GTK_SHADOW_ETCHED_OUT</shadow_type>
+
+	  <widget>
+	    <class>GtkLabel</class>
+	    <name>ttxview_url</name>
+	    <label>100</label>
+	    <justify>GTK_JUSTIFY_CENTER</justify>
+	    <wrap>False</wrap>
+	    <xalign>0.5</xalign>
+	    <yalign>0.5</yalign>
+	    <xpad>0</xpad>
+	    <ypad>0</ypad>
+	  </widget>
+	</widget>
+
+	<widget>
 	  <class>GtkHBox</class>
-	  <name>hbox24</name>
+	  <name>hbox36</name>
 	  <homogeneous>False</homogeneous>
 	  <spacing>0</spacing>
 
 	  <widget>
-	    <class>GtkFrame</class>
-	    <name>frame2</name>
-	    <label_xalign>0</label_xalign>
-	    <shadow_type>GTK_SHADOW_ETCHED_OUT</shadow_type>
+	    <class>GtkButton</class>
+	    <name>ttxview_prev_subpage</name>
+	    <tooltip>Previous subpage [-]</tooltip>
+	    <accelerator>
+	      <modifiers>0</modifiers>
+	      <key>GDK_KP_Subtract</key>
+	      <signal>clicked</signal>
+	    </accelerator>
+	    <accelerator>
+	      <modifiers>0</modifiers>
+	      <key>GDK_minus</key>
+	      <signal>clicked</signal>
+	    </accelerator>
+	    <label>&lt;</label>
+	    <relief>GTK_RELIEF_NORMAL</relief>
+	    <child>
+	      <padding>0</padding>
+	      <expand>False</expand>
+	      <fill>False</fill>
+	    </child>
+	  </widget>
+
+	  <widget>
+	    <class>GtkToggleButton</class>
+	    <name>ttxview_hold</name>
+	    <tooltip>Hold the current subpage [H]</tooltip>
+	    <relief>GTK_RELIEF_NORMAL</relief>
+	    <active>False</active>
 	    <child>
 	      <padding>0</padding>
 	      <expand>False</expand>
@@ -3836,140 +3879,53 @@ in the next release of this program.</label>
 	    </child>
 
 	    <widget>
-	      <class>GtkLabel</class>
-	      <name>ttxview_url</name>
-	      <label>100</label>
-	      <justify>GTK_JUSTIFY_CENTER</justify>
-	      <wrap>False</wrap>
-	      <xalign>0.5</xalign>
-	      <yalign>0.5</yalign>
-	      <xpad>0</xpad>
-	      <ypad>0</ypad>
+	      <class>GtkFrame</class>
+	      <name>frame3</name>
+	      <label_xalign>0</label_xalign>
+	      <shadow_type>GTK_SHADOW_IN</shadow_type>
+
+	      <widget>
+		<class>GtkLabel</class>
+		<name>ttxview_subpage</name>
+		<label>S0</label>
+		<justify>GTK_JUSTIFY_CENTER</justify>
+		<wrap>False</wrap>
+		<xalign>0.5</xalign>
+		<yalign>0.5</yalign>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+	      </widget>
 	    </widget>
 	  </widget>
 
 	  <widget>
-	    <class>GtkHBox</class>
-	    <name>hbox23</name>
-	    <homogeneous>False</homogeneous>
-	    <spacing>0</spacing>
+	    <class>GtkButton</class>
+	    <name>ttxview_next_subpage</name>
+	    <tooltip>Next subpage [+]</tooltip>
+	    <accelerator>
+	      <modifiers>0</modifiers>
+	      <key>GDK_KP_Add</key>
+	      <signal>clicked</signal>
+	    </accelerator>
+	    <accelerator>
+	      <modifiers>0</modifiers>
+	      <key>GDK_plus</key>
+	      <signal>clicked</signal>
+	    </accelerator>
+	    <label>&gt;</label>
+	    <relief>GTK_RELIEF_NORMAL</relief>
 	    <child>
 	      <padding>0</padding>
-	      <expand>True</expand>
-	      <fill>True</fill>
+	      <expand>False</expand>
+	      <fill>False</fill>
 	    </child>
-
-	    <widget>
-	      <class>GtkButton</class>
-	      <name>ttxview_prev_sp_cache</name>
-	      <tooltip>Previous subpage in the cache [Left]</tooltip>
-	      <can_focus>True</can_focus>
-	      <label>&lt;&lt;</label>
-	      <relief>GTK_RELIEF_NORMAL</relief>
-	      <child>
-		<padding>0</padding>
-		<expand>False</expand>
-		<fill>False</fill>
-	      </child>
-	    </widget>
-
-	    <widget>
-	      <class>GtkButton</class>
-	      <name>ttxview_prev_subpage</name>
-	      <tooltip>Previous subpage [-]</tooltip>
-	      <accelerator>
-		<modifiers>0</modifiers>
-		<key>GDK_KP_Subtract</key>
-		<signal>clicked</signal>
-	      </accelerator>
-	      <accelerator>
-		<modifiers>0</modifiers>
-		<key>GDK_minus</key>
-		<signal>clicked</signal>
-	      </accelerator>
-	      <label>&lt;</label>
-	      <relief>GTK_RELIEF_NORMAL</relief>
-	      <child>
-		<padding>0</padding>
-		<expand>False</expand>
-		<fill>False</fill>
-	      </child>
-	    </widget>
-
-	    <widget>
-	      <class>GtkToggleButton</class>
-	      <name>ttxview_hold</name>
-	      <tooltip>Hold the current subpage [H]</tooltip>
-	      <relief>GTK_RELIEF_NORMAL</relief>
-	      <active>False</active>
-	      <child>
-		<padding>0</padding>
-		<expand>False</expand>
-		<fill>False</fill>
-	      </child>
-
-	      <widget>
-		<class>GtkFrame</class>
-		<name>frame3</name>
-		<label_xalign>0</label_xalign>
-		<shadow_type>GTK_SHADOW_IN</shadow_type>
-
-		<widget>
-		  <class>GtkLabel</class>
-		  <name>ttxview_subpage</name>
-		  <label>S0</label>
-		  <justify>GTK_JUSTIFY_CENTER</justify>
-		  <wrap>False</wrap>
-		  <xalign>0.5</xalign>
-		  <yalign>0.5</yalign>
-		  <xpad>0</xpad>
-		  <ypad>0</ypad>
-		</widget>
-	      </widget>
-	    </widget>
-
-	    <widget>
-	      <class>GtkButton</class>
-	      <name>ttxview_next_subpage</name>
-	      <tooltip>Next subpage [+]</tooltip>
-	      <accelerator>
-		<modifiers>0</modifiers>
-		<key>GDK_KP_Add</key>
-		<signal>clicked</signal>
-	      </accelerator>
-	      <accelerator>
-		<modifiers>0</modifiers>
-		<key>GDK_plus</key>
-		<signal>clicked</signal>
-	      </accelerator>
-	      <label>&gt;</label>
-	      <relief>GTK_RELIEF_NORMAL</relief>
-	      <child>
-		<padding>0</padding>
-		<expand>False</expand>
-		<fill>False</fill>
-	      </child>
-	    </widget>
-
-	    <widget>
-	      <class>GtkButton</class>
-	      <name>ttxview_next_sp_cache</name>
-	      <tooltip>Next subpage in the cache [Right]</tooltip>
-	      <can_focus>True</can_focus>
-	      <label>&gt;&gt;</label>
-	      <relief>GTK_RELIEF_NORMAL</relief>
-	      <child>
-		<padding>0</padding>
-		<expand>False</expand>
-		<fill>False</fill>
-	      </child>
-	    </widget>
 	  </widget>
 	</widget>
 
 	<widget>
 	  <class>GtkToggleButton</class>
 	  <name>ttxview_reveal</name>
+	  <border_width>4</border_width>
 	  <tooltip>Reveal hidden characters [R]</tooltip>
 	  <can_focus>True</can_focus>
 	  <label>R</label>
@@ -3984,6 +3940,17 @@ in the next release of this program.</label>
 	  <tooltip>Exit TTX mode [Esc]</tooltip>
 	  <label></label>
 	  <stock_pixmap>GNOME_STOCK_PIXMAP_STOP</stock_pixmap>
+	</widget>
+
+	<widget>
+	  <class>GtkHButtonBox</class>
+	  <name>hbuttonbox1</name>
+	  <layout_style>GTK_BUTTONBOX_DEFAULT_STYLE</layout_style>
+	  <spacing>30</spacing>
+	  <child_min_width>85</child_min_width>
+	  <child_min_height>27</child_min_height>
+	  <child_ipad_x>7</child_ipad_x>
+	  <child_ipad_y>0</child_ipad_y>
 	</widget>
       </widget>
     </widget>
