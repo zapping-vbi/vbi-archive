@@ -1,5 +1,5 @@
 <?php
-require("php_common.inc");
+require_once("php_common.inc");
 
 switch ($theme)
 {

@@ -6,9 +6,8 @@
  *  Copyright (C) 1999-2001 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *  it under the terms of the GNU General Public License version 2 as
+ *  published by the Free Software Foundation.
  *
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.3 2001-08-10 16:32:16 mschimek Exp $ */
+/* $Id: mp2.c,v 1.4 2001-08-22 01:28:07 mschimek Exp $ */
 
 #include <limits.h>
 #include "../common/log.h"

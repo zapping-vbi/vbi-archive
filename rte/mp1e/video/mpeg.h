@@ -4,9 +4,8 @@
  *  Copyright (C) 1999-2000 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) version 2.
+ *  it under the terms of the GNU General Public License version 2 as
+ *  published by the Free Software Foundation.
  *
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.h,v 1.1.1.1 2001-08-07 22:10:09 garetxe Exp $ */
+/* $Id: mpeg.h,v 1.2 2001-08-22 01:28:10 mschimek Exp $ */
 
 #define PICTURE_START_CODE		0x00000100L
 #define SLICE_START_CODE		0x00000101L

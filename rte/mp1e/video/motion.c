@@ -5,9 +5,8 @@
  *  Copyright (C) 2001 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) version 2.
+ *  it under the terms of the GNU General Public License version 2 as
+ *  published by the Free Software Foundation.
  *
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -19,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: motion.c,v 1.2 2001-08-10 06:29:56 mschimek Exp $ */
+/* $Id: motion.c,v 1.3 2001-08-22 01:28:10 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>

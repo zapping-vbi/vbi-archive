@@ -6,9 +6,8 @@
  *  Copyright (C) 1996 ISO MPEG Audio Subgroup Software Simulation Group
  *
  *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *  it under the terms of the GNU General Public License version 2 as
+ *  published by the Free Software Foundation.
  *
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: psycho.c,v 1.1.1.1 2001-08-07 22:09:37 garetxe Exp $ */
+/* $Id: psycho.c,v 1.2 2001-08-22 01:28:07 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "../common/mmx.h"

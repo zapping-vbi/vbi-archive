@@ -5,9 +5,8 @@
  *  Copyright (C) 1999-2000 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *  it under the terms of the GNU General Public License version 2 as
+ *  published by the Free Software Foundation.
  *
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -19,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.h,v 1.1.1.1 2001-08-07 22:09:48 garetxe Exp $ */
+/* $Id: mpeg.h,v 1.2 2001-08-22 01:28:07 mschimek Exp $ */
 
 #define MPEG_VERSION_1           	3 // ISO/IEC 11172-3
 #define MPEG_VERSION_2			2 // ISO/IEC 13818-3
