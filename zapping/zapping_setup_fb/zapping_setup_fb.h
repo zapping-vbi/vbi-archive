@@ -19,14 +19,14 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping_setup_fb.h,v 1.6 2005-01-08 14:54:29 mschimek Exp $ */
+/* $Id: zapping_setup_fb.h,v 1.7 2005-02-25 18:09:30 mschimek Exp $ */
 
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
 
-#include "../libtv/screen.h"	/* Xinerama & DGA interface */
-#include "../common/device.h"	/* generic device access routines */
+#include "libtv/screen.h"	/* Xinerama & DGA interface */
+#include "common/device.h"	/* generic device access routines */
 
 #define ROOT_UID 0
 

@@ -19,9 +19,12 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.10 2005-02-06 21:42:09 mschimek Exp $ */
+/* $Id: v4l.c,v 1.11 2005-02-25 18:10:32 mschimek Exp $ */
 
-#include "config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
 #include "zapping_setup_fb.h"
 
 #ifdef ENABLE_V4L
@@ -31,8 +34,8 @@
 #include <sys/ioctl.h>
 #include <assert.h>
 
-#include "../common/videodev.h"
-#include "../common/_videodev.h"
+#include "common/videodev.h"
+#include "common/_videodev.h"
 
 #define v4l_ioctl(fd, cmd, arg)						\
   (IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\

@@ -19,9 +19,11 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l25.c,v 1.11 2005-02-18 07:57:17 mschimek Exp $ */
+/* $Id: v4l25.c,v 1.12 2005-02-25 18:09:59 mschimek Exp $ */
 
-#include "../config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -35,8 +37,8 @@
 
 #include <linux/types.h>		/* __u32 etc */
 #include <sys/time.h>			/* struct timeval */
-#include "../common/videodev25.h"	/* V4L2 header file */
-#include "../common/_videodev25.h"
+#include "common/videodev25.h"		/* V4L2 header file */
+#include "common/_videodev25.h"
 
 #define v4l25_ioctl(fd, cmd, arg)					\
   (IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\

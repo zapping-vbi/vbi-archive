@@ -25,7 +25,9 @@
   flaws here, please report at zapping-misc@lists.sourceforge.net.
 */
 
-#include "config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,7 +58,7 @@ int			verbosity		= 1;
 int			debug_msg		= 0;
 FILE *			log_fp			= NULL;
 
-#include "../common/device.c"   /* generic device access routines */ 
+#include "common/device.c"	/* generic device access routines */ 
 
 #ifndef major
 #  define major(dev)  (((dev) >> 8) & 0xff)
