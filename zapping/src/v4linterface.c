@@ -713,6 +713,91 @@ void load_control_values(gint num_controls,
 	}
 }
 
+/*
+  Substitute the special search keywords by the appropiate thing,
+  returns a newly allocated string, and g_free's the given string.
+  Valid search keywords:
+  $(alias) -> tc->name
+  $(index) -> tc->index
+  $(id) -> tc->real_name
+*/
+static
+gchar *substitute_keywords	(gchar		*string,
+				 tveng_tuned_channel *tc)
+{
+  gint i;
+  gchar *found, *buffer = NULL, *p;
+  struct tveng_enum_input *ei;
+  struct tveng_enumstd *es;
+  gchar *search_keys[] =
+  {
+    "$(alias)",
+    "$(index)",
+    "$(id)",
+    "$(input)",
+    "$(standard)",
+    "$(freq)"
+  };
+  gint num_keys = sizeof(search_keys)/sizeof(*search_keys);
+
+  if ((!string) || (!*string) || (!tc))
+    {
+      g_free(string);
+      return g_strdup("");
+    }
+
+  for (i=0; i<num_keys; i++)
+     while ((found = strstr(string, search_keys[i])))
+     {
+       switch (i)
+	 {
+	 case 0:
+	   if (tc->name)
+	     buffer = g_strdup(tc->name);
+	   else
+	     buffer = g_strdup(_("Unnamed"));
+	   break;
+	 case 1:
+	   buffer = g_strdup_printf("%d", tc->index+1);
+	   break;
+	 case 2:
+	   if (tc->real_name)
+	     buffer = g_strdup(tc->real_name);
+	   else
+	     buffer = g_strdup(_("No id"));
+	   break;
+	 case 3:
+	   if ((ei = tveng_find_input_by_hash(tc->input, main_info)))
+	     buffer = g_strdup(ei->name);
+	   else
+	     buffer = g_strdup(_("No input"));
+	   break;
+	 case 4:
+	   if ((es = tveng_find_standard_by_hash(tc->standard, main_info)))
+	     buffer = g_strdup(es->name);
+	   else
+	     buffer = g_strdup(_("No standard"));
+	   break;
+	 case 5:
+	   buffer = g_strdup_printf("%d", tc->freq);
+	   break;
+	 default:
+	   g_assert_not_reached();
+	   break;
+	 }
+
+       *found = 0;
+       
+       p = g_strconcat(string, buffer,
+		       found+strlen(search_keys[i]), NULL);
+       g_free(string);
+       g_free(buffer);
+       string = p;
+     }
+
+  return string;
+}
+
 /* Do not save the control values in the first switch_channel */
 static gboolean first_switch = TRUE;
 
@@ -778,15 +863,13 @@ z_switch_channel	(tveng_tuned_channel	*channel,
 
   if (in_global_list)
     {
-      if (channel->name && *channel->name)
-	{
-	  buffer = g_strdup_printf("Zapping: %s", channel->name);
-	  gtk_window_set_title(GTK_WINDOW(main_window), buffer);
-	  g_free(buffer);
-	}
+      buffer = substitute_keywords(g_strdup(zcg_char(NULL, "title_format")),
+				   channel);
+      if (buffer && *buffer)
+	gtk_window_set_title(GTK_WINDOW(main_window), buffer);
       else
 	gtk_window_set_title(GTK_WINDOW(main_window), "Zapping");
-
+      g_free(buffer);
       cur_tuned_channel = channel->index;
     }
   else
@@ -891,6 +974,8 @@ startup_v4linterface(tveng_device_info *info)
   gtk_signal_connect(GTK_OBJECT(z_input_model), "changed",
 		     GTK_SIGNAL_FUNC(update_bundle),
 		     info);
+
+  zcc_char("Zapping: $(alias)", "Title format Z will use", "title_format");
 }
 
 void

@@ -633,7 +633,7 @@ remove_client(struct ttx_client *client)
 {
   gint i;
 
-  uninit_fifo(&client->mqueue);
+  destroy_fifo(&client->mqueue);
   pthread_mutex_destroy(&client->mutex);
   gdk_pixbuf_unref(client->unscaled_on);
   gdk_pixbuf_unref(client->unscaled_off);
@@ -830,8 +830,8 @@ clear_message_queue(struct ttx_client *client)
 {
   buffer2 *b;
 
-  while ((b=recv_full_buffer(&client->mqueue_cons)))
-    send_empty_buffer(&client->mqueue_cons, b);
+  while ((b=recv_full_buffer2(&client->mqueue_cons)))
+    send_empty_buffer2(&client->mqueue_cons, b);
 }
 
 void

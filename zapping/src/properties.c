@@ -225,6 +225,17 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
 		     GTK_SIGNAL_FUNC(on_property_item_changed),
 		     zapping_properties);
 
+  /* Title format Z will use */
+  widget = lookup_widget(zapping_properties, "title_format");
+  widget = gnome_entry_gtk_entry(GNOME_ENTRY(widget));
+  gtk_entry_set_text(GTK_ENTRY(widget),
+		     zconf_get_string(NULL,
+				      "/zapping/options/main/title_format"));
+
+  gtk_signal_connect(GTK_OBJECT(widget), "changed",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+
   /* Verbosity value passed to zapping_setup_fb */
   widget = lookup_widget(zapping_properties, "spinbutton1");
   gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget),
@@ -484,6 +495,11 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
       widget = lookup_widget(pbox, "checkbutton11"); /* save controls */
       zconf_set_boolean(gtk_toggle_button_get_active(
 	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/save_controls");
+
+      widget = lookup_widget(pbox, "title_format"); /* title format */
+      widget = gnome_entry_gtk_entry(GNOME_ENTRY(widget));
+      zconf_set_string(gtk_entry_get_text(GTK_ENTRY(widget)),
+			"/zapping/options/main/title_format");
 
       widget = lookup_widget(pbox, "spinbutton1"); /* zapping_setup_fb
 						    verbosity */

@@ -3,7 +3,7 @@
 	* ttxview: Added a sep between up/down and the rest.
 	* main.c: Worked around a bug in glade (automagically changes
 	GNOME_STOCK_PIXMAP_(UP|DOWN) into _(TOP|BOTTOM)).
-
+	* v4linterface.c, properties.c: Added configurable title bar.
 
 28.07.2001	<mschimek@users.sf.net>
 

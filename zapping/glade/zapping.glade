@@ -1187,6 +1187,59 @@ Interlaced (window size)
 	  </child>
 	</widget>
       </widget>
+
+      <widget>
+	<class>GtkHBox</class>
+	<name>hbox35</name>
+	<homogeneous>True</homogeneous>
+	<spacing>3</spacing>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>True</fill>
+	</child>
+
+	<widget>
+	  <class>GtkLabel</class>
+	  <name>label223</name>
+	  <label>Title bar contents:</label>
+	  <justify>GTK_JUSTIFY_CENTER</justify>
+	  <wrap>False</wrap>
+	  <xalign>1</xalign>
+	  <yalign>0.5</yalign>
+	  <xpad>0</xpad>
+	  <ypad>0</ypad>
+	  <child>
+	    <padding>0</padding>
+	    <expand>True</expand>
+	    <fill>True</fill>
+	  </child>
+	</widget>
+
+	<widget>
+	  <class>GnomeEntry</class>
+	  <name>title_format</name>
+	  <history_id>title_format</history_id>
+	  <max_saved>10</max_saved>
+	  <child>
+	    <padding>0</padding>
+	    <expand>True</expand>
+	    <fill>True</fill>
+	  </child>
+
+	  <widget>
+	    <class>GtkEntry</class>
+	    <child_name>GnomeEntry:entry</child_name>
+	    <name>combo-entry5</name>
+	    <tooltip>A format string describing what should the program put as the main window title when changing channels. $(alias), $(index), $(id), $(freq), $(standard) and $(input) are substituted by the proper values.</tooltip>
+	    <can_focus>True</can_focus>
+	    <editable>True</editable>
+	    <text_visible>True</text_visible>
+	    <text_max_length>0</text_max_length>
+	    <text></text>
+	  </widget>
+	</widget>
+      </widget>
     </widget>
 
     <widget>
