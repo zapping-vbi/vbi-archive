@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder.c,v 1.6 2000-11-30 21:45:40 garetxe Exp $ */
+/* $Id: vbi_decoder.c,v 1.7 2000-12-01 13:12:11 mschimek Exp $ */
 
 /*
     TODO:
@@ -442,7 +442,7 @@ vbi_services[] = {
 };
 
 typedef struct {
-	unsigned int		id;		/* SLICED_.. */
+	unsigned int		id;		/* set of SLICED_.. */
 	int			line;		/* ITU-R line number 1..n, 0: unknown */
 	unsigned char		data[48];
 } vbi_sliced;
@@ -529,6 +529,25 @@ decode(struct vbi_capture *vbi, unsigned char *raw1, vbi_sliced *out1)
 	for (i = 0; i < vbi->count[0] + vbi->count[1]; i++) {
 		if (vbi->interlaced && i == vbi->count[0])
 			raw = raw1 + vbi->samples_per_line;
+
+		/*
+		 *  The pattern magic serves these purposes:
+		 *
+		 *  * Probe only lines which are recommended for
+		 *    a particular service, e.g. Caption only line 21.
+		 *    add_service() may decide to probe more lines
+		 *    if the vbi device line numbering is unreliable.
+		 *  * If several services are expected, probe in turn.
+		 *  * Learn which service is carried on line and probe
+		 *    that first to speed things up.
+		 *  * Learn which lines carry no signal and skip them
+		 *    to speed things up.
+		 *  * Audit the pattern of blank lines at readj
+		 *    intervals, in case we were wrong or it changed
+		 *    e.g. due to channel switch.
+		 *  * vbi_sliced data will be sorted by line and
+		 *    field number (used to be id).
+		 */
 
 		for (pat = pattern;; pat++) {
 			if ((j = *pat) > 0) {
@@ -628,6 +647,10 @@ add_services(struct vbi_capture *vbi, unsigned int services, int strict)
 	int i, j, k;
 
 	services &= ~(SLICED_VBI_525 | SLICED_VBI_625);
+	/*
+	 *  These only exist to program the vbi device
+	 *  to capture all vbi lines.
+	 */
 
 	if (!vbi->pattern)
 		vbi->pattern = calloc((vbi->count[0] + vbi->count[1]) * MAX_WAYS, sizeof(vbi->pattern[0]));
@@ -676,6 +699,11 @@ add_services(struct vbi_capture *vbi, unsigned int services, int strict)
 			    || (id & ~(SLICED_CAPTION_625_F1 | SLICED_CAPTION_625)) == 0
 			    || (id & ~(SLICED_CAPTION_525_F1 | SLICED_CAPTION_525)) == 0)
 				break;
+			/*
+			 *  General form implies the special form. If both are
+			 *  available from the device, decode() will set both
+			 *  bits in the id field for the respective line. 
+			 */
 		}
 
 		for (j = 0; j < 2; j++) {
@@ -906,31 +934,104 @@ capture_on_read(fifo *f)
 */
 }
 
-static int
-get_v4l_cur_input(const char *video_device, struct vbi_capture *vbi)
+#include <dirent.h>
+#include <sys/stat.h>
+#include <sys/sysmacros.h>
+
+static bool
+guess_bttv_v4l(struct vbi_capture *vbi)
 {
-	int video_fd, result;
+	struct video_tuner vtuner;
 	struct video_channel vchan;
+	struct video_unit vunit;
+	int video_fd = -1;
+	int mode = -1;
 
-	/* try with the VBI device */
+	memset(&vtuner, 0, sizeof(struct video_tuner));
 	memset(&vchan, 0, sizeof(struct video_channel));
-	vchan.channel = 0;
-	if (ioctl(vbi->fd, VIDIOCGCHAN, &vchan) != -1)
-		goto success;
+	memset(&vunit, 0, sizeof(struct video_unit));
 
-	/* fall back to the given video device */
-	if ((video_fd = open(video_device, O_RDONLY)) == -1)
-		goto failure;
+	if (ioctl(vbi->fd, VIDIOCGTUNER, &vtuner) != -1)
+		mode = vtuner.mode;
+	else if (ioctl(vbi->fd, VIDIOCGCHAN, &vchan) != -1)
+		mode = vchan.norm;
+	else do {
+		struct dirent, *pdirent = &dirent;
+		struct stat vbi_stat;
+		DIR *dir;
 
-	memset(&vchan, 0, sizeof(struct video_channel));
-	vchan.channel = 0;
-	result = ioctl(video_fd, VIDIOCGCHAN, &vchan);
-	close(video_fd);
-	if (result == -1)
-	  goto failure;
+		/*
+		 *  Bttv vbi has no VIDIOCGUNIT pointing back to
+		 *  the associated video device, now it's getting
+		 *  dirty. We're dumb enough to walk only /dev,
+		 *  first level of, and assume v4l major is still 81.
+		 *  Not tested with devfs.
+		 */
 
- success:
-	switch (vchan.norm) {
+		if (fstat(vbi->fd, &vbi_stat) == -1)
+			break;
+
+		if (!S_ISCHR(vbi_stat.st_mode))
+			return FALSE;
+
+		printf("VBI is a character device %d,%d\n",
+			major(vbi_stat.st_dev), minor(vbi_stat.st_dev));
+
+		if (major(vbi_stat.st_dev) != 81)
+			return FALSE; /* break? */
+
+		if (!(dir = opendir("/dev")))
+			break;
+
+		while (readdir_r(dir, &dirent, &pdirent) == 0 && pdirent) {
+			struct stat stat;
+			unsigned char *s;
+
+			if (!asprintf(&s, "/dev/%s", dirent.d_name))
+				continue;
+			/*
+			 *  V4l2 O_NOIO == O_TRUNC,
+			 *  shouldn't affect v4l devices.
+			 */
+			if (stat(s, &stat) == -1
+			    || !S_ISCHR(stat.st_mode)
+			    || major(stat.st_dev) != 81
+			    || (video_fd = open(s, O_RDONLY | O_TRUNC)) == -1) {
+				free(s);
+				continue;
+			}
+
+			printf("Trying %s, a character device %d,%d\n",
+				s, major(stat.st_dev), minor(stat.st_dev));
+
+			if (ioctl(video_fd, VIDIOCGUNIT, &vunit) == -1
+			    || vunit.vbi != minor(vbi_stat.st_dev)) {
+				close(video_fd);
+				video_fd = -1;
+				free(s);
+				continue;
+			}
+
+			printf("And the winner is: %s\nThank you, thank you.", s);
+
+			free(s);
+			break;
+		}
+
+		closedir(dir);
+
+		if (video_fd == -1)
+			break; /* not found in /dev */
+
+		if (ioctl(video_fd, VIDIOCGTUNER, &vtuner) != -1)
+			mode = vtuner.mode;
+		else if (ioctl(video_fd, VIDIOCGCHAN, &vchan) != -1)
+			mode = vchan.norm;
+
+		close(video_fd);
+	} while (0);
+
+	switch (norm) {
 	case VIDEO_MODE_NTSC:
 		vbi->scanning = 525;
 		break;
@@ -941,20 +1042,22 @@ get_v4l_cur_input(const char *video_device, struct vbi_capture *vbi)
 		break;
 
 	default:
-		vbi->scanning = 0; // 2 b guessed
+		/*
+		 *  You get one last chance, we'll try
+		 *  to guess the scanning if GVBIFMT is
+		 *  available.
+		 */
+		vbi->scanning = 0;
 		opt_surrender = TRUE;
 		break;
 	}
-	return 0;
 
- failure:
-
-	return -1;
+	return TRUE;
 }
 
 static int
 open_v4l(struct vbi_capture **pvbi, char *dev_name,
-	int fifo_depth, unsigned int services)
+	 int fifo_depth, unsigned int services)
 {
 #if HAVE_V4L_VBI_FORMAT
 	struct vbi_format vfmt;
@@ -975,21 +1078,26 @@ open_v4l(struct vbi_capture **pvbi, char *dev_name,
 	}
 
 	if (ioctl(vbi->fd, VIDIOCGCAP, &vcap) == -1) {
-		close(vbi->fd);
-		free(vbi);
-		return -1; // not V4L
-	}
+		/*
+		 *  Older bttv drivers don't support any
+		 *  vbi ioctls, let's see if we can guess the beast.
+		 */
+		if (!guess_bttv_v4l(vbi)) {
+			close(vbi->fd);
+			free(vbi);
+			return -1; /* Definately not V4L */
+		}
 
-	DIAG("Opened %s, ", dev_name);
+		DIAG("Opened %s, ", dev_name);
+	} else {
+		DIAG("Opened %s, ", dev_name);
 
-	if (!(vcap.type & VID_TYPE_TELETEXT)) {
-		DIAG("not a raw VBI device");
-		goto failure;
-	}
+		if (!(vcap.type & VID_TYPE_TELETEXT)) {
+			DIAG("not a raw VBI device");
+			goto failure;
+		}
 
-	if (get_v4l_cur_input("/dev/video", vbi) == -1) {
-		DIAG("cannot get current input line (broken driver?)");
-		goto failure;
+		guess_bttv_v4l(vbi);
 	}
 
 	max_rate = 0;
@@ -997,10 +1105,17 @@ open_v4l(struct vbi_capture **pvbi, char *dev_name,
 #if HAVE_V4L_VBI_FORMAT
 
 	if (ioctl(vbi->fd, VIDIOCGVBIFMT, &vfmt) != -1) {
+		if (!vbi->scanning
+		    && vbi->start[1] > 0
+		    && vbi->count[1])
+			if (vbi->start[1] >= 286)
+				vbi->scanning = 625;
+			else
+				vbi->scanning = 525;
 		/*
 		 *  Speculative, vbi_format is not documented.
 		 */
-		if (!opt_surrender) {
+		if (!opt_surrender && vbi->scanning) {
 			memset(&vfmt, 0, sizeof(struct vbi_format));
 
 			vfmt.sampling_rate = 27000000; // ITU-R Rec. 601
@@ -1008,16 +1123,6 @@ open_v4l(struct vbi_capture **pvbi, char *dev_name,
 
 			vfmt.start[0] = 1000;
 			vfmt.start[1] = 1000;
-
-			if (vbi->start[1] <= 0 || !vbi->count[1]) {
-				DIAG("driver clueless about video standard");
-				goto failure;
-			}
-
-			if (vbi->start[1] >= 286)
-				vbi->scanning = 625;
-			else
-				vbi->scanning = 525;
 
 			for (i = 0; vbi_services[i].id; i++) {
 				if (!(vbi_services[i].id & services))
@@ -1049,6 +1154,8 @@ open_v4l(struct vbi_capture **pvbi, char *dev_name,
 					}
 			}
 
+			/* Single field allowed? */
+
 			if (!vfmt.count[0]) {
 				vfmt.start[0] = (vbi->scanning == 625) ? 6 : 10;
 				vfmt.count[0] = 1;
@@ -1069,7 +1176,7 @@ open_v4l(struct vbi_capture **pvbi, char *dev_name,
 					break;
 
 		    		default:
-					IODIAG("VBI parameters rejected (broken driver?)");
+					IODIAG("VBI parameters rejected");
 					break;
 				}
 
@@ -1080,14 +1187,19 @@ open_v4l(struct vbi_capture **pvbi, char *dev_name,
 
 		if (vfmt.sample_format != VIDEO_PALETTE_RAW) {
 			DIAG("unknown VBI sampling format %d, "
-			    "please contact maintainer of this program for service", vfmt.sample_format);
+			     "please contact the maintainer of "
+			     "this program for service", vfmt.sample_format);
 			goto failure;
 		}
 
 		vbi->sampling_rate	= vfmt.sampling_rate;
 		vbi->samples_per_line 	= vfmt.samples_per_line;
-		vbi->offset		= ((vbi->scanning == 625) ? 10.2e-6 : 9.2e-6)
-					  * vfmt.sampling_rate;
+		if (vbi->scanning == 625)
+			vbi->offset = 10.2e-6 * vfmt.sampling_rate;
+		else if (vbi->scanning == 525)
+			vbi->offset = 9.2e-6 * vfmt.sampling_rate;
+		else /* we don't know */
+			vbi->offset = 9.7e-6 * vfmt.sampling_rate;
 		vbi->start[0] 		= vfmt.start[0];
 		vbi->count[0] 		= vfmt.count[0];
 		vbi->start[1] 		= vfmt.start[1];
@@ -1106,15 +1218,17 @@ open_v4l(struct vbi_capture **pvbi, char *dev_name,
 		 *  If a more reliable method exists to identify the bttv
 		 *  driver I'll be glad to hear about it. Lesson: Don't
 		 *  call a v4l private ioctl without knowing who's
-		 *  listening.
+		 *  listening. All we know at this point: It's a csf, and
+		 *  it may be a v4l device.
 		 *  garetxe: This isn't reliable, bttv doesn't return
 		 *  anything useful in vcap.name.
 		 */
-		/*		if (!strstr(vcap.name, "bttv") && !strstr(vcap.name, "BTTV")) {
+/*
+		if (!strstr(vcap.name, "bttv") && !strstr(vcap.name, "BTTV")) {
 			DIAG("unable to identify driver, has no standard VBI interface");
 			goto failure;
-			}*/
-
+		}
+*/
 		switch (vbi->scanning) {
 		case 625:
 			vbi->sampling_rate = 35468950;
@@ -1156,8 +1270,12 @@ open_v4l(struct vbi_capture **pvbi, char *dev_name,
 		goto failure;
 	}
 
-	if (!vbi->scanning) {
-		if (opt_strict >= 1 || vbi->start[1] <= 0 || !vbi->count[1]) {
+	if (!vbi->scanning && opt_strict >= 1) {
+		if (vbi->start[1] <= 0 || !vbi->count[1]) {
+			/*
+			 *  We may have requested single field capture
+			 *  ourselves, but then we had guessed already.
+			 */
 			DIAG("driver clueless about video standard");
 			goto failure;
 		}
@@ -1357,16 +1475,24 @@ open_v4l2(struct vbi_capture **pvbi, char *dev_name,
 		goto failure;
 	}
 
-	memset(&vfmt, 0, sizeof(struct v4l2_format));
+	if (ioctl(vbi->fd, VIDIOC_G_STD, &vstd) == -1) {
+		/* mandatory, http://www.thedirks.org/v4l2/v4l2dsi.htm */
+		IODIAG("cannot query current video standard (broken driver?)");
+		goto failure;
+	}
+
+	vbi->scanning = vstd.framelines;
+	/* add_services() eliminates non 525/625 */
+
+	memset(&vfmt, 0, sizeof(vfmt));
+
 	vfmt.type = V4L2_BUF_TYPE_VBI;
-	if ((ioctl(vbi->fd, VIDIOC_G_FMT, &vfmt) == -1) ||
-	    (ioctl(vbi->fd, VIDIOC_G_STD, &vstd) == -1)) {
+
+	if (ioctl(vbi->fd, VIDIOC_G_FMT, &vfmt) == -1) {
 		IODIAG("cannot query current VBI parameters (broken driver?)");
 		goto failure;
 	}
-	// add_services() eliminates non 525/625
 
-	vbi->scanning = vstd.framelines;
 	max_rate = 0;
 
 	if (!opt_surrender) {
@@ -1426,7 +1552,7 @@ open_v4l2(struct vbi_capture **pvbi, char *dev_name,
 				}
 		}
 
-		// Paranoia
+		/* API rev. Nov 2000 paranoia */
 
 		if (!vfmt.fmt.vbi.count[0]) {
 			vfmt.fmt.vbi.start[0] = ((vbi->scanning == 625) ? 6 : 10) + V4L2_LINE;
@@ -1552,8 +1678,17 @@ vbi->buf.size = sizeof(vbi_sliced) * (vbi->count[0] + vbi->count[1]);
 					goto mmap_failure;
 				}
 			} else {
+				int i, s;
+
 				vbi->raw_buffer[vbi->num_raw_buffers].data = p;
 				vbi->raw_buffer[vbi->num_raw_buffers].size = vbuf.length;
+
+				for (i = s = 0; i < vbuf.length; i++)
+					s += p[i];
+
+				if (s % vbuf.length)
+					printf("Security warning: driver %s (%s) seems to mmap "
+					       "physical memory uncleared.\n", dev_name, vcap.name);
 			}
 
 			if (ioctl(vbi->fd, VIDIOC_QBUF, &vbuf) == -1) {
