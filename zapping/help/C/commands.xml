@@ -105,20 +105,28 @@
           <listitem><para>Switch the current display mode:</para>
             <variablelist>
               <varlistentry>
+                <term>'window'</term>
+                <listitem><para>display video or Teletext in a window</para></listitem>
+              </varlistentry>
+              <varlistentry>
                 <term>'fullscreen'</term>
-                <listitem><para>display video fullscreen, in capture or overlay mode</para></listitem>
+                <listitem><para>display video or Teletext fullscreen</para></listitem>
+              </varlistentry>
+              <varlistentry>
+                <term>'background'</term>
+                <listitem><para>like fullscreen, but puts the display in the background (if supported by the window manager)</para></listitem>
               </varlistentry>
               <varlistentry>
                 <term>'capture'</term>
-                <listitem><para>display video in a window in capture mode</para></listitem>
+                <listitem><para>display video in capture mode (starting with version 0.7.2 this will not switch to window mode)</para></listitem>
               </varlistentry>
               <varlistentry>
                 <term>'preview'</term>
-                <listitem><para>display video in a window in overlay mode</para></listitem>
+                <listitem><para>display video in overlay mode (starting with version 0.7.2 this will not switch to window mode)</para></listitem>
               </varlistentry>
               <varlistentry>
                 <term>'teletext'</term>
-                <listitem><para>display Teletext in the main window</para></listitem>
+                <listitem><para>display Teletext (starting with version 0.7.2 this will not switch to window mode)</para></listitem>
               </varlistentry>
             </variablelist>
           </listitem>

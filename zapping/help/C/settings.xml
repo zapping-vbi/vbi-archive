@@ -10,7 +10,7 @@
       <title>Video Device</title>
 
       <para>In this section you can select the device file name of
-the kernel device to be used in <link linkend="zapping-video-modes">capture mode</link>. Common names are:</para>
+the kernel device to be used in <link linkend="zapping-video-modes">capture mode</link>. On Linux common names are:</para>
       <simplelist>
         <member><filename>/dev/video</filename></member>
         <member><filename>/dev/video0</filename></member>
@@ -18,6 +18,13 @@ the kernel device to be used in <link linkend="zapping-video-modes">capture mode
         <member><filename>/dev/video2</filename></member>
         <member><filename>/dev/v4l/video</filename></member>
         <member><filename>/dev/v4l/video0</filename></member>
+      </simplelist>
+      <para>On FreeBSD:</para>
+      <simplelist>
+        <member><filename>/dev/bktr</filename></member>
+        <member><filename>/dev/bktr0</filename></member>
+        <member><filename>/dev/bktr1</filename></member>
+        <member><filename>/dev/bktr2</filename></member>
       </simplelist>
       <para>Changes will take place after you quit and restart Zapping.</para>
       <para>There is no dialog to select an XVideo device, Zapping uses the first device it finds. This will be corrected in a future version.</para>
@@ -131,7 +138,8 @@ the kernel device to be used in <link linkend="zapping-video-modes">capture mode
         <varlistentry>
           <term><guilabel>Fullscreen video resolution</guilabel></term>
           <listitem>
-            <para>When switching to <link linkend="zapping-video-modes">fullscreen mode</link>, Zapping cannot enlarge the video to cover the whole screen, but it can change the display resolution to approximate the size of the video. Here you can select a particular resolution, automatic selection, or no change of display resolution.</para>
+            <para>When switching to <link
+            linkend="zapping-video-modes">fullscreen or background mode</link>, Zapping may not be able to enlarge the video to cover the whole screen, but it can change the display resolution to approximate the size of the video. Here you can select a particular resolution, automatic selection, or no change of display resolution.</para>
           </listitem>
         </varlistentry>
         <varlistentry>
@@ -154,7 +162,7 @@ the kernel device to be used in <link linkend="zapping-video-modes">capture mode
               <varlistentry>
                 <term><guilabel>Biggest noninterlaced</guilabel></term>
                 <listitem>
-                  <para>Interlaced video looks funny when scaled. This mode is similar to <guilabel>Interlaced</guilabel>, except noninterlaced video will be captured.</para>
+                  <para>Interlaced video looks strange when scaled. This mode is similar to <guilabel>Interlaced</guilabel>, except noninterlaced video will be captured.</para>
                 </listitem>
               </varlistentry>
             </variablelist>
@@ -253,10 +261,16 @@ the kernel device to be used in <link linkend="zapping-video-modes">capture mode
             <para>XVideo does not support VBI data capturing. You will be able to use VBI services only if your device also has a kernel driver.</para>
           </listitem>
         </varlistentry>
+      </variablelist>
+    </sect2>
+
+    <sect2 id="zapping-settings-teletext">
+      <title>Teletext plugin</title>
+      <variablelist>
         <varlistentry>
           <term><guilabel>Default region</guilabel></term>
           <listitem>
-            <para>This is a Teletext option. Some stations fail to transmit a complete language identifier, so the Teletext viewer may not display the correct font or national characters. You can select your geographical region as an additional hint.</para>
+            <para>Some stations fail to transmit a complete language identifier, so the Teletext viewer may not display the correct font or national characters. You can select your geographical region as an additional hint.</para>
           </listitem>
         </varlistentry>
         <varlistentry>

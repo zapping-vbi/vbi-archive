@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" 
 "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" [
-  <!ENTITY appversion		"0.7.1">
-  <!ENTITY manrevision		"0.1">
-  <!ENTITY date			"2003-12-12">
+  <!ENTITY appversion		"0.7.2">
+  <!ENTITY manrevision		"0.2">
+  <!ENTITY date			"2004-10-03">
 
   <!ENTITY settings		SYSTEM "settings.xml">
   <!ENTITY channel-editor	SYSTEM "channel-editor.xml">
@@ -21,7 +21,7 @@
     <title>Zapping Manual &manrevision;</title>       
 
     <copyright> 
-      <year>2003</year>
+      <year>2004</year>
       <holder>Michael H. Schimek</holder> 
     </copyright>
 
@@ -91,6 +91,11 @@ Section "Module"
 EndSection
 </programlisting>
 	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>BKTR kernel driver (FreeBSD)</term>
+	  <listitem>
+	    <para>Zapping can capture video, capture VBI (Teletext and Closed Caption) data and overlay video with this driver. For installation and configuration of the driver please consult the FreeBSD handbook.</para>
 	</varlistentry>
 	<varlistentry>
 	  <term>XVideo drivers</term>
@@ -163,12 +168,12 @@ EndSection
     <sect2 id="zapping-video-modes">
       <title>Video Modes</title>
 
-      <para>Zapping can work in windowed or fullscreen mode. There are two windowed modes, capture and overlay mode. Currently fullscreen requires overlay. What is the difference?</para>
+      <para>Zapping can work in windowed, fullscreen or background mode. In each mode it can show Teletext, captured images or it can overlay video. What is the difference?</para>
       <para>In capture mode Zapping programs your TV card to store images in main meory. This permits screenshots and video recording. It is also quite CPU intensive because to display video Zapping must copy the images to the X server.</para>
       <para>In overlay mode the TV card stores the images directly in video memory. This is a more efficient display method, but now Zapping cannot access the images. When you try to take a screenshot or record in this mode it will switch back to capture mode, if supported by your TV card.</para>
       <para>To switch between modes choose the mode from the <menuchoice>
 	  <guimenu>View</guimenu>
-	</menuchoice> menu, or the context menu. To return from fullscreen mode press the <keycap>Esc</keycap> key.</para>
+	</menuchoice> menu, or the context menu. To return from fullscreen or background mode to windowed press the <keycap>Esc</keycap> key.</para>
       <para>In windowed mode you can freely resize the video. You can either resize the window as usual by dragging its border, or choose a size from the context menu <menuchoice>
 	  <guimenu>Appearance</guimenu>
 	</menuchoice> submenu. This menu is editable, see the <link linkend="zapping-settings-video-options">preferences</link> section for details.</para>
@@ -226,6 +231,7 @@ EndSection
       <para>To record video and/or audio click on the <guilabel>Record</guilabel> button in the toolbar or press the <keycap>R</keycap> key. A dialog will open where you can choose a file name and format. Click on the <guilabel>Record</guilabel> button in the dialog to start recording, on the <guilabel>Stop</guilabel> button to stop.</para>
       <para>File formats can be configured in <link ulink="zapping-settings-recording">preferences</link>. You can create different configurations and name them as desired.</para>
       <para>Video recording is only possible if your TV card and its driver supports video capturing in realtime. Video compression hardware is not yet supported.</para>
+      <para>Currently recording is not supported on FreeBSD.</para>
     </sect2>
 
     <sect2 id="zapping-remote">
