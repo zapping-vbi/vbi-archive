@@ -3,6 +3,7 @@
 	* src/ttxview.c: More GUI love, should be ready to start merging
 	history and other fancy stuff. Tried to minimize used screen
 	space, support for subpages, and a very improved Keyb handling.
+	* src/tvengxv.c: I shouldn't read that fast...
 
 20.12.2000	TTXView, T thread <garetxe@users.sourceforge.net>
 
