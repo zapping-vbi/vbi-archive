@@ -101,7 +101,7 @@ int zapzilla_main(int argc, char * argv[])
 		      NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: zapzilla.c,v 1.4.2.5 2003-09-24 18:41:25 mschimek Exp $",
+	 "$Id: zapzilla.c,v 1.4.2.6 2003-09-24 19:13:45 mschimek Exp $",
 	 "Zapzilla", VERSION, __DATE__);
   D();
   /* FIXME: Find something better */

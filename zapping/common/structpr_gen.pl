@@ -3,7 +3,20 @@
 #  Copyright (C) 2002-2003 Michael H. Schimek 
 #  inspired by a LXR script http://lxr.linux.no/
 #
-#  GPL2 blah blah blah.
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License version 2 as
+#  published by the Free Software Foundation.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+#  --------------------------------------------------------------------------
 #
 #  This script turns a C header file into functions printing
 #  and checking ioctl arguments. It's part of the debugging
@@ -12,7 +25,7 @@
 #  Perl and C gurus cover your eyes. This is one of my first
 #  attempts in this funny tongue and far from a proper C parser.
 
-# $Id: structpr_gen.pl,v 1.1.2.3 2003-07-29 03:48:01 mschimek Exp $
+# $Id: structpr_gen.pl,v 1.1.2.4 2003-09-24 19:13:43 mschimek Exp $
 
 $number		= '[0-9]+';
 $ident		= '\~?_*[a-zA-Z][a-zA-Z0-9_]*';

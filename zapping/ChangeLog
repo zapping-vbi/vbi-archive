@@ -1,3 +1,39 @@
+24.9.2003	<mschimek@users.sf.net>
+
+	* configure.in, src/Makefile.am: Restored libxml check from
+	  0.6.x for src/zconf.
+	* configure.in: Added BSD driver check, cleanup.
+	* src/Makefile.am, src/keyboard.c:
+	  Replaced z_key editing widget by eggcellrendererkeys.
+	* src/Makefile.am, src/channel_editor.c: Added channel list
+	  import from xawtv config file.
+	* src/frequencies.c: Resynched frequency tables with
+	  XawTV for config import function. Added SE Asian tables.
+	* src/frequencies.h: Changed all frequency values to Hz unit.
+	* src/i18n.c: New SE Asian country names.
+	* src/channel_editor.c: Fixed standard and input option menu.
+	* src/zmisc.c, src/zmisc.h: Added a few gtk_tree_view helper
+	  functions. Added z_device_entry_grab_focus().
+	* src/tvengbktr.c: Cleaned up, removed old cruft, compiles now.
+	  But doesn't do anything useful yet. :-(
+	* src/tveng.c (tv_set_overlay_buffer):  First try the
+	  zapping_setup_fb install path.
+	* src/audio.c, src/audio.h, src/properties-handler.c:
+	  Rewrote audio device selection in preferences.
+	  Cleaned up audio preferences. Added mute on exit option.
+	  Removed mute on channel switch option, always on now.
+	* src/zmisc.c: Always mute on channel switch.
+	* src/cmd.c: Mute on exit optional.
+	* src/callbacks.c, src/callbacks.h: No longer used. The
+	  remaining button press cb moved into src/interface.c.
+	* src/main.c (on_zapping_key_press): Missing call to
+	  on_picture_size_key_press().
+	* zapping_setup_fb/v4l.c, zapping_setup_fb/v4l2.c,
+	  zapping_setup_fb/v4l25.c: Missing #include w/o ENABLE_V4L.
+	* plugins, src:	Make VPATH include fixes.
+	  (cmd_register): Replaced description and example by
+	  set of macros.
+
 26.8.2003	<mschimek@users.sf.net>
 
 	* src/ttxview.c: Teletext doesn't hang anymore. TTXView windows

@@ -1,6 +1,8 @@
 Outstanding issues for future releases
 --------------------------------------
 
+* Keyboard preferences: Python commands should not be visible,
+  by default. Use GtkAction?
 * Recording: like mixer volume, substitute tv card brightness and
   contrast control when available for XVPutImage.
 * Examine interaction of Zapping (esp. overlay) with RANDR.
@@ -63,6 +65,7 @@ Outstanding issues for future releases
 * Re-add toolbar style option.
 * Remove tveng_frame_format.bytesperline.
 * Verify all Gnome etc URLs everywhere.
+* Proper error messages on xawtv import.
 
 * Better 16:9 support:
 
@@ -100,6 +103,44 @@ Outstanding issues for future releases
   Fullscreen mode currently implies overlay and the picture aspect is
   assumed 4:3. Actually the app should look up an XF86 Modeline with
   16:9 aspect or use e.g. 1024x768, kind of a HDTV letterbox.
+
+* Maybe an external frequency table table would be nice. Would be
+  easier to update, even remotely (libxml2 nanohttp). Possible
+  file format:
+
+  <?xml version="1.0" encoding="UTF-8"?>
+  <!DOCTYPE frequency_tables [
+    <!ELEMENT frequency_tables (table+)>
+    <!ELEMENT table (name,domain?,country+,videostandard+,range+)>
+    <!ELEMENT name (#PCDATA)> <!-- (0-9|a-z|A-Z|_)+ -->
+    <!ELEMENT domain (#PCDATA)>
+    <!ELEMENT country (#PCDATA)> <!-- RFC 1766 / ISO 3166 alpha-2 -->
+    <!ELEMENT videostandard (#PCDATA)> <!-- ??? -->
+    <!ELEMENT range (prefix,first,last?,frequency,bandwidth)>
+    <!ELEMENT prefix (#PCDATA)>
+    <!ELEMENT first (#PCDATA)> <!-- (0|(1-9)(0-9)+)|a-z|A-Z -->
+    <!ELEMENT last (#PCDATA)> <!-- same as first -->
+    <!ELEMENT frequency (#PCDATA)> <!-- Hz -->
+    <!ELEMENT bandwidth (#PCDATA)> <!-- Hz -->
+    <!ATTLIST domain xml:lang NMTOKEN "en">
+    <!ENTITY ccir_uhf "<range...>">
+  ]>
+  <frequency_tables>
+   <table>
+    <name>foobar</name>
+    <domain xml:lang="fr">cable</domain>
+    <country>US</country>
+    <country>CA</country>
+    <videostandard>NTSC_M</videostandard>
+    <range>
+     <prefix>SE</prefix>
+     <first>1</first><last>10</last>
+     <frequency>55250000</frequency>
+     <bandwidth>6000000</bandwidth>
+    </range>
+    &ccir_uhf;
+   </table>
+  </frequency_tables>
 
 Please tell me about anything you think is worth adding:
 

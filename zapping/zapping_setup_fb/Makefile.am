@@ -1,4 +1,5 @@
 ## Process this file with automake to produce Makefile.in
+## Note $(DESTDIR)$(sbindir) also encoded in src/Makefile.am
 
 INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/common $(COMMON_INCLUDES) 
 

@@ -1,6 +1,9 @@
 Known bugs in Zapping, don't report them
 ----------------------------------------
 
+* Xawtv import skips channel when name contains non-ascii.
+* zvbi error messages need locale to UTF-8 conversion.
+* Screenshot plugin temporarily switches format without need.
 * Go Fullscreen w/automatic vidmode hangs on RH
 * Crashed in/after screenshot
 * ** (zapping:14562): WARNING **: Group Allgemeine Optionen not found
@@ -12,12 +15,9 @@ Known bugs in Zapping, don't report them
   handle that for us, see gnome-app-helper.c. Or right click
   on the toolbar dock bevel. Note also Ctrl-Cursor to move
   the toolbar around.
-* Toolbar Text Only option doesn't affect mute & ttx button.
-* Show tooltips option doesn't work.
 * TTX search: on the fly case and regex change doesnt work.
 * Wrong window stacking layer of overlay window when
   Zapping restores no-xv fullscreen at startup.
-* Doesn't properly run zapping_setup_fb.
 * (Zapping 0.6.7) Saving QVC-600 TTX page in HTML segfaults.
 * Station search doesn't work in overlay mode
   (Xv/v4l no signal strength), need check/switch.
@@ -25,7 +25,6 @@ Known bugs in Zapping, don't report them
 ! bttv 0.9.5 seems to crash the X server whenever
   XvPutImage is called (field ANY not handled?).
   Gerd notified, promised fix in 0.9.6.
-* resize menu key accel doesn't work?
 * Need to handle BadAtom errors resulting from Xv out
   of video memory (or no v4l device?). Currently gdk
   just aborts the app.
@@ -38,14 +37,12 @@ Known bugs in Zapping, don't report them
   investigate.
 * Zapzilla: what's v4lx doing on standard change?
   Changing the video standard breaks vbi decoding.
-* check on_trigger_clicked
 * Overlay (no XVideo) under E is broken, shading the window
   isn't correctly detected.
 * Do not assert on ESD timeout
 * Bug in save window geometry, reported by Pawel.
 * Subtitles: auto-overlays search result pages.
 * config.h is also full of hardcoded paths.
-* Tooltips don't work as expected.
 * Spinslider minimum sizes.
 * Bad reception breaks vbi decoding: i/o error.
 * Channel editor: up/down scroll-to doesn't work right,
