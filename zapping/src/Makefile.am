@@ -4,7 +4,7 @@ INCLUDES = $(COMMON_INCLUDES) -I$(top_srcdir)/intl
 
 bin_PROGRAMS = zapping
 
-COMMON_LIB = $(top_srcdir)/common/libcommon.a
+COMMON_LIB = $(top_builddir)/common/libcommon.a
 
 ## Don't forget to put these files into the distribution
 EXTRA_DIST = ROADMAP gen_conv.s
