@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rtepriv.h,v 1.9 2000-10-12 22:06:24 garetxe Exp $
+ * $Id: rtepriv.h,v 1.10 2000-10-23 21:51:39 garetxe Exp $
  * Private stuff in the context.
  */
 
@@ -61,6 +61,14 @@ struct _rte_context_private {
 	rteEncodeCallback encode_callback; /* save-data Callback */
 	rteDataCallback audio_data_callback; /* need audio data */
 	rteDataCallback video_data_callback; /* need video data */
+	rteBufferCallback audio_buffer_callback; /* need audio buffer */
+	rteBufferCallback video_buffer_callback; /* need video buffer */
+	rteUnrefCallback audio_unref_callback; /* audio release */
+	rteUnrefCallback video_unref_callback; /* video release */
+	enum rte_interface audio_interface; /* audio interface */
+	enum rte_interface video_interface; /* video interface */
+	int audio_buffered; /* whether the audio uses buffers or memcpy */
+	int video_buffered; /* whether the audio uses buffers or memcpy */
 	pthread_t mux_thread; /* mp1e multiplexer thread */
 	pthread_t video_thread_id; /* video encoder thread */
 	pthread_t audio_thread_id; /* audio encoder thread */

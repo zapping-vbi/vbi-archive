@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: rte.h,v 1.15 2000-10-21 23:36:11 garetxe Exp $
+ * $Id: rte.h,v 1.16 2000-10-23 21:51:39 garetxe Exp $
  * Function prototypes for RTE
  */
 
@@ -31,13 +31,22 @@
 #define __RTELIB_H__
 
 /*
-  What are we going to encode, audio only, video only or both
-  FIXME: subtitles?
-*/
+ * What are we going to encode, audio only, video only or both
+ * FIXME: subtitles?
+ */
 enum rte_mux_mode {
-	RTE_MUX_VIDEO = 1,
-	RTE_MUX_AUDIO = 2,
-	RTE_MUX_AUDIO_AND_VIDEO = 3 /* AUDIO | VIDEO */
+	RTE_VIDEO = 1,
+	RTE_AUDIO = 2,
+	RTE_AUDIO_AND_VIDEO = 3 /* AUDIO | VIDEO */
+};
+
+/*
+ * Which interface to use for fetching data
+ */
+enum rte_interface {
+	RTE_NO_INTERFACE = 0,
+	RTE_PUSH = 1,
+	RTE_CALLBACKS = 2
 };
 
 /*
@@ -50,6 +59,8 @@ enum rte_pixformat {
 	RTE_YUV420, /* Planar Y:Cb:Cr 1.5 bytes per pixel */
 	RTE_YUYV, /* YCbYCr linear, 2 bytes per pixel */
 	/* RGB modes, get converted to YUV420 */
+	/* fixme: the rgb modes are currently unsupported in buffered
+	   mode, and very slow otherwise. Somebody has to fix this. */
 	RTE_RGB555,
 	RTE_RGB565,
 	RTE_BGR24,
@@ -109,7 +120,7 @@ typedef struct {
 	/* frame size */
 	int width, height;
 
-	/* Video frame rate */
+	/* Video frame rate (25 fps (PAL) by default) */
 	enum rte_frame_rate video_rate;
 	/* output video bits per second, defaults to 2.3 Mbit/s */
 	size_t output_video_bits;
@@ -130,21 +141,21 @@ typedef struct {
 	/* last error */
 	char * error;
 
-	/* Pointer to the private data of this struct */
+	/* Stuff we don't want you to see ;-) */
 	rte_context_private * private;
 } rte_context;
 
 /*
   "You have to save this data" callback. Defaults to a disk (stdout)
   write().
+  context: Context that created this data.
   data: Pointer to the encoded data.
   size: Size in bytes of the data stored in data
-  context: Context that created this data.
   user_data: Pointer passed to rte_context_new
 */
-typedef void (*rteEncodeCallback)(void * data,
+typedef void (*rteEncodeCallback)(rte_context * context,
+				  void * data,
 				  size_t size,
-				  rte_context * context,
 				  void * user_data);
 
 #define RTE_ENCODE_CALLBACK(function) ((rteEncodeCallback)function)
@@ -154,23 +165,59 @@ typedef void (*rteEncodeCallback)(void * data,
   callback whenever it thinks it will need some fresh
   data to encode (usually it will go one or two samples ahead of the
   encoder thread). The callbacks and the push() interfaces shouldn't
-  be used together (they don't always work).
+  be used together (rte isn't designed with that in mind, but it could
+  work?).
+  context: The context that asks for the data.
   data: Where should you write the data. It's a memchunk of
   context->video_bytes or context->audio_bytes (depending whether rte
   asks for video or audio), and you should fill it (i.e., a video
   frame of audio_bytes of audio).
   time: Push here the timestamp for your frame.
-  video: 1 if rte requests video, 0 if audio.
-  context: The context that asks for the data.
+  stream: What are we requesting (RTE_AUDIO or RTE_VIDEO)
   user_data: User data passed to rte_context_new
 */
-typedef void (*rteDataCallback)(void * data,
+typedef void (*rteDataCallback)(rte_context * context,
+				void * data,
 				double * time,
-				int video,
-				rte_context * context,
+				enum rte_mux_mode stream,
 				void * user_data);
 
 #define RTE_DATA_CALLBACK(function) ((rteDataCallback)function)
+
+/*
+ * Struct used for buffered input. We could use mp1e's own buffers and
+ * save some complexity ... or maybe add some more :-)
+ */
+typedef struct {
+	void	*data; /* Pointer to the data in the buffer */
+	double	time; /* timestamp for the buffer */
+	void	*user_data; /* Whatever data the user wants to store */
+} rte_buffer;
+
+/*
+ * "I need a buffer" callback. The usage is the same as a
+ * data callback, but you don't need to do the memcpy.
+ * buffer: Buffer the lib will be using for encoding. Set data, time
+ *	   and optionally user_data to the correct values.
+ * stream: What are we requesting
+ */
+typedef void (*rteBufferCallback)(rte_context * context,
+				  rte_buffer * buffer,
+				  enum rte_mux_mode stream);
+
+#define RTE_BUFFER_CALLBACK(function) ((rteBufferCallback)function)
+
+/*
+ * Callback used when the encoding engine no longer needs a supplied
+ * buffer.
+ * The buffer is property of rte, you just need to free whatever data
+ * you provided when pushing or giving it through a callback.
+ * buffer: The buffer no longer needed by the encoding engine.
+ */
+typedef void (*rteUnrefCallback)(rte_context * contex,
+				 rte_buffer * buffer);
+
+#define RTE_UNREF_CALLBACK(function) ((rteUnrefCallback)function)
 
 /* Interface functions */
 /*
@@ -184,22 +231,11 @@ int rte_init ( void );
   if the rest aren't specified before pushing data, then the defaults
   are used.
   Returns: The new context on startup, NULL on error.
-  file: If you don't specify a encode_callback, and file is not NULL, this
-        file will be opened (created) and data will be stored here. If
-	it is NULL, and the encode callback too, NULL will be returned.
   width, height: Width and height of the pushed frames, must be 16-multiplus
-  rate: Video frame rate
-  encode_callback: Function to be called when encoded data is ready.
-  *_data_callback: Function to be called when data to be encoded is needed.
   user_data: Some data you would like to pass to the callback
 */
 rte_context * rte_context_new (int width, int height,
 			       enum rte_pixformat frame_format,
-			       enum rte_frame_rate rate,
-			       char * file,
-			       rteEncodeCallback encode_callback,
-			       rteDataCallback audio_data_callback,
-			       rteDataCallback video_data_callback,
 			       void * user_data);
 
 /*
@@ -210,13 +246,36 @@ rte_context * rte_context_new (int width, int height,
 void * rte_context_destroy ( rte_context * context );
 
 /*
+ * Sets the a/v input mode for the context.
+ * stream: What are we setting (RTE_AUDIO or RTE_VIDEO)
+ * interface: interface to use (push or callback)
+ * buffered: TRUE if buffering is to be used.
+ * *_callback: Supply the appropiate callbacks here (NULL if not needed).
+ */
+void rte_set_input (rte_context * context,
+		    enum rte_mux_mode stream,
+		    enum rte_interface interface, int buffered,
+		    rteDataCallback data_callback,
+		    rteBufferCallback buffer_callback,
+		    rteUnrefCallback unref_callback);
+
+/*
+ * Sets the what should rte do with the encoded data.
+ * encode_callback: Callback when an encoded packet is ready, can be NULL.
+ * filename: if encode_callback is NULL, put the file where rte will write
+ * the data here. No verification is done until the file is opened.
+ */
+void rte_set_output (rte_context * context,
+		     rteEncodeCallback encode_callback,
+		     const char * filename);
+
+/*
   Setters and getters for the members in the struct, so no direct
   access is needed. Direct access to the struct fields is allowed when
   no getter is provided (this is to avoid API bloat), but you should
   NEVER change a field directly.
-  FIXME: This needs to be added, remeber to add setter and getter for
-  the callbacks and the filename.
-  We need some functions to get stats (frame drop rate, bytes output, etc)
+  fixme: We need some functions to get stats (frame drop rate, bytes
+  written, etc)
 */
 /*
   Sets the video parameters. If you want to leave output_video_bits
@@ -238,40 +297,22 @@ int rte_set_audio_parameters (rte_context * context,
 /* Specifies whether to encode audio only, video only or both */
 void rte_set_mode (rte_context * context, enum rte_mux_mode mode);
 
-/* [SG]ets the data callbacks (can be NULL) */
-void rte_set_data_callbacks (rte_context * context,
-			     rteDataCallback audio_callback,
-			     rteDataCallback video_callback);
-
-void rte_get_data_callbacks (rte_context * context,
-			     rteDataCallback * audio_callback,
-			     rteDataCallback * video_callback);
-
-/* [SG]ets the encode callback (can be NULL too if the output filename
-   isn't NULL) */
-void rte_set_encode_callback (rte_context * context,
-			      rteEncodeCallback callback);
-rteEncodeCallback rte_get_encode_callback (rte_context * context);
-
-/* Sets the output filename. It can be NULL if the encode callback
-   isn't. No checks are performed to the given filename until rte
-   tries to open it (i.e. rte_start()) */
-void rte_set_file_name(rte_context * context, const char * file_name);
-/*
-  Gets the current file name where the encoded data will be stored.
-  It can be NULL, meaning that a encode callback will be used instead.
-  The returned string shouldn't be freed.
-*/
-char * rte_get_file_name(rte_context * context);
-
 /* [SG]ets the user data parameter. Can be done while encoding */
 void rte_set_user_data(rte_context * context, void * user_data);
 void * rte_get_user_data(rte_context * context);
 
 /*
-  FIXME: add comments
-*/
+ * Prepares the context for encoding. Must be called before calling
+ * start_encoding. Returns 1 on success.
+ */
 int rte_init_context ( rte_context * context );
+
+/*
+ * If necessary, syncs the audio and video streams and starts
+ * encoding. The context must be sucessfully inited before calling
+ * this.
+ * Returns1 on success.
+ */
 int rte_start_encoding ( rte_context * context );
 
 /*
@@ -294,12 +335,20 @@ void rte_stop ( rte_context * context );
 
   void * ptr = rte_push_video_data(context, NULL, 0);
   do {
-  double time = get_data_from_video_source(ptr);
-  ptr = rte_push_video_data(context, ptr, time);
+  double timestamp;
+  get_data_from_video_source(ptr, &timestamp);
+  ptr = rte_push_video_data(context, ptr, timestamp);
   } while (data_available);
 */
 void * rte_push_video_data ( rte_context * context, void * data,
 			     double time );
+
+/*
+ * This is the same as push_video_data but it uses buffers, thus saving a
+ * memcpy. You should fill in the fields of buffer as needed.
+ */
+void rte_push_video_buffer ( rte_context * context,
+			     rte_buffer * buffer );
 
 /*
   Pushes an audio sample into the given encoding context. The usage is
@@ -321,9 +370,26 @@ void * rte_push_audio_data ( rte_context * context, void * data,
 			     double time );
 
 /*
+ * This is the same as push_audio_data but it uses buffers, thus saving a
+ * memcpy. You should fill in the fields of buffer as needed.
+ */
+void rte_push_audio_buffer ( rte_context * context,
+			     rte_buffer * buffer );
+
+/*
   Returns: a pointer to the last error. The returned string is
   statically allocated (and it can be NULL), you don't need to free it.
 */
 char * rte_last_error ( rte_context * context );
+
+/*
+ * Some useful stuff
+ */
+#ifndef FALSE
+#define FALSE 0
+#endif
+#ifndef TRUE
+#define TRUE (!FALSE)
+#endif
 
 #endif /* rtelib.h */

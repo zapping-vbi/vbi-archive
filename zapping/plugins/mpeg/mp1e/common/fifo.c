@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.4 2000-10-15 21:24:48 mschimek Exp $ */
+/* $Id: fifo.c,v 1.5 2000-10-23 21:51:39 garetxe Exp $ */
 
 #include "fifo.h"
 #include "alloc.h"
@@ -99,34 +99,36 @@ init_buffered_fifo(fifo *f, mucon *consumer, int size, int num_buffers)
 
 	memset(f, 0, sizeof(fifo));
 
-	if (!(f->buffers = calloc(num_buffers, sizeof(buffer))))
-		return 0;
-
-	for (i = 0; i < num_buffers; i++)
-		f->buffers[i].index = i;
-
-	if (size > 0) {
+	if (num_buffers > 0) {
+		if (!(f->buffers = calloc(num_buffers, sizeof(buffer))))
+			return 0;
+		
 		for (i = 0; i < num_buffers; i++) {
 			if (!init_buffer(&f->buffers[i], size))
 				break;
-
+		
 			add_tail(&f->empty, &f->buffers[i].node);
 		}
 
+		for (i = 0; i < num_buffers; i++)
+			f->buffers[i].index = i;
+		
 		if (i == 0) {
 			free(f->buffers);
 			f->buffers = NULL;
 			return 0;
 		}
-	}
 
+		f->num_buffers = i;
+	}
+	
 	mucon_init(&f->producer);
 	f->consumer = consumer; /* NB the consumer mucon can be shared,
 				   cf. video, audio -> mux */
 
 	f->start = tv_sucks;
 
-	return f->num_buffers = i; // sic
+	return f->num_buffers; // sic
 }
 
 int
@@ -141,26 +143,24 @@ init_callback_fifo(fifo *f,
 
 	memset(f, 0, sizeof(fifo));
 
+	if (!(f->buffers = calloc(num_buffers, sizeof(buffer))))
+		return 0;
+	
 	if (num_buffers > 0) {
-		if (!(f->buffers = calloc(num_buffers, sizeof(buffer))))
-			return 0;
+		for (i = 0; i < num_buffers; i++) {
+			if (!init_buffer(&f->buffers[i], size))
+				break;
+		
+			add_tail(&f->empty, &f->buffers[i].node);
+		}
 
 		for (i = 0; i < num_buffers; i++)
 			f->buffers[i].index = i;
 
-		if (size > 0) {
-			for (i = 0; i < num_buffers; i++) {
-				if (!init_buffer(&f->buffers[i], size))
-					break;
-
-				add_tail(&f->empty, &f->buffers[i].node);
-			}
-
-			if (i == 0) {
-				free(f->buffers);
-				f->buffers = NULL;
-				return 0;
-			}
+		if (i == 0) {
+			free(f->buffers);
+			f->buffers = NULL;
+			return 0;
 		}
 
 		f->num_buffers = i;

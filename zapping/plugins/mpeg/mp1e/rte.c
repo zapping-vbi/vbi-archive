@@ -17,7 +17,8 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-/* $Id: rte.c,v 1.30 2000-10-21 23:28:23 garetxe Exp $ */
+
+/* $Id: rte.c,v 1.31 2000-10-23 21:51:39 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -88,16 +89,20 @@ wait_data(rte_context * context, int video)
 	buffer * b;
 	mucon * consumer;
 	rteDataCallback * data_callback;
+	rteBufferCallback * buffer_callback;
+	rte_buffer rbuf;
 	
 	nullcheck(context, return NULL);
 
 	if (video) {
 		f = &context->private->vid;
 		data_callback = &context->private->video_data_callback;
+		buffer_callback = &context->private->video_buffer_callback;
 	}
 	else {
 		f = &context->private->aud;
 		data_callback = &context->private->audio_data_callback;
+		buffer_callback = &context->private->audio_buffer_callback;
 	}
 
 	consumer = f->consumer;
@@ -120,9 +125,20 @@ wait_data(rte_context * context, int video)
 			       b->size == (video ? context->video_bytes :
 					    context->audio_bytes));
 
-			(*data_callback)(b->data, &(b->time), video, context,
+			(*data_callback)(context, b->data, &(b->time), video,
 					 context->private->user_data);
 			
+			pthread_mutex_unlock(&consumer->mutex);
+			return b;
+		} else if (*buffer_callback) {
+			b = wait_empty_buffer(f);
+
+			(*buffer_callback)(context, &rbuf, video ?
+					   RTE_VIDEO : RTE_AUDIO);
+			b->data = rbuf.data;
+			b->time = rbuf.time;
+			b->user_data = rbuf.user_data;
+
 			pthread_mutex_unlock(&consumer->mutex);
 			return b;
 		}
@@ -148,10 +164,56 @@ audio_wait_full(fifo *f)
 	return wait_data((rte_context*)f->user_data, 0);
 }
 
+static void
+video_send_empty(fifo *f, buffer *b)
+{
+	rte_buffer rbuf;
+	rteUnrefCallback unref_callback =
+		((rte_context*)f->user_data)->private->video_unref_callback;
+
+	if (unref_callback) {
+		rbuf.data = b->data;
+		rbuf.time = b->time;
+		rbuf.user_data = b->user_data;
+		
+		unref_callback((rte_context*)f->user_data, &rbuf);
+	}
+
+	pthread_mutex_lock(&f->producer.mutex);
+
+	add_head(&f->empty, &b->node);
+
+	pthread_mutex_unlock(&f->producer.mutex);
+	pthread_cond_broadcast(&f->producer.cond);
+}
+
+static void
+audio_send_empty(fifo *f, buffer *b)
+{
+	rte_buffer rbuf;
+	rteUnrefCallback unref_callback =
+		((rte_context*)f->user_data)->private->audio_unref_callback;
+
+	if (unref_callback) {
+		rbuf.data = b->data;
+		rbuf.time = b->time;
+		rbuf.user_data = b->user_data;
+
+		unref_callback((rte_context*)f->user_data, &rbuf);
+	}
+
+	pthread_mutex_lock(&f->producer.mutex);
+
+	add_head(&f->empty, &b->node);
+
+	pthread_mutex_unlock(&f->producer.mutex);
+	pthread_cond_broadcast(&f->producer.cond);
+}
+
 /* Do nothing callback */
 static void
-dead_end_callback(void *data, double *time, int video, rte_context *
-		  context, void * user_data)
+dead_end_callback(rte_context * context, void *data, double *time,
+		  enum rte_mux_mode stream, void * user_data)
 {
 	struct timeval tv;
 
@@ -187,11 +249,6 @@ static void default_write_callback ( void * data, size_t size,
 
 rte_context * rte_context_new (int width, int height,
 			       enum rte_pixformat frame_format,
-			       enum rte_frame_rate rate,
-			       char * file,
-			       rteEncodeCallback encode_callback,
-			       rteDataCallback audio_data_callback,
-			       rteDataCallback video_data_callback,
 			       void * user_data)
 {
 	rte_context * context;
@@ -199,12 +256,6 @@ rte_context * rte_context_new (int width, int height,
 	if (rte_global_context)
 	{
 		rte_error(NULL, "There is already a context");
-		return NULL;
-	}
-
-	if ((file) && (encode_callback)) {
-		rte_error(NULL,
-			  "use either an encode callbacks or a filename");
 		return NULL;
 	}
 
@@ -226,10 +277,10 @@ rte_context * rte_context_new (int width, int height,
 	memset(context->private, 0, sizeof(rte_context_private));
 	rte_global_context = context;
 
-	context->mode = RTE_MUX_AUDIO | RTE_MUX_VIDEO;
+	context->mode = RTE_AUDIO | RTE_VIDEO;
 
 	if (!rte_set_video_parameters(context, frame_format, width,
-				      height, rate, 2.3e6)) {
+				      height, RTE_RATE_3, 2.3e6)) {
 		rte_error(NULL, "invalid video format: %s",
 			  context->error);
 
@@ -243,20 +294,6 @@ rte_context * rte_context_new (int width, int height,
 
 		return rte_context_destroy(context);
 	}
-
-	if (encode_callback)
-		context->private->encode_callback = encode_callback;
-	else {
-		if (!file) {
-			rte_error(NULL, "file == callback == NULL");
-			return rte_context_destroy(context);
-		}
-		
-		context->file_name = strdup(file);
-	}
-
-	context->private->audio_data_callback = audio_data_callback;
-	context->private->video_data_callback = video_data_callback;
 
 	context->private->user_data = user_data;
 	context->private->fd = -1;
@@ -278,11 +315,11 @@ void * rte_context_destroy ( rte_context * context )
 		rte_stop(context);
 
 	if (context->private->inited) {
-		if (context->mode & RTE_MUX_VIDEO) {
+		if (context->mode & RTE_VIDEO) {
 			uninit_fifo(&context->private->aud);
 			mucon_destroy(&context->private->vid_consumer);
 		}
-		if (context->mode & RTE_MUX_AUDIO) {
+		if (context->mode & RTE_AUDIO) {
 			uninit_fifo(&context->private->vid);
 			mucon_destroy(&context->private->aud_consumer);
 		}
@@ -308,6 +345,56 @@ void * rte_context_destroy ( rte_context * context )
 	return NULL;
 }
 
+void rte_set_input (rte_context * context,
+		    enum rte_mux_mode stream,
+		    enum rte_interface interface, int buffered,
+		    rteDataCallback data_callback,
+		    rteBufferCallback buffer_callback,
+		    rteUnrefCallback unref_callback)
+{
+	nullcheck(context, return);
+
+	if (stream & RTE_AUDIO) {
+		context->private->audio_interface = interface;
+		context->private->audio_buffered = buffered;
+		context->private->audio_data_callback = data_callback;
+		context->private->audio_buffer_callback =
+			buffer_callback;
+		context->private->audio_unref_callback = unref_callback;
+	}
+	if (stream & RTE_VIDEO) {
+		context->private->video_interface = interface;
+		context->private->video_buffered = buffered;
+		context->private->video_data_callback = data_callback;
+		context->private->video_buffer_callback =
+			buffer_callback;
+		context->private->video_unref_callback = unref_callback;
+	}
+}
+
+void rte_set_output (rte_context * context,
+		     rteEncodeCallback encode_callback,
+		     const char * filename)
+{
+	nullcheck(context, return);
+
+	context->private->encode_callback = encode_callback;
+
+	if (context->private->inited) {
+		rte_error(NULL, "context already inited");
+		return;
+	}
+
+	if (context->file_name)
+		free(context->file_name);
+
+	if (filename)
+		context->file_name = strdup(filename);
+	else
+		context->file_name = NULL;
+}
+
+
 #define DECIMATING(mode) (mode == RTE_YUYV_VERTICAL_DECIMATION ||	\
 			  mode == RTE_YUYV_EXP_VERTICAL_DECIMATION)
 
@@ -326,7 +413,7 @@ int rte_set_video_parameters (rte_context * context,
 		return 0;
 	}
 
-	if (!(context->mode & RTE_MUX_VIDEO)) {
+	if (!(context->mode & RTE_VIDEO)) {
 		rte_error(context, "current muxmode is without video");
 		return 0;
 	}
@@ -442,7 +529,7 @@ int rte_set_audio_parameters (rte_context * context,
 		return 0;
 	}
 
-	if (!(context->mode & RTE_MUX_AUDIO)) {
+	if (!(context->mode & RTE_AUDIO)) {
 		rte_error(context, "current muxmode is without audio");
 		return 0;
 	}
@@ -482,89 +569,9 @@ void rte_set_mode (rte_context * context, enum rte_mux_mode mode)
 	context->mode = mode;
 }
 
-void rte_set_data_callbacks (rte_context * context,
-			     rteDataCallback audio_callback,
-			     rteDataCallback video_callback)
-{
-	nullcheck(context, return);
-
-	if (context->private->inited)
-	{
-		rte_error(context, "context already inited");
-		return;
-	}
-
-	context->private->audio_data_callback = audio_callback;
-	context->private->video_data_callback = video_callback;
-}
-
-void rte_get_data_callbacks (rte_context * context,
-			     rteDataCallback * audio_callback,
-			     rteDataCallback * video_callback)
-{
-	nullcheck(context, return);
-
-	if (audio_callback)
-		*audio_callback = context->private->audio_data_callback;
-	if (video_callback)
-		*video_callback = context->private->video_data_callback;
-}
-
-void rte_set_encode_callback (rte_context * context,
-			      rteEncodeCallback callback)
-{
-	nullcheck(context, return);
-
-	if (context->private->inited)
-	{
-		rte_error(context, "context already inited");
-		return;
-	}
-
-	context->private->encode_callback = callback;
-}
-
-rteEncodeCallback rte_get_encode_callback (rte_context * context)
-{
-	if (!context)
-	{
-		rte_error(NULL, "context == NULL");
-		return NULL;
-	}
-	return (context->private->encode_callback);
-}
-
-void rte_set_file_name(rte_context * context, const char * file_name)
-{
-	nullcheck(context, return);
-
-	if (context->private->inited)
-	{
-		rte_error(context, "context already inited");
-		return;
-	}
-
-	if (context->file_name)
-		free(context->file_name);
-
-	if (file_name)
-		context->file_name = strdup(file_name);
-	else
-		context->file_name = NULL;
-}
-
-char * rte_get_file_name(rte_context * context)
-{
-	nullcheck(context, return NULL);
-
-	return context->file_name;
-}
-
 void rte_set_user_data(rte_context * context, void * user_data)
 {
 	nullcheck(context, return);
-
-	/* the user data isn't fixed evem when inited */
 
 	context->private->user_data = user_data;
 }
@@ -591,14 +598,72 @@ int rte_init_context ( rte_context * context )
 		rte_error(context, "already encoding");
 		return 0;
 	}
-	if ((context->private->encode_callback) && (context->file_name)) {
-		rte_error(context,
-			  "Use either an encode callback or a file name, not both");
+
+	/* check for parameter consistency */
+	if ((!context->private->encode_callback) &&
+	    (!context->file_name)) {
+		rte_error(context, "encode_callback == file_name == NULL");
 		return 0;
 	}
-	if ((!context->private->encode_callback) && (!context->file_name)) {
-		rte_error(context, "You need to specify an encode callback or a filename");
+	if ((context->private->encode_callback) &&
+	    (context->file_name)) {
+		rte_error(context, "encode_callback != NULL, file_name "
+			  "!= NULL too");
 		return 0;
+	}
+	if (context->private->audio_buffered) {
+		if (context->private->audio_data_callback) {
+			rte_error(context, "audio_data_callback isn't needed");
+			return 0;
+		}
+		if (!context->private->audio_buffer_callback) {
+			rte_error(context, "audio_buffer_callback is needed");
+			return 0;
+		}
+		if (!context->private->audio_unref_callback) {
+			rte_error(context, "audio_unref_callback is needed");
+			return 0;
+		}
+	} else {
+		if (context->private->audio_data_callback) {
+			rte_error(context, "audio_data_callback isn't needed");
+			return 0;
+		}
+		if (context->private->audio_buffer_callback) {
+			rte_error(context, "audio_buffer_callback isn't needed");
+			return 0;
+		}
+		if (context->private->audio_unref_callback) {
+			rte_error(context, "audio_unref_callback isn't needed");
+			return 0;
+		}
+	}
+	if (context->private->video_buffered) {
+		if (context->private->video_data_callback) {
+			rte_error(context, "video_data_callback isn't needed");
+			return 0;
+		}
+		if (!context->private->video_buffer_callback) {
+			rte_error(context, "video_buffer_callback is needed");
+			return 0;
+		}
+		if (!context->private->video_unref_callback) {
+			rte_error(context, "video_unref_callback is needed");
+			return 0;
+		}
+	} else {
+		if (context->private->video_data_callback) {
+			rte_error(context, "video_data_callback isn't needed");
+			return 0;
+		}
+		if (context->private->video_buffer_callback) {
+			rte_error(context, "video_buffer_callback isn't needed");
+			return 0;
+		}
+		if (context->private->video_unref_callback) {
+			rte_error(context, "video_unref_callback isn't needed");
+			return 0;
+		}
 	}
 
 	if (!rte_fake_options(context))
@@ -626,13 +691,13 @@ int rte_init_context ( rte_context * context )
 			RTE_ENCODE_CALLBACK(default_write_callback);
 	}
 
-	if (context->mode & RTE_MUX_AUDIO)
+	if (context->mode & RTE_AUDIO)
 		mucon_init(&(context->private->aud_consumer));
-	if (context->mode & RTE_MUX_VIDEO)
+	if (context->mode & RTE_VIDEO)
 		mucon_init(&(context->private->vid_consumer));
 
 	/* create needed fifos */
-	if (context->mode & RTE_MUX_VIDEO) {
+	if (context->mode & RTE_VIDEO) {
 		alloc_bytes = context->video_bytes;
 		switch (context->video_format)
 		{
@@ -642,6 +707,12 @@ int rte_init_context ( rte_context * context )
 		case RTE_BGR24:
 		case RTE_RGB32:
 		case RTE_BGR32:
+			/* fixme: add support for this */
+			if (context->private->video_buffered) {
+				rte_error(context, "buffering isn't"
+					  "supported in RGB modes");
+				return 0;
+			}
 		case RTE_YUV420:
 			alloc_bytes = context->width*context->height*1.5;
 			break;
@@ -658,6 +729,9 @@ int rte_init_context ( rte_context * context )
 			break;
 		}
 
+		if (context->private->video_buffered)
+			alloc_bytes = 0; /* no need for preallocated
+					    mem */
 		if (2 > init_buffered_fifo(&(context->private->vid),
 			  &(context->private->vid_consumer), alloc_bytes,
 				       video_look_ahead(gop_sequence))) {
@@ -667,11 +741,16 @@ int rte_init_context ( rte_context * context )
 
 		context->private->vid.user_data = context;
 		context->private->vid.wait_full = video_wait_full;
+		context->private->vid.send_empty = video_send_empty;
 	}
 
-	if (context->mode & RTE_MUX_AUDIO) {
+	if (context->mode & RTE_AUDIO) {
+		if (!context->private->audio_buffered)
+			alloc_bytes = context->audio_bytes;
+		else
+			alloc_bytes = 0;
 		if (4 > init_buffered_fifo(&(context->private->aud),
-		      &(context->private->aud_consumer), context->audio_bytes,
+		      &(context->private->aud_consumer), alloc_bytes,
 					   NUM_AUDIO_BUFFERS)) {
 			uninit_fifo(&(context->private->vid));
 			rte_error(context, "not enough mem");
@@ -680,6 +759,7 @@ int rte_init_context ( rte_context * context )
 
 		context->private->aud.user_data = context;
 		context->private->aud.wait_full = audio_wait_full;
+		context->private->aud.send_empty = audio_send_empty;
 	}
 
 	/* allow pushing from now */
@@ -775,17 +855,27 @@ void rte_stop ( rte_context * context )
 	audio_callback = context->private->audio_data_callback;
 	video_callback = context->private->video_data_callback;
 
-	/* set to dead ends */
-	context->private->audio_data_callback = dead_end_callback;
-	context->private->video_data_callback = dead_end_callback;
+	if ((context->mode & RTE_AUDIO) &&
+	    (context->private->audio_interface == RTE_PUSH)) {
+		/* set to dead end */
+		context->private->audio_data_callback = dead_end_callback;
 
-	/* Signal the conditions so any thread waiting for an
-	   audio/video push() wake up, and use the dead end */
-	if (context->mode & RTE_MUX_AUDIO)
+		/* Signal the conditions so any thread waiting for an
+		   video push() wakes up, and uses the dead end */
 		pthread_cond_broadcast(&(context->private->aud_consumer.cond));
-	if (context->mode & RTE_MUX_VIDEO)
-		pthread_cond_broadcast(&(context->private->vid_consumer.cond));
+	}
 
+	if ((context->mode & RTE_VIDEO) &&
+	    (context->private->video_interface == RTE_PUSH)) {
+		/* set to dead end */
+		context->private->video_data_callback = dead_end_callback;
+
+		/* Signal the conditions so any thread waiting for an
+		   video push() wakes up, and uses the dead end */
+		pthread_cond_broadcast(&(context->private->vid_consumer.cond));
+	}
+
+	/* fixme: use the remote stuff */
 	/* Tell the mp1e threads to shut down */
 	gettimeofday(&tv, NULL);
 
@@ -804,11 +894,11 @@ void rte_stop ( rte_context * context )
 	context->private->audio_data_callback = audio_callback;
 	context->private->video_data_callback = video_callback;
 
-	if (context->mode & RTE_MUX_VIDEO) {
+	if (context->mode & RTE_VIDEO) {
 		uninit_fifo(&context->private->aud);
 		mucon_destroy(&context->private->vid_consumer);
 	}
-	if (context->mode & RTE_MUX_AUDIO) {
+	if (context->mode & RTE_AUDIO) {
 		uninit_fifo(&context->private->vid);
 		mucon_destroy(&context->private->aud_consumer);
 	}
@@ -839,11 +929,14 @@ void * rte_push_video_data ( rte_context * context, void * data,
 		rte_error(context, "context not inited");
 		return NULL;
 	}
-	if (!(context->mode & RTE_MUX_VIDEO)) {
+	if (!(context->mode & RTE_VIDEO)) {
 		rte_error(context, "Mux isn't prepared to encode video!");
 		return NULL;
 	}
-
+	if (context->private->video_buffered) {
+		rte_error(NULL, "use push_buffer, not push_data");
+		return NULL;
+	}
 	ASSERT("Arrr... stick to the usage, please\n",
 	       (context->private->last_video_buffer && data)
 	       || (!context->private->last_video_buffer && !data));
@@ -877,6 +970,38 @@ void * rte_push_video_data ( rte_context * context, void * data,
 	return context->private->last_video_buffer->data;
 }
 
+void rte_push_video_buffer ( rte_context * context,
+			     rte_buffer * rbuf )
+{
+	buffer * b;
+	nullcheck(context, return);
+
+	if (!context->private->inited) {
+		rte_error(NULL, "context not inited\n"
+			"The context must be encoding for push to work.");
+		rte_error(context, "context not inited");
+		return;
+	}
+	if (!(context->mode & RTE_VIDEO)) {
+		rte_error(context, "Mux isn't prepared to encode video!");
+		return;
+	}
+	if (!context->private->video_buffered) {
+		rte_error(NULL, "use push_data, not push_buffer");
+		return;
+	}
+
+	b = context->private->last_video_buffer =
+		wait_empty_buffer(&(context->private->vid));
+
+	b->time = rbuf->time;
+	b->data = rbuf->data;
+	b->user_data = rbuf->user_data;
+
+	send_full_buffer(&(context->private->vid),
+			 context->private->last_video_buffer);
+}
+
 void * rte_push_audio_data ( rte_context * context, void * data,
 			     double time )
 {
@@ -888,8 +1013,12 @@ void * rte_push_audio_data ( rte_context * context, void * data,
 		rte_error(context, "context not inited");
 		return NULL;
 	}
-	if (!(context->mode & RTE_MUX_AUDIO)) {
+	if (!(context->mode & RTE_AUDIO)) {
 		rte_error(context, "Mux isn't prepared to encode audio!");
+		return NULL;
+	}
+	if (context->private->audio_buffered) {
+		rte_error(NULL, "use push_buffer, not push_data");
 		return NULL;
 	}
 
@@ -911,6 +1040,38 @@ void * rte_push_audio_data ( rte_context * context, void * data,
 		wait_empty_buffer(&(context->private->aud));
 
 	return context->private->last_audio_buffer->data;
+}
+
+void rte_push_audio_buffer ( rte_context * context,
+			     rte_buffer * rbuf )
+{
+	buffer * b;
+	nullcheck(context, return);
+
+	if (!context->private->inited) {
+		rte_error(NULL, "context not inited\n"
+			"The context must be encoding for push to work.");
+		rte_error(context, "context not inited");
+		return;
+	}
+	if (!(context->mode & RTE_AUDIO)) {
+		rte_error(context, "Mux isn't prepared to encode video!");
+		return;
+	}
+	if (!context->private->audio_buffered) {
+		rte_error(NULL, "use push_data, not push_buffer");
+		return;
+	}
+
+	b = context->private->last_audio_buffer =
+		wait_empty_buffer(&(context->private->aud));
+
+	b->time = rbuf->time;
+	b->data = rbuf->data;
+	b->user_data = rbuf->user_data;
+
+	send_full_buffer(&(context->private->aud),
+			 context->private->last_audio_buffer);
 }
 
 int rte_init ( void )

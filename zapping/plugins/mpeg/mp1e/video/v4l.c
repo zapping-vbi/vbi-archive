@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.7 2000-10-15 21:24:49 mschimek Exp $ */
+/* $Id: v4l.c,v 1.8 2000-10-23 21:51:39 garetxe Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -32,6 +32,8 @@
 #include "../common/math.h"
 #include "../options.h"
 #include "video.h"
+
+#warning The V4L interface is unsupported.
 
 static int			fd;
 static fifo 			cap_fifo;
@@ -117,6 +119,8 @@ v4l_init(void)
 	int aligned_width;
 	int aligned_height;
 	unsigned long bufsize;
+
+	FAIL("The V4L interface doesn't work, please use V4L2 instead.");
 
 	grab_width = width = saturate(width, 1, MAX_WIDTH);
 	grab_height = height = saturate(height, 1, MAX_HEIGHT);

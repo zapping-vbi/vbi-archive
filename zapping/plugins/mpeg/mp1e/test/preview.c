@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: preview.c,v 1.2 2000-10-22 05:24:50 mschimek Exp $ */
+/* $Id: preview.c,v 1.3 2000-10-23 21:51:39 garetxe Exp $ */
 
 #if defined(HAVE_LIBXV) && defined (TEST_PREVIEW)
 
@@ -62,7 +62,7 @@ static int 		nAdaptors, nImgFormats;
 
 static XShmSegmentInfo	shminfo;
 static XvImage		*ximage;
-  static XEvent		event;
+// static XEvent	event;
 // static int		CompletionType = -1;
 
 extern int		width, height;
@@ -251,6 +251,8 @@ packed_preview(unsigned char *buffer, int mb_cols, int mb_rows)
 	/* adquire the global gdk lock */
 	gdk_threads_enter();
 
+	/* fixme: i need to comment this out to avoid the "unexpected Async
+	   reply" error */
 	XSync(display, False);
 
 	gdk_window_get_size(gtk_win->window, &wwidth, &wheight);

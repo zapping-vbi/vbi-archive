@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.8 2000-10-22 05:24:50 mschimek Exp $ */
+/* $Id: fifo.h,v 1.9 2000-10-23 21:51:39 garetxe Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -48,6 +48,10 @@ typedef struct {
 
 	unsigned char *		allocated;	// by init_fifo
 	long			size;		// bytes
+
+	/* convenience */
+
+	void *			user_data;
 
 } buffer;
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rte_test_main.c,v 1.13 2000-10-17 21:55:41 garetxe Exp $
+ * $Id: rte_test_main.c,v 1.14 2000-10-23 21:51:39 garetxe Exp $
  * This is a simple RTE test.
  */
 
@@ -62,7 +62,7 @@ static struct v4l2_requestbuffers vrbuf;
 static struct v4l2_control	old_mute;
 
 static void
-read_video(void * data, double * time, rte_context * context)
+read_video(rte_buffer * buffer)
 {
 	struct timeval tv;
 	fd_set fds;
@@ -90,9 +90,17 @@ read_video(void * data, double * time, rte_context * context)
 
 	ASSERT("dequeue capture buffer", ioctl(fd, VIDIOC_DQBUF, &vbuf) == 0);
 
-	memcpy(data, buffers[vbuf.index], context->video_bytes);
+	buffer->data = buffers[vbuf.index];
+	buffer->user_data = (void*)vbuf.index; /* we need this for
+						  queuing on unref */
+	buffer->time = vbuf.timestamp / 1e9; // UST, currently TOD
+}
 
-	*time = vbuf.timestamp / 1e9; // UST, currently TOD
+static void
+unref_callback(rte_context * context, rte_buffer * buffer)
+{
+	vbuf.type = V4L2_BUF_TYPE_CAPTURE;
+	vbuf.index = (int)buffer->user_data;
 
 	ASSERT("enqueue capture buffer", ioctl(fd, VIDIOC_QBUF, &vbuf) == 0);
 }
@@ -437,16 +445,17 @@ init_audio(const char * pcm_dev, int speed, int stereo)
 }
 
 static void
-data_callback(void * data, double * time, int video, rte_context *
-	      context, void * user_data)
+buffer_callback(rte_context * context, rte_buffer * buffer,
+		enum rte_mux_mode stream)
 {
-	if (user_data != (void*)0xdeadbeef)
-		fprintf(stderr, "check failed: %p\n", user_data);
-
-	if (video)
-		read_video(data, time, context);
-	else
-		read_audio(data, time, context);
+	if (stream & RTE_VIDEO) {
+		read_video(buffer);
+	}
+	else {
+		fprintf(stderr, "stream type not supported: %d\n",
+			stream);
+		exit(1);
+	}
 }
 
 /* Set to 1 to shut down audio thread */
@@ -479,7 +488,7 @@ int main(int argc, char *argv[])
 	char * audio_device = "/dev/audio";
 	char * dest_file = "temp.mpeg";
 	pthread_t audio_thread_id;
-	enum rte_mux_mode mux_mode = RTE_MUX_AUDIO | RTE_MUX_VIDEO;
+	enum rte_mux_mode mux_mode = RTE_AUDIO | RTE_VIDEO;
 
 	if (!rte_init()) {
 		fprintf(stderr, "RTE couldn't be inited\n");
@@ -491,20 +500,15 @@ int main(int argc, char *argv[])
 	width *= (rand()%20)+10;
 	height *= (rand()%20)+10;
 
+	width = 352; height = 288;
+
 	fprintf(stderr, "%d x %d\n", width, height);
 
 	rate_code = init_video(video_device, &width, &height);
 	init_audio(audio_device, audio_rate, stereo);
 
-	/*
-	 * width, height, pixformat
-	 * frame rate code, dest file, encode callback
-	 * audio data callback, video data callback
-	 * user data
-	 */
+	/* create the context we will be using */
 	context = rte_context_new(width, height, TEST_VIDEO_FORMAT,
-				  rate_code, dest_file, NULL,
-				  NULL, data_callback,
 				  (void*)0xdeadbeef);
 
 	if (!context) {
@@ -512,9 +516,10 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
+	/* set whether we will be encoding audio and/or video */
 	rte_set_mode(context, mux_mode);
 
-	if (mux_mode & RTE_MUX_AUDIO) {
+	if (mux_mode & RTE_AUDIO) {
 		rte_set_audio_parameters(context, audio_rate, stereo ?
 					 RTE_AUDIO_MODE_STEREO :
 					 RTE_AUDIO_MODE_MONO,
@@ -524,8 +529,20 @@ int main(int argc, char *argv[])
 		memset(abuffer, 0, buffer_size);
 	}
 
+	/*
+	 * Set the input and output methods.
+	 */
+	/* context, mux_mode, interface, buffered, data_callback,
+	   buffer_callback, unref_callback */
+	rte_set_input(context, RTE_AUDIO, RTE_PUSH, FALSE, NULL, NULL, NULL);
+	rte_set_input(context, RTE_VIDEO, RTE_CALLBACKS, TRUE, NULL,
+		      buffer_callback, unref_callback);
+	/* context, encode_callback, filename */
+	rte_set_output(context, NULL, dest_file);
+
 	fprintf(stderr, "preparing context for encoding\n");
 
+	/* Prepare the context for encoding */
 	if (!rte_init_context(context)) {
 		fprintf(stderr, "cannot init the context: %s\n",
 			context->error);
@@ -533,12 +550,13 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
-	if (mux_mode & RTE_MUX_AUDIO)
+	if (mux_mode & RTE_AUDIO)
 		pthread_create(&audio_thread_id, NULL, audio_thread, context);
 
-	if ((mux_mode & RTE_MUX_AUDIO) && (mux_mode & RTE_MUX_VIDEO))
+	if ((mux_mode & RTE_AUDIO) && (mux_mode & RTE_VIDEO))
 		fprintf(stderr, "syncing streams\n");
 
+	/* do the sync'ing and start encoding */
 	if (!rte_start_encoding(context)) {
 		fprintf(stderr, "cannot start encoding: %s\n",
 			context->error);
@@ -548,12 +566,12 @@ int main(int argc, char *argv[])
 
 	fprintf(stderr, "going to bed (%d secs)\n", sleep_time);
 
-	// let rte encode video for some time
+	/* let rte encode video for some time */
 	sleep(sleep_time);
 	
-	// Stop pushing before stopping the context
+	/* Stop pushing before stopping the context */
 	thread_exit_signal = 1;
-	if (mux_mode & RTE_MUX_AUDIO)
+	if (mux_mode & RTE_AUDIO)
 		pthread_join(audio_thread_id, NULL);
 
 	fprintf(stderr, "done encoding\n");
@@ -562,7 +580,7 @@ int main(int argc, char *argv[])
 	rte_context_destroy(context);
 
 #ifdef USE_ESD
-	if (mux_mode & RTE_MUX_AUDIO)
+	if (mux_mode & RTE_AUDIO)
 		close(esd_recording_socket);
 #endif
 
