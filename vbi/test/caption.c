@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.5.2.1 2004-01-30 00:43:03 mschimek Exp $ */
+/* $Id: caption.c,v 1.5.2.2 2004-02-13 02:10:40 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -107,8 +107,19 @@ draw_row(ushort *canvas, vbi_page *pg, int row)
 {
 	int i, j, num_tspaces = 0;
 	vbi_rgba *s = row_buffer;
+	vbi_image_format format;
+
+	memset (&format, 0, sizeof (format));
+
+	format.width = CELL_WIDTH;
+	format.height = CELL_HEIGHT;
+	format.bytes_per_line = sizeof (row_buffer) / CELL_HEIGHT;
+	format.size = sizeof (row_buffer);
+	format.pixfmt = VBI_PIXFMT_RGBA24_LE;
 
 	for (i = 0; i < pg->columns; i++) {
+		vbi_bool success;
+
 		if (pg->text[row * pg->columns + i].opacity == VBI_TRANSPARENT_SPACE) {
 			num_tspaces++;
 			continue;
@@ -118,13 +129,12 @@ draw_row(ushort *canvas, vbi_page *pg, int row)
 			draw_blank(i - num_tspaces, num_tspaces);
 			num_tspaces = 0; 
 		}
-#warning TODO
-#if 0
-		vbi_draw_cc_page_region(pg, VBI_PIXFMT_RGBA32_LE,
-					row_buffer + i * CELL_WIDTH,
-					sizeof(row_buffer) / CELL_HEIGHT,
-					i, row, 1, 1);
-#endif
+
+		success = vbi_draw_cc_page_region
+			(pg, row_buffer + i * CELL_WIDTH,
+			 &format, VBI_SCALE, i, row, 1, 1);
+
+		assert (success);
 	}
 
 	if (num_tspaces > 0)
