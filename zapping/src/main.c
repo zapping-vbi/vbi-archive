@@ -182,12 +182,11 @@ int main(int argc, char * argv[])
   GList * p;
   gint x_bpp = -1;
   gint dword_align = FALSE;
-  gint disable_zsfb = FALSE;
   gint disable_plugins = FALSE;
+  gint dummy;
   char *video_device = NULL;
   char *command = NULL;
   char *yuv_format = NULL;
-  gboolean xv_detected;
   gboolean unmutable = FALSE;
   /* Some other common options in case the standard one fails */
   char *fallback_devices[] =
@@ -264,9 +263,10 @@ int main(int argc, char * argv[])
       "no-zsfb",
       'z',
       POPT_ARG_NONE,
-      &disable_zsfb,
+      &dummy,
       0,
-      N_("Do not call zapping_setup_fb on startup"),
+      /* TRANSLATORS: --no-zsfb command line switch. */
+      N_("Obsolete"),
       NULL
     },
     {
@@ -352,7 +352,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.165.2.22 2003-09-29 07:06:30 mschimek Exp $",
+	 "$Id: main.c,v 1.165.2.23 2003-10-07 18:32:55 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -417,29 +417,27 @@ int main(int argc, char * argv[])
 		 (unsigned int)(v->vfreq + 0.5));
     }
 
-  //exit(0);
+  /* Determine size and pixfmt of the Display. */
+  x11_dga_query (&dga_param, NULL, 0);
 
-  if (x11_dga_query (&dga_param, NULL, 0)
-      && debug_msg)
+  if (debug_msg)
     {
-      tv_pixel_format format;
-
-      tv_pixfmt_to_pixel_format	(&format, dga_param.pixfmt, 0);
-
       fprintf (stderr, "DGA parameters:\n"
 	       "  frame buffer address   %p\n"
 	       "  frame buffer size      %ux%u pixels, 0x%x bytes\n"
 	       "  bytes per line         %u bytes\n"
-	       "  rgba mask              0x%08x 0x%08x 0x%08x 0x%08x\n"
-	       "  big endian             %u\n"
-	       "  depth, bits per pixel  %u, %u\n",
+	       "  pixfmt                 %s\n",
 	       dga_param.base,
 	       dga_param.width, dga_param.height,
 	       dga_param.size, dga_param.bytes_per_line,
-	       format.mask.rgb.r, format.mask.rgb.g,
-	       format.mask.rgb.b, format.mask.rgb.a,
-	       format.big_endian,
-	       format.color_depth, format.bits_per_pixel);
+	       tv_pixfmt_name (dga_param.pixfmt));
+    }
+
+  if (debug_msg)
+    {
+      /* If we have the XVideo extension, list adaptors, ports
+         and image formats. */
+      x11_xvideo_dump ();
     }
 
   main_info = tveng_device_info_new(GDK_DISPLAY (), x_bpp);
@@ -461,15 +459,18 @@ int main(int argc, char * argv[])
   D();
   if (yuv_format)
     {
-      if (!strcasecmp(yuv_format, "YUYV"))
-	zcs_int(TVENG_PIX_YUYV, "yuv_format");
-      else if (!strcasecmp(yuv_format, "YVU420"))
-	zcs_int(TVENG_PIX_YVU420, "yuv_format");
+      static const unsigned int TVENG_PIX_YVU420 = 6; /* obsolete */
+      static const unsigned int TVENG_PIX_YUYV = 8;
+
+      if (0 == strcasecmp (yuv_format, "YUYV"))
+	zcs_int (TVENG_PIX_YUYV, "yuv_format");
+      else if (0 == strcasecmp (yuv_format, "YVU420"))
+	zcs_int (TVENG_PIX_YVU420, "yuv_format");
       else
-	g_warning("Unknown pixformat %s: Must be one of (YUYV | YVU420)\n"
-		  "The current format is %s",
-		  yuv_format, zcg_int(NULL, "yuv_format") ==
-		  TVENG_PIX_YUYV ? "YUYV" : "YVU420");
+	g_warning ("Unknown pixformat %s, must be YUYV or YVU420.\n"
+		   "The current format is %s.",
+		   yuv_format, (zcg_int (NULL, "yuv_format") ==
+				TVENG_PIX_YUYV) ? "YUYV" : "YVU420");
     }
 
   D();
@@ -494,11 +495,6 @@ int main(int argc, char * argv[])
       perror("strdup");
       return 1;
     }
-  D();
-
-  xv_detected = tveng_detect_xv_overlay (main_info);
-  printv("XV overlay detection: %s\n", xv_detected ? "OK" : "Failed");
-
   D();
 
   if (tveng_attach_device(zcg_char(NULL, "video_device"),
@@ -564,14 +560,6 @@ int main(int argc, char * argv[])
     xv_present = TRUE;
 
   D();
-#if 0
-  /* try to run the auxiliary suid program */
-  if (!disable_zsfb && !xv_detected &&
-      !tv_set_overlay_buffer (main_info, &dga_param))
-    g_message("Error while executing zapping_setup_fb,\n"
-	      "Previewing might not work:\n%s", main_info->error);
-  D();
-#endif
   /* mute the device while we are starting up */
   /* FIXME */
   if (-1 == tv_mute_set (main_info, TRUE))
@@ -664,8 +652,7 @@ int main(int argc, char * argv[])
   D();
 #endif
   printv("switching to mode %d (%d)\n",
-	 zcg_int(NULL, "capture_mode"),
-	 TVENG_CAPTURE_READ);
+	 zcg_int (NULL, "capture_mode"), TVENG_CAPTURE_READ);
 
   /* Start the capture in the last mode */
   if (!disable_preview)
@@ -1043,7 +1030,7 @@ static gboolean startup_zapping(gboolean load_plugins)
   zcc_int(0, "Current input", "current_input");
   zcc_int(TVENG_CAPTURE_WINDOW, "Current capture mode", "capture_mode");
   zcc_int(TVENG_CAPTURE_WINDOW, "Previous capture mode", "previous_mode");
-  zcc_int(TVENG_PIX_YUYV, "Pixformat used with XVideo capture",
+  zcc_int(8 /* TVENG_PIX_YUYV */, "Pixformat used with XVideo capture",
 	  "yuv_format");
   zcc_bool(FALSE, "In videotext mode", "videotext_mode");
   zconf_create_boolean(FALSE, "Hide controls",
