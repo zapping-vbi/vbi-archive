@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.24 2002-02-25 06:22:20 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.25 2002-03-12 18:20:03 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -2614,6 +2614,8 @@ option_get(rte_codec *codec, const char *keyword, rte_option_value *v)
 			return FALSE;
 	} else if (KEYWORD("num_frames")) {
 		v->num = mpeg1->num_frames;
+		if (mpeg1->num_frames > (int64_t) INT_MAX)
+			v->num = INT_MAX;
 	} else {
 		rte_unknown_option(context, codec, keyword);
 		return FALSE;
@@ -2694,6 +2696,8 @@ option_set(rte_codec *codec, const char *keyword, va_list args)
 			return FALSE;
 	} else if (KEYWORD("num_frames")) {
 		mpeg1->num_frames = va_arg(args, int);
+		if (mpeg1->num_frames >= INT_MAX)
+			mpeg1->num_frames = INT64_MAX;
 	} else {
 		rte_unknown_option(context, codec, keyword);
 	failed:
