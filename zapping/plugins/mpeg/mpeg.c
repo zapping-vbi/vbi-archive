@@ -19,9 +19,9 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.36.2.9 2003-08-24 23:53:50 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.36.2.10 2003-09-24 18:38:54 mschimek Exp $ */
 
-#include "plugin_common.h"
+#include "src/plugin_common.h"
 
 #ifdef HAVE_LIBRTE
 
@@ -29,12 +29,12 @@
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <ctype.h>
 
-#include "audio.h"
+#include "src/audio.h"
 #include "mpeg.h"
-#include "properties.h"
+#include "src/properties.h"
 #include "pixmaps.h"
 
-#include "../../src/v4linterface.h" /* videostd_inquiry; preliminary */
+#include "src/v4linterface.h" /* videostd_inquiry; preliminary */
 
 /*
   TODO:
@@ -1977,13 +1977,13 @@ plugin_init			(PluginBridge		bridge,
   append_property_handler (&mpeg_handler);
 
   cmd_register ("record", py_record, METH_VARARGS,
-		_("Opens the record dialog"), "zapping.record()");
+		("Record dialog"), "zapping.record()");
   cmd_register ("quickrec", py_quickrec, METH_VARARGS,
-		_("Starts recording"), "zapping.quickrec()");
+		("Start recording"), "zapping.quickrec()");
   cmd_register ("pauserec", py_pauserec, METH_VARARGS,
-		_("Pauses the current recording"), "zapping.pauserec()");
+		("Pause recording"), "zapping.pauserec()");
   cmd_register ("stoprec", py_stoprec, METH_VARARGS,
-		_("Stops the current recording"), "zapping.stoprec()");
+		("Stop recording"), "zapping.stoprec()");
 
   return TRUE;
 }
