@@ -1,3 +1,52 @@
+20.1.2003	<mschimek@users.sf.net>
+
+	* src/globals.c, src/globals.h: New vidmodes list.
+	* src/main.c: Init new vidmodes list.
+	* src/tveng.c (tveng_start_previewing), src/tveng_private.h:
+	  Rewrote to use new x11_vidmode routines.
+	* src/tveng1.c (tveng1_start_previewing),
+	  src/tveng2.c (tveng2_start_previewing): Center fullscreen
+	  overlay over root window instead of viewport, same as
+	  Xv overlay. Accordingly x11_vidmode_switch() centers and
+	  we get nice margins.
+	* src/tvengxv.c: Fixed wrong icon in controls box.
+	* src/x11stuff.c, src/x11stuff.h: New x11_root_geometry()
+	  helper. New and extended x11_vidmode helper functions, former
+	  tveng_start_previewing() code.
+
+19.1.2003	<mschimek@users.sf.net>
+
+	* zapping_setup_fb/Makefile.am, zapping_setup_fb/dga.c,
+	  zapping_setup_fb/zapping_setup_fb.c,
+	  zapping_setup_fb/zapping_setup_fb.h, 
+	  zapping_setup_fb/v4l.c, zapping_setup_fb/v4l2.c: Separated
+	  video driver interface, added v4l2 interface.
+	* zapping_setup_fb/zapping_fix_overlay: test syntax correction.
+	* configure.in: Added program_invocation_name check for zsfb.
+
+18.1.2003	<mschimek@users.sf.net>
+
+	* src/channel_editor.c (py_channel_editor),
+	  src/plugin_properties.c (py_plugin_properties),
+	  src/properties.c (build_properties_dialog),
+	  src/v4linterface.c (py_control_box):
+	  Raise window on reopen.
+	* src/v4linterface.c: Don't disable toolbutton
+	  after open. Const fix.
+
+15.1.2003	<mschimek@users.sf.net>
+
+	* common/types.h (PARENT): Missing brackets.
+	* src/ROADMAP: Added some notes for future tveng improvements.
+	* src/audio.c (audio_set_mute): Unmute tv audio when unmuting
+	  mixer line.
+	* src/main.c: Const fix.
+	* src/mixer.c, src/mixer.h, src/oss.c: New interface,
+	  not used yet.
+	* src/tveng.c, src/tveng.h: Added (final) callback mechanism
+	  for new mixer interface (and other tveng properties in
+	  the future).
+	
 8.1.2003	<mschimek@users.sf.net>
 
 	* src/Makefile.am, src/i18n.c, src/i18n.h:
