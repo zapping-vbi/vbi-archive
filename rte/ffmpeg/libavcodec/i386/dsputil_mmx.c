@@ -1073,7 +1073,7 @@ static void just_return() { return; }
 void dsputil_init_mmx(void)
 {
     mm_flags = mm_support();
-#if 1
+#if 0
     printf("libavcodec: CPU flags:");
     if (mm_flags & MM_MMX)
         printf(" mmx");

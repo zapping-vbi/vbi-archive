@@ -726,3 +726,4 @@ AVFormat rm_format = {
     rm_read_packet,
     rm_read_close,
 };
+
