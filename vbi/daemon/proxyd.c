@@ -37,6 +37,9 @@
  *
  *
  *  $Log: not supported by cvs2svn $
+ *  Revision 1.12  2004/11/07 10:52:01  mschimek
+ *  dprintf: s/proxyd/zvbid.
+ *
  *  Revision 1.11  2004/10/25 16:56:26  mschimek
  *  *** empty log message ***
  *
@@ -47,7 +50,7 @@
  *
  */
 
-static const char rcsid[] = "$Id: proxyd.c,v 1.12 2004-11-07 10:52:01 mschimek Exp $";
+static const char rcsid[] = "$Id: proxyd.c,v 1.13 2004-12-30 02:26:02 mschimek Exp $";
 
 #include "config.h"
 
@@ -863,7 +866,11 @@ static vbi_bool vbi_proxyd_start_acq_thread( int dev_idx )
       if (pthread_create(&p_proxy_dev->thread_id, NULL,
                          vbi_proxyd_acq_thread, INT2PVOID(dev_idx)) == 0)
       {
-         dprintf(DBG_MSG, "acquisiton thread started: id %ld, device %d, pipe rd/wr %d/%d\n", (long)p_proxy_dev->thread_id, p_proxy_dev - proxy.dev, p_proxy_dev->vbi_fd, p_proxy_dev->wr_fd);
+         dprintf(DBG_MSG, "acquisiton thread started: "
+	         "id %ld, device %ld, pipe rd/wr %d/%d\n",
+		 (long)p_proxy_dev->thread_id,
+		 (long)(p_proxy_dev - proxy.dev),
+		 p_proxy_dev->vbi_fd, p_proxy_dev->wr_fd);
 
          /* wait for the slave to report the initialization result */
          pthread_cond_wait(&p_proxy_dev->start_cond, &p_proxy_dev->start_mutex);
