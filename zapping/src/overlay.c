@@ -416,6 +416,11 @@ startup_overlay(GtkWidget * window, GtkWidget * main_window,
 	   tveng_get_chromakey (&chroma.pixel, info) == 0)
     gdk_window_set_background(window->window, &chroma);      
 
+  /* Disable double buffering just in case, will help in case a
+     XV driver doesn't provide XV_COLORKEY but requires the colorkey
+     not to be overwritten */
+  gtk_widget_set_double_buffered (window, FALSE);
+
   if (tv_info.needs_cleaning)
     {
       if (!root_window)

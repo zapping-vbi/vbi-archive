@@ -1,3 +1,56 @@
+22.08.2002	First simple tests <garetxe@users.sf.net>
+
+	* capture.c: Testing the new code. Works more or less with the
+	TVeng_emu driver. Appears to have fewer bugs than i expected,
+	yeeha! :-) Commiting, so the world finally sees the
+	breakage. Plugins are broken, btw.
+
+18.08.2002	capture.c finished <garetxe@users.sf.net>
+
+	* capture.c: Finished modulo a couple simple things, I will do
+	those tomorrow, but Z compiles again (at last!).
+
+15.08.2002	capture.c <garetxe@users.sf.net>
+
+	* capture.c: Wrote the complex logic, doesn't compile yet, but the
+	remaining pieces are a piece of cake compared to this.
+
+12.08.2002	video_* done <garetxe@users.sf.net>
+
+	* video_*: Finished video_xv and wrote the rest of the backends
+	needed for having all the previous functionality (actually much
+	more, as usual ;) Now we only need to finish capture.c and the
+	rewrite will compile (but not work yet, as it will surely contain
+	miriads of bugs and/or typos).
+
+11.08.2002	video_xv done <garetxe@users.sf.net>
+
+	* video_xv.c: Compiles. It's the xv video backend adapted to the
+	new design, the rest of the backends i intend to write (x11,
+	rgb and mem) will be considerably easier.
+
+10.08.2002	Continued capture core work <garetxe@users.sf.net>
+
+	* capture.c: Wrote part of it (doesn't compile yet, though).
+	* main.c, x11stuff.c: Adapted.
+	* zimage.[ch]: created, it's a generic image object. Provides an
+	uniform interface to the various possible accelerated kinds of
+	images (Xv[Shm]Image, GdkImage, GdkPixbuf, ...), even to
+	unblittable data.
+	* tveng (tveng_read_frame): Made it accept a tveng_image_data
+	argument instead of void* data, int stride; this syntax suports
+	planar modes better.
+
+08.08.2002	Capture core rewrite <garetxe@users.sf.net>
+
+	* capture, csconvert, video_xv...: Finished the new design for the
+	capture code, hopefully it will become much clearer and
+	robust when implemented.
+	* csconvert.c: Rewrote rgb->rgb filters according to the new
+	design.
+	* yuv2rgb.c: Adapted to the new design, and enabled the rgb->yuv
+	filters in the process. All this is untested, but compiles.
+
 03.08.2002	TVeng emu <garetxe@users.sf.net>
 
 	* tvengemu.c: Created, manages a virtual device. Useful for

@@ -525,7 +525,7 @@ tvengemu_stop_capturing (tveng_device_info *info)
 }
 
 static int
-tvengemu_read_frame (void *where, unsigned int bpl,
+tvengemu_read_frame (tveng_image_data *where,
 		     unsigned int time, tveng_device_info *info)
 {
   t_assert (info != NULL);
@@ -538,20 +538,8 @@ tvengemu_read_frame (void *where, unsigned int bpl,
       return -1;
     }
 
-  if (info->format.pixformat != TVENG_PIX_YVU420 &&
-      info->format.pixformat != TVENG_PIX_YVU420 &&
-      info -> format.width * info->format.bpp > bpl)
-    {
-      info -> tveng_errno = ENOMEM;
-      t_error_msg("check()", 
-		  "Bpl check failed, quitting to avoid segfault (%d, %d)",
-		  info, bpl, (int) (info->format.width * info->format.bpp));
-      return -1;
-    }
-
-  /* We could do something fancier too... */
-  memset (where, 0, info->format.height * bpl);
-
+  usleep (1e6 / 40);
+ 
   return 0;
 }
 
@@ -700,7 +688,6 @@ void tvengemu_init_module(struct tveng_module_info *module_info)
   t_assert(module_info != NULL);
 
 #ifdef ENABLE_TVENGEMU
-#warning "This code is still under development, expect crashes"
   memcpy(module_info, &tvengemu_module_info,
 	 sizeof(struct tveng_module_info));
 #endif 

@@ -74,7 +74,7 @@ struct tveng_module_info {
 			    tveng_device_info *info);
   int	(*start_capturing)(tveng_device_info *info);
   int	(*stop_capturing)(tveng_device_info *info);
-  int	(*read_frame)(void *where, unsigned int bytesperline,
+  int	(*read_frame)(tveng_image_data *where,
 		      unsigned int time, tveng_device_info *info);
   double (*get_timestamp)(tveng_device_info *info);
   int	(*set_capture_size)(int width, int height,
@@ -217,41 +217,63 @@ standard_collisions(tveng_device_info *info)
     }
 }
 
-/* Copies from src to dest "pixels" RGB/BGR pixels swapping R and B */
-static inline
-void endian3(char *dest, const char *src, int pixels)
-     __attribute__ ((unused));
-
-static inline
-void endian3(char *dest, const char *src, int pixels)
+static inline void
+tveng_copy_block (void *_src, void *_dest,
+		  int src_stride, int dest_stride,
+		  int lines)
 {
-  for (;pixels;pixels--)
-    {
-      *(dest++) = src[2];
-      *(dest++) = src[1];
-      *(dest++) = src[0];
+  int min_stride = MIN (src_stride, dest_stride);
 
-      src+=3;
-    }
+  if (src_stride == dest_stride)
+    memcpy (_dest, _src, src_stride * lines);
+  else for (;lines; lines--, _src += src_stride, _dest += dest_stride)
+    memcpy (_dest, _src, min_stride);
 }
 
-/* Copies from src to dest "pixels" RGBA/BGRA pixels swapping R and B */
-static inline
-void endian4(char *dest, const char *src, int pixels)
-     __attribute__ ((unused));
-
-static inline
-void endian4(char *dest, const char *src, int pixels)
+static void
+tveng_copy_frame (unsigned char *src, tveng_image_data *where,
+		  tveng_device_info *info) __attribute__ ((unused));
+static void
+tveng_copy_frame (unsigned char *src, tveng_image_data *where,
+		  tveng_device_info *info)
 {
-  for (;pixels;pixels--)
+  if (tveng_is_planar (info->format.pixformat))
     {
-	dest[0] = src[2];
-	dest[1] = src[1];
-	dest[2] = src[0];
-
-	dest += 4;
-	src += 4;
+      unsigned char *y = where->planar.y, *u = where->planar.u,
+	*v = where->planar.v;
+      unsigned char *src_y, *src_u, *src_v;
+      /* Assume that we are aligned */
+      int bytes = info->format.height * info->format.width;
+      t_assert (info->format.pixformat == TVENG_PIX_YUV420 ||
+		info->format.pixformat == TVENG_PIX_YVU420);
+      if (info->priv->assume_yvu)
+	{
+	  unsigned char *t = u;
+	  u = v;
+	  v = t;
+	}
+      src_y = src;
+      src_u = src_y + bytes;
+      src_v = src_u + (bytes>>2);
+      if (info->format.pixformat == TVENG_PIX_YVU420)
+	{
+	  unsigned char *t = src_u;
+	  src_u = src_v;
+	  src_v = t;
+	}
+      tveng_copy_block (src_y, y, info->format.width,
+			where->planar.y_stride, info->format.height);
+      tveng_copy_block (src_u, u, info->format.width>>2,
+			where->planar.uv_stride,
+			info->format.height>>1);
+      tveng_copy_block (src_v, v, info->format.width>>2,
+			where->planar.uv_stride,
+			info->format.height>>1);
     }
+  else /* linear */
+    tveng_copy_block (src, where->linear.data,
+		      info->format.bytesperline, where->linear.stride,
+		      info->format.height);
 }
 
 #endif /* tveng_private.h */

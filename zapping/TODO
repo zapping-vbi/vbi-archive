@@ -37,6 +37,7 @@ Outstanding issues for the next release (0.6.5)
 	+ Config toolbar...?
 	+ Clean up context menu.
 	+ Re-add toolbar style option.
+	+ Remove tveng_frame_format.bytesperline.
 
 Please tell me about anything you think is worth adding:
 

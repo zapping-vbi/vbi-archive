@@ -31,24 +31,7 @@
 #ifndef __YUV2RGB_H__
 #define __YUV2RGB_H__
 
-#include <inttypes.h>
-
-#define MODE_RGB  0x1
-#define MODE_BGR  0x2
-
-typedef void (* yuv2rgb_fun) (uint8_t * image, uint8_t * py,
-			      uint8_t * pu, uint8_t * pv,
-			      int h_size, int v_size,
-			      int rgb_stride, int y_stride, int uv_stride);
-
-typedef void (* yuyv2rgb_fun) (uint8_t *dest, uint8_t *src,
-			       int h_size, int v_size,
-			       int dest_stride, int src_stride);
-
-extern yuv2rgb_fun yuv2rgb;
-extern yuyv2rgb_fun yuyv2rgb;
-
-void yuv2rgb_init (int bpp, int mode);
-void yuyv2rgb_init (int bpp, int mode);
+void startup_yuv2rgb (void);
+void shutdown_yuv2rgb (void);
 
 #endif

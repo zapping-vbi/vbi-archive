@@ -143,8 +143,9 @@ enum tveng_field
 /* The format of a pixel, similar to the V4L2 ones, but they aren't
    fourcc'ed. Keep this in sync with libvbi/decoder.h */
 enum tveng_frame_pixformat{
+  TVENG_PIX_FIRST = 0,
   /* common rgb formats */
-  TVENG_PIX_RGB555,
+  TVENG_PIX_RGB555 = TVENG_PIX_FIRST,
   TVENG_PIX_RGB565,
   TVENG_PIX_RGB24,
   TVENG_PIX_BGR24,
@@ -157,8 +158,9 @@ enum tveng_frame_pixformat{
   TVENG_PIX_YUV420,
   TVENG_PIX_YUYV,
   TVENG_PIX_UYVY,
-  TVENG_PIX_GREY /* this one is used just when querying the device, it
-		  isn't supported by TVeng */
+  TVENG_PIX_GREY, /* this one is used just when querying the device, it
+		     isn't supported by TVeng */
+  TVENG_PIX_LAST = TVENG_PIX_GREY
 };
 
 #endif /* TVENG_FRAME_PIXFORMAT */
@@ -167,6 +169,7 @@ enum tveng_frame_pixformat{
 struct tveng_frame_format
 {
   int width, height; /* Dimensions of the capture */
+  /* NOTE: bpl doesn't make sense for planar modes, avoid using it. */
   int bytesperline; /* Bytes per scan line */
   int depth; /* Bits per pixel */
   enum tveng_frame_pixformat pixformat; /* The pixformat entry */
@@ -184,6 +187,19 @@ struct tveng_enumstd{
   int height; /* height (double of uninterlaced height) */
   double frame_rate; /* nominal frames/s (eg. PAL 25) */
 };
+
+/* Convenience construction for managing image data */
+typedef union {
+  struct {
+    void*	data; /* Data, usually in rgb or yuyv formats */
+    int		stride; /* bytes per line */
+  } linear;
+  struct {
+    void	*y, *u, *v; /* Pointers to the different fields */
+    int		y_stride; /* bytes per line of the Y field */
+    int		uv_stride; /* bytes per line of U or V fields */
+  } planar;
+} tveng_image_data;
 
 /* Flags for the input */
 #define TVENG_INPUT_TUNER 1      /* has tuner(s) attached */
@@ -282,6 +298,9 @@ typedef struct
   int num_controls;
   /* The supported controls */
   struct tveng_control * controls;
+
+  /* Unique integer that indentifies this device */
+  int signature;
 
   /* Debugging/error reporting stuff */
   int tveng_errno; /* Numerical id of the last error, 0 == success */
@@ -541,11 +560,10 @@ tveng_stop_capturing(tveng_device_info * info);
    Reads a frame from the video device, storing the read data in dest.
    time: time to wait using select() in miliseconds
    info: pointer to the video device info structure
-   dest_bytesperline: Bytes per line in dest (can have padding)
    Returns -1 on error, anything else on success.
    Note: if you want this call to be non-blocking, call it with time=0
 */
-int tveng_read_frame(void * dest, unsigned int dest_bytesperline,
+int tveng_read_frame(tveng_image_data * dest,
 		     unsigned int time, tveng_device_info * info);
 
 /*
@@ -747,6 +765,10 @@ int tveng_detect_xv_overlay(tveng_device_info *info);
    read_frame's. Only has effect if the mode is PIX_YUV420 and the
    controller is V4L1. assume is by default 0 */
 void tveng_assume_yvu(int assume, tveng_device_info *info);
+
+/* Returns 1 is the given pixformat has a planar structure, 0
+   otherwise */
+int tveng_is_planar (enum tveng_frame_pixformat fmt);
 
 /*
   OV511 specific code:

@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.21.2.2 2002-08-02 16:43:44 garetxe Exp $
+ * $Id: fullscreen.c,v 1.21.2.3 2002-08-22 16:09:38 garetxe Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -164,6 +164,11 @@ fullscreen_start(tveng_device_info * info)
   else if (info->current_controller == TVENG_CONTROLLER_XV &&
 	   tveng_get_chromakey (&chroma.pixel, info) == 0)
     gdk_window_set_background(da->window, &chroma);
+
+  /* Disable double buffering just in case, will help in case a
+     XV driver doesn't provide XV_COLORKEY but requires the colorkey
+     not to be overwritten */
+  gtk_widget_set_double_buffered (da, FALSE);
 
   /* Needed for XV fullscreen */
   info->window.win = GDK_WINDOW_XWINDOW(da->window);

@@ -183,7 +183,7 @@ int tveng_attach_device(const char* device_file,
 			tveng_device_info * info)
 {
   int i, j;
-  char *long_str, *short_str;
+  char *long_str, *short_str, *sign = NULL;
 
   t_assert(device_file != NULL);
   t_assert(info != NULL);
@@ -238,6 +238,21 @@ int tveng_attach_device(const char* device_file,
 
  success:
 
+
+  if (asprintf (&sign, "%s - %d %d - %d %d %d", info->caps.name,
+		info->num_inputs, info->num_controls,
+		info->caps.flags, info->caps.maxwidth,
+		info->caps.maxheight) == -1)
+    {
+      t_error ("asprintf", info);
+      tveng_close_device (info);
+      memset(&(info->priv->module), 0, sizeof(info->priv->module));
+      UNTVLOCK;
+      return -1;
+    }
+  info->signature = tveng_build_hash (sign);
+  free (sign);
+
   if (info->debug_level>0)
     {
       fprintf(stderr, "[TVeng] - Info about the video device\n");
@@ -245,6 +260,7 @@ int tveng_attach_device(const char* device_file,
       tveng_describe_controller(&short_str, &long_str, info);
       fprintf(stderr, "Device: %s [%s - %s]\n", info->file_name,
 	      short_str, long_str);
+      fprintf(stderr, "Device signature: %x\n", info->signature);
       fprintf(stderr, "Detected framebuffer depth: %d\n",
 	      tveng_get_display_depth(info));
       fprintf(stderr, "Current capture format:\n");
@@ -1270,7 +1286,7 @@ tveng_stop_capturing(tveng_device_info * info)
    info: pointer to the video device info structure
    Returns -1 on error, anything else on success
 */
-int tveng_read_frame(void * dest, unsigned int bpl, 
+int tveng_read_frame(tveng_image_data * dest, 
 		     unsigned int time, tveng_device_info * info)
 {
   t_assert(info != NULL);
@@ -1279,7 +1295,7 @@ int tveng_read_frame(void * dest, unsigned int bpl,
   TVLOCK;
 
   if (info->priv->module.read_frame)
-    RETURN_UNTVLOCK(info->priv->module.read_frame(dest, bpl, time,
+    RETURN_UNTVLOCK(info->priv->module.read_frame(dest, time,
 						   info));
 
   TVUNSUPPORTED;
@@ -2355,6 +2371,12 @@ int tveng_detect_xv_overlay(tveng_device_info * info)
 }
 #endif
 
+int tveng_is_planar (enum tveng_frame_pixformat fmt)
+{
+  return ((fmt == TVENG_PIX_YUV420) ||
+	  (fmt == TVENG_PIX_YVU420));
+}
+
 int
 tveng_ov511_get_button_state (tveng_device_info *info)
 {
@@ -2382,18 +2404,3 @@ void tveng_mutex_unlock(tveng_device_info * info)
 {
   UNTVLOCK;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

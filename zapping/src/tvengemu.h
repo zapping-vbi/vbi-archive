@@ -188,8 +188,8 @@ tvengemu_stop_capturing(tveng_device_info * info);
    Note: if you want this call to be non-blocking, call it with time=0
 */
 static
-int tvengemu_read_frame(void * where, unsigned int size,
-		      unsigned int time, tveng_device_info * info);
+int tvengemu_read_frame(tveng_image_data * where,
+			unsigned int time, tveng_device_info * info);
 
 /*
   Gets the timestamp of the last read frame in seconds.

@@ -1747,8 +1747,8 @@ tveng1_get_tuner_bounds(uint32_t * min, uint32_t * max, tveng_device_info *
 
 /* Two internal functions, both return -1 on error */
 static int p_tveng1_queue(tveng_device_info * info);
-static int p_tveng1_dequeue(unsigned char * where, tveng_device_info *
-			    info, unsigned int bpl);
+static int p_tveng1_dequeue(tveng_image_data * where,
+			    tveng_device_info * info);
 
 static void p_tveng1_timestamp_init(tveng_device_info *info);
 
@@ -1827,7 +1827,7 @@ tveng1_stop_capturing(tveng_device_info * info)
   t_assert(info->current_mode == TVENG_CAPTURE_READ);
 
   /* Dequeue last buffer */
-  p_tveng1_dequeue(NULL, info, info->format.bytesperline);
+  p_tveng1_dequeue(NULL, info);
 
   if (p_info -> mmaped_data != ((char*)-1))
     if (munmap(p_info->mmaped_data, p_info->mmbuf.size) == -1)
@@ -1953,14 +1953,12 @@ p_tveng1_timestamp_init(tveng_device_info *info)
   p_info->frame_period_near = p_info->frame_period_far = 1.0 / rate;
 }
 
-static int p_tveng1_dequeue(unsigned char * where, tveng_device_info *
-			    info, unsigned int bpl)
+static int p_tveng1_dequeue(tveng_image_data * where,
+			    tveng_device_info * info)
 {
   struct video_mmap bm;
   struct private_tveng1_device_info * p_info =
     (struct private_tveng1_device_info*) info;
-  unsigned char *y, *v, *u;
-  unsigned int bytes;
 
   t_assert(info != NULL);
   t_assert(info -> current_mode == TVENG_CAPTURE_READ);
@@ -2019,43 +2017,8 @@ static int p_tveng1_dequeue(unsigned char * where, tveng_device_info *
 
   /* Copy the mmaped data to the data struct, if it is not null */
   if (where)
-    {
-      if (info->format.pixformat != TVENG_PIX_YUV420 ||
-	  !info->priv->assume_yvu)
-	{
-	  if (bpl == info->format.bytesperline ||
-	      info->format.pixformat == TVENG_PIX_YUV420 ||
-	      info->format.pixformat == TVENG_PIX_YVU420)
-	    memcpy(where, p_info -> mmaped_data + p_info->
-		   mmbuf.offsets[bm.frame],
-		   info->format.sizeimage);
-	  else
-	    {
-	      unsigned char *p = p_info->mmaped_data +
-		p_info->mmbuf.offsets[bm.frame];
-	      unsigned int line;
-
-	      for (line = 0; line < info->format.height; line++)
-		{
-		  memcpy(where, p, bpl);
-		  where += bpl;
-		  p += info->format.bytesperline;
-		}
-	    }
-	}
-      else
-	{
-	  /* Switch UV -> VU */
-	  bytes = info->format.width * info->format.height;
-	  t_assert(info->format.sizeimage == bytes*1.5);
-	  y = p_info-> mmaped_data + p_info->mmbuf.offsets[bm.frame];
-	  u = y + bytes;
-	  v = u + (bytes>>2);
-	  memcpy(where, y, bytes); /* Y -> Y */
-	  memcpy(where + bytes, v, bytes >> 2); /* V -> V */
-	  memcpy(where + bytes + (bytes>>2), u, bytes >> 2); /* U -> U */
-	}
-    }
+    tveng_copy_frame (p_info-> mmaped_data +
+		      p_info->mmbuf.offsets[bm.frame], where, info);
 
   /* increase the dequeued index */
   p_info -> dequeued ++;
@@ -2074,7 +2037,7 @@ static int p_tveng1_dequeue(unsigned char * where, tveng_device_info *
    Returns -1 on error, anything else on success
 */
 static
-int tveng1_read_frame(void * where, unsigned int bpl, 
+int tveng1_read_frame(tveng_image_data *where, 
 		      unsigned int time, tveng_device_info * info)
 {
   struct itimerval iv;
@@ -2089,18 +2052,6 @@ int tveng1_read_frame(void * where, unsigned int bpl,
       return -1;
     }
 
-  if (info->format.pixformat != TVENG_PIX_YVU420 &&
-      info->format.pixformat != TVENG_PIX_YUV420 &&
-      info -> format.width * info->format.bpp > bpl)
-    {
-      info -> tveng_errno = ENOMEM;
-      t_error_msg("check()", 
-	      "Bpl size check failed, quitting to avoid segfault, %g, %d",
-		  info, info->format.width * info->format.bpp, bpl);
-      return -1;
-    }
-
-  /* Queue a new frame (for the next time) */
   /* This should be inmediate */
   if (p_tveng1_queue(info) == -1)
     return -1;
@@ -2117,7 +2068,7 @@ int tveng1_read_frame(void * where, unsigned int bpl,
       return -1;
     }
 
-  if (p_tveng1_dequeue(where, info, bpl) == -1)
+  if (p_tveng1_dequeue(where, info) == -1)
     return -1;
 
   /* Everything has been OK, return 0 (success) */

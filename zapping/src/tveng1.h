@@ -187,7 +187,7 @@ tveng1_stop_capturing(tveng_device_info * info);
    Returns -1 on error, anything else on success.
    Note: if you want this call to be non-blocking, call it with time=0
 */
-static int tveng1_read_frame(void * where, unsigned int size,
+static int tveng1_read_frame(tveng_image_data *where,
 			     unsigned int time, tveng_device_info * info);
 
 /*

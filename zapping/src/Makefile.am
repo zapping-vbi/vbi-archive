@@ -44,7 +44,8 @@ zapping_SOURCES = \
 	tvengemu.c tvengemu.h \
 	v4linterface.c v4linterface.h \
 	x11stuff.c x11stuff.h \
-	video_xv.c \
+	zimage.c zimage.h \
+	video_xv.c video_x11.c video_gdkrgb.c video_mem.c \
 	zmisc.c zmisc.h \
 	zmarshalers.c zmarshalers.h \
 	zmodel.c zmodel.h \

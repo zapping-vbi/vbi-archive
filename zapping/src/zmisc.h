@@ -159,6 +159,11 @@ int
 zmisc_restore_previous_mode(tveng_device_info *info);
 
 /*
+ * Stops the current tveng mode and shutdowns appropiate subsistems.
+ */
+void zmisc_stop (tveng_device_info *info);
+
+/*
   does the mode switching. Since this requires more than just using
   tveng, a new routine is needed.
   Returns whatever tveng returns, but we print the message ourselves

@@ -75,54 +75,6 @@ x11_window_viewable(GdkWindow *window);
 void
 x11_set_screensaver(gboolean on);
 
-/**
- * XvImage handling (SHM, etc)
- */
-typedef struct {
-  gint			w, h;
-  gpointer		data;
-  gint			data_size; /* in bytes */
-  struct _xvzImagePrivate *priv; /* X-related data, not interesting */
-} xvzImage;
-
-/**
- * Create a new XV image with the given attributes, returns NULL on error.
- */
-xvzImage * xvzImage_new(enum tveng_frame_pixformat pixformat,
-			gint width, gint height);
-
-/**
- * Puts the image in the given drawable, scales to the drawable's size.
- */
-void xvzImage_put(xvzImage *image, GdkWindow *window, GdkGC *gc);
-
-/**
- * Frees the data associated with the image
- */
-void xvzImage_destroy(xvzImage *image);
-
-/**
- * Tries to grab a port for displaying the xvzImages. FALSE on error.
- * Must be called before all the rest of xvz routines, or they won't
- * work.
- */
-gboolean xvz_grab_port(tveng_device_info *info);
-
-/**
- * Ungrabs any previously grabbed port.
- */
-void xvz_ungrab_port(tveng_device_info *info);
-
-/**
- * Inits the video backends.
- */
-void startup_xvz(void);
-
-/**
- * Closes the video backends.
- */
-void shutdown_xvz(void);
-
 /* some useful constants */
 #ifndef OFF
 #define OFF FALSE
@@ -130,27 +82,6 @@ void shutdown_xvz(void);
 #ifndef ON
 #define ON TRUE
 #endif
-
-/**
- * Struct for video backends
- */
-typedef struct {
-  /* A descriptive name for the backend */
-  char		*name;
-  /* see xvz_grab_port, open devices in here, FALSE on error */
-  gboolean	(*grab)(tveng_device_info *info);
-  /* see xvz_ungrab_port, close devices */
-  void		(*ungrab)(tveng_device_info *info);
-  /* Create a suitable image, will always be called with the port
-     grabbed */
-  xvzImage*	(*image_new)(enum tveng_frame_pixformat pixformat,
-			     gint width, gint height);
-  /* Destroy the given image */
-  void		(*image_destroy)(xvzImage *image);
-  /* Put the image in the drawable, do scaling as necessary */
-  void		(*image_put)(xvzImage *image, GdkWindow *window,
-			     GdkGC *gc);
-} video_backend;
 
 extern void (* window_on_top)(GtkWidget *widget, gboolean on);
 extern int wm_detect (void);

@@ -205,6 +205,31 @@ zmisc_restore_previous_mode(tveng_device_info * info)
   return zmisc_switch_mode(zcg_int(NULL, "previous_mode"), info);
 }
 
+void
+zmisc_stop (tveng_device_info *info)
+{
+  /* Stop current capture mode */
+  switch (info->current_mode)
+    {
+    case TVENG_CAPTURE_PREVIEW:
+      tveng_stop_everything(info);
+      fullscreen_stop(info);
+      break;
+    case TVENG_CAPTURE_READ:
+      capture_stop();
+      video_uninit ();
+      tveng_stop_everything(info);
+      break;
+    case TVENG_CAPTURE_WINDOW:
+      tveng_stop_everything(info);
+      overlay_stop(info);
+      break;
+    default:
+      tveng_stop_everything(info);
+      break;
+    }
+}
+
 /*
   does the mode switching. Since this requires more than just using
   tveng, a new routine is needed.
@@ -242,25 +267,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   muted = tveng_get_mute(info);
   mode = info->current_mode;
 
-  /* Stop current capture mode */
-  switch (mode)
-    {
-    case TVENG_CAPTURE_PREVIEW:
-      tveng_stop_everything(info);
-      fullscreen_stop(info);
-      break;
-    case TVENG_CAPTURE_READ:
-      capture_stop(info);
-      tveng_stop_everything(info);
-      break;
-    case TVENG_CAPTURE_WINDOW:
-      tveng_stop_everything(info);
-      overlay_stop(info);
-      break;
-    default:
-      tveng_stop_everything(info);
-      break;
-    }
+  zmisc_stop (info);
 
 #ifdef HAVE_LIBZVBI
   if (!flag_exit_program)
@@ -320,7 +327,9 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	    }
 	}
       tveng_set_capture_size(w, h, info);
-      return_value = capture_start(tv_screen, info);
+      return_value = capture_start(info);
+      video_init (tv_screen, tv_screen->style->black_gc);
+      video_suggest_format ();
       break;
     case TVENG_CAPTURE_WINDOW:
       if (disable_preview) {

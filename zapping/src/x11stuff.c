@@ -337,7 +337,7 @@ x11_window_viewable(GdkWindow *window)
   return ((wts.map_state & IsViewable) ? TRUE : FALSE);
 }
 
-static gint
+static gboolean
 stop_xscreensaver_timeout (gpointer unused)
 {
   system ("xscreensaver-command -deactivate >&- 2>&- &");
@@ -380,7 +380,6 @@ x11_set_screensaver(gboolean on)
     XSetScreenSaver(GDK_DISPLAY(), 0, interval, prefer_blanking,
 		    allow_exposures);
     /* and this XScreensaver. */
-    //    gtimeout = gtk_timeout_add(55000, stop_xscreensaver_timeout, NULL);
     gtimeout = gtk_timeout_add(5000, stop_xscreensaver_timeout, NULL);
 
 #ifdef USE_XDPMS
@@ -391,93 +390,6 @@ x11_set_screensaver(gboolean on)
     }
 #endif
   }
-}
-
-/**
- * Accelerated backends handling.
- */
-extern gboolean		add_backend_xv(video_backend *xv);
-
-static gint num_backends = 0;
-static video_backend *backends = NULL;
-static gboolean port_grabbed = FALSE;
-static gint cur_backend = 0;
-
-static inline void
-add_backend(video_backend *p)
-{
-  backends = g_realloc(backends, sizeof(video_backend)*(num_backends+1));
-  memcpy(backends + num_backends, p, sizeof(video_backend));
-  num_backends++;
-}
-
-void	startup_xvz(void)
-{
-  video_backend tmp;
-  gint i;
-
-  if (add_backend_xv(&tmp))
-    add_backend(&tmp);
-
-  if (!num_backends)
-    return;
-
-  printv("* Registered output video backends:\n");
-  for (i=0; i<num_backends; i++)
-    printv("\t+ %s\n", backends[i].name);
-}
-
-void	shutdown_xvz(void)
-{
-  g_free(backends);
-}
-
-gboolean xvz_grab_port(tveng_device_info *info)
-{
-  gint i;
-
-  g_assert(port_grabbed == FALSE);
-
-  for (i = 0; i<num_backends; i++)
-    if (backends[i].grab(info))
-      break;
-
-  if (i == num_backends)
-    return FALSE;
-
-  cur_backend = i;
-  port_grabbed = TRUE;
-
-  return TRUE;
-}
-
-void xvz_ungrab_port(tveng_device_info *info)
-{
-  if (!port_grabbed)
-    return;
-
-  port_grabbed = FALSE;
-  backends[cur_backend].ungrab(info);
-}
-
-xvzImage * xvzImage_new(enum tveng_frame_pixformat pixformat,
-			gint width, gint height)
-{
-  g_assert(port_grabbed == TRUE);
-
-  return backends[cur_backend].image_new(pixformat, width, height);
-}
-
-void xvzImage_put(xvzImage *image, GdkWindow *window, GdkGC *gc)
-{
-  g_assert(port_grabbed == TRUE);
-
-  backends[cur_backend].image_put(image, window, gc);
-}
-
-void xvzImage_destroy(xvzImage *image)
-{
-  backends[cur_backend].image_destroy(image);
 }
 
 static void
@@ -503,12 +415,12 @@ dummy_window_on_top		(GtkWidget *		widget,
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 
-/* ------------------------------------------------------------------------ */
+/* ---------------------------------------------------------------------- */
 
 void		(* window_on_top)	(GtkWidget *		widget,
 					 gboolean		on);
 
-/* ------------------------------------------------------------------------ */
+/* ---------------------------------------------------------------------- */
 
 static Atom net_wm;
 static Atom net_wm_state;

@@ -1623,7 +1623,7 @@ tveng2_stop_capturing(tveng_device_info * info)
    Returns -1 on error, anything else on success
 */
 static
-int tveng2_read_frame(void * where, unsigned int bpl, 
+int tveng2_read_frame(tveng_image_data * where, 
 		      unsigned int time, tveng_device_info * info)
 {
   struct private_tveng2_device_info * p_info =
@@ -1637,17 +1637,6 @@ int tveng2_read_frame(void * where, unsigned int bpl,
       info -> tveng_errno = -1;
       t_error_msg("check", "Current capture mode is not READ (%d)",
 		  info, info->current_mode);
-      return -1;
-    }
-
-  if (info->format.pixformat != TVENG_PIX_YVU420 &&
-      info->format.pixformat != TVENG_PIX_YVU420 &&
-      info -> format.width * info->format.bpp > bpl)
-    {
-      info -> tveng_errno = ENOMEM;
-      t_error_msg("check()", 
-		  "Bpl check failed, quitting to avoid segfault (%d, %d)",
-		  info, bpl, (int) (info->format.width * info->format.bpp));
       return -1;
     }
 
@@ -1685,24 +1674,7 @@ int tveng2_read_frame(void * where, unsigned int bpl,
 
   /* Copy the data to the address given */
   if (where)
-    {
-      if (bpl == info->format.bytesperline ||
-	  info->format.pixformat == TVENG_PIX_YUV420 ||
-	  info->format.pixformat == TVENG_PIX_YVU420)
-	memcpy(where, p_info->buffers[n].vmem,
-	       info->format.sizeimage);
-      else
-	{
-	  unsigned char *p = p_info->buffers[n].vmem;
-	  unsigned int line;
-	  for (line = 0; line < info->format.height; line++)
-	    {
-	      memcpy(where, p, bpl);
-	      where += bpl;
-	      p += info->format.bytesperline;
-	    }
-	}
-    }
+    tveng_copy_frame (p_info->buffers[n].vmem, where, info);
 
   /* Queue the buffer again for processing */
   if (p_tveng2_qbuf(n, info))

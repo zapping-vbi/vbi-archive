@@ -82,10 +82,8 @@ struct plugin_info{
   /* Returns TRUE if the plugin is working */
   gboolean (*plugin_running) ( void );
 
-  /* Let the plugin write/modify the bundle (capture thread) */
-  void (*plugin_write_bundle) ( capture_bundle * bundle );
-  /* Read only processing of the bundle (gtk+ thread) */
-  void (*plugin_read_bundle) ( capture_bundle * bundle );
+  /* Read only processing of the frame (gtk+ thread) */
+  void (*plugin_read_frame) ( capture_frame * frame );
   /* If the plugin is capturing using the provided fifo, it must stop
    when this call returns */
   void (*plugin_capture_stop)	( void );
@@ -160,11 +158,8 @@ gchar * plugin_get_version (struct plugin_info * info);
 
 gboolean plugin_running ( struct plugin_info * info);
 
-void plugin_write_bundle (capture_bundle * bundle,
-			  struct plugin_info * info);
-
-void plugin_read_bundle (capture_bundle * bundle,
-			 struct plugin_info * info);
+void plugin_read_frame (capture_frame * frame,
+			struct plugin_info * info);
 
 void plugin_capture_stop ( struct plugin_info * info);
 

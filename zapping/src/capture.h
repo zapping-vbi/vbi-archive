@@ -1,143 +1,111 @@
-/* Zapping (TV viewer for the Gnome Desktop)
- * Copyright (C) 2000-2001 Iñaki García Etxebarria
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- */
-
 #ifndef __CAPTURE_H__
 #define __CAPTURE_H__
 
-#include <gtk/gtk.h>
-#include "tveng.h"
-#include "common/fifo.h"
+#include <common/fifo.h>
+#include <tveng.h>
 
-/*
-  This struct holds all the info about a video sample pased to a
-  plugin.
-*/
+#include "x11stuff.h"
+#include "zimage.h"
+
+/* Startup/shutdown of the modules */
+void startup_capture (void);
+void shutdown_capture (void);
+
+/* Description of a possible capture format */
 typedef struct {
-  struct tveng_frame_format	format; /* describes pixformat, size,
-					   etc, see tveng.h */
-
-  /* type of data the bundle contains */
-  enum {
-    CAPTURE_BUNDLE_XV=1,	/* XvImage */
-    CAPTURE_BUNDLE_GDK,		/* GdkImage */
-    CAPTURE_BUNDLE_DATA		/* raw YUV data */
-  } image_type;
-
-  union {
-    xvzImage			*xvimage; /* _XV */
-    GdkImage			*gdkimage; /* _GDK */
-    gpointer			yuv_data; /* _DATA */
-  } image;
-
-  /* TRUE if the image is converted (original BGR24 source in data_src) */
-  gboolean			converted;
-
-  /* data contained in the image; size etc is described by format */
-  gpointer			data;
-  gpointer			data_src; /* see converted above */
-
-  /* time this bundle was created */
-  double			timestamp;
-
-  /* Who produced this bundle (read/only) */
-  struct producer		*producer;
-} capture_bundle;
+  gboolean	locked; /* TRUE if we need a fixed size */
+  gint		width, height; /* Frame size, only applies if locked */
+  enum tveng_frame_pixformat fmt; /* The actual format */
+} capture_fmt;
 
 /*
- * capture buffer. consumer plugins can add them to the consumer list
- * of the capture fifo and wait_full buffers.
+ * Capture routines proper.
  */
-typedef struct {
-  buffer	b; /* this is read-only */
-
-  capture_bundle d;
-} capture_buffer;
+/*
+ * Start capturing, returns -1 on error.
+ */
+gint capture_start (tveng_device_info *info);
 
 /*
- * Inits the capture, setting the given widget as a destination.
- * Note that this only sets up the structs.
- * Returns FALSE on error
+ * Stop the current capture.
  */
-gboolean
-startup_capture(GtkWidget * widget);
+void capture_stop (void);
 
 /*
- * Releases the capture structs.
+ * Requests the given format. Upon success a request id will be
+ * returned, failure is signalled by returning -1. Once a format is
+ * granted, you are assured to get all data read from the input device
+ * in this format.
  */
-void
-shutdown_capture(void);
+gint request_capture_format (capture_fmt *fmt);
 
 /*
- * Starts capturing to the given widget, returns -1 on error
+ * Like request_capture_format, but when a request that isn't
+ * compatible with this one arrives, the format will be temporarily
+ * dropped. Useful when getting frames in this format would be nice
+ * but it isn't absolutely essential.
  */
-gint
-capture_start(GtkWidget *widget, tveng_device_info * info);
+gint suggest_capture_format (capture_fmt *fmt);
 
 /*
- * Stops capturing
+ * Releases the given requests, call this when you won't longer need
+ * the format. The id returned by request_capture_format must be passed.
  */
-void
-capture_stop(tveng_device_info *info);
+void release_capture_format (gint id);
 
 /*
- * Requests that the bundles produced from now on have the given
- * format. Returns TRUE on success, FALSE on error.
+ * Gets a list of the current granted requests.
+ * @formats: Pointer to a place where to allocate the list, you must
+ * g_free it when no longer needed.
+ * @num_formats: Pointer to a place where to store the size of the list.
  */
-gboolean
-request_bundle_format(enum tveng_frame_pixformat pixformat, gint w, gint h);
+void get_request_formats (capture_fmt **fmts, gint *num_fmts);
 
 /*
- * Builds the bundle with the given parameters.
+ * Capture events:
+ *	CAPTURE_STOP: No more data will be produced (for example, this
+ *	will be called when capture is stopped through the
+ *	GUI). Assume that notify hooks will be disconnected and no
+ *	more data will arrive. The request list is also cleared, so
+ *	free any data associated with it.
+ *	CAPTURE_CHANGED: The internal capture format has
+ *	changed. Typical usage is renegotiating the current capture
+ *	format when this is received, perhaps a better format can be
+ *	granted now.
  */
-void
-build_bundle(capture_bundle *d, struct tveng_frame_format *format);
+typedef enum {
+  CAPTURE_STOP,
+  CAPTURE_CHANGE
+} capture_event;
+
+typedef void (*CaptureNotify) (capture_event	event,
+			       gpointer		user_data);
 
 /*
- * Frees the memory used by the bundle.
+ * Connect to this if you want to get notified of capture events. You
+ * can use the returned id when releasing the handler. Note that
+ * handlers are automatically released when the capture is stopped,
+ * but it's good practise to release them asap.
+ * -1 is returned upon error.
  */
-void clear_bundle(capture_bundle *d);
+gint add_capture_handler (CaptureNotify notify, gpointer user_data);
+
+/* Removes a handler, use the id returned by add_capture_handler */
+void remove_capture_handler (gint id);
 
 /*
- * Returns TRUE if the two bundles have the same image properties
- * (width, height, pixformat, image_size...). If this function returns
- * TRUE, then a memcpy(b->data, a->data, a->image_size) is safe.
+ * The capture fifo.
  */
-gboolean bundle_equal(capture_bundle *a, capture_bundle *b);
+extern fifo *capture_fifo;
 
-/**
- * Locks the current capture format, so any call to
- * request_bundle_format will fail.
- * If it's already locked it does nothing.
+/*
+ * Returns the zimage with the given pixformat contained in the
+ * frame. NULL if it ain't possible to produce the zimage.
+ * The returned zimage, if any, will only be valid until you
+ * send_empty the buffer. Also, you shouldn't free the image, it's a
+ * reference to an static object.
  */
-void
-capture_lock(void);
+zimage *retrieve_frame (capture_frame *frame,
+			enum tveng_frame_pixformat fmt);
 
-/**
- * If the capture format is locked, this unlocks it.
- */
-void
-capture_unlock(void);
-
-extern fifo	*capture_fifo;
-
-#endif /* capture.h */
-
-
-
-
-
+#endif

@@ -39,8 +39,8 @@
 #include "overlay.h"
 #include "capture.h"
 #include "x11stuff.h"
+#include "zimage.h"
 #include "ttxview.h"
-#include "yuv2rgb.h"
 #include "osd.h"
 #include "remote.h"
 #include "cmd.h"
@@ -433,7 +433,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.165.2.2 2002-07-23 19:06:06 garetxe Exp $",
+	 "$Id: main.c,v 1.165.2.3 2002-08-22 16:09:38 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -465,13 +465,6 @@ int main(int argc, char * argv[])
       printv("unknow type. Using plain C.\n");
       break;
     }
-  D();
-  /* init the conversion routines */
-  yuv2rgb_init(x11_get_bpp(),
-	       (x11_get_byte_order()==GDK_MSB_FIRST)?MODE_BGR:MODE_RGB);
-  yuyv2rgb_init(x11_get_bpp(),
-	       (x11_get_byte_order()==GDK_MSB_FIRST)?MODE_BGR:MODE_RGB);
-
   D();
   glade_gnome_init();
   D();
@@ -661,13 +654,6 @@ int main(int argc, char * argv[])
       D();
     }
   D();
-  if (!startup_capture(tv_screen))
-    {
-      RunBox("The capture couldn't be started", GTK_MESSAGE_ERROR);
-      tveng_device_info_destroy(main_info);
-      return 0;
-    }
-  D();
   /* Add the plugins to the GUI */
   p = g_list_first(plugin_list);
   while (p)
@@ -687,6 +673,8 @@ int main(int argc, char * argv[])
 			       FALSE);
       gtk_widget_hide(lookup_widget(main_window, "go_fullscreen1"));
     }
+  D();
+  startup_capture();
   D();
   startup_teletext();
   D();
@@ -926,8 +914,8 @@ static void shutdown_zapping(void)
   /*
    * The video output backends.
    */
-  printv(" xvz");
-  shutdown_xvz();
+  printv(" zimage");
+  shutdown_zimage();
 
   /*
    * The colorspace conversions.
@@ -1107,7 +1095,7 @@ static gboolean startup_zapping(gboolean load_plugins)
   D();
   startup_mixer();
   D();
-  startup_xvz();
+  startup_zimage();
   D();
 #if GNOME2_PORT_COMPLETE
   if (!startup_callbacks())
