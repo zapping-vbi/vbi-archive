@@ -60,9 +60,15 @@ is_bcd(unsigned int bcd)
 
 struct vbi; /* opaque type */
 
-extern int		vbi_fetch_page(struct vbi *vbi, struct fmt_page *pg,
-				       int pgno, int subno, int display_rows, int navigation);
+extern int		vbi_fetch_vt_page(struct vbi *vbi, struct fmt_page *pg,
+				          int pgno, int subno, int display_rows, int navigation);
 extern void		vbi_set_default_region(struct vbi *vbi, int default_region);
+
+/*
+ *  Closed Caption (caption.c)
+ */
+
+extern int		vbi_fetch_cc_page(struct vbi *vbi, struct fmt_page *pg, int pgno);
 
 /*
  *  Navigation (teletext.c)
@@ -116,6 +122,7 @@ typedef struct {
 
 	/* Private */
 
+	void *			unique;
 	int			cni_vps;
 	int			cni_8301;
 	int			cni_8302;
@@ -131,11 +138,12 @@ typedef struct {
 #define VBI_EVENT_NONE		0
 #define	VBI_EVENT_CLOSE		(1 << 0)
 #define	VBI_EVENT_PAGE		(1 << 1)	// p1:vt_page	i1:query-flag
-#define	VBI_EVENT_HEADER	(1 << 2)	// i1:pgno  i2:subno  i3:flags  p1:data
-#define	VBI_EVENT_NETWORK	(1 << 3)
+#define VBI_EVENT_CAPTION	(1 << 2)
+#define	VBI_EVENT_HEADER	(1 << 3)	// i1:pgno  i2:subno  i3:flags  p1:data
+#define	VBI_EVENT_NETWORK	(1 << 4)
 /*
  *  Some station/network identifier has been received, vbi_event.p1 is
- *  a vbi_network pointer. The event will not repeat unless a different
+ *  a vbi_network pointer. The event will not repeat*) unless a different
  *  identifier has been received and confirmed.
  *
  *  Minimum time for recognition
@@ -144,11 +152,14 @@ typedef struct {
  *  Teletext PDC, 8/30:		2 s
  *  Teletext X/26:		unknown
  *  XDS (US only):		unknown, between 0.1x to 10x seconds
+ *
+ *  *) VPS/TTX and XDS will not combine in real life, sample insertion
+ *     can confuse the logic.
  */
 
-#define	VBI_EVENT_XPACKET	(1 << 4)	// i1:mag  i2:pkt  i3:errors  p1:data
-#define	VBI_EVENT_RESET		(1 << 5)	// ./.
-#define	VBI_EVENT_TIMER		(1 << 6)	// ./.
+#define	VBI_EVENT_XPACKET	(1 << 5)	// i1:mag  i2:pkt  i3:errors  p1:data
+#define	VBI_EVENT_RESET		(1 << 6)	// ./.
+#define	VBI_EVENT_TIMER		(1 << 7)	// ./.
 
 typedef struct
 {

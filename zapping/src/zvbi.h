@@ -61,9 +61,9 @@ enum ttx_message get_ttx_message(int id);
 void unregister_ttx_client(int id);
 
 /*
- * Tells the renderer whether to conceal hidden chars or not.
+ * Tells the renderer whether to reveal hidden chars.
  */
-void set_ttx_parameters(int id, int conceal);
+void set_ttx_parameters(int id, int reveal);
 
 /*
  * Sets the given page as the page the client is interested in.

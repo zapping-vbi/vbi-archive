@@ -18,10 +18,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cc.h,v 1.4 2001-02-22 14:15:49 mschimek Exp $ */
+/* $Id: cc.h,v 1.5 2001-02-26 05:56:59 mschimek Exp $ */
 
 #ifndef CC_H
 #define CC_H
+
+#include <pthread.h>
 
 #include "format.h"
 #include "../common/types.h"
@@ -53,12 +55,11 @@ typedef struct {
 	int			nul_ct;
 // XXX should be 'silence count'
 
-	bool			redraw_all;
-
 	attr_char		attr;
 	attr_char *		line;
 
-	struct fmt_page		pg;
+	int			hidden;
+	struct fmt_page		pg[2];
 } channel;
 
 struct caption {
@@ -67,6 +68,7 @@ struct caption {
 	int			curr_chan;
 	attr_char		transp_space[2];	/* caption, text mode */
 	channel			channel[8];		/* caption 1-4, text 1-4 */
+	pthread_mutex_t		mutex;
 
 	bool			xds;
 	xds_sub_packet		sub_packet[4][0x18];
@@ -80,6 +82,5 @@ struct vbi; /* parent of struct caption */
 
 extern void		vbi_init_caption(struct caption *cc);
 extern void		vbi_caption_dispatcher(struct vbi *vbi, int line, unsigned char *buf);
-extern void		vbi_caption_fetch(int page);
 
 #endif /* CC_H */

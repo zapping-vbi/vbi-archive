@@ -1,3 +1,14 @@
+25.2.2001	caption ipc <mschimek@users.sourceforge.net>
+
+	* Renamed conceal button to reveal. Is reveal on all
+	  RC's and TTX refers to it as 'reveal function'.
+	  Also renamed all identifiers for consistency.
+	* station: Added VPS support, fixed cni priority.
+	* caption.c, osd.c: Changed render()/clear()/
+	  roll_up() calls to caption event, fetch_cc, and
+	  tracking of changes.
+	* caption.c: All double buffered now.
+
 23.2.2001	XV fixes <garetxe@users.sourceforge.net>
 
 	* src/tvengxv.c: Added support in the controller for fullscreen

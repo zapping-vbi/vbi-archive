@@ -49,7 +49,7 @@ int export(struct export *e, struct fmt_page *pg, char *user_str);
 
 
 void vbi_draw_page_region(struct fmt_page *pg, void *data, int
-			  conceal, int scol, int srow, int width, int
+			  reveal, int scol, int srow, int width, int
 			  height, int rowstride, int flash_on);
 #define vbi_draw_page(X, Y, Z) \
 	vbi_draw_page_region(X, Y, Z, 0, 0, 40, 25, -1, 1)

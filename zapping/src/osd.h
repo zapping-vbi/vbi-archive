@@ -16,12 +16,13 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: osd.h,v 1.4 2001-02-24 00:07:11 garetxe Exp $ */
+/* $Id: osd.h,v 1.5 2001-02-26 05:57:00 mschimek Exp $ */
 
 #ifndef __OSD_H__
 #define __OSD_H__
 
 #include "../libvbi/format.h"
+#include "../libvbi/libvbi.h"
 
 #ifndef OSD_JUST_CC
 void startup_osd(void);
@@ -41,12 +42,11 @@ void osd_roll_up(attr_char *buffer, int first_row, int last_row);
 #endif /* osd_just_cc */
 
 /*
- * Versions to be called by the CC decoder thread. Remember to use
- * these instead of osd_*, those can only be called from the main (aka
- * GTK) thread.
+ * This is the (preliminary) caption.c counterpart of VBI_EVENT_PAGE.
+ * The main GTK thread can call vbi_fetch_cc_page, pg->dirty tracks
+ * changes between calls to speed up drawing and for smooth
+ * rolling (if rendering is fast enough, anyway).
  */
-void cc_render(attr_char *buffer, int row);
-void cc_clear(void);
-void cc_roll_up(attr_char *buffer, int first_row, int last_row);
+void cc_event(void *data, vbi_event *ev);
 
 #endif /* osd.h */

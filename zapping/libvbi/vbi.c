@@ -87,12 +87,10 @@ vbi_mainloop(void *p)
 		while (items) {
 			if (s->id & SLICED_TELETEXT_B)
 				vbi_teletext_packet(vbi, s->data);
-			if (s->id & SLICED_CAPTION)
+			else if (s->id & SLICED_CAPTION)
 				vbi_caption_dispatcher(vbi, s->line, s->data);
-/*
-			if (s->id & SLICED_VPS)
+			else if (s->id & SLICED_VPS)
 				vbi_vps(vbi, s->data);
-*/
 
 			s++;
 			items--;
@@ -114,8 +112,8 @@ vbi_mainloop(void *p)
 
 /* examples */
 // #define FILTER_REM 0
-//#define FILTER_ADD SLICED_CAPTION
-//#define SAMPLE "libvbi/samples/s7"
+// #define FILTER_ADD SLICED_CAPTION
+// #define SAMPLE "libvbi/samples/s4"
 
 // #define FILTER_REM SLICED_TELETEXT_B
 // #define FILTER_ADD SLICED_TELETEXT_B
@@ -281,7 +279,7 @@ vbi_open(char *vbi_name, struct cache *ca, int fine_tune)
     dl_init(vbi->clients);
 
 	vbi_init_teletext(&vbi->vt);
-//	vbi_init_caption(&vbi->cc);
+	vbi_init_caption(&vbi->cc);
 
 	vbi->vt.max_level = VBI_LEVEL_2p5;
 

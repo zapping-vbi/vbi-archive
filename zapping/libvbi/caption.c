@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.15 2001-02-22 14:15:49 mschimek Exp $ */
+/* $Id: caption.c,v 1.16 2001-02-26 05:56:59 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,6 +48,7 @@
 #endif
 
 #define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 #include "cc.h"
@@ -263,7 +264,7 @@ xds_decoder(struct vbi *vbi, int class, int type, char *buffer, int length)
 				vbi->network.cycle = 1;
 			} else if (vbi->network.cycle == 1) {
 				vbi_send(vbi, VBI_EVENT_NETWORK, 0, 0, 0, 0, 0, &vbi->network);
-				vbi->network.cycle = 2;
+				vbi->network.cycle = 3;
 			}
 #if XDS_DEBUG
 			printf("Network name: '");
@@ -652,6 +653,9 @@ itv_separator(struct caption *cc, char c)
 #define ROWS			15
 #define COLUMNS			34
 
+/* Mostly obsolete - now cc_event & pg.dirty */
+/* XXX TEST config to be updated */
+
 /*
  *  Render <row> 0 ... 14 or -1 all rows, from <pg->text> if you're
  *  monitoring <pg->pgno>, which is CC_PAGE_BASE +
@@ -679,9 +683,6 @@ itv_separator(struct caption *cc, char c)
  *  render() is intended to be a callback (function pointer), we can
  *  export a fetch() function calling render() in turn to update the
  *  screen immediately after a switch.
- *
- *  If the same render() is used for WST we may need a bool indicating
- *  the required layout.
  */
 static void render(struct fmt_page *pg, int row);
 
@@ -691,7 +692,7 @@ static void render(struct fmt_page *pg, int row);
  *  mode because we don't have the buffer to render() and erasing
  *  all data at once will be faster than scanning the buffer anyway.
  */
-static void clear(int pgno);
+static void clear(struct fmt_page *pg);
 
 /*
  *  Start soft scrolling, move <first_row> + 1 ... <last_row> (inclusive)
@@ -705,8 +706,20 @@ static void clear(int pgno);
  */
 static void roll_up(struct fmt_page *pg, int first_row, int last_row);
 
+
+
+
+
+static inline void
+update(channel *ch)
+{
+	attr_char *acp = ch->line - ch->pg[0].text + ch->pg[1].text;
+
+	memcpy(acp, ch->line, sizeof(*acp) * COLUMNS);
+}
+
 static void
-word_break(struct caption *cc, channel *ch)
+word_break(struct caption *cc, channel *ch, int upd)
 {
 	/*
 	 *  Add a leading and trailing space.
@@ -729,20 +742,21 @@ word_break(struct caption *cc, channel *ch)
 		}
 	}
 
-	if (ch->mode == MODE_POP_ON)
+	if (!upd || ch->mode == MODE_POP_ON)
 		return;
 
 	/*
 	 *  NB we render only at spaces (end of word) and
 	 *  before cursor motions and mode switching, to keep the
-	 *  drawing efforts (scaling etc) at a minimum.
+	 *  drawing efforts (scaling etc) at a minimum. update()
+	 *  for double buffering at word granularity.
 	 *
 	 *  XXX should not render if space follows space,
 	 *  but force in long words. 
 	 */
-	render(&ch->pg, ch->redraw_all ? -1 : ch->row);
 
-	ch->redraw_all = FALSE;
+	update(ch);
+	render(ch->pg + 1, ch->row);
 }
 
 static inline void
@@ -751,7 +765,7 @@ set_cursor(channel *ch, int col, int row)
 	ch->col = ch->col1 = col;
 	ch->row = row;
 
-	ch->line = ch->pg.text + row * COLUMNS;
+	ch->line = ch->pg[ch->hidden].text + row * COLUMNS;
 }
 
 static void
@@ -766,28 +780,31 @@ put_char(struct caption *cc, channel *ch, attr_char c)
 	}
 
 	if ((c.glyph & 0x7F) == 0x20)
-		word_break(cc, ch);
-
-/* test */
-// render(&ch->pg, -1);
+		word_break(cc, ch, 1);
 }
 
 static inline channel *
 switch_channel(struct caption *cc, channel *ch, int new_chan)
 {
-	word_break(cc, ch); // we leave for a number of frames
+	word_break(cc, ch, 1); // we leave for a number of frames
 
 	return &cc->channel[cc->curr_chan = new_chan];
 }
 
 static void
-erase_memory(struct caption *cc, channel *ch)
+erase_memory(struct caption *cc, channel *ch, int page)
 {
+	struct fmt_page *pg = ch->pg + page;
+	attr_char *acp = pg->text;
 	attr_char c = cc->transp_space[ch >= &cc->channel[4]];
 	int i;
 
-	for (i = 0; i < COLUMNS * ROWS; i++)
-		ch->pg.text[i] = c;
+	for (i = 0; i < COLUMNS * ROWS; acp++, i++)
+		*acp = c;
+
+	pg->dirty.y0 = 0;
+	pg->dirty.y1 = ROWS - 1;
+	pg->dirty.roll = ROWS;
 }
 
 static const attr_colours
@@ -827,27 +844,9 @@ caption_command(struct caption *cc,
 		ch->attr.opacity = OPAQUE;
 		ch->attr.flash = FALSE;
 
-		word_break(cc, ch);
+		word_break(cc, ch, 1);
 
 		if (ch->mode == MODE_ROLL_UP) {
-#if 0 // questionable
-			int bottom = row + ch->roll - 1;
-
-			if (bottom > 14) {
-				if (row >= 14) /* huh? */
-					row = 13;
-				ch->roll = 14 - row + 1;
-				ch->row1 = 0;
-				bottom = row + ch->roll - 1;
-			}
-
-			if (row != ch->row1) { /* who knows */
-				erase_memory(cc, ch);
-	    			ch->redraw_all = TRUE; /* override render row */
-			}
-
-			set_cursor(ch, 1, row + ch->roll - 1);
-#else // more likely
 			int row1 = row - ch->roll + 1;
 
 			if (row1 < 0)
@@ -855,12 +854,11 @@ caption_command(struct caption *cc,
 
 			if (row1 != ch->row1) {
 				ch->row1 = row1;
-				erase_memory(cc, ch);
-	    			ch->redraw_all = TRUE;
+				erase_memory(cc, ch, ch->hidden);
+				erase_memory(cc, ch, ch->hidden ^ 1);
 			}
 
 			set_cursor(ch, 1, ch->row1 + ch->roll - 1);
-#endif
 		} else
 			set_cursor(ch, 1, row);
 
@@ -967,11 +965,14 @@ caption_command(struct caption *cc,
 			if (ch->mode == MODE_ROLL_UP && ch->roll == roll)
 				return;
 
-			erase_memory(cc, ch);
-			ch->redraw_all = TRUE;
+			erase_memory(cc, ch, ch->hidden);
+			erase_memory(cc, ch, ch->hidden ^ 1);
+
 			ch->mode = MODE_ROLL_UP;
 			ch->roll = roll;
+
 			set_cursor(ch, 1, 14);
+
 			ch->row1 = 14 - roll + 1;
 
 			return;
@@ -986,7 +987,6 @@ caption_command(struct caption *cc,
 		case 10:	/* Text Restart			001 c10f  010 1010 */
 // not verified
 			ch = switch_channel(cc, ch, chan | 4);
-
 			set_cursor(ch, 1, 0);
 			return;
 
@@ -998,16 +998,18 @@ caption_command(struct caption *cc,
 			ch = switch_channel(cc, ch, chan & 3);
 			ch->mode = MODE_POP_ON;
 
-			word_break(cc, ch);
+			word_break(cc, ch, 1);
 
-			render(&ch->pg, -1);
-			ch->redraw_all = FALSE;
+			ch->hidden ^= 1;
 
-			erase_memory(cc, ch);
-			
+			render(ch->pg + (ch->hidden ^ 1), -1 /* ! */);
+
+			erase_memory(cc, ch, ch->hidden); // yes?
+
 			/*
 			 *  A Preamble Address Code should follow,
 			 *  reset to a known state to be safe.
+			 *  Reset ch->line for new ch->hidden.
 			 *  XXX row 0?
 			 */
 			set_cursor(ch, 1, ROWS - 1);
@@ -1031,8 +1033,6 @@ caption_command(struct caption *cc,
 			return;
 
 		case 13:	/* Carriage Return		001 c10f  010 1101 */
-// s1: appears in text mode only
-// s4: in roll-up mode
 			if (ch == cc->channel + 5)
 				itv_separator(cc, 0);
 
@@ -1044,21 +1044,25 @@ caption_command(struct caption *cc,
 			if (last_row > ROWS - 1)
 				last_row = ROWS - 1;
 
-			word_break(cc, ch);
-
-			if (ch->row < last_row)
+			if (ch->row < last_row) {
+				word_break(cc, ch, 1);
 				set_cursor(ch, 1, ch->row + 1);
-			else {
-				if (ch->mode != MODE_POP_ON)
-					roll_up(&ch->pg, ch->row1, last_row);
+			} else {
+				attr_char *acp = &ch->pg[ch->hidden ^ (ch->mode != MODE_POP_ON)]
+					.text[ch->row1 * COLUMNS];
 
-				memmove(ch->pg.text + ch->row1 * COLUMNS,
-					ch->pg.text + (ch->row1 + 1) * COLUMNS,
-					(ch->roll - 1) * COLUMNS);
+				word_break(cc, ch, 0);
+				update(ch);
 
-//				for (i = 1; i <= COLUMNS - 1 /* ! */; i++)
+				memmove(acp, acp + COLUMNS, sizeof(*acp) * (ch->roll - 1) * COLUMNS);
+
 				for (i = 0; i <= COLUMNS; i++)
 					ch->line[i] = cc->transp_space[chan >> 2];
+
+				if (ch->mode != MODE_POP_ON) {
+					update(ch);
+					roll_up(ch->pg + (ch->hidden ^ 1), ch->row1, last_row);
+				}
 
 				ch->col1 = ch->col = 1;
 			}
@@ -1073,30 +1077,29 @@ caption_command(struct caption *cc,
 			for (i = ch->col; i <= COLUMNS - 1; i++)
 				ch->line[i] = cc->transp_space[chan >> 2];
 
-			word_break(cc, ch);
+			word_break(cc, ch, 0);
 
-			render(&ch->pg, ch->redraw_all ? -1 : ch->row);
-			ch->redraw_all = FALSE;
+			if (ch->mode != MODE_POP_ON) {
+				update(ch);
+				render(ch->pg + (ch->hidden ^ 1), ch->row);
+			}
 
 			return;
 
 		case 12:	/* Erase Displayed Memory	001 c10f  010 1100 */
 // s1, s4: EDM always before EOC
+			if (ch->mode != MODE_POP_ON)
+				erase_memory(cc, ch, ch->hidden);
 
-			if (ch->mode == MODE_POP_ON) {
-				clear(CC_PAGE_BASE + chan);
-				ch->redraw_all = FALSE;
-			} else {
-				erase_memory(cc, ch);
-	    			ch->redraw_all = TRUE; /* override render row */
-			}
+			erase_memory(cc, ch, ch->hidden ^ 1);
+			clear(ch->pg + (ch->hidden ^ 1));
 
 			return;
 
 		case 14:	/* Erase Non-Displayed Memory	001 c10f  010 1110 */
 // not verified
 			if (ch->mode == MODE_POP_ON)
-				erase_memory(cc, ch);
+				erase_memory(cc, ch, ch->hidden);
 
 			return;
 		}
@@ -1196,6 +1199,8 @@ vbi_caption_dispatcher(struct vbi *vbi, int line, unsigned char *buf)
 		buf[1] = c1; /*  room, design a special glyph? */
 	}
 
+	pthread_mutex_lock(&cc->mutex);
+
 	switch (c1) {
 		channel *ch;
 		attr_char c;
@@ -1203,7 +1208,7 @@ vbi_caption_dispatcher(struct vbi *vbi, int line, unsigned char *buf)
 	case 0x01 ... 0x0F:
 		if (!field2)
 			cc->last[0] = 0;
-		return; /* XDS field 1?? */
+		break; /* XDS field 1?? */
 
 	case 0x10 ... 0x1F:
 		if (parity(buf[1]) >= 0) {
@@ -1212,7 +1217,7 @@ vbi_caption_dispatcher(struct vbi *vbi, int line, unsigned char *buf)
 			    && buf[1] == cc->last[1]) {
 				/* cmd repetition F1: already executed */
 				cc->last[0] = 0; /* one rep */
-				return;
+				break;
 			}
 
 			caption_command(cc, c1, buf[1] & 0x7F, field2);
@@ -1224,7 +1229,7 @@ vbi_caption_dispatcher(struct vbi *vbi, int line, unsigned char *buf)
 		} else if (!field2)
 			cc->last[0] = 0;
 
-		return;
+		break;
 
 	default:
 		ch = &cc->channel[(cc->curr_chan & 5) + field2 * 2];
@@ -1232,11 +1237,11 @@ vbi_caption_dispatcher(struct vbi *vbi, int line, unsigned char *buf)
 		if (buf[0] == 0x80 && buf[1] == 0x80) {
 			if (ch->mode) {
 				if (ch->nul_ct == 2)
-					word_break(cc, ch);
+					word_break(cc, ch, 1);
 				ch->nul_ct += 2;
 			}
 
-			return;
+			break;
 		}
 
 		if (!field2)
@@ -1245,7 +1250,7 @@ vbi_caption_dispatcher(struct vbi *vbi, int line, unsigned char *buf)
 		ch->nul_ct = 0;
 
 		if (!ch->mode)
-			return;
+			break;
 
 		c = ch->attr;
 
@@ -1263,6 +1268,8 @@ vbi_caption_dispatcher(struct vbi *vbi, int line, unsigned char *buf)
 			put_char(cc, ch, c);
 		}
 	}
+
+	pthread_mutex_unlock(&cc->mutex);
 }
 
 static attr_rgba
@@ -1308,66 +1315,112 @@ vbi_init_caption(struct caption *cc)
 
 		set_cursor(ch, 1, ch->row);
 
-		ch->pg.pgno = CC_PAGE_BASE + i;
-		ch->pg.subno = ANY_SUB;
+		ch->hidden = 0;
 
-		ch->pg.rows = ROWS;
-		ch->pg.columns = COLUMNS;
+		ch->pg[0].pgno = CC_PAGE_BASE + i;
+		ch->pg[0].subno = ANY_SUB;
 
-		ch->pg.screen_colour = 0;
-		ch->pg.screen_opacity = (i < 4) ? TRANSPARENT_SPACE : OPAQUE;
+		ch->pg[0].rows = ROWS;
+		ch->pg[0].columns = COLUMNS;
 
-		ch->pg.colour_map = default_colour_map;
+		ch->pg[0].screen_colour = 0;
+		ch->pg[0].screen_opacity = (i < 4) ? TRANSPARENT_SPACE : OPAQUE;
 
-		ch->pg.font[0] = font_descriptors; /* English */
-		ch->pg.font[1] = font_descriptors;
+		ch->pg[0].colour_map = default_colour_map;
 
-		erase_memory(cc, ch);
+		ch->pg[0].font[0] = font_descriptors; /* English */
+		ch->pg[0].font[1] = font_descriptors;
+
+		ch->pg[0].dirty.y0 = 0;
+		ch->pg[0].dirty.y1 = ROWS - 1;
+		ch->pg[0].dirty.roll = 0;
+
+		erase_memory(cc, ch, 0);
+
+		memcpy(&ch->pg[1], &ch->pg[0], sizeof(ch->pg[1]));
 	}
 }
 
 #if !TEST
 
-static int		draw_page=-1;
-
-void vbi_caption_fetch(int page)
+int
+vbi_fetch_cc_page(struct vbi *vbi, struct fmt_page *pg, int page)
 {
-/*	channel *ch = &caption.channel[page - CC_PAGE_BASE];
+	channel *ch = vbi->cc.channel + ((page - CC_PAGE_BASE) & 7);
+	struct fmt_page *spg;
 
-	draw_page = page;
+	pthread_mutex_lock(&vbi->cc.mutex);
 
-	if (ch->mode == MODE_POP_ON)
-		clear(page); // XXX have no displayed buffer, should we?
-	else
-	render(&ch->pg, -1);*/
-	draw_page = page;
+	spg = ch->pg + (ch->hidden ^ 1);
+
+	memcpy(pg, spg, sizeof(*pg)); /* shortcut? */
+
+	spg->dirty.y0 = ROWS;
+	spg->dirty.y1 = -1;
+	spg->dirty.roll = 0;
+
+	pthread_mutex_unlock(&vbi->cc.mutex);
+
+	return 1;
 }
 
 static void
 render(struct fmt_page *pg, int row)
 {
-	if (draw_page >= 0 && pg->pgno != draw_page)
-		return;
+	vbi_event event;
 
-	if (row < 0)
-		cc_render(pg->text, row);
-	else
-		cc_render(pg->text + row*COLUMNS, row);
+	if (row < 0 || pg->dirty.roll) {
+		/* no particular row or not fetched
+		   since last roll/clear, redraw all */
+		pg->dirty.y0 = 0;
+		pg->dirty.y1 = ROWS - 1;
+		pg->dirty.roll = 0;
+	} else {
+		pg->dirty.y0 = MIN(row, pg->dirty.y0);
+		pg->dirty.y1 = MAX(row, pg->dirty.y1);
+	}
+
+	event.type = VBI_EVENT_CAPTION;
+	event.pgno = pg->pgno;
+
+	cc_event(NULL, &event);
 }
 
 static void
-clear(int pgno)
+clear(struct fmt_page *pg)
 {
-	if (draw_page >= 0 && pgno != draw_page)
-		return;
+	vbi_event event;
 
-	cc_clear();
+	pg->dirty.y0 = 0;
+	pg->dirty.y1 = ROWS - 1;
+	pg->dirty.roll = -ROWS;
+
+	event.type = VBI_EVENT_CAPTION;
+	event.pgno = pg->pgno;
+
+	cc_event(NULL, &event);
 }
 
 static void
 roll_up(struct fmt_page *pg, int first_row, int last_row)
 {
-	cc_roll_up(pg->text, first_row, last_row);
+	vbi_event event;
+
+	if (pg->dirty.y0 <= pg->dirty.y1) {
+		/* not fetched since last update, redraw all */
+		pg->dirty.roll = 0;
+		pg->dirty.y0 = MIN(first_row, pg->dirty.y0);
+		pg->dirty.y1 = MAX(last_row, pg->dirty.y1);
+	} else {
+		pg->dirty.roll = -1;
+		pg->dirty.y0 = first_row;
+		pg->dirty.y1 = last_row;
+	}
+
+	event.type = VBI_EVENT_CAPTION;
+	event.pgno = pg->pgno;
+
+	cc_event(NULL, &event);
 }
 
 #else /* TEST */
@@ -1546,7 +1599,7 @@ render(struct fmt_page *pg, int row)
 }
 
 static void
-clear(int page)
+clear(struct fmt_page *pg, int page)
 {
 	int i;
 
@@ -1610,7 +1663,7 @@ fetch(int page)
 	draw_page = page;
 
 	if (ch->mode == MODE_POP_ON)
-		clear(page); // XXX have no displayed buffer, should we?
+		clear(&ch->pg, page); // XXX have no displayed buffer, should we?
 	else
 		render(&ch->pg, -1);
 }

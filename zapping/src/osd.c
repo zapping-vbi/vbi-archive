@@ -31,7 +31,7 @@
 #define CELL_WIDTH 16
 #define CELL_HEIGHT 26
 
-enum osd_code {OSD_NOTHING, OSD_RENDER, OSD_CLEAR, OSD_ROLL_UP};
+enum osd_code {OSD_NOTHING, OSD_EVENT};
 
 #define NUM_COLS 34
 #define NUM_ROWS 15
@@ -75,6 +75,8 @@ static gboolean osd_status = FALSE;
 
 static gint keeper_id = 0;
 
+/* forward */ void osd_event(void);
+
 /* Gets the events in the fifo */
 static gint
 the_kommand_keeper		(gpointer	data)
@@ -91,14 +93,8 @@ the_kommand_keeper		(gpointer	data)
 
       switch (c->command)
 	{
-	case OSD_RENDER:
-	  osd_render(c->buffer, c->first_row);
-	  break;
-	case OSD_CLEAR:
-	  osd_clear();
-	  break;
-	case OSD_ROLL_UP:
-	  osd_roll_up(c->buffer, c->first_row, c->last_row);
+	case OSD_EVENT:
+	  osd_event();
 	  break;
 	default:
 	  g_warning("Internal error processing OSD commands");
@@ -603,6 +599,8 @@ static void osd_clear_row(int row, int just_push)
    counterparts, they will communicate with the CC engine using an
    event fifo. This is needed since all GDK/GTK
    calls should be done from the main thread. */
+/* {mhs} Now subroutines of osd_event. */
+
 void osd_clear(void)
 {
   int i;
@@ -670,6 +668,49 @@ void osd_roll_up(attr_char *buffer, int first_row, int last_row)
     }
 }
 
+struct vbi;
+extern struct vbi *zvbi_get_object(void);
+extern int vbi_fetch_cc_page(struct vbi *vbi, struct fmt_page *pg, int pgno);
+
+void osd_event(void)
+{
+  struct vbi *vbi = zvbi_get_object();
+  struct fmt_page page;
+  int i;
+
+  if (!vbi_fetch_cc_page(vbi, &page, 1 /* XXX pgno 1 ... 8 */))
+    return; /* trouble in outer space */
+
+  if (page.dirty.y0 > page.dirty.y1)
+    return; /* not dirty */
+
+  if (abs(page.dirty.roll) >= page.rows)
+    {
+      osd_clear();
+      return;
+    }
+
+  if (page.dirty.roll == -1)
+    {
+      osd_roll_up(page.text + page.dirty.y0 * page.columns,
+                  page.dirty.y0, page.dirty.y1);
+      return;
+    }
+
+  g_assert(page.dirty.roll == 0);
+  /* currently never down or more than one row */
+
+  if (page.dirty.y0 == 0
+      && page.dirty.y1 == (page.rows - 1))
+    {
+      osd_render(&page.text[0], -1);
+      return;
+    }
+
+  for (i = page.dirty.y0; i <= page.dirty.y1; i++)
+    osd_render(page.text + i * page.columns, i);
+}
+
 static void
 send_cc_command(struct osd_command *c)
 {
@@ -687,37 +728,15 @@ send_cc_command(struct osd_command *c)
   pthread_mutex_unlock(&osd_mutex);
 }
 
-void cc_render(attr_char *buffer, int row)
+void cc_event(void *data, vbi_event *ev)
 {
   struct osd_command c;
 
-  if (row > -1)
-    memcpy(c.buffer, buffer, sizeof(attr_char)*NUM_COLS);
-  else
-    memcpy(c.buffer, buffer, sizeof(attr_char)*NUM_COLS*NUM_ROWS);
+  /* Discard or flag update. pg->dirty tracks changes
+     between calls to vbi_fetch_cc_page */
+  if (ev->pgno != 1 /* XXX 1 ... 8 */)
+    return;
 
-  c.first_row = row;
-  c.command = OSD_RENDER;
-  
-  send_cc_command(&c);
-}
-
-void cc_clear(void)
-{
-  struct osd_command c;
-
-  c.command = OSD_CLEAR;
-  send_cc_command(&c);
-}
-
-void cc_roll_up(attr_char *buffer, int first_row, int last_row)
-{
-  struct osd_command c;
-
-  c.first_row = first_row;
-  c.last_row = last_row;
-  memcpy(c.buffer, buffer, sizeof(attr_char)*NUM_COLS*(last_row+1-first_row));
-
-  c.command = OSD_ROLL_UP;
+  c.command = OSD_EVENT;
   send_cc_command(&c);
 }

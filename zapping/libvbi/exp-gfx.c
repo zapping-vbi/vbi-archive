@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.25 2001-02-19 07:23:02 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.26 2001-02-26 05:56:59 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -268,13 +268,13 @@ draw_blank(int canvas_type, unsigned char *canvas, unsigned int colour, int rows
 }
 
 void
-vbi_draw_page_region(struct fmt_page *pg, void *data, int conceal,
+vbi_draw_page_region(struct fmt_page *pg, void *data, int reveal,
 		     int scol, int srow, int width, int height,
 		     int rowstride, int flash_on)
 {
 	unsigned int *canvas = (unsigned int *) data;
 	unsigned int pen[64];
-	int row, column;
+	int conceal, row, column;
 	attr_char *ac;
 	int glyph, i;
 	int ww;
@@ -284,7 +284,7 @@ vbi_draw_page_region(struct fmt_page *pg, void *data, int conceal,
 
 	ww = rowstride / sizeof(*canvas);
 
-	conceal = !!conceal;
+	conceal = !reveal;
 
 	for (i = 2; i < 2 + 8 + 32; i++)
 		pen[i] = pg->colour_map[pg->drcs_clut[i]];

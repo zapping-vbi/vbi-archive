@@ -86,7 +86,7 @@ struct ttx_client {
   int		w, h;
   int		freezed; /* do not refresh the current page */
   int		num_patches;
-  int		conceal; /* whether to show hidden chars or not */
+  int		reveal; /* whether to show hidden chars */
   struct ttx_patch *patches; /* patches to be applied */
 };
 
@@ -230,7 +230,7 @@ register_ttx_client(void)
   client = g_malloc(sizeof(struct ttx_client));
   memset(client, 0, sizeof(struct ttx_client));
   client->id = id++;
-  client->conceal = 1;
+  client->reveal = 0;
   pthread_mutex_init(&client->mutex, NULL);
   filename = g_strdup_printf("%s/%s%d.jpeg", PACKAGE_DATA_DIR,
 			     "../pixmaps/zapping/vt_loading",
@@ -284,14 +284,14 @@ find_client(int id)
 }
 
 void
-set_ttx_parameters(int id, int conceal)
+set_ttx_parameters(int id, int reveal)
 {
   struct ttx_client *client;
 
   pthread_mutex_lock(&clients_mutex);
   if ((client = find_client(id)))
     {
-      client->conceal = conceal;
+      client->reveal = reveal;
     }
   pthread_mutex_unlock(&clients_mutex);
 }
@@ -591,17 +591,17 @@ build_client_page(struct ttx_client *client, int page, int subpage)
   pthread_mutex_lock(&client->mutex);
   if (page > 0)
     {
-      if (!vbi_fetch_page(vbi, &client->fp, page, subpage, 25, 1))
+      if (!vbi_fetch_vt_page(vbi, &client->fp, page, subpage, 25, 1))
         {
 	  pthread_mutex_unlock(&client->mutex);
 	  return 0;
 	}
       vbi_draw_page(&client->fp,
 		    gdk_pixbuf_get_pixels(client->unscaled_on),
-		    client->conceal);
+		    client->reveal);
       vbi_draw_page_region(&client->fp,
 			   gdk_pixbuf_get_pixels(client->unscaled_off),
-			   client->conceal, 0, 0, 40, 25, -1, 0);
+			   client->reveal, 0, 0, 40, 25, -1, 0);
     }
   else if (page == 0)
     {
@@ -699,10 +699,10 @@ void monitor_ttx_this(int id, struct fmt_page *pg)
       memcpy(&client->fp, pg, sizeof(struct fmt_page));
       vbi_draw_page(&client->fp,
 		    gdk_pixbuf_get_pixels(client->unscaled_on),
-		    client->conceal);
+		    client->reveal);
       vbi_draw_page_region(&client->fp,
 			   gdk_pixbuf_get_pixels(client->unscaled_off),
-			   client->conceal, 0, 0, 40, 25, -1, 0);
+			   client->reveal, 0, 0, 40, 25, -1, 0);
       build_client_page(client, -1, -1);
       clear_message_queue(client);
       send_ttx_message(client, TTX_PAGE_RECEIVED);

@@ -307,6 +307,15 @@ top_index(struct vbi *vbi, struct fmt_page *pg, int subno)
 	int i, j, k, n, lines;
 	int xpgno, xsubno;
 
+	pg->subno = subno;
+
+	pg->rows = ROWS;
+	pg->columns = COLUMNS;
+
+	pg->dirty.y0 = 0;
+	pg->dirty.y1 = ROWS - 1;
+	pg->dirty.roll = 0;
+
 	memset(&ac, 0, sizeof(ac));
 
 	ac.foreground	= 32 + BLACK;
@@ -1614,6 +1623,10 @@ vbi_format_page(struct vbi *vbi,
 	pg->rows = ROWS;
 	pg->columns = COLUMNS;
 
+	pg->dirty.y0 = 0;
+	pg->dirty.y1 = ROWS - 1;
+	pg->dirty.roll = 0;
+
 	mag = (vbi->vt.max_level <= VBI_LEVEL_1p5) ?
 		vbi->vt.magazine : vbi->vt.magazine + (vtp->pgno >> 8);
 
@@ -1926,7 +1939,7 @@ vbi_format_page(struct vbi *vbi,
 }
 
 int
-vbi_fetch_page(struct vbi *vbi, struct fmt_page *pg,
+vbi_fetch_vt_page(struct vbi *vbi, struct fmt_page *pg,
 	int pgno, int subno, int display_rows, int navigation)
 {
 	struct vt_page *vtp;
@@ -1936,6 +1949,8 @@ vbi_fetch_page(struct vbi *vbi, struct fmt_page *pg,
 	case 0x900:
 		if (!vbi->vt.top || !top_index(vbi, pg, subno))
 			return 0;
+
+		pg->pgno = 0x900;
 
 		post_enhance(pg);
 

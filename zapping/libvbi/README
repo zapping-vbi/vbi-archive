@@ -2,26 +2,4 @@ This is for vbi decoding.
 It's was originally based on aleVT 1.6.0, but lots (most) of the
 current code is rewritten from scratch.
 
-Changes:
-  {gar}
-  * Makefile.am created.
-  * Removed debug code from vbi.c
-  * Fixed typo in cache.c (SUB_ANY)
-  * Added mem_output to exp-gfx.c
-  * Made fmt_page(..) public and removed the need for passing an
-	export struct
-  {mhs}
-  * fmt_char -> common renderer attr_char
-  * added level 2.5/3.5 character size attributes
-  * modified fmt_page for level 2.5/3.5 enhanced triplets
-    (mainly set-at, set-after and double height lower row correction)
-  * fixed hold-mosaic bug (must hold separated attribute too)
-  * added boxed/opacity attributes to fmt_page (for subtitles et al)
-  * all level 1 ... 3.5 character sets, new font image
-  * added packet X/28/x, M/29/x decoder, finished
-  * successful DRCS download, none stored & rendered yet
-  * fmt_page considers page/magazine extension (unfinished)
-  * fmt_page exports page colourmap
-  * rewrote X/26 enhancement data rendering
-  * completed packet X/27, X/30 decoder
-  * rewrote drawing function
+Documentation to be done.

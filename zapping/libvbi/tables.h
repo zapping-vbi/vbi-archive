@@ -21,28 +21,22 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: tables.h,v 1.2 2001-02-20 07:33:20 mschimek Exp $ */
+/* $Id: tables.h,v 1.3 2001-02-26 05:56:59 mschimek Exp $ */
 
 #ifndef TABLES_H
 #define TABLES_H
 
 extern char *		country_names_en[];
 
-extern struct {
+extern struct pdc_vps_entry {
 	int			country;
 	char *			short_name;	/* 8 chars */
 	char *			long_name;
 	unsigned short		cni1;		/* Packet 8/30 format 1 */
 	unsigned short		cni2;		/* Packet 8/30 format 2 */
 	unsigned short		cni3;		/* Packet X/26 */
-} PDC_CNI[];
-
-extern struct {
-	int			country;
-	char *			short_name;
-	char *			long_name;
-	unsigned int		cni;
-} VPS_CNI[];
+	unsigned short		cni4;		/* VPS */
+} PDC_VPS_CNI[];
 
 extern char *		program_class[16];
 extern char *		program_type[8][16];

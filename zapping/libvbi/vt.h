@@ -297,4 +297,6 @@ extern void		vbi_init_teletext(struct teletext *vt);
 extern bool		vbi_teletext_packet(struct vbi *vbi, unsigned char *p);
 extern struct vt_page *	vbi_convert_page(struct vbi *vbi, struct vt_page *vtp, bool cached, page_function new_function);
 
+extern void		vbi_vps(struct vbi *vbi, unsigned char *p);
+
 #endif

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: format.h,v 1.3 2001-02-20 07:33:20 mschimek Exp $ */
+/* $Id: format.h,v 1.4 2001-02-26 05:56:59 mschimek Exp $ */
 
 #ifndef FORMAT_H
 #define FORMAT_H
@@ -139,6 +139,12 @@ struct fmt_page
 	int			columns;
 
 	attr_char		text[1000];
+
+	struct {
+	     /* int			x0, x1; */
+		int			y0, y1;
+		int			roll;
+	}			dirty;
 
 	/*
 	 *  Colour and opacity outside the text area.

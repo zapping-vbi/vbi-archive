@@ -17,5 +17,3 @@ libvbi_a_SOURCES = \
 	lang.c lang.h \
 	tables.c tables.h \
 	os.h
-
-
