@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.130.2.12 2003-02-21 19:07:29 mschimek Exp $
+dnl $Id: configure.in,v 1.130.2.13 2003-03-06 21:53:08 mschimek Exp $
 
-AC_INIT(zapping, 0.7, [http://sourceforge.net/tracker/?atid=102599&group_id=2599&func=browse])
+AC_INIT(zapping, 0.7cvs, [http://sourceforge.net/tracker/?atid=102599&group_id=2599&func=browse])
 AC_CONFIG_SRCDIR(configure.in)
 AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
 
@@ -32,12 +32,14 @@ test -e site_def.h || cat <<EOF >site_def.h
 
 #ifndef SITE_DEF_H
 #define SITE_DEF_H
+/* #define TVENG_MIXER_VOLUME_DEBUG 1 */
 /* #define TVENGEMU_ENABLE 1 */
 /* #define ZMISC_TOOLTIP_WARNING 1 */
 /* #define X11STUFF_WM_HINTS_DEBUG 1 */
 /* #define X11STUFF_VIDMODE_DEBUG 1 */
 /* #define X11STUFF_SCREENSAVER_DEBUG 1 */
 /* #define X11STUFF_DGA_DEBUG 1 */
+/* #define AUDIO_MIXER_LOG_FP stderr */
 #endif /* SITE_DEF_H */
 EOF
 
