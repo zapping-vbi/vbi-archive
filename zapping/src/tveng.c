@@ -4508,7 +4508,15 @@ FREE_NODE_FUNC (video_standard);
 FREE_LIST_FUNC (video_standard);
 
 FREE_ITEM_FUNC (video_standard, video_standard);
-STORE_CURRENT_FUNC (video_standard, video_standard);
+
+void
+store_cur_video_standard	(tveng_device_info *	info,
+				 const tv_video_standard *p)
+{
+	t_assert (NULL != info);
+
+	STORE_CURRENT (video_standard, video_standard, p);
+}
 
 tv_video_standard *
 append_video_standard		(tv_video_standard **	list,
@@ -4530,12 +4538,17 @@ append_video_standard		(tv_video_standard **	list,
 	while ((l = *list)) {
 		if (l->hash == ts->hash)
 			hash_warning (l->label, ts->label, ts->hash);
+
+		/* saa7134 driver: PAL 0xFF, PAL BG 0x7, PAL I 0x10,
+		   PAL DK 0xe0, no bug.
 		if (l->videostd_set & ts->videostd_set)
 			fprintf (stderr, "WARNING: TVENG: Video standard "
 				 "set collision between %s (0x%llx) "
 				 "and %s (0x%llx)\n",
 				 l->label, l->videostd_set,
 				 ts->label, videostd_set);
+		*/
+
 		list = &l->_next;
 	}
 
