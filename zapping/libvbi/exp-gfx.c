@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.48 2005-01-19 04:14:12 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.49 2005-01-31 07:11:09 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -332,7 +332,7 @@ line_doubler			(void *			buffer,
 	}
 
 #else
-#error unknown endianess
+#  error unknown endianess
 #endif
 
 #define RGBA_CONV1(r, g, b, a)						\
@@ -769,6 +769,10 @@ vbi3_page_draw_caption_region_va_list
 	unsigned int size;
 	unsigned int row_adv;
 
+	assert (NULL != pg);
+	assert (NULL != buffer);
+	assert (NULL != format);
+
 	if (0) {
 		unsigned int i, j;
 
@@ -1126,6 +1130,10 @@ vbi3_page_draw_teletext_region_va_list
 	unsigned int bytes_per_line;
 	unsigned int size;
 	unsigned int row_adv;
+
+	assert (NULL != pg);
+	assert (NULL != buffer);
+	assert (NULL != format);
 
 	if (0) {
 		unsigned int i, j;
@@ -1580,7 +1588,7 @@ export_ppm			(vbi3_export *		e,
 				 pg->columns, /* rows */ 1,
 				 /* options: */
 				 VBI3_REVEAL, e->reveal,
-				 0);
+				 VBI3_END);
 
 		assert (success);
 
