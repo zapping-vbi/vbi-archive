@@ -40,6 +40,10 @@ mm_support(void)
 	register int rval = 0;
 
 	__asm__ __volatile__ (
+		"pushl %%ebx\n\t"
+		"pushl %%ecx\n\t"
+		"pushl %%edx\n\t"
+
 		/* See if CPUID instruction is supported ... */
 		/* ... Get copies of EFLAGS into eax and ecx */
 		"pushf\n\t"
@@ -117,10 +121,10 @@ mm_support(void)
 		"jz NotSupported5\n\t"		/* MMX not supported */
 		"testl $0x01000000, %%eax\n\t"	/* Test for Ext'd MMX */
 		"jnz EMMXSupported\n\t"
-		"movl $1, %0:\n\n\t"		/* MMX Supported */
+		"movl $1, %0\n\n\t"		/* MMX Supported */
 		"jmp Return\n\n"
 		"EMMXSupported:\n\t"
-		"movl $3, %0:\n\n\t"		/* EMMX and MMX Supported */
+		"movl $3, %0\n\n\t"		/* EMMX and MMX Supported */
 		"jmp Return\n\t"
 
 
@@ -140,10 +144,10 @@ mm_support(void)
 		"jz NotSupported6\n\t"		/* MMX not supported */
 		"testl $0x80000000, %%edx\n\t"	/* Test for 3DNow! */
 		"jnz ThreeDNowSupported\n\t"
-		"movl $1, %0:\n\n\t"		/* MMX Supported */
+		"movl $1, %0\n\n\t"		/* MMX Supported */
 		"jmp Return\n\n"
 		"ThreeDNowSupported:\n\t"
-		"movl $5, %0:\n\n\t"		/* 3DNow! and MMX Supported */
+		"movl $5, %0\n\n\t"		/* 3DNow! and MMX Supported */
 		"jmp Return\n\t"
 
 
@@ -156,7 +160,7 @@ mm_support(void)
 		"cpuid\n\t"
 		"testl $0x00800000, %%edx\n\t"	/* Test for MMX */
 		"jz NotSupported7\n\t"		/* MMX Not supported */
-		"movl $1, %0:\n\n\t"		/* MMX Supported */
+		"movl $1, %0\n\n\t"		/* MMX Supported */
 		"jmp Return\n\t"
 
 		/* Nothing supported */
@@ -174,12 +178,15 @@ mm_support(void)
 		"#movl $106, %0:\n\n\t"
 		"\nNotSupported7:\n\t"
 		"#movl $107, %0:\n\n\t"
-		"movl $0, %0:\n\n\t"
+		"movl $0, %0\n\n\t"
+
+		"popl %%edx\n\t"
+		"popl %%ecx\n\t"
+		"popl %%ebx\n\t"
 
 		"Return:\n\t"
 		: "=a" (rval)
-		: /* no input */
-		: "eax", "ebx", "ecx", "edx"
+		/* no input, no scratch */
 	);
 
 	/* Return */
