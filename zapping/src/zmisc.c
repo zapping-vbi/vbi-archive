@@ -138,7 +138,7 @@ static gboolean			tooltips_enabled = TRUE;
 
 static void
 tooltips_destroy_notify		(gpointer	data,
-				 GObject	*where_the_object_was)
+				 GObject	*where_the_object_was _unused_)
 {
   g_list_remove (tooltips_list, data);
 }
@@ -258,48 +258,49 @@ z_set_window_bg			(GtkWidget *		widget,
 int
 zmisc_restore_previous_mode(tveng_device_info * info)
 {
-  return zmisc_switch_mode(zcg_int(NULL, "previous_mode"), info);
+  display_mode dmode;
+  capture_mode cmode;
+
+  from_old_tveng_capture_mode (&dmode, &cmode,
+			       zcg_int(NULL, "previous_mode"));
+
+  return zmisc_switch_mode(dmode, cmode, info);
 }
 
 void
 zmisc_stop (tveng_device_info *info)
 {
-  if (TVENG_NO_CAPTURE == info->current_mode)
+  if (CAPTURE_MODE_NONE == info->capture_mode)
     return;
 
   /* Stop current capture mode */
-  switch (info->current_mode)
+  switch (((int) zapping->display_mode) | (int) info->capture_mode)
     {
-    case TVENG_CAPTURE_PREVIEW:
-      /* overlay fullscreen */
+    case DISPLAY_MODE_FULLSCREEN | CAPTURE_MODE_OVERLAY:
       stop_fullscreen (info);
       break;
 
-    case TVENG_CAPTURE_READ:
-      /* capture windowed */
+    case DISPLAY_MODE_WINDOW | CAPTURE_MODE_READ:
+    case CAPTURE_MODE_READ:
       capture_stop();
       video_uninit ();
       tveng_stop_capturing(info);
       break;
 
-    case TVENG_CAPTURE_WINDOW:
-      /* overlay windowed */
+    case DISPLAY_MODE_WINDOW | CAPTURE_MODE_OVERLAY:
       stop_overlay ();
       break;
 
-    case TVENG_TELETEXT:
+    case DISPLAY_MODE_WINDOW | CAPTURE_MODE_TELETEXT:
 #ifdef HAVE_LIBZVBI
       /* teletext in main window */
-      ttxview_detach (main_window);
+      if (1)
+	ttxview_detach (GTK_WIDGET (zapping));
 #endif
-      info->current_mode = TVENG_NO_CAPTURE;
-      break;
-
-    case TVENG_NO_CAPTURE:
+      info->capture_mode = CAPTURE_MODE_NONE;
       break;
 
     default:
-      g_assert_not_reached ();
       break;
     }
 
@@ -308,7 +309,8 @@ zmisc_stop (tveng_device_info *info)
 
     CLEAR (color);
 
-    z_set_window_bg (lookup_widget (main_window, "tv-screen"), &color);
+    z_set_window_bg (lookup_widget (GTK_WIDGET (zapping),
+				    "tv-screen"), &color);
   }
 }
 
@@ -321,29 +323,30 @@ zmisc_stop (tveng_device_info *info)
   too, so no need to aknowledge it to the user.
 */
 int
-zmisc_switch_mode(enum tveng_capture_mode new_mode,
+zmisc_switch_mode(display_mode new_dmode,
+		  capture_mode new_cmode,
 		  tveng_device_info * info)
 {
   GtkWidget * tv_screen;
   int return_value = 0;
   gint x, y, w, h;
-  tv_pixfmt pixfmt;
   gchar * old_input = NULL;
   gchar * old_standard = NULL;
-  enum tveng_capture_mode mode;
+  display_mode old_dmode;
+  capture_mode old_cmode;
   extern int disable_overlay;
   gint muted;
 
   g_assert(info != NULL);
-  g_assert(main_window != NULL);
-  tv_screen = lookup_widget(main_window, "tv-screen");
+  tv_screen = lookup_widget(GTK_WIDGET (zapping), "tv-screen");
   g_assert(tv_screen != NULL);
 
-  if (info->current_mode == new_mode)
-    switch (new_mode)
+  if (zapping->display_mode == new_dmode
+      && info->capture_mode == new_cmode)
+    switch (new_cmode)
       {
-      case TVENG_TELETEXT:
-      case TVENG_NO_CAPTURE:
+      case CAPTURE_MODE_NONE:
+      case CAPTURE_MODE_TELETEXT:
 	break;
       default:
 	x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE);
@@ -366,20 +369,22 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   /* Always: if ((avoid_noise = zcg_bool (NULL, "avoid_noise"))) */
     tv_quiet_set (main_info, TRUE);
 #else
-  muted = tv_mute_get (main_info, FALSE);
+  muted = tv_mute_get (zapping->info, FALSE);
 #endif
 
-  mode = info->current_mode;
+  old_dmode = zapping->display_mode;
+  old_cmode = info->capture_mode;
 
   zmisc_stop (info);
 
 #ifdef HAVE_LIBZVBI
   if (!flag_exit_program)
     {
-      GtkWidget *toolbar = lookup_widget (main_window, "toolbar1");
-      GtkWidget *button = lookup_widget (main_window, "toolbar-teletext");
+      GtkWidget *toolbar = lookup_widget (GTK_WIDGET (zapping), "toolbar1");
+      GtkWidget *button = lookup_widget (GTK_WIDGET (zapping),
+					 "toolbar-teletext");
 
-      if (new_mode == TVENG_TELETEXT)
+      if (new_cmode == CAPTURE_MODE_TELETEXT)
 	{
 	  gtk_container_remove (GTK_CONTAINER (toolbar), button);
 	  button = gtk_toolbar_insert_stock (GTK_TOOLBAR (toolbar),
@@ -388,9 +393,9 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 					     G_CALLBACK (on_python_command1),
 					     "zapping.toggle_mode()",
 					     5);
-	  register_widget (main_window, button, "toolbar-teletext");
+	  register_widget (GTK_WIDGET (zapping), button, "toolbar-teletext");
 	}
-      else if (mode == TVENG_TELETEXT)
+      else if (new_cmode == CAPTURE_MODE_TELETEXT)
 	{
 	  GtkWidget *appbar;
 
@@ -401,33 +406,30 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 					     G_CALLBACK (on_python_command1),
 					     "zapping.switch_mode('teletext')",
 					     5);
-	  register_widget (main_window, button, "toolbar-teletext");
+	  register_widget (GTK_WIDGET (zapping), button, "toolbar-teletext");
 
-	  appbar = lookup_widget (main_window, "appbar2");
+	  appbar = lookup_widget (GTK_WIDGET (zapping), "appbar2");
 	  gtk_widget_hide (appbar);
-	  gtk_widget_queue_resize (main_window);
+	  gtk_widget_queue_resize (GTK_WIDGET (zapping));
 	}
     }
 #endif /* HAVE_LIBZVBI */
 
-  switch (new_mode)
+  if (CAPTURE_MODE_NONE == new_cmode
+      || CAPTURE_MODE_TELETEXT == new_cmode)
     {
-    case TVENG_TELETEXT:
-    case TVENG_NO_CAPTURE:
-      python_command_printf (main_window, "zapping.closed_caption(0)");
+      python_command_printf (GTK_WIDGET (zapping), "zapping.closed_caption(0)");
       osd_clear();
       osd_unset_window();
-      break;
-    case TVENG_CAPTURE_PREVIEW:
-      break;
-    default:
+    }
+  else if (DISPLAY_MODE_WINDOW == new_dmode)
+    {
       osd_set_window(tv_screen);
-      break;
     }
 
-  switch (new_mode)
+  switch (((int) new_dmode) | (int) new_cmode)
     {
-    case TVENG_CAPTURE_READ:
+    case DISPLAY_MODE_WINDOW | CAPTURE_MODE_READ:
       if (info->attach_mode == TVENG_ATTACH_VBI ||
 	  info->attach_mode == TVENG_ATTACH_CONTROL ||
 	  info->current_controller == TVENG_CONTROLLER_XV ||
@@ -436,10 +438,12 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	  if (info->current_controller != TVENG_CONTROLLER_NONE)
 	    tveng_close_device(info);
 	  if (-1 == tveng_attach_device(zcg_char(NULL, "video_device"),
+					GDK_WINDOW_XID (tv_screen->window),
 					TVENG_ATTACH_READ, info))
 	    {
 	      /* Try restoring as XVideo, error ignored. */
 	      tveng_attach_device (zcg_char(NULL, "video_device"),
+				   GDK_WINDOW_XID (tv_screen->window),
 				   TVENG_ATTACH_XV, info);
 
 	      ShowBox("Capture mode not available:\n%s",
@@ -450,7 +454,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	}
 
       /* XXX error? */
-      tveng_set_capture_size(w, h, info);
+      tveng_set_capture_size((guint)w, (guint)h, info);
       return_value = capture_start(info);
       video_init (tv_screen, tv_screen->style->black_gc);
       video_suggest_format ();
@@ -459,129 +463,46 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
       z_video_blank_cursor (Z_VIDEO (tv_screen), BLANK_CURSOR_TIMEOUT);
       break;
 
-    case TVENG_CAPTURE_WINDOW:
+    case DISPLAY_MODE_WINDOW | CAPTURE_MODE_OVERLAY:
       if (disable_preview || disable_overlay) {
 	ShowBox("preview has been disabled", GTK_MESSAGE_WARNING);
 	goto failure;
       }
 
-      if (info->attach_mode == TVENG_ATTACH_VBI ||
-	  info->attach_mode == TVENG_ATTACH_CONTROL ||
-	  (info->current_controller != TVENG_CONTROLLER_XV &&
-	   xv_present))
-	{
-	  tveng_close_device(info);
-	  if (-1 == tveng_attach_device(zcg_char(NULL, "video_device"),
-					TVENG_ATTACH_XV, info))
-	    {
-	      ShowBox("Overlay mode not available:\n%s",
-		      GTK_MESSAGE_ERROR, info->error);
-	      goto failure;
-	    }
-	}
-
-      if (info->current_controller != TVENG_CONTROLLER_XV)
-	{
-	  tv_overlay_buffer dma;
-
-	  if (!tv_get_overlay_buffer (info, &dma))
-	    {
-	      ShowBox(_("Preview will not work: %s"),
-		      GTK_MESSAGE_ERROR, info->error);
-	      goto failure;
-	    }
-	}
-
-      pixfmt = dga_param.format.pixfmt;
-
-      if ((pixfmt != TV_PIXFMT_UNKNOWN) &&
-	  (info->current_controller != TVENG_CONTROLLER_XV))
-	{
-	  info->format.pixfmt = pixfmt;
-
-	  if ((tveng_set_capture_format(info) == -1) ||
-	      (info->format.pixfmt != pixfmt))
-	    {
-	      g_warning("Preview format invalid: %s (%d, %d)", info->error,
-			info->format.pixfmt, pixfmt);
-	      goto failure;
-	    }
-
-	  printv("prev: setting %d, got %d\n", pixfmt,
-		 info->format.pixfmt);
-	}
-
-      if ((x + w) <= 0 || (y + h) <= 0)
-	goto oops;
-
-      if (start_overlay (main_window, tv_screen, info))
+      if (start_overlay (GTK_WIDGET (zapping), tv_screen, info))
 	{
 	  x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE);
           z_video_blank_cursor (Z_VIDEO (tv_screen), BLANK_CURSOR_TIMEOUT);
 	}
       else
 	{
-	  ShowBox(_("Cannot start video overlay.\n%s"),
-		  GTK_MESSAGE_ERROR, info->error);
-	oops:
+	  ShowBox (_("Cannot start video overlay.\n%s"),
+		   GTK_MESSAGE_ERROR, info->error);
 	  zmisc_stop (info);
 	  goto failure;
 	}
       break;
 
-    case TVENG_CAPTURE_PREVIEW:
+    case DISPLAY_MODE_FULLSCREEN | CAPTURE_MODE_OVERLAY:
       if (disable_preview || disable_overlay) {
-	ShowBox("preview has been disabled", GTK_MESSAGE_WARNING);
+	ShowBox ("Preview has been disabled", GTK_MESSAGE_WARNING);
 	goto failure;
       }
 
-      if (info->attach_mode == TVENG_ATTACH_VBI ||
-	  info->attach_mode == TVENG_ATTACH_CONTROL ||
-	  (info->current_controller != TVENG_CONTROLLER_XV &&
-	   xv_present))
+      if (start_fullscreen (info))
 	{
-	  tveng_close_device(info);
-
-	  if (-1 == tveng_attach_device(zcg_char(NULL, "video_device"),
-					TVENG_ATTACH_XV, info))
-	    {
-	      ShowBox("Overlay mode not available:\n%s",
-		      GTK_MESSAGE_ERROR, info->error);
-	      goto failure;
-	    }
+	  x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE);
 	}
-
-      pixfmt = dga_param.format.pixfmt;
-
-      if ((pixfmt != TV_PIXFMT_UNKNOWN) &&
-	  (info->current_controller != TVENG_CONTROLLER_XV))
-	{
-	  info->format.pixfmt = pixfmt;
-
-	  if ((tveng_set_capture_format(info) == -1) ||
-	      (info->format.pixfmt != pixfmt))
-	    g_warning("Fullscreen format invalid: %s (%d, %d)", info->error,
-		      info->format.pixfmt, pixfmt);
-	  printv("fulls: setting %d, got %d\n", pixfmt,
-		 info->format.pixfmt);
-	}
-
-      if (!start_fullscreen (info))
+      else
 	{
 	  ShowBox (_("Cannot start fullscreen overlay.\n%s"),
 		   GTK_MESSAGE_ERROR, info->error);
-
 	  zmisc_stop (info);
 	  goto failure;
 	}
-      else
-	{
-	  x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE);
-          z_video_blank_cursor (Z_VIDEO (tv_screen), BLANK_CURSOR_TIMEOUT);
-	}
       break;
 
-    case TVENG_TELETEXT:
+    case DISPLAY_MODE_WINDOW | CAPTURE_MODE_TELETEXT:
       x11_screensaver_set (X11_SCREENSAVER_ON);
       z_video_blank_cursor (Z_VIDEO (tv_screen), 0);
 
@@ -591,6 +512,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	  if (info->current_controller != TVENG_CONTROLLER_NONE)
 	    tveng_close_device (info);
 	  if (-1 == tveng_attach_device (zcg_char (NULL, "video_device"),
+					GDK_WINDOW_XWINDOW (tv_screen->window),
 					 TVENG_ATTACH_VBI, info))
 	    {
 	      ShowBox ("Teletext mode not available.",
@@ -600,15 +522,19 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 
 	  /* start vbi code */
 
-	  gtk_widget_show (lookup_widget (main_window, "appbar2"));
-	  gtk_widget_queue_resize (main_window);
+	  gtk_widget_show (lookup_widget (GTK_WIDGET (zapping), "appbar2"));
+	  gtk_widget_queue_resize (GTK_WIDGET (zapping));
 
-	  ttxview_attach (main_window,
-			  lookup_widget (main_window, "tv-screen"),
-			  lookup_widget (main_window, "toolbar1"),
-			  lookup_widget (main_window, "appbar2"));
+	  if (1)
+	    {
+	      ttxview_attach (GTK_WIDGET (zapping),
+			       lookup_widget (GTK_WIDGET (zapping), "tv-screen"),
+			       lookup_widget (GTK_WIDGET (zapping), "toolbar1"),
+			       lookup_widget (GTK_WIDGET (zapping), "appbar2"));
 
-	  info->current_mode = TVENG_TELETEXT;
+	      zapping->display_mode = DISPLAY_MODE_WINDOW;
+	      info->capture_mode = CAPTURE_MODE_TELETEXT;
+	    }
 	}
       else
 #endif
@@ -645,8 +571,17 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   g_free (old_input);
   g_free (old_standard);
 
-  if (mode != new_mode)
-    zcs_int(mode, "previous_mode");
+  if (old_cmode != new_cmode
+      || old_dmode != new_dmode)
+    {
+      zapping->display_mode = new_dmode;
+
+      zcs_int ((int) to_old_tveng_capture_mode (new_dmode, new_cmode),
+	       "previous_mode");
+
+      last_dmode = old_dmode;
+      last_cmode = old_cmode;
+    }
 
   /* Update the standards, channels, etc */
   zmodel_changed(z_input_model);
@@ -656,17 +591,17 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 #if 0
   /* XXX don't reset when we're in shutdown, see cmd.c/py_quit(). */
   if (avoid_noise && !flag_exit_program)
-    reset_quiet (main_info, /* delay ms */ 300);
+    reset_quiet (zapping->info, /* delay ms */ 300);
 #else
   if (muted != -1)
-    tv_mute_set (main_info, muted);
+    tv_mute_set (zapping->info, muted);
 #endif
 
   /* Update the controls window if it's open */
   update_control_box(info);
 
   /* Find optimum size for widgets */
-  gtk_widget_queue_resize(main_window);
+  gtk_widget_queue_resize(GTK_WIDGET (zapping));
 
   return return_value;
 
@@ -820,7 +755,7 @@ z_option_menu_get_active	(GtkWidget	*option_menu)
 
 void
 z_option_menu_set_active	(GtkWidget	*option_menu,
-				 gint		index)
+				 guint		index)
 {
   gtk_option_menu_set_history(GTK_OPTION_MENU(option_menu), index);
 }
@@ -862,7 +797,7 @@ static void
 appbar_hide(GtkWidget *appbar)
 {
   gtk_widget_hide(appbar);
-  gtk_widget_queue_resize(main_window);
+  gtk_widget_queue_resize(GTK_WIDGET (zapping));
 }
 
 static void
@@ -893,11 +828,11 @@ static guint 		status_hide_timeout_id 		= 0;
 static gboolean		status_hide			= FALSE;
 
 static gint
-status_hide_timeout		(void *			ignored)
+status_hide_timeout		(void *			ignored _unused_)
 {
   GtkWidget *appbar2;
 
-  appbar2 = lookup_widget (main_window, "appbar2");
+  appbar2 = lookup_widget (GTK_WIDGET (zapping), "appbar2");
 
   if (status_hide)
     {
@@ -912,7 +847,7 @@ status_hide_timeout		(void *			ignored)
       gtk_label_set_text (GTK_LABEL (status), "");
     }
 
-  status_hide_timeout_id = 0;
+  status_hide_timeout_id = NO_SOURCE_ID;
 
   return FALSE; /* Do not call me again */
 }
@@ -926,7 +861,7 @@ z_status_print			(const gchar *		message,
   GtkWidget *appbar2;
   GtkWidget *status;
 
-  appbar2 = lookup_widget (main_window, "appbar2");
+  appbar2 = lookup_widget (GTK_WIDGET (zapping), "appbar2");
   status = gnome_appbar_get_status (GNOME_APPBAR (appbar2));
 
   add_hide (appbar2);
@@ -947,14 +882,14 @@ z_status_print			(const gchar *		message,
     status_hide_timeout_id =
       g_timeout_add (timeout, (GSourceFunc) status_hide_timeout, NULL);
   else
-    status_hide_timeout_id = 0;
+    status_hide_timeout_id = NO_SOURCE_ID;
 }
 
 /* FIXME: [Hide] button */
 void z_status_set_widget(GtkWidget * widget)
 {
   GtkWidget *appbar2 =
-    lookup_widget(main_window, "appbar2");
+    lookup_widget(GTK_WIDGET (zapping), "appbar2");
   GtkWidget *old =
     g_object_get_data(G_OBJECT(appbar2), "old_widget");
 
@@ -977,7 +912,7 @@ z_build_path(const gchar *path, gchar **error_description)
 {
   struct stat sb;
   gchar *b;
-  gint i;
+  guint i;
 
   if (!path || *path != '/')
     {
@@ -1046,7 +981,7 @@ z_replace_filename_extension	(const gchar *		filename,
 				 const gchar *		new_ext)
 {
   const gchar *ext;
-  gint len;
+  guint len;
 
   if (!filename)
     return NULL;
@@ -1083,7 +1018,8 @@ append_text			(GtkEditable *		e,
   old_pos = gtk_editable_get_position (e);
   new_pos = old_pos;
 
-  gtk_editable_insert_text (e, text, /* bytes */ strlen (text), &new_pos);
+  gtk_editable_insert_text (e, text,
+			    /* bytes */ (gint) strlen (text), &new_pos);
 
   /* Move cursor before appended text */
   gtk_editable_set_position (e, old_pos);
@@ -1160,7 +1096,7 @@ z_on_electric_filename		(GtkWidget *		w,
 	   && name[len - baselen - 1] != '/')
     {
       const gint end_pos = -1;
-      gchar *buf = g_strndup (name, len - baselen);
+      gchar *buf = g_strndup (name, (guint)(len - baselen));
 
       gtk_entry_set_text (GTK_ENTRY (w), buf);
 
@@ -1184,7 +1120,7 @@ z_on_electric_filename		(GtkWidget *		w,
 	   && 0 == strcmp (&name[len - baseextlen], baseext)
 	   && ext < (name + len - baseextlen))
     {
-      gchar *buf = g_strndup (name, len - baseextlen);
+      gchar *buf = g_strndup (name, (guint)(len - baseextlen));
 
       gtk_entry_set_text (GTK_ENTRY (w), buf);
 
@@ -1355,7 +1291,7 @@ z_load_pixmap			(const gchar *		name)
 GtkWindow *
 z_main_window		(void)
 {
-  return GTK_WINDOW(main_window);
+  return GTK_WINDOW(zapping);
 }
 
 gchar *
@@ -1404,7 +1340,7 @@ find_unused_name		(const gchar *		dir,
     else
       break;
 
-  name = g_strndup (file, s - file);
+  name = g_strndup (file, (guint)(s - file));
 
   if (!ext)
     ext = "";
@@ -1548,7 +1484,7 @@ z_spinslider_adjustment_changed	(GtkWidget *		hbox)
 }
 
 static void
-on_z_spinslider_hscale_changed	(GtkWidget *		widget,
+on_z_spinslider_hscale_changed	(GtkWidget *		widget _unused_,
 				 z_spinslider *		sp)
 {
   if (sp->spin_adj->value != sp->hscale_adj->value)
@@ -1556,7 +1492,7 @@ on_z_spinslider_hscale_changed	(GtkWidget *		widget,
 }
 
 static void
-on_z_spinslider_spinbutton_changed (GtkWidget *		widget,
+on_z_spinslider_spinbutton_changed (GtkWidget *		widget _unused_,
 				    z_spinslider *	sp)
 {
   if (!sp->in_reset)
@@ -1575,7 +1511,7 @@ on_z_spinslider_spinbutton_changed (GtkWidget *		widget,
 }
 
 static void
-on_z_spinslider_reset		(GtkWidget *		widget,
+on_z_spinslider_reset		(GtkWidget *		widget _unused_,
 				 z_spinslider *		sp)
 {
   gfloat current_value;
@@ -1633,7 +1569,8 @@ z_spinslider_new		(GtkAdjustment *	spin_adj,
     GtkWidget *spinbutton;
 
     spinbutton = gtk_spin_button_new (sp->spin_adj,
-				      sp->spin_adj->step_increment, digits);
+				      sp->spin_adj->step_increment,
+				      (guint) digits);
     gtk_widget_show (spinbutton);
     /* I don't see how to set "as much as needed", so hacking this up */
     gtk_widget_set_size_request (spinbutton, 80, -1);
@@ -1754,7 +1691,7 @@ z_device_entry_destroy		(gpointer		data)
 {
   z_device_entry *de = data;
 
-  if (de->timeout != ~0)
+  if (de->timeout != NO_SOURCE_ID)
     gtk_timeout_remove (de->timeout);
 
   tv_device_node_delete_list (&de->list);
@@ -1818,14 +1755,14 @@ z_device_entry_select		(z_device_entry *	de,
 
 static GtkWidget *
 z_device_entry_label_new	(const char *		text,
-				 guint			padding)
+				 gint			padding)
 {
   GtkWidget *label;
 
   label = gtk_label_new (text);
   gtk_widget_show (label);
   gtk_label_set_justify (GTK_LABEL (label), GTK_JUSTIFY_LEFT);
-  gtk_misc_set_alignment (GTK_MISC (label), 0, 0.5);
+  gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label), padding, padding);
 
   return label;
@@ -1917,10 +1854,10 @@ on_z_device_entry_changed	(GtkEntry *		entry,
   tv_device_node *n;
   const gchar *s;
 
-  if (de->timeout != ~0)
+  if (de->timeout != NO_SOURCE_ID)
     {
       gtk_timeout_remove (de->timeout);
-      de->timeout = ~0;
+      de->timeout = NO_SOURCE_ID;
     }
 
   s = gtk_entry_get_text (entry);
@@ -1947,7 +1884,7 @@ on_z_device_entry_changed	(GtkEntry *		entry,
 
 static void
 z_device_entry_table_pair	(z_device_entry *	de,
-				 gint			row,
+				 guint			row,
 				 const char *		label,
 				 GtkWidget *		crank)
 {
@@ -1979,7 +1916,7 @@ z_device_entry_new		(const gchar *		prompt,
   de->select_fn = select_fn;
   de->user_data = user_data;
 
-  de->timeout = ~0;
+  de->timeout = NO_SOURCE_ID;
 
   de->table = gtk_table_new (3, 2, FALSE);
   gtk_widget_show (de->table);
@@ -2028,7 +1965,7 @@ z_widget_add_accelerator	(GtkWidget	*widget,
   if (!accel_group)
     {
       accel_group = gtk_accel_group_new();
-      gtk_window_add_accel_group(GTK_WINDOW(main_window),
+      gtk_window_add_accel_group(GTK_WINDOW(zapping),
 				 accel_group);
     }
 
@@ -2304,4 +2241,100 @@ z_tree_view_remove_selected	(GtkTreeView *		tree_view,
 	  gtk_tree_path_free (path);
 	}
     }
+}
+
+void
+from_old_tveng_capture_mode	(display_mode *		dmode,
+				 capture_mode *		cmode,
+				 enum old_tveng_capture_mode mode)
+{
+  switch (mode)
+    {
+    case OLD_TVENG_NO_CAPTURE:
+      break;
+
+    case OLD_TVENG_CAPTURE_READ:
+      *dmode = DISPLAY_MODE_WINDOW;
+      *cmode = CAPTURE_MODE_READ;
+      return;
+
+    case OLD_TVENG_CAPTURE_PREVIEW:
+      *dmode = DISPLAY_MODE_FULLSCREEN;
+      *cmode = CAPTURE_MODE_OVERLAY;
+      return;
+
+    case OLD_TVENG_CAPTURE_WINDOW:
+      *dmode = DISPLAY_MODE_WINDOW;
+      *cmode = CAPTURE_MODE_OVERLAY;
+      return;
+
+    case OLD_TVENG_TELETEXT:
+      *dmode = DISPLAY_MODE_WINDOW;
+      *cmode = CAPTURE_MODE_TELETEXT;
+      return;
+    }
+
+  *dmode = DISPLAY_MODE_NONE;
+  *cmode = CAPTURE_MODE_NONE;
+}
+
+enum old_tveng_capture_mode
+to_old_tveng_capture_mode	(display_mode 		dmode,
+				 capture_mode 		cmode)
+{
+  enum old_tveng_capture_mode mode;
+
+  mode = OLD_TVENG_NO_CAPTURE;
+
+  switch (dmode)
+    {
+    case DISPLAY_MODE_NONE:
+    case DISPLAY_MODE_BACKGROUND:
+      mode = OLD_TVENG_NO_CAPTURE; break;
+    case DISPLAY_MODE_WINDOW:
+      switch (cmode)
+	{
+	case CAPTURE_MODE_NONE:
+	  mode = OLD_TVENG_NO_CAPTURE; break;
+	case CAPTURE_MODE_READ:
+	  mode = OLD_TVENG_CAPTURE_READ; break;
+	case CAPTURE_MODE_OVERLAY:
+	  mode = OLD_TVENG_CAPTURE_WINDOW; break;
+	case CAPTURE_MODE_TELETEXT:
+	  mode = OLD_TVENG_TELETEXT; break;
+	}
+      break;
+    case DISPLAY_MODE_FULLSCREEN:
+      switch (cmode)
+	{
+	case CAPTURE_MODE_NONE:
+	case CAPTURE_MODE_READ:
+	case CAPTURE_MODE_TELETEXT:
+	  mode = OLD_TVENG_NO_CAPTURE; break;
+	case CAPTURE_MODE_OVERLAY:
+	  mode = OLD_TVENG_CAPTURE_PREVIEW; break;
+	}
+      break;
+    }
+
+  return mode;
+}
+
+gboolean
+z_set_overlay_buffer		(tveng_device_info *	info,
+				 const tv_screen *	screen,
+				 const GdkWindow *	window)
+{
+#if 0 /* Gtk 2.2 */
+  GdkDisplay *display;
+  const gchar *display_name;
+
+  display = gdk_drawable_get_display (window);
+  display_name = gdk_display_get_name (display);
+#endif
+
+  return tv_set_overlay_buffer (info,
+				x11_display_name (),
+				screen->screen_number,
+				&screen->target);
 }
