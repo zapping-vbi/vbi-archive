@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.15 2002-04-12 03:12:50 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.16 2002-04-27 05:34:41 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -126,6 +126,9 @@ timestamp2(buffer *b)
 	double now = current_time();
 
 	if (cap_time > 0) {
+#if 1
+		cap_time += tfmem.ref;
+#else
 		double dt = now - cap_time;
 
 		dt_acc += (dt - dt_acc) * 0.1;
@@ -146,6 +149,7 @@ timestamp2(buffer *b)
 #if 0
 		printv(0, "now %f dt %+f dta %+f err %+f t/b %+f\n",
 		       now, dt, dt_acc, tfmem.err, tfmem.ref);
+#endif
 #endif
 	} else {
 		cap_time = now;

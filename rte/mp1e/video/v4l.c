@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.20 2002-04-12 03:12:50 mschimek Exp $ */
+/* $Id: v4l.c,v 1.21 2002-04-27 05:34:41 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -54,6 +54,8 @@ static struct video_mmap	gb_buf;
 static struct video_mbuf	gb_buffers;
 static unsigned char *		video_buf;
 
+extern int			test_mode;
+
 #define IOCTL(fd, cmd, data) (TEMP_FAILURE_RETRY(ioctl(fd, cmd, data)))
 #define CLEAR(var) (memset((var), 0, sizeof(*(var))))
 
@@ -65,6 +67,7 @@ timestamp2(buffer *b)
 	double now = current_time();
 
 	if (cap_time > 0) {
+if (test_mode & 256) {
 		double dt = now - cap_time;
 
 		dt_acc += (dt - dt_acc) * 0.1;
@@ -85,6 +88,9 @@ timestamp2(buffer *b)
 		printv(0, "now %f dt %+f dta %+f err %+f t/b %+f\n",
 		       now, dt, dt_acc, tfmem.err, tfmem.ref);
 #endif
+} else {
+		cap_time += tfmem.ref;
+}
 	} else {
 		cap_time = now;
 		dt_acc = tfmem.ref;
