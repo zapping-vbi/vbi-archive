@@ -20,8 +20,8 @@
 #define FULLSCREEN_H
 
 gboolean
-start_fullscreen		(tveng_device_info *	info);
+start_fullscreen		(void);
 extern void
-stop_fullscreen			(tveng_device_info *	info);
+stop_fullscreen			(void);
 
 #endif /* FULLSCREEN_H */

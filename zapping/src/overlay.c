@@ -654,37 +654,31 @@ stop_overlay			(void)
 }
 
 gboolean
-start_overlay			(GtkWidget *		main_window,
-				 GtkWidget *		video_window,
-				 tveng_device_info *	info)
+start_overlay			(void)
 {
   GdkEventMask mask;
 
-  tv_info.main_window		= main_window;
-  tv_info.video_window		= video_window;
+  tv_info.main_window = GTK_WIDGET (zapping);
+  tv_info.video_window = GTK_WIDGET (zapping->video);
 
   /* XXX no const limit please */
-  z_video_set_max_size (Z_VIDEO (video_window), 768, 576);
+  z_video_set_max_size (zapping->video, 768, 576);
 
-  tv_info.info			= info;
+  tv_info.info = zapping->info;
 
-  gdk_window_get_origin (main_window->window,
-			 &tv_info.mw_x,
-			 &tv_info.mw_y);
+  gdk_window_get_origin (GTK_WIDGET (zapping)->window,
+			 &tv_info.mw_x, &tv_info.mw_y);
 
-  gdk_window_get_geometry (video_window->window,
-			   &tv_info.vw_x,
-			   &tv_info.vw_y,
-			   &tv_info.vw_width,
-			   &tv_info.vw_height,
+  gdk_window_get_geometry (GTK_WIDGET (zapping->video)->window,
+			   &tv_info.vw_x, &tv_info.vw_y,
+			   &tv_info.vw_width, &tv_info.vw_height,
 			   /* depth */ NULL);
 
-  tv_info.screen =
-    tv_screen_list_find (screens,
-			     tv_info.mw_x + tv_info.vw_x,
-			     tv_info.mw_y + tv_info.vw_y,
-			     (guint) tv_info.vw_width,
-			     (guint) tv_info.vw_height);
+  tv_info.screen = tv_screen_list_find (screens,
+					tv_info.mw_x + tv_info.vw_x,
+					tv_info.mw_y + tv_info.vw_y,
+					(guint) tv_info.vw_width,
+					(guint) tv_info.vw_height);
   if (!tv_info.screen)
     tv_info.screen = screens;
 
@@ -701,22 +695,23 @@ start_overlay			(GtkWidget *		main_window,
 
   /* Make sure we use an Xv adaptor which can render into da->window.
      (Won't help with X.org but it's the right thing to do.) */
-  tveng_close_device(info);
-  if (-1 == tveng_attach_device (zcg_char (NULL, "video_device"),
-				 GDK_WINDOW_XWINDOW (video_window->window),
-				 TVENG_ATTACH_XV, info))
+  tveng_close_device(zapping->info);
+  if (-1 == tveng_attach_device
+      (zcg_char (NULL, "video_device"),
+       GDK_WINDOW_XWINDOW (GTK_WIDGET (zapping->video)->window),
+       TVENG_ATTACH_XV, zapping->info))
     {
       ShowBox("Overlay mode not available:\n%s",
-	      GTK_MESSAGE_ERROR, info->error);
+	      GTK_MESSAGE_ERROR, zapping->info->error);
       goto failure;
     }
 
   tv_info.needs_cleaning =
-    (info->current_controller != TVENG_CONTROLLER_XV);
+    (zapping->info->current_controller != TVENG_CONTROLLER_XV);
 
-  if (info->current_controller != TVENG_CONTROLLER_XV
+  if (zapping->info->current_controller != TVENG_CONTROLLER_XV
       && (OVERLAY_CHROMA_TEST
-	  || (info->caps.flags & TVENG_CAPS_CHROMAKEY)))
+	  || (zapping->info->caps.flags & TVENG_CAPS_CHROMAKEY)))
     {
       GdkColor chroma;
 
@@ -730,7 +725,7 @@ start_overlay			(GtkWidget *		main_window,
       if (gdk_colormap_alloc_color (gdk_colormap_get_system (),
 				    &chroma, FALSE, TRUE))
 	{
-	  z_set_window_bg (video_window, &chroma);
+	  z_set_window_bg (GTK_WIDGET (zapping->video), &chroma);
 
 	  /* XXX safe? (we run on 15/16/24/32 yet, but 8 bit later?) */
 	  gdk_colormap_free_colors (gdk_colormap_get_system(), &chroma, 1);
@@ -741,55 +736,56 @@ start_overlay			(GtkWidget *		main_window,
 		   GTK_MESSAGE_WARNING);
 	}
     }
-  else if (info->current_controller == TVENG_CONTROLLER_XV)
+  else if (zapping->info->current_controller == TVENG_CONTROLLER_XV)
     {
       GdkColor chroma;
 
       CLEAR (chroma);
 
-      tveng_get_chromakey (&chroma.pixel, info);
+      tveng_get_chromakey (&chroma.pixel, zapping->info);
 	 /* error ignored */
 
-      z_set_window_bg (video_window, &chroma);
+      z_set_window_bg (GTK_WIDGET (zapping->video), &chroma);
     }
 
   /* Disable double buffering just in case, will help when a
      XV driver doesn't provide XV_COLORKEY but requires the colorkey
      not to be overwritten */
-  gtk_widget_set_double_buffered (video_window, FALSE);
+  gtk_widget_set_double_buffered (GTK_WIDGET (zapping->video), FALSE);
 
-  if (TVENG_CONTROLLER_XV == info->current_controller)
+  if (TVENG_CONTROLLER_XV == zapping->info->current_controller)
     {
-      if (!tv_set_overlay_xwindow (tv_info.info,
-				   GDK_WINDOW_XWINDOW (video_window->window),
-				   GDK_GC_XGC (video_window->style->white_gc)))
+      if (!tv_set_overlay_xwindow
+	  (tv_info.info,
+	   GDK_WINDOW_XWINDOW (GTK_WIDGET (zapping->video)->window),
+	   GDK_GC_XGC (GTK_WIDGET (zapping->video)->style->white_gc)))
 	goto failure;
 
       /* Just update overlay on video_window size change. */
 
-      g_signal_connect (G_OBJECT (video_window), "event",
+      g_signal_connect (G_OBJECT (zapping->video), "event",
 			G_CALLBACK (on_video_window_event), NULL);
 
-      mask = gdk_window_get_events (video_window->window);
+      mask = gdk_window_get_events (GTK_WIDGET (zapping->video)->window);
       mask |= GDK_CONFIGURE;
-      gdk_window_set_events (video_window->window, mask);
+      gdk_window_set_events (GTK_WIDGET (zapping->video)->window, mask);
     }
   else
     {
-      if (!z_set_overlay_buffer (info,
+      if (!z_set_overlay_buffer (zapping->info,
 				 tv_info.screen,
-				 video_window->window))
+				 GTK_WIDGET (zapping->video)->window))
 	goto failure;
 
       g_signal_connect (G_OBJECT (osd_model), "changed",
 			G_CALLBACK (on_osd_model_changed), NULL);
 
-      g_signal_connect (G_OBJECT (video_window), "event",
+      g_signal_connect (G_OBJECT (zapping->video), "event",
 			G_CALLBACK (on_video_window_event), NULL);
 
-      mask = gdk_window_get_events (video_window->window);
+      mask = gdk_window_get_events (GTK_WIDGET (zapping->video)->window);
       mask |= GDK_VISIBILITY_NOTIFY_MASK | GDK_CONFIGURE | GDK_EXPOSE;
-      gdk_window_set_events (video_window->window, mask);
+      gdk_window_set_events (GTK_WIDGET (zapping->video)->window, mask);
 
       /* We must connect to main_window because the video_window
 	 GDK_CONFIGURE event notifies only about main_window relative,
@@ -797,12 +793,12 @@ start_overlay			(GtkWidget *		main_window,
          GDK_UNMAP, but no visibility event, is sent after the window
 	 was rolled up or minimized. */
 
-      g_signal_connect (G_OBJECT (main_window), "event",
+      g_signal_connect (G_OBJECT (zapping), "event",
 			G_CALLBACK (on_main_window_event), NULL);
 
-      mask = gdk_window_get_events (main_window->window);
+      mask = gdk_window_get_events (GTK_WIDGET (zapping)->window);
       mask |= GDK_UNMAP | GDK_CONFIGURE;
-      gdk_window_set_events (main_window->window, mask);
+      gdk_window_set_events (GTK_WIDGET (zapping)->window, mask);
 
       /* There is no GDK_OBSCURED event, we must monitor all child
 	 windows of the root window. E.g. drop-down menus. */
@@ -815,7 +811,7 @@ start_overlay			(GtkWidget *		main_window,
       gdk_window_set_events (tv_info.root_window, mask);
     }
 
-  g_signal_connect (G_OBJECT (main_window), "delete-event",
+  g_signal_connect (G_OBJECT (zapping), "delete-event",
 		    G_CALLBACK (on_main_window_delete_event), NULL);
 
   /* Start overlay */
@@ -837,7 +833,7 @@ start_overlay			(GtkWidget *		main_window,
     }
 
   zapping->display_mode = DISPLAY_MODE_WINDOW;
-  info->capture_mode = CAPTURE_MODE_OVERLAY;
+  zapping->info->capture_mode = CAPTURE_MODE_OVERLAY;
 
   return TRUE;
 
