@@ -1,3 +1,20 @@
+2004-12-09    <mschimek@users.sf.net>
+
+	* src/bayer.c (LOOP): Off-by-one read fix.
+	* libtv/misc.h: Added constant ffs macro for get pixel function.
+	* configure.in: Check for x86_64 since not all SWAR is portable.
+	(AC_OUTPUT): Added test/Makefile, libtv/mmx|sse|avec/Makefile.
+	* test: Added for SWAR checks.
+	* libtv/mmx: New MMX routines using gcc vector extensions.
+	* libtv/sse: New SSE routines using gcc vector extensions.
+	* libtv/image_format.c (clear_image): Added MMX and SSE optimized
+	  routines.
+	  (tv_memcpy): Added for deinterlacer, with MMX and SSE optimized
+	  versions.
+	* src/main.c, src/yuv2rgb.c: CPU detection API changed.
+	* src/cpu.h, src/cpu.c (cpu_detection): Added AMD SSE2, Centaur
+	  (now Cyrix) tests, new API.
+
 2004-12-07    <mschimek@users.sf.net>
 
 	* src/tveng25.c: Replaced tveng25_vbuf by tv_capture_buffer.

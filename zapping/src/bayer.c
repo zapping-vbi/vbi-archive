@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bayer.c,v 1.1 2004-12-02 02:46:04 mschimek Exp $ */
+/* $Id: bayer.c,v 1.2 2004-12-11 11:46:24 mschimek Exp $ */
 
 #include <inttypes.h>
 #include "bayer.h"
@@ -31,19 +31,19 @@
     /* first column */							\
     PIXEL (s[+w+1], AVG2 (s[+1],s[+w]), s[0]);				\
     /* first line */							\
-    for (hcount = w / 2 - 2; hcount > 0; --hcount) {			\
+    for (hcount = (w - 2) / 2; hcount > 0; --hcount) {			\
       PIXEL (s[+w], s[0], AVG2 (s[-1],s[+1]));				\
       PIXEL (AVG2 (s[+w-1],s[+w+1]), AVG3 (s[-1],s[+1],s[+w]), s[0]);	\
     }									\
     /* last column */							\
     PIXEL (s[+w], s[0], s[-1]);						\
 									\
-    for (vcount = h / 2 - 2; vcount > 0; --vcount) {			\
+    for (vcount = (h - 2) / 2; vcount > 0; --vcount) {			\
 									\
       /* first column */						\
       PIXEL (s[1], s[0], AVG2 (s[-w],s[+w]));				\
       /* odd line */							\
-      for (hcount = w / 2 - 2; hcount > 0; --hcount) {			\
+      for (hcount = (w - 2) / 2; hcount > 0; --hcount) {		\
 	PIXEL (s[0], AVG4 (s[-w],s[-1],s[+1],s[+w]),			\
 	       AVG4 (s[-w-1],s[-w+1],s[+w-1],s[+w+1]));			\
 	PIXEL (AVG2 (s[-1],s[+1]), s[0], AVG2 (s[-w],s[+w]));		\
@@ -54,7 +54,7 @@
       /* first column */						\
       PIXEL (AVG2 (s[-w+1],s[+w+1]), AVG3 (s[-w],s[+1],s[+w]), s[0]);	\
       /* even line */							\
-      for (hcount = w / 2 - 2; hcount > 0; --hcount) {			\
+      for (hcount = (w - 2) / 2; hcount > 0; --hcount) {		\
 	PIXEL (AVG2 (s[-w],s[+w]), s[0], AVG2 (s[-1],s[+1]));		\
 	PIXEL (AVG4 (s[-w-1],s[-w+1],s[+w-1],s[+w+1]),			\
 	       AVG4 (s[-w],s[-1],s[+1],s[+w]), s[0]);			\
@@ -66,7 +66,7 @@
     /* first column */							\
     PIXEL (s[1], s[0], s[-w]);						\
     /* last line */							\
-    for (hcount = w / 2 - 2; hcount > 0; --hcount) {			\
+    for (hcount = (w - 2) / 2; hcount > 0; --hcount) {			\
       PIXEL (s[0], AVG3 (s[-w],s[-1],s[+1]), AVG2 (s[-w-1],s[-w+1]));	\
       PIXEL (AVG2 (s[-1],s[+1]), s[0], s[-w]);				\
     }									\

@@ -17,12 +17,15 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.c,v 1.3 2004-12-07 17:30:39 mschimek Exp $ */
+/* $Id: image_format.c,v 1.4 2004-12-11 11:46:21 mschimek Exp $ */
 
 #include <string.h>		/* memset() */
 #include <assert.h>
-#include "misc.h"
+#include "src/cpu.h"
+#include "mmx/mmx.h"
+#include "sse/sse.h"
 #include "image_format.h"
+#include "misc.h"
 
 void
 _tv_image_format_dump		(const tv_image_format *format,
@@ -202,8 +205,12 @@ tv_image_format_is_valid	(const tv_image_format *format)
 }
 
 #if Z_BYTE_ORDER == Z_LITTLE_ENDIAN
+#  define SWAB16(m) (m)
 #  define SWAB32(m) (m)
 #elif Z_BYTE_ORDER == Z_BIG_ENDIAN
+#  define SWAB16(m)							\
+	(+ (((m) & 0xFF00) >> 8)					\
+	 + (((m) & 0x00FF) << 8))
 #  define SWAB32(m)							\
 	(+ (((m) & 0xFF000000) >> 24)					\
 	 + (((m) & 0x00FF0000) >> 8)					\
@@ -212,13 +219,6 @@ tv_image_format_is_valid	(const tv_image_format *format)
 #else
 #  error unknown endianess
 #endif
-
-typedef void
-clear_block_fn			(void *			d,
-				 unsigned int		value,
-				 unsigned int		width,
-				 unsigned int		height,
-				 unsigned int		bytes_per_line);
 
 static void
 clear_block1			(void *			d,
@@ -300,7 +300,7 @@ clear_block4			(void *			d,
 }
 
 static clear_block_fn *
-function_table_generic [4] = {
+clear_block_generic [4] = {
 	clear_block1,
 	NULL,
 	clear_block3,
@@ -312,8 +312,8 @@ tv_clear_image			(void *			image,
 				 const tv_image_format *format)
 {
 	const tv_pixel_format *pf;
+	clear_block_fn **clear_block;
 	tv_pixfmt_set set;
-	clear_block_fn **ftable;
 	uint8_t *data;
 
 	assert (NULL != image);
@@ -322,34 +322,54 @@ tv_clear_image			(void *			image,
 	if (!(pf = tv_pixel_format_from_pixfmt (format->pixfmt)))
 		return FALSE;
 
-	ftable = function_table_generic;
+#ifdef HAVE_ALTIVEC
+	if (0 /* UNTESTED */ &&
+	    0 == ((unsigned long) image | format->bytes_per_line) % 16)
+		clear_block = clear_block_altivec;
+	else
+#endif
+#ifdef HAVE_SSE
+	if (0 /* UNTESTED */ &&
+	    cpu_features & CPU_FEATURE_SSE)
+		clear_block = clear_block_mmx_nt;
+	else
+#endif
+#ifdef HAVE_MMX
+	if (cpu_features & CPU_FEATURE_MMX)
+		clear_block = clear_block_mmx;
+	else
+#endif	
+		clear_block = clear_block_generic;
 
 	set = TV_PIXFMT_SET (format->pixfmt);
 
 	data = (uint8_t *) image;
 
 	if (set & TV_PIXFMT_SET_RGB) {
-		ftable[0] (data + format->offset, 0,
-			   (format->width * pf->bits_per_pixel) >> 3,
-			   format->height,
-			   format->bytes_per_line);
+		clear_block[0] (data + format->offset, 0,
+				(format->width * pf->bits_per_pixel) >> 3,
+				format->height,
+				format->bytes_per_line);
 
 		return TRUE;
 	}
 
 	if (set & TV_PIXFMT_SET_YUV_PLANAR) {
-		unsigned int uv_width = format->width >> pf->uv_hshift;
-		unsigned int uv_height = format->height >> pf->uv_vshift;
+		unsigned int uv_width;
+		unsigned int uv_height;
 
-		ftable[0] (data + format->offset, 0x00,
-			   format->width, format->height,
-			   format->bytes_per_line);
-		ftable[0] (data + format->u_offset, 0x80,
-			   uv_width, uv_height,
-			   format->uv_bytes_per_line);
-		ftable[0] (data + format->v_offset, 0x80,
-			   uv_width, uv_height,
-			   format->uv_bytes_per_line);
+		uv_width = format->width >> pf->uv_hshift;
+		uv_height = format->height >> pf->uv_vshift;
+
+		clear_block[0] (data + format->offset, 0x00,
+				format->width, format->height,
+				format->bytes_per_line);
+		clear_block[0] (data + format->u_offset, 0x80,
+				uv_width, uv_height,
+				format->uv_bytes_per_line);
+		clear_block[0] (data + format->v_offset, 0x80,
+				uv_width, uv_height,
+				format->uv_bytes_per_line);
 
 		return TRUE;
 	}
@@ -364,45 +384,53 @@ tv_clear_image			(void *			image,
 
 	case TV_PIXFMT_YUV24_LE:
 	case TV_PIXFMT_YVU24_LE:
-		ftable[2] (data + format->offset, 0x808000,
-			   format->width, format->height,
-			   format->bytes_per_line);
+		/* Note value is always LE: 0xVVUUYY */
+		clear_block[2] (data + format->offset, 0x808000,
+				format->width, format->height,
+				format->bytes_per_line);
 		return TRUE;
 
 	case TV_PIXFMT_YUV24_BE:
 	case TV_PIXFMT_YVU24_BE:
-		ftable[2] (data + format->offset, 0x008080,
-			   format->width, format->height,
-			   format->bytes_per_line);
+		/* Note value is always LE: 0xYYUUVV */
+		clear_block[2] (data + format->offset, 0x008080,
+				format->width, format->height,
+				format->bytes_per_line);
 		return TRUE;
 
 	case TV_PIXFMT_YUVA32_LE:
 	case TV_PIXFMT_YUVA32_BE:
 	case TV_PIXFMT_YVUA32_LE:
 	case TV_PIXFMT_YVUA32_BE:
-		ftable[3] (data + format->offset, 0x00808000,
-			   format->width, format->height,
-			   format->bytes_per_line);
+		clear_block[3] (data + format->offset, 0x00808000,
+				format->width, format->height,
+				format->bytes_per_line);
 		return TRUE;
 
 	case TV_PIXFMT_YUYV:
 	case TV_PIXFMT_YVYU:
-		ftable[3] (data + format->offset, SWAB32 (0x80008000),
-			   format->width >> 1, format->height,
-			   format->bytes_per_line);
+		if (format->width & 1)
+			return FALSE;
+
+		clear_block[3] (data + format->offset, SWAB32 (0x80008000),
+				format->width >> 1, format->height,
+				format->bytes_per_line);
 		return TRUE;
 
 	case TV_PIXFMT_UYVY:
 	case TV_PIXFMT_VYUY:
-		ftable[3] (data + format->offset, SWAB32 (0x00800080),
-			   format->width >> 1, format->height,
-			   format->bytes_per_line);
+		if (format->width & 1)
+			return FALSE;
+
+		clear_block[3] (data + format->offset, SWAB32 (0x00800080),
+				format->width >> 1, format->height,
+				format->bytes_per_line);
 		return TRUE;
 
 	case TV_PIXFMT_Y8:
-		ftable[0] (data + format->v_offset, 0x00,
-			   format->width, format->height,
-			   format->uv_bytes_per_line);
+		clear_block[0] (data + format->offset, 0x00,
+				format->width, format->height,
+				format->bytes_per_line);
 		return TRUE;
 
 	case TV_PIXFMT_YUV444:
@@ -452,4 +480,28 @@ tv_clear_image			(void *			image,
 	}
 
 	return FALSE;
+}
+
+/**
+ * Copies @a n_bytes from @a src to @a dst using vector instructions and
+ * cache bypassing loads and stores, if available. The function works faster
+ * if @a src and @a dst are multiples of 8 or 16.
+ */
+void
+tv_memcpy			(void *			dst,
+				 const void *		src,
+				 size_t			n_bytes)
+{
+#ifdef HAVE_SSE
+	if (0 /* UNTESTED */ &&
+	    cpu_features & CPU_FEATURE_SSE)
+		if (0 == ((unsigned long) dst | (unsigned long) src) % 16)
+			return memcpy_sse_nt (dst, src, n_bytes);
+#endif
+#ifdef HAVE_MMX
+	/* Is this really faster? */
+	if (cpu_features & CPU_FEATURE_MMX)
+		return memcpy_mmx (dst, src, n_bytes);
+#endif
+	memcpy (dst, src, n_bytes);
 }

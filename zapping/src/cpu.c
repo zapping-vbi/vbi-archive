@@ -1,20 +1,22 @@
-/* Zapping (TV viewer for the Gnome Desktop)
- * Copyright (C) 2001 Iñaki García Etxebarria
+/*
+ *  Copyright (C) 2004 Michael H. Schimek
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
+
+/* $Id: cpu.c,v 1.3 2004-12-11 11:46:24 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -22,6 +24,8 @@
 
 #include <string.h>
 #include "cpu.h"
+
+cpu_feature_set			cpu_features;
 
 #if #cpu (i386)
 
@@ -53,8 +57,8 @@ typedef union {
 	}			r;
 } cpuid_t;
 
-static inline int
-toggle_eflags_id(void)
+static __inline__ int
+toggle_eflags_id		(void)
 {
 	int success;
 
@@ -80,7 +84,8 @@ toggle_eflags_id(void)
 }
 
 static unsigned int
-cpuid(cpuid_t *buf, unsigned int level)
+cpuid				(cpuid_t *		buf,
+				 unsigned int		level)
 {
 	unsigned int eax;
 
@@ -106,89 +111,124 @@ cpuid(cpuid_t *buf, unsigned int level)
 	return eax;
 }
 
-/* XXX check kernel version before advertising SSE */
-
+/* Function 0x1 */
+#define INTEL_TSC	(1 << 4)
 #define INTEL_CMOV	(1 << 15)
 #define INTEL_MMX	(1 << 23)
 #define INTEL_SSE	(1 << 25)
 #define INTEL_SSE2	(1 << 26)
 
-#define AMD_MMXEXT	(1 << 22)
+/* Function 0x80000001 */
+#define AMD_MMX_EXT	(1 << 22)
 #define AMD_MMX		(1 << 23)
 #define AMD_SSE		(1 << 25)
-#define AMD_3DNOWEXT	(1 << 30)
+#define AMD_LONG_MODE	(1 << 29)
+#define AMD_3DNOW_EXT	(1 << 30)
 #define AMD_3DNOW	(1 << 31)
 
+/* Function 0x80000001 */
 #define CYRIX_MMX	(1 << 23)
-#define CYRIX_MMXEXT	(1 << 24)
+#define CYRIX_MMX_EXT	(1 << 24)
 #define CYRIX_3DNOW	(1 << 31)
 
-#define FEATURE(bits)	((c.r.edx & (bits)) == (bits))
-
-/**
- * cpu_detection:
- * 
- * Returns the CPU type as far as useful for us to know (ie. not
- * the exact brand name, model, revision, stepping, engineer's hat size).
- * Currently x86 only.
- *
- * Return value:
- * cpu_type.
- **/
-cpu_type
-cpu_detection(void)
+cpu_feature_set
+cpu_detection			(void)
 {
-	cpuid_t c;
+	cpu_features = 0;
 
-	if (!toggle_eflags_id()) {
-		return CPU_UNKNOWN;
+	if (!toggle_eflags_id ()) {
+		/* Has no CPUID. */
+	} else {
+		cpuid_t c;
+
+		cpuid (&c, 0);
+
+		if (0 == strncmp (c.s + 4, "GenuineIntel", 12)) {
+			cpuid (&c, 1);
+
+			if (c.r.edx & INTEL_TSC)
+				cpu_features |= CPU_FEATURE_TSC;
+			if (c.r.edx & INTEL_CMOV)
+				cpu_features |= CPU_FEATURE_CMOV;
+			if (c.r.edx & INTEL_MMX)
+				cpu_features |= CPU_FEATURE_MMX;
+			if (c.r.edx & INTEL_SSE)
+				cpu_features |= CPU_FEATURE_SSE;
+			if (c.r.edx & INTEL_SSE2)
+				cpu_features |= CPU_FEATURE_SSE2;
+		} else if (0 == strncmp (c.s + 4, "AuthenticAMD", 12)) {
+			cpuid (&c, 1);
+
+			if (c.r.edx & INTEL_TSC)
+				cpu_features |= CPU_FEATURE_TSC;
+			if (c.r.edx & INTEL_CMOV)
+				cpu_features |= CPU_FEATURE_CMOV;
+			if (c.r.edx & INTEL_MMX)
+				cpu_features |= CPU_FEATURE_MMX;
+			if (c.r.edx & INTEL_SSE)
+				cpu_features |= CPU_FEATURE_SSE;
+			if (c.r.edx & INTEL_SSE2)
+				cpu_features |= CPU_FEATURE_SSE2;
+
+			if (cpuid (&c, 0x80000000) > 0x80000000) {
+				cpuid (&c, 0x80000001);
+
+				if (c.r.edx & AMD_MMX_EXT)
+					cpu_features |= CPU_FEATURE_AMD_MMX;
+				if (c.r.edx & AMD_MMX)
+					cpu_features |= CPU_FEATURE_MMX;
+				if (c.r.edx & AMD_SSE)
+					cpu_features |= CPU_FEATURE_SSE;
+				if (c.r.edx & AMD_3DNOW_EXT)
+					cpu_features |= CPU_FEATURE_3DNOW_EXT;
+				if (c.r.edx & AMD_3DNOW)
+					cpu_features |= CPU_FEATURE_3DNOW;
+			}
+		} else if (0 == strncmp (c.s + 4, "CyrixInstead", 12)) {
+			if (cpuid (&c, 0x80000000) > 0x80000000) {
+				cpuid (&c, 0x80000001);
+
+				if (c.r.edx & INTEL_TSC)
+					cpu_features |= CPU_FEATURE_TSC;
+				if (c.r.edx & CYRIX_MMX)
+					cpu_features |= CPU_FEATURE_MMX;
+				if (c.r.edx & CYRIX_MMX_EXT)
+					cpu_features |= CPU_FEATURE_CYRIX_MMX;
+				if (c.r.edx & CYRIX_3DNOW)
+					cpu_features |= CPU_FEATURE_3DNOW;
+			} else {
+				cpuid (&c, 1);
+
+				if (c.r.edx & INTEL_TSC)
+					cpu_features |= CPU_FEATURE_TSC;
+				if (c.r.edx & INTEL_MMX)
+					cpu_features |= CPU_FEATURE_MMX;
+			}
+		} else if (0 == strncmp (c.s + 4, "CentaurHauls", 12)) {
+			cpuid (&c, 1);
+
+			if (c.r.edx & INTEL_TSC)
+				cpu_features |= CPU_FEATURE_TSC;
+			if (c.r.edx & INTEL_CMOV)
+				cpu_features |= CPU_FEATURE_CMOV;
+			if (c.r.edx & INTEL_MMX)
+				cpu_features |= CPU_FEATURE_MMX;
+			if (c.r.edx & INTEL_SSE)
+				cpu_features |= CPU_FEATURE_SSE;
+		}
 	}
 
-	cpuid(&c, 0);
-
-	if (!strncmp(c.s + 4, "GenuineIntel", 12)) {
-		cpuid(&c, 1);
-
-		if (FEATURE(INTEL_MMX | INTEL_CMOV | INTEL_SSE | INTEL_SSE2))
-			return CPU_PENTIUM_4;
-		if (FEATURE(INTEL_MMX | INTEL_CMOV | INTEL_SSE))
-			return CPU_PENTIUM_III;
-		if (FEATURE(INTEL_MMX | INTEL_CMOV))
-			return CPU_PENTIUM_II;
-		if (FEATURE(INTEL_MMX))
-			return CPU_PENTIUM_MMX;
-	} else if (!strncmp(c.s + 4, "AuthenticAMD", 12)) {
-		if (cpuid(&c, 0x80000000) > 0x80000000) {
-			cpuid(&c, 0x80000001);
-
-			if (FEATURE(AMD_MMX | AMD_MMXEXT | AMD_3DNOW | AMD_3DNOWEXT))
-				return CPU_ATHLON;
-			if (FEATURE(AMD_MMX | AMD_3DNOW))
-				return CPU_K6_2;
-		}
-	} else if (!strncmp(c.s + 4, "CyrixInstead", 12)) {
-		if (cpuid(&c, 0x80000000) > 0x80000000) {
-			cpuid(&c, 0x80000001);
-
-			if (FEATURE(CYRIX_MMX | CYRIX_MMXEXT | CYRIX_3DNOW))
-				return CPU_CYRIX_III;
-		} else {
-			cpuid(&c, 1);
-
-			if (FEATURE(CYRIX_MMX))
-				return CPU_CYRIX_MII;
-		}
-	}
-
-	return CPU_UNKNOWN;
+	return cpu_features;
 }
 
-#else /* !cpu x86 */
+#else /* unknown CPU */
 
-cpu_type
-cpu_detection(void)
+cpu_feature_set
+cpu_detection			(void)
 {
-	return CPU_UNKNOWN;
+	cpu_features = 0;
+
+	return cpu_features;
 }
 
-#endif /* !cpu x86 */
+#endif /* unknown CPU */

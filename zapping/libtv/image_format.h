@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.h,v 1.3 2004-12-07 17:30:39 mschimek Exp $ */
+/* $Id: image_format.h,v 1.4 2004-12-11 11:46:21 mschimek Exp $ */
 
 #ifndef __ZTV_IMAGE_FORMAT_H__
 #define __ZTV_IMAGE_FORMAT_H__
@@ -83,6 +83,10 @@ _tv_image_format_dump		(const tv_image_format *format,
 extern tv_bool
 tv_clear_image			(void *			image,
 				 const tv_image_format *format);
+extern void
+tv_memcpy			(void *			dst,
+				 const void *		src,
+				 size_t			n_bytes);
 
 TV_END_DECLS
 

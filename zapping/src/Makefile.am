@@ -5,16 +5,23 @@ EXTRA_DIST = gen_conv.s zmarshalers.list
 
 INCLUDES = -I$(top_srcdir) \
 	-D_GNU_SOURCE @DEFAULT_CFLAGS@ @COMMON_INCLUDES@ \
-	$(ZVBI_CFLAGS) $(LIBXML_CFLAGS)	@PG_CFLAGS@
+	$(ZVBI_CFLAGS) $(LIBXML_CFLAGS)	@PG_CFLAGS@ -DZAPPING8
 
 bin_PROGRAMS = zapping zapping_remote
 
 COMMON_LIB = $(top_builddir)/common/libcommon.a
 TV_LIB = $(top_builddir)/libtv/libtv.a
 
-
-if HAVE_MMX
+# Need gcc and as support for SSE to build this module.
+# Cannot build for target x86_64, code is 32 bit.
+if HAVE_X86
+if HAVE_SSE
 gen_conv_lib = libgen_conv.a
+else
+gen_conv_lib =
+endif
+else
+gen_conv_lib =
 endif
 
 noinst_LIBRARIES = $(gen_conv_lib)

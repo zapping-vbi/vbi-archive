@@ -14,4 +14,4 @@ libscreenshot_zapping_la_LIBADD = $(JPEG_LIB)
 pkgdata_DATA = screenshot.glade2
 
 INCLUDES = -I$(top_srcdir) $(COMMON_INCLUDES) \
-	$(PLUGIN_DEFAULT_FLAGS) @PG_CFLAGS@
+	$(PLUGIN_DEFAULT_FLAGS) @PG_CFLAGS@ -DZAPPING8

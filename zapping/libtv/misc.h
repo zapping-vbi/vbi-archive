@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.3 2004-10-04 02:44:26 mschimek Exp $ */
+/* $Id: misc.h,v 1.4 2004-12-11 11:46:21 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
@@ -175,6 +175,14 @@ do {									\
 
 #endif /* !__GNUC__ */
 
+/* Find first set bit in 32 bit constant, see man 3 ffs. */
+#define FFS2(m) ((m) & 0x2 ? 2 : 1)
+#define FFS4(m) ((m) & 0xC ? 2 + FFS2 ((m) >> 2) : FFS2 (m))
+#define FFS8(m) ((m) & 0xF0 ? 4 + FFS4 ((m) >> 4) : FFS4 (m))
+#define FFS16(m) ((m) & 0xFF00 ? 8 + FFS8 ((m) >> 8) : FFS8 (m))
+#define FFS32(m) ((m) & 0xFFFF0000 ? 16 + FFS16 ((m) >> 16) : FFS16 (m))
+#define FFS(m) (0 == (m) ? 0 : FFS32 (m))
+
 #undef CLAMP
 #define CLAMP(n, min, max) SATURATE (n, min, max)
 
@@ -221,5 +229,19 @@ _tv_asprintf			(char **		dstp,
 				 const char *		templ,
 				 ...);
 #endif
+
+typedef void
+clear_block_fn                  (void *                 dst,
+                                 unsigned int           value,
+                                 unsigned int           width,
+                                 unsigned int           height,
+                                 unsigned int           bytes_per_line);
+
+typedef void
+copy_block_fn                   (void *                 dst,
+                                 const void *           src,
+                                 unsigned int           width,
+                                 unsigned int           height,
+                                 unsigned int           bytes_per_line);
 
 #endif /* MISC_H */

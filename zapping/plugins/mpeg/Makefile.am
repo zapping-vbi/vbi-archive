@@ -10,7 +10,7 @@ libmpeg_zapping_la_LIBADD = $(RTE_LIB)
 pkgdata_DATA = mpeg_properties.glade2
 
 INCLUDES = -I$(top_srcdir) $(COMMON_INCLUDES) \
-	$(PLUGIN_DEFAULT_FLAGS) @PG_CFLAGS@
+	$(PLUGIN_DEFAULT_FLAGS) @PG_CFLAGS@ -DZAPPING8
 
 PIXMAPS = \
 	record.png \

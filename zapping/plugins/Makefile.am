@@ -8,8 +8,13 @@ teletext_plugin =
 endif
 
 # Need gcc and as support for MMX, SSE, SSE2 to build this module.
+# Cannot build for target x86_64, code is 32 bit.
+if HAVE_X86
 if HAVE_SSE2
 deinterlace_plugin =
+else
+deinterlace_plugin =
+endif
 else
 deinterlace_plugin =
 endif

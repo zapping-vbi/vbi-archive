@@ -16,27 +16,21 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cpu.h,v 1.2 2004-12-11 11:46:24 mschimek Exp $ */
+/* $Id: guard2.c,v 1.1 2004-12-11 11:46:25 mschimek Exp $ */
 
-#ifndef CPU_H
-#define CPU_H
+#include "guard.h"
 
-/* x86 features */
-#define CPU_FEATURE_TSC		(1 << 0)
-#define CPU_FEATURE_CMOV	(1 << 1)
-#define CPU_FEATURE_MMX		(1 << 2)
-#define CPU_FEATURE_SSE		(1 << 3)
-#define CPU_FEATURE_SSE2	(1 << 4)
-#define CPU_FEATURE_AMD_MMX	(1 << 5)
-#define CPU_FEATURE_3DNOW	(1 << 6)
-#define CPU_FEATURE_3DNOW_EXT	(1 << 7)
-#define CPU_FEATURE_CYRIX_MMX	(1 << 8)
+int
+main				(int			argc,
+				 char **		argv)
+{
+	char *buffer;
 
-typedef unsigned int cpu_feature_set;
+	(void) argc;
+	(void) argv;
 
-extern cpu_feature_set		cpu_features;
+	buffer = guard_alloc (1 << 20);
+	++buffer[1 << 20];
 
-extern cpu_feature_set
-cpu_detection			(void);
-
-#endif /* CPU_H */
+	return EXIT_SUCCESS;
+}

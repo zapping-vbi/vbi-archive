@@ -570,38 +570,12 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.192 2004-12-07 17:30:45 mschimek Exp $",
+	 "$Id: main.c,v 1.193 2004-12-11 11:46:24 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
-  printv("Checking for CPU... ");
-  switch (cpu_detection())
-    {
-    case CPU_PENTIUM_MMX:
-    case CPU_PENTIUM_II:
-      printv("Intel Pentium MMX / Pentium II. MMX support enabled.\n");
-      break;
 
-    case CPU_PENTIUM_III:
-    case CPU_PENTIUM_4:
-      printv("Intel Pentium III / Pentium 4. SSE support enabled.\n");
-      break;
+  cpu_detection ();
+  printv ("CPU features 0x%x\n", cpu_features);
 
-    case CPU_K6_2:
-      printv("AMD K6-2 / K6-III. 3DNow support enabled.\n");
-      break;
-
-    case CPU_CYRIX_MII:
-    case CPU_CYRIX_III:
-      printv("Cyrix MII / Cyrix III. MMX support enabled.\n");
-      break;
-
-    case CPU_ATHLON:
-      printv("AMD Athlon. MMX/3DNow/SSE support enabled.\n");
-      break;
-
-    default:
-      printv("unknow type. Using plain C.\n");
-      break;
-    }
   D();
   glade_gnome_init();
   D();
