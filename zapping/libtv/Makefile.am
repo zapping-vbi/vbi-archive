@@ -5,10 +5,11 @@ noinst_LIBRARIES = libtv.a
 INCLUDES = $(X_CFLAGS) -D_REENTRANT
 
 libtv_a_SOURCES = \
+	callback.c callback.h \
 	clip_vector.c clip_vector.h \
 	image_format.c image_format.h \
 	macros.h \
-	misc.h \
+	misc.c misc.h \
 	overlay_buffer.h \
 	pixel_format.c pixel_format.h \
 	screen.c screen.h
