@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet.c,v 1.9.2.5 2004-01-30 00:39:00 mschimek Exp $ */
+/* $Id: packet.c,v 1.9.2.6 2004-02-13 02:12:53 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -44,6 +44,58 @@
 #define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
 
 static vbi_bool convert_drcs(vt_page *vtp, const uint8_t *raw);
+
+/**
+ * @internal
+ */
+const char *
+page_function_name		(page_function		function)
+{
+	switch (function) {
+
+#undef CASE
+#define CASE(function) case PAGE_FUNCTION_##function : return #function ;
+
+	CASE (EPG)
+	CASE (TRIGGER)
+	CASE (DISCARD)
+	CASE (UNKNOWN)
+	CASE (LOP)
+	CASE (DATA_BROADCAST)
+	CASE (GPOP)
+	CASE (POP)
+	CASE (GDRCS)
+	CASE (DRCS)
+	CASE (MOT)
+	CASE (MIP)
+	CASE (BTT)
+	CASE (AIT)
+	CASE (MPT)
+	CASE (MPT_EX)
+
+		/* No default, gcc warns. */
+	}
+
+	return NULL;
+}
+
+/**
+ * @internal
+ */
+const char *
+object_type_name		(object_type		type)
+{
+	switch (type) {
+	case OBJECT_TYPE_NONE:		return "NONE/LOCAL_ENH";
+	case OBJECT_TYPE_ACTIVE:	return "ACTIVE";
+	case OBJECT_TYPE_ADAPTIVE:	return "ADAPTIVE";
+	case OBJECT_TYPE_PASSIVE:	return "PASSIVE";
+
+		/* No default, gcc warns. */
+	}
+
+	return NULL;
+}
 
 static inline void
 dump_pagenum(vt_pagenum page)
@@ -642,7 +694,7 @@ parse_mip(vbi_decoder *vbi, const vt_page *vtp)
 static void
 eacem_trigger(vbi_decoder *vbi, const vt_page *vtp)
 {
-	vbi_page pg;
+	vbi_page_private pgp;
 	uint8_t *s;
 	int i, j;
 
@@ -652,19 +704,21 @@ eacem_trigger(vbi_decoder *vbi, const vt_page *vtp)
 	if (!(vbi->event_mask & VBI_EVENT_TRIGGER))
 		return;
 
-	if (!vbi_format_vt_page(vbi, &pg, vtp, VBI_WST_LEVEL_1p5, 0))
+	if (!vbi_format_vt_page (vbi, &pgp, vtp,
+				 VBI_WST_LEVEL, VBI_WST_LEVEL_1p5,
+				 VBI_END))
 		return;
 
-	s = (uint8_t *) pg.text;
+	s = (uint8_t *) pgp.pg.text;
 
 	for (i = 1 * 40; i < 25 * 40; ++i) {
-		int c = pg.text[i].unicode;
+		int c = pgp.pg.text[i].unicode;
 		*s++ = (c >= 0x20 && c <= 0xFF) ? c : 0x20;
 	}
 
 	*s = 0;
 
-	vbi_eacem_trigger(vbi, (uint8_t *) pg.text);
+	vbi_eacem_trigger(vbi, (uint8_t *) pgp.pg.text);
 }
 
 /*
@@ -1039,75 +1093,6 @@ vbi_convert_cached_page		(vbi_decoder *		vbi,
 	return TRUE;
 }
 
-typedef enum {
-	CNI_NONE,
-	CNI_VPS,	/* VPS format */
-	CNI_8301,	/* Teletext packet 8/30 format 1 */
-	CNI_8302,	/* Teletext packet 8/30 format 2 */
-	CNI_X26		/* FIXME Teletext packet X/26 local enhancement */
-} vbi_cni_type;
-
-static unsigned int
-station_lookup(vbi_cni_type type, int cni, const char **country, const char **name)
-{
-	const struct vbi_cni_entry *p;
-
-	if (!cni)
-		return 0;
-
-	switch (type) {
-	case CNI_8301:
-		for (p = vbi_cni_table; p->name; p++)
-			if (p->cni1 == cni) {
-				*country = vbi_country_names_en[p->country];
-				*name = p->name;
-				return p->id;
-			}
-		break;
-
-	case CNI_8302:
-		for (p = vbi_cni_table; p->name; p++)
-			if (p->cni2 == cni) {
-				*country = vbi_country_names_en[p->country];
-				*name = p->name;
-				return p->id;
-			}
-
-		cni &= 0x0FFF;
-
-		/* fall through */
-
-	case CNI_VPS:
-		/* if (cni == 0x0DC3) in decoder
-			cni = mark ? 0x0DC2 : 0x0DC1; */
-
-		for (p = vbi_cni_table; p->name; p++)
-			if (p->cni4 == cni) {
-				*country = vbi_country_names_en[p->country];
-				*name = p->name;
-				return p->id;
-			}
-		break;
-
-	case CNI_X26:
-		for (p = vbi_cni_table; p->name; p++)
-			if (p->cni3 == cni) {
-				*country = vbi_country_names_en[p->country];
-				*name = p->name;
-				return p->id;
-			}
-
-		/* try code | 0x0080 & 0x0FFF -> VPS ? */
-
-		break;
-
-	default:
-		break;
-	}
-
-	return 0;
-}
-
 static void
 unknown_cni(vbi_decoder *vbi, const char *dl, int cni)
 {
@@ -1135,33 +1120,6 @@ static const char *pcs_names[] = {
 	"unknown", "mono", "stereo", "bilingual"
 };
 
-#define PIL(day, mon, hour, min) \
-	(((day) << 15) + ((mon) << 11) + ((hour) << 6) + ((min) << 0))
-
-static void
-dump_pil(int pil)
-{
-	int day, mon, hour, min;
-
-	day = pil >> 15;
-	mon = (pil >> 11) & 0xF;
-	hour = (pil >> 6) & 0x1F;
-	min = pil & 0x3F;
-
-	if (pil == PIL(0, 15, 31, 63))
-		printf("... PDC: Timer-control (no PDC)\n");
-	else if (pil == PIL(0, 15, 30, 63))
-		printf("... PDC: Recording inhibit/terminate\n");
-	else if (pil == PIL(0, 15, 29, 63))
-		printf("... PDC: Interruption\n");
-	else if (pil == PIL(0, 15, 28, 63))
-		printf("... PDC: Continue\n");
-	else if (pil == PIL(31, 15, 31, 63))
-		printf("... PDC: No time\n");
-	else
-		printf("... PDC: %05x, %2d %s %02d:%02d\n",
-			pil, day, month_names[mon], hour, min);
-}
 
 static void
 dump_pty(int pty)
@@ -1185,113 +1143,6 @@ dump_pty(int pty)
 }
 
 #endif /* BSDATA_TEST */
-
-/**
- * @internal
- * @param vbi Initialized vbi decoding context.
- * @param buf 13 bytes.
- * 
- * Decode a VPS datagram (13 bytes) according to
- * ETS 300 231 and update decoder state. This may
- * send a @a VBI_EVENT_NETWORK.
- */
-void
-vbi_decode_vps(vbi_decoder *vbi, uint8_t *buf)
-{
-	vbi_network *n = &vbi->network.ev.network;
-	const char *country, *name;
-	int cni;
-
-	cni = + ((buf[10] & 3) << 10)
-	      + ((buf[11] & 0xC0) << 2)
-	      + ((buf[8] & 0xC0) << 0)
-	      + (buf[11] & 0x3F);
-
-	if (cni == 0x0DC3)
-		cni = (buf[2] & 0x10) ? 0x0DC2 : 0x0DC1;
-
-	if (cni != n->cni_vps) {
-		n->cni_vps = cni;
-		n->cycle = 1;
-	} else if (n->cycle == 1) {
-		unsigned int id = station_lookup(CNI_VPS, cni, &country, &name);
-
-		if (!id) {
-			n->name[0] = 0;
-			unknown_cni(vbi, "VPS", cni);
-		} else {
-			STRCOPY (n->name, name);
-		}
-
-		if (id != n->nuid) {
-			if (n->nuid != 0) {
-				vbi_chsw_reset(vbi, id);
-			}
-
-			n->nuid = id;
-
-			vbi->network.type = VBI_EVENT_NETWORK;
-			vbi_send_event(vbi, &vbi->network);
-		}
-
-		n->cycle = 2;
-	}
-
-	if (BSDATA_TEST && 0) {
-		static char pr_label[20];
-		static char label[20];
-		static int l = 0;
-		int cni, pcs, pty, pil;
-		int c, j;
-
-		printf("\nVPS:\n");
-
-		c = vbi_rev8(buf[1]);
-
-		if ((int8_t) c < 0) {
-			label[l] = 0;
-			memcpy(pr_label, label, sizeof(pr_label));
-			l = 0;
-		}
-
-		c &= 0x7F;
-
-		label[l] = printable(c);
-
-		l = (l + 1) % 16;
-
-		printf(" 3-10: %02x %02x %02x %02x %02x %02x %02x %02x (\"%s\")\n",
-			buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7], pr_label);
-
-		cni = + ((buf[10] & 3) << 10)
-		      + ((buf[11] & 0xC0) << 2)
-		      + ((buf[8] & 0xC0) << 0)
-		      + (buf[11] & 0x3F);
-
-		if (cni)
-			for (j = 0; vbi_cni_table[j].name; j++)
-				if (vbi_cni_table[j].cni4 == cni) {
-					printf(" Country: %s\n Station: %s%s\n",
-						vbi_country_names_en[vbi_cni_table[j].country],
-						vbi_cni_table[j].name,
-						(cni == 0x0DC3) ? ((buf[2] & 0x10) ? " (ZDF)" : " (ARD)") : "");
-					break;
-				}
-
-		pcs = buf[2] >> 6;
-		pil = ((buf[8] & 0x3F) << 14) + (buf[9] << 6) + (buf[10] >> 2);
-		pty = buf[12];
-
-		/* if (!cni || !vbi_cni_table[j].name) */
-			printf(" CNI: %04x\n", cni);
-#if BSDATA_TEST
-		printf(" Analog audio: %s\n", pcs_names[pcs]);
-
-		dump_pil(pil);
-		dump_pty(pty);
-#endif
-	}
-}
 
 static vbi_bool
 parse_bsd(vbi_decoder *vbi, uint8_t *raw, int packet, int designation)
@@ -1320,24 +1171,16 @@ parse_bsd(vbi_decoder *vbi, uint8_t *raw, int packet, int designation)
 				n->cni_8301 = cni;
 				n->cycle = 1;
 			} else if (n->cycle == 1) {
-				unsigned int id;
+				vbi_nuid nuid;
 
-				id = station_lookup(CNI_8301, cni, &country, &name);
-
-				if (!id) {
-					n->name[0] = 0;
-					unknown_cni(vbi, "8/30/1", cni);
-				} else {
-					STRCOPY (n->name, name);
-				}
-
-				if (id != n->nuid) {
+				nuid = vbi_nuid_from_cni (VBI_CNI_TYPE_8301, cni);
+				if (nuid != n->nuid) {
 					if (n->nuid != 0) {
-						vbi_chsw_reset(vbi, id);
+						vbi_chsw_reset(vbi, nuid);
 					}
 
-
-					n->nuid = id;
+					vbi_network_from_nuid (n, nuid);
+					n->cycle = 1;
 
 					vbi->network.type = VBI_EVENT_NETWORK;
 					vbi_send_event(vbi, &vbi->network);
@@ -1346,37 +1189,6 @@ parse_bsd(vbi_decoder *vbi, uint8_t *raw, int packet, int designation)
 				n->cycle = 2;
 			}
 #if BSDATA_TEST
-			if (1) { /* country and network identifier */
-				if (station_lookup(CNI_8301, cni, &country, &name))
-					printf("... country: %s\n... station: %s\n", country, name);
-				else
-					printf("... unknown CNI %04x\n", cni);
-			}
-
-			if (1) { /* local time */
-				int lto, mjd, utc_h, utc_m, utc_s;
-				struct tm tm;
-				time_t ti;
-
-				lto = (raw[9] & 0x7F) >> 1;
-
-				mjd = + ((raw[10] & 15) - 1) * 10000
-				      + ((raw[11] >> 4) - 1) * 1000
-				      + ((raw[11] & 15) - 1) * 100
-				      + ((raw[12] >> 4) - 1) * 10
-				      + ((raw[12] & 15) - 1);
-
-			    	utc_h = ((raw[13] >> 4) - 1) * 10 + ((raw[13] & 15) - 1);
-				utc_m = ((raw[14] >> 4) - 1) * 10 + ((raw[14] & 15) - 1);
-				utc_s = ((raw[15] >> 4) - 1) * 10 + ((raw[15] & 15) - 1);
-
-				ti = (mjd - 40587) * 86400 + 43200;
-				localtime_r(&ti, &tm);
-
-				printf("... local time: MJD %d %02d %s %04d, UTC %02d:%02d:%02d %c%02d%02d\n",
-					mjd, tm.tm_mday, month_names[tm.tm_mon + 1], tm.tm_year + 1900,
-					utc_h, utc_m, utc_s, (raw[9] & 0x80) ? '-' : '+', lto >> 1, (lto & 1) * 30);
-			}
 #endif /* BSDATA_TEST */
 
 		} else /* if (designation <= 3) */ {
@@ -1407,23 +1219,16 @@ parse_bsd(vbi_decoder *vbi, uint8_t *raw, int packet, int designation)
 				n->cni_8302 = cni;
 				n->cycle = 1;
 			} else if (n->cycle == 1) {
-				unsigned int id;
+				vbi_nuid nuid;
 
-				id = station_lookup(CNI_8302, cni, &country, &name);
-
-				if (!id) {
-					n->name[0] = 0;
-					unknown_cni(vbi, "8/30/2", cni);
-				} else {
-					STRCOPY (n->name, name);
-				}
-
-				if (id != n->nuid) {
+				nuid = vbi_nuid_from_cni (VBI_CNI_TYPE_8302, cni);
+				if (nuid != n->nuid) {
 					if (n->nuid != 0) {
-						 vbi_chsw_reset(vbi, id);
+						 vbi_chsw_reset(vbi, nuid);
 					}
 
-					n->nuid = id;
+					vbi_network_from_nuid (n, nuid);
+					n->cycle = 1;
 
 					vbi->network.type = VBI_EVENT_NETWORK;
 					vbi_send_event(vbi, &vbi->network);
@@ -1433,14 +1238,6 @@ parse_bsd(vbi_decoder *vbi, uint8_t *raw, int packet, int designation)
 			}
 
 #if BSDATA_TEST
-			if (1) { /* country and network identifier */
-				const char *country, *name;
-
-				if (station_lookup(CNI_8302, cni, &country, &name))
-					printf("... country: %s\n... station: %s\n", country, name);
-				else
-					printf("... unknown CNI %04x\n", cni);
-			}
 
 			if (1) { /* PDC data */
 				int lci, luf, prf, mi, pil;
@@ -1454,7 +1251,8 @@ parse_bsd(vbi_decoder *vbi, uint8_t *raw, int packet, int designation)
 				printf("... label channel %d: update %d,"
 				       " prepare to record %d, mode %d\n",
 					lci, luf, prf, mi);
-				dump_pil(pil);
+				vbi_pil_dump (pil, stdout);
+				fputc ('\n', stdout);
 			}
 
 			if (1) {
