@@ -1212,7 +1212,9 @@ z_switch_channel		(tveng_tuned_channel *	channel,
     zmodel_changed(z_input_model);
 
   if (channel->input)
+    {
     z_switch_input(channel->input, info);
+    }
 
   if (channel->standard)
     z_switch_standard(channel->standard, info);
@@ -1406,7 +1408,8 @@ kp_timeout			(gboolean		timer)
     }
 }
 
-#if 0
+#ifndef HAVE_LIBZVBI
+
 static gboolean
 kp_timeout2			(gpointer		user_data)
 {
@@ -1416,6 +1419,7 @@ kp_timeout2			(gpointer		user_data)
 
   return FALSE; /* don't call again */
 }
+
 #endif
 
 static gboolean
