@@ -32,7 +32,7 @@
 /*
  * Lib build ID, for debugging.
  */
-#define RTE_ID " $Id: rte.h,v 1.1.1.1 2001-08-07 22:09:15 garetxe Exp $ "
+#define RTE_ID " $Id: rte.h,v 1.2 2001-09-06 18:07:07 mschimek Exp $ "
 
 /*
  * What are we going to encode, audio only, video only or both
@@ -465,5 +465,144 @@ void rte_get_status( rte_context * context,
 #ifndef TRUE
 #define TRUE (!FALSE)
 #endif
+
+
+
+
+/*
+ *  ** Experimental **
+ *  don't use in production code 
+ */
+
+typedef enum {
+  RTE_STREAM_VIDEO = 1,  /* XXX STREAM :-( need a better term */
+  RTE_STREAM_AUDIO,	 /* input/output distinction? */
+  RTE_STREAM_SLICED_VBI,
+  /* ... */
+  RTE_STREAM_MAX = 15
+} rte_stream_type;
+
+typedef enum {
+  RTE_PIXFMT_YUV420 = 1,
+  RTE_PIXFMT_YUYV,
+  RTE_PIXFMT_YVYU,
+  RTE_PIXFMT_UYVY,
+  RTE_PIXFMT_VYUY,
+  RTE_PIXFMT_RGB32,
+  RTE_PIXFMT_BGR32,
+  RTE_PIXFMT_RGB24,
+  RTE_PIXFMT_BGR24,
+  RTE_PIXFMT_RGB16,
+  RTE_PIXFMT_BGR16,
+  RTE_PIXFMT_RGB15,
+  RTE_PIXFMT_BGR15,
+  /* ... */
+  RTE_PIXFMT_MAX = 31
+} rte_pixfmt;
+
+#define RTE_PIXFMTS_YUV420	(1UL << RTE_PIXFMT_YUV420)
+#define RTE_PIXFMTS_YUYV	(1UL << RTE_PIXFMT_YUYV)
+#define RTE_PIXFMTS_YVYU	(1UL << RTE_PIXFMT_YVYU)
+#define RTE_PIXFMTS_UYVY	(1UL << RTE_PIXFMT_UYVY)
+#define RTE_PIXFMTS_VYUY	(1UL << RTE_PIXFMT_VYUY)
+#define RTE_PIXFMTS_RGB32	(1UL << RTE_PIXFMT_RGB32)
+#define RTE_PIXFMTS_BGR32	(1UL << RTE_PIXFMT_BGR32)
+#define RTE_PIXFMTS_RGB24	(1UL << RTE_PIXFMT_RGB24)
+#define RTE_PIXFMTS_BGR24	(1UL << RTE_PIXFMT_BGR24)
+#define RTE_PIXFMTS_RGB16	(1UL << RTE_PIXFMT_RGB16)
+#define RTE_PIXFMTS_BGR16	(1UL << RTE_PIXFMT_BGR16)
+#define RTE_PIXFMTS_RGB15	(1UL << RTE_PIXFMT_RGB15)
+#define RTE_PIXFMTS_BGR15	(1UL << RTE_PIXFMT_BGR15)
+
+typedef enum {
+  RTE_SNDFMT_S16LE = 1,
+  /* ... */
+  RTE_SNDFMT_MAX = 31
+} rte_sndfmt;
+
+#define RTE_SNDFMTS_S16LE	(1UL << RTE_SNDFMT_S16LE)
+
+typedef enum {
+  RTE_VBIFMT_TELETEXT_B_L10_625 = 1,
+  RTE_VBIFMT_TELETEXT_B_L25_625,
+  RTE_VBIFMT_VPS,
+  RTE_VBIFMT_CAPTION_625_F1,
+  RTE_VBIFMT_CAPTION_625,
+  RTE_VBIFMT_CAPTION_525_F1,
+  RTE_VBIFMT_CAPTION_525,
+  RTE_VBIFMT_2xCAPTION_525,
+  RTE_VBIFMT_NABTS,
+  RTE_VBIFMT_TELETEXT_BD_525,
+  RTE_VBIFMT_WSS_625,
+  RTE_VBIFMT_WSS_CPR1204,
+  /* ... */
+  RTE_VBIFMT_RESERVED1 = 30,
+  RTE_VBIFMT_RESERVED2 = 31
+} rte_vbifmt;
+
+#define RTE_VBIFMTS_TELETEXT_B_L10_625	(1UL << RTE_VBIFMT_TELETEXT_B_L10_625)
+#define RTE_VBIFMTS_TELETEXT_B_L25_625	(1UL << RTE_VBIFMT_TELETEXT_B_L25_625)
+#define RTE_VBIFMTS_VPS			(1UL << RTE_VBIFMT_VPS)
+#define RTE_VBIFMTS_CAPTION_625_F1	(1UL << RTE_VBIFMT_CAPTION_625_F1)
+#define RTE_VBIFMTS_CAPTION_625		(1UL << RTE_VBIFMT_CAPTION_625)
+#define RTE_VBIFMTS_CAPTION_525_F1	(1UL << RTE_VBIFMT_CAPTION_525_F1)
+#define RTE_VBIFMTS_CAPTION_525		(1UL << RTE_VBIFMT_CAPTION_525)
+#define RTE_VBIFMTS_2xCAPTION_525	(1UL << RTE_VBIFMT_2xCAPTION_525)
+#define RTE_VBIFMTS_NABTS		(1UL << RTE_VBIFMT_NABTS)
+#define RTE_VBIFMTS_TELETEXT_BD_525	(1UL << RTE_VBIFMT_TELETEXT_BD_525)
+#define RTE_VBIFMTS_WSS_625		(1UL << RTE_VBIFMT_WSS_625)
+#define RTE_VBIFMTS_WSS_CPR1204		(1UL << RTE_VBIFMT_WSS_CPR1204)
+#define RTE_VBIFMTS_RESERVED1		(1UL << RTE_VBIFMT_RESERVED1)
+#define RTE_VBIFMTS_RESERVED2		(1UL << RTE_VBIFMT_RESERVED2)
+
+typedef enum {
+  RTE_OPTION_BOOL = 1,	/* TRUE (1) or FALSE (0), def.num */
+  RTE_OPTION_INT,	/* Integer min - max inclusive, def.num */
+  RTE_OPTION_MENU,	/* Index of menu[], min - max incl, def.num */
+  RTE_OPTION_STRING,	/* String, def.str */
+} rte_option_type;
+
+typedef struct {
+  rte_option_type	type;
+  char *		keyword;
+  char *		label;		/* gettext()ized _N() */
+  union {
+    char *		  str;		/* gettext()ized _N() */
+    int			  num;
+  }			def;		/* default (reset) */
+  int			min, max;
+  char **		menu;	/* max - min + 1 entries, gettext()ized _N() */
+  char *		tooltip;	/* or NULL, gettext()ized _N() */
+} rte_option;
+
+typedef struct rte_codec_descr {
+  rte_stream_type	stream_type;
+  unsigned long		stream_formats;
+
+  char *		keyword;
+
+  char *		label;		/* or NULL, gettext()ized _N() */
+  char *		tooltip;	/* or NULL, gettext()ized _N() */
+} rte_codec_descr;
+
+extern rte_codec_descr *rte_enum_codec(rte_context *context, int index);
+
+typedef struct rte_codec rte_codec; /* opaque */
+
+extern rte_codec *rte_set_input_codec(rte_context *context,
+  rte_stream_type stream_type, /* eg. RTE_STREAM_VIDEO */
+  int stream_index, /* eg. 0 of MPEG-1 audio 0 ... 31 (future ext) */
+  char *codec_keyword, /* from rte_codec_descr.keyword or canonical */
+  /* same as rte_set_input(): */
+  enum rte_interface interface,
+  int buffered,
+  rteDataCallback data_callback,
+  rteBufferCallback buffer_callback,
+  rteUnrefCallback unref_callback);
+
+extern rte_option *rte_enum_option(rte_codec *codec, int index);
+extern int rte_set_option(rte_codec *codec,
+  char *option_keyword, /* from rte_option.keyword or canonical */
+  ...); /* whatever the option requires */
 
 #endif /* rtelib.h */
