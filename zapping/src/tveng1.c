@@ -251,8 +251,17 @@ int tveng1_attach_device(const char* device_file,
     }
 
 #ifndef TVENG_DISABLE_IOCTL_TESTS
-  /* make another ioctl test, switch to first standard */
-  if (tveng1_set_standard(&(info->standards[0]), info) == -1)
+  /* make another ioctl test, switch to first or default standard */
+  if (info->default_standard)
+    {
+      if (tveng1_set_standard_by_name(info->default_standard, info) ==
+	  -1)
+	{
+	  tveng1_close_device(info);
+	  return -1;
+	}
+    }
+  else if (tveng1_set_standard(&(info->standards[0]), info) == -1)
     {
       tveng1_close_device(info);
       return -1;
@@ -464,6 +473,10 @@ int tveng1_set_input(struct tveng_enum_input * input,
   t_assert(info != NULL);
   t_assert(input != NULL);
 
+#ifdef TVENG_DEBUG
+  fprintf(stderr, "setting input %s\n", input->name);
+#endif
+
   /* If this input has no tuner, switch to an input with a tuner and
      set the given standard. This fixes the V4L1 design flaw */
   if ((input->tuners == 0) || (!(input->flags & TVENG_INPUT_TUNER)))
@@ -477,6 +490,11 @@ int tveng1_set_input(struct tveng_enum_input * input,
 	if (i != info->num_inputs) /* found a candidate */
 	  {
 	    /* failing here isn't critical */
+#ifdef TVENG_DEBUG
+	    fprintf(stderr,
+		    "Tunerless input, switching to input #%d to set %s\n",
+		    i, info->default_standard);
+#endif
 	    tveng_set_input(&(info->inputs[i]), info);
 	    tveng_set_standard_by_name(info->default_standard, info);
 	  }
