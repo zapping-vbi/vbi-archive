@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vlc_gen.c,v 1.2 2002-09-04 21:27:49 mschimek Exp $ */
+/* $Id: vlc_gen.c,v 1.3 2002-09-12 12:24:14 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -821,9 +821,8 @@ main (void)
 
 	/* Forward zig-zag scanning pattern */
 
-	for (j = 0; j <= MPEG2; j++) {
-		printf ("const uint8_t\nmp1e_iscan%s[8][8]\talign(CACHE_LINE) =\n{\n",
-			j ? "2" : "");
+	for (j = 0; j <= 1; j++) {
+		printf ("const uint8_t\nmp1e_iscan%u[8][8]\talign(CACHE_LINE) =\n{\n", j);
 
 		for (i = 0; i < 64; i++) {
 			iscan[(scan[j][0][i] - 1) & 63] = (i & 7) * 8 + (i >> 3);
