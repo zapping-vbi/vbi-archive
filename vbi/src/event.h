@@ -21,12 +21,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: event.h,v 1.5.2.3 2003-09-24 18:49:56 mschimek Exp $ */
+/* $Id: event.h,v 1.5.2.4 2004-02-13 02:13:57 mschimek Exp $ */
 
 #ifndef EVENT_H
 #define EVENT_H
 
 #include "bcd.h"
+#include "network.h"
 
 #ifndef VBI_DECODER
 #define VBI_DECODER
@@ -54,31 +55,6 @@ typedef struct vbi_decoder vbi_decoder;
  * pointed to from there must be read only. The data is only valid until
  * the handler returns.
  */
-
-/**
- * @ingroup Event
- * @brief Network description.
- *
- * All strings are ISO 8859-1, local language, and @c NUL terminated.
- * Prepare for empty strings. Read only.
- */
-typedef struct {
-	vbi_nuid		nuid;
-
-	char			name[64];		/* descriptive name */
-	char			call[40];		/* network call letters (XDS) */
-
-	int			tape_delay;		/* tape delay, minutes (XDS) */
-
-	/* Private */
-
-	int			cni_vps;
-	int			cni_8301;
-	int			cni_8302;
-	int			cni_x26;
-
-	int			cycle;
-} vbi_network;
 
 /*
  *  Link
