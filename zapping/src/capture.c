@@ -303,16 +303,6 @@ capture_thread (gpointer data)
 	  b->used = sizeof(capture_bundle);
 	  send_full_buffer2(&cf_producer, b);
 	}
-#if 0
-      b = recv_empty_buffer(&capture_fifo);
-      if (b)
-	{
-	  d = (capture_bundle*)b->data;
-	  
-	  fill_bundle(d, info);
-	  send_full_buffer(&capture_fifo, b);
-	}
-#endif
       usleep(2000); /* mhs: why? */
     }
 
@@ -466,8 +456,8 @@ build_bundle(capture_bundle *d, struct tveng_frame_format *format,
       break;
     }
   d->format.sizeimage = d->image_size;
-  d->f = f;
-  d->b = b;
+  d->_f = f;
+  d->_b = b;
 }
 
 static void
@@ -476,7 +466,7 @@ give_data_to_plugins(capture_bundle *d)
   struct vbi *vbi;
   GList *p;
 
-#if 0
+#if 1
   if ((vbi = zvbi_get_object()))
     {
       /* XXX redundant if we're not in PAL/SECAM mode
@@ -516,8 +506,8 @@ static gint idle_handler(gpointer ignored)
   g_assert(b->used > 0);
 
   d = (capture_bundle*)b->data;
-  d->b = b;
-  
+  d->_b = b;
+
   /* needs rebuilding */
   if (!d->timestamp || !d->image_type || !d->data ||
       d->format.width != current_format.width ||
@@ -713,8 +703,8 @@ capture_stop(tveng_device_info *info)
 
   /* Free the memory used by the bundles */
   /* XXX should use the buffer2.destroy hook */
-  for (b = (buffer2 *) capture_fifo.buffers.head;
-       b->node.succ; b = (buffer2 *) b->node.succ)
+  for (b = PARENT(capture_fifo.buffers.head, buffer2, added);
+       b->added.succ; b = PARENT(b->added.succ, buffer2, added))
     if (b->data)
       clear_bundle((capture_bundle * ) b->data);
 
