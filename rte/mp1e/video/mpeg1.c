@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.27 2002-04-20 06:42:54 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.28 2002-05-07 06:35:09 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -68,7 +68,7 @@ int x_bias = 65536 * 31,
 
 #define QS 1
 
-#define TEST34 0
+#define TEST34 1
 #define T34VMC 1500000
 
 #define NO_VBV 0xFFFF
@@ -91,7 +91,10 @@ mp1e_static_context(void)
 static const unsigned char
 quant_res_intra[32] __attribute__ ((SECTION("video_tables") aligned (CACHE_LINE))) =
 {
-	1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+	/* 1, 1, */
+	1, 1, /* FIXME somewhere in p-i an overflow is raising its ugly head,
+	         find out why. for now this must suffice. */
+	2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
 	16, 16, 18, 18, 20, 20, 22, 22,	24, 24, 26, 26, 28, 28, 30, 30
 };
 
@@ -137,6 +140,8 @@ do {									\
 			  + (m)->vlc[dmv[1]].code,			\
 	      (m)->vlc[dmv[0]].length + l1);				\
 } while (0)
+
+#define MB_HIST(n) (mpeg1->mb_hist[(n) + 1])
 
 /* preliminary */
 static inline void
@@ -188,8 +193,8 @@ tmp_slice_i(mpeg1_context *mpeg1, bool motion)
 			quant = 4;
 			fprintf(stderr, "+");
 		} else {
-			int pq0 = mpeg1->mb_hist[mb_col + 0].quant;
-			int pq1 = mpeg1->mb_hist[mb_col + 1].quant;
+			int pq0 = MB_HIST(mb_col - 1).quant; /* left */
+			int pq1 = MB_HIST(mb_col + 0).quant; /* up */
 
 			quant = rc_quant(&mpeg1->rc, MB_INTRA,
 					 var / VARQ + 1, 0.0,
@@ -234,7 +239,7 @@ if (0)
 				 *  slice header: quantiser_scale_code 'xxxxx', extra_bit_slice '0';
 				 *  macroblock_address_increment '1', macroblock_type '1' (I Intra)
 				 */
-			} else if (mpeg1->mb_hist[mb_col].quant != quant) {
+			} else if (MB_HIST(mb_col - 1 /* last */).quant != quant) {
 				bputl(&video_out, 0xA0 + quant, 8);
 				/*
 				 *  macroblock_address_increment '1', macroblock_type '01' (I Intra, Quant),
@@ -262,7 +267,7 @@ if (0)
 		bprolog(&video_out);
 
 		mpeg1->quant_sum += quant;
-		mpeg1->mb_hist[mb_col + 1].quant = quant;
+		MB_HIST(mb_col).quant = quant;
 
 		if (__builtin_expect(mpeg1->referenced, 1)) {
 			pr_start(23, "IDCT intra");
@@ -282,7 +287,7 @@ if (0)
 #endif
 	}
 
-	mpeg1->mb_hist[0] = mpeg1->mb_hist[mb_col - 1];
+	MB_HIST(-1) = MB_HIST(mb_col - 1);
 
 	mba_row_incr();
 }
@@ -642,6 +647,7 @@ if (!T3RT) quant = 2;
 					pr_start(26, "FDCT inter");
 					cbp = fdct_inter(mblock[1], quant); // mblock[1] -> mblock[0]
 					pr_end(26);
+
 #if TEST34
 				l1:
 #endif
@@ -1532,6 +1538,7 @@ encode_bframes(mpeg1_context *mpeg1, int stacked_bframes)
 
 		video_frame_count++;
 		mpeg1->seq_frame_count++;
+		mpeg1->coded_frames_countd -= 1.0;
 	}
 
 	if (last)
@@ -1589,6 +1596,7 @@ encode_keyframe(mpeg1_context *mpeg1, stacked_frame *this,
 
 	video_frame_count++;
 	mpeg1->seq_frame_count++;
+	mpeg1->coded_frames_countd -= 1.0;
 
 	return pframe;
 }
@@ -1672,6 +1680,7 @@ skip_zerop(mpeg1_context *mpeg1, stacked_frame *this, int sp)
 
 	video_frame_count++;
 	mpeg1->gop_frame_count++;
+	mpeg1->coded_frames_countd -= 1.0;
 	mpeg1->skipped_zero++; /* did not update decoder */
 }
 
@@ -1679,61 +1688,13 @@ int video_do_reset = FALSE;
 
 /* FIXME 0P insertion and skip/fake can overflow GOP count */
 
-void *
-mp1e_mpeg1(void *codec)
+static rte_bool
+thread_body(mpeg1_context *mpeg1)
 {
-	mpeg1_context *mpeg1 = PARENT(codec, mpeg1_context, codec);
-	bool done = FALSE;
+	rte_bool eof = FALSE;
+	rte_bool done = FALSE;
 	char *seq = "";
 	buffer *obuf;
-
-	printv(3, "Video compression thread\n");
-
-	assert(mpeg1->codec.codec.state == RTE_STATE_RUNNING);
-
-	/* XXX this function isn't reentrant. yet. */
-	assert(static_context == mpeg1);
-
-	if (!add_consumer(mpeg1->codec.input, &mpeg1->cons))
-		return (void *) -1;
-	// XXX need better exit method
-
-	if (!add_producer(mpeg1->codec.output, &mpeg1->prod)) {
-		rem_consumer(&mpeg1->cons);
-		return (void *) -1;
-	}
-
-	if (!mp1e_sync_run_in(&PARENT(mpeg1->codec.codec.context,
-				      mp1e_context, context)->sync,
-			      &mpeg1->codec.sstr, &mpeg1->cons, NULL)) {
-		rem_consumer(&mpeg1->cons);
-		rem_producer(&mpeg1->prod);
-		return (void *) -1;
-	}
-
-#if TEST21
-{
-	extern void mmx_YUV_420(void);
-	extern void mmx_YUYV_422(void);
-	extern int pmmx_YUV420_0(filter_param *, int, int) __attribute__ ((regparm (3)));
-	extern int pmmx_YUYV_0(filter_param *, int, int) __attribute__ ((regparm (3)));
-	extern int filter_y_offs, filter_u_offs, filter_v_offs, filter_y_pitch;
-
-	mpeg1->filter_param[0].dest = &mblock[0];
-	mpeg1->filter_param[0].offset = filter_y_offs;
-	mpeg1->filter_param[0].u_offset = filter_u_offs;
-	mpeg1->filter_param[0].v_offset = filter_v_offs;
-	mpeg1->filter_param[0].stride = filter_y_pitch;
-	mpeg1->filter_param[0].uv_stride = filter_y_pitch >> 1;
-
-	if (filter == mmx_YUV_420)
-		mpeg1->filter_param[0].func = pmmx_YUV420_0;
-	else if (filter == mmx_YUYV_422)
-		mpeg1->filter_param[0].func = pmmx_YUYV_0;
-	else
-		assert(0);	
-}
-#endif
 
 	while (!done) {
 		stacked_frame *this = NULL;
@@ -1776,7 +1737,6 @@ mp1e_mpeg1(void *codec)
 				/* video_frames_dropped++; */
 				mpeg1->last.buffer = this->buffer;
 				mpeg1->last.org = this->org;
-
 				this->org = NULL;
 				this->time = mpeg1->last.time += mpeg1->nominal_frame_period;
 			} else {
@@ -1790,8 +1750,10 @@ mp1e_mpeg1(void *codec)
 			mpeg1->coded_elapsed += mpeg1->coded_frame_period;
 
 			if (!this->buffer /* eof */
-			    || mp1e_sync_break(&mpeg1->codec.sstr, this->time)
-			    || video_frame_count + sp > mpeg1->num_frames) {
+			    || mp1e_sync_break(&mpeg1->codec.sstr, this->time))
+				eof = TRUE;
+
+			if (eof || (mpeg1->coded_frames_countd - sp) < 0.0) {
 				printv(2, "Video: End of file\n");
 
 				if (this->buffer && this->org)
@@ -1966,61 +1928,18 @@ finish:
 		obuf->type = 0; /* no picture, no timestamp */
 		obuf->offset = 0;
 		obuf->used = 4;
-		obuf->time = mpeg1->last.time += mpeg1->nominal_frame_period; /* not used */
+		obuf->time = mpeg1->last.time +=
+			mpeg1->nominal_frame_period; /* not used */
 		_send_full_buffer(mpeg1, obuf);
 	}
 
-	/* End of file */
-
-	obuf = wait_empty_buffer(&mpeg1->prod);
-	obuf->type = 0;
-	obuf->offset = 0;
-	obuf->used = 0; /* EOF */
-	obuf->time = 0;
-	_send_full_buffer(mpeg1, obuf);
-
-	rem_consumer(&mpeg1->cons);
-	rem_producer(&mpeg1->prod);
-
-	static_context = NULL;
-
-	return NULL;
+	return eof;
 }
 
-/*
- *  API
- */
-
-#include <stdarg.h>
-
-#undef elements
-#define elements(array) (sizeof(array) / sizeof(array[0]))
-
 static void
-video_reset(mpeg1_context *mpeg1)
+rc_reset(mpeg1_context *mpeg1)
 {
 	double x;
-	int header_size;
-
-	mpeg1->coded_frame_rate = frame_rate_value[mpeg1->frame_rate_code];
-	mpeg1->coded_frame_period = 1.0 / mpeg1->coded_frame_rate;
-
-	if (mpeg1->virtual_frame_rate > mpeg1->coded_frame_rate)
-		mpeg1->virtual_frame_rate = mpeg1->coded_frame_rate;
-
-	mpeg1->seq_frame_count = mpeg1->frames_per_seqhdr;
-	mpeg1->gop_frame_count = 0;
-
-	if (!mpeg1->nominal_frame_rate) // XXX mp1e frontend
-		mpeg1->nominal_frame_rate = frame_rate_value[mpeg1->frame_rate_code];
-
-	mpeg1->nominal_frame_period = 1.0 / mpeg1->nominal_frame_rate;
-
-	mpeg1->skip_rate_acc = mpeg1->nominal_frame_rate
-		- mpeg1->virtual_frame_rate + mpeg1->nominal_frame_rate / 2.0;
-
-	mpeg1->drop_timeout = mpeg1->nominal_frame_period * 1.5;
-	mpeg1->coded_time_elapsed = 0.0;
 
 	mpeg1->rc.R	= 0;
 	mpeg1->rc.r31	= (double) quant_max
@@ -2055,6 +1974,154 @@ video_reset(mpeg1_context *mpeg1)
 	mpeg1->rc.Ei = 0, mpeg1->rc.Ep = 0, mpeg1->rc.Eb = 0;
 	mpeg1->rc.ei = 0, mpeg1->rc.ep = 0, mpeg1->rc.eb = 0;
 	mpeg1->rc.gop_count = 0;
+}
+
+void *
+mp1e_mpeg1(void *codec)
+{
+	mpeg1_context *mpeg1 = PARENT(codec, mpeg1_context, codec);
+	buffer *obuf;
+
+	printv(3, "Video compression thread\n");
+
+	assert(mpeg1->codec.codec.state == RTE_STATE_RUNNING);
+
+	/* XXX this function isn't reentrant. yet. */
+	assert(static_context == mpeg1);
+
+	if (!add_consumer(mpeg1->codec.input, &mpeg1->cons))
+		return (void *) -1;
+	// XXX need better exit method
+
+	if (!add_producer(mpeg1->codec.output, &mpeg1->prod)) {
+		rem_consumer(&mpeg1->cons);
+		return (void *) -1;
+	}
+
+	if (!mp1e_sync_run_in(&PARENT(mpeg1->codec.codec.context,
+				      mp1e_context, context)->sync,
+			      &mpeg1->codec.sstr, &mpeg1->cons, NULL)) {
+		rem_consumer(&mpeg1->cons);
+		rem_producer(&mpeg1->prod);
+		return (void *) -1;
+	}
+
+#if TEST21
+{
+	extern void mmx_YUV_420(void);
+	extern void mmx_YUYV_422(void);
+	extern int pmmx_YUV420_0(filter_param *, int, int) __attribute__ ((regparm (3)));
+	extern int pmmx_YUYV_0(filter_param *, int, int) __attribute__ ((regparm (3)));
+	extern int filter_y_offs, filter_u_offs, filter_v_offs, filter_y_pitch;
+
+	mpeg1->filter_param[0].dest = &mblock[0];
+	mpeg1->filter_param[0].offset = filter_y_offs;
+	mpeg1->filter_param[0].u_offset = filter_u_offs;
+	mpeg1->filter_param[0].v_offset = filter_v_offs;
+	mpeg1->filter_param[0].stride = filter_y_pitch;
+	mpeg1->filter_param[0].uv_stride = filter_y_pitch >> 1;
+
+	if (filter == mmx_YUV_420)
+		mpeg1->filter_param[0].func = pmmx_YUV420_0;
+	else if (filter == mmx_YUYV_422)
+		mpeg1->filter_param[0].func = pmmx_YUYV_0;
+	else
+		assert(0);	
+}
+#endif
+
+	for (;;) {
+		extern int split_sequence;
+
+		if (thread_body(mpeg1) || !split_sequence)
+			break;
+
+		obuf = wait_empty_buffer(&mpeg1->prod);
+		obuf->used = 0;
+		obuf->error = -1;
+		send_full_buffer(&mpeg1->prod, obuf);
+
+		mpeg1->prod.eof_sent = FALSE;
+		mpeg1->prod.fifo->eof_count = 0;
+
+		mpeg1->coded_frames_countd += mpeg1->num_frames;
+
+		mpeg1->seq_frame_count = mpeg1->frames_per_seqhdr;
+		mpeg1->gop_frame_count = 0;
+
+		mpeg1->skip_rate_acc = mpeg1->nominal_frame_rate
+			- mpeg1->virtual_frame_rate
+			+ mpeg1->nominal_frame_rate / 2.0;
+
+		/* XXX */
+		mpeg1->coded_time_elapsed = 0.0;
+
+		rc_reset(mpeg1);
+
+		mpeg1->last.org = NULL;
+		mpeg1->last.time = 0;
+		mpeg1->p_succ = 0;
+
+		mpeg1->mb_cx_row = mb_height;
+		mpeg1->mb_cx_thresh = 100000;
+
+		if (mb_height >= 10) {
+			mpeg1->mb_cx_row /= 3;
+			mpeg1->mb_cx_thresh =
+				lroundn(mpeg1->mb_cx_row * mb_width * 0.95);
+		}
+	}
+
+	/* End of file */
+
+	obuf = wait_empty_buffer(&mpeg1->prod);
+	obuf->used = 0;
+	obuf->error = 0xE0F;
+	send_full_buffer(&mpeg1->prod, obuf);
+
+	rem_consumer(&mpeg1->cons);
+	rem_producer(&mpeg1->prod);
+
+	static_context = NULL;
+
+	return NULL;
+}
+
+/*
+ *  API
+ */
+
+#include <stdarg.h>
+
+#undef elements
+#define elements(array) (sizeof(array) / sizeof(array[0]))
+
+static void
+video_reset(mpeg1_context *mpeg1)
+{
+	int header_size;
+
+	mpeg1->coded_frame_rate = frame_rate_value[mpeg1->frame_rate_code];
+	mpeg1->coded_frame_period = 1.0 / mpeg1->coded_frame_rate;
+
+	if (mpeg1->virtual_frame_rate > mpeg1->coded_frame_rate)
+		mpeg1->virtual_frame_rate = mpeg1->coded_frame_rate;
+
+	mpeg1->seq_frame_count = mpeg1->frames_per_seqhdr;
+	mpeg1->gop_frame_count = 0;
+
+	if (!mpeg1->nominal_frame_rate) // XXX mp1e frontend
+		mpeg1->nominal_frame_rate = frame_rate_value[mpeg1->frame_rate_code];
+
+	mpeg1->nominal_frame_period = 1.0 / mpeg1->nominal_frame_rate;
+
+	mpeg1->skip_rate_acc = mpeg1->nominal_frame_rate
+		- mpeg1->virtual_frame_rate + mpeg1->nominal_frame_rate / 2.0;
+
+	mpeg1->drop_timeout = mpeg1->nominal_frame_period * 1.5;
+	mpeg1->coded_time_elapsed = 0.0;
+
+	rc_reset(mpeg1);
 
 	bstart(&video_out, mpeg1->seq_header_template);
 	header_size = sequence_header(mpeg1);
@@ -2356,6 +2423,7 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 
 	video_frames_dropped = 0;
 	video_frame_count = 0;
+	mpeg1->coded_frames_countd = mpeg1->num_frames;
 
 
 	/* Init motion compensation */
@@ -2494,15 +2562,13 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 	mpeg1->last.time = 0;
 	mpeg1->p_succ = 0;
 
-	{
-		mpeg1->mb_cx_row = mb_height;
-		mpeg1->mb_cx_thresh = 100000;
+	mpeg1->mb_cx_row = mb_height;
+	mpeg1->mb_cx_thresh = 100000;
 
-		if (mb_height >= 10) {
-			mpeg1->mb_cx_row /= 3;
-			mpeg1->mb_cx_thresh =
-				lroundn(mpeg1->mb_cx_row * mb_width * 0.95);
-		}
+	if (mb_height >= 10) {
+		mpeg1->mb_cx_row /= 3;
+		mpeg1->mb_cx_thresh =
+			lroundn(mpeg1->mb_cx_row * mb_width * 0.95);
 	}
 
 	video_reset(mpeg1);
@@ -2585,8 +2651,8 @@ XXX
 	   N_("Add an annotation in the user data field shortly after "
 	      "the video stream start. This is an mp1e extension, "
 	      "players will ignore it.")),
-	RTE_OPTION_INT_RANGE_INITIALIZER
-	  ("num_frames", NULL, INT_MAX, 1, INT_MAX, 1, NULL),
+	RTE_OPTION_REAL_RANGE_INITIALIZER
+	  ("num_frames", NULL, DBL_MAX, 1, DBL_MAX, 1, NULL),
 };
 
 #define KEYWORD(name) strcmp(keyword, name) == 0
@@ -2614,6 +2680,8 @@ option_print(rte_codec *codec, const char *keyword, va_list args)
 	} else if (KEYWORD("motion_compensation") || KEYWORD("monochrome")) {
 		return rte_strdup(context, NULL, va_arg(args, int) ?
 				  _("on") : _("off"));
+	} else if (KEYWORD("num_frames")) {
+		snprintf(buf, sizeof(buf), _("%f frames"), va_arg(args, double));
 	} else {
 		rte_unknown_option(context, codec, keyword);
 	failed:
@@ -2648,9 +2716,7 @@ option_get(rte_codec *codec, const char *keyword, rte_option_value *v)
 		if (!(v->str = rte_strdup(context, NULL, mpeg1->anno)))
 			return FALSE;
 	} else if (KEYWORD("num_frames")) {
-		v->num = mpeg1->num_frames;
-		if (mpeg1->num_frames > (int64_t) INT_MAX)
-			v->num = INT_MAX;
+		v->dbl = mpeg1->num_frames;
 	} else {
 		rte_unknown_option(context, codec, keyword);
 		return FALSE;
@@ -2730,9 +2796,7 @@ option_set(rte_codec *codec, const char *keyword, va_list args)
 		if (!rte_strdup(context, &mpeg1->anno, va_arg(args, char *)))
 			return FALSE;
 	} else if (KEYWORD("num_frames")) {
-		mpeg1->num_frames = va_arg(args, int);
-		if (mpeg1->num_frames >= INT_MAX)
-			mpeg1->num_frames = INT64_MAX;
+		mpeg1->num_frames = va_arg(args, double);
 	} else {
 		rte_unknown_option(context, codec, keyword);
 	failed:
