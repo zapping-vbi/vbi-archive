@@ -91,3 +91,7 @@ mv $PACKAGE-$VER.tar.gz $VER-release
 mv $PACKAGE-$VER.tar.bz2 $VER-release
 
 echo "Done. Remember to commit the project to CVS if neccesary."
+if test -e people_to_contact; then
+    echo "Remember to notify the following people:"
+    cat people_to_contact
+fi

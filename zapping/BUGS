@@ -24,4 +24,5 @@ Known bugs with zapping, don't report them
 	* Overlay (no XVideo) under E is broken, shading the window
 	isn't correctly detected.
 	* Do not assert on ESD timeout
+	* Bug in save window geometry, reported by Pawel.
 
