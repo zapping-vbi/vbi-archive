@@ -22,8 +22,6 @@
 
 #include <gnome.h>
 #include <gdk/gdkx.h>
-//#include <gnome-xml/tree.h>
-//#include <gnome-xml/parser.h>
 #include <glade/glade.h>
 #include <signal.h>
 #define ZCONF_DOMAIN "/zapping/options/main/"
@@ -354,7 +352,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.165.2.21 2003-09-24 18:35:57 mschimek Exp $",
+	 "$Id: main.c,v 1.165.2.22 2003-09-29 07:06:30 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -566,13 +564,14 @@ int main(int argc, char * argv[])
     xv_present = TRUE;
 
   D();
+#if 0
   /* try to run the auxiliary suid program */
   if (!disable_zsfb && !xv_detected &&
       !tv_set_overlay_buffer (main_info, &dga_param))
     g_message("Error while executing zapping_setup_fb,\n"
 	      "Previewing might not work:\n%s", main_info->error);
   D();
-
+#endif
   /* mute the device while we are starting up */
   /* FIXME */
   if (-1 == tv_mute_set (main_info, TRUE))
@@ -699,37 +698,63 @@ int main(int argc, char * argv[])
 		GTK_MESSAGE_ERROR, main_info->error);
   D();
 
-  // FIXME
-  //  if (-1 == tveng_set_mute(zcg_bool(NULL, "start_muted"), main_info))
-  //    printv("%s\n", main_info->error);
-  //  else
   mixer_setup ();
 
-  D();
   {
     tveng_tc_control *controls;
     guint num_controls;
+    gboolean start_muted;
+    tveng_tuned_channel *ch;
 
-    /* Restore global controls (preliminary) */
+    D();
 
     zconf_get_integer (&num_controls, ZCONF_DOMAIN "num_controls");
     controls = zconf_get_controls (num_controls, "/zapping/options/main");
-    load_control_values (main_info, controls, num_controls,
-    			 !!zcg_bool (NULL, "start_muted"));
+
+    start_muted = zcg_bool (NULL, "start_muted");
+
+    if (start_muted)
+      {
+	tveng_tc_control *mute;
+
+	if ((mute = tveng_tc_control_by_id (main_info,
+					    controls, num_controls,
+					    TV_CONTROL_ID_MUTE)))
+	  mute->value = 1;
+      }
+
+    load_control_values (main_info, controls, num_controls);
+
+    set_mute (3 /* update */, /* controls */ TRUE, /* osd */ FALSE);
+
+    D();
+
+    /* Restore the input and the standard */
+
+    if (zcg_int(NULL, "current_input"))
+      z_switch_input(zcg_int(NULL, "current_input"), main_info);
+
+    if (zcg_int(NULL, "current_standard"))
+      z_switch_standard(zcg_int(NULL, "current_standard"), main_info);
+
+    cur_tuned_channel = zcg_int(NULL, "cur_tuned_channel");
+    ch = tveng_tuned_channel_nth (global_channel_list, cur_tuned_channel);
+
+    if (start_muted)
+      {
+	tveng_tc_control *mute;
+
+	if ((mute = tveng_tc_control_by_id (main_info,
+					    ch->controls,
+					    ch->num_controls,
+					    TV_CONTROL_ID_MUTE)))
+	  mute->value = 1; /* XXX sub-optimal */
+      }
+
+    z_switch_channel (ch, main_info);
   }
 
-  set_mute (3 /* update */, /* controls */ TRUE, /* osd */ FALSE);
-
   D();
-  /* Restore the input and the standard */
-  if (zcg_int(NULL, "current_input"))
-    z_switch_input(zcg_int(NULL, "current_input"), main_info);
-  if (zcg_int(NULL, "current_standard"))
-    z_switch_standard(zcg_int(NULL, "current_standard"), main_info);
-  cur_tuned_channel = zcg_int(NULL, "cur_tuned_channel");
-  z_switch_channel (tveng_tuned_channel_nth (global_channel_list,
-					     cur_tuned_channel),
-		    main_info);
 
   if (!command)
     {
