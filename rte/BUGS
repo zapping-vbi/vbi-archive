@@ -1,2 +1,3 @@
-$Id: BUGS,v 1.4 2002-10-02 20:58:48 mschimek Exp $
+$Id: BUGS,v 1.5 2002-10-05 12:29:36 mschimek Exp $
 * make distcheck --without-ffmpeg doesn't work
+* configure.in mp1e warning breaks rpm build
