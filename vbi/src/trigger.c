@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: trigger.c,v 1.4.2.7 2004-07-16 00:08:19 mschimek Exp $ */
+/* $Id: trigger.c,v 1.4.2.8 2004-10-14 07:54:02 mschimek Exp $ */
 
 /*
    Based on EACEM TP 14-99-16 "Data Broadcasting", rev 0.8;
@@ -344,7 +344,7 @@ _vbi_trigger_delete		(_vbi_trigger *		t)
 
 	_vbi_trigger_destroy (t);
 
-	free (t);
+	vbi_free (t);
 }
 
 static const uint8_t *
@@ -823,7 +823,7 @@ add_trigger			(_vbi_trigger **	list,
 		return TRUE;
 	}
 
-	if (!(t = malloc (sizeof (*t))))
+	if (!(t = vbi_malloc (sizeof (*t))))
 		return FALSE;
 
 	*t = *t1;

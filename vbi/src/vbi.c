@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.6.2.20 2004-09-14 04:52:00 mschimek Exp $ */
+/* $Id: vbi.c,v 1.6.2.21 2004-10-14 07:54:02 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -166,7 +166,7 @@ _vbi_strndup			(const char *		s,
 	n = strlen (s);
 	len = MIN (len, n);
 
-	r = malloc (len + 1);
+	r = vbi_malloc (len + 1);
 
 	if (r) {
 		memcpy (r, s, len);
@@ -206,7 +206,7 @@ _vbi_asprintf			(char **		dstp,
 		char *buf2;
 		int len;
 
-		if (!(buf2 = realloc (buf, size)))
+		if (!(buf2 = vbi_realloc (buf, size)))
 			break;
 
 		buf = buf2;
@@ -228,7 +228,7 @@ _vbi_asprintf			(char **		dstp,
 		}
 	}
 
-	free (buf);
+	vbi_free (buf);
 	*dstp = NULL;
 	errno = temp;
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: conv.c,v 1.1.2.3 2004-07-09 16:10:52 mschimek Exp $ */
+/* $Id: conv.c,v 1.1.2.4 2004-10-14 07:54:00 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -247,7 +247,7 @@ strdup_iconv			(const char *		dst_format,
 
 	buf_size = src_size * 8;
 
-	if (!(buf = malloc (buf_size)))
+	if (!(buf = vbi_malloc (buf_size)))
 		return NULL;
 
 	s = (const char *) src;
@@ -272,7 +272,7 @@ strdup_iconv			(const char *		dst_format,
 		if (E2BIG != errno)
 			goto failure;
 
-		if (!(buf2 = realloc (buf, buf_size * 2)))
+		if (!(buf2 = vbi_realloc (buf, buf_size * 2)))
 			goto failure;
 
 		d = buf2 + (d - buf);
@@ -282,7 +282,7 @@ strdup_iconv			(const char *		dst_format,
 		buf_size *= 2;
 	}
 
-	if (!(buf2 = realloc (buf, buf_size - dleft + 4)))
+	if (!(buf2 = vbi_realloc (buf, buf_size - dleft + 4)))
 		goto failure;
 
 	memset (buf2 + (d - buf), 0, 4);
@@ -295,7 +295,7 @@ strdup_iconv			(const char *		dst_format,
 	if ((iconv_t) -1 != cd)
 		iconv_close (cd);
 
-	free (buf);
+	vbi_free (buf);
 
 	return NULL;
 }

@@ -2,7 +2,7 @@
  *  Template for export modules
  */
 
-/* $Id: exp-templ.c,v 1.6.2.3 2004-04-08 23:36:25 mschimek Exp $ */
+/* $Id: exp-templ.c,v 1.6.2.4 2004-10-14 07:54:00 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -35,8 +35,10 @@ tmpl_new			(const _vbi_export_module *unused)
 {
 	tmpl_instance *tmpl;
 
-	if (!(tmpl = calloc (1, sizeof (*tmpl))))
+	if (!(tmpl = vbi_malloc (sizeof (*tmpl))))
 		return NULL;
+
+	CLEAR (*tmpl);
 
 	/*
 	 *  The caller will initialize tmpl->export.class for us
@@ -57,9 +59,9 @@ tmpl_delete			(vbi_export *		e)
 
 	/* Uninitialize our private stuff and options */
 
-	free (tmpl->comment);
+	vbi_free (tmpl->comment);
 
-	free (tmpl);
+	vbi_free (tmpl);
 }
 
 /* N_(), _() are NLS functions, see info gettext. */

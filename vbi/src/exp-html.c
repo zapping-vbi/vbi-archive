@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.6.2.9 2004-07-09 16:10:52 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.6.2.10 2004-10-14 07:54:00 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -75,8 +75,10 @@ html_new			(const _vbi_export_module *em)
 
 	em = em;
 
-	if (!(html = calloc (1, sizeof (*html))))
+	if (!(html = vbi_malloc (sizeof (*html))))
 		return NULL;
+
+	CLEAR (*html);
 
 	vbi_link_init (&html->link);
 
@@ -88,12 +90,12 @@ html_delete			(vbi_export *		e)
 {
 	html_instance *html = PARENT (e, html_instance, export);
 
-	free (html->text.buffer);
-	free (html->style.buffer);
+	vbi_free (html->text.buffer);
+	vbi_free (html->style.buffer);
 
 	vbi_link_destroy (&html->link);
 
-	free (html);
+	vbi_free (html);
 }
 
 static const vbi_option_info
@@ -192,7 +194,7 @@ extend				(html_instance *	html,
 
 	n = (v->end - v->buffer + incr) * size;
 
-	if (!(buffer = realloc (v->buffer, n))) {
+	if (!(buffer = vbi_realloc (v->buffer, n))) {
 		longjmp (html->main, -1);
 	}
 

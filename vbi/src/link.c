@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: link.c,v 1.1.2.3 2004-09-14 04:52:00 mschimek Exp $ */
+/* $Id: link.c,v 1.1.2.4 2004-10-14 07:54:00 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -99,13 +99,13 @@ vbi_link_destroy		(vbi_link *		ld)
 {
 	assert (NULL != ld);
 
-	free (ld->name);
-	free (ld->url);
-	free (ld->script);
+	vbi_free (ld->name);
+	vbi_free (ld->url);
+	vbi_free (ld->script);
 
 	if (ld->nk_alloc) {
 		vbi_network_destroy (ld->network);
-		free (ld->network);
+		vbi_free (ld->network);
 	}
 
 	CLEAR (*ld);
@@ -147,21 +147,21 @@ vbi_link_copy			(vbi_link *		dst,
 			return FALSE;
 
 		if (src->url && !(url = strdup (src->url))) {
-			free (name);
+			vbi_free (name);
 			return FALSE;
 		}
 
 		if (src->script && !(script = strdup (src->script))) {
-			free (url);
-			free (name);
+			vbi_free (url);
+			vbi_free (name);
 			return FALSE;
 		}
 
 		if (src->network) {
-			if (!(nk = malloc (sizeof (*nk)))) {
-				free (script);
-				free (url);
-				free (name);
+			if (!(nk = vbi_malloc (sizeof (*nk)))) {
+				vbi_free (script);
+				vbi_free (url);
+				vbi_free (name);
 				return FALSE;
 			}
 

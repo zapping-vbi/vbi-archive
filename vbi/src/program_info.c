@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: program_info.c,v 1.1.2.1 2004-07-09 16:10:53 mschimek Exp $ */
+/* $Id: program_info.c,v 1.1.2.2 2004-10-14 07:54:01 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -83,8 +83,8 @@ vbi_program_info_destroy	(vbi_program_info *	pi)
 {
 	assert (NULL != pi);
 
-	free (pi->title);
-	free (pi->description);
+	vbi_free (pi->title);
+	vbi_free (pi->description);
 
 	CLEAR (*pi);
 }

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.h,v 1.1.2.9 2004-07-09 16:10:53 mschimek Exp $ */
+/* $Id: pdc.h,v 1.1.2.10 2004-10-14 07:54:01 mschimek Exp $ */
 
 #ifndef __ZVBI_PDC_H__
 #define __ZVBI_PDC_H__
@@ -279,19 +279,19 @@ _vbi_preselection_dump		(const vbi_preselection *p,
 				 FILE *			fp);
 extern void
 _vbi_preselection_array_dump	(const vbi_preselection *p,
-				 unsigned int		p_size,
+				 unsigned int		n_elements,
 				 FILE *			fp);
 extern void
 _vbi_preselection_array_delete	(vbi_preselection *	p,
-				 unsigned int		p_size);
+				 unsigned int		n_elements);
 extern vbi_preselection *
 _vbi_preselection_array_dup	(const vbi_preselection *p,
-				 unsigned int		p_size);
+				 unsigned int		n_elements);
 extern vbi_preselection *
-_vbi_preselection_array_new	(unsigned int		array_size);
+_vbi_preselection_array_new	(unsigned int		n_elements);
 extern unsigned int
 _vbi_pdc_method_a		(vbi_preselection *	table,
-				 unsigned int		table_size,
+				 unsigned int		n_elements,
 				 const uint8_t		lop_raw[26][40]);
 
 /** @} */

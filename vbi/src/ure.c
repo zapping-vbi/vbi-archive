@@ -28,7 +28,7 @@
  * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-/* $Id: ure.c,v 1.4.2.2 2004-07-09 16:10:54 mschimek Exp $ */
+/* $Id: ure.c,v 1.4.2.3 2004-10-14 07:54:02 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -38,6 +38,7 @@
 #include <unistd.h>
 #include <string.h>
 #include "macros.h"
+#include "misc.h"
 
 #if defined(HAVE_GLIBC21)
 
@@ -390,9 +391,9 @@ _ure_push(ucs2_t v, _ure_buffer_t *b)
   s = &b->stack;
   if (s->slist_used == s->slist_size) {
     if (s->slist_size == 0)
-      s->slist = (ucs2_t *) malloc(sizeof(ucs2_t) << 3);
+      s->slist = (ucs2_t *) vbi_malloc(sizeof(ucs2_t) << 3);
     else
-      s->slist = (ucs2_t *) realloc((char *) s->slist,
+      s->slist = (ucs2_t *) vbi_realloc((char *) s->slist,
 				    sizeof(ucs2_t) * (s->slist_size + 8));
     s->slist_size += 8;
   }
@@ -624,10 +625,10 @@ _ure_add_range(_ure_ccl_t *ccl, _ure_range_t *r, _ure_buffer_t *b)
 
   if (ccl->ranges_used == ccl->ranges_size) {
     if (ccl->ranges_size == 0)
-      ccl->ranges = (_ure_range_t *) malloc(sizeof(_ure_range_t) << 3);
+      ccl->ranges = (_ure_range_t *) vbi_malloc(sizeof(_ure_range_t) << 3);
     else
       ccl->ranges = (_ure_range_t *)
-	realloc((char *) ccl->ranges,
+	vbi_realloc((char *) ccl->ranges,
 		sizeof(_ure_range_t) * (ccl->ranges_size + 8));
     ccl->ranges_size += 8;
   }
@@ -1218,7 +1219,7 @@ _ure_make_symbol(ucs2_t *sym, unsigned long limit, unsigned long *consumed,
      */
     if ((symbol.type == _URE_CCLASS || symbol.type == _URE_NCCLASS) &&
 	symbol.sym.ccl.ranges_size > 0)
-      free((char *) symbol.sym.ccl.ranges);
+      vbi_free((char *) symbol.sym.ccl.ranges);
 
     return b->symtab[i].id;
   }
@@ -1228,10 +1229,10 @@ _ure_make_symbol(ucs2_t *sym, unsigned long limit, unsigned long *consumed,
    */
   if (b->symtab_used == b->symtab_size) {
     if (b->symtab_size == 0)
-      b->symtab = (_ure_symtab_t *) malloc(sizeof(_ure_symtab_t) << 3);
+      b->symtab = (_ure_symtab_t *) vbi_malloc(sizeof(_ure_symtab_t) << 3);
     else
       b->symtab = (_ure_symtab_t *)
-	realloc((char *) b->symtab,
+	vbi_realloc((char *) b->symtab,
 		sizeof(_ure_symtab_t) * (b->symtab_size + 8));
     sp = b->symtab + b->symtab_size;
     (void) memset((char *) sp, 0, sizeof(_ure_symtab_t) << 3);
@@ -1281,10 +1282,10 @@ _ure_make_expr(ucs2_t type, ucs2_t lhs, ucs2_t rhs, _ure_buffer_t *b)
    */
   if (b->expr_used == b->expr_size) {
     if (b->expr_size == 0)
-      b->expr = (_ure_elt_t *) malloc(sizeof(_ure_elt_t) << 3);
+      b->expr = (_ure_elt_t *) vbi_malloc(sizeof(_ure_elt_t) << 3);
     else
       b->expr = (_ure_elt_t *)
-	realloc((char *) b->expr,
+	vbi_realloc((char *) b->expr,
 		sizeof(_ure_elt_t) * (b->expr_size + 8));
     b->expr_size += 8;
   }
@@ -1451,10 +1452,10 @@ _ure_add_symstate(ucs2_t sym, ucs2_t state, _ure_buffer_t *b)
      */
     if (sp->states.slist_used == sp->states.slist_size) {
       if (sp->states.slist_size == 0)
-	sp->states.slist = (ucs2_t *) malloc(sizeof(ucs2_t) << 3);
+	sp->states.slist = (ucs2_t *) vbi_malloc(sizeof(ucs2_t) << 3);
       else
 	sp->states.slist = (ucs2_t *)
-	  realloc((char *) sp->states.slist,
+	  vbi_realloc((char *) sp->states.slist,
 		  sizeof(ucs2_t) * (sp->states.slist_size + 8));
       sp->states.slist_size += 8;
     }
@@ -1493,10 +1494,10 @@ _ure_add_state(ucs2_t nstates, ucs2_t *states, _ure_buffer_t *b)
     if (b->states.states_used == b->states.states_size) {
       if (b->states.states_size == 0)
 	b->states.states = (_ure_state_t *)
-	  malloc(sizeof(_ure_state_t) << 3);
+	  vbi_malloc(sizeof(_ure_state_t) << 3);
       else
 	b->states.states = (_ure_state_t *)
-	  realloc((char *) b->states.states,
+	  vbi_realloc((char *) b->states.states,
 		  sizeof(_ure_state_t) * (b->states.states_size + 8));
       sp = b->states.states + b->states.states_size;
       (void) memset((char *) sp, 0, sizeof(_ure_state_t) << 3);
@@ -1509,10 +1510,10 @@ _ure_add_state(ucs2_t nstates, ucs2_t *states, _ure_buffer_t *b)
     if (sp->st.slist_used + nstates > sp->st.slist_size) {
       if (sp->st.slist_size == 0)
 	sp->st.slist = (ucs2_t *)
-	  malloc(sizeof(ucs2_t) * (sp->st.slist_used + nstates));
+	  vbi_malloc(sizeof(ucs2_t) * (sp->st.slist_used + nstates));
       else
 	sp->st.slist = (ucs2_t *)
-	  realloc((char *) sp->st.slist,
+	  vbi_realloc((char *) sp->st.slist,
 		  sizeof(ucs2_t) * (sp->st.slist_used + nstates));
       sp->st.slist_size = sp->st.slist_used + nstates;
     }
@@ -1669,10 +1670,10 @@ _ure_reduce(ucs2_t start, _ure_buffer_t *b)
     if (sp->trans_used + syms > sp->trans_size) {
       if (sp->trans_size == 0)
 	sp->trans = (_ure_elt_t *)
-	  malloc(sizeof(_ure_elt_t) * (sp->trans_used + syms));
+	  vbi_malloc(sizeof(_ure_elt_t) * (sp->trans_used + syms));
       else
 	sp->trans = (_ure_elt_t *)
-	  realloc((char *) sp->trans,
+	  vbi_realloc((char *) sp->trans,
 		  sizeof(_ure_elt_t) * (sp->trans_used + syms));
       sp->trans_size = sp->trans_used + syms;
     }
@@ -1743,9 +1744,9 @@ _ure_add_equiv(ucs2_t l, ucs2_t r, _ure_buffer_t *b)
 
   if (b->equiv_used == b->equiv_size) {
     if (b->equiv_size == 0)
-      b->equiv = (_ure_equiv_t *) malloc(sizeof(_ure_equiv_t) << 3);
+      b->equiv = (_ure_equiv_t *) vbi_malloc(sizeof(_ure_equiv_t) << 3);
     else
-      b->equiv = (_ure_equiv_t *) realloc((char *) b->equiv,
+      b->equiv = (_ure_equiv_t *) vbi_realloc((char *) b->equiv,
 					  sizeof(_ure_equiv_t) *
 					  (b->equiv_size + 8));
     b->equiv_size += 8;
@@ -1828,7 +1829,8 @@ ure_buffer_create(void)
 {
   ure_buffer_t b;
 
-  b = (ure_buffer_t) calloc(1, sizeof(_ure_buffer_t));
+  b = vbi_malloc (sizeof (*b));
+  memset (b, 0, sizeof (*b));
 
   return b;
 }
@@ -1847,33 +1849,33 @@ ure_buffer_free(ure_buffer_t buf)
     return;
 
   if (buf->stack.slist_size > 0)
-    free((char *) buf->stack.slist);
+    vbi_free((char *) buf->stack.slist);
 
   if (buf->expr_size > 0)
-    free((char *) buf->expr);
+    vbi_free((char *) buf->expr);
 
   for (i = 0; i < buf->symtab_size; i++) {
     if (buf->symtab[i].states.slist_size > 0)
-      free((char *) buf->symtab[i].states.slist);
+      vbi_free((char *) buf->symtab[i].states.slist);
   }
 
   if (buf->symtab_size > 0)
-    free((char *) buf->symtab);
+    vbi_free((char *) buf->symtab);
 
   for (i = 0; i < buf->states.states_size; i++) {
     if (buf->states.states[i].trans_size > 0)
-      free((char *) buf->states.states[i].trans);
+      vbi_free((char *) buf->states.states[i].trans);
     if (buf->states.states[i].st.slist_size > 0)
-      free((char *) buf->states.states[i].st.slist);
+      vbi_free((char *) buf->states.states[i].st.slist);
   }
 
   if (buf->states.states_size > 0)
-    free((char *) buf->states.states);
+    vbi_free((char *) buf->states.states);
 
   if (buf->equiv_size > 0)
-    free((char *) buf->equiv);
+    vbi_free((char *) buf->equiv);
 
-  free((char *) buf);
+  vbi_free((char *) buf);
 }
 
 ure_dfa_t
@@ -1937,7 +1939,7 @@ ure_compile(ucs2_t *re, unsigned long relen, int casefold, ure_buffer_t buf)
   /*
    * Construct the minimal DFA.
    */
-  dfa = (ure_dfa_t) malloc(sizeof(_ure_dfa_t));
+  dfa = (ure_dfa_t) vbi_malloc(sizeof(_ure_dfa_t));
   (void) memset((char *) dfa, 0, sizeof(_ure_dfa_t));
 
   dfa->flags = buf->flags & (_URE_DFA_CASEFOLD|_URE_DFA_BLANKLINE);
@@ -1948,7 +1950,7 @@ ure_compile(ucs2_t *re, unsigned long relen, int casefold, ure_buffer_t buf)
    */
   for (i = 0; i < buf->symtab_size; i++) {
     if (buf->symtab[i].states.slist_size > 0)
-      free((char *) buf->symtab[i].states.slist);
+      vbi_free((char *) buf->symtab[i].states.slist);
   }
   dfa->syms = buf->symtab;
   dfa->nsyms = buf->symtab_used;
@@ -1970,9 +1972,9 @@ ure_compile(ucs2_t *re, unsigned long relen, int casefold, ure_buffer_t buf)
   /*
    * Allocate enough space for the states and transitions.
    */
-  dfa->states = (_ure_dstate_t *) malloc(sizeof(_ure_dstate_t) *
+  dfa->states = (_ure_dstate_t *) vbi_malloc(sizeof(_ure_dstate_t) *
 					 dfa->nstates);
-  dfa->trans = (_ure_trans_t *) malloc(sizeof(_ure_trans_t) * dfa->ntrans);
+  dfa->trans = (_ure_trans_t *) vbi_malloc(sizeof(_ure_trans_t) * dfa->ntrans);
 
   /*
    * Actually transfer the DFA states from the buffer.
@@ -2019,16 +2021,16 @@ ure_dfa_free(ure_dfa_t dfa)
     if ((dfa->syms[i].type == _URE_CCLASS ||
 	 dfa->syms[i].type == _URE_NCCLASS) &&
 	dfa->syms[i].sym.ccl.ranges_size > 0)
-      free((char *) dfa->syms[i].sym.ccl.ranges);
+      vbi_free((char *) dfa->syms[i].sym.ccl.ranges);
   }
   if (dfa->nsyms > 0)
-    free((char *) dfa->syms);
+    vbi_free((char *) dfa->syms);
 
   if (dfa->nstates > 0)
-    free((char *) dfa->states);
+    vbi_free((char *) dfa->states);
   if (dfa->ntrans > 0)
-    free((char *) dfa->trans);
-  free((char *) dfa);
+    vbi_free((char *) dfa->trans);
+  vbi_free((char *) dfa);
 }
 
 void

@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder.c,v 1.1.2.2 2004-07-09 16:10:54 mschimek Exp $ */
+/* $Id: vbi_decoder.c,v 1.1.2.3 2004-10-14 07:54:02 mschimek Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>		/* malloc() */
@@ -785,7 +785,7 @@ vbi_decoder_delete		(vbi_decoder *		vbi)
 
 	_vbi_decoder_destroy (vbi);
 
-	free (vbi);
+	vbi_free (vbi);
 }
 
 /**
@@ -806,14 +806,14 @@ vbi_decoder_new			(vbi_cache *		ca,
 {
 	vbi_decoder *vbi;
 
-	if (!(vbi = malloc (sizeof (*vbi)))) {
+	if (!(vbi = vbi_malloc (sizeof (*vbi)))) {
 		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"Out of memory (%u)", sizeof (*vbi));
 		return NULL;
 	}
 
         if (!_vbi_decoder_init (vbi, ca, nk, videostd_set)) {
-		free (vbi);
+		vbi_free (vbi);
 		vbi = NULL;
 	}
 

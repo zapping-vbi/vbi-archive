@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.6.2.7 2004-07-09 16:10:54 mschimek Exp $ */
+/* $Id: search.c,v 1.6.2.8 2004-10-14 07:54:01 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -504,7 +504,7 @@ vbi_search_delete		(vbi_search *		search)
 	if (search->ub)
 		ure_buffer_free(search->ub);
 
-	free(search);
+	vbi_free(search);
 }
 
 static size_t
@@ -613,8 +613,10 @@ vbi_search_new_ucs2		(vbi_decoder *		vbi,
 	if (!pattern || 0 == pattern_size)
 		return NULL;
 
-	if (!(s = calloc (1, sizeof (*s))))
+	if (!(s = vbi_malloc (sizeof (*s))))
 		return NULL;
+
+	CLEAR (*s);
 
 	s->vbi = vbi;
 	s->progress = progress;
@@ -626,8 +628,8 @@ vbi_search_new_ucs2		(vbi_decoder *		vbi,
 		unsigned int j;
 
 		size = pattern_size * 2 * sizeof (*esc_pattern);
-		if (!(esc_pattern = malloc (size))) {
-			free (s);
+		if (!(esc_pattern = vbi_malloc (size))) {
+			vbi_free (s);
 			return NULL;
 		}
 
@@ -653,13 +655,13 @@ abort:
 		vbi_search_delete (s);
 
 		if (!regexp)
-			free (esc_pattern);
+			vbi_free (esc_pattern);
 
 		return NULL;
 	}
 
 	if (!regexp)
-		free (esc_pattern);
+		vbi_free (esc_pattern);
 
 	s->stop_pgno[0] = pgno;
 	s->stop_subno[0] = (subno == VBI_ANY_SUBNO) ? 0 : subno;
@@ -704,7 +706,7 @@ vbi_search_new_utf8		(vbi_decoder *		vbi,
 				 ucs2_pattern, ucs2_strlen (ucs2_pattern),
 				 casefold, regexp, progress, user_data);
 
-	free (ucs2_pattern);
+	vbi_free (ucs2_pattern);
 
 	return s;
 }

@@ -17,7 +17,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sampling.h,v 1.1.2.4 2004-04-08 23:36:26 mschimek Exp $ */
+/* $Id: sampling.h,v 1.1.2.5 2004-10-14 07:54:01 mschimek Exp $ */
+
+/* XXX should be SAMPLING_PAR_H */
 
 #ifndef __ZVBI_SAMPLING_H__
 #define __ZVBI_SAMPLING_H__

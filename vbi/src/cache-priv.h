@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cache-priv.h,v 1.1.2.3 2004-07-09 16:10:52 mschimek Exp $ */
+/* $Id: cache-priv.h,v 1.1.2.4 2004-10-14 07:54:00 mschimek Exp $ */
 
 #ifndef CACHE_PRIV_H
 #define CACHE_PRIV_H
@@ -316,7 +316,7 @@ cache_network_get_top_title	(cache_network *	cn,
 				 vbi_subno		subno);
 extern vbi_top_title *
 cache_network_get_top_titles	(cache_network *	cn,
-				 unsigned int *		array_size);
+				 unsigned int *		n_elements);
 /* in cache.c */
 extern void
 cache_network_get_ttx_page_stat	(const cache_network *	cn,
@@ -373,7 +373,8 @@ _vbi_cache_put_page		(vbi_cache *		ca,
 /* in teletext.c */
 extern void
 _vbi_character_set_init		(const vbi_character_set *charset[2],
-				 vbi_character_set_code default_code,
+				 vbi_character_set_code default_code_0,
+				 vbi_character_set_code default_code_1,
 				 const extension *	ext,
 				 const cache_page *	cp);
 /* in cache.c */

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext.c,v 1.7.2.19 2004-09-14 04:52:00 mschimek Exp $ */
+/* $Id: teletext.c,v 1.7.2.20 2004-10-14 07:54:01 mschimek Exp $ */
 
 #include "../config.h"
 #include "site_def.h"
@@ -122,7 +122,8 @@ _vbi_page_priv_dump		(const vbi_page_priv *	pgp,
  */
 void
 _vbi_character_set_init		(const vbi_character_set *charset[2],
-				 vbi_character_set_code default_code,
+				 vbi_character_set_code default_code_0,
+				 vbi_character_set_code default_code_1,
 				 const extension *	ext,
 				 const cache_page *	cp)
 {
@@ -133,7 +134,7 @@ _vbi_character_set_init		(const vbi_character_set *charset[2],
 		const vbi_character_set *cs;
 		vbi_character_set_code code;
 
-		code = default_code;
+		code = i ? default_code_1 : default_code_0;
 
 		if (ext && (ext->designations & 0x11)) {
 			/* Have X/28/0 or M/29/0 or /4. */
@@ -195,6 +196,7 @@ level_one_row			(vbi_page_priv *	pgp,
 	const vbi_character_set *cs;
 	unsigned int mosaic_plane;
 	unsigned int held_mosaic_unicode;
+	unsigned int esc;
 	vbi_bool hold;
 	vbi_bool mosaic;
 	vbi_bool double_height_row;
@@ -219,6 +221,7 @@ level_one_row			(vbi_page_priv *	pgp,
 	mosaic_plane		= mosaic_contiguous;
 	ac.opacity		= pgp->page_opacity[row > 0];
 	cs			= pgp->char_set[0];
+	esc			= 0;
 	hold			= FALSE;
 	mosaic			= FALSE;
 	double_height_row	= FALSE;
@@ -352,7 +355,7 @@ level_one_row			(vbi_page_priv *	pgp,
 			break;
 
 		case 0x1B:		/* ESC */
-			cs = pgp->char_set[cs == pgp->char_set[0]];
+			cs = pgp->char_set[esc ^= 1];
 			break;
 
 		case 0x1F:		/* release mosaic */
@@ -2725,7 +2728,7 @@ keyword				(vbi_link *		ld,
 		if (ld) {
 			char *url;
 
-			if (!(url = malloc (recipient + address + 9)))
+			if (!(url = vbi_malloc (recipient + address + 9)))
 				return FALSE;
 
 			strcpy (url, "mailto:");
@@ -2746,7 +2749,7 @@ keyword				(vbi_link *		ld,
 			plen = strlen (proto);
 			len += address;
 
-			if (!(url = malloc (plen + len + 1)))
+			if (!(url = vbi_malloc (plen + len + 1)))
 				return FALSE;
 
 			strcpy (url, proto);
@@ -3417,8 +3420,8 @@ _vbi_page_priv_from_cache_page_va_list
 	vbi_bool option_hyperlinks;
 	vbi_bool option_pdc_links;
 	int option_navigation_style;
-	vbi_character_set_code option_cs_default;
-	const vbi_character_set *option_cs_override;
+	vbi_character_set_code option_cs_default[2];
+	const vbi_character_set *option_cs_override[2];
 	const extension *ext;
 	cache_network *cn;
 	unsigned int i;
@@ -3465,8 +3468,10 @@ _vbi_page_priv_from_cache_page_va_list
 	option_navigation_style	= 0;
 	option_hyperlinks	= FALSE;
 	option_pdc_links	= FALSE;
-	option_cs_default	= 0;
-	option_cs_override	= NULL;
+	option_cs_default[0]	= 0;
+	option_cs_default[1]	= 0;
+	option_cs_override[0]	= NULL;
+	option_cs_override[1]	= NULL;
 
 	for (;;) {
 		vbi_format_option option;
@@ -3507,13 +3512,24 @@ _vbi_page_priv_from_cache_page_va_list
 				va_arg (format_options, vbi_wst_level);
 			break;
 
-		case VBI_CHAR_SET_DEFAULT:
-			option_cs_default = va_arg (format_options,
-						    vbi_character_set_code);
+		case VBI_DEFAULT_CHARSET_0:
+			option_cs_default[0] = va_arg (format_options,
+						       vbi_character_set_code);
 			break;
 
-		case VBI_CHAR_SET_OVERRIDE:
-			option_cs_override = vbi_character_set_from_code
+		case VBI_DEFAULT_CHARSET_1:
+			option_cs_default[1] = va_arg (format_options,
+						       vbi_character_set_code);
+			break;
+
+		case VBI_OVERRIDE_CHARSET_0:
+			option_cs_override[0] = vbi_character_set_from_code
+				(va_arg (format_options,
+					 vbi_character_set_code));
+			break;
+
+		case VBI_OVERRIDE_CHARSET_1:
+			option_cs_override[1] = vbi_character_set_from_code
 				(va_arg (format_options,
 					 vbi_character_set_code));
 			break;
@@ -3584,13 +3600,15 @@ _vbi_page_priv_from_cache_page_va_list
 
 	/* Character set designation */
 
-	if (option_cs_override) {
-		pgp->char_set[0] = option_cs_override;
-		pgp->char_set[1] = option_cs_override;
-	} else {
-		_vbi_character_set_init (pgp->char_set, option_cs_default,
-					 pgp->ext, cp);
-	}
+	_vbi_character_set_init (pgp->char_set,
+				 option_cs_default[0],
+				 option_cs_default[1],
+				 pgp->ext, cp);
+
+	if (option_cs_override[0])
+		pgp->char_set[0] = option_cs_override[0];
+	if (option_cs_override[1])
+		pgp->char_set[1] = option_cs_override[1];
 
 	/* Format level one page */
 
@@ -3865,7 +3883,7 @@ vbi_page_dup			(const vbi_page *	pg)
 
 	PGP_CHECK (NULL);
 
-	if (!(new_pgp = malloc (sizeof (*new_pgp)))) {
+	if (!(new_pgp = vbi_malloc (sizeof (*new_pgp)))) {
 		vbi_log_printf (VBI_DEBUG, __FUNCTION__, "Out of memory");
 		return NULL;
 	}
@@ -3981,7 +3999,7 @@ vbi_page_delete			(vbi_page *		pg)
 
 	_vbi_page_priv_destroy (pgp);
 
-	free (pgp);
+	vbi_free (pgp);
 }
 
 /**
@@ -4016,7 +4034,7 @@ vbi_page_release		(vbi_page *		pg)
  * @a pg. You must call vbi_page_release() when the reference is
  * no longer needed.
  */
-vbi_cache *
+vbi_page *
 vbi_page_new_ref		(vbi_page *		pg)
 {
 	assert (NULL != pg);
@@ -4038,7 +4056,7 @@ vbi_page_new			(void)
 {
 	vbi_page_priv *pgp;
 
-	if (!(pgp = malloc (sizeof (*pgp)))) {
+	if (!(pgp = vbi_malloc (sizeof (*pgp)))) {
 		vbi_log_printf (VBI_DEBUG, __FUNCTION__, "Out of memory");
 		return NULL;
 	}

@@ -313,7 +313,7 @@ delete_network			(vbi_cache *		ca,
 	cache_network_destroy_caption (cn);
 	cache_network_destroy_teletext (cn);
 
-	free (cn);
+	vbi_free (cn);
 }
 
 static void
@@ -393,12 +393,14 @@ add_network			(vbi_cache *		ca,
 		cache_network_destroy_caption (cn);
 		cache_network_destroy_teletext (cn);
 	} else {
-		if (!(cn = calloc (1, sizeof (*cn)))) {
+		if (!(cn = vbi_malloc (sizeof (*cn)))) {
 			if (CACHE_DEBUG)
 				fprintf (stderr, "%s: out of memory\n",
 					 __FUNCTION__);
 			return NULL;
 		}
+
+		CLEAR (*cn);
 
 		++ca->n_networks;
 	}
@@ -571,7 +573,7 @@ delete_page			(vbi_cache *		ca,
 
 	cache_network_remove_page (cp->network, cp);
 
-	free (cp);
+	vbi_free (cp);
 
 	--ca->n_pages;
 }
@@ -1022,7 +1024,7 @@ _vbi_cache_put_page		(vbi_cache *		ca,
 	} else {
 		unsigned int i;
 
-		if (!(new_cp = malloc (memory_needed))) {
+		if (!(new_cp = vbi_malloc (memory_needed))) {
 			if (CACHE_DEBUG)
 				fputs ("out of memory\n", stderr);
 
@@ -1206,7 +1208,7 @@ vbi_cache_get_ttx_page_stat	(vbi_cache *		ca,
  */
 vbi_network *
 vbi_cache_get_networks		(vbi_cache *		ca,
-				 unsigned int *		array_size)
+				 unsigned int *		n_elements)
 {
 	vbi_network *nk;
 	cache_network *cn, *cn1;
@@ -1214,16 +1216,16 @@ vbi_cache_get_networks		(vbi_cache *		ca,
 	unsigned int i;
 
 	assert (NULL != ca);
-	assert (NULL != array_size);
+	assert (NULL != n_elements);
 
-	*array_size = 0;
+	*n_elements = 0;
 
 	if (0 == ca->n_networks)
 		return NULL;
 
 	size = ca->n_networks * sizeof (*nk);
 
-	if (!(nk = malloc (size))) {
+	if (!(nk = vbi_malloc (size))) {
 		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"Out of memory (%u)", size);
 		return NULL;
@@ -1242,7 +1244,7 @@ vbi_cache_get_networks		(vbi_cache *		ca,
 		++i;
 	}
 
-	*array_size = i;
+	*n_elements = i;
 
 	return nk;
 }
@@ -1479,7 +1481,7 @@ vbi_cache_delete		(vbi_cache *		ca)
 
 	CLEAR (*ca);
 
-	free (ca);
+	vbi_free (ca);
 }
 
 /**
@@ -1538,11 +1540,13 @@ vbi_cache_new			(void)
 	vbi_cache *ca;
 	unsigned int i;
 
-	if (!(ca = calloc (1, sizeof (*ca)))) {
+	if (!(ca = vbi_malloc (sizeof (*ca)))) {
 		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"Out of memory (%u)", sizeof (*ca));
 		return NULL;
 	}
+
+	CLEAR (*ca);
 
 	for (i = 0; i < N_ELEMENTS (ca->hash); ++i)
 		list_init (ca->hash + i);

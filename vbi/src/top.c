@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: top.c,v 1.1.2.2 2004-09-14 04:52:00 mschimek Exp $ */
+/* $Id: top.c,v 1.1.2.3 2004-10-14 07:54:01 mschimek Exp $ */
 
 #include <stdlib.h>		/* malloc(), qsort() */
 #include "conv.h"		/* _vbi_strdup_locale_teletext() */
@@ -40,7 +40,7 @@ vbi_top_title_destroy		(vbi_top_title *	tt)
 {
 	assert (NULL != tt);
 
-	free (tt->title);
+	vbi_free (tt->title);
 
 	CLEAR (*tt);
 }
@@ -95,7 +95,7 @@ vbi_top_title_array_delete	(vbi_top_title *	tt,
 	for (i = 0; i < tt_size; ++i)
 		vbi_top_title_destroy (tt + i);
 
-	free (tt);
+	vbi_free (tt);
 }
 
 /**
@@ -193,6 +193,7 @@ cache_network_get_top_title	(cache_network *	cn,
 {
 	cache_page *ait_cp;
 	const ait_title *ait;
+	vbi_character_set_code default_csc[2];
 	const vbi_character_set *char_set[2];
 	vbi_bool r;
 
@@ -211,8 +212,11 @@ cache_network_get_top_title	(cache_network *	cn,
 		return FALSE;
 	}
 
-	_vbi_character_set_init (char_set, /* default en */ 0,
-				 /* extension */ NULL, ait_cp);
+	_vbi_character_set_init (char_set,
+				 /* default en */ 0,
+				 /* default en */ 0,
+				 /* extension */ NULL,
+				 ait_cp);
 
 	r = _vbi_top_title_from_ait_title (tt, cn, ait, char_set[0]);
 
@@ -281,7 +285,7 @@ cache_network_get_top_titles	(cache_network *	cn,
 	capacity = 64;
 	size = 0;
 
-	if (!(tt = malloc (capacity * sizeof (*tt))))
+	if (!(tt = vbi_malloc (capacity * sizeof (*tt))))
 		return NULL;
 
 	for (i = 0; i < 8; ++i) {
@@ -306,8 +310,11 @@ cache_network_get_top_titles	(cache_network *	cn,
 			continue;
 		}
 
-		_vbi_character_set_init (char_set, /* default en */ 0,
-					 /* extension */ NULL, cp);
+		_vbi_character_set_init (char_set,
+					 /* default en */ 0,
+					 /* default en */ 0,
+					 /* extension */ NULL,
+					 cp);
 
 		ait = cp->data.ait.title;
 
@@ -322,7 +329,7 @@ cache_network_get_top_titles	(cache_network *	cn,
 				unsigned int n;
 
 				n = sizeof (*tt) * 2 * capacity;
-				if (!(tt1 = realloc (tt, n))) {
+				if (!(tt1 = vbi_realloc (tt, n))) {
 					vbi_top_title_array_delete (tt, size);
 					cache_page_release (cp);
 					return NULL;

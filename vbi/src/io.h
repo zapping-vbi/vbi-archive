@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io.h,v 1.6.2.4 2004-04-08 23:36:25 mschimek Exp $ */
+/* $Id: io.h,v 1.6.2.5 2004-10-14 07:54:00 mschimek Exp $ */
 
 #ifndef IO_H
 #define IO_H
@@ -94,3 +94,44 @@ extern void		vbi_capture_delete(vbi_capture *capture);
 /* Private */
 
 #endif /* IO_H */
+
+#if 0
+
+typedef struct {
+	void *			data;
+	unsigned int		size;
+	struct timeval		capture_time;
+	uint64_t		stream_time;
+} vbi_buffer;
+
+typedef struct {
+	void *			data;
+	unsigned int		size;
+	struct timeval		capture_time;
+	uint64_t		stream_time;
+	const sampling_par *	sampling_par;
+} vbi_raw_buffer;
+
+typedef struct {
+	vbi_sliced *		data,
+	unsigned int		size,
+	struct timeval		capture_time;
+	uint64_t		stream_time;
+	unsigned int		lines;
+} vbi_sliced_buffer;
+
+typedef struct vbi_capture vbi_capture;
+
+vbi_capture_delete
+vbi_capture_new
+get error string
+open v4l
+find v4l video standard
+open v4l2
+open bktr
+open proxy
+read write pull push * raw sliced both
+get fd
+get sampling parameters
+
+#endif

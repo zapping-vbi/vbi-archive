@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.7.2.8 2004-07-09 16:10:52 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.7.2.9 2004-10-14 07:54:00 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -1448,8 +1448,10 @@ gfx_new				(const _vbi_export_module *em)
 
 	em = em;
 
-	if (!(gfx = calloc (1, sizeof (*gfx))))
+	if (!(gfx = vbi_malloc (sizeof (*gfx))))
 		return NULL;
+
+	CLEAR (*gfx);
 
 	return &gfx->export;
 }
@@ -1457,7 +1459,7 @@ gfx_new				(const _vbi_export_module *em)
 static void
 gfx_delete			(vbi_export *		e)
 {
-	free (PARENT (e, gfx_instance, export));
+	vbi_free (PARENT (e, gfx_instance, export));
 }
 
 static const vbi_option_info
@@ -1531,7 +1533,7 @@ export_ppm			(vbi_export *		e,
 	format.bytes_per_line	= format.width * 3;
 	format.pixfmt		= VBI_PIXFMT_RGB24_LE;
 
-	if (!(image = malloc (format.size))) {
+	if (!(image = vbi_malloc (format.size))) {
 		_vbi_export_error_printf
 			(e, _("Unable to allocate %d KB image buffer."),
 			 format.size / 1024);
@@ -1588,7 +1590,7 @@ export_ppm			(vbi_export *		e,
 		}
 	}
 
-	free (image);
+	vbi_free (image);
 
 	return TRUE;
 
@@ -1596,7 +1598,7 @@ export_ppm			(vbi_export *		e,
 
 	_vbi_export_write_error (e);
 
-	free (image);
+	vbi_free (image);
 
 	return FALSE;
 }
@@ -1765,7 +1767,7 @@ export_png			(vbi_export *		e,
 	format.bytes_per_line	= format.width;
 	format.pixfmt		= VBI_PIXFMT_RGB8;
 
-	row_pointer = malloc (sizeof (*row_pointer) * format.height * 2);
+	row_pointer = vbi_malloc (sizeof (*row_pointer) * format.height * 2);
 
 	if (NULL == row_pointer) {
 		_vbi_export_error_printf
@@ -1774,13 +1776,13 @@ export_png			(vbi_export *		e,
 		return FALSE;
 	}
 
-	image = malloc (format.size);
+	image = vbi_malloc (format.size);
 
 	if (NULL == image) {
 		_vbi_export_error_printf
 			(e, _("Unable to allocate %d KB image buffer."),
 			 format.size / 1024);
-		free(row_pointer);
+		vbi_free(row_pointer);
 		return FALSE;
 	}
 
@@ -1953,8 +1955,8 @@ export_png			(vbi_export *		e,
 	/* See setjmp above */
 	} if (do_write ()) goto write_error; }
 
-	free (row_pointer);
-	free (image);
+	vbi_free (row_pointer);
+	vbi_free (image);
 
 	return TRUE;
 
@@ -1963,10 +1965,10 @@ export_png			(vbi_export *		e,
 
  unknown_error:
 	if (row_pointer)
-		free (row_pointer);
+		vbi_free (row_pointer);
 
 	if (image)
-		free (image);
+		vbi_free (image);
 
 	return FALSE;
 }

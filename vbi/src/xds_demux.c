@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds_demux.c,v 1.1.2.5 2004-07-09 16:10:55 mschimek Exp $ */
+/* $Id: xds_demux.c,v 1.1.2.6 2004-10-14 07:54:02 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -296,7 +296,7 @@ vbi_xds_demux_delete		(vbi_xds_demux *	xd)
 
 	_vbi_xds_demux_destroy (xd);
 
-	free (xd);		
+	vbi_free (xd);		
 }
 
 /**
@@ -319,7 +319,7 @@ vbi_xds_demux_new		(vbi_xds_demux_cb *	callback,
 
 	assert (NULL != callback);
 
-	if (!(xd = malloc (sizeof (*xd)))) {
+	if (!(xd = vbi_malloc (sizeof (*xd)))) {
 		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"Out of memory (%u)", sizeof (*xd));
 		return NULL;

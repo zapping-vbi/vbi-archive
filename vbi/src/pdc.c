@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.c,v 1.1.2.10 2004-09-14 04:52:00 mschimek Exp $ */
+/* $Id: pdc.c,v 1.1.2.11 2004-10-14 07:54:01 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -204,7 +204,7 @@ _vbi_preselection_dump		(const vbi_preselection *p,
 /**
  * @internal
  * @param pid Array of vbi_preselection structures to print.
- * @param size Number of structures in the array.
+ * @param n_elements Number of structures in the array.
  * @param fp Destination stream.
  *
  * Prints the contents of a vbi_preselection structure array,
@@ -212,14 +212,14 @@ _vbi_preselection_dump		(const vbi_preselection *p,
  */
 void
 _vbi_preselection_array_dump	(const vbi_preselection *p,
-				 unsigned int		size,
+				 unsigned int		n_elements,
 				 FILE *			fp)
 {
 	unsigned int count;
 
 	count = 0;
 
-	while (size-- > 0) {
+	while (n_elements-- > 0) {
 		fprintf (fp, "%2u: ", count++);
 		_vbi_preselection_dump (p++, fp);
 		fputc ('\n', fp);
@@ -233,7 +233,7 @@ vbi_preselection_destroy	(vbi_preselection *	p)
 {
 	assert (NULL != p);
 
-	free (p->title);
+	vbi_free (p->title);
 
 	CLEAR (*p);
 }
@@ -281,17 +281,17 @@ vbi_preselection_init		(vbi_preselection *	p)
  */
 void
 _vbi_preselection_array_delete	(vbi_preselection *	p,
-				 unsigned int		size)
+				 unsigned int		n_elements)
 {
 	unsigned int i;
 
-	if (NULL == p || 0 == size)
+	if (NULL == p || 0 == n_elements)
 		return;
 
-	for (i = 0; i < size; ++i)
+	for (i = 0; i < n_elements; ++i)
 		vbi_preselection_destroy (p + i);
 
-	free (p);
+	vbi_free (p);
 }
 
 /**
@@ -299,23 +299,23 @@ _vbi_preselection_array_delete	(vbi_preselection *	p,
  */
 vbi_preselection *
 _vbi_preselection_array_dup	(const vbi_preselection *p,
-				 unsigned int		size)
+				 unsigned int		n_elements)
 {
 	vbi_preselection *new_p;
 	unsigned int i;
 
-	if (!(new_p = malloc (size * sizeof (*new_p))))
+	if (!(new_p = vbi_malloc (n_elements * sizeof (*new_p))))
 		return NULL;
 
-	memcpy (new_p, p, size * sizeof (*new_p));
+	memcpy (new_p, p, n_elements * sizeof (*new_p));
 
-	for (i = 0; i < size; ++i) {
+	for (i = 0; i < n_elements; ++i) {
 		if (p[i].title) {
 			if (!(new_p[i].title = strdup (p[i].title))) {
 				while (i-- > 0)
-					free (new_p[i].title);
+					vbi_free (new_p[i].title);
 
-				free (new_p);
+				vbi_free (new_p);
 
 				return NULL;
 			}
@@ -329,9 +329,15 @@ _vbi_preselection_array_dup	(const vbi_preselection *p,
  * @internal
  */
 vbi_preselection *
-_vbi_preselection_array_new	(unsigned int		size)
+_vbi_preselection_array_new	(unsigned int		n_elements)
 {
-	return calloc (1, size * sizeof (vbi_preselection));
+	vbi_preselection *p;
+
+	p = vbi_malloc (n_elements * sizeof (vbi_preselection));
+
+	memset (p, 0, n_elements * sizeof (vbi_preselection));
+
+	return p;
 }
 
 /*
@@ -728,7 +734,7 @@ pdc_at2_fill			(vbi_preselection *		begin,
 /**
  * @internal
  * @param table Store PDC data here.
- * @param table_size Free space in the table, number of elements.
+ * @param n_elements Free space in the table.
  * @param lop_raw Raw Teletext level one page.
  *
  * Scans a raw Teletext level one page for PDC data and stores the
@@ -739,7 +745,7 @@ pdc_at2_fill			(vbi_preselection *		begin,
  */
 unsigned int
 _vbi_pdc_method_a		(vbi_preselection *	table,
-				 unsigned int		table_size,
+				 unsigned int		n_elements,
 				 const uint8_t		lop_raw[26][40])
 {
 	vbi_preselection *p1;
@@ -750,12 +756,12 @@ _vbi_pdc_method_a		(vbi_preselection *	table,
 	int pw_sum;
 	int pw;
 
-	memset (table, 0, sizeof (*table) * table_size);
+	memset (table, 0, n_elements * sizeof (*table));
 
 	p1 = table; /* next AT-1 row */
 	p2 = table; /* next AT-2 row */
 
-	pend = table + table_size;
+	pend = table + n_elements;
 
 	p2->year = 0; /* not found */
 	p2->cni_type = VBI_CNI_TYPE_PDC_A;

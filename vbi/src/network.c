@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: network.c,v 1.1.2.9 2004-09-14 04:52:00 mschimek Exp $ */
+/* $Id: network.c,v 1.1.2.10 2004-10-14 07:54:01 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -301,7 +301,7 @@ vbi_network_set_name		(vbi_network *		nk,
 	if (!(name1 = strdup (name)))
 		return FALSE;
 
-	free (nk->name);
+	vbi_free (nk->name);
 	nk->name = name1;
 
 	return TRUE;
@@ -360,7 +360,7 @@ _vbi_network_set_name_from_ttx_header
 		if (!name)
 			return FALSE;
 
-		free (nk->name);
+		vbi_free (nk->name);
 		nk->name = name;
 
 		return TRUE;
@@ -430,7 +430,7 @@ vbi_network_set_cni		(vbi_network *		nk,
 	if (!(name = _vbi_strdup_locale_utf8 (p->name)))
 		return FALSE;
 
-	free (nk->name);
+	vbi_free (nk->name);
 	nk->name = name;
 
 	nk->cni_vps	= p->cni_vps;
@@ -544,7 +544,7 @@ vbi_network_reset		(vbi_network *		nk)
 {
 	assert (NULL != nk);
 
-	free (nk->name);
+	vbi_free (nk->name);
 
 	CLEAR (*nk);
 }
@@ -604,15 +604,15 @@ vbi_network_init		(vbi_network *		nk)
  */
 extern void
 vbi_network_array_delete	(vbi_network *		nk,
-				 unsigned int		nk_size)
+				 unsigned int		n_elements)
 {
 	unsigned int i;
 
-	if (NULL == nk || 0 == nk_size)
+	if (NULL == nk || 0 == n_elements)
 		return;
 
-	for (i = 0; i < nk_size; ++i)
+	for (i = 0; i < n_elements; ++i)
 		vbi_network_destroy (nk + i);
 
-	free (nk);
+	vbi_free (nk);
 }

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-sub.c,v 1.1.2.4 2004-07-09 16:10:52 mschimek Exp $ */
+/* $Id: exp-sub.c,v 1.1.2.5 2004-10-14 07:54:00 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -164,8 +164,10 @@ sub_new			(const _vbi_export_module *em)
 
 	assert (sizeof (user_encodings) == sizeof (iconv_encodings));
 
-	if (!(sub = calloc (1, sizeof (*sub))))
+	if (!(sub = vbi_malloc (sizeof (*sub))))
 		return NULL;
+
+	CLEAR (*sub);
 
 	if (KEYWORD ("mpsub")) {
 		sub->format = FORMAT_MPSUB;
@@ -193,16 +195,16 @@ sub_delete			(vbi_export *		e)
 {
 	sub_instance *sub = PARENT (e, sub_instance, export);
 
-	free (sub->text1.buffer);
-	free (sub->text2.buffer);
+	vbi_free (sub->text1.buffer);
+	vbi_free (sub->text2.buffer);
 
-	free (sub->charset);
-	free (sub->font);
+	vbi_free (sub->charset);
+	vbi_free (sub->font);
 
 	if ((iconv_t) -1 == sub->cd)
 		vbi_iconv_ucs2_close (sub->cd);
 
-	free (sub);
+	vbi_free (sub);
 }
 
 #undef KEYWORD
@@ -291,7 +293,7 @@ extend				(sub_instance *	sub,
 
 	n = v->end - v->buffer + 2048;
 
-	if (!(buffer = realloc (v->buffer, n * sizeof (*v->buffer)))) {
+	if (!(buffer = vbi_realloc (v->buffer, n * sizeof (*v->buffer)))) {
 		longjmp (sub->main, -1);
 	}
 

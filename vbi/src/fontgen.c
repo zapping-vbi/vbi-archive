@@ -78,7 +78,7 @@ pbm_read			(void)
 
 	image_size = image_width * image_height / 8;
 
-	image = malloc (image_size);
+	image = vbi_malloc (image_size);
 
 	if (NULL == image) {
 		fprintf (stderr, "out of memory\n");

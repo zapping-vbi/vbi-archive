@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: decode.c,v 1.1.2.5 2004-07-09 16:10:55 mschimek Exp $ */
+/* $Id: decode.c,v 1.1.2.6 2004-10-14 07:54:02 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -392,7 +392,7 @@ abort:
 }
 
 static const char
-short_options [] = "12abeinp:rs:tvw";
+short_options [] = "12abhinp:rs:tvwx";
 
 #ifdef HAVE_GETOPT_LONG
 static const struct option
@@ -401,7 +401,6 @@ long_options [] = {
 	{ "8302",	no_argument,		NULL,		'2' },
 	{ "all",	no_argument,		NULL,		'a' },
 	{ "bin",	no_argument,		NULL,		'b' },
-	{ "hex",	no_argument,		NULL,		'e' },
 	{ "help",	no_argument,		NULL,		'h' },
 	{ "idl",	no_argument,		NULL,		'i' },
 	{ "network",	no_argument,		NULL,		'n' },
@@ -411,6 +410,7 @@ long_options [] = {
 	{ "ttx",	no_argument,		NULL,		't' },
 	{ "vps",	no_argument,		NULL,		'v' },
 	{ "wss",	no_argument,		NULL,		'w' },
+	{ "hex",	no_argument,		NULL,		'x' },
 	{ 0, 0, 0, 0 }
 };
 #else
@@ -442,7 +442,7 @@ usage				(FILE *			fp,
 		 "               (optional, default is 0)\n"
 		 "\n"
 		 "Modifying options:\n"
-		 "-h | --hex     With -t dump packets in hex and ASCII,\n"
+		 "-x | --hex     With -t dump packets in hex and ASCII,\n"
 		 "               otherwise only ASCII.\n"
 		 "-n | --network With -1, -2, -v decode CNI and print\n"
 		 "               available information about the network.\n"
@@ -486,10 +486,6 @@ main				(int			argc,
 			pfc_pgno = 0x1DF;
 			break;
 
-		case 'e':
-			dump_hex ^= TRUE;
-			break;
-
 		case 'h':
 			usage (stdout, argv);
 			exit (EXIT_SUCCESS);
@@ -524,6 +520,10 @@ main				(int			argc,
 
 		case 'w':
 			dump_wss ^= TRUE;
+			break;
+
+		case 'x':
+			dump_hex ^= TRUE;
 			break;
 
 		default:

@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cache.h,v 1.2.2.11 2004-07-09 16:10:52 mschimek Exp $ */
+/* $Id: cache.h,v 1.2.2.12 2004-10-14 07:54:00 mschimek Exp $ */
 
 #ifndef __ZVBI_CACHE_H__
 #define __ZVBI_CACHE_H__
@@ -124,7 +124,7 @@ extern void
 vbi_top_title_init		(vbi_top_title *	tt);
 extern void
 vbi_top_title_array_delete	(vbi_top_title *	tt,
-				 unsigned int		tt_size);
+				 unsigned int		n_elements);
 extern vbi_bool
 vbi_cache_get_top_title		(vbi_cache *		ca,
 				 vbi_top_title *	tt,
@@ -134,7 +134,7 @@ vbi_cache_get_top_title		(vbi_cache *		ca,
 extern vbi_top_title *
 vbi_cache_get_top_titles	(vbi_cache *		ca,
 				 const vbi_network *	nk,
-				 unsigned int *		array_size);
+				 unsigned int *		n_elements);
 
 /**
  * Values for the vbi_format_option @c VBI_WST_LEVEL.
@@ -217,14 +217,22 @@ typedef enum {
 	 * bits, or if this yields no valid code all bits.
 	 * Parameter: vbi_character_set_code, default 0 (English).
 	 */
-	VBI_CHAR_SET_DEFAULT,
+	VBI_DEFAULT_CHARSET_0,
 	/**
-	 * Overrides the primary and secondary character set code of a
-	 * page. This takes precedence over VBI_CHAR_SET_DEFAULT and any
-	 * code transmitted by the network.
+	 * Same as VBI_DEFAULT_CHARSET_0, for secondary character set.
+	 */
+	VBI_DEFAULT_CHARSET_1,
+	/**
+	 * Overrides the primary character set code of a page. This takes
+	 * precedence over VBI_DEFAULT_CHARSET_0 and any code transmitted
+	 * by the network.
 	 * Parameter: vbi_character_set_code, default is transmitted value.
 	 */
-	VBI_CHAR_SET_OVERRIDE,
+	VBI_OVERRIDE_CHARSET_0,
+	/**
+	 * Same as VBI_OVERRIDE_CHARSET_0, for secondary character set.
+	 */
+	VBI_OVERRIDE_CHARSET_1,
 } vbi_format_option;
 
 /* in teletext.c */
@@ -244,7 +252,7 @@ vbi_cache_get_teletext_page	(vbi_cache *		ca,
 /* in cache.c */
 extern vbi_network *
 vbi_cache_get_networks		(vbi_cache *		ca,
-				 unsigned int *		array_size);
+				 unsigned int *		n_elements);
 extern void
 vbi_cache_release		(vbi_cache *		ca);
 extern vbi_cache *

@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: event.c,v 1.1.2.4 2004-07-09 16:10:52 mschimek Exp $ */
+/* $Id: event.c,v 1.1.2.5 2004-10-14 07:54:00 mschimek Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>		/* malloc() */
@@ -159,7 +159,7 @@ _vbi_event_handler_list_remove_by_event
 			if (es->current == eh)
 				es->current = eh->next;
 
-			free (eh);
+			vbi_free (eh);
 		} else {
 			ehp = &eh->next;
 		}
@@ -215,7 +215,7 @@ _vbi_event_handler_list_remove	(_vbi_event_handler_list *es,
 			if (es->current == eh)
 				es->current = eh->next;
 
-			free (eh);
+			vbi_free (eh);
 		} else {
 			event_union |= eh1->event_mask;
 			ehp = &eh1->next;
@@ -277,7 +277,7 @@ _vbi_event_handler_list_add	(_vbi_event_handler_list *es,
 				if (es->current == eh)
 					es->current = eh->next;
 
-				free (eh);
+				vbi_free (eh);
 
 				continue;
 			} else {
@@ -294,7 +294,7 @@ _vbi_event_handler_list_add	(_vbi_event_handler_list *es,
 	if (!found && event_mask) {
 		/* Add handler. */
 
-		if ((eh = (vbi_event_handler *) malloc (sizeof (*eh)))) {
+		if ((eh = vbi_malloc (sizeof (*eh)))) {
 			eh->next	= NULL;
 			eh->event_mask	= event_mask;
 

@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.10.2.7 2004-04-08 23:36:25 mschimek Exp $ */
+/* $Id: exp-txt.c,v 1.10.2.8 2004-10-14 07:54:00 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -144,8 +144,10 @@ text_new			(const _vbi_export_module *em)
 
 	em = em;
 
-	if (!(text = calloc (1, sizeof (*text))))
+	if (!(text = vbi_malloc (sizeof (*text))))
 		return NULL;
+
+	CLEAR (*text);
 
 	return &text->export;
 }
@@ -155,9 +157,9 @@ text_delete			(vbi_export *		e)
 {
 	text_instance *text = PARENT (e, text_instance, export);
 
-	free (text->text.buffer);
-	free (text->charset);
-	free (text);
+	vbi_free (text->text.buffer);
+	vbi_free (text->charset);
+	vbi_free (text);
 }
 
 #define KEYWORD(str) (0 == strcmp (keyword, str))
@@ -292,7 +294,7 @@ extend				(text_instance *	text,
 
 	n = v->end - v->buffer + 2048;
 
-	if (!(buffer = realloc (v->buffer, n * sizeof (*v->buffer)))) {
+	if (!(buffer = vbi_realloc (v->buffer, n * sizeof (*v->buffer)))) {
 		longjmp (text->main, -1);
 	}
 
@@ -766,7 +768,7 @@ vbi_print_page_region_va_list	(vbi_page *		pg,
 	return p - buffer;
 
  failure:
-	free (text.text.buffer);
+	vbi_free (text.text.buffer);
 
 	vbi_iconv_ucs2_close (cd);
 

@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.13.2.10 2004-05-12 01:40:44 mschimek Exp $ */
+/* $Id: export.c,v 1.13.2.11 2004-10-14 07:54:00 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -145,7 +145,7 @@ static void
 reset_error			(vbi_export *		e)
 {
 	if (e->errstr) {
-		free (e->errstr);
+		vbi_free (e->errstr);
 		e->errstr = NULL;
 	}
 }
@@ -327,7 +327,7 @@ _vbi_export_strdup		(vbi_export *		e,
 
 	if (d) {
 		if (*d)
-			free (*d);
+			vbi_free (*d);
 		*d = new_string;
 	}
 
@@ -857,7 +857,7 @@ vbi_export_option_menu_set	(vbi_export *		e,
  *
  * This function queries the current value of the named option.
  * When the option is of type VBI_OPTION_STRING @a value.str must be
- * freed with free() when the string is no longer needed. When the
+ * freed with vbi_free() when the string is no longer needed. When the
  * option is of type VBI_OPTION_MENU then @a value.num contains the
  * selected entry.
  *
@@ -963,7 +963,7 @@ vbi_export_option_set		(vbi_export *		e,
 
 		if (!network || !network[0]) {
 			if (e->network) {
-				free (e->network);
+				vbi_free (e->network);
 				e->network = NULL;
 			}
 		} else if (!_vbi_export_strdup (e, &e->network, network)) {
@@ -1154,11 +1154,11 @@ free_option_info		(vbi_option_info *	oi,
 
 	for (i = 0; i < oi_size; ++i) {
 		if (VBI_OPTION_MENU == oi[i].type) {
-			free ((char *) oi[i].menu.str);
+			vbi_free ((char *) oi[i].menu.str);
 		}
 	}
 
-	free (oi);
+	vbi_free (oi);
 }
 
 /**
@@ -1174,9 +1174,9 @@ vbi_export_delete		(vbi_export *		e)
 	if (!e)
 		return;
 
-	free (e->errstr);
-	free (e->network);
-	free (e->creator);
+	vbi_free (e->errstr);
+	vbi_free (e->network);
+	vbi_free (e->creator);
 
  	xc = e->module;
 
@@ -1186,7 +1186,7 @@ vbi_export_delete		(vbi_export *		e)
 	if (xc->_new && xc->_delete) {
 		xc->_delete (e);
 	} else {
-		free (e);
+		vbi_free (e);
 	}
 }
 
@@ -1200,7 +1200,7 @@ localize_option_info		(const vbi_option_info *oi,
 
 	size = (N_ELEMENTS (generic_options) + oi_size) * sizeof (*loi);
 
-	if (!(loi = malloc (size)))
+	if (!(loi = vbi_malloc (size)))
 		return NULL;
 
 	memcpy (loi, generic_options,
@@ -1222,7 +1222,7 @@ localize_option_info		(const vbi_option_info *oi,
 
 			size = loi[i].max.num + 1;
 
-			if (!(menu = malloc (size * sizeof (*menu)))) {
+			if (!(menu = vbi_malloc (size * sizeof (*menu)))) {
 				free_option_info (loi, i);
 				return NULL;
 			}
@@ -1314,7 +1314,7 @@ option_string			(vbi_export *		e,
 		}
 
 		if (!*s) {
-			free (s1);
+			vbi_free (s1);
 			return TRUE;
 		}
 
@@ -1378,7 +1378,7 @@ option_string			(vbi_export *		e,
 		}
 	} while (r);
 
-	free (s1);
+	vbi_free (s1);
 
 	return FALSE;
 }
@@ -1440,10 +1440,12 @@ vbi_export_new			(const char *		keyword,
 		return NULL;
 	}
 
-	if (!xc->_new)
-		e = calloc (1, sizeof (*e));
-	else
+	if (!xc->_new) {
+		e = vbi_malloc (sizeof (*e));
+		CLEAR (e);
+	} else {
 		e = xc->_new (xc);
+	}
 
 	if (!e) {
 		_vbi_asprintf (errstr,
@@ -1466,7 +1468,7 @@ vbi_export_new			(const char *		keyword,
 				      xc->option_info_size);
 
 	if (!e->local_option_info) {
-		free (e);
+		vbi_free (e);
 		_vbi_asprintf (errstr, _("Cannot initialize export module "
 					 "'%s', out of memory."),
 			      xc->export_info->label ?

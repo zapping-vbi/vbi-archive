@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1999, 2000, 2001, 2002 Michael H. Schimek
  *
- *  This program is free software; you can redistribute it and/or modify
+ *  This program is vbi_free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
  *  published by the Free Software Foundation.
  *
@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-v4l.c,v 1.9.2.11 2004-07-16 00:08:18 mschimek Exp $";
+static char rcsid[] = "$Id: io-v4l.c,v 1.9.2.12 2004-10-14 07:54:00 mschimek Exp $";
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -26,6 +26,7 @@ static char rcsid[] = "$Id: io-v4l.c,v 1.9.2.11 2004-07-16 00:08:18 mschimek Exp
 #include "vbi.h"
 #include "intl-priv.h"
 #include "io-priv.h"
+#include "misc.h"
 
 #ifdef ENABLE_V4L
 
@@ -510,15 +511,15 @@ v4l_delete(vbi_capture *vc)
 	vbi_capture_v4l *v = PARENT(vc, vbi_capture_v4l, capture);
 
 	if (v->sliced_buffer.data)
-		free(v->sliced_buffer.data);
+		vbi_free(v->sliced_buffer.data);
 
 	for (; v->num_raw_buffers > 0; v->num_raw_buffers--)
-		free(v->raw_buffer[v->num_raw_buffers - 1].data);
+		vbi_free(v->raw_buffer[v->num_raw_buffers - 1].data);
 
 	if (v->fd != -1)
 		device_close(log_fp, v->fd);
 
-	free(v);
+	vbi_free(v);
 }
 
 static int
@@ -562,11 +563,13 @@ v4l_new(const char *dev_name, int given_fd, int scanning,
 	printv("Try to open v4l vbi device, libzvbi interface rev.\n"
 	       "%s", rcsid);
 
-	if (!(v = (vbi_capture_v4l *) calloc(1, sizeof(*v)))) {
+	if (!(v = (vbi_capture_v4l *) vbi_malloc(sizeof(*v)))) {
 		_vbi_asprintf(errorstr, _("Virtual memory exhausted."));
 		errno = ENOMEM;
 		return NULL;
 	}
+
+	CLEAR (*v);
 
 	v->capture.parameters = v4l_parameters;
 	v->capture._delete = v4l_delete;
@@ -835,7 +838,7 @@ v4l_new(const char *dev_name, int given_fd, int scanning,
 		}
 
 		v->sliced_buffer.data =
-			malloc((v->dec.sampling.count[0] + v->dec.sampling.count[1])
+			vbi_malloc((v->dec.sampling.count[0] + v->dec.sampling.count[1])
 			       * sizeof(vbi_sliced));
 
 		if (!v->sliced_buffer.data) {
@@ -854,7 +857,7 @@ v4l_new(const char *dev_name, int given_fd, int scanning,
 
 	v->capture.read = v4l_read;
 
-	v->raw_buffer = calloc(1, sizeof(v->raw_buffer[0]));
+	v->raw_buffer = vbi_malloc (sizeof(v->raw_buffer[0]));
 
 	if (!v->raw_buffer) {
 		_vbi_asprintf(errorstr, _("Virtual memory exhausted."));
@@ -862,10 +865,12 @@ v4l_new(const char *dev_name, int given_fd, int scanning,
 		goto failure;
 	}
 
+	CLEAR (v->raw_buffer[0]);
+
 	v->raw_buffer[0].size = (v->dec.sampling.count[0] + v->dec.sampling.count[1])
 		* v->dec.sampling.bytes_per_line;
 
-	v->raw_buffer[0].data = malloc(v->raw_buffer[0].size);
+	v->raw_buffer[0].data = vbi_malloc(v->raw_buffer[0].size);
 
 	if (!v->raw_buffer[0].data) {
 		_vbi_asprintf(errorstr, _("Not enough memory to allocate "

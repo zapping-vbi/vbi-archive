@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bit_slicer.c,v 1.1.2.7 2004-07-16 00:08:18 mschimek Exp $ */
+/* $Id: bit_slicer.c,v 1.1.2.8 2004-10-14 07:54:00 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -635,7 +635,7 @@ vbi_bit_slicer_delete		(vbi_bit_slicer *	bs)
 
 	_vbi_bit_slicer_destroy (bs);
 
-	free (bs);
+	vbi_free (bs);
 }
 
 /**
@@ -703,7 +703,7 @@ vbi_bit_slicer_new		(vbi_pixfmt		sample_format,
 {
 	vbi_bit_slicer *bs;
 
-	if (!(bs = malloc (sizeof (*bs)))) {
+	if (!(bs = vbi_malloc (sizeof (*bs)))) {
 		vbi_log_printf (VBI_DEBUG, __FUNCTION__, "Out of memory");
 		return NULL;
 	}
@@ -714,7 +714,7 @@ vbi_bit_slicer_new		(vbi_pixfmt		sample_format,
 				   cri, cri_mask, cri_bits, cri_rate, cri_end,
 				   frc, frc_bits,
 				   payload_bits, payload_rate, modulation)) {
-		free (bs);
+		vbi_free (bs);
 		bs = NULL;
 	}
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.2.2.14 2004-09-14 04:52:00 mschimek Exp $ */
+/* $Id: misc.h,v 1.2.2.15 2004-10-14 07:54:01 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
@@ -234,5 +234,9 @@ _vbi_asprintf			(char **		dstp,
    that's a GNU/Linuxism. Alternatives? */
 #  define __BYTE_ORDER __UNKNOWN_BYTE_ORDER
 #endif
+
+#define vbi_malloc malloc
+#define vbi_realloc realloc
+#define vbi_free free
 
 #endif /* MISC_H */

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: raw_decoder.c,v 1.1.2.4 2004-07-09 16:10:53 mschimek Exp $ */
+/* $Id: raw_decoder.c,v 1.1.2.5 2004-10-14 07:54:01 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -569,7 +569,7 @@ vbi_raw_decoder_reset		(vbi_raw_decoder *	rd)
 	assert (NULL != rd);
 
 	if (rd->pattern)
-		free (rd->pattern);
+		vbi_free (rd->pattern);
 
 	rd->pattern = NULL;
 
@@ -800,12 +800,14 @@ vbi_raw_decoder_add_services	(vbi_raw_decoder *	rd,
 		scan_ways = scan_lines * _VBI_RAW_DECODER_MAX_WAYS;
 
 		rd->pattern = (int8_t *)
-			calloc (scan_ways, sizeof (rd->pattern[0]));
+			vbi_malloc (scan_ways * sizeof (rd->pattern[0]));
 		if (!rd->pattern) {
 			vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 					"Out of memory");
 			return rd->services;
 		}
+
+		memset (rd->pattern, 0, scan_ways * sizeof (rd->pattern[0]));
 	}
 
 	if (VBI_VIDEOSTD_SET_525_60 & rd->sampling.videostd_set)
@@ -1059,7 +1061,7 @@ vbi_raw_decoder_delete		(vbi_raw_decoder *	rd)
 
 	_vbi_raw_decoder_destroy (rd);
 
-	free (rd);
+	vbi_free (rd);
 }
 
 /**
@@ -1080,13 +1082,13 @@ vbi_raw_decoder_new		(const vbi_sampling_par *sp)
 {
 	vbi_raw_decoder *rd;
 
-	if (!(rd = malloc (sizeof (*rd)))) {
+	if (!(rd = vbi_malloc (sizeof (*rd)))) {
 		vbi_log_printf (VBI_DEBUG, __FUNCTION__, "Out of memory");
 		return NULL;
 	}
 
 	if (!_vbi_raw_decoder_init (rd, sp)) {
-		free (rd);
+		vbi_free (rd);
 		rd = NULL;
 	}
 

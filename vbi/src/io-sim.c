@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io-sim.c,v 1.1.2.6 2004-07-16 00:08:18 mschimek Exp $ */
+/* $Id: io-sim.c,v 1.1.2.7 2004-10-14 07:54:00 mschimek Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -712,7 +712,7 @@ _vbi_test_image_video		(uint8_t *		raw,
 	sp8.sampling_format = VBI_PIXFMT_Y8;
 	sp8.bytes_per_line = sp->samples_per_line;
 
-	if (!(buf = malloc (scan_lines * sp->samples_per_line))) {
+	if (!(buf = vbi_malloc (scan_lines * sp->samples_per_line))) {
 		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"Out of memory\n");
 		errno = ENOMEM;
@@ -721,7 +721,7 @@ _vbi_test_image_video		(uint8_t *		raw,
 
 	if (!signal_u8 (&sp8, blank_level, black_level, white_level,
 			buf, sliced, sliced_lines, __FUNCTION__)) {
-		free (buf);
+		vbi_free (buf);
 		return FALSE;
 	}
 
@@ -873,7 +873,7 @@ _vbi_test_image_video		(uint8_t *		raw,
 		d += sp->bytes_per_line;
 	}
 
-	free (buf);
+	vbi_free (buf);
 
 	return TRUE;
 }

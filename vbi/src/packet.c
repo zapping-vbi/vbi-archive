@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet.c,v 1.9.2.17 2004-07-09 16:10:52 mschimek Exp $ */
+/* $Id: packet.c,v 1.9.2.18 2004-10-14 07:54:01 mschimek Exp $ */
 
 /* NOTE this file should be teletext_decoder.c */
 
@@ -3486,7 +3486,7 @@ status_change			(vbi_teletext_decoder *	td,
 
 	cn = td->network;
 
-	free (cn->program_info.title);
+	vbi_free (cn->program_info.title);
 	cn->program_info.title = title;
 
 	e.type = VBI_EVENT_PROG_INFO;
@@ -4554,7 +4554,7 @@ vbi_teletext_decoder_delete	(vbi_teletext_decoder *	td)
 
 	_vbi_teletext_decoder_destroy (td);
 
-	free (td);
+	vbi_free (td);
 }
 
 /**
@@ -4582,14 +4582,14 @@ vbi_teletext_decoder_new	(vbi_cache *		ca,
 {
 	vbi_teletext_decoder *td;
 
-	if (!(td = malloc (sizeof (*td)))) {
+	if (!(td = vbi_malloc (sizeof (*td)))) {
 		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
 				"Out of memory (%u)", sizeof (*td));
 		return NULL;
 	}
 
         if (!_vbi_teletext_decoder_init (td, ca, nk, videostd_set)) {
-		free (td);
+		vbi_free (td);
 		td = NULL;
 	}
 
