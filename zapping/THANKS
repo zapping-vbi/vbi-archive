@@ -27,5 +27,6 @@ Thanks are due to the following people for helping with the program
 - Reinout van Schouwen: Dutch translation.
 - Sandino Flores Moreno: Creative WebCam (ov511) button flag
                          polling in screenshot plugin.
+- David Fries: NFS related zapping_setup_fb patch.
 
 And, of course, thanks to the people that sent bug reports and suggestions.

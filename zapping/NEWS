@@ -1,6 +1,69 @@
 New stuff, refer to the ChangeLog for a more detailed description of
 the changes.
 
+0.6.3
+-----
+A new year, a new release, a new maintainer. Sadly this
+release does not include all improvements planned for 0.6.3,
+but it's over three months since the last release, without an
+end in sight. Future versions will be released at shorter
+intervals.
+
+The main difference to 0.6.2 is the extraction of the Zapping vbi
+decoder into a separate package "zvbi". Motivation was to clean
+up and re-use the component in other applications, encourage more
+frequent updates and to reduce the size of binaries. Zapping can
+be compiled without, but a lot of functionality depends on the
+zvbi library, so you should really get it. Using the binary
+packages makes it a requirement.
+
+Other changes:
+- Recording source and volume can be selected in preferences.
+  Currently only the OSS /dev/mixer is supported.
+- For our US and Canadian users Zapping now looks for XDS
+  program title, start and end times, rating etc. and can
+  display this information in the title bar or a program
+  info window.
+- Complete rewrite of the screenshot plugin. Better dialog,
+  supports JPEG and PPM (possibly more, inquire within), has
+  quality preview and on-the-fly deinterlacing.
+- Some channel editor improvements.
+- The "snapshot button" present on ov511 web cams is scanned
+  and does what it's supposed to.
+- Pointer disappears and reappears screen-saver style.
+- Some Teletext export improvements.
+- New mute audio toolbar button.
+- Channel numbers can be entered on the numeric keypad, either
+  by channel memory number (European style) or RF channel
+  number (US style).
+- Preliminary volume up/down function.
+- Most of the keybord shortcuts are configurable now.
+- And the usual set of bug fixes and new bugs.
+
+0.6.2
+-----
+- Dutch translation.
+- Redesigned channel editor and properties dialog.
+- SGML renderer for OSD.
+- In-window OSD, no more floating subtitle windows.
+- Support for the Logitech Quickcam Express (possibly
+  other quickcams too, but this is untested).
+- Improved timestamping.
+- ARTS recording support.
+- Sync with rte 0.4
+- Bugfixes and polishment, as usual.
+
+0.6.1 
+-----
+- Added Swedish translation.
+- Reported to build and work (using XVideo) under FreeBSD and Solaris.
+- Automatic overlaying of subtitle TTX pages.
+- Reverted to the old fb depth detection routine.
+- Some bugfixes in the mpeg plugin, adapted to use rte 0.3.1's new controls api.
+- Fixed some bugs with Arabic and Hebrew TTX glyph mapping.
+- Usability improvements, especially in the channel editor.
+- Updated de, es, fr and pl translations.
+											      
 0.6.0
 -----
 - Rewrote inner capture code, should be more versatile now (me).
@@ -36,10 +99,3 @@ the changes.
 - Better XVideo support, XV Fullscreen (me)
 - PAMification of zapping_setup_fb (Tim Powers, me)
 - Some more GUI bloat for your exasperation (i'm the one to blame :-))
-
-
-
-
-
-
-

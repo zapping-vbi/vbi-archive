@@ -4,7 +4,6 @@ Known bugs with zapping, don't report them
 ! == Bug that needs fixing, very important
 ------------------------------------------
 
-	! Segv in mpeg_configured(), reason unclear.
 	* Need better no-overlay-present handling.
 	* Capture won't work under PPC (endianess)
 	* Look for endianness problems.

@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.5\n"
-"POT-Creation-Date: 2002-03-04 06:10+0100\n"
+"POT-Creation-Date: 2002-03-07 03:41+0100\n"
 "PO-Revision-Date: 2001-12-15 18:35+0000\n"
 "Last-Translator: Pawe³ Sakowski <pawel@sakowski.eu.org>\n"
 "Language-Team: Polish <pl@li.org>\n"
@@ -14,89 +14,89 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=n==1? 0: n%10>=2 && n%10<=4 && n/10%10!=1? "
 "1: 2\n"
 
-#: src/main.c:329
+#: src/main.c:333
 msgid "Video device to use"
 msgstr "Nazwa urz±dzenia wideo"
 
-#: src/main.c:330 src/zapzilla.c:76
+#: src/main.c:334 src/zapzilla.c:76
 msgid "DEVICE"
 msgstr "URZ¡DZENIE"
 
-#: src/main.c:338
+#: src/main.c:342
 msgid "Disable plugins support"
 msgstr "Wy³±cz obs³ugê wtyczek"
 
-#: src/main.c:347
+#: src/main.c:351
 msgid "Disable VBI support"
 msgstr "Wy³±cz obs³ugê VBI"
 
-#: src/main.c:356
+#: src/main.c:360
 msgid "Disable XVideo extension support"
 msgstr "Wy³±cz obs³ugê rozszerzenia XVideo"
 
-#: src/main.c:365
+#: src/main.c:369
 msgid "Do not call zapping_setup_fb on startup"
 msgstr "Nie uruchamiaj zapping_setup_fb przy starcie"
 
-#: src/main.c:374
+#: src/main.c:378
 msgid "Color depth of the X display"
 msgstr "G³êbia kolorów ekranu X"
 
-#: src/main.c:375
+#: src/main.c:379
 msgid "BPP"
 msgstr "BPP"
 
-#: src/main.c:383 src/zapzilla.c:66
+#: src/main.c:387 src/zapzilla.c:66
 msgid "Set debug messages on"
 msgstr "W³±cz komunikaty diagnostyczne"
 
-#: src/main.c:392
+#: src/main.c:396
 msgid "Force dword aligning of the overlay window"
 msgstr "Wymu¶ wyrównanie okna nak³adkowego do 32 bitów"
 
-#: src/main.c:401
+#: src/main.c:405
 msgid "Execute the given command and exit"
 msgstr "Wykonaj podan± komendê i wyjd¼"
 
-#: src/main.c:402
+#: src/main.c:406
 msgid "CMD"
 msgstr "KOMENDA"
 
-#: src/main.c:410
+#: src/main.c:414
 msgid "Pixformat for XVideo capture mode [YUYV | YVU420]"
 msgstr "Format pikseli dla trybu przechwytywania XVideo [YUYV | YVU420]"
 
-#: src/main.c:411
+#: src/main.c:415
 msgid "PIXFORMAT"
 msgstr "FORMAT"
 
-#: src/main.c:419 src/zapzilla.c:84
+#: src/main.c:423 src/zapzilla.c:84
 msgid "Redirect the error messages to the console"
 msgstr "Przekierowuj komunikaty b³êdów na konsolê"
 
-#: src/main.c:507
+#: src/main.c:511
 msgid "Sorry, but there is no module support in GLib"
 msgstr "Niestety, GLib nie obs³uguje modu³ów"
 
-#: src/main.c:515
+#: src/main.c:519
 msgid "Cannot get device info struct"
 msgstr "Nie mogê uzyskaæ struktury informacji o urz±dzeniu"
 
-#: src/main.c:524
+#: src/main.c:528
 msgid "Zapping couldn't be started"
 msgstr "Zapping nie móg³ zostaæ uruchomiony"
 
-#: src/main.c:581
+#: src/main.c:585
 #, c-format
 msgid "Couldn't open %s, should I try some common options?"
 msgstr "Nie mogê otworzyæ %s, czy spróbowaæ kilku powszechnych opcji?"
 
-#: src/main.c:615
+#: src/main.c:619
 #, c-format
 msgid "%s suceeded, setting it as the new default"
 msgstr "Wybór %s powiód³ siê, ustawiam jako now± warto¶æ domy¶ln±"
 
-#: src/main.c:624
+#: src/main.c:628
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
@@ -105,7 +105,7 @@ msgstr ""
 "Niestety, \"%s\" nie móg³ zostaæ otwarty:\n"
 "%s"
 
-#: src/main.c:733
+#: src/main.c:737
 #, c-format
 msgid ""
 "Cannot restore previous mode%s:\n"
@@ -114,11 +114,11 @@ msgstr ""
 "Nie mogê przywróciæ poprzedniego trybu%s:\n"
 "%s"
 
-#: src/main.c:736
+#: src/main.c:740
 msgid ", I will try starting capture mode"
 msgstr ", spróbujê uruchomiæ tryb przechwytywania"
 
-#: src/main.c:740
+#: src/main.c:744
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
@@ -127,7 +127,7 @@ msgstr ""
 "Tryb przechwytywania tak¿e nie móg³ byæ uruchomiony:\n"
 "%s"
 
-#: src/main.c:753
+#: src/main.c:757
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
@@ -136,15 +136,15 @@ msgstr ""
 "Tryb przechwytywania nie móg³ byæ uruchomiony:\n"
 "%s"
 
-#: src/callbacks.c:389 src/callbacks.c:518 src/main.c:783
+#: src/callbacks.c:392 src/callbacks.c:521 src/main.c:787
 msgid "Show controls"
 msgstr "Poka¿ kontrolki"
 
-#: src/callbacks.c:390 src/callbacks.c:519 src/main.c:784
+#: src/callbacks.c:393 src/callbacks.c:522 src/main.c:788
 msgid "Show the menu and the toolbar"
 msgstr "Poka¿ menu i pasek narzêdziowy"
 
-#: src/main.c:979 src/zapzilla.c:163
+#: src/main.c:983 src/zapzilla.c:163
 #, c-format
 msgid ""
 "ZConf could not be closed properly , your\n"
@@ -165,7 +165,7 @@ msgstr ""
 "   - albo, najprawdopodobniej, znalaz³e¶ b³±d w\n"
 "     %s. Proszê skontaktowaæ siê z autorem.\n"
 
-#: src/main.c:1014
+#: src/main.c:1018
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Niestety, Zapping nie mo¿e utworzyæ drzewa konfiguracji"
 
@@ -189,7 +189,7 @@ msgstr "(C) Inaki Carcía Etxebarria"
 msgid "A TV viewer for the Gnome Desktop Environment"
 msgstr "Program TV dla Gnome Desktop Environment"
 
-#: src/callbacks.c:138
+#: src/callbacks.c:141
 #, c-format
 msgid ""
 "%s:\n"
@@ -198,27 +198,27 @@ msgstr ""
 "%s:\n"
 "Spróbój uruchomiæ \"zapping_fix_overlay\" na konsoli jako root"
 
-#: src/callbacks.c:261
+#: src/callbacks.c:264
 msgid "<blue>audio off</blue>"
 msgstr "<blue>d¼wiêk wy³±czony</blue>"
 
-#: src/callbacks.c:262
+#: src/callbacks.c:265
 msgid "<yellow>AUDIO ON</yellow>"
 msgstr "<yellow>D¬WIÊK W£¡CZONY</yellow>"
 
-#: glade/glade_strings.c:213 src/callbacks.c:376
+#: glade/glade_strings.c:213 src/callbacks.c:379
 msgid "Hide controls"
 msgstr "Ukryj kontrolki"
 
-#: glade/glade_strings.c:30 glade/glade_strings.c:212 src/callbacks.c:377
+#: glade/glade_strings.c:30 glade/glade_strings.c:212 src/callbacks.c:380
 msgid "Hide the menu and the toolbar"
 msgstr "Ukryj menu i pasek narzêdziowy"
 
-#: src/callbacks.c:496
+#: src/callbacks.c:499
 msgid "Overlay this page"
 msgstr "Na³ó¿ tê stronê"
 
-#: src/callbacks.c:497 src/zmisc.c:282
+#: src/callbacks.c:500 src/zmisc.c:282
 msgid "Return to windowed mode and use the current page as subtitles"
 msgstr "Powróæ do trybu okienkowego i u¿yj aktualnej strony jako napisów"
 
@@ -331,16 +331,16 @@ msgid "Channel: <yellow>%s</yellow>"
 msgstr "Kana³: <yellow>%s</yellow>"
 
 #. NLS: Channel name being entered on numeric keypad
-#: src/v4linterface.c:1008
+#: src/v4linterface.c:1011
 #, c-format
 msgid "<green>%s</green>"
 msgstr ""
 
-#: src/v4linterface.c:1185
+#: src/v4linterface.c:1190
 msgid "Inputs"
 msgstr "Wej¶cia"
 
-#: src/v4linterface.c:1221
+#: src/v4linterface.c:1226
 msgid "No tuned channels"
 msgstr "Brak ustawionych kana³ów"
 
@@ -466,8 +466,7 @@ msgstr ""
 msgid "none"
 msgstr "Ignorowaæ"
 
-#. NLS: Network info, tape delay (USA)
-#: src/zvbi.c:2116
+#: src/zvbi.c:2117
 #, c-format
 msgid "%d minute"
 msgid_plural "%d minutes"
@@ -476,20 +475,20 @@ msgstr[1] "%d minuty"
 msgstr[2] "%d minut"
 
 #. NLS: Network info, tape delay (USA)
-#: src/zvbi.c:2118
+#: src/zvbi.c:2119
 #, c-format
 msgid "%d h %d m"
 msgstr "%d godz. %d min."
 
-#: src/ttxview.c:2542 src/zvbi.c:2150
+#: src/ttxview.c:2538 src/zvbi.c:2151
 msgid "Current program"
 msgstr "Aktualny program"
 
-#: src/zvbi.c:2171
+#: src/zvbi.c:2172
 msgid "%d %b  %I:%M %p    "
 msgstr ""
 
-#: src/zvbi.c:2193
+#: src/zvbi.c:2194
 #, c-format
 msgid ""
 "\n"
@@ -498,23 +497,23 @@ msgstr ""
 "\n"
 "D³ugo¶æ: %u:%02u (jeszcze %u:%02u)"
 
-#: src/zvbi.c:2201
+#: src/zvbi.c:2202
 #, c-format
 msgid "Length: %uh%02u"
 msgstr "D³ugo¶æ: %u:%02u"
 
-#: src/zvbi.c:2208
+#: src/zvbi.c:2209
 #, c-format
 msgid "Elapsed: %uh%02u"
 msgstr "Up³ynê³o: %u:%02u"
 
 #. Program info audio language
-#: src/zvbi.c:2231 src/zvbi.c:2233
+#: src/zvbi.c:2232 src/zvbi.c:2234
 msgid "unknown language"
 msgstr "nieznany jêzyk"
 
 #. Program info audio mode, language
-#: src/zvbi.c:2236
+#: src/zvbi.c:2237
 #, c-format
 msgid ""
 "Channel 1: %s (%s)\n"
@@ -525,7 +524,7 @@ msgstr ""
 
 #. Program info audio mode 1&2
 #. (eg. language 1&2: "mono", "mono")
-#: src/zvbi.c:2244
+#: src/zvbi.c:2245
 #, c-format
 msgid ""
 "Channel 1: %s\n"
@@ -535,30 +534,30 @@ msgstr ""
 "Kana³ 2: %s"
 
 #. Program info audio mode, language
-#: src/zvbi.c:2257
+#: src/zvbi.c:2258
 #, c-format
 msgid "Audio: %s (%s)"
 msgstr "D¼wiêk: %s (%s)"
 
 #. Program info audio mode
-#: src/zvbi.c:2262
+#: src/zvbi.c:2263
 #, c-format
 msgid "Audio: %s"
 msgstr "D¼wiêk: %s"
 
 #. Program info: has subtitles [language if known]
-#: src/zvbi.c:2281
+#: src/zvbi.c:2282
 #, c-format
 msgid "Captioned %s"
 msgstr "Z podpisami %x"
 
-#: src/zvbi.c:2281
+#: src/zvbi.c:2282
 msgid "Captioned"
 msgstr "Z podpisami"
 
 #. NLS: Current program rating
 #. (not rated means we don't know, not it's exempt)
-#: src/zvbi.c:2367 src/zvbi.c:2628
+#: src/zvbi.c:2368 src/zvbi.c:2629
 msgid "Not rated"
 msgstr "Nie klasyfikowany"
 
@@ -984,7 +983,7 @@ msgstr "Lista symboli eksportowanych przez wtyczkê"
 msgid "Sorry, but the plugin couldn't be started"
 msgstr "Niestety, nie mo¿na uruchomiæ wtyczki"
 
-#: src/ttxview.c:180 src/ttxview.c:755 src/ttxview.c:1355
+#: src/ttxview.c:180 src/ttxview.c:755 src/ttxview.c:1351
 msgid "VBI has been disabled"
 msgstr "VBI zosta³ wy³±czony"
 
@@ -1021,58 +1020,58 @@ msgstr " Podstrona %d"
 msgid "The cache has been cleared"
 msgstr "Pamiêæ podrêczna zosta³a wyczyszczona"
 
-#: src/ttxview.c:1065 src/ttxview.c:1086
+#: src/ttxview.c:1061 src/ttxview.c:1082
 msgid "No other subpage in the cache"
 msgstr "Brak innej podstrony w pamiêci podrêcznej"
 
-#: src/ttxview.c:1149
+#: src/ttxview.c:1145
 msgid "Found"
 msgstr "Znaleziono"
 
-#: src/ttxview.c:1167
+#: src/ttxview.c:1163
 msgid "Not found"
 msgstr "Nie znaleziono"
 
-#: src/ttxview.c:1187
+#: src/ttxview.c:1183
 msgid "Empty cache"
 msgstr "Pamiêæ podrêczna pusta"
 
-#: src/ttxview.c:1310
+#: src/ttxview.c:1306
 #, c-format
 msgid "Scanning %x.%02x"
 msgstr "Przeszukujê %x.%02x"
 
-#: src/ttxview.c:1564
+#: src/ttxview.c:1560
 #, c-format
 msgid "<%s> added to the bookmarks"
 msgstr "<%s> zosta³ dodany do zak³adek"
 
-#: src/ttxview.c:1627
+#: src/ttxview.c:1623
 msgid "Any subpage"
 msgstr "Dowolna podstrona"
 
-#: src/ttxview.c:1976
+#: src/ttxview.c:1972
 #, c-format
 msgid "Export %s"
 msgstr "Eksportuj %s"
 
-#: plugins/screenshot/screenshot_strings.c:19 src/ttxview.c:1990
+#: plugins/screenshot/screenshot_strings.c:19 src/ttxview.c:1986
 msgid "Save as:"
 msgstr "Zapisz jako:"
 
-#: src/ttxview.c:1995
+#: src/ttxview.c:1991
 msgid "Select file you'll be exporting to"
 msgstr "Wybierz plik, do którego bêdziesz eksportowaæ"
 
-#: src/ttxview.c:2010
+#: src/ttxview.c:2006
 msgid "Options"
 msgstr "Opcje"
 
-#: src/ttxview.c:2040 src/ttxview.c:3000
+#: src/ttxview.c:2036 src/ttxview.c:2996
 msgid "No page loaded"
 msgstr "Brak za³adowanej strony"
 
-#: src/ttxview.c:2100
+#: src/ttxview.c:2096
 #, c-format
 msgid ""
 "Cannot create destination dir for Zapzilla export:\n"
@@ -1083,90 +1082,90 @@ msgstr ""
 "%s\n"
 "%s"
 
-#: src/ttxview.c:2119
+#: src/ttxview.c:2115
 #, c-format
 msgid "Export to %s failed: %s"
 msgstr "Eksport do %s nie powiód³ siê: %s"
 
-#: src/ttxview.c:2128
+#: src/ttxview.c:2124
 #, c-format
 msgid "%s saved"
 msgstr "%s zachowany"
 
-#: src/ttxview.c:2140
+#: src/ttxview.c:2136
 #, c-format
 msgid "Export failed: %s"
 msgstr "Eksport siê nie powiód³: %s"
 
-#: src/ttxview.c:2448
+#: src/ttxview.c:2444
 #, c-format
 msgid "Caption %x - %s"
 msgstr "Nag³ówek %x - %s"
 
-#: src/ttxview.c:2450
+#: src/ttxview.c:2446
 #, c-format
 msgid "Text %x - %s"
 msgstr "Tekst %x - %s"
 
-#: src/ttxview.c:2454
+#: src/ttxview.c:2450
 #, c-format
 msgid "Caption %x"
 msgstr "Nag³ówek0 %x"
 
-#: src/ttxview.c:2456
+#: src/ttxview.c:2452
 #, c-format
 msgid "Text %x"
 msgstr "Tekst %x"
 
-#: src/ttxview.c:2481
+#: src/ttxview.c:2477
 #, c-format
 msgid "%x: Unknown language"
 msgstr "%x: Nieznany jêzyk"
 
-#: src/ttxview.c:2493 src/ttxview.c:2508 src/ttxview.c:2532 src/ttxview.c:2548
-#: src/ttxview.c:2564 src/ttxview.c:2580 src/ttxview.c:2596
+#: src/ttxview.c:2489 src/ttxview.c:2504 src/ttxview.c:2528 src/ttxview.c:2544
+#: src/ttxview.c:2560 src/ttxview.c:2576 src/ttxview.c:2592
 #, c-format
 msgid "Page %x"
 msgstr "Strona %x"
 
-#: src/ttxview.c:2502
+#: src/ttxview.c:2498
 msgid "Index"
 msgstr "Indeks"
 
-#: src/ttxview.c:2526
+#: src/ttxview.c:2522
 msgid "Now and Next"
 msgstr "Teraz i nastêpne"
 
-#: src/ttxview.c:2558
+#: src/ttxview.c:2554
 msgid "Program Index"
 msgstr "Indeks programów"
 
-#: src/ttxview.c:2574
+#: src/ttxview.c:2570
 msgid "Program Schedule"
 msgstr "Program TV"
 
-#: src/ttxview.c:2590
+#: src/ttxview.c:2586
 msgid "Program Warning"
 msgstr "Ostrze¿enie o programie"
 
-#: src/ttxview.c:2610
+#: src/ttxview.c:2606
 msgid "Subtitles"
 msgstr "Napisy"
 
-#: src/ttxview.c:2612
+#: src/ttxview.c:2608
 msgid "Select subtitles page"
 msgstr "Wybierz stronê z napisami"
 
-#: src/ttxview.c:2685
+#: src/ttxview.c:2681
 #, c-format
 msgid "%s in %s"
 msgstr "%s w %s"
 
-#: src/ttxview.c:3009
+#: src/ttxview.c:3005
 msgid "Selecting - hold Shift for table mode"
 msgstr "Wybieranie - przytrzymaj Shift dla trybu tabeli"
 
-#: src/ttxview.c:3129
+#: src/ttxview.c:3125
 msgid "Selection copied to clipboard"
 msgstr "Wybór skopiowany do schowka"
 
@@ -1835,7 +1834,7 @@ msgid "S_top Plugin"
 msgstr "_Zatrzymaj wtyczkê"
 
 #: glade/glade_strings.c:187 plugins/lirc/lirc.c:375 plugins/mpeg/mpeg.c:1100
-#: plugins/mpeg/mpeg.c:1122 plugins/mpeg/mpeg.c:1178
+#: plugins/mpeg/mpeg.c:1127 plugins/mpeg/mpeg.c:1192
 #: plugins/screenshot/screenshot.c:577 plugins/screenshot/screenshot.c:1418
 msgid "Plugins"
 msgstr "Wtyczki"
@@ -2765,17 +2764,31 @@ msgstr "Ilo¶æ obrazu w Mbit/s:"
 msgid "Waiting for frames..."
 msgstr "Czekam na ramki..."
 
-#: plugins/mpeg/mpeg.c:1096 plugins/mpeg/mpeg.c:1122 plugins/mpeg/mpeg.c:1178
-#: plugins/mpeg/mpeg.c:1213
+#: plugins/mpeg/mpeg.c:1096 plugins/mpeg/mpeg.c:1127 plugins/mpeg/mpeg.c:1192
+#: plugins/mpeg/mpeg.c:1233
 msgid "MPEG"
 msgstr "MPEG"
 
-#: plugins/mpeg/mpeg.c:1198
+#: plugins/mpeg/mpeg.c:1117
+#, fuzzy
+msgid ""
+"This is the first time you run the plugin,\n"
+"please take a moment to configure it to your tastes.\n"
+msgstr ""
+"Uruchamiasz tê wtyczkê pierwszy raz,\n"
+"po¶wiêæ chwilê, ¿eby dostosowaæ j± do swoich upodobañ.\n"
+"Klikniêcie na przycisku otworzy preferencje."
+
+#: plugins/mpeg/mpeg.c:1120
+msgid "Open preferences"
+msgstr ""
+
+#: plugins/mpeg/mpeg.c:1218
 #, fuzzy
 msgid "Start recording"
 msgstr "Rozpocznij nagrywanie [r, Ctrl+r]"
 
-#: plugins/mpeg/mpeg.c:1248
+#: plugins/mpeg/mpeg.c:1268
 msgid "Record as MPEG"
 msgstr "Nagraj jako MPEG"
 

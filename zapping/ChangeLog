@@ -1,3 +1,8 @@
+08.03.2002	zapping_setup_fb <mschimek@users.sf.net>
+
+	* zapping_setup_fb/Makefile.am: Automake or autoconf created
+	  a bad Makefile, moving the "if SUID_ZFSB" around helped. 
+
 26.02.2002	Keyboard and command changes <mschimek@users.sf.net>
 
 	* Channel number entering on KP: Removed all keys except
