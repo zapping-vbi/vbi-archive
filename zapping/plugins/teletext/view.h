@@ -1,31 +1,34 @@
 /*
- *  Zapping (TV viewer for the Gnome Desktop)
+ *  Zapping TV viewer
  *
- * Copyright (C) 2001 Iñaki García Etxebarria
- * Copyright (C) 2003 Michael H. Schimek
+ *  Copyright (C) 2000, 2001, 2002 Iñaki García Etxebarria
+ *  Copyright (C) 2000, 2001, 2002, 2003, 2004 Michael H. Schimek
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: view.h,v 1.1 2004-09-22 21:29:07 mschimek Exp $ */
+/* $Id: view.h,v 1.2 2004-11-03 06:42:06 mschimek Exp $ */
 
 #ifndef VIEW_H
 #define VIEW_H
 
 #include <gnome.h>
-#include <libzvbi.h>
+#include "libvbi/page.h"	/* vbi3_page, vbi3_pgno, vbi3_subno */
+#include "libvbi/link.h"	/* vbi3_link */
+#include "libvbi/teletext_decoder.h"
+#include "page_num.h"
 #include "toolbar.h"
 
 G_BEGIN_DECLS
@@ -45,6 +48,28 @@ G_BEGIN_DECLS
 typedef struct _TeletextView TeletextView;
 typedef struct _TeletextViewClass TeletextViewClass;
 
+/**
+ * The blink of items in the page is done by applying the patch once
+ * every second (whenever the client wishes) to the apropriate places
+ * on the screen.
+ */
+struct ttx_patch {
+  guint			column;
+  guint			row;
+  gint			width, height; /* geometry of the patch */
+  gint			sx, sy;
+  gint			sw, sh;
+  gint			dx, dy;
+  GdkPixbuf *		unscaled_on;	/* unscaled image, flash on */
+  GdkPixbuf *		unscaled_off;	/* unscaled image, flash off or NULL */
+  GdkPixbuf *		scaled_on;	/* scaled image, flash on */
+  GdkPixbuf *		scaled_off;	/* scaled image, flash off or NULL */
+  guint			columns;	/* text columns covered */
+  gint			phase;		/* flash phase */
+  gboolean		flash;		/* flashing patch */
+  gboolean		dirty;		/* image changed */
+};
+
 struct _TeletextView
 {
   GtkDrawingArea	darea;
@@ -54,25 +79,32 @@ struct _TeletextView
 
   GtkActionGroup *	action_group; 
 
+  /* ugly hack */
+  void			(* client_redraw)(TeletextView *	view,
+					  unsigned int		width,
+					  unsigned int		height);
+  gboolean		(* key_press)(TeletextView *	view,
+				      GdkEventKey *	event);
+  int			(* cur_pgno)(TeletextView *	view);
+
   /*< private >*/
 
-  GdkGC	*		xor_gc;			/* gfx context for xor mask */
+  vbi3_pgno		entered_pgno;	/* page number being entered */
 
-  int			zvbi_client_id;
-  guint			zvbi_timeout_id;
+  page_num		req;		/* requested page */
+  vbi3_charset_code	charset;	/* override charset (-1 default) */
 
-  vbi_page *		fmt_page;		/* current page, formatted */
+  vbi3_page *		pg;		/* displayed page (shared, r/o) */
 
-  gint			page;			/* page we are entering */
-  gint			subpage;		/* current subpage */
+  gboolean		freezed;	/* no refresh (header / subpages) */
 
-  gint			monitored_subpage;
+  GdkPixbuf *		unscaled_on;	/* unscaled image of pg, flash on */
+  GdkPixbuf *		unscaled_off;	/* unscaled image of pg, flash off */
+  GdkPixbuf *		scaled_on;	/* scaled image of pg, flash on */
 
-  struct {
-    GdkBitmap *		  mask;
-    gint		  width;
-    gint		  height;
-  }			scale;
+  struct ttx_patch *	patches;	/* patches to be applied */
+  guint			n_patches;
+
 
   guint			blink_timeout_id;
 
@@ -81,16 +113,13 @@ struct _TeletextView
   gboolean		deferred_load;
   struct {
     guint		  timeout_id;
-    vbi_pgno		  pgno;
-    vbi_subno		  subno;
-    vbi_page		  pg;
+    vbi3_network	  network;
+    vbi3_pgno		  pgno;
+    vbi3_subno		  subno;
   }			deferred;
 
   struct {
-    struct {
-      vbi_pgno	    	    pgno;
-      vbi_subno	    	    subno;
-    }			  stack [25];
+    page_num		  stack [25];
     guint		  top;
     guint		  size;
   }			history;
@@ -108,15 +137,18 @@ struct _TeletextView
     gint		  last_y;
     
     gboolean		  table_mode;
+    gboolean		  rtl_mode;
 
-    vbi_page		  page;			/* selected text */
+    gboolean		  reveal;		/* at select time */
+
+    vbi3_page *		  pg;			/* selected text */
 
     gint		  column1;		/* selected text */
     gint		  row1;
     gint		  column2;
     gint		  row2;
-    
-    gboolean		  reveal;		/* at select time */
+
+    GdkGC *		  xor_gc;		/* gfx context for xor mask */
 
     						/* selected text "sent" to */
     gboolean		  in_clipboard;		/* X11 "CLIPBOARD" */
@@ -129,6 +161,11 @@ struct _TeletextView
 struct _TeletextViewClass
 {
   GtkDrawingAreaClass	parent_class;
+
+  /* Signals. */
+
+  void (*request_changed)(TeletextView *view);
+  void (*charset_changed)(TeletextView *view);
 };
 
 extern GType
@@ -136,29 +173,48 @@ teletext_view_get_type		(void) G_GNUC_CONST;
 GtkWidget *
 teletext_view_new		(void);
 
-extern void
-teletext_view_vbi_link_from_pointer_position
+extern gboolean
+teletext_view_vbi3_link_from_pointer_position
 				(TeletextView *		view,
-				 vbi_link *		ld,
+				 vbi3_link *		ld,
 				 gint			x,
 				 gint			y);
 extern GtkWidget *
 teletext_view_popup_menu_new	(TeletextView *		view,
-				 const vbi_link *	ld,
+				 const vbi3_link *	ld,
 				 gboolean		large);
 extern TeletextView *
 teletext_view_from_widget	(GtkWidget *		widget);
 extern void
 teletext_view_load_page		(TeletextView *		view,
-				 vbi_pgno		pgno,
-				 vbi_subno		subno,
-				 vbi_page *		pg);
+				 const vbi3_network *	nk,
+				 vbi3_pgno		pgno,
+				 vbi3_subno		subno);
+extern void
+teletext_view_show_page		(TeletextView *		view,
+				 vbi3_page *		pg);
 extern gboolean
-teletext_view_on_key_press	(GtkWidget *		widget,
-				 GdkEventKey *		event,
-				 TeletextView *		view);
+teletext_view_switch_network	(TeletextView *		view,
+				 const vbi3_network *	nk);
+extern gboolean
+teletext_view_set_charset	(TeletextView *		view,
+				 vbi3_charset_code	code);
+
 extern GtkWidget *
 bookmarks_menu_new (TeletextView *	view);
+
+extern guint
+ttxview_hotlist_menu_insert	(GtkMenuShell *		menu,
+				 gboolean		separator,
+				 gint position);
+
+extern vbi3_teletext_decoder *
+zvbi3_teletext_decoder		(void);
+
+extern void
+start_zvbi			(void);
+extern void
+stop_zvbi			(void);
 
 G_END_DECLS
 
