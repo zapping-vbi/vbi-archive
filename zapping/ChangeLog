@@ -1,3 +1,8 @@
+27.11.2001	Screenshot extension <mschimek@users.sf.net>
+
+	* Added function to poll Creative WebCam (ov511) grab button
+	  to screenshot plugin, contributed by Sandino Flores Moreno.
+
 22.11.2001	Fixes <mschimek@users.sf.net>
 
 	* v4lx.c: "bad signal -> eof_sent", probably due to exceeding

@@ -238,6 +238,56 @@ void plugin_get_info (const gchar ** canonical_name,
     *version = _(str_version);
 }
 
+/*
+ *  Creative WebCam (ov511) grab button
+ *  Contributed by Sandino Flores Moreno <tigrux@avantel.net>
+ */
+
+static gint ogb_timeout_id = -1;
+static gint ogb_startup_delay;
+static int ogb_fd;
+
+static gint
+ov511_grab_button_timeout (void *unused)
+{
+  char button_flag = '0';
+
+  if (ogb_fd < 0)
+    {
+      if (ogb_startup_delay-- > 0)
+        return TRUE; /* repeat */
+    
+      ogb_fd = open ("/proc/video/ov511/0/button", O_RDONLY);
+
+      if (ogb_fd == -1)
+        {
+	  /* no warning if file doesn't exist */
+//          fprintf (stderr, "ov511_grab_button_timeout cannot open button flag file: %d, %s\n",
+//		     errno, strerror(errno));
+	  ogb_timeout_id = -1;
+	  return FALSE; /* destroy */
+        }
+
+//      fprintf (stderr, "ov511_grab_button_timeout monitoring ov511 button flag file\n");
+    }
+
+  if (read (ogb_fd, &button_flag, 1) == 1)
+    if (lseek (ogb_fd, 0, SEEK_SET) != (off_t) -1)
+      {
+        if (button_flag == '1')
+	  plugin_start();
+
+	return TRUE; /* repeat */
+      }
+
+//  fprintf (stderr, "ov511_grab_button_timeout read or seek error: %d, %s\n",
+//           errno, strerror(errno));
+
+  ogb_timeout_id = -1;
+  return FALSE; /* destroy */
+}
+
+
 static
 gboolean plugin_init ( PluginBridge bridge, tveng_device_info * info )
 {
@@ -249,6 +299,11 @@ gboolean plugin_init ( PluginBridge bridge, tveng_device_info * info )
 
   append_property_handler(&screenshot_handler);
 
+  ogb_fd = -1;
+  ogb_startup_delay = 5 * 1000 / 250;
+  ogb_timeout_id =
+    gtk_timeout_add (250 /* ms */, (GtkFunction) ov511_grab_button_timeout, NULL);
+
   zapping_info = info;
 
   return TRUE;
@@ -258,6 +313,15 @@ static
 void plugin_close(void)
 {
   close_everything = TRUE;
+
+  if (ogb_timeout_id >= 0)
+    {
+      if (ogb_fd >= 0)
+        close (ogb_fd);
+
+      gtk_timeout_remove (ogb_timeout_id);
+      ogb_timeout_id = -1;
+    }
 
   while (num_threads) /* Wait until all threads exit cleanly */
     {

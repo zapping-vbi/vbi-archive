@@ -25,5 +25,7 @@ Thanks are due to the following people for helping with the program
 - Mark Cooke: Lots of help with RPM build process under RH.
 - Ime Smits: Dutch translation.
 - Reinout van Schouwen: Dutch translation.
+- Sandino Flores Moreno: Creative WebCam (ov511) button flag
+                         polling in screenshot plugin.
 
 And, of course, thanks to the people that sent bug reports and suggestions.
