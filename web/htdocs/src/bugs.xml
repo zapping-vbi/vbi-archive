@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<!--
+title -> head
+abstract -> short text that describes the page (for themes that support it)
+-->
+<document title="Reporting bugs" abstract="Reporting bugs">
+<header>What to do if you find a bug</header>
+If you have any problems, please
+leave a <b>complete</b> bug report in the <a
+href="http://sourceforge.net/bugs/?group_id=2599">Bug
+tracker</a>.
+You can also report it to the <a
+href="http://lists.sourceforge.net/lists/listinfo/zapping-misc">mailing
+list</a>, chances are that you'll get a faster response.
+</document>

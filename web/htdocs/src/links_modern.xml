@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<!--
+Include links and resources info to reduce number of buttons.
+-->
+<document title="Links to useful stuff" abstract="Other software">
+<include>links.xml</include>
+<include>resources.xml</include>
+</document>

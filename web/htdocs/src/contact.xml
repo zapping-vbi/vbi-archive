@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<!--
+title -> head
+abstract -> short text that describes the page (for themes that support it)
+-->
+<document title="Contact" abstract="Contacting with us">
+<header>The mailing list</header>
+Please direct here anything related to the program, you don't need to be
+subscribed to post. The address is <a
+href="mailto:zapping-misc@lists.sourceforge.net">zapping-misc@lists.sourceforge.net</a>.
+You can subscribe, search the archives, et al. <a
+href="http://lists.sourceforge.net/lists/listinfo/zapping-misc">here</a>.
+<p>
+If you want to contact me directly, use
+<a href="mailto:garetxe@users.sourceforge.net">this</a>. But please don't use my address
+for general questions, bug reports, suggestions, etc., use the list instead.
+If you post to the mailing list you'll get an answer all the same and other
+people can benefit too when they look to the archives.
+</p>
+</document>

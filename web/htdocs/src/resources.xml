@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<!--
+title -> head
+abstract -> short text that describes the page (for themes that support it)
+-->
+<document title="Resources" abstract="Useful code we wrote">
+<header>Description</header>
+Below are links or info about code we wrote that could be useful for other
+developers. Feel free to use this routines in your own programs, just drop a
+note to the author if you do so.
+<header>FIXME:</header>
+TODO
+</document>

@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<!--
+title -> head
+abstract -> short text that describes the page (for themes that support it)
+HTML tags can be used freely in the body, the toc should contain only
+url tags.
+-->
+<document title="ChangeLog" abstract="CVS ChangeLog">
+<header>This is code</header>
+<?php print("<pre>");
+include("http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/~checkout~/zapping/zapping/ChangeLog?content-type=text/plain");
+print("</pre>"); ?>
+</document>

@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<!--
+The modern theme looks better with few buttons, include here the program
+description and the recent news.
+-->
+<document title="Zapping source code" abstract="Zapping Info">
+<include>index.xml</include>
+<include>news.xml</include>
+</document>

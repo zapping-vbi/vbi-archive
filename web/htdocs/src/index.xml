@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<!--
+title -> head
+abstract -> short text that describes the page (for themes that support it)
+-->
+<document title="Index" abstract="General info">
+<header>What is Zapping?</header>
+Zapping is a TV viewer for the <a href="http://www.gnome.org">Gnome</a>
+environment. It has some interesting features, namely:
+<ul>
+<li>It is for <a href="http://www.gnome.org">Gnome</a> / <a href="http://www.gtk.org">GTK</a>.
+This gives the program a very nice look, as you can see in the <a
+href="screenshots.php">screenshots</a> page.</li>
+<li>It is based on plugins. This will make it easy to add
+functionality to the program, without making it hard to maintain, such as
+saving video as AVI/MPEG, viewing mirrored TV (scanning from right to
+left) or whatever you can imagine (and program).</li>
+<li>Has a very advanced builtin VBI decoder, description <a
+href="Zapzilla.html">here</a>.</li>
+<li>Lirc support.</li>
+<li>Realtime MPEG recording.</li>
+<li>And much more...</li>
+</ul>
+</document>

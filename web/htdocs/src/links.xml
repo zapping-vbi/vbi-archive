@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<!--
+title -> head
+abstract -> short text that describes the page (for themes that support it)
+-->
+<document title="Links" abstract="Stuff we didn't write">
+<header>TV programs for Linux</header>
+<b>FIXME:</b> xawtv, kwintv, others?
+<header>Developer info</header>
+<b>FIXME:</b> V4L1, V4L2
+<p>etc...</p>
+</document>

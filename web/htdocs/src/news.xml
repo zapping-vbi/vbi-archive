@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<!--
+title -> head
+abstract -> short text that describes the page (for themes that support it)
+HTML tags can be used freely in the body.
+-->
+<document title="News page" abstract="News and co.">
+<header>Web page redesigned</header>
+As you can see, the web page has been redesigned, it has new contents and
+support for different themes (works best with cookies enabled). Thanks a lot to
+<b>Carsten Menke</b>, he worked hard to create the excellent <i>Carsten</i>
+theme. I hope you like the new design.
+<header>0.6.0 released</header>
+0.6.0 has been released, blah, blah, blah.
+</document>
