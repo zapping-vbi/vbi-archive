@@ -1845,6 +1845,8 @@ zvbi_channel_switched(void)
 
   vbi_channel_switched(vbi, 0);
 
+  osd_clear();
+
   pthread_mutex_lock(&clients_mutex);
   p = g_list_first(ttx_clients);
   while (p)

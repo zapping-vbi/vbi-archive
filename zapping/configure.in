@@ -153,8 +153,10 @@ AM_CONDITIONAL(SUID_ZSFB, test x$CONSOLEHELPER_LOCATION = x)
 dnl ----------------------------------------------------------------------
 dnl Check for RTE, the MPEG encoder
 dnl ----------------------------------------------------------------------
-HAVE_RTE=""
-AC_CHECK_LIB(rte, rte_start_encoding, HAVE_RTE="yes", HAVE_RTE="no")
+HAVE_RTE="yes"
+REQUIRED_RTE_VERSION="0.3"
+AC_CHECK_LIB(rte-$REQUIRED_RTE_VERSION, rte_start_encoding,
+  AC_CHECK_HEADER(rte.h,true,HAVE_RTE=no),HAVE_RTE=no)
 dnl The mpeg plugin requires RTE
 if test "$HAVE_RTE" = "yes"; then
 	PLUGINS_TO_BUILD="$PLUGINS_TO_BUILD mpeg"
