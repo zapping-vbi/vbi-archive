@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.c,v 1.26 2004-09-20 04:41:09 mschimek Exp $ */
+/* $Id: audio.c,v 1.27 2004-10-09 17:50:37 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu */
 #undef GTK_DISABLE_DEPRECATED
@@ -624,6 +624,7 @@ set_mute				(gint	        mode,
 
 	if (DISPLAY_MODE_BACKGROUND == zapping->display_mode
 	    || DISPLAY_MODE_FULLSCREEN == zapping->display_mode
+	    || dock_item == NULL
 	    || !GTK_WIDGET_VISIBLE (GTK_WIDGET (dock_item)))
 	  osd_render_markup_printf (NULL, mute ?
 			     _("<span foreground=\"blue\">Audio off</span>") :
