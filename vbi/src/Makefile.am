@@ -21,6 +21,7 @@ libzvbi_la_SOURCES = \
 	cache.c cache.h \
 	caption.c cc.h \
 	conv.c conv.h \
+	dlist.h \
 	event.h \
 	export.c export.h \
 	exp-gfx.c exp-gfx.h \
@@ -31,7 +32,9 @@ libzvbi_la_SOURCES = \
 	format.h \
 	graphics.c graphics.h \
 	hamm.c hamm.h \
+	intl.h intl-priv.h \
 	lang.c lang.h \
+	macros.h \
 	misc.h \
 	network.c network.h \
 	io.c io.h \
@@ -75,10 +78,10 @@ version.h: Makefile.in
 	echo -e "\n#define VBI_VERSION_MAJOR" `echo @VERSION@ \
 	 | sed "s/[^0-9.]//g" \
 	 | sed "s/\./\\\\\n#define VBI_VERSION_MINOR /" \
-	 | sed "s/\./\\\\\n#define VBI_VERSION_MICRO /"` >> $@
+	 | sed "s/\./\\\\\n#define VBI_VERSION_MICRO /"` > $@
 
 LIBZVBI_HDRS = \
-	misc.h \
+	macros.h intl.h \
 	bcd.h hamm.h network.h event.h format.h pdc.h lang.h export.h \
 	cache.h search.h \
 	sliced.h \

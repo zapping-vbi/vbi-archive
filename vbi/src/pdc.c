@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.c,v 1.1.2.2 2004-02-25 17:35:29 mschimek Exp $ */
+/* $Id: pdc.c,v 1.1.2.3 2004-03-31 00:41:34 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -306,7 +306,7 @@ pdc_time_from_bcd		(pdc_time *		t,
  * @returns
  * Next column to process >= @a column, or 0 on error.
  */
-static __inline__ unsigned int
+vbi_inline unsigned int
 pdc_ptl				(pdc_program *		table,
 				 pdc_program *		p,
 				 const uint8_t *	raw,
@@ -428,7 +428,7 @@ pdc_ptl				(pdc_program *		table,
  * @returns
  * FALSE on error.
  */
-static __inline__ unsigned int
+vbi_inline unsigned int
 pdc_number			(unsigned int * const	value,
 				 unsigned int * const	digits,
 				 const uint8_t *	raw,

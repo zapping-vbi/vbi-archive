@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.9.2.4 2004-02-25 17:31:51 mschimek Exp $ */
+/* $Id: caption.c,v 1.9.2.5 2004-03-31 00:41:34 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,7 +43,7 @@
 #define CC_DUMP(x) /* x */
 #define CC_TEXT_DUMP(x) /* x */
 
-static inline void
+vbi_inline void
 caption_send_event(vbi_decoder *vbi, vbi_event *ev)
 {
 	/* Permits calling vbi_fetch_cc_page from handler */
@@ -149,7 +149,7 @@ roll_up(vbi_page *pg, int first_row, int last_row)
 	caption_send_event(pg->vbi, &event);
 }
 
-static inline void
+vbi_inline void
 update(cc_channel *ch)
 {
 	vbi_char *acp = ch->line - ch->pg[0].text + ch->pg[1].text;
@@ -198,7 +198,7 @@ word_break(struct caption *cc, cc_channel *ch, int upd)
 	render(ch->pg + 1, ch->row);
 }
 
-static inline void
+vbi_inline void
 set_cursor(cc_channel *ch, int col, int row)
 {
 	ch->col = ch->col1 = col;
@@ -225,7 +225,7 @@ put_char(struct caption *cc, cc_channel *ch, vbi_char c)
 		word_break(cc, ch, 1);
 }
 
-static inline cc_channel *
+vbi_inline cc_channel *
 switch_channel(struct caption *cc, cc_channel *ch, int new_chan)
 {
 	word_break(cc, ch, 1); // we leave for a number of frames
@@ -263,7 +263,7 @@ row_mapping[] = {
 // not verified means I didn't encounter the code in a
 // sample stream yet
 
-static inline void
+vbi_inline void
 caption_command(vbi_decoder *vbi, struct caption *cc,
 	unsigned char c1, unsigned char c2, vbi_bool field2)
 {

@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.6.2.4 2004-02-25 17:35:28 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.6.2.5 2004-03-31 00:41:34 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -34,6 +34,7 @@
 #include <setjmp.h>
 
 #include "lang.h"
+#include "intl-priv.h"
 #include "export.h"
 #include "vt.h"
 #include "vbi.h"
@@ -216,7 +217,7 @@ nputs				(html_instance *	html,
 	html->text.bp += n;
 }
 
-static __inline__ void
+vbi_inline void
 cputs				(html_instance *	html,
 				 const char *		s)
 {
@@ -381,7 +382,7 @@ flush				(html_instance *	html)
 	html->text.bp = html->text.buffer;
 }
 
-static __inline__ vbi_bool
+vbi_inline vbi_bool
 same_style			(const vbi_char *	ac1,
 				 const vbi_char *	ac2)
 {
@@ -400,7 +401,7 @@ same_style			(const vbi_char *	ac1,
 	return TRUE;
 }
 
-static __inline__ void
+vbi_inline void
 style_gen			(html_instance *	html,
 				 vbi_page *		dpg,
 				 const vbi_page *	spg,
@@ -492,7 +493,7 @@ style_gen			(html_instance *	html,
 	}
 }
 
-static __inline__ void
+vbi_inline void
 title				(html_instance *	html,
 				 const vbi_page *	pg)
 {
@@ -523,7 +524,7 @@ title				(html_instance *	html,
 	puts (html, "</title>\n");
 }
 
-static __inline__ void
+vbi_inline void
 header				(html_instance *	html,
 				 const vbi_page *	pg)
 {
@@ -598,7 +599,7 @@ header				(html_instance *	html,
 	puts (html, ">\n");
 }
 
-static __inline__ const style *
+vbi_inline const style *
 span_start			(html_instance *	html,
 				 const vbi_page *	pg,
 				 const vbi_char *	acp,

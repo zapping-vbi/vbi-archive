@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zvbi 0.2.2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-01-30 02:59+0100\n"
+"POT-Creation-Date: 2004-03-30 21:43+0200\n"
 "PO-Revision-Date: 2002-09-27 14:10+0200\n"
 "Last-Translator: Christian Marillat <marillat.christian@wanadoo.fr>\n"
 "Language-Team: French <fr@li.org>\n"
@@ -15,15 +15,15 @@ msgstr ""
 
 #. TRANSLATORS: Title of TOP Index page,
 #. for now please Latin-1 or ASCII only
-#: src/teletext.c:3477
+#: src/teletext.c:2746
 msgid "TOP Index"
 msgstr ""
 
-#: src/exp-gfx.c:733
+#: src/exp-gfx.c:1465
 msgid "Correct aspect ratio"
 msgstr "Corriger les proportions"
 
-#: src/exp-gfx.c:734
+#: src/exp-gfx.c:1466
 msgid ""
 "Approach an image aspect ratio similar to a real TV. This will double the "
 "image size."
@@ -31,47 +31,47 @@ msgstr ""
 "Approche les proportions d'une image d'une vraie TV. Cela doublera la taille "
 "de l'image."
 
-#: src/exp-gfx.c:807 src/exp-gfx.c:1105
+#: src/exp-gfx.c:1536 src/exp-gfx.c:1781
 #, c-format
 msgid "Unable to allocate %d KB image buffer."
 msgstr "Incapable d'allouer %d Ko d'image tampon."
 
-#: src/exp-gfx.c:896
+#: src/exp-gfx.c:1606
 msgid "PPM"
 msgstr "PPM"
 
-#: src/exp-gfx.c:897
+#: src/exp-gfx.c:1607
 msgid "Export this page as raw PPM image"
 msgstr "Exporter cette page en une image PPM brute"
 
-#: src/exp-gfx.c:988
+#: src/exp-gfx.c:1772
 #, c-format
 msgid "Unable to allocate %d byte buffer."
 msgstr "Incapable d'allouer %d octets de mémoire tampon."
 
-#: src/exp-gfx.c:1175 src/exp-html.c:231
+#: src/exp-gfx.c:1910 src/exp-html.c:517
 #, c-format
 msgid "Teletext Page %3x.%x"
 msgstr "Page Teletext %3x.%x"
 
-#: src/exp-gfx.c:1179 src/exp-html.c:233
+#: src/exp-gfx.c:1914 src/exp-html.c:520
 #, c-format
 msgid "Teletext Page %3x"
 msgstr "Page Teletext %3x"
 
-#: src/exp-gfx.c:1248
+#: src/exp-gfx.c:1976
 msgid "PNG"
 msgstr "PNG"
 
-#: src/exp-gfx.c:1249
+#: src/exp-gfx.c:1977
 msgid "Export this page as PNG image"
 msgstr "Exporter cette page en une image PNG"
 
-#: src/exp-html.c:94 src/exp-txt.c:128
+#: src/exp-html.c:105 src/exp-txt.c:146
 msgid "Graphics char"
 msgstr "Nettoyage graphique"
 
-#: src/exp-html.c:95 src/exp-txt.c:129
+#: src/exp-html.c:106 src/exp-txt.c:147
 msgid ""
 "Replacement for block graphic characters: a single character or decimal (32) "
 "or hex (0x20) code"
@@ -79,165 +79,118 @@ msgstr ""
 "Replacement pour les blocs de caractère graphique : un simple caractère ou "
 "décimal (32) ou hexa (0x20) code"
 
-#: src/exp-html.c:98
+#: src/exp-html.c:109 src/exp-txt.c:150
+#, fuzzy
+msgid "ASCII art"
+msgstr "ASCII"
+
+#: src/exp-html.c:110 src/exp-txt.c:151
+msgid "Replace graphic characters by ASCII art"
+msgstr ""
+
+#: src/exp-html.c:112
 msgid "Color (CSS)"
 msgstr "Couleur (CSS)"
 
-#: src/exp-html.c:99
+#: src/exp-html.c:113
 msgid "Store the page colors using CSS attributes"
 msgstr "Stocker cette page en utilisant les couleurs des attributs CSS"
 
-#: src/exp-html.c:101
+#: src/exp-html.c:115
 msgid "HTML header"
 msgstr "En-tête HTML"
 
-#: src/exp-html.c:102
+#: src/exp-html.c:116
 msgid "Include HTML page header"
 msgstr "Inclure l'entête de page HTML"
 
 #. TRANSLATORS: "lang=\"en\" refers to the page title
-#. "Teletext Page ...". Please specify "de", "fr", "es" etc.
-#: src/exp-html.c:220
+#. "Teletext Page ...". Please specify "de", "fr", "es"
+#. etc.
+#: src/exp-html.c:506
 msgid "<title lang=\"en\">"
 msgstr "<title lang=\"fr\">"
 
-#: src/exp-html.c:355 src/exp-txt.c:732
-#, c-format
-msgid "Character conversion Unicode (UCS-2) to %s not supported."
-msgstr "Conversion de caractère Unicode (UCS-2) en %s non supporté."
-
-#: src/exp-html.c:714
+#: src/exp-html.c:816
 msgid "HTML"
 msgstr "HTML"
 
-#: src/exp-html.c:715
+#: src/exp-html.c:817
 msgid "Export this page as HTML page"
 msgstr "Exporter cette page en HTML"
 
-#: src/exp-txt.c:79
+#: src/exp-txt.c:94
 msgid "ASCII"
 msgstr "ASCII"
 
-#: src/exp-txt.c:80
+#: src/exp-txt.c:95
 msgid "ISO-8859-1 (Latin-1 Western languages)"
 msgstr "ISO-8859-1 (Latin-1 Langages occidentaux)"
 
-#: src/exp-txt.c:81
+#: src/exp-txt.c:96
 #, fuzzy
 msgid "ISO-8859-2 (Latin-2 Central and Eastern European languages)"
 msgstr "ISO-8859-2 (Latin-2 Langages de l'Europe de l'Est et Centrale)"
 
-#: src/exp-txt.c:82
+#: src/exp-txt.c:97
 msgid "ISO-8859-4 (Latin-3 Baltic languages)"
 msgstr "ISO-8859-4 (Latin-3 Langages Baltique)"
 
-#: src/exp-txt.c:83
+#: src/exp-txt.c:98
 msgid "ISO-8859-5 (Cyrillic)"
 msgstr "ISO-8859-5 (Cyrillique)"
 
-#: src/exp-txt.c:84
+#: src/exp-txt.c:99
 msgid "ISO-8859-7 (Greek)"
 msgstr "ISO-8859-7 (Grecque)"
 
-#: src/exp-txt.c:85
+#: src/exp-txt.c:100
 msgid "ISO-8859-8 (Hebrew)"
 msgstr "ISO-8859-8 (Hébreu)"
 
-#: src/exp-txt.c:86
+#: src/exp-txt.c:101
 msgid "ISO-8859-9 (Turkish)"
 msgstr "ISO-8859-9 (Turc)"
 
-#: src/exp-txt.c:87
+#: src/exp-txt.c:102
 msgid "KOI8-R (Russian and Bulgarian)"
 msgstr "KOI8-R (Russe et Bulgare)"
 
-#: src/exp-txt.c:88
+#: src/exp-txt.c:103
 msgid "KOI8-U (Ukranian)"
 msgstr "KOI8-U (Ukranien)"
 
-#: src/exp-txt.c:89
+#: src/exp-txt.c:104
 msgid "ISO-10646/UTF-8 (Unicode)"
 msgstr "ISO-10646/UTF-8 (Unicode)"
 
-#: src/exp-txt.c:101
-msgid "Black"
-msgstr "Noir"
-
-#: src/exp-txt.c:101
-msgid "Red"
-msgstr "Rouge"
-
-#: src/exp-txt.c:101
-msgid "Green"
-msgstr "Vert"
-
-#: src/exp-txt.c:101
-msgid "Yellow"
-msgstr "Jaune"
-
-#: src/exp-txt.c:102
-msgid "Blue"
-msgstr "Bleue"
-
-#: src/exp-txt.c:102
-msgid "Magenta"
-msgstr "Magenta"
-
-#: src/exp-txt.c:102
-msgid "Cyan"
-msgstr "Cyan"
-
-#: src/exp-txt.c:102
-msgid "White"
-msgstr "Blanc"
-
-#: src/exp-txt.c:103
-msgid "Any"
-msgstr "N'importe laquelle"
-
 #. TRANSLATORS: Terminal control codes menu
-#: src/exp-txt.c:109
+#: src/exp-txt.c:125
 msgid "None"
 msgstr "Aucun"
 
-#: src/exp-txt.c:109
+#: src/exp-txt.c:126
 msgid "ANSI X3.64 / VT 100"
 msgstr "ANSI X3.64 / VT 100"
 
-#: src/exp-txt.c:109
+#: src/exp-txt.c:127
 msgid "VT 200"
 msgstr "VT 200"
 
-#. TRANSLATORS: Text export format (ASCII, Unicode, ...) menu
-#: src/exp-txt.c:122
-msgid "Format"
-msgstr "Format"
+#. TRANSLATORS: Text export encoding (ASCII, Unicode, ...) menu
+#: src/exp-txt.c:140
+msgid "Encoding"
+msgstr ""
 
-#: src/exp-txt.c:132
+#: src/exp-txt.c:153
 msgid "Control codes"
 msgstr "Codes de Contrôle"
 
-#: src/exp-txt.c:136
-msgid "Foreground"
-msgstr "Texte"
-
-#: src/exp-txt.c:138
-msgid "Assumed terminal foreground color"
-msgstr "Supposer la couleur du texte du terminal"
-
-#: src/exp-txt.c:140
-msgid "Background"
-msgstr "Fond d'écran"
-
-#: src/exp-txt.c:142
-msgid "Assumed terminal background color"
-msgstr "Supposer la couleur du fond d'écran du terminal"
-
-#: src/exp-txt.c:803
+#: src/exp-txt.c:1011
 msgid "Text"
 msgstr "Texte"
 
-#: src/exp-txt.c:804
+#: src/exp-txt.c:1012
 msgid "Export this page as text file"
 msgstr "Exporter cette page dans un fichier texte"
 
@@ -249,155 +202,162 @@ msgstr "Ne peut seulement exporter les pages Teletext."
 msgid "Page is not cached, sorry."
 msgstr "Cette page n'est pas cachée, désolé."
 
-#: src/exp-vtx.c:98
+#: src/exp-vtx.c:99
 msgid "Cannot export this page, not displayable."
 msgstr "Ne peut exporter cette page, non affichable"
 
-#: src/exp-vtx.c:139
+#: src/exp-vtx.c:140
 msgid "VTX"
 msgstr "VTX"
 
-#: src/exp-vtx.c:140
+#: src/exp-vtx.c:141
 msgid ""
 "Export this page as VTX file, the format used by VideoteXt and vbidecode"
 msgstr ""
 "Exporter cette page en un fichier VTX, le format utilisé par Videotext et "
 "vbidecode"
 
-#: src/export.c:585
+#: src/export.c:186
+#, c-format
+msgid "Error while writing file '%s'"
+msgstr "Erreur lors de l'écriture du fichier '%s'"
+
+#: src/export.c:188
+msgid "Error while writing file"
+msgstr "Erreur lors de l'écriture du fichier"
+
+#: src/export.c:220
+#, c-format
+msgid "Export module '%s' has no option '%s'."
+msgstr "Le module d'export '%s' na pas d'option '%s'."
+
+#: src/export.c:280
+#, c-format
+msgid "Invalid argument %s for option %s of export module %s."
+msgstr "Argument invalide %s pour l'option %s du module d'export %s."
+
+#: src/export.c:308
+#, c-format
+msgid "Out of memory in export module '%s'."
+msgstr "Plus de mémoire pour le module d'export '%s'."
+
+#: src/export.c:337
+msgid "Unknown error."
+msgstr "Erreur inconnue."
+
+#: src/export.c:416
+#, c-format
+msgid "Cannot create file '%s': Error %d, %s."
+msgstr "Ne peut créer le fichier '%s' : Erreur %d, %s."
+
+#: src/export.c:1083
 #, c-format
 msgid "Invalid option string \"%s\"."
 msgstr "Chaîne d'option invalide \"%s\"."
 
-#: src/export.c:673
+#: src/export.c:1185
 #, c-format
 msgid "Unknown export module '%s'."
 msgstr "Module d'export inconnu '%s'."
 
-#: src/export.c:683
+#: src/export.c:1195
 #, c-format
 msgid "Cannot initialize export module '%s', probably lack of memory."
 msgstr ""
 "Ne peut initialiser le module d'export '%s', probablement un manque de "
 "mémoire."
 
-#: src/export.c:1113
-#, c-format
-msgid "Cannot create file '%s': Error %d, %s."
-msgstr "Ne peut créer le fichier '%s' : Erreur %d, %s."
+#: src/export.c:1213
+#, fuzzy, c-format
+msgid "Cannot initialize export module '%s', out of memory."
+msgstr ""
+"Ne peut initialiser le module d'export '%s', probablement un manque de "
+"mémoire."
 
-#: src/export.c:1185
-#, c-format
-msgid "Error while writing file '%s'"
-msgstr "Erreur lors de l'écriture du fichier '%s'"
-
-#: src/export.c:1187
-msgid "Error while writing file"
-msgstr "Erreur lors de l'écriture du fichier"
-
-#: src/export.c:1217
-#, c-format
-msgid "Export module '%s' has no option '%s'."
-msgstr "Le module d'export '%s' na pas d'option '%s'."
-
-#: src/export.c:1267
-#, c-format
-msgid "Invalid argument %s for option %s of export module %s."
-msgstr "Argument invalide %s pour l'option %s du module d'export %s."
-
-#: src/export.c:1291
-#, c-format
-msgid "Out of memory in export module '%s'."
-msgstr "Plus de mémoire pour le module d'export '%s'."
-
-#: src/export.c:1318
-msgid "Unknown error."
-msgstr "Erreur inconnue."
-
-#: src/io-bktr.c:191
+#: src/io-bktr.c:192
 msgid "BKTR driver"
 msgstr ""
 
-#: src/io-bktr.c:202 src/io-bktr.c:281 src/io-bktr.c:299 src/io-v4l2k.c:346
-#: src/io-v4l2k.c:573 src/io-v4l2k.c:622 src/io-v4l2k.c:704 src/io-v4l2.c:335
-#: src/io-v4l2.c:572 src/io-v4l2.c:620 src/io-v4l2.c:701 src/io-v4l.c:559
-#: src/io-v4l.c:835 src/io-v4l.c:853
+#: src/io-bktr.c:203 src/io-bktr.c:282 src/io-bktr.c:300 src/io-v4l2k.c:347
+#: src/io-v4l2k.c:574 src/io-v4l2k.c:623 src/io-v4l2k.c:705 src/io-v4l2.c:336
+#: src/io-v4l2.c:573 src/io-v4l2.c:621 src/io-v4l2.c:702 src/io-v4l.c:560
+#: src/io-v4l.c:836 src/io-v4l.c:854
 msgid "Virtual memory exhausted."
 msgstr "Mémoire virtuelle épuisée."
 
-#: src/io-bktr.c:212 src/io-v4l2k.c:357 src/io-v4l2.c:347 src/io-v4l.c:569
+#: src/io-bktr.c:213 src/io-v4l2k.c:358 src/io-v4l2.c:348 src/io-v4l.c:570
 #, c-format
 msgid "Cannot open '%s': %d, %s."
 msgstr "Ne peut ouvrir '%s' : %d, %s"
 
-#: src/io-bktr.c:269 src/io-v4l2k.c:468 src/io-v4l2k.c:561 src/io-v4l2.c:441
-#: src/io-v4l2.c:560 src/io-v4l.c:425 src/io-v4l.c:764 src/io-v4l.c:823
+#: src/io-bktr.c:270 src/io-v4l2k.c:469 src/io-v4l2k.c:562 src/io-v4l2.c:442
+#: src/io-v4l2.c:561 src/io-v4l.c:426 src/io-v4l.c:765 src/io-v4l.c:824
 #, c-format
 msgid "Sorry, %s (%s) cannot capture any of the requested data services."
 msgstr ""
 "Désolé, %s (%s) ne peut capturer aucun des services de données demandé."
 
-#: src/io-bktr.c:310 src/io-v4l2k.c:716 src/io-v4l2.c:713 src/io-v4l.c:864
+#: src/io-bktr.c:311 src/io-v4l2k.c:717 src/io-v4l2.c:714 src/io-v4l.c:865
 #, c-format
 msgid "Not enough memory to allocate vbi capture buffer (%d KB)."
 msgstr "Pas assez de mémoire pour allouer un tampon de capture vbi (%d Ko)."
 
-#: src/io-bktr.c:344
+#: src/io-bktr.c:345
 #, fuzzy
 msgid "BKTR interface not compiled."
 msgstr "L'interface V4L n'a pas été compilée."
 
-#: src/io-v4l2k.c:373
+#: src/io-v4l2k.c:374
 #, c-format
 msgid "Cannot identify '%s': %d, %s."
 msgstr "Ne peut identifier '%s' : %d, %s."
 
-#: src/io-v4l2k.c:375
+#: src/io-v4l2k.c:376
 msgid "Probably not a v4l2 device."
 msgstr "Probablement pas un périphérique v4l2."
 
-#: src/io-v4l2k.c:380 src/io-v4l2.c:371 src/io-v4l.c:594
+#: src/io-v4l2k.c:381 src/io-v4l2.c:372 src/io-v4l.c:595
 #, c-format
 msgid "%s (%s) is not a raw vbi device."
 msgstr "%s (%s) n'est pas une entrée VBI brute."
 
-#: src/io-v4l2k.c:392 src/io-v4l2k.c:587 src/io-v4l2.c:382 src/io-v4l2.c:585
-#: src/io-v4l.c:756
+#: src/io-v4l2k.c:393 src/io-v4l2k.c:588 src/io-v4l2.c:383 src/io-v4l2.c:586
+#: src/io-v4l.c:757
 #, c-format
 msgid "%s (%s) does not support the select() function."
 msgstr "%s (%s) ne supporte pas la fonction select()."
 
-#: src/io-v4l2k.c:399 src/io-v4l2k.c:414 src/io-v4l2.c:390
+#: src/io-v4l2k.c:400 src/io-v4l2k.c:415 src/io-v4l2.c:391
 #, c-format
 msgid "Cannot query current videostandard of %s (%s): %d, %s."
 msgstr "Impossible d'obtenir le standard vidéo courant de %s (%s) : %d, %s."
 
-#: src/io-v4l2k.c:401 src/io-v4l2k.c:416 src/io-v4l2k.c:686 src/io-v4l2.c:392
-#: src/io-v4l2.c:684
+#: src/io-v4l2k.c:402 src/io-v4l2k.c:417 src/io-v4l2k.c:687 src/io-v4l2.c:393
+#: src/io-v4l2.c:685
 msgid "Probably a driver bug."
 msgstr "Probablement un bogue du pilote."
 
-#: src/io-v4l2k.c:445 src/io-v4l2.c:421
+#: src/io-v4l2k.c:446 src/io-v4l2.c:422
 #, c-format
 msgid "Cannot query current vbi parameters of %s (%s): %d, %s."
 msgstr "Impossible d'obtenir les paramètres vbi courant de %s (%s) : %d, %s."
 
-#: src/io-v4l2k.c:496 src/io-v4l2.c:479 src/io-v4l.c:468
+#: src/io-v4l2k.c:497 src/io-v4l2.c:480 src/io-v4l.c:469
 #, c-format
 msgid "Cannot initialize %s (%s), the device is already in use."
 msgstr "Ne peut initialiser %s (%s), le périphérique est déjà utilisé."
 
-#: src/io-v4l2k.c:502 src/io-v4l2.c:495 src/io-v4l.c:482
+#: src/io-v4l2k.c:503 src/io-v4l2.c:496 src/io-v4l.c:483
 #, c-format
 msgid "Could not set the vbi capture parameters for %s (%s): %d, %s."
 msgstr ""
 "Ne peut sélectionner les paramètres de capture vbi pour %s (%s) : %d, %s."
 
-#: src/io-v4l2k.c:505 src/io-v4l2k.c:606 src/io-v4l2.c:498 src/io-v4l2.c:604
+#: src/io-v4l2k.c:506 src/io-v4l2k.c:607 src/io-v4l2.c:499 src/io-v4l2.c:605
 msgid "Possibly a driver bug."
 msgstr "Possibilité d'un bogue du pilote."
 
-#: src/io-v4l2k.c:533 src/io-v4l2.c:532 src/io-v4l.c:637
+#: src/io-v4l2k.c:534 src/io-v4l2.c:533 src/io-v4l.c:638
 #, c-format
 msgid ""
 "%s (%s) offers unknown vbi sampling format #%d. This may be a driver bug or "
@@ -406,7 +366,7 @@ msgstr ""
 "%s (%s) présente un format inconnu d'échantillon vbi #%d. Ceci peut-être un "
 "bogue du pilote ou une librairies libzvbi trop vieille."
 
-#: src/io-v4l2k.c:545 src/io-v4l2.c:544 src/io-v4l.c:808
+#: src/io-v4l2k.c:546 src/io-v4l2.c:545 src/io-v4l.c:809
 #, c-format
 msgid ""
 "Cannot capture the requested data services with %s (%s), the sampling "
@@ -415,12 +375,12 @@ msgstr ""
 "Ne peut capturer le service de données demandé avec %s (%s), la fréquence "
 "d'échantillonnage %.2f MHz est trop basse."
 
-#: src/io-v4l2k.c:603 src/io-v4l2.c:601
+#: src/io-v4l2k.c:604 src/io-v4l2.c:602
 #, c-format
 msgid "Cannot request streaming i/o buffers from %s (%s): %d, %s."
 msgstr "Ne peut requérir le flux e/s des tampons depuis %s (%s) : %d, %s."
 
-#: src/io-v4l2k.c:611 src/io-v4l2.c:609
+#: src/io-v4l2k.c:612 src/io-v4l2.c:610
 #, c-format
 msgid ""
 "%s (%s) granted no streaming i/o buffers, perhaps the physical memory is "
@@ -429,26 +389,26 @@ msgstr ""
 "%s (%s) concède plus de flux pour les tampons e/s, peut-être que la mémoire "
 "physique épuisée."
 
-#: src/io-v4l2k.c:636 src/io-v4l2.c:634
+#: src/io-v4l2k.c:637 src/io-v4l2.c:635
 #, c-format
 msgid "Querying streaming i/o buffer #%d from %s (%s) failed: %d, %s."
 msgstr "Demande de flux des tampons e/s #%d de %s (%s) à échoué : %d, %s."
 
-#: src/io-v4l2k.c:658 src/io-v4l2.c:656
+#: src/io-v4l2k.c:659 src/io-v4l2.c:657
 #, c-format
 msgid "Memory mapping streaming i/o buffer #%d from %s (%s) failed: %d, %s."
 msgstr ""
 "Organisation de la mémoire pour le flux des tampons e/s #%d de %s (%s) à "
 "échoué : %d, %s."
 
-#: src/io-v4l2k.c:682 src/io-v4l2.c:680
+#: src/io-v4l2k.c:683 src/io-v4l2.c:681
 #, c-format
 msgid "Cannot enqueue streaming i/o buffer #%d to %s (%s): %d, %s."
 msgstr ""
 "Ne peut mettre dans la queue le flux des tampons e/s #%d vers %s (%s) : %d, %"
 "s."
 
-#: src/io-v4l2k.c:726 src/io-v4l2.c:723
+#: src/io-v4l2k.c:727 src/io-v4l2.c:724
 #, c-format
 msgid ""
 "%s (%s) lacks a vbi read interface, possibly an output only device or a "
@@ -457,20 +417,20 @@ msgstr ""
 "%s (%s) manque la lecture de l'interface vbi, possibilité d'un périphérique "
 "de sortie seulement ou un bogue du pilote."
 
-#: src/io-v4l2k.c:777 src/io-v4l2.c:774
+#: src/io-v4l2k.c:778 src/io-v4l2.c:775
 msgid "V4L2 interface not compiled."
 msgstr "L'interface V4L2 n'a pas été compilée."
 
-#: src/io-v4l.c:545
+#: src/io-v4l.c:546
 msgid "driver unknown"
 msgstr "pilote inconnu"
 
-#: src/io-v4l.c:685
+#: src/io-v4l.c:686
 #, c-format
 msgid "Cannot capture with %s (%s), has no standard vbi interface."
 msgstr "Ne peut capturer avec %s (%s), n'a pas une interface vbi standard."
 
-#: src/io-v4l.c:704
+#: src/io-v4l.c:705
 #, c-format
 msgid ""
 "Cannot identify %s (%s), reported vbi frame size suggests this is not a bttv "
@@ -479,14 +439,59 @@ msgstr ""
 "Ne peut identifier %s (%s), la frame vbi retourné suggère que ce n'est pas "
 "un pilote bttv."
 
-#: src/io-v4l.c:731 src/io-v4l.c:781
+#: src/io-v4l.c:732 src/io-v4l.c:782
 #, c-format
 msgid "Cannot set or determine current videostandard of %s (%s)."
 msgstr "Ne peut déterminer ou configurer le standard vidéo courant de %s (%s)."
 
-#: src/io-v4l.c:912 src/io-v4l.c:922
+#: src/io-v4l.c:913 src/io-v4l.c:923
 msgid "V4L interface not compiled."
 msgstr "L'interface V4L n'a pas été compilée."
+
+#~ msgid "Character conversion Unicode (UCS-2) to %s not supported."
+#~ msgstr "Conversion de caractère Unicode (UCS-2) en %s non supporté."
+
+#~ msgid "Black"
+#~ msgstr "Noir"
+
+#~ msgid "Red"
+#~ msgstr "Rouge"
+
+#~ msgid "Green"
+#~ msgstr "Vert"
+
+#~ msgid "Yellow"
+#~ msgstr "Jaune"
+
+#~ msgid "Blue"
+#~ msgstr "Bleue"
+
+#~ msgid "Magenta"
+#~ msgstr "Magenta"
+
+#~ msgid "Cyan"
+#~ msgstr "Cyan"
+
+#~ msgid "White"
+#~ msgstr "Blanc"
+
+#~ msgid "Any"
+#~ msgstr "N'importe laquelle"
+
+#~ msgid "Format"
+#~ msgstr "Format"
+
+#~ msgid "Foreground"
+#~ msgstr "Texte"
+
+#~ msgid "Assumed terminal foreground color"
+#~ msgstr "Supposer la couleur du texte du terminal"
+
+#~ msgid "Background"
+#~ msgstr "Fond d'écran"
+
+#~ msgid "Assumed terminal background color"
+#~ msgstr "Supposer la couleur du fond d'écran du terminal"
 
 #~ msgid "Character conversion failed."
 #~ msgstr "La conversion de caractère a échouée."

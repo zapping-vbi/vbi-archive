@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.10.2.4 2004-02-25 17:35:28 mschimek Exp $ */
+/* $Id: exp-txt.c,v 1.10.2.5 2004-03-31 00:41:34 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,6 +32,7 @@
 #include <setjmp.h>
 
 #include "lang.h"
+#include "intl-priv.h"
 #include "export.h"
 #include "exp-txt.h"
 
@@ -305,7 +306,7 @@ put_spaces			(text_instance *	text,
 	text->text.bp = d;
 }
 
-static __inline__ void
+vbi_inline void
 putwc				(text_instance *	text,
 				 int			c)
 {

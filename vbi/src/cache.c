@@ -62,221 +62,6 @@ for ((p) = PARENT((l)->head, typeof(*(p)), _node_);			\
      (p)->_node_.succ;							\
      (p) = PARENT((p)->_node_.succ, typeof(*(p)), _node_))
 
-#define is_head(l, n) ((l)->head == (n))
-
-/**
- * @internal
- * @param l list *
- *
- * Free all resources associated with the list,
- * you must pair this with an init_list() call.
- *
- * Does not free the list object or any nodes.
- */
-static __inline__ void
-list_destroy			(list *			l)
-{
-}
-
-/**
- * @internal
- * @param l list * 
- * 
- * @return
- * The list pointer.
- */
-static __inline__ list *
-list_init			(list *			l)
-{
-	if (l) {
-		l->head = (node *) &l->null;
-		l->null = (node *) 0;
-		l->tail = (node *) &l->head;
-	}
-
-	return l;
-}
-
-/**
- * @internal
- * @param l list *
- * 
- * @return
- * @c 1 if the list is empty, @c 0 otherwise. You can read
- * l->members directly when the rwlock is unused.
- */
-static __inline__ int
-empty_list			(list *			l)
-{
-	return l->head == (node *) &l->null;
-}
-
-/**
- * @internal
- * @param l list *
- * @param n node *
- * 
- * Add node at the head of the list.
- *
- * @return
- * The node pointer.
- */
-static __inline__ node *
-add_head			(list *			l,
-				 node *			n)
-{
-	n->pred = (node *) &l->head;
-	n->succ = l->head;
-	l->head->pred = n;
-	l->head = n;
-
-	return n;
-}
-
-/**
- * @internal
- * @param l list *
- * @param n node *
- * 
- * Add node at the end of the list.
- * 
- * @return 
- * The node pointer.
- */
-static __inline__ node *
-add_tail			(list *			l,
-				 node *			n)
-{
-	n->succ = (node *) &l->null;
-	n->pred = l->tail;
-	l->tail->succ = n;
-	l->tail = n;
-
-	return n;
-}
-
-/**
- * @internal
- * @param l1 list *
- * @param l2 list *
- * 
- * Add all nodes on l2 to the end of l1.
- * 
- * @return 
- * Head node of l2.
- */
-static __inline__ node *
-add_tail_list			(list *			l1,
-				 list *			l2)
-{
-	node *n = l2->head;
-
-	n->succ = (node *) &l1->null;
-	n->pred = l1->tail;
-	l1->tail->succ = n;
-	l1->tail = l2->tail;
-
-	l2->head = (node *) &l2->null;
-	l2->tail = (node *) &l2->head;
-
-	return n;
-}
-
-/**
- * @internal
- * @param l list *
- * 
- * Remove first node of the list.
- * 
- * @return
- * Node pointer, or @c NULL if the list is empty.
- */
-static __inline__ node *
-rem_head			(list *			l)
-{
-	node *n = l->head, *s = n->succ;
-
-	if (__builtin_expect (s != NULL, 1)) {
-		s->pred = (node *) &l->head;
-		l->head = s;
-	} else {
-		n = NULL;
-	}
-
-	return n;
-}
-
-/**
- * @internal
- * @param l list *
- * 
- * Remove last node of the list.
- * 
- * @return 
- * Node pointer, or @c NULL if the list is empty.
- */
-static __inline__ node *
-rem_tail			(list *			l)
-{
-	node *n = l->tail, *p = n->pred;
-
-	if (__builtin_expect (p != NULL, 1)) {
-		p->succ = (node *) &l->null;
-		l->tail = p;
-	} else {
-		n = NULL;
-	}
-
-	return n;
-}
-
-/**
- * @internal
- * @param n node *
- * 
- * Remove the node from its list. The node must
- * be a member of the list, not verified.
- * 
- * @return 
- * The node pointer.
- */
-static __inline__ node *
-unlink_node			(node *			n)
-{
-	n->pred->succ = n->succ;
-	n->succ->pred = n->pred;
-
-	return n;
-}
-
-/**
- * @internal
- * @param l list *
- * @param n node *
- * 
- * Remove the node if member of the list.
- * 
- * @return 
- * The node pointer or @c NULL if the node is not
- * member of the list.
- */
-static __inline__ node *
-rem_node			(list *			l,
-				 node *			n)
-{
-	node *q;
-
-	for (q = l->head; q->succ; q = q->succ)
-		if (n == q) {
-			n->pred->succ = n->succ;
-			n->succ->pred = n->pred;
-
-			return n;
-		}
-
-	return NULL;
-}
-
 typedef enum cache_priority cache_priority;
 
 enum cache_priority {
@@ -372,7 +157,7 @@ cache_stat_dump			(const cache_stat *	cs,
 		fprintf (stderr, "no cache_stat%c", lf);
 }
 
-static __inline__ void
+vbi_inline void
 cache_stat_remove_page		(cache_page *		cp)
 {
 	cache_stat *cs;
@@ -393,7 +178,7 @@ cache_stat_remove_page		(cache_page *		cp)
 	ps->num_pages--;
 }
 
-static __inline__ void
+vbi_inline void
 cache_stat_add_page		(cache_stat *		cs,
 				 cache_page *		cp)
 {
@@ -426,7 +211,7 @@ cache_stat_add_page		(cache_stat *		cs,
 
 #define HASH_SIZE 113
 
-static __inline__ unsigned int
+vbi_inline unsigned int
 hash				(vbi_pgno		pgno)
 {
 	return pgno % HASH_SIZE;
@@ -472,7 +257,7 @@ cache_dump			(const cache *		ca,
 		 lf);
 }
 
-static __inline__ void
+vbi_inline void
 cache_lock			(cache *		ca)
 {
 	int r = pthread_mutex_lock (&ca->mutex);
@@ -480,7 +265,7 @@ cache_lock			(cache *		ca)
 	assert (r == 0);
 }
 
-static __inline__ void
+vbi_inline void
 cache_unlock			(cache *		ca)
 {
 	int r = pthread_mutex_unlock (&ca->mutex);
@@ -488,7 +273,7 @@ cache_unlock			(cache *		ca)
 	assert (r == 0);
 }
 
-static __inline__ cache_stat *
+vbi_inline cache_stat *
 cache_stat_from_nuid		(cache *		ca,
 				 vbi_nuid		client_nuid)
 {
@@ -508,7 +293,7 @@ cache_stat_from_nuid		(cache *		ca,
 	return NULL;
 }
 
-static __inline__ void
+vbi_inline void
 delete_page			(cache *		ca,
 				 cache_page *		cp)
 {

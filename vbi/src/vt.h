@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vt.h,v 1.4.2.8 2004-02-25 17:28:58 mschimek Exp $ */
+/* $Id: vt.h,v 1.4.2.9 2004-03-31 00:41:35 mschimek Exp $ */
 
 #ifndef VT_H
 #define VT_H
@@ -268,7 +268,7 @@ struct _vt_page {
  * @return Storage size required for the raw Teletext page,
  * depending on its function and the data union member used.
  **/
-static __inline__ unsigned int
+vbi_inline unsigned int
 vtp_size			(const vt_page *	vtp)
 {
 	const unsigned int header_size = sizeof(*vtp) - sizeof(vtp->data);
@@ -299,7 +299,7 @@ vtp_size			(const vt_page *	vtp)
 	}
 }
 
-static __inline__ vt_page *
+vbi_inline vt_page *
 copy_vt_page			(vt_page *		tvtp,
 				 const vt_page *	svtp)
 {
@@ -532,7 +532,7 @@ extern vbi_bool
 vbi_page_nav_enum		(const vbi_page *	pg,
 				 vbi_link *		ld,
 				 unsigned int		index);
-static_inline void
+vbi_inline void
 vbi_page_home_link		(const vbi_page *	pg,
 				 vbi_link *		ld)
 {

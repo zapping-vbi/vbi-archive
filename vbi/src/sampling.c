@@ -17,8 +17,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sampling.c,v 1.1.2.2 2004-02-13 02:11:50 mschimek Exp $ */
+/* $Id: sampling.c,v 1.1.2.3 2004-03-31 00:41:34 mschimek Exp $ */
 
+#include <assert.h>
+#include "misc.h"
 #include "raw_decoder.h"
 #include "errno.h"
 
@@ -36,7 +38,7 @@
  * TRUE if the sampling parameters are valid (as far as we can tell).
  */
 vbi_bool
-vbi_sampling_par_verify		(const vbi_sampling_par *sp)
+_vbi_sampling_par_verify	(const vbi_sampling_par *sp)
 {
 	unsigned int min_bpl;
 
@@ -151,7 +153,7 @@ vbi_sampling_par_verify		(const vbi_sampling_par *sp)
  * TRUE if @a sp can decode @a par.
  */
 vbi_bool
-vbi_sampling_par_check_service	(const vbi_sampling_par *sp,
+_vbi_sampling_par_check_service	(const vbi_sampling_par *sp,
 				 const vbi_service_par *par,
 				 unsigned int		strict)
 {
@@ -330,7 +332,7 @@ vbi_sampling_par_check_services	(const vbi_sampling_par *sp,
 
 	for (par = vbi_service_table; par->id; ++par) {
 		if (par->id & services)
-			if (vbi_sampling_par_check_service (sp, par, strict))
+			if (_vbi_sampling_par_check_service (sp, par, strict))
 				rservices |= par->id;
 	}
 
@@ -496,7 +498,7 @@ vbi_sampling_par_from_services	(vbi_sampling_par *	sp,
  * or invalid.
  */
 const char *
-vbi_videostd_name		(vbi_videostd		videostd)
+_vbi_videostd_name		(vbi_videostd		videostd)
 {
 	switch (videostd) {
 

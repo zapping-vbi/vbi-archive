@@ -21,35 +21,18 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cache.h,v 1.2.2.5 2004-02-13 02:14:34 mschimek Exp $ */
+/* $Id: cache.h,v 1.2.2.6 2004-03-31 00:41:34 mschimek Exp $ */
 
 #ifndef CACHE_H
 #define CACHE_H
 
 #include "vt.h" /* vt_page */
+#include "dlist.h"
 
 #ifndef VBI_DECODER
 #define VBI_DECODER
 typedef struct vbi_decoder vbi_decoder;
 #endif
-
-/* Wheel, reinvented */
-
-typedef struct node node;
-typedef struct list list;
-
-/* private, for cache_stat */
-struct node {
-	node *			succ;
-	node *			pred;
-};
-
-/* private, for cache_stat */
-struct list {
-	node *			head;
-	node *			null;
-	node *			tail;
-};
 
 typedef struct page_stat page_stat;
 typedef struct cache_page cache_page;
@@ -88,7 +71,7 @@ struct cache_stat {
 	page_stat		pages[0x800];
 };
 
-static __inline__ page_stat *
+vbi_inline page_stat *
 vbi_page_stat			(cache_stat *		cs,
 				 vbi_pgno		pgno)
 {

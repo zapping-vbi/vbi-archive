@@ -17,17 +17,23 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bit_slicer.h,v 1.1.2.2 2004-02-25 17:35:27 mschimek Exp $ */
+/* $Id: bit_slicer.h,v 1.1.2.3 2004-03-31 00:41:34 mschimek Exp $ */
 
-#ifndef BIT_SLICER_H
-#define BIT_SLICER_H
+#ifndef __ZVBI_BIT_SLICER_H__
+#define __ZVBI_BIT_SLICER_H__
 
 #include "sampling.h"
 
 /* Public */
 
+VBI_BEGIN_DECLS
+
 /**
- * @ingroup BitSlicer
+ * @addtogroup BitSlicer
+ * @{
+ */
+
+/**
  * @brief Modulation used for VBI data transmission.
  */
 typedef enum {
@@ -49,31 +55,49 @@ typedef enum {
 	 * sequence. The data is last significant bit first transmitted.
 	 */
 	VBI_MODULATION_BIPHASE_LSB,
-	/**
-	 * 'Bi-phase' coded, most significant bit first transmitted.
-	 */
+	/** 'Bi-phase' coded, most significant bit first transmitted. */
 	VBI_MODULATION_BIPHASE_MSB
 } vbi_modulation;
 
 /**
- * @ingroup BitSlicer
  * @brief Bit slicer context.
  *
  * The contents of this structure are private.
- *
  * Call vbi_bit_slicer_new() to allocate a bit slicer context.
  */
 typedef struct _vbi_bit_slicer vbi_bit_slicer;
 
+extern vbi_bool
+vbi_bit_slicer_slice		(vbi_bit_slicer *	bs,
+				 uint8_t *		buffer,
+				 const uint8_t *	raw);
+extern void
+vbi_bit_slicer_delete		(vbi_bit_slicer *	bs);
+extern vbi_bit_slicer *
+vbi_bit_slicer_new		(vbi_pixfmt		sample_format,
+				 unsigned int		sampling_rate,
+				 unsigned int		samples_per_line,
+				 unsigned int		cri,
+				 unsigned int		cri_mask,
+				 unsigned int		cri_bits,
+				 unsigned int		cri_rate,
+				 unsigned int		cri_end,
+				 unsigned int		frc,
+				 unsigned int		frc_bits,
+				 unsigned int		payload_bits,
+				 unsigned int		payload_rate,
+				 vbi_modulation		modulation) vbi_alloc;
+
 /* Private */
 
 typedef vbi_bool
-vbi_bit_slicer_fn		(vbi_bit_slicer *	bs,
+_vbi_bit_slicer_fn		(vbi_bit_slicer *	bs,
 				 uint8_t *		buffer,
 				 const uint8_t *	raw);
 
+/** @internal */
 struct _vbi_bit_slicer {
-	vbi_bit_slicer_fn *	func;
+	_vbi_bit_slicer_fn *	func;
 	unsigned int		cri;
 	unsigned int		cri_mask;
 	unsigned int		thresh;
@@ -91,8 +115,10 @@ struct _vbi_bit_slicer {
 	unsigned int		green_mask;
 };
 
+extern void
+_vbi_bit_slicer_destroy		(vbi_bit_slicer *	bs);
 extern vbi_bool
-vbi_bit_slicer_init		(vbi_bit_slicer *	bs,
+_vbi_bit_slicer_init		(vbi_bit_slicer *	bs,
 				 vbi_pixfmt		sample_format,
 				 unsigned int		sampling_rate,
 				 unsigned int		sample_offset,
@@ -107,37 +133,12 @@ vbi_bit_slicer_init		(vbi_bit_slicer *	bs,
 				 unsigned int		payload_bits,
 				 unsigned int		payload_rate,
 				 vbi_modulation		modulation);
-extern void
-vbi_bit_slicer_destroy		(vbi_bit_slicer *	bs);
+/** @} */
 
 /* Public */
 
-/**
- * @addtogroup BitSlicer
- * @{
- */
-extern vbi_bit_slicer *
-vbi_bit_slicer_new		(vbi_pixfmt		sample_format,
-				 unsigned int		sampling_rate,
-				 unsigned int		samples_per_line,
-				 unsigned int		cri,
-				 unsigned int		cri_mask,
-				 unsigned int		cri_bits,
-				 unsigned int		cri_rate,
-				 unsigned int		cri_end,
-				 unsigned int		frc,
-				 unsigned int		frc_bits,
-				 unsigned int		payload_bits,
-				 unsigned int		payload_rate,
-				 vbi_modulation		modulation);
-extern void
-vbi_bit_slicer_delete		(vbi_bit_slicer *	bs);
-extern vbi_bool
-vbi_bit_slicer_slice		(vbi_bit_slicer *	bs,
-				 uint8_t *		buffer,
-				 const uint8_t *	raw);
-/** @} */
+VBI_END_DECLS
 
 /* Private */
 
-#endif /* BIT_SLICER_H */
+#endif /* __ZVBI_BIT_SLICER_H__ */

@@ -28,7 +28,7 @@
  * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-/* $Id: ure.c,v 1.4 2002-05-23 03:59:46 mschimek Exp $ */
+/* $Id: ure.c,v 1.4.2.1 2004-03-31 00:41:35 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -37,6 +37,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include "macros.h"
 
 #if defined(HAVE_GLIBC21)
 
@@ -129,7 +130,7 @@
  * with a character and tests to see if the character has one or more of those
  * properties.
  */
-static inline int
+vbi_inline int
 #ifdef __STDC__
 _ure_matches_properties(unsigned long props, ucs4_t c)
 #else

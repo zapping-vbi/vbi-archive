@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: network.c,v 1.1.2.2 2004-02-25 17:30:21 mschimek Exp $ */
+/* $Id: network.c,v 1.1.2.3 2004-03-31 00:41:34 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -809,7 +809,7 @@ vbi_network_new			(vbi_nuid		nuid)
 		if (!p->name)
 			goto failure;
 
-		n->name = vbi_strdup_locale_utf8 (p->name);
+		n->name = _vbi_strdup_locale_utf8 (p->name);
 
 		if (!n->name)
 			goto failure;
@@ -834,7 +834,7 @@ vbi_network_new			(vbi_nuid		nuid)
 
 		buffer[i] = 0;
 
-		n->call_sign = vbi_strdup_locale_utf8 (buffer);
+		n->call_sign = _vbi_strdup_locale_utf8 (buffer);
 
 		if (!n->call_sign)
 			goto failure;

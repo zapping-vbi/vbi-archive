@@ -17,23 +17,26 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sampling.h,v 1.1.2.2 2004-02-13 02:12:16 mschimek Exp $ */
+/* $Id: sampling.h,v 1.1.2.3 2004-03-31 00:41:34 mschimek Exp $ */
 
-#ifndef SAMPLING_H
-#define SAMPLING_H
+#ifndef __ZVBI_SAMPLING_H__
+#define __ZVBI_SAMPLING_H__
 
-#include "sliced.h"
-#include "graphics.h"
+#include <inttypes.h>		/* uint64_t */
+#include "macros.h"
+#include "graphics.h"		/* vbi_pixfmt */
+#include "sliced.h"		/* vbi_service_set */
 
 /* Public */
 
-#include <stdio.h>		/* FILE* */
-#include <inttypes.h>		/* uint64_t */
+VBI_BEGIN_DECLS
 
 /**
- * @ingroup Sampling
- * Videostandard identifier.
+ * @addtogroup Sampling
+ * @{
  */
+
+/** Videostandard identifier. */
 typedef enum {
 	VBI_VIDEOSTD_NONE = 0,
 	VBI_VIDEOSTD_UNKNOWN = VBI_VIDEOSTD_NONE,
@@ -74,17 +77,12 @@ typedef enum {
 } vbi_videostd;
 
 /**
- * @ingroup Sampling
  * A set of videostandards is used where more than one
  * videostandard may apply. Use VBI_VIDEOSTD_SET macros
  * to build a set.
  */
 typedef uint64_t vbi_videostd_set;
 
-/**
- * @addtogroup Sampling
- * @{
- */
 #define VBI_VIDEOSTD_SET(videostd) (((vbi_videostd_set) 1) << (videostd))
 
 #define VBI_VIDEOSTD_SET_UNKNOWN 0
@@ -114,21 +112,17 @@ typedef uint64_t vbi_videostd_set;
 				 VBI_VIDEOSTD_SET (VBI_VIDEOSTD_PAL_N) | \
 				 VBI_VIDEOSTD_SET (VBI_VIDEOSTD_PAL_NC)	| \
 				 VBI_VIDEOSTD_SET_SECAM)
-/**
- * All defined videostandards, no custom standards.
- */
+/** All defined videostandards without custom standards. */
 #define VBI_VIDEOSTD_SET_ALL    (VBI_VIDEOSTD_SET_525_60 |		\
 				 VBI_VIDEOSTD_SET_625_50)
+/** All custrom videostandards. */
 #define VBI_VIDEOSTD_SET_CUSTOM						\
 	((~VBI_VIDEOSTD_SET_EMPTY) << VBI_VIDEOSTD_CUSTOM_BEGIN)
 
 extern const char *
-vbi_videostd_name		(vbi_videostd		videostd)
-	vbi_attribute_const;
-/** @} */
+_vbi_videostd_name		(vbi_videostd		videostd) vbi_const;
 
 /**
- * @ingroup Sampling
  * @brief Raw VBI sampling parameters.
  */
 typedef struct {
@@ -138,9 +132,7 @@ typedef struct {
 	 * is no ambiguity.
 	 */
 	vbi_videostd_set	videostd_set;
-	/**
-	 * Format of the raw vbi data.
-	 */
+	/** Format of the raw vbi data. */
 	vbi_pixfmt		sampling_format;
 	/**
 	 * Sampling rate in Hz, the number of samples or pixels
@@ -197,10 +189,6 @@ typedef struct {
 	vbi_bool		synchronous;
 } vbi_sampling_par;
 
-/**
- * @addtogroup Sampling
- * @{
- */
 extern vbi_service_set
 vbi_sampling_par_from_services	(vbi_sampling_par *	sp,
 				 unsigned int *		max_rate,
@@ -209,19 +197,22 @@ vbi_sampling_par_from_services	(vbi_sampling_par *	sp,
 extern vbi_service_set
 vbi_sampling_par_check_services	(const vbi_sampling_par *sp,
 				 vbi_service_set	services,
-				 unsigned int		strict)
-	vbi_attribute_pure;
+				 unsigned int		strict) vbi_pure;
 /** @} */
 
 /* Private */
 
 extern vbi_bool
-vbi_sampling_par_check_service	(const vbi_sampling_par *sp,
+_vbi_sampling_par_check_service	(const vbi_sampling_par *sp,
 				 const vbi_service_par *par,
-				 unsigned int		strict)
-	vbi_attribute_pure;
+				 unsigned int		strict)	vbi_pure;
 extern vbi_bool
-vbi_sampling_par_verify		(const vbi_sampling_par *sp)
-	vbi_attribute_pure;
+_vbi_sampling_par_verify	(const vbi_sampling_par *sp) vbi_pure;
 
-#endif /* SAMPLING_H */
+/* Public */
+
+VBI_END_DECLS
+
+/* Private */
+
+#endif /* __ZVBI_SAMPLING_H__ */

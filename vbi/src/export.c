@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.13.2.7 2004-02-25 17:34:18 mschimek Exp $ */
+/* $Id: export.c,v 1.13.2.8 2004-03-31 00:41:34 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -33,7 +33,7 @@
 #include <sys/stat.h>
 #include <iconv.h>
 #include <math.h>
-
+#include "intl-priv.h"
 #include "export.h"
 #include "vbi.h" /* vbi_asprintf */
 

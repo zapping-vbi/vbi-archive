@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: conv.c,v 1.1.2.1 2004-02-25 17:35:27 mschimek Exp $ */
+/* $Id: conv.c,v 1.1.2.2 2004-03-31 00:41:34 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -26,13 +26,12 @@
 #include <string.h>
 #include <errno.h>
 #include <langinfo.h>
-
+#include "intl-priv.h"
 #include "conv.h"
 
 const char vbi_intl_domainname [] = PACKAGE;
 
 /**
- * @internal
  * @param cd Conversion object returned by vbi_iconv_ucs2_open().
  *
  * Frees all resources associated with the coversion object.
@@ -76,7 +75,6 @@ xiconv_open			(const char *		dst_format,
 }
 
 /**
- * @internal
  * @param dst_format Character set name for iconv() conversion,
  *   for example "ISO-8859-1". When @c NULL, the default is UTF-8.
  * @param dst Pointer to output buffer pointer, will be incremented
@@ -118,7 +116,8 @@ xiconv				(iconv_t		cd,
 		size_t sleft1;
 
 		/* iconv() source pointer may be defined as char **, should
-		   be const char ** or const void **. Ignore warnings. */
+		   be const char ** or const void **. Ignore compiler
+		   warnings. */
 		r = iconv (cd, s, sleft, d, dleft);
 
 		if ((size_t) -1 != r)
@@ -126,6 +125,8 @@ xiconv				(iconv_t		cd,
 
 		if (EILSEQ != errno)
 			break;
+
+		/* Replace unrepresentable character by space. */
 
 		if (1 == csize)
 			s1 = (const char *) utf8_space;
@@ -154,8 +155,7 @@ xiconv				(iconv_t		cd,
 }
 
 /**
- * @internal
- * @param cd Conversion object returned by vbi_iconv_ucs_open().
+ * @param cd Conversion object returned by vbi_iconv_ucs2_open().
  * @param dst Pointer to output buffer pointer, will be incremented
  *   by the number of bytes written.
  * @param dst_size Space available in the output buffer, in bytes.
@@ -167,8 +167,8 @@ xiconv				(iconv_t		cd,
  * and stores it in the output buffer. Characters not representable
  * in the target format are converted to spaces 0x0020.
  *
- * @return
- * FALSE on failure, including dst_size too small. Output buffer
+ * @returns
+ * FALSE on failure, including @a dst_size too small. Output buffer
  * contents are undefined on failure.
  */
 vbi_bool
@@ -200,7 +200,6 @@ vbi_iconv_ucs2			(iconv_t		cd,
 }
 
 /**
- * @internal
  * @param cd Conversion object returned by vbi_iconv_ucs2_open().
  * @param dst Pointer to output buffer pointer, will be incremented
  *   by the number of bytes written.
@@ -211,8 +210,8 @@ vbi_iconv_ucs2			(iconv_t		cd,
  * and stores it in the output buffer. Characters not representable
  * in the target format are converted to spaces 0x0020.
  *
- * @return
- * FALSE on failure, including dst_size too small. Output buffer
+ * @returns
+ * FALSE on failure, including @a dst_size too small. Output buffer
  * contents are undefined on failure.
  */
 vbi_bool
@@ -247,7 +246,7 @@ strdup_iconv			(const char *		dst_format,
 	buf_size = src_size * 4;
 
 	if (!(buf = malloc (buf_size)))
-		goto failure;
+		return NULL;
 
 	s = (const char *) src;
 	d = buf;
@@ -298,7 +297,6 @@ strdup_iconv			(const char *		dst_format,
 }
 
 /**
- * @internal
  * @param dst_format Character set name for iconv() conversion,
  *   for example "ISO-8859-1". When @c NULL, the default is UTF-8.
  * @param src Input buffer.
@@ -309,8 +307,9 @@ strdup_iconv			(const char *		dst_format,
  * and stores it in a newly allocated buffer. Characters not representable
  * in the @a dst_format are converted to spaces 0x0020.
  *
- * @return
- * NUL terminated string, an empty string if @a src_size is 0,
+ * @returns
+ * NUL terminated string. You must free() the string when no longer
+ * needed. The function returns an empty string when @a src_size is 0,
  * a @c NULL pointer on failure.
  */
 char *
@@ -333,12 +332,13 @@ vbi_strdup_iconv_ucs2		(const char *		dst_format,
  * allocated buffer. Characters not representable
  * in the target format are converted to spaces 0x0020.
  *
- * @return
- * NUL terminated string, an empty string if @a src_size is 0,
+ * @returns
+ * NUL terminated string. You must free() the string when no longer
+ * needed. The function returns an empty string when @a src_size is 0,
  * a @c NULL pointer on failure.
  */
 char *
-vbi_strdup_locale_ucs2		(const uint16_t *	src,
+_vbi_strdup_locale_ucs2		(const uint16_t *	src,
 				 unsigned int		src_size)
 {
 	const char *dst_format;
@@ -364,11 +364,13 @@ vbi_strdup_locale_ucs2		(const uint16_t *	src,
  * Characters not representable in the output format are converted
  * to spaces 0x0020.
  *
- * @return
- * NUL terminated string, NULL if src is NULL and on failure.
+ * @returns
+ * NUL terminated string. You must free() the string when no longer
+ * needed. The function returns an empty string when @a src is @c NULL,
+ * a @c NULL pointer on failure.
  */
 char *
-vbi_strdup_locale_utf8		(const char *		src)
+_vbi_strdup_locale_utf8		(const char *		src)
 {
 	const char *dst_format;
 	unsigned int src_size;
@@ -399,11 +401,13 @@ vbi_strdup_locale_utf8		(const char *		src)
  * Converts UTF-8 coded string to UCS-2 string and stores it in a
  * newly allocated buffer.
  *
- * @return
- * NUL terminated string, NULL if src is NULL and on failure.
+ * @returns
+ * NUL terminated string. You must free() the string when no longer
+ * needed. The function returns an empty string when @a src is @c NULL,
+ * a @c NULL pointer on failure.
  */
 uint16_t *
-vbi_strdup_ucs2_utf8		(const char *		src)
+_vbi_strdup_ucs2_utf8		(const char *		src)
 {
 	unsigned int src_size;
 
@@ -416,7 +420,59 @@ vbi_strdup_ucs2_utf8		(const char *		src)
 }
 
 /**
- * @internal
+ * @param fp Output file.
+ * @param cd Conversion object returned by vbi_iconv_ucs2_open().
+ * @param src Input buffer.
+ * @param src_size Number of characters (not bytes) in the
+ *   input buffer.
+ *
+ * Converts UCS-2 coded text (as in vbi_page) to another format,
+ * and writes it into the given file. Characters not representable
+ * in the output format are converted to spaces 0x0020.
+ *
+ * @returns
+ * FALSE on failure.
+ */
+vbi_bool
+vbi_stdio_cd_ucs2		(FILE *			fp,
+				 iconv_t		cd,
+				 const uint16_t *	src,
+				 unsigned int		src_size)
+{
+	char buffer[4096];
+	const char *s;
+	size_t sleft;
+
+	s = (const char *) src;
+	sleft = src_size * 2;
+
+	while (sleft > 0) {
+		char *d;
+		size_t dleft;
+		size_t r;
+		size_t n;
+
+		d = buffer;
+		dleft = sizeof (buffer);
+
+		r = xiconv (cd, &s, &sleft, &d, &dleft, 2);
+
+		if ((size_t) -1 == r)
+			if (E2BIG != errno)
+				return FALSE;
+
+		n = d - buffer;
+
+		r = fwrite (buffer, 1, n, fp);
+
+		if (n != r)
+			return FALSE;
+	}
+
+	return TRUE;
+}
+
+/**
  * @param fp Output file.
  * @param dst_format Character set name for iconv() conversion,
  *   for example "ISO-8859-1". When @c NULL, the default is UTF-8.
@@ -428,7 +484,7 @@ vbi_strdup_ucs2_utf8		(const char *		src)
  * and writes it into the given file. Characters not representable
  * in the output format are converted to spaces 0x0020.
  *
- * @return
+ * @returns
  * FALSE on failure.
  */
 vbi_bool

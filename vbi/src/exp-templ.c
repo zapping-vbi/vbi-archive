@@ -2,7 +2,7 @@
  *  Template for export modules
  */
 
-/* $Id: exp-templ.c,v 1.6.2.1 2004-02-25 17:35:28 mschimek Exp $ */
+/* $Id: exp-templ.c,v 1.6.2.2 2004-03-31 00:41:34 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -13,7 +13,7 @@
 #include <string.h>
 #include <errno.h>
 #include <limits.h>
-
+#include "intl-priv.h"
 #include "export.h"
 
 typedef struct tmpl_instance

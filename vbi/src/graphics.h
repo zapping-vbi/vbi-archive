@@ -17,26 +17,24 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: graphics.h,v 1.1.2.1 2004-02-13 02:15:27 mschimek Exp $ */
+/* $Id: graphics.h,v 1.1.2.2 2004-03-31 00:41:34 mschimek Exp $ */
 
-#ifndef GRAPHICS_H
-#define GRAPHICS_H
+#ifndef __ZVBI_GRAPHICS_H__
+#define __ZVBI_GRAPHICS_H__
 
-#include <inttypes.h>
-#include "misc.h"
-
-/* This code is based on Zapping's tveng module. */
+#include <inttypes.h>		/* uint64_t */
+#include "macros.h"
 
 /* Public */
+
+VBI_BEGIN_DECLS
 
 /**
  * @addtogroup Types
  * @{
  */
 
-/**
- * Pixel format identifier.
- */
+/** Pixel format identifier. */
 typedef enum {
 	VBI_PIXFMT_NONE,			/**< */
 	VBI_PIXFMT_UNKNOWN = VBI_PIXFMT_NONE,	/**< */
@@ -102,9 +100,7 @@ typedef enum {
 
 	VBI_PIXFMT_RESERVED1,
 
-	/**
-	 * Y only, 8 bit per pixel.
-	 */
+	/** Y only, 8 bit per pixel. */
 	VBI_PIXFMT_Y8,
 
 	VBI_PIXFMT_RESERVED2,
@@ -134,9 +130,7 @@ typedef enum {
 	VBI_PIXFMT_BGR24_BE = VBI_PIXFMT_RGB24_LE,	/**< */
 	VBI_PIXFMT_BGR24_LE,	/**< */
 
-	/**
-	 * In register: bbbbbggg gggrrrrr (msb to lsb)
-	 */
+	/** In register: bbbbbggg gggrrrrr (msb to lsb) */
 	VBI_PIXFMT_RGB16_LE,
 	VBI_PIXFMT_RGB16_BE,	/**< */
 	VBI_PIXFMT_BGR16_LE,	/**< rrrrrggg gggbbbbb */
@@ -285,7 +279,7 @@ typedef uint64_t vbi_pixfmt_set;
 #ifdef __GNUC__
 #define vbi_pixfmt_bytes_per_pixel(pixfmt)				\
 	(!__builtin_constant_p (pixfmt) ?				\
-	 vbi_pixfmt_bytes_per_pixel_ (pixfmt) :				\
+	 _vbi_pixfmt_bytes_per_pixel (pixfmt) :				\
 	  ((VBI_PIXFMT_SET (pixfmt) & VBI_PIXFMT_SET_4) ? 4U :		\
 	   ((VBI_PIXFMT_SET (pixfmt) & VBI_PIXFMT_SET_3) ? 3U :		\
 	    ((VBI_PIXFMT_SET (pixfmt) & VBI_PIXFMT_SET_2) ? 2U :	\
@@ -303,32 +297,26 @@ typedef uint64_t vbi_pixfmt_set;
  * Number of bytes per pixel, 0 if @a pixfmt is invalid.
  */
 #define vbi_pixfmt_bytes_per_pixel(pixfmt)				\
-	(vbi_pixfmt_bytes_per_pixel_ (pixfmt))
+	(_vbi_pixfmt_bytes_per_pixel (pixfmt))
 #endif
 
 extern const char *
-vbi_pixfmt_name			(vbi_pixfmt		pixfmt)
-	vbi_attribute_const;
+vbi_pixfmt_name			(vbi_pixfmt		pixfmt)	vbi_const;
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 extern unsigned int
-vbi_pixfmt_bytes_per_pixel_	(vbi_pixfmt		pixfmt)
-	vbi_attribute_const;
+_vbi_pixfmt_bytes_per_pixel	(vbi_pixfmt		pixfmt) vbi_const;
 
 #endif
 
-/**
- * Color space identifier. No values defined yet.
- */
+/** Color space identifier. No values defined yet. */
 typedef enum {
 	VBI_COLOR_SPACE_NONE,				/**< */
 	VBI_COLOR_SPACE_UNKNOWN = VBI_COLOR_SPACE_NONE,	/**< */
 } vbi_color_space;
 
-/**
- * This structure describes an image buffer.
- */
+/** This structure describes an image buffer. */
 typedef struct {
 	/**
 	 * Image width in pixels, for planar formats this refers to
@@ -350,9 +338,7 @@ typedef struct {
 	 */
 	unsigned int		bytes_per_line;
 
-	/**
-	 * For planar formats only, refers to the U and V plane.
-	 */
+	/** For planar formats only, refers to the U and V plane. */
 	unsigned int		uv_bytes_per_line;
 
 	/**
@@ -375,19 +361,17 @@ typedef struct {
 	 */
 	unsigned int		size;
 
-	/**
-	 * Pixel format used by the buffer.
-	 */
+	/** Pixel format used by the buffer. */
 	vbi_pixfmt		pixfmt;
 
-	/**
-	 * Color space used by the buffer.
-	 */
+	/** Color space used by the buffer. */
 	vbi_color_space		color_space;
 } vbi_image_format;
 
 /** @} */
 
+VBI_END_DECLS
+
 /* Private */
 
-#endif /* GRAPHICS_H */
+#endif /* __ZVBI_GRAPHICS_H__ */

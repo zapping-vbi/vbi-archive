@@ -17,12 +17,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io-sim.c,v 1.1.2.1 2004-01-30 00:43:03 mschimek Exp $ */
+/* $Id: io-sim.c,v 1.1.2.2 2004-03-31 00:41:34 mschimek Exp $ */
 
+#include <assert.h>
 #include <stdlib.h>
 #include <math.h>
 #include <errno.h>
 
+#include "misc.h"
 #include "sliced.h"
 #include "sampling.h"
 
@@ -407,7 +409,7 @@ vbi_test_image_vbi		(uint8_t *		raw,
 	unsigned int black_level;
 	unsigned int white_level;
 
-	if (!vbi_sampling_par_verify (sp))
+	if (!_vbi_sampling_par_verify (sp))
 		return FALSE;
 
 	if (VBI_VIDEOSTD_SET_525_60 & sp->videostd_set) {
@@ -554,7 +556,7 @@ vbi_test_image_video		(uint8_t *		raw,
 	uint8_t *s;
 	uint8_t *d;
 
-	if (!vbi_sampling_par_verify (sp))
+	if (!_vbi_sampling_par_verify (sp))
 		return FALSE;
 
 	switch (sp->sampling_format) {

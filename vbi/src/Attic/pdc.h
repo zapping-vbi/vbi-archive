@@ -17,19 +17,19 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.h,v 1.1.2.2 2004-02-25 17:28:47 mschimek Exp $ */
+/* $Id: pdc.h,v 1.1.2.3 2004-03-31 00:41:34 mschimek Exp $ */
 
 #ifndef PDC_H
 #define PDC_H
 
 #include <stdio.h>
-#include <time.h>
 
 #include "misc.h"
 #include "network.h"
 #include "format.h"
 
 /* Public */
+#include <time.h>
 
 /**
  * PDC Programme Identification Label
@@ -279,7 +279,7 @@ typedef struct {
  * @returns
  * Absolute difference of begin and end in minutes.
  */
-static_inline unsigned int
+vbi_inline unsigned int
 pdc_time_diff			(pdc_time *		begin,
 				 pdc_time *		end)
 {

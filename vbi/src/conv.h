@@ -18,56 +18,19 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: conv.h,v 1.1.2.1 2004-02-25 17:35:27 mschimek Exp $ */
+/* $Id: conv.h,v 1.1.2.2 2004-03-31 00:41:34 mschimek Exp $ */
 
-#ifndef CONV_H
-#define CONV_H
+#ifndef __ZVBI_CONV_H__
+#define __ZVBI_CONV_H__
 
 #include <stdio.h>
-#include <inttypes.h>
-#include <iconv.h>
-
-#include "misc.h"
+#include <inttypes.h>		/* uint16_t */
+#include "macros.h"
 
 /* Public */
+#include <iconv.h>		/* iconv_t */
 
-/**
- * This is the domain name used by libzvbi for gettext translations.
- * Can be used for example with bind_textdomain_codeset() to specify
- * a character set different from the current locale.
- */
-extern const char vbi_intl_domainname [];
-
-/* Private */
-
-#ifndef _
-#  ifdef ENABLE_NLS
-#    include <libintl.h>
-#    include <locale.h>
-#    define _(String) dgettext (vbi_intl_domainname, String)
-#    ifdef gettext_noop
-#      define N_(String) gettext_noop (String)
-#    else
-#      define N_(String) (String)
-#    endif
-#  else /* Stubs that do something close enough.  */
-#    define gettext(Msgid) ((const char *) (Msgid))
-#    define dgettext(Domainname, Msgid) ((const char *) (Msgid))
-#    define dcgettext(Domainname, Msgid, Category) ((const char *) (Msgid))
-#    define ngettext(Msgid1, Msgid2, N) \
-       ((N) == 1 ? (const char *) (Msgid1) : (const char *) (Msgid2))
-#    define dngettext(Domainname, Msgid1, Msgid2, N) \
-       ((N) == 1 ? (const char *) (Msgid1) : (const char *) (Msgid2))
-#    define dcngettext(Domainname, Msgid1, Msgid2, N, Category) \
-       ((N) == 1 ? (const char *) (Msgid1) : (const char *) (Msgid2))
-#    define textdomain(Domainname) ((const char *) (Domainname))
-#    define bindtextdomain(Domainname, Dirname) ((const char *) (Dirname))
-#    define bind_textdomain_codeset(Domainname, Codeset) \
-       ((const char *) (Codeset))
-#    define _(String) (String)
-#    define N_(String) (String)
-#  endif
-#endif
+VBI_BEGIN_DECLS
 
 extern iconv_t
 vbi_iconv_ucs2_open		(const char *		dst_format,
@@ -90,17 +53,31 @@ extern char *
 vbi_strdup_iconv_ucs2		(const char *		dst_format,
 				 const uint16_t *	src,
 				 unsigned int		src_size);
-extern char *
-vbi_strdup_locale_ucs2		(const uint16_t *	src,
+extern vbi_bool
+vbi_stdio_cd_ucs2		(FILE *			fp,
+				 iconv_t		cd,
+				 const uint16_t *	src,
 				 unsigned int		src_size);
-extern char *
-vbi_strdup_locale_utf8		(const char *		src);
-extern uint16_t *
-vbi_strdup_ucs2_utf8		(const char *		src);
 extern vbi_bool
 vbi_stdio_iconv_ucs2		(FILE *			fp,
 				 const char *		dst_format,
 				 const uint16_t *	src,
 				 unsigned int		src_size);
 
-#endif /* CONV_H */
+/* Private */
+
+extern char *
+_vbi_strdup_locale_ucs2		(const uint16_t *	src,
+				 unsigned int		src_size);
+extern char *
+_vbi_strdup_locale_utf8		(const char *		src);
+extern uint16_t *
+_vbi_strdup_ucs2_utf8		(const char *		src);
+
+/* Public */
+
+VBI_END_DECLS
+
+/* Private */
+
+#endif /* __ZVBI_CONV_H__ */

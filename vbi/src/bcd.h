@@ -18,60 +18,63 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bcd.h,v 1.6.2.6 2004-01-30 00:38:11 mschimek Exp $ */
+/* $Id: bcd.h,v 1.6.2.7 2004-03-31 00:41:33 mschimek Exp $ */
 
-#ifndef BCD_H
-#define BCD_H
+#ifndef __ZVBI_BCD_H__
+#define __ZVBI_BCD_H__
 
-#include "misc.h"
+#include "macros.h"
 
 /* Public */
 
+VBI_BEGIN_DECLS
+
 #ifndef DOXYGEN_SHOULD_IGNORE_THIS
 
-#define VBI_BCD_10 (((int) 0x1111111111111111LL) << 4)
-#define VBI_BCD_06 (((int) 0x6666666666666666LL) >> 4)
+#define _VBI_BCD_10 (((int) 0x1111111111111111LL) << 4)
+#define _VBI_BCD_06 (((int) 0x6666666666666666LL) >> 4)
 
 #endif
 
+/**
+ * @addtogroup BCD
+ * @{
+ */
+
 #define VBI_BCD_MIN (0xF << (sizeof (int) * 8 - 4))
-#define VBI_BCD_MAX (VBI_BCD_MIN ^ ~VBI_BCD_06)
+#define VBI_BCD_MAX (VBI_BCD_MIN ^ ~_VBI_BCD_06)
 
 #define VBI_BCD_DEC_MAX	   /* FEDCBA9876543210    F6543210 */		\
 	((8 == sizeof (int)) ? 999999999999999LL : 9999999)
 #define VBI_BCD_DEC_MIN ((-VBI_BCD_DEC_MAX) - 1)
 
 extern int
-vbi_dec2bcd			(int			dec)
-	vbi_attribute_const;
+vbi_dec2bcd			(int			dec) vbi_const;
 extern int
-vbi_bcd2dec			(int			bcd)
-	vbi_attribute_const;
+vbi_bcd2dec			(int			bcd) vbi_const;
 
 /**
- * @ingroup BCD
  * @param a BCD number.
  * @param b BCD number.
  * 
- * Adds two signed packed bcd numbers, returning a siged packed bcd sum.
+ * Adds two signed packed bcd numbers, returning a signed packed bcd sum.
  * 
  * @return
  * BCD number. The result is undefined when any of the arguments
  * contain hex digits 0xA ... 0xF, except for the sign nibble.
  */
-static_inline int
+vbi_inline int
 vbi_add_bcd			(int			a,
 				 int			b)
 {
-	int t = a + (b += VBI_BCD_06);
+	int t = a + (b += _VBI_BCD_06);
 
-	a  = ((~(b ^ a ^ t) & VBI_BCD_10) >> 3) * 3;
+	a  = ((~(b ^ a ^ t) & _VBI_BCD_10) >> 3) * 3;
 
 	return t - a;
 }
 
 /**
- * @ingroup BCD
  * @param bcd BCD number.
  * 
  * Calculates the ten's complement of a signed packed bcd. The most
@@ -86,16 +89,15 @@ vbi_add_bcd			(int			a,
  * as signed packed bcd, this function will return VBI_BCD_MAX + 1
  * (0x1000&nbsp;0000) instead.
  */
-static_inline int
+vbi_inline int
 vbi_neg_bcd			(int			bcd)
 {
 	int t = -bcd;
 
-	return t - (((bcd ^ t) & VBI_BCD_10) >> 3) * 3;
+	return t - (((bcd ^ t) & _VBI_BCD_10) >> 3) * 3;
 }
 
 /**
- * @ingroup BCD
  * @param a BCD number.
  * @param b BCD number.
  * 
@@ -106,7 +108,7 @@ vbi_neg_bcd			(int			bcd)
  * BCD number. The result is undefined when any of the arguments
  * contain hex digits 0xA ... 0xF, except for the sign nibble.
  */
-static_inline int
+vbi_inline int
 vbi_sub_bcd			(int			a,
 				 int			b)
 {
@@ -114,7 +116,6 @@ vbi_sub_bcd			(int			a,
 }
 
 /**
- * @ingroup BCD
  * @param bcd BCD number.
  * 
  * Tests if @a bcd forms a valid signed packed bcd number.
@@ -123,40 +124,42 @@ vbi_sub_bcd			(int			a,
  * @c FALSE if @a bcd contains hex digits 0xA ... 0xF, ignoring
  * the four most significant bits i.e. the sign nibble.
  */
-static_inline vbi_bool
+vbi_inline vbi_bool
 vbi_is_bcd			(int			bcd)
 {
 	bcd &= ~VBI_BCD_MIN;
 
-	return 0 == (((bcd + VBI_BCD_06) ^ bcd ^ VBI_BCD_06) & VBI_BCD_10);
+	return 0 == (((bcd + _VBI_BCD_06) ^ bcd ^ _VBI_BCD_06) & _VBI_BCD_10);
 }
 
 /**
- * @ingroup BCD
  * @param bcd Unsigned BCD number.
  * @param maximum Unsigned maximum value.
  *
  * Compares an unsigned packed bcd number digit-wise against a maximum
- * value, for example 0x295959. The function executes in constant time,
- * about six instructions. @a maximum can contain digits 0x0 ...
- * 0xF.
+ * value, for example 0x295959. The function takes about six instructions.
+ * @a maximum can contain digits 0x0 ... 0xF.
  *
  * @return
  * @c TRUE if any digit of @a bcd is greater than the
  * corresponding digit of @a maximum.
  */
-static_inline vbi_bool
+vbi_inline vbi_bool
 vbi_bcd_vec_greater		(unsigned int		bcd,
 				 unsigned int		maximum)
 {
 	maximum ^= ~0;
 
-	return 0 != (((bcd + maximum) ^ bcd ^ maximum) & VBI_BCD_10);
+	return 0 != (((bcd + maximum) ^ bcd ^ maximum) & _VBI_BCD_10);
 }
 
+/** @} */
+
 /**
- * @ingroup Service
- * 
+ * @addtogroup Service
+ */
+
+/**
  * Teletext or Closed Caption page number. For Teletext pages
  * this is a bcd number in range 0x100 ... 0x8FF. Page numbers
  * containing digits 0xA to 0xF are reserved for various system
@@ -189,31 +192,29 @@ vbi_bcd_vec_greater		(unsigned int		bcd,
 typedef int vbi_pgno;
 
 /**
- * @ingroup Service
- *
  * This is the subpage number only applicable to Teletext pages,
- * a BCD number in range 0x00 ... 0x99. Typically subpages are
- * numbered 0x01 ... 0x99, while a page without subpages has
- * subpage number 0x00. On special 'clock' pages (for example
- * listing the current time in different time zones) it can
- * assume values between 0x0000 ... 0x2359 expressing local
- * time. These are not actually subpages. Likewise the special
- * value 0x3F7F, symbolic @c VBI_ANY_SUBNO and @c VBI_NO_SUBNO.
+ * a BCD number in range 0x01 ... 0x79. Pages without subpages
+ * have subpage number 0x00.
+ *
+ * On special 'clock' pages (for example listing the current time
+ * in different time zones) it can assume values between 0x0000 ...
+ * 0x2359 expressing local time (EN 300 706, Section E.2). These are
+ * not actually subpages.
+ *
+ * Finally the non-BCD value 0x3F7F is possible, symbolic
+ * @c VBI_ANY_SUBNO and @c VBI_NO_SUBNO depending on context.
  */
 typedef int vbi_subno;
 
-/* Magic constants from ETS 300 706. */
+/* Magic constants from EN 300 706. */
 
-/**
- * @ingroup Service
- */
 #define VBI_ANY_SUBNO ((vbi_subno) 0x3F7F)
-
-/**
- * @ingroup Service
- */
 #define VBI_NO_SUBNO ((vbi_subno) 0x3F7F)
+
+/** @} */
+
+VBI_END_DECLS
 
 /* Private */
 
-#endif /* BCD_H */
+#endif /* __ZVBI_BCD_H__ */

@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.6.2.8 2004-02-25 17:33:30 mschimek Exp $ */
+/* $Id: vbi.c,v 1.6.2.9 2004-03-31 00:41:35 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -327,7 +327,7 @@ vbi_send_event(vbi_decoder *vbi, vbi_event *ev)
  *  VBI Decoder
  */
 
-static inline double
+vbi_inline double
 current_time(void)
 {
 	struct timeval tv;

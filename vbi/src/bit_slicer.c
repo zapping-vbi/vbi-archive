@@ -17,10 +17,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bit_slicer.c,v 1.1.2.3 2004-02-25 17:35:27 mschimek Exp $ */
+/* $Id: bit_slicer.c,v 1.1.2.4 2004-03-31 00:41:34 mschimek Exp $ */
 
+#include <stdio.h>
 #include <stdlib.h>
-
+#include "misc.h"
 #include "bit_slicer.h"
 
 /**
@@ -254,8 +255,10 @@ vbi_bit_slicer_slice		(vbi_bit_slicer *	bs,
  * @internal
  */
 void
-vbi_bit_slicer_destroy		(vbi_bit_slicer *	bs)
+_vbi_bit_slicer_destroy		(vbi_bit_slicer *	bs)
 {
+	assert (NULL != bs);
+
 	/* Make unusable. */
 	CLEAR (*bs);
 }
@@ -270,7 +273,7 @@ vbi_bit_slicer_destroy		(vbi_bit_slicer *	bs)
  * the vbi_raw_decoder.
  */
 vbi_bool
-vbi_bit_slicer_init		(vbi_bit_slicer *	bs,
+_vbi_bit_slicer_init		(vbi_bit_slicer *	bs,
 				 vbi_pixfmt		sample_format,
 				 unsigned int		sampling_rate,
 				 unsigned int		sample_offset,
@@ -295,6 +298,7 @@ vbi_bit_slicer_init		(vbi_bit_slicer *	bs,
 	unsigned int cri_samples;
 	unsigned int skip;
 
+	assert (NULL != bs);
 	assert (cri_bits <= 32);
 	assert (frc_bits <= 32);
 	assert (payload_bits <= 32767);
@@ -598,7 +602,7 @@ vbi_bit_slicer_init		(vbi_bit_slicer *	bs,
 	return TRUE;
 
  failure:
-	vbi_bit_slicer_destroy (bs);
+	_vbi_bit_slicer_destroy (bs);
 
 	return FALSE;
 }
@@ -615,7 +619,7 @@ vbi_bit_slicer_delete		(vbi_bit_slicer *	bs)
 	if (NULL == bs)
 		return;
 
-	vbi_bit_slicer_destroy (bs);
+	_vbi_bit_slicer_destroy (bs);
 
 	free (bs);
 }
@@ -690,12 +694,12 @@ vbi_bit_slicer_new		(vbi_pixfmt		sample_format,
 		return NULL;
 	}
 
-        if (!vbi_bit_slicer_init (bs,
-				  sample_format, sampling_rate,
-				  /* offset */ 0, samples_per_line,
-				  cri, cri_mask, cri_bits, cri_rate, cri_end,
-				  frc, frc_bits,
-				  payload_bits, payload_rate, modulation)) {
+        if (!_vbi_bit_slicer_init (bs,
+				   sample_format, sampling_rate,
+				   /* offset */ 0, samples_per_line,
+				   cri, cri_mask, cri_bits, cri_rate, cri_end,
+				   frc, frc_bits,
+				   payload_bits, payload_rate, modulation)) {
 		free (bs);
 		bs = NULL;
 	}

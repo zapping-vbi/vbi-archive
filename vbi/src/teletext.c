@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext.c,v 1.7.2.8 2004-02-25 17:30:02 mschimek Exp $ */
+/* $Id: teletext.c,v 1.7.2.9 2004-03-31 00:41:34 mschimek Exp $ */
 
 #include "../config.h"
 #include "site_def.h"
@@ -29,6 +29,7 @@
 #include <ctype.h>
 #include <assert.h>
 
+#include "intl-priv.h"
 #include "bcd.h"
 #include "vt.h"
 #include "export.h"
@@ -432,7 +433,7 @@ _enhance_flush			(int			column,
 	*active_column = column;
 }
 
-static __inline__ vbi_pgno
+vbi_inline vbi_pgno
 magazine_pop_link		(vbi_page_private *	pgp,
 				 unsigned int		link)
 {
@@ -589,7 +590,7 @@ object_invocation		(vbi_page_private *	pgp,
  * Like object_invocation(), but uses default object links if
  * available. Called when a page has no enhancement packets.
  */
-static __inline__ vbi_bool
+vbi_inline vbi_bool
 default_object_invocation	(vbi_page_private *	pgp)
 {
 	const vt_pop_link *pop;
@@ -660,7 +661,7 @@ default_object_invocation	(vbi_page_private *	pgp)
 
 
 
-static __inline__ vbi_pgno
+vbi_inline vbi_pgno
 magazine_drcs_link		(vbi_page_private *	pgp,
 				 unsigned int		link)
 {
@@ -717,7 +718,7 @@ get_drcs_page			(vbi_page_private *	pgp,
 	return NULL;
 }
 
-static __inline__ vbi_bool
+vbi_inline vbi_bool
 reference_drcs_page		(vbi_page_private *	pgp,
 				 unsigned int		normal,
 				 unsigned int		plane,
@@ -2151,7 +2152,7 @@ keyword				(vbi_link *		ld,
  *  http and ftp urls, e-mail addresses, 3-digit page
  *  numbers, subpage numbers "n/m", next page ">>".
  */
-static __inline__ void
+vbi_inline void
 hyperlinks			(vbi_page_private *		t,
 				 unsigned int		row)
 {
@@ -2307,7 +2308,7 @@ flof_link_col [4] = {
 	VBI_CYAN
 };
 
-static __inline__ vbi_char *
+vbi_inline vbi_char *
 navigation_row			(vbi_page_private *		t)
 {
 	return t->pg.text + 25 * t->pg.columns;
@@ -2339,7 +2340,7 @@ clear_navigation_bar		(vbi_page_private *		t)
  *  We have FLOF links but no labels in row 25. This function replaces
  *  row 25 using the FLOF page numbers as labels.
  */
-static __inline__ void
+vbi_inline void
 flof_navigation_bar		(vbi_page_private *		t)
 {
 	vbi_char ac, *acp;
@@ -2381,7 +2382,7 @@ flof_navigation_bar		(vbi_page_private *		t)
 /*
  *  Adds link flags to a page navigation bar (row 25) from FLOF data.
  */
-static __inline__ void
+vbi_inline void
 flof_links		(vbi_page_private *		t)
 {
 	vbi_char *acp;
@@ -2542,7 +2543,7 @@ top_label			(vbi_page_private *		t,
 	return FALSE;
 }
 
-static __inline__ vbi_pgno
+vbi_inline vbi_pgno
 add_modulo			(vbi_pgno		pgno,
 				 int			incr)
 {
@@ -2552,7 +2553,7 @@ add_modulo			(vbi_pgno		pgno,
 /*
  *  Replaces row 25 by labels and links from TOP data.
  */
-static __inline__ void
+vbi_inline void
 top_navigation_bar		(vbi_page_private *		t)
 {
 	vbi_pgno pgno;
@@ -2818,7 +2819,7 @@ top_index(vbi_decoder *vbi, vbi_page *pg, int subno, int columns)
 	return 1;
 }
 
-static inline void
+vbi_inline void
 ait_title			(vbi_decoder *		vbi,
 				 const vt_page *	vtp,
 	  const ait_entry *ait, char *buf)

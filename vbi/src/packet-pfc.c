@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet-pfc.c,v 1.1.2.1 2004-02-25 17:35:29 mschimek Exp $ */
+/* $Id: packet-pfc.c,v 1.1.2.2 2004-03-31 00:41:34 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -25,6 +25,7 @@
 #include <stdlib.h>
 
 #include "hamm.h"
+#include "misc.h"
 #include "packet-pfc.h"
 
 #define BLOCK_SEPARATOR 0x0C

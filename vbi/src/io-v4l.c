@@ -17,13 +17,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-v4l.c,v 1.9.2.6 2004-02-25 17:35:28 mschimek Exp $";
+static char rcsid[] = "$Id: io-v4l.c,v 1.9.2.7 2004-03-31 00:41:34 mschimek Exp $";
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
 #endif
 
 #include "vbi.h"
+#include "intl-priv.h"
 #include "io.h"
 
 #ifdef ENABLE_V4L
@@ -406,7 +407,7 @@ guess_bttv_v4l(vbi_capture_v4l *v, int *strict,
 	return TRUE;
 }
 
-static inline vbi_bool
+vbi_inline vbi_bool
 set_parameters(vbi_capture_v4l *v, struct vbi_format *vfmt, int *max_rate,
 	       const char *dev_name, char *driver_name,
 	       unsigned int *services, int strict,
@@ -817,7 +818,7 @@ v4l_new(const char *dev_name, int given_fd, int scanning,
 		printv("Nyquist check passed\n");
 
 		*services = vbi_raw_decoder_add_services
-			(&v->dec.sampling, *services, strict);
+			(&v->dec, *services, strict);
 
 		if (*services == 0) {
 			vbi_asprintf(errorstr, _("Sorry, %s (%s) cannot "

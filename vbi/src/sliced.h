@@ -17,16 +17,17 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sliced.h,v 1.3.2.1 2004-01-30 00:40:48 mschimek Exp $ */
+/* $Id: sliced.h,v 1.3.2.2 2004-03-31 00:41:34 mschimek Exp $ */
 
-#ifndef SLICED_H
-#define SLICED_H
+#ifndef __ZVBI_SLICED_H__
+#define __ZVBI_SLICED_H__
 
-#include "misc.h"
+#include <inttypes.h>		/* uintN_t */
+#include "macros.h"
 
 /* Public */
 
-#include <inttypes.h>		/* uint32_t */
+VBI_BEGIN_DECLS
 
 /**
  * @addtogroup Sliced Sliced VBI data
@@ -72,7 +73,7 @@
  * may then verify Level 2.5 is covered. Also sliced data can be tagged
  * as both Level 1.0 and 2.5+, i. e. VBI_SLICED_TELETEXT_B.
  *
- * Reference: <a href="http://www.etsi.org">ETS 300 706
+ * Reference: <a href="http://www.etsi.org">EN 300 706
  * "Enhanced Teletext specification"</a>, <a href="http://www.itu.ch">
  * ITU-R BT.653 "Teletext Systems"</a>
  *
@@ -151,7 +152,7 @@
  * Byte         0                  1
  *       msb         lsb  msb             lsb
  * bit   7 6 5 4 3 2 1 0  x x 13 12 11 10 9 8<br></pre>
- * according to EN 300 294 Table 1, lsb first transmitted. 
+ * according to EN 300 294, Table 1, lsb first transmitted. 
  */
 #define VBI_SLICED_WSS_625		0x00000400
 
@@ -291,17 +292,20 @@ typedef struct {
  * @{
  */
 extern const char *
-vbi_sliced_name			(vbi_service_set	service)
-	vbi_attribute_const;
+vbi_sliced_name			(vbi_service_set	service) vbi_const;
 extern unsigned int
-vbi_sliced_payload_bits		(vbi_service_set	service)
-	vbi_attribute_const;
+vbi_sliced_payload_bits		(vbi_service_set	service) vbi_const;
 /** @} */
 
 /* Private */
 
 struct _vbi_service_par;	/* defined in raw_decoder.h */
-
 typedef struct _vbi_service_par vbi_service_par;
 
-#endif /* SLICED_H */
+/* Public */
+
+VBI_END_DECLS
+
+/* Private */
+
+#endif /* __ZVBI_SLICED_H__ */

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds.c,v 1.1.2.2 2004-02-25 17:27:59 mschimek Exp $ */
+/* $Id: xds.c,v 1.1.2.3 2004-03-31 00:41:35 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -47,7 +47,7 @@ do {									\
 		fprintf (stderr, format , ##args);			\
 } while (0)
 
-static inline void
+vbi_inline void
 caption_send_event(vbi_decoder *vbi, vbi_event *ev)
 {
 	/* Permits calling vbi_fetch_cc_page from handler */

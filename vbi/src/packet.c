@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet.c,v 1.9.2.8 2004-02-25 17:29:17 mschimek Exp $ */
+/* $Id: packet.c,v 1.9.2.9 2004-03-31 00:41:34 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -33,6 +33,7 @@
 
 #include "hamm.h"
 #include "lang.h"
+#include "intl-priv.h"
 #include "export.h"
 #include "tables.h"
 #include "vbi.h"
@@ -97,7 +98,7 @@ object_type_name		(object_type		type)
 	return NULL;
 }
 
-static inline void
+vbi_inline void
 dump_pagenum(vt_pagenum page)
 {
 	printf("T%x %3x/%04x\n", page.type, page.pgno, page.subno);
@@ -199,7 +200,7 @@ dump_page_info			(const struct teletext *vt)
 	putchar('\n');
 }
 
-static __inline__ vbi_bool
+vbi_inline vbi_bool
 hamm8_page_number		(vt_pagenum *		pn,
 				 const uint8_t *	raw,
 				 int			magazine)
@@ -221,7 +222,7 @@ hamm8_page_number		(vt_pagenum *		pn,
 	return TRUE;
 }
 
-static inline vbi_bool
+vbi_inline vbi_bool
 parse_mot(vt_magazine *mag, const uint8_t *raw, int packet)
 {
 	int err, i, j;
@@ -398,7 +399,7 @@ parse_pop(vt_page *vtp, const uint8_t *raw, int packet)
 
 static unsigned int expand[64];
 
-static __inline__ void
+vbi_inline void
 init_expand			(void)
 {
 	unsigned int i, j, n;
@@ -755,7 +756,7 @@ top_page_number(vt_pagenum *pn, const uint8_t *raw)
 	return TRUE;
 }
 
-static inline vbi_bool
+vbi_inline vbi_bool
 parse_btt(vbi_decoder *vbi, const uint8_t *raw, int packet)
 {
 	switch (packet) {
@@ -899,7 +900,7 @@ parse_ait(vt_page *vtp, const uint8_t *raw, int packet)
 	return TRUE;
 }
 
-static inline vbi_bool
+vbi_inline vbi_bool
 parse_mpt(struct teletext *vt, const uint8_t *raw, int packet)
 {
 	int i, j, index;
@@ -930,7 +931,7 @@ parse_mpt(struct teletext *vt, const uint8_t *raw, int packet)
 	return TRUE;
 }
 
-static inline vbi_bool
+vbi_inline vbi_bool
 parse_mpt_ex(struct teletext *vt, const uint8_t *raw, int packet)
 {
 	int i, code, subc;
@@ -1017,7 +1018,9 @@ vbi_convert_page		(vbi_decoder *		vbi,
 
 	case PAGE_FUNCTION_GDRCS:
 	case PAGE_FUNCTION_DRCS:
-		MOVE (tvtp->data.drcs.raw, svtp->data.unknown.raw);
+		memcpy (tvtp->data.drcs.raw,
+			svtp->data.unknown.raw,
+			sizeof (tvtp->data.drcs.raw));
 
 		CLEAR (tvtp->data.drcs.mode);
 
@@ -1060,7 +1063,7 @@ vbi_convert_page		(vbi_decoder *		vbi,
 	return TRUE;
 }
 
-static __inline__ vbi_bool
+vbi_inline vbi_bool
 vbi_convert_raw_page		(vbi_decoder *		vbi,
 				 vt_page *		vtp,
 				 page_function		new_function)
@@ -1351,7 +1354,7 @@ same_header(int cur_pgno, uint8_t *cur,
 	return FALSE;
 }
 
-static inline vbi_bool
+vbi_inline vbi_bool
 same_clock(uint8_t *cur, uint8_t *ref)
 {
 	int i;
@@ -1363,7 +1366,7 @@ same_clock(uint8_t *cur, uint8_t *ref)
 	return TRUE;
 }
 
-static inline vbi_bool
+vbi_inline vbi_bool
 store_lop(vbi_decoder *vbi, vt_page *vtp)
 {
 	struct page_info *pi;
@@ -1517,7 +1520,7 @@ store_lop(vbi_decoder *vbi, vt_page *vtp)
 /*
  *  Teletext packet 27, page linking
  */
-static inline vbi_bool
+vbi_inline vbi_bool
 parse_27(vbi_decoder *vbi, uint8_t *p,
 	 vt_page *cvtp, int mag0)
 {
@@ -1601,7 +1604,7 @@ if(0)
 /*
  *  Teletext packets 28 and 29, Level 2.5/3.5 enhancement
  */
-static inline vbi_bool
+vbi_inline vbi_bool
 parse_28_29(vbi_decoder *vbi, uint8_t *p,
 	    vt_page *cvtp, int mag8, int packet)
 {
@@ -1823,7 +1826,7 @@ parse_28_29(vbi_decoder *vbi, uint8_t *p,
 /*
  *  Teletext packet 8/30, broadcast service data
  */
-static inline vbi_bool
+vbi_inline vbi_bool
 parse_8_30(vbi_decoder *vbi, uint8_t *p, int packet)
 {
 	int designation;

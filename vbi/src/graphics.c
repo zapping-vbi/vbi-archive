@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: graphics.c,v 1.1.2.1 2004-02-13 02:15:27 mschimek Exp $ */
+/* $Id: graphics.c,v 1.1.2.2 2004-03-31 00:41:34 mschimek Exp $ */
 
 #include "graphics.h"
 
@@ -108,7 +108,7 @@ vbi_pixfmt_name			(vbi_pixfmt		pixfmt)
 }
 
 unsigned int
-vbi_pixfmt_bytes_per_pixel_	(vbi_pixfmt		pixfmt)
+_vbi_pixfmt_bytes_per_pixel	(vbi_pixfmt		pixfmt)
 {
 	vbi_pixfmt_set set = VBI_PIXFMT_SET (pixfmt);
 

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.h,v 1.2.2.3 2004-02-25 17:31:25 mschimek Exp $ */
+/* $Id: lang.h,v 1.2.2.4 2004-03-31 00:41:34 mschimek Exp $ */
 
 #ifndef LANG_H
 #define LANG_H
@@ -119,7 +119,7 @@ vbi_caption_unicode		(unsigned int		c);
  * Mosaics and Line Drawing Set, with codes U+EE00 ... U+EFFF, and
  * Teletext DRCS coded U+F000 ... U+F7FF.
  */
-static_inline vbi_bool
+vbi_inline vbi_bool
 vbi_is_print			(unsigned int		unicode)
 {
 	return unicode < 0xE600;
@@ -132,7 +132,7 @@ vbi_is_print			(unsigned int		unicode)
  * @c TRUE if @a unicode represents a Teletext G1 Block Mosaic or G3 Smooth
  * Mosaics and Line Drawing Set, that is a code in range U+EE00 ... U+EFFF.
  */
-static_inline vbi_bool
+vbi_inline vbi_bool
 vbi_is_gfx			(unsigned int		unicode)
 {
 	return unicode >= 0xEE00 && unicode <= 0xEFFF;
@@ -145,7 +145,7 @@ vbi_is_gfx			(unsigned int		unicode)
  * @c TRUE if @a unicode represents a Teletext DRCS (Dynamically
  * Redefinable Character), that is a code in range U+F000 ... U+F7FF.
  **/
-static_inline vbi_bool
+vbi_inline vbi_bool
 vbi_is_drcs			(unsigned int		unicode)
 {
 	return unicode >= 0xF000;

@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.h,v 1.5.2.7 2004-02-25 17:33:43 mschimek Exp $ */
+/* $Id: vbi.h,v 1.5.2.8 2004-03-31 00:41:35 mschimek Exp $ */
 
 #ifndef VBI_H
 #define VBI_H
@@ -70,7 +70,7 @@ struct decode_hook {
 };
 
 /*
-static __inline__ void
+vbi_inline void
 vbi_hook_call			(vbi_decoder *		vbi,
 				 vbi_decode_hook	hook,
 				 void *			data,

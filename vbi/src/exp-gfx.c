@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.7.2.3 2004-02-25 17:35:28 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.7.2.4 2004-03-31 00:41:34 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -33,6 +33,7 @@
 #include <unistd.h>
 
 #include "lang.h"
+#include "intl-priv.h"
 #include "export.h"
 #include "exp-gfx.h"
 #include "vt.h" /* VBI_TRANSPARENT_BLACK */
@@ -60,7 +61,7 @@
  *
  * unicode_wstfont2() subroutine.
  */
-static __inline__ unsigned int
+vbi_inline unsigned int
 unicode_wstfont2_special	(unsigned int		c,
 				 vbi_bool		italic)
 {

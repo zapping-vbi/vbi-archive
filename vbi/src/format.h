@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: format.h,v 1.4.2.7 2004-02-25 17:34:06 mschimek Exp $ */
+/* $Id: format.h,v 1.4.2.8 2004-03-31 00:41:34 mschimek Exp $ */
 
 #ifndef FORMAT_H
 #define FORMAT_H
@@ -255,27 +255,6 @@ typedef struct vbi_char {
 	unsigned	unicode		: 16;
 } vbi_char;
 
-/* Private */
-
-static_inline void
-vbi_char_and			(vbi_char *		c1,
-				 const vbi_char *	c2)
-{
-	assert (8 == sizeof (vbi_char));
-
-	*((uint64_t *) &c1) &= *((uint64_t *) &c2);
-}
-
-static_inline void
-vbi_char_xor			(vbi_char *		c1,
-				 const vbi_char *	c2)
-{
-	assert (8 == sizeof (vbi_char));
-
-	*((uint64_t *) &c1) ^= *((uint64_t *) &c2);
-}
-
-/* Public */
 
 /**
  * @ingroup Page
@@ -410,164 +389,5 @@ typedef enum {
 } vbi_export_option;
 
 /* Private */
-
-#if 0
-
-inline flags operator|(flags lhs, flags rhs) { return static_cast<flags>(static_cast<unsigned>(lhs) | static_cast<unsigned>(rhs)); }
-inline flags& operator|=(flags& lhs, flags rhs) { return lhs = static_cast<flags>(static_cast<unsigned>(lhs) | static_cast<unsigned>(rhs)); }
-
-namespace vbi {
-  class Char {
-    vbi_char			ch;
-  };
-
-  class Page {
-    vbi_page *			pg;
-
-  public:
-    Page () { }; /* TODO */
-    ~Page () { }; /* TODO */
-    Page (Page& s)
-      {
-	if (pg == s.pg)
-	  return;
-	// unref pg
-	// copy s.pg
-      }
-    typedef Char		value_type;
-    typedef Char*		iterator;
-    typedef const Char*		const_iterator;
-    typedef Char&		reference;
-    typedef const Char&		const_reference;
-    typedef Char*		pointer;
-    typedef size_t		difference_type;
-    typedef size_t		size_type;
-    size_type size (void) const
-      { return pg->rows * pg->columns; }
-    iterator begin (void) const
-      { return pg->text; }
-    iterator end (void) const
-      { return pg->text + size (); }
-    size_type max_size (void) const
-      { return sizeof (pg->text) / sizeof (*pg->text); }
-    bool empty (void) const
-      { return 0 == (pg->columns | pg->rows); }
-    void swap (Page& b)
-      { swap (this->pg, b.pg); }
-    reference operator[] (size_type n) const
-      { return pg->text + n; }
-    reference at (unsigned int column, unsigned int row) const
-      { return pg->text + row * pg->columns + column; }
-    Pgno pgno (void) const
-      { return pg->pgno; }
-    Subno subno (void) const
-      { return pg->subno; }
-    unsigned int rows (void) const
-      { return pg->rows; }
-    unsigned int columns (void) const
-      { return pg->columns; }
-    /* teletext */
-    bool hyperlink	(vbi_link&		ld,
-			 unsigned int		column,
-			 unsigned int		row) const
-      {
-	return vbi_page_hyperlink (pg, ld, column, row);
-      }
-    bool hyperlink	(vbi_link&		ld,
-			 const_reference	ref) const
-      {
-	size_type i = &ref - pg->text;
-
-	return hyperlink (ld, i % pg->columns, i / pg->columns);
-      }
-    bool nav_link	(vbi_link&		ld,
-			 unsigned int		num) const
-      {
-	return vbi_page_nav_link (pg, ld, num);
-      }
-    bool home_link	(vbi_link&		ld) const
-      {
-	return vbi_page_nav_link (pg, ld, 5);
-      }
-    bool pdc_link	(vbi_pdc_preselection&	lp,
-			 unsigned int		column,
-			 unsigned int		row) const
-      {
-	return vbi_page_pdc_link (pg, lp, column, row);
-      }
-    bool pdc_link	(vbi_pdc_preselection&	lp,
-			 const_reference	ref) const
-      {
-	size_type i = &ref - pg->text;
-	return pdc_link (ld, i % pg->columns, i / pg->columns);
-      }
-
-    /* exp-txt */
-    unsigned int print	(char*			buf,
-			 unsigned int		buf_size,
-			 const char*		format,
-			 const char*		separator,
-			 unsigned int		sep_size,
-			 vbi_export_flags	flags,
-			 unsigned int		column,
-			 unsigned int		row,
-			 unsigned int		width,
-			 unsigned int		height)
-      {
-	return vbi_print_page_region (pg, buf, buf_size,
-				      format, separator, sep_size,
-				      flags, column, row, width, height);
-      }
-    unsigned int print	(char*			buf,
-			 unsigned int		buf_size,
-			 const char*		format,
-			 vbi_export_flags	flags,
-			 unsigned int		column,
-			 unsigned int		row,
-			 unsigned int		width,
-			 unsigned int		height)
-      {
-	return vbi_print_page_region (pg, buf, buf_size,
-				      format, NULL, 0,
-				      flags, column, row, width, height);
-      }
-    unsigned int print	(char*			buf,
-			 unsigned int		buf_size,
-			 const char*		format = 0,
-			 vbi_export_flags	flags = 0)
-      {
-	return vbi_print_page_region (pg, buf, buf_size,
-				      format, NULL, 0,
-				      flags, 0, 0, pg.columns, pg.rows);
-      }
-    /* exp-gfx */
-    void draw_vt_page	(vbi_pixfmt		fmt,
-			 char*			canvas,
-			 unsigned int		stride,
-			 vbi_export_flags	flags,
-			 unsigned int		column,
-			 unsigned int		row,
-			 unsigned int		width,
-			 unsigned int		height)
-      {
-	vbi_draw_vt_page_region (pg, fmt, canvas, stride,
-				 flags, column, row, width, height);
-      }
-    void draw_vt_page	(vbi_pixfmt		fmt,
-			 char*			canvas,
-			 unsigned int		stride = 0,
-			 vbi_export_flags	flags = 0)
-      {
-	vbi_draw_vt_page_region (pg, fmt, canvas, stride,
-				 flags, 0, 0, pg.columns, pg.rows);
-      }
-  };
-
-  static inline void
-  swap (Page& a, Page& b) { swap (a.pg, b.pg); }
-
-}; /* namespace vbi */
-
-#endif
 
 #endif /* FORMAT_H */

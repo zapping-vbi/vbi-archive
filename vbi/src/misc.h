@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.2.2.9 2004-02-25 17:33:54 mschimek Exp $ */
+/* $Id: misc.h,v 1.2.2.10 2004-03-31 00:41:34 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
@@ -27,57 +27,13 @@
 #include <string.h>
 #include <assert.h>
 
-/* Public */
-
-/**
- * @addtogroup Basic Types
- *
- * Apart of redefining TRUE and FALSE libzvbi reserves all
- * preprocessor symbols and all type, function, variable and
- * constant names starting with vbi_ or VBI_, and the C++
- * namespace vbi.
- */
-
-#ifndef DOXYGEN_SHOULD_IGNORE_THIS
-#  ifdef __GNUC__
-     /* Doxygen omits static objects. */
-#    define static_inline static __inline__
-#  else
-#    define static_inline static
-#    define __inline__
-#  endif
-#endif
-
-/**
- * @ingroup Basic
- * @name Boolean type
- * @{
- */
-#undef TRUE
-#undef FALSE
-#define TRUE 1
-#define FALSE 0
-
-typedef int vbi_bool;
-/** @} */
-
-#if __GNUC__ >= 3
-#define vbi_attribute_pure __attribute__ ((pure))
-#define vbi_attribute_const __attribute__ ((const))
-#else
-#define vbi_attribute_pure
-#define vbi_attribute_const
-#endif
-
-/* Private */
-
 #define N_ELEMENTS(array) (sizeof (array) / sizeof (*(array)))
 
 #ifdef __GNUC__
 
 #if __GNUC__ < 3
 /* Expect expression usually true/false, schedule accordingly. */
-#  define __builtin_expect(exp, c) (exp)
+#  define __builtin_expect(expr, c) (expr)
 #endif
 
 #undef __i386__
@@ -90,23 +46,30 @@ typedef int vbi_bool;
 #endif
 
 /* &x == PARENT (&x.tm_min, struct tm, tm_min),
-   safer than &x == (struct tm *) &x.tm_min */
+   safer than &x == (struct tm *) &x.tm_min. A NULL _ptr is safe and
+   will return NULL, not -offsetof(_member). */
 #define PARENT(_ptr, _type, _member) ({					\
 	__typeof__ (&((_type *) 0)->_member) _p = (_ptr);		\
 	(_p != 0) ? (_type *)(((char *) _p) - offsetof (_type,		\
 	  _member)) : (_type *) 0;					\
 })
 
+/* Like PARENT(), to be used with const _ptr. */
 #define CONST_PARENT(_ptr, _type, _member) ({				\
 	__typeof__ (&((const _type *) 0)->_member) _p = (_ptr);		\
 	(_p != 0) ? (const _type *)(((const char *) _p) - offsetof	\
 	 (const _type, _member)) : (const _type *) 0;			\
 })
 
+/* Note the following macros have no side effects only when you
+   compile with GCC, so don't expect this. */
+
+/* Absolute value of int without a branch.
+   Note ABS (INT_MIN) == INT_MAX + 1. */
 #undef ABS
 #define ABS(n) ({							\
 	register int _n = (n), _t = _n;					\
-	_t >>= sizeof (_t) * 8 - 1;					\
+	_t >>= sizeof (_t) * 8 - 1; /* assumes signed shift, safe? */	\
 	_n ^= _t;							\
 	_n -= _t;							\
 })
@@ -134,7 +97,7 @@ do {									\
 	y = _x;								\
 } while (0)
 
-#ifdef __i686__ /* has conditional move */
+#ifdef __i686__ /* has conditional move. */
 #define SATURATE(n, min, max) ({					\
 	__typeof__ (n) _n = (n);					\
 	__typeof__ (n) _min = (min);					\
@@ -170,7 +133,7 @@ vbi_log_printf			(const char *		function,
 
 #else /* !__GNUC__ */
 
-#define __builtin_expect(exp, c) (exp)
+#define __builtin_expect(expr, c) (expr)
 #undef __i386__
 #undef __i686__
 #define __attribute__(x)
@@ -216,11 +179,15 @@ vbi_log_printf			(const char *		function,
 
 #endif /* !__GNUC__ */
 
+#define CLAMP(n, min, max) SATURATE (n, min, max)
+
 /* NB gcc inlines and optimizes when size is const. */
 #define SET(var) memset (&(var), ~0, sizeof (var))
 #define CLEAR(var) memset (&(var), 0, sizeof (var))
-#define MOVE(d, s) memmove (d, s, sizeof (d))
+#define COPY(d, s) /* useful to copy arrays, otherwise use assignment */ \
+	(assert (sizeof (d) == sizeof (s)), memcpy (d, s, sizeof (d)))
 
+/* Use this instead of strncpy(). */
 extern size_t
 vbi_strlcpy			(char *			d,
 				 const char *		s,
@@ -228,10 +195,15 @@ vbi_strlcpy			(char *			d,
 
 #define STRCOPY(d, s) (vbi_strlcpy (d, s, sizeof (d)) < sizeof (d))
 
+/* Copy bits through mask. */
 #define COPY_SET_MASK(to, from, mask)					\
 	(to ^= (from) ^ (to & (mask)))
-#define COPY_SET_COND(to, from, cond)					\
-	 ((cond) ? (to |= (from)) : (to &= ~(from)))
+/* Set bits if cond is true, clear if false. */
+#define COPY_SET_COND(to, bits, cond)					\
+	 ((cond) ? (to |= (bits)) : (to &= ~(bits)))
+/* Set and clear bits. */
+#define COPY_SET_CLEAR(to, set, clear)					\
+	(to = (to & ~(clear)) | (set))
 
 #ifndef __BYTE_ORDER
 /* Should be __LITTLE_ENDIAN or __BIG_ENDIAN, but I guess

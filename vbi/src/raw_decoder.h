@@ -17,11 +17,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: raw_decoder.h,v 1.1.2.1 2004-01-30 00:39:52 mschimek Exp $ */
+/* $Id: raw_decoder.h,v 1.1.2.2 2004-03-31 00:41:34 mschimek Exp $ */
 
 #ifndef RAW_DECODER_H
 #define RAW_DECODER_H
 
+#include <stdio.h>
 #include "bit_slicer.h"
 
 /* Public */

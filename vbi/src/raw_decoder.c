@@ -17,12 +17,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: raw_decoder.c,v 1.1.2.1 2004-01-30 00:39:40 mschimek Exp $ */
+/* $Id: raw_decoder.c,v 1.1.2.2 2004-03-31 00:41:34 mschimek Exp $ */
 
 #include "../config.h"
 
+#include <assert.h>
 #include <stdlib.h>
-
+#include <string.h>
+#include "misc.h"
 #include "sampling.h"
 #include "raw_decoder.h"
 
@@ -205,7 +207,7 @@ vbi_service_table [] = {
 	}
 };
 
-static __inline__ const vbi_service_par *
+vbi_inline const vbi_service_par *
 find_service_par		(unsigned int		service)
 {
 	unsigned int i;
@@ -355,7 +357,7 @@ vbi_raw_decoder_dump		(const vbi_raw_decoder *rd,
 }
 
 
-static __inline__ int
+vbi_inline int
 cpr1204_crc			(const vbi_sliced *	out)
 {
 	const int poly = (1 << 6) + (1 << 1) + 1;
@@ -824,7 +826,7 @@ vbi_raw_decoder_add_services	(vbi_raw_decoder *	rd,
 
 		sp = &rd->sampling;
 
-		if (!vbi_sampling_par_check_service (sp, par, strict))
+		if (!_vbi_sampling_par_check_service (sp, par, strict))
 			continue;
 
 
@@ -847,21 +849,22 @@ vbi_raw_decoder_add_services	(vbi_raw_decoder *	rd,
 			cri_end = ~0;
 		}
 
-		if (!vbi_bit_slicer_init (&job->slicer,
-					  sp->sampling_format,
-					  sp->sampling_rate,
-					  sample_offset,
-					  sp->samples_per_line,
-					  par->cri_frc >> par->frc_bits,
-					  par->cri_frc_mask >> par->frc_bits,
-					  par->cri_bits,
-					  par->cri_rate,
-					  cri_end,
-					  par->cri_frc & ((1U << par->frc_bits) - 1),
-					  par->frc_bits,
-					  par->payload,
-					  par->bit_rate,
-					  par->modulation)) {
+		if (!_vbi_bit_slicer_init (&job->slicer,
+					   sp->sampling_format,
+					   sp->sampling_rate,
+					   sample_offset,
+					   sp->samples_per_line,
+					   par->cri_frc >> par->frc_bits,
+					   par->cri_frc_mask >> par->frc_bits,
+					   par->cri_bits,
+					   par->cri_rate,
+					   cri_end,
+					   (par->cri_frc
+					    & ((1U << par->frc_bits) - 1)),
+					   par->frc_bits,
+					   par->payload,
+					   par->bit_rate,
+					   par->modulation)) {
 			assert (!"bit_slicer_init");
 		}
 
@@ -943,7 +946,7 @@ vbi_raw_decoder_set_sampling_par
 
 	vbi_raw_decoder_reset (rd);
 
-	if (!vbi_sampling_par_verify (sp)) {
+	if (!_vbi_sampling_par_verify (sp)) {
 		CLEAR (rd->sampling);
 		return 0;
 	}
@@ -999,7 +1002,7 @@ vbi_raw_decoder_init		(vbi_raw_decoder *	rd,
 	vbi_raw_decoder_reset (rd);
 
 	if (NULL != sp) {
-		if (!vbi_sampling_par_verify (sp))
+		if (!_vbi_sampling_par_verify (sp))
 			return FALSE;
 
 		rd->sampling = *sp;
