@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.20 2001-04-07 14:48:36 garetxe Exp $ */
+/* $Id: fifo.h,v 1.21 2001-05-05 23:35:09 garetxe Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -75,8 +75,15 @@ typedef struct {
 	list			full; /* buffers ready for use */
 	int			waiting; /* in full */
 
+	pthread_t		owner; /* creator */
+
 	mucon			consumer;
 	fifo			*f; /* owner */
+
+	int			killable; /* defaults to 1 */
+	int			zombie; /* this was killed, but it
+					   stays with us a bit
+					   longer... */
 } coninfo;
 
 struct _fifo {
@@ -89,6 +96,11 @@ struct _fifo {
 	list			consumers;
 	pthread_rwlock_t	consumers_rwlock; /* wrlock on
 						     consumers change */
+
+	list			limbo; /* zombies stay here until they
+					definitively die */
+	pthread_mutex_t		limbo_mutex;
+
 	pthread_key_t		consumer_key;
 
 	/* Producer */
@@ -97,7 +109,6 @@ struct _fifo {
 
 	buffer *		(* wait_full)(struct _fifo *);
 	void			(* send_empty)(struct _fifo *, buffer *);
-	buffer *		(* wait_empty)(struct _fifo *);
 
 	bool			(* start)(struct _fifo *);
 	void			(* uninit)(struct _fifo *);
@@ -117,12 +128,12 @@ extern int	alloc_buffer_vec(buffer **bpp, int num_buffers, int buffer_size);
 extern void	free_buffer_vec(buffer *bvec, int num_buffers);
 
 extern int	init_buffered_fifo(fifo *f, char *name, int num_buffers, int buffer_size);
-extern int	init_callback_fifo(fifo *f, char *name, buffer * (* wait_full)(fifo *), void (* send_empty)(fifo *, buffer *), buffer * (* wait_empty)(fifo *), int num_buffers, int buffer_size);
-extern void	remove_consumer(fifo *f);
+extern int	init_callback_fifo(fifo *f, char *name, buffer * (* wait_full)(fifo *), void (* send_empty)(fifo *, buffer *), int num_buffers, int buffer_size);
 extern coninfo *create_consumer(fifo *f);
-/* if (on) and the consumer is slow, buffers can be stolen from it,
-	and eventually it can get killed */
-extern void set_victim(fifo *f, int on);
+/* If on, and buffers aren't processed, the consumer will be
+   automatically removed from the fifo's consumer list */
+extern void set_killable(fifo *f, int on);
+extern void kill_zombies(fifo *f);
 
 #define VALID_BUFFER(f, b) \
 	((b)->index < (f)->num_buffers && (f)->buffers + (b)->index == (b))
@@ -141,10 +152,20 @@ query_consumer(fifo *f)
 {
 	coninfo *current=pthread_getspecific(f->consumer_key);
 
-	if (current)
+	if (current && !current->zombie)
 		return current;
-	else
+	else {
+		if (current && current->zombie) {
+			/* pending destroy sequence */
+			pthread_mutex_lock(&f->limbo_mutex);
+			unlink_node(&(f->limbo), (node*)current);
+			pthread_mutex_unlock(&f->limbo_mutex);
+			free(current);
+			pthread_setspecific(f->consumer_key, NULL);
+		}
+
 		return create_consumer(f);
+	}
 }
 
 static inline bool
@@ -224,6 +245,7 @@ wait_full_buffer(fifo *f)
 	coninfo *consumer;
 
 	pthread_rwlock_rdlock(&f->consumers_rwlock);
+
 	consumer = query_consumer(f);
 
 	pthread_mutex_lock(&consumer->consumer.mutex);
@@ -262,7 +284,6 @@ recv_full_buffer(fifo *f)
 
 	pthread_rwlock_rdlock(&f->consumers_rwlock);
 	consumer = query_consumer(f);
-
 	pthread_mutex_lock(&consumer->consumer.mutex);
 	b = (buffer*) rem_head(&consumer->full);
 	if (b)
@@ -294,16 +315,33 @@ wait_empty_buffer(fifo *f)
 {
 	buffer *b;
 
+	pthread_rwlock_rdlock(&f->consumers_rwlock);
+	if (empty_list(&f->consumers) &&
+	    empty_list(&f->empty)) {
+		b = (buffer*) rem_head(&f->backup);
+		if (b) {
+			b->refcount = 0;
+			send_empty_buffer(f, b);
+		}
+	}
+	pthread_rwlock_unlock(&f->consumers_rwlock);
+
 	/* FIXME: steal, kill, be bad */
-
-	if (f->wait_empty)
-		return (b = (buffer *) rem_head(&f->empty)) ?
-			b : f->wait_empty(f);
-
 	pthread_mutex_lock(&f->producer.mutex);
 
-	while (!(b = (buffer *) rem_head(&f->empty)))
-		pthread_cond_wait(&f->producer.cond, &f->producer.mutex);
+	b = (buffer *) rem_head(&f->empty);
+
+	if (!b) {
+	  pthread_mutex_unlock(&f->producer.mutex);
+
+	  kill_zombies(f);
+
+	  pthread_mutex_lock(&f->producer.mutex);
+
+	  while (!(b = (buffer *) rem_head(&f->empty)))
+	    pthread_cond_wait(&f->producer.cond,
+			      &f->producer.mutex);
+	}
 
 	pthread_mutex_unlock(&f->producer.mutex);
 
@@ -315,15 +353,25 @@ recv_empty_buffer(fifo *f)
 {
 	buffer *b;
 
-	if (f->wait_empty)
-		return (b = (buffer *) rem_head(&f->empty)) ?
-			b : f->wait_empty(f);
+	pthread_rwlock_rdlock(&f->consumers_rwlock);
+	if (empty_list(&f->consumers) &&
+	    empty_list(&f->empty)) {
+		b = (buffer*) rem_head(&f->backup);
+		if (b) {
+			b->refcount = 0;
+			send_empty_buffer(f, b);
+		}
+	}
+	pthread_rwlock_unlock(&f->consumers_rwlock);
 
 	pthread_mutex_lock(&f->producer.mutex);
 
 	b = (buffer *) rem_head(&f->empty);
 
 	pthread_mutex_unlock(&f->producer.mutex);
+
+	if (!b)
+	  kill_zombies(f);
 
 	return b;
 }

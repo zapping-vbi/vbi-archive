@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.15 2001-04-07 14:48:36 garetxe Exp $ */
+/* $Id: fifo.c,v 1.16 2001-05-05 23:35:09 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -133,6 +133,8 @@ create_consumer(fifo *f)
 	mucon_init(&(new_consumer->consumer));
 	init_list(&(new_consumer->full));
 	new_consumer->f = f;
+//	new_consumer->killable = 1;
+	new_consumer->owner = pthread_self();
 
 	add_tail(&f->consumers, (node*)new_consumer);
 
@@ -173,21 +175,19 @@ dealloc_consumer_info(fifo *f, coninfo *consumer)
 	mucon_destroy(cm);
 
 	unlink_node(&(f->consumers), (node*)consumer);
-	free(consumer);
 
-	pthread_setspecific(f->consumer_key, NULL);
-}
+	if (pthread_equal(consumer->owner, pthread_self())) {
+		/* done with this one */
+		free(consumer);
+		pthread_setspecific(f->consumer_key, NULL);
 
-void
-remove_consumer(fifo *f)
-{
-	coninfo *consumer =
-		(coninfo*)pthread_getspecific(f->consumer_key);
-
-	if (consumer) {
-		pthread_rwlock_wrlock(&f->consumers_rwlock);
-		dealloc_consumer_info(f, consumer);
-		pthread_rwlock_unlock(&f->consumers_rwlock);
+	} else {
+		/* wait till it comes again and completes the
+		   destruction */
+		pthread_mutex_lock(&f->limbo_mutex);
+		add_tail(&f->limbo, (node*)consumer);
+		consumer->zombie = 1;
+		pthread_mutex_unlock(&f->limbo_mutex);
 	}
 }
 
@@ -199,8 +199,15 @@ uninit(fifo * f)
 		dealloc_consumer_info(f, (coninfo*)(f->consumers.head));
 	pthread_rwlock_unlock(&f->consumers_rwlock);
 
+	pthread_mutex_lock(&f->limbo_mutex);
+	while (!empty_list(&f->limbo))
+		free(rem_head(&f->limbo));
+	pthread_mutex_unlock(&f->limbo_mutex);
+
 	pthread_rwlock_destroy(&f->consumers_rwlock);
 	pthread_key_delete(f->consumer_key);
+
+	pthread_mutex_destroy(&f->limbo_mutex);
 
 	if (f->buffers)
 		free_buffer_vec(f->buffers, f->num_buffers);
@@ -212,7 +219,6 @@ uninit(fifo * f)
 
 	f->wait_full  = (buffer * (*)(fifo *))		 dead_end;
 	f->send_empty = (void     (*)(fifo *, buffer *)) dead_end;
-	f->wait_empty = (buffer * (*)(fifo *))		 dead_end;
 	f->send_full  = (void     (*)(fifo *, buffer *)) dead_end;
 	f->start      = (bool     (*)(fifo *))           dead_end;
 	f->uninit     = (void     (*)(fifo *))           dead_end;
@@ -263,17 +269,65 @@ static void
 key_destroy_callback(void *param)
 {
 	coninfo *consumer = (coninfo*) param;
+	fifo *f = consumer->f;
 
-	pthread_rwlock_wrlock(&consumer->f->consumers_rwlock);
-	dealloc_consumer_info(consumer->f, consumer);
-	pthread_rwlock_unlock(&consumer->f->consumers_rwlock);
+	pthread_rwlock_wrlock(&f->consumers_rwlock);
+	dealloc_consumer_info(f, consumer);
+	pthread_rwlock_unlock(&f->consumers_rwlock);
+}
+
+void
+set_killable(fifo *f, int on)
+{
+	coninfo *consumer;
+
+	pthread_rwlock_wrlock(&f->consumers_rwlock);
+	consumer = query_consumer(f);
+
+	consumer->killable = on;
+
+	pthread_rwlock_unlock(&f->consumers_rwlock);	
+}
+
+/* Remove all stalled consumers */
+void
+kill_zombies(fifo *f)
+{
+	int zombies = 0;
+	coninfo *p;
+
+	/* first step: look for killable zombie wanabees */
+	pthread_rwlock_rdlock(&f->consumers_rwlock);
+
+	p = (coninfo*)f->consumers.head;
+	while (p) {
+		if (p->waiting == f->num_buffers &&
+		    p->killable)
+			zombies++;
+		p = (coninfo*)(p->node.next);
+	}
+	pthread_rwlock_unlock(&f->consumers_rwlock);
+
+	/* second step: send them to the limbo */
+	pthread_rwlock_wrlock(&f->consumers_rwlock);
+
+ kill_zombies_restart:
+	p = (coninfo*)f->consumers.head;
+	while (p) {
+		if (p->waiting == f->num_buffers &&
+		    p->killable) {
+			dealloc_consumer_info(f, p);
+			goto kill_zombies_restart;
+		}
+		p = (coninfo*)(p->node.next);
+	}
+	pthread_rwlock_unlock(&f->consumers_rwlock);
 }
 
 int
 init_callback_fifo(fifo *f, char *name,
 	buffer * (* custom_wait_full)(fifo *),
 	void     (* custom_send_empty)(fifo *, buffer *),
-	buffer * (* custom_wait_empty)(fifo *),
 	int num_buffers, int buffer_size)
 {
 	int i;
@@ -297,12 +351,14 @@ init_callback_fifo(fifo *f, char *name,
 	pthread_rwlock_init(&f->consumers_rwlock, NULL);
 	pthread_key_create(&f->consumer_key, key_destroy_callback);
 
+	init_list(&f->limbo);
+	pthread_mutex_init(&f->limbo_mutex, NULL);
+
 	mucon_init(&f->producer);
 	mucon_init(&f->mbackup);
 
 	f->wait_full  = custom_wait_full  ? custom_wait_full  : NULL;
 	f->send_empty = custom_send_empty ? custom_send_empty : send_empty;
-	f->wait_empty = custom_wait_empty ? custom_wait_empty : NULL;
 	f->send_full  = send_full;
 
 	/*
@@ -318,7 +374,7 @@ init_callback_fifo(fifo *f, char *name,
 int
 init_buffered_fifo(fifo *f, char *name, int num_buffers, int buffer_size)
 {
-	init_callback_fifo(f, name, NULL, NULL, NULL,
+	init_callback_fifo(f, name, NULL, NULL,
 		num_buffers, buffer_size);
 
 	if (num_buffers > 0 && f->num_buffers <= 0)
