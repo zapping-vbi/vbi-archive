@@ -134,25 +134,45 @@ gint resize_timeout		( gpointer ignored )
   return FALSE;
 }
 
-#include "../pixmaps/zapping_stock.h"
+#include "../pixmaps/brightness.h"
+#include "../pixmaps/contrast.h"
+#include "../pixmaps/saturation.h"
+#include "../pixmaps/hue.h"
+#include "../pixmaps/recordtb.h"
+#include "../pixmaps/mute.h"
+#include "../pixmaps/teletext.h"
+#include "../pixmaps/video.h"
+#include "../pixmaps/screenshot.h"
+
+#define ADD_STOCK(name)							\
+  item.stock_id = "zapping-" #name;					\
+  gtk_stock_add (&item, 1);						\
+  z_icon_factory_add_pixdata (item.stock_id, & name ## _png);
 
 static void
 init_zapping_stock		(void)
 {
+  static const GtkStockItem items [] = {
+    { "zapping-mute",	  N_("Mute"),	  0, 0, NULL },
+    { "zapping-teletext", N_("Teletext"), 0, 0, NULL },
+    { "zapping-video",	  N_("Video"),	  0, 0, NULL },
+  };
   GtkStockItem item;
-  guint i;
 
   CLEAR (item);
 
-  for (i = 0; zapping_stock_table[i].stock_id; ++i)
-    {
-      item.stock_id = (gchar *) zapping_stock_table[i].stock_id;
+  ADD_STOCK (brightness);
+  ADD_STOCK (contrast);
+  ADD_STOCK (saturation);
+  ADD_STOCK (hue);
+  ADD_STOCK (recordtb);
+  ADD_STOCK (screenshot);
 
-      gtk_stock_add (&item, 1);
+  gtk_stock_add (items, G_N_ELEMENTS (items));
 
-      z_icon_factory_add_pixdata (zapping_stock_table[i].stock_id,
-				  zapping_stock_table[i].pixdata);
-    }
+  z_icon_factory_add_pixdata ("zapping-mute", &mute_png);
+  z_icon_factory_add_pixdata ("zapping-teletext", &teletext_png);
+  z_icon_factory_add_pixdata ("zapping-video", &video_png);
 }
 
 extern int zapzilla_main(int argc, char * argv[]);
@@ -333,7 +353,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.165.2.19 2003-07-29 03:36:49 mschimek Exp $",
+	 "$Id: main.c,v 1.165.2.20 2003-08-24 23:51:32 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -397,6 +417,8 @@ int main(int argc, char * argv[])
 		 v->width, v->height,
 		 (unsigned int)(v->vfreq + 0.5));
     }
+
+  //exit(0);
 
   if (x11_dga_query (&dga_param, NULL, 0)
       && debug_msg)
@@ -572,12 +594,16 @@ int main(int argc, char * argv[])
   while (!tv_screen->window)
     z_update_gui();
   D();
+      /* Once again hiding doesn't work earlier... */
+      gtk_widget_hide (lookup_widget (main_window, "appbar2"));
+      D();
+
   if (unmutable)
     {
       /* FIXME this can change at runtime, the mute button
          should update just like the controls box. */
       /* has no mute function */
-      gtk_widget_hide(lookup_widget(main_window, "tb-mute"));
+      gtk_widget_hide(lookup_widget(main_window, "toolbar-mute"));
       D();
     }
   D();
@@ -705,10 +731,13 @@ int main(int argc, char * argv[])
       window_on_top (GTK_WINDOW (main_window), zconf_get_boolean
 		     (NULL, "/zapping/options/main/keep_on_top"));
       D();
+      zconf_touch ("/zapping/internal/callbacks/hide_controls");
+      D();
       resize_timeout(NULL);
+      /* FIXME prolly belongs elsewhere */
       /* hide toolbars and co. if necessary */
       if (zconf_get_boolean(NULL, "/zapping/internal/callbacks/hide_controls"))
-	cmd_run ("zapping.hide_controls(1)");
+	python_command (NULL, "zapping.hide_controls(1)");
 #ifdef HAVE_LIBZVBI
       /* setup subtitles page button */
       zconf_get_integer(&zvbi_page,
@@ -724,7 +753,7 @@ int main(int argc, char * argv[])
   else
     {
       D(); printv("running command \"%s\"\n", command);
-      cmd_run(command);
+      python_command (NULL, command);
     }
   /* Closes all fd's, writes the config to HD, and that kind of things
    */
@@ -970,8 +999,6 @@ static gboolean startup_zapping(gboolean load_plugins)
 	   "video_device");
   zcc_bool(FALSE, "TRUE if Zapping should be started without sound",
 	   "start_muted");
-  zcc_bool(TRUE, "TRUE if some flickering should be avoided in preview mode",
-	   "avoid_flicker");
   zcc_bool(FALSE, "TRUE if the controls info should be saved with each "
 	   "channel", "save_controls");
   zcc_int(0, "Verbosity value given to zapping_setup_fb",
@@ -987,6 +1014,9 @@ static gboolean startup_zapping(gboolean load_plugins)
   zcc_bool(FALSE, "In videotext mode", "videotext_mode");
   zconf_create_boolean(FALSE, "Hide controls",
 		       "/zapping/internal/callbacks/hide_controls");
+  zcc_bool(FALSE, "Keep main window above other windows", "keep_on_top");
+  zcc_int(-1, "Icons, text, text below, text beside", "toolbar_style");
+
   D();
 
   /* Loads all the tuned channels */
