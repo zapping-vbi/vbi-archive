@@ -16,10 +16,13 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* Routines for building GUI elements dependant on the v4l2 device
+/* Routines for building GUI elements dependant on the v4l device
    (such as the number of inputs and so on) */
-#include "v4l2interface.h"
+#include "v4linterface.h"
 #include "callbacks.h"
+#include "zconf.h"
+#include "zmisc.h"
+#include "interface.h"
 
 extern int cur_tuned_channel; /* currently tuned channel (in callbacks.c) */
 
@@ -40,25 +43,36 @@ void update_standards_menu(GtkWidget * widget, tveng_device_info *
 
   NewMenu = gtk_menu_new ();
 
+  if (info -> num_standards == 0)
+    gtk_widget_set_sensitive(Standards, FALSE);
+  else
+    gtk_widget_set_sensitive(Standards, TRUE);
+
   for (i = 0; i < info->num_standards; i++)
   {
     menu_item =
-      gtk_menu_item_new_with_label(info->standards[i].std.std.name);
-    info->standards[i].id = i;
+      gtk_menu_item_new_with_label(info->standards[i].name);
     gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
 		       GTK_SIGNAL_FUNC(on_standard_activate),
-		       &(info->standards[i])); /* it should know about
+		       GINT_TO_POINTER(i)); /* it should know about
 						  itself*/
     gtk_widget_show (menu_item);
     gtk_menu_append(GTK_MENU (NewMenu), menu_item);
   }
 
-  tveng_update_standard(info);
+  if (info -> num_standards == 0)
+    {
+      menu_item =
+	gtk_menu_item_new_with_label(_("No available standards"));
+      gtk_widget_set_sensitive(menu_item, FALSE);
+      gtk_widget_show (menu_item);
+      gtk_menu_append (GTK_MENU (NewMenu), menu_item);
+    }
 
   gtk_option_menu_set_menu (GTK_OPTION_MENU (Standards), NewMenu);
 
   gtk_option_menu_set_history (GTK_OPTION_MENU (Standards), 
-			       info -> cur_standard_index);
+			       info -> cur_standard);
 
   /* Call this so the remaining menus get updated */
   update_inputs_menu(widget, info);
@@ -76,9 +90,6 @@ void update_inputs_menu(GtkWidget * widget, tveng_device_info *
   GtkWidget * menu_item;
   int i;
 
-  /* Get current standard */
-  tveng_update_standard(info);
-
   /* remove old menu */
   gtk_widget_destroy(gtk_option_menu_get_menu (GTK_OPTION_MENU (Inputs)));
 
@@ -86,23 +97,16 @@ void update_inputs_menu(GtkWidget * widget, tveng_device_info *
 
   for (i = 0; i < info->num_inputs; i++)
   {
-    /* Show only supported inputs */
-    if (info -> cur_standard_index > -1) /* Check only if valid */
-      if (!(info->standards[info->cur_standard_index].std.inputs & (1 << i)))
-	continue;
-
     menu_item =
-      gtk_menu_item_new_with_label(info->inputs[i].input.name);
-    info -> inputs[i].id = i;
+      gtk_menu_item_new_with_label(info->inputs[i].name);
+
     gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
 		       GTK_SIGNAL_FUNC(on_input_activate),
-		       &(info->inputs[i])); /* it should know about
+		       GINT_TO_POINTER( i )); /* it should know about
 						 itself*/
     gtk_widget_show (menu_item);
     gtk_menu_append(GTK_MENU (NewMenu), menu_item);
   }
-
-  tveng_update_input(info);
 
   gtk_option_menu_set_menu (GTK_OPTION_MENU (Inputs), NewMenu);
 
@@ -130,8 +134,7 @@ void update_channels_menu(GtkWidget* widget, tveng_device_info * info)
   NewMenu = gtk_menu_new ();
   
   /* Check whether the current input has a tuner attached */
-  tunes = info->inputs[info->cur_input].input.type &
-    V4L2_INPUT_TYPE_TUNER;
+  tunes = info->inputs[info->cur_input].flags & TVENG_INPUT_TUNER;
 
   /* If no tuned channels show error not sensitive */
   if (tveng_tuned_channel_num() == 0)
@@ -147,14 +150,14 @@ void update_channels_menu(GtkWidget* widget, tveng_device_info * info)
 	  gtk_menu_item_new_with_label(tuned -> name);
 	gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
 			   GTK_SIGNAL_FUNC(on_channel_activate),
-			   (gpointer)i); /* it should know about
+			   GINT_TO_POINTER ( i )); /* it should know about
 					    itself */
 	gtk_widget_show (menu_item);
 	gtk_menu_append (GTK_MENU (NewMenu), menu_item);
       }
   else
     {
-      if (tveng_tuned_channel_num() > 0)
+      if (! (info->inputs[info->cur_input].flags & TVENG_INPUT_TUNER))
 	menu_item = gtk_menu_item_new_with_label(_("No tuner"));
       else
 	menu_item = gtk_menu_item_new_with_label(_("No tuned channels"));
@@ -176,24 +179,29 @@ void update_channels_menu(GtkWidget* widget, tveng_device_info * info)
 
       g_assert (tuned != NULL); /* This cannot happen, just for
 				   checking */
-      if (tveng_tune_input(info->cur_input, tuned -> freq, info) == -1)
+      if (tveng_tune_input(tuned -> freq, info) == -1)
 	ShowBox(_("Cannot tune the device"), GNOME_MESSAGE_BOX_ERROR);
     }
 }
 
 /* Prototype this functions to avoid compiler warnings, but they
    shouldn't be externally accesible */
-GtkWidget * create_slider(struct v4l2_queryctrl * qc,
+GtkWidget * create_slider(struct tveng_control * qc,
+			  int index,
 			  tveng_device_info * info);
-GtkWidget * create_checkbutton(struct v4l2_queryctrl * qc,
-			    tveng_device_info * info);
-GtkWidget * create_menu(struct v4l2_queryctrl * qc,
+GtkWidget * create_checkbutton(struct tveng_control * qc,
+			       int index,
+			       tveng_device_info * info);
+GtkWidget * create_menu(struct tveng_control * qc,
+			int index,
 			tveng_device_info * info);
-GtkWidget * create_button(struct v4l2_queryctrl * qc,
+GtkWidget * create_button(struct tveng_control * qc,
+			  int index,
 			  tveng_device_info * info);
 
 /* helper function for create_control_box */
-GtkWidget * create_slider(struct v4l2_queryctrl * qc, 
+GtkWidget * create_slider(struct tveng_control * qc,
+			  int index,
 			  tveng_device_info * info)
 { 
   GtkWidget * vbox; /* We have a slider and a label */
@@ -207,23 +215,16 @@ GtkWidget * create_slider(struct v4l2_queryctrl * qc,
   gtk_widget_show(label);
   gtk_box_pack_start_defaults(GTK_BOX (vbox), label);
 
-  /* get current control value */
-  if (tveng_get_control(qc->id, &cur_value, info) == -1)
-    return NULL;
+  cur_value = qc -> cur_value;
 
-#ifndef NDEBUG
-  printf("Current control value is %d\n", cur_value);
-#endif
-  
-  adj = gtk_adjustment_new(cur_value, qc->minimum, qc->maximum, 1, 10,
+  adj = gtk_adjustment_new(cur_value, qc->min, qc->max, 1, 10,
 			   10);
 
-  /* This will only work in architectures where sizeof(gpointer) >= 4 */
-  gtk_object_set_data(adj, "info", (gpointer)info);
+  gtk_object_set_data(adj, "info", (gpointer) info);
 
   gtk_signal_connect(adj, "value-changed", 
 		     GTK_SIGNAL_FUNC(on_control_slider_changed),
-		     (gpointer) qc->id);
+		     GINT_TO_POINTER (index));
 
   hscale = gtk_hscale_new (GTK_ADJUSTMENT (adj));
 
@@ -237,14 +238,14 @@ GtkWidget * create_slider(struct v4l2_queryctrl * qc,
 }
 
 /* helper function for create_control_box */
-GtkWidget * create_checkbutton(struct v4l2_queryctrl * qc,
+GtkWidget * create_checkbutton(struct tveng_control * qc,
+			       int index,
 			       tveng_device_info * info)
 {
   GtkWidget * cb;
   int cur_value;
 
-  if (tveng_get_control(qc->id, &cur_value, info) == -1)
-    return NULL;  
+  cur_value = qc->cur_value;
 
   cb = gtk_check_button_new_with_label(_(qc->name));
   gtk_object_set_data(GTK_OBJECT(cb), "info", info);
@@ -252,51 +253,63 @@ GtkWidget * create_checkbutton(struct v4l2_queryctrl * qc,
 
   gtk_signal_connect(GTK_OBJECT(cb), "toggled",
 		     GTK_SIGNAL_FUNC(on_control_checkbutton_toggled),
-		     (gpointer) qc->id);
+		     GINT_TO_POINTER(index));
   return cb;
 }
 
 /* helper function for create_control_box */
-GtkWidget * create_menu(struct v4l2_queryctrl * qc,
+GtkWidget * create_menu(struct tveng_control * qc,
+			int index,
 			tveng_device_info * info)
 {
   GtkWidget * option_menu; /* The option menu */
   GtkWidget * menu; /* The menu displayed */
   GtkWidget * menu_item; /* Each of the menu items */
+  GtkWidget * vbox; /* The container */
+  GtkWidget * label; /* This shows what the menu is for */
 
   int i=0;
-  struct v4l2_querymenu qm; /* Info about each of the items in the
-			       menu */
-  int cur_value;
 
-  /* get the current value and select it */
-  if (tveng_get_control(qc->id, &cur_value, info) == -1)
-    return NULL;
-  
   option_menu = gtk_option_menu_new();
   menu = gtk_menu_new();
 
+  vbox = gtk_vbox_new (FALSE, 0);
+  label = gtk_label_new(_(qc->name));
+  gtk_widget_show(label);
+  gtk_box_pack_start_defaults(GTK_BOX (vbox), label);
+
   /* Start querying menu_items and building the menu */
-  qm.id = i;
-  while (ioctl(info->fd, VIDIOC_QUERYMENU, &qm) == 0)
+  while (qc->data[i] != NULL)
     {
-      menu_item = gtk_menu_item_new_with_label(_(qm.name));
+      menu_item = gtk_menu_item_new_with_label(_(qc->data[i]));
 
       gtk_object_set_data(GTK_OBJECT(menu_item), "info", (gpointer) info);
-      gtk_object_set_data(GTK_OBJECT(menu_item), "value", (gpointer)
-			  i);
+      gtk_object_set_data(GTK_OBJECT(menu_item), "value", 
+			  GINT_TO_POINTER (i));
+      gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
+			 GTK_SIGNAL_FUNC(on_control_menuitem_activate),
+			 GINT_TO_POINTER(index)); /* it should know about
+						     itself*/
       gtk_widget_show(menu_item);
       gtk_menu_append(GTK_MENU(menu), menu_item);
+      i++;
     }
 
   gtk_option_menu_set_menu(GTK_OPTION_MENU(option_menu), menu);
+  gtk_option_menu_set_history(GTK_OPTION_MENU(option_menu),
+			      qc->cur_value);
 
   gtk_widget_show(menu);
-  return option_menu;
+  gtk_widget_show(option_menu);
+
+  gtk_box_pack_end_defaults(GTK_BOX (vbox), option_menu);
+
+  return vbox;
 }
 
 /* helper function for create_control_box */
-GtkWidget * create_button(struct v4l2_queryctrl * qc,
+GtkWidget * create_button(struct tveng_control * qc,
+			  int index,
 			  tveng_device_info * info)
 {
   GtkWidget * button;
@@ -307,59 +320,19 @@ GtkWidget * create_button(struct v4l2_queryctrl * qc,
 
   gtk_signal_connect(GTK_OBJECT(button), "clicked",
 		     GTK_SIGNAL_FUNC(on_control_button_clicked),
-		     (gpointer) qc->id);
+		     GINT_TO_POINTER(index));
 
   return button;
 }
 
-/* 
-   Creates a control box suited for setting up all the controls this
-   device can have.
-   FIXME: V4L2 BUGS: videodev.h, V4L2_CID_VCENTER gives error
-   (V4"l"2_CID_BASE)
-   QUERY'ing the controls doesn't work properly (ioctl ()
-   always succeeds)
-   Changing the input turns sound off
-   In the docs it says item[32] is a member of struct
-   v4l2_querymenu, it should say name[32]
-*/
 GtkWidget * create_control_box(tveng_device_info * info)
 {
   GtkWidget * control_box;
   GtkWidget * vbox;
-
-  __u32 available_controls[] =
-  {
-    V4L2_CID_BRIGHTNESS,
-    V4L2_CID_CONTRAST,
-    V4L2_CID_SATURATION,
-    V4L2_CID_HUE,
-    V4L2_CID_WHITENESS,
-    V4L2_CID_BLACK_LEVEL,
-    /*    V4L2_CID_AUTO_WHITE_BALANCE,*/
-    V4L2_CID_DO_WHITE_BALANCE,
-    V4L2_CID_RED_BALANCE,
-    V4L2_CID_BLUE_BALANCE,
-    V4L2_CID_GAMMA,
-    V4L2_CID_EXPOSURE,
-    V4L2_CID_AUTOGAIN,
-    V4L2_CID_GAIN,
-    V4L2_CID_HCENTER,
-    V4L2_CID_VCENTER,
-    V4L2_CID_HFLIP,
-    V4L2_CID_VFLIP,
-    
-    V4L2_CID_AUDIO_VOLUME,
-    V4L2_CID_AUDIO_MUTE,
-    V4L2_CID_AUDIO_BALANCE,
-    V4L2_CID_AUDIO_BASS,
-    V4L2_CID_AUDIO_TREBLE,
-    V4L2_CID_AUDIO_LOUDNESS
-  };
-
   GtkWidget * control_added;
-  struct v4l2_queryctrl qc;
-  int i, num_controls = sizeof(available_controls)/sizeof(__u32);
+
+  struct tveng_control * control;
+  int i = 0;
 
   control_box = gtk_window_new(GTK_WINDOW_DIALOG);
   gtk_window_set_title(GTK_WINDOW(control_box), _("Available controls"));
@@ -367,47 +340,48 @@ GtkWidget * create_control_box(tveng_device_info * info)
   vbox = gtk_vbox_new(FALSE, 10); /* Leave 10 pixels of space between
 				     controls */
 
-  for (i=0; i < num_controls; i++)
+  /* Update the values of all the controls */
+  if (-1 == tveng_update_controls( info ))
     {
-      if (tveng_test_control(available_controls[i], &qc, info) != 0)
-	continue;
-      g_assert(available_controls[i] == qc.id);
-      if (qc.flags & V4L2_CTRL_FLAG_DISABLED)
-	continue;
+      ShowBox(_("Tveng critical error, zapping will exit NOW."),
+	      GNOME_MESSAGE_BOX_ERROR);
+      g_error(_("tveng critical: %s"), info->error);
+    }
 
-#ifndef NDEBUG
-      printf("Adding control %s (%d)\n", qc.name, i);
-#endif
+  for (i = 0; i < info->num_controls; i++)
+    {
+      control = &(info->controls[i]);
 
-      switch (qc.type)
+      g_assert(control != NULL);
+
+      switch (control->type)
 	{
-	case V4L2_CTRL_TYPE_INTEGER:
-	  control_added = create_slider(&qc, info);
+	case TVENG_CONTROL_SLIDER:
+	  control_added = create_slider(control, i, info);
 	  break;
-	case V4L2_CTRL_TYPE_BOOLEAN:
-	  control_added = create_checkbutton(&qc, info);
+	case TVENG_CONTROL_CHECKBOX:
+	  control_added = create_checkbutton(control, i, info);
 	  break;
-	case V4L2_CTRL_TYPE_MENU:
-	  control_added = create_menu(&qc, info);
+	case TVENG_CONTROL_MENU:
+	  control_added = create_menu(control, i, info);
 	  break;
-	case V4L2_CTRL_TYPE_BUTTON:
-	  control_added = create_button(&qc, info);
+	case TVENG_CONTROL_BUTTON:
+	  control_added = create_button(control, i, info);
 	  break;
 	default:
 	  control_added = NULL; /* for sanity purpouses */
-	  printf("Type %d of control %s is not supported\n", qc.type, 
-		 _(qc.name));
+	  g_warning(_("Type %d of control %s is not supported"),
+		    control->type, control->name);
 	  continue;
 	}
+
       if (control_added)
 	{
-	  gtk_widget_set_sensitive(control_added,
-				   !(qc.flags & V4L2_CTRL_FLAG_GRABBED));
 	  gtk_widget_show(control_added);
 	  gtk_box_pack_start_defaults(GTK_BOX(vbox), control_added);
 	}
       else
-	printf(_("Error adding %s\n"), _(qc.name));
+	g_warning(_("Error adding %s"), control->name);
     }
 
   gtk_widget_show(vbox);

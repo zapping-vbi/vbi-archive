@@ -23,9 +23,6 @@
 
 #include <stdio.h>
 
-/* i18n support */
-#include "support.h"
-
 /* Possible key types */
 enum zconf_type
 {
@@ -79,17 +76,18 @@ gint zconf_error(void);
   is not NULL, the value is also stored in the location pointed to by
   where.
 */
-gint zconf_get_integer(gint * where, gchar * path);
+gint zconf_get_integer(gint * where, const gchar * path);
 /*
   Sets an integer value
 */
-void zconf_set_integer(gint new_value, gchar * path);
+void zconf_set_integer(gint new_value, const gchar * path);
 /*
   Sets a default integer value. desc is the description for the
   value. Set it to NULL for leaving it undocumented (a empty string is
   considered as a documented value)
 */
-void zconf_create_integer(gint new_value, gchar * desc, gchar * path);
+void zconf_create_integer(gint new_value, const gchar * desc,
+			  const gchar * path);
 
 /*
   Gets a string value. The returned string is statically allocated,
@@ -99,51 +97,54 @@ void zconf_create_integer(gint new_value, gchar * desc, gchar * path);
   if where is not NULL, zconf will g_strdup the string itself, and
   place a pointer to it in where, that should be freed later with g_free.
 */
-gchar * zconf_get_string(gchar ** where, gchar * path);
+gchar * zconf_get_string(gchar ** where, const gchar * path);
 
 /*
   Sets an string value to the given string. Can fail if the string is
   so large that we cannot g_strdup it. Returns FALSE on failure.
 */
-gboolean zconf_set_string(gchar * new_value, gchar * path);
+gboolean zconf_set_string(gchar * new_value, const gchar * path);
 
 /*
   Creates an string value. Sets desc to NULL to leave it
   undocumented. Can fail if the given string is too large. FALSE on error.
 */
-gboolean zconf_create_string(gchar * value, gchar * desc, gchar * path);
+gboolean zconf_create_string(gchar * value, const gchar * desc,
+			     const gchar * path);
 
 /*
   Gets a boolean value. If where is not NULL, the value is also stored
   there. Returns FALSE on error (ambiguous, use zconf_error to check).
 */
-gboolean zconf_get_boolean(gboolean * where, gchar * path);
+gboolean zconf_get_boolean(gboolean * where, const gchar * path);
 
 /*
   Sets a boolean value.
 */
-void zconf_set_boolean(gboolean new_value, gchar * path);
+void zconf_set_boolean(gboolean new_value, const gchar * path);
 
 /*
   Creates a boolean key. Cannot fail.
 */
-void zconf_create_boolean(gboolean new_value, gchar * desc, gchar * path);
+void zconf_create_boolean(gboolean new_value, const gchar * desc,
+			  const gchar * path);
 
 /*
   Gets a float value. If where is not NULL, the value is also stored
   there. Returns 0.0 on error (ambiguous, use zconf_error to check).
 */
-gfloat zconf_get_float(gfloat * where, gchar * path);
+gfloat zconf_get_float(gfloat * where, const gchar * path);
 
 /*
   Sets a floating point number. Cannot fail.
 */
-void zconf_set_float(gfloat new_value, gchar * path);
+void zconf_set_float(gfloat new_value, const gchar * path);
 
 /*
   Creates a float key. Cannot fail.
 */
-void zconf_create_float(gfloat new_value, gchar * desc, gchar * path);
+void zconf_create_float(gfloat new_value, const gchar * desc,
+			const gchar * path);
 
 /*
   Documentation functions.
@@ -154,13 +155,13 @@ void zconf_create_float(gfloat new_value, gchar * desc, gchar * path);
   returned, and zconf_error will return non-zero). If where is not
   NULL, the string will also be stored there (after g_strdup()'ing it)
 */
-gchar * zconf_get_description(gchar ** where, gchar * path);
+gchar * zconf_get_description(gchar ** where, const gchar * path);
 
 /*
   Sets the string that describes a key.
   Returns FALSE if the key could not be found.
 */
-gboolean zconf_set_description(gchar * desc, gchar * path);
+gboolean zconf_set_description(const gchar * desc, const gchar * path);
 
 /*
   Value and type querying and erasing functions.
@@ -173,19 +174,27 @@ gboolean zconf_set_description(gchar * desc, gchar * path);
   string, and it will only be valid until the next zconf call. if
   where is not NULL, a new copy will be g_strdup()'ed there.
 */
-gchar * zconf_get_nth(gint index, gchar ** where, gchar * path);
+gchar * zconf_get_nth(gint index, gchar ** where, const gchar * path);
 
 /*
   Removes a key from the database. All the keys descendant from this
   one will be erased too. Fails if it cannot find the given key.
 */
-gboolean zconf_delete(gchar * path);
+gboolean zconf_delete(const gchar * path);
 
 /*
   Returns the type of the given key. It fails if the key doesn't
   exist. Failure is indicated by a return value of ZCONF_TYPE_NONE.
 */
-enum zconf_type zconf_get_type(gchar * key);
+enum zconf_type zconf_get_type(const gchar * key);
+
+/*
+  Translates the given key type to a string. This string is statically
+  allocated, it may be overwritten the next time you call any zconf
+  function. Always succeeds (returns [Unknown] if the type is unknown :-)
+*/
+char *
+zconf_type_string(enum zconf_type type);
 
 /*
   zconf_set_type doesn't exist, if you wish to change the type of a

@@ -1,7 +1,29 @@
+/* Zapping (TV viewer for the Gnome Desktop)
+ * Copyright (C) 2000 Iñaki García Etxebarria
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
 /*
   The frequency table is taken from xawtv
 */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
+#include <gnome.h>
 #include "frequencies.h"
 
 /* --------------------------------------------------------------------- */
@@ -855,6 +877,29 @@ tveng_get_country_tune_by_name (gchar * country)
   return NULL;
 }
 
+/* 
+   Returns a pointer to the channel struct for some specific
+   country. NULL if the specified country is not found.
+   The given name can be i18ed this time.
+*/
+tveng_channels*
+tveng_get_country_tune_by_i18ed_name (gchar * i18ed_country)
+{
+  int i=0;
+
+  if (i18ed_country == NULL)
+    return NULL;
+  
+  while (chanlists[i].name)
+    {
+      if (!strcasecmp(_(chanlists[i].name), i18ed_country))
+	return (&(chanlists[i]));
+      i++;
+    }
+
+  return NULL;
+}
+
 /*
   Returns a pointer to the specified by id channel. Returns NULL on
   error.
@@ -873,6 +918,28 @@ tveng_get_country_tune_by_id (int id)
     return NULL;
 
   return &(chanlists[id]);
+}
+
+/*
+  Returns the id of the given country tune, that could be used later
+  on with tveng_get_country_tune_by_id. Returns -1 on error.
+*/
+int
+tveng_get_id_of_country_tune (tveng_channels * country)
+{
+  int i=0;
+
+  if (country == NULL)
+    return -1;
+  
+  while (chanlists[i].name)
+    {
+      if (!strcasecmp(chanlists[i].name, country->name))
+	return i; /* Found */
+      i++;
+    }
+
+  return -1; /* Nothing found */
 }
 
 /*
@@ -913,6 +980,30 @@ tveng_get_channel_by_id (int id, tveng_channels * country)
   return &(country->channel_list[id]);
 }
 
+/*
+  Returns the id of the given channel, that can be used later with
+  tveng_get_channel_by_id. Returns -1 on error.
+*/
+int
+tveng_get_id_of_channel (tveng_channel * channel, tveng_channels *
+			 country)
+{
+  int i;
+
+  if (channel == NULL)
+    return -1;
+
+  if (country == NULL)
+    return -1;
+
+  for (i=0; i<country->chan_count; i++)
+    if ((!strcasecmp(channel->name, country->channel_list[i].name)) && 
+	(channel -> freq == country->channel_list[i].freq))
+      return i; /* Found */
+
+  return -1; /* Nothing found */
+}
+
 /* Tuned channels API */
 /*
   Maybe it looks too much code for very little thing, but this way we
@@ -947,7 +1038,12 @@ tveng_insert_tuned_channel (tveng_tuned_channel * new_channel)
   if (new_channel->real_name)
     channel_added->real_name = g_strdup(new_channel->real_name);
   else
-    channel_added->real_name = g_strdup(_("Unknown real channel"));
+    channel_added->real_name = g_strdup(_("(Unknown real channel)"));
+  if (new_channel->country)
+    channel_added->country = g_strdup(new_channel->country);
+  else
+    channel_added->country = g_strdup(_("(Unknown country)"));
+
   channel_added->freq = new_channel->freq;
 
   /* OK, we are starting the list */
@@ -1078,6 +1174,7 @@ tveng_remove_tuned_channel (gchar * real_name, int id)
 
   g_free(tc_ptr -> name);
   g_free(tc_ptr -> real_name);
+  g_free(tc_ptr -> country);
 
   if (tuned_channel == tc_ptr) /* We are deleting the first item */
     tuned_channel = tc_ptr -> next;

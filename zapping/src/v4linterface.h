@@ -16,8 +16,8 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ifndef __V4L2_H__
-#define __V4L2_H__
+#ifndef __V4LINTERFACE_H__
+#define __V4LINTERFACE_H__
 
 #include <gnome.h>
 #include "tveng.h"

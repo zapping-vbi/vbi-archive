@@ -1,3 +1,77 @@
+22.4.2000	Channel editor done <garetxe@users.sourceforge.net>
+
+	* channel_editor.c: Finished, except for the help (not written)
+	and autotuning (not written in tveng.c)
+	* SF: Added the project to the Trove system in SourceForge.
+	
+21.4.2000	Channel editor improved <garetxe@users.sourceforge.net>
+
+	* channel_editor.c: Created. Holds the code for handling the
+	channel editor dialog.
+	* frequencies.c: Added tveng_get_id_of_channel and
+	tveng_get_id_of_country_tune, needed by channel_editor.c
+	* callbacks.h: Cleanup and some comments have been added
+	* src/Makefile.am: Added channel_editor.c to the list of sources.
+
+20.4.2000	misc improvements <garetxe@users.sourceforge.net>
+
+	* properties.c: Created, holds all the code for handling the
+	properties dialog.
+	* zapping.glade: Channel choosing dialog redesigned.
+	* tveng.c: Added a parameter to tveng_attach_device (attach_mode)
+	* callbacks.c: Cleaned a hack used in go_windowed
+	
+16.4.2000	properties done <garetxe@users.sourceforge.net>
+
+	* callbacks.c: Properties dialog has been implemented, shows now
+	some info about the video device (a la gnometv)
+	* main.c: the video device name and zapping setup fb verbosity now
+	can be configured, just as before
+	* tveng.c: Added a range check in tveng_set_format, it prevents
+	errors that let the device in a unusable state.
+	
+15.4.2000	help support added <garetxe@users.sourceforge.net>
+
+	* help/: The introduction to Zapping has been written here
+	* Makefile.am:
+	* configure.in: Modified to reflect the above
+	* callbacks.c: Some bugfixes
+	* main.c: Everything works now, except for plugin support (the API
+	has to be slightly modified)
+	
+15.4.2000	bugtrack day <garetxe@users.sourceforge.net>
+	
+	* v4linterface.c:
+	* tveng.c:
+	* callbacks.c: Lots of bugs were introduced, some have been fixed,
+	now zapping works (almost) as 0.3.3 :-)
+	* tveng.c:
+	* v4linterface.c: Added language select control (mono, stereo,
+	european1 and european2), but apparently it doesn't work.
+	* tveng.c: Some conflictive and bttv-only code fragments have been
+	#ifdef'ed.
+	
+14.4.2000	zapping reassembled <garetxe@users.sourceforge.net>
+
+	* v4linterface.c: Adapted to the new tveng interface
+	* everything: Zapping now is completely reassembled and compiles
+	clean, lots of bugs have arosen, but i'm so happy ;-))))
+	
+13.4.2000	callbacks updated <garetxe@users.sourceforge.net>
+
+	* zapping.glade: Removed the 'Save screenshot button', it will be
+	a plug-in.
+	* callbacks.c: It now uses the new tveng api, it is much nicer to
+	deal with, btw :-)
+	* libglade: Posted a bug to the mantainer, the about box wouldn't
+	show the logo properly, and that was a pity with such a nice
+	Zapping logo.
+	
+13.4.2000	libglade in <garetxe@users.sourceforge.net>
+
+	* interface.c: The project now uses libglade.
+	* support.c: Removed from the project, it is now useless.
+	
 08.4.2000	zconf working <garetxe@users.sourceforge.net>
 
 	* zconf.c: Now it is written and appears to work fine.

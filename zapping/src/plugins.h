@@ -20,6 +20,9 @@
 /* The plugin protocol we are able to understand */
 #define PLUGIN_PROTOCOL "Zapping_Plugin_Protocol_1"
 
+/* Any plugin should have this in its name */
+#define PLUGIN_STRID ".zapping.so"
+
 /* This structure holds the info needed for identifying and using a
    plugin */
 struct plugin_info{

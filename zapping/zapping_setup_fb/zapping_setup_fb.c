@@ -45,7 +45,7 @@
 #include <X11/extensions/xf86dga.h>
 #include <X11/Xutil.h>
 
-#include "videodev.h" /* V4L header file */
+#include "../src/videodev.h" /* V4L header file */
 
 #define MAX_VERBOSE 2 /* Greatest verbosity allowed */
 #define VERSION "zapping_setup_fb 0.8.5" /* Current program version */

@@ -72,8 +72,9 @@ gboolean zconf_we = FALSE; /* TRUE if the last call failed */
 gchar * zconf_buffer = NULL; /* A global buffer some functions share */
 
 /*
-  FIXME: Add better type checks
-  FIXME: declare paths as const values
+  We should use namespaces, but the code in this file is for
+  transitional purpouses only, zconf will be used when gconf comes.
+  Don't relay on it too much, i don't plan to maintain it...
 */
 
 /*
@@ -107,7 +108,7 @@ p_zconf_cut_branch(struct zconf_key * key);
   path. It will return NULL if the key is not found
 */
 struct zconf_key*
-p_zconf_resolve(gchar * key, struct zconf_key * starting_dir);
+p_zconf_resolve(const gchar * key, struct zconf_key * starting_dir);
 
 /*
   Given a path, creates all the needed nodes that don't exist to make
@@ -115,7 +116,7 @@ p_zconf_resolve(gchar * key, struct zconf_key * starting_dir);
   returns the last node (if path is xxx/yyy/zzz, returns a pointer to zzz).
 */
 struct zconf_key*
-p_zconf_create(gchar * key, struct zconf_key * starting_dir);
+p_zconf_create(const gchar * key, struct zconf_key * starting_dir);
 
 /*
   Configuration saving/loading functions.
@@ -261,7 +262,7 @@ gboolean zconf_close(void)
   if (xmlSaveFile(zconf_file, doc) == -1)
     {
       ShowBox(_("Zapping cannot save configuration to disk\n"
-		"You should have write permission to your home dir..."),
+		"You should have write permissions to your home dir..."),
 	      GNOME_MESSAGE_BOX_ERROR);
       return FALSE; /* Error */
     }
@@ -297,7 +298,7 @@ gint zconf_error(void)
   is not NULL, the value is also stored in the location pointed to by
   where.
 */
-gint zconf_get_integer(gint * where, gchar * path)
+gint zconf_get_integer(gint * where, const gchar * path)
 {
   struct zconf_key * key;
   zconf_we = TRUE; /* Start with an error */
@@ -307,6 +308,10 @@ gint zconf_get_integer(gint * where, gchar * path)
   g_assert(zconf_root != NULL);
 
   key = p_zconf_resolve(path, zconf_root);
+
+  /* To avoid errors */
+  if (where)
+    *where = 0;
 
   if (!key)
     return 0;
@@ -328,7 +333,7 @@ gint zconf_get_integer(gint * where, gchar * path)
 /*
   Sets an integer value, creating the path to it if needed.
 */
-void zconf_set_integer(gint new_value, gchar * path)
+void zconf_set_integer(gint new_value, const gchar * path)
 {
   struct zconf_key * key;
   zconf_we = TRUE; /* Start with an error */
@@ -346,8 +351,23 @@ void zconf_set_integer(gint new_value, gchar * path)
       key->type = ZCONF_TYPE_INTEGER;
     }
 
-  if (key -> type != ZCONF_TYPE_INTEGER)
-    return;
+  /* Check if we are changing the value of the key, and warn if it is
+     pertinent */
+  if (key->type != ZCONF_TYPE_INTEGER)
+    {
+      if (key->type != ZCONF_TYPE_DIR)
+	g_warning(_("Changing the value of %s from %s to %s"),
+		  path,
+		  zconf_type_string(key->type),
+		  zconf_type_string(ZCONF_TYPE_INTEGER));
+
+      /* Free anything that was previously allocated here */
+      if (key->contents)
+	free(key->contents);
+
+      key -> contents = NULL;
+      key -> type = ZCONF_TYPE_INTEGER;
+    }
 
   /* If there is no memory reserved for this key, create it */
   if (key->contents == NULL)
@@ -364,7 +384,8 @@ void zconf_set_integer(gint new_value, gchar * path)
   value. Set it to NULL for leaving it undocumented (a empty string is
   considered as a documented value)
 */
-void zconf_create_integer(gint new_value, gchar * desc, gchar * path)
+void zconf_create_integer(gint new_value, const gchar * desc,
+			  const gchar * path)
 {
   struct zconf_key * key;
   zconf_we = TRUE; /* Start with an error */
@@ -390,6 +411,12 @@ void zconf_create_integer(gint new_value, gchar * desc, gchar * path)
       *((gint*)key->contents) = new_value;
     }
 
+  if (key -> type != ZCONF_TYPE_INTEGER)
+    g_warning(_("Trying to create %s as %s, but it existed before"
+		"as %s"),
+	      path, zconf_type_string(ZCONF_TYPE_INTEGER),
+	      zconf_type_string(key -> type));
+
   /* If we have no description, use the supplied one (if supplied) */
   if ((key->description == NULL) && (desc != NULL))
     key->description = g_strdup(desc);
@@ -405,7 +432,7 @@ void zconf_create_integer(gint new_value, gchar * desc, gchar * path)
   if where is not NULL, zconf will g_strdup the string itself, and
   place a pointer to it in where, that should be freed later with g_free.
 */
-gchar * zconf_get_string(gchar ** where, gchar * path)
+gchar * zconf_get_string(gchar ** where, const gchar * path)
 {
   struct zconf_key * key;
   zconf_we = TRUE; /* Start with an error */
@@ -415,6 +442,10 @@ gchar * zconf_get_string(gchar ** where, gchar * path)
   g_assert(zconf_root != NULL);
 
   key = p_zconf_resolve(path, zconf_root);
+
+  /* To avoid errors */
+  if (where)
+    *where = NULL;
 
   if (!key)
     return NULL;
@@ -437,7 +468,7 @@ gchar * zconf_get_string(gchar ** where, gchar * path)
   Sets an string value to the given string. Can fail if the string is
   so large that we cannot g_strdup it. Returns FALSE on failure.
 */
-gboolean zconf_set_string(gchar * new_value, gchar * path)
+gboolean zconf_set_string(gchar * new_value, const gchar * path)
 {
   struct zconf_key * key;
   zconf_we = TRUE; /* Start with an error */
@@ -456,8 +487,23 @@ gboolean zconf_set_string(gchar * new_value, gchar * path)
       key->type = ZCONF_TYPE_STRING;
     }
 
-  if (key -> type != ZCONF_TYPE_STRING)
-    return FALSE;
+  /* Check if we are changing the value of the key, and warn if it is
+     pertinent */
+  if (key->type != ZCONF_TYPE_STRING)
+    {
+      if (key->type != ZCONF_TYPE_DIR)
+	g_warning(_("Changing the value of %s from %s to %s"),
+		  path,
+		  zconf_type_string(key->type),
+		  zconf_type_string(ZCONF_TYPE_STRING));
+
+      /* Free anything that was previously allocated here */
+      if (key->contents)
+	free(key->contents);
+
+      key -> contents = NULL;
+      key -> type = ZCONF_TYPE_STRING;
+    }
 
   /* Free any memory previously allocated */
   if (key->contents != NULL)
@@ -480,8 +526,8 @@ gboolean zconf_set_string(gchar * new_value, gchar * path)
   Creates an string value. Sets desc to NULL to leave it
   undocumented. Can fail if the given string is too large. FALSE on error.
 */
-gboolean zconf_create_string(gchar * value, gchar * desc, gchar *
-			     path)
+gboolean zconf_create_string(gchar * value, const gchar * desc,
+			     const gchar * path)
 {
   struct zconf_key * key;
   zconf_we = TRUE; /* Start with an error */
@@ -508,6 +554,12 @@ gboolean zconf_create_string(gchar * value, gchar * desc, gchar *
 	return FALSE;
     }
 
+  if (key -> type != ZCONF_TYPE_STRING)
+    g_warning(_("Trying to create %s as %s, but it existed before"
+		"as %s"),
+	      path, zconf_type_string(ZCONF_TYPE_STRING),
+	      zconf_type_string(key -> type));
+
   /* If we have no description, use the supplied one (if supplied) */
   if ((key->description == NULL) && (desc != NULL))
     key->description = g_strdup(desc);
@@ -520,7 +572,7 @@ gboolean zconf_create_string(gchar * value, gchar * desc, gchar *
   Gets a boolean value. If where is not NULL, the value is also stored
   there. Returns FALSE on error (ambiguous, use zconf_error to check).
 */
-gboolean zconf_get_boolean(gboolean * where, gchar * path)
+gboolean zconf_get_boolean(gboolean * where, const gchar * path)
 {
   struct zconf_key * key;
   zconf_we = TRUE; /* Start with an error */
@@ -530,6 +582,10 @@ gboolean zconf_get_boolean(gboolean * where, gchar * path)
   g_assert(zconf_root != NULL);
 
   key = p_zconf_resolve(path, zconf_root);
+
+  /* To avoid errors */
+  if (where)
+    *where = FALSE;
 
   if (!key)
     return FALSE;
@@ -551,7 +607,7 @@ gboolean zconf_get_boolean(gboolean * where, gchar * path)
 /*
   Sets a boolean value.
 */
-void zconf_set_boolean(gboolean new_value, gchar * path)
+void zconf_set_boolean(gboolean new_value, const gchar * path)
 {
   struct zconf_key * key;
   zconf_we = TRUE; /* Start with an error */
@@ -569,8 +625,23 @@ void zconf_set_boolean(gboolean new_value, gchar * path)
       key->type = ZCONF_TYPE_BOOLEAN;
     }
 
-  if (key -> type != ZCONF_TYPE_BOOLEAN)
-    return;
+  /* Check if we are changing the value of the key, and warn if it is
+     pertinent */
+  if (key->type != ZCONF_TYPE_BOOLEAN)
+    {
+      if (key->type != ZCONF_TYPE_DIR)
+	g_warning(_("Changing the value of %s from %s to %s"),
+		  path,
+		  zconf_type_string(key->type),
+		  zconf_type_string(ZCONF_TYPE_BOOLEAN));
+
+      /* Free anything that was previously allocated here */
+      if (key->contents)
+	free(key->contents);
+
+      key -> contents = NULL;
+      key -> type = ZCONF_TYPE_BOOLEAN;
+    }
 
   /* If there is no memory reserved for this key, create it */
   if (key->contents == NULL)
@@ -585,8 +656,8 @@ void zconf_set_boolean(gboolean new_value, gchar * path)
 /*
   Creates a boolean key. Cannot fail.
 */
-void zconf_create_boolean(gboolean new_value, gchar * desc, gchar *
-			  path)
+void zconf_create_boolean(gboolean new_value, const gchar * desc,
+			  const gchar * path)
 {
   struct zconf_key * key;
   zconf_we = TRUE; /* Start with an error */
@@ -612,6 +683,12 @@ void zconf_create_boolean(gboolean new_value, gchar * desc, gchar *
       *((gboolean*)key->contents) = new_value;
     }
 
+  if (key -> type != ZCONF_TYPE_BOOLEAN)
+    g_warning(_("Trying to create %s as %s, but it existed before"
+		"as %s"),
+	      path, zconf_type_string(ZCONF_TYPE_BOOLEAN),
+	      zconf_type_string(key -> type));
+
   /* If we have no description, use the supplied one (if supplied) */
   if ((key->description == NULL) && (desc != NULL))
     key->description = g_strdup(desc);
@@ -623,7 +700,7 @@ void zconf_create_boolean(gboolean new_value, gchar * desc, gchar *
   Gets a float value. If where is not NULL, the value is also stored
   there. Returns 0.0 on error (ambiguous, use zconf_error to check).
 */
-gfloat zconf_get_float(gfloat * where, gchar * path)
+gfloat zconf_get_float(gfloat * where, const gchar * path)
 {
   struct zconf_key * key;
   zconf_we = TRUE; /* Start with an error */
@@ -633,6 +710,10 @@ gfloat zconf_get_float(gfloat * where, gchar * path)
   g_assert(zconf_root != NULL);
 
   key = p_zconf_resolve(path, zconf_root);
+
+  /* To avoid errors */
+  if (where)
+    *where = 0.0;
 
   if (!key)
     return 0;
@@ -654,7 +735,7 @@ gfloat zconf_get_float(gfloat * where, gchar * path)
 /*
   Sets a floating point number. Cannot fail.
 */
-void zconf_set_float(gfloat new_value, gchar * path)
+void zconf_set_float(gfloat new_value, const gchar * path)
 {
   struct zconf_key * key;
   zconf_we = TRUE; /* Start with an error */
@@ -672,8 +753,23 @@ void zconf_set_float(gfloat new_value, gchar * path)
       key->type = ZCONF_TYPE_FLOAT;
     }
 
-  if (key -> type != ZCONF_TYPE_FLOAT)
-    return;
+  /* Check if we are changing the value of the key, and warn if it is
+     pertinent */
+  if (key->type != ZCONF_TYPE_FLOAT)
+    {
+      if (key->type != ZCONF_TYPE_DIR)
+	g_warning(_("Changing the value of %s from %s to %s"),
+		  path,
+		  zconf_type_string(key->type),
+		  zconf_type_string(ZCONF_TYPE_FLOAT));
+
+      /* Free anything that was previously allocated here */
+      if (key->contents)
+	free(key->contents);
+
+      key -> contents = NULL;
+      key -> type = ZCONF_TYPE_FLOAT;
+    }
 
   /* If there is no memory reserved for this key, create it */
   if (key->contents == NULL)
@@ -688,7 +784,8 @@ void zconf_set_float(gfloat new_value, gchar * path)
 /*
   Creates a float key. Cannot fail.
 */
-void zconf_create_float(gfloat new_value, gchar * desc, gchar * path)
+void zconf_create_float(gfloat new_value, const gchar * desc,
+			const gchar * path)
 {
   struct zconf_key * key;
   zconf_we = TRUE; /* Start with an error */
@@ -714,6 +811,12 @@ void zconf_create_float(gfloat new_value, gchar * desc, gchar * path)
       *((gfloat*)key->contents) = new_value;
     }
 
+  if (key -> type != ZCONF_TYPE_FLOAT)
+    g_warning(_("Trying to create %s as %s, but it existed before"
+		"as %s"),
+	      path, zconf_type_string(ZCONF_TYPE_FLOAT),
+	      zconf_type_string(key -> type));
+
   /* If we have no description, use the supplied one (if supplied) */
   if ((key->description == NULL) && (desc != NULL))
     key->description = g_strdup(desc);
@@ -730,7 +833,7 @@ void zconf_create_float(gfloat new_value, gchar * desc, gchar * path)
   returned, and zconf_error will return non-zero). If where is not
   NULL, the string will also be stored there (after g_strdup()'ing it)
 */
-gchar * zconf_get_description(gchar ** where, gchar * path)
+gchar * zconf_get_description(gchar ** where, const gchar * path)
 {
   struct zconf_key * key;
   zconf_we = TRUE; /* Start with an error */
@@ -756,7 +859,7 @@ gchar * zconf_get_description(gchar ** where, gchar * path)
   Sets the string that describes a key. Returns FALSE if the key could
   not be found.
 */
-gboolean zconf_set_description(gchar * desc, gchar * path)
+gboolean zconf_set_description(const gchar * desc, const gchar * path)
 {
   struct zconf_key * key;
   zconf_we = TRUE; /* Start with an error */
@@ -795,7 +898,7 @@ gboolean zconf_set_description(gchar * desc, gchar * path)
   string, and it will only be valid until the next zconf call. if
   where is not NULL, a new copy will be g_strdup()'ed there.
 */
-gchar * zconf_get_nth(gint index, gchar ** where, gchar * path)
+gchar * zconf_get_nth(gint index, gchar ** where, const gchar * path)
 {
   struct zconf_key * key;
   struct zconf_key * subkey; /* The found key */
@@ -841,7 +944,7 @@ gchar * zconf_get_nth(gint index, gchar ** where, gchar * path)
   Removes a key from the database. All the keys descendant from this
   one will be erased too. Fails if it cannot find the given key.
 */
-gboolean zconf_delete(gchar * path)
+gboolean zconf_delete(const gchar * path)
 {
   struct zconf_key * key;
   zconf_we = TRUE; /* Start with an error */
@@ -866,7 +969,7 @@ gboolean zconf_delete(gchar * path)
   Returns the type of the given key. It fails if the key doesn't
   exist. Failure is indicated by a return value of ZCONF_TYPE_NONE.
 */
-enum zconf_type zconf_get_type(gchar * path)
+enum zconf_type zconf_get_type(const gchar * path)
 {
   struct zconf_key * key;
   zconf_we = TRUE; /* Start with an error */
@@ -882,6 +985,33 @@ enum zconf_type zconf_get_type(gchar * path)
 
   zconf_we = FALSE;
   return key->type;
+}
+
+/*
+  Translates the given key type to a string. This string is statically
+  allocated, it may be overwritten the next time you call any zconf
+  function. Always succeeds (returns [Unknown] if the type is unknown :-)
+*/
+char *
+zconf_type_string(enum zconf_type type)
+{
+  switch (type)
+    {
+    case ZCONF_TYPE_INTEGER:
+      return _("Integer");
+    case ZCONF_TYPE_STRING:
+      return _("String");
+    case ZCONF_TYPE_FLOAT:
+      return _("Float");
+    case ZCONF_TYPE_BOOLEAN:
+      return _("Boolean");
+    case ZCONF_TYPE_DIR:
+      return _("Directory");
+    case ZCONF_TYPE_NONE:
+      return _("Undefined");
+    default:
+      return _("Unknown");
+    }
 }
 
 /*
@@ -1028,8 +1158,6 @@ p_zconf_parse(xmlNodePtr node, xmlDocPtr doc, struct zconf_key ** skey,
   p = node->children;
   while (p) /* Iterate through all the nodes, creating subtrees */
     {
-      /* FIXME: Add namespaces (i don't understand their benefits,
-	 but anyway ...) */
       if (!strcasecmp(p->name, "subtree"))
 	p_zconf_parse(p, doc, NULL, new_key); /* Parse this one */
 
@@ -1127,12 +1255,16 @@ p_zconf_cut_branch(struct zconf_key * key)
   g_free(key -> description);
 
   /* Call this recursively for our children */
-  p = g_list_first(key -> tree );
-  while (p)
+  do
     {
-      p_zconf_cut_branch((struct zconf_key*) p->data);
-      p = p -> next;
-    }
+      p = g_list_first(key -> tree );
+      if (p)
+	p_zconf_cut_branch((struct zconf_key*) p->data);
+    } while (p);
+
+  /* Remove ourselves from our parent */
+  if (key->parent)
+    key->parent->tree = g_list_remove(key->parent->tree, key);
 
   g_list_free(key -> tree);
 
@@ -1147,7 +1279,7 @@ p_zconf_cut_branch(struct zconf_key * key)
   path. It will return NULL if the key is not found
 */
 struct zconf_key*
-p_zconf_resolve(gchar * key, struct zconf_key * starting_dir)
+p_zconf_resolve(const gchar * key, struct zconf_key * starting_dir)
 {
   gchar key_name[256]; /* The key name */
   GList * p; /* For getting the name */
@@ -1167,7 +1299,8 @@ p_zconf_resolve(gchar * key, struct zconf_key * starting_dir)
   while (key[0] == '/')
     {
       if (i > 0)
-	g_warning(_("Removing consecutive slashes, this shouldn't happen"));
+	g_warning(_("Removing %i consecutive slashes, this shouldn't happen"),
+		  i+1);
       i++;
       key++;
     }
@@ -1226,7 +1359,7 @@ p_zconf_resolve(gchar * key, struct zconf_key * starting_dir)
   returns the last node (if path is xxx/yyy/zzz, returns a pointer to zzz).
 */
 struct zconf_key *
-p_zconf_create(gchar * key, struct zconf_key * starting_dir)
+p_zconf_create(const gchar * key, struct zconf_key * starting_dir)
 {
   gchar key_name[256], key_name_2[256]; /* The key name */
   struct zconf_key * sub_key; /* For traversing */
@@ -1244,7 +1377,8 @@ p_zconf_create(gchar * key, struct zconf_key * starting_dir)
   while (key[0] == '/')
     {
       if (i > 0)
-	g_warning(_("Removing consecutive slashes, this shouldn't happen"));
+	g_warning(_("Removing %d consecutive slashes, this shouldn't happen"), 
+		  i+1);
       i++;
       key++;
     }

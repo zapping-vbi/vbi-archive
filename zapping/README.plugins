@@ -1,0 +1,37 @@
+Plugin writer's help
+--------------------
+I'm not going to add much more functionality to the "core"
+zapping. Extra features should be coded as plugins, so the app gets
+easier to maintain and to work on. This file describes how to write
+one of those plugins for zapping.
+
+Plugin API
+----------
+
+-- Not described yet, see test_plugin.c (not distributed, look below) --
+
+Where will zapping look for plugins
+-----------------------------------
+Zapping will only try to load files that have the ".zapping.so" string
+in their name. It will look for these files in the following dirs (in
+this order):
+
+ * Paths listed under the LD_LIBRARY env var.
+ * Paths extracted from the /etc/ld.so.conf file
+ * /usr/lib
+ * /lib
+ * $HOME/.zapping_plugins
+
+Notes
+-----
+
+Any plugin must have some exported funcions with some given names, so
+zapping can communicate with the plugin. You can see how it works in
+the test plugin (not included yet in the standard zapping
+distribution, ask me (garetxe@users.sourceforge.net) for it for the
+moment).
+
+For more info regarding how to build or use any plugin, please contact
+me <garetxe@users.sourceforge.net>
+
+Iñaki

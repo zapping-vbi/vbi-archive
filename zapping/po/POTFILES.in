@@ -3,12 +3,14 @@
 src/main.c
 src/interface.c
 src/callbacks.c
-src/support.c
 src/frequencies.c
-src/v4l2interface.c
+src/v4linterface.c
 src/tveng.c
-src/io.c
+src/tveng1.c
+# src/tveng2.c
 src/plugins.c
 src/zmisc.c
 src/zconf.c
+src/properties.c
 zapping_setup_fb/zapping_setup_fb.c
+glade/glade_strings.c

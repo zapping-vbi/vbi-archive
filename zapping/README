@@ -3,7 +3,7 @@ Zapping - The Gnome TV viewer
 	OK, here it is.
 	Some time ago I bought a TV card for my computer. In my Linux
 box there were only a few TV viewing programs, and none of them for
-Gnome. So I build a TV viewer following V4L2 spec (not compiled into
+Gnome. So I built a TV viewer following V4L2 spec (not compiled into
 the Kernel by default) from scratch, but trying to make it as complete
 as possible.
 
@@ -32,7 +32,7 @@ that keeps standard TV dimensions (about 640x480 in PAL modes).
 root privileges are needed. I created a small SUID program that sets
 up everything and returns. There is a potential secutiry flaw here (i
 tried to make it secure, but don't trust it very much), so if you
-really care about security, you may
+really care about security, you may:
 	a) Uninstall the program (check its location with 
 		'whereis zapping-setup-fb').
 	    You won't have fullscreen mode then, but there would be no
@@ -43,19 +43,19 @@ really care about security, you may
 	SUID root: it means that the program, when executed, will be
 given root privileges, even if the user isn't root (don't smile, when
 i came into Linux from Windoze, i kept wondering what where that
-marvelloous suid programs able to hack every Unix system)
+marvellous suid programs able to hack every Unix system)
 
 USEFUL ADDRESSES
 ----------------
 http://millennium.diads.com/bdirks/v4l2.htm
-	Video for Linux 2 home page. There are links to any other
+	Video for Linux 2 home page. There are links to some other
 	pages regarding the V4L2 project.
 http://www.gnome.org
 	The home page of the Gnome community. Lots of info about
 	projects and programming.
 http://sawmill.sourceforge.net
 	Well, this isn't related to this program, but this WM is
-	really great.
+	really great ;)
 
 CONTACTING
 ----------

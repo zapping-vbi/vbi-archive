@@ -15,8 +15,11 @@ struct _tveng_tuned_channel{
   gchar *name; /* Name given to the channel (RTL, Eurosport, whatever) */
   gchar *real_name; /* Channel we chose this one from ("35", for
 		       example) */
+  gchar * country; /* The country this channel is in */
   int index; /* Index in the tuned_channel list */
-  __u32 freq;
+  __u32 freq; /* Frequence this channel is in (may be slightly
+		 different to the one specified by real_name due to
+		 fine tuning) */
 
   /* Don't use this to navigate through the tuned_channel list, use
      the API instead */
@@ -41,6 +44,14 @@ tveng_channels;
 tveng_channels*
 tveng_get_country_tune_by_name (gchar * country);
 
+/* 
+   Returns a pointer to the channel struct for some specific
+   country. NULL if the specified country is not found.
+   The given name can be i18ed this time.
+*/
+tveng_channels*
+tveng_get_country_tune_by_i18ed_name (gchar * i18ed_country);
+
 /*
   Returns a pointer to the specified by id channel. Returns NULL on
   error.
@@ -49,6 +60,13 @@ tveng_get_country_tune_by_name (gchar * country);
 */
 tveng_channels*
 tveng_get_country_tune_by_id (int id);
+
+/*
+  Returns the id of the given country tune, that could be used later
+  on with tveng_get_country_tune_by_id. Returns -1 on error.
+*/
+int
+tveng_get_id_of_country_tune (tveng_channels * country);
 
 /*
   Finds an especific channel in an especific country by name. NULL on
@@ -63,6 +81,13 @@ tveng_get_channel_by_name (gchar* name, tveng_channels * country);
 */
 tveng_channel*
 tveng_get_channel_by_id (int id, tveng_channels * country);
+
+/*
+  Returns the id of the given channel, that can be used later with
+  tveng_get_channel_by_id. Returns -1 on error.
+*/
+int
+tveng_get_id_of_channel (tveng_channel * channel, tveng_channels * country);
 
 /*
   This function inserts a channel in the list (the list will keep

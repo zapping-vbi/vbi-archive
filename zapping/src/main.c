@@ -24,22 +24,30 @@
 #include <gnome-xml/tree.h>
 #include <gnome-xml/parser.h>
 #include <gdk/gdkx.h>
+#include <glade/glade.h>
 #include <signal.h>
 
-/* FIXME: needed just for testing zconf */
-#include <string.h>
-
 #include "interface.h"
-#include "support.h"
 #include "tveng.h"
-#include "v4l2interface.h"
-#include "io.h"
+#include "v4linterface.h"
 #include "plugins.h"
 #include "zconf.h"
+#include "frequencies.h"
+#define ZCONF_DOMAIN "/zapping/options/main/"
 #include "zmisc.h"
 
+/* FIXME: Disable preview if needed */
+/* FIXME: Be more verbose when receiving an error */
+/* FIXME: Complete support for plugins, but think first */
+
+/* These are accessed by callbacks.c as extern variables */
+tveng_device_info * main_info;
 gboolean flag_exit_program = FALSE;
-GdkImage * dummy_image = NULL;
+tveng_channels * current_country = NULL;
+GList * plugin_list = NULL;
+
+void shutdown_zapping(void);
+gboolean startup_zapping(void);
 
 /* Keep compiler happy */
 gboolean
@@ -57,160 +65,53 @@ delete_event                (GtkWidget       *widget,
   return FALSE;
 }
 
-void
-on_tv_screen_size_allocate             (GtkWidget       *widget,
-                                        GtkAllocation   *allocation,
-                                        gpointer         user_data)
-{
-  tveng_device_info * info = (tveng_device_info*) user_data;
-
-  /* Delete dummy_image */
-  gdk_image_destroy(dummy_image);
-
-  /* This way errors don't segfault */
-  dummy_image = NULL;
-  
-  if (tveng_set_capture_size(allocation->width, allocation->height, 
-			     info) == -1)
-    {
-      fprintf(stderr, "%s\n", info->error);
-      return;
-    }
-
-  /* Reallocate a new image */
-  dummy_image = gdk_image_new(GDK_IMAGE_FASTEST,
-			      gdk_visual_get_system(),
-			      info->format.width,
-			      info->format.height);
-
-}
-
 int main(int argc, char * argv[])
 {
-  char * videodev = "/dev/video";
-  int value;
-  int num_channels = 3;
-  char * string_test_1 = "/zapping/tests/string/one";
-  char * float_test_1 = "/zapping/tests/float/one";
-  char * boolean_test_1 = "/zapping/tests/boolean/one";
-  char * integer_test_1 = "/zapping/tests/integer/one";
-
-  gchar * string_1;
-  gfloat float_1;
-  gboolean boolean_1;
-  gint integer_1;
-
-  /* Default values */
-  gchar * d_string_1 = "Something is cooking in the oven";
-  gfloat d_float_1 = -5.7e-13;
-  gfloat d_boolean_1 = TRUE;
-  gfloat d_integer_1 = -42;
-
   GtkWidget * main_window;
   GtkWidget * tv_screen;
-
-  int channels[] = 
-  {
-    703250,
-    815250,
-    583250
-  };
-
-  tveng_device_info * main_info;
+  gchar * buffer;
 
 #ifdef ENABLE_NLS
   bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
   textdomain (PACKAGE);
 #endif
 
+  /* Init libglade, gnome and zconf */
   gnome_init ("zapping", VERSION, argc, argv);
-
-  if (!zconf_init("zapping"))
-    {
-      g_error(_("Sorry, Zapping is unable to create the config tree"));
-      return 0;
-    }
-
-  /* Do some tests on the configuration */
-  /* Query values */
-  if ((!zconf_get_string(&string_1, string_test_1)) &&
-      (zconf_error()))
-    g_warning("%s didn't exist", string_test_1);
-  if ((!zconf_get_float(&float_1, float_test_1)) &&
-      (zconf_error()))
-    g_warning("%s didn't exist", float_test_1);
-  if ((!zconf_get_boolean(&boolean_1, boolean_test_1)) &&
-      (zconf_error()))
-    g_warning("%s didn't exist", boolean_test_1);
-  if ((!zconf_get_integer(&integer_1, integer_test_1)) &&
-      (zconf_error()))
-    g_warning("%s didn't exist", integer_test_1);
-
-  /* Set default values for some of them */
-  zconf_create_string(d_string_1, "String test 1", string_test_1);
-  zconf_create_float(d_float_1, "Float test 1", float_test_1);
-  zconf_create_boolean(d_boolean_1, "Boolean test 1", boolean_test_1);
-  zconf_create_integer(d_integer_1, "Integer test 1", integer_test_1);
-
-  /* Query new values */
-  if ((!zconf_get_string(&string_1, string_test_1)) &&
-      (zconf_error()))
-    g_warning("%s cannot be queried", string_test_1);
-  if ((!zconf_get_float(&float_1, float_test_1)) &&
-      (zconf_error()))
-    g_warning("%s cannot be queried", float_test_1);
-  if ((!zconf_get_boolean(&boolean_1, boolean_test_1)) &&
-      (zconf_error()))
-    g_warning("%s cannot be queried", boolean_test_1);
-  if ((!zconf_get_integer(&integer_1, integer_test_1)) &&
-      (zconf_error()))
-    g_warning("%s cannot be queried", integer_test_1);
-
-  /* Change the current values a bit */
-  string_1 = strfry(string_1);
-  float_1 = float_1 * M_PI * M_PI;
-  boolean_1 = !boolean_1;
-  srand(time(NULL));
-  integer_1 = integer_1 + rand();
-
-  /* Set the new values */
-  zconf_set_string(string_1, string_test_1);
-  zconf_set_float(float_1, float_test_1);
-  zconf_set_boolean(boolean_1, boolean_test_1);
-  zconf_set_integer(integer_1, integer_test_1);
-
-  /* Print the values with the descriptions */
-  printf("%s: %s\n", zconf_get_description(NULL, string_test_1), string_1);
-  printf("%s: %g\n", zconf_get_description(NULL, float_test_1), float_1);
-  printf("%s: %s\n", zconf_get_description(NULL, boolean_test_1),
-	 boolean_1 ? "TRUE" : "FALSE");
-  printf("%s: %d\n", zconf_get_description(NULL, integer_test_1), integer_1);
-
-  g_free(string_1);
-
-  zconf_close();
+  glade_gnome_init();
 
   main_info = tveng_device_info_new( GDK_DISPLAY() );
 
-  /* Ignore alarms */
-  signal(SIGALRM, SIG_IGN);
-
   if (!main_info)
     {
-      fprintf(stderr, "Cannot get device info struct\n");
+      g_error(_("Cannot get device info struct"));
       return -1;
     }
 
   /* We must do this (running zapping_setup_fb) before attaching the
      device because V4L and V4L2 don't support multiple capture opens
   */
-  main_info -> file_name = strdup(videodev);
+  if (!startup_zapping())
+    {
+      ShowBox(_("Zapping couldn't be started"),
+	      GNOME_MESSAGE_BOX_ERROR);
+      tveng_device_info_destroy(main_info);
+      return 0;
+    }
+
+ open_device:
+
+  main_info -> file_name = strdup(zcg_char(NULL, "video_device"));
 
   if (!main_info -> file_name)
     {
       perror("strdup");
       return 1;
     }
+
+  tveng_set_zapping_setup_fb_verbosity(zcg_int(NULL,
+					       "zapping_setup_fb_verbosity"),
+				       main_info);
 
   /* try to run the auxiliary suid program */
   if (tveng_run_zapping_setup_fb(main_info) == -1)
@@ -222,51 +123,82 @@ int main(int argc, char * argv[])
 
   free(main_info -> file_name);
 
-  if (tveng_attach_device(videodev, O_RDONLY, main_info) == -1)
+  if (tveng_attach_device(zcg_char(NULL, "video_device"),
+			  TVENG_ATTACH_READ,
+			  main_info) == -1)
     {
-      fprintf(stderr, "tveng_attach_device: %s\n", main_info ->
-	      error);
+      /* Check that the given device is /dev/video, if it isn't, try
+	 it */
+      if (strcmp(zcg_char(NULL, "video_device"), "/dev/video"))
+	{
+	  GtkWidget * question_box = gnome_message_box_new(
+               _("The specified device isn't \"/dev/video\".\n"
+		 "Should I try it?"),
+	       GNOME_MESSAGE_BOX_QUESTION,
+	       GNOME_STOCK_BUTTON_YES,
+	       GNOME_STOCK_BUTTON_NO,
+	       NULL);
+
+	  gtk_window_set_title(GTK_WINDOW(question_box),
+			       zcg_char(NULL, "video_device"));
+	 
+	  switch (gnome_dialog_run(GNOME_DIALOG(question_box)))
+	    {
+	    case 0: /* Retry */
+	      zcs_char("/dev/video", "video_device");
+	      goto open_device;
+	    default:
+	      break; /* Don't do anything */
+	    }
+	}
+
+      buffer =
+	g_strdup_printf(_("Sorry, but \"%s\" could not be opened:\n%s"),
+			zcg_char(NULL, "video_device"),
+			main_info->error);
+
+      ShowBox(buffer, GNOME_MESSAGE_BOX_ERROR);
+
+      g_free(buffer);
+
       return -1;
     }
 
-  fcntl(main_info->fd,F_SETFD,FD_CLOEXEC);
-
-  value = tveng_set_mute(0, main_info);
-  if (value == -1)
-    fprintf(stderr, "%s\n", main_info->error);
-  srand(time(NULL));
-  value = tveng_tune_input(channels[rand()%num_channels], main_info);
-  if (value == -1)
+  /* Mute the device while we are starting Zapping */
+  if (-1 == tveng_set_mute(1, main_info))
     fprintf(stderr, "%s\n", main_info->error);
 
   /* read some frames from the device */
   if (tveng_start_capturing(main_info) == -1)
     fprintf(stderr, "%s\n", main_info->error);
 
-  main_window = gnome_app_new("Zapping", "Zapping test window");
-  tv_screen = gtk_drawing_area_new();
+  main_window = create_zapping();
 
-  gtk_widget_show (tv_screen);
+  tv_screen = lookup_widget(main_window, "tv_screen");
 
-  gnome_app_set_contents(GNOME_APP(main_window), tv_screen);
-
-  gtk_signal_connect (GTK_OBJECT (main_window), "delete_event",
-		      GTK_SIGNAL_FUNC (delete_event),
-		      NULL);
+  /* Set the minimum size for this widget */
+  gtk_widget_set_usize(tv_screen, main_info->caps.minwidth,
+		       main_info->caps.minheight);
 
   gtk_widget_show(main_window);
 
-  gdk_window_resize (main_window->window, main_info->format.width,
-		     main_info->format.height);
+  update_standards_menu(main_window, main_info);
+  
+  /* Sets the coords to the previous values, if the users wants to */
+  if (zcg_bool(NULL, "keep_geometry"))
+    gdk_window_move_resize(main_window->window,
+			   zconf_get_integer(NULL,
+					     "/zapping/internal/callbacks/x"),
+			   zconf_get_integer(NULL, 
+					     "/zapping/internal/callbacks/y"),
+			   zconf_get_integer(NULL, 
+					     "/zapping/internal/callbacks/w"),
+			   zconf_get_integer(NULL, 
+					     "/zapping/internal/callbacks/h"));
 
-  gtk_signal_connect (GTK_OBJECT (tv_screen), "size_allocate",
-		      GTK_SIGNAL_FUNC (on_tv_screen_size_allocate),
-		      main_info);
-
-  dummy_image = gdk_image_new(GDK_IMAGE_FASTEST,
-			      gdk_visual_get_system(),
-			      main_info->format.width,
-			      main_info->format.height);
+  if (-1 == tveng_set_mute(zcg_bool(NULL, "start_muted"),
+			   main_info))
+    fprintf(stderr, "tveng_set_mute: %s\n", main_info->error);
 
   while (!flag_exit_program)
     {
@@ -276,33 +208,180 @@ int main(int argc, char * argv[])
       if (flag_exit_program)
 	continue; /* Exit the loop if neccesary now */
 
-      /* Do the image processing here */
-      if (tveng_read_frame(((GdkImagePrivate*)dummy_image)-> ximage->
-			   data,
-			   ((int)dummy_image->bpl)*dummy_image->height,
-			  50, main_info) == -1)
+      /* We are probably viewing fullscreen, just do nothing */
+      if (main_info -> current_mode != TVENG_CAPTURE_READ)
+	continue;
+
+      /* Avoid segfault */
+      if (!zimage_get())
 	{
-	  printf("read(): %s\n", main_info->error);
+	  g_warning(_("There is no allocated mem for the capture"));
 	  continue;
 	}
 
-      gdk_draw_image(tv_screen -> window,
-		     tv_screen -> style -> white_gc,
-		     dummy_image,
-		     0, 0, 0, 0,
-		     main_info->format.width,
-		     main_info->format.height);
-    }
+      /* Do the image processing here */
+      if (tveng_read_frame(((GdkImagePrivate*)zimage_get())-> ximage->
+			   data,
+			   ((int)zimage_get()->bpl)*zimage_get()->height,
+			  50, main_info) == -1)
+	{
+	  g_warning("read(): %s\n", main_info->error);
+	  continue;
+	}
 
-  if (tveng_stop_capturing(main_info) == -1)
-    fprintf(stderr, "%s\n", main_info -> error);
+	gdk_draw_image(tv_screen -> window,
+		       tv_screen -> style -> white_gc,
+		       zimage_get(),
+		       0, 0, 0, 0,
+		       main_info->format.width,
+		       main_info->format.height);
+    }
 
   /* Mute the device again and close the device */
   tveng_set_mute(1, main_info);
   tveng_device_info_destroy(main_info);
 
-  if (dummy_image)
-    gdk_image_destroy(dummy_image);
+  /* Closes all fd's, writes the config to HD, and that kind of things
+   */
+  shutdown_zapping();
+
+  /* Destroy the image that holds the capture */
+  zimage_destroy();
 
   return 0;
+}
+
+void shutdown_zapping(void)
+{
+  int i = 0;
+  gchar * buffer = NULL;
+  tveng_tuned_channel * channel;
+
+  /* Unloads all plugins */
+  plugin_unload_plugins(plugin_list);
+  plugin_list = NULL;
+
+  /* Write the currently tuned channels */
+  zconf_delete(ZCONF_DOMAIN "tuned_channels");
+  while ((channel = tveng_retrieve_tuned_channel_by_index(i)) != NULL)
+    {
+      buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/name",
+			       i);
+      zconf_create_string(channel->name, _("Channel name"), buffer);
+      g_free(buffer);
+      buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/freq",
+			       i);
+      zconf_create_integer((int)channel->freq, _("Tuning frequence"), buffer);
+      g_free(buffer);
+      buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/real_name",
+			       i);
+      zconf_create_string(channel->real_name, _("Real channel name"), buffer);
+      g_free(buffer);
+      buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/country",
+			       i);
+      zconf_create_string(channel->country, 
+			  _("Country the channel is in"), buffer);
+      g_free(buffer);
+      i++;
+    }
+
+  zcs_char(current_country -> name, "current_country");
+
+  /* Shutdown all other modules */
+  shutdown_callbacks();
+
+  /* Save the config and show an error if something failed */
+  if (!zconf_close())
+    ShowBox(_("ZConf could not be closed properly , your\n"
+	      "configuration will be lost.\n"
+	      "Possible causes for this are:\n"
+	      "   - There is not enough free memory\n"
+	      "   - You do not have permissions to write to $HOME/.zapping\n"
+	      "   - libxml is non-functional (?)\n"
+	      "   - or, more probably, you have found a bug in\n"
+	      "     Zapping. Please contact the author.\n"
+	      ), GNOME_MESSAGE_BOX_ERROR);
+}
+
+gboolean startup_zapping()
+{
+  gchar * home_plugins;
+  int i = 0;
+  gchar * buffer = NULL;
+  gchar * buffer2 = NULL;
+  gchar * home_dir = g_get_home_dir();
+  tveng_tuned_channel new_channel;
+
+  /* Starts the configuration engine */
+  if (!zconf_init("zapping"))
+    {
+      g_error(_("Sorry, Zapping is unable to create the config tree"));
+      return FALSE;
+    }
+
+  /* Sets defaults for zconf */
+  zcc_bool(TRUE, _("Save and restore zapping geometry (non ICCM compliant)"), 
+	   "keep_geometry");
+  zcc_char(tveng_get_country_tune_by_id(0)->name,
+	     _("The country you are currently in"), "current_country");
+  current_country = 
+    tveng_get_country_tune_by_name(zcg_char(NULL, "current_country"));
+  zcc_char("/dev/video", _("The device file to open on startup"),
+	   "video_device");
+  zcc_bool(FALSE, _("TRUE if Zapping should be started without sound"),
+	   "start_muted");
+  zcc_int(0, _("Verbosity value given to zapping_setup_fb"),
+	  "zapping_setup_fb_verbosity");
+
+  /* Loads all the tuned channels */
+  while (zconf_get_nth(i, &buffer, ZCONF_DOMAIN "tuned_channels") !=
+	 NULL)
+    {
+      g_assert(strlen(buffer) > 0);
+
+      if (buffer[strlen(buffer)-1] == '/')
+	buffer[strlen(buffer)-1] = 0;
+
+      /* Get all the items from here  */
+      buffer2 = g_strconcat(buffer, "/name", NULL);
+      zconf_get_string(&new_channel.name, buffer2);
+      g_free(buffer2);
+      buffer2 = g_strconcat(buffer, "/real_name", NULL);
+      zconf_get_string(&new_channel.real_name, buffer2);
+      g_free(buffer2);
+      buffer2 = g_strconcat(buffer, "/freq", NULL);
+      zconf_get_integer(&new_channel.freq, buffer2);
+      g_free(buffer2);
+      buffer2 = g_strconcat(buffer, "/country", NULL);
+      zconf_get_string(&new_channel.country, buffer2);
+      g_free(buffer2);
+
+      new_channel.index = 0;
+      tveng_insert_tuned_channel(&new_channel);
+
+      /* Free the previously allocated mem */
+      g_free(new_channel.name);
+      g_free(new_channel.real_name);
+      g_free(new_channel.country);
+
+      g_free(buffer);
+      i++;
+    }
+
+  /* Starts all modules */
+  if (!startup_callbacks())
+    return FALSE;
+
+  /* Loads the modules */
+  plugin_list = plugin_load_plugins(PACKAGE_DATA_DIR "/plugins",
+				    PLUGIN_STRID, plugin_list);
+
+  home_plugins = g_strconcat(home_dir, "/.zapping/plugins",
+			     NULL);
+
+  plugin_list = plugin_load_plugins(home_plugins, PLUGIN_STRID,
+				    plugin_list);
+  g_free(home_plugins);
+
+  return TRUE;
 }

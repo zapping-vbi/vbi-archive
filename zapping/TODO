@@ -1,8 +1,10 @@
 Outstanding issues for the next release
 ---------------------------------------
-	+ Adapt all the structure to the new tveng engine
+	+ Add check for DGA in configure.in
 	+ Create tveng2 (tveng V4L2 version)
-	+ Isolate config saving code
+	+ Remake plugin code
+	+ Fix all the bugs in BUGS
+	+ Put a bit of order into CVS and automake files...
 	+ Create a windowed overlay mode
 	+ Convert PNG saving into a plugin
 	+ Add desktop (and root menu) entries
@@ -12,4 +14,4 @@ Outstanding issues for the next release
 	+ Full i18n
 	+ Fix all fixme's
 	+ Bug Track
-	> Release 0.5.1 (public)
+	> Release 0.5.0 (public)

@@ -18,6 +18,8 @@
 
 #include "zmisc.h"
 
+GdkImage * zimage = NULL; /* The buffer that holds the capture */
+
 /*
   Prints a message box showing an error, with the location of the code
   that called the function.
@@ -36,18 +38,63 @@ int ShowBoxReal(const gchar * sourcefile,
 
   g_snprintf(buffer, 255, " (%d)", line);
 
-  str = g_strconcat(sourcefile, buffer, ": ", func, "\n",
-		    message, NULL);
+  str = g_strconcat(sourcefile, buffer, ": [", func, "]", NULL);
 
   if (!str)
     return 0;
 
-  dialog = gnome_message_box_new(str, message_box_type,
+  dialog = gnome_message_box_new(message, message_box_type,
 				 GNOME_STOCK_BUTTON_OK,
 				 NULL);
+
+  gtk_window_set_title(GTK_WINDOW (dialog), str);
 
   g_free(str);
 
   return(gnome_dialog_run(GNOME_DIALOG(dialog)));
+}
 
+/*
+  Resizes the image to a new size. If this is the same as the old
+  size, nothing happens. Returns the newly allocated image on exit.
+*/
+GdkImage*
+zimage_reallocate(int new_width, int new_height)
+{
+  if ((!zimage) || (zimage->width != new_width) || (zimage->height !=
+						    new_height))
+    {
+      if (zimage)
+	gdk_image_destroy(zimage);
+
+      zimage = NULL;
+
+      zimage = gdk_image_new(GDK_IMAGE_FASTEST,
+				  gdk_visual_get_system(),
+				  new_width,
+				  new_height);
+    }
+
+  return zimage;
+}
+
+/*
+  Returns a pointer to the zimage
+*/
+GdkImage*
+zimage_get(void)
+{
+  return zimage;
+}
+
+/*
+  Destroys the image that holds the capture
+*/
+void
+zimage_destroy(void)
+{
+  if (zimage)
+    gdk_image_destroy( zimage );
+
+  zimage = NULL;
 }

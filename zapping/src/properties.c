@@ -1,0 +1,325 @@
+/* Zapping (TV viewer for the Gnome Desktop)
+ * Copyright (C) 2000 Iñaki García Etxebarria
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+/*
+  Handles the property dialog. This was previously in callbacks.c, but
+  it was getting too big, so I moved the code here.
+*/
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
+#include <gnome.h>
+
+#include "tveng.h"
+#include "callbacks.h"
+#include "interface.h"
+#include "v4linterface.h"
+#include "plugins.h"
+#include "zconf.h"
+/* Manages config values for zconf (it saves me some typing) */
+#define ZCONF_DOMAIN "/zapping/internal/callbacks/"
+#include "zmisc.h"
+
+extern tveng_device_info * main_info; /* About the device we are using */
+
+extern GList * plugin_list; /* The plugins we have */
+
+void
+on_propiedades1_activate               (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+  GtkWidget * zapping_properties = create_zapping_properties();
+  GList * p = g_list_first(plugin_list); /* For traversing the plugins
+					  */
+  GtkNotebook * nb;
+  GtkWidget * nb_label;
+  GtkWidget * nb_body;
+  int i=0; /* For showing the inputs */
+
+  gchar * buffer; /* Some temporary buffer */
+
+  /* Widget for assigning the callbacks (generic) */
+  GtkWidget * widget;
+
+  if (NULL == zapping_properties)
+    {
+      ShowBox(_("The properties dialog could not be opened, sorry"),
+	      GNOME_MESSAGE_BOX_ERROR);
+      return;
+    }
+
+  /* Connect the widgets to the apropiate callbacks, so the Apply
+     button works correctly. Set the correct values too */
+
+  /* The device name */
+  widget = lookup_widget(zapping_properties, "label27");
+  gtk_label_set_text(GTK_LABEL(widget), main_info->caps.name);
+
+  /* Minimum capture dimensions */
+  widget = lookup_widget(zapping_properties, "label28");
+  buffer = g_strdup_printf("%d x %d", main_info->caps.minwidth,
+			   main_info->caps.minheight);
+  gtk_label_set_text(GTK_LABEL(widget), buffer);
+  g_free(buffer);
+
+  /* Maximum capture dimensions */
+  widget = lookup_widget(zapping_properties, "label29");
+  buffer = g_strdup_printf("%d x %d", main_info->caps.maxwidth,
+			   main_info->caps.maxheight);
+  gtk_label_set_text(GTK_LABEL(widget), buffer);
+  g_free(buffer);
+
+  /* Reported device capabilities */
+  widget = lookup_widget(zapping_properties, "label30");
+  buffer = g_strdup_printf("%s%s%s%s%s%s%s%s%s%s",
+			   main_info->caps.flags & TVENG_CAPS_CAPTURE
+			   ? _("Can capture to memory.\n") : "",
+			   main_info->caps.flags & TVENG_CAPS_TUNER
+			   ? _("Has some tuner.\n") : "",
+			   main_info->caps.flags & TVENG_CAPS_TELETEXT
+			   ? _("Supports the teletext service.\n") : "",
+			   main_info->caps.flags & TVENG_CAPS_OVERLAY
+			   ? _("Can overlay the image.\n") : "",
+			   main_info->caps.flags & TVENG_CAPS_CHROMAKEY
+			   ? _("Can chromakey the image.\n") : "",
+			   main_info->caps.flags & TVENG_CAPS_CLIPPING
+			   ? _("Clipping rectangles are supported.\n") : "",
+			   main_info->caps.flags & TVENG_CAPS_FRAMERAM
+			   ? _("Framebuffer memory is overwritten.\n") : "",
+			   main_info->caps.flags & TVENG_CAPS_SCALES
+			   ? _("The capture can be scaled.\n") : "",
+			   main_info->caps.flags & TVENG_CAPS_MONOCHROME
+			   ? _("Only monochrome is available\n") : "",
+			   main_info->caps.flags & TVENG_CAPS_SUBCAPTURE
+			   ? _("The capture can be zoomed\n") : "");
+  /* Delete the last '\n' to save some space */
+  if ((strlen(buffer) > 0) && (buffer[strlen(buffer)-1] == '\n'))
+    buffer[strlen(buffer)-1] = 0;
+
+  gtk_label_set_text(GTK_LABEL(widget), buffer);
+  g_free(buffer);
+
+  nb = GTK_NOTEBOOK (lookup_widget(zapping_properties, "notebook2"));
+  if (main_info -> num_inputs == 0)
+    {
+      nb_label = gtk_label_new(_("No available inputs"));
+      gtk_widget_show (nb_label);
+      nb_body = gtk_label_new(_("Your video device has no inputs"));
+      gtk_widget_show(nb_body);
+      gtk_notebook_append_page(nb, nb_body, nb_label);
+      gtk_widget_set_sensitive(GTK_WIDGET(nb), FALSE);
+    }
+  else
+    for (i = 0; i < main_info->num_inputs; i++)
+      {
+	nb_label = gtk_label_new(main_info->inputs[i].name);
+	gtk_widget_show (nb_label);
+	switch (main_info->inputs[i].tuners)
+	  {
+	  case 0:
+	    buffer = 
+	      g_strdup_printf(_("%s"),
+			      main_info->inputs[i].type ==
+			      TVENG_INPUT_TYPE_TV ? _("TV input") :
+			      _("Camera"));
+	      break;
+	  case 1:
+	    buffer =
+	      g_strdup_printf(_("%s with a tuner"),
+			      main_info->inputs[i].type ==
+			      TVENG_INPUT_TYPE_TV ? _("TV input") :
+			      _("Camera"));
+	    break;
+	  default:
+	    buffer =
+	      g_strdup_printf(_("%s with %d tuners"),
+			      main_info->inputs[i].type ==
+			      TVENG_INPUT_TYPE_TV ? _("TV input") :
+			      _("Camera"),
+			      main_info->inputs[i].tuners);
+	    break;
+	  }
+	nb_body = gtk_label_new (buffer);
+	g_free (buffer);
+	gtk_widget_show (nb_body);
+	gtk_notebook_append_page(nb, nb_body, nb_label);
+      }
+  
+  widget = lookup_widget(zapping_properties, "fileentry1");
+  widget = gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(widget));
+  gtk_entry_set_text(GTK_ENTRY(widget),
+		     zconf_get_string(NULL,
+				      "/zapping/options/main/video_device"));
+
+  gtk_signal_connect(GTK_OBJECT(widget), "changed",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+
+  /* Current controller */
+  widget = lookup_widget(zapping_properties, "label31");
+  tveng_describe_controller(NULL, &buffer, main_info);
+  gtk_label_set_text(GTK_LABEL(widget), buffer);
+
+  /* Avoid noise while changing channels */
+  widget = lookup_widget(zapping_properties, "checkbutton1");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
+    zconf_get_boolean(NULL, "/zapping/options/main/avoid_noise"));
+
+  gtk_signal_connect(GTK_OBJECT(widget), "toggled",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+
+  /* Save the geometry thoguh sessions */
+  widget = lookup_widget(zapping_properties, "checkbutton2");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
+    zconf_get_boolean(NULL, "/zapping/options/main/keep_geometry"));
+
+  gtk_signal_connect(GTK_OBJECT(widget), "toggled",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+
+  /* Start zapping muted */
+  widget = lookup_widget(zapping_properties, "checkbutton3");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
+    zconf_get_boolean(NULL, "/zapping/options/main/start_muted"));
+
+  gtk_signal_connect(GTK_OBJECT(widget), "toggled",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+
+  /* Verbosity value passed to zapping_setup_fb */
+  widget = lookup_widget(zapping_properties, "spinbutton1");
+  gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget),
+     zconf_get_integer(NULL,
+		       "/zapping/options/main/zapping_setup_fb_verbosity"));
+
+  gtk_signal_connect(GTK_OBJECT(widget), "changed",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+
+  /* Let the plugins add their properties */
+  while (p)
+    {
+      plugin_add_properties(GNOME_PROPERTY_BOX(zapping_properties),
+			    (struct plugin_info * ) p->data);
+      p = p->next;
+    }
+
+  gtk_widget_show(zapping_properties);
+}
+
+
+void
+on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
+                                        gint             arg1,
+                                        gpointer         user_data)
+{
+  GtkWidget * widget; /* Generic widget */
+  GtkWidget * pbox = GTK_WIDGET(gnomepropertybox); /* Very long name */
+  gchar * text; /* Pointer to returned text */
+  GList * p; /* For traversing the plugins */
+  
+  /* Apply just the given page */
+  switch (arg1)
+    {
+    case 0:
+      widget = lookup_widget(pbox, "fileentry1"); /* Video device entry
+						    */
+      text = gnome_file_entry_get_full_path (GNOME_FILE_ENTRY(widget),
+					     TRUE);
+      zconf_set_string(text, "/zapping/options/main/video_device");
+
+      g_free(text); /* In the docs it says this should be freed */
+      break;
+    case 1:
+      widget = lookup_widget(pbox, "checkbutton1"); /* avoid noise */
+      zconf_set_boolean(gtk_toggle_button_get_active(
+	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/avoid_noise");
+
+      widget = lookup_widget(pbox, "checkbutton2"); /* keep geometry */
+      zconf_set_boolean(gtk_toggle_button_get_active(
+	GTK_TOGGLE_BUTTON(widget)),
+			"/zapping/options/main/keep_geometry");
+
+      widget = lookup_widget(pbox, "checkbutton3"); /* start muted */
+      zconf_set_boolean(gtk_toggle_button_get_active(
+	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/start_muted");
+
+      widget = lookup_widget(pbox, "spinbutton1"); /* zapping_setup_fb
+						    verbosity */
+      zconf_set_integer(
+	gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widget)),
+			"/zapping/options/main/zapping_setup_fb_verbosity");
+      break;
+    default:
+      p = g_list_first(plugin_list);
+      while (p) /* Try with all the plugins until one of them accepts
+		   the call */
+	{
+	  if (plugin_apply_properties(gnomepropertybox, arg1,
+				      (struct plugin_info*) p->data))
+	    break; /* returned TRUE: stop */
+	  p = p->next;
+	}
+      /* This shouldn't ideally be reached, but a g_assert is too
+	 strong */
+      if ((p == NULL) && (arg1 != -1))
+	fprintf(stderr, _("%s (%d): This shouldn't have been reached\n"), 
+	       __FILE__, __LINE__);
+      break;
+    }
+}
+
+
+void
+on_zapping_properties_help             (GnomePropertyBox *gnomepropertybox,
+                                        gint             arg1,
+                                        gpointer         user_data)
+{
+  GList * p = g_list_first(plugin_list); /* Traverse all the plugins */
+  static GnomeHelpMenuEntry help_ref = { "zapping",
+				 "index.html" };
+
+  switch (arg1)
+    {
+    case 0:
+    case 1:
+    case 2:
+      gnome_help_display(NULL, &help_ref);
+      break;
+    default:
+      while (p)
+	{
+	  if (plugin_help_properties(gnomepropertybox, arg1,
+				     (struct plugin_info*) p->data))
+	    break;
+	  p = p->next;
+	}
+      if (p == NULL)
+	fprintf(stderr, _("%s (%d): This shouldn't have been reached\n"),
+		__FILE__, __LINE__);
+    }
+}
+
+/* This function is called when some item in the property box changes */
+void
+on_property_item_changed              (GtkWidget * changed_widget,
+				       GnomePropertyBox *propertybox)
+{
+  gnome_property_box_changed (propertybox);
+}

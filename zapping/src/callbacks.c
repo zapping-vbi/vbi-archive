@@ -22,48 +22,60 @@
 
 #include <gnome.h>
 
+#include "tveng.h"
 #include "callbacks.h"
 #include "interface.h"
-#include "support.h"
-#include "v4l2interface.h"
+#include "v4linterface.h"
 #include "plugins.h"
+#include "zconf.h"
+/* Manages config values for zconf (it saves me some typing) */
+#define ZCONF_DOMAIN "/zapping/internal/callbacks/"
+#include "zmisc.h"
 
 gboolean flag_exit_program; /* set this flag to TRUE to exit the program */
-GtkWidget * ChannelWindow = NULL; /* Here is stored the channel editor
-				   widget (if any) */
 GtkWidget * ToolBox = NULL; /* Here is stored the Toolbox (if any) */
 
-extern tveng_channels * current_country; /* Currently selected contry */
-
-gboolean channels_updated = FALSE; /* TRUE if there are pending channel
-				      updates */
-extern tveng_device_info info; /* About the main device*/
-extern int zapping_window_x, zapping_window_y; /* Main Window
-						  coordinates */
-extern int zapping_window_width, zapping_window_height;
+extern tveng_device_info * main_info; /* About the device we are using */
 
 int cur_tuned_channel = 0; /* Currently tuned channel */
-
-gboolean take_screenshot = FALSE; /* Set to TRUE if you want a
-				     screenshot */
 
 GtkWidget * black_window = NULL; /* The black window when you go
 				    preview */
 
 extern GList * plugin_list; /* The plugins we have */
 
-extern struct config_struct config;
+/* Starts and stops callbacks */
+gboolean startup_callbacks(void)
+{
+  /* Init values to their defaults */
+  zcc_int(30, _("X coord of the Zapping window"), "x");
+  zcc_int(30, _("Y coord of the Zapping window"), "y");
+  zcc_int(640, _("Width of the Zapping window"), "w");
+  zcc_int(480, _("Height of the Zapping window"), "h");
+  zcc_int(0, _("Currently tuned channel"), "cur_tuned_channel");
+  cur_tuned_channel = zcg_int(NULL, "cur_tuned_channel");
+
+  return TRUE;
+}
+
+void shutdown_callbacks(void)
+{
+  zcs_int(cur_tuned_channel, "cur_tuned_channel");
+}
 
 /* Gets the geometry of the main window */
 void UpdateCoords(GdkWindow * window);
 
 void UpdateCoords(GdkWindow * window)
 {
-  gdk_window_get_origin(window, &zapping_window_x,
-			&zapping_window_y);
-
-  gdk_window_get_size(window, &zapping_window_width,
-		      &zapping_window_height);
+  int x, y, w, h;
+  gdk_window_get_origin(window, &x, &y);
+  gdk_window_get_size(window, &w, &h);
+  
+  zcs_int(x, "x");
+  zcs_int(y, "y");
+  zcs_int(w, "w");
+  zcs_int(h, "h");
 }
 
 void
@@ -75,135 +87,6 @@ on_exit2_activate                      (GtkMenuItem     *menuitem,
   UpdateCoords(widget->window);
 
   flag_exit_program = TRUE;
-}
-
-void
-on_country_switch                      (GtkMenuItem     *menu_item,
-					tveng_channels  *country)
-{
-  GtkWidget * clist1 = lookup_widget(GTK_WIDGET(menu_item), "clist1");
-
-  tveng_channel * channel;
-  int id=0;
-
-  gchar new_entry_0[128];
-  gchar new_entry_1[128];
-  gchar *new_entry[] = {new_entry_0, new_entry_1}; /* Allocate room
-						      for new entries */
-  new_entry[0][127] = new_entry[1][127] = 0;
-
-  /* Set the current country */
-  current_country = country;
-
-  gtk_clist_freeze( GTK_CLIST(clist1)); /* We are going to do a number
-					   of changes */
-
-  gtk_clist_clear( GTK_CLIST(clist1));
-  
-  /* Get all available channels for this country */
-  while ((channel = tveng_get_channel_by_id(id, country)))
-    {
-      g_snprintf(new_entry[0], 127, "%s", channel->name);
-      g_snprintf(new_entry[1], 127, "%u", channel->freq);
-      gtk_clist_append(GTK_CLIST(clist1), new_entry);
-      id++;
-    }
-
-  gtk_clist_thaw( GTK_CLIST(clist1));
-
-  /* Set the current country as the user data of the clist */
-  gtk_object_set_user_data ( GTK_OBJECT(clist1), country);
-}
-
-void
-on_channels1_activate                  (GtkMenuItem     *menuitem,
-                                        gpointer         user_data)
-{
-  GtkWidget * channel_window;
-  GtkWidget * country_options_menu;
-
-  GtkWidget * channel_list;
-
-  GtkWidget * new_menu;
-  GtkWidget * menu_item = NULL;
-
-  int i = 0;
-  int currently_tuned_country = 0;
-
-  tveng_channels * tune;
-  tveng_tuned_channel * tuned_channel;
-
-  gchar name[256];
-  gchar real[256];
-  gchar freq[256];
-
-  gchar *entry[] = {name, real, freq};
-
-  name[255] = real[255] = freq[255] = 0;
-
-  if (ChannelWindow)
-    {
-      gtk_widget_grab_focus(ChannelWindow);
-      return;
-    }
-
-  channel_window = create_channel_window();
-  country_options_menu = lookup_widget(channel_window,
-				       "country_options_menu");
-
-  channel_list = lookup_widget(channel_window, "channel_list");
-  new_menu = gtk_menu_new();
-
-  /* Let's setup the window */
-  gtk_widget_destroy(gtk_option_menu_get_menu (GTK_OPTION_MENU
-					       (country_options_menu)));
-
-  while ((tune = tveng_get_country_tune_by_id(i)))
-    {
-      i++;
-      if (tune == current_country)
-	currently_tuned_country = i-1;
-      menu_item = gtk_menu_item_new_with_label(_(tune->name));
-      gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
-			 GTK_SIGNAL_FUNC(on_country_switch),
-			 tune);
-      gtk_widget_show(menu_item);
-      gtk_menu_append( GTK_MENU(new_menu), menu_item);
-    }
-
-  gtk_widget_show(new_menu);
-
-  gtk_option_menu_set_menu( GTK_OPTION_MENU(country_options_menu),
-			    new_menu);
-
-  gtk_option_menu_set_history ( GTK_OPTION_MENU(country_options_menu),
-				currently_tuned_country);
-  
-  /* Change contry to the currently tuned one */
-  if (menu_item)
-    on_country_switch(GTK_MENU_ITEM(menu_item), 
-		      current_country);
-
-  /* Setup the channel list */
-  i = 0;
-
-  while ((tuned_channel = tveng_retrieve_tuned_channel_by_index(i)))
-    {
-      i++;
-      g_snprintf(entry[0], 255, tuned_channel->name);
-      g_snprintf(entry[1], 255, tuned_channel->real_name);
-      g_snprintf(entry[2], 255, "%u", tuned_channel->freq);
-      gtk_clist_append(GTK_CLIST(channel_list), entry);
-    }
-
-  /* Save the disabled menuitem */
-  gtk_object_set_user_data(GTK_OBJECT(channel_window), menuitem);
-
-  gtk_widget_set_sensitive(GTK_WIDGET(menuitem), FALSE);
-
-  gtk_widget_show(channel_window);
-
-  ChannelWindow = channel_window; /* Set this, we are present */
 }
 
 void
@@ -231,86 +114,67 @@ on_tv_screen_size_allocate             (GtkWidget       *widget,
                                         GtkAllocation   *allocation,
                                         gpointer         user_data)
 {
-  int w2,h2;
+  /* Delete the old image */
+  zimage_destroy();
 
-  /* Set to nearest 4-multiplus */
-  /* This way some line-padding problems I got dissapear */
-  int w = (allocation->width+3) & (~3);
-  int h = (allocation->height+3) & (~3);
-
-  if (GTK_WIDGET_REALIZED(widget))
+  if (tveng_set_capture_size(allocation->width, allocation->height, 
+			     main_info) == -1)
     {
-      gdk_window_get_size(widget -> window, &w2, &h2);
-
-      /* Don't call reallocate on this one */
-      if ((w2 == w) && (h2 == h))
-	return;
+      fprintf(stderr, "%s\n", main_info->error);
+      return;
     }
 
-  if (tveng_set_capture_size(w, h,
-			     &info) == -1)
-    {
-      ShowBox(_("Sorry, but I cannot set the capture size correctly, exiting"),
-	      GNOME_MESSAGE_BOX_ERROR);
-      flag_exit_program = TRUE;
-    }
-
-  if (tveng_get_capture_size(&w, &h, &info) == -1)
-    {
-      ShowBox(_("Sorry, but I cannot get the capture size correctly, exiting"),
-	      GNOME_MESSAGE_BOX_ERROR);
-      flag_exit_program = TRUE;
-    }
-
-  /* This function shouldn't be called before the widget is shown
-     (realized) */
-  if (GTK_WIDGET_REALIZED(widget))
-    gdk_window_resize(widget -> window, w, h);
+  /* Reallocate a new image */
+  zimage_reallocate(main_info->format.width, main_info->format.height);
 }
 
 /* Activate an standard */
 void on_standard_activate              (GtkMenuItem     *menuitem,
 					gpointer        user_data)
 {
-  tveng_enumstd * std = (tveng_enumstd *) user_data; 
-  tveng_device_info * info = std -> info;
+  gint std = GPOINTER_TO_INT(user_data);
+  GtkWidget * main_window = lookup_widget(GTK_WIDGET(menuitem), "zapping");
 
-  if (!strcasecmp(info->cur_standard.name, std->std.std.name))
+  if (std == main_info->cur_standard)
     return; /* Do nothing if this standard is already active */
 
-  if (tveng_set_standard(std->std.std.name, info) == -1) /* Set the
+  if (tveng_set_standard_by_index(std, main_info) == -1) /* Set the
 							 standard */
     {
-      ShowBox(_("Cannot set standard"), GNOME_MESSAGE_BOX_ERROR);
+      ShowBox(main_info -> error, GNOME_MESSAGE_BOX_ERROR);
       return;
     }
 
   /* redesign menus */
-  update_inputs_menu(GTK_WIDGET(menuitem), info);
+  update_standards_menu(main_window, main_info);
 }
 
 /* Activate an input */
 void on_input_activate              (GtkMenuItem     *menuitem,
 				     gpointer        user_data)
 {
-  tveng_input * input = (tveng_input *) user_data; 
-  tveng_device_info * info = input -> info;
+  gint input = GPOINTER_TO_INT (user_data);
+  GtkWidget * main_window = lookup_widget(GTK_WIDGET(menuitem), "zapping");
 
-  if (tveng_set_input(input->input.index, info) == -1) /* Set the
+  if (main_info -> cur_input == input)
+    return; /* Nothing if no change is needed */
+
+  if (tveng_set_input_by_index(input, main_info) == -1) /* Set the
 							 input */
     {
       ShowBox(_("Cannot set input"), GNOME_MESSAGE_BOX_ERROR);
       return;
     }
-  update_channels_menu(GTK_WIDGET(menuitem), info);
+
+  update_standards_menu(main_window, main_info);
 }
 
 /* Activate a TV channel */
 void on_channel_activate              (GtkMenuItem     *menuitem,
 				       gpointer        user_data)
 {
-  int num_channel = (int) user_data;
-  int mute;
+  gint num_channel = GPOINTER_TO_INT(user_data);
+  int mute = 0;
 
   tveng_tuned_channel * channel =
     tveng_retrieve_tuned_channel_by_index(num_channel); 
@@ -322,26 +186,25 @@ void on_channel_activate              (GtkMenuItem     *menuitem,
       return;
     }
 
-  if (config.avoid_noise)
+  if (zconf_get_boolean(NULL, "/zapping/options/main/avoid_noise"))
     {
-      tveng_get_mute(&mute, &info);
+      mute = tveng_get_mute(main_info);
       
       if (!mute)
-	tveng_set_mute(1, &info);
+	tveng_set_mute(1, main_info);
     }
 
-  if (tveng_tune_input(info.cur_input,
-		       channel->freq, &info) == -1) /* Set the
+  if (tveng_tune_input(channel->freq, main_info) == -1) /* Set the
 						       input freq*/
     ShowBox(_("Cannot tune input"), GNOME_MESSAGE_BOX_ERROR);
 
-  if (config.avoid_noise)
+  if (zconf_get_boolean(NULL, "/zapping/options/main/avoid_noise"))
     {
       /* Sleep a little so the noise dissappears */
       usleep(100000);
       
       if (!mute)
-	tveng_set_mute(0, &info);
+	tveng_set_mute(0, main_info);
     }
 
   cur_tuned_channel = num_channel; /* Set the current channel to this */
@@ -352,9 +215,12 @@ on_controls_clicked                    (GtkButton       *button,
                                         gpointer         user_data)
 {
   if (ToolBox)
-    return;
+    {
+      gdk_window_raise(ToolBox -> window);
+      return;
+    }
 
-  ToolBox = create_control_box(&info);
+  ToolBox = create_control_box(main_info);
 
   gtk_widget_set_sensitive(GTK_WIDGET(button), FALSE);
 
@@ -367,204 +233,51 @@ void
 on_control_slider_changed              (GtkAdjustment *adjust,
 					gpointer user_data)
 {
-  __u32 cid = (__u32) user_data;
-  tveng_device_info * info = gtk_object_get_data(GTK_OBJECT(adjust),
-						 "info");
-  tveng_set_control(cid, (int)adjust->value, info);
+  /* Control id */
+  gint cid = GPOINTER_TO_INT (user_data);
+
+  g_assert(cid < main_info -> num_controls);
+
+  tveng_set_control(&(main_info->controls[cid]), (int)adjust->value,
+		    main_info);
 }
 
 void
 on_control_checkbutton_toggled         (GtkToggleButton *tb,
 					gpointer user_data)
 {
-  __u32 cid = (__u32) user_data;
-  tveng_device_info * info = gtk_object_get_data(GTK_OBJECT(tb),
-						 "info");
-  tveng_set_control(cid, gtk_toggle_button_get_active(tb), info);
+  gint cid = GPOINTER_TO_INT (user_data);
+
+  g_assert(cid < main_info -> num_controls);
+
+  tveng_set_control(&(main_info-> controls[cid]),
+		    gtk_toggle_button_get_active(tb),
+		    main_info);
 }
 
 void
 on_control_menuitem_activate           (GtkMenuItem *menuitem,
 					gpointer user_data)
 {
-  __u32 cid = (__u32) user_data;
-  tveng_device_info * info = gtk_object_get_data(GTK_OBJECT(menuitem),
-						 "info");
+  gint cid = GPOINTER_TO_INT (user_data);
+
   int value = (int) gtk_object_get_data(GTK_OBJECT(menuitem),
 					"value");
 
-  tveng_set_control(cid, value, info);
+  g_assert(cid < main_info -> num_controls);
+
+  tveng_set_control(&(main_info -> controls[cid]), value, main_info);
 }
 
 void
 on_control_button_clicked              (GtkButton *button,
 					gpointer user_data)
 {
-  __u32 cid = (__u32) user_data;
-  tveng_device_info * info = gtk_object_get_data (GTK_OBJECT(button),
-						  "info");
-  tveng_set_control(cid, 1, info);
-}
+  gint cid = GPOINTER_TO_INT (user_data);
 
-/* 
-   This is called when we are done processing the channels, to update
-   the GUI
-*/
-void
-on_channels_done_clicked               (GtkButton       *button,
-                                        gpointer         user_data)
-{
-  GtkWidget * channel_list = lookup_widget(GTK_WIDGET(button),
-					   "channel_list");
-  GtkWidget * channel_window = lookup_widget(GTK_WIDGET (button),
-					     "channel_window"); /* The
-					     channel editor window */
+  g_assert(cid < main_info -> num_controls);
 
-  GList * ptr; /* Pointer to the selected item(s) in clist1 */
-  int index; /* The row we are reading now */
-  gchar * dummy_ptr; /* We need this one for getting the freq */
-
-  tveng_tuned_channel tc;
-
-  /* Clear tuned channel list */
-  tveng_clear_tuned_channel();
-
-  index = 0;
-
-  ptr = GTK_CLIST(channel_list) -> row_list;
-
-  while (ptr)
-    {
-      /* Add this selected channel to the channel list */
-      gtk_clist_get_text(GTK_CLIST(channel_list), index, 0, &(tc.name));
-      gtk_clist_get_text(GTK_CLIST(channel_list), index, 1,
-			 &(tc.real_name));
-
-      gtk_clist_get_text(GTK_CLIST(channel_list), index, 2,
-			 &(dummy_ptr));
-
-      g_assert(dummy_ptr != NULL);
-
-      if (!sscanf(dummy_ptr, "%u", &(tc.freq)))
-	  g_warning(_("Cannot sscanf() unsigned integer from %s"),
-		    dummy_ptr);
-
-      tveng_insert_tuned_channel(&tc);
-
-      ptr = ptr -> next;
-      index++;
-    }
-
-  /* We are done, acknowledge the update in the channel list */
-  channels_updated = TRUE;
-
-  gtk_widget_set_sensitive(GTK_WIDGET(
-		  gtk_object_get_user_data(GTK_OBJECT(channel_window))),
-			   TRUE);
-
-  gtk_widget_destroy(channel_window);
-
-  ChannelWindow = NULL;
-}
-
-void
-on_add_channel_clicked                 (GtkButton       *button,
-                                        gpointer         user_data)
-{
-  GtkWidget * clist1 = lookup_widget(GTK_WIDGET(button), "clist1");
-  GtkWidget * channel_list = lookup_widget(GTK_WIDGET(button),
-					   "channel_list");
-  GtkWidget * channel_name = lookup_widget(GTK_WIDGET(button),
-					   "channel_name");
-
-  GList * ptr; /* Pointer to the selected item(s) in clist1 */
-  int index = 0; /* The row we are reading now */
-
-  gchar *entry[3];
-  
-  entry[0] = gtk_entry_get_text (GTK_ENTRY(channel_name));
-
-  ptr = GTK_CLIST(clist1) -> row_list;
-
-  while (ptr)
-    {
-      if (GTK_CLIST_ROW(ptr) -> state == GTK_STATE_SELECTED)
-	{ /* Add this selected channel to the channel list */
-	  gtk_clist_get_text(GTK_CLIST(clist1), index, 0,
-			     &(entry[1]));
-	  gtk_clist_get_text(GTK_CLIST(clist1), index, 1,
-			     &(entry[2]));
-	  gtk_clist_append(GTK_CLIST(channel_list), entry);
-	}
-      ptr = ptr -> next;
-      index++;
-    }
-}
-
-void
-on_remove_channel_clicked              (GtkButton       *button,
-                                        gpointer         user_data)
-{
-  GtkWidget * channel_list = lookup_widget(GTK_WIDGET(button),
-					   "channel_list");
-
-  GList * ptr; /* Pointer to the selected item(s) in clist1 */
-  int index; /* The row we are reading now */
-
- reinit_loop:; /* Could be programmed better, but this way it works */
-
-  index = 0;
-
-  ptr = GTK_CLIST(channel_list) -> row_list;
-
-  while (ptr)
-    {
-      if (GTK_CLIST_ROW(ptr) -> state == GTK_STATE_SELECTED)
-	{
-	  /* Add this selected channel to the channel list */
-	  gtk_clist_remove(GTK_CLIST(channel_list), index);
-	  goto reinit_loop;
-	}
-
-      ptr = ptr -> next;
-      index++;
-    }
-}
-
-void
-on_clist1_select_row                   (GtkCList        *clist,
-                                        gint             row,
-                                        gint             column,
-                                        GdkEvent        *event,
-                                        gpointer         user_data)
-{
-  tveng_channels * country = (tveng_channels*)
-    gtk_object_get_user_data( GTK_OBJECT(clist));
-  tveng_channel * selected_channel = tveng_get_channel_by_id (row,
-							      country);
-  if ((!selected_channel) || (!country))
-    {
-      printf("Interface error: trying to switch to void channel\n");
-      return;
-    }
-
-  tveng_tune_input (info.cur_input, selected_channel->freq, &info);
-}
-
-gboolean
-on_channel_window_delete_event         (GtkWidget       *widget,
-                                        GdkEvent        *event,
-                                        gpointer         user_data)
-{
-  GtkWidget * related_menuitem =
-    GTK_WIDGET(gtk_object_get_user_data(GTK_OBJECT(widget)));
-
-  ChannelWindow = NULL; /* No more channel window */
-
-  /* Set the menuentry sensitive again */
-  gtk_widget_set_sensitive(related_menuitem, TRUE);
-
-  return FALSE;
+  tveng_set_control(&(main_info->controls[cid]), 1, main_info);
 }
 
 gboolean
@@ -585,249 +298,14 @@ on_control_box_delete_event            (GtkWidget      *widget,
 }
 
 void
-on_screenshot_clicked                  (GtkButton       *button,
-                                        gpointer         user_data)
-{
-  take_screenshot = TRUE;
-}
-
-
-void
-on_propiedades1_activate               (GtkMenuItem     *menuitem,
-                                        gpointer         user_data)
-{
-  GtkWidget * zapping_properties = create_zapping_properties();
-  GList * p = g_list_first(plugin_list); /* For traversing the plugins
-					  */
-
-  /* Widget for assigning the callbacks (generic) */
-  GtkWidget * widget;
-
-  /* Connect the widgets to the apropiate callbacks, so the Apply
-     button works correctly. Set the correct values too */
-  widget = lookup_widget(zapping_properties, "checkbutton1");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-			       config.png_show_progress);
-  gtk_signal_connect(GTK_OBJECT(widget), "toggled",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  widget = lookup_widget(zapping_properties, "entry1");
-  gtk_entry_set_text(GTK_ENTRY(widget), config.png_prefix);
-  gtk_signal_connect(GTK_OBJECT(widget), "changed",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  widget = lookup_widget(zapping_properties, "fileentry1");
-  widget = gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(widget));
-
-  gtk_entry_set_text(GTK_ENTRY(widget),
-		     config.png_src_dir);
-
-  gtk_signal_connect(GTK_OBJECT(widget), "changed",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  widget = lookup_widget(zapping_properties, "checkbutton2");
-  config.capture_interlaced = info.interlaced;
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-			       config.capture_interlaced);
-
-  gtk_signal_connect(GTK_OBJECT(widget), "toggled",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  widget = lookup_widget(zapping_properties, "spinbutton1");
-  gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget),
-			    info.num_desired_buffers);
-
-  gtk_signal_connect(GTK_OBJECT(widget), "changed",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  widget = lookup_widget(zapping_properties, "fileentry2"); /* Video
-							       device */
-  widget = gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(widget));
-
-  gtk_entry_set_text(GTK_ENTRY(widget),
-		     config.video_device);
-
-  gtk_signal_connect(GTK_OBJECT(widget), "changed",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  /* zapping_setup_fb verbosity */
-  widget = lookup_widget(zapping_properties, "spinbutton2"); 
-  gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget),
-			    config.zapping_setup_fb_verbosity);
-
-  gtk_signal_connect(GTK_OBJECT(widget), "changed",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  widget = lookup_widget(zapping_properties, "checkbutton3");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-			       config.avoid_noise);
-
-  gtk_signal_connect(GTK_OBJECT(widget), "toggled",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  /* Let the plugins add their properties */
-  while (p)
-    {
-      plugin_add_properties(GNOME_PROPERTY_BOX(zapping_properties),
-			    (struct plugin_info * ) p->data);
-      p = p->next;
-    }
-
-  gtk_widget_show(zapping_properties);
-}
-
-
-void
-on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
-                                        gint             arg1,
-                                        gpointer         user_data)
-{
-  GtkWidget * widget; /* Generic widget */
-  GtkWidget * pbox = GTK_WIDGET(gnomepropertybox); /* Very long name */
-  gchar * text; /* Pointer to returned text */
-  GList * p; /* For traversing the plugins */
-  
-  /* Apply just the given page */
-  switch (arg1)
-    {
-    case 0:
-      widget = lookup_widget(pbox, "entry1"); /* Prefix entry */
-      config.png_prefix[31] = 0;
-      g_snprintf(config.png_prefix, 31,
-		 gtk_entry_get_text(GTK_ENTRY(widget)));
-      widget = lookup_widget(pbox, "fileentry1"); /* Source dir entry
-						    */
-      text = gnome_file_entry_get_full_path (GNOME_FILE_ENTRY(widget),
-					     TRUE);
-      config.png_src_dir[PATH_MAX-1] = 0;
-      g_snprintf(config.png_src_dir, PATH_MAX-1, text);
-      g_free(text); /* In the docs it says this should be freed */
-
-      widget = lookup_widget(pbox, "checkbutton1"); /* Wheter to show
-						       a progress bar
-						       or not */
-      config.png_show_progress = gtk_toggle_button_get_active
-	(GTK_TOGGLE_BUTTON(widget));
-      break;
-    case 1:
-      widget = lookup_widget(pbox, "checkbutton2"); /* Capture
-						       interlaced */
-      config.capture_interlaced = gtk_toggle_button_get_active
-	(GTK_TOGGLE_BUTTON(widget));
-      info.interlaced = config.capture_interlaced;
-
-      widget = lookup_widget(pbox, "spinbutton1"); /* Number of
-						      desired buffers */
-      info.num_desired_buffers =
-	gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widget));
-
-      widget = lookup_widget(pbox, "fileentry2"); /* Video device entry
-						    */
-      text = gnome_file_entry_get_full_path (GNOME_FILE_ENTRY(widget),
-					     TRUE);
-      config.video_device[FILENAME_MAX-1] = 0;
-      g_snprintf(config.video_device, FILENAME_MAX-1, text);
-      g_free(text); /* In the docs it says this should be freed */
-      break;
-    case 2: /* Misc options */
-      widget = lookup_widget(pbox, "spinbutton2"); /* zapping_setup_fb
-						    verbosity */
-      config.zapping_setup_fb_verbosity =
-	gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widget));
-
-      widget = lookup_widget(pbox, "checkbutton3"); /* avoid noises */
-      config.avoid_noise = gtk_toggle_button_get_active
-	(GTK_TOGGLE_BUTTON(widget));
-      break;
-    default:
-      p = g_list_first(plugin_list);
-      while (p) /* Try with all the plugins until one of them accepts
-		   the call */
-	{
-	  if (plugin_apply_properties(gnomepropertybox, arg1,
-				      (struct plugin_info*) p->data))
-	    break; /* returned TRUE: stop */
-	  p = p->next;
-	}
-      /* This shouldn't ideally be reached, but a g_assert is too
-	 strong */
-      if ((p == NULL) && (arg1 != -1))
-	fprintf(stderr, _("%s (%d): This shouldn't have been reached\n"), 
-	       __FILE__, __LINE__);
-      break;
-    }
-}
-
-
-void
-on_zapping_properties_help             (GnomePropertyBox *gnomepropertybox,
-                                        gint             arg1,
-                                        gpointer         user_data)
-{
-  /* FIXME: Find out why we have to start and stop capturing to avoid
-     errors */
-  /* FIXME: Add the help */
-
-  gboolean flag = info.current_mode == TVENG_CAPTURE_MMAPED_BUFFERS;
-  GList * p = g_list_first(plugin_list); /* Traverse all the plugins */
-  /*  static GnomeHelpMenuEntry help_ref = { "zapping",
-					 "properties.html" };
-  */
-  if (flag)
-    tveng_stop_capturing(&info);
-  switch (arg1)
-    {
-    case 0:
-    case 1:
-    case 2:
-      break; /* FIXME: Write the help (it's above, i know) */
-    default:
-      while (p)
-	{
-	  if (plugin_help_properties(gnomepropertybox, arg1,
-				     (struct plugin_info*) p->data))
-	    break;
-	  p = p->next;
-	}
-      if (p == NULL)
-	fprintf(stderr, _("%s (%d): This shouldn't have been reached\n"),
-		__FILE__, __LINE__);
-    }
-  
-  /* gnome_help_display(NULL, & help_ref); */
-
-  if (flag)
-    tveng_start_capturing(&info);
-}
-
-/* This function is called when some item in the property box changes */
-void
-on_property_item_changed              (GtkWidget * changed_widget,
-				       GnomePropertyBox *propertybox)
-{
-  gnome_property_box_changed (propertybox);
-}
-
-void
 on_go_fullscreen1_activate             (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
   GtkWidget * da; /* Drawing area */
-  /* Return if we are in fullscreen mode now */
-  if (info.current_mode == TVENG_CAPTURE_FULLSCREEN)
-    return;
 
-  /* Stop capturing if we are capturing */
-  if (info.current_mode == TVENG_CAPTURE_MMAPED_BUFFERS)
-    tveng_stop_capturing(&info);
+  /* Return if we are in fullscreen mode now */
+  if (main_info->current_mode == TVENG_CAPTURE_PREVIEW)
+    return;
 
   /* Add a black background */
   black_window = gtk_window_new( GTK_WINDOW_POPUP );
@@ -845,14 +323,16 @@ on_go_fullscreen1_activate             (GtkMenuItem     *menuitem,
 		     TRUE,
 		     0, 0, gdk_screen_width(), gdk_screen_height());
 
-  if (!tveng_start_fullscreen_previewing(&info,
-					 config.zapping_setup_fb_verbosity))
+  if (tveng_start_previewing(main_info) == -1)
     {
       ShowBox(_("Sorry, but cannot go fullscreen"),
 	      GNOME_MESSAGE_BOX_ERROR);
-      tveng_start_capturing(&info);
+      tveng_start_capturing(main_info);
       return;
     }
+
+  if (main_info -> current_mode != TVENG_CAPTURE_PREVIEW)
+    g_warning("Setting preview succeeded, but the mode is not set");
 
   /* Grab the keyboard to the main zapping window */
   gdk_keyboard_grab(lookup_widget(GTK_WIDGET(menuitem), "zapping")->window,
@@ -865,11 +345,34 @@ void
 on_go_windowed1_activate               (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
-  if (info.current_mode != TVENG_CAPTURE_FULLSCREEN)
+  int w,h;
+  GtkWidget * widget;
+  GtkAllocation dummy_alloc;
+
+  if (main_info->current_mode != TVENG_CAPTURE_PREVIEW)
     return;
 
-  tveng_stop_fullscreen_previewing(&info);
-  tveng_start_capturing(&info);
+  if (-1 == tveng_start_capturing(main_info))
+    {
+      ShowBox(main_info -> error, GNOME_MESSAGE_BOX_ERROR);
+      return;
+    }
+
+  widget = lookup_widget(GTK_WIDGET(menuitem), "tv_screen");
+  if (!widget)
+    {
+      ShowBox(_("I cannot find the main zapping window, weird..."),
+	      GNOME_MESSAGE_BOX_ERROR);
+      return;      
+    }
+
+  /* Fake a resize (to the actual size), this will update all capture
+     structs */
+  gdk_window_get_size(widget -> window, &w, &h);
+
+  dummy_alloc.width = w;
+  dummy_alloc.height = h;
+  on_tv_screen_size_allocate(widget, &dummy_alloc, NULL);
 
   /* Ungrab the previously grabbed keyboard */
   gdk_keyboard_ungrab(GDK_CURRENT_TIME);
@@ -898,7 +401,7 @@ on_channel_up1_activate                (GtkMenuItem     *menuitem,
     new_channel = num_channels - 1;
 
   /* Simulate a callback */
-  on_channel_activate(NULL, (gpointer) new_channel);
+  on_channel_activate(NULL, GINT_TO_POINTER(new_channel));
   
   /* Update the option menu */
   gtk_option_menu_set_history(GTK_OPTION_MENU (Channels),
@@ -925,7 +428,7 @@ on_channel_down1_activate              (GtkMenuItem     *menuitem,
     new_channel = 0;
 
   /* Simulate a callback */
-  on_channel_activate(NULL, (gpointer) new_channel);
+  on_channel_activate(NULL, GINT_TO_POINTER(new_channel));
   
   /* Update the option menu */
   gtk_option_menu_set_history(GTK_OPTION_MENU (Channels),
