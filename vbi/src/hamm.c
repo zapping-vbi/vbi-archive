@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: hamm.c,v 1.3.2.2 2003-06-16 06:03:05 mschimek Exp $ */
+/* $Id: hamm.c,v 1.3.2.3 2004-01-30 00:38:22 mschimek Exp $ */
 
 #include "hamm.h"
 
@@ -83,8 +83,8 @@ vbi_fpar			(uint8_t *		p,
 {
 	for (; n-- > 0; p++) {
 		unsigned int c = *p;
-
-		if ((vbi_hamm24_inv_par[0][c] & 32) == 0)
+		
+		if (0 == (vbi_hamm24_inv_par[0][c] & 32))
 			*p = c ^ 128;
 	}
 }
@@ -174,12 +174,9 @@ vbi_hamm8_inv [256] = {
  *  ETS 300 706, Section 8.3 Hamming 18/24 (code from AleVT)
  */
 
-/*
- *  This table generates the parity checks for hamm24/18 decoding.
- *  Bit 0 is for test A, 1 for B, ...
- *
- *  Thanks to R. Gancarz for this fine table *g*
- */
+/* This table generates the parity checks for hamm24/18 decoding.
+   Bit 0 is for test A, 1 for B, ...
+   Thanks to R. Gancarz for this fine table *g* */
 const int8_t
 vbi_hamm24_inv_par [3][256] = {
     {
@@ -248,10 +245,8 @@ vbi_hamm24_inv_par [3][256] = {
     }
 };
 
-/*
- *  Table to extract the lower 4 bits from first hamm24/18
- *  encoded byte (P4 D4 D3 D2 P3 D1 P2 P1)
- */
+/* Table to extract the lower 4 bits from first hamm24/18
+   encoded byte (P4 D4 D3 D2 P3 D1 P2 P1) */
 static const int8_t
 vbi_hamm24_val [128] = {
 	 0,  0,  0,  0,  1,  1,  1,  1,  0,  0,  0,  0,  1,  1,  1,  1,
@@ -265,11 +260,9 @@ vbi_hamm24_val [128] = {
 	14, 14, 14, 14, 15, 15, 15, 15, 14, 14, 14, 14, 15, 15, 15, 15
 };
 
-/*
- *  Correction of single bit error in decoded word,
- *  according to test A ... F in table vbi_hamm24_inv_tst.
- *  MSB indicates double bit error.
- */
+/* Correction of single bit error in decoded word,
+   according to test A ... F in table vbi_hamm24_inv_tst.
+   MSB indicates double bit error. */
 static const int32_t
 vbi_hamm24_cor [64] = {
 	0x00000000, 0x80000000, 0x80000000, 0x80000000,
@@ -306,7 +299,7 @@ vbi_hamm24_cor [64] = {
  * if the triplet contained incorrectable errors.
  */
 int
-vbi_iham24			(const uint8_t *	p)
+vbi_iham24p			(const uint8_t *	p)
 {
 	int e = vbi_hamm24_inv_par[0][p[0]]
 		^ vbi_hamm24_inv_par[1][p[1]]

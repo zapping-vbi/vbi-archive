@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: hamm.h,v 1.4.2.2 2003-06-16 06:03:13 mschimek Exp $ */
+/* $Id: hamm.h,v 1.4.2.3 2004-01-30 00:38:33 mschimek Exp $ */
 
 #ifndef HAMM_H
 #define HAMM_H
@@ -54,9 +54,24 @@ extern const int8_t		vbi_hamm24_inv_par [3][256];
  * Data bits 0 [msb] ... 7 [lsb].
  */
 static_inline unsigned int
-vbi_rev8			(uint8_t		c)
+vbi_rev8			(unsigned int		c)
 {
-	return vbi_bit_reverse[c];
+	return vbi_bit_reverse[(uint8_t) c];
+}
+
+/**
+ * @param c Unsigned 16 bit word.
+ * 
+ * Reverses the bits of the argument.
+ * 
+ * @return
+ * Data bits 0 [msb] ... 15 [lsb].
+ */
+static_inline unsigned int
+vbi_rev16			(unsigned int		c)
+{
+	return vbi_bit_reverse[(uint8_t) c] * 256
+		+ vbi_bit_reverse[(uint8_t)(c >> 8)];
 }
 
 /**
@@ -69,10 +84,28 @@ vbi_rev8			(uint8_t		c)
  * Data bits 0 [msb] ... 15 [lsb].
  */
 static_inline unsigned int
-vbi_rev16			(const uint8_t *	p)
+vbi_rev16p			(const uint8_t *	p)
 {
 	return vbi_bit_reverse[p[0]] * 256
 		+ vbi_bit_reverse[p[1]];
+}
+
+/**
+ * @param c Unsigned byte.
+ *
+ * @return
+ * Changes the most significant bit of the byte
+ * to make the number of set bits odd.
+ */
+static_inline unsigned int
+vbi_fpar8			(unsigned int		c)
+{
+	c &= 255;
+
+	if (0 == (vbi_hamm24_inv_par[0][c] & 32))
+		c ^= 128;
+
+	return c;
 }
 
 /**
@@ -87,11 +120,10 @@ vbi_ipar8			(unsigned int		c)
 {
 #ifdef __GNUC__
 #if #cpu (i686)
-	int r = c;
+	int r = c & 127;
 
-	/* This saves cache flushes and a branch */
-	__asm__ (" andl		$127,%0\n"
-		 " testb	%1,%1\n"
+	/* This saves cache flushes and an explicit branch. */
+	__asm__ (" testb	%1,%1\n"
 		 " cmovp	%2,%0\n"
 		 : "+&a" (r) : "c" (c), "rm" (-1));
 	return r;
@@ -120,7 +152,11 @@ vbi_ipar			(uint8_t *		p,
  * Hamming encoded unsigned byte, lsb first
  * transmitted.
  */
-#define vbi_fham8(c) vbi_hamm8_fwd[(c) & 15]
+static_inline unsigned int
+vbi_fham8			(unsigned int		c)
+{
+	return vbi_hamm8_fwd[c & 15];
+}
 
 /**
  * @param c Hamming 8/4 protected byte, lsb first
@@ -133,7 +169,11 @@ vbi_ipar			(uint8_t *		p,
  * Data bits (D4 [msb] ... D1 [lsb]) or a negative
  * value if the byte contained incorrectable errors.
  */
-#define vbi_iham8(c) vbi_hamm8_inv[(uint8_t)(c)]
+static_inline unsigned int
+vbi_iham8			(unsigned int		c)
+{
+	return vbi_hamm8_inv[(uint8_t) c];
+}
 
 /**
  * @param p Pointer to a Hamming 8/4 protected 16 bit word,
@@ -148,15 +188,15 @@ vbi_ipar			(uint8_t *		p,
  * contained incorrectable errors.
  */
 static_inline int
-vbi_iham16			(const uint8_t *	p)
+vbi_iham16p			(const uint8_t *	p)
 {
 	return ((int) vbi_hamm8_inv[p[0]])
 	  | (((int) vbi_hamm8_inv[p[1]]) << 4);
 }
 
 extern int
-vbi_iham24			(const uint8_t *	p);
-
+vbi_iham24p			(const uint8_t *	p)
+	vbi_attribute_pure;
 /** @} */
 
 /* Private */
