@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.55 2005-02-12 13:30:46 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.56 2005-02-25 18:12:02 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu -> ? */
 #undef GTK_DISABLE_DEPRECATED
@@ -478,7 +478,7 @@ do_start			(const gchar *		file_name)
 
 	  capture_format_id = request_capture_format
 	    (zapping_info, width, height,
-	     pixfmt_set, REQ_SIZE | REQ_PIXFMT);
+	     pixfmt_set, REQ_SIZE | REQ_PIXFMT | REQ_CONTINUOUS);
 
 	  if (-1 == capture_format_id)
 	    {
