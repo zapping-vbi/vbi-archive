@@ -116,7 +116,7 @@ di_setup		(GtkWidget	*page)
 	  {
 	  case 0:
 	    buffer = 
-	      g_strdup_printf(_("%s"),
+	      g_strdup_printf("%s",
 			      main_info->inputs[i].type ==
 			      TVENG_INPUT_TYPE_TV ? _("TV input") :
 			      _("Camera"));

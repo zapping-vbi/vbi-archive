@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.120 2002-03-27 00:57:53 mschimek Exp $
+dnl $Id: configure.in,v 1.121 2002-03-28 17:51:03 garetxe Exp $
 
 AC_INIT(src/callbacks.c)
 AM_INIT_AUTOMAKE(zapping, 0.6.3)
@@ -300,8 +300,9 @@ AC_TRY_LINK([#include <tree.h>], [
   xmlNodePtr node = 0xdeadbeef;
   node->childs = NULL;
   return 0; ],
-  AC_MSG_RESULT(chils)
-  AC_DEFINE(LIBXML_CHILDS, 1, [Define if xmlNodePtr has childs, not children]),
+  [ AC_MSG_RESULT(childs)
+    AC_DEFINE(LIBXML_CHILDS, 1,
+	[Define if xmlNodePtr has childs, not children])],
   AC_MSG_RESULT(children))
 
 dnl ----------------------------------------------------------------------
@@ -487,11 +488,6 @@ PLUGIN_DEFAULT_FLAGS="$CFLAGS -Wno-unused"
 AC_SUBST(PLUGIN_DEFAULT_FLAGS)
 
 rm -f po/Makefile
-
-dnl GNOME_X_CHECKS
-if true; then true; else
-  AC_DEFINE(HAVE_LIBSM, 1, [Define if SM lib is present])
-fi
 
 AC_OUTPUT([
 zapping.spec

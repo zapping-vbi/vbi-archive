@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.6.3\n"
-"POT-Creation-Date: 2002-03-25 13:49+0100\n"
+"POT-Creation-Date: 2002-03-28 14:49+0100\n"
 "PO-Revision-Date: 2002-03-20 15:36+0100\n"
 "Last-Translator: Christian Marillat <marillat.christian@wanadoo.fr>\n"
 "Language-Team: French <fr@li.org>\n"
