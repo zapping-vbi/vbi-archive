@@ -1472,7 +1472,7 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
 
   switch (event->keyval)
     {
-    case GDK_0...GDK_9:
+    case GDK_0 ... GDK_9:
       if (data->page >= 0x100)
 	data->page = 0;
       data->page = (data->page<<4)+event->keyval-GDK_0;
@@ -1488,7 +1488,7 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
 	  g_free(buffer);
 	}
       break;
-    case GDK_KP_0...GDK_KP_9:
+    case GDK_KP_0 ... GDK_KP_9:
       if (data->page >= 0x100)
 	data->page = 0;
       data->page = (data->page<<4)+event->keyval-GDK_KP_0;

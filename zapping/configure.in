@@ -173,10 +173,10 @@ i?86-* | k?-*) dnl catch i386,i486,i586,i686,k6,k7
 	case "$host_alias" in
 		i386-*) dnl who are we kidding?
 			HAVE_MMX="yes"			
-			ARCH_CFLAGS="-march=m386";;
+			ARCH_CFLAGS="-march=i386";;
 		i486-*)
 			HAVE_MMX="yes"			
-			ARCH_CFLAGS="-march=m486";;
+			ARCH_CFLAGS="-march=i486";;
 		i586-*)
 			HAVE_MMX="yes"			
 			ARCH_CFLAGS="-march=pentium";;
