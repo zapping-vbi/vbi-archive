@@ -9,7 +9,7 @@
 #include <misc.h>
 #include <vbi.h>
 //#include <lang.h>
-#include <../common/ucs-2.h>
+#include <../common/ucs-2.h> // ucs2_t prototype
 #include <dllist.h>
 #include <export.h>
 
