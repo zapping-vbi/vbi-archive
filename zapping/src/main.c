@@ -60,6 +60,8 @@ gint			disable_preview = FALSE;/* preview should be
 						   disabled */
 gint			disable_xv = FALSE; /* XVideo should be
 					       disabled */
+gboolean		xv_present = FALSE; /* Whether the
+					       device can be attached as XV */
 GtkWidget		*main_window;
 gboolean		was_fullscreen=FALSE; /* will be TRUE if when
 						 quitting we were
@@ -310,7 +312,7 @@ int main(int argc, char * argv[])
 			      0, NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.105 2001-04-28 19:29:35 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.106 2001-04-29 00:25:34 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -448,6 +450,9 @@ int main(int argc, char * argv[])
     }
 
  device_ok:
+  if (main_info->current_controller == TVENG_CONTROLLER_XV)
+    xv_present = TRUE;
+
   D();
   /* mute the device while we are starting up */
   tveng_set_mute(1, main_info);

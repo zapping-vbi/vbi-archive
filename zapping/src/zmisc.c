@@ -41,6 +41,7 @@ extern tveng_device_info * main_info;
 extern volatile gboolean flag_exit_program;
 extern GtkWidget * main_window;
 extern gint disable_preview; /* TRUE if preview won't work */
+extern gboolean xv_present;
 gboolean debug_msg=FALSE; /* Debugging messages on or off */
 
 /*
@@ -291,7 +292,8 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	return -1;
       }
 
-      if (info->current_controller != TVENG_CONTROLLER_XV)
+      if (info->current_controller != TVENG_CONTROLLER_XV &&
+	  xv_present)
 	{
 	  tveng_close_device(info);
 	  if (tveng_attach_device(zcg_char(NULL, "video_device"),
@@ -350,7 +352,8 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	return -1;
       }
 
-      if (info->current_controller != TVENG_CONTROLLER_XV)
+      if (info->current_controller != TVENG_CONTROLLER_XV &&
+	  xv_present)
 	{
 	  tveng_close_device(info);
 	  if (tveng_attach_device(zcg_char(NULL, "video_device"),
