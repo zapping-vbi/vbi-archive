@@ -29,9 +29,10 @@ do_erc(struct vt_page *ovtp, struct vt_page *nvtp)
 {
     int l, c;
 
-    if (nvtp->errors == 0 && ovtp->lines == nvtp->lines)
+//    if (nvtp->errors == 0 && ovtp->lines == nvtp->lines)
 	return;
 
+/* obsolete
     for (l = 0; l < H; ++l)
     {
 	if (~nvtp->lines & (1 << l))
@@ -42,6 +43,7 @@ do_erc(struct vt_page *ovtp, struct vt_page *nvtp)
 		    nvtp->data[l][c] = ovtp->data[l][c];
     }
     nvtp->lines |= ovtp->lines;
+*/
 }
 
 static void

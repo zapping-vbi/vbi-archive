@@ -3,16 +3,16 @@
 
 #include "vt.h"
 #include "misc.h"
+#include "lang.h"
 #include "../common/types.h"
 
+typedef enum {
+	BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE,
+} colours;
 
 typedef enum {
 	TRANSPARENT_SPACE, TRANSPARENT, SEMI_TRANSPARENT, OPAQUE
 } opacity;
-
-typedef enum {
-	BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE
-} colours;
 
 /*
 	N	DW  OT	    DH	    DS  OT
@@ -24,29 +24,50 @@ typedef enum {
 } glyph_size;
 
 typedef struct fmt_char {
+	unsigned	underline	: 1;
+	unsigned	bold		: 1;
+	unsigned	italic		: 1;
+	unsigned	flash		: 1;
 	unsigned	size		: 8;
 	unsigned	opacity		: 8;
-	unsigned	underline	: 8;
-	unsigned	flash		: 8;
-	unsigned	foreground	: 8;
-	unsigned	background	: 8;
-	unsigned	glyph		: 16;
+	unsigned	foreground	: 8;	// 5
+	unsigned	background	: 8;	// 5
+	unsigned	glyph		: 32;
 	unsigned	link_page	: 16;
 	unsigned	link_subpage	: 8;
 } attr_char;
 
-
-#define E_DEF_FG	7
-#define E_DEF_BG	0
-#define E_DEF_ATTR	0
-
 struct fmt_page
 {
-    struct vt_page *vtp;
-    struct fmt_char data[H][W];
-    unsigned int colour_map[32];
-    unsigned char *drcs_clut;	/* 64 entries */
-    unsigned char *drcs;	/* 48 * 12 * 10 nibbles, LSN first */
+	struct vt_page *vtp;
+	struct fmt_char data[H][W];
+
+	rgba			screen_colour;
+	opacity			screen_opacity;
+
+	rgba *			colour_map;
+
+	unsigned char *		drcs_clut;		/* 64 entries */
+	unsigned char *		drcs[32];		/* 16 * 48 * 12 * 10 nibbles, LSN first */
+
+	/* private */
+
+	magazine *		magazine;
+	font_descriptor	*	font[2];
+	opacity			page_opacity[2];
+	opacity			boxed_opacity[2];
+
+	unsigned int		double_height_lower;
+	unsigned char		row_colour[25];
+
+	/* XXX need a page update flag,
+	 * a) drcs or objects unresolved, redraw when available (consider long
+         *    refresh cycles, eg. displayed page is a subpage), we want to
+	 *    display asap and don't know if references can be resolved at all 
+	 * b) referenced page changed, unlikely but possible
+	 * c) displayed page changed
+	 * NB source can be any page and subpage.
+	 */
 };
 
 struct export
@@ -82,8 +103,8 @@ void export_close(struct export *e);
 int export(struct export *e, struct vt_page *vtp, char *user_str);
 
 /* formats the vtp page into a more easily usable format */
-void
-fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp);
+//void
+//fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp, );
 
 /*
   renders the formatted page into mem (1byte per pixel, paletted) and

@@ -105,7 +105,7 @@ static char odd_parity[256] =
 // bit 0 is for test A, 1 for B, ...
 // thanks to R. Gancarz for this fine table *g*
 
-static char hamm24par[3][256] =
+char hamm24par[3][256] =
 {
     { // parities of first byte
 	 0, 33, 34,  3, 35,  2,  1, 32, 36,  5,  6, 39,  7, 38, 37,  4,

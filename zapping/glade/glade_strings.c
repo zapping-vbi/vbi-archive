@@ -72,9 +72,9 @@ gchar *s = N_("Western and Central Europe\n"
               "Western Europe and Turkey\n"
               "Central and Southeast Europe\n"
               "Cyrillic\n"
-              "Greece and Cyprus\n"
+              "Greek and Turkish\n"
               "Arabic\n"
-              "Israel\n"
+              "Hebrew and Arabic\n"
               "");
 gchar *s = N_("VBI options");
 gchar *s = N_("Channel choosing");

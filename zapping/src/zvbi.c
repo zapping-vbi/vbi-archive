@@ -420,8 +420,8 @@ get_ttx_index(int id, int *pgno, int *subno)
   pthread_mutex_lock(&clients_mutex);
   if ((client = find_client(id)))
     {
-      *pgno = client->vtp._data.lop.link[5].pgno;
-      *subno = client->vtp._data.lop.link[5].subno;
+      *pgno = client->vtp.data.lop.link[5].pgno;
+      *subno = client->vtp.data.lop.link[5].subno;
       if ((*pgno & 0xff) == 0xff)
 	{
 	  *pgno = vbi->initial_page.pgno;

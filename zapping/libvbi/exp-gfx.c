@@ -12,12 +12,41 @@
 #undef WH
 #undef CW
 #undef CH
-#define CW 12
+
+#define CW 12		/* character cell dimensions - hardcoded (DRCS) */
 #define CH 10
 #define WW (W*CW)
 #define WH (H*CH)
 
-// static void init_gfx(void) __attribute__ ((constructor));
+#if 0
+
+static void init_gfx(void) __attribute__ ((constructor));
+
+static void
+init_gfx(void)
+{
+	unsigned char *buf, *p;
+	int i, j;
+
+	/* de-interleave font image (puts all chars in row 0) */
+	/* could load font image here rather than inline */
+	/* XXX need blank line #10 for c & (1 << 11) or diacr bitmap */
+
+	if (!(buf = malloc(wstfont_width * wstfont_height / 8)))
+		exit(EXIT_FAILURE);
+	p = buf;
+
+	for (i = 0; i < CH; i++)
+		for (j = 0; j < wstfont_height; p += wstfont_width / 8, j += CH)
+			memcpy(p, wstfont_bits + (j + i) * wstfont_width / 8,
+				wstfont_width / 8);
+
+	memcpy(wstfont_bits, buf, wstfont_width * wstfont_height / 8);
+
+	free(buf);
+}
+
+#endif
 
 #define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
 
@@ -29,30 +58,53 @@
 #endif
 
 static inline void
-draw_char(unsigned int *canvas, unsigned int *pen, int c, glyph_size size)
+draw_char(unsigned int *canvas, unsigned int *pen, int glyph,
+	int bold, int underline, glyph_size size)
 {
 	unsigned char *src1, *src2;
 	int shift1, shift2;
-	int x, y;
-
-// printf("DC <%c> %d\n", printable(c), size);
-
-	x = (c & 31) * CW;
+	int x, y, base = 0; // XXX italic ? GL_ITALICS : 0;
+	int ch = CH;
+#if 1
+	x = (glyph & 31) * CW;
 	shift1 = x & 7;
-	src1 = wstfont_bits + ((c & 0x3FF) >> 5) * CH * CW * 32 / 8 + (x >> 3);
+	src1 = wstfont_bits + ((glyph & 0xFFFF) >> 5) * CH * CW * 32 / 8 + (x >> 3);
 
-	x = (c >> 12) * CW;
-	shift2 = (x & 7) + ((c >> 10) & 1);
-	src2 = wstfont_bits + (0xC0 >> 5) * CH * CW * 32 / 8 + (x >> 3);
-	if (c & 0x800) src2 += CW * 32 / 8;
+	x = (glyph >> 20) * CW;
+	shift2 = (x & 7) + ((glyph >> 18) & 1);
+	src2 = wstfont_bits + ((base + 0xC0) >> 5) * CH * CW * 32 / 8 + (x >> 3);
+	if (glyph & 0x80000) src2 += CW * 32 / 8;
+#else
+	x = (glyph & 0xFFFF) * CW;
+	shift1 = x & 7;
+	src1 = wstfont_bits + (x >> 3);
 
-	for (y = 0; y < CH; y++) {
+	x = (base + 0xC0 + (glyph >> 20)) * CW;
+	shift2 = (x & 7) + ((glyph >> 18) & 1);
+	src2 = wstfont_bits + (x >> 3);
+	if (glyph & (1 << 19))
+		src2 += wstfont_width * (wstfont_height / CH) / 8;
+#endif
+
+// XXX not good, undo.
+	if (size == DOUBLE_HEIGHT2 || size == DOUBLE_SIZE2) {
+		src1 += CH * CW * 32 / 8 / 2;
+		ch >>= 1;
+	}
+
+	for (y = 0; y < ch; y++) {
 #if #cpu (i386)
 		int bits = (*((u16 *) src1) >> shift1) | (*((u16 *) src2) >> shift2);
 #else
 		int bits = ((src1[1] * 256 + src1[0]) >> shift1)
 			 | ((src2[1] * 256 + src2[0]) >> shift2); /* unaligned/little endian */
 #endif
+		if (bold)
+			bits |= bits << 1;
+
+		if (underline && y == 9)
+			bits |= 0x0FFF;
+
 		switch (size) {
 		case NORMAL:
 			for (x = 0; x < CW; bits >>= 1, x++)
@@ -63,6 +115,7 @@ draw_char(unsigned int *canvas, unsigned int *pen, int c, glyph_size size)
 			break;
 
 		case DOUBLE_HEIGHT:
+		case DOUBLE_HEIGHT2:
 			for (x = 0; x < CW; bits >>= 1, x++) {
 				unsigned int col = pen[bits & 1];
 
@@ -87,6 +140,7 @@ draw_char(unsigned int *canvas, unsigned int *pen, int c, glyph_size size)
 			break;
 
 		case DOUBLE_SIZE:
+		case DOUBLE_SIZE2:
 			for (x = 0; x < CW * 2; bits >>= 1, x += 2) {
 				unsigned int col = pen[bits & 1];
 
@@ -103,20 +157,24 @@ draw_char(unsigned int *canvas, unsigned int *pen, int c, glyph_size size)
 		default:
 			break;
 		}
-
+#if 1
 		src1 += CW * 32 / 8;
 		src2 += CW * 32 / 8;
+#else
+		src1 += wstfont_width * (wstfont_height / CH) / 8;
+		src2 += wstfont_width * (wstfont_height / CH) / 8;
+#endif
 	}
 }
 
 static inline void
-draw_drcs(unsigned int *canvas, unsigned char *src, unsigned int *pen, int c, glyph_size size)
+draw_drcs(unsigned int *canvas, unsigned char *src, unsigned int *pen, int glyph, glyph_size size)
 {
 	unsigned int col;
 	int x, y;
 
-	src += (c & 0x3F) * 60;
-	pen += (c >> 10);
+	src += (glyph & 0x3F) * 60;
+	pen += (glyph >> 16);
 
 	switch (size) {
 	case NORMAL:
@@ -133,6 +191,7 @@ draw_drcs(unsigned int *canvas, unsigned char *src, unsigned int *pen, int c, gl
 				col = pen[*src & 15];
 				canvas[x + 0] = col;
 				canvas[x + WW + 0] = col;
+
 				col = pen[*src >> 4];
 				canvas[x + 1] = col;
 				canvas[x + WW + 1] = col;
@@ -145,6 +204,7 @@ draw_drcs(unsigned int *canvas, unsigned char *src, unsigned int *pen, int c, gl
 				col = pen[*src & 15];
 				canvas[x + 0] = col;
 				canvas[x + 1] = col;
+
 				col = pen[*src >> 4];
 				canvas[x + 2] = col;
 				canvas[x + 3] = col;
@@ -159,6 +219,7 @@ draw_drcs(unsigned int *canvas, unsigned char *src, unsigned int *pen, int c, gl
 				canvas[x + 1] = col;
 				canvas[x + WW + 0] = col;
 				canvas[x + WW + 1] = col;
+
 				col = pen[*src >> 4];
 				canvas[x + 2] = col;
 				canvas[x + 3] = col;
@@ -188,11 +249,14 @@ draw_page(struct fmt_page *pg, unsigned int *canvas)
 			pen[0] = pg->colour_map[ac->background];
 			pen[1] = pg->colour_map[ac->foreground];
 
-			if (ac->size <= DOUBLE_SIZE) {
-				if ((ac->glyph & 0x3FF) >= 0x3C0)
-					draw_drcs(canvas, pg->drcs, pen, ac->glyph, ac->size);
-				else
-					draw_char(canvas, pen, ac->glyph, ac->size);
+//			if (ac->size <= DOUBLE_SIZE) 
+	{
+				if ((ac->glyph & 0xFFFF) >= GL_DRCS) {
+					draw_drcs(canvas, pg->drcs[(ac->glyph & 0x1F00) >> 8],
+						pen, ac->glyph, ac->size);
+				} else
+					draw_char(canvas, pen, ac->glyph,
+						ac->bold, ac->underline, ac->size);
 			}
 		}
 	}

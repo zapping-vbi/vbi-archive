@@ -63,7 +63,7 @@ typedef enum {
 	PAGE_CODING_BYTES,
 	PAGE_CODING_TRIPLETS,
 	PAGE_CODING_HAMMING84,
-	PAGE_CODING_, /* XXX 8/12 8/12, purpose? */
+	PAGE_CODING_812812,
 	PAGE_CODING_META84
 } page_coding;
 
@@ -84,7 +84,11 @@ typedef struct {
 	char		left_side_panel;
 	char		right_side_panel;
 	char		left_panel_columns;
-} vt_ext_fallback;
+} ext_fallback;
+
+typedef unsigned int	rgba;			/* 0xAABBGGRR */
+
+#define TRANSPARENT_BLACK 8
 
 typedef struct {
 	unsigned int	designations;
@@ -93,14 +97,15 @@ typedef struct {
 
 	char		def_screen_colour;
 	char		def_row_colour;
+
 	char		foreground_clut;	/* 0, 8, 16, 24 */
 	char		background_clut;
 
-	vt_ext_fallback	fallback;
+	ext_fallback	fallback;
 
 	u8		drcs_clut[2 + 2 * 4 + 2 * 16];
 						/* f/b, dclut4, dclut16 */
-	u16		colour_map[32];
+	rgba		colour_map[32];
 } vt_extension;
 
 typedef struct vt_triplet {
@@ -121,7 +126,6 @@ typedef struct vt_pagenum {
 struct vt_page
 {
 	page_function		function;
-	page_coding		coding;
 	int			national;
 
     int pgno, subno;	// the wanted page number
@@ -129,7 +133,8 @@ struct vt_page
     int flags;		// misc flags (see PG_xxx below)
     int errors;		// number of single bit errors in page
     u32 lines;		// 1 bit for each line received
-    u8 data[26][40];	// page contents
+
+	u32		lop_lines, enh_lines;			/* set of received lines */
 
 	union {
 		struct {
@@ -148,7 +153,7 @@ struct vt_page
 			u8		bits[48][12 * 10 / 2];	/* XXX too large for a union? */
 			u8		drcs_mode[48];
 		}		gdrcs, drcs;
-	}		_data;
+	}		data;
 
 	/* added temporarily: */
 	struct vbi *	vbi;
@@ -165,7 +170,8 @@ struct vt_page
 
 
 typedef enum {
-	OBJ_TYPE_NONE,
+	LOCAL_ENHANCEMENT_DATA = 0,
+	OBJ_TYPE_NONE = 0,
 	OBJ_TYPE_ACTIVE,
 	OBJ_TYPE_ADAPTIVE,
 	OBJ_TYPE_PASSIVE
@@ -181,7 +187,7 @@ typedef int object_address;
 
 typedef struct {
 	int		pgno;
-	vt_ext_fallback	fallback;
+	ext_fallback	fallback;
 	struct {
 		object_type	type;
 		object_address	address;
@@ -190,8 +196,10 @@ typedef struct {
 
 typedef struct {
 	vt_extension	extension;
+
 	unsigned char	pop_lut[256];
     	pop_link	pop_link[16];
+
 	unsigned char	drcs_lut[256];
 	int		drcs_link[16];	/* pgno */
 } magazine;

@@ -4,7 +4,7 @@
 #include "vt.h"
 #include "dllist.h"
 #include "cache.h"
-#include "lang.h"
+//#include "lang.h"
 
 /* #include "../common/fifo.h"
   libvbi.h exports this globally :-(
@@ -18,7 +18,6 @@
 struct raw_page
 {
     struct vt_page page[1];
-    struct enhance enh[1];
 	vt_extension		extension;
 	u8			drcs_mode[48];
 	int			num_triplets;
@@ -40,7 +39,7 @@ struct vbi
     // magazine defaults
 
 	vt_pagenum		initial_page;
-	magazine		magazine[8];
+	magazine		magazine[9];	/* 1 ... 8; #0 unmodified level -1.5 default */
 
     // page assembly
     struct raw_page rpage[8];	// one for each magazin
@@ -73,5 +72,6 @@ int vbi_line(struct vbi *vbi, u8 *p);
 void vbi_set_default_region(struct vbi *vbi, int default_region);
 
 extern bool		convert_pop(struct vt_page *vtp, page_function function);
+extern void drcs_conv(struct vt_page *vtp);
 
 #endif
