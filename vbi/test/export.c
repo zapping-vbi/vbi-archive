@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.5.2.2 2004-02-13 02:10:15 mschimek Exp $ */
+/* $Id: export.c,v 1.5.2.3 2004-02-18 07:53:21 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -62,6 +62,64 @@ pdc_dump (vbi_page *pg)
 		fputs ("No PDC data\n", stderr);
 }
 
+static vbi_bool
+export_link			(vbi_export *		export,
+				 void *			user_data,
+				 FILE *			fp,
+				 const vbi_link *	link,
+				 const char *		text)
+{
+	if (0)
+		fprintf (stderr, "link text: \"%s\"\n", text);
+
+	switch (link->type) {
+	case VBI_LINK_HTTP:
+	case VBI_LINK_FTP:
+	case VBI_LINK_EMAIL:
+		fprintf (fp, "<a href=\"%s\">%s</a>",
+			 link->url, text);
+		break;
+
+	case VBI_LINK_PAGE:
+	case VBI_LINK_SUBPAGE:
+		fprintf (fp, "<a href=\"ttx-%3x-%02x.html\">%s</a>",
+			 link->pgno,
+			 (VBI_ANY_SUBNO == link->subno) ?
+			 0 : link->subno,
+			 text);
+		break;
+
+	default:
+		fputs (text, fp);
+		break;
+	}
+
+	return 0 == ferror (fp);
+}
+
+static vbi_bool
+export_pdc			(vbi_export *		export,
+				 void *			user_data,
+				 FILE *			fp,
+				 const vbi_preselection *pl,
+				 const char *		text)
+{
+	unsigned int end;
+
+	end = pl->at1_hour * 60 + pl->at1_minute + pl->length;
+
+	fprintf (fp, "<acronym title=\"%04u-%02u-%02u "
+		 "%02u:%02u-%02u:%02u "
+		 "VPS/PDC: %02u%02u\">%s</acronym>",
+		 pl->year, pl->month + 1, pl->day + 1,
+		 pl->at1_hour, pl->at1_minute,
+		 (end / 60 % 24), end % 60,
+		 pl->at2_hour, pl->at2_minute,
+		 text);
+
+	return 0 == ferror (fp);
+}
+
 static void
 handler(vbi_event *ev, void *unused)
 {
@@ -72,7 +130,7 @@ handler(vbi_event *ev, void *unused)
 		ev->ev.ttx_page.pgno,
 		ev->ev.ttx_page.subno & 0xFF);
 
-	if (pgno != -1 && ev->ev.ttx_page.pgno != pgno)
+	if (pgno >= 0 && ev->ev.ttx_page.pgno != pgno)
 		return;
 
 	if (delay > 0) {
@@ -93,9 +151,8 @@ handler(vbi_event *ev, void *unused)
 			       VBI_NAVIGATION, option_navigation,
 			       VBI_HYPERLINKS, option_hyperlinks,
 			       VBI_PDC_LINKS, option_pdc_links,
-			       VBI_END);
+			       0);
 
-	/* Just for fun */
 	if (pgno == -1) {
 		char name[256];
 		
@@ -120,10 +177,12 @@ handler(vbi_event *ev, void *unused)
 
 	vbi_page_delete (pg);
 
-	if (pgno == -1)
-		assert(fclose(fp) == 0);
-	else
+	if (pgno < 0) {
+		if (pgno == -1)
+			assert(fclose(fp) == 0);
+	} else {
 		quit = TRUE;
+	}
 }
 
 static void
@@ -209,11 +268,12 @@ main(int argc, char **argv)
 	option_navigation = FALSE;
 	option_hyperlinks = FALSE;
 	option_pdc_links = FALSE;
+	option_enum = FALSE;
 	delay = 0;
 
 	for (i = 1; i < argc; ++i) {
 		if (0 == strcmp ("-d", argv[i])) {
-			delay = 3;
+			delay += 1;
 		} else if (0 == strcmp ("-4", argv[i])) {
 			option_columns_41 = TRUE;
 		} else if (0 == strcmp ("-n", argv[i])) {
@@ -259,6 +319,13 @@ main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
+	if (0 == strncmp (module, "html", 4)) {
+		if (option_hyperlinks)
+			vbi_export_set_link_fn (ex, export_link, NULL);
+
+		if (option_pdc_links)
+			vbi_export_set_pdc_fn (ex, export_pdc, NULL);
+	}
 
 	assert((xi = vbi_export_info_export(ex)));
 	assert((extension = strdup(xi->extension)));
