@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.2\n"
-"POT-Creation-Date: 2000-06-03 01:42+0200\n"
+"POT-Creation-Date: 2000-06-04 00:32+0200\n"
 "PO-Revision-Date: 2000-02-14 16:56+0100\n"
 "Last-Translator: Iñaki García Etxebarria <garetxe@users.sourceforge.net>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -43,11 +43,11 @@ msgstr ""
 "Lo siento, pero \"%s\" no se pudo abrir:\n"
 "%s"
 
-#: src/main.c:254
+#: src/main.c:265
 msgid "There is no allocated mem for the capture"
 msgstr "No hay memoria reservada para la captura"
 
-#: src/main.c:338
+#: src/main.c:349
 msgid ""
 "ZConf could not be closed properly , your\n"
 "configuration will be lost.\n"
@@ -66,7 +66,7 @@ msgstr ""
 "   - o, más probablemente, esto es un fallo de Zapping.\n"
 "     Por favor contacte con el autor.\n"
 
-#: src/main.c:367
+#: src/main.c:378
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Zapping no puede crear la configuración"
 
@@ -600,7 +600,7 @@ msgid ""
 "Hashes are 0x%x vs. 0x%x"
 msgstr ""
 
-#: src/zmisc.c:92
+#: src/zmisc.c:98
 #, c-format
 msgid ""
 "Sorry, but a %dx%d image couldn't be allocated, the image will not be "
@@ -840,43 +840,43 @@ msgstr ""
 msgid "Sorry, but no plugins have been loaded"
 msgstr "No se ha cargado ningún plugin"
 
-#: src/plugin_properties.c:156
+#: src/plugin_properties.c:154
 msgid "Very low"
 msgstr "Muy baja"
 
-#: src/plugin_properties.c:158
+#: src/plugin_properties.c:156
 msgid "Low"
 msgstr "Baja"
 
-#: src/plugin_properties.c:160
+#: src/plugin_properties.c:158
 msgid "Below normal"
 msgstr "Por debajo de lo normal"
 
-#: src/plugin_properties.c:162
+#: src/plugin_properties.c:160
 msgid "Normal"
 msgstr ""
 
-#: src/plugin_properties.c:164
+#: src/plugin_properties.c:162
 msgid "Very high"
 msgstr "Muy alta"
 
-#: src/plugin_properties.c:166
+#: src/plugin_properties.c:164
 msgid "High"
 msgstr "Alta"
 
-#: src/plugin_properties.c:168
+#: src/plugin_properties.c:166
 msgid "Above normal"
 msgstr "Por encima de lo normal"
 
-#: src/plugin_properties.c:201
+#: src/plugin_properties.c:198
 msgid "This plugin has no public symbols"
 msgstr "Este plugin no tiene símbolos públicos"
 
-#: src/plugin_properties.c:223
+#: src/plugin_properties.c:220
 msgid "List of symbols exported by the plugin"
 msgstr "Lista de símbolos exportados por el plugin"
 
-#: src/plugin_properties.c:278
+#: src/plugin_properties.c:279
 msgid "Sorry, but the plugin couldn't be started"
 msgstr "Lo siento, el plugin no puede ser iniciado"
 
@@ -1100,7 +1100,7 @@ msgstr "Iniciar Zapping sin sonido"
 
 #: glade/glade_strings.c:41
 msgid "Verbosity value given to zapping_setup_fb:"
-msgstr "Nivel de mensajes de zapping__setup__fb (un programa auxiliar)"
+msgstr "Nivel de mensajes de zapping__setup__fb:"
 
 #: glade/glade_strings.c:42
 msgid "The bigger this value is, the more verbose zapping_setup_fb will be"
@@ -1110,123 +1110,13 @@ msgstr ""
 msgid "General options"
 msgstr "Opciones generales"
 
-#: glade/glade_strings.c:44
-msgid "Plugin properties"
-msgstr "Propiedades del plugin"
-
-#: glade/glade_strings.c:45
-msgid "Modules"
-msgstr "Modulos"
-
-#: glade/glade_strings.c:46
-msgid "label67 (Plugin name)"
-msgstr ""
-
-#: glade/glade_strings.c:47
-msgid "label68 (Plugin short description)"
-msgstr ""
-
-#: glade/glade_strings.c:48
-msgid "This is the file where the plugin is located"
-msgstr "Fichero donde se encuentra el plugin"
-
-#: glade/glade_strings.c:49
-msgid "text2"
-msgstr ""
-
-# src/interface.c:405
-#: glade/glade_strings.c:50
-msgid "Canonical name:"
-msgstr "Nombre canónico:"
-
-#: glade/glade_strings.c:51
-msgid "label69"
-msgstr ""
-
-#: glade/glade_strings.c:52
-msgid "Author:"
-msgstr "Autor:"
-
-#: glade/glade_strings.c:53
-msgid "label71"
-msgstr ""
-
-#: glade/glade_strings.c:54
-msgid "Plugin version:"
-msgstr "Version:"
-
-#: glade/glade_strings.c:55
-msgid "label72"
-msgstr ""
-
-#: glade/glade_strings.c:56
-msgid "Plugin priority:"
-msgstr "Prioridad:"
-
-#: glade/glade_strings.c:57
-msgid "label73"
-msgstr ""
-
-#: glade/glade_strings.c:58
-msgid "Plugin description"
-msgstr "Descripción:"
-
-#: glade/glade_strings.c:59
-msgid "text1"
-msgstr ""
-
-#: glade/glade_strings.c:60
-msgid "label76"
-msgstr ""
-
-#: glade/glade_strings.c:61
-msgid "Symbol"
-msgstr "Símbolo"
-
-#: glade/glade_strings.c:62
-msgid "Hash"
-msgstr ""
-
-#: glade/glade_strings.c:63
-msgid "label74 (prototype)"
-msgstr ""
-
-#: glade/glade_strings.c:64
-msgid "label75 (symbol description)"
-msgstr ""
-
-# src/interface.c:448
-#: glade/glade_strings.c:65
-msgid "Click here when you are done with the plugins"
-msgstr "Pulsa aquí cuando hayas acabado"
-
-#: glade/glade_strings.c:66
-msgid "Activate (start) the plugin"
-msgstr "Iniciar el plugin"
-
-#: glade/glade_strings.c:67
-msgid "Start Plugin"
-msgstr "Iniciar"
-
-#: glade/glade_strings.c:68
-msgid "Stop the plugin"
-msgstr "Parar el plugin"
-
-#: glade/glade_strings.c:69
-msgid "Stop Plugin"
-msgstr "Parar"
-
-#: glade/glade_strings.c:70
-msgid "dialog1"
-msgstr ""
-
 # src/interface.c:307
-#: glade/glade_strings.c:71
+#: glade/glade_strings.c:44
 msgid "Channel choosing"
 msgstr "Selector de canales"
 
 # src/interface.c:316
-#: glade/glade_strings.c:72
+#: glade/glade_strings.c:45
 msgid ""
 "Choose here the channels you want to use.\n"
 "If your country is not listed, please find out the frequencies used for\n"
@@ -1239,95 +1129,212 @@ msgstr ""
 "del programa."
 
 # src/interface.c:336
-#: glade/glade_strings.c:76
+#: glade/glade_strings.c:49
 msgid "Select here the country you are in"
 msgstr "Selecciona tu país"
 
-#: glade/glade_strings.c:77
+#: glade/glade_strings.c:50
 msgid "Dummy country\n"
 msgstr ""
 
 # src/interface.c:336
-#: glade/glade_strings.c:79
+#: glade/glade_strings.c:52
 msgid "Select here the channel you want to tune"
 msgstr "Selecciona el canal que quieras sintonizar"
 
 # src/interface.c:362
-#: glade/glade_strings.c:80 glade/glade_strings.c:83
+#: glade/glade_strings.c:53 glade/glade_strings.c:56
 msgid "Channel"
 msgstr "Canal"
 
 # src/interface.c:369
-#: glade/glade_strings.c:81
+#: glade/glade_strings.c:54
 msgid "Freq (kHz)"
 msgstr "Frec (kHz)"
 
-#: glade/glade_strings.c:82
+#: glade/glade_strings.c:55
 msgid "Alias"
 msgstr ""
 
 # src/interface.c:247
-#: glade/glade_strings.c:84
+#: glade/glade_strings.c:57
 msgid "Country"
 msgstr "País"
 
-#: glade/glade_strings.c:85
+#: glade/glade_strings.c:58
 msgid "kHz"
 msgstr ""
 
-#: glade/glade_strings.c:86
+#: glade/glade_strings.c:59
 msgid "label43"
 msgstr ""
 
-#: glade/glade_strings.c:87
+#: glade/glade_strings.c:60
 msgid "This tries to find the best signal around this frequence"
 msgstr "Trata de buscar la mejor señal cerca de esta frecuencia"
 
-#: glade/glade_strings.c:88
+#: glade/glade_strings.c:61
 msgid "A_utoTune"
 msgstr "A_utosintonizar"
 
 # src/interface.c:382
-#: glade/glade_strings.c:89
+#: glade/glade_strings.c:62
 msgid "Enter here the alias you want to give to this channel:"
 msgstr "Pon aquí el nombre que le quieres dar a este canal"
 
 # src/interface.c:382
-#: glade/glade_strings.c:90
+#: glade/glade_strings.c:63
 msgid "Enter here the name you want to give to this channel"
 msgstr "Pon aquí el nombre que le quieres dar a este canal"
 
 # src/interface.c:448
-#: glade/glade_strings.c:91
+#: glade/glade_strings.c:64 glade/glade_strings.c:72
 msgid "Click here when you are done"
 msgstr "Pulsa aquí cuando hayas acabado"
 
 # src/interface.c:432
-#: glade/glade_strings.c:92
+#: glade/glade_strings.c:65
 msgid "Click this button if you want to discard current changes"
 msgstr "Pulsa aquí para ignorar los cambios actuales"
 
 # src/interface.c:432
-#: glade/glade_strings.c:93
+#: glade/glade_strings.c:66
 msgid "Click here to add current channel"
 msgstr "Pulsa aquí para añadir el canal actual"
 
-#: glade/glade_strings.c:94
+#: glade/glade_strings.c:67
 msgid "_Add"
 msgstr "_Añadir"
 
 # src/interface.c:440
-#: glade/glade_strings.c:95
+#: glade/glade_strings.c:68
 msgid "Click here to delete selected channels"
 msgstr "Pulsa aquí para borrar los canales seleccionados"
 
-#: glade/glade_strings.c:96
+#: glade/glade_strings.c:69
 msgid "_Remove"
 msgstr "_Eliminar"
 
-#: glade/glade_strings.c:97
+#: glade/glade_strings.c:70
 msgid "This shows some help about this dialog"
 msgstr "Muestra ayuda sobre el diálogo"
+
+#: glade/glade_strings.c:71
+msgid "Plugin properties"
+msgstr "Propiedades del plugin"
+
+#: glade/glade_strings.c:73
+msgid "Run the plugin"
+msgstr "Ejecutar el plugin"
+
+#: glade/glade_strings.c:74
+msgid "Start Plugin"
+msgstr "Iniciar"
+
+#: glade/glade_strings.c:75
+msgid "Stop this plugin"
+msgstr "Parar el plugin"
+
+#: glade/glade_strings.c:76
+msgid "Stop Plugin"
+msgstr "Parar"
+
+#: glade/glade_strings.c:77
+msgid "Help about this dialog box"
+msgstr "Muestra ayuda sobre el cuadro de diálogo"
+
+#: glade/glade_strings.c:78
+msgid "Plugins"
+msgstr ""
+
+#: glade/glade_strings.c:79
+msgid "label67 (Plugin name)"
+msgstr ""
+
+#: glade/glade_strings.c:80
+msgid "label68 (Plugin short description)"
+msgstr ""
+
+# src/interface.c:405
+#: glade/glade_strings.c:81
+msgid "Canonical name:"
+msgstr "Nombre canónico:"
+
+#: glade/glade_strings.c:82
+msgid "label69"
+msgstr ""
+
+#: glade/glade_strings.c:83
+msgid "Author:"
+msgstr "Autor:"
+
+#: glade/glade_strings.c:84
+msgid "label71"
+msgstr ""
+
+#: glade/glade_strings.c:85
+msgid "Plugin version:"
+msgstr "Version:"
+
+#: glade/glade_strings.c:86
+msgid "label72"
+msgstr ""
+
+#: glade/glade_strings.c:87
+msgid "Plugin priority:"
+msgstr "Prioridad:"
+
+#: glade/glade_strings.c:88
+msgid "label73"
+msgstr ""
+
+#: glade/glade_strings.c:89
+msgid "Plugin description"
+msgstr "Descripción:"
+
+#: glade/glade_strings.c:90
+msgid "text1"
+msgstr ""
+
+#: glade/glade_strings.c:91
+msgid "Properties"
+msgstr "Propiedades"
+
+#: glade/glade_strings.c:92
+msgid "Plugin location"
+msgstr "Ubicación"
+
+#: glade/glade_strings.c:93
+msgid "This is the file where the plugin is located"
+msgstr "Fichero donde se encuentra el plugin"
+
+#: glade/glade_strings.c:94
+msgid "text2"
+msgstr ""
+
+#: glade/glade_strings.c:95
+msgid "label76"
+msgstr ""
+
+#: glade/glade_strings.c:96
+msgid "Symbol"
+msgstr "Símbolo"
+
+#: glade/glade_strings.c:97
+msgid "Hash"
+msgstr ""
+
+#: glade/glade_strings.c:98
+msgid "Description of the symbol"
+msgstr "Descripción del símbolo"
+
+#: glade/glade_strings.c:99
+msgid "text3"
+msgstr ""
+
+#: glade/glade_strings.c:100
+msgid "Advanced"
+msgstr "Avanzado"
 
 #: plugins/screenshot/screenshot.c:31
 msgid "Screenshot saver"
@@ -1351,7 +1358,7 @@ msgstr "Este plugin guardar la captura como PNG."
 #. Warn
 #: plugins/screenshot/screenshot.c:178
 #, c-format
-msgid "Check error: \"%s\" in plugin %shas hash 0x%x vs. 0x%x"
+msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr ""
 
 #: plugins/screenshot/screenshot.c:303
@@ -1445,10 +1452,3 @@ msgstr ""
 #: plugins/screenshot/screenshot.c:716
 msgid "There are too many threads"
 msgstr ""
-
-#~ msgid ""
-#~ "tveng_run_zapping_setup_fb: %s\n"
-#~ "Fullscreen mode will not work"
-#~ msgstr ""
-#~ "tveng_run_zapping_setup_fb: %s\n"
-#~ "No habrá modo pantalla completa"

@@ -235,4 +235,14 @@ on_plugin_properties_delete_event      (GtkWidget       *widget,
                                         GdkEvent        *event,
                                         gpointer         user_data);
 
+void
+on_plugin_properties_apply             (GnomePropertyBox *gnomepropertybox,
+                                        gint             arg1,
+                                        gpointer         user_data);
+
+void
+on_plugin_properties_help              (GnomePropertyBox *gnomepropertybox,
+                                        gint             arg1,
+                                        gpointer         user_data);
+
 #endif /* __CALLBACKS_H__ */

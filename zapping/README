@@ -45,6 +45,10 @@ http://www.gnome.org
 	projects and programming.
 http://www.gtk.org
 	The toolkit used to build Gnome and this program.
+http://rpmfind.net/linux/RPM/libxml.html
+	Libxml, needed for compiling Zapping (rpm package).
+http://www.megaloman.com/~hany/RPM/doors2.3/libglade-0.12-1.i586.html
+	Libglade, the library used to build the interface (mdk package).
 
 CONTACTING
 ----------

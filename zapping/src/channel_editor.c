@@ -26,11 +26,11 @@
 #include "callbacks.h"
 #include "interface.h"
 #include "v4linterface.h"
-#include "plugins.h"
 #include "zconf.h"
 /* Manages config values for zconf (it saves me some typing) */
 #define ZCONF_DOMAIN "/zapping/internal/callbacks/"
 #include "zmisc.h"
+#include "plugins.h"
 
 GtkWidget * ChannelWindow = NULL; /* Here is stored the channel editor
 				   widget (if any) */

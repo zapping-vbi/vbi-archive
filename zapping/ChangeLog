@@ -1,7 +1,8 @@
 04.6.2000	Plugin code remade <garetxe@users.sourceforge.net>
 
 	* src/plugin_properties.c:
-	* glade/zapping.glade: Dialog layout redesigned.
+	* glade/zapping.glade: Dialog layout redesigned, now the plugins
+	are configurable from the plugin_properties dialog too.
 	
 02.6.2000	First problems fixed <garetxe@users.sourceforge.net>
 

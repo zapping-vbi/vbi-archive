@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-06-03 23:06+0200\n"
+"POT-Creation-Date: 2000-06-04 11:33+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -39,11 +39,11 @@ msgid ""
 "%s"
 msgstr ""
 
-#: src/main.c:257
+#: src/main.c:265
 msgid "There is no allocated mem for the capture"
 msgstr ""
 
-#: src/main.c:341
+#: src/main.c:349
 msgid ""
 "ZConf could not be closed properly , your\n"
 "configuration will be lost.\n"
@@ -55,7 +55,7 @@ msgid ""
 "     Zapping. Please contact the author.\n"
 msgstr ""
 
-#: src/main.c:370
+#: src/main.c:378
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr ""
 
@@ -551,7 +551,7 @@ msgid ""
 "Hashes are 0x%x vs. 0x%x"
 msgstr ""
 
-#: src/zmisc.c:92
+#: src/zmisc.c:98
 #, c-format
 msgid ""
 "Sorry, but a %dx%d image couldn't be allocated, the image will not be "
@@ -817,16 +817,20 @@ msgstr ""
 msgid "Above normal"
 msgstr ""
 
-#: src/plugin_properties.c:201
+#: src/plugin_properties.c:210
 msgid "This plugin has no public symbols"
 msgstr ""
 
-#: src/plugin_properties.c:223
+#: src/plugin_properties.c:232
 msgid "List of symbols exported by the plugin"
 msgstr ""
 
-#: src/plugin_properties.c:278
+#: src/plugin_properties.c:291
 msgid "Sorry, but the plugin couldn't be started"
+msgstr ""
+
+#: src/plugin_properties.c:397
+msgid "Sorry, the plugin doesn't provide help for this"
 msgstr ""
 
 #: zapping_setup_fb/zapping_setup_fb.c:83
@@ -1141,7 +1145,7 @@ msgid "Run the plugin"
 msgstr ""
 
 #: glade/glade_strings.c:74
-msgid "Start Plugin"
+msgid "_Start Plugin"
 msgstr ""
 
 #: glade/glade_strings.c:75
@@ -1149,91 +1153,107 @@ msgid "Stop this plugin"
 msgstr ""
 
 #: glade/glade_strings.c:76
-msgid "Stop Plugin"
+msgid "S_top Plugin"
 msgstr ""
 
 #: glade/glade_strings.c:77
-msgid "Extra info about the plugin"
+msgid "Show the configuration options for this plugin"
 msgstr ""
 
 #: glade/glade_strings.c:78
-msgid "Modules"
+msgid "_Configure"
 msgstr ""
 
 #: glade/glade_strings.c:79
-msgid "label67 (Plugin name)"
+msgid "Plugins"
 msgstr ""
 
 #: glade/glade_strings.c:80
-msgid "label68 (Plugin short description)"
+msgid "label67 (Plugin name)"
 msgstr ""
 
 #: glade/glade_strings.c:81
-msgid "This is the file where the plugin is located"
+msgid "label68 (Plugin short description)"
 msgstr ""
 
 #: glade/glade_strings.c:82
-msgid "text2"
-msgstr ""
-
-#: glade/glade_strings.c:83
 msgid "Canonical name:"
 msgstr ""
 
-#: glade/glade_strings.c:84
+#: glade/glade_strings.c:83
 msgid "label69"
 msgstr ""
 
-#: glade/glade_strings.c:85
+#: glade/glade_strings.c:84
 msgid "Author:"
 msgstr ""
 
-#: glade/glade_strings.c:86
+#: glade/glade_strings.c:85
 msgid "label71"
 msgstr ""
 
-#: glade/glade_strings.c:87
+#: glade/glade_strings.c:86
 msgid "Plugin version:"
 msgstr ""
 
-#: glade/glade_strings.c:88
+#: glade/glade_strings.c:87
 msgid "label72"
 msgstr ""
 
-#: glade/glade_strings.c:89
+#: glade/glade_strings.c:88
 msgid "Plugin priority:"
 msgstr ""
 
-#: glade/glade_strings.c:90
+#: glade/glade_strings.c:89
 msgid "label73"
 msgstr ""
 
-#: glade/glade_strings.c:91
+#: glade/glade_strings.c:90
 msgid "Plugin description"
 msgstr ""
 
-#: glade/glade_strings.c:92
+#: glade/glade_strings.c:91
 msgid "text1"
 msgstr ""
 
+#: glade/glade_strings.c:92
+msgid "Properties"
+msgstr ""
+
 #: glade/glade_strings.c:93
-msgid "label76"
+msgid "Plugin location"
 msgstr ""
 
 #: glade/glade_strings.c:94
-msgid "Symbol"
+msgid "This is the file where the plugin is located"
 msgstr ""
 
 #: glade/glade_strings.c:95
-msgid "Hash"
+msgid "text2"
 msgstr ""
 
 #: glade/glade_strings.c:96
-msgid "label74 (prototype)"
+msgid "label76"
 msgstr ""
 
 #: glade/glade_strings.c:97
-msgid "label75 (symbol description)"
+msgid "Symbol"
+msgstr ""
+
+#: glade/glade_strings.c:98
+msgid "Hash"
+msgstr ""
+
+#: glade/glade_strings.c:99
+msgid "Description of the symbol"
+msgstr ""
+
+#: glade/glade_strings.c:100
+msgid "text3"
+msgstr ""
+
+#: glade/glade_strings.c:101
+msgid "Advanced"
 msgstr ""
 
 #: plugins/screenshot/screenshot.c:31
@@ -1255,7 +1275,7 @@ msgstr ""
 #. Warn
 #: plugins/screenshot/screenshot.c:178
 #, c-format
-msgid "Check error: \"%s\" in plugin %shas hash 0x%x vs. 0x%x"
+msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr ""
 
 #: plugins/screenshot/screenshot.c:303

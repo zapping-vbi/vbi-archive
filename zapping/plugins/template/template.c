@@ -69,9 +69,11 @@ gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
     SYMBOL(plugin_running, 0x1234),
     SYMBOL(plugin_process_frame, 0x1234),
     SYMBOL(plugin_get_public_info, 0x1234),
-    SYMBOL(plugin_add_properties, 0x1234),
+    /* These three shouldn't be exported, since there are no
+       configuration options */
+    /*    SYMBOL(plugin_add_properties, 0x1234),
     SYMBOL(plugin_activate_properties, 0x1234),
-    SYMBOL(plugin_help_properties, 0x1234),
+    SYMBOL(plugin_help_properties, 0x1234),*/
     SYMBOL(plugin_add_gui, 0x1234),
     SYMBOL(plugin_remove_gui, 0x1234),
     SYMBOL(plugin_get_misc_info, 0x1234)

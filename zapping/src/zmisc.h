@@ -78,6 +78,8 @@ zimage_get_data ( GdkImage * image);
 void
 zimage_destroy(void);
 
+#endif /* ZMISC.H */
+
 #ifdef ZCONF_DOMAIN
 #define zcs_int(var, key) \
 zconf_set_integer(var,  ZCONF_DOMAIN key)
@@ -104,5 +106,3 @@ zconf_get_boolean(where, ZCONF_DOMAIN key)
 #define zcc_bool(value, desc, key) \
 zconf_create_boolean(value, desc, ZCONF_DOMAIN key)
 #endif /* ZCONF_DOMAIN */
-
-#endif /* ZMISC.H */
