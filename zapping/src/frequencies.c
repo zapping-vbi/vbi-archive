@@ -923,8 +923,9 @@ tveng_tuned_channel_by_string	(tveng_tuned_channel *	list,
 
   for (tc = list; tc; tc = tc->next)
     {
-      fprintf(stderr, "TC%p <%s><%s>\n",
-	      tc, tc->name, tc->rf_name);
+      if (0)
+	fprintf(stderr, "TC%p <%s><%s>\n",
+		tc, tc->name, tc->rf_name);
 
       t = g_utf8_casefold (* (const gchar **)(((char *) tc) + offset), -1);
 
