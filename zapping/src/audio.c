@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.c,v 1.29 2005-01-19 04:16:18 mschimek Exp $ */
+/* $Id: audio.c,v 1.30 2005-02-12 13:31:52 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu */
 #undef GTK_DISABLE_DEPRECATED
@@ -41,7 +41,9 @@
 #include "globals.h"
 #include "v4linterface.h"
 
+#ifdef HAVE_ESD
 extern audio_backend_info esd_backend;
+#endif
 #ifdef HAVE_ARTS
 extern audio_backend_info arts_backend;
 #endif
@@ -83,8 +85,12 @@ open_audio_device (gboolean stereo, guint rate, enum audio_format
 
   backend = NULL;
 
-  if (0 == strcmp (audio_source, "esd"))
+  if (0)
+    backend = NULL;
+#ifdef HAVE_ESD
+  else if (0 == strcmp (audio_source, "esd"))
     backend = &esd_backend;
+#endif
 #ifdef HAVE_ARTS
   else if (0 == strcmp (audio_source, "arts"))
     backend = &arts_backend;
@@ -681,8 +687,10 @@ void startup_audio ( void )
   zconf_create_boolean (TRUE, "Mute when changing channels",
 			"/zapping/options/main/avoid_noise");
 
+#ifdef HAVE_ESD
   if (esd_backend.init)
     esd_backend.init ();
+#endif
 #ifdef HAVE_ARTS
   if (arts_backend.init)
     arts_backend.init ();
@@ -700,8 +708,10 @@ void startup_audio ( void )
 
 void shutdown_audio ( void )
 {
+#ifdef HAVE_ESD
   if (esd_backend.shutdown)
     esd_backend.shutdown ();
+#endif
 #ifdef HAVE_ARTS
   if (arts_backend.shutdown)
     arts_backend.shutdown ();

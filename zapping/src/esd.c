@@ -20,6 +20,8 @@
 #  include "config.h"
 #endif
 
+#ifdef HAVE_ESD
+
 #include <gnome.h>
 #include <math.h>
 #include <unistd.h>
@@ -167,3 +169,5 @@ const audio_backend_info esd_backend =
   close:	_esd_close,
   read:		esd_read,
 };
+
+#endif /* HAVE_ESD */
