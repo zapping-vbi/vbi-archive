@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: video.h,v 1.11 2001-07-12 01:22:06 mschimek Exp $ */
+/* $Id: video.h,v 1.12 2001-07-12 23:20:18 mschimek Exp $ */
 
 #include "../common/bstream.h"
 #include "../common/fifo.h"
@@ -47,7 +47,7 @@ extern void *		mpeg1_video_ipb(void *unused);
 
 extern void		conv_init(int);
 extern void		v4l_init(void);
-extern void		v4l2_init(void);
+extern bool		v4l2_init(void);
 extern void		file_init(void);
 extern void		filter_init(int pitch);
 extern void		video_coding_size(int width, int height);

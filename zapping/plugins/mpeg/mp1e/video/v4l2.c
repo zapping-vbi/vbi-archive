@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.14 2001-07-12 01:22:06 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.15 2001-07-12 23:20:18 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -145,7 +145,7 @@ mute_restore(void)
 #define PROGRESSIVE(mode) (mode == CM_YUYV_PROGRESSIVE || \
 			   mode == CM_YUYV_PROGRESSIVE_TEMPORAL)
 
-void
+bool
 v4l2_init(void)
 {
 	int aligned_width;
@@ -155,8 +155,11 @@ v4l2_init(void)
 	int min_cap_buffers = video_look_ahead(gop_sequence);
 
 	ASSERT("open video capture device", (fd = open(cap_dev, O_RDONLY)) != -1);
-	ASSERT("query video capture capabilities",
-		IOCTL(fd, VIDIOC_QUERYCAP, &vcap) == 0);
+
+	if (IOCTL(fd, VIDIOC_QUERYCAP, &vcap) == -1) {
+		close(fd);
+		return FALSE; /* Supposedly no V4L2 device, we'll try V4L */
+	}
 
 	if (vcap.type != V4L2_TYPE_CAPTURE)
 		FAIL("%s ('%s') is not a capture device",
@@ -389,6 +392,8 @@ v4l2_init(void)
 		FAIL("Cannot allocate enough (%d) capture buffers", min_cap_buffers);
 
 	video_cap_fifo = &cap_fifo;
+
+	return TRUE;
 }
 
 #endif // V4L2

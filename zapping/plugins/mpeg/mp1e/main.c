@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.40 2001-07-12 01:22:05 mschimek Exp $ */
+/* $Id: main.c,v 1.41 2001-07-12 23:20:17 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -212,13 +212,10 @@ main(int ac, char **av)
 	if (modules & MOD_VIDEO) {
 		struct stat st;
 
-		if (!stat(cap_dev, &st) && S_ISCHR(st.st_mode))
-#ifdef V4L2_MAJOR_VERSION
-			v4l2_init();
-#else
-			v4l_init();
-#endif
-		else
+		if (!stat(cap_dev, &st) && S_ISCHR(st.st_mode)) {
+			if (!v4l2_init())
+				v4l_init();
+		} else
 			file_init();
 	}
 

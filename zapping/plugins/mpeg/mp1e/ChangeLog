@@ -1,3 +1,7 @@
+2001-07-13	<mschimek@users.sf.net>
+
+	* Fixed video API detection
+
 2001-07-12	<mschimek@users.sf.net>
 
 	* Made emu work with pthreads (phew...)
