@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: device.c,v 1.4 2004-05-16 11:43:17 mschimek Exp $ */
+/* $Id: device.c,v 1.5 2004-08-13 01:13:20 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -28,6 +28,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
+#include <sys/mman.h>
 #include <errno.h>
 
 #include "device.h"
@@ -134,26 +135,26 @@ int
 device_close			(FILE *			fp,
 				 int			fd)
 {
-  int err;
+  int r;
 
-  err = close (fd);
+  r = close (fd);
 
-  if (err)
+  if (fp)
     {
       int saved_errno;
 
       saved_errno = errno;
 
-      if (-1 == err)
+      if (-1 == r)
 	fprintf (fp, "%d = close (%d), errno=%d, %s\n",
-		 err, fd, saved_errno, strerror (saved_errno));
+		 r, fd, saved_errno, strerror (saved_errno));
       else
-	fprintf (fp, "%d = close (%d)\n", err, fd);
+	fprintf (fp, "%d = close (%d)\n", r, fd);
 
       errno = saved_errno;
     }
 
-  return err;
+  return r;
 }
 
 int
@@ -163,7 +164,7 @@ device_ioctl			(FILE *			fp,
 				 unsigned int		cmd,
 				 void *			arg)
 {
-  int buf[256];
+  int buf[2048];
   int err;
 
   if (fp && IOCTL_WRITE (cmd))
@@ -208,4 +209,80 @@ device_ioctl			(FILE *			fp,
     }
   
   return err;
+}
+
+void *
+device_mmap			(FILE *			fp,
+				 void *			start,
+				 size_t			length,
+				 int			prot,
+				 int			flags,
+				 int			fd,
+				 off_t			offset)
+{
+  void *r;
+
+  r = mmap (start, length, prot, flags, fd, offset);
+
+  if (fp)
+    {
+      int saved_errno;
+
+      saved_errno = errno;
+
+      fprintf (fp, "%p = mmap (start=%p length=%d prot=",
+	       r, start, (int) length);
+      fprint_symbolic (fp, 2, prot,
+		       "EXEC", PROT_EXEC,
+		       "READ", PROT_READ,
+		       "WRITE", PROT_WRITE,
+		       "NONE", PROT_NONE,
+		       0);
+      fputs (" flags=", fp);
+      fprint_symbolic (fp, 2, flags,
+		       "FIXED", MAP_FIXED,
+		       "SHARED", MAP_SHARED,
+		       "PRIVATE", MAP_PRIVATE,
+		       0);
+      fprintf (fp, " fd=%d offset=%d)", fd, (int) offset);
+
+      if (MAP_FAILED == r)
+	fprintf (fp, ", errno=%d, %s\n",
+		 saved_errno, strerror (saved_errno));
+      else
+	fputc ('\n', fp);
+
+      errno = saved_errno;
+    }
+
+  return r;
+}
+
+int
+device_munmap			(FILE *			fp,
+				 void *			start,
+				 size_t			length)
+{
+  int r;
+
+  r = munmap (start, length);
+
+  if (fp)
+    {
+      int saved_errno;
+
+      saved_errno = errno;
+
+      if (-1 == r)
+	fprintf (fp, "%d = munmap (start=%p length=%d), errno=%d, %s\n",
+		 r, start, (int) length,
+		 saved_errno, strerror (saved_errno));
+      else
+	fprintf (fp, "%d = munmap (start=%p length=%d)\n",
+		 r, start, (int) length);
+
+      errno = saved_errno;
+    }
+
+  return r;
 }

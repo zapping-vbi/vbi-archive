@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: device.h,v 1.4 2004-05-16 11:43:17 mschimek Exp $ */
+/* $Id: device.h,v 1.5 2004-08-13 01:12:17 mschimek Exp $ */
 
 #ifndef DEVICE_H
 #define DEVICE_H
@@ -80,5 +80,17 @@ device_ioctl			(FILE *			fp,
 				 int			fd,
 				 unsigned int		cmd,
 				 void *			arg);
+extern void *
+device_mmap			(FILE *			fp,
+				 void *			start,
+				 size_t			length,
+				 int			prot,
+				 int			flags,
+				 int			fd,
+				 off_t			offset);
+extern int
+device_munmap			(FILE *			fp,
+				 void *			start,
+				 size_t			length);
 
 #endif /* DEVICE_H */
