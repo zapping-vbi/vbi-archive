@@ -34,15 +34,6 @@
 #include "rte-version.h"
 
 /**
- * rte_init:
- *
- * Inits the library and all backends.
- * Return value: %TRUE if the library is usable in this box.
- **/
-rte_bool
-rte_init(void);
-
-/**
  * rte_context_info_enum:
  * @index: Index into the context format table, 0 ... n.
  *
