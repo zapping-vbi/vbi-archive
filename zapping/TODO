@@ -47,6 +47,7 @@ Outstanding issues for the next release (0.6.5)
 	+ Verify all Gnome etc URLs everywhere.
 	+ Eliminate WSS/GC from the display (paint, clip, whatever)
 	+ Python access to controls
+	+ Configure predefined resolutions: http://bugs.debian.org/168263
 
 Please tell me about anything you think is worth adding:
 
