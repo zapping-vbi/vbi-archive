@@ -1,3 +1,21 @@
+19.01.2002	<mschimek@users.sf.net>
+
+	* src/osd.c: Segv fix in geometry_update().
+	* src/zvbi.c: threads_init(), threads_destroy() didn't
+	  work correctly on failure.
+	* Updated Zapzilla export docs.
+
+18.01.2002	<mschimek@users.sf.net>
+
+	* plugins/mpeg/mpeg.c: Error box when the video
+	  standard is unknown, used to crash.
+	* src/zvbi.c: "Overlay subtitle pages
+	  automatically" defaults to FALSE.
+
+14.01.2002	<mschimek@users.sf.net>
+
+	* src/zvbi.c: Restored v4l vbi interface, untested.
+
 14.01.2002	<mschimek@users.sf.net>
 
 	* src/zvbi.c: Restored v4l vbi interface, untested.

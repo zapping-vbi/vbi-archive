@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.27 2001-12-10 21:09:16 garetxe Exp $ */
+/* $Id: mpeg.c,v 1.28 2002-01-21 07:58:15 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -446,7 +446,18 @@ real_plugin_start (const gchar *file_name)
       else
 	pixformat = RTE_YUYV;
 
-      captured_frame_rate = zapping_info->standards[zapping_info->cur_standard].frame_rate;
+      if (!zapping_info->num_standards)
+	{
+	  rte_context_destroy (context);
+	  context_enc = NULL;
+
+	  ShowBox ("Unable to determine current video standard",
+		   GNOME_MESSAGE_BOX_ERROR);
+	  return FALSE;
+	}
+  
+      captured_frame_rate = zapping_info->standards[
+	      zapping_info->cur_standard].frame_rate;
 
       g_assert (rte_option_set (video_codec, "coded_frame_rate",
 				(double) captured_frame_rate));

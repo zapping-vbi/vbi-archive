@@ -368,6 +368,7 @@ threads_init (gchar *dev_name, int given_fd)
 	    }
 	  free (_errstr);
 	  vbi_decoder_delete (vbi);
+	  vbi = NULL;
 	  return FALSE;
 	}
     }
@@ -384,6 +385,7 @@ threads_init (gchar *dev_name, int given_fd)
       ShowBox(failed, GNOME_MESSAGE_BOX_ERROR, memory);
       vbi_capture_delete (capture);
       vbi_decoder_delete (vbi);
+      vbi = NULL;
       return FALSE;
     }
 
@@ -397,6 +399,7 @@ threads_init (gchar *dev_name, int given_fd)
       destroy_fifo (&sliced_fifo);
       vbi_capture_delete (capture);
       vbi_decoder_delete (vbi);
+      vbi = NULL;
       return FALSE;
     }
 
@@ -410,6 +413,7 @@ threads_init (gchar *dev_name, int given_fd)
       destroy_fifo (&sliced_fifo);
       vbi_capture_delete (capture);
       vbi_decoder_delete (vbi);
+      vbi = NULL;
       return FALSE;
     }
 
@@ -423,14 +427,16 @@ threads_destroy (void)
 {
   vbi_quit = TRUE;
 
+  if (vbi)
+    {
 // XXX should wait a brief period, then if no response terminate the threads.
-  pthread_join (capturer_id, NULL);
-  pthread_join (decoder_id, NULL);
-  destroy_fifo (&sliced_fifo);
-  vbi_capture_delete (capture);
-  vbi_decoder_delete (vbi);
-
-  vbi = NULL;
+      pthread_join (capturer_id, NULL);
+      pthread_join (decoder_id, NULL);
+      destroy_fifo (&sliced_fifo);
+      vbi_capture_delete (capture);
+      vbi_decoder_delete (vbi);
+      vbi = NULL;
+    }
 }
 
 
@@ -481,7 +487,7 @@ startup_zvbi(void)
   zcc_bool(FALSE, "Enable VBI decoding", "enable_vbi");
 #endif
   zcc_bool(TRUE, "Use VBI for getting station names", "use_vbi");
-  zcc_bool(TRUE, "Overlay subtitle pages automagically", "auto_overlay");
+  zcc_bool(FALSE, "Overlay subtitle pages automagically", "auto_overlay");
   zcc_char("/dev/vbi0", "VBI device", "vbi_device");
   zcc_int(0, "Default TTX region", "default_region");
   zcc_int(3, "Teletext implementation level", "teletext_level");

@@ -19,10 +19,7 @@ Outstanding issues for the next release (0.6.3)
           into one place, propose zmisc.c, avoiding strlen etc).
 	+ Finish WSS.
 	! Video standard question.
-
-	+ "Overlay subtitle pages automatically" default FALSE.
 	+ Remove default overlay page?
-	! MPEG plugin frame rate fix.
 	+ ttxview.c/selection_handle: What's the correct char set?
 
 > 0.7.0

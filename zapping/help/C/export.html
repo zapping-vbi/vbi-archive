@@ -14,7 +14,7 @@
     </center>
 
     <center>
-      <font size="-1">Draft 0.1</font>
+      <font size="-1">Draft 0.2</font>
     </center>
 
     <h3><a name="Contents"></a>Contents</h3>
@@ -25,26 +25,27 @@
       <li><a href="#HTML">HTML</a></li>
       <li><a href="#PPM">PPM</a></li>
       <li><a href="#PNG">PNG</a></li>
-      <li><a href="#TXT">TXT</a></li>
-      <li><a href="#ANSI">ANSI</a></li>
+      <li><a href="#TXT">Text</a></li>
       <li><a href="#VTX">VTX</a></li>
     </ul>
 
     <h3><a name="Intro"></a>Introduction</h3>
-    Zapzilla allows you to take snapshots of Teletext and
+    With Zapzilla you can take snapshots of Teletext and
     Closed Caption pages in a plurality of formats. To save the page
     displayed in a window, select Export or Zapzilla / Export from
     the <a href="todo">context menu</a> and the desired format. Note
-    the page is saved as displayed, this includes for example,
-    highlighted text after a search operation. 
+    the page is saved as displayed, this includes for example
+    highlighted text after a search operation, but no scaling. To
+    save text with scaling or in JPEG format, please see the
+    Screenshot plugin.
 
     <h3><a name="Dialog"></a>Export Dialog</h3>
     <img src="export_dialog.png" alt="The Export dialog" align=
-    "right"> Zapping composes a file name for you, made of the
+    "right">Zapping composes a file name for you, made of the
     last directory entered, the station name if known, the page
     number and an extension suitable for the format. Naturally
     you can modify the name, choose one from the history or browse
-    your file system. 
+    your file system.
 
     <p>The options are dynamically added, depending on the format.
     All settings are saved across sessions. See below for a
@@ -52,7 +53,7 @@
 
     <h3><a name="HTML"></a>HTML - HyperText Markup Language</h3>
     <a href="http://www.w3.org/TR/REC-html40"><font size="-1">HTML
-    specification</font></a> 
+    specification</font></a>
 
     <p>Exports the page as a HTML page, that is preformatted text
     in a <tt>fixed spacing typewriter font</tt>. Zapzilla picks
@@ -60,18 +61,15 @@
     example Greek: ISO-8859-7, other characters are encoded as
     Unicode references.</p>
 
-    <p>For those characters not representable even in Unicode, i.e.
-    all sorts of graphics characters, you can enter a
+    <p>For those characters not representable even in Unicode,
+    i.&nbsp;e. all sorts of graphics characters, you can enter a
     replacement. A single character ("&nbsp;" - space) stands for
     itself, alternatively you can enter the Unicode number in
     decimal ("32") or hexadecimal ("0x20") format.</p>
 
     <p>HTML can preserve a number of text attributes: Underlined,
-    bold, italic style. The &lt;blink&gt; element is used to
-    highlight flashing text, however this is a
-    <a href="http://www.netscape.com">Netscape</a> extension
-    and will be ignored by other browsers. Optionally foreground and
-    background colors are stored by embedding CSS information. You
+    bold, italic style, blinking, foreground and background colors.
+    These are stored by embedding CSS information. You
     must enable Style Sheets in your browser to actually see color.
     Zapzilla creates anchors for URLs and e-mail adresses found in
     Teletext pages, page numbers are not linked.</p>
@@ -79,10 +77,6 @@
     <p>The HTML file will include a title displaying the station
     name and page number. To concatenate HTML pages into a larger
     file the dialog offers an option to omit the page header.</p>
-
-    <p>Hebrew and Arabic text is only partially implemented, if you
-    have expertise in these fields your help will be greatly
-    appreciated.</p>
 
     <h3><a name="PPM"></a>PPM - Portable PixMap</h3>
     <a href="man:ppm"><font size="-1">PPM manual page</font></a> 
@@ -102,9 +96,9 @@
     pixels. In other words, the image looks slightly taller than it
     would on a TV.</p>
 
-    <p>Another method to grab the page, you can select a region to
-    be copied to the clipboard and paste the image into your
-    favourite GNU image manipulation program.</p>
+    <p>Another method to grab the page in this format, you can select
+    a region to be copied to the clipboard and paste the image into
+    your favourite GNU image manipulation program.</p>
 
     <h3><a name="PNG"></a>PNG - Portable Network Graphics</h3>
     <a href="man:png"><font size="-1">PNG manual page</font></a>
@@ -118,46 +112,39 @@
     discussed in the <a href="#PPM">PPM section</a> applies here as
     well.</p>
 
-    <h3><a name="TXT"></a>TXT - ASCII Text</h3>
+    <h3><a name="Text"></a>Text</h3>
     Exports the page as plain ASCII text, stripped of all styles
-    and colors. In the nature of things, Greek, Cyrillic, Hebrew
-    and Arabic Teletext pages cannot be useful translated to ASCII.
-    Certain national characters may be lost as well. You can
+    and colors. In the nature of things one cannot translate
+    Greek, Cyrillic, Hebrew and Arabic Teletext pages or accented
+    characters to ASCII, but new since Zapping version 0.6.3
+    you can choose from a variety of character sets including
+    Latin-1 and Unicode UTF-8. For graphics characters you can
     specify a replacement character as described in the <a href=
-    "#HTML">HTML section</a>. 
+    "#HTML">HTML section</a>.
 
-    <p>To preserve color, enable the insertion of ANSI color escape
-    codes. Note this may not work properly within the 4096 color
-    space of Teletext Level 2.5 ("HiText"). The converter does not
-    know about your terminal, you can set the default foreground
-    and background colors or leave them at "any".</p>
+    <p>To preserve color and a few text styles you can enable
+    the insertion of VT 100/200 control codes. Since terminals
+    support only eight of the up to 4096 colors possible with
+    Teletext Level 2.5 ("HiText"), they will be approximated.</p>
 
-    <p>Another method to grab the text of a page, you can select a
-    rectangular or wrapping region to be copied to the
-    clipboard. Color will be lost.</p>
-
-    <h3><a name="ANSI"></a>ANSI - ANSI Text</h3>
-    Same as ASCII, except the encoding is Latin-1 (ISO-8859-1),
-    and ANSI colors forced on. 
+    <p>As another method to grab the text of a page you can
+    select a rectangular or wrapping region to be copied to the
+    clipboard. However this mode supports ASCII only and color
+    will be lost.</p>
 
     <h3><a name="VTX"></a>VTX - VideoTeXt format</h3>
     This is the format used by the VideoteXt Teletext viewer, and
     the vbidecode program included with the bttv driver, to store
     Teletext pages. It has been added for tools importing VTX
-    pages. If you wonder, Videotext is the name of Teletext in
-    Germany.
+    pages. If you wonder, "Videotext" is the label of the Teletext
+    service in Germany, actually a trademark.
 
     <p>VTX stores pages in raw Teletext Level 1.0 format. This will
     impair Greek, Cyrillic, Hebrew and Arabic pages, strip off any
     national characters transmitted at Level 1.5 and the Level
     2.5/3.5 additional colors, styles and graphics. The Zapping
-    hyperlinks, ie. page numbers, URLs and e-mail addresses, are
-    not preserved.</p>
-
-    <p>If you are interested in developing an XML based successor
-    to VTX, please <a href="http://sourceforge.net/forum/forum.php?forum_id=7653">
-    drop us a note</a>.<br>
-    </p>
+    hyperlinks, i.&nbsp;e. page numbers, URLs and e-mail addresses,
+    are not preserved.</p>
     <hr width="100%">
   </body>
 </html>
