@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bcd.c,v 1.1.2.1 2003-10-16 18:14:28 mschimek Exp $ */
+/* $Id: bcd.c,v 1.1.2.2 2004-01-30 00:37:57 mschimek Exp $ */
 
 #include "bcd.h"
 
@@ -26,16 +26,18 @@
  * @addtogroup BCD BCD arithmetic for Teletext page numbers
  * @ingroup Service
  *
- * Teletext page numbers are expressed as binary coded decimal numbers
- * in range 0x100 to 0x8FF. The bcd format encodes one decimal digit in
- * every hex nibble (four bits) of the number. Page numbers containing
- * digits 0xA to 0xF are reserved for various system purposes and not
- * intended for display.
+ * Teletext page numbers are expressed as packed binary coded decimal
+ * numbers in range 0x100 to 0x8FF. The packed bcd format encodes one
+ * decimal digit in every hex nibble (four bits) of the number. Page
+ * numbers containing digits 0xA to 0xF are reserved for various
+ * system purposes and not intended for display.
  *
- * BCD numbers are stored in int types. Their precision as signed
- * packed bcd value is VBI_BCD_MIN .. VBI_BCD_MAX, as two's complement
- * binary VBI_BCD_DEC_MIN ... VBI_BCD_DEC_MAX. That is -10**n ...
- * +10**n - 1, where n = 2 * sizeof(int) - 1.
+ * BCD numbers are stored in int types. Negative BCDs are expressed
+ * as ten's complement, for example -1 as 0xF999&nbsp;9999, assumed
+ * sizeof(int) is four. Their precision as signed packed bcd value
+ * is VBI_BCD_MIN .. VBI_BCD_MAX, as two's complement
+ * binary VBI_BCD_DEC_MIN ... VBI_BCD_DEC_MAX. That is -10 ** n ...
+ * (10 ** n) - 1, where n = 2 * sizeof(int) - 1.
  */
 
 /**
@@ -54,7 +56,7 @@ vbi_dec2bcd			(int			dec)
 {
 	int t = 0;
 
-	/* XXX should try x87 bcd. */
+	/* XXX should try x87 bcd for large values. */
 
 	/* Unlikely, Teletext page numbers are unsigned. */
 	if (__builtin_expect (dec < 0, 0)) {
@@ -90,7 +92,7 @@ vbi_dec2bcd			(int			dec)
  * 
  * @return
  * Binary number. The result is undefined when the bcd number
- * contains hex digits 0xA ... 0xF.
+ * contains hex digits 0xA ... 0xF, except for the sign nibble.
  */
 int
 vbi_bcd2dec			(int			bcd)
@@ -103,7 +105,7 @@ vbi_bcd2dec			(int			bcd)
 	/* Unlikely, Teletext page numbers are unsigned. */
 	if (__builtin_expect (bcd < 0, 0)) {
 		/* Cannot negate minimum. */
-		if (__builtin_expect (0, VBI_BCD_MIN == bcd))
+		if (__builtin_expect (VBI_BCD_MIN == bcd, 0))
 			return VBI_BCD_DEC_MIN;
 
 		bcd = vbi_neg_bcd (bcd);
