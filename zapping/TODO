@@ -9,7 +9,7 @@ Outstanding issues for the next release
 	+ Right click sizes choosing (a la kwintv)
 	+ Parrot buffer for observing parrots.
 	+ Add to the configure script and to the .spec deps the
-		dependency on mp1e (actually RTE).
+		dependency on mp1e (actually RTE) and the mpeg plugin.
 	> Release 0.6.0
 	+ Add some remote control applet (or sth like that).
 	+ Have a copy of the stuff in the "quick bar" in the main menu
