@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.h,v 1.5.2.6 2004-02-18 07:53:55 mschimek Exp $ */
+/* $Id: vbi.h,v 1.5.2.7 2004-02-25 17:33:43 mschimek Exp $ */
 
 #ifndef VBI_H
 #define VBI_H
@@ -36,6 +36,7 @@
 #include "event.h"
 #include "cache.h"
 #include "trigger.h"
+#include "lang.h"
 
 struct event_handler {
 	struct event_handler *	next;
@@ -83,15 +84,6 @@ vbi_hook_call			(vbi_decoder *		vbi,
 }
 */
 
-struct page_clear {
-	int			ci;		/* continuity index */
-	int			packet;
-	int			num_packets;
-	int			bi;		/* block index */
-	int			left;
-	pfc_block		pfc;
-};
-
 struct vbi_decoder {
 #if 0 /* obsolete */
 	fifo			*source;
@@ -116,8 +108,9 @@ struct vbi_decoder {
 
 	cache *			cache;
 
+#if 0 // TODO
 	struct page_clear	epg_pc[2];
-
+#endif
 	/* preliminary */
 	int			pageref;
 
@@ -266,7 +259,7 @@ typedef struct vbi_page_private {
 
 	const vt_page *		drcs_vtp[32];
 
-	struct vbi_font_descr *	font[2];
+	const vbi_character_set *char_set[2];
 
 //	uint32_t		double_height_lower;	/* legacy */
 
@@ -298,12 +291,14 @@ vbi_format_vt_page		(vbi_decoder *		vbi,
 				 vbi_page_private *	pgp,
 				 const vt_page *	vtp,
 				 ...);
-extern unsigned int
+extern const vbi_character_set *
 vbi_page_character_set		(const vbi_page *	pg,
 				 unsigned int		level);
 
-extern pthread_once_t	vbi_init_once;
-extern void		vbi_init(void);
+//extern pthread_once_t	vbi_init_once;
+extern void
+vbi_init			(void)
+     __attribute__ ((constructor));
 
 extern void		vbi_transp_colormap	(vbi_decoder *		vbi,
 						 vbi_rgba *		d,

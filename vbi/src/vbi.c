@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.6.2.7 2004-02-18 07:53:43 mschimek Exp $ */
+/* $Id: vbi.c,v 1.6.2.8 2004-02-25 17:33:30 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -71,8 +71,9 @@
 
 /** @defgroup Raw Raw VBI */
 /** @defgroup Service Data Service Decoder */
+/** @defgroup LowDec Low Level Decoding */
 
-pthread_once_t vbi_init_once = PTHREAD_ONCE_INIT;
+//pthread_once_t vbi_init_once = PTHREAD_ONCE_INIT;
 
 void
 vbi_init			(void)
@@ -563,9 +564,11 @@ vbi_cache_page_language		(vbi_decoder *		vbi,
 		if (code != VBI_UNKNOWN_PAGE) {
 /* FIXME normal pages */		
 			if (code == VBI_SUBTITLE_PAGE) {
-				if (pi->language != 0xFF)
-					return vbi_font_descriptors
-						[pi->language].lang_code;
+				const vbi_character_set *cs;
+
+				if (pi->language != 0xFF
+				    && (cs = vbi_character_set_from_code (pi->language)))
+					return cs->language_code;
 			}
 		}
 	}
@@ -782,7 +785,7 @@ vbi_decoder_new(void)
 #warning
 	fprintf (stderr, "LIBZVBI NG\n");
 
-	pthread_once (&vbi_init_once, vbi_init);
+	//	pthread_once (&vbi_init_once, vbi_init);
 
 	if (!(vbi = (vbi_decoder *) calloc(1, sizeof(*vbi))))
 		return NULL;
@@ -944,7 +947,8 @@ vbi_page_private_dump		(const vbi_page_private *pgp,
 					 acp->unicode,
 					 acp->foreground, acp->background,
 					 acp->size, acp->opacity,
-					 acp->link, acp->pdc);
+					 !!(acp->attr & VBI_LINK),
+					 !!(acp->attr & VBI_PDC));
 				break;
 			}
 
