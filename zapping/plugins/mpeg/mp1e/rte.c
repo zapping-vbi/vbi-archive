@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.31 2000-10-23 21:51:39 garetxe Exp $ */
+/* $Id: rte.c,v 1.32 2000-10-25 22:57:13 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -225,8 +225,8 @@ dead_end_callback(rte_context * context, void *data, double *time,
 }
 
 /* The default write data callback */
-static void default_write_callback ( void * data, size_t size,
-				     rte_context * context,
+static void default_write_callback ( rte_context * context,
+				     void * data, size_t size,
 				     void * user_data )
 {
 	size_t r;
