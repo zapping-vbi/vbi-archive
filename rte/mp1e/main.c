@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.11 2001-09-26 10:44:48 mschimek Exp $ */
+/* $Id: main.c,v 1.12 2001-10-07 10:55:51 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -44,8 +44,12 @@
 #include "common/videodev2.h"
 #include "audio/libaudio.h"
 #include "audio/mpeg.h"
-#include "video/video.h"
+
+#include "video/video.h" /* remove */
+
+// #include "video/libvideo.h"
 #include "video/mpeg.h"
+
 #include "vbi/libvbi.h"
 #include "systems/systems.h"
 #include "common/profile.h"
@@ -73,6 +77,7 @@ static int		stereo;
 pthread_t		video_thread_id;
 static fifo *		video_cap_fifo;
 void			(* video_start)(void);
+static rte_codec *	video_codec;
 
 static pthread_t	vbi_thread_id;
 static fifo *		vbi_cap_fifo;
@@ -91,7 +96,6 @@ extern void options(int ac, char **av);
 
 extern void preview_init(int *argc, char ***argv);
 
-extern void video_init(multiplexer *mux);
 
 
 static void
@@ -115,16 +119,6 @@ terminate(int signum)
 	}
 
 	printv(1, "\nStop at %f\n", now);
-}
-
-static void
-set_option(rte_codec *codec, char *keyword, ...)
-{
-	va_list args;
-
-	va_start(args, keyword);
-	assert(codec->class->set_option(codec, keyword, args));
-	va_end(args);
 }
 
 int
@@ -243,6 +237,11 @@ main(int ac, char **av)
 	if (modules & MOD_VIDEO) {
 		struct stat st;
 
+		// XXX
+		video_codec = mp1e_mpeg1_video_codec.new();
+
+		ASSERT("create video context", video_codec);
+
 		if (!stat(cap_dev, &st) && S_ISCHR(st.st_mode)) {
 			if (!(video_cap_fifo = v4l2_init()))
 				video_cap_fifo = v4l_init();
@@ -287,12 +286,13 @@ main(int ac, char **av)
 
 		ASSERT("create audio context", audio_codec);
 
-		set_option(audio_codec, "sampling_rate", sampling_rate);
-		set_option(audio_codec, "bit_rate", audio_bit_rate);
-		set_option(audio_codec, "audio_mode", (int) "\1\3\2\0"[audio_mode]);
-		set_option(audio_codec, "psycho", psycho_loops);
+		rte_helper_set_option_va(audio_codec, "sampling_rate", sampling_rate);
+		rte_helper_set_option_va(audio_codec, "bit_rate", audio_bit_rate);
+		rte_helper_set_option_va(audio_codec, "audio_mode", (int) "\1\3\2\0"[audio_mode]);
+		rte_helper_set_option_va(audio_codec, "psycho", psycho_loops);
 
-		mp1e_mp2_init(audio_codec, audio_cap_fifo, mux, pcm->format);
+		mp1e_mp2_init(audio_codec, MOD_AUDIO,
+			      audio_cap_fifo, mux, pcm->format);
 	}
 
 	if (modules & MOD_VIDEO) {
@@ -312,7 +312,22 @@ main(int ac, char **av)
 		else
 			printv(1, "Motion compensation %d-%d\n", motion_min, motion_max);
 
-		video_init(mux);
+		/* Initialize video codec */
+
+		rte_helper_set_option_va(video_codec, "bit_rate", video_bit_rate);
+		/* rte_helper_set_option_va(video_codec, "coded_frame_rate", ?); */
+		rte_helper_set_option_va(video_codec, "virtual_frame_rate",
+					 frame_rate);
+		rte_helper_set_option_va(video_codec, "skip_method", !!hack2);
+		rte_helper_set_option_va(video_codec, "gop_sequence", gop_sequence);
+	        rte_helper_set_option_va(video_codec, "motion_compensation",
+					 motion_min > 0 && motion_max > 0);
+		rte_helper_set_option_va(video_codec, "monochrome", !!luma_only);
+		rte_helper_set_option_va(video_codec, "anno", anno);
+
+		video_init(cpu_type, width, height,
+			   motion_min, motion_max,
+			   MOD_VIDEO, mux);
 
 #if TEST_PREVIEW
 		if (preview > 0) {

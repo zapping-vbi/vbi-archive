@@ -1,4 +1,4 @@
-.TH MP1E 1 "$Date: 2001-09-20 23:35:07 $" "mp1e manual" \" -*- nroff -*-
+.TH MP1E 1 "$Date: 2001-10-07 10:55:51 $" "mp1e manual" \" -*- nroff -*-
 .SH NAME
 mp1e \- realtime MPEG-1 audio/video encoder
 .SH SYNOPSIS
@@ -460,23 +460,6 @@ The capture size is given in pixels. Please note
 .B mp1e
 cannot properly clip when the encoded image is less than 16 pixels
 smaller than the captured image.
-.RE
-.TP
-.BI "\-H, \-\-frames_per_seq_header " n
-.RS
-The sequence header in an MPEG-1 video stream contains information
-such as the picture size and rate, and is therefore essential for a
-player. For archiving it's sufficient to encode only one header.
-If you want to stream the file, the player may have missed the initial
-header. This option allows to repeat the header at certain regular
-intervals, the default is appx. two seconds. When you concatenate
-MPEG streams (simply with "cat") using different compression
-parameters, you may also want to repeat the header to ensure random
-access will pick up the correct parameters.
-.P
-Note whatever you specify the header is not inserted more often than
-once in each group of pictures (see above). A reasonable value may
-be 25 or 30, that is one header per second.
 .RE
 .TP
 .BI "\-I, \-\-vbi_device " name

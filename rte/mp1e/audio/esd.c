@@ -20,13 +20,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: esd.c,v 1.7 2001-09-26 10:44:48 mschimek Exp $ */
+/* $Id: esd.c,v 1.8 2001-10-07 10:55:51 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
 
 #include "../common/log.h"
+#include "../common/math.h"
 
 #include "audio.h"
 
@@ -52,7 +53,7 @@ wait_full(fifo *f)
 	struct timeval tv;
 	unsigned char *p;
 	ssize_t r, n;
-	double dt, now;
+	double now;
 
 	assert(b->data == NULL); /* no queue */
 
@@ -84,17 +85,17 @@ wait_full(fifo *f)
 	}
 
 	now = current_time();
-	dt = now - esd->time;
 
-	if (esd->time > 0
-	    && fabs(dt - esd->buffer_period) < esd->buffer_period * 0.1) {
+	if (esd->time > 0) {
+		double dt = now - esd->time;
+		double ddt = esd->buffer_period - dt;
+		double q = 128 * fabs(ddt) / esd->buffer_period;
+
+		esd->buffer_period = ddt * MIN(q, 0.9999) + dt;
 		b->time = esd->time;
-		esd->buffer_period = (esd->buffer_period - dt) * 0.999 + dt;
 		esd->time += esd->buffer_period;
-	} else {
-		esd->time = now;
-		b->time = now - esd->buffer_period;
-	}
+	} else
+		b->time = esd->time = now;
 
 	b->data = b->allocated;
 

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: global_data.c,v 1.5 2001-09-20 23:35:07 mschimek Exp $ */
+/* $Id: global_data.c,v 1.6 2001-10-07 10:55:51 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -72,7 +72,7 @@ int			grab_height		= 288;
 int			video_bit_rate		= 2300000;
 int			video_num_frames	= INT_MAX;
 char *			gop_sequence		= "IBBPBBPBBPBB";
-int			frames_per_seqhdr	= 50;
+// int			frames_per_seqhdr	= 50;
 int			filter_mode		= CM_YUV;
 // defaults to _VERT_INTERP in motion mode
 double			frame_rate		= 1000.0;
@@ -106,3 +106,11 @@ int			aud_buffers		= 32;			// audio compression -> mux
 #endif
 
 int			cpu_type		= 0;			// detect
+
+
+
+
+
+
+
+

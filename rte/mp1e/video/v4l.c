@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.9 2001-09-25 09:29:13 mschimek Exp $ */
+/* $Id: v4l.c,v 1.10 2001-10-07 10:55:51 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -68,19 +68,21 @@ static double			cap_time, frame_period;
 static inline void
 timestamp(buffer *b)
 {
-	double now, dt;
+	double now, dt, ddt, q;
+
+	/* FIXME: UNTESTED */
 
 	now = current_time();
 	dt = now - cap_time;
+	ddt = fabs(dt - frame_period);
 
-	if (cap_time > 0
-	    && fabs(dt - frame_period) < frame_period * 0.1) {
+	if (cap_time > 0 && ddt < frame_period * 1.5) {
+		q = 128 * ddt / frame_period;
+		frame_period = ddt * MIN(q, 0.999) + dt;
 		b->time = cap_time;
-		frame_period = (frame_period - dt) * 0.9 + dt;
 		cap_time += frame_period;
 	} else {
-		cap_time = now;
-		b->time = now - frame_period;
+		b->time = cap_time = now;
 	}
 }
 

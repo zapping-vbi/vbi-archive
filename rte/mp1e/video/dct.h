@@ -17,19 +17,23 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dct.h,v 1.2 2001-08-22 01:28:09 mschimek Exp $ */
+/* $Id: dct.h,v 1.3 2001-10-07 10:55:51 mschimek Exp $ */
 
 #define reg(n) __attribute__ ((regparm (n)))
 
-extern void		fdct_intra(int quant_scale) reg(1);
-extern unsigned int	fdct_inter(short iblock[6][8][8], int quant_scale) reg(2);
-extern void		mpeg1_idct_intra(int quant_scale) reg(1);
-extern void		mpeg1_idct_inter(int quant_scale, unsigned int cbp) reg(2);
+extern void		mp1e_fdct_intra(int quant_scale) reg(1);
+extern unsigned int	mp1e_fdct_inter(short iblock[6][8][8],
+					     int quant_scale) reg(2);
+extern void		mp1e_mpeg1_idct_intra(int quant_scale) reg(1);
+extern void		mp1e_mpeg1_idct_inter(int quant_scale,
+					      unsigned int cbp) reg(2);
 
-extern void		mmx_fdct_intra(int quant_scale) reg(1);
-extern unsigned int	mmx_fdct_inter(short iblock[6][8][8], int quant_scale) reg(2);
-extern void		mmx_mpeg1_idct_intra(int quant_scale) reg(1);
-extern void		mmx_mpeg1_idct_intra2(int quant_scale) reg(1);
-extern void		mmx_mpeg1_idct_inter(int quant_scale, unsigned int cbp) reg(2);
+extern void		mp1e_mmx_fdct_intra(int quant_scale) reg(1);
+extern unsigned int	mp1e_mmx_fdct_inter(short iblock[6][8][8],
+						 int quant_scale) reg(2);
+extern void		mp1e_mmx_mpeg1_idct_intra(int quant_scale) reg(1);
+extern void		mp1e_mmx_mpeg1_idct_intra2(int quant_scale) reg(1);
+extern void		mp1e_mmx_mpeg1_idct_inter(int quant_scale,
+						  unsigned int cbp) reg(2);
 
-extern void		mmx_copy_refblock(void);
+extern void		mp1e_mmx_copy_refblock(void);

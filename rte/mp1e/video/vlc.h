@@ -17,13 +17,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vlc.h,v 1.2 2001-08-22 01:28:10 mschimek Exp $ */
+/* $Id: vlc.h,v 1.3 2001-10-07 10:55:51 mschimek Exp $ */
 
 #ifndef VLC_H
 #define VLC_H
 
 #include "../common/math.h"
-#include "../options.h"
+#include "video.h"
 
 typedef struct {
 	unsigned char		code;
@@ -47,27 +47,30 @@ typedef struct {
 
 extern int		dc_dct_pred[2][3];
 
-extern VLC2		coded_block_pattern[64];
-extern VLC2		macroblock_address_increment[33];
-extern VLCM		motion_vector_component[480];
-extern VLC4		macroblock_type_b_nomc_quant[4];
-extern VLC2		macroblock_type_b_nomc[4];
-extern VLC2		macroblock_type_b_nomc_notc[4];
-extern VLC2		macroblock_type_b_quant[4];
-extern unsigned char	iscan[8][8];
-extern VLC8		dc_vlc_intra[5][12];
-extern VLC2		ac_vlc_zero[176];
-extern VLC2		ac_vlc_one[176];
+extern VLC2		mp1e_coded_block_pattern[64];
+extern VLC2		mp1e_macroblock_address_increment[33];
+extern VLCM		mp1e_motion_vector_component[480];
+extern VLC4		mp1e_macroblock_type_b_nomc_quant[4];
+extern VLC2		mp1e_macroblock_type_b_nomc[4];
+extern VLC2		mp1e_macroblock_type_b_nomc_notc[4];
+extern VLC2		mp1e_macroblock_type_b_quant[4];
+extern unsigned char	mp1e_iscan[8][8];
+extern VLC8		mp1e_dc_vlc_intra[5][12];
+extern VLC2		mp1e_ac_vlc_zero[176];
+extern VLC2		mp1e_ac_vlc_one[176];
 
-extern void		vlc_init(void);
+extern void		mp1e_vlc_init(void);
 
-extern int		mpeg1_encode_intra(void);
-extern int		mpeg1_encode_inter(short mblock[6][8][8], unsigned int cbp);
-extern int		mpeg2_encode_intra(void);
-extern int		mpeg2_encode_inter(short mblock[6][8][8], unsigned int cbp);
+extern int		mp1e_mpeg1_encode_intra(void);
+extern int		mp1e_mpeg1_encode_inter(short mblock[6][8][8],
+						unsigned int cbp);
+extern int		mp1e_mpeg2_encode_intra(void);
+extern int		mp1e_mpeg2_encode_inter(short mblock[6][8][8],
+						unsigned int cbp);
 
-extern int		p6_mpeg1_encode_intra(void);
-extern int		p6_mpeg1_encode_inter(short mblock[6][8][8], unsigned int cbp);
+extern int		mp1e_p6_mpeg1_encode_intra(void);
+extern int		mp1e_p6_mpeg1_encode_inter(short mblock[6][8][8],
+						   unsigned int cbp);
 
 static inline
 void reset_dct_pred(void)
@@ -95,18 +98,18 @@ motion_init(struct motion *m, int range)
 {
 	int f;
 
-	range = saturate(range, motion_min, motion_max);
+	range = saturate(range, vseg.motion_min, vseg.motion_max);
 	f = saturate(ffsr(range - 1) - 1, F_CODE_MIN, F_CODE_MAX);
 	m->max_range = 4 << f;
 	m->src_range = saturate(range, 4, 4 << f);
 	m->f_mask = 0xFF >> (4 - f);
 	m->f_code = f;
 
-	m->vlc = motion_vector_component + ((15 << f) & 480);
-	// = motion_vector_component + ((1 << (f - 1)) - 1) * 32;
+	m->vlc = mp1e_motion_vector_component + ((15 << f) & 480);
+	// = mp1e_motion_vector_component + ((1 << (f - 1)) - 1) * 32;
 
 	m->PMV[0] = 0;
 	m->PMV[1] = 0;
 }
 
-#endif // VLC_H
+#endif /* VLC_H */

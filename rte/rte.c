@@ -18,7 +18,8 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.10 2001-09-23 21:04:25 mschimek Exp $ */
+/* $Id: rte.c,v 1.11 2001-10-07 10:55:51 mschimek Exp $ */
+
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -1104,7 +1105,7 @@ rte_get_option(rte_codec *codec, char *keyword, rte_option_value *v)
 	nullcheck(codec, return 0);
 	nullcheck((context = codec->context), return 0);
 
-	if (!BACKEND->set_option)
+	if (!BACKEND->get_option)
 		return 0;
 
 	return BACKEND->get_option(codec, keyword, v);
@@ -1126,6 +1127,120 @@ rte_set_option(rte_codec *codec, char *keyword, ...)
 	va_start(args, keyword);
 
 	r = BACKEND->set_option(codec, keyword, args);
+
+	va_end(args);
+
+	return r;
+}
+
+int
+rte_get_option_menu(rte_codec *codec, char *keyword, int *entry)
+{
+	rte_option *option;
+	rte_option_value val;
+	int r, i;
+
+	nullcheck(codec, return 0);
+	nullcheck(keyword, return 0);
+	nullcheck(entry, return 0);
+
+	*entry = 0;
+
+	for (i = 0; (option = rte_enum_option(codec, i)); i++)
+		if (strcmp(option->keyword, keyword) == 0)
+			break;
+
+	if (!option
+	    || option->entries == 0
+	    || !rte_get_option(codec, keyword, &val))
+		return 0;
+
+	for (r = i = 0; !r && i < option->entries; i++) {
+		switch (option->type) {
+		case RTE_OPTION_BOOL:
+		case RTE_OPTION_INT:
+			if (!option->menu.num)
+				return 0;
+			r = (option->menu.num[i] == val.num);
+			break;
+		case RTE_OPTION_REAL:
+			if (!option->menu.dbl)
+				return 0;
+			r = (option->menu.dbl[i] == val.dbl);
+			break;
+		case RTE_OPTION_STRING:
+			if (!option->menu.str)
+				return 0;
+			r = (strcmp(option->menu.str[i], val.str) == 0);
+			break;
+		default:
+			break;
+		}
+	}
+
+	if (r)
+		*entry = i;
+
+	if (option->type == RTE_OPTION_STRING)
+		free(val.str);
+
+	return r;
+}
+
+int
+rte_set_option_menu(rte_codec *codec, char *keyword, int entry)
+{
+	rte_option *option;
+	int i;
+
+	nullcheck(codec, return 0);
+	nullcheck(keyword, return 0);
+
+	for (i = 0; (option = rte_enum_option(codec, i)); i++)
+		if (strcmp(option->keyword, keyword) == 0)
+			break;
+	if (!option || entry < 0 || entry >= option->entries)
+		return 0;
+
+	switch (option->type) {
+	case RTE_OPTION_BOOL:
+	case RTE_OPTION_INT:
+		if (!option->menu.num)
+			return 0;
+		return rte_set_option(codec, keyword,
+				      option->menu.num[entry]);
+	case RTE_OPTION_REAL:
+		if (!option->menu.dbl)
+			return 0;
+		return rte_set_option(codec, keyword,
+				      option->menu.dbl[entry]);
+	case RTE_OPTION_STRING:
+		if (!option->menu.str)
+			return 0;
+		return rte_set_option(codec, keyword,
+				      option->menu.str[entry]);
+	default:
+		assert(!"reached");
+		return 0;
+	}
+}
+
+char *
+rte_print_option(rte_codec *codec, char *keyword, ...)
+{
+	rte_context *context = NULL;
+	va_list args;
+	char *r;
+
+	nullcheck(codec, return 0);
+	nullcheck((context = codec->context), return 0);
+
+	if (!BACKEND->print_option)
+		return 0;
+
+	va_start(args, keyword);
+
+	r = BACKEND->print_option(codec, keyword, args);
 
 	va_end(args);
 

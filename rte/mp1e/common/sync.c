@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sync.c,v 1.4 2001-09-20 23:35:07 mschimek Exp $ */
+/* $Id: sync.c,v 1.5 2001-10-07 10:55:51 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "sync.h"
@@ -41,6 +41,8 @@ mp1e_sync_init(unsigned int modules, unsigned int time_base)
 	assert(popcnt(time_base) <= 1);
 
 	synchr.time_base = time_base;
+
+	synchr.ref_warp = 1.0;
 }
 
 /**
@@ -177,7 +179,6 @@ mp1e_sync_run_in(synchr_stream *str, consumer *c, int *frame_frac)
 					double tfrac = synchr.start_time - b->time;
 					int sfrac = tfrac / str->byte_period;
 
-					// if (tfrac > 1 / 10.0)
 					*frame_frac = saturate(sfrac & -str->bytes_per_sample, 0, b->used - 1);
 				}
 
@@ -203,7 +204,6 @@ mp1e_sync_run_in(synchr_stream *str, consumer *c, int *frame_frac)
 	}
 
 	str->start_ref = b->time;
-	str->elapsed = 0;
 
 	pthread_mutex_unlock(&synchr.mucon.mutex);
 	pthread_cond_broadcast(&synchr.mucon.cond);
@@ -211,64 +211,4 @@ mp1e_sync_run_in(synchr_stream *str, consumer *c, int *frame_frac)
 	unget_full_buffer(c, b);
 
 	return TRUE;
-}
-
-/**
- * mp1e_sync_break:
- * @str: 
- * @time: 
- * @bytes: 
- * @driftp: 
- * 
- * Runtime and terminal synchronization for *encoding modules*.
- * 
- * Return value: 
- **/
-int
-mp1e_sync_break(synchr_stream *str, double cap_time, double cap_period, double *drift)
-{
-	pthread_mutex_lock(&synchr.mucon.mutex);
-
-	if (cap_time >= synchr.stop_time) {
-		pthread_mutex_unlock(&synchr.mucon.mutex);
-
-		printv(4, "sync_break %08x, %f, stop_time %f\n",
-		       str->this_module, cap_time, synchr.stop_time);
-
-		return TRUE;
-	}
-
-	if (cap_time > synchr.front_time)
-		synchr.front_time = cap_time;
-
-	printv(4, "SB%02d %f:%f i%f o%f d%f\n", str->this_module,
-	       cap_time, cap_period,
-	       (cap_time - str->start_ref), str->elapsed,
-	       (cap_time - str->start_ref) - str->elapsed);
-
-	if (str->this_module == synchr.time_base) {
-		// XXX improve
-		synchr.ref_warp = (cap_time - str->start_ref) - str->elapsed;
-
-		if (drift) *drift = 0.0;
-
-		printv(4, "SB%02d ref_warp %f s, %f ppm\n",
-		       str->this_module, synchr.ref_warp,
-		       str->elapsed * 1e6 / (cap_time - str->start_ref) - 1e6);
-	} else if (drift) {
-		double ref_time = cap_time + synchr.ref_warp - str->start_ref;
-
-		*drift = str->elapsed - ref_time;
-
-		printv(4, "SB%02d ref %f, drift %f s, %f ppm, %f units\n",
-		       str->this_module, ref_time, *drift,
-		       str->elapsed * 1e6 / ref_time - 1e6,
-		       *drift / (str->frame_period + str->byte_period));
-	}
-
-	str->elapsed += cap_period;
-
-	pthread_mutex_unlock(&synchr.mucon.mutex);
-
-	return FALSE;
 }

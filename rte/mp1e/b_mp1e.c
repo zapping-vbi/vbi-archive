@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.13 2001-09-26 10:44:48 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.14 2001-10-07 10:55:51 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -60,6 +60,7 @@ typedef struct {
 	/* Experimental */
 
 	unsigned int codec_set;
+	rte_codec *video_codec;
 	rte_codec *audio_codec;
 
 } backend_private;
@@ -431,25 +432,21 @@ static void rte_audio_init(backend_private *priv) /* init audio capture */
 		/* preliminary */
 
 		if (!priv->audio_codec) {
+			if (sampling_rate < 32000)
+				priv->audio_codec = mp1e_mpeg2_layer2_codec.new();
+			else
+				priv->audio_codec = mp1e_mpeg1_layer2_codec.new();
 
-		if (sampling_rate < 32000)
-			priv->audio_codec = mp1e_mpeg2_layer2_codec.new();
-		else
-			priv->audio_codec = mp1e_mpeg1_layer2_codec.new();
+			assert(priv->audio_codec);
 
-		assert(priv->audio_codec);
-
-		rte_set_option(priv->audio_codec,
-			       "sampling_rate", sampling_rate);
-		rte_set_option(priv->audio_codec,
-			       "bit_rate", audio_bit_rate);
-		rte_set_option(priv->audio_codec,
-			       "audio_mode", (int) "\1\3\2\0"[audio_mode]);
-		rte_set_option(priv->audio_codec,
-			       "psycho", (int) psycho_loops);
+			rte_helper_set_option_va(priv->audio_codec, "sampling_rate", sampling_rate);
+			rte_helper_set_option_va(priv->audio_codec, "bit_rate", audio_bit_rate);
+			rte_helper_set_option_va(priv->audio_codec, "audio_mode",
+						 (int) "\1\3\2\0"[audio_mode]);
+			rte_helper_set_option_va(priv->audio_codec, "psycho", (int) psycho_loops);
 		}
 
-		mp1e_mp2_init(priv->audio_codec, &priv->priv.aud,
+		mp1e_mp2_init(priv->audio_codec, MOD_AUDIO, &priv->priv.aud,
 			      priv->mux, RTE_SNDFMT_S16LE);
 	}
 }
@@ -462,22 +459,32 @@ static void rte_video_init(backend_private *priv) /* init video capture */
 		if (frame_rate > frame_rate_value[vseg.frame_rate_code])
 			frame_rate = frame_rate_value[vseg.frame_rate_code];
 
-		video_init(priv->mux);
+		/* preliminary */
+
+		if (!priv->video_codec) {
+			priv->video_codec = mp1e_mpeg1_video_codec.new();
+
+			assert(priv->video_codec);
+
+			rte_helper_set_option_va(priv->video_codec, "bit_rate", video_bit_rate);
+			/* rte_helper_set_option_va(priv->video_codec, "coded_frame_rate", ?); */
+			rte_helper_set_option_va(priv->video_codec, "virtual_frame_rate",
+						 frame_rate);
+			rte_helper_set_option_va(priv->video_codec, "skip_method", !!hack2);
+			rte_helper_set_option_va(priv->video_codec, "gop_sequence", gop_sequence);
+			rte_helper_set_option_va(priv->video_codec, "motion_compensation",
+						 motion_min > 0 && motion_max > 0);
+			rte_helper_set_option_va(priv->video_codec, "monochrome", !!luma_only);
+			rte_helper_set_option_va(priv->video_codec, "anno", anno);
+		}
+
+		video_init(cpu_type, width, height,
+			   motion_min, motion_max,
+			   MOD_VIDEO, priv->mux);
 	}
 }
 
 /* Experimental */
-
-static rte_codec_class
-mp1e_video_codec = {
-	.public = {
-		.stream_type = RTE_STREAM_VIDEO,
-		.stream_formats = RTE_PIXFMTS_YUV420 |
-		                  RTE_PIXFMTS_YUYV,
-		.keyword = "mpeg1_video",
-		.label = "MPEG-1 Video",
-	}
-};
 
 static rte_codec_class
 mp1e_vbi_codec = {
@@ -496,7 +503,7 @@ mp1e_vbi_codec = {
 
 static rte_codec_class *
 codec_table[] = {
-	&mp1e_video_codec,
+	&mp1e_mpeg1_video_codec,
 	&mp1e_mpeg1_layer2_codec,
 	&mp1e_mpeg2_layer2_codec,
 	&mp1e_vbi_codec,
@@ -528,7 +535,7 @@ get_codec(rte_context *context, rte_stream_type stream_type,
 	case RTE_STREAM_VIDEO:
 		codec = (rte_codec *) 1;
 		if (priv->codec_set & 0x01)
-			info = &mp1e_video_codec;
+			info = &mp1e_mpeg1_video_codec;
 		else
 			goto bad;
 		break;
@@ -647,9 +654,6 @@ enum_option(rte_codec *codec, int index)
 	/* Preliminary */
 
 	switch ((int) codec) {
-	case 1: /* MPEG-1 Video */
-		return NULL; /* TODO */
-
 	case 4: /* VBI */
 		return NULL; /* TODO */
 
@@ -668,9 +672,6 @@ get_option(rte_codec *codec, char *keyword, rte_option_value *v)
 	/* Preliminary */
 
 	switch ((int) codec) {
-	case 1: /* MPEG-1 Video */
-		return 0; /* TODO */
-
 	case 4: /* VBI */
 		return 0; /* TODO */
 
@@ -687,14 +688,27 @@ set_option(rte_codec *codec, char *keyword, va_list args)
 	/* Preliminary */
 
 	switch ((int) codec) {
-	case 1: /* MPEG-1 Video */
-		return 0; /* TODO */
-
 	case 4: /* VBI */
 		return 0; /* TODO */
 
 	default:
 		return codec->class->set_option(codec, keyword, args);
+	}
+}
+
+static char *
+print_option(rte_codec *codec, char *keyword, va_list args)
+{
+//	rte_context *context = codec->context;
+
+	/* Preliminary */
+
+	switch ((int) codec) {
+	case 4: /* VBI */
+		return 0; /* TODO */
+
+	default:
+		return codec->class->print_option(codec, keyword, args);
 	}
 }
 
@@ -713,11 +727,12 @@ rte_backend_info b_mp1e_info =
 	query_format,
 	status,
 
-	.enum_codec	= enum_codec,
-	.get_codec	= get_codec,
-	.set_codec	= set_codec,
+	.enum_codec		= enum_codec,
+	.get_codec		= get_codec,
+	.set_codec		= set_codec,
 
-	.enum_option	= enum_option,
-	.get_option	= get_option,
-	.set_option	= set_option,
+	.enum_option		= enum_option,
+	.get_option		= get_option,
+	.set_option		= set_option,
+	.print_option		= print_option,
 };

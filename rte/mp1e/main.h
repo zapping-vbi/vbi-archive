@@ -46,7 +46,6 @@ extern void options(int ac, char **av);
 extern void preview_init(void);
 
 #include "systems/libsystems.h"
-extern void video_init(multiplexer *mux);
 
 extern volatile int program_shutdown;
 
@@ -56,3 +55,4 @@ extern pthread_mutex_t video_device_mutex;
 extern pthread_mutex_t audio_device_mutex;
 
 #endif // MAIN.H
+

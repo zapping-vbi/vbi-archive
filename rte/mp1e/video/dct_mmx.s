@@ -17,15 +17,15 @@
 #  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 
-# $Id: dct_mmx.s,v 1.3 2001-09-25 09:29:13 mschimek Exp $
+# $Id: dct_mmx.s,v 1.4 2001-10-07 10:55:51 mschimek Exp $
 
 	.text
 	.align		16
-	.globl		mmx_fdct_intra
+	.globl		mp1e_mmx_fdct_intra
 
 # scheduled for PMMX, could be faster on P6/K7
 
-mmx_fdct_intra:
+mp1e_mmx_fdct_intra:
 
 	pushl		%esi;
 	movzbl		ltp(%eax),%esi;
@@ -255,9 +255,9 @@ mmx_fdct_intra:
 
 	.text
 	.align		16
-	.globl		mmx_fdct_inter
+	.globl		mp1e_mmx_fdct_inter
 
-mmx_fdct_inter:
+mp1e_mmx_fdct_inter:
 
 	movswl mmx_q_fdct_inter_q(,%edx,2),%edx
 	orl $-2147418112,%edx; // 32768 << 16
@@ -892,9 +892,9 @@ mmx_fdct_inter:
 # autosched still unfinished, sigh
 	.text
 	.align		16
-	.globl		mmx_mpeg1_idct_inter
+	.globl		mp1e_mmx_mpeg1_idct_inter
 
-mmx_mpeg1_idct_inter:
+mp1e_mmx_mpeg1_idct_inter:
 
 	pushl %edi
 	pushl %esi
@@ -1627,9 +1627,9 @@ mmx_mpeg1_idct_inter:
 # autosched still unfinished, sigh
 	.text
 	.align		16
-	.globl		mmx_mpeg1_idct_intra2
+	.globl		mp1e_mmx_mpeg1_idct_intra2
 
-mmx_mpeg1_idct_intra2:
+mp1e_mmx_mpeg1_idct_intra2:
 
 	pushl %ebp
 	movl %esp,%ebp
@@ -2413,9 +2413,9 @@ mmx_mpeg1_idct_intra2:
 
 	.text
 	.align		16
-	.globl		mmx_copy_refblock
+	.globl		mp1e_mmx_copy_refblock
 
-mmx_copy_refblock:
+mp1e_mmx_copy_refblock:
 
 	movl	$mblock+3*6*128,%eax;
 	pushl	%ebx;
@@ -2451,3 +2451,4 @@ mmx_copy_refblock:
 	popl		%esi;
 	popl		%ebx;			
 	ret;
+

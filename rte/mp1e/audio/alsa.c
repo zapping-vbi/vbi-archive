@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alsa.c,v 1.8 2001-09-26 10:44:48 mschimek Exp $ */
+/* $Id: alsa.c,v 1.9 2001-10-07 10:55:51 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -92,7 +92,7 @@ wait_full(fifo *f)
 	buffer *b = PARENT(f->buffers.head, buffer, added);
 	unsigned char *p;
 	ssize_t r, n;
-	double now, dt;
+	double now;
 
 	assert(b->data == NULL); /* no queue */
 
@@ -117,12 +117,14 @@ wait_full(fifo *f)
 	}
 
 	now = current_time();
-	dt = now - alsa->time;
 
-	if (alsa->time > 0
-	    && fabs(dt - alsa->buffer_period) < alsa->buffer_period * 0.1) {
+	if (alsa->time > 0) {
+		double dt = now - alsa->time;
+		double ddt = alsa->buffer_period - dt;
+		double q = 128 * fabs(ddt) / alsa->buffer_period;
+
+		alsa->buffer_period = ddt * MIN(q, 0.999) + dt;
 		b->time = alsa->time + alsa->start;
-		alsa->buffer_period = (alsa->buffer_period - dt) * 0.999 + dt;
 		alsa->time += alsa->buffer_period;
 	} else {
 		snd_pcm_channel_status_t status;
@@ -285,6 +287,7 @@ struct alsa_context {
 	snd_pcm_t *		handle;
 	snd_pcm_mmap_control_t *control;
 	uint8_t *		mmapped;
+	int			fd;
 	int			curr_frag;
 	int			num_frags;
 
@@ -309,6 +312,9 @@ wait_full(fifo *f)
 		usleep(500000);
 
 	while (!alsa->control->fragments[alsa->curr_frag].data) {
+		fd_set rdset;
+		ssize_t r;
+
 		switch (alsa->control->status.status) {
 		case SND_PCM_STATUS_RUNNING:
 			break;
@@ -339,14 +345,23 @@ wait_full(fifo *f)
 			     alsa->control->status.status);
 		}
 
-		usleep(alsa->sleep); /* fragment period */ 
+		FD_ZERO(&rdset);
+		FD_SET(alsa->fd, &rdset);
+
+		tv.tv_sec = 2;
+		tv.tv_usec = 0;
+
+		r = select(alsa->fd + 1, &rdset, NULL, NULL, &tv);
+
+		if (r == 0)
+			FAIL("ALSA read timeout");
+		else if (r < 0)
+			FAIL("ALSA select error (%d, %s)",
+			     errno, strerror(errno));
 	}
 
-	i = 5; /* abort */
+	i = 5;
 
-	/*
-	 *  Protect against a loss of CPU around gettimeofday()
-	 */
 	do {
 		frag = alsa->control->status.frag_io;
 		gettimeofday(&tv, NULL);
@@ -354,19 +369,18 @@ wait_full(fifo *f)
 
 	if (frag < alsa->curr_frag)
 		frag += alsa->num_frags;
-	/*
-	 *  The "now" sample is somewhere in the current fragment,
-	 *  as close as we can get AFAIK.
-	 */
-	now = tv.tv_sec + tv.tv_usec * (1 / 1e6)
-		- (frag - alsa->curr_frag) * alsa->buffer_period;
 
+	now = (double) tv.tv_sec + tv.tv_usec * (1 / 1e6)
+		- (frag - alsa->curr_frag) * alsa->buffer_period;
+	
 	dt = now - alsa->time;
 
-	if (alsa->time > 0
-	    && fabs(dt - alsa->buffer_period) < alsa->buffer_period * 1) {
-		b->time = alsa->time + alsa->start;
-		alsa->buffer_period = (alsa->buffer_period - dt) * 0.999 + dt;
+	if (alsa->time > 0 && (dt < alsa->buffer_period * 2.5)) {
+		double ddt = alsa->buffer_period - dt;
+
+		/* sigh. */
+		alsa->buffer_period = ddt * 0.9999 + dt;
+		b->time = alsa->time;
 		alsa->time += alsa->buffer_period;
 	} else {
 		/*
@@ -374,8 +388,7 @@ wait_full(fifo *f)
 		 * alsa->start = status.stime.tv_sec
 		 *	+ status.stime.tv_usec * (1 / 1e6);
 		 */
-		b->time = now;
-		alsa->time = now;
+		b->time = alsa->time = now;
 	}
 
 	b->data = alsa->mmapped + alsa->control->fragments[alsa->curr_frag].addr;
@@ -437,6 +450,8 @@ open_pcm_alsa(char *dev_name1, int sampling_rate, bool stereo)
 	ASSERT_ALSA("open ALSA PCM card %d,%d",
 		snd_pcm_open(&alsa->handle, card, device, SND_PCM_OPEN_CAPTURE),
 		card, device);
+
+	alsa->fd = snd_pcm_file_descriptor(alsa->handle, SND_PCM_CHANNEL_CAPTURE);
 
 	ASSERT_ALSA("obtain PCM device info",
 		snd_pcm_info(alsa->handle, &pcm_info));
@@ -535,7 +550,7 @@ do {									\
 	ASSERT_ALSA("query PCM setup",
 		snd_pcm_channel_setup(alsa->handle, &setup));
 
-	printv(3, "ALSA setup: ilv %d, format %d (%s), rate %d, voices %d, "
+	printv(0, "ALSA setup: ilv %d, format %d (%s), rate %d, voices %d, "
 	       "frags %d, frag_size %d, bpf %d\n",
 	       setup.format.interleave, setup.format.format,
 	       snd_pcm_get_format_name(setup.format.format),
@@ -595,6 +610,7 @@ struct alsa_context {
 
 	snd_pcm_t *		handle;
 	int			sleep;
+	double			buffer_period;
 };
 
 static void
@@ -627,7 +643,20 @@ wait_full(fifo *f)
 			usleep(alsa->sleep);
 	}
 
-	b->time = current_time(); // XXX
+	now = current_time();
+
+	if (alsa->time > 0) {
+		double dt = now - alsa->time;
+		double ddt = alsa->buffer_period - dt;
+		double q = 128 * fabs(ddt) / alsa->buffer_period;
+
+		alsa->buffer_period = ddt * MIN(q, 0.999) + dt;
+		b->time = alsa->time + alsa->start;
+		alsa->time += alsa->buffer_period;
+	} else {
+		b->time = alsa->start = now;
+	}
+
 	b->data = b->allocated;
 
 	send_full_buffer(&alsa->pcm.producer, b);
@@ -665,6 +694,8 @@ open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo)
 	int buffer_size, err;
 	snd_output_t *log;
 	buffer *b;
+
+	FAIL("Sorry, alsa 0.9 interface broken\n");
 
 	snd_pcm_info_alloca(&info);
 	snd_pcm_hw_params_alloca(&params);

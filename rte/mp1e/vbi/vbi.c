@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.6 2001-09-20 23:35:07 mschimek Exp $ */
+/* $Id: vbi.c,v 1.7 2001-10-07 10:55:51 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -107,7 +107,9 @@ vbi_thread(void *F)
 			break; // EOF or error
 
 		if (do_subtitles) {
-			if (mp1e_sync_break(&sstr, ibuf->time, 1 / 25.0, NULL)) {
+			mp1e_sync_drift(&sstr, ibuf->time, 0); // XXX BROKEN
+
+			if (mp1e_sync_break(&sstr, ibuf->time)) {
 				send_empty_buffer(&cons, ibuf);
 				break;
 			}

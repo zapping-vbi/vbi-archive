@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: oss.c,v 1.8 2001-09-26 10:44:48 mschimek Exp $ */
+/* $Id: oss.c,v 1.9 2001-10-07 10:55:51 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -67,7 +67,7 @@ wait_full(fifo *f)
 	struct timeval tv1, tv2;
 	unsigned char *p;
 	ssize_t r, n;
-	double now, dt;
+	double now;
 
 	assert(b->data == NULL); /* no queue */
 
@@ -86,13 +86,8 @@ wait_full(fifo *f)
 		n -= r;
 	}
 
-	r = 5; /* abort */
+	r = 5;
 
-	/*
-	 *  This can't be expected more accurate than one audio fragment size
-	 *  (the accuracy of SNDCTL_DSP_GETISPACE, each fragment one irq) but
-	 *  will exclude the possibility of a CPU loss before or after tv1.
-	 */
 	do {
 		gettimeofday(&tv1, NULL);
 
@@ -114,12 +109,13 @@ wait_full(fifo *f)
 	else
 		now -= (b->size - n) * oss->buffer_period / (double) b->size;
 
-	dt = now - oss->time;
+	if (oss->time > 0) {
+		double dt = now - oss->time;
+		double ddt = oss->buffer_period - dt;
+		double q = 128 * fabs(ddt) / oss->buffer_period;
 
-	if (oss->time > 0
-	    && fabs(dt - oss->buffer_period) < oss->buffer_period * 0.1) {
+		oss->buffer_period = ddt * MIN(q, 0.999) + dt;
 		b->time = oss->time;
-		oss->buffer_period = (oss->buffer_period - dt) * 0.99 + dt;
 		oss->time += oss->buffer_period;
 	} else
 		b->time = oss->time = now;

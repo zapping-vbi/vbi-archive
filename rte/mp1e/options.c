@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.5 2001-09-07 22:34:16 mschimek Exp $ */
+/* $Id: options.c,v 1.6 2001-10-07 10:55:51 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -76,8 +76,8 @@ usage(FILE *fi)
 		"                immediately hit Ctrl-\\                      years\n"
 		" -s wxh         Image size (centred)                        %d x %d pixels\n"
 		" -G wxh         Grab size, multiple of 16 x 16              %d x %d pixels\n"
-		" -H frames      Repeat sequence header every n frames,\n"
-		"                n > 0. Helps random access                  2 secs\n"
+//		" -H frames      Repeat sequence header every n frames,\n"
+//		"                n > 0. Helps random access                  2 secs\n"
 		" -R min,max     Motion compensation search range limits     %d,%d\n"
 #if TEST_PREVIEW && HAVE_LIBXV
 		" -P             XvImage Preview (test mode)                 disabled\n"
@@ -469,10 +469,33 @@ parse_option(int c)
 			break;
 
 	        case 'H':
-			frames_per_seqhdr = strtol(optarg, NULL, 0);
-			if (frames_per_seqhdr < 1)
-				return FALSE;
 			break;
+
+			/* 
+			   obsolete, ignored
+			   
+			   frames_per_seqhdr = strtol(optarg, NULL, 0);
+			   
+			   if (frames_per_seqhdr < 1)
+			           return FALSE;
+.BI "\-H, \-\-frames_per_seq_header " n
+.RS
+The sequence header in an MPEG-1 video stream contains information
+such as the picture size and rate, and is therefore essential for a
+player. For archiving it's sufficient to encode only one header.
+If you want to stream the file, the player may have missed the initial
+header. This option allows to repeat the header at certain regular
+intervals, the default is appx. two seconds. When you concatenate
+MPEG streams (simply with "cat") using different compression
+parameters, you may also want to repeat the header to ensure random
+access will pick up the correct parameters.
+.P
+Note whatever you specify the header is not inserted more often than
+once in each group of pictures (see above). A reasonable value may
+be 25 or 30, that is one header per second.
+.RE
+.TP
+			*/
 
 		case 'I':
 			vbi_dev = strdup(optarg);

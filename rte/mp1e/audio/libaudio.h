@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libaudio.h,v 1.6 2001-09-26 10:44:48 mschimek Exp $ */
+/* $Id: libaudio.h,v 1.7 2001-10-07 10:55:51 mschimek Exp $ */
 
 #include "../common/fifo.h"
 #include "../systems/libsystems.h"
@@ -36,10 +36,12 @@ struct pcm_context {
 
 /* mp2.c */
 
-rte_codec_class		mp1e_mpeg1_layer2_codec, mp1e_mpeg2_layer2_codec;
+extern rte_codec_class	mp1e_mpeg1_layer2_codec;
+extern rte_codec_class	mp1e_mpeg2_layer2_codec;
 
 /* preliminary */
-extern void		mp1e_mp2_init(rte_codec *, fifo *cap_fifo, multiplexer *, rte_sndfmt);
+extern void		mp1e_mp2_init(rte_codec *, unsigned int,
+				      fifo *cap_fifo, multiplexer *, rte_sndfmt);
 extern void *		mp1e_mp2_thread(void *foo);
 
 /* historic */

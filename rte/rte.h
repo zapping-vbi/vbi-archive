@@ -36,7 +36,7 @@
 /*
  * Lib build ID, for debugging.
  */
-#define RTE_ID " $Id: rte.h,v 1.9 2001-09-26 10:44:46 mschimek Exp $ "
+#define RTE_ID " $Id: rte.h,v 1.10 2001-10-07 10:55:51 mschimek Exp $ "
 
 /*
  * What are we going to encode, audio only, video only or both
@@ -565,24 +565,17 @@ typedef enum {
 #define RTE_VBIFMTS_RESERVED2		(1UL << RTE_VBIFMT_RESERVED2)
 
 typedef enum {
-  RTE_OPTION_BOOL = 1,	/* TRUE (1) or FALSE (0), def.num */
-  RTE_OPTION_INT,	/* Integer min - max inclusive, def.num */
-  RTE_OPTION_MENU,	/* Index of menu.label[], min - max incl, def.num */
-  RTE_OPTION_STRING,	/* String, def.str */
-  RTE_OPTION_MENU_VAL,	/* Index of menu.v[].*, min - max incl, def.num */
+  RTE_OPTION_BOOL = 1,		/* TRUE (1) or FALSE (0), def.num */
+  RTE_OPTION_INT,		/* Integer min - max inclusive, def.num */
+  RTE_OPTION_REAL,		/* Real min - max inclusive, def.dbl */
+  RTE_OPTION_STRING,		/* Arbitrary string, def.str */
+  RTE_OPTION_MENU,
 } rte_option_type;
 
-typedef struct {
-  char *		label;		/* gettext()ized _N() */
-  int			value;
-} rte_option_menu_val;
-
 typedef union {
-  char *		str;		/* gettext()ized _N() */
   int			num;
-  int			foo1[2];
-  double		foo2;
-  rte_option_menu_val   foo3;
+  char *		str;		/* gettext()ized _N() */
+  double		dbl;
 } rte_option_value;
 
 typedef struct {
@@ -590,11 +583,13 @@ typedef struct {
   char *		keyword;
   char *		label;		/* gettext()ized _N() */
   rte_option_value	def;		/* default (reset) */
-  int			min, max;
+  rte_option_value	min, max;
   union {
-    char **               label;	/* gettext()ized _N() */
-    rte_option_menu_val * v;
+    int *                 num;
+    char **               str;
+    double *              dbl;
   }                     menu;
+  int			entries;
   char *		tooltip;	/* or NULL, gettext()ized _N() */
 } rte_option;
 
@@ -616,7 +611,11 @@ extern rte_codec *rte_get_codec(rte_context *, rte_stream_type, int, char **);
 extern rte_codec *rte_set_codec(rte_context *, rte_stream_type, int, char *);
 
 extern rte_option *rte_enum_option(rte_codec *, int);
+/*** 'set' copies string values, 'get' strings must be free()ed */
 extern int rte_get_option(rte_codec *, char *, rte_option_value *);
 extern int rte_set_option(rte_codec *, char *, ...);
+extern int rte_get_option_menu(rte_codec *, char *, int *);
+extern int rte_set_option_menu(rte_codec *, char *, int);
+extern char *rte_print_option(rte_codec *, char *, ...);
 
 #endif /* rtelib.h */

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: filter.c,v 1.3 2001-09-02 03:26:58 mschimek Exp $ */
+/* $Id: filter.c,v 1.4 2001-10-07 10:55:51 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "../common/mmx.h"
@@ -26,7 +26,7 @@
 #include "video.h"
 
 int			(* filter)(unsigned char *, unsigned char *);
-bool			temporal_interpolation;
+// removed bool			temporal_interpolation;
 
 const char		cbp_order[6] = { 5, 4, 3, 1, 2, 0 };
 
@@ -36,10 +36,10 @@ filter_labels[] = {
 	"YUV 4:2:0 fastest",
 	"YUYV 4:2:2 fastest",
 	"YUYV 4:2:2 w/vertical decimation",
-	"YUYV 4:2:2 w/temporal interpolation",
+	"YUYV 4:2:2 w/temporal interpolation", /* REMOVED */
 	"YUYV 4:2:2 w/vertical interpolation",
 	"YUYV 4:2:2 field progressive 50/60 Hz",
-	"YUYV 4:2:2 50/60 Hz w/temporal interpolation",
+	"YUYV 4:2:2 50/60 Hz w/temporal interpolation", /* REMOVED */
 	"YVU 4:2:0 fastest",
 	"",
 	"",
@@ -408,7 +408,7 @@ filter_init(int pitch)
 	int uv_size = 0;
 	int u = 4, v = 5;
 
-	temporal_interpolation = FALSE;
+//	temporal_interpolation = FALSE;
 
 	switch (filter_mode) {
 	case CM_YVU:
@@ -425,21 +425,22 @@ filter_init(int pitch)
 
 	case CM_YUYV_EXP:
 		filter = YUYV_422_exp2;
-		temporal_interpolation = FALSE;
+//		temporal_interpolation = FALSE;
 		width = saturate(grab_width, 1, grab_width - 16);
 		height = saturate(grab_height, 1, grab_height - 16);
 		break;
 
 	case CM_YUYV_EXP2:
 		filter = YUYV_422_exp4;
-		temporal_interpolation = FALSE;
+//		temporal_interpolation = FALSE;
 		width = saturate(grab_width, 1, grab_width - 16);
 		height = saturate(grab_height, 1, grab_height - 16);
 		break;
 
 	case CM_YUYV_EXP_VERTICAL_DECIMATION:
+		FAIL("Sorry, the selected filter mode was experimental and is no longer available.\n");
 		filter = YUYV_422_exp3;
-		temporal_interpolation = TRUE;
+//		temporal_interpolation = TRUE;
 		scale_y = 2;
 		width = saturate(grab_width, 1, grab_width - 16);
 		height = saturate(grab_height / 2, 1, grab_height / 2 - 16);
@@ -456,8 +457,9 @@ filter_init(int pitch)
 
 	case CM_YUYV_TEMPORAL_INTERPOLATION:
 	case CM_YUYV_PROGRESSIVE_TEMPORAL:
+		FAIL("Sorry, the selected filter mode (temporal interpolation) is no longer available.\n");
 		filter = mmx_YUYV_422_ti;
-		temporal_interpolation = TRUE;
+//		temporal_interpolation = TRUE;
 		break;
 	
 	default:

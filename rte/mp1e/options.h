@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.h,v 1.2 2001-08-22 01:28:07 mschimek Exp $ */
+/* $Id: options.h,v 1.3 2001-10-07 10:55:51 mschimek Exp $ */
 
 extern char *		cap_dev;
 extern char *		pcm_dev;
@@ -33,7 +33,7 @@ extern int		grab_height;
 extern int		video_bit_rate;
 extern int		video_num_frames;
 extern char *		gop_sequence;
-extern int		frames_per_seqhdr;
+// extern int		frames_per_seqhdr;
 extern int		filter_mode;
 extern double		frame_rate;
 extern int		preview;

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rtepriv.h,v 1.7 2001-09-23 21:04:25 mschimek Exp $
+ * $Id: rtepriv.h,v 1.8 2001-10-07 10:55:51 mschimek Exp $
  * Private stuff in the context.
  */
 
@@ -46,6 +46,7 @@ typedef struct rte_codec_class {
 	rte_option *		(* enum_option)(rte_codec *, int index);
 	int			(* get_option)(rte_codec *, char *, rte_option_value *);
 	int			(* set_option)(rte_codec *, char *, va_list);
+	char *			(* print_option)(rte_codec *, char *, va_list);
 } rte_codec_class;
 
 struct rte_codec {
@@ -92,7 +93,7 @@ typedef struct {
 	rte_option *	(* enum_option)(rte_codec *, int index);
 	int		(* get_option)(rte_codec *, char *, rte_option_value *);
 	int		(* set_option)(rte_codec *, char *, va_list);
-
+	char *		(* print_option)(rte_codec *, char *, va_list);
 } rte_backend_info;
 
 #define RC(X) ((rte_context*)X)
@@ -147,13 +148,65 @@ struct _rte_context_private {
 	unsigned long int bytes_out; /* sent bytes */
 };
 
-/* Some macros for avoiding repetitive typing */
-#define nullcheck(X, whattodo) \
-do { \
-	if (!X) { \
-		rte_error(NULL, #X " == NULL"); \
-		whattodo; \
-	} \
+/*
+ *  Helper functions
+ *
+ *  (note the backend is bypassed, may change)
+ */
+
+#define nullcheck(X, whattodo)						\
+do {									\
+	if (!X) {							\
+		rte_error(NULL, #X " == NULL");				\
+		whattodo;						\
+	}								\
 } while (0)
 
+static inline int
+rte_helper_set_option_va(rte_codec *codec, char *keyword, ...)
+{
+	va_list args;
+	int r;
+
+	va_start(args, keyword);
+	r = codec->class->set_option(codec, keyword, args);
+	va_end(args);
+
+	return r;
+}
+
+static inline int
+rte_helper_reset_options(rte_codec *codec)
+{
+	rte_option *option;
+	int r = 1, i = 0;
+
+	while (r && (option = codec->class->enum_option(codec, i++))) {
+		switch (option->type) {
+		case RTE_OPTION_INT:
+		case RTE_OPTION_BOOL:
+		case RTE_OPTION_MENU:
+			r = rte_helper_set_option_va(
+				codec, option->keyword, option->def.num);
+			break;
+		case RTE_OPTION_STRING:
+			r = rte_helper_set_option_va(
+				codec, option->keyword, option->def.str);
+			break;
+		case RTE_OPTION_REAL:
+			r = rte_helper_set_option_va(
+				codec, option->keyword, option->def.dbl);
+			break;
+		default:
+			assert(!"reset option->type");
+		}
+	}
+
+	return r;
+}
+
 #endif /* rtepriv.h */
+
+
+
+

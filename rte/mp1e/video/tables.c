@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: tables.c,v 1.2 2001-08-22 01:28:10 mschimek Exp $ */
+/* $Id: tables.c,v 1.3 2001-10-07 10:55:51 mschimek Exp $ */
 
 #include "mpeg.h"
 
@@ -553,7 +553,7 @@ dct_coeff_one_vlc[] =
  *  Translate VLC(), returns bit length
  */
 int
-vlc(unsigned long long vlc_octet, unsigned int *code)
+mp1e_vlc(unsigned long long vlc_octet, unsigned int *code)
 {
 	int i;
 
@@ -571,13 +571,13 @@ vlc(unsigned long long vlc_octet, unsigned int *code)
  *  (append 0 for positive level, 1 for negative level)
  */
 int
-dct_coeff_vlc(int table, int run, int level, unsigned int *vlcp)
+mp1e_dct_coeff_vlc(int table, int run, int level, unsigned int *vlcp)
 {
 	const struct dct_coeff *dcp;
 
 	for (dcp = table ? dct_coeff_one_vlc : dct_coeff_zero_vlc; dcp->run >= 0; dcp++)
 		if (dcp->run == run && dcp->level == level)
-			return vlc(dcp->code, vlcp);
+			return mp1e_vlc(dcp->code, vlcp);
 
 	return -1; // No vlc for this run/length combination
 }

@@ -17,7 +17,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: video.h,v 1.5 2001-09-25 09:29:13 mschimek Exp $ */
+/* $Id: video.h,v 1.6 2001-10-07 10:55:51 mschimek Exp $ */
+
+#ifndef VIDEO_H
+#define VIDEO_H
 
 #include <stdint.h>
 
@@ -25,6 +28,7 @@
 #include "../common/fifo.h"
 #include "../common/log.h"
 #include "../common/math.h"
+#include "../common/sync.h"
 #include "mblock.h"
 
 #include "libvideo.h"
@@ -34,6 +38,7 @@
 #define MAX_HEIGHT 1024			/* 1 ... 2800 */
 
 #define reg(n) __attribute__ ((regparm (n)))
+#define elements(array) (sizeof(array) / sizeof(array[0]))
 
 struct rc {
 	int		ni, np, nb, ob;		/* picture types per GOP */
@@ -191,7 +196,7 @@ rc_picture_end(struct rc *rc, picture_type type,
 }
 
 typedef struct stacked_frame {
-	uint8_t *	org[2];
+	uint8_t *	org;
 	buffer *	buffer;
 	double		time;
 } stacked_frame;
@@ -202,10 +207,10 @@ typedef struct video_context {
 	uint8_t *	zerop_template;		/* empty P picture */
 	int		Sz;			/* .. size in bytes */
 
-	int		(* picture_i)(uint8_t *org0, uint8_t *org1);
-	int		(* picture_p)(uint8_t *org0, uint8_t *org1,
+	int		(* picture_i)(uint8_t *org);
+	int		(* picture_p)(uint8_t *org,
 				      int dist, int forward_motion);
-	int		(* picture_b)(uint8_t *org0, uint8_t *org1,
+	int		(* picture_b)(uint8_t *org,
 				      int dist, int forward_motion,
 				      int backward_motion);
 
@@ -216,7 +221,6 @@ typedef struct video_context {
 
 	stacked_frame	stack[MAX_B_SUCC];
 	stacked_frame	last;
-	stacked_frame	buddy;
 
 						/* frames encoded (coding order) */
 	int		gop_frame_count;	/* .. in current GOP (display order) */
@@ -244,16 +248,38 @@ typedef struct video_context {
 	int		mb_cx_row;
 	int		mb_cx_thresh;
 
+	int		motion_min;
+	int		motion_max;
+
+	int		coded_width;
+	int		coded_height;
+
+	int		frames_per_seqhdr;
+
+	/* input */
+
+	synchr_stream	sstr;
+	double		coded_elapsed;
+
 	/* Output */
 
 	fifo *		fifo;
 	producer	prod;
+	double		coded_time;
+	double		coded_frame_period;
 
 	/* Options */
 
 	rte_codec	codec;
 
+	double		bit_rate;
 	int		frame_rate_code;
+	double		virtual_frame_rate;
+	char *		gop_sequence;
+	int		skip_method;
+	bool		motion_compensation;
+	bool		monochrome;
+	char *		anno;
 
 } video_context;
 
@@ -348,7 +374,4 @@ enum {
 	CM_NUM_MODES
 };
 
-
-
-
-
+#endif /* VIDEO_H */

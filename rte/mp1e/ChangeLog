@@ -1,3 +1,14 @@
+2001-10-01	<mschimek@users.sf.net>
+
+	* audio: Polished the timestamping, some bad changes since
+	  09-20. Still not what I'd like, but hopefully sufficient.
+	* mpeg1.c: Rewrote frame dropping/skipping code, added rte
+	  options, lots of small changes.
+
+2001-09-28	<mschimek@users.sf.net>
+
+	* v4l2.c: Added Steven Davies' bttv 0.8 v4l2 r/w patch.
+
 2001-09-25	<mschimek@users.sf.net>
 
 	* video: Some work towards reentrancy and encapsulation.

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: preview.c,v 1.2 2001-08-22 01:28:09 mschimek Exp $ */
+/* $Id: preview.c,v 1.3 2001-10-07 10:55:51 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -91,7 +91,8 @@ static struct test_capture_param params[] =
 
 static int num_params = sizeof(params)/sizeof(struct test_capture_param);
 
-extern int video_bit_rate;
+#include "../video/video.h"
+
 extern int video_do_reset;
 extern int force_drop_rate;
 extern int p_inter_bias;
@@ -110,8 +111,8 @@ on_capture_param_changed(GtkAdjustment *adj,
 	switch (i) {
 	case 0:
 		value = value * 1e6;
-		if (value != video_bit_rate) {
-			video_bit_rate = value;
+		if (value != vseg.video_bit_rate) {
+			vseg.video_bit_rate = value;
 			video_do_reset = 1;
 		}
 		break;

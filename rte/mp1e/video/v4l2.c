@@ -1,7 +1,7 @@
 /*
  *  MPEG-1 Real Time Encoder
  *
- *  Copyright (C) 1999-2000 Michael H. Schimek
+ *  Copyright (C) 1999-2001 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.6 2001-09-25 09:29:13 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.7 2001-10-07 10:55:51 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -165,7 +165,8 @@ v4l2_init(void)
 	int min_cap_buffers = video_look_ahead(gop_sequence);
 	int i;
 
-	ASSERT("open video capture device", (fd = open(cap_dev, O_RDONLY)) != -1);
+	ASSERT("open video capture device",
+	       (fd = open(cap_dev, O_RDWR)) != -1);
 
 	if (IOCTL(fd, VIDIOC_QUERYCAP, &vcap) == -1) {
 		close(fd);
@@ -386,7 +387,8 @@ v4l2_init(void)
 		ASSERT("query capture buffer #%d",
 			IOCTL(fd, VIDIOC_QUERYBUF, &vbuf) == 0, i);
 
-		p = mmap(NULL, vbuf.length, PROT_READ, MAP_SHARED, fd, vbuf.offset);
+		p = mmap(NULL, vbuf.length, PROT_READ | PROT_WRITE,
+			 MAP_SHARED, fd, vbuf.offset);
 
 		if ((int) p == -1) {
 			if (errno == ENOMEM && i > 0)
@@ -412,3 +414,6 @@ v4l2_init(void)
 }
 
 #endif // V4L2
+
+
+
