@@ -26,6 +26,13 @@ static GnomeUIInfo file1_menu_uiinfo[] =
 static GnomeUIInfo edit1_menu_uiinfo[] =
 {
   GNOMEUIINFO_MENU_PROPERTIES_ITEM (on_propiedades1_activate, NULL),
+  {
+    GNOME_APP_UI_ITEM, N_("P_lugins"),
+    NULL,
+    on_plugins1_activate, NULL, NULL,
+    GNOME_APP_PIXMAP_STOCK, GNOME_STOCK_MENU_ATTACH,
+    0, 0, NULL
+  },
   GNOMEUIINFO_SEPARATOR,
   {
     GNOME_APP_UI_ITEM, N_("_TV Channels"),
@@ -90,7 +97,7 @@ static GnomeUIInfo menubar1_uiinfo[] =
     GNOME_APP_UI_SUBTREE, N_("Go _Zapping"),
     NULL,
     go_zapping1_menu_uiinfo, NULL, NULL,
-    GNOME_APP_PIXMAP_NONE, N_("Go _Zapping"),
+    GNOME_APP_PIXMAP_NONE, NULL,
     0, 0, NULL
   },
   GNOMEUIINFO_MENU_HELP_TREE (help1_menu_uiinfo),
@@ -146,13 +153,18 @@ create_zapping (void)
                             (GtkDestroyNotify) gtk_widget_unref);
 
   gtk_widget_ref (edit1_menu_uiinfo[1].widget);
-  gtk_object_set_data_full (GTK_OBJECT (zapping), "separador1",
+  gtk_object_set_data_full (GTK_OBJECT (zapping), "plugins1",
                             edit1_menu_uiinfo[1].widget,
                             (GtkDestroyNotify) gtk_widget_unref);
 
   gtk_widget_ref (edit1_menu_uiinfo[2].widget);
-  gtk_object_set_data_full (GTK_OBJECT (zapping), "channels1",
+  gtk_object_set_data_full (GTK_OBJECT (zapping), "separador1",
                             edit1_menu_uiinfo[2].widget,
+                            (GtkDestroyNotify) gtk_widget_unref);
+
+  gtk_widget_ref (edit1_menu_uiinfo[3].widget);
+  gtk_object_set_data_full (GTK_OBJECT (zapping), "channels1",
+                            edit1_menu_uiinfo[3].widget,
                             (GtkDestroyNotify) gtk_widget_unref);
 
   gtk_widget_ref (menubar1_uiinfo[2].widget);
@@ -705,5 +717,162 @@ create_about2 (void)
   gtk_window_set_modal (GTK_WINDOW (about2), TRUE);
 
   return about2;
+}
+
+GtkWidget*
+create_plugin_properties (void)
+{
+  GtkWidget *plugin_properties;
+  GtkWidget *vbox6;
+  GtkWidget *vbox7;
+  GtkWidget *scrolledwindow3;
+  GtkWidget *clist2;
+  GtkWidget *label16;
+  GtkWidget *label17;
+  GtkWidget *label18;
+  GtkWidget *label19;
+  GtkWidget *scrolledwindow4;
+  GtkWidget *text1;
+  GtkWidget *hbox2;
+  GtkWidget *button3;
+  GtkWidget *button4;
+  GtkWidget *button5;
+  GtkTooltips *tooltips;
+
+  tooltips = gtk_tooltips_new ();
+
+  plugin_properties = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+  gtk_object_set_data (GTK_OBJECT (plugin_properties), "plugin_properties", plugin_properties);
+  gtk_widget_set_usize (plugin_properties, 472, 346);
+  gtk_window_set_title (GTK_WINDOW (plugin_properties), _("Plugin properties"));
+
+  vbox6 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_ref (vbox6);
+  gtk_object_set_data_full (GTK_OBJECT (plugin_properties), "vbox6", vbox6,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (vbox6);
+  gtk_container_add (GTK_CONTAINER (plugin_properties), vbox6);
+
+  vbox7 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_ref (vbox7);
+  gtk_object_set_data_full (GTK_OBJECT (plugin_properties), "vbox7", vbox7,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (vbox7);
+  gtk_box_pack_start (GTK_BOX (vbox6), vbox7, TRUE, TRUE, 0);
+
+  scrolledwindow3 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_ref (scrolledwindow3);
+  gtk_object_set_data_full (GTK_OBJECT (plugin_properties), "scrolledwindow3", scrolledwindow3,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (scrolledwindow3);
+  gtk_box_pack_start (GTK_BOX (vbox7), scrolledwindow3, TRUE, TRUE, 0);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow3), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+
+  clist2 = gtk_clist_new (4);
+  gtk_widget_ref (clist2);
+  gtk_object_set_data_full (GTK_OBJECT (plugin_properties), "clist2", clist2,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (clist2);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow3), clist2);
+  gtk_clist_set_column_width (GTK_CLIST (clist2), 0, 100);
+  gtk_clist_set_column_width (GTK_CLIST (clist2), 1, 145);
+  gtk_clist_set_column_width (GTK_CLIST (clist2), 2, 50);
+  gtk_clist_set_column_width (GTK_CLIST (clist2), 3, 80);
+  gtk_clist_set_selection_mode (GTK_CLIST (clist2), GTK_SELECTION_EXTENDED);
+  gtk_clist_column_titles_show (GTK_CLIST (clist2));
+
+  label16 = gtk_label_new (_("Canonical Name"));
+  gtk_widget_ref (label16);
+  gtk_object_set_data_full (GTK_OBJECT (plugin_properties), "label16", label16,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label16);
+  gtk_clist_set_column_widget (GTK_CLIST (clist2), 0, label16);
+
+  label17 = gtk_label_new (_("Name"));
+  gtk_widget_ref (label17);
+  gtk_object_set_data_full (GTK_OBJECT (plugin_properties), "label17", label17,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label17);
+  gtk_clist_set_column_widget (GTK_CLIST (clist2), 1, label17);
+
+  label18 = gtk_label_new (_("Version"));
+  gtk_widget_ref (label18);
+  gtk_object_set_data_full (GTK_OBJECT (plugin_properties), "label18", label18,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label18);
+  gtk_clist_set_column_widget (GTK_CLIST (clist2), 2, label18);
+
+  label19 = gtk_label_new (_("Active"));
+  gtk_widget_ref (label19);
+  gtk_object_set_data_full (GTK_OBJECT (plugin_properties), "label19", label19,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label19);
+  gtk_clist_set_column_widget (GTK_CLIST (clist2), 3, label19);
+
+  scrolledwindow4 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_ref (scrolledwindow4);
+  gtk_object_set_data_full (GTK_OBJECT (plugin_properties), "scrolledwindow4", scrolledwindow4,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (scrolledwindow4);
+  gtk_box_pack_start (GTK_BOX (vbox7), scrolledwindow4, TRUE, TRUE, 0);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow4), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+
+  text1 = gtk_text_new (NULL, NULL);
+  gtk_widget_ref (text1);
+  gtk_object_set_data_full (GTK_OBJECT (plugin_properties), "text1", text1,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (text1);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow4), text1);
+
+  hbox2 = gtk_hbox_new (TRUE, 14);
+  gtk_widget_ref (hbox2);
+  gtk_object_set_data_full (GTK_OBJECT (plugin_properties), "hbox2", hbox2,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox2);
+  gtk_box_pack_start (GTK_BOX (vbox6), hbox2, FALSE, FALSE, 0);
+
+  button3 = gnome_stock_button (GNOME_STOCK_BUTTON_OK);
+  gtk_widget_ref (button3);
+  gtk_object_set_data_full (GTK_OBJECT (plugin_properties), "button3", button3,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (button3);
+  gtk_box_pack_start (GTK_BOX (hbox2), button3, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip (tooltips, button3, _("Click here when you are done with the plugins"), NULL);
+
+  button4 = gnome_stock_button (GNOME_STOCK_BUTTON_CLOSE);
+  gtk_widget_ref (button4);
+  gtk_object_set_data_full (GTK_OBJECT (plugin_properties), "button4", button4,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (button4);
+  gtk_box_pack_start (GTK_BOX (hbox2), button4, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip (tooltips, button4, _("Close the plugin"), NULL);
+
+  button5 = gnome_stock_button (GNOME_STOCK_BUTTON_APPLY);
+  gtk_widget_ref (button5);
+  gtk_object_set_data_full (GTK_OBJECT (plugin_properties), "button5", button5,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (button5);
+  gtk_box_pack_start (GTK_BOX (hbox2), button5, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip (tooltips, button5, _("Click here to apply (activate) the plugin"), NULL);
+
+  gtk_signal_connect (GTK_OBJECT (plugin_properties), "delete_event",
+                      GTK_SIGNAL_FUNC (on_plugin_properties_delete_event),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (clist2), "select_row",
+                      GTK_SIGNAL_FUNC (on_clist2_select_row),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (button3), "clicked",
+                      GTK_SIGNAL_FUNC (on_button3_clicked),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (button4), "clicked",
+                      GTK_SIGNAL_FUNC (on_plugin_close_clicked),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (button5), "clicked",
+                      GTK_SIGNAL_FUNC (on_plugin_apply_clicked),
+                      NULL);
+
+  gtk_object_set_data (GTK_OBJECT (plugin_properties), "tooltips", tooltips);
+
+  return plugin_properties;
 }
 

@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.2\n"
-"POT-Creation-Date: 2000-02-18 16:05+0100\n"
+"POT-Creation-Date: 2000-02-19 01:21+0100\n"
 "PO-Revision-Date: 2000-02-14 16:56+0100\n"
 "Last-Translator: Iñaki García Etxebarria\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -586,7 +586,11 @@ msgstr "Perdón, pero no puedo escribir\n"
 msgid "Cannot take screenshot"
 msgstr "No puedo capturar imágen"
 
-#: src/zapping_setup_fb/zapping_setup_fb.c:58
+#: src/plugins.c:59
+msgid "The plugin doesn't understand our protocol"
+msgstr "El plugin no entiende nuestro protocolo"
+
+#: zapping_setup_fb/zapping_setup_fb.c:58
 msgid ""
 "Usage:\n"
 " zapping_setup_fb [OPTIONS], where OPTIONS stands for\n"
@@ -608,21 +612,21 @@ msgstr ""
 " --usage      - Lo mismo que --help o -?\n"
 " --version    - Muestra la versión del programa\n"
 
-#: src/zapping_setup_fb/zapping_setup_fb.c:202
+#: zapping_setup_fb/zapping_setup_fb.c:202
 msgid "Video device name seems to be missing\n"
 msgstr "El nombre del dispositivo de video parece faltar\n"
 
-#: src/zapping_setup_fb/zapping_setup_fb.c:210
+#: zapping_setup_fb/zapping_setup_fb.c:210
 msgid "X display name seems to be missing\n"
 msgstr "El nombre del display X parece faltar\n"
 
-#: src/zapping_setup_fb/zapping_setup_fb.c:231
+#: zapping_setup_fb/zapping_setup_fb.c:231
 #, c-format
 msgid "Unknown command line option %s, ignoring it\n"
 msgstr "Opción de línea de comando desconocida (%s), ignorándola\n"
 
 #. Print a short copyright notice if we aren't totally quiet
-#: src/zapping_setup_fb/zapping_setup_fb.c:242
+#: zapping_setup_fb/zapping_setup_fb.c:242
 msgid ""
 "(C) 2000 Iñaki García Etxebarria.\n"
 "This file is under the GNU General Public License.\n"
@@ -630,34 +634,34 @@ msgstr ""
 "(C) 2000 Iñaki García Etxebarria.\n"
 "Este fichero está sujeto a la licencia GNU General Public License\n"
 
-#: src/zapping_setup_fb/zapping_setup_fb.c:266
+#: zapping_setup_fb/zapping_setup_fb.c:266
 #, c-format
 msgid "Given device %s has dots in it, cannot use it\n"
 msgstr "El dispositivo especificado %s contiene puntos, no es válido\n"
 
-#: src/zapping_setup_fb/zapping_setup_fb.c:275
+#: zapping_setup_fb/zapping_setup_fb.c:275
 #, c-format
 msgid "Given device %s is too short, cannot use it\n"
 msgstr "El dispositivo dado es demasiado corto, no puedo usarlo\n"
 
-#: src/zapping_setup_fb/zapping_setup_fb.c:282
+#: zapping_setup_fb/zapping_setup_fb.c:282
 #, c-format
 msgid "Given device %s doesn't start with /dev/, cannot use it\n"
 msgstr "El dispositivo dado no comienza con /dev/, no es válido\n"
 
 # src/tveng.c:40
-#: src/zapping_setup_fb/zapping_setup_fb.c:293
+#: zapping_setup_fb/zapping_setup_fb.c:293
 #, c-format
 msgid "Cannot open given device %s\n"
 msgstr "No se puede abrir el dispositivo %s\n"
 
 # src/tveng.c:40
-#: src/zapping_setup_fb/zapping_setup_fb.c:319
+#: zapping_setup_fb/zapping_setup_fb.c:319
 #, c-format
 msgid "Cannot open display %s, quitting\n"
 msgstr "No se puede abrir el display \"%s\", saliendo\n"
 
-#: src/zapping_setup_fb/zapping_setup_fb.c:363
+#: zapping_setup_fb/zapping_setup_fb.c:363
 #, c-format
 msgid "Your screen depth %d isn't supported, exiting\n"
 msgstr "Tu resolución de pantalla (%d) no está soportada, saliendo\n"

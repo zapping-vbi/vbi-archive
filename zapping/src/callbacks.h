@@ -184,3 +184,31 @@ on_channel_up1_activate                (GtkMenuItem     *menuitem,
 void
 on_channel_down1_activate              (GtkMenuItem     *menuitem,
                                         gpointer         user_data);
+
+void
+on_plugins1_activate                   (GtkMenuItem     *menuitem,
+                                        gpointer         user_data);
+
+void
+on_clist2_select_row                   (GtkCList        *clist,
+                                        gint             row,
+                                        gint             column,
+                                        GdkEvent        *event,
+                                        gpointer         user_data);
+
+void
+on_button3_clicked                     (GtkButton       *button,
+                                        gpointer         user_data);
+
+void
+on_plugin_close_clicked                (GtkButton       *button,
+                                        gpointer         user_data);
+
+void
+on_plugin_apply_clicked                (GtkButton       *button,
+                                        gpointer         user_data);
+
+gboolean
+on_plugin_properties_delete_event      (GtkWidget       *widget,
+                                        GdkEvent        *event,
+                                        gpointer         user_data);

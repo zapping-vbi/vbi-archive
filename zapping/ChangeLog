@@ -1,3 +1,16 @@
+19.2.2000	Plugin structure ready <garetxe@users.sourceforge.net>
+
+	* plugin.c: The plugin loading / unloading funtions work
+	
+19.2.2000	Added the project to CVS <garetxe@users.sourceforge.net>
+
+	* Generic: The project has been added to
+	  cvs.zapping.sourceforge.net, it can now be accessed anonymously
+	* zapping_setup_fb: Has moved from src/zapping_setup_fb to
+	  zapping_setup_fb in order to follow the 'no / in Makefile.am'
+	  rule, and not to break automake.
+	* io.c: Minor changes
+	
 11.2.2000	Suid and preview operative <garetxe@users.sourceforge.net>
 
 	* src/zapping_setup_fb/zapping_setup_fb.c: I finished the preview

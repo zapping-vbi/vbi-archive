@@ -26,6 +26,7 @@
 #include "interface.h"
 #include "support.h"
 #include "v4l2interface.h"
+#include "plugins.h"
 
 gboolean flag_exit_program; /* set this flag to TRUE to exit the program */
 GtkWidget * ChannelWindow = NULL; /* Here is stored the channel editor
@@ -48,6 +49,8 @@ gboolean take_screenshot = FALSE; /* Set to TRUE if you want a
 
 GtkWidget * black_window = NULL; /* The black window when you go
 				    preview */
+
+extern GList * plugin_list; /* The plugins we have */
 
 extern struct config_struct config;
 
@@ -885,4 +888,85 @@ on_channel_down1_activate              (GtkMenuItem     *menuitem,
   /* Update the option menu */
   gtk_option_menu_set_history(GTK_OPTION_MENU (Channels),
 			      new_channel);
+}
+
+void
+on_plugins1_activate                   (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+  GtkWidget * plugin_properties = create_plugin_properties();
+  GtkWidget * text1 = lookup_widget(GTK_WIDGET(plugin_properties), "text1");
+  gtk_object_set_user_data(GTK_OBJECT(plugin_properties), menuitem);
+  gtk_widget_set_sensitive(GTK_WIDGET(menuitem), FALSE);
+  gtk_text_set_word_wrap(GTK_TEXT(text1), TRUE);
+
+  gtk_widget_show(plugin_properties);
+}
+
+
+void
+on_clist2_select_row                   (GtkCList        *clist,
+                                        gint             row,
+                                        gint             column,
+                                        GdkEvent        *event,
+                                        gpointer         user_data)
+{
+  GdkColor blue;
+
+  GtkText * text1 = GTK_TEXT(lookup_widget(GTK_WIDGET(clist), "text1"));
+
+  /* lookup blue color */
+  gdk_color_parse("blue", &blue);
+  if (!gdk_colormap_alloc_color(gdk_rgb_get_cmap(), &blue,
+				TRUE, TRUE))
+    return;
+  
+  gtk_text_freeze(text1); /* We are going to do a number of
+			     modifications */
+  /* Delete all previous contents */
+  gtk_editable_delete_text(GTK_EDITABLE(text1), 0, -1);
+
+  gtk_text_thaw(text1); /* Show the changes */
+  gdk_colormap_free_colors(gdk_rgb_get_cmap(), &blue, 1);
+}
+
+
+void
+on_button3_clicked                     (GtkButton       *button,
+                                        gpointer         user_data)
+{
+  GtkWidget * plugin_properties = lookup_widget(GTK_WIDGET(button),
+						"plugin_properties");
+
+  /* Activate the menuitem and close the widget */
+  gpointer menuitem = gtk_object_get_user_data(GTK_OBJECT(plugin_properties));
+  gtk_widget_set_sensitive(GTK_WIDGET(menuitem), TRUE);
+  gtk_widget_destroy(plugin_properties);
+}
+
+
+void
+on_plugin_close_clicked                (GtkButton       *button,
+                                        gpointer         user_data)
+{
+
+}
+
+
+void
+on_plugin_apply_clicked                (GtkButton       *button,
+                                        gpointer         user_data)
+{
+
+}
+
+gboolean
+on_plugin_properties_delete_event      (GtkWidget       *widget,
+                                        GdkEvent        *event,
+                                        gpointer         user_data)
+{
+  gpointer menuitem = gtk_object_get_user_data(GTK_OBJECT(widget));
+  gtk_widget_set_sensitive(GTK_WIDGET(menuitem), TRUE);
+
+  return FALSE;
 }

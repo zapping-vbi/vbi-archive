@@ -29,6 +29,7 @@
 #include "tveng.h"
 #include "v4l2interface.h"
 #include "io.h"
+#include "plugins.h"
 
 extern gboolean flag_exit_program;
 extern gboolean take_screenshot; /* Set to TRUE when they want an
@@ -50,6 +51,9 @@ struct ParseStruct
 
 /* Current configuration */
 struct config_struct config;
+
+/* plugin list, empty on startup */
+GList * plugin_list = NULL;
 
 /* This will be extern */
 int zapping_window_x, zapping_window_y;
@@ -178,6 +182,11 @@ main (int argc, char *argv[])
   int i;
 #endif
 
+  /* Load all the plugins in the path */
+  /* FIXME: Add correct path */
+  plugin_list = plugin_load_plugins("/home/garetxe/cvs/plugins",
+				    ".zapping.so", plugin_list);
+
 #ifdef ENABLE_NLS
   bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
   textdomain (PACKAGE);
@@ -233,6 +242,8 @@ main (int argc, char *argv[])
 	{
 	  ShowBox(_("Sorry, cannot start capturing frames"),
 		  GNOME_MESSAGE_BOX_ERROR);
+
+	  plugin_unload_plugins(plugin_list);
 	  return 0;
 	}
 
@@ -515,6 +526,9 @@ main (int argc, char *argv[])
 	    }
 	}
     }
+
+  plugin_unload_plugins(plugin_list);
+  
   return 0;
 }
 

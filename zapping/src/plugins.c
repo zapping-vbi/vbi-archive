@@ -24,6 +24,9 @@
 
 #include "plugins.h"
 
+/* This shouldn't be public */
+void plugin_foreach_free(struct plugin_info * info, void * user_data);
+
 /* Loads a plugin, returns TRUE if the plugin seems usable and FALSE
    in case of error. Shows an error box describing the error in case
    of error and the given structure is filled in on success.
@@ -31,9 +34,14 @@
    info: Structure that holds all the info about the plugin, and will
          be passed to the rest of functions in this library.
 */
+
 gboolean plugin_load(gchar * file_name, struct plugin_info * info)
 {
-  info -> error = NULL;
+  gboolean (*plugin_validate_protocol)(gchar * protocol);
+  void (*plugin_get_version)(int * zapping_major, int * zapping_minor,
+			     int * zapping_micro, int * plugin_major,
+			     int * plugin_minor, int * plugin_micro);
+
 
   /* Open the file resolving all undefined symbols now */
   info -> handle = dlopen(file_name, RTLD_NOW);
@@ -43,6 +51,190 @@ gboolean plugin_load(gchar * file_name, struct plugin_info * info)
       return FALSE;
     }
 
-  dlclose(info -> handle); /* Do nothing for the moment */
+  plugin_validate_protocol = dlsym(info -> handle, 
+				   "plugin_validate_protocol");
+
+  if ((info -> error = dlerror()) != NULL) /* Error */
+    {
+      dlclose(info->handle);
+      return FALSE;
+    }
+
+  /* The plugin should return TRUE in case it supports our protocol */
+  if (!(*plugin_validate_protocol)(PLUGIN_PROTOCOL))
+    {
+      info -> error = _("The plugin doesn't understand our protocol");
+      dlclose(info->handle);
+      return FALSE;
+    }
+
+  /* OK, the protocol is valid, resolve all symbols */
+  info -> plugin_get_info = dlsym(info -> handle, "plugin_get_info");
+  if ((info -> error = dlerror()) != NULL)
+    {
+      dlclose(info -> handle);
+      return FALSE;
+    }
+
+  info -> plugin_get_name = dlsym(info -> handle, "plugin_get_name");
+  if ((info -> error = dlerror()) != NULL)
+    {
+      dlclose(info -> handle);
+      return FALSE;
+    }
+
+  info -> plugin_get_canonical_name = dlsym(info -> handle, 
+					    "plugin_get_canonical_name");
+  if ((info -> error = dlerror()) != NULL)
+    {
+      dlclose(info -> handle);
+      return FALSE;
+    }
+
+  plugin_get_version = dlsym(info -> handle, "plugin_get_version");
+  if ((info -> error = dlerror()) != NULL)
+    {
+      dlclose(info -> handle);
+      return FALSE;
+    }
+
+  /* Get the plugin version */
+  (*plugin_get_version)(&info->zapping_major, & info -> zapping_minor,
+			&info->zapping_micro, & info -> major,
+			&info->minor, &info -> micro);
+
+  /* if the canonical name is null, then there is an error */
+  if (!(*info->plugin_get_canonical_name)())
+    {
+      info -> error = _("The plugin doesn't provide a canonical name");
+      dlclose(info -> handle);
+      return FALSE;
+    }
+
   return TRUE;
+}
+
+void plugin_unload(struct plugin_info * info)
+{
+  g_assert(info != NULL);
+
+  dlclose(info -> handle);
+}
+
+/* This are wrappers to avoid the use of the pointers in the
+   plugin_info struct just in case somewhen the plugin system changes */
+/* If the plugin returns NULL, then avoid SEGFAULT */
+gchar * plugin_get_name(struct plugin_info * info)
+{
+  gchar * returned_string = (*info->plugin_get_name)();
+  if (returned_string)
+    return returned_string;
+  else
+    return _("(Void name)");
+}
+
+/* This function should never return NULL, since plugin_load should
+   fail if the canonical name is NULL */
+gchar * plugin_get_canonical_name(struct plugin_info * info)
+{
+  return ((*info -> plugin_get_canonical_name)());
+}
+
+gchar * plugin_get_info(struct plugin_info * info)
+{
+  gchar * returned_string = (*info->plugin_get_info)();
+  if (!returned_string)
+    return _("(No description provided for this plugin)");
+  else
+    return returned_string;
+}
+
+/* Loads all the valid plugins in the given directory, and appends them to
+   the given GList. It returns the new GList. The plugins should
+   contain exp in their filename (usually called with exp = .zapping.so) */
+GList * plugin_load_plugins(gchar * directory, gchar * exp, GList * old)
+{
+  struct dirent ** namelist;
+  int n; /* Number of scanned items */
+  int major, minor, micro; /* Zapping version numbers */
+  struct plugin_info plug;
+  struct plugin_info * new_plugin; /* If plugin is OK, a copy will be
+				      allocated here */
+  int i;
+  gchar * filename; /* Complete path to the plugin to load */
+  int zapping_version, plugin_version; /* Numeric version values */
+
+  g_assert(exp != NULL);
+  g_assert(directory != NULL);
+  g_assert(strlen(directory) > 0);
+  
+  major = minor = micro = 0; /* In case we cannot sscanf */
+
+  /* Get current zapping version */
+  sscanf(VERSION, "%d.%d.%d", &major, &minor, &micro);
+
+  zapping_version = major * 256 * 256 + minor * 256 + micro;
+
+  n = scandir(directory, &namelist, 0, alphasort);
+  if (n < 0)
+    {
+      perror("scandir");
+      return old;
+    }
+
+  for (i = 0; i < n; i++)
+    {
+      if (!strstr(namelist[i] -> d_name, exp))
+	continue;
+      
+      filename = g_strconcat(directory, directory[strlen(directory)-1] ==
+			     '/' ? "" : "/", namelist[i] -> d_name, NULL);
+
+      if (!plugin_load(filename, &plug))
+	{
+	  g_free(filename);
+	  continue;
+	}
+
+      g_free(filename);
+
+      /* Check that zapping is mature enough for this plugin */
+      plugin_version = plug.zapping_major * 256 * 256 +
+	plug.zapping_minor * 256 + plug.zapping_micro;
+
+      if (zapping_version < plugin_version)
+	{
+	  plugin_unload(&plug);
+	  continue;
+	}
+
+      /* This plugin is valid, copy it and add it to the GList */
+      new_plugin = (struct plugin_info *) malloc(sizeof(struct plugin_info));
+      if (!new_plugin)
+	{
+	  perror("malloc");
+	  plugin_unload(&plug);
+	  continue;
+	}
+
+      memcpy(new_plugin, &plug, sizeof(struct plugin_info));
+      
+      old = g_list_append(old, new_plugin);
+    }
+
+  return old;
+}
+
+/* This function is called from g_list_foreach */
+void plugin_foreach_free(struct plugin_info * info, void * user_data)
+{
+  plugin_unload(info);
+  free(info);
+}
+
+/* Unloads all the plugins loaded in the GList */
+void plugin_unload_plugins(GList * list)
+{
+  g_list_foreach(list, (GFunc) plugin_foreach_free, NULL);
+  g_list_free(list);
 }
