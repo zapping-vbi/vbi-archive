@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: channel_editor.c,v 1.37.2.16 2003-11-04 21:09:21 mschimek Exp $ */
+/* $Id: channel_editor.c,v 1.37.2.17 2003-11-26 07:16:23 mschimek Exp $ */
 
 /*
   TODO:
@@ -436,7 +436,7 @@ entry_fine_tuning_set		(channel_editor *	ce,
       hscale_adj->value = dfreq;
       hscale_adj->lower = dfreq - 4;
       hscale_adj->upper = dfreq + 4;
-      hscale_adj->step_increment = 0.05; // XXX use tv_video_line.u.tuner.step ?
+      hscale_adj->step_increment = 0.05; /* XXX use tv_video_line.u.tuner.step ? */
       hscale_adj->page_increment = 1;
       hscale_adj->page_size = 0;
 
@@ -621,7 +621,8 @@ station_search_timeout		(gpointer		p)
 	}
 
 #ifdef HAVE_LIBZVBI
-      if (zconf_get_boolean(NULL, "/zapping/options/vbi/use_vbi"))
+      /* if (zconf_get_boolean(NULL, "/zapping/options/vbi/use_vbi")) */
+      if (1)
 	{
 	  if ((station_name = zvbi_get_name ()))
 	    goto add_station;
@@ -1608,7 +1609,7 @@ create_channel_treeview		(channel_editor *	ce)
   gtk_tree_selection_set_mode (ce->channel_selection, GTK_SELECTION_MULTIPLE);
   CONNECT (channel_selection, changed);
 
-  ce->channel_model = create_channel_list_model (global_channel_list); // XXX
+  ce->channel_model = create_channel_list_model (global_channel_list); /* XXX */
   gtk_tree_view_set_model (ce->channel_treeview,
 			   GTK_TREE_MODEL (ce->channel_model));
 
