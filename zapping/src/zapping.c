@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping.c,v 1.5 2004-09-26 13:30:00 mschimek Exp $ */
+/* $Id: zapping.c,v 1.6 2004-10-09 05:41:28 mschimek Exp $ */
 
 #include "config.h"
 #include "site_def.h"
@@ -901,6 +901,9 @@ instance_init			(GTypeInstance *	instance,
       g_error_free (error);
       exit (EXIT_FAILURE);
     }
+
+  gtk_window_add_accel_group (GTK_WINDOW (z),
+			      gtk_ui_manager_get_accel_group (z->ui_manager));
 
   z->decorated = TRUE;
 

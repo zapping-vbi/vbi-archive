@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: window.c,v 1.2 2004-09-26 13:30:23 mschimek Exp $ */
+/* $Id: window.c,v 1.3 2004-10-09 05:41:16 mschimek Exp $ */
 
 #include "config.h"
 
@@ -121,6 +121,9 @@ create_main_menu		(TeletextWindow *	window)
       g_error_free (error);
       exit (EXIT_FAILURE);
     }
+
+  gtk_window_add_accel_group (GTK_WINDOW (window),
+			      gtk_ui_manager_get_accel_group (ui_manager));
 
   widget = gtk_ui_manager_get_widget (ui_manager, "/MainMenu");
   gnome_app_set_menus (GNOME_APP (window), GTK_MENU_BAR (widget));
