@@ -3,7 +3,7 @@
 SUBDIRS = common po glade pixmaps plugins help zapping_setup_fb src 
 
 EXTRA_DIST = autogen.sh acinclude.m4 \
-	README.plugins README.commands BUGS THANKS \
+	README.plugins BUGS THANKS \
 	intltool-extract.in intltool-merge.in intltool-update.in \
 	zapping.desktop.in
 

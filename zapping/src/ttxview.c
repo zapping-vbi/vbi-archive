@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: ttxview.c,v 1.122 2003-12-04 03:08:41 mschimek Exp $ */
+/* $Id: ttxview.c,v 1.123 2003-12-17 06:34:26 mschimek Exp $ */
 
 /*
  *  Teletext View
@@ -3154,14 +3154,13 @@ on_search_dialog_cancel_clicked	(GtkWidget *		button,
     }
 }
 
-#if 0 /* to do */
 static void
 on_search_dialog_help_clicked	(GtkWidget *		button,
 				 search_dialog *	sp)
 {
-  gnome_help_display ("ure.html", NULL, NULL); 
+  /* XXX handle error */
+  gnome_help_display ("zapping", "zapzilla-search", NULL); 
 }
-#endif
 
 static GtkWidget *
 search_dialog_new		(ttxview_data *		data)
@@ -3225,12 +3224,10 @@ search_dialog_new		(ttxview_data *		data)
   gtk_toggle_button_set_active (sp->casefold, zcg_bool (NULL, "ure_casefold"));
   gtk_box_pack_start (vbox, widget, FALSE, FALSE, 3);
 
-#if 0 /* to do */
   widget = gtk_button_new_from_stock (GTK_STOCK_HELP);
   gtk_dialog_add_action_widget (sp->dialog, widget, GTK_RESPONSE_HELP);
   g_signal_connect (G_OBJECT (widget), "clicked",
 		    G_CALLBACK (on_search_dialog_help_clicked), sp);
-#endif
 
   widget = gtk_button_new_from_stock (GTK_STOCK_CANCEL);
   gtk_dialog_add_action_widget (sp->dialog, widget, GTK_RESPONSE_CANCEL);

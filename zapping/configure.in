@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.141 2003-12-08 07:20:39 mschimek Exp $
+dnl $Id: configure.in,v 1.142 2003-12-17 06:34:24 mschimek Exp $
 
 AC_INIT(zapping, 0.7cvs6,
   [http://sourceforge.net/tracker/?atid=102599&group_id=2599&func=browse])
@@ -118,6 +118,8 @@ AC_SUBST(X_CFLAGS)
 AC_SUBST(X_PRE_LIBS)
 AC_SUBST(X_EXTRA_LIBS)
 AC_SUBST(X_LIBS)
+
+dnl Macros and other pieces stolen from JWZ's xscreensaver package.
 
 AC_DEFUN(AC_CHECK_X_HEADER, [
   SAVE_CPPFLAGS="$CPPFLAGS"
@@ -323,6 +325,7 @@ AC_SUBST(ZSFB_GROUP)
 dnl ---------------------------------------------------------------------------
 dnl Check which arch is present, and enable MMX support
 dnl ---------------------------------------------------------------------------
+dnl XXX this should just try to compile mmx code instead.
 HAVE_MMX="no"
 case "$host" in
 i?86-* | k?-*) dnl catch i386,i486,i586,i686,k6,k7
@@ -361,8 +364,8 @@ AC_SUBST(PACKAGE_LIBS)
 
 AC_PATH_PROG(GDK_PIXBUF_CSOURCE, gdk-pixbuf-csource)
 test -z "$GDK_PIXBUF_CSOURCE" && AC_MSG_ERROR([
-*** You need the gdk-pixbuf-csource tool which is installed
-*** from GTK+ 2.0's gdk-pixbuf.
+*** To create icons we need the gdk-pixbuf-csource tool
+*** which is installed from GTK+ 2.0's gdk-pixbuf package.
 ])
 
 dnl ---------------------------------------------------------------------------
@@ -533,24 +536,40 @@ dnl ---------------------------------------------------------------------------
 GETTEXT_PACKAGE=AC_PACKAGE_NAME
 AC_SUBST(GETTEXT_PACKAGE)
 AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE, "$GETTEXT_PACKAGE", [Package name])
-ALL_LINGUAS="da de es fr it nl sv pl"
+ALL_LINGUAS="da de es fr it nl sv"
+dnl pl needs update
 AM_GLIB_GNU_GETTEXT
 
 dnl ---------------------------------------------------------------------------
 dnl Documentation
 dnl ---------------------------------------------------------------------------
-dnl SCROLLKEEPER_BUILD_REQUIRED=0.3.5
-dnl AC_SUBST(SCROLLKEEPER_BUILD_REQUIRED)
-dnl 
-dnl AC_PATH_PROG(SCROLLKEEPER_CONFIG, [scrollkeeper-config], [no])
-dnl if test "$SCROLLKEEPER_CONFIG" = "no"; then
-dnl   AC_MSG_ERROR([Couldn't find scrollkeeper-config. Please install
-dnl the scrollkeeper package: http://scrollkeeper.sourceforge.net])
-dnl fi
+SCROLLKEEPER_BUILD_REQUIRED=0.3.5
+AC_SUBST(SCROLLKEEPER_BUILD_REQUIRED)
+
+AC_PATH_PROG(SCROLLKEEPER_CONFIG, [scrollkeeper-config], [no])
+if test "$SCROLLKEEPER_CONFIG" = "no"; then
+  AC_MSG_ERROR([Couldn't find scrollkeeper-config. Download the
+  appropriate package for your distribution or get the source
+  tarball from http://scrollkeeper.sourceforge.net])
+fi
+
+dnl Stolen from glib/configure.in
+
+BUILD_MAN=yes
+AC_PATH_PROG([XSLTPROC], [xsltproc])
+if test -z "$XSLTPROC"; then
+  BUILD_MAN=no
+fi
+dnl Check for DocBook DTD and stylesheets in the local catalog.
+JH_CHECK_XML_CATALOG([-//OASIS//DTD DocBook XML V4.1.2//EN],
+  [DocBook XML DTD V4.1.2],, BUILD_MAN=no)
+JH_CHECK_XML_CATALOG([http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl],
+  [DocBook XSL Stylesheets],, BUILD_MAN=no)
+AM_CONDITIONAL(BUILD_MAN, test "$BUILD_MAN" = "yes")
 
 dnl ---------------------------------------------------------------------------
 
-dnl Basically this is an automake 1.4 file, as gnome-autogen.sh of Gnome 2.0
+dnl This file was written for automake 1.4, as gnome-autogen.sh of Gnome 2.0
 dnl and 2.2 require 1.4, while Gnome 2.4 does not. The lines below come from
 dnl gtk+ 2.2.3. Seems to work with automake 1.7 as well, although we should
 dnl use AM_PROG_AS with 1.7 instead of these hacks.
@@ -578,6 +597,9 @@ DEPR_CFLAGS="\
   -DGNOME_DISABLE_DEPRECATED \
 "
 
+dnl Note $prefix and derived variables must not be expanded in
+dnl configure but only in Makefiles. They are, in fact, undefined
+dnl at this point.
 DIR_CFLAGS="\
   -DPACKAGE_DATA_DIR=\\\"\${prefix}/\${DATADIRNAME}\\\" \
   -DPACKAGE_LOCALE_DIR=\\\"\${prefix}/\${DATADIRNAME}/locale\\\" \
@@ -619,13 +641,8 @@ plugins/mpeg/Makefile
 plugins/screenshot/Makefile
 help/Makefile
 help/man/Makefile
+help/C/Makefile
 ])
-
-dnl needs work
-dnl help/C/Makefile
-
-dnl help/de/Makefile
-dnl plugins/lirc/Makefile
 
 dnl ---------------------------------------------------------------------------
 

@@ -1,34 +1,17 @@
-Plugin writer's help
---------------------
-I'm not going to add much more functionality to the "core"
-zapping. Extra features should be coded as plugins, so the app gets
-easier to maintain and to work on. This file describes how to write
-one of those plugins for zapping.
 
-Plugin API
-----------
+ Sorry there is no up to date documentation available. A review
+ and rewrite of the plugin code will be necessary in the future
+ to clean up and prepare for new features, in the course I'll
+ properly document everything.
 
-This will be documented in the 0.5.1 release. You can always take a
-look to the sample plugins distributed to get an idea of how it
-works. The API has changed a lot since the last release, and i don't
-want to publish half-cooked docs. Sorry.
+ Plugin naming and location
+ --------------------------
 
-*< Update, written when publishing the 0.5.2 version, no docs yet >*
+ The program will search for plugins in the following locations:
 
-Actually, I don't think writing a buncha docs nobody will read except
-me is a good idea. If you are interested in writing a plugin, just
-mail me, you will have all my help.
+ * $(prefix)/lib/zapping/plugins, that is ./configure --prefix.
+ * $HOME/.zapping/plugins, if that dir exists.
+ * All dirs listed in the file $HOME/.zapping/plugin_dirs,
+   if that file exists.
 
-Where will zapping look for plugins
------------------------------------
-
-The program will search for plugins in the following locations:
-
-. $(prefix)/lib/zapping/plugins, where $prefix usually is /usr or
-  /usr/local. This is determined when configuring.
-. $HOME/.zapping/plugins, if that dir exists.
-. All the directories listed in the file $HOME/.zapping/plugin_dirs,
-  if that file exists.
-All zapping plugins must end in ".zapping.so".
-
-Iñaki
+ Plugin names must end in ".zapping.so".

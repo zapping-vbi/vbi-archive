@@ -837,12 +837,12 @@ msgid "General Options"
 msgstr "Diverse val"
 
 #: src/audio.c:633
-msgid "<blue>Audio off</blue>"
-msgstr "<blue>Ljud av</blue>"
+msgid "<span foreground=\"blue\">Audio off</span>"
+msgstr "<span foreground=\"blue\">Ljud av</span>"
 
 #: src/audio.c:634
-msgid "<yellow>Audio on</yellow>"
-msgstr "<yellow>Ljud på</yellow>"
+msgid "<span foreground=\"yellow\">Audio on</span>"
+msgstr "<span foreground=\"yellow\">Ljud på</span>"
 
 #: src/capture.c:432
 #, c-format

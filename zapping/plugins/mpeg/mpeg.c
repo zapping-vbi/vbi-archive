@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.42 2003-11-29 19:43:22 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.43 2003-12-17 06:34:25 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu -> ? */
 #undef GTK_DISABLE_DEPRECATED
@@ -2028,10 +2028,10 @@ properties_add			(GtkDialog *		dialog)
       N_("Record"),
       "gnome-media-player.png",
       "vbox9",
-      pref_setup,
-      pref_apply,
-      NULL, /* help */
-      pref_cancel
+      .setup = pref_setup,
+      .apply = pref_apply,
+      .cancel = pref_cancel,
+      .help_link_id = "zapping-settings-recording"
     }
   };
   SidebarGroup groups[] = {
@@ -2042,7 +2042,7 @@ properties_add			(GtkDialog *		dialog)
     }
   };
 
-  standard_properties_add (dialog, groups, acount(groups),
+  standard_properties_add (dialog, groups, G_N_ELEMENTS (groups),
 			   "mpeg_properties.glade2");
 }
 

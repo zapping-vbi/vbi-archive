@@ -1,0 +1,361 @@
+<appendix id="zapping-commands">
+  <title>Commands</title>
+
+  <sect1 id="zapping-commands-cli">
+    <title>Command Line</title>
+
+    <para>Commands can be given on the command line when Zapping starts. This was intended to change video device properties, the program terminates after executing the command.</para>
+    <userinput>zapping -c "command"</userinput>
+    <para>A separate, lightweight tool is planned for this purpose, and to send commands to a running Zapping process. Up to version 0.6.x these commands are available:</para>
+
+    <variablelist>
+      <varlistentry>
+        <term>set_channel (name | number)</term>
+        <listitem><para>Switch to the channel. By default the command tries to find the channel by its name (second column in the channel editor). When no such channel exists or the parameter is a number it selects the nth channel from the list, counted from zero up.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+
+    <para>Starting with version 0.7 these commands are superseded by the new Python command set, see below.</para>
+  </sect1>
+
+  <sect1 id="zapping-commands-kbd">
+    <title>Keyboard Customization</title>
+
+    <para>Commands can be assigned to keyboard keys in the preferences. Starting with version 0.7 we use the new Python command set, see below.</para>
+    <para>The old command set listed here is automatically converted for compatibility with older versions of Zapping. The commands are generally equivalent to their new Python counterparts. Parameters in [square brackets] are optional.</para>
+
+    <itemizedlist>
+      <listitem><para>channel_up</para></listitem>
+      <listitem><para>channel_down</para></listitem>
+      <listitem><para>set_channel nth</para></listitem>
+      <listitem><para>lookup_channel name</para></listitem>
+      <listitem><para>mute [toggle]</para></listitem>
+      <listitem><para>volume_incr [n]</para></listitem>
+      <listitem><para>ttx_open_new [page [subpage]]</para></listitem>
+      <listitem><para>ttx_page_incr [n]</para></listitem>
+      <listitem><para>ttx_subpage_incr [n]</para></listitem>
+      <listitem><para>ttx_home</para></listitem>
+      <listitem><para>ttx_hold [toggle]</para></listitem>
+      <listitem><para>ttx_reveal [toggle]</para></listitem>
+      <listitem><para>screenshot [format]</para></listitem>
+      <listitem><para>quickshot [format]</para></listitem>
+    </itemizedlist>
+  </sect1>
+
+  <sect1 id="zapping-commands-lirc">
+    <title>LIRC/ALIRC Plugin</title>
+
+    <para>These commands are mostly superseded by the new Python command set, see below. They are still supported for compatibility with older versions of Zapping.</para>
+
+    <variablelist>
+      <varlistentry>
+        <term>QUIT</term>
+        <listitem><para>Terminate the program.</para></listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>CHANUP</term>
+        <listitem><para>Switch to the next channel in the list.</para></listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>CHANDOWN</term>
+        <listitem><para>Switch to the previous channel in the list.</para></listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>SETCHANNEL n</term>
+        <listitem><para>The function of this command is affected by
+        the <link linkend="zapping-settings-main">preferences setting</link> for entering channel numbers on the numeric keypad. By the default it switches to the nth channel in the list, the count starts at zero. Alternatively the number is interpreted as the RF channel number of the requested channel.</para>
+          <para>Single digits combine to numbers when the command is executed repeatedly within a short period. For example "SETCHANNEL 1", "SETCHANNEL 3" jumps to channel 13.</para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>ZOOM</term>
+        <listitem><para>Switch between fullscreen and windowed mode.</para></listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>MUTE</term>
+        <listitem><para>When audio is on, mute it, when muted switch it back on.</para></listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>VOL_UP</term>
+        <listitem><para>Increase the audio volume.</para></listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>VOL_UP</term>
+        <listitem><para>Decrease the audio volume.</para></listitem>
+      </varlistentry>
+    </variablelist>
+  </sect1>
+
+  <sect1 id="zapping-commands-python">
+    <title>Python commands</title>
+
+    <para>Parameters in [square brackets] are optional. Parameters in 'single quotes' are strings, otherwise they are numbers. A toggle parameter can be zero to switch the property off, non-zero to switch it on, or it can be omitted to invert the current setting.</para>
+
+    <sect2 id="zapping-commands-python-general">
+      <title>General</title>
+
+      <variablelist>
+        <varlistentry>
+          <term>zapping.quit()</term>
+          <listitem><para>Terminate the program.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>zapping.switch_mode('mode')</term>
+          <listitem><para>Switch the current display mode:</para>
+            <variablelist>
+              <varlistentry>
+                <term>'fullscreen'</term>
+                <listitem><para>display video fullscreen, in capture or overlay mode</para></listitem>
+              </varlistentry>
+              <varlistentry>
+                <term>'capture'</term>
+                <listitem><para>display video in a window in capture mode</para></listitem>
+              </varlistentry>
+              <varlistentry>
+                <term>'preview'</term>
+                <listitem><para>display video in a window in overlay mode</para></listitem>
+              </varlistentry>
+              <varlistentry>
+                <term>'teletext'</term>
+                <listitem><para>display Teletext in the main window</para></listitem>
+              </varlistentry>
+            </variablelist>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>zapping.toggle_mode('mode')</term>
+          <listitem><para>Switch to this mode. When this is already the current mode, switch to the previous mode.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>zapping.restore_mode('mode')</term>
+          <listitem><para>Synonym for zapping.toggle_mode(), deprecated.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>zapping.channel_up()</term>
+          <listitem><para>Switch to the next channel in the list.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>zapping.channel_down()</term>
+          <listitem><para>Switch to the previous channel in the list.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>zapping.set_channel(nth)</term>
+          <listitem><para>Switch to the nth channel in the list, the count starts at zero.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>zapping.lookup_channel('name')</term>
+          <listitem><para>Switch to the channel with this name (second column in the channel editor).</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>zapping.resize_screen(width, height)</term>
+          <listitem><para>Resize the video window.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>zapping.picture_size_cycle([n])</term>
+          <listitem><para>Switch to the next entry in the list of favourite picture sizes (as displayed in the context menu), +1 forward, -1 back.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>zapping.hide_controls(toggle)</term>
+          <listitem><para>Whether to hide the main menu and toolbar.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>zapping.keep_on_top(toggle)</term>
+          <listitem><para>Whether to keep the main window on top of all other windows (if this is supported by the window manager).</para></listitem>
+        </varlistentry>
+      </variablelist>
+    </sect2>
+
+    <sect2 id="zapping-commands-python-dialogs">
+      <title>Dialogs</title>
+
+      <variablelist>
+        <varlistentry>
+          <term>zapping.control_box()</term>
+          <listitem><para>Start the picture controls dialog.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>zapping.program_info()</term>
+          <listitem><para>Start the program info dialog.</para></listitem>
+        </varlistentry>
+<!-- temporarily disabled
+        <varlistentry>
+          <term>zapping.network_info()</term>
+          <listitem><para>Start the network info dialog.</para></listitem>
+        </varlistentry>
+-->
+        <varlistentry>
+          <term>zapping.channel_editor()</term>
+          <listitem><para>Start the channel editing dialog.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>zapping.properties(['group' [, 'item']])</term>
+          <listitem><para>Start the properties dialog, optionally the given group and item.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>zapping.plugin_properties()</term>
+          <listitem><para>Start the plugin properties dialog.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>zapping.about()</term>
+          <listitem><para>Start the about dialog.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>zapping.help()</term>
+          <listitem><para>Open the Zapping documentation.</para></listitem>
+        </varlistentry>
+      </variablelist>
+    </sect2>
+
+    <sect2 id="zapping-commands-python-teletext">
+      <title>Teletext</title>
+
+      <variablelist>
+        <varlistentry>
+          <term>zapping.ttx_open_new([page [, subpage]])</term>
+          <listitem><para>Open a Teletext window. When a page number is given, go to this page.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>zapping.ttx_page_incr([n])</term>
+          <listitem><para>Advance the Teletext page number by n. This can be a positive or negative value, by default 1.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>zapping.ttx_subpage_incr([n])</term>
+          <listitem><para>Advance the Teletext subpage number by n. This can be a positive or negative value, by default 1.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>zapping.ttx_home()</term>
+          <listitem><para>Go to the Teletext home page, usually page 100.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>zapping.ttx_history_prev()</term>
+          <listitem><para>Go to the previously visited page in the browse history.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>zapping.ttx_history_next()</term>
+          <listitem><para>Go to the next visited page in the browse history.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>zapping.ttx_hold(toggle)</term>
+          <listitem><para>Toggle the hold state of the displayed page. When off, Zapzilla will rotate through all subpages of the page, if it has any.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>zapping.ttx_reveal(toggle)</term>
+          <listitem><para>Whether to reveal concealed characters on the displayed Teletext page.</para></listitem>
+        </varlistentry>
+      </variablelist>
+    </sect2>
+
+    <sect2 id="zapping-commands-python-caption">
+      <title>Caption / Subtitles</title>
+
+      <variablelist>
+        <varlistentry>
+          <term>zapping.closed_caption(toggle)</term>
+          <listitem><para>Whether to display closed caption superimposed onto the picture.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>zapping.osd_render_markup('Hello &lt;i&gt;World&lt;/i&gt;!')</term>
+          <listitem><para>Display text superimposed onto the picture, with Pango markup.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>zapping.osd_render('Hello World!')</term>
+          <listitem><para>Display text superimposed onto the picture.</para></listitem>
+        </varlistentry>
+      </variablelist>
+    </sect2>
+
+    <sect2 id="zapping-commands-python-audio">
+      <title>Audio</title>
+
+      <variablelist>
+        <varlistentry>
+          <term>zapping.mute(toggle)</term>
+          <listitem><para>Change the audio mute control.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>zapping.volume_incr([n])</term>
+          <listitem><para>This provisional command changed the audio recording volume, it is <emphasis>no longer supported</emphasis>.</para>
+          <para>As a replacement use zapping.control_incr('volume'[, n]) to change the soundcard mixer or video device volume as configured in the preferences dialog. Note that changing the volume does not unmute.</para></listitem>
+        </varlistentry>
+      </variablelist>
+    </sect2>
+
+    <sect2 id="zapping-commands-python-controls">
+      <title>Controls</title>
+
+      <variablelist>
+        <varlistentry>
+          <term>zapping.control_incr('name'[, n])</term>
+          <listitem><para>Advance the control value by n units, usually +1 or -1, default is +1. The following names are presently recognized:</para>
+            <variablelist>
+              <varlistentry>
+                <term>'brightness'</term>
+                <listitem><para>picture brightness</para></listitem>
+              </varlistentry>
+              <varlistentry>
+                <term>'contrast'</term>
+                <listitem><para>picture contrast</para></listitem>
+              </varlistentry>
+              <varlistentry>
+                <term>'saturation'</term>
+                <listitem><para>picture color saturation</para></listitem>
+              </varlistentry>
+              <varlistentry>
+                <term>'hue'</term>
+                <listitem><para>picture color hue</para></listitem>
+              </varlistentry>
+              <varlistentry>
+                <term>'volume'</term>
+                <listitem><para>audio volume</para></listitem>
+              </varlistentry>
+              <varlistentry>
+                <term>'bass'</term>
+                <listitem><para>audio bass</para></listitem>
+              </varlistentry>
+              <varlistentry>
+                <term>'treble'</term>
+                <listitem><para>audio treble</para></listitem>
+              </varlistentry>
+            </variablelist>
+          </listitem>
+        </varlistentry>
+      </variablelist>
+    </sect2>
+   
+    <sect2 id="zapping-commands-python-plugins">
+      <title>Plugins</title>
+
+      <variablelist>
+        <varlistentry>
+          <term>zapping.screenshot(['format'])</term>
+          <listitem><para>Start the screenshot dialog and if given switch to the format. Currently valid formats are: 'jpeg' and 'ppm'.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>zapping.quickshot(['format'])</term>
+          <listitem><para>Take a screenshot without starting the dialog. The last select file name will be used, with an incrementing number appended. When no format is given the last selected format will be used.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>zapping.record(['format'])</term>
+          <listitem><para>Start the record dialog and if given switch to the format. Note this is the name the user gives a particular configuration, not the name of the file format.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>zapping.quickrec(['format'])</term>
+          <listitem><para>Start recording without confirmation. The last select file name will be used, with an incrementing number appended. When no format is given the last selected format will be used.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>zapping.stoprec()</term>
+          <listitem><para>Stop recording.</para></listitem>
+        </varlistentry>
+      </variablelist>
+    </sect2>
+  </sect1>
+</appendix>
+
+<!--
+Local Variables:
+mode: sgml
+sgml-parent-document: "zapping.xml"
+indent-tabs-mode: nil
+End:
+-->

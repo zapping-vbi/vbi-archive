@@ -1441,16 +1441,22 @@ static void
 add				(GtkDialog	*dialog)
 {
   SidebarEntry devices [] = {
-    { N_("Video"), "gnome-info.png", "vbox9", di_setup, di_apply }
+    { N_("Video"), "gnome-info.png", "vbox9",
+      di_setup, di_apply,
+      .help_link_id = "zapping-settings-video-device" }
   };
   SidebarEntry general [] = {
-    { N_("Main Window"), "gnome-session.png", "vbox35", mw_setup, mw_apply },
+    { N_("Main Window"), "gnome-session.png", "vbox35",
+      mw_setup, mw_apply,
+      .help_link_id = "zapping-settings-main" },
     { N_("Video"), "gnome-television.png",
-      "general-video-table", video_setup, video_apply }
+      "general-video-table", video_setup, video_apply,
+      .help_link_id = "zapping-settings-video-options" }
   };
   SidebarEntry vbi [] = {
     { N_("General"), "gnome-monitor.png", "vbox17",
-      vbi_general_setup, vbi_general_apply },
+      vbi_general_setup, vbi_general_apply,
+      .help_link_id = "zapping-settings-vbi" },
 #if 0 /* temporarily disabled */
     { N_("Interactive TV"), "gnome-monitor.png", "vbox33",
       itv_setup, itv_apply }

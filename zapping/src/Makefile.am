@@ -78,7 +78,8 @@ zapping_SOURCES = \
 	zvideo.c zvideo.h \
 	eggcellrendererkeys.c eggcellrendererkeys.h \
 	eggaccelerators.c eggaccelerators.h \
-	xawtv.c xawtv.h
+	xawtv.c xawtv.h \
+	vdr.c vdr.h
 
 zapping_LDADD = $(gen_conv_lib) $(COMMON_LIB) $(PACKAGE_LIBS) $(PYTHON_LIBS) \
   $(X_LIBS) $(X_DPMS_LIBS) \

@@ -787,6 +787,8 @@ standard_properties_add		(GtkDialog	*dialog,
 			    groups[i].items[j].apply);
 	  g_object_set_data(G_OBJECT(page), "help",
 			    groups[i].items[j].help);
+	  g_object_set_data(G_OBJECT(page), "help_link_id",
+			    (gpointer) groups[i].items[j].help_link_id);
 	  g_object_set_data(G_OBJECT(page), "cancel",
 			    groups[i].items[j].cancel);
 
@@ -815,13 +817,18 @@ static void
 help		(GtkDialog	*dialog,
 		 GtkWidget	*page)
 {
+  const gchar *link_id =
+    g_object_get_data (G_OBJECT (page), "help_link_id");
   void (*page_help)(GtkWidget *page) =
-    g_object_get_data(G_OBJECT(page), "help");
+    g_object_get_data (G_OBJECT (page), "help");
 
-  if (page_help)
-    page_help(page);
+  if (link_id)
+    /* XXX handle error */
+    gnome_help_display ("zapping", link_id, NULL);
+  else if (page_help)
+    page_help (page);
   else
-    ShowBox("No help written yet", GTK_MESSAGE_WARNING);
+    ShowBox ("No help available", GTK_MESSAGE_WARNING);
 }
 
 static void

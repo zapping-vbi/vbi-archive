@@ -14,13 +14,13 @@ Thanks are due to the following people for helping with the program
 - Marco Pfattner: LIRC plugin.
 - Carsten Menke: German translation of the main help file.
 - Christian Riedel: RH7 RPM.
-- Eduardo Díaz Comellas: Debian package.
+- Eduardo DÃ­az Comellas: Debian package.
 - James Green: Many useful comments and tips.
 - Michael Hunold: Lots of help with bug tracking and many suggestions
 		  for improving the program.
 - Sjoerd Simons: ALIRC plugin.
 - Roger Fujii: Fixes to build and work under Solaris.
-- Paweł Sakowski: Polish translation.
+- PaweÅ Sakowski: Polish translation.
 - Henrik Isacsson: Swedish translation.
 - Mark Cooke: Lots of help with RPM build process under RH.
 - Ime Smits: Dutch translation.
@@ -33,5 +33,6 @@ Thanks are due to the following people for helping with the program
 - Artur Flinta: Poland Autocom cable frequency table.
 - Morten Brix Pedersen: Danish translation.
 - Arkadiusz Lipiec: Polish translation.
+- Slobodan Tomic: VDR interface.
 
 And, of course, thanks to the people that sent bug reports and suggestions.

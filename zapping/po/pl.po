@@ -885,13 +885,13 @@ msgstr "Opcje ogólne"
 
 #: src/audio.c:633
 #, fuzzy
-msgid "<blue>Audio off</blue>"
-msgstr "<blue>dźwięk wyłączony</blue>"
+msgid "<span foreground=\"blue\">Audio off</span>"
+msgstr "<span foreground=\"blue\">dźwięk wyłączony</span>"
 
 #: src/audio.c:634
 #, fuzzy
-msgid "<yellow>Audio on</yellow>"
-msgstr "<yellow>DŹWIĘK WŁĄCZONY</yellow>"
+msgid "<span foreground=\"yellow\">Audio on</span>"
+msgstr "<span foreground=\"yellow\">DŹWIĘK WŁĄCZONY</span>"
 
 #: src/capture.c:432
 #, fuzzy, c-format

@@ -819,12 +819,12 @@ msgid "General Options"
 msgstr "Options Générale"
 
 #: src/audio.c:633
-msgid "<blue>Audio off</blue>"
-msgstr "<blue>Audio off</blue>"
+msgid "<span foreground=\"blue\">Audio off</span>"
+msgstr ""
 
 #: src/audio.c:634
-msgid "<yellow>Audio on</yellow>"
-msgstr "<yellow>Audio on</yellow>"
+msgid "<span foreground=\"yellow\">Audio on</span>"
+msgstr ""
 
 #: src/capture.c:432
 #, c-format

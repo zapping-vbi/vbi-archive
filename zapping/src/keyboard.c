@@ -1137,13 +1137,14 @@ add				(GtkDialog *		dialog)
 {
   SidebarEntry general_options[] = {
     { N_("Keyboard"), "gnome-keyboard.png",
-      "general-keyboard-table", setup, apply }
+      "general-keyboard-table", setup, apply,
+      .help_link_id = "zapping-settings-keyboard" }
   };
   SidebarGroup groups[] = {
-    { N_("General Options"), general_options, acount (general_options) }
+    { N_("General Options"), general_options, G_N_ELEMENTS (general_options) }
   };
 
-  standard_properties_add (dialog, groups, acount (groups),
+  standard_properties_add (dialog, groups, G_N_ELEMENTS (groups),
 			   "zapping.glade2");
 }
 

@@ -52,6 +52,7 @@
 #include "plugin_properties.h"
 #include "channel_editor.h"
 #include "i18n.h"
+#include "vdr.h"
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
 char *program_invocation_name;
@@ -188,6 +189,7 @@ int main(int argc, char * argv[])
   char *video_device = NULL;
   char *command = NULL;
   char *yuv_format = NULL;
+  char *norm = NULL;
   gboolean mutable = TRUE;
   /* Some other common options in case the standard one fails */
   char *fallback_devices[] =
@@ -371,6 +373,15 @@ int main(int argc, char * argv[])
       N_("Obsolete"),
     },
     {
+      "tunerless-norm",
+      'n',
+      POPT_ARG_STRING,
+      &norm,
+      0,
+      /* TRANSLATORS: --tunerless-norm command line switch. */
+      N_("Obsolete"),
+    },
+    {
       NULL,
     } /* end the list */
   };
@@ -408,7 +419,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.173 2003-11-29 19:43:24 mschimek Exp $",
+	 "$Id: main.c,v 1.174 2003-12-17 06:34:26 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -689,6 +700,8 @@ int main(int argc, char * argv[])
   startup_ttxview();
 #endif
   D();
+  startup_vdr();
+  D();
   startup_osd();
   D();
   startup_audio();
@@ -961,6 +974,12 @@ static void shutdown_zapping(void)
    */
   printv(" kbd");
   shutdown_keyboard();
+
+  /*
+   * VDR
+   */
+  printv(" vdr");
+  shutdown_vdr();
 
   /*
    * The audio config

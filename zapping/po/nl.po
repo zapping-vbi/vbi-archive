@@ -844,12 +844,12 @@ msgid "General Options"
 msgstr "Algemene opties"
 
 #: src/audio.c:633
-msgid "<blue>Audio off</blue>"
-msgstr "<blue>geluid uit</blue>"
+msgid "<span foreground=\"blue\">Audio off</span>"
+msgstr "<span foreground=\"blue\">geluid uit</span>"
 
 #: src/audio.c:634
-msgid "<yellow>Audio on</yellow>"
-msgstr "<yellow>geluid aan</yellow>"
+msgid "<span foreground=\"yellow\">Audio on</span>"
+msgstr "<span foreground=\"yellow\">geluid aan</span>"
 
 #: src/capture.c:432
 #, c-format

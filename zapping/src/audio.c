@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.c,v 1.19 2003-12-08 07:20:39 mschimek Exp $ */
+/* $Id: audio.c,v 1.20 2003-12-17 06:34:26 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu */
 #undef GTK_DISABLE_DEPRECATED
@@ -511,11 +511,13 @@ properties_add			(GtkDialog *		dialog)
 {
   SidebarEntry devices [] = {
     { N_("Audio"), "gnome-grecord.png", "vbox53",
-      devices_audio_setup, devices_audio_apply }
+      devices_audio_setup, devices_audio_apply,
+      .help_link_id = "zapping-settings-audio-device" }
   };
   SidebarEntry general [] = {
     { N_("Audio"), "gnome-grecord.png", "vbox39",
-      general_audio_setup, general_audio_apply }
+      general_audio_setup, general_audio_apply,
+      .help_link_id = "zapping-settings-audio-options" }
   };
   SidebarGroup groups [] = {
     { N_("Devices"),	     devices, G_N_ELEMENTS (devices) },
@@ -630,14 +632,8 @@ set_mute				(gint	        mode,
 	if (main_info->current_mode == TVENG_CAPTURE_PREVIEW
 	    || !GTK_WIDGET_VISIBLE (GTK_WIDGET (dock_item)))
 	  osd_render_markup (NULL, mute ?
-#warning FIXME before 0.7 release
-#if 1 /* wrong */
-			     _("<blue>Audio off</blue>") :
-			     _("<yellow>Audio on</yellow>"));
-#else /* right */
-			         (	"<span foreground=\"blue\">Audio off</span>") :
-			         (	"<span foreground=\"yellow\">Audio on</span>"));
-#endif
+			     _("<span foreground=\"blue\">Audio off</span>") :
+			     _("<span foreground=\"yellow\">Audio on</span>"));
       }
   }
 

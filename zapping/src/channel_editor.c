@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: channel_editor.c,v 1.38 2003-11-29 19:43:24 mschimek Exp $ */
+/* $Id: channel_editor.c,v 1.39 2003-12-17 06:34:26 mschimek Exp $ */
 
 /*
   TODO:
@@ -1225,6 +1225,14 @@ on_ok_clicked			(GtkButton *		ok,
 }
 
 static void
+on_help_clicked			(GtkButton *		cancel,
+				 channel_editor *	ce)
+{
+  /* XXX handle error */
+  gnome_help_display ("zapping", "zapping-channel-editor", NULL);
+}
+
+static void
 on_cancel_clicked		(GtkButton *		cancel,
 				 channel_editor *	ce)
 {
@@ -1948,6 +1956,12 @@ create_channel_editor		(void)
       gtk_widget_show (hbox);
       gtk_container_add (GTK_CONTAINER (dialog_action_area), hbox);
       
+      cancel = gtk_button_new_from_stock (GTK_STOCK_HELP);
+      gtk_widget_show (cancel);
+      gtk_box_pack_start (GTK_BOX (hbox), cancel, FALSE, TRUE, 0);
+      g_signal_connect (G_OBJECT (cancel), "clicked",
+			G_CALLBACK (on_help_clicked), ce);
+
       cancel = gtk_button_new_from_stock (GTK_STOCK_CANCEL);
       gtk_widget_show (cancel);
       gtk_box_pack_start (GTK_BOX (hbox), cancel, FALSE, TRUE, 0);

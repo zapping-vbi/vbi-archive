@@ -298,9 +298,8 @@ py_keep_on_top			(PyObject *		self,
 
 static PyObject *py_help (PyObject *self, PyObject *args)
 {
-#warning
-  /* See gnome-docu what's appropriate in Gnome-2.
-     gnome_help_display ("index.html", NULL, NULL); */
+  /* XXX handle error, maybe use link_id */
+  gnome_help_display ("zapping", NULL, NULL);
 
   py_return_none;
 }

@@ -1,3 +1,40 @@
+2003-12-16    <mschimek@users.sf.net>
+
+	* help/man/zapping.xml: Added.
+	* acinclude.m4: Added XML catalog check macros from gtk-doc.
+	* configure.in: Check for prereqs to rebuild man pages.
+	* help/man/Makefile.am: Modified to build man pages from
+	  DocBook sources.
+
+	* src/audio.c (set_mute), po/da.po, po/de.po, po/es.po, po/fr.po,
+	  po/it.po, po/nl.po, po/pl.po, po/sv.po: Correction of OSD markup.
+	* src/main.c: Startup/shutdown vdr module.
+	* src/Makefile.am: Added vdr.c, vdr.h.
+	* src/vdr.c, src/vdr.h: Added. Contributed by Slobodan Tomic.
+	  Modified for new Python based commands.
+	* src/ttxview.c: Restored search dialog help. 
+	* src/properties.h, src/properties.c: Modified to open
+	  help file on help button click.
+	* src/channel_editor.c: Added help button. 
+	* plugins/screenshot/screenshot.c (properties_add): Replaced help
+	  box by ghelp link.
+	* src/properties-handler.c, src/osd.c, src/keyboard.c,
+	  src/audio.c, plugins/mpeg/mpeg.c: Linked each prefs page to
+	  the appropriate help file section.
+
+2003-12-15    <mschimek@users.sf.net>
+
+	* help/C/figures: Added.
+	* help/C: Rewrote help docs Gnome2 style.
+	* help/de: Removed.
+
+2003-12-11    <mschimek@users.sf.net>
+
+	* plugins/alirc/README.alirc: Moved user instructions into
+	  on-line help.
+	* README.commands: Moved contents into on-line help,
+	  file no longer needed.
+
 2003-12-06    <mschimek@users.sf.net>
 
 	* po/fr.po: Updated by Christian Marillat.

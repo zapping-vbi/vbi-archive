@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: interface.c,v 1.25 2003-11-29 19:43:24 mschimek Exp $ */
+/* $Id: interface.c,v 1.26 2003-12-17 06:34:26 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 toolbar changes */
 #undef GTK_DISABLE_DEPRECATED
@@ -584,7 +584,7 @@ main_view_uiinfo [] = {
 
 static GnomeUIInfo
 main_help_uiinfo [] = {
-  GNOMEUIINFO_HELP ("Zapping"),
+  GNOMEUIINFO_HELP ("zapping"),
   GNOMEUIINFO_SEPARATOR,
   GNOMEUIINFO_MENU_ABOUT_ITEM (on_python_command1, "zapping.about()"),
   GNOMEUIINFO_END

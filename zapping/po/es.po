@@ -840,14 +840,6 @@ msgstr "Entrada:"
 msgid "General Options"
 msgstr "Opciones generales"
 
-#: src/audio.c:635
-msgid "<blue>Audio off</blue>"
-msgstr "<blue>Audio apagado</blue>"
-
-#: src/audio.c:636
-msgid "<yellow>Audio on</yellow>"
-msgstr "<yellow>Audio encendido</yellow>"
-
 #: src/audio.c:638
 msgid "<span foreground=\"blue\">Audio off</span>"
 msgstr "<span foreground=\"blue\">Audio apagado</span>"

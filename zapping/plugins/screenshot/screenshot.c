@@ -533,32 +533,18 @@ screenshot_apply		(GtkWidget	*page)
 }
 
 static void
-screenshot_help			(GtkWidget	*widget)
-{
-  gchar * help =
-    N_("The first option lets you specify where screenshots are to be\n"
-       "saved. The file name will be: dir/shot[1,2,3,...].ext\n\n"
-       "The command will be executed after saving the screenshot,\n"
-       "with the environmental variables $SCREENSHOT_PATH, $CHANNEL_ALIAS,\n"
-       "$CHANNEL_ID, $CURRENT_STANDARD, $CURRENT_INPUT set to their\n"
-       "correct value.\n\n"
-       );
-
-  ShowBox(_(help), GTK_MESSAGE_INFO);
-}
-
-static void
 properties_add			(GtkDialog	*dialog)
 {
   SidebarEntry plugin_options[] = {
     { N_("Screenshot"), "gnome-digital-camera.png", "screenshot_prefs",
-      screenshot_setup, screenshot_apply, screenshot_help }
+      screenshot_setup, screenshot_apply,
+      .help_link_id = "zapping-settings-screenshot" }
   };
   SidebarGroup groups[] = {
-    { N_("Plugins"), plugin_options, acount(plugin_options) }
+    { N_("Plugins"), plugin_options, G_N_ELEMENTS (plugin_options) }
   };
 
-  standard_properties_add(dialog, groups, acount(groups),
+  standard_properties_add(dialog, groups, G_N_ELEMENTS (groups),
 			  "screenshot.glade2");
 }
 

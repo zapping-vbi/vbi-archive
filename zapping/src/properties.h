@@ -116,6 +116,8 @@ typedef struct {
   void		(*help)(GtkWidget *widget);
   /* See apply */
   void		(*cancel)(GtkWidget *widget);
+  /* Link id in zapping.xml, instead of help handler. */
+  const gchar *help_link_id;
 } SidebarEntry;
 
 typedef struct {
@@ -126,10 +128,6 @@ typedef struct {
   /* Number of entries in the group */
   gint num_items;
 } SidebarGroup;
-
-#ifndef acount
-#define acount(x) ((sizeof(x))/(sizeof(x[0])))
-#endif
 
 /**
  * Add the groups/items that groups contains.

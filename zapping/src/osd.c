@@ -1304,14 +1304,15 @@ add				(GtkDialog *		dialog)
 {
   SidebarEntry general_options[] = {
     { N_("OSD"), "gnome-oscilloscope.png",
-      "general-osd-table", osd_setup, osd_apply }
+      "general-osd-table", osd_setup, osd_apply,
+      .help_link_id = "zapping-settings-osd" }
   };
   SidebarGroup groups[] = {
-    { N_("General Options"), general_options, acount (general_options) }
+    { N_("General Options"), general_options, G_N_ELEMENTS (general_options) }
   };
 
 
-  standard_properties_add (dialog, groups, acount (groups),
+  standard_properties_add (dialog, groups, G_N_ELEMENTS (groups),
 			   "zapping.glade2");
 }
 

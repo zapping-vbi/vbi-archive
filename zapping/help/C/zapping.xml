@@ -1,45 +1,34 @@
 <?xml version="1.0"?>
 <!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" 
 "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" [
-  <!ENTITY legal SYSTEM "fdl-appendix.xml">
-  <!ENTITY appversion "0.7">
-  <!ENTITY manrevision "0.1">
-  <!ENTITY date "December 2003">
-  <!ENTITY app "<application>Zapping</application>">
+  <!ENTITY appversion		"0.7">
+  <!ENTITY manrevision		"0.1">
+  <!ENTITY date			"2003-12-12">
+
+  <!ENTITY settings		SYSTEM "settings.xml">
+  <!ENTITY channel-editor	SYSTEM "channel-editor.xml">
+  <!ENTITY zapzilla		SYSTEM "zapzilla.xml">
+  <!ENTITY commands		SYSTEM "commands.xml">
+  <!ENTITY fdl-appendix		SYSTEM "fdl-appendix.xml">
+
+  <!ENTITY eg			"e.&nbsp;g.">
 ]>
-<!-- 
-  Maintained by the GNOME Documentation Project
-  http://developer.gnome.org/projects/gdp
-  Template version: 2.0 beta
-  Template last modified Feb 06, 2003
--->
+
 <!-- =============Document Header ============================= -->
+
 <article id="index" lang="en">
-<!-- please do not change the id; for translations, change lang to -->
-<!-- appropriate code -->
   <articleinfo> 
-    <title>&app; Manual &manrevision;</title>       
+    <title>Zapping Manual &manrevision;</title>       
 
     <copyright> 
       <year>2003</year>
       <holder>Michael H. Schimek</holder> 
     </copyright>
-<!-- translators: uncomment this:
 
-  <copyright>
-   <year>2003</year>
-   <holder>ME-THE-TRANSLATOR (Latin translation)</holder>
-  </copyright>
-
-   -->
-
-   &legal;
-	<varlistentry>
-	  <term><guilabel>Enable VBI decoding</guilabel></term>
-	    <listitem>
-	      <para></para>
-	    </listitem>
-	  </varlistentry>
+    <copyright> 
+      <year>2001</year>
+      <holder>Emacs documentation team (Regexp introduction)</holder>
+    </copyright>
 
     <authorgroup> 
       <author> 
@@ -52,80 +41,20 @@
           </address>
         </affiliation>
       </author>
-      
-<!-- This is appropriate place for other contributors: translators,
-     maintainers,  etc. Commented out by default.
-     
-      <othercredit role="translator">
-	<firstname>Latin</firstname> 
-	<surname>Translator 1</surname> 
-	<affiliation> 
-	  <orgname>Latin Translation Team</orgname> 
-	  <address>
-	    <email>translator@gnome.org</email>
-	  </address> 
-	</affiliation>
-	<contrib>Latin translation</contrib>
-      </othercredit>
--->
     </authorgroup>
 
+    <releaseinfo>This manual describes version &appversion; of Zapping.</releaseinfo>
 
-<!-- According to GNU FDL, revision history is mandatory if you are -->
-<!-- modifying/reusing someone else's document.  If not, you can omit it. -->
-<!-- Remember to remove the &manrevision; entity from the revision -->
-<!-- entries other than the current revision. -->
-<!-- The revision numbering system for GNOME manuals is as follows: -->
-<!-- * the revision number consists of two components -->
-<!-- * the first component of the revision number reflects the release version of the GNOME desktop. -->
-<!-- * the second component of the revision number is a decimal unit that is incremented with each revision of the manual. -->
-<!-- For example, if the GNOME desktop release is V2.x, the first version of the manual that -->
-<!-- is written in that desktop timeframe is V2.0, the second version of the manual is V2.1, etc. -->
-<!-- When the desktop release version changes to V3.x, the revision number of the manual changes -->
-<!-- to V3.0, and so on. -->  
-<!--
-    <revhistory>
-      <revision> 
-	<revnumber>&app; Manual &manrevision;</revnumber> 
-	<date>&date;</date> 
-	<revdescription> 
-	  <para role="author">Documentation Writer 2
-            The email address of the author is optional and is commented out by default.  
-	    <email>docwriter2@gnome.org</email>
-	  </para>
-	  <para role="publisher">GNOME Documentation Project</para>
-	</revdescription> 
-      </revision> 
-      <revision> 
-    <revnumber>Full title of previous manual.</revnumber> 
-		<date>Release date of previous manual.</date> 
-		<revdescription> 
-  		<para role="author">Documentation Writer 1 
-        The email address of the author is optional and is commented out by default. 
-	    	<email>docwriter1@gnome.org</email>
-	  		</para>
-	  		<para role="publisher">GNOME Documentation Project</para>
-		</revdescription> 
-      </revision> 
-    </revhistory> 
--->
-    <releaseinfo>This manual describes version &appversion; of &app;.
-    </releaseinfo> 
-    <legalnotice> 
+    <legalnotice>
       <title>Feedback</title> 
-      <para>To report a bug or make a suggestion regarding the &app; application or
-      this manual, follow the directions in the <ulink url="ghelp:gnome-feedback"
-	  type="help">GNOME Feedback Page</ulink>. 
-      </para>
-<!-- Translators may also add here feedback address for translations -->
-    </legalnotice> 
-  </articleinfo> 
 
-  <indexterm zone="index"> 
-    <primary>Zapping</primary> 
-  </indexterm> 
-  <indexterm zone="index"> 
-    <primary>zapping</primary> 
+      <para>To report a bug or make a suggestion regarding this application or this manual, visit the <ulink url="http://sourceforge.net/tracker/?group_id=2599">Zapping bug tracker</ulink> or mail us at <ulink url="mailto:zapping-misc@lists.sourceforge.net"> zapping-misc@lists.sourceforge.net</ulink>.</para>
+    </legalnotice>
+
+  </articleinfo>
+
+  <indexterm zone="index">
+    <primary>Zapping</primary>
   </indexterm>
 
 <!-- ============= Document Body ============================= -->
@@ -133,33 +62,30 @@
   <sect1 id="zapping-introduction"> 
     <title>Introduction</title>
 
-    <para>With the &app; application you can watch TV, take Screenshots and
-record video and audio. You can browse Teletext. Closed Caption and Teletext subtitles are supported.</para>
+    <para>With the Zapping application you can watch TV, take screenshots and record video and audio. Zapping has a Teletext viewer built in and supports Closed Caption and Teletext subtitles.</para>
 
-    <para>This document describes version 0.7 of &app;.</para>
+    <para>This document describes version 0.7 of Zapping.</para>
   </sect1>
 
+  <!-- Getting Started -->
+
   <sect1 id="zapping-getting-started"> 
-    <title>Getting Started</title> 
+    <title>Getting Started</title>
 
     <sect2 id="zapping-install">
       <title>Installation</title>
 
-      <para></para>
+      <para>Which hardware is supported by Zapping?</para>
+      <para>Zapping does not talk to hardware directly, it uses drivers already installed on your system. Hardware thus supported includes <emphasis>analog</emphasis> TV cards, graphic cards with video capture capability, both with and without tuner, and some USB cameras. Sorry I cannot answer if a particular brand and model will work.</para>
 
       <variablelist>
 	<varlistentry>
-	  <term>Video4Linux or Video4Linux2 kernel device</term>
+	  <term>Video4Linux or Video4Linux2 kernel drivers</term>
 	  <listitem>
-	    <para></para>
-	    <para>When your TV card supports video overlay the
-appearance can be improved by enabling the XFree86 V4L driver. Open
-the file <filename>/etc/X11/XF86Config</filename> and add
-<userinput>Load "v4l"</userinput> to the module section:</para>
+	    <para>Zapping can capture video, capture VBI (Teletext and Closed Caption) data and overlay video if this is supported by your driver. For installation and configuration of the driver please consult V4L or driver documentation.</para>
+	    <para>When the driver and your TV card supports video overlay the appearance can be improved by enabling the XFree86 V4L/XVideo interface driver. If it has not been done already, open the file <filename>/etc/X11/XF86Config</filename> and add <userinput>Load "v4l"</userinput> to the module section:</para>
 	    <programlisting>
 Section "Module"
-        Load  "dbe"
-        Load  "extmod"
         &hellip;
         Load  "v4l"
 EndSection
@@ -167,9 +93,9 @@ EndSection
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term>XVideo device</term>
+	  <term>XVideo drivers</term>
 	  <listitem>
-	    <para></para>
+	    <para>XVideo is an extension of the X Window system supporting video capture and output devices. With it, Zapping can display live video in a window. Video and VBI capturing is not possible with XVideo.</para>
 	  </listitem>
 	</varlistentry>
       </variablelist>
@@ -178,1306 +104,216 @@ EndSection
     <sect2 id="zapping-start">
       <title>To Start Zapping</title>
 
-      <para>You can start &app; in the following ways:</para>
+      <para>You can start Zapping in the following ways:</para>
       <variablelist>
 	<varlistentry>
 	  <term><guimenu>Applications</guimenu> menu</term>
     	  <listitem>
-    	    <para>Choose <menuchoice><guisubmenu>Sound and
-Video</guisubmenu>
+    	    <para>Choose <menuchoice><guisubmenu>Sound and Video</guisubmenu>
 		<guimenuitem>Zapping</guimenuitem></menuchoice>.</para>
           </listitem>
     	</varlistentry>
     	<varlistentry>
     	  <term>Command line</term>
     	  <listitem>
-    	    <para>To start &app; from a command line, type the
-following command, then press <keycap>Return</keycap>:</para>
+    	    <para>To start Zapping from a command line, type the following command, then press <keycap>Return</keycap>:</para>
             <para><command>zapping</command></para> 
           </listitem>
     	</varlistentry>
       </variablelist>
     </sect2>
 
+    <sect2 id="zapping-when-start">
+      <title>When You Start Zapping</title>
+
+      <para>When you start Zapping, the following window is displayed.</para>
+
+      <figure id="zapping-figure"> 
+	<title>Zapping</title> 
+	<screenshot>
+	  <mediaobject> 
+	    <imageobject>
+	      <imagedata fileref="figures/zapping.png" format="PNG"/> 
+	    </imageobject>
+	  </mediaobject>
+	</screenshot>
+      </figure>
+
+      <para>The Zapping window contains a menu, toolbar and a context menu which opens when you click on the video with the right mouse button.</para>
+
+      <figure id="zapping-context-figure">
+	<title>Zapping Context Menu</title>
+	<screenshot>
+	  <mediaobject>
+	    <imageobject>
+	      <imagedata fileref="figures/zapping-context.png" format="PNG"/>
+	    </imageobject>
+	    <textobject>
+	      <phrase>Context menu.</phrase>
+	    </textobject>
+	  </mediaobject>
+	</screenshot>
+      </figure>
+    </sect2>
   </sect1>
 
-<!-- =========== Getting Started ============================== -->
+  <sect1 id="zapping-usage">
+    <title>Usage</title>
 
-<!-- Use the Getting Started section to describe the steps required
-     to start the application and to describe the user interface components
-     of the application. If there is other information that it is important
-     for readers to know before they start using the application, you should
-     also include this information here. 
-     If the information about how to get started is very short, you can 
-     include it in the Introduction and omit this section. -->
+    <sect2 id="zapping-video-modes">
+      <title>Video Modes</title>
 
-  <sect1 id="zapp_ing-getting-started"> 
-    <title>Getting Started</title> 
-
-    <sect2 id="zap_ping-install">
-      <title>Installation</title>
-      <para></para>
+      <para>Zapping can work in windowed or fullscreen mode. There are two windowed modes, capture and overlay mode. Currently fullscreen requires overlay. What is the difference?</para>
+      <para>In capture mode Zapping programs your TV card to store images in main meory. This permits screenshots and video recording. It is also quite CPU intensive because to display video Zapping must copy the images to the X server.</para>
+      <para>In overlay mode the TV card stores the images directly in video memory. This is a more efficient display method, but now Zapping cannot access the images. When you try to take a screenshot or record in this mode it will switch back to capture mode, if supported by your TV card.</para>
+      <para>To switch between modes choose the mode from the <menuchoice>
+	  <guimenu>View</guimenu>
+	</menuchoice> menu, or the context menu. To return from fullscreen mode press the <keycap>Esc</keycap> key.</para>
+      <para>In windowed mode you can freely resize the video. You can either resize the window as usual by dragging its border, or choose a size from the context menu <menuchoice>
+	  <guimenu>Appearance</guimenu>
+	</menuchoice> submenu. This menu is editable, see the <link linkend="zapping-settings-video-options">preferences</link> section for details.</para>
     </sect2>
 
-    <sect2 id="za_pping-start">
-    <title>To Start &app;</title>
-    <para>You can start <application>&app;</application> in the
-    following ways:</para> 
-    <variablelist>
-      <varlistentry>
-    	<term><guimenu>Applications</guimenu> menu</term>
-    	  <listitem>
-    	    <para>Choose <menuchoice><guisubmenu>Submenu Name </guisubmenu>
-    	    <guimenuitem>Zapping</guimenuitem></menuchoice>.</para>
-          </listitem>
-    	</varlistentry>
-    	<varlistentry>
-    	  <term>Command line</term>
-    	  <listitem>
-    	    <para>To start <application>&app;</application> from a
-            command line, type the following command,	then press
-            <keycap>Return</keycap>:</para>
+    <sect2 id="zapping-channels">
+      <title>To Switch Channels</title>
 
-            <para><command>zapping</command></para> 
-          </listitem>
-    	</varlistentry>
-      </variablelist>
+      <para>To switch between TV channels you can choose from the <menuchoice>
+	  <guimenu>Channels</guimenu>
+	</menuchoice> main menu or the context menu. The menu also lists video inputs on the device and supported video standards. Note you can add composite video inputs to the channel list as well, see the <link linkend="zapping-channel-editor">Channel Editor</link> section for details.</para>
+      <para>To switch to the next or previous channel in the list click on the <guilabel>Ch. Up</guilabel> or <guilabel>Ch. Down</guilabel> button in the toolbar, or press the <keycap>Pg Up</keycap> or <keycap>Pg Dn</keycap> key.</para>
+      <para>On the numeric keypad (if <keycap>NumLock</keycap> is activated) you can enter a channel number. Either the number of the RF channel, or a channel list number. This can be changed in the <link linkend="zapping-settings-main">preferences</link>.</para>
     </sect2>
 
-    <sect2 id="za_pping-when-start">
-    <title>When You Start &app;</title>
-    <para>When you start <application>&app;</application>, the
-    following window is displayed.</para>
+    <sect2 id="zapping-controls">
+      <title>Picture controls</title>
 
-    <!-- ==== Figure ==== -->
-      <figure id="mainwindow-fig"> 
-	<title>&app; Start Up Window</title> 
-	<screenshot> 
-	  <mediaobject> 
-	    <imageobject><imagedata
-		fileref="figures/myapp_start_window.png" format="PNG"/> 
-	    </imageobject>
-	    <!-- EPS versions of the figures are not required at the moment. -->
-            <!-- 
-		    <imageobject>
-      		<imagedata fileref="figures/image.eps" format="EPS"/>
-    		    </imageobject>
-	    -->
-	    <textobject> 
-	      <phrase>Shows &app; main window. Contains titlebar, menubar, toolbar, display area, and
-	      scrollbars. Menubar contains File, View, Settings, and Help menus. </phrase> 
-	    </textobject> 
-	  </mediaobject> 
-	</screenshot> 
-      </figure>
-    <!-- ==== End of Figure ==== -->
+      <para>To change the picture brightness, contrast and other controls click on the <guilabel>Controls</guilabel> button in the toolbar. Control levels can be changed by keyboard too, as configured in <link linkend="zapping-settings-keyboard">preferences</link>.</para>
+    </sect2>
 
-    <!-- Include any descriptions of the GUI immediately after the screenshot of the main UI, -->
-    <!-- for example, the items on the menubar and on the toolbar. This section is optional. -->
+    <sect2 id="zapping-volume">
+      <title>Volume and Mute Functions</title>
+      <para>You can change the audio volume or mute audio in the controls dialog, opened when you click on the <guilabel>Controls</guilabel> button in the toolbar.</para>
+      <para>Further you can click on the <guilabel>Mute</guilabel> button in the toolbar or choose <menuchoice>
+	  <guimenu>View</guimenu>
+	  <guisubmenu>Mute</guisubmenu>
+	</menuchoice>.</para>
+      <para>You can also press <keycap>A</keycap> or the <keycap>Enter</keycap> key on the numeric keypad to mute or unmute, <keycap>+</keycap> or <keycap>-</keycap> to change the volume level.</para>
+    </sect2>
 
-    <para>The &app; window contains the following elements:
-    </para>
+    <sect2 id="zapping-caption">
+      <title>Caption / Subtitles</title>
+
+      <para>Zapping supports Closed Caption and Teletext subtitles. Strictly speaking caption is an aid for the hard of hearing while subtitles help viewers understand programs in foreign languages. Technically there is no difference, for simplicity we only refer to subtitles here.</para>
+      <para>To enable subtitles choose the desired channel, page or language from the context menu <menuchoice>
+	  <guimenu>Subtitles</guimenu>
+	</menuchoice> submenu. To disable subtitles choose <menuchoice>
+	  <guimenu>Subtitles</guimenu>
+	  <guisubmenu>Disable</guisubmenu>
+	</menuchoice>. You can also click on the <guilabel>Subtitles</guilabel> button in the toolbar to enable or disable subtitles. When enabled, Zapping displays the Closed Caption channel or Teletext subtitle page last chosen on this channel.</para>
+      <para>Closed Caption channels are always listed in the menu, if transmitted. Teletext subtitle pages might not be listed if the station fails to transmit a subtitle link. To choose a Teletext subtitle page manually start Teletext, go to the desired page and click on the <guilabel>Subtitles</guilabel> button in the toolbar.</para>
+      <para>Presently it is not possible to record subtitles, this is planned for a later date.</para>
+    </sect2>
+
+    <sect2 id="zapping-screenshot">
+      <title>Take a screenshot</title>
+      <para>To take a screenshot click on the <guilabel>Screenshot</guilabel> button in the toolbar or press the <keycap>S</keycap> key. A dialog will open where you can choose a file name, image format and compression quality if applicable.</para>
+      <para>The deinterlace option can remove interlace artefacts on the fly. It makes no sense to deinterlace scaled images, so the option is only available if the image height is 480 or 576 pixels.</para>
+      <para>Screenshots are only possible if your TV card and its driver supports video capturing.</para>
+    </sect2>
+
+    <sect2 id="zapping-record">
+      <title>Record video and audio</title>
+      <para>To record video and/or audio click on the <guilabel>Record</guilabel> button in the toolbar or press the <keycap>R</keycap> key. A dialog will open where you can choose a file name and format. Click on the <guilabel>Record</guilabel> button in the dialog to start recording, on the <guilabel>Stop</guilabel> button to stop.</para>
+      <para>File formats can be configured in <link ulink="zapping-settings-recording">preferences</link>. You can create different configurations and name them as desired.</para>
+      <para>Video recording is only possible if your TV card and its driver supports video capturing in realtime. Video compression hardware is not yet supported.</para>
+    </sect2>
+
+    <sect2 id="zapping-remote">
+      <title>Using a Remote Control</title>
+
+      <para>Zapping supports the LIRC (Linux Infrared Remote Control) infrastructure. Visit <ulink url="http://www.lirc.org">http://www.lirc.org</ulink> for more information about LIRC.</para>
+      <para>To use LIRC you must create a <filename>.lircrc</filename> file in your home directory. For each remote control button add an entry like these:</para><programlisting>
+        begin
+                prog   = zapping_lirc
+                button = VOL_UP
+                config = zapping.volume_incr(+5)
+        end
+
+        begin
+                prog   = zapping_lirc
+                button = 0
+                config = SETCHANNEL 0
+        end
+
+        begin
+                prog   = zapping_lirc
+                button = 1
+                config = SETCHANNEL 1
+        end
+
+        begin
+                prog   = zapping_lirc
+                button = 9
+                config = SETCHANNEL 9
+        end
+</programlisting>
       <variablelist>
 	<varlistentry>
-	<term>Menubar. </term>
-	<listitem>
-	<para>The menus on the menubar contain all of the commands you need to work with files in 
-	<application>&app;</application>.</para>
-	</listitem>
+	  <term>prog</term>
+	  <listitem><para>is the program interpreting the command and must be <userinput>zapping_lirc</userinput></para>
+	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	<term>Toolbar. </term>
-	<listitem>
-	<para> The toolbar contains a subset of the commands that you can access from the menubar.</para>
-	</listitem>
+	  <term>button</term>
+	  <listitem><para>is the name of the remote control button. Presumably with LIRC you installed <filename>/etc/lircd.conf</filename>, this file lists all available buttons.</para>
+	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	<term>Statusbar. </term>
-	<listitem>
-	<para>The statusbar displays information about current <application>&app;</application> 
-	activity and contextual information about the menu items. </para>
-	</listitem>
+	  <term>config</term>
+	  <listitem><para>is a Zapping command. Valid commands are listed in the <link linkend="zapping-commands-lirc">Commands</link> section.</para>
+	  </listitem>
 	</varlistentry>
-	</variablelist>
+      </variablelist>
+      <para>Suppose your remote control has a <guilabel>TV/RADIO</guilabel> button and you want to switch between two layers of commands, much like <keycap>Shift Lock</keycap> switches between lower and upper case characters.</para>
+      <para>This can be accomplished by embracing the entries above within a zapping_lirc section, and programming the <guilabel>TV/RADIO</guilabel> button to enable this section, "switch to this mode" in LIRC speak.</para><programlisting>
+begin zapping_lirc
+        begin
+                button = TV/RADIO
+                mode   = radio
+        end
+
+        Zapping entries &hellip;
+end zapping_lirc
+
+begin radio
+        begin
+                button = TV/RADIO
+                mode   = zapping_lirc
+        end
+
+        Other entries &hellip;
+end radio
+
+Mode-independend entries &hellip;
+</programlisting>
+      <para>Which mode will be initially selected? Well, none. But when you start Zapping it automatically switches to zapping_lirc mode, if such a section exists.</para>
+      <para>For further instructions please see the LIRC documentation.</para>
     </sect2>
-  </sect1>
-
-<!-- ================ Usage ================================ -->
-<!-- Use this section to describe how to use the application to
- perform the tasks for which the application is designed. -->
-  <sect1 id="myapp-usage"> 
-    <title>Usage</title> 
-    <para>You can use the &app; application to
-      perform the following tasks: 
-      <itemizedlist> 
-	<listitem> 
-	  <para> 
-	    <xref linkend="myapp-open-image"/></para> 
-	</listitem> 
-	<listitem> 
-	  <para> 
-	    <xref linkend="myapp-manipulate-view"/></para> 
-	</listitem> 
-	<listitem> 
-	  <para> 
-	    <xref linkend="myapp-scroll-image"/></para>
-	</listitem> 
-	<listitem> 
-	  <para> 
-	    <xref linkend="myapp-close-image"/></para> 
-	</listitem> 
-      </itemizedlist> </para>
-    <!-- ================ Usage Subsection ================================ -->
-    <sect2 id="myapp-open-image"> 
-      <title>To Open an Image</title> 
-      <para>To open an image, choose 
-	<menuchoice> 
-	  <guimenu>File</guimenu> 
-	  <guimenuitem>Open Image</guimenuitem> 
-	</menuchoice>. The 
-	<guilabel>Open Image</guilabel> dialog is displayed. Select the file
-	that you want to open, then click 
-	<guibutton>OK</guibutton>. To open another image in a new window,
-	choose 
-	<menuchoice> 
-	  <guimenu>File</guimenu> 
-	  <guimenuitem>Create New Window</guimenuitem> 
-	</menuchoice>. Choose 
-	<menuchoice> 
-	  <guimenu>File</guimenu> 
-	  <guimenuitem>Open Image</guimenuitem> 
-	</menuchoice> 
-	to select the file that you want to open. You can also drag an image
-	from another application such as a file manager to the &app;
-	window. If the &app; window is empty, the application displays
-	the image in the window. If the window is not empty, the
-	application starts a new window to display the file. The
-	application displays the name of the image file and the size
-	of the image in pixels in the titlebar of the window. </para>
-      <para>
-	If you try to open an image file format that &app; does
-	not recognize, the application displays an error
-	message.
-      </para>
-      <caution>
-      <para>This is a caution.</para>
-      </caution>
-    </sect2> 
-    <!-- ================ Usage Subsection ================================ -->
-	 <sect2 id="myapp-manipulate-view"> 
-      <title>To Manipulate the View of an Image</title> 
-      <para>You can use the following methods to resize the view of an image in
-	the &app; window:</para> 
-      <itemizedlist> 
-	<listitem> 
-	  <para>To enlarge the view of an image, choose 
-	    <menuchoice> 
-	      <guimenu>View</guimenu> 
-	      <guimenuitem>Zoom In</guimenuitem> 
-	    </menuchoice>.</para> 
-	</listitem> 
-	<listitem> 
-	  <para>To shrink the view of an image, choose 
-	    <menuchoice> 
-	      <guimenu>View</guimenu> 
-	      <guimenuitem>Zoom Out</guimenuitem> 
-	    </menuchoice>.</para> 
-	</listitem> 
-	<listitem> 
-	  <para>To view the image at its actual size, choose 
-	    <menuchoice> 
-	      <guimenu>View</guimenu> 
-	      <guimenuitem>Zoom 1:1</guimenuitem> 
-	    </menuchoice>. </para> 
-	</listitem> 
-	<listitem> 
-	  <para>To enlarge or shrink the view of an image so that the image
-	    fits the &app; window, choose 
-	    <menuchoice> 
-	      <guimenu>View</guimenu> 
-	      <guimenuitem>Fit to Window</guimenuitem> 
-	    </menuchoice>.</para> 
-	</listitem> 
-	<listitem> 
-	  <para>To enlarge or shrink the image to a specific zoom factor,
-	    choose 
-	    <menuchoice> 
-	      <guimenu>View</guimenu> 
-	      <guimenuitem>Zoom factor</guimenuitem> 
-	    </menuchoice>, then choose the appropriate zoom factor from the
-	    drop-down list.</para> 
-	</listitem> 
-	<listitem> 
-	  <para>To display the image in full screen mode, choose 
-	    <menuchoice> 
-	      <guimenu>View</guimenu> 
-	      <guimenuitem>Full Screen</guimenuitem> 
-	    </menuchoice>. Full screen mode displays the image in a window that
-	    fills the full screen. The window does not contain a
-	    window frame, titlebar, 
-	    menubar, or toolbar. To exit from this mode, press the 
-	    <keycap>Esc</keycap> key or 
-	    <keycombo>
-              <keycap>Ctrl</keycap>
-	      <keycap>W</keycap>
-	    </keycombo>.
-	  </para> 
-	</listitem> 
-      </itemizedlist> 
-      <tip>
-      <para>This is a tip.</para>
-      </tip>
-    </sect2> 
-    <!-- ================ Usage Subsection ================================ -->
-    <sect2 id="myapp-scroll-image"> 
-      <title>To Scroll an Image</title> 
-      <para>To scroll around an image that is larger than the image window or
-	full screen window, you can use the following methods:</para> 
-      <itemizedlist> 
-	<listitem> 
-	  <para>Use the arrow keys on the keyboard.</para> 
-	</listitem> 
-	<listitem> 
-	  <para>Drag the image in the opposite direction to the direction in
-	    which you want to scroll. For example, if you want to
-	      scroll down the image, 
-	    drag the image upwards in the window.</para> 
-	</listitem> 
-	<listitem> 
-	  <para>Use the scrollbars on the window.</para> 
-	</listitem> 
-      </itemizedlist> 
-    </sect2>
-    <!-- ================ Usage Subsection ================================ -->
-    <sect2 id="myapp-close-image"> 
-      <title>To Close an Image</title> 
-      <para>To close an image, choose 
-	<menuchoice> 
-	  <guimenu>File</guimenu> 
-	  <guimenuitem>Close This Window</guimenuitem> 
-	</menuchoice>. If the window is the last
-	&app; window open, the application exits. </para> 
-      <para>To quit &app; and close all of the
-	windows that you opened in the current session, choose 
-	<menuchoice> 
-	  <guimenu>File</guimenu> 
-	  <guimenuitem>Exit</guimenuitem> 
-	</menuchoice>. </para> 
-      <warning>
-      <para>This is a warning.</para>
-      </warning>
-    </sect2> 
-  </sect1>
-  <!-- ============= Customization ============================= -->
-  <!-- Use this section to describe how to customize the application. -->
-
-  <sect1 id="zapping-settings"> 
-    <title>Settings</title> 
-
-    <para>To configure &app;, choose 
-      <menuchoice> 
-	<guimenu>Settings</guimenu> 
-	<guimenuitem>Preferences</guimenuitem> 
-      </menuchoice>. The 
-      <guilabel>Preferences</guilabel> dialog contains the following tabbed
-      sections:</para> 
-    <itemizedlist> 
-      <listitem> 
-	<para> 
-	  <xref linkend="myapp-prefs-display"/></para> 
-      </listitem> 
-      <listitem> 
-	<para> 
-	  <xref linkend="myapp-prefs-viewers"/></para> 
-      </listitem> 
-    </itemizedlist>
-
-    <sect2 id="zapping-preferences">
-      <title>Preferences</title>
-
-      <para></para>
-
-      <sect3>
-	<title>Video Device</title>
-
-	<para>In this section you can select the device file name of
-the kernel device to be used in capture mode. Common names are:</para>
-	<simplelist>
-	  <member><filename>/dev/video</filename></member>
-	  <member><filename>/dev/video0</filename></member>
-	  <member><filename>/dev/video1</filename></member>
-	  <member><filename>/dev/video2</filename></member>
-	  <member><filename>/dev/v4l/video</filename></member>
-	  <member><filename>/dev/v4l/video0</filename></member>
-	</simplelist>
-
-	<para>Changes will take place after you quit and restart
-&app;.</para>
-
-	<para>There is no dialog to select an XVideo device, &app;
-will use the first device it finds. To be corrected in a future
-version.</para>
-      </sect3>
-
-      <sect3>
-	<title>Audio Device</title>
-
-	<para>Here you can select an audio device to record sound.
-Usually a kernel device is the best choice because &app; has better
-control over what is recorded. If your TV card has audio sampling
-hardware and the driver supports this, you can also select the TV card
-as recording device. This will free the soundcard to record from other
-sources.</para>
-
-	<para>Common kernel device names are
-<filename>/dev/dsp</filename>, <filename>/dev/dsp0</filename>,
-<filename>/dev/dsp1</filename> and so on. Click on the down arrow of
-the device file entry to see a list of devices found by &app;.</para>
-
-	<para>If the audio output of your TV card connects to the
-audio input of your soundcard, or when your TV card has no audio
-capabilities you will want to select <guilabel>Control volume with
-soundcard mixer</guilabel>. This has two advantages:</para>
-
-	<itemizedlist>
-	  <listitem>
-	    <para>&app; will properly set the volume control on the
-soundcard mixer and the TV card, you do not have to start a mixer
-application.</para>
-	  </listitem>
-	  <listitem>
-	    <para>When you change the volume or mute audio, recording
-is not affected.</para>
-	  </listitem>
-	</itemizedlist>
-
-	<para>If you selected a soundcard as audio recording device,
-you <emphasis>must</emphasis> enable this option to select an audio
-input line.</para>
-
-	<para>Common mixer device names are
-<filename>/dev/mixer</filename>, <filename>/dev/mixer0</filename>,
-<filename>/dev/mixer1</filename> and so on. Click on the down arrow of
-the device file entry to see a list of devices found by &app;.</para>
-      </sect3>
-
-      <sect3>
-	<title>Main Window</title>
-
-	<para>You can set the following preferences:</para>
-
-	<variablelist>
-	  <varlistentry>
-	    <term><guilabel>Save window geometry</guilabel></term>
-	    <listitem>
-	      <para>&app; does not support session management yet.
-When this option is selected, it will save the window geometry on exit
-and restore on startup in a non-standard way.</para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term><guilabel>Show tooltips</guilabel></term>
-	    <listitem>
-	      <para></para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term><guilabel>Disable screensaver</guilabel></term>
-	    <listitem>
-	      <para>In video mode (not Teletext mode) disable the
-screensaver from blanking the screen.</para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term><guilabel>Save control values per channel</guilabel></term>
-	    <listitem>
-	      <para>When this option is selected &app; will save and
-restore brightness, contrast, audio volume and other settings when you
-switch channels.</para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term><guilabel>Enter channels by</guilabel></term>
-	    <listitem>
-	      <para>When you enter channel numbers on the numeric
-keypad or with your remote control, &app; can interpret the numbers
-differently. In the United States you will want to choose by RF
-channel number (1 to 125). You can also choose by the number of the
-channel in the channel list, the first channel has number 0.</para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term><guilabel>Title bar contents</guilabel></term>
-	    <listitem>
-	      <para>Here you can customize the appearance of the main
-window title bar. You can enter a string which is displayed literally,
-except for the following jokers:</para>
-	      <variablelist>
-		<varlistentry>
-		  <term><userinput>$(alias)</userinput></term>
-		  <listitem>
-		    <para>Name of the current channel, e.g. BBC1</para>
-		  </listitem>
-		</varlistentry>
-		<varlistentry>
-		  <term><userinput>$(index)</userinput></term>
-		  <listitem>
-		    <para>Number in the channel list</para>
-		  </listitem>
-		</varlistentry>
-		<varlistentry>
-		  <term><userinput>$(id)</userinput></term>
-		  <listitem>
-		    <para>RF channel name, e.g. S02</para>
-		  </listitem>
-		</varlistentry>
-		<varlistentry>
-		  <term><userinput>$(freq)</userinput></term>
-		  <listitem>
-		    <para>Tuning frequency</para>
-		  </listitem>
-		</varlistentry>
-		<varlistentry>
-		  <term><userinput>$(standard)</userinput></term>
-		  <listitem>
-		    <para>Video standard (PAL, NTSC, SECAM, &hellip;)</para>
-		  </listitem>
-		</varlistentry>
-		<varlistentry>
-		  <term><userinput>$(input)</userinput></term>
-		  <listitem>
-		    <para>Current video input on the TV card</para>
-		  </listitem>
-		</varlistentry>
-	      </variablelist>
-	    </listitem>
-	  </varlistentry>
-	</variablelist>
-      </sect3>
-
-      <sect3>
-	<title>Video Options</title>
-
-	<para>You can set the following preferences:</para>
-
-	<variablelist>
-	  <varlistentry>
-	    <term><guilabel>Fullscreen video resolution</guilabel></term>
-	    <listitem>
-	      <para>When switching to fullscreen display mode, &app;
-cannot enlarge the video to cover the whole screen, but it can change
-the display resolution to approximately the size of the video. Here
-you can select a particular resolution, automatic selection, or no
-change of display resolution.</para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term><guilabel>Capture size under XVideo</guilabel></term>
-	    <listitem>
-	      <para>With the XVideo extension the image scaling
-hardware of your graphics card can be used to display captured video
-at nearly any size. You can select the size of the captured
-video:</para>
-	      <variablelist>
-		<varlistentry>
-		  <term><guilabel>320 x 240</guilabel></term>
-		  <listitem>
-		    <para>Fixed size 320 x 240 pixels</para>
-		  </listitem>
-		</varlistentry>
-		<varlistentry>
-		  <term><guilabel>Interlaced (window size)</guilabel></term>
-		  <listitem>
-		    <para>The largest size supported by the video
-capture hardware, or the window size if smaller</para>
-		  </listitem>
-		</varlistentry>
-		<varlistentry>
-		  <term><guilabel>Biggest noninterlaced</guilabel></term>
-		  <listitem>
-		    <para>Interlaced video looks funny when scaled.
-This mode is similar to <guilabel>Interlaced</guilabel>, except
-noninterlaced video will be captured.</para>
-		  </listitem>
-		</varlistentry>
-	      </variablelist>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term><guilabel>Favorite picture sizes</guilabel></term>
-	    <listitem>
-	      <para>Here you can customize the
-<guimenu>Appearance</guimenu> submenu of the main window context menu.
-To add new line, click on the <guibutton>Add</guibutton> button. To
-remove a line, click on the line and then the
-<guibutton>Remove</guibutton> button. To change values, click on a
-line and then the desired column.</para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term><guilabel>Resize using fixed increments</guilabel></term>
-	    <listitem>
-	      <para>When you select this option, the video window can only assume sizes which are a multiple of 32 pixels.</para>
-	    </listitem>
-	  </varlistentry>
-	</variablelist>
-      </sect3>
-
-      <sect3>
-	<title>Keyboard</title>
-
-	<para>In this section you can customize accelerators. Note
-that built-in accelerators such as those associated with menus or
-channel number entering on the numeric keypad take precedence.</para>
-
-	<para>To add new accelerator, click on the
-<guibutton>Add</guibutton> button. To remove an accelerator click on
-the line and then the <guibutton>Remove</guibutton> button. To change
-a command, click on the line and type a new command in the command
-entry. Click on the down arrow to see a list of commands. To change a
-keyboard shortcut, click on the line and column.</para>
-      </sect3>
-
-      <sect3>
-	<title>Audio Options</title>
-
-	<para>Here you can select whether &app; should automatically mute audio when the application starts, or before it quits.</para>
-      </sect3>
-
-      <sect3>
-	<title>OSD Options</title>
-
-	<para>Some operations such as entering a channel number or changing the audio volume by keyboard can display a status message. Here you can customize this On Screen Display.</para>
-
-	<variablelist>
-	  <varlistentry>
-	    <term><guilabel>Display mode</guilabel></term>
-	    <listitem>
-	      <para>Whether to display messages superimposed onto the video (OSD), in a status bar of the video window, in a separate console window, or not at all.</para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term><guilabel>Remove after</guilabel></term>
-	    <listitem>
-	      <para>How long the message will visible in OSD mode.</para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term><guilabel>Font</guilabel></term>
-	    <listitem>
-	      <para>Font to be used in OSD mode.</para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term><guilabel>Foreground color</guilabel></term>
-	    <listitem>
-	      <para>Foreground (text) color to be used in OSD mode.</para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term><guilabel>Background color</guilabel></term>
-	    <listitem>
-	      <para>Background color to be used in OSD mode.</para>
-	    </listitem>
-	  </varlistentry>
-	</variablelist>
-      </sect3>
-
-      <sect3>
-	<title>VBI Options</title>
-
-	<variablelist>
-	  <varlistentry>
-	    <term><guilabel>Enable VBI decoding</guilabel></term>
-	    <listitem>
-	      <para>When this option is selected, &app; will capture
-and decode VBI data transmitted by the current TV station. This
-enables Teletext browsing, Teletext subtitles, Closed Caption, and
-&app; can automatically name the station (if the information is
-transmitted, respectively).</para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term><guilabel>Device file</guilabel></term>
-	    <listitem>
-	      <para>A dedicated kernel device is necessary to capture
-VBI data. If this is supported by your TV card and its driver, you can
-select the VBI device here. Common names are:</para>
-
-	      <simplelist>
-		<member><filename>/dev/vbi</filename></member>
-		<member><filename>/dev/vbi0</filename></member>
-		<member><filename>/dev/vbi1</filename></member>
-		<member><filename>/dev/vbi2</filename></member>
-		<member><filename>/dev/v4l/vbi</filename></member>
-		<member><filename>/dev/v4l/vbi0</filename></member>
-	      </simplelist>
-
-	      <para>The device should correspond to the selected kernel
-video device. &app; will try to find it automatically, but this may
-fail. Changes will take place after you quit and restart &app;.</para>
-
-	      <para>If you have only an XVideo device, unfortunately you
-cannot use these functions because XVideo does not support VBI data
-capturing.</para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term><guilabel>Default region</guilabel></term>
-	    <listitem>
-	      <para>This is a Teletext option. Some stations fail to
-transmit a complete language identifier, so the Teletext viewer may
-not display the correct font or national characters. You can select
-your geographical region here as an additional hint.</para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term><guilabel>Teletext implementation</guilabel></term>
-	    <listitem>
-	      <para>The Teletext standard knows different
-implementation levels. The built-in Teletext browser supports them
-all. You can select if you want to see pages as displayed by simpler
-decoders. Note most stations still only transmit at the basic levels
-1.0 or 1.5.</para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term><guilabel>Interpolation type</guilabel></term>
-	    <listitem>
-	      <para>You can freely resize Teletext windows. There are
-different ways to do this, some give better results, others are
-faster. Select here the mode you like best.</para>
-	    </listitem>
-	  </varlistentry>
-	</variablelist>
-      </sect3>
-
-      <sect3>
-	<title>Recording plugin</title>
-
-	<para></para>
-      </sect3>
-      <sect3>
-	<title>Screenshot plugin</title>
-
-	<para>In this section you can customize the screenshot
-plugin.</para>
-
-	<variablelist>
-	  <varlistentry>
-	    <term><guilabel>Completion command</guilabel></term>
-	    <listitem>
-	      <para>A shell command to execute after the image has
-been saved. The following environment variables will be set:</para>
-	      <variablelist>
-		<varlistentry>
-		  <term><varname>$SCREENSHOT_PATH</varname></term>
-		  <listitem>
-		    <para>The fully qualified filename of the saved
-image, e.g. <filename>/home/my/shots/image2.jpg</filename></para>
-		  </listitem>
-		</varlistentry>
-		<varlistentry>
-		  <term><varname>$CHANNEL_ALIAS</varname></term>
-		  <listitem>
-		    <para>Name of the current channel, e.g. BBC1</para>
-		  </listitem>
-		</varlistentry>
-		<varlistentry>
-		  <term><varname>$CHANNEL_ID</varname></term>
-		  <listitem>
-		    <para>RF channel name, e.g. S02</para>
-		  </listitem>
-		</varlistentry>
-		<varlistentry>
-		  <term><varname>$CURRENT_STANDARD</varname></term>
-		  <listitem>
-		    <para>Video standard (PAL, NTSC, SECAM, &hellip;)</para>
-		  </listitem>
-		</varlistentry>
-		<varlistentry>
-		  <term><varname>$CURRENT_INPUT</varname></term>
-		  <listitem>
-		    <para>Current video input on the TV card</para>
-		  </listitem>
-		</varlistentry>
-	      </variablelist>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term><guilabel>Skip x pictures before grabbing</guilabel></term>
-	    <listitem>
-	      <para></para>
-	    </listitem>
-	  </varlistentry>	
-	  <varlistentry>
-	    <term><guilabel>Grab on clicking ok</guilabel></term>
-	    <listitem>
-	      <para>By default a screenshot is taken when you open the
-screenshot dialog. When this option is selected, it will be taken when
-you click the <guibutton>OK</guibutton> button of the dialog.</para>
-	    </listitem>
-	  </varlistentry>	 
-	  <varlistentry>
-	    <term><guilabel>Add toolbar button</guilabel></term>
-	    <listitem>
-	      <para>Add a button to the main window toolbar which
-opens the screenshot dialog.</para>
-	    </listitem>
-	  </varlistentry>
-	</variablelist>
-      </sect3>
-    </sect2>
-
-
-
-
-<!-- =============== Customization Subsection ================ -->
-<!-- Use a new section to describe different tabbed sections on the Settings or Preferences
-	     dialog. -->
-    <sect2 id="myapp-prefs-display"> 
-      <title>Display</title> 
-      <variablelist> 
-	<varlistentry> 
-	  <term> 
-	    <guilabel>Interpolation type</guilabel> </term> 
-	  <listitem> 
-	    <para>Use this drop-down list box to specify the
-	      interpolation method that
-	      &app; uses when the
-	      application resizes images. Select one of the following
-	      options:</para>
-	    <itemizedlist> 
-	      <listitem> 
-		<para> 
-		  <guilabel>Nearest neighbor</guilabel> </para> 
-		<para>This method of interpolation takes a location in the
-		  original image and replicates the pixel that is
-		  nearest to this location. When 
-		  you zoom in on an image, the pixels are
-		  replicated. When you zoom out of an 
-		  image, the image loses some of its detail. </para> 
-	      </listitem> 
-	      <listitem> 
-		<para> 
-		  <guilabel>Bilinear</guilabel> </para> 
-		<para>This is a simple and fast method of interpolation. When
-		  you zoom in on an image, &app; uses up to four
-		  adjacent pixels to compute the colors of the new
-		  pixels. When you zoom out of 
-		  an image, &app; averages regions of color in the
-		  existing image to compute the colors of the pixels. </para> 
-	      </listitem> 
-	      <listitem> 
-		<para> 
-		  <guilabel>Hyperbolic</guilabel> </para> 
-		<para>This is a high-quality, slow method of interpolation. The
-		  application performs interpolation on the image in
-		  the manner described in 
-		  Digital Image Warping by George Wolberg.</para> 
-	      </listitem> 
-	    </itemizedlist> 
-	    <para>Default: 
-	      <guilabel>Nearest neighbor</guilabel>.</para> 
-	  </listitem> 
-	</varlistentry> 
-	<varlistentry> 
-	  <term> 
-	    <guilabel>Transparency type</guilabel> </term> 
-	  <listitem> 
-	    <para>Use this drop-down list box to specify how
-	      &app; displays transparent or partially opaque
-	      backgrounds in images. Select one of the following options:</para> 
-	    <itemizedlist> 
-	      <listitem> 
-		<para> 
-		  <guilabel>Dark checks</guilabel> </para> 
-		<para>This option displays black and dark gray checks.</para> 
-	      </listitem> 
-	      <listitem> 
-		<para> 
-		  <guilabel>Midtone checks</guilabel> </para> 
-		<para>This option displays dark gray and light gray
-		  checks.</para> 
-	      </listitem> 
-	      <listitem> 
-		<para> 
-		  <guilabel>Light checks</guilabel> </para> 
-		<para>This option displays light gray and white checks.</para> 
-	      </listitem> 
-	      <listitem> 
-		<para> 
-		  <guilabel>Black only</guilabel> </para> 
-		<para>This option displays solid black.</para> 
-	      </listitem> 
-	      <listitem> 
-		<para> 
-		  <guilabel>Gray only</guilabel> </para> 
-		<para>This option displays solid gray.</para> 
-	      </listitem> 
-	      <listitem> 
-		<para> 
-		  <guilabel>White only</guilabel> </para> 
-		<para>This option displays solid white.</para> 
-	      </listitem> 
-	    </itemizedlist> 
-	    <para>Default: 
-	      <guilabel>Dark checks</guilabel>.</para> 
-	  </listitem> 
-	</varlistentry> 
-	<varlistentry> 
-	  <term> 
-	    <guilabel>Check size</guilabel> </term> 
-	  <listitem> 
-	    <para>Use this drop-down list box to specify the size of the checks
-	      to use to display transparent or partially opaque
-	      backgrounds in images. This 
-	      option is only relevant if you choose 
-	      <guilabel>Dark checks</guilabel>, 
-	      <guilabel>Midtone checks</guilabel>, or 
-	      <guilabel>Light checks</guilabel> from the 
-	      <guilabel>Transparency type</guilabel> drop-down list box.
-	      Select one of the following options:</para> 
-	    <itemizedlist> 
-	      <listitem> 
-		<para> 
-		  <guilabel>Small</guilabel></para> 
-	      </listitem> 
-	      <listitem> 
-		<para> 
-		  <guilabel>Medium</guilabel></para> 
-	      </listitem> 
-	      <listitem> 
-		<para> 
-		  <guilabel>Large</guilabel></para> 
-	      </listitem> 
-	    </itemizedlist> 
-	    <para>Default: 
-	      <guilabel>Small</guilabel>.</para> 
-	  </listitem> 
-	</varlistentry> 
-	<varlistentry> 
-	  <term> 
-	    <guilabel>Dither type</guilabel> </term> 
-	  <listitem> 
-	    <para>Use this drop-down list box to specify the dithering method
-	      to use to display images. Dithering is a technique that
-	      is used to simulate 
-	      colors in the original image file but that your system
-	      can not display. Select 
-	      one of the following options:</para> 
-	    <itemizedlist> 
-	      <listitem> 
-		<para> 
-		  <guilabel>None</guilabel> </para> 
-		<para>This option does not use dithering. </para> 
-	      </listitem> 
-	      <listitem> 
-		<para> 
-		  <guilabel>Normal (pseudocolor)</guilabel> </para> 
-		<para>This option performs dithering on pseudocolor displays,
-		  which use a limited palette of colors. </para> 
-	      </listitem> 
-	      <listitem> 
-		<para> 
-		  <guilabel>Maximum (high color)</guilabel> </para> 
-		<para>This option performs dithering on pseudocolor and high
-		  color displays. </para> 
-	      </listitem> 
-	    </itemizedlist> 
-	    <para>Default: 
-	      <guilabel>None</guilabel>.</para> 
-	  </listitem> 
-	</varlistentry> 
-	<varlistentry> 
-	  <term> 
-	    <guilabel>Two-pass scrolling</guilabel> </term> 
-	  <listitem> 
-	    <para>Select this option to render an image in two passes
-	      when you scroll the image quickly. The first pass
-	      renders a low quality version of the image. The second
-	      pass renders a full quality version of the image over
-	      the low quality version. Two-pass scrolling enables you
-	      to view at least a low quality version of the image at
-	      all times regardless of how quickly you scroll the
-	      image. 
-	    </para>
-	    <para>Default: unselected.</para> 
-	  </listitem> 
-	</varlistentry> 
-      </variablelist> 
-    </sect2>
-    <!-- ============= Customization Subsection ===================== -->
-    <!-- Another tabbed section on the Preferences dialog. -->
-    <sect2 id="myapp-prefs-viewers"> 
-      <title>Viewers</title> 
-      <para>You can set the following viewer preferences: 
-	<itemizedlist> 
-	  <listitem> 
-	    <para> 
-	      <xref linkend="myapp-viewer-prefs-image-window"/></para> 
-	  </listitem> 
-	  <listitem> 
-	    <para> 
-	      <xref linkend="myapp-viewer-prefs-full-screen"/></para> 
-	  </listitem> 
-	</itemizedlist> </para> 
-      <sect3 id="myapp-viewer-prefs-image-window"> 
-	<title>Image Windows</title> 
-	<para>The 
-	  <guilabel>Image Windows</guilabel> group contains the preferences
-	  that you can set to view images in image windows.</para> 
-	<variablelist> 
-	  <varlistentry> 
-	    <term> 
-	      <guilabel>Use scrollbars</guilabel> </term> 
-	    <listitem> 
-	      <para>Use this drop-down list box to specify when to use
-		scrollbars to scroll through an image. Select one of
-		the following options:</para> 
-	      <itemizedlist> 
-		<listitem> 
-		  <para> 
-		    <guilabel>Never</guilabel> </para> 
-		  <para>This option never displays scrollbars. You can use the
-		    arrow keys on the keyboard or the mouse to scroll
-		    through the image. </para>  
-		</listitem> 
-		<listitem> 
-		  <para> 
-		    <guilabel>Only if image does not fit</guilabel> </para> 
-		  <para>This option displays scrollbars when the image is
-		    larger than the image window.</para> 
-		</listitem> 
-	      </itemizedlist> 
-	      <para>Default: 
-		<guilabel>Never</guilabel>.</para> 
-	    </listitem> 
-	  </varlistentry> 
-	  <varlistentry> 
-	    <term> 
-	      <guilabel>Pick window size and zoom factor
-		automatically</guilabel> </term> 
-	    <listitem> 
-	      <para>Select this option to resize the image window to fit the
-		image or to resize the image to fit the image
-		window. If the image is small, 
-		&app; resizes the image window to fit the image. If
-		the image is large, &app; resizes the image to fit
-		the image window. </para> 
-	      <para>Default: unselected.</para> 
-	    </listitem> 
-	  </varlistentry> 
-	  <varlistentry> 
-	    <term> 
-	      <guilabel>Open images in a new window</guilabel> </term> 
-	    <listitem> 
-	      <para>Select this option to open a new
-		&app; window each time you open an image. If you do
-		not select this option, &app; replaces the existing
-		image with the new image when you open an image. </para> 
-	      <para>Default: unselected.</para> 
-	    </listitem> 
-	  </varlistentry> 
-	</variablelist> 
-      </sect3> 
-      <sect3 id="myapp-viewer-prefs-full-screen"> 
-	<title>Full Screen</title> 
-	<para>The 
-	  <guilabel>Full Screen</guilabel> group contains the preferences that
-	  you can set to view images in full screen mode.</para> 
-	<variablelist> 
-	  <varlistentry> 
-	    <term> 
-	      <guilabel>Use scrollbars</guilabel> </term> 
-	    <listitem> 
-	      <para>Use this drop-down list box to specify when to use
-		scrollbars to scroll through an image. Select one of the following
-		options:</para> 
-	      <itemizedlist> 
-		<listitem> 
-		  <para> 
-		    <guilabel>Never</guilabel> </para> 
-		  <para>This option never displays scrollbars. You can use the
-		    arrow keys on the keyboard or the mouse to scroll
-		    through the image. </para>  
-		</listitem> 
-		<listitem> 
-		  <para> 
-		    <guilabel>Only if image does not fit</guilabel> </para> 
-		  <para>This option displays scrollbars when the image is
-		    larger than the full screen. </para> 
-		</listitem> 
-	      </itemizedlist> 
-	      <para>Default: 
-		<guilabel>Never</guilabel>.</para> 
-	    </listitem> 
-	  </varlistentry> 
-	  <varlistentry> 
-	    <term> 
-	      <guilabel>Use 1:1 zoom factor</guilabel> </term> 
-	    <listitem> 
-	      <para>Select this option to use the 1:1 zoom factor when you open
-		an image. The 1:1 zoom factor displays the image at
-		its actual size. </para>  
-	      <para>Default: selected.</para> 
-	    </listitem> 
-	  </varlistentry> 
-	  <varlistentry> 
-	    <term> 
-	      <guilabel>Use same zoom factor as image window</guilabel> </term>
-	    
-	    <listitem> 
-	      <para>Select this option to use the same zoom factor that the
-		application uses to display the image in an image
-	      window. </para>  
-	      <para>Default: unselected.</para> 
-	    </listitem> 
-	  </varlistentry> 
-	  <varlistentry> 
-	    <term> 
-	      <guilabel>Fit all images to screen</guilabel> </term> 
-	    <listitem> 
-	      <para>Select this option to resize images to fill the full screen
-		when you open the images in full screen mode. </para> 
-	      <para>Default: unselected.</para> 
-	    </listitem> 
-	  </varlistentry> 
-	  <varlistentry> 
-	    <term> 
-	      <guilabel>Fit standard-sized images to screen</guilabel> </term> 
-	    <listitem> 
-	      <para>Select this option to automatically resize images
-		that are the same size as standard screens so that the
-		images fill the full screen when you open them in full
-		screen mode. If you select this option, &app; ignores
-		the settings for the previous three options when you
-		open an image that is the same size as a standard
-		screen.  Examples of standard screen sizes are 640 x
-		480 pixels, 1024 x 768 pixels, and so on. </para>
-	      <para>Default: unselected.</para> 
-	    </listitem> 
-	  </varlistentry> 
-	  <varlistentry> 
-	    <term> 
-	      <guilabel>Put a bevel around the edge of the screen</guilabel>
-	    </term> 
-	    <listitem> 
-	      <para>Select this option to display a 3D beveled border around
-		the full screen view of an image. </para> 
-	      <para>Default: unselected.</para> 
-	    </listitem> 
-	  </varlistentry> 
-	</variablelist> 
-      </sect3> 
-    </sect2> 
-  </sect1>
-
-  <sect1 id="zapping-channel-editor"> 
-    <title>Channel Editor</title> 
-
-    <para>To open the channel editor, choose 
-      <menuchoice> 
-	<guimenu>Edit</guimenu> 
-	<guimenuitem>Channels</guimenuitem> 
-      </menuchoice>. In the channel editor you can edit the channel
-list. It can contain tuned channels (if your TV card has a tuner) as
-well as composite and S-Video inputs.</para>
-
-    <para>The channel editor dialog shows three sections. At the top the frequency table and related options. In the middle the channel list. At the bottom you can edit individual channel list entries.</para>
-
-    <sect2>
-      <title>Populating the Channel List</title>
-
-      <para>First you must choose the frequency table used in your
-country. To do this, select a country from the drop-down menu in the
-top left corner of the dialog. Then you can:</para>
-
-      <itemizedlist>
-	<listitem>
-	  <para>Click on <guilabel>Automatic station
-search</guilabel></para>
-	  <para>If this is supported by your TV card &app; will scan
-all RF channels in the frequency table and enter the found stations in
-the channel list. When VBI decoding has been enabled in the
-preferences it will also try to determine the station names.</para>
-	</listitem>
-	<listitem>
-	  <para>Click on <guilabel>Add all channels</guilabel></para>
-	  <para>This will add all RF channels in the frequency table
-to the channel list.</para>
-	</listitem>
-	<listitem>
-	  <para>Click on <guilabel>Import XawTV
-configuration</guilabel></para>
-	  <para>This will import the channel list from the XawTV
-configuration file, if you used the XawTV application before.</para>
-	</listitem>
-	<listitem>
-	  <para>Naturally you can also enter channels one by one
-yourself.</para>
-	</listitem>
-      </itemizedlist>
-
-      <para>Now you can edit channel names or reorder channels on the
-list. When you are satisfied click on <guibutton>OK</guibutton> to
-store your changes and leave the dialog.</para>
-    </sect2>
-
-    <sect2>
-      <title>Editing the Channel List</title>
-
-      <para>To select an entry in the channel list just click on the
-row. To select multiple rows click on the first row, then
-press-and-hold <keycap>Shift</keycap> and click on the last
-row.</para>
-
-      <sect3>
-	<title>Adding and Removing Channels</title>
-
-	<para>To add a new channel, click on the
-<guibutton>Add</guibutton> button. To insert a channel at a particular
-position, select the respective row first.</para>
-
-	<para>New channels are empty and will not show in menus. You
-can leave it this way to create a gap in the list. That is useful when you switch channels by entering the number in the list.</para>
-
-	<para>To remove one or more channels, select the rows and
-click on the <guibutton>Remove</guibutton> button.</para>
-      </sect3>
-
-      <sect3>
-	<title>Reordering Channels</title>
-
-	<para>Select one or more rows and click on the <guibutton>Up</guibutton> or <guibutton>Down</guibutton> button.</para>
-      </sect3>
-
-      <sect3>
-	<title>Editing Channels</title>
-
-	<para>It is not possible yet to edit the channel list directly. Instead select a row and edit in the box at the bottom of the dialog. Channels have the following properties:</para>
-
-	<variablelist>
-	  <varlistentry>
-	    <term><guilabel>Name</guilabel></term>
-	    <listitem>
-	      <para>The name you want to give the channel.</para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term><guilabel>Video input</guilabel></term>
-	    <listitem>
-	      <para>Typically TV cards have a tuner, composite and
-S-Video inputs. Here you can select the input to be used when you
-switch to this channel. When you select <guilabel>Do not change
-input</guilabel> a switch to this channel will not change the
-input.</para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term><guilabel>Radio frequency</guilabel></term>
-	    <listitem>
-	      <para>To change the radio frequency (the RF channel)
-select a different row from the frequency table, in the top right
-corner of the dialog. If necessary you can select a different
-frequency table for each channel.</para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term><guilabel>Fine tuning</guilabel></term>
-	    <listitem>
-	      <para>Here you can adjust the radio frequency. As with
-the radio frequency this property is only applicable if the current
-video input is a tuner.</para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term><guilabel>Video standard</guilabel></term>
-	    <listitem>
-	      <para>Typically TV cards support more than one video
-standard. Here you can select the video standard to be used when you
-switch to this channel. When you select <guilabel>Do not change
-standard</guilabel> a switch to this channel will not change
-the video standard.</para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term><guilabel>Accelerator</guilabel></term>
-	    <listitem>
-	      <para>A keyboard shortcut to switch to this channel.</para>
-	    </listitem>
-	  </varlistentry>
-	</variablelist>
-      </sect3>
-    </sect2>
-  </sect1>
-
-  <sect1 id="zapzilla">
-    <title>Zapzilla</title>
-
-    <para>Zapzilla is the built-in Teletext viewer of Zapping.</para>
-
-    <figure id="zapzilla-figure"> 
-      <title>Zapzilla</title> 
-      <screenshot>
-	<mediaobject> 
-	  <imageobject>
-	    <imagedata fileref="figures/zapzilla.png" format="PNG"/> 
-	  </imageobject>
-	  <textobject> 
-	    <phrase>Zapzilla window. Contains titlebar, menubar,
-toolbar, display area showing a Teletext page, and statusbar. The
-menubar contains File, Edit, Go and Bookmarks menus.</phrase>
-	  </textobject>
-	</mediaobject> 
-      </screenshot> 
-    </figure>
-
-    <sect2>
-      <title>Go to a Page</title>
-
-      <para>To go to a different page simply type the page number on the keyboard. You can also press the cursor keys to go to the next or previous page or subpage. Or you can click on a page number in the psge. When you click with the middle mouse button the page opens in a new window.</para>
-
-      <para>Zapzilla supports bookmarks. 
 
   </sect1>
 
+  &settings;
+  &channel-editor;
+  &zapzilla;
+  &commands;
+  &fdl-appendix;
 
-<!-- ============= Bugs ================================== -->
-<!-- This section is optional and is commented out by default. 
-     You can use it to describe known bugs and limitations of the 
-     program if there are any - please be frank and list all
-     problems you know of. -->
-<!--
-  <sect1 id="zapping-bugs">
-    <title>Known Bugs and Limitations</title>
-    <para></para>
-  </sect1>
--->
+  <appendix id="zapping-about"> 
+    <title>About Zapping</title> 
 
-<!-- ============= About ================================== -->
-  <sect1 id="zapping-about"> 
-    <title>About &app;</title> 
-
-    <para>&app; was written by Iñaki García Etxebarria, Michael H.
-    Schimek and many contributors. Visit our web page at <ulink
-    url="http://zapping.sourceforge.net" type="http">
-    http://zapping.sourceforge.net</ulink>.</para>
-
-    <para>To report a bug or make a suggestion regarding this application or
-    this manual, visit the <ulink
-    url="http://sourceforge.net/tracker/?group_id=2599">Zapping bug
-    tracker</ulink> or mail us at <ulink
-    url="mailto:zapping-misc@lists.sourceforge.net">
-    zapping-misc@lists.sourceforge.net</ulink>.</para>
-
-    <para>This program is distributed under the terms of the 
-    <ulink url="ghelp:gpl" type="help">GNU General Public
-    License</ulink> as published by the Free Software
-    Foundation; either version 2 of the License, or (at your option)
-    any later version. A copy of this license can be found
-    in the file COPYING included with the source code of this
-    program.</para>
-  </sect1> 
+    <para>Zapping was written by Iñaki García Etxebarria, Michael H. Schimek and many contributors. Visit our web page at <ulink url="http://zapping.sourceforge.net" type="http"> http://zapping.sourceforge.net</ulink>.</para>
+    <para>To report a bug or make a suggestion regarding this application or this manual, visit the <ulink url="http://sourceforge.net/tracker/?group_id=2599">Zapping bug tracker</ulink> or mail us at <ulink url="mailto:zapping-misc@lists.sourceforge.net"> zapping-misc@lists.sourceforge.net</ulink>.</para>
+    <para>This program is distributed under the terms of the <ulink url="ghelp:gpl" type="help">GNU General Public License</ulink> as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version. A copy of this license can be found in the file COPYING included with the source code of this program.</para>
+  </appendix>
 
 </article>
