@@ -1,3 +1,7 @@
+2005-01-22    <mschimek@users.sf.net>
+
+	* libvbi/hamm.h (vbi3_unham8): Must return signed int.
+
 2005-01-20    <mschimek@users.sf.net>
 
 	* src/tveng25.c: Removed bayer hack, bayer is now a first class format.
