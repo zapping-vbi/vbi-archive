@@ -27,7 +27,7 @@
 #define _h_ure
 
 /*
- * $Id: ure.h,v 1.2 2001-01-10 00:11:01 garetxe Exp $
+ * $Id: ure.h,v 1.3 2001-01-10 19:50:44 garetxe Exp $
  */
 
 #include <stdio.h>
@@ -43,47 +43,6 @@ extern "C" {
 #else
 #define __(x) ()
 #endif
-
-/*
- * Set of character class flags.
- */
-#define _URE_NONSPACING  0x00000001
-#define _URE_COMBINING   0x00000002
-#define _URE_NUMDIGIT    0x00000004
-#define _URE_NUMOTHER    0x00000008
-#define _URE_SPACESEP    0x00000010
-#define _URE_LINESEP     0x00000020
-#define _URE_PARASEP     0x00000040
-#define _URE_CNTRL       0x00000080
-#define _URE_PUA         0x00000100
-
-#define _URE_UPPER       0x00000200
-#define _URE_LOWER       0x00000400
-#define _URE_TITLE       0x00000800
-#define _URE_MODIFIER    0x00001000
-#define _URE_OTHERLETTER 0x00002000
-#define _URE_DASHPUNCT   0x00004000
-#define _URE_OPENPUNCT   0x00008000
-#define _URE_CLOSEPUNCT  0x00010000
-#define _URE_OTHERPUNCT  0x00020000
-#define _URE_MATHSYM     0x00040000
-#define _URE_CURRENCYSYM 0x00080000
-#define _URE_OTHERSYM    0x00100000
-
-#define _URE_LTR         0x00200000
-#define _URE_RTL         0x00400000
-
-#define _URE_EURONUM     0x00800000
-#define _URE_EURONUMSEP  0x01000000
-#define _URE_EURONUMTERM 0x02000000
-#define _URE_ARABNUM     0x04000000
-#define _URE_COMMONSEP   0x08000000
-
-#define _URE_BLOCKSEP    0x10000000
-#define _URE_SEGMENTSEP  0x20000000
-
-#define _URE_WHITESPACE  0x40000000
-#define _URE_OTHERNEUT   0x80000000
 
 /*
  * Error codes.

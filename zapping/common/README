@@ -1,5 +1,5 @@
 #
-# $Id: README,v 1.1 2001-01-10 00:11:01 garetxe Exp $
+# $Id: README,v 1.2 2001-01-10 19:50:44 garetxe Exp $
 #
 # Copyright 1997, 1998, 1999 Computing Research Labs,
 # New Mexico State University
@@ -95,38 +95,21 @@ Character classes:
 
         N	Character Property
         --------------------------
-        1	_URE_NONSPACING
-        2	_URE_COMBINING
-        3	_URE_NUMDIGIT
-        4	_URE_NUMOTHER
-        5	_URE_SPACESEP
-        6	_URE_LINESEP
-        7	_URE_PARASEP
-        8	_URE_CNTRL
-        9	_URE_PUA
-        10	_URE_UPPER
-        11	_URE_LOWER
-        12	_URE_TITLE
-        13	_URE_MODIFIER
-        14	_URE_OTHERLETTER
-        15	_URE_DASHPUNCT
-        16	_URE_OPENPUNCT
-        17	_URE_CLOSEPUNCT
-        18	_URE_OTHERPUNCT
-        19	_URE_MATHSYM
-        20	_URE_CURRENCYSYM
-        21	_URE_OTHERSYM
-        22	_URE_LTR
-        23	_URE_RTL
-        24	_URE_EURONUM
-        25	_URE_EURONUMSEP
-        26	_URE_EURONUMTERM
-        27	_URE_ARABNUM
-        28	_URE_COMMONSEP
-        29	_URE_BLOCKSEP
-        30	_URE_SEGMENTSEP
-        31	_URE_WHITESPACE
-        32	_URE_OTHERNEUT
+	1	_URE_ALNUM
+	2	_URE_ALPHA
+	3	_URE_CNTRL
+	4	_URE_DIGIT
+	5	_URE_GRAPH
+	6	_URE_LOWER
+	7	_URE_PRINT
+	8	_URE_PUNCT
+	9	_URE_SPACE
+	10	_URE_UPPER
+	11	_URE_XDIGIT
+	12	_URE_TITLE
+	13	_URE_DEFINED
+	14	_URE_WIDE
+	15	_URE_NONSPACING
 
     o  Character classes can contain literals, constants, and character
        property classes. Example:

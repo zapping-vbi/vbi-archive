@@ -24,7 +24,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 #if 0
-static char rcsid[] = "$Id: ure.c,v 1.2 2001-01-10 00:11:01 garetxe Exp $";
+static char rcsid[] = "$Id: ure.c,v 1.3 2001-01-10 19:50:44 garetxe Exp $";
 #endif
 
 #include <stdlib.h>
@@ -33,107 +33,32 @@ static char rcsid[] = "$Id: ure.c,v 1.2 2001-01-10 00:11:01 garetxe Exp $";
 #include <unicode.h>
 #include "ure.h"
 
-/* libunicode -> ure */
-static unsigned long libunicode2ure[] =
-{
-  _URE_CNTRL,
-  _URE_PUA,
-  _URE_PUA,
-  _URE_PUA,
-  _URE_PUA,
-  _URE_LOWER,
-  _URE_MODIFIER,
-  _URE_OTHERLETTER,
-  _URE_TITLE,
-  _URE_UPPER,
-  _URE_COMBINING,
-  _URE_PUA,
-  _URE_NONSPACING,
-  _URE_NUMDIGIT,
-  _URE_NUMOTHER,
-  _URE_NUMOTHER,
-  _URE_OTHERPUNCT,
-  _URE_DASHPUNCT,
-  _URE_CLOSEPUNCT,
-  _URE_OTHERPUNCT,
-  _URE_OTHERPUNCT,
-  _URE_OTHERPUNCT,
-  _URE_OPENPUNCT,
-  _URE_CURRENCYSYM,
-  _URE_OTHERSYM,
-  _URE_MATHSYM,
-  _URE_OTHERSYM,
-  _URE_LINESEP,
-  _URE_PARASEP,
-  _URE_SPACESEP
-};
+/*
+ * Set of character class flags.
+ */
 
-static int
-#ifdef __STDC__
-_ure_matches_properties(unsigned long props, ucs4_t c)
-#else
-_ure_matches_properties(props, c)
-unsigned long props;
-ucs4_t c;
-#endif
-{
-  unsigned long type = unicode_type(c);
-  unsigned long result;
-
-  if ((type <= UNICODE_SPACE_SEPARATOR) && (type >= 0))
-    {
-      if (type < UNICODE_LINE_SEPARATOR)
-	result = libunicode2ure[type] | _URE_NONSPACING;
-      else
-	result = libunicode2ure[type];
-    }
-  else
-    result = 0;
-
-  return (result & props);
-}
+#define _URE_ALNUM (1<<0)
+#define _URE_ALPHA (1<<1)
+#define _URE_CNTRL (1<<2)
+#define _URE_DIGIT (1<<3)
+#define _URE_GRAPH (1<<4)
+#define _URE_LOWER (1<<5)
+#define _URE_PRINT (1<<6)
+#define _URE_PUNCT (1<<7)
+#define _URE_SPACE (1<<8)
+#define _URE_UPPER (1<<9)
+#define _URE_XDIGIT (1<<10)
+/* These are unused yet */
+#define _URE_TITLE (1<<11)
+#define _URE_DEFINED (1<<12)
+#define _URE_WIDE (1<<13)
+#define _URE_NONSPACING (1<<14)
 
 /*
  * Flags used internally in the DFA.
  */
 #define _URE_DFA_CASEFOLD  0x01
 #define _URE_DFA_BLANKLINE 0x02
-
-static unsigned long cclass_flags[] = {
-    0,
-    _URE_NONSPACING,
-    _URE_COMBINING,
-    _URE_NUMDIGIT,
-    _URE_NUMOTHER,
-    _URE_SPACESEP,
-    _URE_LINESEP,
-    _URE_PARASEP,
-    _URE_CNTRL,
-    _URE_PUA,
-    _URE_UPPER,
-    _URE_LOWER,
-    _URE_TITLE,
-    _URE_MODIFIER,
-    _URE_OTHERLETTER,
-    _URE_DASHPUNCT,
-    _URE_OPENPUNCT,
-    _URE_CLOSEPUNCT,
-    _URE_OTHERPUNCT,
-    _URE_MATHSYM,
-    _URE_CURRENCYSYM,
-    _URE_OTHERSYM,
-    _URE_LTR,
-    _URE_RTL,
-    _URE_EURONUM,
-    _URE_EURONUMSEP,
-    _URE_EURONUMTERM,
-    _URE_ARABNUM,
-    _URE_COMMONSEP,
-    _URE_BLOCKSEP,
-    _URE_SEGMENTSEP,
-    _URE_WHITESPACE,
-    _URE_OTHERNEUT,
-};
 
 /*
  * Symbol types for the DFA.
@@ -161,6 +86,72 @@ static unsigned long cclass_flags[] = {
 
 #define _URE_REGSTART 0x8000
 #define _URE_REGEND   0x4000
+
+/*
+ * This routine takes a set of URE character property flags (see ure.h) along
+ * with a character and tests to see if the character has one or more of those
+ * properties.
+ */
+int
+#ifdef __STDC__
+_ure_matches_properties(unsigned long props, ucs4_t c)
+#else
+_ure_matches_properties(props, c)
+unsigned long props;
+ucs4_t c;
+#endif
+{
+  if ((props & _URE_ALNUM) && (unicode_isalnum(c)))
+    return 1;
+
+  if ((props & _URE_ALPHA) && (unicode_isalpha(c)))
+    return 1;
+
+  if ((props & _URE_CNTRL) && (unicode_iscntrl(c)))
+    return 1;
+
+  if ((props & _URE_DIGIT) && (unicode_isdigit(c)))
+    return 1;
+
+  if ((props & _URE_GRAPH) && (unicode_isgraph(c)))
+    return 1;
+
+  if ((props & _URE_LOWER) && (unicode_islower(c)))
+    return 1;
+
+  if ((props & _URE_PRINT) && (unicode_isprint(c)))
+    return 1;
+
+  if ((props & _URE_PUNCT) && (unicode_ispunct(c)))
+    return 1;
+
+  if ((props & _URE_SPACE) && (unicode_isspace(c)))
+    return 1;
+
+  if ((props & _URE_UPPER) && (unicode_isupper(c)))
+    return 1;
+
+  if ((props & _URE_XDIGIT) && (unicode_isxdigit(c)))
+    return 1;
+
+  if ((props & _URE_TITLE) && (unicode_istitle(c)))
+    return 1;
+
+  if ((props & _URE_DEFINED) && (unicode_isdefined(c)))
+    return 1;
+
+  if ((props & _URE_WIDE) && (unicode_iswide(c)))
+    return 1;
+
+  if (props & _URE_NONSPACING)
+    {
+      int type = unicode_type(c);
+      if (type < UNICODE_LINE_SEPARATOR)
+	return 1;
+    }
+
+  return 0;
+}
 
 /*
  * Structure used to handle a compacted range of characters.
@@ -394,6 +385,25 @@ _ure_buffer_t *b;
  *
  *************************************************************************/
 
+static unsigned long cclass_flags[] = {
+    0,
+    _URE_ALNUM,
+    _URE_ALPHA,
+    _URE_CNTRL,
+    _URE_DIGIT,
+    _URE_GRAPH,
+    _URE_LOWER,
+    _URE_PRINT,
+    _URE_PUNCT,
+    _URE_SPACE,
+    _URE_UPPER,
+    _URE_XDIGIT,
+    _URE_TITLE,
+    _URE_DEFINED,
+    _URE_WIDE,
+    _URE_NONSPACING
+};
+
 /*
  * Parse a comma-separated list of integers that represent character
  * properties.  Combine them into a mask that is returned in the `mask'
@@ -570,167 +580,81 @@ _ure_buffer_t *b;
     rp->max_code = r->max_code;
 }
 
-#define _URE_ALPHA_MASK  (_URE_UPPER|_URE_LOWER|_URE_OTHERLETTER|\
-_URE_TITLE|_URE_COMBINING)
-#define _URE_ALNUM_MASK  (_URE_ALPHA_MASK|_URE_NUMDIGIT)
-#define _URE_PUNCT_MASK  (_URE_DASHPUNCT|_URE_OPENPUNCT|_URE_CLOSEPUNCT|\
-_URE_OTHERPUNCT)
-#define _URE_GRAPH_MASK (_URE_ALNUM_MASK|_URE_NUMOTHER|\
-_URE_MATHSYM|_URE_CURRENCYSYM|_URE_OTHERSYM)
-#define _URE_PRINT_MASK (_URE_GRAPH_MASK|_URE_SPACESEP)
-#define _URE_SPACE_MASK  (_URE_SPACESEP|_URE_LINESEP|_URE_PARASEP)
-
-typedef void (*_ure_cclsetup_t)(
-#ifdef __STDC__
-    _ure_symtab_t *sym,
-    unsigned long mask,
-    _ure_buffer_t *b
-#endif
-);
-
 typedef struct {
     ucs2_t key;
     unsigned long len;
     unsigned long next;
-    _ure_cclsetup_t func;
     unsigned long mask;
+    int	done;
 } _ure_trie_t;
 
-static void
-#ifdef __STDC__
-_ure_ccl_setup(_ure_symtab_t *sym, unsigned long mask, _ure_buffer_t *b)
-#else
-_ure_ccl_setup(sym, mask, b)
-_ure_symtab_t *sym;
-unsigned long mask;
-_ure_buffer_t *b;
-#endif
-{
-    sym->props |= mask;
-}
-
-static void
-#ifdef __STDC__
-_ure_space_setup(_ure_symtab_t *sym, unsigned long mask, _ure_buffer_t *b)
-#else
-_ure_space_setup(sym, mask, *b)
-_ure_symtab_t *sym;
-unsigned long mask;
-_ure_buffer_t b;
-#endif
-{
-    _ure_range_t range;
-
-    sym->props |= mask;
-
-    /*
-     * Add the additional characters needed for handling isspace().
-     */
-    range.min_code = range.max_code = '\t';
-    _ure_add_range(&sym->sym.ccl, &range, b);
-    range.min_code = range.max_code = '\r';
-    _ure_add_range(&sym->sym.ccl, &range, b);
-    range.min_code = range.max_code = '\n';
-    _ure_add_range(&sym->sym.ccl, &range, b);
-    range.min_code = range.max_code = '\f';
-    _ure_add_range(&sym->sym.ccl, &range, b);
-    range.min_code = range.max_code = '\v';
-    range.min_code = range.max_code = 0xfeff;
-    _ure_add_range(&sym->sym.ccl, &range, b);
-}
-
-static void
-#ifdef __STDC__
-_ure_xdigit_setup(_ure_symtab_t *sym, unsigned long mask, _ure_buffer_t *b)
-#else
-_ure_xdigit_setup(sym, mask, b)
-_ure_symtab_t *sym;
-unsigned long mask;
-_ure_buffer_t *b;
-#endif
-{
-    _ure_range_t range;
-
-    /*
-     * Add the additional characters needed for handling isxdigit().
-     */
-    range.min_code = '0';
-    range.max_code = '9';
-    _ure_add_range(&sym->sym.ccl, &range, b);
-    range.min_code = 'A';
-    range.max_code = 'F';
-    _ure_add_range(&sym->sym.ccl, &range, b);
-    range.min_code = 'a';
-    range.max_code = 'f';
-    _ure_add_range(&sym->sym.ccl, &range, b);
-}
-
+/* FIXME: Convert this to ASCII codes */
 static _ure_trie_t cclass_trie[] = {
-    {0x003a, 1, 1, 0, 0},
-    {0x0061, 9, 10, 0, 0},
-    {0x0063, 8, 19, 0, 0},
-    {0x0064, 7, 24, 0, 0},
-    {0x0067, 6, 29, 0, 0},
-    {0x006c, 5, 34, 0, 0},
-    {0x0070, 4, 39, 0, 0},
-    {0x0073, 3, 49, 0, 0},
-    {0x0075, 2, 54, 0, 0},
-    {0x0078, 1, 59, 0, 0},
-    {0x006c, 1, 11, 0, 0},
-    {0x006e, 2, 13, 0, 0},
-    {0x0070, 1, 16, 0, 0},
-    {0x0075, 1, 14, 0, 0},
-    {0x006d, 1, 15, 0, 0},
-    {0x003a, 1, 16, _ure_ccl_setup, _URE_ALNUM_MASK},
-    {0x0068, 1, 17, 0, 0},
-    {0x0061, 1, 18, 0, 0},
-    {0x003a, 1, 19, _ure_ccl_setup, _URE_ALPHA_MASK},
-    {0x006e, 1, 20, 0, 0},
-    {0x0074, 1, 21, 0, 0},
-    {0x0072, 1, 22, 0, 0},
-    {0x006c, 1, 23, 0, 0},
-    {0x003a, 1, 24, _ure_ccl_setup, _URE_CNTRL},
-    {0x0069, 1, 25, 0, 0},
-    {0x0067, 1, 26, 0, 0},
-    {0x0069, 1, 27, 0, 0},
-    {0x0074, 1, 28, 0, 0},
-    {0x003a, 1, 29, _ure_ccl_setup, _URE_NUMDIGIT},
-    {0x0072, 1, 30, 0, 0},
-    {0x0061, 1, 31, 0, 0},
-    {0x0070, 1, 32, 0, 0},
-    {0x0068, 1, 33, 0, 0},
-    {0x003a, 1, 34, _ure_ccl_setup, _URE_GRAPH_MASK},
-    {0x006f, 1, 35, 0, 0},
-    {0x0077, 1, 36, 0, 0},
-    {0x0065, 1, 37, 0, 0},
-    {0x0072, 1, 38, 0, 0},
-    {0x003a, 1, 39, _ure_ccl_setup, _URE_LOWER},
-    {0x0072, 2, 41, 0, 0},
-    {0x0075, 1, 45, 0, 0},
-    {0x0069, 1, 42, 0, 0},
-    {0x006e, 1, 43, 0, 0},
-    {0x0074, 1, 44, 0, 0},
-    {0x003a, 1, 45, _ure_ccl_setup, _URE_PRINT_MASK},
-    {0x006e, 1, 46, 0, 0},
-    {0x0063, 1, 47, 0, 0},
-    {0x0074, 1, 48, 0, 0},
-    {0x003a, 1, 49, _ure_ccl_setup, _URE_PUNCT_MASK},
-    {0x0070, 1, 50, 0, 0},
-    {0x0061, 1, 51, 0, 0},
-    {0x0063, 1, 52, 0, 0},
-    {0x0065, 1, 53, 0, 0},
-    {0x003a, 1, 54, _ure_space_setup, _URE_SPACE_MASK},
-    {0x0070, 1, 55, 0, 0},
-    {0x0070, 1, 56, 0, 0},
-    {0x0065, 1, 57, 0, 0},
-    {0x0072, 1, 58, 0, 0},
-    {0x003a, 1, 59, _ure_ccl_setup, _URE_UPPER},
-    {0x0064, 1, 60, 0, 0},
-    {0x0069, 1, 61, 0, 0},
-    {0x0067, 1, 62, 0, 0},
-    {0x0069, 1, 63, 0, 0},
-    {0x0074, 1, 64, 0, 0},
-    {0x003a, 1, 65, _ure_xdigit_setup, 0},
+    {0x003a, 1, 1, 0},
+    {0x0061, 9, 10, 0},
+    {0x0063, 8, 19, 0},
+    {0x0064, 7, 24, 0},
+    {0x0067, 6, 29, 0},
+    {0x006c, 5, 34, 0},
+    {0x0070, 4, 39, 0},
+    {0x0073, 3, 49, 0},
+    {0x0075, 2, 54, 0},
+    {0x0078, 1, 59, 0},
+    {0x006c, 1, 11, 0},
+    {0x006e, 2, 13, 0},
+    {0x0070, 1, 16, 0},
+    {0x0075, 1, 14, 0},
+    {0x006d, 1, 15, 0},
+    {0x003a, 1, 16, _URE_ALNUM},
+    {0x0068, 1, 17, 0},
+    {0x0061, 1, 18, 0},
+    {0x003a, 1, 19, _URE_ALPHA},
+    {0x006e, 1, 20, 0},
+    {0x0074, 1, 21, 0},
+    {0x0072, 1, 22, 0},
+    {0x006c, 1, 23, 0},
+    {0x003a, 1, 24, _URE_CNTRL},
+    {0x0069, 1, 25, 0},
+    {0x0067, 1, 26, 0},
+    {0x0069, 1, 27, 0},
+    {0x0074, 1, 28, 0},
+    {0x003a, 1, 29, _URE_DIGIT},
+    {0x0072, 1, 30, 0},
+    {0x0061, 1, 31, 0},
+    {0x0070, 1, 32, 0},
+    {0x0068, 1, 33, 0},
+    {0x003a, 1, 34, _URE_GRAPH},
+    {0x006f, 1, 35, 0},
+    {0x0077, 1, 36, 0},
+    {0x0065, 1, 37, 0},
+    {0x0072, 1, 38, 0},
+    {0x003a, 1, 39, _URE_LOWER},
+    {0x0072, 2, 41, 0},
+    {0x0075, 1, 45, 0},
+    {0x0069, 1, 42, 0},
+    {0x006e, 1, 43, 0},
+    {0x0074, 1, 44, 0},
+    {0x003a, 1, 45, _URE_PRINT},
+    {0x006e, 1, 46, 0},
+    {0x0063, 1, 47, 0},
+    {0x0074, 1, 48, 0},
+    {0x003a, 1, 49, _URE_PUNCT},
+    {0x0070, 1, 50, 0},
+    {0x0061, 1, 51, 0},
+    {0x0063, 1, 52, 0},
+    {0x0065, 1, 53, 0},
+    {0x003a, 1, 54, _URE_SPACE},
+    {0x0070, 1, 55, 0},
+    {0x0070, 1, 56, 0},
+    {0x0065, 1, 57, 0},
+    {0x0072, 1, 58, 0},
+    {0x003a, 1, 59, _URE_UPPER},
+    {0x0064, 1, 60, 0},
+    {0x0069, 1, 61, 0},
+    {0x0067, 1, 62, 0},
+    {0x0069, 1, 63, 0},
+    {0x0074, 1, 64, 0},
+    {0x003a, 1, 65, _URE_XDIGIT}
 };
 
 /*
@@ -779,10 +703,11 @@ _ure_buffer_t *b;
         if (sp + 1 < ep)
           tp = cclass_trie + tp->next;
     }
-    if (tp->func == 0)
+
+    if (!tp->mask)
       return 0;
 
-    (*tp->func)(sym, tp->mask, b);
+    sym->props |= tp->mask;
 
     return sp - cp;
 }

@@ -181,20 +181,21 @@ ucs22latin (const void *string)
 #if TEST
 int main(int argc, char *argv[])
 {
-  ucs2_t *in = latin2ucs2("If you have suggestions, etc. please mail "
-			  "nobody@nobody.net\n"
-			  "This program has been brought to you by"
-			  " http://www.echelon.gov");
+  ucs2_t *in =
+    latin2ucs2("If you have suggestions, etc. please mail "
+	       "\"nob45ody@nobody.net\"\n"
+	       "This program has been brought to you by"
+	       " \"http://www.echelon.gov/show.cgi?everything=1\"");
   char *out;
   ure_buffer_t ub = ure_buffer_create();
   ure_dfa_t ud;
   unicode_char_t c=0;
-  char *url = "https?://[^ \n\r$]+"; // URL regexp
-  char *email = "([:alpha:]|\\.)+@([:alpha:]|\\.)+"; // Email regexp
+  char *url = "https?://([:alnum:]|[-~./?%_=+])+"; // URL regexp
+  char *email = "([:alnum:]|[-~.])+@([:alnum:]|[-~.])+"; // Email regexp
   ucs2_t *pattern = latin2ucs2(email);
   unsigned long ms, me;
 
-  if (!ucs2_startup())
+  if (!startup_ucs2())
     {
       fprintf(stderr, "UCS-2 couldn't be started, exitting...\n");
       return 1;
@@ -227,14 +228,14 @@ int main(int argc, char *argv[])
 
   ure_buffer_free(ub);
 
-  ucs2_shutdown();
+  shutdown_ucs2();
 
   return 0;
 }
 #endif
 
 int
-ucs2_startup(void)
+startup_ucs2(void)
 {
   unicode_init();
   ucs2_endianness_workaround();
@@ -246,7 +247,7 @@ ucs2_startup(void)
 }
 
 void
-ucs2_shutdown(void)
+shutdown_ucs2(void)
 {
   if (cb)
     free(cb);
