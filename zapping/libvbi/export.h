@@ -95,7 +95,7 @@ unsigned int *
 mem_output(struct fmt_page *pg, int *width, int *height);
 
 #define dec2hex(dec) \
-  (((int)dec%10) + ((((int)dec/10)%10)<<4) + ((((int)dec/100)%10)*256))
+  (((int)(dec)%10) + ((((int)(dec)/10)%10)<<4) + ((((int)(dec)/100)%10)*256))
 #define hex2dec(hex) \
-  (((int)hex&0xf) + (((int)hex>>4)&0xf)*10 + (((int)hex>>8)&0xf)*100)
+  (((int)(hex)&0xf) + (((int)(hex)>>4)&0xf)*10 + (((int)(hex)>>8)&0xf)*100)
 #endif

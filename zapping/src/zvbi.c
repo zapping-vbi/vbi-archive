@@ -219,6 +219,7 @@ register_ttx_client(void)
   client = g_malloc(sizeof(struct ttx_client));
   memset(client, 0, sizeof(struct ttx_client));
   client->id = id++;
+  client->fp.vtp = &client->vtp;
   pthread_mutex_init(&client->mutex, NULL);
   filename = g_strdup_printf("%s/%s%d.jpeg", PACKAGE_DATA_DIR,
 			     "../pixmaps/zapping/vt_loading",
@@ -361,6 +362,8 @@ build_client_page(struct ttx_client *client, struct vt_page *vtp)
   pthread_mutex_lock(&client->mutex);
   memcpy(&client->vtp, vtp, sizeof(struct vt_page));
   fmt_page(FALSE, &client->fp, vtp);
+  client->fp.vtp = &client->vtp;
+  
   if (client->unscaled)
     gdk_pixbuf_unref(client->unscaled);
   mem = (guchar*) mem_output(&client->fp, &width, &height);

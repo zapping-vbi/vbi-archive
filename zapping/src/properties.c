@@ -429,7 +429,8 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
 	index = 7;
 
       zconf_set_integer(index, "/zapping/options/vbi/default_region");
-      vbi_set_default_region(zvbi_get_object(), region_mapping[index]);
+      if (zvbi_get_object())
+	vbi_set_default_region(zvbi_get_object(), region_mapping[index]);
 
       widget = lookup_widget(pbox, "checkbutton8"); /* erc */
       zconf_set_boolean(gtk_toggle_button_get_active(
