@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: device.h,v 1.6 2004-12-07 17:30:39 mschimek Exp $ */
+/* $Id: device.h,v 1.7 2005-01-08 14:42:54 mschimek Exp $ */
 
 #ifndef DEVICE_H
 #define DEVICE_H
@@ -69,17 +69,45 @@ fprint_unknown_ioctl		(FILE *			fp,
 				 void *			arg);
 
 static __inline__ void
-timeval_subtract		(struct timeval *	delta,
+timeval_add			(struct timeval *	sum,
+				 const struct timeval *	tv1,
+				 const struct timeval *	tv2)
+{
+	long usec;
+
+	usec = tv1->tv_usec + tv2->tv_usec;
+
+	if (usec > 1000000) {
+		sum->tv_sec = tv1->tv_sec + tv2->tv_sec + 1;
+		sum->tv_usec = usec - 1000000;
+	} else {
+		sum->tv_sec = tv1->tv_sec + tv2->tv_sec;
+		sum->tv_usec = usec;
+	}
+}
+
+static __inline__ void
+timeval_subtract		(struct timeval *	diff,
 				 const struct timeval *	tv1,
 				 const struct timeval *	tv2)
 {
 	if (tv1->tv_usec < tv2->tv_usec) {
-		delta->tv_sec = tv1->tv_sec - tv2->tv_sec - 1;
-		delta->tv_usec = 1000000 + tv1->tv_usec - tv2->tv_usec;
+		diff->tv_sec = tv1->tv_sec - tv2->tv_sec - 1;
+		diff->tv_usec = 1000000 + tv1->tv_usec - tv2->tv_usec;
 	} else {
-		delta->tv_sec = tv1->tv_sec - tv2->tv_sec;
-		delta->tv_usec = tv1->tv_usec - tv2->tv_usec;
+		diff->tv_sec = tv1->tv_sec - tv2->tv_sec;
+		diff->tv_usec = tv1->tv_usec - tv2->tv_usec;
 	}
+}
+
+static __inline__ long
+timeval_cmp			(const struct timeval *	tv1,
+				 const struct timeval *	tv2)
+{
+	if (tv1->tv_sec == tv2->tv_sec)
+		return tv1->tv_usec - tv2->tv_usec;
+	else
+		return tv1->tv_sec - tv2->tv_sec;
 }
 
 extern void
