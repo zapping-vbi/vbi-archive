@@ -1110,6 +1110,43 @@ p_tveng1_build_controls(tveng_device_info * info)
       return -1;
     }
 
+  /* Build the video controls now */
+  control.id = P_TVENG1_C_VIDEO_BRIGHTNESS;
+  snprintf(control.name, 32, _("Brightness"));
+  control.min = 0;
+  control.max = 65535;
+  control.type = TVENG_CONTROL_SLIDER;
+  control.data = NULL;
+  if (p_tveng1_append_control(&control, info) == -1)
+    return -1;
+
+  control.id = P_TVENG1_C_VIDEO_HUE;
+  snprintf(control.name, 32, _("Hue"));
+  control.min = 0;
+  control.max = 65535;
+  control.type = TVENG_CONTROL_SLIDER;
+  control.data = NULL;
+  if (p_tveng1_append_control(&control, info) == -1)
+    return -1;
+
+  control.id = P_TVENG1_C_VIDEO_COLOUR;
+  snprintf(control.name, 32, _("Colour"));
+  control.min = 0;
+  control.max = 65535;
+  control.type = TVENG_CONTROL_SLIDER;
+  control.data = NULL;
+  if (p_tveng1_append_control(&control, info) == -1)
+    return -1;
+
+  control.id = P_TVENG1_C_VIDEO_CONTRAST;
+  snprintf(control.name, 32, _("Contrast"));
+  control.min = 0;
+  control.max = 65535;
+  control.type = TVENG_CONTROL_SLIDER;
+  control.data = NULL;
+  if (p_tveng1_append_control(&control, info) == -1)
+    return -1;
+
   /* Build the audio controls if they are available */
   if (audio.flags & VIDEO_AUDIO_MUTABLE)
     {
@@ -1185,43 +1222,6 @@ p_tveng1_build_controls(tveng_device_info * info)
 	return -1;
     }
   
-  /* Build the video controls now */
-  control.id = P_TVENG1_C_VIDEO_BRIGHTNESS;
-  snprintf(control.name, 32, _("Brightness"));
-  control.min = 0;
-  control.max = 65535;
-  control.type = TVENG_CONTROL_SLIDER;
-  control.data = NULL;
-  if (p_tveng1_append_control(&control, info) == -1)
-    return -1;
-
-  control.id = P_TVENG1_C_VIDEO_HUE;
-  snprintf(control.name, 32, _("Hue"));
-  control.min = 0;
-  control.max = 65535;
-  control.type = TVENG_CONTROL_SLIDER;
-  control.data = NULL;
-  if (p_tveng1_append_control(&control, info) == -1)
-    return -1;
-
-  control.id = P_TVENG1_C_VIDEO_COLOUR;
-  snprintf(control.name, 32, _("Colour"));
-  control.min = 0;
-  control.max = 65535;
-  control.type = TVENG_CONTROL_SLIDER;
-  control.data = NULL;
-  if (p_tveng1_append_control(&control, info) == -1)
-    return -1;
-
-  control.id = P_TVENG1_C_VIDEO_CONTRAST;
-  snprintf(control.name, 32, _("Contrast"));
-  control.min = 0;
-  control.max = 65535;
-  control.type = TVENG_CONTROL_SLIDER;
-  control.data = NULL;
-  if (p_tveng1_append_control(&control, info) == -1)
-    return -1;
-
   return (tveng1_update_controls(info)); /* Fill in with the valid
 					   values */
 }

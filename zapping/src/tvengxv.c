@@ -358,10 +358,10 @@ int tvengxv_attach_device(const char* device_file,
   info->caps.channels = info->num_inputs;
   /* Let's go creative! */
   snprintf(info->caps.name, 32, "XVideo device");
-  info->caps.minwidth = 32;
-  info->caps.minheight = 32;
-  info->caps.maxwidth = 1600;
-  info->caps.maxheight = 1600;
+  info->caps.minwidth = 1;
+  info->caps.minheight = 1;
+  info->caps.maxwidth = 32768;
+  info->caps.maxheight = 32768;
 
   return info -> fd;
 
@@ -810,8 +810,13 @@ p_tvengxv_build_controls(tveng_device_info *info)
       snprintf(control.name, 32, _("Interlace"));
       control.min = p_info->interlace_min;
       control.max = p_info->interlace_max;
-      control.type = TVENG_CONTROL_SLIDER; /* sic */
-      control.data = NULL;
+      control.type = TVENG_CONTROL_MENU;
+      control.data = malloc(sizeof(char*)*4);
+      t_assert(control.data != NULL);
+      control.data[0] = strdup(_("No"));
+      control.data[1] = strdup(_("Yes"));
+      control.data[2] = strdup(_("Doublescan"));
+      control.data[3] = NULL;
       if (p_tvengxv_append_control(&control, info) == -1)
 	return -1;
     }
@@ -826,7 +831,6 @@ p_tvengxv_build_controls(tveng_device_info *info)
       if (p_tvengxv_append_control(&control, info) == -1)
 	return -1;
     }
-  /* fixme: Should we allow controls for freq, encoding and colorkey? */
 
   /* fill in with the proper values */
   return (tvengxv_update_controls(info));

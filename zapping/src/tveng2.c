@@ -844,8 +844,7 @@ tveng2_set_capture_format(tveng_device_info * info)
 
   /* Check fill in info with the current values (may not be the ones
      requested) */
-  if (tveng2_update_capture_format(info) == -1)
-    return -1; /* error */
+  tveng2_update_capture_format(info);
 
   return 0; /* Success */
 }

@@ -1,6 +1,7 @@
 Outstanding issues for the next release
 ---------------------------------------
 	+ Make the Web page pass the W3C tests.
+	+ Link to ResCD on the WEB page.
 	> Release 0.5.9
 	+ Michael's VBI decoder (TTX, CC, CNI, ...)
 	+ TTX Charset autodetection.

@@ -247,7 +247,7 @@ int main(int argc, char * argv[])
     newbttv = 0;
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.66 2000-11-29 22:16:12 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.67 2000-11-30 21:47:32 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -308,15 +308,12 @@ int main(int argc, char * argv[])
   D();
   /* try to run the auxiliary suid program */
   if (tveng_run_zapping_setup_fb(main_info) == -1)
-    {
-      printv("cannot run zapping_setup_fb, overlay disabled\n");
-      disable_preview = TRUE;
-    }
+    g_message("zapping_setup_fb couldn't be run, overlay might not work");
   D();
   free(main_info -> file_name);
   D();
   if (tveng_attach_device(zcg_char(NULL, "video_device"),
-			  TVENG_ATTACH_READ,
+			  TVENG_ATTACH_XV,
 			  main_info) == -1)
     {
       /* Check that the given device is /dev/video, if it isn't, try
@@ -357,12 +354,12 @@ int main(int argc, char * argv[])
     }
   D();
   /* Do some checks for the preview */
-  if ((!disable_preview) && (!tveng_detect_XF86DGA(main_info)))
+  /*  if ((!disable_preview) && (!tveng_detect_XF86DGA(main_info)))
 	disable_preview = TRUE;
   D();
   if ((!disable_preview) && (!tveng_detect_preview(main_info)))
 	disable_preview = TRUE;
-  D();
+	D();*/
   /* Mute the device while we are starting Zapping */
   if (-1 == tveng_set_mute(1, main_info))
     fprintf(stderr, "%s\n", main_info->error);
@@ -428,10 +425,6 @@ int main(int argc, char * argv[])
   tveng_set_standard_by_index(zcg_int(NULL, "current_standard"), main_info);
   D();
   update_standards_menu(main_window, main_info);
-  D();
-  if (-1 == tveng_set_mute(zcg_bool(NULL, "start_muted"),
-			   main_info))
-    fprintf(stderr, "tveng_set_mute: %s\n", main_info->error);
   D();
   startup_teletext();
   D();
@@ -508,6 +501,10 @@ int main(int argc, char * argv[])
 	gtk_main_iteration();
       gdk_window_move_resize(main_window->window, x, y, w, h);
     }
+  D();
+  if (-1 == tveng_set_mute(zcg_bool(NULL, "start_muted"),
+			   main_info))
+    fprintf(stderr, "tveng_set_mute: %s\n", main_info->error);
   D(); printv("going into main loop...\n");
 
   while (!flag_exit_program)

@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder.c,v 1.5 2000-11-30 09:36:34 mschimek Exp $ */
+/* $Id: vbi_decoder.c,v 1.6 2000-11-30 21:45:40 garetxe Exp $ */
 
 /*
     TODO:
@@ -1322,42 +1322,6 @@ capture_on_stream(fifo *f)
 }
 
 static int
-get_v4l2_standard(const char * video_device, struct vbi_capture * vbi,
-		  struct v4l2_format *fmt)
-{
-	int video_fd, return_value;
-	struct v4l2_standard vstd;
-
-	memset(fmt, 0, sizeof(struct v4l2_format));
-	fmt->type = V4L2_BUF_TYPE_VBI;
-	if ((ioctl(vbi->fd, VIDIOC_G_FMT, fmt) != -1) &&
-	    (ioctl(vbi->fd, VIDIOC_G_STD, &vstd) != -1))
-		goto success;
-
-	video_fd = open(video_device, O_NOIO);
-	if (video_fd == -1)
-		goto failure;
-
-	return_value = ioctl(video_fd, VIDIOC_G_STD, &vstd);
-	if (return_value != -1) {
-		memset(fmt, 0, sizeof(struct v4l2_format));
-		fmt->type = V4L2_BUF_TYPE_VBI;
-		return_value = ioctl(video_fd, VIDIOC_G_FMT, fmt);
-	}
-	close(video_fd);
-	if (return_value == -1)
-		goto failure;
-
- success:
-	vbi->scanning = vstd.framelines;
-
-	return 0;
-
- failure:
-	return -1;
-}
-
-static int
 open_v4l2(struct vbi_capture **pvbi, char *dev_name,
 	int fifo_depth, unsigned int services)
 {
@@ -1365,6 +1329,7 @@ open_v4l2(struct vbi_capture **pvbi, char *dev_name,
 	struct v4l2_format vfmt;
 	struct v4l2_requestbuffers vrbuf;
 	struct v4l2_buffer vbuf;
+	struct v4l2_standard vstd;
 	struct vbi_capture *vbi;
 	int max_rate, i, j;
 
@@ -1392,12 +1357,16 @@ open_v4l2(struct vbi_capture **pvbi, char *dev_name,
 		goto failure;
 	}
 
-	if (get_v4l2_standard("/dev/video", vbi, &vfmt) == -1) {
+	memset(&vfmt, 0, sizeof(struct v4l2_format));
+	vfmt.type = V4L2_BUF_TYPE_VBI;
+	if ((ioctl(vbi->fd, VIDIOC_G_FMT, &vfmt) == -1) ||
+	    (ioctl(vbi->fd, VIDIOC_G_STD, &vstd) == -1)) {
 		IODIAG("cannot query current VBI parameters (broken driver?)");
 		goto failure;
 	}
 	// add_services() eliminates non 525/625
 
+	vbi->scanning = vstd.framelines;
 	max_rate = 0;
 
 	if (!opt_surrender) {
