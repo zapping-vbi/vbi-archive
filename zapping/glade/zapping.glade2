@@ -6634,13 +6634,6 @@ Pino Toscano</property>
 	      <property name="toolbar_style">GTK_TOOLBAR_ICONS</property>
 	      <property name="tooltips">True</property>
 
-	      <child>
-		<widget class="GtkToolbar" id="toolbar3">
-		  <property name="visible">True</property>
-		  <property name="orientation">GTK_ORIENTATION_HORIZONTAL</property>
-		  <property name="toolbar_style">GTK_TOOLBAR_ICONS</property>
-		  <property name="tooltips">True</property>
-
 		  <child>
 		    <widget class="button" id="channel_up">
 		      <property name="visible">True</property>
@@ -6650,15 +6643,6 @@ Pino Toscano</property>
 		      <property name="stock_pixmap">gtk-go-up</property>
 		    </widget>
 		  </child>
-		</widget>
-	      </child>
-
-	      <child>
-		<widget class="GtkToolbar" id="toolbar4">
-		  <property name="visible">True</property>
-		  <property name="orientation">GTK_ORIENTATION_HORIZONTAL</property>
-		  <property name="toolbar_style">GTK_TOOLBAR_ICONS</property>
-		  <property name="tooltips">True</property>
 
 		  <child>
 		    <widget class="button" id="channel_down">
@@ -6669,8 +6653,6 @@ Pino Toscano</property>
 		      <property name="stock_pixmap">gtk-go-down</property>
 		    </widget>
 		  </child>
-		</widget>
-	      </child>
 
 	      <child>
 		<widget class="button" id="controls">
