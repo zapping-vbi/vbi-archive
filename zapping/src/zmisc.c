@@ -1420,7 +1420,7 @@ z_spinslider_new			(GtkAdjustment * spin_adj,
   GtkWidget * button;
   GtkWidget * pixmap;
   gfloat * reset_value;
-  gint digits;
+  gint digits = 0;
 
   hbox = gtk_hbox_new (FALSE, 0);
   gtk_object_set_data (GTK_OBJECT (hbox), "spin_adj", spin_adj);

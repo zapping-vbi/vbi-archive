@@ -184,8 +184,8 @@ GtkWidget *zvbi_build_network_info(void);
 GtkWidget *zvbi_build_program_info(void);
 
 /*
-  Returns the g_strdup'ed name of the current station, if known, or
-  NULL. The returned value should be g_free'ed
+  Returns the g_strdup'ed name of the current station,
+  if known, or NULL. The returned value should be g_free'ed
 */
 gchar *
 zvbi_get_name(void);

@@ -3,6 +3,7 @@
 	* glade/zapping.glade, src/v4linterface.c, src/v4linterface.h,
 	  plugins/mpeg/mpeg.c: Added video standard inquiry if not
 	  reported by driver.
+	* src/zmisc.c (z_spinslider_new): digits init bug fixed.
 
 12.12.2002	<mschimek@users.sf.net>
 

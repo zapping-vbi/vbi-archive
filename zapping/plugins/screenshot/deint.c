@@ -59,7 +59,7 @@ screenshot_deinterlace (screenshot_data *data, gint parity)
     {
       for (x = 0; x < data->format.width; x++)
 	{
-	  const gint level = 12;
+	  const gint level = 8;
 	  gint d, d1, m1;
 
 	  d = src[0] - src2[0]; d1  = d * d;
@@ -99,7 +99,3 @@ screenshot_deinterlace (screenshot_data *data, gint parity)
 
   return deint_data;
 }
-
-
-
-

@@ -79,7 +79,7 @@ static vbi_wst_level teletext_level = VBI_WST_LEVEL_1p5;
 static pthread_mutex_t network_mutex;
 static pthread_mutex_t prog_info_mutex;
 static gboolean station_name_known = FALSE;
-static gchar station_name[256];
+static gchar station_name[256]; /* Latin-1 */
 vbi_network current_network; /* current network info */
 vbi_program_info program_info[2]; /* current and next program */
 
@@ -2534,7 +2534,7 @@ zvbi_get_name(void)
   if (!station_name_known || !vbi)
     return NULL;
 
-  return g_strdup(station_name);
+  return g_strdup (station_name);
 }
 
 void
