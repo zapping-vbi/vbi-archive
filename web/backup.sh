@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: backup.sh,v 1.1 2004-04-30 02:15:46 mschimek Exp $
+# $Id: backup.sh,v 1.2 2004-05-02 03:43:00 mschimek Exp $
 #
 # Back up TWiki runtime data, supposed to be executed daily.
 

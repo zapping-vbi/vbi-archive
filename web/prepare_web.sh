@@ -1,5 +1,5 @@
 #!/bin/sh
-#$Id: prepare_web.sh,v 1.17 2004-05-02 02:55:14 mschimek Exp $
+#$Id: prepare_web.sh,v 1.18 2004-05-02 03:43:01 mschimek Exp $
 #
 # Checks our html pages out of cvs, puts the files online
 # and cleans up.
@@ -9,12 +9,11 @@
 # ./prepare_web.sh
 
 (
+# By default no files are world accessible.
+chmod u=rwX,go-rwx . -R
 
 # Trace execution, abort on error.
 set -e -x
-
-# By default no files are world accessible.
-chmod u=rwX,go-rwx ./* -R
 
 umask 007
 
