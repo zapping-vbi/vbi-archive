@@ -231,7 +231,7 @@ int tvengemu_attach_device(const char* device_file,
   t_assert (device_file != NULL);
   t_assert (info != NULL);
 
-  if (info->fd)
+  if (-1 != info->fd)
     tveng_close_device (info);
 
   info -> file_name = strdup (device_file);
@@ -308,7 +308,7 @@ static void tvengemu_close_device(tveng_device_info * info)
   gboolean dummy;
 
   p_tveng_stop_everything (info, &dummy);
-  info->fd = 0;
+  info->fd = -1;
   info->current_controller = TVENG_CONTROLLER_NONE;
 
   if (info -> file_name)

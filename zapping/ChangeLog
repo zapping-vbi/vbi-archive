@@ -1,8 +1,29 @@
+2004-10-03    <mschimek@users.sf.net>
+
+	* zapping_setup_fb/Makefile.am: Installed zapping_fix_overlay
+	  on BSD although not needed, fixed in toplevel Makefile.am
+	  by excluding zapping_setup_fb subdir from compilation.
+	* src/tvengbktr.c: Compile fixes.
+	* src/tveng1.c, src/tveng2.c, src/tveng25.c, src/tveng.c,
+	  src/tvengbktr.c, src/tvengxv.c: Always compare and set fds
+	  to -1 instead of 0.
+	* libtv/callback.c, libtv/callback.h, libtv/misc.c: Added, moving
+	  tveng.c routines here.
+	* src/tveng.h, src/tveng.c: Extended and moved callback routines
+	  to libtv.
+	* src/fullscreen.c (start_fullscreen), src/zmisc.c (start_teletext): 
+	  In Teletext mode put video device into VBI-bypass mode (bktr bug).
+	* src/cmd.c (py_quit): Must destroy zapping object before we quit,
+	  to save config.
+	* plugins/teletext/main.c (cancel_preferences): Fixed params.
+	* libtv/misc.h, libtv/misc.c: Moved strlcpy, strndup, asprintf
+	  replacement functions here from tveng.c.
+	* libtv/Makefile.am (libtv_a_SOURCES): Added callback.c/h, misc.c.
+	* Makefile.am: Don't compile zapping_setup_fb subdir on BSD.
+
 2004-09-26    <mschimek@users.sf.net>
 
 	* po: Updated from Gnome compendium.
-	* src/x11stuff.h, src/x11stuff.c: Added keep-window-below function
-	  for background display mode.
 	* src/zvideo.c (size_allocate): Option to disable size magic for
 	  fullscreen.
 	* src/zmisc.c: Rewrote mode switch functions to support fullscreen
@@ -16,6 +37,8 @@
 	* src/zapping.c, plugins/teletext/window.c, src/zvideo.c,
 	  plugins/teletext/view.c: Replaced signals by overriding widget
 	  class functions.
+	* src/x11stuff.h, src/x11stuff.c: Added keep-window-below function
+	  for background display mode.
 	* src/zapping.c: Added window and background action and menu
 	  entries complementing fullscreen.
 	* pixmaps/Makefile.am (PIXMAPS): Added teletext48.png for Teletext

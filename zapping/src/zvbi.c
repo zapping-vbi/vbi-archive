@@ -861,7 +861,7 @@ static gint trigger_timeout		(gint	client_id)
 
 #endif /* 0 */
 
-static const GConfEnumStringPair
+static GConfEnumStringPair
 charset_enum [] = {
   { 0, "western_and_central_europe" },
   { 8, "eastern_europe" },
@@ -874,7 +874,7 @@ charset_enum [] = {
   { 0, NULL }
 };
 
-static const GConfEnumStringPair
+static GConfEnumStringPair
 level_enum [] = {
   { VBI_WST_LEVEL_1, "1.0" },
   { VBI_WST_LEVEL_1p5, "1.5" },
@@ -2246,7 +2246,7 @@ py_closed_caption		(PyObject *		self _unused_,
   py_return_true;
 }
 
-static const GConfEnumStringPair
+static GConfEnumStringPair
 interp_enum [] = {
   { GDK_INTERP_NEAREST,  "nearest" },
   { GDK_INTERP_TILES,	 "tiles" },

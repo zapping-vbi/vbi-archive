@@ -142,7 +142,7 @@ typedef struct {
  */
 void
 standard_properties_add		(GtkDialog	*dialog,
-				 SidebarGroup	*groups,
+				 const SidebarGroup *	groups,
 				 gint		num_groups,
 				 const gchar	*glade_file);
 

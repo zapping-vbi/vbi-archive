@@ -532,9 +532,9 @@ void plugin_add_gui (GnomeApp * app _unused_)
     }
 
   if (screenshot_option_toolbutton)
-    gtk_widget_show (tool_item);
+    gtk_widget_show (GTK_WIDGET (tool_item));
   else
-    gtk_widget_hide (tool_item);
+    gtk_widget_hide (GTK_WIDGET (tool_item));
 }
 
 static void
@@ -1168,7 +1168,7 @@ build_dialog (screenshot_data *data)
     {
       menu_item = gtk_menu_item_new_with_label (_(backends[i]->label));
       g_object_set_data (G_OBJECT (menu_item), "keyword",
-			   backends[i]->keyword);
+			 (gpointer) backends[i]->keyword);
       gtk_widget_show (menu_item);
       gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
 

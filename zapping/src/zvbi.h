@@ -237,7 +237,7 @@ void startup_zvbi(void);
 /* Shuts down the VBI engine */
 void shutdown_zvbi(void);
 
-typedef unsigned int vbi_pgno;
+typedef int vbi_pgno;
 
 #endif /* !HAVE_LIBZVBI */
 

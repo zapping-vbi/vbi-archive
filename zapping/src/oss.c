@@ -822,7 +822,7 @@ free_mixer_lines		(struct mixer *		m,
 		l = L (line);
 		line = l->pub._next;
 
-		tv_callback_destroy (&l->pub, &l->pub._callback);
+		tv_callback_delete_all (l->pub._callback, 0, 0, 0, &l->pub);
 
 		if (restore) {
 			/* Error ignored */
@@ -849,7 +849,7 @@ destroy_mixer			(tv_device_node *	n,
 
 	saved_errno = errno;
 
-	tv_callback_destroy (&m->pub, &m->pub._callback);
+	tv_callback_delete_all (m->pub._callback, 0, 0, 0, &m->pub);
 
 	if (restore) {
 		/* Error ignored */

@@ -42,6 +42,7 @@
 
 #include "x11stuff.h"
 #include "zmisc.h"
+#include "libtv/misc.h"
 
 /*
   Utility function, stops the capture or the previewing. Returns the
@@ -291,32 +292,6 @@ ioctl_failure			(tveng_device_info *	info,
 				 const char *		function_name,
 				 unsigned int		source_file_line,
 				 const char *		ioctl_name);
-
-#ifdef HAVE_STRLCPY
-#define _tv_strlcpy strlcpy
-#else
-extern size_t
-_tv_strlcpy			(char *			dst,
-				 const char *		src,
-				 size_t			len);
-#endif
-
-#ifdef HAVE_STRNDUP
-#define _tv_strndup strndup
-#else
-extern char *
-_tv_strndup			(const char *		s,
-				 size_t			len);
-#endif
-
-#ifdef HAVE_ASPRINTF
-#define _tv_asprintf asprintf
-#else
-int
-_tv_asprintf			(char **		dstp,
-				 const char *		templ,
-				 ...);
-#endif
 
 extern tv_pixfmt
 pig_depth_to_pixfmt		(unsigned int		depth);

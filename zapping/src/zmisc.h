@@ -629,7 +629,7 @@ z_toggle_action_connect_gconf_key
 extern GtkWidget *
 z_gconf_combo_box_new		(const gchar **		option_menu,
 				 const gchar *		gconf_key,
-				 GConfEnumStringPair *	lookup_table);
+				 const GConfEnumStringPair *lookup_table);
 extern gboolean
 z_gconf_get_string_enum		(gint *			enum_value,
 				 const gchar *		gconf_key,
