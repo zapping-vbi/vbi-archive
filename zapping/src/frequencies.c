@@ -1083,11 +1083,11 @@ tveng_tuned_channel_copy	(tveng_tuned_channel *	d,
   g_free (d->controls);
 
   d->name		= g_utf8_normalize (s->name ? s->name : "",
-					    -1, G_NORMALIZE_DEFAULT);
+					    -1, G_NORMALIZE_DEFAULT_COMPOSE);
   d->rf_name		= g_utf8_normalize (s->rf_name ? s->rf_name : "",
-					    -1, G_NORMALIZE_DEFAULT);
+					    -1, G_NORMALIZE_DEFAULT_COMPOSE);
   d->rf_table		= g_utf8_normalize (s->rf_table ? s->rf_table : "",
-					    -1, G_NORMALIZE_DEFAULT);
+					    -1, G_NORMALIZE_DEFAULT_COMPOSE);
   d->accel		= s->accel;
   d->frequ		= s->frequ;
   d->input		= s->input;
