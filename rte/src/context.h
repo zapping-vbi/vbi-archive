@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: context.h,v 1.4 2002-06-14 07:57:01 mschimek Exp $ */
+/* $Id: context.h,v 1.5 2002-06-18 02:25:43 mschimek Exp $ */
 
 #ifndef CONTEXT_H
 #define CONTEXT_H
@@ -27,6 +27,8 @@
 #include "option.h"
 
 /* Public */
+
+#include <stdint.h>
 
 /**
  * rte_context:
@@ -80,8 +82,8 @@ typedef struct {
 	const char *		mime_type;		/* or NULL */
 	const char *		extension;		/* or NULL */
 
-	char			min_elementary[16];
-	char			max_elementary[16];
+	uint8_t			min_elementary[16];
+	uint8_t			max_elementary[16];
 
 	unsigned int		flags;
 } rte_context_info;
