@@ -29,7 +29,7 @@ libdeinterlace_zapping_la_SOURCES = \
 	DS_ApiCommon.h \
 	DS_Control.h \
 	DS_Deinterlace.h \
-	main.c \
+	main.c main.h \
 	preferences.c preferences.h \
 	windows.h
 
