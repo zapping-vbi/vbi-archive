@@ -63,10 +63,8 @@ static tveng_device_info * zapping_info = NULL; /* Info about the
  */
 static gchar *screenshot_option_save_dir = NULL;
 static gchar *screenshot_option_command = NULL;
-static gboolean screenshot_option_preview;
 static gboolean screenshot_option_grab_on_ok;
-static gboolean screenshot_option_skip_one;
-static gboolean screenshot_option_enter_closes;
+static gint screenshot_option_skip;
 static gboolean screenshot_option_toolbutton;
 /* Dialog options */
 static gchar *screenshot_option_format = NULL;
@@ -398,7 +396,7 @@ plugin_load_config (gchar *root_key)
   gchar *buffer;
   gchar *default_save_dir;
 
-  default_save_dir = g_strconcat (getenv ("HOME"), "/shots", NULL);
+  default_save_dir = g_strconcat (g_get_home_dir (), "/shots", NULL);
   LOAD_CONFIG (string, default_save_dir, save_dir, 
 	       "The directory where screenshot will be written to");
   g_free (default_save_dir);
@@ -407,10 +405,8 @@ plugin_load_config (gchar *root_key)
   if (!screenshot_option_command)
     screenshot_option_command = g_strdup ("");
 
-  LOAD_CONFIG (boolean, FALSE, preview, "Enable preview");
   LOAD_CONFIG (boolean, FALSE, grab_on_ok, "Grab on clicking OK");
-  LOAD_CONFIG (boolean, TRUE, skip_one, "Skip one picture before grabbing");
-  LOAD_CONFIG (boolean, FALSE, enter_closes, "Entering file name closes dialog");
+  LOAD_CONFIG (integer, 0, skip, "Skip pictures before grabbing");
 
   LOAD_CONFIG (string, "jpeg", format, "File format");
 
@@ -438,10 +434,8 @@ plugin_save_config (gchar * root_key)
   g_free (screenshot_option_command);
   screenshot_option_command = NULL;
 
-  SAVE_CONFIG (boolean, preview);
   SAVE_CONFIG (boolean, grab_on_ok);
-  SAVE_CONFIG (boolean, skip_one);
-  SAVE_CONFIG (boolean, enter_closes);
+  SAVE_CONFIG (integer, skip);
 
   SAVE_CONFIG (string, format);
   g_free (screenshot_option_format);
@@ -494,20 +488,14 @@ screenshot_setup		(GtkWidget	*page)
 {
   GtkWidget *w;
 
-  w = lookup_widget (page, "screenshot_dir");
-  gnome_file_entry_set_default_path (GNOME_FILE_ENTRY (w),
-				     screenshot_option_save_dir);
-
-  w = lookup_widget (page, "combo-entry1");
-  gtk_entry_set_text (GTK_ENTRY (w), screenshot_option_save_dir);
-
   w = lookup_widget (page, "screenshot_command");
   gtk_entry_set_text (GTK_ENTRY (w), screenshot_option_command);
 
-  SET_BOOL (preview);
   SET_BOOL (grab_on_ok);
-  SET_BOOL (skip_one);
-  SET_BOOL (enter_closes);
+
+  w = lookup_widget (page, "screenshot_skip");
+  gtk_spin_button_set_value (GTK_SPIN_BUTTON (w), screenshot_option_skip);
+
   SET_BOOL (toolbutton);
 }
 
@@ -522,20 +510,17 @@ screenshot_apply		(GtkWidget	*page)
   void plugin_add_gui (GnomeApp *);
   GtkWidget *w;
 
-  w = lookup_widget (page, "screenshot_dir");
-  g_free (screenshot_option_save_dir);
-  screenshot_option_save_dir =
-    gnome_file_entry_get_full_path (GNOME_FILE_ENTRY (w), FALSE);
-
   w = lookup_widget (page, "screenshot_command");
   g_free (screenshot_option_command);
   screenshot_option_command =
     g_strdup (gtk_entry_get_text (GTK_ENTRY (w)));
 
-  GET_BOOL (preview);
   GET_BOOL (grab_on_ok);
-  GET_BOOL (skip_one);
-  GET_BOOL (enter_closes);
+
+  w = lookup_widget (page, "screenshot_skip");
+  screenshot_option_skip =
+    gtk_spin_button_get_value_as_int (GTK_SPIN_BUTTON (w));
+
   GET_BOOL (toolbutton);
 
   plugin_add_gui ((GnomeApp *) main_window);
@@ -560,7 +545,7 @@ static void
 properties_add			(GtkDialog	*dialog)
 {
   SidebarEntry plugin_options[] = {
-    { N_("Screenshot"), "gnome-digital-camera.png", "vbox1",
+    { N_("Screenshot"), "gnome-digital-camera.png", "screenshot_prefs",
       screenshot_setup, screenshot_apply, screenshot_help }
   };
   SidebarGroup groups[] = {
@@ -900,7 +885,8 @@ screenshot_save (screenshot_data *data)
       return FALSE;
     }
 
-  g_free (dir);
+  g_free (screenshot_option_save_dir);
+  screenshot_option_save_dir = dir;
 
   if (!(data->io_fp = fopen (data->filename, "wb")))
     {
@@ -1229,7 +1215,7 @@ build_dialog (screenshot_data *data)
   /* File entry */
 
   data->entry = GTK_ENTRY (lookup_widget (data->dialog, "entry"));
-  if (screenshot_option_enter_closes)
+  if (1)
     z_entry_emits_response (GTK_WIDGET (data->entry),
 			    GTK_DIALOG (data->dialog),
 			    GTK_RESPONSE_OK);
@@ -1249,7 +1235,7 @@ build_dialog (screenshot_data *data)
 
   /* Preview */
 
-  if (screenshot_option_preview
+  if (1
       && data->format.width >= PREVIEW_WIDTH
       && data->format.height >= PREVIEW_HEIGHT)
     {
@@ -1408,7 +1394,7 @@ screenshot_timeout (screenshot_data *data)
 		{
 		  data->status = 4;
 		  data->lines = 2000 / 50; /* abort after 2 sec */
-		  grab_countdown = (!!screenshot_option_skip_one) + 1;
+		  grab_countdown = screenshot_option_skip + 1;
 		}
 	      else if (!screenshot_save (data))
 		{
@@ -1604,7 +1590,7 @@ screenshot_grab (gint dialog)
   else
     return FALSE;
 
-  grab_countdown = (!!screenshot_option_skip_one) + 1;
+  grab_countdown = screenshot_option_skip + 1;
 
   data->status = dialog; /* wait for image data (event sub) */
   data->lines = 2000 / 50; /* abort after 2 sec */
