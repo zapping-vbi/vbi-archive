@@ -34,13 +34,16 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
+#include <sys/file.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <signal.h>
 #include <sys/mman.h>
-#include <errno.h>
+#undef WNOHANG
+#undef WUNTRACED
 #include <linux/kernel.h>
+#include <linux/fs.h>
 #include <errno.h>
 #include <math.h>
 
@@ -85,6 +88,9 @@ struct private_tveng1_device_info
   double capture_time;
   double frame_period_near;
   double frame_period_far;
+
+  /* OV511 camera */
+  int ogb_fd;
 };
 
 /* Private, builds the controls structure */
@@ -205,6 +211,9 @@ int tveng1_attach_device(const char* device_file,
   int error;
   struct private_tveng1_device_info * p_info =
     (struct private_tveng1_device_info *)info;
+  struct stat st;
+  int minor = -1;
+
   t_assert(device_file != NULL);
   t_assert(info != NULL);
 
@@ -335,6 +344,31 @@ int tveng1_attach_device(const char* device_file,
   p_info->mmaped_data = NULL;
   p_info->queued = p_info->dequeued = 0;
 
+  /* get the minor device number for accessing the appropiate /proc
+     entry */
+  if (!fstat(info -> fd, &st))
+    minor = MINOR(st.st_dev);
+
+  p_info -> ogb_fd = -1;
+  if (strstr(info -> caps.name, "OV51") &&
+      strstr(info -> caps.name, "USB") &&
+      minor > -1)
+    {
+      char filename[256];
+
+      filename[sizeof(filename)-1] = 0;
+      snprintf(filename, sizeof(filename)-1,
+	       "/proc/video/ov511/%d/button", minor);
+      p_info -> ogb_fd = open(filename, O_RDONLY);
+      if (p_info -> ogb_fd > 0 &&
+	  flock (p_info->ogb_fd, LOCK_EX | LOCK_NB) == -1)
+	{
+	  close(p_info -> ogb_fd);
+	  p_info -> ogb_fd = -1;
+	}
+	
+    }
+
   if (info->debug_level > 0)
     fprintf(stderr, "TVeng: V4L1 controller loaded\n");
 
@@ -367,6 +401,8 @@ static void tveng1_close_device(tveng_device_info * info)
 {
   int i;
   int j;
+  struct private_tveng1_device_info *p_info=
+    (struct private_tveng1_device_info*) info;
 
   t_assert(info != NULL);
 
@@ -398,6 +434,10 @@ static void tveng1_close_device(tveng_device_info * info)
     }
   if (info -> controls)
     free(info -> controls);
+
+  if (p_info -> ogb_fd > 0)
+    close(p_info->ogb_fd);
+  p_info ->ogb_fd = -1;
 
   info -> num_controls = 0;
   info -> num_standards = 0;
@@ -2380,37 +2420,57 @@ tveng1_stop_previewing(tveng_device_info * info)
 #endif
 }
 
+static int
+ov511_get_button_state		(tveng_device_info	*info)
+{
+  struct private_tveng1_device_info * p_info =
+    (struct private_tveng1_device_info*) info;
+  char button_state;
+
+  if (p_info -> ogb_fd < 1)
+    return -1; /* Unsupported feature */
+
+  lseek(p_info -> ogb_fd, 0, SEEK_SET);
+  if (read(p_info -> ogb_fd, &button_state, 1) < 1)
+    return -1;
+
+  return (button_state - '0');
+}
+
 static struct tveng_module_info tveng1_module_info = {
-  tveng1_attach_device,
-  tveng1_describe_controller,
-  tveng1_close_device,
-  tveng1_get_inputs,
-  tveng1_set_input,
-  tveng1_get_standards,
-  tveng1_set_standard,
-  tveng1_update_capture_format,
-  tveng1_set_capture_format,
-  tveng1_update_controls,
-  tveng1_set_control,
-  tveng1_get_mute,
-  tveng1_set_mute,
-  tveng1_tune_input,
-  tveng1_get_signal_strength,
-  tveng1_get_tune,
-  tveng1_get_tuner_bounds,
-  tveng1_start_capturing,
-  tveng1_stop_capturing,
-  tveng1_read_frame,
-  tveng1_get_timestamp,
-  tveng1_set_capture_size,
-  tveng1_get_capture_size,
-  tveng1_detect_preview,
-  tveng1_set_preview_window,
-  tveng1_get_preview_window,
-  tveng1_set_preview,
-  tveng1_start_previewing,
-  tveng1_stop_previewing,
-  sizeof(struct private_tveng1_device_info)
+  attach_device:		tveng1_attach_device,
+  describe_controller:		tveng1_describe_controller,
+  close_device:			tveng1_close_device,
+  get_inputs:			tveng1_get_inputs,
+  set_input:			tveng1_set_input,
+  get_standards:		tveng1_get_standards,
+  set_standard:			tveng1_set_standard,
+  update_capture_format:	tveng1_update_capture_format,
+  set_capture_format:		tveng1_set_capture_format,
+  update_controls:		tveng1_update_controls,
+  set_control:			tveng1_set_control,
+  get_mute:			tveng1_get_mute,
+  set_mute:			tveng1_set_mute,
+  tune_input:			tveng1_tune_input,
+  get_signal_strength:		tveng1_get_signal_strength,
+  get_tune:			tveng1_get_tune,
+  get_tuner_bounds:		tveng1_get_tuner_bounds,
+  start_capturing:		tveng1_start_capturing,
+  stop_capturing:		tveng1_stop_capturing,
+  read_frame:			tveng1_read_frame,
+  get_timestamp:		tveng1_get_timestamp,
+  set_capture_size:		tveng1_set_capture_size,
+  get_capture_size:		tveng1_get_capture_size,
+  detect_preview:		tveng1_detect_preview,
+  set_preview_window:		tveng1_set_preview_window,
+  get_preview_window:		tveng1_get_preview_window,
+  set_preview:			tveng1_set_preview,
+  start_previewing:		tveng1_start_previewing,
+  stop_previewing:		tveng1_stop_previewing,
+
+  ov511_get_button_state:	ov511_get_button_state,
+
+  private_size:			sizeof(struct private_tveng1_device_info)
 };
 
 /*

@@ -31,6 +31,7 @@
 #include "properties.h"
 #include "interface.h"
 #include "zmisc.h"
+#include "mixer.h"
 
 extern audio_backend_info esd_backend;
 #if USE_OSS
@@ -126,6 +127,48 @@ on_backend_activate	(GtkObject		*menuitem,
   gtk_widget_set_sensitive(boxes[index], TRUE);
 }
 
+static void
+build_mixer_lines		(GtkWidget	*optionmenu)
+{
+  GtkMenu *menu = GTK_MENU
+    (gtk_option_menu_get_menu(GTK_OPTION_MENU(optionmenu)));
+  GtkWidget *menuitem;
+  gchar *label;
+  gint i;
+
+  for (i=0;(label = mixer_get_description(i));i++)
+    {
+      menuitem = gtk_menu_item_new_with_label(label);
+      free(label);
+      gtk_widget_show(menuitem);
+      gtk_menu_append(menu, menuitem);
+    }
+}
+
+static void
+on_record_source_changed	(GtkWidget	*optionmenu,
+				 gint		cur_sel,
+				 GtkRange	*hscale)
+{
+  int min, max;
+  GtkAdjustment *adj;
+
+  gtk_widget_set_sensitive(GTK_WIDGET(hscale), cur_sel);
+
+  if (!cur_sel)
+    return;
+
+  /* note that it's cur_sel-1, the 0 entry is "Use system settings" */
+  g_assert(!mixer_get_bounds(cur_sel-1, &min, &max));
+  
+  adj = gtk_range_get_adjustment(hscale);
+
+  adj -> lower = min;
+  adj -> upper = max;
+
+  gtk_adjustment_changed(adj);
+}
+
 /* Audio */
 static void
 audio_setup		(GtkWidget	*page)
@@ -138,6 +181,9 @@ audio_setup		(GtkWidget	*page)
   GtkWidget *menuitem;
   GtkWidget *menu = gtk_menu_new();
   gint cur_backend = zcg_int(NULL, "backend");
+  GtkWidget *record_source = lookup_widget(page, "record_source");
+  gint cur_input = zcg_int(NULL, "record_source");
+  GtkWidget *record_volume = lookup_widget(page, "record_volume");
   gint i;
 
   /* Hook on dialog destruction so there's no mem leak */
@@ -179,6 +225,19 @@ audio_setup		(GtkWidget	*page)
   widget = lookup_widget(page, "checkbutton3");
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
     zconf_get_boolean(NULL, "/zapping/options/main/start_muted"));
+
+  /* Recording source and volume */
+  build_mixer_lines(record_source);
+  z_option_menu_set_active(record_source, cur_input);
+  gtk_signal_connect(GTK_OBJECT(record_source), "changed",
+		     GTK_SIGNAL_FUNC(on_record_source_changed),
+		     record_volume);
+  on_record_source_changed(record_source,
+			   z_option_menu_get_active(record_source),
+			   GTK_RANGE(record_volume));
+  
+  gtk_adjustment_set_value(gtk_range_get_adjustment(GTK_RANGE(record_volume)),
+			   zcg_int(NULL, "record_volume"));
 }
 
 static void
@@ -188,6 +247,8 @@ audio_apply		(GtkWidget	*page)
   GtkWidget *audio_backends;
   gint selected;
   GtkWidget **boxes;
+  GtkWidget *record_source;
+  GtkWidget *record_volume;
 
   widget = lookup_widget(page, "checkbutton1"); /* avoid noise */
   zconf_set_boolean(gtk_toggle_button_get_active(
@@ -207,6 +268,13 @@ audio_apply		(GtkWidget	*page)
     backends[selected]->apply_props(GTK_BOX(boxes[selected]));
 
   zcs_int(selected, "backend");
+
+  record_source = lookup_widget(page, "record_source");
+  zcs_int(z_option_menu_get_active(record_source), "record_source");
+
+  record_volume = lookup_widget(page, "record_volume");
+  zcs_int(gtk_range_get_adjustment(GTK_RANGE(record_volume))->value,
+	  "record_volume");
 }
 
 static void
@@ -236,6 +304,8 @@ void startup_audio ( void )
   prepend_property_handler(&audio_handler);
 
   zcc_int(0, "Default audio backend", "backend");
+  zcc_int(0, "Recording source", "record_source");
+  zcc_int(0xffff, "Recording volume", "record_volume");
 
   for (i=0; i<num_backends; i++)
     if (backends[i]->init)

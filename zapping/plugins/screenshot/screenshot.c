@@ -245,60 +245,26 @@ void plugin_get_info (const gchar ** canonical_name,
  */
 
 static gint ogb_timeout_id = -1;
-static gint ogb_startup_delay;
-static int ogb_fd;
 
 static gint
-ov511_grab_button_timeout (void *unused)
+ov511_grab_button_timeout (gint *timeout_id)
 {
-  char button_flag;
-
-  if (ogb_fd < 0)
+  switch (tveng_ov511_get_button_state(zapping_info))
     {
-      if (ogb_startup_delay-- > 0)
-        return TRUE; /* repeat */
-    
-      ogb_fd = open ("/proc/video/ov511/0/button", O_RDONLY);
-
-      if (ogb_fd == -1)
-        {
-	  /* no error if file doesn't exist */
-//          fprintf (stderr, "ov511_grab_button_timeout cannot open button flag file: %d, %s\n",
-//		     errno, strerror(errno));
-	  goto fail2;
-        }
-
-      if (flock (ogb_fd, LOCK_EX | LOCK_NB) == -1)
-        {
-	  /* no error if already locked */
-//          fprintf (stderr, "ov511_grab_button_timeout cannot lock button flag file: %d, %s\n",
-//		     errno, strerror(errno));
-	  goto fail1; /* try again later? */
-        }
-
-//      fprintf (stderr, "ov511_grab_button_timeout monitoring ov511 button flag file\n");
+    case 1:
+      plugin_start();
+      break;
+    case 0:
+      /* Not clicked but camera detected, continue */
+      break;
+    default:
+      /* Some kind of error, destroy */
+      *timeout_id = -1;
+      return FALSE;
     }
 
-  /* the flag is sticky, read() resets */
-  if (read (ogb_fd, &button_flag, 1) == 1)
-    if (lseek (ogb_fd, 0, SEEK_SET) == 0)
-      {
-        if (button_flag == '1')
-	    plugin_start();
-
-	return TRUE; /* repeat */
-      }
-
-//  fprintf (stderr, "ov511_grab_button_timeout read or seek error: %d, %s\n",
-//           errno, strerror(errno));
-
- fail1:
-  close (ogb_fd); /* removes lock */
- fail2:
-  ogb_timeout_id = -1;
-  return FALSE; /* destroy */
+  return TRUE;
 }
-
 
 static
 gboolean plugin_init ( PluginBridge bridge, tveng_device_info * info )
@@ -311,10 +277,10 @@ gboolean plugin_init ( PluginBridge bridge, tveng_device_info * info )
 
   append_property_handler(&screenshot_handler);
 
-  ogb_fd = -1;
-  ogb_startup_delay = 5 * 1000 / 250;
   ogb_timeout_id =
-    gtk_timeout_add (250 /* ms */, (GtkFunction) ov511_grab_button_timeout, NULL);
+    gtk_timeout_add (250 /* ms */,
+		     (GtkFunction) ov511_grab_button_timeout,
+		     &ogb_timeout_id);
 
   zapping_info = info;
 
@@ -328,9 +294,6 @@ void plugin_close(void)
 
   if (ogb_timeout_id >= 0)
     {
-      if (ogb_fd >= 0)
-        close (ogb_fd);
-
       gtk_timeout_remove (ogb_timeout_id);
       ogb_timeout_id = -1;
     }

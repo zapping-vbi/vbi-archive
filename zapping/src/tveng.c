@@ -2235,6 +2235,22 @@ void tveng_unset_xv_port(tveng_device_info * info)
 }
 #endif
 
+int
+tveng_ov511_get_button_state (tveng_device_info *info)
+{
+  t_assert(info != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
+  TVLOCK;
+
+  if (info->private->module.ov511_get_button_state)
+    RETURN_UNTVLOCK(info->private->module.ov511_get_button_state(info));
+
+  TVUNSUPPORTED;
+  UNTVLOCK;
+  return -1;
+}
+
 void tveng_mutex_lock(tveng_device_info * info)
 {
   TVLOCK;

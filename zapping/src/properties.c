@@ -118,11 +118,13 @@ on_option_menu_modify		(GtkWidget	*menu,
   GnomeDialog *dialog = GNOME_DIALOG
     (gtk_object_get_data(GTK_OBJECT(menu), "modify_page_dialog"));
   gint page_id = GPOINTER_TO_INT(page_id_ptr);
+  gint status = z_option_menu_get_active(omenu);
 
-  if (z_option_menu_get_active(omenu) != last_status)
+  if (status != last_status)
     {
+      gtk_signal_emit_by_name(GTK_OBJECT(omenu), "changed", status);
       gtk_object_set_data(GTK_OBJECT(menu), "properties-last-status",
-			  GINT_TO_POINTER(z_option_menu_get_active(omenu)));
+			  GINT_TO_POINTER(status));
       page_modified(dialog, page_id);
     }
 }

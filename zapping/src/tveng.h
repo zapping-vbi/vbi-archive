@@ -741,6 +741,15 @@ void tveng_unset_xv_port(tveng_device_info *info);
    controller is V4L1. assume is by default 0 */
 void tveng_assume_yvu(int assume, tveng_device_info *info);
 
+/*
+  OV511 specific code:
+  The camera has a clickable button, detect this button's state.
+  Returns:
+  * -1 on error (no OV51* or the appropiate /proc entry nonexistant)
+  * 0, 1 on success.
+*/
+int tveng_ov511_get_button_state (tveng_device_info *info);
+
 /* Adquire the (recursive) mutex on the device, TVeng functions already
    locks it when called. */
 void tveng_mutex_lock(tveng_device_info *info);

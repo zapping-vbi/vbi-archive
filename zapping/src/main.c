@@ -48,6 +48,7 @@
 #include "csconvert.h"
 #include "properties-handler.h"
 #include "properties.h"
+#include "mixer.h"
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
 char *program_invocation_name;
@@ -422,7 +423,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.147 2001-11-22 17:48:12 mschimek Exp $",
+	 "$Id: main.c,v 1.148 2001-12-02 01:03:03 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -935,12 +936,18 @@ static void shutdown_zapping(void)
   shutdown_csconvert();
 
   /*
+   * The mixer code.
+   */
+  printv(" mixer");
+  shutdown_mixer();
+
+  /*
    * The properties handler.
    */
   printv(" ph");
   shutdown_properties_handler();
   shutdown_properties();
-    
+   
   /* Close */
   printv(" video device");
   tveng_device_info_destroy(main_info);
@@ -970,7 +977,7 @@ static gboolean startup_zapping(gboolean load_plugins)
   gchar * buffer4 = NULL;
   tveng_tuned_channel new_channel;
   GList * p;
-  GtkObjectClass *button_class;
+  GtkObjectClass *button_class, *option_class;
   D();
   /* Starts the configuration engine */
   if (!zconf_init("zapping"))
@@ -992,6 +999,20 @@ static gboolean startup_zapping(gboolean load_plugins)
 				    GTK_RUN_FIRST | GTK_RUN_ACTION,
 				    gtk_marshal_NONE__NONE,
 				    GTK_TYPE_NONE, 0);
+  /*
+   * Adds a new signal type to option menus, "changed"
+   * Emitted when the value of the selected item changes, only
+   * available when the optionmenu belongs to a property box.
+   * The prototype is:
+   * void callback(GtkWidget *optionmenu, gint new_selection, gpointer
+   * user_data)
+   */
+  option_class = gtk_type_class (GTK_TYPE_OPTION_MENU);
+  gtk_object_class_user_signal_new (button_class, "changed",
+				    GTK_RUN_FIRST | GTK_RUN_ACTION,
+				    gtk_marshal_NONE__INT,
+				    GTK_TYPE_NONE, 1,
+				    GTK_TYPE_INT);
   D();
   /* Sets defaults for zconf */
   zcc_bool(TRUE, "Save and restore zapping geometry (non ICCM compliant)", 
@@ -1106,6 +1127,8 @@ static gboolean startup_zapping(gboolean load_plugins)
   D();
   /* Starts all modules */
   startup_v4linterface(main_info);
+  D();
+  startup_mixer();
   D();
   startup_xvz();
   D();

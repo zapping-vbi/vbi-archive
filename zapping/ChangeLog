@@ -1,3 +1,19 @@
+1.12.2001	Mixer et co. <garetxe@users.sf.net>
+
+	* tveng: Added tveng_ov511_get_button_state (untested),
+	autodetects /proc entry, etc.
+	* screenshot: use tveng for querying ov511 status.
+	* bookmark.ico: Added, it's a png indeed. Dunno why this, just
+	following what the galeon.sf.net web page does.
+	* htdocs: Added a "Shortcut Icon" link to the header so bookmarking
+	in galeon puts the logo next to the icon (might work in other
+	browsers, untested).
+	* mixer: Added code to control the mixer, nothing uses it yet
+	apart from properties.c
+	* properties/audio: Add a simple gui to force a given audio
+	recording line and volume, so we always record with the desired
+	settings.
+
 27.11.2001	Post-release fixes <garetxe@users.sf.net>
 
 	* zapping.spec.in: Included missing zapping_fix_overlay.

@@ -28,9 +28,6 @@
 #endif
 
 #ifdef ENABLE_V4L
-/* Avoid a couple of header warnings */
-#undef WNOHANG
-#undef WUNTRACED
 #include <stdio.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
@@ -1898,36 +1895,37 @@ tveng2_stop_previewing(tveng_device_info * info)
 }
 
 static struct tveng_module_info tveng2_module_info = {
-  tveng2_attach_device,
-  tveng2_describe_controller,
-  tveng2_close_device,
-  tveng2_get_inputs,
-  tveng2_set_input,
-  tveng2_get_standards,
-  tveng2_set_standard,
-  tveng2_update_capture_format,
-  tveng2_set_capture_format,
-  tveng2_update_controls,
-  tveng2_set_control,
-  tveng2_get_mute,
-  tveng2_set_mute,
-  tveng2_tune_input,
-  tveng2_get_signal_strength,
-  tveng2_get_tune,
-  tveng2_get_tuner_bounds,
-  tveng2_start_capturing,
-  tveng2_stop_capturing,
-  tveng2_read_frame,
-  tveng2_get_timestamp,
-  tveng2_set_capture_size,
-  tveng2_get_capture_size,
-  tveng2_detect_preview,
-  tveng2_set_preview_window,
-  tveng2_get_preview_window,
-  tveng2_set_preview,
-  tveng2_start_previewing,
-  tveng2_stop_previewing,
-  sizeof(struct private_tveng2_device_info)
+  attach_device:		tveng2_attach_device,
+  describe_controller:		tveng2_describe_controller,
+  close_device:			tveng2_close_device,
+  get_inputs:			tveng2_get_inputs,
+  set_input:			tveng2_set_input,
+  get_standards:		tveng2_get_standards,
+  set_standard:			tveng2_set_standard,
+  update_capture_format:	tveng2_update_capture_format,
+  set_capture_format:		tveng2_set_capture_format,
+  update_controls:		tveng2_update_controls,
+  set_control:			tveng2_set_control,
+  get_mute:			tveng2_get_mute,
+  set_mute:			tveng2_set_mute,
+  tune_input:			tveng2_tune_input,
+  get_signal_strength:		tveng2_get_signal_strength,
+  get_tune:			tveng2_get_tune,
+  get_tuner_bounds:		tveng2_get_tuner_bounds,
+  start_capturing:		tveng2_start_capturing,
+  stop_capturing:		tveng2_stop_capturing,
+  read_frame:			tveng2_read_frame,
+  get_timestamp:		tveng2_get_timestamp,
+  set_capture_size:		tveng2_set_capture_size,
+  get_capture_size:		tveng2_get_capture_size,
+  detect_preview:		tveng2_detect_preview,
+  set_preview_window:		tveng2_set_preview_window,
+  get_preview_window:		tveng2_get_preview_window,
+  set_preview:			tveng2_set_preview,
+  start_previewing:		tveng2_start_previewing,
+  stop_previewing:		tveng2_stop_previewing,
+
+  private_size:			sizeof(struct private_tveng2_device_info)
 };
 
 /*

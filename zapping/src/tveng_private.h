@@ -87,6 +87,10 @@ struct tveng_module_info {
   int	(*set_preview)(int on, tveng_device_info *info);
   int	(*start_previewing)(tveng_device_info *info);
   int	(*stop_previewing)(tveng_device_info *info);
+
+  /* Device specific stuff */
+  int	(*ov511_get_button_state)(tveng_device_info *info);
+
   /* size of the private data of the module */
   int	private_size;
 };
