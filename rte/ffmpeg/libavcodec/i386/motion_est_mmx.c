@@ -27,7 +27,9 @@ static const __attribute__ ((aligned(8))) UINT64 round_tab[3]={
 0x0002000200020002,
 };
 
-static __attribute__ ((aligned(8))) uint64_t bone= 0x0101010101010101LL;
+/* mhs: is static, but gcc would eliminate because only referenced in asm(). */
+__attribute__ ((aligned(8)))
+uint64_t bone[1] = { 0x0101010101010101LL };
 
 static inline void sad8_mmx(UINT8 *blk1, UINT8 *blk2, int stride, int h)
 {
