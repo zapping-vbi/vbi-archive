@@ -153,6 +153,15 @@ Asks the plugin to remove all the GUI items it has added to the main
 Zapping window. The plugin should call this itself when it is being
 closed.<br>
 <I>app</I>: The main Zapping window.<p>
+<a name="plugin_get_priority"></a>
+<b>gint plugin_get_priority ();</b><p>
+This routine lets Zapping know in which order should it run the
+plugins.<br>
+<I>Returns</I>: The greater this value is, the sooner this plugin will
+be run. Thus, a plugin that wants to receive a fully processed image
+(such as the screenshot saver) will return a negative value. By
+convention, 0 means don't care about the order. If this routine
+doesn't exist, 0 is assumed.<p>
 <a name="RunningThePlugin"></a>
 <H2>The way Zapping runs the plugins</H2>
 The way Zapping runs the plugins is, more or less, the following:<br>
