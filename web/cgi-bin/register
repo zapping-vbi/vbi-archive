@@ -84,6 +84,12 @@ sub main
                 $passwordA = $value;
             } elsif( $name eq "Confirm" ) {
                 $passwordB = $value;
+            } elsif( $name eq "Homepage" ) {
+		TWiki::redirect( $query, "http://zapping.sourceforge.net" );
+		return;
+            } elsif( $name eq "Comment" ) {
+		TWiki::redirect( $query, "http://zapping.sourceforge.net" );
+		return;
             }
         }
     }
