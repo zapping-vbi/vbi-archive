@@ -205,7 +205,7 @@ set_piece_geometry(int row, int piece)
 					  GDK_INTERP_BILINEAR);
     }
 
-  paint_piece(p->window, p, 0, 0, dest_w, dest_h);
+  paint_piece(GTK_BIN(p->window)->child, p, 0, 0, dest_w, dest_h);
 }
 
 static void

@@ -109,23 +109,6 @@ static pthread_mutex_t clients_mutex; /* FIXME: A rwlock is better for
 /* handler for a vbi event */
 static void event(vbi_event *ev, void *unused);
 
-/* Some info about the last processed header, protected by a mutex */
-#if 0 /* FIXME: Obsolete */
-static struct {
-  pthread_mutex_t mutex;
-
-  /* Generic info */
-  /* xpacket condition, signalled when the station name is parsed */
-  pthread_cond_t xpacket_cond;
-  char xpacket[32];
-  char header[64];
-  char *name; /* usually, something like station-Teletext or similar
-		 (Antena3-Teletexto, for example) */
-  /* Pre-processed info from the header, for convenience */
-  int hour, min, sec;
-} last_info;
-#endif
-
 static void
 on_vbi_prefs_changed		(const gchar *key,
 				 gpointer data)
