@@ -1099,6 +1099,8 @@ tveng_tuned_channel_copy	(tveng_tuned_channel *	d,
       d->num_controls * sizeof (*(d->controls)));
   else
     d->controls = NULL;
+
+  d->caption_pgno	= s->caption_pgno;
 }
 
 tveng_tuned_channel *
