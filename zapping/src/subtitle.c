@@ -19,16 +19,29 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: subtitle.c,v 1.2 2004-10-09 05:39:08 mschimek Exp $ */
+/* $Id: subtitle.c,v 1.3 2004-11-03 06:42:17 mschimek Exp $ */
+
+#include "subtitle.h"
+
+#ifdef HAVE_LIBZVBI
 
 #include <gnome.h>
 
 #include "zmisc.h"
+#include "zconf.h"
 #include "zvbi.h"
+#include "osd.h"
 #include "remote.h"
-#include "subtitle.h"
 
-#ifdef HAVE_LIBZVBI
+#ifndef ZVBI_CAPTION_DEBUG
+#define ZVBI_CAPTION_DEBUG 0
+#endif
+
+static const char *
+caption_key = "/zapping/internal/callbacks/closed_caption";
+
+/* used by osd.c; use py_closed_caption to change this var. */
+vbi_pgno		zvbi_caption_pgno	= 0;
 
 static void
 on_subtitle_menu_activate	(GtkWidget *		menu_item,
@@ -67,7 +80,7 @@ subtitles_uiinfo [] = {
 };
 
 GtkWidget *
-subtitles_menu_new		(void)
+subtitle_menu_new		(void)
 {
   vbi_decoder *vbi;
   GtkMenuShell *menu;
@@ -160,7 +173,7 @@ subtitles_menu_new		(void)
   return menu ? GTK_WIDGET (menu) : NULL;
 }
 
-vbi_pgno
+static vbi_pgno
 find_subtitle_page		(void)
 {
   vbi_decoder *vbi;
@@ -183,12 +196,108 @@ find_subtitle_page		(void)
   return 0;
 }
 
+static PyObject *
+py_closed_caption		(PyObject *		self _unused_,
+				 PyObject *		args)
+{
+  static int block = 0;
+  int active;
+
+  if (block)
+    py_return_true;
+  block = 1; /* XXX should be fixed elsewhere, toolbar button? */
+
+  active = -1; /* toggle */
+
+  if (!ParseTuple (args, "|i", &active))
+    g_error ("zapping.closed_caption(|i)");
+
+  if (-1 == active)
+    active = !zconf_get_boolean (NULL, caption_key);
+
+  if (ZVBI_CAPTION_DEBUG)
+    fprintf (stderr, "CC active: %d\n", active);
+
+  zconf_set_boolean (active, caption_key);
+
+  if (active)
+    {
+      TeletextView *view;
+      vbi_pgno pgno;
+  
+      /* In Teletext mode, overlay currently displayed page. */
+      if (/* have */ _teletext_view_from_widget
+ 	  && (view = _teletext_view_from_widget (GTK_WIDGET (zapping)))
+ 	  && 0 != (pgno = view->cur_pgno (view)))
+  	{
+ 	  zvbi_caption_pgno = pgno;
+ 
+	  if (ZVBI_CAPTION_DEBUG)
+	    fprintf (stderr, "CC Teletext pgno %x\n", zvbi_caption_pgno);
+
+	  zmisc_restore_previous_mode (zapping->info);
+	}
+      /* In video mode, use previous page or find subtitles. */
+      else if (zvbi_caption_pgno <= 0)
+	{
+	  zvbi_caption_pgno = find_subtitle_page ();
+
+	  if (ZVBI_CAPTION_DEBUG)
+	    fprintf (stderr, "CC lookup pgno %x\n", zvbi_caption_pgno);
+
+	  if (zvbi_caption_pgno <= 0)
+	    {
+	      /* Bad luck. */
+	      zconf_set_boolean (FALSE, caption_key);
+	    }
+	}
+      else
+	{
+	  if (ZVBI_CAPTION_DEBUG)
+	    fprintf (stderr, "CC previous pgno %x\n", zvbi_caption_pgno);
+	}
+    }
+  else
+    {
+      osd_clear ();
+    }
+
+  block = 0; 
+
+  py_return_true;
+}
+
+void
+shutdown_subtitle		(void)
+{
+  /* Nothing to do. */
+}
+
+void
+startup_subtitle		(void)
+{
+  zconf_create_boolean (FALSE, "Display subtitles", caption_key);
+
+  cmd_register ("closed_caption", py_closed_caption, METH_VARARGS,
+		("Closed Caption on/off"), "zapping.closed_caption()");
+}
+
 #else /* !HAVE_LIBZVBI */
 
 GtkWidget *
-subtitles_menu_new		(void)
+subtitle_menu_new		(void)
 {
   return NULL;
+}
+
+void
+shutdown_subtitle		(void)
+{
+}
+
+void
+startup_subtitle		(void)
+{
 }
 
 #endif /* !HAVE_LIBZVBI */
