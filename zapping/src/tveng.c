@@ -190,7 +190,7 @@ void tveng_device_info_destroy(tveng_device_info * info)
 {
   t_assert(info != NULL);
 
-  if (info -> fd > 0)
+  if (-1 != info -> fd)
     p_tveng_close_device(info);
 
   if (info -> error)
@@ -198,10 +198,14 @@ void tveng_device_info_destroy(tveng_device_info * info)
 
   pthread_mutex_destroy(&(info->priv->mutex));
 
-  tv_callback_destroy (info, &info->priv->video_input_callback);
-  tv_callback_destroy (info, &info->priv->audio_input_callback);
-  tv_callback_destroy (info, &info->priv->video_standard_callback);
-  tv_callback_destroy (info, &info->priv->audio_callback);
+  tv_callback_delete_all (info->priv->video_input_callback,
+			   0, 0, 0, info);
+  tv_callback_delete_all (info->priv->audio_input_callback,
+			   0, 0, 0, info);
+  tv_callback_delete_all (info->priv->video_standard_callback,
+			   0, 0, 0, info);
+  tv_callback_delete_all (info->priv->audio_callback,
+			   0, 0, 0, info);
 
   free(info->priv);
   free(info);
@@ -240,7 +244,7 @@ int tveng_attach_device(const char* device_file,
 
   tv_clear_error (info);
 
-  if (info -> fd) /* If the device is already attached, detach it */
+  if (-1 != info -> fd) /* If the device is already attached, detach it */
     p_tveng_close_device(info);
 
   info -> current_controller = TVENG_CONTROLLER_NONE;
@@ -289,6 +293,11 @@ int tveng_attach_device(const char* device_file,
       for (i = 0; i < N_ELEMENTS (tveng_controllers); ++i)
 	{
 	  info->fd = -1;
+
+	  /* XXX */
+	  if (TVENG_ATTACH_VBI == attach_mode
+	      && tvengxv_init_module == tveng_controllers[i])
+	    continue;
 
 	  tveng_controllers[i](&(info->priv->module));
 
@@ -1975,7 +1984,7 @@ mixer_line_destroy_cb		(tv_audio_line *	line,
     {
       if (tc == &c->pub)
 	{
-	  tv_callback_destroy (tc, &tc->_callback);
+	  tv_callback_delete_all (tc->_callback, 0, 0, 0, tc);
 	  *tcp = tc->_next;
 	  free (tc);
 	  continue;
@@ -2040,7 +2049,7 @@ mixer_replace			(tveng_device_info *	info,
 		{
 		  /* Remove mixer line & control */
 
-		  tv_callback_destroy (tc, &tc->_callback);
+		  tv_callback_delete_all (tc->_callback, 0, 0, 0, tc);
 		  tv_callback_remove (c->mixer_line_cb);
 
 		  *tcp = tc->_next;
@@ -2805,7 +2814,7 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 		t_assert (info->file_name != NULL);
 		p_tveng_stop_everything (info, &dummy);
 		device_close (info->log_fp, info->fd);
-		info->fd = 0;
+		info->fd = -1;
 	}
 
 	switch ((pid = fork ())) {
@@ -3672,132 +3681,6 @@ void tveng_mutex_unlock(tveng_device_info * info)
 }
 
 
-#ifndef HAVE_STRLCPY
-
-/**
- * @internal
- * strlcpy() is a BSD/GNU extension.
- */
-size_t
-_tv_strlcpy			(char *			dst,
-				 const char *		src,
-				 size_t			len)
-{
-	char *dst1;
-	char *end;
-	char c;
-
-	assert (NULL != dst);
-	assert (NULL != src);
-	assert (len > 0);
-
-	dst1 = dst;
-
-	end = dst + len - 1;
-
-	while (dst < end && (c = *src++))
-		*dst++ = c;
-
-	*dst = 0;
-
-	return dst - dst1;
-}
-
-#endif /* !HAVE_STRLCPY */
-
-#ifndef HAVE_STRNDUP
-
-/**
- * @internal
- * strndup() is a BSD/GNU extension.
- */
-char *
-_tv_strndup			(const char *		s,
-				 size_t			len)
-{
-	size_t n;
-	char *r;
-
-	if (NULL == s)
-		return NULL;
-
-	n = strlen (s);
-	len = MIN (len, n);
-
-	r = malloc (len + 1);
-
-	if (r) {
-		memcpy (r, s, len);
-		r[len] = 0;
-	}
-
-	return r;
-}
-
-#endif /* !HAVE_STRNDUP */
-
-#ifndef HAVE_ASPRINTF
-
-/**
- * @internal
- * asprintf() is a GNU extension.
- */
-int
-_tv_asprintf			(char **		dstp,
-				 const char *		templ,
-				 ...)
-{
-	char *buf;
-	int size;
-	int temp;
-
-	assert (NULL != dstp);
-	assert (NULL != templ);
-
-	temp = errno;
-
-	buf = NULL;
-	size = 64;
-
-	for (;;) {
-		va_list ap;
-		char *buf2;
-		int len;
-
-		if (!(buf2 = realloc (buf, size)))
-			break;
-
-		buf = buf2;
-
-		va_start (ap, templ);
-		len = vsnprintf (buf, size, templ, ap);
-		va_end (ap);
-
-		if (len < 0) {
-			/* Not enough. */
-			size *= 2;
-		} else if (len < size) {
-			*dstp = buf;
-			errno = temp;
-			return len;
-		} else {
-			/* Size needed. */
-			size = len + 1;
-		}
-	}
-
-	free (buf);
-	*dstp = NULL;
-	errno = temp;
-
-	return -1;
-}
-
-#endif /* !HAVE_ASPRINTF */
-
-/*
- *  Simple callback mechanism 
- */
 
 struct _tv_callback {
 	tv_callback *		next;
@@ -3807,107 +3690,6 @@ struct _tv_callback {
 	void *			user_data;
 	unsigned int		blocked;
 };
-
-/*
- *  Add a function to a callback list. The notify function is called
- *  on some event, the destroy function (if not NULL) before the list
- *  is deleted.
- *
- *  Not intended to be called directly by tveng clients.
- */
-tv_callback *
-tv_callback_add			(tv_callback **		list,
-				 tv_callback_fn *	notify,
-				 tv_callback_fn *	destroy,
-				 void *			user_data)
-{
-	tv_callback *cb;
-
-	t_assert (list != NULL);
-	t_assert (notify != NULL || destroy != NULL);
-
-	for (; (cb = *list); list = &cb->next)
-		;
-
-	if (!(cb = calloc (1, sizeof (*cb))))
-		return NULL;
-
-	*list = cb;
-
-	cb->prev_next = list; 
-
-	cb->notify = notify;
-	cb->destroy = destroy;
-	cb->user_data = user_data;
-
-	return cb;
-}
-
-/*
- *  Remove a callback function from its list. Argument is the result
- *  of tv_callback_add().
- *
- *  Intended for tveng clients. Note the destroy handler is not called.
- */
-void
-tv_callback_remove		(tv_callback *		cb)
-{
-	if (cb) {
-		if (cb->next)
-			cb->next->prev_next = cb->prev_next;
-		*(cb->prev_next) = cb->next;
-		free (cb);
-	}
-}
-
-/*
- *  Delete an entire callback list, usually before the object owning
- *  the list is destroyed.
- *  XXX we probably need ref counting.
- */
-void
-tv_callback_destroy		(void *			object,
-				 tv_callback **		list)
-{
-	tv_callback *cb;
-
-	t_assert (object != NULL);
-	t_assert (list != NULL);
-
-	while ((cb = *list)) {
-		*list = cb->next;
-
-		if (cb->next)
-			cb->next->prev_next = list;
-
-		if (cb->destroy)
-			cb->destroy (object, cb->user_data);
-
-		free (cb);
-	}
-}
-
-/*
- *  Temporarily block calls to the notify handler.
- *  XXX user tv_callback * is fast but inconvenient because
- *  the user must prepare a destroy handler. Ideas? 
- */
-void
-tv_callback_block		(tv_callback *		cb)
-{
-  	if (cb)
-		cb->blocked++;
-}
-
-/*
- *  Counterpart of tv_callback_block().
- */
-void
-tv_callback_unblock		(tv_callback *		cb)
-{
-	if (cb && cb->blocked > 0)
-		cb->blocked--;
-}
 
 /*
  *  Traverse a callback list and call all notify functions,
@@ -3927,6 +3709,7 @@ tv_callback_notify		(tveng_device_info *	info,
 
 	for (cb = list; cb; cb = cb->next)
 		if (cb->notify && cb->blocked == 0)
+			/* XXX needs ref counter? */
 			cb->notify (object, cb->user_data);
 
 	if (info)
@@ -4206,7 +3989,7 @@ do {									\
 void									\
 free_##kind			(tv_##kind *		p)		\
 {									\
-	tv_callback_destroy (p, &p->_callback);				\
+	tv_callback_delete_all (p->_callback, 0, 0, 0, p);		\
 									\
 	FREE_NODE (p);							\
 }
@@ -4298,7 +4081,7 @@ do {									\
 void
 free_control			(tv_control *		tc)
 {
-	tv_callback_destroy (tc, &tc->_callback);
+	tv_callback_delete_all (tc->_callback, 0, 0, 0, tc);
 
 	if (tc->menu) {
 		unsigned int i;
