@@ -38,6 +38,7 @@
 #include "zmisc.h"
 #include "zmodel.h"
 #include "common/fifo.h"
+#include "osd.h"
 
 /* Useful vars from Zapping */
 extern gboolean flag_exit_program;
@@ -1948,17 +1949,15 @@ void on_subtitle_select			(GtkWidget	*widget,
 
   classf = vbi_classify_page(zvbi_get_object(), page, NULL, NULL);
 
-  if (classf == VBI_SUBTITLE_PAGE)
+  if (classf == VBI_SUBTITLE_PAGE ||
+      (classf == VBI_NORMAL_PAGE && (page > 4 && page < 9)))
     {
-      GtkSpinButton *wzp =
-	GTK_SPIN_BUTTON(lookup_widget(main_window, "zvbi_page"));
-
       zvbi_page = page;
 
       zconf_set_integer(zvbi_page,
 			"/zapping/internal/callbacks/zvbi_page");
 
-      gtk_spin_button_set_value(wzp, bcd2dec(zvbi_page));
+      osd_clear();
     }
 }
 
@@ -2050,6 +2049,40 @@ build_subtitles_submenu(GtkWidget *widget,
 
   insert_index++; /* insert after the separator */
 
+  /* CC */
+  for (count = 1; count <= 8; count = add_bcd(count, 1))
+    {
+      classf = vbi_classify_page(zvbi_get_object(), count, NULL,
+				 &language);
+      if ((classf == VBI_SUBTITLE_PAGE || classf == VBI_NORMAL_PAGE)
+	  && build_subtitles)
+	{
+	  if (language)
+	    buffer = g_strdup_printf("%s", language);
+	  else
+	    buffer = g_strdup_printf(_("Page %x"), count);
+
+	  menu_item = gtk_menu_item_new_with_label(buffer);
+	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
+			     GTK_SIGNAL_FUNC(on_subtitle_select),
+			     GINT_TO_POINTER(count));
+	  gtk_menu_append(menu, menu_item);
+	  gtk_widget_show(menu_item);
+
+	  g_free(buffer);
+
+	  if (language)
+	    {
+	      buffer = g_strdup_printf(_("Page %x"), count);
+	      set_tooltip(menu_item, buffer);
+	      g_free(buffer);
+	    }
+
+	  empty = FALSE;
+	}
+    }
+
+  /* TTX */
   for (count = 0x100; count <= 0x899; count = add_bcd(count, 1))
     {
       classf = vbi_classify_page(zvbi_get_object(), count, NULL,

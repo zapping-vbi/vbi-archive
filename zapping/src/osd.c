@@ -27,6 +27,7 @@
 #include "zmisc.h"
 #include "x11stuff.h"
 #include "common/fifo.h"
+#include "zvbi.h"
 
 #include "libvbi/export.h"
 

@@ -197,7 +197,6 @@ on_hide_menubars1_activate             (GtkMenuItem     *menuitem,
       zcs_bool(FALSE, "hide_extra");
       gtk_widget_show(lookup_widget(main_window, "Inputs"));
       gtk_widget_show(lookup_widget(main_window, "Standards")); 
-      gtk_widget_show(lookup_widget(main_window, "frame6"));
 
       z_change_menuitem(lookup_widget(GTK_WIDGET(main_window),
 				      "hide_menubars2"),
@@ -210,7 +209,6 @@ on_hide_menubars1_activate             (GtkMenuItem     *menuitem,
       zcs_bool(TRUE, "hide_extra");
       gtk_widget_hide(lookup_widget(main_window, "Inputs"));
       gtk_widget_hide(lookup_widget(main_window, "Standards"));
-      gtk_widget_hide(lookup_widget(main_window, "frame6"));
 
       z_change_menuitem(lookup_widget(GTK_WIDGET(main_window),
 				      "hide_menubars2"),
@@ -340,17 +338,6 @@ on_vbi_info1_activate                  (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
   gtk_widget_show(build_vbi_info());
-}
-
-void
-on_zvbi_page_changed		       (GtkSpinButton	*widget,
-					gpointer	user_data)
-{
-  extern int zvbi_page;
-
-  zvbi_page = dec2bcd(gtk_spin_button_get_value_as_int(widget));
-
-  zcs_int(zvbi_page, "zvbi_page");
 }
 
 void

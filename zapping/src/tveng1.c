@@ -926,7 +926,7 @@ tveng1_set_capture_format(tveng_device_info * info)
     info->format.width = info->caps.minwidth;
   if (info->format.width > info->caps.maxwidth)
     info->format.width = info->caps.maxwidth;
-  
+
   window.width = info->format.width;
   window.height = info->format.height;
   window.clips = NULL;

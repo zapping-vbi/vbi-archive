@@ -25,6 +25,9 @@
 
 #include <gnome.h>
 
+/* Manages config values for zconf (it saves me some typing) */
+#define ZCONF_DOMAIN "/zapping/internal/callbacks/"
+
 #include "tveng.h"
 #include "callbacks.h"
 #include "interface.h"
@@ -32,9 +35,8 @@
 #include "plugins.h"
 #include "zconf.h"
 #include "zvbi.h"
-/* Manages config values for zconf (it saves me some typing) */
-#define ZCONF_DOMAIN "/zapping/internal/callbacks/"
 #include "zmisc.h"
+#include "osd.h"
 
 extern tveng_device_info * main_info; /* About the device we are using */
 
@@ -314,6 +316,15 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
 		     GTK_SIGNAL_FUNC(on_property_item_changed),
 		     zapping_properties);  
 
+  /* Default subtitle page */
+  widget = lookup_widget(zapping_properties, "subtitle_page");
+  gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget),
+			    bcd2dec(zcg_int(NULL, "zvbi_page")));
+
+  gtk_signal_connect(GTK_OBJECT(widget), "changed",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+
   /* The various itv filters */
   widget = lookup_widget(zapping_properties, "optionmenu12");
   gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
@@ -525,6 +536,12 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
       if (text)
 	zconf_set_string(text, "/zapping/ttxview/exportdir");
       g_free(text);
+
+      widget = lookup_widget(pbox, "subtitle_page"); /* subtitle page */
+      zvbi_page =
+	dec2bcd(gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widget)));
+      zcs_int(zvbi_page, "zvbi_page");
+      osd_clear();
 
       /* The many itv filters */
       widget = lookup_widget(pbox, "optionmenu12");

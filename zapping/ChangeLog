@@ -1,3 +1,11 @@
+13.05.2001	CC classify gui <garetxe@users.sourceforge.net>
+
+	* src/ttxview.c: Added gui for the CC classification, added
+	'Subtitle Page' VBI property and removed toolbar spinbutton.
+	* BUGS: Investigated problems with bundle_data under V4L1, they
+	were due to a bug in bttv support for interlaced YUV420P. Maintainer
+	informed.
+
 12.05.2001	YVU420 <garetxe@users.sourceforge.net>
 
 	* src/capture.c: Defaulted to YVU420P for capture, plugins need

@@ -322,7 +322,7 @@ int main(int argc, char * argv[])
 			      0, NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.108 2001-05-12 23:32:15 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.109 2001-05-13 16:03:36 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -599,7 +599,6 @@ int main(int argc, char * argv[])
 	{
 	  gtk_widget_hide(lookup_widget(main_window, "Inputs"));
 	  gtk_widget_hide(lookup_widget(main_window, "Standards"));
-	  gtk_widget_hide(lookup_widget(main_window, "frame6"));
 	  gtk_widget_queue_resize(main_window);
 	  
 	  z_change_menuitem(lookup_widget(GTK_WIDGET(main_window),
@@ -608,20 +607,9 @@ int main(int argc, char * argv[])
 			    _("Show extra controls"),
 			    _("Show Input, Standards and subtitle selection"));
 	}
-      {
-	/* setup subtitles page button */
-	extern int zvbi_page;
-	GtkSpinButton *wzp =
-	  GTK_SPIN_BUTTON(lookup_widget(main_window, "zvbi_page"));
-	
-	zconf_get_integer(&zvbi_page,
-			  "/zapping/internal/callbacks/zvbi_page");
-	
-	gtk_spin_button_set_adjustment(wzp, GTK_ADJUSTMENT(
-	   gtk_adjustment_new(bcd2dec(zvbi_page), 1, 899, 1, 10, 10)));
-	
-	gtk_spin_button_set_value(wzp, bcd2dec(zvbi_page));
-      }
+      /* setup subtitles page button */
+      zconf_get_integer(&zvbi_page,
+			"/zapping/internal/callbacks/zvbi_page");
       D();
       /* Sets the coords to the previous values, if the users wants to */
       if (zcg_bool(NULL, "keep_geometry"))

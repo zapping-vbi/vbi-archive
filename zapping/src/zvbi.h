@@ -48,6 +48,8 @@ typedef struct {
   } data;
 } ttx_message_data;
 
+extern gint zvbi_page, zvbi_subpage; /* page, subpage for subtitles */
+
 /*
  * Register a client as TTX receiver, and returns the id that the
  * client should use to identify itself.

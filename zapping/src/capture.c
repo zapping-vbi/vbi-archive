@@ -70,13 +70,19 @@ static void print_info(GtkWidget *main_window);
 
 /* FIXME: should be easier to change */
 #define BUNDLE_FORMAT TVENG_PIX_YVU420
+// #define BUNDLE_FORMAT TVENG_PIX_YUYV
+//#define FORCE_DATA 1
 
 static
 gboolean request_default_format(gint w, gint h, tveng_device_info *info)
 {
   gboolean success = FALSE;
 
-  if (have_xv)
+#ifdef FORCE_DATA
+  success = request_bundle_format(BUNDLE_FORMAT, w, h);
+#endif
+
+  if (have_xv && !success)
     {
       if ((!zcg_int(NULL, "xvsize")) && /* biggest noninterlaced */
 	  (info->num_standards))
@@ -312,6 +318,22 @@ build_bundle(capture_bundle *d, struct tveng_frame_format *format,
 
   switch (format->pixformat)
     {
+    case TVENG_PIX_YUYV:
+      d->format.pixformat = format->pixformat;
+      d->format.depth = 16;
+      d->format.bpp = 2;
+      if (have_xv &&
+	  (d->image.xvimage = xvzImage_new(format->width, format->height)))
+	{
+	  d->image_type = CAPTURE_BUNDLE_XV;
+	  d->format.width = d->image.xvimage->w;
+	  d->format.height = d->image.xvimage->h;
+	  d->image_size = d->image.xvimage->data_size;
+	  d->format.bytesperline = d->format.width*d->format.bpp;
+	  d->data = d->image.xvimage->data;
+	}
+      break;
+
     case TVENG_PIX_YVU420:
     case TVENG_PIX_YUV420:
       d->format.pixformat = format->pixformat;
@@ -319,7 +341,11 @@ build_bundle(capture_bundle *d, struct tveng_frame_format *format,
       d->format.bpp = 1.5;
 
       /* Try XV first */
+#ifndef FORCE_DATA
       if (have_xv &&
+#else
+      if (!have_xv &&
+#endif
 	  (d->image.xvimage = xvzImage_new(format->width, format->height)))
 	{
 	  d->image_type = CAPTURE_BUNDLE_XV;
@@ -418,6 +444,10 @@ static gint idle_handler(gpointer ignored)
 			     iw, ih);
 	      break;
 	    case CAPTURE_BUNDLE_DATA:
+	      if (d->format.pixformat != TVENG_PIX_YUV420 &&
+		  d->format.pixformat != TVENG_PIX_YVU420)
+		break;
+
 	      /* fixme: need a flag to turn drawing off, it's slow */
 	      if (!yuv_image ||
 		  yuv_image->width != d->format.width ||
