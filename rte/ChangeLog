@@ -1,3 +1,8 @@
+2003-11-13    <mschimek@users.sf.net>
+
+	* divx4linux/b_divx4linux.c (mainloop): Incorrect declaration
+	  stripped AVI header from divx4linux_avi output.
+
 2003-10-31	<mschimek@users.sf.net>
 
 	* autogen.sh, m4/autogen.sh: Updated.
