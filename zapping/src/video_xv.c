@@ -645,6 +645,10 @@ void add_backend_xv (void)
 	  && type == (XvInputMask | XvVideoMask))
 	type = XvOutputMask | XvVideoMask; /* Bug. This is TV out. */
 
+      /* FIXME */
+      if (0 == strcmp (pAdaptor->name, "NV10 Video Overlay"))
+	continue;
+
       if ((XvInputMask | XvImageMask) == (type & (XvInputMask | XvImageMask)))
 	traverse_ports (display, pAdaptor, i);
     }

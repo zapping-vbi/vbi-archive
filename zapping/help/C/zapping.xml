@@ -175,12 +175,12 @@ EndSection
     </sect2>
 
     <sect2 id="zapping-channels">
-      <title>To Switch Channels</title>
+      <title>To Change Channels</title>
 
-      <para>To switch between TV channels you can choose from the <menuchoice>
+      <para>To change between TV channels you can choose from the <menuchoice>
 	  <guimenu>Channels</guimenu>
 	</menuchoice> main menu or the context menu. The menu also lists video inputs on the device and supported video standards. Note you can add composite video inputs to the channel list as well, see the <link linkend="zapping-channel-editor">Channel Editor</link> section for details.</para>
-      <para>To switch to the next or previous channel in the list click on the <guilabel>Ch. Up</guilabel> or <guilabel>Ch. Down</guilabel> button in the toolbar, or press the <keycap>Pg Up</keycap> or <keycap>Pg Dn</keycap> key.</para>
+      <para>To change to the next or previous channel in the list click on the <guilabel>Ch. Up</guilabel> or <guilabel>Ch. Down</guilabel> button in the toolbar, or press the <keycap>Pg Up</keycap> or <keycap>Pg Dn</keycap> key.</para>
       <para>On the numeric keypad (if <keycap>NumLock</keycap> is activated) you can enter a channel number. Either the number of the RF channel, or a channel list number. This can be changed in the <link linkend="zapping-settings-main">preferences</link>.</para>
     </sect2>
 

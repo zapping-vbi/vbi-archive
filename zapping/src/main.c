@@ -315,15 +315,15 @@ int main(int argc, char * argv[])
     },
     {
       /* We used to call zapping_setup_fb on startup unless this
-	 switch was given. Now it is only called if necessary
-	 before enabling V4L overlay. So the switch is no longer
+	 option was given. Now it is only called if necessary
+	 before enabling V4L overlay. So the option is no longer
          used, but kept for compatibility. */
       "no-zsfb",
       'z',
       POPT_ARG_NONE,
       &dummy,
       0,
-      /* TRANSLATORS: --no-zsfb command line switch. */
+      /* TRANSLATORS: --no-zsfb command line option. */
       N_("Obsolete"),
       NULL
     },
@@ -369,7 +369,7 @@ int main(int argc, char * argv[])
       POPT_ARG_STRING,
       &yuv_format,
       0,
-      /* TRANSLATORS: --yuv-format command line switch. */
+      /* TRANSLATORS: --yuv-format command line option. */
       N_("Obsolete"),
     },
     {
@@ -378,7 +378,7 @@ int main(int argc, char * argv[])
       POPT_ARG_STRING,
       &norm,
       0,
-      /* TRANSLATORS: --tunerless-norm command line switch. */
+      /* TRANSLATORS: --tunerless-norm command line option. */
       N_("Obsolete"),
     },
     {
@@ -419,7 +419,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.174 2003-12-17 06:34:26 mschimek Exp $",
+	 "$Id: main.c,v 1.175 2003-12-20 07:02:54 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())

@@ -87,7 +87,7 @@
       <para>When you choose <menuchoice>
           <guimenu>Bookmarks</guimenu>
           <guisubmenu>Add Bookmark</guisubmenu>
-        </menuchoice> from the main or context menu the current page will be added to the <guimenu>Bookmarks</guimenu> menu. When you choose a bookmark Zapzilla will switch to the respective channel and open the page. You can edit the bookmarks by choosing <menuchoice>
+        </menuchoice> from the main or context menu the current page will be added to the <guimenu>Bookmarks</guimenu> menu. When you choose a bookmark Zapzilla will change to the respective channel and open the page. You can edit the bookmarks by choosing <menuchoice>
           <guimenu>Bookmarks</guimenu>
           <guisubmenu>Edit Bookmarks</guisubmenu>
         </menuchoice>.</para>
