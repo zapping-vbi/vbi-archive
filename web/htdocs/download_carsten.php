@@ -5,7 +5,7 @@
 Zapping -- Linux TV Viewer -- Downloading
 </title>
 <!--
-	Generated from download.xml on Sat Mar  9 05:53:34 2002
+	Generated from download.xml on Wed Mar 13 08:23:38 2002
 -->
 <meta name="description" content="Zapping is a TV Viewer Software for Linux/Unix. Zapping is Open Source and has the ability to use plugins, it has also nice extra build in features.">
 <meta name="language" content="en-us">
@@ -228,5 +228,3 @@ cvs -z3 update -dP
 
 </BODY>
 </html>
-
-#endif
