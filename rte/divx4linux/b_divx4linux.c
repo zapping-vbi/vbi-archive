@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_divx4linux.c,v 1.7 2004-04-09 05:13:37 mschimek Exp $ */
+/* $Id: b_divx4linux.c,v 1.8 2005-02-25 18:18:07 mschimek Exp $ */
 
 #include <dlfcn.h>
 #include "b_divx4linux.h"
@@ -383,10 +383,11 @@ avi_write_trailer		(d4l_context *		dx,
 	ins_le32 (p + movi, movi_bytes + 4);
 }
 
+extern rte_context_class divx_avi_context;
+
 static void *
 mainloop			(void *			p)
 {
-	extern rte_context_class divx_avi_context;
 	d4l_context *dx = p;
 	uint8_t header[1024];
 	uint32_t movi_bytes = 0;
@@ -917,7 +918,7 @@ static rte_option_info *
 option_enum			(rte_codec *		codec,
 				 unsigned int		index)
 {
-	if (index < 0 || index >= num_options)
+	if (index >= num_options)
 		return NULL;
 
 	return options + index;
@@ -1117,7 +1118,7 @@ divx_avi_info = {
 	.max_elementary		= { 0, 1, 0 },
 };
 
-static rte_context_class
+rte_context_class
 divx_avi_context = {
 	._public		= &divx_avi_info,
 
