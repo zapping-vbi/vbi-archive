@@ -1919,7 +1919,7 @@ tveng2_start_previewing (tveng_device_info * info)
 #ifndef DISABLE_X_EXTENSIONS
   Display * dpy = info->priv->display;
   int width, height;
-  int dwidth, dheight; /* Width and height of the display */
+  unsigned int dwidth, dheight;
 
   tveng_stop_everything(info);
 
@@ -1932,12 +1932,9 @@ tveng2_start_previewing (tveng_device_info * info)
   if (!tveng_detect_XF86DGA(info))
     return -1;
 
-  /* calculate coordinates for the preview window. We compute this for
-   the first display */
-  XF86DGAGetViewPortSize(dpy, DefaultScreen(dpy),
-			 &dwidth, &dheight);
-  width = info->caps.maxwidth;
+  x11_root_geometry (&dwidth, &dheight);
 
+  width = info->caps.maxwidth;
   if (width > dwidth)
     width = dwidth;
 

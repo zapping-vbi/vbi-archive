@@ -803,6 +803,7 @@ p_tvengxv_build_controls(tveng_device_info *info)
   if (p_info->color != None)
     {
       control.id = (int)p_info->color;
+      control.property = TVENG_CTRL_PROP_OTHER;
       snprintf(control.name, 32, _("Color"));
       control.min = p_info->color_min;
       control.max = p_info->color_max;
@@ -815,6 +816,7 @@ p_tvengxv_build_controls(tveng_device_info *info)
   if (p_info->mute != None)
     {
       control.id = (int)p_info->mute;
+      control.property = TVENG_CTRL_PROP_OTHER;
       snprintf(control.name, 32, _("Mute"));
       control.min = 0;
       control.max = 1;
@@ -829,6 +831,7 @@ p_tvengxv_build_controls(tveng_device_info *info)
   if (p_info->volume != None)
     {
       control.id = (int)p_info->volume;
+      control.property = TVENG_CTRL_PROP_OTHER;
       snprintf(control.name, 32, _("Volume"));
       control.min = p_info->volume_min;
       control.max = p_info->volume_max;
@@ -841,6 +844,7 @@ p_tvengxv_build_controls(tveng_device_info *info)
   if (p_info->interlace != None)
     {
       control.id = (int)p_info->interlace;
+      control.property = TVENG_CTRL_PROP_OTHER;
       snprintf(control.name, 32, _("Interlace"));
       control.min = p_info->interlace_min;
       control.max = p_info->interlace_max;

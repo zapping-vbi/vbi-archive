@@ -101,8 +101,6 @@ tveng_get_id_of_channel (tveng_rf_channel *channel, tveng_rf_table *country);
 
 
 
-typedef int tv_bool;
-
 /*
  *  tv_rf_channel represents one element in a three dimensional
  *  frequency table array. The country_code, table_name and

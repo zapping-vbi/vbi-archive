@@ -242,7 +242,7 @@ enum tveng_control_property {
   TVENG_CTRL_PROP_HUE,
 };
 
-#if 0 /* future */
+
 
 typedef int tv_bool;
 
@@ -251,14 +251,28 @@ typedef int tv_bool;
 #undef FALSE
 #define FALSE 0
 
-/* XXX private */
-typedef struct callback_node *callback_node;
-struct callback_node {
-	callback_node *		next;
-	tv_bool			(* action)(void *, void *);
-	void *			user_data;
-	unsigned int		blocked;
-};
+typedef struct tv_callback_node tv_callback_node;
+
+extern tv_callback_node *
+tv_callback_add			(tv_callback_node **	list,
+				 tv_bool		(* notify)(void *object, void *user_data),
+				 void			(* destroy)(void *object, void *user_data),
+				 void *			user_data);
+extern void
+tv_callback_remove		(tv_callback_node *	cb);
+extern void
+tv_callback_destroy		(void *			object,
+				 tv_callback_node **	list);
+extern void
+tv_callback_block		(tv_callback_node *	cb);
+extern void
+tv_callback_unblock		(tv_callback_node *	cb);
+extern void
+tv_callback_notify		(void *			object,
+				 const tv_callback_node *list);
+
+
+#if 0
 
 /*
  *  Programmatically accessable controls. Other controls
@@ -288,6 +302,7 @@ typedef enum {
 } tv_control_type;
 
 typedef struct tv_control tv_control;
+
 struct tv_control {
 	tv_control_id		id;
 	tv_control_type		type;
@@ -300,8 +315,6 @@ struct tv_control {
 	int			default_value;
 	int			last_value;	/* not current value */
 };
-
-typedef void tv_control_callback (tv_control *, void *);
 
 #endif /* future */
 

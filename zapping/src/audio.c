@@ -344,6 +344,8 @@ audio_set_mute			(gint			mute)
 	  printv ("mixer_set_mute failed\n");
 	  return FALSE;
 	}
+
+      tveng_set_mute (0, main_info);
     }
 
   return TRUE;

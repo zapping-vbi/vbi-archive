@@ -45,6 +45,8 @@
 #include "tvengemu.h" /* Emulation device */
 #include "tveng_private.h" /* private definitions */
 
+#include "globals.h" /* XXX for vidmodes */
+
 #define TVLOCK								\
 ({									\
   /* fprintf (stderr, "TVLOCK   in " __PRETTY_FUNCTION__ "\n"); */	\
@@ -138,6 +140,8 @@ tveng_device_info * tveng_device_info_new(Display * display, int bpp)
   new_object->priv->colorkey = None;
   new_object->priv->double_buffer = None;
 #endif
+
+  x11_vidmode_clear_state (&new_object->priv->old_mode);
 
   pthread_mutexattr_init(&attr);
   pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
@@ -1782,6 +1786,7 @@ tveng_get_zapping_setup_fb_verbosity(tveng_device_info * info)
   return (info->priv->zapping_setup_fb_verbosity);
 }
 
+#include "zmisc.h"
 /* 
    Sets up everything and starts previewing.
    Just call this function to start previewing, it takes care of
@@ -1791,26 +1796,25 @@ tveng_get_zapping_setup_fb_verbosity(tveng_device_info * info)
 int
 tveng_start_previewing (tveng_device_info * info, int change_mode)
 {
-#ifndef DISABLE_X_EXTENSIONS
-  int event_base, error_base, major_version, minor_version;
-  XF86VidModeModeInfo ** modesinfo;
-  int modecount;
-  int i;
-  int chosen_mode=0; /* The video mode we will use for fullscreen */
-  int distance=-1; /* Distance of the best video mode to a valid size */
-  int temp; /* Temporal value */
-  int bigger=0; /* Allow choosing bigger screen depths */
-  static int info_printed = 0; /* do not print the modes every time */
-#endif
+  x11_vidmode_info *v;
+  unsigned int width, height;
 
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
   TVLOCK;
 
+  /* XXX we must distinguish between (limited) Xv overlay and Xv scaling.
+   * 1) determine natural size (videostd -> 480, 576 -> 640, 768),
+   *    try Xv target size, get actual
+   * 2) find closest vidmode
+   * 3) try Xv target size from vidmode, get actual,
+   *    if closer go back to 2) until sizes converge 
+   */
   if (info->current_controller == TVENG_CONTROLLER_XV)
-    change_mode = 0; /* not needed */
+    change_mode = 0; /* not needed  XXX wrong */
   else
+  /* XXX ditto, limited V4L/V4L2 overlay */
     if (!tveng_detect_XF86DGA(info))
       {
 	info->tveng_errno = -1;
@@ -1829,147 +1833,54 @@ tveng_start_previewing (tveng_device_info * info, int change_mode)
   else
     info->priv->change_mode = change_mode;
 
-#ifndef DISABLE_X_EXTENSIONS
-  info -> priv->xf86vm_enabled = 1;
+  width = info->caps.maxwidth; /* XXX wrong */
+  height = info->caps.maxheight;
 
-  if (!XF86VidModeQueryExtension(info->priv->display, &event_base,
-				 &error_base))
-    {
-      info->tveng_errno = -1;
-      t_error_msg("XF86VidModeQueryExtension",
-		  "No vidmode extension supported", info);
-      info->priv->xf86vm_enabled = 0;
-    }
+  v = NULL;
 
-  if ((info->priv->xf86vm_enabled) &&
-      (!XF86VidModeQueryVersion(info->priv->display, &major_version,
-				&minor_version)))
+  if (vidmodes && change_mode)
     {
-      info->tveng_errno = -1;
-      t_error_msg("XF86VidModeQueryVersion",
-		  "No vidmode extension supported", info);
-      info->priv->xf86vm_enabled = 0;      
-    }
+      x11_vidmode_info *vmin;
+      long long amin;
 
-  if ((info->priv->xf86vm_enabled) &&
-      (!XF86VidModeGetAllModeLines(info->priv->display, 
-				   DefaultScreen(info->priv->display),
-				   &modecount, &modesinfo)))
-    {
-      info->tveng_errno = -1;
-      t_error_msg("XF86VidModeGetAllModeLines",
-		  "No vidmode extension supported", info);
-      info->priv->xf86vm_enabled = 0;
-    }
+      vmin = vidmodes;
+      amin = 1LL << 62;
 
-  if (info -> priv->xf86vm_enabled)
-    {
-      if ((info->debug_level > 0) && (!info_printed))
+      for (v = vidmodes; v; v = v->next)
 	{
-	  fprintf(stderr, "XF86VidMode info:\n");
-	  fprintf(stderr, "  - event and error base  : %d, %d\n", event_base,
-		  error_base);
-	  fprintf(stderr, "  - XF86VidMode version   : %d.%d\n",
-		  major_version, minor_version);
-	  fprintf(stderr, "  - Available video modes : %d\n",
-		  modecount);
-	}
+	  long long a;
+	  long long dw, dh;
 
-    loop_point:
-      for (i = 0; i<modecount; i++)
-	{
-	  if (info->debug_level > 0)
-	    if ((!bigger) && (!info_printed)) /* print only once */
-	      fprintf(stderr, "      %d) %dx%d @ %d Hz\n", i, (int)
-		      modesinfo[i]->hdisplay, (int) modesinfo[i]->vdisplay,
-		      (int) modesinfo[i]->dotclock);
+	  /* XXX ok? */
+	  dw = (long long) v->width - width;
+	  dh = (long long) v->height - height;
+	  a = dw * dw + dh * dh;
 
-	  /* Check whether this is a good value */
-	  temp = ((int)modesinfo[i]->hdisplay) - info->caps.maxwidth;
-	  temp *= temp;
-	  temp += (((int)modesinfo[i]->vdisplay) - info->caps.maxheight) *
-	    (((int)modesinfo[i]->vdisplay) - info->caps.maxheight);
-	  if  (((modesinfo[i]->hdisplay < info->caps.maxwidth) &&
-		(modesinfo[i]->vdisplay < info->caps.maxheight))
-	       || (bigger))
+	  if (a < amin
+	      || (a == amin
+		  && v->vfreq > vmin->vfreq))
 	    {
-	      if ((distance == -1) || (temp < distance))
-		{
-		  /* This heuristic is somewhat krusty, but it should mostly
-		     work */
-		chosen_mode = i;
-		distance = temp;
-		}
+	      vmin = v;
+	      amin = a;
 	    }
 	}
 
-      if (distance == -1) /* No adequate size smaller than the given
-			     one, get the nearest bigger one */
-	{
-	  bigger = 1;
-	  goto loop_point;
-	}
-      
-      if ((info->debug_level > 0) && (!info_printed))
-	{
-	  info_printed = 1;
-	  fprintf(stderr, "      Mode # %d chosen\n", chosen_mode);
-	}
-      
-      /* If the chosen mode isn't the actual one, choose it, but
-	 place the viewport correctly first */
-      /* get the current viewport pos for restoring later */
-      XF86VidModeGetViewPort(info->priv->display,
-			     DefaultScreen(info->priv->display),
-			     &(info->priv->save_x), &(info->priv->save_y));
+      v = vmin;
 
-      if (change_mode == 0)
-	chosen_mode = 0;
-
-      if (chosen_mode == 0)
-	{
-	  info->priv->restore_mode = 0;
-	  XF86VidModeSetViewPort(info->priv->display,
-				 DefaultScreen(info->priv->display), 0, 0);
-	}
-      else
-	{
-	  info->priv->restore_mode = 1;
-	  info->priv->modeinfo.privsize = 0;
-	  XF86VidModeGetModeLine(info->priv->display,
-				 DefaultScreen(info->priv->display),
-				 &(info->priv->modeinfo.dotclock),
-				 /* this is kinda broken, but it
-				    will probably always work */
-				 (XF86VidModeModeLine*)
-				 &(info->priv->modeinfo.hdisplay));
-
-	  if (!XF86VidModeSwitchToMode(info->priv->display,
-				       DefaultScreen(info->priv->display),
-				       modesinfo[chosen_mode]))
-	    info -> priv->xf86vm_enabled = 0;
-
-	  /* Place the viewport again */
-	  if (info -> priv->xf86vm_enabled)
-	    XF86VidModeSetViewPort(info->priv->display,
-				   DefaultScreen(info->priv->display), 0, 0);
-	}
-
-      for (i=0; i<modecount; i++)
-	if (modesinfo[i]->privsize > 0)
-	  XFree(modesinfo[i]->private);
-      
-      XFree(modesinfo);
+      if (info->debug_level > 0)
+	fprintf (stderr, "Using mode %ux%u@%u for %ux%u\n",
+		 v->width, v->height, (unsigned int)(v->vfreq + 0.5),
+		 width, height);
     }
-  else /* info -> priv->xf86vm_enabled */
-    {
-      fprintf(stderr, "XF86VidMode not enabled: %s\n", info -> error);
-    }
-#endif /* DISABLE_X_EXTENSIONS */
+
+  if (!x11_vidmode_switch (info->priv->display, vidmodes,
+			   v, &info->priv->old_mode))
+    goto failure;
 
   if (info->priv->module.start_previewing)
     RETURN_UNTVLOCK(info->priv->module.start_previewing(info));
 
+ failure:
   TVUNSUPPORTED;
   UNTVLOCK;
   return -1;
@@ -1990,22 +1901,8 @@ tveng_stop_previewing(tveng_device_info * info)
   if (info->priv->module.stop_previewing)
     return_code = info->priv->module.stop_previewing(info);
 
-#ifndef DISABLE_X_EXTENSIONS
-  if (info->priv->xf86vm_enabled)
-    {
-      if (info->priv->restore_mode)
-	{
-	  XF86VidModeSwitchToMode(info->priv->display,
-				  DefaultScreen(info->priv->display),
-				  &(info->priv->modeinfo));
-	  if (info->priv->modeinfo.privsize > 0)
-	    XFree(info->priv->modeinfo.private);
-	}
-      XF86VidModeSetViewPort(info->priv->display,
-			     DefaultScreen(info->priv->display),
-			     info->priv->save_x, info->priv->save_y);
-    }
-#endif
+  x11_vidmode_restore (info->priv->display,
+		       vidmodes, &info->priv->old_mode);
 
   UNTVLOCK;
 
@@ -2406,18 +2303,32 @@ void tveng_mutex_unlock(tveng_device_info * info)
 }
 
 /*
- *  Future stuff
+ *  Simple callback mechanism
  */
 
-#if 0
+struct tv_callback_node {
+	tv_callback_node *	next;
+	tv_callback_node **	pred;
+	tv_bool			(* notify)(void *, void *);
+	void			(* destroy)(void *, void *);
+	void *			user_data;
+	unsigned int		blocked;
+};
 
-tv_bool
-callback_add			(callback_node **	list,
-				 tv_bool		(* action)(void *, void *),
-				 void			(* remove)(void *, void *),
+/*
+ *  Add a function to a callback list. The notify function is called
+ *  on some event, the destroy function (if not NULL) before the list
+ *  is deleted.
+ *
+ *  Not intended to be called directly by tveng clients.
+ */
+tv_callback_node *
+tv_callback_add			(tv_callback_node **	list,
+				 tv_bool		(* notify)(void *, void *user_data),
+				 void			(* destroy)(void *, void *user_data),
 				 void *			user_data)
 {
-	callback_node *cb;
+	tv_callback_node *cb;
 
 	for (; (cb = *list); list = &cb->next)
 		;
@@ -2425,78 +2336,82 @@ callback_add			(callback_node **	list,
 	if (!(cb = calloc (1, sizeof (*cb))))
 		return FALSE;
 
-	cb->action = action;
-	cb->remove = remove;
-	cb->user_data = user_data;
-
 	*list = cb;
 
-	return TRUE;
+	cb->pred = list; 
+
+	cb->notify = notify;
+	cb->destroy = destroy;
+	cb->user_data = user_data;
+
+	return cb;
 }
 
+/*
+ *  Remove a callback function from its list. Argument is the result
+ *  of tv_callback_add().
+ *
+ *  Intended for tveng clients. Note the destroy handler is not called.
+ */
 void
-callback_remove			(void *			object,
-				 callback_node **	list,
-				 tv_bool		(* action)(void *, void *),
-				 void *			user_data)
+tv_callback_remove		(tv_callback_node *	cb)
 {
-	callback_node *cb;
+	*(cb->pred) = cb->next;
 
-	for (; (cb = *list); list = &cb->next)
-		if (cb->action == action
-		    && cb->user_data == user_data) {
-			*list = cb->next;
-
-			if (cb->remove)
-				cb->remove (object, cb->user_data);
-
-			free (cb);
-
-			return;
-		}
-
-	assert (!"not found");
+	free (cb);
 }
 
+/*
+ *  Delete an entire callback list, usually before the object owning
+ *  the list is destroyed.
+ */
 void
-callback_remove_all		(void *			object,
-				 callback_node **	list)
+tv_callback_destroy		(void *			object,
+				 tv_callback_node **	list)
 {
-	callback_node *cb;
+	tv_callback_node *cb;
 
 	while ((cb = *list)) {
 		*list = cb->next;
+		cb->next->pred = list;
 
-		if (cb->remove)
-			cb->remove (object, cb->user_data);
+		if (cb->destroy)
+			cb->destroy (object, cb->user_data);
 
 		free (cb);
 	}
 }
 
+/*
+ *  Temporarily block calls to the notify handler.
+ */
 void
-callback_block			(callback_node *	cb,
-				 tv_bool		(* action)(void *, void *),
-				 void *			user_data,
-				 tv_bool		block)
+tv_callback_block		(tv_callback_node *	cb)
 {
-	for (; cb; cb = cb->next)
-		if (cb->action == action
-		    && cb->user_data == user_data) {
-			if (block)
-				cb->blocked++;
-			else if (cb->blocked > 0)
-				cb->blocked--;
-		}
+	cb->blocked++;
 }
 
+/*
+ *  Counterpart of tv_callback_block().
+ */
 void
-callback_action			(void *			object,
-				 callback_node *	cb)
+tv_callback_unblock		(tv_callback_node *	cb)
 {
-	for (; cb; cb = cb->next)
+	if (cb->blocked > 0)
+		cb->blocked--;
+}
+
+/*
+ *  Traverse a callback list and call all notify functions,
+ *  usually on some event. Only the list owner should call this.
+ */
+void
+tv_callback_notify		(void *			object,
+				 const tv_callback_node *list)
+{
+	const tv_callback_node *cb;
+
+	for (cb = list; cb; cb = cb->next)
 		if (cb->blocked == 0)
-			cb->action (object, cb->user_data);
+			cb->notify (object, cb->user_data);
 }
-
-#endif

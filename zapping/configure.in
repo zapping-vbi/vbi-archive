@@ -12,6 +12,8 @@ AC_HEADER_STDC
 
 AM_PROG_LIBTOOL
 
+AC_CHECK_FUNCS(program_invocation_name)
+
 test -e site_def.h || cat <<EOF >site_def.h
 /* Site specific definitions */
 

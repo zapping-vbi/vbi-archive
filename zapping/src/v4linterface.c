@@ -517,7 +517,9 @@ on_control_window_destroy	(GtkWidget *		widget,
 
   g_free (cb);
 
-  gtk_widget_set_sensitive (lookup_widget (main_window, "controls"), TRUE);
+  /* See below.
+     gtk_widget_set_sensitive (lookup_widget (main_window, "controls"), TRUE);
+  */
 }
 
 static void
@@ -538,7 +540,9 @@ create_control_window		(void)
 
   gtk_widget_show (cb->window);
 
-  gtk_widget_set_sensitive (lookup_widget (main_window, "controls"), FALSE);
+  /* Not good because it may just raise a hidden control window.
+     gtk_widget_set_sensitive (lookup_widget (main_window, "controls"), FALSE);
+   */
 
   ToolBox = cb;
 }
@@ -549,6 +553,8 @@ py_control_box			(PyObject *		self,
 {
   if (ToolBox == NULL)
     create_control_window ();
+  else
+    gtk_window_present (GTK_WINDOW (ToolBox->window));
 
   py_return_none;
 }
@@ -1112,7 +1118,7 @@ kp_key_press			(GdkEventKey *		event,
 #ifdef HAVE_LIBZVBI /* FIXME */
     case GDK_KP_0 ... GDK_KP_9:
       {
-	const tveng_tuned_channel *tc;
+	tveng_tuned_channel *tc;
 	gint len;
 
 	len = strlen (kp_chsel_buf);

@@ -562,7 +562,7 @@ build_properties_dialog			(void)
 
   if (PropertiesDialog)
     {
-      gdk_window_raise(GTK_WIDGET(PropertiesDialog)->window);
+      gtk_window_present (GTK_WINDOW (PropertiesDialog));
       return GTK_WIDGET(PropertiesDialog);
     }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: channel_editor.c,v 1.37.2.7 2003-01-08 14:52:54 mschimek Exp $ */
+/* $Id: channel_editor.c,v 1.37.2.8 2003-01-21 05:23:30 mschimek Exp $ */
 
 /*
   TODO:
@@ -1891,6 +1891,8 @@ py_channel_editor		(PyObject *		self,
 {
   if (!dialog_running)
     gtk_widget_show (create_channel_editor ());
+  else
+    gtk_window_present (GTK_WINDOW (dialog_running->channel_editor));
 
   py_return_true;
 }

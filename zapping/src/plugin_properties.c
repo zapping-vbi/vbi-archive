@@ -255,7 +255,7 @@ py_plugin_properties (PyObject *self, PyObject *args)
 
   if (PluginProperties)
     {
-      gdk_window_raise(PluginProperties -> window);
+      gtk_window_present (GTK_WINDOW (PluginProperties));
       py_return_true;
     }
 

@@ -337,6 +337,18 @@ x11_window_viewable(GdkWindow *window)
   return ((wts.map_state & IsViewable) ? TRUE : FALSE);
 }
 
+void
+x11_root_geometry		(unsigned int *		width,
+				 unsigned int *		height)
+{
+  Window d1;
+  int d2;
+
+  XGetGeometry (GDK_DISPLAY (),
+                DefaultRootWindow (GDK_DISPLAY ()),
+		&d1, &d2, &d2, width, height, &d2, &d2);
+}
+
 static gboolean
 stop_xscreensaver_timeout (gpointer unused)
 {
@@ -601,6 +613,438 @@ wm_hints_detect (void)
   printv ("wm hints unknown\n");
 
   return FALSE;
+}
+
+#endif /* !DISABLE_X_EXTENSIONS */
+
+/*
+ *  XFree86VidMode helpers
+ */
+
+/**
+ * x11_vidmode_clear_state:
+ * @vs:
+ *
+ * Clear a struct x11_vidmode_state such that
+ * x11_vidmode_restore() will do nothing.
+ */
+void
+x11_vidmode_clear_state		(x11_vidmode_state *	vs)
+{
+  if (!vs)
+    return;
+
+  vs->new.vm = NULL;		/* don't restore */
+  vs->new.pt.x = 1 << 20;	/* implausible, don't restore */
+  vs->new.vp.x = 1 << 20;
+}
+
+#ifdef DISABLE_X_EXTENSIONS
+
+void
+x11_vidmode_list_delete		(x11_vidmode_info *	list)
+{
+}
+
+x11_vidmode_info *
+x11_vidmode_list_new		(Display *		display)
+{
+  return NULL;
+}
+
+x11_vidmode_info *
+x11_vidmode_current		(Display *		display,
+				 x11_vidmode_info *	list)
+{
+  return NULL;
+}
+
+int
+x11_vidmode_switch		(Display *		display,
+				 x11_vidmode_info *	list,
+				 x11_vidmode_info *	vm,
+				 x11_vidmode_state *	vs)
+{
+  return 0;
+}
+
+void
+x11_vidmode_restore		(Display *		display,
+				 x11_vidmode_info *	list,
+				 x11_vidmode_state *	vs)
+{
+}
+
+#else
+
+#include <assert.h>
+
+#define PARENT(ptr, type, member) \
+	((type *)(((char *)(ptr)) - offsetof(type, member)))
+
+struct vidmode {
+  x11_vidmode_info	pub;
+  XF86VidModeModeInfo	info;
+};
+
+#define VIDMODE(p) PARENT (p, struct vidmode, pub)
+
+/**
+ * x11_vidmode_list_delete:
+ * @list:
+ *
+ * Deletes a list of struct x11_vidmode_info as returned
+ * by x11_vidmode_list_new().
+ **/
+void
+x11_vidmode_list_delete		(x11_vidmode_info *	list)
+{
+  struct vidmode *v;
+
+  while (list)
+    {
+      v = VIDMODE (list);
+      list = v->pub.next;
+      free (v);
+    }
+}
+
+/**
+ * x11_vidmode_list_new:
+ * @display:
+ *
+ * Creates a sorted list of selectable VidModes, i.e. all valid
+ * Modelines in XF86Config including those switchable with kp+
+ * and kp-. The list must be freed with x11_vidmode_list_delete().
+ * Result can be NULL for various reasons.
+ */
+x11_vidmode_info *
+x11_vidmode_list_new		(Display *		display)
+{
+  int event_base, error_base;
+  int major_version, minor_version;
+  int screen;
+  XF86VidModeModeInfo **mode_info;
+  int mode_count;
+  x11_vidmode_info *list;
+  int i;
+
+  screen = DefaultScreen (display);
+
+  if (!XF86VidModeQueryExtension (display, &event_base, &error_base))
+    return NULL;
+
+  if (!XF86VidModeQueryVersion (display, &major_version, &minor_version))
+    return NULL;
+
+  if (0)
+    {
+      fprintf (stderr, "XF86VidMode:\n");
+      fprintf (stderr, "  - base    : %d, %d\n", event_base, error_base);
+      fprintf (stderr, "  - version : %d.%d\n", major_version, minor_version);
+    }
+
+  if (!XF86VidModeGetAllModeLines (display, screen, &mode_count, &mode_info))
+    return NULL;
+
+  list = NULL;
+
+  for (i = 0; i < mode_count; i++)
+    {
+      XF86VidModeModeInfo *m = mode_info[i];
+      struct vidmode *v;
+
+      if (m->privsize > 0)
+	{
+	  XFree (m->private);
+	  m->private = NULL;
+	  m->privsize = 0;
+	}
+
+      if (Success == XF86VidModeValidateModeLine (display, screen, m))
+	{
+	  if (0)
+	  fprintf (stderr, "Valid mode dot=%u flags=%08x "
+		   "hd=%u hss=%u hse=%u ht=%u "
+		   "vd=%u vss=%u vse=%u vt=%u\n",
+		   m->dotclock, m->flags,
+		   m->hdisplay, m->hsyncstart, m->hsyncend, m->htotal,
+		   m->vdisplay, m->vsyncstart, m->vsyncend, m->vtotal);
+
+	  if ((v = calloc (1, sizeof (*v))))
+	    {
+	      unsigned int dothz = m->dotclock * 1000;
+	      x11_vidmode_info *vv, **vvv;
+
+	      v->pub.width = m->hdisplay;
+	      v->pub.height = m->vdisplay;
+	      v->pub.hfreq = dothz / (double) m->htotal;
+	      v->pub.vfreq = dothz / (double)(m->htotal * m->vtotal);
+	      v->pub.aspect = 1.0; /* Sigh. */
+
+	      v->info = *m;
+
+	      for (vvv = &list; (vv = *vvv); vvv = &vv->next)
+		if (v->pub.width == vv->width)
+		  {
+		    if (v->pub.height == vv->height)
+		      {
+		        if (v->pub.vfreq > vv->vfreq)
+		          break;
+		      }
+		    else if (v->pub.height > vv->height)
+		      break;
+		  }
+		else if (v->pub.width > vv->width)
+		  break;
+
+	      v->pub.next = vv;
+	      *vvv = &v->pub;
+	    }
+	}
+      else
+	{
+	  if (0)
+	  fprintf (stderr, "Ignore bad mode dot=%u h=%u v=%u\n",
+		   m->dotclock, m->hdisplay, m->vdisplay);
+	}
+    }
+
+  XFree (mode_info);
+
+  return list;
+}
+
+/**
+ * x11_vidmode_current:
+ * @display: Same as given to x11_vidmode_list_new().
+ * @list: List of VidModes as returned by x11_vidmode_list_new().
+ *
+ * Returns a pointer to the current VidMode, NULL when the mode
+ * is not in the list or some other problem occurred.
+ */
+x11_vidmode_info *
+x11_vidmode_current		(Display *		display,
+				 x11_vidmode_info *	list)
+{
+  int screen;
+  XF86VidModeModeLine mode_line;
+  int dot_clock;
+  struct vidmode *v;
+
+  if (!list)
+    return NULL;
+
+  screen = DefaultScreen (display);
+
+  if (!XF86VidModeGetModeLine (display, screen, &dot_clock, &mode_line))
+    return NULL;
+
+  if (mode_line.privsize > 0)
+    {
+      XFree (mode_line.private);
+      mode_line.private = NULL;
+      mode_line.privsize = 0;
+    }
+
+  for (v = VIDMODE (list); v; v = VIDMODE (v->pub.next))
+    if (   v->info.dotclock	== dot_clock
+	&& v->info.hdisplay	== mode_line.hdisplay
+	&& v->info.hsyncstart	== mode_line.hsyncstart
+	&& v->info.hsyncend	== mode_line.hsyncend
+	&& v->info.htotal	== mode_line.htotal
+	&& v->info.vdisplay	== mode_line.vdisplay
+	&& v->info.vsyncstart	== mode_line.vsyncstart
+	&& v->info.vsyncend	== mode_line.vsyncend
+	&& v->info.vtotal	== mode_line.vtotal)
+      break;
+
+  if (!v)
+    return NULL;
+
+  return &v->pub;
+}
+
+/**
+ * x11_vidmode_current:
+ * @display: Same as given to x11_vidmode_list_new().
+ * @list: List of VidModes as returned by x11_vidmode_list_new().
+ * @vm: VidMode to switch to, must be member of @list.
+ * @vs: If given save settings for x11_vidmode_restore() here.
+ *
+ * Switches to VidMode @vm, can be NULL to keep the current mode.
+ * Then centers the viewport over the root window, and if
+ * necessary moves the pointer into sight.
+ */
+int
+x11_vidmode_switch		(Display *		display,
+				 x11_vidmode_info *	list,
+				 x11_vidmode_info *	vm,
+				 x11_vidmode_state *	vs)
+{
+  x11_vidmode_state state;
+  int screen;
+  Window root, dummy1;
+  int x, y, dummy2;
+  unsigned int w, h;
+  unsigned int dummy3;
+  int warp;
+
+  if (!vs)
+    vs = &state;
+
+  x11_vidmode_clear_state (vs);
+
+  screen = DefaultScreen (display);
+  root = DefaultRootWindow (display);
+
+  XGetGeometry (display, root, &dummy1, &x, &y, &w, &h, &dummy3, &dummy3);
+  XF86VidModeGetViewPort (display, screen, &vs->old.vp.x, &vs->old.vp.y);
+  XQueryPointer (display, root, &dummy1, &dummy1,
+		 &vs->old.pt.x, &vs->old.pt.y, &dummy2, &dummy2, &dummy3);
+
+  /* Switch to requested mode, if any */
+
+  vs->old.vm = x11_vidmode_current (display, list);
+
+  if (vm)
+    {
+      if (vs->old.vm != vm)
+	{
+	  if (XF86VidModeSwitchToMode (display, screen, &VIDMODE (vm)->info))
+	    vs->new.vm = vm;
+	  else
+	    return 0;
+	}
+    }
+  else if (vs->old.vm)
+    {
+      vm = vs->old.vm;
+    }
+  else
+    {
+      return 1;
+    }
+
+  /* Center ViewPort */
+
+  x = (w - vm->width) >> 1;
+  y = (h - vm->height) >> 1;
+
+  assert (x >= 0 && y >= 0);
+
+  if (XF86VidModeSetViewPort (display, screen, x, y))
+    {
+      vs->new.vp.x = x;
+      vs->new.vp.y = y;
+    }
+  else
+    {
+      x = vs->old.vp.x;
+      y = vs->old.vp.y;
+    }
+
+  /* Make pointer visible */
+
+  warp = 0;
+
+  if (vs->old.pt.x < x)
+    warp = 1;
+  else if (vs->old.pt.x > x + vm->width - 16)
+    {
+      x += vm->width - 16;
+      warp = 1;
+    }
+  else
+    {
+      x = vs->old.pt.x;
+    }
+
+  if (vs->old.pt.y < y)
+    warp = 1;
+  else if (vs->old.pt.y > y + vm->height - 16)
+    {
+      y += vm->height - 16;
+      warp = 1;
+    }
+  else
+    {
+      y = vs->old.pt.y;
+    }
+
+  if (warp)
+    {
+      XWarpPointer (display, None, root, 0, 0, 0, 0, x, y);
+
+      vs->new.pt.x = x;
+      vs->new.pt.y = y;
+    }
+
+  XSync (display, False);
+
+  return 1;
+}
+
+/**
+ * x11_vidmode_current:
+ * @display: Same as given to the corresponding x11_vidmode_switch().
+ * @list: List of VidModes as returned by x11_vidmode_list_new(),
+ *        must be the same as given to the corresponding
+ *        x11_vidmode_switch().
+ * @vs: Settings saved with x11_vidmode_switch(), can be NULL.
+ *
+ * Restores from a x11_vidmode_switch(), except a third party
+ * changed the settings since x11_vidmode_switch(). Calls
+ * x11_vidmode_clear_state() to prevent restore twice.
+ */
+void
+x11_vidmode_restore		(Display *		display,
+				 x11_vidmode_info *	list,
+				 x11_vidmode_state *	vs)
+{
+  int screen;
+  Window root, dummy1;
+  int vpx, vpy, ptx, pty, dummy2;
+  unsigned int dummy3;
+
+  if (!vs)
+    return;
+
+  screen = DefaultScreen (display);
+  root = DefaultRootWindow (display);
+
+  XF86VidModeGetViewPort (display, screen, &vpx, &vpy);
+  XQueryPointer (display, root, &dummy1, &dummy1,
+		 &ptx, &pty, &dummy2, &dummy2, &dummy3);
+
+  if (vs->old.vm && vs->new.vm)
+    {
+      x11_vidmode_info *new_vm;
+
+      new_vm = x11_vidmode_current (display, list);
+
+      if (vs->new.vm != new_vm)
+	goto done; /* user changed vidmode, keep that */
+
+      if (!XF86VidModeSwitchToMode (display, screen,
+				    &VIDMODE (vs->old.vm)->info))
+	goto done;
+    }
+
+  if (vs->new.vp.x == vpx && vs->new.vp.y == vpy)
+    XF86VidModeSetViewPort (display, screen, vs->old.vp.x, vs->old.vp.y);
+  else
+    goto done; /* user moved viewport, keep that */
+
+  if (abs (vs->new.pt.x - ptx) < 10 && abs (vs->new.pt.y - pty) < 10)
+    XWarpPointer (display, None, root, 0, 0, 0, 0,
+		  vs->old.pt.x, vs->old.pt.y);
+  /* else user moved pointer, keep that */
+
+ done:
+  XSync (display, False);
+
+  x11_vidmode_clear_state (vs);
 }
 
 #endif /* !DISABLE_X_EXTENSIONS */

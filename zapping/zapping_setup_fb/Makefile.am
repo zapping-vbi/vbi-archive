@@ -39,8 +39,9 @@ else
 	rm -f $(DESTDIR)/etc/pam.d/zapping_setup_fb
 endif
 
-zapping_setup_fbSOURCES = \
-	zapping_setup_fb.c videodev.h
+zapping_setup_fb_SOURCES = \
+	zapping_setup_fb.c zapping_setup_fb.h \
+	dga.c v4l.c v4l2.c
 
 zapping_setup_fb_LDADD = $(X_LIBS) \
 -lX11 -lXext -lXxf86dga $(X_EXTRA_LIBS)

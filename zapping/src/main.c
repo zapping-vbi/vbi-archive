@@ -435,7 +435,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.165.2.11 2003-01-08 14:52:54 mschimek Exp $",
+	 "$Id: main.c,v 1.165.2.12 2003-01-21 05:23:30 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -481,7 +481,20 @@ int main(int argc, char * argv[])
   D();
   have_wm_hints = wm_hints_detect ();
   D();
-  main_info = tveng_device_info_new( GDK_DISPLAY(), x_bpp);
+  vidmodes = x11_vidmode_list_new (GDK_DISPLAY ());
+  D();
+  if (debug_msg)
+    {
+      x11_vidmode_info *v;
+
+      fprintf (stderr, "VidModes:\n");
+      for (v = vidmodes; v; v = v->next)
+        fprintf (stderr, "  %ux%u@%u\n",
+		 v->width, v->height,
+		 (unsigned int)(v->vfreq + 0.5));
+    }
+  D();
+  main_info = tveng_device_info_new(GDK_DISPLAY (), x_bpp);
   if (!main_info)
     {
       g_error(_("Cannot get device info struct"));
@@ -979,7 +992,6 @@ static gboolean startup_zapping(gboolean load_plugins)
   gchar * buffer = NULL;
   gchar * buffer2 = NULL;
   gchar * buffer3 = NULL;
-  gchar * buffer4 = NULL;
   tveng_tuned_channel new_channel;
   GList * p;
   D();
@@ -1081,13 +1093,29 @@ static gboolean startup_zapping(gboolean load_plugins)
 			j, i, new_channel.name);
 	      continue;
 	    }
-	  buffer4 = g_strconcat(buffer3, "/name", NULL);
-	  strncpy(new_channel.controls[j].name,
-		  zconf_get_string(NULL, buffer4), 32);
-	  g_free(buffer4);
-	  buffer4 = g_strconcat(buffer3, "/value", NULL);
-	  zconf_get_float(&new_channel.controls[j].value, buffer4);
-	  g_free(buffer4);
+	  {
+	    gchar *buf;
+	    const gchar *s;
+	    
+	    buf = g_strconcat(buffer3, "/name", NULL);
+	    if ((s = zconf_get_string (NULL, buf)))
+	      {
+	        strncpy(new_channel.controls[j].name, s, 32);
+	        g_free (buf);
+	      }
+	    else
+	      {
+	        g_free (buf);
+		continue;
+	      }
+          }
+	  {
+	    gchar *buf;
+	    
+	    buf = g_strconcat(buffer3, "/value", NULL);
+	    zconf_get_float(&new_channel.controls[j].value, buf);
+	    g_free (buf);
+          }
 	  g_free(buffer3);
 	}
       g_free(buffer2);

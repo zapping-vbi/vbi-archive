@@ -1,5 +1,6 @@
 Outstanding issues for the next release (0.7)
 -----------------------------------------------
+	+ preferences from context menu (zapping-misc 2003-01-05)
 	+ configure.in: esd, oss etc checks
 	+ channel menu: don't add blank channels
 	+ Video standard question.

@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
 #include "mixer.h"
 
 typedef struct _device_entry	device_entry;
@@ -317,6 +318,7 @@ destroy_lines			(device_entry	*dev)
 #endif
 #include <stdio.h>
 #include <unistd.h>
+#include <errno.h>
 
 static int
 dev_mixer_set_volume		(device_entry	*dev,
@@ -440,3 +442,176 @@ add_dev_mixer_devices		(void)
     }
 }
 #endif
+
+/* New mixer interface */
+
+#include "../common/types.h"
+
+#undef SATURATE
+#ifdef __i686__
+#define SATURATE(n, min, max) ({					\
+	__typeof__ (n) _n = n;						\
+	__typeof__ (n) _min = min;					\
+	__typeof__ (n) _max = max;					\
+	if (_n < _min)							\
+		_n = _min;						\
+	if (_n > _max)							\
+		_n = _max;						\
+	_n;								\
+})
+#else
+#define SATURATE(n, min, max) ({					\
+	__typeof__ (n) _n = n;						\
+	__typeof__ (n) _min = min;					\
+	__typeof__ (n) _max = max;					\
+	if (_n < _min)							\
+		_n = _min;						\
+	else if (_n > _max)						\
+		_n = _max;						\
+	_n;								\
+})
+#endif
+
+#define PROLOG								\
+	tv_dev_mixer_line *l;						\
+	tv_dev_mixer *m;						\
+									\
+	assert (line != NULL);						\
+									\
+	l = PARENT (line, tv_dev_mixer_line, pub);			\
+	m = l->mixer;
+
+tv_bool
+tv_mixer_line_update		(tv_mixer_line *	line)
+{
+	PROLOG
+
+	return m->update_line (l);
+}
+
+tv_bool
+tv_mixer_line_get_volume	(tv_mixer_line *	line,
+				 unsigned int *		left,
+				 unsigned int *		right)
+{
+	PROLOG
+
+	if (!m->update_line (l))
+		return FALSE;
+
+	*left = l->pub.volume[0];
+	*right = l->pub.volume[1];
+
+	return TRUE;
+}
+
+tv_bool
+tv_mixer_line_set_volume	(tv_mixer_line *	line,
+				 unsigned int		left,
+				 unsigned int		right)
+{
+	PROLOG
+
+	left = SATURATE (left, l->pub.minimum, l->pub.maximum);
+	right = SATURATE (right, l->pub.minimum, l->pub.maximum);
+
+	return m->set_volume (l, left, right);
+}
+
+tv_bool
+tv_mixer_line_get_mute		(tv_mixer_line *	line,
+				 tv_bool *		mute)
+{
+	PROLOG
+
+	if (!m->update_line (l))
+		return FALSE;
+
+	*mute = l->pub.muted;
+
+	return TRUE;
+}
+
+extern tv_bool
+tv_mixer_line_set_mute		(tv_mixer_line *	line,
+				 tv_bool		mute)
+{
+	PROLOG
+
+	return m->set_mute (l, !!mute);
+}
+
+tv_bool
+tv_mixer_line_record		(tv_mixer_line *	line,
+				 tv_bool		exclusive)
+{
+	tv_dev_mixer_line *l;
+	tv_dev_mixer *m;
+	unsigned int i;
+
+	assert (line != NULL);
+
+	l = PARENT (line, tv_dev_mixer_line, pub);
+	m = l->mixer;
+
+	for (line = m->pub.inputs; line; line = line->next)
+		if (line == &l->pub)
+			break;
+
+	if (!line || !l->pub.recordable) {
+		fprintf (stderr, "%s: Invalid recording line requested\n", __FILE__);
+		return FALSE;
+	}
+
+	return m->set_rec_line (m, l, !!exclusive);
+}
+
+tv_callback_node *
+tv_mixer_line_callback_add	(tv_mixer_line *	line,
+				 tv_bool		(* notify)(tv_mixer_line *, void *user_data),
+				 void			(* destroy)(tv_mixer_line *, void *user_data),
+				 void *			user_data)
+{
+	tv_dev_mixer_line *l;
+
+	assert (line != NULL);
+	assert (notify != NULL);
+
+	l = PARENT (line, tv_dev_mixer_line, pub);
+
+	return tv_callback_add (&l->callback,
+				(void *) notify,
+				(void *) destroy,
+				user_data);
+}
+
+tv_bool
+tv_mixer_update			(tv_mixer *		mixer)
+{
+	tv_dev_mixer *m;
+
+	assert (mixer != NULL);
+
+	m = PARENT (mixer, tv_dev_mixer, pub);
+
+	return m->update_mixer (m);
+}
+
+tv_callback_node *
+tv_mixer_callback_add		(tv_mixer *		mixer,
+				 tv_bool		(* notify)(tv_mixer_line *, void *user_data),
+				 void			(* destroy)(tv_mixer_line *, void *user_data),
+				 void *			user_data)
+{
+	tv_dev_mixer *m;
+
+	assert (mixer != NULL);
+	assert (notify != NULL);
+
+	m = PARENT (mixer, tv_dev_mixer, pub);
+
+	return tv_callback_add (&m->callback,
+				(void *) notify,
+				(void *) destroy,
+				user_data);
+}

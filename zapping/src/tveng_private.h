@@ -97,6 +97,8 @@ struct tveng_module_info {
   int	private_size;
 };
 
+#include "x11stuff.h"
+
 struct tveng_private {
   Display	*display;
   int		save_x, save_y;
@@ -104,11 +106,7 @@ struct tveng_private {
   int		current_bpp;
   struct tveng_module_info module;
 
-#ifndef DISABLE_X_EXTENSIONS
-  XF86VidModeModeInfo modeinfo;
-  int		restore_mode;
-  int		xf86vm_enabled;
-#endif
+  x11_vidmode_state old_mode;
 
   int		zapping_setup_fb_verbosity;
   int		change_mode;

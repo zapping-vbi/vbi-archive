@@ -27,9 +27,10 @@
 #undef HAVE_STDDEF_H
 #undef HAVE_PROTOTYPES
 #include <jpeglib.h>
-
+#if 0
 #define PARENT(ptr, type, member) \
         ((type *)(((char *) ptr) - offsetof(type, member)))
+#endif
 
 struct backend_private {
   struct jpeg_compress_struct	cinfo;	/* Compression parameters */

@@ -4,6 +4,7 @@
 #include <gnome.h>
 #include "tveng.h"
 #include "frequencies.h"
+#include "x11stuff.h"
 
 extern enum tveng_capture_mode	last_mode;
 extern GtkWidget		*ChannelWindow;
@@ -19,7 +20,8 @@ extern gboolean			xv_present;
 extern GtkWidget		*main_window;
 /* Will be TRUE if when quitting we were fullscreen */
 extern gboolean			was_fullscreen;
-extern tveng_tuned_channel	*global_channel_list;
+extern tveng_tuned_channel *	global_channel_list;
+extern x11_vidmode_info *	vidmodes;
 extern gboolean			have_wm_hints;
 extern int			debug_msg;
 extern gint			cur_tuned_channel;

@@ -69,6 +69,10 @@ x11_force_expose(gint x, gint y, gint w, gint h);
 gboolean
 x11_window_viewable(GdkWindow *window);
 
+void
+x11_root_geometry		(unsigned int *		width,
+				 unsigned int *		height);
+
 /*
  * Sets the X screen saver on/off
  */
@@ -85,5 +89,58 @@ x11_set_screensaver(gboolean on);
 
 extern void (* window_on_top)(GtkWindow *window, gboolean on);
 extern gboolean wm_hints_detect (void);
+
+typedef struct x11_vidmode_info x11_vidmode_info;
+
+/*
+ * This is an abstraction of a XF86VidMode (like a Modeline in
+ * /etc/XF86Config) intended to encapsulate the underlying X11
+ * stuff.   
+ */
+struct x11_vidmode_info {
+  x11_vidmode_info *	next;
+
+  unsigned int		width;
+  unsigned int		height;
+  double		hfreq;		/* Hz */
+  double		vfreq;		/* Hz */
+  double		aspect;		/* pixel y/x */
+};
+
+typedef struct x11_vidmode_state x11_vidmode_state;
+
+/*
+ * Used by x11_vidmode_switch() and x11_vidmode_restore()
+ * to save settings.
+ */
+struct x11_vidmode_state {
+  /* <Private> */
+  struct {
+    x11_vidmode_info *	  vm;
+    struct {
+      int		    x;
+      int		    y;
+    }			  pt, vp;
+  }			old, new;
+};
+
+extern void
+x11_vidmode_list_delete		(x11_vidmode_info *	list);
+extern x11_vidmode_info *
+x11_vidmode_list_new		(Display *		display);
+extern x11_vidmode_info *
+x11_vidmode_current		(Display *		display,
+				 x11_vidmode_info *	list);
+extern void
+x11_vidmode_clear_state		(x11_vidmode_state *	vs);
+extern int
+x11_vidmode_switch		(Display *		display,
+				 x11_vidmode_info *	list,
+				 x11_vidmode_info *	vm,
+				 x11_vidmode_state *	vs);
+extern void
+x11_vidmode_restore		(Display *		display,
+				 x11_vidmode_info *	list,
+				 x11_vidmode_state *	vs);
 
 #endif /* x11stuff.h */

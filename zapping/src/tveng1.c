@@ -1056,7 +1056,7 @@ static char ** p_tveng1_test_audio_decode (tveng_device_info * info)
    *  audio.mode is the "mode the audio input is in". The bttv driver
    *  returns the received audio on read, a set, not the selected
    *  mode and not capabilities. One write a single bit must be
-   *  set, zero selects autodetection.
+   *  set, zero selects autodetection. NB VIDIOCSAUDIO is not w/r.
    */
 
   for (i = 0; i<num_audio_decoding_modes; i++)
@@ -2377,12 +2377,9 @@ tveng1_start_previewing (tveng_device_info * info)
     /* We shouldn't be reaching this if the app is well programmed */
     t_assert_not_reached();
 
-  /* calculate coordinates for the preview window. We compute this for
-   the first display */
-  XF86DGAGetViewPortSize(display, DefaultScreen(display),
-			 &dwidth, &dheight);
-  width = info->caps.maxwidth;
+  x11_root_geometry (&dwidth, &dheight);
 
+  width = info->caps.maxwidth;
   if (width > dwidth)
     width = dwidth;
 
