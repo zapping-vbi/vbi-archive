@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cache.h,v 1.2.2.2 2003-05-02 10:44:49 mschimek Exp $ */
+/* $Id: cache.h,v 1.2.2.3 2003-06-16 06:02:26 mschimek Exp $ */
 
 #ifndef CACHE_H
 #define CACHE_H
@@ -101,44 +101,55 @@ vbi_page_stat			(cache_stat *		cs,
  * @addtogroup Cache
  * @{
  */
-extern void		vbi_unref_page(vbi_page *pg);
-
-extern void		vbi_cache_max_size		(vbi_decoder *		vbi,
-							 unsigned long		size);
-extern void		vbi_cache_max_stations		(vbi_decoder *		vbi,
-							 unsigned int		count);
+extern void
+vbi_unref_page			(vbi_page *		pg);
+extern void
+vbi_cache_max_size		(vbi_decoder *		vbi,
+				 unsigned long		size);
+extern void
+vbi_cache_max_stations		(vbi_decoder *		vbi,
+				 unsigned int		count);
 /** @} */
 
 /* Private */
 
 typedef int		foreach_callback (void *, const vt_page *, vbi_bool);
 
-extern void		vbi_cache_init			(vbi_decoder *		vbi);
-extern void		vbi_cache_destroy		(vbi_decoder *		vbi);
-extern void		vbi_cache_flush			(vbi_decoder *		vbi,
-							 vbi_bool		all);
-extern const vt_page *	vbi_cache_put			(vbi_decoder *		vbi,
-							 vbi_nuid		nuid,
-							 const vt_page *	vtp,
-							 vbi_bool		user_access);
-extern const vt_page *	vbi_cache_get			(vbi_decoder *		vbi,
-							 vbi_nuid		nuid,
-							 vbi_pgno		pgno,
-							 vbi_subno		subno,
-							 vbi_subno		subno_mask,
-							 vbi_bool		new_ref);
-extern void		vbi_cache_unref			(vbi_decoder *		vbi,
-							 const vt_page *	vtp);
-extern int		vbi_cache_foreach		(vbi_decoder *		vbi,
-							 vbi_nuid		nuid,
-							 vbi_pgno		pgno,
-							 vbi_subno		subno,
-							 int			dir,
-							 foreach_callback *	func,
-							 void *			data);
-extern const cache_stat *vbi_cache_stat			(vbi_decoder *		vbi,
-							 vbi_nuid		nuid);
-extern void		vbi_cache_stat_unref		(vbi_decoder *		vbi,
-							 const cache_stat *	cs);
+extern void
+vbi_cache_init			(vbi_decoder *		vbi);
+extern void
+vbi_cache_destroy		(vbi_decoder *		vbi);
+extern void
+vbi_cache_flush			(vbi_decoder *		vbi,
+				 vbi_bool		all);
+extern const vt_page *
+vbi_cache_put			(vbi_decoder *		vbi,
+				 vbi_nuid		nuid,
+				 const vt_page *	vtp,
+				 vbi_bool		user_access);
+extern const vt_page *
+vbi_cache_get			(vbi_decoder *		vbi,
+				 vbi_nuid		nuid,
+				 vbi_pgno		pgno,
+				 vbi_subno		subno,
+				 vbi_subno		subno_mask,
+				 vbi_bool		new_ref);
+extern void
+vbi_cache_unref			(vbi_decoder *		vbi,
+				 const vt_page *	vtp);
+extern int
+vbi_cache_foreach		(vbi_decoder *		vbi,
+				 vbi_nuid		nuid,
+				 vbi_pgno		pgno,
+				 vbi_subno		subno,
+				 int			dir,
+				 foreach_callback *	func,
+				 void *			data);
+extern const cache_stat *
+vbi_cache_stat			(vbi_decoder *		vbi,
+				 vbi_nuid		nuid);
+extern void
+vbi_cache_stat_unref		(vbi_decoder *		vbi,
+				 const cache_stat *	cs);
 
 #endif /* CACHE_H */

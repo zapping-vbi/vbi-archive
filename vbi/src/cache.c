@@ -317,7 +317,8 @@ struct cache_page {
 	/* Dynamic size, don't add fields below */
 };
 
-static const unsigned int cache_page_overhead =
+static const unsigned int
+cache_page_overhead =
 	sizeof (cache_page) - sizeof (((cache_page *) 0)->page);
 
 static void
@@ -1330,12 +1331,11 @@ vbi_cache_destroy		(vbi_decoder *		vbi)
  * newly received pages will replace older pages. Priority to keep them
  * is given pages of the current station over other stations, to pages
  * which take longer to reload, which have been recently requested or
- * are likely to be requested in the future. Referenced pages have
- * infinite priority but add to the cache size, to prevent a deadlock
- * after all pages have been referenced.
+ * are likely to be requested in the future. Referenced pages appear to
+ * be copies, i.e. they will not be replaced and add to the cache size.
  * 
- * When @param size is smaller than the amount of memory currently
- * used this function attempts to delete an appropriate number of
+ * When @a size is smaller than the amount of memory currently
+ * used, this function attempts to delete an appropriate number of
  * low priority pages.
  */
 void
@@ -1359,7 +1359,7 @@ vbi_cache_max_size		(vbi_decoder *		vbi,
  * 
  * Determine the maximum number of stations cached in the Teletext
  * page cache. Useful numbers will be in range 1 to 300, the
- * default is 1 (mimicking libzvbi 0.2). Each station takes about
+ * default is 1 (as in libzvbi 0.2). Each station takes about
  * 16 KB additional to the vbi_cache_max_size().
  *
  * When the number is smaller than the current number of stations
