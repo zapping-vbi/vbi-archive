@@ -73,21 +73,21 @@ enum rte_frame_rate {
 */
 enum rte_audio_mode {
 	RTE_AUDIO_MODE_MONO,
-	RTE_AUDIO_MODE_STEREO,
+	RTE_AUDIO_MODE_STEREO
 	/* fixme: what does this mean? */
-	RTE_AUDIO_MODE_DUAL_CHANNEL
+//	RTE_AUDIO_MODE_DUAL_CHANNEL
 };
 
 typedef struct _rte_context_private rte_context_private;
 
 typedef struct {
 	/* Filename used when creating this context, NULL if unknown */
-	char * filename;
+	char * file_name;
 	/* Whether to encode audio only, video only or both */
 	enum rte_mux_mode mode;
 
 	/******** video parameters **********/
-	/* pixformat the passed video data is in, RTE_YCbCr by default */
+	/* pixformat the passed video data is in, RTE_YUYV by default */
 	enum rte_pixformat video_format;
 	/* frame size */
 	int width, height;
@@ -103,17 +103,12 @@ typedef struct {
 	/******* audio parameters **********/
 	/* audio sampling rate in kHz, 44100 by default */
 	int audio_rate; 
-	/* audio bits per sample, defaults to 16 */
-	int bits;
 	/* Audio mode, defaults to Mono */
 	enum rte_audio_mode audio_mode;
 	/* output audio bits per second, defaults to 80000 */
 	size_t output_audio_bits;
 	/* size in bytes of an audio frame */
 	int audio_bytes;
-
-	/* Number of encoded bytes written */
-	size_t bytes_written;
 
 	/* Pointer to the private data of this struct */
 	rte_context_private * private;
@@ -161,7 +156,7 @@ typedef void (*rteDataCallback)(void * data,
 
 /* Interface functions */
 /*
-  Inits the lib.
+  Inits the lib, and it does some checks.
   Returns 1 if the lib can be used in this box, and 0 if not.
 */
 int rte_init ( void );
@@ -195,19 +190,54 @@ rte_context * rte_context_new (char * file,
 void * rte_context_destroy ( rte_context * context );
 
 /*
-  Sets the video parameters.
+  Setters and getters for the members in the struct, so no direct
+  access is needed. Direct access to the struct fields is allowed when
+  no getter is provided (this is to avoid API bloat), but you should
+  NEVER change a field directly.
+  FIXME: This needs to be added, remeber to add setter and getter for
+  the callbacks and the filename.
+  We need some functions to get stats (frame drop rate, bytes output, etc)
+*/
+/*
+  Sets the video parameters. If you want to leave output_video_bits
+  unmodified (for example), use context->output_video_bits
 */
 void rte_set_video_parameters (rte_context * context,
 			       enum rte_pixformat frame_format,
 			       int width, int height,
 			       enum rte_frame_rate video_rate,
 			       size_t output_video_bits);
+
+/* Sets the audio parameters */
+void rte_set_audio_parameters (rte_context * context,
+			       int audio_rate,
+			       enum rte_audio_mode audio_mode,
+			       size_t output_audio_bits);
+
+/* Specifies whether to encode audio only, video only or both */
+void rte_set_mode (rte_context * context, enum rte_mux_mode mode);
+
+/* [SG]ets the data callback (can be NULL) */
+void rte_set_data_callback (rte_context * context, rteDataCallback
+			    callback);
+rteDataCallback rte_get_data_callback (rte_context * context);
+
+/* [SG]ets the encode callback (can be NULL too if the output filename
+   isn't NULL) */
+void rte_set_encode_callback (rte_context * context,
+			      rteEncodeCallback callback);
+rteEncodeCallback rte_get_encode_callback (rte_context * context);
+
+/* Sets the output filename. It can be NULL if the encode callback
+   isn't. No checks are performed to the given filename until rte
+   tries to open it (i.e. rte_start()) */
+void rte_set_file_name(rte_context * context, const char * file_name);
 /*
-  Setters and getters for the members in the struct, so no direct
-  access is needed.
-  FIXME: This needs to be added, remeber to add setter and getter for
-  the callbacks and the filename
+  Gets the current file name where the encoded data will be stored.
+  It can be NULL, meaning that a encode callback will be used instead.
+  The returned string shouldn't be freed.
 */
+char * rte_get_file_name(rte_context * context);
 
 /*
   Sets up everything to start coding. Call this after setting the

@@ -30,13 +30,15 @@
 #include "rte.h"
 #include "video/video.h" /* fixme: video_unget_frame and friends */
 #include "audio/audio.h" /* fixme: audio_read, audio_unget prots. */
+#include "audio/mpeg.h"
 
 /*
   TODO:
-      . Calculate video_bytes and audio_bytes
-      . Audio interface with the core mp1e
-      . Check for MAXWIDTH and MAXHEIGHT
       . Setters and getters
+*/
+/*
+  BUGS:
+      . Callbacks + push doesn't work yet.
 */
 
 static rte_context * global_context = NULL;
@@ -238,7 +240,12 @@ rte_context * rte_context_new (char * file,
 
 	if (global_context)
 	{
-		rte_error(NULL, "Sorry, but there is already a context");
+		rte_error(NULL, "There is already a context");
+		return NULL;
+	}
+
+	if ((file) && (encode_callback)) {
+		rte_error(NULL, "You need to specify file OR encode_callback");
 		return NULL;
 	}
 
@@ -274,39 +281,28 @@ rte_context * rte_context_new (char * file,
 		return NULL;
 	}
 
-
 	if (encode_callback)
 		context->private->encode_callback = encode_callback;
-	else
-		context->private->encode_callback =
-			RTE_ENCODE_CALLBACK(default_write_callback);
-
-	context->private->data_callback = data_callback;
-
-	context->private->user_data = user_data;
-	context->video_rate = rate;
-	context->width = width;
-	context->height = height;
-	context->private->fd = -1;
-
-	if (!encode_callback) {
+	else {
 		if (!file) {
 			free(context->private);
 			free(context);
 			rte_error(NULL, "file == callback == NULL");
 			return NULL;
 		}
-/*		context->private->fd = creat(file, 00755);
-		if (context->private->fd < 0) {
-			rte_error(NULL, "creat(): [%d] %s", errno, strerror(errno));
-			free(context->private);
-			free(context);
-			return NULL;
-			}*/
+		
+		context->file_name = strdup(file);
 	}
 
+	context->private->data_callback = data_callback;
+
+	context->private->user_data = user_data;
+	context->video_rate = rate;
+	context->width = MIN(width, MAX_WIDTH);
+	context->height = MIN(height, MAX_HEIGHT);
+	context->private->fd = -1;
+
 	context->audio_rate = 44100;
-	context->bits = 16;
 	context->output_audio_bits = 80000;
 	context->output_video_bits = 2000000;
 
@@ -349,6 +345,9 @@ void * rte_context_destroy ( rte_context * context )
 		return NULL;
 	}
 
+	if (context->file_name)
+		free(context->file_name);
+
 	if (context->private->encoding)
 		rte_stop(context);
 
@@ -373,13 +372,11 @@ void rte_set_video_parameters (rte_context * context,
 		rte_error(NULL, "context == NULL");
 		return;
 	}
-
 	if (context->private->encoding)
 	{
 		rte_error(context, "already encoding");
 		return;
 	}
-
 	if ((width % 16) || (height % 16) ||
 	    (width <= 0) || (height <= 0))
 	{
@@ -388,8 +385,8 @@ void rte_set_video_parameters (rte_context * context,
 	}
 
 	context->video_format = frame_format;
-	context->width = width;
-	context->height = height;
+	context->width = MIN(width, MAX_WIDTH);
+	context->height = MIN(height, MAX_HEIGHT);
 	context->video_rate = video_rate;
 	context->output_video_bits = output_video_bits;
 	context->video_bytes = context->width * context->height;
@@ -408,6 +405,143 @@ void rte_set_video_parameters (rte_context * context,
 	}
 }
 
+/* Sets the audio parameters */
+void rte_set_audio_parameters (rte_context * context,
+			       int audio_rate,
+			       enum rte_audio_mode audio_mode,
+			       size_t output_audio_bits)
+{
+	int stereo;
+	if (!context)
+	{
+		rte_error(NULL, "context == NULL");
+		return;
+	}
+	if (context->private->encoding)
+	{
+		rte_error(context, "already encoding");
+		return;
+	}
+
+	context->audio_rate = audio_rate;
+	context->audio_mode = audio_mode;
+	context->output_audio_bits = output_audio_bits;
+
+	switch (context->audio_mode) {
+	case RTE_AUDIO_MODE_MONO:
+		stereo = 0;
+		break;
+	case RTE_AUDIO_MODE_STEREO:
+		stereo = 1;
+		break;
+		/* fixme:dual channel */
+	default:
+		stereo = 0;
+		break;
+	}
+
+	context->audio_bytes = 2 * (stereo+1) * 1632;
+}
+
+void rte_set_mode (rte_context * context, enum rte_mux_mode mode)
+{
+	if (!context)
+	{
+		rte_error(NULL, "context == NULL");
+		return;
+	}
+	if (context->private->encoding)
+	{
+		rte_error(context, "already encoding");
+		return;
+	}
+
+	context->mode = mode;
+}
+
+void rte_set_data_callback (rte_context * context, rteDataCallback
+			    callback)
+{
+	if (!context)
+	{
+		rte_error(NULL, "context == NULL");
+		return;
+	}
+	if (context->private->encoding)
+	{
+		rte_error(context, "already encoding");
+		return;
+	}
+
+	context->private->data_callback = callback;
+}
+
+rteDataCallback rte_get_data_callback (rte_context * context)
+{
+	if (!context)
+	{
+		rte_error(NULL, "context == NULL");
+		return NULL;
+	}
+	return (context->private->data_callback);
+}
+
+void rte_set_encode_callback (rte_context * context,
+			      rteEncodeCallback callback)
+{
+	if (!context)
+	{
+		rte_error(NULL, "context == NULL");
+		return;
+	}
+	if (context->private->encoding)
+	{
+		rte_error(context, "already encoding");
+		return;
+	}
+
+	context->private->encode_callback = callback;
+}
+
+rteEncodeCallback rte_get_encode_callback (rte_context * context)
+{
+	if (!context)
+	{
+		rte_error(NULL, "context == NULL");
+		return NULL;
+	}
+	return (context->private->encode_callback);
+}
+
+void rte_set_file_name(rte_context * context, const char * file_name)
+{
+	if (!context)
+	{
+		rte_error(NULL, "context == NULL");
+		return;
+	}
+	if (context->file_name)
+		free(context->file_name);
+
+	if (file_name)
+		context->file_name = strdup(file_name);
+	else
+		context->file_name = NULL;
+}
+
+char * rte_get_file_name(rte_context * context)
+{
+	if (!context)
+	{
+		rte_error(NULL, "context == NULL");
+		return NULL;
+	}
+	return context->file_name;
+}
+
+/* tranlates the context options to the global mp1e options */
+static int rte_fake_options(rte_context * context);
+
 int rte_start ( rte_context * context )
 {
 	if (!context)
@@ -415,12 +549,30 @@ int rte_start ( rte_context * context )
 		rte_error(NULL, "context == NULL");
 		return 0;
 	}
-
 	if (context->private->encoding)
 	{
 		rte_error(context, "already encoding");
 		return 0;
 	}
+	if ((context->private->encode_callback) && (context->file_name)) {
+		rte_error(context, "You need an encode callback OR a file name");
+		return 0;
+	}
+
+	if (!rte_fake_options(context))
+		return 0;
+
+	if (context->file_name) {
+		/* fixme: &&& */
+		context->private->fd = creat("dummy.%%%", 00644);
+		if (context->private->fd == -1) {
+			rte_error(context, "creat(): %s [%d]",
+				  strerror(errno), errno);
+			return 0;
+		}
+	} else
+		context->private->encode_callback =
+			RTE_ENCODE_CALLBACK(default_write_callback);
 
 	context->private->v_ubuffer = -1;
 	context->private->a_ubuffer = NULL;
@@ -511,6 +663,11 @@ void rte_stop ( rte_context * context )
 			pthread_mutex_destroy(&(context->private->audio_mutex));
 		}
 		free_fifo(&(context->private->aud));
+	}
+
+	if (context->private->fd > 0) {
+		close(context->private->fd);
+		context->private->fd = -1;
 	}
 }
 
@@ -776,5 +933,57 @@ int rte_init ( void )
 	audio_read = audio_input_read;
 	audio_unget = audio_input_unget;
 
+	return 1;
+}
+
+static int rte_fake_options(rte_context * context)
+{
+	int pitch;
+
+	ASSERT("guiroppaaaaa!\n", context != NULL);
+
+	mux_mode = context->mode;
+	grab_width = saturate(context->width, 1, MAX_WIDTH);
+	grab_height = saturate(context->height, 1, MAX_HEIGHT);
+	if ((context->video_rate == RTE_RATE_NORATE) ||
+	    (context->video_rate > RTE_RATE_8)) {
+		rte_error(context, "Invalid frame rate: %d", context->video_rate);
+	}
+	frame_rate_code = context->video_rate;
+	switch (context->video_format) {
+	case RTE_YUYV:
+		filter_mode = CM_YUYV;
+		pitch = grab_width*2;
+		break;
+	case RTE_YUV420:
+		filter_mode = CM_YUV;
+		pitch = grab_width;
+		break;
+	default:
+		rte_error(context, "unknown pixformat %d", context->video_format);
+		return 0;
+	}
+	filter_init(pitch);
+	if ((width != grab_width) || (height != grab_height))
+		rte_error(NULL, "requested %dx%d, got %dx%d",
+			  grab_width, grab_height, width, height);
+	video_bit_rate = context->output_video_bits;
+	audio_bit_rate = context->output_audio_bits;
+	audio_bit_rate_stereo = audio_bit_rate * 2;
+
+	/* fixme: is audio_rate really needed? */
+	sampling_rate = context->audio_rate;
+	switch (context->audio_mode) {
+	case RTE_AUDIO_MODE_MONO:
+		audio_mode = AUDIO_MODE_MONO;
+		break;
+	case RTE_AUDIO_MODE_STEREO:
+		audio_mode = AUDIO_MODE_STEREO;
+		break;
+	default:
+		rte_error(context, "unknown audio mode %d",
+			  context->audio_mode);
+		return 0;
+	}
 	return 1;
 }

@@ -32,6 +32,7 @@
 #include "../options.h"
 #include "../fifo.h"
 #include "../log.h"
+#include "../rte.h"
 #include "systems.h"
 
 static int              output_file = -1;
@@ -42,6 +43,7 @@ static int              out_buffers = 8;
 static size_t           out_buffer_size;
 
 extern int		stereo;
+extern rte_context *    global_context;
 
 int
 output_init( const char * file )

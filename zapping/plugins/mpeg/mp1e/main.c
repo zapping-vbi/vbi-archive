@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.5 2000-07-13 19:02:37 garetxe Exp $ */
+/* $Id: main.c,v 1.6 2000-07-14 22:33:53 garetxe Exp $ */
 
 #define MAIN_C
 
@@ -176,6 +176,7 @@ int emulation_thread_init ( void )
 	rte_context * context;
 	int do_test = 1; /* 1 == push, 2 == callbacks, 3 == both */
 	rteDataCallback callback;
+	enum rte_pixformat format;
 
 	ye_olde_wait_frame = video_wait_frame;
 	ye_olde_frame_done = video_frame_done;
@@ -195,6 +196,22 @@ int emulation_thread_init ( void )
 
 	if (!context)
 		return 0;
+
+	format = context->video_format;
+	switch (filter_mode) {
+	case CM_YUYV:
+		format = RTE_YUYV;
+		break;
+	case CM_YUV:
+		format = RTE_YUV420;
+		break;
+	default:
+		printv(1, "filter mode not supported: %d\n", filter_mode);
+		break;
+	}
+
+	rte_set_video_parameters(context, format, width, height,
+				 frame_rate_code, video_bit_rate);
 
 	if (!rte_start(context))
 	{
