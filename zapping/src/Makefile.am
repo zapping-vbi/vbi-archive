@@ -9,6 +9,7 @@ INCLUDES = -I$(top_srcdir) @DEFAULT_CFLAGS@ @COMMON_INCLUDES@ \
 bin_PROGRAMS = zapping zapping_remote
 
 COMMON_LIB = $(top_builddir)/common/libcommon.a
+TV_LIB = $(top_builddir)/libtv/libtv.a
 
 if BUILD_GEN_CONV
 gen_conv_lib = libgen_conv.a
@@ -36,55 +37,57 @@ zmarshalers.c: zmarshalers.list
 	glib-genmarshal --prefix=z_marshal zmarshalers.list --header > zmarshalers.h
 
 zapping_SOURCES = \
-	main.c \
-	interface.c interface.h \
-	remote.c remote.h \
+	arts.c esd.c oss.c \
+	audio.c audio.h \
+	capture.c capture.h \
+	channel_editor.c channel_editor.h \
 	cmd.c cmd.h \
+	cpu.c cpu.h \
+	csconvert.c csconvert.h \
+	eggcellrendererkeys.c eggcellrendererkeys.h \
+	eggaccelerators.c eggaccelerators.h \
+	frequencies.c frequencies.h \
+	fullscreen.c fullscreen.h \
+	globals.c globals.h \
+	i18n.c i18n.h \
+	interface.c interface.h \
+	keyboard.c keyboard.h keysyms.h \
+	main.c \
+	mixer.c mixer.h \
+	osd.c osd.h \
+	overlay.c overlay.h \
+	plugin_properties.c plugin_properties.h \
+	plugins.c plugins.h plugin_common.h \
+	properties.c properties.h \
+	properties-handler.c properties-handler.h \
+	remote.c remote.h \
+	strnatcmp.c strnatcmp.h \
 	tveng.c tveng.h tveng_private.h \
 	tveng1.c tveng1.h \
 	tveng2.c tveng2.h \
-	tvengxv.c tvengxv.h \
-	tvengemu.c tvengemu.h \
 	tveng25.c tveng25.h \
 	tvengbktr.c tvengbktr.h \
-	v4linterface.c v4linterface.h \
-	x11stuff.c x11stuff.h \
-	zimage.c zimage.h \
-	video_xv.c video_x11.c video_gdkrgb.c video_mem.c \
-	zmisc.c zmisc.h \
-	zmarshalers.c zmarshalers.h \
-	zmodel.c zmodel.h \
-	zconf.c zconf.h \
-	zvbi.c zvbi.h \
-	osd.c osd.h \
-	frequencies.c frequencies.h \
-	strnatcmp.c strnatcmp.h \
-	keyboard.c keyboard.h keysyms.h \
-	properties.c properties.h \
-	arts.c esd.c oss.c \
-	audio.c audio.h \
-	mixer.c mixer.h \
-	cpu.c cpu.h \
-	csconvert.c csconvert.h \
-	yuv2rgb.c yuv2rgb.h gen_conv.h \
-	plugins.c plugins.h plugin_common.h \
-	capture.c capture.h \
-	overlay.c overlay.h \
-	fullscreen.c fullscreen.h \
-	globals.c globals.h \
+	tvengemu.c tvengemu.h \
+	tvengxv.c tvengxv.h \
 	ttxview.c ttxview.h \
-	properties-handler.c properties-handler.h \
-	plugin_properties.c plugin_properties.h \
-	channel_editor.c channel_editor.h \
-	i18n.c i18n.h \
-	zvideo.c zvideo.h \
-	eggcellrendererkeys.c eggcellrendererkeys.h \
-	eggaccelerators.c eggaccelerators.h \
+	v4linterface.c v4linterface.h \
+	vdr.c vdr.h \
+	video_xv.c video_x11.c video_gdkrgb.c video_mem.c \
+	x11stuff.c x11stuff.h \
 	xawtv.c xawtv.h \
-	vdr.c vdr.h
+	yuv2rgb.c yuv2rgb.h gen_conv.h \
+	zapping.c zapping.h \
+	zconf.c zconf.h \
+	zimage.c zimage.h \
+	zmarshalers.c zmarshalers.h \
+	zmisc.c zmisc.h \
+	zmodel.c zmodel.h \
+	zvbi.c zvbi.h \
+	zvideo.c zvideo.h
 
-zapping_LDADD = $(gen_conv_lib) $(COMMON_LIB) $(PACKAGE_LIBS) $(PYTHON_LIBS) \
-  $(X_LIBS) -lX11 $(X_DPMS_LIBS) \
+zapping_LDADD = $(gen_conv_lib) $(COMMON_LIB) $(TV_LIB) \
+  $(PACKAGE_LIBS) $(PYTHON_LIBS) \
+  $(X_LIBS) -lX11 $(X_DPMS_LIBS) $(X_XINERAMA_LIBS) \
   $(X_XF86DGA_LIBS) $(X_XF86VMODE_LIBS) $(X_XV_LIBS) \
   $(CCMALLOC) $(ZVBI_LIB) $(ARTS_LIBS) $(ESD_LIBS) $(LIBXML_LIBS)
 zapping_LDFLAGS = -export-dynamic
