@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dct.c,v 1.4 2000-09-25 17:08:57 mschimek Exp $ */
+/* $Id: dct.c,v 1.5 2000-09-28 07:25:41 mschimek Exp $ */
 
 #include <assert.h>
 #include "../common/math.h"
@@ -663,11 +663,12 @@ asm("
 
 /* preliminary */
 
+static short t1s[8][8] __attribute__ ((aligned (32)));
+
 void
 mmx_mpeg1_idct_inter(unsigned int cbp)
 {
     int i;
-    static short t1s[8][8] __attribute__ ((aligned (32)));
     unsigned char *new = newref;
 
   for (i = 0; i < 6; i++) {
@@ -928,15 +929,15 @@ asm("
 	paddsw  6*16+4*2+3*768(%0),%%mm1;
 	paddsw  7*16+4*2+3*768(%0),%%mm0;
 
-	movq %%mm7, 0*16+4*2(%4);
-	movq %%mm6, 1*16+4*2(%4);
-	movq %%mm5, 2*16+4*2(%4);
-	movq %%mm4, 3*16+4*2(%4);
+	movq %%mm7, 0*16+4*2+t1s;
+	movq %%mm6, 1*16+4*2+t1s;
+	movq %%mm5, 2*16+4*2+t1s;
+	movq %%mm4, 3*16+4*2+t1s;
 	
-	movq %%mm3, 4*16+4*2(%4);
-	movq %%mm2, 5*16+4*2(%4);
-	movq %%mm1, 6*16+4*2(%4);
-	movq %%mm0, 7*16+4*2(%4);
+	movq %%mm3, 4*16+4*2+t1s;
+	movq %%mm2, 5*16+4*2+t1s;
+	movq %%mm1, 6*16+4*2+t1s;
+	movq %%mm0, 7*16+4*2+t1s;
 
 	/* Top odd */
 
@@ -1011,23 +1012,23 @@ asm("
 	paddsw  6*16+0*2+3*768(%0),%%mm1;
 	paddsw  7*16+0*2+3*768(%0),%%mm0;
 
-	packuswb  0*16+4*2(%4), %%mm7;
-	packuswb  1*16+4*2(%4), %%mm6;
-	packuswb  2*16+4*2(%4), %%mm5;
-	packuswb  3*16+4*2(%4), %%mm4;
-	packuswb  4*16+4*2(%4), %%mm3;
-	packuswb  5*16+4*2(%4), %%mm2;
-	packuswb  6*16+4*2(%4), %%mm1;
-	packuswb  7*16+4*2(%4), %%mm0;
+	packuswb  0*16+4*2+t1s, %%mm7;
+	packuswb  1*16+4*2+t1s, %%mm6;
+	packuswb  2*16+4*2+t1s, %%mm5;
+	packuswb  3*16+4*2+t1s, %%mm4;
+	packuswb  4*16+4*2+t1s, %%mm3;
+	packuswb  5*16+4*2+t1s, %%mm2;
+	packuswb  6*16+4*2+t1s, %%mm1;
+	packuswb  7*16+4*2+t1s, %%mm0;
 	
 	pushl	%0;
-	leal	(%5,%3),%0;
-	movq %%mm7, (%5);	// 0
-	movq %%mm6, (%5,%3);	// 1
-	movq %%mm5, (%5,%3,2);	// 2
+	leal	(%4,%3),%0;
+	movq %%mm7, (%4);	// 0
+	movq %%mm6, (%4,%3);	// 1
+	movq %%mm5, (%4,%3,2);	// 2
 	movq %%mm4, (%0,%3,2);	// 3
 	leal	(%0,%3,4),%0;
-	movq %%mm3, (%5,%3,4);	// 4
+	movq %%mm3, (%4,%3,4);	// 4
 	movq %%mm2, (%0);	// 5
 	movq %%mm1, (%0,%3);	// 6
 	movq %%mm0, (%0,%3,2);	// 7
@@ -1037,7 +1038,6 @@ asm("
      "r" (lut2p),		// AAN/quant table
      "r" (&mblock[1][0][0][0]),	// temporary #1
      "r" (mb_address.block[i].pitch),
-     "r" (&t1s[0][0]),		// temporary #2
      "r" (new)			// new reference
   : "cc", "memory" FPU_REGS);
 
