@@ -157,6 +157,20 @@ build_widget			(const gchar *		name,
   return widget;
 }
 
+static void
+on_toolbar_toggled		(GtkCheckMenuItem *	checkmenuitem,
+				 gpointer		user_data)
+{
+  cmd_run_printf ("zapping.hide_controls(%u)", !checkmenuitem->active);
+}
+
+static void
+on_keep_window_on_top_toggled	(GtkCheckMenuItem *	checkmenuitem,
+				 gpointer		user_data)
+{
+  cmd_run_printf ("zapping.keep_on_top(%u)", checkmenuitem->active);
+}
+
 #define PY_CMD(_name, _signal, _cmd)				\
   w = lookup_widget (widget, #_name);				\
   g_signal_connect (G_OBJECT (w), _signal,			\
@@ -207,6 +221,14 @@ create_zapping (void)
     zconf_get_boolean (NULL, "/zapping/options/main/keep_on_top")
     && !!have_wm_hints);
 
+  w = lookup_widget (widget, "hide_controls2");
+  g_signal_connect (G_OBJECT (w), "toggled",
+		    (GCallback) on_toolbar_toggled, NULL);
+
+  w = lookup_widget (widget, "keep_window_on_top2");
+  g_signal_connect (G_OBJECT (w), "toggled",
+		    (GCallback) on_keep_window_on_top_toggled, NULL);
+
   PY_CMD (quit1,		"activate",	"zapping.quit()");
   PY_CMD (go_fullscreen1,	"activate",	"zapping.switch_mode('fullscreen')");
   PY_CMD (go_previewing2,	"activate",	"zapping.switch_mode('preview')");
@@ -216,8 +238,6 @@ create_zapping (void)
   PY_CMD (mute2,		"activate",	"zapping.mute()");
   PY_CMD (about1,		"activate",	"zapping.about()");
   PY_CMD (propiedades1,		"activate",	"zapping.properties()");
-  PY_CMD (hide_controls2,	"activate",	"zapping.hide_controls()");
-  PY_CMD (keep_window_on_top2,	"activate",	"zapping.keep_on_top()");
   PY_CMD (plugins1,		"activate",	"zapping.plugin_properties()");
   PY_CMD (main_help1,		"activate",	"zapping.help()");
   PY_CMD (vbi_info1,		"activate",	"zapping.network_info()");
@@ -257,13 +277,19 @@ create_popup_menu1 (void)
 				  (NULL, "/zapping/options/main/keep_on_top")
 				  && !!have_wm_hints);
 
+  w = lookup_widget (widget, "hide_controls1");
+  g_signal_connect (G_OBJECT (w), "toggled",
+		    (GCallback) on_toolbar_toggled, NULL);
+
+  w = lookup_widget (widget, "keep_window_on_top1");
+  g_signal_connect (G_OBJECT (w), "toggled",
+		    (GCallback) on_keep_window_on_top_toggled, NULL);
+
   PY_CMD (go_fullscreen2,	"activate", "zapping.switch_mode('fullscreen')");
   PY_CMD (go_previewing2,	"activate", "zapping.switch_mode('preview')");
   PY_CMD (go_capturing2,	"activate", "zapping.switch_mode('capture')");
   PY_CMD (videotext2,		"activate", "zapping.switch_mode('teletext')");
   PY_CMD (new_ttxview2,		"activate", "zapping.ttx_open_new()");
-  PY_CMD (hide_controls1,	"activate", "zapping.hide_controls()");
-  PY_CMD (keep_window_on_top1,	"activate", "zapping.keep_on_top()");
 
   w = lookup_widget (widget, "appearance1_menu");
   picture_sizes_append_menu (GTK_MENU_SHELL (w));
