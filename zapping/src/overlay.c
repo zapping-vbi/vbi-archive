@@ -416,7 +416,9 @@ startup_overlay(GtkWidget * window, GtkWidget * main_window,
 				 1);
     }
   else
-    gdk_window_set_back_pixmap(window->window, NULL, FALSE);
+    {
+      gdk_window_set_background(window->window, &chroma);
+    }
 
 #ifdef HAVE_LIBZVBI
   if (tv_info.needs_cleaning)
