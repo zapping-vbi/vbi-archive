@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.13 2001-12-18 18:24:02 garetxe Exp $
+dnl $Id: configure.in,v 1.14 2002-01-09 18:22:14 garetxe Exp $
 
 AC_INIT(configure.in)
 RTE_VERSION_MAJOR=0
@@ -111,6 +111,12 @@ test/Makefile
 po/Makefile.in
 rte.spec
 ])
+
+if test ! -e mp1e/NO-CONFIGURE; then
+	(cd mp1e && ./configure)
+else
+	echo "skipping ./mp1e -- flagged as no-configure"
+fi
 
 dnl fscking broken world
 if test ! -r po/Makefile; then
