@@ -1455,7 +1455,7 @@ set_capture_format		(tveng_device_info *	info,
 
 	if (0 == pixelformat) {
 		info->tveng_errno = -1; /* unknown */
-		t_error_msg ("", "Bad pixfmt %u %s", info,
+		tv_error_msg (info, "Bad pixfmt %u %s",
 			     fmt->pixel_format->pixfmt,
 			     fmt->pixel_format->name);
 		return FALSE;
@@ -1723,8 +1723,8 @@ dequeue_buffer			(tveng_device_info *	info,
 
 	if (CAPTURE_MODE_READ != info->capture_mode) {
 		info->tveng_errno = -1;
-		t_error_msg("check", "Current capture mode is not READ (%d)",
-			    info, info->capture_mode);
+		tv_error_msg(info, "Current capture mode is not READ (%d)",
+			     info->capture_mode);
 		return -1;
 	}
 
@@ -2079,7 +2079,7 @@ enable_capture			(tveng_device_info *	info,
 		    || ((info->caps.flags & TVENG_CAPS_QUEUE)
 			&& p_info->n_buffers < n_buffers)) {
 			info->tveng_errno = -1;
-			t_error_msg("check()", "Not enough buffers", info);
+			tv_error_msg(info, "Not enough buffers");
 			return FALSE;
 		}
 
@@ -2265,7 +2265,7 @@ static int p_tveng25_open_device_file(int flags, tveng_device_info * info)
   /* sn9c102 1.0.8 bug: NONBLOCK open fails with EAGAIN if the device has
      users, and it seems the counter is never decremented when the USB device
      is disconnected at close time. */
-  if (0 != strcmp (p_info->caps.driver, "sn9c102"))
+  if (0 != strcmp ((char *) p_info->caps.driver, "sn9c102"))
     flags |= O_NONBLOCK;
 
   info -> fd = device_open(info->log_fp, info -> file_name, flags, 0);
@@ -2411,8 +2411,7 @@ int tveng25_attach_device(const char* device_file,
       info -> fd = p_tveng25_open_device_file(O_RDWR, info);
       break;
     default:
-      t_error_msg("switch()", "Unknown attach mode for the device",
-		  info);
+      tv_error_msg(info, "Unknown attach mode for the device");
       free(info->file_name);
       info->file_name = NULL;
       return -1;
