@@ -466,7 +466,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.166 2002-08-31 17:06:46 mschimek Exp $",
+	 "$Id: main.c,v 1.167 2003-01-03 06:13:55 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -652,8 +652,19 @@ int main(int argc, char * argv[])
 
   D();
   /* mute the device while we are starting up */
-  if (tveng_set_mute(1, main_info) < 0)
-    unmutable = TRUE;
+  /* FIXME */
+  /* if (tveng_set_mute(1, main_info) < 0)
+     unmutable = TRUE; */
+  {
+    int cur_line = zconf_get_integer (NULL, "/zapping/options/audio/record_source");
+
+    if (main_info->audio_mutable)
+      tveng_set_mute(1, main_info);
+    else if (cur_line > 0)
+      mixer_set_mute (cur_line - 1, 1);
+    else
+      unmutable = TRUE;
+  }
   D();
   z_tooltips_active (zconf_get_boolean
 		     (NULL, "/zapping/options/main/show_tooltips"));
@@ -775,10 +786,12 @@ int main(int argc, char * argv[])
 	ShowBox(_("Capture mode couldn't be started:\n%s"),
 		GNOME_MESSAGE_BOX_ERROR, main_info->error);
   D();
-  if (-1 == tveng_set_mute(zcg_bool(NULL, "start_muted"), main_info))
-    printv("%s\n", main_info->error);
-  else
-    set_mute1(3, TRUE, FALSE);
+  // FIXME
+  //  if (-1 == tveng_set_mute(zcg_bool(NULL, "start_muted"), main_info))
+  //    printv("%s\n", main_info->error);
+  //  else
+  mixer_setup ();
+  set_mute1 (!!zcg_bool(NULL, "start_muted") /* 3 */, TRUE, FALSE);
   D();
   /* Restore the input and the standard */
   if (zcg_int(NULL, "current_input"))
@@ -922,7 +935,14 @@ static void shutdown_zapping(void)
   else
     zcs_int(0, "current_input");
 
-  tveng_set_mute(1, main_info);
+  {
+    int cur_line = zconf_get_integer (NULL, "/zapping/options/audio/record_source");
+
+    if (main_info->audio_mutable)
+      tveng_set_mute(1, main_info);
+    else if (cur_line > 0)
+      mixer_set_mute (cur_line - 1, 1);
+  }
 
   /* Shutdown all other modules */
   printv(" callbacks");
