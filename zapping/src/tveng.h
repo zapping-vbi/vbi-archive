@@ -288,6 +288,8 @@ do {									\
 
 typedef struct _tv_device_node tv_device_node;
 
+/* This is a model (in the MVC sense) for devices we encounter
+   and want to present to the user to make a choice or whatever. */
 struct _tv_device_node {
 	tv_device_node *	next;
 
@@ -932,7 +934,7 @@ struct _tveng_device_info
 /* Video inputs */
 
 extern const tv_video_line *
-tv_next_video_input		(tveng_device_info *	info,
+tv_next_video_input		(const tveng_device_info *info,
 				 const tv_video_line *	line);
 extern const tv_video_line *
 tv_nth_video_input		(tveng_device_info *	info,
@@ -968,7 +970,7 @@ tv_add_video_input_callback	(tveng_device_info *	info,
 /* Audio inputs */
 
 extern const tv_audio_line *
-tv_next_audio_input		(tveng_device_info *	info,
+tv_next_audio_input		(const tveng_device_info *info,
 				 const tv_audio_line *	line);
 extern const tv_audio_line *
 tv_nth_audio_input		(tveng_device_info *	info,
@@ -993,7 +995,7 @@ tv_add_audio_input_callback	(tveng_device_info *	info,
 /* Video standards */
 
 extern const tv_video_standard *
-tv_next_video_standard		(tveng_device_info *	info,
+tv_next_video_standard		(const tveng_device_info *info,
 				 const tv_video_standard *standard);
 extern const tv_video_standard *
 tv_nth_video_standard		(tveng_device_info *	info,
@@ -1024,7 +1026,7 @@ tv_add_video_standard_callback	(tveng_device_info *	info,
 /* Controls */
 
 extern tv_control *
-tv_next_control			(tveng_device_info *	info,
+tv_next_control			(const tveng_device_info *info,
 				 const tv_control *	control);
 extern tv_control *
 tv_nth_control			(tveng_device_info *	info,
@@ -1308,11 +1310,6 @@ tveng_start_previewing (tveng_device_info * info, const char *mode);
 */
 int
 tveng_stop_previewing (tveng_device_info * info);
-
-/* Some utility functions a la glib */
-
-extern char *
-tveng_strdup_printf(const char *templ, ...);
 
 /* build hash for the given string, normalized */
 int
