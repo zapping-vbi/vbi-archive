@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.25 2002-02-25 06:22:19 mschimek Exp $ */
+/* $Id: main.c,v 1.26 2002-03-09 10:21:07 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -287,7 +287,7 @@ main(int ac, char **av)
 
 	options(ac, av);
 
-#ifndef OPEN_SESAME
+#if 0
 	if (mux_syn != 4) {
 		FAIL("Temporarily out of order. No bug reports please.");
 	}
