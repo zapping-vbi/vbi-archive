@@ -1,3 +1,11 @@
+2004-04-21    <mschimek@users.sf.net>
+
+	* po/sv.po, po/pl.po, po/nl.po, po/it.po, po/fr.po, po/es.po,
+	  po/de.po, glade/zapping.glade2, src/audio.c (startup_audio,
+	  general_audio_setup, general_audio_apply), src/v4linterface.c
+	  (z_switch_channel), src/zmisc.c (zmisc_switch_mode): Restored
+	  mute on channel change option.
+
 2004-04-19    <mschimek@users.sf.net>
 
 	* common/Makefile.am: Updated structpr hints. Removed obsolete

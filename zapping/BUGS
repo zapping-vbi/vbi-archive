@@ -1,6 +1,8 @@
 Known bugs in Zapping, don't report them
 ----------------------------------------
 
+* Doesn't always reset hue on startup.
+* Mute button is on after unmute, quit, restart. Seems to be a driver effect.
 * Chance hang in request_capture_format_real at some rwlock,
   in libzvbi-less Zapping, when switching display mode
   (btw overlay and fullscreen IIRC).
