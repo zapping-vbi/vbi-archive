@@ -17,9 +17,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvideo.h,v 1.7 2002-05-13 05:38:42 mschimek Exp $ */
+/* $Id: libvideo.h,v 1.8 2002-06-24 03:20:23 mschimek Exp $ */
 
-#include "../rtepriv.h"
+#include "rtepriv.h"
 #include "../systems/libsystems.h"
 
 #include "video.h" // XXX REMOVE

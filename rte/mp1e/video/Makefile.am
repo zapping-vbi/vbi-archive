@@ -1,6 +1,9 @@
+## Process this file with automake to produce Makefile.in
+
 noinst_LTLIBRARIES = libvideo.la
 
-INCLUDES = -D_GNU_SOURCE -D_REENTRANT
+INCLUDES = -D_GNU_SOURCE -D_REENTRANT $(RTE_CFLAGS) \
+	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
 
 if USE_SSE2
 SSE2_FILES = motion_sse2.s
@@ -23,5 +26,5 @@ libvideo_la_SOURCES = \
 	$(SSE2_FILES)
 
 vlc_tables.h: vlc_gen.c
-	$(CC) $^ -D_GNU_SOURCE -Wall -o vlc_gen
+	$(CC) $^ -D_GNU_SOURCE $(RTE_CFLAGS) -Wall -o vlc_gen
 	./vlc_gen <$^ >$@

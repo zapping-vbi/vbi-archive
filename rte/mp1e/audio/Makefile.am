@@ -1,6 +1,9 @@
+## Process this file with automake to produce Makefile.in
+
 noinst_LTLIBRARIES = libaudio.la
 
-INCLUDES = -D_GNU_SOURCE -D_REENTRANT -DFLOAT=float
+INCLUDES = -D_GNU_SOURCE -D_REENTRANT -DFLOAT=float $(RTE_CFLAGS) \
+	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
 
 libaudio_la_SOURCES = \
 	fft.c libaudio.h \
