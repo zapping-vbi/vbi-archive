@@ -18,12 +18,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: math.h,v 1.3 2000-09-29 17:54:33 mschimek Exp $ */
+/* $Id: math.h,v 1.4 2001-05-14 22:31:25 garetxe Exp $ */
 
 #ifndef MATH_H
 #define MATH_H
 
 #include <math.h>
+#include <float.h>
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
