@@ -19,8 +19,8 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include "../site_def.h"
-#include "../config.h"
+#include "site_def.h"
+#include "config.h"
 
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
