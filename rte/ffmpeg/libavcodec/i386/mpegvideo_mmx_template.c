@@ -193,6 +193,7 @@ static int RENAME(dct_quantize)(MpegEncContext *s,
     asm volatile(
         "movl %0, %%eax			\n\t"
 	"pushl %%ebp			\n\t"
+	"pushl %%ebx			\n\t"
 	"movl %%esp, " MANGLE(esp_temp) "\n\t"
 	"1:				\n\t"
 	"movzbl (%1, %%eax), %%ebx	\n\t"
@@ -206,10 +207,11 @@ static int RENAME(dct_quantize)(MpegEncContext *s,
 	"addl $2, %%eax			\n\t"
 	" js 1b				\n\t"
 	"movl " MANGLE(esp_temp) ", %%esp\n\t"
+	"popl %%ebx			\n\t"
 	"popl %%ebp			\n\t"
 	: 
 	: "g" (-last_non_zero_p1), "d" (zigzag_direct_noperm+last_non_zero_p1), "S" (temp_block), "D" (block)
-	: "%eax", "%ebx", "%ecx"
+	: "%eax", "%ecx"
 	);
 /*
     for(i=0; i<last_non_zero_p1; i++)
