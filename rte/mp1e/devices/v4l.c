@@ -23,7 +23,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.4 2002-09-03 22:40:32 mschimek Exp $ */
+/* $Id: v4l.c,v 1.5 2002-09-04 21:27:00 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -106,6 +106,9 @@ v4l_cap_thread(void *unused)
 	buffer *b;
 
 	for (;;) {
+		/* Apparently we don't reach a cancellation point in shutdown */
+		pthread_testcancel();
+
 		b = wait_empty_buffer(&cap_prod);
 
 		if (use_mmap) {
@@ -201,8 +204,7 @@ static void
 restore_audio(void)
 {
 	pthread_cancel(thread_id);
-// FIXME ARRR does not join
-//	pthread_join(thread_id, NULL);
+	pthread_join(thread_id, NULL);
 
 	IOCTL(fd, VIDIOCSAUDIO, &old_vaud);
 }
