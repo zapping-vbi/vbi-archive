@@ -247,7 +247,9 @@ int main(int argc, char * argv[])
   if (oldbttv)
     newbttv = 0;
 
-  printv("%s %s, build date: %s\n", "Zapping", VERSION, __DATE__);
+  printv("%s\n%s %s, build date: %s\n",
+	 "$Id: main.c,v 1.65 2000-11-26 18:56:00 garetxe Exp $", "Zapping", VERSION, __DATE__);
+  printv("Checking for MMX support... ");
   switch (mm_support())
     {
     case 1:
@@ -305,15 +307,17 @@ int main(int argc, char * argv[])
 					       "zapping_setup_fb_verbosity"),
 				       main_info);
   D();
-  /* fixme: try to run the auxiliary suid program */
-  //  if ((main_info->current_controller != TVENG_CONTROLLER_XV) &&
-      //      (tveng_run_zapping_setup_fb(main_info) == -1))
-  //disable_preview = TRUE;
+  /* try to run the auxiliary suid program */
+  if (tveng_run_zapping_setup_fb(main_info) == -1)
+    {
+      printv("cannot run zapping_setup_fb, overlay disabled\n");
+      disable_preview = TRUE;
+    }
   D();
   free(main_info -> file_name);
   D();
   if (tveng_attach_device(zcg_char(NULL, "video_device"),
-			  TVENG_ATTACH_XV,
+			  TVENG_ATTACH_READ,
 			  main_info) == -1)
     {
       /* Check that the given device is /dev/video, if it isn't, try
@@ -411,7 +415,7 @@ int main(int argc, char * argv[])
   /* Disable preview if needed */
   if (disable_preview)
     {
-      g_message("Preview disabled, removing GUI items");
+      printv("Preview disabled, removing GUI items\n");
       gtk_widget_set_sensitive(lookup_widget(main_window, "go_previewing2"),
 			       FALSE);
       gtk_widget_hide(lookup_widget(main_window, "go_previewing2"));
@@ -419,10 +423,24 @@ int main(int argc, char * argv[])
 			       FALSE);
       gtk_widget_hide(lookup_widget(main_window, "go_fullscreen1"));
     }
+  /* Restore the input and the standard */
+  tveng_set_input_by_index(zcg_int(NULL, "current_input"), main_info);
+  D();
+  tveng_set_standard_by_index(zcg_int(NULL, "current_standard"), main_info);
+  D();
+  update_standards_menu(main_window, main_info);
+  D();
+  if (-1 == tveng_set_mute(zcg_bool(NULL, "start_muted"),
+			   main_info))
+    fprintf(stderr, "tveng_set_mute: %s\n", main_info->error);
+  D();
+  startup_teletext();
+  D();
   /* disable VBI if needed */
   if (!zvbi_get_object())
     {
-      printv("VBI disabled, removing GUI items");
+      fprintf(stderr, "Removing GUI items\n");
+      printv("VBI disabled, removing GUI items\n");
       gtk_widget_set_sensitive(lookup_widget(main_window, "separador5"),
 			       FALSE);
       gtk_widget_hide(lookup_widget(main_window, "separador5"));
@@ -434,6 +452,7 @@ int main(int argc, char * argv[])
 	zcs_int(TVENG_CAPTURE_READ, "capture_mode");
       zvbi_set_mode(FALSE);
     }
+  D();
   /* Disable the View menu completely if it is redundant */
   if ((!zvbi_get_object()) && (disable_preview))
     {
@@ -445,36 +464,9 @@ int main(int argc, char * argv[])
       gtk_widget_hide(lookup_widget(main_window, "view1"));      
     }
   D();
-  /* Restore the input and the standard */
-  tveng_set_input_by_index(zcg_int(NULL, "current_input"), main_info);
-  D();
-  tveng_set_standard_by_index(zcg_int(NULL, "current_standard"), main_info);
-  D();
-  update_standards_menu(main_window, main_info);
-  D();
-  startup_teletext();
-  D();
-  /* Sets the coords to the previous values, if the users wants to */
-  if (zcg_bool(NULL, "keep_geometry"))
-    {
-      zconf_get_integer(&x, "/zapping/internal/callbacks/x");
-      zconf_get_integer(&y, "/zapping/internal/callbacks/y");
-      zconf_get_integer(&w, "/zapping/internal/callbacks/w");
-      zconf_get_integer(&h, "/zapping/internal/callbacks/h");
-      printv("Restoring geometry: <%d,%d> <%d x %d>\n", x, y, w, h);
-      /* prevents the toolbar from resizing the window */
-      while (gtk_events_pending())
-	gtk_main_iteration();
-      gdk_window_move_resize(main_window->window, x, y, w, h);
-    }
-
-  D();
-  if (-1 == tveng_set_mute(zcg_bool(NULL, "start_muted"),
-			   main_info))
-    fprintf(stderr, "tveng_set_mute: %s\n", main_info->error);
-  D(); printv("switching to mode %d (%d)\n", zcg_int(NULL,
-						   "capture_mode"),
-	      TVENG_CAPTURE_READ);
+  printv("switching to mode %d (%d)\n", zcg_int(NULL,
+						"capture_mode"),
+	 TVENG_CAPTURE_READ);
   /* Start the capture in the last mode */
   if (!disable_preview)
     {
@@ -503,6 +495,20 @@ int main(int argc, char * argv[])
       if (zmisc_switch_mode(TVENG_CAPTURE_READ, main_info) == -1)
 	ShowBox(_("Capture mode couldn't be started:\n%s"),
 		GNOME_MESSAGE_BOX_ERROR, main_info->error);
+  D();
+  /* Sets the coords to the previous values, if the users wants to */
+  if (zcg_bool(NULL, "keep_geometry"))
+    {
+      zconf_get_integer(&x, "/zapping/internal/callbacks/x");
+      zconf_get_integer(&y, "/zapping/internal/callbacks/y");
+      zconf_get_integer(&w, "/zapping/internal/callbacks/w");
+      zconf_get_integer(&h, "/zapping/internal/callbacks/h");
+      printv("Restoring geometry: <%d,%d> <%d x %d>\n", x, y, w, h);
+      /* prevents the toolbar from resizing the window */
+      while (gtk_events_pending())
+	gtk_main_iteration();
+      gdk_window_move_resize(main_window->window, x, y, w, h);
+    }
   D(); printv("going into main loop...\n");
 
   while (!flag_exit_program)

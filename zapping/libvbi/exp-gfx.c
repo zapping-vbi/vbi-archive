@@ -21,7 +21,8 @@ draw_char(unsigned char * colour_matrix,
 	  int sep)
 {
   int x,y;
-  unsigned char* src= (latin1 ? font1_bits : font2_bits);
+  unsigned char* src= (latin1 ? vbi_get_glyph_bitmap(1) :
+		       vbi_get_glyph_bitmap(2));
   int dest_x=_x*CW;
   int dest_y=_y*CH;
       

@@ -203,6 +203,9 @@ int tveng2_attach_device(const char* device_file,
 			 tveng_device_info * info)
 {
   int error;
+  struct private_tveng2_device_info * p_info =
+    (struct private_tveng2_device_info*) info;
+
   t_assert(device_file != NULL);
   t_assert(info != NULL);
 
@@ -342,6 +345,10 @@ int tveng2_attach_device(const char* device_file,
 
   /* Set some capture format (not important) */
   tveng2_set_capture_format(info);
+
+  /* Init the private info struct */
+  p_info->num_buffers = 0;
+  p_info->buffers = NULL;
 
   return info -> fd;
 }

@@ -68,6 +68,7 @@ do { \
 do { \
   if (debug_msg) \
     fprintf(stderr, format ,##args); \
+  fflush(stderr); \
 } while (FALSE)
 
 /*

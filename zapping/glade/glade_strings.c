@@ -62,6 +62,10 @@ gchar *s = N_("Try to correct errors when decoding");
 gchar *s = N_("Device name:");
 gchar *s = N_("Select the VBI device");
 gchar *s = N_("Finetune:");
+gchar *s = N_("Glyphs:");
+gchar *s = N_("Latin\n"
+              "Russian\n"
+              "");
 gchar *s = N_("VBI options");
 gchar *s = N_("Channel choosing");
 gchar *s = N_("Choose here the channels you want to use.\n"

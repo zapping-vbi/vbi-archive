@@ -104,6 +104,7 @@ zvbi_open_device(gint newbttv)
   zcc_char("/dev/vbi", "VBI device", "vbi_device");
   zcc_bool(TRUE, "Error correction", "erc");
   zcc_int(999, "Finetune range", "finetune");
+  zcc_int(0, "Glyphs used to render TTX", "glyphs");
   srand(time(NULL));
 
   if ((vbi) || (!zcg_bool(NULL, "enable_vbi")))
@@ -112,6 +113,7 @@ zvbi_open_device(gint newbttv)
   device = zcg_char(NULL, "vbi_device");
   finetune = zcg_int(NULL, "finetune");
   erc = zcg_bool(NULL, "erc");
+  vbi_set_glyphs(zcg_int(NULL, "glyphs"));
 
   fdset_init(fds);
 
@@ -162,6 +164,8 @@ zvbi_close_device(void)
   vbi_del_handler(vbi, event, NULL);
   vbi_close(vbi);
   vbi = NULL;
+
+  zcs_int(vbi_get_glyphs(), "glyphs");
 }
 
 /*

@@ -14,5 +14,6 @@
 #include <lang.h>
 #include <dllist.h>
 #include <export.h>
+#include <font.h>
 
 #endif

@@ -32,6 +32,7 @@
 #include "x11stuff.h"
 #include "overlay.h"
 #include "capture.h"
+#include "v4linterface.h"
 
 extern tveng_device_info * main_info;
 extern GtkWidget * main_window;
@@ -267,28 +268,40 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
       break;
     }
 
-  tveng_stop_everything(info);
-
   if (new_mode != TVENG_NO_CAPTURE)
-    zvbi_set_mode(FALSE);
+    {
+      zvbi_set_mode(FALSE);
+      tveng_close_device(info);
+    }
   else
-    zvbi_set_mode(TRUE);
+    {
+      zvbi_set_mode(TRUE);
+      tveng_stop_everything(info);
+    }
 
   switch (new_mode)
     {
     case TVENG_CAPTURE_READ:
+      if (-1 == tveng_attach_device(zconf_get_string(NULL,
+						     "/zapping/options/main/video_device"), TVENG_ATTACH_READ, info));
       return_value = capture_start(tv_screen, info);
       break;
     case TVENG_CAPTURE_WINDOW:
       if (disable_preview) {
 	g_warning("preview has been disabled");
+	tveng_attach_device(zconf_get_string(NULL,
+	 "/zapping/options/main/video_device"), TVENG_ATTACH_READ, info);
 	return -1;
       }
+
+      tveng_attach_device(zconf_get_string(NULL,
+	 "/zapping/options/main/video_device"), TVENG_ATTACH_XV, info);
 
       format = zmisc_resolve_pixformat(tveng_get_display_depth(info),
 				       x11_get_byte_order());
 
-      if (format != -1)
+      if ((format != -1) &&
+	  (info->current_controller != TVENG_CONTROLLER_XV))
 	{
 	  info->format.pixformat = format;
 	  if ((tveng_set_capture_format(info) == -1) ||
@@ -314,6 +327,8 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	g_warning(info->error);
       break;
     case TVENG_CAPTURE_PREVIEW:
+      tveng_attach_device(zconf_get_string(NULL,
+	"/zapping/options/main/video_device"), TVENG_ATTACH_READ, info);
       if (disable_preview) {
 	g_warning("preview has been disabled");
 	return -1;
@@ -322,7 +337,8 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
       format = zmisc_resolve_pixformat(tveng_get_display_depth(info),
 				       x11_get_byte_order());
 
-      if (format != -1)
+      if ((format != -1) &&
+	  (info->current_controller != TVENG_CONTROLLER_XV))
 	{
 	  info->format.pixformat = format;
 	  if ((tveng_set_capture_format(info) == -1) ||
@@ -340,6 +356,13 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
     default:
       break; /* TVENG_NO_CAPTURE */
     }
+
+  /* Update the controls window if it's open */
+  update_control_box(info);
+  /* Update the standards, channels, etc */
+  update_standards_menu(tv_screen, info);
+  /* Updating the properties is not so useful, and it isn't so easy,
+     since there might be multiple properties dialog open */
 
   return return_value;
 }

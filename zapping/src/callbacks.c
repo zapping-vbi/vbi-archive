@@ -35,7 +35,7 @@
 #include "zvbi.h"
 
 gboolean flag_exit_program; /* set this flag to TRUE to exit the program */
-static GtkWidget * ToolBox = NULL; /* Here is stored the Toolbox (if any) */
+extern GtkWidget * ToolBox; /* Here is stored the Toolbox (if any) */
 /* the mode set when we went fullscreen (used by main.c too) */
 enum tveng_capture_mode restore_mode;
 

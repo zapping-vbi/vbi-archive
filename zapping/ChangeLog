@@ -1,3 +1,15 @@
+26.11.2000	Controller auto-switching <garetxe@users.sourceforge.net>
+
+	* src/tvengxv.c, src/zmisc.c: Use the XV controller just for
+	Overlay mode, READ controller for the rest, fixed some bugs (XSync)
+	* zmisc.c: The standards, input and controls are
+	dynamically changed when the controller changes.
+	* libvbi: Now allows dynamic glyphs switching (currently just
+	Latin[12] and Russian)
+	* src/mmx.c: Fixed incorrect instruction order (pop, then Return:)
+	* src/main.c: Fixed incorrect function order (zmisc_switch_mode,
+	then startup_teletext)
+
 25.11.2000	XVideo working (mol) <garetxe@users.sourceforge.net>
 
 	* src/tvengxv.c, src/callbacks.c, src/main.c, src/overlay.c: First

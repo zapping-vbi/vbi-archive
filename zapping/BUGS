@@ -5,6 +5,7 @@ Known bugs with zapping, don't report them
 ------------------------------------------
 	
 	! mm_support can segfault for some people. Why?
-	* Channel autodetection won't work with TVENG_CONTROLLER_XV
+	* Channel autodetection won't work with TVENG_CONTROLLER_XV,
+print a notice.
 	* When viewing Teletext, we shouldn't use ERC, but we should
 for the rest. Make it configurable.

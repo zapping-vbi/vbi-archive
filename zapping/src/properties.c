@@ -31,6 +31,7 @@
 #include "v4linterface.h"
 #include "plugins.h"
 #include "zconf.h"
+#include "zvbi.h"
 /* Manages config values for zconf (it saves me some typing) */
 #define ZCONF_DOMAIN "/zapping/internal/callbacks/"
 #include "zmisc.h"
@@ -58,7 +59,8 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
 
   if (NULL == zapping_properties)
     {
-      ShowBox(_("The properties dialog could not be opened, sorry"),
+      ShowBox(_("The properties dialog could not be opened\n"
+		"Check the location of zapping.glade"),
 	      GNOME_MESSAGE_BOX_ERROR);
       return;
     }
@@ -292,9 +294,18 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
   widget = lookup_widget(zapping_properties, "spinbutton4");
   gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget),
      zconf_get_integer(NULL,
-		       "/zapping/options/vbi/fintune"));
+		       "/zapping/options/vbi/finetune"));
 
   gtk_signal_connect(GTK_OBJECT(widget), "changed",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+
+  /* Glyphs */
+  widget = lookup_widget(zapping_properties, "optionmenu3");
+  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
+			      vbi_get_glyphs());
+
+  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
 		     GTK_SIGNAL_FUNC(on_property_item_changed),
 		     zapping_properties);
 
@@ -367,7 +378,7 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
 	gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widget)),
 			"/zapping/options/main/zapping_setup_fb_verbosity");
 
-      widget = lookup_widget(pbox, "optionmenu1");
+      widget = lookup_widget(pbox, "optionmenu1"); /* ratio mode */
       widget = GTK_WIDGET(GTK_OPTION_MENU(widget)->menu);
 
       zconf_set_integer(
@@ -411,6 +422,12 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
       zconf_set_integer(
 	gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widget)),
 			"/zapping/options/vbi/finetune");
+
+      widget = lookup_widget(pbox, "optionmenu3"); /* glyphs */
+      widget = GTK_WIDGET(GTK_OPTION_MENU(widget)->menu);
+      
+      vbi_set_glyphs(g_list_index(GTK_MENU_SHELL(widget)->children,
+				  gtk_menu_get_active(GTK_MENU(widget))));
       break;
     default:
       p = g_list_first(plugin_list);

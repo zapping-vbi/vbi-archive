@@ -199,6 +199,8 @@ int tveng1_attach_device(const char* device_file,
 			tveng_device_info * info)
 {
   int error;
+  struct private_tveng1_device_info * p_info =
+    (struct private_tveng1_device_info *)info;
   t_assert(device_file != NULL);
   t_assert(info != NULL);
 
@@ -357,11 +359,14 @@ int tveng1_attach_device(const char* device_file,
   info -> format.width = (info->caps.minwidth + info->caps.maxwidth)/2;
   info -> format.height = (info->caps.minheight +
 			   info->caps.maxheight)/2;
-  if (tveng1_set_capture_format(info) == -1)
-    {
-      tveng1_close_device(info);
-      return -1;
-    }
+  tveng1_set_capture_format(info);
+
+  /* init the private struct */
+  p_info->mmaped_data = NULL;
+  p_info->queued = p_info->dequeued = 0;
+
+  if (info->debug_level > 0)
+    fprintf(stderr, "TVeng: V4L1 controller loaded\n");
 
   return info -> fd;
 }
@@ -431,6 +436,9 @@ static void tveng1_close_device(tveng_device_info * info)
   info -> inputs = NULL;
   info -> standards = NULL;
   info -> file_name = NULL;
+
+  if (info->debug_level > 0)
+    fprintf(stderr, "TVeng: V4L1 controller unloaded\n");
 }
 
 /*

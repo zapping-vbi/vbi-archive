@@ -49,4 +49,10 @@ void update_channels_menu(GtkWidget* widget, tveng_device_info * info);
 */
 GtkWidget * create_control_box(tveng_device_info * info);
 
+/*
+  Rebuilds the control box if it's open. Call whenever the device
+  controls change.
+*/
+void
+update_control_box(tveng_device_info * info);
 #endif

@@ -302,7 +302,7 @@ int tvengxv_attach_device(const char* device_file,
       if (error == 0) /* No inputs */
 	{
 	  info->tveng_errno = -1;
-	  snprintf(info->error, 256, _("No inputs for this device"));
+	  snprintf(info->error, 256, "No inputs for this device");
 	  fprintf(stderr, "%s\n", info->error);
 	}
       tvengxv_close_device(info);
@@ -411,10 +411,6 @@ static void tvengxv_close_device(tveng_device_info * info)
     free(info -> controls);
 
   /* clear the atoms */
-  p_info->encoding = p_info->color = p_info->hue = p_info->saturation
-    = p_info->brightness = p_info->contrast = p_info->freq =
-    p_info->mute = p_info->volume = p_info->colorkey = None;
-
   info -> num_controls = 0;
   info -> num_standards = 0;
   info -> num_inputs = 0;
@@ -988,6 +984,7 @@ tvengxv_set_preview(int on, tveng_device_info * info)
 		  info->window.win);
       info->current_mode = TVENG_NO_CAPTURE;
     }
+  XSync(info->private->display, False);
 
   return 0;
 }

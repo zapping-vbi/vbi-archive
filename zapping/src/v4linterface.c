@@ -25,11 +25,12 @@
 #include "interface.h"
 
 extern int cur_tuned_channel; /* currently tuned channel (in callbacks.c) */
+GtkWidget * ToolBox = NULL; /* Pointer to the last control box */
 
 /* 
    Update the menu from where we can choose the standard. Widget is
    any widget in the same window as the standard menu (we lookup() it)
- */
+*/
 void update_standards_menu(GtkWidget * widget, tveng_device_info *
 			   info)
 {
@@ -325,27 +326,19 @@ GtkWidget * create_button(struct tveng_control * qc,
   return button;
 }
 
-GtkWidget * create_control_box(tveng_device_info * info)
+static void
+build_control_box(GtkWidget * vbox, tveng_device_info * info)
 {
-  GtkWidget * control_box;
-  GtkWidget * vbox;
   GtkWidget * control_added;
-
-  struct tveng_control * control;
   int i = 0;
-
-  control_box = gtk_window_new(GTK_WINDOW_DIALOG);
-  gtk_window_set_title(GTK_WINDOW(control_box), _("Available controls"));
-
-  vbox = gtk_vbox_new(FALSE, 10); /* Leave 10 pixels of space between
-				     controls */
+  struct tveng_control * control;
 
   /* Update the values of all the controls */
   if (-1 == tveng_update_controls( info ))
     {
       ShowBox(_("Tveng critical error, zapping will exit NOW."),
 	      GNOME_MESSAGE_BOX_ERROR);
-      g_error(_("tveng critical: %s"), info->error);
+      g_error("tveng critical: %s", info->error);
     }
 
   for (i = 0; i < info->num_controls; i++)
@@ -383,14 +376,52 @@ GtkWidget * create_control_box(tveng_device_info * info)
       else
 	g_warning(_("Error adding %s"), control->name);
     }
+}
+
+GtkWidget * create_control_box(tveng_device_info * info)
+{
+  GtkWidget * control_box;
+  GtkWidget * vbox;
+
+  control_box = gtk_window_new(GTK_WINDOW_DIALOG);
+  gtk_window_set_title(GTK_WINDOW(control_box), _("Available controls"));
+
+  vbox = gtk_vbox_new(FALSE, 10); /* Leave 10 pixels of space between
+				     controls */
+
+  build_control_box(vbox, info);
 
   gtk_widget_show(vbox);
   gtk_container_add(GTK_CONTAINER (control_box), vbox);
 
   gtk_window_set_policy(GTK_WINDOW(control_box), FALSE, FALSE, FALSE);
+  gtk_object_set_data(GTK_OBJECT(control_box), "vbox", vbox);
   gtk_signal_connect(GTK_OBJECT(control_box), "delete_event",
 		     GTK_SIGNAL_FUNC(on_control_box_delete_event),
 		     NULL);
 
   return (control_box);
+}
+
+void
+update_control_box(tveng_device_info * info)
+{
+  GtkWidget * vbox;
+  GtkWidget * control_box = ToolBox;
+
+  if ((!info) || (!control_box))
+    return;
+
+  vbox = GTK_WIDGET(gtk_object_get_data(GTK_OBJECT(control_box),
+					"vbox"));
+  gtk_container_remove(GTK_CONTAINER (control_box), vbox);
+
+  vbox = gtk_vbox_new(FALSE, 10); /* Leave 10 pixels of space between
+				     controls */
+
+  build_control_box(vbox, info);
+
+  gtk_widget_show(vbox);
+  gtk_container_add(GTK_CONTAINER (control_box), vbox);
+  gtk_object_set_data(GTK_OBJECT(control_box), "vbox", vbox);
 }
