@@ -15,4 +15,4 @@ check_PROGRAMS = \
 	guard2 \
 	memcpy
 
-LDADD = $(top_builddir)/libtv/libtv.a
+LDADD = $(top_builddir)/libtv/libtv.la
