@@ -24,6 +24,7 @@
 #undef GDK_DISABLE_DEPRECATED
 
 #include "screenshot.h"
+#include "src/zgconf.h"
 #include "src/yuv2rgb.h"
 #include "src/properties.h"
 #include <gdk-pixbuf/gdk-pixbuf.h> /* previews */
@@ -176,6 +177,8 @@ ov511_poll_thread (void *unused _unused_)
   return NULL;
 }
 
+static gboolean plugin_start (void);
+
 static gint
 ov511_grab_button_timeout (guint *timeout_id)
 {
@@ -199,8 +202,6 @@ ov511_grab_button_timeout (guint *timeout_id)
   /* only done afterwards */
   if (ov511_clicked)
     {
-      static gboolean plugin_start (void);
-
       ov511_clicked = FALSE;
       plugin_start();
     }
@@ -446,9 +447,15 @@ static void
 screenshot_setup		(GtkWidget	*page)
 {
   GtkWidget *w;
+  gboolean full_size;
 
   w = lookup_widget (page, "screenshot_command");
   gtk_entry_set_text (GTK_ENTRY (w), screenshot_option_command);
+
+  full_size = FALSE;
+  z_gconf_get_bool (&full_size, "/apps/zapping/plugins/screenshot/full_size");
+  w = lookup_widget (page, "screenshot_full_size");
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (w), full_size);
 
   SET_BOOL (grab_on_ok);
 
@@ -463,16 +470,21 @@ screenshot_setup		(GtkWidget	*page)
   screenshot_option_##_name =						\
     gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (w));
 
+static void plugin_add_gui (GnomeApp *);
+
 static void
 screenshot_apply		(GtkWidget	*page)
 {
-  static void plugin_add_gui (GnomeApp *);
   GtkWidget *w;
 
   w = lookup_widget (page, "screenshot_command");
   g_free (screenshot_option_command);
   screenshot_option_command =
     g_strdup (gtk_entry_get_text (GTK_ENTRY (w)));
+
+  w = lookup_widget (page, "screenshot_full_size");
+  z_gconf_set_bool ("/apps/zapping/plugins/screenshot/full_size",
+		    gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (w)));
 
   GET_BOOL (grab_on_ok);
 
@@ -1497,6 +1509,10 @@ screenshot_grab (gint dialog)
    */
   if (CAPTURE_MODE_NONE != tv_get_capture_mode (zapping_info))
     {
+      guint width;
+      guint height;
+      gboolean full_size;
+
       if (CAPTURE_MODE_READ != tv_get_capture_mode (zapping_info))
 	zmisc_switch_mode (DISPLAY_MODE_WINDOW,
 			   CAPTURE_MODE_READ, zapping_info);
@@ -1507,12 +1523,35 @@ screenshot_grab (gint dialog)
 	  return FALSE; /* unable to set the mode */
 	}
 
+      width = 0; /* any */
+      height = 0;
+
+      full_size = FALSE;
+      z_gconf_get_bool (&full_size,
+			"/apps/zapping/plugins/screenshot/full_size");
+      if (full_size)
+	{
+	  const tv_video_standard *std;
+
+	  if ((std = tv_cur_video_standard (zapping->info)))
+	    {
+	      width = std->frame_width;
+	      height = std->frame_height;
+	    }
+	}
+
       format_request = request_capture_format
-	(zapping_info,
-	 /* width: any */ 0,
-	 /* height: any */ 0,
+	(zapping_info, width, height,
 	 TV_PIXFMT_SET (TV_PIXFMT_RGB24_LE),
 	 /* flags */ 0);
+
+      if (-1 == format_request && 0 != width)
+	{
+	  format_request = request_capture_format
+	    (zapping_info, 0, 0,
+	     TV_PIXFMT_SET (TV_PIXFMT_RGB24_LE),
+	     /* flags */ 0);
+	}
 
       if (-1 == format_request)
 	{
