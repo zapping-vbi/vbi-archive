@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.30 2002-05-10 09:53:42 mschimek Exp $ */
+/* $Id: mp2.c,v 1.31 2002-06-12 03:58:56 mschimek Exp $ */
 
 #include <limits.h>
 
@@ -933,12 +933,12 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 
 	memset(&mp2->codec.status, 0, sizeof(mp2->codec.status));
 
-	mp2->codec.status.valid =
-		RTE_STATUS_FRAMES_IN |
-		RTE_STATUS_FRAMES_OUT |
-		RTE_STATUS_FRAMES_DROPPED |
-		RTE_STATUS_BYTES_OUT |
-		RTE_STATUS_CODED_TIME;
+	mp2->codec.status.valid = 0
+		+ RTE_STATUS_FRAMES_IN
+		+ RTE_STATUS_FRAMES_OUT
+		+ RTE_STATUS_FRAMES_DROPPED
+		+ RTE_STATUS_BYTES_OUT
+		+ RTE_STATUS_CODED_TIME;
 
 	mp2->codec.status.time_per_frame_out =
 		SAMPLES_PER_FRAME / (double) sampling_freq;
