@@ -32,6 +32,9 @@
 #include <string.h>
 #include <assert.h>
 
+#include "globals.h"
+#include "x11stuff.h"
+
 /* Progress mark, GNU coding style (www.gnu.org) error message,
    compatible with emacs M-x next-error. */
 #if 1
@@ -54,9 +57,16 @@
 
 #undef PARENT
 #define PARENT(_ptr, _type, _member) ({					\
-	__typeof__ (&((const _type *) 0)->_member) _p = (_ptr);		\
+	__typeof__ (&((_type *) 0)->_member) _p = (_ptr);		\
 	(_p != 0) ? (_type *)(((char *) _p) - offsetof (_type,		\
 	  _member)) : (_type *) 0;					\
+})
+
+#undef CONST_PARENT
+#define CONST_PARENT(_ptr, _type, _member) ({				\
+	__typeof__ (&((const _type *) 0)->_member) _p = (_ptr);		\
+	(_p != 0) ? (const _type *)(((const char *) _p) - offsetof	\
+	 (const _type, _member)) : (const _type *) 0;			\
 })
 
 #undef ABS
@@ -115,19 +125,30 @@ do {									\
 })
 #endif
 
+#define _unused_ __attribute__ ((unused))
+
 #else /* !__GNUC__ */
 
 #define __inline__
 #define __builtin_expect(exp, c) (exp)
+#define _unused_
 
 static char *
 PARENT_HELPER (char *p, unsigned int offset)
+{ return (p == 0) ? 0 : p - offset; }
+static const char *
+CONST_PARENT_HELPER (const char *p, unsigned int offset)
 { return (p == 0) ? 0 : p - offset; }
 
 #undef PARENT
 #define PARENT(_ptr, _type, _member)					\
 	((offsetof (_type, _member) == 0) ? (_type *)(_ptr)		\
 	 : (_type *) PARENT_HELPER ((char *)(_ptr), offsetof (_type, _member)))
+#undef CONST_PARENT
+#define CONST_PARENT(_ptr, _type, _member)				\
+	((offsetof (const _type, _member) == 0) ? (const _type *)(_ptr)	\
+	 : (const _type *) CONST_PARENT_HELPER ((const char *)(_ptr),	\
+	  offsetof (const _type, _member)))
 
 #undef ABS
 #define ABS(n) (((n) < 0) ? -(n) : (n))
@@ -165,7 +186,7 @@ do {									\
 #define ShowBox(MSG, MSGTYPE, args...) \
 do {			\
   GtkWidget * dialog =						\
-    gtk_message_dialog_new ((GtkWindow*)main_window,		\
+    gtk_message_dialog_new (zapping ? GTK_WINDOW (zapping) : 0,	\
 			    GTK_DIALOG_DESTROY_WITH_PARENT,	\
 			    MSGTYPE,				\
 			    GTK_BUTTONS_CLOSE,			\
@@ -184,7 +205,7 @@ do {			\
 #define ShowBoxModal(MSG, MSGTYPE, args...) \
 do {		\
   GtkWidget * dialog =						\
-    gtk_message_dialog_new ((GtkWindow*)main_window,		\
+    gtk_message_dialog_new (zapping ? GTK_WINDOW (zapping) : 0,	\
 			    GTK_DIALOG_DESTROY_WITH_PARENT |	\
 			    GTK_DIALOG_MODAL,			\
 			    MSGTYPE,				\
@@ -202,9 +223,10 @@ do {		\
 #define RunBox(MSG, MSGTYPE, args...) \
 do {			\
   GtkWidget * dialog =						\
-    gtk_message_dialog_new ((GtkWindow*)main_window,		\
-			    GTK_DIALOG_DESTROY_WITH_PARENT |	\
-			    GTK_DIALOG_MODAL,			\
+    gtk_message_dialog_new (zapping ? GTK_WINDOW (zapping) : 0,	\
+			    (GtkDialogFlags)			\
+			    (GTK_DIALOG_DESTROY_WITH_PARENT |	\
+			     GTK_DIALOG_MODAL),			\
 			    MSGTYPE,				\
 			    GTK_BUTTONS_CLOSE,			\
 			    MSG,##args);			\
@@ -307,14 +329,16 @@ void zmisc_stop (tveng_device_info *info);
   Side efects: Stops whatever mode was being used before.
 */
 int
-zmisc_switch_mode(enum tveng_capture_mode new_mode,
+zmisc_switch_mode(display_mode new_dmode,
+		  capture_mode new_cmode,
 		  tveng_device_info * info);
 
 /**
  * Like tveng_restart_everything, but updates overlay clips as necessary.
  */
 int
-z_restart_everything(enum tveng_capture_mode mode,
+z_restart_everything(display_mode new_dmode,
+		     capture_mode new_cmode,
 		     tveng_device_info * info);
 
 /**
@@ -391,7 +415,7 @@ z_option_menu_get_active	(GtkWidget	*option_menu);
  */
 void
 z_option_menu_set_active	(GtkWidget	*option_menu,
-				 int index);
+				 guint nth);
 
 /**
  * Error checking scale_simple.
@@ -420,7 +444,7 @@ z_build_path(const gchar *path, gchar **error_description);
 
 void
 z_electric_set_basename		(GtkWidget *		w,
-				 const gchar *		basename);
+				 const gchar *		basenm);
 void
 z_on_electric_filename		(GtkWidget *		w,
 				 gpointer		user_data);
@@ -566,5 +590,25 @@ extern void
 z_tree_view_remove_selected	(GtkTreeView *		tree_view,
 				 GtkTreeSelection *	selection,
 				 GtkTreeModel *		model);
+
+void
+from_old_tveng_capture_mode	(display_mode *		dmode,
+				 capture_mode *		cmode,
+				 enum old_tveng_capture_mode mode);
+enum old_tveng_capture_mode
+to_old_tveng_capture_mode	(display_mode 		dmode,
+				 capture_mode 		cmode);
+extern gboolean
+z_set_overlay_buffer		(tveng_device_info *	info,
+				 const tv_screen *	screen,
+				 const GdkWindow *	window);
+
+/* Common constants for item position in Gtk insert functions. */
+#define PREPEND 0
+#define APPEND -1
+/* Common constant for string length in Gtk and Glib functions. */
+#define NUL_TERMINATED -1
+/* GSource ID */
+#define NO_SOURCE_ID ((guint) -1)
 
 #endif /* __ZMISC_H__ */
