@@ -2075,12 +2075,12 @@ tveng1_set_capture_format(tveng_device_info * info)
   pict.palette = pixfmt_to_palette (info->format.pixfmt);
   
   if (0 == pict.palette) {
-        info->tveng_errno = -1; /* unknown */
-      t_error_msg("switch()", "Cannot understand the given palette",
-		  info);
-      tveng_restart_everything(mode, info);
-      return -1;
-    }
+    info->tveng_errno = EINVAL;
+    tv_error_msg (info, "%s not supported",
+		  tv_pixfmt_name (info->format.pixfmt));
+    tveng_restart_everything(mode, info);
+    return -1;
+  }
 
   /* Set this values for the picture properties */
   r = v4l_ioctl (info, VIDIOCSPICT, &pict);
