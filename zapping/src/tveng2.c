@@ -408,7 +408,7 @@ static void tveng2_close_device(tveng_device_info * info)
     }
 
 	while ((tc = info->controls)) {
-		info->controls = tc->next;
+		info->controls = tc->_next;
 		free_control (tc);
 	}
 
@@ -1011,7 +1011,7 @@ tveng2_update_control		(tveng_device_info *	info,
 	if (tc)
 		return update_control (p_info, C(tc));
 
-	for (tc = p_info->info.controls; tc; tc = tc->next)
+	for (tc = p_info->info.controls; tc; tc = tc->_next)
 		if (tc->_device == info)
 			if (!update_control (p_info, C(tc)))
 				return FALSE;
