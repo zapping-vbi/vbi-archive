@@ -1549,8 +1549,7 @@ void new_bookmark			(GtkWidget	*widget,
       else
 	{
 	  channel =
-	    tveng_retrieve_tuned_channel_by_index(cur_tuned_channel,
-						  global_channel_list);
+	    tveng_tuned_channel_nth(global_channel_list, cur_tuned_channel);
 
 	  if (channel)
 	    add_bookmark(page, subpage, buffer, channel->name);
@@ -2358,8 +2357,7 @@ void on_bookmark_activated		(GtkWidget	*widget,
   if (main_info)
     if (bookmark->channel &&
 	(channel =
-	 tveng_retrieve_tuned_channel_by_name(bookmark->channel, 0,
-					      global_channel_list)))
+	 tveng_tuned_channel_by_name(global_channel_list, bookmark->channel)))
       z_switch_channel(channel, main_info);
 
   load_page(bookmark->page, bookmark->subpage, data, NULL);

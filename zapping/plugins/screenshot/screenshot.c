@@ -772,8 +772,7 @@ execute_command (screenshot_data *data)
   env[envc++] = g_strdup_printf ("SCREENSHOT_PATH=%s", data->filename);
 
   /* XXX thread safe? prolly not */
-  tc = tveng_retrieve_tuned_channel_by_index
-    (cur_tuned_channel, global_channel_list);
+  tc = tveng_tuned_channel_nth (global_channel_list, cur_tuned_channel);
 
   if (tc)
     {

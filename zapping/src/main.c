@@ -434,7 +434,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.165.2.7 2002-12-14 12:35:22 mschimek Exp $",
+	 "$Id: main.c,v 1.165.2.8 2002-12-24 15:23:10 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -745,9 +745,9 @@ int main(int argc, char * argv[])
   if (zcg_int(NULL, "current_standard"))
     z_switch_standard(zcg_int(NULL, "current_standard"), main_info);
   cur_tuned_channel = zcg_int(NULL, "cur_tuned_channel");
-  z_switch_channel(tveng_retrieve_tuned_channel_by_index(cur_tuned_channel,
-							 global_channel_list),
-		   main_info);
+  z_switch_channel (tveng_tuned_channel_nth (global_channel_list,
+					     cur_tuned_channel),
+		    main_info);
   if (!command)
     {
       gtk_widget_show(main_window);
@@ -813,9 +813,7 @@ static void shutdown_zapping(void)
   /* Write the currently tuned channels */
   printv(" channels");
   zconf_delete(ZCONF_DOMAIN "tuned_channels");
-  while ((channel = tveng_retrieve_tuned_channel_by_index(i,
-							  global_channel_list))
-	 != NULL)
+  while ((channel = tveng_tuned_channel_nth (global_channel_list, i)) != NULL)
     {
       if ((i == cur_tuned_channel) &&
 	  !ChannelWindow) /* Having the channel editor open screws this
@@ -858,7 +856,7 @@ static void shutdown_zapping(void)
       i++;
     }
 
-  global_channel_list = tveng_clear_tuned_channel(global_channel_list);
+  tveng_tuned_channel_list_delete (&global_channel_list);
 
   if (current_country)
     zcs_char(current_country -> name, "current_country");
@@ -1029,7 +1027,9 @@ static gboolean startup_zapping(gboolean load_plugins)
   zconf_create_boolean(FALSE, "Hide controls",
 		       "/zapping/internal/callbacks/hide_controls");
   D();
+
   /* Loads all the tuned channels */
+  global_channel_list = NULL;
   while (zconf_get_nth(i, &buffer, ZCONF_DOMAIN "tuned_channels") !=
 	 NULL)
     {
@@ -1080,9 +1080,9 @@ static gboolean startup_zapping(gboolean load_plugins)
 	}
       g_free(buffer2);
 
-      new_channel.index = 0;
-      global_channel_list =
-	tveng_append_tuned_channel(&new_channel, global_channel_list);
+      tveng_tuned_channel_insert (&global_channel_list,
+				  tveng_tuned_channel_new (&new_channel),
+				  G_MAXINT);
 
       /* Free the previously allocated mem */
       g_free(new_channel.name);
