@@ -1,3 +1,9 @@
+20.08.2001	pl updated <garetxe@users.sf.net>
+
+	* pl.po: Updated to CVS.
+	* htdocs: Added content and dropped PHP session support for
+	the traditional grandma cookies.
+
 19.08.2001	<mschimek@users.sf.net>
 
         * common/errstr.*: Added. libvbi/export and v4lx first victims.
