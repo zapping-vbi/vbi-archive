@@ -2,8 +2,8 @@
 
 lib_LTLIBRARIES = libzvbi.la
 
-BUILT_SOURCES = version.h libzvbi.h
-EXTRA_DIST = wstfont2.xbm ccfont2.xbm
+BUILT_SOURCES = version.h libzvbi.h wstfont2.xbm ccfont3.xbm
+EXTRA_DIST = wstfont2.pbm ccfont3.pbm
 CLEANFILES = $(BUILT_SOURCES)
 
 INCLUDES  = -W -Wall -Wunused -Wfloat-equal \
@@ -22,14 +22,17 @@ libzvbi_la_SOURCES = \
 	caption.c cc.h \
 	event.h \
 	export.c export.h \
+	exp-gfx.c exp-gfx.h \
 	exp-html.c \
 	exp-templ.c \
 	exp-txt.c exp-txt.h \
 	exp-vtx.c \
 	format.h \
+	graphics.c graphics.h \
 	hamm.c hamm.h \
 	lang.c lang.h \
 	misc.h \
+	network.c network.h \
 	io.c io.h \
 	io-bktr.c \
 	io-sim.c io-sim.h \
@@ -37,6 +40,7 @@ libzvbi_la_SOURCES = \
 	io-v4l2.c videodev2.h \
 	io-v4l.c videodev.h \
 	packet.c \
+	pdc.c pdc.h \
 	raw_decoder.c raw_decoder.h \
 	sampling.c sampling.h \
 	search.c search.h \
@@ -46,10 +50,17 @@ libzvbi_la_SOURCES = \
 	trigger.c trigger.h \
 	ure.c ure.h \
 	vbi.c vbi.h \
+	vps.c vps.h \
 	vt.h \
-	wss.c wss.h
+	wss.c wss.h \
+	xds.c xds.h
 
-# TODO	exp-gfx.c exp-gfx.h 
+exp-gfx.c: wstfont2.xbm ccfont3.xbm
+
+wstfont2.xbm: wstfont2.pbm fontgen
+	$(top_builddir)/src/fontgen xbm wstfont2 10 < $< > $@
+ccfont3.xbm: ccfont3.pbm fontgen
+	$(top_builddir)/src/fontgen xbm ccfont3 13 < $< > $@
 
 libzvbiincludedir = $(includedir)
 libzvbiinclude_HEADERS = libzvbi.h
@@ -65,17 +76,18 @@ version.h:
 
 LIBZVBI_HDRS = \
 	misc.h \
-	bcd.h hamm.h event.h format.h lang.h export.h \
+	bcd.h hamm.h network.h event.h format.h lang.h export.h \
 	cache.h search.h \
 	sliced.h \
+	graphics.h \
 	sampling.h \
 	bit_slicer.h \
 	raw_decoder.h \
 	io.h \
 	io-sim.h \
+	exp-gfx.h \
 	exp-txt.h \
-	cc.h vt.h tables.h vbi.h
-# TODO exp-gfx.h
+	pdc.h xds.h cc.h vps.h vt.h tables.h vbi.h
 
 # Concat the header files in this order and filter out all lines
 #   before "^/* Public", after "^/* Private" and between "^/**"..."**/$"
