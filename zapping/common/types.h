@@ -16,12 +16,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: types.h,v 1.3 2001-06-30 10:33:46 mschimek Exp $ */
+/* $Id: types.h,v 1.4 2001-07-02 16:17:13 garetxe Exp $ */
 
 #ifndef TYPES_H
 #define TYPES_H
 
 #include <stddef.h>
+#include <sys/types.h>
 
 #undef TRUE
 #undef FALSE

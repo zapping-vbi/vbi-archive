@@ -62,6 +62,18 @@ AC_ISC_POSIX
 AC_PROG_CC
 AM_PROG_CC_STDC
 AC_HEADER_STDC
+AC_CHECK_FUNCS(stpcpy)
+
+dnl X11 checks
+AC_PATH_XTRA
+if test "-DX_DISPLAY_MISSING" = "$X_CFLAGS"; then
+	AC_MSG_ERROR(cannot find X11)
+fi
+AC_SUBST(X_CFLAGS)
+AC_SUBST(X_PRE_LIBS)
+AC_SUBST(X_EXTRA_LIBS)
+AC_SUBST(X_LIBS)
+AC_SUBST(x_libraries)
 
 dnl ----------------------------------------------------------------------
 dnl Check the JPEG writing lib
@@ -165,7 +177,6 @@ else
   AC_MSG_WARN([*** LIRC client support not available, not building alirc ***])
 fi
 AC_SUBST(LIRC_LIB)
-
 
 GNOME_COMPILE_WARNINGS
 GNOME_X_CHECKS
@@ -386,7 +397,8 @@ echo "
 	Lirc client support		$HAVE_LIRC
 
 	Plugins to build
-	----------------
-	`echo $PLUGINS_TO_BUILD | sed "s/ /\\\\
-	/g"`
-"
+	----------------"
+
+for x in $PLUGINS_TO_BUILD; do
+echo -e "\t"$x
+done

@@ -140,7 +140,7 @@ tveng1_set_mute(int value, tveng_device_info * info);
   Tunes the current input to the given freq. Returns -1 on error.
 */
 static int
-tveng1_tune_input(__u32 freq, tveng_device_info * info);
+tveng1_tune_input(uint32_t freq, tveng_device_info * info);
 
 /*
   Gets the signal strength and the afc code. The afc code indicates
@@ -157,7 +157,7 @@ tveng1_get_signal_strength (int *strength, int * afc,
   Stores in freq the currently tuned freq. Returns -1 on error.
 */
 static int
-tveng1_get_tune(__u32 * freq, tveng_device_info * info);
+tveng1_get_tune(uint32_t * freq, tveng_device_info * info);
 
 /*
   Gets the minimum and maximum freq that the current input can
@@ -165,7 +165,7 @@ tveng1_get_tune(__u32 * freq, tveng_device_info * info);
   If any of the pointers is NULL, its value will not be filled.
 */
 static int
-tveng1_get_tuner_bounds(__u32 * min, __u32 * max, tveng_device_info *
+tveng1_get_tuner_bounds(uint32_t * min, uint32_t * max, tveng_device_info *
 			info);
 
 /*

@@ -1,7 +1,7 @@
 Thanks are due to the following people for helping with the program
 (in chronological order):
 
-- Christian Marillat: French translation
+- Christian Marillat: French translation, debian maintainer.
 - Edgar Toerning: AleVT, permission to use a derivative (libvbi) into Z.
 - Michael Schimek: mp1e, libvbi, de.po, miriad of other things.
 - Sergey Nikulin: Russian translation and cyrillic TTX glyphs.
@@ -19,5 +19,6 @@ Thanks are due to the following people for helping with the program
 - Michael Hunold: Lots of help with bug tracking and many suggestions
 		  for improving the program.
 - Sjoerd Simons: ALIRC plugin.
+- Roger Fujii: Fixes to build and work under Solaris.
 
 And, of course, thanks to the people that sent bug reports and suggestions.

@@ -19,12 +19,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvbi.h,v 1.36 2001-05-12 21:08:33 mschimek Exp $ */
+/* $Id: libvbi.h,v 1.37 2001-07-02 16:17:14 garetxe Exp $ */
 
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
 
-#include <stdint.h>
 #include "format.h"
 
 /*

@@ -935,7 +935,7 @@ tvengxv_set_mute(int value, tveng_device_info * info)
 }
 
 static int
-tvengxv_tune_input(__u32 freq, tveng_device_info *info)
+tvengxv_tune_input(uint32_t freq, tveng_device_info *info)
 {
   struct private_tvengxv_device_info * p_info =
     (struct private_tvengxv_device_info*)info;
@@ -979,7 +979,7 @@ tvengxv_get_signal_strength(int *strength, int *afc,
 }
 
 static int
-tvengxv_get_tune(__u32 * freq, tveng_device_info *info)
+tvengxv_get_tune(uint32_t * freq, tveng_device_info *info)
 {
   struct private_tvengxv_device_info * p_info =
     (struct private_tvengxv_device_info*)info;
@@ -999,7 +999,7 @@ tvengxv_get_tune(__u32 * freq, tveng_device_info *info)
 }
 
 static int
-tvengxv_get_tuner_bounds(__u32 * min, __u32 * max, tveng_device_info *
+tvengxv_get_tuner_bounds(uint32_t * min, uint32_t * max, tveng_device_info *
 			 info)
 {
   struct private_tvengxv_device_info * p_info =

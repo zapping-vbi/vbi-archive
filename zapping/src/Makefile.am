@@ -4,6 +4,7 @@ INCLUDES = \
 -I$(top_srcdir)/libvbi \
 -I$(top_srcdir)/intl \
 $(ARCH_CFLAGS) \
+$(X_CFLAGS) \
 $(GNOME_INCLUDEDIR) \
 $(GDK_PIXBUF_CFLAGS) \
 $(UNICODE_CFLAGS) \

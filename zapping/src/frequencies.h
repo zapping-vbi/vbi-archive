@@ -5,7 +5,7 @@
 
 typedef struct{
   gchar * name;
-  __u32 freq;
+  uint32_t freq;
 }
 tveng_channel;
 
@@ -20,7 +20,7 @@ struct _tveng_tuned_channel{
   gint accel_mask; /* mask for the accelerator (GDK) */
   gchar * country; /* The country this channel is in */
   int index; /* Index in the tuned_channel list */
-  __u32 freq; /* Frequence this channel is in (may be slightly
+  uint32_t freq; /* Frequence this channel is in (may be slightly
 		 different to the one specified by real_name due to
 		 fine tuning) */
 

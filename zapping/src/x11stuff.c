@@ -350,10 +350,10 @@ struct _xvzImagePrivate {
 static unsigned int
 xv_mode_id(char * fourcc)
 {
-  return ((((__u32)(fourcc[0])<<0)|
-	   ((__u32)(fourcc[1])<<8)|
-	   ((__u32)(fourcc[2])<<16)|
-	   ((__u32)(fourcc[3])<<24)));
+  return ((((uint32_t)(fourcc[0])<<0)|
+	   ((uint32_t)(fourcc[1])<<8)|
+	   ((uint32_t)(fourcc[2])<<16)|
+	   ((uint32_t)(fourcc[3])<<24)));
 }
 
 #define YV12 xv_mode_id("YV12") /* YVU420 (planar, 12 bits) */

@@ -134,7 +134,7 @@ on_hscale1_value_changed               (GtkAdjustment		*adj,
 
 /* Tunes the current input and updates hscale1 */
 static void
-set_slider(__u32 freq, gpointer widget, tveng_device_info *info)
+set_slider(uint32_t freq, gpointer widget, tveng_device_info *info)
 {
   GtkAdjustment * adj;
   GtkWidget * hscale1 =
@@ -560,92 +560,47 @@ void
 on_add_channel_clicked                 (GtkButton       *button,
                                         gpointer         user_data)
 {
-  GtkWidget * clist1 = lookup_widget(GTK_WIDGET(button), "clist1");
-  GtkWidget * channel_list = lookup_widget(GTK_WIDGET(button),
-					   "channel_list");
-  GtkWidget * channel_window = lookup_widget(GTK_WIDGET(button),
-					     "channel_window");
-  GtkWidget * channel_name = lookup_widget(GTK_WIDGET(button),
-					   "channel_name");
-  GtkWidget * channel_accel = lookup_widget(GTK_WIDGET(button),
-					    "channel_accel");
-  GtkWidget * widget;
+  GtkWidget *channel_name = lookup_widget(GTK_WIDGET(button),
+					  "channel_name");
+  GtkWidget *clist1 = lookup_widget(GTK_WIDGET(button), "clist1");
+  gchar *buf =
+    gtk_entry_get_text(GTK_ENTRY(channel_name));
+  GList *ptr;
+  gchar *buf2;
+  gint index;
 
-  tveng_tuned_channel * list =
-    gtk_object_get_data(GTK_OBJECT(channel_window), "list");
-
-  GList * ptr; /* Pointer to the selected item(s) in clist1 */
-  int index = 0; /* The row we are reading now */
-  tveng_tuned_channel tc;
-  gchar * buffer;
-  gint selected;
-  
-  memset(&tc, 0, sizeof(tveng_tuned_channel));
-  tc.name = gtk_entry_get_text (GTK_ENTRY(channel_name));
-  if (current_country)
-    tc.country = current_country -> name;
-  else
-    tc.country = NULL;
-  if (main_info->inputs &&
-      main_info->inputs[main_info->cur_input].tuners)
-    tveng_get_tune(&tc.freq, main_info);
-  tc.accel_key = 0;
-  buffer = gtk_entry_get_text(GTK_ENTRY(channel_accel));
-  if (buffer)
-      tc.accel_key = gdk_keyval_from_name(buffer);
-  if (tc.accel_key == GDK_VoidSymbol)
-    tc.accel_key = 0;
-
-  tc.accel_mask = 0;
-  widget = lookup_widget(clist1, "channel_accel_ctrl");
-  tc.accel_mask |=
-    gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)) ?
-    GDK_CONTROL_MASK : 0;
-  widget = lookup_widget(clist1, "channel_accel_shift");
-  tc.accel_mask |=
-    gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)) ?
-    GDK_SHIFT_MASK : 0;
-  widget = lookup_widget(clist1, "channel_accel_alt");
-  tc.accel_mask |=
-    gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)) ?
-    GDK_MOD1_MASK : 0;
-
-  selected =
-    z_option_menu_get_active(lookup_widget(clist1, "attached_input"));
-  if (selected && main_info->inputs)
-    tc.input = main_info->inputs[selected-1].hash;
-  else
-    tc.input = 0;
-
-  selected =
-    z_option_menu_get_active(lookup_widget(clist1, "attached_standard"));
-  if (selected)
-    tc.standard = main_info->standards[selected-1].hash;
-  else
-    tc.standard = 0;
-
-  ptr = GTK_CLIST(clist1) -> row_list;
-
-  while (ptr)
+  if (!buf || !*buf)
     {
-      if (GTK_CLIST_ROW(ptr) -> state == GTK_STATE_SELECTED)
-	{ 
-	  /* Add this selected channel to the channel list */
-	  gtk_clist_get_text(GTK_CLIST(clist1), index, 0,
-			     &(tc.real_name));
-	  break; /* found */
+      ptr = GTK_CLIST(clist1) -> row_list;
+      index = 0;
+      while (ptr)
+	{
+	  if (GTK_CLIST_ROW(ptr) -> state == GTK_STATE_SELECTED)
+	    { 
+	      /* Add this selected channel to the channel list */
+	      gtk_clist_get_text(GTK_CLIST(clist1), index, 0,
+				 &(buf2));
+	      break; /* found */
+	    }
+	  ptr = ptr -> next;
+	  index++;
 	}
-      ptr = ptr -> next;
-      index++;
+
+      if (!ptr)
+	buf2 = "";
+
+      buf = Prompt(lookup_widget(GTK_WIDGET(button),
+				 "channel_window"),
+		   _("Add Channel"), _("New channel name:"), buf2);
+      
+      if (buf)
+	{
+	  gtk_entry_set_text(GTK_ENTRY(channel_name), buf);
+	  g_free(buf);
+	}
     }
 
-  list = tveng_insert_tuned_channel_sorted(&tc, list);
-
-  gtk_object_set_data(GTK_OBJECT(channel_window), "list", list);
-
-  build_channel_list(GTK_CLIST(channel_list), list);
-
-  gtk_entry_set_text(GTK_ENTRY(channel_name), "");
+  on_channel_name_activate(channel_name, user_data);
 }
 
 void
@@ -875,14 +830,95 @@ on_cancel_channels_clicked             (GtkButton       *button,
 }
 
 void
-on_channel_name_activate               (GtkEditable     *editable,
+on_channel_name_activate               (GtkWidget       *editable,
                                         gpointer         user_data)
 {
-  GtkWidget * widget = lookup_widget(GTK_WIDGET(editable),
-				     "add_channel");
+  GtkWidget * clist1 = lookup_widget(GTK_WIDGET(editable), "clist1");
+  GtkWidget * channel_list = lookup_widget(GTK_WIDGET(editable),
+					   "channel_list");
+  GtkWidget * channel_window = lookup_widget(GTK_WIDGET(editable),
+					     "channel_window");
+  GtkWidget * channel_name = lookup_widget(GTK_WIDGET(editable),
+					   "channel_name");
+  GtkWidget * channel_accel = lookup_widget(GTK_WIDGET(editable),
+					    "channel_accel");
+  GtkWidget * widget;
 
-  /* Add a channel to the list, just like hitting the apply button */
-  on_add_channel_clicked(GTK_BUTTON(widget), user_data);
+  tveng_tuned_channel * list =
+    gtk_object_get_data(GTK_OBJECT(channel_window), "list");
+
+  GList * ptr; /* Pointer to the selected item(s) in clist1 */
+  int index = 0; /* The row we are reading now */
+  tveng_tuned_channel tc;
+  gchar * buffer;
+  gint selected;
+  
+  memset(&tc, 0, sizeof(tveng_tuned_channel));
+  tc.name = gtk_entry_get_text (GTK_ENTRY(channel_name));
+  if (current_country)
+    tc.country = current_country -> name;
+  else
+    tc.country = NULL;
+  if (main_info->inputs &&
+      main_info->inputs[main_info->cur_input].tuners)
+    tveng_get_tune(&tc.freq, main_info);
+  tc.accel_key = 0;
+  buffer = gtk_entry_get_text(GTK_ENTRY(channel_accel));
+  if (buffer)
+      tc.accel_key = gdk_keyval_from_name(buffer);
+  if (tc.accel_key == GDK_VoidSymbol)
+    tc.accel_key = 0;
+
+  tc.accel_mask = 0;
+  widget = lookup_widget(clist1, "channel_accel_ctrl");
+  tc.accel_mask |=
+    gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)) ?
+    GDK_CONTROL_MASK : 0;
+  widget = lookup_widget(clist1, "channel_accel_shift");
+  tc.accel_mask |=
+    gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)) ?
+    GDK_SHIFT_MASK : 0;
+  widget = lookup_widget(clist1, "channel_accel_alt");
+  tc.accel_mask |=
+    gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)) ?
+    GDK_MOD1_MASK : 0;
+
+  selected =
+    z_option_menu_get_active(lookup_widget(clist1, "attached_input"));
+  if (selected && main_info->inputs)
+    tc.input = main_info->inputs[selected-1].hash;
+  else
+    tc.input = 0;
+
+  selected =
+    z_option_menu_get_active(lookup_widget(clist1, "attached_standard"));
+  if (selected)
+    tc.standard = main_info->standards[selected-1].hash;
+  else
+    tc.standard = 0;
+
+  ptr = GTK_CLIST(clist1) -> row_list;
+
+  while (ptr)
+    {
+      if (GTK_CLIST_ROW(ptr) -> state == GTK_STATE_SELECTED)
+	{ 
+	  /* Add this selected channel to the channel list */
+	  gtk_clist_get_text(GTK_CLIST(clist1), index, 0,
+			     &(tc.real_name));
+	  break; /* found */
+	}
+      ptr = ptr -> next;
+      index++;
+    }
+
+  list = tveng_insert_tuned_channel_sorted(&tc, list);
+
+  gtk_object_set_data(GTK_OBJECT(channel_window), "list", list);
+
+  build_channel_list(GTK_CLIST(channel_list), list);
+
+  gtk_entry_set_text(GTK_ENTRY(channel_name), "");
 }
 
 void
@@ -1085,7 +1121,7 @@ gint do_search (GtkWidget * searching)
 
 	  //	  if (zconf_get_boolean(NULL, "/zapping/options/vbi/use_vbi"))
 	  //	    tuned_name = zvbi_get_name();
-	  // FIXME: Obsolete
+	  // FIXME: Todo
 	  if ((!zconf_get_boolean(NULL,
 				  "/zapping/options/vbi/use_vbi")) ||
 	      (!tuned_name))
@@ -1093,7 +1129,7 @@ gint do_search (GtkWidget * searching)
 	  gtk_entry_set_text(GTK_ENTRY(channel_name), tuned_name);
 	  g_free(tuned_name);
 
-	  on_channel_name_activate(GTK_EDITABLE(channel_name), NULL);
+	  on_channel_name_activate(channel_name, NULL);
 	}
     }
 

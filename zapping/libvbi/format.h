@@ -18,12 +18,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: format.h,v 1.9 2001-04-05 19:56:33 mschimek Exp $ */
+/* $Id: format.h,v 1.10 2001-07-02 16:17:14 garetxe Exp $ */
 
 #ifndef FORMAT_H
 #define FORMAT_H
 
-#include <stdint.h>
+#include <inttypes.h>
 
 /*
  *  WST/CC base palette, actual number of entries in WST mode

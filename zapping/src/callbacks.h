@@ -188,7 +188,7 @@ on_channels1_activate                  (GtkMenuItem     *menuitem,
                                         gpointer         user_data);
 
 void
-on_channel_name_activate               (GtkEditable     *editable,
+on_channel_name_activate               (GtkWidget	*editable,
                                         gpointer         user_data);
 
 void

@@ -20,12 +20,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.25 2001-05-12 21:08:33 mschimek Exp $ */
+/* $Id: caption.c,v 1.26 2001-07-02 16:17:13 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
-
-#include <stdint.h>
 
 #include <unistd.h>
 #include <string.h>

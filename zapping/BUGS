@@ -11,3 +11,4 @@ Known bugs with zapping, don't report them
 	* Need better no-overlay-present handling.
 	* vbi eats too much CPU, investigate.
 	* The standard is changed when changing modes (check, not sure)
+	* Capture won't work under PPC (endianess)

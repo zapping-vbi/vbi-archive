@@ -49,11 +49,11 @@ struct tveng_module_info {
 		       int value, tveng_device_info *info);
   int	(*get_mute)(tveng_device_info *info);
   int	(*set_mute)(int value, tveng_device_info *info);
-  int	(*tune_input)(__u32 freq, tveng_device_info *info);
+  int	(*tune_input)(uint32_t freq, tveng_device_info *info);
   int	(*get_signal_strength)(int *strength, int *afc,
 			       tveng_device_info *info);
-  int	(*get_tune)(__u32 *freq, tveng_device_info *info);
-  int	(*get_tuner_bounds)(__u32 *min, __u32 *max,
+  int	(*get_tune)(uint32_t *freq, tveng_device_info *info);
+  int	(*get_tuner_bounds)(uint32_t *min, uint32_t *max,
 			    tveng_device_info *info);
   int	(*start_capturing)(tveng_device_info *info);
   int	(*stop_capturing)(tveng_device_info *info);

@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.14 2001-03-24 10:44:57 mschimek Exp $ */
+/* $Id: exp-txt.c,v 1.15 2001-07-02 16:17:13 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -163,16 +163,13 @@ export_string = {
 
 ///////////////////////////////////////////////////////
 
-#ifdef BSD
-char *
-stpcpy(char *dst, const char *src)
+static char *
+k_stpcpy(char *dst, const char *src)
 {
-    while (*dst = *src++)
-	dst++;
-    return dst;
+	while ((*dst = *src++))
+		dst++;
+	return dst;
 }
-#endif
-
 
 static bool
 txt_open(vbi_export *e)
@@ -267,19 +264,19 @@ put_attr(vbi_export *e, attr_char *new)
 	    if (ac.background && new->background == d->def_bg)	// switch to def bg -> reset all
 		reset = 1;
 
-	    p = stpcpy(buf, "\e[");
+	    p = k_stpcpy(buf, "\e[");
 	    if (reset)
 	    {
-		p = stpcpy(p, ";");	/* "0;", but 0 isn't necessary */
+		p = k_stpcpy(p, ";");	/* "0;", but 0 isn't necessary */
 		ac.flash = 1;
 		ac.size = 1;			// set all attributes
 		ac.foreground = new->foreground ^ d->def_fg;	// set fg if != default fg
 		ac.background = new->background ^ d->def_bg;	// set bg if != default bg
 	    }
 	    if (ac.flash & new->flash)
-		p = stpcpy(p, "5;");			// blink
+		p = k_stpcpy(p, "5;");			// blink
 	    if (ac.size && new->size != NORMAL)
-		p = stpcpy(p, "1;");			// bold
+		p = k_stpcpy(p, "1;");			// bold
 	    if (ac.foreground)
 		p += sprintf(p, "%d;", (new->foreground & 7) + 30);	// fg-color
 	    if (ac.background)

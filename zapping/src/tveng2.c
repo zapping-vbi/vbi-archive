@@ -878,7 +878,7 @@ tveng2_set_capture_format(tveng_device_info * info)
 /* To aid i18n, possible label isn't actually used */
 struct p_tveng2_control_with_i18n
 {
-  __u32 cid;
+  uint32_t cid;
   char * possible_label;
 };
 
@@ -1102,10 +1102,10 @@ tveng2_set_mute(int value, tveng_device_info * info)
   Tunes the current input to the given freq. Returns -1 on error.
 */
 static int
-tveng2_tune_input(__u32 _freq, tveng_device_info * info)
+tveng2_tune_input(uint32_t _freq, tveng_device_info * info)
 {
   struct v4l2_tuner tuner_info;
-  __u32 freq; /* real frequence passed to v4l2 */
+  uint32_t freq; /* real frequence passed to v4l2 */
 
   t_assert(info != NULL);
   t_assert(info->cur_input < info->num_inputs);
@@ -1208,9 +1208,9 @@ tveng2_get_signal_strength (int *strength, int * afc,
   Stores in freq the currently tuned freq. Returns -1 on error.
 */
 static int
-tveng2_get_tune(__u32 * freq, tveng_device_info * info)
+tveng2_get_tune(uint32_t * freq, tveng_device_info * info)
 {
-  __u32 real_freq;
+  uint32_t real_freq;
   struct v4l2_tuner tuner;
 
   t_assert(info != NULL);
@@ -1259,7 +1259,7 @@ tveng2_get_tune(__u32 * freq, tveng_device_info * info)
   If any of the pointers is NULL, its value will not be filled.
 */
 static int
-tveng2_get_tuner_bounds(__u32 * min, __u32 * max, tveng_device_info *
+tveng2_get_tuner_bounds(uint32_t * min, uint32_t * max, tveng_device_info *
 			info)
 {
   struct v4l2_tuner tuner;

@@ -23,7 +23,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.33 2001-06-23 02:50:44 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.34 2001-07-02 16:17:13 garetxe Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -31,7 +31,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
 
 #include <errno.h>

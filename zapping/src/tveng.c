@@ -130,7 +130,7 @@ tveng_device_info * tveng_device_info_new(Display * display, int bpp,
 #endif
 
   pthread_mutexattr_init(&attr);
-  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE_NP);
+  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
   pthread_mutex_init(&(new_object->private->mutex), &attr);
   pthread_mutexattr_destroy(&attr);
 
@@ -1138,7 +1138,7 @@ tveng_set_mute(int value, tveng_device_info * info)
   Tunes the current input to the given freq. Returns -1 on error.
 */
 int
-tveng_tune_input(__u32 freq, tveng_device_info * info)
+tveng_tune_input(uint32_t freq, tveng_device_info * info)
 {
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
@@ -1183,7 +1183,7 @@ tveng_get_signal_strength (int *strength, int * afc,
   Stores in freq the currently tuned freq. Returns -1 on error.
 */
 int
-tveng_get_tune(__u32 * freq, tveng_device_info * info)
+tveng_get_tune(uint32_t * freq, tveng_device_info * info)
 {
   t_assert(info != NULL);
   t_assert(freq != NULL);
@@ -1205,7 +1205,7 @@ tveng_get_tune(__u32 * freq, tveng_device_info * info)
   If any of the pointers is NULL, its value will not be filled.
 */
 int
-tveng_get_tuner_bounds(__u32 * min, __u32 * max, tveng_device_info *
+tveng_get_tuner_bounds(uint32_t * min, uint32_t * max, tveng_device_info *
 		       info)
 {
   t_assert(info != NULL);
