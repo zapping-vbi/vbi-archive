@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.c,v 1.12.2.8 2003-03-06 21:52:32 mschimek Exp $ */
+/* $Id: audio.c,v 1.12.2.9 2003-07-29 03:40:52 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -234,7 +234,7 @@ mixer_select			(GtkWidget *		table,
   if (n)
     {
       tv_mixer *mixer;
-      tv_mixer_line *line;
+      tv_audio_line *line;
       guint hash = -1;
       guint index;
 
@@ -253,7 +253,7 @@ mixer_select			(GtkWidget *		table,
   
       index = 0;
 
-      for (line = mixer->inputs; line; line = line->next)
+      for (line = mixer->inputs; line; line = line->_next)
 	{
 	  GtkWidget *menu_item;
 	  
@@ -267,7 +267,7 @@ mixer_select			(GtkWidget *		table,
 	  index++;
 	}
 
-      if (mixer->inputs->next == NULL)
+      if (mixer->inputs->_next == NULL)
 	gtk_widget_set_sensitive (GTK_WIDGET (optionmenu), FALSE);
 
       gtk_table_attach (GTK_TABLE (table), optionmenu, 1, 1 + 1, 3, 3 + 1,
@@ -427,14 +427,14 @@ audio_apply		(GtkWidget	*page)
   widget = lookup_widget (page, "mixer_table");
   if ((n = z_device_entry_selected (widget)))
     {
-      tv_mixer_line *l;
+      tv_audio_line *l;
       gint index;
 
       zcs_char (n->device, "mixer_device");
       widget = g_object_get_data (G_OBJECT (widget), "mixer_lines");
       index = z_option_menu_get_active (widget);
 
-      for (l = PARENT (n, tv_mixer, node)->inputs; l; l = l->next)
+      for (l = PARENT (n, tv_mixer, node)->inputs; l; l = l->_next)
 	if (index-- == 0)
 	  {
 	    zcs_int (l->hash, "mixer_input");
