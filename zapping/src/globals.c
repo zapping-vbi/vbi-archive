@@ -7,12 +7,21 @@ volatile gboolean	flag_exit_program = FALSE;
 GList			*plugin_list = NULL;
 /* preview should be disabled */
 gint			disable_preview = FALSE;
-/* XVideo should be disabled */
-gint			disable_xv = FALSE;
 /* Whether the device can be attached as XV */
 gboolean		xv_present = FALSE;
-/* XXX should be properly typed XvPortID xv_overlay_port = None;*/
-gint			xv_overlay_port = -1;
+
+/* Disable XVideo support */
+gint			disable_xv		= FALSE;
+gint			disable_xv_video	= FALSE;
+gint			disable_xv_image	= FALSE;
+
+/* XXX actually XvPortID xv_port = None; */
+gint			xv_video_port		= -1;
+gint			xv_image_port		= -1;
+
+/* Disable Xv and V4L overlay */
+gint			disable_overlay		= FALSE;
+
 GtkWidget		*main_window = NULL;
 /* Will be TRUE if when quitting we were fullscreen */
 gboolean		was_fullscreen = FALSE;

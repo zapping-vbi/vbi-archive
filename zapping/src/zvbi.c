@@ -403,17 +403,24 @@ threads_init (const gchar *dev_name, int given_fd)
 						       &services, /* strict */ -1,
 						       &_errstr, !!debug_msg)))
 	    {
+	      gchar *t;
+
+	      t = g_locale_to_utf8 (_errstr, -1, NULL, NULL, NULL);
+	      g_assert (t != NULL);
+
 	      if (errno == ENOENT || errno == ENXIO || errno == ENODEV)
 		{
-		  gchar *s = g_strconcat(_errstr, "\n", mknod_hint, NULL);
+		  gchar *s = g_strconcat(t, "\n", mknod_hint, NULL);
 	      
 		  RunBox(failed, GTK_MESSAGE_ERROR, s);
 		  g_free (s);
 		}
 	      else
 		{
-		  RunBox(failed, GTK_MESSAGE_ERROR, _errstr);
+		  RunBox(failed, GTK_MESSAGE_ERROR, t);
 		}
+
+	      g_free (t);
 	      free (_errstr);
 	      vbi_decoder_delete (vbi);
 	      vbi = NULL;

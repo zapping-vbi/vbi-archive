@@ -1,20 +1,16 @@
 Known bugs in Zapping, don't report them
 ----------------------------------------
 
-* Recording plugin: newly configured format doesn't
-  appear in recording window on clicking ok.
+* Screenshot: file selection dialog doesn't focus.
+* Switching to fullscreen and back doesn't work quite right.
 * Recording: on start hangs and/or causes xlib error.
 * Recording: stop hangs.
-* Where's the fscking mute button?
-* Cursor keys don't work in TTX child window. 
 * TTX mode, channel switch in ch editor,
   SEGV in vbi_draw_vt_page_region
 * Edited channels, clicked ok, tc==NULL in tuned_channel_nth_name().
 * V4L2 (0.20 and 2.5) RGB pixel formats are incorrectly defined.
   Gerd Knorr notified, solution pending. Workaround is in place.
-* tvengxv (pm2, not v4l) lists no standards and inputs.
 * Pointer does not properly reappear in windowed mode.
-* zvbi error messages need locale to UTF-8 conversion.
 * Go Fullscreen w/automatic vidmode hangs on RH
 * ** (zapping:14562): WARNING **: Group Allgemeine Optionen not found
   in the properties
@@ -33,12 +29,11 @@ Known bugs in Zapping, don't report them
   (Xv/v4l no signal strength), need check/switch.
 - In capture mode window resizing flickers.
 * fprintf_ioctl dereferences uninitialized strings.
-* Need to handle BadAtom errors resulting from Xv out
-  of video memory (or no v4l device?). Currently gdk
-  just aborts the app.
 * Need better no-overlay-present handling.
 * Capture won't work under PPC (endianess)
 * Look for endianness problems.
+* In capture mode at high res w/xv the video stumbles,
+  maybe only on slow CPUs. No such thing in 0.6. What changed?
 * vbi eats too much CPU, investigate.
 ~ Zapzilla: Calls fetch_page more often than necessary,
   investigate.
@@ -52,6 +47,16 @@ Known bugs in Zapping, don't report them
 * config.h is also full of hardcoded paths.
 * Spinslider minimum sizes.
 * Bad reception breaks vbi decoding: i/o error.
+
+tvengxv.c
+* Need to handle BadAtom errors resulting from Xv out
+  of video memory (or no v4l device?). Currently gdk traps errors
+  and just aborts the App.
+* We must not rely on XvQueryPortAttributes(), this is a later
+  (XFree86-only?) extension of the XVideo API. It already defines
+  some attribute names and ranges, and XvGetPortAttribute() will tell
+  if they are implemented by the driver.
+
 * Closing the main window while recording blocks.
   Backtrace:
   on_exit2_activate() [now quit_cmd()]
@@ -135,6 +140,9 @@ V4L XVideo driver (xc/programs/Xserver/hw/xfree86/drivers/v4l/v4l.c)
 * XV_FREQ semantics not documented, e.g. scale 62.5 kHz.
 * XvEncodingInfo does not report if the input is a tuner and
   XV_FREQ access appears to succeed on all inputs.
+* According to XvQueryPortAttributes() this device has 2001
+  video standards and inputs (no, I didn't try them :-)
+  {XvSettable | XvGettable, -1000, 1000, XV_ENCODING}
 
 NVidia driver (binary, not xf86)
 * Reports tv output port with type XvInputMask | XvVideoMask.
@@ -150,3 +158,11 @@ NeoMagic driver (xc/programs/Xserver/hw/xfree86/drivers/neomagic)
 Savage driver (xc/programs/Xserver/hw/xfree86/drivers/savage/savage_video.c)
 * Minor nit: comment says YV12, I420 == 4:1:1, actually 4:2:0. The
   alleged 2:1:1 is really a half width 4:2:2, there's no such thing as 2:1:1.
+
+Glint driver (xc/programs/Xserver/hw/xfree86/drivers/glint/pm2_video.c)
+* Does not list XV_ENCODING with other attributes for
+  XvQueryPortAttributes(). Only two other drivers have XV_ENCODING,
+  namely V4L and SMI (xc/programs/Xserver/hw/xfree86/drivers/
+  siliconmotion/smi_video.c), and both list it, but I wonder if it
+  really belongs with attributes. This is no picture control and the
+  info is redundant with XvQueryEncodings().

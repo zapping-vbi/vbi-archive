@@ -1,3 +1,26 @@
+2003-10-31    <mschimek@users.sf.net>
+
+	* plugins/mpeg/mpeg.c (saving_dialog_attach_formats),
+	  src/ttxview.c (export_dialog_new),
+	  src/zmisc.c (z_electric_replace_extension): Fixed inconsistent
+	  freeing of basename.
+	* src/zmisc.c (z_electric_set_basename): Added.
+	* src/zmisc.c (z_on_electric_filename): Fixed buffer overflow.
+	* plugins/mpeg/options.c: Fixed NULL tooltips deref.
+	  (create_menu): Another locale to UTF-8 fix.
+	* plugins/mpeg/mpeg_properties.glade2: Removed obsolete rte 0.4
+	  dialogs.
+	* src/main.c (main): Added new options to disable and select port
+	  for xv video and image. 
+
+2003-10-30    <mschimek@users.sf.net>
+
+	* src/tvengxv.c (tvengxv_attach_device): Glint XV_ENCODING bug
+	  work-around.
+	* src/zvbi.c (threads_init), src/ttxview.c
+	  (on_export_dialog_ok_clicked): Make sure errstr is UTF8.
+	* src/keyboard.c: Fixed loading of default keybindings.
+
 2003-10-20    <mschimek@users.sf.net>
 
 	* plugins/mpeg/options.c: Locale to UTF-8 fixes.

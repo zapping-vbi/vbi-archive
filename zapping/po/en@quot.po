@@ -28,7 +28,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.6.5cvs\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2003-10-10 19:46+0200\n"
+"POT-Creation-Date: 2003-10-21 23:19+0200\n"
 "PO-Revision-Date: 2002-06-25 06:11+0200\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -37,7 +37,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: src/main.c:155 src/interface.c:698 src/tveng.c:1882 src/tveng1.c:747
+#: src/main.c:155 src/interface.c:698 src/tveng.c:1896 src/tveng1.c:747
 #: src/tveng2.c:449
 msgid "Mute"
 msgstr "Mute"
@@ -148,7 +148,7 @@ msgstr ""
 "Sorry, but â%sâ could not be opened:\n"
 "%s"
 
-#: src/main.c:664
+#: src/main.c:666
 #, c-format
 msgid ""
 "Cannot restore previous mode%s:\n"
@@ -157,11 +157,11 @@ msgstr ""
 "Cannot restore previous mode%s:\n"
 "%s"
 
-#: src/main.c:667
+#: src/main.c:669
 msgid ", I will try starting capture mode"
 msgstr ", I will try starting capture mode"
 
-#: src/main.c:671
+#: src/main.c:673
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
@@ -170,7 +170,7 @@ msgstr ""
 "Capture mode couldn't be started either:\n"
 "%s"
 
-#: src/main.c:684
+#: src/main.c:686
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
@@ -179,7 +179,7 @@ msgstr ""
 "Capture mode couldn't be started:\n"
 "%s"
 
-#: src/main.c:962 src/zapzilla.c:165
+#: src/main.c:964 src/zapzilla.c:165
 #, c-format
 msgid ""
 "ZConf could not be closed properly , your\n"
@@ -200,7 +200,7 @@ msgstr ""
 "   - or, more probably, you have found a bug in\n"
 "     %s. Please contact the author.\n"
 
-#: src/main.c:990
+#: src/main.c:992
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Sorry, Zapping is unable to create the config tree"
 
@@ -392,17 +392,18 @@ msgstr "Audio Mute"
 msgid "Video inputs"
 msgstr "TV input"
 
-#: src/v4linterface.c:1966
+#. huh?
+#: src/v4linterface.c:1965
 msgid "Unnamed"
 msgstr ""
 
 #. This doesn't count as something added
-#: src/v4linterface.c:1990
+#: src/v4linterface.c:1991
 msgid "No tuned channels"
 msgstr "No tuned channels"
 
 #. TRANSLATORS: Control change OSD (%s name, %d new value in percent)
-#: src/v4linterface.c:2174
+#: src/v4linterface.c:2175
 #, fuzzy, c-format
 msgid "<span foreground=\"blue\">%s %d %%</span>"
 msgstr "Channel: <yellow>%s</yellow>"
@@ -526,41 +527,41 @@ msgstr " Teletext Page %x"
 msgid "Open this page with Zapzilla"
 msgstr "Open this page with Zapzilla"
 
-#: src/tveng.c:1874 src/tveng2.c:448
+#: src/tveng.c:1888 src/tveng2.c:448
 msgid "Volume"
 msgstr "Volume"
 
-#: src/tveng.c:2501
+#: src/tveng.c:2515
 #, fuzzy
 msgid "zapping_setup_fb exited abnormally."
 msgstr "zapping__setup__fb verbosity:"
 
 #. zapping_setup_fb failure
 #. unknown
-#: src/tveng.c:2517
+#: src/tveng.c:2531
 #, fuzzy
 msgid "zapping_setup_fb failed."
 msgstr "zapping__setup__fb verbosity:"
 
-#: src/tveng.c:2522
+#: src/tveng.c:2536
 #, fuzzy
 msgid "zapping_setup_fb not found in "
 msgstr "zapping__setup__fb verbosity:"
 
-#: src/tveng.c:2523
+#: src/tveng.c:2537
 msgid " or executable search path."
 msgstr ""
 
 #. unknown
-#: src/tveng.c:2528
+#: src/tveng.c:2542
 msgid "Unknown error in zapping_setup_fb."
 msgstr ""
 
-#: src/tveng.c:3001 src/tveng.c:3022
+#: src/tveng.c:3009 src/tveng.c:3030
 msgid "Filter"
 msgstr "Filter"
 
-#: src/tveng.c:3043
+#: src/tveng.c:3051
 msgid "Colorkey"
 msgstr "Colorkey"
 

@@ -415,6 +415,9 @@ gboolean
 z_build_path(const gchar *path, gchar **error_description);
 
 void
+z_electric_set_basename		(GtkWidget *		w,
+				 const gchar *		basename);
+void
 z_on_electric_filename		(GtkWidget *		w,
 				 gpointer		user_data);
 void

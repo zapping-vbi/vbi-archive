@@ -182,7 +182,7 @@ struct tveng_private {
   int		zapping_setup_fb_verbosity;
   gchar *	mode; /* vidmode */
 
-  int		disable_xv; /* 1 if XVideo should be disabled */
+  int		disable_xv_video; /* 1 if XVideo should be disabled */
   int		dword_align; /* 1 if x and w should be dword aligned */
 
   pthread_mutex_t mutex; /* Thread safety */

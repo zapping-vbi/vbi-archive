@@ -2960,7 +2960,7 @@ void tveng_set_xv_support(int disabled, tveng_device_info * info)
 {
   t_assert(info != NULL);
 
-  info->priv->disable_xv = disabled;
+  info->priv->disable_xv_video = disabled;
 }
 
 #ifdef USE_XV

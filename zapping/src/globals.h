@@ -14,11 +14,19 @@ extern volatile gboolean	flag_exit_program;
 extern GList			*plugin_list;
 /* preview should be disabled */
 extern gint			disable_preview;
-/* XVideo should be disabled */
-extern gint			disable_xv;
 /* Whether the device can be attached as XV */
 extern gboolean			xv_present;
-extern gint			xv_overlay_port;
+
+/* XVideo should be disabled */
+extern gint			disable_xv;
+extern gint			disable_xv_video;
+extern gint			disable_xv_image;
+
+extern gint			xv_video_port;
+extern gint			xv_image_port;
+
+extern gint			disable_overlay;
+
 extern GtkWidget		*main_window;
 /* Will be TRUE if when quitting we were fullscreen */
 extern gboolean			was_fullscreen;

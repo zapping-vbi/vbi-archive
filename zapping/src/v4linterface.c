@@ -731,8 +731,10 @@ z_switch_input			(int hash, tveng_device_info *info)
 
   if (!(l = tv_video_input_by_hash (info, hash)))
     {
+#if 0 /* annoying */
       ShowBox("Couldn't find input with hash %x",
 	      GTK_MESSAGE_ERROR, hash);
+#endif
       return FALSE;
     }
 
@@ -761,9 +763,11 @@ z_switch_standard		(int hash, tveng_device_info *info)
 
   if (!s)
     {
+#if 0 /* annoying */
       if (info->video_standards)
 	ShowBox("Couldn't find standard with hash %x",
 		GTK_MESSAGE_ERROR, hash);
+#endif
       return FALSE;
     }
 

@@ -59,9 +59,6 @@ struct _zimage_private {
 static GdkWindow *window = NULL;
 static GdkGC *gc = NULL;
 
-extern gint		disable_xv; /* TRUE if XV should be disabled */
-
-
 /*
   This curious construct assures that we only grab the minimum set of
   needed ports for all the pixformats we blit, whilst assuring that we
@@ -534,6 +531,10 @@ traverse_ports			(Display *		display,
 
       xvport = pAdaptor->base_id + i;
 
+      if (xv_image_port != (XvPortID) -1
+	  && xvport != xv_image_port)
+	continue;
+
       pImageFormats = XvListImageFormats (display, xvport, &nImageFormats);
 
       if (NULL == pImageFormats || 0 == nImageFormats)
@@ -590,8 +591,10 @@ void add_backend_xv (void)
   int nAdaptors;
   int i;
 
-  if (disable_xv)
+  if (disable_xv || disable_xv_image)
     return;
+
+  printv ("xv_image_port 0x%x\n", xv_image_port);
 
   display = GDK_DISPLAY ();
 
