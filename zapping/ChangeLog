@@ -1,3 +1,16 @@
+2005-02-10    <mschimek@users.sf.net>
+
+	* src/tveng.c (store_cur_video_standard): Don't assert on std != NULL.
+	* libtv/image_format.c, libtv/Makefile.am (INCLUDES):
+	  Enabled untested SIMD routines for tests.
+	* test/clear_image.c (main): Added altivec check.
+	* test/memcpy.c (main): Added altivec check.
+	* src/cpu.h (CPU_FEATURE_ALTIVEC): Missing #define.
+	* src/cpu.c: Replaced #if #cpu by plain #ifdef.
+	* configure.in: Added AC_DEFINE HAVE_X86 for src/cpu.c.
+	* src/tveng.c (append_video_standard): Disabled videostd set
+	  collision warning, is normal with saa7134.
+
 2005-02-06    <mschimek@users.sf.net>
 
 	* test/Makefile.am (INCLUDES): Include top_srcdir.

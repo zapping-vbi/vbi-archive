@@ -1,6 +1,8 @@
 Outstanding issues for future releases
 --------------------------------------
 
+* Add a shadow VBI switch to disable VBI on startup errors or --no-vbi
+  for the _current session_.  Don't override the persistent user switch.
 * Handle locked gconf.
 * Investigate gtkglext.
 * Middle mouse button shouldn't be hardwired but run a Python command.
