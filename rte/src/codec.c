@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: codec.c,v 1.4 2002-03-23 14:06:45 mschimek Exp $ */
+/* $Id: codec.c,v 1.5 2002-04-20 06:44:16 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -818,7 +818,7 @@ rte_codec_parameters_get(rte_codec *codec, rte_stream_parameters *params)
 	else if (dc->parameters_get)
 		r = dc->parameters_get(codec, params);
 	else {
-		if (codec->status == RTE_STATUS_NEW) {
+		if (codec->state == RTE_STATE_NEW) {
 			r = FALSE;
 		} else {
 			memcpy(params, &codec->params, sizeof(*params));
@@ -828,6 +828,8 @@ rte_codec_parameters_get(rte_codec *codec, rte_stream_parameters *params)
 
 	return r;
 }
+
+#if 0 /* obsolete */
 
 /*
  *  Status
@@ -890,3 +892,5 @@ rte_codec_status_keyword(rte_codec *codec, const char *keyword)
 
 	return si;
 }
+
+#endif

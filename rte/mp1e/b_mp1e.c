@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.33 2002-04-12 03:12:40 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.34 2002-04-20 06:42:54 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -76,6 +76,30 @@ int				mux_syn;
 void packed_preview(unsigned char *buffer, int mb_cols, int mb_rows) { }
 void preview_init(int *argc, char ***argv) { }
 
+static void
+status(rte_context *context, rte_codec *codec,
+       rte_status *status, int size)
+{
+	rte_context_class *xc = context->class;
+
+	if (xc == &mp1e_mpeg1_video_context
+	    || xc == &mp1e_mpeg1_audio_context) {
+		codec = PARENT(context, mp1e_context, context)->codecs;
+	}
+
+	if (codec) {
+		pthread_mutex_lock(&codec->mutex);
+
+		memcpy(status,
+		       &PARENT(codec, mp1e_codec, codec)->status,
+		       size);
+
+		pthread_mutex_unlock(&codec->mutex);
+	} else {
+		memset(status, 0, size);
+	}
+}
+
 /* Start / Stop */
 
 /* forward */ static void reset_input(rte_codec *codec);
@@ -88,7 +112,7 @@ stop(rte_context *context, double timestamp)
 	rte_context_class *xc = context->class;
 	rte_codec *codec;
 
-	if (context->status != RTE_STATUS_RUNNING) {
+	if (context->state != RTE_STATE_RUNNING) {
 		rte_error_printf(context, "Context %s not running.",
 				 xc->public.keyword);
 		return FALSE;
@@ -103,9 +127,9 @@ stop(rte_context *context, double timestamp)
 		// XXX timeout && force
 		pthread_join(md->thread_id, NULL);
 
-		md->codec.status = RTE_STATUS_READY;
+		md->codec.state = RTE_STATE_READY;
 
-		/* Destroy input, reset codec, -> RTE_STATUS_PARAM */
+		/* Destroy input, reset codec, -> RTE_STATE_PARAM */
 
 		reset_input(&md->codec);
 
@@ -120,7 +144,7 @@ stop(rte_context *context, double timestamp)
 
 	reset_output(context);
 
-	context->status = RTE_STATUS_NEW;
+	context->state = RTE_STATE_NEW;
 
 	return TRUE;
 }
@@ -133,11 +157,11 @@ start(rte_context *context, double timestamp,
 	rte_context_class *xc = context->class;
 	int error;
 
-	switch (context->status) {
-	case RTE_STATUS_READY:
+	switch (context->state) {
+	case RTE_STATE_READY:
 		break;
 
-	case RTE_STATUS_RUNNING:
+	case RTE_STATE_RUNNING:
 		rte_error_printf(context, "Context %s already running.",
 				 xc->public.keyword);
 		return FALSE;
@@ -151,12 +175,12 @@ start(rte_context *context, double timestamp,
 	if (xc == &mp1e_mpeg1_video_context) {
 		mp1e_codec *md = PARENT(mx->codecs, mp1e_codec, codec);
 
-		md->codec.status = RTE_STATUS_RUNNING;
+		md->codec.state = RTE_STATE_RUNNING;
 
 		error = pthread_create(&md->thread_id, NULL, mp1e_mpeg1, &md->codec);
 
 		if (error != 0) {
-			md->codec.status = RTE_STATUS_READY;
+			md->codec.state = RTE_STATE_READY;
 			rte_error_printf(context, _("Insufficient resources to start "
 						    "video encoding thread.\n"));
 			return FALSE;
@@ -164,12 +188,12 @@ start(rte_context *context, double timestamp,
 	} else if (xc == &mp1e_mpeg1_audio_context) {
 		mp1e_codec *md = PARENT(mx->codecs, mp1e_codec, codec);
 
-		md->codec.status = RTE_STATUS_RUNNING;
+		md->codec.state = RTE_STATE_RUNNING;
 
 		error = pthread_create(&md->thread_id, NULL, mp1e_mp2, &md->codec);
 
 		if (error != 0) {
-			md->codec.status = RTE_STATUS_READY;
+			md->codec.state = RTE_STATE_READY;
 			rte_error_printf(context, _("Insufficient resources to start "
 						    "audio encoding thread.\n"));
 			return FALSE;
@@ -203,7 +227,7 @@ start(rte_context *context, double timestamp,
 			mp1e_codec *md = PARENT(codec, mp1e_codec, codec);
 			rte_codec_class *dc = md->codec.class;
 
-			md->codec.status = RTE_STATUS_RUNNING;
+			md->codec.state = RTE_STATE_RUNNING;
 
 			error = -1;
 
@@ -223,7 +247,7 @@ start(rte_context *context, double timestamp,
 			}
 
 			if (error != 0) {
-				md->codec.status = RTE_STATUS_READY;
+				md->codec.state = RTE_STATE_READY;
 				rte_error_printf(context, _("Insufficient resources to start "
 							    "codec thread.\n"));
 				/* FIXME */
@@ -254,7 +278,7 @@ start(rte_context *context, double timestamp,
 
 	mp1e_sync_start(&mx->sync, timestamp);
 
-	context->status = RTE_STATUS_RUNNING;
+	context->state = RTE_STATE_RUNNING;
 
 	return TRUE;
 }
@@ -326,7 +350,7 @@ reset_output(rte_context *context)
 		mux_destroy(&mx->mux);
 	}
 
-	context->status = RTE_STATUS_NEW;
+	context->state = RTE_STATE_NEW;
 }
 
 static rte_bool
@@ -339,11 +363,11 @@ set_output(rte_context *context,
 	char buf[256];
 	int queue, i, j;
 
-	switch (context->status) {
-	case RTE_STATUS_NEW:
+	switch (context->state) {
+	case RTE_STATE_NEW:
 		break;
 
-	case RTE_STATUS_READY:
+	case RTE_STATE_READY:
 		reset_output(context);
 		break;
 
@@ -369,7 +393,7 @@ set_output(rte_context *context,
 			if (dc->public.stream_type != i)
 				continue;
 
-			if (codec->status != RTE_STATUS_READY) {
+			if (codec->state != RTE_STATE_READY) {
 				rte_error_printf(context, "Codec %s, elementary stream #%d, "
 						 "initialization unfinished.",
 						 dc->public.keyword, codec->stream_index);
@@ -470,7 +494,7 @@ set_output(rte_context *context,
 		mp1e_sync_init(&mx->sync, modules, 1 /* refined in start() */);
 	}
 
-	context->status = RTE_STATUS_READY;
+	context->state = RTE_STATE_READY;
 
 	return TRUE;
 }
@@ -550,7 +574,7 @@ push_buffer(rte_codec *codec, rte_buffer *wb, rte_bool blocking)
 	mp1e_codec *md = PARENT(codec, mp1e_codec, codec);
 	buffer *b = NULL;
 
-	if (md->codec.status != RTE_STATUS_RUNNING) {
+	if (md->codec.state != RTE_STATE_RUNNING) {
 		rte_error_printf(codec->context, "Codec %s not running.",
 				 codec->class->public.keyword);
 		return FALSE;
@@ -615,7 +639,7 @@ reset_input(rte_codec *codec)
 	rem_producer(&md->prod);
 	destroy_fifo(md->input);
 
-	codec->status = RTE_STATUS_PARAM;
+	codec->state = RTE_STATE_PARAM;
 }
 
 static rte_bool
@@ -628,16 +652,16 @@ set_input(rte_codec *codec, rte_io_method input_method,
 	char buf[256];
 	int queue;
 
-	switch (codec->status) {
-	case RTE_STATUS_NEW:
+	switch (codec->state) {
+	case RTE_STATE_NEW:
 		rte_error_printf(context, "Attempt to select input method with "
 					  "uninitialized sample parameters.");
 		return FALSE;
 
-	case RTE_STATUS_PARAM:
+	case RTE_STATE_PARAM:
 		break;
 
-	case RTE_STATUS_READY:
+	case RTE_STATE_READY:
 		reset_input(codec);
 		break;
 
@@ -705,7 +729,7 @@ set_input(rte_codec *codec, rte_io_method input_method,
 	md->read_cb = read_cb;
 	md->unref_cb = unref_cb;
 
-	codec->status = RTE_STATUS_READY;
+	codec->state = RTE_STATE_READY;
 
 	return TRUE;
 }
@@ -717,11 +741,11 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 {
 	rte_codec_class *dc = codec->class;
 
-	switch (codec->status) {
-	case RTE_STATUS_NEW:
-	case RTE_STATUS_PARAM:
+	switch (codec->state) {
+	case RTE_STATE_NEW:
+	case RTE_STATE_PARAM:
 		break;
-	case RTE_STATUS_READY:
+	case RTE_STATE_READY:
 		reset_input(codec);
 		break;
 	default:
@@ -770,7 +794,7 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 static rte_bool
 option_set(rte_codec *codec, const char *keyword, va_list args)
 {
-	if (codec->status == RTE_STATUS_READY)
+	if (codec->state == RTE_STATE_READY)
 		reset_input(codec);
 
 	return codec->class->option_set(codec, keyword, args);
@@ -908,7 +932,7 @@ codec_set(rte_context *context, const char *keyword,
 	if (old) {
 		*oldpp = old->next;
 
-		if (old->status == RTE_STATUS_READY)
+		if (old->state == RTE_STATE_READY)
 			reset_input(old);
 
 		old->class->delete(old);
@@ -1013,12 +1037,12 @@ context_delete(rte_context *context)
 {
 	mp1e_context *mx = PARENT(context, mp1e_context, context);
 
-	switch (context->status) {
-	case RTE_STATUS_RUNNING:
-	case RTE_STATUS_PAUSED:
+	switch (context->state) {
+	case RTE_STATE_RUNNING:
+	case RTE_STATE_PAUSED:
 		assert(!"reached");
 
-	case RTE_STATUS_READY:
+	case RTE_STATE_READY:
 		reset_output(context);
 		break;
 
@@ -1058,7 +1082,7 @@ context_new(rte_context_class *xc, char **errstr)
 
 	pthread_mutex_init(&context->mutex, NULL);
 
-	context->status = RTE_STATUS_NEW;
+	context->state = RTE_STATE_NEW;
 
 	return context;
 }
@@ -1128,6 +1152,8 @@ backend_init(void)
 
 		context_table[i]->start = start;
 		context_table[i]->stop = stop;
+
+		context_table[i]->status = status;
 	}
 
 	mp1e_mpeg1_vcd_context.codec_option_enum = option_enum;

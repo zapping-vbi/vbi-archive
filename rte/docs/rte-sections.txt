@@ -89,6 +89,9 @@ rte_push_buffer
 <SUBSECTION>
 rte_seek_callback
 rte_set_output_callback_passive
+rte_set_output_stdio
+rte_set_output_file
+rte_set_output_discard
 </SUBSECTION>
 </SECTION>
 

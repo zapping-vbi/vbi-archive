@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.26 2002-04-09 12:28:55 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.27 2002-04-20 06:42:54 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -1340,6 +1340,12 @@ _send_full_buffer(mpeg1_context *mpeg1, buffer *b)
       	if (test_mode & 16)
 		printv(0, "vebr %f \r", (double) video_eff_bit_rate);
 
+	pthread_mutex_lock(&mpeg1->codec.codec.mutex);
+	mpeg1->codec.status.frames_out++;
+	mpeg1->codec.status.coded_time = b->time;
+	mpeg1->codec.status.bytes_out += b->used;
+	pthread_mutex_unlock(&mpeg1->codec.codec.mutex);
+
 	send_full_buffer(&mpeg1->prod, b);
 }
 
@@ -1683,7 +1689,7 @@ mp1e_mpeg1(void *codec)
 
 	printv(3, "Video compression thread\n");
 
-	assert(mpeg1->codec.codec.status == RTE_STATUS_RUNNING);
+	assert(mpeg1->codec.codec.state == RTE_STATE_RUNNING);
 
 	/* XXX this function isn't reentrant. yet. */
 	assert(static_context == mpeg1);
@@ -2212,11 +2218,11 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 	rte_bool packed = TRUE;
 	int size;
 
-	switch (codec->status) {
-	case RTE_STATUS_NEW:
+	switch (codec->state) {
+	case RTE_STATE_NEW:
 		break;
 
-	case RTE_STATUS_PARAM:
+	case RTE_STATE_PARAM:
 		uninit(codec);
 		break;
 
@@ -2511,14 +2517,14 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 	mpeg1->codec.output_bit_rate = mpeg1->bit_rate;
 	mpeg1->codec.output_frame_rate = mpeg1->coded_frame_rate;
 
-	codec->status = RTE_STATUS_PARAM;
+	codec->state = RTE_STATE_PARAM;
 
 	return TRUE;
 
 reject:
 	uninit(codec);
 
-	codec->status = RTE_STATUS_NEW;
+	codec->state = RTE_STATE_NEW;
 
 	return FALSE;
 }
@@ -2549,8 +2555,8 @@ mpeg1_options[] = {
 	   2300000, 30000, 8000000, 1000,
 	   N_("Output bit rate")),
 	RTE_OPTION_REAL_MENU_INITIALIZER
-	  ("coded_frame_rate", N_("Coded frame rate"),
-	   2 /* 25.0 */, (double *) &frame_rate_value[1], 8, (NULL)),
+	  ("coded_frame_rate", NULL,
+	   2 /* 25.0 */, (double *) &frame_rate_value[1], 8, NULL),
 	RTE_OPTION_REAL_RANGE_INITIALIZER
 	  ("virtual_frame_rate", N_("Virtual frame rate"),
 	   60.0, 0.0002, 60.0, 1e-3,
@@ -2669,15 +2675,15 @@ option_set(rte_codec *codec, const char *keyword, va_list args)
 
 	/* Preview runtime changes here */
 
-	switch (codec->status) {
-	case RTE_STATUS_NEW:
+	switch (codec->state) {
+	case RTE_STATE_NEW:
 		break;
 
-	case RTE_STATUS_PARAM:
+	case RTE_STATE_PARAM:
 		uninit(codec);
 		break;
 
-	case RTE_STATUS_READY:
+	case RTE_STATE_READY:
 		assert(!"reached");
 
 	default:
@@ -2733,7 +2739,7 @@ option_set(rte_codec *codec, const char *keyword, va_list args)
 		return FALSE;
 	}
 
-	codec->status = RTE_STATUS_NEW;
+	codec->state = RTE_STATE_NEW;
 
 	return TRUE;
 }
@@ -2754,17 +2760,17 @@ codec_delete(rte_codec *codec)
 {
 	mpeg1_context *mpeg1 = PARENT(codec, mpeg1_context, codec);
 
-	switch (codec->status) {
-	case RTE_STATUS_PARAM:
+	switch (codec->state) {
+	case RTE_STATE_PARAM:
 		uninit(codec);
 		break;
 
-	case RTE_STATUS_READY:
+	case RTE_STATE_READY:
 		assert(!"reached");
 		break;
 
-	case RTE_STATUS_RUNNING:
-	case RTE_STATUS_PAUSED:
+	case RTE_STATE_RUNNING:
+	case RTE_STATE_PAUSED:
 		fprintf(stderr, "mp1e bug warning: attempt to delete "
 			"running mpeg1 codec ignored\n");
 		return;
@@ -2802,7 +2808,7 @@ codec_new(rte_codec_class *cc, char **errstr)
 
 	pthread_mutex_init(&codec->mutex, NULL);
 
-	codec->status = RTE_STATUS_NEW;
+	codec->state = RTE_STATE_NEW;
 
 	return codec;
 }

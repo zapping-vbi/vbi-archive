@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: codec.h,v 1.1 2002-03-16 16:35:37 mschimek Exp $ */
+/* $Id: codec.h,v 1.2 2002-04-20 06:44:16 mschimek Exp $ */
 
 #ifndef CODEC_H
 #define CODEC_H
@@ -229,16 +229,14 @@ typedef enum {
  * bytes, of both the U (Cb) and V (Cr) plane. Usually this value
  * is @stride / 2.
  **/
-typedef struct rte_video_stream_params rte_video_stream_params;
-
-struct rte_video_stream_params {
+typedef struct {
 	rte_pixfmt		pixfmt;
 	double			frame_rate;
 	double			pixel_aspect;
 	unsigned int		width, height;
 	unsigned int		offset, u_offset, v_offset;
 	unsigned int		stride, uv_stride;
-};
+} rte_video_stream_params;
 
 /* Private */
 // XXX shall we permit abs(stride) * height access
@@ -279,14 +277,12 @@ typedef enum {
  * block size is given in bytes, but must be divisible
  * by sample size in bytes times @channels.
  **/
-typedef struct rte_audio_stream_params rte_audio_stream_params;
-
-struct rte_audio_stream_params {
+typedef struct {
 	rte_sndfmt		sndfmt;
 	unsigned int		sampling_freq;
 	unsigned int		channels;
 	unsigned int		fragment_size;
-};
+} rte_audio_stream_params;
 
 /* VBI parameters defined in libzvbi.h */
 
@@ -318,8 +314,17 @@ extern rte_bool			rte_codec_options_reset(rte_codec *codec);
 extern rte_bool			rte_codec_parameters_set(rte_codec *codec, rte_stream_parameters *params);
 extern rte_bool			rte_codec_parameters_get(rte_codec *codec, rte_stream_parameters *params);
 
-extern rte_status_info *	rte_codec_status_enum(rte_codec *codec, int n);
-extern rte_status_info *	rte_codec_status_keyword(rte_codec *codec, const char *keyword);
+static inline void
+rte_codec_status (rte_codec *codec, rte_status *status)
+{
+	extern void rte_status_query(rte_context *context, rte_codec *codec,
+				     rte_status *status, int size);
+
+	rte_status_query(0, codec, status, sizeof(rte_status));
+}
+
+//extern rte_status_info *	rte_codec_status_enum(rte_codec *codec, int n);
+//extern rte_status_info *	rte_codec_status_keyword(rte_codec *codec, const char *keyword);
 
 /* Private */
 
@@ -347,7 +352,7 @@ struct rte_codec {
 	 *  parameters are only valid at status RTE_STATUS_PARAM
 	 *  or higher.
 	 */
-	rte_status		status;
+	rte_state		state;
 	rte_stream_parameters	params;
 
 	/*
@@ -358,13 +363,13 @@ struct rte_codec {
 
 // <<
 	/* Valid when RTE_STATUS_RUNNING; mutex protected, read only. */
-	int64_t			frame_input_count;
-	int64_t			frame_input_missed;	/* excl. intent. skipped */
-	int64_t			frame_output_count;
-	int64_t			byte_output_count;
-	double			coded_time_elapsed;
+//	int64_t			frame_input_count;
+//	int64_t			frame_input_missed;	/* excl. intent. skipped */
+//	int64_t			frame_output_count;
+//	int64_t			byte_output_count;
+//	double			coded_time_elapsed;
 	// XXX?
-	double			frame_output_rate;	/* invariable, 1/s */
+//	double			frame_output_rate;	/* invariable, 1/s */
 };
 
 /*
@@ -377,7 +382,7 @@ struct rte_codec_class {
 
 	/*
 	 *  Allocate new codec instance. Returns all fields zero except
-	 *  rte_codec.class, .status (RTE_STATUS_NEW) and .mutex (initialized).
+	 *  rte_codec.class, .state (RTE_STATE_NEW) and .mutex (initialized).
 	 *  Options to be reset by caller, i. e. backend.
 	 */
 	rte_codec *		(* new)(rte_codec_class *, char **errstr);
@@ -420,7 +425,7 @@ struct rte_codec_class {
 
 //<<
 
-	rte_status_info *	(* status_enum)(rte_codec *, int);
+//	rte_status_info *	(* status_enum)(rte_codec *, int);
 };
 
 #endif /* CODEC_H */

@@ -350,7 +350,7 @@ set_mute1				(gint	        mode,
 
   /* The if's here break the signal -> change -> signal recursion */
 
-  button = lookup_widget (main_window, "mute1");
+  button = lookup_widget (main_window, "tb-mute");
 
   check = GTK_CHECK_MENU_ITEM (lookup_widget (main_window, "mute2"));
 
@@ -386,7 +386,7 @@ void
 on_mute1_toggled			(GtkWidget	*w,
 					 gpointer	user_data)
 {
-  GtkWidget *widget = lookup_widget (main_window, "mute1");
+  GtkWidget *widget = lookup_widget (main_window, "tb-mute");
   gboolean state = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
 
   set_mute1 (!!state, mute_controls, mute_osd);

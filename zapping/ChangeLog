@@ -1,3 +1,27 @@
+17.04.2002	<mschimek@users.sf.net>
+
+	* plugins/mpeg/mpeg.c: Some work towards the new recording
+	  dialog.
+
+15.04.2002	<mschimek@users.sf.net>
+
+	* plugins/mpeg/mpeg.c, plugins/mpeg/options.c: Ported to
+	  rte 0.5 (optional), config audio and video pages now
+	  sensitive only when the stream type applies. For testing
+	  only.
+	* configure.in: Added check for rte 0.5.
+
+10.04.2002	<mschimek@users.sf.net>
+
+	Greetings from the chrome department:
+	* src/keyboard.c: Replaced shutdown by keyboard image in prefs.
+	* src/properties-handler.c: Added toolbar style option.
+	* src/interface.c: Added toolbar style option and changed
+	  toolbar mute button image from stock volume to crossed
+	  speaker symbol.
+	* src/zmisc.c: Spinslider [reset] button replaced by pixbutton,
+	  needs less screen real estate and no translation.
+
 09.04.2002	<mschimek@users.sf.net>
 
 	* zapping_setup_fb/Makefile.am: In absence of consolehelper

@@ -463,7 +463,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.161 2002-04-02 21:06:31 garetxe Exp $",
+	 "$Id: main.c,v 1.162 2002-04-20 06:42:31 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -650,12 +650,11 @@ int main(int argc, char * argv[])
   if (tveng_set_mute(1, main_info) < 0)
     {
       /* has no mute function */
-      gtk_widget_hide(lookup_widget(main_window, "mute1"));
+      gtk_widget_hide(lookup_widget(main_window, "tb-mute"));
       D();
     }
   D();
   main_window = create_zapping();
-  propagate_toolbar_changes(lookup_widget(main_window, "toolbar1"));
   D();
   tv_screen = lookup_widget(main_window, "tv_screen");
   /* Avoid dumb resizes to 1 pixel height */

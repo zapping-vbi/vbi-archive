@@ -1,6 +1,7 @@
 2002-04-11	<mschimek@users.sf.net>
 
 	* Added clock drift code switch (-t256).
+	* video/mpeg1.c: Made coded_frame_rate option non-displayable.
 
 2002-04-10	<mschimek@users.sf.net>
 

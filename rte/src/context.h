@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: context.h,v 1.1 2002-03-16 16:35:37 mschimek Exp $ */
+/* $Id: context.h,v 1.2 2002-04-20 06:44:16 mschimek Exp $ */
 
 #ifndef CONTEXT_H
 #define CONTEXT_H
@@ -80,8 +80,18 @@ extern rte_bool			rte_context_option_menu_get(rte_context *context, const char *
 extern rte_bool			rte_context_option_menu_set(rte_context *context, const char *keyword, int entry);
 extern rte_bool			rte_context_options_reset(rte_context *context);
 
-extern rte_status_info *	rte_context_status_enum(rte_context *context, int n);
-extern rte_status_info *	rte_context_status_keyword(rte_context *context, const char *keyword);
+static inline void
+rte_context_status (rte_context *context, rte_status *status)
+{
+	struct rte_codec; /* forward */
+	extern void rte_status_query(rte_context *context, struct rte_codec *codec,
+				     rte_status *status, int size);
+
+	rte_status_query(context, 0, status, sizeof(rte_status));
+}
+
+//extern rte_status_info *	rte_context_status_enum(rte_context *context, int n);
+//extern rte_status_info *	rte_context_status_keyword(rte_context *context, const char *keyword);
 
 extern void			rte_error_printf(rte_context *context, const char *templ, ...);
 extern char *			rte_errstr(rte_context *context);
@@ -105,7 +115,7 @@ struct rte_context {
 
 	pthread_mutex_t		mutex;
 
-	rte_status		status;
+	rte_state		state;
 
 	/*
 	 *  Frontend private
@@ -124,7 +134,7 @@ struct rte_context_class {
 
 	/*
 	 *  Allocate new context instance. Returns all fields zero except
-	 *  rte_codec.class, .status (RTE_STATUS_NEW) and .mutex (initialized).
+	 *  rte_codec.class, .state (RTE_STATE_NEW) and .mutex (initialized).
 	 *  Context options to be reset by the frontend.
 	 */
 	rte_context *		(* new)(rte_context_class *, char **errstr);
@@ -183,10 +193,12 @@ struct rte_context_class {
 	rte_bool		(* pause)(rte_context *, double timestamp);
 	rte_bool		(* stop)(rte_context *, double timestamp);
 
+	void			(* status)(rte_context *, rte_codec *,
+					   rte_status *, int size);
 
 //<<
 
-	rte_status_info *	(* status_enum)(rte_context *, int);
+//	rte_status_info *	(* status_enum)(rte_context *, int);
 };
 
 #endif /* CONTEXT_H */

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.27 2002-04-12 03:12:50 mschimek Exp $ */
+/* $Id: mp2.c,v 1.28 2002-04-20 06:42:54 mschimek Exp $ */
 
 #include <limits.h>
 
@@ -106,7 +106,7 @@ next_buffer(mp2_context *mp2, buffer *buf, int channels, double elapsed)
 		}
 
 		pthread_mutex_lock(&mp2->codec.codec.mutex);
-		mp2->codec.codec.frame_input_count++;
+		mp2->codec.status.frames_in++;
 		pthread_mutex_unlock(&mp2->codec.codec.mutex);
 
 		assert(buf->used < (1 << 14));
@@ -149,7 +149,7 @@ fetch_samples(mp2_context *mp2, int channels)
 	unsigned char *o;
 	int todo;
 
-	if (mp2->codec.codec.frame_output_count > mp2->num_frames
+	if (mp2->codec.status.frames_out > mp2->num_frames
 	    || mp1e_sync_break(&mp2->codec.sstr, buf->time
 			       + (mp2->i16 >> 16) * mp2->nominal_sample_period)) {
 		send_empty_buffer(&mp2->cons, buf);
@@ -201,7 +201,7 @@ fetch_samples(mp2_context *mp2, int channels)
 			mp2->i16 += mp2->incr;
 		}
 
-	mp2->nominal_time_elapsed += mp2->coded_frame_period;
+	mp2->nominal_time_elapsed += mp2->codec.status.time_per_frame_out;
 
 	return (short *) mp2->wrap;
 }
@@ -567,11 +567,11 @@ audio_frame(mp2_context *mp2, int channels)
 
 	pthread_mutex_lock(&C->mutex);
 
-	obuf->time = C->coded_time_elapsed;
-	C->coded_time_elapsed += mp2->coded_frame_period;
+	obuf->time = mp2->codec.status.coded_time;
+	mp2->codec.status.coded_time += mp2->codec.status.time_per_frame_out;
 
-	C->frame_output_count++;
-	C->byte_output_count += obuf->used;
+	mp2->codec.status.frames_out++;
+	mp2->codec.status.bytes_out += obuf->used;
 
 	pthread_mutex_unlock(&C->mutex);
 
@@ -586,7 +586,7 @@ mp1e_mp2(void *codec)
 
 	printv(3, "Audio compression thread\n");
 
-	assert(mp2->codec.codec.status == RTE_STATUS_RUNNING);
+	assert(mp2->codec.codec.state == RTE_STATE_RUNNING);
 
 	if (!add_consumer(mp2->codec.input, &mp2->cons))
 		return (void *) -1;
@@ -645,9 +645,9 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 	int channels, table, temp;
 	int i;
 
-	switch (codec->status) {
-	case RTE_STATUS_NEW:
-	case RTE_STATUS_PARAM:
+	switch (codec->state) {
+	case RTE_STATE_NEW:
+	case RTE_STATE_PARAM:
 		break;
 	default:
 		assert(!"reached");
@@ -876,7 +876,6 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 	mp2->spf_lag = sampling_freq / 2;
 	mp2->sampling_freq = sampling_freq;
 
-	mp2->coded_frame_period = SAMPLES_PER_FRAME / (double) sampling_freq;
 	mp2->nominal_sample_period = 1 / (double) sampling_freq;
 
 	mp2->header_template =
@@ -901,14 +900,19 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 
 	memset(mp2->wrap, 0, sizeof(mp2->wrap));
 
-	mp2->codec.codec.frame_input_count = 0;
-	mp2->codec.codec.frame_input_missed = 0; /* n/a */
-	mp2->codec.codec.frame_output_count = 0;
-	mp2->codec.codec.byte_output_count = 0;
-	mp2->codec.codec.coded_time_elapsed = 0.0;
-	mp2->codec.codec.frame_output_rate = 1 / (double) mp2->coded_frame_period; 
+	memset(&mp2->codec.status, 0, sizeof(mp2->codec.status));
 
-	codec->status = RTE_STATUS_PARAM;
+	mp2->codec.status.valid =
+		RTE_STATUS_FRAMES_IN |
+		RTE_STATUS_FRAMES_OUT |
+		RTE_STATUS_FRAMES_DROPPED |
+		RTE_STATUS_BYTES_OUT |
+		RTE_STATUS_CODED_TIME;
+
+	mp2->codec.status.time_per_frame_out =
+		SAMPLES_PER_FRAME / (double) sampling_freq;
+
+	codec->state = RTE_STATE_PARAM;
 
 	return TRUE;
 }
@@ -1046,11 +1050,11 @@ option_set(rte_codec *codec, const char *keyword, va_list args)
 	rte_codec_class *dc = codec->class;
 	rte_context *context = codec->context;
 
-	switch (codec->status) {
-	case RTE_STATUS_NEW:
-	case RTE_STATUS_PARAM:
+	switch (codec->state) {
+	case RTE_STATE_NEW:
+	case RTE_STATE_PARAM:
 		break;
-	case RTE_STATUS_READY:
+	case RTE_STATE_READY:
 		assert(!"reached");
 		break;
 	default:
@@ -1082,7 +1086,7 @@ option_set(rte_codec *codec, const char *keyword, va_list args)
 		return FALSE;
 	}
 
-	codec->status = RTE_STATUS_NEW;
+	codec->state = RTE_STATE_NEW;
 
 	return TRUE;
 }
@@ -1111,13 +1115,13 @@ codec_delete(rte_codec *codec)
 {
 	mp2_context *mp2 = PARENT(codec, mp2_context, codec.codec);
 
-	switch (codec->status) {
-	case RTE_STATUS_READY:
+	switch (codec->state) {
+	case RTE_STATE_READY:
 		assert(!"reached");
 		break;
 
-	case RTE_STATUS_RUNNING:
-	case RTE_STATUS_PAUSED:
+	case RTE_STATE_RUNNING:
+	case RTE_STATE_PAUSED:
 		fprintf(stderr, "mp1e bug warning: attempt to delete "
 			"running mp2 codec ignored\n");
 		return;
@@ -1151,7 +1155,7 @@ codec_new(rte_codec_class *cc, char **errstr)
 
 	pthread_mutex_init(&codec->mutex, NULL);
 
-	codec->status = RTE_STATUS_NEW;
+	codec->state = RTE_STATE_NEW;
 
 	return codec;
 }

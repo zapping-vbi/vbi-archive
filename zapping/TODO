@@ -23,7 +23,6 @@ Outstanding issues for the next release (0.6.5)
 	+ Check tveng has frame rate for timestamping. (Unlike mpeg bug.)
 	+ Remove default overlay page?
 	+ ttxview.c/selection_handle: What's the correct char set?
-	+ Settings: Toolbar >> hide/show, icons, text, both
 	+ Is zvbi really needed for osd?
 	+ Support for Python scripting, write all new gui handling as
 	Python code.
@@ -42,7 +41,11 @@ Outstanding issues for the next release (0.6.5)
 	+ Examine the possiblity of linking movie titles, VBI plugin API.
 	+ Screenshot plugin: Add tooltip explaining why deinterlace is
 	  deactivated.
+	+ Deinterlace plugin.
+	+ iodiag module.
 
 Please tell me about anything you think is worth adding:
 
   mailto:zapping-misc@lists.sourceforge.net
+
+

@@ -18,6 +18,7 @@ Known bugs with zapping, don't report them
 	* Bug in save window geometry, reported by Pawel.
 	* Auto-overlays search result pages.
 	* zsfb.capps conflicts with RPM relocation.
+	* config.h is also full of hardcoded paths.
 	* Closing the main window while recording blocks.
 	  Backtrace:
 	  on_exit2_activate() [now quit_cmd()]

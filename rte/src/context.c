@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: context.c,v 1.4 2002-03-23 14:06:45 mschimek Exp $ */
+/* $Id: context.c,v 1.5 2002-04-20 06:44:16 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -301,9 +301,9 @@ rte_context_delete(rte_context *context)
 	if (context == NULL)
 		return;
 
-	switch (context->status) {
-	case RTE_STATUS_RUNNING:
-	case RTE_STATUS_PAUSED:
+	switch (context->state) {
+	case RTE_STATE_RUNNING:
+	case RTE_STATE_PAUSED:
 		rte_stop(context, 0.0 /* immediate */);
 		break;
 
@@ -674,6 +674,8 @@ rte_context_options_reset(rte_context *context)
 	return r;
 }
 
+#if 0 /* obsolete */
+
 /*
  *  Status
  */
@@ -732,3 +734,5 @@ rte_context_status_keyword(rte_context *context, const char *keyword)
 
 	return si;
 }
+
+#endif

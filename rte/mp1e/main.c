@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.30 2002-04-09 12:28:39 mschimek Exp $ */
+/* $Id: main.c,v 1.31 2002-04-20 06:42:54 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -516,7 +516,7 @@ main(int ac, char **av)
 						     meta->output_frame_rate,
 						     meta->output_bit_rate);
 			meta->input = afifo;
-			meta->codec.status = RTE_STATUS_RUNNING;
+			meta->codec.state = RTE_STATE_RUNNING;
 		}
 	}
 
@@ -577,7 +577,7 @@ main(int ac, char **av)
 						     meta->output_frame_rate,
 						     meta->output_bit_rate);
 			meta->input = vfifo;
-			meta->codec.status = RTE_STATUS_RUNNING;
+			meta->codec.state = RTE_STATE_RUNNING;
 		}
 
 #if TEST_PREVIEW

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.h,v 1.5 2002-03-23 14:06:26 mschimek Exp $ */
+/* $Id: b_mp1e.h,v 1.6 2002-04-20 06:42:54 mschimek Exp $ */
 
 #ifndef B_MP1E_H
 #define B_MP1E_H
@@ -65,6 +65,8 @@ typedef struct {
 	rte_buffer_callback	read_cb;
 	rte_buffer_callback	write_cb;
 	rte_buffer_callback	unref_cb;
+
+	rte_status		status;
 } mp1e_codec;
 
 typedef struct {

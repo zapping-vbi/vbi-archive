@@ -18,30 +18,39 @@
 Setting encoding options.
 
 
-<!-- ##### TYPEDEF rte_audio_stream_params ##### -->
+<!-- ##### FUNCTION rte_codec_status_enum ##### -->
 <para>
 
 </para>
 
-
-<!-- ##### FUNCTION rte_pause ##### -->
-<para>
-
-</para>
-
-@context: 
-
-<!-- ##### FUNCTION rte_resume ##### -->
-<para>
-
-</para>
-
-@context: 
+@codec: 
+@n: 
 @Returns: 
 
-<!-- ##### TYPEDEF rte_video_stream_params ##### -->
+<!-- ##### FUNCTION rte_codec_status_keyword ##### -->
 <para>
 
 </para>
 
+@codec: 
+@keyword: 
+@Returns: 
+
+<!-- ##### FUNCTION rte_context_status_enum ##### -->
+<para>
+
+</para>
+
+@context: 
+@n: 
+@Returns: 
+
+<!-- ##### FUNCTION rte_context_status_keyword ##### -->
+<para>
+
+</para>
+
+@context: 
+@keyword: 
+@Returns: 
 

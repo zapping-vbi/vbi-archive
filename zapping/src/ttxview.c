@@ -508,7 +508,7 @@ static void selection_handle		(GtkWidget	*widget,
 	  if (buf) {
 	    actual = vbi_print_page_region (&data->clipboard_fmt_page,
 					    buf, size, "ISO-8859-1" /* OK? */,
-					    data->sel_table, /* rtl */ FALSE,
+					    data->sel_table, /* ltr */ TRUE,
 					    data->sel_col1, data->sel_row1,
 					    width, height);
 	    if (actual > 0)

@@ -25,6 +25,12 @@ void
 register_widget(GtkWidget * widget, const char * name);
 
 /*
+ * Change toolbar style of main window. Pass widget == NULL.
+ */
+void
+change_toolbar_style (GtkWidget *widget, int style);
+
+/*
  * Loads a GtkWidget from zapping.glade. All the memory is freed when
  * the object (widget) is destroyed. If name is NULL, all widgets are
  * loaded, but this is not recommended.

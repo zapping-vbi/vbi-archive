@@ -4,7 +4,8 @@ atvef_icon.png eacem_icon.png brig.xpm con.xpm hue.xpm sat.xpm \
 gnome-television.png left.png right.png reveal.png up.png down.png \
 gnome-digital-camera.png gnome-grecord.png gnome-info.png \
 gnome-media-player.png gnome-monitor.png gnome-oscilloscope.png \
-gnome-session.png gnome-shutdown.png \
+gnome-session.png gnome-shutdown.png gnome-keyboard.png \
+mute.png reset.png \
 rating_tv_ca_en_1.png rating_tv_ca_en_2.png \
 rating_tv_ca_en_3.png rating_tv_ca_en_4.png \
 rating_tv_ca_en_5.png rating_tv_ca_en_6.png \

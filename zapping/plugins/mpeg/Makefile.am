@@ -4,7 +4,11 @@ plugindir = $(PLUGIN_DEFAULT_DIR)
 
 plugin_LTLIBRARIES = libmpeg.zapping.la
 
-EXTRA_DIST = mpeg_properties.glade mpeg_strings.c
+pixmapsdir = $(PACKAGE_PIXMAPS_DIR)
+pixmaps_DATA = time.png disk_empty.png drop.png volume.png \
+record.png pause.png stop.png
+
+EXTRA_DIST = mpeg_properties.glade mpeg_strings.c $(pixmaps_DATA)
 
 libmpeg_zapping_la_SOURCES = mpeg.c options.c mpeg.h
 

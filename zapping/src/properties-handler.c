@@ -202,6 +202,11 @@ mw_setup		(GtkWidget	*page)
   widget = lookup_widget(page, "optionmenu23");
   gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
     1 + zconf_get_integer(NULL, "/zapping/options/main/channel_txl"));
+
+  /* toolbar style */
+  widget = lookup_widget(page, "toolbar_style");
+  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
+    zconf_get_integer(NULL, "/zapping/options/main/toolbar_style"));  
 }
 
 static void
@@ -237,6 +242,13 @@ mw_apply		(GtkWidget	*page)
   /* channels refer to (-1 disabled) */
   zconf_set_integer(z_option_menu_get_active(widget) - 1,
 		    "/zapping/options/main/channel_txl");
+
+  widget = lookup_widget(page, "toolbar_style");
+  zconf_set_integer(z_option_menu_get_active(widget),
+		    "/zapping/options/main/toolbar_style");
+
+  change_toolbar_style (NULL, zconf_get_integer (NULL,
+		        "/zapping/options/main/toolbar_style"));
 }
 
 /* Video */

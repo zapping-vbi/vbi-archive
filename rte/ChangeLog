@@ -1,4 +1,14 @@
-2002-02-22	<mschimek@users.sf.net>
+2002-04-10	<mschimek@users.sf.net>
+
+	* src/Makefile.am: Removed version number from library name.
+	  That's nothing we need to have, but it makes each release
+	  binary incompatible with each other, even if we merely
+	  added new features.
+	* macros/autogen.sh: Cleaned up.
+	* src/rte.c, src/rte.h: Added discard output function.
+	* docs/Makefile.am: Scan only librte.h.
+
+2002-03-22	<mschimek@users.sf.net>
 
 	* test/io.c: Extended for multiple codecs / tracks.
 

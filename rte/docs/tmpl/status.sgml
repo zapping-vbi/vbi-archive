@@ -14,46 +14,6 @@ Querying status.
 
 </para>
 
-<!-- ##### FUNCTION rte_context_status_enum ##### -->
-<para>
-
-</para>
-
-@context: 
-@n: 
-@Returns: 
-
-
-<!-- ##### FUNCTION rte_context_status_keyword ##### -->
-<para>
-
-</para>
-
-@context: 
-@keyword: 
-@Returns: 
-
-
-<!-- ##### FUNCTION rte_codec_status_enum ##### -->
-<para>
-
-</para>
-
-@codec: 
-@n: 
-@Returns: 
-
-
-<!-- ##### FUNCTION rte_codec_status_keyword ##### -->
-<para>
-
-</para>
-
-@codec: 
-@keyword: 
-@Returns: 
-
-
 <!-- ##### FUNCTION rte_status_free ##### -->
 <para>
 

@@ -1715,7 +1715,7 @@ zconf_remove_hook(const gchar * key_name, ZConfHook callback, gpointer data)
 
   if (!hook)
     {
-      g_warning("Canot find hook for %p in %s", callback, key_name);
+      g_warning("Cannot find hook for %p in %s", callback, key_name);
       return;
     }
 

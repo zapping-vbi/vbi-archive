@@ -1,5 +1,5 @@
 <!-- ##### SECTION Title ##### -->
-Input/output interfaces
+Input-output interfaces
 
 <!-- ##### SECTION Short_Description ##### -->
 
@@ -106,6 +106,35 @@ Input/output interfaces
 @context: 
 @write_cb: 
 @seek_cb: 
+@Returns: 
+
+
+<!-- ##### FUNCTION rte_set_output_stdio ##### -->
+<para>
+
+</para>
+
+@context: 
+@fd: 
+@Returns: 
+
+
+<!-- ##### FUNCTION rte_set_output_file ##### -->
+<para>
+
+</para>
+
+@context: 
+@filename: 
+@Returns: 
+
+
+<!-- ##### FUNCTION rte_set_output_discard ##### -->
+<para>
+
+</para>
+
+@context: 
 @Returns: 
 
 

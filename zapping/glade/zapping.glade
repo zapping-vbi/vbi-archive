@@ -457,30 +457,6 @@
 	</widget>
 
 	<widget>
-	  <class>GtkToggleButton</class>
-	  <child_name>Toolbar:button</child_name>
-	  <name>mute1</name>
-	  <tooltip>Switch audio on and off</tooltip>
-	  <accelerator>
-	    <modifiers>GDK_CONTROL_MASK</modifiers>
-	    <key>GDK_a</key>
-	    <signal>clicked</signal>
-	  </accelerator>
-	  <signal>
-	    <name>toggled</name>
-	    <handler>on_remote_command1</handler>
-	    <data>mute</data>
-	    <last_modification_time>Sat, 02 Mar 2002 05:19:44 GMT</last_modification_time>
-	  </signal>
-	  <label>Mute</label>
-	  <stock_pixmap>GNOME_STOCK_PIXMAP_VOLUME</stock_pixmap>
-	  <active>False</active>
-	  <child>
-	    <new_group>True</new_group>
-	  </child>
-	</widget>
-
-	<widget>
 	  <class>GtkButton</class>
 	  <child_name>Toolbar:button</child_name>
 	  <name>button1</name>
@@ -492,6 +468,9 @@
 	  </signal>
 	  <label>Controls</label>
 	  <stock_pixmap>GNOME_STOCK_PIXMAP_EXEC</stock_pixmap>
+	  <child>
+	    <new_group>True</new_group>
+	  </child>
 	</widget>
 
 	<widget>
@@ -499,12 +478,12 @@
 	  <child_name>Toolbar:button</child_name>
 	  <name>videotext3</name>
 	  <tooltip>Activate Teletext mode</tooltip>
-	  <label>Teletext</label>
-	  <stock_pixmap>GNOME_STOCK_PIXMAP_ALIGN_JUSTIFY</stock_pixmap>
 	  <signal>
 	    <name>pressed</name>
 	    <handler>on_videotext3_pressed</handler>
 	  </signal>
+	  <label>Teletext</label>
+	  <stock_pixmap>GNOME_STOCK_PIXMAP_ALIGN_JUSTIFY</stock_pixmap>
 	</widget>
       </widget>
     </widget>
@@ -985,7 +964,7 @@
 	<widget>
 	  <class>GtkTable</class>
 	  <name>table74</name>
-	  <rows>3</rows>
+	  <rows>4</rows>
 	  <columns>2</columns>
 	  <homogeneous>False</homogeneous>
 	  <row_spacing>0</row_spacing>
@@ -999,12 +978,12 @@
 	  <widget>
 	    <class>GtkLabel</class>
 	    <name>label920</name>
-	    <label>Keypad channel switching:</label>
+	    <label>Numeric keypad channel switching:</label>
 	    <justify>GTK_JUSTIFY_CENTER</justify>
 	    <wrap>False</wrap>
 	    <xalign>1</xalign>
 	    <yalign>0.5</yalign>
-	    <xpad>2</xpad>
+	    <xpad>3</xpad>
 	    <ypad>0</ypad>
 	    <child>
 	      <left_attach>0</left_attach>
@@ -1030,7 +1009,7 @@
 	    <wrap>False</wrap>
 	    <xalign>1</xalign>
 	    <yalign>0.5</yalign>
-	    <xpad>2</xpad>
+	    <xpad>3</xpad>
 	    <ypad>0</ypad>
 	    <child>
 	      <left_attach>0</left_attach>
@@ -1056,7 +1035,7 @@
 	    <wrap>False</wrap>
 	    <xalign>1</xalign>
 	    <yalign>0.5</yalign>
-	    <xpad>0</xpad>
+	    <xpad>3</xpad>
 	    <ypad>0</ypad>
 	    <child>
 	      <left_attach>0</left_attach>
@@ -1156,6 +1135,57 @@ Autodetect
 	      <text_max_length>0</text_max_length>
 	      <text></text>
 	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkLabel</class>
+	    <name>label938</name>
+	    <label>Show toolbar as:</label>
+	    <justify>GTK_JUSTIFY_CENTER</justify>
+	    <wrap>False</wrap>
+	    <xalign>1</xalign>
+	    <yalign>0.5</yalign>
+	    <xpad>3</xpad>
+	    <ypad>0</ypad>
+	    <child>
+	      <left_attach>0</left_attach>
+	      <right_attach>1</right_attach>
+	      <top_attach>3</top_attach>
+	      <bottom_attach>4</bottom_attach>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <xexpand>False</xexpand>
+	      <yexpand>False</yexpand>
+	      <xshrink>False</xshrink>
+	      <yshrink>False</yshrink>
+	      <xfill>True</xfill>
+	      <yfill>False</yfill>
+	    </child>
+	  </widget>
+
+	  <widget>
+	    <class>GtkOptionMenu</class>
+	    <name>toolbar_style</name>
+	    <can_focus>True</can_focus>
+	    <items>Icons
+Text
+Icons and text
+</items>
+	    <initial_choice>2</initial_choice>
+	    <child>
+	      <left_attach>1</left_attach>
+	      <right_attach>2</right_attach>
+	      <top_attach>3</top_attach>
+	      <bottom_attach>4</bottom_attach>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <xexpand>False</xexpand>
+	      <yexpand>False</yexpand>
+	      <xshrink>False</xshrink>
+	      <yshrink>False</yshrink>
+	      <xfill>True</xfill>
+	      <yfill>False</yfill>
+	    </child>
 	  </widget>
 	</widget>
       </widget>

@@ -24,6 +24,8 @@
 
 /* Public */
 
+#include <stdint.h>
+
 #ifndef FALSE
 #define FALSE 0
 #endif
@@ -157,7 +159,7 @@ typedef struct {
 	char *			tooltip;
 } rte_option_info;
 
-#if 1 /* deprecated */
+#if 0 /* deprecated */
 /* use with option varargs to make sure the correct cast is done */
 typedef int rte_int;
 typedef double rte_real;
@@ -166,6 +168,7 @@ typedef int rte_menu;
 typedef void* rte_pointer;
 #endif
 
+#if 0 /* obsolete */
 typedef enum {
   RTE_BOOL,
   RTE_INT,
@@ -189,7 +192,40 @@ typedef struct {
  **/
 void
 rte_status_free(rte_status_info *status);
+#endif
+
+#define RTE_STATUS_FRAMES_IN		(1 << 3)
+#define RTE_STATUS_FRAMES_OUT		(1 << 4)
+#define RTE_STATUS_FRAMES_DROPPED	(1 << 5)
+#define RTE_STATUS_BYTES_IN		(1 << 6)
+#define RTE_STATUS_BYTES_OUT		(1 << 7)
+#define RTE_STATUS_CAPTURE_TIME		(1 << 8)
+#define RTE_STATUS_CODED_TIME		(1 << 9)
+
+typedef struct {
+	unsigned int			valid;
+	unsigned int			bytes_per_frame_out;
+	double				time_per_frame_out; /* seconds */
+
+	uint64_t			frames_in;
+	uint64_t			frames_out;
+	uint64_t			frames_dropped;
+
+	uint64_t			bytes_in;
+	uint64_t			bytes_out;
+
+	double				captured_time;	/* last processed
+							   input timestamp */
+	double				coded_time;	/* seconds >= 0 */
+
+	/* future extensions */
+
+} rte_status;
 
 /* Private */
 
 #endif /* OPTIONS_H */
+
+
+
+

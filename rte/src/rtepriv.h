@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rtepriv.h,v 1.12 2002-03-23 14:06:45 mschimek Exp $ */
+/* $Id: rtepriv.h,v 1.13 2002-04-20 06:44:16 mschimek Exp $ */
 
 #ifndef __RTEPRIV_H__
 #define __RTEPRIV_H__
@@ -40,27 +40,27 @@ typedef enum {
 	 *  context_class.option_set()
 	 *  context_class.stop()
 	 */
-	RTE_STATUS_NEW = 0,
+	RTE_STATE_NEW = 0,
 	/*
 	 *  codec_class.parameters_set()
 	 */
-	RTE_STATUS_PARAM,
+	RTE_STATE_PARAM,
 	/*
 	 *  codec_class.set_input()
 	 *  context_class.set_output()
 	 */
-	RTE_STATUS_READY,
+	RTE_STATE_READY,
 	/*
 	 *  context_class.start()
 	 *  (-> stop, -> pause)
 	 */
-	RTE_STATUS_RUNNING,
+	RTE_STATE_RUNNING,
 	/*
 	 *  context_class.pause()
 	 *  (-> start, -> stop)
 	 */
-	RTE_STATUS_PAUSED
-} rte_status;
+	RTE_STATE_PAUSED
+} rte_state;
 
 typedef enum {
 	RTE_CALLBACK_ACTIVE = 1,
@@ -70,7 +70,8 @@ typedef enum {
 	RTE_FIFO,
 	/* Used by frontend */
 	RTE_FILE,
-	RTE_STDIO
+	RTE_STDIO,
+	RTE_DISCARD
 } rte_io_method;
 
 #include "context.h"
