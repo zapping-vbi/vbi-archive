@@ -19,10 +19,12 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: interface.h,v 1.17 2003-11-29 19:43:24 mschimek Exp $ */
+/* $Id: interface.h,v 1.18 2004-09-20 04:37:36 mschimek Exp $ */
 
 #ifndef INTERFACE_H
 #define INTERFACE_H
+
+#include <gtk/gtk.h>
 
 extern GtkWidget *
 find_widget			(GtkWidget *		parent,
@@ -37,7 +39,5 @@ register_widget			(GtkWidget *		parent,
 extern GtkWidget *
 build_widget			(const gchar *		name,
 				 const gchar *		file);
-extern GtkWidget *
-create_zapping			(void);
 
 #endif /* INTERFACE_H */
