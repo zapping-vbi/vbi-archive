@@ -351,8 +351,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 #if 0 /* XXX should use quiet_set, but that can't handle yet
          how the controls are rebuilt when switching btw
          v4l <-> xv. */
-  if ((avoid_noise = zcg_bool (NULL, "avoid_noise")))
-
+  /* Always: if ((avoid_noise = zcg_bool (NULL, "avoid_noise"))) */
     tv_quiet_set (main_info, TRUE);
 #else
   muted = tv_mute_get (main_info, FALSE);
@@ -628,7 +627,7 @@ XX();
 
 #if 0
   /* XXX don't reset when we're in shutdown, see cmd.c/py_quit(). */
-  if (avoid_noise && !flag_exit_program)
+  if (/* Always: avoid_noise && */ !flag_exit_program)
     reset_quiet (main_info, /* delay ms */ 300);
 #else
   if (muted != -1)
@@ -1560,7 +1559,7 @@ on_z_spinslider_reset		(GtkWidget *		widget,
     sp->reset_state = (sp->reset_state + 1) % 3;
 }
 
-#include "../pixmaps/reset.h"
+#include "pixmaps/reset.h"
 
 GtkWidget *
 z_spinslider_new		(GtkAdjustment *	spin_adj,
@@ -1709,7 +1708,7 @@ struct _z_device_entry
   z_device_entry_open_fn *open_fn;
   z_device_entry_select_fn *select_fn;
 
-  void *		user_data;
+  gpointer		user_data;
 };
 
 static void
@@ -1734,18 +1733,31 @@ z_device_entry_selected		(GtkWidget *		table)
   return de->selected;
 }
 
+void
+z_device_entry_grab_focus	(GtkWidget *		table)
+{
+  z_device_entry *de = g_object_get_data (G_OBJECT (table), "z_device_entry");
+
+  g_assert (de != NULL);
+
+  gtk_widget_grab_focus (de->combo);
+}
+
 static void
 z_device_entry_select		(z_device_entry *	de,
 				 tv_device_node *	n)
 {
-  const gchar *device = "";
-  const gchar *driver = "";
+  const gchar *device;
+  const gchar *driver;
   gchar *s = NULL;
 
   de->selected = n;
 
   if (de->select_fn)
-    de->select_fn (de->table, de->user_data, n);
+    de->select_fn (de->table, n, de->user_data);
+
+  device = _("Unknown");
+  driver = device;
 
   if (n)
     {
@@ -1756,6 +1768,8 @@ z_device_entry_select		(z_device_entry *	de,
 	driver = s = g_strdup_printf ("%s %s", n->driver, n->version);
       else if (n->driver)
 	driver = n->driver;
+      else if (n->version)
+	driver = n->version;
     }
 
   gtk_label_set_text (GTK_LABEL (de->device), device);
@@ -1844,7 +1858,7 @@ on_z_device_entry_timeout	(gpointer		user_data)
   s = gtk_entry_get_text (GTK_ENTRY (GTK_COMBO (de->combo)->entry));
 
   if (s && s[0])
-    if ((n = de->open_fn (de->table, de->user_data, de->list, s)))
+    if ((n = de->open_fn (de->table, de->list, s, de->user_data)))
       {
 	tv_device_node_add (&de->list, n);
 	z_device_entry_relist (de);
@@ -1915,7 +1929,7 @@ z_device_entry_new		(const gchar *		prompt,
 				 const gchar *		current_device,
 				 z_device_entry_open_fn *open_fn,
 				 z_device_entry_select_fn *select_fn,
-				 void *			user_data)
+				 gpointer		user_data)
 {
   z_device_entry *de;
 
@@ -2178,4 +2192,78 @@ z_label_set_text_printf		(GtkLabel *		label,
   gtk_label_set_text (label, buffer);
 
   g_free (buffer);
+}
+
+#define VALID_ITER(iter, list_store)					\
+  ((iter) != NULL							\
+   && (iter)->user_data != NULL						\
+   && ((GTK_LIST_STORE (list_store))->stamp == (iter)->stamp))
+
+gboolean
+z_tree_selection_iter_first	(GtkTreeSelection *	selection,
+				 GtkTreeModel *		model,
+				 GtkTreeIter *		iter)
+{
+  if (!gtk_tree_model_get_iter_first (model, iter))
+    return FALSE; /* empty list */
+
+  while (!gtk_tree_selection_iter_is_selected (selection, iter))
+    if (!gtk_tree_model_iter_next (model, iter))
+      return FALSE; /* nothing selected */
+
+  return TRUE;
+}
+
+gboolean
+z_tree_selection_iter_last	(GtkTreeSelection *	selection,
+				 GtkTreeModel *		model,
+				 GtkTreeIter *		iter)
+{
+  GtkTreeIter last;
+
+  if (!z_tree_selection_iter_first (selection, model, iter))
+    return FALSE; /* nothing */
+
+  last = *iter;
+
+  while (gtk_tree_model_iter_next (model, &last)
+	 && gtk_tree_selection_iter_is_selected (selection, &last))
+    *iter = last;
+
+  return TRUE;
+}
+
+/* In a GTK_SELECTION_MULTIPLE tree view, remove all selected
+   rows of the model. */
+void
+z_tree_view_remove_selected	(GtkTreeView *		tree_view,
+				 GtkTreeSelection *	selection,
+				 GtkTreeModel *		model)
+{
+  GtkTreeIter iter;
+
+  if (!z_tree_selection_iter_first (selection, model, &iter))
+    return; /* nothing */
+
+  while (VALID_ITER (&iter, model))
+    {
+      if (!gtk_tree_selection_iter_is_selected (selection, &iter))
+	break;
+
+      gtk_list_store_remove (GTK_LIST_STORE (model), &iter);
+    }
+
+  if (VALID_ITER (&iter, model))
+    {
+      GtkTreePath *path;
+
+      gtk_tree_selection_select_iter (selection, &iter);
+
+      if ((path = gtk_tree_model_get_path (model, &iter)))
+	{
+	  gtk_tree_view_scroll_to_cell (tree_view, path, NULL,
+					/* use_align */ TRUE, 0.5, 0.0);
+	  gtk_tree_path_free (path);
+	}
+    }
 }
