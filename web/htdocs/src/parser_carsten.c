@@ -224,7 +224,7 @@ input.theme {
     font-family: arial,sans-serif;
  }
 --></style>
-
+<link rel="Shortcut Icon" href="http://zapping.sourceforge.net/bookmark.ico">
 </head>
 ½TV_SET1
 <body bgcolor="#000000" link="yellow" vlink="yellow" text="#FFFFFF">

@@ -158,6 +158,7 @@ int main(int argc, char *argv[])
     <title>½
 ½header2
 </title>
+  <link rel="Shortcut Icon" href="http://zapping.sourceforge.net/bookmark.ico">
   </head>
 <body bgcolor="#FFFFFF">
 <center>
