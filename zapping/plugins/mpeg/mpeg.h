@@ -16,10 +16,10 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.h,v 1.13 2005-01-08 14:54:24 mschimek Exp $ */
+/* $Id: mpeg.h,v 1.14 2005-01-19 04:07:40 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include "config.h"
 #endif
 
 #ifdef ENABLE_NLS

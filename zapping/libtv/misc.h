@@ -17,12 +17,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.5 2005-01-08 14:54:19 mschimek Exp $ */
+/* $Id: misc.h,v 1.6 2005-01-19 04:07:59 mschimek Exp $ */
 
 #ifndef __ZTV_MISC_H__
 #define __ZTV_MISC_H__
 
-#include "config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <stddef.h>
 #include <string.h>
