@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = intl po macros src src/zapping_setup_fb
+SUBDIRS = intl po macros src zapping_setup_fb
 
 install-data-local:
 	@$(NORMAL_INSTALL)

@@ -9,11 +9,9 @@ as possible.
 
 INSTALLING
 ----------
-	To install this package just run './configure', 'make', and
+	To install this package just run './autogen.sh', 'make', and
 as root 'make install'. That will install Zapping in your computer. It
 won't create any icon, thought, but you can run it as 'zapping &'.
-	You will need also V4L2 correctly installed, and Gnome, of
-course ;-)
 
 PROGRAM INFO
 ------------
@@ -36,7 +34,7 @@ up everything and returns. There is a potential secutiry flaw here (i
 tried to make it secure, but don't trust it very much), so if you
 really care about security, you may
 	a) Uninstall the program (check its location with 
-		'whereis zapping_setup_fb').
+		'whereis zapping-setup-fb').
 	    You won't have fullscreen mode then, but there would be no
 	    security flaw.
 	b) Check the suid's sources and locate the security flaws.
@@ -45,7 +43,7 @@ really care about security, you may
 	SUID root: it means that the program, when executed, will be
 given root privileges, even if the user isn't root (don't smile, when
 i came into Linux from Windoze, i kept wondering what where that
-marvellous suid programs able to hack every Unix system)
+marvelloous suid programs able to hack every Unix system)
 
 USEFUL ADDRESSES
 ----------------

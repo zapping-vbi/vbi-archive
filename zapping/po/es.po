@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.2\n"
-"POT-Creation-Date: 2000-02-14 22:14+0100\n"
+"POT-Creation-Date: 2000-02-18 16:05+0100\n"
 "PO-Revision-Date: 2000-02-14 16:56+0100\n"
 "Last-Translator: Iñaki García Etxebarria\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -560,29 +560,29 @@ msgstr ""
 "zapping_setup_fb --verbose --verbose\n"
 
 # src/tveng.c:121
-#: src/io.c:70
+#: src/io.c:88
 msgid "Cannot allocate enough memory for saving the image"
 msgstr "No se puede reservar suficiente memoria para guradar la imágen"
 
-#: src/io.c:78
+#: src/io.c:96
 msgid "Cannot init the first PNG saving structure"
 msgstr "No se puede iniciar la primera estructura PNG"
 
-#: src/io.c:89
+#: src/io.c:107
 msgid "Cannot init the second PNG saving structure"
 msgstr "No se puede iniciar la segunda estructura PNG"
 
-#: src/io.c:158
+#: src/io.c:176
 msgid "Error writing the PNG file\n"
 msgstr "Error escribiendo el fichero PNG\n"
 
 # src/tveng.c:70
-#: src/io.c:331
+#: src/io.c:349
 msgid "Sorry, but I cannot write\n"
 msgstr "Perdón, pero no puedo escribir\n"
 
 # src/callbacks.c:355
-#: src/io.c:352
+#: src/io.c:370
 msgid "Cannot take screenshot"
 msgstr "No puedo capturar imágen"
 
