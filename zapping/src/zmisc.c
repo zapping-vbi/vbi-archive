@@ -219,7 +219,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   int return_value = 0;
   gint x, y, w, h;
   enum tveng_frame_pixformat format;
-  gboolean muted;
+  gint muted;
   gchar * old_name = NULL;
   enum tveng_capture_mode mode;
 
@@ -455,13 +455,14 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   if (mode != new_mode)
     zcs_int(mode, "previous_mode");
 
-  /* Update the controls window if it's open */
-  update_control_box(info);
   /* Update the standards, channels, etc */
   zmodel_changed(z_input_model);
   /* Updating the properties is not so useful, and it isn't so easy,
      since there might be multiple properties dialogs open */
-  tveng_set_mute(muted, info);
+  if (muted != -1)
+    tveng_set_mute(muted, info);
+  /* Update the controls window if it's open */
+  update_control_box(info);
 
   /* Find optimum size for widgets */
   gtk_widget_queue_resize(main_window);

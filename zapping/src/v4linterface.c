@@ -847,6 +847,63 @@ z_select_channel			(gint num_channel)
   z_switch_channel(channel, main_info);
 }
 
+gboolean
+z_select_channel_by_key			(GdkEventKey	*event)
+{
+  static gint channel_num = 0;
+  static guint32 last_time = 0;
+  tveng_tuned_channel * tc;
+  gint num_channels = tveng_tuned_channel_num(global_channel_list);
+  int i;
+
+  switch (event->keyval)
+    {
+      /* XXX should OSD current value, could "enter" automagically
+         after timeout &| if < number of channels */
+
+    case GDK_KP_0 ... GDK_KP_9:
+      if (abs(event->time - last_time) > 2000 || channel_num < 1)
+	channel_num = event->keyval - GDK_KP_0;
+      else
+	channel_num = (channel_num * 10 + (event->keyval - GDK_KP_0)) % 1000;
+
+      last_time = event->time;
+
+      break;
+
+    case GDK_KP_Enter:
+      if (abs(event->time - last_time) < 2000 /* ms */ && channel_num >= 1)
+	{
+	  num_channels = tveng_tuned_channel_num(global_channel_list);
+	  if (--channel_num < num_channels)
+	    z_select_channel(channel_num);
+	}
+
+      channel_num = 0;
+
+      break;
+
+    default:
+        for (i = 0; (tc = tveng_retrieve_tuned_channel_by_index(i, global_channel_list)); i++)
+	  if (event->keyval == tc->accel_key
+	      && (event->state & tc->accel_mask) == tc->accel_mask)
+	    {
+	      z_select_channel(tc->index);
+	      channel_num = 0;
+	      return TRUE;
+	    }
+
+	return FALSE; /* not for us, pass it on */
+    }
+
+  return TRUE;
+}
+
+
+
+
+
+
 static void
 real_channel_up				(void)
 {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.28 2002-01-21 07:58:15 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.29 2002-02-03 13:19:20 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -34,6 +34,28 @@
       gop_seq, why bother the user while he's still typing.
       otoh we use the codec as temp storage and it wont
       accept any invalid options.
+
+    . Clipping/scaling init sequence:
+      * user selects capture size (video window).
+      * user selects coded width and height as options
+      * x0 = display_width - width / 2, y0 accordingly.
+      * repeat
+        * zapping overlays border onto video.
+	* user changes capture size (video window)
+	  * continue
+	*  user drags border, grabs line or corner.
+	  * translate coordinates
+	  * tentative rte_parameter_set, when accepted
+            the border coordinates change, otherwise
+	    only the pointer moves. Remind the parameters
+	    snap to the closest possible.
+      Border is nifty, we can re-use it elsewhere.
+        Propose 1-pixel windows with X11 accelerated
+        bg texture (eg. 16x16 with black/yellow 8x8 pattern)
+        to keep it simple and fast. Add to osd.c.
+      When we have a preview, one could use resizing that
+        window instead of showing width and height options.
+	Ha! cool. :-)
 */
 
 /* This is the description of the plugin, change as appropiate */

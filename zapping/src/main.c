@@ -207,21 +207,7 @@ gboolean on_zapping_key_press		(GtkWidget	*widget,
 					 GdkEventKey	*event,
 					 gpointer	*ignored)
 {
-  tveng_tuned_channel * tc;
-  int i = 0;
-
-  while ((tc =
-	  tveng_retrieve_tuned_channel_by_index(i++, global_channel_list)))
-    {
-      if ((event->keyval == tc->accel_key) &&
-	  ((tc->accel_mask & event->state) == tc->accel_mask))
-	{
-	  z_select_channel(tc->index);
-	  return TRUE;
-	}
-    }
-
-  return FALSE;
+  return z_select_channel_by_key(event);
 }
 
 static gint hide_pointer_tid = -1;
@@ -470,7 +456,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.152 2002-01-13 09:52:22 mschimek Exp $",
+	 "$Id: main.c,v 1.153 2002-02-03 13:19:20 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())

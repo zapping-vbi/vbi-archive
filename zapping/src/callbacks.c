@@ -119,12 +119,17 @@ void
 on_toggle_muted1_activate		(GtkMenuItem	*menuitem,
 					 gpointer	user_data)
 {
-  tveng_set_mute(1-tveng_get_mute(main_info), main_info);
+  gint value = tveng_get_mute(main_info);  
+
+  if (value != -1 && tveng_set_mute(!value, main_info) != -1)
+    {
+      update_control_box(main_info);
 #ifdef HAVE_LIBZVBI
-  osd_render_sgml(tveng_get_mute(main_info) ?
-		  _("<blue>audio off</blue>") :
-		  _("<yellow>AUDIO ON</yellow>"));
+      osd_render_sgml(tveng_get_mute(main_info) ?
+		      _("<blue>audio off</blue>") :
+		      _("<yellow>AUDIO ON</yellow>"));
 #endif
+    }
 }
 
 void

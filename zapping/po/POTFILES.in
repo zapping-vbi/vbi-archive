@@ -24,8 +24,3 @@ plugins/lirc/lirc.c
 plugins/alirc/alirc.c
 plugins/mpeg/mpeg.c
 plugins/mpeg/mpeg_strings.c
-libvbi/exp-gfx.c
-libvbi/exp-html.c
-libvbi/exp-txt.c
-libvbi/exp-vtx.c
-libvbi/v4lx.c

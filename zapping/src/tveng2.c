@@ -167,6 +167,9 @@ static int p_tveng2_open_device_file(int flags, tveng_device_info * info)
   fprintf (stdout, "Faking tuner\n");
   info->caps.flags |= TVENG_CAPS_TUNER;
 #endif
+#ifdef TVENG2_FAKE_MUTE
+  fprintf (stdout, "Faking mute control\n");
+#endif
 
   if (caps.flags & V4L2_FLAG_PREVIEW)
     {
@@ -903,6 +906,10 @@ tveng2_set_capture_format(tveng_device_info * info)
   return 0; /* Success */
 }
 
+#ifdef TVENG2_FAKE_MUTE
+static int fake_mute = 0;
+#endif
+
 /* To aid i18n, possible label isn't actually used */
 struct p_tveng2_control_with_i18n
 {
@@ -1033,6 +1040,19 @@ p_tveng2_build_controls(tveng_device_info * info)
       goto build_controls;
     }
 
+#ifdef TVENG2_FAKE_MUTE
+  strncpy(control.name, "Fake Mute", sizeof(control.name) - 1);
+  control.min = 0;
+  control.max = 1;
+  control.def_value = 0;
+  control.id = 1000;
+  control.controller = TVENG_CONTROLLER_V4L2;
+  control.type = TVENG_CONTROL_CHECKBOX;
+  control.data = NULL;
+  if (p_tveng_append_control(&control, info) == -1)
+    return -1;
+#endif
+
   return tveng2_update_controls(info);
 }
 
@@ -1053,6 +1073,13 @@ tveng2_update_controls(tveng_device_info * info)
 
   for (i=0; i<info->num_controls; i++)
     {
+#ifdef TVENG2_FAKE_MUTE
+      if (info->controls[i].id == 1000)
+        {
+          info->controls[i].cur_value = fake_mute;
+	  continue;
+	}
+#endif
       c.id = info->controls[i].id;
       if (info->controls[i].controller != TVENG_CONTROLLER_V4L2)
 	continue; /* somebody else created this control */
@@ -1093,6 +1120,15 @@ tveng2_set_control(struct tveng_control * control, int value,
   c.id = control->id;
   c.value = value;
 
+#ifdef TVENG2_FAKE_MUTE
+  if (control->id == 1000)
+    {
+      fprintf(stdout, "tveng2_set_control fake mute %d\n", value);
+      fake_mute = !!value;
+    }
+  else
+#endif
+
   if (IOCTL(info->fd, VIDIOC_S_CTRL, &c) != 0)
     {
       info->tveng_errno = errno;
@@ -1102,6 +1138,25 @@ tveng2_set_control(struct tveng_control * control, int value,
 
   return (tveng2_update_controls(info));
 }
+
+#ifdef TVENG2_FAKE_MUTE
+
+static int
+tveng2_get_mute(tveng_device_info * info)
+{
+  fprintf(stdout, "tveng2_get_mute fake mute %d\n", fake_mute);
+  return fake_mute;
+}
+
+static int
+tveng2_set_mute(int value, tveng_device_info * info)
+{
+  fake_mute = !!value;
+  fprintf(stdout, "tveng2_set_mute fake mute %d\n", fake_mute);
+  return 0;
+}
+
+#else /* !defined(TVENG2_FAKE_MUTE) */
 
 /*
   Gets the value of the mute property. 1 means mute (no sound) and 0
@@ -1126,6 +1181,8 @@ tveng2_set_mute(int value, tveng_device_info * info)
 {
   return (tveng_set_control_by_id(V4L2_CID_AUDIO_MUTE, value, info));
 }
+
+#endif /* !defined(TVENG2_FAKE_MUTE) */
 
 /*
   Tunes the current input to the given freq. Returns -1 on error.

@@ -19,8 +19,10 @@ Outstanding issues for the next release (0.6.3)
           into one place, propose zmisc.c, avoiding strlen etc).
 	+ Finish WSS.
 	! Video standard question.
+	+ Check tveng has frame rate for timestamping. (Unlike mpeg bug.)
 	+ Remove default overlay page?
 	+ ttxview.c/selection_handle: What's the correct char set?
+	+ We need a map of all built-in kbd shortcuts.
 
 > 0.7.0
 	+ Support for Python scripting, write all new gui handling as

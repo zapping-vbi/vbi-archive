@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.16 2002-01-13 09:52:22 mschimek Exp $
+ * $Id: fullscreen.c,v 1.17 2002-02-03 13:19:20 mschimek Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -59,12 +59,11 @@ gboolean on_fullscreen_event (GtkWidget * widget, GdkEvent * event,
   GtkWidget * window = GTK_WIDGET(user_data);
   GtkMenuItem * exit2 =
     GTK_MENU_ITEM(lookup_widget(window, "exit2"));
-  tveng_tuned_channel *tc;
-  gint i = 0;
 
   if (event->type == GDK_KEY_PRESS)
     {
       GdkEventKey * kevent = (GdkEventKey*) event;
+
       switch (kevent->keyval)
 	{
 	case GDK_Page_Up:
@@ -95,18 +94,7 @@ gboolean on_fullscreen_event (GtkWidget * widget, GdkEvent * event,
 	    on_toggle_muted1_activate(NULL, NULL);
 	  break;
 	default:
-	  while ((tc =
-		  tveng_retrieve_tuned_channel_by_index(i++,
-							global_channel_list)))
-	    {
-	      if ((kevent->keyval == tc->accel_key) &&
-		  ((tc->accel_mask & kevent->state) == tc->accel_mask))
-		{
-		  z_select_channel(tc->index);
-		  return TRUE;
-		}
-	    }
-	  break;
+	  return z_select_channel_by_key(kevent);
 	}
       return TRUE; /* Event processing done */
     }

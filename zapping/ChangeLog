@@ -1,3 +1,12 @@
+03.02.2002	Mute fixes <mschimek@users.sf.net>
+
+	* src/zmisc.c: zmisc_switch_mode() didn't expect failure of
+	  tveng_get_mute(), updated control box before restoring
+	  old mute state.
+	* src/callbacks.c: on_toggle_muted1_activate() didn't expect
+	  failure of tveng_get_mute() and didn't update control box.
+	* Added KP channel number entering suggested by Nathan G. Grennan.
+
 24.01.2002	Added @euro charset <garetxe@users.sf.net>
 
 	* common/unicode.c: Added support for the ISO-8859-15 locale
@@ -18,10 +27,6 @@
 	  standard is unknown, used to crash.
 	* src/zvbi.c: "Overlay subtitle pages
 	  automatically" defaults to FALSE.
-
-14.01.2002	<mschimek@users.sf.net>
-
-	* src/zvbi.c: Restored v4l vbi interface, untested.
 
 14.01.2002	<mschimek@users.sf.net>
 
