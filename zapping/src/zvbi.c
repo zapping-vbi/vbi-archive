@@ -66,7 +66,7 @@ static ZModel * vbi_model=NULL; /* notify to clients the open/closure
 				   of the device */
 static pthread_t zvbi_thread_id; /* VBI thread in libvbi */
 static pthread_mutex_t network_mutex;
-static vbi_network current_network; /* current network info */
+vbi_network current_network; /* current network info */
 
 /* symbol used by osd.c */
 int zvbi_page = 1, zvbi_subpage = ANY_SUB;	// caption 1 ... 8

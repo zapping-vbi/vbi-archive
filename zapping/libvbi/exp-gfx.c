@@ -23,7 +23,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.30 2001-03-17 17:18:27 garetxe Exp $ */
+/* $Id: exp-gfx.c,v 1.31 2001-03-18 06:03:37 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -791,14 +791,27 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 
 	png_set_gAMA(png_ptr, info_ptr, 1.0 / 2.2);
 
-	/*
-	 *  ISO 8859-1 (Latin-1) character set required,
-	 *  see png spec for other
-	 */
+	{
+		char *s = title;
+
+		if (e->network.name[0])
+			s += sprintf(title, "%s ", e->network.name);
+		else
+			*s = 0;
+
+		/*
+		 *  ISO 8859-1 (Latin-1) character set required,
+		 *  see png spec for other
+		 */
+		if (pg->pgno < 0x100)
+			sprintf(s, "Closed Caption"); /* no i18n */
+		else if (pg->subno != ANY_SUB)
+			sprintf(s, _("Teletext Page %3x.%x"), pg->pgno, pg->subno);
+		else
+			sprintf(s, _("Teletext Page %3x"), pg->pgno);
+	}
+
 	memset(text, 0, sizeof(text));
-	snprintf(title, sizeof(title) - 1,
-		_("Teletext Page %3x/%04x"),
-		pg->pgno, pg->subno); // XXX make it "station_short Teletext ..."
 
 	text[0].key = "Title";
 	text[0].text = title;

@@ -1,3 +1,10 @@
+18.3.2001	TTX <mschimek@users.sourceforge.net>
+
+	* Fixed spurious blinking bug in level 2.5 decoder.
+	* Export filename and HTML/PNG title includes station name
+	  if known.
+	* HTML export adds anchors for http/ftp/email links.
+
 17.3.2001	Export beautification <garetxe@users.sourceforge.net>
 
 	* src/ttxview.c: Changed export file GtkEntry to GnomeFileEntry,

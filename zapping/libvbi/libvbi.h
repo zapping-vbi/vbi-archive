@@ -19,17 +19,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvbi.h,v 1.26 2001-03-17 07:44:29 mschimek Exp $ */
+/* $Id: libvbi.h,v 1.27 2001-03-18 06:03:37 mschimek Exp $ */
 
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
 
 #include <stdint.h>
-
-//#include <vt.h>
-//#include <lang.h>
-//#include "dllist.h"
-#include "export.h"
+#include "format.h"
 
 /*
     public interface:
@@ -146,14 +142,14 @@ extern void		vbi_draw_cc_page_region(struct fmt_page *pg, uint32_t *canvas,
  *  Network identification.
  *
  *  All strings are ISO 8859-1, local language, and NUL terminated.
- *  Prepare for empty strings.
+ *  Prepare for empty strings. Read only.
  */
 
 typedef struct {
 	unsigned int		id;			/* unique id */
 
 	char			name[33];		/* descriptive name */
-	char			label[9];		/* short name (TTX/VPS) */
+	char			label[33];		/* short name (TTX/VPS) - max. 8 chars */
 	char			call[33];		/* network call letters (XDS) */
 
 	int			tape_delay;		/* tape delay, minutes (XDS) */
@@ -225,5 +221,6 @@ void vbi_close(struct vbi *vbi);
 extern void *	vbi_mainloop(void *p);
 
 #include "vbi.h" /* XXX */
+#include "export.h"
 
 #endif /* __LIBVBI_H__ */

@@ -445,7 +445,7 @@ static void selection_handle		(GtkWidget	*widget,
 			    data->sel_width, data->sel_height);
 	  gchar *result;
 
-	  if ((e = export_open(buffer)))
+	  if ((e = export_open(buffer, NULL)))
 	    {
 	      if ((result = (gchar*)export(e, &data->clipboard_fmt_page,
 					   "memory")))
@@ -1715,6 +1715,7 @@ void export_ttx_page			(GtkWidget	*widget,
 					 ttxview_data	*data,
 					 char		*fmt)
 {
+  extern vbi_network current_network; /* FIXME */
   struct export *exp;
   gchar *buffer, *buffer2;
   char *filename;
@@ -1740,13 +1741,16 @@ void export_ttx_page			(GtkWidget	*widget,
       return;
     }
 
-  if ((exp = export_open(fmt)))
+  if ((exp = export_open(fmt, &current_network)))
     {
       /* Configure */
       gint result;
 
+      if (!exp->network.label[0])
+        strncpy(exp->network.label, _("Zapzilla"), sizeof(exp->network.label) - 1);
+
       filename =
-	export_mkname(exp, "Zapzilla-%p.%e",
+	export_mkname(exp, "%n-%p.%e",
 		      data->fmt_page->pgno, data->fmt_page->subno, NULL);
       zcg_char(&buffer, "exportdir");
       g_strstrip(buffer);

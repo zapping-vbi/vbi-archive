@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.14 2001-03-17 17:18:27 garetxe Exp $ */
+/* $Id: exp-html.c,v 1.15 2001-03-18 06:03:37 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -66,6 +66,7 @@ typedef struct html_data	// private data in struct export
 	unsigned int		italic : 1;
 	unsigned int		flash : 1;
 	unsigned int		span : 1;
+	unsigned int		link : 1;
 
 	style *			styles;
 	style			def;
@@ -129,6 +130,37 @@ hash_colour(FILE *fp, unsigned int colour)
 		(colour >> 16) & 0xFF);		
 }
 
+static void
+escaped_fputc(FILE *fp, int c)
+{
+	if (c < 0)
+		fprintf(fp, "&#%u;", -c);
+	else
+		switch (c) {
+		case '<':
+			fputs("&lt;", fp);
+			break;
+
+		case '>':
+			fputs("&gt;", fp);
+			break;
+
+		case '&':
+			fputs("&amp;", fp);
+			break;
+
+		default:
+			putc(c, fp);
+		}
+}
+
+static void
+escaped_fputs(FILE *fp, char *s)
+{
+	while (*s)
+		escaped_fputc(fp, *s++);
+}
+
 static const char *	html_underline[]	= { "</u>", "<u>" };
 static const char *	html_bold[]		= { "</b>", "<b>" };
 static const char *	html_italic[]		= { "</i>", "<i>" };
@@ -151,9 +183,6 @@ write_error(struct export *e)
 		remove(h->name);
 }
 
-/*
-    Title: "<title lang=\"en\" dir=\"ltr\">Medieval Bee-Keeping</title>
- */
 static bool
 header(struct export *e, char *name, struct fmt_page *pg, char *title)
 {
@@ -328,6 +357,7 @@ header(struct export *e, char *name, struct fmt_page *pg, char *title)
 	h->italic	= FALSE;
 	h->flash	= FALSE;
 	h->span		= FALSE;
+	h->link		= FALSE;
 
 	return TRUE;
 }
@@ -391,6 +421,7 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 				/* XXX should match fg and bg transitions */
 				while (blank > 0) {
 					ac.background = acp[j - blank].background;
+					ac.link = acp[j - blank].link;
 					acp[j - blank] = ac;
 					blank--;
 				}
@@ -413,6 +444,7 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 
 			while (blank > 0) {
 				ac.background = acp[pg.columns - blank].background;
+				ac.link = acp[pg.columns - blank].link;
 				acp[pg.columns - blank] = ac;
 				blank--;
 			}
@@ -440,8 +472,45 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 		}
 	}
 
-	if (!header(e, name, &pg, "<title>Medieval Bee-Keeping</title>"))
-		return -1;
+	{
+		char *s;
+		size_t size;
+		FILE *fp;
+
+		fp = open_memstream(&s, &size);
+
+		if (pg.pgno < 0x100)
+			fprintf(fp, "<title lang=\"en\">");
+		else
+			fprintf(fp, _("<title lang=\"en\">")); /* dir=\"ltr\" */
+
+		if (e->network.name[0]) {
+			escaped_fputs(fp, e->network.name);
+			putc(' ', fp);
+		}
+
+		if (pg.pgno < 0x100)
+			fprintf(fp, "Closed Caption"); /* no i18n */
+		else if (pg.subno != ANY_SUB)
+			fprintf(fp, _("Teletext Page %3x.%x"), pg.pgno, pg.subno);
+		else
+			fprintf(fp, _("Teletext Page %3x"), pg.pgno);
+
+		fputs("</title>", fp);
+
+		if (fclose(fp)) {
+			free(s);
+			write_error(e);
+			return -1;
+		}
+
+		if (!header(e, name, &pg, s)) {
+			free(s);
+			return -1;
+		}
+
+		free(s);
+	}
 
 	fputs("<pre>", h->fp);
 
@@ -450,11 +519,13 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 	h->italic     = FALSE;
 	h->flash      = FALSE;
 	h->span	      = FALSE;
+	h->link	      = FALSE;
 
 	/* XXX this can get extremely large and ugly, should be improved. */
 	for (acp = pg.text, i = 0; i < pg.rows; acp += pg.columns, i++) {
 		for (j = 0; j < pg.columns; j++) {
 			int code;
+
 
 			if ((acp[j].glyph != 0x20 && acp[j].foreground != h->foreground)
 			    || acp[j].background != h->background) {
@@ -486,6 +557,22 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 					}
 
 				if (s != &h->def) {
+					if (h->link != acp[j].link) {
+						vbi_link link;
+
+						vbi_resolve_link(pgp, j, i, &link);
+
+						switch (link.type) {
+						case VBI_LINK_HTTP:
+						case VBI_LINK_FTP:
+						case VBI_LINK_EMAIL:
+							fprintf(h->fp, "<a href=\"%s\">", link.text);
+							h->link = TRUE;
+
+						default:
+						}
+					}
+
 					if (s) {
 						h->foreground = s->foreground;
 						h->background = s->background;
@@ -507,7 +594,7 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 					h->span = FALSE;
 				}
 			}
-
+			
 			if (acp[j].underline != h->underline
 			    || acp[j].bold != h->bold
 			    || acp[j].italic != h->italic
@@ -525,6 +612,27 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 				h->bold	      = FALSE;
 				h->italic     = FALSE;
 				h->flash      = FALSE;
+			}
+
+			if (h->link != acp[j].link) {
+				if (h->link) {
+					fputs("</a>", h->fp);
+					h->link = FALSE;
+				} else {
+					vbi_link link;
+
+					vbi_resolve_link(pgp, j, i, &link);
+
+					switch (link.type) {
+					case VBI_LINK_HTTP:
+					case VBI_LINK_FTP:
+					case VBI_LINK_EMAIL:
+						fprintf(h->fp, "<a href=\"%s\">", link.text);
+						h->link = TRUE;
+
+					default:
+					}
+				}
 			}
 
 			if (acp[j].underline != h->underline) {
@@ -554,26 +662,7 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 #endif
 			code = glyph_iconv(h->cd, acp[j].glyph, D->gfx_chr);
 
-			if (code < 0) {
-				fprintf(h->fp, "&#%u;", -code);
-			} else {
-				switch (code) {
-				case '<':
-					fputs("&lt;", h->fp);
-					break;
-
-				case '>':
-					fputs("&gt;", h->fp);
-					break;
-
-				case '&':
-					fputs("&amp;", h->fp);
-					break;
-
-				default:
-					fputc(code, h->fp);
-				}
-			}
+			escaped_fputc(h->fp, code);
 		}
 
 		fputc('\n', h->fp);

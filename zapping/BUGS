@@ -8,5 +8,4 @@ Known bugs with zapping, don't report them
 	it's x11_add_clips. Weird, but needs fixing.
 	* Need better no-overlay-present handling.
 	* The standard is changed when changing modes.
-	* Sometimes spurious blinking in row #0 (fixed?)
 	* Lirc plugin doesn't remove elements from the config.

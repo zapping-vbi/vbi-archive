@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.c,v 1.10 2001-03-09 17:39:01 mschimek Exp $ */
+/* $Id: lang.c,v 1.11 2001-03-18 06:03:37 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -664,40 +664,30 @@ glyph_iconv(iconv_t cd, int glyph, int gfx_substitute)
 
 	glyph &= 0xF3FFFF;
 
-	if ((glyph & 0xFFFF) >= GL_DRCS)
-		return gfx_substitute; /* dynamically redefinable character */
+	if ((glyph & 0xFFFF) >= GL_DRCS) {
+		u = gfx_substitute;
+		goto conv; /* dynamically redefinable character */
+	}
 
 	if (glyph < sizeof(unicode_forward) / sizeof(unicode_forward[0])) {
 		if (!(u = unicode_forward[glyph]))
 			return 0x20;
 		else if (u == '@')
 			return '@';
-
-		uc[0] = u >> 8; /* network order */
-		uc[1] = u;
-
-		if (iconv(cd, (const char **) &up, &in, (char **) &cp, &out) < 1 || c == '@')
-			return -u;
-		else
-			return c;
+		goto conv;
 	}
 
-	if (glyph < GL_ITALICS)	/* block mosaic, smooth mosaic, line drawing character */
-		return gfx_transcript[glyph - GL_GRAPHICS] ? : gfx_substitute;
+	if (glyph < GL_ITALICS) { /* block mosaic, smooth mosaic, line drawing character */
+		u = gfx_transcript[glyph - GL_GRAPHICS] ? : gfx_substitute;
+		goto conv;
+	}
 
 	if ((glyph & 0xFF00) == GL_CAPTION) {
 		if (!(u = caption_unicode_forward[glyph & 0x7F]))
 			return 0x20;
 		else if (u == '@')
 			return '@';
-
-		uc[0] = u >> 8; /* network order */
-		uc[1] = u;
-
-		if (iconv(cd, (const char **) &up, &in, (char **) &cp, &out) < 1 || c == '@')
-			return -u;
-		else
-			return c;
+		goto conv;
 	}
 
 	glyph = (glyph & 0x3FF) + ((glyph >> 8) & 0xF000);
@@ -705,15 +695,17 @@ glyph_iconv(iconv_t cd, int glyph, int gfx_substitute)
 	for (i = 0; i < sizeof(unicode_reverse) / sizeof(unicode_reverse[0]); i++)
 		if (glyph == unicode_reverse[i]) {
 			u = 0x00C0 + i;
-
-			uc[0] = u >> 8; /* network order */
-			uc[1] = u;
-
-			if (iconv(cd, (const char **) &up, &in, (char **) &cp, &out) < 1 || c == '@')
-				return -u;
-			else
-				return c;
+			goto conv;
 		}
 
 	return 0x20;
+
+conv:
+	uc[0] = u >> 8; /* network order */
+	uc[1] = u;
+
+	if (iconv(cd, (const char **) &up, &in, (char **) &cp, &out) < 1 || c == '@')
+		return -u;
+	else
+		return c;
 }

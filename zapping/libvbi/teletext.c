@@ -1245,7 +1245,9 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 
 			case 0x04:		/* reserved */
 			case 0x05:		/* reserved */
+
 			case 0x06:		/* PDC data */
+				break;
 
 			case 0x07:		/* additional flash functions */
 				if (vbi->vt.max_level >= VBI_LEVEL_2p5) {
@@ -1254,8 +1256,8 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 
 					/*
 					 *  Only one flash function (if any) implemented:
-					 *  1 - Normal flash to background colour
-					 *  0 - Slow rate (1 Hz)
+					 *  Mode 1 - Normal flash to background colour
+					 *  Rate 0 - Slow rate (1 Hz)
 					 */
 					ac.flash = !!(p->data & 3);
 					mac.flash = ~0;

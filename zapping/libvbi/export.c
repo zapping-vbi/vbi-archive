@@ -60,33 +60,6 @@ export_errstr(struct export *e)
 	return e->err_str ? e->err_str : "cause unknown";
 }
 
-
-static int
-find_opt(char **opts, char *opt, char *arg)
-{
-    int err = 0;
-    char buf[256];
-    char **oo, *o, *a;
-
-    if ((oo = opts))
-	while ((o = *oo++))
-	{
-	    if ((a = strchr(o, '=')))
-	    {
-		a = buf + (a - o);
-		o = strcpy(buf, o);
-		*a++ = 0;
-	    }
-	    if (strcasecmp(o, opt) == 0)
-	    {
-		if ((a != 0) == (arg != 0))
-		    return oo - opts;
-		err = -1;
-	    }
-	}
-    return err;
-}
-
 static int
 find_option(vbi_export_option *xo1, char *key, char *arg)
 {
@@ -134,7 +107,7 @@ vbi_export_set_option(struct export *exp, int index, ...)
 }
 
 struct export *
-export_open(char *fmt)
+export_open(char *fmt, vbi_network *network)
 {
     struct export_module **eem, *em;
     struct export *e = NULL;
@@ -154,6 +127,8 @@ export_open(char *fmt)
 	    {
 		e->mod = em;
 		e->fmt_str = fmt;
+		if (network)
+			memcpy(&e->network, network, sizeof(e->network));
 		e->reveal = 0;
 		memset(e + 1, 0, em->local_size);
 		if (! em->open || em->open(e) == 0)
@@ -237,14 +212,17 @@ hexnum(char *buf, unsigned int num)
 }
 
 static char *
-adjust(char *p, char *str, char fill, int width)
+adjust(char *p, char *str, char fill, int width, int deq)
 {
-    int l = width - strlen(str);
+    int c, l = width - strlen(str);
 
     while (l-- > 0)
 	*p++ = fill;
-    while ((*p = *str++))
-	p++;
+    while ((c = *str++)) {
+	if (deq && strchr(" /*?", c))
+    	    c = '_';
+	*p++ = c;
+    }
     return p;
 }
 
@@ -268,28 +246,31 @@ export_mkname(struct export *e, char *fmt,
 	    switch (*fmt++)
 	    {
 		case '%':
-		    p = adjust(p, "%", '%', width);
+		    p = adjust(p, "%", '%', width, 0);
 		    break;
 		case 'e':	// extension
-		    p = adjust(p, e->mod->extension, '.', width);
+		    p = adjust(p, e->mod->extension, '.', width, 1);
+		    break;
+		case 'n':	// network label
+		    p = adjust(p, e->network.label, ' ', width, 1);
 		    break;
 		case 'p':	// pageno[.subno]
 		    if (subno)
 			p = adjust(p,strcat(strcat(hexnum(buf, pgno),
-				"."), hexnum(buf2, subno)), ' ', width);
+				"."), hexnum(buf2, subno)), ' ', width, 0);
 		    else
-			p = adjust(p, hexnum(buf, pgno), ' ', width);
+			p = adjust(p, hexnum(buf, pgno), ' ', width, 0);
 		    break;
 		case 'S':	// subno
-		    p = adjust(p, hexnum(buf, subno), '0', width);
+		    p = adjust(p, hexnum(buf, subno), '0', width, 0);
 		    break;
 		case 'P':	// pgno
-		    p = adjust(p, hexnum(buf, pgno), '0', width);
+		    p = adjust(p, hexnum(buf, pgno), '0', width, 0);
 		    break;
 		case 's':	// user strin
-		    p = adjust(p, usr, ' ', width);
+		    p = adjust(p, usr, ' ', width, 0);
 		    break;
-		//TODO: add date, channel name, ...
+		//TODO: add date, ...
 	    }
 	}
     p = strdup(bbuf);
@@ -297,7 +278,6 @@ export_mkname(struct export *e, char *fmt,
 	export_error(e, "out of memory");
     return p;
 }
-
 
 int
 export(struct export *e, struct fmt_page *pg, char *name)

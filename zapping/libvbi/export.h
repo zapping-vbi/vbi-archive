@@ -44,6 +44,7 @@ struct export
     struct export_module *mod;	// module type
     char *fmt_str;		// saved option string (splitted)
     char *err_str;		// NULL if none
+    vbi_network			network;
     // global options
     int reveal;			// reveal hidden chars
     // local data for module's use.  initialized to 0.
@@ -68,7 +69,7 @@ void export_error(struct export *e, char *str, ...);	// set error
 char *export_errstr(struct export *e);		// return last error
 char *export_mkname(struct export *e, char *fmt, int pgno, int subno, char *usr);
 
-struct export *export_open(char *fmt);
+struct export *export_open(char *fmt, vbi_network *);
 void export_close(struct export *e);
 int export(struct export *e, struct fmt_page *pg, char *user_str);
 

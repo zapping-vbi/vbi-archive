@@ -1536,7 +1536,6 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 			triplet.address = t & 0x3F;
 			triplet.mode = (t >> 6) & 0x1F;
 			triplet.data = t >> 11;
-
 // XXX if !err
 			cvtp->data.enh_lop.enh[rvtp->num_triplets++] = triplet;
 
