@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = $(X_CFLAGS)
+INCLUDES = -I../src $(COMMON_INCLUDES) 
 
 bin_PROGRAMS = zapping_setup_fb
 bin_SCRIPTS = zapping_fix_overlay
@@ -52,4 +52,5 @@ zapping_setup_fb_LDADD = $(X_LIBS) \
 
 zsfb.capps:
 	echo USER=root >$@
+	echo SESSION=TRUE >>$@
 	echo PROGRAM=$(sbindir)/zapping_setup_fb >>$@
