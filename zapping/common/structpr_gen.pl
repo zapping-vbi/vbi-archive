@@ -25,13 +25,15 @@
 #  Perl and C gurus cover your eyes. This is one of my first
 #  attempts in this funny tongue and far from a proper C parser.
 
-# $Id: structpr_gen.pl,v 1.5 2004-08-13 01:11:52 mschimek Exp $
+# $Id: structpr_gen.pl,v 1.6 2005-01-08 14:36:36 mschimek Exp $
 
 $number		= '[0-9]+';
 $ident		= '\~?_*[a-zA-Z][a-zA-Z0-9_]*';
 $signed		= '((signed)?(char|short|int|long))|__s8|__s16|__s32|signed';
 $unsigned	= '(((unsigned\s*)|u|u_)(char|short|int|long))|__u8|__u16|__u32|unsigned';
 $define		= '^\s*\#\s*define\s+';
+
+$printfn	= 'fprint_ioctl_arg';
 
 #
 # Syntax of arguments, in brief:
@@ -68,7 +70,9 @@ while (@ARGV) {
 	$arg .= shift (@ARGV);
     }
 
-    if ($arg =~ m/(($ident)(\.$ident)?)\={(.*)}/) {
+    if ($arg =~ m/printfn\=($ident)/) {
+	$printfn = $1;
+    } elsif ($arg =~ m/(($ident)(\.$ident)?)\={(.*)}/) {
 	$print_func{$1} = $4;
     } elsif ($arg =~ m/(($ident)(\.($ident))?)\=(.*)/) {
 	$item = $1;
@@ -269,6 +273,15 @@ sub add_arg {
 
     $templ .= &field ($item) . "=$template ";
     $args .= "($type) t->" . &trail ($item) . ", ";
+}
+
+# text .= "unsigned int", "structname.field1.flags", "%x"
+sub add_ref_arg {
+    my ($text, $type, $item, $template) = @_;
+    my $flush = 0;
+
+    $templ .= &field ($item) . "=$template ";
+    $args .= "($type) & t->" . &trail ($item) . ", ";
 }
 
 # text .= functions this depends upon, "struct foo", "structname.field1.foo"
@@ -517,7 +530,8 @@ sub aggregate_body {
 	    } elsif ($hint eq "hex") {
 		&add_arg ($text, "unsigned long", $item, "0x%lx");
 	    } elsif ($hint eq "fourcc") {
-		&add_arg ($text, "const char *", $item, "\\\"%.4s\\\"=0x%lx");
+		&add_ref_arg ($text, "const char *", $item,
+			      "\\\"%.4s\\\"=0x%lx");
 		$args .= "(unsigned long) t->$field, ";
 	    # Field contains symbols, could be flags or enum or both
 	    } elsif ($hint ne "") {
@@ -682,7 +696,7 @@ sub print_type {
     }
 }
 
-$text = "static void\nfprint_ioctl_arg (FILE *fp, unsigned int cmd, int rw, void *arg)\n"
+$text = "static void\n$printfn (FILE *fp, unsigned int cmd, int rw, void *arg)\n"
     . "{\nswitch (cmd) {\n";
 
 while (($type, $case) = each %ioctl_cases) {
