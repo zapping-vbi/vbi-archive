@@ -1,3 +1,7 @@
+17.12.2000	TTXView started <garetxe@users.sourceforge.net>
+
+	* src/ttxview.c: Started, will be the GUI for the TTX decoder.
+
 16.12.2000	Configurable default charset <garetxe@users.sourceforge.net>
 
 	* glade/zapping.glade, libvbi/vbi.c: Added the

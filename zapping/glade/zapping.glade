@@ -36,7 +36,7 @@
   <type>GTK_WINDOW_TOPLEVEL</type>
   <position>GTK_WIN_POS_NONE</position>
   <modal>False</modal>
-  <allow_shrink>False</allow_shrink>
+  <allow_shrink>True</allow_shrink>
   <allow_grow>True</allow_grow>
   <auto_shrink>False</auto_shrink>
   <enable_layout_config>True</enable_layout_config>
@@ -59,7 +59,7 @@
       <placement>GNOME_DOCK_TOP</placement>
       <band>0</band>
       <position>0</position>
-      <offset>0</offset>
+      <offset>4</offset>
       <locked>False</locked>
       <exclusive>True</exclusive>
       <never_floating>False</never_floating>
@@ -1080,7 +1080,7 @@ Do not change mode
 	<spacing>2</spacing>
 	<child>
 	  <padding>0</padding>
-	  <expand>True</expand>
+	  <expand>False</expand>
 	  <fill>True</fill>
 	</child>
 
@@ -1168,11 +1168,10 @@ Do not change mode
 	</widget>
 
 	<widget>
-	  <class>GtkFrame</class>
-	  <name>frame2</name>
-	  <label>Default Teletext region</label>
-	  <label_xalign>0</label_xalign>
-	  <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+	  <class>GtkHBox</class>
+	  <name>hbox22</name>
+	  <homogeneous>True</homogeneous>
+	  <spacing>0</spacing>
 	  <child>
 	    <padding>0</padding>
 	    <expand>True</expand>
@@ -1180,27 +1179,42 @@ Do not change mode
 	  </child>
 
 	  <widget>
-	    <class>GtkScrolledWindow</class>
-	    <name>scrolledwindow12</name>
-	    <height>102</height>
-	    <hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
-	    <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
-	    <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
-	    <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+	    <class>GtkLabel</class>
+	    <name>label91</name>
+	    <label>Default region:</label>
+	    <justify>GTK_JUSTIFY_CENTER</justify>
+	    <wrap>False</wrap>
+	    <xalign>0.5</xalign>
+	    <yalign>0.5</yalign>
+	    <xpad>0</xpad>
+	    <ypad>0</ypad>
+	    <child>
+	      <padding>0</padding>
+	      <expand>False</expand>
+	      <fill>False</fill>
+	    </child>
+	  </widget>
 
-	    <widget>
-	      <class>GtkViewport</class>
-	      <name>viewport1</name>
-	      <shadow_type>GTK_SHADOW_IN</shadow_type>
-
-	      <widget>
-		<class>GtkTree</class>
-		<name>tree1</name>
-		<selection_mode>GTK_SELECTION_BROWSE</selection_mode>
-		<view_mode>GTK_TREE_VIEW_ITEM</view_mode>
-		<view_line>True</view_line>
-	      </widget>
-	    </widget>
+	  <widget>
+	    <class>GtkOptionMenu</class>
+	    <name>optionmenu3</name>
+	    <tooltip>Select here the region you are in. This setting will only be used if it isn't transmitted together with the TTX signal</tooltip>
+	    <can_focus>True</can_focus>
+	    <items>Western and Central Europe
+Eastern Europe
+Western Europe and Turkey
+Middle and SouthEast Europe
+Cyrillic
+Greece and Cyprus
+Arabic
+Israel
+</items>
+	    <initial_choice>0</initial_choice>
+	    <child>
+	      <padding>0</padding>
+	      <expand>False</expand>
+	      <fill>True</fill>
+	    </child>
 	  </widget>
 	</widget>
       </widget>
@@ -2776,6 +2790,146 @@ in the next release of this program.</label>
 	</widget>
       </widget>
     </widget>
+  </widget>
+</widget>
+
+<widget>
+  <class>GnomeApp</class>
+  <name>ttxview</name>
+  <title>Teletext</title>
+  <type>GTK_WINDOW_TOPLEVEL</type>
+  <position>GTK_WIN_POS_NONE</position>
+  <modal>False</modal>
+  <allow_shrink>True</allow_shrink>
+  <allow_grow>True</allow_grow>
+  <auto_shrink>False</auto_shrink>
+  <enable_layout_config>True</enable_layout_config>
+
+  <widget>
+    <class>GnomeDock</class>
+    <child_name>GnomeApp:dock</child_name>
+    <name>dock2</name>
+    <allow_floating>True</allow_floating>
+    <child>
+      <padding>0</padding>
+      <expand>True</expand>
+      <fill>True</fill>
+    </child>
+
+    <widget>
+      <class>GnomeDockItem</class>
+      <name>dockitem4</name>
+      <border_width>1</border_width>
+      <placement>GNOME_DOCK_TOP</placement>
+      <band>0</band>
+      <position>0</position>
+      <offset>0</offset>
+      <locked>False</locked>
+      <exclusive>True</exclusive>
+      <never_floating>False</never_floating>
+      <never_vertical>False</never_vertical>
+      <never_horizontal>False</never_horizontal>
+      <shadow_type>GTK_SHADOW_OUT</shadow_type>
+
+      <widget>
+	<class>GtkToolbar</class>
+	<name>toolbar2</name>
+	<border_width>1</border_width>
+	<orientation>GTK_ORIENTATION_HORIZONTAL</orientation>
+	<type>GTK_TOOLBAR_BOTH</type>
+	<space_size>16</space_size>
+	<space_style>GTK_TOOLBAR_SPACE_LINE</space_style>
+	<relief>GTK_RELIEF_NONE</relief>
+	<tooltips>True</tooltips>
+
+	<widget>
+	  <class>GtkButton</class>
+	  <child_name>Toolbar:button</child_name>
+	  <name>ttxview_back</name>
+	  <tooltip>Previous page in history</tooltip>
+	  <label>Back</label>
+	  <stock_pixmap>GNOME_STOCK_PIXMAP_BACK</stock_pixmap>
+	</widget>
+
+	<widget>
+	  <class>GtkButton</class>
+	  <child_name>Toolbar:button</child_name>
+	  <name>ttxview_forward</name>
+	  <tooltip>Next page in history</tooltip>
+	  <label>Forward</label>
+	  <stock_pixmap>GNOME_STOCK_PIXMAP_FORWARD</stock_pixmap>
+	</widget>
+
+	<widget>
+	  <class>GtkSpinButton</class>
+	  <name>ttxview_url</name>
+	  <tooltip>Enter here the page you want to get</tooltip>
+	  <can_default>True</can_default>
+	  <has_default>True</has_default>
+	  <can_focus>True</can_focus>
+	  <has_focus>True</has_focus>
+	  <climb_rate>1</climb_rate>
+	  <digits>0</digits>
+	  <numeric>True</numeric>
+	  <update_policy>GTK_UPDATE_IF_VALID</update_policy>
+	  <snap>False</snap>
+	  <wrap>True</wrap>
+	  <value>100</value>
+	  <lower>100</lower>
+	  <upper>899</upper>
+	  <step>1</step>
+	  <page>10</page>
+	  <page_size>10</page_size>
+	  <child>
+	    <new_group>True</new_group>
+	  </child>
+	</widget>
+
+	<widget>
+	  <class>GtkButton</class>
+	  <child_name>Toolbar:button</child_name>
+	  <name>ttxview_home</name>
+	  <tooltip>Go to the index page</tooltip>
+	  <label>Home</label>
+	  <stock_pixmap>GNOME_STOCK_PIXMAP_HOME</stock_pixmap>
+	  <child>
+	    <new_group>True</new_group>
+	  </child>
+	</widget>
+
+	<widget>
+	  <class>GtkButton</class>
+	  <child_name>Toolbar:button</child_name>
+	  <name>ttxview_clone</name>
+	  <tooltip>Open a new Teletext window</tooltip>
+	  <label>Clone</label>
+	  <stock_pixmap>GNOME_STOCK_PIXMAP_MULTIPLE</stock_pixmap>
+	  <child>
+	    <new_group>True</new_group>
+	  </child>
+	</widget>
+      </widget>
+    </widget>
+
+    <widget>
+      <class>GtkDrawingArea</class>
+      <child_name>GnomeDock:contents</child_name>
+      <name>drawingarea1</name>
+      <height>256</height>
+    </widget>
+  </widget>
+
+  <widget>
+    <class>GnomeAppBar</class>
+    <child_name>GnomeApp:appbar</child_name>
+    <name>appbar1</name>
+    <has_progress>False</has_progress>
+    <has_status>True</has_status>
+    <child>
+      <padding>0</padding>
+      <expand>True</expand>
+      <fill>True</fill>
+    </child>
   </widget>
 </widget>
 

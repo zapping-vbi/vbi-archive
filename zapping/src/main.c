@@ -39,6 +39,7 @@
 #include "overlay.h"
 #include "capture.h"
 #include "x11stuff.h"
+#include "ttxview.h"
 
 /* This comes from callbacks.c */
 extern enum tveng_capture_mode restore_mode; /* the mode set when we went
@@ -258,7 +259,7 @@ int main(int argc, char * argv[])
     newbttv = 0;
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.70 2000-12-11 22:19:41 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.71 2000-12-17 22:12:56 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -519,7 +520,7 @@ int main(int argc, char * argv[])
 			   main_info))
     fprintf(stderr, "tveng_set_mute: %s\n", main_info->error);
   D(); printv("going into main loop...\n");
-
+  gtk_widget_show(build_ttxview());
   while (!flag_exit_program)
     {
       while (gtk_events_pending())

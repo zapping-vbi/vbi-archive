@@ -156,3 +156,9 @@ create_txtcontrols (void)
 {
   return build_widget("txtcontrols", PACKAGE_DATA_DIR "/zapping.glade");
 }
+
+GtkWidget*
+create_ttxview (void)
+{
+  return build_widget("ttxview", PACKAGE_DATA_DIR "/zapping.glade");
+}

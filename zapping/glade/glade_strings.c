@@ -61,7 +61,17 @@ gchar *s = N_("Use VBI for getting station names");
 gchar *s = N_("Try to correct errors when decoding");
 gchar *s = N_("Device name:");
 gchar *s = N_("Select the VBI device");
-gchar *s = N_("Default Teletext region");
+gchar *s = N_("Default region:");
+gchar *s = N_("Select here the region you are in. This setting will only be used if it isn't transmitted together with the TTX signal");
+gchar *s = N_("Western and Central Europe\n"
+              "Eastern Europe\n"
+              "Western Europe and Turkey\n"
+              "Middle and SouthEast Europe\n"
+              "Cyrillic\n"
+              "Greece and Cyprus\n"
+              "Arabic\n"
+              "Israel\n"
+              "");
 gchar *s = N_("VBI options");
 gchar *s = N_("Channel choosing");
 gchar *s = N_("Choose here the channels you want to use.\n"
@@ -142,3 +152,13 @@ gchar *s = N_("Visit:");
 gchar *s = N_("Page");
 gchar *s = N_("Subpage, -1 for looking to all subpages");
 gchar *s = N_("Page");
+gchar *s = N_("Teletext");
+gchar *s = N_("Previous page in history");
+gchar *s = N_("Back");
+gchar *s = N_("Next page in history");
+gchar *s = N_("Forward");
+gchar *s = N_("Enter here the page you want to get");
+gchar *s = N_("Go to the index page");
+gchar *s = N_("Home");
+gchar *s = N_("Open a new Teletext window");
+gchar *s = N_("Clone");

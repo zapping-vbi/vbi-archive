@@ -17,6 +17,7 @@ EXTRA_DIST = videodev.h videodev2.h plugin_common.h ROADMAP
 
 zapping_SOURCES = \
 	main.c \
+	ttxview.c ttxview.h \
 	yuv2rgb_mmx.c \
 	mmx.c mmx.h \
 	yuv2rgb.c yuv2rgb.h \

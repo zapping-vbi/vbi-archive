@@ -105,9 +105,8 @@ if test $? -eq 0; then
 	HAVE_GDK_PIXBUF="yes"
 	AC_DEFINE(HAVE_GDKPIXBUF)
 else
-	AC_MSG_RESULT([no, VBI support will be disabled])
+	AC_MSG_ERROR([This version of Zapping requires GdkPixbuf])
 	HAVE_GDK_PIXBUF="no"
-dnl fixme: Remember to disable the VBI plugin now
 fi
 
 dnl ----------------------------------------------------------------------
@@ -233,7 +232,6 @@ plugins/mpeg/Makefile
 echo "
 	Optional package		Found
 	----------------		-----
-	GdkPixbuf			$HAVE_GDK_PIXBUF
 	JPEG lib			$HAVE_JPEG
 	MMX support			$HAVE_MMX
 	XVideo support			$XV_PRESENT

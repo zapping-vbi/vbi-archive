@@ -98,6 +98,17 @@ zvbi_open_device(gint newbttv)
   gint finetune;
   gboolean erc;
   gchar *device;
+  gint index;
+  static int region_mapping[8] = {
+    0, /* WCE */
+    8, /* EE */
+    16, /* WET */
+    24, /* CSE */
+    32, /* C */
+    48, /* GC */
+    64, /* A */
+    80 /* I */
+  };
 
   zcc_bool(FALSE, "Enable VBI decoding", "enable_vbi");
   zcc_bool(TRUE, "Use VBI for getting station names", "use_vbi");
@@ -140,7 +151,12 @@ zvbi_open_device(gint newbttv)
     }
 
   zvbi_set_current_page(cur_page, cur_subpage);
-  vbi_set_default_region(vbi, zcg_int(NULL, "default_region"));
+  index = zcg_int(NULL, "default_region");
+  if (index < 0)
+    index = 0;
+  if (index > 7)
+    index = 7;
+  vbi_set_default_region(vbi, region_mapping[index]);
 
   return TRUE;
 }
@@ -162,10 +178,6 @@ zvbi_close_device(void)
   vbi_del_handler(vbi, event, NULL);
   vbi_close(vbi);
   vbi = NULL;
-
-/*
-  zcs_int(vbi_get_glyphs(), "glyphs");
-*/
 }
 
 /*

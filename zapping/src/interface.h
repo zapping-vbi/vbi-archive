@@ -24,4 +24,5 @@ GtkWidget* create_plugin_properties (void);
 GtkWidget* create_popup_menu1 (void);
 GtkWidget* create_searching (void);
 GtkWidget* create_txtcontrols (void);
+GtkWidget* create_ttxview (void);
 #endif

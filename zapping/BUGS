@@ -4,6 +4,4 @@ Known bugs with zapping, don't report them
 ! == Bug that needs fixing, very important
 ------------------------------------------
 	
-	* Remove the GtkToolbar auto-resizing
-	* When viewing Teletext, we shouldn't use ERC, but we should
-for the rest. Make it configurable.
+	* Failing to load a widget through create_ should be fatal.

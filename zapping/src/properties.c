@@ -40,104 +40,6 @@ extern tveng_device_info * main_info; /* About the device we are using */
 
 extern GList * plugin_list; /* The plugins we have */
 
-typedef struct {
-  char *name;
-  int id; /* in export.c */
-} teletext_region;
-
-static teletext_region WCE[] = {
-  {N_("English"), 0},
-  {N_("German"), 1},
-  {N_("Swedish, Finnish, Hungarian"), 2},
-  {N_("Italian"), 3},
-  {N_("French"), 4},
-  {N_("Portuguese, Spanish"), 5},
-  {N_("Czech, Slovak"), 6}
-};
-
-static teletext_region EE[] = {
-  {N_("Polish"), 8},
-  {N_("German"), 9},
-  {N_("Swedish, Finnish, Hungarian"), 10},
-  {N_("Italian"), 11},
-  {N_("French"), 12},
-  {N_("Czech, Slovak"), 14}
-};
-
-static teletext_region WET[] = {
-  {N_("English"), 16},
-  {N_("German"), 17},
-  {N_("Swedish, Finnish, Hungarian"), 18},
-  {N_("Italian"), 19},
-  {N_("French"), 20},
-  {N_("Portuguese, Spanish"), 21},
-  {N_("Turkish"), 22}
-};
-
-static teletext_region MSE[] = {
-  {N_("Serbian, Croatian, Slovenian"), 29},
-  {N_("Rumanian"), 31}
-};
-
-static teletext_region Cyrillic[] = {
-  {N_("Serbian, Croatian"), 32},
-  {N_("German"), 33},
-  {N_("Estonian"), 34},
-  {N_("Lettonian, Lithuanian"), 35},
-  {N_("Russian, Bulgarian"), 36},
-  {N_("Ukrainian"), 37},
-  {N_("Czech, Slovak"), 38}
-};
-
-static teletext_region GreeceCyprus[] = {
-  {N_("Turkish"), 54},
-  {N_("Greek"), 55}
-};
-
-static teletext_region Arabic[] = {
-  {N_("Arabic English"), 64},
-  {N_("Arabic French"), 68},
-  {N_("Arabic"), 71}
-};
-
-static teletext_region Israel[] = {
-  {N_("Hebrew"), 85},
-  {N_("Arabic"), 87}
-};
-
-#define COUNT_REGIONS(X) (sizeof(X)/sizeof(teletext_region))
-
-static struct {
-  char *name;
-  teletext_region *region;
-  int count;
-} teletext_regions[] = {
-  {N_("Western and Central Europe"), WCE, COUNT_REGIONS(WCE)},
-  {N_("Eastern Europe"), EE, COUNT_REGIONS(EE)},
-  {N_("Western Europe and Turkey"), WET, COUNT_REGIONS(WET)},
-  {N_("Middle and SouthEast Europe"), MSE, COUNT_REGIONS(MSE)},
-  {N_("Cyrillic"), Cyrillic, COUNT_REGIONS(Cyrillic)},
-  {N_("Greece and Cyprus"), GreeceCyprus, COUNT_REGIONS(GreeceCyprus)},
-  {N_("Arabic"), Arabic, COUNT_REGIONS(Arabic)},
-  {N_("Israel"), Israel, COUNT_REGIONS(Israel)}
-};
-
-#define num_regions (sizeof(teletext_regions)/sizeof(teletext_regions[0]))
-
-static void
-cb_region_selected(GtkWidget *item,
-		   teletext_region *region)
-{
-  struct vbi* vbi = zvbi_get_object();
-
-  g_assert(region != NULL);
-
-  zconf_set_integer(region->id,
-		    "/zapping/options/vbi/default_region");
-
-  vbi_set_default_region(vbi, region->id);
-}
-
 void
 on_propiedades1_activate               (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
@@ -389,37 +291,15 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
 		     zapping_properties);
 
   /* Default region */
-  widget = lookup_widget(zapping_properties, "tree1");
-  for (i=0; i<num_regions; i++)
-    {
-      GtkWidget *subtree, *item;
-      int j;
-      int cur_value =
-	zconf_get_integer(NULL, "/zapping/options/vbi/default_region");
+  widget = lookup_widget(zapping_properties, "optionmenu3");
+  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
+    zconf_get_integer(NULL,
+		      "/zapping/options/vbi/default_region"));
 
-      item = gtk_tree_item_new_with_label(_(teletext_regions[i].name));
-      gtk_tree_append(GTK_TREE(widget), item);
-      gtk_widget_show(item);
-      subtree = gtk_tree_new();
-      gtk_tree_item_set_subtree(GTK_TREE_ITEM(item), subtree);
-
-      for (j=0; j<teletext_regions[i].count; j++)
-	{
-	  GtkWidget *subitem;
-
-	  subitem =
-	    gtk_tree_item_new_with_label(_(teletext_regions[i].region[j].name));
-	  gtk_signal_connect(GTK_OBJECT(subitem), "select",
-			     GTK_SIGNAL_FUNC(cb_region_selected),
-			     &(teletext_regions[i].region[j]));
-
-	  gtk_tree_append(GTK_TREE(subtree), subitem);
-	  gtk_widget_show(subitem);
-
-	  if (cur_value == teletext_regions[i].region[j].id)
-	    gtk_tree_item_expand(GTK_TREE_ITEM(item));
-	}
-    }
+  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+  
 
   /* Disable/enable the VBI options */
   widget = lookup_widget(zapping_properties, "vbox19");
@@ -447,6 +327,17 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
   GtkWidget * pbox = GTK_WIDGET(gnomepropertybox); /* Very long name */
   gchar * text; /* Pointer to returned text */
   GList * p; /* For traversing the plugins */
+  gint index;
+  static int region_mapping[8] = {
+    0, /* WCE */
+    8, /* EE */
+    16, /* WET */
+    24, /* CSE */
+    32, /* C */
+    48, /* GC */
+    64, /* A */
+    80 /* I */
+  };
 
   /* Apply just the given page */
   switch (arg1)
@@ -525,6 +416,20 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
       zconf_set_string(text, "/zapping/options/vbi/vbi_device");
 
       g_free(text); /* In the docs it says this should be freed */
+
+      /* default_region */
+      widget = lookup_widget(pbox, "optionmenu3");
+      widget = GTK_WIDGET(GTK_OPTION_MENU(widget)->menu);
+
+      index = g_list_index(GTK_MENU_SHELL(widget)->children,
+			   gtk_menu_get_active(GTK_MENU(widget)));
+      if (index < 0)
+	index = 0;
+      if (index > 7)
+	index = 7;
+
+      zconf_set_integer(index, "/zapping/options/vbi/default_region");
+      vbi_set_default_region(zvbi_get_object(), region_mapping[index]);
 
       widget = lookup_widget(pbox, "checkbutton8"); /* erc */
       zconf_set_boolean(gtk_toggle_button_get_active(
