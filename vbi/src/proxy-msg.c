@@ -29,9 +29,17 @@
  *    Both UNIX domain and IPv4 and IPv6 sockets are implemented, but
  *    the latter ones are currently not officially supported.
  *
- *  $Id: proxy-msg.c,v 1.7 2003-06-07 09:42:53 tomzo Exp $
+ *  $Id: proxy-msg.c,v 1.7.2.1 2004-01-27 21:08:13 tomzo Exp $
  *
  *  $Log: not supported by cvs2svn $
+ *  Revision 1.7  2003/06/07 09:42:53  tomzo
+ *  Optimized message writing to socket in vbi_proxy_msg_handle_io():
+ *  - keep message header and body in one struct VBIPROXY_MSG (for both read and
+ *    write) to be able to write it in complete to the pipe in one syscall
+ *  - before, the client usually was woken up after only the header was sent, i.e.
+ *    only a partial message was available for reading; this was problematic for
+ *    clients which polled the socket with a zero timeout, and is solved now.
+ *
  *  Revision 1.6  2003/06/01 19:36:09  tomzo
  *  Optimization of read message handling:
  *  - use static buffer to read messages instead of dynamic malloc()
@@ -86,8 +94,8 @@
 #include "io.h"
 #include "proxy-msg.h"
 
-#define dprintf1(fmt, arg...)    do {if (proxy_msg_trace >= 1) printf("proxy_msg: " fmt, ## arg);} while(0)
-#define dprintf2(fmt, arg...)    do {if (proxy_msg_trace >= 2) printf("proxy_msg: " fmt, ## arg);} while(0)
+#define dprintf1(fmt, arg...)    do {if (proxy_msg_trace >= 1) fprintf(stderr, "proxy_msg: " fmt, ## arg);} while(0)
+#define dprintf2(fmt, arg...)    do {if (proxy_msg_trace >= 2) fprintf(stderr, "proxy_msg: " fmt, ## arg);} while(0)
 static int proxy_msg_trace = 0;
 
 
@@ -396,6 +404,7 @@ vbi_bool vbi_proxy_msg_handle_io( VBIPROXY_MSG_STATE * pIO,
          if ((len == 0) && closeOnZeroRead)
          {  /* zero bytes read after select returned readability -> network error or connection closed by peer */
             dprintf1("handle_io: zero len read on fd %d\n", pIO->sock_fd);
+            errno  = ECONNRESET;
             result = FALSE;
          }
          else if ((len < 0) && (errno != EAGAIN) && (errno != EINTR))
@@ -463,71 +472,6 @@ void vbi_proxy_msg_write( VBIPROXY_MSG_STATE * p_io, VBIPROXY_MSG_TYPE type,
    /* message header: length is coded in network byte order (i.e. big endian) */
    pMsg->head.len     = htons(p_io->writeLen);
    pMsg->head.type    = htons(type);
-}
-
-/* ----------------------------------------------------------------------------
-** Transmit one buffer of sliced data
-** - returns FALS upon I/O error
-** - also returns a "blocked" flag which is TRUE if not all data could be written
-**   can be used by the caller to "stuff" the pipe, i.e. write a series of messages
-**   until the pipe is full
-** - XXX optimization required: don't copy the block
-*/
-vbi_bool vbi_proxy_msg_write_queue( VBIPROXY_MSG_STATE * p_io, vbi_bool * p_blocked,
-                                    unsigned int services, int max_lines,
-                                    vbi_sliced * p_lines, unsigned int line_count,
-                                    double timestamp )
-{
-   VBIPROXY_MSG * p_msg;
-   uint32_t  msg_size;
-   vbi_bool  result = TRUE;
-   int idx;
-
-   if ((p_io != NULL) && (p_blocked != NULL) && (p_lines != NULL))
-   {
-      msg_size = sizeof(VBIPROXY_MSG_HEADER) + VBIPROXY_SLICED_IND_SIZE(line_count);
-      p_msg = malloc(msg_size);
-
-      /* filter for services requested by this client */
-      p_msg->body.sliced_ind.line_count = 0;
-      for (idx = 0; (idx < line_count) && (idx < max_lines); idx++)
-      {
-         if ((p_lines[idx].id & services) != 0)
-         {
-            memcpy(p_msg->body.sliced_ind.sliced + p_msg->body.sliced_ind.line_count,
-                   p_lines + idx, sizeof(vbi_sliced));
-            p_msg->body.sliced_ind.line_count += 1;
-         }
-      }
-      msg_size = sizeof(VBIPROXY_MSG_HEADER) +
-                 VBIPROXY_SLICED_IND_SIZE(p_msg->body.sliced_ind.line_count);
-
-      p_msg->body.sliced_ind.timestamp = timestamp;
-      p_msg->head.len        = htons(msg_size);
-      p_msg->head.type       = htons(MSG_TYPE_SLICED_IND);
-
-      dprintf2("msg_write_queue: fd %d: msg size %d\n", p_io->sock_fd, msg_size);
-      p_io->pWriteBuf        = p_msg;
-      p_io->freeWriteBuf     = TRUE;
-      p_io->writeLen         = msg_size;
-      p_io->writeOff         = 0;
-
-      if (vbi_proxy_msg_handle_io(p_io, p_blocked, FALSE, NULL, 0))
-      {
-         /* if the last block could not be transmitted fully, quit the loop */
-         if (p_io->writeLen > 0)
-         {
-            dprintf2("msg_write_queue: socket blocked\n");
-            *p_blocked = TRUE;
-         }
-      }
-      else
-         result = FALSE;
-   }
-   else
-      dprintf1("msg_write_queue: illegal NULL ptr params\n");
-
-   return result;
 }
 
 /* ----------------------------------------------------------------------------
