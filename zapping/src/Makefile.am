@@ -62,6 +62,7 @@ zapping_SOURCES = \
 	properties-handler.c properties-handler.h \
 	remote.c remote.h \
 	strnatcmp.c strnatcmp.h \
+	subtitle.c subtitle.h \
 	tveng.c tveng.h tveng_private.h \
 	tveng1.c tveng1.h \
 	tveng2.c tveng2.h \
@@ -69,7 +70,6 @@ zapping_SOURCES = \
 	tvengbktr.c tvengbktr.h \
 	tvengemu.c tvengemu.h \
 	tvengxv.c tvengxv.h \
-	ttxview.c ttxview.h \
 	v4linterface.c v4linterface.h \
 	vdr.c vdr.h \
 	video_xv.c video_x11.c video_gdkrgb.c video_mem.c \
