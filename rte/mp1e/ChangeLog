@@ -1,6 +1,7 @@
 2002-01-13	Fixes <mschimek@users.sf.net>
 
 	* test/preview.c: Restored.
+	* video/mpeg1.c: Fixed bug in frame skipping code. 
 
 2001-12-11	<mschimek@users.sf.net>
 
