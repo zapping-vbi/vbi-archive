@@ -1,81 +1,27 @@
 /* gcc -ounicode unicode.c ure.c -lunicode */
 /* libunicode: ftp://ftp.gnome.org/pub/GNOME/unstable/sources */
 #include <iconv.h>
-#include <unicode.h>
 #include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 #include <ctype.h>
-#include "ure.h"
+#include "ucs-2.h"
+
+// #define TEST 1
+
+static int do_ucs2_swap = -1; /* INTERNAL not supported, going the
+				 hard way */
+/* charset passed to iconv, use native endianness (not supported by
+   glibc 2.1.2, but libiconv does) */
+static char *ucs2_label = "UCS-2-INTERNAL";
+static ucs2_t *cb=NULL; /* conversion buffer */
+static size_t cbs=0; /* size of the conversion buffer */
 
 #define slw(b) (((b&0xff)<<8)+((b&0xff00)>>8))
 
-static char*
-utf8_strstrcase (const char *haystack, const char *needle)
+size_t ucs2_strlen(const void *string)
 {
-	unicode_char_t *nuni;
-	unicode_char_t unival;
-	int nlen;
-	const unsigned char *o, *p;
-
-	if (haystack == NULL) return NULL;
-	if (needle == NULL) return NULL;
-	if (strlen (needle) == 0) return (char*)haystack;
-	if (strlen (haystack) == 0) return NULL;
-
-	nuni = alloca (sizeof (unicode_char_t) * strlen (needle));
-
-	nlen = 0;
-	for (p = unicode_get_utf8 (needle, &unival); p && unival; p = unicode_get_utf8 (p, &unival)) {
-		nuni[nlen++] = unicode_tolower (unival);
-	}
-	/* NULL means there was illegal utf-8 sequence */
-	if (!p) return NULL;
-
-	o = haystack;
-	for (p = unicode_get_utf8 (o, &unival); p && unival; p = unicode_get_utf8 (p, &unival)) {
-		int sc;
-		sc = unicode_tolower (unival);
-		/* We have valid stripped char */
-		if (sc == nuni[0]) {
-			const char *q = p;
-			int npos = 1;
-			while (npos < nlen) {
-				q = unicode_get_utf8 (q, &unival);
-				if (!q || !unival) return NULL;
-				sc = unicode_tolower (unival);
-				if (sc != nuni[npos]) break;
-				npos++;
-			}
-			if (npos == nlen) {
-				return (char*)p;
-			}
-		}
-		o = p;
-	}
-
-	return NULL;
-}
-
-static void ucs2_print(const void *string)
-{
-  unsigned short *p = (unsigned short*)string;
-  unsigned char c, d;
-  unsigned short s;
-
-  if (!string)
-    return;
-
-  for (c=' '; (s = *p); p++)
-    {
-      c = s;
-      d = s>>8;
-      fprintf(stderr, "%c%c", isprint(c) ? c : '_',
-	      isprint(d) ? d : '_');
-    }
-}
-
-static size_t ucs2_strlen(const void *string)
-{
-  unsigned short *p = (unsigned short*)string;
+  ucs2_t *p = (ucs2_t *)string;
   size_t i=0;
 
   if (!string)
@@ -86,16 +32,15 @@ static size_t ucs2_strlen(const void *string)
   return i;
 }
 
-static void*
+void*
 convert (const void *string, int bytes,
 	 const char *input, const char *output)
 {
-  // TODO : iconv error checking
   iconv_t ic;
   char *new, *ob;
-  const char * ib;
+  const char *ib;
   size_t ibl, obl;
-  
+
   if (!string) return NULL;
   
   ic = iconv_open (output, input);
@@ -103,11 +48,10 @@ convert (const void *string, int bytes,
   
   ib = string;
   ibl = bytes;
-  new = ob = (char*) malloc (sizeof(char) * (ibl * 6 + 2));
+  new = ob = (char*) calloc (1, sizeof(char) * (ibl * 6 + 2));
   obl = ibl * 6 + 2;
   
-  //  while (ibl > 0)
-    iconv (ic, &ib, &ibl, &ob, &obl);
+  iconv (ic, &ib, &ibl, &(ob), &obl);
   
   *((unsigned short*)ob) = 0;
   
@@ -116,155 +60,487 @@ convert (const void *string, int bytes,
   return new;
 }
 
-static void*
-utf82latin (const void *string)
+static void
+ucs2_endianness_workaround(void)
 {
-  return convert(string, strlen(string), "UTF-8", "ISO-8859-1");
+  /* first try the explicit UCS-2 mode */
+  ucs2_t *converted =
+    convert("b", 1, "ISO-8859-1", "UCS-2-INTERNAL");
+
+  /* UCS-2-INTERNAL not supported, try UCS-2 */
+  if (!converted)
+    {
+      ucs2_label = "UCS-2";
+      converted = convert("b", 1, "ISO-8859-1", "UCS-2");
+    }
+
+  if (!converted)
+    return; /* UCS-2 not supported, iconv broken */
+
+  do_ucs2_swap = 0;
+
+  if (*converted != 'b') /* check endianness */
+    {
+      if (slw(*converted) == 'b')
+	do_ucs2_swap = 1;
+      else
+	fprintf(stderr, "Warning:: iconv UCS-2 implementation broken\n");
+    }
+
+  free(converted);
 }
 
 static void*
-latin2utf8 (const void *string)
+code2ucs2 (const void *string, const char *code)
 {
-  return convert(string, strlen(string), "ISO-8859-1", "UTF-8");
+  ucs2_t *converted;
+
+  if (do_ucs2_swap < 0)
+    if (!startup_ucs2())
+      return NULL;
+
+  converted = convert(string, strlen(string), code, ucs2_label);
+
+  if (do_ucs2_swap>0)
+    swab(converted, converted, ucs2_strlen(converted)*2);
+  
+  return converted;
 }
 
 static void*
-utf82ucs2 (const void *string)
+ucs22code (const void *string, const char *code)
 {
-  return convert(string, strlen(string), "UTF-8", "UCS-2");
+  size_t len = ucs2_strlen(string)*2;
+
+  if (do_ucs2_swap < 0)
+    if (!startup_ucs2())
+      return NULL;
+
+  if (!len)
+    return NULL;
+
+  if (do_ucs2_swap>0)
+    {
+      if (len > cbs)
+	{
+	  if (!(cb = realloc(cb, len)))
+	    {
+	      cbs = 0;
+	      goto fallback;
+	    }
+	  cbs = len;
+	}
+      if (cb)
+	{
+	  swab(string, cb, len);
+	  return convert(cb, len, ucs2_label, code);
+	}
+    }
+
+ fallback:
+  return convert(string, len, ucs2_label, code);
 }
 
-static void*
-ucs22utf8 (const void *string)
+/* An alternative to nl_langinfo, where not present */
+static const char *get_locale_charset(void);
+
+void*
+local2ucs2 (const void *string)
 {
-  return convert(string, ucs2_strlen(string)*2, "UCS-2", "UTF-8");
+  const char *local = get_locale_charset();
+
+  if (!local)
+    local = "ISO-8859-1";
+
+  return code2ucs2 (string, local);
 }
 
-static void*
+void*
+ucs22local (const void *string)
+{
+  const char *local = get_locale_charset();
+
+  if (!local)
+    local = "ISO-8859-1";
+
+  return ucs22code (string, local);
+}
+
+void*
 latin2ucs2 (const void *string)
 {
-  return convert(string, strlen(string), "ISO-8859-1", "UCS-2");
+  return code2ucs2 (string, "ISO-8859-1");
 }
 
-static void*
+void*
 ucs22latin (const void *string)
 {
-  return convert(string, ucs2_strlen(string)*2, "UCS-2", "ISO-8859-1");
+  return ucs22code (string, "ISO-8859-1");
 }
 
-ucs4_t
-#ifdef __STDC__
-_ure_tolower(ucs4_t c)
-#else
-_ure_tolower(c)
-ucs4_t c;
-#endif
-{
-  return unicode_tolower(c);
-}
-
-/* libunicode -> ure FIXME: no fscking idea of half of these */
-static unsigned long libunicode2ure[] =
-{
-  _URE_CNTRL,
-  _URE_PUA,
-  _URE_PUA,
-  _URE_PUA,
-  _URE_PUA,
-  _URE_LOWER | _URE_NONSPACING,
-  _URE_MODIFIER,
-  _URE_OTHERLETTER,
-  _URE_TITLE,
-  _URE_UPPER | _URE_NONSPACING,
-  _URE_COMBINING,
-  _URE_PUA,
-  _URE_NONSPACING,
-  _URE_NUMDIGIT,
-  _URE_NUMOTHER,
-  _URE_NUMOTHER,
-  _URE_OTHERPUNCT,
-  _URE_DASHPUNCT,
-  _URE_CLOSEPUNCT,
-  _URE_OTHERPUNCT,
-  _URE_OTHERPUNCT,
-  _URE_OTHERPUNCT,
-  _URE_OPENPUNCT,
-  _URE_CURRENCYSYM,
-  _URE_OTHERSYM,
-  _URE_MATHSYM,
-  _URE_OTHERSYM,
-  _URE_LINESEP,
-  _URE_PARASEP,
-  _URE_SPACESEP
-};
-
-int
-#ifdef __STDC__
-_ure_matches_properties(unsigned long props, ucs4_t c)
-#else
-_ure_matches_properties(props, c)
-unsigned long props;
-ucs4_t c;
-#endif
-{
-  unsigned long up = 0;
-  unsigned long type = unicode_type(c);
-  unsigned long result;
-
-  if ((type <= UNICODE_SPACE_SEPARATOR) && (type >= 0))
-    result = libunicode2ure[type];
-  else
-    result = 0;
-
-  return (result & props);
-}
-
+#if TEST
 int main(int argc, char *argv[])
 {
-  ucs2_t *in = latin2ucs2("Iñaki García Etxeeeebababarria");
+  ucs2_t *in = latin2ucs2("If you have suggestions, etc. please mail "
+			  "nobody@nobody.net\n"
+			  "This program has been brought to you by"
+			  " http://www.echelon.gov");
   char *out;
   ure_buffer_t ub = ure_buffer_create();
   ure_dfa_t ud;
   unicode_char_t c=0;
-  int index = 2;
-  ucs2_t *pattern = latin2ucs2("tx[aeiou]*(ba)*rria");
+  char *url = "https?://[^ \n\r$]+"; // URL regexp
+  char *email = "([:alpha:]|\\.)+@([:alpha:]|\\.)+"; // Email regexp
+  ucs2_t *pattern = latin2ucs2(email);
   unsigned long ms, me;
 
-  unicode_init();
+  if (!ucs2_startup())
+    {
+      fprintf(stderr, "UCS-2 couldn't be started, exitting...\n");
+      return 1;
+    }
 
-  me = ucs2_strlen(in);
-  for (ms=0; ms<me; ms++)
-    in[ms] = slw(in[ms]);
-  me = ucs2_strlen(pattern);
-  for (ms=0; ms<me; ms++)
-    pattern[ms] = slw(pattern[ms]);
-
-  fprintf(stderr, "compiling regex (%c)...\n", *in == 'I' ? 'Y' : 'N');
-  ud = ure_compile(pattern, ucs2_strlen(pattern), 1, ub);
+  fprintf(stderr, "compiling regex...\n");
+  ud = ure_compile(pattern, ucs2_strlen(pattern), 0, ub);
   if (!ud)
     fprintf(stderr, "Compile failed!\n");
 
-  c = in[index];
-  fprintf(stderr, "char type: %d\n", unicode_type(c));
-  c = unicode_toupper(c);
-  in[index] = c;
-
   if (ud)
     {
+      ucs2_t *p;
       fprintf(stderr, "searching...\n");
-      fprintf(stderr, "ure_exec: %d\n",
-	      ure_exec(ud, URE_DOT_MATCHES_SEPARATORS,
-		       in, ucs2_strlen(in), &ms, &me));
+      if (ure_exec(ud, 0, in, ucs2_strlen(in), &ms, &me))
+	{
+	  fprintf(stderr, "match: <");
+	  for (p=in+ms; ms < me; ms++, p++)
+	    fprintf(stderr, "%c", (char)*p);
+	  fprintf(stderr, ">\n");
+	}
+      ure_write_dfa(ud, stdout);
       ure_dfa_free(ud);
     }
 
   out = ucs22latin(in);
-  fprintf(stderr, "%s\n", out);
 
   free(in);
   free(out);
 
   ure_buffer_free(ub);
 
+  ucs2_shutdown();
+
   return 0;
+}
+#endif
+
+int
+ucs2_startup(void)
+{
+  unicode_init();
+  ucs2_endianness_workaround();
+
+  if (do_ucs2_swap < 0)
+    return 0;
+
+  return 1;
+}
+
+void
+ucs2_shutdown(void)
+{
+  if (cb)
+    free(cb);
+
+  cb = NULL;
+  cbs = 0;
+  do_ucs2_swap = -1;
+}
+
+/* This comes from libiconv 1.5.1, written by Bruno Haible */
+
+static const char* locale_charset = NULL;
+#define streq(s1,s2) (!strcmp(s1,s2))
+
+static const char* get_locale_charset (void)
+{
+  // When you call setlocale(LC_CTYPE,""), is examines the environment
+  // variables:
+  // 1. environment variable LC_ALL - an override for all LC_* variables,
+  // 2. environment variable LC_CTYPE,
+  // 3. environment variable LANG - a default for all LC_* variables.
+  const char * locale;
+  locale = getenv("LC_ALL");
+  if (!locale || !*locale) {
+    locale = getenv("LC_CTYPE");
+    if (!locale || !*locale)
+      locale = getenv("LANG");
+  }
+  if (locale && *locale) {
+    // The most general syntax of a locale (not all optional parts
+    // recognized by all systems) is
+    // language[_territory][.codeset][@modifier][+special][,[sponsor][_revision]]
+    // To retrieve the codeset, search the first dot. Stop searching when
+    // a '@' or '+' or ',' is encountered.
+    char* buf = (char*) malloc(strlen(locale)+1);
+    const char* codeset = NULL;
+    {
+      const char* cp = locale;
+      for (; *cp != '\0' && *cp != '@' && *cp != '+' && *cp != ','; cp++) {
+	if (*cp == '.') {
+	  codeset = ++cp;
+	  for (; *cp != '\0' && *cp != '@' && *cp != '+' && *cp != ','; cp++);
+	  if (*cp != '\0') {
+	    size_t n = cp - codeset;
+	    memcpy(buf,codeset,n);
+	    buf[n] = '\0';
+	    codeset = buf;
+	  }
+	  break;
+	}
+      }
+    }
+    if (codeset) {
+      // Canonicalize the charset given after the dot.
+      if (   streq(codeset,"ISO8859-1")
+	     || streq(codeset,"ISO_8859-1")
+	     || streq(codeset,"iso88591")
+	     || streq(codeset,"88591")
+	     || streq(codeset,"88591.en")
+	     || streq(codeset,"8859")
+	     || streq(codeset,"8859.in")
+	     || streq(codeset,"ascii")
+             )
+	locale_charset = "ISO-8859-1";
+      else
+	if (   streq(codeset,"ISO8859-2")
+	       || streq(codeset,"ISO_8859-2")
+	       || streq(codeset,"iso88592")
+	       )
+	  locale_charset = "ISO-8859-2";
+	else
+          if (   streq(codeset,"ISO8859-5")
+		 || streq(codeset,"ISO_8859-5")
+		 || streq(codeset,"iso88595")
+		 )
+            locale_charset = "ISO-8859-5";
+          else
+	    if (   streq(codeset,"ISO8859-6")
+		   || streq(codeset,"ISO_8859-6")
+		   || streq(codeset,"iso88596")
+		   )
+	      locale_charset = "ISO-8859-6";
+	    else
+	      if (   streq(codeset,"ISO8859-7")
+		     || streq(codeset,"ISO_8859-7")
+		     || streq(codeset,"iso88597")
+		     )
+		locale_charset = "ISO-8859-7";
+	      else
+		if (   streq(codeset,"ISO8859-8")
+		       || streq(codeset,"iso88598")
+		       )
+		  locale_charset = "ISO-8859-8";
+		else
+		  if (   streq(codeset,"ISO8859-9")
+			 || streq(codeset,"ISO_8859-9")
+			 || streq(codeset,"iso88599")
+			 )
+		    locale_charset = "ISO-8859-9";
+		  else
+		    if (streq(codeset,"KOI8-R"))
+		      locale_charset = "KOI8-R";
+		    else
+		      if (streq(codeset,"KOI8-U"))
+			locale_charset = "KOI8-U";
+		      else
+			if (   streq(codeset,"eucJP")
+			       || streq(codeset,"ujis")
+			       || streq(codeset,"AJEC")
+			       )
+			  locale_charset = "eucJP";
+			else
+			  if (   streq(codeset,"JIS7")
+				 || streq(codeset,"jis7")
+				 || streq(codeset,"JIS")
+				 || streq(codeset,"ISO-2022-JP")
+				 )
+			    locale_charset = "ISO-2022-JP"; /* was: "JIS7"; */
+			  else
+			    if (   streq(codeset,"SJIS")
+				   || streq(codeset,"mscode")
+				   || streq(codeset,"932")
+				   )
+			      locale_charset = "SJIS";
+			    else
+			      if (   streq(codeset,"eucKR")
+				     || streq(codeset,"949")
+				     )
+				locale_charset = "eucKR";
+			      else
+				if (streq(codeset,"eucCN"))
+				  locale_charset = "eucCN";
+				else
+				  if (streq(codeset,"eucTW"))
+				    locale_charset = "eucTW";
+				  else
+				    if (streq(codeset,"TACTIS"))
+				      locale_charset = "TIS-620"; /* was: "TACTIS"; */
+				    else
+				      if (streq(codeset,"EUC") || streq(codeset,"euc")) {
+					if (locale[0]=='j' && locale[1]=='a')
+					  locale_charset = "eucJP";
+					else if (locale[0]=='k' && locale[1]=='o')
+					  locale_charset = "eucKR";
+					else if (locale[0]=='z' && locale[1]=='h' && locale[2]=='_') {
+					  if (locale[3]=='C' && locale[4]=='N')
+					    locale_charset = "eucCN";
+					  else if (locale[3]=='T' && locale[4]=='W')
+					    locale_charset = "eucTW";
+					}
+				      }
+				      else
+					// The following are CLISP extensions.
+					if (   streq(codeset,"UTF-8")
+					       || streq(codeset,"utf8")
+					       )
+					  locale_charset = "UTF-8";
+    } else {
+      // No dot found. Choose a default, based on locale.
+      if (   streq(locale,"iso_8859_1")
+	     || streq(locale,"ISO8859-1")
+	     || streq(locale,"ISO-8859-1")
+             )
+	locale_charset = "ISO-8859-1";
+      else {
+	// Choose a default, based on the language only.
+	const char* underscore = strchr(locale,'_');
+	const char* lang;
+	if (underscore) {
+	  size_t n = underscore - locale;
+	  memcpy(buf,locale,n);
+	  buf[n] = '\0';
+	  lang = buf;
+	} else {
+	  lang = locale;
+	}
+	if (   streq(lang,"af") || streq(lang,"afrikaans")
+	       || streq(lang,"ca") || streq(lang,"catalan")
+	       || streq(lang,"da") || streq(lang,"danish") || streq(lang,"dansk")
+	       || streq(lang,"de") || streq(lang,"german") || streq(lang,"deutsch")
+	       || streq(lang,"en") || streq(lang,"english")
+	       || streq(lang,"es") || streq(lang,"spanish")
+#ifndef ASCII_CHS
+	       || streq(lang,"espa\361ol") || streq(lang,"espa\303\261ol") // espaÃ±ol
+#endif
+	       || streq(lang,"eu") || streq(lang,"basque")
+	       || streq(lang,"fi") || streq(lang,"finnish")
+	       || streq(lang,"fo") || streq(lang,"faroese") || streq(lang,"faeroese")
+	       || streq(lang,"fr") || streq(lang,"french")
+#ifndef ASCII_CHS
+	       || streq(lang,"fran\347ais") || streq(lang,"fran\303\247ais") // franÃ§ais
+#endif
+	       || streq(lang,"ga") || streq(lang,"irish")
+	       || streq(lang,"gd") || streq(lang,"scottish")
+	       || streq(lang,"gl") || streq(lang,"galician")
+	       || streq(lang,"is") || streq(lang,"icelandic")
+	       || streq(lang,"it") || streq(lang,"italian")
+	       || streq(lang,"nl") || streq(lang,"dutch")
+	       || streq(lang,"no") || streq(lang,"norwegian")
+	       || streq(lang,"pt") || streq(lang,"portuguese")
+	       || streq(lang,"sv") || streq(lang,"swedish")
+	       )
+	  locale_charset = "ISO-8859-1";
+	else
+	  if (   streq(lang,"cs") || streq(lang,"czech")
+		 || streq(lang,"cz")
+		 || streq(lang,"hr") || streq(lang,"croatian")
+		 || streq(lang,"hu") || streq(lang,"hungarian")
+		 || streq(lang,"pl") || streq(lang,"polish")
+		 || streq(lang,"ro") || streq(lang,"romanian") || streq(lang,"rumanian")
+		 || streq(lang,"sh") /* || streq(lang,"serbocroatian") ?? */
+		 || streq(lang,"sk") || streq(lang,"slovak")
+		 || streq(lang,"sl") || streq(lang,"slovene") || streq(lang,"slovenian")
+		 || streq(lang,"sq") || streq(lang,"albanian")
+		 )
+	    locale_charset = "ISO-8859-2";
+	  else
+	    if (   streq(lang,"eo") || streq(lang,"esperanto")
+		   || streq(lang,"mt") || streq(lang,"maltese")
+		   )
+	      locale_charset = "ISO-8859-3";
+	    else
+	      if (   streq(lang,"be") || streq(lang,"byelorussian")
+		     || streq(lang,"bg") || streq(lang,"bulgarian")
+		     || streq(lang,"mk") || streq(lang,"macedonian")
+		     || streq(lang,"sp")
+		     || streq(lang,"sr") || streq(lang,"serbian")
+		     )
+		locale_charset = "ISO-8859-5";
+	      else
+		if (streq(lang,"ar") || streq(lang,"arabic")
+		    )
+		  locale_charset = "ISO-8859-6";
+		else
+		  if (streq(lang,"el") || streq(lang,"greek")
+		      )
+		    locale_charset = "ISO-8859-7";
+		  else
+		    if (streq(lang,"iw") || streq(lang,"he") || streq(lang,"hebrew")
+			)
+		      locale_charset = "ISO-8859-8";
+		    else
+		      if (streq(lang,"tr") || streq(lang,"turkish")
+			  )
+			locale_charset = "ISO-8859-9";
+		      else
+			if (   streq(lang,"et") || streq(lang,"estonian")
+			       || streq(lang,"lt") || streq(lang,"lithuanian")
+			       || streq(lang,"lv") || streq(lang,"latvian")
+			       )
+			  locale_charset = "ISO-8859-10";
+			else
+			  if (streq(lang,"ru") || streq(lang,"russian")
+			      )
+			    locale_charset = "KOI8-R";
+			  else
+			    if (streq(lang,"uk") || streq(lang,"ukrainian")
+				)
+			      locale_charset = "KOI8-U";
+			    else
+			      if (   streq(lang,"ja")
+				     || streq(lang,"Jp")
+				     || streq(lang,"japan")
+				     || streq(lang,"Japanese-EUC")
+				     )
+				locale_charset = "eucJP";
+			      else
+				if (0)
+				  locale_charset = "ISO-2022-JP"; /* was: "JIS7"; */
+				else
+				  if (streq(lang,"japanese")
+				      )
+				    locale_charset = "SJIS";
+				  else
+				    if (streq(lang,"ko") || streq(lang,"korean")
+					)
+				      locale_charset = "eucKR";
+				    else
+				      if (streq(lang,"chinese-s")
+					  )
+					locale_charset = "eucCN";
+				      else
+					if (streq(lang,"chinese-t")
+					    )
+					  locale_charset = "eucTW";
+					else
+					  if (streq(lang,"th")
+					      )
+					    locale_charset = "TIS-620"; /* was: "TACTIS"; */
+					  else {
+					  }
+      }
+    }
+    free(buf);
+  }
+  return locale_charset;
 }

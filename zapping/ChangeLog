@@ -1,3 +1,11 @@
+10.1.2001	URE, unicode <garetxe@users.sourceforge.net>
+
+	* common/README, common/ucs-2.h: Added.
+	* URE: Fixed some bugs, better is...() masks, some optimizations,
+	document the prototypes, use libunicode.
+	* unicode.c: current locale charset autodetection (taken from
+	libiconv), endianness workaround, URE usage example.
+
 7.01.2001	options <garetxe@users.sourceforge.net>
 
 	* src/ttxview.c: Added preliminary support for entering export

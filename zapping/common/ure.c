@@ -2,6 +2,9 @@
  * Copyright 1997, 1998, 1999 Computing Research Labs,
  * New Mexico State University
  *
+ * Modifications and fixes to the 0.5 release by Iñaki García
+ * Etxebarrria <garetxe@users.sourceforge.net>
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
@@ -20,14 +23,75 @@
  * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef lint
-static char rcsid[] = "$Id: ure.c,v 1.1 2001-01-07 20:21:03 garetxe Exp $";
+#if 0
+static char rcsid[] = "$Id: ure.c,v 1.2 2001-01-10 00:11:01 garetxe Exp $";
 #endif
 
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <unicode.h>
 #include "ure.h"
+
+/* libunicode -> ure */
+static unsigned long libunicode2ure[] =
+{
+  _URE_CNTRL,
+  _URE_PUA,
+  _URE_PUA,
+  _URE_PUA,
+  _URE_PUA,
+  _URE_LOWER,
+  _URE_MODIFIER,
+  _URE_OTHERLETTER,
+  _URE_TITLE,
+  _URE_UPPER,
+  _URE_COMBINING,
+  _URE_PUA,
+  _URE_NONSPACING,
+  _URE_NUMDIGIT,
+  _URE_NUMOTHER,
+  _URE_NUMOTHER,
+  _URE_OTHERPUNCT,
+  _URE_DASHPUNCT,
+  _URE_CLOSEPUNCT,
+  _URE_OTHERPUNCT,
+  _URE_OTHERPUNCT,
+  _URE_OTHERPUNCT,
+  _URE_OPENPUNCT,
+  _URE_CURRENCYSYM,
+  _URE_OTHERSYM,
+  _URE_MATHSYM,
+  _URE_OTHERSYM,
+  _URE_LINESEP,
+  _URE_PARASEP,
+  _URE_SPACESEP
+};
+
+static int
+#ifdef __STDC__
+_ure_matches_properties(unsigned long props, ucs4_t c)
+#else
+_ure_matches_properties(props, c)
+unsigned long props;
+ucs4_t c;
+#endif
+{
+  unsigned long type = unicode_type(c);
+  unsigned long result;
+
+  if ((type <= UNICODE_SPACE_SEPARATOR) && (type >= 0))
+    {
+      if (type < UNICODE_LINE_SEPARATOR)
+	result = libunicode2ure[type] | _URE_NONSPACING;
+      else
+	result = libunicode2ure[type];
+    }
+  else
+    result = 0;
+
+  return (result & props);
+}
 
 /*
  * Flags used internally in the DFA.
@@ -251,56 +315,6 @@ typedef struct _ure_dfa_t {
  *************************************************************************/
 
 static void
-#if NeedFunctionPrototypes
-_ure_memmove(char *dest, char *src, unsigned long bytes)
-#else
-_ure_memmove(dest, src, bytes)
-char *dest, *src;
-unsigned long bytes;
-#endif
-{
-    long i, j;
-
-    i = (long) bytes;
-    j = i & 7;
-    i = (i + 7) >> 3;
-
-    /*
-     * Do a memmove using Ye Olde Duff's Device for efficiency.
-     */
-    if (src < dest) {
-        src += bytes;
-        dest += bytes;
-
-        switch (j) {
-          case 0: do {
-              *--dest = *--src;
-            case 7: *--dest = *--src;
-            case 6: *--dest = *--src;
-            case 5: *--dest = *--src;
-            case 4: *--dest = *--src;
-            case 3: *--dest = *--src;
-            case 2: *--dest = *--src;
-            case 1: *--dest = *--src;
-          } while (--i > 0);
-        }
-    } else if (src > dest) {
-        switch (j) {
-          case 0: do {
-              *dest++ = *src++;
-            case 7: *dest++ = *src++;
-            case 6: *dest++ = *src++;
-            case 5: *dest++ = *src++;
-            case 4: *dest++ = *src++;
-            case 3: *dest++ = *src++;
-            case 2: *dest++ = *src++;
-            case 1: *dest++ = *src++;
-          } while (--i > 0);
-        }
-    }
-}
-
-static void
 #ifdef __STDC__
 _ure_push(ucs2_t v, _ure_buffer_t *b)
 #else
@@ -512,8 +526,8 @@ _ure_buffer_t *b;
      * range are converted to lower case.
      */
     if (b->flags & _URE_DFA_CASEFOLD) {
-        r->min_code = _ure_tolower(r->min_code);
-        r->max_code = _ure_tolower(r->max_code);
+        r->min_code = unicode_tolower(r->min_code);
+        r->max_code = unicode_tolower(r->max_code);
     }
 
     /*
@@ -545,10 +559,10 @@ _ure_buffer_t *b;
         ccl->ranges_size += 8;
     }
 
-    rp = ccl->ranges + ccl->ranges_used;
+    rp = ccl->ranges + i;
 
     if (i < ccl->ranges_used)
-      _ure_memmove((char *) (rp + 1), (char *) rp,
+      memmove((char *) (rp + 1), (char *) rp,
                    sizeof(_ure_range_t) * (ccl->ranges_used - i));
 
     ccl->ranges_used++;
@@ -557,11 +571,11 @@ _ure_buffer_t *b;
 }
 
 #define _URE_ALPHA_MASK  (_URE_UPPER|_URE_LOWER|_URE_OTHERLETTER|\
-_URE_MODIFIER|_URE_TITLE|_URE_NONSPACING|_URE_COMBINING)
+_URE_TITLE|_URE_COMBINING)
 #define _URE_ALNUM_MASK  (_URE_ALPHA_MASK|_URE_NUMDIGIT)
 #define _URE_PUNCT_MASK  (_URE_DASHPUNCT|_URE_OPENPUNCT|_URE_CLOSEPUNCT|\
 _URE_OTHERPUNCT)
-#define _URE_GRAPH_MASK (_URE_NUMDIGIT|_URE_NUMOTHER|_URE_ALPHA_MASK|\
+#define _URE_GRAPH_MASK (_URE_ALNUM_MASK|_URE_NUMOTHER|\
 _URE_MATHSYM|_URE_CURRENCYSYM|_URE_OTHERSYM)
 #define _URE_PRINT_MASK (_URE_GRAPH_MASK|_URE_SPACESEP)
 #define _URE_SPACE_MASK  (_URE_SPACESEP|_URE_LINESEP|_URE_PARASEP)
@@ -620,6 +634,7 @@ _ure_buffer_t b;
     _ure_add_range(&sym->sym.ccl, &range, b);
     range.min_code = range.max_code = '\f';
     _ure_add_range(&sym->sym.ccl, &range, b);
+    range.min_code = range.max_code = '\v';
     range.min_code = range.max_code = 0xfeff;
     _ure_add_range(&sym->sym.ccl, &range, b);
 }
@@ -1119,7 +1134,7 @@ _ure_buffer_t *b;
      * the `casefold' flag is set.
      */
     if ((b->flags & _URE_DFA_CASEFOLD) && symp->type == _URE_CHAR)
-      symp->sym.chr = _ure_tolower(symp->sym.chr);
+      symp->sym.chr = unicode_tolower(symp->sym.chr);
 
     /*
      * If the symbol constructed is anything other than one of the anchors,
@@ -1424,9 +1439,9 @@ _ure_buffer_t *b;
             sp->states.slist_size += 8;
         }
         if (i < sp->states.slist_used)
-          (void) _ure_memmove((char *) (sp->states.slist + i + 1),
-                              (char *) (sp->states.slist + i),
-                              sizeof(ucs2_t) * (sp->states.slist_used - i));
+          (void) memmove((char *) (sp->states.slist + i + 1),
+			 (char *) (sp->states.slist + i),
+			 sizeof(ucs2_t) * (sp->states.slist_used - i));
         sp->states.slist[i] = state;
         sp->states.slist_used++;
     }
@@ -2092,7 +2107,8 @@ FILE *out;
                     l = ((sym->sym.chr - 0x10000) & 1023) + 0xdc00;
                     fprintf(out, "\\x%04hX\\x%04hX ", h, l);
                 } else
-                  fprintf(out, "\\x%04lX ", sym->sym.chr & 0xffff);
+		  //                  fprintf(out, "\\x%04lX ", sym->sym.chr & 0xffff);
+		  fprintf(out, "%c ", (char)sym->sym.chr);
                 break;
               case _URE_ANY_CHAR:
                 fprintf(out, "<any> ");
@@ -2116,6 +2132,7 @@ FILE *out;
     }
 }
 
+/* FIXME: we want better separators */
 #define _ure_issep(cc) ((cc) == '\n' || (cc) == '\r' || (cc) == 0x2028 ||\
                         (cc) == 0x2029)
 
@@ -2139,7 +2156,7 @@ unsigned long textlen, *match_start,  *match_end;
     _ure_symtab_t *sym;
     _ure_range_t *rp;
 
-    if (dfa == 0 || text == 0)
+    if (dfa == 0 || text == 0 || match_start == 0 || match_end == 0)
       return 0;
 
     /*
@@ -2172,14 +2189,14 @@ unsigned long textlen, *match_start,  *match_end;
         /*
          * Determine if the character is non-spacing and should be skipped.
          */
-        if (_ure_matches_properties(_URE_NONSPACING, c) &&
-            (flags & URE_IGNORE_NONSPACING)) {
-            sp++;
+        if ((flags & URE_IGNORE_NONSPACING) &&
+	    (_ure_matches_properties(_URE_NONSPACING, c))) {
+	    sp++;
             continue;
         }
 
         if (dfa->flags & _URE_DFA_CASEFOLD)
-          c = _ure_tolower(c);
+          c = unicode_tolower(c);
 
         /*
          * See if one of the transitions matches.
@@ -2234,10 +2251,10 @@ unsigned long textlen, *match_start,  *match_end;
             }
 
             if (matched) {
+	        me = sp - text;
                 if (ms == ~0)
-                  ms = lp - text;
-                else
-                  me = sp - text;
+		    ms = lp - text;
+
                 stp = dfa->states + stp->trans[i].next_state;
 
                 /*

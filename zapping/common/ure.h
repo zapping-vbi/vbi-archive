@@ -20,14 +20,18 @@
  * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+/*
+ * See the included README for more info on using URE.
+ */
 #ifndef _h_ure
 #define _h_ure
 
 /*
- * $Id: ure.h,v 1.1 2001-01-07 20:21:03 garetxe Exp $
+ * $Id: ure.h,v 1.2 2001-01-10 00:11:01 garetxe Exp $
  */
 
 #include <stdio.h>
+#include <unicode.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -96,7 +100,7 @@ extern "C" {
 #define URE_IGNORE_NONSPACING      0x01
 #define URE_DOT_MATCHES_SEPARATORS 0x02
 
-typedef unsigned int ucs4_t;
+typedef unsigned long ucs4_t;
 typedef unsigned short ucs2_t;
 
 /*
@@ -114,11 +118,23 @@ typedef struct _ure_dfa_t *ure_dfa_t;
  * API.
  *
  *************************************************************************/
-
+  
+/**
+ * Alloc memory for the regex internal buffer, NULL on error.
+ * Use ure_buffer_free to free the returned buffer.
+ */
 extern ure_buffer_t ure_buffer_create __((void));
 
 extern void ure_buffer_free __((ure_buffer_t buf));
 
+/**
+ * Compile the given expression into a dfa.
+ * @re: Buffer containing the UCS-2 regexp.
+ * @relen: Size in characters of the regexp.
+ * @casefold: %TRUE for matching disregarding case.
+ * @buf: The regexp buffer.
+ * Returns: The compiled DFA, %NULL on error.
+ */
 extern ure_dfa_t ure_compile __((ucs2_t *re, unsigned long relen,
                                  int casefold, ure_buffer_t buf));
 
@@ -126,20 +142,23 @@ extern void ure_dfa_free __((ure_dfa_t dfa));
 
 extern void ure_write_dfa __((ure_dfa_t dfa, FILE *out));
 
+/**
+ * Run the compiled regexp search on the given text.
+ * @dfa: The compiled expression.
+ * @flags: Or'ed
+      URE_IGNORED_NONSPACING: Set if nonspacing chars should be ignored.
+      URE_DOT_MATCHES_SEPARATORS: Set if dot operator matches
+      separator characters too.
+ * @text: UCS-2 text to run the compiled regexp against.
+ * @textlen: Size in characters of the text.
+ * @match_start: Index in text of the first matching char.
+ * @match_end: Index in text of the first non-matching char after the
+               matching characters.
+ * Returns: TRUE if the search suceeded.
+ */
 extern int ure_exec __((ure_dfa_t dfa, int flags,
                         ucs2_t *text, unsigned long textlen,
                         unsigned long *match_start, unsigned long *match_end));
-
-/*************************************************************************
- *
- * Prototypes for stub functions used for URE.  These need to be rewritten to
- * use the Unicode support available on the system.
- *
- *************************************************************************/
-
-extern ucs4_t _ure_tolower __((ucs4_t c));
-
-extern int _ure_matches_properties __((unsigned long props, ucs4_t c));
 
 #undef __
 

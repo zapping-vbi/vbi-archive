@@ -13,6 +13,7 @@ Outstanding issues for the next release
 		dependency on mp1e (actually RTE) and the mpeg plugin.
 	+ Hide the pointer in Fullscreen mode.
 	+ Channel shortcuts.
+	+ m4 test for iconv
 	> Release 0.6.0
 	+ Add some remote control applet (or sth like that).
 	+ Have a copy of the stuff in the "quick bar" in the main menu
