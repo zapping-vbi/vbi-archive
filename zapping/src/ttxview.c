@@ -2314,11 +2314,13 @@ create_color_dialog			(GtkWidget	*widget,
     GTK_TABLE(lookup_widget(dialog, "table71"));
 
   /* Add brightness, contrast icons */
-  pix = z_load_pixmap ("brightness.png");
+  pix = gtk_image_new_from_stock ("zapping-brightness",
+				  GTK_ICON_SIZE_BUTTON);
   gtk_widget_show(pix);
   gtk_table_attach_defaults(table71, pix, 0, 1, 0, 1);
 
-  pix = z_load_pixmap ("contrast.png");
+  pix = gtk_image_new_from_stock ("zapping-contrast",
+				  GTK_ICON_SIZE_BUTTON);
   gtk_widget_show(pix);
   gtk_table_attach_defaults(table71, pix, 0, 1, 1, 2);
 
@@ -3446,31 +3448,38 @@ connect_toolbar				(ttxview_data *	data)
 		     data);
 }
 
+#include "../pixmaps/left.h"
+#include "../pixmaps/down.h"
+#include "../pixmaps/up.h"
+#include "../pixmaps/right.h"
+#include "../pixmaps/reveal.h"
+
 static void
 ttxview_toolbar_init		(GtkWidget *		toolbar)
 {
-  struct {
-    const gchar *	pixmap;
-    const gchar *	replacement;
-    const gchar *	widget;
-  } buttons[] = {
-    { "left.png",	"<", "ttxview_prev_subpage" },
-    { "down.png",	"v", "ttxview_prev_page" },
-    { "up.png",		"^", "ttxview_next_page" },
-    { "right.png",	">", "ttxview_next_subpage" },
-    { "reveal.png",	"?", "ttxview_reveal" }
+  static const struct {
+    const GdkPixdata *		pixdata;
+    const gchar *		replacement;
+    const gchar *		widget;
+  } buttons [] = {
+    { &left_png,	"<", "ttxview_prev_subpage" },
+    { &down_png,	"v", "ttxview_prev_page" },
+    { &up_png,		"^", "ttxview_next_page" },
+    { &right_png,	">", "ttxview_next_subpage" },
+    { &reveal_png,	"?", "ttxview_reveal" }
   };
   GtkWidget *widget;
   GtkWidget *button;
   guint i;
 
-  for (i = 0; i < sizeof (buttons) / sizeof (buttons[0]); i++)
+  for (i = 0; i < G_N_ELEMENTS (buttons); ++i)
     {
-      if (!(widget = z_load_pixmap (buttons[i].pixmap)))
-	{
-	  widget = gtk_label_new (buttons[i].replacement);
-	  gtk_widget_show (widget);
-	}
+      widget = z_gtk_image_new_from_pixdata (buttons[i].pixdata);
+
+      if (!widget)
+	widget = gtk_label_new (buttons[i].replacement);
+
+      gtk_widget_show (widget);
 
       button = lookup_widget (toolbar, buttons[i].widget);
       gtk_container_add (GTK_CONTAINER (button), widget);
