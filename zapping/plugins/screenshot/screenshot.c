@@ -28,6 +28,7 @@
 #include <jpeglib.h> /* jpeg compression */
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/file.h> /* flock */
 
 /*
   This plugin was built from the template one. It does some thing
@@ -245,13 +246,12 @@ void plugin_get_info (const gchar ** canonical_name,
 
 static gint ogb_timeout_id = -1;
 static gint ogb_startup_delay;
-static gboolean ogb_button_clicked = FALSE;
 static int ogb_fd;
 
 static gint
 ov511_grab_button_timeout (void *unused)
 {
-  char button_flag = '0';
+  char button_flag;
 
   if (ogb_fd < 0)
     {
@@ -262,27 +262,29 @@ ov511_grab_button_timeout (void *unused)
 
       if (ogb_fd == -1)
         {
-	  /* no warning if file doesn't exist */
+	  /* no error if file doesn't exist */
 //          fprintf (stderr, "ov511_grab_button_timeout cannot open button flag file: %d, %s\n",
 //		     errno, strerror(errno));
-	  ogb_timeout_id = -1;
-	  return FALSE; /* destroy */
+	  goto fail2;
+        }
+
+      if (flock (ogb_fd, LOCK_EX | LOCK_NB) == -1)
+        {
+	  /* no error if already locked */
+//          fprintf (stderr, "ov511_grab_button_timeout cannot lock button flag file: %d, %s\n",
+//		     errno, strerror(errno));
+	  goto fail1; /* try again later? */
         }
 
 //      fprintf (stderr, "ov511_grab_button_timeout monitoring ov511 button flag file\n");
     }
 
+  /* the flag is sticky, read() resets */
   if (read (ogb_fd, &button_flag, 1) == 1)
-    if (lseek (ogb_fd, 0, SEEK_SET) != (off_t) -1)
+    if (lseek (ogb_fd, 0, SEEK_SET) == 0)
       {
-        if (button_flag == '1' &&
-	    !ogb_button_clicked)
-	  {
-	    ogb_button_clicked = TRUE;
+        if (button_flag == '1')
 	    plugin_start();
-	  }
-	else if (button_flag == '0' && ogb_button_clicked)
-	  ogb_button_clicked = FALSE;
 
 	return TRUE; /* repeat */
       }
@@ -290,6 +292,9 @@ ov511_grab_button_timeout (void *unused)
 //  fprintf (stderr, "ov511_grab_button_timeout read or seek error: %d, %s\n",
 //           errno, strerror(errno));
 
+ fail1:
+  close (ogb_fd); /* removes lock */
+ fail2:
   ogb_timeout_id = -1;
   return FALSE; /* destroy */
 }
