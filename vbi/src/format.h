@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: format.h,v 1.4.2.12 2004-07-09 16:10:52 mschimek Exp $ */
+/* $Id: format.h,v 1.4.2.13 2004-09-14 04:52:00 mschimek Exp $ */
 
 #ifndef FORMAT_H
 #define FORMAT_H
@@ -276,6 +276,8 @@ typedef struct {
 	 * Points back to the source context.
 	 */ 
 	vbi_cache *		cache;
+
+	unsigned int		ref_count;
 
 	/**
 	 * Identifies the network broadcasting this page.

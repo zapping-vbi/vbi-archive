@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.2.2.13 2004-07-16 00:08:18 mschimek Exp $ */
+/* $Id: misc.h,v 1.2.2.14 2004-09-14 04:52:00 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
@@ -191,21 +191,30 @@ vbi_log_printf			(const char *		function,
 
 /* Use this instead of strncpy(), is a BSD/GNU extension.*/
 #ifdef HAVE_STRLCPY
-#  define _vbi_strlcpy(d, s, size) strlcpy (d, s, size)
+#  define _vbi_strlcpy strlcpy
 #else
 extern size_t
-_vbi_strlcpy			(char *			d,
-				 const char *		s,
-				 size_t			size);
+_vbi_strlcpy			(char *			dst,
+				 const char *		src,
+				 size_t			len);
 #endif
 
 /* strndup is a BSD/GNU extension. */
 #ifdef HAVE_STRNDUP
-#  define _vbi_strndup(s, size) strndup (s, size)
+#  define _vbi_strndup strndup
 #else
 extern char *
 _vbi_strndup			(const char *		s,
-				 size_t			size);
+				 size_t			len);
+#endif
+
+#ifdef HAVE_ASPRINTF
+#  define _vbi_asprintf asprintf
+#else
+extern int
+_vbi_asprintf			(char **		dstp,
+				 const char *		templ,
+				 ...);
 #endif
 
 #define STRCOPY(d, s) (_vbi_strlcpy (d, s, sizeof (d)) < sizeof (d))

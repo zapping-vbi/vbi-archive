@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext.c,v 1.7.2.18 2004-07-16 00:08:18 mschimek Exp $ */
+/* $Id: teletext.c,v 1.7.2.19 2004-09-14 04:52:00 mschimek Exp $ */
 
 #include "../config.h"
 #include "site_def.h"
@@ -3960,7 +3960,8 @@ _vbi_page_priv_init		(vbi_page_priv *	pgp)
  *   one of the vbi_page get functions, e.g. vbi_teletext_decoder_get_page().
  *   Can be @c NULL.
  *
- * Frees all resources associated with @a pg.
+ * Frees all resources associated with @a pg, regardless of
+ * any remaining references to it.
  */
 void
 vbi_page_delete			(vbi_page *		pg)
@@ -3984,11 +3985,53 @@ vbi_page_delete			(vbi_page *		pg)
 }
 
 /**
+ * @param pg A vbi_page allocated with vbi_page_new() or
+ *   one of the vbi_page get functions, e.g. vbi_teletext_decoder_get_page().
+ *   Can be @c NULL.
+ *
+ * Releases a vbi_page reference. When this is the last reference
+ * the function calls vbi_page_delete().
+ */
+void
+vbi_page_release		(vbi_page *		pg)
+{
+	if (NULL == pg)
+		return;
+
+	if (pg->ref_count > 1) {
+		--pg->ref_count;
+		return;
+	}
+
+	vbi_page_delete (pg);
+}
+
+/**
+ * @param pg A vbi_page allocated with vbi_page_new() or
+ *   one of the vbi_page get functions, e.g. vbi_teletext_decoder_get_page().
+ *
+ * Creates a new reference to the page.
+ *
+ * @returns
+ * @a pg. You must call vbi_page_release() when the reference is
+ * no longer needed.
+ */
+vbi_cache *
+vbi_page_new_ref		(vbi_page *		pg)
+{
+	assert (NULL != pg);
+
+	++pg->ref_count;
+
+	return pg;
+}
+
+/**
  * Allocates a new, empty vbi_page.
  *
  * @returns
- * @c NULL when out of memory. The vbi_page must be deleted
- * with vbi_page_delete() when done.
+ * @c NULL when out of memory. The vbi_page must be freed with
+ * vbi_page_release() or vbi_page_delete() when done.
  */
 vbi_page *
 vbi_page_new			(void)

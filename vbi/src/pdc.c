@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.c,v 1.1.2.9 2004-07-16 00:08:18 mschimek Exp $ */
+/* $Id: pdc.c,v 1.1.2.10 2004-09-14 04:52:00 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -244,6 +244,9 @@ vbi_bool
 vbi_preselection_copy		(vbi_preselection *	dst,
 				 const vbi_preselection *src)
 {
+	if (dst == src)
+		return TRUE;
+
 	assert (NULL != dst);
 
 	if (src) {

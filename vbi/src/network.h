@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: network.h,v 1.1.2.4 2004-07-09 16:10:52 mschimek Exp $ */
+/* $Id: network.h,v 1.1.2.5 2004-09-14 04:52:00 mschimek Exp $ */
 
 #ifndef __ZVBI_NETWORK_H__
 #define __ZVBI_NETWORK_H__
@@ -156,6 +156,8 @@ extern unsigned int
 vbi_convert_cni			(vbi_cni_type		to_type,
 				 vbi_cni_type		from_type,
 				 unsigned int		cni);
+extern char *
+vbi_network_id_string		(const vbi_network *	nk);
 extern vbi_bool
 vbi_network_set_name		(vbi_network *		nk,
 				 const char *		name);

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: network.c,v 1.1.2.8 2004-07-16 00:08:18 mschimek Exp $ */
+/* $Id: network.c,v 1.1.2.9 2004-09-14 04:52:00 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -261,6 +261,31 @@ _vbi_network_dump		(const vbi_network *	nk,
 		nk->cni_vps, nk->cni_8301, nk->cni_8302,
 		nk->cni_pdc_a, nk->cni_pdc_b,
 		nk->country_code[0] ? nk->country_code : "unknown");
+}
+
+char *
+vbi_network_id_string		(const vbi_network *	nk)
+{
+  char buffer[sizeof (nk->call_sign) * 3 + 5 * 9 + 1];
+  char *s;
+  unsigned int i;
+
+  s = buffer;
+
+  for (i = 0; i < sizeof (nk->call_sign); ++i)
+    if (isalnum (nk->call_sign[i])) {
+      *s++ = nk->call_sign[i];
+    } else {
+      s += sprintf (s, "%%%02x", nk->call_sign[i]);
+    }
+
+  s += sprintf (s, "-%8x", nk->cni_vps);
+  s += sprintf (s, "-%8x", nk->cni_8301);
+  s += sprintf (s, "-%8x", nk->cni_8302);
+  s += sprintf (s, "-%8x", nk->cni_pdc_a);
+  s += sprintf (s, "-%8x", nk->cni_pdc_b);
+
+  return strdup (buffer);
 }
 
 /**
@@ -538,6 +563,9 @@ vbi_bool
 vbi_network_copy		(vbi_network *		dst,
 				 const vbi_network *	src)
 {
+	if (dst == src)
+		return TRUE;
+
 	assert (NULL != dst);
 
 	if (!src) {

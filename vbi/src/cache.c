@@ -466,6 +466,9 @@ vbi_bool
 cache_page_copy			(cache_page *		dst,
 				 const cache_page *	src)
 {
+	if (dst == src)
+		return TRUE;
+
 	assert (NULL != dst);
 
 	if (src) {
@@ -1526,7 +1529,7 @@ vbi_cache_new_ref		(vbi_cache *		ca)
  *
  * @returns
  * Pointer to newly allocated cache which must be freed with
- * vbi_cache_unref() or vbi_cache_delete() when done. @c NULL on
+ * vbi_cache_release() or vbi_cache_delete() when done. @c NULL on
  * failure (out of memory).
  */
 vbi_cache *

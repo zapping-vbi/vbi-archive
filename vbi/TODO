@@ -1,7 +1,8 @@
-$Id: TODO,v 1.11.2.10 2004-07-09 16:10:51 mschimek Exp $
+$Id: TODO,v 1.11.2.11 2004-09-14 04:51:59 mschimek Exp $
 
 Version 0.3
 
+* tv_network to- and from string kfoo-0-0-123. version? checksum?
 * Improve & integrate fake VBI generator. Demonstrate every
   supported feature for tests & localization.
 * Add io-dvb. Generally speaking the i/o api is poor, should be

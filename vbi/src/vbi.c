@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.6.2.19 2004-07-16 00:08:19 mschimek Exp $ */
+/* $Id: vbi.c,v 1.6.2.20 2004-09-14 04:52:00 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -121,16 +121,21 @@ vbi_version			(unsigned int *		major,
  * strlcpy() is a BSD/GNU extension.
  */
 size_t
-_vbi_strlcpy			(char *			dst1,
+_vbi_strlcpy			(char *			dst,
 				 const char *		src,
-				 size_t			size)
+				 size_t			len)
 {
-	char c, *dst, *end;
+	char *dst1;
+	char *end;
+	char c;
 
-	assert (size > 0);
+	assert (NULL != dst);
+	assert (NULL != src);
+	assert (len > 0);
 
-	dst = dst1;
-	end = dst1 + size - 1;
+	dst1 = dst;
+
+	end = dst + len - 1;
 
 	while (dst < end && (c = *src++))
 		*dst++ = c;
@@ -155,8 +160,11 @@ _vbi_strndup			(const char *		s,
 	size_t n;
 	char *r;
 
+	if (NULL == s)
+		return NULL;
+
 	n = strlen (s);
-	len = MAX (len, n);
+	len = MIN (len, n);
 
 	r = malloc (len + 1);
 
@@ -170,32 +178,64 @@ _vbi_strndup			(const char *		s,
 
 #endif /* !HAVE_STRNDUP */
 
+#ifndef HAVE_ASPRINTF
+
 /**
  * @internal
  * asprintf() is a GNU extension.
  */
-void
-_vbi_asprintf(char **errstr, const char *templ, ...)
+int
+_vbi_asprintf			(char **		dstp,
+				 const char *		templ,
+				 ...)
 {
-	char buf[512];
-	va_list ap;
+	char *buf;
+	int size;
 	int temp;
 
-	if (!errstr)
-		return;
+	assert (NULL != dstp);
+	assert (NULL != templ);
 
 	temp = errno;
 
-	va_start(ap, templ);
+	buf = NULL;
+	size = 64;
 
-	vsnprintf(buf, sizeof(buf) - 1, templ, ap);
+	for (;;) {
+		va_list ap;
+		char *buf2;
+		int len;
 
-	va_end(ap);
+		if (!(buf2 = realloc (buf, size)))
+			break;
 
-	*errstr = strdup(buf);
+		buf = buf2;
 
+		va_start (ap, templ);
+		len = vsnprintf (buf, size, templ, ap);
+		va_end (ap);
+
+		if (len < 0) {
+			/* Not enough. */
+			size *= 2;
+		} else if (len < size) {
+			*dstp = buf;
+			errno = temp;
+			return len;
+		} else {
+			/* Size needed. */
+			size = len + 1;
+		}
+	}
+
+	free (buf);
+	*dstp = NULL;
 	errno = temp;
+
+	return -1;
 }
+
+#endif /* !HAVE_ASPRINTF */
 
 static vbi_log_fn *		log_function;
 static void *			log_user_data;

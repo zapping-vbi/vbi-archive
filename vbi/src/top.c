@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: top.c,v 1.1.2.1 2004-07-09 16:10:54 mschimek Exp $ */
+/* $Id: top.c,v 1.1.2.2 2004-09-14 04:52:00 mschimek Exp $ */
 
 #include <stdlib.h>		/* malloc(), qsort() */
 #include "conv.h"		/* _vbi_strdup_locale_teletext() */
@@ -51,6 +51,9 @@ vbi_bool
 vbi_top_title_copy		(vbi_top_title *	dst,
 				 const vbi_top_title *	src)
 {
+	if (dst == src)
+		return TRUE;
+
 	assert (NULL != dst);
 
 	if (src) {
