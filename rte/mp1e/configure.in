@@ -1,9 +1,16 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.9 2001-11-01 03:26:46 mschimek Exp $
+dnl $Id: configure.in,v 1.10 2001-11-07 03:53:21 mschimek Exp $
 
 AC_INIT(configure.in)
 AM_INIT_AUTOMAKE(mp1e, 1.9.2)
 AM_CONFIG_HEADER(config.h)
+
+AC_PROG_CC
+
+dnl for automake 1.5
+AS=$CC
+AC_SUBST(AS)
+AC_SUBST(ASFLAGS)
 
 AM_PROG_LIBTOOL
 
@@ -43,9 +50,6 @@ AC_ARG_ENABLE(debugging, [  --enable-debugging      add debugging info],
         [CFLAGS="-Wall -O0 -g -fomit-frame-pointer"
 	 AC_DEFINE(ENABLE_DEBUGGING, 1, [Add debugging info])],
         CFLAGS="-Wall -O2 -fomit-frame-pointer")
-
-AC_PROG_CC
-AM_PROG_AS
 
 AC_CHECK_FUNCS(memalign)
 AC_CHECK_FUNCS(program_invocation_name)

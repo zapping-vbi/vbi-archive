@@ -1,15 +1,16 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.6 2001-11-01 03:26:46 mschimek Exp $
+dnl $Id: configure.in,v 1.7 2001-11-07 03:53:18 mschimek Exp $
 
 AC_INIT(configure.in)
 AM_INIT_AUTOMAKE(rte, 0.4cvs)
 AM_CONFIG_HEADER(config.h)
 
-dnl Pick up AM_PROG_AS
-AM_ACLOCAL_INCLUDE(macros)
-
 AC_PROG_CC
-AM_PROG_AS
+
+dnl for automake 1.5
+AS=$CC
+AC_SUBST(AS)
+AC_SUBST(ASFLAGS)
 
 dnl Stupid rpm in SuSE
 CFLAGS="-g -O2 -Wall -fomit-frame-pointer"
