@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: codec.h,v 1.6 2002-09-12 12:26:02 mschimek Exp $ */
+/* $Id: codec.h,v 1.7 2002-09-26 20:42:35 mschimek Exp $ */
 
 #ifndef CODEC_H
 #define CODEC_H
@@ -65,7 +65,7 @@ typedef struct {
 
 	/**
 	 * @p label is a name for the codec to be presented to the user,
-	 *  can be localized with gettext(label).
+	 *  can be localized with dgettext("rte", label).
 	 */
 	const char *		label;
 
@@ -203,10 +203,57 @@ typedef enum {
 
 /**
  * @ingroup Param
+ * Field/frame format used in a video input stream.
+ */
+typedef enum {
+	/**
+	 * The images are not interlaced, one buffer
+	 * contains one frame.
+	 */
+	RTE_FRAMEFMT_PROGRESSIVE = 1,
+
+	/**
+	 * The images are interlaced, one buffer contains
+	 * one interlaced frame. Field order is determined
+	 * by rte_video_stream_params spatial_order and
+	 * temporal_order.
+	 */
+	RTE_FRAMEFMT_INTERLACED,
+
+	/**
+	 * The images are fields, one buffer contains
+	 * alternating a top or bottom field of a frame.
+ 	 * The stream starts with the field determined by
+	 * rte_video_stream_params spatial_order and
+	 * temporal_order. The alternating must be maintained
+	 * throughout the stream, however when timestamps
+	 * are correct fields can drop individually.
+	 */
+	RTE_FRAMEFMT_ALTERNATING,
+} rte_framefmt;
+
+/**                                                   
+ * @ingroup Param
  * Video input stream parameters.
  */
 typedef struct {
+	rte_framefmt		framefmt;
 	rte_pixfmt		pixfmt;
+
+	/**
+	 * Applies only when framefmt is RTE_FRAMEFMT_INTERLACED or
+	 * RTE_FRAMEFMT_ALTERNATING. When 0, the interlaced frame or
+	 * the stream starts with a top field, when 1 with a bottom field.
+	 */
+	rte_bool		spatial_order;
+
+	/**
+	 * Applies only when framefmt is RTE_FRAMEFMT_INTERLACED or
+	 * RTE_FRAMEFMT_ALTERNATING. When 0, the first field of an
+	 * interlaced frame or the stream is the older field, when
+	 * 1 the second field is older.
+	 */
+	rte_bool		temporal_order;
 
 	/**
 	 * @p frame_rate (for example 24.0, 25.0, 30000 / 1001.0) is the
@@ -258,20 +305,26 @@ typedef struct {
 	unsigned int		u_offset, v_offset;
 
 	/**
-	 * The distance from one pixel to the adjacent pixel in the
-	 * next line, in bytes. When the format is RTE_PIXFMT_YUV420 this refers
-	 * to the luminance plane only. Aligning lines at addresses which are a
+	 * The distance from one pixel to the adjacent pixel in the next line,
+	 * in bytes. If this is an interlaced image stride points to the opposite
+	 * field. When the format is RTE_PIXFMT_YUV420 this refers to the
+	 * luminance plane only. Aligning lines at addresses which are a
 	 * multiple of a power of two may speed up encoding. Usually @p stride
 	 * is @p width * bytes per pixel, but a codec may accept any larger or
-	 * smaller, even negative values.
+	 * smaller value.
 	 */
 	unsigned int		stride;
 
 	/**
 	 * @p uv_stride applies only when the format is RTE_PIXFMT_YUV420, the
 	 * distance from one pixel to the adjacent pixel in the next line, in
-	 * bytes, of both the U (Cb) and V (Cr) plane. Usually this value
-	 * is @p stride / 2.
+	 * bytes, of both the U (Cb) and V (Cr) plane. (No separate values to
+	 * keep encoders simple.) Usually this value is @p stride / 2.
+	 *
+	 * Watch your color subsampling in interlaced pictures: U/V line 0, 1
+	 * belong to frame line 0+1, 2+3 when @p framefmt is RTE_FRAMEFMT_PROGRESSIVE
+	 * or RTE_FRAMEFMT_ALTERNATING; to frame line 0+2, 1+3 when @ p framefmt
+	 * is RTE_FRAMEFMT_INTERLACED.
 	 */
 	unsigned int		uv_stride;
 
