@@ -31,6 +31,7 @@
 #define ZCONF_DOMAIN "/zapping/internal/callbacks/"
 #include "zmisc.h"
 #include "plugins.h"
+#include "zvbi.h"
 
 GtkWidget * ChannelWindow = NULL; /* Here is stored the channel editor
 				   widget (if any) */
@@ -656,7 +657,7 @@ gint do_search (GtkWidget * searching)
   GtkWidget * clist1 =
     lookup_widget(channel_list, "clist1");
   gint strength;
-
+  gchar * tuned_name=NULL;
   tveng_channel * channel;
 
   if (scanning_channel >= 0)
@@ -670,12 +671,15 @@ gint do_search (GtkWidget * searching)
 	{
 	  GtkWidget * channel_name =
 	    lookup_widget(channel_list, "channel_name");
-	  //	  fdset_select(fds, 1000 * 3);
-	  //	  if (!(tuned_name = get_vbi_name()))
-	  //	    gtk_entry_set_text(GTK_ENTRY(channel_name),
-	  //			       channel->name);
-	  //	  else
-	    gtk_entry_set_text(GTK_ENTRY(channel_name), channel->name);
+
+	  if (zconf_get_boolean(NULL, "/zapping/options/vbi/use_vbi"))
+	    tuned_name = zvbi_get_name();
+	  if ((!zconf_get_boolean(NULL,
+				  "/zapping/options/vbi/use_vbi")) ||
+	      (!tuned_name))
+	    tuned_name = g_strdup(channel->name);
+	  gtk_entry_set_text(GTK_ENTRY(channel_name), tuned_name);
+	  g_free(tuned_name);
 
 	  on_channel_name_activate(GTK_EDITABLE(channel_name), NULL);
 	}

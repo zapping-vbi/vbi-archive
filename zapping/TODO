@@ -1,7 +1,7 @@
 Outstanding issues for the next release
 ---------------------------------------
-	+ Make a plugin that puts a given Teletext page on screen
-	+ Apply the use_vbi option
+	+ Add videotext navigation controls, hot areas
+	+ Add button for freezing the teletext screen
 	+ Write the mpeg plugin
 	+ Bug fixes
 	> Release 0.5.3

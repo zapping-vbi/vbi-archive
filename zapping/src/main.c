@@ -26,9 +26,6 @@
 #include <gnome-xml/parser.h>
 #include <glade/glade.h>
 #include <signal.h>
-#ifdef HAVE_GDKPIXBUF
-#include <gdk-pixbuf/gdk-pixbuf.h>
-#endif
 #define ZCONF_DOMAIN "/zapping/options/main/"
 #include "zmisc.h"
 #include "interface.h"
@@ -55,9 +52,6 @@ gboolean disable_preview = FALSE; /* TRUE if zapping_setup_fb didn't
 GtkWidget * main_window;
 gboolean was_fullscreen=FALSE; /* will be TRUE if when quitting we
 				  were fullscreen */
-#ifdef HAVE_GDKPIXBUF
-static GdkPixbuf * pixbuf = NULL;
-#endif
 
 void shutdown_zapping(void);
 gboolean startup_zapping(void);
@@ -221,9 +215,33 @@ int main(int argc, char * argv[])
   if (disable_preview)
     {
       g_message("Preview disabled, removing GUI items");
+      gtk_widget_set_sensitive(lookup_widget(main_window, "go_previewing2"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "go_previewing2"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "go_fullscreen1"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "go_fullscreen1"));
+    }
+  /* disable VBI if needed */
+  if (!zvbi_get_object())
+    {
+      g_message("VBI disabled, removing GUI items");
+      gtk_widget_set_sensitive(lookup_widget(main_window, "separador5"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "separador5"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "videotext1"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "videotext1"));
+    }
+  /* Disable the View menu completely if it is redundant */
+  if ((!zvbi_get_object()) && (disable_preview))
+    {
+      gtk_widget_set_sensitive(lookup_widget(main_window, "go_capturing2"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "go_capturing2"));
       gtk_widget_set_sensitive(lookup_widget(main_window, "view1"),
 			       FALSE);
-      gtk_widget_hide(lookup_widget(main_window, "view1"));
+      gtk_widget_hide(lookup_widget(main_window, "view1"));      
     }
   gtk_widget_show(main_window);
 
@@ -326,6 +344,14 @@ int main(int argc, char * argv[])
 	 otherwise mem usage will grow a lot) */
       sound_read_data(si);
 
+      /* VBI decoding support */
+      if (zvbi_get_mode())
+	{
+	  zvbi_build_current_teletext_page(tv_screen);
+	  usleep(50000);
+	  continue;
+	}
+
       /* We are probably viewing fullscreen, just do nothing */
       if (main_info -> current_mode != TVENG_CAPTURE_READ)
 	{
@@ -374,10 +400,6 @@ int main(int argc, char * argv[])
 	  zimage_reallocate(sample.format.width, sample.format.height);
 	  p = p->next;
 	}
-
-#ifdef HAVE_GDKPIXBUF
-      pixbuf = zvbi_build_current_teletext_page(tv_screen);
-#endif
 
       gdk_draw_image(tv_screen -> window,
 		     tv_screen -> style -> white_gc,
@@ -451,6 +473,10 @@ void shutdown_zapping(void)
   /* Shutdown all other modules */
   shutdown_callbacks();
 
+  /* Shut down vbi, but save state first */
+  zcs_bool(zvbi_get_mode(), "videotext_mode");
+  zvbi_close_device();
+
   /* Save the config and show an error if something failed */
   if (!zconf_close())
     ShowBox(_("ZConf could not be closed properly , your\n"
@@ -462,9 +488,6 @@ void shutdown_zapping(void)
 	      "   - or, more probably, you have found a bug in\n"
 	      "     Zapping. Please contact the author.\n"
 	      ), GNOME_MESSAGE_BOX_ERROR);
-
-  /* Shut down vbi */
-  zvbi_close_device();
 
   /* Mute the device again and close */
   tveng_set_mute(1, main_info);
@@ -514,6 +537,7 @@ gboolean startup_zapping()
   zcc_int(0, "Current standard", "current_standard");
   zcc_int(0, "Current input", "current_input");
   zcc_int(TVENG_CAPTURE_WINDOW, "Current capture mode", "capture_mode");
+  zcc_bool(FALSE, "In videotext mode", "videotext_mode");
 
   /* Loads all the tuned channels */
   while (zconf_get_nth(i, &buffer, ZCONF_DOMAIN "tuned_channels") !=
@@ -551,12 +575,19 @@ gboolean startup_zapping()
     }
 
   /* Start VBI services, and warn if we cannot */
-  if (!zvbi_open_device())
+#ifdef HAVE_GDKPIXBUF
+  if ((!zvbi_open_device()) &&
+      (zconf_get_boolean(NULL, "/zapping/options/vbi/enable_vbi")))
     ShowBox(_("Sorry, but %s couldn't be opened:\n%s (%d)"),
 	    GNOME_MESSAGE_BOX_ERROR, "/dev/vbi", strerror(errno), errno);
+#else
+  if (zconf_get_boolean(NULL, "/zapping/options/vbi/enable_vbi"))
+    ShowBox(_("There's no GdkPixbuf support, VBI has been disabled"),
+	    GNOME_MESSAGE_BOX_INFO);
+  zconf_set_boolean(FALSE, "/zapping/options/vbi/enable_vbi");
+#endif
 
-  /* Monitor the index teletext page */
-  zvbi_monitor_page(0x100, ANY_SUB);
+  zvbi_set_mode(zcg_bool(NULL, "videotext_mode"));
 
   /* Starts all modules */
   if (!startup_callbacks())

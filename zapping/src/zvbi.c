@@ -49,6 +49,11 @@ static pthread_t zvbi_thread_id; /* Just a dummy thread to select() */
 static gboolean exit_thread = FALSE; /* just an atomic flag to tell the
 					thread to exit*/
 
+static gboolean vbi_mode=FALSE; /* VBI mode, default off */
+
+/* Go to the index by default */
+static gint cur_page=0x100, cur_subpage=ANY_SUB;
+
 /* handler for a vbi event */
 static void event(struct dl_head *reqs, struct vt_event *ev);
 
@@ -60,11 +65,12 @@ static struct {
   pthread_mutex_t mutex;
 
   /* Generic info */
+  /* xpacket condition, signalled when the station name is parsed */
+  pthread_cond_t xpacket_cond;
   char xpacket[32];
   char header[64];
   char *name; /* usually, something like station-Teletext or similar
 		 (Antena3-Teletexto, for example) */
-
   /* Pre-processed info from the header, for convenience */
   int hour, min, sec;
 } last_info;
@@ -108,7 +114,7 @@ zvbi_open_device(void)
   last_info.hour = last_info.min = last_info.sec = -1;
 
   pthread_mutex_init(&(last_info.mutex), NULL);
-
+  pthread_cond_init(&(last_info.xpacket_cond), NULL);
   if (pthread_create(&zvbi_thread_id, NULL, zvbi_thread, NULL))
     {
       vbi_del_handler(vbi, event, NULL);
@@ -116,6 +122,8 @@ zvbi_open_device(void)
       vbi = NULL;
       return FALSE;
     }
+
+  zvbi_set_current_page(cur_page, cur_subpage);
 
   return TRUE;
 }
@@ -131,6 +139,7 @@ zvbi_close_device(void)
 
   pthread_join(zvbi_thread_id, NULL);
   pthread_mutex_destroy(&(last_info.mutex));
+  pthread_cond_destroy(&(last_info.xpacket_cond));
 
   vbi_del_handler(vbi, event, NULL);
   vbi_close(vbi);
@@ -148,6 +157,12 @@ zvbi_get_object(void)
   return vbi;
 }
 
+/* renders the formatted and mem versions of the page if it's being
+   monitored */
+void
+zvbi_render_monitored_page(struct vt_page * vtp);
+
+/* this is called when we receive a page, header, etc. */
 static void
 event(struct dl_head *reqs, struct vt_event *ev)
 {
@@ -155,7 +170,7 @@ event(struct dl_head *reqs, struct vt_event *ev)
     struct vt_page *vtp;
     int hour=0, min=0, sec=0;
     char *name, *h;
-
+    
     switch (ev->type) {
     case EV_HEADER:
 	p = ev->p1;
@@ -196,9 +211,12 @@ event(struct dl_head *reqs, struct vt_event *ev)
 	break;
     case EV_PAGE:
 	vtp = ev->p1;
-	fprintf(stderr,"vtx page %x.%02x  \r", vtp->pgno,
-		vtp->subno);
+	//	fprintf(stderr,"vtx page %x.%02x  \r", vtp->pgno,
+	//		vtp->subno);
+	/* Set the dirty flag on the page */
 	zvbi_set_page_state(vtp->pgno, vtp->subno, TRUE, time(NULL));
+	/* Now render the mem version of the page */
+	zvbi_render_monitored_page(vtp);
 	break;
     case EV_XPACKET:
 	p = ev->p1;
@@ -219,7 +237,11 @@ event(struct dl_head *reqs, struct vt_event *ev)
 	  for (name = last_info.xpacket; *name == ' '; name++)
 	    ;
 	  if (*name)
-	    last_info.name = name;
+	    {
+	      last_info.name = name;
+	      /* signal the condition */
+	      pthread_cond_broadcast(&(last_info.xpacket_cond));
+	    }
 	}
 	pthread_mutex_unlock(&(last_info.mutex));
 	break;
@@ -234,12 +256,20 @@ gchar*
 zvbi_get_name(void)
 {
   gchar * p = NULL;
+  struct timeval now;
+  struct timespec timeout;
+  int retcode;
 
   if (!vbi)
     return NULL;
 
   pthread_mutex_lock(&(last_info.mutex));
-  if (last_info.name)
+  gettimeofday(&now, NULL);
+  timeout.tv_sec = now.tv_sec+1; /* Wait one second, then fail */
+  timeout.tv_nsec = now.tv_usec * 1000;
+  retcode = pthread_cond_timedwait(&(last_info.xpacket_cond),
+				   &(last_info.mutex), &timeout);
+  if ((retcode != ETIMEDOUT) && (last_info.name))
     p = g_strdup(last_info.name);
   pthread_mutex_unlock(&(last_info.mutex));
 
@@ -425,6 +455,10 @@ zvbi_render_page_rgba(struct fmt_page *pg, gint *width, gint *height,
 struct monitor_page {
   gint page, subpage;
   gboolean dirty; /* changed since last zvbi_clean_page() */
+  char * mem; /* rgba rendered page */
+  pthread_mutex_t mutex; /* Mutex for protecting the mem */
+  struct fmt_page pg; /* The formatted page */
+  gint width, height; /* Width and height of the rendered image */
   time_t last_change; /* Time this page got dirty, as returned by
 			 time() */
 };
@@ -449,6 +483,9 @@ zvbi_monitor_page(gint page, gint subpage)
   mp->subpage = subpage;
   mp->dirty = TRUE;
   mp->last_change = time(NULL);
+  mp->mem = NULL;
+
+  pthread_mutex_init(&(mp->mutex), NULL);
 
   pthread_mutex_lock(&(monitor_mutex));
   monitor = g_list_append(monitor, mp);
@@ -481,6 +518,9 @@ zvbi_forget_page(gint page, gint subpage)
     }
 
   g_list_remove(monitor, mp);
+  pthread_mutex_destroy(&(mp->mutex));
+  if (mp->mem)
+    free(mp->mem);
   free(mp);
   pthread_mutex_unlock(&(monitor_mutex));
 }
@@ -552,41 +592,118 @@ zvbi_set_page_state(gint page, gint subpage, gboolean dirty, time_t
   pthread_mutex_unlock(&(monitor_mutex));
 }
 
+/* renders the formatted and mem versions of the page if it's being
+   monitored */
+void
+zvbi_render_monitored_page(struct vt_page * vtp)
+{
+  struct monitor_page *mp;
+  GList *p;
+  unsigned char alphas[8] = {255, 255, 255, 255, 255, 255, 255, 255};
+  gint page = vtp->pgno, subpage = vtp->subno;
+
+  pthread_mutex_lock(&(monitor_mutex));
+  p = g_list_first(monitor);
+  while (p)
+    {
+      mp = (struct monitor_page*)p->data;
+      if ((mp->page == page) && ((mp->subpage == ANY_SUB) ||
+				 (subpage == ANY_SUB) ||
+				 (mp->subpage == subpage)))
+	{
+	  pthread_mutex_lock(&(mp->mutex));
+	  fmt_page(FALSE, &(mp->pg), vtp);
+	  if (mp->mem)
+	    free(mp->mem);
+	  mp->mem = zvbi_render_page_rgba(&(mp->pg), &(mp->width),
+				      &(mp->height), alphas);
+	  pthread_mutex_unlock(&(mp->mutex));
+	}
+      p=p->next;
+    }
+  pthread_mutex_unlock(&(monitor_mutex));
+}
+
 #ifdef HAVE_GDKPIXBUF
 /* the current unscaled teletext page */
 static GdkPixbuf * teletext_page = NULL;
 /* The scaled version of the above */
 static GdkPixbuf * scaled_teletext_page = NULL;
-
-static void z_gdk_pixbuf_free(guchar *pixels, gpointer data);
-static void z_gdk_pixbuf_free(guchar *pixels, gpointer data)
+/* frees the pixbuf memory */
+static void zvbi_free_pixbuf_mem(guchar *pixels, gpointer data)
 {
   free(pixels);
 }
-#endif
 
-/* Called when the tv screen changes size */
-void
-zvbi_window_updated(GtkWidget * widget, gint w, gint h)
+/* Rebuilds teletext page and scaled_teletext_page if neccesary,
+   returns TRUE if scaled_teletext_page was modified */
+static gboolean
+zvbi_update_pixbufs(gint page, gint subpage, gint w, gint h)
 {
-#ifdef HAVE_GDKPIXBUF
-  static gint last_w, last_h;
-  gint width, height;
+  struct monitor_page *mp;
+  GList *p;
+  gboolean do_update = FALSE;
+  gchar * filename;
+
+  pthread_mutex_lock(&(monitor_mutex));
+  p = g_list_first(monitor);
+  while (p)
+    {
+      mp = (struct monitor_page*)p->data;
+      if ((mp->page == page) && ((mp->subpage == ANY_SUB) ||
+				 (subpage == ANY_SUB) ||
+				 (mp->subpage == subpage)))
+	break; /* found */
+      p=p->next;
+    }
+  if (!p)
+    {
+      pthread_mutex_unlock(&(monitor_mutex));
+      return FALSE;
+    }
+  
+  pthread_mutex_lock(&(mp->mutex));
+  
+  if (((mp->dirty) || (!teletext_page)) && (mp->mem))
+    {
+      if (teletext_page)
+	gdk_pixbuf_unref(teletext_page);
+
+      teletext_page = 
+	gdk_pixbuf_new_from_data(mp->mem, GDK_COLORSPACE_RGB, TRUE, 8,
+				 mp->width, mp->height, (mp->width)*4,
+				 zvbi_free_pixbuf_mem, NULL);
+      /*
+	if the pixbuf is being drawn (in the main thread) and we free
+	it from the zvbi thread, a SIGSEGV occurs. This fixes it.
+      */
+      mp->mem = NULL;
+      mp->dirty = FALSE;
+      do_update = TRUE;
+    }
+
+  pthread_mutex_unlock(&(mp->mutex));
+  pthread_mutex_unlock(&(monitor_mutex));
 
   if (!teletext_page)
-    goto save_coords;
+    {
+      /* try to load something, so the program doesn't look like it's
+	 freezed */
+      srand(time(NULL));
+      filename =
+	g_strdup_printf("%s/%s%d.jpeg", PACKAGE_DATA_DIR,
+			"../pixmaps/zapping/vt_loading",
+			(rand()%2)+1);
+      teletext_page = gdk_pixbuf_new_from_file(filename);
+      g_free(filename);
+      if (!teletext_page)
+	return FALSE;
+    }
 
-  if ((!scaled_teletext_page) || (w == -1) ||
+  if ((!scaled_teletext_page) || (do_update) ||
       (gdk_pixbuf_get_width(scaled_teletext_page) != w) ||
       (gdk_pixbuf_get_height(scaled_teletext_page) != h))
     {
-      /* refresh code */
-      if (w == -1)
-	{
-	  w = last_w;
-	  h = last_h;
-	}
-
       if (scaled_teletext_page)
 	gdk_pixbuf_unref(scaled_teletext_page);
 
@@ -594,14 +711,33 @@ zvbi_window_updated(GtkWidget * widget, gint w, gint h)
 	gdk_pixbuf_scale_simple(teletext_page,
 				w, h, GDK_INTERP_BILINEAR);
 
-      gdk_window_get_size(widget->window, &width, &height);
-      zvbi_exposed(widget, 0, 0, width, height);
+      return TRUE;
     }
 
- save_coords:
-  last_w = w;
-  last_h = h;
+  return FALSE;
+}
+#endif /* HAVE_GDKPIXBUF */
 
+/* Called when the tv screen changes size */
+void
+zvbi_window_updated(GtkWidget * widget)
+{
+#ifdef HAVE_GDKPIXBUF
+  gint width, height;
+#endif
+
+  if (!vbi_mode)
+    return;
+
+#ifdef HAVE_GDKPIXBUF
+  if (!widget->window)
+    return;
+
+  gdk_window_get_size(widget->window, &width, &height);
+  zvbi_update_pixbufs(cur_page, cur_subpage, width, height);
+
+  /* Draw the TXT */
+  zvbi_exposed(widget, 0, 0, width, height);
 #endif
 }
 
@@ -609,8 +745,22 @@ zvbi_window_updated(GtkWidget * widget, gint w, gint h)
 void
 zvbi_exposed(GtkWidget * widget, gint x, gint y, gint w, gint h)
 {
-  if (!scaled_teletext_page)
+#ifdef HAVE_GDKPIXBUF
+  if ((!scaled_teletext_page) || (!vbi_mode))
     return;
+
+  /* Some clipping, the pixbuf might not be the same size as the window */
+  if (x>gdk_pixbuf_get_width(scaled_teletext_page))
+    x = gdk_pixbuf_get_width(scaled_teletext_page);
+
+  if (y>gdk_pixbuf_get_height(scaled_teletext_page))
+    y = gdk_pixbuf_get_height(scaled_teletext_page);
+
+  if ((x+w) > gdk_pixbuf_get_width(scaled_teletext_page))
+    w = gdk_pixbuf_get_width(scaled_teletext_page)-x;
+
+  if ((y+h) > gdk_pixbuf_get_height(scaled_teletext_page))
+    h = gdk_pixbuf_get_height(scaled_teletext_page)-y;
 
   gdk_pixbuf_render_to_drawable(scaled_teletext_page,
 				widget->window,
@@ -618,48 +768,69 @@ zvbi_exposed(GtkWidget * widget, gint x, gint y, gint w, gint h)
 				x, y, x, y,
 				w, h,
 				GDK_RGB_DITHER_NONE, x, y);
+#endif
 }
+
+/*
+  Builds a GdkPixbuf version of the current teletext page, and updates
+  it if neccesary.
+*/
+void zvbi_build_current_teletext_page(GtkWidget *widget)
+{
+#ifdef HAVE_GDKPIXBUF
+  gint w, h;
+#endif
+
+  if (!vbi_mode) /* Just do nothing */
+    return;
 
 #ifdef HAVE_GDKPIXBUF
-/*
-  Builds a GdkPixbuf version of the current teletext page, and returns
-  it. The result can be NULL if the page cannot be found
-*/
-GdkPixbuf *zvbi_build_current_teletext_page(GtkWidget *widget)
-{
-  gint width, height;
-  unsigned char * mem;
-  struct fmt_page pg;
-  gboolean refresh_required = FALSE;
-  unsigned char alphas[8] = {255, 255, 255, 255, 255, 255, 255, 255};
+  gdk_window_get_size(widget->window, &w, &h);
 
-  if ((zvbi_get_page_state(0x100, ANY_SUB)) || (!teletext_page))
-    {
-      /* The page needs to be rebuilt */
-      if (!zvbi_format_page(0x100, ANY_SUB, FALSE, &pg))
-	return scaled_teletext_page;
-
-      mem = zvbi_render_page_rgba(&pg, &width, &height, alphas);
-      if (!mem)
-	return scaled_teletext_page;
-      
-      if (teletext_page)
-	gdk_pixbuf_unref(teletext_page);
-
-      teletext_page = 
-      gdk_pixbuf_new_from_data(mem, GDK_COLORSPACE_RGB, TRUE, 8,
-			       width, height, width*4,
-			       z_gdk_pixbuf_free, NULL);
-
-      if (!teletext_page)
-	return NULL;
-
-      refresh_required = TRUE;
-    }
-
-  if (refresh_required)
-    zvbi_window_updated(widget, -1, -1);
-
-  return scaled_teletext_page;
+  if (zvbi_update_pixbufs(cur_page, cur_subpage, w, h))
+    zvbi_window_updated(widget);
+#endif /* HAVE_GDKPIXBUF */
 }
-#endif
+
+/* Sets the current page/subpage */
+void zvbi_set_current_page(gint page, gint subpage)
+{
+  zvbi_forget_page(cur_page, cur_subpage);
+
+  cur_page = page;
+  cur_subpage = subpage;
+
+  zvbi_monitor_page(cur_page, cur_subpage);
+  /* In the next zmisc_build_current_page the change will occur */
+}
+
+/* Gets the current page/subpage. Any of the pointers can be NULL */
+void zvbi_get_current_page(gint* page, gint* subpage)
+{
+  if (page)
+    *page = cur_page;
+  if (subpage)
+    *subpage = cur_subpage;
+}
+
+/*
+  Sets VBI mode. TRUE (on) makes the VBI engine start drawing on the
+  given window when required.
+*/
+void zvbi_set_mode(gboolean on)
+{
+  g_assert((on == TRUE) || (on == FALSE));
+
+  if ((vbi_mode == on) || (!vbi))
+    return; /* Nothing to do */
+
+  vbi_mode = on;
+}
+
+/*
+  Gets the current VBI mode. TRUE means on
+*/
+gboolean zvbi_get_mode(void)
+{
+  return vbi_mode;
+}

@@ -153,15 +153,30 @@ zvbi_set_page_state(gint page, gint subpage, gint dirty, time_t
 
 /* Called when the tv screen changes size */
 void
-zvbi_window_updated(GtkWidget *widget, gint w, gint h);
+zvbi_window_updated(GtkWidget *widget);
 
 /* Called when the tv screen receives a expose event */
 void
 zvbi_exposed(GtkWidget *widget, gint x, gint y, gint w, gint h);
 
-#ifdef HAVE_GDKPIXBUF
 /* Builds the GdkPixbuf version of the current teletext page */
-GdkPixbuf *zvbi_build_current_teletext_page(GtkWidget *widget);
-#endif /* HAVE_GDK_PIXBUF */
+void zvbi_build_current_teletext_page(GtkWidget *widget);
+
+/* Sets the current page/subpage */
+void zvbi_set_current_page(gint page, gint subpage);
+
+/* Gets the current page/subpage. Any of the pointers can be NULL */
+void zvbi_get_current_page(gint* page, gint* subpage);
+
+/*
+  Sets VBI mode. TRUE (on) makes the VBI engine start drawing on the
+  given window when required.
+*/
+void zvbi_set_mode(gboolean on);
+
+/*
+  Gets the current VBI mode. TRUE means on
+*/
+gboolean zvbi_get_mode(void);
 
 #endif /* zvbi.h */

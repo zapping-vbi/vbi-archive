@@ -393,6 +393,7 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
       zconf_set_integer(
 	gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widget)),
 			"/zapping/options/vbi/finetune");
+      break;
     default:
       p = g_list_first(plugin_list);
       while (p) /* Try with all the plugins until one of them accepts

@@ -220,6 +220,31 @@
 	      <right_justify>False</right_justify>
 	      <stock_icon>GNOME_STOCK_MENU_EXEC</stock_icon>
 	    </widget>
+
+	    <widget>
+	      <class>GtkMenuItem</class>
+	      <name>separador5</name>
+	      <right_justify>False</right_justify>
+	    </widget>
+
+	    <widget>
+	      <class>GtkPixmapMenuItem</class>
+	      <name>videotext1</name>
+	      <tooltip>Use Zapping as a videotext decoder</tooltip>
+	      <accelerator>
+		<modifiers>GDK_CONTROL_MASK | GDK_MOD1_MASK</modifiers>
+		<key>GDK_V</key>
+		<signal>activate</signal>
+	      </accelerator>
+	      <signal>
+		<name>activate</name>
+		<handler>on_videotext1_activate</handler>
+		<last_modification_time>Wed, 06 Sep 2000 17:25:34 GMT</last_modification_time>
+	      </signal>
+	      <label>Videotext</label>
+	      <right_justify>False</right_justify>
+	      <stock_icon>GNOME_STOCK_MENU_ALIGN_JUSTIFY</stock_icon>
+	    </widget>
 	  </widget>
 	</widget>
 
@@ -2299,6 +2324,26 @@ in the next release of this program.</label>
     <right_justify>False</right_justify>
     <stock_icon>GNOME_STOCK_MENU_EXEC</stock_icon>
   </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>separador6</name>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkPixmapMenuItem</class>
+    <name>videotext2</name>
+    <tooltip>Use Zapping as a videotext decoder</tooltip>
+    <signal>
+      <name>activate</name>
+      <handler>on_videotext1_activate</handler>
+      <last_modification_time>Wed, 06 Sep 2000 21:13:23 GMT</last_modification_time>
+    </signal>
+    <label>Videotext</label>
+    <right_justify>False</right_justify>
+    <stock_icon>GNOME_STOCK_MENU_ALIGN_JUSTIFY</stock_icon>
+  </widget>
 </widget>
 
 <widget>
@@ -2410,6 +2455,11 @@ in the next release of this program.</label>
 <widget>
   <class>GtkDialog</class>
   <name>txtcontrols</name>
+  <signal>
+    <name>delete_event</name>
+    <handler>on_txtcontrols_delete_event</handler>
+    <last_modification_time>Wed, 06 Sep 2000 21:25:16 GMT</last_modification_time>
+  </signal>
   <title>Controls</title>
   <type>GTK_WINDOW_TOPLEVEL</type>
   <position>GTK_WIN_POS_NONE</position>
@@ -2477,9 +2527,14 @@ in the next release of this program.</label>
 
 	<widget>
 	  <class>GtkButton</class>
-	  <name>button15</name>
+	  <name>vtx_previous</name>
 	  <tooltip>Previous page</tooltip>
 	  <can_focus>True</can_focus>
+	  <signal>
+	    <name>clicked</name>
+	    <handler>on_vtx_previous_clicked</handler>
+	    <last_modification_time>Wed, 06 Sep 2000 21:34:08 GMT</last_modification_time>
+	  </signal>
 	  <stock_button>GNOME_STOCK_BUTTON_PREV</stock_button>
 	  <child>
 	    <left_attach>0</left_attach>
@@ -2499,9 +2554,14 @@ in the next release of this program.</label>
 
 	<widget>
 	  <class>GtkButton</class>
-	  <name>button16</name>
+	  <name>vtx_next</name>
 	  <tooltip>Next page</tooltip>
 	  <can_focus>True</can_focus>
+	  <signal>
+	    <name>clicked</name>
+	    <handler>on_vtx_next_clicked</handler>
+	    <last_modification_time>Wed, 06 Sep 2000 21:34:47 GMT</last_modification_time>
+	  </signal>
 	  <stock_button>GNOME_STOCK_BUTTON_NEXT</stock_button>
 	  <child>
 	    <left_attach>2</left_attach>
@@ -2546,7 +2606,7 @@ in the next release of this program.</label>
     <widget>
       <class>GtkVBox</class>
       <name>vbox16</name>
-      <homogeneous>False</homogeneous>
+      <homogeneous>True</homogeneous>
       <spacing>0</spacing>
       <child>
 	<padding>0</padding>
@@ -2593,7 +2653,7 @@ in the next release of this program.</label>
 	  <update_policy>GTK_UPDATE_IF_VALID</update_policy>
 	  <snap>False</snap>
 	  <wrap>True</wrap>
-	  <value>100</value>
+	  <value>900</value>
 	  <lower>100</lower>
 	  <upper>900</upper>
 	  <step>1</step>
@@ -2629,6 +2689,24 @@ in the next release of this program.</label>
 	    <fill>True</fill>
 	  </child>
 	</widget>
+      </widget>
+
+      <widget>
+	<class>GtkList</class>
+	<name>history</name>
+	<tooltip>History box</tooltip>
+	<signal>
+	  <name>selection_changed</name>
+	  <handler>on_history_selection_changed</handler>
+	  <last_modification_time>Wed, 06 Sep 2000 21:24:25 GMT</last_modification_time>
+	</signal>
+	<selection_mode>GTK_SELECTION_BROWSE</selection_mode>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>False</fill>
+	  <pack>GTK_PACK_END</pack>
+	</child>
       </widget>
     </widget>
   </widget>

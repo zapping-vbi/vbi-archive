@@ -175,7 +175,7 @@ on_tv_screen_size_allocate             (GtkWidget       *widget,
                                         GtkAllocation   *allocation,
                                         gpointer         user_data)
 {
-  zvbi_window_updated(widget, allocation->width, allocation->height);
+  zvbi_window_updated(widget);
 
   if (main_info -> current_mode != TVENG_CAPTURE_READ)
     return;
@@ -482,6 +482,8 @@ on_go_fullscreen1_activate             (GtkMenuItem     *menuitem,
   if (disable_preview)
     return;
 
+  zvbi_set_mode(FALSE);
+
   restore_mode = tveng_stop_everything(main_info);
 
   /* Add a black background */
@@ -558,11 +560,17 @@ on_go_windowed1_activate               (GtkMenuItem     *menuitem,
   /* Remove the black window */
   gtk_widget_destroy(black_window);
 
+  tveng_stop_everything(main_info);
+
   if (-1 == tveng_restart_everything(restore_mode, main_info))
     {
       ShowBox(main_info -> error, GNOME_MESSAGE_BOX_ERROR);
       return;
     }
+
+  /* we were probably in Videotext mode */
+  if (restore_mode == TVENG_NO_CAPTURE)
+    zvbi_set_mode(TRUE);    
 
   widget = lookup_widget(GTK_WIDGET(menuitem), "tv_screen");
   if (!widget)
@@ -582,6 +590,38 @@ on_go_windowed1_activate               (GtkMenuItem     *menuitem,
 }
 
 void
+on_videotext1_activate                 (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+#ifndef HAVE_GDKPIXBUF
+  ShowBox(_("The videotext decoder needs GdkPixbuf, and\n"
+	    "configure didn't find it."), GNOME_MESSAGE_BOX_INFO);
+  return;
+#endif /* HAVE_GDKPIXBUF */
+  if (!zvbi_get_object())
+    {
+      ShowBox(_("VBI has been disabled, or it doesn't work."),
+	      GNOME_MESSAGE_BOX_INFO);
+      return;
+    }
+
+  if (zvbi_get_mode())
+    return;
+
+  /* Stop any current capture mode */
+  zmisc_switch_mode(TVENG_NO_CAPTURE, main_info);
+
+  /* start vbi code */
+  zvbi_set_mode(TRUE);
+
+  /* Redraw the current page */
+  zvbi_window_updated(lookup_widget(main_window, "tv_screen"));
+
+  /* Show the controls */
+  gtk_widget_show(create_txtcontrols());
+}
+
+void
 on_go_capturing2_activate              (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
@@ -589,6 +629,8 @@ on_go_capturing2_activate              (GtkMenuItem     *menuitem,
   GtkWidget *widget=lookup_widget(main_window, "tv_screen");
   GtkAllocation dummy_alloc;
 
+  zvbi_set_mode(FALSE);
+  
   if (main_info->current_mode == TVENG_CAPTURE_READ)
     return;
 
@@ -615,6 +657,8 @@ on_go_previewing2_activate             (GtkMenuItem     *menuitem,
 
   if (disable_preview)
     return;
+
+  zvbi_set_mode(FALSE);
 
   gdk_window_get_origin(lookup_widget(main_window,
 				      "tv_screen")->window, &x, &y);
@@ -781,19 +825,34 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
       
       if (disable_preview)
 	{
-	  GtkWidget * widget =
-	    lookup_widget(GTK_WIDGET(menu), "go_fullscreen2");
+	  widget = lookup_widget(GTK_WIDGET(menu), "go_fullscreen2");
 	  gtk_widget_set_sensitive(widget, FALSE);
 	  gtk_widget_hide(widget);
 	  widget = lookup_widget(GTK_WIDGET(menu), "go_previewing2");
 	  gtk_widget_set_sensitive(widget, FALSE);
 	  gtk_widget_hide(widget);
+	}
+
+      if (!zvbi_get_object())
+	{
+	  widget = lookup_widget(GTK_WIDGET(menu), "separador6");
+	  gtk_widget_set_sensitive(widget, FALSE);
+	  gtk_widget_hide(widget);
+	  widget = lookup_widget(GTK_WIDGET(menu), "videotext2");
+	  gtk_widget_set_sensitive(widget, FALSE);
+	  gtk_widget_hide(widget);
+	}
+
+      /* Remove capturing item if it's redundant */
+      if ((!zvbi_get_object()) && (disable_preview))
+	{
+	  gtk_widget_hide(lookup_widget(GTK_WIDGET(menu),
+					"separador3"));
 	  widget = lookup_widget(GTK_WIDGET(menu), "go_capturing2");
 	  gtk_widget_set_sensitive(widget, FALSE);
 	  gtk_widget_hide(widget);
-	  gtk_widget_hide(lookup_widget(GTK_WIDGET(menu),
-					"separador3"));
 	}
+
       gtk_menu_popup(menu, NULL, NULL, NULL,
 		     NULL, bevent->button, bevent->time);
       gtk_object_set_user_data(GTK_OBJECT(menu), zapping);

@@ -23,9 +23,10 @@ zapping_SOURCES = \
 	plugins.c plugins.h \
 	zconf.c zconf.h \
 	zmisc.c zmisc.h \
-	properties.c callbacks.h \
-	channel_editor.c callbacks.h \
-	plugin_properties.c callbacks.h \
+	properties.c \
+	channel_editor.c \
+	plugin_properties.c \
+	txtcontrols.c \
 	tveng1.c tveng1.h \
 	tveng2.c tveng2.h \
 	tveng.c tveng.h \

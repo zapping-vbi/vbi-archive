@@ -120,6 +120,10 @@ on_go_windowed1_activate               (GtkMenuItem     *menuitem,
                                         gpointer         user_data);
 
 void
+on_videotext1_activate                 (GtkMenuItem     *menuitem,
+                                        gpointer         user_data);
+
+void
 on_go_capturing2_activate              (GtkMenuItem     *menuitem,
                                         gpointer         user_data);
 
@@ -300,5 +304,25 @@ void
 on_plugin_properties_help              (GnomePropertyBox *gnomepropertybox,
                                         gint             arg1,
                                         gpointer         user_data);
+
+/******************************************************************************
+ Stuff located in txtcontrols.c
+******************************************************************************/
+gboolean
+on_txtcontrols_delete_event            (GtkWidget       *widget,
+                                        GdkEvent        *event,
+                                        gpointer         user_data);
+
+void
+on_history_selection_changed           (GtkList         *list,
+					gpointer         user_data);
+
+void
+on_vtx_previous_clicked                (GtkButton       *button,
+					gpointer         user_data);
+
+void
+on_vtx_next_clicked                    (GtkButton       *button,
+					gpointer         user_data);
 
 #endif /* __CALLBACKS_H__ */

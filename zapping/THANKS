@@ -1,5 +1,8 @@
 Thanks to Christian Marillat for the french translation.
 Thanks to Michael Schimek for helping me with the mp1e
 code, and for building such a wonderful program.
+Thanks to Edgar Toerning for the AleVT code, in which libvbi (the
+teletext decoder built into Zapping) is based, and for his permission
+to use it.
 
 And, of course, thanks to the people that sent bug reports and suggestions.

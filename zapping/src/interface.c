@@ -154,3 +154,9 @@ create_searching (void)
 {
   return build_widget("searching");
 }
+
+GtkWidget*
+create_txtcontrols (void)
+{
+  return build_widget("txtcontrols");
+}

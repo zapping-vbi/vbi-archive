@@ -1,3 +1,15 @@
+06.9.2000	VBI integrated <garetxe@users.sourceforge.net>
+
+	* glade/zapping.glade: VBI has been integrated into the GUI.
+	* src/callbacks.c: Added code for switching to VBI
+	* src/zvbi.c: Much less CPU usage (pre-rendered frames, draw only
+	when neccessary)
+	* pixmaps/vt_loading*: Two images (~10K) created for when the
+	requested page isn't available.
+	* src/channel_editor.c: Uses VBI for getting the station names.
+	* src/main.c: Added config setting for saving the VBI state.
+	* src/txtcontrols.c: Created, manages the VBI GUI.
+
 05.9.2000	Bpp fixes <garetxe@users.sourceforge.net>
 
 	* zapping_setup_fb: Now accepts command line --bpp option
@@ -18,7 +30,7 @@
 	* configure.in: Not having -lpng is not longer fatal, conditional
 	plugin build, [optional] GdkPixbuf support added (i will need it
 	for the VBI plugin)
-	
+
 01.9.2000	VBI support added <garetxe@users.sourceforge.net>
 
 	* libvbi/: Added support for VBI (stolen from alevt)
