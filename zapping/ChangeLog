@@ -1,3 +1,12 @@
+2003-12-01    <mschimek@users.sf.net>
+
+	* src/zmisc.c (z_status_print): Merged z_status_print_markup()
+	  in and added hide/clean option.
+	* src/audio.c (set_mute): Bad OSD markup.
+	* src/osd.c (render_console): Assumed console uses UTF-8.
+	  (osd_render_markup): Use no markup (i.e. funky colors)
+	  in status bar, clean but hide after timeout.
+
 2003-11-29    <mschimek@users.sf.net>
 
 	* Merged zapping-gnome2 branch back into cvs main trunk.

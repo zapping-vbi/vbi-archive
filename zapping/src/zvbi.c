@@ -752,7 +752,7 @@ acknowledge_trigger			(vbi_link	*link)
       break;
     }
   z_status_set_widget(button);
-  z_status_print(buffer, -1);
+  z_status_print(buffer, /* markup */ FALSE, -1);
   g_free(buffer);
 }
 

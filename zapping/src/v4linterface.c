@@ -1459,7 +1459,8 @@ kp_key_press			(GdkEventKey *		event,
 	  }
 
 	kp_clear = FALSE;
-	osd_render_markup (kp_timeout, ("<span foreground=\"green\">%s</span>"),
+	osd_render_markup (kp_timeout,
+			   ("<span foreground=\"green\">%s</span>"),
 			   kp_chsel_buf);
 	kp_clear = TRUE;
 

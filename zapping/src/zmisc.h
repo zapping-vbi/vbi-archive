@@ -32,6 +32,18 @@
 #include <string.h>
 #include <assert.h>
 
+/* Progress mark, GNU coding style (www.gnu.org) error message,
+   compatible with emacs M-x next-error. */
+#if 1
+#define PR fprintf (stderr, "%s:%u:", __FILE__, __LINE__)
+#define PRF(templ, ...)							\
+	fprintf (stderr, "%s:%u: " templ, __FILE__, __LINE__		\
+ 		 , ## __VA_ARGS__)
+#else
+#define PR 0
+#define PRF(templ, ...) 0
+#endif
+
 #define N_ELEMENTS(array) (sizeof (array) / sizeof (*(array)))
 
 #ifdef __GNUC__
@@ -306,21 +318,16 @@ z_restart_everything(enum tveng_capture_mode mode,
 		     tveng_device_info * info);
 
 /**
- * Prints the message in the status bar.
- * if the bar is hidden, it's shown.
- * Timeout is the time in ms to wait before the status is
- * automagically hidden again. Can be <= 0, in this case the bar
- * doesn't hide automatically.
+ * Prints the message in the status bar, optional with pango markup.
+ * If the status bar is hidden, it's shown. Timeout is the time in ms to
+ * wait before the status bar is cleaned or hidden again. Can be
+ * 0 to keep the message.
  */
 void
-z_status_print(const gchar *message, gint timeout);
-
-/**
- * Same thing but pango markup is allowed.
- * if the bar is hidden, it's shown.
- */
-void
-z_status_print_markup(const gchar *markup, gint timeout);
+z_status_print			(const gchar *		message,
+				 gboolean		markup,
+				 guint			timeout,
+				 gboolean		hide);
 
 /**
  * Adds the given widget to the status bar, it replaces any widgets

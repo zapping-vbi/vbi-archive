@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: osd.h,v 1.18 2003-11-29 19:43:24 mschimek Exp $ */
+/* $Id: osd.h,v 1.19 2003-12-01 04:29:47 mschimek Exp $ */
 
 #ifndef __OSD_H__
 #define __OSD_H__
@@ -40,6 +40,9 @@ void osd_unset_window(void);
 /* Clears any OSD text in the window */
 void osd_clear(void);
 
+typedef void
+osd_timeout_fn			(gboolean);
+
 /**
  * Formats and renders the given string that might contain pango
  * markup.
@@ -48,16 +51,26 @@ void osd_clear(void);
  * @string: Chars to draw.
  */
 void
-osd_render_markup	(void (* timeout_cb)(gboolean),
-			 const char *string, ...);
+osd_render_markup		(osd_timeout_fn *	timeout_cb,
+				 const char *		string,
+				 ...)
+#ifdef __GNUC__
+     __attribute__ ((format (printf, 2, 3)))
+#endif
+     ;
 
 /**
  * Like osd_render_pango_markup but no markup parsing is done, the
  * string is printed as is.
  */
 void
-osd_render		(void (* timeout_cb)(gboolean),
-			 const char *string, ...);
+osd_render			(osd_timeout_fn *	timeout_cb,
+				 const char *		string,
+				 ...)
+#ifdef __GNUC__
+     __attribute__ ((format (printf, 2, 3)))
+#endif
+     ;
 
 extern ZModel *osd_model; /* used for notification of changes */
 

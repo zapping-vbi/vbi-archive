@@ -1,9 +1,7 @@
 Known bugs in Zapping, don't report them
 ----------------------------------------
 
-* OSD doesn't work
-  (zapping:27973): WARNING **: pango-layout.c:830: Unknown tag
-  'blue' on line 1 char 42
+* Make sure we don't link with 0.6.x plugins. 
 * Overlay needs a review.
 * Chance hang in request_capture_format_real at some rwlock,
   in libzvbi-less Zapping, when switching display mode

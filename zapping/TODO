@@ -1,6 +1,8 @@
 Outstanding issues for future releases
 --------------------------------------
 
+* keyboard: there are too many conflicts between the Zapping
+  and Xawtv mapping, better add an option to prefs.
 * Still need ure?
 * Suppress mute function of keypad enter when entering
   channel number.

@@ -599,7 +599,8 @@ on_user_key_press		(GtkWidget *		widget,
   key.key = gdk_keyval_to_lower (event->keyval);
   key.mask = event->state;
 
-  /* fprintf(stderr, "key %x %x\n", key.key, key.mask); */
+  if (0)
+    fprintf (stderr, "key %x %x\n", key.key, key.mask);
 
   for (kb = kb_list; kb; kb = kb->next)
     if (z_key_equal (kb->key, key))
