@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.c,v 1.4.2.3 2004-04-05 04:42:27 mschimek Exp $ */
+/* $Id: lang.c,v 1.4.2.4 2004-04-08 23:36:25 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -554,7 +554,7 @@ composed [12 * 16] = {
  * Unicode value or 0.
  */
 unsigned int
-vbi_teletext_composed_unicode	(unsigned int		a,
+_vbi_teletext_composed_unicode	(unsigned int		a,
 				 unsigned int		c)
 {
 	unsigned int i;

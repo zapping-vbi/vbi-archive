@@ -21,15 +21,16 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.h,v 1.5.2.3 2004-02-25 17:35:28 mschimek Exp $ */
+/* $Id: exp-txt.h,v 1.5.2.4 2004-04-08 23:36:25 mschimek Exp $ */
 
-#ifndef EXP_TXT_H
-#define EXP_TXT_H
+#ifndef __ZVBI_EXP_TXT_H__
+#define __ZVBI_EXP_TXT_H__
 
-#include <stdarg.h>
-#include "format.h"
+#include <stdarg.h>		/* va_list */
+#include "macros.h"
+#include "format.h"		/* vbi_page */
 
-/* Public */
+VBI_BEGIN_DECLS
 
 /**
  * @addtogroup Render
@@ -73,6 +74,6 @@ vbi_print_page			(vbi_page *		pg,
 				 ...);
 /** @} */
 
-/* Private */
+VBI_END_DECLS
 
-#endif /* EXP_TXT_H */
+#endif /* __ZVBI_EXP_TXT_H__ */

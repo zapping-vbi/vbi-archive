@@ -17,14 +17,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.h,v 1.2.2.5 2004-04-05 04:42:27 mschimek Exp $ */
+/* $Id: lang.h,v 1.2.2.6 2004-04-08 23:36:25 mschimek Exp $ */
 
 #ifndef __ZVBI_LANG_H__
 #define __ZVBI_LANG_H__
 
 #include "macros.h"
-
-/* Public */
 
 VBI_BEGIN_DECLS
 
@@ -163,10 +161,7 @@ _vbi_teletext_ascii_art		(unsigned int		c);
 extern unsigned int
 _vbi_teletext_composed_unicode	(unsigned int		a,
 				 unsigned int		c);
-/* Public */
 
 VBI_END_DECLS
-
-/* Private */
 
 #endif /* __ZVBI_LANG_H__ */

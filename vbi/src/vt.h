@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vt.h,v 1.4.2.13 2004-04-05 04:42:27 mschimek Exp $ */
+/* $Id: vt.h,v 1.4.2.14 2004-04-08 23:36:26 mschimek Exp $ */
 
 #ifndef VT_H
 #define VT_H
@@ -29,17 +29,21 @@
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
+#include <assert.h>
 
 #include "bcd.h"
 #include "format.h"
 #include "lang.h"
 #include "pdc.h"
 #include "pfc_demux.h"
+#include "teletext_decoder.h"
 
 #ifndef VBI_DECODER
 #define VBI_DECODER
 typedef struct vbi_decoder vbi_decoder;
 #endif
+
+
 
 /**
  * @internal
@@ -183,19 +187,21 @@ extern void
 pagenum_dump			(const pagenum *	pn,
 				 FILE *			fp);
 
+/* Level one page enhancement */
+
 /**
  * @internal
  * 12.3.1 Packet X/26 code triplet.
  * Broken triplets are set to -1, -1, -1.
  */
-struct _triplet {
+typedef struct {
 	unsigned	address		: 8;
 	unsigned	mode		: 8;
 	unsigned	data		: 8;
-} __attribute__ ((packed));
+} __attribute__ ((packed)) triplet;
 
 /** @internal */
-typedef struct _triplet triplet;
+typedef triplet enhancement[16 * 13 + 1];
 
 /* Level one page extension */
 
@@ -211,6 +217,7 @@ typedef struct {
 	int		right_panel_columns;
 } ext_fallback;
 
+/** @internal */
 #define VBI_TRANSPARENT_BLACK 8
 
 /**
@@ -271,14 +278,26 @@ extern void
 extension_dump			(const extension *	ext,
 				 FILE *			fp);
 
+/**
+ * @internal
+ *
+ * 12.3.1 Table 28 Mode 10001, 10101 - Object invocation,
+ * object definition. See also triplet_object_address().
+ *
+ * MOT default, POP and GPOP object address.
+ *
+ * n8  n7  n6  n5  n4  n3  n2  n1  n0
+ * packet  triplet lsb ----- s1 -----
+ */
+typedef int object_address;
+
 /** @internal */
 typedef struct {
 	pagenum			page;
 	uint8_t			text[12];
 } ait_title;
 
-/** @internal */
-typedef triplet enhancement[16 * 13 + 1];
+/* Level one page */
 
 /**
  * @internal
@@ -294,28 +313,20 @@ typedef triplet enhancement[16 * 13 + 1];
 #define C9_INTERRUPTED		0x040000
 #define C10_INHIBIT_DISPLAY	0x080000
 #define C11_MAGAZINE_SERIAL	0x100000
-#define C12_CONTINUE		0x200000
-#define C13_CHANGES		0x400000
+#define C12_FRAGMENT		0x200000
+#define C13_PARTIAL_PAGE	0x400000
 #define C14_RESERVED		0x800000
-
-/* Level one page */
 
 struct lop {
 	uint8_t			raw[26][40];
 	pagenum			link[6 * 6];	/* X/27/0-5 links */
 	vbi_bool		have_flof;
-	vbi_bool		have_ext;
+  //	vbi_bool		have_ext;
 };
 
 /**
  * @internal
- *
- * This structure holds a raw Teletext page as decoded by
- * vbi_teletext_packet(), stored in the Teletext page cache, and
- * formatted by vbi_format_vt_page() creating a vbi_page. It is
- * thus not directly accessible by the client. Note the size
- * (of the union) will vary in order to save cache memory.
- **/
+ */
 typedef struct {
 	/**
 	 * Defines the page function and which member of the
@@ -323,19 +334,19 @@ typedef struct {
 	 */ 
 	page_function		function;
 
-	/**
-	 * Page and subpage number.
-	 */
+	/** Page and subpage number. */
 	vbi_pgno		pgno;
 	vbi_subno		subno;
 
 	/**
-	 * National character set designator 0 ... 7.
+	 * National character set designator 0 ... 7
+	 * (3 lsb of a vbi_character_set_code).
 	 */
 	int			national;
 
 	/**
-	 * Page flags C4 ... C14. Other bits will be set, just ignore them.
+	 * Page flags C4 ... C14.
+	 * Other bits will be set, just ignore them.
 	 */
 	unsigned int		flags;
 
@@ -380,10 +391,28 @@ typedef struct {
 		  	triplet			triplet[39 * 13 + 1];
 		}		gpop, pop;
 		struct {
-			struct lop		lop;
-			uint8_t			chars[48][12 * 10 / 2];
-			uint8_t			mode[48];
-			uint64_t		invalid;
+			/** DRCS in raw format for error correction. */
+			struct lop	lop;
+
+			/**
+			 * Each character consists of 12x10 pixels, stored
+			 * left to right and top to bottom. Pixels can assume
+			 * up to 16 colors. Every two pixels
+			 * are stored in one byte, left pixel in bits 0x0F,
+			 * right pixel in bits 0xF0.
+			 */
+			uint8_t		chars[DRCS_PTUS_PER_PAGE][12 * 10 / 2];
+
+			/** See 9.4.6. */
+			uint8_t		mode[DRCS_PTUS_PER_PAGE];
+
+			/**
+			 * 1 << (0 ... (DRCS_PTUS_PER_PAGE - 1)).
+			 *
+			 * Note characters can span multiple successive PTUs,
+			 * see get_drcs_data().
+			 */
+			uint64_t	invalid;
 		}		gdrcs, drcs;
 		struct {
 			ait_title	title[46];
@@ -446,19 +475,7 @@ vt_page_copy			(vt_page *		tvtp,
 	return tvtp;
 }
 
-
-/**
- * @internal
- *
- * 12.3.1 Table 28 Mode 10001, 10101 - Object invocation,
- * object definition.
- *
- * MOT default, POP and GPOP object address.
- *
- * n8  n7  n6  n5  n4  n3  n2  n1  n0
- * packet  triplet lsb ----- s1 -----
- */
-typedef int object_address;
+/* Magazine */
 
 /**
  * @internal
@@ -475,7 +492,7 @@ typedef struct {
 
 /**
  * @internal
- * Magazine defaults.
+ * @brief Magazine defaults.
  */
 typedef struct {
 	/** Default extension. */
@@ -489,54 +506,40 @@ typedef struct {
 	uint8_t			drcs_lut[0x100];
 
 	/**
-	 * Level 2.5 or 3.5, 1 global and 7 local links to POP/DRCS
-	 * page. Unused or broken: NO_PAGE (pgno).
+	 * Level 2.5 (0) or 3.5 (1), 1 global and 7 local links to
+	 * POP/DRCS page. Unused or broken: NO_PAGE (pgno).
 	 */
     	pop_link		pop_link[2][8];
 	vbi_pgno		drcs_link[2][8];
 } magazine;
 
-/* Public */
+/* Network */
 
-#include <stdarg.h>
+/** @inline */
+#define SUBCODE_SINGLE_PAGE	0x0000
+/** @inline */
+#define SUBCODE_MULTI_PAGE	0xFFFE
+/** @inline */
+#define SUBCODE_UNKNOWN		0xFFFF
 
-/**
- * @ingroup Service
- * @brief Teletext implementation level.
- */
-typedef enum {
-	VBI_WST_LEVEL_1,   /**< 1 - Basic Teletext pages */
-	VBI_WST_LEVEL_1p5, /**< 1.5 - Additional national and graphics characters */
-	/**
-	 * 2.5 - Additional text styles, more colors and DRCS. You should
-	 * enable Level 2.5 only if you can render and/or export such pages.
-	 */
-	VBI_WST_LEVEL_2p5,
-	VBI_WST_LEVEL_3p5  /**< 3.5 - Multicolor DRCS, proportional script */
-} vbi_wst_level;
-
-/* Private */
-
-#define SUBCODE_SINGLE_PAGE 0x0000
-#define SUBCODE_MULTI_PAGE 0xFFFE
-#define SUBCODE_UNKNOWN 0xFFFF
-
+/** @inline */
 typedef struct {
 	/* Information gathered from MOT, MIP, BTT, G/POP pages. */
 
-	/** vbi_page_type. */
+	/** Actually vbi_page_type. */
 	uint8_t			page_type;
 
-	/** vbi_character_set_code, 0xFF unknown. */
+	/** Actually vbi_character_set_code, 0xFF unknown. */
   	uint8_t			charset_code;
 
 	/**
-	 * Highest subpage number transmitted.
-	 * - 0x0000		single page
+	 * Highest subpage number transmitted according to MOT, MIP, BTT.
+	 * - 0x0000		single page (SUBCODE_SINGLE_PAGE)
 	 * - 0x0002 - 0x0099	multi-page
-	 * - 0x0100 - 0x3F7F	clock page?
-	 * - 0xFFFE		has 2+ subpages (libzvbi)
-	 * - 0xFFFF		unknown (libzvbi)
+	 * - 0x0100 - 0x3F7F	clock page, other pages with non-standard
+	 *			subpages not to be cached
+	 * - 0xFFFE		has 2+ subpages (libzvbi) (SUBCODE_MULTI_PAGE)
+	 * - 0xFFFF		unknown (libzvbi) (SUBCODE_UNKNOWN)
 	 */
 	uint16_t 		subcode;
 
@@ -546,17 +549,18 @@ typedef struct {
 	uint8_t			n_subpages;
 	uint8_t			max_subpages;
 
-	/** Subpage numbers encountered (0x00 ... 0x99). */
+	/** Subpage numbers actually encountered (0x00 ... 0x79). */
 	uint8_t			subno_min;
 	uint8_t			subno_max;
 } page_stat;
 
+/** @inline */
 typedef struct {
 	vbi_nuid		client_nuid;
 	vbi_nuid		received_nuid;
 
 	/**
-	 * Last received program ID, sorted by vbi_program_id.channel.
+	 * Last received program ID sorted by vbi_program_id.channel.
 	 */
 	vbi_program_id		program_id[6];
 
@@ -575,11 +579,13 @@ typedef struct {
 	pagenum			btt_link[2 * 5];
 	vbi_bool		have_top;
 
+	/** Magazine defaults. Use vt_network_magazine(). */
 	magazine		_magazines[8];
 
 	/** Last packet 8/30 Status Display, with parity. */
 	uint8_t			status[20];
 
+	/** Page statistics. Use vt_network_page_stat(). */
 	page_stat		_pages[0x800];
 } vt_network;
 
@@ -610,11 +616,20 @@ vt_network_page_stat		(vt_network *		vtn,
 	return vtn->_pages - 0x100 + pgno;
 }
 
-typedef struct _vbi_teletext_decoder vbi_teletext_decoder;
+/* Teletext decoder */
 
 struct _vbi_teletext_decoder {
+	/** The cache we use. */
+  //	vbi_cache *		cache;
+
+	/** Current network in the cache. */
+  //	vt_network *		network;
+
 	vt_network		network[1];
 
+	/**
+	 * Pages in progress, per magazine in case of parallel transmission.
+	 */
 	vt_page			buffer[8];
 	vt_page	*		current;
 
@@ -624,129 +639,45 @@ struct _vbi_teletext_decoder {
 	/** Used for channel switch detection. */
 	pagenum			header_page;
 	uint8_t			header[40];
+
+	/**
+	 * If > 0 we suspect a channel switch and discard all received
+	 * data. The number is decremented with each packet, when we
+	 * reach no conclusion a channel switch is assumed.
+	 */
+  //	unsigned int		reset_delay;
+
+	double			timestamp;
+
+  //	_vbi_event_handlers	handlers;
+
+  //	void (* virtual_reset)	(vbi_teletext_decoder *	td,
+  //				 vbi_nuid		nuid,
+  //				 int			delay);
 };
+
+//extern vbi_bool
+//_vbi_convert_cached_page	(vbi_cache *		ca,
+//				 vt_network *		vtn,
+//				 const vt_page **	vtpp,
+//				 page_function		new_function);
+extern vbi_bool
+_vbi_convert_cached_page	(vbi_decoder *		vbi,
+				 const vt_page **	vtpp,
+				 page_function		new_function);
+// preliminary
+extern vbi_bool
+vbi_decode_teletext		(vbi_decoder *		vbi,
+				 const uint8_t		buffer[42],
+				 double			timestamp);
 
 extern void
 _vbi_teletext_decoder_resync	(vbi_teletext_decoder *	td);
-
-/* Public */
-
-/**
- * @addtogroup Service
- * @{
- */
-extern void		vbi_teletext_set_default_region(vbi_decoder *vbi, int default_region);
-//obsolete extern void		vbi_teletext_set_level(vbi_decoder *vbi, int level);
-/** @} */
-
-
-/**
- * @addtogroup Cache
- * @{
- */
-
-typedef enum {
-	/**
-	 * Format only the first row.
-	 * Parameter: vbi_bool.
-	 */
-	VBI_HEADER_ONLY = 0x37138F00,
-	/**
-	 * Often column 0 of a page contains all black spaces,
-	 * unlike column 39. Enabling this option will result in
-	 * a more balanced view.
-	 * Parameter: vbi_bool.
-	 */
-	VBI_41_COLUMNS,
-	/**
-	 * Enable TOP or FLOF navigation in row 25.
-	 * Parameter: vbi_bool.
-	 */
-	VBI_NAVIGATION,
-	/**
-	 * Scan the page for page numbers, URLs, e-mail addresses
-	 * etc. and create hyperlinks.
-	 * Parameter: vbi_bool.
-	 */
-	VBI_HYPERLINKS,
-	/**
-	 * Scan the page for PDC Method A/B preselection data
-	 * and create a PDC table and links.
-	 * Parameter: vbi_bool.
-	 */
-	VBI_PDC_LINKS,
-	/**
-	 * Format the page at the given Teletext implementation level.
-	 * Parameter: vbi_wst_level.
-	 */
-	VBI_WST_LEVEL,
-	/**
-	 * Parameter: vbi_character_set_code.
-	 */
-	VBI_CHAR_SET_DEFAULT,
-	/**
-	 * Parameter: vbi_character_set_code.
-	 */
-	VBI_CHAR_SET_OVERRIDE,
-} vbi_format_option;
-
-extern vbi_page *
-vbi_page_new			(void);
 extern void
-vbi_page_delete			(vbi_page *		pg);
-extern vbi_page *
-vbi_page_copy			(const vbi_page *	pg);
-extern const uint8_t *
-vbi_page_drcs_data		(const vbi_page *	pg,
-				 unsigned int		unicode);
-
-extern vbi_page *
-vbi_fetch_vt_page		(vbi_decoder *		vbi,
-				 vbi_pgno		pgno,
-				 vbi_subno		subno,
-				 ...);
-extern vbi_page *
-vbi_fetch_vt_page_va_list	(vbi_decoder *		vbi,
-				 vbi_pgno		pgno,
-				 vbi_subno		subno,
-				 va_list		format_options);
-
-extern int		vbi_page_title(vbi_decoder *vbi, int pgno, int subno, char *buf);
-/** @} */
-/**
- * @addtogroup Event
- * @{
- */
+_vbi_teletext_decoder_destroy	(vbi_teletext_decoder *	td);
 extern vbi_bool
-vbi_page_hyperlink		(const vbi_page *	pg,
-				 vbi_link *		ld,
-				 unsigned int		column,
-				 unsigned int		row);
-extern vbi_bool
-vbi_page_nav_enum		(const vbi_page *	pg,
-				 vbi_link *		ld,
-				 unsigned int		index);
-vbi_inline void
-vbi_page_home_link		(const vbi_page *	pg,
-				 vbi_link *		ld)
-{
-	vbi_page_nav_enum (pg, ld, 5);
-}
-
-/** @} */
-
-/* Private */
-
-/* packet.c */
-
-extern void		vbi_teletext_init(vbi_decoder *vbi);
-extern void		vbi_teletext_destroy(vbi_decoder *vbi);
-extern vbi_bool		vbi_decode_teletext(vbi_decoder *vbi, 		    const uint8_t buffer[42]);
-extern void		vbi_teletext_desync(vbi_decoder *vbi);
-extern void             vbi_teletext_channel_switched(vbi_decoder *vbi);
-extern vbi_bool		_vbi_convert_cached_page	(vbi_decoder *		vbi,
-						 const vt_page **	vtpp,
-						 page_function		new_function);
-
+_vbi_teletext_decoder_init	(vbi_teletext_decoder *	td,
+				 vbi_cache *		ca,
+				 vbi_nuid		nuid);
 
 #endif

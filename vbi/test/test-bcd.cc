@@ -3,14 +3,14 @@
  *  Copyright (C) 2003 Michael H. Schimek
  */
 
-/* $Id: test-bcd.cc,v 1.1.2.3 2003-12-28 15:24:32 mschimek Exp $ */
+/* $Id: test-bcd.cc,v 1.1.2.4 2004-04-08 23:36:49 mschimek Exp $ */
 
 #include <iostream>
 #include <iomanip>
 
 #include <assert.h>
 
-#include "libzvbi.h"
+#include "src/zvbi.h"
 
 #define INT_BITS (sizeof (int) * 8)
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: decode.c,v 1.1.2.3 2004-04-05 04:42:35 mschimek Exp $ */
+/* $Id: decode.c,v 1.1.2.4 2004-04-08 23:36:49 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -34,7 +34,7 @@
 #include <getopt.h>
 #endif
 
-#include <libzvbi.h>
+#include "src/zvbi.h"
 
 #define printable(c) \
 	((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))

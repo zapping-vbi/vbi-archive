@@ -18,14 +18,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: intl.h,v 1.1.2.1 2004-03-31 00:41:34 mschimek Exp $ */
+/* $Id: intl.h,v 1.1.2.2 2004-04-08 23:36:25 mschimek Exp $ */
 
 #ifndef __ZVBI_INTL_H__
 #define __ZVBI_INTL_H__
 
 #include "macros.h"
-
-/* Public */
 
 VBI_BEGIN_DECLS
 
@@ -40,7 +38,5 @@ VBI_BEGIN_DECLS
 extern const char vbi_intl_domainname [];
 
 VBI_END_DECLS
-
-/* Private */
 
 #endif /* __ZVBI_INTL_H__ */

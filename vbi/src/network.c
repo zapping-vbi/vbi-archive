@@ -19,12 +19,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: network.c,v 1.1.2.3 2004-03-31 00:41:34 mschimek Exp $ */
+/* $Id: network.c,v 1.1.2.4 2004-04-08 23:36:25 mschimek Exp $ */
 
 #include "../config.h"
 
+#include <assert.h>
 #include <stdlib.h>
-
+#include "misc.h"
 #include "bcd.h"
 #include "conv.h"
 #include "network.h"
@@ -151,7 +152,7 @@ cni_table [] = {
 	{ 36,	"FR", "LCI",				0x33C4, 0x2FC4, 0x3F44, 0x0000 },
 	{ 37,	"FR", "M6",				0x33F6, 0x2F06, 0x3F06, 0x0000 },
 	{ 38,	"FR", "MCM",				0x33C6, 0x2FC6, 0x3F46, 0x0000 },
-	{ 39,	"FR", "Paris Première",		0x33C8, 0x2FC8, 0x3F48, 0x0000 },
+	{ 39,	"FR", "Paris Première",			0x33C8, 0x2FC8, 0x3F48, 0x0000 },
 	{ 40,	"FR", "Planète",			0x33C9, 0x2FC9, 0x3F49, 0x0000 },
 	{ 41,	"FR", "RFO1",				0x3311, 0x2F11, 0x3F11, 0x0000 },
 	{ 42,	"FR", "RFO2",				0x3312, 0x2F12, 0x3F12, 0x0000 },
@@ -282,8 +283,8 @@ cni_table [] = {
 	{ 144,	"DE", "SDR/SWF Baden-Württemberg",	0x0000, 0x0000, 0x0000, 0x0DDD },
 	{ 145,	"DE", "SWF-1 Rheinland-Pfalz",		0x0000, 0x0000, 0x0000, 0x0DDE },
 	{ 146,	"DE", "SR-1 Regional",			0x49DF, 0x0000, 0x0000, 0x0DDF },
-	{ 147,	"DE", "Südwest 3 (SDR/SR/SWF)",	0x0000, 0x0000, 0x0000, 0x0DE0 },
-	{ 148,	"DE", "SW 3 Baden-Württemberg",	0x49E1, 0x0000, 0x0000, 0x0DE1 },
+	{ 147,	"DE", "Südwest 3 (SDR/SR/SWF)",		0x0000, 0x0000, 0x0000, 0x0DE0 },
+	{ 148,	"DE", "SW 3 Baden-Württemberg",		0x49E1, 0x0000, 0x0000, 0x0DE1 },
 	{ 149,	"DE", "SW 3 Saarland",			0x0000, 0x0000, 0x0000, 0x0DE2 },
 	{ 150,	"DE", "SW 3 Baden-Württemb. Süd",	0x0000, 0x0000, 0x0000, 0x0DE3 },
 	{ 151,	"DE", "SW 3 Rheinland-Pfalz",		0x49E4, 0x0000, 0x0000, 0x0DE4 },
@@ -561,8 +562,8 @@ cni_pdc_a_to_vps		(unsigned int		cni)
 	   in DE and AT. Is this defined anywhere? */
 
 	switch (cni >> 12) {
-	case 0x1a: /* Austria */
-	case 0x1d: /* Germany */
+	case 0x1A: /* Austria */
+	case 0x1D: /* Germany */
 		if (!vbi_is_bcd (cni & 0xFFF))
 			return 0;
 
@@ -594,8 +595,8 @@ static unsigned int
 cni_vps_to_pdc_a		(unsigned int		cni)
 {
 	switch (cni >> 8) {
-	case 0xa: /* Austria */
-	case 0xd: /* Germany */
+	case 0xA: /* Austria */
+	case 0xD: /* Germany */
 		switch (cni & 0xFF) {
 		case 0xC0 ... 0xFF:
 			cni = ((cni << 4) & 0xF000) + 0x10000

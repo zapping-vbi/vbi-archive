@@ -21,15 +21,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: hamm.h,v 1.4.2.4 2004-03-31 00:41:34 mschimek Exp $ */
+/* $Id: hamm.h,v 1.4.2.5 2004-04-08 23:36:25 mschimek Exp $ */
 
 #ifndef __ZVBI_HAMM_H__
 #define __ZVBI_HAMM_H__
 
-#include "macros.h"
-
-/* Public */
 #include <inttypes.h>		/* uintN_t */
+#include "macros.h"
 
 VBI_BEGIN_DECLS
 
@@ -200,7 +198,5 @@ vbi_iham24p			(const uint8_t *	p) vbi_pure;
 /** @} */
 
 VBI_END_DECLS
-
-/* Private */
 
 #endif /* __ZVBI_HAMM_H__ */

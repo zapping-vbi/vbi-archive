@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet-830.h,v 1.1.2.2 2004-04-05 04:42:27 mschimek Exp $ */
+/* $Id: packet-830.h,v 1.1.2.3 2004-04-08 23:36:25 mschimek Exp $ */
 
 #ifndef __ZVBI_PACKET_830_H__
 #define __ZVBI_PACKET_830_H__
@@ -26,8 +26,6 @@
 #include <time.h>		/* time_t */
 #include "macros.h"
 #include "pdc.h"		/* vbi_program_id */
-
-/* Public */
 
 VBI_BEGIN_DECLS
 
@@ -52,7 +50,5 @@ vbi_decode_teletext_8302_pdc	(vbi_program_id *	pid,
 /** @} */
 
 VBI_END_DECLS
-
-/* Private */
 
 #endif /* __ZVBI__PACKET_830_H__ */

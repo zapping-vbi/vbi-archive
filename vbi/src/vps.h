@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vps.h,v 1.1.2.3 2004-04-05 04:42:27 mschimek Exp $ */
+/* $Id: vps.h,v 1.1.2.4 2004-04-08 23:36:26 mschimek Exp $ */
 
 #ifndef __ZVBI_VPS_H__
 #define __ZVBI_VPS_H__
@@ -25,8 +25,6 @@
 #include <inttypes.h>		/* uint8_t */
 #include "macros.h"
 #include "pdc.h"		/* vbi_program_id */
-
-/* Public */
 
 VBI_BEGIN_DECLS
 
@@ -43,7 +41,5 @@ vbi_decode_vps_pdc		(vbi_program_id *	pid,
 /** @} */
 
 VBI_END_DECLS
-
-/* Private */
 
 #endif /* __ZVBI_VPS_H__ */

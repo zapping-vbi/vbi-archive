@@ -17,21 +17,17 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.h,v 1.1.2.5 2004-04-05 04:42:27 mschimek Exp $ */
+/* $Id: pdc.h,v 1.1.2.6 2004-04-08 23:36:26 mschimek Exp $ */
 
 #ifndef __ZVBI_PDC_H__
 #define __ZVBI_PDC_H__
 
 #include <inttypes.h>		/* uint8_t */
-/* Public */
 #include <stdio.h>		/* FILE */
-/* Private */
 #include <time.h>		/* time_t */
 #include "macros.h"
 #include "network.h"		/* vbi_nuid */
 #include "format.h"		/* vbi_page */
-
-/* Public */
 
 VBI_BEGIN_DECLS
 
@@ -340,10 +336,6 @@ vbi_page_mark_pdc		(vbi_page *		pg,
 				 const pdc_program *	pbegin,
 				 const pdc_program *	pend);
 
-/* Public */
-
 VBI_END_DECLS
-
-/* Private */
 
 #endif /* __ZVBI_PDC_H__ */

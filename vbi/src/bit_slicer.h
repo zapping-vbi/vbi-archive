@@ -17,14 +17,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bit_slicer.h,v 1.1.2.3 2004-03-31 00:41:34 mschimek Exp $ */
+/* $Id: bit_slicer.h,v 1.1.2.4 2004-04-08 23:36:25 mschimek Exp $ */
 
 #ifndef __ZVBI_BIT_SLICER_H__
 #define __ZVBI_BIT_SLICER_H__
 
 #include "sampling.h"
-
-/* Public */
 
 VBI_BEGIN_DECLS
 
@@ -135,10 +133,6 @@ _vbi_bit_slicer_init		(vbi_bit_slicer *	bs,
 				 vbi_modulation		modulation);
 /** @} */
 
-/* Public */
-
 VBI_END_DECLS
-
-/* Private */
 
 #endif /* __ZVBI_BIT_SLICER_H__ */

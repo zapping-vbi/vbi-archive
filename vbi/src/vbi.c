@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.6.2.12 2004-04-05 04:42:27 mschimek Exp $ */
+/* $Id: vbi.c,v 1.6.2.13 2004-04-08 23:36:26 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -96,7 +96,8 @@ vbi_event_enable(vbi_decoder *vbi, int mask)
 	activate = mask & ~vbi->event_mask;
 
 	if (activate & VBI_EVENT_TTX_PAGE)
-		vbi_teletext_channel_switched(vbi);
+#warning unfinished
+		vbi_teletext_decoder_reset (&vbi->vt, 0);
 	if (activate & VBI_EVENT_CAPTION)
 		vbi_caption_channel_switched(vbi);
 	if (activate & VBI_EVENT_NETWORK)
@@ -387,7 +388,7 @@ vbi_decode(vbi_decoder *vbi, vbi_sliced *sliced, int lines, double time)
 
 	  if (vbi->event_mask &
 	      (VBI_EVENT_TTX_PAGE | VBI_EVENT_NETWORK))
-		  vbi_teletext_desync(vbi);
+		  _vbi_teletext_decoder_resync (&vbi->vt);
 	  if (vbi->event_mask &
 	      (VBI_EVENT_CAPTION | VBI_EVENT_NETWORK))
 		  vbi_caption_desync(vbi);
@@ -406,7 +407,7 @@ vbi_decode(vbi_decoder *vbi, vbi_sliced *sliced, int lines, double time)
 
 	while (lines) {
 		if (sliced->id & VBI_SLICED_TELETEXT_B)
-			vbi_decode_teletext(vbi, sliced->data);
+			vbi_decode_teletext(vbi, sliced->data, time);
 		else if (sliced->id & (VBI_SLICED_CAPTION_525 | VBI_SLICED_CAPTION_625))
 			vbi_decode_caption(vbi, sliced->line, sliced->data);
 		/* TODO
@@ -440,7 +441,8 @@ vbi_chsw_reset(vbi_decoder *vbi, vbi_nuid identified)
 
 	vbi_cache_flush (vbi, TRUE);
 
-	vbi_teletext_channel_switched(vbi);
+#warning unfinished
+	vbi_teletext_decoder_reset (&vbi->vt, 0);
 	vbi_caption_channel_switched(vbi);
 
 	if (identified == 0) {
@@ -755,6 +757,9 @@ vbi_decoder_delete(vbi_decoder *vbi)
 {
 	vbi_trigger_flush(vbi);
 
+#warning unfinished
+	_vbi_teletext_decoder_destroy (&vbi->vt);
+
 	vbi_caption_destroy(vbi);
 
 	pthread_mutex_destroy(&vbi->prog_info_mutex);
@@ -794,7 +799,8 @@ vbi_decoder_new(void)
 
 	vbi->time = 0.0;
 
-	vbi_teletext_init(vbi);
+#warning unfinished
+	_vbi_teletext_decoder_init (&vbi->vt, 0, 0);
 
 	//obsolete	vbi_teletext_set_level(vbi, VBI_WST_LEVEL_2p5);
 

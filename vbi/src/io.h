@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io.h,v 1.6.2.3 2004-02-25 17:35:28 mschimek Exp $ */
+/* $Id: io.h,v 1.6.2.4 2004-04-08 23:36:25 mschimek Exp $ */
 
 #ifndef IO_H
 #define IO_H
@@ -92,22 +92,5 @@ extern void		vbi_capture_delete(vbi_capture *capture);
 /** @} */
 
 /* Private */
-
-#include <stdarg.h>
-#include <stddef.h>
-
-#include "../config.h"
-#include "misc.h"
-
-/**
- * @ingroup Devmod
- */
-struct vbi_capture {
-	vbi_bool		(* read)(vbi_capture *, vbi_capture_buffer **,
-					 vbi_capture_buffer **, struct timeval *);
-	vbi_raw_decoder *	(* parameters)(vbi_capture *);
-	int			(* get_fd)(vbi_capture *);
-	void			(* _delete)(vbi_capture *);
-};
 
 #endif /* IO_H */

@@ -21,11 +21,11 @@ test_raw_decoder_SOURCES = test-raw_decoder.cc
 EXTRA_DIST = test-explist README uclist sim.c
 
 AM_CFLAGS = \
-	-I$(top_srcdir)/src $(COMMON_INCLUDES) $(X_CFLAGS) \
+	-I$(top_srcdir) $(COMMON_INCLUDES) $(X_CFLAGS) \
 	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
 
 AM_CXXFLAGS = \
-	-I$(top_srcdir)/src $(COMMON_INCLUDES) $(X_CFLAGS) \
+	-I$(top_srcdir) $(COMMON_INCLUDES) $(X_CFLAGS) \
 	-Wall -Wunused -Wmissing-prototypes
 
 LDADD = $(top_builddir)/src/.libs/libzvbi.a \

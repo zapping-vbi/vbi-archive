@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: glyph.c,v 1.3.2.1 2004-02-25 17:26:57 mschimek Exp $ */
+/* $Id: glyph.c,v 1.3.2.2 2004-04-08 23:36:49 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -27,7 +27,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include <libzvbi.h>
+#include "src/zvbi.h"
 
 extern unsigned int	vbi_teletext_composed_unicode(unsigned int a, unsigned int c);
 
@@ -189,7 +189,7 @@ main(int argc, char **argv)
 		putwchar(vbi_teletext_unicode(2, 0, 0x40 + i));
 		putwstr("  ");
 		for (j = 0x40; j < 0x60; j++) {
-			unsigned int c = vbi_teletext_composed_unicode(i, j);
+			unsigned int c = _vbi_teletext_composed_unicode(i, j);
 
 			putwchar((c == 0) ? '-' : c);
 		}
@@ -210,7 +210,7 @@ main(int argc, char **argv)
 		putwchar(vbi_teletext_unicode(2, 0, 0x40 + i));
 		putwstr("  ");
 		for (j = 0x60; j < 0x80; j++) {
-			unsigned int c = vbi_teletext_composed_unicode(i, j);
+			unsigned int c = _vbi_teletext_composed_unicode(i, j);
 
 			putwchar((c == 0) ? '-' : c);
 		}

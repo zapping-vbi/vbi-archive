@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: event.h,v 1.5.2.6 2004-04-03 00:07:55 mschimek Exp $ */
+/* $Id: event.h,v 1.5.2.7 2004-04-08 23:36:25 mschimek Exp $ */
 
 #ifndef EVENT_H
 #define EVENT_H
@@ -38,7 +38,20 @@ typedef struct vbi_decoder vbi_decoder;
 
 /* Public */
 
-#include <inttypes.h>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /**
  * @addtogroup Event Events

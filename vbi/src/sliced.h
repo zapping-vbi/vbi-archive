@@ -17,15 +17,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sliced.h,v 1.3.2.2 2004-03-31 00:41:34 mschimek Exp $ */
+/* $Id: sliced.h,v 1.3.2.3 2004-04-08 23:36:26 mschimek Exp $ */
 
 #ifndef __ZVBI_SLICED_H__
 #define __ZVBI_SLICED_H__
 
 #include <inttypes.h>		/* uintN_t */
 #include "macros.h"
-
-/* Public */
 
 VBI_BEGIN_DECLS
 
@@ -302,10 +300,6 @@ vbi_sliced_payload_bits		(vbi_service_set	service) vbi_const;
 struct _vbi_service_par;	/* defined in raw_decoder.h */
 typedef struct _vbi_service_par vbi_service_par;
 
-/* Public */
-
 VBI_END_DECLS
-
-/* Private */
 
 #endif /* __ZVBI_SLICED_H__ */

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.5.2.5 2004-04-03 00:08:08 mschimek Exp $ */
+/* $Id: export.c,v 1.5.2.6 2004-04-08 23:36:49 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -30,18 +30,19 @@
 #include <assert.h>
 #include <unistd.h>
 
-#include <libzvbi.h>
+#include "src/zvbi.h"
 
 vbi_decoder *		vbi;
 vbi_bool		quit = FALSE;
 vbi_pgno		pgno;
 vbi_export *		e;
-char *			extension;
+char *			extens;
 vbi_bool		option_columns_41;
 vbi_bool		option_navigation;
 vbi_bool		option_hyperlinks;
 vbi_bool		option_pdc_links;
 vbi_bool		option_enum;
+vbi_bool		option_stream;
 unsigned int		delay;
 char			cr;
 
@@ -124,6 +125,7 @@ export_pdc			(vbi_export *		export,
 static void
 handler(vbi_event *ev, void *unused)
 {
+	static double timestamp = 0.0;
 	FILE *fp;
 	vbi_page *pg;
 
@@ -161,11 +163,15 @@ handler(vbi_event *ev, void *unused)
 		snprintf(name, sizeof(name) - 1, "ttx-%03x-%02x.%s",
 			 ev->ev.ttx_page.pgno,
 			 ev->ev.ttx_page.subno,
-			 extension);
+			 extens);
 
 		assert((fp = fopen(name, "w")));
-	} else
+	} else {
 		fp = stdout;
+	}
+
+	vbi_export_set_timestamp (e, timestamp);
+	timestamp += 1.0;
 
 	if (!vbi_export_stdio (e, fp, pg)) {
 		fprintf (stderr, "failed: %s\n", vbi_export_errstr (e));
@@ -179,7 +185,8 @@ handler(vbi_event *ev, void *unused)
 
 	vbi_page_delete (pg);
 
-	if (pgno < 0) {
+	if (option_stream) {
+	} else if (pgno < 0) {
 		if (pgno == -1)
 			assert(fclose(fp) == 0);
 	} else {
@@ -254,6 +261,11 @@ stream(void)
 	return;
 
 abort:
+	if (option_stream) {
+		/* Finalize. */
+		vbi_export_stdio (e, stdout, NULL);
+	}
+
 	fprintf(stderr, "\rEnd of stream, page %03x not found\n", pgno);
 }
 
@@ -288,6 +300,8 @@ main(int argc, char **argv)
 			option_pdc_links = TRUE;
 		} else if (0 == strcmp ("-e", argv[i])) {
 			option_enum = TRUE;
+		} else if (0 == strcmp ("-s", argv[i])) {
+			option_stream = TRUE;
 		} else if (module) {
 			if (0 != pgno)
 				goto bad_args;
@@ -325,15 +339,15 @@ main(int argc, char **argv)
 
 	if (0 == strncmp (module, "html", 4)) {
 		if (option_hyperlinks)
-			vbi_export_set_link_fn (e, export_link, NULL);
+			vbi_export_set_link_cb (e, export_link, NULL);
 
 		if (option_pdc_links)
-			vbi_export_set_pdc_fn (e, export_pdc, NULL);
+			vbi_export_set_pdc_cb (e, export_pdc, NULL);
 	}
 
 	assert ((xi = vbi_export_info_from_export (e)));
-	assert ((extension = strdup (xi->extension)));
-	extension = strtok_r (extension, ",", &t);
+	assert ((extens = strdup (xi->extension)));
+	extens = strtok_r (extens, ",", &t);
 
 	assert ((vbi = vbi_decoder_new ()));
 

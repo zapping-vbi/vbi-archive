@@ -21,19 +21,22 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.10.2.6 2004-04-05 04:42:26 mschimek Exp $ */
+/* $Id: exp-txt.c,v 1.10.2.7 2004-04-08 23:36:25 mschimek Exp $ */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <limits.h>
-#include <iconv.h>
+#include "../config.h"
+
 #include <assert.h>
+#include <inttypes.h>
+#include <stdlib.h>		/* malloc() */
+#include <string.h>		/* strcmp(), strlen(), memcpy() */
+#include <limits.h>		/* INT_MAX */
 #include <setjmp.h>
-
-#include "lang.h"
+#include "misc.h"
+#include "format.h"		/* vbi_page */
+#include "conv.h"
+#include "lang.h"		/* vbi_is_print() */
 #include "intl-priv.h"
-#include "export.h"
+#include "export-priv.h"	/* vbi_export */
 #include "exp-txt.h"
 
 typedef struct {
@@ -49,7 +52,7 @@ typedef struct text_instance {
 
 	/* Options */
 
-	int			format;
+	int			encoding;
 	char *			charset;
 	unsigned		color : 1;
 	int			term;
@@ -67,30 +70,8 @@ typedef struct text_instance {
 	char			palette[MAX_COLORS];
 } text_instance;
 
-static vbi_export *
-text_new			(void)
-{
-	text_instance *text;
-
-	if (!(text = calloc (1, sizeof (*text))))
-		return NULL;
-
-	return &text->export;
-}
-
-static void
-text_delete			(vbi_export *		e)
-{
-	text_instance *text = PARENT (e, text_instance, export);
-
-	free (text->charset);
-	free (text->text.buffer);
-
-	free (text);
-}
-
 static const char *
-formats [] = {
+user_encodings [] = {
 	N_("ASCII"),
 	N_("ISO-8859-1 (Latin-1 Western languages)"),
 	N_("ISO-8859-2 (Latin-2 Central and Eastern European languages)"),
@@ -105,7 +86,7 @@ formats [] = {
 };
 
 static const char *
-iconv_formats [] = {
+iconv_encodings [] = {
 	"ASCII",
 	"ISO-8859-1",
 	"ISO-8859-2",
@@ -135,24 +116,49 @@ enum {
 
 static const vbi_option_info
 option_info [] = {
-	VBI_OPTION_MENU_INITIALIZER
+	_VBI_OPTION_MENU_INITIALIZER
 	/* TRANSLATORS: Text export encoding (ASCII, Unicode, ...) menu */
 	("format", N_("Encoding"),
-	 0, formats, N_ELEMENTS (formats), NULL),
+	 0, user_encodings, N_ELEMENTS (user_encodings), NULL),
         /* one for users, another for programs */
-	VBI_OPTION_STRING_INITIALIZER
+	_VBI_OPTION_STRING_INITIALIZER
 	("charset", NULL, "", NULL),
-	VBI_OPTION_STRING_INITIALIZER
+	_VBI_OPTION_STRING_INITIALIZER
 	("gfx_chr", N_("Graphics char"),
 	 "#", N_("Replacement for block graphic characters: "
 		 "a single character or decimal (32) or hex (0x20) code")),
-	VBI_OPTION_BOOL_INITIALIZER
+	_VBI_OPTION_BOOL_INITIALIZER
 	("ascii_art", N_("ASCII art"),
 	 FALSE, N_("Replace graphic characters by ASCII art")),
-	VBI_OPTION_MENU_INITIALIZER
+	_VBI_OPTION_MENU_INITIALIZER
 	("control", N_("Control codes"),
 	 0, terminal, N_ELEMENTS (terminal), NULL),
 };
+
+static vbi_export *
+text_new			(const _vbi_export_module *em)
+{
+	text_instance *text;
+
+	assert (sizeof (user_encodings) == sizeof (iconv_encodings));
+
+	em = em;
+
+	if (!(text = calloc (1, sizeof (*text))))
+		return NULL;
+
+	return &text->export;
+}
+
+static void
+text_delete			(vbi_export *		e)
+{
+	text_instance *text = PARENT (e, text_instance, export);
+
+	free (text->text.buffer);
+	free (text->charset);
+	free (text);
+}
 
 #define KEYWORD(str) (0 == strcmp (keyword, str))
 
@@ -164,13 +170,13 @@ option_get			(vbi_export *		e,
 	text_instance *text = PARENT (e, text_instance, export);
 
 	if (KEYWORD ("format") || KEYWORD ("encoding")) {
-		value->num = text->format;
+		value->num = text->encoding;
 	} else if (KEYWORD ("charset")) {
-		value->str = vbi_export_strdup (e, NULL, text->charset);
+		value->str = _vbi_export_strdup (e, NULL, text->charset);
 		if (!value->str)
 			return FALSE;
 	} else if (KEYWORD ("gfx_chr")) {
-		if (!(value->str = vbi_export_strdup (e, NULL, "x")))
+		if (!(value->str = _vbi_export_strdup (e, NULL, "x")))
 			return FALSE;
 		value->str[0] = text->gfx_chr;
 	} else if (KEYWORD ("ascii_art")) {
@@ -182,7 +188,7 @@ option_get			(vbi_export *		e,
 	} else if (KEYWORD ("bg")) {
 		value->num = text->def_bg;
 	} else {
-		vbi_export_unknown_option (e, keyword);
+		_vbi_export_unknown_option (e, keyword);
 		return FALSE;
 	}
 
@@ -197,21 +203,27 @@ option_set			(vbi_export *		e,
 	text_instance *text = PARENT (e, text_instance, export);
 
 	if (KEYWORD ("format") || KEYWORD ("encoding")) {
-		unsigned int format = va_arg (ap, unsigned int);
+		unsigned int encoding = va_arg (ap, unsigned int);
 
-		if (format >= N_ELEMENTS (formats)) {
-			vbi_export_invalid_option (e, keyword, format);
+		if (encoding >= N_ELEMENTS (user_encodings)) {
+			_vbi_export_invalid_option (e, keyword, encoding);
 			return FALSE;
 		}
 
-		text->format = format;
+		if (!_vbi_export_strdup (e, &text->charset,
+					 iconv_encodings[encoding]))
+			return FALSE;
+
+		text->encoding = encoding;
 	} else if (KEYWORD ("charset")) {
 		const char *string = va_arg (ap, const char *);
 
 		if (!string) {
-			vbi_export_invalid_option (e, keyword, string);
+			_vbi_export_invalid_option (e, keyword, string);
 			return FALSE;
-		} else if (!vbi_export_strdup (e, &text->charset, string))
+		}
+
+		if (!_vbi_export_strdup (e, &text->charset, string))
 			return FALSE;
 	} else if (KEYWORD ("gfx_chr")) {
 		const char *string = va_arg (ap, const char *);
@@ -219,7 +231,7 @@ option_set			(vbi_export *		e,
 		int value;
 
 		if (!string || !string[0]) {
-			vbi_export_invalid_option (e, keyword, string);
+			_vbi_export_invalid_option (e, keyword, string);
 			return FALSE;
 		}
 
@@ -240,7 +252,7 @@ option_set			(vbi_export *		e,
 		unsigned int term = va_arg (ap, unsigned int);
 
 		if (term > N_ELEMENTS (terminal)) {
-			vbi_export_invalid_option (e, keyword, term);
+			_vbi_export_invalid_option (e, keyword, term);
 			return FALSE;
 		}
 
@@ -249,7 +261,7 @@ option_set			(vbi_export *		e,
 		unsigned int col = va_arg (ap, unsigned int);
 
 		if (col > 8) {
-			vbi_export_invalid_option (e, keyword, col);
+			_vbi_export_invalid_option (e, keyword, col);
 			return FALSE;
 		}
 
@@ -258,13 +270,13 @@ option_set			(vbi_export *		e,
 		unsigned int col = va_arg (ap, unsigned int);
 
 		if (col > 8) {
-			vbi_export_invalid_option (e, keyword, col);
+			_vbi_export_invalid_option (e, keyword, col);
 			return FALSE;
 		}
 
 		text->def_bg = col;
 	} else {
-		vbi_export_unknown_option (e, keyword);
+		_vbi_export_unknown_option (e, keyword);
 		return FALSE;
 	}
 
@@ -290,7 +302,7 @@ extend				(text_instance *	text,
 }
 
 static void
-put_spaces			(text_instance *	text,
+putw_spaces			(text_instance *	text,
 				 unsigned int		n)
 {
 	uint16_t *d;
@@ -306,9 +318,9 @@ put_spaces			(text_instance *	text,
 	text->text.bp = d;
 }
 
-vbi_inline void
+static void
 putwc				(text_instance *	text,
-				 int			c)
+				 unsigned int		c)
 {
 	if (text->text.bp >= text->text.end)
 		extend (text, &text->text);
@@ -349,7 +361,7 @@ create_palette			(text_instance *	text,
 }
 
 static vbi_bool
-put_attr			(text_instance *	text,
+putw_attr			(text_instance *	text,
 				 vbi_char		old,
 				 vbi_char		cur)
 {
@@ -684,7 +696,7 @@ vbi_print_page_region_va_list	(vbi_page *		pg,
 					continue;
 				} else {
 					if (spaces < chars || y == row0)
-						put_spaces (&text, spaces);
+						putw_spaces (&text, spaces);
 					/* else discard leading spaces */
 
 					spaces = 0;
@@ -708,10 +720,11 @@ vbi_print_page_region_va_list	(vbi_page *		pg,
 
 					size = text.text.bp - text.text.buffer;
 
-					if (!vbi_iconv_ucs2 (cd, &p,
-							     buffer_end - p,
-							     text.text.buffer,
-							     size))
+					if (!vbi_iconv_ucs2
+					    (cd, &p,
+					     (unsigned int)(buffer_end - p),
+					     text.text.buffer,
+					     size))
 						goto failure;
 
 					text.text.bp = text.text.buffer;
@@ -724,7 +737,7 @@ vbi_print_page_region_va_list	(vbi_page *		pg,
 					p += separator_size;
 				} else {
 					putwc (&text, option_table ?
-					       0x000a : 0x0020);
+					       0x000AU : 0x0020U);
 				}
 			}
 		} else {
@@ -735,16 +748,17 @@ vbi_print_page_region_va_list	(vbi_page *		pg,
 				     all blank double height row */
 			} else {
 				/* Trailing spaces. */
-				put_spaces (&text, spaces);
+				putw_spaces (&text, spaces);
 			}
 		}
 
 		acp += pg->columns;
 	}
 
-	if (!vbi_iconv_ucs2 (cd, &p, buffer_end - p,
+	if (!vbi_iconv_ucs2 (cd, &p,
+			     (unsigned int)(buffer_end - p),
 			     text.text.buffer,
-			     text.text.bp - text.text.buffer))
+			     (unsigned int)(text.text.bp - text.text.buffer)))
 		goto failure;
 
 	vbi_iconv_ucs2_close (cd);
@@ -936,7 +950,6 @@ xputwc				(text_instance *	text,
 
 static vbi_bool
 export				(vbi_export *		e,
-				 FILE *			fp,
 				 const vbi_page *	pg)
 {
 	text_instance *text = PARENT (e, text_instance, export);
@@ -944,7 +957,6 @@ export				(vbi_export *		e,
 	vbi_char last;
 	unsigned int row;
 	unsigned int column;
-	const char *charset;
 	unsigned int size;
 
 	create_palette (text, pg);
@@ -960,7 +972,7 @@ export				(vbi_export *		e,
 
 		for (column = 0; column < pg->columns; ++column) {
 			if (TERMINAL_NONE != text->term) {
-				if (put_attr (text, last, *acp))
+				if (putw_attr (text, last, *acp))
 					xputwc (text, acp->unicode);
 
 				last = *acp;
@@ -990,15 +1002,11 @@ export				(vbi_export *		e,
 		text->text.bp = d + 1;
 	}
 
-	if (text->charset && text->charset[0])
-		charset = text->charset;
-	else
-		charset = iconv_formats[text->format];
-
 	size = text->text.bp - text->text.buffer;
 
-	if (!vbi_stdio_iconv_ucs2 (fp, charset, text->text.buffer, size)) {
-		vbi_export_write_error (&text->export);
+	if (!vbi_stdio_iconv_ucs2 (text->export.fp, text->charset,
+				   text->text.buffer, size)) {
+		_vbi_export_write_error (&text->export);
 		return FALSE;
 	}
 
@@ -1015,8 +1023,8 @@ export_info = {
 	.extension		= "txt",
 };
 
-const vbi_export_module
-vbi_export_module_text = {
+const _vbi_export_module
+_vbi_export_module_text = {
 	.export_info		= &export_info,
 
 	._new			= text_new,

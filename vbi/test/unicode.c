@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: unicode.c,v 1.4.2.1 2004-02-25 17:27:09 mschimek Exp $ */
+/* $Id: unicode.c,v 1.4.2.2 2004-04-08 23:36:49 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -26,7 +26,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include <libzvbi.h>
+#include "src/zvbi.h"
 
 /* Private function, used here for testing only. */
 extern unsigned int	vbi_teletext_composed_unicode (unsigned int a, unsigned int c);
@@ -147,7 +147,7 @@ main (int argc, char **argv)
 		putwstr ("  ");
 
 		for (j = 0x40; j < 0x60; j++) {
-			unsigned int c = vbi_teletext_composed_unicode (i, j);
+			unsigned int c = _vbi_teletext_composed_unicode (i, j);
 
 			putwchar ((c == 0) ? '-' : c);
 		}
@@ -169,7 +169,7 @@ main (int argc, char **argv)
 		putwstr ("  ");
 
 		for (j = 0x60; j < 0x80; j++) {
-			unsigned int c = vbi_teletext_composed_unicode (i, j);
+			unsigned int c = _vbi_teletext_composed_unicode (i, j);
 
 			putwchar ((c == 0) ? '-' : c);
 		}

@@ -468,8 +468,8 @@ vbi_cache_unref			(vbi_decoder *		vbi,
 		if (__builtin_expect (cp->priority == CACHE_PRI_ZOMBIE, 0)) {
 			delete_page (ca, cp);
 
-			if (CACHE_DEBUG)
-				cp->stat->locked_pages--;
+			//	if (CACHE_DEBUG)
+			//		cp->stat->locked_pages--;
 		} else {
 			if (CACHE_DEBUG) {
 				cache_stat_dump (cp->stat, ' ');

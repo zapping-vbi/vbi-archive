@@ -18,14 +18,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bcd.h,v 1.6.2.7 2004-03-31 00:41:33 mschimek Exp $ */
+/* $Id: bcd.h,v 1.6.2.8 2004-04-08 23:36:25 mschimek Exp $ */
 
 #ifndef __ZVBI_BCD_H__
 #define __ZVBI_BCD_H__
 
 #include "macros.h"
-
-/* Public */
 
 VBI_BEGIN_DECLS
 
@@ -214,7 +212,5 @@ typedef int vbi_subno;
 /** @} */
 
 VBI_END_DECLS
-
-/* Private */
 
 #endif /* __ZVBI_BCD_H__ */

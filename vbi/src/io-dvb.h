@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io-dvb.h,v 1.1.2.1 2004-04-05 04:42:27 mschimek Exp $ */
+/* $Id: io-dvb.h,v 1.1.2.2 2004-04-08 23:36:25 mschimek Exp $ */
 
 #ifndef __ZVBI_IO_DVB_H__
 #define __ZVBI_IO_DVB_H__
@@ -26,8 +26,6 @@
 #include "macros.h"
 #include "sliced.h"		/* vbi_sliced, vbi_service_set */
 #include "sampling.h"		/* vbi_videostd_set */
-
-/* Public */
 
 VBI_BEGIN_DECLS
 
@@ -147,10 +145,6 @@ struct _vbi_dvb_demux {
 
 /** @} */
 
-/* Public */
-
 VBI_END_DECLS
-
-/* Private */
 
 #endif /* __ZVBI_IO_DVB_H__ */

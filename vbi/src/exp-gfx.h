@@ -22,17 +22,17 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.h,v 1.2.2.4 2004-02-25 17:35:28 mschimek Exp $ */
+/* $Id: exp-gfx.h,v 1.2.2.5 2004-04-08 23:36:25 mschimek Exp $ */
 
-#ifndef EXP_GFX_H
-#define EXP_GFX_H
+#ifndef __ZVBI_EXP_GFX_H__
+#define __ZVBI_EXP_GFX_H__
 
-#include "format.h"
-#include "graphics.h"
+#include <stdarg.h>		/* va_list */
+#include "macros.h"
+#include "format.h"		/* vbi_page */
+#include "graphics.h"		/* vbi_image_format */
 
-/* Public */
-
-#include <stdarg.h>
+VBI_BEGIN_DECLS
 
 /**
  * @addtogroup Render
@@ -96,6 +96,6 @@ vbi_draw_cc_page		(const vbi_page *	pg,
 				 ...);
 /** @} */
 
-/* Private */
+VBI_END_DECLS
 
-#endif /* EXP_GFX_H */
+#endif /* __ZVBI_EXP_GFX_H__ */

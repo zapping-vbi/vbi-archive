@@ -18,12 +18,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: macros.h,v 1.1.2.1 2004-03-31 00:41:34 mschimek Exp $ */
+/* $Id: macros.h,v 1.1.2.2 2004-04-08 23:36:25 mschimek Exp $ */
 
 #ifndef __ZVBI_MACROS_H__
 #define __ZVBI_MACROS_H__
-
-/* Public */
 
 #ifdef __cplusplus
 #  define VBI_BEGIN_DECLS extern "C" {
@@ -82,7 +80,5 @@ typedef int vbi_bool;
 #endif
 
 VBI_END_DECLS
-
-/* Private */
 
 #endif /* __ZVBI_MACROS_H__ */

@@ -3,14 +3,14 @@
  *  Copyright (C) 2003 Michael H. Schimek
  */
 
-/* $Id: test-hamm.cc,v 1.1.2.2 2003-12-28 15:24:32 mschimek Exp $ */
+/* $Id: test-hamm.cc,v 1.1.2.3 2004-04-08 23:36:49 mschimek Exp $ */
 
 #include <iostream>
 #include <iomanip>
 
 #include <assert.h>
 
-#include "libzvbi.h"
+#include "src/zvbi.h"
 
 namespace vbi {
   static inline unsigned int rev8 (uint8_t c)

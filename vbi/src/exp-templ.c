@@ -2,19 +2,15 @@
  *  Template for export modules
  */
 
-/* $Id: exp-templ.c,v 1.6.2.2 2004-03-31 00:41:34 mschimek Exp $ */
+/* $Id: exp-templ.c,v 1.6.2.3 2004-04-08 23:36:25 mschimek Exp $ */
 
-#ifdef HAVE_CONFIG_H
-#  include "../config.h"
-#endif
+#include "../config.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <limits.h>
+#include <stdlib.h>		/* malloc() */
+#include <limits.h>		/* UINT_MAX */
+#include "misc.h"
 #include "intl-priv.h"
-#include "export.h"
+#include "export-priv.h"
 
 typedef struct tmpl_instance
 {
@@ -35,7 +31,7 @@ typedef struct tmpl_instance
 } tmpl_instance;
 
 static vbi_export *
-tmpl_new			(void)
+tmpl_new			(const _vbi_export_module *unused)
 {
 	tmpl_instance *tmpl;
 
@@ -85,7 +81,7 @@ int_menu_items [] = {
 
 static const vbi_option_info
 option_info [] = {
-	VBI_OPTION_BOOL_INITIALIZER
+	_VBI_OPTION_BOOL_INITIALIZER
 	  /*
 	   *  Option keywords must be unique within their module
 	   *  and shall contain only "AZaz09_".
@@ -94,22 +90,22 @@ option_info [] = {
 	   */
 	("flip", N_("Boolean option"),
 	 FALSE, N_("This is a boolean option")),
-	VBI_OPTION_INT_RANGE_INITIALIZER
+	_VBI_OPTION_INT_RANGE_INITIALIZER
 	("day", N_("Select a month day"),
 	 /* default, min, max, step, has no tooltip */
 	    13,       1,   31,  1,      NULL),
-	VBI_OPTION_INT_MENU_INITIALIZER
+	_VBI_OPTION_INT_MENU_INITIALIZER
 	("prime", N_("Select a prime"),
 	 0, int_menu_items, N_ELEMENTS (int_menu_items),
 	 N_("Default is the first, '1'")),
-	VBI_OPTION_REAL_RANGE_INITIALIZER
+	_VBI_OPTION_REAL_RANGE_INITIALIZER
 	("quality", N_("Compression quality"),
 	 100, 1, 100, 0.01, NULL),
 	/* VBI_OPTION_REAL_MENU_INITIALIZER like int */
-	VBI_OPTION_STRING_INITIALIZER
+	_VBI_OPTION_STRING_INITIALIZER
 	("comment", N_("Add a comment"),
 	 "default comment", N_("Another tooltip")),
-	VBI_OPTION_MENU_INITIALIZER
+	_VBI_OPTION_MENU_INITIALIZER
 	("weekday", N_("Select a weekday"),
 	 2, string_menu_items, 7, N_("Default is Tuesday"))
 };
@@ -133,13 +129,13 @@ option_get			(vbi_export *		e,
 	} else if (KEYWORD ("quality")) {
 		value->dbl = tmpl->quality;
 	} else if (KEYWORD ("comment")) {
-		if (!(value->str = vbi_export_strdup (e, NULL,
+		if (!(value->str = _vbi_export_strdup (e, NULL,
 			tmpl->comment ? tmpl->comment : "")))
 			return FALSE;
 	} else if (KEYWORD ("weekday")) {
 		value->num = tmpl->weekday;
 	} else {
-		vbi_export_unknown_option (e, keyword);
+		_vbi_export_unknown_option (e, keyword);
 		return FALSE;
 	}
 
@@ -160,7 +156,7 @@ option_set			(vbi_export *		e,
 		int day = va_arg (ap, int);
 
 		if (day < 1 || day > 31) {
-			vbi_export_invalid_option (e, keyword, day);
+			_vbi_export_invalid_option (e, keyword, day);
 			return FALSE;
 		}
 
@@ -191,7 +187,7 @@ option_set			(vbi_export *		e,
 		const char *comment = va_arg (ap, const char *);
 
 		/* Note the option remains unchanged in case of error */
-		if (!vbi_export_strdup (e, &tmpl->comment, comment))
+		if (!_vbi_export_strdup (e, &tmpl->comment, comment))
 			return FALSE;
 	} else if (KEYWORD ("weekday")) {
 		unsigned int day = va_arg (ap, unsigned int);
@@ -199,7 +195,7 @@ option_set			(vbi_export *		e,
 		/* or return an error */
 		tmpl->weekday = day % 7;
 	} else {
-		vbi_export_unknown_option (e, keyword);
+		_vbi_export_unknown_option (e, keyword);
 		return FALSE;
 	}
 
@@ -209,13 +205,12 @@ option_set			(vbi_export *		e,
 /* The output function, mandatory. */
 static vbi_bool
 export				(vbi_export *		e,
-				 FILE *			fp,
 				 const vbi_page *	pg)
 {
 	tmpl_instance *tmpl = PARENT (e, tmpl_instance, export);
 
-	/* Write pg to fp, that's all. */
-	fprintf (fp, "Page %x.%x\n", pg->pgno, pg->subno);
+	/* Write pg to e->fp, that's all. */
+	fprintf (e->fp, "Page %x.%x\n", pg->pgno, pg->subno);
 
 	tmpl->counter++; /* just for fun */
 
@@ -244,8 +239,8 @@ export_info = {
 	.extension		= "tmpl",
 };
 
-const vbi_export_module
-vbi_export_module_tmpl = {
+const _vbi_export_module
+_vbi_export_module_tmpl = {
 	.export_info		= &export_info,
 
 	/* Functions to allocate and free a tmpl_class vbi_export instance.

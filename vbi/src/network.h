@@ -17,16 +17,15 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: network.h,v 1.1.2.2 2004-02-25 17:30:49 mschimek Exp $ */
+/* $Id: network.h,v 1.1.2.3 2004-04-08 23:36:25 mschimek Exp $ */
 
-#ifndef NETWORK_H
-#define NETWORK_H
+#ifndef __ZVBI_NETWORK_H__
+#define __ZVBI_NETWORK_H__
 
-#include <inttypes.h>
+#include <inttypes.h>		/* int64_t */
+#include "macros.h"
 
-#include "misc.h"
-
-/* Public */
+VBI_BEGIN_DECLS
 
 /**
  * @addtogroup Network
@@ -135,4 +134,6 @@ vbi_nuid_from_call_sign		(const char *		call_sign,
 extern vbi_nuid
 vbi_temporary_nuid		(void);
 
-#endif /* NUID_H */
+VBI_END_DECLS
+
+#endif /* __ZVBI_NETWORK_H__ */

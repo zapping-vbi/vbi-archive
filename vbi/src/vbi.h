@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.h,v 1.5.2.9 2004-04-03 00:07:55 mschimek Exp $ */
+/* $Id: vbi.h,v 1.5.2.10 2004-04-08 23:36:26 mschimek Exp $ */
 
 #ifndef VBI_H
 #define VBI_H
@@ -45,44 +45,6 @@ struct event_handler {
 	void *			user_data;
 };
 
-typedef enum {
-	/* uint8_t, 42, 0 */
-	VBI_HOOK_TELETEXT_PACKET,
-	/* uint8_t, 42, packet number */
-	VBI_HOOK_TELETEXT_PACKET_8_30,
-	/* uint8_t, variable, application id */
-	VBI_HOOK_EACEM_TRIGGER,
-	/* uint8_t (odd parity), 2, 0 */
-	VBI_HOOK_CLOSED_CAPTION,
-	/* uint8_t, 13, 0 */
-	VBI_HOOK_VPS,
-	VBI_HOOK_NUM
-} vbi_decode_hook;
-
-typedef void vbi_decode_hook_fn (vbi_decode_hook	hook,
-				 void *			data,
-				 unsigned int		size,
-				 unsigned int		id);
-
-struct decode_hook {
-	struct decode_hook *	next;
-	vbi_decode_hook_fn *	func;
-};
-
-/*
-vbi_inline void
-vbi_hook_call			(vbi_decoder *		vbi,
-				 vbi_decode_hook	hook,
-				 void *			data,
-				 unsigned int		size,
-				 unsigned int		id)
-{
-	struct decode_hook *h;
-
-	for (h = vbi->decode_hooks[hook]; h; h = h->next)
-		h->func (hook, data, size, id);
-}
-*/
 
 struct vbi_decoder {
 #if 0 /* obsolete */
@@ -134,7 +96,6 @@ struct vbi_decoder {
 	producer		wss_producer;
 #endif
 
-	struct decode_hook *	decode_hooks[VBI_HOOK_NUM];
 };
 
 #ifndef VBI_DECODER
@@ -178,38 +139,6 @@ typedef struct vbi_decoder vbi_decoder;
 
 /* Public */
 
-/**
- * @ingroup Service
- * @brief Page classification.
- *
- * See vbi_classify_page().
- */
-typedef enum {
-	VBI_NO_PAGE		= 0x00,
-	VBI_NORMAL_PAGE		= 0x01,
-	VBI_TOP_BLOCK		= 0x64,		/* libzvbi internal */
-	VBI_TOP_GROUP		= 0x65,		/* libzvbi internal */
-	VBI_SUBTITLE_PAGE	= 0x70,
-	VBI_SUBTITLE_INDEX	= 0x78,
-	VBI_NONSTD_SUBPAGES	= 0x79,
-	VBI_PROGR_WARNING	= 0x7A,
-	VBI_CURRENT_PROGR	= 0x7C,
-	VBI_NOW_AND_NEXT	= 0x7D,
-	VBI_PROGR_INDEX		= 0x7F,
-	VBI_NOT_PUBLIC		= 0x80,
-	VBI_PROGR_SCHEDULE	= 0x81,
-	VBI_CA_DATA		= 0xE0,
-	VBI_PFC_EPG_DATA	= 0xE3,
-	VBI_PFC_DATA		= 0xE4,
-	VBI_DRCS_PAGE		= 0xE5,
-	VBI_POP_PAGE		= 0xE6,
-	VBI_SYSTEM_PAGE		= 0xE7,
-	VBI_KEYWORD_SEARCH_LIST = 0xF9,
-	VBI_TRIGGER_DATA	= 0xFC,
-	VBI_ACI_PAGE		= 0xFD,
-	VBI_TOP_PAGE		= 0xFE,		/* MPT, AIT, MPT-EX */
-	VBI_UNKNOWN_PAGE	= 0xFF,		/* libzvbi internal */
-} vbi_page_type;
 
 extern const char *
 _vbi_page_type_name		(vbi_page_type		type);
@@ -242,6 +171,21 @@ vbi_set_log_fn			(vbi_log_fn *		function,
 
 #define VBI_PAGE_PRIVATE_MAGIC 0x7540c4f2
 
+/**
+ * @ingroup Service
+ * @brief Teletext implementation level.
+ */
+typedef enum {
+	VBI_WST_LEVEL_1,   /**< 1 - Basic Teletext pages */
+	VBI_WST_LEVEL_1p5, /**< 1.5 - Additional national and graphics characters */
+	/**
+	 * 2.5 - Additional text styles, more colors and DRCS. You should
+	 * enable Level 2.5 only if you can render and/or export such pages.
+	 */
+	VBI_WST_LEVEL_2p5,
+	VBI_WST_LEVEL_3p5  /**< 3.5 - Multicolor DRCS, proportional script */
+} vbi_wst_level;
+
 typedef struct vbi_page_private {
 	vbi_page		pg;
 
@@ -255,7 +199,7 @@ typedef struct vbi_page_private {
 	vbi_wst_level		max_level;
 	vbi_bool		pdc_links;
 
-	pdc_program		pdc_table [25];
+	vbi_preselection *	pdc_table;
 	unsigned int		pdc_table_size;
 
 	const vt_page *		drcs_vtp[32];
@@ -308,5 +252,105 @@ extern void		vbi_transp_colormap	(vbi_decoder *		vbi,
 extern void             vbi_chsw_reset(vbi_decoder *vbi, vbi_nuid nuid);
 
 extern void		vbi_asprintf(char **errstr, char *templ, ...);
+
+
+#include <stdarg.h>
+
+
+
+/**
+ * @addtogroup Cache
+ * @{
+ */
+
+typedef enum {
+	/**
+	 * Format only the first row.
+	 * Parameter: vbi_bool.
+	 */
+	VBI_HEADER_ONLY = 0x37138F00,
+	/**
+	 * Often column 0 of a page contains all black spaces,
+	 * unlike column 39. Enabling this option will result in
+	 * a more balanced view.
+	 * Parameter: vbi_bool.
+	 */
+	VBI_41_COLUMNS,
+	/**
+	 * Enable TOP or FLOF navigation in row 25.
+	 * Parameter: vbi_bool.
+	 */
+	VBI_NAVIGATION,
+	/**
+	 * Scan the page for page numbers, URLs, e-mail addresses
+	 * etc. and create hyperlinks.
+	 * Parameter: vbi_bool.
+	 */
+	VBI_HYPERLINKS,
+	/**
+	 * Scan the page for PDC Method A/B preselection data
+	 * and create a PDC table and links.
+	 * Parameter: vbi_bool.
+	 */
+	VBI_PDC_LINKS,
+	/**
+	 * Format the page at the given Teletext implementation level.
+	 * Parameter: vbi_wst_level.
+	 */
+	VBI_WST_LEVEL,
+	/**
+	 * Parameter: vbi_character_set_code.
+	 */
+	VBI_CHAR_SET_DEFAULT,
+	/**
+	 * Parameter: vbi_character_set_code.
+	 */
+	VBI_CHAR_SET_OVERRIDE,
+} vbi_format_option;
+
+extern vbi_page *
+vbi_page_new			(void);
+extern void
+vbi_page_delete			(vbi_page *		pg);
+extern vbi_page *
+vbi_page_copy			(const vbi_page *	pg);
+extern const uint8_t *
+vbi_page_drcs_data		(const vbi_page *	pg,
+				 unsigned int		unicode);
+
+extern vbi_page *
+vbi_fetch_vt_page		(vbi_decoder *		vbi,
+				 vbi_pgno		pgno,
+				 vbi_subno		subno,
+				 ...);
+extern vbi_page *
+vbi_fetch_vt_page_va_list	(vbi_decoder *		vbi,
+				 vbi_pgno		pgno,
+				 vbi_subno		subno,
+				 va_list		format_options);
+
+extern int		vbi_page_title(vbi_decoder *vbi, int pgno, int subno, char *buf);
+/** @} */
+/**
+ * @addtogroup Event
+ * @{
+ */
+extern vbi_bool
+vbi_page_hyperlink		(const vbi_page *	pg,
+				 vbi_link *		ld,
+				 unsigned int		column,
+				 unsigned int		row);
+extern vbi_bool
+vbi_page_nav_enum		(const vbi_page *	pg,
+				 vbi_link *		ld,
+				 unsigned int		index);
+vbi_inline void
+vbi_page_home_link		(const vbi_page *	pg,
+				 vbi_link *		ld)
+{
+	vbi_page_nav_enum (pg, ld, 5);
+}
+
+/** @} */
 
 #endif /* VBI_H */

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: capture.c,v 1.7.2.3 2004-02-25 17:27:36 mschimek Exp $ */
+/* $Id: capture.c,v 1.7.2.4 2004-04-08 23:36:49 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -34,7 +34,7 @@
 #include <getopt.h>
 #endif
 
-#include <libzvbi.h>
+#include "src/zvbi.h"
 
 vbi_capture *		cap;
 vbi_raw_decoder *	rd;

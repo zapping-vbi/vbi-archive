@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io-sim.c,v 1.1.2.2 2004-03-31 00:41:34 mschimek Exp $ */
+/* $Id: io-sim.c,v 1.1.2.3 2004-04-08 23:36:25 mschimek Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -400,7 +400,7 @@ signal_u8			(const vbi_sampling_par *sp,
  * TRUE on success.
  */
 vbi_bool
-vbi_test_image_vbi		(uint8_t *		raw,
+_vbi_test_image_vbi		(uint8_t *		raw,
 				 const vbi_sampling_par *sp,
 				 const vbi_sliced *	sliced,
 				 unsigned int		sliced_lines)
@@ -541,7 +541,7 @@ do {									\
  */
 /* brightness, contrast parameter? */
 vbi_bool
-vbi_test_image_video		(uint8_t *		raw,
+_vbi_test_image_video		(uint8_t *		raw,
 				 const vbi_sampling_par *sp,
 				 unsigned int		pixel_mask,
 				 const vbi_sliced *	sliced,

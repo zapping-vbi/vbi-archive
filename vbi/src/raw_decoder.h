@@ -17,15 +17,16 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: raw_decoder.h,v 1.1.2.2 2004-03-31 00:41:34 mschimek Exp $ */
+/* $Id: raw_decoder.h,v 1.1.2.3 2004-04-08 23:36:26 mschimek Exp $ */
 
 #ifndef RAW_DECODER_H
 #define RAW_DECODER_H
 
 #include <stdio.h>
+#include "macros.h"
 #include "bit_slicer.h"
 
-/* Public */
+VBI_BEGIN_DECLS
 
 /**
  * @ingroup RawDecoder
@@ -36,6 +37,7 @@
 typedef struct _vbi_raw_decoder vbi_raw_decoder;
 
 /* Private */
+#warning private
 
 #define MAX_JOBS 8
 #define MAX_WAYS 8
@@ -142,6 +144,8 @@ vbi_raw_decoder_decode		(vbi_raw_decoder *	rd,
 				 unsigned int		sliced_lines,
 				 const uint8_t *	raw);
 /** @} */
+
+VBI_END_DECLS
 
 /* Private */
 

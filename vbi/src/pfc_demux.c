@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pfc_demux.c,v 1.1.2.1 2004-04-05 04:42:27 mschimek Exp $ */
+/* $Id: pfc_demux.c,v 1.1.2.2 2004-04-08 23:36:26 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -203,11 +203,10 @@ _vbi_pfc_demux_decode		(vbi_pfc_demux *	pc,
  * @param buffer Teletext packet (last 42 bytes, i. e. without clock
  *   run-in and framing code), as in struct vbi_sliced.
  *
- * Takes a complete stream of Teletext packets, filters out the page
+ * This function takes a raw stream of Teletext packets, filters out the page
  * and stream requested with vbi_pfc_demux_new() and assembles the
- * Page Function Clear data transmitted in this page in a buffer.
- * When a data block is complete, calls the output function given to
- * vbi_pfc_demux_new().
+ * data transmitted in this page in a buffer. When a data block is complete
+ * it calls the output function given to vbi_pfc_demux_new().
  *
  * @returns
  * FALSE if the packet contained incorrectable errors.

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: link.h,v 1.1.2.1 2004-04-03 00:07:55 mschimek Exp $ */
+/* $Id: link.h,v 1.1.2.2 2004-04-08 23:36:25 mschimek Exp $ */
 
 #ifndef __ZVBI_LINK_H__
 #define __ZVBI_LINK_H__
@@ -26,8 +26,6 @@
 #include "macros.h"
 #include "network.h"		/* vbi_nuid */
 #include "bcd.h"		/* vbi_pgno, vbi_subno */
-
-/* Public */
 
 VBI_BEGIN_DECLS
 
@@ -167,7 +165,5 @@ typedef struct vbi_link {
 } vbi_link;
 
 VBI_END_DECLS
-
-/* Private */
 
 #endif /* __ZVBI_LINK_H__ */

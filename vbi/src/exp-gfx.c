@@ -18,25 +18,21 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.7.2.4 2004-03-31 00:41:34 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.7.2.5 2004-04-08 23:36:25 mschimek Exp $ */
 
-#ifdef HAVE_CONFIG_H
-#  include "../config.h"
-#endif
+#include "../config.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <assert.h>
-#include <errno.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
-#include "lang.h"
+#include <inttypes.h>
+#include <stdlib.h>		/* malloc() */
+#include <string.h>		/* memcpy() */
+#include "misc.h"
+#include "format.h"		/* vbi_page */
+#include "lang.h"		/* vbi_is_drcs() */
 #include "intl-priv.h"
-#include "export.h"
+#include "export-priv.h"	/* vbi_export */
 #include "exp-gfx.h"
-#include "vt.h" /* VBI_TRANSPARENT_BLACK */
+#include "vt.h"			/* VBI_TRANSPARENT_BLACK */
 
 #include "wstfont2.xbm"
 
@@ -1443,9 +1439,11 @@ typedef struct {
 } gfx_instance;
 
 static vbi_export *
-gfx_new				(void)
+gfx_new				(const _vbi_export_module *em)
 {
 	gfx_instance *gfx;
+
+	em = em;
 
 	if (!(gfx = calloc (1, sizeof (*gfx))))
 		return NULL;
@@ -1461,7 +1459,7 @@ gfx_delete			(vbi_export *		e)
 
 static const vbi_option_info
 option_info [] = {
-	VBI_OPTION_BOOL_INITIALIZER
+	_VBI_OPTION_BOOL_INITIALIZER
 	("aspect", N_("Correct aspect ratio"),
 	 TRUE, N_("Approach an image aspect ratio similar to "
 		  "a real TV. This will double the image size."))
@@ -1477,7 +1475,7 @@ option_get			(vbi_export *		e,
 	if (0 == strcmp (keyword, "aspect")) {
 		value->num = gfx->double_height;
 	} else {
-		vbi_export_unknown_option (e, keyword);
+		_vbi_export_unknown_option (e, keyword);
 		return FALSE;
 	}
 
@@ -1494,7 +1492,7 @@ option_set			(vbi_export *		e,
 	if (0 == strcmp (keyword, "aspect")) {
 		gfx->double_height = !!va_arg (ap, int);
 	} else {
-		vbi_export_unknown_option (e, keyword);
+		_vbi_export_unknown_option (e, keyword);
 		return FALSE;
 	}
 
@@ -1507,7 +1505,6 @@ option_set			(vbi_export *		e,
 
 static vbi_bool
 export_ppm			(vbi_export *		e,
-				 FILE *			fp,
 				 const vbi_page *	pg)
 {
 	gfx_instance *gfx = PARENT (e, gfx_instance, export);
@@ -1532,16 +1529,16 @@ export_ppm			(vbi_export *		e,
 	format.pixfmt		= VBI_PIXFMT_RGB24_LE;
 
 	if (!(image = malloc (format.size))) {
-		vbi_export_error_printf
+		_vbi_export_error_printf
 			(e, _("Unable to allocate %d KB image buffer."),
 			 format.size / 1024);
 		return FALSE;
 	}
 
-	fprintf (fp, "P6 %u %u 255\n",
+	fprintf (e->fp, "P6 %u %u 255\n",
 		 format.width, (ch * pg->rows) << gfx->double_height);
 
-	if (ferror (fp))
+	if (ferror (e->fp))
 		goto write_error;
 
 	for (row = 0; row < pg->rows; ++row) {
@@ -1572,17 +1569,18 @@ export_ppm			(vbi_export *		e,
 
 			for (line = 0; line < ch; ++line) {
 				if (format.width !=
-				    fwrite (body, 3, format.width, fp))
+				    fwrite (body, 3, format.width, e->fp))
 					goto write_error;
 
 				if (format.width !=
-				    fwrite (body, 3, format.width, fp))
+				    fwrite (body, 3, format.width, e->fp))
 					goto write_error;
 
 				body += format.width * 3;
 			}
 		} else {
-			if (format.size != fwrite (image, 1, format.size, fp))
+			if (format.size != fwrite (image, 1,
+						   format.size, e->fp))
 				goto write_error;
 		}
 	}
@@ -1593,7 +1591,7 @@ export_ppm			(vbi_export *		e,
 
  write_error:
 
-	vbi_export_write_error (e);
+	_vbi_export_write_error (e);
 
 	free (image);
 
@@ -1610,8 +1608,8 @@ export_info_ppm = {
 	.extension		= "ppm",
 };
 
-const vbi_export_module
-vbi_export_module_ppm = {
+const _vbi_export_module
+_vbi_export_module_ppm = {
 	.export_info		= &export_info_ppm,
 
 	._new			= gfx_new,
@@ -1731,7 +1729,6 @@ png_draw_char			(uint8_t *		canvas,
 
 static vbi_bool
 export_png			(vbi_export *		e,
-				 FILE *			fp,
 				 const vbi_page *	pg)
 {
 	gfx_instance *gfx = PARENT (e, gfx_instance, export);
@@ -1768,7 +1765,7 @@ export_png			(vbi_export *		e,
 	row_pointer = malloc (sizeof (*row_pointer) * format.height * 2);
 
 	if (NULL == row_pointer) {
-		vbi_export_error_printf
+		_vbi_export_error_printf
 			(e, _("Unable to allocate %d byte buffer."),
 			 sizeof (*row_pointer) * format.height * 2);
 		return FALSE;
@@ -1777,7 +1774,7 @@ export_png			(vbi_export *		e,
 	image = malloc (format.size);
 
 	if (NULL == image) {
-		vbi_export_error_printf
+		_vbi_export_error_printf
 			(e, _("Unable to allocate %d KB image buffer."),
 			 format.size / 1024);
 		free(row_pointer);
@@ -1855,7 +1852,7 @@ export_png			(vbi_export *		e,
 	if (setjmp (png_ptr->jmpbuf))
 		return 1;
 
-	png_init_io (png_ptr, fp);
+	png_init_io (png_ptr, e->fp);
 
 	png_set_IHDR (png_ptr, info_ptr,
 		      format.width,
@@ -1958,7 +1955,7 @@ export_png			(vbi_export *		e,
 	return TRUE;
 
  write_error:
-	vbi_export_write_error (e);
+	_vbi_export_write_error (e);
 
  unknown_error:
 	if (row_pointer)
@@ -1980,8 +1977,8 @@ export_info_png = {
 	.extension		= "png",
 };
 
-const vbi_export_module
-vbi_export_module_png = {
+const _vbi_export_module
+_vbi_export_module_png = {
 	.export_info		= &export_info_png,
 
 	._new			= gfx_new,

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds_demux.c,v 1.1.2.1 2004-04-05 04:42:27 mschimek Exp $ */
+/* $Id: xds_demux.c,v 1.1.2.2 2004-04-08 23:36:26 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -26,7 +26,6 @@
 #include <assert.h>
 #include <stdlib.h>		/* malloc() */
 #include <string.h>		/* memcpy() */
-
 #include "hamm.h"		/* vbi_ipar8() */
 #include "misc.h"		/* vbi_log_printf */
 #include "xds_demux.h"
@@ -51,10 +50,7 @@ do {									\
 #define printable(c)							\
 	((((c) & 0x7F) < 0x20 || ((c) & 0x7F) >= 0x7F) ? '.' : (c) & 0x7F)
 
-/**
- * @internal
- * @param xd XDS demultiplexer context allocated with vbi_xds_demux_new().
- */
+/** @internal */
 void
 _vbi_xds_packet_dump		(const vbi_xds_packet *	xp,
 				 FILE *			fp)
@@ -81,8 +77,7 @@ _vbi_xds_packet_dump		(const vbi_xds_packet *	xp,
 /**
  * @param xd XDS demultiplexer context allocated with vbi_xds_demux_new().
  *
- * Resets the XDS demux context, useful for example after a channel
- * change.
+ * Resets the XDS demux, useful for example after a channel change.
  */
 void
 vbi_xds_demux_reset		(vbi_xds_demux *	xd)
@@ -104,7 +99,11 @@ vbi_xds_demux_reset		(vbi_xds_demux *	xd)
  * @param xd XDS demultiplexer context allocated with vbi_xds_demux_new().
  * @param buffer Closed Caption character pair, as in struct vbi_sliced.
  *
- * Blah.
+ * This function takes two successive bytes of a raw Closed Caption
+ * stream, filters out XDS data and calls the output function given to
+ * vbi_xds_demux_new() when a new packet is complete.
+ *
+ * You should feed only data from NTSC line 284. 
  */
 vbi_bool
 vbi_xds_demux_demux		(vbi_xds_demux *	xd,
@@ -256,9 +255,7 @@ vbi_xds_demux_demux		(vbi_xds_demux *	xd,
 	return TRUE;
 }
 
-/**
- * @internal
- */
+/** @internal */
 void
 _vbi_xds_demux_destroy		(vbi_xds_demux *	xd)
 {
@@ -267,9 +264,7 @@ _vbi_xds_demux_destroy		(vbi_xds_demux *	xd)
 	CLEAR (*xd);
 }
 
-/**
- * @internal
- */
+/** @internal */
 vbi_bool
 _vbi_xds_demux_init		(vbi_xds_demux *	xd,
 				 vbi_xds_demux_cb *	callback,

@@ -3,17 +3,13 @@
  *  Copyright (C) 2004 Michael H. Schimek
  */
 
-/* $Id: test-raw_decoder.cc,v 1.1.2.2 2004-02-13 02:15:27 mschimek Exp $ */
+/* $Id: test-raw_decoder.cc,v 1.1.2.3 2004-04-08 23:36:49 mschimek Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 
-#include "libzvbi.h"
-
-extern "C" {
-#include "../src/io-sim.h"
-}
+#include "src/zvbi.h"
 
 #define N_ELEMENTS(array) (sizeof (array) / sizeof (*(array)))
 
@@ -127,10 +123,10 @@ create_raw			(uint8_t **		raw,
 	if (pixel_mask) {
 		memset_rand (*raw, sp->bytes_per_line * scan_lines);
 
-		assert (vbi_test_image_video (*raw, sp, pixel_mask,
+		assert (_vbi_test_image_video (*raw, sp, pixel_mask,
 					      *sliced, sliced_lines));
 	} else {
-		assert (vbi_test_image_vbi (*raw, sp, *sliced, sliced_lines));
+		assert (_vbi_test_image_vbi (*raw, sp, *sliced, sliced_lines));
 	}
 
 	return sliced_lines;

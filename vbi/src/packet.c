@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet.c,v 1.9.2.12 2004-04-05 04:42:27 mschimek Exp $ */
+/* $Id: packet.c,v 1.9.2.13 2004-04-08 23:36:25 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -38,7 +38,6 @@
 #include "tables.h"
 #include "vbi.h"
 
-typedef void *vbi_cache;
 
 
 
@@ -48,6 +47,16 @@ typedef void *vbi_cache;
 #ifndef TELETEXT_DECODER_CHSW_TEST
 #define TELETEXT_DECODER_CHSW_TEST 0
 #endif
+
+#ifndef TELETEXT_DECODER_LOG
+#define TELETEXT_DECODER_LOG 0
+#endif
+
+#define log(templ, args...)						\
+do {									\
+	if (TELETEXT_DECODER_LOG)					\
+		fprintf (stderr, templ , ##args);			\
+} while (0)
 
 /* ETS 300 706 Table 30 Colour Map */
 
@@ -368,19 +377,32 @@ decode_pop_packet		(vt_page *		vtp,
 				 const uint8_t		buffer[40],
 				 unsigned int		packet)
 {
-	const uint8_t *p;
-	int triplet18[13];
+	int n18[13];
 	int designation;
+	int err;
 	unsigned int i;
 
-	p = buffer;
+	designation = vbi_iham8 (*buffer);
 
-	if ((designation = vbi_iham8 (*p++)) < 0)
+	err = 0;
+
+	for (i = 0; i < 13; ++i)
+		err |= n18[i] = vbi_iham24p (buffer + 1 + i * 3);
+
+	if (TELETEXT_DECODER_LOG) {
+		log ("POP page %x.%x flags %x packet %u designation %d\n",
+		     vtp->pgno, vtp->subno, vtp->flags,
+		     packet, designation);
+
+		for (i = 1; i < 13; ++i)
+			log ("... %u: %d %x %u %u\n",
+			     i, n18[i], n18[i],
+			     n18[i] & 0x1FF,
+			     (n18[i] >> 9) & 0x1FF);
+	}
+
+	if ((designation | err) < 0) {
 		return FALSE;
-
-	for (i = 0; i < 13; ++i) {
-		triplet18[i] = vbi_iham24p (p);
-		p += 3;
 	}
 
 	if (26 == packet)
@@ -389,8 +411,9 @@ decode_pop_packet		(vt_page *		vtp,
 	switch (packet) {
 	case 1 ... 2:
 		/* 10.5.1.2: Must be pointer table. */
-		if (!(designation & 1))
+		if (0 && !(designation & 1)) {
 			return FALSE;
+		}
 
 		/* fall through */
 
@@ -404,20 +427,16 @@ decode_pop_packet		(vt_page *		vtp,
 
 			/* 10.5.1.2: triplet[0] is reserved. */
 			for (i = 1; i < 13; ++i) {
-				if (triplet18[i] >= 0) {
-					vtp->data.pop.pointer[index + 0] =
-						triplet18[i] & 0x1FF;
-					vtp->data.pop.pointer[index + 1] =
-						triplet18[i] >> 9;
+				vtp->data.pop.pointer[index + 0] =
+					n18[i] & 0x1FF;
+				vtp->data.pop.pointer[index + 1] =
+					n18[i] >> 9;
 
-					if (0)
-						fprintf (stderr, "PT %2u %2u "
-							 "(%2u): %3u %3u\n",
-							 packet, i, index,
-							 triplet18[i] & 0x1FF,
-							 triplet18[i] >> 9);
-				}
-
+				log ("PT %2u %2u (%2u): %3u %3u\n",
+				     packet, i, index,
+				     n18[i] & 0x1FF,
+				     n18[i] >> 9);
+				
 				index += 2;
 			}
 
@@ -430,15 +449,13 @@ decode_pop_packet		(vt_page *		vtp,
 	{
 		triplet *trip;
 
-		trip = vtp->data.pop.triplet + (packet - 3) * 13;
+		trip = &vtp->data.pop.triplet[(packet - 3) * 13];
 
 		for (i = 0; i < 13; ++i) {
-			if (triplet18[i] >= 0) {
-				trip->address	= (triplet18[i] >> 0) & 0x3F;
-				trip->mode	= (triplet18[i] >> 6) & 0x1F;
-				trip->data	= (triplet18[i] >> 11);
-			}
-
+			trip->address	= (n18[i] >> 0) & 0x3F;
+			trip->mode	= (n18[i] >> 6) & 0x1F;
+			trip->data	= (n18[i] >> 11);
+			
 			++trip;
 		}
 
@@ -454,17 +471,21 @@ decode_pop_packet		(vt_page *		vtp,
 
 static vbi_bool
 convert_pop_page		(vt_page *		dvtp,
-				 const vt_page *	svtp)
+				 const vt_page *	svtp,
+				 page_function		function)
 {
 	unsigned int packet;
 
 	clear_pop_page (dvtp);
 
+	dvtp->function = function;
+
 	for (packet = 1; packet <= 25; ++packet)
 		if (svtp->lop_packets & (1 << packet))
 			if (!decode_pop_packet
-			    (dvtp, svtp->data.unknown.raw[packet], packet))
+			    (dvtp, svtp->data.unknown.raw[packet], packet)) {
 				return FALSE;
+			}
 
 	assert ((39 * 13 + 1) == N_ELEMENTS (dvtp->data.pop.triplet));
 	assert ((16 * 13 + 1) == N_ELEMENTS (svtp->data.enh_lop.enh));
@@ -685,8 +706,6 @@ decode_mot_page			(vbi_teletext_decoder *	td,
 	11.2 Table Of Pages navigation
 */
 
-#define TOP_LOG 0
-
 static vbi_bool
 top_page_number			(pagenum *		pn,
 				 const uint8_t		buffer[8])
@@ -825,10 +844,9 @@ decode_btt_page			(vbi_teletext_decoder *	td,
 				break;
 			}
 			
-			if (TOP_LOG)
-				fprintf (stderr, "BTT %04x: %2u %04x %s\n",
-					 pgno, btt_type, subcode,
-					 _vbi_page_type_name (page_type));
+			log ("BTT %04x: %2u %04x %s\n",
+			     pgno, btt_type, subcode,
+			     _vbi_page_type_name (page_type));
 
 			ps = vt_network_page_stat (td->network, pgno);
 
@@ -885,9 +903,9 @@ decode_btt_page			(vbi_teletext_decoder *	td,
 				case PAGE_FUNCTION_MPT:
 				case PAGE_FUNCTION_AIT:
 				case PAGE_FUNCTION_MPT_EX:
-					if (TOP_LOG) {
-						fprintf (stderr, "BTT %2u: ",
-							 pn - vtn->btt_link);
+					if (TELETEXT_DECODER_LOG) {
+						log ("BTT %2u: ",
+						     pn - vtn->btt_link);
 						pagenum_dump (pn, stderr);
 						fputc ('\n', stderr);
 					}
@@ -962,12 +980,12 @@ decode_ait_packet		(vt_page *		vtp,
 
 		buffer += 12;
 
-		if (TOP_LOG) {
-			fprintf (stderr, "AIT %2u: ", packet * 2 - 2 + i);
+		if (TELETEXT_DECODER_LOG) {
+			log ("AIT %2u: ", packet * 2 - 2 + i);
 			pagenum_dump (&temp.page, stderr);
 			fputc (' ', stderr);
 			for (j = 0; j < 12; ++j)
-				fprintf (stderr, "%02x ", temp.text[j] & 0xFF);
+				log ("%02x ", temp.text[j] & 0xFF);
 			fputc ('>', stderr);
 			for (j = 0; j < 12; ++j)
 				fputc (printable (temp.text[j]), stderr);
@@ -988,6 +1006,8 @@ convert_ait_page		(vt_page *		dvtp,
 
 	/* NO_PAGE (pgno): (pgno & 0xFF) == 0xFF. */
 	memset (&dvtp->data.ait, -1, sizeof (dvtp->data.ait));
+
+	dvtp->function = PAGE_FUNCTION_AIT;
 
 	for (packet = 1; packet <= 23; ++packet)
 		if (svtp->lop_packets & (1 << packet))
@@ -1038,11 +1058,9 @@ decode_mpt_page			(vbi_teletext_decoder *	td,
 			page_type = ps->page_type;
 			subcode = ps->subcode;
 
-			if (TOP_LOG) {
-				fprintf (stderr, "MPT %04x: %04x %x %s\n",
-					 pgno, subcode, n,
-					 _vbi_page_type_name (page_type));
-			}
+			log ("MPT %04x: %04x %x %s\n",
+			     pgno, subcode, n,
+			     _vbi_page_type_name (page_type));
 
 			if (n > 9) {
 				/* Has more than 9 subpages, details
@@ -1100,9 +1118,9 @@ decode_mpt_ex_page		(vbi_teletext_decoder *	td,
 
 			pn.subno = vbi_dec2bcd (pn.subno & 0x7F);
 
-			if (TOP_LOG) {
-				fprintf (stderr, "MPT-EX %3u: ",
-					 (packet - 1) * 5 + i);
+			if (TELETEXT_DECODER_LOG) {
+				log ("MPT-EX %3u: ",
+				     (packet - 1) * 5 + i);
 				pagenum_dump (&pn, stderr);
 				fputc ('\n', stderr);
 			}
@@ -1313,11 +1331,9 @@ decode_mip_page_func		(vbi_teletext_decoder *	td,
 		ps->subcode = subcode;
 	}
 
-	if (0) {
-		fprintf (stderr, "MIP %04x: %02x:%02x:%04x %s\n",
-			 pgno, page_type, ps->charset_code, subcode,
-			 _vbi_page_type_name (page_type));
-	}
+	log ("MIP %04x: %02x:%02x:%04x %s\n",
+	     pgno, page_type, ps->charset_code, subcode,
+	     _vbi_page_type_name (page_type));
 }
 
 static void
@@ -1474,24 +1490,17 @@ decode_drcs_page		(vt_page *		vtp)
 	s = vtp->data.drcs.lop.raw[1];
 
 	for (i = 0; i < DRCS_PTUS_PER_PAGE / 2; ++i) {
-		unsigned int j;
+		if (vtp->lop_packets & (2 << i)) {
+			unsigned int j;
 
-		if (0 == (vtp->lop_packets & (2 << i))) {
+			for (j = 0; j < 40; ++j)
+				if (vbi_ipar8 (s[j]) < 0x40) {
+					invalid |= ((uint64_t) 3) << (i * 2);
+					break;
+				}
+		} else {
 			invalid |= ((uint64_t) 3) << (i * 2);
-			continue;
 		}
-
-		for (j = 0; j < 20; ++j)
-			if (vbi_ipar8 (s[j]) < 0x40) {
-				invalid |= ((uint64_t) 1) << (i * 2);
-				break;
-			}
-
-		for (; j < 40; ++j)
-			if (vbi_ipar8 (s[j]) < 0x40) {
-				invalid |= ((uint64_t) 2) << (i * 2);
-				break;
-			}
 
 		s += 40;
 	}
@@ -1612,8 +1621,13 @@ _vbi_convert_cached_page	(vbi_decoder *		vbi,
 	const vt_page *vtp = *vtpp;
 	vt_page temp;
 
-	if (PAGE_FUNCTION_UNKNOWN != vtp->function)
+	if (PAGE_FUNCTION_UNKNOWN != vtp->function) {
 		return FALSE;
+	}
+
+	log ("Convert page %s -> %s\n",
+	     page_function_name (vtp->function),
+	     page_function_name (new_function));
 
 	vt_page_copy (&temp, vtp);
 
@@ -1624,8 +1638,9 @@ _vbi_convert_cached_page	(vbi_decoder *		vbi,
 
 	case PAGE_FUNCTION_GPOP:
 	case PAGE_FUNCTION_POP:
-		if (!convert_pop_page (&temp, vtp))
+		if (!convert_pop_page (&temp, vtp, new_function)) {
 			return FALSE;
+		}
 		break;
 
 	case PAGE_FUNCTION_GDRCS:
@@ -1645,6 +1660,7 @@ _vbi_convert_cached_page	(vbi_decoder *		vbi,
 		for (i = 0; i < DRCS_PTUS_PER_PAGE; ++i)
 			temp.data.drcs.mode[i] = DRCS_MODE_12_10_1;
 
+		temp.function = new_function;
 		temp.data.drcs.invalid = (uint64_t) -1; /* all */
 
 		decode_drcs_page (&temp);
@@ -1750,8 +1766,6 @@ page_charset_code		(vbi_teletext_decoder *	td,
 }
 
 /* 9.3.1 Teletext packet 0, Page Header. */
-
-#define HEADER_LOG 0
 
 static int
 same_header			(vbi_pgno		cur_pgno,
@@ -2051,6 +2065,12 @@ store_page			(vbi_decoder * vbi,
  {
 	 vbi_event event;
 
+	 log ("... store %03x.%04x, packets=%x x26=%x x27=%x x28=%x\n",
+	      vtp->pgno, vtp->subno,
+	      vtp->lop_packets,
+	      vtp->x26_designations,
+	      vtp->x27_designations,
+	      vtp->x28_designations);
 
 	 vbi_cache_put (vbi, NUID0, vtp, /* new ref */ FALSE);
 
@@ -2192,6 +2212,8 @@ epg_callback			(vbi_pfc_demux *	pc,
 	vbi_teletext_decoder *td = user_data;
 
 	// TODO
+
+	return TRUE;
 }
 
 static vbi_bool
@@ -2212,22 +2234,20 @@ decode_packet_0			(vbi_decoder *		vbi,
 	if ((page = vbi_iham16p (buffer + 2)) < 0) {
 		_vbi_teletext_decoder_resync (td);
 
-		if (HEADER_LOG)
-			fprintf (stderr, "Hamming error in "
-				 "packet 0 page number\n");
+		log ("Hamming error in packet 0 page number\n");
 
 		return FALSE;
 	}
 
 	pgno = ((0 == mag0) ? 0x800 : mag0 << 8) + page;
 
-	if (HEADER_LOG)
-		fprintf (stderr, "Packet 0 page %x\n", pgno);
+	log ("Packet 0 page %x\n", pgno);
 
 	if (td->current) {
 		if (td->current->flags & C11_MAGAZINE_SERIAL) {
 			/* New pgno terminates the most recently
 			   received page. */
+
 			if (td->current->pgno != pgno) {
 				store_page (vbi, td->current);
 				vtp->function = PAGE_FUNCTION_DISCARD;
@@ -2271,14 +2291,17 @@ decode_packet_0			(vbi_decoder *		vbi,
 	}
 
 	vtp->pgno	= pgno;
-	vtp->subno	= subno & 0x3F7F;
 	vtp->national	= vbi_rev8 (flags) & 7;
 	vtp->flags	= (flags << 16) + subno;
 
-	if (HEADER_LOG
-	    && !vbi_is_bcd (page))
-		fprintf (stderr, "System page %03x.%04x flags %06x\n",
-			 vtp->pgno, vtp->subno, vtp->flags);
+	if (vbi_is_bcd (page)) {
+		vtp->subno = subno & 0x3F7F;
+	} else {
+		vtp->subno = subno & 0x000F;
+
+		log ("System page %03x.%04x flags %06x\n",
+		     vtp->pgno, vtp->subno, vtp->flags);
+	}
 
 	if (vtp->flags & C4_ERASE_PAGE)
 		goto erase;
@@ -2291,9 +2314,13 @@ decode_packet_0			(vbi_decoder *		vbi,
 				    vtp->subno, -1, FALSE);
 
 	if (cached_vtp) {
-		if (HEADER_LOG)
-			fprintf (stderr, "... %03x.%04x is cached\n",
-				 vtp->pgno, vtp->subno);
+		log ("... %03x.%04x is cached, "
+		     "packets=%x x26=%x x27=%x x28=%x\n",
+		     cached_vtp->pgno, cached_vtp->subno,
+		     cached_vtp->lop_packets,
+		     cached_vtp->x26_designations,
+		     cached_vtp->x27_designations,
+		     cached_vtp->x28_designations);
 
 		/* Page is already cached. We load it into our page buffer,
 		   add received data and store the page when complete. Note
@@ -2338,13 +2365,13 @@ decode_packet_0			(vbi_decoder *		vbi,
 	erase:
 		ps = vt_network_page_stat (td->network, vtp->pgno);
 
-		if (HEADER_LOG)
-			fprintf (stderr, "... rebuild %03x.%04x "
-				 "from scratch\n",
-				 vtp->pgno, vtp->subno);
+		log ("... rebuild %03x.%04x from scratch\n",
+		     vtp->pgno, vtp->subno);
 
 		/* Determine the page function from
-		   A.10 reserved page numbers. */
+		   A.10 reserved page numbers.
+		   A.1: MIP and MOT always use subno 0.
+		   XXX should erase MIP/MOT/TOP tables on C4. */
 
 		if (0x1B0 == vtp->pgno) {
 			vtp->function = PAGE_FUNCTION_ACI;
@@ -2353,11 +2380,11 @@ decode_packet_0			(vbi_decoder *		vbi,
 			vtp->function = PAGE_FUNCTION_BTT;
 			ps->page_type = VBI_TOP_PAGE;
 			CLEAR (vtp->data.ext_lop);
-		} else if (0xFD == page) {
+		} else if (0xFD == page && 0 == vtp->subno) {
 			vtp->function = PAGE_FUNCTION_MIP;
 			ps->page_type = VBI_SYSTEM_PAGE;
 			CLEAR (vtp->data.ext_lop);
-		} else if (0xFE == page) {
+		} else if (0xFE == page && 0 == vtp->subno) {
 			vtp->function = PAGE_FUNCTION_MOT;
 			ps->page_type = VBI_SYSTEM_PAGE;
 			CLEAR (vtp->data.ext_lop);
@@ -2448,10 +2475,10 @@ decode_packet_0			(vbi_decoder *		vbi,
 					assert (!"reached");
 					break;
 				}
-			} else if (0) {
-				fprintf (stderr, "%03x.%04x claims to be "
-					 "TOP page, but link not found\n",
-					 vtp->pgno, vtp->subno);
+			} else {
+				log ("%03x.%04x claims to be "
+				     "TOP page, but link not found\n",
+				     vtp->pgno, vtp->subno);
 			}
 
 			break;
@@ -2480,8 +2507,7 @@ decode_packet_0			(vbi_decoder *		vbi,
 		{
 			vt_page temp = *vtp;
 
-			convert_pop_page (vtp, &temp);
-			vtp->function = PAGE_FUNCTION_POP;
+			convert_pop_page (vtp, &temp, PAGE_FUNCTION_POP);
 			break;
 		}
 
@@ -2520,9 +2546,74 @@ decode_packet_0			(vbi_decoder *		vbi,
 			break;
 		}
 
-		if (HEADER_LOG)
-			fprintf (stderr, "... identified as %s\n",
-				 page_function_name (vtp->function));
+		log ("... identified as %s\n",
+		     page_function_name (vtp->function));
+	}
+
+	switch (vtp->function) {
+	case PAGE_FUNCTION_ACI:
+	case PAGE_FUNCTION_TRIGGER:
+		/* ? */
+		break;
+
+	case PAGE_FUNCTION_BTT:
+	case PAGE_FUNCTION_AIT:
+	case PAGE_FUNCTION_MPT:
+	case PAGE_FUNCTION_MPT_EX:
+		/* ? */
+		/* Observation: BTT with 3Fx0, other 0000. */
+		break;
+
+	case PAGE_FUNCTION_LOP:
+		/* 0000 single page, 0001 ... 0079 multi page
+		   2359 clock page / subpages not to be cached. */
+		break;
+
+	case PAGE_FUNCTION_EPG:
+	case PAGE_FUNCTION_DATA:
+		/* Uses different scheme, see EN 300 708 4.3.1 */
+		break;
+
+	case PAGE_FUNCTION_GPOP:
+	case PAGE_FUNCTION_POP:
+	case PAGE_FUNCTION_GDRCS:
+	case PAGE_FUNCTION_DRCS:
+	case PAGE_FUNCTION_MOT:
+	case PAGE_FUNCTION_MIP:
+	{
+		unsigned int last_packet;
+		unsigned int continuity;
+
+		/* A.1, B.6 Page numbering. */
+		/* C12, C13 not observed in the field, last_packet
+		   is unreliable, so this information is pretty useless. */
+
+		last_packet = subno >> 8;
+		continuity = (subno >> 4) & 15;
+
+		if (last_packet >= 26)
+			log ("... last packet X/26/%u ci %u ",
+			     last_packet - 26, continuity);
+		else
+			log ("... last packet X/%u ci %u ",
+			     last_packet, continuity);
+
+		if (vtp->flags & C13_PARTIAL_PAGE)
+			log ("partial page");
+		else
+			log ("full page");
+
+		if (vtp->flags & C12_FRAGMENT)
+			log (" fragment\n");
+		else
+			log (", complete or first fragment\n");
+
+		break;
+	}
+
+	case PAGE_FUNCTION_DISCARD:
+	case PAGE_FUNCTION_UNKNOWN:
+		break;
 	}
 
 	return TRUE;
@@ -2535,9 +2626,10 @@ decode_packet_26		(vbi_teletext_decoder *	td,
 				 vt_page *		vtp,
 				 const uint8_t		buffer[42])
 {
-	const uint8_t *p;
-	triplet *trip;
+	int n18[13];
 	int designation;
+	int err;
+	triplet *trip;
 	unsigned int i;
 
 	switch (vtp->function) {
@@ -2569,36 +2661,45 @@ decode_packet_26		(vbi_teletext_decoder *	td,
 		break;
 	}
 
-	p = buffer + 2;
+	designation = vbi_iham8 (buffer[2]);
 
-	/* B.2, D.1.3: Packets X/26 must arrive in designation order
-	   0 ... 15. No check here if the sequence is correct
-	   and complete, that happens in page formatting. */
+	err = 0;
 
-	if ((designation = vbi_iham8 (*p++)) < 0) {
-		vtp->x26_designations = 0;
+	for (i = 0; i < 13; ++i)
+		err |= n18[i] = vbi_iham24p (buffer + 3 + i * 3);
+
+	if (TELETEXT_DECODER_LOG) {
+		log ("Packet X/26/%u page %x.%x flags %x\n",
+		     designation, vtp->pgno, vtp->subno, vtp->flags);
+
+		for (i = 1; i < 13; ++i)
+			log ("... %u: %d %x\n",
+			     i, n18[i], n18[i]);
+	}
+
+	if ((designation | err) < 0) {
 		return FALSE;
 	}
 
+#if 0
+	/* B.2, D.1.3: Packets X/26 must arrive in designation order
+	   0 ... 15. No check here if the sequence is correct
+	   and complete, that happens in page formatting. */
 	if (vtp->x26_designations != (0x0FFFFU >> (16 - designation))) {
 		vtp->x26_designations = 0;
 		return FALSE;
 	}
+#endif
 
 	vtp->x26_designations |= 1 << designation;
 
 	trip = &vtp->data.enh_lop.enh[designation * 13];
 
 	for (i = 0; i < 13; ++i) {
-		int triplet;
+		trip->address	= (n18[i] >> 0) & 0x3F;
+		trip->mode	= (n18[i] >> 6) & 0x1F;
+		trip->data	= (n18[i] >> 11);
 
-		if ((triplet = vbi_iham24p (p)) >= 0) {
-			trip->address	= (triplet >> 0) & 0x3F;
-			trip->mode	= (triplet >> 6) & 0x1F;
-			trip->data	= (triplet >> 11);
-		}
-
-		p += 3;
 		++trip;
 	}
 
@@ -2606,8 +2707,6 @@ decode_packet_26		(vbi_teletext_decoder *	td,
 }
 
 /* 9.6 Teletext packet 27, page linking. */
-
-#define X27_LOG 0
 
 static vbi_bool
 decode_packet_27		(vbi_teletext_decoder *	td,
@@ -2647,9 +2746,8 @@ decode_packet_27		(vbi_teletext_decoder *	td,
 	if ((designation = vbi_iham8 (buffer[2])) < 0)
 		return FALSE;
 
-	if (X27_LOG)
-		fprintf (stderr, "Packet X/27/%u page %03x\n",
-			 designation, vtp->pgno);
+	log ("Packet X/27/%u page %03x.%x\n",
+	     designation, vtp->pgno, vtp->subno);
 
 	p = buffer + 3;
 
@@ -2662,10 +2760,7 @@ decode_packet_27		(vbi_teletext_decoder *	td,
 		if ((control = vbi_iham8 (buffer[39])) < 0)
 			return FALSE;
 
-		if (X27_LOG)
-			fprintf (stderr, "%03x.%04x X/27/%u %02x\n",
-				 vtp->pgno, vtp->subno,
-				 designation, control);
+		log ("... control %02x\n", control);
 
 		/* CRC cannot be trusted, some stations transmit
 		   incorrect data. Link Control Byte bits 1 ... 3
@@ -2675,8 +2770,7 @@ decode_packet_27		(vbi_teletext_decoder *	td,
 
 		crc = buffer[40] + buffer[41] * 256;
 
-		if (X27_LOG)
-			fprintf (stderr, "CRC: %04x\n", crc);
+		log ("... crc %04x\n", crc);
 
 		/* ETR 287 section 10.4: Have FLOF, display row 24. */
 		vtp->data.lop.have_flof = control >> 3;
@@ -2700,10 +2794,8 @@ decode_packet_27		(vbi_teletext_decoder *	td,
 			hamm8_page_number (pn, p, (vtp->pgno >> 8) & 7);
 			p += 6;
 
-			if (X27_LOG)
-				fprintf (stderr,
-					 "X/27/%u link[%u] = %03x.%04x\n",
-					 designation, i, pn->pgno, pn->subno);
+			log ("... link[%u] = %03x.%04x\n",
+			     i, pn->pgno, pn->subno);
 		}
 
 		vtp->x27_designations |= 1 << designation;
@@ -2758,13 +2850,9 @@ decode_packet_27		(vbi_teletext_decoder *	td,
 				   not a real subno. */
 				pn->subno = t2 >> 2;
 
-				if (X27_LOG)
-					fprintf (stderr,
-						 "X/27/%u link[%u] %s %x/%x\n",
-						 designation, i,
-						 page_function_name
-						 (pn->function),
-						 pn->pgno, pn->subno);
+				log ("... link[%u] = %s %x/%x\n",
+				     i, page_function_name (pn->function),
+				     pn->pgno, pn->subno);
 
 				/* XXX
 				   "The function of first four links in a
@@ -2804,8 +2892,6 @@ decode_packet_27		(vbi_teletext_decoder *	td,
 	9.4.2, 9.4.3, 9.5 Teletext packets 28 and 29,
 	Level 2.5/3.5 enhancement.
 */
-
-#define X28_LOG 0
 
 struct bit_stream {
         int *			triplet;
@@ -2865,10 +2951,9 @@ decode_packet_28_29		(vbi_teletext_decoder *	td,
 	if ((designation = vbi_iham8 (*p++)) < 0)
 		return FALSE;
 
-	if (X28_LOG)
-		fprintf (stderr, "Packet %u/%u/%u page %03x\n",
-			 (vtp->pgno >> 8) & 7, packet, designation,
-			 vtp->pgno);
+	log ("Packet %u/%u/%u page %03x.%x\n",
+	     (vtp->pgno >> 8) & 7, packet, designation,
+	     vtp->pgno, vtp->subno);
 
 	err = 0;
 
@@ -2925,9 +3010,7 @@ decode_packet_28_29		(vbi_teletext_decoder *	td,
 			    && 0 != (n18[0] & 0x7F)) {
 				unsigned int i;
 
-				if (X28_LOG)
-					fprintf (stderr,
-						 "... format 2 ignored.\n");
+				log ("... format 2 ignored.\n");
 
 				if (0) {
 					for (i = 0; i < 40; ++i)
@@ -2962,10 +3045,9 @@ decode_packet_28_29		(vbi_teletext_decoder *	td,
 		function = get_bits (&bs, 4);
 		coding = get_bits (&bs, 3);
 
-		if (X28_LOG)
-			fprintf (stderr, "... %s, %s\n",
-				 page_function_name (function),
-				 page_coding_name (coding));
+		log ("... %s, %s\n",
+		     page_function_name (function),
+		     page_coding_name (coding));
 
 		if (function > PAGE_FUNCTION_TRIGGER
 		    || coding > PAGE_CODING_META84)
@@ -3003,9 +3085,8 @@ decode_packet_28_29		(vbi_teletext_decoder *	td,
 				case PAGE_FUNCTION_POP:
 				{
 					vt_page temp = *vtp;
-
-					convert_pop_page (vtp, &temp);
-					vtp->function = function;
+					convert_pop_page (vtp, &temp,
+							  function);
 					break;
 				}
 
@@ -3026,13 +3107,11 @@ decode_packet_28_29		(vbi_teletext_decoder *	td,
 				case PAGE_FUNCTION_AIT:
 				{
 					vt_page temp = *vtp;
-
 					convert_ait_page (vtp, &temp);
-					vtp->function = PAGE_FUNCTION_AIT;
 					break;
 				}
 				}
-			} else /* unknown != vtp->function */ {
+			} else if (function != vtp->function) {
 				/* Who's wrong here? */
 				vtp->function = PAGE_FUNCTION_DISCARD;
 				return FALSE;
@@ -3198,10 +3277,9 @@ decode_packet_28_29		(vbi_teletext_decoder *	td,
 		function = get_bits (&bs, 4);
 		coding = get_bits (&bs, 3);
 
-		if (X28_LOG)
-			fprintf (stderr, "... %s, %s\n",
-				 page_function_name (function),
-				 page_coding_name (coding));
+		log ("... %s, %s\n",
+		     page_function_name (function),
+		     page_coding_name (coding));
 
 		if (PAGE_FUNCTION_GDRCS != function
 		    && PAGE_FUNCTION_DRCS != function)
@@ -3239,8 +3317,6 @@ decode_packet_28_29		(vbi_teletext_decoder *	td,
 
 /* 9.8 Teletext packet 8/30, broadcast service data. */
 
-#define _830_LOG 0
-
 static void
 network_event			(vbi_teletext_decoder *	td,
 				 vbi_nuid		nuid)
@@ -3271,8 +3347,7 @@ decode_packet_8_30		(vbi_teletext_decoder *	td,
 	if ((designation = vbi_iham8 (buffer[2])) < 0)
 		return FALSE;
 
-	if (_830_LOG)
-		fprintf (stderr, "Packet 8/30/%d\n", designation);
+	log ("Packet 8/30/%d\n", designation);
 
 	if (designation > 4)
 		return TRUE; /* undefined, ignored */
@@ -3410,17 +3485,20 @@ decode_packet_8_30		(vbi_teletext_decoder *	td,
  * FALSE if the packet contained incorrectable errors. 
  */
 vbi_bool
-vbi_decode_teletext(vbi_decoder *vbi,
-		    const uint8_t buffer[42])
+vbi_decode_teletext		(vbi_decoder *		vbi,
+				 const uint8_t		buffer[42],
+				 double			timestamp)
 {
+	vbi_teletext_decoder *td;
 	vt_page *vtp;
 	int pmag;
 	int mag0;
 	int packet;
 
-/*
-	td->timestamp = timestamp;
+	td = &vbi->vt;
 
+	td->timestamp = timestamp;
+/*
 	if (td->reset_delay > 0) {
 		if (1 == td->reset_delay) {
 			vbi_event e;
@@ -3448,7 +3526,7 @@ vbi_decode_teletext(vbi_decoder *vbi,
 	    && !(vbi->event_mask & TTX_EVENTS))
 		return TRUE;
 */
-	vtp = &vbi->vt.buffer[mag0];
+	vtp = &td->buffer[mag0];
 
 	if (0) {
 		unsigned int i;
@@ -3530,16 +3608,16 @@ vbi_decode_teletext(vbi_decoder *vbi,
 
 	case 26:
 		/* Page enhancement packet. */
-		return decode_packet_26 (&vbi->vt, vtp, buffer);
+		return decode_packet_26 (td, vtp, buffer);
 
 	case 27:
 		/* Page linking. */
-		return decode_packet_27 (&vbi->vt, vtp, buffer);
+		return decode_packet_27 (td, vtp, buffer);
 
 	case 28:
 	case 29:
 		/* Level 2.5/3.5 enhancement. */
-		return decode_packet_28_29 (&vbi->vt, vtp, buffer, packet);
+		return decode_packet_28_29 (td, vtp, buffer, packet);
 
 	case 30:
 	case 31:
@@ -3552,7 +3630,7 @@ vbi_decode_teletext(vbi_decoder *vbi,
 
 		switch (channel) {
 		case 0:
-			return decode_packet_8_30 (&vbi->vt, buffer);
+			return decode_packet_8_30 (td, buffer);
 
 		/* 1 ... 3	= Packet 1/30 ... 3/30 */
 		/* 4		= Low bit rate audio */
@@ -3564,8 +3642,7 @@ vbi_decode_teletext(vbi_decoder *vbi,
 		/* 15		= Packet 7/31 */
 
 		default:
-			if (0)
-				fprintf (stderr, "IDL %u\n", channel);
+			log ("IDL %u\n", channel);
 			break;
 		}
 
@@ -3579,21 +3656,20 @@ vbi_decode_teletext(vbi_decoder *vbi,
 	return TRUE;
 }
 
+/**
+ *
+ */
 const vbi_program_id *
 vbi_teletext_decoder_program_id	(vbi_teletext_decoder *	td,
 				 vbi_pid_channel	channel)
 {
-	vt_network *vtn;
-
 	assert (NULL != td);
 	assert ((unsigned int) channel <= VBI_PID_CHANNEL_LCI_3);
 
 	return &td->network->program_id[channel];
 }
 
-/**
- * @internal
- */
+/** @internal */
 void
 _vbi_teletext_decoder_resync	(vbi_teletext_decoder *	td)
 {
@@ -3608,15 +3684,6 @@ _vbi_teletext_decoder_resync	(vbi_teletext_decoder *	td)
 
 	vbi_pfc_demux_reset (&td->epg_stream[0]);
 	vbi_pfc_demux_reset (&td->epg_stream[1]);
-}
-
-/**
- * @internal
- */
-void
-vbi_teletext_desync(vbi_decoder *vbi)
-{
-	_vbi_teletext_decoder_resync (&vbi->vt);
 }
 
 void
@@ -3703,9 +3770,7 @@ magazine_init			(magazine *		mag)
 	memset (mag->drcs_link, -1, sizeof (mag->drcs_link));
 }
 
-/**
- * @internal
- */
+/** @internal */
 const magazine *
 _vbi_teletext_decoder_default_magazine (void)
 {
@@ -3754,54 +3819,6 @@ vt_network_init			(vt_network *		vtn)
 	vtn->have_top = FALSE;
 }
 
-/**
- * @param vbi Initialized vbi decoding context.
- * 
- * This function must be called after a channel switch,
- * to reset the Teletext decoder.
- */
-void
-vbi_teletext_channel_switched(vbi_decoder *vbi)
-{
-	vt_network_init (vbi->vt.network);
-
-	vbi->vt.epg_stream[0].block.pgno = 0;
-	vbi->vt.epg_stream[1].block.pgno = 0;
-
-	vbi->vt.header_page.pgno = 0;
-	CLEAR (vbi->vt.header);
-
-	vbi_teletext_desync(vbi);
-}
-
-
-/**
- * @internal
- * @param vbi VBI decoding context.
- * 
- * This function is called during @a vbi destruction
- * to destroy the Teletext subset of @a vbi object.
- */
-void
-vbi_teletext_destroy(vbi_decoder *vbi)
-{
-}
-
-/**
- * @internal
- * @param vbi VBI decoding context.
- * 
- * This function is called during @a vbi initialization
- * to initialize the Teletext subset of @a vbi object.
- */
-void
-vbi_teletext_init(vbi_decoder *vbi)
-{
-	vbi_teletext_channel_switched(vbi);     /* Reset */
-}
-
-
-
 static void
 reset				(vbi_teletext_decoder *	td,
 				 vbi_nuid		nuid,
@@ -3826,7 +3843,9 @@ reset				(vbi_teletext_decoder *	td,
 //	vpn = _vbi_cache_new_network (td->cache, nuid);
 //	assert (NULL != vpn);
 
-vt_network_init (td->network);
+
+		vt_network_init (td->network);
+
 
 	td->epg_stream[0].block.pgno = 0;
 	td->epg_stream[1].block.pgno = 0;
@@ -3842,6 +3861,7 @@ vbi_teletext_decoder_reset	(vbi_teletext_decoder *	td,
 				 vbi_nuid		nuid)
 {
 //	td->virtual_reset (td, nuid, 0 /* now */);
+	reset (td, nuid, 0);
 }
 
 void
@@ -3881,6 +3901,8 @@ _vbi_teletext_decoder_init	(vbi_teletext_decoder *	td,
 //	_vbi_event_handlers_init (&td->handlers);
 
 	reset (td, nuid, 0 /* now */);
+
+	return TRUE;
 }
 
 void

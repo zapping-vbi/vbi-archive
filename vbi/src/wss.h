@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: wss.h,v 1.1.1.1.2.2 2004-04-03 02:04:48 mschimek Exp $ */
+/* $Id: wss.h,v 1.1.1.1.2.3 2004-04-08 23:36:26 mschimek Exp $ */
 
 #ifndef __ZVBI_WSS_H__
 #define __ZVBI_WSS_H__
@@ -26,8 +26,6 @@
 #include <inttypes.h>		/* uint8_t */
 #include "macros.h"
 #include "aspect_ratio.h"	/* vbi_aspect_ratio */
-
-/* Public */
 
 VBI_BEGIN_DECLS
 
@@ -39,7 +37,5 @@ vbi_decode_wss_cpr1204		(vbi_aspect_ratio *	r,
 				 const uint8_t		buffer[3]);
 
 VBI_END_DECLS
-
-/* Private */
 
 #endif /* __ZVBI_WSS_H__ */

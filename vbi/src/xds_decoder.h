@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds_decoder.h,v 1.1.2.1 2004-04-05 04:42:27 mschimek Exp $ */
+/* $Id: xds_decoder.h,v 1.1.2.2 2004-04-08 23:36:26 mschimek Exp $ */
 
 #ifndef __ZVBI_XDS_DECODER_H__
 #define __ZVBI_XDS_DECODER_H__
@@ -29,8 +29,6 @@
 #include "xds_demux.h"
 #include "pdc.h"
 #include "aspect_ratio.h"
-
-/* Public */
 
 VBI_BEGIN_DECLS
 
@@ -64,7 +62,5 @@ void
 _vbi_decode_xds (vbi_xds_demux *xd, void *user_data, const vbi_xds_packet *xp);
 
 VBI_END_DECLS
-
-/* Private */
 
 #endif /* __ZVBI_XDS_DECODER_H__ */

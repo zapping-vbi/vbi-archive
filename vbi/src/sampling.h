@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sampling.h,v 1.1.2.3 2004-03-31 00:41:34 mschimek Exp $ */
+/* $Id: sampling.h,v 1.1.2.4 2004-04-08 23:36:26 mschimek Exp $ */
 
 #ifndef __ZVBI_SAMPLING_H__
 #define __ZVBI_SAMPLING_H__
@@ -26,8 +26,6 @@
 #include "macros.h"
 #include "graphics.h"		/* vbi_pixfmt */
 #include "sliced.h"		/* vbi_service_set */
-
-/* Public */
 
 VBI_BEGIN_DECLS
 
@@ -209,10 +207,6 @@ _vbi_sampling_par_check_service	(const vbi_sampling_par *sp,
 extern vbi_bool
 _vbi_sampling_par_verify	(const vbi_sampling_par *sp) vbi_pure;
 
-/* Public */
-
 VBI_END_DECLS
-
-/* Private */
 
 #endif /* __ZVBI_SAMPLING_H__ */

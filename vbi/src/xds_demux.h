@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds_demux.h,v 1.1.2.1 2004-04-05 04:42:27 mschimek Exp $ */
+/* $Id: xds_demux.h,v 1.1.2.2 2004-04-08 23:36:26 mschimek Exp $ */
 
 #ifndef __ZVBI_XDS_DEMUX_H__
 #define __ZVBI_XDS_DEMUX_H__
@@ -27,8 +27,6 @@
 #include <stdio.h>		/* FILE */
 #include "macros.h"
 
-/* Public */
-
 VBI_BEGIN_DECLS
 
 /**
@@ -36,6 +34,11 @@ VBI_BEGIN_DECLS
  * @{
  */
 
+/**
+ * @brief XDS packet class.
+ * XDS data is transmitted in packets. Each packet belongs
+ * to one of seven classes.
+ */
 typedef enum {
 	VBI_XDS_CLASS_CURRENT = 0,
 	VBI_XDS_CLASS_FUTURE,
@@ -49,7 +52,7 @@ typedef enum {
 #define VBI_XDS_MAX_CLASSES (VBI_XDS_CLASS_UNDEFINED + 1)
 
 /**
- * @brief VBI_XDS_CLASS_CURRENT and VBI_XDS_CLASS_FUTURE subclass.
+ * @brief @c VBI_XDS_CLASS_CURRENT and @c VBI_XDS_CLASS_FUTURE subclass.
  */
 typedef enum {
 	VBI_XDS_PROGRAM_ID = 1,
@@ -65,12 +68,14 @@ typedef enum {
 	VBI_XDS_PROGRAM_DESCRIPTION_END = 0x18,
 } vbi_xds_subclass_program;
 
+/** @brief @c VBI_XDS_CLASS_CHANNEL subclass. */
 typedef enum {
 	VBI_XDS_CHANNEL_NAME = 1,
 	VBI_XDS_CHANNEL_CALL_LETTERS,
 	VBI_XDS_CHANNEL_TAPE_DELAY,
 } vbi_xds_subclass_channel;
 
+/** @brief @c VBI_XDS_CLASS_MISC subclass. */
 typedef enum {
 	VBI_XDS_MISC_TIME_OF_DAY = 1,
 	VBI_XDS_MISC_IMPULSE_CAPTURE_ID,
@@ -87,12 +92,23 @@ typedef enum {
  */
 typedef unsigned int vbi_xds_subclass;
 
+/**
+ * @brief XDS Packet passed to the XDS demux callback.
+ */
 typedef struct {
 	vbi_xds_class		xds_class;
 	vbi_xds_subclass	xds_subclass;
+
+	/** XDS packets have variable length 1 ... 32 bytes. */
 	unsigned int		buffer_size;
+
+	/** Packet data. Bit 7 (odd parity) is cleared. */
 	uint8_t			buffer[32];
 } vbi_xds_packet;
+
+extern void
+_vbi_xds_packet_dump		(const vbi_xds_packet *	xp,
+				 FILE *			fp);
 
 /**
  * @brief XDS demultiplexer context.
@@ -104,6 +120,15 @@ typedef struct {
  */
 typedef struct _vbi_xds_demux vbi_xds_demux;
 
+/**
+ * @param xd XDS demultiplexer context allocated with vbi_xds_demux_new().
+ * @param user_data User data pointer given to vbi_xds_demux_new().
+ * @param xp Pointer to the received XDS data packet.
+ * 
+ * The XDS demux calls a function of this type when an XDS packet
+ * has been completely received, all bytes have correct parity and the
+ * packet checksum is correct.
+ */
 typedef vbi_bool
 vbi_xds_demux_cb		(vbi_xds_demux *	xd,
 				 void *			user_data,
@@ -120,11 +145,6 @@ extern vbi_xds_demux *
 vbi_xds_demux_new		(vbi_xds_demux_cb *	callback,
 				 void *			user_data) vbi_alloc;
 
-/* Private */
-
-extern void
-_vbi_xds_packet_dump		(const vbi_xds_packet *	xp,
-				 FILE *			fp);
 /** @internal */
 typedef struct {
 	uint8_t			buffer[32];
@@ -152,10 +172,6 @@ _vbi_xds_demux_init		(vbi_xds_demux *	xd,
 				 void *			user_data);
 /** @} */
 
-/* Public */
-
 VBI_END_DECLS
-
-/* Private */
 
 #endif /* __ZVBI_XDS_DEMUX_H__ */

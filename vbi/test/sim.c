@@ -3,6 +3,7 @@
 
 #include "../src/io-sim.h"
 
+#undef N_ELEMENTS
 #define N_ELEMENTS(array) (sizeof(array) / sizeof(*array))
 
 static vbi_sampling_par _sp;
@@ -230,7 +231,7 @@ read_sim(uint8_t *raw_data, vbi_sliced *sliced_data,
 		}
 	}
 
-	vbi_test_image_vbi (raw_data, &_sp, sliced, j);
+	_vbi_test_image_vbi (raw_data, &_sp, sliced, j);
 
 	*lines = vbi_raw_decoder_decode (_rd, sliced_data,
 					 /* FIXME */ 50, raw_data);

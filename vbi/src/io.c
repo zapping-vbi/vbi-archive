@@ -17,11 +17,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io.c,v 1.4 2002-07-16 00:11:36 mschimek Exp $ */
+/* $Id: io.c,v 1.4.2.1 2004-04-08 23:36:25 mschimek Exp $ */
 
 #include <assert.h>
 
-#include "io.h"
+#include "io-priv.h"
 
 /**
  * @addtogroup Device Device interface

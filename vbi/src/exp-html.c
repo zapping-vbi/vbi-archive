@@ -3,10 +3,6 @@
  *
  *  Copyright (C) 2001, 2002 Michael H. Schimek
  *
- *  Based on code from AleVT 1.5.1
- *  Copyright (C) 1998, 1999 Edgar Toernig <froese@gmx.de>
- *  Copyright (C) 1999 Paul Ortyl <ortylp@from.pl>
- *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -22,22 +18,19 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.6.2.6 2004-04-05 04:42:26 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.6.2.7 2004-04-08 23:36:25 mschimek Exp $ */
 
 #include "../config.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <unistd.h>
+#include <stdlib.h>		/* malloc() */
+#include <string.h>		/* strlen(), memcpy() */
+#include <unistd.h>		/* ssize_t */
 #include <setjmp.h>
-
-#include "lang.h"
+#include "misc.h"
 #include "intl-priv.h"
-#include "export.h"
-#include "vt.h"
-#include "vbi.h"
+#include "export-priv.h"	/* vbi_export */
+#include "format.h"		/* vbi_page */
+#include "lang.h"		/* vbi_character_set, ... */
 
 typedef struct {
 	vbi_char		ac;
@@ -58,9 +51,7 @@ typedef struct html_instance {
 	unsigned int		gfx_chr;
 	vbi_bool		ascii_art;
 	vbi_bool		color;
-	vbi_bool		headerless;
-
-	FILE *			fp;
+	vbi_bool		header;
 
 	jmp_buf			main;
 
@@ -78,9 +69,11 @@ typedef struct html_instance {
 } html_instance;
 
 static vbi_export *
-html_new			(void)
+html_new			(const _vbi_export_module *em)
 {
 	html_instance *html;
+
+	em = em;
 
 	if (!(html = calloc (1, sizeof (*html))))
 		return NULL;
@@ -101,17 +94,17 @@ html_delete			(vbi_export *		e)
 
 static const vbi_option_info
 option_info [] = {
-	VBI_OPTION_STRING_INITIALIZER
+	_VBI_OPTION_STRING_INITIALIZER
 	("gfx_chr", N_("Graphics char"),
 	 "#", N_("Replacement for block graphic characters: "
 		 "a single character or decimal (32) or hex (0x20) code")),
-	VBI_OPTION_BOOL_INITIALIZER
+	_VBI_OPTION_BOOL_INITIALIZER
 	("ascii_art", N_("ASCII art"),
 	 FALSE, N_("Replace graphic characters by ASCII art")),
-	VBI_OPTION_BOOL_INITIALIZER
+	_VBI_OPTION_BOOL_INITIALIZER
 	("color", N_("Color (CSS)"),
 	 TRUE, N_("Store the page colors using CSS attributes")),
-	VBI_OPTION_BOOL_INITIALIZER
+	_VBI_OPTION_BOOL_INITIALIZER
 	("header", N_("HTML header"),
 	 TRUE, N_("Include HTML page header"))
 };
@@ -126,7 +119,7 @@ option_get			(vbi_export *		e,
 	html_instance *html = PARENT (e, html_instance, export);
 
 	if (KEYWORD ("gfx_chr")) {
-		if (!(value->str = vbi_export_strdup (e, NULL, "x")))
+		if (!(value->str = _vbi_export_strdup (e, NULL, "x")))
 			return FALSE;
 
 		value->str[0] = html->gfx_chr;
@@ -135,9 +128,9 @@ option_get			(vbi_export *		e,
 	} else if (KEYWORD ("color")) {
 		value->num = html->color;
 	} else if (KEYWORD ("header")) {
-		value->num = !html->headerless;
+		value->num = html->header;
 	} else {
-		vbi_export_unknown_option (e, keyword);
+		_vbi_export_unknown_option (e, keyword);
 		return FALSE;
 	}
 
@@ -157,7 +150,7 @@ option_set			(vbi_export *		e,
 		int value;
 
 		if (!string || !string[0]) {
-			vbi_export_invalid_option (e, keyword, string);
+			_vbi_export_invalid_option (e, keyword, string);
 			return FALSE;
 		} else if (1 == strlen (string)) {
 			value = string[0];
@@ -175,9 +168,9 @@ option_set			(vbi_export *		e,
 	} else if (KEYWORD ("color")) {
 		html->color = !!va_arg (ap, vbi_bool);
 	} else if (KEYWORD ("header")) {
-		html->headerless = !va_arg (ap, vbi_bool);
+		html->header = !!va_arg (ap, vbi_bool);
 	} else {
-		vbi_export_unknown_option (e, keyword);
+		_vbi_export_unknown_option (e, keyword);
 		return FALSE;
 	}
 
@@ -217,7 +210,7 @@ nputs				(html_instance *	html,
 	html->text.bp += n;
 }
 
-vbi_inline void
+static __inline__ void
 cputs				(html_instance *	html,
 				 const char *		s)
 {
@@ -235,7 +228,7 @@ cputs				(html_instance *	html,
 
 static void
 putwc				(html_instance *	html,
-				 int			c,
+				 unsigned int		c,
 				 vbi_bool		escape)
 {
 	uint8_t *d;
@@ -284,13 +277,14 @@ puts_escape			(html_instance *	html,
 				 const char *		s)
 {
 	while (*s) {
-		putwc (html, *s, TRUE);
+		putwc (html, (unsigned int) *s, TRUE);
 		++s;
 	}
 }
 
 static void
 puts_printf			(html_instance *	html,
+				 vbi_bool		escape,
 				 const char *		template,
 				 ...)
 {
@@ -306,7 +300,10 @@ puts_printf			(html_instance *	html,
 		longjmp (html->main, -1);
 	}
 
-	puts (html, buffer);
+	if (escape)
+		puts_escape (html, buffer);
+	else
+		puts (html, buffer);
 }
 
 static void
@@ -314,7 +311,7 @@ puts_color			(html_instance *	html,
 				 const char *		label,
 				 vbi_rgba		color)
 {
-	puts_printf (html, "%s#%02x%02x%02x",
+	puts_printf (html, FALSE, "%s#%02x%02x%02x",
 		     label, VBI_R (color), VBI_G (color), VBI_B (color));
 }
 
@@ -323,44 +320,50 @@ attr				(html_instance *	html,
 				 const vbi_page *       pg,
 				 const vbi_char *	ac)
 {
-	const char *bp1;
 	const vbi_char *body;
+	unsigned int ct = 0;
 
-	bp1 = html->text.bp;
 	body = &((style *) html->style.buffer)->ac;
 
-	if (ac->foreground != body->foreground)
+	if (ac->foreground != body->foreground) {
 		puts_color (html, "color:",
 			    pg->color_map[ac->foreground]);
+		ct = 1;
+	}
 
 	if (ac->background != body->background) {
-		if (html->text.bp > bp1)
+		if (ct)
 			puts (html, ";");
+		ct = 1;
 		puts_color (html, "background-color:",
 			    pg->color_map[ac->background]);
 	}
 
 	if (ac->attr & VBI_UNDERLINE) {
-		if (html->text.bp > bp1)
+		if (ct)
 			puts (html, ";");
+		ct = 1;
 		puts (html, "text-decoration:underline");
 	}
 
 	if (ac->attr & VBI_BOLD) {
-		if (html->text.bp > bp1)
+		if (ct)
 			puts (html, ";");
+		ct = 1;
 		puts (html, "font-weight:bold");
 	}
 
 	if (ac->attr & VBI_ITALIC) {
-		if (html->text.bp > bp1)
+		if (ct)
 			puts (html, ";");
+		ct = 1;
 		puts (html, "font-style:italic");
 	}
 
 	if (ac->attr & VBI_FLASH) {
-		if (html->text.bp > bp1)
+		if (ct)
 			puts (html, ";");
+		ct = 1;
 		puts (html, "text-decoration:blink");
 	}
 }
@@ -368,21 +371,21 @@ attr				(html_instance *	html,
 static void
 flush				(html_instance *	html)
 {
-	ssize_t n;
+	size_t n;
 	ssize_t r;
 
 	n = html->text.bp - html->text.buffer;
-	r = fwrite (html->text.buffer, 1, n, html->fp);
+	r = fwrite (html->text.buffer, 1, n, html->export.fp);
 
-	if (n != r) {
-		vbi_export_write_error (&html->export);
+	if ((ssize_t) n != r) {
+		_vbi_export_write_error (&html->export);
 		longjmp (html->main, -1);
 	}
 
 	html->text.bp = html->text.buffer;
 }
 
-vbi_inline vbi_bool
+static __inline__ vbi_bool
 same_style			(const vbi_char *	ac1,
 				 const vbi_char *	ac2)
 {
@@ -401,7 +404,7 @@ same_style			(const vbi_char *	ac1,
 	return TRUE;
 }
 
-vbi_inline void
+static __inline__ void
 style_gen			(html_instance *	html,
 				 vbi_page *		dpg,
 				 const vbi_page *	spg,
@@ -445,9 +448,6 @@ style_gen			(html_instance *	html,
 		}
 	}
 
-	if (html->headerless)
-		return;
-
 	/* Body style. */
 
 	if (!html->style.buffer)
@@ -462,6 +462,9 @@ style_gen			(html_instance *	html,
 	s->id = 0;
 
 	html->style.bp = (char *)(s + 1);
+
+	if (!html->header)
+		return;
 
 	/* Text style. */
 
@@ -493,7 +496,7 @@ style_gen			(html_instance *	html,
 	}
 }
 
-vbi_inline void
+static void
 title				(html_instance *	html,
 				 const vbi_page *	pg)
 {
@@ -513,18 +516,18 @@ title				(html_instance *	html,
 
 	if (pg->pgno < 0x100) {
 		puts (html, "Closed Caption");
-	} else if (pg->subno != VBI_ANY_SUBNO) {
-		puts_printf (html, _("Teletext Page %3x.%x"),
+	} else if (pg->subno && pg->subno != VBI_ANY_SUBNO) {
+		puts_printf (html, TRUE, _("Teletext Page %3x.%x"),
 			     pg->pgno, pg->subno);
 	} else {
-		puts_printf (html, _("Teletext Page %3x"),
+		puts_printf (html, TRUE, _("Teletext Page %3x"),
 			     pg->pgno);
 	}
 
 	puts (html, "</title>\n");
 }
 
-vbi_inline void
+static __inline__ void
 header				(html_instance *	html,
 				 const vbi_page *	pg)
 {
@@ -572,7 +575,7 @@ header				(html_instance *	html,
 
 		for (++s; s < (style *) html->style.bp; ++s)
 			if (s->ref > 1) {
-				puts_printf (html, "span.c%u {", s->id);
+				puts_printf (html, FALSE, "span.c%u {", s->id);
 				attr (html, pg, &s->ac);
 				puts (html, "}\n");
 			}
@@ -599,7 +602,7 @@ header				(html_instance *	html,
 	puts (html, ">\n");
 }
 
-vbi_inline const style *
+static __inline__ const style *
 span_start			(html_instance *	html,
 				 const vbi_page *	pg,
 				 const vbi_char *	acp,
@@ -607,7 +610,7 @@ span_start			(html_instance *	html,
 {
 	const style *s;
 
-	if (html->headerless)
+	if (!html->header)
 		goto inline_style;
 
 	s = s0;
@@ -623,7 +626,7 @@ span_start			(html_instance *	html,
 		if (1 == s->ref)
 			goto inline_style;
 
-		puts_printf (html, "<span class=\"c%u\">", s->id);
+		puts_printf (html, FALSE, "<span class=\"c%u\">", s->id);
 		html->in_span = TRUE;
 	} /* else body style */
 
@@ -652,15 +655,15 @@ link_end			(html_instance *	html,
 	putwc (html, 0, FALSE);
 
 	if (pdc) {
-		success = html->export.pdc_function
+		success = html->export.pdc_callback
 			(&html->export, html->export.pdc_user_data,
-			 html->fp, &html->pdc, html->text.buffer);
+			 html->export.fp, &html->pdc, html->text.buffer);
 
 		html->in_pdc_link = FALSE;
 	} else {
-		success = html->export.link_function
+		success = html->export.link_callback
 			(&html->export, html->export.link_user_data,
-			 html->fp, &html->link, html->text.buffer);
+			 html->export.fp, &html->link, html->text.buffer);
 
 		html->in_hyperlink = FALSE;
 	}
@@ -672,7 +675,8 @@ link_end			(html_instance *	html,
 }
 
 static vbi_bool
-export(vbi_export *e, FILE *fp, const vbi_page *pg)
+export				(vbi_export *		e,
+				 const vbi_page *	pg)
 {
 	html_instance *html = PARENT(e, html_instance, export);
 	vbi_page page;
@@ -688,11 +692,9 @@ export(vbi_export *e, FILE *fp, const vbi_page *pg)
 
 	style_gen (html, &page, pg, !e->reveal);
 
-	html->fp = fp;
-
 	html->text.bp = html->text.buffer;
 
-	if (!html->headerless)
+	if (html->header)
 		header (html, pg);
 
 	puts (html, "<pre>");
@@ -712,7 +714,7 @@ export(vbi_export *e, FILE *fp, const vbi_page *pg)
 
 	for (acp = page.text; acp < acpend; ++acp) {
 		if ((!!(acp->attr & VBI_LINK)) != html->in_hyperlink
-		    && e->link_function) {
+		    && e->link_callback) {
 			if (html->in_span) {
 				puts (html, "</span>");
 				html->cac = ((style *) html->style.buffer)->ac;
@@ -731,7 +733,7 @@ export(vbi_export *e, FILE *fp, const vbi_page *pg)
 		}
 
 		if ((!!(acp->attr & VBI_PDC)) != html->in_pdc_link
-		    && e->pdc_function) {
+		    && e->pdc_callback) {
 			if (html->in_span) {
 				puts (html, "</span>");
 				html->cac = ((style *) html->style.buffer)->ac;
@@ -802,7 +804,7 @@ export(vbi_export *e, FILE *fp, const vbi_page *pg)
 
 	puts (html, "</pre>\n");
 
-	if (!html->headerless)
+	if (html->header)
 		puts (html, "</body>\n</html>\n");
 
 	flush (html);
@@ -820,8 +822,8 @@ export_info = {
 	.extension		= "html,htm",
 };
 
-const vbi_export_module
-vbi_export_module_html = {
+const _vbi_export_module
+_vbi_export_module_html = {
 	.export_info		= &export_info,
 
 	._new			= html_new,
