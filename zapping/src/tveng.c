@@ -129,7 +129,7 @@ tveng_device_info * tveng_device_info_new(Display * display, int bpp)
   tveng_device_info * new_object;
   struct tveng_module_info module_info;
   pthread_mutexattr_t attr;
-  int i;
+  unsigned int i;
 
   /* Get the needed mem for the controllers */
   for (i = 0; i < N_ELEMENTS (tveng_controllers); ++i)
@@ -214,16 +214,20 @@ void tveng_device_info_destroy(tveng_device_info * info)
   the correct values.
   device_file: The file used to access the video device (usually
   /dev/video)
+  window: Find a device capable of rendering into this window
+  (XVideo, Xinerama). Can be None. 
   attach_mode: Specifies the mode to open the device file
   depth: The color depth the capture will be in, -1 means let tveng
   decide based on the current private->display depth.
   info: The structure to be associated with the device
 */
 int tveng_attach_device(const char* device_file,
+			Window window,
 			enum tveng_attach_mode attach_mode,
 			tveng_device_info * info)
 {
-  char *long_str, *short_str, *sign = NULL;
+  const char *long_str, *short_str;
+  char *sign = NULL;
   tv_control *tc;
   int num_controls;
   tv_video_line *tl;
@@ -233,6 +237,8 @@ int tveng_attach_device(const char* device_file,
   t_assert(info != NULL);
 
   TVLOCK;
+
+  tv_clear_error (info);
 
   if (info -> fd) /* If the device is already attached, detach it */
     p_tveng_close_device(info);
@@ -271,7 +277,8 @@ int tveng_attach_device(const char* device_file,
 
       tvengemu_init_module (&info->priv->module);
 
-      info->priv->module.attach_device (device_file, attach_mode, info);
+      info->priv->module.attach_device (device_file, window,
+					attach_mode, info);
 
       goto success;
     }
@@ -289,7 +296,7 @@ int tveng_attach_device(const char* device_file,
 	    continue;
 
 	  if (-1 != info->priv->module.attach_device
-	      (device_file, attach_mode, info))
+	      (device_file, window, attach_mode, info))
 	    goto success;
 	}
     }
@@ -497,13 +504,15 @@ int tveng_attach_device(const char* device_file,
   This function always succeeds.
 */
 void
-tveng_describe_controller(char ** short_str, char ** long_str,
+tveng_describe_controller(const char ** short_str, const char ** long_str,
 			  tveng_device_info * info)
 {
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
   TVLOCK;
+
+  tv_clear_error (info);
 
   if (info->priv->module.describe_controller)
     info->priv->module.describe_controller(short_str, long_str,
@@ -547,6 +556,8 @@ void tveng_close_device(tveng_device_info * info)
     return; /* nothing to be done */
 
   TVLOCK;
+
+  tv_clear_error (info);
 
   p_tveng_close_device (info);
 
@@ -613,7 +624,7 @@ int
 tveng_build_hash(const char *string)
 {
   char *norm = normalize(string);
-  int i;
+  unsigned int i;
   int result=0;
 
   for (i = 0; i<strlen(norm); i++)
@@ -788,6 +799,8 @@ tv_get_tuner_frequency		(tveng_device_info *	info,
 
 	TVLOCK;
 
+  tv_clear_error (info);
+
 	line = info->cur_video_input;
 
 	if (!IS_TUNER_LINE (line))
@@ -822,6 +835,8 @@ tv_set_tuner_frequency		(tveng_device_info *	info,
 
 	TVLOCK;
 
+  tv_clear_error (info);
+
 	line = info->cur_video_input;
 
 	if (!IS_TUNER_LINE (line))
@@ -843,6 +858,8 @@ tv_get_video_input		(tveng_device_info *	info)
 	t_assert (info != NULL);
 
 	TVLOCK;
+
+  tv_clear_error (info);
 
 	if (!info->priv->module.get_video_input)
 		tl = info->cur_video_input;
@@ -866,6 +883,8 @@ tv_set_video_input		(tveng_device_info *	info,
 	REQUIRE_SUPPORT (info->priv->module.set_video_input, FALSE);
 
 	TVLOCK;
+
+  tv_clear_error (info);
 
 	for_all (list, info->video_inputs)
 		if (list == line)
@@ -892,6 +911,8 @@ tveng_set_input_by_name(const char * input_name,
   t_assert(info != NULL);
 
   TVLOCK;
+
+  tv_clear_error (info);
 
   for_all (tl, info->video_inputs)
     if (tveng_normstrcmp(tl->label, input_name))
@@ -927,6 +948,8 @@ tv_get_audio_input		(tveng_device_info *	info)
 
 	TVLOCK;
 
+  tv_clear_error (info);
+
 	if (!info->priv->module.get_audio_input)
 		tl = info->cur_audio_input;
 	else if (info->priv->module.get_audio_input (info))
@@ -949,6 +972,8 @@ tv_set_audio_input		(tveng_device_info *	info,
 	REQUIRE_SUPPORT (info->priv->module.set_audio_input, FALSE);
 
 	TVLOCK;
+
+  tv_clear_error (info);
 
 	for_all (list, info->audio_inputs)
 		if (list == line)
@@ -980,6 +1005,8 @@ tv_get_video_standard		(tveng_device_info *	info)
 
 	TVLOCK;
 
+  tv_clear_error (info);
+
 	if (!info->priv->module.get_video_standard)
 		ts = info->cur_video_standard;
 	else if (info->priv->module.get_video_standard (info))
@@ -1002,6 +1029,8 @@ tv_set_video_standard		(tveng_device_info *	info,
 	REQUIRE_SUPPORT (info->priv->module.set_video_standard, FALSE);
 
 	TVLOCK;
+
+  tv_clear_error (info);
 
 	for_all (list, info->video_standards)
 		if (list == standard)
@@ -1026,6 +1055,8 @@ tv_set_video_standard_by_id	(tveng_device_info *	info,
 	REQUIRE_SUPPORT (info->priv->module.set_video_standard, FALSE);
 
 	TVLOCK;
+
+  tv_clear_error (info);
 
 	ts = NULL;
 
@@ -1056,6 +1087,8 @@ tveng_set_standard_by_name(const char * name, tveng_device_info * info)
   t_assert(info != NULL);
 
   TVLOCK;
+
+  tv_clear_error (info);
 
   for_all (ts, info->video_standards)
     if (tveng_normstrcmp(name, ts->label))
@@ -1116,6 +1149,8 @@ tv_nth_control			(tveng_device_info *	info,
 
 	TVLOCK;
 
+  tv_clear_error (info);
+
 	for (control = tv_next_control (info, NULL);
 	     control; control = tv_next_control (info, control))
 		if (index-- == 0)
@@ -1137,6 +1172,8 @@ tv_control_position		(tveng_device_info *	info,
 
 	TVLOCK;
 
+  tv_clear_error (info);
+
 	for (list = tv_next_control (info, NULL);
 	     list; list = tv_next_control (info, list))
 		if (control != list)
@@ -1157,6 +1194,8 @@ tv_control_by_hash		(tveng_device_info *	info,
 
 	TVLOCK;
 
+  tv_clear_error (info);
+
 	for (control = tv_next_control (info, NULL);
 	     control; control = tv_next_control (info, control))
 		if (control->hash == hash)
@@ -1174,6 +1213,8 @@ tv_control_by_id		(tveng_device_info *	info,
 	t_assert (info != NULL);
 
 	TVLOCK;
+
+  tv_clear_error (info);
 
 	for (control = tv_next_control (info, NULL);
 	     control; control = tv_next_control (info, control))
@@ -1199,33 +1240,33 @@ round_boundary_4		(unsigned int *		x1,
 	}
 
 	switch (pixfmt) {
-	case TV_PIXFMT_RGBA24_LE:
-	case TV_PIXFMT_RGBA24_BE:
-	case TV_PIXFMT_BGRA24_LE:
-	case TV_PIXFMT_BGRA24_BE:
-		x = (((*x1 << 2) + 2) & -4) >> 2;
-		w = (((*width << 2) + 2) & -4) >> 2;
+	case TV_PIXFMT_RGBA32_LE:
+	case TV_PIXFMT_RGBA32_BE:
+	case TV_PIXFMT_BGRA32_LE:
+	case TV_PIXFMT_BGRA32_BE:
+		x = (((*x1 << 2) + 2) & (unsigned int) -4) >> 2;
+		w = (((*width << 2) + 2) & (unsigned int) -4) >> 2;
 		break;
 
 	case TV_PIXFMT_RGB24_LE:
 	case TV_PIXFMT_BGR24_LE:
 		/* Round to multiple of 12. */
-		x = (*x1 + 2) & -4;
-		w = (*width + 2) & -4;
+		x = (*x1 + 2) & (unsigned int) -4;
+		w = (*width + 2) & (unsigned int) -4;
 		break;
 
 	case TV_PIXFMT_RGB16_LE:
 	case TV_PIXFMT_RGB16_BE:
 	case TV_PIXFMT_BGR16_LE:
 	case TV_PIXFMT_BGR16_BE:
-	case TV_PIXFMT_RGBA15_LE:
-	case TV_PIXFMT_RGBA15_BE:
-	case TV_PIXFMT_BGRA15_LE:
-	case TV_PIXFMT_BGRA15_BE:
-	case TV_PIXFMT_ARGB15_LE:
-	case TV_PIXFMT_ARGB15_BE:
-	case TV_PIXFMT_ABGR15_LE:
-	case TV_PIXFMT_ABGR15_BE:
+	case TV_PIXFMT_RGBA16_LE:
+	case TV_PIXFMT_RGBA16_BE:
+	case TV_PIXFMT_BGRA16_LE:
+	case TV_PIXFMT_BGRA16_BE:
+	case TV_PIXFMT_ARGB16_LE:
+	case TV_PIXFMT_ARGB16_BE:
+	case TV_PIXFMT_ABGR16_LE:
+	case TV_PIXFMT_ABGR16_BE:
 	case TV_PIXFMT_RGBA12_LE:
 	case TV_PIXFMT_RGBA12_BE:
 	case TV_PIXFMT_BGRA12_LE:
@@ -1234,18 +1275,18 @@ round_boundary_4		(unsigned int *		x1,
 	case TV_PIXFMT_ARGB12_BE:
 	case TV_PIXFMT_ABGR12_LE:
 	case TV_PIXFMT_ABGR12_BE:
-		x = (((*x1 << 1) + 2) & -4) >> 1;
-		w = (((*width << 1) + 2) & -4) >> 1;
+		x = (((*x1 << 1) + 2) & (unsigned int) -4) >> 1;
+		w = (((*width << 1) + 2) & (unsigned int) -4) >> 1;
 		break;
 
 	case TV_PIXFMT_RGB8:
 	case TV_PIXFMT_BGR8:
-	case TV_PIXFMT_RGBA7:
-	case TV_PIXFMT_BGRA7:
-	case TV_PIXFMT_ARGB7:
-	case TV_PIXFMT_ABGR7:
-		x = (*x1 + 2) & -4;
-		w = (*width + 2) & -4;
+	case TV_PIXFMT_RGBA8:
+	case TV_PIXFMT_BGRA8:
+	case TV_PIXFMT_ARGB8:
+	case TV_PIXFMT_ABGR8:
+		x = (*x1 + 2) & (unsigned int) -4;
+		w = (*width + 2) & (unsigned int) -4;
 		break;
 
 	default:
@@ -1277,6 +1318,8 @@ tveng_update_capture_format(tveng_device_info * info)
 
   TVLOCK;
 
+  tv_clear_error (info);
+
   if (info->priv->module.update_capture_format)
     RETURN_UNTVLOCK(info->priv->module.update_capture_format(info));
 
@@ -1291,7 +1334,7 @@ p_tveng_set_capture_format(tveng_device_info * info)
   if (TVENG_CONTROLLER_NONE == info->current_controller)
     return -1;
 
-  if (TVENG_CAPTURE_READ == info->current_mode)
+  if (CAPTURE_MODE_READ == info->capture_mode)
     {
 #ifdef TVENG_FORCE_FORMAT
       if (0 == (TV_PIXFMT_SET (info->format.pixfmt)
@@ -1354,6 +1397,8 @@ tveng_set_capture_format(tveng_device_info * info)
   t_assert(info != NULL);
 
   TVLOCK;
+  tv_clear_error (info);
+
   RETURN_UNTVLOCK (p_tveng_set_capture_format (info));
 }
 
@@ -1473,6 +1518,8 @@ tveng_update_control(tv_control *control,
 
   TVLOCK;
 
+  tv_clear_error (info);
+
   if (control->_parent == NULL /* TVENG_CONTROLLER_MOTHER */)
     RETURN_UNTVLOCK (update_xv_control (info, C(control)));
 
@@ -1508,6 +1555,8 @@ tveng_update_controls(tveng_device_info * info)
 
   TVLOCK;
 
+  tv_clear_error (info);
+
   RETURN_UNTVLOCK (p_tveng_update_controls (info));
 }
 
@@ -1535,7 +1584,7 @@ reset_video_volume		(tveng_device_info *	info,
 	  case TV_CONTROL_ID_MUTE:
 	    if (info->priv->module.set_control)
 	      /* Error ignored */
-	      info->priv->module.set_control (info, tc, mute);
+	      info->priv->module.set_control (info, tc, (int) mute);
 	    break;
 
 	  default:
@@ -1752,6 +1801,8 @@ tveng_set_control(tv_control * control, int value,
   t_assert(control != NULL);
 
   TVLOCK;
+  tv_clear_error (info);
+
   RETURN_UNTVLOCK (set_control (C(control), value, TRUE, info));
 }
 
@@ -1772,6 +1823,8 @@ tveng_get_control_by_name(const char * control_name,
   t_assert(control_name != NULL);
 
   TVLOCK;
+
+  tv_clear_error (info);
 
   /* Update the controls (their values) */
   if (info->priv->quiet)
@@ -1825,6 +1878,8 @@ tveng_set_control_by_name(const char * control_name,
   t_assert(info->controls != NULL);
 
   TVLOCK;
+
+  tv_clear_error (info);
 
   for (tc = info->controls; tc; tc = tc->_next)
     if (!tc->_ignore && 0 == strcasecmp(tc->label,control_name))
@@ -2021,7 +2076,7 @@ mixer_replace			(tveng_device_info *	info,
     {
       c->pub.type = TV_CONTROL_TYPE_INTEGER;
       if (TVENG_MIXER_VOLUME_DEBUG)
-	c->pub.label = "Mixer volume";
+	c->pub.label = "Mixer volume"; /* XXX to be strdup'ed */
       else
 	c->pub.label = _("Volume");
     }
@@ -2123,6 +2178,8 @@ tv_quiet_set			(tveng_device_info *	info,
 
   TVLOCK;
 
+  tv_clear_error (info);
+
   if (info->priv->quiet == quiet)
     {
       UNTVLOCK;
@@ -2215,6 +2272,8 @@ tv_mute_get			(tveng_device_info *	info,
 
   /* XXX TVLOCK;*/
 
+  tv_clear_error (info);
+
   if ((tc = info->priv->control_mute))
     {
       if (!info->priv->quiet)
@@ -2248,6 +2307,8 @@ tv_mute_set			(tveng_device_info *	info,
 
   TVLOCK;
 
+  tv_clear_error (info);
+
   if ((tc = info->priv->control_mute))
     r = set_control (C(tc), mute, TRUE, info);
   else
@@ -2268,6 +2329,9 @@ tv_mute_add_callback		(tveng_device_info *	info,
   tv_control *tc;
 
   t_assert (info != NULL);
+
+  tv_clear_error (info);
+
 
   if (!(tc = info->priv->control_mute))
     return NULL;
@@ -2290,6 +2354,9 @@ tv_set_audio_mode		(tveng_device_info *	info,
 
 	REQUIRE_SUPPORT (info->priv->module.set_audio_mode, FALSE);
 
+  tv_clear_error (info);
+
+
 	/* XXX check mode within capabilities. */
 
 /* XXX audio mode control
@@ -2300,7 +2367,7 @@ tv_set_audio_mode		(tveng_device_info *	info,
 }
 
 tv_bool
-tv_audio_update			(tveng_device_info *	info)
+tv_audio_update			(tveng_device_info *	info _unused_)
 {
 	return FALSE; /* XXX todo*/
 }
@@ -2313,6 +2380,9 @@ tv_add_audio_callback		(tveng_device_info *	info,
 				 void *			user_data)
 {
   t_assert (info != NULL);
+
+  tv_clear_error (info);
+
 
   return tv_callback_add (&info->priv->audio_callback,
 			  (tv_callback_fn *) notify,
@@ -2340,6 +2410,9 @@ tveng_get_signal_strength (int *strength, int * afc,
 
   TVLOCK;
 
+  tv_clear_error (info);
+
+
   if (info->priv->module.get_signal_strength)
     RETURN_UNTVLOCK(info->priv->module.get_signal_strength(strength,
 							    afc,
@@ -2366,6 +2439,8 @@ tveng_start_capturing(tveng_device_info * info)
 
   TVLOCK;
 
+  tv_clear_error (info);
+
   if (info->priv->module.start_capturing)
     RETURN_UNTVLOCK(info->priv->module.start_capturing(info));
 
@@ -2386,6 +2461,8 @@ tveng_stop_capturing(tveng_device_info * info)
   REQUIRE_IO_MODE (-1);
 
   TVLOCK;
+
+  tv_clear_error (info);
 
   if (info->priv->module.stop_capturing)
     RETURN_UNTVLOCK(info->priv->module.stop_capturing(info));
@@ -2414,6 +2491,8 @@ int tveng_read_frame(tveng_image_data * dest,
 
   TVLOCK;
 
+  tv_clear_error (info);
+
   if (info->priv->module.read_frame)
     RETURN_UNTVLOCK(info->priv->module.read_frame
 		    (dest, time, info));
@@ -2437,6 +2516,8 @@ double tveng_get_timestamp(tveng_device_info * info)
 
   TVLOCK;
 
+  tv_clear_error (info);
+
   if (info->priv->module.get_timestamp)
     RETURN_UNTVLOCK(info->priv->module.get_timestamp(info));
 
@@ -2450,9 +2531,11 @@ double tveng_get_timestamp(tveng_device_info * info)
    error. Remember to check the value of width and height since it can
    be different to the one requested. 
 */
-int tveng_set_capture_size(int width, int height, tveng_device_info * info)
+int tveng_set_capture_size(unsigned int width,
+			   unsigned int height,
+			   tveng_device_info * info)
 {
-  enum tveng_capture_mode current_mode;
+  capture_mode current_mode;
   gboolean overlay_was_active;
   int retcode;
 
@@ -2464,6 +2547,8 @@ int tveng_set_capture_size(int width, int height, tveng_device_info * info)
   REQUIRE_IO_MODE (-1);
 
   TVLOCK;
+
+  tv_clear_error (info);
 
   if (info->priv->dword_align)
     round_boundary_4 (NULL, &info->format.width,
@@ -2529,6 +2614,8 @@ int tveng_get_capture_size(int *width, int *height, tveng_device_info * info)
 
   TVLOCK;
 
+  tv_clear_error (info);
+
   if (!info->priv->module.update_capture_format)
     {
       TVUNSUPPORTED;
@@ -2568,13 +2655,15 @@ validate_overlay_buffer		(const tv_overlay_buffer *dga,
 	if (0 == dga->base
 	    || dga->format.width < 32 || dga->format.height < 32
 	    || dga->format.bytes_per_line < dga->format.width
-	    || dga->format.size < (dga->format.bytes_per_line * dga->format.height))
+	    || dga->format.size <
+	    (dga->format.bytes_per_line * dga->format.height))
 		return FALSE;
 
 	if (0 == dma->base
 	    || dma->format.width < 32 || dma->format.height < 32
 	    || dma->format.bytes_per_line < dma->format.width
-	    || dma->format.size < (dma->format.bytes_per_line * dma->format.height))
+	    || dma->format.size <
+	    (dma->format.bytes_per_line * dma->format.height))
 		return FALSE;
 
 	dga_end = dga->base + dga->format.size;
@@ -2618,16 +2707,25 @@ tv_get_overlay_buffer		(tveng_device_info *	info,
 
 	TVLOCK;
 
+  tv_clear_error (info);
+
 	RETURN_UNTVLOCK (info->priv->module.get_overlay_buffer (info, target));
 }
 
+/* If zapping_setup_fb must be called it will get display_name and
+   screen_number as parameters. If display_name is NULL it will default
+   to the DISPLAY env. screen_number is intended to choose a Xinerama
+   screen, can be -1 to get the default. */
 tv_bool
 tv_set_overlay_buffer		(tveng_device_info *	info,
-				 tv_overlay_buffer *	target)
+				 const char *		display_name,
+				 int			screen_number,
+				 const tv_overlay_buffer *target)
 {
 	tv_overlay_buffer dma;
-	char *argv[20];
-	char buf[16];
+	const char *argv[20];
+	char buf1[16];
+	char buf2[16];
 	pid_t pid;
 	int status;
 	int r;
@@ -2645,6 +2743,8 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 	REQUIRE_SUPPORT (info->priv->module.get_overlay_buffer, FALSE);
 
 	TVLOCK;
+
+  tv_clear_error (info);
 
 	/* We can save a lot work if the target is already
 	   initialized. */
@@ -2666,25 +2766,35 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 
 	{
 		unsigned int argc;
+		int i;
 
 		argc = 0;
 
 		argv[argc++] = "zapping_setup_fb";
-		argv[argc++] = "--device";
+
+		argv[argc++] = "-d";
 		argv[argc++] = info->file_name;
 
-		{
-			int i = MIN (info->priv->zapping_setup_fb_verbosity, 2);
-
-			while (i-- > 0)
-				argv[argc++] = "--verbose";
+		if (display_name) {
+			argv[argc++] = "-D";
+			argv[argc++] = display_name;
 		}
 
-		if (info->priv->bpp != -1) {
-			snprintf (buf, sizeof (buf), "%d", info->priv->bpp);
+		if (screen_number >= 0) {
+			snprintf (buf1, sizeof (buf1), "%d", screen_number);
+			argv[argc++] = "-S";
+			argv[argc++] = buf1;
+		}
+
+		if (-1 != info->priv->bpp) {
+			snprintf (buf2, sizeof (buf2), "%d", info->priv->bpp);
 			argv[argc++] = "--bpp";
-			argv[argc++] = buf;
+			argv[argc++] = buf2;
 		}
+
+		i = MIN (info->priv->zapping_setup_fb_verbosity, 2);
+		while (i-- > 0)
+			argv[argc++] = "-v";
 
 		argv[argc] = NULL;
 	}
@@ -2707,14 +2817,14 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 
 	case 0: /* in child */
 	  	/* Try in $PATH. Note this might be a consolehelper link. */
-	  	r = execvp ("zapping_setup_fb", argv);
+	  	r = execvp ("zapping_setup_fb", (char **) argv);
 
 		if (-1 == r && ENOENT == errno) {
 			/* Try the zapping_setup_fb install path.
 			   Might fail due to missing SUID root, hence
 			   second choice. */
 		        r = execvp (PACKAGE_ZSFB_DIR "/zapping_setup_fb",
-				    argv);
+				    (char **) argv);
 
 			if (-1 == r && ENOENT == errno)
 				_exit (2);
@@ -2797,6 +2907,8 @@ tv_set_overlay_xwindow		(tveng_device_info *	info,
 
 	TVLOCK;
 
+  tv_clear_error (info);
+
 	RETURN_UNTVLOCK (info->priv->module.set_overlay_xwindow
 			 (info, window, gc));
 }
@@ -2875,19 +2987,50 @@ tveng_get_display_depth(tveng_device_info * info)
 
   TVLOCK;
 
+  tv_clear_error (info);
+
   bpp = p_tveng_get_display_depth (info);
 
   UNTVLOCK;
   return bpp;
 }
 
+static tv_bool
+overlay_window_visible		(const tveng_device_info *info)
+{
+	if (info->overlay_window.x
+	    > (int)(info->overlay_buffer.x
+		    + info->overlay_buffer.format.width))
+		return FALSE;
+
+	if ((info->overlay_window.x + info->overlay_window.width)
+	    <= info->overlay_buffer.x)
+		return FALSE;
+
+	if (info->overlay_window.y
+	    > (int)(info->overlay_buffer.y
+		    + info->overlay_buffer.format.height))
+		return FALSE;
+
+	if ((info->overlay_window.y + info->overlay_window.height)
+	    <= info->overlay_buffer.y)
+		return FALSE;
+
+	return TRUE;
+}
+
 int
 p_tveng_set_preview_window(tveng_device_info * info)
 {
+	tv_clip_vector vec;
+	int bx2;
+	int by2;
+
   if (TVENG_CONTROLLER_NONE == info->current_controller)
     return -1;
 
   REQUIRE_IO_MODE (-1);
+  REQUIRE_SUPPORT (info->priv->module.set_overlay_window, -1);
 
   if (info->priv->dword_align)
     round_boundary_4 (&info->overlay_window.x,
@@ -2904,21 +3047,119 @@ p_tveng_set_preview_window(tveng_device_info * info)
   if (info->overlay_window.width > info->caps.maxwidth)
     info->overlay_window.width = info->caps.maxwidth;
 
-  if (info->priv->module.set_overlay_window)
-    {
-      if (info->priv->module.set_overlay_window(info, &info->overlay_window))
-	{
-	  return 0;
-	}
-      else
-	{
-	  return -1;
-	}
-    }
+	if (0)
+		fprintf (stderr,
+			 "buffer %u, %u - %u, %u\n"
+			 "window %d, %d - %d, %d (%u x %u)\n",
+			 info->overlay_buffer.x,
+			 info->overlay_buffer.y,
+			 info->overlay_buffer.x
+			 + info->overlay_buffer.format.width,
+			 info->overlay_buffer.y
+			 + info->overlay_buffer.format.height,
+			 info->overlay_window.x,
+			 info->overlay_window.y,
+			 info->overlay_window.x + info->overlay_window.width,
+			 info->overlay_window.y + info->overlay_window.height,
+			 info->overlay_window.width,
+			 info->overlay_window.height);
 
-  TVUNSUPPORTED;
+	if (!overlay_window_visible (info))
+		return 0; /* nothing to do */
 
-  return -1;
+	/* Make sure we clip against overlay buffer bounds. */
+
+	if (!tv_clip_vector_copy (&vec, &info->overlay_window.clip_vector))
+		goto failure;
+
+	if (info->overlay_window.x < (int) info->overlay_buffer.x)
+		if (!tv_clip_vector_add_clip_xy
+		    (&vec, 0, 0,
+		     info->overlay_buffer.x - info->overlay_window.x,
+		     info->overlay_window.height))
+			goto failure;
+
+	bx2 = info->overlay_buffer.x + info->overlay_buffer.format.width;
+
+	if ((info->overlay_window.x
+	     + (int) info->overlay_window.width) > bx2)
+		if (!tv_clip_vector_add_clip_xy
+		    (&vec, bx2 - info->overlay_window.x, 0,
+		     info->overlay_window.width,
+		     info->overlay_window.height))
+			goto failure;
+
+	if (info->overlay_window.y < (int) info->overlay_buffer.y)
+		if (!tv_clip_vector_add_clip_xy
+		    (&vec, 0, 0,
+		     info->overlay_window.width,
+		     info->overlay_buffer.y - info->overlay_window.y))
+			goto failure;
+
+	by2 = info->overlay_buffer.y + info->overlay_buffer.format.height;
+
+	if ((info->overlay_window.y
+	     + (int) info->overlay_window.height) > by2)
+		if (!tv_clip_vector_add_clip_xy
+		    (&vec, 0, by2 - info->overlay_window.y,
+		     info->overlay_window.width,
+		     info->overlay_window.height))
+			goto failure;
+
+	/* Make sure clips are within bounds and in proper order. */
+
+	if (vec.size > 1) {
+		const tv_clip *clip;
+		const tv_clip *end;
+
+		end = vec.vector + vec.size - 1;
+
+		for (clip = vec.vector; clip < end; ++clip) {
+			assert (clip->x1 < clip->x2);
+			assert (clip->y1 < clip->y2);
+			assert (clip->x2 <= info->overlay_window.width);
+			assert (clip->y2 <= info->overlay_window.height);
+
+			if (clip->y1 == clip[1].y1) {
+				assert (clip->y2 == clip[1].y2);
+				assert (clip->x2 <= clip[1].x1);
+			} else {
+				assert (clip->y2 <= clip[1].y2);
+			}
+		}
+
+		assert (clip->x1 < clip->x2);
+		assert (clip->y1 < clip->y2);
+		assert (clip->x2 <= info->overlay_window.width);
+		assert (clip->y2 <= info->overlay_window.height);
+	}
+
+	if (0) {
+		const tv_clip *clip;
+		const tv_clip *end;
+
+		end = vec.vector + vec.size;
+
+		for (clip = vec.vector; clip < end; ++clip) {
+			fprintf (stderr, "clip %u: %u, %u - %u, %u\n",
+				 clip - vec.vector,
+				 clip->x1, clip->y1,
+				 clip->x2, clip->y2);
+		}
+	}
+
+	if (!info->priv->module.set_overlay_window
+	    (info, &info->overlay_window, &vec))
+		goto failure;
+
+	tv_clip_vector_destroy (&vec);
+
+	return 0;
+
+ failure:
+	tv_clip_vector_destroy (&vec);
+
+	return -1;
 }
 
 /*
@@ -2941,6 +3182,8 @@ tveng_set_preview_window(tveng_device_info * info)
   REQUIRE_IO_MODE (-1);
 
   TVLOCK;
+  tv_clear_error (info);
+
   RETURN_UNTVLOCK (p_tveng_set_preview_window (info));
 }
 
@@ -2960,6 +3203,12 @@ tveng_get_preview_window(tveng_device_info * info)
   REQUIRE_IO_MODE (-1);
 
   TVLOCK;
+
+  tv_clear_error (info);
+
+  if (info->current_controller != TVENG_CONTROLLER_XV
+      && !overlay_window_visible (info))
+    RETURN_UNTVLOCK (0);
 
   if (info->priv->module.get_overlay_window)
     RETURN_UNTVLOCK(info->priv->module.get_overlay_window(info) ? 0 : -1);
@@ -2984,16 +3233,30 @@ p_tveng_set_preview (int on, tveng_device_info * info)
 
 	on = !!on;
 
+	if (info->current_controller != TVENG_CONTROLLER_XV
+	    && !overlay_window_visible (info)) {
+		info->overlay_active = on;
+		return 0;
+	}
+
 	if (on && info->current_controller != TVENG_CONTROLLER_XV) {
+		tv_screen *xs;
+
 		if (!info->priv->module.get_overlay_buffer) {
 			support_failure (info, __PRETTY_FUNCTION__);
 			return (-1);
 		}
 
+		/* Safety: current target must match some screen. */
+
 		if (!info->priv->module.get_overlay_buffer (info, &dma))
 			return (-1);
 
-		if (!validate_overlay_buffer (&dga_param, &dma)) {
+		for (xs = screens; xs; xs = xs->next)
+			if (validate_overlay_buffer (&xs->target, &dma))
+				break;
+
+		if (!xs) {
 			fprintf (stderr, "** %s: Cannot start overlay, "
 				 "DMA target is not properly initialized.",
 				 __PRETTY_FUNCTION__);
@@ -3024,6 +3287,8 @@ tveng_set_preview (int on, tveng_device_info * info)
 	t_assert (info != NULL);
 
 	TVLOCK;
+  tv_clear_error (info);
+
 	RETURN_UNTVLOCK (p_tveng_set_preview (on, info));
 }
 
@@ -3058,6 +3323,8 @@ void tveng_set_chromakey(uint32_t chroma, tveng_device_info *info)
 
   TVLOCK;
 
+  tv_clear_error (info);
+
   if (info->priv->module.set_chromakey)
     info->priv->module.set_chromakey (chroma, info);
 
@@ -3075,6 +3342,8 @@ int tveng_get_chromakey (uint32_t *chroma, tveng_device_info *info)
   REQUIRE_IO_MODE (-1);
 
   TVLOCK;
+
+  tv_clear_error (info);
 
   if (info->priv->module.get_chromakey)
     RETURN_UNTVLOCK (info->priv->module.get_chromakey (chroma, info));
@@ -3097,51 +3366,37 @@ tveng_get_zapping_setup_fb_verbosity(tveng_device_info * info)
   return (info->priv->zapping_setup_fb_verbosity);
 }
 
-enum tveng_capture_mode 
+capture_mode 
 p_tveng_stop_everything (tveng_device_info *       info,
 			 gboolean * overlay_was_active)
 {
-  enum tveng_capture_mode returned_mode;
+  capture_mode returned_mode;
 
-  returned_mode = info->current_mode;
+  returned_mode = info->capture_mode;
 
-  switch (info->current_mode)
+  switch (info->capture_mode)
     {
-    case TVENG_CAPTURE_READ:
+    case CAPTURE_MODE_READ:
       *overlay_was_active = FALSE;
       if (info->priv->module.stop_capturing)
 	(info->priv->module.stop_capturing(info));
-      t_assert(info->current_mode == TVENG_NO_CAPTURE);
+      t_assert(info->capture_mode == CAPTURE_MODE_NONE);
       break;
 
-    case TVENG_CAPTURE_PREVIEW:
-#if 0
-      /* Eeek. The client must stop overlay, switch, check if the
-         image geometry changed (new video standard), handle this
-         appropriately and restart. Not our business to switch
-	 the vidmode back and forth, and changing the overlay window.
-	 That belongs at a higher layer, e.g. the zvideo widget. */
-      *overlay_was_active = info->overlay_active;
-      p_tveng_stop_previewing(info);
-      t_assert(info->current_mode == TVENG_NO_CAPTURE);
-      break;
-#else
-      /* fall through */
-#endif
-    case TVENG_CAPTURE_WINDOW:
+    case CAPTURE_MODE_OVERLAY:
       *overlay_was_active = info->overlay_active;
       /* No error checking */
       if (info->overlay_active)
 	p_tveng_set_preview (FALSE, info);
-      info -> current_mode = TVENG_NO_CAPTURE;
+      info -> capture_mode = CAPTURE_MODE_NONE;
       break;
 
-    case TVENG_TELETEXT:
+    case CAPTURE_MODE_TELETEXT:
       /* nothing */
       break;
 
     default:
-      t_assert(info->current_mode == TVENG_NO_CAPTURE);
+      t_assert(info->capture_mode == CAPTURE_MODE_NONE);
       break;
     };
 
@@ -3152,21 +3407,23 @@ p_tveng_stop_everything (tveng_device_info *       info,
   tveng INTERNAL function, stops the capture or the previewing. Returns the
   mode the device was before stopping.
   For stopping and restarting the device do:
-  enum tveng_capture_mode cur_mode;
+  capture_mode cur_mode;
   cur_mode = tveng_stop_everything(info);
   ... do some stuff ...
   if (tveng_restart_everything(cur_mode, info) == -1)
      ... show error dialog ...
 */
-enum tveng_capture_mode 
+capture_mode 
 tveng_stop_everything (tveng_device_info *       info,
 		       gboolean *overlay_was_active)
 {
-  enum tveng_capture_mode returned_mode;
+  capture_mode returned_mode;
 
   t_assert(info != NULL);
 
   TVLOCK;
+
+  tv_clear_error (info);
 
   returned_mode = p_tveng_stop_everything (info, overlay_was_active);
 
@@ -3178,30 +3435,21 @@ tveng_stop_everything (tveng_device_info *       info,
 /* FIXME overlay_was_active = info->overlay_active
    because mode can be _PREVIEW or _WINDOW without
   overlay_active due to delay timer. Don't reactivate prematurely. */
-int p_tveng_restart_everything (enum tveng_capture_mode mode,
+int p_tveng_restart_everything (capture_mode mode,
 				gboolean overlay_was_active,
 				tveng_device_info * info)
 {
   switch (mode)
     {
-    case TVENG_CAPTURE_READ:
+    case CAPTURE_MODE_READ:
 	    /* XXX REQUIRE_IO_MODE (-1); */
       if (info->priv->module.start_capturing)
 	if (-1 == info->priv->module.start_capturing(info))
 	  return -1;
       break;
 
-    case TVENG_CAPTURE_PREVIEW:
-#if 0 /* See above. */
-      if (p_tveng_start_previewing(info, (const char *) -1) == -1)
-	return (-1);
-      break;
-#else
-      /* fall through */
-#endif
-
-    case TVENG_CAPTURE_WINDOW:
-      if (info->current_mode != mode)
+    case CAPTURE_MODE_OVERLAY:
+      if (info->capture_mode != mode)
 	{
 	  gboolean dummy;
 
@@ -3215,12 +3463,12 @@ int p_tveng_restart_everything (enum tveng_capture_mode mode,
 		return (-1);
 	    }
 
-	  info->current_mode = mode;
+	  info->capture_mode = mode;
 	}
       break;
 
-    case TVENG_TELETEXT:
-      info->current_mode = mode;
+    case CAPTURE_MODE_TELETEXT:
+      info->capture_mode = mode;
       break;
 
     default:
@@ -3236,13 +3484,15 @@ int p_tveng_restart_everything (enum tveng_capture_mode mode,
   Restarts the given capture mode. See the comments on
   tveng_stop_everything. Returns -1 on error.
 */
-int tveng_restart_everything (enum tveng_capture_mode mode,
+int tveng_restart_everything (capture_mode mode,
 			      gboolean overlay_was_active,
 			      tveng_device_info * info)
 {
   t_assert(info != NULL);
 
   TVLOCK;
+  tv_clear_error (info);
+
   RETURN_UNTVLOCK (p_tveng_restart_everything
 		   (mode, overlay_was_active, info));
 }
@@ -3279,6 +3529,8 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
   /* ? REQUIRE_IO_MODE (-1); */
 
   TVLOCK;
+
+  tv_clear_error (info);
 
   info->priv->port = port;
   dpy = info->priv->display;
@@ -3396,6 +3648,8 @@ tveng_ov511_get_button_state (tveng_device_info *info)
     return -1;
 
   TVLOCK;
+
+  tv_clear_error (info);
 
   if (info->priv->module.ov511_get_button_state)
     RETURN_UNTVLOCK(info->priv->module.ov511_get_button_state(info));
@@ -3734,16 +3988,16 @@ tv_device_node_delete		(tv_device_node **	list,
 
 static void
 destroy_device_node		(tv_device_node *	node,
-				 tv_bool		restore)
+				 tv_bool		restore _unused_)
 {
 	if (!node)
 		return;
 
-	free (node->label);
-	free (node->bus);
-	free (node->driver);
-	free (node->version);
-	free (node->device);
+	free ((char *) node->label);
+	free ((char *) node->bus);
+	free ((char *) node->driver);
+	free ((char *) node->version);
+	free ((char *) node->device);
 	free (node);
 }
 
@@ -3873,678 +4127,6 @@ ADD_NODE_CALLBACK_FUNC (video_input);
 ADD_NODE_CALLBACK_FUNC (audio_input);
 ADD_NODE_CALLBACK_FUNC (video_standard);
 
-const char *
-tv_pixfmt_name			(tv_pixfmt		pixfmt)
-{
-	switch (pixfmt) {
-	case TV_PIXFMT_NONE:		return "NONE";
-	case TV_PIXFMT_YUV444:		return "YUV444";
-	case TV_PIXFMT_YVU444:		return "YVU444";
-	case TV_PIXFMT_YUV422:		return "YUV422";
-	case TV_PIXFMT_YVU422:		return "YVU422";
-	case TV_PIXFMT_YUV411:		return "YUV411";
-	case TV_PIXFMT_YVU411:		return "YVU411";
-	case TV_PIXFMT_YUV420:		return "YUV420";
-	case TV_PIXFMT_YVU420:		return "YVU420";
-	case TV_PIXFMT_YUV410:		return "YUV410";
-	case TV_PIXFMT_YVU410:		return "YVU410";
-	case TV_PIXFMT_YUVA24_LE:	return "YUVA24_LE";
-	case TV_PIXFMT_YUVA24_BE:	return "YUVA24_BE";
-	case TV_PIXFMT_YVUA24_LE:	return "YVUA24_LE";
-	case TV_PIXFMT_YVUA24_BE:	return "YVUA24_BE";
-     /* case TV_PIXFMT_AVUY24_BE:	return "AVUY24_BE"; synonyms */
-     /* case TV_PIXFMT_AVUY24_LE:	return "AVUY24_LE"; */
-     /* case TV_PIXFMT_AUVY24_BE:	return "AUVY24_BE"; */
-     /* case TV_PIXFMT_AUVY24_LE:	return "AUVY24_LE"; */
-	case TV_PIXFMT_YUV24_LE:	return "YUV24_LE";
-	case TV_PIXFMT_YUV24_BE:	return "YUV24_BE";
-	case TV_PIXFMT_YVU24_LE:	return "YVU24_LE";
-	case TV_PIXFMT_YVU24_BE:	return "YVU24_BE";
-     /* case TV_PIXFMT_VUY24_BE:	return "VUY24_BE"; */
-     /* case TV_PIXFMT_VUY24_LE:	return "VUY24_LE"; */
-     /* case TV_PIXFMT_UVY24_BE:	return "UVY24_BE"; */
-     /* case TV_PIXFMT_UVY24_LE:	return "UVY24_LE"; */
-	case TV_PIXFMT_YUYV:		return "YUYV";
-	case TV_PIXFMT_YVYU:		return "YVYU";
-	case TV_PIXFMT_UYVY:		return "UYVY";
-	case TV_PIXFMT_VYUY:		return "VYUY";
-	case TV_PIXFMT_Y8:		return "Y8";
-	case TV_PIXFMT_RGBA24_LE:	return "RGBA24_LE";
-	case TV_PIXFMT_RGBA24_BE:	return "RGBA24_BE";
-	case TV_PIXFMT_BGRA24_LE:	return "BGRA24_LE";
-	case TV_PIXFMT_BGRA24_BE:	return "BGRA24_BE";
-     /* case TV_PIXFMT_ABGR24_BE:	return "ABGR24_BE"; synonyms */
-     /* case TV_PIXFMT_ABGR24_LE:	return "ABGR24_LE"; */
-     /* case TV_PIXFMT_ARGB24_BE:	return "ARGB24_BE"; */
-     /* case TV_PIXFMT_ARGB24_LE:	return "ARGB24_LE"; */
-	case TV_PIXFMT_RGB24_LE:	return "RGB24_LE";
-	case TV_PIXFMT_BGR24_LE:	return "BGR24_LE";
-     /* case TV_PIXFMT_BGR24_BE:	return "BGR24_BE"; */
-     /* case TV_PIXFMT_RGB24_BE:	return "RGB24_BE"; */
-	case TV_PIXFMT_RGB16_LE:	return "RGB16_LE";
-	case TV_PIXFMT_RGB16_BE:	return "RGB16_BE";
-	case TV_PIXFMT_BGR16_LE:	return "BGR16_LE";
-	case TV_PIXFMT_BGR16_BE:	return "BGR16_BE";
-	case TV_PIXFMT_RGBA15_LE:	return "RGBA15_LE";
-	case TV_PIXFMT_RGBA15_BE:	return "RGBA15_BE";
-	case TV_PIXFMT_BGRA15_LE:	return "BGRA15_LE";
-	case TV_PIXFMT_BGRA15_BE:	return "BGRA15_BE";
-	case TV_PIXFMT_ARGB15_LE:	return "ARGB15_LE";
-	case TV_PIXFMT_ARGB15_BE:	return "ARGB15_BE";
-	case TV_PIXFMT_ABGR15_LE:	return "ABGR15_LE";
-	case TV_PIXFMT_ABGR15_BE:	return "ABGR15_BE";
-	case TV_PIXFMT_RGBA12_LE:	return "RGBA12_LE";
-	case TV_PIXFMT_RGBA12_BE:	return "RGBA12_BE";
-	case TV_PIXFMT_BGRA12_LE:	return "BGRA12_LE";
-	case TV_PIXFMT_BGRA12_BE:	return "BGRA12_BE";
-	case TV_PIXFMT_ARGB12_LE:	return "ARGB12_LE";
-	case TV_PIXFMT_ARGB12_BE:	return "ARGB12_BE";
-	case TV_PIXFMT_ABGR12_LE:	return "ABGR12_LE";
-	case TV_PIXFMT_ABGR12_BE:	return "ABGR12_BE";
-	case TV_PIXFMT_RGB8:		return "RGB8";
-	case TV_PIXFMT_BGR8:		return "BGR8";
-	case TV_PIXFMT_RGBA7:		return "RGBA7";
-	case TV_PIXFMT_BGRA7:		return "BGRA7";
-	case TV_PIXFMT_ARGB7:		return "ARGB7";
-	case TV_PIXFMT_ABGR7:		return "ABGR7";
-
-	case TV_PIXFMT_RESERVED0:
-	case TV_PIXFMT_RESERVED1:
-	case TV_PIXFMT_RESERVED2:
-	case TV_PIXFMT_RESERVED3:
-		break;
-
-		/* No default, gcc warns if we missed any. */
-	}
-
-	return NULL;
-}
-
-unsigned int
-tv_pixfmt_bytes_per_pixel	(tv_pixfmt		pixfmt)
-{
-	switch (pixfmt) {
-	case TV_PIXFMT_YUV444:
-	case TV_PIXFMT_YVU444:
-	case TV_PIXFMT_YUV422:
-	case TV_PIXFMT_YVU422:
-	case TV_PIXFMT_YUV411:
-	case TV_PIXFMT_YVU411:
-	case TV_PIXFMT_YUV420:
-	case TV_PIXFMT_YVU420:
-	case TV_PIXFMT_YUV410:
-	case TV_PIXFMT_YVU410:
-		return 1;
-
-	case TV_PIXFMT_YUVA24_LE:
-	case TV_PIXFMT_YUVA24_BE:
-	case TV_PIXFMT_YVUA24_LE:
-	case TV_PIXFMT_YVUA24_BE:
-		return 4;
-
-	case TV_PIXFMT_YUV24_LE:
-	case TV_PIXFMT_YUV24_BE:
-	case TV_PIXFMT_YVU24_LE:
-	case TV_PIXFMT_YVU24_BE:
-		return 3;
-
-	case TV_PIXFMT_YUYV:
-	case TV_PIXFMT_YVYU:
-	case TV_PIXFMT_UYVY:
-	case TV_PIXFMT_VYUY:
-		return 2;
-
-	case TV_PIXFMT_Y8:
-		return 1;
-
-	case TV_PIXFMT_RGBA24_LE:
-	case TV_PIXFMT_RGBA24_BE:
-	case TV_PIXFMT_BGRA24_LE:
-	case TV_PIXFMT_BGRA24_BE:
-		return 4;
-
-	case TV_PIXFMT_RGB24_LE:
-	case TV_PIXFMT_BGR24_LE:
-		return 3;
-
-	case TV_PIXFMT_RGB16_LE:
-	case TV_PIXFMT_RGB16_BE:
-	case TV_PIXFMT_BGR16_LE:
-	case TV_PIXFMT_BGR16_BE:
-	case TV_PIXFMT_RGBA15_LE:
-	case TV_PIXFMT_RGBA15_BE:
-	case TV_PIXFMT_BGRA15_LE:
-	case TV_PIXFMT_BGRA15_BE:
-	case TV_PIXFMT_ARGB15_LE:
-	case TV_PIXFMT_ARGB15_BE:
-	case TV_PIXFMT_ABGR15_LE:
-	case TV_PIXFMT_ABGR15_BE:
-	case TV_PIXFMT_RGBA12_LE:
-	case TV_PIXFMT_RGBA12_BE:
-	case TV_PIXFMT_BGRA12_LE:
-	case TV_PIXFMT_BGRA12_BE:
-	case TV_PIXFMT_ARGB12_LE:
-	case TV_PIXFMT_ARGB12_BE:
-	case TV_PIXFMT_ABGR12_LE:
-	case TV_PIXFMT_ABGR12_BE:
-		return 2;
-
-	case TV_PIXFMT_RGB8:
-	case TV_PIXFMT_BGR8:
-	case TV_PIXFMT_RGBA7:
-	case TV_PIXFMT_BGRA7:
-	case TV_PIXFMT_ARGB7:
-	case TV_PIXFMT_ABGR7:
-		return 1;
-
-	case TV_PIXFMT_NONE:
-	case TV_PIXFMT_RESERVED0:
-	case TV_PIXFMT_RESERVED1:
-	case TV_PIXFMT_RESERVED2:
-	case TV_PIXFMT_RESERVED3:
-		break;
-
-		/* No default, gcc warns if we missed any. */
-	}
-
-	return 0;
-}
-
-/* XXX check this, esp LE/BE, see also libzvbi */
-tv_bool
-tv_pixfmt_to_pixel_format	(tv_pixel_format *	format,
-				 tv_pixfmt		pixfmt,
-				 unsigned int		reserved)
-{
-	/* unused, VU, msb A, msb B,
-	   unused, unused, BE on BE, BE on LE machine */
-	static const uint8_t attr_table [] = {
-		[TV_PIXFMT_YUV444]	= 0x00,
-		[TV_PIXFMT_YVU444]	= 0x40,
-		[TV_PIXFMT_YUV422]	= 0x00,
-		[TV_PIXFMT_YVU422]	= 0x40,
-		[TV_PIXFMT_YUV411]	= 0x00,
-		[TV_PIXFMT_YVU411]	= 0x40,
-		[TV_PIXFMT_YUV420]	= 0x00,
-		[TV_PIXFMT_YVU420]	= 0x40,
-		[TV_PIXFMT_YUV410]	= 0x00,
-		[TV_PIXFMT_YVU410]	= 0x40,
-
-		[TV_PIXFMT_YUVA24_LE]	= 0x02,
-		[TV_PIXFMT_YUVA24_BE]	= 0x01,
-		[TV_PIXFMT_YVUA24_LE]	= 0x42,
-		[TV_PIXFMT_YVUA24_BE]	= 0x41,
-
-		[TV_PIXFMT_YUV24_LE]	= 0x02,
-		[TV_PIXFMT_YUV24_BE]	= 0x01,
-		[TV_PIXFMT_YVU24_LE]	= 0x42,
-		[TV_PIXFMT_YVU24_BE]	= 0x41,
-
-		[TV_PIXFMT_YUYV]	= 0x00,
-		[TV_PIXFMT_YVYU]	= 0x40,
-		[TV_PIXFMT_UYVY]	= 0x00,
-		[TV_PIXFMT_VYUY]	= 0x40,
-
-		[TV_PIXFMT_Y8]		= 0x00,
-
-		[TV_PIXFMT_RGBA24_LE]	= 0x02,
-		[TV_PIXFMT_RGBA24_BE]	= 0x01,
-		[TV_PIXFMT_BGRA24_LE]	= 0x12,
-		[TV_PIXFMT_BGRA24_BE]	= 0x11,
-
-		[TV_PIXFMT_RGB24_LE]	= 0x02,
-		[TV_PIXFMT_RGB24_BE]	= 0x01,
-
-		[TV_PIXFMT_RGB16_LE]	= 0x00,
-		[TV_PIXFMT_RGB16_BE]	= 0x03,
-		[TV_PIXFMT_BGR16_LE]	= 0x10,
-		[TV_PIXFMT_BGR16_BE]	= 0x13,
-
-		[TV_PIXFMT_RGBA15_LE]	= 0x00,
-		[TV_PIXFMT_RGBA15_BE]	= 0x03,
-		[TV_PIXFMT_BGRA15_LE]	= 0x10,
-		[TV_PIXFMT_BGRA15_BE]	= 0x13,
-		[TV_PIXFMT_ARGB15_LE]	= 0x20,
-		[TV_PIXFMT_ARGB15_BE]	= 0x23,
-		[TV_PIXFMT_ABGR15_LE]	= 0x30,
-		[TV_PIXFMT_ABGR15_BE]	= 0x33,
-
-		[TV_PIXFMT_RGBA12_LE]	= 0x00,
-		[TV_PIXFMT_RGBA12_BE]	= 0x03,
-		[TV_PIXFMT_BGRA12_LE]	= 0x10,
-		[TV_PIXFMT_BGRA12_BE]	= 0x13,
-		[TV_PIXFMT_ARGB12_LE]	= 0x20,
-		[TV_PIXFMT_ARGB12_BE]	= 0x23,
-		[TV_PIXFMT_ABGR12_LE]	= 0x30,
-		[TV_PIXFMT_ABGR12_BE]	= 0x33,
-
-		[TV_PIXFMT_RGB8]	= 0x00,
-		[TV_PIXFMT_BGR8]	= 0x00,
-
-		[TV_PIXFMT_RGBA7]	= 0x00,
-		[TV_PIXFMT_BGRA7]	= 0x10,
-		[TV_PIXFMT_ARGB7]	= 0x20,
-		[TV_PIXFMT_ABGR7]	= 0x30,
-	};
-	unsigned int attr;
-
-	t_assert (format != NULL);
-
-	if ((unsigned int) pixfmt >= N_ELEMENTS (attr_table))
-		return FALSE;
-
-	attr = attr_table [pixfmt];
-
-	format->pixfmt			= pixfmt;
-	format->_reserved1		= 0;
-
-	format->uv_hscale		= 1;
-	format->uv_vscale		= 1;
-
-#if BYTE_ORDER == BIG_ENDIAN
-	format->big_endian		= !!(attr & 3);
-#else
-	format->big_endian		= attr & 1;
-#endif
-
-	format->planar			= FALSE;
-
-	format->mask.rgb.a		= 0;
-
-	switch (pixfmt) {
-	case TV_PIXFMT_YUV444:
-	case TV_PIXFMT_YVU444:
-		format->color_depth = 24;
-		goto yuv_planar;
-
-	case TV_PIXFMT_YUV422:
-	case TV_PIXFMT_YVU422:
-		format->color_depth = 16;
-		format->uv_hscale = 2;
-		goto yuv_planar;
-
-	case TV_PIXFMT_YUV411:
-	case TV_PIXFMT_YVU411:
-		format->color_depth = 12;
-		format->uv_hscale = 4;
-		goto yuv_planar;
-
-	case TV_PIXFMT_YUV420:
-	case TV_PIXFMT_YVU420:
-		format->color_depth = 12;
-		format->uv_hscale = 2;
-		format->uv_vscale = 2;
-		goto yuv_planar;
-
-	case TV_PIXFMT_YUV410:
-	case TV_PIXFMT_YVU410:
-		format->color_depth = 9;
-		format->uv_hscale = 4;
-		format->uv_vscale = 4;
-
-	yuv_planar:
-		format->bits_per_pixel = 8; /* Y plane */
-		format->planar = TRUE;
-		format->mask.yuv.y = 0xFF;
-		format->mask.yuv.u = 0xFF;
-		format->mask.yuv.v = 0xFF;
-		break;
-
-	case TV_PIXFMT_YUVA24_LE: /* LE 0xAAVVUUYY BE 0xYYUUVVAA */
-	case TV_PIXFMT_YUVA24_BE: /* LE 0xYYUUVVAA BE 0xAAVVUUYY */
-	case TV_PIXFMT_YVUA24_LE: /* LE 0xAAUUVVYY BE 0xYYVVUUAA */
-	case TV_PIXFMT_YVUA24_BE: /* LE 0xYYVVUUAA BE 0xAAUUVVYY */
-		format->bits_per_pixel = 32;
-		format->color_depth = 24;
-
-		if (format->big_endian) {
-			format->mask.yuv.y = 0xFF << 24;
-			format->mask.yuv.u = 0xFF << 16;
-			format->mask.yuv.v = 0xFF << 8;
-			format->mask.yuv.a = 0xFF;
-		} else {
-			format->mask.yuv.y = 0xFF;
-			format->mask.yuv.u = 0xFF << 8;
-			format->mask.yuv.v = 0xFF << 16;
-			format->mask.yuv.a = 0xFF << 24;
-		}
-		break;
-
-	case TV_PIXFMT_YUV24_LE: /* LE 0xVVUUYY BE 0xYYUUVV */
-	case TV_PIXFMT_YUV24_BE: /* LE 0xYYUUVV BE 0xVVUUYY */
-	case TV_PIXFMT_YVU24_LE: /* LE 0xUUVVYY BE 0xYYVVUU */
-	case TV_PIXFMT_YVU24_BE: /* LE 0xYYVVUU BE 0xUUVVYY */
-		format->bits_per_pixel = 24;
-		format->color_depth = 24;
-
-		if (format->big_endian) {
-			format->mask.yuv.y = 0xFF << 16;
-			format->mask.yuv.v = 0xFF;
-		} else {
-			format->mask.yuv.y = 0xFF;
-			format->mask.yuv.v = 0xFF << 16;
-		}
-
-		format->mask.yuv.u = 0xFF << 8;
-
-		break;
-
-	case TV_PIXFMT_YUYV:
-	case TV_PIXFMT_YVYU:
-	case TV_PIXFMT_UYVY:
-	case TV_PIXFMT_VYUY:
-		format->bits_per_pixel = 16;
-		format->color_depth = 16;
-		format->uv_hscale = 2;
-		format->mask.yuv.y = 0xFF; /* << 0, << 8 ? */
-		format->mask.yuv.u = 0xFF;
-		format->mask.yuv.v = 0xFF;
-		break;
-
-	case TV_PIXFMT_Y8:
-		format->bits_per_pixel = 8;
-		format->color_depth = 8;
-		format->mask.yuv.y = 0xFF;
-		format->mask.yuv.u = 0;
-		format->mask.yuv.v = 0;
-		break;
-
-	case TV_PIXFMT_RGBA24_LE: /* LE 0xAABBGGRR BE 0xRRGGBBAA */
-	case TV_PIXFMT_RGBA24_BE: /* LE 0xRRGGBBAA BE 0xAABBGGRR */
-	case TV_PIXFMT_BGRA24_LE: /* LE 0xAARRGGBB BE 0xBBGGRRAA */
-	case TV_PIXFMT_BGRA24_BE: /* LE 0xBBGGRRAA BE 0xAARRGGBB */
-		format->bits_per_pixel = 32;
-		format->color_depth = 24;
-
-		if (format->big_endian) {
-			format->mask.rgb.r = 0xFF << 24;
-			format->mask.rgb.g = 0xFF << 16;
-			format->mask.rgb.b = 0xFF << 8;
-			format->mask.rgb.a = 0xFF;
-		} else {
-			format->mask.rgb.r = 0xFF;
-			format->mask.rgb.g = 0xFF << 8;
-			format->mask.rgb.b = 0xFF << 16;
-			format->mask.rgb.a = 0xFF << 24;
-		}
-		break;
-
-	case TV_PIXFMT_RGB24_LE: /* LE 0xBBGGRR BE 0xRRGGBB */
-	case TV_PIXFMT_BGR24_LE: /* LE 0xRRGGBB BE 0xBBGGRR */
-		format->bits_per_pixel = 24;
-		format->color_depth = 24;
-
-		if (format->big_endian) {
-			format->mask.rgb.r = 0xFF << 16;
-			format->mask.rgb.b = 0xFF;
-		} else {
-			format->mask.rgb.r = 0xFF;
-			format->mask.rgb.b = 0xFF << 16;
-		}
-
-		format->mask.rgb.g = 0xFF << 8;
-
-		break;
-
-	case TV_PIXFMT_RGB16_LE:
-	case TV_PIXFMT_RGB16_BE:
-	case TV_PIXFMT_BGR16_LE:
-	case TV_PIXFMT_BGR16_BE:
-		format->bits_per_pixel = 16;
-		format->color_depth = 16;
-		format->mask.rgb.r = 0x1F;
-		format->mask.rgb.g = 0x3F << 5;
-		format->mask.rgb.b = 0x1F << 11;
-		break;
-
-	case TV_PIXFMT_RGBA15_LE:
-	case TV_PIXFMT_RGBA15_BE:
-	case TV_PIXFMT_BGRA15_LE:
-	case TV_PIXFMT_BGRA15_BE:
-		format->bits_per_pixel = 16;
-		format->color_depth = 15;
-		format->mask.rgb.r = 0x1F;
-		format->mask.rgb.g = 0x1F << 5;
-		format->mask.rgb.b = 0x1F << 10;
-		format->mask.rgb.a = 0x01 << 15;
-		break;
-
-	case TV_PIXFMT_ARGB15_LE:
-	case TV_PIXFMT_ARGB15_BE:
-	case TV_PIXFMT_ABGR15_LE:
-	case TV_PIXFMT_ABGR15_BE:
-		format->bits_per_pixel = 16;
-		format->color_depth = 15;
-		format->mask.rgb.r = 0x1F << 1;
-		format->mask.rgb.g = 0x1F << 6;
-		format->mask.rgb.b = 0x1F << 11;
-		format->mask.rgb.a = 0x01;
-		break;
-
-	case TV_PIXFMT_RGBA12_LE:
-	case TV_PIXFMT_RGBA12_BE:
-	case TV_PIXFMT_BGRA12_LE:
-	case TV_PIXFMT_BGRA12_BE:
-		format->bits_per_pixel = 16;
-		format->color_depth = 12;
-		format->mask.rgb.r = 0x0F;
-		format->mask.rgb.g = 0x0F << 4;
-		format->mask.rgb.b = 0x0F << 8;
-		format->mask.rgb.a = 0x0F << 12;
-		break;
-
-	case TV_PIXFMT_ARGB12_LE:
-	case TV_PIXFMT_ARGB12_BE:
-	case TV_PIXFMT_ABGR12_LE:
-	case TV_PIXFMT_ABGR12_BE:
-		format->bits_per_pixel = 16;
-		format->color_depth = 12;
-		format->mask.rgb.r = 0x0F << 4;
-		format->mask.rgb.g = 0x0F << 8;
-		format->mask.rgb.b = 0x0F << 12;
-		format->mask.rgb.a = 0x0F;
-		break;
-
-	case TV_PIXFMT_RGB8:
-		format->bits_per_pixel = 8;
-		format->color_depth = 8;
-		format->mask.rgb.r = 0x07;
-		format->mask.rgb.g = 0x07 << 3;
-		format->mask.rgb.b = 0x03 << 6;
-		break;
-
-	case TV_PIXFMT_BGR8:
-		format->bits_per_pixel = 8;
-		format->color_depth = 8;
-		format->mask.rgb.r = 0x03 << 6;
-		format->mask.rgb.g = 0x07 << 3;
-		format->mask.rgb.b = 0x07;
-		break;
-
-	case TV_PIXFMT_RGBA7:
-	case TV_PIXFMT_BGRA7:
-		format->bits_per_pixel = 8;
-		format->color_depth = 7;
-		format->mask.rgb.r = 0x03;
-		format->mask.rgb.g = 0x07 << 2;
-		format->mask.rgb.b = 0x03 << 5;
-		format->mask.rgb.a = 0x01 << 7;
-		break;
-
-	case TV_PIXFMT_ARGB7:
-	case TV_PIXFMT_ABGR7:
-		format->bits_per_pixel = 8;
-		format->color_depth = 7;
-		format->mask.rgb.r = 0x03 << 1;
-		format->mask.rgb.g = 0x07 << 3;
-		format->mask.rgb.b = 0x03 << 6;
-		format->mask.rgb.a = 0x01;
-		break;
-
-	default:
-		return FALSE;
-	}
-
-	if (attr & 0x10)
-		SWAP (format->mask.rgb.r, format->mask.rgb.b);
-
-	if (attr & 0x40) {
-		SWAP (format->mask.yuv.u, format->mask.yuv.v);
-		format->vu_order = TRUE;
-	} else {
-		format->vu_order = FALSE;
-	}
-
-	return TRUE;
-}
-
-/* Number of set bits. */
-static unsigned int
-popcnt				(unsigned int		x)
-{
-	x -= ((x >> 1) & 0x55555555);
-	x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
-	x = (x + (x >> 4)) & 0x0F0F0F0F;
-
-	return (x * 0x01010101) >> 24;
-}
-
-/* Note this works only for RGB formats. */
-tv_bool
-tv_pixel_format_to_pixfmt	(tv_pixel_format *	format)
-{
-	unsigned int mask;
-	unsigned int r_msb;
-	unsigned int a_lsb;
-
-	if (format->bits_per_pixel < 7
-	    || 0 == format->mask.rgb.r
-	    || 0 == format->mask.rgb.g
-	    || 0 == format->mask.rgb.b)
-		return FALSE;
-
-	mask = format->mask.rgb.r | format->mask.rgb.g | format->mask.rgb.b;
-
-	if (format->mask.rgb.g > format->mask.rgb.r) {
-		if (format->mask.rgb.g > format->mask.rgb.b)
-			return FALSE; /* GRB, GBR */
-	} else {
-		if (format->mask.rgb.b > format->mask.rgb.g)
-			return FALSE; /* RBG, BRG */
-	}
-
-	if (0 == format->color_depth)
-		format->color_depth = popcnt (mask);
-
-	if (0 == format->mask.rgb.a)
-		format->mask.rgb.a = mask
-			^ (0xFFFFFFFFUL >> (32 - format->bits_per_pixel));
-
-	if (mask > format->mask.rgb.a) {
-		if (format->mask.rgb.a > format->mask.rgb.r
-		    || format->mask.rgb.a > format->mask.rgb.b)
-			return FALSE; /* XGAX, XAGX */
-	}
-
-	a_lsb = (mask >= format->mask.rgb.a);
-	r_msb = (format->mask.rgb.r >= format->mask.rgb.b);
-
-	switch (format->color_depth) {
-	case 24:
-		if (32 == format->bits_per_pixel) {
-			static tv_pixfmt mapping [] = {
-				TV_PIXFMT_RGBA24_LE, TV_PIXFMT_RGBA24_BE,
-				TV_PIXFMT_BGRA24_LE, TV_PIXFMT_BGRA24_BE,
-				TV_PIXFMT_ARGB24_LE, TV_PIXFMT_ARGB24_BE,
-				TV_PIXFMT_ABGR24_LE, TV_PIXFMT_ABGR24_BE,
-			};
-
-			format->pixfmt = mapping [a_lsb * 4 + r_msb * 2
-						  + format->big_endian];
-		} else {
-			static tv_pixfmt mapping [] = {
-				TV_PIXFMT_RGB24_LE, TV_PIXFMT_BGR24_LE
-			};
-
-			format->pixfmt = mapping [r_msb];
-		}
-
-		break;
-
-	case 16:
-	{
-		 static tv_pixfmt mapping [] = {
-			TV_PIXFMT_RGB16_LE, TV_PIXFMT_RGB16_BE,
-			TV_PIXFMT_BGR16_LE, TV_PIXFMT_BGR16_BE,
-		};
-
-		format->pixfmt = mapping [r_msb * 2 + format->big_endian];
-		break;
-	}
-
-	case 15:
-	{
-		static tv_pixfmt mapping [] = {
-			TV_PIXFMT_RGBA15_LE, TV_PIXFMT_RGBA15_BE,
-			TV_PIXFMT_BGRA15_LE, TV_PIXFMT_BGRA15_BE,
-			TV_PIXFMT_ARGB15_LE, TV_PIXFMT_ARGB15_BE,
-			TV_PIXFMT_ABGR15_LE, TV_PIXFMT_ABGR15_BE,
-		};
-
-		format->pixfmt = mapping [a_lsb * 4 + r_msb * 2
-					  + format->big_endian];
-		break;
-	}
-
-	case 12:
-	{
-		static tv_pixfmt mapping [] = {
-			TV_PIXFMT_RGBA12_LE, TV_PIXFMT_RGBA12_BE,
-			TV_PIXFMT_BGRA12_LE, TV_PIXFMT_BGRA12_BE,
-			TV_PIXFMT_ARGB12_LE, TV_PIXFMT_ARGB12_BE,
-			TV_PIXFMT_ABGR12_LE, TV_PIXFMT_ABGR12_BE,
-		};
-
-		format->pixfmt = mapping [a_lsb * 4 + r_msb * 2
-					  + format->big_endian];
-		break;
-	}
-
-	case 8:
-	{
-		static tv_pixfmt mapping [] = {
-			TV_PIXFMT_RGB8, TV_PIXFMT_BGR8
-		};
-
-		format->pixfmt = mapping [r_msb];
-		break;
-	}
-
-	case 7:
-	{
-		static tv_pixfmt mapping [] = {
-			TV_PIXFMT_RGBA7, TV_PIXFMT_BGRA7,
-			TV_PIXFMT_ARGB7, TV_PIXFMT_ABGR7,
-		};
-
-		format->pixfmt = mapping [a_lsb * 2 + r_msb];
-		break;
-	}
-
-	default:
-		return FALSE;
-	}
-
-	format->_reserved1 = 0;
-
-	format->uv_hscale = 1;
-	format->uv_vscale = 1;
-
-	format->planar = 0;
-	format->vu_order = 0;
-
-	return TRUE;
-}
 
 /* Helper function for backends. Yes, it's inadequate, but
    that's how some drivers work. Note the depth 32 exception. */
@@ -4552,16 +4134,18 @@ tv_pixfmt
 pig_depth_to_pixfmt		(unsigned int		depth)
 {
 	switch (depth) {
-#if BYTE_ORDER == BIG_ENDIAN
-	case 15:	return TV_PIXFMT_BGRA15_BE;
+#if Z_BYTE_ORDER == Z_BIG_ENDIAN
+	case 15:	return TV_PIXFMT_BGRA16_BE;
 	case 16:	return TV_PIXFMT_BGR16_BE;
 	case 24:	return TV_PIXFMT_BGR24_BE;
-	case 32:	return TV_PIXFMT_BGRA24_BE;
-#else
-	case 15:	return TV_PIXFMT_BGRA15_LE;
+	case 32:	return TV_PIXFMT_BGRA32_BE;
+#elif Z_BYTE_ORDER == Z_LITTLE_ENDIAN
+	case 15:	return TV_PIXFMT_BGRA16_LE;
 	case 16:	return TV_PIXFMT_BGR16_LE;
 	case 24:	return TV_PIXFMT_BGR24_LE;
-	case 32:	return TV_PIXFMT_BGRA24_LE;
+	case 32:	return TV_PIXFMT_BGRA32_LE;
+#else
+#  warning Unknown or unsupported endianess.
 #endif
 	default:	return TV_PIXFMT_UNKNOWN;
 	}
@@ -4718,7 +4302,7 @@ free_control			(tv_control *		tc)
 		unsigned int i;
 
 		for (i = 0; tc->menu[i]; ++i)
-			free (tc->menu[i]);
+			free ((char *) tc->menu[i]);
 
 		free (tc->menu);
 	}
@@ -5055,7 +4639,7 @@ tveng_copy_frame		(unsigned char *	src,
 		uint8_t *src_u;
 		uint8_t *src_v;
 
-		if (!tv_pixfmt_to_pixel_format (&pf, info->format.pixfmt, 0))
+		if (!tv_pixel_format_from_pixfmt (&pf, info->format.pixfmt, 0))
 			return;
 
 		size_y = info->format.height * info->format.width;
@@ -5089,484 +4673,7 @@ tveng_copy_frame		(unsigned char *	src,
 	}
 }
 
-/*
- *  Clip vector
- */
 
-tv_bool
-tv_clip_vector_equal		(const tv_clip_vector *	vector1,
-				 const tv_clip_vector *	vector2)
-{
-	unsigned int i;
-
-	if (vector1 == vector2)
-		return TRUE;
-
-	if (vector1->size != vector2->size)
-		return FALSE;
-
-	for (i = 0; i < vector1->size; ++i)
-		if (!tv_clip_equal (vector1->vector + i,
-				    vector2->vector + i))
-			return FALSE;
-
-	return TRUE;
-}
-
-tv_bool
-tv_clip_vector_copy		(tv_clip_vector *	dst,
-				 const tv_clip_vector *	src)
-{
-	tv_clip *clip_vector;
-
-	if (dst == src)
-		return TRUE;
-
-	if (src->size > dst->capacity) {
-		assert (src->capacity >= src->size);
-
-		if (!(clip_vector = realloc (dst->vector, src->capacity)))
-			return FALSE;
-
-		dst->vector = clip_vector;
-		dst->capacity = src->capacity;
-	}
-
-	memcpy (dst->vector, src->vector, sizeof (*src->vector) * src->size);
-	dst->size = src->size;
-
-	return TRUE;
-}
-
-/* Note: width = x2 - x1, height = y2 - y1. */
-tv_bool
-tv_clip_vector_add_clip_xy	(tv_clip_vector *	vector,
-				 unsigned int		x1,
-				 unsigned int		y1,
-				 unsigned int		x2,
-				 unsigned int		y2)
-{
-	tv_clip *clip;
-	tv_clip *end;
-
-	if (x1 >= x2 || y1 >= y2)
-		return TRUE;
-
- restart:
-	clip = vector->vector;
-	end = vector->vector + vector->size;
-
-	/* Clips are sorted in ascending order, first by x1, second y1.
-	   We split into horizontal bands, merging clips where possible.
-	   Vertically adjacent clips or bands are not merged.
-
-	   a #
-	   b ##
-	   c #####
-           d ######
-	   e  ##
-           f  clip
-           g  #####
-	   h   ##
-	   i    ##
-	   j     ##
-	   k      #
-	*/
-
-	for (;;) {
-		if (clip >= end /* k */ || y2 <= clip->y1 /* a */)
-			goto insert;
-
-		if (y1 < clip->y1 /* bcd */) {
-			/* Insert bottom half (efg). */
-			if (!tv_clip_vector_add_clip_xy
-			    (vector, x1, clip->y1, x2, y2))
-				return FALSE;
-
-			/* Top half (a). */
-			y2 = clip->y1;
-			goto restart;
-		}
-
-		if (y1 < clip->y2 /* efghij */) {
-			if (y2 > clip->y2 /* gj */) {
-				/* Insert bottom half (k). */
-				if (!tv_clip_vector_add_clip_xy
-				    (vector, x1, clip->y2, x2, y2))
-					return FALSE;
-
-				/* Top half (fi). */
-				y2 = clip->y2;
-				goto restart;
-			}
-
-			break;
-		}
-
-		++clip;
-	}
-
-	/* efhi */
-
-	if (y1 != clip->y1 || y2 != clip->y2) {
-		unsigned int ys;
-		unsigned int n;
-		unsigned int i;
-
-		/* Split band at ys. */
-
-		if (y1 > clip->y1 /* hi */) {
-			ys = y1;
-		} else { /* e */
-			ys = y2; 
-		}
-
-		/* n = band size. */
-		for (n = 1; clip + n < end; ++n)
-			if (clip[0].y1 != clip[n].y1)
-				break;
-
-		if (vector->size + n >= vector->capacity) {
-			tv_clip *new_vector;
-			unsigned int new_capacity;
-
-			/* 0 < n <= size <= capacity */
-			new_capacity = vector->capacity * 2;
-
-			new_vector = realloc (vector->vector,
-					      sizeof (tv_clip) * new_capacity);
-			if (!new_vector)
-				return FALSE;
-
-			clip = new_vector + (clip - vector->vector);
-			end = new_vector + vector->size;
-
-			vector->vector = new_vector;
-			vector->capacity = new_capacity;
-		}
-
-		memmove (clip + n, clip, sizeof (tv_clip) * (end - clip));
-
-		vector->size += n;
-		end += n;
-
-		for (i = 0; i < n; ++i) {
-			clip[i + 0].y2 = ys;
-			clip[i + n].y1 = ys;
-		}
-
-		goto restart; /* ef */
-	}
-
-	/* f */
-
-	do {
-		if (x2 < clip->x1)
-			break; /* insert before */
-
-		if (x1 < clip->x2) {
-			unsigned int n;
-
-			/* Merge clips. */
-
-			x1 = MIN (x1, (unsigned int) clip->x1);
-
-			for (n = 1; clip + n < end; ++n)
-				if (x2 < clip[n].x1 || y1 != clip[n].y1)
-					break;
-			--n;
-
-			x2 = MAX (x2, (unsigned int) clip[n].x2);
-
-			if (n > 0) {
-				memmove (clip, clip + n,
-					 sizeof (tv_clip)
-					 * (end - (clip + n)));
-				vector->size -= n;
-			}
-
-			goto store;
-		}
-
-		++clip;
-	} while (clip < end && y1 == clip->y1);
-
- insert:
-	if (vector->size == vector->capacity) {
-		tv_clip *new_vector;
-		unsigned int new_capacity;
-
-		new_capacity = (vector->capacity < 16) ? 16
-			: vector->capacity * 2;
-
-		new_vector = realloc (vector->vector,
-				      sizeof (tv_clip) * new_capacity);
-		if (!new_vector)
-			return FALSE;
-
-		clip = new_vector + (clip - vector->vector);
-		end = new_vector + vector->size;
-
-		vector->vector = new_vector;
-		vector->capacity = new_capacity;
-	}
-
-	if (clip < end) {
-		memmove (clip + 1, clip, sizeof (tv_clip) * (end - clip));
-	}
-
-	++vector->size;
-
- store:
-	assert (clip >= vector->vector
-		&& clip < vector->vector + vector->size);
-
-	clip->x1 = x1;
-	clip->y1 = y1;
-	clip->x2 = x2;
-	clip->y2 = y2;
-
-	if (0) {
-		unsigned int i;
-
-		clip = vector->vector;
-
-		for (i = 0; i < vector->size; ++i, ++clip)
-			fprintf (stderr, "%3u: %3u,%3u - %3u,%3u\n",
-				 i, clip->x1, clip->y1, clip->x2, clip->y2);
-	}
-
-	return TRUE;
-}
-
-/* XXX untested. Should create another mask_to_vector to test if
-   the clips are equivalent. */
-uint8_t *
-tv_clip_vector_to_clip_mask	(tv_clip_vector *	vector,
-				 unsigned int		width,
-				 unsigned int		height)
-{
-	uint8_t *mask;
-	unsigned int bpl;
-	tv_clip *clip;
-	unsigned int count;
-
-	bpl = (width + 7) & -8; 
-
-	if (!(mask = calloc (1, height * bpl)))
-		return NULL;
-
-	clip = vector->vector;
-
-	for (count = vector->size; count > 0; --count) {
-		unsigned int x7;
-		unsigned int xw;
-		uint8_t *start;
-		uint8_t lmask;
-		uint8_t rmask;
-		unsigned int length;
-		unsigned int count;
-
-		if (clip->x2 > width)
-			goto failure;
-
-		if (clip->y2 > height)
-			goto failure;
-
-		start = mask + clip->y1 * bpl + (clip->x1 >> 3);
-
-		x7 = clip->x1 & 7;
-		xw = x7 + clip->x2 - clip->x1;
-
-		lmask = ~0 << x7;
-		rmask = ~(~0 << (xw & 7));
-
-		length = (xw - 1) >> 3;
-
-		if (0 == length) {
-			lmask &= rmask;
-
-			for (count = clip->y2 - clip->y1; count > 0; --count) {
-				*start |= lmask;
-				start += bpl;
-			}
-		} else {
-			for (count = clip->y2 - clip->y1; count > 0; --count) {
-				unsigned int i;
-
-				start[0] |= lmask;
-
-				for (i = 1; i < length; ++i)
-					start[i] = 0xFF;
-
-				start[length] |= rmask;
-
-				start += bpl;
-			}
-		}
-
-		++clip;
-	}
-
-	return mask;
-
- failure:
-	free (mask);
-	return NULL;
-}
-
-tv_bool
-tv_image_format_init		(tv_image_format *	format,
-				 unsigned int		width,
-				 unsigned int		height,
-				 unsigned int		bytes_per_line,
-				 tv_pixfmt		pixfmt,
-				 unsigned int		reserved)
-{
-	tv_pixel_format pf;
-	unsigned int min_bpl;
-
-	assert (NULL != format);
-
-	if (!tv_pixfmt_to_pixel_format (&pf, pixfmt, 0))
-		return FALSE;
-
-	if (0 == width || 0 == height)
-		return FALSE;
-
-	if (pf.planar) {
-		/* Round size up to U and V scale factors. */
-
-		width += pf.uv_hscale - 1;
-		width -= width % pf.uv_hscale;
-
-		height += pf.uv_vscale - 1;
-		height -= height % pf.uv_vscale;
-	}
-
-	format->width = width;
-	format->height = height;
-
-	min_bpl = (width * pf.bits_per_pixel + 7) >> 3;
-
-	format->bytes_per_line = MAX (bytes_per_line, min_bpl);
-
-	format->offset = 0;
-
-	if (pf.planar) {
-		unsigned int y_size;
-		unsigned int uv_size;
-
-		/* No padding. */
-		format->uv_bytes_per_line =
-			format->bytes_per_line / pf.uv_hscale;
-
-		y_size = format->bytes_per_line * height;
-		uv_size = y_size / (pf.uv_hscale * pf.uv_vscale);
-
-		if (pf.vu_order) {
-			format->v_offset = y_size; 
-			format->u_offset = y_size + uv_size;
-		} else {
-			format->u_offset = y_size; 
-			format->v_offset = y_size + uv_size;
-		}
-
-		format->size = y_size + uv_size * 2;
-	} else {
-		format->uv_bytes_per_line = 0;
-
-		format->u_offset = 0;
-		format->v_offset = 0;
-
-		format->size = format->bytes_per_line * height;
-	}
-
-	format->pixfmt = pixfmt;
-	format->_reserved = reserved;
-
-	return TRUE;
-}
-
-tv_bool
-tv_image_format_is_valid	(const tv_image_format *format)
-{
-	tv_pixel_format pf;
-	unsigned int min_bpl;
-	unsigned int min_size;
-
-	assert (NULL != format);
-
-	if (!tv_pixfmt_to_pixel_format (&pf, format->pixfmt, 0))
-		return FALSE;
-
-	if (0 == format->width
-	    || 0 == format->height)
-		return FALSE;
-
-	min_bpl = (format->width * pf.bits_per_pixel + 7) >> 3;
-
-	if (format->bytes_per_line < min_bpl)
-		return FALSE;
-
-	/* We don't enforce bytes_per_line padding on the last
-	   line, in case offset and bytes_per_line were adjusted
-	   for cropping. */
-	min_size = format->bytes_per_line * (format->height - 1) + min_bpl;
-
-	if (pf.planar) {
-		unsigned int min_uv_bytes_per_line;
-		unsigned int min_uv_size;
-		unsigned int p1_offset;
-		unsigned int p2_offset;
-
-		if (0 != format->width % pf.uv_hscale
-		    || 0 != format->height % pf.uv_vscale)
-			return FALSE;
-
-		if (0 != format->bytes_per_line % pf.uv_hscale)
-			return FALSE;
-
-		/* U and V bits_per_pixel assumed 8. */
-		min_uv_bytes_per_line = format->width / pf.uv_hscale;
-
-		if (format->uv_bytes_per_line < min_uv_bytes_per_line)
-			return FALSE;
-
-		/* We don't enforce bytes_per_line padding on the last line. */
-		min_uv_size = format->uv_bytes_per_line
-			* (format->height / pf.uv_vscale - 1)
-			+ min_uv_bytes_per_line;
-
-		if (pf.vu_order != (format->v_offset > format->u_offset))
-			return FALSE;
-
-		if (format->u_offset > format->v_offset) {
-			p1_offset = format->v_offset;
-			p2_offset = format->u_offset;
-		} else {
-			p1_offset = format->u_offset;
-			p2_offset = format->v_offset;
-		}
-
-		/* Y before U and V, planes must not overlap. */
-		if (format->offset + min_size >= p1_offset)
-			return FALSE;
-
-		/* U and V planes must not overlap. */
-		if (p1_offset + min_uv_size >= p2_offset)
-			return FALSE;
-
-		/* All planes must fit in buffer. */
-		if (p2_offset + min_uv_size >= format->size)
-			return FALSE;
-	} else {
-		if (format->offset + min_size >= format->size)
-			return FALSE;
-	}
-
-	return TRUE;
-}
 
 void
 _tv_image_format_dump		(const tv_image_format *format,
@@ -5589,10 +4696,10 @@ clear_block1			(uint8_t *		d,
 				 unsigned int		bytes_per_line)
 {
 	if (width == bytes_per_line) {
-		memset (d, value, width * height);
+		memset (d, (int) value, width * height);
 	} else {
 		for (; height-- > 0; d += bytes_per_line)
-			memset (d, value, width);
+			memset (d, (int) value, width);
 	}
 }
 
@@ -5613,7 +4720,7 @@ clear_block3			(uint8_t *		d,
 		width *= height;
 
 		if (value0 == value1 && value0 == value2) {
-			memset (d, value0, width);
+			memset (d, (int) value0, width);
 			return;
 		}
 
@@ -5643,7 +4750,7 @@ clear_block4			(uint32_t *		d,
 
 		if (0 == (uint16_t)(value ^ (value >> 16))
 		    && 0 == (uint8_t)(value ^ (value >> 8))) {
-			memset (d, value, width * 4);
+			memset (d, (int) value, width * 4);
 			return;
 		}
 
@@ -5681,7 +4788,7 @@ tv_clear_image			(void *			image,
 	assert (NULL != image);
 	assert (NULL != format);
 
-	if (!tv_pixfmt_to_pixel_format (&pf,
+	if (!tv_pixel_format_from_pixfmt (&pf,
 					format->pixfmt,
 					format->_reserved))
 		return FALSE;
@@ -5727,16 +4834,16 @@ tv_clear_image			(void *			image,
 			     format->bytes_per_line);
 		return TRUE;
 
-	case TV_PIXFMT_YUVA24_LE:
-	case TV_PIXFMT_YVUA24_LE:
+	case TV_PIXFMT_YUVA32_LE:
+	case TV_PIXFMT_YVUA32_LE:
 		clear_block4 ((uint32_t *)(data + format->offset),
 			      0xFF808000 + (luma & 0xFF),
 			      format->width, format->height,
 			      format->bytes_per_line);
 		return TRUE;
 
-	case TV_PIXFMT_YUVA24_BE:
-	case TV_PIXFMT_YVUA24_BE:
+	case TV_PIXFMT_YUVA32_BE:
+	case TV_PIXFMT_YVUA32_BE:
 		clear_block4 ((uint32_t *)(data + format->offset),
 			      0x008080FF + (luma << 24),
 			      format->width, format->height,
