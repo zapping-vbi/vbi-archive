@@ -310,6 +310,7 @@ int main(int argc, char * argv[])
   char *command = NULL;
   char *yuv_format = NULL;
   gboolean xv_detected;
+  gboolean unmutable = FALSE;
   /* Some other common options in case the standard one fails */
   char *fallback_devices[] =
   {
@@ -465,7 +466,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.165 2002-06-25 04:34:09 mschimek Exp $",
+	 "$Id: main.c,v 1.166 2002-08-31 17:06:46 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -652,11 +653,7 @@ int main(int argc, char * argv[])
   D();
   /* mute the device while we are starting up */
   if (tveng_set_mute(1, main_info) < 0)
-    {
-      /* has no mute function */
-      gtk_widget_hide(lookup_widget(main_window, "tb-mute"));
-      D();
-    }
+    unmutable = TRUE;
   D();
   z_tooltips_active (zconf_get_boolean
 		     (NULL, "/zapping/options/main/show_tooltips"));
@@ -689,6 +686,12 @@ int main(int argc, char * argv[])
   window_on_top (main_window, zconf_get_boolean
 		 (NULL, "/zapping/options/main/keep_on_top"));
   D();
+  if (unmutable)
+    {
+      /* has no mute function */
+      gtk_widget_hide(lookup_widget(main_window, "tb-mute"));
+      D();
+    }
   if (!startup_capture(tv_screen))
     {
       RunBox("The capture couldn't be started", GNOME_MESSAGE_BOX_ERROR);
