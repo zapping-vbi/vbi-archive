@@ -14,6 +14,7 @@ src/plugins.c
 src/zmisc.c
 src/zconf.c
 src/properties.c
+src/properties-handler.c
 src/channel_editor.c
 src/plugin_properties.c
 src/ttxview.c

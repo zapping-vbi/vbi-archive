@@ -322,5 +322,4 @@ gchar *s = N_("Short Name:");
 gchar *s = N_("Network call letters:");
 gchar *s = N_("Tape delay:");
 gchar *s = N_("Program Info");
-gchar *s = N_("xdx");
 gchar *s = N_("Synopsis");

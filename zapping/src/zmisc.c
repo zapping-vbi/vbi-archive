@@ -1107,8 +1107,11 @@ z_pixmap_new_from_file		(const gchar	*file)
 
   pb = gdk_pixbuf_new_from_file(file);
 
-  if (!pb)
+  if (!pb) {
+    printv("Unable to load pixmap \"%s\", errno %d: %s\n",
+	   file, errno, strerror(errno));
     return NULL;
+  }
 
   gdk_pixbuf_render_pixmap_and_mask(pb, &pixmap, &mask, 128);
   gdk_pixbuf_unref(pb);

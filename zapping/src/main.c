@@ -456,7 +456,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.154 2002-02-05 05:28:31 mschimek Exp $",
+	 "$Id: main.c,v 1.155 2002-02-10 11:53:15 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -930,12 +930,12 @@ static void shutdown_zapping(void)
   shutdown_ttxview();
 
   /* Shut down vbi */
-  printv(" vbi");
+  printv(" vbi\n");
   shutdown_zvbi();
 #endif
 
   /* inputs, standards handling */
-  printv(" v4linterface");
+  printv("\n v4linterface");
   shutdown_v4linterface();
 
   /*

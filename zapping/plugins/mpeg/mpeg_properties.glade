@@ -20,7 +20,7 @@
 <widget>
   <class>GtkWindow</class>
   <name>window1</name>
-  <title>window1</title>
+  <title></title>
   <type>GTK_WINDOW_TOPLEVEL</type>
   <position>GTK_WIN_POS_NONE</position>
   <modal>False</modal>

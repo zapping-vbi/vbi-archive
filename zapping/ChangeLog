@@ -1,3 +1,9 @@
+08.02.2002	Fixes <mschimek@users.sf.net>
+
+	* src/zvbi.c: Made threads_destroy() block-proof, fixed a td == 0
+	  crash (??) in	update_vi_network().
+	* src/zmisc.c: -d dumps failure cause of z_pixmap_new_from_file().
+
 05.02.2002	Another mute fix and better KP entering <mschimek@users.sf.net>
 
 	* src/tvengxv.c: tveng_get|set_mute ignored controls bttv
