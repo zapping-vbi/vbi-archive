@@ -472,7 +472,7 @@ xvzImage * xvzImage_new(enum tveng_frame_pixformat pixformat,
   g_free(new_image->private);
   g_free(new_image);
 
-  XSynchronize(GDK_DISPLAY(), old_sync);
+  // XSynchronize(GDK_DISPLAY(), old_sync);
 
   return NULL;
 }

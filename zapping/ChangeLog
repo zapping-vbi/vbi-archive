@@ -1,3 +1,9 @@
+1.08.2001	fixes <garetxe@users.sf.net>
+
+	* libvbi/exp-png.c: Fixed setjmp warning.
+	* src/x11stuff.c: Removed XSynchronize call, was broken according
+	to 'man XSynchronize'.
+
 31.07.2001	libvbi <mschimek@users.sf.net>
 
 	* v4lx.c: Fixed blank vbi bug.
