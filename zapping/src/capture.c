@@ -45,24 +45,9 @@
 
 #include <sched.h>
 
-#define _pthread_rwlock_rdlock(l)					\
-do {									\
-	sched_yield (); \
-/*	fprintf (stderr, "%u rdlock " #l " %p\n", __LINE__, l);	*/	\
-	pthread_rwlock_rdlock (l);					\
-} while (0)
-#define _pthread_rwlock_wrlock(l)					\
-do {									\
-	sched_yield (); \
-/*	fprintf (stderr, "%u wrlock " #l " %p\n", __LINE__, l);	*/	\
-	pthread_rwlock_wrlock (l);					\
-} while (0)
-#define _pthread_rwlock_unlock(l)					\
-do {									\
-	sched_yield (); \
-/*	fprintf (stderr, "%u unlock " #l " %p\n", __LINE__, l);	*/	\
-	pthread_rwlock_unlock (l);					\
-} while (0)
+#define _pthread_rwlock_rdlock(l) pthread_rwlock_rdlock (l)
+#define _pthread_rwlock_wrlock(l) pthread_rwlock_wrlock (l)
+#define _pthread_rwlock_unlock(l) pthread_rwlock_unlock (l)
 
 /* The capture fifo */
 #define NUM_BUNDLES 6 /* in capture_fifo */
@@ -71,7 +56,6 @@ zf_fifo					*capture_fifo = &_capture_fifo;
 /* The frame producer */
 static pthread_t			capture_thread_id;
 static volatile gboolean		exit_capture_thread;
-static pthread_rwlock_t size_rwlock;
 /* List of requested capture formats */
 static struct {
   gint			id;
@@ -175,8 +159,6 @@ compatible (producer_buffer *p, tveng_device_info *info)
   if (!p->num_images)
     return FALSE;
 
-  _pthread_rwlock_rdlock (&fmt_rwlock);
-
   /* first check whether the size is right */
   if (info->format.width != p->images[0]->fmt.width ||
       info->format.height != p->images[0]->fmt.height)
@@ -190,8 +172,6 @@ compatible (producer_buffer *p, tveng_device_info *info)
 
       retvalue = !!((avail_mask | build_mask (FALSE)) == avail_mask);
     }
-
-  _pthread_rwlock_unlock (&fmt_rwlock);
 
   return retvalue;
 }
@@ -219,23 +199,31 @@ capture_thread (void *data)
 	unusable, if compatible is TRUE then we fill it normally.
       */
 
-      _pthread_rwlock_rdlock (&size_rwlock);
+      /* No size change now. */
+      _pthread_rwlock_rdlock (&fmt_rwlock); 
 
+retry:
       if (p->tag != request_id && !compatible (p, info))
 	{
 	  /* schedule for rebuilding in the main thread */
 	  p->frame.b.used = 1; /* used==0 indicates eof */
 	  zf_send_full_buffer(&prod, &p->frame.b);
-	  _pthread_rwlock_unlock (&size_rwlock);
+	  _pthread_rwlock_unlock (&fmt_rwlock);
 	  continue;
 	}
 
       /* We cannot handle timeouts or errors. Note timeouts
-         are frequent when capturing an empty */
-      while (0 != fill_bundle_tveng(p, info))
-	;
+	 are frequent when capturing an empty */
+      if (0 != fill_bundle_tveng(p, info))
+	{
+	  /* Avoid busy loop. FIXME there must be a better way. */
+	  _pthread_rwlock_unlock (&fmt_rwlock);
+	  usleep (10000);
+	  _pthread_rwlock_rdlock (&fmt_rwlock);
+	  goto retry;
+	}
 
-      _pthread_rwlock_unlock (&size_rwlock);
+      _pthread_rwlock_unlock (&fmt_rwlock);
 
       /* FIXME something is wrong here with timestamps.
 	 We start capturing, then get_timestamp() before
@@ -697,9 +685,6 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
     }
 
  req_ok:
-  /* We cannot change w/h while the thread runs: race. */
-  _pthread_rwlock_wrlock (&size_rwlock);
-
   /* Request the new format to TVeng (should succeed) [id] */
   memcpy (&prev_fmt, &info->format, sizeof (prev_fmt));
 
@@ -733,13 +718,10 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
 	    if (info->current_mode == TVENG_NO_CAPTURE
 		|| info->current_mode == TVENG_TELETEXT)
 	      tveng_start_capturing (info);
-	  _pthread_rwlock_unlock (&size_rwlock);
 	  _pthread_rwlock_unlock (&fmt_rwlock);
 	  return -1;
 	}
     }
-
-  _pthread_rwlock_unlock (&size_rwlock);
 
   /* Flags that the request list *might* have changed */
   request_id ++;
@@ -897,12 +879,10 @@ void
 startup_capture (void)
 {
   pthread_rwlock_init (&fmt_rwlock, NULL);
-  pthread_rwlock_init (&size_rwlock, NULL);
 }
 
 void
 shutdown_capture (void)
 {
-  pthread_rwlock_destroy (&size_rwlock);
   pthread_rwlock_destroy (&fmt_rwlock);
 }
