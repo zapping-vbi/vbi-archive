@@ -36,105 +36,158 @@
 #include <tveng.h>
 
 #ifndef TVENGEMU_ENABLE
-#define TVENGEMU_ENABLE 0
+#define TVENGEMU_ENABLE 1
 #endif
 
 #define TVENGEMU_PROTOTYPES
 #include "tvengemu.h"
 
-struct control {
-	tv_control		pub;
-	/* interface specifics here */
-};
-
-#define C(l) PARENT (l, struct control, pub)
-
 struct private_tvengemu_device_info
 {
   tveng_device_info	info; /* Inherited */
+  tv_overlay_buffer	overlay_buffer;
   uint32_t		freq; /* Current freq */
   uint32_t		freq_min, freq_max; /* tuner bounds */
   uint32_t		chromakey; /* overlay chroma */
 };
 
-/* The following definitions define the properties of our device */
-/* Supported standards */
-static struct tveng_enumstd standards[] = {
-  {
-    name:	"PAL",
-    width:	384*2,
-    height:	288*2,
-    frame_rate:	25.0
-  },
-  {
-    name:	"NTSC",
-    width:	320*2,
-    height:	240*2,
-    frame_rate:	30000.0 / 1001.0
-  }
-};
-#define nstandards (sizeof(standards)/sizeof(standards[0]))
+#define P_INFO(p) PARENT (p, struct private_tvengemu_device_info, info)
 
-/* Supported inputs */
-static struct tveng_enum_input inputs[] = {
-  {
-    name:	"Television",
-    tuners:	1,
-    flags:	TVENG_INPUT_TUNER | TVENG_INPUT_AUDIO,
-    type:	TVENG_INPUT_TYPE_TV
-  },
-  {
-    name:	"Camera",
-    tuners:	0,
-    flags:	TVENG_INPUT_AUDIO,
-    type:	TVENG_INPUT_TYPE_CAMERA
-  }
-};
-#define ninputs (sizeof(inputs)/sizeof(inputs[0]))
+static tv_bool
+set_control			(tveng_device_info *	info,
+				 tv_control *		tc,
+				 int			value)
+{
+	fprintf (stderr, "tvengemu::set_control '%s' value=%d\n",
+		 tc->label, value);
+
+	tc->value = value;
+
+	return TRUE;
+}
 
 static tv_control *
 add_control			(tveng_device_info *	info,
 				 const char *		label,
-				 tv_control_id		tcid,
+				 tv_control_id		id,
 				 tv_control_type	type,
-				 int			cur,
-				 int			def,
+				 int			current,
+				 int			reset,
 				 int			minimum,
 				 int			maximum,
 				 int			step)
 {
-	struct control c;
+	tv_control c;
 	tv_control *tc;
 
-	memset (&c, 0, sizeof (c));
+	CLEAR (c);
 
-	if (!(c.pub.label = strdup (_(label))))
+	c.type		= type;
+	c.id		= id;
+
+	if (!(c.label = strdup (_(label))))
 		return NULL;
 
-	c.pub.id	= tcid;
-	c.pub.type	= type;
-	c.pub.minimum	= minimum;
-	c.pub.maximum	= maximum;
-	c.pub.step	= step;
-	c.pub.reset	= def;
-	c.pub.value	= cur;
+	c.minimum	= minimum;
+	c.maximum	= maximum;
+	c.step		= step;
+	c.reset		= reset;
 
-	c.pub._device = info;
+	c.value		= current;
 
-	if ((tc = append_control (info, &c.pub, sizeof (c)))) {
-	} else {
-		free ((char *) c.pub.label);
-		return NULL;
-	}
+	tc = append_control (info, &c, sizeof (c));
 
 	return tc;
+}
+
+static void
+add_controls			(tveng_device_info *	info)
+{
+	tv_control *tc;
+
+	add_control (info, "Integer",
+		     TV_CONTROL_ID_UNKNOWN,
+		     TV_CONTROL_TYPE_INTEGER,
+		     0, 13, -20, 72, 3);
+
+	tc = add_control (info, "Meaning of Life",
+			  TV_CONTROL_ID_UNKNOWN,
+			  TV_CONTROL_TYPE_CHOICE,
+			  0, 0, 0, 2, 1);
+
+	tc->menu = calloc (3 + 1, sizeof (const char *));
+
+	tc->menu[0] = strdup ("42");
+	tc->menu[1] = strdup ("Pr0n");
+	tc->menu[2] = strdup ("Monty Python");
+
+	add_control (info, "Self Destruct",
+		     TV_CONTROL_ID_UNKNOWN,
+		     TV_CONTROL_TYPE_ACTION,
+		     0, 0, 0, 0, 0);
+
+	add_control (info, "Mute",
+		     TV_CONTROL_ID_MUTE,
+		     TV_CONTROL_TYPE_BOOLEAN,
+		     0, 1, 0, 1, 1);
+
+	add_control (info, "Red Alert Color",
+		     TV_CONTROL_ID_UNKNOWN,
+		     TV_CONTROL_TYPE_COLOR,
+		     0x00FF00, 0xFF0000, 0, 0, 0);
+}
+
+static tv_bool
+set_standard			(tveng_device_info *	info,
+				 const tv_video_standard *ts)
+{
+	fprintf (stderr, "tvengemu::set_standard '%s'\n", ts->label);
+
+	set_cur_video_standard (info, ts);
+
+	return TRUE;
+}
+
+static void
+add_standards			(tveng_device_info *	info)
+{
+	append_video_standard (&info->video_standards, TV_VIDEOSTD_PAL,
+			       "PAL", "PAL", sizeof (tv_video_standard));
+
+	append_video_standard (&info->video_standards, TV_VIDEOSTD_NTSC,
+			       "NTSC", "NTSC", sizeof (tv_video_standard));
+
+	info->cur_video_standard = info->video_standards;
+}
+
+static tv_bool
+set_video_input			(tveng_device_info *	info,
+				 const tv_video_line *	tl)
+{
+	fprintf (stderr, "emu::set_video_input '%s'\n", tl->label);
+
+	set_cur_video_input (info, tl);
+
+	return TRUE;
+}
+
+static void
+add_video_inputs		(tveng_device_info *	info)
+{
+	append_video_line (&info->video_inputs, TV_VIDEO_LINE_TYPE_TUNER,
+			   "Tuner", "Tuner", sizeof (tv_video_line));
+
+	append_video_line (&info->video_inputs, TV_VIDEO_LINE_TYPE_BASEBAND,
+			   "Composite", "Composite", sizeof (tv_video_line));
+
+	info->cur_video_input = info->video_inputs;
 }
 
 static struct tveng_caps caps = {
   name:		"Emulation device",
   flags:	TVENG_CAPS_CAPTURE | TVENG_CAPS_TUNER |
   TVENG_CAPS_TELETEXT | TVENG_CAPS_OVERLAY | TVENG_CAPS_CLIPPING,
-  channels:	ninputs,
+  channels:	2,
   audios:	1,
   maxwidth:	768,
   maxheight:	576,
@@ -158,7 +211,6 @@ int tvengemu_attach_device(const char* device_file,
 			   enum tveng_attach_mode attach_mode,
 			   tveng_device_info * info)
 {
-  int i;
   struct private_tvengemu_device_info * p_info =
     (struct private_tvengemu_device_info*) info;
 
@@ -176,83 +228,34 @@ int tvengemu_attach_device(const char* device_file,
   info -> current_mode = TVENG_NO_CAPTURE;
   info -> fd = 0xdeadbeef;
 
-  info->inputs = malloc (sizeof(inputs[0])*ninputs);
-  for (i=0; i<ninputs; i++)
-    {
-      memcpy (&info->inputs[i], &inputs[i], sizeof(inputs[0]));
-      info->inputs[i].id = i;
-      info->inputs[i].index = i;
-      info->inputs[i].hash = tveng_build_hash (info->inputs[i].name);
-    }
-  info->num_inputs = ninputs;
-  info->cur_input = 0;
+  add_video_inputs (info);
+  add_standards (info);
+  add_controls (info);
 
-  info->standards = malloc (sizeof(standards[0])*nstandards);
-  for (i=0; i<nstandards; i++)
-    {
-      memcpy (&info->standards[i], &standards[i], sizeof(standards[0]));
-      info->standards[i].id = i;
-      info->standards[i].index = i;
-      info->standards[i].hash = tveng_build_hash (info->standards[i].name);
-    }
-  info->num_standards = nstandards;
-  info->cur_standard = 0;
-
-  if (1)
-    {
-      tv_control *tc;
-
-      add_control (info, "Pimples",
-		   TV_CONTROL_ID_UNKNOWN,
-		   TV_CONTROL_TYPE_INTEGER,
-		   0, 13, -20, 72, 3);
-
-      tc = add_control (info, "Meaning of Life",
-			TV_CONTROL_ID_UNKNOWN,
-			TV_CONTROL_TYPE_CHOICE,
-			0, 0, 0, 2, 1);
-      tc->menu = calloc (3 + 1, sizeof (const char *));
-      tc->menu[0] = strdup ("42");
-      tc->menu[1] = strdup ("Pr0n");
-      tc->menu[2] = strdup ("Monty Python");
-
-      add_control (info, "-> Self Destruct <-",
-		   TV_CONTROL_ID_UNKNOWN,
-		   TV_CONTROL_TYPE_ACTION,
-		   0, 0, 0, 0, 0);
-
-      add_control (info, "Mute",
-		   TV_CONTROL_ID_MUTE,
-		   TV_CONTROL_TYPE_BOOLEAN,
-		   0, 1, 0, 1, 1);
-
-      add_control (info, "Red Alert Color",
-		   TV_CONTROL_ID_UNKNOWN,
-		   TV_CONTROL_TYPE_COLOR,
-		   0x00FF00, 0xFF0000, 0, 0, 0);
-    }
+  CLEAR (p_info->overlay_buffer);
 
   /* Set up some capture parameters */
-  info->format.width = info->standards[info->cur_standard].width/2;
-  info->format.height = info->standards[info->cur_standard].height/2;
+  info->format.width = info->cur_video_standard->frame_width / 2;
+  info->format.height = info->cur_video_standard->frame_height / 2;
   info->format.pixformat = TVENG_PIX_YVU420;
   tvengemu_update_capture_format (info);
 
   /* Overlay window setup */
-  info->window.x = 0;
-  info->window.y = 0;
-  info->window.width = info->format.width;
-  info->window.height = info->format.height;
-  info->window.clipcount = 0;
-  info->window.clips = NULL;
+  info->overlay_window.x = 0;
+  info->overlay_window.y = 0;
+  info->overlay_window.width = info->format.width;
+  info->overlay_window.height = info->format.height;
+  info->overlay_window.clip_vector.vector = NULL;
+  info->overlay_window.clip_vector.size = 0;
+  info->overlay_window.clip_vector.capacity = 0;
 
   /* Framebuffer */
-  info->fb_info.base = NULL;
-  info->fb_info.width = info->caps.maxwidth;
-  info->fb_info.height = info->caps.maxheight;
-  info->fb_info.depth = 17;
-  info->fb_info.bytesperline = (info->fb_info.depth+7)/8 *
-    info->fb_info.width;
+  info->overlay_buffer.base = NULL;
+  info->overlay_buffer.width = info->caps.maxwidth;
+  info->overlay_buffer.height = info->caps.maxheight;
+  //  info->overlay_buffer.depth = 17;
+  //  info->overlay_buffer.bytes_per_line = (info->overlay_buffer.depth+7)/8 *
+  //    info->overlay_buffer.width;
 
   /* Tuner bounds */
   p_info -> freq_min = 1000;
@@ -288,8 +291,6 @@ tvengemu_describe_controller(char ** short_str, char ** long_str,
 /* Closes a device opened with tveng_init_device */
 static void tvengemu_close_device(tveng_device_info * info)
 {
-  tv_control *tc;
-
   tveng_stop_everything (info);
   info->fd = 0;
   info->current_controller = TVENG_CONTROLLER_NONE;
@@ -300,62 +301,9 @@ static void tvengemu_close_device(tveng_device_info * info)
       info->file_name = NULL;
     }
 
-  if (info -> inputs)
-    {
-      free(info -> inputs);
-      info->inputs = NULL;
-    }
-
-  if (info -> standards)
-    {
-      free(info -> standards);
-      info->standards = NULL;
-    }
-
-	while ((tc = info->controls)) {
-		info->controls = tc->_next;
-		free_control (tc);
-	}
-
-  info->num_standards = 0;
-  info->num_inputs = 0;
-}
-
-static
-int tvengemu_get_inputs(tveng_device_info * info)
-{
-  t_assert (info != NULL);
-  return 0;
-}
-
-static int
-tvengemu_set_input (struct tveng_enum_input *input,
-		    tveng_device_info *info)
-{
-  t_assert (info != NULL);
-
-  info->cur_input = input->index;
-
-  return 0;
-}
-
-static int
-tvengemu_get_standards (tveng_device_info *info)
-{
-  t_assert (info != NULL);
-
-  return 0;
-}
-
-static int
-tvengemu_set_standard (struct tveng_enumstd *std,
-		       tveng_device_info *info)
-{
-  t_assert (info != NULL);
-
-  info->cur_standard = std->index;
-
-  return 0;
+	free_controls (info);
+	free_video_standards (info);
+	free_video_inputs (info);
 }
 
 static int
@@ -424,23 +372,6 @@ tvengemu_set_capture_format (tveng_device_info *info)
   return 0;
 }
 
-static tv_bool
-tvengemu_update_control		(tveng_device_info *	info,
-				 tv_control *		tc)
-{
-  return TRUE;
-}
-
-static tv_bool
-tvengemu_set_control		(tveng_device_info *	info,
-				 tv_control *		tc,
-				 int			value)
-{
-  tc->value = value;
-  return TRUE;
-}
-
-
 static int
 tvengemu_tune_input (uint32_t freq, tveng_device_info *info)
 {
@@ -449,7 +380,9 @@ tvengemu_tune_input (uint32_t freq, tveng_device_info *info)
 
   t_assert (info != NULL);
 
-  if (info->inputs[info->cur_input].tuners == 0)
+  if (!info->cur_video_input
+      || (info->cur_video_input->type
+	  != TV_VIDEO_LINE_TYPE_TUNER))
     return -1;
 
   p_info->freq = freq;
@@ -463,7 +396,9 @@ tvengemu_get_signal_strength (int *strength, int *afc,
 {
   t_assert (info != NULL);
 
-  if (info->inputs[info->cur_input].tuners == 0)
+  if (!info->cur_video_input
+      || (info->cur_video_input->type
+	  != TV_VIDEO_LINE_TYPE_TUNER))
     return -1;
 
   if (strength)
@@ -483,7 +418,9 @@ tvengemu_get_tune (uint32_t *freq, tveng_device_info *info)
 
   t_assert (info != NULL);
 
-  if (info->inputs[info->cur_input].tuners == 0)
+  if (!info->cur_video_input
+      || (info->cur_video_input->type
+	  != TV_VIDEO_LINE_TYPE_TUNER))
     return -1;
 
   if (freq)
@@ -501,7 +438,9 @@ tvengemu_get_tuner_bounds (uint32_t *min, uint32_t *max,
 
   t_assert (info != NULL);
 
-  if (info->inputs[info->cur_input].tuners == 0)
+  if (!info->cur_video_input
+      || (info->cur_video_input->type
+	  != TV_VIDEO_LINE_TYPE_TUNER))
     return -1;
 
   if (min)
@@ -587,10 +526,20 @@ tvengemu_get_capture_size (int *width, int *height,
   return 0;
 }
 
-static int
-tvengemu_detect_preview (tveng_device_info *info)
+static tv_bool
+get_overlay_buffer		(tveng_device_info *	info,
+				 tv_overlay_buffer *	t)
 {
-  return 1;
+	*t = P_INFO (info)->overlay_buffer;
+	return TRUE;
+}
+
+static tv_bool
+set_overlay_buffer		(tveng_device_info *	info,
+				 tv_overlay_buffer *	t)
+{
+	P_INFO (info)->overlay_buffer = *t;
+	return TRUE;
 }
 
 static int
@@ -605,32 +554,14 @@ tvengemu_get_preview_window (tveng_device_info *info)
   return 0;
 }
 
-static int
-tvengemu_set_preview (int on, tveng_device_info *info)
+static tv_bool
+set_overlay			(tveng_device_info *	info,
+				 tv_bool		on)
 {
-  return 0;
+	return TRUE;
 }
 
-static int
-tvengemu_start_previewing (tveng_device_info *info,
-			   x11_dga_parameters *unused)
-{
-  t_assert (info != NULL);
 
-  info->current_mode = TVENG_CAPTURE_PREVIEW;
-
-  return 0;
-}
-
-static int
-tvengemu_stop_previewing (tveng_device_info *info)
-{
-  t_assert (info != NULL);
-
-  info -> current_mode = TVENG_NO_CAPTURE;
-
-  return 0;
-}
 
 static void
 tvengemu_set_chromakey (uint32_t chroma, tveng_device_info *info)
@@ -661,14 +592,14 @@ static struct tveng_module_info tvengemu_module_info = {
   attach_device:		tvengemu_attach_device,
   describe_controller:		tvengemu_describe_controller,
   close_device:			tvengemu_close_device,
-  get_inputs:			tvengemu_get_inputs,
-  set_input:			tvengemu_set_input,
-  get_standards:		tvengemu_get_standards,
-  set_standard:			tvengemu_set_standard,
+  .update_video_input		= NULL,
+  .set_video_input		= set_video_input,
+  .update_standard		= NULL,
+  .set_standard			= set_standard,
   update_capture_format:	tvengemu_update_capture_format,
   set_capture_format:		tvengemu_set_capture_format,
-  update_control:		tvengemu_update_control,
-  set_control:			tvengemu_set_control,
+  .update_control		= NULL,
+  .set_control			= set_control,
   tune_input:			tvengemu_tune_input,
   get_signal_strength:		tvengemu_get_signal_strength,
   get_tune:			tvengemu_get_tune,
@@ -679,12 +610,11 @@ static struct tveng_module_info tvengemu_module_info = {
   get_timestamp:		tvengemu_get_timestamp,
   set_capture_size:		tvengemu_set_capture_size,
   get_capture_size:		tvengemu_get_capture_size,
-  detect_preview:		tvengemu_detect_preview,
+  .get_overlay_buffer		= get_overlay_buffer,
+  .set_overlay_buffer		= set_overlay_buffer,
   set_preview_window:		tvengemu_set_preview_window,
   get_preview_window:		tvengemu_get_preview_window,
-  set_preview:			tvengemu_set_preview,
-  start_previewing:		tvengemu_start_previewing,
-  stop_previewing:		tvengemu_stop_previewing,
+  .set_overlay			= set_overlay,
   get_chromakey:		tvengemu_get_chromakey,
   set_chromakey:		tvengemu_set_chromakey,
 
