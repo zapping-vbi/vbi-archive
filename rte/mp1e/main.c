@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.29 2002-03-19 19:26:29 mschimek Exp $ */
+/* $Id: main.c,v 1.30 2002-04-09 12:28:39 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -150,6 +150,13 @@ set_option(rte_codec *codec, char *keyword, ...)
 	ASSERT("set option %s", !!codec->class->option_set(
 		codec, keyword, args), keyword);
 	va_end(args);
+}
+
+static void
+get_option(rte_codec *codec, char *keyword, void *r)
+{
+	ASSERT("get option %s", !!codec->class->option_get(
+		codec, keyword, (rte_option_value *) r), keyword);
 }
 
 static void
@@ -514,21 +521,9 @@ main(int ac, char **av)
 	}
 
 	if (modules & MOD_VIDEO) {
+		double coded_rate;
+
 		video_coding_size(width, height);
-
-		if (frame_rate > video_params.video.frame_rate || mux_syn == 4 /* vcd */)
-			frame_rate = video_params.video.frame_rate;
-
-		printv(2, "Macroblocks %d x %d\n", mb_width, mb_height);
-
-		printv(1, "Video compression %d x %d, %2.1f frames/s at %1.2f Mbits/s (%1.1f : 1)\n",
-			width, height, (double) frame_rate,
-			video_bit_rate / 1e6, (width * height * 1.5 * 8 * frame_rate) / video_bit_rate);
-
-		if (motion_min == 0 || motion_max == 0)
-			printv(1, "Motion compensation disabled\n");
-		else
-			printv(1, "Motion compensation %d-%d\n", motion_min, motion_max);
 
 		/* Initialize video codec */
 
@@ -541,7 +536,25 @@ main(int ac, char **av)
 		reset_options(video_codec);
 
 		set_option(video_codec, "bit_rate", video_bit_rate);
-		set_option(video_codec, "coded_frame_rate", video_params.video.frame_rate);
+		set_option(video_codec, "coded_frame_rate",
+			/* w/o MAX we'd get 23.976 which isn't nice */
+			MAX(24.0, video_params.video.frame_rate));
+		get_option(video_codec, "coded_frame_rate", &coded_rate);		
+
+		if (frame_rate > coded_rate || mux_syn == 4 /* vcd */)
+			frame_rate = coded_rate;
+
+		printv(2, "Macroblocks %d x %d\n", mb_width, mb_height);
+
+		printv(1, "Video compression %d x %d, %2.1f frames/s at %1.2f Mbits/s (%1.1f : 1)\n",
+			width, height, (double) frame_rate,
+			video_bit_rate / 1e6, (width * height * 1.5 * 8 * frame_rate) / video_bit_rate);
+
+		if (motion_min == 0 || motion_max == 0)
+			printv(1, "Motion compensation disabled\n");
+		else
+			printv(1, "Motion compensation %d-%d\n", motion_min, motion_max);
+
 		set_option(video_codec, "virtual_frame_rate", frame_rate);
 		set_option(video_codec, "skip_method", skip_method);
 		set_option(video_codec, "gop_sequence", gop_sequence);
