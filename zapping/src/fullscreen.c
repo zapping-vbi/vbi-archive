@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.3 2001-03-18 16:04:08 garetxe Exp $
+ * $Id: fullscreen.c,v 1.4 2001-03-21 21:44:21 garetxe Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -203,11 +203,14 @@ fullscreen_start(tveng_device_info * info)
 				       1);
 	    }
 	  else
-	    ShowBox("Couldn't allocate chromakey, chroma won't work",
-		    GNOME_MESSAGE_BOX_WARNING);
+	    {
+	      ShowBox("Couldn't allocate chromakey, chroma won't work",
+		      GNOME_MESSAGE_BOX_WARNING);
+	      gdk_window_set_background(da->window, &bg);
+	    }
 	}
       else
-	gdk_window_set_back_pixmap(da->window, NULL, FALSE);
+	gdk_window_set_background(da->window, &bg);
     }
 
   /* Needed for XV fullscreen */

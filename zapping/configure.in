@@ -134,7 +134,6 @@ AC_SUBST(RTE_LIB)
 
 GNOME_COMPILE_WARNINGS
 GNOME_X_CHECKS
-GNOME_XML_CHECK
 
 dnl ----------------------------------------------------------------------
 dnl Check for the existance of gdk-pixbuf
@@ -151,26 +150,52 @@ if test $? -eq 0; then
 	GDK_PIXBUF_LIBS=`echo $GDK_PIXBUF_LIBS | sed "s/$TMP_VAR//g"`
 	AC_SUBST(GDK_PIXBUF_CFLAGS)
 	AC_SUBST(GDK_PIXBUF_LIBS)
-	HAVE_GDK_PIXBUF="yes"
-	AC_DEFINE(HAVE_GDKPIXBUF)
 else
 	AC_MSG_ERROR([This version of Zapping requires GdkPixbuf])
-	HAVE_GDK_PIXBUF="no"
 fi
+
+dnl ----------------------------------------------------------------------
+dnl Check for the existance of libxml
+dnl ----------------------------------------------------------------------
+AC_MSG_CHECKING(for libxml)
+LIBXML_VERSION=`xml-config --version`
+if test $? -eq 0; then
+	AC_MSG_RESULT($LIBXML_VERSION)
+	LIBXML_CFLAGS=`xml-config --cflags`
+	LIBXML_LIBS=`xml-config --libs`
+	AC_SUBST(LIBXML_CFLAGS)
+	AC_SUBST(LIBXML_LIBS)
+else
+	AC_MSG_ERROR([This version of Zapping requires libxml:
+	ftp://ftp.gnome.org/pub/GNOME/stable/sources])
+fi
+
+saved_cppflags="$CPPFLAGS"
+saved_ldflags="$LDFLAGS"
+LDFLAGS="$LDFLAGS $LIBXML_LIBS"
+CPPFLAGS="$CPPFLAGS $LIBXML_CFLAGS"
 
 dnl ----------------------------------------------------------------------
 dnl Check which libxml syntax we will use (children vs. childs)
 dnl ----------------------------------------------------------------------
 AC_MSG_CHECKING(which syntax to use for xml child nodes)
-AC_TRY_LINK([#include <gnome-xml/tree.h>],
+AC_TRY_LINK([#include <tree.h>],
 [
-xmlNodePtr node;
+xmlNodePtr node = 0xdeadbeef;
 node->childs = NULL;
 return 0;
 ],
-AC_MSG_RESULT(childs)
+AC_MSG_RESULT(chils)
 AC_DEFINE(LIBXML_CHILDS),
 AC_MSG_RESULT(children))
+
+dnl ----------------------------------------------------------------------
+dnl Check for existance of xmlDocGetRootNode and friends
+dnl ----------------------------------------------------------------------
+AC_CHECK_LIB(xml, xmlDocGetRootNode,, AC_DEFINE(LIBXML_NO_ROOT))
+
+CPPFLAGS="$saved_cppflags"
+LDFLAGS="$saved_ldflags"
 
 dnl ----------------------------------------------------------------------
 dnl Check which arch is present, and enable MMX support
@@ -215,11 +240,6 @@ if test "x$HAVE_MMX" = "xyes"; then
 fi
 
 AC_SUBST(ARCH_CFLAGS)
-
-dnl ----------------------------------------------------------------------
-dnl Check for existance of xmlDocGetRootNode and friends
-dnl ----------------------------------------------------------------------
-AC_CHECK_LIB(xml, xmlDocGetRootNode,, AC_DEFINE(LIBXML_NO_ROOT))
 
 AM_PATH_LIBGLADE(,
 AC_MSG_ERROR(*** Cannot find libglade in your system. Is it installed? ***),

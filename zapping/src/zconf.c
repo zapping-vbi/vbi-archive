@@ -34,8 +34,8 @@
 #endif
 
 #include <gnome.h>
-#include <gnome-xml/tree.h>
-#include <gnome-xml/parser.h>
+#include <tree.h> /* libxml */
+#include <parser.h> /* libxml */
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>

@@ -361,12 +361,6 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	g_warning("couldn't start fullscreen mode");
       break;
     default:
-#ifndef HAVE_GDKPIXBUF
-      ShowBox(_("The teletext decoder needs GdkPixbuf, and\n"
-		"configure didn't find it."), GNOME_MESSAGE_BOX_INFO);
-      break;
-#endif /* HAVE_GDKPIXBUF */
-
       if (!zvbi_get_object())
 	{
 	  ShowBox(_("VBI has been disabled, or it doesn't work."),
