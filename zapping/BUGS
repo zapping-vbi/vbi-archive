@@ -7,4 +7,6 @@ Known bugs with zapping, don't report them
 	! Something leaks horribly every n-milliseconds, memprof says
 	it's x11_add_clips. Weird, but needs fixing.
 	* Need better no-overlay-present handling.
+	* TTX cursor keys increment an old page number after
+	  jumping to a FLOF/TOP/nnn linked page.
 	* Sometimes the geometry isn't correctly restored at startup.

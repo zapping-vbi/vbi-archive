@@ -16,12 +16,6 @@ struct cache
     struct cache_ops *op;
 };
 
-struct cache_page
-{
-    struct dl_node node[1];
-    struct vt_page page[1];
-};
-
 struct cache_ops
 {
     void (*close)(struct cache *ca);

@@ -69,8 +69,10 @@ output_stdout(buffer *b)
 bool
 init_output_stdout(void)
 {
+	int bsize = (mux_syn == 4) ? 2324 /* VCD */ : PACKET_SIZE;
+
 	ASSERT("allocate mux buffer, %d bytes",
-		init_buffer(&mux_buffer, PACKET_SIZE), PACKET_SIZE);
+		init_buffer(&mux_buffer, bsize), bsize);
 	/*
 	 *  Attn: mux_buffer.size determines the packet size, not PACKET_SIZE.
 	 *  All buffers shall have the same size, returning used <= size.

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.16 2000-12-21 07:39:19 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.17 2001-01-24 22:48:52 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -146,6 +146,7 @@ extern void		packed_preview(unsigned char *buffer, int mb_cols, int mb_rows);
 
 int p_inter_bias = 65536 * 48,
     b_inter_bias = 65536 * 96,
+    x_bias = 65536 * 31,
     quant_max = 31;
 
 #define QS 1

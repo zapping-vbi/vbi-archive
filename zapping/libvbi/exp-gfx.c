@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.17 2001-01-03 19:06:31 garetxe Exp $ */
+/* $Id: exp-gfx.c,v 1.18 2001-01-24 22:48:52 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -275,7 +275,7 @@ vbi_draw_page(struct fmt_page *pg, void *data)
 	int i;
 	unsigned int *canvas = (unsigned int*)data;
 
-	for (i = 2; i < 64; i++)
+	for (i = 2; i < 2 + 8 + 32; i++)
 		pen[i] = pg->colour_map[pg->drcs_clut[i]];
 
 	for (row = 0; row < H; canvas += W * CW * CH - W * CW, row++) {
@@ -306,7 +306,7 @@ vbi_draw_page_indexed(struct fmt_page *pg, void *data)
 	int i;
 	unsigned int *canvas = (unsigned int*)data;
 
-	for (i = 2; i < 64; i++)
+	for (i = 2; i < 2 + 8 + 32; i++)
 		pen[i] = pg->drcs_clut[i];
 
 	for (row = 0; row < H; canvas += W * CW * CH - W * CW, row++) {
@@ -411,8 +411,8 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 	FILE *fp;
 	png_structp png_ptr;
 	png_infop info_ptr;
-	png_color palette[64];
-	png_byte alpha[64];
+	png_color palette[72];
+	png_byte alpha[72];
 	png_text text[4];
 	char title[80];
 	png_bytep row_pointer[WH];
@@ -426,9 +426,9 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 		int row, column;
 		attr_char *ac;
 
-		for (i = 2; i < 64; i++) {
+		for (i = 2; i < 2 + 8 + 32; i++) {
 			pen[i]      = pg->drcs_clut[i];
-			pen[i + 64] = pg->drcs_clut[i] + 32;
+			pen[i + 64] = pg->drcs_clut[i] + 36;
 		}
 
 		for (row = 0; row < H; canvas += W * CW * CH - W * CW, row++) {
@@ -477,13 +477,13 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 					 *  them completely translucent. 
 					 */
 					if ((ac->glyph & 0xFFFF) >= GL_DRCS) {
-						pen[64] = ac->background + 32;
+						pen[64] = ac->background + 36;
 						pen[65] = ac->foreground;
 
 						draw_drcs(canvas, pg->drcs[(ac->glyph & 0x1F00) >> 8],
 							pen + 64, ac->glyph, ac->size);
 					} else {
-						pen[0] = ac->background + 32;
+						pen[0] = ac->background + 36;
 						pen[1] = ac->foreground;
 
 						draw_char(canvas, pen, ac->glyph,
@@ -555,20 +555,20 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 		PNG_FILTER_TYPE_DEFAULT);
 
 	/* Could be optimized (or does libpng?) */
-	for (i = 0; i < 32; i++) {
+	for (i = 0; i < 36; i++) {
 		palette[i].red   = pg->colour_map[i] & 0xFF;
 		palette[i].green = (pg->colour_map[i] >> 8) & 0xFF;
 		palette[i].blue	 = (pg->colour_map[i] >> 16) & 0xFF;
 		alpha[i]	 = 255;
 
-		palette[i + 32]  = palette[i];
-		alpha[i + 32]	 = 128;
+		palette[i + 36]  = palette[i];
+		alpha[i + 36]	 = 128;
 	}
 
-	alpha[8] = alpha[8 + 32] = 0; /* TRANSPARENT_BLACK */
+	alpha[8] = alpha[8 + 36] = 0; /* TRANSPARENT_BLACK */
 
-	png_set_PLTE(png_ptr, info_ptr, palette, 64);
-	png_set_tRNS(png_ptr, info_ptr, alpha, 64, NULL);
+	png_set_PLTE(png_ptr, info_ptr, palette, 72);
+	png_set_tRNS(png_ptr, info_ptr, alpha, 72, NULL);
 
 	png_set_gAMA(png_ptr, info_ptr, 1.0 / 2.2);
 

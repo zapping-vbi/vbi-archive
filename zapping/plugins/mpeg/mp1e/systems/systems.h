@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: systems.h,v 1.9 2000-12-15 00:14:19 garetxe Exp $ */
+/* $Id: systems.h,v 1.10 2001-01-24 22:48:52 mschimek Exp $ */
 
 #ifndef __SYSTEMS_H__
 #define __SYSTEMS_H__
@@ -32,6 +32,7 @@ extern void *			stream_sink(void *unused);
 extern void *			mpeg1_system_mux(void *unused);
 extern void *			mpeg2_program_stream_mux(void *unused);
 extern void *			elementary_stream_bypass(void *unused);
+extern void *			vcd_system_mux(void *unused);
 
 extern char *			mpeg_header_name(unsigned int code);
 

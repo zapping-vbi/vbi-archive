@@ -3,7 +3,7 @@
 #include "misc.h"
 #include "dllist.h"
 #include "cache.h"
-
+#include <stdio.h>
 /*
     There are some subtleties in this cache.
 
@@ -16,6 +16,15 @@
 */
 
 //static struct cache_ops cops;
+
+struct cache_page
+{
+    struct dl_node node[1];
+    struct vt_page page[1];
+
+    /* dynamic size, no fields below */
+};
+
 
 static inline int
 hash(int pgno)
@@ -111,7 +120,7 @@ cache_get(struct cache *ca, int pgno, int subno, int subno_mask)
 */
 
 static struct vt_page *
-cache_put(struct cache *ca, struct vt_page *vtp)
+old_cache_put(struct cache *ca, struct vt_page *vtp)
 {
     struct cache_page *cp;
     int h = hash(vtp->pgno);
@@ -141,6 +150,48 @@ cache_put(struct cache *ca, struct vt_page *vtp)
     *cp->page = *vtp;
     return cp->page;
 }
+
+static struct vt_page *
+cache_put(struct cache *ca, struct vt_page *vtp)
+{
+    struct cache_page *cp;
+    int h = hash(vtp->pgno);
+    int size = vtp_size(vtp);
+
+
+    for (cp = $ ca->hash[h].first;
+     cp->node->next; cp = $ cp->node->next)
+	if (cp->page->pgno == vtp->pgno && cp->page->subno == vtp->subno)
+	    break;
+
+	if (cp->node->next) {
+		if (vtp_size(cp->page) == size) {
+			// move to front.
+			dl_insert_first(ca->hash + h, dl_remove(cp->node));
+		} else {
+			struct cache_page *new_cp;
+
+			if (!(new_cp = malloc(sizeof(*cp) - sizeof(cp->page) + size)))
+				return 0;
+			dl_remove(cp->node);
+			free(cp);
+			cp = new_cp;
+			dl_insert_first(ca->hash + h, cp->node);
+		}
+	} else {
+		if (!(cp = malloc(sizeof(*cp) - sizeof(cp->page) + size)))
+			return 0;
+		if (vtp->subno >= ca->hi_subno[vtp->pgno])
+			ca->hi_subno[vtp->pgno] = vtp->subno + 1;
+		ca->npages++;
+		dl_insert_first(ca->hash + h, cp->node);
+	}
+
+	memcpy(cp->page, vtp, size);
+
+    return cp->page;
+}
+
 
 
 /////////////////////////////////

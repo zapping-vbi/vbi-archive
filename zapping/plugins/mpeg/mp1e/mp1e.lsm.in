@@ -1,11 +1,12 @@
-Begin3
+Begin4
 Title:		mp1e
 Version:	@VERSION@
-Entered-date:	
+Entered-date:	2001-01-20
 Description:	Real Time Software MPEG-1 Video/Audio Encoder
 Keywords:	MPEG, V4L, V4L2, OSS, MMX
-Maintained-by:	
+Author:		mschimek@users.sourceforge.net
+Maintained-by:	mschimek@users.sourceforge.net
 Primary-site:	metalab.unc.edu
 Platforms:	Linux, MMX enhanced x86 CPUs
-Copying-policy:	GPL
+Copying-policy:	GNU General Public License 2.0
 End

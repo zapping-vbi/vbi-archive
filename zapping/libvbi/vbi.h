@@ -14,7 +14,7 @@
 struct raw_page
 {
     struct vt_page page[1];
-	vt_extension		extension;
+//	vt_extension		extension;
 	u8			drcs_mode[48];
 	int			num_triplets;
 	int			ait_page;
@@ -77,6 +77,6 @@ void out_of_sync(struct vbi *vbi);
 int vbi_line(struct vbi *vbi, u8 *p);
 void vbi_set_default_region(struct vbi *vbi, int default_region);
 
-extern bool		convert_page(struct vbi *vbi, struct vt_page *vtp, page_function new_function);
+extern struct vt_page *convert_page(struct vbi *vbi, struct vt_page *vtp, bool cached, page_function new_function);
 
 #endif

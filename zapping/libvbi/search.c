@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.5 2001-01-16 11:48:35 mschimek Exp $ */
+/* $Id: search.c,v 1.6 2001-01-24 22:48:52 mschimek Exp $ */
 
 #include <stdlib.h>
 #include "vt.h"
@@ -104,20 +104,20 @@ highlight(struct search *s, struct vt_page *vtp,
 					// with transmitted black/yellow. Solution:
 					// private 33rd and 34th colour. Same issue
 					// TOP.
-					acp[40].foreground = BLACK;
-					acp[40].background = YELLOW;
-					acp[41].foreground = BLACK;
-					acp[41].background = YELLOW;
+					acp[40].foreground = 32; // BLACK;
+					acp[40].background = 34; // YELLOW;
+					acp[41].foreground = 32; // BLACK;
+					acp[41].background = 34; // YELLOW;
 				}
 
 				/* fall through */
 
 			case DOUBLE_WIDTH:
 				if (offset >= ms) {
-					acp[0].foreground = BLACK;
-					acp[0].background = YELLOW;
-					acp[1].foreground = BLACK;
-					acp[1].background = YELLOW;
+					acp[0].foreground = 32; // BLACK;
+					acp[0].background = 34; // YELLOW;
+					acp[1].foreground = 32; // BLACK;
+					acp[1].background = 34; // YELLOW;
 				}
 
 				hp++;
@@ -128,16 +128,16 @@ highlight(struct search *s, struct vt_page *vtp,
 
 			case DOUBLE_HEIGHT:
 				if (offset >= ms) {
-					acp[40].foreground = BLACK;
-					acp[40].background = YELLOW;
+					acp[40].foreground = 32; // BLACK;
+					acp[40].background = 34; // YELLOW;
 				}
 
 				/* fall through */
 
 			case NORMAL:	
 				if (offset >= ms) {
-					acp[0].foreground = BLACK;
-					acp[0].background = YELLOW;
+					acp[0].foreground = 32; // BLACK;
+					acp[0].background = 34; // YELLOW;
 				}
 
 				hp++;

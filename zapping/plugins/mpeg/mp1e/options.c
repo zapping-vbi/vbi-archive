@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.12 2000-11-11 02:32:21 mschimek Exp $ */
+/* $Id: options.c,v 1.13 2001-01-24 22:48:52 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,7 +40,7 @@
 #include "options.h"
 
 static const char *mux_options[] = { "", "video", "audio", "video_and_audio" };
-static const char *mux_syn_options[] = { "nirvana", "bypass", "mpeg1", "mpeg2-ps" };
+static const char *mux_syn_options[] = { "nirvana", "bypass", "mpeg1", "mpeg2-ps", "vcd" };
 static const char *audio_options[] = { "stereo", "", "dual_channel", "mono" };
 static const char *mute_options[] = { "unmute", "mute", "ignore" };
 
@@ -100,7 +100,11 @@ usage(FILE *fi)
 
 		audio_options[audio_mode], pcm_dev, audio_bit_rate / 1000, sampling_rate / 1e3,
 
-		mix_sources(), mix_line, mix_volume, mix_dev, mute_options[mute]);
+		mix_sources(), mix_line, mix_volume, mix_dev
+#ifdef V4L2_MAJOR_VERSION
+		, mute_options[mute]
+#endif
+		);
 
 	exit((fi == stderr) ? EXIT_FAILURE : EXIT_SUCCESS);
 }
@@ -428,8 +432,8 @@ parse_option(int c)
 			exit(EXIT_SUCCESS);
 
 		case 'X':
-			mux_syn = suboption(mux_syn_options, 4, 2);
-			if (mux_syn < 0 || mux_syn > 3)
+			mux_syn = suboption(mux_syn_options, 5, 2);
+			if (mux_syn < 0 || mux_syn > 4)
 				return FALSE;
 			break;
 

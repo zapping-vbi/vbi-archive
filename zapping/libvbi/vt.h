@@ -107,15 +107,14 @@ typedef struct {
 
 	u8		drcs_clut[2 + 2 * 4 + 2 * 16];
 						/* f/b, dclut4, dclut16 */
-	rgba		colour_map[32];
+	rgba		colour_map[36];
 } vt_extension;
 
 typedef struct vt_triplet {
-	unsigned	stop : 8; // XXX useless
 	unsigned	address : 8;
 	unsigned	mode : 8;
 	unsigned	data : 8;
-} vt_triplet;
+} __attribute__ ((packed)) vt_triplet;
 
 typedef struct vt_pagenum {
 	unsigned	type : 4;
@@ -128,6 +127,8 @@ typedef struct {
 	unsigned char	text[12];
 } ait_entry;
 
+typedef vt_triplet vt_enhancement[16 * 13 + 1];
+
 #define NO_PAGE(pgno) (((pgno) & 0xFF) == 0xFF)
 
 struct vt_page
@@ -138,14 +139,24 @@ struct vt_page
 	int			flags;
 	u32			lop_lines, enh_lines;		/* set of received lines */
 
+	/* added temporarily: */
+	struct vbi *	vbi;
+
 	union {
-		struct {
+		struct lop {
 			u8		raw[26][40];
-			vt_triplet	triplet[16 * 13 + 1];
 			vt_pagenum	link[6 * 6];		/* X/27/0-5 links */
-			vt_extension *	extension;
-			int		flof;			/* FastText, display row 24 */
+			char		flof, ext;
 		}		unknown, lop;
+		struct {
+			struct lop	lop;
+			vt_enhancement	enh;
+		}		enh_lop;
+		struct {
+			struct lop	lop;
+			vt_enhancement	enh;
+			vt_extension	ext;
+		}		ext_lop;
 		struct {
 			u16		pointer[96];
 			vt_triplet	triplet[39 * 13 + 1];
@@ -161,15 +172,43 @@ struct vt_page
 
 	}		data;
 
-	/* added temporarily: */
-	struct vbi *	vbi;
-//	u8		drcs_bits[48][12 * 10 / 2];
-//	u8		drcs_mode[48];
-	vt_extension	extension;
+	/* 
+	 *  Dynamic size, no fields below unless
+	 *  vt_page is statically allocated.
+	 */
 };
 
+static inline int
+vtp_size(struct vt_page *vtp)
+{
+	switch (vtp->function) {
+	case PAGE_FUNCTION_UNKNOWN:
+	case PAGE_FUNCTION_LOP:
+		if (vtp->data.lop.ext)
+			return sizeof(*vtp) - sizeof(vtp->data)	+ sizeof(vtp->data.ext_lop);
+		else if (vtp->enh_lines)
+			return sizeof(*vtp) - sizeof(vtp->data)	+ sizeof(vtp->data.enh_lop);
+		else
+			return sizeof(*vtp) - sizeof(vtp->data)	+ sizeof(vtp->data.lop);
 
+	case PAGE_FUNCTION_GPOP:
+	case PAGE_FUNCTION_POP:
+		return sizeof(*vtp) - sizeof(vtp->data)	+ sizeof(vtp->data.pop);
 
+	case PAGE_FUNCTION_GDRCS:
+	case PAGE_FUNCTION_DRCS:
+		return sizeof(*vtp) - sizeof(vtp->data)	+ sizeof(vtp->data.drcs);
+
+	case PAGE_FUNCTION_AIT:
+		return sizeof(*vtp) - sizeof(vtp->data)	+ sizeof(vtp->data.ait);
+
+	default:
+	}
+
+	return sizeof(*vtp);
+}
+
+/*                              0xE03F7F 	national character subset and sub-page */
 #define C4_ERASE_PAGE		0x000080	/* erase previously stored packets */
 #define C5_NEWSFLASH		0x004000	/* box and overlay */
 #define C6_SUBTITLE		0x008000	/* box and overlay */
@@ -178,7 +217,9 @@ struct vt_page
 #define C9_INTERRUPTED		0x040000
 #define C10_INHIBIT_DISPLAY	0x080000	/* rows 1-24 not to be displayed */
 #define C11_MAGAZINE_SERIAL	0x100000
-/*                              0xE03F7F 	national character subset and sub-page */
+
+
+
 
 #define MIP_NO_PAGE		0x00
 #define MIP_NORMAL_PAGE		0x01
@@ -231,16 +272,6 @@ typedef struct {
 
 
 
-/*
-#define PG_SUPPHEADER	0x01	// C7  row 0 is not to be displayed
-#define PG_UPDATE	0x02	// C8  row 1-28 has modified (editors flag)
-#define PG_OUTOFSEQ	0x04	// C9  page out of numerical order
-#define PG_NODISPLAY	0x08	// C10 rows 1-24 is not to be displayed
-#define PG_MAGSERIAL	0x10	// C11 serial trans. (any pkt0 terminates page)
-#define PG_ERASE	0x20	// C4  clear previously stored lines
-#define PG_NEWSFLASH	0x40	// C5  box it and insert into normal video pict.
-#define PG_SUBTITLE	0x80	// C6  box it and insert into normal video pict.
-*/
 
 #define ANY_SUB		0x3f7f	// universal subpage number
 

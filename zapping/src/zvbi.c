@@ -360,7 +360,7 @@ build_client_page(struct ttx_client *client, struct vt_page *vtp)
   pthread_mutex_lock(&client->mutex);
   if ((vtp) && (vtp != (struct vt_page*)-1))
     {
-      memcpy(&client->vtp, vtp, sizeof(struct vt_page));
+      memcpy(&client->vtp, vtp, vtp_size(vtp));
       if (!fmt_page(FALSE, &client->fp, vtp, 25))
         goto unlock;
       client->fp.vtp = &client->vtp;
@@ -459,7 +459,7 @@ void monitor_ttx_this(int id, struct fmt_page *pg)
       client->page = pg->vtp->pgno;
       client->subpage = pg->vtp->subno;
       client->freezed = TRUE; /* FIXME: Until when? */
-      memcpy(&client->vtp, pg->vtp, sizeof(struct vt_page));
+      memcpy(&client->vtp, pg->vtp, vtp_size(pg->vtp));
       memcpy(&client->fp, pg, sizeof(struct fmt_page));
       vbi_draw_page(&client->fp,
 		    gdk_pixbuf_get_pixels(client->unscaled));

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.6 2000-12-15 00:14:19 garetxe Exp $ */
+/* $Id: v4l2.c,v 1.7 2001-01-24 22:48:52 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -272,7 +272,7 @@ open_v4l2(struct v4l2_context *v4l2, char *dev_name)
 #else // !HAVE_V4L2
 
 static bool
-v4l2(struct v4l2_context *v4l2, char *dev_name)
+open_v4l2(struct v4l2_context *v4l2, char *dev_name)
 {
 	return FALSE;
 }

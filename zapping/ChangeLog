@@ -7,6 +7,17 @@
 	* src/callbacks.c: Support for mouse wheel buttons 4 (channel up)
 	and 5 (channel down).
 
+24.1.2001	Zapzilla <mschimek@users.sourceforge.net>
+
+	* caption.c: added xds and itv decoder
+	* caption.c: various caption fixes (still unfinished)
+	* samples: s2-s7
+	* cache.c et al: optimized memory usage (-50%)
+
+24.1.2001	mp1e <mschimek@users.sourceforge.net>
+
+	* added vcd mux, syntax verified but not tested with hw players.
+
 23.1.2001	libunicode <garetxe@users.sourceforge.net>
 
 	* configure.in, zapping.spec.in: Added dependency on libunicode

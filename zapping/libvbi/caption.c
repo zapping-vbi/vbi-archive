@@ -20,29 +20,33 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.8 2001-01-16 11:48:35 mschimek Exp $ */
+/* $Id: caption.c,v 1.9 2001-01-24 22:48:51 mschimek Exp $ */
 
 #define TEST 1
 
 /*
     TODO:
     - test test test
-    - branch out itv (Text 2)
-    - parse xds
 
     DONE:
     - traced pop-on mode (s1), seems to work fine now
       ** added render function clear()
     - traced text mode (s1), need automatic line breaking?
     - traced roll-up mode (s2), outlook good, but too short
+    - parse xds
+    - branch out itv (Text 2)
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <assert.h>
 
-#include "ccfont.xbm"
+#include "hamm.c"
+#include "tables.c"
+
+#define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
 
 typedef char bool;
 enum { FALSE, TRUE };
@@ -60,11 +64,547 @@ odd_parity[256] =
 	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0
 };
 
-#define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
+/*
+ *  XDS (Extended Data Service)
+ */
+
+#define XDS_CURRENT		0
+#define XDS_FUTURE		1
+#define XDS_CHANNEL		2
+#define XDS_MISC		3
+#define XDS_PUBLIC_SERVICE	4
+#define XDS_RESERVED		5
+#define XDS_UNDEFINED		6	/* proprietary format */
+
+#define XDS_END			15
+
+char *mpaa_rating[8]	= { "n/a", "G", "PG", "PG-13", "R", "NC-17", "X", "not rated" };
+char *us_tv_rating[8]	= { "not rated", "TV-Y", "TV-Y7", "TV-G", "TV-PG", "TV-14", "TV-MA", "not rated" };
+char *cdn_en_rating[8]	= { "exempt", "C", "C8+", "G", "PG", "14+", "18+", "-" };
+char *cdn_fr_rating[8]	= { "exempt", "G", "8 ans +", "13 ans +", "16 ans +", "18 ans +", "-", "-" };
+char *map_type[8]	= { "unknown", "mono", "simulated stereo", "stereo", "stereo surround", "data service", "unknown", "none" };
+char *sap_type[8]	= { "unknown", "mono", "video descriptions", "non-program audio", "special effects", "data service", "unknown", "none" };
+char *language[8]	= { "unknown", "english", "spanish", "french", "german", "italian", "unknown", "none" };
+
+char *cgmsa[4] = {
+	"copying permitted",
+	"-",
+	"one generation copy allowed",
+	"no copying permitted"
+};
+
+char *scrambling[4] = {
+	"no pseudo-sync pulse",
+	"pseudo-sync pulse on; color striping off",
+	"pseudo-sync pulse on; 2-line color striping on",
+	"pseudo-sync pulse on; 4-line color striping on"
+};
+
+static const char *month_names[] = {
+	"0?", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug",
+	"Sep", "Oct", "Nov", "Dec", "13?", "14?", "15?"
+};
+
+static const char *day_names[] = {
+	"0?", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
+};
+
+static inline
+xds_decoder(int class, int type, char *buffer, int length)
+{
+	int i;
+
+	switch (class) {
+	case XDS_CURRENT:
+	case XDS_FUTURE:
+		if (class == XDS_CURRENT)
+			printf("Current ");
+		else
+			printf("Next ");
+
+		switch (type) {
+		case 1:		/* program identification number */
+			if (length != 4)
+				return;
+			printf("PIN: %d %s %02d:%02d UTC, D=%d L=%d Z=%d T(ape delayed)=%d\n",
+				buffer[2] & 31, month_names[buffer[3] & 15],
+				buffer[1] & 31, buffer[0] & 63,
+				!!(buffer[1] & 0x20),
+				!!(buffer[2] & 0x20),
+				!!(buffer[3] & 0x20),
+				!!(buffer[3] & 0x10));
+			break;
+
+		case 2:		/* program length */
+			if (length > 5)
+				return;
+			printf("length: %02d:%02d",
+				buffer[1] & 63, buffer[0] & 63);
+			if (length >= 4)
+				printf(", elapsed: %02d:%02d",
+					buffer[3] & 63, buffer[2] & 63);
+			if (length >= 5)
+				printf(":%02d", buffer[4] & 63);
+			printf("\n");
+			break;
+
+		case 3:		/* program name */
+			printf("program title: '");
+			for (i = 0; i < length; i++)
+				putchar(printable(buffer[i]));
+			printf("'\n");
+			break;
+
+		case 4:		/* program type */
+			printf("program type: ");
+			for (i = 0; i < length; i++)
+				printf((i > 0) ? ", %s" : "%s",
+					eia608_program_type[buffer[i] - 0x20]);
+			printf("\n");
+			break;
+
+		case 5:		/* program rating */
+			printf("program movie rating: %s, tv rating: ",
+				mpaa_rating[buffer[0] & 7]);
+			if (buffer[0] & 0x10) {
+				if (buffer[0] & 0x20)
+					puts(cdn_fr_rating[buffer[1] & 7]);
+				else
+					puts(cdn_en_rating[buffer[1] & 7]);
+			} else {
+				printf("%s; ", us_tv_rating[buffer[1] & 7]);
+				if (buffer[1] & 0x20)
+					printf("violence; ");
+				if (buffer[1] & 0x10)
+					printf("sexual situations; ");
+				if (buffer[1] & 8)
+					printf("adult language; ");
+				if (buffer[0] & 0x20)
+					printf("sexually suggestive dialog");
+				putchar('\n');
+			}
+			break;
+
+		case 6:		/* program audio services */
+			if (length != 2)
+				return;
+			printf("main audio: %s, %s; second audio program: %s, %s\n",
+				map_type[buffer[0] & 7], language[(buffer[0] >> 3) & 7],
+				sap_type[buffer[1] & 7], language[(buffer[1] >> 3) & 7]);
+			break;
+
+		case 7:		/* program caption services */
+			if (length > 8)
+				return;
+			printf("program caption services:\n");
+			for (i = 0; i < length; i++)
+				printf("Line %3d, channel %d, %s: %s\n",
+					(buffer[i] & 4) ? 284 : 21,
+					(buffer[i] & 2) ? 2 : 1,
+					(buffer[i] & 1) ? "text      " : "captioning",
+					language[(buffer[i] >> 3) & 7]);
+			break;
+
+		case 8:		/* copy generation management system */
+			if (length != 1)
+				return;
+			printf("CGMS: %s", cgmsa[(buffer[0] >> 3) & 3]);
+			if (buffer[0] & 0x18)
+				printf("; %s", scrambling[(buffer[0] >> 1) & 3]);
+			printf("; analog source: %d", buffer[0] & 1);
+			break;
+
+		case 9:		/* program aspect ratio */
+			if (length > 3)
+				return;
+			printf("program aspect ratio info: active start %d, end %d%s\n",
+				(buffer[0] & 63) + 22, 262 - (buffer[1] & 63),
+				(length >= 3 && (buffer[2] & 1)) ? " (anamorphic)" : "");
+			break;
+
+		case 0x10 ... 0x17: /* program description */
+			printf("program descr. line %d: >", type - 0x10 + 1);
+			for (i = 0; i < length; i++)
+				putchar(printable(buffer[i]));
+			printf("<\n");
+			break;
+
+		default:
+			printf("<unknown %d/%02x length %d>\n", class, type, length);
+			break;
+		}
+
+		break;
+
+	case XDS_CHANNEL:
+		switch (type) {
+		case 1:		/* network name */
+			printf("Network name: '");
+			for (i = 0; i < length; i++)
+				putchar(printable(buffer[i]));
+			printf("'\n");
+			break;
+
+		case 2:		/* network call letters */
+			printf("Network call letters: '");
+			for (i = 0; i < length; i++)
+				putchar(printable(buffer[i]));
+			printf("'\n");
+			break;
+
+		case 3:		/* channel tape delay */
+			if (length != 2)
+				return;
+			printf("Channel tape delay: %02d:%02d",
+				buffer[1] & 31, buffer[0] & 63);
+			break;
+
+		default:
+			printf("<unknown %d/%02x length %d>\n", class, type, length);
+			break;
+		}
+
+		break;
+
+	case XDS_MISC:
+		switch (type) {
+		case 1:		/* time of day */
+			if (length != 6)
+				return;
+			printf("Time of day (UTC): %s, %d %s %d ",
+				day_names[buffer[4] & 7],
+				buffer[2] & 31, month_names[buffer[3] & 15],
+				1990 + (buffer[5] & 63));
+			printf("%02d:%02d ", buffer[1] & 31, buffer[0] & 63);
+			printf("D(ST)=%d, L(eap day)=%d, "
+				"(Second )Z(ero)=%d, T(ape delayed)=%d\n",
+				!!(buffer[1] & 0x20),
+				!!(buffer[2] & 0x20),
+				!!(buffer[3] & 0x20),
+				!!(buffer[3] & 0x10));
+			break;
+
+		case 2:		/* impulse capture id */
+			if (length != 6)
+				return;
+			printf("Impulse capture id: %d %s ",
+				buffer[2] & 31, month_names[buffer[3] & 15]);
+			printf("%02d:%02d ", buffer[1] & 31, buffer[0] & 63);
+			printf("length %02d:%02d ",
+				buffer[5] & 63, buffer[4] & 63);
+			printf("D=%d, L=%d, Z=%d, T(ape delayed)=%d\n",
+				!!(buffer[1] & 0x20),
+				!!(buffer[2] & 0x20),
+				!!(buffer[3] & 0x20),
+				!!(buffer[3] & 0x10));
+			break;
+
+		case 3:		/* supplemental data location */
+			for (i = 0; i < length; i++)
+				printf("Supplemental data: field %d, line %d\n",
+					!!(buffer[i] & 0x20), buffer[i] & 31);
+			break;
+
+		case 4:		/* local time zone */
+			if (length != 1)
+				return;
+			printf("Local time zone: UTC + %d h; D(ST)=%d\n",
+				buffer[0] & 31, !!(buffer[0] & 0x20));
+			break;
+
+		case 0x40:	/* out-of-band channel number */
+			if (length != 2)
+				return;
+			i = (buffer[0] & 63) | ((buffer[1] & 63) << 6);
+			printf("Out-of-band channel %d -- ?\n", i);
+			break;
+
+		default:
+			printf("<unknown %d/%02x length %d>\n", class, type, length);
+			break;
+		}
+
+		break;
+
+	default:
+		printf("<unknown %d/%02x length %d>\n", class, type, length);
+		break;
+	}
+}
+
+struct sub_packet {
+	int		count;
+	int		chksum;
+	char		buffer[32];
+} sub[4][0x18], *current;
+
+void
+xds_separator(unsigned char *buf)
+{
+	int c1 = parity(buf[0]);
+	int c2 = parity(buf[1]);
+	int class, type;
+	int i;
+
+//	printf("XDS %02x %02x\n", buf[0], buf[1]);
+
+	if ((c1 | c2) < 0) {
+//		printf("XDS tx error, discard current packet\n");
+
+		if (current) {
+			current->count = 0;
+			current->chksum = 0;
+			current = NULL;
+		}
+
+		return;
+	}
+
+	switch (c1) {
+	case 1 ... 14:
+		class = (c1 - 1) >> 1;
+
+		if (class > sizeof(sub) / sizeof(sub[0])
+		    || c2 > sizeof(sub[0]) / sizeof(sub[0][0]))
+		{
+//			printf("XDS ignore packet %d/0x%02x\n", class, c2);
+			current = NULL;
+			return;
+		}
+
+		current = &sub[class][c2];
+
+		if (c1 & 1) { /* start */
+			current->chksum = c1 + c2;
+			current->count = 2;
+		} else {
+			if (!current->count) {
+//				printf("XDS can't continue %d/0x%02x\n", class, c2);
+				current = NULL;
+				return;
+			}
+		}
+
+		return;
+
+	case 15:
+		if (!current)
+			return;
+
+		current->chksum += c1 + c2;
+
+		class = (current - sub[0]) / (sizeof(sub[0]) / sizeof(sub[0][0]));
+		type = (current - sub[0]) % (sizeof(sub[0]) / sizeof(sub[0][0]));
+
+		if (current->chksum & 0x7F) {
+//			printf("XDS ignore packet %d/0x%02x, checksum error\n", class, type);
+		} else if (current->count <= 2) {
+//			printf("XDS ignore empty packet %d/0x%02x\n", class, type);
+		} else {
+			xds_decoder(class, type, current->buffer, current->count - 2);
+/*
+	for (i = 0; i < current->count - 2; i++)
+		printf("%c", printable(current->buffer[i]));
+	printf(" %d/0x%02x\n", class, type);
+*/
+		}
+
+		current->count = 0;
+		current->chksum = 0;
+		current = NULL;
+
+		return;
+
+	case 0x20 ... 0x7F:
+		if (!current)
+			return;
+
+		if (current->count >= 32 + 2) {
+//			printf("XDS packet length overflow, discard %d/0x%02x\n",
+//				(current - sub[0]) / sizeof(sub[0]),
+//				(current - sub[0]) % sizeof(sub[0][0]));
+
+			current->count = 0;
+			current->chksum = 0;
+			current = NULL;
+			return;
+		}
+
+		current->buffer[current->count - 2] = c1;
+		current->buffer[current->count - 1] = c2;
+		current->chksum += c1 + c2;
+		current->count += 1 + !!c2;
+
+		return;
+
+	default:
+		assert(0);
+	}
+}
 
 /*
+ *  ITV (Interactive TV Link aka. WebTV)
  *
+ *  http://developer.webtv.net
  */
+
+char itv_buf[256];
+int itv_count = 0;
+
+char *itv_key[] = { "program", "network", "station", "sponsor", "operator", NULL };
+
+static inline int
+itv_chksum(char *s, unsigned int sum)
+{
+	int i = (strlen(s) + 1) >> 1;
+
+	for (; i > 0; i--) {
+		sum += *s++ << 8;
+		sum += *s++;
+		if (sum >= 0x10000)
+			sum += 1 - 0x10000;
+	}
+
+	return sum == 0xFFFF;
+}
+
+static void
+itv_decoder(char *s1)
+{
+	char *s, *e;
+	char *d, ripped[sizeof(itv_buf)];
+	int type = -1, view = 'w';
+	char *url = NULL, *name = NULL;
+	char *script = NULL, *expires = "29991231T235959";
+
+	for (s = s1, d = ripped;; s++) {
+		e = s;
+
+		if (*s == '<') {
+			for (url = d, ++s; *s != '>'; s++)
+				if (*s)
+					*d++ = *s;
+				else
+					return;
+			*d++ = 0;
+		} else if (*s == '[') {
+			char *attr;
+			int i, quote;
+
+			for (attr = d, ++s; *s != ':' && *s != ']'; s++)
+				if (*s)
+					*d++ = *s;
+				else
+					return;
+			*d++ = 0;
+
+			if (*s == ']') {
+				for (i = 0; itv_key[i]; i++)
+					if (!strcmp(itv_key[i], attr))
+						break;
+
+				if (itv_key[i]) {
+					type = i;
+					continue;
+				}
+
+				*e = 0;
+
+				if (s[1] || !itv_chksum(s1, strtoul(attr, NULL, 16)))
+					return;
+
+				break;
+			}
+
+			s++;
+
+			switch (*attr) {
+			case 't':
+				for (i = 0; itv_key[i]; i++)
+					if (*s == itv_key[i][0]
+					    || !strcmp(itv_key[i], attr))
+						break;
+
+				if (!itv_key[i])
+					return;
+
+				type = i;
+
+				break;
+
+			case 'v':
+				view = *s;
+				break;
+
+			case 'n':
+				name = d;
+				break;
+
+			case 's':
+				script = d;
+				break;
+
+			case 'e':
+				expires = d;
+				break;
+			}
+
+			for (quote = 0; quote || *s != ']'; s++) {
+				if (!*s)
+					return;
+				if (*s == '"')
+					quote ^= 1;
+				*d++ = *s;
+			}
+
+			*d++ = 0;
+		} else
+			return;
+	}
+
+	printf("<i> %s\n URL: %s\n Type: ", name, url);
+	switch (type) {
+	case -1: printf("not given"); break;
+	case 0:	 printf("program related"); break;
+	case 1:	 printf("network related"); break;
+	case 2:	 printf("station related"); break;
+	case 3:	 printf("sponsor"); break;
+	case 4:	 printf("operator"); break;
+	default: printf("unknown"); break;
+	}
+	printf("; script: %s\n Cached page expires: %s; view: ",
+		script ? script : "none", expires);
+	switch (view) {
+	case 'w': printf("conventional web page"); break;
+	case 't': printf("tv related, WebTV style"); break;
+	default:  printf("unknown");
+	}
+	putchar('\n');
+}
+
+void
+itv_separator(char c)
+{
+	if (c >= 0x20) {
+		if (c == '<') // s4nbc omitted CR
+			itv_separator(0);
+		else if (itv_count > sizeof(itv_buf) - 2)
+			itv_count = 0;
+
+		itv_buf[itv_count++] = c;
+
+		return;
+	}
+
+	itv_buf[itv_count] = 0;
+	itv_count = 0;
+
+	itv_decoder(itv_buf);
+}
+
+/* Caption */
+
+#include "ccfont.xbm"
 
 /*
  *  WST/CC BGR palette, prepare for 32 random entries in the
@@ -182,13 +722,14 @@ struct caption {
 
 	int		chan;
 	attr_char	transp_space[2];	/* caption, text mode */
-	int		nul_ct;
 
 	struct ch_rec {
 		mode		mode;
 		int		col, col1;
 		int		row, row1;
 		int		roll;
+		int		nul_ct;
+// XXX should be 'silence count'
 		bool		redraw_all;
 		bool		italic;
 		attr_char	attr;
@@ -526,9 +1067,8 @@ caption_command(struct caption *cc,
 		case 13:	/* Carriage Return		001 c10f  010 1101 */
 // s1: appears in text mode only
 // s4: in roll-up mode
-//   T1: {spc}{cr}<http://www.kidswb.com>[n: ][e:20000101][B68B]{cr} (sans NULs)
-//      <n>ame, <e>xpires yyyymmdd, chksum
-//      see http://developer.webtv.net/itv/links/main.htm
+			if (ch == cc->channels + 5)
+				itv_separator(0);
 
 			if (!ch->mode)
 				return;
@@ -575,7 +1115,7 @@ caption_command(struct caption *cc,
 			return;
 
 		case 12:	/* Erase Displayed Memory	001 c10f  010 1100 */
-// s1: EDM always before EOC, purpose?
+// s1, s4: EDM always before EOC
 
 			if (ch->mode == POP_ON) {
 				clear(CC_PAGE_BASE + chan);
@@ -643,10 +1183,6 @@ caption_command(struct caption *cc,
 	}
 }
 
-void
-xds(unsigned char *buf)
-{
-}
 
 void
 dispatch_caption(struct caption *cc, unsigned char *buf, bool field2)
@@ -655,12 +1191,21 @@ dispatch_caption(struct caption *cc, unsigned char *buf, bool field2)
 	int i;
 
 	if (field2) {
-		if (odd_parity[buf[0]] && c1 && c1 <= 0x0F) {
-			xds(buf);
-			cc->xds = (c1 != 0x0F);
-			return;
+		if (odd_parity[buf[0]]) {
+			if (c1 == 0)
+				return;
+			else if (c1 <= 0x0F) {
+				xds_separator(buf);
+				cc->xds = (c1 != XDS_END);
+				return;
+			} else if (c1 <= 0x1F) {
+				cc->xds = FALSE;
+			} else if (cc->xds) {
+				xds_separator(buf);
+				return;
+			}
 		} else if (cc->xds) {
-			xds(buf);
+			xds_separator(buf);
 			return;
 		}
 	}
@@ -683,8 +1228,11 @@ dispatch_caption(struct caption *cc, unsigned char *buf, bool field2)
 		if (odd_parity[buf[1]]) {
 			if (!field2
 			    && buf[0] == cc->last[0]
-			    && buf[1] == cc->last[1])
-				return; /* cmd repetition F1: already executed */
+			    && buf[1] == cc->last[1]) {
+				/* cmd repetition F1: already executed */
+				cc->last[0] = 0; /* one rep */
+				return;
+			}
 
 			caption_command(cc, c1, buf[1] & 0x7F, field2);
 
@@ -698,24 +1246,36 @@ dispatch_caption(struct caption *cc, unsigned char *buf, bool field2)
 		return;
 
 	default:
-		cc->last[0] = 0;
 		ch = &cc->channels[(cc->chan & 5) + field2 * 2];
-		c = ch->attr;
+
+		if (buf[0] == 0x80 && buf[1] == 0x80) {
+			if (ch->mode) {
+				if (ch->nul_ct == 2)
+					word_break(cc, ch);
+				ch->nul_ct += 2;
+			}
+
+			return;
+		}
+
+		if (!field2)
+			cc->last[0] = 0;
+
+		ch->nul_ct = 0;
 
 		if (!ch->mode)
 			return;
 
+		c = ch->attr;
+
 		for (i = 0; i < 2; i++) {
 			char ci = odd_parity[buf[i]] ? (buf[i] & 0x7F) : 127;
 
-			if (ci == 0) { /* NUL */
-				if (cc->nul_ct == 2)
-					word_break(cc, ch);
-				cc->nul_ct++;
+			if (ci == 0)
 				continue;
-			}
 
-			cc->nul_ct = 0;
+			if (ch == cc->channels + 5) // 'T2'
+				itv_separator(ci);
 
 			c.glyph = CODE_PAGE + (ch->italic * 128) + ci;
 
@@ -1059,9 +1619,7 @@ xevent(int nap_usec)
 
 	bump(step, TRUE);
 
-	usleep(nap_usec
-/ 2);
-
+	usleep(nap_usec / 4);
 }
 
 static bool
@@ -1291,7 +1849,7 @@ sample_beta(void)
 
 		items = fgetc(stdin);
 
-		printf("%8.6f %d:\n", dt, items);
+//		printf("%8.6f %d:\n", dt, items);
 
 		for (i = 0; i < items; i++) {
 			index = fgetc(stdin);
@@ -1306,8 +1864,8 @@ sample_beta(void)
 				continue; /* XXX smarter please */
 			}
 
-			printf(" %3d %02x %02x ", line & 0xFFF, cc[0] & 0x7F, cc[1] & 0x7F);
-			printf(" %c%c\n", printable(cc[0]), printable(cc[1]));
+//			printf(" %3d %02x %02x ", line & 0xFFF, cc[0] & 0x7F, cc[1] & 0x7F);
+//			printf(" %c%c\n", printable(cc[0]), printable(cc[1]));
 
 			dispatch_caption(&caption, cc, line >> 15);
 

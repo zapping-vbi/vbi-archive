@@ -274,9 +274,9 @@ export_mkname(struct export *e, char *fmt, struct vt_page *vtp, char *usr)
 
 #define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
 
-#undef printv
-// #define printv printf
+ #undef printv
  #define printv(templ, somethingelse...)
+// #define printv printf
 
 
 
@@ -492,7 +492,6 @@ top_label(struct vbi *vbi, font_descriptor *font,
 static void
 top_navigation_bar(struct vbi *vbi, struct fmt_page *pg, struct vt_page *vtp)
 {
-	ait_entry *ait;
 	attr_char ac;
 	int i, got;
 
@@ -527,19 +526,19 @@ top_navigation_bar(struct vbi *vbi, struct fmt_page *pg, struct vt_page *vtp)
 	case 10:
 		for (i = vtp->pgno; i != vtp->pgno + 1; i = (i == 0) ? 0x89a : i - 1)
 			if (vbi->page_info[i - 0x100].btt >= 4 && vbi->page_info[i - 0x100].btt <= 7) {
-				top_label(vbi, pg->font[0], &pg->data[24][1], i, WHITE, 0);
+				top_label(vbi, pg->font[0], &pg->data[24][1], i, 35, 0);
 				break;
 			}
 
 		for (i = vtp->pgno + 1, got = FALSE; i != vtp->pgno; i = (i == 0x899) ? 0x100 : i + 1)
 			switch (vbi->page_info[i - 0x100].btt) {
 			case 4 ... 5:
-				top_label(vbi, pg->font[0], &pg->data[24][27], i, YELLOW, 2);
+				top_label(vbi, pg->font[0], &pg->data[24][27], i, 34, 2);
 				return;
 
 			case 6 ... 7:
 				if (!got) {
-					top_label(vbi, pg->font[0], &pg->data[24][14], i, GREEN, 1);
+					top_label(vbi, pg->font[0], &pg->data[24][14], i, 33, 1);
 					got = TRUE;
 				}
 
@@ -648,7 +647,7 @@ resolve_obj_address(struct vbi *vbi, object_type type,
 	}
 
 	if (vtp->function == PAGE_FUNCTION_UNKNOWN) {
-		if (!convert_page(vbi, vtp, function)) {
+		if (!(vtp = convert_page(vbi, vtp, TRUE, function))) {
 			printv("... no g/pop page or hamming error\n");
 			return 0;
 		}
@@ -659,8 +658,6 @@ resolve_obj_address(struct vbi *vbi, object_type type,
 			vtp->function, function);
 		return 0;
 	}
-
-	vtp->function = function;
 
 	pointer = vtp->data.pop.pointer[packet * 24 + i * 2 + ((address >> 4) & 1)];
 
@@ -703,7 +700,7 @@ resolve_obj_address(struct vbi *vbi, object_type type,
 static bool
 enhance(struct fmt_page *pg, object_type type, vt_triplet *p, int inv_row, int inv_column)
 {
-	attr_char ac, mac, *acp, buf[40];
+	attr_char ac, *acp, buf[40];
 	int xattr, xattr_buf[40];
 	int active_column, active_row;
 	int offset_column, offset_row;
@@ -877,7 +874,7 @@ enhance(struct fmt_page *pg, object_type type, vt_triplet *p, int inv_row, int i
 						break;
 					}
 
-					trip = pg->vtp->data.lop.triplet + designation * 13 + triplet;
+					trip = pg->vtp->data.enh_lop.enh + designation * 13 + triplet;
 				}
 				else /* global / public */
 				{
@@ -1262,7 +1259,7 @@ enhance(struct fmt_page *pg, object_type type, vt_triplet *p, int inv_row, int i
 					}
 
 					if (drcs_vtp->function == PAGE_FUNCTION_UNKNOWN) {
-						if (!convert_page(pg->vtp->vbi, drcs_vtp, function)) {
+						if (!(drcs_vtp = convert_page(pg->vtp->vbi, drcs_vtp, TRUE, function))) {
 							printv("... no g/drcs page or hamming error\n");
 							break;
 						}
@@ -1460,7 +1457,9 @@ fmt_page(int reveal,
 	mag = (max_level <= LEVEL_1p5) ? vtp->vbi->magazine
 		: vtp->vbi->magazine + (vtp->pgno >> 8);
 
-	if (!(ext = vtp->data.lop.extension))
+	if (vtp->data.lop.ext)
+		ext = &vtp->data.ext_lop.ext;
+	else
 		ext = &mag->extension;
 
 	/* Character set designation */
@@ -1739,7 +1738,7 @@ fmt_page(int reveal,
 
 		if (vtp->enh_lines & 1) {
 			printv("enhancement packets %08x\n", vtp->enh_lines);
-			success = enhance(pg, LOCAL_ENHANCEMENT_DATA, vtp->data.lop.triplet, 0, 0);
+			success = enhance(pg, LOCAL_ENHANCEMENT_DATA, vtp->data.enh_lop.enh, 0, 0);
 		} else
 			success = default_object_invocation(pg);
 

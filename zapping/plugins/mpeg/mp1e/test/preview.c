@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: preview.c,v 1.6 2000-11-30 09:36:38 mschimek Exp $ */
+/* $Id: preview.c,v 1.7 2001-01-24 22:48:52 mschimek Exp $ */
 
 #if defined(HAVE_LIBXV) && defined (TEST_PREVIEW)
 
@@ -82,7 +82,8 @@ static struct test_capture_param params[] =
 	{"P inter bias:", 48, 1, 0, 512, 0},
 	{"B inter bias:", 96, 1, 0, 512, 0},
 	{"Frame rate:", 25, 0.01, 1, 30, 2},
-	{"Quantization limit:", 31, 1, 1, 31, 0}
+	{"Quantization limit:", 31, 1, 1, 31, 0},
+	{"X bias:", 96, 1, 0, 512, 0},
 };
 
 static int num_params = sizeof(params)/sizeof(struct test_capture_param);
@@ -92,6 +93,7 @@ extern int video_do_reset;
 extern int force_drop_rate;
 extern int p_inter_bias;
 extern int b_inter_bias;
+extern int x_bias;
 extern double frame_rate;
 extern int quant_max;
 
@@ -126,6 +128,9 @@ on_capture_param_changed(GtkAdjustment *adj,
 	case 5:
 		quant_max = value;
 		video_do_reset = 1;
+		break;
+	case 6:
+		x_bias = value * 65536;
 		break;
 	default:
 		fprintf(stderr, "didn't know about gui item %d\n", i);

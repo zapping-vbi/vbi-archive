@@ -52,49 +52,20 @@ vbi_send(struct vbi *vbi, int type, int i1, int i2, int i3, void *p1)
 static void
 vbi_send_page(struct vbi *vbi, struct raw_page *rvtp)
 {
-    struct vt_page *cvtp = 0;
+	struct vt_page *cvtp = 0;
 
-    if (rvtp->page->function != PAGE_FUNCTION_DISCARD)
-    {
-//	if (rvtp->page->pgno % 256 != page)
-	{
+	if (rvtp->page->function == PAGE_FUNCTION_DISCARD)
+		return;
 
-if (0)
-if ((rvtp->page->pgno & 15) > 9 || (rvtp->page->pgno & 0xFF) > 0x99) {
-int k, l;
-for (k = 0; k < 25; k++) {
-for (l = 0; l < 40; l++)
-    printf("%02x ", rvtp->page->data.unknown.raw[k][l]);
-for (l = 0; l < 40; l++)
-    printf("%c", printable(rvtp->page->data.unknown.raw[k][l]));
-printf("\n");
-}
-}
-	    if (rvtp->page->function == PAGE_FUNCTION_DRCS
-		|| rvtp->page->function == PAGE_FUNCTION_GDRCS) {
-		    if (!convert_drcs(rvtp->page, rvtp->page->data.drcs.raw[1]))
+	if (rvtp->page->function == PAGE_FUNCTION_DRCS
+	    || rvtp->page->function == PAGE_FUNCTION_GDRCS)
+		if (!convert_drcs(rvtp->page, rvtp->page->data.drcs.raw[1]))
 			return;
-	    } else if (rvtp->page->function == PAGE_FUNCTION_UNKNOWN
-		|| rvtp->page->function == PAGE_FUNCTION_LOP)
-		if (rvtp->extension.designations != 0) {
-		    rvtp->page->extension = rvtp->extension; /* XXX temporary */
-		}
 
-	    if (vbi->cache)
+	if (vbi->cache)
 		cvtp = vbi->cache->op->put(vbi->cache, rvtp->page);
 
-	    if (cvtp->function == PAGE_FUNCTION_UNKNOWN
-		|| cvtp->function == PAGE_FUNCTION_LOP) {
-    		if (cvtp && rvtp->extension.designations != 0)
-		    cvtp->data.unknown.extension = &cvtp->extension;
-		else
-		    cvtp->data.unknown.extension = NULL;
-	    }
-
-	    vbi_send(vbi, EV_PAGE, 0, 0, 0, cvtp ?: rvtp->page);
-
-	}
-    }
+	vbi_send(vbi, EV_PAGE, 0, 0, 0, cvtp ?: rvtp->page);
 }
 
 static inline void
@@ -117,7 +88,7 @@ dump_extension(vt_extension *ext)
 		ext->fallback.left_side_panel, ext->fallback.right_side_panel,
 		ext->fallback.left_panel_columns);
 	printf("colour map (bgr):\n");
-	for (i = 0; i <= 31; i++) {
+	for (i = 0; i < 36; i++) {
 		printf("%08x, ", ext->colour_map[i]);
 		if ((i % 8) == 7) printf("\n");
 	}
@@ -179,11 +150,12 @@ dump_page_info(struct vbi *vbi)
  *  ETS 300 706 Table 30: Colour Map
  */
 static const rgba
-default_colour_map[32] = {
+default_colour_map[36] = {
 	0xFF000000, 0xFF0000FF, 0xFF00FF00, 0xFF00FFFF,	0xFFFF0000, 0xFFFF00FF, 0xFFFFFF00, 0xFFFFFFFF,
 	0xFF000000, 0xFF000077, 0xFF007700, 0xFF007777, 0xFF770000, 0xFF770077, 0xFF777700, 0xFF777777,
 	0xFF5500FF, 0xFF0077FF, 0xFF77FF00, 0xFFBBFFFF, 0xFFAACC00, 0xFF000055, 0xFF225566, 0xFF7777CC,
-	0xFF333333, 0xFF7777FF, 0xFF77FF77, 0xFF77FFFF, 0xFFFF7777, 0xFFFF77FF, 0xFFFFFF77, 0xFFDDDDDD
+	0xFF333333, 0xFF7777FF, 0xFF77FF77, 0xFF77FFFF, 0xFFFF7777, 0xFFFF77FF, 0xFFFFFF77, 0xFFDDDDDD,
+	0xFF000000, 0xFF44EE00, 0xFF00EEFF, 0xFFFFFFFF
 };
 
 void
@@ -440,7 +412,6 @@ parse_pop(struct vt_page *vtp, u8 *raw, int packet)
 			trip->address = triplet[i] & 0x3F;
 			trip->mode = (triplet[i] >> 6) & 0x1F;
 			trip->data = triplet[i] >> 11;
-			trip->stop = !((~triplet[i]) & 0x7FF);
 // printf("TR %d ad %d %02x mo %02x da %d %02x\n",
 //    trip - vtp->data.pop.triplet, trip->address, trip->address, trip->mode, trip->data, trip->data);
 		}
@@ -738,22 +709,21 @@ parse_mpt(struct vbi *vbi, u8 *raw, int packet)
 	return TRUE;
 }
 
-bool
-convert_page(struct vbi *vbi, struct vt_page *vtp, page_function new_function)
+struct vt_page *
+convert_page(struct vbi *vbi, struct vt_page *vtp, bool cached, page_function new_function)
 {
 	struct vt_page page;
 	int i;
 
 	if (vtp->function != PAGE_FUNCTION_UNKNOWN)
-		return FALSE;
+		return NULL;
 
-	page.pgno = vtp->pgno;
-	page.subno = vtp->subno;
+	memcpy(&page, vtp, sizeof(*vtp)	- sizeof(vtp->data) + sizeof(vtp->data.unknown));
 
 	switch (new_function) {
 	case PAGE_FUNCTION_LOP:
 		vtp->function = new_function;
-		return TRUE;
+		return vtp;
 
 	case PAGE_FUNCTION_GPOP:
 	case PAGE_FUNCTION_POP:
@@ -765,8 +735,9 @@ convert_page(struct vbi *vbi, struct vt_page *vtp, page_function new_function)
 				if (!parse_pop(&page, vtp->data.unknown.raw[i], i))
 					return FALSE;
 
-			memcpy(&page.data.pop.triplet[23 * 13],	vtp->data.unknown.triplet,
-				16 * 13 * sizeof(vt_triplet));
+			if (vtp->enh_lines)
+				memcpy(&page.data.pop.triplet[23 * 13],	vtp->data.enh_lop.enh,
+					16 * 13 * sizeof(vt_triplet));
 		break;
 
 	case PAGE_FUNCTION_GDRCS:
@@ -799,14 +770,17 @@ convert_page(struct vbi *vbi, struct vt_page *vtp, page_function new_function)
 
 	case PAGE_FUNCTION_MPT_EX:
 	default:
-		return FALSE;
+		return NULL;
 	}
 
-	vtp->function = new_function;
+	page.function = new_function;
 
-	memcpy(&vtp->data, &page.data, sizeof(page.data));
-
-	return TRUE;
+	if (cached) {
+		return vbi->cache->op->put(vbi->cache, &page);
+	} else {
+		memcpy(vtp, &page, vtp_size(&page));
+		return vtp;
+	}
 }
 
 /*
@@ -1264,7 +1238,10 @@ vt_packet(struct vbi *vbi, u8 *p)
 		if (!(cvtp->flags & C4_ERASE_PAGE)
 		    && (vtp = vbi->cache->op->get(vbi->cache, cvtp->pgno, cvtp->subno, 0xFFFF)))
 		{
-			memcpy(&cvtp->data, &vtp->data, sizeof(cvtp->data));
+			memset(&cvtp->data, 0, sizeof(cvtp->data));
+			memcpy(&cvtp->data, &vtp->data,
+				vtp_size(vtp) - sizeof(*vtp) + sizeof(vtp->data));
+
 			/* XXX write cache directly | erc?*/
 			/* XXX data page update */
 
@@ -1301,9 +1278,10 @@ vt_packet(struct vbi *vbi, u8 *p)
 				memcpy(cvtp->data.unknown.raw[0] + 0, p, 40);
 				memset(cvtp->data.unknown.raw[0] + 40, 0x20, sizeof(cvtp->data.unknown.raw) - 40);
 				memset(cvtp->data.unknown.link, 0xFF, sizeof(cvtp->data.unknown.link));
-				memset(cvtp->data.unknown.triplet, 0xFF, sizeof(cvtp->data.unknown.triplet));
+				memset(cvtp->data.enh_lop.enh, 0xFF, sizeof(cvtp->data.enh_lop.enh));
 
 				cvtp->data.unknown.flof = FALSE;
+				cvtp->data.unknown.ext = FALSE;
 			}
 
 			cvtp->lop_lines = 1;
@@ -1379,11 +1357,11 @@ vt_packet(struct vbi *vbi, u8 *p)
 			}
 
 			if (function != PAGE_FUNCTION_UNKNOWN) {
-				convert_page(vbi, cvtp, function);
+				convert_page(vbi, cvtp, FALSE, function);
 			}
 		}
-
-		rvtp->extension.designations = 0;
+//XXX?
+		cvtp->data.ext_lop.ext.designations = 0;
 		rvtp->num_triplets = 0;
 	cvtp->vbi = vbi; // temporary
 
@@ -1479,10 +1457,9 @@ vt_packet(struct vbi *vbi, u8 *p)
 			triplet.address = t & 0x3F;
 			triplet.mode = (t >> 6) & 0x1F;
 			triplet.data = t >> 11;
-			triplet.stop = !((~t) & 0x7FF);
 
 // XXX if !err
-			cvtp->data.unknown.triplet[rvtp->num_triplets++] = triplet;
+			cvtp->data.enh_lop.enh[rvtp->num_triplets++] = triplet;
 
 			if (0) /* ATTN: mind PDC transmission order */
 				if (triplet.mode >= 6 && triplet.mode <= 13)
@@ -1638,12 +1615,13 @@ if(0)
 			ext = &vbi->magazine[mag8].extension;
 
 			if (packet == 28) {
-				if (!rvtp->extension.designations) {
-					memcpy(&rvtp->extension, ext, sizeof(rvtp->extension));
-					rvtp->extension.designations <<= 16;
+				if (!cvtp->data.ext_lop.ext.designations) {
+					cvtp->data.ext_lop.ext = *ext;
+					cvtp->data.ext_lop.ext.designations <<= 16;
+					cvtp->data.lop.ext = TRUE;
 				}
 
-				ext = &rvtp->extension;
+				ext = &cvtp->data.ext_lop.ext;
 			}
 
 			if (designation == 4 && (ext->designations & (1 << 0)))
@@ -1714,10 +1692,6 @@ if(0)
 				 */
 			}
 
-// if (cvtp->pgno==0x1EE) {
-// 	dump_extension(ext);
-// exit(EXIT_SUCCESS);
-// }
 			return 0;
 
 		case 1: /* X/28/1, M/29/1 Level 3.5 DRCS CLUT */
@@ -1725,13 +1699,14 @@ if(0)
 			ext = &vbi->magazine[mag8].extension;
 
 			if (packet == 28) {
-				if (!rvtp->extension.designations) {
-					memcpy(&rvtp->extension, ext, sizeof(rvtp->extension));
-					rvtp->extension.designations = 0;
+				if (!cvtp->data.ext_lop.ext.designations) {
+					cvtp->data.ext_lop.ext = *ext;
+					cvtp->data.ext_lop.ext.designations <<= 16;
+					cvtp->data.lop.ext = TRUE;
 				}
 
-				ext = &rvtp->extension;
-				/* XXX TODO */
+				ext = &cvtp->data.ext_lop.ext;
+				/* XXX TODO - lop? */
 			}
 
 			triplet++;
@@ -1814,10 +1789,13 @@ if(0)
 	return TRUE;
 }
 
+
+
+
 /* Quick Hack(tm) to read from a sample stream */
 
-static char *sample_file = "libvbi/samples/t2-br";
-// static char *sample_file = NULL; // disabled
+// static char *sample_file = "libvbi/samples/t2-br";
+static char *sample_file = NULL; // disabled
 static FILE *sample_fd;
 
 void

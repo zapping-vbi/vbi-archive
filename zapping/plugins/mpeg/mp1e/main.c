@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.35 2001-01-09 06:26:12 mschimek Exp $ */
+/* $Id: main.c,v 1.36 2001-01-24 22:48:52 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -317,6 +317,12 @@ main(int ac, char **av)
 		ASSERT("create mpeg2 system mux",
 		       !pthread_create(&mux_thread, NULL,
 				       mpeg2_program_stream_mux, NULL));
+		break;
+	case 4:
+		printv(1, "VCD MPEG-1 Stream\n");
+		ASSERT("create vcd mpeg1 system mux",
+		       !pthread_create(&mux_thread, NULL,
+				       vcd_system_mux, NULL));
 		break;
 	}
 
