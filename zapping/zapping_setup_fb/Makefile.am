@@ -5,6 +5,8 @@ bin_SCRIPTS = zapping_fix_overlay
 
 EXTRA_DIST = zapping_setup_fb.pam zapping_fix_overlay.in
 
+DISTCLEANFILES = zsfb.capps
+
 install-binPROGRAMS: $(bin_PROGRAMS) zsfb.capps
 if SUID_ZSFB
 	$(mkinstalldirs) $(DESTDIR)$(bindir)
@@ -19,7 +21,7 @@ else
 	$(INSTALL) zapping_setup_fb $(DESTDIR)$(sbindir)
 	ln -sf $(CONSOLEHELPER_LOCATION) $(DESTDIR)$(bindir)/zapping_setup_fb
 	if ! test -e $(DESTDIR)/etc/pam.d/zapping_setup_fb ; then\
-		$(INSTALL_DATA) zapping_setup_fb.pam \
+		$(INSTALL_DATA) $(top_srcdir)/zapping_setup_fb/zapping_setup_fb.pam \
 			$(DESTDIR)/etc/pam.d/zapping_setup_fb;\
 	fi
 	cp zsfb.capps $(DESTDIR)/etc/security/console.apps/zapping_setup_fb
