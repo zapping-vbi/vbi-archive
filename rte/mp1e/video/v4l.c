@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.21 2002-04-27 05:34:41 mschimek Exp $ */
+/* $Id: v4l.c,v 1.22 2002-05-13 05:38:42 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -179,11 +179,14 @@ restore_audio(void)
 	IOCTL(fd, VIDIOCSAUDIO, &old_vaud);
 }
 
-#define DECIMATING(mode) (mode == CM_YUYV_VERTICAL_DECIMATION ||	\
+#define YUV420(mode) (mode == CM_YUV || mode == CM_YVU || \
+		      mode == CM_YUV_VERTICAL_DECIMATION)
+#define DECIMATING(mode) (mode == CM_YUYV_VERTICAL_DECIMATION || \
+			  mode == CM_YUV_VERTICAL_DECIMATION || \
 			  mode == CM_YUYV_EXP_VERTICAL_DECIMATION)
 
 fifo *
-v4l_init(rte_video_stream_params *par)
+v4l_init(rte_video_stream_params *par, struct filter_param *fp)
 {
 	struct video_capability vcap;
 	struct video_tuner vtuner;
@@ -288,7 +291,10 @@ v4l_init(rte_video_stream_params *par)
 	buf_count = MAX(cap_buffers, min_cap_buffers);
 
 	while (par->height > max_height) {
-		if (DECIMATING(filter_mode)) {
+		if (filter_mode == CM_YUV_VERTICAL_DECIMATION) {
+			filter_mode = CM_YUYV_VERTICAL_DECIMATION;
+			par->height = par->height;
+		} else if (filter_mode == CM_YUYV_VERTICAL_DECIMATION) {
 			filter_mode = CM_YUYV_VERTICAL_INTERPOLATION;
 			par->height = (height1 + 15) & -16;
 		} else {
@@ -305,7 +311,7 @@ v4l_init(rte_video_stream_params *par)
 	ASSERT("determine the current image format of %s (VIDIOCGPICT)",
 	       IOCTL(fd, VIDIOCGPICT, &pict) == 0, cap_dev);
 
-	if (filter_mode == CM_YUV)
+	if (YUV420(filter_mode))
 		pict.palette = VIDEO_PALETTE_YUV420P;
 	else
 		pict.palette = VIDEO_PALETTE_YUYV;
@@ -398,7 +404,7 @@ v4l_init(rte_video_stream_params *par)
 		gb_buf.width = par->width;
 		gb_buf.height = par->height;
 
-		if (filter_mode == CM_YUV || filter_mode == CM_YVU)
+		if (YUV420(filter_mode))
 			gb_buf.format = VIDEO_PALETTE_YUV420P;
 		else
 			gb_buf.format = VIDEO_PALETTE_YUYV;
@@ -448,13 +454,13 @@ v4l_init(rte_video_stream_params *par)
 		if (height > par->height)
 			height = par->height;
 
-		if (filter_mode == CM_YUV || filter_mode == CM_YVU) {
+		if (YUV420(filter_mode)) {
 			par->stride = par->width;
-	    		filter_init(par); /* line stride in bytes */
+	    		filter_init(par, fp); /* line stride in bytes */
 			buf_size = gb_buf.width * gb_buf.height * 3 / 2;
 		} else {
 			par->stride = par->width * 2;
-	    		filter_init(par);
+	    		filter_init(par, fp);
 			buf_size = gb_buf.width * gb_buf.height * 2;
 		}
         }

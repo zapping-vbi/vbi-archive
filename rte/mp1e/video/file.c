@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: file.c,v 1.7 2002-02-25 06:22:19 mschimek Exp $ */
+/* $Id: file.c,v 1.8 2002-05-13 05:38:42 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -245,7 +245,7 @@ wait_full(fifo *f)
 }
 
 fifo *
-file_init(rte_video_stream_params *par)
+file_init(rte_video_stream_params *par, struct filter_param *fp)
 {
 	int len = strlen(cap_dev);
 
@@ -281,7 +281,7 @@ file_init(rte_video_stream_params *par)
 			filter_labels[filter_mode]);
 	}
 
-	filter_init(par);
+	filter_init(par, fp);
 
 	ASSERT("init capture fifo", init_callback_fifo(
 		&cap_fifo, "video-ppm",

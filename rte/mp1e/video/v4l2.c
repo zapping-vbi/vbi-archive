@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.16 2002-04-27 05:34:41 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.17 2002-05-13 05:38:42 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -243,6 +243,12 @@ drop:
 #endif
 	}
 
+	if (0) {
+	  FILE *fp = fopen("/tmp/raw", "w");
+	  fwrite(b->data, b->used, 1, fp);
+	  fclose(fp);
+	}
+
 	send_full_buffer(&cap_prod, b);
 }
 
@@ -334,13 +340,15 @@ mute_restore(void)
 		IOCTL(fd, VIDIOC_S_CTRL, &old_mute);
 }
 
-#define DECIMATING(mode) (mode == CM_YUYV_VERTICAL_DECIMATION ||	\
+#define YUV420(mode) (mode == CM_YUV || mode == CM_YUV_VERTICAL_DECIMATION)
+#define DECIMATING(mode) (mode == CM_YUYV_VERTICAL_DECIMATION || \
+			  mode == CM_YUV_VERTICAL_DECIMATION || \
 			  mode == CM_YUYV_EXP_VERTICAL_DECIMATION)
 #define PROGRESSIVE(mode) (mode == CM_YUYV_PROGRESSIVE || \
 			   mode == CM_YUYV_PROGRESSIVE_TEMPORAL)
 
 fifo *
-v4l2_init(rte_video_stream_params *par)
+v4l2_init(rte_video_stream_params *par, struct filter_param *fp)
 {
 	unsigned int probed_modes = 0;
 	int min_cap_buffers = video_look_ahead(gop_sequence);
@@ -431,7 +439,7 @@ v4l2_init(rte_video_stream_params *par)
 		vfmt.fmt.pix.width = par->width;
 		vfmt.fmt.pix.height = par->height;
 
-		if (filter_mode == CM_YUV) {
+		if (YUV420(filter_mode)) {
 			vfmt.fmt.pix.depth = 12;
 			vfmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUV420;
  		} else {
@@ -458,6 +466,9 @@ v4l2_init(rte_video_stream_params *par)
 		} else if (filter_mode == CM_YUYV_VERTICAL_DECIMATION) {
 			new_mode = CM_YUYV_VERTICAL_INTERPOLATION;
 			new_height = (height1 + 15) & -16;
+		} else if (filter_mode == CM_YUV_VERTICAL_DECIMATION) {
+			new_mode = CM_YUYV_VERTICAL_DECIMATION;
+			new_height = par->height;
 		} else {
 			new_mode = CM_YUYV;
 			new_height = par->height;
@@ -476,7 +487,7 @@ v4l2_init(rte_video_stream_params *par)
 		par->height = new_height;
 	}
 
-	par->pixfmt = (filter_mode == CM_YUV) ? RTE_PIXFMT_YUV420 : RTE_PIXFMT_YUYV;
+	par->pixfmt = YUV420(filter_mode) ? RTE_PIXFMT_YUV420 : RTE_PIXFMT_YUYV;
 
 	mod = DECIMATING(filter_mode) ? 32 : 16;
 
@@ -519,7 +530,7 @@ v4l2_init(rte_video_stream_params *par)
 	if (height > par->height)
 		height = par->height;
 
-	filter_init(par);
+	filter_init(par, fp);
 
 	printv(2, "Image format '%s' %d x %d granted\n",
 		le4cc2str(vfmt.fmt.pix.pixelformat),

@@ -1,3 +1,11 @@
+2002-05-13	<mschimek@users.sf.net>
+
+	* video/filter.c: Fixed YUV 4:2:0 chroma offset bug.
+	* Finished transition to new filter interface and added
+	  faster SSE and YUV 4:2:0 versions.
+	* global_data.c: Default now -F8 instead of -F3, trying
+	  YUV 4:2:0 before 4:2:2.
+
 2002-05-10	<mschimek@users.sf.net>
 
 	* video/mpeg1.c, audio/mp2.c, options.c: Added -t0x200. 

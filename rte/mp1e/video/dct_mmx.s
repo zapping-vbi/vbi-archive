@@ -17,7 +17,7 @@
 #  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 
-# $Id: dct_mmx.s,v 1.4 2001-10-07 10:55:51 mschimek Exp $
+# $Id: dct_mmx.s,v 1.5 2002-05-13 05:38:42 mschimek Exp $
 
 	.text
 	.align		16
@@ -78,7 +78,7 @@ mp1e_mmx_fdct_intra:
 	movq		%mm2,%mm0;			punpcklwd	%mm6,%mm2;
 	psubw		%mm6,%mm5;			punpckhwd	%mm6,%mm0;
 	movq		%mm1,%mm6;			punpcklwd	%mm7,%mm1;
-	movq		c1,%mm3;			punpckhwd	%mm7,%mm6;
+	movq		cw1,%mm3;			punpckhwd	%mm7,%mm6;
 	movq		%mm2,%mm7;			punpckldq	%mm1,%mm2;
         movq		%mm2,(%ebx);			punpckhdq	%mm1,%mm7;
 	movq		%mm0,%mm2;			punpckldq	%mm6,%mm0;
@@ -305,7 +305,7 @@ mp1e_mmx_fdct_inter:
 	psllw		$2,%mm0;
 	psllw		$3,%mm1;
 	paddw		%mm3,%mm2;
-	paddw		c1,%mm1;
+	paddw		cw1,%mm1;
 	paddw		%mm2,%mm2;
 	paddw		%mm5,%mm4;
 	psllw		$2,%mm3;
@@ -321,7 +321,7 @@ mp1e_mmx_fdct_inter:
 	psllw		$5,%mm7;
 	pmulhw		c1C6_13,%mm7;
 	psubw		%mm1,%mm0;
-	paddw		c2,%mm1;
+	paddw		cw2,%mm1;
 	movq		%mm6,%mm3;
 	movq		%mm0,6*16+0(%ebx);
 	psraw		$2,%mm1;
@@ -353,11 +353,11 @@ mp1e_mmx_fdct_inter:
 	punpckhwd	%mm6,%mm3;
 	movq		%mm1,%mm0;
 	psraw		$3,%mm7;
-	paddw		c2,%mm4;
+	paddw		cw2,%mm4;
 	punpcklwd	%mm7,%mm1;
 	punpckhwd	%mm7,%mm0;
 	movq		%mm2,%mm7;
-	paddw		c1,%mm5;
+	paddw		cw1,%mm5;
 	punpckldq	%mm1,%mm2;
 	punpckhdq	%mm1,%mm7;
 	movq		%mm3,%mm1;
@@ -418,7 +418,7 @@ mp1e_mmx_fdct_inter:
 	psllw		$2,%mm3;
 	paddw		%mm0,%mm2;
 	psllw		$3,%mm7;
-	paddw		c1,%mm7;
+	paddw		cw1,%mm7;
 	paddw		%mm2,%mm2;
 	paddw		%mm5,%mm4;
 	psllw		$2,%mm0;
@@ -434,7 +434,7 @@ mp1e_mmx_fdct_inter:
 	paddw		%mm3,%mm3;
 	pmulhw		c1C6_13,%mm1;
 	psubw		%mm7,%mm3;
-	paddw		c2,%mm7;
+	paddw		cw2,%mm7;
 	movq		%mm6,%mm0;
 	movq		%mm3,6*16+8(%ebx);
 	psraw		$2,%mm7;
@@ -466,11 +466,11 @@ mp1e_mmx_fdct_inter:
 	punpckhwd	%mm6,%mm0;
 	movq		%mm7,%mm3;
 	psraw		$3,%mm1;
-	paddw		c2,%mm4;
+	paddw		cw2,%mm4;
 	punpcklwd	%mm1,%mm7;
 	movq		%mm2,%mm6;
 	punpckhwd	%mm1,%mm3;
-	paddw		c1,%mm5;
+	paddw		cw1,%mm5;
 	punpckldq	%mm7,%mm2;
 	punpckhdq	%mm7,%mm6;
 	movq		%mm0,%mm7;
@@ -525,8 +525,8 @@ mp1e_mmx_fdct_inter:
 	pmulhw		mmx_q_fdct_inter_lut0+8,%mm7;
 	movq		%mm1,128+16(%ebx);
 	movq		%mm3,128+32(%ebx);
-	paddw		c2,%mm7;
-	paddw		c2,%mm4;
+	paddw		cw2,%mm7;
+	paddw		cw2,%mm4;
 	movq		%mm0,128+24(%ebx);
 	movq		%mm5,128+40(%ebx);
 	movq		%mm4,%mm1;
@@ -594,7 +594,7 @@ mp1e_mmx_fdct_inter:
 	paddw		%mm1,%mm3;
 	paddw		%mm7,%mm1;
 	paddw		%mm3,%mm3;
-	paddw		c1,%mm3;
+	paddw		cw1,%mm3;
 	pmulhw		cC4_15,%mm3;
 	paddw		%mm7,%mm3;
 	paddw		%mm7,%mm7;
@@ -602,9 +602,9 @@ mp1e_mmx_fdct_inter:
 	movq		%mm3,%mm6;
 	movq		%mm7,%mm2;
 	paddw		%mm5,%mm5;
-	paddw		c1,%mm5;
+	paddw		cw1,%mm5;
 	paddw		%mm1,%mm1;
-	paddw		c1,%mm1;
+	paddw		cw1,%mm1;
 	movq		%mm5,%mm4;
 	punpckhwd	%mm1,%mm4;
 	movq		%mm4,%mm0;
@@ -713,8 +713,8 @@ mp1e_mmx_fdct_inter:
 	pmulhw		mmx_q_fdct_inter_lut0,%mm4;
 	pmulhw		mmx_q_fdct_inter_lut0,%mm0;
 	movq		%mm1,128+16(%ebx);
-	paddw		c2,%mm4;
-	paddw		c2,%mm0;
+	paddw		cw2,%mm4;
+	paddw		cw2,%mm0;
 	movq		%mm4,%mm1;
 	movq		%mm5,128+32(%ebx);
 	punpckhwd	%mm1,%mm1;
@@ -778,15 +778,15 @@ mp1e_mmx_fdct_inter:
 	packssdw	%mm2,%mm4;
 	movq		%mm4,6*16+0(%edi);
 	paddw		%mm3,%mm3;
-	paddw		c1,%mm3;
+	paddw		cw1,%mm3;
 	por		%mm4,%mm6;
 	paddw		%mm5,%mm7;
 	por		%mm0,%mm6;
 	pmulhw		cC4_15,%mm3;
 	paddw		%mm1,%mm1;
-	paddw		c1,%mm1;
+	paddw		cw1,%mm1;
 	paddw		%mm7,%mm7;
-	paddw		c1,%mm7;
+	paddw		cw1,%mm7;
 	movq		%mm1,%mm2;
 	paddw		%mm5,%mm3;
 	paddw		%mm5,%mm5;
@@ -903,7 +903,7 @@ mp1e_mmx_mpeg1_idct_inter:
 	movd		%eax,%mm1;
 	punpcklwd	%mm1,%mm1;
 	punpcklwd	%mm1,%mm1;
-	movq		c1,%mm3;
+	movq		cw1,%mm3;
 	movq		%mm1,%mm0;
 	movq		%mm1,%mm2;
 	pand		%mm3,%mm0;
@@ -1077,7 +1077,7 @@ mp1e_mmx_mpeg1_idct_inter:
 	psllw		$4,%mm3;
 	pmulhw		mmx_q_idct_inter_tab+13*8,%mm3;		
 	psllw		$3,%mm2;
-	paddw		c2,%mm2;		
+	paddw		cw2,%mm2;		
 	psubw		%mm6,%mm4;
 	pmulhw		mmx_q_idct_inter_tab+12*8,%mm2;		
 	psllw		$4,%mm0;
@@ -1289,7 +1289,7 @@ mp1e_mmx_mpeg1_idct_inter:
 	psubw		%mm3,%mm2;
 	psllw		$3,%mm2;			
 	psubw		%mm5,%mm4;
-	paddw		c2,%mm2;			
+	paddw		cw2,%mm2;			
 	paddw		%mm4,%mm4;
 	pmulhw		mmx_q_idct_inter_tab+12*8,%mm2;		
 	psllw		$2,%mm5;
@@ -1353,7 +1353,7 @@ mp1e_mmx_mpeg1_idct_inter:
 	movq		%mm4,11*8(%ebx);
 	movq		%mm1,%mm6;		
 	punpcklwd	%mm0,%mm1;
-	movq		c2,%mm4;		
+	movq		cw2,%mm4;		
 	punpckhwd	%mm0,%mm6;
 	movq		%mm1,%mm0;		
 	punpckldq	%mm2,%mm1;
@@ -1369,7 +1369,7 @@ mp1e_mmx_mpeg1_idct_inter:
 	movq 		6*8(%ebx),%mm6;	
 	paddw		%mm4,%mm2;
 	paddw		%mm5,%mm2;
-	movq		c1,%mm1;		
+	movq		cw1,%mm1;		
 	paddw		%mm1,%mm5;
 	pmulhw		mmx_q_idct_inter_tab+4*8,%mm2;		
 	psubw		%mm1,%mm7;
@@ -1462,11 +1462,11 @@ mp1e_mmx_mpeg1_idct_inter:
 	paddsw		7*16+8+3*768(%esi),%mm3;
 	movq		%mm3,7*16+8(%esi);
 		
-	movq		c2,%mm4;
+	movq		cw2,%mm4;
 	movq		11*8(%ebx),%mm2;
 	movq		1*8(%ebx),%mm5;		
 	movq		%mm2,%mm7;
-	movq		c1,%mm1;
+	movq		cw1,%mm1;
 	paddw		%mm4,%mm2;
 	paddw		%mm5,%mm2;
 	pmulhw		mmx_q_idct_inter_tab+4*8,%mm2;
@@ -1707,7 +1707,7 @@ mp1e_mmx_mpeg1_idct_intra2:
 	paddw %mm1,%mm0;
 	psraw shift,%mm0;
 	movq %mm0,%mm2;
-	pandn c1,%mm2;
+	pandn cw1,%mm2;
 	psubusw %mm2,%mm0;
 	pand %mm1,%mm2;
 	paddw %mm2,%mm0;
@@ -1727,7 +1727,7 @@ mp1e_mmx_mpeg1_idct_intra2:
 	paddw %mm1,%mm0;
 	psraw shift,%mm0;
 	movq %mm0,%mm2;
-	pandn c1,%mm2;	
+	pandn cw1,%mm2;	
 	psubusw %mm2,%mm0;
 	pand %mm1,%mm2;
 	paddw %mm2,%mm0;
@@ -1744,7 +1744,7 @@ mp1e_mmx_mpeg1_idct_intra2:
 	paddw %mm1,%mm0;
 	psraw shift,%mm0;
 	movq %mm0,%mm2;
-	pandn c1,%mm2;	
+	pandn cw1,%mm2;	
 	psubusw %mm2,%mm0;
 	pand %mm1,%mm2;
 	paddw %mm2,%mm0;
@@ -1761,7 +1761,7 @@ mp1e_mmx_mpeg1_idct_intra2:
 	paddw %mm1,%mm0;
 	psraw shift,%mm0;
 	movq %mm0,%mm2;
-	pandn c1,%mm2;	
+	pandn cw1,%mm2;	
 	psubusw %mm2,%mm0;
 	pand %mm1,%mm2;
 	paddw %mm2,%mm0;
@@ -1775,7 +1775,7 @@ mp1e_mmx_mpeg1_idct_intra2:
 	paddw %mm1,%mm0;
 	psraw shift,%mm0;
 	movq %mm0,%mm2;
-	pandn c1,%mm2;	
+	pandn cw1,%mm2;	
 	psubusw %mm2,%mm0;
 	pand %mm1,%mm2;
 	paddw %mm2,%mm0;
@@ -1789,7 +1789,7 @@ mp1e_mmx_mpeg1_idct_intra2:
 	paddw %mm1,%mm0;
 	psraw shift,%mm0;
 	movq %mm0,%mm2;
-	pandn c1,%mm2;	
+	pandn cw1,%mm2;	
 	psubusw %mm2,%mm0;
 	pand %mm1,%mm2;
 	paddw %mm2,%mm0;
@@ -1803,7 +1803,7 @@ mp1e_mmx_mpeg1_idct_intra2:
 	paddw %mm1,%mm0;
 	psraw shift,%mm0;
 	movq %mm0,%mm2;
-	pandn c1,%mm2;	
+	pandn cw1,%mm2;	
 	psubusw %mm2,%mm0;
 	pand %mm1,%mm2;
 	paddw %mm2,%mm0;
@@ -1817,7 +1817,7 @@ mp1e_mmx_mpeg1_idct_intra2:
 	paddw %mm1,%mm0;
 	psraw shift,%mm0;
 	movq %mm0,%mm2;
-	pandn c1,%mm2;	
+	pandn cw1,%mm2;	
 	psubusw %mm2,%mm0;
 	pand %mm1,%mm2;
 	paddw %mm2,%mm0;
@@ -1884,7 +1884,7 @@ mp1e_mmx_mpeg1_idct_intra2:
 	movq %mm2,%mm0;
 	psubw %mm3,%mm2;
 	psllw $3,%mm2;
-	paddw c2,%mm2;
+	paddw cw2,%mm2;
 	pmulhw mmx_q_idct_inter_tab+12*8,%mm2;	
 	psllw $2,%mm2;
 	psllw $4,%mm3;
@@ -1963,7 +1963,7 @@ mp1e_mmx_mpeg1_idct_intra2:
 	paddw %mm1,%mm0;
 	psraw shift,%mm0;
 	movq %mm0,%mm2;
-	pandn c1,%mm2;	
+	pandn cw1,%mm2;	
 	psubusw %mm2,%mm0;
 	pand %mm1,%mm2;
 	paddw %mm2,%mm0;
@@ -1977,7 +1977,7 @@ mp1e_mmx_mpeg1_idct_intra2:
 	paddw %mm1,%mm0;
 	psraw shift,%mm0;
 	movq %mm0,%mm2;
-	pandn c1,%mm2;	
+	pandn cw1,%mm2;	
 	psubusw %mm2,%mm0;
 	pand %mm1,%mm2;
 	paddw %mm2,%mm0;
@@ -1991,7 +1991,7 @@ mp1e_mmx_mpeg1_idct_intra2:
 	paddw %mm1,%mm0;
 	psraw shift,%mm0;
 	movq %mm0,%mm2;
-	pandn c1,%mm2;	
+	pandn cw1,%mm2;	
 	psubusw %mm2,%mm0;
 	pand %mm1,%mm2;
 	paddw %mm2,%mm0;
@@ -2005,7 +2005,7 @@ mp1e_mmx_mpeg1_idct_intra2:
 	paddw %mm1,%mm0;
 	psraw shift,%mm0;
 	movq %mm0,%mm2;
-	pandn c1,%mm2;	
+	pandn cw1,%mm2;	
 	psubusw %mm2,%mm0;
 	pand %mm1,%mm2;
 	paddw %mm2,%mm0;
@@ -2019,7 +2019,7 @@ mp1e_mmx_mpeg1_idct_intra2:
 	paddw %mm1,%mm0;
 	psraw shift,%mm0;
 	movq %mm0,%mm2;
-	pandn c1,%mm2;	
+	pandn cw1,%mm2;	
 	psubusw %mm2,%mm0;
 	pand %mm1,%mm2;
 	paddw %mm2,%mm0;
@@ -2035,7 +2035,7 @@ mp1e_mmx_mpeg1_idct_intra2:
 	paddw %mm1,%mm4;
 	psraw %mm3,%mm4;
 	movq %mm4,%mm2;
-	pandn c1,%mm2;	
+	pandn cw1,%mm2;	
 	psubusw %mm2,%mm4;
 	pand %mm1,%mm2;
 	paddw %mm2,%mm4;
@@ -2048,7 +2048,7 @@ mp1e_mmx_mpeg1_idct_intra2:
 	paddw %mm1,%mm5;
 	psraw %mm3,%mm5;
 	movq %mm5,%mm2;
-	pandn c1,%mm2;	
+	pandn cw1,%mm2;	
 	psubusw %mm2,%mm5;
 	pand %mm1,%mm2;
 	paddw %mm2,%mm5;
@@ -2061,7 +2061,7 @@ mp1e_mmx_mpeg1_idct_intra2:
 	paddw %mm1,%mm6;
 	psraw %mm3,%mm6;
 	movq %mm6,%mm2;
-	pandn c1,%mm2;	
+	pandn cw1,%mm2;	
 	psubusw %mm2,%mm6;
 	pand %mm1,%mm2;
 	paddw %mm2,%mm6;
@@ -2126,7 +2126,7 @@ mp1e_mmx_mpeg1_idct_intra2:
 	movq %mm2,%mm0;
 	psubw %mm3,%mm2;
 	psllw $3,%mm2;
-	paddw c2,%mm2;
+	paddw cw2,%mm2;
 	pmulhw mmx_q_idct_inter_tab+12*8,%mm2;	
 	psllw $2,%mm2;
 	psllw $4,%mm3;
@@ -2201,8 +2201,8 @@ mp1e_mmx_mpeg1_idct_intra2:
 	movq %mm2,mblock+6*16+8;
 	movq %mm3,mblock+7*16+8;
 
-	movq c1,%mm1;
-	movq c2,%mm2;
+	movq cw1,%mm1;
+	movq cw2,%mm2;
 	movq mblock+7*16+8,%mm4;
 	movq %mm4,%mm0;
 	movq mblock+1*16+8,%mm5;
@@ -2295,8 +2295,8 @@ mp1e_mmx_mpeg1_idct_intra2:
 	psraw $4,%mm3;
 	movq %mm3,7*16+8(%ebx);
 
-	movq c1,%mm1;
-	movq c2,%mm2;
+	movq cw1,%mm1;
+	movq cw2,%mm2;
 	movq mblock+7*16+0,%mm4;
 	movq %mm4,%mm0;
 	movq mblock+1*16+0,%mm5;
@@ -2451,4 +2451,3 @@ mp1e_mmx_copy_refblock:
 	popl		%esi;
 	popl		%ebx;			
 	ret;
-

@@ -17,7 +17,7 @@
 #  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 
-# $Id: motion_mmx.s,v 1.2 2001-08-22 01:28:10 mschimek Exp $
+# $Id: motion_mmx.s,v 1.3 2002-05-13 05:38:42 mschimek Exp $
 
 		.text
 		.align		16
@@ -334,7 +334,7 @@ mmx_predict_bidirectional_packed:
 		pmaddwd		%mm4,%mm4;
 		paddd		%mm4,%mm6;
 		paddw		%mm1,%mm0;
-		paddw		c1,%mm0;
+		paddw		cw1,%mm0;
 		psrlw		$1,%mm0;
 		psubw		%mm0,%mm2;
 		movq		%mm2,2304(%eax,%edi,2);
@@ -357,7 +357,7 @@ mmx_predict_bidirectional_packed:
 		pmaddwd		%mm4,%mm4;
 		paddd		%mm4,%mm6;
 		paddw		%mm1,%mm0;
-		paddw		c1,%mm0;
+		paddw		cw1,%mm0;
 		psrlw		$1,%mm0;
 		psubw		%mm0,%mm2;
 		movq		%mm2,2304+8(%eax,%edi,2);
@@ -385,7 +385,7 @@ mmx_predict_bidirectional_packed:
 		psubw		%mm0,%mm3;		punpckhbw	%mm7,%mm6;		
 		movq		%mm2,%mm4;		paddw		%mm1,%mm0;
 		movq		%mm3,768(%eax,%edi,2);	psubw		%mm1,%mm4;
-		paddw		c1,%mm0;
+		paddw		cw1,%mm0;
 		movq		%mm4,1536(%eax,%edi,2);
 		psrlw		$1,%mm0;
 		psubw		%mm0,%mm2;
@@ -399,7 +399,7 @@ mmx_predict_bidirectional_packed:
 		psubw		%mm6,%mm4;
 		movq		%mm4,1536+8(%eax,%edi,2);
 		paddw		%mm6,%mm5;
-		paddw		c1,%mm5;
+		paddw		cw1,%mm5;
 		psrlw		$1,%mm5;
 		psubw		%mm5,%mm2;
 		movq		%mm2,2304+8(%eax,%edi,2);
@@ -550,7 +550,7 @@ mmx_sad:
 		movq		%mm2,%mm5;
 		psubusb		%mm0,%mm2;
 		psubusb		%mm5,%mm0;
-		movq		c1,%mm5;
+		movq		cw1,%mm5;
 		por		%mm0,%mm2;
 		movq		%mm2,%mm0;
 		punpcklbw	%mm6,%mm2;
@@ -584,7 +584,7 @@ mmx_mbsum:
 		sall		$4,%edx
 		pushl		%esi
 		addl		%edx,%eax;
-		movq		c1b,%mm7;
+		movq		cb1,%mm7;
 		pushl		%ebp
 		movq		%mm7,%mm6;
 		pushl		%ebx

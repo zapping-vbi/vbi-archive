@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: raw.c,v 1.2 2002-02-25 06:22:20 mschimek Exp $ */
+/* $Id: raw.c,v 1.3 2002-05-13 05:38:42 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -123,7 +123,7 @@ static void parse_param()
 }
 
 fifo *
-raw_init(rte_video_stream_params *par)
+raw_init(rte_video_stream_params *par, struct filter_param *fp)
 {
 	/* get format, with, height, and framerate */
 	parse_param();
@@ -156,7 +156,7 @@ raw_init(rte_video_stream_params *par)
 		FAIL("Filter '%s' not supported", filter_labels[filter_mode]);
 	}
 
-	filter_init(par);
+	filter_init(par, fp);
 
 	ASSERT("init capture fifo", init_callback_fifo(
 		&cap_fifo, "video-raw",

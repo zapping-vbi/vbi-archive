@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: motion.c,v 1.8 2002-02-25 06:22:19 mschimek Exp $ */
+/* $Id: motion.c,v 1.9 2002-05-13 05:38:42 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -152,7 +152,7 @@ mmx_load_interp(unsigned char *p, int pitch, int dx, int dy)
 		" movq		%%mm4,temp11+8(%1);\n"
 
 		" psllq		$56,%%mm2;\n"
-		" movq		c1b,%%mm7;\n"
+		" movq		cb1,%%mm7;\n"
 		" por		%%mm2,%%mm1;\n"
 		" movq		%%mm0,%%mm2;\n"
 		" movq		%%mm0,%%mm5;\n"
@@ -560,7 +560,7 @@ sse_load_interp(unsigned char *p, int pitch, int dx, int dy)
 		" movq		%%mm4,%%mm2;\n"
 		" movq		%%mm4,temp11+8(%1);\n"
 		" psllq		$56,%%mm2;\n"
-		" movq		c1b,%%mm7;\n"
+		" movq		cb1,%%mm7;\n"
 		" por		%%mm2,%%mm1;\n"
 		" movq		%%mm1,%%mm5;\n"
 		" pavgb		%%mm0,%%mm1;\n"
@@ -855,7 +855,7 @@ _3dn_load_interp(unsigned char *p, int pitch, int dx, int dy)
 		" movq		%%mm4,%%mm2;\n"
 		" movq		%%mm4,temp11+8(%1);\n"
 		" psllq		$56,%%mm2;\n"
-		" movq		c1b,%%mm7;\n"
+		" movq		cb1,%%mm7;\n"
 		" por		%%mm2,%%mm1;\n"
 		" movq		%%mm1,%%mm5;\n"
 		" pavgusb	%%mm0,%%mm1;\n"
@@ -2027,7 +2027,7 @@ mmx_psse_4(char t[16][16], char *p, int pitch)
 		" movq		%%mm5,%%mm3;\n"
 		" psrlw		$8,%%mm5;\n"
 		" paddsw	%%mm5,%%mm6;\n"
-		" pand		c255,%%mm3;\n"
+		" pand		cw255,%%mm3;\n"
 		" paddsw	%%mm3,%%mm6;\n"
 
 		" movq		%%mm1,%%mm5;\n"
@@ -2253,7 +2253,7 @@ mmx_psse_8(char t[16][16], char *p, int pitch)
 		" movq		%%mm5,%%mm3;\n"
 		" psrlw		$8,%%mm5;\n"
 		" paddsw	%%mm5,%%mm6;\n"
-		" pand		c255,%%mm3;\n"
+		" pand		cw255,%%mm3;\n"
 		" paddsw	%%mm3,%%mm6;\n"
 
 
@@ -2348,7 +2348,7 @@ mmx_psse_8(char t[16][16], char *p, int pitch)
 		" movq		%%mm5,%%mm3;\n"
 		" psrlw		$8,%%mm5;\n"
 		" paddsw	%%mm5,%%mm7;\n"
-		" pand		c255,%%mm3;\n"
+		" pand		cw255,%%mm3;\n"
 		" paddsw	%%mm3,%%mm7;\n"
 
 
@@ -2575,7 +2575,7 @@ sse_psse_8(char t[16][16], char *p, int pitch)
 		" movq		%%mm5,%%mm3;\n"
 		" psrlw		$8,%%mm5;\n"
 		" paddsw	%%mm5,%%mm6;\n"
-		" pand		c255,%%mm3;\n"
+		" pand		cw255,%%mm3;\n"
 		" paddsw	%%mm3,%%mm6;\n"
 /*
 	movq, pminsw, pmaxsw, pcmpeqw
@@ -2651,7 +2651,7 @@ sse_psse_8(char t[16][16], char *p, int pitch)
 		" movq		%%mm5,%%mm3;\n"
 		" psrlw		$8,%%mm5;\n"
 		" paddsw	%%mm5,%%mm7;\n"
-		" pand		c255,%%mm3;\n"
+		" pand		cw255,%%mm3;\n"
 		" paddsw	%%mm3,%%mm7;\n"
 
 
@@ -2723,7 +2723,7 @@ mmx_load_pref(char t[16][16])
 		" paddw		1*16+0(%0),%%mm0;\n"
 		" movq		0*16+8(%0),%%mm1;\n"
 		" paddw		1*16+8(%0),%%mm1;\n"
-		" movq		c1b,%%mm7;\n"
+		" movq		cb1,%%mm7;\n"
 		" paddw		2*16+0(%0),%%mm0;\n"
 		" movq		%%mm7,%%mm6;\n"
 		" paddw		2*16+8(%0),%%mm1;\n"
@@ -2849,7 +2849,7 @@ sse2_load_pref(char t[16][16])
 		" .endm\n"
 
 		" movdqa	(%0),%%xmm0;\n"
-		" movq		c1b,%%xmm7;\n"
+		" movq		cb1,%%xmm7;\n"
 		" paddw		1*16+0(%0),%%xmm0;\n"
 		" punpcklqdqrr  7,7;\n"
 		" paddw		2*16+0(%0),%%xmm0;\n"
@@ -3043,7 +3043,7 @@ mmx_predict(unsigned char *from, int d2x, int d2y,
 	if (mx & 2) {
 		q = p + mb_address.block[5].offset;
 	asm volatile (
-		" movq		c2,%mm7;\n"
+		" movq		cw2,%mm7;\n"
 	);
 		for (i = 0; i < 8; i++) {
 			asm volatile (
@@ -3152,7 +3152,7 @@ mmx_predict(unsigned char *from, int d2x, int d2y,
 	asm volatile (
 		" movq		(%0),%%mm3;\n"
 		" movq		(%0,%1),%%mm4;\n"
-		" movq		c1b,%%mm7;\n"
+		" movq		cb1,%%mm7;\n"
 		" pxor		%%mm6,%%mm6;\n"
 	:: "r" (p), "r" (mb_address.block[5].offset), "r" (0));
 
@@ -3776,7 +3776,7 @@ predict_bidirectional_motion(mpeg1_context *mpeg1, struct motion *M,
 	}
 
 	asm volatile (
-		" movq		c1,%mm5;\n"
+		" movq		cw1,%mm5;\n"
 		" pxor		%mm7,%mm7;\n"
 	);	
 

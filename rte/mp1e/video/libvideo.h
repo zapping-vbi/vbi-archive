@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvideo.h,v 1.6 2002-02-25 06:22:19 mschimek Exp $ */
+/* $Id: libvideo.h,v 1.7 2002-05-13 05:38:42 mschimek Exp $ */
 
 #include "../rtepriv.h"
 #include "../systems/libsystems.h"
@@ -35,7 +35,18 @@ extern void		mp1e_mpeg1_init(rte_codec *codec, int cpu_type,
 					unsigned int module, multiplexer *mux);
 extern void *		mp1e_mpeg1(void *codec);
 
-extern fifo *		v4l_init(rte_video_stream_params *par);
-extern fifo *		v4l2_init(rte_video_stream_params *par);
-extern fifo *		file_init(rte_video_stream_params *par);
-extern fifo *		raw_init(rte_video_stream_params *par);
+struct filter_param;
+
+extern fifo *		v4l_init(rte_video_stream_params *par, struct filter_param *fp);
+extern fifo *		v4l2_init(rte_video_stream_params *par, struct filter_param *fp);
+extern fifo *		file_init(rte_video_stream_params *par, struct filter_param *fp);
+extern fifo *		raw_init(rte_video_stream_params *par, struct filter_param *fp);
+
+
+
+
+
+
+
+
+

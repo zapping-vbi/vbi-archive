@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dct.c,v 1.3 2001-10-07 10:55:51 mschimek Exp $ */
+/* $Id: dct.c,v 1.4 2002-05-13 05:38:42 mschimek Exp $ */
 
 #include <assert.h>
 #include "../common/math.h"
@@ -49,17 +49,17 @@ char lts[32] __attribute__ ((aligned (MIN(32, CACHE_LINE)))) = {
 #endif
 
 mmx_t c0 align(8);
-mmx_t c1 align(8);
-mmx_t c2 align(8);
+mmx_t cw1 align(8);
+mmx_t cw2 align(8);
 mmx_t c4 align(8);
 mmx_t c1_15 align(8);
 mmx_t c1_16 align(8);
 mmx_t c1_17 align(8);
 mmx_t c1_15w align(8);
 mmx_t c128 align(8);
-mmx_t c255 align(8);
+mmx_t cw255 align(8);
 mmx_t c128_6 align(8);
-mmx_t c1b align(8);
+mmx_t cb1 align(8);
 mmx_t cC4_14 align(8);
 mmx_t cC4_15 align(8);
 mmx_t c1C6_13 align(8);
@@ -100,8 +100,8 @@ init_dct(void)
 	/* Constants used throughout the video encoder */
 
 	c0		= MMXRW(0);
-	c1		= MMXRW(1);
-	c2		= MMXRW(2);
+	cw1		= MMXRW(1);
+	cw2		= MMXRW(2);
 	c4		= MMXRW(4);
 
 	c1_15		= MMXRD(1 << 15);
@@ -110,9 +110,9 @@ init_dct(void)
 	c1_15w		= MMXRW(0x8000);
 
 	c128		= MMXRW(128);
-	c255		= MMXRW(255);
+	cw255		= MMXRW(255);
 	c128_6		= MMXRW(128 << 6);
-	c1b		= MMXRB(1);
+	cb1		= MMXRB(1);
 	c256		= MMXRW(1 << 8);
 
 	cC4_14		= MMXRW(lroundn(C4 * S14));
