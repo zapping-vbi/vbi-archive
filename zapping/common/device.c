@@ -18,11 +18,12 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: device.c,v 1.8 2004-12-07 17:28:30 mschimek Exp $ */
+/* $Id: device.c,v 1.9 2005-01-08 14:43:03 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
+#include <limits.h>		/* LONG_MAX */
 #include <assert.h>
 
 #include <fcntl.h>		/* open() */
@@ -100,19 +101,24 @@ timeout_subtract_elapsed	(struct timeval *	result,
 				 const struct timeval *	now,
 				 const struct timeval *	start)
 {
-	struct timeval elapsed;
-
-	timeval_subtract (&elapsed, now, start);
-
-	if ((elapsed.tv_sec | elapsed.tv_usec) > 0) {
-		timeval_subtract (result, timeout, &elapsed);
-
-		if ((result->tv_sec | result->tv_usec) < 0) {
-			result->tv_sec = 0;
-			result->tv_usec = 0;
-		}
+	if (!timeout) {
+		result->tv_sec = LONG_MAX;
+		result->tv_usec = LONG_MAX;
 	} else {
-		*result = *timeout;
+		struct timeval elapsed;
+
+		timeval_subtract (&elapsed, now, start);
+
+		if ((elapsed.tv_sec | elapsed.tv_usec) > 0) {
+			timeval_subtract (result, timeout, &elapsed);
+
+			if ((result->tv_sec | result->tv_usec) < 0) {
+				result->tv_sec = 0;
+				result->tv_usec = 0;
+			}
+		} else {
+			*result = *timeout;
+		}
 	}
 }
 
