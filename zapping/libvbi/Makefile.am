@@ -49,8 +49,9 @@ libvbi_la_SOURCES = \
 	ure.c ure.h \
 	vt.h
 
-wstfont2.xbm: wstfont2.pbm fontgen Makefile.am
-	$(top_builddir)/libvbi/fontgen xbm wstfont2 10 < $< > $@
+wstfont2.xbm: wstfont2.pbm fontgen.c Makefile.am
+	$(MAKE) $(AM_MAKEFLAGS) fontgen$(EXEEXT)
+	$(top_builddir)/libvbi/fontgen$(EXEEXT) xbm wstfont2 10 < $< > $@
 
 # must prevent link conflict with libvbi 0.2
 great_rename:
