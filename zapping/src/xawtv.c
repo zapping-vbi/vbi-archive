@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xawtv.c,v 1.8 2004-07-11 04:57:32 mschimek Exp $ */
+/* $Id: xawtv.c,v 1.9 2004-08-13 01:01:44 mschimek Exp $ */
 
 /*
    XawTV compatibility functions:
@@ -926,7 +926,7 @@ static GString *
 property_get_string		(GdkWindow *		window,
 				 GdkAtom		atom)
 {
-  GdkDisplay *display;
+  /*  GdkDisplay *display; */
   Atom xatom;
   Atom actual_type;
   int actual_format;
@@ -935,8 +935,10 @@ property_get_string		(GdkWindow *		window,
   unsigned char *prop;
   GString *s;
 
-  display = gdk_drawable_get_display (GDK_DRAWABLE (window));
-  xatom = gdk_x11_atom_to_xatom_for_display (display, atom);
+  /* 2.6 stuff */
+  /*  display = gdk_drawable_get_display (GDK_DRAWABLE (window));*/
+  /*  xatom = gdk_x11_atom_to_xatom_for_display (display, atom);*/
+  xatom = gdk_x11_atom_to_xatom (atom);
 
   /* GDK 2.6 gdk_property_get() documentation advises
      use of XGetWindowProperty() because function is fubar. */
