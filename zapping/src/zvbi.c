@@ -194,7 +194,7 @@ event(struct dl_head *reqs, struct vt_event *ev)
 	p = ev->p1;
 	if (ev->i2 & PG_OUTOFSEQ)
 	  break;
-	//	fprintf(stderr,"header %.32s\n", p+8);
+	// printv("header %.32s\n", p+8);
 	pthread_mutex_lock(&(last_info.mutex));
 	memcpy(last_info.header,p+8,32);
 	last_info.header[32] = 0;
@@ -229,8 +229,8 @@ event(struct dl_head *reqs, struct vt_event *ev)
 	break;
     case EV_PAGE:
 	vtp = ev->p1;
-	//	fprintf(stderr,"vtx page %x.%02x  \r", vtp->pgno,
-	//		vtp->subno);
+	printv("vtx page %x.%02x  \r", vtp->pgno,
+	       vtp->subno);
 	/* Set the dirty flag on the page */
 	zvbi_set_page_state(vtp->pgno, vtp->subno, TRUE, time(NULL));
 	/* Now render the mem version of the page */
@@ -239,8 +239,8 @@ event(struct dl_head *reqs, struct vt_event *ev)
 	break;
     case EV_XPACKET:
 	p = ev->p1;
-	//	fprintf(stderr,"xpacket %x %x %x %x - %.20s\n",
-	//			p[0],p[1],p[3],p[5],p+20);
+	//printv("xpacket %x %x %x %x - %.20s\n",
+	// 			p[0],p[1],p[3],p[5],p+20);
 	pthread_mutex_lock(&(last_info.mutex));
 	memcpy(last_info.xpacket,p+20,20);
 	last_info.xpacket[20] = 0;

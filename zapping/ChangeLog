@@ -3,6 +3,7 @@
 	* plugins/screenshot.c: Now it uses JPEG format instead of PNG.
 	* main.c: Added option to disable VBI on startup (avoid V4L2
 	crashes)
+	* src/zvbi.c: Added debug messages
 
 11.9.2000	New release <garetxe@users.sourceforge.net>
 
