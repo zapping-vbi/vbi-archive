@@ -22,7 +22,7 @@ plugins/screenshot/screenshot.c
 plugins/screenshot/screenshot_strings.c
 plugins/lirc/lirc.c
 plugins/alirc/alirc.c
-plugins/mpeg/plugin.c
+plugins/mpeg/mpeg.c
 plugins/mpeg/mpeg_strings.c
 plugins/parrot/parrot.c
 plugins/parrot/parrot_strings.h
