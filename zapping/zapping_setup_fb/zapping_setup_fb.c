@@ -53,6 +53,7 @@ int			verbosity		= 1;
 FILE *			log_fp			= NULL;
 x11_dga_parameters	params;
 
+#include <sys/stat.h>
 #include "../common/device.c"	/* generic device access routines */
 
 #ifndef major
