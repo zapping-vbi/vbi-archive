@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.4 2001-08-11 00:56:30 mschimek Exp $ */
+/* $Id: v4l.c,v 1.5 2001-08-11 14:47:53 garetxe Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -70,12 +70,15 @@ v4l_cap_thread(void *unused)
 {
 	buffer *b;
 
+#if 0
+// garetxe: this starts overlay
 	if (!use_mmap) {
 		int val = 1;
 
 		ASSERT("start capturing (VIDIOCCAPTURE)",
 			IOCTL(fd, VIDIOCCAPTURE, &val) == 0);
 	}
+#endif
 
 	for (;;) {
 		/* Just in case wait_empty_buffer never waits */
@@ -89,7 +92,7 @@ v4l_cap_thread(void *unused)
 		    	ASSERT("VIDIOCMCAPTURE",
 				IOCTL(fd, VIDIOCMCAPTURE, &gb_buf) >= 0);
 
-			gb_frame = 1 - gb_frame;
+			gb_frame = (gb_frame+1) % gb_buffers.frames;
 
 			if (IOCTL(fd, VIDIOCSYNC, &gb_frame) < 0)
 				ASSERT("VIDIOCSYNC", errno == EAGAIN);
@@ -97,8 +100,19 @@ v4l_cap_thread(void *unused)
 			b->time = current_time();
 
 			/* NB: typ. 3-20 MB/s, a horrible waste of cycles. */
-			memcpy(b->data, video_buf
-				+ gb_buffers.offsets[gb_frame], b->size);
+			if (filter_mode != CM_YVU)
+				memcpy(b->data, video_buf
+				       + gb_buffers.offsets[gb_frame],
+				       b->size);
+			else {
+				unsigned char *p=video_buf +
+					gb_buffers.offsets[gb_frame];
+				int bytes = gb_buf.width * gb_buf.height;
+				memcpy(b->data, p, bytes);
+				memcpy(b->data+bytes, p+(int)(bytes*1.25),
+				       bytes>>2);
+				memcpy(b->data+(int)(bytes*1.25), p+bytes, bytes>>2);
+			}
 
 			b->used = b->size;
 		} else {
@@ -234,8 +248,8 @@ v4l_init(void)
 	}
 
 	if (IOCTL(fd, VIDIOCGMBUF, &gb_buffers) == -1) {
-		struct video_window win;
-		struct video_picture pict;
+		struct video_window	win;
+		struct video_picture	pict;
 
 		printv(2, "VIDICGMBUF failed, using read interface\n");
 
@@ -255,11 +269,11 @@ v4l_init(void)
 
 		ASSERT("set the grab size of %s to %dx%d, "
 		       "suggest other -s, -G, -F values",
-			IOCTL(fd, VIDIOCSWIN, &win),
+			!IOCTL(fd, VIDIOCSWIN, &win),
 			cap_dev, win.width, win.height);
 
 		ASSERT("determine the current image format of %s (VIDIOCGPICT)",
-		        IOCTL(fd, VIDIOCGPICT, &pict), cap_dev);
+		        !IOCTL(fd, VIDIOCGPICT, &pict), cap_dev);
 
 		if (filter_mode == CM_YUV)
 			pict.palette = VIDEO_PALETTE_YUV420P;
@@ -282,7 +296,7 @@ v4l_init(void)
 
 					ASSERT("set the grab size of %s to %dx%d, "
 					       "suggest other -s, -G, -F values",
-						IOCTL(fd, VIDIOCSWIN, &win),
+						!IOCTL(fd, VIDIOCSWIN, &win),
 						cap_dev, win.width, win.height);
 				}
 
@@ -292,10 +306,10 @@ v4l_init(void)
 
 			ASSERT("set image format of %s, "
 			       "probably none of YUV 4:2:0 or 4:2:2 are supported",
-		    		IOCTL(fd, VIDIOCSPICT, &pict), cap_dev);
+		    		!IOCTL(fd, VIDIOCSPICT, &pict), cap_dev);
 		}
 
-		if (filter_mode == CM_YUV) {
+		if (filter_mode == CM_YUV || filter_mode == CM_YVU) {
 	    		filter_init(win.width); /* line stride in bytes */
 			buf_size = win.width * win.height * 3 / 2;
 		} else {
@@ -316,8 +330,8 @@ v4l_init(void)
 
 		printv(2, "Mapping capture buffers\n");
 
-		video_buf = mmap(NULL, gb_buffers.size, PROT_READ | PROT_WRITE,
-			MAP_SHARED, fd, 0);
+		video_buf = mmap(NULL, gb_buffers.size, PROT_READ,
+				 MAP_SHARED, fd, 0);
 
 		ASSERT("map capture buffers from %s",
 			video_buf != (void *) -1, cap_dev);
@@ -327,14 +341,14 @@ v4l_init(void)
 		printv(2, "Grab 1st frame and set capture format and dimensions.\n");
 		/* @:-} IMHO */
 
-		gb_buf.frame = 1 - gb_frame;
+		gb_buf.frame = (gb_frame+1) % gb_buffers.frames;
 		gb_buf.width = aligned_width;
 		gb_buf.height = aligned_height;
 
 		if (DECIMATING(filter_mode))
 			gb_buf.height *= 2;
 
-		if (filter_mode == CM_YUV)
+		if (filter_mode == CM_YUV || filter_mode == CM_YVU)
 			gb_buf.format = VIDEO_PALETTE_YUV420P;
 		else
 			gb_buf.format = VIDEO_PALETTE_YUV422;
@@ -367,7 +381,7 @@ v4l_init(void)
 		       r >= 0,
 		       cap_dev, gb_buf.width, gb_buf.height);
 
-		if (filter_mode == CM_YUV) {
+		if (filter_mode == CM_YUV || filter_mode == CM_YVU) {
 	    		filter_init(gb_buf.width); /* line stride in bytes */
 			buf_size = gb_buf.width * gb_buf.height * 3 / 2;
 		} else {
