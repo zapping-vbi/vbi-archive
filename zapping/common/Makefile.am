@@ -7,11 +7,12 @@ EXTRA_DIST = README \
 	fprintf_bktr.h
 
 INCLUDES = $(DEFAULT_CFLAGS) $(UNICODE_CFLAGS) @COMMON_INCLUDES@
+	-I$(srcdir)
 
 BUILT_SOURCES = fprintf_videodev.h fprintf_videodev2.h fprintf_videodev25.h fprintf_bktr.h
 
 fprintf_videodev.h: structpr_gen.pl videodev.h
-	./structpr_gen.pl <videodev.h \
+	$(srcdir)/structpr_gen.pl <$(srcdir)/videodev.h \
 	video_device.type=VFL_TYPE_ \
 	video_device.hardware=VID_HARDWARE_ \
 	video_capability.type=VID_TYPE_ \
@@ -28,7 +29,7 @@ fprintf_videodev.h: structpr_gen.pl videodev.h
 	> $@
 
 fprintf_videodev2.h: structpr_gen.pl videodev2.h
-	./structpr_gen.pl <videodev2.h \
+	$(srcdir)/structpr_gen.pl <$(srcdir)/videodev2.h \
 	v4l2_capability.type=V4L2_TYPE_ \
 	v4l2_capability.flags=V4L2_FLAG_ \
 	v4l2_pix_format.pixelformat=V4L2_PIX_FMT_ \
@@ -69,7 +70,7 @@ fprintf_videodev2.h: structpr_gen.pl videodev2.h
 	> $@
 
 fprintf_videodev25.h: structpr_gen.pl videodev25.h
-	./structpr_gen.pl <videodev25.h \
+	$(srcdir)/structpr_gen.pl <$(srcdir)/videodev25.h \
 	"v4l2_fract={ fprintf (fp, \"%u/%u\", t->numerator, t->denominator); }" \
 	v4l2_capability.driver=string \
 	v4l2_capability.card=string \
@@ -106,8 +107,8 @@ fprintf_videodev25.h: structpr_gen.pl videodev25.h
 	> $@
 
 fprintf_bktr.h: structpr_gen.pl ioctl_bt848.h ioctl_meteor.h
-	cat ioctl_bt848.h ioctl_meteor.h | ./structpr_gen.pl \
-	> $@
+	cat $(srcdir)/ioctl_bt848.h $(srcdir)/ioctl_meteor.h | \
+	$(srcdir)/structpr_gen.pl > $@
 
 libcommon_a_SOURCES = \
 	device.c device.h \
