@@ -387,11 +387,27 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 				       x11_get_byte_order());
       if (format != -1)
 	{
+	  fprintf(stderr, "cap: setting %d (%d)\n", format, info->format.pixformat);
 	  info->format.pixformat = format;
-	  tveng_set_capture_format(info);
-	  if (info->format.pixformat != format)
-	    g_warning("Couldn't set format correctly: %s", info->error);
+	  if ((tveng_set_capture_format(info) == -1) ||
+	      (info->format.pixformat != format))
+	    g_warning("Cap format invalid: %s (%d, %d)", info->error,
+		      info->format.pixformat, format);
+	  fprintf(stderr, "cap: set %d\n", info->format.pixformat);
 	}
+
+      /* fixme: hack hack hack whats up here? */
+#if 1
+      info->window.x = x;
+      info->window.y = y;
+      info->window.width = w;
+      info->window.height = h;
+      info->window.clipcount = 0;
+      tveng_set_preview_window(info);
+      return_value = tveng_start_window(info);
+      g_message("hack: %d", return_value);
+      tveng_stop_everything(info);
+#endif
 
       return_value = tveng_start_capturing(info);
       if (return_value != -1)
@@ -419,10 +435,13 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 
       if (format != -1)
 	{
+	  fprintf(stderr, "prev: setting %d (%d)\n", format, info->format.pixformat);
 	  info->format.pixformat = format;
-	  tveng_set_capture_format(info);
-	  if (info->format.pixformat != format)
-	    g_warning("Couldn't set format correctly: %s", info->error);
+	  if ((tveng_set_capture_format(info) == -1) ||
+	      (info->format.pixformat != format))
+	    g_warning("Prev format invalid: %s (%d, %d)", info->error,
+		      info->format.pixformat, format);
+	  fprintf(stderr, "prev: set %d\n", info->format.pixformat);
 	}
 
       info->window.x = x;
@@ -448,9 +467,10 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
       if (format != -1)
 	{
 	  info->format.pixformat = format;
-	  tveng_set_capture_format(info);
-	  if (info->format.pixformat != format)
-	    g_warning("Couldn't set format correctly: %s", info->error);
+	  if ((tveng_set_capture_format(info) == -1) ||
+	      (info->format.pixformat != format))
+	    g_warning("Fulls format invalid: %s (%d, %d)", info->error,
+		      info->format.pixformat, format);
 	}
 
       return_value = fullscreen_start(info);
