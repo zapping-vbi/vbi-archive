@@ -523,6 +523,12 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
   for (i=0; i<num_handlers; i++)
     handlers[i].add(GNOME_PROPERTY_BOX(zapping_properties));
 
+  /* Make sure there can be just one properties dialog open */
+  gtk_widget_set_sensitive(GTK_WIDGET(menuitem), FALSE);
+  gtk_signal_connect_object(GTK_OBJECT(zapping_properties), "destroy",
+			    GTK_SIGNAL_FUNC(gtk_widget_set_sensitive),
+			    GTK_OBJECT(menuitem));
+
   gtk_widget_show(zapping_properties);
 }
 

@@ -413,7 +413,7 @@ static void tveng1_close_device(tveng_device_info * info)
   info -> file_name = NULL;
 
   if (info->debug_level > 0)
-    fprintf(stderr, "TVeng: V4L1 controller unloaded\n");
+    fprintf(stderr, "\nTVeng: V4L1 controller unloaded\n");
 }
 
 /*
@@ -1066,6 +1066,7 @@ p_tveng1_build_controls(tveng_device_info * info)
   struct video_picture pict;
   struct video_audio audio;
   struct tveng_control control;
+  int audio_disabled = 0;
 
   memset(&pict, 0, sizeof(struct video_picture));
   memset(&audio, 0, sizeof(struct video_audio));
@@ -1074,11 +1075,8 @@ p_tveng1_build_controls(tveng_device_info * info)
 
   /* Fill in the two structs */
   if (ioctl(info->fd, VIDIOCGAUDIO, &audio))
-    {
-      info->tveng_errno = errno;
-      t_error("VIDIOCGAUDIO", info);
-      return -1;
-    }
+    audio_disabled = 1;
+
   if (ioctl(info->fd, VIDIOCGPICT, &pict))
     {
       info->tveng_errno = errno;
@@ -1128,88 +1126,91 @@ p_tveng1_build_controls(tveng_device_info * info)
     return -1;
 
   /* Build the audio controls if they are available */
-  if (audio.flags & VIDEO_AUDIO_MUTABLE)
+  if (!audio_disabled)
     {
-      control.id = P_TVENG1_C_AUDIO_MUTE;
-      snprintf(control.name, 32, _("Mute"));
-      control.min = 0;
-      control.max = 1;
-      control.type = TVENG_CONTROL_CHECKBOX;
-      control.data = NULL;
-      control.controller = TVENG_CONTROLLER_V4L1;
-      if (p_tveng_append_control(&control, info) == -1)
-	return -1;
-    }
-  if (audio.flags & VIDEO_AUDIO_VOLUME)
-    {
-      control.id = P_TVENG1_C_AUDIO_VOLUME;
-      snprintf(control.name, 32, _("Volume"));
-      control.min = 0;
-      control.max = 65535;
-      control.type = TVENG_CONTROL_SLIDER;
-      control.data = NULL;
-      control.controller = TVENG_CONTROLLER_V4L1;
-      if (p_tveng_append_control(&control, info) == -1)
-	return -1;
-    }
-  if (audio.flags & VIDEO_AUDIO_BASS)
-    {
-      control.id = P_TVENG1_C_AUDIO_BASS;
-      snprintf(control.name, 32, _("Bass"));
-      control.min = 0;
-      control.max = 65535;
-      control.type = TVENG_CONTROL_SLIDER;
-      control.data = NULL;
-      control.controller = TVENG_CONTROLLER_V4L1;
-      if (p_tveng_append_control(&control, info) == -1)
-	return -1;
-    }
-  if (audio.flags & VIDEO_AUDIO_TREBLE)
-    {
-      control.id = P_TVENG1_C_AUDIO_TREBLE;
-      snprintf(control.name, 32, _("Treble"));
-      control.min = 0;
-      control.max = 65535;
-      control.type = TVENG_CONTROL_SLIDER;
-      control.data = NULL;
-      control.controller = TVENG_CONTROLLER_V4L1;
-      if (p_tveng_append_control(&control, info) == -1)
-	return -1;
-    }
+      if (audio.flags & VIDEO_AUDIO_MUTABLE)
+	{
+	  control.id = P_TVENG1_C_AUDIO_MUTE;
+	  snprintf(control.name, 32, _("Mute"));
+	  control.min = 0;
+	  control.max = 1;
+	  control.type = TVENG_CONTROL_CHECKBOX;
+	  control.data = NULL;
+	  control.controller = TVENG_CONTROLLER_V4L1;
+	  if (p_tveng_append_control(&control, info) == -1)
+	    return -1;
+	}
+      if (audio.flags & VIDEO_AUDIO_VOLUME)
+	{
+	  control.id = P_TVENG1_C_AUDIO_VOLUME;
+	  snprintf(control.name, 32, _("Volume"));
+	  control.min = 0;
+	  control.max = 65535;
+	  control.type = TVENG_CONTROL_SLIDER;
+	  control.data = NULL;
+	  control.controller = TVENG_CONTROLLER_V4L1;
+	  if (p_tveng_append_control(&control, info) == -1)
+	    return -1;
+	}
+      if (audio.flags & VIDEO_AUDIO_BASS)
+	{
+	  control.id = P_TVENG1_C_AUDIO_BASS;
+	  snprintf(control.name, 32, _("Bass"));
+	  control.min = 0;
+	  control.max = 65535;
+	  control.type = TVENG_CONTROL_SLIDER;
+	  control.data = NULL;
+	  control.controller = TVENG_CONTROLLER_V4L1;
+	  if (p_tveng_append_control(&control, info) == -1)
+	    return -1;
+	}
+      if (audio.flags & VIDEO_AUDIO_TREBLE)
+	{
+	  control.id = P_TVENG1_C_AUDIO_TREBLE;
+	  snprintf(control.name, 32, _("Treble"));
+	  control.min = 0;
+	  control.max = 65535;
+	  control.type = TVENG_CONTROL_SLIDER;
+	  control.data = NULL;
+	  control.controller = TVENG_CONTROLLER_V4L1;
+	  if (p_tveng_append_control(&control, info) == -1)
+	    return -1;
+	}
   
-/* This is in the V4L API, but not present in bttv */
+      /* This is in the V4L API, but not present in bttv */
 #ifdef VIDEO_AUDIO_BALANCE
-  if (audio.flags & VIDEO_AUDIO_BALANCE)
-    {
-      control.id = P_TVENG1_C_AUDIO_BALANCE;
-      snprintf(control.name, 32, _("Balance"));
-      control.min = 0;
-      control.max = 65535;
-      control.type = TVENG_CONTROL_SLIDER;
-      control.data = NULL;
-      control.controller = TVENG_CONTROLLER_V4L1;
-      if (p_tveng_append_control(&control, info) == -1)
-	return -1;
-    }
+      if (audio.flags & VIDEO_AUDIO_BALANCE)
+	{
+	  control.id = P_TVENG1_C_AUDIO_BALANCE;
+	  snprintf(control.name, 32, _("Balance"));
+	  control.min = 0;
+	  control.max = 65535;
+	  control.type = TVENG_CONTROL_SLIDER;
+	  control.data = NULL;
+	  control.controller = TVENG_CONTROLLER_V4L1;
+	  if (p_tveng_append_control(&control, info) == -1)
+	    return -1;
+	}
 #endif
 
-  /* Add the control only if the audio decoding actually works */
-  control.id = P_TVENG1_C_AUDIO_DECODING;
-  snprintf(control.name, 32, _("Audio Decoding"));
-  control.min = 0;
-  control.max = 3;
-  control.type = TVENG_CONTROL_MENU;
-  /* Build entries, will be NULL if no entries exist */
-  control.data = p_tveng1_test_audio_decode(info);
-  control.controller = TVENG_CONTROLLER_V4L1;
-  if (control.data)
-    {
-      if (p_tveng_append_control(&control, info) == -1)
-	return -1;
+      /* Add the control only if the audio decoding actually works */
+      control.id = P_TVENG1_C_AUDIO_DECODING;
+      snprintf(control.name, 32, _("Audio Decoding"));
+      control.min = 0;
+      control.max = 3;
+      control.type = TVENG_CONTROL_MENU;
+      /* Build entries, will be NULL if no entries exist */
+      control.data = p_tveng1_test_audio_decode(info);
+      control.controller = TVENG_CONTROLLER_V4L1;
+      if (control.data)
+	{
+	  if (p_tveng_append_control(&control, info) == -1)
+	    return -1;
+	}
     }
   
   return (tveng1_update_controls(info)); /* Fill in with the valid
-					   values */
+					    values */
 }
 
 /*
@@ -1230,6 +1231,7 @@ tveng1_update_controls(tveng_device_info * info)
   struct private_tveng1_device_info * p_info =
     (struct private_tveng1_device_info*) info;
 #endif
+  int audio_disabled = 0;
 
   memset(&pict, 0, sizeof(struct video_picture));
   memset(&audio, 0, sizeof(struct video_audio));
@@ -1239,18 +1241,14 @@ tveng1_update_controls(tveng_device_info * info)
   t_assert(info->controls != NULL);
 
   /* Fill in the two structs */
-  if (ioctl(info->fd, VIDIOCGAUDIO, &audio))
-    {
-      info->tveng_errno = errno;
-      t_error("VIDIOCGAUDIO", info);
-      return -1;
-    }
   if (ioctl(info->fd, VIDIOCGPICT, &pict))
     {
       info->tveng_errno = errno;
       t_error("VIDIOCGPICT", info);
       return -1;
     }
+  if (ioctl(info->fd, VIDIOCGAUDIO, &audio))
+    audio_disabled = 1;
 
   /* Iterate for all the controls */
   for (i = 0; i < info-> num_controls; i++)
@@ -1258,6 +1256,16 @@ tveng1_update_controls(tveng_device_info * info)
       control = &(info->controls[i]);
       if (control->controller != TVENG_CONTROLLER_V4L1)
 	continue; /* Not our responsability */
+      if (control -> id <= P_TVENG1_C_AUDIO_MAX &&
+	  control -> id >= P_TVENG1_C_AUDIO_MIN &&
+	  !audio_disabled)
+	{
+	  /* When we reach this errno hasn't been altered */
+	  info->tveng_errno = errno;
+	  t_error("VIDIOCGAUDIO", info);
+	  return -1;
+	}
+	
       switch (control -> id)
 	{
 	  /* Audio controls */
@@ -1875,11 +1883,11 @@ p_tveng1_timestamp_init(tveng_device_info *info)
 {
   struct private_tveng1_device_info *p_info =
     (struct private_tveng1_device_info *) info;
+  double rate = info->num_standards ?
+    info->standards[info->cur_standard].frame_rate : 25;
 
   p_info->capture_time = 0.0;
-  p_info->frame_period_near =
-    p_info->frame_period_far =
-      1.0 / info->standards[info->cur_standard].frame_rate;
+  p_info->frame_period_near = p_info->frame_period_far = 1.0 / rate;
 }
 
 static int p_tveng1_dequeue(unsigned char * where, tveng_device_info *

@@ -45,6 +45,7 @@
 #include "osd.h"
 #include "remote.h"
 #include "audio.h"
+#include "csconvert.h"
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
 char *program_invocation_name;
@@ -415,7 +416,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.139 2001-10-17 20:59:43 garetxe Exp $",
+	 "$Id: main.c,v 1.140 2001-10-21 20:56:12 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU support... ");
   switch (cpu_detection())
@@ -657,6 +658,8 @@ int main(int argc, char * argv[])
   startup_osd();
   D();
   startup_audio();
+  D();
+  startup_csconvert();
   D();
   osd_set_window(tv_screen);
   gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM
@@ -902,6 +905,12 @@ static void shutdown_zapping(void)
   printv(" xvz");
   shutdown_xvz();
 
+  /*
+   * The colorspace conversions.
+   */
+  printv(" csconvert");
+  shutdown_csconvert();
+    
   /* Close */
   printv(" video device");
   tveng_device_info_destroy(main_info);

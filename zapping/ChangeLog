@@ -1,3 +1,14 @@
+21.10.2001	CS conversion, qce <garetxe@users.sf.net>
+
+	* csconvert.[ch]: Added some unaccelerated rgb colorspace
+	conversions.
+	* capture.c: Fallbacks to the csconvert routines if no better
+	rgb mode is available.
+	* Z: Works now with the Logitech Quickcam Express driver (possibly
+	with many other quickcams too).
+	* properties.c: Only one properties dialog can be opened
+	simultaneously.
+
 21.10.2001	Mpeg plugin <mschimek@users.sf.net>
 
 	* Slider values are rounded down to option step size.

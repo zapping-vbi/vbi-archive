@@ -39,9 +39,11 @@
 #include "plugins.h"
 #include "capture.h"
 #include "yuv2rgb.h"
+#include "csconvert.h"
 
 /* FIXME: This is a pretty vital piece of code but it's a bit hard
    to follow. Needs some docs/cleanup. */
+/* FIXME: Plain ugliness */
 
 /* Some global stuff we need, see descriptions in main.c */
 extern tveng_device_info	*main_info;
@@ -57,6 +59,7 @@ static pthread_t	capture_thread_id; /* the producer */
 static volatile gboolean exit_capture_thread; /* controls capture_thread */
 static gint		count; /* errors printed */
 static GdkImage		*yuv_image=NULL; /* colorspace conversion */
+static gboolean		needs_conversion=FALSE; /* BGR24->whatever needed */
 static struct tveng_frame_format req_format; /* requested format */
 static pthread_mutex_t	req_format_mutex; /* protects the above */
 static gboolean		have_xv = FALSE;
@@ -121,6 +124,9 @@ clear_bundle(capture_bundle *d)
       break;
     }
 
+  if (d->converted)
+    g_free(d->data_src);
+
   d->image_type = 0;
 }
 
@@ -144,6 +150,9 @@ request_bundle_format(enum tveng_frame_pixformat pixformat, gint w, gint h)
   tveng_update_capture_format(main_info);
   
   cur_mode = tveng_stop_everything(main_info);
+
+  if (!cur_mode)
+    cur_mode = TVENG_CAPTURE_READ;
 
   /* hmmm, there are v4l drivers out there that grant an odd width for
    the YVU pixformat !!! */
@@ -175,7 +184,7 @@ request_bundle_format(enum tveng_frame_pixformat pixformat, gint w, gint h)
     {
       pthread_mutex_lock(&req_format_mutex);
       memcpy(&req_format, &main_info->format,
-	     sizeof(struct tveng_frame_format));
+      	     sizeof(struct tveng_frame_format));
       pthread_mutex_unlock(&req_format_mutex);
     }
   else
@@ -211,21 +220,27 @@ bundle_equal(capture_bundle *a, capture_bundle *b)
 static void
 fill_bundle_tveng(capture_bundle *d, tveng_device_info *info)
 {
+  int bpl = d->converted ? (d->format.width*3) : d->format.bytesperline;
+
   tveng_mutex_lock(info);
 
-  if (!pixformat_ok(info->format.pixformat, d->format.pixformat) ||
-      info->format.width != d->format.width ||
-      info->format.height != d->format.height ||
-      !d->image_type)
-    goto fill_bundle_failure;
+  if (!d->converted)
+    {
+      if (!pixformat_ok(info->format.pixformat, d->format.pixformat) ||
+	  info->format.width != d->format.width ||
+	  info->format.height != d->format.height ||
+	  !d->image_type)
+	goto fill_bundle_failure;
 
-  if (d->format.pixformat == TVENG_PIX_YVU420 &&
-      info->format.pixformat == TVENG_PIX_YUV420)
-    tveng_assume_yvu(TRUE, info);
-  else
-    tveng_assume_yvu(FALSE, info); /* default settings */
+      if (d->format.pixformat == TVENG_PIX_YVU420 &&
+	  info->format.pixformat == TVENG_PIX_YUV420)
+	tveng_assume_yvu(TRUE, info);
+      else
+	tveng_assume_yvu(FALSE, info); /* default settings */
+    }
 
-  if (-1 == tveng_read_frame(d->data, d->format.bytesperline, 50, info))
+  if (-1 == tveng_read_frame(d->converted ? d->data_src : d->data,
+			     bpl, 50, info))
     {
       if (!count++)
 	fprintf(stderr, "cap: read(): %s\n", info->error);
@@ -249,6 +264,8 @@ build_bundle(capture_bundle *d, struct tveng_frame_format *format)
 
   if (d->image_type)
     clear_bundle(d);
+
+  d->converted = FALSE;
 
   switch (format->pixformat)
     {
@@ -311,6 +328,13 @@ build_bundle(capture_bundle *d, struct tveng_frame_format *format)
 	}
       break;
     default: /* Anything else is assumed to be current visual RGB */
+      if (needs_conversion)
+	{
+	  d->converted = TRUE;
+	  /* FIXME: BGR24 */
+	  d->data_src = g_malloc(format->width*3*format->height);
+	}
+
       d->image.gdkimage = gdk_image_new(GDK_IMAGE_FASTEST,
 					gdk_visual_get_system(),
 					format->width,
@@ -376,6 +400,19 @@ capture_thread (void *data)
       pthread_mutex_unlock(&req_format_mutex);
 
       fill_bundle_tveng(&p->vanilla, info);
+
+      if (p->vanilla.converted)
+	{
+	  int csconversion =
+	    lookup_csconvert(TVENG_PIX_BGR24,
+			     p->vanilla.format.pixformat);
+	  g_assert(csconversion > -1);
+	  csconvert(csconversion, p->vanilla.data_src,
+		    p->vanilla.data, p->vanilla.format.width*3,
+		    p->vanilla.format.bytesperline,
+		    p->vanilla.format.width, p->vanilla.format.height);
+	}
+
       p->d.b.time = p->vanilla.timestamp;
 
       /* Now pass the buffer to the modifying plugins */
@@ -415,6 +452,15 @@ gboolean request_default_format(gint w, gint h, tveng_device_info *info)
 {
   gboolean success = FALSE;
   enum tveng_frame_pixformat bundle_format2;
+
+  if (needs_conversion)
+    {
+      success = request_bundle_format(info->format.pixformat,
+				      info->format.width,
+				      info->format.height);
+      req_format.pixformat = zmisc_resolve_pixformat(x11_get_bpp(),
+			     x11_get_byte_order());
+    }
 
 #ifdef FORCE_DATA
   success = request_bundle_format(BUNDLE_FORMAT, w, h);
@@ -482,8 +528,34 @@ gboolean request_default_format(gint w, gint h, tveng_device_info *info)
   
   if (!success)
     success = request_bundle_format(zmisc_resolve_pixformat(x11_get_bpp(),
-				    x11_get_byte_order()),
-				    w, h);
+				    x11_get_byte_order()), w, h);
+
+  /* Try conversions then (FIXME: More conversions) */
+  if (!success)
+    {
+      int csconv = lookup_csconvert(TVENG_PIX_BGR24,
+	    zmisc_resolve_pixformat(x11_get_bpp(), x11_get_byte_order()));
+
+      if (csconv != -1)
+	{
+	  /* FIXME: The code assumes that bpl == width*3 */
+	  success = request_bundle_format(TVENG_PIX_BGR24,
+					  (info->caps.maxwidth+15)&~16,
+					  info->caps.maxheight);
+	  if (success)
+	    {
+	      GdkVisual * v = gdk_visual_get_system();
+	      build_csconvert_tables(v->red_mask, v->red_shift, v->red_prec,
+				     v->green_mask, v->green_shift,
+				     v->green_prec, v->blue_mask,
+				     v->blue_shift, v->blue_prec);
+	      req_format.pixformat =
+		zmisc_resolve_pixformat(x11_get_bpp(), x11_get_byte_order());
+	      
+	      needs_conversion = TRUE;
+	    }
+	}
+    }
 
   return success;
 }
@@ -850,14 +922,4 @@ shutdown_capture(void)
   pthread_mutex_destroy(&req_format_mutex);
 
   destroy_fifo(capture_fifo);
-}
-
-/**********************
-  TO BE REMOVED
-***********************/
-BundleFiller set_bundle_filler(BundleFiller fill_bundle)
-{
-  g_assert_not_reached();
-
-  return NULL;
 }

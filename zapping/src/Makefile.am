@@ -28,6 +28,7 @@ uninstall-binPROGRAMS:
 	rm -f $(DESTDIR)$(bindir)/zapping
 
 zapping_SOURCES = \
+	csconvert.c csconvert.h \
 	audio.c esd.c oss.c arts.c audio.h \
 	main.c zapzilla.c \
 	fullscreen.c fullscreen.h \

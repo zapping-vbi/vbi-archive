@@ -19,13 +19,6 @@
 #ifndef __CAPTURE_H__
 #define __CAPTURE_H__
 
-/*
- * These routines handle the capture mode.
- */
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #include <gtk/gtk.h>
 #include <tveng.h>
 #include "common/fifo.h"
@@ -51,8 +44,13 @@ typedef struct {
     gpointer			yuv_data; /* _DATA */
   } image;
 
+  /* TRUE if the image is converted (original BGR24 source in data_src) */
+  gboolean			converted;
+
   /* data contained in the image; size etc is described by format */
   gpointer			data;
+  gpointer			data_src; /* see converted above */
+
   /* time this bundle was created */
   double			timestamp;
 
@@ -134,19 +132,6 @@ capture_lock(void);
  */
 void
 capture_unlock(void);
-
-/**
- * Bundle filler. Allows plugins to provide frames from a variety of
- * sources.
- */
-typedef void (*BundleFiller)(capture_bundle *bundle,
-			     tveng_device_info *info);
-
-/**
- * Sets the new bundle filler and returns the old one. If fill
- * bundle is NULL, then the default filler is restored.
- */
-BundleFiller set_bundle_filler(BundleFiller fill_bundle);
 
 extern fifo	*capture_fifo;
 
