@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alsa.c,v 1.14 2002-02-08 15:03:11 mschimek Exp $ */
+/* $Id: alsa.c,v 1.15 2002-02-12 00:18:14 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -250,7 +250,7 @@ start(fifo *f)
 }
 
 void
-open_pcm_alsa(char *dev_name1, int sampling_rate, bool stereo, fifo *f)
+open_pcm_alsa(char *dev_name1, int sampling_rate, bool stereo, fifo **f)
 {
 	struct alsa_context *alsa;
 	snd_pcm_info_t pcm_info;
@@ -402,17 +402,19 @@ do {									\
 	mp1e_timestamp_init(&alsa->tfmem, (setup.buf.block.frag_size / bpf)
 		/ (double) sampling_rate);
 
-	ASSERT("init alsa fifo", init_callback_fifo(f, "audio-alsa1",
+	*f = &alsa->pcm.fifo;
+
+	ASSERT("init alsa fifo", init_callback_fifo(*f, "audio-alsa1",
 		NULL, NULL, wait_full, send_empty,
 		1, 0));
 
 	ASSERT("init alsa producer",
-		add_producer(f, &alsa->pcm.producer));
+		add_producer(*f, &alsa->pcm.producer));
 
-	f->user_data = alsa;
-	f->start = start;
+	(*f)->user_data = alsa;
+	(*f)->start = start;
 
-	b = PARENT(f->buffers.head, buffer, added);
+	b = PARENT((*f)->buffers.head, buffer, added);
 
 	b->data = NULL;
 	b->used = setup.buf.block.frag_size;
@@ -639,7 +641,7 @@ open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo, fifo **f)
 #else /* !HAVE_LIBASOUND */
 
 void
-open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo, fifo *f)
+open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo, fifo **f)
 {
 	FAIL("Not compiled with ALSA interface.\n"
 	     "For more info about ALSA visit http://www.alsa-project.org\n");

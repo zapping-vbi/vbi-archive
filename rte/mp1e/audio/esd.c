@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: esd.c,v 1.11 2002-02-08 15:03:11 mschimek Exp $ */
+/* $Id: esd.c,v 1.12 2002-02-12 00:18:14 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -178,7 +178,7 @@ open_pcm_esd(char *unused, int sampling_rate, bool stereo, fifo **f)
 #else /* !HAVE_ESD */
 
 void
-open_pcm_esd(char *dev_name, int sampling_rate, bool stereo, fifo *f)
+open_pcm_esd(char *dev_name, int sampling_rate, bool stereo, fifo **f)
 {
 	FAIL("Not compiled with ESD interface.\n"
 	     "For more info about ESD visit http://www.tux.org/~ricdude/EsounD.html\n");
