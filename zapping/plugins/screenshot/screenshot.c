@@ -377,7 +377,7 @@ plugin_start (void)
 #define LOAD_CONFIG(_type, _def, _name, _descr)				\
   buffer = g_strconcat (root_key, #_name, NULL);			\
   zconf_create_##_type (_def, _descr, buffer);				\
-  screenshot_option_##_name = zconf_get_##_type (NULL, buffer);		\
+  zconf_get_##_type (&screenshot_option_##_name, buffer);		\
   g_free (buffer);
 
 static void
@@ -389,11 +389,11 @@ plugin_load_config (gchar *root_key)
   default_save_dir = g_strconcat (getenv ("HOME"), "/shots", NULL);
   LOAD_CONFIG (string, default_save_dir, save_dir, 
 	       "The directory where screenshot will be written to");
-  screenshot_option_save_dir = g_strdup (screenshot_option_save_dir);
   g_free (default_save_dir);
 
   LOAD_CONFIG (string, "", command, "Command to run after taking the screenshot");
-  screenshot_option_command = g_strdup (screenshot_option_command ?: "");
+  if (!screenshot_option_command)
+    screenshot_option_command = g_strdup ("");
 
   LOAD_CONFIG (boolean, FALSE, preview, "Enable preview");
   LOAD_CONFIG (boolean, FALSE, grab_on_ok, "Grab on clicking OK");
@@ -401,7 +401,6 @@ plugin_load_config (gchar *root_key)
   LOAD_CONFIG (boolean, FALSE, enter_closes, "Entering file name closes dialog");
 
   LOAD_CONFIG (string, "jpeg", format, "File format");
-  screenshot_option_format = g_strdup (screenshot_option_format);
 
   LOAD_CONFIG (integer, 75, quality, "Quality of the compressed image");
   LOAD_CONFIG (integer, 0, deint, "Deinterlace mode");
@@ -578,7 +577,7 @@ properties_add			(GnomeDialog	*dialog)
   };
 
   standard_properties_add(dialog, groups, acount(groups),
-			  PACKAGE_DATA_DIR "/screenshot.glade");
+			  "screenshot.glade");
 }
 
 static
@@ -1168,8 +1167,10 @@ on_format_changed                     (GtkWidget *menu,
   g_free (screenshot_option_format);
   screenshot_option_format = g_strdup (data->backend->keyword);
 
-  gtk_widget_set_sensitive(data->quality_slider,
-			   data->backend->quality);
+  set_sensitive_with_tooltip (data->quality_slider,
+			      data->backend->quality,
+			      NULL,
+			      _("This format has no quality option"));
 
   name = gtk_entry_get_text (data->entry);
   name = z_replace_filename_extension (name, data->backend->extension);
@@ -1191,8 +1192,7 @@ build_dialog (screenshot_data *data)
   gint default_item = 0;
   gint i;
 
-  data->dialog = build_widget ("dialog1",
-			       PACKAGE_DATA_DIR "/screenshot.glade");
+  data->dialog = build_widget ("dialog1", "screenshot.glade");
   /* Format menu */
 
   widget = lookup_widget (data->dialog, "optionmenu1");
@@ -1286,8 +1286,10 @@ build_dialog (screenshot_data *data)
   gtk_signal_connect (GTK_OBJECT (adj), "value-changed",
 		      GTK_SIGNAL_FUNC (on_quality_changed), data);
 
-  gtk_widget_set_sensitive(data->quality_slider,
-			   data->backend->quality);
+  set_sensitive_with_tooltip (data->quality_slider,
+			      data->backend->quality,
+			      NULL,
+			      _("This format has no quality option"));
 
   gnome_dialog_set_parent (GNOME_DIALOG (data->dialog),
 			   z_main_window ());
@@ -1321,7 +1323,9 @@ build_dialog (screenshot_data *data)
   else
     {
       widget = lookup_widget (data->dialog, "hbox2");
-      gtk_widget_set_sensitive (widget, FALSE);
+
+      set_sensitive_with_tooltip (widget, FALSE, NULL,
+      	_("Only useful with full size, unscaled picture (480 or 576 lines)"));
     }
 }
 
