@@ -38,6 +38,7 @@ zapping_SOURCES = \
 	overlay.c overlay.h \
 	capture.c capture.h \
 	zvbi.c zvbi.h \
+	remote.c remote.h \
 	strnatcmp.c strnatcmp.h
 
 zapping_LDADD = $(VBI_LIB) $(GNOME_LIBDIR) $(GNOMEUI_LIBS) \

@@ -31,6 +31,7 @@
 #include "zmisc.h"
 #include "zconf.h"
 #include "interface.h"
+#include "remote.h"
 
 /* The plugin protocol we are able to understand */
 #define PLUGIN_PROTOCOL 2
