@@ -11,13 +11,12 @@ note to the author if you do so.
 <header>RTE</header>
 Real Time Encoder. Takes the extremely fast <a
 href="http://sourceforge.net/project/showfiles.php?group_id=2599">mp1e</a>
-encoding engine and
-the versatile engine from <a href="http://ffmpeg.sourceforge.net">ffmpeg</a>,
-and exposes them through a simple to use and extensible API. This is a very
-good choice if you plan to add some sort of realtime compression to your
-project, but don't want to go through the mess of writing an encoder when there
-are already excellent choices out there. You just have to provide the
-audio/video data, RTE will take care of the rest.
+encoding engine and exposes it through a simple to use and extensible
+API. This is a very good choice if you plan to add some sort of
+realtime compression to your project, but don't want to go through the
+mess of writing an encoder when there are already excellent choices
+out there. You just have to provide the audio/video data, RTE will
+take care of the rest.
 <br></br>
 <b>Downloading:</b> There are some packages released with each Zapping version,
 but since rte is heavily worked on, you are encouraged to check out the rte

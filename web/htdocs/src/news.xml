@@ -5,6 +5,30 @@ abstract -> short text that describes the page (for themes that support it)
 HTML tags can be used freely in the body.
 -->
 <document title="News page" abstract="News and co.">
+<header>New release, codename: "Monkeys in a Blue Suit"</header>
+<ul>
+<li><b>Zapping</b> 0.6.2
+<ul>
+<li>Dutch translation.</li>
+<li>Redesigned channel editor and properties dialog.</li>
+<li>SGML renderer for OSD.</li>
+<li>In-window OSD, no more floating subtitle windows.</li>
+<li>Support for the Logitech Quickcam Express (possibly other
+quickcams too, but this is untested).</li>
+<li>Improved timestamping.</li>
+<li>ARTS recording support.</li>
+<li>Sync with rte 0.4</li>
+<li>Bugfixes and polishment, as usual.</li>
+</ul>
+</li>
+<li><b>rte</b> 0.4
+<ul>
+<li>Continued api morphing (work in progress).</li>
+<li>Removed ffmpeg backend, it was unused.</li>
+<li>Fixes in the mp1e backend.</li>
+</ul>
+</li>
+</ul>
 <header>Zapping, mp1e and rte released</header>
 New release of your favourite programs, some of the improvements are:
 <ul>
