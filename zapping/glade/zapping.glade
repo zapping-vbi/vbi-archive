@@ -1555,7 +1555,7 @@ Do not show
 	      <can_focus>True</can_focus>
 	      <dither>True</dither>
 	      <use_alpha>False</use_alpha>
-	      <title>Elija un color</title>
+	      <title>Choose a color</title>
 	      <child>
 		<padding>0</padding>
 		<expand>False</expand>
@@ -1586,7 +1586,7 @@ Do not show
 	      <can_focus>True</can_focus>
 	      <dither>True</dither>
 	      <use_alpha>False</use_alpha>
-	      <title>Elija un color</title>
+	      <title>Choose a color</title>
 	      <child>
 		<padding>0</padding>
 		<expand>False</expand>
@@ -5081,7 +5081,7 @@ Open automatically
 	    <widget>
 	      <class>GtkHBox</class>
 	      <name>hbox45</name>
-	      <homogeneous>False</homogeneous>
+	      <homogeneous>True</homogeneous>
 	      <spacing>3</spacing>
 	      <child>
 		<padding>0</padding>
@@ -5103,8 +5103,8 @@ Open automatically
 		<relief>GTK_RELIEF_NORMAL</relief>
 		<child>
 		  <padding>0</padding>
-		  <expand>False</expand>
-		  <fill>False</fill>
+		  <expand>True</expand>
+		  <fill>True</fill>
 		</child>
 	      </widget>
 
@@ -5118,7 +5118,7 @@ Open automatically
 		  <handler>on_add_all_channels_clicked</handler>
 		  <last_modification_time>Wed, 15 Aug 2001 23:45:23 GMT</last_modification_time>
 		</signal>
-		<label>Add all the channels</label>
+		<label>Add all _channels</label>
 		<relief>GTK_RELIEF_NORMAL</relief>
 		<child>
 		  <padding>0</padding>
@@ -5141,8 +5141,8 @@ adding the table if possible, for inclusion in the next release of this program.
 	      <ypad>0</ypad>
 	      <child>
 		<padding>0</padding>
-		<expand>False</expand>
-		<fill>False</fill>
+		<expand>True</expand>
+		<fill>True</fill>
 	      </child>
 	    </widget>
 	  </widget>
@@ -5255,8 +5255,8 @@ adding the table if possible, for inclusion in the next release of this program.
 		<handler>on_channel_list_key_press_event</handler>
 		<last_modification_time>Fri, 21 Apr 2000 22:00:53 GMT</last_modification_time>
 	      </signal>
-	      <columns>5</columns>
-	      <column_widths>90,50,60,70,65</column_widths>
+	      <columns>7</columns>
+	      <column_widths>20,100,74,53,77,69,70</column_widths>
 	      <selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
 	      <show_titles>True</show_titles>
 	      <shadow_type>GTK_SHADOW_IN</shadow_type>
@@ -5264,8 +5264,8 @@ adding the table if possible, for inclusion in the next release of this program.
 	      <widget>
 		<class>GtkLabel</class>
 		<child_name>CList:title</child_name>
-		<name>label37</name>
-		<label>Name</label>
+		<name>label901</name>
+		<label></label>
 		<justify>GTK_JUSTIFY_CENTER</justify>
 		<wrap>False</wrap>
 		<xalign>0.5</xalign>
@@ -5277,8 +5277,8 @@ adding the table if possible, for inclusion in the next release of this program.
 	      <widget>
 		<class>GtkLabel</class>
 		<child_name>CList:title</child_name>
-		<name>label38</name>
-		<label>Station</label>
+		<name>label37</name>
+		<label>Name</label>
 		<justify>GTK_JUSTIFY_CENTER</justify>
 		<wrap>False</wrap>
 		<xalign>0.5</xalign>
@@ -5303,6 +5303,19 @@ adding the table if possible, for inclusion in the next release of this program.
 	      <widget>
 		<class>GtkLabel</class>
 		<child_name>CList:title</child_name>
+		<name>label38</name>
+		<label>Station</label>
+		<justify>GTK_JUSTIFY_CENTER</justify>
+		<wrap>False</wrap>
+		<xalign>0.5</xalign>
+		<yalign>0.5</yalign>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+	      </widget>
+
+	      <widget>
+		<class>GtkLabel</class>
+		<child_name>CList:title</child_name>
 		<name>label40</name>
 		<label>Freq (kHz)</label>
 		<justify>GTK_JUSTIFY_CENTER</justify>
@@ -5316,8 +5329,21 @@ adding the table if possible, for inclusion in the next release of this program.
 	      <widget>
 		<class>GtkLabel</class>
 		<child_name>CList:title</child_name>
-		<name>label200</name>
-		<label>Accelerator</label>
+		<name>label902</name>
+		<label>Standard</label>
+		<justify>GTK_JUSTIFY_CENTER</justify>
+		<wrap>False</wrap>
+		<xalign>0.5</xalign>
+		<yalign>0.5</yalign>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+	      </widget>
+
+	      <widget>
+		<class>GtkLabel</class>
+		<child_name>CList:title</child_name>
+		<name>label903</name>
+		<label>Key</label>
 		<justify>GTK_JUSTIFY_CENTER</justify>
 		<wrap>False</wrap>
 		<xalign>0.5</xalign>
@@ -5331,12 +5357,12 @@ adding the table if possible, for inclusion in the next release of this program.
 	  <widget>
 	    <class>GtkVBox</class>
 	    <name>vbox34</name>
-	    <homogeneous>False</homogeneous>
+	    <homogeneous>True</homogeneous>
 	    <spacing>0</spacing>
 	    <child>
 	      <padding>0</padding>
-	      <expand>True</expand>
-	      <fill>True</fill>
+	      <expand>False</expand>
+	      <fill>False</fill>
 	    </child>
 
 	    <widget>
@@ -5381,8 +5407,8 @@ adding the table if possible, for inclusion in the next release of this program.
 	      <relief>GTK_RELIEF_NORMAL</relief>
 	      <child>
 		<padding>0</padding>
-		<expand>False</expand>
-		<fill>False</fill>
+		<expand>True</expand>
+		<fill>True</fill>
 	      </child>
 	    </widget>
 	  </widget>
@@ -5429,7 +5455,7 @@ adding the table if possible, for inclusion in the next release of this program.
 	      <wrap>False</wrap>
 	      <xalign>1</xalign>
 	      <yalign>0.5</yalign>
-	      <xpad>0</xpad>
+	      <xpad>3</xpad>
 	      <ypad>0</ypad>
 	      <child>
 		<left_attach>0</left_attach>
@@ -5478,13 +5504,113 @@ adding the table if possible, for inclusion in the next release of this program.
 
 	    <widget>
 	      <class>GtkLabel</class>
-	      <name>label234</name>
-	      <label>Keyboard shortcut:</label>
+	      <name>label235</name>
+	      <label>Fine tuning:</label>
 	      <justify>GTK_JUSTIFY_CENTER</justify>
 	      <wrap>False</wrap>
 	      <xalign>1</xalign>
 	      <yalign>0.5</yalign>
-	      <xpad>0</xpad>
+	      <xpad>3</xpad>
+	      <ypad>0</ypad>
+	      <child>
+		<left_attach>0</left_attach>
+		<right_attach>1</right_attach>
+		<top_attach>2</top_attach>
+		<bottom_attach>3</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>False</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>True</xfill>
+		<yfill>False</yfill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkLabel</class>
+	      <name>label236</name>
+	      <label>Video standard:</label>
+	      <justify>GTK_JUSTIFY_CENTER</justify>
+	      <wrap>False</wrap>
+	      <xalign>1</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>3</xpad>
+	      <ypad>0</ypad>
+	      <child>
+		<left_attach>0</left_attach>
+		<right_attach>1</right_attach>
+		<top_attach>3</top_attach>
+		<bottom_attach>4</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>False</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>True</xfill>
+		<yfill>False</yfill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkOptionMenu</class>
+	      <name>attached_standard</name>
+	      <tooltip>Select here the video standard used on this channel</tooltip>
+	      <can_focus>True</can_focus>
+	      <items>
+</items>
+	      <initial_choice>0</initial_choice>
+	      <child>
+		<left_attach>1</left_attach>
+		<right_attach>2</right_attach>
+		<top_attach>3</top_attach>
+		<bottom_attach>4</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>False</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>True</xfill>
+		<yfill>False</yfill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkOptionMenu</class>
+	      <name>attached_input</name>
+	      <tooltip>Select here the input to be attached to this channel</tooltip>
+	      <can_focus>True</can_focus>
+	      <items>
+</items>
+	      <initial_choice>0</initial_choice>
+	      <child>
+		<left_attach>1</left_attach>
+		<right_attach>2</right_attach>
+		<top_attach>1</top_attach>
+		<bottom_attach>2</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>False</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>True</xfill>
+		<yfill>False</yfill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkLabel</class>
+	      <name>label237</name>
+	      <label>Input:</label>
+	      <justify>GTK_JUSTIFY_CENTER</justify>
+	      <wrap>False</wrap>
+	      <xalign>1</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>3</xpad>
 	      <ypad>0</ypad>
 	      <child>
 		<left_attach>0</left_attach>
@@ -5510,12 +5636,12 @@ adding the table if possible, for inclusion in the next release of this program.
 	      <child>
 		<left_attach>1</left_attach>
 		<right_attach>2</right_attach>
-		<top_attach>1</top_attach>
-		<bottom_attach>2</bottom_attach>
+		<top_attach>4</top_attach>
+		<bottom_attach>5</bottom_attach>
 		<xpad>0</xpad>
 		<ypad>0</ypad>
 		<xexpand>False</xexpand>
-		<yexpand>False</yexpand>
+		<yexpand>True</yexpand>
 		<xshrink>False</xshrink>
 		<yshrink>False</yshrink>
 		<xfill>True</xfill>
@@ -5606,7 +5732,6 @@ adding the table if possible, for inclusion in the next release of this program.
 		<widget>
 		  <class>GtkButton</class>
 		  <name>known_keys</name>
-		  <tooltip>Open the list of known keys</tooltip>
 		  <can_focus>True</can_focus>
 		  <label>List of known keys</label>
 		  <relief>GTK_RELIEF_NORMAL</relief>
@@ -5621,117 +5746,17 @@ adding the table if possible, for inclusion in the next release of this program.
 
 	    <widget>
 	      <class>GtkLabel</class>
-	      <name>label235</name>
-	      <label>Fine tuning:</label>
+	      <name>label234</name>
+	      <label>Keyboard shortcut:</label>
 	      <justify>GTK_JUSTIFY_CENTER</justify>
 	      <wrap>False</wrap>
 	      <xalign>1</xalign>
 	      <yalign>0.5</yalign>
-	      <xpad>0</xpad>
+	      <xpad>3</xpad>
 	      <ypad>0</ypad>
 	      <child>
 		<left_attach>0</left_attach>
 		<right_attach>1</right_attach>
-		<top_attach>2</top_attach>
-		<bottom_attach>3</bottom_attach>
-		<xpad>0</xpad>
-		<ypad>0</ypad>
-		<xexpand>False</xexpand>
-		<yexpand>False</yexpand>
-		<xshrink>False</xshrink>
-		<yshrink>False</yshrink>
-		<xfill>True</xfill>
-		<yfill>False</yfill>
-	      </child>
-	    </widget>
-
-	    <widget>
-	      <class>GtkLabel</class>
-	      <name>label236</name>
-	      <label>Standard:</label>
-	      <justify>GTK_JUSTIFY_CENTER</justify>
-	      <wrap>False</wrap>
-	      <xalign>1</xalign>
-	      <yalign>0.5</yalign>
-	      <xpad>0</xpad>
-	      <ypad>0</ypad>
-	      <child>
-		<left_attach>0</left_attach>
-		<right_attach>1</right_attach>
-		<top_attach>3</top_attach>
-		<bottom_attach>4</bottom_attach>
-		<xpad>0</xpad>
-		<ypad>0</ypad>
-		<xexpand>False</xexpand>
-		<yexpand>False</yexpand>
-		<xshrink>False</xshrink>
-		<yshrink>False</yshrink>
-		<xfill>True</xfill>
-		<yfill>False</yfill>
-	      </child>
-	    </widget>
-
-	    <widget>
-	      <class>GtkLabel</class>
-	      <name>label237</name>
-	      <label>Input:</label>
-	      <justify>GTK_JUSTIFY_CENTER</justify>
-	      <wrap>False</wrap>
-	      <xalign>1</xalign>
-	      <yalign>0.5</yalign>
-	      <xpad>0</xpad>
-	      <ypad>0</ypad>
-	      <child>
-		<left_attach>0</left_attach>
-		<right_attach>1</right_attach>
-		<top_attach>4</top_attach>
-		<bottom_attach>5</bottom_attach>
-		<xpad>0</xpad>
-		<ypad>0</ypad>
-		<xexpand>False</xexpand>
-		<yexpand>False</yexpand>
-		<xshrink>False</xshrink>
-		<yshrink>False</yshrink>
-		<xfill>True</xfill>
-		<yfill>False</yfill>
-	      </child>
-	    </widget>
-
-	    <widget>
-	      <class>GtkOptionMenu</class>
-	      <name>attached_standard</name>
-	      <tooltip>Select here the video standard used on this channel</tooltip>
-	      <can_focus>True</can_focus>
-	      <items>Magical Standard
-</items>
-	      <initial_choice>0</initial_choice>
-	      <child>
-		<left_attach>1</left_attach>
-		<right_attach>2</right_attach>
-		<top_attach>3</top_attach>
-		<bottom_attach>4</bottom_attach>
-		<xpad>0</xpad>
-		<ypad>0</ypad>
-		<xexpand>False</xexpand>
-		<yexpand>False</yexpand>
-		<xshrink>False</xshrink>
-		<yshrink>False</yshrink>
-		<xfill>True</xfill>
-		<yfill>False</yfill>
-	      </child>
-	    </widget>
-
-	    <widget>
-	      <class>GtkOptionMenu</class>
-	      <name>attached_input</name>
-	      <tooltip>Select here the input to be attached to this channel</tooltip>
-	      <can_focus>True</can_focus>
-	      <items>Magical input
-</items>
-	      <initial_choice>0</initial_choice>
-	      <child>
-		<left_attach>1</left_attach>
-		<right_attach>2</right_attach>
 		<top_attach>4</top_attach>
 		<bottom_attach>5</bottom_attach>
 		<xpad>0</xpad>

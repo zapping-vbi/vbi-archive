@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: global_data.c,v 1.8 2001-10-16 11:18:12 mschimek Exp $ */
+/* $Id: global_data.c,v 1.9 2001-11-05 08:25:44 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -44,6 +44,7 @@
 /*
  *  Factory defaults, use system wide configuration file to customize
  */
+int			test_mode		= 0;
 
 int			modules			= 3;			// 1 = Video, 2 = Audio, 4 = VBI
 int			mux_syn			= 2;			// 0 = null, elementary, MPEG-1, MPEG-2 PS 

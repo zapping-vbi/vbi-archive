@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libaudio.h,v 1.9 2001-10-26 09:14:51 mschimek Exp $ */
+/* $Id: libaudio.h,v 1.10 2001-11-05 08:25:44 mschimek Exp $ */
 
 #include "../common/fifo.h"
 #include "../systems/libsystems.h"
@@ -39,15 +39,17 @@ struct pcm_context {
 extern rte_codec_class	mp1e_mpeg1_layer2_codec;
 extern rte_codec_class	mp1e_mpeg2_layer2_codec;
 
+extern void		mp1e_mp2_module_init(int test);
+
 /* preliminary */
 extern void		mp1e_mp2_init(rte_codec *, unsigned int,
 				      fifo *cap_fifo, multiplexer *);
-extern void *		mp1e_mp2_thread(void *foo);
+//extern void *		mp1e_mp2_thread(void *foo);
 
 /* historic */
 extern void		audio_parameters(int *sampling_freq, int *bit_rate);
-extern long long	audio_frame_count;
-extern long long	audio_frames_dropped;
+//extern long long	audio_frame_count;
+//extern long long	audio_frames_dropped;
 
 /* oss.c (mp1e) */
 

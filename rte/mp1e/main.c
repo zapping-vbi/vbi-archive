@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.17 2001-11-03 23:43:52 mschimek Exp $ */
+/* $Id: main.c,v 1.18 2001-11-05 08:25:44 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -158,6 +158,13 @@ main(int ac, char **av)
 	case CPU_PENTIUM_4:
 		printv(2, "Using SSE2 optimized routines.\n");
 		break;
+	}
+
+	mp1e_mp2_module_init(!!test_mode);
+
+	if (test_mode) {
+		printv(1, "Tests passed\n");
+		exit(EXIT_SUCCESS);
 	}
 
 	if (subtitle_pages)

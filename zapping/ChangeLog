@@ -1,10 +1,26 @@
-4.10.2001	New properties dialog <garetxe@users.sf.net>
+4.11.2001	GUI sweetpill follow-up <mschimek@users.sf.net>
+
+	* mpeg.c: Added rte.h version check.
+	* Replaced occurences of "Elija un color" outside es.po
+	  by "Choose a color".
+	* zapping.glade: Moved a few channel dialog widgets.
+	* channel_editor.c: Added index and video standard to
+	  channel list, moved country, NLSed accelerator modifiers,
+	  displays input name instead of country, channel and freq
+	  when source is not tuner. Replaced unsafe snprintf(d, n, t)
+	  by strncpy. Up and down button insensitive at end of list
+	  and after selecting all rows (not always??). The respective
+	  next row is moved back in sight on up or down. My spelling
+	  gland asked for a change of the freq table names, proper
+	  name uppercase most notably.
+
+4.11.2001	New properties dialog <garetxe@users.sf.net>
 
 	* properties.c: New Galeon style properties code. Still under
 	construction (and nonfunctional), but I couldn't resist commiting
 	:-) Plugins can	be configured in the 'Plugins' dialog.
 
-2.10.2001	GUI sweetpill <garetxe@users.sf.net>
+2.11.2001	GUI sweetpill <garetxe@users.sf.net>
 
 	* channel_editor: Rearranged as discussed in the mailing list.
 	* gnome_help: Remember to update clips after tveng_restart_everything.

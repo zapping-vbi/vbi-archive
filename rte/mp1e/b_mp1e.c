@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.21 2001-11-03 23:43:52 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.22 2001-11-05 08:25:44 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -878,6 +878,8 @@ init_backend			(void)
 		context_table[i]->option_print = b_mp1e_info.option_print;
 		context_table[i]->parameters = b_mp1e_info.parameters;
 	}
+
+	mp1e_mp2_module_init(0);
 
 	return 1;
 }

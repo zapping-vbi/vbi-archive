@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.17 2001-11-03 23:43:54 mschimek Exp $ */
+/* $Id: mp2.c,v 1.18 2001-11-05 08:25:44 mschimek Exp $ */
 
 #include <limits.h>
 #include "../common/log.h"
@@ -1305,10 +1305,8 @@ mp1e_mpeg2_layer2_codec = {
 	.mainloop	= mainloop,
 };
 
-static void mp1e_mp2(void) __attribute__ ((constructor));
-
-static void
-mp1e_mp2(void)
+void
+mp1e_mp2_module_init(int test)
 {
 	assert(sizeof(mpeg1_options) == sizeof(mpeg2_options));
 	memcpy(mpeg2_options, mpeg1_options, sizeof(mpeg2_options));
@@ -1316,6 +1314,9 @@ mp1e_mp2(void)
 	mpeg2_options[0].menu.num = (int *) &bit_rate_value[MPEG_VERSION_2][1];
 	mpeg2_options[1].menu.num = (int *) &sampling_freq_value[MPEG_VERSION_2][0];
 
-	mp1e_mp2_subband_filter_init(0);
-	mp1e_mp2_fft_init(0);
+	mp1e_mp2_subband_filter_init(test);
+	mp1e_mp2_fft_init(test);
 }
+
+
+

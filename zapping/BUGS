@@ -13,6 +13,8 @@ Known bugs with zapping, don't report them
 	~ Zapzilla: what's v4lx doing on standard change?
 	* Look for endianness problems.
 	* CC to be checked.
+	* Disabling vbi decoding leaves last known station
+          name from vbi on display.
 	* Mpeg plugin/mp1e rc when promoting frames broke.
 	* Mpeg plugin/mp1e frame skipping method 2&3 don't work.
 	* Mpeg plugin/mp1e very low frame rate interrupts display,

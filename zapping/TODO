@@ -8,6 +8,9 @@ Outstanding issues for the next release (0.6.2)
 	+ Verify no unNLSed accels exist. (suitable replacement for H?)
 	+ Improve documentation.
 	+ TTX export: Make blockgfx replacement smarter.
+	+ vbi: add toggle button to disable CC/TTX decoding. Mind
+	  listing subtitles. Should also disable trigger
+          decoding when all set to ignore.
 	+ Add index to the channels.
 	+ Ctrl "fast" variants of screenshot/mpeg.
 
@@ -39,12 +42,3 @@ Outstanding issues for the next release (0.6.2)
 
 please tell me about anything you think it's worth adding. 
 garetxe@users.sourceforge.net
-
-
-
-
-
-
-
-
-

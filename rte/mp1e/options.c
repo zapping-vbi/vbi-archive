@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.6 2001-10-07 10:55:51 mschimek Exp $ */
+/* $Id: options.c,v 1.7 2001-11-05 08:25:44 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -119,7 +119,7 @@ usage(FILE *fi)
 	exit((fi == stderr) ? EXIT_FAILURE : EXIT_SUCCESS);
 }
 
-#define OPT_STR "2a:b:c:f:g:hi:lm:n:p:r:s:vwx:A:C:B:F:G:H:I:M:PR:S:T:VX:"
+#define OPT_STR "2a:b:c:f:g:hi:lm:n:p:r:s:tvwx:A:C:B:F:G:H:I:M:PR:S:T:VX:"
 
 static const struct option
 long_options[] = {
@@ -138,6 +138,7 @@ long_options[] = {
 	{ "pcm_device",			required_argument, NULL, 'p' },
 	{ "rec_source",			required_argument, NULL, 'r' },
 	{ "image_size",			required_argument, NULL, 's' },
+	{ "test",			no_argument,	   NULL, 't' },
 	{ "verbose",			optional_argument, NULL, 'v' },
 	{ "mono",			no_argument,	   NULL, 'w' },
 	{ "mixer_device",		required_argument, NULL, 'x' },
@@ -412,6 +413,10 @@ parse_option(int c)
 			if (width < 1 || width > MAX_WIDTH ||
 			    height < 1 || height > MAX_HEIGHT)
 				return FALSE;
+			break;
+
+		case 't':
+			test_mode = TRUE;
 			break;
 
 		case 'v':
