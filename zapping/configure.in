@@ -389,7 +389,10 @@ plugins/template/Makefile
 
 dnl fscking broken world
 if ! test -r po/Makefile; then
-        sed -e "/POTFILES =/r po/POTFILES" po/Makefile.in > po/Makefile
+	dnl Don't ask :-)
+	PF="POT"
+	PF=$PF"FILES"
+        sed -e "/$PF =/r po/PF" po/Makefile.in > po/Makefile
 fi
 
 echo "
