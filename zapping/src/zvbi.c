@@ -37,8 +37,8 @@
 #include <time.h>
 #include <pthread.h>
 #include <math.h>
-#include "../common/ucs-2.h"
-#include "../common/errstr.h"
+#include "common/ucs-2.h"
+//#include "common/errstr.h"
 
 #include "tveng.h"
 /* Manages config values for zconf (it saves me some typing) */
