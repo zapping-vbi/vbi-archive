@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: decoder.c,v 1.12 2003-05-17 13:02:04 tomzo Exp $ */
+/* $Id: decoder.c,v 1.12.2.1 2004-01-27 21:03:54 tomzo Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -958,9 +958,8 @@ vbi_raw_decoder_check_service(const vbi_raw_decoder *rd, int srv_idx, int strict
 		}
 
 		if (rd->count[field] == 0) {
-			ds_diag ("skipping service 0x%08X: zero count\n",
-				vbi_services[srv_idx].id);
-			goto finished;
+			count[field] = 0;
+			continue;
 		}
 
 		if (rd->start[field] > 0 && strict > 0) {
@@ -990,6 +989,12 @@ vbi_raw_decoder_check_service(const vbi_raw_decoder *rd, int srv_idx, int strict
 		}
 	}
 	row[1] += rd->count[0];
+
+	if (count[0] + count[1] == 0) {
+		ds_diag ("skipping service 0x%08X: zero line count\n",
+			vbi_services[srv_idx].id);
+		goto finished;
+	}
 
 	result = TRUE;
 
