@@ -30,11 +30,8 @@
 
 #define ZCONF_DOMAIN "/zapping/options/capture/"
 #include "zconf.h"
-
+#include "zgconf.h"
 #include <pthread.h>
-
-
-
 #include <tveng.h>
 #include "common/fifo.h"
 #include "zmisc.h"
@@ -49,150 +46,538 @@
 #define _pthread_rwlock_wrlock(l) pthread_rwlock_wrlock (l)
 #define _pthread_rwlock_unlock(l) pthread_rwlock_unlock (l)
 
-/* The capture fifo */
-#define NUM_BUNDLES 6 /* in capture_fifo */
-zf_fifo					capture_fifo;
-/* The frame producer */
-static pthread_t			capture_thread_id;
-static volatile gboolean		exit_capture_thread;
-static volatile gboolean		capture_quit_ack;
-/* List of requested capture formats */
-static struct {
-  gint			id;
-  capture_fmt		fmt;
-  gboolean		required;
-}		*formats = NULL;
-static int	num_formats = 0;
-static pthread_rwlock_t fmt_rwlock;
-static volatile gint	request_id = 0;
-/* Capture handlers */
-static struct {
-  CaptureNotify		notify;
-  gpointer		user_data;
-  gint			id;
-}					*handlers = NULL;
-static int				num_handlers = 0;
-/* The capture buffers */
+/* The capture fifo FIXME must not exceed number of buffers in tveng queue. */
+#define N_BUNDLES 8 /* in capture_fifo */
+
 typedef struct {
   /* What everyone else sees */
-  capture_frame		frame;
-  /* When this tag is different from request_id the buffer needs
-     rebuilding */
-  gint			tag;
-  /* Images we can build for this buffer */
+  capture_frame			frame;
 
-  guint			num_images;
-  zimage		*images[TV_MAX_PIXFMTS];
-  gboolean		converted[TV_MAX_PIXFMTS];
-  /* The source image and its index in images */
-  zimage		*src_image;
-  gint			src_index;
+  /* Source image in driver buffer. Pointer will change with
+     each iteration, can be NULL too. */
+  const tv_capture_buffer *	src_buffer;
+
+  /* Pixfmt converted copies of the source image. */
+  zimage *			images[TV_MAX_PIXFMTS];
+
+  /* Copied source image in images[] (if we have no src_buffer
+     or a copy from mmapped to shared memory is necessary). */
+  zimage *			src_image;
+
+  /* See retrieve_frame(). */
+  zimage			src_direct;
+
+  /* We convert images on demand. */
+  tv_pixfmt_set			converted;
+
+  /* When this tag is different from request_id the buffer
+     needs rebuilding (i.e. images must be reallocated). */
+  gint				tag;
 } producer_buffer;
 
-/* Available video formats in the video device */
-static tv_pixfmt_set	available_pixfmts = 0;
+static volatile gint		request_id;
 
-static GtkWidget *	dest_window = NULL;
+typedef struct {
+  gint				id;
 
-static void broadcast (capture_event event)
+  /* Requested image size. */
+  guint				width;
+  guint				height;
+
+  /* Requested pixel formats. */
+  tv_pixfmt_set			pixfmt_set;
+
+  /* Granted pixel format. */
+  tv_pixfmt			pixfmt;
+
+  req_flags			flags;
+} req_format;
+
+static pthread_rwlock_t		fmt_rwlock;
+
+/* List of requested capture formats. */
+static req_format *		formats;
+static guint			n_formats;
+
+
+zf_fifo				capture_fifo;
+
+static GtkWidget *		dest_window;
+
+
+/* Called when a full capture buffer goes back to the empty queue.
+   Note this may be executed by a different thread and the fifo is
+   locked. */
+static void
+buffer_done                     (zf_fifo *              f _unused_,
+                                 zf_buffer *            b)
 {
-  gint i;
+  producer_buffer *pb = PARENT (b, producer_buffer, frame.b);
 
-  for (i = 0; i < num_handlers; i++)
-    handlers[i].notify (event, handlers[i].user_data);
+  if (pb->src_buffer)
+    {
+      if (0)
+	fprintf (stderr, "/%p\n", pb->src_buffer);
+
+      tv_queue_capture_buffer (zapping->info, pb->src_buffer);
+      pb->src_buffer = NULL;
+    }
 }
 
 static void
-free_bundle (zf_buffer *b)
+free_bundle			(zf_buffer *		b)
 {
-  producer_buffer *pb = (producer_buffer *) b;
+  producer_buffer *pb = PARENT (b, producer_buffer, frame.b);
   guint i;
 
-  for (i = 0; i < pb->num_images; i++)
-    zimage_unref (pb->images[i]);
+  for (i = 0; i < G_N_ELEMENTS (pb->images); ++i)
+    if (pb->images[i])
+      zimage_unref (pb->images[i]);
+
+  CLEAR (*b);
 
   g_free (b);
 }
 
-static int
-fill_bundle_tveng (producer_buffer *p, tveng_device_info *info)
+/* Note fmt_rwlock must be wlocked. */
+static void
+flush_buffers			(tveng_device_info *	info)
 {
+  node *n;
+
+  if (tv_get_caps (info)->flags & TVENG_CAPS_QUEUE)
+    {
+      for (n = capture_fifo.buffers.head; n->succ; n = n->succ)
+	{
+	  producer_buffer *pb;
+
+	  pb = PARENT (n, producer_buffer, frame.b.added);
+
+	  if (pb->src_buffer)
+	    {
+	      pb->src_buffer = NULL;
+	    }
+	}
+    }
+}
+
+/* returns: -1 error, 0 timeout, 1 ok */
+static int
+fill_bundle_tveng		(producer_buffer *	pb,
+				 tveng_device_info *	info,
+				 guint			time)
+{
+  struct timeval timeout;
   int r;
 
-  if (p->src_image) {
-    r = tveng_read_frame (&p->src_image->data, 50, info);
-  } else { /* read & discard */
-    r = tveng_read_frame (NULL, 50, info);
-  }
+  timeout.tv_sec = 0;
+  timeout.tv_usec = time * 1000;
 
-  if (0 != r)
-    return r;
+  if (tv_get_caps (info)->flags & TVENG_CAPS_QUEUE)
+    {
+      if (pb->src_buffer)
+	{
+	  tv_queue_capture_buffer (zapping->info, pb->src_buffer);
+	  pb->src_buffer = NULL;
+	}
 
-  p->frame.timestamp = tveng_get_timestamp (info);
+      pb->converted = 0;
 
-  CLEAR (p->converted);
-  p->converted[p->src_index] = TRUE;
+      r = tv_dequeue_capture_buffer_with_timeout (info,
+						  &pb->src_buffer,
+						  &timeout);
+      if (r <= 0)
+	return r;
 
-  return 0;
+      pb->frame.timestamp = pb->src_buffer->sample_time.tv_sec
+	+ pb->src_buffer->sample_time.tv_usec * (1 / 1e6);
+
+      if (pb->src_image)
+	{
+	  pb->frame.b.data = pb->src_buffer->data;
+	  pb->frame.b.used = pb->src_buffer->size;
+	  pb->frame.b.time = pb->frame.timestamp;
+	}
+      else
+	{
+	  /* Discard. */
+
+	  tv_queue_capture_buffer (zapping->info, pb->src_buffer);
+	  pb->src_buffer = NULL;
+
+	  pb->frame.b.data = NULL;
+	  pb->frame.b.used = 1;
+	}
+    }
+  else
+    {
+      if (pb->src_image)
+	{
+	  tv_capture_buffer buffer;
+
+	  buffer.data = pb->src_image->img;
+	  buffer.size = 0; /* XXX */
+	  buffer.format = &pb->src_image->fmt;
+
+	  r = tv_read_frame (info, &buffer, &timeout);
+	  if (r <= 0)
+	    return r;
+
+	  pb->frame.timestamp = (buffer.sample_time.tv_sec
+				 + buffer.sample_time.tv_usec * (1 / 1e6));
+
+	  if (pb->frame.timestamp > 0)
+	    {
+	      pb->frame.b.data = pb->src_image->img;
+	      pb->frame.b.used = pb->src_image->fmt.size;
+	      pb->frame.b.time = pb->frame.timestamp;
+	    }
+	  else
+	    {
+	      pb->frame.b.data = NULL;
+	      pb->frame.b.used = 1;
+	    }
+
+	  pb->converted =
+	    TV_PIXFMT_SET (pb->src_image->fmt.pixel_format->pixfmt);
+	}
+      else
+	{
+	  /* Read & discard. */
+	  r = tv_read_frame (info, NULL, &timeout);
+	  if (r <= 0)
+	    return r;
+
+	  pb->frame.timestamp = 0;
+
+	  pb->frame.b.data = NULL;
+	  pb->frame.b.used = 1;
+
+	  pb->converted = 0;
+	}
+    }
+
+  return 1;
 }
 
-static tv_pixfmt_set
-build_mask (gboolean allow_suggested)
-{
-  tv_pixfmt_set mask = 0;
-  gint i;
-
-  for (i = 0; i < num_formats; i++)
-    if (allow_suggested || formats[i].required)
-      mask |= TV_PIXFMT_SET (formats[i].fmt.pixfmt);
-
-  return mask;
-}
-
-/* Check whether the given buffer can hold the current request */
+/* Check whether the given buffer can hold the current request. */
 static gboolean
-compatible (producer_buffer *p, tveng_device_info *info)
+compatible			(producer_buffer *	pb,
+				 tveng_device_info *	info)
 {
-  tv_pixfmt_set avail_mask = 0;
   const tv_image_format *fmt;
-  gint retvalue;
+  guint i;
+  guint j;
 
-  /* No images, it's always failure */
-  if (!p->num_images)
+  for (i = 0; i < G_N_ELEMENTS (pb->images); ++i)
+    if (pb->images[i])
+      break;
+
+  if (i >= G_N_ELEMENTS (pb->images))
     return FALSE;
 
-  /* first check whether the size is right */
+  /* First check whether the size is right. */
+
   fmt = tv_cur_capture_format (info);
-  if (fmt->width != p->images[0]->fmt.width ||
-      fmt->height != p->images[0]->fmt.height)
-    {
-      retvalue = FALSE;
-    }
-  else /* size is ok, check pixformat */
-    {
-      guint i;
 
-      for (i = 0; i < p->num_images; i++)
-	avail_mask |= TV_PIXFMT_SET (p->images[i]->fmt.pixfmt);
+  for (i = 0; i < G_N_ELEMENTS (pb->images); ++i)
+    if (pb->images[i])
+      if (fmt->width != pb->images[i]->fmt.width
+	  || fmt->height != pb->images[i]->fmt.height)
+	return FALSE;
 
-      retvalue = !!((avail_mask | build_mask (FALSE)) == avail_mask);
-    }
+  /* Size is ok, check pixformat. */
 
-  return retvalue;
+  for (i = 0; i < G_N_ELEMENTS (pb->images); ++i)
+    if (pb->images[i])
+      {
+	tv_pixfmt pixfmt;
+
+	pixfmt = pb->images[i]->fmt.pixel_format->pixfmt;
+
+	for (j = 0; j < n_formats; ++j)
+	  if (pixfmt == formats[j].pixfmt)
+	    break;
+
+	if (j >= n_formats)
+	  return FALSE;
+      }
+
+  return TRUE;
 }
 
-static void *
-capture_thread (void *data)
+static void
+rebuild_buffer			(producer_buffer *	pb,
+				 tveng_device_info *	info)
 {
-  tveng_device_info *info = (tveng_device_info*)data;
+  const tv_image_format *fmt;
+  guint i;
+
+  fmt = tv_cur_capture_format (info);
+  if (!fmt || !fmt->pixel_format)
+    return;
+
+  pb->src_image = NULL;
+
+  for (i = 1; i < G_N_ELEMENTS (pb->images); ++i)
+    {
+      guint j;
+
+      for (j = 0; j < n_formats; ++j)
+	if (formats[j].pixfmt == (tv_pixfmt) i)
+	  break;
+
+      if (j >= n_formats)
+	{
+	  if (pb->images[i])
+	    {
+	      /* This pixfmt is no longer needed. */
+	      zimage_unref (pb->images[i]);
+	      pb->images[i] = NULL;
+	    }
+	}
+      else
+	{
+	  if (pb->images[i])
+	    {
+	      if (pb->images[i]->fmt.width == fmt->width
+		  && pb->images[i]->fmt.height == fmt->height)
+		goto done;
+
+	      /* Has right pixfmt but wrong size. */
+	      zimage_unref (pb->images[i]);
+	      pb->images[i] = NULL;
+	    }
+
+	  pb->images[i] = zimage_new ((tv_pixfmt) i, fmt->width, fmt->height);
+
+	done:
+	  if (0)
+	    fprintf (stderr, "rebuilt %p %s, capture %s\n",
+		     pb, tv_pixfmt_name ((tv_pixfmt) i),
+		     fmt->pixel_format->name);
+
+	  if (fmt->pixel_format->pixfmt == (tv_pixfmt) i)
+	    pb->src_image = pb->images[i];
+	}
+    }
+
+  g_assert (pb->src_image != NULL);
+
+  pb->tag = request_id; /* Done */
+}
+
+static void
+pass_frame_to_plugins		(producer_buffer *	pb)
+{
+  GList *p;
+
+  for (p = plugin_list; p != NULL; p = p->next)
+    {
+      struct plugin_info *pi;
+
+      pi = (struct plugin_info *) p->data;
+      plugin_read_frame (&pb->frame, pi);
+    }
+}
+
+/* Capture source. */
+
+typedef struct {
+  GSource			source; 
+  GPollFD			poll_fd;
+  tveng_device_info *		info;
+  zf_producer			prod;
+} capture_source;
+
+static GSource *		source;
+static gboolean			field2;
+static gdouble			filter_time;
+static gdouble			f2time;
+static gdouble			field_balance = .45;
+static producer_buffer		display_buffers[2];
+static display_filter_fn *	display_filter;
+
+static gboolean
+capture_source_prepare		(GSource *		source _unused_,
+				 gint *			timeout)
+{
+  if (field2)
+    {
+      double now;
+
+      now = zf_current_time ();
+      if (now > f2time)
+	{
+	  /* Too late. */
+	  return TRUE;
+	}
+      else
+	{
+	  *timeout = (f2time - now) * 1e3;
+	}
+    }
+  else
+    {
+      *timeout = -1; /* infinite */
+    }
+
+  return FALSE; /* go poll */
+}
+
+static gboolean
+capture_source_check		(GSource *		source)
+{
+  capture_source *cs = PARENT (source, capture_source, source);
+
+  return !!(cs->poll_fd.revents & G_IO_IN);
+}
+
+static gboolean
+capture_source_dispatch		(GSource *		source,
+				 GSourceFunc		callback _unused_,
+				 gpointer		user_data _unused_)
+{
+  capture_source *cs = PARENT (source, capture_source, source);
+  struct timeval tv;
+  struct timespec ts;
+  zf_buffer *b2;
+  producer_buffer *pb;
+  double start;
+
+  if (field2)
+    {
+      video_blit_frame (&display_buffers[1].frame);
+      field2 = FALSE;
+
+      return TRUE;
+    }
+
+  gettimeofday (&tv, /* tz */ NULL);
+
+  ts.tv_sec = tv.tv_sec;
+  ts.tv_nsec = (tv.tv_usec + 50000) * 1000;
+
+  if (ts.tv_nsec >= 1000000000)
+    {
+      ts.tv_nsec -= 1000000000;
+      ++ts.tv_sec;
+    }
+
+  b2 = zf_wait_empty_buffer_timeout (&cs->prod, &ts);
+  if (!b2)
+    {
+      assert (tv_get_caps (cs->info)->flags & TVENG_CAPS_QUEUE);
+
+      /* Clear cs->poll_fd.revents, we cannot dequeue any buffers now. */
+      tv_flush_capture_buffers (cs->info);
+
+      return TRUE;
+    }
+
+  pb = PARENT (b2, producer_buffer, frame.b);
+
+  if (pb->tag != request_id)
+    {
+      rebuild_buffer (pb, cs->info);
+    }
+
+  if (1 != fill_bundle_tveng (pb, cs->info, /* timeout */ 0))
+    {
+      zf_unget_empty_buffer (&cs->prod, b2);
+      return TRUE;
+    }
+
+  start = tv.tv_sec + tv.tv_usec * (1 / 1e6);
+
+  if (0)
+    fputc ("-+"[start >= filter_time], stderr); 
+
+  if (start >= filter_time)
+    {
+      double end;
+
+      if (display_filter)
+	{
+	  guint n_frames;
+
+	  n_frames = display_filter (display_buffers[0].src_image,
+				     display_buffers[1].src_image);
+	  if (n_frames > 0)
+	    {
+	      video_blit_frame (&display_buffers[0].frame);
+
+	      pass_frame_to_plugins (pb);
+
+	      end = zf_current_time ();
+
+	      if (n_frames > 1)
+		{
+		  const tv_video_standard *s;
+
+		  field2 = TRUE;
+
+		  if ((s = tv_cur_video_standard (cs->info)))
+		    f2time = end + 1 / s->frame_rate * field_balance;
+		  else
+		    f2time = end + 1 / 25.0 * field_balance;
+		}
+	    }
+	  else
+	    {
+	      pass_frame_to_plugins (pb);
+
+	      end = zf_current_time ();
+	    }
+	}
+      else
+	{
+	  video_blit_frame (&pb->frame);
+
+	  pass_frame_to_plugins (pb);
+
+	  end = zf_current_time ();
+	}
+
+      /* The average time spent in this function must not exceed one frame
+	 period or unprocessed frames accumulate and the main context
+	 calls us over and over again while the GUI starves to death. */
+      filter_time = end + end - start - 1/25.0 * .7;
+    }
+
+  zf_send_full_buffer (&cs->prod, b2);
+
+  return TRUE;
+}
+
+static GSourceFuncs
+capture_source_funcs = {
+  capture_source_prepare,
+  capture_source_check,
+  capture_source_dispatch,
+  /* finalize */ NULL,
+  /* closure_callback */ NULL,
+  /* closure_marshal */ NULL,
+};
+
+/* Capture thread / idle handler. */
+
+static pthread_t		capture_thread_id;
+static volatile gboolean	exit_capture_thread;
+static volatile gboolean	capture_quit_ack;
+
+static void *
+capture_thread			(void *			data)
+{
+  tveng_device_info *info = (tveng_device_info *) data;
   zf_producer prod;
 
-  zf_add_producer(&capture_fifo, &prod);
+  zf_add_producer (&capture_fifo, &prod);
 
   while (!exit_capture_thread)
     {
       producer_buffer *p =
-	(producer_buffer*)zf_wait_empty_buffer(&prod);
+	(producer_buffer *) zf_wait_empty_buffer (&prod);
 
       /*
 	check whether this buffer needs rebuilding. We don't do it
@@ -207,51 +592,37 @@ capture_thread (void *data)
       /* No size change now. */
       _pthread_rwlock_rdlock (&fmt_rwlock); 
 
-retry:
-      if (exit_capture_thread)
-	{
-	  _pthread_rwlock_unlock (&fmt_rwlock);
-	  zf_unget_empty_buffer (&prod, &p->frame.b);
-	  break;
-	}
+      {
+      retry:
+	if (exit_capture_thread)
+	  {
+	    _pthread_rwlock_unlock (&fmt_rwlock);
+	    zf_unget_empty_buffer (&prod, &p->frame.b);
+	    break;
+	  }
 
-      if (p->tag != request_id && !compatible (p, info))
-	{
-	  /* schedule for rebuilding in the main thread */
-	  p->frame.b.used = 1; /* used==0 indicates eof */
-	  zf_send_full_buffer(&prod, &p->frame.b);
-	  _pthread_rwlock_unlock (&fmt_rwlock);
-	  continue;
-	}
+	if (p->tag != request_id && !compatible (p, info))
+	  {
+	    /* schedule for rebuilding in the main thread */
+	    p->frame.b.used = 1; /* note used == 0 indicates eof */
+	    zf_send_full_buffer (&prod, &p->frame.b);
+	    _pthread_rwlock_unlock (&fmt_rwlock);
+	    continue;
+	  }
 
-      /* We cannot handle timeouts or errors. Note timeouts
-	 are frequent when capturing an empty */
-      if (0 != fill_bundle_tveng(p, info))
-	{
-	  /* Avoid busy loop. FIXME there must be a better way. */
-	  _pthread_rwlock_unlock (&fmt_rwlock);
-	  usleep (10000);
-	  _pthread_rwlock_rdlock (&fmt_rwlock);
-	  goto retry;
-	}
+	/* We cannot handle timeouts or errors. Note timeouts
+	   are frequent when capturing an empty */
+	if (1 != fill_bundle_tveng(p, info, 50))
+	  {
+	    /* Avoid busy loop. FIXME there must be a better way. */
+	    _pthread_rwlock_unlock (&fmt_rwlock);
+	    usleep (10000);
+	    _pthread_rwlock_rdlock (&fmt_rwlock);
+	    goto retry;
+	  }
+      }
 
       _pthread_rwlock_unlock (&fmt_rwlock);
-
-      /* FIXME something is wrong here with timestamps.
-	 We start capturing, then get_timestamp() before
-	 the first buffer dequeue. */
-      if (p->src_image && p->frame.timestamp > 0)
-	{
-	  p->frame.b.time = p->frame.timestamp;
-
-	  p->frame.b.data = p->src_image->data.linear.data;
-	  p->frame.b.used = p->src_image->fmt.size;
-	}
-      else
-	{
-	  p->frame.b.data = NULL;
-	  p->frame.b.used = 1;
-	}
 
       zf_send_full_buffer(&prod, &p->frame.b);
     }
@@ -261,81 +632,6 @@ retry:
   capture_quit_ack = TRUE;
 
   return NULL;
-}
-
-/*
-  If the device has never been scanned for available modes before
-  this routine checks for that. Otherwise the appropiate values are
-  loaded from the configuration.
-  Returns a bitmask indicating which modes are available.
-*/
-static tv_pixfmt_set
-scan_device		(tveng_device_info	*info)
-{
-  /*  gchar *key;
-  gchar *s;
-  */
-  tv_pixfmt pixfmt;
-  tv_pixfmt_set supported;
-  tv_image_format old_fmt;
-  tv_image_format new_fmt;
-
-  /*
-  key = g_strdup_printf (ZCONF_DOMAIN "%x/scanned", info->signature);
-  if (zconf_get_boolean (NULL, key))
-    {
-      g_free (key);
-      key = g_strdup_printf (ZCONF_DOMAIN "%x/available_formats",
-			     info->signature);
-      zconf_get_int (&supported, key);
-      // zconf_get_string (&s, key);
-      g_free (key);
-      // supported = atoll (s); !!
-      // g_free (s);
-      return supported;
-    }
-  */
-
-  if (0 != tv_supported_pixfmts (info)) {
-    /* Shortcut. */
-    return tv_supported_pixfmts (info);
-  }
-
-  old_fmt = *tv_cur_capture_format (info);
-
-  supported = 0;
-
-  /* Things are simpler this way. */
-
-  for (pixfmt = 0; pixfmt < TV_MAX_PIXFMTS; pixfmt++)
-    if (TV_PIXFMT_SET_ALL & TV_PIXFMT_SET (pixfmt))
-      {
-	/* FIXME other code assumes info->capture_format is the
-	   current format, not the one we request. */
-	new_fmt = old_fmt;
-	new_fmt.pixfmt = pixfmt;
-
-	if (tv_set_capture_format (info, &new_fmt))
-	  supported |= TV_PIXFMT_SET (pixfmt);
-      }
-
-  tv_set_capture_format (info, &old_fmt);
-
-  /*
-  zconf_create_boolean
-    (TRUE, "Whether this device has been already scanned", key);
-
-  g_free (key);
-  key = g_strdup_printf (ZCONF_DOMAIN "%x/available_formats",
-			 info->signature);
-  zconf_create_int (supported, "Bitmaps of available pixformats", key);
-  // s = g_strdup_printf ("%llu", supported);
-  // zconf_create_string (s, "Bitmaps of available pixfmts", key);
-  // g_free (s);
-  g_free (key);
-  */
-
-  return supported;
 }
 
 /*
@@ -351,15 +647,17 @@ scan_device		(tveng_device_info	*info)
  *	Passes the data to the serial_read plugins.
  */
 
-static zf_consumer		__ctc, *cf_timeout_consumer = &__ctc;
+static zf_consumer		idle_consumer;
 static guint			idle_id;
-static gint idle_handler(gpointer _info)
+
+static gint
+idle_handler			(gpointer		data)
 {
+  tveng_device_info *info = (tveng_device_info *) data;
   zf_buffer *b;
   struct timespec t;
   struct timeval now;
   producer_buffer *pb;
-  tveng_device_info *info = (tveng_device_info*)_info;
 
   gettimeofday (&now, NULL);
 
@@ -372,7 +670,7 @@ static gint idle_handler(gpointer _info)
       t.tv_sec ++;
     }
 
-  b = zf_wait_full_buffer_timeout (cf_timeout_consumer, &t);
+  b = zf_wait_full_buffer_timeout (&idle_consumer, &t);
   if (!b)
     return TRUE; /* keep calling me */
 
@@ -380,61 +678,84 @@ static gint idle_handler(gpointer _info)
 
   if (pb->tag == request_id)
     {
-      capture_frame *cf = (capture_frame*)pb;
-      GList *p = plugin_list;
-
-      /* Draw the image */
-      video_blit_frame (cf);
-      
-      /* Pass the data to the plugins */
-      while (p)
-	{
-	  plugin_read_frame (cf, (struct plugin_info*)p->data);
-	  p = p->next;
-	}
+      video_blit_frame (&pb->frame);
+      pass_frame_to_plugins (pb);
     }
-  else /* Rebuild time */
+  else
     {
-      tv_pixfmt_set mask = build_mask (TRUE);
-      unsigned int i;
-
-      /* Remove items in the current array */
-      for (i = 0; i < pb->num_images; i++)
-	zimage_unref (pb->images[i]);
-
-      pb->src_image = NULL;
-      pb->num_images = 0;
-
-      /* Get number of requested modes */
-      for (i = 0; i < TV_MAX_PIXFMTS; i++)
-	{
-	  const tv_image_format *fmt;
-
-	  fmt = tv_cur_capture_format (info);
-
-	if (TV_PIXFMT_SET (i) & (mask | TV_PIXFMT_SET (fmt->pixfmt)))
-	  {
-	    pb->images[pb->num_images] =
-	      zimage_new (i, fmt->width, fmt->height);
-
-	    if (fmt->pixfmt == i)
-	      {
-		/* XXX is this correct? */
-		pb->src_index = pb->num_images;
-		pb->src_image = pb->images[pb->num_images];
-	      }
-
-	    pb->num_images++;
-	  }
-	}
-
-      g_assert (pb->src_image != NULL);
-      pb->tag = request_id; /* Done */
+      rebuild_buffer (pb, info);
     }
 
-  zf_send_empty_buffer (cf_timeout_consumer, b);
+  zf_send_empty_buffer (&idle_consumer, b);
 
   return TRUE; /* keep calling me */
+}
+
+zimage *
+retrieve_frame			(capture_frame *	frame,
+				 tv_pixfmt		pixfmt,
+				 gboolean		copy)
+{
+  producer_buffer *pb = PARENT (frame, producer_buffer, frame);
+  void *dst;
+  const void *src;
+  const tv_image_format *dst_format;
+  const tv_image_format *src_format;
+  guint i;
+
+  if (0)
+    fprintf (stderr, "%s: %p %s\n", __FUNCTION__, frame,
+	     tv_pixfmt_name (pixfmt));
+
+  i = (guint) pixfmt;
+
+  assert (i < G_N_ELEMENTS (pb->images));
+
+  if (NULL == pb->images[i])
+    return NULL;
+
+  assert (pb->images[i]->fmt.pixel_format->pixfmt == pixfmt);
+
+  if (pb->converted & TV_PIXFMT_SET (pixfmt))
+    return pb->images[i];
+
+  if (1
+      && !copy
+      && pb->src_buffer
+      && pb->src_buffer->format->pixel_format->pixfmt == pixfmt)
+    {
+      /* Just return a pointer to src_buffer. */
+
+      pb->src_direct = *pb->images[i];
+      pb->src_direct.img = pb->src_buffer->data;
+
+      return &pb->src_direct;
+    }
+
+  if (pb->src_buffer)
+    {
+      /* Convert from driver buffer. */
+      src = pb->src_buffer->data;
+      src_format = pb->src_buffer->format;
+    }
+  else
+    {
+      /* Convert from first copy in pb->images[]. */
+      src = pb->src_image->img;
+      src_format = &pb->src_image->fmt;
+    }
+
+  dst = pb->images[i]->img;
+  dst_format = &pb->images[i]->fmt;
+
+  assert (src != dst);
+
+  if (!csconvert (dst, dst_format, src, src_format))
+    return NULL;
+
+  pb->converted |= TV_PIXFMT_SET (pixfmt);
+
+  return pb->images[i];
 }
 
 static void
@@ -442,63 +763,82 @@ on_capture_canvas_allocate             (GtkWidget       *widget _unused_,
                                         GtkAllocation   *allocation,
                                         tveng_device_info *info)
 {
-  capture_fmt fmt;
+  /* Suggest widget size as capture size. */
 
-  CLEAR (fmt);
-
-  fmt.pixfmt = tv_cur_capture_format (info)->pixfmt;
-  fmt.width = allocation->width;
-  fmt.height = allocation->height;
-
-  request_capture_format (&fmt);
+  request_capture_format (info,
+			  allocation->width,
+			  allocation->height,
+			  TV_PIXFMT_SET_EMPTY,
+			  /* flags */ 0);
 }
 
-gint capture_start (tveng_device_info *info, GtkWidget *window)
+gboolean
+remove_display_filter		(display_filter_fn *	filter)
 {
-  int i;
-  zf_buffer *b;
+  guint i;
 
-  if (tveng_start_capturing (info) == -1)
+  if (display_filter != filter)
+    return FALSE;
+
+  display_filter = NULL;
+
+  for (i = 0; i < N_ELEMENTS (display_buffers); ++i)
     {
-      ShowBox (_("Cannot start capturing: %s"),
-	       GTK_MESSAGE_ERROR, tv_get_errstr (info));
-      return FALSE;
+      producer_buffer *pb = &display_buffers[i];
+      guint j;
+
+      for (j = 0; j < G_N_ELEMENTS (pb->images); ++j)
+	if (pb->images[j])
+	  {
+	    zimage_unref (pb->images[j]);
+	    pb->images[j] = NULL;
+	  }
+
+      pb->src_image = NULL;
     }
 
-  /* XXX */
-  dest_window = window;
+  return TRUE;
+}
 
-  zf_init_buffered_fifo (&capture_fifo, "zapping-capture", 0, 0);
+gboolean
+add_display_filter		(display_filter_fn *	filter,
+				 tv_pixfmt		pixfmt,
+				 guint			width,
+				 guint			height)
+{
+  guint i;
 
-  for (i=0; i<NUM_BUNDLES; i++)
+  g_assert (pixfmt < TV_MAX_PIXFMTS);
+
+  if (display_filter)
+    return FALSE;
+
+  display_filter = filter;
+
+  for (i = 0; i < N_ELEMENTS (display_buffers); ++i)
     {
-      g_assert ((b = g_malloc0(sizeof(producer_buffer))));
-      b->destroy = free_bundle;
-      zf_add_buffer (&capture_fifo, b);
+      producer_buffer *pb = &display_buffers[i];
+
+      CLEAR (*pb);
+
+      pb->images[pixfmt] = zimage_new (pixfmt, width, height);
+      g_assert (NULL != pb->images[pixfmt]);
+
+      pb->converted = TV_PIXFMT_SET (pixfmt);
+
+      pb->src_image = pb->images[pixfmt];
+
+      tv_clear_image (pb->src_image->img, &pb->src_image->fmt);
     }
-
-  zf_add_consumer (&capture_fifo, cf_timeout_consumer);
-
-  exit_capture_thread = FALSE;
-  capture_quit_ack = FALSE;
-  g_assert (!pthread_create (&capture_thread_id, NULL, capture_thread,
-			     zapping->info));
-
-  available_pixfmts = scan_device (zapping->info);
-
-  idle_id = g_idle_add ((GSourceFunc) idle_handler, info);
-
-  /* XXX */
-  g_signal_connect (G_OBJECT (window),
-		    "size-allocate",
-		    GTK_SIGNAL_FUNC (on_capture_canvas_allocate),
-		    zapping->info);
 
   return TRUE;
 }
 
 static gint
-join (const char *who, pthread_t id, volatile gboolean *ack, gint timeout)
+join				(const char *		who,
+				 pthread_t		id,
+				 volatile gboolean *	ack,
+				 gint			timeout)
 {
   /* Dirty. Where is pthread_try_join()? */
   for (; (!*ack) && timeout > 0; timeout--) {
@@ -523,10 +863,19 @@ join (const char *who, pthread_t id, volatile gboolean *ack, gint timeout)
   return timeout;
 }
 
-void capture_stop (void)
+gboolean
+capture_stop			(void)
 {
   GList *p;
   zf_buffer *b;
+  guint i;
+
+  /* Don't stop when recording. */
+  for (i = 0; i < n_formats; ++i)
+    if (formats[i].flags & REQ_SIZE)
+      return FALSE;
+
+  tveng_stop_capturing (zapping->info);
 
   /* XXX */
   g_signal_handlers_disconnect_by_func
@@ -536,423 +885,579 @@ void capture_stop (void)
 
   dest_window = NULL;
 
-  /* First tell all well-behaved consumers to stop */
-  broadcast (CAPTURE_STOP);
-  p = g_list_first(plugin_list);
-  while (p)
+  /* First tell all well-behaved consumers to stop. */
+  for (p = g_list_first (plugin_list); p; p = p->next)
+    plugin_capture_stop ((struct plugin_info *) p->data);
+
+  if (1 && tv_get_caps (zapping->info)->flags & TVENG_CAPS_QUEUE)
     {
-      plugin_capture_stop((struct plugin_info*)p->data);
-      p = p->next;
-    }  
+      capture_source *cs;
 
-  /* Stop our marvellous consumer */
-  if (NO_SOURCE_ID != idle_id)
-    g_source_remove (idle_id);
-  idle_id = NO_SOURCE_ID;
+      cs = PARENT (source, capture_source, source);
+      zf_rem_producer (&cs->prod);
 
-  /* Let the capture thread go to a better place */
-  exit_capture_thread = TRUE;
+      g_source_destroy (source);
+      g_source_unref (source);
+      source = NULL;
+    }
+  else
+    {
+      /* Stop our marvellous consumer */
+      if (NO_SOURCE_ID != idle_id)
+	g_source_remove (idle_id);
+      idle_id = NO_SOURCE_ID;
 
-  /* empty full queue and remove timeout consumer */
-  while ((b = zf_recv_full_buffer (cf_timeout_consumer)))
-    zf_send_empty_buffer (cf_timeout_consumer, b);
-  zf_rem_consumer (cf_timeout_consumer);
+      /* Let the capture thread go to a better place. */
+      exit_capture_thread = TRUE;
 
-  join ("videocap", capture_thread_id, &capture_quit_ack, 15);
+      /* empty full queue and remove timeout consumer. */
+      while ((b = zf_recv_full_buffer (&idle_consumer)))
+	zf_send_empty_buffer (&idle_consumer, b);
 
-  /* Free handlers and formats */
-  g_free (handlers);
-  handlers = NULL;
-  num_handlers = 0;
+      zf_rem_consumer (&idle_consumer);
+
+      join ("videocap", capture_thread_id, &capture_quit_ack, 15);
+    }
 
   g_free (formats);
   formats = NULL;
-  num_formats = 0;
+  n_formats = 0;
 
   zf_destroy_fifo (&capture_fifo);
+
+  video_uninit ();
+
+  return TRUE;
 }
 
-/*
-  Finds the first request in (formats, fmt) that gives a size, and
-  stores it in width, height. If nothing gives a size, then uses some
-  defaults.
-*/
+gboolean
+capture_start			(tveng_device_info *	info,
+				 GtkWidget *		window)
+{
+  guint i;
+  GList *p;
+
+  if (-1 == tveng_start_capturing (info))
+    {
+      ShowBox (_("Cannot start capturing: %s"),
+	       GTK_MESSAGE_ERROR, tv_get_errstr (info));
+      return FALSE;
+    }
+
+  /* XXX */
+  dest_window = window;
+
+  zf_init_buffered_fifo (&capture_fifo, "zapping-capture", 0, 0);
+
+  /* Immediately requeue capture buffers when all consumers are done. */
+  capture_fifo.buffer_done = buffer_done;
+
+  for (i = 0; i < N_BUNDLES; ++i)
+    {
+      producer_buffer *pb;
+
+      pb = g_malloc0 (sizeof (*pb));
+
+      pb->frame.b.destroy = free_bundle;
+
+      zf_add_buffer (&capture_fifo, &pb->frame.b);
+    }
+
+  if (1 && tv_get_caps (info)->flags & TVENG_CAPS_QUEUE)
+    {
+      capture_source *cs;
+
+      /* Attn: source_funcs must be static. */
+      source = g_source_new (&capture_source_funcs, sizeof (*cs));
+
+      cs = PARENT (source, capture_source, source);
+
+      cs->poll_fd.fd = tv_get_fd (info);
+      cs->poll_fd.events = G_IO_IN;
+      cs->poll_fd.revents = 0;
+
+      cs->info = info;
+
+      zf_add_producer (&capture_fifo, &cs->prod);
+
+      g_source_add_poll (source, &cs->poll_fd);
+
+      g_source_attach (source, /* context: default */ NULL);
+
+      /* Needs higher priority than VBI or video stumbles. */
+      g_source_set_priority (source, -10);
+
+      filter_time = 0.0;
+    }
+  else
+    {
+      gint r;
+
+      zf_add_consumer (&capture_fifo, &idle_consumer);
+
+      exit_capture_thread = FALSE;
+      capture_quit_ack = FALSE;
+
+      r = pthread_create (&capture_thread_id, NULL,
+			  capture_thread, zapping->info);
+      g_assert (0 == r);
+
+      idle_id = g_idle_add ((GSourceFunc) idle_handler, info);
+    }
+
+  /* XXX */
+  g_signal_connect (G_OBJECT (window),
+		    "size-allocate",
+		    GTK_SIGNAL_FUNC (on_capture_canvas_allocate),
+		    zapping->info);
+
+  for (p = g_list_first (plugin_list); p; p = p->next)
+    plugin_capture_start ((struct plugin_info *) p->data);
+
+  video_init (window, window->style->black_gc);
+
+  return TRUE;
+}
+
+static tv_pixfmt
+convertible_to_pixfmt_set	(tv_pixfmt_set		dst_pixfmt_set,
+				 tv_pixfmt		src_pixfmt)
+{
+  tv_pixfmt dst_pixfmt;
+  
+  if (dst_pixfmt_set & TV_PIXFMT_SET (src_pixfmt))
+    return src_pixfmt;
+
+  for (dst_pixfmt = 0; dst_pixfmt < TV_MAX_PIXFMTS; ++dst_pixfmt)
+    {
+      if (!(dst_pixfmt_set & TV_PIXFMT_SET (dst_pixfmt)))
+	continue;
+
+      if (-1 != lookup_csconvert (src_pixfmt, dst_pixfmt))
+	return dst_pixfmt;
+    }
+
+  return TV_PIXFMT_NONE;
+}
+
+static tv_pixfmt
+convertible_to_format		(req_format *		format,
+				 tv_pixfmt		src_pixfmt)
+{
+  if (format->flags & REQ_PIXFMT)
+    {
+      /* We're stuck with format->pixfmt. */
+
+      if (format->pixfmt == src_pixfmt)
+	return format->pixfmt;
+
+      if (-1 != lookup_csconvert (src_pixfmt, format->pixfmt))
+	return format->pixfmt;
+    }
+  else
+    {
+      return convertible_to_pixfmt_set (format->pixfmt_set, src_pixfmt);
+    }
+
+  return TV_PIXFMT_NONE;
+}
+
+/* This searches for a capture pixfmt which can be converted to
+   all requested pixfmts. If more than one qualifies, we pick
+   that which needs the fewest conversions.
+   FIXME this is too simple. See TODO. */
 static gboolean
-find_request_size (capture_fmt *fmt, gint *width, gint *height)
+find_capture_pixfmt		(tveng_device_info *	info,
+				 tv_pixfmt *		capture_pixfmt,	 
+				 tv_pixfmt *		target_pixfmt,
+				 tv_pixfmt_set		pixfmt_set)
 {
-  gint i;
-  for (i=0; i<num_formats; i++)
-    if (formats[i].fmt.locked)
-      {
-	/* We cannot change the capture size, caller
-	   must take this or scale.
+  tv_pixfmt_set supported_pixfmts;
+  tv_pixfmt src_pixfmt;
+  guint min_conversions;
 
-	   FIXME one should only scale down, and
-	   don't forget about interlaced video. */
+  supported_pixfmts = tv_supported_pixfmts (info);
+  if (TV_PIXFMT_SET_EMPTY == supported_pixfmts)
+    return FALSE;
 
-	*width = formats[i].fmt.width;
-	*height = formats[i].fmt.height;
-	return TRUE;
-      }
+  *capture_pixfmt = TV_PIXFMT_NONE;
+  *target_pixfmt = TV_PIXFMT_NONE;
+  min_conversions = 999;
 
-  if (fmt && fmt->locked)
+  for (src_pixfmt = 0; src_pixfmt < TV_MAX_PIXFMTS; ++src_pixfmt)
     {
-      /* We can change, must use requested size
-	 instead of current. */
+      tv_pixfmt dst_pixfmt;
+      guint n_conversions;
+      guint i;
 
-      *width = fmt->width;
-      *height = fmt->height;
-      return TRUE;
-    }
+      /* What if we would capture using src_pixfmt? */
 
-  /* Any size will do. */
+      if (!(supported_pixfmts & TV_PIXFMT_SET (src_pixfmt)))
+	continue;
 
-  /* FIXME this should query tveng or use
-     some user configured values. */
-  if (dest_window)
-    {
-      *width = SATURATE (dest_window->allocation.width, 64, 768);
-      *height = SATURATE (dest_window->allocation.height, 64 * 3/4, 576);
-    }
-  else
-    {
-      *width = 352;
-      *height = 288;
-    }
+      n_conversions = 0;
 
-  return FALSE;
-}
-
-/*
- * The following routine tries to find the optimum tveng mode for the
- * current requested formats. Optionally, we can also pass an extra
- * capture_fmt, it will be treated just like it was a member of formats.
- * Upon success, the request is stored
- * and its id is returned. This routine isn't a complete algorithm, in
- * the sense that we don't try all possible combinations of
- * suggested/required modes when allow_suggested == FALSE. In fact,
- * since we will only have one suggested format it provides the
- * correct answer.
- * This routine could suffer some additional optimization, but
- * obfuscating it even more isn't a good thing.
- */
-static gint
-request_capture_format_real (capture_fmt *fmt, gboolean required,
-			     gboolean allow_suggested,
-			     tveng_device_info *info)
-{
-  tv_pixfmt_set prev_mask;
-  tv_pixfmt_set req_mask;
-  gint i;
-  tv_pixfmt id=0;
-  gint k;
-  static gint counter = 0;
-  gint conversions = 999;
-  tv_image_format prev_fmt;
-  const tv_image_format *ifmt;
-  guint req_w, req_h;
-  gboolean fixed_size;
-
-  req_mask = fmt ? TV_PIXFMT_SET (fmt->pixfmt) : TV_PIXFMT_SET_EMPTY;
-
-  if (fmt)
-    _pthread_rwlock_wrlock (&fmt_rwlock);
-  else
-    _pthread_rwlock_rdlock (&fmt_rwlock);
-
-  /* Previously requested formats */
-  prev_mask = build_mask (allow_suggested);
-
-  /* First do the easy check, whether the req size is available */
-  /* Note that we assume that formats is valid [should be, since it's
-     constructed by adding/removing] */
-  if (fmt && fmt->locked)
-    for (i=0; i<num_formats; i++)
-      if (formats[i].fmt.locked &&
-	  ((!formats[i].required) && allow_suggested) &&
-	  (formats[i].fmt.width != fmt->width ||
-	   formats[i].fmt.height != fmt->height))
+      dst_pixfmt = convertible_to_pixfmt_set (pixfmt_set, src_pixfmt);
+      if (TV_PIXFMT_NONE == dst_pixfmt)
 	{
-	  _pthread_rwlock_unlock (&fmt_rwlock);
-	  return -1;
+	  /* Cannot convert to any of the requested pixfmts. */
+	  continue;
+	}
+      else if (src_pixfmt != dst_pixfmt)
+	{
+	  n_conversions = 1;
 	}
 
-  /* Check if we already convert to the requested pixfmt. */
-  if (prev_mask & req_mask)
-    {
-      /* Keep the current capture pixfmt. */
-      id = tv_cur_capture_format (info)->pixfmt;
-      goto req_ok;
-    }
+      for (i = 0; i < n_formats; ++i)
+	{
+	  tv_pixfmt dst_pixfmt_n;
 
-  /* This searches for a capture pixfmt which can be converted to
-     all requested pixfmts. If more than one qualifies, we pick
-     that which needs the fewest conversions.
-
-     FIXME this is too simple. See TODO. */
-
-  for (i=0; i<TV_MAX_PIXFMTS; i++)
-    if (available_pixfmts & TV_PIXFMT_SET (i))
-      {
-	gint num_conversions = 0;
-
-	/* See what would happen if we set mode i, which is supported
-	   by the video hw */
-
-	for (k=0; k < TV_MAX_PIXFMTS; k++)
-	  if ((req_mask | prev_mask) & TV_PIXFMT_SET (k))
+	  dst_pixfmt_n = convertible_to_format (&formats[i], src_pixfmt);
+	  if (TV_PIXFMT_NONE == dst_pixfmt_n)
 	    {
-	      /* Mode i supported, k requested */
-	      if (i != k)
-		{
-		  if (-1 != lookup_csconvert (i, k))
-		    {
-		      /* Available through a cs conversion */
-		      num_conversions++;
-		    }
-		  else
-		    {
-		      /* For simplicity we don't allow converting a
-			 converted image. Ain't that difficult to support,
-			 but i think it's better just to fail than doing too
-			 many cs conversions. */
-		      /* Cannot convert to k, so i is out of choice. */
-		      num_conversions = 999; /* like infinite */
-		      break;
-		    }
-		}
+	      n_conversions = 999;
+	      break;
 	    }
-
-	/* Candidate found, record it if it requires less conversions
-	   than our last candidate */
-	if (num_conversions < conversions)
-	  {
-	    conversions = num_conversions;
-	    id = i;
-	  }
-      }
-
-  /* Combo not possible, try disabling the suggested modes [all of
-     them, otherwise it's a bit too complex] */
-  if (conversions == 999)
-    {
-      if (!allow_suggested)
-	{
-	  _pthread_rwlock_unlock (&fmt_rwlock);
-	  return -1; /* No way, we were already checking without
-			suggested modes */
+	  else if (src_pixfmt != dst_pixfmt_n)
+	    {
+	      ++n_conversions;
+	    }
 	}
-      _pthread_rwlock_unlock (&fmt_rwlock);
-      return request_capture_format_real (fmt, required, FALSE, info);
-    }
 
- req_ok:
-  /* Request the new format to TVeng (should succeed) [id] */
-  prev_fmt = *tv_cur_capture_format (info);
-
-  fixed_size = find_request_size (fmt, &req_w, &req_h);
-
-  ifmt = tv_cur_capture_format (info);
-  if (ifmt->pixfmt != id
-      || ifmt->width != req_w
-      || ifmt->height != req_h)
-    {
-      tv_image_format new_fmt;
-
-      new_fmt = *ifmt;
-      new_fmt.pixfmt = id;
-      new_fmt.width = req_w;
-      new_fmt.height = req_h;
-
-      printv ("Setting TVeng mode %s [%d x %d]\n",
-	      tv_pixfmt_name (id), req_w, req_h);
-
-      tv_clear_error (info);
-
-      if (!(ifmt = tv_set_capture_format (info, &new_fmt))
-	  || (fixed_size &&
-	      /* may change due to driver limits */
-	      (ifmt->width != req_w
-	       || ifmt->height != req_h)))
+      if (n_conversions < min_conversions)
 	{
-	  if (0)
-	    g_warning ("Cannot set new mode: %s", tv_get_errstr (info));
-	  /* Try to restore previous setup so we can keep working */
-	  new_fmt = prev_fmt;
-
-	  if (!(ifmt = tv_set_capture_format (info, &new_fmt)))
-	    if (tv_get_capture_mode (info) == CAPTURE_MODE_NONE
-		|| tv_get_capture_mode (info) == CAPTURE_MODE_TELETEXT)
-	      tveng_start_capturing (info);
-	  _pthread_rwlock_unlock (&fmt_rwlock);
-	  return -1;
+	  *capture_pixfmt = src_pixfmt;
+	  *target_pixfmt = dst_pixfmt;
+	  min_conversions = n_conversions;
 	}
     }
 
-  /* Flags that the request list *might* have changed */
-  request_id ++;
-  broadcast (CAPTURE_CHANGE);
+  return (min_conversions < 999);
+}
 
-  if (fmt)
+static const tv_image_format *
+change_capture_format		(tveng_device_info *	info,
+				 guint			width,
+				 guint			height,
+				 tv_pixfmt		pixfmt,
+				 req_flags		flags)
+{
+  const tv_image_format *fmt;
+  tv_image_format new_format;
+  tv_image_format old_format;
+  capture_mode old_mode;
+
+  fmt = tv_cur_capture_format (info);
+  if (!fmt)
+    return NULL;
+
+  if (0 == (width | height))
+    flags &= ~REQ_SIZE;
+
+  if (0 == width)
+    width = fmt->width;
+
+  if (0 == height)
+    height = fmt->height;
+
+  if (TV_PIXFMT_NONE == pixfmt)
+    pixfmt = fmt->pixel_format->pixfmt;
+
+  if (fmt->pixel_format->pixfmt == pixfmt
+      && fmt->width == width
+      && fmt->height == height)
+    return fmt;
+
+  if (!tv_image_format_init (&new_format,
+			     width, height,
+			     /* bytes_per_line: minimum */ 0,
+			     pixfmt, TV_COLSPC_UNKNOWN))
     {
-      formats = g_realloc (formats, sizeof(*formats)*(num_formats+1));
-      formats[num_formats].id = counter++;
-      formats[num_formats].required = required;
-      memcpy (&formats[num_formats].fmt, fmt, sizeof(*fmt));
-      num_formats++;
-      _pthread_rwlock_unlock (&fmt_rwlock);
-      printv ("Format %s accepted [%s]\n",
-	      tv_pixfmt_name (fmt->pixfmt),
-	      tv_pixfmt_name (tv_cur_capture_format (info)->pixfmt));
-      /* Safe because we only modify in one thread */
-      return formats[num_formats-1].id;
+      /* Huh? */
+      return NULL;
     }
 
-  _pthread_rwlock_unlock (&fmt_rwlock);
-  return 0;
+  old_format = *fmt;
+
+  printv ("Setting capture format %s %ux%u\n",
+	  new_format.pixel_format->name,
+	  new_format.width,
+	  new_format.height);
+
+  old_mode = tv_get_capture_mode (info);
+  if (CAPTURE_MODE_READ == old_mode)
+    tveng_stop_capturing (info);
+
+  flush_buffers (info);
+
+  /* XXX TRY_FMT would be nice. */
+  fmt = tv_set_capture_format (info, &new_format);
+
+  /* Size may change due to driver limits. */
+  if ((flags & REQ_SIZE)
+      && fmt->width != width
+      && fmt->height != height)
+    fmt = NULL; /* failed */
+
+  if (!fmt)
+    {
+      fmt = tv_set_capture_format (info, &old_format);
+      if (!fmt)
+	{
+	  /* XXX Cannot restore old format. What now? */
+	  return NULL;
+	}
+
+      fmt = NULL; /* failed */
+    }
+
+  if (CAPTURE_MODE_READ == old_mode)
+    tveng_start_capturing (info);
+
+  return fmt;
 }
 
-/* Hack to improve format request for recording,
-   see plugins/mpeg/mpeg.c. */
-tv_pixfmt
-native_capture_format		(void)
+/* Releases the given requests, call this when you won't longer need
+   the format. The id returned by request_capture_format must be passed. */
+void
+release_capture_format		(gint			id)
 {
-  if (0 == num_formats)
-    return TV_PIXFMT_UNKNOWN;
-  else
-    return formats[0].fmt.pixfmt;
-}
-
-gint request_capture_format (capture_fmt *fmt)
-{
-  g_assert (fmt != NULL);
-
-  printv ("%s requested\n", tv_pixfmt_name (fmt->pixfmt));
-
-  return request_capture_format_real (fmt, TRUE, TRUE, zapping->info);
-}
-
-gint suggest_capture_format (capture_fmt *fmt)
-{
-  g_assert (fmt != NULL);
-
-  printv ("%s suggested\n", tv_pixfmt_name (fmt->pixfmt));
-
-  return request_capture_format_real (fmt, FALSE, TRUE, zapping->info);
-}
-
-void release_capture_format (gint id)
-{
-  gint index;
+  guint i;
 
   _pthread_rwlock_wrlock (&fmt_rwlock);
 
-  for (index = 0; index < num_formats; ++index) {
-    if (formats[index].id == id)
-      break;
-  }
+  {
+    for (i = 0; i < n_formats; ++i)
+      if (formats[i].id == id)
+	break;
 
-  g_assert (index != num_formats);
-
-  num_formats--;
-
-  if (index != num_formats)
-    memmove (&formats[index], &formats[index+1],
-	    (num_formats - index) * sizeof (formats[0]));
-
-  _pthread_rwlock_unlock (&fmt_rwlock);
-
-  request_capture_format_real (NULL, FALSE, TRUE, zapping->info);
-}
-
-void
-get_request_formats (capture_fmt **fmt, gint *num_fmts)
-{
-  gint i;
-
-  _pthread_rwlock_rdlock (&fmt_rwlock);
-  *fmt = g_malloc0 (num_formats * sizeof (capture_fmt));
-
-  for (i=0; i<num_formats; i++)
-    memcpy (&fmt[i], &formats[i].fmt, sizeof (capture_fmt));
-
-  *num_fmts = num_formats;
-  _pthread_rwlock_unlock (&fmt_rwlock);
-}
-
-gint
-add_capture_handler (CaptureNotify notify, gpointer user_data)
-{
-  static int id = 0;
-
-  handlers = g_realloc (handlers,
-			sizeof (*handlers) * num_handlers);
-  handlers[num_handlers].notify = notify;
-  handlers[num_handlers].user_data = user_data;
-  handlers[num_handlers].id = id++;
-  num_handlers ++;
-
-  return handlers[num_handlers-1].id;
-}
-
-void
-remove_capture_handler (gint id)
-{
-  gint i;
-
-  for (i=0; i<num_handlers; i++)
-    if (handlers[i].id == id)
-      break;
-
-  g_assert (i != num_handlers);
-
-  num_handlers--;
-  if (i != num_handlers)
-    memcpy (&handlers[i], &handlers[i+1],
-	    (num_handlers-i)*sizeof(*handlers));
-}
-
-zimage*
-retrieve_frame (capture_frame *frame,
-		tv_pixfmt pixfmt,
-		gboolean copy)
-{
-  guint i;
-  producer_buffer *pb = (producer_buffer*)frame;
-
-  for (i=0; i<pb->num_images; i++)
-    if (pb->images[i]->fmt.pixfmt == pixfmt)
+    if (i >= n_formats)
       {
-	if (!pb->converted[i])
-	  {
-	    zimage *src = pb->src_image;
-	    zimage *dest = pb->images[i];
-	    int id = lookup_csconvert (src->fmt.pixfmt, pixfmt);
-
-	    if (id == -1)
-	      return NULL;
-
-	    csconvert (id, &src->data, &dest->data,
-		       src->fmt.width,
-		       src->fmt.height);
-
-	    pb->converted[i] = TRUE;
-	  }
-
-	return pb->images[i];
+	_pthread_rwlock_unlock (&fmt_rwlock);
+	return;
       }
 
-  return NULL;
+    --n_formats;
+
+    if (i != n_formats)
+      memmove (&formats[i],
+	       &formats[i + 1],
+	       (n_formats - i) * sizeof (formats[0]));
+  }
+
+  /* XXX maybe we can save a conversion now? But I don't really want
+     to interrupt capturing without good reason. */
+
+  /* Flag that buffers may need rebuilding. */
+  ++request_id;
+
+  _pthread_rwlock_unlock (&fmt_rwlock);
 }
 
-void
-startup_capture (void)
+gboolean
+get_capture_format		(gint			id,
+				 guint *		width,
+				 guint *		height,
+				 tv_pixfmt *		pixfmt)
 {
-  pthread_rwlock_init (&fmt_rwlock, NULL);
+  guint i;
+
+  for (i = 0; i < n_formats; ++i)
+    if (formats[i].id == id)
+      break;
+
+  if (i >= n_formats)
+    return FALSE;
+
+  if (width)
+    *width = formats[i].width;
+
+  if (height)
+    *height = formats[i].height;
+
+  if (pixfmt)
+    *pixfmt = formats[i].pixfmt;
+
+  return TRUE;
+}
+
+/* Basically this is a tv_set_capture_format() wrapper. If modules need
+   different image sizes and pixel formats it will find a good capture
+   format and determine if conversion will be possible.
+
+   width and height - the desired image size, can be zero to get the
+   current capture size. pixfmt_set - set of acceptable pixel formats.
+   flags - REQ_SIZE if the image size must not change until
+   release_capture_format(). REQ_PIXFMT ditto for the pixel format.
+
+   Returns a capture_format ID on success, -1 otherwise. */
+gint
+request_capture_format		(tveng_device_info *	info,
+				 guint			width,
+				 guint			height,
+				 tv_pixfmt_set		pixfmt_set,
+				 req_flags		flags)
+{
+  static gint format_id = 0;
+  tv_pixfmt capture_pixfmt;
+  tv_pixfmt target_pixfmt;
+  guint i;
+  gint id;
+
+  g_assert (NULL != info);
+
+  if (debug_msg)
+    {
+      tv_pixfmt pixfmt;
+      int c = ' ';
+
+      printv ("Format");
+
+      for (pixfmt = 0; pixfmt < TV_MAX_PIXFMTS; ++pixfmt)
+	if (pixfmt_set & TV_PIXFMT_SET (pixfmt))
+	  {
+	    printv ("%c%s", c, tv_pixfmt_name (pixfmt));
+	    c = '|';
+	  }
+
+      printv (" %ux%u%s requested\n",
+	      width, height,
+	      (flags & REQ_SIZE) ? " (locked)" : "");
+    }
+
+  _pthread_rwlock_wrlock (&fmt_rwlock);
+
+  {
+    if (0 == (width | height))
+      {
+	flags &= ~REQ_SIZE;
+      }
+    else
+      {
+	/* Check if the requested size is available. */
+	
+	for (i = 0; i < n_formats; ++i)
+	  {
+	    if ((formats[i].flags & REQ_SIZE)
+		&& (formats[i].width != width
+		    || formats[i].height != height))
+	      {
+		if (flags & REQ_SIZE)
+		  {
+		    printv ("Format rejected, size locked at %ux%u\n",
+			    formats[i].width, formats[i].height);
+		    goto failure;
+		  }
+		
+		/* Keep current size. */
+		width = 0;
+		height = 0;
+		
+		break;
+	      }
+	  }
+      }
+    
+    capture_pixfmt = TV_PIXFMT_NONE;
+    target_pixfmt = TV_PIXFMT_NONE;
+  
+    if (TV_PIXFMT_SET_EMPTY != pixfmt_set)
+      {
+	/* Check if we already convert to one of the requested pixfmts. */
+	for (i = 0; i < n_formats; ++i)
+	  if (pixfmt_set & TV_PIXFMT_SET (formats[i].pixfmt))
+	    {
+	      /* Keep the current capture pixfmt. */
+	      target_pixfmt = formats[i].pixfmt;
+	      break;
+	    }
+	
+	/* Or find a capture pixfmt that can be
+	   converted to all requested pixfmts. */
+	if (i >= n_formats)
+	  {
+	    if (!find_capture_pixfmt (info,
+				      &capture_pixfmt,
+				      &target_pixfmt,
+				      pixfmt_set))
+	      {
+		printv ("Format rejected, not convertible\n");
+		goto failure;
+	      }
+	  }
+      }
+    
+    if (TV_PIXFMT_NONE != capture_pixfmt
+	|| 0 != (width | height))
+      {
+	const tv_image_format *fmt;
+	
+	fmt = change_capture_format (info, width, height,
+				     capture_pixfmt, flags);
+	if (!fmt)
+	  {
+	    printv ("Format rejected, cannot capture %s %ux%u\n",
+		    tv_pixfmt_name (capture_pixfmt), width, height);
+	    /* XXX maybe another pixfmt works? */
+	    goto failure;
+	  }
+	
+	/* Another target pixfmt may be more efficient now. */
+	if (TV_PIXFMT_NONE != capture_pixfmt)
+	  for (i = 0; i < n_formats; ++i)
+	    if (!(formats[i].flags & REQ_PIXFMT))
+	      formats[i].pixfmt =
+		convertible_to_pixfmt_set (formats[i].pixfmt_set,
+					   capture_pixfmt);
+      }
+    
+    if (TV_PIXFMT_SET_EMPTY != pixfmt_set)
+      {
+	/* Add new format. */
+	
+	formats = g_realloc (formats, sizeof (*formats) * (n_formats + 1));
+	
+	id = ++format_id;
+	
+	formats[n_formats].id = id;
+	formats[n_formats].width = width;
+	formats[n_formats].height = height;
+	formats[n_formats].pixfmt_set = pixfmt_set;
+	formats[n_formats].pixfmt = target_pixfmt;
+	formats[n_formats].flags = flags;
+	
+	++n_formats;
+      }
+
+    /* Flag that buffers may need rebuilding. */
+    ++request_id;
+  }
+
+  _pthread_rwlock_unlock (&fmt_rwlock);
+
+  printv ("Format accepted, converting %s to %s %ux%u\n",
+	  tv_pixfmt_name (capture_pixfmt),
+	  tv_pixfmt_name (target_pixfmt),
+	  width, height);
+
+  return id;
+
+ failure:
+  _pthread_rwlock_unlock (&fmt_rwlock);
+  return -1;
 }
 
 void
-shutdown_capture (void)
+shutdown_capture		(void)
 {
   pthread_rwlock_destroy (&fmt_rwlock);
+}
+
+void
+startup_capture			(void)
+{
+  pthread_rwlock_init (&fmt_rwlock, NULL);
+
+  z_gconf_auto_update_float
+    (&field_balance, "/apps/zapping/plugins/deinterlace/field_balance");
 }
