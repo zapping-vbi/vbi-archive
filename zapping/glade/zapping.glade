@@ -148,6 +148,23 @@
 	      <right_justify>False</right_justify>
 	      <stock_icon>GNOME_STOCK_MENU_INDEX</stock_icon>
 	    </widget>
+
+	    <widget>
+	      <class>GtkMenuItem</class>
+	      <name>toggle_muted1</name>
+	      <accelerator>
+		<modifiers>GDK_CONTROL_MASK</modifiers>
+		<key>GDK_a</key>
+		<signal>activate</signal>
+	      </accelerator>
+	      <signal>
+		<name>activate</name>
+		<handler>on_toggle_muted1_activate</handler>
+		<last_modification_time>Mon, 06 Aug 2001 23:22:42 GMT</last_modification_time>
+	      </signal>
+	      <label>Toggle muted</label>
+	      <right_justify>False</right_justify>
+	    </widget>
 	  </widget>
 	</widget>
 
@@ -291,7 +308,7 @@
 		<last_modification_time>Sat, 24 Feb 2001 05:17:15 GMT</last_modification_time>
 	      </signal>
 	      <label>_Subtitles</label>
-	      <active>True</active>
+	      <active>False</active>
 	      <always_show_toggle>True</always_show_toggle>
 	    </widget>
 
@@ -2506,7 +2523,7 @@ in the next release of this program.</label>
       <widget>
 	<class>GtkLabel</class>
 	<name>label82</name>
-	<label>Frequence:</label>
+	<label>Frequency:</label>
 	<justify>GTK_JUSTIFY_CENTER</justify>
 	<wrap>False</wrap>
 	<xalign>0.5</xalign>
