@@ -114,6 +114,8 @@ startup_ttxview (void)
   arrow = gdk_cursor_new(GDK_LEFT_PTR);
   model = ZMODEL(zmodel_new());
 
+  zcc_char(g_get_home_dir(), "Directory to export pages to", "exportdir");
+
   while (zconf_get_nth(i, &buffer, ZCONF_DOMAIN "bookmarks"))
     {
       buffer2 = g_strconcat(buffer, "/page", NULL);
@@ -859,7 +861,7 @@ void on_be_destroy			(GtkObject	*widget,
 }
 
 static
-void on_edit_bookmarks_activated	(GtkWidget	*widget,
+void on_delete_bookmarks_activated	(GtkWidget	*widget,
 					 ttxview_data	*data)
 {
   GtkWidget *be = create_widget("bookmarks_editor");
@@ -876,6 +878,101 @@ void on_edit_bookmarks_activated	(GtkWidget	*widget,
   on_be_model_changed(GTK_OBJECT(model), be);
   gtk_widget_show(be);
 }
+
+/* FIXME: reveal et al should be configurable */
+static
+void export_ttx_page			(GtkWidget	*widget,
+					 ttxview_data	*data,
+					 char		*fmt)
+{
+  struct export *exp;
+  gchar *buffer, *buffer2;
+  char *filename;
+  GnomeAppBar *appbar =
+    GNOME_APPBAR(lookup_widget(data->da, "appbar1"));
+
+  buffer = zcg_char(NULL, "exportdir");
+
+  if ((!buffer) ||
+      (!strlen(buffer)))
+    {
+      gnome_appbar_set_status(appbar,
+			      "You must first set the destination dir"
+			      " in the properties dialog");
+      return;
+    }
+
+  if (data->fmt_page->vtp->pgno < 0x100)
+    {
+      gnome_appbar_set_status(appbar, "No page loaded");
+      return;
+    }
+
+  if ((exp = export_open(fmt)))
+    {
+      filename =
+	export_mkname(exp, "Zapzilla-%p.%e",
+		      data->fmt_page->vtp, NULL);
+      zcg_char(&buffer, "exportdir");
+      g_strstrip(buffer);
+      if (buffer[strlen(buffer)-1] != '/')
+	buffer2 = g_strconcat(buffer, "/", NULL);
+      else
+	buffer2 = g_strdup(buffer);
+      g_free(buffer);
+      zcs_char(buffer2, "exportdir");
+      buffer = g_strconcat(buffer2, filename, NULL);
+      g_free(buffer2);
+      if (export(exp, data->fmt_page->vtp, buffer))
+	{
+	  buffer2 = g_strdup_printf("Export to %s failed: %s", buffer,
+				    export_errstr());
+	  g_warning(buffer2);
+	  gnome_appbar_set_status(appbar, buffer2);
+	  g_free(buffer2);
+	}
+      else
+	{
+	  buffer2 = g_strdup_printf(_("%s saved"), buffer);
+	  gnome_appbar_set_status(appbar, buffer2);  
+	  g_free(buffer2);
+	}
+      free(filename);
+      g_free(buffer);
+      export_close(exp);
+    }
+  else
+    {
+      buffer = g_strdup_printf("Cannot create export struct: %s",
+			       export_errstr());
+      g_warning(buffer);
+      gnome_appbar_set_status(appbar, buffer);
+      g_free(buffer);
+    }
+}
+
+static
+void export_html			(GtkWidget	*widget,
+					 ttxview_data	*data)
+{
+  export_ttx_page(widget, data, "html");
+}
+
+static
+void export_ppm				(GtkWidget	*widget,
+					 ttxview_data	*data)
+{
+  export_ttx_page(widget, data, "ppm");
+}
+
+#ifdef HAVE_LIBPNG
+static
+void export_png				(GtkWidget	*widget,
+					 ttxview_data	*data)
+{
+  export_ttx_page(widget, data, "png");
+}
+#endif /* HAVE_LIBPNG */
 
 static
 void on_bookmark_activated		(GtkWidget	*widget,
@@ -895,8 +992,6 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
   struct bookmark *bookmark;
   GtkWidget *menuitem;
   gchar *buffer;
-  GtkWidget *menu = lookup_widget(popup, "bookmarks1");
-  menu = GTK_MENU_ITEM(menu)->submenu;
 
   /* convert to fmt_page space */
   data->pop_pgno = page;
@@ -923,16 +1018,23 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
 		     GTK_SIGNAL_FUNC(not_done_yet), data);
   gtk_signal_connect(GTK_OBJECT(lookup_widget(popup, "ppm1")),
 		     "activate",
-		     GTK_SIGNAL_FUNC(not_done_yet), data);
+		     GTK_SIGNAL_FUNC(export_ppm), data);
+#ifdef HAVE_LIBPNG
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(popup, "png1")),
+		     "activate",
+		     GTK_SIGNAL_FUNC(export_png), data);
+#else
+  gtk_widget_hide(lookup_widget(popup, "png1"));
+#endif
   gtk_signal_connect(GTK_OBJECT(lookup_widget(popup, "ascii1")),
 		     "activate",
 		     GTK_SIGNAL_FUNC(not_done_yet), data);
   gtk_signal_connect(GTK_OBJECT(lookup_widget(popup, "add_bookmark")),
 		     "activate",
 		     GTK_SIGNAL_FUNC(new_bookmark), data);
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(popup, "edit_bookmarks")),
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(popup, "delete_bookmarks")),
 		     "activate",
-		     GTK_SIGNAL_FUNC(on_edit_bookmarks_activated),
+		     GTK_SIGNAL_FUNC(on_delete_bookmarks_activated),
 		     data);
 
   /* Bookmark entries */
@@ -943,7 +1045,7 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
       {
 	bookmark = (struct bookmark*)p->data;
 	menuitem = z_gtk_pixmap_menu_item_new(bookmark->description,
-					      GNOME_STOCK_PIXMAP_EXEC);
+					      GNOME_STOCK_PIXMAP_JUMP_TO);
 	if (bookmark->subpage != ANY_SUB)
 	  buffer = g_strdup_printf("%x.%x", bookmark->page, bookmark->subpage);
 	else
@@ -952,7 +1054,7 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
 	g_free(buffer);
 	gtk_object_set_user_data(GTK_OBJECT(menuitem), bookmark);
 	gtk_widget_show(menuitem);
-	gtk_menu_append(GTK_MENU(menu), menuitem);
+	gtk_menu_append(GTK_MENU(popup), menuitem);
 	gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
 			   GTK_SIGNAL_FUNC(on_bookmark_activated),
 			   data);

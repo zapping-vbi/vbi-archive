@@ -246,7 +246,7 @@ int main(int argc, char * argv[])
     newbttv = 0;
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.73 2000-12-30 16:06:16 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.74 2001-01-03 19:06:31 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -428,24 +428,15 @@ int main(int argc, char * argv[])
       gtk_widget_set_sensitive(lookup_widget(main_window, "separador5"),
 			       FALSE);
       gtk_widget_hide(lookup_widget(main_window, "separador5"));
-      gtk_widget_set_sensitive(lookup_widget(main_window, "separador6"),
-			       FALSE);
-      gtk_widget_hide(lookup_widget(main_window, "separador6"));
       gtk_widget_set_sensitive(lookup_widget(main_window, "videotext1"),
 			       FALSE);
       gtk_widget_hide(lookup_widget(main_window, "videotext1"));
-      gtk_widget_set_sensitive(lookup_widget(main_window, "videotext2"),
-			       FALSE);
-      gtk_widget_hide(lookup_widget(main_window, "videotext2"));
       gtk_widget_set_sensitive(lookup_widget(main_window, "videotext3"),
 			       FALSE);
       gtk_widget_hide(lookup_widget(main_window, "videotext3"));
       gtk_widget_set_sensitive(lookup_widget(main_window, "new_ttxview"),
 			       FALSE);
       gtk_widget_hide(lookup_widget(main_window, "new_ttxview"));
-      gtk_widget_set_sensitive(lookup_widget(main_window, "new_ttxview2"),
-			       FALSE);
-      gtk_widget_hide(lookup_widget(main_window, "new_ttxview2"));
       /* Set the capture mode to a default value and disable VBI */
       if (zcg_int(NULL, "capture_mode") == TVENG_NO_CAPTURE)
 	zcs_int(TVENG_CAPTURE_READ, "capture_mode");

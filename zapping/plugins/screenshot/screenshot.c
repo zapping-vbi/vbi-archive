@@ -18,6 +18,7 @@
 #include "plugin_common.h"
 #include <pthread.h>
 #include <jpeglib.h> /* jpeg compression */
+#include <gdk-pixbuf/gdk-pixbuf.h> /* previews */
 
 /*
   This plugin was built from the template one. It does some thing
@@ -39,7 +40,7 @@ static const gchar str_author[] = "Iñaki García Etxebarria";
 /* The format of the version string must be
    %d[[.%d[.%d]][other_things]], where the things between [] aren't
    needed, and if not present, 0 will be assumed */
-static const gchar str_version[] = "0.6";
+static const gchar str_version[] = "0.7";
 
 /* Set to TRUE when plugin_close is called */
 static gboolean close_everything = FALSE;

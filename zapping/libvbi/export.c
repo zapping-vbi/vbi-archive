@@ -1,3 +1,7 @@
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -45,7 +49,7 @@ struct export_module *modules[] =
     export_ansi,
     export_html,
     export_ppm,
-#ifdef WITH_PNG
+#ifdef HAVE_LIBPNG
     export_png,
 #endif
     0

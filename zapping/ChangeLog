@@ -1,3 +1,7 @@
+3.1.2001	gui for export filters <garetxe@users.sourceforge.net>
+
+	* src/ttxview.c: Export filters GUI. 
+
 2.1.2001	libvbi <mschimek@users.sourceforge.net>
 
 	* fmt_page: returns boolean success now

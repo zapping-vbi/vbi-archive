@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.16 2001-01-02 04:46:17 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.17 2001-01-03 19:06:31 garetxe Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -332,23 +332,7 @@ vbi_draw_page_indexed(struct fmt_page *pg, void *data)
  *  PPM - Portable Pixmap File (raw)
  */
 
-int ppm_output(struct export *e, char *name, struct fmt_page *pg);
-
-struct export_module export_ppm[1] =	// exported module definition
-{
-  {
-    "ppm",			// id
-    "ppm",			// extension
-    0,				// options
-    0,				// size
-    0,				// open
-    0,				// close
-    0,				// option
-    ppm_output			// output
-  }
-};
-
-int
+static int
 ppm_output(struct export *e, char *name, struct fmt_page *pg)
 {
 	unsigned int *image;
@@ -390,13 +374,27 @@ ppm_output(struct export *e, char *name, struct fmt_page *pg)
 
 	free(image);
 
-	if (!fclose(fp)) {
-		export_error("error while writting to file");
+	if (fclose(fp)) {
+		export_error("cannot close file");
 		return -1;
 	}
 
 	return 0;
 }
+
+struct export_module export_ppm[1] =	// exported module definition
+{
+  {
+    "ppm",			// id
+    "ppm",			// extension
+    0,				// options
+    0,				// size
+    0,				// open
+    0,				// close
+    0,				// option
+    ppm_output			// output
+  }
+};
 
 /*
  *  PNG - Portable Network Graphics File
@@ -407,23 +405,7 @@ ppm_output(struct export *e, char *name, struct fmt_page *pg)
 #include "png.h"
 #include "setjmp.h"
 
-int png_output(struct export *e, char *name, struct fmt_page *pg);
-
-struct export_module export_png[1] =	// exported module definition
-{
-  {
-    "png",			// id
-    "png",			// extension
-    0,				// options
-    0,				// size
-    0,				// open
-    0,				// close
-    0,				// option
-    ppm_output			// output
-  }
-};
-
-int
+static int
 png_output(struct export *e, char *name, struct fmt_page *pg)
 {
 	FILE *fp;
@@ -625,6 +607,20 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 
 	return 0;
 }
+
+struct export_module export_png[1] =	// exported module definition
+{
+  {
+    "png",			// id
+    "png",			// extension
+    0,				// options
+    0,				// size
+    0,				// open
+    0,				// close
+    0,				// option
+    png_output			// output
+  }
+};
 
 #endif /* HAVE_LIBPNG */
 

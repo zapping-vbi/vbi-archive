@@ -119,6 +119,12 @@ overlay_get_clips(GdkWindow * window, gint * clipcount)
   g_assert(window != NULL);
   g_assert(clipcount != NULL);
 
+  if (tv_info.info->current_controller == TVENG_CONTROLLER_XV)
+    {
+      *clipcount = 0;
+      return NULL;
+    }
+
   clips = x11_get_clips(window,
 			tv_info.info->window.x,
 			tv_info.info->window.y,
@@ -373,8 +379,12 @@ startup_overlay(gboolean use_xv, GtkWidget * window, GtkWidget *
 
   tv_info.ignore_expose = FALSE;
   tv_info.clear_timeout_id = -1;
-  tv_info.check_timeout_id =
-    gtk_timeout_add(CHECK_TIMEOUT, overlay_periodic_timeout, NULL);
+  if (info->current_controller != TVENG_CONTROLLER_XV)
+    tv_info.check_timeout_id =
+      gtk_timeout_add(CHECK_TIMEOUT, overlay_periodic_timeout,
+		      &(tv_info.check_timeout_id));
+  else
+    tv_info.check_timeout_id = -1;
   tv_info.clean_screen = FALSE;
   tv_info.clips = NULL;
   tv_info.clipcount = 0;

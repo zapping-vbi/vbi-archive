@@ -245,6 +245,7 @@ echo "
 	Optional package		Found
 	----------------		-----
 	JPEG lib			$HAVE_JPEG
+	PNG lib				$HAVE_PNG
 	MMX support			$HAVE_MMX
 	XVideo support			$XV_PRESENT
 	MPEG encoder support		$HAVE_RTE

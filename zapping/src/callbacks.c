@@ -560,6 +560,9 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 	  widget = lookup_widget(GTK_WIDGET(menu), "videotext2");
 	  gtk_widget_set_sensitive(widget, FALSE);
 	  gtk_widget_hide(widget);
+	  widget = lookup_widget(GTK_WIDGET(menu), "new_ttxview2");
+	  gtk_widget_set_sensitive(widget, FALSE);
+	  gtk_widget_hide(widget);
 	}
       /* Remove capturing item if it's redundant */
       if ((!zvbi_get_object()) && (disable_preview))

@@ -299,7 +299,17 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
   gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
 		     GTK_SIGNAL_FUNC(on_property_item_changed),
 		     zapping_properties);
-  
+
+  /* Destination for Zapzilla exports */
+  widget = lookup_widget(zapping_properties, "fileentry3");
+  widget = gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(widget));
+  gtk_entry_set_text(GTK_ENTRY(widget),
+		     zconf_get_string(NULL,
+				      "/zapping/ttxview/exportdir"));
+
+  gtk_signal_connect(GTK_OBJECT(widget), "changed",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);  
 
   /* Disable/enable the VBI options */
   widget = lookup_widget(zapping_properties, "vbox19");
@@ -310,7 +320,7 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
   while (p)
     {
       plugin_add_properties(GNOME_PROPERTY_BOX(zapping_properties),
-			    (struct plugin_info * ) p->data);
+			    (struct plugin_info *) p->data);
       p = p->next;
     }
 
@@ -409,8 +419,7 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
       zconf_set_boolean(gtk_toggle_button_get_active(
 	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/vbi/use_vbi");
 
-      widget = lookup_widget(pbox, "fileentry2"); /* Video device entry
-						    */
+      widget = lookup_widget(pbox, "fileentry2"); /* VBI device entry */
       text = gnome_file_entry_get_full_path (GNOME_FILE_ENTRY(widget),
 					     TRUE);
       zconf_set_string(text, "/zapping/options/vbi/vbi_device");
@@ -435,6 +444,13 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
       widget = lookup_widget(pbox, "checkbutton8"); /* erc */
       zconf_set_boolean(gtk_toggle_button_get_active(
 	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/vbi/erc");
+
+      /* Directory for exporting */
+      widget = lookup_widget(pbox, "fileentry3");
+      text = gnome_file_entry_get_full_path (GNOME_FILE_ENTRY(widget),
+					     TRUE);
+      zconf_set_string(text, "/zapping/ttxview/exportdir");
+      g_free(text);
 
       break;
     default:

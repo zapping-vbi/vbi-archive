@@ -862,7 +862,7 @@
 	<class>GtkHBox</class>
 	<name>hbox21</name>
 	<homogeneous>True</homogeneous>
-	<spacing>4</spacing>
+	<spacing>3</spacing>
 	<child>
 	  <padding>0</padding>
 	  <expand>False</expand>
@@ -977,7 +977,7 @@ Do not change mode
 	<class>GtkHBox</class>
 	<name>hbox16</name>
 	<homogeneous>True</homogeneous>
-	<spacing>0</spacing>
+	<spacing>3</spacing>
 	<child>
 	  <padding>0</padding>
 	  <expand>True</expand>
@@ -1022,7 +1022,7 @@ Do not change mode
 	<class>GtkHBox</class>
 	<name>hbox3</name>
 	<homogeneous>True</homogeneous>
-	<spacing>4</spacing>
+	<spacing>3</spacing>
 	<child>
 	  <padding>0</padding>
 	  <expand>True</expand>
@@ -1149,7 +1149,7 @@ Do not change mode
 	  <class>GtkHBox</class>
 	  <name>hbox19</name>
 	  <homogeneous>True</homogeneous>
-	  <spacing>0</spacing>
+	  <spacing>3</spacing>
 	  <child>
 	    <padding>0</padding>
 	    <expand>False</expand>
@@ -1169,7 +1169,7 @@ Do not change mode
 	    <child>
 	      <padding>0</padding>
 	      <expand>False</expand>
-	      <fill>False</fill>
+	      <fill>True</fill>
 	    </child>
 	  </widget>
 
@@ -1191,6 +1191,7 @@ Do not change mode
 	      <class>GtkEntry</class>
 	      <child_name>GnomeEntry:entry</child_name>
 	      <name>combo-entry2</name>
+	      <tooltip>Enter here the device associated with the VBI input</tooltip>
 	      <can_focus>True</can_focus>
 	      <editable>True</editable>
 	      <text_visible>True</text_visible>
@@ -1204,7 +1205,7 @@ Do not change mode
 	  <class>GtkHBox</class>
 	  <name>hbox22</name>
 	  <homogeneous>True</homogeneous>
-	  <spacing>0</spacing>
+	  <spacing>3</spacing>
 	  <child>
 	    <padding>0</padding>
 	    <expand>True</expand>
@@ -1217,14 +1218,14 @@ Do not change mode
 	    <label>Default region:</label>
 	    <justify>GTK_JUSTIFY_CENTER</justify>
 	    <wrap>False</wrap>
-	    <xalign>0.5</xalign>
+	    <xalign>1</xalign>
 	    <yalign>0.5</yalign>
 	    <xpad>0</xpad>
 	    <ypad>0</ypad>
 	    <child>
 	      <padding>0</padding>
 	      <expand>False</expand>
-	      <fill>False</fill>
+	      <fill>True</fill>
 	    </child>
 	  </widget>
 
@@ -1248,6 +1249,62 @@ Hebrew and Arabic
 	      <expand>False</expand>
 	      <fill>True</fill>
 	    </child>
+	  </widget>
+	</widget>
+
+	<widget>
+	  <class>GtkHBox</class>
+	  <name>hbox27</name>
+	  <homogeneous>True</homogeneous>
+	  <spacing>3</spacing>
+	  <child>
+	    <padding>0</padding>
+	    <expand>True</expand>
+	    <fill>True</fill>
+	  </child>
+
+	  <widget>
+	    <class>GtkLabel</class>
+	    <name>label95</name>
+	    <label>Export Teletext pages to:</label>
+	    <justify>GTK_JUSTIFY_CENTER</justify>
+	    <wrap>False</wrap>
+	    <xalign>1</xalign>
+	    <yalign>0.5</yalign>
+	    <xpad>0</xpad>
+	    <ypad>0</ypad>
+	    <child>
+	      <padding>0</padding>
+	      <expand>False</expand>
+	      <fill>True</fill>
+	    </child>
+	  </widget>
+
+	  <widget>
+	    <class>GnomeFileEntry</class>
+	    <name>fileentry3</name>
+	    <history_id>ttxview_export_destination</history_id>
+	    <max_saved>10</max_saved>
+	    <title>Select directory we will export pages to</title>
+	    <directory>True</directory>
+	    <modal>False</modal>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkEntry</class>
+	      <child_name>GnomeEntry:entry</child_name>
+	      <name>combo-entry3</name>
+	      <tooltip>Enter here the directory we will be exporting TTX pages to</tooltip>
+	      <can_focus>True</can_focus>
+	      <editable>True</editable>
+	      <text_visible>True</text_visible>
+	      <text_max_length>0</text_max_length>
+	      <text></text>
+	    </widget>
 	  </widget>
 	</widget>
       </widget>
@@ -2865,7 +2922,7 @@ in the next release of this program.</label>
   <name>ttxview</name>
   <height>320</height>
   <events>GDK_KEY_PRESS_MASK</events>
-  <title>Teletext</title>
+  <title>Zapzilla</title>
   <type>GTK_WINDOW_TOPLEVEL</type>
   <position>GTK_WIN_POS_NONE</position>
   <modal>False</modal>
@@ -3151,7 +3208,7 @@ in the next release of this program.</label>
     <class>GtkPixmapMenuItem</class>
     <name>open_in_new_window1</name>
     <tooltip>Open this link in a new window</tooltip>
-    <label>Open in new window</label>
+    <label>_Open in new window</label>
     <right_justify>False</right_justify>
     <stock_icon>GNOME_STOCK_MENU_NEW</stock_icon>
   </widget>
@@ -3166,7 +3223,7 @@ in the next release of this program.</label>
     <class>GtkPixmapMenuItem</class>
     <name>search1</name>
     <tooltip>Search for a given pattern in the cache</tooltip>
-    <label>Search...</label>
+    <label>_Search...</label>
     <right_justify>False</right_justify>
     <stock_icon>GNOME_STOCK_MENU_SEARCH</stock_icon>
   </widget>
@@ -3175,7 +3232,7 @@ in the next release of this program.</label>
     <class>GtkPixmapMenuItem</class>
     <name>export1</name>
     <tooltip>Export the current page to different formats</tooltip>
-    <label>Export</label>
+    <label>_Export</label>
     <right_justify>False</right_justify>
     <stock_icon>GNOME_STOCK_MENU_CONVERT</stock_icon>
 
@@ -3186,21 +3243,31 @@ in the next release of this program.</label>
       <widget>
 	<class>GtkMenuItem</class>
 	<name>html1</name>
-	<label>HTML</label>
+	<tooltip>Export the current page as HTML</tooltip>
+	<label>_HTML</label>
 	<right_justify>False</right_justify>
       </widget>
 
       <widget>
 	<class>GtkMenuItem</class>
 	<name>ppm1</name>
-	<label>PPM</label>
+	<tooltip>Export the current page as PPM</tooltip>
+	<label>P_PM</label>
+	<right_justify>False</right_justify>
+      </widget>
+
+      <widget>
+	<class>GtkMenuItem</class>
+	<name>png1</name>
+	<tooltip>Export the current page as PNG</tooltip>
+	<label>P_NG</label>
 	<right_justify>False</right_justify>
       </widget>
 
       <widget>
 	<class>GtkMenuItem</class>
 	<name>ascii1</name>
-	<label>ASCII</label>
+	<label>_ASCII</label>
 	<right_justify>False</right_justify>
       </widget>
     </widget>
@@ -3210,7 +3277,7 @@ in the next release of this program.</label>
     <class>GtkPixmapMenuItem</class>
     <name>bookmarks1</name>
     <tooltip>Manage your bookmarks</tooltip>
-    <label>Bookmarks</label>
+    <label>_Bookmarks</label>
     <right_justify>False</right_justify>
     <stock_icon>GNOME_STOCK_MENU_INDEX</stock_icon>
 
@@ -3222,26 +3289,26 @@ in the next release of this program.</label>
 	<class>GtkPixmapMenuItem</class>
 	<name>add_bookmark</name>
 	<tooltip>Add the current page to the bookmarks</tooltip>
-	<label>Add current page...</label>
+	<label>_Add current page...</label>
 	<right_justify>False</right_justify>
 	<stock_icon>GNOME_STOCK_MENU_PROP</stock_icon>
       </widget>
 
       <widget>
 	<class>GtkPixmapMenuItem</class>
-	<name>edit_bookmarks</name>
-	<tooltip>Edit the current bookmarks</tooltip>
-	<label>Edit...</label>
+	<name>delete_bookmarks</name>
+	<tooltip>Delete some bookmarks</tooltip>
+	<label>_Delete Bookmarks...</label>
 	<right_justify>False</right_justify>
 	<stock_icon>GNOME_STOCK_MENU_INDEX</stock_icon>
       </widget>
-
-      <widget>
-	<class>GtkMenuItem</class>
-	<name>separator9</name>
-	<right_justify>False</right_justify>
-      </widget>
     </widget>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>separator9</name>
+    <right_justify>False</right_justify>
   </widget>
 </widget>
 
