@@ -18,6 +18,8 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+#include "site_def.h"
+
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
@@ -252,6 +254,10 @@ const audio_backend_info oss_backend =
 #include "tveng_private.h"
 
 #include "../common/device.h"
+
+#ifndef OSS_LOG_FP
+#define OSS_LOG_FP 0 /* stderr */
+#endif
 
 #define VOL_MIN 1	/* 0 = muted */
 #define VOL_MAX 100
@@ -640,11 +646,11 @@ oss_mixer_set_rec_line		(tv_mixer *		mixer,
 			return FALSE;
 
 		if (m->pub.rec_line)
-			set &= ~ L (m->pub.rec_line)->id;
+			set &= ~(1 << L (m->pub.rec_line)->id);
 	}
 
 	if (line)
-		set |= L (line)->id;
+		set |= 1 << L (line)->id;
 
 	/* We don't know the current rec source, so let's switch anyway. */
 
@@ -785,6 +791,9 @@ open_mixer			(const tv_mixer_interface *mi,
 	struct mixer *m;
 	int capabilities; /* sic */
 	unsigned int i;
+
+	if (OSS_LOG_FP)
+		log = OSS_LOG_FP;
 
 	if (-1 == stat (device, &st))
 		return NULL;
