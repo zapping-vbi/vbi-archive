@@ -363,7 +363,7 @@ fprintf_ioctl_arg		(FILE *			fp,
   (0 == device_ioctl (m->pub._log, fprintf_ioctl_arg, fd, cmd, arg))
 
 struct line {
-	tv_mixer_line		pub;
+	tv_audio_line		pub;
 	int			id;
 	int			old_volume;		/* restore */
 };
@@ -468,19 +468,20 @@ update_line			(struct mixer *		m,
 }
 
 static tv_bool
-oss_mixer_update_line		(tv_mixer_line *	line)
+oss_mixer_update_line		(tv_audio_line *	line)
 {
 	int volume; /* auxiliary result ignored */
 
-	return update_line (M (line->_mixer), L (line), &volume);
+	return update_line (M ((tv_mixer *) line->_parent),
+			    L (line), &volume);
 }
 
 static tv_bool
-oss_mixer_set_volume		(tv_mixer_line *	line,
+oss_mixer_set_volume		(tv_audio_line *	line,
 				 unsigned int		left,
 				 unsigned int		right)
 {
-	struct mixer *m = M (line->_mixer);
+	struct mixer *m = M ((tv_mixer *) line->_parent);
 	struct line *l = L (line);
 
 	if (!l->pub.muted || HARD_MUTABLE (m, l)) {
@@ -512,11 +513,11 @@ oss_mixer_set_volume		(tv_mixer_line *	line,
 }
 
 static tv_bool
-oss_mixer_set_mute		(tv_mixer_line *	line,
+oss_mixer_set_mute		(tv_audio_line *	line,
 				 tv_bool		mute)
 {
 	struct line *l = L (line);
-	struct mixer *m = M (line->_mixer);
+	struct mixer *m = M ((tv_mixer *) line->_parent);
 
 	/*
 	 *  Hopefully using the hardware mute switch will prevent an
@@ -570,13 +571,13 @@ oss_mixer_set_mute		(tv_mixer_line *	line,
 	return TRUE;
 }
 
-static tv_mixer_line *
+static tv_audio_line *
 find_rec_line			(tv_mixer *		m,
 				 unsigned int		set)
 {
 	struct line *l;
 
-	for (l = L (m->inputs); l; l = L (l->pub.next)) {
+	for (l = L (m->inputs); l; l = L (l->pub._next)) {
 		if (set & (1 << l->id))
 			return &l->pub;
 	}
@@ -630,7 +631,7 @@ oss_mixer_update_mixer		(tv_mixer *		mixer)
 
 static tv_bool
 oss_mixer_set_rec_line		(tv_mixer *		mixer,
-				 tv_mixer_line *	line,
+				 tv_audio_line *	line,
 				 tv_bool		exclusive)
 {
 	struct mixer *m = M (mixer);
@@ -667,20 +668,21 @@ oss_mixer_set_rec_line		(tv_mixer *		mixer,
 
 static void
 free_mixer_lines		(struct mixer *		m,
-				 tv_mixer_line *	line,
+				 tv_audio_line *	line,
 				 tv_bool		restore)
 {
 	while (line) {
 		struct line *l;
 	
 		l = L (line);
-		line = l->pub.next;
+		line = l->pub._next;
 
 		tv_callback_destroy (&l->pub, &l->pub._callback);
 
 		if (restore) {
 			/* Error ignored */
-			mixer_ioctl (m->fd, MIXER_WRITE (l->id), &l->old_volume);
+			mixer_ioctl (m->fd, MIXER_WRITE (l->id),
+				     &l->old_volume);
 		}
 
 		free ((char *) l->pub.label);
@@ -735,7 +737,7 @@ destroy_mixer			(tv_device_node *	n,
 
 static tv_bool
 add_mixer_line			(struct mixer *		m,
-				 tv_mixer_line **	linepp,
+				 tv_audio_line **	linepp,
 				 unsigned int		oss_id)
 {
 	struct line *l;
@@ -744,15 +746,15 @@ add_mixer_line			(struct mixer *		m,
 		return FALSE;
 
 	while (*linepp)
-		linepp = &(*linepp)->next;
+		linepp = &(*linepp)->_next;
 
 	*linepp = &l->pub;
 
 	l->id = oss_id;
 
-	l->pub._mixer = &m->pub;
+	l->pub._parent = &m->pub;
 
-	l->pub.id = TV_MIXER_LINE_ID_UNKNOWN;
+	l->pub.id = TV_AUDIO_LINE_ID_UNKNOWN;
 	l->pub.hash = oss_id;
 
 	l->pub.stereo = ((m->stereo_mask & (1 << oss_id)) != 0);
