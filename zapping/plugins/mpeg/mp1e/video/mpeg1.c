@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.30 2001-05-24 01:11:36 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.31 2001-05-24 22:58:42 garetxe Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -200,6 +200,10 @@ static const int motion = 0;
 const int mm_row; // ld dead end
 const int mm_mbrow;
 #define zero_forward_motion()
+// garetxe: XXX workaround for build problems
+#define ZMB1
+#define ZMB2
+#define PBF 4
 #else
 static int motion = 8 * 256;
 #include "motion.c"

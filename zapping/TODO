@@ -11,6 +11,7 @@ Outstanding issues for the next release (0.6.0)
 	+ Respect the control center settings regarding toolbar.
 	+ Make aspect ration relative to the tv_screen, not the whole
 	window (set_usize??)
+	+ Support YVU420 in screenshot.
 
 > 0.6.1
 	+ Add some remote control applet (or sth like that).

@@ -39,6 +39,7 @@
 #include "zmodel.h"
 #include "common/fifo.h"
 #include "osd.h"
+#include "callbacks.h"
 
 /* Useful vars from Zapping */
 extern gboolean flag_exit_program;
@@ -48,8 +49,7 @@ extern tveng_device_info *main_info;
 extern GtkWidget *main_window;
 extern int zvbi_page;
 
-/* FIXME: Reduce this for smoother rolling headers (see t4-arte) */
-#define BLINK_CYCLE 1500 /* ms */
+#define BLINK_CYCLE 300 /* ms */
 
 /* targets for the clipboard */
 enum
@@ -1944,6 +1944,8 @@ void on_subtitle_select			(GtkWidget	*widget,
 					 gint		page)
 {
   int classf;
+  GtkWidget *window =
+    GTK_WIDGET(gtk_object_get_user_data(GTK_OBJECT(widget)));
 
   if (!zvbi_get_object())
     return;
@@ -1958,7 +1960,15 @@ void on_subtitle_select			(GtkWidget	*widget,
       zconf_set_integer(zvbi_page,
 			"/zapping/internal/callbacks/zvbi_page");
       osd_clear();
-      /* XXX should activate osd when in main window */
+
+      /* Switch OSD on */
+      if (find_widget(window, "zapping"))
+	{
+	  GtkWidget *closed_caption1 =
+	    lookup_widget(window, "closed_caption1");
+	  gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(closed_caption1),
+					 TRUE);
+	}
     }
 }
 
@@ -2072,6 +2082,7 @@ build_subtitles_submenu(GtkWidget *widget,
 	      buffer = g_strdup_printf(_("Text %x"), count - 4);
 
 	  menu_item = gtk_menu_item_new_with_label(buffer);
+	  gtk_object_set_user_data(GTK_OBJECT(menu_item), widget);
 	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
 			     GTK_SIGNAL_FUNC(on_subtitle_select),
 			     GINT_TO_POINTER(count));
@@ -2079,17 +2090,7 @@ build_subtitles_submenu(GtkWidget *widget,
 	  gtk_widget_show(menu_item);
 
 	  g_free(buffer);
-/*
-	  if (language)
-	    {
-	      if (count < 5)
-		buffer = g_strdup_printf(_("Caption %x"), count);
-	      else
-		buffer = g_strdup_printf(_("Text %x"), count-4);
-	      set_tooltip(menu_item, buffer);
-	      g_free(buffer);
-	    }
-*/
+
 	  empty = FALSE;
 	}
     }
@@ -2106,6 +2107,7 @@ build_subtitles_submenu(GtkWidget *widget,
 	  else
 	    buffer = g_strdup_printf(_("%x: Unknown language"), count);
 
+	  gtk_object_set_user_data(GTK_OBJECT(menu_item), widget);
 	  menu_item = gtk_menu_item_new_with_label(buffer);
 	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
 			     GTK_SIGNAL_FUNC(on_subtitle_select),
@@ -2127,6 +2129,7 @@ build_subtitles_submenu(GtkWidget *widget,
 	  menu_item =
 	    z_gtk_pixmap_menu_item_new(_("Index"),
 				       GNOME_STOCK_PIXMAP_INDEX);
+	  gtk_object_set_user_data(GTK_OBJECT(menu_item), widget);
 	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
 			     GTK_SIGNAL_FUNC(on_subtitle_page_ttxview),
 			     GINT_TO_POINTER(count<<16) + ANY_SUB);

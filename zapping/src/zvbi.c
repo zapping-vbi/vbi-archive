@@ -85,7 +85,7 @@ struct ttx_patch {
   GdkPixbuf	*unscaled_off;
   GdkPixbuf	*scaled_on;
   GdkPixbuf	*scaled_off;
-  gint		phase; /* flash phase 0 ... 3, 0 == off */
+  gint		phase; /* flash phase 0 ... 19, 0..4 == off */
   gboolean	vanilla_only; /* apply just once */
   gboolean	dirty; /* needs reapplying */
 };
@@ -884,9 +884,9 @@ add_patch(struct ttx_client *client, int col, int row, attr_char *ac,
   if (client->w > 0  &&  client->h > 0  && sh > 0)
     {
       patch.scaled_on =
-	gdk_pixbuf_scale_simple(patch.unscaled_on, sw, sh, INTERP_MODE);
+	z_pixbuf_scale_simple(patch.unscaled_on, sw, sh, INTERP_MODE);
       patch.scaled_off =
-	gdk_pixbuf_scale_simple(patch.unscaled_off, sw, sh, INTERP_MODE);
+	z_pixbuf_scale_simple(patch.unscaled_off, sw, sh, INTERP_MODE);
     }
 
   if (!destiny)
@@ -920,12 +920,12 @@ resize_patches(struct ttx_client *client)
       if (client->patches[i].scaled_on)
 	gdk_pixbuf_unref(client->patches[i].scaled_on);
       client->patches[i].scaled_on =
-	gdk_pixbuf_scale_simple(client->patches[i].unscaled_on,
+	z_pixbuf_scale_simple(client->patches[i].unscaled_on,
 				sw, sh, INTERP_MODE);
       if (client->patches[i].scaled_off)
 	gdk_pixbuf_unref(client->patches[i].scaled_off);
       client->patches[i].scaled_off =
-	gdk_pixbuf_scale_simple(client->patches[i].unscaled_off,
+	z_pixbuf_scale_simple(client->patches[i].unscaled_off,
 				sw, sh, INTERP_MODE);
       client->patches[i].dirty = TRUE;
     }
@@ -982,10 +982,10 @@ refresh_ttx_page_intern(struct ttx_client *client, GtkWidget *drawable)
       p = &(client->patches[i]);
       if (!p->vanilla_only)
 	{
-	  p->phase = (p->phase + 1) & 3;
-	  if (p->phase > 1)
+	  p->phase = (p->phase + 1) % 20;
+	  if (p->phase > 5)
 	    continue;
-	  else if (p->phase)
+	  else if (p->phase == 5)
 	    scaled = p->scaled_on;
 	  else
 	    scaled = p->scaled_off;

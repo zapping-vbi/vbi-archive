@@ -51,6 +51,39 @@ static int thread_exit = 0;
 
 static int num_channels;
 
+static
+int init_socket(void)
+{
+  addr.sun_family=AF_UNIX;
+  strcpy(addr.sun_path, "/dev/lircd");
+  fd=socket(AF_UNIX, SOCK_STREAM, 0);
+  if(fd == -1)  {
+    perror("socket");
+    return INIT_SOCKET_FAILED;
+  };
+  
+  if(connect(fd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
+    perror("connect");
+    return INIT_SOCKET_FAILED;
+  };
+  
+  return INIT_SOCKET_OK;
+}
+
+static
+void add_actions_to_list(void)
+{
+  gchar *data[2];
+  action_list_item *item = first_item;
+
+  while (item != NULL) {
+    data[0] = item->button;
+    data[1] = item->action;
+    gtk_clist_append(GTK_CLIST(lirc_actionlist), data);
+    item = item->next;
+  }
+}
+
 /*
   Declaration of the static symbols of the plugin. Refer to the docs
   to know what does each of these functions do
@@ -424,25 +457,6 @@ void *lirc_thread(void *dummy)
 }
 
 static
-int init_socket()
-{
-  addr.sun_family=AF_UNIX;
-  strcpy(addr.sun_path, "/dev/lircd");
-  fd=socket(AF_UNIX, SOCK_STREAM, 0);
-  if(fd == -1)  {
-    perror("socket");
-    return INIT_SOCKET_FAILED;
-  };
-  
-  if(connect(fd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
-    perror("connect");
-    return INIT_SOCKET_FAILED;
-  };
-  
-  return INIT_SOCKET_OK;
-}
-
-static
 void set_channel(int c)
 {
   c--;
@@ -780,21 +794,7 @@ gchar *get_action(gchar *button)
 }
 
 static
-void add_actions_to_list()
-{
-  gchar *data[2];
-  action_list_item *item = first_item;
-
-  while (item != NULL) {
-    data[0] = item->button;
-    data[1] = item->action;
-    gtk_clist_append(GTK_CLIST(lirc_actionlist), data);
-    item = item->next;
-  }
-}
-
-static
-void dump_list()
+void dump_list(void)
 {
   action_list_item *item = first_item;
   while (item != NULL) {

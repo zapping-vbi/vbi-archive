@@ -59,6 +59,10 @@ static gchar* save_dir;
 static gint output_mode; /* 0:file, 1:/dev/null */
 static gint mux_mode; /* 0:audio, 1:video, 2:both */
 
+gboolean on_mpeg_dialog1_delete_event(GtkWidget *widget, GdkEvent
+				      *event, gpointer user_data);
+void on_mpeg_button1_clicked(GtkButton *button, gpointer user_data);
+
 gint plugin_get_protocol ( void )
 {
   /* You don't need to modify this function */

@@ -127,7 +127,8 @@ static void
 on_hscale1_value_changed               (GtkAdjustment		*adj,
                                         tveng_device_info	*info)
 {
-  if (info->inputs[info->cur_input].tuners)
+  if (info->inputs &&
+      info->inputs[info->cur_input].tuners)
     tveng_tune_input(adj->value, main_info);
 }
 
@@ -139,7 +140,7 @@ set_slider(__u32 freq, gpointer widget, tveng_device_info *info)
   GtkWidget * hscale1 =
     lookup_widget(GTK_WIDGET(widget), "hscale1");
 
-  if (!freq ||
+  if (!freq || !info->inputs ||
       !info->inputs[info->cur_input].tuners)
     {
       gtk_widget_set_sensitive(hscale1, FALSE);
@@ -585,7 +586,8 @@ on_add_channel_clicked                 (GtkButton       *button,
     tc.country = current_country -> name;
   else
     tc.country = NULL;
-  if (main_info->inputs[main_info->cur_input].tuners)
+  if (main_info->inputs &&
+      main_info->inputs[main_info->cur_input].tuners)
     tveng_get_tune(&tc.freq, main_info);
   tc.accel_key = 0;
   buffer = gtk_entry_get_text(GTK_ENTRY(channel_accel));
@@ -610,7 +612,7 @@ on_add_channel_clicked                 (GtkButton       *button,
 
   selected =
     z_option_menu_get_active(lookup_widget(clist1, "attached_input"));
-  if (selected)
+  if (selected && main_info->inputs)
     tc.input = main_info->inputs[selected-1].hash;
   else
     tc.input = 0;
@@ -699,7 +701,7 @@ on_modify_channel_clicked              (GtkButton       *button,
 
   selected =
     z_option_menu_get_active(lookup_widget(clist1, "attached_input"));
-  if (selected)
+  if (selected && main_info->inputs)
     tc.input = main_info->inputs[selected-1].hash;
   else
     tc.input = 0;
@@ -797,7 +799,7 @@ on_clist1_select_row                   (GtkCList        *clist,
   tveng_channel * selected_channel =
     tveng_get_channel_by_id (row, country);
 
-  if ((!selected_channel) || (!country))
+  if ((!selected_channel) || (!country) || (!main_info->inputs))
     {
       /* If we reach this it means that we are trying to select a item
        in the channel list but it hasn't been filled yet (it is filled
@@ -1000,7 +1002,8 @@ on_channel_list_select_row             (GtkCList        *clist,
   /* Tune to this channel's freq */
   z_switch_channel(list, main_info);
 
-  if (main_info->inputs[main_info->cur_input].tuners)
+  if (main_info->inputs &&
+      main_info->inputs[main_info->cur_input].tuners)
     set_slider(list->freq, channel_accel, main_info);
   else
     set_slider(0, channel_accel, main_info);

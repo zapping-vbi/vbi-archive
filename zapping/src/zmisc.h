@@ -266,4 +266,19 @@ void
 z_option_menu_set_active	(GtkWidget	*option_menu,
 				 int index);
 
+/**
+ * Error checking scale_simple.
+ */
+static inline GdkPixbuf*
+z_pixbuf_scale_simple		(GdkPixbuf	*source,
+				 gint		destw,
+				 gint		desth,
+				 GdkInterpType	interp)
+{
+  if (desth < 5 || destw < 5)
+    return NULL;
+
+  return gdk_pixbuf_scale_simple(source, destw, desth, interp);
+}
+
 #endif /* ZMISC.H */
