@@ -54,12 +54,6 @@ Basic types
 </para>
 
 
-<!-- ##### TYPEDEF rte_stream_parameters ##### -->
-<para>
-
-</para>
-
-
 <!-- ##### TYPEDEF rte_video_stream_parameters ##### -->
 <para>
 
@@ -73,6 +67,12 @@ Basic types
 
 
 <!-- ##### TYPEDEF rte_buffer ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### TYPEDEF rte_status ##### -->
 <para>
 
 </para>

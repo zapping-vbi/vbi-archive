@@ -1,3 +1,8 @@
+2001-12-15	Status api <garetxe@users.sf.net>
+
+	* rte.h: Added api for querying status.
+	* rte.c: Started implementation of the api.
+
 2001-12-13	Started new rte.h <garetxe@users.sf.net>
 
 	* rte.h: Started writing and documenting the new api. The rest

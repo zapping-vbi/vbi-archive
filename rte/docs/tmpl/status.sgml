@@ -1,5 +1,5 @@
 <!-- ##### SECTION Title ##### -->
-Setting encoding options.
+Querying status.
 
 <!-- ##### SECTION Short_Description ##### -->
 
@@ -14,17 +14,39 @@ Setting encoding options.
 
 </para>
 
-<!-- ##### FUNCTION rte_option_info_enum ##### -->
+<!-- ##### FUNCTION rte_context_status_enum ##### -->
+<para>
+
+</para>
+
+@context: 
+@n: 
+@Returns: 
+
+
+<!-- ##### FUNCTION rte_context_status_keyword ##### -->
+<para>
+
+</para>
+
+@context: 
+@keyword: 
+@Returns: 
+
+
+<!-- ##### FUNCTION rte_codec_status_enum ##### -->
 <para>
 
 </para>
 
 @codec: 
-@index: 
+@n: 
 @Returns: 
+<!-- # Unused Parameters # -->
+@context: 
 
 
-<!-- ##### FUNCTION rte_option_info_keyword ##### -->
+<!-- ##### FUNCTION rte_codec_status_keyword ##### -->
 <para>
 
 </para>
@@ -34,36 +56,11 @@ Setting encoding options.
 @Returns: 
 
 
-<!-- ##### FUNCTION rte_option_get ##### -->
+<!-- ##### FUNCTION rte_status_free ##### -->
 <para>
 
 </para>
 
-@codec: 
-@keyword: 
-@value: 
-@Returns: 
-
-
-<!-- ##### FUNCTION rte_option_set ##### -->
-<para>
-
-</para>
-
-@codec: 
-@keyword: 
-@Varargs: 
-@Returns: 
-
-
-<!-- ##### FUNCTION rte_option_print ##### -->
-<para>
-
-</para>
-
-@codec: 
-@keyword: 
-@Varargs: 
-@Returns: 
+@status: 
 
 

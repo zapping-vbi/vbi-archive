@@ -20,9 +20,10 @@ Selecting codecs.
 </para>
 
 @context: 
-@stream_type: 
 @index: 
 @Returns: 
+<!-- # Unused Parameters # -->
+@stream_type: 
 
 
 <!-- ##### FUNCTION rte_codec_info_keyword ##### -->

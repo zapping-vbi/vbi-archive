@@ -26,10 +26,16 @@ rte_codec_set_parameters
 <SECTION>
 <TITLE>Setting encoding options.</TITLE>
 <FILE>options</FILE>
-rte_option_info_enum
-rte_option_info_keyword
-rte_option_get
-rte_option_set
+rte_codec_option_info_enum
+rte_codec_option_info_keyword
+rte_codec_option_get
+rte_codec_option_set
+rte_codec_option_print
+rte_context_option_info_enum
+rte_context_option_info_keyword
+rte_context_option_get
+rte_context_option_set
+rte_context_option_print
 </SECTION>
 
 <SECTION>
@@ -42,6 +48,17 @@ rte_set_input_push_data
 rte_push_buffer
 rte_push_data
 rte_set_output_callback
+</SECTION>
+
+
+<SECTION>
+<TITLE>Querying status.</TITLE>
+<FILE>status</FILE>
+rte_context_status_enum
+rte_context_status_keyword
+rte_codec_status_enum
+rte_codec_status_keyword
+rte_status_free
 </SECTION>
 
 <SECTION>
@@ -58,6 +75,7 @@ rte_stream_parameters
 rte_video_stream_parameters
 rte_audio_stream_parameters
 rte_buffer
+rte_status
 rteBufferCallback
 rteDataCallback
 rteWriteCallback

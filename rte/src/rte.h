@@ -26,7 +26,8 @@
   http://zapping.sf.net/docs/rte/index.html
   FIXME: Upload docs before the release.
   FIXME: Document unions.
-  TODO: Status [, verbosity???]
+  FIXME: Document codec status.
+  FIXME: context options?
 */
 
 #include "rte-enums.h"
@@ -133,11 +134,10 @@ rte_context_get_user_data	(rte_context *	context);
 /**
  * rte_codec_info_enum:
  * @context: Initialized rte_context.
- * @stream_type: RTE_STREAM_VIDEO, _AUDIO, ...
  * @index: Index into the codec table for @stream_type, 0 ... n.
  * 
  * Enumerates elementary stream codecs available for the selected
- * backend / file / mux format and stream type.
+ * backend / file / mux format.
  * You should start at index 0, incrementing.
  * Assume a subsequent call to this function will overwrite the returned
  * codec description.
@@ -147,8 +147,7 @@ rte_context_get_user_data	(rte_context *	context);
  * is invalid or the index is out of bounds.
  **/
 rte_codec_info *
-rte_codec_info_enum(rte_context *context, rte_stream_type stream_type,
-		    int index);
+rte_codec_info_enum(rte_context *context, int index);
 
 /**
  * rte_codec_info_keyword:
@@ -419,7 +418,7 @@ rte_set_output_callback(rte_context *context,
 			rteSeekCallback seek_cb);
 
 /**
- * rte_option_info_enum:
+ * rte_codec_option_info_enum:
  * @codec: Pointer to a rte_codec returned by rte_codec_get() or
  *	   rte_codec_set()
  * @index: Index in the option table 0,...n
@@ -433,25 +432,25 @@ rte_set_output_callback(rte_context *context,
  * @index is out of bounds.
  **/
 rte_option_info *
-rte_option_info_enum(rte_codec *codec, int index);
+rte_codec_option_info_enum(rte_codec *codec, int index);
 
 /**
- * rte_option_info_keyword:
+ * rte_codec_option_info_keyword:
  * @codec: Pointer to a rte_codec returned by rte_codec_get() or
  *	   rte_codec_set()
  * @keyword: Keyword of the relevant option, as in rte_option_info
  *
- * Like rte_option_info_enum() but tries to find the option info based
- * on the given keyword.
+ * Like rte_codec_option_info_enum() but tries to find the option info
+ * based on the given keyword.
  *
  * Return value: Static pointer to the option description, or %NULL if
  * the keyword wasn't found.
  **/
 rte_option_info *
-rte_option_info_keyword(rte_codec *codec, const char *keyword);
+rte_codec_option_info_keyword(rte_codec *codec, const char *keyword);
 
 /**
- * rte_option_get:
+ * rte_codec_option_get:
  * @codec: Pointer to a rte_codec returned by rte_codec_get() or
  *	   rte_codec_set()
  * @keyword: Keyword of the relevant option, as in rte_option_info
@@ -465,29 +464,183 @@ rte_option_info_keyword(rte_codec *codec, const char *keyword);
  * Return value: %TRUE if the option was found, %FALSE otherwise.
  **/
 rte_bool
-rte_option_get(rte_codec *codec, const char *keyword,
-	       rte_option_value *value);
+rte_codec_option_get(rte_codec *codec, const char *keyword,
+		     rte_option_value *value);
 
 /**
- * rte_option_set:
+ * rte_codec_option_set:
  * @codec: Pointer to a rte_codec returned by rte_codec_get() or
  *	   rte_codec_set()
  * @keyword: Keyword of the relevant option, as in rte_option_info.
  * @Varargs: New value to set.
  *
  * Sets the value of the given option. Make sure you are casting the
- * third parameter (the new value to set) to the correct type (int,
- * char*, double), otherwise you might get heisenbugs.
+ * third parameter (the new value to set) to the correct type (rte_int,
+ * rte_string, rte_real, ...), otherwise you might get heisenbugs.
  *
  * Typical usage is:
  * <programlisting>
- * rte_option_set(codec, "frame_rate", (double)3.141592);
+ * rte_codec_option_set(codec, "frame_rate", (rte_real)3.141592);
  * </programlisting>
  *
  * Return value: %TRUE if the option was found and it could be
  * correctly set.
  **/
 rte_bool
-rte_option_set(rte_codec *codec, const char *keyword, ...);
+rte_codec_option_set(rte_codec *codec, const char *keyword, ...);
+
+/**
+ * rte_codec_option_print:
+ * @codec:
+ * @keyword:
+ * @Varargs:
+ *
+ * Return value:
+ **/
+char *
+rte_codec_option_print(rte_codec *codec, const char *keyword, ...);
+
+/**
+ * rte_context_option_info_enum:
+ * @context: Initialized rte_context.
+ * @index: Index in the option table 0,...n
+ *
+ * Enumerates the options available for the given context. 
+ * You should start at index 0, incrementing.
+ * Assume a subsequent call to this function will overwrite the returned
+ * option description.
+ *
+ * Return value: Static pointer to the option description, or %NULL if
+ * @index is out of bounds.
+ **/
+rte_option_info *
+rte_context_option_info_enum(rte_context *context, int index);
+
+/**
+ * rte_context_option_info_keyword:
+ * @context: Initialized rte_context.
+ * @keyword: Keyword of the relevant option, as in rte_option_info
+ *
+ * Like rte_context_option_info_enum() but tries to find the option info based
+ * on the given keyword.
+ *
+ * Return value: Static pointer to the option description, or %NULL if
+ * the keyword wasn't found.
+ **/
+rte_option_info *
+rte_context_option_info_keyword(rte_context *context, const char *keyword);
+
+/**
+ * rte_context_option_get:
+ * @context: Initialized rte_context.
+ * @keyword: Keyword of the relevant option, as in rte_option_info
+ * @value: A place to store info about the options.
+ *
+ * This function is used to query the current value for the given
+ * option. If the option is a string, @value.str must be freed when
+ * you don't need it any longer. If the option is a menu, then
+ * @value.num contains the selected entry.
+ *
+ * Return value: %TRUE if the option was found, %FALSE otherwise.
+ **/
+rte_bool
+rte_context_option_get(rte_context *context, const char *keyword,
+		     rte_option_value *value);
+
+/**
+ * rte_context_option_set:
+ * @context: Initialized rte_context.
+ * @keyword: Keyword of the relevant option, as in rte_option_info.
+ * @Varargs: New value to set.
+ *
+ * Sets the value of the given option. Make sure you are casting the
+ * third parameter (the new value to set) to the correct type (rte_int,
+ * rte_string, rte_real, ...), otherwise you might get heisenbugs.
+ *
+ * Typical usage is:
+ * <programlisting>
+ * rte_context_option_set(context, "foo", (rte_bool)TRUE);
+ * </programlisting>
+ *
+ * Return value: %TRUE if the option was found and it could be
+ * correctly set.
+ **/
+rte_bool
+rte_context_option_set(rte_context *context, const char *keyword, ...);
+
+/**
+ * rte_context_option_print:
+ * @context:
+ * @keyword:
+ * @Varargs:
+ *
+ * Return value:
+ **/
+char *
+rte_context_option_print(rte_context *context, const char *keyword, ...);
+
+/**
+ * rte_context_status_enum:
+ * @context: Initialized rte_context.
+ * @n: Status token index.
+ *
+ * Enumerates available status statistics for the context, starting
+ * from 0.
+ *
+ * Return value: A rte_status_info object that you should free with
+ * rte_status_free(), or %NULL if the index is out of bounds.
+ **/
+rte_status_info *
+rte_context_status_enum(rte_context *context, int n);
+
+/**
+ * rte_context_status_keyword:
+ * @context: Initialized rte_context.
+ * @keyword: Status token keyword.
+ *
+ * Tries to find the status token by keyword.
+ *
+ * Return value: A rte_status_info object that you should free with
+ * rte_status_free(), or %NULL if @keyword couldn't be found.
+ **/
+rte_status_info *
+rte_context_status_keyword(rte_context *context, const char *keyword);
+
+/**
+ * rte_codec_status_enum:
+ * @codec: Initialized rte_codec.
+ * @n: Status token index.
+ *
+ * Enumerates available status statistics for the codec, starting
+ * from 0.
+ *
+ * Return value: A rte_status_info object that you should free with
+ * rte_status_free(), or %NULL if the index is out of bounds.
+ **/
+rte_status_info *
+rte_codec_status_enum(rte_codec *codec, int n);
+
+/**
+ * rte_codec_status_keyword:
+ * @codec: Initialized rte_codec.
+ * @keyword: Status token keyword.
+ *
+ * Tries to find the status token by keyword.
+ *
+ * Return value: A rte_status object that you should free with
+ * rte_status_free(), or %NULL if @keyword couldn't be found.
+ **/
+rte_status_info *
+rte_codec_status_keyword(rte_codec *codec, const char *keyword);
+
+/**
+ * rte_status_free:
+ * @status: Pointer to a rte_status object, or %NULL.
+ *
+ * Frees all the memory associated with @status. Does nothing if
+ * @status is %NULL.
+ **/
+void
+rte_status_free(rte_status_info *status);
 
 #endif /* rte.h */

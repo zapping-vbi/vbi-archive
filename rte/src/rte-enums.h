@@ -1,21 +1,19 @@
 #ifndef __RTE_ENUMS_H__
 #define __RTE_ENUMS_H__
 
-/* Various enums and type definitions for RTE */
+/* Stream types */
+typedef enum {
+  RTE_STREAM_VIDEO = 1,  /* XXX STREAM :-( need a better term */
+  RTE_STREAM_AUDIO,	 /* input/output distinction? */
+  RTE_STREAM_SLICED_VBI,
+  /* ... */
+  RTE_STREAM_MAX = 15
+} rte_stream_type;
 
 /*
- * Which interface rte will use for fetching data.
- */
-enum rte_interface {
-	RTE_NO_INTERFACE = 0,
-	RTE_PUSH = 1, /* the push_* family of functions will be used */
-	RTE_CALLBACKS = 2 /* callbacks will be provided by the app */
-};
-
-/*
- *  Source parameters
- *  FIXME: A link to a doc explaining this modes would be nice (V4L2
- *  api perhaps)
+  Source parameters
+  FIXME: A link to a doc explaining this modes would be nice (V4L2
+  api perhaps)
  */
 typedef enum {
   RTE_PIXFMT_YUV420 = 1,
@@ -47,8 +45,8 @@ typedef enum {
 } rte_sndfmt;
 
 /*
- * FIXME: Explain what's VBI and provide links to the appropiate specs
- * (when publically available).
+  FIXME: Explain what's VBI and provide links to the appropiate specs
+  (when publically available).
  */
 typedef enum {
   RTE_VBIFMT_TELETEXT_B_L10_625 = 1,

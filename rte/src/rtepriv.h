@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rtepriv.h,v 1.1 2001-12-09 22:10:52 garetxe Exp $
+ * $Id: rtepriv.h,v 1.2 2001-12-15 18:48:56 garetxe Exp $
  * Private stuff in the context.
  */
 
@@ -28,25 +28,141 @@
 #include "rte.h"
 #include <pthread.h>
 #include <stdarg.h>
+#include <assert.h>
 
-#define BLANK_BUFFER	1 /* the buffer was created by blank_callback,
-			     do not unref_callback it */
+/*
+  Private things we don't want people to see, we can play with this
+  without breaking any compatibility.
+*/
 
-typedef struct _rte_context_private rte_context_private;
+typedef enum {
+	/* new ->
+	   options changed -> */
+	RTE_STATUS_NEW = 0,
+	/* set parameters -> */
+	RTE_STATUS_PARAM,
+	/* i/o -> */
+	RTE_STATUS_READY,
+	/* start -> */
+	RTE_STATUS_RUNNING
+	/* stop -> RTE_STATUS_READY */
+} rte_status;
 
-typedef void (*_rte_filter)(const char * src, char * dest, int width,
-			    int height);
+/* maybe one should add this stuff under a #ifdef RTE_BACKEND to rte.h? */
 
-/* for the sake of clarity, prototype of wait_data in rte.c */
-typedef void (*_wait_data)(rte_context *context, int video);
+typedef struct _rte_codec_class rte_codec_class;
 
+struct _rte_codec_class {
+	rte_codec_class *	next;
+	rte_codec_info		public;
 
+	/*
+	 *  Allocate new codec instance. All fields zero except
+	 *  rte_codec.class, .status (RTE_STATUS_NEW), .mutex (initialized),
+	 *  and all codec properties reset to defaults.
+	 */
+	rte_codec *		(* new)(void);
+	void			(* delete)(rte_codec *);
 
+	rte_option_info *	(* option_enum)(rte_codec *, int);
+	int			(* option_get)(rte_codec *, const char *, rte_option_value *);
+	int			(* option_set)(rte_codec *, const char *, va_list);
+	char *			(* option_print)(rte_codec *, const char *, va_list);
 
+	rte_bool		(* parameters)(rte_codec *, rte_stream_parameters *);
 
+	rte_status_info *	(* status_enum)(rte_codec *, int);
 
-/* Experimental */
+	/* result unused (yet) */
+	void *			(* mainloop)(void *rte_codec);
+};
 
+struct _rte_codec {
+	rte_codec *		next;
+
+	rte_context *		context;	/* parent context */
+	rte_codec_class *	class;		/* read only */
+
+	pthread_mutex_t		mutex;		/* locked by class funcs */
+
+	rte_status		status;		/* ro */
+	rte_pointer		user_data;
+
+	enum {
+		RTE_INPUT_CB, /* Callback buffered */
+		RTE_INPUT_CD, /* Callback data */
+		RTE_INPUT_PB, /* Push buffered */
+		RTE_INPUT_PD /* Push data */
+	} input_mode;
+
+	union {
+		/* Callbacks buffered */
+		struct {
+			rteBufferCallback	get;
+			rteBufferCallback	unref;
+		} cb;
+		/* Callbacks data */
+		struct {
+			rteDataCallback		get;
+		} cd;
+	} input;
+
+	/* FIXME: this ought to be codec private */
+	int			stream;		/* multiplexer substream */
+
+	/* Valid when RTE_STATUS_RUNNING; mutex protected, read only. */
+	int64_t			frame_input_count;
+	int64_t			frame_input_missed;	/* excl. intent. skipped */
+	int64_t			frame_output_count;
+	int64_t			byte_output_count;
+	double			coded_time_elapsed;
+	// XXX?
+	double			frame_output_rate;	/* invariable, 1/s */
+};
+
+typedef struct _rte_context_class rte_context_class;
+
+struct _rte_context_class {
+	rte_context_class *	next;
+	rte_context_info	public;
+
+	void			(* delete)(rte_context *);
+
+	rte_codec_info *	(* codec_enum)(rte_context *, int);
+	rte_codec *		(* codec_get)(rte_context *, rte_stream_type, int);
+	rte_codec *		(* codec_set)(rte_context *, int,
+					      const char *);
+
+	rte_option_info *	(* option_enum)(rte_context *, int);
+	int			(* option_get)(rte_context *, const char *, rte_option_value *);
+	int			(* option_set)(rte_context *, const char *, va_list);
+	char *			(* option_print)(rte_context *, const char *, va_list);
+
+	rte_status_info *	(* status_enum)(rte_context *, int);
+};
+
+struct _rte_context {
+	void *		user_data; /* user data given to the callback */
+	char *		error; /* Last error */
+	rte_status	status; /* context status */
+
+	rteWriteCallback write; /* save-data Callback */
+	rteSeekCallback seek; /* seek in file callback */
+
+	rte_context_class *	class; /* backend specific */
+};
+
+typedef struct {
+	void			(* init)(void);
+	rte_context_info *	(* context_enum)(int n);
+	rte_context *		(* context_new)(const char *keyword);
+} rte_backend_info;
+
+/*
+ *  Helper functions
+ *
+ *  (note the backend is bypassed, may change)
+ */
 #define RTE_OPTION_BOUNDS_INITIALIZER_(type_, def_, min_, max_, step_)	\
   { type_ = def_ }, { type_ = min_ }, { type_ = max_ }, { type_ = step_ }
 
@@ -75,147 +191,6 @@ typedef void (*_wait_data)(rte_context *context, int video);
     RTE_OPTION_BOUNDS_INITIALIZER_(.num, def_, 0, (entries_) - 1, 1),	\
     { .str = menu_ }, entries_, tip_ }
 
-/* maybe one should add this stuff under a #ifdef RTE_BACKEND to rte.h? */
-
-typedef struct rte_context_class rte_context_class;
-
-struct rte_context_class {
-	rte_context_class *	next;
-	rte_context_info	public;
-
-	/* ? */
-
-	rte_codec_info *	(* codec_enum)(rte_context *, int);
-	rte_codec *		(* codec_get)(rte_context *, rte_stream_type, int);
-	rte_codec *		(* codec_set)(rte_context *, rte_stream_type, int, char *);
-
-	rte_option_info *	(* option_enum)(rte_codec *, int);
-	int			(* option_get)(rte_codec *, char *, rte_option_value *);
-	int			(* option_set)(rte_codec *, char *, va_list);
-	char *			(* option_print)(rte_codec *, char *, va_list);
-
-	int			(* parameters)(rte_codec *, rte_stream_parameters *);
-};
-
-typedef struct rte_codec_class rte_codec_class;
-
-struct rte_codec_class {
-	rte_codec_class *	next;
-	rte_codec_info		public;
-
-	/*
-	 *  Allocate new codec instance. All fields zero except
-	 *  rte_codec.class, .status (RTE_STATUS_NEW), .mutex (initialized),
-	 *  and all codec properties reset to defaults.
-	 */
-	rte_codec *		(* new)(void);
-	void			(* delete)(rte_codec *);
-
-	rte_option_info *	(* option_enum)(rte_codec *, int index);
-	int			(* option_get)(rte_codec *, char *, rte_option_value *);
-	int			(* option_set)(rte_codec *, char *, va_list);
-	char *			(* option_print)(rte_codec *, char *, va_list);
-
-	int			(* parameters)(rte_codec *, rte_stream_parameters *);
-
-	/* result unused (yet) */
-	void *			(* mainloop)(void *rte_codec);
-};
-
-typedef enum rte_codec_status {
-	/* new -> */
-	RTE_STATUS_NEW = 1,
-	RTE_STATUS_RESERVED2,
-	/* accept options,
-           sample parameters -> */
-	RTE_STATUS_PARAM,
-	/* option change -> RTE_STATUS_NEW,
-           params change -> RTE_STATUS_PARAM,
-           i/o -> */
-	RTE_STATUS_READY,
-	RTE_STATUS_RESERVED5,
-	RTE_STATUS_RESERVED6,
-	/* option change -> RTE_STATUS_NEW,
-	   params change -> RTE_STATUS_PARAM,
-	   i/o change -> RTE_STATUS_READY,
-           start -> */
-	RTE_STATUS_RUNNING,
-	RTE_STATUS_RESERVED8,
-	/* stop -> */
-	RTE_STATUS_STOPPED,
-	/* ? -> ? */
-	RTE_STATUS_RESERVED10,
-} rte_codec_status;
-
-struct rte_codec {
-	rte_codec *		next;
-
-	rte_context *		context;	/* parent context */
-	rte_codec_class *	class;		/* read only */
-
-	int			stream;		/* multiplexer substream */
-
-	pthread_mutex_t		mutex;		/* locked by class funcs */
-
-	rte_codec_status	status;		/* mutex protected, read only */
-
-	/* Valid when RTE_STATUS_RUNNING; mutex protected, read only. */
-	int64_t			frame_input_count;
-	int64_t			frame_input_missed;	/* excl. intent. skipped */
-	int64_t			frame_output_count;
-	int64_t			byte_output_count;
-	double			coded_time_elapsed;
-	// XXX?
-	double			frame_output_rate;	/* invariable, 1/s */
-
-	/* append codec private stuff */
-};
-
-
-
-typedef struct {
-	char		*name;
-	int		priv_size; /* sizeof(*context->priv)+backend data */
-	/* basic backend functions */
-	int		(*init_backend)(void);
-	/* Init backend specific structs and context->format with trhe
-	 default format */
-	void		(*context_new)(rte_context * context);
-	/* Free context specific structs and context->format */
-	void		(*context_destroy)(rte_context * context);
-	int		(*pre_init_context)(rte_context * context);
-	int		(*post_init_context)(rte_context * context);
-	void		(*uninit_context)(rte_context * context);
-	int		(*start)(rte_context * context);
-	void		(*stop)(rte_context * context);
-	char*		(*query_format)(rte_context *context,
-					int n,
-					enum rte_mux_mode *mux_mode);
-	void		(*status)(rte_context * context,
-				  struct rte_status_info *status);
-
-	/* Experimental */
-
-	rte_context_info *	(* context_enum)(int);
-	rte_context *		(* context_new2)(char *);
-	void			(* context_delete)(rte_context *);
-
-	/* tbd context_class */
-
-	rte_codec_info *	(* codec_enum)(rte_context *, int);
-	rte_codec *		(* codec_get)(rte_context *, rte_stream_type, int);
-	rte_codec *		(* codec_set)(rte_context *, rte_stream_type, int, char *);
-
-	rte_option_info *	(* option_enum)(rte_codec *, int);
-	int			(* option_get)(rte_codec *, char *, rte_option_value *);
-	int			(* option_set)(rte_codec *, char *, va_list);
-	char *			(* option_print)(rte_codec *, char *, va_list);
-
-	int			(* parameters)(rte_codec *, rte_stream_parameters *);
-
-} rte_backend_info;
-
-
 #define RC(X) ((rte_context*)X)
 
 #define rte_error(context, format, args...) \
@@ -232,48 +207,6 @@ typedef struct {
 		fprintf(stderr, "rte:%s:%s(%d): " format ".\n", \
 			__FILE__, __PRETTY_FUNCTION__, __LINE__ ,##args); \
 }
-
-/*
-  Private things we don't want people to see, we can play with this
-  without breaking any compatibility.
-  Eventually all the global data will move here, except for the
-  tables.
-*/
-struct _rte_context_private {
-	int encoding; /* 0 if not encoding */
-	int inited; /* 0 if not inited */
-	int backend; /* backend to be used */
-	rteEncodeCallback encode_callback; /* save-data Callback */
-	rteSeekCallback seek_callback; /* seek in file callback */
-	rteDataCallback audio_data_callback; /* need audio data */
-	rteDataCallback video_data_callback; /* need video data */
-	rteBufferCallback audio_buffer_callback; /* need audio buffer */
-	rteBufferCallback video_buffer_callback; /* need video buffer */
-	rteUnrefCallback audio_unref_callback; /* audio release */
-	rteUnrefCallback video_unref_callback; /* video release */
-	enum rte_interface audio_interface; /* audio interface */
-	enum rte_interface video_interface; /* video interface */
-	int audio_buffered; /* whether the audio uses buffers or memcpy */
-	int video_buffered; /* whether the video uses buffers or memcpy */
-	int fd64; /* file descriptor of the file we are saving */
-	void * user_data; /* user data given to the callback */
-	fifo vid, aud; /* callback fifos for pushing */
-	producer vid_prod, aud_prod;
-	int depth; /* video bit depth (bytes per pixel, includes
-		      packing) */
-	buffer * last_video_buffer; /* video buffer the app should be
-				       encoding to */
-	buffer * last_audio_buffer; /* audio buffer */
-	unsigned long long bytes_out; /* sent bytes */
-
-	rte_context_class *	class;
-};
-
-/*
- *  Helper functions
- *
- *  (note the backend is bypassed, may change)
- */
 
 #define nullcheck(X, whattodo)						\
 do {									\

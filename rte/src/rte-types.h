@@ -22,11 +22,21 @@
 #define __RTE_TYPES_H__
 
 /* FIXME: This should be improved (requirements for off64_t) */
-#define _GNU_SOURCE
+#ifndef _GNU_SOURCE
+/* this lib is GPL, so anyone complaining about us defining this
+   symbol is an outlaw ;-) */
+#define _GNU_SOURCE 1
+#endif
 #include <sys/types.h>
 #include <unistd.h>
 
+/* use with option varargs to make sure the correct cast is done */
 typedef int rte_bool;
+typedef int rte_int;
+typedef double rte_real;
+typedef char* rte_string;
+typedef int rte_menu;
+
 typedef void* rte_pointer;
 
 typedef struct {
@@ -52,15 +62,7 @@ typedef struct {
   char			elementary[RTE_STREAM_MAX + 1];
 } rte_context_info;
 
-typedef struct rte_context rte_context; /* opaque */
-
-typedef enum {
-  RTE_STREAM_VIDEO = 1,  /* XXX STREAM :-( need a better term */
-  RTE_STREAM_AUDIO,	 /* input/output distinction? */
-  RTE_STREAM_SLICED_VBI,
-  /* ... */
-  RTE_STREAM_MAX = 15
-} rte_stream_type;
+typedef struct _rte_context rte_context; /* opaque */
 
 typedef struct {
   rte_stream_type	stream_type;
@@ -69,7 +71,7 @@ typedef struct {
   char *		tooltip;	/* or NULL, gettext()ized _N() */
 } rte_codec_info;
 
-typedef struct rte_codec rte_codec; /* opaque */
+typedef struct _rte_codec rte_codec; /* opaque */
 
 typedef enum {
   RTE_OPTION_BOOL = 1,
@@ -79,10 +81,17 @@ typedef enum {
   RTE_OPTION_MENU,
 } rte_option_type;
 
+typedef enum {
+  RTE_BOOL = 1,
+  RTE_INT,
+  RTE_REAL,
+  RTE_STRING
+} rte_basic_type;
+
 typedef union {
-  int			num;
-  char *		str;		/* gettext()ized _N() */
-  double		dbl;
+  rte_int		num;
+  rte_string		str;		/* gettext()ized _N() */
+  rte_real		dbl;
 } rte_option_value;
 
 typedef struct {
@@ -93,10 +102,12 @@ typedef struct {
   rte_option_value	min, max;
   rte_option_value	step;
   union {
-    int *                 num;
-    char **               str;
-    double *              dbl;
+    rte_bool *		val;
+    rte_int *           num;
+    rte_string          str;
+    rte_real *		dbl;
   }                     menu;
+  rte_basic_type	menu_type;	/* type of data the menu contains */
   int			entries;
   char *		tooltip;	/* or NULL, gettext()ized _N() */
 } rte_option_info;
@@ -131,6 +142,13 @@ typedef struct {
   rte_pointer	user_data; /* Whatever data the user wants to store */
 } rte_buffer;
 
+typedef struct {
+  char *		keyword;
+  char *		label;
+  rte_basic_type	type;
+  rte_option_value	val;
+} rte_status_info;
+
 typedef void (*rteDataCallback)(rte_context * context,
 				rte_codec * codec,
 				rte_pointer data,
@@ -156,4 +174,12 @@ typedef void (*rteWriteCallback)(rte_context * context,
 typedef void (*rteSeekCallback)(rte_context * context,
 				off64_t offset,
 				int whence);
+
+#ifndef FALSE
+#define FALSE 0
 #endif
+#ifndef TRUE
+#define TRUE (!FALSE)
+#endif
+
+#endif /* rte-types.h */
