@@ -1,8 +1,16 @@
 %TMPL:INCLUDE{"twiki"}%
 %TMPL:DEF{"titleaction"}%(oops topic missing)%TMPL:END%
-%TMPL:DEF{"webaction"}% *Attention* %TMPL:END%
-%TMPL:DEF{"heading"}%Topic does not exist%TMPL:END%
-%TMPL:DEF{"message"}%
-Please go back in your browser and chose a topic that exists. %TMPL:END%
+%TMPL:DEF{"heading"}%
+<table border="0">
+  <tr>
+    <td><img src="/pub/TWiki/TWikiDocGraphics/stop.png" alt="Error" width="32" height="32" />&nbsp;</td>
+    <td><h3>404 Topic Does Not Exist</h3></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td><p>The page you were looking for could not be found.<br />
+Please go to the <a href="/cgi-bin/view">Main Index</a>.</p></td>
+  </tr>
+</table>%TMPL:END%
 %TMPL:DEF{"topicaction"}% %TMPL:END%
 %TMPL:P{"oops"}%
