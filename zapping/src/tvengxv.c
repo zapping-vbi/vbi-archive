@@ -136,90 +136,138 @@ split_encoding			(char *			d,
 	return ++s; /* skip '-' */
 }
 
+#define NO_PORT ((XvPortID) None)
+#define ANY_PORT ((XvPortID) None)
+
+static XvPortID
+grab_port			(Display *		display,
+				 const XvAdaptorInfo *	pAdaptors,
+				 int			nAdaptors,
+				 XvPortID		port_id)
+{
+  int i;
+
+  for (i = 0; i < nAdaptors; ++i)
+    {
+      const XvAdaptorInfo *pAdaptor;
+      unsigned int type;
+
+      pAdaptor = pAdaptors + i;
+
+      type = pAdaptor->type;
+
+      if (0 == strcmp (pAdaptor->name, "NVIDIA Video Interface Port")
+	  && type == (XvInputMask | XvVideoMask))
+	type = XvOutputMask | XvVideoMask; /* Bug. This is TV out. */
+
+      if ((XvInputMask | XvVideoMask)
+	  == (type & (XvInputMask | XvVideoMask)))
+	{
+	  if (ANY_PORT == port_id)
+	    {
+	      int i;
+
+	      for (i = 0; i < pAdaptor->num_ports; ++i)
+		if (Success == XvGrabPort (display, pAdaptor->base_id + i,
+					   CurrentTime))
+		  return (XvPortID)(pAdaptor->base_id + i);
+	    }
+	  else
+	    {
+	      if (port_id >= pAdaptor->base_id
+		  && port_id < (pAdaptor->base_id + pAdaptor->num_ports))
+		{
+		  if (Success == XvGrabPort (display, port_id, CurrentTime))
+		    return port_id;
+		  else
+		    return NO_PORT;
+		}
+	    }
+	}
+    }
+
+  return NO_PORT;
+}
+
 static int
 p_tvengxv_open_device(tveng_device_info *info)
 {
-  Display *dpy = info->priv->display;
-  Window root_window = DefaultRootWindow(dpy);
-  unsigned int version, revision, major_opcode, event_base,
-    error_base;
+  struct private_tvengxv_device_info *p_info = P_INFO (info);
+  Display *display;
+  unsigned int version;
+  unsigned int revision;
+  unsigned int major_opcode;
+  unsigned int event_base;
+  unsigned int error_base;
+  Window root;
+  XvAdaptorInfo *pAdaptors;
   int nAdaptors;
-  int i,j;
-  XvAttribute *at;
-  int attributes;
-  struct private_tvengxv_device_info *p_info =
-    (struct private_tvengxv_device_info*) info;
-  XvAdaptorInfo *pAdaptors, *pAdaptor;
+  XvAttribute *pAttributes;
+  int nAttributes;
 
-  if (Success != XvQueryExtension(dpy, &version, &revision,
-				  &major_opcode, &event_base,
-				  &error_base))
-    goto error1;
+  display = info->priv->display;
 
-  if (info->debug_level > 0)
-    fprintf(stderr, "tvengxv.c: XVideo major_opcode: %d\n",
-	    major_opcode);
+  nAdaptors = 0;
+  nAttributes = 0;
+
+  p_info->port = NO_PORT;
+  p_info->encodings = 0;
+
+  if (Success != XvQueryExtension (display,
+				   &version, &revision,
+				   &major_opcode,
+				   &event_base, &error_base))
+    {
+      printv ("XVideo extension not available\n");
+      goto failure;
+    }
+
+  printv ("XVideo opcode %d, base %d, %d, version %d.%d\n",
+	  major_opcode,
+	  event_base, error_base,
+	  version, revision);
 
   if (version < 2 || (version == 2 && revision < 2))
-    goto error1;
+    {
+      printv ("XVideo extension not usable\n");
+      goto failure;
+    }
 
-  if (Success != XvQueryAdaptors(dpy, root_window, &nAdaptors,
-				 &pAdaptors))
-    goto error1;
+  root = DefaultRootWindow (display);
+
+  if (Success != XvQueryAdaptors (display, root, &nAdaptors, &pAdaptors))
+    {
+      printv ("XvQueryAdaptors failed\n");
+      goto failure;
+    }
 
   if (nAdaptors <= 0)
-    goto error1;
+    goto failure;
 
- retry:
-  for (i=0; i<nAdaptors; i++)
+  p_info->port = grab_port (display, pAdaptors, nAdaptors, xv_overlay_port);
+
+  if (NO_PORT == p_info->port && ANY_PORT != xv_overlay_port)
     {
-      pAdaptor = pAdaptors + i;
-      if ((pAdaptor->type & XvInputMask) &&
-	  (pAdaptor->type & XvVideoMask))
-	{ /* available port found */
-	  for (j=0; j<pAdaptor->num_ports; j++)
-	    {
-	      p_info->port = pAdaptor->base_id + j;
+      printv ("XVideo video input port 0x%x not found\n",
+	      (unsigned int) xv_overlay_port);
 
-	      /* --xv-port option hack */
-	      if (xv_overlay_port >= 0
-		  && p_info->port != xv_overlay_port)
-		continue;
-
-	      if (Success == XvGrabPort(dpy, p_info->port, CurrentTime))
-		goto adaptor_found;
-	    }
-	}
+      p_info->port = grab_port (display, pAdaptors, nAdaptors, ANY_PORT);
     }
 
-  if (xv_overlay_port >= 0)
+  if (NO_PORT == p_info->port)
     {
-      fprintf (stderr, "Xvideo overlay port #%d not found, "
-	       "will try default. Available are:\n", xv_overlay_port);
-      for (i=0; i<nAdaptors; i++)
-	{
-	  pAdaptor = pAdaptors + i;
-	  if ((pAdaptor->type & XvInputMask) &&
-	      (pAdaptor->type & XvVideoMask))
-	    {
-	      for (j=0; j<pAdaptor->num_ports; j++)
-		fprintf (stderr, "%3d %s\n",
-			 (int)(pAdaptor->base_id + j),
-			 pAdaptor->name);
-	    }
-	}
-      xv_overlay_port = -1;
-      goto retry;
+      printv ("No XVideo input port found\n");
+      goto failure;
     }
 
-  goto error2; /* no adaptors found */
+  printv ("Using XVideo video input port 0x%x\n",
+	  (unsigned int) p_info->port);
 
-  /* success */
- adaptor_found:
   /* Check that it supports querying controls and encodings */
-  if (Success != XvQueryEncodings(dpy, p_info->port,
-				  &p_info->encodings, &p_info->ei))
-    goto error3;
+  if (Success != XvQueryEncodings(display, p_info->port,
+				  &p_info->encodings,
+				  &p_info->ei))
+    goto failure;
 
   if (p_info->encodings <= 0)
     {
@@ -227,29 +275,43 @@ p_tvengxv_open_device(tveng_device_info *info)
       t_error_msg("encodings",
 		  "You have no encodings available",
 		  info);
-      goto error3;
+      goto failure;
     }
 
   /* create the atom that handles the encoding */
-  at = XvQueryPortAttributes(dpy, p_info->port, &attributes);
-  if ((!at) && (attributes <= 0))
-    goto error4;
+  pAttributes = XvQueryPortAttributes(display, p_info->port, &nAttributes);
 
-  XvFreeAdaptorInfo(pAdaptors);
-  XvUngrabPort(dpy, p_info->port, CurrentTime);
+  if (nAttributes <= 0)
+    goto failure;
+
+  XFree (pAttributes);
+
+  XvFreeAdaptorInfo (pAdaptors);
+
+  XvUngrabPort (display, p_info->port, CurrentTime);
+
   return 0xbeaf; /* the port seems to work ok, success */
 
- error4:
-  if (p_info->ei)
+ failure:
+  if (nAttributes > 0)
+    XFree (pAttributes);
+
+  if (p_info->encodings > 0)
     {
-      XvFreeEncodingInfo(p_info->ei);
+      XvFreeEncodingInfo (p_info->ei);
       p_info->ei = NULL;
+      p_info->encodings = 0;
     }
- error3:
-  XvUngrabPort(dpy, p_info->port, CurrentTime);
- error2:
-  XvFreeAdaptorInfo(pAdaptors);
- error1:
+
+  if (NO_PORT != p_info->port)
+    {
+      XvUngrabPort (display, p_info->port, CurrentTime);
+      p_info->port = NO_PORT;
+    }
+
+  if (nAdaptors > 0)
+    XvFreeAdaptorInfo (pAdaptors);
+
   return -1; /* failure */
 }
 
@@ -311,7 +373,7 @@ set_overlay			(tveng_device_info *	info,
   	if (p_info->window == 0 || p_info->gc == 0) {
 		info->tveng_errno = -1;
 		t_error_msg("win", "The window value hasn't been set", info);
-		return -1;
+		return FALSE;
 	}
 
 	XGetGeometry (info->priv->display,
@@ -347,7 +409,7 @@ set_overlay			(tveng_device_info *	info,
 
 	XSync (info->priv->display, False);
 
-	return 0;
+	return TRUE;
 }
 
 
@@ -545,15 +607,15 @@ set_standard			(tveng_device_info *	info,
 static const struct {
 	const char *		name;
 	const char *		label;
-	tv_video_standard_id	id;
+	tv_videostd_set		set;
 } standards [] = {
-	{ "pal",	"PAL",		TV_VIDEOSTD_PAL },
-	{ "ntsc",	"NTSC",		TV_VIDEOSTD_NTSC_M },
-	{ "secam",	"SECAM",	TV_VIDEOSTD_SECAM },
-	{ "palnc",	"PAL-NC",	TV_VIDEOSTD_PAL_NC },
-	{ "palm",	"PAL-M",	TV_VIDEOSTD_PAL_M },
-	{ "paln",	"PAL-N",	TV_VIDEOSTD_PAL_N },
-	{ "ntscjp",	"NTSC-JP",	TV_VIDEOSTD_NTSC_M_JP },
+	{ "pal",	"PAL",		TV_VIDEOSTD_SET_PAL },
+	{ "ntsc",	"NTSC",		TV_VIDEOSTD_SET (TV_VIDEOSTD_NTSC_M) },
+	{ "secam",	"SECAM",	TV_VIDEOSTD_SET_SECAM },
+	{ "palnc",	"PAL-NC",	TV_VIDEOSTD_SET (TV_VIDEOSTD_PAL_NC) },
+	{ "palm",	"PAL-M",	TV_VIDEOSTD_SET (TV_VIDEOSTD_PAL_M) },
+	{ "paln",	"PAL-N",	TV_VIDEOSTD_SET (TV_VIDEOSTD_PAL_N) },
+	{ "ntscjp",	"NTSC-JP",	TV_VIDEOSTD_SET (TV_VIDEOSTD_NTSC_M_JP) },
 };
 
 static tv_bool
@@ -597,14 +659,14 @@ update_standard_list		(tveng_device_info *	info)
 
 		if (j < N_ELEMENTS (standards)) {
 			s = S(append_video_standard (&info->video_standards,
-						     standards[j].id,
+						     standards[j].set,
 						     standards[j].label,
 						     standards[j].name,
 						     sizeof (*s)));
 		} else {
 			char up[sizeof (buf)];
 
-			if (custom >= sizeof (tv_video_standard_id) * 8)
+			if (custom >= TV_MAX_VIDEOSTDS)
 				continue;
 
 			for (j = 0; buf[j]; ++j)
@@ -1296,6 +1358,6 @@ void tvengxv_init_module(struct tveng_module_info *module_info)
 {
   t_assert(module_info != NULL);
 
-  memset(module_info, 0, sizeof(struct tveng_module_info));
+  CLEAR (*module_info);
 }
 #endif
