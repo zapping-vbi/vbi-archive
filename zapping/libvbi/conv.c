@@ -18,9 +18,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: conv.c,v 1.3 2005-01-08 14:54:20 mschimek Exp $ */
+/* $Id: conv.c,v 1.4 2005-01-19 04:17:53 mschimek Exp $ */
 
-#include "../config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <stdlib.h>
 #include <string.h>

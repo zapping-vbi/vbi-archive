@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: channel_editor.c,v 1.46 2005-01-08 14:54:27 mschimek Exp $ */
+/* $Id: channel_editor.c,v 1.47 2005-01-19 04:16:19 mschimek Exp $ */
 
 /*
   TODO:
@@ -35,7 +35,9 @@
 /* XXX gtk+ 2.3 GtkOptionMenu */
 #undef GTK_DISABLE_DEPRECATED
 
-#include "config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <gnome.h>
 

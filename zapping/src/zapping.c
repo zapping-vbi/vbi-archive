@@ -18,10 +18,13 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping.c,v 1.10 2004-12-07 17:31:07 mschimek Exp $ */
+/* $Id: zapping.c,v 1.11 2005-01-19 04:16:24 mschimek Exp $ */
 
-#include "config.h"
 #include "site_def.h"
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include "audio.h"
 #include "interface.h"

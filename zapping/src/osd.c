@@ -27,7 +27,10 @@
 #undef GDK_DISABLE_DEPRECATED
 
 #include "site_def.h"
-#include "config.h"
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <gnome.h>
 

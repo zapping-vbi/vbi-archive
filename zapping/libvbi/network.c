@@ -17,9 +17,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: network.c,v 1.2 2005-01-08 14:54:21 mschimek Exp $ */
+/* $Id: network.c,v 1.3 2005-01-19 04:17:54 mschimek Exp $ */
 
-#include "../config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <stdlib.h>
 #include <ctype.h>		/* isdigit() */

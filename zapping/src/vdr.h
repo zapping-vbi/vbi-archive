@@ -19,7 +19,7 @@
 #define __VDR_H__
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include "config.h"
 #endif
 
 gboolean startup_vdr(void);

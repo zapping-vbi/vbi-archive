@@ -17,7 +17,7 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include "config.h"
 #endif
 
 #include <gnome.h>
@@ -570,7 +570,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.194 2005-01-08 14:38:18 mschimek Exp $",
+	 "$Id: main.c,v 1.195 2005-01-19 04:16:20 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
 
   cpu_detection ();

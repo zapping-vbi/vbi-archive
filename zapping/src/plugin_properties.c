@@ -19,7 +19,7 @@
   This modules takes care of the plugins properties dialog
 */
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include "config.h"
 #endif
 
 #include <gnome.h>

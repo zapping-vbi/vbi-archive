@@ -19,9 +19,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: window.c,v 1.7 2004-12-07 17:30:43 mschimek Exp $ */
+/* $Id: window.c,v 1.8 2005-01-19 04:17:01 mschimek Exp $ */
 
-#include "config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include "libvbi/link.h"
 #include "src/zmisc.h"

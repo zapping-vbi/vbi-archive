@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fullscreen.c,v 1.39 2005-01-08 14:54:27 mschimek Exp $ */
+/* $Id: fullscreen.c,v 1.40 2005-01-19 04:16:20 mschimek Exp $ */
 
 /**
  * Fullscreen mode handling
@@ -26,7 +26,7 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include "config.h"
 #endif
 
 #include <gtk/gtk.h>

@@ -19,7 +19,7 @@
 #define __PLUGINS_H__
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h> /* VERSION */
+#  include "config.h"		/* VERSION */
 #endif
 
 /* Mainly for glib.h */

@@ -16,13 +16,16 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.c,v 1.28 2005-01-08 14:54:27 mschimek Exp $ */
+/* $Id: audio.c,v 1.29 2005-01-19 04:16:18 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu */
 #undef GTK_DISABLE_DEPRECATED
 
 #include "site_def.h"
-#include "config.h"
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <gnome.h>
 

@@ -1,7 +1,9 @@
 #ifndef __GLOBALS_H__
 #define __GLOBALS_H__
 
-#include "config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <gconf/gconf-client.h>
 #include "tveng.h"

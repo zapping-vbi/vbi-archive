@@ -19,12 +19,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.h,v 1.2 2004-11-03 06:45:58 mschimek Exp $ */
+/* $Id: main.h,v 1.3 2005-01-19 04:17:01 mschimek Exp $ */
 
 #ifndef MAIN_H
 #define MAIN_H
 
-#include "config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <gtk/gtk.h>
 #include "libvbi/teletext_decoder.h"

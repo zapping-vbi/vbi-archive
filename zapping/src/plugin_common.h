@@ -22,7 +22,7 @@
 #define __PLUGINS_COMMON_H__
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h> /* VERSION */
+#  include "config.h"		/* VERSION */
 #endif
 
 #include <gnome.h>

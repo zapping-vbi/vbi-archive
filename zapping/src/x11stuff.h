@@ -22,8 +22,9 @@
  * the routines contained here are all the X-specific stuff in Zapping
  */
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include "config.h"
 #endif
+
 #include <gtk/gtk.h>
 
 #include "tveng.h" /* tv_overlay_target, tv_pixfmt */

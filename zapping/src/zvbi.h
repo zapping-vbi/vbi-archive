@@ -24,7 +24,9 @@
 #ifndef __ZVBI_H__
 #define __ZVBI_H__
 
-#include "../config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #ifdef HAVE_LIBZVBI
 

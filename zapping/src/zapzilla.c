@@ -17,7 +17,7 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include "config.h"
 #endif
 
 #ifdef HAVE_LIBZVBI
@@ -101,7 +101,7 @@ int zapzilla_main(int argc, char * argv[])
 		      NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: zapzilla.c,v 1.6 2005-01-08 14:54:29 mschimek Exp $",
+	 "$Id: zapzilla.c,v 1.7 2005-01-19 04:16:24 mschimek Exp $",
 	 "Zapzilla", VERSION, __DATE__);
   D();
   /* FIXME: Find something better */

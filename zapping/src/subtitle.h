@@ -19,12 +19,14 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: subtitle.h,v 1.3 2004-11-03 06:42:28 mschimek Exp $ */
+/* $Id: subtitle.h,v 1.4 2005-01-19 04:16:22 mschimek Exp $ */
 
 #ifndef SUBTITLE_H
 #define SUBTITLE_H
 
-#include "config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <gtk/gtkwidget.h>
 

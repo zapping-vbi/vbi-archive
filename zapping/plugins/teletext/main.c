@@ -19,9 +19,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.10 2004-12-07 17:30:43 mschimek Exp $ */
+/* $Id: main.c,v 1.11 2005-01-19 04:17:01 mschimek Exp $ */
 
-#include "config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #define ZCONF_DOMAIN "/zapping/ttxview/"
 #include "src/zconf.h"

@@ -16,14 +16,14 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cmd.c,v 1.14 2005-01-08 14:54:27 mschimek Exp $ */
+/* $Id: cmd.c,v 1.15 2005-01-19 04:16:20 mschimek Exp $ */
 
 /**
  * Provides the functionality in the Python interface of Zapping.
  */
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include "config.h"
 #endif
 
 #include <gnome.h>

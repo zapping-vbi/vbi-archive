@@ -23,7 +23,7 @@
 #include "site_def.h"
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include "config.h"
 #endif
 
 #include <gnome.h>

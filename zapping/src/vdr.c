@@ -22,7 +22,9 @@
  * Interface to VideoDiskRecorder
  */
 
-#include "../config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <gnome.h>
 

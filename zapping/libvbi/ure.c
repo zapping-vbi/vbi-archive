@@ -28,9 +28,11 @@
  * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-/* $Id: ure.c,v 1.2 2005-01-08 14:54:21 mschimek Exp $ */
+/* $Id: ure.c,v 1.3 2005-01-19 04:17:54 mschimek Exp $ */
 
-#include "../config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <stdlib.h>
 #include <unistd.h>

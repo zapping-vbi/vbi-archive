@@ -19,10 +19,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cpu.c,v 1.5 2005-01-08 14:54:27 mschimek Exp $ */
+/* $Id: cpu.c,v 1.6 2005-01-19 04:16:20 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include "config.h"
 #endif
 
 #include <string.h>

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mixer.c,v 1.10 2005-01-08 14:54:28 mschimek Exp $ */
+/* $Id: mixer.c,v 1.11 2005-01-19 04:16:21 mschimek Exp $ */
 
 /*
  *  These functions encapsulate the OS and driver specific
@@ -27,7 +27,7 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include "config.h"
 #endif
 
 /*

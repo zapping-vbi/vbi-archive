@@ -35,7 +35,10 @@
  */
 
 #include "site_def.h"
-#include "config.h"
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <gdk/gdkx.h>
 #include <gtk/gtk.h>
