@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.34 2002-06-24 03:18:17 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.35 2002-08-22 22:00:23 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -1261,27 +1261,9 @@ sequence_header(mpeg1_context *mpeg1)
 	printv(3, "Encoding sequence header\n");
 
 	if (!mpeg1->aspect_ratio_code) // XXX mp1e frontend
-		switch (mpeg1->frame_rate_code) {
-		case 1: // square pixels 23.97 Hz
-		case 2: // square pixels 24 Hz
-			mpeg1->aspect_ratio_code = 1;
-			break;
-
-		case 3: // CCIR 601, 625 line 25 Hz
-		case 6: // CCIR 601, 625 line 50 Hz
-			mpeg1->aspect_ratio_code = 8;
-			break;
-
-		case 4: // CCIR 601, 525 line 29.97 Hz
-		case 5: // CCIR 601, 525 line 30 Hz
-		case 7: // CCIR 601, 525 line 59.94 Hz
-		case 8: // CCIR 601, 525 line 60 Hz
-			mpeg1->aspect_ratio_code = 9;
-			break;
-
-		default:
-			FAIL("Invalid frame_rate_code %d", mpeg1->frame_rate_code);
-		}
+		mpeg1->aspect_ratio_code =
+			rte_closest_double(&aspect_ratio_value[1], 14,
+					   mpeg1->codec.codec.params.video.sample_aspect);
 
 	bit_rate_value = ceil(mpeg1->bit_rate / 400.0);
 	assert(bit_rate_value >= 1 && bit_rate_value <= 0x3FFFF);
@@ -2242,26 +2224,6 @@ uninit(rte_codec *codec)
 		static_context = NULL;
 }
 
-static int
-dvec_imin(const double *vec, int size, double val)
-{
-	int i, imin = 0;
-	double d, dmin = DBL_MAX;
-
-	assert(size > 0);
-
-	for (i = 0; i < size; i++) {
-		d = fabs(val - vec[i]);
-
-		if (d < dmin) {
-			dmin = d;
-		        imin = i;
-		}
-	}
-
-	return imin;
-}
-
 static rte_bool
 parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 {
@@ -2294,7 +2256,7 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 	mpeg1->coded_width = rsp->video.width;
 	mpeg1->coded_height = rsp->video.height;
 
-	video_coding_size(mpeg1->coded_width, mpeg1->coded_height);
+	video_coding_size(mpeg1->coded_width, mpeg1->coded_height, FALSE);
 
 	if (filter_mode != -1) { // XXX mp1e frontend
 		extern int motion_min, motion_max;
@@ -2303,7 +2265,7 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 		mpeg1->coded_width = width;
 		mpeg1->coded_height = height;
 
-		video_coding_size(mpeg1->coded_width, mpeg1->coded_height);
+		video_coding_size(mpeg1->coded_width, mpeg1->coded_height, FALSE);
 
 		mpeg1->motion_min = motion_min; // option
 		mpeg1->motion_max = motion_max;
@@ -2318,7 +2280,7 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 	mpeg1->coded_width = rsp->video.width;
 	mpeg1->coded_height = rsp->video.height;
 
-	video_coding_size(mpeg1->coded_width, mpeg1->coded_height);
+	video_coding_size(mpeg1->coded_width, mpeg1->coded_height, FALSE);
 
 	switch (cpu_type) {
 	case CPU_PENTIUM_III:
@@ -2382,13 +2344,13 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 
 	mpeg1->nominal_frame_rate = rsp->video.frame_rate;
 
-	if (!rsp->video.pixel_aspect)
-		rsp->video.pixel_aspect = 1.0;
+	if (!rsp->video.sample_aspect)
+		rsp->video.sample_aspect = 1.0;
 
-	mpeg1->aspect_ratio_code = dvec_imin(&aspect_ratio_value[1], 14,
-					     rsp->video.pixel_aspect); 
+	mpeg1->aspect_ratio_code = rte_closest_double(&aspect_ratio_value[1], 14,
+						      rsp->video.sample_aspect);
 
-	rsp->video.pixel_aspect = aspect_ratio_value[mpeg1->aspect_ratio_code];
+	rsp->video.sample_aspect = aspect_ratio_value[mpeg1->aspect_ratio_code];
 
 	memcpy(&codec->params, rsp, sizeof(codec->params));
 
@@ -2659,7 +2621,7 @@ option_print(rte_codec *codec, const char *keyword, va_list args)
 	        snprintf(buf, sizeof(buf), _("%5.3f Mbit/s"), va_arg(args, int) / 1e6);
 	} else if (KEYWORD("coded_frame_rate")) {
 		snprintf(buf, sizeof(buf), _("%4.2f frames/s"),
-			 frame_rate_value[dvec_imin(
+			 frame_rate_value[rte_closest_double(
 				  &frame_rate_value[1], 8,
 				  va_arg(args, double)) + 1]);
 	} else if (KEYWORD("virtual_frame_rate")) {
@@ -2746,7 +2708,7 @@ option_set(rte_codec *codec, const char *keyword, va_list args)
 
 	default:
 		rte_error_printf(codec->context, "Cannot set %s options, codec is busy.",
-				 codec->class->public.keyword);
+				 codec->_class->_public.keyword);
 		return FALSE;
 	}
 
@@ -2754,7 +2716,7 @@ option_set(rte_codec *codec, const char *keyword, va_list args)
 		mpeg1->bit_rate = RTE_OPTION_ARG(int, 30000, 8000000);
 	} else if (KEYWORD("coded_frame_rate")) {
 		mpeg1->frame_rate_code =
-			dvec_imin(&frame_rate_value[1], 8,
+			rte_closest_double(&frame_rate_value[1], 8,
 				  va_arg(args, double)) + 1;
 	} else if (KEYWORD("virtual_frame_rate")) {
 		mpeg1->virtual_frame_rate =
@@ -2801,7 +2763,7 @@ option_set(rte_codec *codec, const char *keyword, va_list args)
 }
 
 static rte_option_info *
-option_enum(rte_codec *codec, int index)
+option_enum(rte_codec *codec, unsigned int index)
 {
 	/* mpeg1_context *mpeg1 = PARENT(codec, mpeg1_context, codec); */
 
@@ -2860,7 +2822,7 @@ codec_new(rte_codec_class *cc, char **errstr)
 	}
 
 	codec = &mpeg1->codec.codec;
-	codec->class = cc;
+	codec->_class = cc;
 
 	pthread_mutex_init(&codec->mutex, NULL);
 
@@ -2871,14 +2833,14 @@ codec_new(rte_codec_class *cc, char **errstr)
 
 rte_codec_class
 mp1e_mpeg1_video_codec = {
-	.public = {
+	._public = {
 		.stream_type = RTE_STREAM_VIDEO,
 		.keyword = "mpeg1_video",
 		.label = "MPEG-1 Video",
 	},
 
-	.new		= codec_new,
-	.delete         = codec_delete,
+	._new		= codec_new,
+	._delete	= codec_delete,
 
 	.option_enum	= option_enum,
 	.option_get	= option_get,
