@@ -11,7 +11,7 @@ endif
 # Cannot build for target x86_64, code is 32 bit.
 if HAVE_X86
 if HAVE_SSE2
-deinterlace_plugin =
+deinterlace_plugin = deinterlace
 else
 deinterlace_plugin =
 endif
