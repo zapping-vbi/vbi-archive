@@ -12,6 +12,7 @@ DISTCLEANFILES = zsfb.capps
 install-binPROGRAMS: $(bin_PROGRAMS) zsfb.capps
 if SUID_ZSFB
 	$(mkinstalldirs) $(DESTDIR)$(bindir)
+	$(mkinstalldirs) $(DESTDIR)$(sbindir)
 	$(INSTALL) -m4755 -o $(ZSFB_OWNER) -g $(ZSFB_GROUP) \
 	  zapping_setup_fb $(DESTDIR)$(sbindir)
 	ln -sf $(DESTDIR)$(sbindir)/zapping_setup_fb \
