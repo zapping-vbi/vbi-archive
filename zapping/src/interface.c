@@ -11,6 +11,8 @@
 #include "globals.h"
 #include "zconf.h"
 #include "properties-handler.h"
+#include "zvideo.h"
+#include "callbacks.h"
 
 extern gboolean have_wm_hints;
 
@@ -155,64 +157,75 @@ build_widget			(const gchar *		name,
   return widget;
 }
 
-#define MENU_CMD(_name, _cmd)					\
+#define PY_CMD(_name, _signal, _cmd)				\
   w = lookup_widget (widget, #_name);				\
-  g_signal_connect (G_OBJECT (w), "activate",			\
+  g_signal_connect (G_OBJECT (w), _signal,			\
 		    (GCallback) on_remote_command1,		\
 		    (gpointer)((const gchar *) _cmd));
 
 GtkWidget*
 create_zapping (void)
 {
+  GdkColor col = { 0, 0, 0, 0 };
   GtkWidget *widget, *w;
+  GtkWidget *box;
+  GtkWidget *tv_screen;
 
   widget = build_widget ("zapping", NULL);
+  gtk_widget_modify_bg (widget, GTK_STATE_NORMAL, &col);
 
-  /* Work around libglade bug */
-  w = lookup_widget (widget, "tv_screen");
-  gtk_widget_add_events (w, GDK_BUTTON_PRESS_MASK |
+  box = lookup_widget (widget, "tv_screen_box");
+
+  tv_screen = z_video_new ();
+  gtk_container_add (GTK_CONTAINER (box), tv_screen);
+  register_widget (tv_screen, "tv-screen");
+
+  // XXX free, 4:3, 16:9
+  if (zconf_get_boolean (NULL, "/zapping/options/main/fixed_increments"))
+    z_video_set_size_inc (Z_VIDEO (tv_screen), 64, 64 * 3 / 4);
+
+  gtk_widget_add_events (tv_screen,
+			 GDK_BUTTON_PRESS_MASK |
 			 GDK_BUTTON_RELEASE_MASK |
 			 GDK_EXPOSURE_MASK |
 			 GDK_POINTER_MOTION_MASK |
 			 GDK_VISIBILITY_NOTIFY_MASK |
 			 GDK_KEY_PRESS_MASK);
 
+  g_signal_connect (G_OBJECT (tv_screen), "button_press_event",
+		    (GCallback) on_tv_screen_button_press_event,
+		    (gpointer) NULL);
+
+  gtk_widget_show (tv_screen);
+
   w = lookup_widget (widget, "keep_window_on_top2");
   gtk_widget_set_sensitive (w, !!have_wm_hints);
   /* XXX tell why not */
   gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (w),
-				  zconf_get_boolean (NULL, "/zapping/options/main/keep_on_top")
-				  && !!have_wm_hints);
+    zconf_get_boolean (NULL, "/zapping/options/main/keep_on_top")
+    && !!have_wm_hints);
 
-  /* Menu remote commands, not possible with glade */
-  MENU_CMD (quit1,		"zapping.quit()");
-  MENU_CMD (go_fullscreen1,	"zapping.switch_mode('fullscreen')");
-  MENU_CMD (go_previewing2,	"zapping.switch_mode('preview')");
-  MENU_CMD (go_capturing2,	"zapping.switch_mode('capture')");
-  MENU_CMD (videotext1,		"zapping.switch_mode('teletext')");
-  MENU_CMD (new_ttxview,	"zapping.ttx_open_new()");
-  MENU_CMD (mute2,		"zapping.mute()");
-  MENU_CMD (about1,		"zapping.about()");
-  MENU_CMD (propiedades1,	"zapping.properties()");
-  MENU_CMD (hide_controls2,	"zapping.hide_controls()");
-  MENU_CMD (keep_window_on_top2, "zapping.keep_on_top()");
-  MENU_CMD (plugins1,		"zapping.plugin_properties()");
-  MENU_CMD (main_help1,		"zapping.help()");
-  MENU_CMD (vbi_info1,		"zapping.network_info()");
-  MENU_CMD (program_info1,	"zapping.program_info()");
-  MENU_CMD (closed_caption1,	"zapping.closed_caption()");
-  MENU_CMD (channels1,		"zapping.channel_editor()");
-
-  /* Toolbar commands */
-  w = lookup_widget (widget, "tb-mute");
-  g_signal_connect (G_OBJECT(w), "toggled",
-		    (GCallback) on_remote_command1,
-		    "zapping.mute()");
-
-  w = lookup_widget (widget, "controls");
-  g_signal_connect (G_OBJECT(w), "clicked",
-		    (GCallback) on_remote_command1,
-		    "zapping.control_box()");
+  PY_CMD (quit1,		"activate",	"zapping.quit()");
+  PY_CMD (go_fullscreen1,	"activate",	"zapping.switch_mode('fullscreen')");
+  PY_CMD (go_previewing2,	"activate",	"zapping.switch_mode('preview')");
+  PY_CMD (go_capturing2,	"activate",	"zapping.switch_mode('capture')");
+  PY_CMD (videotext1,		"activate",	"zapping.switch_mode('teletext')");
+  PY_CMD (new_ttxview,		"activate",	"zapping.ttx_open_new()");
+  PY_CMD (mute2,		"activate",	"zapping.mute()");
+  PY_CMD (about1,		"activate",	"zapping.about()");
+  PY_CMD (propiedades1,		"activate",	"zapping.properties()");
+  PY_CMD (hide_controls2,	"activate",	"zapping.hide_controls()");
+  PY_CMD (keep_window_on_top2,	"activate",	"zapping.keep_on_top()");
+  PY_CMD (plugins1,		"activate",	"zapping.plugin_properties()");
+  PY_CMD (main_help1,		"activate",	"zapping.help()");
+  PY_CMD (vbi_info1,		"activate",	"zapping.network_info()");
+  PY_CMD (program_info1,	"activate",	"zapping.program_info()");
+  PY_CMD (closed_caption1,	"activate",	"zapping.closed_caption()");
+  PY_CMD (channels1,		"activate",	"zapping.channel_editor()");
+  PY_CMD (channel_up,		"clicked",	"zapping.channel_up()");
+  PY_CMD (channel_down,		"clicked",	"zapping.channel_down()");
+  PY_CMD (tb-mute,		"toggled",	"zapping.mute()");
+  PY_CMD (controls,		"clicked",	"zapping.control_box()");
 
   propagate_toolbar_changes (lookup_widget (widget, "toolbar1"));
 
@@ -226,7 +239,6 @@ create_zapping (void)
   return widget;
 }
 
-
 GtkWidget*
 create_popup_menu1 (void)
 {
@@ -239,19 +251,17 @@ create_popup_menu1 (void)
   gtk_widget_set_sensitive (w, !!have_wm_hints);
   /* XXX tell why not */
   gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (w),
-				  zconf_get_boolean (NULL, "/zapping/options/main/keep_on_top")
+				  zconf_get_boolean
+				  (NULL, "/zapping/options/main/keep_on_top")
 				  && !!have_wm_hints);
 
-  /* Menu remote commands, not possible with glade */
-  MENU_CMD (go_fullscreen2,	"zapping.switch_mode('fullscreen')");
-  MENU_CMD (go_previewing2,	"zapping.switch_mode('preview')");
-  MENU_CMD (go_capturing2,	"zapping.switch_mode('capture')");
-  MENU_CMD (videotext2,		"zapping.switch_mode('teletext')");
-  MENU_CMD (new_ttxview2,	"zapping.ttx_open_new()");
-
-  /* Fixme: These don't work, dunno why */
-  MENU_CMD (hide_controls1,	"zapping.hide_controls()");
-  MENU_CMD (keep_window_on_top1,"zapping.keep_on_top()");
+  PY_CMD (go_fullscreen2,	"activate", "zapping.switch_mode('fullscreen')");
+  PY_CMD (go_previewing2,	"activate", "zapping.switch_mode('preview')");
+  PY_CMD (go_capturing2,	"activate", "zapping.switch_mode('capture')");
+  PY_CMD (videotext2,		"activate", "zapping.switch_mode('teletext')");
+  PY_CMD (new_ttxview2,		"activate", "zapping.ttx_open_new()");
+  PY_CMD (hide_controls1,	"activate", "zapping.hide_controls()");
+  PY_CMD (keep_window_on_top1,	"activate", "zapping.keep_on_top()");
 
   w = lookup_widget (widget, "appearance1_menu");
   picture_sizes_append_menu (GTK_MENU_SHELL (w));
