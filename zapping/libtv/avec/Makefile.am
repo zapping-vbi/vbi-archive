@@ -8,6 +8,8 @@ noinst_LIBRARIES = libavec.a
 AM_CFLAGS = -O3 -fomit-frame-pointer -D_REENTRANT \
 	-maltivec -mabi=altivec -DALTIVEC
 
+INCLUDES = -I$(top_srcdir)
+
 EXTRA_DIST = \
 	clear_block.h
 

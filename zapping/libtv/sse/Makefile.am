@@ -7,6 +7,8 @@ noinst_LIBRARIES = libsse.a
 
 AM_CFLAGS = -O3 -fomit-frame-pointer -D_REENTRANT -msse -DSSE
 
+INCLUDES = -I$(top_srcdir)
+
 libsse_a_SOURCES = \
 	copy_block.c \
 	sse.c sse.h

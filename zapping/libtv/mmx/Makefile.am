@@ -7,6 +7,8 @@ noinst_LIBRARIES = libmmx.a
 
 AM_CFLAGS = -O3 -fomit-frame-pointer -D_REENTRANT -mmmx -DMMX
 
+INCLUDES = -I$(top_srcdir)
+
 EXTRA_DIST = \
 	clear_block.h
 
