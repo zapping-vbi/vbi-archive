@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.32 2002-06-18 02:22:12 mschimek Exp $ */
+/* $Id: mp2.c,v 1.33 2002-08-22 22:02:49 mschimek Exp $ */
 
 #include <limits.h>
 
@@ -994,26 +994,6 @@ mpeg2_options[elements(mpeg1_options)];
 
 #define KEYWORD(name) strcmp(keyword, name) == 0
 
-static int
-ivec_imin(const int *vec, int size, int val)
-{
-	int i, imin = 0;
-	unsigned int d, dmin = UINT_MAX;
-
-	assert(size > 0);
-
-	for (i = 0; i < size; i++) {
-		d = nbabs(val - vec[i]);
-
-		if (d < dmin) {
-			dmin = d;
-		        imin = i;
-		}
-	}
-
-	return imin;
-}
-
 static char *
 option_print(rte_codec *codec, const char *keyword, va_list args)
 {
@@ -1023,12 +1003,12 @@ option_print(rte_codec *codec, const char *keyword, va_list args)
 
 	if (KEYWORD("bit_rate")) {
 		snprintf(buf, sizeof(buf), _("%u kbit/s"),
-			 bit_rate_value[mp2->mpeg_version][ivec_imin(
+			 bit_rate_value[mp2->mpeg_version][rte_closest_int(
 				 &bit_rate_value[mp2->mpeg_version][1], 14,
 				 va_arg(args, int)) + 1] / 1000);
 	} else if (KEYWORD("sampling_freq")) {
 		snprintf(buf, sizeof(buf), _("%u Hz"),
-			 sampling_freq_value[mp2->mpeg_version][ivec_imin(
+			 sampling_freq_value[mp2->mpeg_version][rte_closest_int(
 				 sampling_freq_value[mp2->mpeg_version], 3,
 				 va_arg(args, int))]);
 	} else if (KEYWORD("audio_mode")) {
@@ -1076,7 +1056,7 @@ static rte_bool
 option_set(rte_codec *codec, const char *keyword, va_list args)
 {
 	mp2_context *mp2 = PARENT(codec, mp2_context, codec.codec);
-	rte_codec_class *dc = codec->class;
+	rte_codec_class *dc = codec->_class;
 	rte_context *context = codec->context;
 
 	switch (codec->state) {
@@ -1088,17 +1068,17 @@ option_set(rte_codec *codec, const char *keyword, va_list args)
 		break;
 	default:
 		rte_error_printf(codec->context, "Cannot set %s options, codec is busy.",
-				 dc->public.keyword);
+				 dc->_public.keyword);
 		return FALSE;
 	}
 
 	if (KEYWORD("bit_rate")) {
 		mp2->bit_rate_code =
-			ivec_imin(&bit_rate_value[mp2->mpeg_version][1], 14,
+			rte_closest_int(&bit_rate_value[mp2->mpeg_version][1], 14,
 				  va_arg(args, int)) + 1;
  	} else if (KEYWORD("sampling_freq")) {
 		mp2->sampling_freq_code =
-			ivec_imin(sampling_freq_value[mp2->mpeg_version], 3,
+			rte_closest_int(sampling_freq_value[mp2->mpeg_version], 3,
 				  va_arg(args, int));
 	} else if (KEYWORD("audio_mode")) {
 		/* mo, st, bi (user) -> st, jst, bi, mo (mpeg) */
@@ -1119,12 +1099,12 @@ option_set(rte_codec *codec, const char *keyword, va_list args)
 }
 
 static rte_option_info *
-option_enum(rte_codec *codec, int index)
+option_enum(rte_codec *codec, unsigned int index)
 {
 	/* mp2_context *mp2 = PARENT(codec, mp2_context, codec.codec); */
 	/* Update backend on change */
 
-	if (codec->class == &mp1e_mpeg1_layer2_codec) {
+	if (codec->_class == &mp1e_mpeg1_layer2_codec) {
 		if (index < 0 || index >= elements(mpeg1_options))
 			return NULL;
 		return mpeg1_options + index;
@@ -1175,7 +1155,7 @@ codec_new(rte_codec_class *cc, char **errstr)
 
 	codec = &mp2->codec.codec;
 
-	codec->class = cc;
+	codec->_class = cc;
 
 	mp2->mpeg_version = (cc == &mp1e_mpeg1_layer2_codec) ?
 		MPEG_VERSION_1 : MPEG_VERSION_2;
@@ -1189,14 +1169,14 @@ codec_new(rte_codec_class *cc, char **errstr)
 
 rte_codec_class
 mp1e_mpeg1_layer2_codec = {
-	.public = {
+	._public = {
 		.stream_type	= RTE_STREAM_AUDIO,
 		.keyword	= "mpeg1_audio_layer2",
 		.label		= N_("MPEG-1 Audio Layer II"),
 	},
 
-	.new		= codec_new,
-	.delete         = codec_delete,
+	._new		= codec_new,
+	._delete        = codec_delete,
 
 	.option_enum	= option_enum,
 	.option_get	= option_get,
@@ -1208,7 +1188,7 @@ mp1e_mpeg1_layer2_codec = {
 
 rte_codec_class
 mp1e_mpeg2_layer2_codec = {
-	.public = {
+	._public = {
 		.stream_type	= RTE_STREAM_AUDIO,
 		.keyword	= "mpeg2_audio_layer2",
 		.label		= N_("MPEG-2 Audio Layer II LFE"),
@@ -1217,8 +1197,8 @@ mp1e_mpeg2_layer2_codec = {
 				     "audio players support MPEG-2 audio."),
 	},
 
-	.new		= codec_new,
-	.delete         = codec_delete,
+	._new		= codec_new,
+	._delete        = codec_delete,
 
 	.option_enum	= option_enum,
 	.option_get	= option_get,
