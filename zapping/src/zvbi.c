@@ -50,6 +50,7 @@
 #include "interface.h"
 #include "v4linterface.h"
 #include "ttxview.h"
+#include "osd.h"
 
 #undef TRUE
 #undef FALSE

@@ -19,7 +19,6 @@
 /*
  * This code is used to communicate with the VBI device (usually
  * /dev/vbi), so multiple plugins can access to it simultaneously.
- * The code uses libvbi, a nearly verbatim copy of alevt.
  */
 
 #ifndef __ZVBI_H__
