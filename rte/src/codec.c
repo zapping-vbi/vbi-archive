@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: codec.c,v 1.5 2002-04-20 06:44:16 mschimek Exp $ */
+/* $Id: codec.c,v 1.6 2002-06-14 07:57:10 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -74,7 +74,7 @@ rte_codec_info_keyword(rte_context *context,
 		       const char *keyword)
 {
 	rte_codec_info *ci;
-	int i;
+	int i, keylen;
 
 	nullcheck(context, return NULL);
 	rte_error_reset(context);
@@ -84,9 +84,13 @@ rte_codec_info_keyword(rte_context *context,
 	if (!xc->codec_enum)
 		return NULL;
 
+	for (keylen = 0; keyword[keylen]; keylen++)
+		if (keyword[keylen] == ';' || keyword[keylen] == ',')
+			break;
+
 	for (i = 0;; i++)
 	        if (!(ci = xc->codec_enum(context, i))
-		    || strcmp(keyword, ci->keyword) == 0)
+		    || strncmp(keyword, ci->keyword, keylen) == 0)
 			break;
 	return ci;
 }
