@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.12 2001-03-25 16:51:07 garetxe Exp $ */
+/* $Id: v4lx.c,v 1.13 2001-03-31 11:10:26 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -89,6 +89,7 @@ wait_full_read(fifo *f)
 
 	for (;;) {
 		// XXX use select if possible to set read timeout
+		pthread_testcancel();
 
 		r = read(vbi->fd, vbi->raw_buffer[0].data,
 			 vbi->raw_buffer[0].size);
@@ -97,10 +98,8 @@ wait_full_read(fifo *f)
 			break;
 
 		if (r == -1
-		    && (errno == EINTR || errno == ETIME)) {
-			pthread_testcancel();
+		    && (errno == EINTR || errno == ETIME))
 			continue;
-		}
 
 		IODIAG("VBI read error");
 
@@ -144,6 +143,7 @@ read_thread(void *p)
 
 		for (;;) {
 			// XXX use select if possible to set read timeout
+			pthread_testcancel();
 
 			r = read(vbi->fd, vbi->raw_buffer[0].data,
 				 vbi->raw_buffer[0].size);
@@ -152,10 +152,8 @@ read_thread(void *p)
 				break;
 
 			if (r == -1
-			    && (errno == EINTR || errno == ETIME)) {
-				pthread_testcancel();
+			    && (errno == EINTR || errno == ETIME))
 				continue;
-			}
 
 			IODIAG("VBI read error");
 
@@ -615,14 +613,13 @@ open_v4l(vbi_device **pvbi, char *dev_name,
 		      * vbi->dec.samples_per_line;
 
 	if ((vbi->buffered = buffered)) {
-		if (!init_buffered_fifo(&vbi->fifo, "vbi-v4l",
-		    NULL, fifo_depth,
+		if (!init_buffered_fifo(&vbi->fifo, "vbi-v4l", fifo_depth,
 		    sizeof(vbi_sliced) * (vbi->dec.count[0] + vbi->dec.count[1]))) {
 			goto failure;
 		}
 	} else {
 		if (!init_callback_fifo(&vbi->fifo, "vbi-v4l",
-		    wait_full_read, send_empty_read, NULL, NULL, fifo_depth,
+		    wait_full_read, send_empty_read, NULL, fifo_depth,
 		    sizeof(vbi_sliced) * (vbi->dec.count[0] + vbi->dec.count[1]))) {
 			goto failure;
 		}
@@ -681,12 +678,11 @@ wait_full_stream(fifo *f)
 			tv.tv_sec = 2;
 			tv.tv_usec = 0;
 
+			pthread_testcancel();
 			r = select(vbi->fd + 1, &fds, NULL, NULL, &tv);
 
-			if (r < 0 && errno == EINTR) {
-				pthread_testcancel();
+			if (r < 0 && errno == EINTR)
 				continue;
-			}
 
 			if (r == 0) { /* timeout */
 				DIAG("VBI capture stalled, no station tuned in?");
@@ -920,13 +916,13 @@ open_v4l2(vbi_device **pvbi, char *dev_name,
 
 		if ((vbi->buffered = buffered)) {
 			if (!init_buffered_fifo(&vbi->fifo, "vbi-v4l2-stream",
-			    NULL, fifo_depth,
+			    fifo_depth,
 			    sizeof(vbi_sliced) * (vbi->dec.count[0] + vbi->dec.count[1]))) {
 				goto failure;
 			}
 		} else {
 			if (!init_callback_fifo(&vbi->fifo, "vbi-v4l2-stream",
-			    wait_full_stream, send_empty_stream, NULL, NULL, fifo_depth,
+			    wait_full_stream, send_empty_stream, NULL, fifo_depth,
 			    sizeof(vbi_sliced) * (vbi->dec.count[0] + vbi->dec.count[1]))) {
 				goto failure;
 			}
@@ -1004,13 +1000,13 @@ open_v4l2(vbi_device **pvbi, char *dev_name,
 
 		if ((vbi->buffered = buffered)) {
 			if (!init_buffered_fifo(&vbi->fifo, "vbi-v4l2-read",
-			    NULL, fifo_depth,
+			    fifo_depth,
 			    sizeof(vbi_sliced) * (vbi->dec.count[0] + vbi->dec.count[1]))) {
 				goto failure;
 			}
 		} else {
 			if (!init_callback_fifo(&vbi->fifo, "vbi-v4l2-read",
-			    wait_full_read, send_empty_read, NULL, NULL, fifo_depth,
+			    wait_full_read, send_empty_read, NULL, fifo_depth,
 			    sizeof(vbi_sliced) * (vbi->dec.count[0] + vbi->dec.count[1]))) {
 				goto failure;
 			}

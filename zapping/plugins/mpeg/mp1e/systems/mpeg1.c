@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.12 2000-12-15 00:14:19 garetxe Exp $ */
+/* $Id: mpeg1.c,v 1.13 2001-03-31 11:10:26 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -486,11 +486,12 @@ reschedule:
 				printv(1, ", %5.2f %% dropped",
 					100.0 * video_frames_dropped / video_frame_count);
 
-			if (0)
-				printv(1, ", fifo v=%5.2f%% a=%5.2f%%",
-					100.0 * num_buffers_queued(video_fifo) / video_fifo->num_buffers,
-					100.0 * num_buffers_queued(audio_fifo) / audio_fifo->num_buffers);
 
+#if 0 /* garetxe: num_buffers_queued doesn't exist any longer */
+			printv(1, ", fifo v=%5.2f%% a=%5.2f%%",
+			       100.0 * num_buffers_queued(video_fifo) / video_fifo->num_buffers,
+			       100.0 * num_buffers_queued(audio_fifo) / audio_fifo->num_buffers);
+#endif
 			printv(1, (verbose > 3) ? "\n" : "  \r");
 
 			fflush(stderr);

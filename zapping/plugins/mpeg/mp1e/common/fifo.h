@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.17 2001-03-20 22:19:50 garetxe Exp $ */
+/* $Id: fifo.h,v 1.18 2001-03-31 11:10:26 garetxe Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -72,21 +72,25 @@ typedef struct {
 typedef struct _fifo fifo;
 
 typedef struct {
-	list			full;
-	int			occupancy; /* of full */
+	node			node; /* in f->consumers */
+
+	list			full; /* buffers ready for use */
+	int			waiting; /* in full */
+
 	mucon			consumer;
-	fifo			*f;
-	int			index; /* in consumers */
+	fifo			*f; /* owner */
 } coninfo;
 
 struct _fifo {
 	mucon			producer;
 	mucon			mbackup;
 
+	char			name[64];
+
 	/* Consumers */
-	coninfo **		consumers;
-	pthread_rwlock_t	consumers_rwlock;
-	int			num_consumers;
+	list			consumers;
+	pthread_rwlock_t	consumers_rwlock; /* wrlock on
+						     consumers change */
 	pthread_key_t		consumer_key;
 
 	/* Producer */
@@ -96,7 +100,6 @@ struct _fifo {
 	buffer *		(* wait_full)(struct _fifo *);
 	void			(* send_empty)(struct _fifo *, buffer *);
 	buffer *		(* wait_empty)(struct _fifo *);
-	void			(* send_full)(struct _fifo *, buffer *);
 
 	bool			(* start)(struct _fifo *);
 	void			(* uninit)(struct _fifo *);
@@ -105,6 +108,7 @@ struct _fifo {
 
 	buffer *		buffers;
 	int			num_buffers;
+	void			(* send_full)(struct _fifo *, buffer *);
 
 	void *			user_data;
 };
@@ -114,10 +118,10 @@ extern void	uninit_buffer(buffer *b);
 extern int	alloc_buffer_vec(buffer **bpp, int num_buffers, int buffer_size);
 extern void	free_buffer_vec(buffer *bvec, int num_buffers);
 
-extern int	init_buffered_fifo(fifo *f, char *name, mucon *consumer, int num_buffers, int buffer_size);
-extern int	init_callback_fifo(fifo *f, char *name, buffer * (* wait_full)(fifo *), void (* send_empty)(fifo *, buffer *), buffer * (* wait_empty)(fifo *), void (* send_full)(fifo *, buffer *), int num_buffers, int buffer_size);
-extern int	num_buffers_queued(fifo *f);
+extern int	init_buffered_fifo(fifo *f, char *name, int num_buffers, int buffer_size);
+extern int	init_callback_fifo(fifo *f, char *name, buffer * (* wait_full)(fifo *), void (* send_empty)(fifo *, buffer *), buffer * (* wait_empty)(fifo *), int num_buffers, int buffer_size);
 extern void	remove_consumer(fifo *f);
+extern coninfo *create_consumer(fifo *f);
 
 #define VALID_BUFFER(f, b) \
 	((b)->index < (f)->num_buffers && (f)->buffers + (b)->index == (b))
@@ -131,47 +135,15 @@ extern void	remove_consumer(fifo *f);
  *    wait_empty_buffer, +-<-+ send_empty_buffer,
  *   wait producer mucon       bcast producer mucon
  */
-
 static inline coninfo*
 query_consumer(fifo *f)
 {
-	int i;
 	coninfo *current=pthread_getspecific(f->consumer_key);
-	buffer *b;
 
 	if (current)
 		return current;
-	
-	/* nonexistant, create a new entry for the current thread */
-	/* no recursive rwlocks, this is non-atomic */
-	pthread_rwlock_unlock(&f->consumers_rwlock);
-	pthread_rwlock_wrlock(&f->consumers_rwlock);
-	/*
-	  there's the theoretical possibility that num_consumers changes
-	  between the unlock and the wrlock.
-	*/
-	i = f->num_consumers;
-	f->consumers = realloc(f->consumers, sizeof(coninfo*)*(i+1));
-	f->consumers[i] = malloc(sizeof(coninfo));
-	memset(f->consumers[i], 0, sizeof(coninfo));
-
-	f->consumers[i]->index = i;
-	f->consumers[i]->f = f;
-	pthread_setspecific(f->consumer_key, f->consumers[i]);
-	mucon_init(&(f->consumers[i]->consumer));
-	f->num_consumers++;
-	/* Send the kept buffers to this consumer */
-	pthread_mutex_lock(&f->mbackup.mutex);
-	while ((b = (buffer*) rem_head(&f->backup))) {
-		add_tail(&(f->consumers[i]->full), &b->node);
-		f->consumers[i]->occupancy++;
-	}
-	pthread_mutex_unlock(&f->mbackup.mutex);
-
-	pthread_rwlock_unlock(&f->consumers_rwlock);
-	pthread_rwlock_rdlock(&f->consumers_rwlock);
-
-	return f->consumers[i];
+	else
+		return create_consumer(f);
 }
 
 static inline bool
@@ -192,7 +164,6 @@ uninit_fifo(fifo *f)
 static inline void
 send_full_buffer(fifo *f, buffer *b)
 {
-	/* FIXME: A callback doesn't make sense for send_full now */
 	f->send_full(f, b);
 }
 
@@ -206,11 +177,45 @@ unget_full_buffer(fifo *f, buffer *b)
 	pthread_mutex_lock(&consumer->consumer.mutex);
 
 	add_head(&consumer->full, &b->node);
-	consumer->occupancy++;
+	consumer->waiting++;
 
 	pthread_mutex_unlock(&consumer->consumer.mutex);
 	pthread_cond_broadcast(&consumer->consumer.cond);
 	pthread_rwlock_unlock(&f->consumers_rwlock);
+}
+
+/**
+ * f->consumers_rwlock must be locked.
+ * consumer is the consumer that got the buffer and wishes to propagate,
+ * the buffer isn't put in his full list.
+ */
+static inline void
+propagate_buffer(fifo *f, buffer *b, coninfo *consumer)
+{
+	coninfo *p = (coninfo*)f->consumers.head;
+
+	b->refcount = 0;
+
+	while (p) {
+		if (p != consumer) {
+			pthread_mutex_lock(&(p->consumer.mutex));
+			add_tail(&(p->full), &b->node);
+			p->waiting++;
+			pthread_mutex_unlock(&(p->consumer.mutex));
+			pthread_cond_broadcast(&(p->consumer.cond));
+		}
+		b->refcount++;
+		p = (coninfo*)(p->node.next);
+	}
+
+	/* FIXME: better mbackup */
+	if (empty_list(&f->consumers)) {
+		/* store it for later use */
+		b->refcount = 1;
+		pthread_mutex_lock(&f->mbackup.mutex);
+		add_tail(&f->backup, &b->node);
+		pthread_mutex_unlock(&f->mbackup.mutex);
+	}
 }
 
 static inline buffer *
@@ -223,25 +228,24 @@ wait_full_buffer(fifo *f)
 	consumer = query_consumer(f);
 
 	pthread_mutex_lock(&consumer->consumer.mutex);
-	b = (buffer*) rem_head(&consumer->full);
-	if (b)
-		consumer->occupancy--;
-	pthread_mutex_unlock(&consumer->consumer.mutex);
 
-	if ((!b) && (f->wait_full)) {
-		/* Send a new buffer to all consumers */
+	b = (buffer*) rem_head(&consumer->full);
+
+	if ((b) || (f->wait_full))
+		pthread_mutex_unlock(&consumer->consumer.mutex);
+
+	if (b)
+		consumer->waiting--;
+	else if ((!b) && (f->wait_full)) {
+		/* Wait for a new buffer */
 		while (!b)
 			b = f->wait_full(f);
-		send_full_buffer(f, b);
-		b = (buffer*) rem_head(&consumer->full);
-		consumer->occupancy--;
+		propagate_buffer(f, b, consumer);
 	} else if (!b) {
-		pthread_mutex_lock(&consumer->consumer.mutex);
-
 		while (!(b = (buffer *) rem_head(&consumer->full)))
 			pthread_cond_wait(&consumer->consumer.cond,
 					  &consumer->consumer.mutex);
-		consumer->occupancy--;
+		consumer->waiting--;
 		pthread_mutex_unlock(&consumer->consumer.mutex);
 	}
 
@@ -262,17 +266,13 @@ recv_full_buffer(fifo *f)
 	pthread_mutex_lock(&consumer->consumer.mutex);
 	b = (buffer*) rem_head(&consumer->full);
 	if (b)
-		consumer->occupancy--;
+		consumer->waiting--;
 	pthread_mutex_unlock(&consumer->consumer.mutex);
 
 	if ((!b) && (f->wait_full)) {
-		/* Send a new buffer to all consumers */
 		b = f->wait_full(f);
-		if (b) {
-			send_full_buffer(f, b);
-			b = (buffer*) rem_head(&consumer->full);
-			consumer->occupancy--;
-		}
+		if (b)
+			propagate_buffer(f, b, consumer);
 	}
 
 	pthread_rwlock_unlock(&f->consumers_rwlock);
@@ -291,6 +291,8 @@ static inline buffer *
 wait_empty_buffer(fifo *f)
 {
 	buffer *b;
+
+	/* FIXME: steal, kill, be bad */
 
 	if (f->wait_empty)
 		return (b = (buffer *) rem_head(&f->empty)) ?

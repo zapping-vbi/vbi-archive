@@ -18,12 +18,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dct_ref.c,v 1.5 2000-10-22 05:24:50 mschimek Exp $ */
+/* $Id: dct_ref.c,v 1.6 2001-03-31 11:10:26 garetxe Exp $ */
 
 #include "dct.h"
 #include "mpeg.h"
 #include "video.h"
-#include "dct/ieee.h"
+#include "dct_ieee.h"
 #include "../common/math.h"
 
 #define FLOAT float

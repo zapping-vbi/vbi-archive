@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: ieee.h,v 1.2 2000-09-25 17:08:57 mschimek Exp $ */
+/* $Id: dct_ieee.h,v 1.1 2001-03-31 11:10:26 garetxe Exp $ */
 
 #include <stdio.h>
 #include <string.h>

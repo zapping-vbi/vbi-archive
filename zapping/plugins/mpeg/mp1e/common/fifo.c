@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.13 2001-03-20 22:19:50 garetxe Exp $ */
+/* $Id: fifo.c,v 1.14 2001-03-31 11:10:26 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -119,34 +119,61 @@ start(fifo *f)
 	return TRUE;
 }
 
-static inline void
-dealloc_consumer_info(fifo *f, int index)
+coninfo*
+create_consumer(fifo *f)
 {
-	buffer *b; int i;
-	list * full=&(f->consumers[index]->full);
-	mucon *consumer=&(f->consumers[index]->consumer);
+	buffer *b;
+	coninfo *new_consumer;
 
-	pthread_mutex_lock(&(consumer->mutex));
+	/* no recursive rwlocks, this is non-atomic */
+	pthread_rwlock_unlock(&f->consumers_rwlock);
+	pthread_rwlock_wrlock(&f->consumers_rwlock);
+
+	new_consumer = calloc(sizeof(coninfo), 1);
+	mucon_init(&(new_consumer->consumer));
+	init_list(&(new_consumer->full));
+	new_consumer->f = f;
+
+	add_tail(&f->consumers, (node*)new_consumer);
+
+	pthread_setspecific(f->consumer_key, new_consumer);
+
+	/* Send the kept buffers to this consumer */
+	pthread_mutex_lock(&f->mbackup.mutex);
+	while ((b = (buffer*) rem_head(&f->backup))) {
+		add_tail(&(new_consumer->full), &b->node);
+		new_consumer->waiting++;
+	}
+	pthread_mutex_unlock(&f->mbackup.mutex);
+
+	pthread_rwlock_unlock(&f->consumers_rwlock);
+	pthread_rwlock_rdlock(&f->consumers_rwlock);
+
+	return new_consumer;
+}
+
+static inline void
+dealloc_consumer_info(fifo *f, coninfo *consumer)
+{
+	buffer *b;
+	list * full=&(consumer->full);
+	mucon *cm=&(consumer->consumer);
+
+	pthread_mutex_lock(&(cm->mutex));
 	while ((b = (buffer*) rem_head(full))) {
 		send_empty_buffer(f, b);
-		f->consumers[index]->occupancy--;
+		consumer->waiting--;
 	}
-	assert(f->consumers[index]->occupancy == 0);
-	pthread_mutex_unlock(&(consumer->mutex));
-	mucon_destroy(consumer);
+	if (consumer->waiting) {
+		fprintf(stderr, "FIFO INTERNAL ERROR: waiting: %d [%s]\n",
+			consumer->waiting, f->name);
+		assert(consumer->waiting == 0);
+	}
+	pthread_mutex_unlock(&(cm->mutex));
+	mucon_destroy(cm);
 
-	free(f->consumers[index]);
-
-	if (index<(f->num_consumers-1))
-		memcpy(&(f->consumers[index]),
-		       &(f->consumers[index+1]),
-		       ((f->num_consumers-1)-index)*sizeof(coninfo*));
-
-	f->consumers = realloc(f->consumers,
-			       (--(f->num_consumers))*sizeof(coninfo*));
-
-	for (i=0; i<f->num_consumers; i++) /* reindex */
-		f->consumers[i]->index = i;
+	unlink_node(&(f->consumers), (node*)consumer);
+	free(consumer);
 
 	pthread_setspecific(f->consumer_key, NULL);
 }
@@ -159,7 +186,7 @@ remove_consumer(fifo *f)
 
 	if (consumer) {
 		pthread_rwlock_wrlock(&f->consumers_rwlock);
-		dealloc_consumer_info(f, consumer->index);
+		dealloc_consumer_info(f, consumer);
 		pthread_rwlock_unlock(&f->consumers_rwlock);
 	}
 }
@@ -168,8 +195,8 @@ static void
 uninit(fifo * f)
 {
 	pthread_rwlock_wrlock(&f->consumers_rwlock);
-	while (f->num_consumers)
-		dealloc_consumer_info(f, 0);
+	while (!empty_list(&f->consumers))
+		dealloc_consumer_info(f, (coninfo*)(f->consumers.head));
 	pthread_rwlock_unlock(&f->consumers_rwlock);
 
 	pthread_rwlock_destroy(&f->consumers_rwlock);
@@ -209,27 +236,21 @@ send_empty(fifo *f, buffer *b)
 static void
 send_full(fifo *f, buffer *b)
 {
-	int i;
+	coninfo *consumer;
 
 	pthread_rwlock_rdlock(&f->consumers_rwlock);
 
-	if (f->num_consumers) {
-		b->refcount = f->num_consumers;
+	consumer = (coninfo*)f->consumers.head;
 
-		for (i=0; i<f->num_consumers; i++) {
-			pthread_mutex_lock(&(f->consumers[i]->consumer.mutex));
-			add_tail(&(f->consumers[i]->full), &b->node);
-			f->consumers[i]->occupancy++;
-			pthread_mutex_unlock(&(f->consumers[i]->consumer.mutex));
-			pthread_cond_broadcast(&(f->consumers[i]->consumer.cond));
-		}
-	} else {
-		/* store it for later use */
-		b->refcount = 1;
-		pthread_mutex_lock(&f->mbackup.mutex);
-		add_tail(&f->backup, &b->node);
-		pthread_mutex_unlock(&f->mbackup.mutex);
+	if (consumer) {
+		pthread_mutex_lock(&(consumer->consumer.mutex));
+		add_tail(&(consumer->full), (node*)b);
+		consumer->waiting ++;
+		pthread_mutex_unlock(&(consumer->consumer.mutex));
+		pthread_cond_broadcast(&(consumer->consumer.cond));
 	}
+
+	propagate_buffer(f, b, consumer);
 	
 	pthread_rwlock_unlock(&f->consumers_rwlock);
 }
@@ -240,11 +261,9 @@ key_destroy_callback(void *param)
 {
 	coninfo *consumer = (coninfo*) param;
 
-	if (consumer) { /* param MUST be != NULL, just paranoid */
-		pthread_rwlock_wrlock(&consumer->f->consumers_rwlock);
-		dealloc_consumer_info(consumer->f, consumer->index);
-		pthread_rwlock_unlock(&consumer->f->consumers_rwlock);
-	}	
+	pthread_rwlock_wrlock(&consumer->f->consumers_rwlock);
+	dealloc_consumer_info(consumer->f, consumer);
+	pthread_rwlock_unlock(&consumer->f->consumers_rwlock);
 }
 
 int
@@ -252,15 +271,12 @@ init_callback_fifo(fifo *f, char *name,
 	buffer * (* custom_wait_full)(fifo *),
 	void     (* custom_send_empty)(fifo *, buffer *),
 	buffer * (* custom_wait_empty)(fifo *),
-	void     (* custom_send_full)(fifo *, buffer *),
 	int num_buffers, int buffer_size)
 {
 	int i;
 
 	memset(f, 0, sizeof(fifo));
-
-	/*	if (custom_send_full)
-		FAIL("send_full callback not allowed");*/
+	snprintf(f->name, 63, name);
 
 	if (num_buffers > 0) {
 		f->num_buffers = alloc_buffer_vec(&f->buffers,
@@ -273,6 +289,8 @@ init_callback_fifo(fifo *f, char *name,
 			add_tail(&f->empty, &f->buffers[i].node);
 	}
 
+	init_list(&f->consumers);
+
 	pthread_rwlock_init(&f->consumers_rwlock, NULL);
 	pthread_key_create(&f->consumer_key, key_destroy_callback);
 
@@ -282,7 +300,7 @@ init_callback_fifo(fifo *f, char *name,
 	f->wait_full  = custom_wait_full  ? custom_wait_full  : NULL;
 	f->send_empty = custom_send_empty ? custom_send_empty : send_empty;
 	f->wait_empty = custom_wait_empty ? custom_wait_empty : NULL;
-	f->send_full  = custom_send_full  ? custom_send_full  : send_full;
+	f->send_full  = send_full;
 
 	/*
 	    The caller may want to know what the defaults were
@@ -295,42 +313,13 @@ init_callback_fifo(fifo *f, char *name,
 }
 
 int
-init_buffered_fifo(fifo *f, char *name,
-	mucon *consumer, int num_buffers, int buffer_size)
+init_buffered_fifo(fifo *f, char *name, int num_buffers, int buffer_size)
 {
-	init_callback_fifo(f, name, NULL, NULL, NULL, NULL,
+	init_callback_fifo(f, name, NULL, NULL, NULL,
 		num_buffers, buffer_size);
 
 	if (num_buffers > 0 && f->num_buffers <= 0)
 		return 0;
 
-	/* there are no public consumer mucons in this implementation */
-	/*	if (consumer)
-		FAIL("Custom consumer mucons not allowed");*/
-//	f->consumer = consumer;
-
 	return f->num_buffers;
-}
-
-/* fixme: What should we do with this? */
-int
-num_buffers_queued(fifo *f)
-{
-#if 0
-	node *n;
-	int i;
-	list *full; mucon *consumer;
-
-	pthread_rwlock_rdlock(&f->consumers_rwlock);
-	query_consumer(f, &full, &consumer);
-	pthread_mutex_lock(&consumer->mutex);
-
-	for (n = full->head, i = 0; n; n = n->next, i++); 
-
-	pthread_mutex_unlock(&consumer->mutex);
-	pthread_mutex_unlock(&f->consumers_mutex);
-
-	return i;
-#endif
-	return 0;
 }

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: esd.c,v 1.8 2001-02-22 14:15:51 mschimek Exp $ */
+/* $Id: esd.c,v 1.9 2001-03-31 11:10:26 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -175,7 +175,7 @@ open_pcm_esd(char *unused, int sampling_rate, bool stereo)
 
 	ASSERT("init pcm/esd capture fifo", init_callback_fifo(
 		&esd->pcm.fifo, "audio-esd",
-		wait_full, send_empty, NULL, NULL, 1, buffer_size));
+		wait_full, send_empty, NULL, 1, buffer_size));
 
 	esd->pcm.fifo.buffers[0].data = NULL;
 	esd->pcm.fifo.buffers[0].used =

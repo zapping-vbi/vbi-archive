@@ -18,13 +18,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dct.c,v 1.9 2000-11-30 09:36:38 mschimek Exp $ */
+/* $Id: dct.c,v 1.10 2001-03-31 11:10:26 garetxe Exp $ */
 
 #include <assert.h>
 #include "../common/math.h"
 #include "../common/mmx.h"
 #include "dct.h"
-#include "dct/ieee.h"
+#include "dct_ieee.h"
 #include "mpeg.h"
 #include "video.h"
 

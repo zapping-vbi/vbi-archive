@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.23 2001-03-24 10:44:57 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.24 2001-03-31 11:10:26 garetxe Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -153,7 +153,7 @@ int p_inter_bias = 65536 * 48,
 
 fifo *			video_fifo;
 
-#include "dct/ieee.h"
+#include "dct_ieee.h"
 
 /*
  *  Picture layer

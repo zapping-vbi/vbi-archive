@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rte_test_main.c,v 1.17 2001-03-22 23:27:42 garetxe Exp $
+ * $Id: rte_test_main.c,v 1.18 2001-03-31 11:10:26 garetxe Exp $
  * This is a simple RTE test.
  */
 
@@ -459,7 +459,7 @@ buffer_callback(rte_context * context, rte_buffer * buffer,
 }
 
 /* Set to 1 to shut down audio thread */
-static int thread_exit_signal=0;
+static volatile int thread_exit_signal=0;
 
 /* This thread pushes audio into the rte context */
 void * audio_thread(void * p)
@@ -474,6 +474,8 @@ void * audio_thread(void * p)
 		p = rte_push_audio_data(context, p, timestamp);
 	}
 
+	fprintf(stderr, "alive!");
+
 	return NULL;
 }
 
@@ -482,10 +484,10 @@ int main(int argc, char *argv[])
 	rte_context * context;
 	enum rte_frame_rate rate_code;
 	int width = 16, height = 16;
-	int sleep_time = 4;
+	int sleep_time = 5;
 	int audio_rate=44100, stereo=0;
-	char * video_device = "/dev/video";
-	char * audio_device = "/dev/audio";
+	char * video_device = "/dev/video0";
+	char * audio_device = "/dev/audio0";
 	char dest_file[] = "tempx.mpeg";
 	pthread_t audio_thread_id;
 	enum rte_mux_mode mux_mode = RTE_AUDIO | RTE_VIDEO;
@@ -571,7 +573,7 @@ int main(int argc, char *argv[])
 		if (mux_mode & RTE_AUDIO)
 			pthread_create(&audio_thread_id, NULL,
 				       audio_thread, context);
-		
+
 		if ((mux_mode & RTE_AUDIO) && (mux_mode & RTE_VIDEO))
 			fprintf(stderr, "syncing streams\n");
 

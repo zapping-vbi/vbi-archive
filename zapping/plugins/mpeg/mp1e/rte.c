@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.46 2001-03-20 22:19:50 garetxe Exp $ */
+/* $Id: rte.c,v 1.47 2001-03-31 11:10:26 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -97,23 +97,26 @@ wait_data(rte_context * context, int video)
 	fifo * f;
 	buffer * b;
 	mucon *consumer; list *full; coninfo *koninfo;
-	rteDataCallback * data_callback;
-	rteBufferCallback * buffer_callback;
+	rteDataCallback data_callback;
+	rteBufferCallback buffer_callback;
 	rte_buffer rbuf;
 	enum rte_mux_mode stream = video ? RTE_VIDEO : RTE_AUDIO;
-	
+
 	nullcheck(context, return NULL);
 
 	if (video) {
 		f = &context->private->vid;
-		data_callback = &context->private->video_data_callback;
-		buffer_callback = &context->private->video_buffer_callback;
+		data_callback = context->private->video_data_callback;
+		buffer_callback = context->private->video_buffer_callback;
 	}
 	else {
 		f = &context->private->aud;
-		data_callback = &context->private->audio_data_callback;
-		buffer_callback = &context->private->audio_buffer_callback;
+		data_callback = context->private->audio_data_callback;
+		buffer_callback = context->private->audio_buffer_callback;
 	}
+
+	/* FIXME: This is too low-level, prone to errors. Better
+	   figure out some way to use fifo.h instead */
 
 	pthread_rwlock_rdlock(&f->consumers_rwlock);
 	koninfo = query_consumer(f);
@@ -124,7 +127,7 @@ wait_data(rte_context * context, int video)
 	pthread_mutex_lock(&consumer->mutex);
 
 	while (!(b = (buffer*) rem_head(full))) {
-		if (*data_callback) { /* no, callback
+		if (data_callback) { /* no, callback
 					 interface */
 			b = wait_empty_buffer(f);
 			
@@ -132,16 +135,16 @@ wait_data(rte_context * context, int video)
 			       b->size == (video ? context->video_bytes :
 					    context->audio_bytes));
 
-			(*data_callback)(context, b->data, &(b->time),
-					 stream, context->private->user_data);
+			data_callback(context, b->data, &(b->time),
+				      stream, context->private->user_data);
 			
 			pthread_mutex_unlock(&consumer->mutex);
 			pthread_rwlock_unlock(&f->consumers_rwlock);
 			return b;
-		} else if (*buffer_callback) {
+		} else if (buffer_callback) {
 			b = wait_empty_buffer(f);
 
-			(*buffer_callback)(context, &rbuf, stream);
+			buffer_callback(context, &rbuf, stream);
 			b->data = rbuf.data;
 			b->time = rbuf.time;
 			b->user_data = rbuf.user_data;
@@ -154,6 +157,7 @@ wait_data(rte_context * context, int video)
 		pthread_cond_wait(&consumer->cond, &consumer->mutex);
 	}
 
+	koninfo->waiting--;
 	pthread_mutex_unlock(&consumer->mutex);
 	pthread_rwlock_unlock(&f->consumers_rwlock);
 	return b;
@@ -217,10 +221,10 @@ audio_send_empty(fifo *f, buffer *b)
 	pthread_cond_broadcast(&f->producer.cond);
 }
 
-/* Do nothing callback */
+/* Just produces a blank buffer */
 static void
-dead_end_callback(rte_context * context, void *data, double *time,
-		  enum rte_mux_mode stream, void * user_data)
+blank_callback(rte_context * context, void *data, double *time,
+	       enum rte_mux_mode stream, void * user_data)
 {
 	struct timeval tv;
 
@@ -228,7 +232,9 @@ dead_end_callback(rte_context * context, void *data, double *time,
 
 	*time = tv.tv_sec + tv.tv_usec/1e6;
 
-	/* done */
+	/* set to 0's (avoid ugly noise on stop) */
+	memset(data, 0, (stream == RTE_VIDEO) ?
+	       context->video_bytes : context->audio_bytes);
 }
 
 /* The default write data callback */
@@ -625,6 +631,7 @@ int rte_init_context ( rte_context * context )
 			  "!= NULL too");
 		return 0;
 	}
+	
 	/* FIXME: we need some checks here for callbacks */
 	if (!rte_fake_options(context))
 		return 0;
@@ -692,9 +699,9 @@ int rte_init_context ( rte_context * context )
 		if (context->private->video_buffered)
 			alloc_bytes = 0; /* no need for preallocated
 					    mem */
-		if (2 > init_buffered_fifo(&(context->private->vid), "rte-video", NULL,
-					   /*&(context->private->vid_consumer)*/
-				       video_look_ahead(gop_sequence),
+		if (2 > init_buffered_fifo(&(context->private->vid),
+					   "rte-video",
+					   video_look_ahead(gop_sequence),
 					   alloc_bytes)) {
 			rte_error(context, "not enough mem");
 			return 0;
@@ -710,9 +717,9 @@ int rte_init_context ( rte_context * context )
 			alloc_bytes = context->audio_bytes;
 		else
 			alloc_bytes = 0;
-		if (4 > init_buffered_fifo(&(context->private->aud), "rte-audio",
-					   NULL, /*&(context->private->aud_consumer)*/
-				   NUM_AUDIO_BUFFERS, alloc_bytes)) {
+		if (4 > init_buffered_fifo(&(context->private->aud),
+					   "rte-audio",
+					   NUM_AUDIO_BUFFERS, alloc_bytes)) {
 			uninit_fifo(&(context->private->vid));
 			rte_error(context, "not enough mem");
 			return 0;
@@ -827,7 +834,7 @@ void rte_stop ( rte_context * context )
 	if ((context->mode & RTE_AUDIO) &&
 	    (context->private->audio_interface == RTE_PUSH)) {
 		/* set to dead end */
-		context->private->audio_data_callback = dead_end_callback;
+		context->private->audio_data_callback = blank_callback;
 
 		/* Signal the conditions so any thread waiting for an
 		   video push() wakes up, and uses the dead end */
@@ -837,7 +844,7 @@ void rte_stop ( rte_context * context )
 	if ((context->mode & RTE_VIDEO) &&
 	    (context->private->video_interface == RTE_PUSH)) {
 		/* set to dead end */
-		context->private->video_data_callback = dead_end_callback;
+		context->private->video_data_callback = blank_callback;
 
 		/* Signal the conditions so any thread waiting for an
 		   video push() wakes up, and uses the dead end */
@@ -849,7 +856,6 @@ void rte_stop ( rte_context * context )
 
 	/* Join the mux thread */
 	printv(2, "joining mux\n");
-	pthread_cancel(context->private->mux_thread);
 	pthread_join(context->private->mux_thread, NULL);
 	printv(2, "mux joined\n");
 
