@@ -1,8 +1,0 @@
-$Id: TODO,v 1.6 2004-04-17 08:12:09 mschimek Exp $
-
-+ Can we get our own 404 page? Yes! .htaccess & ErrorDocument.
-+ Examine suggestion of mboedick at ./ to add to .htaccess
-  php_flag zlib.output_compression on
-
-
-

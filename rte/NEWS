@@ -1,9 +1,0 @@
-0.5.2
------
-Fixes bug #872742 "doesnt compile with divx4linux-20030428", and
-ffmpeg color bug.
-
-0.5.1
------
-Bug fixes. This version compiles and runs (or so it seems) on FreeBSD 4.6,
-except for the DivX4Linux interface, naturally.
