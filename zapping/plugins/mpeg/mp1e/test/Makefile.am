@@ -2,8 +2,8 @@
 
 INCLUDES = $(GTK_CFLAGS)
 
-noinst_LIBRARIES = libtest.a
+noinst_LTLIBRARIES = libtest.la
 
-libtest_a_SOURCES = \
+libtest_la_SOURCES = \
 	support.c support.h \
 	preview.c

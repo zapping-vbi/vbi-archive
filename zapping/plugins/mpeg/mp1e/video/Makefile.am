@@ -1,8 +1,8 @@
-noinst_LIBRARIES = libvideo_rte.a libvideo.a
+noinst_LTLIBRARIES = libvideo_rte.la libvideo.la
 
 INCLUDES=-D_GNU_SOURCE -D_REENTRANT
 
-libvideo_rte_a_SOURCES = \
+libvideo_rte_la_SOURCES = \
 	dct.c dct_mmx.s dct.h \
 	dct_ref.c \
 	filter.c filter_mmx.s \
@@ -12,7 +12,7 @@ libvideo_rte_a_SOURCES = \
 	vlc.c vlc_mmx.s vlc.h \
 	motion_mmx.s
 
-libvideo_a_SOURCES = \
+libvideo_la_SOURCES = \
 	dct.c dct_mmx.s dct.h \
 	dct_ref.c \
 	filter.c filter_mmx.s \

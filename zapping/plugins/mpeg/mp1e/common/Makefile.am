@@ -1,8 +1,8 @@
-noinst_LIBRARIES = libcommon.a
+noinst_LTLIBRARIES = libcommon.la
 
 INCLUDES=-D_GNU_SOURCE -D_REENTRANT
 
-libcommon_a_SOURCES = \
+libcommon_la_SOURCES = \
 	alloc.c alloc.h \
 	bstream.c bstream.h \
 	fifo.c fifo.h \
