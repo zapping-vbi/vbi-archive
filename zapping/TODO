@@ -1,5 +1,7 @@
 Outstanding issues for the next release (0.7)
 -----------------------------------------------
+	* Channel up/down should finish channel number entering
+	  on keypad or (a)lirc.
 	+ Prefs building takes longer and longer, it's annoying.
 	+ Maybe Zapping should support all xawtv command line options?
 	+ We need an Xv overlay port menu.
@@ -24,7 +26,7 @@ Outstanding issues for the next release (0.7)
 	+ PIP?
 	+ Take TTX out of the context menus when Zapping doesn't
 	  receive TTX. (event timestamps?)
-	+ Better audio support, reexamine mute code.
+	+ Better audio mode (mono/stereo etc) support.
 	+ Finish WSS.
 	+ Check tveng has frame rate for timestamping. (Unlike mpeg bug.)
 	+ Remove default overlay page?
@@ -42,18 +44,14 @@ Outstanding issues for the next release (0.7)
 	  probably a scheduling issue. Investigate if/how this can be avoided.
 	+ Examine the possiblity of linking movie titles, VBI plugin API.
 	+ Deinterlace plugin.
-	+ iodiag module.
 	+ VBI station name ignored when card w/tuner & composite selected 
 	+ Compress config file (libxml).
-	+ Config toolbar...?
+	+ Config toolbar.
 	+ Clean up context menu.
 	+ Re-add toolbar style option.
 	+ Remove tveng_frame_format.bytesperline.
-	+ Prefs: The Galeon style selection of areas should probably
-	  use the tab metaphor, not buttons.
 	+ Verify all Gnome etc URLs everywhere.
 	+ Eliminate WSS/GC from the display (paint, clip, whatever)
-	+ Python access to controls
 
 Please tell me about anything you think is worth adding:
 

@@ -741,10 +741,18 @@ mw_setup		(GtkWidget	*page)
     zconf_get_integer(NULL,
 		      "/zapping/options/main/ratio"));  
 
-  /* entered channel numbers refer to (-1 disabled) */
-  widget = lookup_widget(page, "optionmenu23");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    1 + zconf_get_integer(NULL, "/zapping/options/main/channel_txl"));
+  {
+    gint n;
+
+    /* entered channel numbers refer to */
+    widget = lookup_widget (page, "channel_number_translation");
+    n = zconf_get_integer (NULL, "/zapping/options/main/channel_txl");
+
+    if (n < 0)
+      n = 0; /* historical: -1 disabled keypad channel number entering */
+
+    gtk_option_menu_set_history (GTK_OPTION_MENU (widget), n);
+  }
 
   /* Picture size list */
   {
@@ -844,10 +852,10 @@ mw_apply		(GtkWidget	*page)
   zconf_set_integer(z_option_menu_get_active(widget),
 		    "/zapping/options/main/ratio");
 
-  widget = lookup_widget(page, "optionmenu23");
-  /* channels refer to (-1 disabled) */
-  zconf_set_integer(z_option_menu_get_active(widget) - 1,
-		    "/zapping/options/main/channel_txl");
+  /* entered channel numbers refer to */
+  widget = lookup_widget (page, "channel_number_translation");
+  zconf_set_integer (z_option_menu_get_active (widget),
+		     "/zapping/options/main/channel_txl");
 
   widget = lookup_widget (page, "treeview1");
   picture_sizes_apply (GTK_TREE_VIEW (widget));

@@ -555,8 +555,7 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
       info->format.width = req_w;
       info->format.height = req_h;
     }
-  printv ("Setting TVeng mode %s [%d x %d]\n", mode2str(id), req_w,
-	  req_h);
+  printv ("Setting TVeng mode %s [%d x %d]\n", mode2str(id), req_w, req_h);
 XX();
   if (tveng_set_capture_format (info) == -1 ||
       info->format.width != req_w || info->format.height != req_h)

@@ -42,14 +42,6 @@
 
 #include "x11stuff.h"
 
-typedef struct _tv_dev_control tv_dev_control;
-
-struct _tv_dev_control {
-	tv_control		pub;		/* attn keep this first */
-	tveng_device_info *	device;		/* owner */	
-	tv_callback_node *	callback;
-};
-
 /*
   Function prototypes for modules, NULL means not implemented or not
   pertinent.
@@ -79,14 +71,14 @@ struct tveng_module_info {
 	 *  all controls, this may be faster than individual updates.
 	 */
 	tv_bool			(* update_control)	(tveng_device_info *,
-							 tv_dev_control *);
+							 tv_control *);
 
 	/*
 	 *  Set the value of a control, this implies update_control
 	 *  with all side effects mentioned.
 	 */
   	tv_bool			(*set_control)		(tveng_device_info *,
-							 tv_dev_control *,
+							 tv_control *,
 							 int);
 
   int	(*tune_input)(uint32_t freq, tveng_device_info *info);
@@ -154,17 +146,16 @@ struct tveng_private {
 #endif
 
   tv_control *		control_mute;
+  tv_bool		quiet;
 };
 
 static inline void
 free_control			(tv_control *		tc)
 {
-	tv_dev_control *tdc = (tv_dev_control *) tc; /* XXX */
-
 	if (!tc)
 		return;
 
-	tv_callback_destroy (tc, &tdc->callback);
+	tv_callback_destroy (tc, &tc->_callback);
 
 	if (tc->label) {
 		free ((char *) tc->label);
@@ -315,5 +306,58 @@ tveng_copy_frame (unsigned char *src, tveng_image_data *where,
 		      info->format.bytesperline, where->linear.stride,
 		      info->format.height);
 }
+
+struct _tv_mixer_interface {
+	const char *		name;
+
+	/*
+	 *  Open a soundcard mixer by its device file name.
+	 */
+	tv_mixer *		(* open)		(const tv_mixer_interface *,
+							 FILE *log,
+							 const char *device);
+	/*
+	 *  Scan for mixer devices present on the system.
+	 */
+	tv_mixer *		(* scan)		(const tv_mixer_interface *,
+							 FILE *log);
+	/*
+	 *  Update tv_mixer_line.muted and .volume, e.g. to notice when
+	 *  other applications change mixer properties asynchronously.
+	 *  Regular polling recommended, may call tv_dev_mixer_line.changed.
+	 */
+	tv_bool			(* update_line)		(tv_mixer_line *);
+	/*
+	 *  Set mixer volume and update tv_mixer_line.volume accordingly.
+	 *  On mono lines left volume will be set. May call
+	 *  tv_dev_mixer_line.changed. Does not unmute.
+	 */
+	tv_bool			(* set_volume)		(tv_mixer_line *,
+							 unsigned int left,
+							 unsigned int right);
+	/*
+	 *  Mute (TRUE) or unmute (FALSE) mixer line and update
+	 *  tv_mixer_line.muted accordingly. May call
+	 *  tv_dev_mixer_line.changed.
+	 */
+	tv_bool			(* set_mute)		(tv_mixer_line *,
+							 tv_bool mute);
+	/*
+	 *  Select a recording line from tv_mixer.adc_lines. When
+	 *  exclusive is TRUE disable all other recording sources (should
+	 *  be the default, but we must not prohibit recording from
+	 *  multiple sources if the user really insists). Line can be
+	 *  NULL. May call tv_dev_mixer.changed. 
+	 */
+	tv_bool			(* set_rec_line)	(tv_mixer *,
+							 tv_mixer_line *,
+							 tv_bool exclusive);
+	/*
+	 *  Update tv_mixer.rec_line, e.g. to notice when other applications
+	 *  change mixer properties asynchronously. Regular polling recommended,
+	 *  may call tv_dev_mixer.changed.
+	 */
+	tv_bool			(* update_mixer)	(tv_mixer *);
+};
 
 #endif /* tveng_private.h */

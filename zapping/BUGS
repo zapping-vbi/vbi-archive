@@ -13,7 +13,8 @@ Known bugs with zapping, don't report them
 	  (Not a safety/security matter, just wrong bpl/bpp.)
 	* resize menu key accel doesn't work?
 	* Need to handle BadAtom errors resulting from Xv out
-	  of video memory. Currently gdk just aborts the app.
+	  of video memory (or no v4l device?). Currently gdk
+	  just aborts the app.
 	* Need better no-overlay-present handling.
 	* Some routine starting --no-xv overlay clamps against
 	  info->caps.min when the window is smaller, and
@@ -36,9 +37,9 @@ Known bugs with zapping, don't report them
 	* Spinslider minimum sizes.
 	* Bad reception breaks vbi decoding: i/o error.
 	* Channel editor: up/down scroll-to doesn't work right,
-	  although this may be a gtk bug.
-	* Settings > Prefs > Main > Numeric... needs update,
-	  scope of the option changed.
+	  although this may be a gtk bug. Perhaps related:
+	  gtk-app-devel-list digest, Vol 1 #1367,
+	  Subject: scrolling windows
 	* There's a bug in XF86 4.2.99 and prob. earlier, redirecting
 	  controls to tveng1/2.c will fix this. They didn't consider
 	  audio.mode changes semantics on read/write in

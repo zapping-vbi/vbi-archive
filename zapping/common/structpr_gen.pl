@@ -12,7 +12,7 @@
 #  Perl and C gurus cover your eyes. This is one of my first
 #  attempts in this funny tongue and far from a proper C parser.
 
-# $Id: structpr_gen.pl,v 1.1.2.1 2003-02-21 19:07:54 mschimek Exp $
+# $Id: structpr_gen.pl,v 1.1.2.2 2003-03-06 21:59:28 mschimek Exp $
 
 $number		= '[0-9]+';
 $ident		= '\~?_*[a-zA-Z][a-zA-Z0-9_]*';
@@ -131,13 +131,20 @@ sub add_arg {
 
 sub add_arg_func {
     my ($text, $deps, $type, $ref, $field) = @_;
+    my $lp = "";
+    my $rp = "";
+
+    if ($type =~ m/^(struct|union)/) {
+	$lp = "{";
+	$rp = "}";
+    }
 
     if ($funcs{$type}) {
 	push @$deps, $type;
-	$templ .= "$field={";
 	$type =~ s/ /_/g;
+	$templ .= "$field=$lp";
 	$$text .= &flush_args() . "\tfprintf_$type (fp, $ref$field);\n";
-	$templ .= "} ";
+	$templ .= "$rp ";
     } else {
 	$templ .= "$field=? ";
     }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: channel_editor.c,v 1.37.2.8 2003-01-21 05:23:30 mschimek Exp $ */
+/* $Id: channel_editor.c,v 1.37.2.9 2003-03-06 22:00:46 mschimek Exp $ */
 
 /*
   TODO:
@@ -26,6 +26,7 @@
   * notify other modules (ttx bookmarks, schedule etc) about changes
   * device column
   * wizard
+  * XawTV import
   * channel merging e.g.
     12 FooBar +              key
        + dev1 tuner E5 fine  key

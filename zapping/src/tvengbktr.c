@@ -1104,6 +1104,7 @@ add_control			(tveng_device_info *	info,
 
 	c->dev.pub.minimum = qc.minimum;
 	c->dev.pub.maximum = qc.maximum;
+	c->dev.pub.step = qc.step;
 	c->dev.pub.reset = qc.default_value;
 	c->id = qc.id;
 	c->dev.device = info;

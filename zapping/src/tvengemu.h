@@ -113,7 +113,7 @@ tvengemu_set_capture_format(tveng_device_info * info);
 */
 static int
 tvengemu_set_control(tveng_device_info * info,
-		     tv_dev_control * control, int value);
+		     tv_control * control, int value);
 
 
 

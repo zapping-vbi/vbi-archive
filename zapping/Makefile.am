@@ -4,7 +4,8 @@ SUBDIRS = common po glade pixmaps plugins help zapping_setup_fb src
 
 EXTRA_DIST = autogen.sh acinclude.m4 \
 	README.plugins README.commands BUGS THANKS \
-	intltool-extract.in intltool-merge.in intltool-update.in
+	intltool-extract.in intltool-merge.in intltool-update.in \
+	zapping.desktop.in
 
 Multimediadir = $(datadir)/gnome/apps/Multimedia
 Multimedia_in_files = zapping.desktop.in

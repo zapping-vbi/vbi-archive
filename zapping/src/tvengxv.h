@@ -104,7 +104,7 @@ tvengxv_set_standard(struct tveng_enumstd * std, tveng_device_info * info);
 */
 static int
 tvengxv_set_control(tveng_device_info * info,
-		    tv_dev_control *tdc, int value);
+		    tv_control *tc, int value);
 		   
 
 
@@ -183,7 +183,8 @@ tvengxv_set_preview (int on, tveng_device_info * info);
    Returns -1 on error.
 */
 static int
-tvengxv_start_previewing (tveng_device_info * info);
+tvengxv_start_previewing (tveng_device_info * info,
+			  x11_dga_parameters *dga);
 
 /*
   Stops the fullscreen mode. Returns -1 on error

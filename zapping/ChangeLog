@@ -1,3 +1,77 @@
+5.3.2003	<mschimek@users.sf.net>
+
+	* common/Makefile.am: fprintf_videodev25.h compile warning fix.
+	* common/device.c, common/device.h: Added open() and
+	  close() wrapper.
+
+	Volume/Mute rewrite (mostly finished):
+
+	* src/mixer.c, src/mixer.h: Replaced mixer interface by 2003-01-15
+	  routines. Rewrote startup|shutdown_mixer().
+	* src/tveng.c, src/tveng.h, src/mixer.h: Added tv_device_node type
+	  and helper functions. Moved mixer definitions from mixer.h into
+	  tveng.h.
+	* src/oss.c: Enabled new OSS mixer routines. Various corrections.
+	  New function to scan for mixer devices, to be listed in the mixer
+	  selection GUI.
+	* src/zmisc.c, src/zmisc.h: Added z_device_entry helpers for prefs
+	  kernel device selection.
+	* glade/zapping.glade2: Redesigned soundcard mixer selection.
+	* src/audio.c, src/audio.h: New mixer selection GUI and config.
+	* src/globals.c, src/globals.h: Provisional current mixer and
+	  mixer_line variables, later to be moved into a virtual device
+	  context.
+
+	* configure.in: New audio mixer hack #defines for tveng.c.
+	* src/tveng.c, src/tveng.h: Integrated soundcard mixer volume control
+	  with tveng_attach_mixer_line(). Mixer controls are properly (and
+	  transparently) listed in the controls box.
+	* src/tveng.h, src/tveng1.c, src/tveng2.c, src/tveng25.c, src/tvengxv.c,
+	  src/tvengemu.c, src/v4linterface.c: Removed _dev abstraction from
+	  controls and mixer, was overkill. Added step property and 'ignore'
+	  flag (preliminary?) to controls.
+	* src/audio.c, src/audio.h: Use new mixer API. Removed audio_get|set_mute
+	  functions selecting between video device and soundcard mixer volume,
+	  this is now transparently handled by tveng.
+	* src/cmd.c (py_quit), src/main.c: s/audio_set_mute/tv_mute_set.
+
+	* src/main.c: Save and restore "global" controls if not saved per channel.
+	  Moved control config code into src/v4linterface.c.
+	* src/v4linterface.c, src/v4linterface.h: New functions to store controls
+	  in config and retrieve from config, code extracted from main.c.
+	* src/v4linterface.c (add_controls): Control box rebuilding didn't
+	  properly delete old controls.
+
+	* src/tveng.c, src/tveng.h: New tv_quiet_set() function implementing
+	  a program (as opposed to user) level mute function for transparent
+	  channel switch muting.
+	* src/v4linterface.c (z_switch_channel): Replaced mute and post-switch
+	  usleep by tv_quiet_set() and gtk timeout.
+	* src/audio.c, src/audio.h: New functions for gtk timeout delayed
+	  unmute after channel switch.
+
+	* README.commands, src/v4linterface.c: Removed zapping.volume_incr()
+	  ("record volume" which is BS, see ROADMAP) Python command, added
+	  zapping.control_incr() command. zapping.control_incr('volume', ...),
+	  [+]/[-], controls box volume is now all the same, using video device
+	  or soundcard mixer as configured.
+	* src/remote.c (cmd_compatibility): Convert obsolete zapping.volume_incr().
+	* src/keyboard.c: Default keymap s/zapping.volume_incr/zapping.control_incr.
+	  Added new keys to change brig, con, sat & hue, assigned to F-keys as
+	  in XawTV.
+
+	* src/properties-handler.c, src/v4linterface.c: Cleaned up option how to
+	  interpret channel numbers entered on keypad/alirc, former "no keypad
+	  entering" no longer applicable. 
+
+	* src/properties.c (build_properties_contents): Fixed spurious semicolon
+	  in conditional.
+	* plugins/mpeg/mpeg.c, plugins/mpeg/options.c, src/zvbi.c:
+	  Compile warning fixes.
+
+	* src/zvbi.c: Don't abort on i/o error, does more harm than good.
+	  Needs a better solution, perhaps in libzvbi.
+	
 20.2.2003	<mschimek@users.sf.net>
 
 	* common/Makefile.am, common/device.c, common/device.h,
