@@ -31,6 +31,7 @@ noinst_LIBRARIES = libtv.a
 INCLUDES = \
 	-I$(top_srcdir) \
 	-D_REENTRANT \
+	-DUNTESTED_SIMD=1 \
 	@X_CFLAGS@ \
 	@PG_CFLAGS@
 

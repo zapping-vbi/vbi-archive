@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.c,v 1.8 2005-02-06 21:42:07 mschimek Exp $ */
+/* $Id: image_format.c,v 1.9 2005-02-10 07:55:12 mschimek Exp $ */
 
 #include <string.h>		/* memset() */
 #include <assert.h>
@@ -342,14 +342,14 @@ tv_clear_image			(void *			image,
 	assert (NULL != format);
 
 #ifdef HAVE_ALTIVEC
-	if (0 /* UNTESTED */ &&
+	if (UNTESTED_SIMD &&
 	    0 == ((unsigned long) image | format->bytes_per_line[0]) % 16)
 		clear_block = clear_block_altivec;
 	else
 #endif
 #ifdef HAVE_SSE
-	if (0 /* UNTESTED */ &&
-	    cpu_features & CPU_FEATURE_SSE)
+	if (UNTESTED_SIMD &&
+	    (cpu_features & CPU_FEATURE_SSE))
 		clear_block = clear_block_mmx_nt;
 	else
 #endif
@@ -525,8 +525,8 @@ tv_memcpy			(void *			dst,
 		return;
 
 #ifdef HAVE_SSE
-	if (0 /* UNTESTED */ &&
-	    cpu_features & CPU_FEATURE_SSE)
+	if (UNTESTED_SIMD &&
+	    (cpu_features & CPU_FEATURE_SSE))
 		if (0 == ((unsigned long) dst | (unsigned long) src) % 16)
 			return memcpy_sse_nt (dst, src, n_bytes);
 #endif
@@ -597,7 +597,8 @@ tv_copy_image			(void *			dst_image,
 	assert (dst_format->pixel_format == src_format->pixel_format);
 
 #ifdef HAVE_SSE
-	if (cpu_features & CPU_FEATURE_SSE)
+	if (UNTESTED_SIMD &&
+	    (cpu_features & CPU_FEATURE_SSE))
 		copy_block = copy_block1_sse_nt;
 	else
 #endif
