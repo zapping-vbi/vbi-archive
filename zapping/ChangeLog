@@ -1,3 +1,7 @@
+2004-01-02    <pinotree@users.sf.net>
+
+	* po/it.po: Updated by Pino Toscano.
+
 2003-12-31    <mschimek@users.sf.net>
 
 	* src/tveng25.c (set_standard), src/tveng2.c (set_standard):
