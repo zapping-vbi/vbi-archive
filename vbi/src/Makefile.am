@@ -10,7 +10,7 @@ INCLUDES += $(X_CFLAGS) $(UNICODE_CFLAGS)
 
 libzvbi_la_SOURCES = \
 	decoder.c decoder.h sliced.h \
-	io.c io.h io-v4l2.c videodev.h videodev2.h \
+	io.c io.h io-v4l2.c io-v4l.c videodev.h videodev2.h \
 	vbi.c vbi.h event.h \
 	packet.c teletext.c vt.h \
 	caption.c cc.h \
@@ -29,7 +29,7 @@ libzvbiincludedir = $(includedir)
 libzvbiinclude_HEADERS = libzvbi.h
 
 libzvbi_la_LIBADD = -lpthread $(PNG_LIB)
-libzvbi_la_LDFLAGS = -version-info 0:1:0 # NOT release, see info libtool
+libzvbi_la_LDFLAGS = -release @VERSION@ -version-info 0:1:0
 
 # Concat the header files in this order and filter out all lines
 #   before "^/* Public", after "^/* Private" and between "^/**"..."**/$"
@@ -43,7 +43,7 @@ libzvbi.h: bcd.h event.h format.h lang.h export.h cache.h search.h \
 	echo -e "\ntypedef struct vbi_decoder vbi_decoder;\n" >> $@
 	for fi in $^; do \
 		echo "/* $$fi */" >> $@; \
-		sed -e "/^\/\* *Public/,/^\/\* *Private/!d;/^\/\* *Public/d;/^\/\* *Private/d;/^\/\*\*/,/\*\*\/$$/d;" $$fi >> $@; \
+		sed -e "/^\/\* Public/,/^\/\* Private/!d;/^\/\* Public/d;/^\/\* Private/d;/^\/\*\*/,/\*\*\/$$/d;" $$fi >> $@; \
 	done
 	echo -e "\n#ifdef __cplusplus\n}\n#endif" >> $@
 	echo -e "\n#endif /* __LIBZVBI_H__ */" >> $@

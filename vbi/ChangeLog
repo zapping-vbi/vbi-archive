@@ -1,3 +1,57 @@
+2002-03-09	Bugfix <mschimek@users.sf.net>
+
+	* src/search.c: Fixed pattern highlighting, used to still
+	  skip gfx although now searchable. Segv in reverse search.
+	* src/export-txt.c: vbi_print_page_region() return TRUE
+	  instead of actual bytes written.
+
+2002-03-02	Misc <mschimek@users.sf.net>
+
+	* src/bcd.h: Extended vbi_add_bcd() and vbi_is_bcd() from
+	  3 to 8 digits.
+	* src/export.c: strncpy() fix in vbi_export_invalid_option().
+	* Dropped the libunicode requirement. Is only needed for
+	  ure.c which is needed by search.c. Search is now disabled
+	  when unicode is not installed.
+
+2002-02-08	I/O stuff <mschimek@users.sf.net>
+
+	* src/io-v4l.c: Enabled select() for bttv.
+
+2002-01-19	Fixes <mschimek@users.sf.net>
+
+	* src/io.c: vbi_capture_delete() not NULL safe, corrected.
+	* src/search.c: Fixed non-regexp mode escape bug.
+	* src/ure.c: Added character classes :gfx: and :drcs:.
+	* src/exp-gfx.c: Fixed DRCS display.
+	* src/exp-txt.c: Fixed color reset (VT100).
+
+2002-01-17	V4L, build fixes <garetxe@users.sf.net>
+
+	* src/io_v4l.c: Added missing pixfmt initialization.
+	Works great after that, great job.
+	* Makefile.am, configure.in: Some build fixes.
+
+2002-01-14	Restored V4L interface, more test stuff, fixes <mschimek@users.sf.net>
+
+	* src/io_v4l.c: Added, *untested*.
+	* test/osc: Try v4l2, then v4l.
+	* po: Updated.
+	* src/hamm.c: Corrected char types (use char only for
+	  text, these are ints).
+	* src/export.c: Bugfix in option_string(), didn't
+	  accept '-' and '_' in option keywords.
+	* test/capture.c: Added, from old vbi_decoder().
+	* test/sim.c: Ditto, plus new Teletext simulation.
+	* test: Updated, misc small improvements.
+
+2002-01-13	Fixes <mschimek@users.sf.net>
+
+	* test/explist.h: Option type check.
+	* doc/tmpl/sliced.sgml: Corrected .gif names.
+	* src/export.c: Fixed vbi_export_option_menu_set(), didn't check
+	  for entry < 0.
+
 2002-01-12	Imported libzvbi into Zapping CVS <mschimek@users.sf.net>
 
 	* Renamed to libzvbi to avoid a name conflict. VBI is an ubiquitious

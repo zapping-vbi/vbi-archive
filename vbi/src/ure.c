@@ -5,6 +5,11 @@
  * Modifications and fixes to the 0.5 release by Iñaki García
  * Etxebarrria <garetxe@users.sourceforge.net>
  *
+ * Modifications by Michael H. Schimek <mschimek@users.sf.net>
+ * for libzvbi 0.1: Added character classes :gfx: and :drcs:,
+ * commented surrogate expansion and IGNORE_NONSPACING
+ * in ure_exec we don't need.
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
@@ -23,9 +28,13 @@
  * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#if 0
-static char rcsid[] = "$Id: ure.c,v 1.1.1.1 2002-01-12 16:19:15 mschimek Exp $";
+/* $Id: ure.c,v 1.3 2002-03-06 00:54:51 mschimek Exp $ */
+
+#ifdef HAVE_CONFIG_H
+#  include "../config.h"
 #endif
+
+#ifdef HAVE_LIBUNICODE
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -54,6 +63,8 @@ static char rcsid[] = "$Id: ure.c,v 1.1.1.1 2002-01-12 16:19:15 mschimek Exp $";
 #define _URE_WIDE (1<<13)
 #define _URE_NONSPACING (1<<14)
 #define _URE_SEPARATOR (1<<15)
+#define _URE_ZVBI_GFX (1<<16)
+#define _URE_ZVBI_DRCS (1<<17)
 
 /*
  * Flags used internally in the DFA.
@@ -157,6 +168,18 @@ _ure_matches_properties(unsigned long props, ucs4_t c)
       if (type < UNICODE_LINE_SEPARATOR)
 	return 1;
     }
+
+  if (props & _URE_ZVBI_GFX)
+    {
+      if (c >= 0xEE00 && c <= 0xEE7F)
+        return 1; /* Teletext G1 Block Mosaic */
+      if (c >= 0xEF20 && c <= 0xEF7F)
+        return 1; /* Teletext G3 Smooth Mosaic and Line Drawing */
+    }
+
+  if ((props & _URE_ZVBI_DRCS)
+      && (c >= 0xF000 && c <= 0xF7FF))
+    return 1; /* Teletext DRCS */
 
   return 0;
 }
@@ -409,7 +432,9 @@ static unsigned long cclass_flags[] = {
   _URE_TITLE,
   _URE_DEFINED,
   _URE_WIDE,
-  _URE_NONSPACING
+  _URE_NONSPACING,
+  _URE_ZVBI_GFX,
+  _URE_ZVBI_DRCS
 };
 
 /*
@@ -596,27 +621,27 @@ typedef struct {
 } _ure_trie_t;
 
 static _ure_trie_t cclass_trie[] = {
-  {':', 1, 1, 0},
-  {'a', 10, 11, 0},
-  {'c', 9, 20, 0},
-  {'d', 8, 25, 0},
-  {'g', 7, 30, 0},
+  {':', 1, 1, 0},	/* 0 */
+  {'a', 10, 11, 0},	/* 1 a (0/10) */
+  {'c', 9, 20, 0},	/* 2 c (1/10) */
+  {'d', 8, 79, 0}, /* {'d', 8, 25, 0}, */
+  {'g', 7, 71, 0}, /* {'g', 7, 30, 0}, */
   {'l', 6, 35, 0},
   {'p', 5, 40, 0},
   {'s', 4, 50, 0},
   {'u', 3, 55, 0},
   {'x', 2, 60, 0},
-  {'t', 1, 66, 0},
-  {'l', 1, 12, 0},
-  {'n', 2, 14, 0},
-  {'p', 1, 17, 0},
-  {'u', 1, 15, 0},
-  {'m', 1, 16, 0},
+  {'t', 1, 66, 0},	/* 10 t (9/10) */
+  {'l', 1, 12, 0},	/* 11 al (0/1) */
+  {'n', 2, 14, 0},	/* 12 aln (0/2) */
+  {'p', 1, 17, 0},	/* 13 alp (1/2) */
+  {'u', 1, 15, 0},	/* alnu */
+  {'m', 1, 16, 0},	/* alnum */
   {':', 1, 17, _URE_ALNUM},
   {'h', 1, 18, 0},
   {'a', 1, 19, 0},
   {':', 1, 20, _URE_ALPHA},
-  {'n', 1, 21, 0},
+  {'n', 1, 21, 0},	/* 20 <- cn */
   {'t', 1, 22, 0},
   {'r', 1, 23, 0},
   {'l', 1, 24, 0},
@@ -666,7 +691,25 @@ static _ure_trie_t cclass_trie[] = {
   {'t', 1, 68, 0},
   {'l', 1, 69, 0},
   {'e', 1, 70, 0},
-  {':', 1, 71, _URE_TITLE}
+  {':', 1, 71, _URE_TITLE},
+/* mhs: duplicated, so I dont have to renumber everything */
+  {'f', 1, 77, 0},
+  {'r', 2, 73, 0},
+  {'a', 1, 74, 0},
+  {'p', 1, 75, 0},
+  {'h', 1, 76, 0},
+  {':', 1, 77, _URE_GRAPH},
+  {'x', 1, 78, 0},
+  {':', 1, 79, _URE_ZVBI_GFX},
+  {'i', 2, 81, 0},
+  {'r', 1, 85, 0},
+  {'g', 1, 82, 0},
+  {'i', 1, 83, 0},
+  {'t', 1, 84, 0},
+  {':', 1, 85, _URE_DIGIT},
+  {'c', 1, 86, 0},
+  {'s', 1, 87, 0},
+  {':', 1, 88, _URE_ZVBI_DRCS}
 };
 
 /*
@@ -2125,6 +2168,7 @@ ure_exec(ure_dfa_t dfa, int flags, ucs2_t *text, unsigned long textlen,
     lp = sp;
     c = *sp++;
 
+#if 0 /* zvbi: never */
     /*
      * Check to see if this is a high surrogate that should be
      * combined with a following low surrogate.
@@ -2139,6 +2183,7 @@ ure_exec(ure_dfa_t dfa, int flags, ucs2_t *text, unsigned long textlen,
     if ((flags & URE_IGNORE_NONSPACING) &&
 	(_ure_matches_properties(_URE_NONSPACING, c)))
       continue;
+#endif
 
     if (dfa->flags & _URE_DFA_CASEFOLD)
       c = unicode_tolower(c);
@@ -2282,3 +2327,5 @@ ure_exec(ure_dfa_t dfa, int flags, ucs2_t *text, unsigned long textlen,
 
   return (ms != ~0) ? 1 : 0;
 }
+
+#endif /* HAVE_LIBUNICODE */

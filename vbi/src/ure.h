@@ -20,10 +20,16 @@
  * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-/* $Id: ure.h,v 1.1.1.1 2002-01-12 16:19:12 mschimek Exp $ */
+/* $Id: ure.h,v 1.3 2002-03-06 00:54:51 mschimek Exp $ */
 
 #ifndef _h_ure
 #define _h_ure
+
+#ifdef HAVE_CONFIG_H
+#  include "../config.h"
+#endif
+
+#ifdef HAVE_LIBUNICODE
 
 #include <stdio.h>
 #include <unicode.h>
@@ -51,7 +57,7 @@ extern "C" {
 /*
  * Options that can be combined for searching.
  */
-#define URE_IGNORE_NONSPACING      0x01
+/* mhs: not used, disabled #define URE_IGNORE_NONSPACING      0x01 */
 #define URE_DOT_MATCHES_SEPARATORS 0x02
 #define URE_NOTBOL		   0x04
 #define URE_NOTEOL		   0x08
@@ -134,5 +140,7 @@ extern int ure_exec __((ure_dfa_t dfa, int flags,
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* HAVE_LIBUNICODE */
 
 #endif /* _h_ure */

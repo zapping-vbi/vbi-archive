@@ -1,15 +1,16 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.1.1.1 2002-01-12 16:18:06 mschimek Exp $
+dnl $Id: configure.in,v 1.4 2002-03-06 00:54:51 mschimek Exp $
 
 AC_INIT(configure.in)
-AM_INIT_AUTOMAKE(libzvbi, 0.1)
+AM_INIT_AUTOMAKE(zvbi, 0.1)
 AM_CONFIG_HEADER(config.h)
 AM_ACLOCAL_INCLUDE(macros)
 
 AC_ARG_ENABLE(debugging, [  --enable-debugging      add debugging info],
         [CFLAGS="-g -O0"
 	 AC_DEFINE(ENABLE_DEBUGGING, 1, [Add debugging info])],
-        CFLAGS="-O2 -fomit-frame-pointer -DNDEBUG=1")
+        CFLAGS="-O2")
+dnl -fomit-frame-pointer
 
 AC_PROG_CC
 AM_PROG_LIBTOOL
@@ -30,17 +31,19 @@ AC_CHECK_FUNCS(program_invocation_name)
 dnl
 dnl Check for unicode library.
 dnl
-AC_MSG_CHECKING(for unicode)
+AC_MSG_CHECKING(for unicode library)
 UNICODE_VERSION=`unicode-config --version`
 if test $? -eq 0; then
+	AC_DEFINE(HAVE_LIBUNICODE, 1, [Define if you have libunicode])
 	AC_MSG_RESULT($UNICODE_VERSION)
 	UNICODE_CFLAGS=`unicode-config --cflags`
 	UNICODE_LIBS=`unicode-config --libs`
 	AC_SUBST(UNICODE_CFLAGS)
 	AC_SUBST(UNICODE_LIBS)
 else
-	AC_MSG_ERROR([libunicode is required:
-	ftp://ftp.gnome.org/pub/GNOME/unstable/sources])
+	AC_MSG_RESULT([not present - Teletext search disabled])
+dnl	AC_MSG_ERROR([libunicode is required:
+dnl	ftp://ftp.gnome.org/pub/GNOME/unstable/sources])
 fi
 
 dnl
@@ -109,9 +112,16 @@ dnl
 AC_OUTPUT([
 Makefile
 src/Makefile
+intl/Makefile
 po/Makefile.in
 po/Makefile
 test/Makefile
-libzvbi.spec
+zvbi.spec
 doc/Makefile
 ])
+
+if test ! -r po/Makefile; then
+	PF="POT"
+	PF=$PF"FILES"
+        sed -e "/$PF =/r po/PF" po/Makefile.in > po/Makefile
+fi

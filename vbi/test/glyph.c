@@ -18,13 +18,20 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: glyph.c,v 1.1.1.1 2002-01-12 16:19:31 mschimek Exp $ */
+/* $Id: glyph.c,v 1.3 2002-02-10 11:47:10 mschimek Exp $ */
+
+#undef NDEBUG
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 
 #include <libzvbi.h>
+
+extern unsigned int	vbi_teletext_unicode(int, int, int);
+extern unsigned int	vbi_teletext_composed_unicode(unsigned int a, unsigned int c);
+extern unsigned int	vbi_caption_unicode(unsigned int c);
 
 static vbi_page *pg;
 static vbi_char ac;
@@ -33,7 +40,7 @@ static int cx, cy;
 static void
 new_page(void)
 {
-	int i, j;
+	int i;
 
 	cx = 0;
 	cy = 0;
@@ -56,7 +63,7 @@ new_page(void)
 	pg->color_map[1] = 0x00FFFFFF;
 }
 
-static int
+static void
 putwchar(int c)
 {
 	if (c == '\n') {
