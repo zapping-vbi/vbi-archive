@@ -7,6 +7,7 @@
 #include "x11stuff.h"
 #include "mixer.h"
 #include "zapping.h"
+#include "plugins/teletext/view.h"
 
 extern Zapping *	zapping;
 
@@ -42,3 +43,21 @@ extern gint			cur_tuned_channel;
 extern tv_mixer *		mixer;
 extern tv_audio_line *		mixer_line;
 #endif
+
+/* Preliminary Teletext plugin interface. */
+extern GtkWidget *
+(*_teletext_view_new)		(void);
+extern TeletextView *
+(*_teletext_view_from_widget)	(GtkWidget *		widget);
+extern gboolean
+(*_teletext_view_on_key_press)	(GtkWidget *		widget,
+				 GdkEventKey *		event,
+				 TeletextView *		view);
+extern GtkWidget *
+(*_teletext_toolbar_new)	(GtkActionGroup *	action_group);
+
+extern GtkWidget* (*_ttxview_popup)(GtkWidget *widget, GdkEventButton *event);
+extern GtkWidget * (*_ttxview_bookmarks_menu_new)(GtkWidget *widget);
+extern guint (*_ttxview_hotlist_menu_insert)(GtkMenuShell *menu,
+					     gboolean separator,
+					     gint position);

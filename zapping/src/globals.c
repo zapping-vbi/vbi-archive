@@ -34,3 +34,21 @@ gint			cur_tuned_channel = -1;
 /* XXX Move this into virtual device context when ready. */
 tv_mixer *		mixer = NULL;
 tv_audio_line *		mixer_line = NULL;
+
+/* Preliminary Teletext plugin interface. */
+GtkWidget *
+(*_teletext_view_new)		(void);
+TeletextView *
+(*_teletext_view_from_widget)	(GtkWidget *		widget);
+gboolean
+(*_teletext_view_on_key_press)	(GtkWidget *		widget,
+				 GdkEventKey *		event,
+				 TeletextView *		view);
+GtkWidget *
+(*_teletext_toolbar_new)	(GtkActionGroup *	action_group);
+
+GtkWidget* (*_ttxview_popup)(GtkWidget *widget, GdkEventButton *event);
+GtkWidget * (*_ttxview_bookmarks_menu_new)(GtkWidget *		widget);
+guint (*_ttxview_hotlist_menu_insert)(GtkMenuShell *		menu,
+				      gboolean		separator,
+				      gint position);
