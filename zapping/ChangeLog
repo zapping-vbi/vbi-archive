@@ -1,3 +1,7 @@
+14.01.2002	<mschimek@users.sf.net>
+
+	* src/zvbi.c: Restored v4l vbi interface, untested.
+
 13.01.2002	libzvbi <mschimek@users.sf.net>
 
 	* Ported Zapping from old libvbi to libzvbi, the new

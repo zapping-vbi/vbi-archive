@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder.c,v 1.17 2001-07-27 05:52:24 mschimek Exp $ */
+/* $Id: vbi_decoder.c,v 1.18 2002-01-15 03:19:18 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1068,39 +1068,6 @@ wss_gen(struct vbi_capture *vbi, unsigned char *b1)
 	for (i = 0; i < vbi->samples_per_line; i++)
 		buf[i] = wss625_sim(start + i * inc, 15625 * 320, wss625_bits) * 110 + 10;
 
-	{
-		const int poly = (1 << 6) + (1 << 1) + 1;
-		int b0 = 1, b1 = 1;
-
-		wss525_bits = (b0 << 13) + (b1 << 12);
-
-		crc = (((1 << 6) - 1) << (14 + 6)) + (wss525_bits << 6);
-
-		for (j = 14 + 6 - 1; j >= 0; j--) {
-			if (crc & ((1 << 6) << j))
-				crc ^= poly << j;
-		}
-	}
-
-	wss525_bits <<= 6;
-	wss525_bits |= crc;
-
-	fprintf(stderr, "<< %08x\n", wss525_bits);
-
-	if (vbi->start[0] >= 0)
-		row = MAX(MIN(0, 20 - vbi->start[0]), vbi->count[0] - 1);
-	else
-		row = vbi->count[0] - 1;
-
-	buf = b1 + row * vbi->samples_per_line;
-
-	if (vbi->offset)
-		start = vbi->offset / (double) vbi->sampling_rate;
-	else
-		start = 10e-6;
-
-	for (i = 0; i < vbi->samples_per_line; i++)
-		buf[i] = wss525_sim(start + i * inc, 447443, wss525_bits) * 110 + 10;
 }
 
 
