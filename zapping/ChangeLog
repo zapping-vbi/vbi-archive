@@ -1,3 +1,25 @@
+2005-02-18    <mschimek@users.sf.net>
+
+	* help/C/zapping.xml: Updated appversion, manrevision, date.
+	* help/C/settings.xml: s/&/&amp;.
+	* po/fr.po: Updated by Christian Marillat.
+
+2005-02-17    <mschimek@users.sf.net>
+
+	* libtv/sse/sse.c (clear_block_mmx_nt),
+	  libtv/mmx/mmx.c (clear_block_mmx): Two byte version not needed.
+	* libvbi/misc.h: Removed byte order macro check, will use config.h.
+	* libtv/image_format.c (clear_block3), libtv/avec/clear_block.h (3):
+	  Use native endian value instead of LE for clarity.
+	  (tv_clear_image): Missing Altivec runtime test.
+	* libtv/image_format.c (SWAB16, SWAB32): 
+	* libvbi/exp-gfx.c (RGBA_CONV4, RGBA_CONV2): 
+	* src/tveng1.c (palette_to_pixfmt), src/tveng.c (pig_depth_to_pixfmt),
+	  zapping_setup_fb/v4l25.c (setup_v4l25): Replaced #if by switch to
+	  enable compiler checks of big and little endian code.
+	* zapping_setup_fb/v4l25.c (setup_v4l25): Fixed pf.bits_per_pixel
+	  big endian build bug.
+
 2005-02-15    <mschimek@users.sf.net>
 
 	* Release 0.9.

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: guard.h,v 1.2 2005-02-15 17:26:08 mschimek Exp $ */
+/* $Id: guard.h,v 1.3 2005-02-18 08:03:19 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -32,9 +32,14 @@
 #include <signal.h>
 #include <assert.h>
 
+#ifdef MAP_ANONYMOUS
+#  define HAVE_MAP_ANONYMOUS 1
 /* 386 BSD has MAP_ANON instead of MAP_ANONYMOUS. */
-#if ( !defined(MAP_ANONYMOUS) && defined(MAP_ANON) )
+#elif defined (MAP_ANON)
 #  define MAP_ANONYMOUS MAP_ANON
+#  define HAVE_MAP_ANONYMOUS 1
+#else
+#  define HAVE_MAP_ANONYMOUS 0
 #endif
 
 static int
@@ -67,21 +72,21 @@ guard_alloc			(size_t			n_bytes)
 	page_size = getpagesize ();
 	assert (0 == n_bytes % page_size);
 
-#ifdef MAP_ANONYMOUS
-	p = mmap (/* start: any */ NULL,
-		  n_bytes * 3,
-		  PROT_READ | PROT_WRITE,
-		  MAP_PRIVATE | MAP_ANONYMOUS,
-		  /* fd: n/a */ -1,
-		  /* offset */ 0);
-#else
-	p = mmap (/* start: any */ NULL,
-		  n_bytes * 3,
-		  PROT_READ | PROT_WRITE,
-		  MAP_PRIVATE,
-		  dev_zero (),
-		  /* offset */ 0);
-#endif
+	if (HAVE_MAP_ANONYMOUS) {
+		p = mmap (/* start: any */ NULL,
+			  n_bytes * 3,
+			  PROT_READ | PROT_WRITE,
+			  MAP_PRIVATE | MAP_ANONYMOUS,
+			  /* fd: n/a */ -1,
+			  /* offset */ 0);
+	} else {
+		p = mmap (/* start: any */ NULL,
+			  n_bytes * 3,
+			  PROT_READ | PROT_WRITE,
+			  MAP_PRIVATE,
+			  dev_zero (),
+			  /* offset */ 0);
+	}
 
 	if (MAP_FAILED == p) {
 		fprintf (stderr, "Guarded memory allocation failed: %d, %s\n",

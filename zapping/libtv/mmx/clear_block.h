@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: clear_block.h,v 1.1 2004-12-11 11:46:22 mschimek Exp $ */
+/* $Id: clear_block.h,v 1.2 2005-02-18 08:03:18 mschimek Exp $ */
 
 #include <inttypes.h>
 #include "libtv/macros.h"
@@ -52,11 +52,11 @@ NAME				(void *			dst,
 	__m64 m0, m1, m2;
 	unsigned int padding;
 
-	m0 = _mm_cvtsi32_si64 (value & 0xFFFFFF);		//      210
-	m0 = _mm_or_si64 (m0, _mm_slli_si64 (m0, 24));		//   210210
-	m0 = _mm_or_si64 (m0, _mm_slli_si64 (m0, 24));		// 10210210
-	m1 = _mm_unpacklo_pi32 (_mm_srli_si64 (m0, 16), m0);	// 02102102
-	m2 = _mm_unpacklo_pi32 (_mm_srli_si64 (m1, 16), m1);	// 21021021
+	m0 = _mm_cvtsi32_si64 (value & 0xFFFFFF);		/*      210 */
+	m0 = _mm_or_si64 (m0, _mm_slli_si64 (m0, 24));		/*   210210 */
+	m0 = _mm_or_si64 (m0, _mm_slli_si64 (m0, 24));		/* 10210210 */
+	m1 = _mm_unpacklo_pi32 (_mm_srli_si64 (m0, 16), m0);	/* 02102102 */
+	m2 = _mm_unpacklo_pi32 (_mm_srli_si64 (m1, 16), m1);	/* 21021021 */
 
 	padding = bytes_per_line - width * 3;
 

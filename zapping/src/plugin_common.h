@@ -28,7 +28,7 @@
 #include <gnome.h>
 
 #ifdef HAVE_LIBZVBI
-#include <libzvbi.h>
+#  include <libzvbi.h>
 #endif
 
 #include "tveng.h"
