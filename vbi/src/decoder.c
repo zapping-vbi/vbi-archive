@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: decoder.c,v 1.12.2.1 2004-01-27 21:03:54 tomzo Exp $ */
+/* $Id: decoder.c,v 1.12.2.2 2004-02-10 19:31:44 tomzo Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1135,7 +1135,7 @@ vbi_raw_decoder_add_services(vbi_raw_decoder *rd, unsigned int services, int str
 
 		/* skip colour burst */
 		if (rd->offset > 0 && strict > 0 && offset < off_min)
-			skip = (int)(off_min * rd->sampling_rate);
+			skip = (int)((off_min - offset) * rd->sampling_rate);
 		else
 			skip = 0;
 
