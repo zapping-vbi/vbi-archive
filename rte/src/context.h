@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: context.h,v 1.3 2002-06-12 04:01:43 mschimek Exp $ */
+/* $Id: context.h,v 1.4 2002-06-14 07:57:01 mschimek Exp $ */
 
 #ifndef CONTEXT_H
 #define CONTEXT_H
@@ -36,31 +36,57 @@
  **/
 typedef struct rte_context rte_context;
 
+/**
+ * rte_context_info:
+ *
+ * Details about the encoding context.
+ *
+ * @keyword uniquely identifies the context.
+ *
+ * @backend uniquely identifies the backend (like "foobar 1.2.3"),
+ *   not NLSed because a proper name. This may be used in the user interface.
+ *
+ * @label is a name for the context to be used in the user interface,
+ *   can be localized with gettext(label).
+ *
+ * @tooltip gives additional info for the user, also localized.
+ *   This pointer can be %NULL.
+ *
+ * @mime_type gives a MIME type for the created file if applicable,
+ *   otherwise %NULL. Example: "video/x-mpeg".
+ *
+ * @extension suggests filename extensions to use. Can be %NULL,
+ *   and can contain multiple strings separated by comma. The first
+ *   string is preferred. Example: "mpg,mpeg".
+ *
+ * @min_elementary and @max_elementary are the required and
+ *   permitted number of elementary streams of each #rte_stream_type.
+ *   For example min_elementary[RTE_STREAM_VIDEO] = 0 and
+ *   max_elementary[RTE_STREAM_VIDEO] = 32 means: The file format requires
+ *   no video elementary stream and permits at most 32. You can only
+ *   rte_codec_set() codecs for elementary stream 0 ... max_elementary[] - 1.
+ *   Implied is the rule that each context requires at least one
+ *   codec / elementary stream, regardless of the min_elementary[] values.
+ *
+ * @flags is a set of RTE_FLAG_ values.
+ **/
 typedef struct {
-  const char *		keyword;	/* eg. "mp1e-mpeg1-ps" */
-  const char *		backend;	/* no NLS b/c proper name */
+	const char *		keyword;
+	const char *		backend;
 
-  const char *		label;		/* gettext()ized _N() */
-  const char *		tooltip;	/* or NULL, gettext()ized _N() */
+	const char *		label;
+	const char *		tooltip;		/* or NULL */
 
-  /*
-   *  Multiple strings allowed, separated by comma. The first
-   *  string is preferred. Ex "video/x-mpeg", "mpg,mpeg".
-   */
-  const char *		mime_type;	/* or NULL */
-  const char *		extension;	/* or NULL */
+	const char *		mime_type;		/* or NULL */
+	const char *		extension;		/* or NULL */
 
-  /*
-   *  Permitted number of elementary streams of each type, for example
-   *  MPEG-1 PS: video 0-16, audio 0-32, sliced vbi 0-1, to select rte_codec_set
-   *  substream number 0 ... n-1.
-   */
-  const char		min_elementary[16];
-  const char		max_elementary[16];
+	char			min_elementary[16];
+	char			max_elementary[16];
 
-/* should we have flags like can pause, needs seek(), syncs, etc? */
-
+	unsigned int		flags;
 } rte_context_info;
+
+#define RTE_FLAG_SEEKS		(1 << 0)	/* Context needs seek callback */
 
 extern rte_context_info *	rte_context_info_enum(int index);
 extern rte_context_info *	rte_context_info_keyword(const char *keyword);
@@ -89,9 +115,6 @@ rte_context_status (rte_context *context, rte_status *status)
 
 	rte_status_query(context, 0, status, sizeof(rte_status));
 }
-
-//extern rte_status_info *	rte_context_status_enum(rte_context *context, int n);
-//extern rte_status_info *	rte_context_status_keyword(rte_context *context, const char *keyword);
 
 extern void			rte_error_printf(rte_context *context, const char *templ, ...);
 extern char *			rte_errstr(rte_context *context);
@@ -195,10 +218,6 @@ struct rte_context_class {
 
 	void			(* status)(rte_context *, rte_codec *,
 					   rte_status *, int size);
-
-//<<
-
-//	rte_status_info *	(* status_enum)(rte_context *, int);
 };
 
 #endif /* CONTEXT_H */
