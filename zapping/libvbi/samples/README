@@ -1,0 +1,41 @@
+Closed Caption sample streams
+
+Format:
+
+Header
+    "%8.6f\n"		frame capture timestamp delta (1/30)
+    8 bits		number of lines
+Line
+    8 bits		0: Teletext, 7: Caption
+    8 bits		ITU-T line number lsb
+    7 bits		line number msb
+    1 bit		field 2
+    Teletext:
+    42 * 8 bits		raw data excl. run-in and framing code
+    Caption:
+    8 bits		first data byte w/parity
+    8 bits		second data byte w/parity
+
+Streams:
+
+s1
+    contributed: Dwayne Jacques Fontenot, thanks a lot!
+    field 1: C1 pop-on, T2 itv
+    field 2: xds
+
+t1-swr
+t2-br
+    contributed: yours truly
+    Level 2.5 Teletext, lots of DRCS, TOP Text;
+    t3-br X/26 PDC, t1-swr X/26 double size chars
+    mixed w/DRCS
+
+t4-arte (german)
+    contributed: yours truly
+    Level 1.5 accents, 2.5 spacing attributes,
+    test pages 195ff, page countdown, running header,
+    full PDC
+
+t5-cnn (extract only)
+    contributed: yours truly
+    FLOF example
