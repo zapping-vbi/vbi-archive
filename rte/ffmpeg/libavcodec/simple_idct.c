@@ -23,7 +23,7 @@
 #include <inttypes.h>
 
 #include "simple_idct.h"
-#include "../config.h"
+#include "config.h"
 
 #if 0
 #define W1 2841 /* 2048*sqrt (2)*cos (1*pi/16) */

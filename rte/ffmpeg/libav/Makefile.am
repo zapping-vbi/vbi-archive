@@ -2,12 +2,11 @@
 
 noinst_LTLIBRARIES = libav.la
 
-INCLUDES = -D_REENTRANT -I../libavcodec -DHAVE_AV_CONFIG_H
+INCLUDES = -D_REENTRANT -I$(srcdir)/../libavcodec -DHAVE_AV_CONFIG_H \
+	-Wall -Wunused -Wmissing-declarations
 
 libav_la_SOURCES = \
-asf.c au.c avformat.h avi.h avidec.c avienc.c avio.c \
-avio.h aviobuf.c ffm.c file.c gif.c img.c jpeg.c \
-mov.c mpeg.c raw.c rm.c swf.c tick.h \
-utils.c wav.c
-
-## rte.c
+	asf.c au.c avformat.h avi.h avidec.c avienc.c avio.c \
+	avio.h aviobuf.c ffm.c file.c gif.c img.c jpeg.c \
+	mov.c mpeg.c raw.c rm.c swf.c tick.h \
+	utils.c wav.c

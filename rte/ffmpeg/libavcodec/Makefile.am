@@ -4,7 +4,8 @@ noinst_LTLIBRARIES = libavcodec.la
 
 SUBDIRS = i386
 
-INCLUDES = -D_REENTRANT -I. -DHAVE_AV_CONFIG_H
+INCLUDES = -D_REENTRANT -I. -DHAVE_AV_CONFIG_H \
+	-Wall -Wunused -Wmissing-declarations
 
 ### using builtin liba52 or runtime linked liba52.so.0
 ##ifeq ($(CONFIG_A52BIN),no)
@@ -44,13 +45,13 @@ INCLUDES = -D_REENTRANT -I. -DHAVE_AV_CONFIG_H
 ##
 
 libavcodec_la_SOURCES = \
-ac3enc.c ac3enc.h ac3tab.h avcodec.c avcodec.h \
-common.c common.h dsputil.c dsputil.h fastmemcpy.h \
-fdctref.c h263.c h263data.h imgconvert.c imgresample.c \
-jfdctfst.c jrevdct.c mangle.h mjpeg.c motion_est.c \
-mpeg12.c mpeg12data.h mpeg4data.h mpegaudio.c \
-mpegaudio.h mpegaudiotab.h mpegaudiodec.c mpegaudiodectab.h \
-mpegvideo.c mpegvideo.h msmpeg4.c msmpeg4data.h pcm.c ratecontrol.c \
-resample.c rv10.c simple_idct.c simple_idct.h utils.c
+	ac3enc.c ac3enc.h ac3tab.h avcodec.c avcodec.h \
+	common.c common.h dsputil.c dsputil.h fastmemcpy.h \
+	fdctref.c h263.c h263data.h imgconvert.c imgresample.c \
+	jfdctfst.c jrevdct.c mangle.h mjpeg.c motion_est.c \
+	mpeg12.c mpeg12data.h mpeg4data.h mpegaudio.c \
+	mpegaudio.h mpegaudiotab.h mpegaudiodec.c mpegaudiodectab.h \
+	mpegvideo.c mpegvideo.h msmpeg4.c msmpeg4data.h pcm.c ratecontrol.c \
+	resample.c rv10.c simple_idct.c simple_idct.h utils.c
 
 libavcodec_la_LIBADD = i386/libi386.la

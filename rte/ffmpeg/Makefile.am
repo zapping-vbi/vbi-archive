@@ -4,8 +4,11 @@ SUBDIRS = libav libavcodec
 
 EXTRA_DIST = README
 
-INCLUDES= -D_REENTRANT -D_GNU_SOURCE -Ilibavcodec
+INCLUDES= -D_REENTRANT -D_GNU_SOURCE $(RTE_CFLAGS) -I$(srcdir)/libavcodec \
+	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
 
 noinst_LTLIBRARIES = libffmpeg.la
 
-libffmpeg_la_SOURCES = config.h bswap.h b_ffmpeg.c
+libffmpeg_la_SOURCES = \
+	bswap.h mangle.h \
+	b_ffmpeg.c b_ffmpeg.h
