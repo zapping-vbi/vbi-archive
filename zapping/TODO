@@ -1,6 +1,8 @@
 Outstanding issues for future releases
 --------------------------------------
 
+* Create a shadow list of controls in tveng.c instead of _ignore. 
+* Disable overlay GUI if not possible (driver, DGA etc).
 * Take a look at ATI video in Xorg CVS. 
 * Add a shadow VBI switch to disable VBI on startup errors or --no-vbi
   for the _current session_.  Don't override the persistent user switch.

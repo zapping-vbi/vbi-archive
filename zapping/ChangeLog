@@ -1,3 +1,23 @@
+2005-02-14    <mschimek@users.sf.net>
+
+	* src/main.c (main): shutdown_remote() moved here to fix quit
+	  menu crash (indirectly finalized Python from py_quit function).
+	* src/v4linterface.c: s/t_assert/g_assert.
+	(select_cur_video_standard_item, select_cur_audio_input_item,
+	 select_cur_video_input_item): Fixed menu item activation.
+	* src/tvengxv.c, src/tvengemu.c, src/tvengbktr.c, src/tveng25.c,
+	  src/tveng1.c, src/tveng.c, src/mixer.c, src/tveng.h: Replaced
+	  t_assert by libc assert.
+	* src/tveng.h (tv_error_msg): Missing line feed.
+	* src/tveng.c (tveng_attach_device): In device info dump print
+	  audio inputs, current video standard, video input, audio input,
+	  tuner frequency.
+	* zapping.schemas: Added missing plugins/deinterlace/resolution,
+	  window/keep_on_top.
+	* src/x11stuff.c (x11_screensaver_set, x11_screensaver_init):
+	  Changed kscreensaver command syntax for POSIX.2 sh compat.
+	* test/guard.h: Rewrote for FreeBSD compat.
+
 2005-02-12    <mschimek@users.sf.net>
 
 	* plugins/mpeg/mpeg.c (do_start): Incorrect zmisc_switch_mode()
