@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.6.2.6 2004-02-13 02:15:27 mschimek Exp $ */
+/* $Id: vbi.c,v 1.6.2.7 2004-02-18 07:53:43 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -519,76 +519,6 @@ vbi_channel_switched(vbi_decoder *vbi, vbi_nuid nuid)
 	pthread_mutex_unlock(&vbi->chswcd_mutex);
 }
 
-static __inline__ int
-transp				(int			val,
-				 int			brig,
-				 int			cont)
-{
-	int r = (((val - 128) * cont) / 64) + brig;
-
-	return SATURATE (r, 0, 255);
-}
-
-/**
- * @internal
- * @param vbi Initialized vbi decoding context.
- * @param d Destination palette.
- * @param s Source palette.
- * @param entries Size of source and destination palette.
- *
- * Transposes the source palette by @a vbi->brightness and @a vbi->contrast.
- */
-void
-vbi_transp_colormap		(vbi_decoder *		vbi,
-				 vbi_rgba *		d,
-				 const vbi_rgba *	s,
-				 int entries)
-{
-	int brig, cont;
-
-	brig = SATURATE (vbi->brightness, 0, 255);
-	cont = SATURATE (vbi->contrast, -128, +127);
-
-	while (entries--) {
-		*d++ = VBI_RGBA (transp (VBI_R (*s), brig, cont),
-				 transp (VBI_G (*s), brig, cont),
-				 transp (VBI_B (*s), brig, cont));
-		s++;
-	}
-}
-
-/**
- * @param vbi Initialized vbi decoding context.
- * @param brightness 0 dark ... 255 bright, default 128.
- * 
- * Change brightness of text pages, this affects the
- * color palette of pages fetched with vbi_fetch_vt_page() and
- * vbi_fetch_cc_page().
- */
-void
-vbi_set_brightness(vbi_decoder *vbi, int brightness)
-{
-	vbi->brightness = brightness;
-
-	vbi_caption_color_level(vbi);
-}
-
-/**
- * @param vbi Initialized vbi decoding context.
- * @param contrast -128 inverse ... 0 none ... 127 maximum, default 64.
- * 
- * Change contrast of text pages, this affects the
- * color palette of pages fetched with vbi_fetch_vt_page() and
- * vbi_fetch_cc_page().
- */
-void
-vbi_set_contrast(vbi_decoder *vbi, int contrast)
-{
-	vbi->contrast = contrast;
-
-	vbi_caption_color_level(vbi);
-}
-
 /*
  *  Cache queries
  */
@@ -865,9 +795,6 @@ vbi_decoder_new(void)
 
 	vbi->time = 0.0;
 
-	vbi->brightness	= 128;
-	vbi->contrast	= 64;
-
 	vbi_teletext_init(vbi);
 
 	vbi_teletext_set_level(vbi, VBI_WST_LEVEL_2p5);
@@ -1013,10 +940,11 @@ vbi_page_private_dump		(const vbi_page_private *pgp,
 				break;
 
 			case 2:
-				fprintf (fp, "%04xF%uB%uS%uO%u ",
+				fprintf (fp, "%04xF%uB%uS%uO%uL%u%u ",
 					 acp->unicode,
 					 acp->foreground, acp->background,
-					 acp->size, acp->opacity);
+					 acp->size, acp->opacity,
+					 acp->link, acp->pdc);
 				break;
 			}
 

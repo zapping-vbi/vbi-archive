@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.h,v 1.5.2.5 2004-02-13 02:15:27 mschimek Exp $ */
+/* $Id: vbi.h,v 1.5.2.6 2004-02-18 07:53:55 mschimek Exp $ */
 
 #ifndef VBI_H
 #define VBI_H
@@ -110,9 +110,6 @@ struct vbi_decoder {
 	pthread_mutex_t         prog_info_mutex;
 	vbi_program_info        prog_info[2];
 	int                     aspect_source;
-
-	int			brightness;
-	int			contrast;
 
 	struct teletext		vt;
 	struct caption		cc;
@@ -224,14 +221,6 @@ typedef enum {
 } vbi_page_type;
 
 /**
- * @addtogroup Render
- * @{
- */
-extern void		vbi_set_brightness(vbi_decoder *vbi, int brightness);
-extern void		vbi_set_contrast(vbi_decoder *vbi, int contrast);
-/** @} */
-
-/**
  * @addtogroup Service
  * @{
  */
@@ -300,15 +289,18 @@ vbi_page_private_dump		(const vbi_page_private *pgp,
 
 /* teletext.c */
 extern vbi_bool
-vbi_format_vt_page_va		(vbi_decoder *		vbi,
+vbi_format_vt_page_va_list	(vbi_decoder *		vbi,
 				 vbi_page_private *	pgp,
 				 const vt_page *	vtp,
-				 va_list		ap);
+				 va_list		format_options);
 extern vbi_bool
 vbi_format_vt_page		(vbi_decoder *		vbi,
 				 vbi_page_private *	pgp,
 				 const vt_page *	vtp,
 				 ...);
+extern unsigned int
+vbi_page_character_set		(const vbi_page *	pg,
+				 unsigned int		level);
 
 extern pthread_once_t	vbi_init_once;
 extern void		vbi_init(void);
