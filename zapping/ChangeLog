@@ -1,3 +1,34 @@
+2005-02-05    <mschimek@users.sf.net>
+
+	* autogen.sh: Prepared for autoconf/make version test.
+	* po/POTFILES.in: Missing deinterlace plugin files.
+	* plugins/deinterlace/DI_TomsMoComp/DI_TomsMoComp.c,
+	  plugins/deinterlace/DI_MoComp2/DI_MoComp2.c,
+	  plugins/deinterlace/DI_Misc/DI_Weave.c,
+	  plugins/deinterlace/DI_Misc/DI_VideoWeave.c,
+	  plugins/deinterlace/DI_Misc/DI_VideoBob.c,
+	  plugins/deinterlace/DI_Misc/DI_TwoFrame.c,
+	  plugins/deinterlace/DI_Misc/DI_ScalerBob.c,
+	  plugins/deinterlace/DI_Misc/DI_OldGame.c,
+	  plugins/deinterlace/DI_Misc/DI_OddOnly.c,
+	  plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c,
+	  plugins/deinterlace/DI_Misc/DI_Greedy.c,
+	  plugins/deinterlace/DI_Misc/DI_EvenOnly.c,
+	  plugins/deinterlace/DI_Misc/DI_Bob.c,
+	  plugins/deinterlace/DI_Misc/DI_BlendedClip.c,
+	  plugins/deinterlace/DI_Misc/DI_Adaptive.c,
+	  plugins/deinterlace/DI_GreedyH/DI_GreedyH.c: Completed l18n. 
+	* plugins/deinterlace/DI_TomsMoComp/TomsMoCompAll.inc: UseStrangeBob
+	  disabled, functions use pavgb without capability check and look
+	  buggy.
+	* plugins/deinterlace/DI_GreedyH/DScalerCalls.c (InitDScaler):
+	  GreedyUseVertFilter is undefined.
+	* plugins/deinterlace/preferences.c (on_method_changed,
+	  attach_method_combo): Fixed method enumeration.
+	* plugins/deinterlace/main.c (properties_add): Restored help link.
+	(plugin_init): OldGame temporarily disabled, needs CombFactor.
+	* help/C/settings.xml: Added deinterlace plugin documentation.
+
 2005-01-30    <mschimek@users.sf.net>
 
 	* src/video_gdkrgb.c (image_put),

@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.48 2005-01-31 07:10:54 mschimek Exp $ */
+/* $Id: export.c,v 1.49 2005-02-05 22:25:20 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -124,8 +124,7 @@ export_modules [] = {
 	&_vbi3_export_module_sami,
 	&_vbi3_export_module_subrip,
 	&_vbi3_export_module_subviewer,
-#warning
-	&_vbi3_export_module_tmpl,
+	/* &_vbi3_export_module_tmpl, */
 #endif
 };
 
