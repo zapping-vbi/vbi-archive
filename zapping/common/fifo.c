@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.14 2001-06-30 10:33:46 mschimek Exp $ */
+/* $Id: fifo.c,v 1.15 2001-07-02 08:15:51 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,6 +27,7 @@
 
 #include "fifo.h"
 #include "alloc.h"
+#include "math.h"
 
 #ifndef CACHE_LINE
 #define CACHE_LINE 32
@@ -500,6 +501,28 @@ alloc_buffer(ssize_t size)
  *  Fifo
  */
 
+static inline void
+mutex_bi_lock(pthread_mutex_t *m1, pthread_mutex_t *m2)
+{
+	for (;;) {
+		pthread_mutex_lock(m1);
+		if (pthread_mutex_trylock(m2) == 0)
+			break;
+		pthread_mutex_unlock(m1);
+		swap(m1, m2);
+	}
+}
+
+static inline void
+mutex_co_lock(pthread_mutex_t *m1, pthread_mutex_t *m2)
+{
+	while (pthread_mutex_trylock(m2) != 0) {
+		pthread_mutex_unlock(m1);
+		swap(m1, m2);
+		pthread_mutex_lock(m1);
+	}
+}
+
 static void
 dead_fifo(fifo2 *f)
 {
@@ -548,10 +571,10 @@ uninit_fifo2(fifo2 *f)
 
 	f->destroy    = (void (*)(fifo2 *)) dead_fifo;
 
-	f->wait_empty = (void (*)(producer *)) dead_producer;
+	f->wait_empty = (void (*)(fifo2 *)) dead_fifo;
 	f->send_full  = (void (*)(producer *, buffer2 *)) dead_producer;
 
-	f->wait_full  = (void (*)(consumer *)) dead_consumer;
+	f->wait_full  = (void (*)(fifo2 *)) dead_fifo;
 	f->send_empty = (void (*)(consumer *, buffer2 *)) dead_consumer;
 
 	f->start      = (bool (*)(fifo2 *)) dead_fifo;
@@ -573,74 +596,6 @@ uninit_fifo2(fifo2 *f)
 }
 
 /**
- * recv_full_buffer:
- * @c: consumer *
- * 
- * Dequeues the next buffer in production order from the consumer's fifo's
- * full queue. Remind callback (unbuffered) fifos do not fill automatically
- * but only when the consumer calls wait_full_buffer(). In this case
- * recv_full_buffer() returns a buffer only after unget_full_buffer() or
- * when the producer enqueued more than one full buffer at the last
- * wait_full_buffer().
- *
- * Buffers must be returned with send_empty_buffer() as soon as possible
- * for re-use by the producer. You can dequeue more buffers before returning
- * and buffers need not be returned in order. All buffer contents are
- * read-only for consumers.
- *
- * None of the fifo functions depend on the identity of the calling thread
- * (thread_t), however we assume the consumer object is not shared. 
- *
- * Return value:
- * Buffer pointer, or NULL if the full queue is empty.
- **/
-buffer2 *
-recv_full_buffer2(consumer *c)
-{
-	fifo2 *f = c->fifo;
-	buffer2 *b;
-
-	pthread_mutex_lock(&f->consumer->mutex);
-
-	if ((b = c->next)) {
-		c->next = (buffer2 *) b->node.next;
-
-		if (c->next)
-			c->next->refcount++;
-
-		b->refcount--;
-		b->dequeued++;
-	}
-
-	pthread_mutex_unlock(&f->consumer->mutex);
-
-	c->dequeued++;
-
-	return b;
-}
-
-/*
- *  This function is called when the f->full queue is empty,
- *  to suspend execution until this condition changed.
- *
- *  Callback producers may wait for kernel events here [blocking
- *  read(), select(), poll() etc.], followed by a call to
- *  send_full_buffer(), and finally return from wait_full().
- *
- *  f->consumer->mutex is locked in this function, it must be
- *  unlocked while waiting until after calling send_full_buffer()
- *  or else the fifo deadlocks. Don't care about reentrancy when
- *  the mutex is unlocked, you are protected.
- */
-static void
-wait_full(consumer *c)
-{
-	fifo2 *f = c->fifo;
-
-	pthread_cond_wait(&f->consumer->cond, &f->consumer->mutex);
-}
-
-/**
  * wait_full_buffer:
  * @c: consumer *
  * 
@@ -658,20 +613,24 @@ wait_full_buffer2(consumer *c)
 
 	pthread_mutex_lock(&f->consumer->mutex);
 
-	while (!(b = c->next)) {
-		if (f->c_reentry++)
+	while (!(b = c->next_buffer)) {
+		if (f->c_reentry++ || !f->wait_full) {
+			/* Free resources which may block other consumers */
+			pthread_cleanup_push((void (*)(void *))
+				pthread_mutex_unlock, &f->consumer->mutex);
 			pthread_cond_wait(&f->consumer->cond, &f->consumer->mutex);
-		else
-			f->wait_full(c);
+			pthread_cleanup_pop(0);
+		} else {
+			pthread_mutex_unlock(&f->consumer->mutex);
+			f->wait_full(f);
+			pthread_mutex_lock(&f->consumer->mutex);
+		}
+
 		f->c_reentry--;
 	}
 
-	c->next = (buffer2 *) b->node.next;
+	c->next_buffer = (buffer2 *) b->node.next;
 
-	if (c->next)
-		c->next->refcount++;
-
-	b->refcount--;
 	b->dequeued++;
 
 	pthread_mutex_unlock(&f->consumer->mutex);
@@ -681,40 +640,131 @@ wait_full_buffer2(consumer *c)
 	return b;
 }
 
-/**
- * unget_full_buffer:
- * @c: consumer *
- * @b: buffer2 *
- * 
- * Put buffer @b, dequeued with wait_full_buffer() or recv_full_buffer()
- * and not yet returned with send_empty_buffer(), back on the full queue
- * of its fifo, to be dequeued again later. You can unget more than one
- * buffer, in reverse order of dequeuing, starting with the most
- * recently dequeued.
- **/
-void
-unget_full_buffer2(consumer *c, buffer2 *b)
+/*
+ *  This function removes the *oldest* buffer from the full queue
+ *  which meets these conditions:
+ *  - the buffer has no b->used == 0 (eof) or b->used < 0 (error),
+ *    to avoid consumers miss this information
+ *  - it is not in use by any consumer (b->enqueued < b->dequeued)
+ *  - it has been consumed at least once, to avoid producers
+ *    spinloop with unlinked buffers
+ *  - it has been consumed by the majority of consumers (rounding
+ *    up, ie. 1/2, 2/3, 2/4, 3/5). This way the caller (producer)
+ *    is throttled when the majority of consumers (be it just one)
+ *    is slow, reducing the CPU load. Otherwise the minority of
+ *    slow consumers will loose buffers ("drop frames").
+ *
+ *  f->consumers->mutex must be locked when calling this.
+ */
+static buffer2 *
+unlink_full_buffer(fifo2 *f)
 {
-	fifo2 *f = c->fifo;
+	consumer *c;
+	buffer2 *b;
 
-	/* Migration prohibited */
-	assert(c->fifo == b->fifo);
+	if (!f->unlink_full_buffers || f->consumers.members < 2)
+		return NULL;
 
-	c->dequeued--;
+	for (b = (buffer2 *) f->full.head; b; b = (buffer2 *) b->node.next) {
+		if (0)
+			printf("Unlink cand %p <%s> en=%d de=%d co=%d us=%d\n",
+				b, (char *) b->data,
+				b->enqueued, b->dequeued,
+				b->consumers, b->used);
 
-	pthread_mutex_lock(&f->consumer->mutex);
+		if (b->enqueued >= b->dequeued
+		    && (b->enqueued * 2) >= b->consumers
+		    && b->used > 0) {
+			for (c = (consumer *) f->consumers.head;
+			     c; c = (consumer *) c->node.next) {
+				if (c->next_buffer == b) {
+					c->next_buffer = (buffer2 *) b->node.next;
+				}
+			}
 
-	assert(c->next == (buffer2 *) b->node.next);
+			b->consumers = 0;
+			b->dequeued = 0;
 
-	b->dequeued--;
-	b->refcount++;
+			b = PARENT(rem_node2(&f->full, &b->node), buffer2, node);
 
-	if (c->next)
-		c->next->refcount--;
+			return b;
+		}
+	}
 
-	c->next = b;
+	return NULL;
+}
 
-	pthread_mutex_unlock(&f->consumer->mutex);
+static void
+wait_empty_buffer_cleanup(mucon *m)
+{
+	rem_head_u(&m->list);
+	pthread_mutex_unlock(&m->mutex);
+}
+
+/**
+ * wait_empty_buffer:
+ * @c: consumer *
+ * 
+ * Suspends execution of the calling thread until an empty buffer becomes
+ * available. Otherwise identical to recv_empty_buffer.
+ *
+ * Return value:
+ * Buffer pointer, never NULL.
+ **/
+buffer2 *
+wait_empty_buffer2(producer *p)
+{
+	fifo2 *f = p->fifo;
+	buffer2 *b = NULL;
+	node2 n;
+
+	pthread_mutex_lock(&f->producer->mutex);
+
+	if (!empty_list_u(&f->producer->list))
+		goto wait;
+
+	while (!(b = PARENT(rem_head2(&f->empty), buffer2, node))) {
+		mutex_co_lock(&f->producer->mutex, &f->consumer->mutex);
+
+		if ((b = unlink_full_buffer(f))) {
+			pthread_mutex_unlock(&f->consumer->mutex);
+			break;
+		}
+
+		pthread_mutex_unlock(&f->consumer->mutex);
+ wait:
+		if (f->p_reentry++ || !f->wait_empty) {
+			/* Free resources which may block other producers */
+			pthread_cleanup_push((void (*)(void *))
+				wait_empty_buffer_cleanup, f->producer);
+
+			add_tail_u(&f->producer->list, &n);
+
+			/*
+			 *  Assure first come first served
+			 *  XXX works, but inefficient
+			 */
+			do pthread_cond_wait(&f->producer->cond, &f->producer->mutex);
+			while (f->producer->list.head != &n);
+
+			pthread_cleanup_pop(0);
+
+		    	rem_head_u(&f->producer->list);
+		} else {
+			pthread_mutex_unlock(&f->producer->mutex);	
+			f->wait_empty(f);
+			pthread_mutex_lock(&f->producer->mutex);
+		}
+
+		f->p_reentry--;
+	}
+
+	pthread_mutex_unlock(&f->producer->mutex);
+
+	b->dequeued = 1;
+	p->dequeued++;
+
+	return b;
 }
 
 /*
@@ -751,7 +801,7 @@ send_empty_buffered(consumer *c, buffer2 *b)
 	if (++b->enqueued >= b->consumers)
 		rem_node2(&f->full, &b->node);
 	else
-		b = NULL; /* beware mutual locking */
+		b = NULL;
 
 	pthread_mutex_unlock(&f->consumer->mutex);
 
@@ -768,29 +818,9 @@ send_empty_buffered(consumer *c, buffer2 *b)
 }
 
 /*
- *  This function is called when the f->empty queue is empty,
- *  to suspend execution until this condition changed.
- *
- *  Callback consumers may wait for kernel events here, followed
- *  by a call to send_empty_buffer(), and finally return from
- *  wait_empty(). f->producer->mutex is locked in this function,
- *  it must be unlocked while waiting until after calling
- *  send_empty_buffer() or else the fifo deadlocks. Don't
- *  care about reentrancy when the mutex is unlocked, you are
- *  protected.
- */
-static void
-wait_empty(producer *p)
-{
-	fifo2 *f = p->fifo;
-
-	pthread_cond_wait(&f->producer->cond, &f->producer->mutex);
-}
-
-/*
  *  This is the lower half of function send_full_buffer().
  *
- *  b->refcount, dequeued, enqueued are zero.
+ *  b->dequeued, enqueued are zero.
  */
 static void
 send_full2(producer *p, buffer2 *b)
@@ -803,15 +833,12 @@ send_full2(producer *p, buffer2 *b)
 		consumer *c;
 
 		/*
-		 *  c->next is NULL after the consumer dequeued all buffers from
-		 *  the virtual f->full queue.
+		 *  c->next_buffer is NULL after the consumer dequeued all
+		 *  buffers from the virtual f->full queue.
 		 */
-
 		for (c = (consumer *) f->consumers.head; c; c = (consumer *) c->node.next)
-			if (!c->next) {
-				c->next = b;
-				b->refcount++;
-			}
+			if (!c->next_buffer)
+				c->next_buffer = b;
 
 		add_tail2(&f->full, &b->node);
 
@@ -821,19 +848,106 @@ send_full2(producer *p, buffer2 *b)
 	} else {
 		consumer c;
 
+		pthread_mutex_unlock(&f->consumer->mutex);
+
 		/*
-		 *  Nobody is listening, let's take a shortcut.
-		 *  The unlocking is unfortunate, but mutual locking is worse.
-		 *  NB a callback consumer fifo won't execute this branch.
+		 *  Nobody is listening, I'm only the loopback.
 		 */
 
-		pthread_mutex_unlock(&f->consumer->mutex);
+		assert(!f->wait_empty);
 
 		c.fifo = f;
 
 		send_empty_unbuffered(&c, b);
 	}
 }
+
+/**
+ * send_full_buffer:
+ * @p: producer *
+ * @b: buffer *
+ * 
+ * Producers call this function when a previously dequeued empty
+ * buffer has been filled and is ready for consumption. Dereferencing
+ * the buffer pointer after sending the buffer is not permitted.
+ *
+ * Take precautions to avoid spinlooping because consumption
+ * of buffers may take no time.
+ * 
+ * These fields must be valid:
+ * b->data    Pointer to the buffer payload.
+ * b->used    Bytes of buffer payload. Zero indicates the end of a
+ *            stream and negative values indicate a non-recoverable
+ *            error. Consumers must send_empty_buffer() all received
+ *            buffers regardless of the b->used value. Producers
+ *            need not send EOF before they are removed from a fifo.
+ *            When a fifo has multiple producers the EOF will be
+ *            recorded until all producers sent EOF, the buffer
+ *            will be recycled. Sending non-zero b->used after EOF
+ *            is not permitted.
+ * b->errno   Copy of errno if appropriate, zero otherwise.
+ * b->errstr  Pointer to a localized error message for display
+ *            to the user if appropriate, NULL otherwise. Shall not
+ *            include strerror(errno), but rather hint the attempted
+ *            action (e.g. "tried to read foo", errno = [no such file]).
+ *
+ * These fields have application specific semantics:
+ * b->type    e.g. MPEG picture type
+ * b->offset  e.g. IPB picture reorder offset
+ * b->time    Seconds elapsed since some arbitrary reference point,
+ *            usually epoch (gettimeofday), for example the capture
+ *            instant of a picture. b->time may not always increase,
+ *            but consumers are guaranteed to receive buffers in
+ *            sent order.
+ **/
+void
+send_full_buffer2(producer *p, buffer2 *b)
+{
+	/* Migration prohibited, don't use this to add buffers to the fifo */
+	assert(p->fifo == b->fifo && b->dequeued == 1);
+
+	b->consumers = 1;
+
+	b->dequeued = 0;
+	b->enqueued = 0;
+
+	p->dequeued--;
+
+	if (b->used > 0) {
+		assert(!p->eof_sent);
+	} else {
+		fifo2 *f = p->fifo;
+
+		pthread_mutex_lock(&f->producer->mutex);
+
+		if (!p->eof_sent)
+			f->eof_count++;
+
+		if (f->eof_count < list_members2(&f->producers)) {
+			b->consumers = 0;
+			b->used = -1;
+			b->error = EINVAL;
+			b->errstr = NULL;
+
+			add_head2(&f->empty, &b->node);
+
+			p->eof_sent = TRUE;
+
+			pthread_mutex_unlock(&f->producer->mutex);
+
+			pthread_cond_broadcast(&f->producer->cond);
+
+			return;
+		}
+
+		p->eof_sent = TRUE;
+
+		pthread_mutex_unlock(&f->producer->mutex);
+	}
+
+	p->fifo->send_full(p, b);
+}
+
 
 /**
  * rem_buffer:
@@ -857,14 +971,13 @@ rem_buffer(buffer2 *b)
 	/*
 	 *  We do not remove buffers on the full queue: consumers > 0,
 	 *  which have not been consumed yet: dequeued < consumers,
-	 *  are next to be consumed: refcount > 0,
 	 *  or are currently in use: enqueued < dequeued.
 	 *  But we do remove buffers which reside on the empty queue
 	 *  (have been returned by all consumers): consumers == dequeued == 0.
 	 *  or have been dequeued from the empty queue: dequeued > 0,
 	 */
 	if (b->consumers == 0) {
-		if (b->dequeued > 0)
+		if (b->dequeued == 0)
 			rem_node2(&f->empty, &b->node);
 
 		rem_node2(&f->buffers, &b->added);
@@ -883,7 +996,6 @@ attach_buffer(fifo2 *f, buffer2 *b)
 
 	b->fifo = f;
 
-	b->refcount = 0;
 	b->consumers = 0;
 
 	b->dequeued = 0;
@@ -927,15 +1039,17 @@ add_buffer(fifo2 *f, buffer2 *b)
 
 static int
 init_fifo(fifo2 *f, char *name,
-	void (* custom_wait_empty)(producer *),
+	void (* custom_wait_empty)(fifo2 *),
 	void (* custom_send_full)(producer *, buffer2 *),
-	void (* custom_wait_full)(consumer *),
+	void (* custom_wait_full)(fifo2 *),
 	void (* custom_send_empty)(consumer *, buffer2 *),
 	int num_buffers, ssize_t buffer_size)
 {
 	memset(f, 0, sizeof(fifo2));
 
 	strncpy(f->name, name, sizeof(f->name) - 1);
+
+	f->unlink_full_buffers = TRUE;
 
 	f->wait_empty = custom_wait_empty;
 	f->send_full  = custom_send_full;
@@ -961,7 +1075,7 @@ init_fifo(fifo2 *f, char *name,
 		buffer2 *b;
 
 		if (!(b = attach_buffer(f, alloc_buffer(buffer_size)))) {
-			if (list_members2(&f->buffers) == 0) {
+			if (empty_list2(&f->buffers)) {
 				uninit_fifo2(f);
 				return 0;
 			} else
@@ -994,7 +1108,7 @@ int
 init_buffered_fifo2(fifo2 *f, char *name, int num_buffers, ssize_t buffer_size)
 {
 	return init_fifo(f, name,
-		wait_empty, send_full2, wait_full, send_empty_buffered,
+		NULL, send_full2, NULL, send_empty_buffered,
 		num_buffers, buffer_size);
 }
 
@@ -1017,10 +1131,13 @@ init_buffered_fifo2(fifo2 *f, char *name, int num_buffers, ssize_t buffer_size)
  * functions for i/o. Callback fifos are transparent to the opposite side
  * and permit multiple producers or consumers.
  *
- * Entering callbacks is not enough, the callback producer or consumer must
- * be added to the fifo with add_producer() or add_consumer() to complete
- * the initialization. Apart of this, init_callback_fifo() is identical to
- * init_buffered_fifo().
+ * Note that custom_wait_* callbacks are protected from reentrancy,
+ * custom_send_* callbacks must do their own serialization.
+ *
+ * Entering callback functions is not enough, the callback producer or
+ * consumer must be added to the fifo with add_producer() or add_consumer()
+ * to complete the initialization. Apart of this, init_callback_fifo() is
+ * identical to init_buffered_fifo().
  *
  * a) Callback producer
  *   Preface:
@@ -1037,12 +1154,11 @@ init_buffered_fifo2(fifo2 *f, char *name, int num_buffers, ssize_t buffer_size)
  *     send_empty_buffer()
  *   Producer, synchronous i/o:
  *     custom_wait_full():
- *	 unlock fifo->consumer.mutex
  *       call wait_empty_buffer(). Initially this will take a
  *         buffer from the empty queue, added by add_buffer().
  *       complete i/o
- *	 call send_full_buffer()
- *       lock fifo->consumer.mutex and return
+ *	 call send_full_buffer() and return
+ *       Of course you can wait for and send more buffers at once.
  *     custom_send_empty():
  *       NULL (default). Puts the buffer on the empty queue
  *       for wait_empty_buffer().
@@ -1050,10 +1166,8 @@ init_buffered_fifo2(fifo2 *f, char *name, int num_buffers, ssize_t buffer_size)
  *     custom_send_empty():
  *       start i/o and return
  *     custom_wait_full():
- *	 unlock fifo->consumer.mutex
  *       wait for i/o completion
- *       call send_full_buffer()
- *       lock fifo->consumer.mutex and return
+ *       call send_full_buffer() and return
  *
  * b) Callback consumer
  *   Preface:
@@ -1071,11 +1185,9 @@ init_buffered_fifo2(fifo2 *f, char *name, int num_buffers, ssize_t buffer_size)
  *     send_full_buffer()
  *   Consumer, synchronous i/o:
  *     custom_wait_empty():
- *	 unlock fifo->producer.mutex
  *       call wait_full_buffer()
  *       complete i/o
- *	 call send_empty_buffer()
- *       lock fifo->producer.mutex and return
+ *	 call send_empty_buffer() and return
  *     custom_send_full():
  *       NULL (default). Puts the buffer on the full queue
  *       for wait_full_buffer().
@@ -1083,10 +1195,8 @@ init_buffered_fifo2(fifo2 *f, char *name, int num_buffers, ssize_t buffer_size)
  *     custom_send_full():
  *       start i/o and return
  *     custom_wait_empty():
- *	 unlock fifo->producer.mutex
  *       wait for i/o completion
- *       call send_empty_buffer()
- *       lock fifo->producer.mutex and return
+ *       call send_empty_buffer() and return
  *
  * c) There is no c), either the producer or consumer must
  *    provide callbacks.
@@ -1096,9 +1206,9 @@ init_buffered_fifo2(fifo2 *f, char *name, int num_buffers, ssize_t buffer_size)
  **/
 int
 init_callback_fifo2(fifo2 *f, char *name,
-	void (* custom_wait_empty)(producer *),
+	void (* custom_wait_empty)(fifo2 *),
 	void (* custom_send_full)(producer *, buffer2 *),
-	void (* custom_wait_full)(consumer *),
+	void (* custom_wait_full)(fifo2 *),
 	void (* custom_send_empty)(consumer *, buffer2 *),
 	int num_buffers, ssize_t buffer_size)
 {
@@ -1106,12 +1216,9 @@ init_callback_fifo2(fifo2 *f, char *name,
 	assert((!!custom_wait_empty) >= (!!custom_send_full));
 	assert((!!custom_wait_full) >= (!!custom_send_empty));
 
-	if (!custom_wait_empty)
-		custom_wait_empty = wait_empty;
 	if (!custom_send_full)
 		custom_send_full = send_full2;
-	if (!custom_wait_full)
-		custom_wait_full = wait_full;
+
 	if (!custom_send_empty)
 		custom_send_empty = send_empty_unbuffered;
 
@@ -1138,6 +1245,14 @@ rem_producer(producer *p)
 	assert(p->dequeued == 0);
 
 	pthread_mutex_lock(&f->producer->mutex);
+
+	/*
+	 *  Pretend we didn't attempt an eof, and when
+	 *  we really sent eofs remember it.
+	 */
+	if (f->eof_count > 1)
+		if (p->eof_sent)
+			f->eof_count--;
 
 	rem_node2(&f->producers, &p->node);
 
@@ -1167,11 +1282,21 @@ producer *
 add_producer(fifo2 *f, producer *p)
 {
 	p->fifo = f;
+
 	p->dequeued = 0;
+	p->eof_sent = FALSE;
 
 	pthread_mutex_lock(&f->producer->mutex);
 
-	add_tail2(&f->producers, &p->node);
+	/*
+	 *  Callback producers are individuals and finished
+	 *  fifos remain finished. (Just in case.)
+	 */
+	if ((empty_list2(&f->producers) || !f->wait_full)
+	    && f->eof_count <= list_members2(&f->consumers))
+		add_tail2(&f->producers, &p->node);
+	else
+		p = NULL;
 
 	pthread_mutex_unlock(&f->producer->mutex);
 
@@ -1223,13 +1348,22 @@ consumer *
 add_consumer(fifo2 *f, consumer *c)
 {
 	c->fifo = f;
-	c->next = NULL;
+	c->next_buffer = NULL;
 	c->dequeued = 0;
 
-	pthread_mutex_lock(&f->consumer->mutex);
+	mutex_bi_lock(&f->producer->mutex, &f->consumer->mutex);
 
-	add_tail2(&f->consumers, &c->node);
+	/*
+	 *  Callback consumers are individuals and finished
+	 *  fifos are inhibited for new consumers. (Just in case.)
+	 */
+	if ((empty_list2(&f->consumers) || !f->wait_empty)
+	    && f->eof_count <= list_members2(&f->consumers))
+		add_tail2(&f->consumers, &c->node);
+	else
+		c = NULL;
 
+	pthread_mutex_unlock(&f->producer->mutex);
 	pthread_mutex_unlock(&f->consumer->mutex);
 
 	return c;
@@ -1237,16 +1371,6 @@ add_consumer(fifo2 *f, consumer *c)
 
 /*
     TODO:
-    * "steal buffers" from slow consumers
-      - NEVER steal dequeued buffers
-      - NEVER steal EOF or error buffers
-      maybe enqueued > (customers >> 1) is fair, then we throttle the
-      producers when the majority of consumers (be it just one) is slow,
-      reducing the CPU load, otherwise the minority of slow consumers.)
-    * the condition above disables producers from spinlooping with stolen
-      buffers, but the send_full consumers == 0 shortcut doesn't. not good.
-      OTOH the producers send out all their buffers, a consumer is added
-      and waits for a new buffer before returning any - deadlock.
-    * maybe the fifo should unlock the mutex for callback wait functions
-    * deal with eof and producers > 1
+    * test callbacks
+    * stealing buffers & callbacks ok?
  */

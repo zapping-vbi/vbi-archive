@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.13 2001-06-30 10:33:46 mschimek Exp $ */
+/* $Id: fifo.h,v 1.14 2001-07-02 08:15:51 mschimek Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -401,7 +401,8 @@ struct buffer2 {
 	 *
 	 *  consumer->next points to the next buffer in fifo->full
 	 *  to be dequeued, NULL if all buffers have been consumed.
-	 *  refcount counts the number of these references.
+	 *  (b->refcount used to count the number of these
+	 *   references but it turned out redundant.)
 	 *
 	 *  consumers is their number at send_full time, always > 0
 	 *  because without consumers the buffer is instantly
@@ -414,14 +415,13 @@ struct buffer2 {
 	 *  dequeued == 0. enqueued > dequeued is already implied by
 	 *  enqueued > consumers and no steady state.
 	 *
-	 *  For empty buffers refcount is n/a, consumers always 0 and
+	 *  For empty buffers b->refcount is n/a, consumers always 0 and
 	 *  dequeued counts the wait_empty calls. enqueued is n/a
 	 *  because send_full transfers the buffer immediately to
 	 *  the full queue.
 	 *
 	 *  See rem_buffer for scheduled removal.
 	 */
-	int			refcount;	/* consumer->next */
 	int			consumers;
 
 	int			dequeued;
@@ -469,6 +469,8 @@ struct fifo2 {
 	int			p_reentry;
 	int			c_reentry;
 
+	int			eof_count;	/* counts p->eof_sent */
+
 	/* Owner private */
 
 	mucon *			producer;	/* -> pro */
@@ -476,10 +478,12 @@ struct fifo2 {
 
 	list2			buffers;	/* add/rem_buffer */
 
-	void			(* wait_empty)(producer *);
+	bool			unlink_full_buffers; /* default true */
+
+	void			(* wait_empty)(fifo2 *);
 	void			(* send_full)(producer *, buffer2 *);
 
-	void			(* wait_full)(consumer *);
+	void			(* wait_full)(fifo2 *);
 	void			(* send_empty)(consumer *, buffer2 *);
 
 	bool			(* start)(fifo2 *);
@@ -495,13 +499,14 @@ struct producer {
 	fifo2 *			fifo;
 
 	int			dequeued;	/* bookkeeping */
+	bool			eof_sent;
 };
 
 struct consumer {
 	node2			node;		/* fifo->consumers */
 	fifo2 *			fifo;
 
-	buffer2 *		next;		/* virtual pointer */
+	buffer2 *		next_buffer;	/* virtual pointer */
 	int			dequeued;	/* bookkeeping */
 };
 
@@ -544,11 +549,82 @@ destroy_fifo(fifo2 *f)
 		f->destroy(f);
 }
 
-/* These are just larger than reasonable for inlining */
+/**
+ * recv_full_buffer:
+ * @c: consumer *
+ * 
+ * Dequeues the next buffer in production order from the consumer's fifo's
+ * full queue. Remind callback (unbuffered) fifos do not fill automatically
+ * but only when the consumer calls wait_full_buffer(). In this case
+ * recv_full_buffer() returns a buffer only after unget_full_buffer() or
+ * when the producer enqueued more than one full buffer at the last
+ * wait_full_buffer().
+ *
+ * Buffers must be returned with send_empty_buffer() as soon as possible
+ * for re-use by the producer, including those with buffer.used == 0
+ * (end of stream) or buffer.used < 0 (error). You can dequeue more buffers
+ * before returning and buffers need not be returned in order. All buffer
+ * contents are read-only for consumers.
+ *
+ * None of the fifo functions depend on the identity of the calling thread
+ * (thread_t), however we assume the consumer object is not shared. 
+ *
+ * Return value:
+ * Buffer pointer, or NULL if the full queue is empty.
+ **/
+static inline buffer2 *
+recv_full_buffer2(consumer *c)
+{
+	fifo2 *f = c->fifo;
+	buffer2 *b;
 
-extern buffer2 *		recv_full_buffer2(consumer *c);
+	pthread_mutex_lock(&f->consumer->mutex);
+
+	if ((b = c->next_buffer)) {
+		c->next_buffer = (buffer2 *) b->node.next;
+		b->dequeued++;
+	}
+
+	pthread_mutex_unlock(&f->consumer->mutex);
+
+	c->dequeued++;
+
+	return b;
+}
+
 extern buffer2 *		wait_full_buffer2(consumer *c);
-extern void			unget_full_buffer2(consumer *c, buffer2 *b);
+
+/**
+ * unget_full_buffer:
+ * @c: consumer *
+ * @b: buffer2 *
+ * 
+ * Put buffer @b, dequeued with wait_full_buffer() or recv_full_buffer()
+ * and not yet returned with send_empty_buffer(), back on the full queue
+ * of its fifo, to be dequeued again later. You can unget more than one
+ * buffer, in reverse order of dequeuing, starting with the most
+ * recently dequeued.
+ **/
+static inline void
+unget_full_buffer2(consumer *c, buffer2 *b)
+{
+	fifo2 *f = c->fifo;
+
+	/* Migration prohibited */
+	assert(c->fifo == b->fifo);
+
+	c->dequeued--;
+
+	pthread_mutex_lock(&f->consumer->mutex);
+
+	assert(c->next_buffer == (buffer2 *) b->node.next);
+
+	b->dequeued--;
+
+	c->next_buffer = b;
+
+	pthread_mutex_unlock(&f->consumer->mutex);
+}
 
 /**
  * send_empty_buffer:
@@ -605,39 +681,7 @@ recv_empty_buffer2(producer *p)
 	return b;
 }
 
-/**
- * wait_empty_buffer:
- * @c: consumer *
- * 
- * Suspends execution of the calling thread until an empty buffer becomes
- * available. Otherwise identical to recv_empty_buffer.
- *
- * Return value:
- * Buffer pointer, never NULL.
- **/
-static inline buffer2 *
-wait_empty_buffer2(producer *p)
-{
-	fifo2 *f = p->fifo;
-	buffer2 *b;
-
-	pthread_mutex_lock(&f->producer->mutex);
-
-	while (!(b = PARENT(rem_head2(&f->empty), buffer2, node))) {
-		if (f->p_reentry++)
-			pthread_cond_wait(&f->producer->cond, &f->producer->mutex);
-		else
-			f->wait_empty(p);
-		f->p_reentry--;
-	}
-
-	pthread_mutex_unlock(&f->producer->mutex);
-
-	b->dequeued = 1;
-	p->dequeued++;
-
-	return b;
-}
+extern buffer2 *		wait_empty_buffer2(producer *p);
 
 /**
  * unget_empty_buffer:
@@ -670,59 +714,17 @@ unget_empty_buffer2(producer *p, buffer2 *b)
 	pthread_mutex_unlock(&f->producer->mutex);
 }
 
-/**
- * send_full_buffer:
- * @p: producer *
- * @b: buffer *
- * 
- * Producers call this function when a previously dequeued empty
- * buffer has been filled and is ready for consumption. Dereferencing
- * the buffer pointer after sending the buffer is not permitted.
- * 
- * These fields must be valid:
- * b->data    Pointer to the buffer payload.
- * b->used    Bytes of buffer payload. Zero indicates the end of a
- *            stream and negative values indicate a non-recoverable
- *            error. On their first encounter of b->used <= zero
- *            consumers are supposed to return the buffer
- *            with send_empty_buffer() and terminate. 
- * b->errno   Copy of errno if appropriate, zero otherwise.
- * b->errstr  Pointer to a localized error message for display
- *            to the user if appropriate, NULL otherwise. Shall not
- *            include strerror(errno), but rather hint the attempted
- *            action (e.g. "tried to read foo", errno = [no such file]).
- *
- * These fields have application specific semantics:
- * b->type    e.g. MPEG picture type
- * b->offset  e.g. IPB picture reorder offset
- * b->time    Seconds elapsed since some arbitrary reference point,
- *            usually epoch (gettimeofday), for example the capture
- *            instant of a picture. b->time may not always increase,
- *            but consumers are guaranteed to receive buffers in
- *            sent order.
- **/
-static inline void
-send_full_buffer2(producer *p, buffer2 *b)
-{
-	/* Migration prohibited, don't use this to add buffers to the fifo */
-	assert(p->fifo == b->fifo && b->dequeued == 1);
-
-	b->refcount = 0;
-
-	b->dequeued = 0;
-	b->enqueued = 0;
-
-	p->dequeued--;
-
-	p->fifo->send_full(p, b);
-}
+extern void			send_full_buffer2(producer *p, buffer2 *b);
 
 extern void			rem_buffer(buffer2 *b);
 extern bool			add_buffer(fifo2 *f, buffer2 *b);
+
 extern int			init_buffered_fifo2(fifo2 *f, char *name, int num_buffers, ssize_t buffer_size);
-extern int			init_callback_fifo2(fifo2 *f, char *name, void (* custom_wait_empty)(producer *), void (* custom_send_full)(producer *, buffer2 *), void (* custom_wait_full)(consumer *), void (* custom_send_empty)(consumer *, buffer2 *), int num_buffers, ssize_t buffer_size);
+extern int			init_callback_fifo2(fifo2 *f, char *name, void (* custom_wait_empty)(fifo2 *), void (* custom_send_full)(producer *, buffer2 *), void (* custom_wait_full)(fifo2 *), void (* custom_send_empty)(consumer *, buffer2 *), int num_buffers, ssize_t buffer_size);
+
 extern void			rem_producer(producer *p);
 extern producer *		add_producer(fifo2 *f, producer *p);
+
 extern void			rem_consumer(consumer *c);
 extern consumer	*		add_consumer(fifo2 *f, consumer *c);
 

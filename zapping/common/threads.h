@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: threads.h,v 1.3 2001-06-30 10:33:46 mschimek Exp $ */
+/* $Id: threads.h,v 1.4 2001-07-02 08:15:51 mschimek Exp $ */
 
 #ifndef THREADS_H
 #define THREADS_H
@@ -27,10 +27,12 @@
    may have included pthread.h already */
 
 #include <pthread.h>
+#include "list.h"
 
 typedef struct {
 	pthread_mutex_t		mutex;		/* attn: fast mutex */
 	pthread_cond_t		cond;
+	list2			list;
 } mucon;
 
 static inline void
@@ -38,6 +40,7 @@ mucon_init(mucon *m)
 {
 	pthread_mutex_init(&m->mutex, NULL);
 	pthread_cond_init(&m->cond, NULL);
+	memset(&m->list, 0, sizeof(&m->list));
 }
 
 static inline void
