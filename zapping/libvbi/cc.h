@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cc.h,v 1.7 2001-03-28 07:48:15 mschimek Exp $ */
+/* $Id: cc.h,v 1.8 2001-04-05 19:56:33 mschimek Exp $ */
 
 #ifndef CC_H
 #define CC_H
@@ -74,7 +74,7 @@ struct caption {
 	xds_sub_packet		sub_packet[4][0x18];
 	xds_sub_packet *	curr_sp;
 
-	char			itv_buf[256];
+	unsigned char		itv_buf[256];
 	int			itv_count;
 };
 

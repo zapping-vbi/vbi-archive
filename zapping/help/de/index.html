@@ -1,69 +1,104 @@
 <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML Level 2//EN//2.0">
-<HTML>
 
-<HEAD>
-<TITLE>Zapping Dokumentation</TITLE>
-</HEAD>
-<BODY BGCOLOR="#fffefe">
-<a name="#Start"></a>
-<H1>Einige Fragen zu diesem Programm</H1>
-<H4>Wof&uuml;r ist diese Software?</H4>
-Zapping ist ein TV Betrachter und somit ist die Hauptaufgabe von Zapping
-es zu erm&ouml;glichen, &uuml;ber ihre TV Karte am Computer fernzusehen.
-Nichtsdestotrotz, kann man mit einem Image Stream (Bilderstrom) eine Menge anstellen,
-Zapping bietet eine Möglichkeit diesen zu verarbeiten (fernsehen),man
-braucht jedoch nur ein Plug-in das ihren Wünschen entspricht und Sie k&ouml;nnen
-noch weitaus mehr mit Zapping machen. Sollte dieses Plugin welches Ihren
-Wünschen entspricht nicht existieren, sind Sie herzlich eingeladen eines zu schreiben.
-<H4>Ich vermisse die Funktion XYZ, wird sie in Zukunft vorhanden sein?</H4>
-Vielleicht, je eher Sie danach fragen, desto wahrscheinlicher ist es, das die Funktion 
-in der n&auml;chsten Ausgabe enthalten sein wird
-<H4>Das Programm funktioniert nicht!?</H4>
-Bei mir l&auml;uft es ;-)<br>
-Wenn Sie einen Fehler (Bug), <a
-href="http://zapping.sourceforge.net/index.html#Bugs">melden</a>
-pr&uuml;fen Sie, ob es sich nicht um einen schon bekannten Fehler handelt.
-(gucken Sie in der Datei <i>BUGS</i> nach, die bei Zapping mit dabei ist) und
-geben Sie soviele Informationen wie m&ouml;glich an. Bei einem Absturz, geben Sie bitte an,
-was Sie genau gemacht haben, damit wir den Vorgang rekonstruieren k&ouml;nnen).
-<br>
-<ul>
-<li><i>Wenn der Vollbildmodus nicht den ganzen Bildschirm f&uuml;llt...</i><br>
-Das kommt normalerweise dann vor, wenn Sie eine hohe Auflösung fahren. Schalten Sie den X Server
-in einen niedrigeren Aufl&ouml;sungsmodus um(unter /etc/X11/XF86Config, mit Xconfigurator oder einem ähnlichem Programm. Unter SuSe k&ouml;nnen Sie das auch mit Sax2 machen, indem Sie dort mehrere Aufl&ouml;sungen einstellen, Sie k&ouml;nnen dann unter X mit
-<br>
-&lt;CTRL&gt;+ &lt;ALT&gt; + &lt;+&gt; oder &lt;CTRL&gt;+&lt;ALT&gt; + &lt;-&gt; 
-in einen anderen Aufl&ouml;sungsmodus wechseln).
-<li><i>Das Vollbild und Vorschaubild sind stark gest&ouml;rt</i><br>
-Dies tritt normalerweise auf, wenn Zapping nicht den richten BPP Modus finden kann,
-den der X Server intern benutzt. Dies kommt h&auml;ufig im 24/32
-bpp Modus vor, solange es keinen mir bewu&szlig;ten Weg gibt, dies zu umgehen,
-versuchen Sie den Kommandozeilen Aufruf  --bpp zu &uuml;bergeben.
-<li><i>Ich habe eine NTSC Kamera an S-Video angeschlossen, aber PAL ist belegt.</i><br>
-Dies ist ein Fehler in der V4L Spezifikation. Sie k&ouml;nnen dies umgehen indem Sie die Angaben
-f&uuml;r tunerfreie Eingaben als Komandozeile &uuml;bergeben. Zum Beispiel:<br>
-<i>zapping -n SECAM</i><br><b>Bemerkung:</b> Dies ist nur eine Umgehungsm&ouml;glichkeit, die nur funktioniert wenn Sie mindestens einen Eingang mit dem Tuner haben.
-</ul>
-<H4>Wie kann ich helfen?</H4>
-Die bevorzugteste Methode ist, mit &Uuml;bersetzungen.
-<H4>K&ouml;nnen Sie mir eine kurze und pr&auml;gnante Beschreibung von Zapping geben?</H4>
-Zapping ist ein TV Betrachtungs Programm f&uuml;r Gnome. Es ist auch ein komfortables framework
- Programm um den image stream von der TV Quelle zu erhalten und zu verarbeiten (z.B es ist eine
-Webcam an Ihre  V4L Schnittstelle angesclossen, oder teletext an den vtx
-Schnittstellen).
-<p>
-Wenn Sie mich kontaktieren wollen (bitte Fehler
-<a href="http://zapping.sourceforge.net/index.html#Bugs">hier melden</a>
-anstatt anstatt direkt per E-mail zu mir).
-<br>
-<p>
-Klicken Sie einfach auf diesen 
-<a href="mailto:garetxe@users.sourceforge.net">Link</a>.<br>
-Bitte nur in English, f&uuml;r Anfragen in deutscher Sprache kontaktieren Sie
-bitte den &Uuml;bersetzer <a href="mailto:bootsy52@gmx.net">bootsy52@gmx.net</a>.
-<p>
-Auf der <a href="http://sourceforge.net/projects/zapping">Sourceforge project
-Seite</a> gibt es einige Diskussions Foren, benutzen Sie sie kostenlos.
+<html>
+  <head>
+    <title>Zapping Dokumentation</title>
+  </head>
 
-</BODY>
-</HTML>
+  <body bgcolor="#fffefe">
+    <a name="#Start"></a> 
+
+    <h1>&Uuml;ber dieses Programm</h1>
+
+    <h4>Wozu dient diese Software?</h4>
+    Zapping ist ein TV Programm, folglich ist der Hauptzweck von
+    Zapping mittels einer TV Karte am Computer fernzusehen.
+
+    <p>Anders lautenden Ger&uuml;chten zum Trotz kann man mit Video
+    aber noch mehr anstellen, dazu bietet Zapping Zusatzfunktionen,
+    "Plug-Ins", mit der M&ouml;glichkeit die Bilddaten zu
+    verarbeiten. Wenn das von dir gew&uuml;nschte Plugin noch
+    nicht existiert, bist du herzlich eingeladen selbst Hand
+    anzulegen.</p>
+
+    <h4>Ich vermisse die Funktion XYZ, wird sie in Zukunft
+    vorhanden sein?</h4>
+    Vielleicht. Je eher du danach fragst, desto wahrscheinlicher
+    wird die Funktion in der n&auml;chsten Version enthalten sein. 
+
+    <h4>Das Programm funktioniert nicht!?</h4>
+    Bei mir l&auml;uft es ;-)<br>
+    Bevor Du einen Fehler (Bug) <a href=
+    "http://zapping.sourceforge.net/index.html#Bugs">meldest</a>,
+    sieh bitte in der Datei <tt>BUGS</tt> nach ob er schon bekannt
+    ist. Gib uns bitte so viele Informationen wie m&ouml;glich. Bei
+    einem Absturz beschreibe was du gemacht hast, damit wir die
+    &Uuml;beltat rekonstruieren k&ouml;nnen. Die Ausgabe von
+    <i>./zapping -d</i> ist oft besonders wertvoll.<br>
+
+    <ul>
+      <li><i>Wenn der Vollbildmodus nicht den ganzen Bildschirm
+      f&uuml;llt...</i><br>
+      Das kommt normalerweise dann vor, wenn eine hohe
+      Aufl&ouml;sung eingestellt ist. Schalte den X Server in eine
+      niedrigere Aufl&ouml;sung: Modeline in /etc/X11/XF86Config,
+      mit Xconfigurator oder einem &auml;hnlichem Programm. Bei
+      einer SuSE Distribution kannst du das auch mit Sax2 machen
+      indem du verschiedene Aufl&ouml;sungen einstellst, zwischen
+      denen unter X mit &lt;Strg&gt;+ &lt;Alt&gt; und &lt;+&gt; oder
+      &lt;-&gt; am Ziffernblock gewechselt werden kann.</li>
+
+      <li><i>Das Vollbild und Vorschaubild sind stark
+      gest&ouml;rt</i><br>
+      Das kann auftreten wenn Zapping die Farbtiefe mit
+      der der X Server intern arbeitet nicht feststellen kann,
+      &ouml;fter bei 24/32 Bit. Solange niemand einen besseren
+      Weg entdeckt um das Problem zu umgehen, versuche ob beim
+      Kommandozeilenaufruf von Zapping der Parameter --bpp
+      hilft.</li>
+
+      <li><i>Ich habe eine NTSC Kamera an S-Video angeschlossen,
+      aber PAL wird aktiviert.</i><br>
+      Das ist ein Mangel der Video4Linux API. Du kannst das Umgehen
+      indem du den Videostandard f&uuml;r Eing&auml;nge ohne Tuner
+      als Kommandozeilenparameter angibst. Das funzt aber nur wenn
+      auch noch ein Tuner vorhanden ist. Zum Bleistift:<br>
+      <i>zapping -n SECAM</i><br>
+      </li>
+
+      <li><i>Overlay funktioniert nur als root, als normaler
+      User ist das nicht zu starten.</i><br>
+      Du bist wahrscheinlich Opfer eines PAM bugs. Upgraden auf
+      0.72 hat das Problem f&uuml;r mich behoben, wenn das nicht
+      klappt kannst du auch<br>
+      <i>./configure --disable-pam</i><br>
+      versuchen, danach neu kompilieren und installieren.
+    </ul>
+
+    <h4>Wie kann ich helfen?</h4>
+    Am liebsten mit &Uuml;bersetzungen in fremde Zungen, Patches
+    und Plugins. Wenn du Hilfe brauchst, eine E-Mail reicht.
+
+    <h4>Kannst du eine kurze und pr&auml;gnante Beschreibung von
+    Zapping geben?</h4>
+    Zapping ist ein TV Programm f&uuml;r Gnome, erweiterbar durch
+    Plugins um z.B. Video oder Standbilder aufzunehmen, mit einem
+    fortschrittlichen Teletext Browser sowie Teletext und Closed
+    Caption Untertiteln. Zapping unterst&uuml;tzt V4L, V4L2, XVideo
+    Treiber, XVideo Skalierung/Overlay und LIRC (Infrarot
+    Fernsteuerungen). 
+
+    <h4>Kontakt</h4>
+    Bugs bitte <a href=
+    "http://zapping.sourceforge.net/index.html#Bugs">hier
+    melden</a>. Der Autor von Zapping ist <a href=
+    "mailto:garetxe@users.sourceforge.net">hier</a> zu erreichen,
+    bitte nur in englischer oder spanischer Sprache. Fragen an den
+    deutschen &Uuml;bersetzer <a href=
+    "mailto:bootsy52@gmx.net">hier</a>.
+
+    <p>F&uuml;r Diskussionen stehen auf der <a href=
+    "http://sourceforge.net/projects/zapping">Sourceforge Projekt
+    Seite</a> Foren zur Verf&uuml;gung. Man snaakt Englisch.</p>
+  </body>
+</html>

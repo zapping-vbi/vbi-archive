@@ -11,6 +11,8 @@
 
 #include "cache.h"
 
+typedef struct _vbi_trigger vbi_trigger;
+
 struct event_handler {
 	struct event_handler *	next;
 	int			event_mask;
@@ -26,10 +28,12 @@ struct vbi
 
 
 	vbi_network		network;
-	vbi_weblink		link[2];
+	vbi_trigger *		triggers;
 
 	int			brightness;
 	int			contrast;
+
+	double			time;
 
 	struct teletext		vt;
 	struct caption		cc;

@@ -14,6 +14,7 @@
 #include "export.h"
 #include "tables.h"
 #include "libvbi.h"
+#include "trigger.h"
 
 #include "../common/fifo.h"
 #include "../common/math.h"
@@ -106,7 +107,6 @@ void *
 vbi_mainloop(void *p)
 {
 	struct vbi *vbi = p;
-	double time = 0.0;
 	vbi_sliced *s;
 	int items;
 
@@ -122,15 +122,15 @@ vbi_mainloop(void *p)
 			break;
 		}
 
-		if (time > 0 && (b->time - time) > 0.055) {
-fprintf(stderr, "vbi frame/s dropped at %f, D=%f\n", b->time, b->time - time);
+		if (vbi->time > 0 && (b->time - vbi->time) > 0.055) {
+// fprintf(stderr, "vbi frame/s dropped at %f, D=%f\n", b->time, b->time - vbi->time);
 			if (vbi->event_mask & (VBI_EVENT_PAGE | VBI_EVENT_NETWORK))
 				vbi_teletext_desync(vbi);
 			if (vbi->event_mask & (VBI_EVENT_CAPTION | VBI_EVENT_NETWORK))
 				vbi_caption_desync(vbi);
 		}
 
-		time = b->time;
+		vbi->time = b->time;
 
 		s = (vbi_sliced *) b->data;
 		items = b->used / sizeof(vbi_sliced);
@@ -148,6 +148,9 @@ fprintf(stderr, "vbi frame/s dropped at %f, D=%f\n", b->time, b->time - time);
 		}
 
 		send_empty_buffer(vbi->fifo, b);
+
+		if (vbi->event_mask & VBI_EVENT_TRIGGER)
+			vbi_deferred_trigger(vbi);
 	}
 
 	return NULL;
@@ -163,7 +166,7 @@ fprintf(stderr, "vbi frame/s dropped at %f, D=%f\n", b->time, b->time - time);
 /* examples */
 // #define FILTER_REM 0
 // #define FILTER_ADD SLICED_CAPTION
-// #define SAMPLE "libvbi/samples/s1"
+// #define SAMPLE "libvbi/samples/s4"
 
 // #define FILTER_REM SLICED_TELETEXT_B
 // #define FILTER_ADD SLICED_TELETEXT_B
@@ -329,7 +332,49 @@ vbi_set_colour_level(struct vbi *vbi, int brightness, int contrast)
 	vbi_caption_colour_level(vbi);
 }
 
+int
+vbi_classify_page(struct vbi *vbi, int pgno, int *subpage, char **language)
+{
+	struct page_info *pi;
+	int code, subc;
+	char *lang;
 
+	if (!subpage)
+		subpage = &subc;
+	if (!language)
+		language = &lang;
+
+	*subpage = 0;
+	*language = NULL;
+
+	if (pgno < 0x100 || pgno > 0x8FF) {
+		return VBI_UNKNOWN_PAGE;
+	}
+
+	pi = vbi->vt.page_info + pgno - 0x100;
+	code = pi->code;
+
+	if (code != VBI_UNKNOWN_PAGE) {
+		if (code == VBI_SUBTITLE_PAGE) {
+			if (pi->language != 0xFF)
+				*language = font_descriptors[pi->language].label;
+		} else if (code == VBI_TOP_BLOCK || code == VBI_TOP_GROUP)
+			code = VBI_NORMAL_PAGE;
+		else if (code == VBI_NOT_PUBLIC || code > 0xE0)
+			return VBI_UNKNOWN_PAGE;
+
+		*subpage = pi->subcode;
+
+		return code;
+	}
+
+	if ((pgno & 0xFF) <= 0x99) {
+		*subpage = 0xFFFF;
+		return VBI_NORMAL_PAGE; /* wild guess */
+	}
+
+	return VBI_UNKNOWN_PAGE;
+}
 
 struct vbi *
 vbi_open(char *vbi_name, struct cache *ca, int given_fd)
@@ -358,6 +403,8 @@ vbi_open(char *vbi_name, struct cache *ca, int given_fd)
 
 	pthread_mutex_init(&vbi->event_mutex, NULL);
 
+	vbi->time = 0.0;
+
 	vbi_init_teletext(&vbi->vt);
 	vbi_init_caption(vbi);
 
@@ -377,6 +424,10 @@ fail1:
 void
 vbi_close(struct vbi *vbi)
 {
+	vbi_event ev;
+
+	ev.type = VBI_EVENT_CLOSE;
+	vbi_send_event(vbi, &ev);
 
     if (vbi->cache)
 	vbi->cache->op->close(vbi->cache);
@@ -385,5 +436,7 @@ vbi_close(struct vbi *vbi)
 
     vbi_close_v4lx(vbi->fifo);
 
-    free(vbi);
+	vbi_trigger_flush(vbi);
+
+	free(vbi);
 }

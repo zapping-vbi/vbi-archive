@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: format.h,v 1.8 2001-03-28 07:48:15 mschimek Exp $ */
+/* $Id: format.h,v 1.9 2001-04-05 19:56:33 mschimek Exp $ */
 
 #ifndef FORMAT_H
 #define FORMAT_H
@@ -135,6 +135,8 @@ struct fmt_page
 	 *  Source context, libvbi.h internal use only (exp-vtx.h).
 	 */
 	struct vbi *		vbi;
+
+	unsigned int		nuid;
 
 	/*
 	 *  Teletext page number, pgno 0x100 ... 0x8FF, subno 0 ... 0x3F7F

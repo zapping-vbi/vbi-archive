@@ -28,7 +28,7 @@
 #include "../common/types.h"
 
 typedef enum {
-	PAGE_FUNCTION_ZAP2WEB = -3,	/* private */
+	PAGE_FUNCTION_TRIGGER = -3,	/* private */
 	PAGE_FUNCTION_DISCARD = -2,	/* private */
 	PAGE_FUNCTION_UNKNOWN = -1,	/* private */
 	PAGE_FUNCTION_LOP,

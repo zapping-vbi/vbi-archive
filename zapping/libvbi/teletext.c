@@ -388,20 +388,21 @@ keyword(vbi_link *ld, unsigned char *p, int column,
 	int i, j, k, l;
 
 	ld->type = VBI_LINK_NONE;
-	ld->pgno = 0;
-	ld->subno = ANY_SUB;
-	ld->text[0] = 0;
+	ld->page = 0;
+	ld->subpage = ANY_SUB;
+	ld->url = ld->buf;
+	ld->buf[0] = 0;
 	*back = 0;
 
 	if (isdigit(*s)) {
 		for (i = 0; isdigit(s[i]); i++)
-			ld->pgno = ld->pgno * 16 + (s[i] & 15);
+			ld->page = ld->page * 16 + (s[i] & 15);
 
 		if (isdigit(s[-1]) || i > 3)
 			return i;
 
 		if (i == 3) {
-			if (ld->pgno >= 0x100 && ld->pgno <= 0x899)
+			if (ld->page >= 0x100 && ld->page <= 0x899)
 				ld->type = VBI_LINK_PAGE;
 
 			return i;
@@ -412,19 +413,19 @@ keyword(vbi_link *ld, unsigned char *p, int column,
 
 		s += i += 1;
 
-		for (ld->subno = j = 0; isdigit(s[j]); j++)
-			ld->subno = ld->subno * 16 + (s[j] & 15);
+		for (ld->subpage = j = 0; isdigit(s[j]); j++)
+			ld->subpage = ld->subpage * 16 + (s[j] & 15);
 
-		if (j > 1 || subno != ld->pgno || ld->subno > 0x99)
+		if (j > 1 || subno != ld->page || ld->subpage > 0x99)
 			return i + j;
 
-		if (ld->pgno == ld->subno)
-			ld->subno = 0x01;
+		if (ld->page == ld->subpage)
+			ld->subpage = 0x01;
 		else
-			ld->subno = add_bcd(ld->pgno, 0x01);
+			ld->subpage = add_bcd(ld->page, 0x01);
 
 		ld->type = VBI_LINK_SUBPAGE;
-		ld->pgno = pgno;
+		ld->page = pgno;
 
 		return i + j;
 	} else if (!strncasecmp(s, "https://", i = 8)) {
@@ -433,19 +434,19 @@ keyword(vbi_link *ld, unsigned char *p, int column,
 		ld->type = VBI_LINK_HTTP;
 	} else if (!strncasecmp(s, "www.", i = 4)) {
 		ld->type = VBI_LINK_HTTP;
-		strcpy(ld->text, "http://");
+		strcpy(ld->buf, "http://");
 	} else if (!strncasecmp(s, "ftp://", i = 6)) {
 		ld->type = VBI_LINK_FTP;
 	} else if (*s == '@' || *s == 167 /* paragraph sign */) {
 		ld->type = VBI_LINK_EMAIL;
-		strcpy(ld->text, "mailto:");
+		strcpy(ld->buf, "mailto:");
 		i = 1;
 	} else if (!strncasecmp(s, "(at)", i = 4)) {
 		ld->type = VBI_LINK_EMAIL;
-		strcpy(ld->text, "mailto:");
+		strcpy(ld->buf, "mailto:");
 	} else if (!strncasecmp(s, "(a)", i = 3)) {
 		ld->type = VBI_LINK_EMAIL;
-		strcpy(ld->text, "mailto:");
+		strcpy(ld->buf, "mailto:");
 	} else
 		return 1;
 
@@ -483,11 +484,11 @@ keyword(vbi_link *ld, unsigned char *p, int column,
 
 		*back = k;
 
-		strncat(ld->text, s + k, -k);
-		strcat(ld->text, "@");
-		strncat(ld->text, s + i, j);
+		strncat(ld->buf, s + k, -k);
+		strcat(ld->buf, "@");
+		strncat(ld->buf, s + i, j);
 	} else
-		strncat(ld->text, s + k, i + j - k);
+		strncat(ld->buf, s + k, i + j - k);
 
 	return i + j;
 }
@@ -540,14 +541,16 @@ vbi_resolve_link(struct fmt_page *pg, int column, int row, vbi_link *ld)
 
 	assert(column >= 0 && column < COLUMNS);
 
+	ld->nuid = pg->nuid;
+
 	acp = &pg->text[row * COLUMNS];
 
 	if (row == (ROWS - 1) && acp[column].link) {
 		i = pg->nav_index[column];
 
 		ld->type = VBI_LINK_PAGE;
-		ld->pgno = pg->nav_link[i].pgno;
-		ld->subno = pg->nav_link[i].subno;
+		ld->page = pg->nav_link[i].pgno;
+		ld->subpage = pg->nav_link[i].subno;
 
 		return;
 	}
@@ -592,8 +595,8 @@ void
 vbi_resolve_home(struct fmt_page *pg, vbi_link *ld)
 {
 	ld->type = VBI_LINK_PAGE;
-	ld->pgno = pg->nav_link[5].pgno;
-	ld->subno = pg->nav_link[5].subno;
+	ld->page = pg->nav_link[5].pgno;
+	ld->subpage = pg->nav_link[5].subno;
 }
 
 /*
@@ -1611,12 +1614,14 @@ vbi_format_page(struct vbi *vbi,
 	int column, row, i;
 
 	if (vtp->function != PAGE_FUNCTION_LOP &&
-	    vtp->function != PAGE_FUNCTION_ZAP2WEB)
+	    vtp->function != PAGE_FUNCTION_TRIGGER)
 		return 0;
 
 	printv("\nFormatting page %03x/%04x\n", vtp->pgno, vtp->subno);
 
 	pg->vbi = vbi;
+
+	pg->nuid = vbi->network.nuid;
 
 	pg->pgno = vtp->pgno;
 	pg->subno = vtp->subno;
@@ -1953,6 +1958,7 @@ vbi_fetch_vt_page(struct vbi *vbi, struct fmt_page *pg,
 		if (!vbi->vt.top || !top_index(vbi, pg, subno))
 			return 0;
 
+		pg->nuid = vbi->network.nuid;
 		pg->pgno = 0x900;
 
 		post_enhance(pg);

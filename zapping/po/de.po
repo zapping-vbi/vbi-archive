@@ -131,7 +131,7 @@ msgstr "Zusätzliche Einstellungen zeigen"
 
 #: src/callbacks.c:216 src/callbacks.c:594 src/main.c:565
 msgid "Show Input, Standards and subtitle selection"
-msgstr ""
+msgstr "Zeige Eingang, Videostandards und Untertitelauswahl"
 
 #: src/main.c:728
 msgid ""
@@ -178,9 +178,8 @@ msgid "Hide extra controls"
 msgstr "Zusätzliche Einstellungen verbergen"
 
 #: glade/glade_strings.c:28 glade/glade_strings.c:182 src/callbacks.c:203
-#, fuzzy
 msgid "Hide Input, Standards and subtitle selection"
-msgstr "Menüs für Videostandard und Eingänge verbergen"
+msgstr "Menüs für Videostandard, Eingänge und Untertitelauswahl verbergen"
 
 # src/v4l2interface.c:146
 #: src/callbacks.c:493 src/v4linterface.c:185
@@ -425,46 +424,46 @@ msgstr "Sättigung"
 
 #: src/tveng2.c:881
 msgid "Whiteness"
-msgstr ""
+msgstr "Weißabgleich"
 
 #: src/tveng2.c:882
 msgid "Black level"
-msgstr ""
+msgstr "Schwarzabgleich"
 
 # src/frequencies.c:827
 #: src/tveng2.c:883
 msgid "White balance"
-msgstr ""
+msgstr "Weißabgleich"
 
 #: src/tveng2.c:884
 msgid "Do white balance"
-msgstr ""
+msgstr "Automatischer Weißabgleich"
 
 # src/frequencies.c:827
 #: src/tveng2.c:885
 msgid "Red balance"
-msgstr ""
+msgstr "Rotabgleich"
 
 # src/frequencies.c:827
 #: src/tveng2.c:886
 msgid "Blue balance"
-msgstr ""
+msgstr "Blauabgleich"
 
 #: src/tveng2.c:887
 msgid "Gamma"
-msgstr ""
+msgstr "Gammawert"
 
 #: src/tveng2.c:888
 msgid "Exposure"
-msgstr ""
+msgstr "Belichtung"
 
 #: src/tveng2.c:889
 msgid "Auto gain"
-msgstr ""
+msgstr "Automatische Verstärkung"
 
 #: src/tveng2.c:890
 msgid "Gain"
-msgstr ""
+msgstr "Verstärkung"
 
 #: src/tveng2.c:891
 msgid "HCenter"
@@ -489,7 +488,7 @@ msgstr "Stumm schalten"
 # src/frequencies.c:827
 #: src/tveng2.c:899
 msgid "Audio Balance"
-msgstr ""
+msgstr "Audiosymmetrie"
 
 #: src/tveng2.c:901
 msgid "Loudness"
@@ -635,14 +634,12 @@ msgid ""
 msgstr "Das Plugin das diese Seite erstellt hat gibt leider keine Hilfe."
 
 #: src/channel_editor.c:180
-#, fuzzy
 msgid "Do not change standard"
-msgstr "Modus nicht verändern"
+msgstr "Videostandard beibehalten"
 
 #: src/channel_editor.c:201
-#, fuzzy
 msgid "Do not change input"
-msgstr "Modus nicht verändern"
+msgstr "Eingang beibehalten"
 
 #: src/channel_editor.c:1010
 msgid ""
@@ -814,9 +811,9 @@ msgid "Export failed: %s"
 msgstr "Ausgabe fehlgeschlagen: %s"
 
 #: src/ttxview.c:1975
-#, fuzzy, c-format
+#, c-format
 msgid "%s in %s"
-msgstr "%d %s"
+msgstr "%s in %s"
 
 #: src/ttxview.c:2267
 msgid "Selecting - hold Shift for table mode"
@@ -1254,26 +1251,22 @@ msgstr "Beschleunigung"
 
 # src/interface.c:382
 #: glade/glade_strings.c:111
-#, fuzzy
 msgid "Select here the input to be attached to this channel"
-msgstr "Geben Sie den Namen für diesen Kanal ein"
+msgstr "Ordnen Sie hier dem Kanal einen Eingang zu"
 
 # src/v4l2interface.c:344
 #: glade/glade_strings.c:112
-#, fuzzy
 msgid "Magical input"
-msgstr "Keine Eingänge vorhanden"
+msgstr "Magischer Eingang"
 
 #: glade/glade_strings.c:113
-#, fuzzy
 msgid "Select here the Standard this channel uses"
-msgstr "Nächster Kanal in der Liste"
+msgstr "Wählen Sie den Videostandard für diesen Kanal"
 
 # src/v4l2interface.c:344
 #: glade/glade_strings.c:114
-#, fuzzy
 msgid "Magical Standard"
-msgstr "Keine Standards verfügbar"
+msgstr "Magischer Videostandard"
 
 #: glade/glade_strings.c:115
 msgid "Select your country and click here to search for the available channels"
@@ -1311,7 +1304,6 @@ msgstr "Alt"
 
 # src/interface.c:382
 #: glade/glade_strings.c:123
-#, fuzzy
 msgid "Enter here the key you want to attach to this channel"
 msgstr "Geben Sie den Namen für diesen Kanal ein"
 
@@ -1321,7 +1313,7 @@ msgstr ""
 
 #: glade/glade_strings.c:125
 msgid "..."
-msgstr ""
+msgstr "..."
 
 # src/interface.c:448
 #: glade/glade_strings.c:126 glade/glade_strings.c:136
@@ -1504,37 +1496,36 @@ msgid "Use Zapping as a teletext navigator"
 msgstr "Zapping als Teletext-Navigator benutzen"
 
 #: glade/glade_strings.c:178
-#, fuzzy
 msgid "Resize the main window, hide/show toolbars"
-msgstr "Menü und Toolbar verbergen"
+msgstr "Fenstergröße ändern, Menü und Toolbar verbergen"
 
 #: glade/glade_strings.c:179
 msgid "_Appearance"
-msgstr ""
+msgstr "_Aussehen"
 
 #: glade/glade_strings.c:184
 msgid "Resize to 768x576"
-msgstr ""
+msgstr "Größe 768x576"
 
 #: glade/glade_strings.c:185
 msgid "Resize to 720x576"
-msgstr ""
+msgstr "Größe 720x576"
 
 #: glade/glade_strings.c:186
 msgid "Resize to 640x480"
-msgstr ""
+msgstr "Größe 640x480"
 
 #: glade/glade_strings.c:187
 msgid "Resize to 384x288"
-msgstr ""
+msgstr "Größe 384x288"
 
 #: glade/glade_strings.c:188
 msgid "Resize to 352x288"
-msgstr ""
+msgstr "Größe 352x288"
 
 #: glade/glade_strings.c:189
 msgid "Resize to 320x240"
-msgstr ""
+msgstr "Größe 320x240"
 
 #: glade/glade_strings.c:190
 msgid "Searching..."
@@ -1805,9 +1796,8 @@ msgid "Keys"
 msgstr ""
 
 #: glade/glade_strings.c:263
-#, fuzzy
 msgid "New bookmark:"
-msgstr "Neues Lesezeichen"
+msgstr "Neues Lesezeichen:"
 
 #: glade/glade_strings.c:264
 msgid "Description:"
@@ -1820,9 +1810,8 @@ msgid ""
 msgstr ""
 
 #: glade/glade_strings.c:266
-#, fuzzy
 msgid "Switch to the current channel when the bookmark is selected"
-msgstr "Lesezeichen für diese Seite hinzufügen"
+msgstr "Bei der Auswahl des Lesezeichens zu diesem Kanal wechseln"
 
 #: plugins/screenshot/screenshot.c:33
 msgid "Screenshot saver"
@@ -1884,9 +1873,8 @@ msgstr ""
 "Dateigröße."
 
 #: plugins/screenshot/screenshot.c:479
-#, fuzzy
 msgid "Take a JPEG screenshot [Ctrl+S]"
-msgstr "JPEG Standbild"
+msgstr "JPEG Standbild [Strg + S]"
 
 #. Probably there is no mem even for this, but try anyway
 #: plugins/screenshot/screenshot.c:565 plugins/screenshot/screenshot.c:575

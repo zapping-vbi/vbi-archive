@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.23 2001-03-28 07:48:15 mschimek Exp $ */
+/* $Id: caption.c,v 1.24 2001-04-05 19:56:33 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,6 +32,7 @@
 #include <assert.h>
 
 #include "vbi.h"
+#include "trigger.h"
 
 #if TEST
 
@@ -298,7 +299,7 @@ xds_decoder(struct vbi *vbi, int class, int type, char *buffer, int length)
 				for (sum = 0; *s; s++)
 					sum = (sum >> 7) ^ hcrc[(sum ^ *s) & 0x7F];
 
-				vbi->network.id = sum & ((1UL << 31) - 1);
+				vbi->network.nuid = sum & ((1UL << 31) - 1);
 
 				ev.type = VBI_EVENT_NETWORK;
 				ev.p = &vbi->network;
@@ -524,176 +525,14 @@ xds_separator(struct vbi *vbi, unsigned char *buf)
 	}
 }
 
-/*
- *  ITV (Interactive TV Link aka. WebTV)
- *
- *  http://developer.webtv.net
- */
-
-static char *
-itv_key[] = { NULL, "program", "network", "station", "sponsor", "operator" };
-
-static inline int
-itv_chksum(char *s, unsigned int sum)
-{
-	int i = (strlen(s) + 1) >> 1;
-
-	for (; i > 0; i--) {
-		sum += *s++ << 8;
-		sum += *s++;
-		if (sum >= 0x10000)
-			sum += 1 - 0x10000;
-	}
-
-	return sum == 0xFFFF;
-}
-
-static void
-itv_decoder(struct vbi *vbi, struct caption *cc, char *s1)
-{
-	char *s, *e;
-	char *d, *dx;
-	int view = 'w';
-	char *expires = "29991231T235959";
-
-	vbi->link[0].type = 0;
-
-	vbi->link[0].name = NULL;
-	vbi->link[0].url = NULL;
-	vbi->link[0].script = NULL;
-
-	dx = &vbi->link[0].scratch[sizeof(vbi->link[0].scratch) - 2];
-
-	for (s = s1, d = vbi->link[0].scratch;; s++) {
-		e = s;
-
-		if (*s == '<') {
-			for (vbi->link[0].url = d, ++s; *s != '>'; s++)
-				if (*s && d < dx)
-					*d++ = *s;
-				else
-					return;
-			*d++ = 0;
-		} else if (*s == '[') {
-			char *attr;
-			int i, quote;
-
-			for (attr = d, ++s; *s != ':' && *s != ']'; s++)
-				if (*s && d < dx)
-					*d++ = *s;
-				else
-					return;
-			*d++ = 0;
-
-			if (*s != ':') {
-				for (i = 1; i < sizeof(itv_key) / sizeof(itv_key[0]); i++)
-					if (!strcmp(itv_key[i], attr))
-						break;
-
-				if (i < sizeof(itv_key) / sizeof(itv_key[0])) {
-					vbi->link[0].type = i;
-					continue;
-				}
-
-				*e = 0;
-
-				if (s[1] || !itv_chksum(s1, strtoul(attr, NULL, 16)))
-					return;
-
-				break;
-			}
-
-			s++;
-
-			switch (*attr) {
-			case 't':
-				for (i = 0; itv_key[i]; i++)
-					if (*s == itv_key[i][0]
-					    || !strcmp(itv_key[i], attr))
-						break;
-
-				if (!itv_key[i])
-					return;
-
-				vbi->link[0].type = i;
-
-				break;
-
-			case 'v':
-				view = *s;
-				break;
-
-			case 'n':
-				vbi->link[0].name = d;
-				break;
-
-			case 's':
-				vbi->link[0].script = d;
-				break;
-
-			case 'e':
-				expires = d;
-				break;
-			}
-
-			for (quote = 0; quote || *s != ']'; s++) {
-				if (!*s)
-					return;
-				if (*s == '"')
-					quote ^= 1;
-				*d++ = *s;
-			}
-
-			*d++ = 0;
-		} else
-			return;
-	}
-
-#if ITV_DEBUG
-
-	printf("<i> %s\n URL: %s\n Type: ",
-		vbi->link[0].name, vbi->link[0].url);
-	switch (vbi->link[0].type) {
-	case 1:	 printf("program related"); break;
-	case 2:	 printf("network related"); break;
-	case 3:	 printf("station related"); break;
-	case 4:	 printf("sponsor"); break;
-	case 5:	 printf("operator"); break;
-	default: printf("unknown"); break;
-	}
-	printf("; script: %s\n Cached page expires: %s; view: ",
-		vbi->link[0].script, expires);
-	switch (view) {
-	case 'w': printf("conventional web page"); break;
-	case 't': printf("tv related, WebTV style"); break;
-	default:  printf("unknown");
-	}
-	putchar('\n');
-
-#endif /* ITV_DEBUG */
-
-	if (vbi->link[0].url
-	    && vbi->link[0].type > 0 && view == 'w'
-	    && (!vbi->link[1].url
-		|| strcmp(vbi->link[0].url, vbi->link[1].url) != 0)) {
-		vbi_event ev;
-
-		memcpy(&vbi->link[1], &vbi->link[0], sizeof(vbi->link[1]));
-
-		ev.type = VBI_EVENT_WEBLINK;
-		ev.p = &vbi->link[1];
-		vbi_send_event(vbi, &ev);
-	}
-}
-
 static void
 itv_separator(struct vbi *vbi, struct caption *cc, char c)
 {
-	if (!ITV_DEBUG && !(vbi->event_mask & VBI_EVENT_WEBLINK))
+	if (!ITV_DEBUG && !(vbi->event_mask & VBI_EVENT_TRIGGER))
 		return;
 
 	if (c >= 0x20) {
-		if (c == '<') // s4nbc omitted CR
+		if (c == '<') // s4-nbc omitted CR
 			itv_separator(vbi, cc, 0);
 		else if (cc->itv_count > sizeof(cc->itv_buf) - 2)
 			cc->itv_count = 0;
@@ -706,7 +545,7 @@ itv_separator(struct vbi *vbi, struct caption *cc, char c)
 	cc->itv_buf[cc->itv_count] = 0;
 	cc->itv_count = 0;
 
-	itv_decoder(vbi, cc, cc->itv_buf);
+	vbi_atvef_trigger(vbi, cc->itv_buf);
 }
 
 /* Caption */

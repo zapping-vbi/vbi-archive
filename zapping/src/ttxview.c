@@ -575,17 +575,17 @@ update_pointer (ttxview_data *data)
       switch (ld.type)
         {
 	case VBI_LINK_PAGE:
-	  buffer = g_strdup_printf(_(" Page %d"), bcd2dec(ld.pgno));
+	  buffer = g_strdup_printf(_(" Page %d"), bcd2dec(ld.page));
 	  break;
 
 	case VBI_LINK_SUBPAGE:
-	  buffer = g_strdup_printf(_(" Subpage %d"), bcd2dec(ld.subno & 0xFF));
+	  buffer = g_strdup_printf(_(" Subpage %d"), bcd2dec(ld.subpage & 0xFF));
 	  break;
 
 	case VBI_LINK_HTTP:
 	case VBI_LINK_FTP:
 	case VBI_LINK_EMAIL:
-	  buffer = g_strdup_printf(" %s", ld.text);
+	  buffer = g_strdup_printf(" %s", ld.url);
 	  break;
 
         default:
@@ -786,8 +786,8 @@ void on_ttxview_home_clicked		(GtkButton	*button,
 
   if (ld.type == VBI_LINK_PAGE || ld.type == VBI_LINK_SUBPAGE)
     {
-      if (ld.pgno)
-	load_page(ld.pgno, ld.subno, data, NULL);
+      if (ld.page)
+	load_page(ld.page, ld.subpage, data, NULL);
       else
 	load_page(0x100, ANY_SUB, data, NULL);
     }
@@ -2155,17 +2155,17 @@ process_ttxview_menu_popup		(GtkWidget	*widget,
       col = (event->x*data->fmt_page->columns)/w;
       row = (event->y*data->fmt_page->rows)/h;
       
-      ld.pgno = ld.subno = 0;
+      ld.page = ld.subpage = 0;
       if (data->fmt_page->text[row * data->fmt_page->columns + col].link)
 	{
 	  vbi_resolve_link(data->fmt_page, col, row, &ld);
 	  
 	  if (ld.type != VBI_LINK_PAGE &&
 	      ld.type != VBI_LINK_SUBPAGE)
-	    ld.pgno = ld.subno = 0;
+	    ld.page = ld.subpage = 0;
 	}
       
-      menu = GTK_MENU(build_ttxview_popup(data, ld.pgno, ld.subno));
+      menu = GTK_MENU(build_ttxview_popup(data, ld.page, ld.subpage));
       
       menu_item =
 	z_gtk_pixmap_menu_item_new("Zapzilla", GNOME_STOCK_PIXMAP_ALIGN_JUSTIFY);
@@ -2590,7 +2590,7 @@ on_ttxview_button_press			(GtkWidget	*widget,
   row = (event->y*data->fmt_page->rows)/h;
 
   ld.type = VBI_LINK_NONE;
-  ld.pgno = ld.subno = 0;
+  ld.page = ld.subpage = 0;
 
   /* Any modifier enters select mode */
   if ((data->fmt_page->text[row * data->fmt_page->columns + col].link) && (!
@@ -2606,13 +2606,13 @@ on_ttxview_button_press			(GtkWidget	*widget,
         {
 	case VBI_LINK_PAGE:
 	case VBI_LINK_SUBPAGE:
-	  load_page(ld.pgno, ld.subno, data, NULL);
+	  load_page(ld.page, ld.subpage, data, NULL);
 	  break;
 
 	case VBI_LINK_HTTP:
 	case VBI_LINK_FTP:
 	case VBI_LINK_EMAIL:
-	  gnome_url_show(ld.text);
+	  gnome_url_show(ld.url);
 	  break;
 
 	default:
@@ -2627,7 +2627,7 @@ on_ttxview_button_press			(GtkWidget	*widget,
 	case VBI_LINK_PAGE:
 	case VBI_LINK_SUBPAGE:
 	  dolly = build_ttxview();
-	  load_page(ld.pgno, ld.subno,
+	  load_page(ld.page, ld.subpage,
 	    (ttxview_data*)gtk_object_get_data(GTK_OBJECT(dolly),
 					       "ttxview_data"), NULL);
 	  gtk_widget_show(dolly);
@@ -2636,7 +2636,7 @@ on_ttxview_button_press			(GtkWidget	*widget,
 	case VBI_LINK_HTTP:
 	case VBI_LINK_FTP:
 	case VBI_LINK_EMAIL:
-	  gnome_url_show(ld.text);
+	  gnome_url_show(ld.url);
 	  break;
 
 	default:
@@ -2647,10 +2647,10 @@ on_ttxview_button_press			(GtkWidget	*widget,
 	{
 	  if (ld.type != VBI_LINK_PAGE &&
 	      ld.type != VBI_LINK_SUBPAGE)
-	    ld.pgno = ld.subno = 0;
+	    ld.page = ld.subpage = 0;
 
-	  menu = GTK_MENU(build_ttxview_popup(data, ld.pgno,
-					      ld.subno));
+	  menu = GTK_MENU(build_ttxview_popup(data, ld.page,
+					      ld.subpage));
 	  gtk_menu_popup(menu, NULL, NULL, NULL,
 			 NULL, event->button, event->time);
 	}

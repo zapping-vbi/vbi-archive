@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvbi.h,v 1.30 2001-03-30 06:48:38 mschimek Exp $ */
+/* $Id: libvbi.h,v 1.31 2001-04-05 19:56:33 mschimek Exp $ */
 
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
@@ -94,18 +94,46 @@ extern int		vbi_fetch_cc_page(struct vbi *vbi, struct fmt_page *pg, int pgno);
 
 typedef enum {
 	VBI_LINK_NONE = 0,
+	VBI_LINK_MESSAGE,
 	VBI_LINK_PAGE,
 	VBI_LINK_SUBPAGE,
 	VBI_LINK_HTTP,
 	VBI_LINK_FTP,
 	VBI_LINK_EMAIL,
+	VBI_LINK_LID,
+	VBI_LINK_TELEWEB,
 } vbi_link_type;
 
+typedef enum {
+	VBI_WEBLINK_UNKNOWN = 0,
+	VBI_WEBLINK_PROGRAM_RELATED,
+	VBI_WEBLINK_NETWORK_RELATED,
+	VBI_WEBLINK_STATION_RELATED,
+	VBI_WEBLINK_SPONSOR_MESSAGE,
+	VBI_WEBLINK_OPERATOR,
+} vbi_itv_type;
+
 typedef struct {
-	vbi_link_type		type;
-	int			pgno;
-	int			subno;
-	unsigned char		text[42];
+	vbi_link_type			type;
+
+	unsigned char *			name;
+
+	unsigned char *			url;
+	unsigned char *			script;
+
+	unsigned int                    nuid;
+	int				page;
+	int				subpage;
+
+	double				expires;
+
+	int				itv_type;
+	int				priority;
+	int				autoload;
+
+	/* Private */
+
+	unsigned char			buf[256];
 } vbi_link;
 
 extern void		vbi_resolve_link(struct fmt_page *pg, int column, int row, vbi_link *ld);
@@ -144,7 +172,7 @@ extern void		vbi_draw_cc_page_region(struct fmt_page *pg, uint32_t *canvas,
  *  Prepare for empty strings. Read only.
  */
 typedef struct {
-	unsigned int		id;			/* unique id */
+	unsigned int		nuid;			/* unique id */
 
 	char			name[33];		/* descriptive name */
 	char			label[33];		/* short name (TTX/VPS) - max. 8 chars */
@@ -161,41 +189,6 @@ typedef struct {
 
 	int			cycle;
 } vbi_network;
-
-/*
- *  Web link, WST based Zap2Web and
- *  CC based Interactive TV aka. WebTV (conventional content only).
- *
- *  All strings are ISO 8859-1, NUL terminated and read only.
- *  Apart of <url>, prepare to handle NULL pointers if the
- *  particular information has not been transmitted.
- *
- *  Zap2Web is currently always VBI_WEBLINK_UNKNOWN,
- *  see http://developers.webtv.com for the other types.
- */
-/* caption.c depends on order */
-typedef enum {
-	VBI_WEBLINK_UNKNOWN = 0,
-	VBI_WEBLINK_PROGRAM_RELATED,
-	VBI_WEBLINK_NETWORK_RELATED,
-	VBI_WEBLINK_STATION_RELATED,
-	VBI_WEBLINK_SPONSOR_MESSAGE,
-	VBI_WEBLINK_OPERATOR,
-} vbi_weblink_type;
-
-typedef struct {
-	vbi_weblink_type	type;
-
-	unsigned char *		name;			/* "Zapping" */
-	unsigned char *		url;			/* "http://zapping.sourceforge.net" */
-	unsigned char *		script;
-
-	/* more */
-
-	/* Private */
-
-	unsigned char		scratch[256];
-} vbi_weblink;
 
 /*
  *  Page classification
@@ -274,14 +267,9 @@ extern int		vbi_classify_page(struct vbi *vbi, int pgno, int *subpage, char **la
  *     can confuse the logic.
  */
 
-#define	VBI_EVENT_WEBLINK	0 // (1 << 5)
+#define	VBI_EVENT_TRIGGER	(1 << 5)
 /*
- *  A web link has been received, vbi_event.p is a vbi_weblink pointer.
- *  The event will not repeat*) unless a different web link has been
- *  received, usually on the order of 1x to 10x minutes.
- *
- *  *) z2w and itv will not combine in real life, sample insertion
- *     can confuse the logic.
+ *  A trigger has fired, vbi_event.p is a vbi_link pointer.
  */
 
 #define VBI_EVENT_IO_ERROR	(1 << 6)

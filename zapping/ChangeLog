@@ -1,3 +1,8 @@
+5.04.2001	libvbi, help <mschimek@users.sourceforge.net>
+
+	* Finished trigger rewrite.
+	* Some work in /help.
+
 3.04.2001	overlay+osd fixes <garetxe@users.sourceforge.net>
 
 	* overlay, tveng, osd: Made them play nice together under V4L[12].
@@ -29,7 +34,7 @@
 
 30.3.2001	libvbi <mschimek@users.sourceforge.net>
 
-	* Teletext page classification finished.
+	* Teletext page classification.
 
 28.3.2001	libvbi <mschimek@users.sourceforge.net>
 

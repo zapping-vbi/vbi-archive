@@ -14,6 +14,7 @@
 #include "export.h"
 #include "tables.h"
 #include "libvbi.h"
+#include "trigger.h"
 
 #define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
 static bool convert_drcs(struct vt_page *vtp, unsigned char *raw);
@@ -588,184 +589,30 @@ parse_mip(struct vbi *vbi, struct vt_page *vtp)
 	return TRUE;
 }
 
-int
-vbi_classify_page(struct vbi *vbi, int pgno, int *subpage, char **language)
-{
-	struct page_info *pi;
-	int code, subc;
-	char *lang;
-
-	if (!subpage)
-		subpage = &subc;
-	if (!language)
-		language = &lang;
-
-	*subpage = 0;
-	*language = NULL;
-
-	if (pgno < 0x100 || pgno > 0x8FF) {
-		return VBI_UNKNOWN_PAGE;
-	}
-
-	pi = vbi->vt.page_info + pgno - 0x100;
-	code = pi->code;
-
-	if (code != VBI_UNKNOWN_PAGE) {
-		if (code == VBI_SUBTITLE_PAGE) {
-			if (pi->language != 0xFF)
-				*language = font_descriptors[pi->language].label;
-		} else if (code == VBI_TOP_BLOCK || code == VBI_TOP_GROUP)
-			code = VBI_NORMAL_PAGE;
-		else if (code == VBI_NOT_PUBLIC || code > 0xE0)
-			return VBI_UNKNOWN_PAGE;
-
-		*subpage = pi->subcode;
-
-		return code;
-	}
-
-	if ((pgno & 0xFF) <= 0x99) {
-		*subpage = 0xFFFF;
-		return VBI_NORMAL_PAGE; /* wild guess */
-	}
-
-	return VBI_UNKNOWN_PAGE;
-}
-
-/*
- *  Zap2Web links (as of Mar 2001 broadcasted by ZDF and VOX)
- *
- *  EACEM TP-14-99-16-v0.8
- */
-
-static attr_char *
-z2w_decoder(struct vbi *vbi, attr_char *s1)
-{
-	attr_char *s, *e;
-	unsigned char *d, *dx;
-	unsigned char *csome = NULL;
-
-	/* In absence of better knowledge */
-	vbi->link[0].type = VBI_WEBLINK_UNKNOWN;
-
-	vbi->link[0].name = NULL;
-	vbi->link[0].url = NULL;
-	dx = &vbi->link[0].scratch[sizeof(vbi->link[0].scratch) - 2];
-
-	for (s = s1, d = vbi->link[0].scratch;; s++) {
-		unsigned char c = glyph2latin(s->glyph);
-
-		e = s;
-
-		if (c == '<') {
-			for (vbi->link[0].url = d, ++s; (c = glyph2latin(s->glyph)) != '>'; s++)
-				if (c && d < dx)
-					*d++ = c;
-				else
-					return NULL;
-			*d++ = 0;
-		} else
-		/*
-		 *  National character sets replace '[]'. Observed:
-		 *  ZDF transmits '()', VOX transmits spaces modified
-		 *  by Level 1.5 local enhancement to '[]'.
-		 */
-		if (c == '[' || c == '(') {
-			unsigned char delim = (c == '[') ? ']' : ')';
-			unsigned char *attr;
-			int quote;
-
-			for (attr = d, ++s; c = glyph2latin(s->glyph), c != ':' && c != delim; s++)
-				if (c && d < dx)
-					*d++ = c;
-				else
-					return NULL;
-			*d++ = 0;
-
-			s++; /* ':' or delim */
-
-			if (c != ':') {
-				e->glyph = 0;
-
-				/*
-				 *  Checksum is a four digit hex number eg. [12FE].
-				 *  The checksum algorithm is RTF 1071, TODO.
-				 */
-				if (!1)
-					return NULL;
-
-				break;
-			}
-
-			switch (*attr) {
-			case 'c':
-				csome = d;
-				break;
-
-			case 'n':
-				vbi->link[0].name = d;
-				break;
-
-			default:
-				/*
-				 *  No other attributes observed yet, let's
-				 *  play safe.
-				 */
-				return NULL;
-			}
-
-			for (quote = 0; quote || (c = glyph2latin(s->glyph)) != delim; s++) {
-				if (!c || d >= dx)
-					return NULL;
-				if (c == '"')
-					quote ^= 1;
-				*d++ = c;
-			}
-
-			*d++ = 0;
-		} else /* not <> () [] */
-			return NULL;
-	}
-
-	if (0)
-		printf("<z2w> %s; URL: %s; c: %s\n",
-			vbi->link[0].name, vbi->link[0].url, csome);
-
-	if (vbi->link[0].url
-	    && csome && strtoul(csome, NULL, 10) == 0
-	    && (!vbi->link[1].url
-		|| strcmp(vbi->link[0].url, vbi->link[1].url) != 0)) {
-		vbi_event ev;
-
-		memcpy(&vbi->link[1], &vbi->link[0], sizeof(vbi->link[1]));
-
-		ev.type = VBI_EVENT_WEBLINK;
-		ev.p = &vbi->link[1];
-		vbi_send_event(vbi, &ev);
-	}
-
-	return s;
-}
-
 static void
-zap2web(struct vbi *vbi, struct vt_page *vtp)
+eacem_trigger(struct vbi *vbi, struct vt_page *vtp)
 {
 	struct fmt_page pg;
-	attr_char *s;
+	unsigned char *s;
+	int i;
 
 	if (0)
 		dump_raw(vtp, FALSE);
 
-	if (!(vbi->event_mask & VBI_EVENT_WEBLINK))
+	if (!(vbi->event_mask & VBI_EVENT_TRIGGER))
 		return;
 
 	if (!vbi_format_page(vbi, &pg, vtp, VBI_LEVEL_1p5, 24, 0))
 		return;
 
-	s = pg.text + 40;
-	pg.text[24 * 40].glyph = 0;
+	s = (unsigned char *) pg.text;
 
-	while ((s = z2w_decoder(vbi, s)));
+	for (i = 40; i < 25 * 40; i++)
+		*s++ = glyph2latin(pg.text[i].glyph);
+
+	*s = 0;
+
+	vbi_eacem_trigger(vbi, (unsigned char *) pg.text);
 }
 
 /*
@@ -1238,10 +1085,10 @@ vbi_vps(struct vbi *vbi, unsigned char *buf)
 		if (!id) {
 			vbi->network.name[0] = 0;
 			vbi->network.label[0] = 0;
-		} else if (id != vbi->network.id) {
+		} else if (id != vbi->network.nuid) {
 			vbi_event ev;
 
-			vbi->network.id = id;
+			vbi->network.nuid = id;
 			strncpy(vbi->network.name, long_name, sizeof(vbi->network.name) - 1);
 			strncpy(vbi->network.label, short_name, sizeof(vbi->network.label) - 1);
 
@@ -1250,7 +1097,7 @@ vbi_vps(struct vbi *vbi, unsigned char *buf)
 			vbi_send_event(vbi, &ev);
 		}
 
-		vbi->network.id = id;
+		vbi->network.nuid = id;
 		vbi->network.cycle = 2;
 	}
 
@@ -1425,10 +1272,10 @@ parse_bsd(struct vbi *vbi, unsigned char *raw, int packet, int designation)
 				if (!id) {
 					vbi->network.name[0] = 0;
 					vbi->network.label[0] = 0;
-				} else if (id != vbi->network.id) {
+				} else if (id != vbi->network.nuid) {
 					vbi_event ev;
 
-					vbi->network.id = id;
+					vbi->network.nuid = id;
 					strncpy(vbi->network.name, long_name, sizeof(vbi->network.name) - 1);
 					strncpy(vbi->network.label, short_name, sizeof(vbi->network.label) - 1);
 
@@ -1437,7 +1284,7 @@ parse_bsd(struct vbi *vbi, unsigned char *raw, int packet, int designation)
 					vbi_send_event(vbi, &ev);
 				}
 
-				vbi->network.id = id;
+				vbi->network.nuid = id;
 				vbi->network.cycle = 2;
 			}
 #if BSD_TEST
@@ -1508,10 +1355,10 @@ parse_bsd(struct vbi *vbi, unsigned char *raw, int packet, int designation)
 				if (!id) {
 					vbi->network.name[0] = 0;
 					vbi->network.label[0] = 0;
-				} else if (id != vbi->network.id) {
+				} else if (id != vbi->network.nuid) {
 					vbi_event ev;
 
-					vbi->network.id = id;
+					vbi->network.nuid = id;
 					strncpy(vbi->network.name, long_name, sizeof(vbi->network.name) - 1);
 					strncpy(vbi->network.label, short_name, sizeof(vbi->network.label) - 1);
 
@@ -1520,7 +1367,7 @@ parse_bsd(struct vbi *vbi, unsigned char *raw, int packet, int designation)
 					vbi_send_event(vbi, &ev);
 				}
 
-				vbi->network.id = id;
+				vbi->network.nuid = id;
 				vbi->network.cycle = 2;
 			}
 
@@ -1712,8 +1559,8 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 				parse_mip(vbi, vtp);
 				break;
 
-			case PAGE_FUNCTION_ZAP2WEB:
-				zap2web(vbi, vtp);
+			case PAGE_FUNCTION_TRIGGER:
+				eacem_trigger(vbi, vtp);
 				break;
 
 			default:
@@ -1778,7 +1625,7 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 				cvtp->function = PAGE_FUNCTION_BTT;
 				vbi->vt.page_info[0x1F0 - 0x100].code = VBI_TOP_PAGE;
 			} else if (cvtp->pgno == 0x1E7) {
-				cvtp->function = PAGE_FUNCTION_ZAP2WEB;
+				cvtp->function = PAGE_FUNCTION_TRIGGER;
 				vbi->vt.page_info[0x1E7 - 0x100].code = VBI_DISP_SYSTEM_PAGE;
 				vbi->vt.page_info[0x1E7 - 0x100].subcode = 0;
 				memset(cvtp->data.unknown.raw[0], 0x20, sizeof(cvtp->data.unknown.raw));
@@ -1933,7 +1780,7 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 			break;
 
 		case PAGE_FUNCTION_LOP:
-		case PAGE_FUNCTION_ZAP2WEB:
+		case PAGE_FUNCTION_TRIGGER:
 			for (n = i = 0; i < 40; i++)
 				n |= parity(p[i]);
 			if (n < 0)
@@ -1974,7 +1821,7 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 			vbi_teletext_desync(vbi);
 			return TRUE;
 
-		case PAGE_FUNCTION_ZAP2WEB:
+		case PAGE_FUNCTION_TRIGGER:
 		default:
 		}
 
