@@ -2301,12 +2301,12 @@ tveng_attach_mixer_line		(tveng_device_info *	info,
   info->control_mute = NULL;
   info->audio_mutable = 0;
 
-  if (mixer && mixer_line)
+  if (mixer && line)
     printv ("Attaching mixer %s (%s %s), line %s\n",
 	    mixer->node.device,
 	    mixer->node.label,
 	    mixer->node.driver,
-	    mixer_line->label);
+	    line->label);
   else
     printv ("Removing mixer\n");
 

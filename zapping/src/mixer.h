@@ -3,6 +3,6 @@
 
 /* Startup/shutdown, as usual */
 void		startup_mixer(tveng_device_info *info);
-void		shutdown_mixer(void);
+void		shutdown_mixer(tveng_device_info *info);
 
 #endif

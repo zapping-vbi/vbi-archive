@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-03-03 18:38+0100\n"
+"POT-Creation-Date: 2005-04-05 21:50+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -594,32 +594,32 @@ msgstr ""
 #. hash collision code
 #. hash collision code
 #. Warn
-#: plugins/alirc/alirc.c:375 plugins/mpeg/mpeg.c:2203
+#: plugins/alirc/alirc.c:375 plugins/mpeg/mpeg.c:2212
 #: plugins/screenshot/screenshot.c:1645
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr ""
 
-#: plugins/deinterlace/main.c:340
+#: plugins/deinterlace/main.c:348
 msgid "Could not start deinterlace plugin"
 msgstr ""
 
-#: plugins/deinterlace/main.c:341
+#: plugins/deinterlace/main.c:349
 #, c-format
 msgid "Could not switch to capture format YUYV %u x %u."
 msgstr ""
 
-#: plugins/deinterlace/main.c:434
+#: plugins/deinterlace/main.c:442
 msgid "Deinterlace"
 msgstr ""
 
-#: plugins/deinterlace/main.c:441 plugins/mpeg/mpeg.c:1525
-#: plugins/mpeg/mpeg.c:2137 plugins/screenshot/screenshot.c:509
+#: plugins/deinterlace/main.c:449 plugins/mpeg/mpeg.c:1534
+#: plugins/mpeg/mpeg.c:2146 plugins/screenshot/screenshot.c:509
 #: plugins/screenshot/screenshot.c:1408 plugins/teletext/main.c:258
 msgid "Plugins"
 msgstr ""
 
-#: plugins/deinterlace/main.c:521
+#: plugins/deinterlace/main.c:529
 msgid "Deinterlace plugin"
 msgstr ""
 
@@ -718,23 +718,19 @@ msgstr ""
 msgid "Even Scanlines Only"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_Greedy.c:77
+#: plugins/deinterlace/DI_Misc/DI_Greedy.c:212
 msgid "Greedy Max Comb"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_Greedy.c:88
+#: plugins/deinterlace/DI_Misc/DI_Greedy.c:223
 msgid "Video (Greedy, Low Motion)"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c:78
+#: plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c:229
 msgid "Greedy 2 Frame Luma Threshold"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c:84
-msgid "Greedy 2 Frame Chroma Threshold"
-msgstr ""
-
-#: plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c:96
+#: plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c:241
 msgid "Greedy 2 Frame"
 msgstr ""
 
@@ -742,15 +738,15 @@ msgstr ""
 msgid "Odd Scanlines Only"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_OldGame.c:147
+#: plugins/deinterlace/DI_Misc/DI_OldGame.c:226
 msgid "Maximum motion"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_OldGame.c:153
+#: plugins/deinterlace/DI_Misc/DI_OldGame.c:232
 msgid "Composite mode"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_OldGame.c:165
+#: plugins/deinterlace/DI_Misc/DI_OldGame.c:243
 msgid "Old Game"
 msgstr ""
 
@@ -758,43 +754,43 @@ msgstr ""
 msgid "Scaler Bob"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_TwoFrame.c:78
+#: plugins/deinterlace/DI_Misc/DI_TwoFrame.c:282
 msgid "2 Frame Spatial Tolerance"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_TwoFrame.c:84
+#: plugins/deinterlace/DI_Misc/DI_TwoFrame.c:288
 msgid "2 Frame Temporal Tolerance"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_TwoFrame.c:95
+#: plugins/deinterlace/DI_Misc/DI_TwoFrame.c:299
 msgid "Video Deinterlace (2-Frame)"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_VideoBob.c:82
+#: plugins/deinterlace/DI_Misc/DI_VideoBob.c:214
 msgid "Weave Edge Detect"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_VideoBob.c:88
+#: plugins/deinterlace/DI_Misc/DI_VideoBob.c:220
 msgid "Weave Jaggie Threshold"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_VideoBob.c:99
+#: plugins/deinterlace/DI_Misc/DI_VideoBob.c:231
 msgid "Video Deinterlace (Bob)"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_VideoWeave.c:79
+#: plugins/deinterlace/DI_Misc/DI_VideoWeave.c:242
 msgid "Temporal Tolerance"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_VideoWeave.c:85
+#: plugins/deinterlace/DI_Misc/DI_VideoWeave.c:248
 msgid "Spatial Tolerance"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_VideoWeave.c:91
+#: plugins/deinterlace/DI_Misc/DI_VideoWeave.c:254
 msgid "Similarity Threshold"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_VideoWeave.c:102
+#: plugins/deinterlace/DI_Misc/DI_VideoWeave.c:265
 msgid "Video Deinterlace (Weave)"
 msgstr ""
 
@@ -819,46 +815,46 @@ msgstr ""
 msgid "Video (TomsMoComp)"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:417
+#: plugins/mpeg/mpeg.c:426
 #, c-format
 msgid "Format %s is incomplete, please configure the video or audio codec."
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:722
+#: plugins/mpeg/mpeg.c:731
 #, c-format
 msgid "Cannot create file %s: %s\n"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:1343
+#: plugins/mpeg/mpeg.c:1352
 msgid "New format"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:1344
+#: plugins/mpeg/mpeg.c:1353
 msgid "Format name:"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:1525 plugins/mpeg/mpeg.c:1994 plugins/mpeg/mpeg.c:2022
-#: plugins/mpeg/mpeg.c:2126 plugins/mpeg/mpeg_properties.glade2.h:6
+#: plugins/mpeg/mpeg.c:1534 plugins/mpeg/mpeg.c:2003 plugins/mpeg/mpeg.c:2031
+#: plugins/mpeg/mpeg.c:2135 plugins/mpeg/mpeg_properties.glade2.h:6
 msgid "Record"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:1814
+#: plugins/mpeg/mpeg.c:1823
 msgid "Not implemented yet"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:1987
+#: plugins/mpeg/mpeg.c:1996
 msgid "Record a video stream"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:2072
+#: plugins/mpeg/mpeg.c:2081
 msgid "Audio/Video Recorder"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:2075
+#: plugins/mpeg/mpeg.c:2084
 msgid "This plugin records video and audio into a file"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:2078
+#: plugins/mpeg/mpeg.c:2087
 msgid "Record video and audio."
 msgstr ""
 
@@ -1690,8 +1686,8 @@ msgstr ""
 msgid "Shortcut"
 msgstr ""
 
-#: src/main.c:164 src/tveng.c:2251 src/tveng1.c:1126 src/tveng25.c:495
-#: src/tvengbktr.c:412 src/tvengxv.c:578
+#: src/main.c:164 src/tveng.c:2251 src/tveng1.c:1123 src/tveng25.c:495
+#: src/tvengbktr.c:413 src/tvengxv.c:578
 msgid "Mute"
 msgstr ""
 
@@ -2131,30 +2127,30 @@ msgstr ""
 msgid "Language 2"
 msgstr ""
 
-#: src/tveng1.c:1178
+#: src/tveng1.c:1175
 msgid "Frame Rate"
 msgstr ""
 
 #. TRANSLATORS: PWC driver control.  In 'Snapshot' mode the
 #. camera freezes its automatic exposure and colour balance
 #. controls.
-#: src/tveng1.c:1191
+#: src/tveng1.c:1188
 msgid "Snapshot Mode"
 msgstr ""
 
-#: src/tveng25.c:476 src/tvengbktr.c:381 src/tvengbktr.c:398 src/tvengxv.c:572
+#: src/tveng25.c:476 src/tvengbktr.c:382 src/tvengbktr.c:399 src/tvengxv.c:572
 msgid "Brightness"
 msgstr ""
 
-#: src/tveng25.c:477 src/tvengbktr.c:383 src/tvengbktr.c:400 src/tvengxv.c:573
+#: src/tveng25.c:477 src/tvengbktr.c:384 src/tvengbktr.c:401 src/tvengxv.c:573
 msgid "Contrast"
 msgstr ""
 
-#: src/tveng25.c:478 src/tvengbktr.c:385 src/tvengbktr.c:402 src/tvengxv.c:574
+#: src/tveng25.c:478 src/tvengbktr.c:386 src/tvengbktr.c:403 src/tvengxv.c:574
 msgid "Saturation"
 msgstr ""
 
-#: src/tveng25.c:479 src/tvengbktr.c:391 src/tvengbktr.c:410 src/tvengxv.c:575
+#: src/tveng25.c:479 src/tvengbktr.c:392 src/tvengbktr.c:411 src/tvengxv.c:575
 msgid "Hue"
 msgstr ""
 
@@ -2244,15 +2240,15 @@ msgstr ""
 msgid "Sorry, but \"%s\" cannot do streaming"
 msgstr ""
 
-#: src/tvengbktr.c:388
+#: src/tvengbktr.c:389
 msgid "U/V Gain"
 msgstr ""
 
-#: src/tvengbktr.c:405
+#: src/tvengbktr.c:406
 msgid "U Saturation"
 msgstr ""
 
-#: src/tvengbktr.c:407
+#: src/tvengbktr.c:408
 msgid "V Saturation"
 msgstr ""
 

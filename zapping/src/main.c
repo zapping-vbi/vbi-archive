@@ -553,7 +553,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.199 2005-03-30 21:25:15 mschimek Exp $",
+	 "$Id: main.c,v 1.200 2005-04-05 19:53:19 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
 
   cpu_detection ();
@@ -1095,7 +1095,7 @@ void shutdown_zapping(void)
    * The mixer code.
    */
   printv(" mixer");
-  shutdown_mixer();
+  shutdown_mixer(zapping->info);
 
   /*
    * The plugin properties dialog.
