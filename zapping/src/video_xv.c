@@ -98,8 +98,8 @@ grab_port (tv_pixfmt pixfmt)
 	  ref->refcount ++;
 	  return ref->xvport;
 	}
-      else if (Success == XvGrabPort (GDK_DISPLAY (), ref->xvport,
-				      CurrentTime))
+
+      if (Success == XvGrabPort (GDK_DISPLAY (), ref->xvport, CurrentTime))
 	{
 	  ref->refcount ++;
 	  return ref->xvport;
@@ -130,6 +130,7 @@ ungrab_port (XvPortID	xvport)
 	    XvUngrabPort (GDK_DISPLAY (), xvports[i].xvport,
 			  CurrentTime);
 	  }
+
 	return;
       }
 
@@ -145,16 +146,18 @@ static zimage *
 image_new(tv_pixfmt pixfmt, gint w, gint h)
 {
   zimage *new_image;
-  struct _zimage_private * pimage =
-    g_malloc0(sizeof(struct _zimage_private));
-  void * image_data = NULL;
+  struct _zimage_private *pimage;
+  void *image_data;
   tv_pixel_format format;
-  XvPortID xvport = grab_port (pixfmt);
+  XvPortID xvport;
+
+  xvport = grab_port (pixfmt);
+  if (None == xvport)
+    return NULL; /* Cannot grab a suitable port */
+
+  pimage = g_malloc0 (sizeof (*pimage));
 
   tv_pixfmt_to_pixel_format (&format, pixfmt, 0);
-
-  if (xvport == None)
-    return NULL; /* Cannot grab a suitable port */
 
   pimage -> uses_shm = FALSE;
 
@@ -171,20 +174,18 @@ image_new(tv_pixfmt pixfmt, gint w, gint h)
 	  pimage->uses_shm = TRUE;
 
 	  pimage->shminfo.shmid =
-	    shmget(IPC_PRIVATE, pimage->image->data_size,
-		   IPC_CREAT | 0777);
+	    shmget (IPC_PRIVATE, pimage->image->data_size, IPC_CREAT | 0777);
 
-	  if (pimage->shminfo.shmid == -1)
+	  if (-1 == pimage->shminfo.shmid)
             {
 	      goto shm_error;
 	    }
 	  else
 	    {
 	      pimage->shminfo.shmaddr =
-		pimage->image->data = shmat(pimage->shminfo.shmid, 0, 0);
+		shmat (pimage->shminfo.shmid, NULL /* anywhere */, 0);
 
-	      shmctl(pimage->shminfo.shmid, IPC_RMID, 0);
-	      /* destroy when we terminate, now if shmat failed */
+	      pimage->image->data = pimage->shminfo.shmaddr;
 
 	      if (pimage->shminfo.shmaddr == (void *) -1)
 	        goto shm_error;
@@ -199,6 +200,12 @@ image_new(tv_pixfmt pixfmt, gint w, gint h)
 		  pimage->image = NULL;
 	          pimage->uses_shm = FALSE;
 		}
+
+	      XSync (GDK_DISPLAY(), False);
+
+	      /* Free the memory when the last attached
+		 process quits or aborts. */
+	      shmctl(pimage->shminfo.shmid, IPC_RMID, 0);
 	    }
 	}
     }
@@ -378,8 +385,12 @@ unset_destination(tveng_device_info *info)
 static gboolean
 suggest_format (void)
 {
-  tv_pixfmt pixfmt;
+  /*  tv_pixfmt pixfmt;*/
 
+/* FIXME suggest what (as capture format)? We should
+   not suggest anything, just list supported formats and
+   how expensive they are in terms of CPU and memory usage. */
+#if 0
   for (pixfmt = 0; pixfmt < TV_MAX_PIXFMTS; pixfmt++)
     if (TV_PIXFMT_SET_ALL & TV_PIXFMT_SET (pixfmt))
       if (formats[pixfmt].num_ports > 0)
@@ -387,11 +398,11 @@ suggest_format (void)
 	  capture_fmt fmt;
 	  fmt.pixfmt = pixfmt;
 	  fmt.locked = FALSE;
-	  if (suggest_capture_format (&fmt) != -1)
+	  if (-1 != suggest_capture_format (&fmt))
 	    /* Capture format granted */
 	    return TRUE;
 	}
-
+#endif
   return FALSE;
 }
 
@@ -563,6 +574,41 @@ traverse_ports			(Display *		display,
 	  case TV_PIXFMT_VYUY:
 	    register_port (xvport, pixfmt,
 			   pImageFormats[j].id, FALSE, index);
+	    break;
+
+	  case TV_PIXFMT_RGBA24_LE:
+	  case TV_PIXFMT_RGBA24_BE:
+	  case TV_PIXFMT_BGRA24_LE:
+	  case TV_PIXFMT_BGRA24_BE:
+	  case TV_PIXFMT_RGB24_LE:
+	  case TV_PIXFMT_BGR24_LE:
+	  case TV_PIXFMT_RGB16_LE:
+	  case TV_PIXFMT_RGB16_BE:
+	  case TV_PIXFMT_BGR16_LE:
+	  case TV_PIXFMT_BGR16_BE:
+	  case TV_PIXFMT_RGBA15_LE:
+	  case TV_PIXFMT_RGBA15_BE:
+	  case TV_PIXFMT_BGRA15_LE:
+	  case TV_PIXFMT_BGRA15_BE:
+	  case TV_PIXFMT_ARGB15_LE:
+	  case TV_PIXFMT_ARGB15_BE:
+	  case TV_PIXFMT_ABGR15_LE:
+	  case TV_PIXFMT_ABGR15_BE:
+	  case TV_PIXFMT_RGBA12_LE:
+	  case TV_PIXFMT_RGBA12_BE:
+	  case TV_PIXFMT_BGRA12_LE:
+	  case TV_PIXFMT_BGRA12_BE:
+	  case TV_PIXFMT_ARGB12_LE:
+	  case TV_PIXFMT_ARGB12_BE:
+	  case TV_PIXFMT_ABGR12_LE:
+	  case TV_PIXFMT_ABGR12_BE:
+	  case TV_PIXFMT_RGB8:
+	  case TV_PIXFMT_BGR8:
+	  case TV_PIXFMT_RGBA7:
+	  case TV_PIXFMT_BGRA7:
+	  case TV_PIXFMT_ARGB7:
+	  case TV_PIXFMT_ABGR7:
+	    register_port (xvport, pixfmt, pImageFormats[j].id, FALSE, index);
 	    break;
 
 	  default:
