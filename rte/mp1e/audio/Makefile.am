@@ -13,4 +13,4 @@ libaudio_la_SOURCES = \
 	filter.c filter_mmx.s \
 	mp2.c mpeg.h audio.h \
 	psycho.c tables.c \
-	alsa.c esd.c oss.c afl.c
+	alsa.c esd.c arts.c oss.c afl.c

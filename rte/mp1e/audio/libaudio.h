@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libaudio.h,v 1.10 2001-11-05 08:25:44 mschimek Exp $ */
+/* $Id: libaudio.h,v 1.11 2002-01-21 07:41:04 mschimek Exp $ */
 
 #include "../common/fifo.h"
 #include "../systems/libsystems.h"
@@ -61,4 +61,5 @@ extern char *		mix_sources(void);
 extern fifo *		open_pcm_oss(char *dev_name, int sampling_rate, bool stereo);
 extern fifo *		open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo);
 extern fifo *		open_pcm_esd(char *, int sampling_rate, bool stereo);
+extern fifo *		open_pcm_arts(char *, int sampling_rate, bool stereo);
 extern fifo *		open_pcm_afl(char *name, int, bool);

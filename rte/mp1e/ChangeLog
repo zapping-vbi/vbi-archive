@@ -1,3 +1,9 @@
+2002-01-18	Fixes <mschimek@users.sf.net>
+
+	* Improved timestamping in audio&video interfaces.
+	* audio/arts.c: Added, ported from Zapping. (Just for
+	  completeness, stinks no less than the ESD interface.)
+
 2002-01-13	Fixes <mschimek@users.sf.net>
 
 	* test/preview.c: Restored.

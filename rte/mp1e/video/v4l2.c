@@ -1,7 +1,7 @@
 /*
  *  MPEG-1 Real Time Encoder
  *
- *  Copyright (C) 1999-2001 Michael H. Schimek
+ *  Copyright (C) 1999, 2000, 2001, 2002 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.9 2001-11-22 17:51:07 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.10 2002-01-21 07:41:04 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -42,8 +42,6 @@
 
 #define IOCTL(fd, cmd, data) (TEMP_FAILURE_RETRY(ioctl(fd, cmd, data)))
 
-#ifdef V4L2_MAJOR_VERSION
-
 static int			fd;
 static fifo			cap_fifo;
 static producer			cap_prod;
@@ -57,11 +55,15 @@ static struct v4l2_requestbuffers vrbuf;
 
 static struct v4l2_control	old_mute;
 
-static double			cap_time;
-static double			frame_period_near;
-static double			frame_period_far;
+static pthread_t		thread_id;
+static struct tfmem		tfmem;
+static const int		syncio = TRUE;
 
 #define VIDIOC_PSB _IOW('v', 193, int)
+
+#undef V4L2_DROP_TEST
+#undef V4L2_TF_TEST
+#undef V4L2_TOD_STAMPS
 
 static char *
 le4cc2str(int n)
@@ -79,27 +81,80 @@ le4cc2str(int n)
 	return buf;
 }
 
-static inline void
-timestamp(buffer *b)
+/* We don't need this here, but I can't test v4l directly */
+static inline double
+timestamp1(buffer *b)
 {
+	static double cap_time = 0.0;
+	static double frame_period_near;
+	static double frame_period_far;
 	double now = current_time();
 
 	if (cap_time > 0) {
 		double dt = now - cap_time;
 		double ddt = frame_period_far - dt;
 
-		if (frame_period_near < frame_period_far * 1.5) {
+		if (fabs(frame_period_near) < frame_period_far * 1.5) {
 			frame_period_near = (frame_period_near - dt) * 0.8 + dt;
 			frame_period_far = ddt * 0.9999 + dt;
-			b->time = cap_time += frame_period_far;
+			cap_time += frame_period_far;
 		} else {
 			frame_period_near = frame_period_far;
-			b->time = cap_time = now;
+			cap_time = now;
 		}
+#if 0
+		printv(0, "now %f dt %+f ddt %+f n %+f f %+f\n",
+		       now, dt, ddt, frame_period_near, frame_period_far);
+#endif
 	} else {
-		b->time = cap_time = now;
+		cap_time = now;
+		frame_period_near = tfmem.ref;
+		frame_period_far = tfmem.ref;
 	}
+
+	return cap_time;
 }
+
+static inline double
+timestamp2(buffer *b)
+{
+	static double cap_time = 0.0;
+	static double dt_acc;
+	double now = current_time();
+
+	if (cap_time > 0) {
+		double dt = now - cap_time;
+
+		dt_acc += (dt - dt_acc) * 0.1;
+
+		if (dt_acc > tfmem.ref * 1.5) {
+			/* bah. */
+#if 0
+			printv(0, "video dropped %f > %f * 1.5\n",
+			       dt_acc, tfmem.ref);
+#endif
+			tfmem.err -= dt_acc;
+			cap_time = now;
+			dt_acc = tfmem.ref;
+		} else {
+			cap_time += mp1e_timestamp_filter
+				(&tfmem, dt, 0.001, 1e-7, 0.1);
+		}
+#if 0
+		printv(0, "now %f dt %+f dta %+f err %+f t/b %+f\n",
+		       now, dt, dt_acc, tfmem.err, tfmem.ref);
+#endif
+	} else {
+		cap_time = now;
+		dt_acc = tfmem.ref;
+	}
+
+	return cap_time;
+}
+
+/*
+ *  Synchronous I/O
+ */
 
 static bool
 capture_on(fifo *unused)
@@ -118,7 +173,7 @@ wait_full(fifo *f)
 	buffer *b;
 	int r = -1;
 
-#if 0
+#ifdef V4L2_DROP_TEST
 drop:
 #endif
 	for (r = -1; r <= 0;) {
@@ -144,19 +199,22 @@ drop:
 	ASSERT("dequeue capture buffer",
 		IOCTL(fd, VIDIOC_DQBUF, &vbuf) == 0);
 
-	b = buffers + vbuf.index;
-
-#if 0
-	if (1 && (rand() % 100) > 95) {
+#ifdef V4L2_DROP_TEST
+	if ((rand() % 100) > 95) {
+		ASSERT("enqueue capture buffer",
+		       IOCTL(fd, VIDIOC_QBUF, &vbuf) == 0);
 		fprintf(stderr, "drop\n");
 		goto drop;
 	}
+#endif
+	b = buffers + vbuf.index;
 
-	timestamp(b);
-#elif 1
-	b->time = vbuf.timestamp * (1 / 1e9); // UST, currently TOD
-#else
+#if defined(V4L2_TF_TEST)
+	b->time = timestamp2(b);
+#elif defined(V4L2_TOD_STAMPS)
 	b->time = current_time();
+#else
+	b->time = vbuf.timestamp * (1 / 1e9); // UST, currently TOD
 #endif
 	send_full_buffer(&cap_prod, b);
 }
@@ -177,6 +235,70 @@ send_empty(consumer *c, buffer *b)
 	ASSERT("enqueue capture buffer",
 		IOCTL(fd, VIDIOC_QBUF, &vbuf) == 0);
 }
+
+/*
+ *  Asynchronous I/O
+ */
+
+static void *
+v4l2_cap_thread(void *unused)
+{
+	int str_type = V4L2_BUF_TYPE_CAPTURE;
+
+	ASSERT("start capturing",
+	       IOCTL(fd, VIDIOC_STREAMON, &str_type) == 0);
+
+	printv(0, "TEST - v4l2 thread\n");
+
+	for (;;) {
+		struct v4l2_buffer vbuf;
+		struct timeval tv;
+		fd_set fds;
+		buffer *b;
+		int r = -1;
+
+		b = wait_empty_buffer(&cap_prod);
+
+		for (r = -1; r <= 0;) {
+			FD_ZERO(&fds);
+			FD_SET(fd, &fds);
+
+			tv.tv_sec = 2;
+			tv.tv_usec = 0;
+
+			r = select(fd + 1, &fds, NULL, NULL, &tv);
+
+			if (r < 0 && errno == EINTR)
+				continue;
+
+			if (r == 0)
+				FAIL("Video capture timeout");
+
+			ASSERT("execute select", r > 0);
+		}
+
+		vbuf.type = V4L2_BUF_TYPE_CAPTURE;
+
+		ASSERT("dequeue capture buffer",
+		       IOCTL(fd, VIDIOC_DQBUF, &vbuf) == 0);
+
+		b->time = timestamp2(b);
+
+		b->used = buffers[vbuf.index].used;
+		memcpy(b->data, buffers[vbuf.index].data, b->used);
+
+		ASSERT("enqueue capture buffer",
+		       IOCTL(fd, VIDIOC_QBUF, &vbuf) == 0);
+
+		send_full_buffer(&cap_prod, b);
+	}
+
+	return NULL;
+}
+
+/*
+ *  Initialization 
+ */
 
 static void
 mute_restore(void)
@@ -226,9 +348,7 @@ v4l2_init(double *frame_rate)
 
 	*frame_rate = (double) vstd.framerate.denominator /
 				vstd.framerate.numerator;
-	frame_period_near =
-	frame_period_far = 1.0 / *frame_rate;
-	cap_time = 0.0;
+	mp1e_timestamp_init(&tfmem, 1.0 / *frame_rate);
 
 	if (*frame_rate > 29.0 && grab_height == 288)
 		grab_height = 240;
@@ -237,7 +357,6 @@ v4l2_init(double *frame_rate)
 
 	if (PROGRESSIVE(filter_mode)) {
 		FAIL("Sorry, progressive mode out of order\n");
-//		vseg.frame_rate_code += 3; // see frame_rate_value[]
 		min_cap_buffers++;
 	}
 
@@ -408,13 +527,15 @@ v4l2_init(double *frame_rate)
 	ASSERT("allocate capture buffers",
 		(buffers = calloc(vrbuf.count, sizeof(buffer))));
 
-	init_callback_fifo(&cap_fifo, "video-v4l2",
-		NULL, NULL, wait_full, send_empty, 0, 0);
+	if (syncio) {
+		init_callback_fifo(&cap_fifo, "video-v4l2",
+				   NULL, NULL, wait_full, send_empty, 0, 0);
 
-	ASSERT("init capture producer",
-		add_producer(&cap_fifo, &cap_prod));
+		ASSERT("init capture producer",
+		       add_producer(&cap_fifo, &cap_prod));
 
-	cap_fifo.start = capture_on;
+		cap_fifo.start = capture_on;
+	}
 
 	// Map capture buffers
 
@@ -438,7 +559,8 @@ v4l2_init(double *frame_rate)
 			else
 				ASSERT("map capture buffer #%d", 0, i);
 		} else {
-			add_buffer(&cap_fifo, buffers + i);
+			if (syncio)
+				add_buffer(&cap_fifo, buffers + i);
 
 			buffers[i].data = p;
 			buffers[i].used = vbuf.length;
@@ -452,7 +574,20 @@ v4l2_init(double *frame_rate)
 	if (i < min_cap_buffers)
 		FAIL("Cannot allocate enough (%d) capture buffers", min_cap_buffers);
 
+	if (!syncio) {
+		ASSERT("initialize v4l2-async fifo",
+		       init_buffered_fifo(&cap_fifo, "video-v4l2-async",
+					  i, buffers[0].used));
+
+		ASSERT("init v4l2-async capture producer",
+		       add_producer(&cap_fifo, &cap_prod));
+
+		ASSERT("create v4l2-async capture thread",
+		       !pthread_create(&thread_id, NULL,
+				       v4l2_cap_thread, NULL));
+
+		printv(2, "V4L2 capture thread launched\n");
+	}
+
 	return &cap_fifo;
 }
-
-#endif // V4L2

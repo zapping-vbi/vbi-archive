@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.22 2001-12-16 18:06:31 garetxe Exp $ */
+/* $Id: main.c,v 1.23 2002-01-21 07:41:04 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -201,8 +201,13 @@ main(int ac, char **av)
 			/* XXX */ pcm = (struct pcm_context *) audio_cap_fifo->user_data;
 		} else if (!strcasecmp(pcm_dev, "esd")) {
 			audio_parameters(&sampling_rate, &audio_bit_rate);
-			mix_init(); /* fixme: esd_mix_init? */
+			mix_init();
 			audio_cap_fifo = open_pcm_esd(pcm_dev, sampling_rate, stereo);
+			/* XXX */ pcm = (struct pcm_context *) audio_cap_fifo->user_data;
+		} else if (!strcasecmp(pcm_dev, "arts")) {
+			audio_parameters(&sampling_rate, &audio_bit_rate);
+			mix_init();
+			audio_cap_fifo = open_pcm_arts(pcm_dev, sampling_rate, stereo);
 			/* XXX */ pcm = (struct pcm_context *) audio_cap_fifo->user_data;
 		} else {
 			ASSERT("test file type of '%s'", !stat(pcm_dev, &st), pcm_dev);

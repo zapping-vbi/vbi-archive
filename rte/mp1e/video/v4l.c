@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.15 2001-11-27 04:38:24 mschimek Exp $ */
+/* $Id: v4l.c,v 1.16 2002-01-21 07:41:04 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -46,6 +46,7 @@ static producer			cap_prod;
 
 static struct video_audio	old_vaud;
 static pthread_t		thread_id;
+static struct tfmem		tfmem;
 
 static int			use_mmap = 0;
 static int			gb_frame = 0;
@@ -53,42 +54,43 @@ static struct video_mmap	gb_buf;
 static struct video_mbuf	gb_buffers;
 static unsigned char *		video_buf;
 
-static double			cap_time;
-static double			frame_period_near;
-static double			frame_period_far;
-
 #define IOCTL(fd, cmd, data) (TEMP_FAILURE_RETRY(ioctl(fd, cmd, data)))
 #define CLEAR(var) (memset((var), 0, sizeof(*(var))))
 
-/*
- * a) Assume no driver provides more than two buffers.
- * b) Assume we can't enqueue buffers out of order.
- * c) Assume frames drop unless we dequeue once every 33-40 ms.
- *
- * What a moron's moronic moronity. See v4l2.c for a slick interface.
- */
-
-static inline void
-timestamp(buffer *b)
+static inline double
+timestamp2(buffer *b)
 {
+	static double cap_time = 0.0;
+	static double dt_acc;
 	double now = current_time();
 
 	if (cap_time > 0) {
 		double dt = now - cap_time;
-		double ddt = frame_period_far - dt;
 
-		if (fabs(frame_period_near)
-		    < frame_period_far * 1.5) {
-			frame_period_near = (frame_period_near - dt) * 0.8 + dt;
-			frame_period_far = ddt * 0.9999 + dt;
-			b->time = cap_time += frame_period_far;
+		dt_acc += (dt - dt_acc) * 0.1;
+
+		if (dt_acc > tfmem.ref * 1.5) {
+			/* bah. */
+#if 0
+			printv(0, "video dropped %f > %f * 1.5\n",
+			       dt_acc, tfmem.ref);
+#endif
+			cap_time = now;
+			dt_acc = tfmem.ref;
 		} else {
-			frame_period_near = frame_period_far;
-			b->time = cap_time = now;
+			cap_time += mp1e_timestamp_filter
+				(&tfmem, dt, 0.001, 1e-7, 0.1);
 		}
+#if 0
+		printv(0, "now %f dt %+f dta %+f err %+f t/b %+f\n",
+		       now, dt, dt_acc, tfmem.err, tfmem.ref);
+#endif
 	} else {
-		b->time = cap_time = now;
+		cap_time = now;
+		dt_acc = tfmem.ref;
 	}
+
+	return cap_time;
 }
 
 static void *
@@ -97,9 +99,6 @@ v4l_cap_thread(void *unused)
 	buffer *b;
 
 	for (;;) {
-		/* Just in case wait_empty_buffer never waits */
-		pthread_testcancel();
-
 		b = wait_empty_buffer(&cap_prod);
 
 		if (use_mmap) {
@@ -113,7 +112,7 @@ v4l_cap_thread(void *unused)
 			if (IOCTL(fd, VIDIOCSYNC, &gb_frame) < 0)
 				ASSERT("VIDIOCSYNC", errno == EAGAIN);
 
-			timestamp(b);
+			b->time = timestamp2(b);
 
 			/* NB: typ. 3-20 MB/s, a horrible waste of cycles. */
 			if (filter_mode != CM_YVU)
@@ -154,7 +153,7 @@ v4l_cap_thread(void *unused)
 				n -= r;
 			}
 
-			timestamp(b);
+			b->time = timestamp2(b);
 
 			b->used = b->size;
 		}
@@ -248,17 +247,15 @@ v4l_init(double *frame_rate)
 	case VIDEO_MODE_PAL:
 	case VIDEO_MODE_SECAM:
 		printv(2, "Video standard is PAL/SECAM\n");
-		cap_time = 0;
-		frame_period_near =
-		frame_period_far = 1 / 25.0;
+		*frame_rate = 25.0;
+		mp1e_timestamp_init(&tfmem, 1 / 25.0);
 		max_height = 576;
 		break;
 
 	case VIDEO_MODE_NTSC:
 		printv(2, "Video standard is NTSC\n");
-		cap_time = 0;
-		frame_period_near =
-		frame_period_far = 1001 / 30000.0;
+		*frame_rate = 30000 / 1001.0;
+		mp1e_timestamp_init(&tfmem, 1001 / 30000.0);
 		max_height = 480;
 		if (grab_height == 288) /* that's the default, assuming PAL */
 			grab_height = 240;
@@ -271,7 +268,6 @@ v4l_init(double *frame_rate)
 		break;
 	}
 
-	*frame_rate = 1.0 / frame_period_far;
 
 
 	grab_width = saturate(grab_width, 1, MAX_WIDTH);
@@ -459,7 +455,7 @@ v4l_init(double *frame_rate)
         }
 
 	ASSERT("initialize v4l fifo", init_buffered_fifo(
-		&cap_fifo, "video-v4l2",
+		&cap_fifo, "video-v4l",
 		buf_count, buf_size));
 
 	printv(2, "Allocated %d bounce buffers.\n", buf_count);

@@ -3,7 +3,7 @@
  *  ESD [Enlightened Sound Daemon] interface
  *
  *  Copyright (C) 2000 Iñaki G.E.
- *  Modified 2001-09 Michael H. Schimek
+ *  Modified 2001, 2002 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: esd.c,v 1.9 2001-10-19 06:57:56 mschimek Exp $ */
+/* $Id: esd.c,v 1.10 2002-01-21 07:41:04 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -42,9 +42,10 @@ struct esd_context {
 	struct pcm_context	pcm;
 	int			socket;
 	double			time;
-	double			buffer_period_near;
-	double			buffer_period_far;
+	struct tfmem		tfmem;
 };
+
+#define ESD_TIME_LOG(x) x /* x */
 
 static void
 wait_full(fifo *f)
@@ -85,30 +86,27 @@ wait_full(fifo *f)
 		n -= r;
 	}
 
+	/* Awful. */
 	now = current_time();
 
 	if (esd->time > 0) {
 		double dt = now - esd->time;
-		double ddt = esd->buffer_period_far - dt;
 
-		if (fabs(esd->buffer_period_near)
-		    < esd->buffer_period_far * 1.5) {
-			esd->buffer_period_near =
-				(esd->buffer_period_near - dt) * 0.8 + dt;
-			esd->buffer_period_far = ddt * 0.9999 + dt;
-			b->time = esd->time += esd->buffer_period_far;
-		} else {
-			esd->buffer_period_near = esd->buffer_period_far;
-			b->time = esd->time = now;
+		/* not reliable enough, let's hope esd cares
+		   if (dt - esd->tfmem.err > esd->tfmem.ref * 1.98) {
+ 			esd->time = now;
+		   } else */
+		{
+			esd->time += mp1e_timestamp_filter
+				(&esd->tfmem, dt, 0.001, 1e-7, 0.05);
 		}
-	} else {
-		b->time = esd->time = now;
-	}
 
-	printv(4, "esd %f %f %f %f\n",
-	       now, esd->time,
-	       esd->buffer_period_near, esd->buffer_period_far);
+		ESD_TIME_LOG(printv(0, "now %f dt %+f err %+f t/b %+f\n",
+				    now, dt, esd->tfmem.err, esd->tfmem.ref));
+	} else
+		esd->time = now;
 
+	b->time = esd->time;
 	b->data = b->allocated;
 
 	send_full_buffer(&esd->pcm.producer, b);
@@ -141,9 +139,8 @@ open_pcm_esd(char *unused, int sampling_rate, bool stereo)
 	buffer_size = 1 << (10 + (sampling_rate > 24000));
 
 	esd->time = 0.0;
-	esd->buffer_period_near =
-		esd->buffer_period_far =
-			buffer_size / (double) sampling_rate;
+	mp1e_timestamp_init(&esd->tfmem,
+			    buffer_size / (double) sampling_rate);
 
 	buffer_size <<= stereo + 1;
 
@@ -158,7 +155,7 @@ open_pcm_esd(char *unused, int sampling_rate, bool stereo)
 	printv(2, "Opened ESD socket\n");
 	printv(3, "ESD format 0x%08x, %d Hz %s, buffer %d bytes = %f s\n",
 		format, sampling_rate, stereo ? "stereo" : "mono",
-		buffer_size, esd->buffer_period_far);
+		buffer_size, esd->tfmem.ref);
 
 	ASSERT("init esd fifo",	init_callback_fifo(
 		&esd->pcm.fifo, "audio-esd",

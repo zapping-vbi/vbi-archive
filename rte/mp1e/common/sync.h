@@ -17,10 +17,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sync.h,v 1.5 2001-10-07 10:55:51 mschimek Exp $ */
+/* $Id: sync.h,v 1.6 2002-01-21 07:41:04 mschimek Exp $ */
 
 #ifndef SYNC_H
 #define SYNC_H
+
+#include <math.h>
 
 #include "threads.h"
 #include "fifo.h"
@@ -95,8 +97,10 @@ mp1e_sync_drift(synchr_stream *str, double time, double elapsed)
 	       (time - str->start_ref) - elapsed);
 
 	if (str->this_module == synchr.time_base) {
-		if (elapsed >= 0.5)
-			synchr.ref_warp = (time - str->start_ref) / elapsed;
+		if (elapsed >= 0.5) {
+			double warp = (time - str->start_ref) / elapsed;
+			synchr.ref_warp += (warp - synchr.ref_warp) * 0.1;
+		}
 
 		drift = 0.0;
 
@@ -108,7 +112,7 @@ mp1e_sync_drift(synchr_stream *str, double time, double elapsed)
 
 		drift = elapsed - ref_time;
 
-		printv(4, "SD%02d ref %f o%f, drift %f s, %f ppm, %f units\n",
+		printv(4, "SD%02d ref %f o%f, drift %+9.6f s, %+9.6f ppm, %+9.6f units\n",
 		       str->this_module, ref_time, elapsed, drift,
 		       elapsed * 1e6 / ref_time - 1e6,
 		       drift / (str->frame_period + str->byte_period));
@@ -117,6 +121,57 @@ mp1e_sync_drift(synchr_stream *str, double time, double elapsed)
 	pthread_mutex_unlock(&synchr.mucon.mutex);
 
 	return drift;
+}
+
+struct tfmem {
+	double			ref;
+	double			err;
+	double			ecr;
+	double			acc;
+};
+
+static inline void
+mp1e_timestamp_init(struct tfmem *m, double ref)
+{
+	m->ref = ref;
+	m->err = 0.0;
+	m->ecr = 0.0;
+	m->acc = 0.0;
+}
+
+static inline double
+mp1e_timestamp_filter(struct tfmem *m, double dt,
+		      double a, double b, double c)
+{
+	/* NB a,b,c are const */
+	double err, vel, acc;
+
+	/* error */
+	err = dt - m->ref;
+
+	/* integrated error */
+	err = (err - m->err) * a + m->err;
+
+	/* error change */
+	vel = err - m->err;
+	m->err = err;
+
+	/* change rate */
+	acc = vel - m->acc;
+
+	if (fabs(acc - m->ecr) < b) {
+		m->ref += c * vel;
+		m->ref += c * c * c * c * err;
+		m->acc = acc;
+	}
+
+	m->ecr = acc;
+
+#if 0
+	fprintf(stderr, "dt %+f err %+f vel %+f acc %+f ref %f\n",
+		dt, err, vel, acc, m->ref);
+#endif
+	return m->ref;
 }
 
 #endif /* SYNC_H */

@@ -2,7 +2,7 @@
  *  MPEG-1 Real Time Encoder
  *  Open Sound System interface
  *
- *  Copyright (C) 1999-2001 Michael H. Schimek
+ *  Copyright (C) 1999, 2000, 2001, 2002 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: oss.c,v 1.14 2001-12-07 06:50:24 mschimek Exp $ */
+/* $Id: oss.c,v 1.15 2002-01-21 07:41:04 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -45,9 +45,11 @@
 ({ int __result; do __result = ioctl(fd, cmd, data);			\
    while (__result == -1L && errno == EINTR); __result; })
 
-#define TEST 0
+#define OSS_DROP_TEST(x) /* x */
+#define OSS_TIME_LOG(x) /* x */
 
 extern int test_mode;
+/* 64 - capture raw audio as ./raw-audio */
 
 /*
  *  OSS PCM Device
@@ -57,7 +59,8 @@ struct oss_context {
 	struct pcm_context	pcm;
 
 	int			fd, fd2;
-	double			time, buffer_period;
+	double			time;
+	struct tfmem		tfmem;
 };
 
 static void
@@ -73,58 +76,93 @@ wait_full(fifo *f)
 
 	assert(b->data == NULL); /* no queue */
 
-	for (p = b->allocated, n = b->size; n > 0;) {
-		r = read(oss->fd, p, n);
+	for (;;) {
+		for (p = b->allocated, n = b->size; n > 0;) {
+			r = read(oss->fd, p, n);
 
-		if (r < 0) {
-			ASSERT("read PCM data, %d bytes", errno == EINTR, n);
-			continue;
-		} else if (r == 0) {
-			memset(p, 0, n); /* redundant except 2|4 multiple (panic?) */
-			break;
+			if (r < 0) {
+				ASSERT("read PCM data, %d bytes", errno == EINTR, n);
+				continue;
+			}
+
+			if (r == 0)
+				FAIL("Got EOF from PCM device??");
+
+			p += r;
+			n -= r;
 		}
 
-		p += r;
-		n -= r;
+		r = 5; /* retries */
+
+		do {
+			gettimeofday(&tv1, NULL);
+
+			if (ioctl(oss->fd, SNDCTL_DSP_GETISPACE, &info) != 0) {
+				ASSERT("SNDCTL_DSP_GETISPACE", errno != EINTR);
+				continue;
+			}
+
+			gettimeofday(&tv2, NULL);
+
+			tv2.tv_sec -= tv1.tv_sec;
+			tv2.tv_usec -= tv1.tv_usec + (tv2.tv_sec ? 1000000 : 0);
+
+			/*
+			 *  When the dt is substantial we have been interrupted
+			 *  and must assume info and tv1 are not in sync.
+			 */
+		} while ((tv2.tv_sec > 1 || tv2.tv_usec > 100) && r--);
+
+		now = tv1.tv_sec + tv1.tv_usec * (1 / 1e6);
+
+		OSS_DROP_TEST(if ((rand() % 100) < 90))
+			break;
+
+		printv(0, "drop\n");
 	}
 
-	r = 5;
-
-	do {
-		gettimeofday(&tv1, NULL);
-
-		if (ioctl(oss->fd, SNDCTL_DSP_GETISPACE, &info) != 0) {
-			ASSERT("SNDCTL_DSP_GETISPACE", errno != EINTR);
-			continue;
-		}
-
-		gettimeofday(&tv2, NULL);
-
-		tv2.tv_sec -= tv1.tv_sec;
-		tv2.tv_usec -= tv1.tv_usec + (tv2.tv_sec ? 1000000 : 0);
-	} while ((tv2.tv_sec > 1 || tv2.tv_usec > 100) && r--);
-
-	now = tv1.tv_sec + tv1.tv_usec * (1 / 1e6);
-
-	if ((n -= info.bytes) == 0) /* usually */
-		now -= oss->buffer_period;
+	/*
+	 *  Subtract the number of samples we've read (b->size - n)
+	 *  and the samples still available from the device when
+	 *  sampling the system clock, to arrive at the sampling
+	 *  instant of buffer[0].
+	 */
+	if ((n + info.bytes) == 0) /* usually */
+		now -= oss->tfmem.ref; /* frag size in tod seconds */
 	else
-		now -= (b->size - n) * oss->buffer_period / (double) b->size;
+		now -= (b->size - n + info.bytes)
+			* oss->tfmem.ref / (double) b->size;
 
-	// XXX improveme
-
+	/*
+	 *  SNDCTL_DSP_GETISPACE has only an accuracy of one fragment
+	 *  (one irq per fragment, fragment equal buffer to read as
+	 *  early as possible) plus unknown hw/driver buffering
+	 *  plus unknown irq delay. That's far too inaccurate for
+	 *  my taste, hence the filter.
+	 */
 	if (oss->time > 0) {
 		double dt = now - oss->time;
-		double ddt = oss->buffer_period - dt;
-		double q = 128 * fabs(ddt) / oss->buffer_period;
 
-		oss->buffer_period = ddt * MIN(q, 0.9999) + dt;
-		b->time = oss->time;
-		oss->time += oss->buffer_period;
+		if (dt - oss->tfmem.err > oss->tfmem.ref * 1.98) {
+			/* data lost, out of sync; XXX 1.98 bad */
+			oss->time = now;
+			OSS_DROP_TEST(printv(0, "dropped dt=%f\n", dt));
+		} else {
+			oss->time += mp1e_timestamp_filter
+				(&oss->tfmem, dt, 0.05, 1e-7, 0.08);
+		}
+
+		OSS_TIME_LOG(printv(0, "now %f dt %+f err %+f t/b %+f\n",
+				    now, dt, oss->tfmem.err, oss->tfmem.ref));
 	} else
-		b->time = oss->time = now;
+		oss->time = now;
 
+	b->time = oss->time;
 	b->data = b->allocated;
+
+	if (test_mode & 64)
+		ASSERT("write raw audio data",
+		       write(oss->fd2, b->data, b->used) == b->used);
 
 	send_full_buffer(&oss->pcm.producer, b);
 }
@@ -165,8 +203,9 @@ open_pcm_oss(char *dev_name, int sampling_rate, bool stereo)
 	oss->pcm.sampling_rate = sampling_rate;
 	oss->pcm.stereo = stereo;
 
-	if (TEST)
-		ASSERT("open raw", (oss->fd2 = open("raw", O_WRONLY | O_CREAT)) != -1);
+	if (test_mode & 64)
+		ASSERT("open raw audio file",
+		       (oss->fd2 = open("raw-audio", O_WRONLY | O_CREAT, 0666)) != -1);
 
 	ASSERT("open OSS PCM device '%s'",
 		(oss->fd = open(dev_name, O_RDONLY)) != -1, dev_name);
@@ -215,8 +254,8 @@ open_pcm_oss(char *dev_name, int sampling_rate, bool stereo)
 		oss_frag_size = 4096; /* bytes */
 
 	oss->time = 0.0;
-	oss->buffer_period = oss_frag_size
-		/ (double)(sampling_rate * sizeof(short) << stereo);
+	mp1e_timestamp_init(&oss->tfmem, oss_frag_size
+		/ (double)(sampling_rate * sizeof(short) << stereo));
 
 	printv(3, "Set %s to signed 16 bit little endian, %d Hz, %s, buffer size %d bytes\n",
 		dev_name, oss->pcm.sampling_rate,
