@@ -17,7 +17,7 @@ Requires: libxml >= 1.4.0
 Requires: libglade >= 0.9
 Requires: gdk-pixbuf >= 0.8
 Requires: libunicode >= 0.4
-Requires: gettext >= 0.10.36
+Requires: gettext >= 0.11.2
 Requires: /usr/bin/consolehelper
 
 %description
@@ -66,6 +66,9 @@ rm -rf %{buildroot}
 %{prefix}/man/man1/*
 
 %changelog
+* Tue Jun 18 2002 Michael H. Schimek <mschimek@users.sourceforge.net>
+- Requires gettext 0.11.2
+
 * Sun Mar 10 2002 Michael H. Schimek <mschimek@users.sf.net>
 - Picked up incorrect dependency on librte-0.4cvs, corrected.
 

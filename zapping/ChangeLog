@@ -1,6 +1,9 @@
-2002-06-16  gettextize  <bug-gnu-gettext@gnu.org>
+2002-06-17	<mschimek@users.sf.net>
 
-	* configure.in (AC_OUTPUT): Add intl/Makefile.
+	* m4, po, config.rpath: Added because cannot use autogen.sh
+	  gettextize --force since gettext 0.11. The fine hack insists
+	  on updating already updated Makefile.am's and configure.in.
+	* po/Rules-quot: s/PACKAGE VERSION/... because msgfmt complains.
 
 2002-06-16  gettextize  <bug-gnu-gettext@gnu.org>
 
