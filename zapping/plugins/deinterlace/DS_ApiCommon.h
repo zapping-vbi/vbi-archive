@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// $Id: DS_ApiCommon.h,v 1.1 2005-01-08 14:54:22 mschimek Exp $
+// $Id: DS_ApiCommon.h,v 1.2 2005-03-30 21:30:52 mschimek Exp $
 ///////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock.  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -23,6 +23,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1  2005/01/08 14:54:22  mschimek
+// *** empty log message ***
+//
 // Revision 1.2  2005/01/08 10:03:12  michael
 // *** empty log message ***
 //
@@ -123,7 +126,7 @@ typedef BOOL (__cdecl SETTING_ONCHANGE)(long NewValue);
 */
 typedef struct
 {
-    char* szDisplayName;
+    const char* szDisplayName;
     SETTING_TYPE Type;
     long LastSavedValue;
     long* pValue;
@@ -133,14 +136,14 @@ typedef struct
     long StepValue;
     long OSDDivider;
     const char** pszList;
-    char* szIniSection;
-    char* szIniEntry;
+    const char* szIniSection;
+    const char* szIniEntry;
     SETTING_ONCHANGE* pfnOnChange;
 } SETTING;
 
 /** Deinterlace functions return true if the overlay is ready to be displayed.
 */
-typedef void (_cdecl MEMCPY_FUNC)(void* pOutput, void* pInput, size_t nSize);
+typedef void (_cdecl MEMCPY_FUNC)(void* pOutput, const void* pInput, size_t nSize);
 
 #define MAX_PICTURE_HISTORY 10
 
