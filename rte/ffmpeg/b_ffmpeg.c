@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_ffmpeg.c,v 1.11 2002-09-26 20:43:14 mschimek Exp $ */
+/* $Id: b_ffmpeg.c,v 1.12 2002-09-27 23:56:44 mschimek Exp $ */
 
 #include <limits.h>
 #include "b_ffmpeg.h"
@@ -1067,11 +1067,13 @@ pcm_s16le_codec = {
 	.av 		= &pcm_s16le_encoder,
 	.options	= OPTION_OPEN_SAMPLING |
 			  OPTION_STEREO,
-        .rte._public = {
-                .stream_type    = RTE_STREAM_AUDIO,
-                .keyword        = "pcm_s16le",
-                .label          = N_("PCM 16 Bit Signed Little Endian"),
-        },
+        .rte = {
+		._public = {
+    			.stream_type    = RTE_STREAM_AUDIO,
+    			.keyword        = "pcm_s16le",
+            		.label          = N_("PCM 16 Bit Signed Little Endian"),
+    		},
+	},
 };
 
 ffmpeg_codec_class
@@ -1079,11 +1081,13 @@ pcm_s16be_codec = {
 	.av 		= &pcm_s16be_encoder,
 	.options	= OPTION_OPEN_SAMPLING |
 			  OPTION_STEREO,
-        .rte._public = {
-                .stream_type    = RTE_STREAM_AUDIO,
-                .keyword        = "pcm_s16be",
-                .label          = N_("PCM 16 Bit Signed Big Endian"),
-        },
+        .rte = {
+		._public = {
+			.stream_type    = RTE_STREAM_AUDIO,
+			.keyword        = "pcm_s16be",
+			.label          = N_("PCM 16 Bit Signed Big Endian"),
+		},
+	},
 };
 
 ffmpeg_codec_class
@@ -1091,11 +1095,13 @@ pcm_u8_codec = {
 	.av		= &pcm_u8_encoder,
 	.options	= OPTION_OPEN_SAMPLING | 
 			  OPTION_STEREO,
-        .rte._public = {
-                .stream_type    = RTE_STREAM_AUDIO,
-                .keyword        = "pcm_u8",
-                .label          = N_("PCM 8 Bit Unsigned"),
-        },
+        .rte = {
+		._public = {
+			.stream_type    = RTE_STREAM_AUDIO,
+			.keyword        = "pcm_u8",
+			.label          = N_("PCM 8 Bit Unsigned"),
+		},
+	},
 };
 
 ffmpeg_codec_class
@@ -1103,11 +1109,13 @@ pcm_alaw_codec = {
 	.av		= &pcm_alaw_encoder,
 	.options	= OPTION_OPEN_SAMPLING | 
 			  OPTION_STEREO,
-        .rte._public = {
-                .stream_type    = RTE_STREAM_AUDIO,
-                .keyword        = "pcm_alaw",
-                .label          = N_("PCM a-Law"),
-        },
+        .rte = {
+		._public = {
+			.stream_type    = RTE_STREAM_AUDIO,
+			.keyword        = "pcm_alaw",
+			.label          = N_("PCM a-Law"),
+		},
+	},
 };
 
 ffmpeg_codec_class
@@ -1115,10 +1123,12 @@ pcm_mulaw_codec = {
 	.av		= &pcm_mulaw_encoder,
 	.options	= OPTION_OPEN_SAMPLING | 
 			  OPTION_STEREO,
-        .rte._public = {
-                .stream_type    = RTE_STREAM_AUDIO,
-                .keyword        = "pcm_mulaw",
-                .label          = N_("PCM mu-Law"),
+        .rte = {
+		._public = {
+			.stream_type    = RTE_STREAM_AUDIO,
+			.keyword        = "pcm_mulaw",
+			.label          = N_("PCM mu-Law"),
+		},
 	},
 };
 
@@ -1128,10 +1138,12 @@ mpeg1_mp2_codec = {
 	.options	= OPTION_MPEG1_AUDIO_BITRATE |
 			  OPTION_MPEG1_SAMPLING |
 			  OPTION_STEREO,
-        .rte._public = {
-                .stream_type    = RTE_STREAM_AUDIO,
-                .keyword        = "mpeg1_audio_layer2",
-                .label          = N_("MPEG-1 Audio Layer II"),
+        .rte = {
+		._public = {
+			.stream_type    = RTE_STREAM_AUDIO,
+			.keyword        = "mpeg1_audio_layer2",
+			.label          = N_("MPEG-1 Audio Layer II"),
+		},
 	},
 };
 
@@ -1141,13 +1153,15 @@ mpeg2_mp2_codec = {
 	.options	= OPTION_MPEG2_AUDIO_BITRATE |
 			  OPTION_MPEG2_SAMPLING |
 			  OPTION_STEREO,
-        .rte._public = {
-                .stream_type    = RTE_STREAM_AUDIO,
-                .keyword        = "mpeg2_audio_layer2",
-                .label          = N_("MPEG-2 Audio Layer II LSF"),
-		.tooltip	= N_("MPEG-2 Low Sampling Frequency extension to MPEG-1 "
-				     "Audio Layer II. Be warned not all MPEG video and "
-				     "audio players support MPEG-2 audio."),
+        .rte = {
+		._public = {
+			.stream_type    = RTE_STREAM_AUDIO,
+			.keyword        = "mpeg2_audio_layer2",
+			.label          = N_("MPEG-2 Audio Layer II LSF"),
+			.tooltip	= N_("MPEG-2 Low Sampling Frequency extension to MPEG-1 "
+					     "Audio Layer II. Be warned not all MPEG video and "
+					     "audio players support MPEG-2 audio."),
+		},
 	},
 };
 
@@ -1157,10 +1171,12 @@ ac3_codec = {
 	.options	= OPTION_AC3_BITRATE |
 			  OPTION_AC3_SAMPLING |
 			  OPTION_STEREO,
-        .rte._public = {
-                .stream_type    = RTE_STREAM_AUDIO,
-                .keyword        = "ac3_audio",
-                .label          = N_("AC3 Audio"),
+        .rte = {
+		._public = {
+			.stream_type    = RTE_STREAM_AUDIO,
+			.keyword        = "ac3_audio",
+			.label          = N_("AC3 Audio"),
+		},
 	},
 };
 
@@ -1171,10 +1187,12 @@ mpeg1_codec = {
 			  OPTION_MOTION_TYPE |
 			  OPTION_I_DIST |
 			  OPTION_P_DIST,
-        .rte._public = {
-                .stream_type    = RTE_STREAM_VIDEO,
-                .keyword        = "mpeg1_video",
-                .label          = N_("MPEG-1 Video"),
+        .rte = {
+		._public = {
+			.stream_type    = RTE_STREAM_VIDEO,
+			.keyword        = "mpeg1_video",
+			.label          = N_("MPEG-1 Video"),
+		},
 	},
 };
 
@@ -1185,10 +1203,12 @@ h263_codec = {
 			  OPTION_MOTION_TYPE |
 			  OPTION_I_DIST |
 			  OPTION_P_DIST,
-        .rte._public = {
-                .stream_type    = RTE_STREAM_VIDEO,
-                .keyword        = "h263_video",
-                .label          = N_("H.263 Video"),
+        .rte = {
+		._public = {
+			.stream_type    = RTE_STREAM_VIDEO,
+			.keyword        = "h263_video",
+			.label          = N_("H.263 Video"),
+		},
 	},
 };
 
@@ -1199,10 +1219,12 @@ h263p_codec = {
 			  OPTION_MOTION_TYPE |
 			  OPTION_I_DIST |
 			  OPTION_P_DIST,
-        .rte._public = {
-                .stream_type    = RTE_STREAM_VIDEO,
-                .keyword        = "h263p_video",
-                .label          = N_("H.263+ Video"),
+        .rte = {
+		._public = {
+			.stream_type    = RTE_STREAM_VIDEO,
+			.keyword        = "h263p_video",
+			.label          = N_("H.263+ Video"),
+		},
 	},
 };
 
@@ -1213,10 +1235,12 @@ rv10_codec = {
 			  OPTION_MOTION_TYPE |
 			  OPTION_I_DIST |
 			  OPTION_P_DIST,
-        .rte._public = {
-                .stream_type    = RTE_STREAM_VIDEO,
-                .keyword        = "rv10_video",
-                .label          = N_("RealVideo 1.0"),
+        .rte = {
+		._public = {
+			.stream_type    = RTE_STREAM_VIDEO,
+			.keyword        = "rv10_video",
+			.label          = N_("RealVideo 1.0"),
+		},
 	},
 };
 
@@ -1224,10 +1248,12 @@ ffmpeg_codec_class
 mjpeg_codec = {
 	.av		= &mjpeg_encoder,
 	.options	= OPTION_OPEN_BITRATE,
-        .rte._public = {
-                .stream_type    = RTE_STREAM_VIDEO,
-                .keyword        = "mjpeg_video",
-                .label          = N_("Motion JPEG"),
+        .rte = {
+		._public = {
+			.stream_type    = RTE_STREAM_VIDEO,
+			.keyword        = "mjpeg_video",
+			.label          = N_("Motion JPEG"),
+		},
 	},
 };
 
@@ -1238,10 +1264,12 @@ mpeg4_codec = {
 			  OPTION_MOTION_TYPE |
 			  OPTION_I_DIST |
 			  OPTION_P_DIST,
-        .rte._public = {
-                .stream_type    = RTE_STREAM_VIDEO,
-                .keyword        = "mpeg4_video",
-                .label          = N_("MPEG-4 Video"),
+        .rte = {
+		._public = {
+			.stream_type    = RTE_STREAM_VIDEO,
+			.keyword        = "mpeg4_video",
+			.label          = N_("MPEG-4 Video"),
+		},
 	},
 };
 
@@ -1252,10 +1280,12 @@ msmpeg4v1_codec = {
 			  OPTION_MOTION_TYPE |
 			  OPTION_I_DIST |
 			  OPTION_P_DIST,
-        .rte._public = {
-                .stream_type    = RTE_STREAM_VIDEO,
-                .keyword        = "msmpeg4v1_video",
-                .label          = N_("MS MPEG-4 V1 Video"),
+        .rte = {
+		._public = {
+			.stream_type    = RTE_STREAM_VIDEO,
+			.keyword        = "msmpeg4v1_video",
+			.label          = N_("MS MPEG-4 V1 Video"),
+		},
 	},
 };
 
@@ -1266,10 +1296,12 @@ msmpeg4v2_codec = {
 			  OPTION_MOTION_TYPE |
 			  OPTION_I_DIST |
 			  OPTION_P_DIST,
-        .rte._public = {
-                .stream_type    = RTE_STREAM_VIDEO,
-                .keyword        = "msmpeg4v2_video",
-                .label          = N_("MS MPEG-4 V2 Video"),
+        .rte = {
+		._public = {
+			.stream_type    = RTE_STREAM_VIDEO,
+			.keyword        = "msmpeg4v2_video",
+			.label          = N_("MS MPEG-4 V2 Video"),
+		},
 	},
 };
 
@@ -1280,10 +1312,12 @@ msmpeg4v3_codec = {
 			  OPTION_MOTION_TYPE |
 			  OPTION_I_DIST |
 			  OPTION_P_DIST,
-        .rte._public = {
-                .stream_type    = RTE_STREAM_VIDEO,
-                .keyword        = "msmpeg4v3_video",
-                .label          = N_("MS MPEG-4 V3 (DivX;-) Video"),
+        .rte = {
+		._public = {
+			.stream_type    = RTE_STREAM_VIDEO,
+			.keyword        = "msmpeg4v3_video",
+			.label          = N_("MS MPEG-4 V3 (DivX;-) Video"),
+		},
 	},
 };
 
@@ -1488,12 +1522,14 @@ extern AVFormat avi_format;
 
 static ffmpeg_context_class
 ffmpeg_riff_wave_context = {
-	.rte._public = {
-		.keyword	= "ffmpeg_riff_wave",
-		.label		= N_("RIFF-WAVE Audio"),
-		.min_elementary	= { 0, 0, 1 },
-		.max_elementary	= { 0, 0, 1 },
-		.flags		= RTE_FLAG_SEEKS,
+	.rte = {
+		._public = {
+			.keyword	= "ffmpeg_riff_wave",
+			.label		= N_("RIFF-WAVE Audio"),
+			.min_elementary	= { 0, 0, 1 },
+			.max_elementary	= { 0, 0, 1 },
+			.flags		= RTE_FLAG_SEEKS,
+		},
 	},
 	.av = &wav_format,
 	.codecs = {
@@ -1511,11 +1547,13 @@ ffmpeg_riff_wave_context = {
 
 static ffmpeg_context_class
 ffmpeg_mpeg_audio_context = {
-	.rte._public = {
-		.keyword	= "ffmpeg_mpeg_audio",
-		.label		= N_("MPEG Audio Elementary Stream"),
-		.min_elementary	= { 0, 0, 1 },
-		.max_elementary	= { 0, 0, 1 },
+	.rte = {
+		._public = {
+			.keyword	= "ffmpeg_mpeg_audio",
+			.label		= N_("MPEG Audio Elementary Stream"),
+			.min_elementary	= { 0, 0, 1 },
+			.max_elementary	= { 0, 0, 1 },
+		},
 	},
 	.av = &mp2_format,
 	.codecs = {
@@ -1528,11 +1566,13 @@ ffmpeg_mpeg_audio_context = {
 
 static ffmpeg_context_class
 ffmpeg_ac3_audio_context = {
-	.rte._public = {
-		.keyword	= "ffmpeg_ac3_audio",
-		.label		= N_("Dolby AC3 Audio Elementary Stream"),
-		.min_elementary	= { 0, 0, 1 },
-		.max_elementary	= { 0, 0, 1 },
+	.rte = {
+		._public = {
+			.keyword	= "ffmpeg_ac3_audio",
+			.label		= N_("Dolby AC3 Audio Elementary Stream"),
+			.min_elementary	= { 0, 0, 1 },
+			.max_elementary	= { 0, 0, 1 },
+		},
 	},
 	.av = &ac3_format,
 	.codecs = {
@@ -1543,12 +1583,14 @@ ffmpeg_ac3_audio_context = {
 
 static ffmpeg_context_class
 ffmpeg_au_audio_context = {
-	.rte._public = {
-		.keyword	= "ffmpeg_au_audio",
-		.label		= N_("Sun AU Audio File"),
-		.min_elementary	= { 0, 0, 1 },
-		.max_elementary	= { 0, 0, 1 },
-		.flags		= RTE_FLAG_SEEKS,
+	.rte = {
+		._public = {
+			.keyword	= "ffmpeg_au_audio",
+			.label		= N_("Sun AU Audio File"),
+			.min_elementary	= { 0, 0, 1 },
+			.max_elementary	= { 0, 0, 1 },
+			.flags		= RTE_FLAG_SEEKS,
+		},
 	},
 	.av = &au_format,
 	.codecs = {
@@ -1559,11 +1601,13 @@ ffmpeg_au_audio_context = {
 
 static ffmpeg_context_class
 ffmpeg_mpeg_video_context = {
-	.rte._public = {
-		.keyword	= "ffmpeg_mpeg_video",
-		.label		= N_("MPEG Video Elementary Stream"),
-		.min_elementary	= { 0, 1, 0 },
-		.max_elementary	= { 0, 1, 0 },
+	.rte = {
+		._public = {
+			.keyword	= "ffmpeg_mpeg_video",
+			.label		= N_("MPEG Video Elementary Stream"),
+			.min_elementary	= { 0, 1, 0 },
+			.max_elementary	= { 0, 1, 0 },
+		},
 	},
 	.av = &mpeg1video_format,
 	.codecs = {
@@ -1582,11 +1626,13 @@ ffmpeg_mpeg_video_context = {
 
 static ffmpeg_context_class
 ffmpeg_mpeg1_context = {
-	.rte._public = {
-		.keyword	= "ffmpeg_mpeg1_ps",
-		.label		= N_("MPEG-1 Program Stream"),
-		.min_elementary	= { 0, 1, 1 },
-		.max_elementary	= { 0, 1, 1 },
+	.rte = {
+		._public = {
+			.keyword	= "ffmpeg_mpeg1_ps",
+			.label		= N_("MPEG-1 Program Stream"),
+			.min_elementary	= { 0, 1, 1 },
+			.max_elementary	= { 0, 1, 1 },
+		},
 	},
 	.av = &mpeg_mux_format,
 	.codecs = {
@@ -1598,12 +1644,14 @@ ffmpeg_mpeg1_context = {
 
 static ffmpeg_context_class
 ffmpeg_real_context = {
-	.rte._public = {
-		.keyword	= "ffmpeg_real",
-		.label		= N_("Real Audio/Video Stream"),
-		.min_elementary	= { 0, 1, 1 },
-		.max_elementary	= { 0, 1, 1 },
-		.flags		= RTE_FLAG_SEEKS,
+	.rte = {
+		._public = {
+			.keyword	= "ffmpeg_real",
+			.label		= N_("Real Audio/Video Stream"),
+			.min_elementary	= { 0, 1, 1 },
+			.max_elementary	= { 0, 1, 1 },
+			.flags		= RTE_FLAG_SEEKS,
+		},
 	},
 	.av = &rm_format,
 	.codecs = {
@@ -1615,12 +1663,14 @@ ffmpeg_real_context = {
 
 static ffmpeg_context_class
 ffmpeg_asf_context = {
-	.rte._public = {
-		.keyword	= "ffmpeg_asf",
-		.label		= N_("ASF Audio/Video Stream"),
-		.min_elementary	= { 0, 1, 1 },
-		.max_elementary	= { 0, 1, 1 },
-		.flags		= RTE_FLAG_SEEKS,
+	.rte = {
+		._public = {
+			.keyword	= "ffmpeg_asf",
+			.label		= N_("ASF Audio/Video Stream"),
+			.min_elementary	= { 0, 1, 1 },
+			.max_elementary	= { 0, 1, 1 },
+			.flags		= RTE_FLAG_SEEKS,
+		},
 	},
 	.av = &asf_format,
 	.codecs = {
@@ -1632,12 +1682,14 @@ ffmpeg_asf_context = {
 
 static ffmpeg_context_class
 ffmpeg_swf_context = {
-	.rte._public = {
-		.keyword	= "ffmpeg_swf",
-		.label		= N_("Shockwave Animation"),
-		.min_elementary	= { 0, 1, 1 },
-		.max_elementary	= { 0, 1, 1 },
-		.flags		= RTE_FLAG_SEEKS,
+	.rte = {
+		._public = {
+			.keyword	= "ffmpeg_swf",
+			.label		= N_("Shockwave Animation"),
+			.min_elementary	= { 0, 1, 1 },
+			.max_elementary	= { 0, 1, 1 },
+			.flags		= RTE_FLAG_SEEKS,
+		},
 	},
 	.av = &swf_format,
 	.codecs = {
@@ -1649,12 +1701,14 @@ ffmpeg_swf_context = {
 
 static ffmpeg_context_class
 ffmpeg_avi_context = {
-	.rte._public = {
-		.keyword	= "ffmpeg_avi",
-		.label		= N_("AVI File"),
-		.min_elementary	= { 0, 1, 1 },
-		.max_elementary	= { 0, 1, 1 },
-		.flags		= RTE_FLAG_SEEKS,
+	.rte = {
+		._public = {
+			.keyword	= "ffmpeg_avi",
+			.label		= N_("AVI File"),
+			.min_elementary	= { 0, 1, 1 },
+			.max_elementary	= { 0, 1, 1 },
+			.flags		= RTE_FLAG_SEEKS,
+		},
 	},
 	.av = &avi_format,
 	.codecs = {
