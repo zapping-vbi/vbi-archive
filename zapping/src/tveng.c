@@ -80,14 +80,6 @@ do {									\
 	     "function not supported by the module", info); \
 } while (0)
 
-#define UNSUPPORTED(_func, _result)					\
-do {									\
-	if ((_func) == NULL) {						\
-		TVUNSUPPORTED;						\
-		return (_result);					\
-	}								\
-} while (0)
-
 /* for xv */
 struct control {
   tv_control		pub;
@@ -367,15 +359,19 @@ int tveng_attach_device(const char* device_file,
 		   ts->hash);
       }
       {
-	tv_video_line *tl;
+	tv_video_line *l;
 	unsigned int i;
 
 	fprintf(stderr, "Detected inputs:\n");
-	for (tl = info->video_inputs, i = 0; tl; tl = tl->_next, ++i)
-	  fprintf(stderr, "  %d) [%s] ID: %d Hash: %x Type: %s\n",
-		  i, tl->label, tl->id, tl->hash,
-		  (tl->type == TV_VIDEO_LINE_TYPE_TUNER) ?
-		  "TV" : "Camera");
+	for (l = info->video_inputs, i = 0; l; l = l->_next, ++i)
+	  {
+	    fprintf(stderr, "  %d) [%s] ID: %d Hash: %x Type: %s\n",
+		    i, l->label, l->id, l->hash,
+		    (l->type == TV_VIDEO_LINE_TYPE_TUNER) ? "TV" : "Camera");
+	    if (IS_TUNER_LINE (l))
+	      fprintf(stderr, "       Freq.range: (%u, %u) +%u Hz\n",
+		      l->u.tuner.minimum, l->u.tuner.maximum, l->u.tuner.step);
+	  }
       }
 
       fprintf(stderr, "Available controls:\n");
@@ -543,6 +539,79 @@ tveng_build_hash(const char *string)
   return result;
 }
 
+void
+ioctl_failure			(tveng_device_info *	info,
+				 const char *		source_file_name,
+				 const char *		function_name,
+				 unsigned int		source_file_line,
+				 const char *		ioctl_name)
+{
+	char buffer[256];
+
+	info->tveng_errno = errno;
+
+	snprintf (buffer, sizeof (buffer) - 1,
+		  "%s:%s:%u: ioctl %s failed: %d, %s",
+		  source_file_name,
+		  function_name,
+		  source_file_line,
+		  ioctl_name,
+		  info->tveng_errno,
+		  strerror (info->tveng_errno));
+
+  info->error[255] = 0;
+  snprintf((info)->error, 255, buffer);
+  if ((info)->debug_level)
+    fprintf(stderr, "tveng:%s\n", info->error);
+
+	errno = info->tveng_errno;
+}
+
+static void
+panel_failure			(tveng_device_info *	info,
+				 const char *		function_name)
+{
+  info->tveng_errno = -1;
+
+  snprintf (info->error, 255,
+	    "%s not supported in control mode\n",
+	    function_name);
+
+  if (info->debug_level)
+    fprintf (stderr, "tveng:%s\n", info->error);
+}
+
+#define REQUIRE_IO_MODE(_result)					\
+do {									\
+  if (TVENG_ATTACH_CONTROL == info->attach_mode) {			\
+    panel_failure (info, __PRETTY_FUNCTION__);				\
+    return _result;							\
+  }									\
+} while (0)
+
+static void
+support_failure			(tveng_device_info *	info,
+				 const char *		function_name)
+{
+  info->tveng_errno = -1;
+
+  snprintf (info->error, 255,
+	    "%s not supported by driver\n",
+	    function_name);
+
+  if (info->debug_level)
+    fprintf (stderr, "tveng:%s\n", info->error);
+}
+
+#define REQUIRE_SUPPORT(_func, _result)					\
+do {									\
+  if ((_func) == NULL) {						\
+    support_failure (info, __PRETTY_FUNCTION__);			\
+    return _result;							\
+  }									\
+} while (0)
+
+
 
 
 
@@ -622,6 +691,64 @@ NTH_NODE_FUNC			(video_input, video_line);
 NODE_POSITION_FUNC		(video_input, video_line);
 NODE_BY_HASH_FUNC		(video_input, video_line);
 
+tv_bool
+tv_get_tuner_frequency		(tveng_device_info *	info,
+				 unsigned int *		frequency)
+{
+	tv_video_line *line;
+
+	t_assert (info != NULL);
+	t_assert (frequency != NULL);
+
+	TVLOCK;
+
+	line = info->cur_video_input;
+
+	if (!IS_TUNER_LINE (line))
+		RETURN_UNTVLOCK (FALSE);
+
+	if (info->priv->module.update_tuner_frequency) {
+		if (!info->priv->module.update_tuner_frequency (info, line))
+			RETURN_UNTVLOCK (FALSE);
+
+		t_assert (line->u.tuner.frequency >= line->u.tuner.minimum);
+		t_assert (line->u.tuner.frequency <= line->u.tuner.maximum);
+	}
+
+	*frequency = line->u.tuner.frequency;
+
+	RETURN_UNTVLOCK (TRUE);
+}
+
+/* Note the tuner frequency is a property of the tuner. When you
+   switch the tuner it will not assume the current frequency. Likewise
+   you will get the frequency previously set for *this* tuner. Granted
+   the function parameters are misleading, should change. */
+tv_bool
+tv_set_tuner_frequency		(tveng_device_info *	info,
+				 unsigned int		frequency)
+{
+	tv_video_line *line;
+
+	t_assert (info != NULL);
+
+	REQUIRE_SUPPORT (info->priv->module.set_tuner_frequency, FALSE);
+
+	TVLOCK;
+
+	line = info->cur_video_input;
+
+	if (!IS_TUNER_LINE (line))
+		RETURN_UNTVLOCK (FALSE);
+
+	frequency = SATURATE (frequency,
+			      line->u.tuner.minimum,
+			      line->u.tuner.maximum);
+
+	RETURN_UNTVLOCK (info->priv->module.set_tuner_frequency
+			 (info, line, frequency));
+}
+
 const tv_video_line *
 tv_get_video_input		(tveng_device_info *	info)
 {
@@ -650,7 +777,7 @@ tv_set_video_input		(tveng_device_info *	info,
 	t_assert (info != NULL);
 	t_assert (line != NULL);
 
-	UNSUPPORTED (info->priv->module.set_video_input, FALSE);
+	REQUIRE_SUPPORT (info->priv->module.set_video_input, FALSE);
 
 	TVLOCK;
 
@@ -752,7 +879,7 @@ tv_set_video_standard		(tveng_device_info *	info,
 	t_assert (info != NULL);
 	t_assert (standard != NULL);
 
-	UNSUPPORTED (info->priv->module.set_standard, FALSE);
+	REQUIRE_SUPPORT (info->priv->module.set_standard, FALSE);
 
 	TVLOCK;
 
@@ -776,7 +903,7 @@ tv_set_video_standard_by_id	(tveng_device_info *	info,
 
 	t_assert (info != NULL);
 
-	UNSUPPORTED (info->priv->module.set_standard, FALSE);
+	REQUIRE_SUPPORT (info->priv->module.set_standard, FALSE);
 
 	TVLOCK;
 
@@ -979,7 +1106,7 @@ round_boundary_4		(unsigned int *		x1,
 	if ((x + w) >= max_width)
 		x = max_width - w;
 
-	if (1)
+	if (0)
 		fprintf (stderr, "dword align: x=%u->%u w=%u->%u\n",
 			 *x1, x, *width, w);
 	*x1 = x;
@@ -992,6 +1119,8 @@ tveng_update_capture_format(tveng_device_info * info)
 {
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
+  REQUIRE_IO_MODE (-1);
 
   TVLOCK;
 
@@ -1010,6 +1139,8 @@ tveng_set_capture_format(tveng_device_info * info)
 {
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
+  REQUIRE_IO_MODE (-1);
 
   TVLOCK;
 XX();
@@ -1223,10 +1354,7 @@ set_control			(struct control * c, int value,
 {
   int r = 0;
 
-  if (value < c->pub.minimum)
-    value = c->pub.minimum;
-  else if (value > c->pub.maximum)
-    value = c->pub.maximum;
+  value = SATURATE (value, c->pub.minimum, c->pub.maximum);
 
   if (info->priv->quiet)
     if (c->pub.id == TV_CONTROL_ID_VOLUME
@@ -1964,25 +2092,6 @@ tv_add_audio_callback		(tveng_device_info *	info,
 /* ----------------------------------------------------------- */
 
 /*
-  Tunes the current input to the given freq. Returns -1 on error.
-*/
-int
-tveng_tune_input(uint32_t freq, tveng_device_info * info)
-{
-  t_assert(info != NULL);
-  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
-
-  TVLOCK;
-
-  if (info->priv->module.tune_input)
-    RETURN_UNTVLOCK(info->priv->module.tune_input(freq, info));
-
-  TVUNSUPPORTED;
-  UNTVLOCK;
-  return -1;
-}
-
-/*
   Gets the signal strength and the afc code. The afc code indicates
   how to get a better signal, if negative, tune higher, if negative,
   tune lower. 0 means no idea or feature not present in the current
@@ -2009,49 +2118,6 @@ tveng_get_signal_strength (int *strength, int * afc,
 }
 
 /*
-  Stores in freq the currently tuned freq. Returns -1 on error.
-*/
-int
-tveng_get_tune(uint32_t * freq, tveng_device_info * info)
-{
-  t_assert(info != NULL);
-  t_assert(freq != NULL);
-  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
-
-  TVLOCK;
-
-  if (info->priv->module.get_tune)
-    RETURN_UNTVLOCK(info->priv->module.get_tune(freq, info));
-
-  TVUNSUPPORTED;
-  UNTVLOCK;
-  return -1;
-}
-
-/*
-  Gets the minimum and maximum freq that the current input can
-  tune. If there is no tuner in this input, -1 will be returned.
-  If any of the pointers is NULL, its value will not be filled.
-*/
-int
-tveng_get_tuner_bounds(uint32_t * min, uint32_t * max, tveng_device_info *
-		       info)
-{
-  t_assert(info != NULL);
-  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
-
-  TVLOCK;
-
-  if (info->priv->module.get_tuner_bounds)
-    RETURN_UNTVLOCK(info->priv->module.get_tuner_bounds(min, max,
-							 info));
-
-  TVUNSUPPORTED;
-  UNTVLOCK;
-  return -1;
-}
-
-/*
   Sets up the capture device so any read() call after this one
   succeeds. Returns -1 on error.
 */
@@ -2061,8 +2127,12 @@ tveng_start_capturing(tveng_device_info * info)
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
+#ifdef TVENG_BLOCK_CAPTURING
 #warning
-  //  return -1;
+  return -1;
+#endif
+
+  REQUIRE_IO_MODE (-1);
 
   TVLOCK;
 
@@ -2080,6 +2150,8 @@ tveng_stop_capturing(tveng_device_info * info)
 {
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
+  REQUIRE_IO_MODE (-1);
 
   TVLOCK;
 
@@ -2104,6 +2176,8 @@ int tveng_read_frame(tveng_image_data * dest,
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
+  REQUIRE_IO_MODE (-1);
+
   TVLOCK;
 
   if (info->priv->module.read_frame)
@@ -2122,6 +2196,8 @@ double tveng_get_timestamp(tveng_device_info * info)
 {
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
+  REQUIRE_IO_MODE (-1);
 
   TVLOCK;
 
@@ -2142,6 +2218,8 @@ int tveng_set_capture_size(int width, int height, tveng_device_info * info)
 {
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
+  REQUIRE_IO_MODE (-1);
 
   TVLOCK;
 
@@ -2178,6 +2256,8 @@ int tveng_get_capture_size(int *width, int *height, tveng_device_info * info)
   t_assert(width != NULL);
   t_assert(height != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
+  REQUIRE_IO_MODE (-1);
 
   TVLOCK;
 
@@ -2253,9 +2333,10 @@ tv_get_overlay_buffer		(tveng_device_info *	info,
 
 	CLEAR (*target); /* unusable */
 
-	TVLOCK;
+	REQUIRE_IO_MODE (FALSE);
+	REQUIRE_SUPPORT (info->priv->module.get_overlay_buffer, FALSE);
 
-	UNSUPPORTED (info->priv->module.get_overlay_buffer, FALSE);
+	TVLOCK;
 
 	RETURN_UNTVLOCK (info->priv->module.get_overlay_buffer (info, target));
 }
@@ -2275,27 +2356,28 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 	t_assert (info->current_controller != TVENG_CONTROLLER_NONE);
 	t_assert (target != NULL);
 
+	REQUIRE_IO_MODE (FALSE);
+	REQUIRE_SUPPORT (info->priv->module.get_overlay_buffer, FALSE);
+
 	TVLOCK;
 
 	/* We can save a lot work if the target is already
 	   initialized. */
 
-	UNSUPPORTED (info->priv->module.get_overlay_buffer, FALSE);
+	if (info->priv->module.get_overlay_buffer (info, &dma)) {
+		if (validate_overlay_buffer (target, &dma))
+			goto success;
 
-	if (!info->priv->module.get_overlay_buffer (info, &dma))
-		goto failure;
+		/* We can save a lot work if the driver supports
+		   set_overlay directly. TODO: Test if we actually have
+		   access permission. */
 
-	if (validate_overlay_buffer (target, &dma))
-		goto success;
+		if (info->priv->module.set_overlay_buffer)
+			RETURN_UNTVLOCK (info->priv->module.set_overlay_buffer
+					 (info, target));
+	}
 
-	/* We can save a lot work if the driver supports set_overlay
-	   directly. TODO: Test if we actually have access permission. */
-
-	if (info->priv->module.set_overlay_buffer)
-		RETURN_UNTVLOCK (info->priv->module
-				 .set_overlay_buffer (info, target));
-
-	/* Delegate to SUID zapping_setup_fb helper program. */
+	/* Delegate to suid root zapping_setup_fb helper program. */
 
 	{
 		unsigned int argc;
@@ -2324,6 +2406,7 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 
 	{
 		/* FIXME need a safer solution. */
+		/* Could temporarily switch to control attach_mode. */
 		t_assert (info->file_name != NULL);
 		tveng_stop_everything (info);
 		device_close (info->log_fp, info->fd);
@@ -2415,9 +2498,10 @@ tv_set_overlay_xwindow		(tveng_device_info *	info,
 	t_assert (window != 0);
 	t_assert (gc != 0);
 
-	TVLOCK;
+	REQUIRE_IO_MODE (FALSE);
+	REQUIRE_SUPPORT (info->priv->module.set_overlay_xwindow, FALSE);
 
-	UNSUPPORTED (info->priv->module.set_overlay_xwindow, FALSE);
+	TVLOCK;
 
 	RETURN_UNTVLOCK (info->priv->module.set_overlay_xwindow
 			 (info, window, gc));
@@ -2510,6 +2594,8 @@ tveng_set_preview_window(tveng_device_info * info)
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
+  REQUIRE_IO_MODE (-1);
+
   TVLOCK;
 
   if (info->priv->dword_align)
@@ -2546,6 +2632,8 @@ tveng_get_preview_window(tveng_device_info * info)
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
+  REQUIRE_IO_MODE (-1);
+
   TVLOCK;
 
   if (info->priv->module.get_preview_window)
@@ -2570,14 +2658,18 @@ tveng_set_preview (int on, tveng_device_info * info)
 	t_assert (info != NULL);
 	t_assert (info->current_controller != TVENG_CONTROLLER_NONE);
 
+	REQUIRE_IO_MODE (-1);
+	REQUIRE_SUPPORT (info->priv->module.set_overlay, -1);
+
 	on = !!on;
 
 	TVLOCK;
 
-	UNSUPPORTED (info->priv->module.set_overlay, -1);
-
 	if (on && info->current_controller != TVENG_CONTROLLER_XV) {
-		UNSUPPORTED (info->priv->module.get_overlay_buffer, -1);
+		if (!info->priv->module.get_overlay_buffer) {
+			support_failure (info, __PRETTY_FUNCTION__);
+			RETURN_UNTVLOCK (-1);
+		}
 
 		if (!info->priv->module.get_overlay_buffer (info, &dma))
 			RETURN_UNTVLOCK (-1);
@@ -2622,6 +2714,11 @@ void tveng_set_chromakey(uint32_t chroma, tveng_device_info *info)
   t_assert (info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
+  if (TVENG_ATTACH_CONTROL == info->attach_mode) {
+    panel_failure (info, __PRETTY_FUNCTION__);
+    return;
+  }
+
   TVLOCK;
 
   if (info->priv->module.set_chromakey)
@@ -2635,6 +2732,8 @@ int tveng_get_chromakey (uint32_t *chroma, tveng_device_info *info)
 {
   t_assert (info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
+  REQUIRE_IO_MODE (-1);
 
   TVLOCK;
 
@@ -2676,12 +2775,13 @@ tveng_start_previewing (tveng_device_info * info, const char *mode)
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  TVLOCK;
-
-  UNSUPPORTED (info->priv->module.set_overlay, -1);
+  REQUIRE_IO_MODE (-1);
+  REQUIRE_SUPPORT (info->priv->module.set_overlay, -1);
 
   if (info->current_controller != TVENG_CONTROLLER_XV)
-    UNSUPPORTED (info->priv->module.set_preview_window, -1);
+    REQUIRE_SUPPORT (info->priv->module.set_preview_window, -1);
+
+  TVLOCK;
 
   /* XXX we must distinguish between (limited) Xv overlay and Xv scaling.
    * 1) determine natural size (videostd -> 480, 576 -> 640, 768),
@@ -2716,8 +2816,23 @@ tveng_start_previewing (tveng_device_info * info, const char *mode)
       info->priv->mode = g_strdup (mode);
     }
 
-  width = info->caps.maxwidth; /* XXX wrong */
-  height = info->caps.maxheight;
+  /* XXX wrong */
+  if (info->cur_video_standard)
+    {
+      /* Note e.g. v4l2(old) bttv reports 48,32-922,576 */
+      width = MIN ((unsigned int) info->caps.maxwidth,
+		   info->cur_video_standard->frame_width);
+      height = MIN ((unsigned int) info->caps.maxheight,
+		    info->cur_video_standard->frame_height);
+    }
+  else
+    {
+      width = MIN (info->caps.maxwidth, 768);
+      height = MIN (info->caps.maxheight, 576);
+    }
+
+  width = MIN (width, dga_param.width);
+  height = MIN (height, dga_param.height);
 
   v = NULL;
 
@@ -2739,6 +2854,12 @@ tveng_start_previewing (tveng_device_info * info, const char *mode)
 	{
 	  long long a;
 	  long long dw, dh;
+
+	  if (0)
+	    fprintf (stderr, "width=%d height=%d cur %ux%u@%u best %ux%u@%u\n",
+		     width, height,
+		     v->width, v->height, (unsigned int)(v->vfreq + 0.5),
+		     vmin->width, vmin->height, (unsigned int)(vmin->vfreq + 0.5));
 
 	  /* XXX ok? */
 	  dw = (long long) v->width - width;
@@ -2774,11 +2895,6 @@ tveng_start_previewing (tveng_device_info * info, const char *mode)
     }
   else
     {
-      unsigned int width, height;
-
-      width = MIN ((unsigned int) info->caps.maxwidth, dga_param.width);
-      height = MIN ((unsigned int) info->caps.maxheight, dga_param.height);
-
       /* Center the window, dwidth is always >= width */
       info->overlay_window.x = (dga_param.width - width) >> 1;
       info->overlay_window.y = (dga_param.height - height) >> 1;
@@ -2825,6 +2941,8 @@ tveng_stop_previewing(tveng_device_info * info)
   int return_code = 0;
 
   t_assert(info != NULL);
+
+  REQUIRE_IO_MODE (-1);
 
   TVLOCK;
  
@@ -2880,23 +2998,39 @@ tveng_stop_everything (tveng_device_info *       info)
     case TVENG_CAPTURE_READ:
       overlay_was_active = FALSE;
       tveng_stop_capturing(info);
+      t_assert(info->current_mode == TVENG_NO_CAPTURE);
       break;
+
     case TVENG_CAPTURE_PREVIEW:
+#if 0
+      /* Eeek. The client must stop overlay, switch, check if the
+         image geometry changed (new video standard), handle this
+         appropriately and restart. Not our business to switch
+	 the vidmode back and forth, and changing the overlay window.
+	 That belongs at a higher layer, e.g. the zvideo widget. */
       overlay_was_active = info->overlay_active;
       tveng_stop_previewing(info);
+      t_assert(info->current_mode == TVENG_NO_CAPTURE);
       break;
+#else
+      /* fall through */
+#endif
     case TVENG_CAPTURE_WINDOW:
       overlay_was_active = info->overlay_active;
   /* No error checking */
       if (info->overlay_active)
 	tveng_set_preview_off(info);
-  info -> current_mode = TVENG_NO_CAPTURE;
+      info -> current_mode = TVENG_NO_CAPTURE;
       break;
+
+    case TVENG_TELETEXT:
+      /* nothing */
+      break;
+
     default:
+      t_assert(info->current_mode == TVENG_NO_CAPTURE);
       break;
     };
-
-  t_assert(info->current_mode == TVENG_NO_CAPTURE);
 
   UNTVLOCK;
 
@@ -2920,12 +3054,18 @@ int tveng_restart_everything (enum tveng_capture_mode mode,
       if (tveng_start_capturing(info) == -1)
 	RETURN_UNTVLOCK(-1);
       break;
+
     case TVENG_CAPTURE_PREVIEW:
+#if 0 /* See above. */
       if (tveng_start_previewing(info, (const char *) -1) == -1)
 	RETURN_UNTVLOCK(-1);
       break;
+#else
+      /* fall through */
+#endif
+
     case TVENG_CAPTURE_WINDOW:
-      if (info->current_mode != TVENG_CAPTURE_WINDOW)
+      if (info->current_mode != mode)
 	{
 	  tveng_stop_everything(info);
 
@@ -2937,9 +3077,14 @@ int tveng_restart_everything (enum tveng_capture_mode mode,
 		RETURN_UNTVLOCK(-1);
 	    }
 
-	  info->current_mode = TVENG_CAPTURE_WINDOW;
+	  info->current_mode = mode;
 	}
       break;
+
+    case TVENG_TELETEXT:
+      info->current_mode = mode;
+      break;
+
     default:
       break;
     }
@@ -2982,6 +3127,8 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
   XvAttribute *at;
   int attributes, i;
   Display *dpy;
+
+  /* ? REQUIRE_IO_MODE (-1); */
 
   TVLOCK;
 
@@ -3936,7 +4083,7 @@ free_##kind##_list		(tv_##kind **		list)		\
 	FREE_LIST (kind);						\
 }
 
-#define SET_CURRENT(item, kind, p)					\
+#define STORE_CURRENT(item, kind, p)					\
 do {									\
 	if (info->cur_##item != p) {					\
 		info->cur_##item = (tv_##kind *) p;			\
@@ -3948,7 +4095,7 @@ do {									\
 void									\
 free_##item##s			(tveng_device_info *	info)		\
 {									\
-	SET_CURRENT (item, kind, NULL); /* unknown */			\
+	STORE_CURRENT (item, kind, NULL); /* unknown */			\
 									\
 	free_##kind##_list (&info->item##s);				\
 }
@@ -3979,15 +4126,15 @@ hash_warning			(const char *		label1,
 		 label1, label2, hash);
 }
 
-#define SET_CURRENT_FUNC(item, kind)					\
+#define STORE_CURRENT_FUNC(item, kind)					\
 void									\
-set_cur_##item			(tveng_device_info *	info,		\
+store_cur_##item		(tveng_device_info *	info,		\
 				 const tv_##kind *	p)		\
 {									\
 	t_assert (info != NULL);					\
 	t_assert (p != NULL);	  					\
 									\
-	SET_CURRENT (item, kind, p);					\
+	STORE_CURRENT (item, kind, p);					\
 }
 
 #define APPEND_NODE(list, p)						\
@@ -4065,7 +4212,7 @@ FREE_NODE_FUNC (video_standard);
 FREE_LIST_FUNC (video_standard);
 
 FREE_ITEM_FUNC (video_standard, video_standard);
-SET_CURRENT_FUNC (video_standard, video_standard);
+STORE_CURRENT_FUNC (video_standard, video_standard);
 
 tv_video_standard *
 append_video_standard		(tv_video_standard **	list,
@@ -4114,7 +4261,7 @@ FREE_NODE_FUNC (audio_line);
 FREE_LIST_FUNC (audio_line);
 
 FREE_ITEM_FUNC (audio_input, audio_line);
-SET_CURRENT_FUNC (audio_input, audio_line);
+STORE_CURRENT_FUNC (audio_input, audio_line);
 
 tv_audio_line *
 append_audio_line		(tv_audio_line **	list,
@@ -4152,7 +4299,7 @@ FREE_NODE_FUNC (video_line);
 FREE_LIST_FUNC (video_line);
 
 FREE_ITEM_FUNC (video_input, video_line);
-SET_CURRENT_FUNC (video_input, video_line);
+STORE_CURRENT_FUNC (video_input, video_line);
 
 tv_video_line *
 append_video_line		(tv_video_line **	list,
@@ -4168,6 +4315,8 @@ append_video_line		(tv_video_line **	list,
 
 	ALLOC_NODE (tl, size, label, tveng_build_hash (hlabel));
 	APPEND_NODE (list, tl);
+
+
 
 	tl->type = type;
 
@@ -4240,34 +4389,6 @@ tveng_copy_frame		(unsigned char *	src,
     }
 }
 
-void
-ioctl_failure			(tveng_device_info *	info,
-				 const char *		source_file_name,
-				 const char *		function_name,
-				 unsigned int		source_file_line,
-				 const char *		ioctl_name)
-{
-	char buffer[256];
-
-	info->tveng_errno = errno;
-
-	snprintf (buffer, sizeof (buffer) - 1,
-		  "%s:%s:%u: ioctl %s failed: %d, %s",
-		  source_file_name,
-		  function_name,
-		  source_file_line,
-		  ioctl_name,
-		  info->tveng_errno,
-		  strerror (info->tveng_errno));
-
-  info->error[255] = 0;
-  snprintf((info)->error, 255, buffer);
-  if ((info)->debug_level)
-    fprintf(stderr, "tveng:%s\n", info->error);
-
-	errno = info->tveng_errno;
-}
-
 /*
  *  Clip vector
  */
@@ -4326,13 +4447,6 @@ tv_clip_vector_add_clip_xy	(tv_clip_vector *	vector,
 
 	clip = vector->vector;
 	end = vector->vector + vector->size;
-
-	if (0) {
-		/* Sorting seems unnecessary for v4l/bttv but
-		   bktr needs it. */
-		clip = end;
-		goto insert;
-	}
 
 	/* Clips are sorted in ascending order, first by y1, second x1.
 	   We split into horizontal bands, merging clips where possible.
@@ -4501,4 +4615,80 @@ tv_clip_vector_add_clip_xy	(tv_clip_vector *	vector,
 	}
 
 	return TRUE;
+}
+
+/* XXX untested. Should create another mask_to_vector to test if
+   the clips are equivalent. */
+uint8_t *
+tv_clip_vector_to_clip_mask	(tv_clip_vector *	vector,
+				 unsigned int		width,
+				 unsigned int		height)
+{
+	uint8_t *mask;
+	unsigned int bpl;
+	tv_clip *clip;
+	unsigned int count;
+
+	bpl = (width + 7) & -8; 
+
+	if (!(mask = calloc (1, height * bpl)))
+		return NULL;
+
+	clip = vector->vector;
+
+	for (count = vector->size; count > 0; --count) {
+		unsigned int x7;
+		unsigned int xw;
+		uint8_t *start;
+		uint8_t lmask;
+		uint8_t rmask;
+		unsigned int length;
+		unsigned int count;
+
+		if (clip->x + clip->width > width)
+			goto failure;
+
+		if (clip->y + clip->height > height)
+			goto failure;
+
+		start = mask + clip->y * bpl + (clip->x >> 3);
+
+		x7 = clip->x & 7;
+		xw = x7 + clip->width;
+
+		lmask = ~0 << x7;
+		rmask = ~(~0 << (xw & 7));
+
+		length = (xw - 1) >> 3;
+
+		if (0 == length) {
+			lmask &= rmask;
+
+			for (count = clip->height; count > 0; --count) {
+				*start |= lmask;
+				start += bpl;
+			}
+		} else {
+			for (count = clip->height; count > 0; --count) {
+				unsigned int i;
+
+				start[0] |= lmask;
+
+				for (i = 1; i < length; ++i)
+					start[i] = 0xFF;
+
+				start[length] |= rmask;
+
+				start += bpl;
+			}
+		}
+
+		++clip;
+	}
+
+	return mask;
+
+ failure:
+	free (mask);
+	return NULL;
 }
