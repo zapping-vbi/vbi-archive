@@ -1,6 +1,29 @@
 New stuff, refer to the ChangeLog for a more detailed description of
 the changes.
 
+0.6.0
+-----
+- Rewrote inner capture code, should be more versatile now (me).
+- Better support for SuSE (me)
+- Aspect ratio autodetecting (Michael)
+- MPEG plugin faster, updated to latest rte (me)
+- RTE: motion estimation (Michael)
+- GUI improvements (Michael, me)
+- Verboser error reporting in libvbi (Michael)
+- Standalone Zapzilla executable (me)
+- Zapping works without V4L/V4L2 now [XVideo only], Solaris port (Roger
+	Fujii, me)
+- 41th column in TTX (Michael)
+- Use afc, channel name autodetection in channel editor (me)
+- Aspect ratio fixes, now it's applied to the tvscreen, not the whole
+	window (me)
+- Color conversion MMX autogenerator (Michael)
+- Man pages (Christian Marillat, me)
+- Fifo rewrite (Michael)
+- New alirc plugin (Sjoerd Simmons)
+- Added Polish translation (Pawe≈, Sakowski)
+- Updated de.po (Michael), es.po (me), fr.po (Christian)
+
 0.5.9
 -----
 - Greatly improved VBI engine (Michael, me)

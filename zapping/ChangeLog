@@ -1,3 +1,7 @@
+24.08.2001	0.6.0 released <garetxe@users.sf.net>
+
+	* 0.6.0 released, include prepare_dist.sh in the distro.
+
 23.08.2001	capture with different bpl <garetxe@users.sf.net>
 
 	* capture.c, tveng: Capture now accepts frames with different
