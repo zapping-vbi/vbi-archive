@@ -20,6 +20,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <glib.h>		/* g_strdup_vprintf() */
 #include "remote.h"
 
 #ifndef REMOTE_COMMAND_LOG
@@ -91,23 +92,24 @@ python_command_printf		(GtkWidget *		widget,
 				 const gchar *		fmt,
 				 ...)
 {
-  char *buf;
   va_list ap;
-  int result;
+  char *buf;
 
   va_start (ap, fmt);
-  result = vasprintf (&buf, fmt, ap);
+
+  buf = g_strdup_vprintf (fmt, ap);
+
   va_end (ap);
 
-  if (-1 == result)
+  if (!buf)
     {
-      perror ("vsprintf");
+      perror ("g_strdup_vprintf");
       return;
     }
 
   python_command (widget, buf);
 
-  free (buf);
+  g_free (buf);
 }
 
 
