@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.34 2000-12-15 00:14:19 garetxe Exp $ */
+/* $Id: main.c,v 1.35 2001-01-09 06:26:12 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -117,7 +117,7 @@ main(int ac, char **av)
 
 	my_name = av[0];
 
-	if (!cpu_id(ARCH_PENTIUM_MMX))
+	if (!cpu_detection())
 		FAIL("Sorry, this program requires an MMX enhanced CPU");
 
 	options(ac, av);

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mmx.c,v 1.3 2000-11-11 02:32:21 mschimek Exp $ */
+/* $Id: mmx.c,v 1.4 2001-01-09 06:26:13 mschimek Exp $ */
 
 #include <stdlib.h>
 #include "log.h"
@@ -27,34 +27,40 @@
 
 #if #cpu (i386)
 
-#define le4cc(a,b,c,d) (((((unsigned long)(d))&0xFFUL)<<24)|((((unsigned long)(c))&0xFFUL)<<16)| \
-			((((unsigned long)(b))&0xFFUL)<<8)|((((unsigned long)(a))&0xFFUL)))
-
-#define INTEL_CMOV	(1 << 15)
-#define INTEL_MMX	(1 << 23)
-#define INTEL_XMM	(1 << 25)
-
-#define AMD_MMX		(1 << 23)
-#define AMD_MMX_EXT	(1 << 30)
-
-#define FEATURE(bits)	((feature & (bits)) == (bits))
+/*
+ *  References
+ *
+ *  "Intel Processor Identification and the CPUID Instruction",
+ *  Application Note AP-485, May 2000, order no. 241618-015,
+ *  http://developer.intel.com/design/pentiumII/applnots/241618.htm
+ *
+ *  "AMD Processor Recognition Application Note",
+ *  publication # 20734, Rev. R, June 2000.
+ *  http://www.amd.com/products/cpg/athlon/techdocs/index.html
+ *
+ *  "Cyrix CPU Detection Guide",
+ *  Application Note 112, Rev. 1.9, July 21, 1998
+ *  formerly available from http://www.cyrix.com/html/developers/index.htm
+ *  when Cyrix was part of National Semiconductor.
+ *  VIA has no similar document available as of Jan 2001.
+ */
 
 typedef union {
 	unsigned char		s[16];
 	struct {
+		unsigned int		eax;
 		unsigned int		ebx;
 		unsigned int		edx;
 		unsigned int		ecx;
-		unsigned int		eax;
 	}			r;
-} cpuid_u;
+} cpuid_t;
 
-static int
-cpuid(cpuid_u *buf, int level)
+static inline int
+toggle_eflags_id(void)
 {
 	int success;
 
-    	asm ("
+	__asm__ __volatile__ ("
 		pushfl
 		popl		%%ecx
 		movl		%%ecx,%%eax
@@ -68,100 +74,101 @@ cpuid(cpuid_u *buf, int level)
 		xorl		%%ecx,%%eax
 		andl		$0x200000,%%eax
 		jz		1f
-
-		movl		%2,%%eax
-		movl		%1,%%edi
-		cpuid
-		movl		%%ebx,(%%edi)
-		movl		%%edx,4(%%edi)
-		movl		%%ecx,8(%%edi)
-		movl		%%eax,12(%%edi)
 		movl		$1,%%eax
 1:
-	" : "=a" (success)
-	  : "m" (buf), "m" (level)
-	  : "ebx", "ecx", "edx", "edi", "cc", "memory");
+	" : "=a" (success) :: "ecx", "cc");
 
 	return success;
 }
 
-// XXX rethink
+static /*inline*/ unsigned int
+cpuid(cpuid_t *buf, unsigned int level)
+{
+	unsigned int eax;
+
+	/* ARRRR */
+	__asm__ __volatile__ ("
+		pushl	%%ebx
+		pushl	%%ecx
+		pushl	%%edx
+
+		cpuid
+		movl	%%eax,(%%edi)
+		movl	%%ebx,4(%%edi)
+		movl	%%edx,8(%%edi)
+		movl	%%ecx,12(%%edi)
+
+		popl	%%edx
+		popl	%%ecx
+		popl	%%ebx
+	" : "=a" (eax) : "D" (buf), "a" (level) /*: "ebx", "ecx", "edx", "cc", "memory"*/);
+
+	return eax;
+}
+
+/* XXX check kernel version before advertising SSE */
+#define INTEL_CMOV	(1 << 15)
+#define INTEL_MMX	(1 << 23)
+#define INTEL_SSE	(1 << 25)
+#define INTEL_SSE2	(1 << 26)
+
+#define AMD_MMXEXT	(1 << 22)
+#define AMD_MMX		(1 << 23)
+#define AMD_SSE		(1 << 25)
+#define AMD_3DNOWEXT	(1 << 30)
+#define AMD_3DNOW	(1 << 31)
+
+#define CYRIX_MMX	(1 << 23)
+#define CYRIX_MMXEXT	(1 << 24)	/* pmvnzb and friends */
+#define CYRIX_3DNOW	(1 << 31)
+
+#define FEATURE(bits)	((c.r.edx & (bits)) == (bits))
 
 int
-cpu_id(cpu_architecture arch)
+cpu_detection(void)
 {
-	unsigned int vendor;
-	unsigned int feature;
+	cpuid_t c;
 
-    	asm ("
-		pushfl
-		popl		%%ecx
-		movl		%%ecx,%%edx
-		xorl		$0x200000,%%edx
-		pushl		%%edx
-		popfl
-		pushfl
-		popl		%%edx
-		pushl		%%ecx
-		popfl
-		xorl		%%ecx,%%edx
-		andl		$0x200000,%%edx
-		jne		1f
-		movl		%%edx,%1	/* No CPUID, vendor 0 */
-		jmp		2f
-1:		movl		$0,%%eax
-		cpuid
-		movl		%%ebx,%1
-		movl		$1,%%eax
-		cpuid
-2:
-	"
-	: "=d" (feature)
-	: "m" (vendor)
-	: "eax", "ebx", "ecx", "cc");
-
-	/*
-	 *  This is only a rough check for features
-	 *  interesting for us.
-	 */
-	switch (vendor) {
-	case 0:
-		break;
-
-	case le4cc('G', 'e', 'n', 'u'): /* "GenuineIntel" */
-		switch (arch) {
-		case ARCH_PENTIUM_MMX:
-			return FEATURE(INTEL_MMX);
-		
-		case ARCH_KLAMATH:
-			return FEATURE(INTEL_MMX | INTEL_CMOV);
-
-		case ARCH_KATMAI:
-			return FEATURE(INTEL_MMX | INTEL_CMOV | INTEL_XMM);
-		
-		default:
-		}
-
-		break;
-
-	case le4cc('A', 'u', 't', 'h'): /* "AuthenticAMD" */
-		switch (arch) {
-		case ARCH_PENTIUM_MMX:
-			return FEATURE(AMD_MMX);
-
-		case ARCH_K6_2:
-			return FEATURE(AMD_MMX_EXT);
-
-		default:
-		}
-
-		break;
-
-	default:
+	if (!toggle_eflags_id()) {
 		ASSERT("identify CPU", 0);
+		return CPU_UNKNOWN;
 	}
 
-	return 0;
+	cpuid(&c, 0);
+
+	if (!strncmp(c.s + 4, "GenuineIntel", 12)) {
+		cpuid(&c, 1);
+
+		if (FEATURE(INTEL_MMX | INTEL_CMOV | INTEL_SSE | INTEL_SSE2))
+			FAIL("Pentium 4 detected, enable MPEG-4.\n");
+		if (FEATURE(INTEL_MMX | INTEL_CMOV | INTEL_SSE))		
+			return CPU_PENTIUM_III;
+		if (FEATURE(INTEL_MMX | INTEL_CMOV))
+			return CPU_PENTIUM_II;
+		if (FEATURE(INTEL_MMX))
+			return CPU_PENTIUM_MMX;
+	} else if (!strncmp(c.s + 4, "AuthenticAMD", 12)) {
+		if (cpuid(&c, 0x80000000) > 0x80000000) {
+			cpuid(&c, 0x80000001);
+
+			if (FEATURE(AMD_MMX | AMD_MMXEXT | AMD_3DNOW | AMD_3DNOWEXT))
+				return CPU_ATHLON;
+			if (FEATURE(AMD_MMX | AMD_3DNOW))
+				return CPU_K6_2;
+		}
+	} else if (!strncmp(c.s + 4, "CyrixInstead", 12)) {
+
+		/* ? */
+
+		cpuid(&c, 1);
+
+		if (FEATURE(INTEL_MMX))
+			return CPU_PENTIUM_MMX;
+	}
+
+	ASSERT("identify CPU", 0);
+
+	return CPU_UNKNOWN;
 }
 
 #else

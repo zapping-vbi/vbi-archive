@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.42 2000-12-16 00:27:50 garetxe Exp $ */
+/* $Id: rte.c,v 1.43 2001-01-09 06:26:12 mschimek Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -1084,7 +1084,7 @@ int rte_get_verbosity ( rte_context * context )
 
 int rte_init ( void )
 {
-	if (!cpu_id(ARCH_PENTIUM_MMX))
+	if (!cpu_detection())
 		return 0;
 
 	rte_global_context = NULL;

@@ -43,16 +43,19 @@ typedef	union {
 #define MMXRW(a) MMXW(a,a,a,a)
 #define MMXRB(a) MMXB(a,a,a,a,a,a,a,a)
 
-typedef enum {
-	ARCH_PENTIUM_MMX,
-	ARCH_KLAMATH,
-	ARCH_KATMAI,
-	ARCH_K6_2,
-	ARCH_CYRIX,
-	ARCH_K7
-} cpu_architecture;
+/*
+ *  These are optimization classes rather than
+ *  identifying the actual model or brand name.
+ */
+#define CPU_UNKNOWN		0	/* no MMX */
+#define	CPU_PENTIUM_MMX		1	/* MMX; late P5 */
+#define CPU_PENTIUM_II		2	/* MMX, CMOV; any P6 */
+#define	CPU_PENTIUM_III		3	/* MMX, CMOV, SSE; any P6 */
+#define	CPU_PENTIUM_IV		4	/* MMX, CMOV, SSE, SSE2; any P8 */
+#define CPU_K6_2		5	/* MMX, 3DNOW; K6-2/K6-III */
+#define CPU_ATHLON		6	/* MMX, MMX-EXT, 3DNOW, 3DNOW-EXT, CMOV, SSE; Athlon/Duron */
 
-extern int cpu_id(cpu_architecture arch);
+extern int cpu_detection(void);
 
 #if __GNUC__ != 2 || __GNUC_MINOR__ < 6
 
