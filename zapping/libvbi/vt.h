@@ -79,6 +79,7 @@ typedef enum {
 /*
     Only a minority of pages need this
  */
+
 typedef struct {
 	char		black_bg_substitution;
 	char		left_side_panel;
@@ -131,6 +132,7 @@ struct vt_page
     int pgno, subno;	// the wanted page number
     int lang;		// language code
     int flags;		// misc flags (see PG_xxx below)
+    unsigned active : 1;
     int errors;		// number of single bit errors in page
     u32 lines;		// 1 bit for each line received
 
@@ -150,8 +152,9 @@ struct vt_page
 // XXX preset [+1] mode (not 0xFF) or catch
 		}		gpop, pop;
 		struct {
+			u8		raw[26][40];
 			u8		bits[48][12 * 10 / 2];	/* XXX too large for a union? */
-			u8		drcs_mode[48];
+			u8		mode[48];
 		}		gdrcs, drcs;
 	}		data;
 
@@ -168,6 +171,17 @@ struct vt_page
 #define C7_SUPPRESS_HEADER	0x01	/* row 0 not to be displayed */
 #define C10_INHIBIT_DISPLAY	0x08	/* rows 1-24 not to be displayed */
 
+#define MIP_NO_PAGE		0x00
+#define MIP_NORMAL_PAGE		0x01
+#define MIP_SUBTITLE		0x70
+#define MIP_SUBTITLE_INDEX	0x78
+#define MIP_ALARM_CLOCK		0x79	/* sort of */
+#define MIP_WARNING		0x7A
+#define MIP_INFORMATION 	0x7B
+#define MIP_NOW_AND_NEXT	0x7D
+#define MIP_TV_INDEX		0x7F
+#define MIP_TV_SCHEDULE		0x81
+#define MIP_UNKNOWN		0xFF	/* Zapzilla internal code */
 
 typedef enum {
 	LOCAL_ENHANCEMENT_DATA = 0,
@@ -202,6 +216,9 @@ typedef struct {
 
 	unsigned char	drcs_lut[256];
 	int		drcs_link[16];	/* pgno */
+
+	unsigned char	mip[256];
+	short		mip_subpages[5 * 13];
 } magazine;
 
 
@@ -216,8 +233,6 @@ typedef struct {
 #define PG_ERASE	0x20	// C4  clear previously stored lines
 #define PG_NEWSFLASH	0x40	// C5  box it and insert into normal video pict.
 #define PG_SUBTITLE	0x80	// C6  box it and insert into normal video pict.
-// my flags
-#define PG_ACTIVE	0x100	// currently fetching this page
 
 #define ANY_SUB		0x3f7f	// universal subpage number
 

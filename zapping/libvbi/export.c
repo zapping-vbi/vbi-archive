@@ -265,68 +265,6 @@ export_mkname(struct export *e, char *fmt, struct vt_page *vtp, char *usr)
 
 #define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
 
-/*
-    Character set designation hierarchy:
-    
-    * primary G0/G2 font and secondary G0
-      font default code = 0
-done
-
-    * magazine G0/G2 code,
-      packet M/29/4
-done
-
-    * magazine secondary G0 code,
-      packet M/29/4
-done
-
-    * magazine G0/G2 code,
-      packet M/29/0
-done
-
-    * magazine secondary G0 code,
-      packet M/29/0
-done
-
-    * page G0/G2 (primary) code bits 0 ... 2,
-      header flags C12, C13, C14
-done
-
-    * page G0/G2 code, 0 ... 2 same
-      as header, packet X/28/4
-
-    * page secondary G0 code,
-      packet X/28/4
-
-    * page G0/G2 code, 0 ... 2 same
-      as header, packet X/28/0-1
-
-    * page secondary G0 code,
-      packet X/28/0-1
-
-    * level 1 alpha/mosaic spacing attribute
-      and primary/secondary G0 escape code
-done
-
-    * enhancement data triplet
-done
-      - G0 character
-      - G2 character
-      - block mosaic G1 character
-      - smooth mosaic G3 character
-      - G0/G2 composed characters
-      - G0/G2 code for current row
-        (no national subset)
-
-    ------
-    Primary: G0 w/national subset, G2
-    Secondary: G0 w/national subset
-
-*/
-
-
-
-
 #undef printv
 #define printv printf
 // #define printv(templ, ...)
@@ -463,11 +401,10 @@ vbi_resolve_page(int x, int y, struct vt_page *vtp, int *page,
 }
 
 
-
-
-
-
-
+/*
+    << navigation.c
+    >> format.c
+*/
 
 
 static void
@@ -510,11 +447,15 @@ resolve_obj_address(struct vbi *vbi, object_type type,
 			printv("... no pop page or hamming error\n");
 			return 0;
 		}
-	} else if (vtp->function != function) {
+	} else if (vtp->function == PAGE_FUNCTION_POP)
+		vtp->function = function;
+	else if (vtp->function != function) {
 		printv("... source page wrong function %d, expected %d\n",
 			vtp->function, function);
 		return 0;
 	}
+
+	vtp->function = function;
 
 	pointer = vtp->data.pop.pointer[packet * 24 + i * 2 + ((address >> 4) & 1)];
 
@@ -1114,10 +1055,10 @@ enhance(struct fmt_page *pg, object_type type, vt_triplet *p, int inv_row, int i
 						printv("... page not cached\n");
 						break;
 					}
-// XXX
-					drcs_conv(drcs_vtp); // function
+// XXX; GDRCS -> DRCS (MIP)
+					convert_drcs(drcs_vtp, function);
 
-					pg->drcs[page] = drcs_vtp->drcs_bits;
+					pg->drcs[page] = drcs_vtp->data.drcs.bits[0];
 				}
 
 				gl = GL_DRCS + page * 256 + offset;
@@ -1590,6 +1531,19 @@ fmt_page(int reveal,
 		} else
 			memcpy(pg, &page, sizeof(struct fmt_page));
 	}
+
+{
+	int page;
+
+	page = vtp->pgno & 15;
+	if (page > 9) page = 1000;
+	page |= ((vtp->pgno >> 4) & 15) * 10;
+	if (page > 99) page = 1000;
+	page |= ((vtp->pgno >> 8) & 15) * 100;
+
+	if (page < 899)
+	    printf("PAGE BTT: %d\n", vtp->vbi->btt[page]);
+}
 
 #if TEST
 	for (row = 1; row < 24; row++)

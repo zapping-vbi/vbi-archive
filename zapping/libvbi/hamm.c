@@ -49,7 +49,7 @@ static unsigned short hammtab[256] =
 /*
  *  ETS 300 706 8.2 Hamming 8/4
  *  
- *  The idea: you ignore single bit errors and get an negative
+ *  The idea: you ignore single bit errors and get a negative
  *  result (which can be ORed) to detect incorrectable errors.
  */
 char

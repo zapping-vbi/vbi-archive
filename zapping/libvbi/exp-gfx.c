@@ -86,12 +86,6 @@ draw_char(unsigned int *canvas, unsigned int *pen, int glyph,
 		src2 += wstfont_width * (wstfont_height / CH) / 8;
 #endif
 
-// XXX not good, undo.
-	if (size == DOUBLE_HEIGHT2 || size == DOUBLE_SIZE2) {
-		src1 += CH * CW * 32 / 8 / 2;
-		ch >>= 1;
-	}
-
 	for (y = 0; y < ch; y++) {
 #if #cpu (i386)
 		int bits = (*((u16 *) src1) >> shift1) | (*((u16 *) src2) >> shift2);
@@ -115,7 +109,6 @@ draw_char(unsigned int *canvas, unsigned int *pen, int glyph,
 			break;
 
 		case DOUBLE_HEIGHT:
-		case DOUBLE_HEIGHT2:
 			for (x = 0; x < CW; bits >>= 1, x++) {
 				unsigned int col = pen[bits & 1];
 
@@ -140,7 +133,6 @@ draw_char(unsigned int *canvas, unsigned int *pen, int glyph,
 			break;
 
 		case DOUBLE_SIZE:
-		case DOUBLE_SIZE2:
 			for (x = 0; x < CW * 2; bits >>= 1, x += 2) {
 				unsigned int col = pen[bits & 1];
 

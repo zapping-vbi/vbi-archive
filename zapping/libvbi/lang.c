@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.c,v 1.4 2000-12-26 20:49:44 mschimek Exp $ */
+/* $Id: lang.c,v 1.5 2000-12-29 00:38:30 mschimek Exp $ */
 
 #include "lang.h"
 
@@ -28,33 +28,33 @@
 font_descriptor
 font_descriptors[88] = {
 	/* 0 - Western and Central Europe */
-	{ LATIN_G0, LATIN_G2, ENGLISH		},
-	{ LATIN_G0, LATIN_G2, GERMAN		},
-	{ LATIN_G0, LATIN_G2, SWE_FIN_HUN	},
-	{ LATIN_G0, LATIN_G2, ITALIAN		},
-	{ LATIN_G0, LATIN_G2, FRENCH		},
-	{ LATIN_G0, LATIN_G2, PORTUG_SPANISH	},
-	{ LATIN_G0, LATIN_G2, CZECH_SLOVAK	},
+	{ LATIN_G0, LATIN_G2, ENGLISH,		"English" },
+	{ LATIN_G0, LATIN_G2, GERMAN,		"Deutsch" },
+	{ LATIN_G0, LATIN_G2, SWE_FIN_HUN,	"Svenska / Suomi / Magyar" },
+	{ LATIN_G0, LATIN_G2, ITALIAN,		"Italiano" },
+	{ LATIN_G0, LATIN_G2, FRENCH,		"Français" },
+	{ LATIN_G0, LATIN_G2, PORTUG_SPANISH,	"Português / Español" },
+	{ LATIN_G0, LATIN_G2, CZECH_SLOVAK,	"Cesky / Slovencina" },
 	{ LATIN_G0, LATIN_G2, NO_SUBSET		},
 
 	/* 8 - Eastern Europe */
-	{ LATIN_G0, LATIN_G2, POLISH		},
-	{ LATIN_G0, LATIN_G2, GERMAN		},
-	{ LATIN_G0, LATIN_G2, SWE_FIN_HUN	},
-	{ LATIN_G0, LATIN_G2, ITALIAN		},
-	{ LATIN_G0, LATIN_G2, FRENCH		},
+	{ LATIN_G0, LATIN_G2, POLISH,		"Polski" },
+	{ LATIN_G0, LATIN_G2, GERMAN,		"Deutsch" },
+	{ LATIN_G0, LATIN_G2, SWE_FIN_HUN,	"Svenska / Suomi / Magyar" },
+	{ LATIN_G0, LATIN_G2, ITALIAN,		"Italiano" },
+	{ LATIN_G0, LATIN_G2, FRENCH,		"Français" },
 	{ LATIN_G0, LATIN_G2, NO_SUBSET		},
-	{ LATIN_G0, LATIN_G2, CZECH_SLOVAK	},
+	{ LATIN_G0, LATIN_G2, CZECH_SLOVAK,	"Cesky / Slovencina" },
 	{ LATIN_G0, LATIN_G2, NO_SUBSET		},
 
 	/* 16 - Western Europe and Turkey */
-	{ LATIN_G0, LATIN_G2, ENGLISH		},
-	{ LATIN_G0, LATIN_G2, GERMAN		},
-	{ LATIN_G0, LATIN_G2, SWE_FIN_HUN	},
-	{ LATIN_G0, LATIN_G2, ITALIAN		},
-	{ LATIN_G0, LATIN_G2, FRENCH		},
-	{ LATIN_G0, LATIN_G2, PORTUG_SPANISH	},
-	{ LATIN_G0, LATIN_G2, TURKISH		},
+	{ LATIN_G0, LATIN_G2, ENGLISH,		"English" },
+	{ LATIN_G0, LATIN_G2, GERMAN,		"Deutsch" },
+	{ LATIN_G0, LATIN_G2, SWE_FIN_HUN,	"Svenska / Suomi / Magyar" },
+	{ LATIN_G0, LATIN_G2, ITALIAN,		"Italiano" },
+	{ LATIN_G0, LATIN_G2, FRENCH,		"Français" },
+	{ LATIN_G0, LATIN_G2, PORTUG_SPANISH,	"Português / Español" },
+	{ LATIN_G0, LATIN_G2, TURKISH,		"Türkçe" },
 	{ LATIN_G0, LATIN_G2, NO_SUBSET		},
 
 	/* 24 - Central and Southeast Europe */
@@ -63,19 +63,19 @@ font_descriptors[88] = {
 	{ LATIN_G0, LATIN_G2, NO_SUBSET		},
 	{ LATIN_G0, LATIN_G2, NO_SUBSET		},
 	{ LATIN_G0, LATIN_G2, NO_SUBSET		},
-	{ LATIN_G0, LATIN_G2, SERB_CRO_SLO	},
+	{ LATIN_G0, LATIN_G2, SERB_CRO_SLO,	"Srbski / Hrvatski / Slovenscina" },
 	{ LATIN_G0, LATIN_G2, NO_SUBSET		},
-	{ LATIN_G0, LATIN_G2, RUMANIAN		},
+	{ LATIN_G0, LATIN_G2, RUMANIAN,		"Româna" },
 
 	/* 32 - Cyrillic */
-	{ CYRILLIC_1_G0, CYRILLIC_G2, NO_SUBSET	},
-	{ LATIN_G0, LATIN_G2, GERMAN		},
-	{ LATIN_G0, LATIN_G2, ESTONIAN		},
-	{ LATIN_G0, LATIN_G2, LETT_LITH		},
-	{ CYRILLIC_2_G0, CYRILLIC_G2, NO_SUBSET	},
-	{ CYRILLIC_3_G0, CYRILLIC_G2, NO_SUBSET	},
-	{ LATIN_G0, LATIN_G2, CZECH_SLOVAK	},
-	{ 0, 0, NO_SUBSET			},
+	{ CYRILLIC_1_G0, CYRILLIC_G2, NO_SUBSET, "Srpski / Hrvatski" },
+	{ LATIN_G0, LATIN_G2, GERMAN,		"Deutsch" },
+	{ LATIN_G0, LATIN_G2, ESTONIAN,		"Eesti" },
+	{ LATIN_G0, LATIN_G2, LETT_LITH,	"Lettish / Lietuviskai" },
+	{ CYRILLIC_2_G0, CYRILLIC_G2, NO_SUBSET, "Russky / Balgarski " },
+	{ CYRILLIC_3_G0, CYRILLIC_G2, NO_SUBSET, "Ukrayins'ka" },
+	{ LATIN_G0, LATIN_G2, CZECH_SLOVAK,	"Cesky / Slovencina" },
+	{ 0, 0, NO_SUBSET,			},
 
 	{ 0, 0, NO_SUBSET			},
 	{ 0, 0, NO_SUBSET			},
@@ -93,8 +93,8 @@ font_descriptors[88] = {
 	{ 0, 0, NO_SUBSET			},
 	{ 0, 0, NO_SUBSET			},
 	{ 0, 0, NO_SUBSET			},
-	{ LATIN_G0, LATIN_G2, TURKISH		},
-	{ GREEK_G0, GREEK_G2, NO_SUBSET		},
+	{ LATIN_G0, LATIN_G2, TURKISH,		"Türkçe" },
+	{ GREEK_G0, GREEK_G2, NO_SUBSET,	"Ellinika'" },
 
 	{ 0, 0, NO_SUBSET			},
 	{ 0, 0, NO_SUBSET			},
@@ -106,14 +106,14 @@ font_descriptors[88] = {
 	{ 0, 0, NO_SUBSET			},
 
 	/* 64 - Arabic */
-	{ LATIN_G0, ARABIC_G2, ENGLISH		},
+	{ LATIN_G0, ARABIC_G2, ENGLISH,		"Alarabia / English" },
 	{ 0, 0, NO_SUBSET			},
 	{ 0, 0, NO_SUBSET			},
 	{ 0, 0, NO_SUBSET			},
-	{ LATIN_G0, ARABIC_G2, FRENCH		},
+	{ LATIN_G0, ARABIC_G2, FRENCH,		"Alarabia / Français" },
 	{ 0, 0, NO_SUBSET			},
 	{ 0, 0, NO_SUBSET			},
-	{ ARABIC_G0, ARABIC_G2, NO_SUBSET	},
+	{ ARABIC_G0, ARABIC_G2, NO_SUBSET,	"Alarabia" },
 
 	{ 0, 0, NO_SUBSET			},
 	{ 0, 0, NO_SUBSET			},
@@ -130,9 +130,9 @@ font_descriptors[88] = {
 	{ 0, 0, NO_SUBSET			},
 	{ 0, 0, NO_SUBSET			},
 	{ 0, 0, NO_SUBSET			},
-	{ HEBREW_G0, ARABIC_G2, NO_SUBSET	},
+	{ HEBREW_G0, ARABIC_G2, NO_SUBSET,	"Ivrit" },
 	{ 0, 0, NO_SUBSET			},
-	{ ARABIC_G0, ARABIC_G2, NO_SUBSET	},
+	{ ARABIC_G0, ARABIC_G2, NO_SUBSET,	"Alarabia" },
 };
 
 /*

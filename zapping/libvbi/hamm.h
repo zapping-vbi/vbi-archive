@@ -19,4 +19,10 @@ parity(int c)
 		return -1;
 }
 
+static inline int
+hamm16a(unsigned char *p)
+{
+	return hamm8a[p[0]] | (hamm8a[p[1]] << 4);
+}
+
 #endif

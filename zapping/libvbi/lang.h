@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.h,v 1.2 2000-12-26 20:49:44 mschimek Exp $ */
+/* $Id: lang.h,v 1.3 2000-12-29 00:38:30 mschimek Exp $ */
 
 #ifndef LANG_H
 #define LANG_H
@@ -60,6 +60,7 @@ typedef struct {
 	character_set		G0;
 	character_set		G2;	
 	national_subset		subset;	/* applies only to LATIN_G0 */
+	char *			label;
 } font_descriptor;
 
 extern font_descriptor	font_descriptors[88];

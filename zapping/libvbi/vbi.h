@@ -36,6 +36,7 @@ struct vbi
 
 	vt_pagenum		initial_page;
 	magazine		magazine[9];	/* 1 ... 8; #0 unmodified level -1.5 default */
+	char			btt[800];
 
     // page assembly
     struct raw_page rpage[8];	// one for each magazin
@@ -68,6 +69,6 @@ int vbi_line(struct vbi *vbi, u8 *p);
 void vbi_set_default_region(struct vbi *vbi, int default_region);
 
 extern bool		convert_pop(struct vt_page *vtp, page_function function);
-extern void drcs_conv(struct vt_page *vtp);
+extern bool		convert_drcs(struct vt_page *vtp, page_function function);
 
 #endif
