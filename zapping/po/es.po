@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.5\n"
-"POT-Creation-Date: 2002-03-28 14:49+0100\n"
+"POT-Creation-Date: 2002-04-01 01:23+0200\n"
 "PO-Revision-Date: 2002-03-28 16:56+0100\n"
 "Last-Translator: Iñaki García Etxebarria <garetxe@users.sourceforge.net>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -580,8 +580,7 @@ msgstr "Sin calificar"
 msgid "TV"
 msgstr "TV"
 
-#: src/properties-handler.c:122 src/properties-handler.c:129
-#: src/properties-handler.c:136 src/tveng.c:271
+#: src/properties-handler.c:121 src/tveng.c:271
 msgid "Camera"
 msgstr "Cámara"
 
@@ -816,7 +815,7 @@ msgstr "Restablecer"
 msgid "Zapping Properties"
 msgstr "Propiedades de Zapping"
 
-#: src/keyboard.c:811 src/properties-handler.c:708 src/properties.c:913
+#: src/keyboard.c:811 src/properties-handler.c:699 src/properties.c:913
 msgid "General Options"
 msgstr "Opciones generales"
 
@@ -870,53 +869,44 @@ msgid "Your video device has no inputs"
 msgstr "Tu dispositivo no tiene entradas"
 
 #: src/properties-handler.c:119
-#, c-format
-msgid "%s"
-msgstr "%s"
-
-#: src/properties-handler.c:121 src/properties-handler.c:128
-#: src/properties-handler.c:135
 msgid "TV input"
 msgstr "Entrada de TV"
 
-#: src/properties-handler.c:126
-#, c-format
-msgid "%s with a tuner"
-msgstr "%s con sintonizador."
+#: src/properties-handler.c:124
+#, fuzzy, c-format
+msgid "%s with %d tuner"
+msgid_plural "%s with %d tuners"
+msgstr[0] "%s con %d sintonizador."
+msgstr[1] "%s con %d sintonizadores."
 
-#: src/properties-handler.c:133
-#, c-format
-msgid "%s with %d tuners"
-msgstr "%s con %d sintonizadores."
-
-#: src/properties-handler.c:413 src/properties-handler.c:709
+#: src/properties-handler.c:404 src/properties-handler.c:700
 msgid "VBI Options"
 msgstr "Opciones VBI"
 
-#: glade/glade_strings.c:180 src/properties-handler.c:414
-#: src/properties-handler.c:703
+#: glade/glade_strings.c:180 src/properties-handler.c:405
+#: src/properties-handler.c:694
 msgid "Interactive TV"
 msgstr "TV Interactiva"
 
-#: src/properties-handler.c:689 src/properties-handler.c:707
+#: src/properties-handler.c:680 src/properties-handler.c:698
 msgid "Device Info"
 msgstr "Info del dispositivo"
 
-#: glade/glade_strings.c:66 src/properties-handler.c:693
+#: glade/glade_strings.c:66 src/properties-handler.c:684
 msgid "Main Window"
 msgstr "Ventana principal"
 
-#: glade/glade_strings.c:103 src/properties-handler.c:695
+#: glade/glade_strings.c:103 src/properties-handler.c:686
 msgid "OSD"
 msgstr "OSD"
 
 # src/v4l2interface.c:344
 #: glade/glade_strings.c:80 plugins/mpeg/mpeg_strings.c:19
-#: src/properties-handler.c:697
+#: src/properties-handler.c:688
 msgid "Video"
 msgstr "Video"
 
-#: glade/glade_strings.c:143 src/properties-handler.c:701
+#: glade/glade_strings.c:143 src/properties-handler.c:692
 msgid "General"
 msgstr "General"
 
@@ -2938,3 +2928,9 @@ msgstr "Guardar mpeg"
 #: plugins/mpeg/mpeg_strings.c:32
 msgid "Destination file:"
 msgstr "Fichero destino:"
+
+#~ msgid "%s"
+#~ msgstr "%s"
+
+#~ msgid "%s with a tuner"
+#~ msgstr "%s con sintonizador."

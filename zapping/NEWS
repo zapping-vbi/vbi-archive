@@ -1,6 +1,12 @@
 New stuff, refer to the ChangeLog for a more detailed description of
 the changes.
 
+0.6.4
+-----
+This is mostly a bugfix release, no new features. When you
+use this version you should also install zvbi 0.1.1 which
+adds more fixes.
+
 0.6.3
 -----
 A new year, a new release, a new maintainer. Sadly this

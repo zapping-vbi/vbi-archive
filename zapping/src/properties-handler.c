@@ -110,33 +110,24 @@ di_setup		(GtkWidget	*page)
   else
     for (i = 0; i < main_info->num_inputs; i++)
       {
+	char *type_str;
+
 	nb_label = gtk_label_new(main_info->inputs[i].name);
 	gtk_widget_show (nb_label);
-	switch (main_info->inputs[i].tuners)
-	  {
-	  case 0:
-	    buffer = 
-	      g_strdup_printf("%s",
-			      main_info->inputs[i].type ==
-			      TVENG_INPUT_TYPE_TV ? _("TV input") :
-			      _("Camera"));
-	      break;
-	  case 1:
-	    buffer =
-	      g_strdup_printf(_("%s with a tuner"),
-			      main_info->inputs[i].type ==
-			      TVENG_INPUT_TYPE_TV ? _("TV input") :
-			      _("Camera"));
-	    break;
-	  default:
-	    buffer =
-	      g_strdup_printf(_("%s with %d tuners"),
-			      main_info->inputs[i].type ==
-			      TVENG_INPUT_TYPE_TV ? _("TV input") :
-			      _("Camera"),
-			      main_info->inputs[i].tuners);
-	    break;
-	  }
+
+	if (main_info->inputs[i].type == TVENG_INPUT_TYPE_TV)
+	  type_str = _("TV input");
+	else
+	  type_str = _("Camera");
+
+	if (main_info->inputs[i].tuners)
+	  buffer = g_strdup_printf (ngettext ("%s with %d tuner",
+	                                      "%s with %d tuners",
+			                      main_info->inputs[i].tuners),
+				    type_str, main_info->inputs[i].tuners);
+	else
+          buffer = g_strdup_printf ("%s", type_str);
+
 	nb_body = gtk_label_new (buffer);
 	g_free (buffer);
 	gtk_widget_show (nb_body);

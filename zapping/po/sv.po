@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.6\n"
-"POT-Creation-Date: 2002-03-28 14:49+0100\n"
+"POT-Creation-Date: 2002-04-01 01:23+0200\n"
 "PO-Revision-Date: 2001-08-31 01:29+01:00\n"
 "Last-Translator: <snout@ctrl-c.liu.se>\n"
 "Language-Team: Swedish <sv@li.org>\n"
@@ -589,8 +589,7 @@ msgstr ""
 msgid "TV"
 msgstr "TV"
 
-#: src/properties-handler.c:122 src/properties-handler.c:129
-#: src/properties-handler.c:136 src/tveng.c:271
+#: src/properties-handler.c:121 src/tveng.c:271
 msgid "Camera"
 msgstr "Kamera"
 
@@ -826,7 +825,7 @@ msgstr "Återställ"
 msgid "Zapping Properties"
 msgstr "Egenskaper"
 
-#: src/keyboard.c:811 src/properties-handler.c:708 src/properties.c:913
+#: src/keyboard.c:811 src/properties-handler.c:699 src/properties.c:913
 #, fuzzy
 msgid "General Options"
 msgstr "Diverse val"
@@ -882,56 +881,46 @@ msgid "Your video device has no inputs"
 msgstr "Din videoenhet har inga ingångar"
 
 #: src/properties-handler.c:119
-#, c-format
-msgid "%s"
-msgstr "%s"
-
-#: src/properties-handler.c:121 src/properties-handler.c:128
-#: src/properties-handler.c:135
 msgid "TV input"
 msgstr "TV-ingång"
 
-#: src/properties-handler.c:126
-#, c-format
-msgid "%s with a tuner"
-msgstr "%s med en tuner"
+#: src/properties-handler.c:124
+#, fuzzy, c-format
+msgid "%s with %d tuner"
+msgid_plural "%s with %d tuners"
+msgstr[0] "%s med %d tuners"
 
-#: src/properties-handler.c:133
-#, c-format
-msgid "%s with %d tuners"
-msgstr "%s med %d tuners"
-
-#: src/properties-handler.c:413 src/properties-handler.c:709
+#: src/properties-handler.c:404 src/properties-handler.c:700
 #, fuzzy
 msgid "VBI Options"
 msgstr "VBI-val"
 
-#: glade/glade_strings.c:180 src/properties-handler.c:414
-#: src/properties-handler.c:703
+#: glade/glade_strings.c:180 src/properties-handler.c:405
+#: src/properties-handler.c:694
 msgid "Interactive TV"
 msgstr "Interaktiv TV"
 
-#: src/properties-handler.c:689 src/properties-handler.c:707
+#: src/properties-handler.c:680 src/properties-handler.c:698
 #, fuzzy
 msgid "Device Info"
 msgstr "Enhetsinfo"
 
-#: glade/glade_strings.c:66 src/properties-handler.c:693
+#: glade/glade_strings.c:66 src/properties-handler.c:684
 msgid "Main Window"
 msgstr ""
 
-#: glade/glade_strings.c:103 src/properties-handler.c:695
+#: glade/glade_strings.c:103 src/properties-handler.c:686
 msgid "OSD"
 msgstr ""
 
 # src/v4l2interface.c:344
 #: glade/glade_strings.c:80 plugins/mpeg/mpeg_strings.c:19
-#: src/properties-handler.c:697
+#: src/properties-handler.c:688
 #, fuzzy
 msgid "Video"
 msgstr "Endast bild"
 
-#: glade/glade_strings.c:143 src/properties-handler.c:701
+#: glade/glade_strings.c:143 src/properties-handler.c:692
 msgid "General"
 msgstr "Diverse"
 
@@ -3008,6 +2997,12 @@ msgstr ""
 #, fuzzy
 msgid "Destination file:"
 msgstr "Destination"
+
+#~ msgid "%s"
+#~ msgstr "%s"
+
+#~ msgid "%s with a tuner"
+#~ msgstr "%s med en tuner"
 
 #, fuzzy
 #~ msgid "Recording Schedule"

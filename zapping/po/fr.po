@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.6.3\n"
-"POT-Creation-Date: 2002-03-28 14:49+0100\n"
+"POT-Creation-Date: 2002-04-01 01:23+0200\n"
 "PO-Revision-Date: 2002-03-20 15:36+0100\n"
 "Last-Translator: Christian Marillat <marillat.christian@wanadoo.fr>\n"
 "Language-Team: French <fr@li.org>\n"
@@ -561,8 +561,7 @@ msgstr "Non classé"
 msgid "TV"
 msgstr "TV"
 
-#: src/properties-handler.c:122 src/properties-handler.c:129
-#: src/properties-handler.c:136 src/tveng.c:271
+#: src/properties-handler.c:121 src/tveng.c:271
 msgid "Camera"
 msgstr "Caméra"
 
@@ -788,7 +787,7 @@ msgstr "Remise à zéro"
 msgid "Zapping Properties"
 msgstr "Propriétés de Zapping"
 
-#: src/keyboard.c:811 src/properties-handler.c:708 src/properties.c:913
+#: src/keyboard.c:811 src/properties-handler.c:699 src/properties.c:913
 msgid "General Options"
 msgstr "Options Générale"
 
@@ -841,52 +840,43 @@ msgid "Your video device has no inputs"
 msgstr "Votre périphérique vidéo n'a pas d'entrée"
 
 #: src/properties-handler.c:119
-#, c-format
-msgid "%s"
-msgstr "%s"
-
-#: src/properties-handler.c:121 src/properties-handler.c:128
-#: src/properties-handler.c:135
 msgid "TV input"
 msgstr "Entrée TV"
 
-#: src/properties-handler.c:126
-#, c-format
-msgid "%s with a tuner"
-msgstr "%s avec un tuner"
+#: src/properties-handler.c:124
+#, fuzzy, c-format
+msgid "%s with %d tuner"
+msgid_plural "%s with %d tuners"
+msgstr[0] "%s avec %d tuner"
+msgstr[1] "%s avec %d tuners"
 
-#: src/properties-handler.c:133
-#, c-format
-msgid "%s with %d tuners"
-msgstr "%s avec %d tuners"
-
-#: src/properties-handler.c:413 src/properties-handler.c:709
+#: src/properties-handler.c:404 src/properties-handler.c:700
 msgid "VBI Options"
 msgstr "Options VBI"
 
-#: glade/glade_strings.c:180 src/properties-handler.c:414
-#: src/properties-handler.c:703
+#: glade/glade_strings.c:180 src/properties-handler.c:405
+#: src/properties-handler.c:694
 msgid "Interactive TV"
 msgstr "TV Interactive"
 
-#: src/properties-handler.c:689 src/properties-handler.c:707
+#: src/properties-handler.c:680 src/properties-handler.c:698
 msgid "Device Info"
 msgstr "Info du Périphérique"
 
-#: glade/glade_strings.c:66 src/properties-handler.c:693
+#: glade/glade_strings.c:66 src/properties-handler.c:684
 msgid "Main Window"
 msgstr "Fenêtre Principale"
 
-#: glade/glade_strings.c:103 src/properties-handler.c:695
+#: glade/glade_strings.c:103 src/properties-handler.c:686
 msgid "OSD"
 msgstr "OSD"
 
 #: glade/glade_strings.c:80 plugins/mpeg/mpeg_strings.c:19
-#: src/properties-handler.c:697
+#: src/properties-handler.c:688
 msgid "Video"
 msgstr "Vidéo"
 
-#: glade/glade_strings.c:143 src/properties-handler.c:701
+#: glade/glade_strings.c:143 src/properties-handler.c:692
 msgid "General"
 msgstr "Générale"
 
@@ -2885,3 +2875,9 @@ msgstr "Sauver le mpeg"
 #: plugins/mpeg/mpeg_strings.c:32
 msgid "Destination file:"
 msgstr "Fichier de destination :"
+
+#~ msgid "%s"
+#~ msgstr "%s"
+
+#~ msgid "%s with a tuner"
+#~ msgstr "%s avec un tuner"
