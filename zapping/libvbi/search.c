@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.3 2001-01-13 23:53:39 mschimek Exp $ */
+/* $Id: search.c,v 1.4 2001-01-14 02:31:41 mschimek Exp $ */
 
 #include <stdlib.h>
 #include "vt.h"
@@ -68,7 +68,7 @@ search_page_fwd(struct search *s, struct vt_page *vtp, int wrapped)
 	int row, this, start, stop;
 	ucs2_t *hp, *first;
 	unsigned long ms, me;
-	int i, j;
+	int flags, i, j;
 
 	this  = (vtp->pgno << 16) + vtp->subno;
 	start = (s->start.pgno << 16) + s->start.subno;
@@ -104,6 +104,10 @@ search_page_fwd(struct search *s, struct vt_page *vtp, int wrapped)
 	hp = s->haystack;
 	first = hp;
 	row = (this == start) ? s->start.row : -1;
+	flags = 0;
+
+	if (row > LAST_ROW)
+		goto break2;
 
 	for (i = FIRST_ROW; i < LAST_ROW; i++) {
 		for (j = 0; j < 40; acp++, j++) {
@@ -124,9 +128,11 @@ search_page_fwd(struct search *s, struct vt_page *vtp, int wrapped)
 			}
 
 			*hp++ = glyph2unicode(acp->glyph) ? : 0x0020;
+			flags = URE_NOTBOL;
 		}
 
 		*hp++ = SEPARATOR;
+		flags = 0;
 	}
 
 	/* Search */
@@ -135,15 +141,15 @@ search_page_fwd(struct search *s, struct vt_page *vtp, int wrapped)
 		return 0; // try next page
 /*
 #define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
-fprintf(stderr, "exec: %x/%x; %c%c%c...\n",
+fprintf(stderr, "exec: %x/%x; start %d,%d; %c%c%c...\n",
 	vtp->pgno, vtp->subno,
+	s->start.row, s->start.col,
 	printable(first[0]),
 	printable(first[1]),
 	printable(first[2])
 );
 */
-	// no REG_NOTBOL | REG_NOTEOL (libc regexp) ?
-	if (!ure_exec(s->ud, 0, first, hp - first, &ms, &me))
+	if (!ure_exec(s->ud, flags, first, hp - first, &ms, &me))
 		return 0; // try next page
 
 	/* Highlight */
@@ -161,14 +167,8 @@ fprintf(stderr, "exec: %x/%x; %c%c%c...\n",
 			int offset = hp - first;
  
 			if (offset >= (signed long) me) {
-				if (j == 39) {
-					s->start.row = i + 1;
-					s->start.col = 0;
-				} else {
-					s->start.row = i;
-					s->start.col = j;
-				}
-
+				s->start.row = i;
+				s->start.col = j;
 				goto break2;
 			}
 
@@ -241,7 +241,7 @@ search_page_rev(struct search *s, struct vt_page *vtp, int wrapped)
 	int row, this, start, stop;
 	unsigned long ms, me;
 	ucs2_t *hp;
-	int i, j;
+	int flags, i, j;
 
 	this  = (vtp->pgno << 16) + vtp->subno;
 	start = (s->start.pgno << 16) + s->start.subno;
@@ -275,9 +275,10 @@ search_page_rev(struct search *s, struct vt_page *vtp, int wrapped)
 
 	acp = &s->pg.data[FIRST_ROW][0];
 	hp = s->haystack;
-	row = (this == start) ? s->start.row : -1;
+	row = (this == start) ? s->start.row : 100;
+	flags = 0;
 
-	if (s->start.row <= 0)
+	if (row < FIRST_ROW)
 		goto break2;
 
 	for (i = FIRST_ROW; i < LAST_ROW; i++) {
@@ -299,9 +300,11 @@ search_page_rev(struct search *s, struct vt_page *vtp, int wrapped)
 			}
 
 			*hp++ = glyph2unicode(acp->glyph) ? : 0x0020;
+			flags = URE_NOTEOL;
 		}
 
 		*hp++ = SEPARATOR;
+		flags = 0;
 	}
 break2:
 
@@ -323,7 +326,8 @@ fprintf(stderr, "exec: %x/%x; %d, %d; '%c%c%c...'\n",
 	printable(s->haystack[me + 2])
 );
 */
-		if (!ure_exec(s->ud, 0, s->haystack + me, hp - s->haystack - me, &ms1, &me1))
+		if (!ure_exec(s->ud, (me > 0) ? (flags | URE_NOTBOL) : flags,
+		    s->haystack + me, hp - s->haystack - me, &ms1, &me1))
 			break;
 
 		ms = me + ms1;
