@@ -8,5 +8,3 @@ Known bugs with zapping, don't report them
 	it's x11_add_clips. Weird, but needs fixing.
 	* Need better no-overlay-present handling.
 	* The standard is changed when changing modes.
-	* t4-arte, reported subtitle languages don't match the content
-	(page 156, for example). Transmission error?

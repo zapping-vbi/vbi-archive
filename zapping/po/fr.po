@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.5.4\n"
-"POT-Creation-Date: 2001-04-02 21:14+0200\n"
+"POT-Creation-Date: 2001-04-09 14:29+0200\n"
 "PO-Revision-Date: 2000-09-17 11:11+02:00\n"
 "Last-Translator: Christian Marillat <marillat.christian@wanadoo.fr>\n"
 "Language-Team: French <fr@li.org>\n"
@@ -118,20 +118,20 @@ msgstr ""
 "La capture d'écran ne peut être démarrée :\n"
 "%s"
 
-#: src/callbacks.c:183 src/callbacks.c:600 src/main.c:551
+#: src/callbacks.c:183 src/callbacks.c:583 src/main.c:551
 #, fuzzy
 msgid "Show controls"
 msgstr "Contrôles"
 
-#: src/callbacks.c:184 src/callbacks.c:601 src/main.c:552
+#: src/callbacks.c:184 src/callbacks.c:584 src/main.c:552
 msgid "Show the menu and the toolbar"
 msgstr ""
 
-#: src/callbacks.c:215 src/callbacks.c:593 src/main.c:564
+#: src/callbacks.c:215 src/callbacks.c:576 src/main.c:564
 msgid "Show extra controls"
 msgstr ""
 
-#: src/callbacks.c:216 src/callbacks.c:594 src/main.c:565
+#: src/callbacks.c:216 src/callbacks.c:577 src/main.c:565
 msgid "Show Input, Standards and subtitle selection"
 msgstr ""
 
@@ -159,11 +159,11 @@ msgstr ""
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Désolé, Zapping n'est pas capable de créer la configuration"
 
-#: src/interface.c:137
+#: src/interface.c:150
 msgid "(C) Iñaki García Etxebarria"
 msgstr "(C) Iñaki García Etxebarria"
 
-#: src/interface.c:139
+#: src/interface.c:152
 msgid "A TV viewer for the Gnome Desktop Environment"
 msgstr "Un visualiseur de TV pour l'environnement Gnome"
 
@@ -184,7 +184,7 @@ msgstr ""
 msgid "Hide Input, Standards and subtitle selection"
 msgstr ""
 
-#: src/callbacks.c:493 src/v4linterface.c:185
+#: src/callbacks.c:476 src/v4linterface.c:185
 msgid "No tuned channels"
 msgstr "Pas de chaîne accordées"
 
@@ -269,7 +269,7 @@ msgstr "Pas de standards valable"
 msgid "Adjust %s"
 msgstr ""
 
-#: src/v4linterface.c:525
+#: src/v4linterface.c:565
 msgid "Available controls"
 msgstr "Controls valable"
 
@@ -289,21 +289,21 @@ msgstr ""
 "Désolé, mais %s ne peut pas être ouvert :\n"
 "%s (%d)"
 
-#: src/zvbi.c:1200
+#: src/zvbi.c:1186
 #, fuzzy, c-format
 msgid "%d %s"
 msgstr "%P %%"
 
-#: src/zvbi.c:1201
+#: src/zvbi.c:1187
 #, fuzzy
 msgid "minute"
 msgstr "Sourdine"
 
-#: src/zvbi.c:1201
+#: src/zvbi.c:1187
 msgid "minutes"
 msgstr ""
 
-#: src/zvbi.c:1203
+#: src/zvbi.c:1189
 #, c-format
 msgid "%d h %d m"
 msgstr ""
@@ -321,11 +321,11 @@ msgstr "Caméra"
 msgid "Couldn't locate zapping_setup_fb, check your install"
 msgstr "Impossible de trouver zapping_setup_fb, vérifié votre installation"
 
-#: src/tveng.c:1984 src/tveng.c:1999
+#: src/tveng.c:1997 src/tveng.c:2012
 msgid "Filter"
 msgstr ""
 
-#: src/tveng.c:2014
+#: src/tveng.c:2027
 #, fuzzy
 msgid "Colorkey"
 msgstr "Couleur"
@@ -536,7 +536,12 @@ msgstr ""
 "Check erreur: \"%s\" du plu-gin %s devrait être \"%s\" mais il est:\"%s\". "
 "Hashes are 0x%x vs. 0x%x"
 
-#: src/zmisc.c:366
+#: src/zmisc.c:298
+#, c-format
+msgid "Preview will not work: %s"
+msgstr ""
+
+#: src/zmisc.c:373
 msgid "VBI has been disabled, or it doesn't work."
 msgstr "VBI n'a pas été activé, ou il ne marche pas."
 
@@ -680,132 +685,180 @@ msgstr "Désolé, mais le plu-gin ne peut être démarré"
 msgid "Sorry, the plugin doesn't provide help for this"
 msgstr "Le plu-gin ne fournis pas d'aide. Désolé."
 
-#: src/ttxview.c:494
+#: src/ttxview.c:496
 #, c-format
 msgid "Text export failed: %s"
 msgstr ""
 
-#: src/ttxview.c:502
+#: src/ttxview.c:504
 #, c-format
 msgid "Selection failed: %s"
 msgstr ""
 
-#: src/ttxview.c:578
+#: src/ttxview.c:580
 #, fuzzy, c-format
 msgid " Page %d"
 msgstr "Page"
 
-#: src/ttxview.c:582
+#: src/ttxview.c:584
 #, c-format
 msgid " Subpage %d"
 msgstr ""
 
-#: src/ttxview.c:658 src/ttxview.c:766
+#: src/ttxview.c:660 src/ttxview.c:768
 msgid "Warning: Page not valid"
-msgstr ""
-
-#: src/ttxview.c:760
-#, c-format
-msgid "Loading page %x..."
 msgstr ""
 
 #: src/ttxview.c:762
 #, c-format
+msgid "Loading page %x..."
+msgstr ""
+
+#: src/ttxview.c:764
+#, c-format
 msgid "Loading subpage %x..."
 msgstr ""
 
-#: src/ttxview.c:838 src/ttxview.c:874
+#: src/ttxview.c:840 src/ttxview.c:876
 msgid "No cache"
 msgstr ""
 
-#: src/ttxview.c:847 src/ttxview.c:883
+#: src/ttxview.c:849 src/ttxview.c:885
 msgid "No other subpage in the cache"
 msgstr ""
 
-#: src/ttxview.c:955
+#: src/ttxview.c:957
 msgid "Found"
 msgstr ""
 
-#: src/ttxview.c:974
+#: src/ttxview.c:976
 #, fuzzy
 msgid "Not found"
 msgstr "Pas de tuner"
 
-#: src/ttxview.c:1098
+#: src/ttxview.c:1100
 #, c-format
 msgid "Scanning %x.%02x"
 msgstr ""
 
-#: src/ttxview.c:1140
+#: src/ttxview.c:1142
 #, fuzzy
 msgid "VBI has been disabled"
 msgstr "VBI n'a pas été activé, ou il ne marche pas."
 
-#: src/ttxview.c:1382
+#: src/ttxview.c:1384
 #, c-format
 msgid "<%s> added to the bookmarks"
 msgstr ""
 
-#: src/ttxview.c:1445
+#: src/ttxview.c:1447
 msgid "Any subpage"
 msgstr ""
 
-#: src/ttxview.c:1752
+#: src/ttxview.c:1754
 #, fuzzy, c-format
 msgid "Export %s"
 msgstr "Exposition"
 
-#: src/ttxview.c:1766
+#: src/ttxview.c:1768
 msgid "Save as:"
 msgstr ""
 
-#: src/ttxview.c:1771
+#: src/ttxview.c:1773
 #, fuzzy
 msgid "Select file you'll be exporting to"
 msgstr "Sélectionnez le répertoire de sauvegarde"
 
-#: src/ttxview.c:1785
+#: src/ttxview.c:1787
 #, fuzzy
 msgid "Options"
 msgstr "Options VBI"
 
-#: src/ttxview.c:1823
+#: src/ttxview.c:1825
 msgid "You must first set the destination dir in the properties dialog"
 msgstr ""
 
-#: src/ttxview.c:1832 src/ttxview.c:2258
+#: src/ttxview.c:1834 src/ttxview.c:2539
 msgid "No page loaded"
 msgstr ""
 
-#: glade/glade_strings.c:192 src/ttxview.c:1838
+#: glade/glade_strings.c:192 src/ttxview.c:1840
 msgid "Zapzilla"
 msgstr ""
 
-#: src/ttxview.c:1867
+#: src/ttxview.c:1869
 #, c-format
 msgid "Export to %s failed: %s"
 msgstr ""
 
-#: src/ttxview.c:1876
+#: src/ttxview.c:1878
 #, c-format
 msgid "%s saved"
 msgstr ""
 
-#: src/ttxview.c:1887
+#: src/ttxview.c:1889
 #, c-format
 msgid "Export failed: %s"
 msgstr ""
 
-#: src/ttxview.c:1975
+#: src/ttxview.c:2050
+#, c-format
+msgid "%x: Unknown language"
+msgstr ""
+
+#: src/ttxview.c:2062 src/ttxview.c:2076 src/ttxview.c:2099 src/ttxview.c:2131
+#: src/ttxview.c:2163
+#, fuzzy, c-format
+msgid "Page %x"
+msgstr "Page"
+
+#: src/ttxview.c:2071
+msgid "Index"
+msgstr ""
+
+#: src/ttxview.c:2093
+msgid "Now and Next"
+msgstr ""
+
+#: src/ttxview.c:2109
+msgid "Program Info"
+msgstr ""
+
+#: src/ttxview.c:2115 src/ttxview.c:2147
+#, fuzzy, c-format
+msgid "Page %x.%x"
+msgstr "Page"
+
+#: src/ttxview.c:2125
+msgid "Program Index"
+msgstr ""
+
+#: src/ttxview.c:2141
+msgid "Program Schedule"
+msgstr ""
+
+#: src/ttxview.c:2157
+msgid "Program Warning"
+msgstr ""
+
+#: src/ttxview.c:2177
+msgid "Subtitles"
+msgstr ""
+
+#: src/ttxview.c:2179
+msgid "Select subtitles page"
+msgstr ""
+
+#: src/ttxview.c:2248
 #, fuzzy, c-format
 msgid "%s in %s"
 msgstr "%P %%"
 
-#: src/ttxview.c:2267
+#: src/ttxview.c:2548
 msgid "Selecting - hold Shift for table mode"
 msgstr ""
 
-#: src/ttxview.c:2381
+#: src/ttxview.c:2662
 msgid "Selection copied to clipboard"
 msgstr ""
 
@@ -1642,11 +1695,11 @@ msgid "_Add current page..."
 msgstr ""
 
 #: glade/glade_strings.c:226
-msgid "Delete some bookmarks"
+msgid "Use this dialog to delete any bookmarks you wish to remove"
 msgstr ""
 
 #: glade/glade_strings.c:227
-msgid "_Delete Bookmarks..."
+msgid "_Edit Bookmarks..."
 msgstr ""
 
 #: glade/glade_strings.c:228

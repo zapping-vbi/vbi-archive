@@ -586,6 +586,9 @@ parse_mip(struct vbi *vbi, struct vt_page *vtp)
 					return FALSE;
 		}
 
+	if (0 && packet == 1)
+		dump_page_info(&vbi->vt);
+
 	return TRUE;
 }
 
@@ -671,7 +674,8 @@ parse_btt(struct vbi *vbi, unsigned char *raw, int packet)
 
 				case BTT_PROGR_INDEX_S:
 				case BTT_PROGR_INDEX_M:
-					pi->code = VBI_PROGR_INDEX;
+					/* Usually schedule, not index (likely BTT_GROUP) */
+					pi->code = VBI_PROGR_SCHEDULE;
 					break;
 
 				case BTT_BLOCK_S:

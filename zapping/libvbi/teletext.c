@@ -27,10 +27,6 @@
 #define printv(templ, args...)
 #endif
 
-/*
-    XXX 3sat p. 888
- */
-
 #define ROWS			25
 #define COLUMNS			40
 #define LAST_ROW		((ROWS - 1) * COLUMNS)
@@ -285,13 +281,14 @@ next_ait(struct vbi *vbi, int pgno, int subno)
 static int
 top_index(struct vbi *vbi, struct fmt_page *pg, int subno)
 {
+	static void screen_colour(struct fmt_page *pg, int flags, int colour);
 	attr_char ac, *acp;
 	ait_entry *ait;
 	int i, j, k, n, lines;
 	int xpgno, xsubno;
+	extension *ext;
 
 	pg->vbi = vbi;
-
 	pg->subno = subno;
 
 	pg->rows = ROWS;
@@ -301,10 +298,15 @@ top_index(struct vbi *vbi, struct fmt_page *pg, int subno)
 	pg->dirty.y1 = ROWS - 1;
 	pg->dirty.roll = 0;
 
+	ext = &vbi->vt.magazine[0].extension;
+	screen_colour(pg, 0, 32 + BLUE);
+	vbi_transp_colourmap(vbi, pg->colour_map, ext->colour_map, 40);
+
 	memset(&ac, 0, sizeof(ac));
 
-	ac.foreground	= 32 + BLACK;
+	ac.foreground	= BLACK; // 32 + BLACK;
 	ac.background	= 32 + BLUE;
+	ac.opacity	= OPAQUE;
 	ac.glyph	= GL_SPACE;
 
 	for (i = 0; i < COLUMNS * ROWS; i++)
@@ -656,12 +658,12 @@ vbi_page_title(struct vbi *vbi, int pgno, int subno, char *buf)
 /* ------------------------------------------------------------------ */
 
 static void
-screen_colour(struct fmt_page *pg, struct vt_page *vtp, int colour)
+screen_colour(struct fmt_page *pg, int flags, int colour)
 { 
 	pg->screen_colour = colour;
 
 	if (colour == TRANSPARENT_BLACK
-	    || (vtp->flags & (C5_NEWSFLASH | C6_SUBTITLE)))
+	    || (flags & (C5_NEWSFLASH | C6_SUBTITLE)))
 		pg->screen_opacity = TRANSPARENT_SPACE;
 	else
 		pg->screen_opacity = OPAQUE;
@@ -972,7 +974,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 			case 0x00:		/* full screen colour */
 				if (max_level >= VBI_LEVEL_2p5
 				    && s == 0 && type <= OBJ_TYPE_ACTIVE)
-					screen_colour(pg, vtp, p->data & 0x1F);
+					screen_colour(pg, vtp->flags, p->data & 0x1F);
 
 				break;
 
@@ -1502,7 +1504,7 @@ post_enhance(struct fmt_page *pg)
 
 	for (row = 0; row < ROWS - 1; row++) {
 		for (column = 0; column < COLUMNS; acp++, column++) {
-//			printv("%d", acp->flash);
+			printv("%c", acp->glyph);
 
 			if (acp->opacity == TRANSPARENT_SPACE
 			    || (acp->foreground == TRANSPARENT_BLACK
@@ -1554,7 +1556,7 @@ post_enhance(struct fmt_page *pg)
 			}
 		}
 
-//		printv("\n");
+		printv("\n");
 	}
 }
 
@@ -1660,7 +1662,7 @@ vbi_format_page(struct vbi *vbi,
 
 	/* Colours */
 
-	screen_colour(pg, vtp, ext->def_screen_colour);
+	screen_colour(pg, vtp->flags, ext->def_screen_colour);
 
 	vbi_transp_colourmap(vbi, pg->colour_map, ext->colour_map, 40);
 
@@ -1955,6 +1957,9 @@ vbi_fetch_vt_page(struct vbi *vbi, struct fmt_page *pg,
 
 	switch (pgno) {
 	case 0x900:
+		if (subno == ANY_SUB)
+			subno = 0;
+
 		if (!vbi->vt.top || !top_index(vbi, pg, subno))
 			return 0;
 

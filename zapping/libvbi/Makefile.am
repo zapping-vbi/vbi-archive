@@ -2,7 +2,7 @@ noinst_LIBRARIES = libvbi.a
 
 EXTRA_DIST = wstfont.xbm ccfont.xbm README
 
-CFLAGS = -D_GNU_SOURCE -g -O2 -Wall $(ARCH_CFLAGS) $(UNICODE_CFLAGS)
+CFLAGS = -D_GNU_SOURCE -g -O0 -Wall $(ARCH_CFLAGS) $(UNICODE_CFLAGS)
 
 libvbi_a_SOURCES = \
 	decoder.c decoder.h sliced.h v4lx.c v4lx.h \

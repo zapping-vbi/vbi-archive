@@ -756,7 +756,7 @@ load_page (int page, int subpage, ttxview_data *data,
   gtk_label_set_text(GTK_LABEL(widget), buffer);
   g_free(buffer);
 
-  if ((page >= 0x100) && (page <= 0x899))
+  if ((page >= 0x100) && (page <= 0x900))
     {
       if (subpage == ANY_SUB)
 	buffer = g_strdup_printf(_("Loading page %x..."), page);
@@ -841,8 +841,9 @@ void on_ttxview_prev_sp_cache_clicked	(GtkButton	*button,
       return;
     }
   
-  if (((subpage = find_prev_subpage(data, data->subpage)) >= 0) &&
-      (subpage != data->subpage))
+  if (data->fmt_page->pgno == 0x900 ||
+      (((subpage = find_prev_subpage(data, data->subpage)) >= 0) &&
+       (subpage != data->subpage)))
     load_page(data->fmt_page->pgno, subpage, data, NULL);
   else if (data->appbar)
     gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
@@ -2001,6 +2002,7 @@ on_subtitle_page_main			(GtkWidget	*menuitem,
       data = (ttxview_data*)gtk_object_get_data(GTK_OBJECT(widget),
 						"ttxview_data");
       g_assert(data != NULL);
+      /* should raise the window if the page is already open */
       load_page(page, subpage, data, NULL);
     }
 }
@@ -2017,7 +2019,7 @@ build_subtitles_submenu(GtkWidget *widget,
   GtkWidget *menu_item;
   gint count;
   gboolean empty = TRUE, something = FALSE, index = FALSE;
-  gint classf, subpage;
+  gint classf, subpage = ANY_SUB;
   gchar *language;
   gchar *buffer;
   gint insert_index; /* after New TTX view */
@@ -2040,7 +2042,7 @@ build_subtitles_submenu(GtkWidget *widget,
 
   for (count = 0x100; count <= 0x899; count = add_bcd(count, 1))
     {
-      classf = vbi_classify_page(zvbi_get_object(), count, &subpage,
+      classf = vbi_classify_page(zvbi_get_object(), count, NULL,
 				 &language);
       if (classf == VBI_SUBTITLE_PAGE && build_subtitles)
 	{
@@ -2087,6 +2089,7 @@ build_subtitles_submenu(GtkWidget *widget,
 	  index = TRUE;
 	  empty = FALSE;
 	}
+      /* should be sorted: index, schedule, current, n&n, warning */
       else if (classf == VBI_NOW_AND_NEXT)
 	{
 	  menu_item =
@@ -2106,13 +2109,13 @@ build_subtitles_submenu(GtkWidget *widget,
       else if (classf == VBI_CURRENT_PROGR)
 	{
 	  menu_item =
-	    z_gtk_pixmap_menu_item_new(_("Program Info"),
+	    z_gtk_pixmap_menu_item_new(_("Current program"),
 				       GNOME_STOCK_PIXMAP_ALIGN_JUSTIFY);
 	  gtk_object_set_user_data(GTK_OBJECT(menu_item), widget);
 	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
 			     GTK_SIGNAL_FUNC(on_subtitle_page_ttxview),
 			     GINT_TO_POINTER((count<<16) + subpage));
-	  buffer = g_strdup_printf(_("Page %x.%x"), count, subpage);
+	  buffer = g_strdup_printf(_("Page %x"), count);
 	  set_tooltip(menu_item, buffer);
 	  g_free(buffer);
 	  gtk_menu_insert(zmenu, menu_item, insert_index++);
@@ -2144,7 +2147,7 @@ build_subtitles_submenu(GtkWidget *widget,
 	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
 			     GTK_SIGNAL_FUNC(on_subtitle_page_ttxview),
 			     GINT_TO_POINTER((count<<16) + subpage));
-	  buffer = g_strdup_printf(_("Page %x.%x"), count, subpage);
+	  buffer = g_strdup_printf(_("Page %x"), count);
 	  set_tooltip(menu_item, buffer);
 	  g_free(buffer);
 	  gtk_menu_insert(zmenu, menu_item, insert_index++);
@@ -2840,8 +2843,10 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
       if (data->page >= 0x100)
 	data->page = 0;
       data->page = (data->page<<4)+event->keyval-GDK_0;
-      if (data->page > 0x899)
-	data->page = 0x899;
+      if (data->page == 0x999)
+        data->page = 0x900;
+      if (data->page > 0x900)
+	data->page = 0x900; /* 900 == top index (preliminary) */
       if (data->page >= 0x100)
 	load_page(data->page, ANY_SUB, data, NULL);
       else
@@ -2856,8 +2861,8 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
       if (data->page >= 0x100)
 	data->page = 0;
       data->page = (data->page<<4)+event->keyval-GDK_KP_0;
-      if (data->page > 0x899)
-	data->page = 0x899;
+      if (data->page > 0x900)
+	data->page = 0x900;
       if (data->page >= 0x100)
 	load_page(data->page, ANY_SUB, data, NULL);
       else

@@ -846,7 +846,7 @@ monitor_ttx_page(int id/*client*/, int page, int subpage)
       client->freezed = FALSE;
       client->page = page;
       client->subpage = subpage;
-      if ((page >= 0x100) && (page <= 0x899)) {
+      if ((page >= 0x100) && (page <= 0x900)) {
         if (build_client_page(client, page, subpage))
 	  {
 	    clear_message_queue(client);
