@@ -9,7 +9,6 @@ plugins/mpeg/mpeg_properties.glade2
 plugins/screenshot/screenshot.c
 plugins/screenshot/screenshot.glade2
 src/audio.c
-src/callbacks.c
 src/capture.c
 src/channel_editor.c
 src/eggcellrendererkeys.c

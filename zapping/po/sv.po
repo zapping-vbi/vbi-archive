@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.7\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2003-12-31 06:47+0100\n"
+"POT-Creation-Date: 2004-04-19 21:07+0200\n"
 "PO-Revision-Date: 2003-12-08 07:48+0100\n"
 "Last-Translator: <snout@ctrl-c.liu.se>\n"
 "Language-Team: Swedish <sv@li.org>\n"
@@ -45,7 +45,7 @@ msgstr "Avancerat"
 msgid "Arabic"
 msgstr "Arabisk"
 
-#: glade/zapping.glade2.h:6 src/audio.c:513 src/audio.c:518 src/tveng1.c:677
+#: glade/zapping.glade2.h:6 src/audio.c:512 src/audio.c:517 src/tveng1.c:677
 #: src/tveng2.c:613 src/tveng25.c:471
 msgid "Audio"
 msgstr "Ljud"
@@ -113,7 +113,7 @@ msgstr "Standard_region:"
 msgid "Device name:"
 msgstr "Enhetsnamn:"
 
-#: glade/zapping.glade2.h:23 src/audio.c:523 src/properties-handler.c:1606
+#: glade/zapping.glade2.h:23 src/audio.c:522 src/properties-handler.c:1605
 msgid "Devices"
 msgstr "Enheter"
 
@@ -340,8 +340,8 @@ msgid "VBI options"
 msgstr "VBI-val"
 
 # src/v4l2interface.c:344
-#: glade/zapping.glade2.h:76 src/main.c:158 src/properties-handler.c:1584
-#: src/properties-handler.c:1592
+#: glade/zapping.glade2.h:76 src/main.c:157 src/properties-handler.c:1583
+#: src/properties-handler.c:1591
 msgid "Video"
 msgstr "Bild"
 
@@ -541,7 +541,7 @@ msgstr "Denna plugin sparar ner bilden och ljudet till en fil"
 msgid "Record video and audio."
 msgstr "Spela in bild och ljud."
 
-#: plugins/mpeg/options.c:413 src/ttxview.c:1841
+#: plugins/mpeg/options.c:413 src/ttxview.c:1840
 msgid "Options"
 msgstr "Val"
 
@@ -751,20 +751,20 @@ msgid "pictures before grabbing"
 msgstr "bilder innan inspelning"
 
 #. TRANSLATORS: Soundcard mixer line.
-#: src/audio.c:491
+#: src/audio.c:490
 msgid "Input:"
 msgstr "Ingång:"
 
-#: src/audio.c:524 src/keyboard.c:1144 src/osd.c:1311
-#: src/properties-handler.c:1607 src/properties.c:932
+#: src/audio.c:523 src/keyboard.c:1144 src/osd.c:1311
+#: src/properties-handler.c:1606 src/properties.c:942
 msgid "General Options"
 msgstr "Diverse val"
 
-#: src/audio.c:635
+#: src/audio.c:634
 msgid "<span foreground=\"blue\">Audio off</span>"
 msgstr "<span foreground=\"blue\">Ljud av</span>"
 
-#: src/audio.c:636
+#: src/audio.c:635
 msgid "<span foreground=\"yellow\">Audio on</span>"
 msgstr "<span foreground=\"yellow\">Ljud på</span>"
 
@@ -954,7 +954,7 @@ msgstr "kabel"
 msgid "Autocom cable"
 msgstr "Autocom-kabel"
 
-#: src/fullscreen.c:293
+#: src/fullscreen.c:278
 msgid "No XFree86 DGA extension.\n"
 msgstr "Ingen XFree86 DGA-utökning.\n"
 
@@ -986,7 +986,7 @@ msgstr "_Teletext"
 msgid "_Subtitles"
 msgstr "_Undertexter"
 
-#: src/interface.c:329 src/ttxview.c:3774 src/ttxview.c:4022
+#: src/interface.c:329 src/ttxview.c:3773 src/ttxview.c:4022
 msgid "_Bookmarks"
 msgstr "_Bokmärken"
 
@@ -1036,7 +1036,7 @@ msgstr "Ner"
 msgid "Switch to lower channel"
 msgstr "Gå till lägre kanal"
 
-#: src/interface.c:702 src/v4linterface.c:631
+#: src/interface.c:702 src/v4linterface.c:630
 msgid "Controls"
 msgstr "Kontroller"
 
@@ -1044,7 +1044,7 @@ msgstr "Kontroller"
 msgid "Change picture controls"
 msgstr "Ändra bildinställningar"
 
-#: src/interface.c:709 src/main.c:155 src/tveng.c:1963 src/tveng1.c:749
+#: src/interface.c:709 src/main.c:154 src/tveng.c:1966 src/tveng1.c:749
 #: src/tveng2.c:451 src/tveng25.c:310 src/tvengxv.c:529
 msgid "Mute"
 msgstr "Tyst"
@@ -1053,11 +1053,11 @@ msgstr "Tyst"
 msgid "Switch audio on or off"
 msgstr "Sätt på eller av ljudet"
 
-#: src/interface.c:714 src/zmisc.c:401
+#: src/interface.c:714 src/zmisc.c:400
 msgid "Activate Teletext mode"
 msgstr "Aktivera Teletextläge"
 
-#: src/interface.c:722 src/main.c:157
+#: src/interface.c:722 src/main.c:156
 msgid "Subtitles"
 msgstr "Undertexter"
 
@@ -1085,111 +1085,111 @@ msgstr "Tangenttabell..."
 msgid "Command"
 msgstr "Kommando"
 
-#: src/keyboard.c:1114 src/properties-handler.c:799
+#: src/keyboard.c:1114 src/properties-handler.c:798
 msgid "Shortcut"
 msgstr "Genväg"
 
-#: src/main.c:156
+#: src/main.c:155
 msgid "Teletext"
 msgstr "Teletext"
 
-#: src/main.c:217
+#: src/main.c:216
 msgid "Kernel video device"
 msgstr "Kärnans videoenhet"
 
-#: src/main.c:218
+#: src/main.c:217
 msgid "FILENAME"
 msgstr "FILNAMN"
 
-#: src/main.c:229 src/main.c:247
+#: src/main.c:228 src/main.c:246
 msgid "XVideo video input port"
 msgstr "XVideo videoport"
 
-#: src/main.c:238
+#: src/main.c:237
 msgid "XVideo image overlay port"
 msgstr "XVIdeo overlayport"
 
-#: src/main.c:256
+#: src/main.c:255
 msgid "Disable XVideo video input support"
 msgstr "Stänga av XVideo-videoinputstödet"
 
-#: src/main.c:265
+#: src/main.c:264
 msgid "Disable XVideo image overlay support"
 msgstr "Stänga av XVideo-overlaystödet"
 
-#: src/main.c:274
+#: src/main.c:273
 msgid "Disable XVideo extension support"
 msgstr "Stänga av XVideo-utökningsstödet"
 
-#: src/main.c:286
+#: src/main.c:285
 msgid "Disable video overlay"
 msgstr "Stäng av video overlay"
 
-#: src/main.c:295
+#: src/main.c:294
 msgid "X display is remote, disable video overlay"
 msgstr "X-skärmen är inte lokak, stäng av video overlay"
 
-#: src/main.c:304
+#: src/main.c:303
 msgid "Disable VBI support"
 msgstr "Stänga av VBIstödet"
 
-#: src/main.c:313
+#: src/main.c:312
 msgid "Disable plugins"
 msgstr "Stänga av pluginstödet"
 
 #. TRANSLATORS: --no-zsfb command line option.
-#: src/main.c:327 src/main.c:373 src/main.c:382
+#: src/main.c:326 src/main.c:381 src/main.c:390
 msgid "Obsolete"
 msgstr "Föråldrad"
 
-#: src/main.c:336
+#: src/main.c:335
 msgid "Color depth of the X display"
 msgstr "Färgdjup på X-skärmen"
 
-#: src/main.c:337
+#: src/main.c:336
 msgid "BPP"
 msgstr "BPP"
 
-#: src/main.c:345 src/zapzilla.c:74
+#: src/main.c:344 src/zapzilla.c:74
 msgid "Print debug messages"
 msgstr "Aktivera debugmeddelanden"
 
-#: src/main.c:354
+#: src/main.c:362
 msgid "Force dword alignment of the overlay window"
 msgstr "Tvinga fram dword-inriktning av overlayfönstret"
 
-#: src/main.c:363
+#: src/main.c:371
 msgid "Execute the given command and exit"
 msgstr "Utför det givna kommandot, och avsluta därefter"
 
-#: src/main.c:364
+#: src/main.c:372
 msgid "CMD"
 msgstr "CMD"
 
-#: src/main.c:464
+#: src/main.c:474
 msgid "Sorry, but there is no module support in GLib"
 msgstr "Tyvärr, det finns inget modulstöd i GLib"
 
 # src/callbacks.c:320 src/v4l2interface.c:89
-#: src/main.c:513
+#: src/main.c:523
 msgid "Cannot get device info struct"
 msgstr "Kan inte hämta enhetens informationsstruktur"
 
-#: src/main.c:522
+#: src/main.c:532
 msgid "Zapping couldn't be started"
 msgstr "Zapping kunde inte startas"
 
-#: src/main.c:580
+#: src/main.c:590
 #, c-format
 msgid "Couldn't open %s, try other devices?"
 msgstr "Kunde inte öppna %s, försök med andra enheter?"
 
-#: src/main.c:605
+#: src/main.c:615
 #, c-format
 msgid "%s suceeded, setting it as the new default"
 msgstr "%s lyckades, sparar det som nya normalinställningen"
 
-#: src/main.c:616
+#: src/main.c:626
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
@@ -1198,7 +1198,7 @@ msgstr ""
 "Tyvärr, \"%s\" kunde inte öppnas:\n"
 "%s"
 
-#: src/main.c:730
+#: src/main.c:740
 #, c-format
 msgid ""
 "Cannot restore previous mode, will try capture mode:\n"
@@ -1207,7 +1207,7 @@ msgstr ""
 "Kan inte återställa föregående läge, försöker med inspelningsläge:\n"
 "%s"
 
-#: src/main.c:733
+#: src/main.c:743
 #, c-format
 msgid ""
 "Cannot restore previous mode:\n"
@@ -1216,7 +1216,7 @@ msgstr ""
 "Kan inte återställa föregående läge:\n"
 "%s"
 
-#: src/main.c:738
+#: src/main.c:748
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
@@ -1225,7 +1225,7 @@ msgstr ""
 "Inspelningsläget kunde inte heller startas:\n"
 "%s"
 
-#: src/main.c:751
+#: src/main.c:761
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
@@ -1234,7 +1234,7 @@ msgstr ""
 "Inspelningsläget kunde inte startas:\n"
 "%s"
 
-#: src/main.c:1032 src/zapzilla.c:165
+#: src/main.c:1042 src/zapzilla.c:165
 #, c-format
 msgid ""
 "ZConf could not be closed properly , your\n"
@@ -1255,7 +1255,7 @@ msgstr ""
 "   - eller, troligare, du har hittat ett fel i\n"
 "     %s var vänlig kontakta programmeraren.\n"
 
-#: src/main.c:1060
+#: src/main.c:1070
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Tyvärr, Zapping kan inte skapa konfigurationsträdet"
 
@@ -1296,64 +1296,64 @@ msgstr "Ljudenheten \"%s\" existerar inte"
 
 #. TRANSLATORS: Name of mixer line, mono as
 #. opposed to stereo.
-#: src/oss.c:915
+#: src/oss.c:916
 #, c-format
 msgid "%s (Mono)"
 msgstr "%s (Mono)"
 
-#: src/plugin_properties.c:119
+#: src/plugin_properties.c:118
 msgid "Very low"
 msgstr "Mycket låg"
 
-#: src/plugin_properties.c:121
+#: src/plugin_properties.c:120
 msgid "Low"
 msgstr "Låg"
 
-#: src/plugin_properties.c:123
+#: src/plugin_properties.c:122
 msgid "Below normal"
 msgstr "Under normal"
 
-#: src/plugin_properties.c:125
+#: src/plugin_properties.c:124
 msgid "Normal"
 msgstr "Normal"
 
-#: src/plugin_properties.c:127
+#: src/plugin_properties.c:126
 msgid "Very high"
 msgstr "Mycket hög"
 
-#: src/plugin_properties.c:129
+#: src/plugin_properties.c:128
 msgid "High"
 msgstr "Hög"
 
-#: src/plugin_properties.c:131
+#: src/plugin_properties.c:130
 msgid "Above normal"
 msgstr "Över normal"
 
-#: src/plugin_properties.c:153
+#: src/plugin_properties.c:152
 msgid "This plugin has no public symbols"
 msgstr "Denna plugin har inga publika symboler"
 
-#: src/plugin_properties.c:172
+#: src/plugin_properties.c:171
 msgid "List of symbols exported by the plugin"
 msgstr "Lista över symboler pluginen exporterar"
 
-#: src/plugin_properties.c:214
+#: src/plugin_properties.c:213
 msgid "Sorry, the plugin couldn't be started"
 msgstr "Tyvärr, men pluginen kunde inte startas"
 
-#: src/plugin_properties.c:263
+#: src/plugin_properties.c:262
 msgid "Sorry, but no plugins have been loaded"
 msgstr "Tyvärr, men inga pluginer har laddats"
 
-#: src/plugin_properties.c:297
+#: src/plugin_properties.c:296
 msgid "Plugin name"
 msgstr "Pluginnamn"
 
-#: src/plugin_properties.c:324
+#: src/plugin_properties.c:323
 msgid "Symbol"
 msgstr "Symbol"
 
-#: src/plugin_properties.c:329
+#: src/plugin_properties.c:328
 msgid "Hash"
 msgstr "Nyckel"
 
@@ -1380,176 +1380,176 @@ msgstr ""
 "kontrollfel: \"%s\" i plugin %s skulle vara \"%s\", men är: \"%s\". Hashes "
 "är 0x%x respektive 0x%x"
 
-#: src/properties-handler.c:85
+#: src/properties-handler.c:84
 msgid "Can capture to memory.\n"
 msgstr "Kan spela in till minnet.\n"
 
-#: src/properties-handler.c:87
+#: src/properties-handler.c:86
 msgid "Has some tuner.\n"
 msgstr "Har en tuner.\n"
 
-#: src/properties-handler.c:89
+#: src/properties-handler.c:88
 msgid "Supports the teletext service.\n"
 msgstr "Stöder teletext.\n"
 
-#: src/properties-handler.c:91
+#: src/properties-handler.c:90
 msgid "Can overlay the image.\n"
 msgstr "Stöder overlay.\n"
 
-#: src/properties-handler.c:93
+#: src/properties-handler.c:92
 msgid "Can chromakey the image.\n"
 msgstr "Kan överlägga (chromakey) bilden.\n"
 
-#: src/properties-handler.c:95
+#: src/properties-handler.c:94
 msgid "Clipping rectangles are supported.\n"
 msgstr "Clipping stöds.\n"
 
-#: src/properties-handler.c:97
+#: src/properties-handler.c:96
 msgid "Framebuffer memory is overwritten.\n"
 msgstr "Bildminnet har skrivits över.\n"
 
-#: src/properties-handler.c:99
+#: src/properties-handler.c:98
 msgid "The capture can be scaled.\n"
 msgstr "Bilden kan skalas.\n"
 
-#: src/properties-handler.c:101
+#: src/properties-handler.c:100
 msgid "Only monochrome is available\n"
 msgstr "Endast monokrom är tillgängligt\n"
 
-#: src/properties-handler.c:103
+#: src/properties-handler.c:102
 msgid "The capture can be zoomed\n"
 msgstr "Inzoomning är möjlig\n"
 
 # src/v4l2interface.c:344
-#: src/properties-handler.c:114
+#: src/properties-handler.c:113
 msgid "No available inputs"
 msgstr "Inga tillgängliga ingångar"
 
-#: src/properties-handler.c:116
+#: src/properties-handler.c:115
 msgid "Your video device has no inputs"
 msgstr "Din videoenhet har inga ingångar"
 
-#: src/properties-handler.c:131
+#: src/properties-handler.c:130
 msgid "TV input"
 msgstr "TV-ingång"
 
-#: src/properties-handler.c:133
+#: src/properties-handler.c:132
 msgid "Camera"
 msgstr "Kamera"
 
-#: src/properties-handler.c:408
+#: src/properties-handler.c:407
 #, c-format
 msgid "Resize to %ux%u"
 msgstr "Skala om till %ux%u"
 
 #. append
-#: src/properties-handler.c:776
+#: src/properties-handler.c:775
 msgid "Width"
 msgstr "Bredd"
 
-#: src/properties-handler.c:776
+#: src/properties-handler.c:775
 msgid "Height"
 msgstr "Höjd"
 
-#: src/properties-handler.c:888
+#: src/properties-handler.c:887
 msgid "Text Below Icons"
 msgstr "Text under ikoner"
 
-#: src/properties-handler.c:889
+#: src/properties-handler.c:888
 msgid "Priority Text Beside Icons"
 msgstr "Prioritetstext bredvid ikoner"
 
-#: src/properties-handler.c:890
+#: src/properties-handler.c:889
 msgid "Icons Only"
 msgstr "Endast ikoner"
 
-#: src/properties-handler.c:891
+#: src/properties-handler.c:890
 msgid "Text Only"
 msgstr "Endast text"
 
-#: src/properties-handler.c:957
+#: src/properties-handler.c:956
 #, c-format
 msgid "Use desktop default (%s)"
 msgstr "Använd skrivbordsstandard (%s)"
 
 #. TRANSLATORS: Fullscreen video mode
-#: src/properties-handler.c:1164
+#: src/properties-handler.c:1163
 msgid "Do not change"
 msgstr "Ändra inte läge"
 
-#: src/properties-handler.c:1168 src/tveng1.c:283 src/tveng2.c:464
+#: src/properties-handler.c:1167 src/tveng1.c:283 src/tveng2.c:464
 #: src/tveng25.c:321
 msgid "Automatic"
 msgstr "Automatisk"
 
 #. TRANSLATORS: Fullscreen video mode
-#: src/properties-handler.c:1183
+#: src/properties-handler.c:1182
 #, c-format
 msgid "%u x %u @ %u Hz"
 msgstr "%u × %u @ %u Hz"
 
-#: src/properties-handler.c:1320 src/properties-handler.c:1608
+#: src/properties-handler.c:1319 src/properties-handler.c:1607
 #: src/ttxview.c:3927
 msgid "VBI Options"
 msgstr "VBI-val"
 
-#: src/properties-handler.c:1321 src/properties-handler.c:1601
+#: src/properties-handler.c:1320 src/properties-handler.c:1600
 msgid "Interactive TV"
 msgstr "Interaktiv TV"
 
-#: src/properties-handler.c:1589
+#: src/properties-handler.c:1588
 msgid "Main Window"
 msgstr "Huvudfönster"
 
-#: src/properties-handler.c:1597 src/ttxview.c:3927
+#: src/properties-handler.c:1596 src/ttxview.c:3927
 msgid "General"
 msgstr "Diverse"
 
-#: src/properties.c:575
+#: src/properties.c:584
 msgid "Zapping Properties"
 msgstr "Egenskaper"
 
-#: src/ttxview.c:433
+#: src/ttxview.c:432
 #, c-format
 msgid "Loading page %x..."
 msgstr "Laddar sida %x..."
 
-#: src/ttxview.c:435
+#: src/ttxview.c:434
 #, c-format
 msgid "Loading page %x.%02x..."
 msgstr "Laddar sida %x.%02x..."
 
-#: src/ttxview.c:538
+#: src/ttxview.c:537
 #, c-format
 msgid " Page %x"
 msgstr "Sida %x"
 
-#: src/ttxview.c:542
+#: src/ttxview.c:541
 #, c-format
 msgid " Subpage %x"
 msgstr " Undersida %x"
 
-#: src/ttxview.c:690 src/ttxview.c:3175
+#: src/ttxview.c:689 src/ttxview.c:3174
 msgid "VBI has been disabled"
 msgstr "VBI har stängts av"
 
-#: src/ttxview.c:911
+#: src/ttxview.c:910
 msgid "Text export failed"
 msgstr "Textexport misslyckades"
 
-#: src/ttxview.c:1279
+#: src/ttxview.c:1278
 msgid "Selection copied to clipboard"
 msgstr "Markering kopierad till urklipp"
 
-#: src/ttxview.c:1363 src/ttxview.c:2105
+#: src/ttxview.c:1362 src/ttxview.c:2104
 msgid "No page loaded"
 msgstr "Ingen sida laddad"
 
-#: src/ttxview.c:1376
+#: src/ttxview.c:1375
 msgid "Selecting - press Shift key for table mode"
 msgstr "Markera - håll Skift för tabell-läge"
 
-#: src/ttxview.c:1908
+#: src/ttxview.c:1907
 #, c-format
 msgid ""
 "Cannot create directory %s:\n"
@@ -1558,157 +1558,157 @@ msgstr ""
 "Kan inte skapa katalog %s:\n"
 "%s"
 
-#: src/ttxview.c:1981
+#: src/ttxview.c:1980
 msgid "Save as"
 msgstr "Spara som"
 
-#: src/ttxview.c:2003
+#: src/ttxview.c:2002
 msgid "Format:"
 msgstr "Format:"
 
-#: src/ttxview.c:2197
+#: src/ttxview.c:2196
 msgid "Text Color"
 msgstr "Textfärger"
 
-#: src/ttxview.c:2213 src/tveng2.c:431 src/tveng25.c:291 src/tvengbktr.c:272
+#: src/ttxview.c:2212 src/tveng2.c:431 src/tveng25.c:291 src/tvengbktr.c:272
 #: src/tvengbktr.c:284 src/tvengxv.c:523
 msgid "Brightness"
 msgstr "Ljusstyrka"
 
 # src/interface.c:247
-#: src/ttxview.c:2235 src/tveng2.c:432 src/tveng25.c:292 src/tvengbktr.c:273
+#: src/ttxview.c:2234 src/tveng2.c:432 src/tveng25.c:292 src/tvengbktr.c:273
 #: src/tvengbktr.c:285 src/tvengxv.c:524
 msgid "Contrast"
 msgstr "Kontrast"
 
-#: src/ttxview.c:2573
+#: src/ttxview.c:2572
 msgid "Bookmarks"
 msgstr "_Bokmärken"
 
 # src/interface.c:362
 # glade/glade_strings.c:148, glade/glade_strings.c:153
-#: src/ttxview.c:2619
+#: src/ttxview.c:2618
 msgid "Channel"
 msgstr "Kanal"
 
-#: src/ttxview.c:2625
+#: src/ttxview.c:2624
 msgid "Page"
 msgstr "Sida"
 
-#: src/ttxview.c:2630
+#: src/ttxview.c:2629
 msgid "Description"
 msgstr "Beskrivning"
 
-#: src/ttxview.c:2713
+#: src/ttxview.c:2712
 #, c-format
 msgid "Added page %x.%02x to bookmarks"
 msgstr "Sidan %x.%02x lagt till bokmärken"
 
-#: src/ttxview.c:2716
+#: src/ttxview.c:2715
 #, c-format
 msgid "Added page %x to bookmarks"
 msgstr "Sidan %x lagt till bokmärken"
 
-#: src/ttxview.c:2770
+#: src/ttxview.c:2769
 msgid "_Add Bookmark"
 msgstr "_Addera Bokmärke"
 
-#: src/ttxview.c:2776
+#: src/ttxview.c:2775
 msgid "_Edit Bookmarks..."
 msgstr "_Editera bokmärken"
 
-#: src/ttxview.c:2968 src/ttxview.c:3208
+#: src/ttxview.c:2967 src/ttxview.c:3207
 msgid "Search text:"
 msgstr "Söktext:"
 
-#: src/ttxview.c:2978
+#: src/ttxview.c:2977
 #, c-format
 msgid "Found text on page %x.%02x:"
 msgstr "Hittade text på sidan %x.%02x:"
 
-#: src/ttxview.c:2985
+#: src/ttxview.c:2984
 msgid "Not found:"
 msgstr "Hittades inte:"
 
-#: src/ttxview.c:2996
+#: src/ttxview.c:2995
 msgid "Page memory is empty"
 msgstr "Sidminnet är tomt"
 
-#: src/ttxview.c:3197 src/ttxview.c:4643
+#: src/ttxview.c:3196 src/ttxview.c:4643
 msgid "Search page memory"
 msgstr "Sök sidminnet"
 
-#: src/ttxview.c:3217
+#: src/ttxview.c:3216
 msgid "_Regular expression"
 msgstr "_Reguljärt uttryck"
 
-#: src/ttxview.c:3222
+#: src/ttxview.c:3221
 msgid "Search case _insensitive"
 msgstr "_Sök versal/gemenoberoende"
 
 # src/frequencies.c:817
-#: src/ttxview.c:3459
+#: src/ttxview.c:3458
 msgid "_Disable"
 msgstr "_Stäng av"
 
-#: src/ttxview.c:3528
+#: src/ttxview.c:3527
 #, c-format
 msgid "Page %x"
 msgstr "Sida %x"
 
-#: src/ttxview.c:3595
+#: src/ttxview.c:3594
 msgid "Subtitle index"
 msgstr "Undertextindex"
 
-#: src/ttxview.c:3602
+#: src/ttxview.c:3601
 msgid "Now and Next"
 msgstr "Nu och Nästa"
 
-#: src/ttxview.c:3609
+#: src/ttxview.c:3608
 msgid "Current program"
 msgstr "Pågående program"
 
-#: src/ttxview.c:3616
+#: src/ttxview.c:3615
 msgid "Program Index"
 msgstr "Programinnehåll"
 
-#: src/ttxview.c:3623
+#: src/ttxview.c:3622
 msgid "Program Schedule"
 msgstr "Programtablå"
 
-#: src/ttxview.c:3631
+#: src/ttxview.c:3630
 msgid "Program Warning"
 msgstr "Programvarning"
 
-#: src/ttxview.c:3716
+#: src/ttxview.c:3715
 msgid "_Open"
 msgstr "_Öppna"
 
-#: src/ttxview.c:3722
+#: src/ttxview.c:3721
 msgid "Open in _New Window"
 msgstr "Öppna i _nytt fönster"
 
-#: src/ttxview.c:3733
+#: src/ttxview.c:3732
 msgid "_Open Link"
 msgstr "_Öppna länk"
 
-#: src/ttxview.c:3744 src/ttxview.c:3950
+#: src/ttxview.c:3743 src/ttxview.c:3950
 msgid "_New Window"
 msgstr "_Nytt fönster"
 
-#: src/ttxview.c:3750
+#: src/ttxview.c:3749
 msgid "_Save as..."
 msgstr "_Spara som:"
 
-#: src/ttxview.c:3756
+#: src/ttxview.c:3755
 msgid "S_earch..."
 msgstr "Sö_k..."
 
-#: src/ttxview.c:3762
+#: src/ttxview.c:3761
 msgid "_Colors..."
 msgstr "_Färger"
 
-#: src/ttxview.c:3768
+#: src/ttxview.c:3767
 msgid "S_ubtitles"
 msgstr "_Undertext"
 
@@ -1747,7 +1747,7 @@ msgid "_Go"
 msgstr "_Gå"
 
 #. TRANSLATORS: "Cannot open <URL>" (http or smtp).
-#: src/ttxview.c:4276 src/zvbi.c:598
+#: src/ttxview.c:4276 src/zvbi.c:596
 #, c-format
 msgid ""
 "Cannot open %s:\n"
@@ -1804,41 +1804,41 @@ msgstr "Visa"
 msgid "Reveal concealed text"
 msgstr "Visa dold text"
 
-#: src/tveng.c:1955 src/tveng2.c:450 src/tveng25.c:309 src/tvengxv.c:530
+#: src/tveng.c:1958 src/tveng2.c:450 src/tveng25.c:309 src/tvengxv.c:530
 msgid "Volume"
 msgstr "Volym"
 
-#: src/tveng.c:2594
+#: src/tveng.c:2597
 msgid "Cannot execute zapping_setup_fb."
 msgstr "Kunde inte anropa zapping_setup_fb."
 
-#: src/tveng.c:2610
+#: src/tveng.c:2613
 msgid "zapping_setup_fb failed."
 msgstr "zapping_setup_fb misslyckades."
 
-#: src/tveng.c:2615
+#: src/tveng.c:2618
 #, c-format
 msgid "zapping_setup_fb not found in \"%s\" or executable search path."
 msgstr "zapping_setup_fb hittades inte i \"%s\" eller i sökvägen."
 
-#: src/tveng.c:2622
+#: src/tveng.c:2625
 msgid "Unknown error in zapping_setup_fb."
 msgstr "Okänt fel i zapping_setup_fb."
 
-#: src/tveng.c:3137 src/tveng.c:3158
+#: src/tveng.c:3140 src/tveng.c:3161
 msgid "Filter"
 msgstr "Filter"
 
 #. TRANSLATORS: Color replaced by video in overlay mode.
-#: src/tveng.c:3180
+#: src/tveng.c:3183
 msgid "Colorkey"
 msgstr "Färgnyckel"
 
-#: src/tveng1.c:284 src/tveng2.c:465 src/tveng25.c:322 src/zvbi.c:136
+#: src/tveng1.c:284 src/tveng2.c:465 src/tveng25.c:322 src/zvbi.c:134
 msgid "Mono"
 msgstr "Mono"
 
-#: src/tveng1.c:285 src/tveng2.c:466 src/tveng25.c:323 src/zvbi.c:137
+#: src/tveng1.c:285 src/tveng2.c:466 src/tveng25.c:323 src/zvbi.c:135
 msgid "Stereo"
 msgstr "Stereo"
 
@@ -1944,13 +1944,13 @@ msgstr "Ljudstyrka"
 msgid "Bass"
 msgstr "Bas"
 
-#: src/tveng2.c:1768 src/tveng25.c:1097
+#: src/tveng2.c:1768 src/tveng25.c:1100
 #, c-format
 msgid "%s doesn't look like a valid capture device"
 msgstr "%s verkar inte vara en giltig inspelningsenhet"
 
 # src/tveng.c:70
-#: src/tveng2.c:1779 src/tveng25.c:1109
+#: src/tveng2.c:1779 src/tveng25.c:1112
 #, c-format
 msgid "Sorry, but \"%s\" cannot do streaming"
 msgstr "Tyvärr, \"%s\" stöder inte strömning"
@@ -1995,45 +1995,45 @@ msgstr "Dubbelscan"
 
 #. TRANSLATORS: In controls box, color picker control,
 #. something like "Adjust Chroma-Key" for overlay.
-#: src/v4linterface.c:466
+#: src/v4linterface.c:465
 #, c-format
 msgid "Adjust %s"
 msgstr "Ställa in %s"
 
-#: src/v4linterface.c:1072 src/zmisc.c:1787
+#: src/v4linterface.c:1071 src/zmisc.c:1786
 msgid "Unknown"
 msgstr "Okänd"
 
-#: src/v4linterface.c:1081 src/v4linterface.c:2009
+#: src/v4linterface.c:1080 src/v4linterface.c:2014
 msgid "Unnamed"
 msgstr "Onämnd"
 
-#: src/v4linterface.c:1090
+#: src/v4linterface.c:1089
 msgid "No input"
 msgstr "Ingen ingång"
 
 # src/v4l2interface.c:344
-#: src/v4linterface.c:1101
+#: src/v4linterface.c:1100
 msgid "No standard"
 msgstr "Ingen standard"
 
 # src/v4l2interface.c:344
-#: src/v4linterface.c:1910
+#: src/v4linterface.c:1915
 msgid "Video standards"
 msgstr "Videostandarder"
 
-#: src/v4linterface.c:1927
+#: src/v4linterface.c:1932
 msgid "Audio inputs"
 msgstr "Ljudingångar"
 
-#: src/v4linterface.c:1940
+#: src/v4linterface.c:1945
 msgid "Video inputs"
 msgstr "Videoingångar"
 
 # src/v4l2interface.c:146
 #. TRANSLATORS: This is displayed in the channel menu when
 #. the channel list is empty.
-#: src/v4linterface.c:2037
+#: src/v4linterface.c:2042
 msgid "No channels"
 msgstr "Inga kanaler inställda"
 
@@ -2053,16 +2053,16 @@ msgstr "Zapzilla kunde inte startas"
 msgid "Sorry, Zapzilla is unable to create the config tree"
 msgstr "Tyvärr, Zapping kan inte skapa konfigurationsträdet"
 
-#: src/zmisc.c:388
+#: src/zmisc.c:387
 msgid "Return to video mode"
 msgstr "Återgå till videoläge"
 
-#: src/zmisc.c:495
+#: src/zmisc.c:494
 #, c-format
 msgid "Preview will not work: %s"
 msgstr "Preview fungerar inte: %s"
 
-#: src/zmisc.c:528
+#: src/zmisc.c:527
 #, c-format
 msgid ""
 "Cannot start video overlay.\n"
@@ -2071,7 +2071,7 @@ msgstr ""
 "Kan inte starta overlay.\n"
 "%s"
 
-#: src/zmisc.c:579
+#: src/zmisc.c:578
 #, c-format
 msgid ""
 "Cannot start fullscreen overlay.\n"
@@ -2080,90 +2080,90 @@ msgstr ""
 "Kan inte starta fullskärmsoverlay.\n"
 "%s"
 
-#: src/zmisc.c:616
+#: src/zmisc.c:615
 msgid "VBI has been disabled, or it doesn't work."
 msgstr "VBI har blivit avstängd, eller fungerar inte."
 
-#: src/zmisc.c:869
+#: src/zmisc.c:868
 msgid "Hide the statusbar"
 msgstr "Göm statusraden"
 
-#: src/zmisc.c:977
+#: src/zmisc.c:976
 msgid "The path must start with /"
 msgstr "Katalognamnet måste börja med /"
 
-#: src/zmisc.c:992
+#: src/zmisc.c:991
 #, c-format
 msgid "Cannot create %s: %s"
 msgstr "Kan inte skapa %s: %s"
 
-#: src/zmisc.c:1005
+#: src/zmisc.c:1004
 #, c-format
 msgid "%s is not a directory"
 msgstr "%s är inte en katalog"
 
-#: src/zmisc.c:1698 src/zmisc.c:1702
+#: src/zmisc.c:1697 src/zmisc.c:1701
 msgid "Reset"
 msgstr "Återställ"
 
-#: src/zmisc.c:1982
+#: src/zmisc.c:1981
 msgid "Device:"
 msgstr "Enhetsfil:"
 
-#: src/zmisc.c:1983
+#: src/zmisc.c:1982
 msgid "Driver:"
 msgstr "Drivare:"
 
-#: src/zmisc.c:1984
+#: src/zmisc.c:1983
 msgid "Device file:"
 msgstr "Enhetsfil:"
 
 #. TRANSLATORS: VBI audio mode
-#: src/zvbi.c:135
+#: src/zvbi.c:133
 msgid "No Audio"
 msgstr "Inget ljud"
 
-#: src/zvbi.c:138
+#: src/zvbi.c:136
 msgid "Stereo Surround"
 msgstr "Stereo Surround"
 
-#: src/zvbi.c:139
+#: src/zvbi.c:137
 msgid "Simulated Stereo"
 msgstr "Simulerad Stereo"
 
 #. TRANSLATORS: Video description for the blind,
 #. on a secondary audio channel.
-#: src/zvbi.c:142
+#: src/zvbi.c:140
 msgid "Video Descriptions"
 msgstr "Videobeskrivning"
 
 #. TRANSLATORS: Audio unrelated to the current
 #. program.
-#: src/zvbi.c:145
+#: src/zvbi.c:143
 msgid "Non-program Audio"
 msgstr "Icke-programsljud"
 
-#: src/zvbi.c:146
+#: src/zvbi.c:144
 msgid "Special Effects"
 msgstr "Specialeffekter"
 
-#: src/zvbi.c:147
+#: src/zvbi.c:145
 msgid "Data Service"
 msgstr "Datatjänst"
 
-#: src/zvbi.c:148
+#: src/zvbi.c:146
 msgid "Unknown Audio"
 msgstr "Okänt ljud"
 
-#: src/zvbi.c:259
+#: src/zvbi.c:257
 msgid "VBI interface timeout"
 msgstr "VBI-tidsgräns"
 
-#: src/zvbi.c:272
+#: src/zvbi.c:270
 msgid "VBI interface: Failed to read from the device"
 msgstr "VBI-gränssnitt: Läsfel"
 
-#: src/zvbi.c:367
+#: src/zvbi.c:365
 #, c-format
 msgid ""
 "VBI initialization failed.\n"
@@ -2172,15 +2172,15 @@ msgstr ""
 "VBI-startning misslyckades.\n"
 "%s"
 
-#: src/zvbi.c:368
+#: src/zvbi.c:366
 msgid "Ran out of memory."
 msgstr "Fick slut på minne."
 
-#: src/zvbi.c:369
+#: src/zvbi.c:367
 msgid "Out of resources to start a new thread."
 msgstr "Tyvärr, inte nog med resurser för att skapa en ny tråd"
 
-#: src/zvbi.c:372
+#: src/zvbi.c:370
 msgid ""
 "This probably means that the required driver isn't loaded. Add to your /etc/"
 "modules.conf the line:\n"
@@ -2195,32 +2195,31 @@ msgstr ""
 " och skapa /dev/vbi0 med mknod. Om det inte fungerar, så kan du stänga av "
 "VBI i Inställningar/Alternativ/VBI-val/Slå på VBI-avkodning."
 
-#: src/zvbi.c:733
-msgid ""
-"Open this link with the predetermined Web browser.\n"
-"You can configure this in the GNOME Control Center, under Handlers/Url "
-"Navigator"
-msgstr ""
-"Öppna denna länk med den förvalda webbläsaren.\n"
-"Du kan ställa in detta i GNOMEs Kontrollpanel, under Handlers/Url "
-
-#: src/zvbi.c:740
+#: src/zvbi.c:739
 #, c-format
 msgid " %s: Teletext Page %x"
 msgstr " %s: Teletext sida %x"
 
-#: src/zvbi.c:743
+#: src/zvbi.c:742
 #, c-format
 msgid " Teletext Page %x"
 msgstr " Teletext sida %x"
 
-#: src/zvbi.c:744
+#: src/zvbi.c:743
 msgid "Open this page with Zapzilla"
 msgstr "Öppna denna sida med Zapzilla"
 
 #: zapping.desktop.in.h:1
 msgid "TV viewer"
 msgstr "TV-visare"
+
+#~ msgid ""
+#~ "Open this link with the predetermined Web browser.\n"
+#~ "You can configure this in the GNOME Control Center, under Handlers/Url "
+#~ "Navigator"
+#~ msgstr ""
+#~ "Öppna denna länk med den förvalda webbläsaren.\n"
+#~ "Du kan ställa in detta i GNOMEs Kontrollpanel, under Handlers/Url "
 
 #~ msgid "LIRC plugin"
 #~ msgstr "LIRC plugin"
