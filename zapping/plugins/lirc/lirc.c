@@ -16,6 +16,8 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+#include "plugin_common.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -29,7 +31,6 @@
 #include <pthread.h>
 
 #include "callbacks.h"
-#include "plugin_common.h"
 #include "tveng.h"
 #include "remote.h"
 #include "lirc.h"
