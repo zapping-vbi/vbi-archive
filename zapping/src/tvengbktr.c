@@ -45,7 +45,6 @@ struct private_tvengbktr_device_info
 	/* Maps tv_pixfmt to METEORSACTPIXFMT index, -1 if none. */
 	int			pixfmt_lut[TV_MAX_PIXFMTS];
 
-	tv_overlay_buffer	ovl_buffer;
 	unsigned int		ovl_bits_per_pixel;
 
         tv_bool                 ovl_ready;
@@ -483,7 +482,7 @@ static tv_bool
 set_video_standard		(tveng_device_info *	info,
 				 const tv_video_standard *s)
 {
-	enum tveng_capture_mode current_mode;
+	capture_mode current_mode;
 	gboolean was_active;
 	int r;
 
@@ -635,7 +634,7 @@ set_tuner_frequency		(tveng_device_info *	info,
 	if (-1 == tuner_ioctl (&p_info->info, TVTUNER_SETFREQ, &freq))
 		return FALSE;
 
-	/* Bug: driver mutes on frequency change. */
+	/* Bug: driver mutes on frequency change (according to fxtv). */
 	if (p_info->mute_control
 	    && 0 == p_info->mute_control->value) {
 		/* Error ignored. */
@@ -678,7 +677,7 @@ set_video_input			(tveng_device_info *	info,
 				 const tv_video_line *	l)
 {
 	struct private_tvengbktr_device_info *p_info = P_INFO (info);
-	enum tveng_capture_mode current_mode;
+	capture_mode current_mode;
 	gboolean was_active;
 	tv_pixfmt pixfmt;
 
@@ -696,7 +695,7 @@ set_video_input			(tveng_device_info *	info,
 	if (-1 == bktr_ioctl (&p_info->info, METEORSINPUT, &VI(l)->dev))
 		return FALSE;
 
-	/* Bug: driver mutes on input change. */
+	/* Bug: driver mutes on input change (according to fxtv). */
 	if (p_info->mute_control
 	    && 0 == p_info->mute_control->value) {
 		/* Error ignored. */
@@ -1165,7 +1164,7 @@ set_format			(struct private_tvengbktr_device_info *p_info,
 		tv_pixel_format pf;
 		unsigned int avg_bpp;
 
-		if (!tv_pixfmt_to_pixel_format (&pf, fmt->pixfmt, 0))
+		if (!tv_pixel_format_from_pixfmt (&pf, fmt->pixfmt, 0))
 			return FALSE;
 
 		bktr_pixfmt = p_info->pixfmt_lut[fmt->pixfmt];
@@ -1199,7 +1198,7 @@ set_format			(struct private_tvengbktr_device_info *p_info,
 			fmt->bytes_per_line = fmt->width * 2;
 			break;
 
-		case TV_PIXFMT_BGRA24_LE:
+		case TV_PIXFMT_BGRA32_LE:
 			geom.oformat = METEOR_GEO_RGB24;
 			fmt->bytes_per_line = fmt->width * 4;
 			break;
@@ -1254,12 +1253,12 @@ set_overlay_buffer		(tveng_device_info *	info,
 		return FALSE;
 	}
 
-	if (!tv_pixfmt_to_pixel_format (&format, t->format.pixfmt,
+	if (!tv_pixel_format_from_pixfmt (&format, t->format.pixfmt,
 					0 /* TV_COLOR_SPACE_UNKNOWN */)) {
 		return FALSE;
 	}
 
-	p_info->ovl_buffer = *t;
+	p_info->info.overlay_buffer = *t;
 	p_info->ovl_bits_per_pixel = format.bits_per_pixel;
 
 	return TRUE;
@@ -1271,90 +1270,64 @@ get_overlay_buffer		(tveng_device_info *	info,
 {
 	struct private_tvengbktr_device_info *p_info = P_INFO (info);
 
-	*t = p_info->ovl_buffer;
+	*t = p_info->info.overlay_buffer;
 	return TRUE;
 }
 
 static tv_bool
 set_clips			(struct private_tvengbktr_device_info *p_info,
 				 const tv_window *	w,
+				 const tv_clip_vector *	v,
 				 unsigned int		scale)
 {
 	tv_clip_vector vec;
 	const tv_clip *clip;
 	struct _bktr_clip clips;
 	unsigned int band;
+	unsigned int vec_size;
 	unsigned int i;
 
-	tv_clip_vector_init (&vec);
-
-	if (!scale)
-		if (!tv_clip_vector_copy (&vec, &w->clip_vector))
-			return FALSE;
-
-	/* Paranoia(tm). */
-
-	if (w->x < 0)
-		if (!tv_clip_vector_add_clip_xy
-		    (&vec, 0, 0, -w->x, (w->height + scale) >> scale))
-			goto failure;
-
-	if (w->x + w->width > p_info->ovl_buffer.format.width)
-		if (!tv_clip_vector_add_clip_xy
-		    (&vec, p_info->ovl_buffer.format.width - w->x,
-		     0, w->width, (w->height + scale) >> scale))
-			goto failure;
-
-	if (w->y < 0)
-		if (!tv_clip_vector_add_clip_xy
-		    (&vec, 0, 0, w->width, (scale - w->y) >> scale))
-			goto failure;
-
-	if (w->y + w->height > p_info->ovl_buffer.format.height)
-		if (!tv_clip_vector_add_clip_xy
-		    (&vec, 0,
-		     (p_info->ovl_buffer.format.height - w->y) >> scale,
-		     w->width, (w->height + scale) >> scale))
-			goto failure;
-
 	if (scale) {
-		const tv_clip *clip;
 		const tv_clip *end;
 
-		end = w->clip_vector.vector + w->clip_vector.size;
+		if (!tv_clip_vector_copy (&vec, v))
+			return FALSE;
+
+		end = v->vector + v->size;
 
 		/* Apparently the same vector is used on both fields.
 		   We scale by 1/2 and merge clips which overlap now. */
-		for (clip = w->clip_vector.vector; clip < end; ++clip) {
+		for (clip = v->vector; clip < end; ++clip) {
 			if (!tv_clip_vector_add_clip_xy
 			    (&vec, clip->x1, clip->y1 >> 1,
 			     clip->x2, (clip->y2 + 1) >> 1))
 				goto failure;
 		}
+
+		clip = vec.vector;
+		vec_size = vec.size;
+	} else {
+		clip = v->vector;
+		vec_size = v->size;
 	}
 
 	assert (N_ELEMENTS (clips.x) >= 2);
 
-	clip = vec.vector;
 	band = 0;
 
-	for (i = 0; i < vec.size; ++i) {
+	for (i = 0; i < vec_size; ++i) {
 		if (i < N_ELEMENTS (clips.x) - 1) {
-			if (clip > vec.vector) {
-				/* Verify order. */
-				if (clip->y1 == clip[-1].y1) {
-					assert (clip->x1 >= clip[-1].x2);
-				} else {
-					assert (clip->y1 >= clip[-1].y2);
-					band = i;
-				}
-			}
-
 			/* Bug: naming is backwards. */
+			/* Bug: bktr clipping is broken in at least two ways.
+			   When a clip reaches the right window boundary
+			   the driver extends it to full window width.
+			   At high resolution it clips where we didn't ask
+			   for it, perhaps scaling vertical coordinates
+			   differently for first and second field? */
 			clips.x[i].y_min = clip->x1;
 			clips.x[i].x_min = clip->y1;
-			clips.x[i].y_max = clip->x2 - 1;
-			clips.x[i].x_max = clip->y2 - 1;
+			clips.x[i].y_max = clip->x2;
+			clips.x[i].x_max = clip->y2;
 
 			if (0)
 				fprintf(stderr, "%u: %u,%u - %u,%u\n",
@@ -1379,9 +1352,10 @@ set_clips			(struct private_tvengbktr_device_info *p_info,
 		}
 	}
 
-	tv_clip_vector_destroy (&vec);
-
 	CLEAR (clips.x[i]); /* end */
+
+	if (scale)
+		tv_clip_vector_destroy (&vec);
 
 	if (-1 == bktr_ioctl (&p_info->info, BT848SCLIP, &clips)) {
 		return FALSE;
@@ -1390,7 +1364,9 @@ set_clips			(struct private_tvengbktr_device_info *p_info,
 	return TRUE;
 
  failure:
-	tv_clip_vector_destroy (&vec);
+	if (scale)
+		tv_clip_vector_destroy (&vec);
+
 	return FALSE;
 }
 
@@ -1400,49 +1376,48 @@ enable_overlay			(tveng_device_info *	info,
 
 static tv_bool
 set_overlay_window		(tveng_device_info *	info,
-				 const tv_window *	w)
+				 const tv_window *	w,
+				 const tv_clip_vector *	v)
 {
 	struct private_tvengbktr_device_info *p_info = P_INFO (info);
+	const tv_image_format *bf;
 	tv_image_format fmt;
 	struct meteor_video video;
 	int start_line;
 	int start_byte;
 	unsigned int size;
-	int x2;
-	int y2;
+	int wx1;
+	int wy1;
+	int wx2;
+	int wy2;
 
 	if (!enable_overlay (info, FALSE))
 		return FALSE;
 
-	x2 = w->x + w->width;
-	y2 = w->y + w->height;
+	wx1 = w->x - p_info->info.overlay_buffer.x;
+	wy1 = w->y - p_info->info.overlay_buffer.y;
 
-	/* y < 0 and y2 > buffer height seems to work but
-           x < 0 and x2 > buffer width crashes the machine,
-	   even with proper bktr_clips. Strange. */
-	if (w->x < 0 || w->y < 0
-	    || x2 > p_info->ovl_buffer.format.width
-	    || y2 > p_info->ovl_buffer.format.height) {
-		return FALSE;
-	}
+	wx2 = wx1 + w->width;
+	wy2 = wy1 + w->height;
 
-	if (!p_info->bktr_driver
-	    && w->clip_vector.size > 0) {
+	bf = &p_info->info.overlay_buffer.format;
+
+	if (!p_info->bktr_driver && v->size > 0) {
 		/* Clipping not supported. */
 		return FALSE;
 	}
 
 	/* XXX addr must be dword aligned? */
 
-	start_line = (w->y /* signed! */
-		      * p_info->ovl_buffer.format.bytes_per_line);
-	start_byte = (w->x /* signed! */ * p_info->ovl_bits_per_pixel) / 8;
-	video.addr = p_info->ovl_buffer.base + start_line + start_byte;
-	video.width = p_info->ovl_buffer.format.bytes_per_line;
+	start_line = wy1 * (int) bf->bytes_per_line;
+	start_byte = (wx1 * (int) p_info->ovl_bits_per_pixel) / 8;
 
-	size = (p_info->ovl_buffer.format.size
-		- ((char *) video.addr
-		   - (char *) p_info->ovl_buffer.base));
+	video.addr = p_info->info.overlay_buffer.base
+		+ start_line + start_byte;
+	video.width = bf->bytes_per_line;
+
+	size = (bf->size - ((char *) video.addr
+			    - (char *) p_info->info.overlay_buffer.base));
 
 	video.banksize = size;
 	video.ramsize = (size + 1023) >> 10;
@@ -1453,7 +1428,8 @@ set_overlay_window		(tveng_device_info *	info,
 	if (-1 == bktr_ioctl (info, METEORSVIDEO, &video))
 		return FALSE;
 
-	fmt = p_info->ovl_buffer.format;
+	fmt = *bf;
+
 	fmt.width = w->width;
 	fmt.height = w->height;
 
@@ -1471,7 +1447,7 @@ set_overlay_window		(tveng_device_info *	info,
 
 		scale = (w->height > (frame_height >> 1));
 
-		if (!set_clips (p_info, w, scale)) {
+		if (!set_clips (p_info, w, v, scale)) {
 			return FALSE;
 		}
 	}
@@ -1480,9 +1456,6 @@ set_overlay_window		(tveng_device_info *	info,
 	info->overlay_window.y		= w->y;
 	info->overlay_window.width	= w->width;
 	info->overlay_window.height	= w->height;
-
-	tv_clip_vector_copy (&info->overlay_window.clip_vector,
-			     &w->clip_vector);
 
 	p_info->ovl_ready = TRUE;
 
@@ -1564,7 +1537,7 @@ get_capture_format		(tveng_device_info * info)
 			break;
 
 		case METEOR_GEO_RGB24:
-			pixfmt = TV_PIXFMT_BGRA24_LE;
+			pixfmt = TV_PIXFMT_BGRA32_LE;
 			break;
 
 		case METEOR_GEO_YUV_PACKED:
@@ -1600,7 +1573,7 @@ static int
 set_capture_format		(tveng_device_info *	info)
 {
 	struct private_tvengbktr_device_info *p_info = P_INFO (info);
-	enum tveng_capture_mode mode;
+	capture_mode mode;
 	gboolean overlay_was_active;
 
 	mode = p_tveng_stop_everything(info, &overlay_was_active);
@@ -1656,7 +1629,7 @@ start_capturing(tveng_device_info * info)
 	}
 
 	p_tveng_stop_everything(info, &dummy);
-	t_assert(info -> current_mode == TVENG_NO_CAPTURE);
+	t_assert(CAPTURE_MODE_NONE == info ->capture_mode);
 
 	timestamp_init(info);
 
@@ -1689,8 +1662,7 @@ start_capturing(tveng_device_info * info)
 	if (-1 == bktr_ioctl (info, METEORCAPTUR, &cap_continuous)) {
 		return -1;
 	}
-
-	info->current_mode = TVENG_CAPTURE_READ;
+	info->capture_mode = CAPTURE_MODE_READ;
 
 	p_info->cap_active = TRUE;
 
@@ -1704,13 +1676,13 @@ stop_capturing(tveng_device_info * info)
 
 	p_info->cap_active = FALSE;
 
-	if (info -> current_mode == TVENG_NO_CAPTURE) {
+	if (CAPTURE_MODE_NONE == info->capture_mode) {
 		fprintf(stderr, "Warning: trying to stop capture with "
 			"no capture active\n");
 		return 0; /* Nothing to be done */
 	}
 
-	t_assert(info->current_mode == TVENG_CAPTURE_READ);
+	t_assert(CAPTURE_MODE_READ == info->capture_mode);
 
 	if (-1 == bktr_ioctl (info, METEORCAPTUR, &cap_stop_cont)) {
 		return -1;
@@ -1732,7 +1704,7 @@ stop_capturing(tveng_device_info * info)
 
 	p_info->mmapped_data = 0;
 
-	info->current_mode = TVENG_NO_CAPTURE;
+	info->capture_mode = CAPTURE_MODE_NONE;
 
 	return 0;
 }
@@ -1833,7 +1805,7 @@ get_timestamp(tveng_device_info * info)
 	struct private_tvengbktr_device_info *p_info = P_INFO (info);
 
   t_assert(info != NULL);
-  if (info->current_mode != TVENG_CAPTURE_READ)
+  if (CAPTURE_MODE_READ != info->capture_mode)
     return -1;
 
   return (p_info -> last_timestamp);
@@ -1970,6 +1942,7 @@ p_tvengbktr_open_device_file(int flags,
 */
 static int
 tvengbktr_attach_device (const char* device_file,
+			 Window window,
 			 enum tveng_attach_mode attach_mode,
 			 tveng_device_info * info)
 {
@@ -2010,7 +1983,7 @@ tvengbktr_attach_device (const char* device_file,
     }
 
   info->attach_mode = attach_mode;
-  info->current_mode = TVENG_NO_CAPTURE;
+  info->capture_mode = CAPTURE_MODE_NONE;
 
 	info->video_inputs = NULL;
 	info->cur_video_input = NULL;
@@ -2043,7 +2016,7 @@ tvengbktr_attach_device (const char* device_file,
 		/* Correct? */
 		info->supported_pixfmt_set =
 			(TV_PIXFMT_SET (TV_PIXFMT_BGR16_LE) |
-			 TV_PIXFMT_SET (TV_PIXFMT_BGRA24_LE) |
+			 TV_PIXFMT_SET (TV_PIXFMT_BGRA32_LE) |
 			 TV_PIXFMT_SET (TV_PIXFMT_YUYV) |
 			 TV_PIXFMT_SET (TV_PIXFMT_YUV422));
 	}
@@ -2051,9 +2024,13 @@ tvengbktr_attach_device (const char* device_file,
 	tv_image_format_init (&info->format, 160, 120, 0,
 			      TV_PIXFMT_BGR16_LE, 0);
 
+	/* Bug: VBI capturing works only if we capture video
+	   at the same time. Additionally the video capture
+	   format must be RGB. */
 	if (TVENG_ATTACH_VBI == attach_mode) {
 		unsigned long ul;
 
+		/* We need this only for Teletext, which is PAL. */
 		ul = BT848_IFORM_F_PALBDGHI;
 		bktr_ioctl (info, BT848SFMT, &ul);
 
@@ -2073,8 +2050,8 @@ tvengbktr_attach_device (const char* device_file,
 
 
 static void
-tvengbktr_describe_controller(char ** short_str,
-			      char ** long_str,
+tvengbktr_describe_controller(const char ** short_str,
+			      const char ** long_str,
 			      tveng_device_info * info)
 {
   t_assert(info != NULL);
