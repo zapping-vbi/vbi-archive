@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: channel_editor.c,v 1.37.2.11 2003-07-29 03:44:26 mschimek Exp $ */
+/* $Id: channel_editor.c,v 1.37.2.12 2003-08-24 23:54:14 mschimek Exp $ */
 
 /*
   TODO:
@@ -437,7 +437,7 @@ entry_fine_tuning_set		(channel_editor *	ce,
       hscale_adj->value = dfreq;
       hscale_adj->lower = dfreq - 4;
       hscale_adj->upper = dfreq + 4;
-      hscale_adj->step_increment = 0.05;
+      hscale_adj->step_increment = 0.05; // XXX use tv_video_line.u.tuner.step ?
       hscale_adj->page_increment = 1;
       hscale_adj->page_size = 0;
 
@@ -574,22 +574,19 @@ station_search_timeout		(gpointer		p)
 
   if (cs->iteration == 0)
     {
-      gchar *buf;
-
       /* New channel */
 
       gtk_progress_bar_set_fraction (cs->progressbar,
 	 cs->channel / (gdouble) tv_rf_channel_table_size (&cs->ch));
 
-      buf = g_strdup_printf (_("Channel: %s   Found: %u"),
-			     cs->ch.channel_name, cs->found);
-      gtk_label_set_text (cs->label, buf);
-      g_free (buf);
+      z_label_set_text_printf (cs->label,
+			       _("Channel: %s   Found: %u"),
+			       cs->ch.channel_name, cs->found);
 
       cs->freq = cs->ch.frequency / 1000;
       cs->strength = 0;
 
-      if (-1 == tveng_tune_input (cs->freq, main_info))
+      if (!tv_set_tuner_frequency (main_info, cs->freq * 1000))
 	goto next_channel;
 
 #ifdef HAVE_LIBZVBI
@@ -621,7 +618,7 @@ station_search_timeout		(gpointer		p)
 	  cs->freq += afc * 25; /* should be afc*50, but won't harm */
 
 	  /* error ignored */
-	  tveng_tune_input (cs->freq += afc * 25, main_info);
+	  tv_set_tuner_frequency (main_info, (cs->freq += afc * 25) * 1000);
 	}
 
 #ifdef HAVE_LIBZVBI
@@ -854,7 +851,7 @@ on_freq_selection_changed	(GtkTreeSelection *	selection,
   if (tunable_input (ce, main_info, tc_first))
     {
       entry_fine_tuning_set (ce, main_info, ch.frequency);
-      tveng_tune_input (ch.frequency / 1000, main_info);
+      tv_set_tuner_frequency (main_info, ch.frequency);
     }
 
   channel_list_rows_changed (ce, &first, &last);
@@ -1056,7 +1053,7 @@ on_entry_fine_tuning_value_changed (GtkAdjustment *	spin_adj,
 
   tc->freq = (guint)(spin_adj->value * 1000);
 
-  tveng_tune_input (tc->freq, main_info);
+  tv_set_tuner_frequency (main_info, tc->freq * 1000);
 
   for (; tc_last != tc; tc_last = tc_last->prev)
     {
