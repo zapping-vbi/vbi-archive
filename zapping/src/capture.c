@@ -40,6 +40,12 @@
 #include <X11/extensions/Xvlib.h>
 #endif /* USE_XV */
 
+/*
+  Comment out if you have problems with the Shm extension
+  (you keep getting a Gdk-error request_code:14x, minor_code:19)
+*/
+#define USE_XV_SHM 1
+
 #include <tveng.h>
 #include "zmisc.h"
 #include "x11stuff.h"
@@ -55,8 +61,10 @@ static GdkImage		*gdkimage=NULL; /* gdk, possibly shm, image */
 
 #ifdef USE_XV
 static XvPortID		xvport; /* Xv port we will use */
-static XvImage		*xvimage=NULL; /* Xv, shm image */
+static XvImage		*xvimage=NULL; /* Xv, shm[?] image */
+#ifdef USE_XV_SHM
 static XShmSegmentInfo	shminfo; /* shared mem info for the xvimage */
+#endif
 #endif
 
 static unsigned int
@@ -81,10 +89,15 @@ xv_image_delete(void)
   if (!xvimage)
     return;
 
+#ifdef USE_XV_SHM
   XShmDetach(GDK_DISPLAY(), &shminfo);
+#else
+  free(xvimage->data);
+#endif
   XFree(xvimage);
+#ifdef USE_XV_SHM
   shmdt(shminfo.shmaddr);
-
+#endif
   xvimage = NULL;
 }
 
@@ -96,18 +109,35 @@ xv_image_delete(void)
 static void
 xv_image_rescale(gint w, gint h)
 {
+#ifndef USE_XV_SHM
+  void * image_data = NULL;
+#endif
   if ((xvimage) && (xvimage->width == w) && (xvimage->height == h))
     return; /* nothing to be done */
 
   if (xvimage)
     xv_image_delete();
+  xvimage = NULL;
 
+#ifdef USE_XV_SHM
   memset(&shminfo, 0, sizeof(XShmSegmentInfo));
   xvimage = XvShmCreateImage(GDK_DISPLAY(), xvport, XV_MODE, NULL,
 			     w, h, &shminfo);
+#else
+  image_data = malloc(16*w*h);
+  if (!image_data)
+    {
+      g_warning("XV image data allocation failed");
+      return;
+    }
+  xvimage = XvCreateImage(GDK_DISPLAY(), xvport, XV_MODE,
+			  image_data, w, h);
+#endif
+
   if (!xvimage)
     return;
-  
+
+#ifdef USE_XV_SHM
   shminfo.shmid = shmget(IPC_PRIVATE, xvimage->data_size, IPC_CREAT | 0777);
   shminfo.shmaddr = xvimage->data = shmat(shminfo.shmid, 0, 0);
   shmctl(shminfo.shmid, IPC_RMID, 0); /* remove when we terminate */
@@ -115,6 +145,8 @@ xv_image_rescale(gint w, gint h)
   shminfo.readOnly = False;
 
   XShmAttach(GDK_DISPLAY(), &shminfo);
+#endif
+
   XSync(GDK_DISPLAY(), False);
 }
 #endif /* USE_XV */
@@ -314,12 +346,20 @@ capture_process_frame(GtkWidget * widget, tveng_device_info * info)
       /* Give the image to the plugins */
       give_data_to_plugins(info, xvimage->data);
 
+#ifdef USE_XV_SHM
       XvShmPutImage(GDK_DISPLAY(), xvport,
 		    GDK_WINDOW_XWINDOW(widget->window),
 		    GDK_GC_XGC(widget->style->white_gc), xvimage,
 		    0, 0, xvimage->width, xvimage->height, /* source */
 		    0, 0, w, h, /* dest */
-		    True /* wait for completition */);
+		    True /* send event when done */);
+#else
+      XvPutImage(GDK_DISPLAY(), xvport,
+		 GDK_WINDOW_XWINDOW(widget->window),
+		 GDK_GC_XGC(widget->style->white_gc), xvimage,
+		 0, 0, xvimage->width, xvimage->height, /* source */
+		 0, 0, w, h /* dest */);
+#endif
 #else
       g_warning("BUG: Configured without Xv support");
       have_xv = FALSE;
