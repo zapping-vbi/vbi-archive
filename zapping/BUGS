@@ -14,7 +14,7 @@ Known bugs in Zapping, don't report them
 * ** (zapping:14562): WARNING **: Group Allgemeine Optionen not found
   in the properties
 * Subtitle overlay must be restored.
-* TTXView window size issues.
+* Video and TTXView window size isn't always right on startup.
 * TTXView main menu quit (commented out) keeps crashing.
 * App specific toolbar_style is pointless. Gnome can already
   handle that for us, see gnome-app-helper.c. Or right click
