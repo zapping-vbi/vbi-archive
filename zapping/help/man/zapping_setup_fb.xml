@@ -1,0 +1,118 @@
+<?xml version="1.0"?>
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
+"http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" [
+  <!ENTITY app "<application>Zapping</application>">
+]>
+<refentry id="zapping_setup_fb">
+  <refmeta>
+    <refentrytitle>zapping_setup_fb</refentrytitle>
+    <manvolnum>1</manvolnum>
+  </refmeta>
+
+  <refnamediv>
+    <refname>zapping_setup_fb</refname>
+    <refpurpose>sets up the Framebuffer for &app;</refpurpose>
+  </refnamediv>
+
+  <refsynopsisdiv>
+    <cmdsynopsis>
+      <command>zapping_setup_fb</command>
+      <arg>-?, --help</arg>
+      <arg>--bpp <replaceable>NUMBER</replaceable></arg>
+      <arg>--device <replaceable>FILENAME</replaceable></arg>
+      <arg>--display <replaceable>NAME</replaceable></arg>
+      <arg>--quiet</arg>
+      <arg>--usage</arg>
+      <arg>--verbose</arg>
+      <arg>--version</arg>
+    </cmdsynopsis>
+  </refsynopsisdiv>
+
+  <refsect1 id="description">
+    <title>Description</title>
+
+    <para><command>zapping_setup_fb</command> is a small program intended to be installed as suid root that sets up the Framebuffer. If you have pam installed, it can be pam'ified too.</para>
+  </refsect1>
+
+  <refsect1 id="purpose">
+    <title>Purpose</title>
+
+    <para>Overlaying TV in the video ram requires the driver to know the destination address in memory. To set this value root permissions are needed, this is why <command>zapping_setup_fb</command> needs this level of privileges. I've tried to make it secure, but better don't trust it very much.</para>
+  </refsect1>
+
+  <refsect1 id="options">
+    <title>Options</title>
+
+    <variablelist>
+
+      <varlistentry>
+	<term><option>-?, --help, --usage</option></term>
+	<listitem>
+	  <para>Print usage information.</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><option>--bpp <replaceable>NUMBER</replaceable></option></term>
+	<listitem>
+	  <para>Current X bpp.</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><option>--device <replaceable>FILENAME</replaceable></option></term>
+	<listitem>
+	  <para>The video device to open, <filename>/dev/video0</filename> by default.</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><option>--display <replaceable>NAME</replaceable></option></term>
+	<listitem>
+	  <para>The X display to use.</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><option>--quiet</option></term>
+	<listitem>
+	  <para>Decrements the verbosity level.</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><option>--verbose</option></term>
+	<listitem>
+	  <para>Increments the verbosity level.</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><option>--version</option></term>
+	<listitem>
+	  <para>Shows the program version.</para>
+	</listitem>
+      </varlistentry>
+
+    </variablelist>
+  </refsect1>
+
+  <refsect1 id="bugs">
+    <title>Bugs</title>
+
+    <para>None known.</para>
+  </refsect1>
+
+  <refsect1 id="see-also">
+    <title>See also</title>
+
+    <para><command>zapping</command>(1)</para>
+  </refsect1>
+
+  <refsect1 id="authors">
+    <title>Authors</title>
+    <para>&app; was written by Iñaki García Etxebarria, Michael H. Schimek (mschimek@users.sourceforge.net) and many contributors.</para>
+    <para>This manual page was written by Michael H. Schimek based on work by Christian Marillat.</para>
+  </refsect1>
+
+</refentry>
