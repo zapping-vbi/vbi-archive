@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: ditest.c,v 1.1 2005-01-08 14:54:22 mschimek Exp $ */
+/* $Id: ditest.c,v 1.2 2005-02-12 13:32:27 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -156,7 +156,7 @@ write_buffer			(const char *		name,
 				 unsigned int		height)
 {
   unsigned int size;
-  ssize_t actual;
+  size_t actual;
   FILE *fp;
 
   size = width * height * 2;
@@ -165,7 +165,7 @@ write_buffer			(const char *		name,
   assert (NULL != fp);
 
   actual = fwrite (buffer, 1, size, fp);
-  if (actual < (ssize_t) size || ferror (fp))
+  if (actual < size || ferror (fp))
     {
       perror ("fwrite");
       exit (EXIT_FAILURE);
@@ -257,12 +257,12 @@ main				(int			argc,
 
   for (i = 0; i < n_frames; ++i) {
     char name[40];
-    ssize_t actual;
+    size_t actual;
 
     assert (!feof (stdin));
 
     actual = fread (in_buffers[i % 4], 1, size, stdin);
-    if (actual < (ssize_t) size || ferror (stdin))
+    if (actual < size || ferror (stdin))
       {
 	perror ("fread");
 	exit (EXIT_FAILURE);
