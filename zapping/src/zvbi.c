@@ -22,9 +22,6 @@
  * Libvbi, written by Michael Schimek, is used.
  */
 
-/* XXX gdk_pixbuf_render_to_drawable -> gdk_draw_pixbuf() */
-#undef GDK_DISABLE_DEPRECATED
-
 #include "site_def.h"
 #include "config.h"
 
@@ -1941,13 +1938,13 @@ void render_ttx_page(int id, GdkDrawable *drawable,
 	  pw = gdk_pixbuf_get_width (client->scaled);
 	  ph = gdk_pixbuf_get_height (client->scaled);
 
-	  gdk_pixbuf_render_to_drawable (client->scaled,
-					 drawable, gc,
-					 src_x, src_y,
-					 dest_x, dest_y,
-					 MIN (w, pw), MIN (h, ph),
-					 GDK_RGB_DITHER_NORMAL,
-					 src_x, src_y);
+	  gdk_draw_pixbuf (drawable, gc,
+			   client->scaled,
+			   src_x, src_y,
+			   dest_x, dest_y,
+			   /* width */ MIN (w, pw), /* height */ MIN (h, ph),
+			   GDK_RGB_DITHER_NORMAL,
+			   src_x, src_y);
 	}
 
       pthread_mutex_unlock(&client->mutex);
@@ -2074,34 +2071,7 @@ event(vbi_event *ev, void *unused _unused_)
 void
 vbi_gui_sensitive (gboolean on)
 {
-  static const gchar *widgets [] = {
-    "separador5",
-    "videotext1",
-#if 0 /* temporarily disabled */
-    "vbi_info1",
-    "program_info1",
-#endif
-    "toolbar-teletext",
-    "toolbar-subtitle",
-    "new_ttxview",
-    "menu-subtitle",
-    NULL
-  };
-  const gchar **sp;
-
-  for (sp = widgets; *sp; ++sp)
-    {
-      GtkWidget *widget;
-
-      widget = lookup_widget (GTK_WIDGET (zapping), *sp);
-
-      if (on)
-	gtk_widget_show (widget);
-      else
-	gtk_widget_hide (widget);
-
-      gtk_widget_set_sensitive (widget, on);
-    }
+  gtk_action_group_set_visible (zapping->vbi_action_group, on);
 
   if (on)
     {
