@@ -23,7 +23,7 @@ Multimedia_DATA = zapping.desktop
 if GCONF_SCHEMAS_INSTALL
 install-data-local:
 	GCONF_CONFIG_SOURCE=$(GCONF_SCHEMA_CONFIG_SOURCE) \
-	gconftool-2 --makefile-install-rule zapping.schemas
+	gconftool-2 --makefile-install-rule $(srcdir)/zapping.schemas
 else
 install-data-local:
 endif
