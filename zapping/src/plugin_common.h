@@ -35,6 +35,7 @@
 #include "x11stuff.h"
 #include "common/fifo.h"
 #include "capture.h"
+#include "frequencies.h"
 
 /* The plugin protocol we are able to understand */
 #define PLUGIN_PROTOCOL 2

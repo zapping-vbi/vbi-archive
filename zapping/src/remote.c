@@ -32,6 +32,7 @@
 #include "remote.h"
 #include "interface.h"
 #include "ttxview.h"
+#include "frequencies.h"
 
 #include <tveng.h>
 
@@ -138,6 +139,18 @@ gpointer remote_command(gchar *command, gpointer arg)
     {
       extern int cur_tuned_channel;
       return (GINT_TO_POINTER(cur_tuned_channel));
+    }
+  else if (!strcasecmp(command, "get_channel_info"))
+    {
+      tveng_tuned_channel *channel =
+	tveng_retrieve_tuned_channel_by_index(GPOINTER_TO_INT(arg),
+					      global_channel_list);
+      if (channel)
+	{
+	  /* tveng_clear_tuned_channel(result) when not longer needed */
+	  return tveng_insert_tuned_channel(channel, NULL);
+	}
+      return NULL;
     }
   else if (!strcasecmp(command, "get_num_channels"))
     {

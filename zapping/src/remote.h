@@ -56,6 +56,11 @@ void run_command(const gchar *command);
   returns=GINT_TO_POINTER(current_channel).
   Returns the currently selected station in Zapping.
 
+  - command="get_channel_info", arg=index
+  returns=tveng_tuned_channel* channel, or NULL if not found.
+  Info about the given channel. Use tveng_clear_tuned_channel(result)
+  when not longer needed.
+
   - command="get_num_channels", arg=ignored,
   returns=GINT_TO_POINTER(number_of_channels).
   Number of channels in the channel list.

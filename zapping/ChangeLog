@@ -1,3 +1,7 @@
+5.05.2001	remote(get_channel_info) <garetxe@users.sourceforge.net>
+
+	* src/remote.c: added get_channel_info call.
+
 4.05.2001	mpeg plugin improvements <garetxe@users.sourceforge.net>
 
 	* plugins/mpeg: Adapted to new bundled capture. Now it's possible
