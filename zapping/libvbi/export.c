@@ -7,6 +7,8 @@
 #include "export.h"
 #include "vbi.h"
 
+#include "../common/types.h"
+
 extern struct export_module export_txt[1];
 extern struct export_module export_ansi[1];
 extern struct export_module export_html[1];
@@ -339,7 +341,7 @@ struct font_d {
 	character_set	G2;
 	national_subset	subset;
 } font_d_table[88] = {
-	/* 0 - Western and central Europe */
+	/* 0 - Western and Central Europe */
 	{ LATIN_G0, LATIN_G2, ENGLISH		},
 	{ LATIN_G0, LATIN_G2, GERMAN		},
 	{ LATIN_G0, LATIN_G2, SWE_FIN_HUN	},
@@ -369,7 +371,7 @@ struct font_d {
 	{ LATIN_G0, LATIN_G2, TURKISH		},
 	{ LATIN_G0, LATIN_G2, NO_SUBSET		},
 
-	/* 24 - Middle and southeast Europe */
+	/* 24 - Central and Southeast Europe */
 	{ LATIN_G0, LATIN_G2, NO_SUBSET		},
 	{ LATIN_G0, LATIN_G2, NO_SUBSET		},
 	{ LATIN_G0, LATIN_G2, NO_SUBSET		},
@@ -500,9 +502,6 @@ static int
 glyph(character_set s, national_subset n, int c)
 {
 	int i;
-
-	if (c <= 0x1F)
-		return c;
 
 	switch (s) {
 	case LATIN_G0:
@@ -650,41 +649,40 @@ glyph(character_set s, national_subset n, int c)
 	}
 }
 
-
 void
 fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 {
     char buf[16];
-    int column, y, i;
-    int page_opacity;
-    int char_set = 0;
-    struct font_d *f;
-    struct vt_extension *ext;
+    int column, row, i;
+
+	struct vt_extension *ext;
+	struct font_d *g0_set[2];
+
 
     sprintf(buf, "\2%x.%02x\7", vtp->pgno, vtp->subno & 0xff);
 
-    if (vtp->flags & (C5_NEWSFLASH | C6_SUBTITLE))
-	page_opacity = TRANSPARENT_SPACE;
-    else
-	page_opacity = OPAQUE;
 
 
-    f = font_d_table;
+	g0_set[0] = font_d_table;
+	g0_set[1] = font_d_table;
 
-    if (!(ext = vtp->extension))
-	ext = &vtp->vbi->magazine_extension[(vtp->pgno >> 8) - 1];
+	if (!(ext = vtp->extension))
+		ext = &vtp->vbi->magazine_extension[(vtp->pgno >> 8) - 1];
 
-    char_set = ext->primary_char_set;
+	for (i = 0; i < 2; i++) {
+		int char_set = ext->char_set[i];
 
-    if (char_set < 88 && font_d_table[char_set].G0)
-	f = font_d_table + char_set;
+		if (char_set < 88 && font_d_table[char_set].G0)
+			g0_set[1] = font_d_table + char_set;
 
-    char_set = (char_set & ~7) + vtp->national;
+		char_set = (char_set & ~7) + vtp->national;
 
-    if (char_set < 88 && font_d_table[char_set].G0)
-	f = font_d_table + char_set;
+		if (char_set < 88 && font_d_table[char_set].G0)
+			g0_set[i] = font_d_table + char_set;
 
-// printf("char_set %d\n", char_set);
+// printf("char_set[%d] = %d\n", char_set);
+	}
+
 
     for (i = 0; i < 32; i++) {
 	pg->colour_map[i] =
@@ -696,217 +694,198 @@ fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 	    | ((ext->colour_map[i] & 0xF) << 0);
     }
 
-    i = 0;
+	i = 0;
+	reveal = !!reveal;
 
-    for (y = 0; y < H; y++)
-    {
-	int held_mosaic = ' ';
-	int held_separated = FALSE;
-	int hold = 0;
-	attr_char at, after;
-	int double_height;
-	int concealed;
+	for (row = 0; row < H; row++) {
+		struct font_d *font;
+		int mosaic_glyphs;
+		int held_mosaic_glyph;
+		opacity page_opacity, boxed_opacity;
+		bool hold, mosaic;
+		bool double_height, wide_char;
+		attr_char ac;
 
-	at.foreground	= ext->foreground_clut + WHITE;
-	at.background	= ext->background_clut + BLACK;
-	at.attr = 0;
-	at.flash	= FALSE;
-	at.opacity	= page_opacity;
-	at.size		= NORMAL;
-	concealed	= FALSE;
-	double_height	= FALSE;
+		held_mosaic_glyph = 0x0200; /* blank, contiguous */
 
-	after = at;
+		page_opacity = OPAQUE;
+		boxed_opacity = SEMI_TRANSPARENT;
 
-	for (column = 0; column < W; ++column)
-	{
-	    int raw;
-
-	    at.ch = vtp->data[0][i];
-	    raw = vtp->raw[0][i++] & 0x7F;
-
-	    if (y == 0 && column < 8)
-		at.ch = raw = buf[column];
-
-	    switch (at.ch) {
-		case 0x00 ... 0x07:	/* alpha + fg color */
-		    after.foreground = ext->foreground_clut + (at.ch & 7);
-		    after.attr &= ~(EA_GRAPHIC | EA_SEPARATED);
-		    concealed = FALSE;
-		    goto ctrl;
-
-		case 0x08:		/* flash */
-		    after.flash = TRUE;
-		    goto ctrl;
-
-		case 0x09:		/* steady */
-		    at.flash = FALSE;
-		    after.flash = FALSE;
- 		    goto ctrl;
-
-		case 0x0a:		/* end box */
-		    if (vtp->data[0][i] == 0x0a) /* double transmission, see G.3.1 */
-			after.opacity = page_opacity;
-		    goto ctrl;
-
-		case 0x0b:		/* start box */
-		    if (vtp->data[0][i] == 0x0b) /* double transmission, see G.3.1 */
-			after.opacity = SEMI_TRANSPARENT; /* semi, tendency opaque ;-) */
-		    goto ctrl;
-
-		case 0x0c:		/* normal height */
-		    at.size = NORMAL;
-		    after.size = NORMAL;
-		    goto ctrl;
-
-		case 0x0d:		/* double height */
-		    if (y <= 0 || y >= 23)
-			    goto ctrl;
-
-		    after.size = DOUBLE_HEIGHT;
-		    double_height = TRUE;
-
-		    goto ctrl;
-
-		case 0x0e:		/* double width */
-		    if (column < 39)
-			after.size = DOUBLE_WIDTH;
-		    goto ctrl;
-
-		case 0x0f:		/* double size */
-		    if (column >= 39 || y <= 0 || y >= 22)
-			    goto ctrl;
-
-		    after.size = DOUBLE_SIZE;
-		    double_height = TRUE;
-
-		    goto ctrl;
-
-		case 0x10 ... 0x17:	/* mosaic + fg color */
-		    after.foreground = ext->foreground_clut + (at.ch & 7);
-		    after.attr |= EA_GRAPHIC;
-		    concealed = FALSE;
-		    goto ctrl;
-
-		case 0x18:		/* conceal */
-		    concealed = TRUE;
-		    goto ctrl;
-
-		case 0x19:		/* contiguous mosaics */
-		    at.attr &= ~EA_SEPARATED;
-		    after.attr &= ~EA_SEPARATED;
-		    goto ctrl;
-
-		case 0x1a:		/* separated mosaics */
-		    at.attr |= EA_SEPARATED;
-		    after.attr |= EA_SEPARATED;
-		    goto ctrl;
-
-		case 0x1c:		/* black bg */
-		    at.background = ext->background_clut + BLACK;
-		    after.background = ext->background_clut + BLACK;
-		    goto ctrl;
-
-		case 0x1d:		/* new bg */
-		    at.background = at.foreground;
-		    after.background = at.foreground;
-		    goto ctrl;
-
-		case 0x1e:		/* hold gfx */
-		    hold = 1;
-		    goto ctrl;
-		
-		case 0x1f:		/* release gfx */
-		    hold = 0; // after ??
-		    goto ctrl;
-
-		case 0x1b:		/* ESC */
-		    at.ch = ' ';
-		    break;
-
-		ctrl:
-		    if (hold && (at.attr & EA_GRAPHIC)) {
-			at.ch = held_mosaic;
-			if (held_separated) /* G.3.3 */
-			    at.attr |= EA_SEPARATED;
-			else
-			    at.attr &= ~EA_SEPARATED;
-		    } else
-			at.ch = raw = ' ';
-		    break;
-	    }
-
-	    if ((at.attr & EA_GRAPHIC)
-		&& (at.ch & 0xA0) == 0x20) {
-		held_mosaic = at.ch;
-		held_separated = !!(at.attr & EA_SEPARATED);
-
-		if (at.ch < 0x60)
-		    at.glyph = 0x0200 - 0x20 + at.ch;
-		else
-		    at.glyph = 0x0220 - 0x60 + at.ch;
-
-		at.ch += (at.ch & 0x40) ? 32 : -32;
-	    }
-	    else
-		at.glyph = glyph(f->G0, f->subset, raw);
-
-	    if (concealed && !reveal)
-		at.ch = raw = ' ';
-
-	    /* XXX optimize */
-	    if ((y == 0 && (vtp->flags & C7_SUPPRESS_HEADER))
-		|| (y > 0 && (vtp->flags & C10_INHIBIT_DISPLAY)))
-		at.opacity = TRANSPARENT_SPACE;
-
-#if 0 // too lazy to write a test page
-	    if (column < 13 && y > 0 && y < 14) {
-		at.ch = at.glyph = national_subst[y][column];
-		at.foreground = BLACK;
-		at.background = WHITE;
-	    }
-#endif
-
-	    pg->data[y][column] = at;
-
-	    if (at.size == DOUBLE_WIDTH	|| at.size == DOUBLE_SIZE) {
-		at.size = OVER_TOP;
-		pg->data[y][++column] = at;
-	    }
-
-	    at = after;
-	}
-
-	if (double_height) {
-	    for (column = 0; column < W; column++) {
-		at = pg->data[y][column];
-
-		switch (at.size) {
-		case DOUBLE_HEIGHT:
-		    at.size = DOUBLE_HEIGHT2;
-		    pg->data[y + 1][column] = at;
-		    break;
-		
-		case DOUBLE_SIZE:
-		    at.size = DOUBLE_SIZE2;
-		    pg->data[y + 1][column] = at;
-		    at.size = OVER_BOTTOM;
-		    pg->data[y + 1][++column] = at;
-		    break;
-
-		default: /* NORMAL, DOUBLE_WIDTH, OVER_TOP */
-		    at.size = NORMAL;
-		    at.ch = ' ';
-		    at.glyph = 0x0000 + ' ';
-		    pg->data[y + 1][column] = at;
-		    break;
+		if (row == 0) {
+			if (vtp->flags & C7_SUPPRESS_HEADER)
+				boxed_opacity = TRANSPARENT_SPACE;
+			if (vtp->flags & (C5_NEWSFLASH | C6_SUBTITLE | C7_SUPPRESS_HEADER))
+				page_opacity = TRANSPARENT_SPACE;
+		} else {
+			if (vtp->flags & C10_INHIBIT_DISPLAY)
+				boxed_opacity = TRANSPARENT_SPACE;
+			if (vtp->flags & (C5_NEWSFLASH | C6_SUBTITLE | C10_INHIBIT_DISPLAY))
+				page_opacity = TRANSPARENT_SPACE;
 		}
-	    }
 
-	    y++;
-	    i += W;
+		memset(&ac, 0, sizeof(ac));
+
+		ac.foreground	= ext->foreground_clut + WHITE;
+		ac.background	= ext->background_clut + BLACK;
+		mosaic_glyphs	= 0x0200 - 0x20; /* contiguous */
+		ac.opacity	= page_opacity;
+		font		= g0_set[0];
+		reveal	       |= 2;
+		hold		= FALSE;
+		mosaic		= FALSE;
+
+		double_height	= FALSE;
+		wide_char	= FALSE;
+
+		for (column = 0; column < W; ++column) {
+			int raw;
+
+			raw = vtp->raw[0][i++] & 0x7F; /* XXX parity */
+
+			if (row == 0 && column < 8)
+				raw = buf[column];
+
+			switch (raw) {
+			case 0x09:		/* steady */
+				ac.flash = FALSE;
+				break;
+
+			case 0x0c:		/* normal size */
+				ac.size = NORMAL;
+				break;
+
+			case 0x18:		/* conceal */
+				reveal &= 1;
+				break;
+
+			case 0x19:		/* contiguous mosaics */
+				mosaic_glyphs = 0x0200 - 0x20 + 0;
+				break;
+
+			case 0x1a:		/* separated mosaics */
+				mosaic_glyphs = 0x0200 - 0x20 + 32;
+				break;
+
+			case 0x1c:		/* black bg */
+				ac.background = ext->background_clut + BLACK;
+				break;
+
+			case 0x1d:		/* new bg */
+				ac.background = ac.foreground;
+				break;
+
+			case 0x1e:		/* hold mosaic */
+				hold = TRUE;
+				break;
+			}
+
+			if (raw <= 0x1F)
+				ac.glyph = (hold & mosaic) ? held_mosaic_glyph : 0x0000 + ' ';
+			else
+				if (mosaic && (raw & 0x20)) {
+					held_mosaic_glyph = mosaic_glyphs + raw;
+					ac.glyph = reveal ? held_mosaic_glyph : 0x0000 + ' ';
+				} else
+					ac.glyph = reveal ? glyph(font->G0, font->subset, raw) : 0x0000 + ' ';
+
+			if (!wide_char)
+				pg->data[row][column] = ac;
+
+			wide_char = /*!!*/(ac.size & DOUBLE_WIDTH);
+
+			if (wide_char && column < 39) {
+				attr_char t = ac;
+
+				t.size = OVER_TOP;
+				pg->data[row][column + 1] = t;
+			}
+
+			switch (raw) {
+			case 0x00 ... 0x07:	/* alpha + fg colour */
+				ac.foreground = ext->foreground_clut + (raw & 7);
+				mosaic_glyphs = 0x0200 - 0x20 + 0; /* contiguous */
+				reveal |= 2;
+				mosaic = FALSE;
+				break;
+
+			case 0x08:		/* flash */
+				ac.flash = TRUE;
+				break;
+
+			case 0x0a:		/* end box */
+				if (column < 39 && vtp->raw[0][i] == 0x0a)
+					ac.opacity = page_opacity;
+				break;
+
+			case 0x0b:		/* start box */
+				if (column < 39 && vtp->raw[0][i] == 0x0b)
+					ac.opacity = boxed_opacity;
+				break;
+
+			case 0x0d:		/* double height */
+				if (row <= 0 || row >= 23)
+					break;
+				ac.size = DOUBLE_HEIGHT;
+				double_height = TRUE;
+				break;
+
+			case 0x0e:		/* double width */
+				if (column < 39)
+					ac.size = DOUBLE_WIDTH;
+				break;
+
+			case 0x0f:		/* double size */
+				if (column >= 39 || row <= 0 || row >= 22)
+					break;
+				ac.size = DOUBLE_SIZE;
+				double_height = TRUE;
+				break;
+
+			case 0x10 ... 0x17:	/* mosaic + fg colour */
+				ac.foreground = ext->foreground_clut + (raw & 7);
+				reveal |= 2;
+				mosaic = TRUE;
+				break;
+
+			case 0x1f:		/* release mosaic */
+				hold = FALSE;
+				break;
+
+			case 0x1b:		/* ESC */
+				font = (font == g0_set[0]) ? g0_set[1] : g0_set[0];
+				break;
+			}
+		}
+
+		if (double_height) {
+			for (column = 0; column < W; column++) {
+				ac = pg->data[row][column];
+
+				switch (ac.size) {
+				case DOUBLE_HEIGHT:
+					ac.size = DOUBLE_HEIGHT2;
+					pg->data[row + 1][column] = ac;
+					break;
+		
+				case DOUBLE_SIZE:
+					ac.size = DOUBLE_SIZE2;
+					pg->data[row + 1][column] = ac;
+					ac.size = OVER_BOTTOM;
+					pg->data[row + 1][++column] = ac;
+					break;
+
+				default: /* NORMAL, DOUBLE_WIDTH, OVER_TOP */
+					ac.size = NORMAL;
+					ac.glyph = 0x0000 + ' ';
+					pg->data[row + 1][column] = ac;
+					break;
+				}
+			}
+
+			i += 40;
+			row++;
+		}
 	}
-    }
 }
 
 int

@@ -10,7 +10,7 @@
   libvbi.h exports this globally :-(
  */
 
-#define PLL_ADJUST	4
+// #define PLL_ADJUST	4
 
 typedef enum {
 	DRCS_MODE_12_10_1,
@@ -48,15 +48,15 @@ struct vbi
     struct raw_page rpage[8];	// one for each magazin
     struct raw_page *ppage;	// points to page of previous pkt0
     // phase correction
-    int pll_fixed;		// 0 = auto, 1..2*PLL_ADJUST+1 = fixed
-    int pll_adj;
-    int pll_dir;
-    int pll_cnt;
-    int pll_err, pll_lerr;
+//    int pll_fixed;		// 0 = auto, 1..2*PLL_ADJUST+1 = fixed
+//    int pll_adj;
+//    int pll_dir;
+//    int pll_cnt;
+//    int pll_err, pll_lerr;
     // v4l2 decoder data
-    int bpb;			// bytes per bit * 2^16
-    int bp8bl, bp8bh;		// bytes per 8-bit low/high
-    int soc, eoc;		// start/end of clock run-in
+//    int bpb;			// bytes per bit * 2^16
+//    int bp8bl, bp8bh;		// bytes per 8-bit low/high
+//    int soc, eoc;		// start/end of clock run-in
     // sliced data source
     void *fifo;
 };

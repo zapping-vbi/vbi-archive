@@ -631,7 +631,7 @@ zvbi_resolve_page(gint x, gint y, struct vt_page * vtp, gint *page,
   buffer[0] = buffer[41] = ' ';
 
   for (i=1; i<41; i++)
-    buffer[i] = pg.data[y][i-1].ch;
+    buffer[i] = pg.data[y][i-1].glyph & 0x3FF; // careful, not pure ASCII
 
   for (i = -2; i < 1; i++)
     if (zvbi_check_page(buffer, x+i, page, subpage))

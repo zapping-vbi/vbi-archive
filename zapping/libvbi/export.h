@@ -23,21 +23,16 @@ typedef enum {
 	OVER_TOP, OVER_BOTTOM, DOUBLE_HEIGHT2, DOUBLE_SIZE2
 } glyph_size;
 
-typedef struct fmt_char
-{
-    u16 ch;  // alevt
-    u8 attr; // alevt
-	unsigned	underline	: 1;
-	unsigned	flash		: 1;
-	unsigned	size		: 3;
-	unsigned	opacity		: 2;
-	unsigned	foreground	: 5;
-	unsigned	background	: 5;
+typedef struct fmt_char {
+	unsigned	size		: 8;
+	unsigned	opacity		: 8;
+	unsigned	underline	: 8;
+	unsigned	flash		: 8;
+	unsigned	foreground	: 8;
+	unsigned	background	: 8;
 	unsigned	glyph		: 16;
 } attr_char;
 
-#define EA_GRAPHIC	16	// graphic symbol
-#define EA_SEPARATED	32	// use separated graphic symbol
 
 #define E_DEF_FG	7
 #define E_DEF_BG	0

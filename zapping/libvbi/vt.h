@@ -73,8 +73,7 @@ typedef enum {
 struct vt_extension {
 	unsigned int	designations;
 
-	char		primary_char_set;
-	char		secondary_char_set;
+	char		char_set[2];		/* primary, secondary */
 
 	char		def_screen_colour;
 	char		def_row_colour;

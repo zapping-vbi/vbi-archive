@@ -48,7 +48,7 @@ draw_char(unsigned char * colour_matrix,
 	  bit=(*(src+bitnr/8))&(1<<bitnr%8);
 	  bitnr=(c/32*CH + (y>>dbl))*CW*32+ c%32*CW +x;
 	  bit |= (*(src+bitnr/8))&(1<<bitnr%8);
-	  if (sep)
+	  if (0 && sep)
 	    {
 	      maskbitnr=(0xa0/32*CH + (y>>dbl))*CW*32+ 0xa0%32*CW +x;
 	      maskbit=(*(src+maskbitnr/8))&(1<<maskbitnr%8);
@@ -85,7 +85,7 @@ prepare_colour_matrix(/*struct export *e,*/
 			pg->data[y][x].glyph,
 			!!(pg->data[y][x].size & DOUBLE_HEIGHT),
 			x, y,
-			((pg->data[y][x].attr & EA_SEPARATED) ? 1 : 0));
+			0);
 		    break;
 
 		default: /* OVER_TOP, OVER_BOTTOM, DOUBLE_HEIGHT2, DOUBLE_SIZE2 */

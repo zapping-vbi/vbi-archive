@@ -105,53 +105,6 @@ txt_option(struct export *e, int opt, char *arg)
 static void
 put_attr(struct export *e, struct fmt_char *new)
 {
-    char buf[512];
-    char *p = buf;
-    int fg, bg, size;
-    int flash;
-    int reset = 0;
-
-    if (D->color)
-    {
-	fg = D->curr->foreground ^ new->foreground;
-	bg = D->curr->background ^ new->background;
-	flash = D->curr->flash ^ new->flash;
-	size = (D->curr->size ^ new->size) & DOUBLE_HEIGHT;
-
-	if (fg | bg | size | flash)
-	{
-	    if (~new->size & size)	// reset some attributes ->  reset all.
-		reset = 1;
-	    if (~new->flash & flash)	// reset some attributes ->  reset all.
-		reset = 1;
-	    if (fg && new->foreground == D->def_fg)	// switch to def fg -> reset all
-		reset = 1;
-	    if (bg && new->background == D->def_bg)	// switch to def bg -> reset all
-		reset = 1;
-
-	    p = stpcpy(buf, "\e[");
-	    if (reset)
-	    {
-		p = stpcpy(p, ";");		// "0;" but 0 isn't neccesary
-		size = -1;			// set all attributes
-		fg = new->foreground ^ D->def_fg;	// set fg if != default fg
-		bg = new->background ^ D->def_bg;	// set bg if != default bg
-	    }
-	    if (flash & new->flash)
-		p = stpcpy(p, "5;");			// blink
-	    if (size & new->size & DOUBLE_HEIGHT)
-		p = stpcpy(p, "1;");			// bold
-	    if (fg)
-		p += sprintf(p, "%d;", new->foreground + 30);	// fg-color
-	    if (bg)
-		p += sprintf(p, "%d;", new->background + 40);	// bg-color
-	    p[-1] = 'm';	// replace last ;
-	    *D->curr = *new;
-	}
-    }
-    *p++ = new->ch;
-    *p = 0;
-    fputs(buf, D->fp);
 }
 
 
@@ -163,83 +116,6 @@ txt_output(struct export *e, char *name, struct fmt_page *pg)
     #define L (l+1)
     int x, y;
 
-    D->fp = fopen(name, "w");
-    if (not D->fp)
-    {
 	export_error("cannot create file");
 	return -1;
-    }
-
-    /* initialize default colors.  these have to be restored at EOL. */
-    def_c->ch = '\n';
-    def_c->foreground = D->def_fg;
-    def_c->background = D->def_bg;
-    def_c->attr = E_DEF_ATTR;
-    *D->curr = *def_c;
-    L[-1] = L[W] = *def_c;
-
-    for (y = 0; y < H; y++)
-	{
-	    // character conversion
-	    for (x = 0; x < W; ++x)
-	    {
-		struct fmt_char c = pg->data[y][x];
-
-		switch (c.size) {
-		case OVER_TOP:
-		case OVER_BOTTOM:
-		case DOUBLE_HEIGHT2:
-		case DOUBLE_SIZE2:
-		    c.ch = ' ';
-		    break;
-		}
-
-		switch (c.ch)
-		{
-		    case 0x00: case 0xa0:		c.ch = ' '; break;
-		    /*
-		    case 0x9f:				c.ch = ' ';
-		    					c.background  = c.foreground; break;
-		    case 0x15: case 0x8a:		c.ch = '|'; break;
-		    case 0x03: case 0x0c: case 0x90:	c.ch = '-'; break;
-		    case 0x04: case 0x08:
-		    */
-		    case 0x7f:				c.ch = '*'; break;
-		    case BAD_CHAR:			c.ch = '?'; break;
-		    default:
-			if (c.attr & EA_GRAPHIC)
-			    c.ch = D->gfx_chr;
-			    //c.background  = c.foreground, c.ch = ' ';
-			break;
-		}
-		L[x] = c;
-	    }
-
-	    if (D->color)
-	    {
-		// optimize color and attribute changes
-
-		// delay fg and attr changes as far as possible
-		for (x = 0; x < W; ++x)
-		    if (L[x].ch == ' ')
-		    {
-			L[x].foreground = L[x-1].foreground;
-			l[x].attr = L[x-1].attr;
-		    }
-
-		// move fg and attr changes to prev bg change point
-		for (x = W-1; x >= 0; x--)
-		    if (L[x].ch == ' ' && L[x].background  == L[x+1].background )
-		    {
-			L[x].foreground = L[x+1].foreground;
-			L[x].attr = L[x+1].attr;
-		    }
-	    }
-
-	    // now emit the whole line (incl EOL)
-	    for (x = 0; x < W+1; ++x)
-		put_attr(e, L + x);
-	}
-    fclose(D->fp);
-    return 0;
 }

@@ -68,62 +68,6 @@ vbi_send_page(struct vbi *vbi, struct raw_page *rvtp, int page)
     }
 }
 
-// fine tune pll
-// this routines tries to adjust the sampling point of the decoder.
-// it collects parity and hamming errors and moves the sampling point
-// a 10th of a bitlength left or right.
-
-#define PLL_SAMPLES	4	// number of err vals to collect
-#define PLL_ERROR	4	// if this err val is crossed, readjust
-//#define PLL_ADJUST	4	// max/min adjust (10th of bitlength)
-
-/* OBSOLETE */
-static void
-pll_add(struct vbi *vbi, int n, int err)
-{
-    if (vbi->pll_fixed)
-	return;
-
-    if (err > PLL_ERROR*2/3)	// limit burst errors
-	err = PLL_ERROR*2/3;
-
-    vbi->pll_err += err;
-    vbi->pll_cnt += n;
-    if (vbi->pll_cnt < PLL_SAMPLES)
-	return;
-
-    if (vbi->pll_err > PLL_ERROR)
-    {
-	if (vbi->pll_err > vbi->pll_lerr)
-	    vbi->pll_dir = -vbi->pll_dir;
-	vbi->pll_lerr = vbi->pll_err;
-
-	vbi->pll_adj += vbi->pll_dir;
-	if (vbi->pll_adj < -PLL_ADJUST || vbi->pll_adj > PLL_ADJUST)
-	{
-	    vbi->pll_adj = 0;
-	    vbi->pll_dir = -1;
-	    vbi->pll_lerr = 0;
-	}
-    }
-    vbi->pll_cnt = 0;
-    vbi->pll_err = 0;
-}
-
-/* OBSOLETE */
-void
-vbi_pll_reset(struct vbi *vbi, int fine_tune)
-{
-    vbi->pll_fixed = fine_tune >= -PLL_ADJUST && fine_tune <= PLL_ADJUST;
-
-    vbi->pll_err = 0;
-    vbi->pll_lerr = 0;
-    vbi->pll_cnt = 0;
-    vbi->pll_dir = -1;
-    vbi->pll_adj = 0;
-    if (vbi->pll_fixed)
-	vbi->pll_adj = fine_tune;
-}
 
 
 
@@ -148,11 +92,11 @@ vbi_set_default_region(struct vbi *vbi, int default_region)
 	int i;
 	struct vt_extension *x;
 
-	for (i=0; i < 8; i++) {
+	for (i = 0; i < 8; i++) {
 		x = vbi->magazine_extension + i;
 
-		/* garetxe: fixme: is this correct? */
-		x->primary_char_set = x->secondary_char_set =
+		x->char_set[0] =
+		x->char_set[1] =
 			default_region;
 	}
 }
@@ -168,9 +112,9 @@ reset_magazines(struct vbi *vbi)
 
 		x->designations			= 0;
 
-		x->primary_char_set		= 16;		/* Latin G0, G2, English subset */
-		x->secondary_char_set		= 16;		/* Latin G0, English subset */
-								/* National group western Europe and Turkey */
+		x->char_set[0]			= 16;		/* Latin G0, G2, English subset */
+		x->char_set[0]			= 16;		/* Latin G0, English subset */
+								/* Region Western Europe and Turkey */
 
 		x->def_screen_colour		= BLACK;	/* A.5 */
 		x->def_row_colour		= BLACK;	/* A.5 */
@@ -200,7 +144,7 @@ dump_extension(struct vt_extension *x)
 
 	printf("designations %08x\n", x->designations);
 	printf("char set primary %d secondary %d\n",
-		x->primary_char_set, x->secondary_char_set);
+		x->char_set[0], x->char_set[1]);
 	printf("default screen col %d row col %d\n",
 		x->def_screen_colour, x->def_row_colour);
 	printf("bbg subst %d colour table remapping %d, %d\n",
@@ -370,7 +314,7 @@ vt_packet(struct vbi *vbi, u8 *p)
 	    cvtp->flof = 0;
 	    vbi->ppage = rvtp;
 
-	    pll_add(vbi, 1, cvtp->errors);
+//	    pll_add(vbi, 1, cvtp->errors);
 
 	    conv2latin(p + 8, 32, cvtp->lang);
 	    vbi_send(vbi, EV_HEADER, cvtp->pgno, cvtp->subno, cvtp->flags, p);
@@ -394,7 +338,7 @@ vt_packet(struct vbi *vbi, u8 *p)
 	{
 		memcpy(cvtp->raw[pkt], p, 40);
 
-	    pll_add(vbi, 1, err = chk_parity(p, 40));
+//	    pll_add(vbi, 1, err = chk_parity(p, 40));
 
 	    if (~cvtp->flags & PG_ACTIVE)
 		return 0;
@@ -531,8 +475,8 @@ vt_packet(struct vbi *vbi, u8 *p)
 			if (designation == 4 && (x->designations & (1 << 0)))
 				bits(14 + 2 + 1 + 4);
 			else {
-				x->primary_char_set = bits(7);
-				x->secondary_char_set = bits(7);
+				x->char_set[0] = bits(7);
+				x->char_set[1] = bits(7);
 
 				x->left_side_panel = bits(1);
 				x->right_side_panel = bits(1);
@@ -713,77 +657,6 @@ vbi_teletext(struct vbi *vbi, buffer *b)
 
 
 
-// process one raw vbi line
-/* OBSOLETE */
-int
-vbi_line(struct vbi *vbi, u8 *p)
-{
-    u8 data[43], min, max;
-    int dt[256], hi[6], lo[6];
-    int i, n, sync, thr;
-    int bpb = vbi->bpb;
-
-    /* remove DC. edge-detector */
-    for (i = vbi->soc; i < vbi->eoc; ++i)
-	dt[i] = p[i+bpb/FAC] - p[i];	// amplifies the edges best.
-
-    /* set barrier */
-    for (i = vbi->eoc; i < vbi->eoc+16; i += 2)
-	dt[i] = 100, dt[i+1] = -100;
-
-    /* find 6 rising and falling edges */
-    for (i = vbi->soc, n = 0; n < 6; ++n)
-    {
-	while (dt[i] < 32)
-	    i++;
-	hi[n] = i;
-	while (dt[i] > -32)
-	    i++;
-	lo[n] = i;
-    }
-    if (i >= vbi->eoc)
-	return -1;	// not enough periods found
-
-    i = hi[5] - hi[1];	// length of 4 periods (8 bits)
-    if (i < vbi->bp8bl || i > vbi->bp8bh)
-	return -2;	// bad frequency
-    /* AGC and sync-reference */
-    min = 255, max = 0, sync = 0;
-    for (i = hi[4]; i < hi[5]; ++i)
-	if (p[i] > max)
-	    max = p[i], sync = i;
-    for (i = lo[4]; i < lo[5]; ++i)
-	if (p[i] < min)
-	    min = p[i];
-    thr = (min + max) / 2;
-
-    p += sync;
-
-    /* search start-byte 11100100 */
-    for (i = 4*bpb + vbi->pll_adj*bpb/10; i < 16*bpb; i += bpb)
-	if (p[i/FAC] > thr && p[(i+bpb)/FAC] > thr) // two ones is enough...
-	{
-	    /* got it... */
-	    memset(data, 0, sizeof(data));
-
-	    for (n = 0; n < 43*8; ++n, i += bpb)
-		if (p[i/FAC] > thr)
-		    data[n/8] |= 1 << (n%8);
-
-	    if (data[0] != 0x27)	// really 11100100? (rev order!)
-		return -3;
-
-	    if ((i = vt_packet(vbi, data+1)))
-	      {
-		if (i < 0)
-		  pll_add(vbi, 2, -i);
-		else
-		  pll_add(vbi, 1, i);
-	      }
-	    return 0;
-	}
-    return -4;
-}
 
 int
 vbi_add_handler(struct vbi *vbi, void *handler, void *data)
@@ -846,7 +719,7 @@ vbi_open(char *vbi_name, struct cache *ca, int fine_tune, int big_buf)
     vbi->ppage = vbi->rpage;
     reset_magazines(vbi);
 
-    vbi_pll_reset(vbi, fine_tune);
+//    vbi_pll_reset(vbi, fine_tune);
     // now done by sliced device
     ///* now done by v4l2 and v4l modules */
     ////    fdset_add_fd(fds, vbi->fd, vbi_handler, vbi);
