@@ -1936,14 +1936,6 @@ tveng2_start_previewing (tveng_device_info * info)
   if (!tveng_detect_XF86DGA(info))
     return -1;
 
-  /* Enable Direct Graphics (just the DirectVideo thing) */
-  if (!XF86DGADirectVideo(display, 0, XF86DGADirectGraphics))
-    {
-      info -> tveng_errno = -1;
-      t_error("XF86DGADirectVideo", info);
-      return -1;
-    }
-
   /* calculate coordinates for the preview window. We compute this for
    the first display */
   XF86DGAGetViewPortSize(display, DefaultScreen(display),
@@ -1967,12 +1959,7 @@ tveng2_start_previewing (tveng_device_info * info)
 
   /* Set new capture dimensions */
   if (tveng2_set_preview_window(info) == -1)
-    {
-      /* Switch DirectVideo off */
-      if (!XF86DGADirectVideo(display, 0, 0))
-	t_error("XF86DGADirectVideo", info);
-      return -1;
-    }
+    return -1;
 
   /* Center preview window (maybe the requested width and/or height)
      aren't valid */
@@ -1981,21 +1968,11 @@ tveng2_start_previewing (tveng_device_info * info)
   info->window.clipcount = 0;
   info->window.clips = NULL;
   if (tveng2_set_preview_window(info) == -1)
-    {
-      /* Switch DirectVideo off */
-      if (!XF86DGADirectVideo(display, 0, 0))
-	t_error("XF86DGADirectVideo", info);
-      return -1;
-    }
+    return -1;
 
   /* Start preview */
   if (tveng2_set_preview(1, info) == -1)
-    {
-      /* Switch DirectVideo off */
-      if (!XF86DGADirectVideo(display, 0, 0))
-	t_error("XF86DGADirectVideo", info);
-      return -1;
-    }
+    return -1;
 
   info -> current_mode = TVENG_CAPTURE_PREVIEW;
   return 0; /* Success */
@@ -2015,8 +1992,6 @@ int
 tveng2_stop_previewing(tveng_device_info * info)
 {
 #ifndef DISABLE_X_EXTENSIONS
-  Display * display = info->display;
-
   if (info -> current_mode == TVENG_NO_CAPTURE)
     {
       fprintf(stderr, 
@@ -2027,12 +2002,6 @@ tveng2_stop_previewing(tveng_device_info * info)
 
   /* No error checking */
   tveng2_set_preview(0, info);
-
-  if (!XF86DGADirectVideo(display, 0, 0))
-    {
-      t_error("XF86DGADirectVideo", info);
-      return -1;
-    }
 
   info -> current_mode = TVENG_NO_CAPTURE;
   return 0; /* Success */

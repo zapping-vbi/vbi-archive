@@ -255,7 +255,9 @@ typedef struct
 
   /* Consider the following as private data, you don't need to access
      this */
+  /* fixme: put this into the private struct */
   Display * display;
+  int save_x, save_y;
 
 #ifndef DISABLE_X_EXTENSIONS
   XF86VidModeModeInfo modeinfo;

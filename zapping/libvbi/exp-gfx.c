@@ -225,7 +225,7 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
     }
   
   prepare_colour_matrix(/*e,*/ pg, (unsigned char *)colour_matrix); 
-  
+   
   if (not(fp = fopen(name, "w")))
     {
       free(colour_matrix);
@@ -273,3 +273,27 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
   return 0;
 }
 #endif
+
+/* garetxe: This doesn't make sense in alevt, but it's useful in other
+ contexts */
+unsigned char *
+mem_output(struct fmt_page *pg, int *width, int *height)
+{
+  unsigned char *mem;
+
+  if ((!pg) || (!width) || (!height))
+    return -1;
+
+  mem = malloc(WW*WH);
+  if (!mem)
+    {
+      perror("malloc");
+      return NULL;
+    }
+
+  *width = WW;
+  *height = WH;
+
+  prepare_colour_matrix(pg, mem);
+  return mem;
+}

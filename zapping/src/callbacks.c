@@ -47,8 +47,9 @@ GtkWidget * black_window = NULL; /* The black window when you go
 				    preview */
 
 extern GList * plugin_list; /* The plugins we have */
-enum tveng_capture_mode restore_mode; /* the mode set when we went
-					 fullscreen */
+
+/* the mode set when we went fullscreen */
+enum tveng_capture_mode restore_mode;
 
 /* Starts and stops callbacks */
 gboolean startup_callbacks(void)
@@ -492,7 +493,7 @@ on_go_fullscreen1_activate             (GtkMenuItem     *menuitem,
 
   /* Draw on the drawing area */
   gdk_draw_rectangle(da -> window,
-		     da -> style -> black_gc,
+  		     da -> style -> black_gc,
 		     TRUE,
 		     0, 0, gdk_screen_width(), gdk_screen_height());
   
@@ -515,11 +516,11 @@ on_go_fullscreen1_activate             (GtkMenuItem     *menuitem,
   */
   gdk_keyboard_grab(black_window->window, TRUE, GDK_CURRENT_TIME);
 
-  gdk_window_set_events(black_window->window, GDK_KEY_PRESS_MASK);
+  gdk_window_set_events(black_window->window, GDK_ALL_EVENTS_MASK);
 
   gtk_signal_connect(GTK_OBJECT(black_window), "event",
 		     GTK_SIGNAL_FUNC(on_fullscreen_event),
-		     lookup_widget(GTK_WIDGET(menuitem), "zapping"));
+  		     lookup_widget(GTK_WIDGET(menuitem), "zapping"));
 }
 
 void

@@ -84,7 +84,7 @@ cache_reset(struct cache *ca)
 
 /*
     Get a page from the cache.
-    If subno is SUB_ANY, the newest subpage of that page is returned
+    If subno is ANY_SUB, the newest subpage of that page is returned
 */
 
 static struct vt_page *

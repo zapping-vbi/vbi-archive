@@ -1,3 +1,9 @@
+04.9.2000	Bug fixes <garetxe@users.sourceforge.net>
+
+	* src/tveng[12].c: Fixes in the fullscreen mode, it had errors
+	related to non-functional DGA drivers. Now most of the
+	functionality goes into the VidMode extension, that usually works.
+
 03.9.2000	Project structure changes <garetxe@users.sourceforge.net>
 
 	* libvbi/: It's a bit cleaner now, and commited to CVS

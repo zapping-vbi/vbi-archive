@@ -3,3 +3,7 @@ it from alevt 1.5.1.
 Changes:
   * Makefile.am created.
   * Removed debug code from vbi.c
+  * Fixed typo in cache.c (SUB_ANY)
+  * Added mem_output to exp-gfx.c
+  * Made fmt_page(..) public and removed the need for passing an
+	export struct

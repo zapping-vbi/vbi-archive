@@ -26,6 +26,7 @@
 #include <gnome-xml/parser.h>
 #include <glade/glade.h>
 #include <signal.h>
+#include <gdk-pixbuf/gdk-pixbuf.h>
 
 #define ZCONF_DOMAIN "/zapping/options/main/"
 #include "zmisc.h"
@@ -53,6 +54,7 @@ gboolean disable_preview = FALSE; /* TRUE if zapping_setup_fb didn't
 GtkWidget * main_window;
 gboolean was_fullscreen=FALSE; /* will be TRUE if when quitting we
 				  were fullscreen */
+static GdkPixbuf *pixbuf = NULL;
 
 void shutdown_zapping(void);
 gboolean startup_zapping(void);
@@ -71,6 +73,12 @@ delete_event                (GtkWidget       *widget,
   flag_exit_program = TRUE;
   
   return FALSE;
+}
+
+static void z_gdk_pixbuf_free(guchar *pixels, gpointer data);
+static void z_gdk_pixbuf_free(guchar *pixels, gpointer data)
+{
+  free(pixels);
 }
 
 int main(int argc, char * argv[])
@@ -270,6 +278,13 @@ int main(int argc, char * argv[])
 	    ShowBox(_("Capture mode couldn't be started either:\n%s"),
 		    GNOME_MESSAGE_BOX_ERROR, main_info->error);
 	}
+      else
+	{
+	  /* in callbacks.c */
+	  extern enum tveng_capture_mode restore_mode;
+
+	  restore_mode = TVENG_CAPTURE_WINDOW;
+	}
     }
   else /* preview disabled */
       if (zmisc_switch_mode(TVENG_CAPTURE_READ, main_info) == -1)
@@ -284,34 +299,36 @@ int main(int argc, char * argv[])
       if (flag_exit_program)
 	continue; /* Exit the loop if neccesary now */
 
-      hints = GDK_HINT_MIN_SIZE;
-      geometry.min_width = main_info->caps.minwidth;
-      geometry.min_height = main_info->caps.minheight;
-
-      /* Set the geometry flags if needed */
-      if (zcg_bool(NULL, "fixed_increments"))
+      if (main_info->current_mode != TVENG_CAPTURE_PREVIEW)
 	{
-	  geometry.width_inc = 64;
-	  geometry.height_inc = 48;
-	  hints |= GDK_HINT_RESIZE_INC;
+	  hints = GDK_HINT_MIN_SIZE;
+	  geometry.min_width = main_info->caps.minwidth;
+	  geometry.min_height = main_info->caps.minheight;
+	  
+	  /* Set the geometry flags if needed */
+	  if (zcg_bool(NULL, "fixed_increments"))
+	    {
+	      geometry.width_inc = 64;
+	      geometry.height_inc = 48;
+	      hints |= GDK_HINT_RESIZE_INC;
+	    }
+	  
+	  switch (zcg_int(NULL, "ratio")) {
+	  case 1:
+	    geometry.min_aspect = geometry.max_aspect = 4.0/3.0;
+	    hints |= GDK_HINT_ASPECT;
+	    break;
+	  case 2:
+	    geometry.min_aspect = geometry.max_aspect = 16.0/9.0;
+	    hints |= GDK_HINT_ASPECT;
+	    break;
+	  default:
+	    break;
+	  }
+	  
+	  gdk_window_set_geometry_hints(main_window->window, &geometry,
+					hints);
 	}
-
-      switch (zcg_int(NULL, "ratio")) {
-      case 1:
-	geometry.min_aspect = geometry.max_aspect = 4.0/3.0;
-	hints |= GDK_HINT_ASPECT;
-	break;
-      case 2:
-	geometry.min_aspect = geometry.max_aspect = 16.0/9.0;
-	hints |= GDK_HINT_ASPECT;
-	break;
-      default:
-	break;
-      }
-
-      gdk_window_set_geometry_hints(main_window->window, &geometry,
-				    hints);
-
       /* Collect the sound data (the queue needs to be emptied,
 	 otherwise mem usage will grow a lot) */
       sound_read_data(si);
@@ -321,6 +338,32 @@ int main(int argc, char * argv[])
 	{
 	  usleep(50000);
 	  continue;
+	}
+
+      if (!pixbuf)
+	{
+	  gint width, height;
+	  unsigned char * mem;
+	  struct fmt_page pg;
+	  unsigned char alphas[8] = {0, 255, 255, 255, 255, 255, 255, 255};
+	  
+	  if (!zvbi_format_page(256, ANY_SUB, FALSE, &pg));
+	    //	    g_warning("The page isn't in the cache yet, sorry");
+	  else {
+	    mem = zvbi_render_page_rgba(&pg, &width, &height, alphas);
+	    if (!mem)
+	      g_warning("Couldn't render page");
+	    else
+	      {
+		g_message("Page rendered, %dx%d", width, height);
+		{
+		  pixbuf =
+		    gdk_pixbuf_new_from_data(mem, GDK_COLORSPACE_RGB, TRUE,
+					     8, width, height, width*4,
+					     z_gdk_pixbuf_free, NULL);
+		}
+	      }
+	  }
 	}
 
       /* Avoid segfault */
@@ -364,13 +407,25 @@ int main(int argc, char * argv[])
 	  zimage_reallocate(sample.format.width, sample.format.height);
 	  p = p->next;
 	}
+
       gdk_draw_image(tv_screen -> window,
 		     tv_screen -> style -> white_gc,
 		     zimage_get(),
 		     0, 0, 0, 0,
 		     sample.format.width,
 		     sample.format.height);
+
+      if (pixbuf)
+      	gdk_pixbuf_render_to_drawable(pixbuf,
+	 (GdkDrawable*)tv_screen->window,
+				      tv_screen -> style -> white_gc,
+				      0, 0, 0, 0,
+      	    gdk_pixbuf_get_width(pixbuf),
+      	    gdk_pixbuf_get_height(pixbuf), GDK_RGB_DITHER_NONE, 0, 0);
     }
+
+  if (pixbuf)
+    gdk_pixbuf_unref(pixbuf);
 
   /* Closes all fd's, writes the config to HD, and that kind of things
    */

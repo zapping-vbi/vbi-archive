@@ -240,9 +240,11 @@ export_mkname(struct export *e, char *fmt, struct vt_page *vtp, char *usr)
     return p;
 }
 
-
+/* garetxe */
+/* doesn't require to create an export object now
+ */
 void
-fmt_page(struct export *e, struct fmt_page *pg, struct vt_page *vtp)
+fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 {
     char buf[16];
     int x, y;
@@ -335,7 +337,7 @@ fmt_page(struct export *e, struct fmt_page *pg, struct vt_page *vtp)
 		    c.ch += (c.ch & 0x40) ? 32 : -32;
 		}
 	    if (c.attr & EA_CONCEALED)
-		if (not e->reveal)
+		if (not reveal)
 		    c.ch = ' ';
 	    pg->data[y][x] = c;
 	}
@@ -361,6 +363,6 @@ export(struct export *e, struct vt_page *vtp, char *name)
 {
     struct fmt_page pg[1];
 
-    fmt_page(e, pg, vtp);
+    fmt_page(e->reveal, pg, vtp);
     return e->mod->output(e, name, pg);
 }

@@ -59,4 +59,15 @@ struct export *export_open(char *fmt);
 void export_close(struct export *e);
 int export(struct export *e, struct vt_page *vtp, char *user_str);
 
+/* formats the vtp page into a more easily usable format */
+void
+fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp);
+
+/*
+  renders the formatted page into mem (1byte per pixel, paletted) and
+  stores in width and height the dimensions in pixels.
+  Returns a newly allocated buffer holding the image.
+*/
+unsigned char *
+mem_output(struct fmt_page *pg, int *width, int *height);
 #endif

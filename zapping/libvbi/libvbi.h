@@ -13,5 +13,6 @@
 #include <vbi.h>
 #include <lang.h>
 #include <dllist.h>
+#include <export.h>
 
 #endif

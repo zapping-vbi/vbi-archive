@@ -59,4 +59,55 @@ zvbi_get_name(void);
 void
 zvbi_get_time(gint * hour, gint * min, gint * sec);
 
+/*
+  Returns the specified page. Use ANY_SUB for accessing the most
+  recent subpage, its number otherwise.
+  Returns the page on success, NULL otherwise
+  The returned struct doesn't need to be freed
+*/
+struct vt_page *
+zvbi_get_page(gint page, gint subpage);
+
+/*
+  Stores in the given location the formatted version of the given
+  page. use ANY_SUB for accessing the most recent subpage, its
+  number otherwise.
+  Returns TRUE if the page has been rendered properly, FALSE if it
+  wasn't in the cache.
+  Reveal specifies whether to render hidden text or not, usually FALSE
+*/
+gboolean
+zvbi_format_page(gint page, gint subpage, gboolean reveal,
+		 struct fmt_page *pg);
+
+/*
+  Renders the given formatted page into a paletted buffer. Each byte
+  in the buffer represents 1-byte, and the palette is as follows:
+                      {  0,  0,  0},
+		      {255,  0,  0},
+		      {  0,255,  0},
+		      {255,255,  0},
+		      {  0,  0,255},
+		      {255,  0,255},
+		      {  0,255,255},
+		      {255,255,255}
+   width and height are pointers where the dimensions of the rendered
+   buffer will be stored. They cannot be NULL.
+   Returns the allocated buffer (width*height bytes), or NULL on
+   error.
+   The allocated buffer should be free'd, not g_free'd, since it's
+   allocated with malloc. NULL on error.
+*/
+unsigned char*
+zvbi_render_page(struct fmt_page *pg, gint *width, gint *height);
+
+/*
+  Renders the given formatted page into a RGBA buffer.
+  alpha is a 8-entry unsigned char array specifying the alpha values
+  for the 8 different colours.
+  The same is just like in zvbi_render_page.
+*/
+unsigned char*
+zvbi_render_page_rgba(struct fmt_page *pg, gint *width, gint *height,
+		      unsigned char * alpha);
 #endif /* zvbi.h */

@@ -2309,6 +2309,9 @@ tveng1_start_previewing (tveng_device_info * info)
   int width, height;
   int dwidth, dheight; /* Width and height of the display */
 
+  if (!tveng_detect_XF86DGA(info))
+    return -1;
+
   tveng_stop_everything(info);
 
   t_assert(info -> current_mode == TVENG_NO_CAPTURE);
@@ -2316,17 +2319,6 @@ tveng1_start_previewing (tveng_device_info * info)
   if (!tveng1_detect_preview(info))
     /* We shouldn't be reaching this if the app is well programmed */
     t_assert_not_reached();
-
-  if (!tveng_detect_XF86DGA(info))
-    return -1;
-
-  /* Enable Direct Graphics (just the DirectVideo thing) */
-  if (!XF86DGADirectVideo(display, 0, XF86DGADirectGraphics))
-    {
-      info->tveng_errno = -1;
-      t_error("XF86DGADirectVideo", info);
-      return -1;
-    }
 
   /* calculate coordinates for the preview window. We compute this for
    the first display */
@@ -2351,12 +2343,7 @@ tveng1_start_previewing (tveng_device_info * info)
 
   /* Set new capture dimensions */
   if (tveng1_set_preview_window(info) == -1)
-    {
-      /* Switch DirectVideo off */
-      if (!XF86DGADirectVideo(display, 0, 0))
-	t_error("XF86DGADirectVideo", info);
-      return -1;
-    }
+    return -1;
 
   /* Center preview window (maybe the requested width and/or height)
      aren't valid */
@@ -2365,21 +2352,11 @@ tveng1_start_previewing (tveng_device_info * info)
   info->window.clipcount = 0;
   info->window.clips = NULL;
   if (tveng1_set_preview_window(info) == -1)
-    {
-      /* Switch DirectVideo off */
-      if (!XF86DGADirectVideo(display, 0, 0))
-	t_error("XF86DGADirectVideo", info);
-      return -1;
-    }
+    return -1;
 
   /* Start preview */
   if (tveng1_set_preview(1, info) == -1)
-    {
-      /* Switch DirectVideo off */
-      if (!XF86DGADirectVideo(display, 0, 0))
-	t_error("XF86DGADirectVideo", info);
-      return -1;
-    }
+    return -1;
 
   info -> current_mode = TVENG_CAPTURE_PREVIEW;
   return 0; /* Success */
@@ -2399,8 +2376,6 @@ int
 tveng1_stop_previewing(tveng_device_info * info)
 {
 #ifndef DISABLE_X_EXTENSIONS
-  Display * display = info->display;
-
   if (info -> current_mode == TVENG_NO_CAPTURE)
     {
       fprintf(stderr, 
@@ -2411,13 +2386,6 @@ tveng1_stop_previewing(tveng_device_info * info)
 
   /* No error checking */
   tveng1_set_preview(0, info);
-
-  if (!XF86DGADirectVideo(display, 0, 0))
-    {
-      info->tveng_errno = -1;
-      t_error("XF86DGADirectVideo", info);
-      return -1;
-    }
 
   info -> current_mode = TVENG_NO_CAPTURE;
   return 0; /* Success */

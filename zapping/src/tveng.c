@@ -1039,6 +1039,7 @@ tveng_detect_XF86DGA(tveng_device_info * info)
   int event_base, error_base;
   int major_version, minor_version;
   int flags;
+  static int info_printed = 0; /* Print the info just once */
 
   Display * display = info->display;
 
@@ -1069,13 +1070,17 @@ tveng_detect_XF86DGA(tveng_device_info * info)
     }
 
 /* Print collected info if we are in debug mode */
-  fprintf(stderr, "DGA info:\n");
-  fprintf(stderr, "  - event and error base  : %d, %d\n", event_base,
-	  error_base);
-  fprintf(stderr, "  - DGA reported version  : %d.%d\n",
-	  major_version, minor_version);
-  fprintf(stderr, "  - Supported features    :%s\n",
-	  (flags & XF86DGADirectPresent) ? " DirectVideo" : "");
+  if (!info_printed)
+    {
+      info_printed = 1;
+      fprintf(stderr, "DGA info:\n");
+      fprintf(stderr, "  - event and error base  : %d, %d\n", event_base,
+	      error_base);
+      fprintf(stderr, "  - DGA reported version  : %d.%d\n",
+	      major_version, minor_version);
+      fprintf(stderr, "  - Supported features    :%s\n",
+	      (flags & XF86DGADirectPresent) ? " DirectVideo" : "");
+    }
 
   return 1; /* Everything correct */
 #else
@@ -1380,6 +1385,7 @@ tveng_start_previewing (tveng_device_info * info)
   int distance=-1; /* Distance of the best video mode to a valid size */
   int temp; /* Temporal value */
   int bigger=0; /* Allow choosing bigger screen depths */
+  static int info_printed = 0; /* do not print the modes every time */
 #endif
 
   t_assert(info != NULL);
@@ -1419,17 +1425,21 @@ tveng_start_previewing (tveng_device_info * info)
 
   if (info -> xf86vm_enabled)
     {
-      fprintf(stderr, "XF86VidMode info:\n");
-      fprintf(stderr, "  - event and error base  : %d, %d\n", event_base,
-	      error_base);
-      fprintf(stderr, "  - XF86VidMode version   : %d.%d\n",
-	      major_version, minor_version);
-      fprintf(stderr, "  - Available video modes : %d\n", modecount);
+      if (!info_printed)
+	{
+	  fprintf(stderr, "XF86VidMode info:\n");
+	  fprintf(stderr, "  - event and error base  : %d, %d\n", event_base,
+		  error_base);
+	  fprintf(stderr, "  - XF86VidMode version   : %d.%d\n",
+		  major_version, minor_version);
+	  fprintf(stderr, "  - Available video modes : %d\n",
+		  modecount);
+	}
 
     loop_point:
       for (i = 0; i<modecount; i++)
 	{
-	  if (!bigger) /* print only once */
+  	  if ((!bigger) && (!info_printed)) /* print only once */
 	    fprintf(stderr, "      %d) %dx%d @ %d Hz\n", i, (int)
 		    modesinfo[i]->hdisplay, (int) modesinfo[i]->vdisplay,
 		    (int) modesinfo[i]->dotclock);
@@ -1459,15 +1469,24 @@ tveng_start_previewing (tveng_device_info * info)
 	  goto loop_point;
 	}
       
-      fprintf(stderr, "      Mode # %d chosen\n", chosen_mode);
+      if (!info_printed)
+	{
+	  info_printed = 1;
+	  fprintf(stderr, "      Mode # %d chosen\n", chosen_mode);
+	}
       
       /* If the chosen mode isn't the actual one, choose it, but
 	 place the viewport correctly first */
+      /* get the current viewport pos for restoring later */
+      XF86VidModeGetViewPort(info->display,
+			     DefaultScreen(info->display),
+			     &(info->save_x), &(info->save_y));
+
       if (chosen_mode == 0)
 	{
 	  info->restore_mode = 0;
-	  XF86DGASetViewPort(info->display,
-			     DefaultScreen(info->display), 0, 0);
+	  XF86VidModeSetViewPort(info->display,
+				 DefaultScreen(info->display), 0, 0);
 	}
       else
 	{
@@ -1488,8 +1507,8 @@ tveng_start_previewing (tveng_device_info * info)
 
 	  /* Place the viewport again */
 	  if (info -> xf86vm_enabled)
-	    XF86DGASetViewPort(info->display,
-			       DefaultScreen(info->display), 0, 0);
+	    XF86VidModeSetViewPort(info->display,
+				   DefaultScreen(info->display), 0, 0);
 	}
 
       for (i=0; i<modecount; i++)
@@ -1498,7 +1517,7 @@ tveng_start_previewing (tveng_device_info * info)
       
       XFree(modesinfo);
     }
-  else /* info -> xf86vm_enabled*/
+  else /* info -> xf86vm_enabled */
     {
       fprintf(stderr, "XF86VidMode not enabled: %s\n", info -> error);
     }
@@ -1548,13 +1567,19 @@ tveng_stop_previewing(tveng_device_info * info)
     }
 
 #ifndef DISABLE_X_EXTENSIONS
-  if ((info->restore_mode) && (info->xf86vm_enabled))
+  if (info->xf86vm_enabled)
     {
-      XF86VidModeSwitchToMode(info->display,
-			      DefaultScreen(info->display),
-			      &(info->modeinfo));
-      if (info->modeinfo.privsize > 0)
-	XFree(info->modeinfo.private);
+      if (info->restore_mode)
+	{
+	  XF86VidModeSwitchToMode(info->display,
+				  DefaultScreen(info->display),
+				  &(info->modeinfo));
+	  if (info->modeinfo.privsize > 0)
+	    XFree(info->modeinfo.private);
+	}
+      XF86VidModeSetViewPort(info->display,
+			     DefaultScreen(info->display),
+			     info->save_x, info->save_y);
     }
 #endif
 
