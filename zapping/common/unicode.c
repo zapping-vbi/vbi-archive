@@ -572,7 +572,7 @@ const char* get_locale_charset (void)
 							 */
 					else
 					  if (streq(lang, "zh"))
-					    locale_charset = "GB2313";
+					    locale_charset = "GB2312";
 					  else {
 					  }
       }
