@@ -148,7 +148,7 @@ image_new(tv_pixfmt pixfmt, guint w, guint h)
   zimage *new_image;
   struct _zimage_private *pimage;
   void *image_data = NULL;
-  tv_pixel_format format;
+  const tv_pixel_format *pf;
   XvPortID xvport;
 
   xvport = grab_port (pixfmt);
@@ -157,7 +157,8 @@ image_new(tv_pixfmt pixfmt, guint w, guint h)
 
   pimage = g_malloc0 (sizeof (*pimage));
 
-  tv_pixel_format_from_pixfmt (&format, pixfmt, 0);
+  pf = tv_pixel_format_from_pixfmt (pixfmt);
+  assert (NULL != pf);
 
   pimage -> uses_shm = FALSE;
 
@@ -215,10 +216,10 @@ image_new(tv_pixfmt pixfmt, guint w, guint h)
 
   if (!pimage->image)
     {
-      if (format.planar)
-	image_data = malloc ((format.color_depth * w * h) >> 3);
+      if (pf->planar)
+	image_data = malloc ((pf->color_depth * w * h) >> 3);
       else
-	image_data = malloc ((format.bits_per_pixel * w * h) >> 3);
+	image_data = malloc ((pf->bits_per_pixel * w * h) >> 3);
 
       if (!image_data)
 	{
@@ -245,7 +246,7 @@ image_new(tv_pixfmt pixfmt, guint w, guint h)
   new_image->fmt.width = w;
   new_image->fmt.height = h;
   new_image->fmt.pixfmt = pixfmt;
-  new_image->fmt.bytes_per_line = (w * format.bits_per_pixel) >> 3;
+  new_image->fmt.bytes_per_line = (w * pf->bits_per_pixel) >> 3;
   new_image->fmt.size = pimage->image->data_size;
 
   if (TV_PIXFMT_SET_YUV_PLANAR & TV_PIXFMT_SET (pixfmt))
@@ -558,68 +559,72 @@ traverse_ports			(Display *		display,
 	continue;
 
       for (j = 0; j < nImageFormats; ++j)
-	switch ((pixfmt = x11_xv_image_format_to_pixfmt (pImageFormats + j)))
-	  {
-	  case TV_PIXFMT_YUV420:
-	    register_port (xvport, TV_PIXFMT_YUV420,
-			   pImageFormats[j].id, FALSE, index);
-	    register_port (xvport, TV_PIXFMT_YVU420,
-			   pImageFormats[j].id, TRUE, index);
-	    break;
+	{
+	  pixfmt = x11_xv_image_format_to_pixfmt (pImageFormats + j);
 
-	  case TV_PIXFMT_YVU420:
-	    register_port (xvport, TV_PIXFMT_YUV420,
-			   pImageFormats[j].id, TRUE, index);
-	    register_port (xvport, TV_PIXFMT_YVU420,
-			   pImageFormats[j].id, FALSE, index);
-	    break;
+	  switch (pixfmt)
+	    {
+	    case TV_PIXFMT_YUV420:
+	      register_port (xvport, TV_PIXFMT_YUV420,
+			     pImageFormats[j].id, FALSE, index);
+	      register_port (xvport, TV_PIXFMT_YVU420,
+			     pImageFormats[j].id, TRUE, index);
+	      break;
 
-	  case TV_PIXFMT_YUYV:
-	  case TV_PIXFMT_YVYU:
-	  case TV_PIXFMT_UYVY:
-	  case TV_PIXFMT_VYUY:
-	    register_port (xvport, pixfmt,
-			   pImageFormats[j].id, FALSE, index);
-	    break;
+	    case TV_PIXFMT_YVU420:
+	      register_port (xvport, TV_PIXFMT_YUV420,
+			     pImageFormats[j].id, TRUE, index);
+	      register_port (xvport, TV_PIXFMT_YVU420,
+			     pImageFormats[j].id, FALSE, index);
+	      break;
 
-	  case TV_PIXFMT_RGBA32_LE:
-	  case TV_PIXFMT_RGBA32_BE:
-	  case TV_PIXFMT_BGRA32_LE:
-	  case TV_PIXFMT_BGRA32_BE:
-	  case TV_PIXFMT_RGB24_LE:
-	  case TV_PIXFMT_BGR24_LE:
-	  case TV_PIXFMT_RGB16_LE:
-	  case TV_PIXFMT_RGB16_BE:
-	  case TV_PIXFMT_BGR16_LE:
-	  case TV_PIXFMT_BGR16_BE:
-	  case TV_PIXFMT_RGBA16_LE:
-	  case TV_PIXFMT_RGBA16_BE:
-	  case TV_PIXFMT_BGRA16_LE:
-	  case TV_PIXFMT_BGRA16_BE:
-	  case TV_PIXFMT_ARGB16_LE:
-	  case TV_PIXFMT_ARGB16_BE:
-	  case TV_PIXFMT_ABGR16_LE:
-	  case TV_PIXFMT_ABGR16_BE:
-	  case TV_PIXFMT_RGBA12_LE:
-	  case TV_PIXFMT_RGBA12_BE:
-	  case TV_PIXFMT_BGRA12_LE:
-	  case TV_PIXFMT_BGRA12_BE:
-	  case TV_PIXFMT_ARGB12_LE:
-	  case TV_PIXFMT_ARGB12_BE:
-	  case TV_PIXFMT_ABGR12_LE:
-	  case TV_PIXFMT_ABGR12_BE:
-	  case TV_PIXFMT_RGB8:
-	  case TV_PIXFMT_BGR8:
-	  case TV_PIXFMT_RGBA8:
-	  case TV_PIXFMT_BGRA8:
-	  case TV_PIXFMT_ARGB8:
-	  case TV_PIXFMT_ABGR8:
-	    register_port (xvport, pixfmt, pImageFormats[j].id, FALSE, index);
-	    break;
+	    case TV_PIXFMT_YUYV:
+	    case TV_PIXFMT_YVYU:
+	    case TV_PIXFMT_UYVY:
+	    case TV_PIXFMT_VYUY:
+	      register_port (xvport, pixfmt,
+			     pImageFormats[j].id, FALSE, index);
+	      break;
 
-	  default:
-	    break;
-	  }
+	    case TV_PIXFMT_RGBA32_LE:
+	    case TV_PIXFMT_RGBA32_BE:
+	    case TV_PIXFMT_BGRA32_LE:
+	    case TV_PIXFMT_BGRA32_BE:
+	    case TV_PIXFMT_RGB24_LE:
+	    case TV_PIXFMT_BGR24_LE:
+	    case TV_PIXFMT_RGB16_LE:
+	    case TV_PIXFMT_RGB16_BE:
+	    case TV_PIXFMT_BGR16_LE:
+	    case TV_PIXFMT_BGR16_BE:
+	    case TV_PIXFMT_RGBA16_LE:
+	    case TV_PIXFMT_RGBA16_BE:
+	    case TV_PIXFMT_BGRA16_LE:
+	    case TV_PIXFMT_BGRA16_BE:
+	    case TV_PIXFMT_ARGB16_LE:
+	    case TV_PIXFMT_ARGB16_BE:
+	    case TV_PIXFMT_ABGR16_LE:
+	    case TV_PIXFMT_ABGR16_BE:
+	    case TV_PIXFMT_RGBA12_LE:
+	    case TV_PIXFMT_RGBA12_BE:
+	    case TV_PIXFMT_BGRA12_LE:
+	    case TV_PIXFMT_BGRA12_BE:
+	    case TV_PIXFMT_ARGB12_LE:
+	    case TV_PIXFMT_ARGB12_BE:
+	    case TV_PIXFMT_ABGR12_LE:
+	    case TV_PIXFMT_ABGR12_BE:
+	    case TV_PIXFMT_RGB8:
+	    case TV_PIXFMT_BGR8:
+	    case TV_PIXFMT_RGBA8:
+	    case TV_PIXFMT_BGRA8:
+	    case TV_PIXFMT_ARGB8:
+	    case TV_PIXFMT_ABGR8:
+	      register_port (xvport, pixfmt, pImageFormats[j].id, FALSE, index);
+	      break;
+
+	    default:
+	      break;
+	    }
+	}
 
       if (nImageFormats > 0)
 	XFree (pImageFormats);

@@ -494,10 +494,10 @@ int tveng_attach_device(const char* device_file,
 	fprintf (stderr, "Video standards:\n");
 
 	for (s = info->video_standards, i = 0; s; s = s->_next, ++i)
-	  fprintf (stderr, "  %d) '%s'  0x%llx %dx%d  %.2f  hash: %x\n",
+	  fprintf (stderr, "  %d) '%s'  0x%llx %dx%d  %.2f  %u  hash: %x\n",
 		   i, s->label, s->videostd_set,
 		   s->frame_width, s->frame_height,
-		   s->frame_rate, s->hash);
+		   s->frame_rate, s->frame_ticks, s->hash);
       }
 
       {
@@ -2626,6 +2626,52 @@ int tveng_read_frame(tveng_image_data * dest,
   return -1;
 }
 
+tv_bool
+tv_queue_capture_buffer		(tveng_device_info *	info,
+				 const tv_capture_buffer *buffer)
+{
+  t_assert(NULL != info);
+
+  if (TVENG_CONTROLLER_NONE == info->current_controller)
+    return FALSE;
+
+  REQUIRE_IO_MODE (FALSE);
+
+  TVLOCK;
+
+  tv_clear_error (info);
+
+  if (info->capture.queue_buffer)
+    RETURN_UNTVLOCK(info->capture.queue_buffer (info, buffer));
+
+  TVUNSUPPORTED;
+  UNTVLOCK;
+  return FALSE;
+}
+
+const tv_capture_buffer *
+tv_dequeue_capture_buffer	(tveng_device_info *	info,
+				 unsigned int		time)
+{
+  t_assert(NULL != info);
+
+  if (TVENG_CONTROLLER_NONE == info->current_controller)
+    return NULL;
+
+  REQUIRE_IO_MODE (NULL);
+
+  TVLOCK;
+
+  tv_clear_error (info);
+
+  if (info->capture.dequeue_buffer)
+    RETURN_UNTVLOCK(info->capture.dequeue_buffer (info, time));
+
+  TVUNSUPPORTED;
+  UNTVLOCK;
+  return NULL;
+}
+
 /*
   Gets the timestamp of the last read frame in seconds.
 */
@@ -4448,10 +4494,12 @@ append_video_standard		(tv_video_standard **	list,
 		ts->frame_width		= 640;
 		ts->frame_height	= 480;
 		ts->frame_rate		= 30000 / 1001.0;
+		ts->frame_ticks		= 90000 * 1001 / 30000;
 	} else {
 		ts->frame_width		= 768;
 		ts->frame_height	= 576;
 		ts->frame_rate		= 25.0;
+		ts->frame_ticks		= 90000 * 1 / 25;
 	}
 
 	return ts;
@@ -4558,22 +4606,22 @@ tveng_copy_frame		(unsigned char *	src,
 				 tveng_device_info *	info)
 {
 	if (TV_PIXFMT_IS_PLANAR (info->capture.format.pixfmt)) {
-		tv_pixel_format pf;
+		const tv_pixel_format *pf;
 		unsigned int size_y;
 		unsigned int size_uv;
 		uint8_t *src_y;
 		uint8_t *src_u;
 		uint8_t *src_v;
 
-		if (!tv_pixel_format_from_pixfmt (&pf, info->capture.format.pixfmt, 0))
+		if (!(pf = tv_pixel_format_from_pixfmt (info->capture.format.pixfmt)))
 			return;
 
 		size_y = info->capture.format.height * info->capture.format.width;
-		size_uv = size_y / (pf.uv_hscale * pf.uv_vscale);
+		size_uv = size_y >> (pf->uv_hshift + pf->uv_vshift);
 
 		src_y = src;
-		src_u = src_y + size_y + pf.vu_order * size_uv;
-		src_v = src_y + size_y + (pf.vu_order ^ 1) * size_uv;
+		src_u = src_y + size_y + pf->vu_order * size_uv;
+		src_v = src_y + size_y + (pf->vu_order ^ 1) * size_uv;
 
 		/* XXX shortcut if no padding between planes. */
 
@@ -4583,14 +4631,14 @@ tveng_copy_frame		(unsigned char *	src,
 				  info->capture.format.height);
 
 		tveng_copy_block (src_u, where->planar.u,
-				  info->capture.format.width / pf.uv_hscale,
+				  info->capture.format.width >> pf->uv_hshift,
 				  where->planar.uv_stride,
-				  info->capture.format.height / pf.uv_vscale);
+				  info->capture.format.height >> pf->uv_vshift);
 
 		tveng_copy_block (src_v, where->planar.v,
-				  info->capture.format.width / pf.uv_hscale,
+				  info->capture.format.width >> pf->uv_hshift,
 				  where->planar.uv_stride,
-				  info->capture.format.height / pf.uv_vscale);
+				  info->capture.format.height >> pf->uv_vshift);
 	} else {
 		tveng_copy_block (src, where->linear.data,
 				  info->capture.format.bytes_per_line,
@@ -4599,186 +4647,10 @@ tveng_copy_frame		(unsigned char *	src,
 	}
 }
 
-
-static void
-clear_block1			(uint8_t *		d,
-				 unsigned int		value,
-				 unsigned int		width,
-				 unsigned int		height,
-				 unsigned int		bytes_per_line)
-{
-	if (width == bytes_per_line) {
-		memset (d, (int) value, width * height);
-	} else {
-		for (; height-- > 0; d += bytes_per_line)
-			memset (d, (int) value, width);
-	}
-}
-
-static void
-clear_block3			(uint8_t *		d,
-				 unsigned int		value0,
-				 unsigned int		value1,
-				 unsigned int		value2,
-				 unsigned int		width,
-				 unsigned int		height,
-				 unsigned int		bytes_per_line)
-{
-	unsigned int i;
-
-	width *= 3;
-
-	if (width == bytes_per_line) {
-		width *= height;
-
-		if (value0 == value1 && value0 == value2) {
-			memset (d, (int) value0, width);
-			return;
-		}
-
-		height = 1;
-	}
-
-	for (; height-- > 0; d += bytes_per_line) {
-		for (i = 0; i < width; i += 3) {
-			d[i + 0] = value0;
-			d[i + 1] = value1;
-			d[i + 2] = value2;
-		}
-	}
-}
-
-static void
-clear_block4			(uint32_t *		d,
-				 unsigned int		value,
-				 unsigned int		width,
-				 unsigned int		height,
-				 unsigned int		bytes_per_line)
-{
-	unsigned int i;
-
-	if (width * 4 == bytes_per_line) {
-		width *= height;
-
-		if (0 == (uint16_t)(value ^ (value >> 16))
-		    && 0 == (uint8_t)(value ^ (value >> 8))) {
-			memset (d, (int) value, width * 4);
-			return;
-		}
-
-		height = 1;
-	}
-
-#if BYTE_ORDER == LITTLE_ENDIAN
-#elif BYTE_ORDER == BIG_ENDIAN
-	value = + ((value & 0xFF) << 24)
-		+ ((value & 0xFF00) << 8)
-		+ ((value & 0xFF0000) >> 8)
-		+ ((value & 0xFF000000) >> 24);
-#else
-#error unknown endianess
-#endif
-
-	while (height-- > 0) {
-		for (i = 0; i < width; ++i) {
-			d[i] = value;
-		}
-
-		d = (uint32_t *)(bytes_per_line + (char *) d);
-	}
-}
-
 tv_bool
-tv_clear_image			(void *			image,
-				 unsigned int		luma,
-				 const tv_image_format *format)
+tv_capture_buffer_clear		(tv_capture_buffer *	cb)
 {
-	tv_pixel_format pf;
-	tv_pixfmt_set set;
-	uint8_t *data;
+	assert (NULL != cb);
 
-	assert (NULL != image);
-	assert (NULL != format);
-
-	if (!tv_pixel_format_from_pixfmt (&pf,
-					  format->pixfmt,
-					  format->color_space))
-		return FALSE;
-
-	set = TV_PIXFMT_SET (format->pixfmt);
-
-	data = image;
-
-	if (set & TV_PIXFMT_SET_RGB) {
-		clear_block1 (data + format->offset, luma,
-			      (format->width * pf.bits_per_pixel) >> 3,
-			      format->height,
-			      format->bytes_per_line);
-		return TRUE;
-	} else if (set & TV_PIXFMT_SET_YUV_PLANAR) {
-		unsigned int uv_width = format->width / pf.uv_hscale;
-		unsigned int uv_height = format->height / pf.uv_vscale;
-
-		clear_block1 (data + format->offset, luma,
-			      format->width, format->height,
-			      format->bytes_per_line);
-		clear_block1 (data + format->u_offset, 0x80,
-			      uv_width, uv_height,
-			      format->uv_bytes_per_line);
-		clear_block1 (data + format->v_offset, 0x80,
-			      uv_width, uv_height,
-			      format->uv_bytes_per_line);
-		return TRUE;
-	}
-
-	switch (format->pixfmt) {
-	case TV_PIXFMT_YUV24_LE:
-	case TV_PIXFMT_YVU24_LE:
-		clear_block3 (data + format->offset, luma, 0x80, 0x80,
-			     format->width, format->height,
-			     format->bytes_per_line);
-		return TRUE;
-
-	case TV_PIXFMT_YUV24_BE:
-	case TV_PIXFMT_YVU24_BE:
-		clear_block3 (data + format->offset, 0x80, 0x80, luma,
-			     format->width, format->height,
-			     format->bytes_per_line);
-		return TRUE;
-
-	case TV_PIXFMT_YUVA32_LE:
-	case TV_PIXFMT_YVUA32_LE:
-		clear_block4 ((uint32_t *)(data + format->offset),
-			      0xFF808000 + (luma & 0xFF),
-			      format->width, format->height,
-			      format->bytes_per_line);
-		return TRUE;
-
-	case TV_PIXFMT_YUVA32_BE:
-	case TV_PIXFMT_YVUA32_BE:
-		clear_block4 ((uint32_t *)(data + format->offset),
-			      0x008080FF + (luma << 24),
-			      format->width, format->height,
-			      format->bytes_per_line);
-		return TRUE;
-
-	case TV_PIXFMT_YUYV:
-	case TV_PIXFMT_YVYU:
-		clear_block4 ((uint32_t *)(data + format->offset),
-			      0x80008000 + (luma & 0xFF) * 0x010001,
-			      format->width >> 1, format->height,
-			      format->bytes_per_line);
-		return TRUE;
-
-	case TV_PIXFMT_UYVY:
-	case TV_PIXFMT_VYUY:
-		clear_block4 ((uint32_t *)(data + format->offset),
-			      0x00800080 + (luma & 0xFF) * 0x01000100,
-			      format->width >> 1, format->height,
-			      format->bytes_per_line);
-		return TRUE;
-
-	default:
-		return FALSE;
-	}
+	return tv_clear_image (cb->data, cb->format);
 }

@@ -44,22 +44,27 @@ struct _zimage_private {
 };
 
 static zimage*
-planar_image_new (tv_pixel_format *pf, guint w, guint h)
+planar_image_new (const tv_pixel_format *pf, guint w, guint h)
 {
   guchar *data;
   zimage *image;
   zimage_private *pimage;
   unsigned int y_size;
   unsigned int uv_size;
+  unsigned int hres;
+  unsigned int vres;
 
-  if (0 != (w % pf->uv_hscale) || 0 != (h % pf->uv_vscale))
+  hres = (1 << pf->uv_hshift) - 1;
+  vres = (1 << pf->uv_vshift) - 1;
+
+  if ((w & hres) || (h & vres))
     {
       g_warning ("YUV420 formats require even dimensions");
       return NULL;
     }
 
   y_size = w * h;
-  uv_size = y_size / (pf->uv_hscale * pf->uv_vscale);
+  uv_size = y_size >> (pf->uv_hshift + pf->uv_vshift);
   data = g_malloc (y_size + uv_size * 2);
 
   image = zimage_create_object ();
@@ -76,7 +81,7 @@ planar_image_new (tv_pixel_format *pf, guint w, guint h)
   image->data.planar.y_stride = w;
   image->data.planar.u = data + y_size + pf->vu_order * uv_size;
   image->data.planar.v = data + y_size + (pf->vu_order ^ 1) * uv_size;
-  image->data.planar.uv_stride = w / pf->uv_hscale;
+  image->data.planar.uv_stride = w >> pf->uv_hshift;
 
   return image;
 }
@@ -87,15 +92,16 @@ image_new (tv_pixfmt pixfmt, guint w, guint h)
   guchar *data;
   zimage *image;
   zimage_private *pimage;
-  tv_pixel_format format;
+  const tv_pixel_format *pf;
   guint bpl, size;
 
-  tv_pixel_format_from_pixfmt (&format, pixfmt, 0);
+  pf = tv_pixel_format_from_pixfmt (pixfmt);
+  assert (NULL != pf);
 
-  if (format.planar)
-    return planar_image_new (&format, w, h);
+  if (pf->planar)
+    return planar_image_new (pf, w, h);
 
-  bpl = (w * format.bits_per_pixel) >> 3;
+  bpl = (w * pf->bits_per_pixel) >> 3;
   size = h * bpl;
 
   data = g_malloc (size);

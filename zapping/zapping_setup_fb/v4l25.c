@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l25.c,v 1.6 2004-11-03 06:52:27 mschimek Exp $ */
+/* $Id: v4l25.c,v 1.7 2004-12-07 17:26:58 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -49,8 +49,7 @@ setup_v4l25			(const char *		device_name,
   int fd;
   struct v4l2_capability cap;
   struct v4l2_framebuffer fb;
-  tv_pixel_format pf;
-  tv_bool r;
+  const tv_pixel_format *pf;
 
   message (2, "Opening video device.\n");
 
@@ -100,12 +99,10 @@ setup_v4l25			(const char *		device_name,
   fb.fmt.width		= buffer->format.width;
   fb.fmt.height		= buffer->format.height;
 
-  r = tv_pixel_format_from_pixfmt (&pf,
-				   buffer->format.pixfmt,
-				   buffer->format.color_space);
-  assert (TRUE == r);
+  pf = tv_pixel_format_from_pixfmt (buffer->format.pixfmt);
+  assert (NULL != pf);
 
-  switch (pf.color_depth)
+  switch (pf->color_depth)
     {
     case  8:
       fb.fmt.pixelformat = V4L2_PIX_FMT_HI240; /* XXX bttv only */
@@ -137,7 +134,7 @@ setup_v4l25			(const char *		device_name,
       break;
     case 24:
     case 32:
-      if (24 == pf.bits_per_pixel)
+      if (24 == pf->bits_per_pixel)
 	fb.fmt.pixelformat = V4L2_PIX_FMT_BGR24;
       else
 	fb.fmt.pixelformat = V4L2_PIX_FMT_BGR32;

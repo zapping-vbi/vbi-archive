@@ -53,14 +53,15 @@ image_new (tv_pixfmt pixfmt, guint w, guint h)
   zimage *image = zimage_create_object ();
   zimage_private *pimage = image->priv =
     g_malloc0 (sizeof (zimage_private));
-  tv_pixel_format format;
+  const tv_pixel_format *pf;
 
-  tv_pixel_format_from_pixfmt (&format, pixfmt, 0);
+  pf = tv_pixel_format_from_pixfmt (pixfmt);
+  assert (NULL != pf);
 
   image->fmt.width = w;
   image->fmt.height = h;
   image->fmt.pixfmt = pixfmt;
-  image->fmt.bytes_per_line = (w * format.bits_per_pixel) >> 3;
+  image->fmt.bytes_per_line = (w * pf->bits_per_pixel) >> 3;
   image->fmt.size = image->fmt.bytes_per_line * h;
 
   pimage->data = g_malloc (image->fmt.size);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.6 2004-11-03 06:37:44 mschimek Exp $ */
+/* $Id: v4l.c,v 1.7 2004-12-07 17:26:32 mschimek Exp $ */
 
 #include "config.h"
 #include "zapping_setup_fb.h"
@@ -45,8 +45,7 @@ setup_v4l			(const char *		device_name,
   int fd;
   struct video_capability caps;
   struct video_buffer fb;
-  tv_pixel_format pf;
-  tv_bool r;
+  const tv_pixel_format *pf;
 
   message (2, "Opening video device.\n");
 
@@ -85,15 +84,13 @@ setup_v4l			(const char *		device_name,
   fb.width		= buffer->format.width;
   fb.height		= buffer->format.height;
 
-  r = tv_pixel_format_from_pixfmt (&pf,
-				   buffer->format.pixfmt,
-				   buffer->format.color_space);
-  assert (TRUE == r);
+  pf = tv_pixel_format_from_pixfmt (buffer->format.pixfmt);
+  assert (NULL != pf);
 
-  if (32 == pf.bits_per_pixel)
+  if (32 == pf->bits_per_pixel)
     fb.depth		= 32; /* depth 24 bpp 32 */
   else
-    fb.depth		= pf.color_depth; /* 15, 16, 24 */
+    fb.depth		= pf->color_depth; /* 15, 16, 24 */
 
   fb.bytesperline	= buffer->format.bytes_per_line;
 
