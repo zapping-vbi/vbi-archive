@@ -19,7 +19,7 @@ CLEANFILES = vlc_tables.h vlc_gen
 libvideo_la_SOURCES = \
 	dct.c dct_mmx.s dct.h dct_ieee.h dct_ref.c \
 	filter.c filter_mmx.s \
-	mblock.c mblock.h \
+	mblock.c mblock.h ratectl.h \
 	mpeg1.c mpeg2.c mpeg.h video.h libvideo.h \
 	tables.c vlc.c vlc_mmx.s vlc.h vlc_tables.h \
 	motion.c motion_mmx.s motion.h \

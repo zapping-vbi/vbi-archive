@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vlc.c,v 1.7 2002-09-12 12:24:49 mschimek Exp $ */
+/* $Id: vlc.c,v 1.8 2002-09-14 04:21:04 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -221,7 +221,7 @@ mp1e_mpeg2_encode_intra_15	(vlc_rec *		vr,
 }
 
 static inline int
-inter_block (short block[8][8], const int mpeg2)
+inter_block (const int16_t block[8][8], const int mpeg2)
 {
 	const VLC2 *p = mp1e_ac_vlc_zero; /* ISO 13818-2 table B-14 */
 	int i = 1, ulevel, slevel;
