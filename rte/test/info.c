@@ -19,7 +19,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: info.c,v 1.12 2002-09-12 12:26:15 mschimek Exp $ */
+/* $Id: info.c,v 1.13 2002-09-26 20:47:36 mschimek Exp $ */
+
+#include "../config.h"
 
 #undef NDEBUG
 
@@ -29,13 +31,14 @@
 #include <ctype.h>
 #include <assert.h>
 #include <getopt.h>
+#include <locale.h>
 
 #include "librte.h"
 
 #ifndef _
 #ifdef ENABLE_NLS
 #    include <libintl.h>
-#    define _(String) gettext (String)
+#    define _(String) dgettext ("rte", String)
 #    ifdef gettext_noop
 #        define N_(String) gettext_noop (String)
 #    else
@@ -623,6 +626,9 @@ int
 main (int argc, char **argv)
 {
 	int c;
+
+	setlocale (LC_ALL, "");
+	textdomain ("foobar"); /* we are not the library */
 
 	printf("Welcome to Unimatrix 5, tertiary subunit of Zapping 6.\n\n");
 

@@ -1,3 +1,14 @@
+2002-09-23	<mschimek@users.sf.net>
+
+	* configure.in, Makefile.am: Added divx4linux.
+	* divx4linux: Added.
+
+2002-09-15	<mschimek@users.sf.net>
+
+	* src/codec.h: Modified rte_video_stream_params, adding interlaced
+	  video parameters. Typo: RTE_STATUS_/CAPTURE/CAPTURED/_TIME.
+	* src/codec.c: Fixed typo in doc.
+
 2002-09-10	<mschimek@users.sf.net>
 
 	* ffmpeg/ffmpeg.c, ffmpeg/ffmpeg.h: Added ac3, untested (player?);

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: option.h,v 1.3 2002-08-22 22:10:45 mschimek Exp $ */
+/* $Id: option.h,v 1.4 2002-09-26 20:47:35 mschimek Exp $ */
 
 #ifndef OPTIONS_H
 #define OPTIONS_H
@@ -124,7 +124,7 @@ typedef enum {
 	 * <tr><td>Menu:</td><td>menu.str[min.num ... max.num],
 	 *    step.num (1).
 	 * The menu strings are nationalized N_("text"), client
-	 * applications are encouraged to localize with gettext(menu.str[n]).
+	 * applications are encouraged to localize with dgettext("rte", menu.str[n]).
 	 * For details see info gettext.
 	 * </td></tr>
 	 * </table>
@@ -175,7 +175,7 @@ typedef struct {
 	/**
 	 * Name of the option to be shown to the user.
 	 * This can be @c NULL to indicate this option shall not be listed.
-	 * Can be localized with gettext(label).
+	 * Can be localized with dgettext("rte", label).
 	 */
 	char *			label;
 
@@ -187,7 +187,7 @@ typedef struct {
 
 	/**
 	 * A brief description (or @c NULL) for the user.
-	 *  Can be localized with gettext(tooltip).
+	 *  Can be localized with dgettext("rte", tooltip).
 	 */
 	char *			tooltip;
 } rte_option_info;
@@ -204,7 +204,7 @@ typedef struct {
 #define RTE_STATUS_FRAMES_DROPPED	(1 << 5)
 #define RTE_STATUS_BYTES_IN		(1 << 6)
 #define RTE_STATUS_BYTES_OUT		(1 << 7)
-#define RTE_STATUS_CAPTURE_TIME		(1 << 8)
+#define RTE_STATUS_CAPTURED_TIME	(1 << 8)
 #define RTE_STATUS_CODED_TIME		(1 << 9)
 /** @} */
 

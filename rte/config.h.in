@@ -3,6 +3,9 @@
 /* ffmpeg config */
 #undef ARCH_X86
 
+/* Define if divx4linux is built */
+#undef BACKEND_DIVX4LINUX
+
 /* Define if ffmpeg is built */
 #undef BACKEND_FFMPEG
 
@@ -31,6 +34,9 @@
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
+
+/* Define to 1 if you have the `dl' library (-ldl). */
+#undef HAVE_LIBDL
 
 /* Define to 1 if you have the `memalign' function. */
 #undef HAVE_MEMALIGN
@@ -70,6 +76,9 @@
 
 /* Define to the address where bug reports for this package should be sent. */
 #undef PACKAGE_BUGREPORT
+
+/* ld */
+#undef PACKAGE_LOCALE_DIR
 
 /* Define to the full name of this package. */
 #undef PACKAGE_NAME

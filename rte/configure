@@ -474,7 +474,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO AMTAR install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM AWK SET_MAKE INSIDE_GNOME_COMMON_TRUE INSIDE_GNOME_COMMON_FALSE CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE CCAS CCASFLAGS build build_cpu build_vendor build_os host host_cpu host_vendor host_os LN_S ECHO RANLIB ac_ct_RANLIB CPP EGREP LIBTOOL USE_SSE2_TRUE USE_SSE2_FALSE HAVE_2_TRUE HAVE_2_FALSE BACKEND_FFMPEG_TRUE BACKEND_FFMPEG_FALSE BACKEND_MP1E_TRUE BACKEND_MP1E_FALSE BACKEND_DIVX4LINUX_TRUE BACKEND_DIVX4LINUX_FALSE MKINSTALLDIRS MSGFMT GMSGFMT XGETTEXT MSGMERGE USE_NLS LIBICONV LTLIBICONV INTLLIBS LIBINTL LTLIBINTL POSUB HAVE_DOXYGEN HAVE_DOXYGEN_TRUE HAVE_DOXYGEN_FALSE'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO AMTAR install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM AWK SET_MAKE INSIDE_GNOME_COMMON_TRUE INSIDE_GNOME_COMMON_FALSE CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE CCAS CCASFLAGS build build_cpu build_vendor build_os host host_cpu host_vendor host_os LN_S ECHO RANLIB ac_ct_RANLIB CPP EGREP LIBTOOL USE_SSE2_TRUE USE_SSE2_FALSE CCMALLOC HAVE_2_TRUE HAVE_2_FALSE BACKEND_FFMPEG_TRUE BACKEND_FFMPEG_FALSE BACKEND_MP1E_TRUE BACKEND_MP1E_FALSE BACKEND_DIVX4LINUX_TRUE BACKEND_DIVX4LINUX_FALSE MKINSTALLDIRS MSGFMT GMSGFMT XGETTEXT MSGMERGE USE_NLS LIBICONV LTLIBICONV INTLLIBS LIBINTL LTLIBINTL POSUB HAVE_DOXYGEN HAVE_DOXYGEN_TRUE HAVE_DOXYGEN_FALSE'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -1017,6 +1017,7 @@ Optional Features:
   --enable-static=PKGS  build static libraries default=yes
   --enable-fast-install=PKGS  optimize for fast installation default=yes
   --disable-libtool-lock  avoid locking (might break parallel builds)
+  --enable-ccmalloc       Link with ccmalloc
   --disable-nls           do not use Native Language Support
 
 Optional Packages:
@@ -1024,8 +1025,9 @@ Optional Packages:
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-gnu-ld           assume the C compiler uses GNU ld default=no
   --with-pic              try to use only PIC/non-PIC objects default=use both
-  --with-mp1e             Add the mp1e backend
-  --with-ffmpeg           Add the ffmpeg backend
+  --with-mp1e             Add the mp1e backend (yes)
+  --with-ffmpeg           Add the ffmpeg backend (yes)
+  --with-divx4linux       Add the divx4linux backend (yes)
   --with-libiconv-prefix=DIR  search for libiconv in DIR/include and DIR/lib
   --without-libiconv-prefix     don't search for libiconv in includedir and libdir
   --with-libintl-prefix=DIR  search for libintl in DIR/include and DIR/lib
@@ -4309,7 +4311,7 @@ test "x$enable_libtool_lock" != xno && enable_libtool_lock=yes
 case $host in
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 4312 "configure"' > conftest.$ac_ext
+  echo '#line 4314 "configure"' > conftest.$ac_ext
   if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -4827,7 +4829,7 @@ chmod -w .
 save_CFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS -o out/conftest2.$ac_objext"
 compiler_c_o=no
-if { (eval echo configure:4830: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>out/conftest.err; } && test -s out/conftest2.$ac_objext; then
+if { (eval echo configure:4832: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>out/conftest.err; } && test -s out/conftest2.$ac_objext; then
   # The compiler can only warn and ignore the option if not recognized
   # So say no if there are warnings
   if test -s out/conftest.err; then
@@ -6572,7 +6574,7 @@ else
     lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 6575 "configure"
+#line 6577 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -6670,7 +6672,7 @@ else
     lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 6673 "configure"
+#line 6675 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -7578,13 +7580,22 @@ echo "$as_me:$LINENO: result: $use_sse2" >&5
 echo "${ECHO_T}$use_sse2" >&6
 
 
-if test x$use_sse2 = xyes; then
+if test "$use_sse2" = "yes"; then
   USE_SSE2_TRUE=
   USE_SSE2_FALSE='#'
 else
   USE_SSE2_TRUE='#'
   USE_SSE2_FALSE=
 fi
+
+
+# Check whether --enable-ccmalloc or --disable-ccmalloc was given.
+if test "${enable_ccmalloc+set}" = set; then
+  enableval="$enable_ccmalloc"
+  CCMALLOC=-lccmalloc
+else
+  CCMALLOC=
+fi;
 
 
 
@@ -7597,7 +7608,7 @@ if test "${with_mp1e+set}" = set; then
 else
   BACKEND_MP1E="yes"
 fi;
-if test "x$BACKEND_MP1E" = "xyes"; then
+if test "$BACKEND_MP1E" = "yes"; then
 
 cat >>confdefs.h <<\_ACEOF
 #define BACKEND_MP1E 1
@@ -7631,7 +7642,7 @@ if test "${with_ffmpeg+set}" = set; then
 else
   BACKEND_FFMPEG="yes"
 fi;
-if test "x$BACKEND_FFMPEG" = "xyes"; then
+if test "$BACKEND_FFMPEG" = "yes"; then
 
 cat >>confdefs.h <<\_ACEOF
 #define BACKEND_FFMPEG 1
@@ -7658,11 +7669,308 @@ _ACEOF
 
 fi
 
-BACKEND_DIVX4LINUX="not implemented yet"
+BACKEND_DIVX4LINUX=no
+
+# Check whether --with-divx4linux or --without-divx4linux was given.
+if test "${with_divx4linux+set}" = set; then
+  withval="$with_divx4linux"
+  BACKEND_DIVX4LINUX="$withval"
+else
+  BACKEND_DIVX4LINUX="yes"
+fi;
+if test "$BACKEND_DIVX4LINUX" = "yes"; then
+  if test "${ac_cv_header_encore2_h+set}" = set; then
+  echo "$as_me:$LINENO: checking for encore2.h" >&5
+echo $ECHO_N "checking for encore2.h... $ECHO_C" >&6
+if test "${ac_cv_header_encore2_h+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+fi
+echo "$as_me:$LINENO: result: $ac_cv_header_encore2_h" >&5
+echo "${ECHO_T}$ac_cv_header_encore2_h" >&6
+else
+  # Is the header compilable?
+echo "$as_me:$LINENO: checking encore2.h usability" >&5
+echo $ECHO_N "checking encore2.h usability... $ECHO_C" >&6
+cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+#include "confdefs.h"
+$ac_includes_default
+#include <encore2.h>
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_header_compiler=yes
+else
+  echo "$as_me: failed program was:" >&5
+cat conftest.$ac_ext >&5
+ac_header_compiler=no
+fi
+rm -f conftest.$ac_objext conftest.$ac_ext
+echo "$as_me:$LINENO: result: $ac_header_compiler" >&5
+echo "${ECHO_T}$ac_header_compiler" >&6
+
+# Is the header present?
+echo "$as_me:$LINENO: checking encore2.h presence" >&5
+echo $ECHO_N "checking encore2.h presence... $ECHO_C" >&6
+cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+#include "confdefs.h"
+#include <encore2.h>
+_ACEOF
+if { (eval echo "$as_me:$LINENO: \"$ac_cpp conftest.$ac_ext\"") >&5
+  (eval $ac_cpp conftest.$ac_ext) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } >/dev/null; then
+  if test -s conftest.err; then
+    ac_cpp_err=$ac_c_preproc_warn_flag
+  else
+    ac_cpp_err=
+  fi
+else
+  ac_cpp_err=yes
+fi
+if test -z "$ac_cpp_err"; then
+  ac_header_preproc=yes
+else
+  echo "$as_me: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  ac_header_preproc=no
+fi
+rm -f conftest.err conftest.$ac_ext
+echo "$as_me:$LINENO: result: $ac_header_preproc" >&5
+echo "${ECHO_T}$ac_header_preproc" >&6
+
+# So?  What about this header?
+case $ac_header_compiler:$ac_header_preproc in
+  yes:no )
+    { echo "$as_me:$LINENO: WARNING: encore2.h: accepted by the compiler, rejected by the preprocessor!" >&5
+echo "$as_me: WARNING: encore2.h: accepted by the compiler, rejected by the preprocessor!" >&2;}
+    { echo "$as_me:$LINENO: WARNING: encore2.h: proceeding with the preprocessor's result" >&5
+echo "$as_me: WARNING: encore2.h: proceeding with the preprocessor's result" >&2;};;
+  no:yes )
+    { echo "$as_me:$LINENO: WARNING: encore2.h: present but cannot be compiled" >&5
+echo "$as_me: WARNING: encore2.h: present but cannot be compiled" >&2;}
+    { echo "$as_me:$LINENO: WARNING: encore2.h: check for missing prerequisite headers?" >&5
+echo "$as_me: WARNING: encore2.h: check for missing prerequisite headers?" >&2;}
+    { echo "$as_me:$LINENO: WARNING: encore2.h: proceeding with the preprocessor's result" >&5
+echo "$as_me: WARNING: encore2.h: proceeding with the preprocessor's result" >&2;};;
+esac
+echo "$as_me:$LINENO: checking for encore2.h" >&5
+echo $ECHO_N "checking for encore2.h... $ECHO_C" >&6
+if test "${ac_cv_header_encore2_h+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_cv_header_encore2_h=$ac_header_preproc
+fi
+echo "$as_me:$LINENO: result: $ac_cv_header_encore2_h" >&5
+echo "${ECHO_T}$ac_cv_header_encore2_h" >&6
+
+fi
+if test $ac_cv_header_encore2_h = yes; then
+  :
+else
+  BACKEND_DIVX4LINUX="not installed"
+fi
+
+
+  if test "${ac_cv_header_dlfcn_h+set}" = set; then
+  echo "$as_me:$LINENO: checking for dlfcn.h" >&5
+echo $ECHO_N "checking for dlfcn.h... $ECHO_C" >&6
+if test "${ac_cv_header_dlfcn_h+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+fi
+echo "$as_me:$LINENO: result: $ac_cv_header_dlfcn_h" >&5
+echo "${ECHO_T}$ac_cv_header_dlfcn_h" >&6
+else
+  # Is the header compilable?
+echo "$as_me:$LINENO: checking dlfcn.h usability" >&5
+echo $ECHO_N "checking dlfcn.h usability... $ECHO_C" >&6
+cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+#include "confdefs.h"
+$ac_includes_default
+#include <dlfcn.h>
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_header_compiler=yes
+else
+  echo "$as_me: failed program was:" >&5
+cat conftest.$ac_ext >&5
+ac_header_compiler=no
+fi
+rm -f conftest.$ac_objext conftest.$ac_ext
+echo "$as_me:$LINENO: result: $ac_header_compiler" >&5
+echo "${ECHO_T}$ac_header_compiler" >&6
+
+# Is the header present?
+echo "$as_me:$LINENO: checking dlfcn.h presence" >&5
+echo $ECHO_N "checking dlfcn.h presence... $ECHO_C" >&6
+cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+#include "confdefs.h"
+#include <dlfcn.h>
+_ACEOF
+if { (eval echo "$as_me:$LINENO: \"$ac_cpp conftest.$ac_ext\"") >&5
+  (eval $ac_cpp conftest.$ac_ext) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } >/dev/null; then
+  if test -s conftest.err; then
+    ac_cpp_err=$ac_c_preproc_warn_flag
+  else
+    ac_cpp_err=
+  fi
+else
+  ac_cpp_err=yes
+fi
+if test -z "$ac_cpp_err"; then
+  ac_header_preproc=yes
+else
+  echo "$as_me: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  ac_header_preproc=no
+fi
+rm -f conftest.err conftest.$ac_ext
+echo "$as_me:$LINENO: result: $ac_header_preproc" >&5
+echo "${ECHO_T}$ac_header_preproc" >&6
+
+# So?  What about this header?
+case $ac_header_compiler:$ac_header_preproc in
+  yes:no )
+    { echo "$as_me:$LINENO: WARNING: dlfcn.h: accepted by the compiler, rejected by the preprocessor!" >&5
+echo "$as_me: WARNING: dlfcn.h: accepted by the compiler, rejected by the preprocessor!" >&2;}
+    { echo "$as_me:$LINENO: WARNING: dlfcn.h: proceeding with the preprocessor's result" >&5
+echo "$as_me: WARNING: dlfcn.h: proceeding with the preprocessor's result" >&2;};;
+  no:yes )
+    { echo "$as_me:$LINENO: WARNING: dlfcn.h: present but cannot be compiled" >&5
+echo "$as_me: WARNING: dlfcn.h: present but cannot be compiled" >&2;}
+    { echo "$as_me:$LINENO: WARNING: dlfcn.h: check for missing prerequisite headers?" >&5
+echo "$as_me: WARNING: dlfcn.h: check for missing prerequisite headers?" >&2;}
+    { echo "$as_me:$LINENO: WARNING: dlfcn.h: proceeding with the preprocessor's result" >&5
+echo "$as_me: WARNING: dlfcn.h: proceeding with the preprocessor's result" >&2;};;
+esac
+echo "$as_me:$LINENO: checking for dlfcn.h" >&5
+echo $ECHO_N "checking for dlfcn.h... $ECHO_C" >&6
+if test "${ac_cv_header_dlfcn_h+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_cv_header_dlfcn_h=$ac_header_preproc
+fi
+echo "$as_me:$LINENO: result: $ac_cv_header_dlfcn_h" >&5
+echo "${ECHO_T}$ac_cv_header_dlfcn_h" >&6
+
+fi
+if test $ac_cv_header_dlfcn_h = yes; then
+  :
+else
+  BACKEND_DIVX4LINUX="not linkable"
+fi
 
 
 
-if test "$BACKEND_FFMPEG" = yes; then
+echo "$as_me:$LINENO: checking for dlopen in -ldl" >&5
+echo $ECHO_N "checking for dlopen in -ldl... $ECHO_C" >&6
+if test "${ac_cv_lib_dl_dlopen+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ldl  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+#include "confdefs.h"
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char dlopen ();
+int
+main ()
+{
+dlopen ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_dl_dlopen=yes
+else
+  echo "$as_me: failed program was:" >&5
+cat conftest.$ac_ext >&5
+ac_cv_lib_dl_dlopen=no
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_dl_dlopen" >&5
+echo "${ECHO_T}$ac_cv_lib_dl_dlopen" >&6
+if test $ac_cv_lib_dl_dlopen = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBDL 1
+_ACEOF
+
+  LIBS="-ldl $LIBS"
+
+else
+  BACKEND_DIVX4LINUX="not linkable"
+fi
+
+  if test "$BACKEND_DIVX4LINUX" = "yes"; then
+
+cat >>confdefs.h <<\_ACEOF
+#define BACKEND_DIVX4LINUX 1
+_ACEOF
+
+
+              ac_config_files="$ac_config_files divx4linux/Makefile"
+
+  fi
+fi
+
+
+
+if test "$BACKEND_FFMPEG" = "yes"; then
   BACKEND_FFMPEG_TRUE=
   BACKEND_FFMPEG_FALSE='#'
 else
@@ -7672,7 +7980,7 @@ fi
 
 
 
-if test "$BACKEND_MP1E" = yes; then
+if test "$BACKEND_MP1E" = "yes"; then
   BACKEND_MP1E_TRUE=
   BACKEND_MP1E_FALSE='#'
 else
@@ -7682,7 +7990,7 @@ fi
 
 
 
-if test "$BACKEND_DIVX4LINUX" = yes; then
+if test "$BACKEND_DIVX4LINUX" = "yes"; then
   BACKEND_DIVX4LINUX_TRUE=
   BACKEND_DIVX4LINUX_FALSE='#'
 else
@@ -9187,6 +9495,19 @@ _ACEOF
 
 
 
+if test "x${prefix}" = "xNONE"; then
+
+cat >>confdefs.h <<_ACEOF
+#define PACKAGE_LOCALE_DIR "${ac_default_prefix}/share/locale"
+_ACEOF
+
+else
+
+cat >>confdefs.h <<_ACEOF
+#define PACKAGE_LOCALE_DIR "${prefix}/share/locale"
+_ACEOF
+
+fi
 
 # Extract the first word of "doxygen", so it can be a program name with args.
 set dummy doxygen; ac_word=$2
@@ -9226,7 +9547,7 @@ fi
 
 
 
-if test "x$HAVE_DOXYGEN" = "xyes"; then
+if test "$HAVE_DOXYGEN" = "yes"; then
   HAVE_DOXYGEN_TRUE=
   HAVE_DOXYGEN_FALSE='#'
 else
@@ -9819,6 +10140,7 @@ do
   "ffmpeg/libav/Makefile" ) CONFIG_FILES="$CONFIG_FILES ffmpeg/libav/Makefile" ;;
   "ffmpeg/libavcodec/Makefile" ) CONFIG_FILES="$CONFIG_FILES ffmpeg/libavcodec/Makefile" ;;
   "ffmpeg/libavcodec/i386/Makefile" ) CONFIG_FILES="$CONFIG_FILES ffmpeg/libavcodec/i386/Makefile" ;;
+  "divx4linux/Makefile" ) CONFIG_FILES="$CONFIG_FILES divx4linux/Makefile" ;;
   "Makefile" ) CONFIG_FILES="$CONFIG_FILES Makefile" ;;
   "m4/Makefile" ) CONFIG_FILES="$CONFIG_FILES m4/Makefile" ;;
   "po/Makefile.in" ) CONFIG_FILES="$CONFIG_FILES po/Makefile.in" ;;
@@ -9964,6 +10286,7 @@ s,@EGREP@,$EGREP,;t t
 s,@LIBTOOL@,$LIBTOOL,;t t
 s,@USE_SSE2_TRUE@,$USE_SSE2_TRUE,;t t
 s,@USE_SSE2_FALSE@,$USE_SSE2_FALSE,;t t
+s,@CCMALLOC@,$CCMALLOC,;t t
 s,@HAVE_2_TRUE@,$HAVE_2_TRUE,;t t
 s,@HAVE_2_FALSE@,$HAVE_2_FALSE,;t t
 s,@BACKEND_FFMPEG_TRUE@,$BACKEND_FFMPEG_TRUE,;t t

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.17 2002-08-22 22:10:46 mschimek Exp $ */
+/* $Id: rte.c,v 1.18 2002-09-26 20:47:35 mschimek Exp $ */
 
 #include "config.h"
 
@@ -233,6 +233,8 @@
 /** @addtogroup Start Starting and Stopping */
 /** @addtogroup Status Context and Codec Status */
 /** @addtogroup Error Errors */
+
+const char _rte_intl_domainname[] = PACKAGE;
 
 /**
  * @addtogroup Backend Backend Interface

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rtepriv.h,v 1.17 2002-09-12 12:26:15 mschimek Exp $ */
+/* $Id: rtepriv.h,v 1.18 2002-09-26 20:47:35 mschimek Exp $ */
 
 #ifndef __RTEPRIV_H__
 #define __RTEPRIV_H__
@@ -129,10 +129,12 @@ struct rte_backend_class {
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
+extern const char _rte_intl_domainname[];
+
 #ifndef _
 #  ifdef ENABLE_NLS
 #    include <libintl.h>
-#    define _(String) gettext (String)
+#    define _(String) dgettext (_rte_intl_domainname, String)
 #    ifdef gettext_noop
 #      define N_(String) gettext_noop (String)
 #    else

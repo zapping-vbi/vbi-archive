@@ -27,7 +27,8 @@ endif
 
 if BACKEND_DIVX4LINUX
 divx4linux = ../divx4linux
-divx4linux_libs =
+divx4linux_libs = \
+	$(divx4linux)/libdivx4linux.la
 endif
 
 BUILT_SOURCES = rte.sym librte.h
@@ -62,7 +63,7 @@ librte_la_SOURCES = \
 librteincludedir = $(includedir)
 librteinclude_HEADERS = librte.h
 
-librte_la_LIBADD = -lpthread -lm \
+librte_la_LIBADD = -lpthread -lm $(CCMALLOC) \
 	$(ffmpeg_libs) $(mp1e_libs) $(divx4linux_libs)
 
 librte_la_LDFLAGS = -export-dynamic -export-symbols rte.sym -version-info 1:0:0

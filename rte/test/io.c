@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io.c,v 1.7 2002-08-22 22:10:48 mschimek Exp $ */
+/* $Id: io.c,v 1.8 2002-09-26 20:47:36 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -295,13 +295,15 @@ init_video(struct generator *gen)
 /* Input method #1 callback master */
 
 static rte_bool
-read_ca_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
+read_cm_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
 {
 	struct generator *gen = rte_codec_user_data(codec);
 
 	/* A real recording app allocates in main(), this is just a test. */
 	buffer->data = malloc(gen->buffer_size);
 	buffer->size = gen->buffer_size;
+
+//	fprintf(stderr, "%p read_cm_cb %p\n", buffer, buffer->data);
 
 	gen->func(gen, buffer->data, buffer->size, &buffer->timestamp);
 
@@ -311,7 +313,7 @@ read_ca_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
 static rte_bool
 unref_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
 {
-//	fprintf(stderr, "unref %p\n", buffer->data);
+//	fprintf(stderr, "%p unref %p\n", buffer, buffer->data);
 
 	free(buffer->data);
 
@@ -321,7 +323,7 @@ unref_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
 /* Input method #2 callback slave */
 
 static rte_bool
-read_cp_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
+read_cs_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
 {
 	struct generator *gen = rte_codec_user_data(codec);
 
@@ -335,12 +337,12 @@ read_cp_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
 rte_buffer buffer;
 
 static void
-mainloop_pa(void)
+mainloop_pm(void)
 {
 	int count;
 
 	for (count = 0; count < 200; count++) {
-		read_ca_cb(NULL, NULL, &buffer);
+		read_cm_cb(NULL, NULL, &buffer);
 
 		/*
 		 *  NB the codec may or may not be another thread, so this
@@ -358,12 +360,12 @@ mainloop_pa(void)
 /* Input method #4 push slave */
 
 static void
-mainloop_pp(void)
+mainloop_ps(void)
 {
 	int count;
 
 	for (count = 0; count < 200; count++) {
-		read_cp_cb(NULL, NULL, &buffer);
+		read_cs_cb(NULL, NULL, &buffer);
 
 		if (!rte_push_buffer(codec, &buffer, blocking)) {
 			fprintf(stderr, "The codec is not fast enough, we drop frame #%d.\n", count);
@@ -419,6 +421,8 @@ long_options[] = {
 	{ "output",		required_argument,	NULL,			'o' },
 	{ 0, 0, 0, 0 }
 };
+
+void ccmalloc_atexit(void) {}
 
 int
 main(int argc, char **argv)
@@ -515,13 +519,13 @@ main(int argc, char **argv)
 
 		switch (io_mode) {
 		case 1:
-			r = rte_set_input_callback_master(codec, read_ca_cb, unref_cb, &queue_length);
+			r = rte_set_input_callback_master(codec, read_cm_cb, unref_cb, &queue_length);
 			/* That's the number of buffers we'd normally allocate here. */
 			r && fprintf(stderr, "Callback-master queue: %d buffers\n", queue_length);
 			break;
 
 		case 2:
-			r = rte_set_input_callback_slave(codec, read_cp_cb);
+			r = rte_set_input_callback_slave(codec, read_cs_cb);
 			break;
 
 		case 3:
@@ -593,7 +597,7 @@ main(int argc, char **argv)
 			fprintf(stderr, "Sorry, can feed only one codec.\n");
 			exit(EXIT_FAILURE);
 		}
-		mainloop_pa();
+		mainloop_pm();
 		break;
 
 	case 4:
@@ -601,7 +605,7 @@ main(int argc, char **argv)
 			fprintf(stderr, "Sorry, can feed only one codec.\n");
 			exit(EXIT_FAILURE);
 		}
-		mainloop_pp();
+		mainloop_ps();
 		break;
 
 	default:
