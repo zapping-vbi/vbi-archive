@@ -21,10 +21,10 @@ install-binPROGRAMS: $(bin_PROGRAMS)
 	$(mkinstalldirs) $(DESTDIR)$(sysconfdir)/pam.d
 	$(mkinstalldirs) $(DESTDIR)$(sysconfdir)/security/console.apps
 	$(INSTALL) zapping_setup_fb $(DESTDIR)$(sbindir)
-	ln -sf $(CONSOLEHELPER_LOCATION) $(DESTDIR)$(bindir)
-	if ! test -e $(DESTDIR)$(sysconfdir)/pam.d/zapping_setup_fb; then
+	ln -sf $(CONSOLEHELPER_LOCATION) $(DESTDIR)$(bindir)/zapping_setup_fb
+	if ! test -e $(DESTDIR)$(sysconfdir)/pam.d/zapping_setup_fb ; then\
 		$(INSTALL) zapping_setup_fb.pam \
-			$(DESTDIR)$(sysconfdir)/pam.d/zapping_setup_fb
+			$(DESTDIR)$(sysconfdir)/pam.d/zapping_setup_fb;\
 	fi
 	touch $(DESTDIR)$(sysconfdir)/security/console.apps/zapping_setup_fb
 

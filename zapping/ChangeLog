@@ -2,6 +2,8 @@
 
 	* src/zmisc.c: Applied patch by Magnus Sandin to keep input whilst
 	switching modes.
+	* zapping_setup_fb/Makefile.am, zapping.spec.in: Applied patch by
+	Tim Powers to fix build process.
 
 3.2.2001	ZSFB goes PAM <garetxe@users.sourceforge.net>
 

@@ -32,13 +32,12 @@ features, plus extensibility through a plugin system.
 %setup -q
 
 %build
-CFLAGS=$RPM_OPT_FLAGS ./configure --prefix=%{_prefix}
+%configure
 make
 
 %install
-rm -rf $RPM_BUILD_ROOT
-
-make prefix=%{buildroot}%{_prefix} install
+rm -rf %{buildroot}
+%makeinstall plugindir=%{buildroot}%{_libdir}/zapping/plugins
 
 %post
 pushd %{_bindir} > /dev/null 2>&1
@@ -49,10 +48,9 @@ popd > /dev/null 2>&1
 rm -f %{_bindir}/zapping_setup_fb > /dev/null 2>&1
 
 %clean
-rm -rf $RPM_BUILD_ROOT
+rm -rf %{buildroot}
 
 %files
-
 %defattr (-, root, root)
 %doc AUTHORS THANKS ChangeLog README README.plugins COPYING TODO BUGS
 %doc po/zapping.pot
@@ -69,20 +67,20 @@ rm -rf $RPM_BUILD_ROOT
 
 %changelog
 * Fri Feb  2 2001 Tim Powers <timp@redhat.com>
-	- pamified zapping_setup_fb, now no need for suid root bits, and no
-	crippling of the app :)
+- pamified zapping_setup_fb, now no need for suid root bits, and no
+crippling of the app :)
 
 * Thu Sep 12 2000 Iñaki García Etxebarria <garetxe@users.sourceforge.net>
-	- Removed the LibPng dependency, now libjpeg is used.
+- Removed the LibPng dependency, now libjpeg is used.
 
 * Mon Sep 11 2000 Iñaki García Etxebarria <garetxe@users.sourceforge.net>
-	- Added the dependency to GdkPixbuf and LibPng
+- Added the dependency to GdkPixbuf and LibPng
 
 * Mon Jun 19 2000 Iñaki García Etxebarria <garetxe@users.sourceforge.net>
-	- Added the desktop entry and removed the specified --datadir
+- Added the desktop entry and removed the specified --datadir
 
 * Mon Jun 12 2000 Iñaki García Etxebarria <garetxe@users.sourceforge.net>
-	- Fixed, it didn't include the translations properly.
+- Fixed, it didn't include the translations properly.
 
 * Thu Jun 06 2000 Iñaki García Etxebarria <garetxe@users.sourceforge.net>
-	- Created, it works fine.
+- Created, it works fine.
