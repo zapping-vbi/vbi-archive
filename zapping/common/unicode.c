@@ -1,4 +1,4 @@
-/* gcc -ounicode unicode.c ure.c -lunicode */
+/* gcc -ounicode unicode.c ure.c -DTEST -lunicode */
 /* libunicode: ftp://ftp.gnome.org/pub/GNOME/unstable/sources */
 #include <iconv.h>
 #include <stdio.h>
@@ -183,16 +183,16 @@ int main(int argc, char *argv[])
 {
   ucs2_t *in =
     latin2ucs2("If you have suggestions, etc. please mail "
-	       "\"nob45ody@nobody.net\"\n"
+	       "\"nobody@nobody.net\"\n"
 	       "This program has been brought to you by"
-	       " \"http://www.echelon.gov/show.cgi?everything=1\"");
+	       " \"http://www.echelon.gov/show.cgi?everything=1\".");
   char *out;
   ure_buffer_t ub = ure_buffer_create();
   ure_dfa_t ud;
   unicode_char_t c=0;
   char *url = "https?://([:alnum:]|[-~./?%_=+])+"; // URL regexp
   char *email = "([:alnum:]|[-~.])+@([:alnum:]|[-~.])+"; // Email regexp
-  ucs2_t *pattern = latin2ucs2(email);
+  ucs2_t *pattern = latin2ucs2(url);
   unsigned long ms, me;
 
   if (!startup_ucs2())
