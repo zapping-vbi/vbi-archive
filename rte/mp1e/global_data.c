@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: global_data.c,v 1.15 2002-08-22 22:02:38 mschimek Exp $ */
+/* $Id: global_data.c,v 1.16 2002-09-07 01:48:52 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -49,6 +49,7 @@ int			test_mode		= 0;
 char 			outFile[256];
 int			outFileFD		= STDOUT_FILENO;
 int			split_sequence		= FALSE;
+long long		part_length		= 0;
 
 int			modules			= 3;			// 1 = Video, 2 = Audio, 4 = VBI
 int			mux_syn			= 2;			// 0 = null, elementary, MPEG-1, MPEG-2 PS 
