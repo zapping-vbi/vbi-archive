@@ -17,7 +17,6 @@
  */
 
 /* XXX gtk+ 2.3 GtkOptionMenu, GtkCombo, toolbar changes */
-/* gdk_pixbuf_render_to_drawable -> gdk_draw_pixbuf() */
 #undef GTK_DISABLE_DEPRECATED
 #undef GDK_DISABLE_DEPRECATED
 
@@ -58,7 +57,6 @@
 
 extern tveng_device_info * main_info;
 extern volatile gboolean flag_exit_program;
-extern gint disable_preview; /* TRUE if preview won't work */
 extern gboolean xv_present;
 
 gchar*
@@ -277,7 +275,7 @@ zmisc_stop (tveng_device_info *info)
   switch (((int) zapping->display_mode) | (int) info->capture_mode)
     {
     case DISPLAY_MODE_FULLSCREEN | CAPTURE_MODE_OVERLAY:
-      stop_fullscreen (info);
+      stop_fullscreen ();
       break;
 
     case DISPLAY_MODE_WINDOW | CAPTURE_MODE_READ:
@@ -309,8 +307,7 @@ zmisc_stop (tveng_device_info *info)
 
     CLEAR (color);
 
-    z_set_window_bg (lookup_widget (GTK_WIDGET (zapping),
-				    "tv-screen"), &color);
+    z_set_window_bg (GTK_WIDGET (zapping->video), &color);
   }
 }
 
@@ -327,7 +324,6 @@ zmisc_switch_mode(display_mode new_dmode,
 		  capture_mode new_cmode,
 		  tveng_device_info * info)
 {
-  GtkWidget * tv_screen;
   int return_value = 0;
   gint x, y, w, h;
   gchar * old_input = NULL;
@@ -338,8 +334,7 @@ zmisc_switch_mode(display_mode new_dmode,
   gint muted;
 
   g_assert(info != NULL);
-  tv_screen = lookup_widget(GTK_WIDGET (zapping), "tv-screen");
-  g_assert(tv_screen != NULL);
+  g_assert(zapping->video != NULL);
 
   if (zapping->display_mode == new_dmode
       && info->capture_mode == new_cmode)
@@ -350,7 +345,7 @@ zmisc_switch_mode(display_mode new_dmode,
 	break;
       default:
 	x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE);
-	z_video_blank_cursor (Z_VIDEO (tv_screen), BLANK_CURSOR_TIMEOUT);
+	z_video_blank_cursor (zapping->video, BLANK_CURSOR_TIMEOUT);
 	return 0; /* success */
       }
 
@@ -360,8 +355,13 @@ zmisc_switch_mode(display_mode new_dmode,
   if (info->cur_video_standard)
     old_standard = g_strdup(info->cur_video_standard->label);
 
-  gdk_window_get_geometry(tv_screen->window, NULL, NULL, &w, &h, NULL);
-  gdk_window_get_origin(tv_screen->window, &x, &y);
+  {
+    GdkWindow *window;
+
+    window = GTK_WIDGET (zapping->video)->window;
+    gdk_window_get_geometry(window, NULL, NULL, &w, &h, NULL);
+    gdk_window_get_origin(window, &x, &y);
+  }
 
 #if 0 /* XXX should use quiet_set, but that can't handle yet
          how the controls are rebuilt when switching btw
@@ -380,37 +380,29 @@ zmisc_switch_mode(display_mode new_dmode,
 #ifdef HAVE_LIBZVBI
   if (!flag_exit_program)
     {
-      GtkWidget *toolbar = lookup_widget (GTK_WIDGET (zapping), "toolbar1");
-      GtkWidget *button = lookup_widget (GTK_WIDGET (zapping),
-					 "toolbar-teletext");
+      GtkAction *action;
 
       if (new_cmode == CAPTURE_MODE_TELETEXT)
 	{
-	  gtk_container_remove (GTK_CONTAINER (toolbar), button);
-	  button = gtk_toolbar_insert_stock (GTK_TOOLBAR (toolbar),
-					     "zapping-video",
-					     _("Return to video mode"), NULL,
-					     G_CALLBACK (on_python_command1),
-					     "zapping.toggle_mode()",
-					     5);
-	  register_widget (GTK_WIDGET (zapping), button, "toolbar-teletext");
+	  action = gtk_action_group_get_action (zapping->vbi_action_group,
+						"Teletext");
+	  gtk_action_set_visible (action, FALSE);
+
+	  action = gtk_action_group_get_action (zapping->vbi_action_group,
+						"RestoreVideo");
+	  gtk_action_set_visible (action, TRUE);
 	}
       else
 	{
-	  GtkWidget *appbar;
+	  action = gtk_action_group_get_action (zapping->vbi_action_group,
+						"RestoreVideo");
+	  gtk_action_set_visible (action, FALSE);
 
-	  gtk_container_remove (GTK_CONTAINER (toolbar), button);
-	  button = gtk_toolbar_insert_stock (GTK_TOOLBAR (toolbar),
-					     "zapping-teletext",
-					     _("Activate Teletext mode"), NULL,
-					     G_CALLBACK (on_python_command1),
-					     "zapping.switch_mode('teletext')",
-					     5);
-	  register_widget (GTK_WIDGET (zapping), button, "toolbar-teletext");
+	  action = gtk_action_group_get_action (zapping->vbi_action_group,
+						"Teletext");
+	  gtk_action_set_visible (action, TRUE);
 
-	  appbar = lookup_widget (GTK_WIDGET (zapping), "appbar2");
-	  gtk_widget_hide (appbar);
-	  gtk_widget_queue_resize (GTK_WIDGET (zapping));
+	  zapping_enable_appbar (zapping, FALSE);
 	}
     }
 #endif /* HAVE_LIBZVBI */
@@ -424,7 +416,7 @@ zmisc_switch_mode(display_mode new_dmode,
     }
   else if (DISPLAY_MODE_WINDOW == new_dmode)
     {
-      osd_set_window(tv_screen);
+      osd_set_window(GTK_WIDGET (zapping->video));
     }
 
   switch (((int) new_dmode) | (int) new_cmode)
@@ -437,14 +429,16 @@ zmisc_switch_mode(display_mode new_dmode,
 	{
 	  if (info->current_controller != TVENG_CONTROLLER_NONE)
 	    tveng_close_device(info);
-	  if (-1 == tveng_attach_device(zcg_char(NULL, "video_device"),
-					GDK_WINDOW_XID (tv_screen->window),
-					TVENG_ATTACH_READ, info))
+	  if (-1 == tveng_attach_device
+	      (zcg_char(NULL, "video_device"),
+	       GDK_WINDOW_XID (GTK_WIDGET (zapping->video)->window),
+	       TVENG_ATTACH_READ, info))
 	    {
 	      /* Try restoring as XVideo, error ignored. */
-	      tveng_attach_device (zcg_char(NULL, "video_device"),
-				   GDK_WINDOW_XID (tv_screen->window),
-				   TVENG_ATTACH_XV, info);
+	      tveng_attach_device
+		(zcg_char(NULL, "video_device"),
+		 GDK_WINDOW_XID (GTK_WIDGET (zapping->video)->window),
+		 TVENG_ATTACH_XV, info);
 
 	      ShowBox("Capture mode not available:\n%s",
 		      GTK_MESSAGE_ERROR, info->error);
@@ -456,23 +450,24 @@ zmisc_switch_mode(display_mode new_dmode,
       /* XXX error? */
       tveng_set_capture_size((guint)w, (guint)h, info);
       return_value = capture_start(info);
-      video_init (tv_screen, tv_screen->style->black_gc);
+      video_init (GTK_WIDGET (zapping->video),
+		  GTK_WIDGET (zapping->video)->style->black_gc);
       video_suggest_format ();
       x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE
 			   | X11_SCREENSAVER_CPU_ACTIVE);
-      z_video_blank_cursor (Z_VIDEO (tv_screen), BLANK_CURSOR_TIMEOUT);
+      z_video_blank_cursor (zapping->video, BLANK_CURSOR_TIMEOUT);
       break;
 
     case DISPLAY_MODE_WINDOW | CAPTURE_MODE_OVERLAY:
-      if (disable_preview || disable_overlay) {
+      if (disable_overlay) {
 	ShowBox("preview has been disabled", GTK_MESSAGE_WARNING);
 	goto failure;
       }
 
-      if (start_overlay (GTK_WIDGET (zapping), tv_screen, info))
+      if (start_overlay ())
 	{
 	  x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE);
-          z_video_blank_cursor (Z_VIDEO (tv_screen), BLANK_CURSOR_TIMEOUT);
+          z_video_blank_cursor (zapping->video, BLANK_CURSOR_TIMEOUT);
 	}
       else
 	{
@@ -484,12 +479,12 @@ zmisc_switch_mode(display_mode new_dmode,
       break;
 
     case DISPLAY_MODE_FULLSCREEN | CAPTURE_MODE_OVERLAY:
-      if (disable_preview || disable_overlay) {
+      if (disable_overlay) {
 	ShowBox ("Preview has been disabled", GTK_MESSAGE_WARNING);
 	goto failure;
       }
 
-      if (start_fullscreen (info))
+      if (start_fullscreen ())
 	{
 	  x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE);
 	}
@@ -504,16 +499,17 @@ zmisc_switch_mode(display_mode new_dmode,
 
     case DISPLAY_MODE_WINDOW | CAPTURE_MODE_TELETEXT:
       x11_screensaver_set (X11_SCREENSAVER_ON);
-      z_video_blank_cursor (Z_VIDEO (tv_screen), 0);
+      z_video_blank_cursor (zapping->video, 0);
 
 #ifdef HAVE_LIBZVBI
       if (zvbi_get_object ())
 	{
 	  if (info->current_controller != TVENG_CONTROLLER_NONE)
 	    tveng_close_device (info);
-	  if (-1 == tveng_attach_device (zcg_char (NULL, "video_device"),
-					GDK_WINDOW_XWINDOW (tv_screen->window),
-					 TVENG_ATTACH_VBI, info))
+	  if (-1 == tveng_attach_device
+	      (zcg_char (NULL, "video_device"),
+	       GDK_WINDOW_XWINDOW (GTK_WIDGET (zapping->video)->window),
+	       TVENG_ATTACH_VBI, info))
 	    {
 	      ShowBox ("Teletext mode not available.",
 		       GTK_MESSAGE_ERROR);
@@ -522,19 +518,15 @@ zmisc_switch_mode(display_mode new_dmode,
 
 	  /* start vbi code */
 
-	  gtk_widget_show (lookup_widget (GTK_WIDGET (zapping), "appbar2"));
-	  gtk_widget_queue_resize (GTK_WIDGET (zapping));
+	  zapping_enable_appbar (zapping, TRUE);
 
-	  if (1)
-	    {
-	      ttxview_attach (GTK_WIDGET (zapping),
-			       lookup_widget (GTK_WIDGET (zapping), "tv-screen"),
-			       lookup_widget (GTK_WIDGET (zapping), "toolbar1"),
-			       lookup_widget (GTK_WIDGET (zapping), "appbar2"));
+	  ttxview_attach (GTK_WIDGET (zapping),
+			  GTK_WIDGET (zapping->video),
+			  NULL,
+			  GTK_WIDGET (zapping->appbar));
 
-	      zapping->display_mode = DISPLAY_MODE_WINDOW;
-	      info->capture_mode = CAPTURE_MODE_TELETEXT;
-	    }
+	  zapping->display_mode = DISPLAY_MODE_WINDOW;
+	  info->capture_mode = CAPTURE_MODE_TELETEXT;
 	}
       else
 #endif
@@ -548,7 +540,7 @@ zmisc_switch_mode(display_mode new_dmode,
 
     default: /* TVENG_NO_CAPTURE */
       x11_screensaver_set (X11_SCREENSAVER_ON);
-      z_video_blank_cursor (Z_VIDEO (tv_screen), 0);
+      z_video_blank_cursor (zapping->video, 0);
 
       break;
     }
@@ -611,7 +603,7 @@ zmisc_switch_mode(display_mode new_dmode,
 
   x11_screensaver_set (X11_SCREENSAVER_ON);
 
-  z_video_blank_cursor (Z_VIDEO (tv_screen), 0);
+  z_video_blank_cursor (zapping->video, 0);
 
   return -1;
 }
@@ -720,8 +712,13 @@ z_pixbuf_render_to_drawable	(GdkPixbuf	*pixbuf,
   if (width < 0 || height < 0)
     return;
 
-  gdk_pixbuf_render_to_drawable(pixbuf, window, gc, x, y, x, y, width,
-				height, GDK_RGB_DITHER_NORMAL, x, y);
+  gdk_draw_pixbuf (window, gc,
+		   pixbuf,
+		   x, y,
+		   x, y,
+		   width, height,
+		   GDK_RGB_DITHER_NORMAL,
+		   x, y);
 }
 
 gint
@@ -796,15 +793,14 @@ z_change_menuitem			 (GtkWidget	*widget,
 static void
 appbar_hide(GtkWidget *appbar)
 {
-  gtk_widget_hide(appbar);
-  gtk_widget_queue_resize(GTK_WIDGET (zapping));
+  zapping_enable_appbar (zapping, FALSE);
 }
 
 static void
-add_hide(GtkWidget *appbar)
+add_hide (void)
 {
   GtkWidget *old =
-    g_object_get_data(G_OBJECT(appbar), "hide_button");
+    g_object_get_data(G_OBJECT(zapping->appbar), "hide_button");
   GtkWidget *widget;
 
   if (old)
@@ -814,14 +810,13 @@ add_hide(GtkWidget *appbar)
   z_tooltip_set(widget, _("Hide the statusbar"));
 
   if (widget)
-    gtk_box_pack_end(GTK_BOX(appbar), widget, FALSE, FALSE, 0);
+    gtk_box_pack_end(GTK_BOX(zapping->appbar), widget, FALSE, FALSE, 0);
 
   gtk_widget_show(widget);
   g_signal_connect_swapped(G_OBJECT(widget), "clicked",
-			   G_CALLBACK(appbar_hide),
-			   appbar);
+			   G_CALLBACK(appbar_hide), NULL);
 
-  g_object_set_data(G_OBJECT(appbar), "hide_button", widget);
+  g_object_set_data(G_OBJECT(zapping->appbar), "hide_button", widget);
 }
 
 static guint 		status_hide_timeout_id 		= 0;
@@ -830,26 +825,24 @@ static gboolean		status_hide			= FALSE;
 static gint
 status_hide_timeout		(void *			ignored _unused_)
 {
-  GtkWidget *appbar2;
-
-  appbar2 = lookup_widget (GTK_WIDGET (zapping), "appbar2");
+  if (!zapping->appbar)
+    return FALSE; /* don't call again */
 
   if (status_hide)
     {
-      appbar_hide (appbar2);
+      zapping_enable_appbar (zapping, FALSE);
     }
   else /* just clean */
     {
       GtkWidget *status;
 
-      status = gnome_appbar_get_status (GNOME_APPBAR (appbar2));
-
+      status = gnome_appbar_get_status (zapping->appbar);
       gtk_label_set_text (GTK_LABEL (status), "");
     }
 
   status_hide_timeout_id = NO_SOURCE_ID;
 
-  return FALSE; /* Do not call me again */
+  return FALSE; /* don't call again */
 }
 
 void
@@ -858,20 +851,18 @@ z_status_print			(const gchar *		message,
 				 guint			timeout,
 				 gboolean		hide)
 {
-  GtkWidget *appbar2;
   GtkWidget *status;
 
-  appbar2 = lookup_widget (GTK_WIDGET (zapping), "appbar2");
-  status = gnome_appbar_get_status (GNOME_APPBAR (appbar2));
+  zapping_enable_appbar (zapping, TRUE);
 
-  add_hide (appbar2);
+  status = gnome_appbar_get_status (zapping->appbar);
+
+  add_hide ();
 
   if (markup)
     gtk_label_set_markup (GTK_LABEL (status), message);
   else
     gtk_label_set_text (GTK_LABEL (status), message);
-
-  gtk_widget_show (appbar2);
 
   if (status_hide_timeout_id > 0)
     g_source_remove (status_hide_timeout_id);
@@ -888,22 +879,20 @@ z_status_print			(const gchar *		message,
 /* FIXME: [Hide] button */
 void z_status_set_widget(GtkWidget * widget)
 {
-  GtkWidget *appbar2 =
-    lookup_widget(GTK_WIDGET (zapping), "appbar2");
-  GtkWidget *old =
-    g_object_get_data(G_OBJECT(appbar2), "old_widget");
+  GtkWidget *old;
 
+  zapping_enable_appbar (zapping, TRUE);
+
+  old = g_object_get_data(G_OBJECT(zapping->appbar), "old_widget");
   if (old)
-    gtk_container_remove(GTK_CONTAINER(appbar2), old);
+    gtk_container_remove(GTK_CONTAINER(zapping->appbar), old);
 
   if (widget)
-    gtk_box_pack_end(GTK_BOX(appbar2), widget, FALSE, FALSE, 0);
+    gtk_box_pack_end(GTK_BOX(zapping->appbar), widget, FALSE, FALSE, 0);
 
-  add_hide(appbar2);
+  add_hide();
 
-  g_object_set_data(G_OBJECT(appbar2), "old_widget", widget);
-
-  gtk_widget_show(appbar2);
+  g_object_set_data(G_OBJECT(zapping->appbar), "old_widget", widget);
 }
 
 /* XXX should use GError */
@@ -2337,4 +2326,107 @@ z_set_overlay_buffer		(tveng_device_info *	info,
 				x11_display_name (),
 				screen->screen_number,
 				&screen->target);
+}
+
+
+typedef struct {
+  GtkToggleAction *	toggle_action;
+  gulong		handler_id;
+  gchar *		gconf_key;
+  guint			gconf_cnxn;
+} tagc_con;
+
+static void
+gconf_change			(GConfClient *		client,
+				 guint			cnxn_id,
+				 GConfEntry *		entry,
+				 tagc_con *		tagc)
+{
+  gboolean active;
+
+  if (!entry->value)
+    return; /* unset */
+
+  active = gconf_value_get_bool (entry->value);
+
+  if (active == gtk_toggle_action_get_active (tagc->toggle_action))
+    return; /* break recursion */
+
+  gtk_toggle_action_set_active (tagc->toggle_action, active);
+}
+
+static void
+gconf_destroy			(tagc_con *		tagc)
+{
+  if (tagc->toggle_action)
+    if (g_signal_handler_is_connected (tagc->toggle_action, tagc->handler_id))
+      g_signal_handler_disconnect (tagc->toggle_action, tagc->handler_id);
+
+  g_free (tagc->gconf_key);
+
+  CLEAR (tagc);
+  g_free (tagc);
+}
+
+static void
+action_toggled			(GtkToggleAction *	toggle_action,
+				 tagc_con *		tagc)
+{
+  gboolean active;
+
+  active = gtk_toggle_action_get_active (toggle_action);
+
+  /* Error ignored. */
+  gconf_client_set_bool (gconf_client, tagc->gconf_key,
+			 active, /* GError */ NULL);
+}
+
+static void
+action_destroy			(tagc_con *		tagc,
+				 GClosure *		closure)
+{
+  if (0 != tagc->gconf_cnxn)
+    gconf_client_notify_remove (gconf_client, tagc->gconf_cnxn);
+
+  g_free (tagc->gconf_key);
+
+  CLEAR (tagc);
+  g_free (tagc);
+}
+
+void
+z_toggle_action_connect_gconf_key
+				(GtkToggleAction *	toggle_action,
+				 const gchar *		key)
+{
+  tagc_con *tagc;
+  GConfValue *value;
+
+  if ((value = gconf_client_get (gconf_client, key, /* GError */ NULL)))
+    {
+      gboolean active;
+
+      /* No error and value is set. Synchronize action with gconf. */
+
+      active = gconf_value_get_bool (value);
+      gconf_value_free (value);
+
+      gtk_toggle_action_set_active (toggle_action, active);
+    }
+
+  tagc = g_malloc0 (sizeof (*tagc));
+  tagc->gconf_key = g_strdup (key);
+
+  tagc->toggle_action = toggle_action;
+
+  tagc->gconf_cnxn = gconf_client_notify_add (gconf_client,
+					      tagc->gconf_key,
+					      gconf_change, tagc,
+					      gconf_destroy,
+					      /* GError */ NULL);
+
+  tagc->handler_id = g_signal_connect_data (toggle_action, "toggled",
+					    G_CALLBACK (action_toggled), tagc,
+					    action_destroy,
+					    /* connect_flags */ 0);
 }
