@@ -69,121 +69,6 @@ gint			disable_overlay = FALSE; /* Xv or V4L */
 static void shutdown_zapping(void);
 static gboolean startup_zapping(gboolean load_plugins);
 
-/*
- * This removes the bug when resizing toolbar makes the tv_screen have
- * 1 unit height.
-*/
-static gint old_height=-1;
-
-static void
-on_tv_screen_size_allocate	(GtkWidget	*widget,
-				 GtkAllocation	*allocation,
-				 gpointer	data)
-{
-  gint oldw;
-
-  if (old_height == -1)
-    old_height = gdk_screen_height()/2;
-
-  if (!main_window->window)
-    return;
-  
-  if (allocation->height == 1)
-    gdk_window_resize(main_window->window,
-		      main_window->allocation.width,
-		      old_height);
-  else
-    gdk_window_get_geometry(main_window->window, NULL, NULL, &oldw,
-			    &old_height, NULL);
-}
-
-/* Adjusts geometry */
-static gint timeout_handler(gpointer unused)
-{
-  GdkGeometry geometry;
-  GdkWindowHints hints = (GdkWindowHints) 0;
-  GtkWidget *tv_screen;
-  gint tvs_w, tvs_h, mw_w, mw_h = 0;
-  double rw = 0, rh=0;
-
-  if ((flag_exit_program) || (!main_window->window))
-    return 0;
-
-  if (main_info->current_mode != TVENG_CAPTURE_PREVIEW)
-    {
-      /* Set the geometry flags if needed */
-      if (zcg_bool(NULL, "fixed_increments"))
-	{
-	  geometry.width_inc = 64;
-	  geometry.height_inc = 48;
-	  hints |= (GdkWindowHints) GDK_HINT_RESIZE_INC;
-	}
-      
-      switch (zcg_int(NULL, "ratio")) {
-      case 1:
-	rw = 4;
-	rh = 3;
-	break;
-      case 2:
-	rw = 16;
-	rh = 9;
-	break;
-#ifdef HAVE_LIBZVBI
-      case 3:
-	{
-	  extern double zvbi_ratio;
-
-	  rw = zvbi_ratio;
-	  rh = 1;
-	  break;
-	}
-#endif
-      default:
-	break;
-      }
-
-      if (rw)
-	{
-	  hints |= (GdkWindowHints) GDK_HINT_ASPECT;
-
-	  /* toolbars correction */
-	  tv_screen = lookup_widget(main_window, "tv_screen");
-	  gdk_window_get_geometry(tv_screen->window, NULL, NULL,
-				  &tvs_w, &tvs_h, NULL);
-	  gdk_window_get_geometry(main_window->window, NULL, NULL,
-				  &mw_w, &mw_h, NULL);
-
-	  rw *= (((double)mw_w)/tvs_w);
-	  rh *= (((double)mw_h)/tvs_h);
-
-	  geometry.min_aspect = geometry.max_aspect = rw/rh;
-	}
-      
-      gdk_window_set_geometry_hints(main_window->window, &geometry,
-				    hints);
-#ifdef HAVE_LIBZVBI
-      {
-	extern double zvbi_ratio;
-	static double old_ratio = 0;
-
-	if (old_ratio != zvbi_ratio &&
-	    zcg_int(NULL, "ratio") == 3 &&
-	    mw_h > 1 &&
-	    geometry.min_aspect > 0.1)
-	  {
-	    /* ug, ugly */
-	    gdk_window_get_geometry(main_window->window, NULL, NULL,
-				    &mw_w, &mw_h, NULL);
-	    gdk_window_resize(main_window->window,
-			      (int)(mw_h * geometry.min_aspect), mw_h);
-	    old_ratio = zvbi_ratio;
-	  }
-      }
-#endif
-    }
-
-  return 1; /* Keep calling me */
-}
 
 gboolean
 on_zapping_key_press			(GtkWidget	*widget,
@@ -198,44 +83,6 @@ on_zapping_key_press			(GtkWidget	*widget,
     || on_channel_key_press (widget, event, user_data);
 }
 
-static gint hide_pointer_tid = -1;
-static gint cursor = GDK_LEFT_PTR;
-#define HIDE_TIMEOUT /*ms*/ 1500
-static gint
-hide_pointer_timeout	(GtkWidget	*window)
-{
-  if (main_info->current_mode != TVENG_NO_CAPTURE) /* TTX mode */
-    if (cursor)
-      {
-	z_set_cursor(window->window, 0);
-	cursor = 0;
-      }
-
-  hide_pointer_tid = -1;
-  return FALSE;
-}
-
-static gboolean
-on_da_motion_notify			(GtkWidget	*widget,
-					 GdkEventMotion	*motion,
-					 gpointer	ignored)
-{
-  if (main_info->current_mode == TVENG_NO_CAPTURE) /* TTX mode */
-    return FALSE;
-
-  if (hide_pointer_tid>=0)
-    gtk_timeout_remove(hide_pointer_tid);
-
-  if (!cursor)
-    z_set_cursor(widget->window, GDK_LEFT_PTR);
-  cursor = GDK_LEFT_PTR;
-
-  hide_pointer_tid = gtk_timeout_add(HIDE_TIMEOUT,
-				     (GtkFunction)hide_pointer_timeout,
-				     widget);
-
-  return FALSE;
-}
 
 /* Start VBI services, and warn if we cannot */
 static void
@@ -260,6 +107,8 @@ startup_teletext(void)
 /*
   Called 0.5s after the main window is created, should solve all the
   problems with geometry restoring.
+
+  XXX replace by session management
 */
 static
 gint resize_timeout		( gpointer ignored )
@@ -270,8 +119,17 @@ gint resize_timeout		( gpointer ignored )
   zconf_get_integer(&y, "/zapping/internal/callbacks/y");
   zconf_get_integer(&w, "/zapping/internal/callbacks/w");
   zconf_get_integer(&h, "/zapping/internal/callbacks/h");
+
   printv("Restoring geometry: <%d,%d> <%d x %d>\n", x, y, w, h);
-  gdk_window_move_resize(main_window->window, x, y, w, h);
+
+  if (w == 0 || h == 0)
+    {
+      gdk_window_resize(main_window->window, 320, 200);
+    }
+  else
+    {
+      gdk_window_move_resize(main_window->window, x, y, w, h);
+    }
 
   return FALSE;
 }
@@ -454,7 +312,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.165.2.16 2003-03-06 21:55:22 mschimek Exp $",
+	 "$Id: main.c,v 1.165.2.17 2003-03-24 17:17:10 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -676,28 +534,16 @@ int main(int argc, char * argv[])
   D();
   main_window = create_zapping();
   D();
-  tv_screen = lookup_widget(main_window, "tv_screen");
-  /* Avoid dumb resizes to 1 pixel height */
-  g_signal_connect(G_OBJECT(tv_screen), "size-allocate",
-		     G_CALLBACK(on_tv_screen_size_allocate),
-		     NULL);
+  tv_screen = lookup_widget(main_window, "tv-screen");
   g_signal_connect(G_OBJECT(main_window),
 		     "key-press-event",
 		     G_CALLBACK(on_zapping_key_press), NULL);
-  /* set periodically the geometry flags on the main window */
-  gtk_timeout_add(100, (GtkFunction)timeout_handler, NULL);
+
   /* ensure that the main window is realized */
   gtk_widget_realize(main_window);
   gtk_widget_realize(tv_screen);
   while (!tv_screen->window)
     z_update_gui();
-  D();
-  g_signal_connect(G_OBJECT(tv_screen), "motion-notify-event",
-		     G_CALLBACK(on_da_motion_notify), NULL);
-  hide_pointer_tid = gtk_timeout_add(HIDE_TIMEOUT,
-				     (GtkFunction)hide_pointer_timeout,
-				     tv_screen);
-
   D();
   if (unmutable)
     {
@@ -757,8 +603,8 @@ int main(int argc, char * argv[])
        zconf_get_boolean(NULL, "/zapping/internal/callbacks/closed_caption"));
   D();
 #endif
-  printv("switching to mode %d (%d)\n", zcg_int(NULL,
-						"capture_mode"),
+  printv("switching to mode %d (%d)\n",
+	 zcg_int(NULL, "capture_mode"),
 	 TVENG_CAPTURE_READ);
   /* Start the capture in the last mode */
   if (!disable_preview)
@@ -893,6 +739,8 @@ static void shutdown_zapping(void)
     printv(" controls");
 
     store_control_values (main_info, &controls, &num_controls);
+    zconf_delete (ZCONF_DOMAIN "num_controls");
+    zconf_delete ("/zapping/options/main/controls");
     zconf_create_integer (num_controls, "Saved controls", ZCONF_DOMAIN "num_controls");
     zconf_create_controls (controls, num_controls, "/zapping/options/main");
   }
