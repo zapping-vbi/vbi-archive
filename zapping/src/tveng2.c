@@ -668,12 +668,6 @@ tveng2_update_capture_format(tveng_device_info * info)
       t_error("VIDIOC_G_FMT", info);
       return -1;
     }
-  if (ioctl(info->fd, VIDIOC_G_WIN, &window))
-    {
-      info->tveng_errno = errno;
-      t_error("VIDIOC_G_WIN", info);
-      return -1;
-    }
   info->format.bpp = ((double)format.fmt.pix.depth)/8;
   info->format.width = format.fmt.pix.width;
   info->format.height = format.fmt.pix.height;
@@ -737,6 +731,14 @@ tveng2_update_capture_format(tveng_device_info * info)
 
       return -1;    
     };
+  /* mhs: moved down here because tveng2_read_frame blamed
+     info -> format.sizeimage != size after G_WIN failed */
+  if (ioctl(info->fd, VIDIOC_G_WIN, &window))
+    {
+      info->tveng_errno = errno;
+      t_error("VIDIOC_G_WIN", info);
+      return -1;
+    }
   info->window.x = window.x;
   info->window.y = window.y;
   info->window.width = window.width;
