@@ -17,7 +17,7 @@
 #  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 
-# $Id: vlc_mmx.s,v 1.6 2002-09-12 12:24:49 mschimek Exp $
+# $Id: vlc_mmx.s,v 1.7 2002-09-14 04:18:29 mschimek Exp $
 
 # vlc_rec
 bs_rec_n	= 0
@@ -33,8 +33,8 @@ iscanp		= 28
 count		= 32
 
 # int (vlc_rec *, mblock *, iscan *, int count);
-	
-	.macro intra mpeg=1 vlc=mp1e_ac_vlc_zero sse=0
+
+	.macro intra mpeg=1 vlc=mp1e_ac_vlc_zero
 
 	subl		$16,%esp;
 	movl		%ebp,(%esp);
@@ -179,7 +179,7 @@ count		= 32
 	movd		%mm6,%esp;
 	ret;
 
-	.ifeq \mpeg 1
+	.ifeq \mpeg-1
 
 5:	subl		$\vlc,%edi;			# run
 	movswl		(%esi,%ebx,2),%edx;		# slevel		
@@ -423,18 +423,18 @@ mp1e_p6_mpeg1_encode_inter:
 	.globl		mp1e_p6_mpeg1_encode_intra
 
 mp1e_p6_mpeg1_encode_intra:
-	intra mpeg=1 vlc=mp1e_ac_vlc_zero
+	intra		mpeg=1 vlc=mp1e_ac_vlc_zero
 
 	.text
 	.align		16
 	.globl		mp1e_p6_mpeg2_encode_intra_14
 
 mp1e_p6_mpeg2_encode_intra_14:
-	intra mpeg=2 vlc=mp1e_ac_vlc_zero
+	intra		mpeg=2 vlc=mp1e_ac_vlc_zero
 
 #	.text
 #	.align		16
 #	.globl		mp1e_p6_mpeg2_encode_intra_15
 #
 #mp1e_p6_mpeg2_encode_intra_15:
-#	intra mpeg=2 vlc=mp1e_ac_vlc_one
+#	intra		mpeg=2 vlc=mp1e_ac_vlc_one
