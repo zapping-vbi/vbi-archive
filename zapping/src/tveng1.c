@@ -1258,7 +1258,7 @@ tveng1_update_controls(tveng_device_info * info)
 	continue; /* Not our responsability */
       if (control -> id <= P_TVENG1_C_AUDIO_MAX &&
 	  control -> id >= P_TVENG1_C_AUDIO_MIN &&
-	  !audio_disabled)
+	  audio_disabled)
 	{
 	  /* When we reach this errno hasn't been altered */
 	  info->tveng_errno = errno;
