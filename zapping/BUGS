@@ -1,8 +1,7 @@
 Known bugs in Zapping, don't report them
 ----------------------------------------
 
-* TTX mode, channel switch in ch editor,
-  SEGV in vbi_draw_vt_page_region
+* Heisencrash in capture mode after enabling vbi decoding in prefs.
 * Edited channels, clicked ok, tc==NULL in tuned_channel_nth_name().
 * Pointer does not properly reappear in windowed mode.
 * Go Fullscreen w/automatic vidmode hangs on RH
@@ -10,7 +9,6 @@ Known bugs in Zapping, don't report them
   in the properties
 * Subtitle overlay must be restored.
 * Video size isn't always right on startup.
-* TTXView main menu quit (commented out) keeps crashing.
 * TTX search: on the fly case and regex change doesnt work.
 * When controls window is open channel change mutes permanently.
 * Wrong window stacking layer of overlay window when

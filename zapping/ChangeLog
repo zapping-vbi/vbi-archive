@@ -1,5 +1,7 @@
-2003-11-16    <mschimek@users.sf.net>
+2003-11-17    <mschimek@users.sf.net>
 
+	* src/zvbi.c (rolling_headers): Preliminary fix of invalid
+	  pointer deref in vbi_draw_vt_page_region after channel change.
 	* src/ttxview.c (ttxview_delete): Post destruction use of
 	  color_zmodel. 
 	  (on_main_menu_bookmarks_destroy): Post destruction use of
@@ -7,6 +9,7 @@
 	  (on_ttxview_expose_event): Segv refreshing an exposed
 	  region when drawing area is smaller than window. Appears
 	  to "fix" that second bug as well.
+	  (on_ttxview_quit): Works now.
 
 2003-11-15    <mschimek@users.sf.net>
 
