@@ -19,14 +19,21 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: context.c,v 1.11 2002-10-02 20:58:49 mschimek Exp $ */
+/* $Id: context.c,v 1.12 2002-12-14 00:48:50 mschimek Exp $ */
 
 #include "config.h"
+
+#ifdef HAVE_LARGEFILE64
+#define _LARGEFILE64_SOURCE
+#endif
+
 #include "rtepriv.h"
 
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/stat.h>
 #include <errno.h>
+#include <limits.h>
 
 #define xc context->_class
 
@@ -860,7 +867,7 @@ rte_context_options_reset(rte_context *context)
  * }
  * 
  * rte_bool
- * my_seek_cb (rte_context *context, off64_t offset, int whence)
+ * my_seek_cb (rte_context *context, long long offset, int whence)
  * {
  *         return lseek64 (STDOUT_FILENO, offset, whence) != (off64_t) -1;
  * }
@@ -915,10 +922,18 @@ write_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
 }
 
 static rte_bool
-seek_cb(rte_context *context, off64_t offset, int whence)
+seek_cb(rte_context *context, long long offset, int whence)
 {
 	// XXX error propagation?
-	return lseek64(context->output_fd, offset, whence) != (off64_t) -1;
+
+#if defined(HAVE_LARGEFILE) && defined(O_LARGEFILE)
+	return lseek64(context->output_fd, (off64_t) offset, whence) != (off64_t) -1;
+#else
+	if (offset < INT_MIN || offset > INT_MAX)
+		return FALSE; 
+
+	return lseek(context->output_fd, (off_t) offset, whence) != (off_t) -1;
+#endif
 }
 
 static void
@@ -944,8 +959,8 @@ new_output_fd(rte_context *context, rte_io_method new_method, int new_fd)
  *
  * Sets the output mode for the context and makes the context ready
  * to start encoding. All output of the codec will be written into the
- * given file. Use 64 bit mode when opening the file, the context may
- * need to seek() too (see rte_context_info).
+ * given file. Where possible the file must be opened in 64 bit mode
+ * (O_LARGEFILE flag). The context may need to seek(), see rte_context_info.
  *
  * @return
  * Before selecting an output method you must select input methods for all
@@ -996,7 +1011,11 @@ rte_set_output_file(rte_context *context, const char *filename)
 	rte_error_reset(context);
 
 	fd = open(filename,
+#if defined(HAVE_LARGEFILE) && defined(O_LARGEFILE)
 		  O_CREAT | O_WRONLY | O_TRUNC | O_LARGEFILE,
+#else
+		  O_CREAT | O_WRONLY | O_TRUNC,
+#endif
 		  S_IRUSR | S_IWUSR |
 		  S_IRGRP | S_IWGRP |
 		  S_IROTH | S_IWOTH);
@@ -1024,7 +1043,7 @@ discard_write_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
 }
 
 static rte_bool
-discard_seek_cb(rte_context *context, off64_t offset, int whence)
+discard_seek_cb(rte_context *context, long long offset, int whence)
 {
 	return TRUE;
 }

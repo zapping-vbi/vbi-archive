@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_ffmpeg.h,v 1.8 2002-10-04 13:51:20 mschimek Exp $ */
+/* $Id: b_ffmpeg.h,v 1.9 2002-12-14 00:48:49 mschimek Exp $ */
 
 #ifndef B_FFMPEG_H
 #define B_FFMPEG_H
@@ -94,6 +94,7 @@ typedef struct {
 	int			num_codecs;
 
 	pthread_t		thread_id;
+	int			stopped;
 
 	INT64			stop_pts;
 

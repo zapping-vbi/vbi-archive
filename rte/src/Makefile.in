@@ -93,6 +93,7 @@ INTL_LIBTOOL_SUFFIX_PREFIX = @INTL_LIBTOOL_SUFFIX_PREFIX@
 LIB = @LIB@
 LIBICONV = @LIBICONV@
 LIBINTL = @LIBINTL@
+LIBRTE_SO_VERSION = @LIBRTE_SO_VERSION@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
 LTLIB = @LTLIB@
@@ -115,9 +116,7 @@ lib_LTLIBRARIES = librte.la
 
 EXTRA_DIST = 
 
-INCLUDES = -D_GNU_SOURCE -D_REENTRANT -D_LARGEFILE64_SOURCE \
-	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
-
+INCLUDES = -Wall -Wunused -Wmissing-prototypes -Wmissing-declarations -D_REENTRANT
 
 @BACKEND_MP1E_TRUE@mp1e = ../mp1e
 @BACKEND_MP1E_TRUE@mp1e_libs = \
@@ -140,8 +139,6 @@ INCLUDES = -D_GNU_SOURCE -D_REENTRANT -D_LARGEFILE64_SOURCE \
 @BACKEND_DIVX4LINUX_TRUE@	$(divx4linux)/libdivx4linux.la
 
 
-BUILT_SOURCES = rte.sym librte.h
-
 librte_la_SOURCES = \
 	rte.c rte.h \
 	context.c context.h \
@@ -152,11 +149,17 @@ librte_la_SOURCES = \
 librteincludedir = $(includedir)
 librteinclude_HEADERS = librte.h
 
-librte_la_LIBADD = -lpthread -lm $(CCMALLOC) \
+librte_la_LIBADD = $(PTHREAD_LIB) $(CCMALLOC) \
 	$(ffmpeg_libs) $(mp1e_libs) $(divx4linux_libs)
 
 
-librte_la_LDFLAGS = -export-dynamic -export-symbols rte.sym -version-info 1:0:0
+librte_la_LDFLAGS = -export-dynamic -export-symbols rte.sym \
+	-version-info $(LIBRTE_SO_VERSION)
+
+
+BUILT_SOURCES = rte.sym librte.h
+
+LIBRTE_HDRS = option.h context.h codec.h rte.h
 subdir = src
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
@@ -482,11 +485,11 @@ uninstall-am: uninstall-info-am uninstall-libLTLIBRARIES \
 
 
 rte.sym: librte.h
-	sed -n '/extern.*/!d;s/\(.*\)\(rte.*\)(\(.*\)/\2/p' <$< > $@
+	sed -n '/extern.*/!d;s/\(.*\)\(rte.*\)(\(.*\)/\2/p' <librte.h >$@
 
 # Concat the header files in this order and filter out all lines
 #   before "^/* Public", after "^/* Private" and dox between "^/**"..."*/$"
-librte.h: option.h context.h codec.h rte.h
+librte.h: $(LIBRTE_HDRS)
 	sed -ne "1,/\*\//p" $(srcdir)/rte.h > $@
 	echo -e "\n/* Generated file, do not edit! */" >> $@
 	echo -e "\n#ifndef __LIBRTE_H__\n#define __LIBRTE_H__" >> $@
@@ -494,7 +497,7 @@ librte.h: option.h context.h codec.h rte.h
 	 | sed "s/\./\\\\\n#define RTE_VERSION_MINOR /" \
 	 | sed "s/\./\\\\\n#define RTE_VERSION_MICRO /"` >> $@
 	echo -e "\n#ifdef __cplusplus\nextern \"C\" {\n#endif\n" >> $@
-	for fi in $^; do \
+	for fi in $(LIBRTE_HDRS); do \
 		echo "/* $$fi */" >> $@; \
 		sed -e "/^\/\* Public/,/^\/\* Private/!d;/^\/\* Public/d;/^\/\* Private/d;s/\(\/\*\*.*\*\/\)//;/^[ 	]*\/\*\*/,/\*\/[ 	]*$$/d;" $$fi >> $@; \
 	done

@@ -316,3 +316,10 @@ gchar *s = N_("Network call letters:");
 gchar *s = N_("Tape delay:");
 gchar *s = N_("Program Info");
 gchar *s = N_("Synopsis");
+gchar *s = N_("Video Standard");
+gchar *s = N_("The video capture device does not report the correct\n"
+              "video standard, please select manually:");
+gchar *s = N_("NTSC");
+gchar *s = N_("PAL");
+gchar *s = N_("SECAM");
+gchar *s = N_("Remember this video standard");

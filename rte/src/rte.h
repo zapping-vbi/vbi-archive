@@ -19,15 +19,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.h,v 1.17 2002-08-22 22:10:47 mschimek Exp $ */
+/* $Id: rte.h,v 1.18 2002-12-14 00:48:50 mschimek Exp $ */
 
 #ifndef RTE_H
 #define RTE_H
-
-/* FIXME: This should be improved (requirements for off64_t) */
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE 1
-#endif
 
 /* Public */
 
@@ -101,7 +96,11 @@ typedef rte_bool (* rte_buffer_callback)(rte_context *context,
 /**
  * @ingroup IO
  * @param context rte_context this operation refers to.
- * @param offset Position to seek to.
+ * @param offset Position to seek to. NOTE: On GNU/Linux files
+ *   are opened with O_LARGEFILE, so clients should use
+ *   lseek64(). When only 32 bit I/O is available and offset
+ *   is > INT_MAX the callback should return @c FALSE. (I would
+ *   define this as off64_t if I knew a clean & portable way.)
  * @param whence SEEK_SET..., see man lseek.
  *
  * The context requests to seek to the given stream position.
@@ -113,7 +112,7 @@ typedef rte_bool (* rte_buffer_callback)(rte_context *context,
  * On error the callback can return @c FALSE to abort encoding.
  */
 typedef rte_bool (*rte_seek_callback)(rte_context *context,
-				      off64_t offset,
+				      long long offset,
 				      int whence);
 
 /**

@@ -93,6 +93,7 @@ INTL_LIBTOOL_SUFFIX_PREFIX = @INTL_LIBTOOL_SUFFIX_PREFIX@
 LIB = @LIB@
 LIBICONV = @LIBICONV@
 LIBINTL = @LIBINTL@
+LIBRTE_SO_VERSION = @LIBRTE_SO_VERSION@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
 LTLIB = @LTLIB@
@@ -113,7 +114,7 @@ install_sh = @install_sh@
 
 noinst_LTLIBRARIES = libav.la
 
-INCLUDES = -D_REENTRANT -DHAVE_AV_CONFIG_H \
+INCLUDES = -D_REENTRANT -DHAVE_AV_CONFIG_H -include $(top_builddir)/config.h \
 	-Wall -Wunused -Wmissing-declarations
 
 

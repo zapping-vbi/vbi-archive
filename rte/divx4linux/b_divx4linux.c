@@ -3,6 +3,7 @@
  *  divx4linux backend
  *
  *  Copyright (C) 2002 Michael H. Schimek
+ *  Copyright (C) 2002 FFmpeg authors (AVI code)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,10 +20,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_divx4linux.c,v 1.3 2002-10-04 13:51:19 mschimek Exp $ */
+/* $Id: b_divx4linux.c,v 1.4 2002-12-14 00:48:49 mschimek Exp $ */
 
 #include <dlfcn.h>
 #include "b_divx4linux.h"
+
+#define DIVX4LINUX_DEBUG 1
 
 #ifdef DIVX4LINUX_DEBUG
 #define dprintf(templ, args...) fprintf(stderr, "d4l: " templ ,##args)
@@ -90,17 +93,170 @@ status				(rte_context *		context,
 	pthread_mutex_unlock (&dx->codec.mutex);
 }
 
+/*
+ *  AVI container code based on ffmpeg
+ */
+
+#define AVIF_HASINDEX		0x00000010	/* Index at end of file? */
+#define AVIF_MUSTUSEINDEX	0x00000020
+#define AVIF_ISINTERLEAVED	0x00000100
+#define AVIF_TRUSTCKTYPE	0x00000800      /* Use CKType to find key frames? */
+#define AVIF_WASCAPTUREFILE	0x00010000
+#define AVIF_COPYRIGHTED	0x00020000
+
+/* FIXME endianess */
+
+#define ins_le16(ptr, val) (*((uint16_t *)(ptr)) = (val))
+#define ins_le32(ptr, val) (*((uint32_t *)(ptr)) = (val))
+
+#define put_le16(val) (ins_le16(p, val), p += 2)
+#define put_le32(val) (ins_le32(p, val), p += 4)
+
+/* gcc optimizes to movl */
+#define put_tag(str) (memcpy (p, str, 4), p += 4)
+
+#define start_tag(str) (memcpy (p, str, 4), p += 8, p - 4)
+#define end_tag(ptr) (*((uint32_t *)(ptr)) = (p - (ptr) - 4))
+
+static int		nframes1;
+static int		nframes2;
+static int		movi;
+static int		hdrlen;
+
+static const char *	codec_tag = "DIVX";
+
+static inline void
+avi_write_header		(d4l_context *		dx,
+				 uint8_t *		p0)
+{
+	uint8_t *p, *start, *list1, *list2, *avih, *strh, *strf;
+
+	p = p0;
+
+	start = start_tag ("RIFF");		/* file length */
+	put_tag ("AVI ");
+
+	/* header list */
+	list1 = start_tag ("LIST");
+	put_tag ("hdrl");
+
+	/* avi header */
+	avih = start_tag ("avih");
+	put_le32 ((unsigned int)		/* frame period */
+		  (1000000 / dx->enc_param4.framerate));
+	put_le32 ((dx->enc_param4.bitrate + 7) >> 3);
+	put_le32 (0);				/* padding */
+	put_le32 (AVIF_TRUSTCKTYPE
+		  | AVIF_HASINDEX
+		  | AVIF_ISINTERLEAVED);	/* flags */
+	nframes1 = p - p0;
+	put_le32 (0);				/* num frames (later) */
+	put_le32 (0);				/* initial frame */
+	put_le32 (1);				/* num streams */
+	put_le32 (1024 * 1024);			/* suggested buffer size */
+	put_le32 (dx->enc_param4.x_dim);
+	put_le32 (dx->enc_param4.y_dim);
+	put_le32 (0);				/* reserved */
+	put_le32 (0);				/* reserved */
+	put_le32 (0);				/* reserved */
+	put_le32 (0);				/* reserved */
+	end_tag (avih);
+
+	/* stream list */
+	list2 = start_tag ("LIST");
+	put_tag ("strl");
+
+	strh = start_tag ("strh");		/* stream generic header */
+	/* video stream */
+	put_tag ("vids");
+	put_tag (codec_tag);
+	put_le32 (0);				/* flags */
+	put_le16 (0);				/* priority */
+	put_le16 (0);				/* language */
+	put_le32 (0);				/* initial frame */
+	put_le32 (1000);			/* scale */
+	put_le32 ((unsigned int)		/* rate */
+		  (1000 * dx->enc_param4.framerate));
+	put_le32 (0);				/* start */
+	nframes2 = p - p0;
+	put_le32 (0);				/* num frames (later) */
+	put_le32 (1024 * 1024);			/* suggested buffer size */
+	put_le32 (-1);				/* quality */
+	put_le32 (3
+		  * dx->enc_param4.x_dim
+		  * dx->enc_param4.y_dim);	/* sample size */
+	put_le16 (0);
+	put_le16 (0);
+	put_le16 (dx->enc_param4.x_dim);
+	put_le16 (dx->enc_param4.y_dim);
+	end_tag (strh);
+
+	strf = start_tag ("strf");
+	put_le32 (40);				/* BITMAPINFOHEADER size */
+	put_le32 (dx->enc_param4.x_dim);
+	put_le32 (dx->enc_param4.y_dim);
+	put_le16 (1);				/* planes */
+	put_le16 (24);				/* depth */
+	put_tag (codec_tag);			/* compression type */
+	put_le32 (3
+		  * dx->enc_param4.x_dim
+		  * dx->enc_param4.y_dim);
+	put_le32 (0);
+	put_le32 (0);
+	put_le32 (0);
+	put_le32 (0);
+        end_tag (strf);
+
+        end_tag (list2);			/* - stream list */
+	end_tag (list1);			/* - header list */
+
+	movi = start_tag ("LIST") - p0;
+	put_tag ("movi");
+
+	hdrlen = p - p0;
+}
+
+static inline void
+avi_write_trailer		(d4l_context *		dx,
+				 uint8_t *		p,
+				 uint32_t		movi_bytes)
+{
+	ins_le32 (p + 4, hdrlen + movi_bytes - 8);
+	ins_le32 (p + nframes1, dx->status.frames_out);
+	ins_le32 (p + nframes2, dx->status.frames_out);
+	ins_le32 (p + movi, movi_bytes + 4);
+}
+
 static void *
 mainloop			(void *			p)
 {
+	extern rte_context_class divx_avi_context;
 	d4l_context *dx = p;
+	uint8_t header[1024];
+	uint32_t movi_bytes;
+
+	/* No interruption btw read & unref, mutex */
+	pthread_setcancelstate (PTHREAD_CANCEL_DISABLE, NULL);
 
 	dprintf ("mainloop\n");
 
-	for (;;) {
-		rte_buffer rb, wb;
+	if (dx->context._class == &divx_avi_context) {
+		rte_buffer wb;
 
-		pthread_testcancel ();
+		avi_write_header (dx, header);
+
+		wb.data = header;
+		wb.size = hdrlen;
+
+		if (!dx->write_cb (&dx->context, NULL, &wb)) {
+			return NULL; /* XXX */
+		}
+
+		movi_bytes = 0;
+	}
+
+	while (!dx->stopped) {
+		rte_buffer rb, wb;
 
 		/* FIXME frame dropping */
 
@@ -115,15 +271,40 @@ mainloop			(void *			p)
 
 		dprintf ("compressing %p %u\n", rb.data, rb.size);
 
-		dx->enc_frame.image = rb.data;
-		dx->enc_frame.bitstream = dx->buffer;
+		if (dx->context._class == &divx_avi_context) {
+			dx->enc_frame.image = rb.data;
+			dx->enc_frame.bitstream = 8 + (uint8_t *) dx->buffer;
+		} else {
+			dx->enc_frame.image = rb.data;
+			dx->enc_frame.bitstream = dx->buffer;
+		}
 
 		encore_encode (dx->handle,
 			       &dx->enc_frame,
 			       &dx->enc_result);
 
-		wb.data = dx->buffer;
-		wb.size = dx->enc_frame.length;
+		if (dx->context._class == &divx_avi_context) {
+			static const int stream_index = 0;
+			uint8_t *p = dx->buffer;
+
+			p[0] = '0';
+			p[1] = '0' + stream_index;
+		        p[2] = 'd';
+		        p[3] = 'c';
+
+			ins_le32 (p + 4, dx->enc_frame.length);
+
+			wb.data = dx->buffer;
+			wb.size = 8 + dx->enc_frame.length;
+
+			if (dx->enc_frame.length & 1)
+				((uint8_t *) wb.data)[wb.size++] = 0;
+
+			movi_bytes += wb.size;
+		} else {
+			wb.data = dx->buffer;
+			wb.size = dx->enc_frame.length;
+		}
 
 		pthread_mutex_lock (&dx->codec.mutex);
 
@@ -144,6 +325,22 @@ mainloop			(void *			p)
 			dx->unref_cb (&dx->context, &dx->codec, &rb);
 	}
 
+	if (dx->context._class == &divx_avi_context) {
+		rte_buffer wb;
+
+		/* XXX error */
+		dx->seek_cb (&dx->context, 0, SEEK_SET);
+
+		avi_write_trailer (dx, header, movi_bytes);
+
+		wb.data = header;
+		wb.size = hdrlen;
+
+		if (!dx->write_cb (&dx->context, NULL, &wb)) {
+			return NULL; /* XXX */
+		}
+	}
+
 	return NULL;
 }
 
@@ -159,7 +356,8 @@ stop				(rte_context *		context,
 		return FALSE;
 	}
 
-	pthread_cancel (dx->thread_id);
+	dx->stopped = TRUE;
+
 	pthread_join (dx->thread_id, NULL);
 
 	encore_release (dx->handle);
@@ -223,6 +421,8 @@ start				(rte_context *		context,
 	dx->context.state = RTE_STATE_RUNNING;
 	dx->codec.state = RTE_STATE_RUNNING;
 
+	dx->stopped = FALSE;
+
 	error = pthread_create (&dx->thread_id, NULL, mainloop, dx);
 
 	if (error != 0) {
@@ -282,12 +482,14 @@ set_output			(rte_context *		context,
 
 	assert (dx->buffer == NULL);
 
-	if (!(dx->buffer = malloc (8 * dx->codec.params.video.width
-				  * dx->codec.params.video.height))) {
+	if (!(dx->buffer = malloc (8
+				   * dx->codec.params.video.width
+				   * dx->codec.params.video.height))) {
 		rte_error_printf (&dx->context, _("Out of memory."));
 		return FALSE;
 	}
 
+	dx->seek_cb = seek_cb;
 	dx->write_cb = write_cb;
 	dx->context.state = RTE_STATE_READY;
 
@@ -743,19 +945,54 @@ context_new			(rte_context_class *	xc,
 /* Backend initialization */
 
 static rte_context_info
-divx_info = {
+divx_video_info = {
 	.backend		= "divx4linux",
 	.keyword		= "divx4linux_video",
 	.label			= N_("DivX Video Elementary Stream"),
 	.mime_type		= "video/x-mpeg",
-	.extension		= ".divx",
+	.extension		= "divx",
 	.min_elementary		= { 0, 1, 0 },
 	.max_elementary		= { 0, 1, 0 },
 };
 
 static rte_context_class
-divx_context = {
-	._public		= &divx_info,
+divx_video_context = {
+	._public		= &divx_video_info,
+
+	.codec_enum		= codec_enum,
+	.codec_get		= codec_get,
+	.codec_set		= codec_set,
+
+	.codec_option_set	= option_set,
+	.codec_option_get	= option_get,
+	.codec_option_print	= option_print,
+	.codec_option_enum	= option_enum,
+
+	.parameters_set		= parameters_set,
+
+	.set_input		= set_input,
+	.set_output		= set_output,
+
+	.start			= start,
+	.stop			= stop,
+
+	.status			= status,
+};
+
+static rte_context_info
+divx_avi_info = {
+	.backend		= "divx4linux",
+	.keyword		= "divx4linux_avi",
+	.label			= N_("DivX AVI Stream"),
+	.mime_type		= "video/x-mpeg",
+	.extension		= "divx",
+	.min_elementary		= { 0, 1, 0 },
+	.max_elementary		= { 0, 1, 0 },
+};
+
+static rte_context_class
+divx_avi_context = {
+	._public		= &divx_avi_info,
 
 	.codec_enum		= codec_enum,
 	.codec_get		= codec_get,
@@ -809,10 +1046,14 @@ backend_init			(void)
 		return;
 	}
 
-	divx_context._new = context_new;
-	divx_context._delete = context_delete;
+	divx_video_context._new = context_new;
+	divx_video_context._delete = context_delete;
+
+	divx_avi_context._new = context_new;
+	divx_avi_context._delete = context_delete;
 
 	if (encore_vers >= ENCORE5_VERSION) {
+		codec_tag = "DX50";
 		d4l_codec._public->keyword = "divx5_video";
 		d4l_codec._public->label = N_("DivX 5.x Video");
 	}
@@ -824,7 +1065,7 @@ static rte_context_class *
 context_enum			(unsigned int		index,
 				 char **		errstr)
 {
-	if (index != 0)
+	if (index >= 2)
 		return NULL;
 
 	if (!encore_lib) {
@@ -832,7 +1073,7 @@ context_enum			(unsigned int		index,
 			      open_error);
 	}
 
-	return &divx_context;
+	return index ? &divx_avi_context : &divx_video_context;
 }
 
 const rte_backend_class

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_divx4linux.h,v 1.2 2002-10-04 13:51:19 mschimek Exp $ */
+/* $Id: b_divx4linux.h,v 1.3 2002-12-14 00:48:49 mschimek Exp $ */
 
 #ifndef B_DIVX4LINUX_H
 #define B_DIVX4LINUX_H
@@ -66,12 +66,14 @@ typedef struct {
 	rte_bool		codec_set;
 
 	pthread_t		thread_id;
+	rte_bool		stopped;
 
 	rte_io_method		input_method;
 
 	rte_buffer_callback	read_cb;
 	rte_buffer_callback	unref_cb;
 
+	rte_seek_callback	seek_cb;
 	rte_buffer_callback	write_cb;
 } d4l_context;
 

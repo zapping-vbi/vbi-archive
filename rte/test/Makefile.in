@@ -93,6 +93,7 @@ INTL_LIBTOOL_SUFFIX_PREFIX = @INTL_LIBTOOL_SUFFIX_PREFIX@
 LIB = @LIB@
 LIBICONV = @LIBICONV@
 LIBINTL = @LIBINTL@
+LIBRTE_SO_VERSION = @LIBRTE_SO_VERSION@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
 LTLIB = @LTLIB@
@@ -122,7 +123,7 @@ INCLUDES = -I$(top_srcdir)/src -I$(top_builddir)/src $(COMMON_INCLUDES) \
 	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
 
 
-LDADD = $(top_builddir)/src/.libs/librte.a -lpthread -lm
+LDADD = $(top_builddir)/src/.libs/librte.a $(PTHREAD_LIB) -lm
 subdir = test
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h

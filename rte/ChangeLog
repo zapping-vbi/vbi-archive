@@ -1,3 +1,21 @@
+2002-10-25	<mschimek@users.sf.net>
+
+	* divx4linux/divx4linux.c: Added AVI container format.
+	* mp1e/video/video.h, mp1e/audio/audio.h,
+	  src/context.h, src/option.h: s/stdint.h/inttypes.h/.
+	* test/io.c, test/info.c: getopt_long conditional.
+	* configure.in: Added strlcpy(), libpthread, getopt_long check.
+	* src/Makefile.am: pthread.
+	* ffmpeg/libav/avformat.h, ffmpeg/libav/utils.c (strlcpy):
+	  No definition if HAVE_STRLCPY.
+	* ffmpeg/b_ffmpeg.c: INT64_MAX fallback.
+	* mp1e: s/bool/rte_bool.
+
+2002-10-19	<mschimek@users.sf.net>
+
+	* divx4linux/divx4linux.c: Thread cancellation, filename
+	  extension bug.
+
 2002-10-04	<mschimek@users.sf.net>
 
 	* Release 0.5.

@@ -2,7 +2,7 @@
 
 noinst_LTLIBRARIES = libav.la
 
-INCLUDES = -D_REENTRANT -DHAVE_AV_CONFIG_H \
+INCLUDES = -D_REENTRANT -DHAVE_AV_CONFIG_H -include $(top_builddir)/config.h \
 	-Wall -Wunused -Wmissing-declarations
 
 libav_la_SOURCES = \

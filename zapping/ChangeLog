@@ -1,6 +1,33 @@
+13.12.2002	<mschimek@users.sf.net>
+
+	* glade/zapping.glade, src/v4linterface.c, src/v4linterface.h,
+	  plugins/mpeg/mpeg.c: Added video standard inquiry if not
+	  reported by driver.
+
+12.12.2002	<mschimek@users.sf.net>
+
+	* plugins/mpeg/mpeg.c (video_callback): Unusual condition can
+	  block encoding, added temp fix to abort after stop.
+	(on_saving_configure_clicked, saving_dialog_attach_formats):
+	  GUI confusion fix, saving dialog now automatically selects
+	  last configured format. 
+	(select_file_format): preliminary visual hint, mp1e vcd image
+	  size is not variable.
+	(do_start): Retry request_bundle_format() with codec video
+	  parameters.
+	* src/callbacks.c, src/osd.c, src/ttxview.c, src/zvbi.h,
+	  src/zvbi.c: Corrected wrong type of zvbi_page, zvbi_subpage
+	  for libzvbi 0.3.
+	* zapping.desktop: Italian translation from po/it.po.
+
 30.10.2002	Italian translation <garetxe@users.sf.net>
 
 	* it.po: Italian translation, contributed by Pino Toscano.
+
+21.10.2002	<mschimek@users.sf.net>
+
+	* src/zvbi.c (threads_init): g_strconcat() fix re #635976.
+	* src/gen_conv.s: Replaced /**/ remarks, old as don't like it.
 
 04.10.2002	<mschimek@users.sf.net>
 
