@@ -1177,7 +1177,7 @@ change_capture_format		(tveng_device_info *	info,
   capture_mode old_mode;
 
   fmt = tv_cur_capture_format (info);
-  if (!fmt)
+  if (!fmt || !fmt->pixel_format)
     return NULL;
 
   if (0 == (width | height))
