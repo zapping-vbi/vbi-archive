@@ -9,6 +9,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <ctype.h>
+
 #include "ucs-2.h"
 
 // #define TEST 1
@@ -288,6 +289,18 @@ const char* get_locale_charset (void)
   // 2. environment variable LC_CTYPE,
   // 3. environment variable LANG - a default for all LC_* variables.
   const char * locale;
+
+  /* glib 2.0 */
+  {
+    extern int g_get_charset(const char **);
+
+    if (locale_charset)
+      return locale_charset;
+
+    g_get_charset (&locale_charset);
+
+    return locale_charset;
+  }
 
   if (locale_charset)
     return locale_charset;
