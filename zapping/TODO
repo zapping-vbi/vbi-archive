@@ -1,7 +1,6 @@
 Outstanding issues for the next release
 ---------------------------------------
-	+ Fix the autoconf mess (datadir), forcing the user to set
-datadir manually when compiling is terrible.
 	+ Integrate sound into the plugins.
-	+ AVI or MPEG saving plugin (adapt mp1e?)
+	+ Find a good name for the mp1e plugin (mp1e is anything but original)
+	+ Add channel searching a la kwintv (really cool!)
 	> Release 0.5.2

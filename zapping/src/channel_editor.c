@@ -41,12 +41,6 @@ extern tveng_device_info * main_info; /* About the device we are using */
 
 extern int cur_tuned_channel; /* Currently tuned channel */
 
-/*
-  This should be called after any change to the current freq
-*/
-void
-p_channel_editor_update_label43 (GtkWidget * widget);
-
 /* Called when the current country selection has been changed */
 void
 on_country_switch                      (GtkWidget       *menu_item,
@@ -184,8 +178,6 @@ on_channels1_activate                  (GtkMenuItem     *menuitem,
   gtk_object_set_user_data(GTK_OBJECT(channel_window), menuitem);
 
   gtk_widget_set_sensitive(GTK_WIDGET(menuitem), FALSE);
-
-  p_channel_editor_update_label43 (channel_window);
 
   gtk_widget_show(channel_window);
 
@@ -360,8 +352,6 @@ on_clist1_select_row                   (GtkCList        *clist,
     }
 
   tveng_tune_input (selected_channel->freq, main_info);
-
-  p_channel_editor_update_label43 (GTK_WIDGET(clist));
 }
 
 gboolean
@@ -533,7 +523,6 @@ on_channel_list_select_row             (GtkCList        *clist,
 	tveng_set_mute(0, main_info);
     }
 
-  p_channel_editor_update_label43 (GTK_WIDGET(clist1));
 }
 
 /*
@@ -556,35 +545,120 @@ on_channel_list_key_press_event        (GtkWidget       *widget,
   return FALSE;
 }
 
-/*
-  This should be called after any change to the current freq
-*/
-void
-p_channel_editor_update_label43 (GtkWidget * widget)
+gint do_search (GtkWidget * searching);
+
+gint do_search (GtkWidget * searching)
 {
-  GtkWidget * label43 = lookup_widget(widget, "label43");
-  __u32 freq;
-  gchar * buffer;
-  int afc, strength;
+  GtkWidget * progress = lookup_widget(searching, "progressbar1");
+  GtkWidget * label80 = lookup_widget(searching, "label80");
+  gint scanning_channel =
+    GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(searching),
+					"scanning_channel"));
+  GtkWidget * channel_list =
+    gtk_object_get_user_data(GTK_OBJECT(searching));
+  GtkWidget * clist1 =
+    lookup_widget(channel_list, "clist1");
+  gint strength;
 
-  if (-1 == tveng_get_tune(&freq, main_info))
+  tveng_channel * channel;
+
+  if (scanning_channel >= 0)
     {
-      g_warning("tveng_get_tune: %s", main_info->error);
-      freq = 0;
+      channel = tveng_get_channel_by_id(scanning_channel,
+					current_country);
+      g_assert(channel != NULL);
+
+      if ((-1 != tveng_get_signal_strength(&strength, NULL, main_info)) &&
+	  (strength > 0))
+	{
+	  GtkWidget * channel_name =
+	    lookup_widget(channel_list, "channel_name");
+	  gtk_entry_set_text(GTK_ENTRY(channel_name), channel->name);
+	  on_channel_name_activate(GTK_EDITABLE(channel_name), NULL);
+	}
     }
 
-  if (-1 == tveng_get_signal_strength(&strength, &afc, main_info))
+  scanning_channel++;
+
+  /* Check if we have reached the end */
+  if (current_country->chan_count <= scanning_channel)
     {
-      g_warning("tveng_get_signal_strength: %s", main_info->error);
-      strength = -1;
+      gtk_widget_destroy(searching);
+      return FALSE;
     }
 
-  if ((strength == -1) || (freq == 0))
-    buffer = g_strdup(_("Tuner could not be queried, check stderr"));
-  else
-    buffer = g_strdup_printf("%u kHz", freq);
+  gtk_progress_set_percentage(GTK_PROGRESS(progress),
+     ((gfloat)scanning_channel)/current_country->chan_count);
 
-  gtk_label_set_text(GTK_LABEL(label43), buffer);
+  channel = tveng_get_channel_by_id(scanning_channel,
+				    current_country);
+  g_assert(channel != NULL);
+  gtk_label_set_text(GTK_LABEL(label80), channel->name);
 
-  g_free(buffer);
+  gtk_clist_select_row(GTK_CLIST (clist1), scanning_channel, 0);
+
+  /* make the row visible */
+  gtk_clist_moveto(GTK_CLIST(clist1), scanning_channel, 0,
+		   0.5, 0);
+
+  /* Tune to this channel's freq */
+  if (-1 == tveng_tune_input (channel->freq, main_info))
+    g_warning("While tuning: %s", main_info -> error);
+
+  gtk_object_set_data(GTK_OBJECT(searching), "scanning_channel",
+		      GINT_TO_POINTER(scanning_channel));
+
+  return TRUE;
+}
+
+void
+on_channel_search_clicked              (GtkButton       *button,
+                                        gpointer         user_data)
+{
+  GtkWidget * channel_window =
+    lookup_widget(GTK_WIDGET(button), "channel_window");
+  GtkWidget * channel_list =
+    lookup_widget(channel_window, "channel_list");
+  GtkWidget * searching = create_searching();
+  GtkWidget * progress =
+    lookup_widget(searching, "progressbar1");
+  gint timeout;
+
+  gtk_progress_set_percentage(GTK_PROGRESS(progress), 0.0);
+
+  /* The timeout has to be big enough to let the tuner estabilize */
+  timeout = gtk_timeout_add(150, (GtkFunction)do_search, searching);
+
+  gtk_object_set_user_data(GTK_OBJECT(searching), channel_list);
+  gtk_object_set_data(GTK_OBJECT(searching), "timeout",
+		      GINT_TO_POINTER(timeout));
+  gtk_object_set_data(GTK_OBJECT(searching), "scanning_channel",
+		      GINT_TO_POINTER(-1));
+
+  gtk_widget_show(searching);
+}
+
+void
+on_cancel_search_clicked               (GtkButton       *button,
+                                        gpointer         user_data)
+{
+  GtkWidget * searching =
+    lookup_widget(GTK_WIDGET(button), "searching");
+  gint timeout =
+    GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(searching), "timeout"));
+
+  gtk_timeout_remove(timeout);
+  gtk_widget_destroy(searching);
+}
+
+gboolean
+on_searching_delete_event              (GtkWidget       *widget,
+                                        GdkEvent        *event,
+                                        gpointer         user_data)
+{
+  gint timeout =
+    GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(widget), "timeout"));
+
+  gtk_timeout_remove(timeout);
+  return FALSE;
 }

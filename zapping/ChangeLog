@@ -1,3 +1,16 @@
+20.6.2000	Channel finder <garetxe@users.sourceforge.net>
+
+	* src/channel_editor.c: Added the option to find automagically all
+	the tunable channels (works fine in V4L, a bit worse in V4L2)
+	* src/tveng2.c: Fixed, so it can do channel searching.
+
+19.6.2000	datadir fixed <garetxe@users.sourceforge.net>
+
+	* configure.in: Now the need to specify the datadir option has
+	disappeared, --prefix is enough.
+	* tveng1.c: Worked around a bug in the bttv driver, the returned
+	maximum capture width isn't correct (thanks to Marcel Janssen)
+
 14.6.2000	Right-click menu <garetxe@users.sourceforge.net>
 
 	* src/callbacks.c: Fullscreen mode grabs the keyboard again, but

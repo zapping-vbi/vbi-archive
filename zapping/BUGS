@@ -4,6 +4,10 @@ Known bugs with zapping
 ! == Bug that needs fixing, very important
 ------------------------------------------
 
+	! Marcel Janssen reported that with a bt878 Zapping didn't
+work when resizing the window to a size bigger that the maximum
+capture dimensions (the V4L1 bug with maximum capture sizes worked
+around in xawtv?)
 	* Somehow the docs aren't displayed with the GnomeHelpBrowser
 but with Mozilla. Annoying, since Mozilla needs a lot of resources.
 	* Some users have reported that FS mode doesn't work

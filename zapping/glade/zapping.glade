@@ -969,7 +969,7 @@ in the next release of this program.</label>
 	<widget>
 	  <class>GtkScrolledWindow</class>
 	  <name>scrolledwindow5</name>
-	  <hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
+	  <hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
 	  <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
 	  <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
 	  <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
@@ -1028,7 +1028,7 @@ in the next release of this program.</label>
       <widget>
 	<class>GtkScrolledWindow</class>
 	<name>scrolledwindow6</name>
-	<hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
+	<hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
 	<vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
 	<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
 	<vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
@@ -1115,32 +1115,22 @@ in the next release of this program.</label>
     </widget>
 
     <widget>
-      <class>GtkHBox</class>
-      <name>hbox7</name>
-      <homogeneous>False</homogeneous>
-      <spacing>0</spacing>
+      <class>GtkButton</class>
+      <name>channel_search</name>
+      <border_width>7</border_width>
+      <tooltip>Select your country and click here to search for the available channels</tooltip>
+      <can_focus>True</can_focus>
+      <signal>
+	<name>clicked</name>
+	<handler>on_channel_search_clicked</handler>
+	<last_modification_time>Tue, 20 Jun 2000 13:54:19 GMT</last_modification_time>
+      </signal>
+      <label>_Search for the available channels in the current country</label>
       <child>
 	<padding>0</padding>
 	<expand>False</expand>
 	<fill>False</fill>
       </child>
-
-      <widget>
-	<class>GtkLabel</class>
-	<name>label43</name>
-	<label>label43</label>
-	<justify>GTK_JUSTIFY_CENTER</justify>
-	<wrap>False</wrap>
-	<xalign>0.5</xalign>
-	<yalign>0.5</yalign>
-	<xpad>0</xpad>
-	<ypad>0</ypad>
-	<child>
-	  <padding>0</padding>
-	  <expand>True</expand>
-	  <fill>False</fill>
-	</child>
-      </widget>
     </widget>
 
     <widget>
@@ -1921,6 +1911,112 @@ in the next release of this program.</label>
     <label>Go _Fullscreen</label>
     <right_justify>False</right_justify>
     <stock_icon>GNOME_STOCK_MENU_EXEC</stock_icon>
+  </widget>
+</widget>
+
+<widget>
+  <class>GtkDialog</class>
+  <name>searching</name>
+  <signal>
+    <name>delete_event</name>
+    <handler>on_searching_delete_event</handler>
+    <last_modification_time>Tue, 20 Jun 2000 14:20:08 GMT</last_modification_time>
+  </signal>
+  <title>Searching...</title>
+  <type>GTK_WINDOW_DIALOG</type>
+  <position>GTK_WIN_POS_NONE</position>
+  <modal>True</modal>
+  <allow_shrink>False</allow_shrink>
+  <allow_grow>False</allow_grow>
+  <auto_shrink>True</auto_shrink>
+
+  <widget>
+    <class>GtkVBox</class>
+    <child_name>Dialog:vbox</child_name>
+    <name>dialog-vbox2</name>
+    <homogeneous>False</homogeneous>
+    <spacing>0</spacing>
+
+    <widget>
+      <class>GtkHBox</class>
+      <child_name>Dialog:action_area</child_name>
+      <name>dialog-action_area2</name>
+      <border_width>10</border_width>
+      <homogeneous>True</homogeneous>
+      <spacing>5</spacing>
+      <child>
+	<padding>0</padding>
+	<expand>False</expand>
+	<fill>True</fill>
+	<pack>GTK_PACK_END</pack>
+      </child>
+
+      <widget>
+	<class>GtkButton</class>
+	<name>cancel_search</name>
+	<can_focus>True</can_focus>
+	<signal>
+	  <name>clicked</name>
+	  <handler>on_cancel_search_clicked</handler>
+	  <last_modification_time>Tue, 20 Jun 2000 14:09:10 GMT</last_modification_time>
+	</signal>
+	<stock_button>GNOME_STOCK_BUTTON_CANCEL</stock_button>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>False</fill>
+	</child>
+      </widget>
+    </widget>
+
+    <widget>
+      <class>GtkVBox</class>
+      <name>vbox15</name>
+      <homogeneous>False</homogeneous>
+      <spacing>0</spacing>
+      <child>
+	<padding>0</padding>
+	<expand>True</expand>
+	<fill>True</fill>
+      </child>
+
+      <widget>
+	<class>GtkLabel</class>
+	<name>label80</name>
+	<label></label>
+	<justify>GTK_JUSTIFY_CENTER</justify>
+	<wrap>False</wrap>
+	<xalign>0.5</xalign>
+	<yalign>0.5</yalign>
+	<xpad>0</xpad>
+	<ypad>0</ypad>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>False</fill>
+	</child>
+      </widget>
+
+      <widget>
+	<class>GtkProgressBar</class>
+	<name>progressbar1</name>
+	<value>0</value>
+	<lower>0</lower>
+	<upper>100</upper>
+	<bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
+	<orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
+	<activity_mode>False</activity_mode>
+	<show_text>True</show_text>
+	<format>%P %%</format>
+	<text_xalign>0.5</text_xalign>
+	<text_yalign>0.5</text_yalign>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>False</fill>
+	</child>
+      </widget>
+    </widget>
   </widget>
 </widget>
 

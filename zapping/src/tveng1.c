@@ -37,11 +37,6 @@
 #undef WNOHANG
 #undef WUNTRACED
 #include "tveng.h"
-/* 
-   This works around a bug bttv appears to have with the mute
-   property. Comment out the line if your V4L driver isn't buggy.
-*/
-#define TVENG1_BTTV_MUTE_BUG_WORKAROUND 1
 #include "tveng1.h"
 
 /*
@@ -113,6 +108,12 @@ int p_tveng1_open_device_file(int flags, tveng_device_info * info)
   info->caps.maxheight = caps.maxheight;
   info->caps.minheight = caps.minheight;
   info->caps.flags = 0;
+
+  /* BTTV doesn't return properly the maximum width */
+#ifdef TVENG1_BTTV_PRESENT
+  if (info->caps.maxwidth > 768)
+    info->caps.maxwidth = 768;
+#endif
 
   /* Sets up the capability flags */
   if (caps.type & VID_TYPE_CAPTURE)
@@ -594,23 +595,29 @@ int tveng1_get_standards(tveng_device_info * info)
   int count = 0; /* Number of standards */
   struct video_channel channel;
   int i;
+  struct dummy_standard_struct * std_t;
 
-  /* The table with the possible standards */
-  struct dummy_standard_struct std_t[] =
+  /* The table with the possible standards as in the V4L1 spec */
+  struct dummy_standard_struct spec_t[] =
   {
     {  0, "PAL" },
     {  1, "NTSC" },
     {  2, "SECAM" },
-#ifndef TVENG1_BTTV_PRESENT
     {  3, "AUTO" },
-#else
+    { -1, NULL }
+  };
+  /* The set of standards in the V4L bttv controller */
+  struct dummy_standard_struct bttv_t[] =
+  {
+    {  0, "PAL" },
+    {  1, "NTSC" },
+    {  2, "SECAM" },
     {  3, "PAL-NC" },
     {  4, "PAL-M" },
 #ifdef TVENG1_PAL_N
     {  5, "PAL-N" }, /* This one hangs zapping */
 #endif
     {  6, "NTSC-JP" },
-#endif
     { -1, NULL}
   };
 
@@ -626,6 +633,18 @@ int tveng1_get_standards(tveng_device_info * info)
   /* If it has no tuners, we are done */
   if (info->inputs[info->cur_input].tuners == 0)
     return 0;
+
+  /* This comes from xawtv, in its author's words: "dirty hack time"
+   */
+  std_t = spec_t;
+#ifdef TVENG1_BTTV_PRESENT
+#define BTTV_VERSION  	        _IOR('v' , BASE_VIDIOCPRIVATE+6, int)
+  /* dirty hack time / v4l design flaw -- works with bttv only
+   * this adds support for a few less common PAL versions */
+  if (-1 != ioctl(info->fd,BTTV_VERSION,0)) {
+    std_t = bttv_t;
+  }
+#endif  
 
   while (std_t[count].name)
     {

@@ -210,6 +210,19 @@ on_channel_list_key_press_event        (GtkWidget       *widget,
                                         GdkEventKey     *event,
                                         gpointer         user_data);
 
+void
+on_channel_search_clicked              (GtkButton       *button,
+                                        gpointer         user_data);
+
+void
+on_cancel_search_clicked               (GtkButton       *button,
+                                        gpointer         user_data);
+
+gboolean
+on_searching_delete_event              (GtkWidget       *widget,
+                                        GdkEvent        *event,
+                                        gpointer         user_data);
+
 /******************************************************************************
  Stuff located in plugin_properties.c
 ******************************************************************************/

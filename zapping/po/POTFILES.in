@@ -18,3 +18,4 @@ src/sound.c
 zapping_setup_fb/zapping_setup_fb.c
 glade/glade_strings.c
 plugins/screenshot/screenshot.c
+plugins/mp1e/mp1e.c

@@ -148,3 +148,9 @@ create_popup_menu1 (void)
 {
   return build_widget("popup_menu1");
 }
+
+GtkWidget*
+create_searching (void)
+{
+  return build_widget("searching");
+}

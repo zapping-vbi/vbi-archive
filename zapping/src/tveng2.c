@@ -1328,7 +1328,7 @@ tveng2_tune_input(__u32 _freq, tveng_device_info * info)
 /*
   Gets the signal strength and the afc code. The afc code indicates
   how to get a better signal, if negative, tune higher, if negative,
-  tune lower. 0 means no idea of feature not present in the current
+  tune lower. 0 means no idea or feature not present in the current
   controller (i.e. V4L1). Strength and/or afc can be NULL pointers,
   that would mean ignore that parameter.
 */
@@ -1355,7 +1355,26 @@ tveng2_get_signal_strength (int *strength, int * afc,
     }
 
   if (strength)
-    *strength = tuner.signal;
+    {
+      /*
+	Properly we should only return the signal field, but it doesn't
+	always work :-/
+	This has the advantage that it will find most stations (with a
+	good reception) and the disadvantage that it will find too
+	many stations... but better too many than too few :-)
+      */
+#if 1
+      if (tuner.signal)
+	*strength = tuner.signal;
+      else if (tuner.afc == 0)
+	*strength = 65535;
+      else
+	*strength = 0;
+#else
+      /* This is the correct method, but probably it won't work */
+      *strength = tuner.signal;
+#endif
+    }
 
   if (afc)
     *afc = tuner.afc;

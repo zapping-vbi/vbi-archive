@@ -172,12 +172,15 @@ on_tv_screen_size_allocate             (GtkWidget       *widget,
 
   if (tveng_set_capture_size(allocation->width, allocation->height, 
 			     main_info) == -1)
+    g_warning(main_info->error);
+
+  /* Reallocate a new image (if possible) */
+  if (tveng_update_capture_format(main_info) == -1)
     {
-      fprintf(stderr, "%s\n", main_info->error);
+      g_warning(main_info->error);
       return;
     }
 
-  /* Reallocate a new image */
   zimage_reallocate(main_info->format.width, main_info->format.height);
 }
 

@@ -50,6 +50,12 @@
 #endif
 
 /* 
+   This works around a bug bttv appears to have with the mute
+   property. Comment out the line if your V4L driver isn't buggy.
+*/
+#define TVENG1_BTTV_MUTE_BUG_WORKAROUND 1
+
+/* 
    This defines the struct tveng will use for controlling the
    device. Similar to tveng_device_info, but some more fields specific
    to V4L.
