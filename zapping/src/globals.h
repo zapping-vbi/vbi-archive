@@ -56,14 +56,11 @@ extern GtkWidget *
 (*_teletext_view_new)		(void);
 extern TeletextView *
 (*_teletext_view_from_widget)	(GtkWidget *		widget);
-extern gboolean
-(*_teletext_view_on_key_press)	(GtkWidget *		widget,
-				 GdkEventKey *		event,
-				 TeletextView *		view);
 extern GtkWidget *
 (*_teletext_toolbar_new)	(GtkActionGroup *	action_group);
 
-extern GtkWidget* (*_ttxview_popup)(GtkWidget *widget, GdkEventButton *event);
+extern GtkWidget* (*_ttxview_popup_menu_new)(GtkWidget *widget,
+					     GdkEventButton *event);
 extern GtkWidget * (*_ttxview_bookmarks_menu_new)(GtkWidget *widget);
 extern guint (*_ttxview_hotlist_menu_insert)(GtkMenuShell *menu,
 					     gboolean separator,
