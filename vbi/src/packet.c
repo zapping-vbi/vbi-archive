@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet.c,v 1.9.2.6 2004-02-13 02:12:53 mschimek Exp $ */
+/* $Id: packet.c,v 1.9.2.7 2004-02-18 07:54:31 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -706,7 +706,7 @@ eacem_trigger(vbi_decoder *vbi, const vt_page *vtp)
 
 	if (!vbi_format_vt_page (vbi, &pgp, vtp,
 				 VBI_WST_LEVEL, VBI_WST_LEVEL_1p5,
-				 VBI_END))
+				 0))
 		return;
 
 	s = (uint8_t *) pgp.pg.text;
@@ -1065,7 +1065,7 @@ vbi_convert_raw_page		(vbi_decoder *		vbi,
 {
 	vt_page page;
 
-	memcpy (&page, vtp, sizeof (*vtp));
+	memcpy (&page, vtp, vtp_size (vtp));
 
 	return vbi_convert_page	(vbi, vtp, &page, new_function);
 }
@@ -1078,7 +1078,7 @@ vbi_convert_cached_page		(vbi_decoder *		vbi,
 	const vt_page *vtp = *vtpp;
 	vt_page page;
 
-	memcpy (&page, vtp, sizeof (*vtp));
+	memcpy (&page, vtp, vtp_size (vtp));
 
 	if (!vbi_convert_page (vbi, &page, vtp, new_function))
 		return FALSE;
