@@ -285,6 +285,7 @@ po/Makefile.in
 glade/Makefile
 help/Makefile
 help/C/Makefile
+help/de/Makefile
 plugins/Makefile
 common/Makefile
 zapping_setup_fb/Makefile

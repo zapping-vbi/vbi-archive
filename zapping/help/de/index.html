@@ -1,0 +1,65 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML Level 2//EN//2.0">
+<HTML>
+
+<HEAD>
+<TITLE>Zapping Dokumentation</TITLE>
+</HEAD>
+<BODY BGCOLOR="#fffefe">
+<a name="#Start"></a>
+<H1>Einige Fragen zu diesem Programm</H1>
+<H4>Wof&uuml;r ist diese Software?</H4>
+Zapping ist ein TV Betrachter,und somit ist die Hauptaufgabe von Zapping
+es zu erm&ouml;glichen, &uuml;ber ihre TV Karte am Computer fernzusehen.
+Nichtsdestotrotz, gibt es eine Menge Möglichkeiten etwas mit einem Image
+Stream anzufangen, und Zapping bietet eine Möglichkeit dies zu tun,man
+braucht nur ein Plug-in das ihren Wünschen entspricht. Sollte dieses Plugin welches Ihren
+Wünschen entspricht nicht existieren, sind Sie herzlich eingeladen eines zu schreiben.
+<H4>Ich vermisse die Funktion XYZ, wird sie in Zukunft vorhanden sein?</H4>
+Vielleicht, je eher Sie danach fragen, desto wahrscheinlicher ist es, das die Funktion 
+in der n&auml;chsten Ausgabe enthalten sein wird
+<H4>Das Programm funktioniert nicht!?</H4>
+Bei mir l&auml;uft es ;-)<br>
+Wenn Sie einen Fehler (Bug), <a
+href="http://zapping.sourceforge.net/index.html#Bugs">melden</a>
+pr&uuml;fen Sie, ob es sich nicht um einen schon bekannten Fehler handelt.
+(gucken Sie in der Datei <i>BUGS</i> nach, die bei Zapping mit dabei ist) und
+geben Sie soviele Informationen wie m&ouml;glich an. Bei einem Absturz, geben Sie bitte an,
+was Sie genau gemacht haben, damit wir den Vorgang rekonstruieren k&ouml;nnen).
+<br>
+<ul>
+<li><i>Wenn der Vollbildmodus nicht den ganzen Bildschirm f&uuml;llt...</i><br>
+Das kommt normalerweise dann, wenn Sie eine hohe Auflösung fahren. Schalten Sie den X Server
+in einen niedrigeren Aufl&ouml;sungsmodus um(unter
+/etc/X11/XF86Config, mit Xconfigurator oder einem ähnlichem
+Programm. Unter SuSe k&ouml;nnen Sie das auch mit Sax2 machen, indem
+Sie dort mehrere Aufl&ouml;sungen einstellen, Sie k&ouml;nnen dann
+unter X mit &lt;CTRL&gt; + &lt;ALT&gt; + &lt;-&gt; oder &lt;CTRL&gt; + &lt;ALT&gt; + &lt;+&gt; auf dem Nummern Block in einen anderen Aufl&ouml;sungsmodus wechseln).
+<li><i>Das Vollbild und Vorschaubild sind stark gest&ouml;rt</i><br>
+Normalerweise kommt das dann, wenn Zapping nicht den richten BPP Modus finden kann,
+den der X Server intern benutzt. Dies kommt h&auml;ufig im 24/32
+bpp Modus vor, solange es keinen mir bewu&szlig;ten Weg gibt, dies zu umgehen,
+versuchen Sie den Kommandozeilen Aufruf  --bpp zu &uuml;bergeben.
+<li><i>Ich habe eine NTSC Kamera an S-Video angeschlossen, aber PAL ist belegt.</i><br>
+Dies ist ein Fehler in der V4L Spezifikation. Sie k&ouml;nnen dies umgehen indem Sie die Angaben
+f&uuml;r tunerfreie Eingaben als Komandozeile &uuml;bergeben. Zum Beispiel:<br>
+<i>zapping -n SECAM</i><br><b>Bemerkung:</b> Dies ist nur eine Umgehungsm&ouml;glichkeit, die nur funktioniert wenn Sie mindestens einen Eingang mit dem Tuner haben.
+</ul>
+<H4>Wie kann ich helfen?</H4>
+Die bevorzugteste Methode ist, mit &Uuml;bersetzungen.
+<H4>K&ouml;nnen Sie mir eine kurze und pr&auml;gnante Beschreibung von Zapping geben?</H4>
+Zapping ist ein TV Betrachtungs Programm f&uuml;r Gnome. Es ist auch ein komfortables framework
+ Programm um den image stream von der TV Quelle zu erhalten und zu verarbeiten (z.B es ist eine
+Webcam an Ihre  V4L Schnittstelle angesclossen, oder teletext an den vtx
+Schnittstellen).
+<p>
+Wenn Sie mich kontaktieren wollen (bitte Fehler
+<a href="http://zapping.sourceforge.net/index.html#Bugs">hier melden</a>
+anstatt anstatt direkt per E-mail zu mir).
+<br> 
+Klicken Sie einfach auf diesen <a
+href="mailto:garetxe@users.sourceforge.net">Link</a>.<br>
+Auf der
+<a href="http://sourceforge.net/projects/zapping">Sourceforge project
+Seite</a> gibt es einige Diskussions Foren, benutzen Sie sie kostenlos.
+</BODY>
+</HTML>
