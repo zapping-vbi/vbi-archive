@@ -28,6 +28,10 @@ s2 - s7
 s2
     field 1: C1 roll-up
     field 2: xds
+s4
+    field 1: C1 roll-up realtime caption, T2 itv
+    field 2: xds
+    RU3 CR PAC14I0 xx RTD1 xx(itv) RU3 xx TR1 xx   
 
 
 t1-swr

@@ -12,6 +12,11 @@ Outstanding issues for the next release
 		dependency on mp1e (actually RTE) and the mpeg plugin.
 	+ Hide the pointer in Fullscreen mode.
 	+ Channel shortcuts.
+	+ Zapzilla search progress could use a 'new search' shortcut
+	  (not urgent).
+	+ A history of the last ten regular expressions, drop down
+	  on the button right hand in the text input box (not urgent).
+	+ Found pages must stick (until?), no rolling, no update.
 	> Release 0.6.0
 	+ Add some remote control applet (or sth like that).
 	+ Have a copy of the stuff in the "quick bar" in the main menu

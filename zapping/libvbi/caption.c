@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.7 2001-01-13 23:53:39 mschimek Exp $ */
+/* $Id: caption.c,v 1.8 2001-01-16 11:48:35 mschimek Exp $ */
 
 #define TEST 1
 
@@ -174,7 +174,7 @@ extern void roll_up(int page, attr_char *buffer, int first_row, int last_row);
 #define CC_PAGE_BASE	1
 
 typedef enum {
-	POP_ON, PAINT_ON, ROLL_UP, TEXT
+	NO_MODE, POP_ON, PAINT_ON, ROLL_UP, TEXT
 } mode;
 
 struct caption {
@@ -203,7 +203,7 @@ static void
 word_break(struct caption *cc, struct ch_rec *ch)
 {
 	/*
-	 *  Add a leading and trailing space, 'boxed' in WST terms.
+	 *  Add a leading and trailing space.
 	 */
 	if (ch->col > ch->col1) {
 		attr_char c = ch->line[ch->col1];
@@ -267,8 +267,13 @@ put_char(struct caption *cc, struct ch_rec *ch, attr_char c)
 // render(CC_PAGE_BASE + (ch - cc->channels), ch->buffer, -1);
 }
 
-#define switch_channel(cc, new_chan) \
-	(&((cc)->channels[(cc)->chan = (new_chan)]))
+static inline struct ch_rec *
+switch_channel(struct caption *cc, struct ch_rec *ch, int new_chan)
+{
+	word_break(cc, ch); // we leave for a number of frames
+
+	return &cc->channels[cc->chan = new_chan];
+}
 
 static void
 erase_memory(struct caption *cc, struct ch_rec *ch)
@@ -307,7 +312,7 @@ caption_command(struct caption *cc,
 	if (c2 >= 0x40) {	/* Preamble Address Codes  001 crrr  1ri xxxu */
 		int row = row_mapping[(c1 << 1) + ((c2 >> 5) & 1)];
 
-		if (row < 0)
+		if (row < 0 || !ch->mode)
 			return;
 
 		ch->attr.underline = c2 & 1;
@@ -318,6 +323,7 @@ caption_command(struct caption *cc,
 		word_break(cc, ch);
 
 		if (ch->mode == ROLL_UP) {
+#if 0 // questionable
 			int bottom = row + ch->roll - 1;
 
 			if (bottom > 14) {
@@ -334,10 +340,22 @@ caption_command(struct caption *cc,
 			}
 
 			set_cursor(ch, 1, row + ch->roll - 1);
+#else // more likely
+			int row1 = row - ch->roll + 1;
+
+			if (row1 < 0)
+				row1 = 0;
+
+			if (row1 != ch->row1) {
+				ch->row1 = row1;
+				erase_memory(cc, ch);
+	    			ch->redraw_all = TRUE;
+			}
+
+			set_cursor(ch, 1, ch->row1 + ch->roll - 1);
+#endif
 		} else
 			set_cursor(ch, 1, row);
-
-		ch->row1 = row;
 
 		if (c2 & 0x10) {
 			col = ch->col;
@@ -421,7 +439,8 @@ caption_command(struct caption *cc,
 
 		switch (c2 & 15) {
 		case 0:		/* Resume Caption Loading	001 c10f  010 0000 */
-			ch = switch_channel(cc, chan & 3);
+			ch = switch_channel(cc, ch, chan & 3);
+
 			ch->mode = POP_ON;
 
 // no?			erase_memory(cc, ch);
@@ -433,39 +452,43 @@ caption_command(struct caption *cc,
 		case 5:		/* Roll-Up Captions		001 c10f  010 0xxx */
 		case 6:
 		case 7:
-			ch = switch_channel(cc, chan & 3);
+		{
+			int roll = (c2 & 7) - 3;
+
+			ch = switch_channel(cc, ch, chan & 3);
+
+			if (ch->mode == ROLL_UP && ch->roll == roll)
+				return;
+
+			erase_memory(cc, ch);
+			ch->redraw_all = TRUE;
 			ch->mode = ROLL_UP;
-
-			ch->roll = (c2 & 7) - 3;
-
-			word_break(cc, ch);
+			ch->roll = roll;
 			set_cursor(ch, 1, 14);
-			ch->row1 = 14 - ch->roll + 1;
+			ch->row1 = 14 - roll + 1;
 
 			return;
+		}
 
 		case 9:		/* Resume Direct Captioning	001 c10f  010 1001 */
 // not verified
-			ch = switch_channel(cc, chan & 3);
+			ch = switch_channel(cc, ch, chan & 3);
 			ch->mode = PAINT_ON;
 			return;
 
 		case 10:	/* Text Restart			001 c10f  010 1010 */
 // not verified
-			ch = switch_channel(cc, chan | 4);
-
-			erase_memory(cc, ch);
-			ch->redraw_all = TRUE;
+			ch = switch_channel(cc, ch, chan | 4);
 
 			set_cursor(ch, 1, 0);
 			return;
 
 		case 11:	/* Resume Text Display		001 c10f  010 1011 */
-			ch = switch_channel(cc, chan | 4);
+			ch = switch_channel(cc, ch, chan | 4);
 			return;
 
 		case 15:	/* End Of Caption		001 c10f  010 1111 */
-			ch = switch_channel(cc, chan & 3);
+			ch = switch_channel(cc, ch, chan & 3);
 			ch->mode = POP_ON;
 
 			word_break(cc, ch);
@@ -491,7 +514,7 @@ caption_command(struct caption *cc,
 
 		case 1:		/* Backspace			001 c10f  010 0001 */
 // not verified
-			if (ch->col > 1) {
+			if (ch->mode && ch->col > 1) {
 				ch->line[--ch->col] = cc->transp_space[chan >> 2];
 
 				if (ch->col < ch->col1)
@@ -502,9 +525,13 @@ caption_command(struct caption *cc,
 
 		case 13:	/* Carriage Return		001 c10f  010 1101 */
 // s1: appears in text mode only
+// s4: in roll-up mode
 //   T1: {spc}{cr}<http://www.kidswb.com>[n: ][e:20000101][B68B]{cr} (sans NULs)
 //      <n>ame, <e>xpires yyyymmdd, chksum
 //      see http://developer.webtv.net/itv/links/main.htm
+
+			if (!ch->mode)
+				return;
 
 			last_row = ch->row1 + ch->roll - 1;
 
@@ -534,6 +561,9 @@ caption_command(struct caption *cc,
 
 		case 4:		/* Delete To End Of Row		001 c10f  010 0100 */
 // not verified
+			if (!ch->mode)
+				return;
+
 			for (i = ch->col; i <= NUM_COLS - 1; i++)
 				ch->line[i] = cc->transp_space[chan >> 2];
 
@@ -570,6 +600,9 @@ caption_command(struct caption *cc,
 	/* case 6: reserved */
 
 	case 7:
+		if (!ch->mode)
+			return;
+
 		switch (c2) {
 		case 0x21 ... 0x23:	/* Misc Control Codes, Tabs	001 c111  010 00xx */
 // not verified
@@ -669,6 +702,9 @@ dispatch_caption(struct caption *cc, unsigned char *buf, bool field2)
 		ch = &cc->channels[(cc->chan & 5) + field2 * 2];
 		c = ch->attr;
 
+		if (!ch->mode)
+			return;
+
 		for (i = 0; i < 2; i++) {
 			char ci = odd_parity[buf[i]] ? (buf[i] & 0x7F) : 127;
 
@@ -709,7 +745,7 @@ reset_caption(struct caption *cc)
 		ch = &cc->channels[i];
 
 		if (i < 4) {
-			ch->mode = ROLL_UP;
+			ch->mode = NO_MODE; // ROLL_UP;
 			ch->col1 = ch->col = 1;
 			ch->row = NUM_ROWS - 1;
 			ch->row1 = NUM_ROWS - 3;
@@ -1262,14 +1298,15 @@ sample_beta(void)
 			line = fgetc(stdin);
 			line += 256 * fgetc(stdin);
 
-			if ((line & 0xFFF) != 21
-			    && (line & 0xFFF) != 284)
-				continue; /* XXX smarter please */
-
 			cc[0] = fgetc(stdin);
 			cc[1] = fgetc(stdin);
 
-			printf(" %02x %02x ", cc[0] & 0x7F, cc[1] & 0x7F);
+			if ((line & 0xFFF) != 21
+			    && (line & 0xFFF) != 284) {
+				continue; /* XXX smarter please */
+			}
+
+			printf(" %3d %02x %02x ", line & 0xFFF, cc[0] & 0x7F, cc[1] & 0x7F);
 			printf(" %c%c\n", printable(cc[0]), printable(cc[1]));
 
 			dispatch_caption(&caption, cc, line >> 15);

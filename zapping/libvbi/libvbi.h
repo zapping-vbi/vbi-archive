@@ -15,8 +15,8 @@
 
 extern void		vbi_delete_search(void *p);
 extern void *		vbi_new_search(struct vbi *vbi, int pgno, int subno,
-				ucs2_t *pattern, int casefold, int dir,
+				ucs2_t *pattern, int casefold,
 				int (* progress)(struct fmt_page *pg));
-extern int		vbi_next_search(void *p, struct fmt_page **pg);
+extern int		vbi_next_search(void *p, struct fmt_page **pg, int dir);
 
 #endif

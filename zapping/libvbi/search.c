@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.4 2001-01-14 02:31:41 mschimek Exp $ */
+/* $Id: search.c,v 1.5 2001-01-16 11:48:35 mschimek Exp $ */
 
 #include <stdlib.h>
 #include "vt.h"
@@ -32,18 +32,14 @@
 #include "../common/ucs-2.h"
 #include "../common/ure.h"
 
-struct anchor {
-	int			pgno;
-	int			subno;
-	int			row;
-	int			col;
-};
-
 struct search {
 	struct vbi *		vbi;
 
-	struct anchor		start;
-	struct anchor		stop;
+	int			start_pgno;
+	int			start_subno;
+	int			stop_pgno[2];
+	int			stop_subno[2];
+	int			row[2], col[2];
 
 	int			dir;
 
@@ -61,6 +57,101 @@ struct search {
 #define FIRST_ROW 1
 #define LAST_ROW 24
 
+static void
+highlight(struct search *s, struct vt_page *vtp,
+	  ucs2_t *first, long ms, long me)
+{
+	attr_char *acp;
+	ucs2_t *hp;
+	int i, j;
+
+	acp = &s->pg.data[FIRST_ROW][0];
+	hp = s->haystack;
+
+	s->start_pgno = vtp->pgno;
+	s->start_subno = vtp->subno;
+	s->row[0] = LAST_ROW + 1;
+	s->col[0] = 0;
+
+	for (i = FIRST_ROW; i < LAST_ROW; i++) {
+		for (j = 0; j < 40; acp++, j++) {
+			int offset = hp - first;
+ 
+			if (offset >= me) {
+				s->row[0] = i;
+				s->col[0] = j;
+				return;
+			}
+
+			if (offset < ms) {
+				if (j == 39) {
+					s->row[1] = i + 1;
+					s->col[1] = 0;
+				} else {
+					s->row[1] = i;
+					s->col[1] = j + 1;
+				}
+			}
+
+			if (!gl_isalnum(acp->glyph))
+				continue; /* gfx | drcs, insignificant */
+
+			switch (acp->size) {
+			case DOUBLE_SIZE:
+				if (offset >= ms) {
+					// XXX black/yellow not good because 3.5 can
+					// redefine and it could be confused
+					// with transmitted black/yellow. Solution:
+					// private 33rd and 34th colour. Same issue
+					// TOP.
+					acp[40].foreground = BLACK;
+					acp[40].background = YELLOW;
+					acp[41].foreground = BLACK;
+					acp[41].background = YELLOW;
+				}
+
+				/* fall through */
+
+			case DOUBLE_WIDTH:
+				if (offset >= ms) {
+					acp[0].foreground = BLACK;
+					acp[0].background = YELLOW;
+					acp[1].foreground = BLACK;
+					acp[1].background = YELLOW;
+				}
+
+				hp++;
+				acp++;
+				j++;
+
+				break;
+
+			case DOUBLE_HEIGHT:
+				if (offset >= ms) {
+					acp[40].foreground = BLACK;
+					acp[40].background = YELLOW;
+				}
+
+				/* fall through */
+
+			case NORMAL:	
+				if (offset >= ms) {
+					acp[0].foreground = BLACK;
+					acp[0].background = YELLOW;
+				}
+
+				hp++;
+				break;
+
+			default:
+				// *hp++ = 0x0020; // ignore lower halves (?)
+			}
+		}
+
+		hp++;
+	}
+}
+
 static int
 search_page_fwd(struct search *s, struct vt_page *vtp, int wrapped)
 {
@@ -71,8 +162,8 @@ search_page_fwd(struct search *s, struct vt_page *vtp, int wrapped)
 	int flags, i, j;
 
 	this  = (vtp->pgno << 16) + vtp->subno;
-	start = (s->start.pgno << 16) + s->start.subno;
-	stop  = (s->stop.pgno << 16) + s->stop.subno;
+	start = (s->start_pgno << 16) + s->start_subno;
+	stop  = (s->stop_pgno[0] << 16) + s->stop_subno[0];
 
 	if (start >= stop) {
 		if (wrapped && this >= stop)
@@ -89,10 +180,11 @@ search_page_fwd(struct search *s, struct vt_page *vtp, int wrapped)
 	if (s->progress)
 		if (!s->progress(&s->pg)) {
 			if (this != start) {
-				s->start.pgno = vtp->pgno;
-				s->start.subno = vtp->subno;
-				s->start.row = FIRST_ROW;
-				s->start.col = 0;
+				s->start_pgno = vtp->pgno;
+				s->start_subno = vtp->subno;
+				s->row[0] = FIRST_ROW;
+				s->row[1] = LAST_ROW + 1;
+				s->col[0] = s->col[1] = 0;
 			}
 
 			return -2; // canceled
@@ -103,15 +195,15 @@ search_page_fwd(struct search *s, struct vt_page *vtp, int wrapped)
 	acp = &s->pg.data[FIRST_ROW][0];
 	hp = s->haystack;
 	first = hp;
-	row = (this == start) ? s->start.row : -1;
+	row = (this == start) ? s->row[0] : -1;
 	flags = 0;
 
 	if (row > LAST_ROW)
-		goto break2;
+		return 0; // try next page
 
 	for (i = FIRST_ROW; i < LAST_ROW; i++) {
 		for (j = 0; j < 40; acp++, j++) {
-			if (i == row && j <= s->start.col)
+			if (i == row && j <= s->col[0])
 				first = hp;
 
 			if (!gl_isalnum(acp->glyph))
@@ -143,7 +235,7 @@ search_page_fwd(struct search *s, struct vt_page *vtp, int wrapped)
 #define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
 fprintf(stderr, "exec: %x/%x; start %d,%d; %c%c%c...\n",
 	vtp->pgno, vtp->subno,
-	s->start.row, s->start.col,
+	s->row[0], s->col[0],
 	printable(first[0]),
 	printable(first[1]),
 	printable(first[2])
@@ -152,84 +244,7 @@ fprintf(stderr, "exec: %x/%x; start %d,%d; %c%c%c...\n",
 	if (!ure_exec(s->ud, flags, first, hp - first, &ms, &me))
 		return 0; // try next page
 
-	/* Highlight */
-
-	acp = &s->pg.data[FIRST_ROW][0];
-	hp = s->haystack;
-
-	s->start.pgno = vtp->pgno;
-	s->start.subno = vtp->subno;
-	s->start.row = LAST_ROW + 1;
-	s->start.col = 0;
-
-	for (i = FIRST_ROW; i < LAST_ROW; i++) {
-		for (j = 0; j < 40; acp++, j++) {
-			int offset = hp - first;
- 
-			if (offset >= (signed long) me) {
-				s->start.row = i;
-				s->start.col = j;
-				goto break2;
-			}
-
-			if (!gl_isalnum(acp->glyph))
-				continue; /* gfx | drcs, insignificant */
-
-			switch (acp->size) {
-			case DOUBLE_SIZE:
-				if (offset >= (signed long) ms) {
-					// XXX black/yellow not good because 3.5 can
-					// redefine and it could be confused
-					// with transmitted black/yellow. Solution:
-					// private 33rd and 34th colour. Same issue
-					// TOP.
-					acp[40].foreground = BLACK;
-					acp[40].background = YELLOW;
-					acp[41].foreground = BLACK;
-					acp[41].background = YELLOW;
-				}
-
-				/* fall through */
-
-			case DOUBLE_WIDTH:
-				if (offset >= (signed long) ms) {
-					acp[0].foreground = BLACK;
-					acp[0].background = YELLOW;
-					acp[1].foreground = BLACK;
-					acp[1].background = YELLOW;
-				}
-
-				hp++;
-				acp++;
-				j++;
-
-				break;
-
-			case DOUBLE_HEIGHT:
-				if (offset >= (signed long) ms) {
-					acp[40].foreground = BLACK;
-					acp[40].background = YELLOW;
-				}
-
-				/* fall through */
-
-			case NORMAL:	
-				if (offset >= (signed long) ms) {
-					acp[0].foreground = BLACK;
-					acp[0].background = YELLOW;
-				}
-
-				hp++;
-				break;
-
-			default:
-				// *hp++ = 0x0020; // ignore lower halves (?)
-			}
-		}
-
-		hp++;
-	}
-break2:
+	highlight(s, vtp, first, ms, me);
 
 	return 1; // success, abort
 }
@@ -244,8 +259,8 @@ search_page_rev(struct search *s, struct vt_page *vtp, int wrapped)
 	int flags, i, j;
 
 	this  = (vtp->pgno << 16) + vtp->subno;
-	start = (s->start.pgno << 16) + s->start.subno;
-	stop  = (s->stop.pgno << 16) + s->stop.subno;
+	start = (s->start_pgno << 16) + s->start_subno;
+	stop  = (s->stop_pgno[1] << 16) + s->stop_subno[1];
 
 	if (start <= stop) {
 		if (wrapped && this <= stop)
@@ -262,10 +277,11 @@ search_page_rev(struct search *s, struct vt_page *vtp, int wrapped)
 	if (s->progress)
 		if (!s->progress(&s->pg)) {
 			if (this != start) {
-				s->start.pgno = vtp->pgno;
-				s->start.subno = vtp->subno;
-				s->start.row = LAST_ROW + 1;
-				s->start.col = 0;
+				s->start_pgno = vtp->pgno;
+				s->start_subno = vtp->subno;
+				s->row[0] = FIRST_ROW;
+				s->row[1] = LAST_ROW + 1;
+				s->col[0] = s->col[1] = 0;
 			}
 
 			return -2; // canceled
@@ -275,7 +291,7 @@ search_page_rev(struct search *s, struct vt_page *vtp, int wrapped)
 
 	acp = &s->pg.data[FIRST_ROW][0];
 	hp = s->haystack;
-	row = (this == start) ? s->start.row : 100;
+	row = (this == start) ? s->row[1] : 100;
 	flags = 0;
 
 	if (row < FIRST_ROW)
@@ -283,7 +299,7 @@ search_page_rev(struct search *s, struct vt_page *vtp, int wrapped)
 
 	for (i = FIRST_ROW; i < LAST_ROW; i++) {
 		for (j = 0; j < 40; acp++, j++) {
-			if (i == row && j >= s->start.col)
+			if (i == row && j >= s->col[1])
 				goto break2;
 
 			if (!gl_isalnum(acp->glyph))
@@ -337,89 +353,7 @@ fprintf(stderr, "exec: %x/%x; %d, %d; '%c%c%c...'\n",
 	if (i == 0)
 		return 0; // try next page
 
-	/* Highlight */
-
-	acp = &s->pg.data[FIRST_ROW][0];
-	hp = s->haystack;
-
-	s->start.pgno = vtp->pgno;
-	s->start.subno = vtp->subno;
-
-	for (i = FIRST_ROW; i < LAST_ROW; i++) {
-		for (j = 0; j < 40; acp++, j++) {
-			int offset = hp - s->haystack;
- 
-			if (offset >= (signed long) me)
-				goto break2b;
-
-			if (offset < (signed long) ms) {
-				if (j == 39) {
-					s->start.row = i + 1;
-					s->start.col = 0;
-				} else {
-					s->start.row = i;
-					s->start.col = j + 1;
-				}
-			}
-
-			if (!gl_isalnum(acp->glyph))
-				continue; /* gfx | drcs, insignificant */
-
-			switch (acp->size) {
-			case DOUBLE_SIZE:
-				if (offset >= (signed long) ms) {
-					// XXX black/yellow not good because 3.5 can
-					// redefine and it could be confused
-					// with transmitted black/yellow. Solution:
-					// private 33rd and 34th colour. Same issue
-					// TOP.
-					acp[40].foreground = BLACK;
-					acp[40].background = YELLOW;
-					acp[41].foreground = BLACK;
-					acp[41].background = YELLOW;
-				}
-
-				/* fall through */
-
-			case DOUBLE_WIDTH:
-				if (offset >= (signed long) ms) {
-					acp[0].foreground = BLACK;
-					acp[0].background = YELLOW;
-					acp[1].foreground = BLACK;
-					acp[1].background = YELLOW;
-				}
-
-				hp++;
-				acp++;
-				j++;
-
-				break;
-
-			case DOUBLE_HEIGHT:
-				if (offset >= (signed long) ms) {
-					acp[40].foreground = BLACK;
-					acp[40].background = YELLOW;
-				}
-
-				/* fall through */
-
-			case NORMAL:	
-				if (offset >= (signed long) ms) {
-					acp[0].foreground = BLACK;
-					acp[0].background = YELLOW;
-				}
-
-				hp++;
-				break;
-
-			default:
-				// *hp++ = 0x0020; // ignore lower halves (?)
-			}
-		}
-
-		hp++;
-	}
-break2b:
+	highlight(s, vtp, s->haystack, ms, me);
 
 	return 1; // success, abort
 }
@@ -447,16 +381,10 @@ vbi_delete_search(void *p)
 /*
  *  Prepare for the search.
  *
+ *  <pgno>, <subno>
+ *    The first (forward) or last (backward) page to visit.
  *  <casefold>
  *    Search case insensitive if TRUE.
- *  <dir>
- *    +1 start on page <pgno>, <subno>, row 1, column 0.
- *       Search forward until all pages have been visited,
- *       stop *before* this page, row 1, column 0.
- *    -1 start on the page immediately preceding <pgno>,
- *       <subno>, in row 24, column 39. Search backwards
- *       until all pages have been visited, stop *at* this
- *       page, row 1, column 0.
  *  <progress> (NULL)
  *    A function called for each page scanned. Return
  *    FALSE to abort the search, <pg> is valid for display
@@ -467,7 +395,7 @@ vbi_delete_search(void *p)
 void *
 vbi_new_search(struct vbi *vbi,
 	int pgno, int subno,
-	ucs2_t *pattern, int casefold, int dir,
+	ucs2_t *pattern, int casefold,
 	int (* progress)(struct fmt_page *pg))
 {
 	struct search *s;
@@ -485,24 +413,20 @@ vbi_new_search(struct vbi *vbi,
 		return NULL;
 	}
 
-	if (subno == ANY_SUB)
-		subno = 0;
+	s->stop_pgno[0] = pgno;
+	s->stop_subno[0] = (subno == ANY_SUB) ? 0 : subno;
 
-	s->dir = dir;
-
-	if (dir > 0) {
-		s->start.pgno = pgno;
-		s->start.subno = subno;
-		s->start.row = FIRST_ROW;
-		s->start.col = 0;
+	if (subno <= 0) {
+		s->stop_pgno[1] = (pgno <= 0x100) ? 0x8FF : pgno - 1;
+		s->stop_subno[1] = 0x3F7E;
 	} else {
-		s->start.pgno = (pgno <= 0x100) ? 0x8FF : (pgno - 1);
-		s->start.subno = 0x3F7F;
-		s->start.row = LAST_ROW + 1;
-		s->start.col = 0;
-	}
+		s->stop_pgno[1] = pgno;
 
-	s->stop = s->start;
+		if ((subno & 0x7F) == 0)
+			s->stop_subno[1] = (subno - 0x100) | 0x7E;
+		else
+			s->stop_subno[1] = subno - 1;
+	}
 
 	s->vbi = vbi;
 	s->progress = progress;
@@ -515,6 +439,9 @@ vbi_new_search(struct vbi *vbi,
  *
  *  <p>
  *    Search context.
+ *  <dir>
+ *    +1 forward
+ *    -1 backward
  *
  *  Return codes:
  *  1	Success. *pg points to the page ready for display
@@ -528,21 +455,47 @@ vbi_new_search(struct vbi *vbi,
  *      vbi_delete_search and forget it.
  */
 int
-vbi_next_search(void *p, struct fmt_page **pg)
+vbi_next_search(void *p, struct fmt_page **pg, int dir)
 {
 	struct search *s = p;
 
 	*pg = NULL;
+	dir = (dir > 0) ? +1 : -1;
 
+	if (!s->dir) {
+		s->dir = dir;
+
+		if (dir > 0) {
+			s->start_pgno = s->stop_pgno[0];
+			s->start_subno = s->stop_subno[0];
+		} else {
+			s->start_pgno = s->stop_pgno[1];
+			s->start_subno = s->stop_subno[1];
+		}
+
+		s->row[0] = FIRST_ROW;
+		s->row[1] = LAST_ROW + 1;
+		s->col[0] = s->col[1] = 0;
+	}
+#if 1 /* should switch to a 'two frontiers meet' model, but ok for now */
+	else if (dir != s->dir) {
+		s->dir = dir;
+
+		s->stop_pgno[0] = s->start_pgno;
+		s->stop_subno[0] = (s->start_subno == ANY_SUB) ? 0 : s->start_subno;
+		s->stop_pgno[1] = s->start_pgno;
+		s->stop_subno[1] = s->start_subno;
+	}
+#endif
 	switch (s->vbi->cache->op->foreach_pg2(s->vbi->cache,
-		s->start.pgno, s->start.subno, s->dir,
-		(s->dir > 0) ? search_page_fwd : search_page_rev, s)) {
+		s->start_pgno, s->start_subno, dir,
+		(dir > 0) ? search_page_fwd : search_page_rev, s)) {
 	case 1:
 		*pg = &s->pg;
 		return 1;
 
 	case -1:
-		s->start = s->stop;
+		s->dir = 0;
 		return 0;
 
 	case -2:

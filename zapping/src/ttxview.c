@@ -597,7 +597,8 @@ void on_search_progress_destroy		(GtkObject	*widget,
 
 static
 void run_next				(GtkButton	*button,
-					 gpointer	context)
+					 gpointer	context,
+					 gint           dir)
 {
   gint return_code;
   struct fmt_page *pg;
@@ -606,8 +607,13 @@ void run_next				(GtkButton	*button,
 					"ttxview_data");
   GtkWidget *search_cancel = lookup_widget(GTK_WIDGET(button),
 					   "button19");
+  GtkWidget *search_next = lookup_widget(GTK_WIDGET(button),
+					   "button21");
+  GtkWidget *search_prev = lookup_widget(GTK_WIDGET(button),
+					   "button22");
 
-  gtk_widget_set_sensitive(GTK_WIDGET(button), FALSE);
+  gtk_widget_set_sensitive(search_next, FALSE);
+  gtk_widget_set_sensitive(search_prev, FALSE);
   gtk_widget_set_sensitive(search_cancel, TRUE);
   gtk_widget_set_sensitive(lookup_widget(search_cancel,
 					 "progressbar2"), TRUE);
@@ -617,14 +623,15 @@ void run_next				(GtkButton	*button,
   gtk_object_set_user_data(GTK_OBJECT(search_progress),
 			   (gpointer)0xdeadbeef);
 
-  switch ((return_code = vbi_next_search(context, &pg)))
+  switch ((return_code = vbi_next_search(context, &pg, dir)))
     {
     case 1: /* found, show the page, enable next */
       load_page(pg->vtp->pgno, pg->vtp->subno, data, pg);
       if (search_progress)
 	{
 	  gtk_widget_set_sensitive(search_cancel, FALSE);
-	  gtk_widget_set_sensitive(GTK_WIDGET(button), TRUE);
+	  gtk_widget_set_sensitive(search_next, TRUE);
+	  gtk_widget_set_sensitive(search_prev, TRUE);
 	  gnome_dialog_set_default(GNOME_DIALOG(search_progress), 1);
 	  gtk_label_set_text(GTK_LABEL(lookup_widget(search_cancel,
 						     "label97")),
@@ -637,7 +644,8 @@ void run_next				(GtkButton	*button,
       if (search_progress)
 	{
 	  gtk_widget_set_sensitive(search_cancel, FALSE);
-	  gtk_widget_set_sensitive(GTK_WIDGET(button), TRUE);
+	  gtk_widget_set_sensitive(search_next, TRUE);
+	  gtk_widget_set_sensitive(search_prev, TRUE);
 	  gnome_dialog_set_default(GNOME_DIALOG(search_progress), 1);
 	  gtk_label_set_text(GTK_LABEL(lookup_widget(search_cancel,
 						     "label97")),
@@ -674,7 +682,16 @@ void on_search_progress_next		(GtkButton	*button,
 {
   gtk_signal_emit_stop_by_name(GTK_OBJECT(button), "clicked");
 
-  run_next(button, context);
+  run_next(button, context, +1);
+}
+
+static
+void on_search_progress_prev		(GtkButton	*button,
+					 gpointer	context)
+{
+  gtk_signal_emit_stop_by_name(GTK_OBJECT(button), "clicked");
+
+  run_next(button, context, -1);
 }
 
 static
@@ -772,6 +789,7 @@ void on_ttxview_search_clicked		(GtkButton	*button,
     GTK_TOGGLE_BUTTON(lookup_widget(GTK_WIDGET(ure_search),
 				    "checkbutton10"));
   GtkWidget *search_progress_next;
+  GtkWidget *search_progress_prev;
   gboolean result;
   gchar *needle;
   void *search_context;
@@ -811,7 +829,6 @@ void on_ttxview_search_clicked		(GtkButton	*button,
 	    vbi_new_search(zvbi_get_object(),
 			   0x100, ANY_SUB, pattern,
 			   zcg_bool(NULL, "ure_casefold"),
-			   zcg_bool(NULL, "ure_backwards") ? -1 : +1,
 			   progress_update);
 	  free(pattern);
 	  if (search_context)
@@ -833,9 +850,18 @@ void on_ttxview_search_clicked		(GtkButton	*button,
 	      gtk_object_set_data(GTK_OBJECT(search_progress_next),
 				  "ttxview_data", data);
 	      gtk_widget_set_sensitive(search_progress_next, FALSE);
+	      search_progress_prev = lookup_widget(search_progress,
+						   "button22");
+	      gtk_signal_connect(GTK_OBJECT(search_progress_prev), "clicked",
+				 GTK_SIGNAL_FUNC(on_search_progress_prev),
+				 search_context);
+	      gtk_object_set_data(GTK_OBJECT(search_progress_prev),
+				  "ttxview_data", data);
+	      gtk_widget_set_sensitive(search_progress_prev, FALSE);
 	      gtk_widget_show(search_progress);
 
-	      run_next(GTK_BUTTON(search_progress_next), search_context);
+	      run_next(GTK_BUTTON(search_progress_next), search_context,
+		zcg_bool(NULL, "ure_backwards") ? -1 : +1);
 	    }
 	}
     }
