@@ -538,7 +538,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.179 2004-05-24 01:58:04 mschimek Exp $",
+	 "$Id: main.c,v 1.180 2004-06-18 14:11:54 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -585,6 +585,14 @@ int main(int argc, char * argv[])
       return 0;
     }
   D();
+
+  if (0 && debug_msg)
+    {
+      fprintf (stderr, "X -version\n");
+      system ("X -version 1>&2");
+      fprintf (stderr, "metacity --version\n");
+      system ("metacity --version 1>&2");    
+    }
 
   x11_screensaver_init ();
 

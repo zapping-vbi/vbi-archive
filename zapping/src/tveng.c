@@ -53,18 +53,20 @@
 #include "zmisc.h"
 #include "../common/device.h"
 
+/* int rc = 0; */
+
 /* XXX recursive callbacks not good, think again. */
 #define TVLOCK								\
 ({									\
   if (0 == info->priv->callback_recursion) {				\
-    /* fprintf (stderr, "TVLOCK   %d in %s\n", rc++, __FUNCTION__); */	\
+    /* fprintf (stderr, "TVLOCK   %d %d in %s\n", (int) pthread_self(), rc++, __FUNCTION__);*/ \
     pthread_mutex_lock(&(info->priv->mutex));				\
   }									\
 })
 #define UNTVLOCK							\
 ({									\
   if (0 == info->priv->callback_recursion) {				\
-    /* fprintf (stderr, "UNTVLOCK %d in %s\n", --rc, __FUNCTION__); */	\
+    /* fprintf (stderr, "UNTVLOCK %d %d in %s\n", (int) pthread_self(), --rc, __FUNCTION__);*/ \
     pthread_mutex_unlock(&(info->priv->mutex));				\
   }									\
 })
@@ -2325,8 +2327,8 @@ int tveng_read_frame(tveng_image_data * dest,
   TVLOCK;
 
   if (info->priv->module.read_frame)
-    RETURN_UNTVLOCK(info->priv->module.read_frame(dest, time,
-						   info));
+    RETURN_UNTVLOCK(info->priv->module.read_frame
+		    (dest, time, info));
 
   TVUNSUPPORTED;
   UNTVLOCK;
@@ -2626,7 +2628,6 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 
 	default:
 		info->tveng_errno = -1;
-	unknown_error:
 		tv_error_msg (info, _("Unknown error in zapping_setup_fb."));
 	failure:
 		RETURN_UNTVLOCK (FALSE);

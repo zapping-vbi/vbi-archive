@@ -25,6 +25,7 @@
 #endif
 
 #include <stddef.h>
+#include <ctype.h>
 #include "common/math.h"
 
 #include <gnome.h>

@@ -64,6 +64,10 @@ Zapping 0.7 bugs, need more work later:
 * drose: "Under mdk 9.1 the video capture stops for no reason.
   Start recording to a file -- come back in ten minutes, 1 - 3 minutes
   of video are stored and zapping wasn't running." Works for me.
+* Overlay doesn't work right with RANDR reduced resolution, apparently
+  due to wrong frame buffer bpl.
+* bttv 0.9.14: with YUV 4:2:0 activation of VBI capturing can cause a
+  SCERR & driver reset, DQBUF -> EIO.
 
 tvengxv.c
 * Need to handle BadAtom errors resulting from Xv out

@@ -1,3 +1,16 @@
+2004-06-16    <mschimek@users.sf.net>
+
+	* src/zvbi.c (capturing_thread): Log status and errors,
+	  retry on EIO.
+	* src/tveng25.c (p_tveng25_dqbuf): Restart streaming on
+	  VIDIOC_DQBUF error.
+	  (tveng25_start_capturing): Didn't properly clear v4l2_buffer.
+	  (tveng25_read_frame): Don't discard stale frames, needs
+	  a more robust solution.
+	* autogen.sh, acinclude.m4: Copied parts from gnome-common
+	  to eliminate a Gnome CVS dependency on distros without
+	  gnome-common package.
+
 2004-06-05    <mschimek@users.sf.net>
 
 	* src/fullscreen.c (start_fullscreen): Fixed fullscreen w/xv OSD
