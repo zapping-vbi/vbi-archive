@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mixer.c,v 1.5.2.4 2003-03-06 21:50:44 mschimek Exp $ */
+/* $Id: mixer.c,v 1.5.2.5 2003-07-29 03:41:15 mschimek Exp $ */
 
 /*
  *  These functions encapsulate the OS and driver specific
@@ -64,7 +64,7 @@ void		startup_mixer(void)
 	  /* FIXME report errors */
 	  if ((mixer = tv_mixer_open (0, dev_name)))
 	    {
-	      tv_mixer_line *line;
+	      tv_audio_line *line;
 	      guint hash;
 
 	      if (!mixer->inputs)
@@ -77,7 +77,7 @@ void		startup_mixer(void)
 
 	      mixer_line = mixer->inputs;
 
-	      for (line = mixer->inputs; line; line = line->next)
+	      for (line = mixer->inputs; line; line = line->_next)
 		if (line->hash == hash)
 		  {
 		    mixer_line = line;
@@ -104,21 +104,21 @@ void		startup_mixer(void)
 /* XXX document me */
 
 tv_bool
-tv_mixer_line_update		(tv_mixer_line *	line)
+tv_mixer_line_update		(tv_audio_line *	line)
 {
 	t_assert (line != NULL);
 
-	return line->_mixer->_interface->update_line (line);
+	return ((tv_mixer *) line->_parent)->_interface->update_line (line);
 }
 
 tv_bool
-tv_mixer_line_get_volume	(tv_mixer_line *	line,
+tv_mixer_line_get_volume	(tv_audio_line *	line,
 				 unsigned int *		left,
 				 unsigned int *		right)
 {
 	t_assert (line != NULL);
 
-	if (!line->_mixer->_interface->update_line (line))
+	if (!((tv_mixer *) line->_parent)->_interface->update_line (line))
 		return FALSE;
 
 	*left = line->volume[0];
@@ -128,7 +128,7 @@ tv_mixer_line_get_volume	(tv_mixer_line *	line,
 }
 
 tv_bool
-tv_mixer_line_set_volume	(tv_mixer_line *	line,
+tv_mixer_line_set_volume	(tv_audio_line *	line,
 				 unsigned int		left,
 				 unsigned int		right)
 {
@@ -137,16 +137,16 @@ tv_mixer_line_set_volume	(tv_mixer_line *	line,
 	left = SATURATE (left, line->minimum, line->maximum);
 	right = SATURATE (right, line->minimum, line->maximum);
 
-	return line->_mixer->_interface->set_volume (line, left, right);
+	return ((tv_mixer *) line->_parent)->_interface->set_volume (line, left, right);
 }
 
 tv_bool
-tv_mixer_line_get_mute		(tv_mixer_line *	line,
+tv_mixer_line_get_mute		(tv_audio_line *	line,
 				 tv_bool *		mute)
 {
 	t_assert (line != NULL);
 
-	if (!line->_mixer->_interface->update_line (line))
+	if (!((tv_mixer *) line->_parent)->_interface->update_line (line))
 		return FALSE;
 
 	*mute = line->muted;
@@ -155,23 +155,23 @@ tv_mixer_line_get_mute		(tv_mixer_line *	line,
 }
 
 extern tv_bool
-tv_mixer_line_set_mute		(tv_mixer_line *	line,
+tv_mixer_line_set_mute		(tv_audio_line *	line,
 				 tv_bool		mute)
 {
 	t_assert (line != NULL);
 
-	return line->_mixer->_interface->set_mute (line, !!mute);
+	return ((tv_mixer *) line->_parent)->_interface->set_mute (line, !!mute);
 }
 
 tv_bool
-tv_mixer_line_record		(tv_mixer_line *	line,
+tv_mixer_line_record		(tv_audio_line *	line,
 				 tv_bool		exclusive)
 {
-	tv_mixer_line *l;
+	tv_audio_line *l;
 
 	t_assert (line != NULL);
 
-	for (l = line->_mixer->inputs; l; l = l->next)
+	for (l = ((tv_mixer *) line->_parent)->inputs; l; l = l->_next)
 		if (line == l)
 			break;
 
@@ -180,21 +180,8 @@ tv_mixer_line_record		(tv_mixer_line *	line,
 		abort ();
 	}
 
-	return line->_mixer->_interface->set_rec_line (line->_mixer, line, !!exclusive);
-}
-
-tv_callback_node *
-tv_mixer_line_callback_add	(tv_mixer_line *	line,
-				 void			(* notify)(tv_mixer_line *, void *user_data),
-				 void			(* destroy)(tv_mixer_line *, void *user_data),
-				 void *			user_data)
-{
-	t_assert (line != NULL);
-
-	return tv_callback_add (&line->_callback,
-				(void *) notify,
-				(void *) destroy,
-				user_data);
+	return ((tv_mixer *) line->_parent)->_interface->set_rec_line
+	  (((tv_mixer *) line->_parent), line, !!exclusive);
 }
 
 tv_bool
@@ -203,21 +190,6 @@ tv_mixer_update			(tv_mixer *		mixer)
 	t_assert (mixer != NULL);
 
 	return mixer->_interface->update_mixer (mixer);
-}
-
-/* XXX document me */
-tv_callback_node *
-tv_mixer_callback_add		(tv_mixer *		mixer,
-				 void			(* notify)(tv_mixer_line *, void *user_data),
-				 void			(* destroy)(tv_mixer_line *, void *user_data),
-				 void *			user_data)
-{
-	t_assert (mixer != NULL);
-
-	return tv_callback_add (&mixer->_callback,
-				(void *) notify,
-				(void *) destroy,
-				user_data);
 }
 
 extern const tv_mixer_interface oss_mixer_interface;
