@@ -33,8 +33,8 @@
 #include "zconf.h"
 #include "zmisc.h"
 #include "osd.h"
-#include <common/math.h>
-#include <common/ucs-2.h>
+#include "common/math.h"
+#include "common/ucs-2.h"
 
 #define MAX_COLUMNS 48 /* TTX */
 #define MAX_ROWS 26 /* 25 for TTX plus one for OSD */

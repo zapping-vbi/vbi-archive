@@ -55,7 +55,7 @@
 #include "tveng.h"
 #define TVENG2_PROTOTYPES 1
 #include "tveng2.h"
-#include "../common/videodev2.h" /* the V4L2 definitions */
+#include "common/videodev2.h" /* the V4L2 definitions */
 
 /* TFR repeats the ioctl when interrupted (EINTR) */
 #define IOCTL(fd, cmd, data) (TEMP_FAILURE_RETRY(ioctl(fd, cmd, data)))

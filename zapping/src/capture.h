@@ -20,7 +20,7 @@
 #define __CAPTURE_H__
 
 #include <gtk/gtk.h>
-#include <tveng.h>
+#include "tveng.h"
 #include "common/fifo.h"
 
 /*
