@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: esd.c,v 1.1 2000-10-17 21:57:05 garetxe Exp $ */
+/* $Id: esd.c,v 1.2 2000-10-17 22:14:15 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,7 +49,7 @@
  *  PCM Device, ESD interface
  */
 
-#define BUFFER_SIZE (ESD_BUF_SIZE*2) // bytes per read(), appx.
+#define BUFFER_SIZE (ESD_BUF_SIZE*4) // bytes per read(), appx.
 
 static int		esd_recording_socket;
 static short *		abuffer;
@@ -73,17 +73,9 @@ extern int		stereo;
 static buffer *
 esd_pcm_wait_full(fifo *f)
 {
-	static double rtime = -1.0, utime;
+	static double rtime, utime;
 	static int left = 0;
 	static short *p;
-
-	if (ubuffer) {
-		p = ubuffer;
-		ubuffer = NULL;
-		buf.time = utime;
-		buf.data = (unsigned char *) p;
-		return &buf;
-	}
 
 	if (left <= 0)
 	{
@@ -101,7 +93,7 @@ esd_pcm_wait_full(fifo *f)
 			fd_set rdset;
 			int err;
 
-/*			FD_ZERO(&rdset);
+			FD_ZERO(&rdset);
 			FD_SET(esd_recording_socket, &rdset);
 			tv.tv_sec = 1;
 			tv.tv_usec = 0;
@@ -110,7 +102,7 @@ esd_pcm_wait_full(fifo *f)
 
 			if ((err == -1) || (err == 0))
 				continue;
-*/
+
 			r = read(esd_recording_socket, p, n);
 			
 			if (r < 0 && errno == EINTR)
@@ -190,6 +182,10 @@ esd_pcm_init(void)
 	init_callback_fifo(audio_cap_fifo = &pcm_fifo,
 		esd_pcm_wait_full, esd_pcm_send_empty,
 		NULL, NULL, 0, 0);
+
+	/* fixme: [hack time] fills in the audio buffer, so we don't
+	   lose some frames in the beginning */
+	esd_pcm_wait_full(audio_cap_fifo);
 }
 
 #else // USE_ESD
