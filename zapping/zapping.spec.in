@@ -53,7 +53,7 @@ rm -rf %{buildroot}
 %files
 %defattr (-, root, root)
 %doc AUTHORS THANKS ChangeLog README README.plugins COPYING TODO BUGS
-%doc po/zapping.pot
+%doc po/zapping.pot plugins/alirc/README.alirc
 %config(noreplace) %{_sysconfdir}/pam.d/zapping_setup_fb
 %config(noreplace) %{_sysconfdir}/security/console.apps/zapping_setup_fb
 %{_bindir}/zapping

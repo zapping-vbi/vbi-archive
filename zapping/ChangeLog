@@ -1,3 +1,8 @@
+28.05.2001	alirc plugin <garetxe@users.sf.net>
+
+	* plugins/alirc: 'Another lirc plugin', by Sjoerd Simons
+	<sjoerd@air.luon.net>. Thanks! :-)
+
 27.05.2001	MPEG fixes <garetxe@users.sf.net>
 
 	* plugins/mpeg.c: Works now if Z's yuv pixformat is YUYV and

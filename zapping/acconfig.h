@@ -17,6 +17,7 @@
 #undef LIBXML_xmlDocGetRootElement
 #undef HAVE_LIBJPEG
 #undef HAVE_LIBRTE
+#undef HAVE_LIRC
 #undef TVENG_ENABLE_IOCTL_TESTS
 // Set if MMX support will be built
 #undef USE_MMX

@@ -1,0 +1,69 @@
+/* Alirc: Another lirc plugin for Zapping
+ * based on zappings template plugin
+ * Copyright (C) 2001 Sjoerd Simons <sjoerd@luon.net>
+ *
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+
+Why another lirc plugin for zapping? 
+  The original lirc plugin has two big problems:
+    * It uses a thread to read the lirc socket and takes actions in that
+      thread. The X libraries aren't thread safe, so this will cause Xlib
+      errors.
+    * It reads the lirc socket itself, instead of using the lirc_client
+      library. The causes it to not play nice with other lirc clients. why,
+      an lirc client read your ~/.lircrc, in which you can specify different
+      modes, so you can reuse buttons among applications.. the lirc plugins assumes
+      the buttons are always meant for it, so bye bye reusing buttons..  
+
+ How do we solve this, simply use gdk_input_add instead of an extra thread
+ and use the lirc_client library, like any good lirc client app would
+
+How does it work?:
+  The lirc documentation explains how to make an .lircrc file better, then i ever
+could. So read that. The prog name for alirc is zapping_lirc and the following
+commands are understood:
+  CHANUP    ->  One Channel up	   
+  CHANDOWN  ->  One Channel down 
+  QUIT      -> Quit zapping
+  ZOOM      -> switch between full screen and windowed mode
+  SETCHANNEL <int> -> set the channel to <int> (the first channel is 0!!)
+
+So for example, entries in you .lircrc look like this:
+
+ # Switch between fullscreen/windowed mode
+ begin
+    remote = PinnacleSysPCTVPRORemote
+    prog = zapping_lirc
+    button = Zoom
+    config = ZOOM
+    repeat = 0
+  end
+ # Go to the channel 1
+  begin
+    remote = PinnacleSysPCTVPRORemote
+    prog = zapping_lirc
+    button = 1
+    config = SETCHANNEL 1
+    repeat = 0
+  end
+
+What is there left to do?:
+  Well, the lirc plugin can use button 1 and 2 to turn on channel 12, what
+  is probably a feature alirc should have too. And ofcourse hunt down the
+bugs in it ;0
+
+Send comments/feature requests/bug report to me <sjoerd@luon.net>

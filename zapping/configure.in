@@ -121,6 +121,24 @@ else
 fi
 AC_SUBST(RTE_LIB)
 
+dnl ----------------------------------------------------------------------
+dnl Check for lirc_client
+dnl ----------------------------------------------------------------------
+HAVE_LIRC="yes"
+AC_REQUIRE_CPP
+AC_CHECK_LIB(lirc_client,lirc_init,
+  AC_CHECK_HEADER(lirc/lirc_client.h,true,HAVE_LIRC=no),HAVE_LIRC=no)
+
+if test "$HAVE_LIRC" == "yes"; then
+  PLUGINS_TO_BUILD="$PLUGINS_TO_BUILD alirc"
+  AC_DEFINE(HAVE_LIRC)
+  LIRC_LIB="-llirc_client"
+else
+  AC_MSG_WARN([*** LIRC client support not available, not building alirc ***])
+fi
+AC_SUBST(LIRC_LIB)
+
+
 GNOME_COMPILE_WARNINGS
 GNOME_X_CHECKS
 
@@ -329,6 +347,7 @@ plugins/lirc/Makefile
 plugins/mpeg/Makefile
 plugins/screenshot/Makefile
 plugins/template/Makefile
+plugins/alirc/Makefile
 ])
 
 echo "
@@ -339,6 +358,7 @@ echo "
 	MMX support			$HAVE_MMX
 	XVideo support			$XV_PRESENT
 	MPEG encoder support		$HAVE_RTE
+	Lirc client support		$HAVE_LIRC
 
 	Plugins to build
 	----------------
