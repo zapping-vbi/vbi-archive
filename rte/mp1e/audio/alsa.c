@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alsa.c,v 1.9 2001-10-07 10:55:51 mschimek Exp $ */
+/* $Id: alsa.c,v 1.10 2001-10-16 22:18:15 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -59,6 +59,8 @@ do {									\
 
 #include "../common/math.h" 
 
+#if !defined(SND_LIB_MAJOR) || (SND_LIB_MAJOR == 0 && SND_LIB_MINOR < 9)
+
 static const int alsa_format_preference[][2] = {
 	{ SND_PCM_SFMT_S16_LE, RTE_SNDFMT_S16LE },
 	{ SND_PCM_SFMT_U16_LE, RTE_SNDFMT_U16LE },
@@ -66,8 +68,6 @@ static const int alsa_format_preference[][2] = {
 	{ SND_PCM_SFMT_S8, RTE_SNDFMT_S8 },
 	{ -1, -1 }
 };
-
-#if !defined(SND_LIB_MAJOR) || (SND_LIB_MAJOR == 0 && SND_LIB_MINOR < 9)
 
 #ifdef USE_ALSA_PLUGIN
 
@@ -610,6 +610,7 @@ struct alsa_context {
 
 	snd_pcm_t *		handle;
 	int			sleep;
+	double			time, start;
 	double			buffer_period;
 };
 
@@ -619,6 +620,7 @@ wait_full(fifo *f)
 	struct alsa_context *alsa = f->user_data;
 	buffer *b = PARENT(f->buffers.head, buffer, added);
 	unsigned char *p;
+	double now;
 	ssize_t r, n;
 
 	assert(b->data == NULL); /* no queue */

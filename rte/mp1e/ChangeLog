@@ -1,6 +1,7 @@
 2001-10-17	<mschimek@users.sf.net>
 
 	* oss.c: Fixed sampling_freq check, reported by Ralf Oehler.
+	* alsa.c: Corrected 0.9 compiling errors.
 
 2001-10-14	<mschimek@users.sf.net>
 
