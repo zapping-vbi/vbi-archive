@@ -22,7 +22,6 @@
 #define __RTEPRIV_H__
 #include "rte.h"
 
-/* fixme: this symbol will make namespace collisions, change it */
 extern rte_context * rte_global_context;
 
 /*

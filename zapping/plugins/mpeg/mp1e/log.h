@@ -41,6 +41,18 @@ do {								\
 	}							\
 } while (0)
 
+/* glib-ish g_return_if_fail */
+#define CHECK(what, cond, args...)				\
+do {								\
+	if (!(cond)) {						\
+		fprintf(stderr, "%s (" __FILE__ "@%d): "	\
+			"Failed to " what " (%d, %s)\n",	\
+			my_name, __LINE__ ,##args,		\
+			errno, strerror(errno));		\
+			return;					\
+	}							\
+} while (0)
+
 #define ASSERTX(what, cond, args...)				\
 do {								\
 	if (!(cond)) {						\

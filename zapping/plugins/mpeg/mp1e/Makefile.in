@@ -1,9 +1,9 @@
-# $Id: Makefile.in,v 1.3 2000-07-12 21:11:05 garetxe Exp $
+# $Id: Makefile.in,v 1.4 2000-07-25 18:33:53 garetxe Exp $
 
 CFLAGS	= -Wall @OPT@ @X_CFLAGS@
 DEFS	= -D_GNU_SOURCE -D_REENTRANT @DEFS@ -DVERSION=\"@VERSION@\"
 LIBS	= @X_LIBS@ -lm -lpthread @LIBS@
-OBJS	= main.o options.o mmx.o bstream.o profile.o rte.o
+OBJS	= main.o options.o mmx.o bstream.o profile.o rte.o convert_ry.o
 MODULES = video/video.o audio/audio.o systems/systems.o @TEST_MODULES@
 TARGET  = mp1e
 
