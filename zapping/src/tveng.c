@@ -83,8 +83,7 @@ do {									\
 #define TVUNSUPPORTED do { \
   /* function not supported by the module */ \
  info->tveng_errno = -1; \
- t_error_msg("module", \
- 	     "function not supported by the module", info); \
+ tv_error_msg (info, "Function not supported by the module"); \
 } while (0)
 
 /* for xv */
@@ -337,9 +336,8 @@ int tveng_attach_device(const char* device_file,
       break;
     default:
       info -> tveng_errno = -1;
-      t_error_msg("switch()",
-		  "The current display depth isn't supported by TVeng",
-		  info);
+      tv_error_msg (info, "Display depth %u is not supported",
+		    info->current_bpp);
       UNTVLOCK;
       return -1;
     }
@@ -381,9 +379,7 @@ int tveng_attach_device(const char* device_file,
 
   /* Error */
   info->tveng_errno = -1;
-  t_error_msg("check()",
-	      "The device cannot be attached to any controller",
-	      info);
+  tv_error_msg (info, "The device cannot be attached to any controller");
   CLEAR (info->module);
   UNTVLOCK;
   return -1;
@@ -448,7 +444,7 @@ int tveng_attach_device(const char* device_file,
 		    info->caps.flags,
 		    info->caps.maxwidth,
 		    info->caps.maxheight) < 0) {
-	  t_error ("asprintf", info);
+	  t_error("asprintf", info);
 	  p_tveng_close_device (info);
 	  CLEAR (info->module);
 	  UNTVLOCK;
@@ -1017,8 +1013,7 @@ tveng_set_input_by_name(const char * input_name,
       }
 
   info->tveng_errno = -1;
-  t_error_msg("finding",
-	      "Input %s doesn't appear to exist", info, input_name);
+  tv_error_msg (info, "Input %s doesn't appear to exist", input_name);
 
   UNTVLOCK;
   return -1; /* String not found */
@@ -1162,9 +1157,8 @@ tv_set_video_standard_by_id	(tveng_device_info *	info,
 		if (ts->videostd_set & videostd_set) {
 			if (ts) {
 				info->tveng_errno = -1;
-				t_error_msg("finding",
-					    "Standard by ambiguous id %llx", info,
-					    videostd_set);
+				tv_error_msg (info, "Ambiguous id %llx",
+					      videostd_set);
 				RETURN_UNTVLOCK (FALSE);
 			}
 
@@ -1200,8 +1194,7 @@ tveng_set_standard_by_name(const char * name, tveng_device_info * info)
       }
 
   info->tveng_errno = -1;
-  t_error_msg("finding",
-	      "Standard %s doesn't appear to exist", info, name);
+  tv_error_msg (info, "Standard %s doesn't appear to exist", name);
 
   UNTVLOCK;
   return -1; /* String not found */  
@@ -1967,9 +1960,9 @@ tveng_get_control_by_name(const char * control_name,
 
   /* if we reach this, we haven't found the control */
   info->tveng_errno = -1;
-  t_error_msg("finding",
-	      "Cannot find control \"%s\" in the list of controls",
-	      info, control_name);
+  tv_error_msg(info,
+	       "Cannot find control \"%s\" in the list of controls",
+	       control_name);
   UNTVLOCK;
   return -1;
 }
@@ -2001,9 +1994,9 @@ tveng_set_control_by_name(const char * control_name,
 
   /* if we reach this, we haven't found the control */
   info->tveng_errno = -1;
-  t_error_msg("finding",
-	   "Cannot find control \"%s\" in the list of controls",
-	   info, control_name);
+  tv_error_msg(info,
+	       "Cannot find control \"%s\" in the list of controls",
+	       control_name);
   UNTVLOCK;
   return -1;
 }
@@ -2825,6 +2818,7 @@ validate_overlay_buffer		(const tv_overlay_buffer *dga,
 
 	if (0 == dga->base
 	    || dga->format.width < 32 || dga->format.height < 32
+	    /* XXX width * bytes_per_pixel */
 	    || dga->format.bytes_per_line[0] < dga->format.width
 	    || dga->format.size <
 	    (dga->format.bytes_per_line[0] * dga->format.height))
@@ -2832,6 +2826,7 @@ validate_overlay_buffer		(const tv_overlay_buffer *dga,
 
 	if (0 == dma->base
 	    || dma->format.width < 32 || dma->format.height < 32
+	    /* XXX width * bytes_per_pixel */
 	    || dma->format.bytes_per_line[0] < dma->format.width
 	    || dma->format.size <
 	    (dma->format.bytes_per_line[0] * dma->format.height))
@@ -2848,7 +2843,7 @@ validate_overlay_buffer		(const tv_overlay_buffer *dga,
 	    || TV_PIXFMT_NONE == dga->format.pixel_format->pixfmt)
 		return FALSE;
 
-	if (dga->format.bytes_per_line != dma->format.bytes_per_line
+	if (dga->format.bytes_per_line[0] != dma->format.bytes_per_line[0]
 	    || dga->format.pixel_format != dma->format.pixel_format)
 		return FALSE;
 
@@ -3534,8 +3529,7 @@ p_tveng_get_display_depth(tveng_device_info * info)
 
   if (v == -1) {
     info -> tveng_errno = -1;
-    t_error_msg("XGetVisualInfo",
-		"Cannot find an appropiate visual", info);
+    tv_error_msg(info,"Cannot find an appropiate visual");
     XFree(visual_info);
     return 0;
   }
@@ -3554,8 +3548,7 @@ p_tveng_get_display_depth(tveng_device_info * info)
 
   if (bpp == 0) {
     info -> tveng_errno = -1;
-    t_error_msg("XListPixmapFormats",
-		"Cannot figure out X depth", info);
+    tv_error_msg(info, "Cannot figure out X depth");
     XFree(visual_info);
     XFree(pf);
     return 0;
