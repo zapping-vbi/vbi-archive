@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: macros.h,v 1.2 2005-01-08 14:54:20 mschimek Exp $ */
+/* $Id: macros.h,v 1.3 2005-01-31 07:11:58 mschimek Exp $ */
 
 #ifndef __ZVBI3_MACROS_H__
 #define __ZVBI3_MACROS_H__
@@ -33,27 +33,23 @@
 
 VBI3_BEGIN_DECLS
 
-#if __GNUC__ >= 2
-   /* Inline this function at -O2 and higher. */
-#  define vbi3_inline static __inline__
+#if __GNUC__ >= 4
+#  define _vbi3_sentinel sentinel(0)
 #else
-#  define vbi3_inline static
+#  define _vbi3_sentinel
 #endif
 
 #if __GNUC__ >= 3
-   /* Function has no side effects and return value depends
-      only on parameters and non-volatile globals or
-      memory pointed to by parameters. */
-#  define vbi3_pure __attribute__ ((pure))
-   /* Function has no side effects and return value depends
-      only on parameters. */
-#  define vbi3_const __attribute__ ((const))
-   /* Function returns pointer which does not alias anything. */
-#  define vbi3_alloc __attribute__ ((malloc))
+#  define _vbi3_nonnull(args...) nonnull(args)
 #else
-#  define vbi3_pure
-#  define vbi3_const
-#  define vbi3_alloc
+#  define _vbi3_nonnull(args...)
+#endif
+
+#if __GNUC__ >= 2
+#  define vbi3_inline static __inline__
+#else
+#  define vbi3_inline static
+#  define __attribute__(args...)
 #endif
 
 /**
@@ -75,9 +71,14 @@ typedef int vbi3_bool;
 #  ifdef __cplusplus
 #    define NULL (0L)
 #  else
-#    define NULL ((void*)0)
+#    define NULL ((void *) 0)
 #  endif
 #endif
+
+/** XXX Document me - for variadic funcs.
+  (this is a pointer not int to take advantage of
+  __attribute__((sentinel))). */
+#define VBI3_END ((void *) 0)
 
 typedef void
 vbi3_lock_fn			(void *			user_data);
