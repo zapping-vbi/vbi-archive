@@ -36,10 +36,16 @@
  *
  *
  *  $Log: not supported by cvs2svn $
+ *  Revision 1.7  2003/06/07 09:42:08  tomzo
+ *  - optimized client I/O: keep message header and body in one struct to be able
+ *    to write it to the pipe in one syscall
+ *  - added command line option "-kill" -> new function _kill_daemon()
+ *  - adapted for devfs: use /dev/v4l/vbi as default if it exists
+ *
  *  Revision 1.6  2003/06/01 19:33:51  tomzo
  *  Implemented server-side TV channel switching
  *  - implemented messages MSG_TYPE_CHN_CHANGE_REQ/CNF/REJ
- *  - use new function vbi_proxy_take_channel_req(): flush & CHANGE_IND still TODO
+ *  - use new function vbi_proxy-take_channel_req(): flush & CHANGE_IND still TODO
  *  - added struct VBIPROXY_CHN_PROFILE to client state struct
  *  Also: added VBI API identifier and device path to CONNECT_CNF (for future use)
  *  Also: adapted message I/O for optimization in proxy-msg.c:
@@ -70,7 +76,7 @@
  *
  */
 
-static const char rcsid[] = "$Id: proxyd.c,v 1.7 2003-06-07 09:42:08 tomzo Exp $";
+static const char rcsid[] = "$Id: proxyd.c,v 1.7.2.1 2004-01-27 21:03:03 tomzo Exp $";
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -96,8 +102,8 @@ static const char rcsid[] = "$Id: proxyd.c,v 1.7 2003-06-07 09:42:08 tomzo Exp $
 #include "bcd.h"
 #include "proxy-msg.h"
 
-#define dprintf1(fmt, arg...)    do {if (opt_debug_level >= 1) printf("proxyd: " fmt, ## arg);} while (0)
-#define dprintf2(fmt, arg...)    do {if (opt_debug_level >= 2) printf("proxyd: " fmt, ## arg);} while (0)
+#define dprintf1(fmt, arg...)    do {if (opt_debug_level >= 1) fprintf(stderr, "proxyd: " fmt, ## arg);} while (0)
+#define dprintf2(fmt, arg...)    do {if (opt_debug_level >= 2) fprintf(stderr, "proxyd: " fmt, ## arg);} while (0)
 
 /* Macro to cast (void *) to (int) and backwards without compiler warning
 ** (note: 64-bit compilers warn when casting a pointer to an int) */
@@ -134,6 +140,16 @@ typedef struct PROXY_QUEUE_s
 **   i.e. if a client is added or removed
 */
 
+/* clients' channel change scheduler state */
+typedef struct
+{
+        vbi_bool                is_active;
+        vbi_bool                is_completed;
+        int                     cycle_count;
+        time_t                  last_start;
+        time_t                  last_duration;
+} VBIPROXY_CHN_STATE;
+
 /* client connection state */
 typedef enum
 {
@@ -169,7 +185,11 @@ typedef struct PROXY_CLNT_s
         vbi_bool                buffer_overflow;
         PROXY_QUEUE           * p_sliced;
 
-        VBIPROXY_CHN_PROFILE    chn_profile;
+        vbi_channel_profile     chn_profile;
+        vbi_channel_desc        chn_desc;
+        VBIPROXY_CHN_STATE      chn_state;
+        int                     chn_prio;
+        vbi_bool                chn_change_ind;
 
 } PROXY_CLNT;
 
@@ -191,6 +211,9 @@ typedef struct
         PROXY_QUEUE           * p_free;
         PROXY_QUEUE           * p_tmp_buf;
 
+        vbi_channel_desc        chn_desc;
+        int                     chn_prio;
+
         vbi_bool                use_thread;
         int                     wr_fd;
         vbi_bool                wait_for_exit;
@@ -211,6 +234,7 @@ typedef struct
         int                     tcp_ip_fd;
         int                     max_conn;
         vbi_bool                should_exit;
+        vbi_bool                chn_sched_alarm;
 
         PROXY_CLNT            * p_clnts;
         int                     clnt_count;
@@ -221,13 +245,14 @@ typedef struct
 
 } PROXY_SRV;
 
-#define SRV_REPLY_TIMEOUT       60
+#define SRV_CONNECT_TIMEOUT     60
 #define SRV_STALLED_STATS_INTV  15
 #define SRV_BUFFER_COUNT        10
 
 #define DEFAULT_MAX_CLIENTS     10
 #define DEFAULT_VBI_DEV_PATH    "/dev/vbi"
 #define DEFAULT_VBI_DEVFS_PATH  "/dev/v4l/vbi"
+#define DEFAULT_CHN_PRIO        VBI_CHN_PRIO_INTERACTIVE
 
 /* ----------------------------------------------------------------------------
 ** Local variables
@@ -348,6 +373,38 @@ static void vbi_proxy_queue_release_sliced( PROXY_CLNT * req )
       p_buf->p_next = p_proxy_dev->p_free;
       p_proxy_dev->p_free = p_buf;
    }
+}
+
+/* ----------------------------------------------------------------------------
+** Free all resources of all buffers in a queue
+** - called upon stop of acquisition for all queues
+*/
+static void vbi_proxy_queue_release_all( int dev_idx )
+{
+   PROXY_DEV   * p_proxy_dev;
+   PROXY_CLNT  * req;
+   PROXY_QUEUE * p_next;
+
+   p_proxy_dev = proxy.dev + dev_idx;
+
+   pthread_mutex_lock(&p_proxy_dev->queue_mutex);
+   while (p_proxy_dev->p_sliced != NULL)
+   {
+      p_next = p_proxy_dev->p_sliced->p_next;
+
+      vbi_proxy_queue_add_free(p_proxy_dev, p_proxy_dev->p_sliced);
+
+      p_proxy_dev->p_sliced = p_next;
+   }
+
+   for (req = proxy.p_clnts; req != NULL; req = req->p_next)
+   {
+      if (req->dev_idx == dev_idx)
+      {
+         req->p_sliced    = NULL;
+      }
+   }
+   pthread_mutex_unlock(&p_proxy_dev->queue_mutex);
 }
 
 /* ----------------------------------------------------------------------------
@@ -662,6 +719,7 @@ static vbi_bool vbi_proxy_start_acquisition( int dev_idx, PROXY_CLNT * p_new_req
    PROXY_DEV    * p_proxy_dev;
    PROXY_QUEUE  * p_buf;
    char         * p_errorstr;
+   vbi_setup_parm capt_cfg;
    unsigned int   tmp_services;
    int            strict;
    int            buf_idx;
@@ -716,10 +774,12 @@ static vbi_bool vbi_proxy_start_acquisition( int dev_idx, PROXY_CLNT * p_new_req
             }
          }
 
-         /* get file handle for select(2) to wait for VBI data */
-         p_proxy_dev->vbi_fd = vbi_capture_get_poll_fd(p_proxy_dev->p_capture);
-
-         if (p_proxy_dev->vbi_fd == -1)
+         /* get file handle for select() to wait for VBI data */
+         capt_cfg.type = VBI_SETUP_GET_FD_TYPE;
+         if ( vbi_capture_setup(p_proxy_dev->p_capture, &capt_cfg) &&
+              (capt_cfg.u.get_fd_type.has_select) )
+            p_proxy_dev->vbi_fd = vbi_capture_fd(p_proxy_dev->p_capture);
+         else
             vbi_proxyd_start_acq_thread(p_proxy_dev - proxy.dev);
 
          result = TRUE;
@@ -758,13 +818,14 @@ static void vbi_proxy_stop_acquisition( PROXY_DEV * p_proxy_dev )
 ** Update service mask after a client was added or closed
 ** - TODO: update buffer_count
 */
-static vbi_bool vbi_proxy_update_services( int dev_idx, PROXY_CLNT * p_new_req,
+static vbi_bool vbi_proxyd_service_update( int dev_idx, PROXY_CLNT * p_new_req,
                                            int new_req_strict, char ** pp_errorstr )
 {
    PROXY_CLNT   * req;
    PROXY_DEV    * p_proxy_dev;
    unsigned int   all_services;
    unsigned int   tmp_services;
+   vbi_setup_parm capt_cfg;
    int            strict;
    vbi_bool       result;
 
@@ -814,9 +875,13 @@ static vbi_bool vbi_proxy_update_services( int dev_idx, PROXY_CLNT * p_new_req,
          p_proxy_dev->max_lines = p_proxy_dev->p_decoder->count[0]
                                 + p_proxy_dev->p_decoder->count[1];
 
-         dprintf1("update_services: new service mask 0x%X\n", p_proxy_dev->p_decoder->services);
+         dprintf1("service_update: new service mask 0x%X\n", p_proxy_dev->p_decoder->services);
 
-         if (vbi_capture_get_poll_fd(p_proxy_dev->p_capture) == -1)
+         capt_cfg.type = VBI_SETUP_GET_FD_TYPE;
+         if ( vbi_capture_setup(p_proxy_dev->p_capture, &capt_cfg) &&
+              (capt_cfg.u.get_fd_type.has_select) )
+            p_proxy_dev->vbi_fd = vbi_capture_fd(p_proxy_dev->p_capture);
+         else
             vbi_proxyd_start_acq_thread(dev_idx);
       }
       else
@@ -849,7 +914,7 @@ static vbi_bool vbi_proxy_take_service_req( PROXY_CLNT * req,
       
    *VBI_GET_SERVICE_P(req, new_strict) |= new_services;
 
-   result = vbi_proxy_update_services(req->dev_idx, req, new_strict, &p_errorstr);
+   result = vbi_proxyd_service_update(req->dev_idx, req, new_strict, &p_errorstr);
 
    if ( (result == FALSE) || (p_proxy_dev->p_decoder == NULL) ||
         (*VBI_GET_SERVICE_P(req, new_strict) == 0) )
@@ -899,50 +964,252 @@ static vbi_bool vbi_proxy_take_service_req( PROXY_CLNT * req,
 }
 
 /* ----------------------------------------------------------------------------
-** Process a channel change request
+** Adapt channel scheduler state when switching away from a channel
 */
-static vbi_bool
-vbi_proxy_take_channel_req( PROXY_CLNT * req, int chn_flags,
-                            vbi_channel_desc * p_chn_desc,
-                            VBIPROXY_CHN_PROFILE * p_chn_profile,
-                            vbi_bool * p_has_tuner, int * p_scanning,
-                            int * p_errno, uint8_t * p_errbuf )
+static void vbi_proxyd_channel_stopped( PROXY_CLNT * req )
+{
+   PROXY_CLNT  * p_walk;
+
+   req->chn_state.is_active     = FALSE;
+   req->chn_state.is_completed  = FALSE;
+   req->chn_state.last_duration = time(NULL) - req->chn_state.last_start;
+
+   if (req->chn_state.last_duration >= req->chn_profile.min_duration)
+   {
+      req->chn_state.cycle_count += 1;
+
+      dprintf1("channel_schedule: fd %d terminated (duration %d, cycle #%d)\n", req->io.sock_fd, (int)req->chn_state.last_duration, req->chn_state.cycle_count);
+
+      if (req->chn_state.cycle_count > 2)
+      {
+         /* cycle counter overflow: only values 1, 2 allowed (plus 0 for new requests)
+         ** -> reduce all counters by one */
+         dprintf1("channel_schedule: dev #%d: leveling cycle counters\n", req->dev_idx);
+
+         for (p_walk = proxy.p_clnts; p_walk != NULL; p_walk = p_walk->p_next)
+            if (p_walk->dev_idx == req->dev_idx)
+               if (p_walk->chn_state.cycle_count > 0)
+                  p_walk->chn_state.cycle_count -= 1;
+      }
+      else if (req->chn_state.cycle_count == 1)
+      {
+         /* cycle counter hops always to maximum, i.e. from 0 to 2 so that a new request
+         ** has immediately highest prio, but is only scheduled once before the others */
+         for (p_walk = proxy.p_clnts; p_walk != NULL; p_walk = p_walk->p_next)
+            if (p_walk->dev_idx == req->dev_idx)
+               if (p_walk->chn_state.cycle_count >= 2)
+                  break;
+
+         if (p_walk != NULL)
+            req->chn_state.cycle_count = 2;
+      }
+   }
+}
+
+/* ----------------------------------------------------------------------------
+** Calculate next timer for scheduler
+** - since there's only one alarm signal, the nearest timeout on all devices is searched
+*/
+static void vbi_proxyd_channel_timer_update( void )
 {
    PROXY_CLNT  * p_walk;
    PROXY_DEV   * p_proxy_dev;
+   time_t        rest;
+   time_t        next_sched;
+   time_t        now;
+
+   now        = time(NULL);
+   next_sched = 0;
+
+   for (p_walk = proxy.p_clnts; p_walk != NULL; p_walk = p_walk->p_next)
+   {
+      p_proxy_dev = proxy.dev + p_walk->dev_idx;
+      if ( (p_proxy_dev->chn_prio == VBI_CHN_PRIO_BACKGROUND) &&
+           (p_walk->chn_state.is_active) &&
+           (p_walk->chn_state.is_completed == FALSE) )
+      {
+         rest = p_walk->chn_profile.min_duration - (now - p_walk->chn_state.last_start);
+         if ((rest > 0) && ((rest < next_sched) || (next_sched == 0)))
+            next_sched = rest;
+         else if (rest < 0)
+            next_sched = 1;
+      }
+   }
+
+   if (next_sched != 0)
+      dprintf1("channel_timer_update: set alarm timer in %d secs\n", (int)next_sched);
+
+   alarm(next_sched);
+   proxy.chn_sched_alarm = FALSE;
+}
+
+/* ----------------------------------------------------------------------------
+** Determine which client's channel request is granted
+*/
+static PROXY_CLNT *
+vbi_proxyd_channel_schedule( int dev_idx )
+{
+   PROXY_CLNT  * p_walk;
+   PROXY_CLNT  * p_sched;
+   PROXY_CLNT  * p_active;
+   PROXY_DEV   * p_proxy_dev;
+   time_t        now;
+
+   p_proxy_dev = proxy.dev + dev_idx;
+   p_sched     = NULL;
+   p_active    = NULL;
+   now         = time(NULL);
+
+   for (p_walk = proxy.p_clnts; p_walk != NULL; p_walk = p_walk->p_next)
+   {
+      if ( (p_walk->dev_idx == dev_idx) &&
+           (p_walk->chn_profile.is_valid) &&
+           (p_walk->chn_prio == VBI_CHN_PRIO_BACKGROUND) )
+      {
+         /* if this client's channel is currently active, check if the reservation has expired */
+         if (p_walk->chn_state.is_active)
+         {
+            if ( (now - p_walk->chn_state.last_start >= p_walk->chn_profile.min_duration) &&
+                 (p_walk->chn_state.is_completed == FALSE) )
+            {
+               p_walk->chn_state.is_completed = TRUE;
+            }
+            p_active = p_walk;
+         }
+         dprintf1("channel_schedule: fd %d: active=%d compl=%d sub-prio=%d cycles#%d min-dur=%d\n", p_walk->io.sock_fd, p_walk->chn_state.is_active, p_walk->chn_state.is_completed, p_walk->chn_profile.sub_prio, p_walk->chn_state.cycle_count, (int)p_walk->chn_profile.min_duration);
+
+         if (p_sched != NULL)
+         {
+            if ( p_walk->chn_state.cycle_count
+                   + ((p_walk->chn_state.is_active && p_walk->chn_state.is_completed) ? 1 : 0)
+                     < p_sched->chn_state.cycle_count
+                       + ((p_sched->chn_state.is_active && p_sched->chn_state.is_completed) ? 1 : 0) )
+            {  /* this one is already done (more often) */
+               p_sched = p_walk;
+            }
+            else if (p_walk->chn_profile.sub_prio > p_sched->chn_profile.sub_prio)
+            {  /* higher priority found */
+               p_sched = p_walk;
+            }
+            else if (p_walk->chn_profile.sub_prio == p_sched->chn_profile.sub_prio)
+            {  /* same priority */
+               if (p_walk->chn_state.is_active && !p_walk->chn_state.is_completed)
+               {  /* this one is still active */
+                  p_sched = p_walk;
+               }
+               else if (p_sched->chn_state.is_active && p_sched->chn_state.is_completed)
+               {  /* prev. selected one was completed -> choose next */
+                  p_sched = p_walk;
+               }
+               else if (!p_walk->chn_state.is_active && !p_sched->chn_state.is_completed)
+               {  /* none active -> first come first serve */
+                  if ( (p_walk->chn_state.last_start < p_sched->chn_state.last_start) ||
+                       ( (p_walk->chn_state.last_start == p_sched->chn_state.last_start) &&
+                         (p_walk->chn_profile.min_duration < p_sched->chn_profile.min_duration) ))
+                  {
+                     p_sched = p_walk;
+                  }
+               }
+            }
+         }
+         else
+            p_sched = p_walk;
+      }
+   }
+
+   if ((p_sched != p_active) && (p_active != NULL))
+   {
+      vbi_proxyd_channel_stopped(p_active);
+   }
+
+   return p_sched;
+}
+
+/* ----------------------------------------------------------------------------
+** Update channel, after channel change request or connection release
+** - if only background-prio clients are connected, the scheduler decides;
+**   else the channel is switched (if the client matches the daemon's max prio)
+*/
+static vbi_bool
+vbi_proxyd_channel_update( int dev_idx, PROXY_CLNT * req, int chn_flags,
+                           vbi_bool * p_has_tuner, int * p_scanning,
+                           int * p_errno, uint8_t * p_errbuf )
+{
+   PROXY_CLNT  * p_walk;
+   PROXY_CLNT  * p_sched;
+   PROXY_DEV   * p_proxy_dev;
    char        * p_errorstr;
    vbi_bool      result;
+   int           max_chn_prio;
 
-   p_proxy_dev = proxy.dev + req->dev_idx;
+   p_proxy_dev = proxy.dev + dev_idx;
    p_errorstr  = NULL;
    result      = FALSE;
 
-   /* check for update of channel profile */
-   if (p_chn_profile->is_valid)
+   /* determine new max. channel priority */
+   max_chn_prio = 0;
+   for (p_walk = proxy.p_clnts; p_walk != NULL; p_walk = p_walk->p_next)
+      if ((p_walk->dev_idx == dev_idx) && (p_walk->chn_prio > max_chn_prio))
+         max_chn_prio = p_walk->chn_prio;
+
+   /* non-bg prio OR channel has already been switched -> clear scheduler active flag */
+   if ( (max_chn_prio > 0) || ((chn_flags & VBI_CHN_FLUSH_ONLY) != 0) )
    {
-      memcpy(&req->chn_profile, p_chn_profile, sizeof(req->chn_profile));
+      for (p_walk = proxy.p_clnts; p_walk != NULL; p_walk = p_walk->p_next)
+         if ((p_walk->dev_idx == dev_idx) && (p_walk->chn_state.is_active))
+            vbi_proxyd_channel_stopped(p_walk);
    }
 
-   /* check client prio against other proxy clients (sub-prio not considered) */
-   for (p_walk = proxy.p_clnts; p_walk != NULL; p_walk = p_walk->p_next)
-      if (p_walk->chn_profile.chn_prio > req->chn_profile.chn_prio)
-         break;
+   if (max_chn_prio == 0)
+   {  /* background -> let scheduler decide */
+      p_sched = vbi_proxyd_channel_schedule(dev_idx);
+   }
+   else if ( (req != NULL) &&
+             (req->chn_prio == max_chn_prio) &&
+             ((chn_flags & VBI_CHN_PRIO_ONLY) == 0) )
+   {  /* non-background prio -> latest request wins */
+      p_sched = req;
+   }
+   else
+   {  /* reject switch by priority */
+      p_sched = NULL;
+   }
 
-   /* XXX TODO: go through the scheduler, i.e. consider other background clients */
-   if (p_walk == NULL)
+   if ( (p_sched != NULL) &&
+        ( (p_sched->chn_state.is_active == FALSE) ||
+          (p_sched->chn_prio > VBI_CHN_PRIO_BACKGROUND) ))
    {
-      if ( vbi_capture_channel_change(p_proxy_dev->p_capture,
-                                      chn_flags, req->chn_profile.chn_prio,
-                                      p_chn_desc, p_has_tuner, p_scanning,
+      /* save the priority registered with the device
+      ** (prio update is independent of success of channel switch) */
+      p_proxy_dev->chn_prio = max_chn_prio;
+
+      if (p_sched != req)
+         chn_flags = 0;
+
+      if ( vbi_capture_channel_change(p_proxy_dev->p_capture, chn_flags, max_chn_prio,
+                                      &p_sched->chn_desc, p_has_tuner, p_scanning,
                                       &p_errorstr) == 0 )
       {
-         /* XXX TODO set flag to skip 1-2 frames - here or in IO modules */
-         /* XXX TODO: notify other clients
-         ** XXX: do not flush out queues; insert change IND in slicer queue */
-         *p_errno = 0;
+         p_proxy_dev->chn_desc = p_sched->chn_desc;
+
+         p_sched->chn_state.is_active     = TRUE;
+         p_sched->chn_state.is_completed  = FALSE;
+         p_sched->chn_state.last_duration = 0;
+         p_sched->chn_state.last_start    = time(NULL);
+
+         /* flush slicer queue */
+         vbi_proxy_queue_release_all(dev_idx);
+
+         /* trigger sending of change indication to all clients except the caller */
+         for (p_walk = proxy.p_clnts; p_walk != NULL; p_walk = p_walk->p_next)
+            if (p_walk->dev_idx == dev_idx)
+               p_walk->chn_change_ind = TRUE;
+
+         if (p_errno != NULL)
+            *p_errno = 0;
          result = TRUE;
       }
-      else
+      else if ((p_errbuf != NULL) && (p_errno != NULL))
       {
          if (p_errorstr != NULL)
          {
@@ -955,13 +1222,88 @@ vbi_proxy_take_channel_req( PROXY_CLNT * req, int chn_flags,
       }
    }
    else
-   {
+   {  /* no channel change is allowed or required */
+      vbi_channel_desc null_desc;
+
+      memset(&null_desc, 0, sizeof(null_desc));
+      null_desc.type = VBI_CHN_DESC_TYPE_NULL;
+
+      /* flush-only flag: assume client has already done the switch -> must flush VBI buffers */
+      if ((chn_flags & VBI_CHN_FLUSH_ONLY) != 0)
+      {
+         /* dummy switch command to flush and update device priority only */
+         vbi_capture_channel_change(p_proxy_dev->p_capture, VBI_CHN_FLUSH_ONLY, max_chn_prio,
+                                    &null_desc, NULL, NULL, NULL);
+      }
+      else if (p_proxy_dev->chn_prio != max_chn_prio)
+      {
+         /* dummy switch command to update device priority only */
+         vbi_capture_channel_change(p_proxy_dev->p_capture, 0, max_chn_prio,
+                                    &null_desc, NULL, NULL, NULL);
+
+         dprintf1("Updated channel prio: %d (was %d)\n", max_chn_prio, p_proxy_dev->chn_prio);
+         p_proxy_dev->chn_prio = max_chn_prio;
+      }
+   }
+
+   if ( (p_sched != req) && (req != NULL) &&
+        (p_errbuf != NULL) && (p_errno != NULL) )
+   {  /* requested channel change was not executed */
       strncpy(p_errbuf, _("Cannot switch channel: device is busy."), VBIPROXY_ERROR_STR_MAX_LENGTH);
       p_errbuf[VBIPROXY_ERROR_STR_MAX_LENGTH - 1] = 0;
       *p_errno = EBUSY;
    }
 
+   if (max_chn_prio == 0)
+      vbi_proxyd_channel_timer_update();
+
    return result;
+}
+
+/* ----------------------------------------------------------------------------
+** Check channel scheduling on all devices for expired timers
+*/
+static void vbi_proxyd_channel_timer( void )
+{
+   PROXY_CLNT  * p_walk;
+   PROXY_DEV   * p_proxy_dev;
+   int           dev_idx;
+   time_t        now;
+   vbi_bool      do_schedule;
+   int           user_count;
+
+   now = time(NULL);
+
+   for (dev_idx = 0; dev_idx < proxy.dev_count; dev_idx++)
+   {
+      p_proxy_dev = proxy.dev + dev_idx;
+      do_schedule = FALSE;
+      user_count  = 0;
+
+      if (p_proxy_dev->chn_prio == VBI_CHN_PRIO_BACKGROUND)
+      {
+         for (p_walk = proxy.p_clnts; p_walk != NULL; p_walk = p_walk->p_next)
+         {
+            if (p_walk->dev_idx == dev_idx)
+            {
+               if ( (p_walk->chn_state.is_active) &&
+                    (p_walk->chn_state.is_completed == FALSE) &&
+                    (now - p_walk->chn_state.last_start >= p_walk->chn_profile.min_duration) )
+               {
+                  do_schedule = TRUE;
+               }
+               user_count += 1;
+            }
+         }
+
+         if (do_schedule && (user_count > 1))
+         {
+            dprintf1("schedule_timer: schedule device #%d\n", dev_idx);
+
+            vbi_proxyd_channel_update(dev_idx, NULL, 0, NULL, NULL, NULL, NULL);
+         }
+      }
+   }
 }
 
 /* ----------------------------------------------------------------------------
@@ -1011,6 +1353,7 @@ static void vbi_proxyd_add_connection( int listen_fd, int dev_idx, vbi_bool isLo
          req->io.lastIoTime = time(NULL);
          req->io.sock_fd    = sock_fd;
          req->dev_idx       = dev_idx;
+         req->chn_prio      = DEFAULT_CHN_PRIO;
 
          pthread_mutex_lock(&proxy.clnt_mutex);
 
@@ -1063,12 +1406,69 @@ static void vbi_proxyd_add_device( const char * p_dev_name )
 }
 
 /* ----------------------------------------------------------------------------
+** Transmit one buffer of sliced data
+** - returns FALS upon I/O error
+** - also returns a "blocked" flag which is TRUE if not all data could be written
+**   can be used by the caller to "stuff" the pipe, i.e. write a series of messages
+**   until the pipe is full
+** - XXX optimization required: don't copy the block
+*/
+static vbi_bool vbi_proxyd_send_sliced( PROXY_CLNT * req, vbi_bool * p_blocked )
+{
+   VBIPROXY_MSG * p_msg;
+   uint32_t  msg_size;
+   vbi_bool  result = FALSE;
+   int max_lines;
+   int idx;
+
+   if ((req != NULL) && (p_blocked != NULL))
+   {
+      msg_size = sizeof(VBIPROXY_MSG_HEADER) + VBIPROXY_SLICED_IND_SIZE(req->p_sliced->line_count);
+      p_msg = malloc(msg_size);
+
+      /* filter for services requested by this client */
+      max_lines = req->vbi_count[0] + req->vbi_count[1];
+      p_msg->body.sliced_ind.timestamp = req->p_sliced->timestamp;
+      p_msg->body.sliced_ind.line_count = 0;
+
+      for (idx = 0; (idx < req->p_sliced->line_count) && (idx < max_lines); idx++)
+      {
+         if ((req->p_sliced->lines[idx].id & req->all_services) != 0)
+         {
+            memcpy(p_msg->body.sliced_ind.sliced + p_msg->body.sliced_ind.line_count,
+                   req->p_sliced->lines + idx, sizeof(vbi_sliced));
+            p_msg->body.sliced_ind.line_count += 1;
+         }
+      }
+      msg_size = VBIPROXY_SLICED_IND_SIZE(p_msg->body.sliced_ind.line_count);
+
+      vbi_proxy_msg_write(&req->io, MSG_TYPE_SLICED_IND, msg_size, p_msg, TRUE);
+
+      if (vbi_proxy_msg_handle_io(&req->io, p_blocked, FALSE, NULL, 0))
+      {
+         /* if the last block could not be transmitted fully, quit the loop */
+         if (req->io.writeLen > 0)
+         {
+            dprintf2("send_sliced: socket blocked\n");
+            *p_blocked = TRUE;
+         }
+         result = TRUE;
+      }
+   }
+   else
+      dprintf1("send_sliced: illegal NULL ptr params\n");
+
+   return result;
+}
+
+/* ----------------------------------------------------------------------------
 ** Checks the size of a message from client to server
 */
-static vbi_bool vbi_proxyd_check_msg( uint len, VBIPROXY_MSG * pMsg, vbi_bool * pEndianSwap )
+static vbi_bool vbi_proxyd_check_msg( VBIPROXY_MSG * pMsg, vbi_bool * pEndianSwap )
 {
    VBIPROXY_MSG_HEADER * pHead = &pMsg->head;
    VBIPROXY_MSG_BODY   * pBody = &pMsg->body;
+   unsigned int len = pMsg->head.len;
    vbi_bool result = FALSE;
 
    switch (pHead->type)
@@ -1274,11 +1674,19 @@ static vbi_bool vbi_proxyd_take_message( PROXY_CLNT *req, VBIPROXY_MSG * pMsg )
             int scanning;
             int dev_errno;
 
-            if ( vbi_proxy_take_channel_req(req, pBody->chn_change_req.chn_flags,
-                                                 &pBody->chn_change_req.chn_desc,
-                                                 &pBody->chn_change_req.chn_profile,
-                                                 &has_tuner, &scanning, &dev_errno,
-                                                 req->msg_buf.body.chn_change_rej.errorstr) )
+            /* update channel description and profile */
+            req->chn_desc = pBody->chn_change_req.chn_desc;
+            req->chn_prio = pBody->chn_change_req.chn_prio;
+            if (pBody->chn_change_req.chn_profile.is_valid)
+            {
+               req->chn_profile = pBody->chn_change_req.chn_profile;
+               memset(&req->chn_state, 0, sizeof(req->chn_state));
+            }
+
+            if ( vbi_proxyd_channel_update(req->dev_idx, req,
+                                           pBody->chn_change_req.chn_flags,
+                                           &has_tuner, &scanning, &dev_errno,
+                                           req->msg_buf.body.chn_change_rej.errorstr) )
             {
                req->msg_buf.body.chn_change_cnf.serial    = serial;
                req->msg_buf.body.chn_change_cnf.scanning  = scanning;
@@ -1295,6 +1703,7 @@ static vbi_bool vbi_proxyd_take_message( PROXY_CLNT *req, VBIPROXY_MSG * pMsg )
                                    sizeof(req->msg_buf.body.chn_change_rej),
                                    &req->msg_buf, FALSE);
             }
+            req->chn_change_ind = FALSE;
             result = TRUE;
          }
          break;
@@ -1362,13 +1771,13 @@ static int vbi_proxyd_get_fd_set( fd_set * rd, fd_set * wr )
    /* add client connection sockets */
    for (req = proxy.p_clnts; req != NULL; req = req->p_next)
    {
-      /* read and write are exclusive and write takes prcedence over read
+      /* read and write are exclusive and write takes precedence over read
       ** (i.e. read only if no write is pending or if a read operation has already been started)
       */
       if (req->io.waitRead || (req->io.readLen > 0))
          FD_SET(req->io.sock_fd, rd);
       else
-      if ((req->io.writeLen > 0) || (req->p_sliced != NULL))
+      if ((req->io.writeLen > 0) || (req->p_sliced != NULL) || (req->chn_change_ind))
          FD_SET(req->io.sock_fd, wr);
       else
          FD_SET(req->io.sock_fd, rd);
@@ -1387,12 +1796,13 @@ static void vbi_proxyd_handle_sockets( fd_set * rd, fd_set * wr )
 {
    PROXY_CLNT    *req;
    PROXY_CLNT    *prev, *tmp;
-   vbi_bool      ioBlocked;  /* dummy */
+   vbi_bool      io_blocked;
    time_t now = time(NULL);
 
    /* handle active connections */
    for (req = proxy.p_clnts, prev = NULL; req != NULL; )
    {
+      io_blocked = FALSE;
       if ( FD_ISSET(req->io.sock_fd, rd) ||
            ((req->io.writeLen > 0) && FD_ISSET(req->io.sock_fd, wr)) )
       {
@@ -1409,12 +1819,12 @@ static void vbi_proxyd_handle_sockets( fd_set * rd, fd_set * wr )
                req->io.readOff  = 0;
             }
          }
-         if (vbi_proxy_msg_handle_io(&req->io, &ioBlocked, TRUE, &req->msg_buf, sizeof(req->msg_buf)))
+         if (vbi_proxy_msg_handle_io(&req->io, &io_blocked, TRUE, &req->msg_buf, sizeof(req->msg_buf)))
          {
             /* check for finished read -> process request */
             if ( (req->io.readLen != 0) && (req->io.readLen == req->io.readOff) )
             {
-               if (vbi_proxyd_check_msg(req->io.readLen, &req->msg_buf, &req->endianSwap))
+               if (vbi_proxyd_check_msg(&req->msg_buf, &req->endianSwap))
                {
                   req->io.readLen  = 0;
 
@@ -1434,11 +1844,20 @@ static void vbi_proxyd_handle_sockets( fd_set * rd, fd_set * wr )
       }
       else if (vbi_proxy_msg_is_idle(&req->io))
       {  /* currently no I/O in progress */
-         vbi_bool  io_blocked = FALSE;
 
          if (req->state == REQ_STATE_WAIT_CLOSE)
          {  /* close was pending after last write */
             vbi_proxyd_close(req, FALSE);
+         }
+         else if (req->chn_change_ind)
+         {  /* send channel change indication */
+            req->msg_buf.body.chn_change_ind.chn_desc    = proxy.dev[req->dev_idx].chn_desc;
+            req->msg_buf.body.chn_change_ind.chn_granted = req->chn_state.is_active;
+            req->msg_buf.body.chn_change_ind.scanning    = proxy.dev[req->dev_idx].scanning;
+
+            vbi_proxy_msg_write(&req->io, MSG_TYPE_CHN_CHANGE_IND,
+                                sizeof(req->msg_buf.body.chn_change_ind), &req->msg_buf, FALSE);
+            req->chn_change_ind = FALSE;
          }
          else
          {
@@ -1446,33 +1865,19 @@ static void vbi_proxyd_handle_sockets( fd_set * rd, fd_set * wr )
             while ((req->p_sliced != NULL) && (io_blocked == FALSE))
             {
                dprintf2("handle_sockets: fd %d: forward sliced frame with %d lines (of max %d)\n", req->io.sock_fd, req->p_sliced->line_count, req->p_sliced->max_lines);
-               if (vbi_proxy_msg_write_queue(&req->io, &io_blocked,
-                                             req->all_services, req->vbi_count[0] + req->vbi_count[1],
-                                             req->p_sliced->lines, req->p_sliced->line_count,
-                                             req->p_sliced->timestamp) == FALSE)
-               {
-                  vbi_proxyd_close(req, FALSE);
-                  io_blocked = TRUE;
-               }
-               else
+               if (vbi_proxyd_send_sliced(req, &io_blocked) )
                {  /* only in success case because close releases all buffers */
                   pthread_mutex_lock(&proxy.dev[req->dev_idx].queue_mutex);
                   vbi_proxy_queue_release_sliced(req);
                   pthread_mutex_unlock(&proxy.dev[req->dev_idx].queue_mutex);
                }
+               else
+               {  /* I/O error */
+                  vbi_proxyd_close(req, FALSE);
+                  io_blocked = TRUE;
+               }
             }
          }
-
-         #if 0
-         if ((req->io.sock_fd != -1) && (req->io.writeLen > 0))
-         {
-            if (vbi_proxy_msg_handle_io(&req->io, &ioBlocked, TRUE, &req->msg_buf.body, sizeof(req->msg_buf.body)) == FALSE)
-            {
-               vbi_proxyd_close(req, FALSE);
-               io_blocked = TRUE;
-            }
-         }
-         #endif
       }
 
       if (req->io.sock_fd == -1)
@@ -1485,18 +1890,11 @@ static void vbi_proxyd_handle_sockets( fd_set * rd, fd_set * wr )
          vbi_proxyd_close(req, FALSE);
       }
       else /* check for protocol or network I/O timeout */
-      if ( (now > req->io.lastIoTime + SRV_REPLY_TIMEOUT) &&
-           (req->state == REQ_STATE_WAIT_CON_REQ) )
+      if ( (req->state == REQ_STATE_WAIT_CON_REQ) &&
+           (now > req->io.lastIoTime + SRV_CONNECT_TIMEOUT) )
       {
          dprintf1("handle_sockets: fd %d: protocol timeout in state %d\n", req->io.sock_fd, req->state);
          vbi_proxyd_close(req, FALSE);
-      }
-      else if ( (now > req->io.lastIoTime + SRV_STALLED_STATS_INTV) &&
-                (req->state == REQ_STATE_FORWARD) &&
-                vbi_proxy_msg_is_idle(&req->io) )
-      {
-         dprintf1("handle_sockets: fd %d: send 'no reception' stats\n", req->io.sock_fd);
-         req->io.lastIoTime = now;
       }
 
       if (req->state == REQ_STATE_CLOSED)
@@ -1521,7 +1919,9 @@ static void vbi_proxyd_handle_sockets( fd_set * rd, fd_set * wr )
          }
          pthread_mutex_unlock(&proxy.clnt_mutex);
 
-         vbi_proxy_update_services(dev_idx, NULL, 0, NULL);
+         vbi_proxyd_service_update(dev_idx, NULL, 0, NULL);
+         if (proxy.dev[dev_idx].p_capture != NULL)
+            vbi_proxyd_channel_update(dev_idx, NULL, 0, NULL, NULL, NULL, NULL);
          free(tmp);
       }
       else
@@ -1536,7 +1936,7 @@ static void vbi_proxyd_handle_sockets( fd_set * rd, fd_set * wr )
 ** Set maximum number of open client connections
 ** - note: does not close connections if max count is already exceeded
 */
-static void vbi_proxyd_set_max_conn( uint max_conn )
+static void vbi_proxyd_set_max_conn( unsigned int max_conn )
 {
    proxy.max_conn = max_conn;
 }
@@ -1648,6 +2048,14 @@ static void vbi_proxyd_destroy( void )
 }
 
 /* ---------------------------------------------------------------------------
+** Signal handler to process alarm
+*/
+static void vbi_proxyd_alarm_handler( int sigval )
+{
+   proxy.chn_sched_alarm = TRUE;
+}
+
+/* ---------------------------------------------------------------------------
 ** Signal handler to catch deadly signals
 */
 static void vbi_proxyd_signal_handler( int sigval )
@@ -1689,6 +2097,11 @@ static void vbi_proxyd_init( void )
    memset(&act, 0, sizeof(act));
    act.sa_handler = SIG_IGN;
    sigaction(SIGPIPE, &act, NULL);
+
+   /* handle alarm timers (for channel change scheduling) */
+   memset(&act, 0, sizeof(act));
+   act.sa_handler = vbi_proxyd_alarm_handler;
+   sigaction(SIGALRM, &act, NULL);
 
    /* catch deadly signals for a clean shutdown (remove socket file) */
    memset(&act, 0, sizeof(act));
@@ -1754,7 +2167,7 @@ static vbi_bool vbi_proxyd_listen( void )
 }
 
 /* ---------------------------------------------------------------------------
-** Proxy main loop
+** Proxy daemon main loop
 */
 static void vbi_proxyd_main_loop( void )
 {
@@ -1779,12 +2192,13 @@ static void vbi_proxyd_main_loop( void )
 
          for (dev_idx = 0; dev_idx < proxy.dev_count; dev_idx++)
          {
-            /* accept new local connections */
+            /* accept new client connections on device socket */
             if ((proxy.dev[dev_idx].pipe_fd != -1) && (FD_ISSET(proxy.dev[dev_idx].pipe_fd, &rd)))
             {
                vbi_proxyd_add_connection(proxy.dev[dev_idx].pipe_fd, dev_idx, TRUE);
             }
 
+            /* check for incoming data on VBI device */
             if ((proxy.dev[dev_idx].vbi_fd != -1) && (FD_ISSET(proxy.dev[dev_idx].vbi_fd, &rd)))
             {
                if (proxy.dev[dev_idx].use_thread == FALSE)
@@ -1792,7 +2206,8 @@ static void vbi_proxyd_main_loop( void )
                   vbi_proxyd_forward_data(dev_idx);
                }
                else
-               {
+               {  /* message from acq thread slave:
+                  ** sent data is only a trigger to wake up from select() above -> discard it */
                   char dummy_buf[100];
                   sel_cnt = read(proxy.dev[dev_idx].vbi_fd, dummy_buf, sizeof(dummy_buf));
                   dprintf2("main_loop: read from acq thread dev #%d pipe fd %d: %d errno=%d\n", dev_idx, proxy.dev[dev_idx].vbi_fd, sel_cnt, errno);
@@ -1806,7 +2221,15 @@ static void vbi_proxyd_main_loop( void )
             vbi_proxyd_add_connection(proxy.tcp_ip_fd, 0, FALSE);
          }
 
+         /* send queued data or process incoming messages from clients */
          vbi_proxyd_handle_sockets(&rd, &wr);
+
+         if (proxy.chn_sched_alarm)
+         {
+            proxy.chn_sched_alarm = FALSE;
+
+            vbi_proxyd_channel_timer();
+         }
       }
       else
       {
@@ -1877,7 +2300,7 @@ static void vbi_proxyd_kill_daemon( void )
    if (vbi_proxy_msg_handle_io(&io, &io_blocked, TRUE, &msg_buf, sizeof(msg_buf)) == FALSE)
       goto io_error;
 
-   if ( (vbi_proxyd_check_msg(io.readLen, &msg_buf, FALSE) == FALSE) ||
+   if ( (vbi_proxyd_check_msg(&msg_buf, FALSE) == FALSE) ||
         (msg_buf.head.type != MSG_TYPE_DAEMON_PID_CNF) )
    {
       vbi_asprintf(&p_errorstr, "%s", _("Proxy protocol error"));
