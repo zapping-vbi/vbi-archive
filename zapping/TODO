@@ -42,7 +42,6 @@ Outstanding issues for the next release (0.6.0)
 	+ Do not tune channels when selecting a lot of them in the
 	channel editor.
 	+ Smart Modify/Add default selection in the channel editor.
-	+ OSS (alsa?) interface instead of ESD in mpeg plugin.
 
 > Somewhen...
 	+ Do realtime effects to the image, plainly wonderful, see

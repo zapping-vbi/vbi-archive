@@ -77,6 +77,9 @@ gboolean		was_fullscreen=FALSE; /* will be TRUE if when
 tveng_tuned_channel	*global_channel_list=NULL;
 gint			console_errors = FALSE;
 
+/* Preliminary for mpeg plugin */
+gchar *			oss_device_name = NULL;
+
 /*** END OF GLOBAL STUFF ***/
 
 static gboolean		disable_vbi = FALSE; /* TRUE for disabling VBI
@@ -384,6 +387,15 @@ int main(int argc, char * argv[])
       NULL
     },
     {
+      "oss-device",
+      's',
+      POPT_ARG_STRING,
+      &oss_device_name,
+      0,
+      "Use OSS instead of ESD for mpeg plugin, device name eg. /dev/dsp",
+      NULL
+    },
+    {
       NULL,
     } /* end the list */
   };
@@ -414,7 +426,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.130 2001-08-25 12:01:18 garetxe Exp $",
+	 "$Id: main.c,v 1.131 2001-08-30 04:28:36 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU support... ");
   switch (cpu_detection())

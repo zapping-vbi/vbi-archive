@@ -1,4 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
+dnl $Id: configure.in,v 1.93 2001-08-30 04:28:36 mschimek Exp $
 
 AC_INIT(src/callbacks.c)
 AM_INIT_AUTOMAKE(zapping, 0.6.0)
@@ -261,7 +262,7 @@ dnl ----------------------------------------------------------------------
 HAVE_MMX="no"
 case "$host" in
 i?86-* | k?-*) dnl catch i386,i486,i586,i686,k6,k7
-	AC_DEFINE(__i386__)
+	AC_DEFINE(__i386__) 
         HAVE_MMX="yes";;
 alpha*-*) AC_DEFINE(__alpha__);;
 sparc-*) 
@@ -343,6 +344,19 @@ AC_DEFINE(HAVE_LIBXDPMS)
 X_XDPMS_LIBS="-lXext"
 AC_SUBST(X_XDPMS_LIBS)
 fi
+fi
+
+dnl ----------------------------------------------------------------------
+dnl Check for OSS (preliminary)
+dnl ----------------------------------------------------------------------
+HAVE_OSS="yes"
+AC_REQUIRE_CPP
+AC_CHECK_HEADER(linux/soundcard.h,true,HAVE_OSS=no)
+
+if test "$HAVE_OSS" = "yes"; then
+  AC_DEFINE(USE_OSS)
+else
+  AC_MSG_WARN([*** OSS support not available ***])
 fi
 
 dnl Avoid passing a zillion times the same flags to gcc

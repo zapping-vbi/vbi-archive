@@ -183,7 +183,7 @@ void plugin_close(void)
 /*
  * Audio capture
  */
-static int		esd_recording_socket;
+static int		esd_recording_socket = -1;
 
 static void
 read_audio(void * data, double * time, rte_context * context)
@@ -229,6 +229,57 @@ read_audio(void * data, double * time, rte_context * context)
 		/ (double) sampling_rate;
 }
 
+/* Preliminary */
+
+#if USE_OSS
+
+#include <linux/soundcard.h>
+
+static int		oss_fd = -1;
+extern char *		oss_device_name;
+
+/* TFR repeats the ioctl when interrupted (EINTR) */
+#define IOCTL(fd, cmd, data) (TEMP_FAILURE_RETRY(ioctl(fd, cmd, data)))
+
+static void
+read_audio_oss(void * data, double * time, rte_context * context)
+{
+  int stereo = (context->audio_mode == RTE_AUDIO_MODE_STEREO);
+  int sampling_rate = context->audio_rate;
+  ssize_t r, n = context->audio_bytes;
+  struct audio_buf_info info;
+
+  while (n > 0)
+    {
+      r = read(oss_fd, data, n);
+		
+      if (r < 0 && errno == EINTR)
+	continue;
+
+      if (r == 0)
+        {
+	  memset(data, 0, n);
+	  break;
+	}
+	
+      g_assert(r > 0 && "OSS read failed");
+
+      data = (char *) data + r;
+      n -= r;
+    }
+
+  *time = current_time();
+
+  if (IOCTL(oss_fd, SNDCTL_DSP_GETISPACE, &info) == -1)
+    g_assert(!"SNDCTL_DSP_GETISPACE failed");
+
+  *time -= (((context->audio_bytes -
+	    (n+info.bytes))/sizeof(short))>>stereo) / (double)
+		sampling_rate;
+}
+
+#endif /* USE_OSS */
+
 static void
 audio_data_callback(rte_context * context, void * data, double * time, enum
 		    rte_mux_mode stream, void * user_data)
@@ -237,30 +288,73 @@ audio_data_callback(rte_context * context, void * data, double * time, enum
 
   g_assert (stream == RTE_AUDIO);
 
-  read_audio(data, time, context);
+  if (esd_recording_socket != -1)
+    read_audio(data, time, context);
+#if USE_OSS
+  else if (oss_fd != -1)
+    read_audio_oss(data, time, context);
+#endif
+  else
+    g_assert_not_reached();  
 }
 
 static gboolean
 init_audio(gint rate, gboolean stereo)
 {
-  esd_format_t format = ESD_STREAM | ESD_RECORD | ESD_BITS16;
+#if USE_OSS
+  if (oss_device_name)
+    {
+      int Format = AFMT_S16_LE;
+      int Stereo = !!stereo;
+      int Speed = 44100;
 
-  format |= stereo ? ESD_STEREO : ESD_MONO;
+      if ((oss_fd = open(oss_device_name, O_RDONLY)) == -1)
+        return FALSE;
 
-  esd_recording_socket =
-    esd_record_stream_fallback(format, rate, NULL, NULL);
+      if ((IOCTL(oss_fd, SNDCTL_DSP_SETFMT, &Format) == -1))
+        goto failed;
+      if ((IOCTL(oss_fd, SNDCTL_DSP_STEREO, &Stereo) == -1))
+        goto failed;
+      if ((IOCTL(oss_fd, SNDCTL_DSP_SPEED, &Speed) == -1))
+        goto failed;
 
-  if (esd_recording_socket <= 0)
-    return FALSE;
+      return TRUE;
 
-  return TRUE;
+ failed:
+      close(oss_fd);
+      oss_fd = -1;
+      return FALSE;
+    }
+  else
+#endif /* USE_OSS */
+    {
+      esd_format_t format = ESD_STREAM | ESD_RECORD | ESD_BITS16;
+
+      format |= stereo ? ESD_STEREO : ESD_MONO;
+
+      esd_recording_socket =
+        esd_record_stream_fallback(format, rate, NULL, NULL);
+
+      if (esd_recording_socket >= 0)
+        return TRUE;
+
+      esd_recording_socket = -1;
+    }
+
+  return FALSE;
 }
 
 static void
 close_audio(void)
 {
-  close(esd_recording_socket);
+  if (esd_recording_socket != -1)
+    close(esd_recording_socket);
   esd_recording_socket = -1;
+#if USE_OSS
+  if (oss_fd != -1)
+    close(oss_fd);
+  oss_fd = -1;
+#endif
 }
 
 /* Called when compressed data is ready */
@@ -358,26 +452,26 @@ video_buffer_callback(rte_context *context,
 		      rte_buffer *rb,
 		      enum rte_mux_mode stream)
 {
-  buffer *b = NULL;
+  buffer *b;
   struct tveng_frame_format *fmt;
 
   g_assert(stream == RTE_VIDEO);
 
-  /* skip invalid buffers */
-  do {
-    if (b)
-      send_empty_buffer(&mpeg_consumer, b);
-    b = wait_full_buffer(&mpeg_consumer);
+  for (;;) {
+    capture_buffer *cb = (capture_buffer *)
+      (b = wait_full_buffer(&mpeg_consumer));
 
-    fmt = &((capture_buffer*)b)->d.format;
+    fmt = &cb->d.format;
 
-    if (((capture_buffer*)b)->d.image_type &&
+    if (cb->d.image_type &&
 	fmt->height == context->height &&
 	fmt->width == context->width &&
 	fmt->sizeimage == context->video_bytes &&
 	b->time)
       break;
-  } while (1);
+
+    send_empty_buffer(&mpeg_consumer, b);
+  }
 
   rb->time = b->time;
   rb->data = b->data;

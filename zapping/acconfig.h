@@ -30,3 +30,5 @@
 #undef __alpha__
 #undef __ppc__
 #undef __sparc__
+// Preliminary
+#undef USE_OSS
