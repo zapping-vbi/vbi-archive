@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rte_test_main.c,v 1.1.1.1 2001-08-07 22:09:16 garetxe Exp $
+ * $Id: rte_test_main.c,v 1.2 2001-08-17 00:13:48 garetxe Exp $
  * This is a simple RTE test.
  */
 
@@ -47,7 +47,7 @@
 #include <esd.h>
 #endif
 
-#define TEST_VIDEO_FORMAT RTE_YUV420 /* or RTE_YUYV, etc... */
+#define TEST_VIDEO_FORMAT RTE_YUYV /* or RTE_YUYV, etc... */
 
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
@@ -425,8 +425,8 @@ int main(int argc, char *argv[])
 #if 1
 	char * video_device = "/dev/video0";
 	char * audio_device = "/dev/audio";
-	char * backend = "ffmpeg";
-	char * format="avi", *extension = ".avi";
+	char * backend = "mp1e";
+	char * format="mpeg1", *extension = ".mpeg";
 #else
 	char * video_device = "/dev/video";
 	char * audio_device = "/dev/audio";
@@ -436,7 +436,7 @@ int main(int argc, char *argv[])
 	char dest_file[256], *buffer;
 	pthread_t audio_thread_id;
 	enum rte_mux_mode mux_mode = RTE_AUDIO | RTE_VIDEO;
-	enum rte_interface video_interface = RTE_PUSH;
+	enum rte_interface video_interface = RTE_CALLBACKS;
 	int video_buffered = 1; /* just for push */
 	enum rte_interface audio_interface = RTE_CALLBACKS;
 	int num_encoded_frames;

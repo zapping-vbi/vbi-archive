@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.3 2001-08-08 23:01:58 garetxe Exp $ */
+/* $Id: b_mp1e.c,v 1.4 2001-08-17 00:13:48 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -170,10 +170,6 @@ uninit_context			(rte_context	*context)
 
 	output_end();
 
-	if (gop_sequence)
-		free(gop_sequence);
-	gop_sequence = NULL;
-
 	mux_free(priv->mux);
 }
 
@@ -302,10 +298,7 @@ static int rte_fake_options(rte_context * context)
 
 	ASSERT("guiroppaaaaa!\n", context != NULL);
 
-	if (gop_sequence)
-		free(gop_sequence);
-
-	gop_sequence = strdup(context->gop_sequence);
+	gop_sequence = context->gop_sequence;
 
 	modules = context->mode;
 	grab_width = saturate(context->width, 1, MAX_WIDTH);
