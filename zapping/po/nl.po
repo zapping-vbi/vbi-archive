@@ -1,14 +1,15 @@
 # Zapping Dutch translation -*- coding: iso-8859-1 -*-
 # Copyleft (L) 2001 Ime Smits <ime@iae.nl>
 # Reviewed: Reinout van Schouwen <reinout@cs.vu.nl>
+# Adjusted: Guus Bonnema <abonnema@xs4all.nl>
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.6.1\n"
-"POT-Creation-Date: 2002-09-27 17:02+0200\n"
-"PO-Revision-Date: 2001-10-05 22:28+02:00\n"
-"Last-Translator: Ime Smits <ime@iae.nl>\n"
-"Language-Team: Dutch <ime@iae.nl>\n"
+"POT-Creation-Date: 2002-09-30 04:47+0200\n"
+"PO-Revision-Date: 2002-09-30 21:03+0200\n"
+"Last-Translator: Guus Bonnema <abonnema@xs4all.nl>\n"
+"Language-Team: Dutch\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=iso-8859-1\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -36,7 +37,7 @@ msgstr "XVideo-extensies uitschakelen"
 
 #: src/main.c:373
 msgid "Do not call zapping_setup_fb on startup"
-msgstr "Aanroep van zapping_setup_fb uitschakelen"
+msgstr "Uitschaken van aanroep van zapping_setup_fb bij opstarten"
 
 #: src/main.c:382
 msgid "Color depth of the X display"
@@ -48,7 +49,7 @@ msgstr "BPP"
 
 #: src/main.c:391 src/zapzilla.c:78
 msgid "Set debug messages on"
-msgstr "Debugberichten activeren"
+msgstr "activeren debugberichten"
 
 #: src/main.c:400
 msgid "Force dword aligning of the overlay window"
@@ -64,33 +65,33 @@ msgstr "CMD"
 
 #: src/main.c:418
 msgid "Pixformat for XVideo capture mode [YUYV | YVU420]"
-msgstr "Formaat voor XVideo-capturemodus [YUYV | YVU420]"
+msgstr "Pixformaat voor XVideo-capturemodus [YUYV | YVU420]"
 
 #: src/main.c:419
 msgid "PIXFORMAT"
-msgstr "PIXFORMAT"
+msgstr "PIXFORMAAT"
 
 #: src/main.c:427 src/zapzilla.c:96
 msgid "Redirect the error messages to the console"
-msgstr "Foutmeldingen omleiden naar venster"
+msgstr "Foutmeldingen omleiden naar console"
 
 #: src/main.c:515
 msgid "Sorry, but there is no module support in GLib"
-msgstr "GLib heeft geen modulesupport"
+msgstr "Sorry, GLib heeft geen modulesupport"
 
 # src/callbacks.c:320 src/v4l2interface.c:89
 #: src/main.c:525
 msgid "Cannot get device info struct"
-msgstr "Kan apparaatinformatie niet opvragen"
+msgstr "Kan device struct info niet opvragen"
 
 #: src/main.c:534
 msgid "Zapping couldn't be started"
-msgstr "Zapping kan niet gestart worden"
+msgstr "Zapping starten lukt niet"
 
 #: src/main.c:595
 #, c-format
 msgid "Couldn't open %s, should I try some common options?"
-msgstr "Kan %s niet openen, andere opties proberen?"
+msgstr "Kan %s niet openen, andere gebruikelijke opties proberen?"
 
 #: src/main.c:629
 #, c-format
@@ -103,7 +104,7 @@ msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
 "%s"
 msgstr ""
-"\"%s\" kon niet worden geopend:\n"
+"Sorry, \"%s\" kon niet worden geopend:\n"
 "%s"
 
 #: src/main.c:755
@@ -112,7 +113,7 @@ msgid ""
 "Cannot restore previous mode%s:\n"
 "%s"
 msgstr ""
-"Herstellen van modus %s mislukt:\n"
+"Herstellen van vorige modus %s mislukt:\n"
 "%s"
 
 #: src/main.c:758
@@ -161,7 +162,8 @@ msgstr ""
 "ZConf kon niet worden opgeslagen, de huidige\n"
 "configuratie zal verloren gaan.\n"
 "Mogelijke oorzaken:\n"
-"   - Onvoldoende geheugen   - $HOME/.zapping is niet schrijfbaar\n"
+"   - Onvoldoende geheugen\n"
+"   - $HOME/.zapping is niet schrijfbaar\n"
 "   - libxml functioneert niet (?)\n"
 "   - of, waarschijnlijker, je hebt een fout in\n"
 "     %s gevonden. Neem contact op met de auteur.\n"
@@ -185,11 +187,11 @@ msgstr "Zapzilla kon het configuratiebestand niet aanmaken"
 #: src/interface.c:232 src/tveng1.c:1176 src/tveng1.c:1524 src/tveng1.c:1537
 #: src/tveng2.c:943
 msgid "Mute"
-msgstr "Stil"
+msgstr "Geluid uit"
 
 #: src/interface.c:236 glade/glade_strings.c:24
 msgid "Switch audio on and off"
-msgstr ""
+msgstr "Aan- en uitschakelen van geluid"
 
 #: src/interface.c:270
 msgid "A TV viewer for the Gnome Desktop Environment"
@@ -201,14 +203,16 @@ msgid ""
 "%s:\n"
 "Try running as root \"zapping_fix_overlay\" in a console"
 msgstr ""
+"%s:\n"
+"Probeer als root \"zapping_fix_overlay\" in een console uit te voeren"
 
 #: src/callbacks.c:373
 msgid "<blue>audio off</blue>"
-msgstr ""
+msgstr "<blue>geluid uit</blue>"
 
 #: src/callbacks.c:374
 msgid "<yellow>AUDIO ON</yellow>"
-msgstr ""
+msgstr "<yellow>geluid aan</yellow>"
 
 # src/v4l2interface.c:344
 #: src/callbacks.c:488
@@ -229,39 +233,34 @@ msgstr "Terug naar venstermodus en huidige pagina als ondertiteling gebruiken"
 
 #: src/frequencies.c:1226
 msgid "US terrestrial"
-msgstr ""
+msgstr "Amerikaan"
 
 # src/frequencies.c:817
 #: src/frequencies.c:1227
-#, fuzzy
 msgid "US cable"
 msgstr "VS kabel"
 
 # src/frequencies.c:818
 #: src/frequencies.c:1228
-#, fuzzy
 msgid "US cable-hrc"
 msgstr "VS kabel HRC"
 
 # src/frequencies.c:820
 #: src/frequencies.c:1229
-#, fuzzy
 msgid "Canada cable"
-msgstr "Japan kabel"
+msgstr "Canadese kabel"
 
 #: src/frequencies.c:1230
 msgid "Japan terrestrial"
-msgstr ""
+msgstr "Japanner"
 
 # src/frequencies.c:820
 #: src/frequencies.c:1231
-#, fuzzy
 msgid "Japan cable"
-msgstr "Japan kabel"
+msgstr "Japanese kabel"
 
 # src/frequencies.c:821
 #: src/frequencies.c:1232
-#, fuzzy
 msgid "Europe"
 msgstr "Europa"
 
@@ -272,54 +271,45 @@ msgstr "Oost-Europa"
 
 # src/frequencies.c:823
 #: src/frequencies.c:1234
-#, fuzzy
 msgid "Italy"
 msgstr "Italie"
 
 # src/frequencies.c:824
 #: src/frequencies.c:1235
-#, fuzzy
 msgid "New Zealand"
 msgstr "Nieuw Zeeland"
 
 # src/frequencies.c:825
 #: src/frequencies.c:1236
-#, fuzzy
 msgid "Australia"
 msgstr "Australië"
 
 # src/frequencies.c:826
 #: src/frequencies.c:1237
-#, fuzzy
 msgid "Ireland"
 msgstr "Ierland"
 
 # src/frequencies.c:827
 #: src/frequencies.c:1238
-#, fuzzy
 msgid "France"
 msgstr "Frankrijk"
 
 #: src/frequencies.c:1239
-#, fuzzy
 msgid "Russia"
 msgstr "Rusland"
 
 #: src/frequencies.c:1240
-#, fuzzy
 msgid "South Africa"
 msgstr "Zuid Afrika"
 
 #: src/frequencies.c:1241
-#, fuzzy
 msgid "China"
 msgstr "China"
 
 # src/frequencies.c:820
 #: src/frequencies.c:1242
-#, fuzzy
 msgid "Pakistan cable"
-msgstr "Japan kabel"
+msgstr "Pakistan kabel"
 
 # src/v4l2interface.c:146
 #: src/frequencies.c:1438 src/frequencies.c:1543 src/frequencies.c:1722
@@ -337,9 +327,8 @@ msgstr "(onbekend land)"
 
 # src/interface.c:412
 #: src/frequencies.c:1726
-#, fuzzy
 msgid "(Unknown RF channel)"
-msgstr "(onbekend kanaal)"
+msgstr "(onbekend RF kanaal)"
 
 #: src/v4linterface.c:315
 #, c-format
@@ -371,12 +360,12 @@ msgstr "Geen standaard"
 #: src/v4linterface.c:831
 #, c-format
 msgid "Channel: <yellow>%s</yellow>"
-msgstr ""
+msgstr "Kanaal <yellow>%s</yellow>"
 
 #: src/v4linterface.c:1014
 #, c-format
 msgid "<green>%s</green>"
-msgstr ""
+msgstr "<green>%s</green>"
 
 #: src/v4linterface.c:1192
 msgid "Inputs"
@@ -388,9 +377,8 @@ msgid "No tuned channels"
 msgstr "Geen voorkeuzen"
 
 #: src/zvbi.c:136
-#, fuzzy
 msgid "No Audio"
-msgstr "Alleen audio"
+msgstr "Geen geluid"
 
 #: src/zvbi.c:137 src/tveng1.c:1018
 msgid "Mono"
@@ -402,38 +390,35 @@ msgstr "Stereo"
 
 #: src/zvbi.c:139
 msgid "Stereo Surround"
-msgstr ""
+msgstr "Stereo surround"
 
 #: src/zvbi.c:140
 msgid "Simulated Stereo"
-msgstr ""
+msgstr "Gesimuleerde stereo"
 
 #: src/zvbi.c:141
-#, fuzzy
 msgid "Video Descriptions"
-msgstr "Beschrijving"
+msgstr "Videobeschrijvingen"
 
 #: src/zvbi.c:142
 msgid "Non-program Audio"
-msgstr ""
+msgstr "Geluid van buiten het programma"
 
 #: src/zvbi.c:143
 msgid "Special Effects"
-msgstr ""
+msgstr "Speciale effecten"
 
 #: src/zvbi.c:144
 msgid "Data Service"
-msgstr ""
+msgstr "Data service"
 
 #: src/zvbi.c:145
-#, fuzzy
 msgid "Unknown Audio"
-msgstr "Unbekend"
+msgstr "Onbekende audio"
 
 #: src/zvbi.c:253
-#, fuzzy
 msgid "V4L/V4L2 VBI interface timeout"
-msgstr "V4L/V4L2 VBI-interface: Leesfout"
+msgstr "V4L/V4L2 VBI-interface timeout"
 
 #: src/zvbi.c:266
 msgid "V4L/V4L2 VBI interface: Failed to read from the device"
@@ -445,14 +430,14 @@ msgid ""
 "VBI initialization failed.\n"
 "%s"
 msgstr ""
+"initialisatie van VBI mislukt\n"
+"%s"
 
 #: src/zvbi.c:362
-#, fuzzy
 msgid "Ran out of memory."
-msgstr "Kan beelden opslaan in geheugen.\n"
+msgstr "Geheugentekort."
 
 #: src/zvbi.c:363
-#, fuzzy
 msgid "Out of resources to start a new thread."
 msgstr "Onvoldoende systeembronnen voor het starten van een nieuwe taak"
 
@@ -501,15 +486,14 @@ msgstr "Open deze pagina met Zapzilla"
 
 #: src/zvbi.c:2111
 msgid "n/a"
-msgstr ""
+msgstr "nvt"
 
 #: src/zvbi.c:2115
-#, fuzzy
 msgid "none"
-msgstr "[keine]"
+msgstr "geen"
 
 #: src/zvbi.c:2118
-#, fuzzy, c-format
+#, c-format
 msgid "%d minute"
 msgid_plural "%d minutes"
 msgstr[0] ""
@@ -526,29 +510,28 @@ msgstr "Huidige programma"
 
 #: src/zvbi.c:2173
 msgid "%d %b  %I:%M %p    "
-msgstr ""
+msgstr "%d %b  %I:%M %p    "
 
 #: src/zvbi.c:2195
 #, c-format
 msgid ""
 "\n"
 "Length: %uh%02u (%uh%02u remaining)"
-msgstr ""
+msgstr "\nLengte: %uh%02u (%uh%02u resterend)"
 
 #: src/zvbi.c:2203
 #, c-format
 msgid "Length: %uh%02u"
-msgstr ""
+msgstr "Lengte: %uh%02u"
 
 #: src/zvbi.c:2210
 #, c-format
 msgid "Elapsed: %uh%02u"
-msgstr ""
+msgstr "Verstreken tijd: %uh%02u"
 
 #: src/zvbi.c:2233 src/zvbi.c:2235
-#, fuzzy
 msgid "unknown language"
-msgstr "%x: onbekende taal"
+msgstr "onbekende taal"
 
 #: src/zvbi.c:2238
 #, c-format
@@ -556,6 +539,8 @@ msgid ""
 "Channel 1: %s (%s)\n"
 "Channel 2: %s (%s)"
 msgstr ""
+"Kanaal 1: %s (%s)\n"
+"Kanaal 2: %s (%s)"
 
 #: src/zvbi.c:2246
 #, c-format
@@ -563,30 +548,31 @@ msgid ""
 "Channel 1: %s\n"
 "Channel 2: %s"
 msgstr ""
+"Kanaal 1: %s\n"
+"Kanaal 2: %s"
 
 #: src/zvbi.c:2259
 #, c-format
 msgid "Audio: %s (%s)"
-msgstr ""
+msgstr "Geluid: %s (%s)"
 
 #: src/zvbi.c:2264
-#, fuzzy, c-format
+#, c-format
 msgid "Audio: %s"
-msgstr "Alleen audio"
+msgstr "Audio: %s"
 
 #: src/zvbi.c:2283
-#, fuzzy, c-format
+#, c-format
 msgid "Captioned %s"
-msgstr "Titel %x"
+msgstr "Betiteld %s"
 
 #: src/zvbi.c:2283
-#, fuzzy
 msgid "Captioned"
-msgstr "Titel %x"
+msgstr "Betiteld %x"
 
 #: src/zvbi.c:2367 src/zvbi.c:2628
 msgid "Not rated"
-msgstr ""
+msgstr "Niet gewaardeerd"
 
 #: src/tveng.c:270
 msgid "TV"
@@ -740,7 +726,7 @@ msgstr "Ondersteboven"
 
 #: src/tveng2.c:944
 msgid "Audio Mute"
-msgstr "Stilte"
+msgstr "Geluid uit"
 
 # src/frequencies.c:827
 #: src/tveng2.c:946
@@ -788,9 +774,8 @@ msgid "VBI has been disabled, or it doesn't work."
 msgstr "VBI is uitgeschakeld of functioneert niet correct."
 
 #: src/zmisc.c:751
-#, fuzzy
 msgid "Hide the status bar"
-msgstr "In de statusbalk tonen"
+msgstr "Verberg de statusbalk"
 
 #: src/zmisc.c:808
 msgid "The path must start with /"
@@ -811,17 +796,14 @@ msgid "Reset"
 msgstr "Resetten"
 
 #: src/properties.c:604
-#, fuzzy
 msgid "Zapping Properties"
-msgstr "Eigenschappen"
+msgstr "Zapping eigenschappen"
 
 #: src/properties.c:960 src/properties-handler.c:737 src/keyboard.c:814
-#, fuzzy
 msgid "General Options"
 msgstr "Algemene opties"
 
 #: src/properties-handler.c:75
-#, fuzzy
 msgid "Can capture to memory.\n"
 msgstr "Kan beelden opslaan in geheugen.\n"
 
@@ -875,14 +857,13 @@ msgid "TV input"
 msgstr "TV ingang"
 
 #: src/properties-handler.c:125
-#, fuzzy, c-format
+#, c-format
 msgid "%s with %d tuner"
 msgid_plural "%s with %d tuners"
 msgstr[0] "%s met %d tuner"
 msgstr[1] "%s met %d tuners"
 
 #: src/properties-handler.c:442 src/properties-handler.c:738
-#, fuzzy
 msgid "VBI Options"
 msgstr "VBI opties"
 
@@ -892,7 +873,6 @@ msgid "Interactive TV"
 msgstr "Interactieve TV"
 
 #: src/properties-handler.c:718 src/properties-handler.c:736
-#, fuzzy
 msgid "Device Info"
 msgstr "Apparaatinfo"
 
@@ -907,9 +887,8 @@ msgstr "OSD"
 # src/v4l2interface.c:344
 #: src/properties-handler.c:726 glade/glade_strings.c:80
 #: plugins/mpeg/mpeg_strings.c:19 plugins/mpeg/mpeg_strings.c:51
-#, fuzzy
 msgid "Video"
-msgstr "Alleen beeld"
+msgstr "Beeld"
 
 #: src/properties-handler.c:730 glade/glade_strings.c:143
 msgid "General"
@@ -1014,7 +993,6 @@ msgid "Warning: Page not valid"
 msgstr "Let op: pagina ongeldig"
 
 #: src/ttxview.c:530
-#, fuzzy
 msgid "Text export failed"
 msgstr "Tekst-export mislukt: %s"
 
@@ -1065,7 +1043,7 @@ msgstr "Willekeurige subpagina"
 #: src/ttxview.c:1980
 #, c-format
 msgid "Export %s"
-msgstr "Export - %s"
+msgstr "Export %s"
 
 #: src/ttxview.c:1994 plugins/screenshot/screenshot_strings.c:19
 #: plugins/mpeg/mpeg_strings.c:36
@@ -1184,34 +1162,29 @@ msgstr "Selectie gekopiëerd naar klembord"
 
 # src/frequencies.c:827
 #: src/oss.c:175
-#, fuzzy
 msgid "Audio device:"
-msgstr "Audio-apparaat:"
+msgstr "Geluid-apparaat:"
 
 #: src/oss.c:178
-#, fuzzy
 msgid "Select the audio device"
 msgstr "Selecteer gewenste audio-apparaat"
 
 #: src/oss.c:205
 #, c-format
 msgid "The given audio device \"%s\" doesn't exist"
-msgstr ""
+msgstr "Het gegeven apparaat (device) \"%s\" bestaat niet"
 
 #: src/keyboard.c:79 src/keyboard.c:101
-#, fuzzy
 msgid "Ctrl+"
-msgstr "Ctrl"
+msgstr "Ctrl+"
 
 #: src/keyboard.c:80 src/keyboard.c:102
-#, fuzzy
 msgid "Alt+"
-msgstr "Alt"
+msgstr "Alt+"
 
 #: src/keyboard.c:81 src/keyboard.c:103
-#, fuzzy
 msgid "Shift+"
-msgstr "Shift"
+msgstr "Shift+"
 
 #: src/keyboard.c:434
 msgid "Ctrl"
@@ -1227,11 +1200,11 @@ msgstr "Shift"
 
 #: src/keyboard.c:450
 msgid "Key table..."
-msgstr ""
+msgstr "Toetsen tabel ..."
 
 #: src/keyboard.c:810 glade/glade_strings.c:110
 msgid "Keyboard"
-msgstr ""
+msgstr "Toetsenbord"
 
 # src/interface.c:104
 #: glade/glade_strings.c:7
@@ -1240,7 +1213,7 @@ msgstr "Zapping"
 
 #: glade/glade_strings.c:8
 msgid "_Quit"
-msgstr ""
+msgstr "_Quit"
 
 #: glade/glade_strings.c:9
 msgid "P_lugins"
@@ -1248,48 +1221,41 @@ msgstr "P_lugins"
 
 # src/interface.c:362
 #: glade/glade_strings.c:10
-#, fuzzy
 msgid "Edit the channel list"
-msgstr "Kies kanaal"
+msgstr "Pas de kanaal lijst aan"
 
 # src/interface.c:29
 #: glade/glade_strings.c:11
 msgid "_TV Channels"
-msgstr "Voor_keuzekanalen"
+msgstr "_TV kanalen"
 
 #: glade/glade_strings.c:12
-#, fuzzy
 msgid "Switch to fullscreen mode. Press ESC to return to windowed mode"
-msgstr "Voor beeldvullend - ESC om terug te keren naar venstermodus"
+msgstr "Ga naar beeldvullend (fullscreen). Kies ESC om terug te keren naar venstermodus"
 
 #: glade/glade_strings.c:13 glade/glade_strings.c:201
-#, fuzzy
 msgid "_Fullscreen"
 msgstr "_Beeldvullend"
 
 #: glade/glade_strings.c:14
-#, fuzzy
 msgid "Switch to windowed overlay mode"
-msgstr "Voor het starten van venstermodus met hardware overlay"
+msgstr "Ga naar venster overlay mode"
 
 #: glade/glade_strings.c:15 glade/glade_strings.c:202
 msgid "_Overlay mode"
-msgstr ""
+msgstr "Overlappende modus"
 
 #: glade/glade_strings.c:16
-#, fuzzy
 msgid "Switch to windowed capture mode"
-msgstr "Hiermee wordt het videovenster in opnamemodus gestart"
+msgstr "Ga naar videovenster in opnamemodus"
 
 #: glade/glade_strings.c:17 glade/glade_strings.c:203
-#, fuzzy
 msgid "_Capture mode"
-msgstr "Horizontale afmeting:"
+msgstr "_Capture mode"
 
 #: glade/glade_strings.c:18
-#, fuzzy
 msgid "Switch to Teletext mode"
-msgstr "_Nieuw teletekstvenster"
+msgstr "Ga naar teletekst mode"
 
 #: glade/glade_strings.c:19 glade/glade_strings.c:204
 msgid "_Teletext"
@@ -1300,36 +1266,32 @@ msgid "_New Teletext View"
 msgstr "_Nieuw teletekstvenster"
 
 #: glade/glade_strings.c:21
-#, fuzzy
 msgid "Info about the currently tuned network"
-msgstr "Zenderinformatie"
+msgstr "Zenderinformatie huidig netwerk"
 
 #: glade/glade_strings.c:22 glade/glade_strings.c:312
-#, fuzzy
 msgid "Network Info"
 msgstr "Netwerkinformatie"
 
 #: glade/glade_strings.c:23 glade/glade_strings.c:317
 msgid "Program Info"
-msgstr "Laufende Sendung"
+msgstr "Programma informatie"
 
 #: glade/glade_strings.c:25
-#, fuzzy
 msgid "_Mute"
-msgstr "Stil"
+msgstr "_Zonder geluid"
 
 #: glade/glade_strings.c:26
 msgid "Switch subtitles on and off"
-msgstr ""
+msgstr "Aan- en uitschakelen subtitels"
 
 #: glade/glade_strings.c:27
 msgid "_Subtitles"
 msgstr "_Ontertitels"
 
 #: glade/glade_strings.c:28 glade/glade_strings.c:207
-#, fuzzy
 msgid "Hide menu and toolbar"
-msgstr "Menu en knoppenbalk verbergen"
+msgstr "Verberg Menu- en knoppenbalk"
 
 # src/interface.c:362
 #: glade/glade_strings.c:29
@@ -1341,36 +1303,32 @@ msgid "_Main help"
 msgstr "_Hulp"
 
 #: glade/glade_strings.c:31
-#, fuzzy
 msgid "Select the next station in the channel list"
-msgstr "Volgende voorkeuzezender [PgDn]"
+msgstr "Selecteer het volgend station op de kanaallijst"
 
 #: glade/glade_strings.c:32
 msgid "Up"
 msgstr "Op"
 
 #: glade/glade_strings.c:33
-#, fuzzy
 msgid "Select the previous station in the channel list"
-msgstr "Vorige voorkeuzezender [PgUp]"
+msgstr "Selecteer het volgend station op de kanaallijst"
 
 #: glade/glade_strings.c:34
 msgid "Down"
 msgstr "Neer"
 
 #: glade/glade_strings.c:35
-#, fuzzy
 msgid "Change picture controls"
-msgstr "Zusätzliche Einstellungen zeigen"
+msgstr "Wijzig beeldinstellingen"
 
 #: glade/glade_strings.c:36
 msgid "Controls"
 msgstr "Regelpanelen"
 
 #: glade/glade_strings.c:37
-#, fuzzy
 msgid "Activate Teletext mode"
-msgstr "_Nieuw teletekstvenster"
+msgstr "Activeer teletekstvenster"
 
 #: glade/glade_strings.c:38
 msgid "Teletext"
@@ -1415,7 +1373,7 @@ msgstr ""
 
 #: glade/glade_strings.c:48
 msgid "Keep window on top"
-msgstr ""
+msgstr "Houdt venster bovenop andere vensters"
 
 #: glade/glade_strings.c:49
 msgid "Resize using fixed increments"
@@ -1423,13 +1381,12 @@ msgstr "Schalen in vaste stappen"
 
 # src/interface.c:247
 #: glade/glade_strings.c:50
-#, fuzzy
 msgid "Show tooltips"
-msgstr "Regelpaneel"
+msgstr "Toon tooltips"
 
 #: glade/glade_strings.c:51
 msgid "Numeric keypad channel switching:"
-msgstr ""
+msgstr "Kanaal wisselen via numerieke toetsengroep"
 
 #: glade/glade_strings.c:52
 msgid "Ratio mode:"
@@ -1441,19 +1398,17 @@ msgstr "Inhoud titelbalk:"
 
 #: glade/glade_strings.c:54
 msgid "Disabled"
-msgstr ""
+msgstr "Uitgeschakeld"
 
 # src/interface.c:362
 #: glade/glade_strings.c:55
-#, fuzzy
 msgid "By channel list entry"
-msgstr "Senderliste"
+msgstr "In volgorde van de kanaallijst"
 
 # src/interface.c:362
 #: glade/glade_strings.c:56
-#, fuzzy
 msgid "By RF channel number"
-msgstr "Nieuwe kanaalnaam:"
+msgstr "In volgorde van RF kanaalnr"
 
 #: glade/glade_strings.c:57
 msgid "No fixed ratio"
@@ -1488,23 +1443,20 @@ msgstr ""
 
 # src/interface.c:247
 #: glade/glade_strings.c:62
-#, fuzzy
 msgid "Show toolbar as:"
-msgstr "Regelpaneel"
+msgstr "Toon knoppenbalk als: "
 
 #: glade/glade_strings.c:63
 msgid "Icons"
-msgstr ""
+msgstr "Icoons"
 
 #: glade/glade_strings.c:64
-#, fuzzy
 msgid "Text"
-msgstr "Volgende"
+msgstr "Tekst"
 
 #: glade/glade_strings.c:65
-#, fuzzy
 msgid "Icons and text"
-msgstr "Nu en straks"
+msgstr "Icoons en tekst"
 
 #: glade/glade_strings.c:67
 msgid ""
@@ -1517,9 +1469,7 @@ msgstr ""
 msgid ""
 "If this option is on, the brightness, contrast, etc. info is saved with the "
 "channel, and restored when you select it again"
-msgstr ""
-"Als deze optie ingeschakeld is worden helderheid, contrast enz. voor iedere "
-"voorkeuze appart opgeslagen"
+msgstr "Als deze optie ingeschakeld is worden helderheid, contrast enz. voor iedere voorkeuze appart opgeslagen"
 
 #: glade/glade_strings.c:69
 msgid "Save control values with the channel info"
@@ -1542,9 +1492,7 @@ msgid ""
 "Thanks to the XVideo extension, if present, the capture buffer can be scaled "
 "to arbitrary sizes using HW acceleration. Select here the capture size to "
 "use in this case."
-msgstr ""
-"Indien de XVideo uitbreiding beschikbaar is, kan de opnamebuffer "
-"hardwarematig geschaald worden. Selecteer voor dat geval hier de grootte "
+msgstr "Indien de XVideo uitbreiding beschikbaar is, kan de opnamebuffer hardwarematig geschaald worden. Selecteer in dat geval hier de grootte "
 
 #: glade/glade_strings.c:75
 msgid "Biggest noninterlaced (autodetect)"
@@ -1576,30 +1524,28 @@ msgstr "Onderdruk ruis tijdens kanaalwisseling"
 
 #: glade/glade_strings.c:83
 msgid "Mixer settings for recording"
-msgstr ""
+msgstr "Settings van de geluidsmixer voor opname"
 
 #: glade/glade_strings.c:84
 msgid "Recording source:"
-msgstr ""
+msgstr "Opname bron"
 
 #: glade/glade_strings.c:85
 msgid "Recording volume:"
-msgstr ""
+msgstr "Opname volume: "
 
 #: glade/glade_strings.c:86
 msgid "Use system settings"
-msgstr ""
+msgstr "Gebruik systeemsettings"
 
 #: glade/glade_strings.c:87
-#, fuzzy
 msgid "Audio recording interface:"
-msgstr "Audiodecodering"
+msgstr "Geluid opname-interface"
 
 #: glade/glade_strings.c:88 plugins/mpeg/mpeg_strings.c:21
 #: plugins/mpeg/mpeg_strings.c:53
-#, fuzzy
 msgid "Audio"
-msgstr "Alleen audio"
+msgstr "Audio"
 
 #: glade/glade_strings.c:89
 msgid "How to show extra info:"
@@ -1647,7 +1593,7 @@ msgstr "Standaard voorgrondkleur voor OSD:"
 
 #: glade/glade_strings.c:99 glade/glade_strings.c:101
 msgid "Choose a color"
-msgstr ""
+msgstr "Kies een kleur"
 
 #: glade/glade_strings.c:100
 msgid "Default background color for OSD:"
@@ -1655,35 +1601,31 @@ msgstr "Standaard achtergrondkleur voor OSD"
 
 #: glade/glade_strings.c:102
 msgid "OSD timeout in seconds:"
-msgstr ""
+msgstr "OSD timeout in seconden"
 
 #: glade/glade_strings.c:104
-#, fuzzy
 msgid "Command:"
-msgstr "Codec:"
+msgstr "Commando:"
 
 #: glade/glade_strings.c:105
-#, fuzzy
 msgid "Key:"
-msgstr "Toetsen"
+msgstr "Toets:"
 
 #: glade/glade_strings.c:106
 msgid "_Add"
 msgstr "_Toevoegen"
 
 #: glade/glade_strings.c:107
-#, fuzzy
 msgid "_Delete"
-msgstr "Verwijderen"
+msgstr "_Verwijder"
 
 #: glade/glade_strings.c:108 glade/glade_strings.c:295
-#, fuzzy
 msgid "Key"
-msgstr "Toetsen"
+msgstr "Toets"
 
 #: glade/glade_strings.c:109
 msgid "Command"
-msgstr ""
+msgstr "commando"
 
 #: glade/glade_strings.c:111
 msgid "General options"
@@ -1931,8 +1873,8 @@ msgstr "Plugin s_toppen"
 
 #: glade/glade_strings.c:188 plugins/screenshot/screenshot.c:576
 #: plugins/screenshot/screenshot.c:1423 plugins/lirc/lirc.c:382
-#: plugins/mpeg/mpeg.c:1093 plugins/mpeg/mpeg.c:1120 plugins/mpeg/mpeg.c:1184
-#: plugins/mpeg/mpeg.c:2668 plugins/mpeg/mpeg.c:3258
+#: plugins/mpeg/mpeg.c:1093 plugins/mpeg/mpeg.c:1120 plugins/mpeg/mpeg.c:1186
+#: plugins/mpeg/mpeg.c:2682 plugins/mpeg/mpeg.c:3286
 msgid "Plugins"
 msgstr "Plugins"
 
@@ -2043,21 +1985,18 @@ msgid "Next"
 msgstr "Volgende"
 
 #: glade/glade_strings.c:221
-#, fuzzy
 msgid "Go to the index page"
-msgstr "Indexpagina [Home]"
+msgstr "Ga naar de indexpagina"
 
 #: glade/glade_strings.c:222
 msgid "Home"
-msgstr "Hoofdpagina"
+msgstr "Home"
 
 #: glade/glade_strings.c:223
-#, fuzzy
 msgid "Open new Teletext window"
-msgstr "_Open in nieuw venster"
+msgstr "Open in nieuw venster"
 
 #: glade/glade_strings.c:224
-#, fuzzy
 msgid "Search the page cache"
 msgstr "Zoeken in de cache"
 
@@ -2066,57 +2005,48 @@ msgid "Search"
 msgstr "Zoeken"
 
 #: glade/glade_strings.c:226
-#, fuzzy
 msgid "Previous subpage"
-msgstr "Vorige subpagina [-]"
+msgstr "Vorige subpagina"
 
 #: glade/glade_strings.c:227
-#, fuzzy
 msgid "Go to the previous page"
-msgstr "Vorige pagina [Down]"
+msgstr "Ga naar Vorige pagina"
 
 #: glade/glade_strings.c:228
-#, fuzzy
 msgid "Hold the current subpage"
-msgstr "Huidige subpagina vastzetten [H]"
+msgstr "Huidige subpagina vastzetten"
 
 #: glade/glade_strings.c:229
 msgid "100"
 msgstr "100"
 
 #: glade/glade_strings.c:230
-#, fuzzy
 msgid "Go to the next page"
-msgstr "Volgende pagina [Up]"
+msgstr "Ga naar Volgende pagina"
 
 #: glade/glade_strings.c:231
-#, fuzzy
 msgid "Next subpage"
-msgstr "Volgende subpagina [+]"
+msgstr "Volgende subpagina"
 
 #: glade/glade_strings.c:232
-#, fuzzy
 msgid "Reveal hidden characters"
-msgstr "Toon verborgen tekst [?]"
+msgstr "Toon verborgen tekst"
 
 #: glade/glade_strings.c:233
-#, fuzzy
 msgid "Leave Teletext mode"
-msgstr "_Nieuw teletekstvenster"
+msgstr "_Verlaat teletekstmode"
 
 #: glade/glade_strings.c:234
 msgid "_Open in new window"
 msgstr "_Open in nieuw venster"
 
 #: glade/glade_strings.c:235
-#, fuzzy
 msgid "_Search page cache..."
-msgstr "Zoeken in de cache"
+msgstr "Zoeken in de cache...."
 
 #: glade/glade_strings.c:236
-#, fuzzy
 msgid "_Export this page"
-msgstr "Kan deze pagina niet exporteren"
+msgstr "_Exporteer deze pagina"
 
 #: glade/glade_strings.c:237
 msgid "_Bookmarks"
@@ -2224,7 +2154,7 @@ msgstr "Toetsen"
 
 #: glade/glade_strings.c:266
 msgid "Enter key"
-msgstr ""
+msgstr "Kies toets"
 
 #: glade/glade_strings.c:267
 msgid "New bookmark:"
@@ -2244,9 +2174,8 @@ msgstr "Tekstkleuren"
 
 # src/interface.c:362
 #: glade/glade_strings.c:273
-#, fuzzy
 msgid "Channel editor"
-msgstr "Senderliste"
+msgstr "Kanaal editor"
 
 #: glade/glade_strings.c:274
 msgid "Save the changes and leave the dialog"
@@ -2264,7 +2193,7 @@ msgstr "Hulptekst over dit venster"
 
 #: glade/glade_strings.c:277
 msgid "Region"
-msgstr ""
+msgstr "Regio"
 
 # src/interface.c:336
 #: glade/glade_strings.c:278
@@ -2294,33 +2223,30 @@ msgstr "Alle kanalen uit de tabel als voorkeuzekanalen opslaan."
 
 # src/v4l2interface.c:146
 #: glade/glade_strings.c:283
-#, fuzzy
 msgid "Add all _channels"
 msgstr "Alle kanalen toevoegen"
 
 # src/interface.c:316
 #: glade/glade_strings.c:284
-#, fuzzy
 msgid ""
 "When your country or the required table is not present please notify the "
 "author,\n"
 "adding the table if possible, for inclusion in the next release of this "
 "program."
 msgstr ""
-"Hier kan de kanaallijst wordden gewijzigd.\n"
 "Als uw land of benodigde tabel niet aanwezig is, neemt u dan contact op\n"
 "met de auteur, met zo mogelijk de frequentietabel erbij, opdat dit in\n"
-"een volgende editie kan worden opgenomen.Frequenties van kabelproviders in "
-"Nederland kunnen worden opgevraagd op http://www.guru4hire.nl/rtvdb."
+"een volgende editie kan worden opgenomen.\n"
+"Frequenties van kabelproviders in Nederland kunnen worden opgevraagd \n"
+"op http://www.guru4hire.nl/rtvdb."
 
 #: glade/glade_strings.c:286
 msgid "Select here the channel you want to tune"
-msgstr "Selecteer het kanaal"
+msgstr "Selecteer het kanaal dat u wilt bijstellen"
 
 #: glade/glade_strings.c:287 glade/glade_strings.c:292
-#, fuzzy
 msgid "Station"
-msgstr "Verzadiging"
+msgstr "Station"
 
 # src/interface.c:369
 # glade/glade_strings.c:149, glade/glade_strings.c:155
@@ -2330,14 +2256,12 @@ msgstr "Freq (kHz)"
 
 # src/v4l2interface.c:146
 #: glade/glade_strings.c:289
-#, fuzzy
 msgid "Tuned channels"
-msgstr "Geen voorkeuzen"
+msgstr "Bijgestelde kanalen"
 
 #: glade/glade_strings.c:290
-#, fuzzy
 msgid "Name"
-msgstr "Naam:"
+msgstr "Naam"
 
 # src/interface.c:247
 #: glade/glade_strings.c:291
@@ -2346,9 +2270,8 @@ msgstr "Land"
 
 # src/v4l2interface.c:344ï
 #: glade/glade_strings.c:294
-#, fuzzy
 msgid "Standard"
-msgstr "Geen standaard"
+msgstr "Standaard"
 
 #: glade/glade_strings.c:296
 msgid "Move selected channels one row up"
@@ -2369,7 +2292,6 @@ msgstr "Ve_rwijderen"
 
 # src/interface.c:362
 #: glade/glade_strings.c:300
-#, fuzzy
 msgid "Edit channel"
 msgstr "Kies kanaal"
 
@@ -2379,13 +2301,12 @@ msgstr "Naam:"
 
 #: glade/glade_strings.c:302
 msgid "Fine tuning:"
-msgstr ""
+msgstr "Fijn afstelling: "
 
 # src/v4l2interface.c:344ï
 #: glade/glade_strings.c:303
-#, fuzzy
 msgid "Video standard:"
-msgstr "Geen standaard"
+msgstr "Video standaard"
 
 #: glade/glade_strings.c:304
 msgid "Select here the video standard used on this channel"
@@ -2397,35 +2318,31 @@ msgid "Select here the input to be attached to this channel"
 msgstr "Selecteer de input voor dit kanaal"
 
 #: glade/glade_strings.c:306
-#, fuzzy
 msgid "Input:"
-msgstr "Inputs"
+msgstr "Input:"
 
 #: glade/glade_strings.c:307
 msgid "Keyboard shortcut:"
-msgstr ""
+msgstr "Sneltoets: "
 
 #: glade/glade_strings.c:308
 msgid "Create a new channel with these settings"
-msgstr ""
+msgstr "Creeer een nieuw kanaal met deze settings"
 
 # src/v4l2interface.c:146
 #: glade/glade_strings.c:309
-#, fuzzy
 msgid "_Add as a new channel"
-msgstr "Alle kanalen toevoegen"
+msgstr "_Toevoegen als een nieuw kanaal"
 
 # src/interface.c:440
 #: glade/glade_strings.c:310
-#, fuzzy
 msgid "Apply the current settings to the marked channels above"
 msgstr "Huidige instellingen toepassen op geselecteerde kanalen"
 
 # src/interface.c:440
 #: glade/glade_strings.c:311
-#, fuzzy
 msgid "_Modify selected channels"
-msgstr "Verwijder selectie"
+msgstr "_Wijzig geselecteerde kanalen"
 
 #: glade/glade_strings.c:314
 msgid "Short Name:"
@@ -2436,34 +2353,29 @@ msgid "Network call letters:"
 msgstr "Afkorting:"
 
 #: glade/glade_strings.c:316
-#, fuzzy
 msgid "Tape delay:"
-msgstr "Tijdverschuiving"
+msgstr "Tape delay"
 
 #: glade/glade_strings.c:318
 msgid "Synopsis"
-msgstr ""
+msgstr "Samenvatting"
 
 #: plugins/screenshot/screenshot.c:40
 msgid "Screenshot saver"
 msgstr "Opslaan van screenshots"
 
 #: plugins/screenshot/screenshot.c:42
-#, fuzzy
 msgid ""
 "With this plugin you can take screen shots of the program you are watching "
 "and save them in various formats."
-msgstr ""
-"Met deze plugin kunnen screenshots in JPEG formaat van het huidige\n"
-"beeld worden gemaakt."
+msgstr "Met deze plugin kunt u screenshots maken van het huidige beeld in deverse formaten."
 
 #: plugins/screenshot/screenshot.c:45
-#, fuzzy
 msgid "This plugin takes screenshots of the video capture."
 msgstr "Deze plugin maakt screenshots van het videobeeld."
 
 #: plugins/screenshot/screenshot.c:173 plugins/lirc/lirc.c:134
-#: plugins/alirc/alirc.c:231 plugins/mpeg/mpeg.c:142 plugins/mpeg/mpeg.c:3320
+#: plugins/alirc/alirc.c:231 plugins/mpeg/mpeg.c:142 plugins/mpeg/mpeg.c:3348
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr "Waarschuwing: \"%s\" in plugin %s heeft checksum 0x%x i.p.v. 0x%x"
@@ -2484,7 +2396,6 @@ msgstr ""
 "Converteerd lijnen van RGBA naar RGV24 formaat, geeft bestemming terug."
 
 #: plugins/screenshot/screenshot.c:557
-#, fuzzy
 msgid ""
 "The first option lets you specify where screenshots are to be\n"
 "saved. The file name will be: dir/shot[1,2,3,...].ext\n"
@@ -2495,17 +2406,14 @@ msgid ""
 "correct value.\n"
 "\n"
 msgstr ""
-"De eerste optie, de screenshot-map, geeft aan waar de\n"
-"bestanden worden opgeslagen. De bestandsnamen worden genummerd:\n"
-"opslag_map/shot[1,2,3,...].jpeg\n"
-"\n"
-"Met de kwaliteitsinstelling geeft aan hoeveel informatie wordt\n"
-"geëlimineerd bij het comprimeren\n"
+"De eerste optie geeft aan waar de bestanden worden opgeslagen. De bestandsnamen worden als volgt genummerd:\n"
+"opslag_map/shot[1,2,3,...].ext\n"
 "\n"
 "Het commando zal worden uitgevoerd nadat het bestand is opgeslagen\n"
 "met de omgevingsvariablen $SCREENSHOT_PATH, $CHANNEL_ALIAS,\n"
 "$CHANNEL_ID, $CURRENT_STANDARD, $CURRENT_INPUT geïnitialiseerd met\n"
-"de juiste waarden."
+"de juiste waarden.\n"
+"\n"
 
 #: plugins/screenshot/screenshot.c:572 plugins/screenshot/screenshot.c:604
 #: plugins/screenshot/screenshot.c:1423
@@ -2513,26 +2421,24 @@ msgid "Screenshot"
 msgstr "Screenshot"
 
 #: plugins/screenshot/screenshot.c:609
-#, fuzzy
 msgid "Take a screenshot"
-msgstr "Screenshot"
+msgstr "Maak een screenshot"
 
 #: plugins/screenshot/screenshot.c:742 plugins/screenshot/screenshot.c:843
-#, fuzzy
 msgid "Error while writing screenshot\n"
-msgstr "Fehler beim Schreiben von '%s'"
+msgstr "Fout bij het schrijven van een screenshot\n"
 
 #: plugins/screenshot/screenshot.c:895
 msgid "Saving..."
 msgstr "Bezig met opslaan..."
 
 #: plugins/screenshot/screenshot.c:915
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Cannot create directory:\n"
 "%s\n"
 "%s"
-msgstr "Kan '%s' niet aanmaken: %s"
+msgstr "Kan directory '%s' niet aanmaken: %s"
 
 # src/tveng.c:70
 #: plugins/screenshot/screenshot.c:928
@@ -2548,7 +2454,6 @@ msgstr ""
 "Screenshot zal niet worden opgeslagen.\n"
 
 #: plugins/screenshot/screenshot.c:961
-#, fuzzy
 msgid "Sorry, not enough resources to create a new thread"
 msgstr "Onvoldoende systeembronnen voor het starten van een nieuwe taak"
 
@@ -2559,20 +2464,20 @@ msgstr "Er zijn te veel actieve taken"
 #: plugins/screenshot/screenshot.c:1106
 #, c-format
 msgid "appx %u KB"
-msgstr ""
+msgstr "ca %u KB"
 
 #: plugins/screenshot/screenshot.c:1109
 #, c-format
 msgid "appx %.2f MB"
-msgstr ""
+msgstr "ca %.2f MB"
 
 #: plugins/screenshot/screenshot.c:1174 plugins/screenshot/screenshot.c:1293
 msgid "This format has no quality option"
-msgstr ""
+msgstr "Dit formaat kent geen kwaliteitsoptie"
 
 #: plugins/screenshot/screenshot.c:1329
 msgid "Only useful with full size, unscaled picture (480 or 576 lines)"
-msgstr ""
+msgstr "Alleen bruikbaar in volledig formaat, \\\"unscaled\\\" beeld (480 of 576 lijnen)"
 
 #: plugins/screenshot/screenshot_strings.c:7
 msgid "Select here the directory where screenshots will be saved"
@@ -2596,73 +2501,66 @@ msgstr ""
 
 #: plugins/screenshot/screenshot_strings.c:11
 #: plugins/screenshot/screenshot_strings.c:23
-#, fuzzy
 msgid "Preview"
-msgstr "Vorige"
+msgstr "Preview"
 
 #: plugins/screenshot/screenshot_strings.c:12
 msgid "Grab on clicking OK"
-msgstr ""
+msgstr "Bewaar beeld (grab) bij kiezen van OK"
 
 #: plugins/screenshot/screenshot_strings.c:13
 msgid "Skip one picture before grabbing"
-msgstr ""
+msgstr "Sla 1 beeld over voor bewaren"
 
 #: plugins/screenshot/screenshot_strings.c:14
 msgid "Entering file name closes dialog"
-msgstr ""
+msgstr "Invullen van filenaam, sluit de dialoog"
 
 #: plugins/screenshot/screenshot_strings.c:15
 msgid "Add toolbar button"
-msgstr ""
+msgstr "Voeg knop toe aan knoppenbalk"
 
 #: plugins/screenshot/screenshot_strings.c:16
-#, fuzzy
 msgid "Save screenshot"
-msgstr "Screenshot"
+msgstr "Bewaar screenshot"
 
 #: plugins/screenshot/screenshot_strings.c:17 plugins/mpeg/mpeg_strings.c:30
-#, fuzzy
 msgid "Configure the properties for this plugin"
-msgstr "Toon configuratie-opties voor deze plugin"
+msgstr "Configureer de opties voor deze plugin"
 
 #: plugins/screenshot/screenshot_strings.c:18 plugins/mpeg/mpeg_strings.c:31
-#, fuzzy
 msgid "Configure"
-msgstr "_Configureren"
+msgstr "Configureren"
 
 #: plugins/screenshot/screenshot_strings.c:20 plugins/mpeg/mpeg_strings.c:33
 #: plugins/mpeg/mpeg_strings.c:38
-#, fuzzy
 msgid "Destination file"
-msgstr "Doel"
+msgstr "Doelbestand"
 
 #: plugins/screenshot/screenshot_strings.c:21
 msgid "Quality:"
-msgstr ""
+msgstr "Kwaliteit: "
 
 #: plugins/screenshot/screenshot_strings.c:22 plugins/mpeg/mpeg_strings.c:7
 #: plugins/mpeg/mpeg_strings.c:35 plugins/mpeg/mpeg_strings.c:43
-#, fuzzy
 msgid "Format:"
-msgstr "Normaal"
+msgstr "Formaat: "
 
 #: plugins/screenshot/screenshot_strings.c:24
 msgid "Deinterlace:"
-msgstr ""
+msgstr "Ont-interlacen"
 
 #: plugins/screenshot/screenshot_strings.c:25
 msgid "Off"
-msgstr ""
+msgstr "Uit"
 
 #: plugins/screenshot/screenshot_strings.c:26
 msgid "Forward"
-msgstr ""
+msgstr "Voorwaarts"
 
 #: plugins/screenshot/screenshot_strings.c:27
-#, fuzzy
 msgid "Backward"
-msgstr "Achtergrond"
+msgstr "Teruggaand"
 
 #: plugins/lirc/lirc.c:41
 msgid "LIRC plugin"
@@ -2799,9 +2697,9 @@ msgstr[0] "%d frame verwerkt"
 msgstr[1] "%d frames verwerkt"
 
 #: plugins/mpeg/mpeg.c:288
-#, fuzzy, c-format
+#, c-format
 msgid "%s : %s"
-msgstr "%s: %s"
+msgstr "%s : %s"
 
 #: plugins/mpeg/mpeg.c:386
 msgid "Synchronization under V4L1"
@@ -2864,9 +2762,8 @@ msgid "Audio and Video"
 msgstr "Audio en video"
 
 #: plugins/mpeg/mpeg.c:650 plugins/mpeg/mpeg.c:658
-#, fuzzy
 msgid "Output audio kbits per second:"
-msgstr "Audio bandbreedte (kbits/s):"
+msgstr "Output audio bandbreedte (kbits/s):"
 
 #: plugins/mpeg/mpeg.c:654 plugins/mpeg/mpeg.c:660
 msgid "Output video Mbits per second:"
@@ -2876,8 +2773,8 @@ msgstr "Video bandbreedte (Mbits/s):"
 msgid "Waiting for frames..."
 msgstr "Wachten op frames..."
 
-#: plugins/mpeg/mpeg.c:1089 plugins/mpeg/mpeg.c:1120 plugins/mpeg/mpeg.c:1184
-#: plugins/mpeg/mpeg.c:1225
+#: plugins/mpeg/mpeg.c:1089 plugins/mpeg/mpeg.c:1120 plugins/mpeg/mpeg.c:1186
+#: plugins/mpeg/mpeg.c:1227
 msgid "MPEG"
 msgstr "MPEG"
 
@@ -2886,69 +2783,67 @@ msgid ""
 "This is the first time you run the plugin,\n"
 "please take a moment to configure it to your tastes.\n"
 msgstr ""
+"Dit is de eerste keer dat u de plugin gebruikt.\n"
+"Neem even de tijd om de plugin aan uw smaak aan te passen (configureren).\n"
 
 #: plugins/mpeg/mpeg.c:1113
 msgid "Open preferences"
-msgstr ""
+msgstr "Open voorkeuren"
 
-#: plugins/mpeg/mpeg.c:1210
+#: plugins/mpeg/mpeg.c:1212
 msgid "Start recording"
-msgstr ""
+msgstr "Start opnemen"
 
-#: plugins/mpeg/mpeg.c:1261
-#, fuzzy
+#: plugins/mpeg/mpeg.c:1263
 msgid "Record as MPEG"
-msgstr "Osplaan in MPEG-formaat"
+msgstr "Opslaan in MPEG-formaat"
 
-#: plugins/mpeg/mpeg.c:1688
+#: plugins/mpeg/mpeg.c:1691
 #, c-format
 msgid "Format %s is incomplete, please configure the video or audio codec."
-msgstr ""
+msgstr "Formaat %s is incompleet. De video of audio codec graag configureren."
 
-#: plugins/mpeg/mpeg.c:1831
-#, fuzzy, c-format
+#: plugins/mpeg/mpeg.c:1841
+#, c-format
 msgid ""
 "Cannot create destination directory:\n"
 "%s\n"
 "%s"
 msgstr ""
-"Kan de doelfolder voor clips niet aanmaken:\n"
+"Kan de doelfolder niet aanmaken:\n"
 "%s\n"
 "%s"
 
-#: plugins/mpeg/mpeg.c:1843
-#, fuzzy, c-format
+#: plugins/mpeg/mpeg.c:1854
+#, c-format
 msgid "Cannot create file %s: %s\n"
-msgstr "Kan bestand '%s' niet aanmaken: %s"
+msgstr "Kan bestand '%s' niet aanmaken: %s\n"
 
-#: plugins/mpeg/mpeg.c:2668 plugins/mpeg/mpeg.c:3112 plugins/mpeg/mpeg.c:3136
-#: plugins/mpeg/mpeg.c:3246 plugins/mpeg/mpeg_strings.c:34
+#: plugins/mpeg/mpeg.c:2682 plugins/mpeg/mpeg.c:3140 plugins/mpeg/mpeg.c:3164
+#: plugins/mpeg/mpeg.c:3274 plugins/mpeg/mpeg_strings.c:34
 #: plugins/mpeg/mpeg_strings.c:41
-#, fuzzy
 msgid "Record"
-msgstr "Rood"
+msgstr "Opnemen"
 
-#: plugins/mpeg/mpeg.c:2912
+#: plugins/mpeg/mpeg.c:2938
 msgid "Not implemented yet"
-msgstr ""
+msgstr "Nog niet geimplementeerd"
 
-#: plugins/mpeg/mpeg.c:3096
-#, fuzzy
+#: plugins/mpeg/mpeg.c:3124
 msgid "Recording dialog"
-msgstr "Programma-overzicht"
+msgstr "Opnemen dialog"
 
-#: plugins/mpeg/mpeg.c:3187
+#: plugins/mpeg/mpeg.c:3215
 msgid "Audio/Video Recorder"
-msgstr ""
+msgstr "Audio/Video recorder"
 
-#: plugins/mpeg/mpeg.c:3190
-#, fuzzy
+#: plugins/mpeg/mpeg.c:3218
 msgid "This plugin records video and audio into a file"
-msgstr "Deze plugin neemd beeld en geluid op als MPEG bestand"
+msgstr "Deze plugin neemt beeld en geluid op als MPEG bestand"
 
-#: plugins/mpeg/mpeg.c:3193
+#: plugins/mpeg/mpeg.c:3221
 msgid "Record video and audio."
-msgstr ""
+msgstr "Opnemen van beeld en geluid"
 
 #: plugins/mpeg/mpeg_strings.c:8
 msgid "What to do with the compressed stream"
@@ -3022,48 +2917,40 @@ msgid "Some more info: bit rates"
 msgstr "Overige informatie: bitrates"
 
 #: plugins/mpeg/mpeg_strings.c:28
-#, fuzzy
 msgid "Dynamic stats (dropped, output M's, etc)"
-msgstr "Dynamische statistieken"
+msgstr "Dynamische statistieken (dropped, output M's etc)"
 
 #: plugins/mpeg/mpeg_strings.c:29
 msgid "Save mpeg"
-msgstr ""
+msgstr "Bewaar mpeg"
 
 #: plugins/mpeg/mpeg_strings.c:32
-#, fuzzy
 msgid "Destination file:"
-msgstr "Doel"
+msgstr "Doelbestand"
 
 #: plugins/mpeg/mpeg_strings.c:37
-#, fuzzy
 msgid "Configure..."
-msgstr "_Configureren"
+msgstr "Configureren...."
 
 #: plugins/mpeg/mpeg_strings.c:40
-#, fuzzy
 msgid "Stop"
-msgstr "Stereo"
+msgstr "Stop"
 
 #: plugins/mpeg/mpeg_strings.c:42
-#, fuzzy
 msgid "Pause"
-msgstr "Pagina"
+msgstr "Pause"
 
 #: plugins/mpeg/mpeg_strings.c:47
-#, fuzzy
 msgid "File format"
-msgstr "Normaal"
+msgstr "Bestandsformaat"
 
 #: plugins/mpeg/mpeg_strings.c:54
-#, fuzzy
 msgid "New Format"
-msgstr "Normaal"
+msgstr "Nieuw formaat"
 
 #: plugins/mpeg/mpeg_strings.c:55
-#, fuzzy
 msgid "Format name:"
-msgstr "Normaal"
+msgstr "Formaatnaam:"
 
 #~ msgid "Manages the installed plug-ins"
 #~ msgstr "Beheert de geïnstalleerde plugins"

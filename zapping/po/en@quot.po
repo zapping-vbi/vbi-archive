@@ -27,8 +27,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.6.5\n"
-"POT-Creation-Date: 2002-09-30 06:20+0200\n"
-"PO-Revision-Date: 2002-09-30 06:20+0200\n"
+"POT-Creation-Date: 2002-10-01 11:53+0200\n"
+"PO-Revision-Date: 2002-09-30 18:39+0200\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
 "MIME-Version: 1.0\n"
@@ -342,7 +342,6 @@ msgstr "Adjust %s"
 msgid "Available controls"
 msgstr "Available controls"
 
-#. NLS: Network info, network name
 #: src/v4linterface.c:663 src/zvbi.c:2105
 msgid "Unknown"
 msgstr "Unknown"
@@ -364,7 +363,6 @@ msgstr "No standard"
 msgid "Channel: <yellow>%s</yellow>"
 msgstr "Channel: <yellow>%s</yellow>"
 
-#. NLS: Channel name being entered on numeric keypad
 #: src/v4linterface.c:1014
 #, c-format
 msgid "<green>%s</green>"
@@ -487,12 +485,10 @@ msgstr " Teletext Page %x"
 msgid "Open this page with Zapzilla"
 msgstr "Open this page with Zapzilla"
 
-#. NLS: Network info, call letters (USA) - not applicable
 #: src/zvbi.c:2110
 msgid "n/a"
 msgstr "n/a"
 
-#. NLS: Network info, tape delay (USA)
 #: src/zvbi.c:2114
 msgid "none"
 msgstr "none"
@@ -504,7 +500,6 @@ msgid_plural "%d minutes"
 msgstr[0] "%d minute"
 msgstr[1] "%d minutes"
 
-#. NLS: Network info, tape delay (USA)
 #: src/zvbi.c:2119
 #, c-format
 msgid "%d h %d m"
@@ -578,8 +573,6 @@ msgstr "Captioned %s"
 msgid "Captioned"
 msgstr "Captioned"
 
-#. NLS: Current program rating
-#. (not rated means we don't know, not it's exempt)
 #: src/zvbi.c:2366 src/zvbi.c:2627
 msgid "Not rated"
 msgstr "Not rated"

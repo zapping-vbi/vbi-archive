@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.132 2002-09-26 20:35:46 mschimek Exp $
+dnl $Id: configure.in,v 1.133 2002-10-01 17:51:32 mschimek Exp $
 
 AC_INIT(src/callbacks.c)
 AM_INIT_AUTOMAKE(zapping, 0.6.5)
@@ -183,6 +183,7 @@ AC_SUBST(ZVBI_LIB)
 dnl ----------------------------------------------------------------------
 dnl Check for RTE, real time a/v encoder
 dnl ----------------------------------------------------------------------
+SAVE_LIBS=$LIBS
 HAVE_RTE="0.5"
 AC_CHECK_LIB(rte, rte_parameters_set,, [HAVE_RTE="no"])
 AC_EGREP_HEADER(rte_parameters_set, librte.h,, [HAVE_RTE="no"])
@@ -203,6 +204,7 @@ else
   fi
 fi
 AC_SUBST(RTE_LIB)
+LIBS="$SAVE_LIBS"
 
 dnl ----------------------------------------------------------------------
 dnl Check for lirc_client
