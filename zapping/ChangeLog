@@ -1,3 +1,9 @@
+28.4.2001	XV_SIGNAL_STRENGTH <garetxe@users.sourceforge.net>
+
+	* src/tvengxv.c: Added support for this atom, allows for automatic
+	channel searching. Now let's see if the v4l.c maintainer in XFree
+	accepts my patch, and the rest of the world sees this too :-)
+
 27.4.2001	TVeng thread-safe <garetxe@users.sourceforge.net>
 
 	* src/tveng.c: Added a per-device mutex, made tveng.c lock,

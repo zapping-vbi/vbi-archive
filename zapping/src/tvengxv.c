@@ -64,6 +64,7 @@ struct private_tvengxv_device_info
   int colorkey_max, colorkey_min;
   Atom	interlace;
   int interlace_max, interlace_min;
+  Atom	signal_strength;
   Window last_win;
   GC last_gc;
   int last_w, last_h;
@@ -205,7 +206,7 @@ int tvengxv_attach_device(const char* device_file,
   p_info->encoding = p_info->color = p_info->hue = p_info->saturation
     = p_info->brightness = p_info->contrast = p_info->freq =
     p_info->mute = p_info->volume = p_info->colorkey =
-    p_info->interlace = None;
+    p_info->interlace = p_info->signal_strength = None;
   p_info->ei = NULL;
 
   /* In this module, the given device file doesn't matter */
@@ -255,7 +256,8 @@ int tvengxv_attach_device(const char* device_file,
        except XV_ENCODING, which is allowed */
       if (((!(at[i].flags & XvGettable)) ||
 	  (!(at[i].flags & XvSettable))) &&
-	  (strcmp("XV_ENCODING", at[i].name)))
+	  (strcmp("XV_ENCODING", at[i].name) &&
+	   strcmp("XV_SIGNAL_STRENGTH", at[i].name)))
 	continue;
       if (!strcmp("XV_ENCODING", at[i].name))
 	{
@@ -266,67 +268,67 @@ int tvengxv_attach_device(const char* device_file,
 	  p_info->encoding_min = at[i].min_value;
 	  p_info->encoding_gettable = at[i].flags & XvGettable;
 	}
-      if (!strcmp("XV_COLOR", at[i].name))
+      else if (!strcmp("XV_COLOR", at[i].name))
 	{
 	  p_info->color = XInternAtom(dpy, "XV_COLOR", False);
 	  p_info->color_max = at[i].max_value;
 	  p_info->color_min = at[i].min_value;
 	}
-      if (!strcmp("XV_HUE", at[i].name))
+      else if (!strcmp("XV_HUE", at[i].name))
 	{
 	  p_info->hue = XInternAtom(dpy, "XV_HUE", False);
 	  p_info->hue_max = at[i].max_value;
 	  p_info->hue_min = at[i].min_value;
 	}
-      if (!strcmp("XV_SATURATION", at[i].name))
+      else if (!strcmp("XV_SATURATION", at[i].name))
 	{
 	  p_info->saturation = XInternAtom(dpy, "XV_SATURATION",
 					   False);
 	  p_info->saturation_max = at[i].max_value;
 	  p_info->saturation_min = at[i].min_value;
 	}
-      if (!strcmp("XV_BRIGHTNESS", at[i].name))
+      else if (!strcmp("XV_BRIGHTNESS", at[i].name))
 	{
 	  p_info->brightness = XInternAtom(dpy, "XV_BRIGHTNESS",
 					   False);
 	  p_info->brightness_max = at[i].max_value;
 	  p_info->brightness_min = at[i].min_value;
 	}
-      if (!strcmp("XV_CONTRAST", at[i].name))
+      else if (!strcmp("XV_CONTRAST", at[i].name))
 	{
 	  p_info->contrast = XInternAtom(dpy, "XV_CONTRAST", False);
 	  p_info->contrast_max = at[i].max_value;
 	  p_info->contrast_min = at[i].min_value;
 	}
-      if (!strcmp("XV_FREQ", at[i].name))
+      else if (!strcmp("XV_FREQ", at[i].name))
 	{
           info->caps.flags |= TVENG_CAPS_TUNER;
 	  p_info->freq = XInternAtom(dpy, "XV_FREQ", False);
 	  p_info->freq_max = at[i].max_value;
 	  p_info->freq_min = at[i].min_value;
 	}
-      if (!strcmp("XV_MUTE", at[i].name))
+      else if (!strcmp("XV_MUTE", at[i].name))
 	{
           info->caps.audios = 1;
 	  p_info->mute = XInternAtom(dpy, "XV_MUTE", False);
 	  p_info->mute_max = at[i].max_value;
 	  p_info->mute_min = at[i].min_value;
 	}
-      if (!strcmp("XV_VOLUME", at[i].name))
+      else if (!strcmp("XV_VOLUME", at[i].name))
 	{
           info->caps.audios = 1;
 	  p_info->volume = XInternAtom(dpy, "XV_VOLUME", False);
 	  p_info->volume_max = at[i].max_value;
 	  p_info->volume_min = at[i].min_value;
 	}
-      if (!strcmp("XV_COLORKEY", at[i].name))
+      else if (!strcmp("XV_COLORKEY", at[i].name))
 	{
           info->caps.flags = TVENG_CAPS_CHROMAKEY;
 	  p_info->colorkey = XInternAtom(dpy, "XV_COLORKEY", False);
 	  p_info->colorkey_max = at[i].max_value;
 	  p_info->colorkey_min = at[i].min_value;
 	}
-      if (!strcmp("XV_INTERLACE", at[i].name))
+      else if (!strcmp("XV_INTERLACE", at[i].name))
 	{
 	  /*  0 = No (avoid interlace artefacts when scaling),
 	   *  1 = Yes, 2 = Doublescan 50/60 Hz (pm2.c feature)
@@ -334,6 +336,13 @@ int tvengxv_attach_device(const char* device_file,
 	  p_info->interlace = XInternAtom(dpy, "XV_INTERLACE", False);
 	  p_info->interlace_max = at[i].max_value;
 	  p_info->interlace_min = at[i].min_value;
+	}
+      else if (!strcmp("XV_SIGNAL_STRENGTH", at[i].name))
+	{
+	  if (!(at[i].flags & XvGettable))
+	    continue;
+	  p_info->signal_strength =
+	    XInternAtom(dpy, "XV_SIGNAL_STRENGTH", False);
 	}
     }
   /* We have a valid device, get some info about it */
@@ -944,9 +953,24 @@ static int
 tvengxv_get_signal_strength(int *strength, int *afc,
 			    tveng_device_info * info)
 {
-  /* Just make up something so the call doesn't fail */
+  struct private_tvengxv_device_info * p_info =
+    (struct private_tvengxv_device_info*)info;
+
+  if (p_info->signal_strength == None)
+    {
+      info->tveng_errno = -1;
+      t_error_msg("XVideo",
+		  "\"XV_SIGNAL_STRENGTH\" atom not provided by"
+		  "the XVideo driver", info);
+      return -1;
+    }
+
   if (strength)
-    *strength = 0;
+    XvGetPortAttribute(info->private->display,
+		       p_info->port,
+		       p_info->signal_strength,
+		       strength);
+
   if (afc)
     *afc = 0;
   return 0;

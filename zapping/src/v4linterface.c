@@ -551,8 +551,6 @@ on_control_box_destroy		       (GtkWidget      *widget,
 
   gtk_widget_set_sensitive(related_button, TRUE);
 
-  g_message("destroying");
-
   ToolBox = NULL;
 }
 

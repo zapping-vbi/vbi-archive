@@ -1004,13 +1004,21 @@ on_channel_search_clicked              (GtkButton       *button,
   GtkWidget * progress;
   gint timeout;
 
-  /* Channel auto-searching won't work with XVideo */
-  if (main_info->current_controller == TVENG_CONTROLLER_XV)
+  /* Make a prove to see whether it's possible to get the signal
+     strength */
+  if (-1 == tveng_get_signal_strength(NULL, NULL, main_info))
     {
-      ShowBox(_("Channel autosearching won't work with XVideo.\n"
-		"Please switch to another controller by starting\n"
-		"Capture mode (\"View/Go Capturing\" menu entry)."),
-	      GNOME_MESSAGE_BOX_INFO);
+      /* Channel auto-searching won't work with XVideo */
+      if (main_info->current_controller == TVENG_CONTROLLER_XV)
+	ShowBox(_("Channel autosearching won't work with XVideo.\n"
+		  "Please switch to another controller by starting\n"
+		  "Capture mode (\"View/Go Capturing\" menu "
+		  "entry).\nReported error:\n%s"),
+		GNOME_MESSAGE_BOX_WARNING, main_info->error);
+      else
+	ShowBox(_("Your current V4L/V4L2 driver cannot do, "
+		  "channel autosearching, sorry"),
+		GNOME_MESSAGE_BOX_INFO);
       return;
     }
 
