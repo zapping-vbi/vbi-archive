@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bcd.h,v 1.6.2.2 2003-05-02 10:44:19 mschimek Exp $ */
+/* $Id: bcd.h,v 1.6.2.3 2003-06-16 06:02:09 mschimek Exp $ */
 
 #ifndef BCD_H
 #define BCD_H
@@ -92,8 +92,8 @@ vbi_bcd2dec			(int			bcd)
 
 /* Consider 64 bit ints. */
 
-static const int vbi_bcd10 = ((int) 0x1111111111111111LL) << 4;
-static const int vbi_bcd06 = ((int) 0x6666666666666666LL) >> 4; 
+#define VBI_BCD10 (((int) 0x1111111111111111LL) << 4)
+#define VBI_BCD06 (((int) 0x6666666666666666LL) >> 4)
 
 /**
  * @ingroup BCD
@@ -110,9 +110,9 @@ static_inline int
 vbi_add_bcd			(int			a,
 				 int			b)
 {
-	int t = a + (b += vbi_bcd06);
+	int t = a + (b += VBI_BCD06);
 
-	a  = ((~(b ^ a ^ t) & vbi_bcd10) >> 3) * 3;
+	a  = ((~(b ^ a ^ t) & VBI_BCD10) >> 3) * 3;
 
 	return t - a;
 }
@@ -133,7 +133,7 @@ vbi_neg_bcd			(int			bcd)
 {
 	int t = -bcd;
 
-	return t - (((bcd ^ t) & vbi_bcd10) >> 3) * 3;
+	return t - (((bcd ^ t) & VBI_BCD10) >> 3) * 3;
 }
 
 /**
@@ -169,7 +169,29 @@ vbi_is_bcd			(int			bcd)
 {
 	if (bcd < 0) bcd ^= 0xF << (8 * sizeof (int) - 4);
 
-	return (((bcd + vbi_bcd06) ^ (bcd ^ vbi_bcd06)) & vbi_bcd10) == 0;
+	return (((bcd + VBI_BCD06) ^ bcd ^ VBI_BCD06) & VBI_BCD10) == 0;
+}
+
+/**
+ * @ingroup BCD
+ * @param bcd Unsigned BCD number.
+ * @param maximum Maximum value.
+ *
+ * Compares a bcd value digit-wise against a maximum value,
+ * for example 0x295959. @a maximum can contain digits
+ * 0x0 ... 0xF.
+ *
+ * @return
+ * @c FALSE if any digit of @a bcd is greater than the
+ * corresponding digit of @a maximum.
+ */
+static_inline vbi_bool
+vbi_bcd_limit			(unsigned int		bcd,
+				 unsigned int		maximum)
+{
+	maximum ^= ~0;
+
+	return (((bcd + maximum) ^ bcd ^ maximum) & VBI_BCD10) == 0;
 }
 
 /**
