@@ -1,3 +1,7 @@
+27.7.2000	mode switching <garetxe@users.sourceforge.net>
+
+	* src/zmisc.c: Added a routine for switching modes correctly.
+	
 23.7.2000	Misc bug fixing <garetxe@users.sourceforge.net>
 
 	* src/zmisc.c: Fixed the segfault when quitting (i believe so, at

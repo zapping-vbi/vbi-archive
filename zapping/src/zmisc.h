@@ -25,6 +25,7 @@
 #define __ZMISC_H__
 
 #include <gnome.h>
+#include "tveng.h"
 
 /* With precompiler aid we can print much more useful info */
 /* This shows a non-modal, non-blocking message box */
@@ -92,6 +93,17 @@ void zmisc_refresh_tv_screen(gint x, gint y, gint w, gint h, gboolean
 
 /* Clears any timers zmisc could use (the Zapping window is to be closed) */
 void zmisc_clear_timers(void);
+
+/*
+  does the mode switching. Since this requires more than just using
+  tveng, a new routine is needed.
+  Returns whatever tveng returns, but we print the message ourselves
+  too, so no need to aknowledge it to the user.
+  Side efects: Stops whatever mode was being used before.
+*/
+int
+zmisc_switch_mode(enum tveng_capture_mode new_mode,
+		  tveng_device_info * info);
 
 #endif /* ZMISC.H */
 

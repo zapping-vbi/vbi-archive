@@ -22,9 +22,11 @@
 #include "zconf.h"
 #include "tveng.h"
 #include "interface.h"
+#include "callbacks.h"
 
 extern tveng_device_info * main_info;
 extern GtkWidget * main_window;
+extern gboolean disable_preview; /* TRUE if preview won't work */
 static GdkImage * zimage = NULL; /* The buffer that holds the capture */
 static gint oldx=-1, oldy=-1, oldw=-1, oldh=-1; /* Last geometry of the
 					    Zapping window */
@@ -394,4 +396,84 @@ void zmisc_clear_timers(void)
     gtk_timeout_remove(timeout_id);
 
   timeout_id = 0;
+}
+
+/*
+  does the mode switching. Since this requires more than just using
+  tveng, a new routine is needed.
+  Returns whatever tveng returns, but we print the message ourselves
+  too, so no need to aknowledge it to the user.
+  Side efects: Stops whatever mode was being used before.
+*/
+int
+zmisc_switch_mode(enum tveng_capture_mode new_mode,
+		  tveng_device_info * info)
+{
+  GtkWidget * tv_screen;
+  int return_value = 0;
+  GtkAllocation dummy_alloc;
+  gint x, y, w, h;
+
+  g_assert(info != NULL);
+  g_assert(main_window != NULL);
+  tv_screen = lookup_widget(main_window, "tv_screen");
+  g_assert(tv_screen != NULL);
+
+  if (info->current_mode == new_mode)
+    return 0; /* success */
+
+  gdk_window_get_size(tv_screen->window, &w, &h);
+  gdk_window_get_origin(tv_screen->window, &x, &y);
+
+  tveng_stop_everything(info);
+
+  switch (new_mode)
+    {
+    case TVENG_CAPTURE_READ:
+      return_value = tveng_start_capturing(info);
+      if (return_value != -1)
+	{
+	  dummy_alloc.width = w;
+	  dummy_alloc.height = h;
+	  on_tv_screen_size_allocate(tv_screen, &dummy_alloc, NULL);
+	}
+      else
+	g_warning(info->error);
+      break;
+    case TVENG_CAPTURE_WINDOW:
+      if (disable_preview) {
+	g_warning("preview has been disabled");
+	return -1;
+      }
+      info->window.x = x;
+      info->window.y = y;
+      info->window.width = w;
+      info->window.height = h;
+      info->window.clipcount = 0;
+      tveng_set_preview_window(info);
+      return_value = tveng_start_window(info);
+      if (return_value != -1)
+	zmisc_refresh_tv_screen(x, y, w, h, FALSE);
+      else
+	g_warning(info->error);
+      break;
+    case TVENG_CAPTURE_PREVIEW:
+      if (disable_preview) {
+	g_warning("preview has been disabled");
+	return -1;
+      }
+      on_go_fullscreen1_activate(
+       GTK_MENU_ITEM(lookup_widget(tv_screen, "go_fullscreen1")),
+       NULL);
+      if (main_info->current_mode != TVENG_CAPTURE_PREVIEW)
+	{
+	  g_warning(info->error);
+	  return_value = -1;
+	}
+      break;
+    default:
+      break; /* TVENG_NO_CAPTURE */
+    }
+
+  return return_value;
 }

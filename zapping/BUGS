@@ -4,8 +4,6 @@ Known bugs with zapping, don't report them
 ! == Bug that needs fixing, very important
 ------------------------------------------
 	
-	! Create new routine for switching capture modes in zmisc.c
-and a lpay it where required
 	! Windowed mode doesn't detect the "anti-expose (cover)" event
 - how does xawtv do it?
 	! Find the cause for those /dev/dsp busy error messages (libesd
