@@ -1,15 +1,16 @@
 noinst_LIBRARIES = libcommon.a
 
 libcommon_a_SOURCES = \
+	alloc.h alloc.c \
 	device.c device.h \
 	fifo.h fifo.c \
-	alloc.h alloc.c \
-	threads.h \
+	intl-priv.h \
+	ioctl_meteor.h ioctl_bt848.h \
 	list.h \
-	types.h \
 	math.h \
-	videodev.h videodev2.h videodev25.h \
-	ioctl_meteor.h ioctl_bt848.h
+	threads.h \
+	types.h \
+	videodev.h videodev2.h videodev25.h
 
 structpr = structpr_gen.pl
 
