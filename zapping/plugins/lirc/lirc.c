@@ -51,8 +51,6 @@ static int thread_exit = 0;
 
 int num_channels;
 
-static void yoyo_dado ( void );
-
 /*
   Declaration of the static symbols of the plugin. Refer to the docs
   to know what does each of these functions do
@@ -79,7 +77,6 @@ gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
     SYMBOL(plugin_save_config, 0x1234),
     SYMBOL(plugin_running, 0x1234),
     SYMBOL(plugin_process_sample, 0x1234),
-    SYMBOL(plugin_get_public_info, 0x1234),
     SYMBOL(plugin_add_properties, 0x1234),
     SYMBOL(plugin_activate_properties, 0x1234),
     SYMBOL(plugin_help_properties, 0x1234),
@@ -223,11 +220,13 @@ void plugin_load_config (gchar * root_key)
   zconf_create_boolean(FALSE,"Whether the plugin should start"
 		       " automatically when opening Zapping", buffer);
   active = zconf_get_boolean(NULL, buffer);
+  g_free(buffer);
 
   while(1) {
     sprintf(number, "action_%d", ++i);
     buffer = g_strconcat(root_key, "actions/", number, NULL);
     button = zconf_get_string(NULL, buffer);
+    g_free(buffer);
     if (button != NULL) {
       item = (action_list_item*)malloc(sizeof(action_list_item));
       strncpy(item->button, button, 20);
@@ -241,7 +240,6 @@ void plugin_load_config (gchar * root_key)
 
   printf("\n");
 
-  g_free(buffer);
   /* Load here any other config key */
 }
 
@@ -263,6 +261,7 @@ void plugin_save_config (gchar * root_key)
 
   buffer = g_strconcat(root_key, "actions");
   zconf_delete(buffer);
+  g_free(buffer);
 
   item = first_item;
   while (item != NULL) {
@@ -270,11 +269,9 @@ void plugin_save_config (gchar * root_key)
     buffer = g_strconcat(root_key, "actions/", number, NULL);
     zconf_create_string(item->button, item->action, buffer);
     zconf_set_string(item->button, buffer);
-    zconf_set_description(item->action, buffer);
     item = item->next;
+    g_free(buffer);
   }
-  g_free(buffer);
-  
 
   /* Save here any other config keys you need to save */
 }
@@ -285,46 +282,6 @@ void plugin_process_sample(plugin_sample * sample)
   /* If the plugin isn't active, it shouldn't do anything */
   if (!active)
     return;
-}
-
-static
-void yoyo_dado ( void )
-{
-  ShowBox("Yoyo-Dado", GNOME_MESSAGE_BOX_INFO);
-}
-
-
-static
-gboolean plugin_get_public_info (gint index, gpointer * ptr, gchar **
-				 symbol, gchar ** description, gchar **
-				 type, gint * hash)
-{
-  struct plugin_exported_symbol symbols[] =
-  {
-    {
-      yoyo_dado, "yoyo-dado",
-      N_("Example of an exported symbol, does nothing useful"),
-      "void yoyo-dado ( void );", 0x1234
-    }
-  };
-  gint num_exported_symbols =
-    sizeof(symbols)/sizeof(struct plugin_exported_symbol);
-
-  if ((index >= num_exported_symbols) || (index < 0))
-    return FALSE;
-
-  if (ptr)
-    *ptr = symbols[index].ptr;
-  if (symbol)
-    *symbol = symbols[index].symbol;
-  if (description)
-    *description = _(symbols[index].description);
-  if (type)
-    *type = symbols[index].type;
-  if (hash)
-    *hash = symbols[index].hash;
-
-  return TRUE; /* Exported */
 }
 
 static
