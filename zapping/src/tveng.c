@@ -120,8 +120,7 @@ tveng_device_info * tveng_device_info_new(Display * display, int bpp)
   int i;
 
   /* Get the needed mem for the controllers */
-  for (i=0; i<(sizeof(tveng_controllers)/sizeof(tveng_controller));
-       i++)
+  for (i = 0; i < N_ELEMENTS (tveng_controllers); ++i)
     {
       tveng_controllers[i](&module_info);
       needed_mem = MAX(needed_mem, (size_t) module_info.private_size);
@@ -129,32 +128,20 @@ tveng_device_info * tveng_device_info_new(Display * display, int bpp)
 
   t_assert(needed_mem > 0);
 
-  new_object = (tveng_device_info*) calloc(1, needed_mem);
-
-  if (!new_object)
+  if (!(new_object = calloc (1, needed_mem)))
     return NULL;
 
-  /* fill the struct with 0's */
-  memset(new_object, 0, needed_mem);
-
-  new_object -> priv = malloc(sizeof(struct tveng_private));
-
-  if (!new_object->priv)
+  if (!(new_object->priv = calloc (1, sizeof (*new_object->priv))))
     {
-      free(new_object);
+      free (new_object);
       return NULL;
     }
 
-  memset(new_object->priv, 0, sizeof(struct tveng_private));
-
-  /* Allocate some space for the error string */
-  new_object -> error = (char*) malloc(256);
-
-  if (!new_object->error)
+  if (!(new_object->error = malloc (256)))
     {
-      free(new_object->priv);
-      free(new_object);
-      perror("malloc");
+      free (new_object->priv);
+      free (new_object);
+      perror ("malloc");
       return NULL;
     }
 
@@ -220,7 +207,7 @@ int tveng_attach_device(const char* device_file,
 			enum tveng_attach_mode attach_mode,
 			tveng_device_info * info)
 {
-  int i, j;
+  int i;
   char *long_str, *short_str, *sign = NULL;
   tv_control *tc;
   int num_controls;
@@ -238,9 +225,15 @@ int tveng_attach_device(const char* device_file,
   info -> current_controller = TVENG_CONTROLLER_NONE;
 
   /*
-    Check that the current private->display depth is one of the supported ones
+    Check that the current private->display depth is one of the
+    supported ones.
+
+    XXX this is inaccurate. It depends on the
+    formats supported by the video HW and our conversion
+    capabilities.
   */
   info->priv->current_bpp = tveng_get_display_depth(info);
+
   switch (info->priv->current_bpp)
     {
     case 15:
@@ -274,7 +267,7 @@ int tveng_attach_device(const char* device_file,
   t_error_msg("check()",
 	      "The device cannot be attached to any controller",
 	      info);
-  memset(&(info->priv->module), 0, sizeof(info->priv->module));
+  CLEAR (info->priv->module);
   UNTVLOCK;
   return -1;
 
@@ -319,7 +312,7 @@ int tveng_attach_device(const char* device_file,
     {
       t_error ("asprintf", info);
       tveng_close_device (info);
-      memset(&(info->priv->module), 0, sizeof(info->priv->module));
+      CLEAR (info->priv->module);
       UNTVLOCK;
       return -1;
     }
@@ -337,75 +330,94 @@ int tveng_attach_device(const char* device_file,
       fprintf(stderr, "Detected framebuffer depth: %d\n",
 	      tveng_get_display_depth(info));
       fprintf(stderr, "Current capture format:\n");
-      fprintf(stderr, "  Dimensions: %dx%d  BytesPerLine: %d  Depth: %d "
+      fprintf(stderr, "  Dimensions: %dx%d  BytesPerLine: %d  Pixfmt: %s "
 	      "Size: %d K\n", info->format.width,
 	      info->format.height, info->format.bytesperline,
-	      info->format.depth, info->format.sizeimage/1024);
+	      tv_pixfmt_name (info->format.pixfmt),
+	      info->format.sizeimage/1024);
       fprintf(stderr, "Current overlay window struct:\n");
       fprintf(stderr, "  Coords: %dx%d-%dx%d\n",
 	      info->overlay_window.x,
 	      info->overlay_window.y,
 	      info->overlay_window.width,
 	      info->overlay_window.height);
+
       {
-	tv_video_standard *ts;
+	tv_video_standard *s;
 	unsigned int i;
 
-	fprintf(stderr, "Detected standards:\n");
-	for (ts = info->video_standards, i = 0; ts; ts = ts->_next, ++i)
-	  fprintf (stderr, "  %d) [%s] ID: 0x%llx %dx%d %f Hash: %x\n",
-		   i, ts->label, ts->id,
-		   ts->frame_width, ts->frame_height, ts->frame_rate,
-		   ts->hash);
+	fprintf (stderr, "Video standards:\n");
+
+	for (s = info->video_standards, i = 0; s; s = s->_next, ++i)
+	  fprintf (stderr, "  %d) '%s'  0x%llx %dx%d  %.2f  hash: %x\n",
+		   i, s->label, s->videostd_set,
+		   s->frame_width, s->frame_height,
+		   s->frame_rate, s->hash);
       }
+
       {
 	tv_video_line *l;
 	unsigned int i;
 
-	fprintf(stderr, "Detected inputs:\n");
+	fprintf (stderr, "Video inputs:\n");
+
 	for (l = info->video_inputs, i = 0; l; l = l->_next, ++i)
 	  {
-	    fprintf(stderr, "  %d) [%s] ID: %d Hash: %x Type: %s\n",
-		    i, l->label, l->id, l->hash,
-		    (l->type == TV_VIDEO_LINE_TYPE_TUNER) ? "TV" : "Camera");
+	    fprintf (stderr, "  %d) '%s'  id: %u  hash: %x  %s\n",
+		     i, l->label, l->id, l->hash,
+		     IS_TUNER_LINE (l) ? "tuner" : "composite");
 	    if (IS_TUNER_LINE (l))
-	      fprintf(stderr, "       Freq.range: (%u, %u) +%u Hz\n",
-		      l->u.tuner.minimum, l->u.tuner.maximum, l->u.tuner.step);
+	      fprintf (stderr, "       freq.range: %u...%u %+d Hz\n",
+		       l->u.tuner.minimum, l->u.tuner.maximum,
+		       l->u.tuner.step);
 	  }
       }
 
-      fprintf(stderr, "Available controls:\n");
-      for (tc = info->controls; tc; tc = tc->_next)
-	{
-	  fprintf(stderr, "  %d) [%s] ID: %d  Range: (%d, %d)  Value: %d ",
-		  i, tc->label, tc->id,
-		  tc->minimum, tc->maximum,
-		  tc->value);
-	  switch (tc->type)
-	    {
-	    case TV_CONTROL_TYPE_INTEGER:
-	      fprintf(stderr, " <Slider>\n");
-	      break;
-	    case TV_CONTROL_TYPE_BOOLEAN:
-	      fprintf(stderr, " <Checkbox>\n");
-	      break;
-	    case TV_CONTROL_TYPE_CHOICE:
-	      fprintf(stderr, " <Menu>\n");
-	      for (j=0; tc->menu[j]; j++)
-		fprintf(stderr, "    %d.%d) [%s] <Menu entry>\n", i, j,
-			tc->menu[j]);
-	      break;
-	    case TV_CONTROL_TYPE_ACTION:
-	      fprintf(stderr, " <Button>\n");
-	      break;
-	    case TV_CONTROL_TYPE_COLOR:
-	      fprintf(stderr, " <Color>\n");
-	      break;
-	    default:
-	      fprintf(stderr, " <Unknown type>\n");
-	      break;
-	    }
-	}
+      {
+	tv_control *c;
+	unsigned int i;
+
+	fprintf (stderr, "Controls:\n");
+
+	for (c = info->controls, i = 0; c; c = c->_next, ++i)
+	  {
+	    fprintf (stderr, "  %u) '%s'  id: %u  %d...%d"
+		     " %+d  cur: %d  reset: %d ",
+		     i, c->label, c->id,
+		     c->minimum, c->maximum, c->step,
+		     c->value, c->reset);
+
+	    switch (c->type)
+	      {
+	      case TV_CONTROL_TYPE_INTEGER:
+		fprintf (stderr, "integer\n");
+		break;
+	      case TV_CONTROL_TYPE_BOOLEAN:
+		fprintf (stderr, "boolean\n");
+		break;
+	      case TV_CONTROL_TYPE_CHOICE:
+		{
+		  unsigned int i;
+
+		  fprintf (stderr, "choice\n");
+
+		  for (i = 0; c->menu[i]; ++i)
+		    fprintf (stderr, "    %u) '%s'\n", i, c->menu[i]);
+
+		  break;
+		}
+	      case TV_CONTROL_TYPE_ACTION:
+		fprintf (stderr, "action\n");
+		break;
+	      case TV_CONTROL_TYPE_COLOR:
+		fprintf(stderr, "color\n");
+		break;
+	      default:
+		fprintf(stderr, "unknown type\n");
+		break;
+	      }
+	  }
+      }
     }
 
   UNTVLOCK;
@@ -897,7 +909,7 @@ tv_set_video_standard		(tveng_device_info *	info,
 
 tv_bool
 tv_set_video_standard_by_id	(tveng_device_info *	info,
-				 tv_video_standard_id	id)
+				 tv_videostd_set	videostd_set)
 {
 	tv_video_standard *ts, *list;
 
@@ -910,11 +922,12 @@ tv_set_video_standard_by_id	(tveng_device_info *	info,
 	ts = NULL;
 
 	for_all (list, info->video_standards)
-		if (ts->id & id) {
+		if (ts->videostd_set & videostd_set) {
 			if (ts) {
 				info->tveng_errno = -1;
 				t_error_msg("finding",
-					    "Standard by ambiguous id %x", info, id);
+					    "Standard by ambiguous id %llx", info,
+					    videostd_set);
 				RETURN_UNTVLOCK (FALSE);
 			}
 
@@ -1067,7 +1080,7 @@ tv_control_by_id		(tveng_device_info *	info,
 static void
 round_boundary_4		(unsigned int *		x1,
 				 unsigned int *		width,
-				 enum tveng_frame_pixformat pixfmt,			 
+				 tv_pixfmt		pixfmt,			 
 				 unsigned int		max_width)
 {
 	unsigned int x, w;
@@ -1078,21 +1091,51 @@ round_boundary_4		(unsigned int *		x1,
 	}
 
 	switch (pixfmt) {
-	case TVENG_PIX_RGB555:
-	case TVENG_PIX_RGB565:
-		x = (((*x1 << 1) + 2) & -4) >> 1;
-		w = (((*width << 1) + 2) & -4) >> 1;
-		break;
-
-	case TVENG_PIX_RGB32:
-	case TVENG_PIX_BGR32:
+	case TV_PIXFMT_RGBA24_LE:
+	case TV_PIXFMT_RGBA24_BE:
+	case TV_PIXFMT_BGRA24_LE:
+	case TV_PIXFMT_BGRA24_BE:
 		x = (((*x1 << 2) + 2) & -4) >> 2;
 		w = (((*width << 2) + 2) & -4) >> 2;
 		break;
 
-	case TVENG_PIX_RGB24:
-	case TVENG_PIX_BGR24:
-		/* round to multiple of 12 */
+	case TV_PIXFMT_RGB24_LE:
+	case TV_PIXFMT_BGR24_LE:
+		/* Round to multiple of 12. */
+		x = (*x1 + 2) & -4;
+		w = (*width + 2) & -4;
+		break;
+
+	case TV_PIXFMT_RGB16_LE:
+	case TV_PIXFMT_RGB16_BE:
+	case TV_PIXFMT_BGR16_LE:
+	case TV_PIXFMT_BGR16_BE:
+	case TV_PIXFMT_RGBA15_LE:
+	case TV_PIXFMT_RGBA15_BE:
+	case TV_PIXFMT_BGRA15_LE:
+	case TV_PIXFMT_BGRA15_BE:
+	case TV_PIXFMT_ARGB15_LE:
+	case TV_PIXFMT_ARGB15_BE:
+	case TV_PIXFMT_ABGR15_LE:
+	case TV_PIXFMT_ABGR15_BE:
+	case TV_PIXFMT_RGBA12_LE:
+	case TV_PIXFMT_RGBA12_BE:
+	case TV_PIXFMT_BGRA12_LE:
+	case TV_PIXFMT_BGRA12_BE:
+	case TV_PIXFMT_ARGB12_LE:
+	case TV_PIXFMT_ARGB12_BE:
+	case TV_PIXFMT_ABGR12_LE:
+	case TV_PIXFMT_ABGR12_BE:
+		x = (((*x1 << 1) + 2) & -4) >> 1;
+		w = (((*width << 1) + 2) & -4) >> 1;
+		break;
+
+	case TV_PIXFMT_RGB8:
+	case TV_PIXFMT_BGR8:
+	case TV_PIXFMT_RGBA7:
+	case TV_PIXFMT_BGRA7:
+	case TV_PIXFMT_ARGB7:
+	case TV_PIXFMT_ABGR7:
 		x = (*x1 + 2) & -4;
 		w = (*width + 2) & -4;
 		break;
@@ -1133,7 +1176,12 @@ tveng_update_capture_format(tveng_device_info * info)
 }
 
 /* -1 if failed. Sets the pixformat and fills in info -> pix_format
-   with the correct values  */
+   with the correct values
+
+   XXX this is called from scan_devices to determine supported
+   formats, which is overkill. Maybe we should have a dedicated
+   function to query formats a la try_fmt.
+  */
 int
 tveng_set_capture_format(tveng_device_info * info)
 {
@@ -1143,7 +1191,7 @@ tveng_set_capture_format(tveng_device_info * info)
   REQUIRE_IO_MODE (-1);
 
   TVLOCK;
-XX();
+
   if (info->format.height < info->caps.minheight)
     info->format.height = info->caps.minheight;
   if (info->format.height > info->caps.maxheight)
@@ -1152,13 +1200,11 @@ XX();
     info->format.width = info->caps.minwidth;
   if (info->format.width > info->caps.maxwidth)
     info->format.width = info->caps.maxwidth;
-XX();
 
   if (info->priv->dword_align)
     round_boundary_4 (NULL, &info->format.width,
-		      info->format.pixformat, info->caps.maxwidth);
+		      info->format.pixfmt, info->caps.maxwidth);
 
-XX();
   if (info->priv->module.set_capture_format)
     RETURN_UNTVLOCK(info->priv->module.set_capture_format(info));
 
@@ -1467,6 +1513,9 @@ set_control			(struct control * c, int value,
 /*
   Sets the value for a specific control. The given value will be
   clipped between min and max values. Returns -1 on error
+
+  XXX another function tveng_set_controls would be nice.
+  Would save v4l ioctls on channel switches.
 */
 int
 tveng_set_control(tv_control * control, int value,
@@ -2160,7 +2209,7 @@ tveng_stop_capturing(tveng_device_info * info)
 
 /* 
    Reads a frame from the video device, storing the read data in
-   the location pointed to by dest.
+   the location pointed to by dest. dest can be NULL to discard.
    time: time to wait using select() in miliseconds
    info: pointer to the video device info structure
    Returns -1 on error, anything else on success
@@ -2220,7 +2269,7 @@ int tveng_set_capture_size(int width, int height, tveng_device_info * info)
 
   if (info->priv->dword_align)
     round_boundary_4 (NULL, &info->format.width,
-		      info->format.pixformat, info->caps.maxwidth);
+		      info->format.pixfmt, info->caps.maxwidth);
 
   if (width < info->caps.minwidth)
     width = info->caps.minwidth;
@@ -2301,8 +2350,7 @@ validate_overlay_buffer		(const tv_overlay_buffer *dga,
 	if (((char *) dma->base) >= dga_end)
 		return FALSE;
 
-	if (dga->pixfmt < TVENG_PIX_FIRST
-	    || dga->pixfmt > TVENG_PIX_LAST)
+	if (TV_PIXFMT_NONE == dga->pixfmt)
 		return FALSE;
 
 	if (dga->bytes_per_line != dma->bytes_per_line
@@ -2926,6 +2974,7 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
 
   /* Add the controls in this port to the struct of controls */
   at = XvQueryPortAttributes(dpy, port, &attributes);
+
   for (i=0; i<attributes; i++)
     {
       struct control c;
@@ -2942,7 +2991,7 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
 	  (!(at[i].flags & XvSettable)))
 	continue;
 
-      memset (&c, 0, sizeof (c));
+      CLEAR (c);
 
       if (!strcmp("XV_FILTER", at[i].name))
 	  {
@@ -2959,6 +3008,7 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
 	    if (!append_control(info, &c.pub, sizeof (c)))
 	      {
 	      failure:
+		XFree (at);
 		UNTVLOCK;
 		return;
 	      }
@@ -2979,6 +3029,7 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
 	    if (!append_control(info, &c.pub, sizeof (c)))
 	      {
 	      failure2:
+		XFree (at);
 		UNTVLOCK;
 		return;
 	      }
@@ -2999,124 +3050,25 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
 	    if (!append_control(info, &c.pub, sizeof (c)))
 	      {
 	      failure3:
+		XFree (at);
 		UNTVLOCK;
 		return;
 	      }
 	  }
     }
 
+  XFree (at);
+
   tveng_update_controls(info);
 
   UNTVLOCK;
 }
+#endif /* USE_XV */
 
 void tveng_unset_xv_port(tveng_device_info * info)
 {
   info->priv->port = None;
   info->priv->filter = info->priv->colorkey = None;
-}
-
-int tveng_detect_xv_overlay(tveng_device_info * info)
-{
-  Display *dpy = info->priv->display;
-  Window root_window = DefaultRootWindow(dpy);
-  unsigned int version, revision, major_opcode, event_base,
-    error_base;
-  int nAdaptors;
-  int i,j;
-  XvAttribute *at;
-  int attributes;
-  XvAdaptorInfo *pAdaptors, *pAdaptor;
-  XvPortID port; /* port id */
-  XvEncodingInfo *ei; /* list of encodings, for reference */
-  int encodings; /* number of encodings */
-
-  if (info->priv->disable_xv)
-    return 0;
-
-  if (Success != XvQueryExtension(dpy, &version, &revision,
-				  &major_opcode, &event_base,
-				  &error_base))
-    goto error1;
-
-  if (info->debug_level > 0)
-    fprintf(stderr, "tvengxv.c: XVideo major_opcode: %d\n",
-	    major_opcode);
-
-  if (version < 2 || (version == 2 && revision < 2))
-    goto error1;
-
-  if (Success != XvQueryAdaptors(dpy, root_window, &nAdaptors,
-				 &pAdaptors))
-    goto error1;
-
-  if (nAdaptors <= 0)
-    goto error1;
-
-  for (i=0; i<nAdaptors; i++)
-    {
-      pAdaptor = pAdaptors + i;
-      if ((pAdaptor->type & XvInputMask) &&
-	  (pAdaptor->type & XvVideoMask))
-	{ /* available port found */
-	  for (j=0; j<pAdaptor->num_ports; j++)
-	    {
-	      port = pAdaptor->base_id + j;
-
-	      if (Success == XvGrabPort(dpy, port, CurrentTime))
-		goto adaptor_found;
-	    }
-	}
-    }
-
-  goto error2; /* no adaptors found */
-
-  /* success */
- adaptor_found:
-  /* Check that it supports querying controls and encodings */
-  if (Success != XvQueryEncodings(dpy, port,
-				  &encodings, &ei))
-    goto error3;
-
-  if (encodings <= 0)
-    {
-      info->tveng_errno = -1;
-      t_error_msg("encodings",
-		  "You have no encodings available",
-		  info);
-      goto error3;
-    }
-
-  if (ei)
-    XvFreeEncodingInfo(ei);
-
-  /* create the atom that handles the encoding */
-  at = XvQueryPortAttributes(dpy, port, &attributes);
-  if ((!at) && (attributes <= 0))
-    goto error3;
-
-  XvFreeAdaptorInfo(pAdaptors);
-  XvUngrabPort(dpy, port, CurrentTime);
-  return 1; /* the port seems to work ok, success */
-
- error3:
-  XvUngrabPort(dpy, port, CurrentTime);
- error2:
-  XvFreeAdaptorInfo(pAdaptors);
- error1:
-  return 0; /* failure */
-}
-#else
-int tveng_detect_xv_overlay(tveng_device_info * info)
-{
-  return 0; /* XV not built, no overlaying possible */
-}
-#endif
-
-int tveng_is_planar (enum tveng_frame_pixformat fmt)
-{
-  return ((fmt == TVENG_PIX_YUV420) ||
-	  (fmt == TVENG_PIX_YVU420));
 }
 
 int
@@ -3519,375 +3471,617 @@ ADD_NODE_CALLBACK_FUNC (video_input);
 ADD_NODE_CALLBACK_FUNC (audio_input);
 ADD_NODE_CALLBACK_FUNC (video_standard);
 
+const char *
+tv_pixfmt_name			(tv_pixfmt		pixfmt)
+{
+	switch (pixfmt) {
+	case TV_PIXFMT_NONE:		return "NONE";
+	case TV_PIXFMT_YUV444:		return "YUV444";
+	case TV_PIXFMT_YVU444:		return "YVU444";
+	case TV_PIXFMT_YUV422:		return "YUV422";
+	case TV_PIXFMT_YVU422:		return "YVU422";
+	case TV_PIXFMT_YUV411:		return "YUV411";
+	case TV_PIXFMT_YVU411:		return "YVU411";
+	case TV_PIXFMT_YUV420:		return "YUV420";
+	case TV_PIXFMT_YVU420:		return "YVU420";
+	case TV_PIXFMT_YUV410:		return "YUV410";
+	case TV_PIXFMT_YVU410:		return "YVU410";
+	case TV_PIXFMT_YUVA24_LE:	return "YUVA24_LE";
+	case TV_PIXFMT_YUVA24_BE:	return "YUVA24_BE";
+	case TV_PIXFMT_YVUA24_LE:	return "YVUA24_LE";
+	case TV_PIXFMT_YVUA24_BE:	return "YVUA24_BE";
+     /* case TV_PIXFMT_AVUY24_BE:	return "AVUY24_BE"; synonyms */
+     /* case TV_PIXFMT_AVUY24_LE:	return "AVUY24_LE"; */
+     /* case TV_PIXFMT_AUVY24_BE:	return "AUVY24_BE"; */
+     /* case TV_PIXFMT_AUVY24_LE:	return "AUVY24_LE"; */
+	case TV_PIXFMT_YUV24_LE:	return "YUV24_LE";
+	case TV_PIXFMT_YUV24_BE:	return "YUV24_BE";
+	case TV_PIXFMT_YVU24_LE:	return "YVU24_LE";
+	case TV_PIXFMT_YVU24_BE:	return "YVU24_BE";
+     /* case TV_PIXFMT_VUY24_BE:	return "VUY24_BE"; */
+     /* case TV_PIXFMT_VUY24_LE:	return "VUY24_LE"; */
+     /* case TV_PIXFMT_UVY24_BE:	return "UVY24_BE"; */
+     /* case TV_PIXFMT_UVY24_LE:	return "UVY24_LE"; */
+	case TV_PIXFMT_YUYV:		return "YUYV";
+	case TV_PIXFMT_YVYU:		return "YVYU";
+	case TV_PIXFMT_UYVY:		return "UYVY";
+	case TV_PIXFMT_VYUY:		return "VYUY";
+	case TV_PIXFMT_Y8:		return "Y8";
+	case TV_PIXFMT_RGBA24_LE:	return "RGBA24_LE";
+	case TV_PIXFMT_RGBA24_BE:	return "RGBA24_BE";
+	case TV_PIXFMT_BGRA24_LE:	return "BGRA24_LE";
+	case TV_PIXFMT_BGRA24_BE:	return "BGRA24_BE";
+     /* case TV_PIXFMT_ABGR24_BE:	return "ABGR24_BE"; synonyms */
+     /* case TV_PIXFMT_ABGR24_LE:	return "ABGR24_LE"; */
+     /* case TV_PIXFMT_ARGB24_BE:	return "ARGB24_BE"; */
+     /* case TV_PIXFMT_ARGB24_LE:	return "ARGB24_LE"; */
+	case TV_PIXFMT_RGB24_LE:	return "RGB24_LE";
+	case TV_PIXFMT_BGR24_LE:	return "BGR24_LE";
+     /* case TV_PIXFMT_BGR24_BE:	return "BGR24_BE"; */
+     /* case TV_PIXFMT_RGB24_BE:	return "RGB24_BE"; */
+	case TV_PIXFMT_RGB16_LE:	return "RGB16_LE";
+	case TV_PIXFMT_RGB16_BE:	return "RGB16_BE";
+	case TV_PIXFMT_BGR16_LE:	return "BGR16_LE";
+	case TV_PIXFMT_BGR16_BE:	return "BGR16_BE";
+	case TV_PIXFMT_RGBA15_LE:	return "RGBA15_LE";
+	case TV_PIXFMT_RGBA15_BE:	return "RGBA15_BE";
+	case TV_PIXFMT_BGRA15_LE:	return "BGRA15_LE";
+	case TV_PIXFMT_BGRA15_BE:	return "BGRA15_BE";
+	case TV_PIXFMT_ARGB15_LE:	return "ARGB15_LE";
+	case TV_PIXFMT_ARGB15_BE:	return "ARGB15_BE";
+	case TV_PIXFMT_ABGR15_LE:	return "ABGR15_LE";
+	case TV_PIXFMT_ABGR15_BE:	return "ABGR15_BE";
+	case TV_PIXFMT_RGBA12_LE:	return "RGBA12_LE";
+	case TV_PIXFMT_RGBA12_BE:	return "RGBA12_BE";
+	case TV_PIXFMT_BGRA12_LE:	return "BGRA12_LE";
+	case TV_PIXFMT_BGRA12_BE:	return "BGRA12_BE";
+	case TV_PIXFMT_ARGB12_LE:	return "ARGB12_LE";
+	case TV_PIXFMT_ARGB12_BE:	return "ARGB12_BE";
+	case TV_PIXFMT_ABGR12_LE:	return "ABGR12_LE";
+	case TV_PIXFMT_ABGR12_BE:	return "ABGR12_BE";
+	case TV_PIXFMT_RGB8:		return "RGB8";
+	case TV_PIXFMT_BGR8:		return "BGR8";
+	case TV_PIXFMT_RGBA7:		return "RGBA7";
+	case TV_PIXFMT_BGRA7:		return "BGRA7";
+	case TV_PIXFMT_ARGB7:		return "ARGB7";
+	case TV_PIXFMT_ABGR7:		return "ABGR7";
+
+	case TV_PIXFMT_RESERVED0:
+	case TV_PIXFMT_RESERVED1:
+	case TV_PIXFMT_RESERVED2:
+	case TV_PIXFMT_RESERVED3:
+		break;
+
+		/* No default, gcc warns. */
+	}
+
+	return NULL;
+}
+
+/* XXX check this, esp LE/BE */
 tv_bool
 tv_pixfmt_to_pixel_format	(tv_pixel_format *	format,
-				 enum tveng_frame_pixformat pixfmt,
-				 tv_color_space		color_space)
+				 tv_pixfmt		pixfmt,
+				 unsigned int		reserved)
 {
-	static const unsigned int red_le_msb =
-		(1 << TVENG_PIX_BGR24) +
-		(1 << TVENG_PIX_BGR32);
+	/* unused, VU, msb A, msb B,
+	   unused, unused, BE on BE, BE on LE machine */
+	static const uint8_t attr_table [] = {
+		[TV_PIXFMT_YUV444]	= 0x00,
+		[TV_PIXFMT_YVU444]	= 0x40,
+		[TV_PIXFMT_YUV422]	= 0x00,
+		[TV_PIXFMT_YVU422]	= 0x40,
+		[TV_PIXFMT_YUV411]	= 0x00,
+		[TV_PIXFMT_YVU411]	= 0x40,
+		[TV_PIXFMT_YUV420]	= 0x00,
+		[TV_PIXFMT_YVU420]	= 0x40,
+		[TV_PIXFMT_YUV410]	= 0x00,
+		[TV_PIXFMT_YVU410]	= 0x40,
+
+		[TV_PIXFMT_YUVA24_LE]	= 0x02,
+		[TV_PIXFMT_YUVA24_BE]	= 0x01,
+		[TV_PIXFMT_YVUA24_LE]	= 0x42,
+		[TV_PIXFMT_YVUA24_BE]	= 0x41,
+
+		[TV_PIXFMT_YUV24_LE]	= 0x02,
+		[TV_PIXFMT_YUV24_BE]	= 0x01,
+		[TV_PIXFMT_YVU24_LE]	= 0x42,
+		[TV_PIXFMT_YVU24_BE]	= 0x41,
+
+		[TV_PIXFMT_YUYV]	= 0x00,
+		[TV_PIXFMT_YVYU]	= 0x40,
+		[TV_PIXFMT_UYVY]	= 0x00,
+		[TV_PIXFMT_VYUY]	= 0x40,
+
+		[TV_PIXFMT_Y8]		= 0x00,
+
+		[TV_PIXFMT_RGBA24_LE]	= 0x02,
+		[TV_PIXFMT_RGBA24_BE]	= 0x01,
+		[TV_PIXFMT_BGRA24_LE]	= 0x12,
+		[TV_PIXFMT_BGRA24_BE]	= 0x11,
+
+		[TV_PIXFMT_RGB24_LE]	= 0x02,
+		[TV_PIXFMT_RGB24_BE]	= 0x01,
+
+		[TV_PIXFMT_RGB16_LE]	= 0x00,
+		[TV_PIXFMT_RGB16_BE]	= 0x03,
+		[TV_PIXFMT_BGR16_LE]	= 0x10,
+		[TV_PIXFMT_BGR16_BE]	= 0x13,
+
+		[TV_PIXFMT_RGBA15_LE]	= 0x00,
+		[TV_PIXFMT_RGBA15_BE]	= 0x03,
+		[TV_PIXFMT_BGRA15_LE]	= 0x10,
+		[TV_PIXFMT_BGRA15_BE]	= 0x13,
+		[TV_PIXFMT_ARGB15_LE]	= 0x20,
+		[TV_PIXFMT_ARGB15_BE]	= 0x23,
+		[TV_PIXFMT_ABGR15_LE]	= 0x30,
+		[TV_PIXFMT_ABGR15_BE]	= 0x33,
+
+		[TV_PIXFMT_RGBA12_LE]	= 0x00,
+		[TV_PIXFMT_RGBA12_BE]	= 0x03,
+		[TV_PIXFMT_BGRA12_LE]	= 0x10,
+		[TV_PIXFMT_BGRA12_BE]	= 0x13,
+		[TV_PIXFMT_ARGB12_LE]	= 0x20,
+		[TV_PIXFMT_ARGB12_BE]	= 0x23,
+		[TV_PIXFMT_ABGR12_LE]	= 0x30,
+		[TV_PIXFMT_ABGR12_BE]	= 0x33,
+
+		[TV_PIXFMT_RGB8]	= 0x00,
+		[TV_PIXFMT_BGR8]	= 0x00,
+
+		[TV_PIXFMT_RGBA7]	= 0x00,
+		[TV_PIXFMT_BGRA7]	= 0x10,
+		[TV_PIXFMT_ARGB7]	= 0x20,
+		[TV_PIXFMT_ABGR7]	= 0x30,
+	};
+	unsigned int attr;
 
 	t_assert (format != NULL);
 
-	format->pixfmt = pixfmt;
-	format->color_space = TV_COLOR_SPACE_UNKNOWN; /* XXX */
+	if ((unsigned int) pixfmt >= N_ELEMENTS (attr_table))
+		return FALSE;
 
-	format->uv_hscale = 1;
-	format->uv_vscale = 1;
+	attr = attr_table [pixfmt];
 
-	format->big_endian = FALSE; /* XXX */
-
-	format->mask.rgb.a = 0;
+	format->pixfmt			= pixfmt;
+	format->reserved		= 0;
+	format->uv_hscale		= 1;
+	format->uv_vscale		= 1;
+#if BYTE_ORDER == BIG_ENDIAN
+	format->big_endian		= !!(attr & 3);
+#else
+	format->big_endian		= attr & 1;
+#endif
+	format->planar			= FALSE;
+	format->mask.rgb.a		= 0;
 
 	switch (pixfmt) {
-	case TVENG_PIX_RGB555:
+	case TV_PIXFMT_YUV444:
+	case TV_PIXFMT_YVU444:
+		format->color_depth = 24;
+		goto yuv_planar;
+
+	case TV_PIXFMT_YUV422:
+	case TV_PIXFMT_YVU422:
+		format->color_depth = 16;
+		format->uv_hscale = 2;
+		goto yuv_planar;
+
+	case TV_PIXFMT_YUV411:
+	case TV_PIXFMT_YVU411:
+		format->color_depth = 12;
+		format->uv_hscale = 4;
+		goto yuv_planar;
+
+	case TV_PIXFMT_YUV420:
+	case TV_PIXFMT_YVU420:
+		format->color_depth = 12;
+		format->uv_hscale = 2;
+		format->uv_vscale = 2;
+		goto yuv_planar;
+
+	case TV_PIXFMT_YUV410:
+	case TV_PIXFMT_YVU410:
+		format->color_depth = 9;
+		format->uv_hscale = 4;
+		format->uv_vscale = 4;
+
+	yuv_planar:
+		format->bits_per_pixel = 8; /* Y plane */
+		format->planar = TRUE;
+		format->mask.yuv.y = 0xFF;
+		format->mask.yuv.u = 0xFF;
+		format->mask.yuv.v = 0xFF;
+		break;
+
+	case TV_PIXFMT_YUVA24_LE: /* LE 0xAAVVUUYY BE 0xYYUUVVAA */
+	case TV_PIXFMT_YUVA24_BE: /* LE 0xYYUUVVAA BE 0xAAVVUUYY */
+	case TV_PIXFMT_YVUA24_LE: /* LE 0xAAUUVVYY BE 0xYYVVUUAA */
+	case TV_PIXFMT_YVUA24_BE: /* LE 0xYYVVUUAA BE 0xAAUUVVYY */
+		format->bits_per_pixel = 32;
+		format->color_depth = 24;
+
+		if (format->big_endian) {
+			format->mask.yuv.y = 0xFF << 24;
+			format->mask.yuv.u = 0xFF << 16;
+			format->mask.yuv.v = 0xFF << 8;
+			format->mask.yuv.a = 0xFF;
+		} else {
+			format->mask.yuv.y = 0xFF;
+			format->mask.yuv.u = 0xFF << 8;
+			format->mask.yuv.v = 0xFF << 16;
+			format->mask.yuv.a = 0xFF << 24;
+		}
+		break;
+
+	case TV_PIXFMT_YUV24_LE: /* LE 0xVVUUYY BE 0xYYUUVV */
+	case TV_PIXFMT_YUV24_BE: /* LE 0xYYUUVV BE 0xVVUUYY */
+	case TV_PIXFMT_YVU24_LE: /* LE 0xUUVVYY BE 0xYYVVUU */
+	case TV_PIXFMT_YVU24_BE: /* LE 0xYYVVUU BE 0xUUVVYY */
+		format->bits_per_pixel = 24;
+		format->color_depth = 24;
+
+		if (format->big_endian) {
+			format->mask.yuv.y = 0xFF << 16;
+			format->mask.yuv.v = 0xFF;
+		} else {
+			format->mask.yuv.y = 0xFF;
+			format->mask.yuv.v = 0xFF << 16;
+		}
+
+		format->mask.yuv.u = 0xFF << 8;
+
+		break;
+
+	case TV_PIXFMT_YUYV:
+	case TV_PIXFMT_YVYU:
+	case TV_PIXFMT_UYVY:
+	case TV_PIXFMT_VYUY:
+		format->bits_per_pixel = 16;
+		format->color_depth = 16;
+		format->uv_hscale = 2;
+		format->mask.yuv.y = 0xFF; /* << 0, << 8 ? */
+		format->mask.yuv.u = 0xFF;
+		format->mask.yuv.v = 0xFF;
+		break;
+
+	case TV_PIXFMT_Y8:
+		format->bits_per_pixel = 8;
+		format->color_depth = 8;
+		format->mask.yuv.y = 0xFF;
+		format->mask.yuv.u = 0;
+		format->mask.yuv.v = 0;
+		break;
+
+	case TV_PIXFMT_RGBA24_LE: /* LE 0xAABBGGRR BE 0xRRGGBBAA */
+	case TV_PIXFMT_RGBA24_BE: /* LE 0xRRGGBBAA BE 0xAABBGGRR */
+	case TV_PIXFMT_BGRA24_LE: /* LE 0xAARRGGBB BE 0xBBGGRRAA */
+	case TV_PIXFMT_BGRA24_BE: /* LE 0xBBGGRRAA BE 0xAARRGGBB */
+		format->bits_per_pixel = 32;
+		format->color_depth = 24;
+
+		if (format->big_endian) {
+			format->mask.rgb.r = 0xFF << 24;
+			format->mask.rgb.g = 0xFF << 16;
+			format->mask.rgb.b = 0xFF << 8;
+			format->mask.rgb.a = 0xFF;
+		} else {
+			format->mask.rgb.r = 0xFF;
+			format->mask.rgb.g = 0xFF << 8;
+			format->mask.rgb.b = 0xFF << 16;
+			format->mask.rgb.a = 0xFF << 24;
+		}
+		break;
+
+	case TV_PIXFMT_RGB24_LE: /* LE 0xBBGGRR BE 0xRRGGBB */
+	case TV_PIXFMT_BGR24_LE: /* LE 0xRRGGBB BE 0xBBGGRR */
+		format->bits_per_pixel = 24;
+		format->color_depth = 24;
+
+		if (format->big_endian) {
+			format->mask.rgb.r = 0xFF << 16;
+			format->mask.rgb.b = 0xFF;
+		} else {
+			format->mask.rgb.r = 0xFF;
+			format->mask.rgb.b = 0xFF << 16;
+		}
+
+		format->mask.rgb.g = 0xFF << 8;
+
+		break;
+
+	case TV_PIXFMT_RGB16_LE:
+	case TV_PIXFMT_RGB16_BE:
+	case TV_PIXFMT_BGR16_LE:
+	case TV_PIXFMT_BGR16_BE:
+		format->bits_per_pixel = 16;
+		format->color_depth = 16;
+		format->mask.rgb.r = 0x1F;
+		format->mask.rgb.g = 0x3F << 5;
+		format->mask.rgb.b = 0x1F << 11;
+		break;
+
+	case TV_PIXFMT_RGBA15_LE:
+	case TV_PIXFMT_RGBA15_BE:
+	case TV_PIXFMT_BGRA15_LE:
+	case TV_PIXFMT_BGRA15_BE:
+		format->bits_per_pixel = 16;
+		format->color_depth = 15;
 		format->mask.rgb.r = 0x1F;
 		format->mask.rgb.g = 0x1F << 5;
 		format->mask.rgb.b = 0x1F << 10;
 		format->mask.rgb.a = 0x01 << 15;
+		break;
+
+	case TV_PIXFMT_ARGB15_LE:
+	case TV_PIXFMT_ARGB15_BE:
+	case TV_PIXFMT_ABGR15_LE:
+	case TV_PIXFMT_ABGR15_BE:
 		format->bits_per_pixel = 16;
 		format->color_depth = 15;
-		break;
-
-	case TVENG_PIX_RGB565:
-		format->mask.rgb.r = 0x1F;
-		format->mask.rgb.g = 0x3F << 5;
+		format->mask.rgb.r = 0x1F << 1;
+		format->mask.rgb.g = 0x1F << 6;
 		format->mask.rgb.b = 0x1F << 11;
+		format->mask.rgb.a = 0x01;
+		break;
+
+	case TV_PIXFMT_RGBA12_LE:
+	case TV_PIXFMT_RGBA12_BE:
+	case TV_PIXFMT_BGRA12_LE:
+	case TV_PIXFMT_BGRA12_BE:
 		format->bits_per_pixel = 16;
-		format->color_depth = 16;
-		break;
-
-	case TVENG_PIX_RGB24:
-	case TVENG_PIX_BGR24:
-		format->mask.rgb.r = 0xFF;
-		format->mask.rgb.g = 0xFF << 8;
-		format->mask.rgb.b = 0xFF << 16;
-		format->bits_per_pixel = 24;
-		format->color_depth = 24;
-		break;
-
-	case TVENG_PIX_RGB32:
-	case TVENG_PIX_BGR32:
-		format->mask.rgb.r = 0xFF;
-		format->mask.rgb.g = 0xFF << 8;
-		format->mask.rgb.b = 0xFF << 16;
-		format->mask.rgb.a = 0xFF << 24;
-		format->bits_per_pixel = 32;
-		format->color_depth = 24;
-		break;
-
-	case TVENG_PIX_YVU420:
-	case TVENG_PIX_YUV420:
-		format->mask.yuv.y = 0xFF;
-		format->mask.yuv.u = 0xFF;
-		format->mask.yuv.v = 0xFF;
-		format->uv_hscale = 2;
-		format->uv_vscale = 2;
-		/* XXX correct, but units are really 8 bit - ? */
-		format->bits_per_pixel = 12;
 		format->color_depth = 12;
+		format->mask.rgb.r = 0x0F;
+		format->mask.rgb.g = 0x0F << 4;
+		format->mask.rgb.b = 0x0F << 8;
+		format->mask.rgb.a = 0x0F << 12;
 		break;
 
-	case TVENG_PIX_YUYV:
-		format->mask.yuv.y = 0xFF;
-		format->mask.yuv.u = 0xFF << 8;
-		format->mask.yuv.v = 0xFF << 8;
-		format->uv_hscale = 2;
+	case TV_PIXFMT_ARGB12_LE:
+	case TV_PIXFMT_ARGB12_BE:
+	case TV_PIXFMT_ABGR12_LE:
+	case TV_PIXFMT_ABGR12_BE:
 		format->bits_per_pixel = 16;
-		format->color_depth = 16;
+		format->color_depth = 12;
+		format->mask.rgb.r = 0x0F << 4;
+		format->mask.rgb.g = 0x0F << 8;
+		format->mask.rgb.b = 0x0F << 12;
+		format->mask.rgb.a = 0x0F;
 		break;
 
-	case TVENG_PIX_UYVY:
-		format->mask.yuv.y = 0xFF << 8;
-		format->mask.yuv.u = 0xFF;
-		format->mask.yuv.v = 0xFF;
-		format->uv_hscale = 2;
-		format->bits_per_pixel = 16;
-		format->color_depth = 16;
-		break;
-
-	case TVENG_PIX_GREY:
-		format->mask.yuv.y = 0xFF;
-		format->mask.yuv.u = 0;
-		format->mask.yuv.v = 0;
+	case TV_PIXFMT_RGB8:
 		format->bits_per_pixel = 8;
 		format->color_depth = 8;
+		format->mask.rgb.r = 0x07;
+		format->mask.rgb.g = 0x07 << 3;
+		format->mask.rgb.b = 0x03 << 6;
+		break;
+
+	case TV_PIXFMT_BGR8:
+		format->bits_per_pixel = 8;
+		format->color_depth = 8;
+		format->mask.rgb.r = 0x03 << 6;
+		format->mask.rgb.g = 0x07 << 3;
+		format->mask.rgb.b = 0x07;
+		break;
+
+	case TV_PIXFMT_RGBA7:
+	case TV_PIXFMT_BGRA7:
+		format->bits_per_pixel = 8;
+		format->color_depth = 7;
+		format->mask.rgb.r = 0x03;
+		format->mask.rgb.g = 0x07 << 2;
+		format->mask.rgb.b = 0x03 << 5;
+		format->mask.rgb.a = 0x01 << 7;
+		break;
+
+	case TV_PIXFMT_ARGB7:
+	case TV_PIXFMT_ABGR7:
+		format->bits_per_pixel = 8;
+		format->color_depth = 7;
+		format->mask.rgb.r = 0x03 << 1;
+		format->mask.rgb.g = 0x07 << 3;
+		format->mask.rgb.b = 0x03 << 6;
+		format->mask.rgb.a = 0x01;
 		break;
 
 	default:
-		CLEAR (*format);
 		return FALSE;
 	}
 
-	if (red_le_msb & (1 << pixfmt))
+	if (attr & 0x10)
 		SWAP (format->mask.rgb.r, format->mask.rgb.b);
+
+	if (attr & 0x40) {
+		SWAP (format->mask.yuv.u, format->mask.yuv.v);
+		format->vu_order = TRUE;
+	} else {
+		format->vu_order = FALSE;
+	}
 
 	return TRUE;
 }
 
-#if 0
-
-typedef enum {
-	TV_PIXFMT_YUV444 = 0,		/* planar */
-	TV_PIXFMT_YVU444,
-	TV_PIXFMT_YUV422,
-	TV_PIXFMT_YVU422,
-	TV_PIXFMT_YUV411,
-	TV_PIXFMT_YVU411,
-	TV_PIXFMT_YUV420,
-	TV_PIXFMT_YVU420,
-	TV_PIXFMT_YUV410,
-	TV_PIXFMT_YVU410,
-	TV_PIXFMT_YUVA24_LE = 16,	/* Y U V A */
-	TV_PIXFMT_YUVA24_BE,		/* A V U Y */
-	TV_PIXFMT_YUV24,		/* Y U V */
-	TV_PIXFMT_YUYV = 24,
-	TV_PIXFMT_YVYU,
-	TV_PIXFMT_UYVY,
-	TV_PIXFMT_VYUY,
-	TV_PIXFMT_Y8 = 30,
-	TV_PIXFMT_RGBA24_LE = 32,	/* R G B A in memory */
-	TV_PIXFMT_RGBA24_BE,		/* A G B R */
-	TV_PIXFMT_BGRA24_LE,		/* B G R A */
-	TV_PIXFMT_BGRA24_BE,		/* A R G B */
-	TV_PIXFMT_ABGR24_BE = 32,	/* synonyms */
-	TV_PIXFMT_ABGR24_LE,
-	TV_PIXFMT_ARGB24_BE,
-	TV_PIXFMT_ARGB24_LE,
-	TV_PIXFMT_RGB24,
-	TV_PIXFMT_BGR24,
-	TV_PIXFMT_RGB16_LE,
-	TV_PIXFMT_RGB16_BE,
-	TV_PIXFMT_BGR16_LE,
-	TV_PIXFMT_BGR16_BE,
-	TV_PIXFMT_RGBA15_LE,
-	TV_PIXFMT_RGBA15_BE,
-	TV_PIXFMT_BGRA15_LE,
-	TV_PIXFMT_BGRA15_BE,
-	TV_PIXFMT_ARGB15_LE,
-	TV_PIXFMT_ARGB15_BE,
-	TV_PIXFMT_ABGR15_LE,
-	TV_PIXFMT_ABGR15_BE,
-	TV_PIXFMT_RGBA12_LE,
-	TV_PIXFMT_RGBA12_BE,
-	TV_PIXFMT_BGRA12_LE,
-	TV_PIXFMT_BGRA12_BE,
-	TV_PIXFMT_ARGB12_LE,
-	TV_PIXFMT_ARGB12_BE,
-	TV_PIXFMT_ABGR12_LE,
-	TV_PIXFMT_ABGR12_BE,
-	TV_PIXFMT_RGB8,
-	TV_PIXFMT_BGR8,
-	TV_PIXFMT_RGBA7,
-	TV_PIXFMT_BGRA7,
-	TV_PIXFMT_ARGB7,
-	TV_PIXFMT_ABGR7
-} tv_pixfmt;
-
-/* Broken-down pixfmt and color space. */
-
-struct format {					// e.g.
-	tv_pixfmt		fmt;			// RGB555	YVU420
-	tv_color_space		color_space;		// RGB		JFIF
-	unsigned int		bits_per_pixel;		// 16		12
-	unsigned int		depth;			// 15		12
-	unsigned int		uv_hscale;		// n/a		2
-	unsigned int		uv_vscale;		// n/a		2
-	unsigned int		big_endian	: 1;	// FALSE	FALSE
-/* ? */	unsigned int		planar		: 1;	// FALSE	TRUE
-/* ? */	unsigned int		vu_order	: 1;	// n/a		TRUE
-	union {
-		struct {
-			unsigned int		r;	// 0x001F
-			unsigned int		g;	// 0x03E0
-			unsigned int		b;	// 0x7C00
-			unsigned int		a;	// 0x8000
-		}			rgb;
-		struct {
-			unsigned int		y;	//		0xFF
-			unsigned int		u;	//		0xFF
-			unsigned int		v;	//		0xFF
-			unsigned int		a;	//		0x00
-		}			yuv;
-	}			mask;
-};
-
-#define MFMT(fmt) (((uint64_t) 1) << TV_PIXFMT_##fmt)
-
+/* Note this works only for RGB formats. */
+tv_bool
+tv_pixel_format_to_pixfmt	(tv_pixel_format *	format)
 {
-	static const uint64_t native_big_endian =
-		// + yuyv stuff
-		+ MFMT (RGBA24_BE) + MFMT (BGRA24_BE)
-		+ MFMT (ARGB24_BE) + MFMT (ABGR24_BE);
-		+ MFMT (RGB24)     + MFMT (BGR24);
-	static const uint64_t big_endian =
-		+ MFMT (RGB16_BE)  + MFMT (BGR16_BE)
-		+ MFMT (RGBA15_BE) + MFMT (BGRA15_BE)
-		+ MFMT (ARGB15_BE) + MFMT (ABGR15_BE);
-	static const uint64_t red_le_msb =
-		+ MFMT (BGRA24_LE) + MFMT (BGRA24_BE)
-		+ MFMT (ABGR24_LE) + MFMT (ABGR24_BE)
-		+ MFMT (BGR16_LE)  + MFMT (BGR16_BE)
-		+ MFMT (BGRA15_LE) + MFMT (BGRA15_BE)
-		+ MFMT (ABGR15_LE) + MFMT (ABGR15_BE);
+	unsigned int mask;
+	unsigned int r_msb;
+	unsigned int a_lsb;
 
-	if (pixfmt >= 64)
+	mask = format->mask.rgb.r | format->mask.rgb.g | format->mask.rgb.b;
+
+	if (0 == mask)
 		return FALSE;
 
-	format->fmt = pixfmt;
-	format->color_space = colspc;
+	if (0 == format->mask.rgb.a)
+		format->mask.rgb.a = mask
+			^ (0xFFFFFFFFUL >> (32 - format->bits_per_pixel));
 
-	format->uv_hscale = 1;
-	format->uv_vscale = 1;
+	a_lsb = (format->mask.rgb.a <= mask);
+	r_msb = (format->mask.rgb.r >= format->mask.rgb.b);
 
-	if (native big endian)
-		format->big_endian =
-			!!((big_endian + native_big_endian) & (1 << pixfmt));
-	else
-		format->big_endian = !!(big_endian & (1 << pixfmt));
+	if (0 == format->color_depth) {
+		if (0 == format->bits_per_pixel)
+			return FALSE;
+		else
+			format->color_depth = format->bits_per_pixel;
+	}
 
-	format->planar = FALSE;
-	format->vu_order = FALSE;
+	switch (format->color_depth) {
+	case 32:
+	case 24:
+		if (24 == format->bits_per_pixel) {
+			static tv_pixfmt mapping [] = {
+				TV_PIXFMT_RGB24_LE, TV_PIXFMT_BGR24_LE
+			};
 
-	format->mask.rgb.a = 0;
-
-	switch (pixfmt) {
-	case TV_PIXFMT_YUV24:
-		format->mask.rgb.y = 0xFF;
-		format->mask.rgb.u = 0xFF << 8;
-		format->mask.rgb.v = 0xFF << 16;
-		format->bits_per_pixel = 24;
-		format->depth = 24;
-		break;
-
-	case yvyu:
-	case vyuy:
-		format->vu_order = TRUE;
-		/* fall through */
-
-	case yuyv:
-	case uyvy:
-		if (y first ^ (native big endian)) {
-			format->mask.yuv.u = 0xFF;
-			format->mask.yuv.y = 0xFF << 8;
+			format->pixfmt = mapping [r_msb];
+			break;
 		} else {
-			format->mask.yuv.y = 0xFF;
-			format->mask.yuv.u = 0xFF << 8;
+			static tv_pixfmt mapping [] = {
+				TV_PIXFMT_RGBA24_LE, TV_PIXFMT_RGBA24_BE,
+				TV_PIXFMT_BGRA24_LE, TV_PIXFMT_BGRA24_BE,
+				TV_PIXFMT_ARGB24_LE, TV_PIXFMT_ARGB24_BE,
+				TV_PIXFMT_ABGR24_LE, TV_PIXFMT_ABGR24_BE,
+			};
+
+			format->pixfmt = mapping [a_lsb * 4 + r_msb * 2
+						  + format->big_endian];
+			break;
 		}
 
-		format->mask.yuv.v = format->mask.yuv.u;
-		format->uv_hscale = 2;
-		format->bits_per_pixel = 16;
-		format->depth = 16;
+	case 16:
+	{
+		static tv_pixfmt mapping [] = {
+			TV_PIXFMT_RGB16_LE, TV_PIXFMT_RGB16_BE,
+			TV_PIXFMT_BGR16_LE, TV_PIXFMT_BGR16_BE,
+		};
+
+		format->pixfmt = mapping [r_msb * 2 + format->big_endian];
 		break;
+	}
 
-	case yvu420:
-		format->vu_order = TRUE;
-		/* fall through */
+	case 15:
+	{
+		static tv_pixfmt mapping [] = {
+			TV_PIXFMT_RGBA15_LE, TV_PIXFMT_RGBA15_BE,
+			TV_PIXFMT_BGRA15_LE, TV_PIXFMT_BGRA15_BE,
+			TV_PIXFMT_ARGB15_LE, TV_PIXFMT_ARGB15_BE,
+			TV_PIXFMT_ABGR15_LE, TV_PIXFMT_ABGR15_BE,
+		};
 
-	case yuv420:
-		format->mask.rgb.y = 0xFF;
-		format->mask.rgb.u = 0xFF;
-		format->mask.rgb.v = 0xFF;
-		format->uv_hscale = 2;
-		format->uv_vscale = 2;
-		format->bits_per_pixel = 12;
-		format->depth = 12;
+		format->pixfmt = mapping [a_lsb * 4 + r_msb * 2
+					  + format->big_endian];
 		break;
+	}
 
-	case TV_PIXFMT_RGBA24_LE: /* LE 0xAABBGGRR BE 0xRRGGBBAA */
-	case TV_PIXFMT_BGRA24_LE:
-	case TV_PIXFMT_ABGR24_BE:
-	case TV_PIXFMT_ARGB24_BE:
-		if (native big endian)
-			goto big32;
-	little32:
-		format->mask.rgb.r = 0xFF;
-		format->mask.rgb.g = 0xFF << 8;
-		format->mask.rgb.b = 0xFF << 16;
-		format->mask.rgb.a = 0xFF << 24;
-		format->bits_per_pixel = 32;
-		format->depth = 24;
+	case 12:
+	{
+		static tv_pixfmt mapping [] = {
+			TV_PIXFMT_RGBA12_LE, TV_PIXFMT_RGBA12_BE,
+			TV_PIXFMT_BGRA12_LE, TV_PIXFMT_BGRA12_BE,
+			TV_PIXFMT_ARGB12_LE, TV_PIXFMT_ARGB12_BE,
+			TV_PIXFMT_ABGR12_LE, TV_PIXFMT_ABGR12_BE,
+		};
+
+		format->pixfmt = mapping [a_lsb * 4 + r_msb * 2
+					  + format->big_endian];
 		break;
+	}
 
-	case TV_PIXFMT_RGBA24_BE: /* LE 0xRRGGBBAA BE 0xAABBGGRR */
-	case TV_PIXFMT_BGRA24_BE:
-	case TV_PIXFMT_ABGR24_LE:
-	case TV_PIXFMT_ARGB24_LE:
-		if (native big endian)
-			goto little32;
-	big32:
-		format->mask.rgb.a = 0xFF;
-		format->mask.rgb.b = 0xFF << 8;
-		format->mask.rgb.g = 0xFF << 16;
-		format->mask.rgb.r = 0xFF << 24;
-		format->bits_per_pixel = 32;
-		format->depth = 24;
+	case 8:
+	{
+		static tv_pixfmt mapping [] = {
+			TV_PIXFMT_RGB8, TV_PIXFMT_BGR8
+		};
+
+		format->pixfmt = mapping [r_msb];
 		break;
+	}
 
-	case TV_PIXFMT_RGB24: /* LE 0xBBGGRR BE 0xRRGGBB */
-	case TV_PIXFMT_BGR24: /* LE 0xRRGGBB BE 0xBBGGRR */
-		if ((fmt == TV_PIXFMT_RGB24) ^ (native big endian)) {
-			format->mask.rgb.r = 0xFF;
-			format->mask.rgb.g = 0xFF << 8;
-			format->mask.rgb.b = 0xFF << 16;
-		} else {
-			format->mask.rgb.b = 0xFF;
-			format->mask.rgb.g = 0xFF << 8;
-			format->mask.rgb.r = 0xFF << 16;
-		}
+	case 7:
+	{
+		static tv_pixfmt mapping [] = {
+			TV_PIXFMT_RGBA7, TV_PIXFMT_BGRA7,
+			TV_PIXFMT_ARGB7, TV_PIXFMT_ABGR7,
+		};
 
-		format->bits_per_pixel = 24;
-		format->depth = 24;
+		format->pixfmt = mapping [a_lsb * 2 + r_msb];
 		break;
-
-	TV_PIXFMT_RGB16_LE,
-	TV_PIXFMT_RGB16_BE,
-	TV_PIXFMT_BGR16_LE,
-	TV_PIXFMT_BGR16_BE,
-		format->mask.rgb.r = 0x1F;
-		format->mask.rgb.g = 0x3F << 5;
-		format->mask.rgb.b = 0x1F << 11;
-		format->bits_per_pixel = 16;
-		format->depth = 16;
-		break;
-
-	TV_PIXFMT_RGBA15_LE,
-	TV_PIXFMT_RGBA15_BE,
-	TV_PIXFMT_BGRA15_LE,
-	TV_PIXFMT_BGRA15_BE,
-		format->mask.rgb.r = 0x1F;
-		format->mask.rgb.g = 0x1F << 5;
-		format->mask.rgb.b = 0x1F << 10;
-		format->mask.rgb.a = 0x01 << 15;
-		format->bits_per_pixel = 16;
-		format->depth = 15;
-		break;
-
-	TV_PIXFMT_ARGB15_LE,
-	TV_PIXFMT_ARGB15_BE,
-	TV_PIXFMT_ABGR15_LE,
-	TV_PIXFMT_ABGR15_BE,
-		format->mask.rgb.a = 0x01;
-		format->mask.rgb.r = 0x1F << 1;
-		format->mask.rgb.g = 0x1F << 6;
-		format->mask.rgb.b = 0x1F << 11;
-		format->bits_per_pixel = 16;
-		format->depth = 15;
-		break;
+	}
 
 	default:
 		return FALSE;
 	}
 
-	if (red_le_msb & (1 << pixfmt))
-		swap (format->mask.rgb.r,
-		      format->mask.rgb.b);
+	format->reserved = 0;
 
+	format->uv_hscale = 1;
+	format->uv_vscale = 1;
+
+	format->planar = 0;
+	format->vu_order = 0;
+
+	return TRUE;
 }
 
+/* Helper function for backends. Yes, it's inadequate, but
+   that's how some drivers work. Note the depth 32 exception. */
+tv_pixfmt
+pig_depth_to_pixfmt		(unsigned int		depth)
+{
+	switch (depth) {
+#if BYTE_ORDER == BIG_ENDIAN
+	case 15:	return TV_PIXFMT_BGRA15_BE;
+	case 16:	return TV_PIXFMT_BGR16_BE;
+	case 24:	return TV_PIXFMT_BGR24_BE;
+	case 32:	return TV_PIXFMT_BGRA24_BE;
+#else
+	case 15:	return TV_PIXFMT_BGRA15_LE;
+	case 16:	return TV_PIXFMT_BGR16_LE;
+	case 24:	return TV_PIXFMT_BGR24_LE;
+	case 32:	return TV_PIXFMT_BGRA24_LE;
 #endif
+	default:	return TV_PIXFMT_UNKNOWN;
+	}
+}
+
+const char *
+tv_videostd_name		(tv_videostd		videostd)
+{
+	switch (videostd) {
+     	case TV_VIDEOSTD_PAL_B:		return "PAL_B";
+	case TV_VIDEOSTD_PAL_B1:	return "PAL_B1";
+	case TV_VIDEOSTD_PAL_G:		return "PAL_G";
+	case TV_VIDEOSTD_PAL_H:		return "PAL_H";
+	case TV_VIDEOSTD_PAL_I:		return "PAL_I";
+	case TV_VIDEOSTD_PAL_D:		return "PAL_D";
+	case TV_VIDEOSTD_PAL_D1:	return "PAL_D1";
+	case TV_VIDEOSTD_PAL_K:		return "PAL_K";
+	case TV_VIDEOSTD_PAL_M:		return "PAL_M";
+	case TV_VIDEOSTD_PAL_N:		return "PAL_N";
+	case TV_VIDEOSTD_PAL_NC:	return "PAL_NC";
+	case TV_VIDEOSTD_NTSC_M:	return "NTSC_M";
+	case TV_VIDEOSTD_NTSC_M_JP:	return "NTSC_M_JP";
+	case TV_VIDEOSTD_SECAM_B:	return "SECAM_B";
+	case TV_VIDEOSTD_SECAM_D:	return "SECAM_D";
+	case TV_VIDEOSTD_SECAM_G:	return "SECAM_G";
+	case TV_VIDEOSTD_SECAM_H:	return "SECAM_H";
+	case TV_VIDEOSTD_SECAM_K:	return "SECAM_K";
+	case TV_VIDEOSTD_SECAM_K1:	return "SECAM_K1";
+	case TV_VIDEOSTD_SECAM_L:	return "SECAM_L";
+
+	case TV_VIDEOSTD_CUSTOM_BEGIN:
+	case TV_VIDEOSTD_CUSTOM_END:
+		break;
+		
+		/* No default, gcc warns. */
+	}
+
+	return NULL;
+}
 
 /*
  *  Helper functions
@@ -4062,7 +4256,7 @@ STORE_CURRENT_FUNC (video_standard, video_standard);
 
 tv_video_standard *
 append_video_standard		(tv_video_standard **	list,
-				 tv_video_standard_id	id,
+				 tv_videostd_set	videostd_set,
 				 const char *		label,
 				 const char *		hlabel,
 				 unsigned int		size)
@@ -4070,27 +4264,28 @@ append_video_standard		(tv_video_standard **	list,
 	tv_video_standard *ts;
 	tv_video_standard *l;
 
-	assert (id != 0);
-	assert (hlabel != NULL);
+	assert (TV_VIDEOSTD_SET_EMPTY != videostd_set);
+	assert (NULL != hlabel);
 
 	ALLOC_NODE (ts, size, label, tveng_build_hash (hlabel));
 
-	ts->id = id;
+	ts->videostd_set = videostd_set;
 
 	while ((l = *list)) {
 		if (l->hash == ts->hash)
 			hash_warning (l->label, ts->label, ts->hash);
-		if (l->id & ts->id)
+		if (l->videostd_set & ts->videostd_set)
 			fprintf (stderr, "WARNING: TVENG: Video standard "
-				 "ID collision between %s (0x%llx) "
+				 "set collision between %s (0x%llx) "
 				 "and %s (0x%llx)\n",
-				 l->label, l->id, ts->label, id);
+				 l->label, l->videostd_set,
+				 ts->label, videostd_set);
 		list = &l->_next;
 	}
 
 	*list = ts;
 
-	if (id & TV_VIDEOSTD_525_60) {
+	if (videostd_set & TV_VIDEOSTD_SET_525_60) {
 		ts->frame_width		= 640;
 		ts->frame_height	= 480;
 		ts->frame_rate		= 30000 / 1001.0;
@@ -4200,21 +4395,22 @@ tveng_copy_frame		(unsigned char *	src,
 				 tveng_image_data *	where,
 				 tveng_device_info *	info)
 {
-  if (tveng_is_planar (info->format.pixformat))
+  if (TV_PIXFMT_IS_PLANAR (info->format.pixfmt))
     {
       unsigned char *y = where->planar.y, *u = where->planar.u,
 	*v = where->planar.v;
       unsigned char *src_y, *src_u, *src_v;
       /* Assume that we are aligned */
       int bytes = info->format.height * info->format.width;
-      t_assert (info->format.pixformat == TVENG_PIX_YUV420 ||
-		info->format.pixformat == TVENG_PIX_YVU420);
+
+      t_assert (info->format.pixfmt == TV_PIXFMT_YUV420 ||
+		info->format.pixfmt == TV_PIXFMT_YVU420);
       if (info->priv->assume_yvu)
 	SWAP (u, v);
       src_y = src;
       src_u = src_y + bytes;
       src_v = src_u + (bytes>>2);
-      if (info->format.pixformat == TVENG_PIX_YVU420)
+      if (info->format.pixfmt == TV_PIXFMT_YVU420)
 	SWAP (src_u, src_v);
       tveng_copy_block (src_y, y, info->format.width,
 			where->planar.y_stride,
