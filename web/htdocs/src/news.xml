@@ -21,7 +21,7 @@ controls api.</li>
 <li>Updated de, es, fr and pl translations.</li>
 </ul>
 </li>
-<li><b>mp1e</b> 1.9.2
+<li><b>mp1e</b> 1.9.1
 <ul>
 <li>Some important bugs fixed.</li>
 <li>Abort after two seconds if audio and video cannot sync.</li>
