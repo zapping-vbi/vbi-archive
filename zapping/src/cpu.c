@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cpu.c,v 1.6 2005-01-19 04:16:20 mschimek Exp $ */
+/* $Id: cpu.c,v 1.7 2005-02-10 07:56:10 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -30,7 +30,7 @@
 
 cpu_feature_set			cpu_features;
 
-#if #cpu (i386)
+#ifdef HAVE_X86
 
 /*
  *  References
@@ -224,7 +224,7 @@ cpu_detection			(void)
 	return cpu_features;
 }
 
-#elif #cpu (powerpc)
+#elif defined (HAVE_ALTIVEC)
 
 static sigjmp_buf		jmpbuf;
 
