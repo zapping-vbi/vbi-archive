@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vcd.c,v 1.14 2002-12-24 15:04:09 mschimek Exp $ */
+/* $Id: vcd.c,v 1.15 2002-12-25 03:31:26 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -632,7 +632,7 @@ reschedule:
 		if (pts > front_pts)
 			front_pts = pts;
 
-		mux->status.bytes_out = front_pts * (1.0 / SYSTEM_TICKS);
+		mux->status.coded_time = front_pts * (1.0 / SYSTEM_TICKS);
 		mux->status.frames_out++;
 
 		if (verbose > 0) {
