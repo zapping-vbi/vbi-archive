@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fullscreen.c,v 1.33 2004-10-09 05:39:52 mschimek Exp $ */
+/* $Id: fullscreen.c,v 1.34 2004-10-13 20:06:39 mschimek Exp $ */
 
 /**
  * Fullscreen mode handling
@@ -180,10 +180,12 @@ set_blank_timeout		(ZVideo *		video)
   timeout = (guint) gconf_client_get_int
     (gconf_client, "/apps/zapping/blank_cursor_timeout", &error);
 
-  if (error)
+  if (0 == timeout || error)
     {
       timeout = 1500; /* ms */
-      g_error_free (error);
+
+      if (error)
+	g_error_free (error);
     }
 
  z_video_blank_cursor (video, timeout);

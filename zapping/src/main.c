@@ -556,6 +556,8 @@ int main(int argc, char * argv[])
 #endif
 
   gconf_client = gconf_client_get_default ();
+  g_assert (NULL != gconf_client);
+
   gconf_client_add_dir (gconf_client, "/apps/zapping",
                         GCONF_CLIENT_PRELOAD_NONE, NULL);
 
@@ -567,7 +569,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.189 2004-10-11 01:54:44 mschimek Exp $",
+	 "$Id: main.c,v 1.190 2004-10-13 20:06:39 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())

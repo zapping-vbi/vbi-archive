@@ -1,3 +1,8 @@
+2004-10-13    <mschimek@users.sf.net>
+
+	* src/zmisc.c (z_gconf_combo_box_new, z_gconf_get_string_enum):
+	  Handle NULL GError* from gconf_client_get_string().
+
 2004-10-11    <mschimek@users.sf.net>
 
 	* configure.in: Make sure we check for libzvbi with -liconv
