@@ -182,7 +182,7 @@ frequency_tables [] =
        split this table accordingly. */
     "ccir", "Europe", "europe-west",
     "AT" "BE" "CH" "DE" "DK" "ES" "FI" "GR"
-    "KH" "MY" "NL" "NO" "PT" "SE" "SG" "TH"
+    "IN" "KH" "MY" "NL" "NO" "PT" "SE" "SG" "TH"
     "UK",
     NULL,
     TV_VIDEOSTD_PAL_B | TV_VIDEOSTD_PAL_G, /* I in UK? */

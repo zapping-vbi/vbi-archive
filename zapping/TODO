@@ -68,6 +68,9 @@ Outstanding issues for future releases
 * Remove tveng_frame_format.bytesperline. (Um, why?)
 * Verify all Gnome etc URLs everywhere.
 * Proper error messages on xawtv import.
+* In overlay.c, possible elsewhere, we request GDK events but never
+  disable. Can we safely, without disabling events enabled before
+  or between, by other zapping/gnome/gtk/gdk modules?
 
 * Parrot plugin:
 

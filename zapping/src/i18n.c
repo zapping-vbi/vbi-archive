@@ -2,7 +2,7 @@
  *  Preliminary helper.
  */
 
-/* $Id: i18n.c,v 1.1.2.2 2003-09-24 18:34:39 mschimek Exp $ */
+/* $Id: i18n.c,v 1.1.2.3 2003-10-14 20:18:14 mschimek Exp $ */
 
 #include <string.h>
 #include <ctype.h>
@@ -36,6 +36,7 @@ static const struct {
 	{ "HU", "Hungary" },
 	{ "ID", "Indonesia" },
 	{ "IE", "Ireland" },
+	{ "IN", "India" },
 	{ "IS", "Iceland" },
 	{ "IT", "Italy" },
 	{ "JP", "Japan" },
