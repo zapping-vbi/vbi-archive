@@ -243,15 +243,19 @@ on_zapping_key_press            (GtkWidget *            widget,
                                  GdkEventKey *          event,
                                  gpointer *             user_data);
 
+#ifdef HAVE_LIBZVBI
+
 static gboolean
 on_key_press                    (GtkWidget *            widget,
                                  GdkEventKey *          event,
                                  TeletextView *         view)
 {
   return (_teletext_view_on_key_press (widget, event, view)
-          || on_user_key_press (widget, event, NULL)
+	  || on_user_key_press (widget, event, NULL)
           || on_picture_size_key_press (widget, event, NULL));
 }
+
+#endif
 
 static gboolean
 on_button_press			(GtkWidget *		widget _unused_,

@@ -35,6 +35,8 @@ gint			cur_tuned_channel = -1;
 tv_mixer *		mixer = NULL;
 tv_audio_line *		mixer_line = NULL;
 
+#ifdef HAVE_LIBZVBI
+
 /* Preliminary Teletext plugin interface. */
 GtkWidget *
 (*_teletext_view_new)		(void);
@@ -52,3 +54,5 @@ GtkWidget * (*_ttxview_bookmarks_menu_new)(GtkWidget *		widget);
 guint (*_ttxview_hotlist_menu_insert)(GtkMenuShell *		menu,
 				      gboolean		separator,
 				      gint position);
+
+#endif /* HAVE_LIBZVBI */

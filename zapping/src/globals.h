@@ -1,13 +1,18 @@
 #ifndef __GLOBALS_H__
 #define __GLOBALS_H__
 
+#include "config.h"
+
 #include <gconf/gconf-client.h>
 #include "tveng.h"
 #include "frequencies.h"
 #include "x11stuff.h"
 #include "mixer.h"
 #include "zapping.h"
+
+#ifdef HAVE_LIBZVBI
 #include "plugins/teletext/view.h"
+#endif
 
 extern Zapping *	zapping;
 
@@ -44,6 +49,8 @@ extern tv_mixer *		mixer;
 extern tv_audio_line *		mixer_line;
 #endif
 
+#ifdef HAVE_LIBZVBI
+
 /* Preliminary Teletext plugin interface. */
 extern GtkWidget *
 (*_teletext_view_new)		(void);
@@ -61,3 +68,4 @@ extern GtkWidget * (*_ttxview_bookmarks_menu_new)(GtkWidget *widget);
 extern guint (*_ttxview_hotlist_menu_insert)(GtkMenuShell *menu,
 					     gboolean separator,
 					     gint position);
+#endif /* HAVE_LIBZVBI */

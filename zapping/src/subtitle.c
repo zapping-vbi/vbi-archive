@@ -19,15 +19,16 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: subtitle.c,v 1.1 2004-09-22 21:29:15 mschimek Exp $ */
+/* $Id: subtitle.c,v 1.2 2004-10-09 05:39:08 mschimek Exp $ */
 
 #include <gnome.h>
 
 #include "zmisc.h"
 #include "zvbi.h"
 #include "remote.h"
-
 #include "subtitle.h"
+
+#ifdef HAVE_LIBZVBI
 
 static void
 on_subtitle_menu_activate	(GtkWidget *		menu_item,
@@ -159,9 +160,6 @@ subtitles_menu_new		(void)
   return menu ? GTK_WIDGET (menu) : NULL;
 }
 
-
-#ifdef HAVE_LIBZVBI
-
 vbi_pgno
 find_subtitle_page		(void)
 {
@@ -185,4 +183,12 @@ find_subtitle_page		(void)
   return 0;
 }
 
-#endif /* HAVE_LIBZVBI */
+#else /* !HAVE_LIBZVBI */
+
+GtkWidget *
+subtitles_menu_new		(void)
+{
+  return NULL;
+}
+
+#endif /* !HAVE_LIBZVBI */

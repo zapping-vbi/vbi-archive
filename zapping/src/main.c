@@ -567,7 +567,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.187 2004-10-09 02:52:28 mschimek Exp $",
+	 "$Id: main.c,v 1.188 2004-10-09 05:39:25 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -1340,6 +1340,8 @@ static gboolean startup_zapping(gboolean load_plugins,
     }
   D();
 
+#ifdef HAVE_LIBZVBI
+
   {
     struct plugin_info *info;
 
@@ -1352,6 +1354,8 @@ static gboolean startup_zapping(gboolean load_plugins,
 	_teletext_toolbar_new = plugin_symbol (info, "toolbar_new");
       }
   }
+
+#endif
 
   return TRUE;
 }

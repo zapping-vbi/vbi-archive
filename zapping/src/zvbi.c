@@ -2253,6 +2253,8 @@ interp_enum [] = {
   { 0, NULL }
 };
 
+#ifdef HAVE_LIBZVBI
+
 static void
 level_notify			(GConfClient *		client _unused_,
 				 guint			cnxn_id _unused_,
@@ -2291,6 +2293,8 @@ interp_notify			(GConfClient *		client _unused_,
 	interp_type = (GdkInterpType) enum_value;
     }
 }
+
+#endif /* HAVE_LIBZVBI */
 
 void
 startup_zvbi(void)

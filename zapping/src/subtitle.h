@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: subtitle.h,v 1.1 2004-09-22 21:29:15 mschimek Exp $ */
+/* $Id: subtitle.h,v 1.2 2004-10-09 05:38:59 mschimek Exp $ */
 
 #ifndef SUBTITLE_H
 #define SUBTITLE_H
@@ -27,18 +27,25 @@
 #include "config.h"
 
 #include <gtk/gtk.h>
-#include <libzvbi.h>
 
 G_BEGIN_DECLS
 
 GtkWidget *
 subtitles_menu_new		(void);
 
+G_END_DECLS
+
 #ifdef HAVE_LIBZVBI
+
+#include <libzvbi.h>
+
+G_BEGIN_DECLS
+
 extern vbi_pgno
 find_subtitle_page		(void);
-#endif
 
 G_END_DECLS
+
+#endif /* !HAVE_LIBZVBI */
 
 #endif /* SUBTITLE_H */
