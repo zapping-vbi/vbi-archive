@@ -11,8 +11,8 @@ INCLUDES = -D_GNU_SOURCE -D_REENTRANT
 
 man_MANS = mp1e.1
 
-EXTRA_DIST = videodev1.h videodev2.h mp1e.lsm.in mp1e.spec.in mp1e.spec \
-	$(man_MANS)
+EXTRA_DIST = common/videodev.h common/videodev2.h \
+	mp1e.lsm.in mp1e.spec.in mp1e.spec $(man_MANS)
 
 librteincludedir = $(includedir)
 librteinclude_HEADERS = rte.h
@@ -28,7 +28,9 @@ mp1e_SOURCES = main.c main.h \
 mp1e_LDADD = video/libvideo.la audio/libaudio.la vbi/libvbi.la \
 systems/libsystems.la common/libcommon.la test/libtest.la $(X_LIBS) -lm \
 -lpthread $(ESD_LIBS)
+## -lmmxemu
 
 rte_test_SOURCES = rte_test_main.c
 
 rte_test_LDADD = $(ESD_LIBS) -lpthread .libs/librte.a
+## -lmmxemu

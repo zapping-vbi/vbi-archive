@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.19 2001-07-16 07:06:01 mschimek Exp $ */
+/* $Id: fifo.c,v 1.20 2001-07-18 06:32:37 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -348,6 +348,8 @@ wait_full_buffer(fifo *f)
 {
 	buffer *b;
 	coninfo *consumer;
+
+asserts(f);
 
 	pthread_rwlock_rdlock(&f->consumers_rwlock);
 

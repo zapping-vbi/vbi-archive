@@ -22,14 +22,14 @@ echo "Generating new $PACKAGE release (version $VER)"
 echo
 echo "Generating the Makefiles"
 echo "------------------------" && echo
-./autogen.sh || exit 1
+#./autogen.sh || exit 1
 
 clear
 echo "Rebuilding the project to check whether it compiles"
 echo "---------------------------------------------------"
 echo
-make clean || exit 1
-make || exit 1
+#make clean || exit 1
+#make || exit 1
 clear && echo "Creating the .tar.gz and .tar.bz2 distros"
 	 echo "-----------------------------------------" && echo
 make dist || exit 1

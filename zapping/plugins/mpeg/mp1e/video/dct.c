@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dct.c,v 1.13 2001-07-12 01:22:06 mschimek Exp $ */
+/* $Id: dct.c,v 1.14 2001-07-18 06:32:37 mschimek Exp $ */
 
 #include <assert.h>
 #include "../common/math.h"
@@ -42,9 +42,6 @@ char lts[32] __attribute__ ((aligned (MIN(32, CACHE_LINE)))) = {
     0, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
     4, 4, 1, 1, 2, 2, 1, 1, 3, 3, 1, 1, 2, 2, 1, 1,
 };
-
-extern int intra_quant_scale;
-extern int inter_quant_scale;
 
 #if __GNUC_MINOR__ < 90
 #define align(n)
@@ -73,6 +70,7 @@ mmx_t cC2626_15 align(8);
 mmx_t cC6262_15 align(8);
 mmx_t c256 align(8);
 mmx_t mm8, mm9;
+mmx_t c2q align(8);
 
 char			mmx_q_fdct_intra_sh[32]			align(MIN(CACHE_LINE,32));
 short			mmx_q_fdct_intra_q_lut[8][8][8]		align(CACHE_LINE);
@@ -132,6 +130,8 @@ init_dct(void)
 	c3a = MMXRW(0);
 	c5a = MMXRW(128 * 32 + 16);
 	c5b = MMXRW(16);
+
+	c2q.uq = 2ULL;
 
 	mmx_q_idct_inter_tab[0]	 = MMXW(+lroundn(S15*C1/R2), +lroundn(S15*C7/R2), +lroundn(S15*C1/R2), +lroundn(S15*C7/R2));
 	mmx_q_idct_inter_tab[1]	 = MMXW(+lroundn(S15*C7/R2), -lroundn(S15*C1/R2), +lroundn(S15*C7/R2), -lroundn(S15*C1/R2));
@@ -234,19 +234,4 @@ init_dct(void)
 	}
 
 	c1x = MMXRW(((8 + 128 * 16) << 2) + 2);
-}
-
-/* XXX move */
-void
-mmx_new_inter_quant(int quant_scale)
-{
-	unsigned int n;
-
-	inter_quant_scale = quant_scale;
-
-	// fdct_inter
-	n = mmx_q_fdct_inter_q[quant_scale];
-	n |= -32767 << 16;
-	cfae.ud[0] = n;
-	cfae.ud[1] = n;
 }

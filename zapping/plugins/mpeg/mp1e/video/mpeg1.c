@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.41 2001-07-12 01:22:06 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.42 2001-07-18 06:32:38 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -120,12 +120,10 @@ extern int		frames_per_seqhdr;
 extern int		video_num_frames;
 extern double		video_stop_time;
 
-#define new_inter_quant mmx_new_inter_quant
 #define fdct_intra mmx_fdct_intra
 #define fdct_inter mmx_fdct_inter
 #define mpeg1_idct_intra mmx_mpeg1_idct_intra2
 #define mpeg1_idct_inter mmx_mpeg1_idct_inter
-
 #define mpeg1_encode_intra p6_mpeg1_encode_intra
 #define mpeg1_encode_inter p6_mpeg1_encode_inter
 
@@ -687,10 +685,8 @@ if (!T3RT) quant = 2;
 				for (;;) {
 					i = mb_skipped;
 
-					new_inter_quant(quant);
-
 					pr_start(26, "FDCT inter");
-					cbp = fdct_inter(mblock[1]); // mblock[1] -> mblock[0]
+					cbp = fdct_inter(mblock[1], quant); // mblock[1] -> mblock[0]
 					pr_end(26);
 
 					if (cbp == 0 && mb_count > 1 && mb_count < mb_num &&
@@ -1052,10 +1048,8 @@ if (!T3RT) quant = 2;
 				for (;;) {
 	i = mb_skipped;
 
-	new_inter_quant(quant);
-
 	pr_start(26, "FDCT inter");
-	cbp = fdct_inter(*iblock); // mblock[1|2|3] -> mblock[0]
+	cbp = fdct_inter(*iblock, quant); // mblock[1|2|3] -> mblock[0]
 	pr_end(26);
 
 	if (cbp == 0
@@ -1902,9 +1896,12 @@ video_init(void)
 		break;
 
 	case CPU_PENTIUM_III:
-	case CPU_PENTIUM_4:
 	case CPU_ATHLON:
 		search = sse_search;
+		break;
+
+	case CPU_PENTIUM_4:
+		search = sse2_search;
 		break;
 
 	default:
@@ -1948,6 +1945,9 @@ video_init(void)
 
 		predict_forward = mmx_predict_forward_packed;
 		predict_bidirectional =	mmx_predict_bidirectional_packed;
+
+// 		predict_forward = predict_forward_packed;
+// 		predict_bidirectional = predict_bidirectional_packed;
 	} else {
 		for (i = 0; i < 6; i++)
 			mb_address.block[i].pitch = mb_width * ((i >= 4) ? 8 : 16);

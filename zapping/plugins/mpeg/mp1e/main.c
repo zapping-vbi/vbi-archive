@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.42 2001-07-13 18:09:12 mschimek Exp $ */
+/* $Id: main.c,v 1.43 2001-07-18 06:32:37 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -125,7 +125,13 @@ main(int ac, char **av)
 		if (cpu_type == CPU_UNKNOWN)
 			FAIL("Sorry, this program requires an MMX enhanced CPU");
 	}
+#if 0
+	{
+		extern void mmx_emu_configure(int);
 
+		mmx_emu_configure(cpu_type);
+	}
+#endif
 	switch (cpu_type) {
 	case CPU_K6_2:
 	case CPU_CYRIX_III:
@@ -133,9 +139,12 @@ main(int ac, char **av)
 		break;
 
 	case CPU_PENTIUM_III:
-	case CPU_PENTIUM_4:
 	case CPU_ATHLON:
 		printv(2, "Using SSE optimized routines.\n");
+		break;
+
+	case CPU_PENTIUM_4:
+		printv(2, "Using SSE2 optimized routines.\n");
 		break;
 	}
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: motion.h,v 1.3 2001-07-12 01:22:06 mschimek Exp $ */
+/* $Id: motion.h,v 1.4 2001-07-18 06:32:38 mschimek Exp $ */
 
 #ifndef MOTION_H
 #define MOTION_H
@@ -33,10 +33,11 @@ extern int		mm_buf_offs;
 
 /* motion.c */
 
-extern int		mmx_search(int *dhx, int *dhy, unsigned char *from, int x, int y, int range, short dest[6][8][8]);
-extern int		_3dn_search(int *dhx, int *dhy, unsigned char *from, int x, int y, int range, short dest[6][8][8]);
-extern int		sse_search(int *dhx, int *dhy, unsigned char *from, int x, int y, int range, short dest[6][8][8]);
-extern int		(* search)(int *dhx, int *dhy, unsigned char *from, int x, int y, int range, short dest[6][8][8]);
+typedef int (search_fn)(int *dhx, int *dhy, unsigned char *from,
+			int x, int y, int range, short dest[6][8][8]);
+
+extern search_fn	mmx_search, _3dn_search, sse_search, sse2_search;
+extern search_fn *	search;
 
 extern int		predict_forward_packed(unsigned char *from) reg(1);
 extern int		predict_forward_planar(unsigned char *from) reg(1);
@@ -68,5 +69,7 @@ extern int		mmx_predict_bidirectional_packed(unsigned char *from1, unsigned char
 extern void		mmx_mbsum(char * /* eax */) reg(1);
 extern int		mmx_sad(unsigned char t[16][16] /* eax */, unsigned char *p /* edx */, int pitch /* ecx */) reg(3);
 extern int		sse_sad(unsigned char t[16][16] /* eax */, unsigned char *p /* edx */, int pitch /* ecx */) reg(3);
+/* <t> must be 16 byte aligned */
+extern int		sse2_sad(unsigned char t[16][16] /* eax */, unsigned char *p /* edx */, int pitch /* ecx */) reg(3);
 
 #endif /* MOTION_H */

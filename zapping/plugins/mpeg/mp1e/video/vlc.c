@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vlc.c,v 1.9 2001-07-12 01:22:06 mschimek Exp $ */
+/* $Id: vlc.c,v 1.10 2001-07-18 06:32:38 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -271,7 +271,7 @@ vlc_init(void)
 
 /* Reference */
 
-#if 0
+#if 1
 
 int
 mpeg1_encode_intra(void)
@@ -314,7 +314,7 @@ mpeg1_encode_intra(void)
 			int i;
 
 			for (i = 1; i < 64; i++) {
-	    			int ulevel, slevel = block[0][iscan[0][63 - i]];
+	    			int ulevel, slevel = block[0][iscan[0][(i - 1) & 63]];
 
 				if (slevel) {
 					ulevel = abs(slevel);
@@ -406,7 +406,7 @@ mpeg1_encode_inter(short iblock[6][8][8], unsigned int cbp)
 		/* AC coefficients */
 
 		while (i < 64) {
-	    		if ((slevel = block[0][iscan[0][63 - i]])) {
+	    		if ((slevel = block[0][iscan[0][(i - 1) & 63]])) {
 				ulevel = abs(slevel);
 
 		    		if (ulevel < (int) p->length) {

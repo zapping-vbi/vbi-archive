@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dct_ref.c,v 1.7 2001-07-12 01:22:06 mschimek Exp $ */
+/* $Id: dct_ref.c,v 1.8 2001-07-18 06:32:38 mschimek Exp $ */
 
 #include "dct.h"
 #include "mpeg.h"
@@ -30,8 +30,6 @@
 
 static FLOAT		aan_fwd_lut[8][8];
 static FLOAT		aan_inv_lut[8][8];
-
-int			inter_quant_scale;
 
 static void aan_lut_init(void) __attribute__ ((constructor));
 
@@ -199,7 +197,7 @@ fdct_intra(int quant_scale)
 }
 
 unsigned int
-fdct_inter(short iblock[6][8][8])
+fdct_inter(short iblock[6][8][8], int quant_scale)
 {
 	int i, j, val, cbp = 0;
 
@@ -224,7 +222,7 @@ fdct_inter(short iblock[6][8][8])
 		for (j = 0; j < 64; j++) {
 			val = lroundn(F[0][j] * aan_fwd_lut[0][j]);
 
-			if ((mblock[0][i][0][j] = SATURATE(val / (2 * inter_quant_scale), -255, +255)) != 0)
+			if ((mblock[0][i][0][j] = SATURATE(val / (2 * quant_scale), -255, +255)) != 0)
 				cbp |= 0x20 >> i;
 		}
 
@@ -245,7 +243,7 @@ mpeg1_idct_intra(int quant_scale)
 	for (i = 0; i < 6; i++)	{
 		FLOAT F[8][8], t[8][8];
 
-		new += mb_address.block[0].offset;
+		new += mb_address.block[i].offset;
 
 		mirror(mblock[1][i]);
 
@@ -291,7 +289,7 @@ mpeg1_idct_inter(int quant_scale, unsigned int cbp)
 	emms();
 
 	for (i = 0; i < 6; i++) {
-		new += mb_address.block[0].offset;
+		new += mb_address.block[i].offset;
 
 		if (cbp & (0x20 >> i)) {
 			unsigned char *p = new;
@@ -446,10 +444,4 @@ mpeg2_idct_inter(int quant_scale, unsigned int cbp)
 			}
 		}
 	}
-}
-
-void
-new_inter_quant(int quant_scale)
-{
-	inter_quant_scale = quant_scale;
 }

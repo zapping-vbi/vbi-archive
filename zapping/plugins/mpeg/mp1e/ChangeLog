@@ -1,3 +1,9 @@
+2001-07-18	<mschimek@users.sf.net>
+
+	* Rewrote bstream function
+	* Several fixes and improvements in emu
+	* Added SSE2 support
+
 2001-07-13	<mschimek@users.sf.net>
 
 	* Fixed video API detection

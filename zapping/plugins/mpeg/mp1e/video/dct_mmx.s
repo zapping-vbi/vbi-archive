@@ -18,7 +18,7 @@
 #  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 
-# $Id: dct_mmx.s,v 1.8 2001-07-12 01:22:06 mschimek Exp $
+# $Id: dct_mmx.s,v 1.9 2001-07-18 06:32:38 mschimek Exp $
 
 	.text
 	.align		16
@@ -259,6 +259,11 @@ mmx_fdct_intra:
 	.globl		mmx_fdct_inter
 
 mmx_fdct_inter:
+
+	movswl mmx_q_fdct_inter_q(,%edx,2),%edx
+	orl $-2147418112,%edx; // 32768 << 16
+	movl %edx,cfae
+	movl %edx,cfae+4
 
 	pushl		%ebx;				movl		$mblock+768*2,%ebx;
 	pushl		%esi;				cmpl		%eax,%ebx;
