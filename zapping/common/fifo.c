@@ -16,10 +16,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.7 2001-04-07 14:48:36 garetxe Exp $ */
+/* $Id: fifo.c,v 1.8 2001-04-27 21:29:03 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <assert.h>
