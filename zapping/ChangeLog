@@ -1,29 +1,20 @@
-11.2.2000	Suid created and preview code fully operative
---------
-	+ I finished the preview code and the suid program, i hope it
-	  hasn't many security flaws
-	+ Development has been stalled these days, in the next days i plan
-	  to add support for plugins (libraries), so avi, png, ... saving
-	  will move outside the program, and the program can be used to do
-	  image processing (just adding a new plugin). I have to figure
-	  out how to do this plugin stuff, though.
-	+ Added some more configurable properties
-	+ Created a nice logo with the Gimp
+11.2.2000	Suid and preview operative <garetxe@users.sourceforge.net>
+
+	* src/zapping_setup_fb/zapping_setup_fb.c: I finished the preview
+	  code and the suid program, i hope it hasn't many security flaws.
+	* src/interface.c: some more configurable properties
+	* pixmaps/0.3-logo.png: Created a nice logo with the Gimp
 
 
-2.2.2000 	Fullscreen mode working
---------
-	+ I finally got this Overlay code working! Fullscreen mode
-	  works (although the code just now is nothing but a HACK[tm])
-	+ Some bug fixes to the previous version.
-	+ Passed my first Uni exam (OK, it hasn't got anything to do
-	  with Zapping, but it's a change for me ;-)
+2.2.2000 	Fullscreen mode working <garetxe@users.sourceforge.net>
 	
-29.1.2000 	0.3 working (although I have no Web site to put it)
----------
-	+ Uses V4L2
-	+ Working Video Capture (mmap'ed) engine
-	+ Ability to capture PNG images
-	+ Direct Video Blitting (BGR -> RGB conversion avoided)
-	+ Configuration saved as XML
-	+ Channel editor
+	* src/tveng.c: Fullscreen mode now work (although the code now is
+	just a hack, needs to be cleaned up)
+	* Makefile.am: Added the suid top the project, now it compiles
+	
+29.1.2000 	First _really_ working version <garetxe@users.sourceforge.net>
+
+	* src/tveng.c: Fairly complete V4L2 wrapping library
+	* src/io.c: Ability to capture PNG images
+	* src/tveng.c: Direct Video Blitting (BGR -> RGB conversion avoided)
+	* src/interface.c: Channel editor added
