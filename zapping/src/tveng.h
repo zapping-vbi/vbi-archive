@@ -235,7 +235,7 @@ struct _tv_video_line {
 	tv_video_line_type	type;
 	tv_video_line_id	id;
 
-// tv_videostd_id ?
+  /* tv_videostd_id ?*/
 
 	union {
 		struct {
@@ -495,9 +495,9 @@ typedef enum {
 typedef struct _tv_control tv_control;
 
 struct _tv_control {
-  // XXX this is private because tveng combines control lists and we don't want
-  // the client to see this. Actually the tv_x_next functions are a pain, I
-  // must think of something else to permit public next pointers everywhere.
+  /* XXX this is private because tveng combines control lists and we don't want
+     the client to see this. Actually the tv_x_next functions are a pain, I
+     must think of something else to permit public next pointers everywhere.*/
 	tv_control *		_next;		/* private, use tv_control_next() */
 
 	void *			_parent;
@@ -510,9 +510,10 @@ struct _tv_control {
 	tv_control_id		id;
 
 	char **			menu;		/* localized; last entry NULL */
-  // add?	unsigned int		selectable;	/* menu item 1 << n */
-  // control enabled/disabled flag?
-
+#if 0
+   add?	unsigned int		selectable;	/* menu item 1 << n */
+   control enabled/disabled flag?
+#endif
 	int			minimum;
 	int			maximum;
 	int			step;
@@ -523,7 +524,7 @@ struct _tv_control {
   	tv_bool		_ignore; /* preliminary, private */
 };
 
-// XXX should not take info argument
+/* XXX should not take info argument*/
 int
 tveng_update_control(tv_control *control, tveng_device_info * info);
 int
@@ -914,6 +915,7 @@ extern tv_bool
 tv_image_format_init		(tv_image_format *	format,
 				 unsigned int		width,
 				 unsigned int		height,
+				 unsigned int		bytes_per_line,
 				 tv_pixfmt		pixfmt,
 				 unsigned int		reserved);
 extern tv_bool
@@ -922,6 +924,11 @@ tv_image_format_is_valid	(const tv_image_format *format);
 /*
  *  Video capture
  */
+
+tv_bool
+tv_clear_image			(void *			image,
+				 unsigned int		luma,
+				 const tv_image_format *format);
 
 /* Convenience construction for managing image data */
 typedef union {
@@ -1045,7 +1052,7 @@ tv_clip_vector_destroy		(tv_clip_vector *	vector)
 typedef struct _tv_window tv_window;
 
 struct _tv_window {
-	int			x;	// sic, can be negative
+	int			x;	/* sic, can be negative*/
 	int			y;
 	unsigned int		width;
 	unsigned int		height;
@@ -1053,7 +1060,7 @@ struct _tv_window {
 	/* Invisible regions of window, coordinates relative x, y above. */
 	tv_clip_vector		clip_vector;
 
-	// XXX to be removed
+  /* XXX to be removed */
   Window win; /* window we are previewing to (only needed in XV mode) */
   GC gc; /* gc associated with win */
 };
@@ -1160,7 +1167,7 @@ struct _tveng_device_info
 	tv_overlay_buffer	overlay_buffer;
 	tv_window		overlay_window;
 
-	tv_bool			overlay_active; // XXX internal
+	tv_bool			overlay_active; /* XXX internal */
 
 
 
@@ -1428,7 +1435,7 @@ tveng_stop_capturing(tveng_device_info * info);
    Reads a frame from the video device, storing the read data in dest.
    time: time to wait using select() in miliseconds
    info: pointer to the video device info structure
-   Returns -1 on error, anything else on success.
+   Returns -1 on error, 1 on timeout, 0 on success.
    Note: if you want this call to be non-blocking, call it with time=0
 */
 int tveng_read_frame(tveng_image_data * dest,
