@@ -1,9 +1,10 @@
 Outstanding issues for the next release
 ---------------------------------------
-	+ Write the mpeg saving plugin.
-	+ Add a windowed overlay mode.
 	+ Update channel editor help (and shots)	
 	+ Modify the web page to point to
 http://sourceforge.net/projects/zapping
 	+ Check that tarball and RPM installations work perfectly
 	> Release 0.5.2
+	+ Write the mpeg plugin
+	+ Bug fixes
+	> Release 0.5.3

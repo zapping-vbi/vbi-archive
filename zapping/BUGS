@@ -4,14 +4,15 @@ Known bugs with zapping
 ! == Bug that needs fixing, very important
 ------------------------------------------
 
-	! Doesn't restore Vidmode correctly when returning from fullscreen.
+	! Doesn't restore Vidmode correctly when returning from
+fullscreen.
+	! It sometimes gives a segfault when exitting
+(lookup(tv_screen) returns NULL)
+	! Windowed mode doesn't detect the "anti-expose (cover)" event
+- how does xawtv do it?
 	! Find the cause for those /dev/dsp busy error messages (libesd
 <= 0.2.8 broken?)
 	* Add support in TVeng for tuner-less cards.
 	* YUV support if i have the time.
 	* Somehow the docs aren't displayed with the GnomeHelpBrowser
 but with Mozilla. Annoying, since Mozilla needs a lot of resources.
-	* Some users have reported that FS mode doesn't work
-correctly. Add support for the vidmode extension and add some debug
-messages to find out what's happening (done, now wait for bug reports)
-(a month without bug reports, probably it works now).

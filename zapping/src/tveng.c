@@ -1541,6 +1541,53 @@ tveng_stop_previewing(tveng_device_info * info)
 }
 
 /*
+  Sets up everything and starts previewing in a window. It doesn't do
+  many of the things tveng_start_previewing does, it's mostly just a
+  wrapper around tveng_set_preview_on. Returns -1 on error
+  The window must be specified from before calling this function (with
+  tveng_set_preview_window), and overlaying must be available.
+*/
+int
+tveng_start_window (tveng_device_info * info)
+{
+  tveng_stop_everything(info);
+
+  t_assert(info -> current_mode == TVENG_NO_CAPTURE);
+
+  if (!tveng_detect_preview(info))
+    /* We shouldn't be reaching this if the app is well programmed */
+    t_assert_not_reached();
+
+  if (tveng_set_preview_on(info) == -1)
+    return -1;
+
+  info->current_mode = TVENG_CAPTURE_WINDOW;
+  return 0;
+}
+
+/*
+  Stops the window mode. Returns -1 on error
+*/
+int
+tveng_stop_window (tveng_device_info * info)
+{
+  if (info -> current_mode == TVENG_NO_CAPTURE)
+    {
+      fprintf(stderr, 
+	      _("Warning: trying to stop window with no capture active\n"));
+      return 0; /* Nothing to be done */
+    }
+
+  t_assert(info->current_mode == TVENG_CAPTURE_WINDOW);
+
+  /* No error checking */
+  tveng_set_preview_off(info);
+
+  info -> current_mode = TVENG_NO_CAPTURE;
+  return 0; /* Success */
+}
+
+/*
   Utility function, stops the capture or the previewing. Returns the
   mode the device was before stopping.
   For stopping and restarting the device do:
@@ -1565,6 +1612,9 @@ enum tveng_capture_mode tveng_stop_everything (tveng_device_info *
     case TVENG_CAPTURE_PREVIEW:
       tveng_stop_previewing(info);
       break;
+    case TVENG_CAPTURE_WINDOW:
+      tveng_stop_window(info);
+      break;
     default:
       break;
     };
@@ -1587,6 +1637,10 @@ int tveng_restart_everything (enum tveng_capture_mode mode,
       break;
     case TVENG_CAPTURE_PREVIEW:
       if (tveng_start_previewing(info) == -1)
+	return -1;
+      break;
+    case TVENG_CAPTURE_WINDOW:
+      if (tveng_start_window(info) == -1)
 	return -1;
       break;
     default:

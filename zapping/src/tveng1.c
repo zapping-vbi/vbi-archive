@@ -458,22 +458,7 @@ int tveng1_set_input(struct tveng_enum_input * input,
   t_assert(info != NULL);
   t_assert(input != NULL);
 
-  current_mode = info -> current_mode;
-
-  /* Stop any current capture */
-  switch (info -> current_mode)
-    {
-    case TVENG_CAPTURE_READ:
-      if (tveng1_stop_capturing(info) == -1)
-	return -1;
-      break;
-    case TVENG_CAPTURE_PREVIEW:
-      if (tveng1_stop_previewing(info) == -1)
-	return -1;
-      break;
-    default:
-      break;
-    }
+  current_mode = tveng_stop_everything(info);
 
   /* Fill in the channel with the appropiate info */
   channel.channel = input->id;
@@ -498,21 +483,7 @@ int tveng1_set_input(struct tveng_enum_input * input,
   tveng1_get_standards(info);
 
   /* Start capturing again as if nothing had happened */
-  switch (current_mode)
-    {
-    case TVENG_CAPTURE_READ:
-      if (tveng1_start_capturing(info) == -1)
-	return -1;
-      break;
-    case TVENG_CAPTURE_PREVIEW:
-      if (tveng1_start_previewing(info) == -1)
-	return -1;
-      break;
-    default:
-      break;
-    }
-
-  return 0;
+  return tveng_restart_everything(current_mode, info);
 }
 
 /*
@@ -690,22 +661,7 @@ int tveng1_set_standard(struct tveng_enumstd * std, tveng_device_info * info)
   t_assert(info != NULL);
   t_assert(std != NULL);
 
-  current_mode = info -> current_mode;
-
-  /* Stop any current capture (this is a big deal) */
-  switch (info -> current_mode)
-    {
-    case TVENG_CAPTURE_READ:
-      if (tveng1_stop_capturing(info) == -1)
-	return -1;
-      break;
-    case TVENG_CAPTURE_PREVIEW:
-      if (tveng1_stop_previewing(info) == -1)
-	return -1;
-      break;
-    default:
-      break;
-    }
+  current_mode = tveng_stop_everything(info);
 
   /* Fill in the channel with the appropiate info */
   channel.channel = info->inputs[info->cur_input].id;
@@ -728,21 +684,7 @@ int tveng1_set_standard(struct tveng_enumstd * std, tveng_device_info * info)
   info->cur_standard = std->index;
 
   /* Start capturing again as if nothing had happened */
-  switch (current_mode)
-    {
-    case TVENG_CAPTURE_READ:
-      if (tveng1_start_capturing(info) == -1)
-	return -1;
-      break;
-    case TVENG_CAPTURE_PREVIEW:
-      if (tveng1_start_previewing(info) == -1)
-	return -1;
-      break;
-    default:
-      break;
-    }
-
-  return 0;
+  return tveng_restart_everything(current_mode, info);
 }
 
 /*
@@ -2167,22 +2109,7 @@ int tveng1_set_capture_size(int width, int height, tveng_device_info * info)
   t_assert(width > 0);
   t_assert(height > 0);
 
-  current_mode = info -> current_mode;
-
-  /* Stop any current capture (this is a big deal) */
-  switch (info -> current_mode)
-    {
-    case TVENG_CAPTURE_READ:
-      if (tveng1_stop_capturing(info) == -1)
-	return -1;
-      break;
-    case TVENG_CAPTURE_PREVIEW:
-      if (tveng1_stop_previewing(info) == -1)
-	return -1;
-      break;
-    default:
-      break;
-    }
+  current_mode = tveng_stop_everything(info);
 
   if (width < info->caps.minwidth)
     width = info->caps.minwidth;
@@ -2199,21 +2126,7 @@ int tveng1_set_capture_size(int width, int height, tveng_device_info * info)
     return -1;
 
   /* Restart capture again */
-  switch (current_mode)
-    {
-    case TVENG_CAPTURE_READ:
-      if (tveng1_start_capturing(info) == -1)
-	return -1;
-      break;
-    case TVENG_CAPTURE_PREVIEW:
-      if (tveng1_start_previewing(info) == -1)
-	return -1;
-      break;
-    default:
-      break;
-    }
-
-  return 0;
+  return tveng_restart_everything(current_mode, info);
 }
 
 /* 

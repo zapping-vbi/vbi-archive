@@ -182,6 +182,34 @@
 	      <right_justify>False</right_justify>
 	      <stock_icon>GNOME_STOCK_MENU_EXEC</stock_icon>
 	    </widget>
+
+	    <widget>
+	      <class>GtkPixmapMenuItem</class>
+	      <name>go_previewing2</name>
+	      <tooltip>Use this to start the windowed overlay mode</tooltip>
+	      <signal>
+		<name>activate</name>
+		<handler>on_go_previewing2_activate</handler>
+		<last_modification_time>Sat, 22 Jul 2000 19:45:20 GMT</last_modification_time>
+	      </signal>
+	      <label>Go _Previewing</label>
+	      <right_justify>False</right_justify>
+	      <stock_icon>GNOME_STOCK_MENU_EXEC</stock_icon>
+	    </widget>
+
+	    <widget>
+	      <class>GtkPixmapMenuItem</class>
+	      <name>go_capturing2</name>
+	      <tooltip>Use this to start the windowed capture mode</tooltip>
+	      <signal>
+		<name>activate</name>
+		<handler>on_go_capturing2_activate</handler>
+		<last_modification_time>Sat, 22 Jul 2000 19:45:21 GMT</last_modification_time>
+	      </signal>
+	      <label>Go _Capturing</label>
+	      <right_justify>False</right_justify>
+	      <stock_icon>GNOME_STOCK_MENU_EXEC</stock_icon>
+	    </widget>
 	  </widget>
 	</widget>
 
@@ -872,6 +900,20 @@
 	<name>checkbutton3</name>
 	<can_focus>True</can_focus>
 	<label>Start Zapping muted</label>
+	<active>False</active>
+	<draw_indicator>True</draw_indicator>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>False</fill>
+	</child>
+      </widget>
+
+      <widget>
+	<class>GtkCheckButton</class>
+	<name>checkbutton5</name>
+	<can_focus>True</can_focus>
+	<label>Avoid some flicker in preview mode (leaves artifacts in the main window)</label>
 	<active>False</active>
 	<draw_indicator>True</draw_indicator>
 	<child>
@@ -2033,6 +2075,34 @@ in the next release of this program.</label>
       <last_modification_time>Tue, 13 Jun 2000 22:34:03 GMT</last_modification_time>
     </signal>
     <label>Go _Fullscreen</label>
+    <right_justify>False</right_justify>
+    <stock_icon>GNOME_STOCK_MENU_EXEC</stock_icon>
+  </widget>
+
+  <widget>
+    <class>GtkPixmapMenuItem</class>
+    <name>go_previewing2</name>
+    <tooltip>Use this to start the windowed overlay mode</tooltip>
+    <signal>
+      <name>activate</name>
+      <handler>on_go_previewing2_activate</handler>
+      <last_modification_time>Sat, 22 Jul 2000 19:27:11 GMT</last_modification_time>
+    </signal>
+    <label>Go _Previewing</label>
+    <right_justify>False</right_justify>
+    <stock_icon>GNOME_STOCK_MENU_EXEC</stock_icon>
+  </widget>
+
+  <widget>
+    <class>GtkPixmapMenuItem</class>
+    <name>go_capturing2</name>
+    <tooltip>Use this to start the windowed capture mode</tooltip>
+    <signal>
+      <name>activate</name>
+      <handler>on_go_capturing2_activate</handler>
+      <last_modification_time>Sat, 22 Jul 2000 19:27:13 GMT</last_modification_time>
+    </signal>
+    <label>Go _Capturing</label>
     <right_justify>False</right_justify>
     <stock_icon>GNOME_STOCK_MENU_EXEC</stock_icon>
   </widget>

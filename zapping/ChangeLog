@@ -5,7 +5,11 @@
 	want to). You could call it a "feature" ;-) Did I tell that
 	windowed preview sucks? There is a bug with it that i'm trying to
 	reproduce (a SIGSEV when exitting)
-
+	* src/tveng2.c: Fixed a bug with clipping rectangles. The struct
+	wasn't built correctly for more than one rectangle.
+	* everything: The windowed mode has been integrated in the program
+	(TVENG_CAPTURE_WINDOW mode).
+	
 21.7.2000	Windowed preview <garetxe@users.sourceforge.net>
 
 	* src/zmisc.c: It's still unfinished (and sucks), but it mostly

@@ -17,6 +17,7 @@
  */
 
 #include <gdk/gdkx.h>
+#define ZCONF_DOMAIN "/zapping/options/main/"
 #include "zmisc.h"
 #include "tveng.h"
 #include "interface.h"
@@ -210,9 +211,9 @@ void zmisc_add_clip(int x1, int y1, int x2, int y2,
 {
   /* the border is because of the possible dword-alignings */
   *clips = realloc(*clips, ((*num_clips)+1)*sizeof(struct tveng_clip));
-  (*clips)[*num_clips].x = x1-4;
+  (*clips)[*num_clips].x = x1;
   (*clips)[*num_clips].y = y1;
-  (*clips)[*num_clips].width = (x2-x1);
+  (*clips)[*num_clips].width = x2-x1;
   (*clips)[*num_clips].height = y2-y1;
   (*num_clips)++;
 }
@@ -322,7 +323,7 @@ static
 gint zmisc_timeout_done (gpointer data)
 {
   *((guint*)data) = 0;
-  if (main_info->current_mode == TVENG_CAPTURE_PREVIEW)
+  if (main_info->current_mode == TVENG_CAPTURE_WINDOW)
     {
       main_info->window.x = curx;
       main_info->window.y = cury;
@@ -355,13 +356,18 @@ void zmisc_refresh_tv_screen(gint x, gint y, gint w, gint h, gboolean
     }
   
   if (timeout_id == 0) {
-    if (main_info->current_mode == TVENG_CAPTURE_PREVIEW)
+    if (main_info->current_mode == TVENG_CAPTURE_WINDOW)
       tveng_set_preview_off(main_info);
 
-    if ((main_info -> current_mode == TVENG_CAPTURE_PREVIEW) && (oldw != -1))
+    if ((main_info -> current_mode == TVENG_CAPTURE_WINDOW) && (oldw != -1))
       {
-	zmisc_clear_area(main_info->window.x, main_info->window.y,
-			 main_info->window.width, main_info->window.height);
+	if (zcg_bool(NULL, "avoid_flicker"))
+	  zmisc_clear_area(main_info->window.x, main_info->window.y,
+			   main_info->window.width,
+			   main_info->window.height);
+	else
+	  zmisc_clear_area(0, 0, gdk_screen_width(), gdk_screen_height());
+
 	ignore_next_expose = TRUE;
       }
     timeout_id = gtk_timeout_add(timeout_length, zmisc_timeout_done,
@@ -374,8 +380,4 @@ void zmisc_refresh_tv_screen(gint x, gint y, gint w, gint h, gboolean
   }
   gdk_window_get_origin(main_window->window, &oldx, &oldy);
   gdk_window_get_size(main_window->window, &oldw, &oldh);
-  /*  oldx = x;
-  oldy = y;
-  oldw = w;
-  oldh = h;*/
 }

@@ -203,7 +203,8 @@ struct tveng_control{
 enum tveng_capture_mode
 {
   TVENG_CAPTURE_READ, /* Capture is through a read() call */
-  TVENG_CAPTURE_PREVIEW, /* Capture is through previewing */
+  TVENG_CAPTURE_PREVIEW, /* Capture is through (fullscreen) previewing */
+  TVENG_CAPTURE_WINDOW, /* Capture is through windowed overlays */
   TVENG_NO_CAPTURE /* Capture isn't active */
 };
 
@@ -624,7 +625,23 @@ tveng_start_previewing (tveng_device_info * info);
   Stops the fullscreen mode. Returns -1 on error
 */
 int
-tveng_stop_previewing(tveng_device_info * info);
+tveng_stop_previewing (tveng_device_info * info);
+
+/*
+  Sets up everything and starts previewing in a window. It doesn't do
+  many of the things tveng_start_previewing does, it's mostly just a
+  wrapper around tveng_set_preview_on. Returns -1 on error
+  The window must be specified from before calling this function (with
+  tveng_set_preview_window), and overlaying must be available.
+*/
+int
+tveng_start_window (tveng_device_info * info);
+
+/*
+  Stops the window mode. Returns -1 on error
+*/
+int
+tveng_stop_window (tveng_device_info * info);
 
 /* Some utility functions a la glib */
 /*

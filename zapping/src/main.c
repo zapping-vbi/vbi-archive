@@ -37,6 +37,10 @@
 #include "frequencies.h"
 #include "sound.h"
 
+/* This comes from callbacks.c */
+extern enum tveng_capture_mode restore_mode; /* the mode set when we went
+						fullscreen */
+
 /* These are accessed by callbacks.c as extern variables */
 tveng_device_info * main_info;
 gboolean flag_exit_program = FALSE;
@@ -46,6 +50,8 @@ struct soundinfo * si;
 gboolean disable_preview = FALSE; /* TRUE if zapping_setup_fb didn't
 				     work */
 GtkWidget * main_window;
+gboolean was_fullscreen=FALSE; /* will be TRUE if when quitting we
+				  were fullscreen */
 
 void shutdown_zapping(void);
 gboolean startup_zapping(void);
@@ -177,10 +183,6 @@ int main(int argc, char * argv[])
   if (-1 == tveng_set_mute(1, main_info))
     fprintf(stderr, "%s\n", main_info->error);
 
-  /* read some frames from the device */
-  if (tveng_start_capturing(main_info) == -1)
-    fprintf(stderr, "%s\n", main_info->error);
-
   main_window = create_zapping();
 
   if (!main_window)
@@ -243,16 +245,26 @@ int main(int argc, char * argv[])
 			   main_info))
     fprintf(stderr, "tveng_set_mute: %s\n", main_info->error);
 
-  tveng_stop_capturing(main_info);
-  main_info->window.x = x;
-  main_info->window.y = y;
-  main_info->window.width = w;
-  main_info->window.height = h;
-  main_info->window.clipcount = 0;
-  tveng_set_preview_window(main_info);
-  tveng_set_preview_on(main_info);
-  main_info->current_mode = TVENG_CAPTURE_PREVIEW;
-  
+  /* Start the capture in the last mode */
+  switch (zcg_int(NULL, "capture_mode"))
+    {
+    case TVENG_CAPTURE_PREVIEW:
+      on_go_fullscreen1_activate(GTK_MENU_ITEM(
+	 lookup_widget(main_window, "go_fullscreen1")), NULL);
+      restore_mode = TVENG_CAPTURE_WINDOW;
+      if (main_info->current_mode == TVENG_CAPTURE_PREVIEW)
+	break;
+    case TVENG_CAPTURE_READ:
+      on_go_capturing2_activate(GTK_MENU_ITEM(
+	 lookup_widget(main_window, "go_capturing2")), NULL);
+      if (main_info->current_mode == TVENG_CAPTURE_READ)
+	break;
+    default:
+      on_go_previewing2_activate(GTK_MENU_ITEM(
+	 lookup_widget(main_window, "go_previewing2")), NULL);
+      break;
+    }
+
   while (!flag_exit_program)
     {
       while (gtk_events_pending())
@@ -363,10 +375,12 @@ void shutdown_zapping(void)
   gboolean do_screen_cleanup = FALSE;
 
   /* Stops any capture currently active */
-  if (main_info->current_mode == TVENG_CAPTURE_PREVIEW)
+  if (main_info->current_mode == TVENG_CAPTURE_WINDOW)
     do_screen_cleanup = TRUE;
 
-  tveng_stop_everything(main_info);
+  zcs_int(tveng_stop_everything(main_info), "capture_mode");
+  if (was_fullscreen)
+    zcs_int(TVENG_CAPTURE_PREVIEW, "capture_mode");
 
   /* Unloads all plugins, this tells them to save their config too */
   plugin_unload_plugins(plugin_list);
@@ -462,11 +476,14 @@ gboolean startup_zapping()
 	   "video_device");
   zcc_bool(FALSE, "TRUE if Zapping should be started without sound",
 	   "start_muted");
+  zcc_bool(TRUE, "TRUE if some flickering should be avoided in preview mode",
+	   "avoid_flicker");
   zcc_int(0, "Verbosity value given to zapping_setup_fb",
 	  "zapping_setup_fb_verbosity");
   zcc_int(0, "Ratio mode", "ratio");
   zcc_int(0, "Current standard", "current_standard");
   zcc_int(0, "Current input", "current_input");
+  zcc_int(TVENG_CAPTURE_WINDOW, "Current capture mode", "capture_mode");
 
   /* Loads all the tuned channels */
   while (zconf_get_nth(i, &buffer, ZCONF_DOMAIN "tuned_channels") !=

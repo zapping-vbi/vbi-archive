@@ -462,22 +462,7 @@ int tveng2_set_input(struct tveng_enum_input * input,
   t_assert(info != NULL);
   t_assert(input != NULL);
 
-  current_mode = info -> current_mode;
-
-  /* Stop any current capture */
-  switch (info -> current_mode)
-    {
-    case TVENG_CAPTURE_READ:
-      if (tveng2_stop_capturing(info) == -1)
-	return -1;
-      break;
-    case TVENG_CAPTURE_PREVIEW:
-      if (tveng2_stop_previewing(info) == -1)
-	return -1;
-      break;
-    default:
-      break;
-    }
+  current_mode = tveng_stop_everything(info);
 
   new_input.index = input->id;
   if (ioctl(info->fd, VIDIOC_S_INPUT, &new_input))
@@ -488,20 +473,9 @@ int tveng2_set_input(struct tveng_enum_input * input,
     }
 
   /* Start capturing again as if nothing had happened */
-  switch (current_mode)
-    {
-    case TVENG_CAPTURE_READ:
-      if (tveng2_start_capturing(info) == -1)
-	return -1;
-      break;
-    case TVENG_CAPTURE_PREVIEW:
-      if (tveng2_start_previewing(info) == -1)
-	return -1;
-      break;
-    default:
-      break;
-    }
-  
+  if (tveng_restart_everything(current_mode, info) == -1)
+    return -1;
+
   info->cur_input = input->id;
 
   /* Maybe there are some other standards, get'em again */
@@ -652,22 +626,7 @@ int tveng2_set_standard(struct tveng_enumstd * std, tveng_device_info * info)
   t_assert(info != NULL);
   t_assert(std != NULL);
 
-  current_mode = info -> current_mode;
-
-  /* Stop any current capture (this is a big deal) */
-  switch (info -> current_mode)
-    {
-    case TVENG_CAPTURE_READ:
-      if (tveng2_stop_capturing(info) == -1)
-	return -1;
-      break;
-    case TVENG_CAPTURE_PREVIEW:
-      if (tveng2_stop_previewing(info) == -1)
-	return -1;
-      break;
-    default:
-      break;
-    }
+  current_mode = tveng_stop_everything(info);
 
   /* Get info about the standard we are going to set */
   memset(&enumstd, 0, sizeof(struct v4l2_enumstd));
@@ -690,21 +649,7 @@ int tveng2_set_standard(struct tveng_enumstd * std, tveng_device_info * info)
   info->cur_standard = std->index;
 
   /* Start capturing again as if nothing had happened */
-  switch (current_mode)
-    {
-    case TVENG_CAPTURE_READ:
-      if (tveng2_start_capturing(info) == -1)
-	return -1;
-      break;
-    case TVENG_CAPTURE_PREVIEW:
-      if (tveng2_start_previewing(info) == -1)
-	return -1;
-      break;
-    default:
-      break;
-    }
-
-  return 0;
+  return tveng_restart_everything(current_mode, info);
 }
 
 /*
@@ -1791,22 +1736,7 @@ int tveng2_set_capture_size(int width, int height, tveng_device_info * info)
   t_assert(width > 0);
   t_assert(height > 0);
 
-  current_mode = info -> current_mode;
-
-  /* Stop any current capture (this is a big deal) */
-  switch (info -> current_mode)
-    {
-    case TVENG_CAPTURE_READ:
-      if (tveng2_stop_capturing(info) == -1)
-	return -1;
-      break;
-    case TVENG_CAPTURE_PREVIEW:
-      if (tveng2_stop_previewing(info) == -1)
-	return -1;
-      break;
-    default:
-      break;
-    }
+  current_mode = tveng_stop_everything(info);
 
   if (width < info->caps.minwidth)
     width = info->caps.minwidth;
@@ -1823,21 +1753,7 @@ int tveng2_set_capture_size(int width, int height, tveng_device_info * info)
     return -1;
 
   /* Restart capture again */
-  switch (current_mode)
-    {
-    case TVENG_CAPTURE_READ:
-      if (tveng2_start_capturing(info) == -1)
-	return -1;
-      break;
-    case TVENG_CAPTURE_PREVIEW:
-      if (tveng2_start_previewing(info) == -1)
-	return -1;
-      break;
-    default:
-      break;
-    }
-
-  return 0;
+  return tveng_restart_everything(current_mode, info);
 }
 
 /* 
@@ -1908,7 +1824,7 @@ int
 tveng2_set_preview_window(tveng_device_info * info)
 {
   struct v4l2_window window;
-  struct v4l2_clip * clip=NULL, *safe_clip=NULL;
+  struct v4l2_clip * clip=NULL;
   int i;
 
   t_assert(info != NULL);
@@ -1926,52 +1842,28 @@ tveng2_set_preview_window(tveng_device_info * info)
     window.clips = NULL;
   else
     {
-      clip = malloc(sizeof(struct v4l2_clip));
+      clip = malloc(sizeof(struct v4l2_clip)*window.clipcount);
       window.clips = clip;
       for (i=0;i<window.clipcount;i++)
 	{
-	  if (i > 0)
-	    clip = clip->next;
-	  clip->x = info->window.clips[i].x;
-	  clip->y = info->window.clips[i].y;
-	  clip->width = info->window.clips[i].width;
-	  clip->height = info->window.clips[i].height;
-	  if (i < (window.clipcount-1))
-	    clip->next = malloc(sizeof(struct v4l2_clip));
+	  clip[i].x = info->window.clips[i].x;
+	  clip[i].y = info->window.clips[i].y;
+	  clip[i].width = info->window.clips[i].width;
+	  clip[i].height = info->window.clips[i].height;
+	  clip[i].next = ((i+1) == window.clipcount) ? NULL : &(clip[i+1]);
 	}
-      clip -> next = NULL; /* The last one */
     }
-  safe_clip = window.clips; /* this property is set-only */
 
   /* Set the new window */
   if (ioctl(info->fd, VIDIOC_S_WIN, &window))
     {
       info->tveng_errno = errno;
       t_error("VIDIOC_S_WIN", info);
-      if (clip) /* free the mem */
-	{
-	  safe_clip = clip;
-	  while (safe_clip)
-	    {
-	      safe_clip = clip->next;
-	      free(clip);
-	      clip = safe_clip;
-	    }
-	}
+      free(clip);
       return -1;
     }
 
-  /* free allocated mem */
-  if (safe_clip)
-    {
-      clip = safe_clip;
-      while (safe_clip)
-	{
-	  safe_clip = clip->next;
-	  free(clip);
-	  clip = safe_clip;
-	}
-    }
+  free(clip);
 
   /* Update the info struct */
   return (tveng2_get_preview_window(info));

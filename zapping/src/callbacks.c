@@ -41,10 +41,14 @@ extern gboolean disable_preview; /* TRUE if preview (fullscreen)
 
 int cur_tuned_channel = 0; /* Currently tuned channel */
 
+GtkWidget * main_window; /* main Zapping window */
+
 GtkWidget * black_window = NULL; /* The black window when you go
 				    preview */
 
 extern GList * plugin_list; /* The plugins we have */
+enum tveng_capture_mode restore_mode; /* the mode set when we went
+					 fullscreen */
 
 /* Starts and stops callbacks */
 gboolean startup_callbacks(void)
@@ -196,7 +200,7 @@ on_zapping_configure_event             (GtkWidget       *widget,
   int x, y, w, h;
   gboolean obscured = FALSE;
 
-  if (main_info->current_mode != TVENG_CAPTURE_PREVIEW)
+  if (main_info->current_mode != TVENG_CAPTURE_WINDOW)
     return FALSE;
 
   switch (event->type) {
@@ -234,7 +238,7 @@ on_tv_screen_configure_event           (GtkWidget       *widget,
   gboolean obscured = FALSE;
   extern gboolean ignore_next_expose;
 
-  if (main_info->current_mode != TVENG_CAPTURE_PREVIEW)
+  if (main_info->current_mode != TVENG_CAPTURE_WINDOW)
     return FALSE;
 
   switch (event->type) {
@@ -465,6 +469,11 @@ on_go_fullscreen1_activate             (GtkMenuItem     *menuitem,
   if (main_info->current_mode == TVENG_CAPTURE_PREVIEW)
     return;
 
+  if (disable_preview)
+    return;
+
+  restore_mode = tveng_stop_everything(main_info);
+
   /* Add a black background */
   black_window = gtk_window_new( GTK_WINDOW_POPUP );
   da = gtk_drawing_area_new();
@@ -531,7 +540,7 @@ on_go_windowed1_activate               (GtkMenuItem     *menuitem,
   GtkWidget * widget;
   GtkAllocation dummy_alloc;
 
-  if (main_info->current_mode != TVENG_CAPTURE_PREVIEW)
+  if (main_info->current_mode == TVENG_CAPTURE_READ)
     return;
 
   gdk_keyboard_ungrab(GDK_CURRENT_TIME);
@@ -539,7 +548,7 @@ on_go_windowed1_activate               (GtkMenuItem     *menuitem,
   /* Remove the black window */
   gtk_widget_destroy(black_window);
 
-  if (-1 == tveng_start_capturing(main_info))
+  if (-1 == tveng_restart_everything(restore_mode, main_info))
     {
       ShowBox(main_info -> error, GNOME_MESSAGE_BOX_ERROR);
       return;
@@ -560,6 +569,53 @@ on_go_windowed1_activate               (GtkMenuItem     *menuitem,
   dummy_alloc.width = w;
   dummy_alloc.height = h;
   on_tv_screen_size_allocate(widget, &dummy_alloc, NULL);
+}
+
+void
+on_go_capturing2_activate              (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+  gint w,h;
+  GtkWidget *widget=lookup_widget(main_window, "tv_screen");
+  GtkAllocation dummy_alloc;
+
+  if (main_info->current_mode == TVENG_CAPTURE_READ)
+    return;
+
+  if (tveng_start_capturing(main_info) == -1)
+    ShowBox(main_info->error, GNOME_MESSAGE_BOX_ERROR);
+
+  /* Fake a resize (to the actual size), this will update all capture
+     structs */
+  gdk_window_get_size(widget -> window, &w, &h);
+
+  dummy_alloc.width = w;
+  dummy_alloc.height = h;
+  on_tv_screen_size_allocate(widget, &dummy_alloc, NULL);
+}
+
+void
+on_go_previewing2_activate             (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+  gint x, y, w, h;
+
+  if (main_info->current_mode == TVENG_CAPTURE_WINDOW)
+    return;
+
+  gdk_window_get_origin(lookup_widget(main_window,
+				      "tv_screen")->window, &x, &y);
+  gdk_window_get_size(lookup_widget(main_window, "tv_screen")->window,
+		      &w, &h);  
+
+  main_info->window.x = x;
+  main_info->window.y = y;
+  main_info->window.width = w;
+  main_info->window.height = h;
+  main_info->window.clipcount = 0;
+  tveng_set_preview_window(main_info);
+  if (tveng_start_window(main_info) == -1)
+    ShowBox(main_info->error, GNOME_MESSAGE_BOX_ERROR);
 }
 
 void
@@ -647,6 +703,8 @@ gboolean on_fullscreen_event (GtkWidget * widget, GdkEvent * event,
 	case GDK_q:
 	  if (kevent->state & GDK_CONTROL_MASK)
 	    {
+	      extern gboolean was_fullscreen;
+	      was_fullscreen = TRUE;
 	      on_go_windowed1_activate(go_windowed1, NULL);
 	      on_exit2_activate(exit2, NULL);
 	    }
@@ -710,12 +768,18 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
       
       if (disable_preview)
 	{
-	  GtkWidget * go_fullscreen2 =
+	  GtkWidget * widget =
 	    lookup_widget(GTK_WIDGET(menu), "go_fullscreen2");
-	  gtk_widget_set_sensitive(go_fullscreen2, FALSE);
+	  gtk_widget_set_sensitive(widget, FALSE);
+	  gtk_widget_hide(widget);
+	  widget = lookup_widget(GTK_WIDGET(menu), "go_previewing2");
+	  gtk_widget_set_sensitive(widget, FALSE);
+	  gtk_widget_hide(widget);
+	  widget = lookup_widget(GTK_WIDGET(menu), "go_capturing2");
+	  gtk_widget_set_sensitive(widget, FALSE);
+	  gtk_widget_hide(widget);
 	  gtk_widget_hide(lookup_widget(GTK_WIDGET(menu),
 					"separador3"));
-	  gtk_widget_hide(go_fullscreen2);
 	}
       gtk_menu_popup(menu, NULL, NULL, NULL,
 		     NULL, bevent->button, bevent->time);
