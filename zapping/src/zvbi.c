@@ -50,7 +50,11 @@
 #include "common/fifo.h"
 
 #ifndef ZVBI_CAPTURE_THREAD_DEBUG
-#define ZVBI_CAPTURE_THREAD_DEBUG 0
+#  define ZVBI_CAPTURE_THREAD_DEBUG 0
+#endif
+
+#ifndef ENABLE_BKTR
+#  define ENABLE_BKTR 0
 #endif
 
 #ifdef HAVE_LIBZVBI
@@ -1193,101 +1197,98 @@ init_threads			(const gchar *		dev_name,
     }
   else
     {
-
-#ifdef ENABLE_BKTR
-
-      if (!(capture = vbi_capture_bktr_new (dev_name,
-					    scanning,
-					    &services,
-					    /* strict */ -1,
-					    &errstr,
-					    !!debug_msg)))
+      if (ENABLE_BKTR)
 	{
-	  gchar *t;
-
-	  t = g_locale_to_utf8 (errstr, NUL_TERMINATED, NULL, NULL, NULL);
-	  g_assert (t != NULL);
-
-	  RunBox (failed, GTK_MESSAGE_ERROR, t);
-
-	  g_free (t);
-
-	  free (errstr);
-
-	  vbi_decoder_delete (vbi);
-	  vbi = NULL;
-
-	  return FALSE;
-	}
-
-#else /* !ENABLE_BKTR */
-
-      if (!(open_proxy (dev_name,
-			scanning,
-			&services)))
-	{
-	  if (!(capture = vbi_capture_v4l2_new (dev_name,
-						/* buffers */ 20,
+	  if (!(capture = vbi_capture_bktr_new (dev_name,
+						scanning,
 						&services,
 						/* strict */ -1,
 						&errstr,
 						!!debug_msg)))
 	    {
-	      printv ("vbi_capture_v4l2_new error: %s\n", errstr);
+	      gchar *t;
 
-	      if (errstr)
-		free (errstr);
+	      t = g_locale_to_utf8 (errstr, NUL_TERMINATED, NULL, NULL, NULL);
+	      g_assert (t != NULL);
 
-	      if (!(capture = vbi_capture_v4l_sidecar_new (dev_name,
-							   given_fd,
-							   &services,
-							   /* strict */ -1,
-							   &errstr,
-							   !!debug_msg)))
+	      RunBox (failed, GTK_MESSAGE_ERROR, t);
+
+	      g_free (t);
+
+	      free (errstr);
+
+	      vbi_decoder_delete (vbi);
+	      vbi = NULL;
+
+	      return FALSE;
+	    }
+	}
+      else
+	{
+	  if (!(open_proxy (dev_name,
+			    scanning,
+			    &services)))
+	    {
+	      if (!(capture = vbi_capture_v4l2_new (dev_name,
+						    /* buffers */ 20,
+						    &services,
+						    /* strict */ -1,
+						    &errstr,
+						    !!debug_msg)))
 		{
-		  gchar *t;
-		  gchar *s;
+		  printv ("vbi_capture_v4l2_new error: %s\n", errstr);
 
-		  t = g_locale_to_utf8 (errstr, NUL_TERMINATED, NULL, NULL, NULL);
-		  g_assert (t != NULL);
+		  if (errstr)
+		    free (errstr);
 
-		  switch (errno)
+		  if (!(capture = vbi_capture_v4l_sidecar_new (dev_name,
+							       given_fd,
+							       &services,
+							       /* strict */ -1,
+							       &errstr,
+							       !!debug_msg)))
 		    {
-		    case ENOENT:
-		    case ENXIO:
-		    case ENODEV:
-		      s = g_strconcat (t, "\n",
-				       _(
-	"This probably means that the required driver isn't loaded. "
-	"Add to your /etc/modules.conf the line:\n"
-	"alias char-major-81-224 bttv (replace bttv by the name "
-	"of your video driver)\n"
-        "and with mknod create /dev/vbi0 appropriately. If this "
-	"doesn't work, you can disable VBI in Settings/Preferences/VBI "
-	"options/Enable VBI decoding."), NULL);
-		      RunBox (failed, GTK_MESSAGE_ERROR, s);
-		      g_free (s);
-		      break;
+		      gchar *t;
+		      gchar *s;
 
-		    default:
-		      RunBox (failed, GTK_MESSAGE_ERROR, t);
-		      break;
-		    }
+		      t = g_locale_to_utf8 (errstr, NUL_TERMINATED,
+					    NULL, NULL, NULL);
+		      g_assert (t != NULL);
 
-		  g_free (t);
+		      switch (errno)
+			{
+			case ENOENT:
+			case ENXIO:
+			case ENODEV:
+			  s = g_strconcat (t, "\n",
+	_("This probably means that the required driver isn't loaded. "
+	  "Add to your /etc/modules.conf the line:\n"
+	  "alias char-major-81-224 bttv (replace bttv by the name "
+	  "of your video driver)\n"
+	  "and with mknod create /dev/vbi0 appropriately. If this "
+	  "doesn't work, you can disable VBI in Settings/Preferences/VBI "
+	  "options/Enable VBI decoding."), NULL);
+			  RunBox (failed, GTK_MESSAGE_ERROR, s);
+			  g_free (s);
+			  break;
 
-		  free (errstr);
+			default:
+			  RunBox (failed, GTK_MESSAGE_ERROR, t);
+			  break;
+			}
+
+		      g_free (t);
+
+		      free (errstr);
 	  
-		  vbi_decoder_delete (vbi);
-		  vbi = NULL;
+		      vbi_decoder_delete (vbi);
+		      vbi = NULL;
 
-		  return FALSE;
+		      return FALSE;
+		    }
 		}
 	    }
 	}
-
-#endif /* !ENABLE_BKTR */
-
     }
 
   D();
