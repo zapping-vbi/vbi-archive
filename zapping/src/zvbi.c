@@ -181,9 +181,11 @@ decoding_thread (void *p)
 
     if (b->used <= 0) {
       send_empty_buffer (&c, b);
+/* FIXME this hurts
       if (b->used < 0)
 	fprintf (stderr, "I/O error in decoding thread, aborting.\n");
       break;
+*/
     }
 
     pthread_setcancelstate (PTHREAD_CANCEL_DISABLE, NULL);
@@ -2734,17 +2736,18 @@ zvbi_channel_switched(void)
 gchar *
 zvbi_current_title(void)
 {
-  gchar *s;
+  const gchar *s;
+  gchar *t;
 
   pthread_mutex_lock(&prog_info_mutex);
 
   /* current program title */
-  s = program_info[0].title[0] ? program_info[0].title : "";
-  s = g_strdup(s);
+  s = (program_info[0].title[0] != 0) ? (const char *) program_info[0].title : "";
+  t = g_strdup(s);
 
   pthread_mutex_unlock(&prog_info_mutex);
 
-  return s;
+  return t;
 }
 
 const gchar *
