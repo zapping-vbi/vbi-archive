@@ -33,6 +33,7 @@
 #include <libvbi.h>
 #include <v4lx.h> /* one of possibly several vbi driver interfaces */
 #include <lang.h>
+#include <parser.h> /* libxml */
 #include <pthread.h>
 #include <ctype.h>
 #include <time.h>
@@ -1859,4 +1860,171 @@ zvbi_channel_switched(void)
       p = p->next;
     }
   pthread_mutex_unlock(&clients_mutex);
+}
+
+#define ATTR_STACK	128
+typedef struct {
+  unsigned int		italic;
+  unsigned int		bold;
+  unsigned int		flash;
+  unsigned int		underline;
+  unsigned int		fg[ATTR_STACK];
+  unsigned int		fg_sp;
+  unsigned int		opacity[ATTR_STACK];
+  unsigned int		opacity_sp;
+  attr_char		*dest;
+} sax_context;
+
+#define sec(label, entry, entry_sp) \
+else if (!strcasecmp(name, #label) && ctx->entry_sp < (ATTR_STACK-1)) \
+  ctx->entry[++ctx->entry_sp] = label
+
+static void
+my_startElement (void *ptr,
+		 const xmlChar *name, const xmlChar **atts)
+{
+  sax_context *ctx = ptr;
+
+  if (!strcasecmp(name, "i"))
+    ctx->italic ++;
+  else if (!strcasecmp(name, "b"))
+    ctx->bold++;
+  else if (!strcasecmp(name, "u"))
+    ctx->underline++;
+  else if (!strcasecmp(name, "f"))
+    ctx->flash++;
+
+  sec(TRANSPARENT_SPACE, opacity, opacity_sp);
+  sec(TRANSPARENT_FULL, opacity, opacity_sp);
+  sec(SEMI_TRANSPARENT, opacity, opacity_sp);
+  sec(OPAQUE, opacity, opacity_sp);
+
+  sec(BLACK, fg, fg_sp);
+  sec(RED, fg, fg_sp);
+  sec(GREEN, fg, fg_sp);
+  sec(YELLOW, fg, fg_sp);
+  sec(BLUE, fg, fg_sp);
+  sec(MAGENTA, fg, fg_sp);
+  sec(CYAN, fg, fg_sp);
+  sec(WHITE, fg, fg_sp);
+}
+
+#define eec(label, entry_sp) \
+else if (!strcasecmp(name, #label) && ctx->entry_sp) \
+ctx->entry_sp--
+
+static void my_endElement (void *ptr,
+			   const xmlChar *name)
+{
+  sax_context *ctx = ptr;
+
+  if (!strcasecmp(name, "i") && ctx->italic)
+    ctx->italic--;
+
+  eec(b, bold);
+  eec(u, underline);
+  eec(f, flash);
+
+  eec(TRANSPARENT_SPACE, opacity_sp);
+  eec(TRANSPARENT_FULL, opacity_sp);
+  eec(SEMI_TRANSPARENT, opacity_sp);
+  eec(OPAQUE, opacity_sp);
+
+  eec(BLACK, fg_sp);
+  eec(RED, fg_sp);
+  eec(GREEN, fg_sp);
+  eec(YELLOW, fg_sp);
+  eec(BLUE, fg_sp);
+  eec(MAGENTA, fg_sp);
+  eec(CYAN, fg_sp);
+  eec(WHITE, fg_sp);
+}
+
+static void my_characters (void *ptr,
+			   const xmlChar *ch, int n)
+{
+  ucs2_t *glyphs;
+  int i;
+  sax_context *ctx = ptr;
+  attr_char c;
+
+  if (!(glyphs = convert(ch, n, "UTF-8", "UCS-2")))
+    return;
+
+  memset(&c, 0, sizeof(c));
+
+  c.underline = ctx->underline > 0;
+  c.bold = ctx->bold > 0;
+  c.italic = ctx->italic > 0;
+  c.flash = ctx->flash > 0;
+  c.opacity = ctx->opacity_sp ? ctx->opacity[ctx->opacity_sp] : OPAQUE;
+  c.foreground = ctx->fg_sp ? ctx->fg[ctx->fg_sp] : WHITE;
+
+  for (i=0; i<ucs2_strlen(glyphs); i++)
+    if (glyphs[i] != '\n' && glyphs[i] != '\r')
+      {
+	memcpy(ctx->dest, &c, sizeof(c));
+	//      FIXME
+	//      ctx->dest->glyph = unicode2glyph(glyphs[i]);
+	ctx->dest->glyph = glyphs[i];
+	ctx->dest++;
+      }
+
+  free(glyphs);
+}
+
+attr_char *
+sgml2attr_char		(const char		*input,
+			 int			*len)
+{
+  sax_context ctx;
+  attr_char *result;
+  xmlSAXHandler handler;
+  gchar *buf, *buf2;
+  
+  if (!input || !unicode_strlen(input, -1) ||
+      !len)
+    return NULL;
+
+  *len = 0;
+  memset(&ctx, 0, sizeof(ctx));
+
+  result = malloc(strlen(input)*unicode_strlen(input, -1));
+  if (!result)
+    return NULL;
+
+  ctx.dest = result;
+  memset(&handler, 0, sizeof(handler));
+
+  handler.startElement = my_startElement;
+  handler.endElement = my_endElement;
+  handler.characters = my_characters;
+
+  buf2 = local2utf8(input);
+  if (!buf2)
+    {
+      g_warning("Cannot transform from current locale to UTF8: %s",
+		input);
+      free(result);
+      return NULL;
+    }
+
+  buf = g_strdup_printf("<?xml version=\"1.0\"?>\n"
+			"<doc>\n"
+			"<text>%s</text>\n"
+			"</doc>", buf2);
+  g_free(buf2);
+
+  if (xmlSAXUserParseMemory(&handler, &ctx, buf, strlen(buf)))
+    {
+      g_warning("Couldn't parse XML string: %s", input);
+      free(result);
+      g_free(buf);
+      return NULL;
+    }
+
+  *len = ctx.dest - result;
+
+  g_free(buf);
+  return result;
 }

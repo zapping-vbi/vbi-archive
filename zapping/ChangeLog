@@ -1,3 +1,8 @@
+16.09.2001	SGML->attr_char <garetxe@users.sf.net>
+
+	* zvbi.c: Wrote a first version of the SGML->attr_char converter,
+	will improve.
+
 13.09.2001	bounds checking <garetxe@users.sf.net>
 
 	* libvbi/teletext.c: Added bounds checking for enhance, could

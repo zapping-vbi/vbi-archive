@@ -213,4 +213,41 @@ standard_collisions(tveng_device_info *info)
     }
 }
 
+/* Copies from src to dest "pixels" RGB/BGR pixels swapping R and B */
+static inline
+void endian3(char *dest, const char *src, int pixels)
+     __attribute__ ((unused));
+
+static inline
+void endian3(char *dest, const char *src, int pixels)
+{
+  for (;pixels;pixels--)
+    {
+      *(dest++) = src[2];
+      *(dest++) = src[1];
+      *(dest++) = src[0];
+
+      src+=3;
+    }
+}
+
+/* Copies from src to dest "pixels" RGBA/BGRA pixels swapping R and B */
+static inline
+void endian4(char *dest, const char *src, int pixels)
+     __attribute__ ((unused));
+
+static inline
+void endian4(char *dest, const char *src, int pixels)
+{
+  for (;pixels;pixels--)
+    {
+	dest[0] = src[2];
+	dest[1] = src[1];
+	dest[2] = src[0];
+
+	dest += 4;
+	src += 4;
+    }
+}
+
 #endif /* tveng_private.h */
