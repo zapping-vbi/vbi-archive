@@ -19,12 +19,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: context.c,v 1.16 2005-02-25 18:17:20 mschimek Exp $ */
+/* $Id: context.c,v 1.17 2005-03-11 04:23:20 mschimek Exp $ */
 
-#include "config.h"
-
-#ifdef HAVE_LARGEFILE64
-#  define _LARGEFILE64_SOURCE
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
 #endif
 
 #include "rtepriv.h"
@@ -950,8 +948,8 @@ write_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
 
 #ifdef HAVE_LARGEFILE64
 			new_fd = open64 (new_name,
-					 O_CREAT | O_WRONLY | O_TRUNC |
-					 	O_LARGEFILE,
+					 (O_CREAT | O_WRONLY | O_TRUNC |
+					  O_LARGEFILE),
 					 S_IRUSR | S_IWUSR |
 					 S_IRGRP | S_IWGRP |
 					 S_IROTH | S_IWOTH);
@@ -963,6 +961,8 @@ write_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
 				       S_IROTH | S_IWOTH);
 #endif
 			if (-1 != new_fd) {
+				/* We must keep the first part open to
+				   finalize the file header. */
 				if (context->output_fd0 != context->output_fdn)
 					close (context->output_fdn);
 
@@ -1086,9 +1086,11 @@ rte_set_output_file(rte_context *context, const char *filename)
 
 	rte_error_reset(context);
 
+	context->fsize_limit = 0;
 	if (0 == getrlimit64 (RLIMIT_FSIZE, &rl)) {
 		context->fsize_limit = rl.rlim_cur;
-	} else {
+	}
+	if (context->fsize_limit <= 0) {
 		context->fsize_limit = INT64_MAX;
 	}
 
@@ -1106,9 +1108,11 @@ rte_set_output_file(rte_context *context, const char *filename)
 
 	rte_error_reset(context);
   
+	context->fsize_limit = 0;
 	if (0 == getrlimit (RLIMIT_FSIZE, &rl)) {
 		context->fsize_limit = rl.rlim_cur;
-	} else {
+	}
+	if (context->fsize_limit <= 0) {
 		context->fsize_limit = INT64_MAX;
 	}
 
