@@ -33,7 +33,6 @@
 #define ZCONF_DOMAIN "/zapping/options/audio/"
 #include "zconf.h"
 #include "interface.h"
-#include "zmisc.h"
 #include "globals.h"
 
 #include <sys/ioctl.h>

@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alirc.c,v 1.8 2004-09-10 04:53:39 mschimek Exp $ */
+/* $Id: alirc.c,v 1.9 2004-10-04 02:48:15 mschimek Exp $ */
 
 /* XXX gtk_input */
 #undef GTK_DISABLE_DEPRECATED
@@ -69,7 +69,7 @@ legacy_zoom			(const gchar *		args _unused_)
   if (DISPLAY_MODE_FULLSCREEN == zapping->display_mode
       && CAPTURE_MODE_OVERLAY == tveng_info->capture_mode)
     {
-      const gchar *s;
+      const gchar *s = "";
 
       switch (((int)windowedmode_d) | windowedmode_c)
 	{

@@ -243,6 +243,7 @@ do { \
     fprintf(stderr, "Line %d, routine %s\n", __LINE__, __PRETTY_FUNCTION__); \
 } while (FALSE)
 
+#undef printv
 #define printv(format, args...) \
 do { \
   if (debug_msg) { \

@@ -40,9 +40,10 @@
 #endif /* ENABLE_NLS */
 #endif /* _ */
 
-#include "x11stuff.h"
-#include "zmisc.h"
 #include "libtv/misc.h"
+#include "x11stuff.h"
+#include "zmisc.h" /* preliminary */
+
 
 /*
   Utility function, stops the capture or the previewing. Returns the

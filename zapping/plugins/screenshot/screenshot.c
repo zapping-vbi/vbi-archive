@@ -1062,8 +1062,8 @@ static gboolean
 on_deint_changed                      (GtkWidget *widget,
 				       screenshot_data *data)
 {
-  gint new_deint = (gint) g_object_get_data (G_OBJECT (widget),
-					       "deint");
+  gint new_deint = (gint) g_object_get_data (G_OBJECT (widget), "deint");
+
   if (screenshot_option_deint == new_deint)
     return FALSE;
 

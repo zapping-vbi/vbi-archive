@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mixer.c,v 1.8 2004-09-10 04:58:52 mschimek Exp $ */
+/* $Id: mixer.c,v 1.9 2004-10-04 02:48:19 mschimek Exp $ */
 
 /*
  *  These functions encapsulate the OS and driver specific
@@ -35,7 +35,7 @@
  * virtual tv device.
  */
 
-#include "zmisc.h"
+#include "tveng_private.h"
 #include "mixer.h"
 #include "zconf.h"
 #include "globals.h"
@@ -99,8 +99,6 @@ void		startup_mixer(tveng_device_info *info)
 /*
  *  Mixer client interface
  */
-
-#include "tveng_private.h"
 
 /* XXX document me */
 

@@ -1,5 +1,10 @@
+2004-10-04    <mschimek@users.sf.net>
+
+	* Release 0.7.2.
+
 2004-10-03    <mschimek@users.sf.net>
 
+	* po/POTFILES.in: Added src/subtitle.c.
 	* plugins/teletext/view.c (teletext_view_popup_menu_new):
 	  Fixed context > teletext > save as / colors.
 	* src/capture.c (capture_thread): Abort retry on thread join.

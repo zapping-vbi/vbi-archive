@@ -147,7 +147,7 @@ image_new(tv_pixfmt pixfmt, guint w, guint h)
 {
   zimage *new_image;
   struct _zimage_private *pimage;
-  void *image_data;
+  void *image_data = NULL;
   tv_pixel_format format;
   XvPortID xvport;
 
