@@ -1427,7 +1427,7 @@ set_tuner_frequency		(tveng_device_info *	info,
 		for (i = 0; i < (unsigned int) p_info->mmbuf.frames; ++i) {
 			tv_clear_image (p_info->mmaped_data
 					+ p_info->mmbuf.offsets[i], 0,
-					&info->format);
+					&info->capture_format);
 		}
 	}
 
@@ -1619,8 +1619,7 @@ get_video_input_list		(tveng_device_info *	info)
  */
 
 static tv_bool
-get_overlay_buffer		(tveng_device_info *	info,
-				 tv_overlay_buffer *	t)
+get_overlay_buffer		(tveng_device_info *	info)
 {
 	struct video_buffer buffer;
   
@@ -1630,9 +1629,9 @@ get_overlay_buffer		(tveng_device_info *	info,
 	if (-1 == v4l_ioctl (info, VIDIOCGFBUF, &buffer))
 		goto failure;
 
-	t->base = (unsigned long) buffer.base;
+	info->overlay_buffer.base = (unsigned long) buffer.base;
 
-	if (!tv_image_format_init (&t->format,
+	if (!tv_image_format_init (&info->overlay_buffer.format,
 				   (unsigned int) buffer.width,
 				   (unsigned int) buffer.height,
 				   0,
@@ -1640,19 +1639,24 @@ get_overlay_buffer		(tveng_device_info *	info,
 				   0))
 		goto failure;
 
-	assert ((unsigned) buffer.bytesperline >= t->format.bytes_per_line);
+	assert ((unsigned) buffer.bytesperline
+		>= info->overlay_buffer.format.bytes_per_line);
 
-	if ((unsigned) buffer.bytesperline > t->format.bytes_per_line) {
-		assert (TV_PIXFMT_IS_PACKED (t->format.pixfmt));
+	if ((unsigned) buffer.bytesperline
+	    > info->overlay_buffer.format.bytes_per_line) {
+		assert (TV_PIXFMT_IS_PACKED
+			(info->overlay_buffer.format.pixfmt));
 
-		t->format.bytes_per_line = buffer.bytesperline;
-		t->format.size = buffer.bytesperline * buffer.height;
+		info->overlay_buffer.format.bytes_per_line =
+		  buffer.bytesperline;
+		info->overlay_buffer.format.size =
+		  buffer.bytesperline * buffer.height;
 	}
 
 	return TRUE;
 
  failure:
-	CLEAR (*t);
+	CLEAR (info->overlay_buffer);
 
 	return FALSE;
 }
@@ -1927,7 +1931,7 @@ int p_tveng1_open_device_file(int flags, tveng_device_info * info)
 #endif
 
   /* This tries to fill the fb_info field */
-  get_overlay_buffer (info, &info->overlay_buffer);
+  get_overlay_buffer (info);
 
   /* Set some flags for this device */
   fcntl( info -> fd, F_SETFD, FD_CLOEXEC );
@@ -2062,7 +2066,7 @@ int tveng1_attach_device(const char* device_file,
       return -1;
     }
 
-  if (!tv_image_format_init (&info->format,
+  if (!tv_image_format_init (&info->capture_format,
 			     (info->caps.minwidth + info->caps.maxwidth) / 2, 
 			     (info->caps.minheight + info->caps.maxheight) / 2,
 			     0,
@@ -2206,7 +2210,7 @@ tveng1_update_capture_format(tveng_device_info * info)
   if (v4l_ioctl(info, VIDIOCGWIN, &window))
       return -1;
 
-  if (!tv_image_format_init (&info->format,
+  if (!tv_image_format_init (&info->capture_format,
 			     window.width,
 			     window.height,
 			     0,
@@ -2254,12 +2258,12 @@ tveng1_set_capture_format(tveng_device_info * info)
       return -1;
     }
 
-  pict.palette = pixfmt_to_palette (info->format.pixfmt);
+  pict.palette = pixfmt_to_palette (info->capture_format.pixfmt);
   
   if (0 == pict.palette) {
     info->tveng_errno = EINVAL;
     tv_error_msg (info, "%s not supported",
-		  tv_pixfmt_name (info->format.pixfmt));
+		  tv_pixfmt_name (info->capture_format.pixfmt));
     p_tveng_restart_everything(mode, overlay_was_active, info);
     return -1;
   }
@@ -2283,18 +2287,18 @@ tveng1_set_capture_format(tveng_device_info * info)
       return -1;
     }
 
-  info->format.width = (info->format.width + 3) & (unsigned int) -4;
-  info->format.height = (info->format.height + 3) & (unsigned int) -4;
+  info->capture_format.width = (info->capture_format.width + 3) & (unsigned int) -4;
+  info->capture_format.height = (info->capture_format.height + 3) & (unsigned int) -4;
 
-  info->format.width = SATURATE (info->format.width,
+  info->capture_format.width = SATURATE (info->capture_format.width,
 				 info->caps.minwidth,
 				 info->caps.maxwidth);
-  info->format.height = SATURATE (info->format.height,
+  info->capture_format.height = SATURATE (info->capture_format.height,
 				  info->caps.minheight,
 				  info->caps.maxheight);
 
-  window.width = info->format.width;
-  window.height = info->format.height;
+  window.width = info->capture_format.width;
+  window.height = info->capture_format.height;
   window.clips = NULL;
   window.clipcount = 0;
 
@@ -2466,7 +2470,7 @@ static int p_tveng1_queue(tveng_device_info * info)
   CLEAR (bm);
   
   /* XXX we may have to address YUYV, YUV422 synonyms. */
-  bm.format = pixfmt_to_palette (info->format.pixfmt);
+  bm.format = pixfmt_to_palette (info->capture_format.pixfmt);
   
   if (0 == bm.format) {
       info -> tveng_errno = -1;
@@ -2476,8 +2480,8 @@ static int p_tveng1_queue(tveng_device_info * info)
     }
 
   bm.frame = (p_info -> queued) % p_info->mmbuf.frames;
-  bm.width = info -> format.width;
-  bm.height = info -> format.height;
+  bm.width = info -> capture_format.width;
+  bm.height = info -> capture_format.height;
 
   if (v4l_ioctl(info, VIDIOCMCAPTURE, &bm) == -1)
     {

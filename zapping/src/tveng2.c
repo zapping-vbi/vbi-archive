@@ -208,7 +208,7 @@ tveng2_update_capture_format(tveng_device_info * info)
   if (format.fmt.pix.flags & V4L2_FMT_FLAG_BYTESPERLINE)
     bpl = format.fmt.pix.bytesperline;
 
-  tv_image_format_init (&info->format,
+  tv_image_format_init (&info->capture_format,
 			format.fmt.pix.width,
 			format.fmt.pix.height,
 			bpl, pixfmt, 0);
@@ -235,27 +235,27 @@ set_capture_format(tveng_device_info * info)
 
   format.type = V4L2_BUF_TYPE_CAPTURE;
 
-  format.fmt.pix.pixelformat = pixfmt_to_pixelformat (info->format.pixfmt);
+  format.fmt.pix.pixelformat = pixfmt_to_pixelformat (info->capture_format.pixfmt);
 
   if (0 == format.fmt.pix.pixelformat) {
       info->tveng_errno = EINVAL;
       tv_error_msg (info, "%s not supported",
-		    tv_pixfmt_name (info->format.pixfmt));
+		    tv_pixfmt_name (info->capture_format.pixfmt));
       return -1;
   }
 
   /* Adjust the given dimensions */
-  if (info->format.height < info->caps.minheight)
-    info->format.height = info->caps.minheight;
-  if (info->format.height > info->caps.maxheight)
-    info->format.height = info->caps.maxheight;
-  if (info->format.width < info->caps.minwidth)
-    info->format.width = info->caps.minwidth;
-  if (info->format.width > info->caps.maxwidth)
-    info->format.width = info->caps.maxwidth;
+  if (info->capture_format.height < info->caps.minheight)
+    info->capture_format.height = info->caps.minheight;
+  if (info->capture_format.height > info->caps.maxheight)
+    info->capture_format.height = info->caps.maxheight;
+  if (info->capture_format.width < info->caps.minwidth)
+    info->capture_format.width = info->caps.minwidth;
+  if (info->capture_format.width > info->caps.maxwidth)
+    info->capture_format.width = info->caps.maxwidth;
   
-  format.fmt.pix.width = info->format.width;
-  format.fmt.pix.height = info->format.height;
+  format.fmt.pix.width = info->capture_format.width;
+  format.fmt.pix.height = info->capture_format.height;
   format.fmt.pix.bytesperline = ((format.fmt.pix.depth+7)>>3) *
     format.fmt.pix.width;
   format.fmt.pix.sizeimage =
@@ -283,9 +283,9 @@ tveng2_set_capture_format(tveng_device_info * info)
   tv_pixfmt pixfmt;
   int result;
 
-  pixfmt = info->format.pixfmt;
+  pixfmt = info->capture_format.pixfmt;
   current_mode = p_tveng_stop_everything(info, &overlay_was_active);
-  info->format.pixfmt = pixfmt;
+  info->capture_format.pixfmt = pixfmt;
 
   result = set_capture_format(info);
 
@@ -730,7 +730,7 @@ set_video_standard		(tveng_device_info *	info,
 			return TRUE;
 	}
 
-  pixfmt = info->format.pixfmt;
+  pixfmt = info->capture_format.pixfmt;
   current_mode = p_tveng_stop_everything(info, &overlay_was_active);
 
 	standard = CS(s)->enumstd.std;
@@ -741,7 +741,7 @@ set_video_standard		(tveng_device_info *	info,
 		store_cur_video_standard (info, s);
 
 /* XXX bad idea */
-  info->format.pixfmt = pixfmt;
+  info->capture_format.pixfmt = pixfmt;
   p_tveng_set_capture_format(info);
   p_tveng_restart_everything(current_mode, overlay_was_active, info);
 
@@ -951,7 +951,7 @@ set_tuner_frequency		(tveng_device_info *	info,
 			struct v4l2_buffer buffer;
 
 			tv_clear_image (p_info->buffers[i].vmem, 0,
-					&info->format);
+					&info->capture_format);
 
 			buffer.type = p_info->buffers[i].vidbuf.type;
 			buffer.index = i;
@@ -1023,7 +1023,7 @@ set_video_input			(tveng_device_info *	info,
 				return TRUE;
 	}
 
-	pixfmt = info->format.pixfmt;
+	pixfmt = info->capture_format.pixfmt;
 	current_mode = p_tveng_stop_everything(info, &overlay_was_active);
 
 	index = CVI (l)->index;
@@ -1042,7 +1042,7 @@ set_video_input			(tveng_device_info *	info,
 		set_tuner_frequency (info, info->cur_video_input,
 				     info->cur_video_input->u.tuner.frequency);
 
-	info->format.pixfmt = pixfmt;
+	info->capture_format.pixfmt = pixfmt;
 	p_tveng_set_capture_format(info);
 
 	/* XXX Start capturing again as if nothing had happened */
@@ -1353,7 +1353,7 @@ tveng2_start_capturing(tveng_device_info * info)
 	}
 
       tv_clear_image (p_info->buffers[i].vmem, 0,
-		      &info->format);
+		      &info->capture_format);
 
 	/* Queue the buffer */
       if (p_tveng2_qbuf(i, info) == -1)
@@ -1514,8 +1514,7 @@ static double tveng2_get_timestamp(tveng_device_info * info)
  */
 
 static tv_bool
-get_overlay_buffer		(tveng_device_info *	info,
-				 tv_overlay_buffer *	t)
+get_overlay_buffer		(tveng_device_info *	info)
 {
 	struct v4l2_framebuffer fb;
   
@@ -1528,21 +1527,21 @@ get_overlay_buffer		(tveng_device_info *	info,
 
 	/* XXX fb.capability, fb.flags ignored */
 
-	t->base			= (unsigned long) fb.base[0];
+	info->overlay_buffer.base			= (unsigned long) fb.base[0];
 
-	t->format.bytes_per_line = fb.fmt.bytesperline;
-	t->format.size		= fb.fmt.sizeimage;
+	info->overlay_buffer.format.bytes_per_line = fb.fmt.bytesperline;
+	info->overlay_buffer.format.size		= fb.fmt.sizeimage;
 
-	t->format.width		= fb.fmt.width;
-	t->format.height	= fb.fmt.height;
+	info->overlay_buffer.format.width		= fb.fmt.width;
+	info->overlay_buffer.format.height	= fb.fmt.height;
 
-	if (t->format.size == 0) /* huh? */
-		t->format.size = fb.fmt.bytesperline * fb.fmt.height;
+	if (info->overlay_buffer.format.size == 0) /* huh? */
+		info->overlay_buffer.format.size = fb.fmt.bytesperline * fb.fmt.height;
 
-	t->format.pixfmt = pixelformat_to_pixfmt (fb.fmt.pixelformat);
+	info->overlay_buffer.format.pixfmt = pixelformat_to_pixfmt (fb.fmt.pixelformat);
 
-	if (TV_PIXFMT_UNKNOWN == t->format.pixfmt)
-		CLEAR (*t);
+	if (TV_PIXFMT_UNKNOWN == info->overlay_buffer.format.pixfmt)
+		CLEAR (info->overlay_buffer);
 
 	return TRUE;
 }
@@ -1880,9 +1879,9 @@ int tveng2_attach_device(const char* device_file,
       return -1;
     }
 
-  info->format.pixfmt = pig_depth_to_pixfmt ((unsigned int) error);
+  info->capture_format.pixfmt = pig_depth_to_pixfmt ((unsigned int) error);
 
-  if (TV_PIXFMT_UNKNOWN == info->format.pixfmt) {
+  if (TV_PIXFMT_UNKNOWN == info->capture_format.pixfmt) {
     info -> tveng_errno = -1;
     t_error_msg("switch()", 
 		"Cannot find appropiate palette for current display",
@@ -1892,7 +1891,7 @@ int tveng2_attach_device(const char* device_file,
   }
 
   /* Get fb_info */
-  get_overlay_buffer (info, &info->overlay_buffer);
+  get_overlay_buffer (info);
 
   /* Pass some dummy values to the driver, so g_win doesn't fail */
   CLEAR (info->overlay_window);
@@ -1902,8 +1901,8 @@ int tveng2_attach_device(const char* device_file,
   p_tveng_set_preview_window(info);
 
   /* Set our desired size, make it halfway */
-  info -> format.width = (info->caps.minwidth + info->caps.maxwidth)/2;
-  info -> format.height = (info->caps.minheight +
+  info -> capture_format.width = (info->caps.minwidth + info->caps.maxwidth)/2;
+  info -> capture_format.height = (info->caps.minheight +
 			   info->caps.maxheight)/2;
 
   /* Set some capture format (not important) */

@@ -397,13 +397,13 @@ int tveng_attach_device(const char* device_file,
 	       "  bytes per line         %u, %u bytes\n"
 	       "  offset		 %u, %u, %u bytes\n"
 	       "  pixfmt                 %s\n",
-	       info->format.width, info->format.height,
-	       info->format.size,
-	       info->format.bytes_per_line,
-	       info->format.uv_bytes_per_line,
-	       info->format.offset, info->format.u_offset,
-	       info->format.v_offset,
-	       tv_pixfmt_name (info->format.pixfmt));
+	       info->capture_format.width, info->capture_format.height,
+	       info->capture_format.size,
+	       info->capture_format.bytes_per_line,
+	       info->capture_format.uv_bytes_per_line,
+	       info->capture_format.offset, info->capture_format.u_offset,
+	       info->capture_format.v_offset,
+	       tv_pixfmt_name (info->capture_format.pixfmt));
       fprintf(stderr, "Current overlay window struct:\n");
       fprintf(stderr, "  Coords: %dx%d-%dx%d\n",
 	      info->overlay_window.x,
@@ -1337,7 +1337,7 @@ p_tveng_set_capture_format(tveng_device_info * info)
   if (CAPTURE_MODE_READ == info->capture_mode)
     {
 #ifdef TVENG_FORCE_FORMAT
-      if (0 == (TV_PIXFMT_SET (info->format.pixfmt)
+      if (0 == (TV_PIXFMT_SET (info->capture_format.pixfmt)
 	        & TV_PIXFMT_SET (TVENG_FORCE_FORMAT)))
         {
           return -1;
@@ -1346,7 +1346,7 @@ p_tveng_set_capture_format(tveng_device_info * info)
       /* FIXME the format selection (capture.c) has problems
          with RGB & YUV, so for now we permit only YUV. */
 #ifdef YUVHACK
-      if (0 == (TV_PIXFMT_SET (info->format.pixfmt) & YUVHACK))
+      if (0 == (TV_PIXFMT_SET (info->capture_format.pixfmt) & YUVHACK))
 	{
 	  return -1;
         }
@@ -1356,14 +1356,14 @@ p_tveng_set_capture_format(tveng_device_info * info)
 
   REQUIRE_IO_MODE (-1);
 
-  info->format.height = SATURATE (info->format.height,
+  info->capture_format.height = SATURATE (info->capture_format.height,
 				  info->caps.minheight, info->caps.maxheight);
-  info->format.width  = SATURATE (info->format.width,
+  info->capture_format.width  = SATURATE (info->capture_format.width,
 				  info->caps.minwidth, info->caps.maxwidth);
 
   if (info->priv->dword_align)
-    round_boundary_4 (NULL, &info->format.width,
-		      info->format.pixfmt, info->caps.maxwidth);
+    round_boundary_4 (NULL, &info->capture_format.width,
+		      info->capture_format.pixfmt, info->caps.maxwidth);
 
   if (info->priv->module.set_capture_format)
     {
@@ -2551,8 +2551,8 @@ int tveng_set_capture_size(unsigned int width,
   tv_clear_error (info);
 
   if (info->priv->dword_align)
-    round_boundary_4 (NULL, &info->format.width,
-		      info->format.pixfmt, info->caps.maxwidth);
+    round_boundary_4 (NULL, &info->capture_format.width,
+		      info->capture_format.pixfmt, info->caps.maxwidth);
 
   height = SATURATE (height, info->caps.minheight, info->caps.maxheight);
   width  = SATURATE (width, info->caps.minwidth, info->caps.maxwidth);
@@ -2582,8 +2582,8 @@ int tveng_set_capture_size(unsigned int width,
   else if (height > info->caps.maxheight)
     height = info->caps.maxheight;
   
-  info -> format.width = width;
-  info -> format.height = height;
+  info -> capture_format.width = width;
+  info -> capture_format.height = height;
 
   retcode = info->priv->module.set_capture_format(info);
 
@@ -2630,9 +2630,9 @@ int tveng_get_capture_size(int *width, int *height, tveng_device_info * info)
     }
 
   if (width)
-    *width = info->format.width;
+    *width = info->capture_format.width;
   if (height)
-    *height = info->format.height;
+    *height = info->capture_format.height;
 
   UNTVLOCK;
   return 0;
@@ -2690,26 +2690,26 @@ validate_overlay_buffer		(const tv_overlay_buffer *dga,
 }
 
 tv_bool
-tv_get_overlay_buffer		(tveng_device_info *	info,
-				 tv_overlay_buffer *	target)
+tv_get_overlay_buffer		(tveng_device_info *	info)
 {
 	t_assert (info != NULL);
 
 	if (TVENG_CONTROLLER_NONE == info->current_controller)
 		return FALSE;
 
-	t_assert (target != NULL);
-
-	CLEAR (*target); /* unusable */
+	CLEAR (info->overlay_buffer); /* unusable */
 
 	REQUIRE_IO_MODE (FALSE);
 	REQUIRE_SUPPORT (info->priv->module.get_overlay_buffer, FALSE);
+
+	if (!(info->caps.flags & TVENG_CAPS_OVERLAY))
+		return FALSE;
 
 	TVLOCK;
 
   tv_clear_error (info);
 
-	RETURN_UNTVLOCK (info->priv->module.get_overlay_buffer (info, target));
+	RETURN_UNTVLOCK (info->priv->module.get_overlay_buffer (info));
 }
 
 /* If zapping_setup_fb must be called it will get display_name and
@@ -2722,7 +2722,6 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 				 int			screen_number,
 				 const tv_overlay_buffer *target)
 {
-	tv_overlay_buffer dma;
 	const char *argv[20];
 	char buf1[16];
 	char buf2[16];
@@ -2749,8 +2748,8 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 	/* We can save a lot work if the target is already
 	   initialized. */
 
-	if (info->priv->module.get_overlay_buffer (info, &dma)) {
-		if (validate_overlay_buffer (target, &dma))
+	if (info->priv->module.get_overlay_buffer (info)) {
+		if (validate_overlay_buffer (target, &info->overlay_buffer))
 			goto success;
 
 		/* We can save a lot work if the driver supports
@@ -2860,10 +2859,10 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 
 	switch (WEXITSTATUS (status)) {
 	case 0: /* ok */
-		if (!info->priv->module.get_overlay_buffer (info, &dma))
+		if (!info->priv->module.get_overlay_buffer (info))
 			goto failure;
 
-		if (!validate_overlay_buffer (target, &dma)) {
+		if (!validate_overlay_buffer (target, &info->overlay_buffer)) {
 			tv_error_msg (info, _("zapping_setup_fb failed."));
 			goto failure;
 		}
@@ -3148,6 +3147,10 @@ p_tveng_set_preview_window(tveng_device_info * info)
 		}
 	}
 
+	if (info->overlay_active)
+	  if (-1 == p_tveng_set_preview (FALSE, info))
+	    goto failure;
+
 	if (!info->priv->module.set_overlay_window
 	    (info, &info->overlay_window, &vec))
 		goto failure;
@@ -3249,11 +3252,12 @@ p_tveng_set_preview (int on, tveng_device_info * info)
 
 		/* Safety: current target must match some screen. */
 
-		if (!info->priv->module.get_overlay_buffer (info, &dma))
+		if (!info->priv->module.get_overlay_buffer (info))
 			return (-1);
 
 		for (xs = screens; xs; xs = xs->next)
-			if (validate_overlay_buffer (&xs->target, &dma))
+			if (validate_overlay_buffer (&xs->target,
+						     &info->overlay_buffer))
 				break;
 
 		if (!xs) {
@@ -4631,7 +4635,7 @@ tveng_copy_frame		(unsigned char *	src,
 				 tveng_image_data *	where,
 				 tveng_device_info *	info)
 {
-	if (TV_PIXFMT_IS_PLANAR (info->format.pixfmt)) {
+	if (TV_PIXFMT_IS_PLANAR (info->capture_format.pixfmt)) {
 		tv_pixel_format pf;
 		unsigned int size_y;
 		unsigned int size_uv;
@@ -4639,10 +4643,10 @@ tveng_copy_frame		(unsigned char *	src,
 		uint8_t *src_u;
 		uint8_t *src_v;
 
-		if (!tv_pixel_format_from_pixfmt (&pf, info->format.pixfmt, 0))
+		if (!tv_pixel_format_from_pixfmt (&pf, info->capture_format.pixfmt, 0))
 			return;
 
-		size_y = info->format.height * info->format.width;
+		size_y = info->capture_format.height * info->capture_format.width;
 		size_uv = size_y / (pf.uv_hscale * pf.uv_vscale);
 
 		src_y = src;
@@ -4652,24 +4656,24 @@ tveng_copy_frame		(unsigned char *	src,
 		/* XXX shortcut if no padding between planes. */
 
 		tveng_copy_block (src_y, where->planar.y,
-				  info->format.width,
+				  info->capture_format.width,
 				  where->planar.y_stride,
-				  info->format.height);
+				  info->capture_format.height);
 
 		tveng_copy_block (src_u, where->planar.u,
-				  info->format.width / pf.uv_hscale,
+				  info->capture_format.width / pf.uv_hscale,
 				  where->planar.uv_stride,
-				  info->format.height / pf.uv_vscale);
+				  info->capture_format.height / pf.uv_vscale);
 
 		tveng_copy_block (src_v, where->planar.v,
-				  info->format.width / pf.uv_hscale,
+				  info->capture_format.width / pf.uv_hscale,
 				  where->planar.uv_stride,
-				  info->format.height / pf.uv_vscale);
+				  info->capture_format.height / pf.uv_vscale);
 	} else {
 		tveng_copy_block (src, where->linear.data,
-				  info->format.bytes_per_line,
+				  info->capture_format.bytes_per_line,
 				  where->linear.stride,
-				  info->format.height);
+				  info->capture_format.height);
 	}
 }
 

@@ -682,8 +682,7 @@ struct _tveng_device_info
   enum tveng_controller current_controller; /* Controller used */
   struct tveng_caps caps; /* Video system capabilities */
 
-  /* the format about this capture */
-  tv_image_format format; /* pixel format of this device */
+   tv_image_format capture_format;
 
 	/* All internal communication with the device is logged
 	   through this fp when non-NULL. */
@@ -1025,8 +1024,7 @@ int tveng_get_capture_size(int *width, int *height, tveng_device_info * info);
 /* XF86 Frame Buffer routines */
 
 extern tv_bool
-tv_get_overlay_buffer		(tveng_device_info *	info,
-				 tv_overlay_buffer *	target);
+tv_get_overlay_buffer		(tveng_device_info *	info);
 extern tv_bool
 tv_set_overlay_buffer		(tveng_device_info *	info,
 				 const char *		display_name,

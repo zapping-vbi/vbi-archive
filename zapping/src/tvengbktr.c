@@ -1265,12 +1265,10 @@ set_overlay_buffer		(tveng_device_info *	info,
 }
 
 static tv_bool
-get_overlay_buffer		(tveng_device_info *	info,
-				 tv_overlay_buffer *	t)
+get_overlay_buffer		(tveng_device_info *	info)
 {
-	struct private_tvengbktr_device_info *p_info = P_INFO (info);
+	/* Nothing to do. */
 
-	*t = p_info->info.overlay_buffer;
 	return TRUE;
 }
 
@@ -1509,8 +1507,8 @@ get_capture_format		(tveng_device_info * info)
 		int bktr_pixfmt;
 
 		/* Oddly bktr supports SETGEO but not GETGEO. */
-		geom.columns	= info->format.width;
-		geom.rows	= info->format.height;
+		geom.columns	= info->capture_format.width;
+		geom.rows	= info->capture_format.height;
 
 		bktr_pixfmt = -1;
 
@@ -1550,10 +1548,10 @@ get_capture_format		(tveng_device_info * info)
 	}
 
 	if (0 == geom.columns || 0 == geom.rows) {
-		CLEAR (info->format);
-		info->format.pixfmt = pixfmt;
+		CLEAR (info->capture_format);
+		info->capture_format.pixfmt = pixfmt;
 	} else {
-		if (!tv_image_format_init (&info->format,
+		if (!tv_image_format_init (&info->capture_format,
 					   geom.columns,
 					   geom.rows,
 					   /* bytes_per_line (minimum) */ 0,
@@ -1564,7 +1562,7 @@ get_capture_format		(tveng_device_info * info)
 	}
 
 	if (0)
-		_tv_image_format_dump (&info->format, stderr);
+		_tv_image_format_dump (&info->capture_format, stderr);
 
 	return 0;
 }
@@ -1591,7 +1589,7 @@ set_capture_format		(tveng_device_info *	info)
 		}
 	}
 
-	if (!set_format (p_info, &info->format, info->cur_video_standard)) {
+	if (!set_format (p_info, &info->capture_format, info->cur_video_standard)) {
 		return -1;
 	}
 
@@ -2021,7 +2019,7 @@ tvengbktr_attach_device (const char* device_file,
 			 TV_PIXFMT_SET (TV_PIXFMT_YUV422));
 	}
 
-	tv_image_format_init (&info->format, 160, 120, 0,
+	tv_image_format_init (&info->capture_format, 160, 120, 0,
 			      TV_PIXFMT_BGR16_LE, 0);
 
 	/* Bug: VBI capturing works only if we capture video
