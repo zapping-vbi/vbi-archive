@@ -816,8 +816,7 @@ help		(GtkDialog	*dialog,
   if (page_help)
     page_help(page);
   else
-    ShowBox("No help written yet",
-	    GTK_MESSAGE_WARNING);
+    ShowBox("No help written yet", GTK_MESSAGE_WARNING);
 }
 
 static void
@@ -831,7 +830,7 @@ cancel		(GtkDialog	*dialog,
     page_cancel(page);
 }
 
-void prepend_property_handler (property_handler *p)
+void prepend_property_handler (const property_handler *p)
 {
   gint i;
 
@@ -860,7 +859,7 @@ void prepend_property_handler (property_handler *p)
   num_handlers++;
 }
 
-void append_property_handler (property_handler *p)
+void append_property_handler (const property_handler *p)
 {
   if (!p->add)
     g_error("passing in a broken handler");
@@ -919,11 +918,8 @@ void
 startup_properties(void)
 {
   zcc_char(_("General Options"), "Selected properties group", "last_group");
-  cmd_register ("properties", (PyCFunction)py_properties,
-		METH_VARARGS | METH_KEYWORDS,
-		_("Opens the properties dialog, optionally opening "
-		  "the given group and item too"),
-		"zapping.properties([group[, item]])");
+  cmd_register ("properties", (PyCFunction) py_properties,
+		METH_VARARGS | METH_KEYWORDS);
 }
 
 void shutdown_properties(void)
