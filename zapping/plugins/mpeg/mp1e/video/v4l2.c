@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.17 2001-07-27 05:52:25 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.18 2001-08-01 13:01:37 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -127,6 +127,8 @@ wait_full(fifo2 *f)
 	send_full_buffer2(&cap_prod, b);
 }
 
+/* Attention buffers are returned out of order */
+
 static void
 send_empty(consumer *c, buffer2 *b)
 {
@@ -192,6 +194,8 @@ v4l2_init(void)
 
 	if (frame_rate_code == 4 && grab_height == 288)
 		grab_height = 240; // XXX DAU
+	if (frame_rate_code == 4 && grab_height == 576)
+		grab_height = 480; // XXX DAU
 
 	if (PROGRESSIVE(filter_mode)) {
 		frame_rate_code += 3; // see frame_rate_value[]

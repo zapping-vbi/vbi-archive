@@ -1,17 +1,26 @@
-.TH MP1E 1 "$Date: 2001-07-24 20:02:55 $" "mp1e manual" \" -*- nroff -*-
+.TH MP1E 1 "$Date: 2001-08-01 13:01:36 $" "mp1e manual" \" -*- nroff -*-
 .SH NAME
 mp1e \- realtime MPEG-1 audio/video encoder
 .SH SYNOPSIS
 mp1e [options] [<Config File] >MPEG stream
 .SH DESCRIPTION
 .B mp1e
-reads images from a V4L2 compatible device, audio samples from
+reads images from a V4L or V4L2 compatible device, audio samples from
 a OSS, ALSA or ESD compatible device, encodes them as MPEG-1 a/v stream
 and writes the result to standard output.
 .P
+Note
+.B mp1e
+runs fastest, and audio synchronization is best when using V4L2 and
+ALSA. The V4L interface is slow and has not been tested because I don't
+have a V4L device. Due to overhead ESD isn't well suited for synchronous
+recording and should be avoided. Bug reports are welcome, patches even
+more. See the bottom of this manual page for contact addresses. Contributors
+will be supported as much as possible and adequately credited.
+.P
 An MMX enhanced x86 CPU is required, this should be at least a Pentium
 II 400 or equivalent. Without motion compensation a Pentium II 233 is
-more than adequate, I-only compression (comparable to MJPEG) works
+more than sufficient, I-only compression (comparable to MJPEG) works
 on any MMX CPU and audio is usually negligible. The resources needed
 for compression depend on several factors, so the actual requirements
 may be lesser or greater than estimated above.
@@ -643,19 +652,22 @@ returns 0 on success, 1 on failure. Policy is to abort in doubt,
 to avoid hour long recording of snow or silence and you have
 to wait for the next repeat in 2022...
 .SH BUGS
-Versions prior 1.7 should be avoided. Versions prior 1.8 created
-invalid stream syntax which only a few players would accept, and
-inaccurate predictive coding which has been replaced with version
-1.8.
+Versions prior 1.7 are heavily bugged and should be avoided. Versions
+prior 1.8 created invalid stream syntax which only a few players would
+accept, and inaccurate predictive coding which has been replaced in
+version 1.8.
 .P
-Motion compensation in version 1.9pre1 will not work properly,
-MC in version 1.9pre2 triggers some occasional prediction mishap
-which has not been fixed yet. No other bugs are known.
+Motion compensation in version 1.9pre1 will not work properly.
+No known bugs in version 1.9pre2.
 .SH AUTHORS
 .IP \(em
 Michael H. Schimek (mschimek@users.sf.net)
 .IP \(em
 Iñaki G. Etxebarria (garetxe@users.sf.net)
+.P
+Thanks to
+.IP \(em Justin Schoeman for the original V4L interface
+.IP \(em Bill Simpson-Young and Conrad Parker for a V4L2 fix
 .P
 .B mp1e
 lives at the

@@ -1,6 +1,11 @@
 /*
  *  MPEG-1 Real Time Encoder
  *
+ *  Copyright (C) 2001 Michael H. Schimek
+ *
+ *  Based on code by Justin Schoeman,
+ *  modified by Iñaki G. Etxebarria
+ *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -16,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.16 2001-07-26 05:41:31 mschimek Exp $ */
+/* $Id: v4l.c,v 1.17 2001-08-01 13:01:37 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -34,97 +39,95 @@
 #include "../options.h"
 #include "video.h"
 
-#if 0
-
-#define IOCTL(fd, cmd, data) (TEMP_FAILURE_RETRY(ioctl(fd, cmd, data)))
-
-#warning The V4L interface is unsupported.
+#warning The V4L interface has not been tested.
 
 static int			fd;
-static fifo 			cap_fifo;
+static fifo2			cap_fifo;
+static producer			cap_prod;
 
 static struct video_capability	vcap;
 static struct video_channel	chan;
 static struct video_mbuf	buf;
 static struct video_mmap	vmmap;
-static struct video_audio	vaud;
-
-static int			vaud_flags;
-static int			vaud_volume;
-static int			cframe;
+static struct video_audio	old_vaud;
 static unsigned long		buf_base;
 
-static buffer *
-wait_full(fifo *f)
+static pthread_t		thread_id;
+
+#define IOCTL(fd, cmd, data) (TEMP_FAILURE_RETRY(ioctl(fd, cmd, data)))
+
+/*
+ * a) Assume no driver provides more than two buffers.
+ * b) Assume we can't enqueue buffers out of order.
+ * c) Assume frames drop unless we dequeue once every 33-40 ms.
+ *
+ * What a moron's moronic moronity. See v4l2.c for a slick interface.
+ */
+
+static void *
+v4l_cap_thread(void *unused)
 {
-	buffer *b;
-	int r = -1;
-	double now;
-	unsigned char * data;
-	int oldcframe;
+	buffer2 *b;
+	int cframe;
+	int r;
 
-	oldcframe = cframe + 1;
-	if (oldcframe == f->num_buffers)
-		oldcframe = 0;
-
-	vmmap.frame = oldcframe;
-	ASSERT("enqueue capture buffer",
-	       IOCTL(fd, VIDIOCMCAPTURE, &vmmap) == 0);
-
-	while (r < 0) {
+	for (cframe = 0; cframe < buf.frames; cframe++) {
 		vmmap.frame = cframe;
-
-        	r = ioctl(fd, VIDIOCSYNC, &(vmmap.frame));
-
-		now = current_time();
-
-		if (r < 0 && errno == EINTR)
-			continue;
-
-		ASSERT("execute video sync", r >= 0);
+		ASSERT("queue v4l capture buffer #%d",
+			ioctl(fd, VIDIOCMCAPTURE, &vmmap) == 0,
+			cframe);
 	}
 
-	data = (unsigned char *)(buf_base + buf.offsets[vmmap.frame]);
-
-	b = f->buffers + cframe;
-	b->time = now;
-
-	memcpy(b->data, data, b->size);
-
-	cframe = oldcframe;
-
-	return b;
-}
-
-static bool
-capture_on(fifo *unused)
-{
 	cframe = 0;
-	return TRUE;
+
+	for (;;) {
+		/* Just in case wait_empty never waits */
+		pthread_testcancel();
+
+		b = wait_empty_buffer2(&cap_prod);
+
+		r = IOCTL(fd, VIDIOCSYNC, &cframe);
+
+		b->time = current_time();
+
+		ASSERT("ioctl VIDIOCSYNC", r >= 0);
+
+		memcpy(b->data, (unsigned char *)(buf_base
+			+ buf.offsets[cframe]), b->used);
+		b->used = b->size;
+
+		vmmap.frame = cframe;
+
+		ASSERT("queue v4l capture buffer #%d",
+			IOCTL(fd, VIDIOCMCAPTURE, &vmmap) == 0,
+			cframe);
+
+		send_full_buffer2(&cap_prod, b);
+
+		if (++cframe >= buf.frames)
+			cframe = 0;
+	}
+
+	return NULL;
 }
 
 static void
-mute_restore(void)
+restore_audio(void)
 {
-	ASSERT("query audio capabilities",
-	       IOCTL(fd, VIDIOCGAUDIO, &vaud) == 0);
+	pthread_cancel(thread_id);
+	pthread_join(thread_id, NULL);
 
-	fprintf(stderr, "muting again\n");
-
-	vaud.flags |= VIDEO_AUDIO_MUTE;
-	vaud.volume = 0;
-
-	ASSERT("Audio muting", IOCTL(fd, VIDIOCSAUDIO, &vaud) == 0);
+	IOCTL(fd, VIDIOCSAUDIO, &old_vaud);
 }
 
 fifo2 *
 v4l_init(void)
 {
+	int min_cap_buffers = video_look_ahead(gop_sequence);
 	int aligned_width;
 	int aligned_height;
-	unsigned long bufsize;
-
-	FAIL("The V4L interface doesn't work, please use V4L2 instead.");
+	unsigned long buf_size;
+	int buf_count;
 
 	grab_width = width = saturate(width, 1, MAX_WIDTH);
 	grab_height = height = saturate(height, 1, MAX_HEIGHT);
@@ -132,23 +135,31 @@ v4l_init(void)
 	aligned_width  = (width + 15) & -16;
 	aligned_height = (height + 15) & -16;
 
+	buf_count = MAX(cap_buffers, min_cap_buffers);
+
 	ASSERT("open capture device", (fd = open(cap_dev, O_RDONLY)) != -1);
-	ASSERT("query video capture capabilities", IOCTL(fd, VIDIOCGCAP, &vcap) == 0);
 
-	if (!(vcap.type&VID_TYPE_CAPTURE))
-		FAIL("%s ('%s') is not a capture device", cap_dev, vcap.name);
+	ASSERT("query video capture capabilities of %s (no v4l device?)",
+		IOCTL(fd, VIDIOCGCAP, &vcap) == 0, cap_dev);
 
-	ASSERT("query audio capabilities", IOCTL(fd, VIDIOCGAUDIO, &vaud) == 0);
+	if (!(vcap.type & VID_TYPE_CAPTURE))
+		FAIL("%s ('%s') is not a video capture device",
+			cap_dev, vcap.name);
 
-	vaud_flags = vaud.flags;
-	vaud_volume = vaud.volume;
+	if (IOCTL(fd, VIDIOCGAUDIO, &old_vaud) == 0) {
+		struct video_audio vaud;
 
-	vaud.flags &= ~VIDEO_AUDIO_MUTE;
-	vaud.volume = 60000;
+		memcpy(&vaud, &old_vaud, sizeof(vaud));
 
-	ASSERT("Audio unmuting", IOCTL(fd, VIDIOCSAUDIO, &vaud) == 0);
+		vaud.flags &= ~VIDEO_AUDIO_MUTE;
+		vaud.volume = 60000;
 
-	atexit(mute_restore);
+		ASSERT("enable sound of %s",
+			IOCTL(fd, VIDIOCSAUDIO, &vaud) == 0,
+			cap_dev);
+
+		atexit(restore_audio);
+	}
 
 	printv(2, "Opened %s ('%s')\n", cap_dev, vcap.name);
 
@@ -159,16 +170,25 @@ v4l_init(void)
 	else /* NTSC */
 		frame_rate_code = 4;
 
-	printv(2, "Video standard is '%s'\n", chan.norm == 0 ? "PAL" : "NTSC");
+	printv(2, "Video standard is '%s'\n",
+		chan.norm == 0 ? "PAL" : "NTSC");
 
 	if (frame_rate_code == 4 && grab_height == 288)
-		height = aligned_height = grab_height = 240; // XXX DAU
+		height = aligned_height = grab_height = 240;
+	if (frame_rate_code == 4 && grab_height == 576)
+		height = aligned_height = grab_height = 480;
 
 	vmmap.width	= aligned_width;
 	vmmap.height	= aligned_height;
-	vmmap.format	= VIDEO_PALETTE_YUV420P;
 
-	filter_mode = CM_YUV;
+	if (filter_mode == CM_YUV) {
+		vmmap.format = VIDEO_PALETTE_YUV420P;
+		buf_size = vmmap.width * vmmap.height * 3 / 2;
+	} else {
+		vmmap.format = VIDEO_PALETTE_YUV422;
+		buf_size = vmmap.width * vmmap.height * 2;
+	}
+
 	filter_init(vmmap.width);
 
 	ASSERT("request capture buffers", IOCTL(fd, VIDIOCGMBUF, &buf) == 0);
@@ -180,47 +200,25 @@ v4l_init(void)
 
 	printv(3, "Mapping capture buffers.\n");
 
-	buf_base=(unsigned long)mmap(NULL, buf.size, PROT_READ,
-		  MAP_SHARED, fd, 0);
+	buf_base = (unsigned long) mmap(NULL, buf.size, PROT_READ,
+			MAP_SHARED, fd, 0);
 
-	ASSERT("map capture buffer", (int)buf_base != -1);
+	ASSERT("map capture buffers", buf_base != -1);
 
-	ASSERT("init capture fifo", init_callback_fifo(
-		&cap_fifo, "video-v4l",
-		wait_full, NULL, buf.frames, 0));
+	ASSERT("initialize v4l fifo", init_buffered_fifo2(
+		&cap_fifo, "video-v4l2",
+		buf_count, buf_size));
 
-	cap_fifo.start = capture_on;
+	printv(2, "Allocated %d bounce buffers.\n", buf_count);
 
-	cap_fifo.num_buffers = 0;
-	/* malloc() is needed because usually only 2 buffers are available */
-	bufsize = vmmap.width * vmmap.height * 1.5;
+	ASSERT("init v4l capture producer",
+		add_producer(&cap_fifo, &cap_prod));
 
-	fprintf(stderr, "allocating %ld bytes\n", bufsize);
+	ASSERT("create v4l capture thread",
+		!pthread_create(&thread_id, NULL,
+			v4l_cap_thread, NULL));
 
-	for (cap_fifo.num_buffers = 0; cap_fifo.num_buffers < buf.frames;
-		cap_fifo.num_buffers++) {
-		cap_fifo.buffers[cap_fifo.num_buffers].data =
-			cap_fifo.buffers[cap_fifo.num_buffers].allocated =
-			calloc_aligned(bufsize,
-				       bufsize < 4096 ? CACHE_LINE : 4096);
-		cap_fifo.buffers[cap_fifo.num_buffers].size = bufsize;
-		ASSERT("allocate mem for the capture buffers",
-		       cap_fifo.buffers[cap_fifo.num_buffers].data);
-	}
-
-	vmmap.frame = 0;
-	ASSERT("queue buffer",
-	       IOCTL(fd, VIDIOCMCAPTURE, &vmmap) == 0);
+	printv(2, "V4L capture thread launched (you should really use V4L2...)\n");
 
 	return &cap_fifo;
-}
-
-#endif
-
-fifo2 *
-v4l_init(void)
-{
-	FAIL("The V4L interface is out of order, please install V4L2.");
-
-	return NULL;
 }
