@@ -18,14 +18,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: wss.h,v 1.1.1.1.2.1 2004-04-03 00:07:55 mschimek Exp $ */
+/* $Id: wss.h,v 1.1.1.1.2.2 2004-04-03 02:04:48 mschimek Exp $ */
 
 #ifndef __ZVBI_WSS_H__
 #define __ZVBI_WSS_H__
 
 #include <inttypes.h>		/* uint8_t */
 #include "macros.h"
-#include "aspect.h"		/* vbi_aspect_ratio */
+#include "aspect_ratio.h"	/* vbi_aspect_ratio */
 
 /* Public */
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds.c,v 1.1.2.4 2004-04-03 00:07:55 mschimek Exp $ */
+/* $Id: xds.c,v 1.1.2.5 2004-04-03 02:04:48 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -185,26 +185,26 @@ vbi_decode_xds_aspect_ratio	(vbi_aspect_ratio *	ar,
 				 const uint8_t *	buffer,
 				 unsigned int		buffer_size)
 {
-	assert (NULL != r);
-	assert (NULL != xp);
+	assert (NULL != ar);
+	assert (NULL != buffer);
 
-	if (xp->buffer_size < 2 || xp->buffer_size > 3)
+	if (buffer_size < 2 || buffer_size > 3)
 		return FALSE;
 
-	r->start[0] = 22 + (xp->buffer[0] & 63);
-	r->start[1] = 285 + (xp->buffer[0] & 63);
-	r->count[0] = 262 - 22 - (xp->buffer[1] & 63);
-	r->count[1] = r->count[0];
+	ar->start[0] = 22 + (buffer[0] & 63);
+	ar->start[1] = 285 + (buffer[0] & 63);
+	ar->count[0] = 262 - 22 - (buffer[1] & 63);
+	ar->count[1] = ar->count[0];
 
-	if (xp->buffer_size >= 3 && (xp->buffer[2] & 1))
-		r->ratio = 3.0 / 4.0;
+	if (buffer_size >= 3 && (buffer[2] & 1))
+		ar->ratio = 3.0 / 4.0;
 	else
-		r->ratio = 1.0;
+		ar->ratio = 1.0;
 
-	r->film_mode = FALSE;
+	ar->film_mode = FALSE;
 
-	r->open_subtitles = VBI_SUBTITLES_UNKNOWN;
-	r->closed_subtitles = VBI_SUBTITLES_UNKNOWN;
+	ar->open_subtitles = VBI_SUBTITLES_UNKNOWN;
+	ar->closed_subtitles = VBI_SUBTITLES_UNKNOWN;
 
 	return TRUE;
 }

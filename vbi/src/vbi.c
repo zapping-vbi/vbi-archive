@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.6.2.10 2004-04-03 00:07:55 mschimek Exp $ */
+/* $Id: vbi.c,v 1.6.2.11 2004-04-03 02:04:48 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -796,7 +796,7 @@ vbi_decoder_new(void)
 
 	vbi_teletext_init(vbi);
 
-	vbi_teletext_set_level(vbi, VBI_WST_LEVEL_2p5);
+	//obsolete	vbi_teletext_set_level(vbi, VBI_WST_LEVEL_2p5);
 
 	vbi_caption_init(vbi);
 

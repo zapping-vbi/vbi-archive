@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: aspect_ratio.h,v 1.1.2.1 2004-04-03 00:07:55 mschimek Exp $ */
+/* $Id: aspect_ratio.h,v 1.1.2.2 2004-04-03 02:04:47 mschimek Exp $ */
 
 #ifndef __ZVBI_ASPECT_H__
 #define __ZVBI_ASPECT_H__
@@ -112,6 +112,8 @@ _vbi_aspect_ratio_dump		(const vbi_aspect_ratio *r,
 extern void
 _vbi_aspect_ratio_init		(vbi_aspect_ratio *	r,
 				 vbi_videostd_set	videostd_set);
+
+/* Public */
 
 VBI_END_DECLS
 
