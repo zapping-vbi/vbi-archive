@@ -457,11 +457,6 @@ propagate_toolbar_changes	(GtkWidget	*toolbar);
 void
 zmisc_overlay_subtitles		(gint page);
 
-/* Sets the given X cursor to the window */
-void
-z_set_cursor			(GdkWindow	*window,
-				 guint		cid);
-
 /* Same as z_pixmap_new_from_file(), but prepends PACKAGE_PIXMAP_DIR
    to name and gtk_shows the pixmap on success */
 GtkWidget *
