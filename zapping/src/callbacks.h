@@ -190,6 +190,10 @@ on_add_channel_clicked                 (GtkButton       *button,
                                         gpointer         user_data);
 
 void
+on_modify_channel_clicked              (GtkButton       *button,
+                                        gpointer         user_data);
+
+void
 on_remove_channel_clicked              (GtkButton       *button,
                                         gpointer         user_data);
 
@@ -221,6 +225,10 @@ on_cancel_search_clicked               (GtkButton       *button,
 gboolean
 on_searching_delete_event              (GtkWidget       *widget,
                                         GdkEvent        *event,
+                                        gpointer         user_data);
+
+void
+on_hscale1_value_changed               (GtkAdjustment   *adj,
                                         gpointer         user_data);
 
 /******************************************************************************

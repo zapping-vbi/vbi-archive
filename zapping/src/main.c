@@ -73,6 +73,7 @@ int main(int argc, char * argv[])
   GList * p;
   gint x, y, w, h; /* Saved geometry */
   GdkGeometry geometry;
+  GdkWindowHints hints;
   plugin_sample sample; /* The a/v sample passed to the plugins */
 
 #ifdef ENABLE_NLS
@@ -250,6 +251,7 @@ int main(int argc, char * argv[])
       if (flag_exit_program)
 	continue; /* Exit the loop if neccesary now */
 
+      hints = 0;
       /* Set the geometry flags if needed */
       if (zcg_bool(NULL, "fixed_increments"))
 	{
@@ -257,10 +259,24 @@ int main(int argc, char * argv[])
 	  geometry.height_inc = 48;
 	  geometry.min_width = 64;
 	  geometry.min_height = 48;
-	  gdk_window_set_geometry_hints(main_window->window, &geometry,
-					GDK_HINT_RESIZE_INC |
-					GDK_HINT_MIN_SIZE);
+	  hints |= GDK_HINT_RESIZE_INC | GDK_HINT_MIN_SIZE;
 	}
+
+      switch (zcg_int(NULL, "ratio")) {
+      case 1:
+	geometry.min_aspect = geometry.max_aspect = 4.0/3.0;
+	hints |= GDK_HINT_ASPECT;
+	break;
+      case 2:
+	geometry.min_aspect = geometry.max_aspect = 16.0/9.0;
+	hints |= GDK_HINT_ASPECT;
+	break;
+      default:
+	break;
+      }
+
+      gdk_window_set_geometry_hints(main_window->window, &geometry,
+				    hints);
 
       /* Collect the sound data (the queue needs to be emptied,
 	 otherwise mem usage will grow a lot) */

@@ -2,12 +2,11 @@
 # Copyright (C) YEAR Free Software Foundation, Inc.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-#: plugins/mpeg/mpeg.c:22 plugins/mpeg/mpeg.c:24 plugins/mpeg/mpeg.c:26
 #, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-07-19 22:23+0200\n"
+"POT-Creation-Date: 2000-07-20 19:02+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -15,36 +14,36 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: ENCODING\n"
 
-#: src/main.c:89
+#: src/main.c:90
 msgid "Sorry, but there is no module support"
 msgstr ""
 
-#: src/main.c:98
+#: src/main.c:99
 msgid "Cannot get device info struct"
 msgstr ""
 
-#: src/main.c:104
+#: src/main.c:105
 msgid "Zapping couldn't be started"
 msgstr ""
 
-#: src/main.c:143
+#: src/main.c:144
 msgid ""
 "The specified device isn't \"/dev/video\".\n"
 "Should I try it?"
 msgstr ""
 
-#: src/main.c:164
+#: src/main.c:165
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:276
+#: src/main.c:292
 msgid "There is no allocated mem for the capture"
 msgstr ""
 
-#: src/main.c:379
+#: src/main.c:395
 msgid ""
 "ZConf could not be closed properly , your\n"
 "configuration will be lost.\n"
@@ -56,7 +55,7 @@ msgid ""
 "     Zapping. Please contact the author.\n"
 msgstr ""
 
-#: src/main.c:408
+#: src/main.c:424
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr ""
 
@@ -165,7 +164,7 @@ msgstr ""
 msgid "(Unknown real channel)"
 msgstr ""
 
-#: src/channel_editor.c:281 src/frequencies.c:1045
+#: src/channel_editor.c:299 src/channel_editor.c:344 src/frequencies.c:1045
 msgid "(Unknown country)"
 msgstr ""
 
@@ -731,41 +730,41 @@ msgid ""
 "The plugin that created the active page doesn't provide help for it. Sorry."
 msgstr ""
 
-#: src/channel_editor.c:116
+#: src/channel_editor.c:134
 msgid "Sorry, but the current input has no tuners"
 msgstr ""
 
-#: src/channel_editor.c:241
+#: src/channel_editor.c:259
 #, c-format
 msgid "Cannot sscanf() unsigned integer from %s"
 msgstr ""
 
-#: src/channel_editor.c:449
+#: src/channel_editor.c:537
 msgid "s_channel could not be retrieved, strange..."
 msgstr ""
 
-#: src/channel_editor.c:454
+#: src/channel_editor.c:542
 msgid "s_country could not be retrieved, strange..."
 msgstr ""
 
-#: src/channel_editor.c:459
+#: src/channel_editor.c:547
 msgid "s_freq could not be retrieved, strange..."
 msgstr ""
 
-#: src/channel_editor.c:466
+#: src/channel_editor.c:554
 msgid "The specified frequence cannot be parsed"
 msgstr ""
 
-#: src/channel_editor.c:476
+#: src/channel_editor.c:564
 msgid "Returned country tune id is invalid"
 msgstr ""
 
-#: src/channel_editor.c:484
+#: src/channel_editor.c:572
 #, c-format
 msgid "Channel %s cannot be found in current country: %s"
 msgstr ""
 
-#: src/channel_editor.c:490
+#: src/channel_editor.c:578
 #, c-format
 msgid "Returned channel id (%d) is not valid"
 msgstr ""
@@ -905,7 +904,7 @@ msgstr ""
 msgid "Use this to go fullscreen. Press ESC to return to Windowed mode"
 msgstr ""
 
-#: glade/glade_strings.c:13 glade/glade_strings.c:105
+#: glade/glade_strings.c:13 glade/glade_strings.c:108
 msgid "Go _Fullscreen"
 msgstr ""
 
@@ -1077,178 +1076,190 @@ msgid "kHz"
 msgstr ""
 
 #: glade/glade_strings.c:62
-msgid "Select your country and click here to search for the available channels"
+msgid "Frequence:"
 msgstr ""
 
 #: glade/glade_strings.c:63
-msgid "_Search for the available channels in the current country"
+msgid "Select your country and click here to search for the available channels"
 msgstr ""
 
 #: glade/glade_strings.c:64
-msgid "Enter here the alias you want to give to this channel:"
+msgid "_Search for the available channels in the current country"
 msgstr ""
 
 #: glade/glade_strings.c:65
+msgid "Enter here the alias you want to give to this channel:"
+msgstr ""
+
+#: glade/glade_strings.c:66
 msgid "Enter here the name you want to give to this channel"
 msgstr ""
 
-#: glade/glade_strings.c:66 glade/glade_strings.c:74
+#: glade/glade_strings.c:67 glade/glade_strings.c:77
 msgid "Click here when you are done"
 msgstr ""
 
-#: glade/glade_strings.c:67
+#: glade/glade_strings.c:68
 msgid "Click this button if you want to discard current changes"
 msgstr ""
 
-#: glade/glade_strings.c:68
+#: glade/glade_strings.c:69
 msgid "Click here to add current channel"
 msgstr ""
 
-#: glade/glade_strings.c:69
+#: glade/glade_strings.c:70
 msgid "_Add"
 msgstr ""
 
-#: glade/glade_strings.c:70
-msgid "Click here to delete selected channels"
-msgstr ""
-
 #: glade/glade_strings.c:71
-msgid "_Remove"
+msgid "Click here to apply the current options to the selected channels"
 msgstr ""
 
 #: glade/glade_strings.c:72
-msgid "This shows some help about this dialog"
+msgid "_Modify"
 msgstr ""
 
 #: glade/glade_strings.c:73
-msgid "Plugin properties"
+msgid "Click here to delete selected channels"
+msgstr ""
+
+#: glade/glade_strings.c:74
+msgid "_Remove"
 msgstr ""
 
 #: glade/glade_strings.c:75
-msgid "Run the plugin"
+msgid "This shows some help about this dialog"
 msgstr ""
 
 #: glade/glade_strings.c:76
-msgid "_Start Plugin"
-msgstr ""
-
-#: glade/glade_strings.c:77
-msgid "Stop this plugin"
+msgid "Plugin properties"
 msgstr ""
 
 #: glade/glade_strings.c:78
-msgid "S_top Plugin"
+msgid "Run the plugin"
 msgstr ""
 
 #: glade/glade_strings.c:79
-msgid "Show the configuration options for this plugin"
+msgid "_Start Plugin"
 msgstr ""
 
 #: glade/glade_strings.c:80
-msgid "_Configure"
+msgid "Stop this plugin"
 msgstr ""
 
 #: glade/glade_strings.c:81
-msgid "Plugins"
+msgid "S_top Plugin"
 msgstr ""
 
 #: glade/glade_strings.c:82
-msgid "label67 (Plugin name)"
+msgid "Show the configuration options for this plugin"
 msgstr ""
 
 #: glade/glade_strings.c:83
-msgid "label68 (Plugin short description)"
+msgid "_Configure"
 msgstr ""
 
 #: glade/glade_strings.c:84
-msgid "Canonical name:"
+msgid "Plugins"
 msgstr ""
 
 #: glade/glade_strings.c:85
-msgid "label69"
+msgid "label67 (Plugin name)"
 msgstr ""
 
 #: glade/glade_strings.c:86
-msgid "Author:"
+msgid "label68 (Plugin short description)"
 msgstr ""
 
 #: glade/glade_strings.c:87
-msgid "label71"
+msgid "Canonical name:"
 msgstr ""
 
 #: glade/glade_strings.c:88
-msgid "Plugin version:"
+msgid "label69"
 msgstr ""
 
 #: glade/glade_strings.c:89
-msgid "label72"
+msgid "Author:"
 msgstr ""
 
 #: glade/glade_strings.c:90
-msgid "Plugin priority:"
+msgid "label71"
 msgstr ""
 
 #: glade/glade_strings.c:91
-msgid "label73"
+msgid "Plugin version:"
 msgstr ""
 
 #: glade/glade_strings.c:92
-msgid "Plugin description"
+msgid "label72"
 msgstr ""
 
 #: glade/glade_strings.c:93
-msgid "text1"
+msgid "Plugin priority:"
 msgstr ""
 
 #: glade/glade_strings.c:94
-msgid "Properties"
+msgid "label73"
 msgstr ""
 
 #: glade/glade_strings.c:95
-msgid "Plugin location"
+msgid "Plugin description"
 msgstr ""
 
 #: glade/glade_strings.c:96
-msgid "This is the file where the plugin is located"
+msgid "text1"
 msgstr ""
 
 #: glade/glade_strings.c:97
-msgid "text2"
+msgid "Properties"
 msgstr ""
 
 #: glade/glade_strings.c:98
-msgid "label76"
+msgid "Plugin location"
 msgstr ""
 
 #: glade/glade_strings.c:99
-msgid "Symbol"
+msgid "This is the file where the plugin is located"
 msgstr ""
 
 #: glade/glade_strings.c:100
-msgid "Hash"
+msgid "text2"
 msgstr ""
 
 #: glade/glade_strings.c:101
-msgid "Description of the symbol"
+msgid "label76"
 msgstr ""
 
 #: glade/glade_strings.c:102
-msgid "text3"
+msgid "Symbol"
 msgstr ""
 
 #: glade/glade_strings.c:103
-msgid "Advanced"
+msgid "Hash"
 msgstr ""
 
 #: glade/glade_strings.c:104
-msgid "Use this for starting the fullscreen mode"
+msgid "Description of the symbol"
+msgstr ""
+
+#: glade/glade_strings.c:105
+msgid "text3"
 msgstr ""
 
 #: glade/glade_strings.c:106
-msgid "Searching..."
+msgid "Advanced"
 msgstr ""
 
 #: glade/glade_strings.c:107
+msgid "Use this for starting the fullscreen mode"
+msgstr ""
+
+#: glade/glade_strings.c:109
+msgid "Searching..."
+msgstr ""
+
+#: glade/glade_strings.c:110
 msgid "%P %%"
 msgstr ""
 
@@ -1355,11 +1366,4 @@ msgstr ""
 
 #: plugins/screenshot/screenshot.c:709
 msgid "There are too many threads"
-msgstr ""
-
-#. hash collision code
-#. Warn
-#: plugins/mpeg/mpeg.c:77
-#, c-format
-msgid "Check error: \"%s\" in plugin %shas hash 0x%x vs. 0x%x"
 msgstr ""

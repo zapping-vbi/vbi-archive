@@ -1,3 +1,13 @@
+20.7.2000	Modify channels <garetxe@users.sourceforge.net>
+
+	* src/channel_editor.c: Added the option to modify channels and a
+	fine tuner
+	* galde/zapping.glade: Modified accordingly.
+	* src/main.c: Fixed ratio is working (although it doesn't work
+	under Sawfish)
+	* macros/autogen.sh: Little fix, it tried to autoconf mp1e's
+	configure.in (it's in the same CVS tree as zapping)
+	
 19.7.2000	Option for keeping the ratio <garetxe@users.sourceforge.net>
 
 	* src/properties.c: Added the option (doesn't do anything for now)

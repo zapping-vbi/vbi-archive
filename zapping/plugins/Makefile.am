@@ -1,1 +1,1 @@
-SUBDIRS = screenshot template mpeg
+SUBDIRS = screenshot template

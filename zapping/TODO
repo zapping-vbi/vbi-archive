@@ -3,9 +3,8 @@ Outstanding issues for the next release
 	+ Write the mpeg saving plugin.
 	+ Add the option to specify the freq by hand in the Channel
 editor.
-	+ Ratio (4:3, 16:9) selection options
+	+ Add a windowed overlay mode.
 	+ Modify the web page to point to
 http://sourceforge.net/projects/zapping
-	+ Create the popup menu slightly away from the pointer
 	+ Check that tarball and RPM installations work perfectly
 	> Release 0.5.2

@@ -79,8 +79,10 @@ xlc )
   am_opt=--include-deps;;
 esac
 
-for coin in `find $srcdir -name configure.in -print`
-do 
+## This used to find all the configure.in in the tree, but that isn't
+## what i want
+coin="./configure.in"
+
   dr=`dirname $coin`
   if test -f $dr/NO-AUTO-GEN; then
     echo skipping $dr -- flagged as no auto-gen
@@ -132,7 +134,6 @@ do
       autoconf
     )
   fi
-done
 
 conf_flags="--enable-maintainer-mode --enable-compile-warnings" #--enable-iso-c
 
