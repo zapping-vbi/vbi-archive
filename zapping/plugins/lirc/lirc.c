@@ -269,7 +269,6 @@ void plugin_add_properties ( GnomePropertyBox * gpb )
 {
   GtkWidget * label;
   GtkBox * vbox; /* the page added to the notebook */
-  gint page;
 
   printv("lirc plugin: adding properties\n");
 
@@ -284,7 +283,7 @@ void plugin_add_properties ( GnomePropertyBox * gpb )
   gtk_widget_show(label);
   lirc_page = gnome_property_box_append_page(gpb, GTK_WIDGET(vbox), label);
 
-  gtk_object_set_data(GTK_OBJECT(gpb), "lirc_page", GINT_TO_POINTER(page));
+  gtk_object_set_data(GTK_OBJECT(gpb), "lirc_page", GINT_TO_POINTER(lirc_page));
 }
 
 static
@@ -379,6 +378,8 @@ void *lirc_thread(void *dummy)
     if (old_msec != new_msec) {
       diff = new_msec - old_msec;
       old_msec = new_msec;
+    } else {
+      diff = 0;
     }
 
     strncpy(new_button, buf2, 20);

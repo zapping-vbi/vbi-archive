@@ -1,3 +1,7 @@
+24.05.2001	<mschimek@users.sourceforge.net>
+
+	* plugins/lirc/lirc.c: lirc_page fixed in plugin_add_properties
+
 24.05.2001	Rolling headers <garetxe@users.sf.net>
 
 	* src/zvbi.c: Rolling headers support (just the time field for the
