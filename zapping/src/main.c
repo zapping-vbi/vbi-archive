@@ -46,6 +46,7 @@
 /* This comes from callbacks.c */
 extern enum tveng_capture_mode restore_mode; /* the mode set when we went
 						fullscreen */
+extern int cur_tuned_channel;
 
 /**** GLOBAL STUFF ****/
 
@@ -298,7 +299,7 @@ int main(int argc, char * argv[])
 			      0, NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.99 2001-03-23 23:47:10 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.100 2001-03-25 22:06:00 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -571,6 +572,9 @@ int main(int argc, char * argv[])
     z_switch_input(zcg_int(NULL, "current_input"), main_info);
   if (zcg_int(NULL, "current_standard"))
     z_switch_standard(zcg_int(NULL, "current_standard"), main_info);
+  z_switch_channel(tveng_retrieve_tuned_channel_by_index(cur_tuned_channel,
+							 global_channel_list),
+		   main_info);
   D();
   /* Sets the coords to the previous values, if the users wants to */
   if (zcg_bool(NULL, "keep_geometry"))

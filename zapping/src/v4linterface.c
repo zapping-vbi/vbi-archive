@@ -617,6 +617,9 @@ z_switch_channel	(tveng_tuned_channel	*channel,
 {
   int mute=0;
 
+  if (!channel)
+    return;
+
   if (zconf_get_boolean(NULL, "/zapping/options/main/avoid_noise"))
     {
       mute = tveng_get_mute(info);
