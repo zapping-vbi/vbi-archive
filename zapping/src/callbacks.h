@@ -337,10 +337,6 @@ on_vtx_history_next_clicked            (GtkButton       *button,
 					gpointer         user_data);
 
 void
-on_freeze_page_toggled                 (GtkToggleButton *toggle,
-					gpointer         user_data);
-
-void
 on_manual_page_value_changed          (GtkAdjustment    *adj,
 				       GtkSpinButton    *spin);
 

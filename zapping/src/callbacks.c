@@ -778,6 +778,9 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
   if (event->type != GDK_BUTTON_PRESS)
     return FALSE;
 
+  if (bevent->button == 1)
+    zvbi_clicked_tvscreen(widget, bevent);
+
   if (bevent->button == 3)
     {
       GtkMenu * menu = GTK_MENU(create_popup_menu1());

@@ -30,32 +30,6 @@
 #include "zmisc.h"
 #include "interface.h"
 
-/* Takes and hex number with only decimal digits in its
-   representation, and returns the representation as if it was in 10,
-   base. I.e. 0x123 becomes 123 (decimal) */
-static gint hex2dec(gint hex)
-{
-  int returned_value=0;
-  gchar * representation = g_strdup_printf("%x", hex);
-  sscanf(representation, "%d", &returned_value);
-  g_free(representation);
-  /*  g_message("hex2dec: 0x%x -> %dd", hex, returned_value); */
-  return returned_value;
-}
-
-/* The inverse of the above, converts 145d to 0x145 */
-static gint dec2hex(gint dec)
-{
-  int returned_value=0;
-  gchar * representation = g_strdup_printf("%d", dec);
-  sscanf(representation, "%x", &returned_value);
-  g_free(representation);
-  /* g_message("dec2hex: %dd -> 0x%x", dec, returned_value); */
-  return returned_value;
-}
-
-/* sets a given page and marks it as visited */
-
 gboolean
 on_txtcontrols_delete_event            (GtkWidget       *widget,
                                         GdkEvent        *event,
@@ -125,13 +99,6 @@ on_vtx_history_next_clicked            (GtkButton       *button,
 }
 
 void
-on_freeze_page_toggled                 (GtkToggleButton *toggle,
-					gpointer         user_data)
-{
-  g_message("freeze page");
-}
-
-void
 on_manual_page_value_changed          (GtkAdjustment    *adj,
 				       GtkSpinButton    *spin)
 {
@@ -141,7 +108,7 @@ on_manual_page_value_changed          (GtkAdjustment    *adj,
   /* This is enough, the next callback will be activated, and it will
      do the real work */
   gtk_spin_button_set_value(manual_subpage, -1);
-  /* raise the signal manually... GtkAdjustment check before calling
+  /* raise the signal manually... GtkAdjustment checks before calling
      value_changed */
   gtk_adjustment_value_changed(manual_subpage->adjustment);
 }
@@ -155,6 +122,11 @@ on_manual_subpage_value_changed       (GtkAdjustment    *adj,
   gint page = gtk_spin_button_get_value_as_int(manual_page);
   gint subpage = gtk_spin_button_get_value_as_int(spin);
   gint cur_page, cur_subpage;
+
+  /* check if we should ignore this call, this is used when ZVBI is
+     modifying this fields, we shouldn't load the page */
+  if (gtk_object_get_user_data(GTK_OBJECT(spin)) == (gpointer)0xdeadbeef)
+    return;
 
   zvbi_get_current_page(&cur_page, &cur_subpage);
 

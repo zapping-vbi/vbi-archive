@@ -204,4 +204,8 @@ void zvbi_history_next(void);
 */
 void zvbi_history_previous(void);
 
+/* Manages a click on the tv_screen window */
+void
+zvbi_clicked_tvscreen(GtkWidget *widget, GdkEventButton *bevent);
+
 #endif /* zvbi.h */

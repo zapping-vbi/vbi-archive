@@ -476,6 +476,7 @@ struct monitor_page {
   gboolean dirty; /* changed since last zvbi_clean_page() */
   char * mem; /* rgba rendered page */
   pthread_mutex_t mutex; /* Mutex for protecting the mem */
+  struct vt_page vtp; /* unformatted page */
   struct fmt_page pg; /* The formatted page */
   gint width, height; /* Width and height of the rendered image */
   time_t last_change; /* Time this page got dirty, as returned by
@@ -649,7 +650,8 @@ zvbi_render_monitored_page(struct vt_page * vtp)
 				 (mp->subpage == subpage)))
 	{
 	  pthread_mutex_lock(&(mp->mutex));
-	  fmt_page(FALSE, &(mp->pg), vtp);
+	  memcpy(&(mp->vtp), vtp, sizeof(struct vt_page));
+	  fmt_page(FALSE, &(mp->pg), &(mp->vtp));
 	  if (mp->mem)
 	    free(mp->mem);
 	  mp->mem = zvbi_render_page_rgba(&(mp->pg), &(mp->width),
@@ -843,10 +845,25 @@ static void history_gui_setup(GtkWidget *prev,
 /* Sets the current page/subpage, no history keeping */
 static void zvbi_set_current_page_pure(gint page, gint subpage)
 {
+  GtkWidget * widget;
   zvbi_forget_page(cur_page, cur_subpage);
 
   cur_page = page;
   cur_subpage = subpage;
+
+  /* [GUI] update the spinbuttons so they reflect the new pos */
+  if (txtcontrols)
+    {
+      /* tell the widget to ignore the next value_changed call */
+      widget = lookup_widget(txtcontrols, "manual_subpage");
+      gtk_object_set_user_data(GTK_OBJECT(widget), (gpointer)0xdeadbeef);
+      widget = lookup_widget(txtcontrols, "manual_page");
+      gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget), hex2dec(page));
+      widget = lookup_widget(txtcontrols, "manual_subpage");
+      gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget),
+				(subpage == ANY_SUB) ? -1 : hex2dec(subpage));
+      gtk_object_set_user_data(GTK_OBJECT(widget), NULL);
+    }
 
   zvbi_monitor_page(cur_page, cur_subpage);
   /* In the next zmisc_build_current_page the change will occur */
@@ -861,6 +878,7 @@ void zvbi_set_current_page(gint page, gint subpage)
   GtkWidget *vtx_history_previous=NULL;
   GtkWidget *vtx_history_next=NULL;
   GList *p;
+  gint page_code, pc_subpage;
 
   if (txtcontrols)
     {
@@ -873,7 +891,9 @@ void zvbi_set_current_page(gint page, gint subpage)
 
   /* Append the current page to the history stack and set the history
      pointer to the last entry */
-  history_stack = g_list_append(history_stack, GINT_TO_POINTER(page));
+  pc_subpage = (subpage == ANY_SUB) ? 0xffff : (subpage & 0xffff);
+  page_code = (page<<16)+pc_subpage;
+  history_stack = g_list_append(history_stack, GINT_TO_POINTER(page_code));
   history_stack_size++;
   history_sp = history_stack_size-1;
 
@@ -955,6 +975,7 @@ void zvbi_set_mode(gboolean on)
       gtk_signal_connect(GTK_OBJECT(spin->adjustment),
 			 "value_changed",
 			 on_manual_subpage_value_changed, spin);
+      gtk_object_set_user_data(GTK_OBJECT(spin), NULL);
       /* Make the history buttons show the real state */
       vtx_history_previous = lookup_widget(txtcontrols,
 					   "vtx_history_previous");
@@ -1015,16 +1036,19 @@ void zvbi_select_visited_page(gint index)
 */
 void zvbi_history_next(void)
 {
-  gint page;
+  gint page, page_code, pc_subpage;
   GtkWidget *vtx_history_previous, *vtx_history_next;
 
   if (history_stack_size == (history_sp+1))
     return;
   history_sp++;
 
-  page = GPOINTER_TO_INT(g_list_nth(history_stack, history_sp)->data);
+  page_code = GPOINTER_TO_INT(g_list_nth(history_stack, history_sp)->data);
+  page = page_code >> 16;
+  pc_subpage = (page_code & 0xffff);
+  pc_subpage = (pc_subpage == 0xffff) ? ANY_SUB : pc_subpage;
 
-  zvbi_set_current_page_pure(page, ANY_SUB);
+  zvbi_set_current_page_pure(page, pc_subpage);
 
   if (txtcontrols)
     {
@@ -1041,7 +1065,7 @@ void zvbi_history_next(void)
 */
 void zvbi_history_previous(void)
 {
-  gint page;
+  gint page, page_code, pc_subpage;
   GtkWidget *vtx_history_previous, *vtx_history_next;
 
   if (history_sp == 0)
@@ -1049,9 +1073,12 @@ void zvbi_history_previous(void)
 
   history_sp--;
 
-  page = GPOINTER_TO_INT(g_list_nth(history_stack, history_sp)->data);
+  page_code = GPOINTER_TO_INT(g_list_nth(history_stack, history_sp)->data);
+  page = page_code >> 16;
+  pc_subpage = (page_code & 0xffff);
+  pc_subpage = (pc_subpage == 0xffff) ? ANY_SUB : pc_subpage;
 
-  zvbi_set_current_page_pure(page, ANY_SUB);
+  zvbi_set_current_page_pure(page, pc_subpage);
 
   if (txtcontrols)
     {
@@ -1060,5 +1087,190 @@ void zvbi_history_previous(void)
       vtx_history_next = lookup_widget(txtcontrols,
 				       "vtx_history_next");
       history_gui_setup(vtx_history_previous, vtx_history_next);
+    }
+}
+
+/*
+  FLOF (fast text) navigation. Given a x, tells which page/subpage it
+  corresponds to. It returns a code of -1 in page if it couldn't be
+  resolved, and FALSE.
+  Fast text navigation is the "color" navigation, emitted in the
+  bottom line of the teletext page.
+*/
+static gboolean
+zvbi_resolve_flof(gint x, struct vt_page *vtp, gint *page, gint *subpage)
+{
+  gint code= 7, i, c;
+  if ((!vbi) || (!vtp) || (!page) || (!subpage))
+    return FALSE;
+
+  if (!(vtp->flof))
+    return FALSE;
+
+  for (i=0; (i <= x) && (i<40); i++)
+    if ((c = vtp->data[24][i]) < 8) /* color code */
+      code = c; /* Store it for later on */
+
+  if (code >= 8) /* not found ... weird */
+    return FALSE;
+
+  code = " \0\1\2\3 \3 "[code]; /* color->link conversion table */
+  
+  if ((code > 6) || ((vtp->link[code].pgno & 0xff) == 0xff))
+    return FALSE;
+
+  *page = vtp->link[code].pgno;
+  *subpage = vtp->link[code].subno;
+
+  return TRUE;
+}
+
+#define notdigit(x) (!isdigit(x))
+
+static gboolean
+zvbi_check_subpage(gchar *p, int x, gint *n1, gint *n2)
+{
+    p += x;
+
+    if (x >= 0 && x < 42-5)
+	if (notdigit(p[1]) || notdigit(p[0]))
+	    if (isdigit(p[2]))
+		if (p[3] == '/' || p[3] == ':')
+		    if (isdigit(p[4]))
+			if (notdigit(p[5]) || notdigit(p[6]))
+			{
+			    *n1 = p[2] % 16;
+			    if (isdigit(p[1]))
+				*n1 += p[1] % 16 * 16;
+			    *n2 = p[4] % 16;
+			    if (isdigit(p[5]))
+				*n2 = *n2 * 16 + p[5] % 16;
+			    if ((*n2 > 0x99) || (*n1 > 0x99) ||
+				(*n1 > *n2))
+			      return FALSE;
+			    return TRUE;
+			}
+    return FALSE;
+}
+
+static gboolean
+zvbi_check_page(gchar *p, int x, gint *pgno, gint *subno)
+{
+    p += x;
+
+    if (x >= 0 && x < 42-4)
+      if (notdigit(p[0]) && notdigit(p[4]))
+	if (isdigit(p[1]))
+	  if (isdigit(p[2]))
+	    if (isdigit(p[3]))
+	      {
+		*pgno = p[1] % 16 * 256 + p[2] % 16 * 16 + p[3] % 16;
+		*subno = ANY_SUB;
+		if (*pgno >= 0x100 && *pgno <= 0x899)
+		  return TRUE;
+	      }
+    return FALSE;
+}
+
+/*
+  Text navigation.
+  Given the page, the x and y, tries to find a page number in that
+  position. In success, returns TRUE
+*/
+static gint
+zvbi_resolve_page(gint x, gint y, struct vt_page * vtp, gint *page,
+		  gint *subpage)
+{
+  struct fmt_page pg;
+  gint i, n1, n2;
+  gchar buffer[42]; /* The line and two spaces on the sides */
+
+  if ((y > 24) || (y < 0) || (x < 0) || (x > 39) || (!vbi) || (!vtp)
+      || (!page) || (!subpage))
+    return FALSE;
+
+  fmt_page(FALSE, &pg, vtp); /* It's easier to parse this way */
+  if (pg.hid & (1 << y))
+    y--;
+
+  if (y < 0)
+    return FALSE;
+
+  buffer[0] = buffer[41] = ' ';
+
+  for (i=1; i<41; i++)
+    buffer[i] = pg.data[y][i-1].ch;
+
+  for (i = -2; i < 1; i++)
+    if (zvbi_check_page(buffer, x+i, page, subpage))
+      return TRUE;
+
+  /* try to resolve subpage */
+  for (i = -4; i < 1; i++)
+    if (zvbi_check_subpage(buffer, x+i, &n1, &n2))
+      {
+	if ((cur_subpage != n1) && (cur_subpage != ANY_SUB))
+	  return FALSE; /* mismatch */
+	if (cur_subpage != ANY_SUB)
+	  n1 = cur_subpage;
+	n1 = dec2hex(hex2dec(n1)+1);
+	if (n1 > n2)
+	  n1 = 1;
+	*page = cur_page;
+	*subpage = n1;
+	return TRUE;
+      }
+
+  return FALSE;
+}
+
+/* Manages a click on the tv_screen window */
+void
+zvbi_clicked_tvscreen(GtkWidget *widget, GdkEventButton *bevent)
+{
+  struct vt_page vtp; /* This is a local copy of the current monitored
+		       page, to avoid locking for a long time */
+  gint w=0, h=0;
+  gint page, subpage;
+  gint x, y; /* coords in the 40*25 buffer */
+  gboolean result;
+
+  if ((!vbi) || (!vbi_mode) || (!monitor) || (!widget))
+    return;
+
+  pthread_mutex_lock(&(monitor_mutex));
+  memcpy(&vtp,
+	 &(((struct monitor_page*)g_list_first(monitor)->data)->vtp),
+	 sizeof(struct vt_page));
+  pthread_mutex_unlock(&(monitor_mutex));
+
+  /* Convert (scaled) image coords to 40*25 coords */
+  gdk_window_get_size(widget->window, &w, &h);
+
+  if ((!w) || (!h))
+    return;
+
+  x = (bevent->x*40)/w;
+  y = (bevent->y*25)/h;
+
+  if ((x<0) || (x>39) || (y < 0) || (y > 24))
+    return;
+
+  switch (y)
+    {
+    case 0: /* Header, no useful info there*/
+      break;
+    case 1 ... 23: /* body of the page / fixme: subpage support */
+      result = zvbi_resolve_page(x, y, &vtp, &page, &subpage);
+      if (result)
+	//      if ((page > 0x100) && (page < 0x899) && (subpage > 0) &&
+	//	  (subpage < 0x100))
+	zvbi_set_current_page(page, subpage);
+      break;
+    default: /* Bottom line, fast navigation */
+      if (!zvbi_resolve_flof(x, &vtp, &page, &subpage))
+	break;
+      zvbi_set_current_page(page, subpage);
+      break;
     }
 }

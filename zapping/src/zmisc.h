@@ -67,6 +67,16 @@ GtkWidget * ShowBoxReal(const gchar * sourcefile,
 			gboolean blocking, gboolean modal);
 
 /*
+  Converts 0x123 into 123d
+*/
+gint hex2dec(gint hex);
+
+/*
+  Converts 123d into 0x123
+*/
+gint dec2hex(gint dec);
+
+/*
   Resizes the image to a new size. If this is the same as the old
   size, nothing happens. Returns the newly allocated image on exit.
 */

@@ -2,9 +2,10 @@
 
 	* glade/zapping.glade: txtcontrols redesigned, now it only shows
 	the visited pages, not page + subpage. For using both, a tree
-	would be better. Added a 'Freeze' button.
+	would be better.
 	* src/zvbi.c: Added a web-browser-like history, and a visited
-	pages list. It's easier to navigate now.
+	pages list. It's easier to navigate now. Added fast navigation
+	("color" navigation, FLOF), and subpage/page recognision.
 
 07.9.2000	History implemented <garetxe@users.sourceforge.net>
 

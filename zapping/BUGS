@@ -8,5 +8,7 @@ Known bugs with zapping, don't report them
 - how does xawtv do it?
 	! Find the cause for those /dev/dsp busy error messages (libesd
 <= 0.2.8 broken?)
+	* When viewing Teletext, we shouldn't use ERC, but we should
+for the rest. Make it configurable.
 	* Add support in TVeng for tuner-less cards.
 	* YUV support if i have the time.
