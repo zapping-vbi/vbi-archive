@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping.c,v 1.7 2004-11-03 06:44:27 mschimek Exp $ */
+/* $Id: zapping.c,v 1.8 2004-11-11 14:34:11 mschimek Exp $ */
 
 #include "config.h"
 #include "site_def.h"
@@ -754,10 +754,11 @@ scroll_event			(GtkWidget *		widget,
 }
     
 static gboolean
-button_press_event		(GtkWidget *		widget,
-				 GdkEventButton *	event)
+on_button_press_event		(GtkWidget *		widget,
+				 GdkEventButton *	event,
+				 gpointer		user_data)
 {
-  Zapping *z = ZAPPING (widget);
+  Zapping *z = ZAPPING (user_data);
 
   switch (event->button)
     {
@@ -977,6 +978,10 @@ instance_init			(GTypeInstance *	instance,
   if (zconf_get_boolean (NULL, "/zapping/options/main/fixed_increments"))
     z_video_set_size_inc (z->video, 64, 64 * 3 / 4);
 
+  /* NOTE video only, not the entire window. */
+  g_signal_connect (G_OBJECT (widget), "button-press-event",
+		    G_CALLBACK (on_button_press_event), z);
+
   gtk_widget_add_events (widget,
 			 GDK_BUTTON_PRESS_MASK |
 			 GDK_BUTTON_RELEASE_MASK |
@@ -1008,7 +1013,6 @@ class_init			(gpointer		g_class,
 
   widget_class->map = map;
   widget_class->delete_event = delete_event;
-  widget_class->button_press_event = button_press_event;
   widget_class->scroll_event = scroll_event;
 
   cmd_register ("hide_controls", py_hide_controls, METH_VARARGS,
