@@ -7,9 +7,9 @@ PIXMAPS = \
 	gnome-monitor.png \
 	gnome-oscilloscope.png \
 	gnome-session.png \
-	gnome-shutdown.png \
-	atvef_icon.png \
-	eacem_icon.png \
+	gnome-shutdown.png
+
+BUILTIN_PIXMAPS = \
 	up.png \
 	down.png \
 	left.png \
@@ -62,11 +62,11 @@ IMAGES = \
 	gnome-television.png
 
 pixmapdir = $(datadir)/pixmaps/zapping
-pixmap_DATA = gnome-television.png $(PIXMAPS) $(IMAGES)
+pixmap_DATA = $(PIXMAPS) $(IMAGES)
 
-EXTRA_DIST = $(pixmap_DATA)
+EXTRA_DIST = $(pixmap_DATA) $(BUILTIN_PIXMAPS)
 
-BUILT_SOURCES = $(PIXMAPS:.png=.h)
+BUILT_SOURCES = $(BUILTIN_PIXMAPS:.png=.h)
 
 noinst_HEADERS = $(BUILT_SOURCES)
 
