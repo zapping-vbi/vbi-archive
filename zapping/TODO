@@ -1,6 +1,11 @@
 Outstanding issues for future releases
 --------------------------------------
 
+* Recording: like mixer volume, substitute tv card brightness and
+  contrast control when available for XVPutImage.
+* Examine interaction of Zapping (esp. overlay) with RANDR.
+  http://keithp.com/~keithp/talks/randr/randr/
+  xc/doc/specs/Randr, xrandr et al
 * Examine possibility of fullscreen window at the
   root window layer.
 * Support libzvbi proxyd

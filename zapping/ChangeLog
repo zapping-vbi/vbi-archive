@@ -1,3 +1,191 @@
+26.8.2003	<mschimek@users.sf.net>
+
+	* src/ttxview.c: Teletext doesn't hang anymore. TTXView windows
+	  now have a main menu, roughly as recommended in GHIG. Show
+	  toolbar/statusbar options inhibited, must investigate how this
+	  should be properly implemented. Quit item inhibited, keeps
+	  crashing, reason to be investigated. Toolbar improvements:
+	  History finally works as expected, page numbers display better,
+	  page up/down/etc buttons rearrange on orientation change.
+	  Removed Stop button, windows ought to have a close button and
+	  we still have the main menu. Added on_toggle and zconf callbacks
+	  for reveal button, fixes possible display inconsistency. Fixed
+	  attaching to main window toolbar. Creates smaller toolbar for
+	  main window. New Python command to open page link in current
+	  window. Search dialog not modal anymore. Unified text input
+	  dialog and progress display (actually no more progress display,
+	  libzvbi needs a fix for proper function). Help button disabled,
+	  help needs update for Gnome 2. Export dialog not modal anymore.
+	  Format selection moved from submenu (in main_window from popup
+	  subsubmenu :-P) into dialog. Removed electric filename, needs
+	  work. Fixed bug picking up the wrong file extension. Fixed
+	  tabulation of widgets in color dialog, changed to spin slider
+	  as in controls dialog. Brushed up bookmarks dialog. Libzvbi
+	  strings coded in Latin1 or locale are converted to UTF-8.
+	  Rearranged TTXView context menu. Different menus depending on
+	  link type, added Open and Open in New Window items. Changed
+	  Export to Save as. Create modified context menu for Teletext
+	  view in main window. Removed all Teletext widgets from
+	  zapping.glade, these are now custom built in ttxview.c. Cleanups.
+	* pixmaps/reveal.png: Reveal is now a normal toolbar button,
+	  had to resize icon to keep it in line with other buttons.
+	* src/interface.c, src/properties-handler.c, src/zvbi.c,
+	  src/zvbi.h: Removed program and network info stuff, vbi triggers.
+	  Were barely useful and the GUI sucked. Maybe later.
+	* src/zvbi.c: Libzvbi network name coded in Latin1 is converted
+	  to UTF-8.
+	  (vbi_gui_sensitive): Simplified.
+	* src/v4linterface.c (add_controls): Properly pad box.
+	  (substitute_keywords): Program and network info temporarily
+	  unavailable, needs a rewrite.
+	* src/zmisc.c, src/zmisc.h: Cleanup in
+	  [z_toolbar_]set_style_recursive(). propagate_toolbar_changes()
+	  no longer needed, removed. z_strlcpy() added for tveng.
+
+	* src/capture.c, src/cmd.c, src/overlay.c, src/properties-handler.c,
+	  src/tveng.c, src/tveng.h, src/zmisc.c, src/zvbi.c:
+	  Added tveng_capture_mode TVENG_TELETEXT (which is, naturally,
+	  not handled by tveng itself but I don't want to break too many
+	  things at once by splitting into a capture and display mode).
+	  TVENG_NO_CAPTURE changed meaning to "no display", so we have a
+	  state to start from or to fall back.
+	* src/zmisc.c (zmisc_stop): Blanks the window since a restart
+	  may fail. Basically this is what TVENG_NO_CAPTURE displays.
+	  (zmisc_switch_mode): Moved ttxview_detach() into zmisc_stop().
+	  Changed appearance of Teletext toolbar button to toggle
+	  between Teletext and Video. Separated TVENG_NO_CAPTURE and
+	  TVENG_TELETEXT start code.
+
+	* src/interface.c: Zapping GnomeApp, its menu, toolbar
+	  and popup menu are now built here instead of by Glade.
+	  Better control, no more working around Glade flaws.
+	* src/main.c, src/properties-handler.c: Added toolbar style
+	  option and zconf, then I discovered Gnome has one already.
+	  Code disabled until I know how to properly handle the
+	  conflict while satisfying GHIG. Removed "avoid flicker"
+	  option and zconf, not used anymore.
+	* src/interface.c: Added zconf hooks to automagically
+	  update menus when hide-toolbar-and-menu and
+	  keep-window-on-top config changes. Hook also
+	  hides/shows toolbar and menu.
+	* pixmaps/Makefile.am: zapping_stock.h was a stupid idea,
+	  removed. Rating pixmaps are no longer installed, the code
+	  using them is gone. For now.
+	* src/main.c: Replaced stupid zapping_stock.h.
+	* src/audio.c, src/interface.c, src/interface.h,
+	  src/properties.c: Added optional parent widget parameter to
+	  register_widget, in case the widget is no child of main_window.
+	* src/audio.c, src/interface.c: Replaced "bonobodockitem"
+	  widget names by gnome_app_get_dock_item_by_name().
+	* src/callbacks.c (on_tv_screen_button_press_event): Moved popup
+	  menu initialization into create_popup_menu1().
+	* src/main.c: Hide toolbar and menu via zconf hook after
+	  main_window was shown, has no effect before. :-P
+	* src/cmd.c (py_toggle_mode): Made no sense, cleaned up.
+	  (py_keep_on_top): Moved menu item update into zconf hook.
+	  (py_help): Disabled, help stuff needs rewrite for Gnome 2.
+
+	* glade/zapping2.glade: Removed a number of obsolete widgets,
+	  others are now custom built. Removed "avoid flicker in
+	  preview mode" option, not used anymore. Could return
+	  later as a hidden option, this just isn't anything the
+	  average user cares about.
+
+	* src/overlay.c (on_video_window_event): Added GDK_EXPOSE
+	  case, is need when child windows (like popup menu submenu)
+	  disappear. 
+	* src/fullscreen.c (osd_model_changed): Fixed automatic
+	  recentering of view.
+	* src/x11stuff (x11_vidmode_list_new): Turned out the server
+	  does not behave as expected.
+	  (x11_vidmode_switch, x11_vidmode_restore): Make sure this
+	  works right when switching to the present vidmode.
+
+	* src/zconf.c, src/zconf.h: Added option to zconf_add_hook()
+	  to call the hook for initialization right away. Added
+	  zconf_hook_widget_show(), a generic hook.
+
+	* help/Makefile.am: Removed C, de subdirs. Help files and
+	  installation need a rewrite for Gnome 2.
+
+	* plugins/alirc/alirc.c, plugins/lirc/lirc.c, plugins/lirc/mpeg.c,
+	  plugins/lirc/screenshot.c, src/audio.c, src/callbacks.c,
+	  src/fullscreen.c, src/interface.c, src/keyboard.c, src/main.c,
+	  src/remote.c, src/remote.h, src/zvbi.c:
+	  Renamed python command calls, added optional widget
+	  parameter to properly identify the caller.
+
+	* plugins/mpeg/mpeg.c: Replaced code which is now in
+	  z_electric_replace_extension().
+
+	* src/properties-handler.c (zapping.picture_size_cycle):
+	  Wrong error message.
+
+	* src/frequencies.c (tv_rf_channel_next): Fixed bug adding
+	  null channel in channel editor frequency table.
+
+	* src/channel_editor.c, src/plugin_properties.c,
+	  src/properties-handler.c, src/zmisc.c, src/zmisc.h:
+	  New convenience function z_label_set_text_printf().
+
+	* src/channel_editor.c: Replaced tveng_tune_input by
+	  tv_set_tuner_frequency().
+
+	* src/tveng.c (panel_failure, REQUIRE_IO_MODE): Block some
+	  functions when the controller is in TVENG_ATTACH_CONTROL mode.
+	  Saves similar checks in the backends.
+	  (support_failure, REQUIRE_SUPPORT): Abort some functions
+	  when the controller doesn't support it. Replaces UNSUPPORTED
+	  macro.
+	  (tv_get_tuner_frequency, tv_set_tuner_frequency):
+	  Replacement for tveng_get_tune, tveng_tune_input.
+	  (tveng_get_tuner_bounds): Removed. This information is now
+	  available directly in struct tv_tuner.
+	  (tv_set_overlay_buffer): Worked only when the driver was
+	  initialized for overlay before.
+	  (tveng_start_previewing): Limit window size to video standard
+	  nominal picture size.
+	  (tv_clip_vector_to_clip_mask): Added, untested. Primarily for
+	  tveng backends, for drivers supporting only a clip mask.
+	* src/tveng.h (tv_clip_vector_to_clip_mask): Added, untested.
+	  (tv_get_tuner_frequency, tv_set_tuner_frequency):
+	  Replacement for tveng_get_tune, tveng_tune_input.
+	  (tveng_get_tuner_bounds): Removed. This information is now
+	  available in struct tv_tuner.
+	* src/tveng_private.h:
+	  Rewrote tuner frequency interface, now with bounds in
+	  struct tv_tuner, promise of per-tuner frequency setting and
+	  control like change callbacks. Unit is Hz instead of kHz
+	  or whatever the driver likes. Cleanups.
+	* src/tveng1.c: Rewrote tuner frequency code. V4L does not
+	  promise per-tuner frequency settings, so we enforce that here.
+	  Added rudimentary panel mode. Some cleanup as usual. :-)
+	* src/tveng2.c: Rewrote tuner frequency code. V4L2 does not
+	  promise per-tuner frequency settings, so we enforce that here.
+	  Cleanups.
+	* src/tveng25.c: Rewrote tuner frequency code.
+	* src/tvengemu.c: Rewrote tuner frequency code.	
+	  (add_controls): Fixed incorrect action and color control bounds.
+	* src/tvengxv.c: Rewrote tuner frequency code. Parsing of encoding
+	  string (standard-input) was backwards.
+	* src/tveng1.c (v4l_ioctl_nf): New macro to call ioctl without
+	  error report, used when EINVAL is expected.
+	  (tveng1_set_control): Fixed bogus non-handling of audio
+	  control error.
+	* src/tveng2.c (v4l2_ioctl_nf): New macro to call ioctl without
+	  error report, used when EINVAL is expected.
+	  (add_control): Workaround for drivers reporting wrong boolean
+	  and action control bounds.
+	* src/tveng25.c (v4l25_ioctl_nf): New macro to call ioctl without
+	  error report, used when EINVAL is expected.
+	  (add_control): Workaround for drivers reporting wrong boolean
+	  and action control bounds. None observed yet, but just in case.
+	* src/tveng1.h, src/tveng2.h, src/tveng25.h, src/tvengemu.h,
+	  src/tvengxv.h: Removed no longer needed function declarations.
+
+	* po/Makefile.in.in: Updated.
+	* configure.in: Disabled help Makefile targets, these need work.
+
 28.7.2003	<mschimek@users.sf.net>
 
 	* src/zvideo.c: Gtk version check for aspect bug.

@@ -1,50 +1,94 @@
-Known bugs with zapping, don't report them
-------------------------------------------
-- == Annoying
-* == Bug
-! == Killer
-------------------------------------------
+Known bugs in Zapping, don't report them
+----------------------------------------
 
-	* Channel editor: extra null channel at end of frequency table.
-	* Setting color control doesn't work, try control box and emu.
-	* (Zapping 0.6.7) Saving QVC-600 TTX page in HTML segfaults.
-	* Station search doesn't work in overlay mode
-	  (Xv/v4l no signal strength), need check/switch.
-	- In capture mode window resizing flickers.
-	! bttv 0.9.5 seems to crash the X server whenever
-	  XvPutImage is called (field ANY not handled?).
-	  Gerd notified, promised fix in 0.9.6.
-	* resize menu key accel doesn't work?
-	* Need to handle BadAtom errors resulting from Xv out
-	  of video memory (or no v4l device?). Currently gdk
-	  just aborts the app.
-	* Need better no-overlay-present handling.
-	* Capture with --no-xv doesn't work?
-	* Capture won't work under PPC (endianess)
-	* Look for endianness problems.
-	* vbi eats too much CPU, investigate.
-	~ Zapzilla: Calls fetch_page more often than necessary,
-	  investigate.
-	* Zapzilla: what's v4lx doing on standard change?
-	  Changing the video standard breaks vbi decoding.
-	* check on_trigger_clicked
-	* Overlay (no XVideo) under E is broken, shading the window
-	  isn't correctly detected.
-	* Do not assert on ESD timeout
-	* Bug in save window geometry, reported by Pawel.
-	* Auto-overlays search result pages.
-	* config.h is also full of hardcoded paths.
-	* Tooltips don't work as expected.
-	* Spinslider minimum sizes.
-	* Bad reception breaks vbi decoding: i/o error.
-	* Channel editor: up/down scroll-to doesn't work right,
-	  although this may be a gtk bug. Perhaps related:
-	  gtk-app-devel-list digest, Vol 1 #1367,
-	  Subject: scrolling windows
-	* There's a bug in XF86 4.2.99 and prob. earlier, redirecting
-	  controls to tveng1/2.c will fix this. They didn't consider
-	  audio.mode changes semantics on read/write in
-	  xc/programs/Xserver/hw/xfree86/drivers/v4l/v4l.c:
+* Go Fullscreen w/automatic vidmode hangs on RH
+* Crashed in/after screenshot
+* ** (zapping:14562): WARNING **: Group Allgemeine Optionen not found
+  in the properties
+* Subtitle overlay must be restored.
+* TTXView window size issues.
+* TTXView main menu quit (commented out) keeps crashing.
+* App specific toolbar_style is pointless. Gnome can already
+  handle that for us, see gnome-app-helper.c. Or right click
+  on the toolbar dock bevel. Note also Ctrl-Cursor to move
+  the toolbar around.
+* Toolbar Text Only option doesn't affect mute & ttx button.
+* Show tooltips option doesn't work.
+* TTX search: on the fly case and regex change doesnt work.
+* Wrong window stacking layer of overlay window when
+  Zapping restores no-xv fullscreen at startup.
+* Doesn't properly run zapping_setup_fb.
+* (Zapping 0.6.7) Saving QVC-600 TTX page in HTML segfaults.
+* Station search doesn't work in overlay mode
+  (Xv/v4l no signal strength), need check/switch.
+- In capture mode window resizing flickers.
+! bttv 0.9.5 seems to crash the X server whenever
+  XvPutImage is called (field ANY not handled?).
+  Gerd notified, promised fix in 0.9.6.
+* resize menu key accel doesn't work?
+* Need to handle BadAtom errors resulting from Xv out
+  of video memory (or no v4l device?). Currently gdk
+  just aborts the app.
+* Need better no-overlay-present handling.
+* Capture with --no-xv doesn't work?
+* Capture won't work under PPC (endianess)
+* Look for endianness problems.
+* vbi eats too much CPU, investigate.
+~ Zapzilla: Calls fetch_page more often than necessary,
+  investigate.
+* Zapzilla: what's v4lx doing on standard change?
+  Changing the video standard breaks vbi decoding.
+* check on_trigger_clicked
+* Overlay (no XVideo) under E is broken, shading the window
+  isn't correctly detected.
+* Do not assert on ESD timeout
+* Bug in save window geometry, reported by Pawel.
+* Subtitles: auto-overlays search result pages.
+* config.h is also full of hardcoded paths.
+* Tooltips don't work as expected.
+* Spinslider minimum sizes.
+* Bad reception breaks vbi decoding: i/o error.
+* Channel editor: up/down scroll-to doesn't work right,
+  although this may be a gtk bug. Perhaps related:
+  gtk-app-devel-list digest, Vol 1 #1367,
+  Subject: scrolling windows
+* Closing the main window while recording blocks.
+  Backtrace:
+  on_exit2_activate() [now quit_cmd()]
+  UpdateCoords()
+  zmisc_switch_mode(TVENG_NO_CAPTURE, main_info)
+    shuts down capturing before calling
+    plugin_close to stop recording, not good.
+  muted = tveng_get_mute(info)
+  TVLOCK
+  Lock history:
+  <capture thread>
+  TVLOCK   in tveng_mutex_lock 545034 usec
+  TVLOCK   in tveng_read_frame 545069 <--------+ note
+  <main thread>				       |
+  TVLOCK   in tveng_get_mute 559419 <- blocks  |
+  <capture thread>			       |
+  UNTVLOCK in tveng_read_frame 575256 <--------+
+  TVLOCK   in tveng_get_timestamp 575334
+  UNTVLOCK in tveng_get_timestamp 575365
+  UNTVLOCK in tveng_mutex_unlock 575393 <-+ unlocked
+  TVLOCK   in tveng_mutex_lock 575463   <-+
+    lock/unlock does not reschedule when
+           another thread waits?
+  TVLOCK   in tveng_read_frame 575498
+  UNTVLOCK in tveng_read_frame 624955
+  TVLOCK   in tveng_get_timestamp 625037
+  UNTVLOCK in tveng_get_timestamp 625068
+  UNTVLOCK in tveng_mutex_unlock 625097
+  TVLOCK   in tveng_mutex_lock 625163
+  TVLOCK   in tveng_read_frame 625197
+   :
+
+XFree86 V4L XVideo driver (xc/programs/Xserver/hw/xfree86/drivers/v4l/v4l.c)
+----------------------------------------------------------------------------
+* Success of ioctls is not checked.
+* Does not consider audio.mode changes semantics on read/write.
+  V4lSetPortAttribute():
     } else if (attribute == xvMute ||
 	       attribute == xvVolume) {
 	ioctl(V4L_FD,VIDIOCGAUDIO,&pPPriv->audio);
@@ -62,38 +106,20 @@ Known bugs with zapping, don't report them
 	if (ret != BadValue)
 	    if (-1 == ioctl(V4L_FD,VIDIOCSAUDIO,&pPPriv->audio))
 		perror("ioctl VIDIOCSAUDIO");
-          Another possible bug, the encoding is not reset
-	  on open? Though apparently not catched when Zapping
-	  opens the v4l/2/5 interface too (try remove the modules
-	  in tveng.c, or start xv overlay while a radio app runs).
-	* Closing the main window while recording blocks.
-	  Backtrace:
-	  on_exit2_activate() [now quit_cmd()]
-	  UpdateCoords()
-	  zmisc_switch_mode(TVENG_NO_CAPTURE, main_info)
-	    shuts down capturing before calling
-	    plugin_close to stop recording, not good.
-	  muted = tveng_get_mute(info)
-	  TVLOCK
-	  Lock history:
-	  <capture thread>
-	  TVLOCK   in tveng_mutex_lock 545034 usec
-	  TVLOCK   in tveng_read_frame 545069 <--------+ note
-	  <main thread>				       |
-	  TVLOCK   in tveng_get_mute 559419 <- blocks  |
-	  <capture thread>			       |
-	  UNTVLOCK in tveng_read_frame 575256 <--------+
-	  TVLOCK   in tveng_get_timestamp 575334
-	  UNTVLOCK in tveng_get_timestamp 575365
-	  UNTVLOCK in tveng_mutex_unlock 575393 <-+ unlocked
-	  TVLOCK   in tveng_mutex_lock 575463   <-+
-	    lock/unlock does not reschedule when
-            another thread waits?
-	  TVLOCK   in tveng_read_frame 575498
-	  UNTVLOCK in tveng_read_frame 624955
-	  TVLOCK   in tveng_get_timestamp 625037
-	  UNTVLOCK in tveng_get_timestamp 625068
-	  UNTVLOCK in tveng_mutex_unlock 625097
-	  TVLOCK   in tveng_mutex_lock 625163
-	  TVLOCK   in tveng_read_frame 625197
-	   :
+* Encoding is not reset on open? Apparently cought when Zapping opens
+  the v4l/2/5 interface too (try remove the modules in tveng.c, or
+  start xv overlay while a radio app runs).
+* Reports wrong tuner frequency range:
+  static const XF86AttributeRec FreqAttr =
+    {XvSettable | XvGettable,     0, 16*1000, XV_FREQ};
+* Ignores tuner frequency scale factor (62.5 Hz, 62.5 kHz).
+  V4lSetPortAttribute():
+  } else if (attribute == xvFreq) {
+      if (-1 == ioctl(V4L_FD,VIDIOCSFREQ,&value))
+          perror("ioctl VIDIOCSFREQ");
+  V4lGetPortAttribute():
+  } else if (attribute == xvFreq) {
+     ioctl(V4L_FD,VIDIOCGFREQ,value);
+* XV_FREQ semantics not documented, e.g. scale 62.5 kHz.
+* XvEncodingInfo does not report if the input is a tuner and
+  XV_FREQ access succeeds on all inputs.

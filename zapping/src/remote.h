@@ -6,47 +6,57 @@
  */
 
 #include <Python.h>
-#include <glib.h>
+#include <gtk/gtk.h>
 
-/* the zapping dictionary in case you want to add things
-   manually. But in case you are registering functions use
-   cmd_register instead */
-extern PyObject		*dict;
+/* The zapping dictionary in case you want to add things
+   manually. To register functions use cmd_register() instead. */
+extern PyObject *	dict;
 
-/* startup/shutdown */
-void startup_remote (void);
-void shutdown_remote (void);
+extern void
+on_python_command1		(GtkWidget *		widget,
+				 const gchar *		cmd);
+extern void
+on_python_command2		(GtkWidget *		widget,
+				 gpointer 		unused,
+				 const gchar *		cmd);
+extern void
+on_python_command3		(GtkWidget *		widget,
+				 gpointer 		unused1,
+				 gpointer 		unused2,
+				 const gchar *		cmd);
 
-/* register a python varargs routine in the zapping class */
-void cmd_register (const char *name, PyCFunction func,
-		   int flags,
-		   const char *doc, const char *usage);
+#define python_command(widget, cmd) on_python_command1 (widget, cmd)
 
-/* runs the given python code */
-void cmd_run (const char *command);
+extern void
+python_command_printf		(GtkWidget *		widget,
+				 const gchar *		fmt,
+				 ...);
+extern GtkWidget *
+python_command_widget		(void);
 
-/* runs the given python code, but now the command can be specified in
-   a printf() fashion */
-void cmd_run_printf (const char *cmd, ...);
+extern GList *
+cmd_list			(void);
+extern gchar *
+cmd_compatibility		(const gchar *		cmd);
+extern void
+cmd_register			(const gchar *		name,
+				 PyCFunction		cfunc,
+				 int			flags,
+				 const gchar *		doc,
+				 const gchar *		usage);
+extern void
+shutdown_remote			(void);
+extern void
+startup_remote			(void);
 
-/* Returns a list of all registered commands */
-GList *cmd_list (void);
+/* The following macros simplify writing the python wrappers. */
+#define py_return_none							\
+do {									\
+  Py_INCREF(Py_None);							\
+  return Py_None;							\
+} while (0)
 
-/* callbacks glue */
-void
-on_remote_command1 (void *, const char *cmd);
-void
-on_remote_command2 (void *, void *, const char *cmd);
-/* Returns the last widget that invoqued cmd_run through
-   on_remote_command[12] */
-gpointer remote_last_caller (void);
-
-/* The following macros simplify writing the python wrappers */
-#define py_return_none do { Py_INCREF(Py_None); return Py_None; } while (0)
 #define py_return_true return PyInt_FromLong (TRUE)
 #define py_return_false return PyInt_FromLong (FALSE)
 
-gchar *
-cmd_compatibility		(const gchar *		cmd);
-
-#endif /* remote.h */
+#endif /* __REMOTE_H__ */

@@ -60,17 +60,17 @@ di_setup		(GtkWidget	*page)
 
   /* Minimum capture dimensions */
   widget = lookup_widget(page, "label28");
-  buffer = g_strdup_printf("%d x %d", main_info->caps.minwidth,
+  z_label_set_text_printf (GTK_LABEL(widget),
+			   "%d x %d",
+			   main_info->caps.minwidth,
 			   main_info->caps.minheight);
-  gtk_label_set_text(GTK_LABEL(widget), buffer);
-  g_free(buffer);
 
   /* Maximum capture dimensions */
   widget = lookup_widget(page, "label29");
-  buffer = g_strdup_printf("%d x %d", main_info->caps.maxwidth,
+  z_label_set_text_printf (GTK_LABEL(widget),
+			   "%d x %d",
+			   main_info->caps.maxwidth,
 			   main_info->caps.maxheight);
-  gtk_label_set_text(GTK_LABEL(widget), buffer);
-  g_free(buffer);
 
   /* Reported device capabilities */
   widget = lookup_widget(page, "label30");
@@ -332,7 +332,7 @@ picture_sizes_save		(void)
 static GtkAccelGroup *		accel_group;
 
 static void
-picture_sizes_on_menu_activate	(GtkMenuItem *		menuitem,
+picture_sizes_on_menu_activate	(GtkMenuItem *		menu_item,
 				 gpointer		user_data)
 {
   picture_size *ps;
@@ -347,8 +347,9 @@ picture_sizes_on_menu_activate	(GtkMenuItem *		menuitem,
 	zconf_create_integer (GPOINTER_TO_INT (user_data),
 			      "", ZCONF_PICTURE_SIZES "/index");
 
-	cmd_run_printf ("zapping.resize_screen(%u, %u)",
-			ps->width, ps->height);
+	python_command_printf (GTK_WIDGET (menu_item),
+			       "zapping.resize_screen(%u, %u)",
+			       ps->width, ps->height);
 
 	return;
       }
@@ -421,7 +422,7 @@ py_picture_size_cycle		(PyObject *		self,
     count++;
 
   if (!PyArg_ParseTuple (args, "|i", &value))
-    g_error ("zapping.ttx_page_incr(|i)");
+    g_error ("zapping.picture_size_cycle(|i)");
 
   zconf_get_integer (&index, ZCONF_PICTURE_SIZES "/index");
 
@@ -437,8 +438,9 @@ py_picture_size_cycle		(PyObject *		self,
   for (ps = favorite_picture_sizes; ps; ps = ps->next)
     if (index-- == 0)
       {
-	cmd_run_printf ("zapping.resize_screen(%u, %u)",
-			ps->width, ps->height);
+	python_command_printf (python_command_widget (),
+			       "zapping.resize_screen(%u, %u)",
+			       ps->width, ps->height);
 	break;
       }
 
@@ -699,50 +701,106 @@ picture_sizes_apply		(GtkTreeView *		tree_view)
   picture_sizes_save ();
 }
 
+#if 0
+
+/* Gnome does this already, see gnome-app-helper.c. Or right click
+   on the toolbar dock bevel. Note also Ctrl-Cursor to move the
+   toolbar around. Until I know how to satisfy both Gnome and GHIG
+   this remains commented. */
+
+static void
+on_toolbar_button_labels_changed
+				(GtkOptionMenu *	optionmenu,
+				 gpointer		user_data)
+{
+  GtkToolbarStyle style;
+
+  switch (gtk_option_menu_get_history (optionmenu))
+    {
+      /* Display order as in Control Center. */
+    case 1:	style = GTK_TOOLBAR_BOTH;	break;
+    case 2:	style = GTK_TOOLBAR_BOTH_HORIZ;	break;
+    case 3:	style = GTK_TOOLBAR_ICONS;	break;
+    case 4:	style = GTK_TOOLBAR_TEXT;	break;
+    default:	style = -1; /* default */	break;
+    }
+
+  zconf_set_integer ((gint) style, "/zapping/options/main/toolbar_style");
+}
+
+#endif
+
 /* Main window */
 static void
 mw_setup		(GtkWidget	*page)
 {
-  GtkWidget *widget;
+  GtkWidget *w;
 
   /* Save the geometry through sessions */
-  widget = lookup_widget(page, "checkbutton2");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
+  w = lookup_widget(page, "checkbutton2");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w),
     zconf_get_boolean(NULL, "/zapping/options/main/keep_geometry"));
 
   /* Show tooltips */
-  widget = lookup_widget (page, "checkbutton14");
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON(widget),
+  w = lookup_widget (page, "checkbutton14");
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON(w),
     zconf_get_boolean (NULL, "/zapping/options/main/show_tooltips"));
 
   /* Disable screensaver */
-  widget = lookup_widget (page, "disable_screensaver");
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON(widget),
+  w = lookup_widget (page, "disable_screensaver");
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON(w),
     zconf_get_boolean (NULL, "/zapping/options/main/disable_screensaver"));
 
   /* Resize using fixed increments */
-  widget = lookup_widget(page, "checkbutton4");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
+  w = lookup_widget(page, "checkbutton4");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w),
     zconf_get_boolean(NULL, "/zapping/options/main/fixed_increments"));  
+
+#if 0 /* See above */
+
+  {
+    guint n;
+
+    /* Toolbar Button Labels */
+
+    w = lookup_widget(page, "toolbar_button_labels");
+
+    switch (zconf_get_integer (NULL, "/zapping/options/main/toolbar_style"))
+      {
+	/* Display order as in Control Center. */
+      case GTK_TOOLBAR_ICONS:		n = 3; break;
+      case GTK_TOOLBAR_TEXT:		n = 4; break;
+      case GTK_TOOLBAR_BOTH:		n = 1; break;
+      case GTK_TOOLBAR_BOTH_HORIZ:	n = 2; break;
+      default:				n = 0; break;
+      }
+
+    gtk_option_menu_set_history (GTK_OPTION_MENU (w), n);
+
+    g_signal_connect (G_OBJECT (w), "changed",
+		      (GCallback) on_toolbar_button_labels_changed, NULL);
+  }
+
+#endif
 
   /* Swap Page Up/Down */
 /*
-  widget = lookup_widget(page, "checkbutton13");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
+  w = lookup_widget(page, "checkbutton13");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w),
     zconf_get_boolean(NULL, "/zapping/options/main/swap_up_down"));
 */
 
   /* Title format Z will use */
-  widget = lookup_widget(page, "title_format");
-  widget = gnome_entry_gtk_entry(GNOME_ENTRY(widget));
-  gtk_entry_set_text(GTK_ENTRY(widget),
+  w = lookup_widget(page, "title_format");
+  w = gnome_entry_gtk_entry(GNOME_ENTRY(w));
+  gtk_entry_set_text(GTK_ENTRY(w),
 		     zconf_get_string(NULL,
 				      "/zapping/options/main/title_format"));
 
 #if 0 /* FIXME combine with size inc, move into menu */
   /* ratio mode to use */
-  widget = lookup_widget(page, "optionmenu1");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
+  w = lookup_widget(page, "optionmenu1");
+  gtk_option_menu_set_history(GTK_OPTION_MENU(w),
     zconf_get_integer(NULL,
 		      "/zapping/options/main/ratio"));
 #endif
@@ -751,13 +809,13 @@ mw_setup		(GtkWidget	*page)
     gint n;
 
     /* entered channel numbers refer to */
-    widget = lookup_widget (page, "channel_number_translation");
+    w = lookup_widget (page, "channel_number_translation");
     n = zconf_get_integer (NULL, "/zapping/options/main/channel_txl");
 
     if (n < 0)
       n = 0; /* historical: -1 disabled keypad channel number entering */
 
-    gtk_option_menu_set_history (GTK_OPTION_MENU (widget), n);
+    gtk_option_menu_set_history (GTK_OPTION_MENU (w), n);
   }
 
   /* Picture size list */
@@ -796,13 +854,13 @@ mw_setup		(GtkWidget	*page)
        gtk_cell_renderer_text_new (),
        picture_sizes_set_func_key, NULL, NULL);
 
-    widget = lookup_widget (page, "button44");
-    g_signal_connect (G_OBJECT (widget), "clicked",
+    w = lookup_widget (page, "button44");
+    g_signal_connect (G_OBJECT (w), "clicked",
 		      G_CALLBACK (picture_sizes_on_add_clicked),
 		      tree_view);
 
-    widget = lookup_widget (page, "button45");
-    g_signal_connect (G_OBJECT (widget), "clicked",
+    w = lookup_widget (page, "button45");
+    g_signal_connect (G_OBJECT (w), "clicked",
 		      G_CALLBACK (picture_sizes_on_remove_clicked),
 		      tree_view);
 
@@ -811,8 +869,8 @@ mw_setup		(GtkWidget	*page)
 		      G_CALLBACK (picture_sizes_selection_changed),
 		      tree_view);
 
-    widget = lookup_widget (page, "custom3");
-    g_signal_connect (G_OBJECT (z_key_entry_entry (widget)), "changed",
+    w = lookup_widget (page, "custom3");
+    g_signal_connect (G_OBJECT (z_key_entry_entry (w)), "changed",
 		      G_CALLBACK (picture_sizes_on_key_entry_changed),
 		      tree_view);
   }
@@ -881,10 +939,6 @@ video_setup		(GtkWidget	*page)
 {
   GtkWidget *widget;
 
-  /* Avoid some flicker in preview mode */
-  widget = lookup_widget(page, "checkbutton5");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-    zconf_get_boolean(NULL, "/zapping/options/main/avoid_flicker"));
 
   /* Save control info with the channel */
   widget = lookup_widget(page, "checkbutton11");
@@ -960,9 +1014,6 @@ video_apply		(GtkWidget	*page)
   GtkWidget *widget;
 
 
-  widget = lookup_widget(page, "checkbutton5"); /* avoid flicker */
-  zconf_set_boolean(gtk_toggle_button_get_active(
-	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/avoid_flicker");
 
   widget = lookup_widget(page, "checkbutton11"); /* save controls */
   zconf_set_boolean(gtk_toggle_button_get_active(
@@ -1146,12 +1197,16 @@ vbi_general_apply	(GtkWidget	*page)
   if (enable_vbi == TOGGLE_TO_FALSE)
     {
       /* XXX bad design */
+#if 0 /* Temporarily removed */
       zvbi_reset_program_info ();
       zvbi_reset_network_info ();
+#endif
     }
   else if (use_vbi == TOGGLE_TO_FALSE)
     {
+#if 0 /* Temporarily removed */
       zvbi_reset_network_info ();
+#endif
     }
 
   /* Overlay TTX pages automagically */
@@ -1209,6 +1264,8 @@ vbi_general_apply	(GtkWidget	*page)
     }
 #endif /* HAVE_LIBZVBI */
 }
+
+#if 0
 
 /* Interactive TV */
 static void
@@ -1295,6 +1352,8 @@ itv_apply		(GtkWidget	*page)
   zconf_set_integer(index, "/zapping/options/vbi/filter_level");
 }
 
+#endif
+
 static void
 add				(GtkDialog	*dialog)
 {
@@ -1311,13 +1370,16 @@ add				(GtkDialog	*dialog)
   SidebarEntry vbi_options[] = {
     { N_("General"), "gnome-monitor.png", "vbox17",
       vbi_general_setup, vbi_general_apply },
+#if 0 /* temporarily disabled */
     { N_("Interactive TV"), "gnome-monitor.png", "vbox33",
       itv_setup, itv_apply }
+#endif
   };
   SidebarGroup groups[] = {
     { N_("Device Info"), device_info, acount(device_info) },
     { N_("General Options"), general_options, acount(general_options) },
     { N_("VBI Options"), vbi_options, acount(vbi_options) }
+    /* XXX "VBI Options" is also a constant in ttxview.c */
   };
 
   standard_properties_add(dialog, groups, acount(groups),
@@ -1331,9 +1393,11 @@ void startup_properties_handler(void)
   };
   prepend_property_handler(&handler);
 
+  /* This is so stupid I can't tell. Wait until we use
+     Python OO to implement this. */
   cmd_register ("picture_size_cycle",
 		py_picture_size_cycle, METH_VARARGS,
-	       _("Cycle through the favoritve picture sizes"),
+	       _("Cycle through favourite picture sizes"),
 		"zapping.picture_size_cycle(+1)");
 }
 

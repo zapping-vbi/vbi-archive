@@ -506,15 +506,14 @@ wm_hints_detect			(void)
 /**
  * x11_vidmode_clear_state:
  * @vs:
- *
- * Clear a struct x11_vidmode_state such that
- * x11_vidmode_restore() will do nothing.
  */
 void
 x11_vidmode_clear_state		(x11_vidmode_state *	vs)
 {
   if (!vs)
     return;
+
+  vs->old.vm = NULL;
 
   vs->new.vm = NULL;		/* don't restore */
   vs->new.pt.x = 1 << 20;	/* implausible, don't restore */
@@ -596,6 +595,9 @@ x11_vidmode_list_new		(void)
       return NULL;
     }
 
+  /* This lists all ModeLines in XF86Config and all default modes,
+     except those exceeding monitor limits and the virtual screen size,
+     as logged in /var/log/XFree86*.log */
   if (!XF86VidModeGetAllModeLines (display, screen, &mode_count, &mode_info))
     {
       if (X11STUFF_VIDMODE_DEBUG)
@@ -609,6 +611,7 @@ x11_vidmode_list_new		(void)
     {
       XF86VidModeModeInfo *m = mode_info[i];
       struct vidmode *v;
+      Status valid;
 
       if (m->privsize > 0)
 	{
@@ -617,15 +620,29 @@ x11_vidmode_list_new		(void)
 	  m->privsize = 0;
 	}
 
-      if (Success == XF86VidModeValidateModeLine (display, screen, m))
+      valid = XF86VidModeValidateModeLine (display, screen, m);
+
+#if 0
+      /* For some reason this flags modes as invalid which actually
+         have been accepted at X server startup and can be selected
+         with Ctrl-Alt-nk+/-. x11_vidmode_switch() needs all
+	 selectable modes listed, so we ignore this. */
+      if (Success == valid)
+#else
+      if (1)
+#endif
 	{
+	  /* XXX flags: see xvidtune.c; special treatment of
+	     V_INTERLACE/V_DBLSCAN necessary? */
+
 	  if (X11STUFF_VIDMODE_DEBUG)
 	    printv ("Valid mode dot=%u flags=%08x "
 		    "hd=%u hss=%u hse=%u ht=%u "
-		    "vd=%u vss=%u vse=%u vt=%u\n",
+		    "vd=%u vss=%u vse=%u vt=%u valid=%d\n",
 		    m->dotclock, m->flags,
 		    m->hdisplay, m->hsyncstart, m->hsyncend, m->htotal,
-		    m->vdisplay, m->vsyncstart, m->vsyncend, m->vtotal);
+		    m->vdisplay, m->vsyncstart, m->vsyncend, m->vtotal,
+		    valid);
 
 	  if ((v = calloc (1, sizeof (*v))))
 	    {
@@ -836,38 +853,52 @@ x11_vidmode_switch		(x11_vidmode_info *	list,
   root = DefaultRootWindow (display);
 
   XGetGeometry (display, root, &dummy1, &x, &y, &w, &h, &dummy3, &dummy3);
+
   XF86VidModeGetViewPort (display, screen, &vs->old.vp.x, &vs->old.vp.y);
+
   XQueryPointer (display, root, &dummy1, &dummy1,
 		 &vs->old.pt.x, &vs->old.pt.y, &dummy2, &dummy2, &dummy3);
 
   /* Switch to requested mode, if any */
 
-  vs->old.vm = x11_vidmode_current (list);
+  {
+    x11_vidmode_info *cur_vm;
 
-  if (vm)
-    {
-      if (vs->old.vm != vm)
-	{
-	  if (XF86VidModeSwitchToMode (display, screen, &VIDMODE (vm)->info))
-	    {
-	      vs->new.vm = vm;
-	    }
-	  else
-	    {
-	      if (X11STUFF_VIDMODE_DEBUG)
-		printv ("XF86VidModeSwitchToMode() failed\n");
-	      return FALSE;
-	    }
-	}
-    }
-  else if (vs->old.vm)
-    {
-      vm = vs->old.vm;
-    }
-  else
-    {
-      return TRUE;
-    }
+    cur_vm = x11_vidmode_current (list);
+
+    vs->old.vm = cur_vm;
+
+    if (vm)
+      {
+	if (cur_vm != vm)
+	  {
+	    if (XF86VidModeSwitchToMode (display, screen, &VIDMODE (vm)->info))
+	      {
+		/* Might not be exactly what we asked for,
+		   or even anything we know. */
+		if (!(vm = x11_vidmode_current (list)))
+		  return FALSE;
+
+		vs->new.vm = vm;
+	      }
+	    else
+	      {
+		if (X11STUFF_VIDMODE_DEBUG)
+		  printv ("XF86VidModeSwitchToMode() failed\n");
+		
+		return FALSE;
+	      }
+	  }
+      }
+    else if (cur_vm)
+      {
+	vm = cur_vm;
+      }
+    else
+      {
+	return FALSE;
+      }
+  }
 
   /* Center ViewPort */
 
@@ -965,21 +996,22 @@ x11_vidmode_restore		(x11_vidmode_info *	list,
 
   if (vs->old.vm && vs->new.vm)
     {
-      x11_vidmode_info *new_vm;
+      x11_vidmode_info *cur_vm;
 
-      new_vm = x11_vidmode_current (list);
+      cur_vm = x11_vidmode_current (list);
 
-      if (vs->new.vm != new_vm)
+      if (vs->new.vm != cur_vm)
 	goto done; /* user changed vidmode, keep that */
 
-      if (!XF86VidModeSwitchToMode (display, screen,
-				    &VIDMODE (vs->old.vm)->info))
-	{
-	  if (X11STUFF_VIDMODE_DEBUG)
-	    printv ("Cannot restore old mode, "
-		    "XF86VidModeSwitchToMode() failed\n");
-	  goto done;
-	}
+      if (vs->old.vm != cur_vm) 
+        if (!XF86VidModeSwitchToMode (display, screen,
+				      &VIDMODE (vs->old.vm)->info))
+	  {
+	    if (X11STUFF_VIDMODE_DEBUG)
+	      printv ("Cannot restore old mode, "
+		      "XF86VidModeSwitchToMode() failed\n");
+	    goto done;
+	  }
     }
 
   if (vs->new.vp.x == vpx && vs->new.vp.y == vpy)

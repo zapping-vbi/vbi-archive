@@ -130,9 +130,8 @@ on_plugin_treeview_cursor_changed	(GtkTreeView	*v,
   else
     buffer = _("Above normal");
 
-  buffer = g_strdup_printf("%d (%s)", priority, buffer);
-  gtk_label_set_text(label73, buffer);
-  g_free(buffer);
+  z_label_set_text_printf (label73, "%d (%s)", priority, buffer);
+
   gtk_label_set_text (label945, plugin_get_description (info));
   gtk_label_set_text (label946, info->file_name);
 

@@ -18,13 +18,11 @@
 
 #if 0 /*** TODO ***/
 
-/*
-  This is the library in charge of simplifying Video Access API (I
-  don't want to use thirteen lines of code with ioctl's every time I
-  want to change tuning freq).
-  the name is TV Engine, since it is intended mainly for TV viewing.
-  This file is separated so zapping doesn't need to know about V4L[2]
-*/
+/* Note this code forked off from tveng1.c before a number of
+   changes were made to the interface and wasn't updated. It's
+   really just an ugly mix of v4l, bktr, meteor and old tveng
+   code. A complete review will be necessary. */
+
 #include <site_def.h>
 
 #ifdef HAVE_CONFIG_H

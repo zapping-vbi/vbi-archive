@@ -685,8 +685,7 @@ GList * plugin_load_plugins ( void )
   zcc_char ("",
 	    "Colon separated list of dirs to be searched for plugins",
 	    "plugin_dirs");
-  plugin_dirs = g_strsplit(zcg_char (NULL, "plugin_dirs"),
-			   ":", 0);
+  plugin_dirs = g_strsplit(zcg_char (NULL, "plugin_dirs"), ":", 0);
   if (plugin_dirs)
     {
       for (i=0; plugin_dirs[i]; i++)

@@ -629,7 +629,8 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
       memcpy (&info->format, &prev_fmt, sizeof (prev_fmt));
 
       if (tveng_set_capture_format (info) != -1)
-	if (info->current_mode == TVENG_NO_CAPTURE)
+	if (info->current_mode == TVENG_NO_CAPTURE
+	    || info->current_mode == TVENG_TELETEXT)
 	  tveng_start_capturing (info);
       pthread_rwlock_unlock (&size_rwlock);
       pthread_rwlock_unlock (&fmt_rwlock);

@@ -26,37 +26,13 @@
 
 #include <zmodel.h>
 
-GtkWidget *build_ttxview(void);
-gboolean startup_ttxview(void);
-void shutdown_ttxview(void);
-
 /**
- * Signals creation/destruction of a view, number of views after
- * creation/destruction is stored in
- * GPOINTER_TO_INT(gtk_object_get_user_data(GTK_OBJECT(ttxview_model)))
+ * Signals creation or destruction of a view.
  */
-extern ZModel *ttxview_model;
+extern ZModel *		ttxview_zmodel;
 
-/**
- * Attach the necessary things to the given window to make it a
- * Teletext view.
- * @parent: Toplevel window the teletext view will be in.
- * @da: Drawing area we will be drawing to.
- * @toolbar: Toolbar to attach the TTXView controls to.
- * @appbar: Application bar to show messages into, or NULL.
- */
-void
-ttxview_attach			(GtkWidget	*parent,
-				 GtkWidget	*da,
-				 GtkWidget	*toolbar,
-				 GtkWidget	*appbar);
-
-/**
- * Detach the TTXView elements from the given window, or does nothing
- * is the window isn't being used as a TTXView.
- */
-void
-ttxview_detach			(GtkWidget	*parent);
+#define NUM_TTXVIEWS(zmodel)						\
+  GPOINTER_TO_INT (g_object_get_data (G_OBJECT (zmodel), "count"))
 
 /**
  * Returns the scaled pixbuf for the given widget acting as a
@@ -67,24 +43,6 @@ GdkPixbuf *
 ttxview_get_scaled_ttx_page	(GtkWidget	*parent);
 
 /**
- * If the given widget is a window acting as a TTXView, add to the
- * given popup menu the TTXView entries
- */
-void
-process_ttxview_menu_popup	(GtkWidget	*widget,
-				 GdkEventButton	*event,
-				 GtkMenuShell	*popup);
-
-
-/**
- * If the given window is a TTXView, the given page is opened on it.
- */
-void
-open_in_ttxview				(GtkWidget	*view,
-					 gint		page,
-					 gint		subpage);
-
-/**
  * If the given window is a TTXView, stores in page, subpage the page
  * currently rendered. Returns FALSE on error.
  * page, subpage can be NULL.
@@ -93,6 +51,31 @@ gboolean
 get_ttxview_page			(GtkWidget	*view,
 					 gint		*page,
 					 gint		*subpage);
+
+extern GtkWidget *
+ttxview_popup			(GtkWidget *		widget,
+				 GdkEventButton *	event);
+extern GtkWidget *
+ttxview_subtitles_menu_new	(void);
+GtkWidget *
+ttxview_bookmarks_menu_new	(GtkWidget *		widget);
+extern guint
+ttxview_hotlist_menu_append	(GtkMenuShell *		menu,
+				 gboolean		separator);
+
+extern gboolean
+startup_ttxview			(void);
+extern void
+shutdown_ttxview		(void);
+extern GtkWidget *
+ttxview_new			(void);
+extern void
+ttxview_attach			(GtkWidget *		parent,
+				 GtkWidget *		da,
+				 GtkWidget *		toolbar,
+				 GtkWidget *		appbar);
+extern void
+ttxview_detach			(GtkWidget *		parent);
 
 #endif /* HAVE_LIBZVBI */
 #endif /* __TTXVIEW_H__ */

@@ -594,7 +594,7 @@ void plugin_add_gui (GnomeApp * app)
 					_("Screenshot"),
 					_("Take a screenshot"), NULL,
 					tmp_toolbar_icon,
-					GTK_SIGNAL_FUNC(on_remote_command1),
+					GTK_SIGNAL_FUNC(on_python_command1),
 					(gpointer)((const gchar *)
 						   "zapping.screenshot()"));
     }
@@ -1432,8 +1432,9 @@ screenshot_timeout (screenshot_data *data)
 	    grab_data = NULL;
 	    screenshot_destroy (data);
 
-	    cmd_run_printf ("zapping.properties('%s', '%s')",
-			    _("Plugins"), _("Screenshot"));
+	    python_command_printf (/* GtkWidget */ NULL,
+				   "zapping.properties('%s', '%s')",
+				   _("Plugins"), _("Screenshot"));
 
 	    return FALSE; /* remove */
 	  }

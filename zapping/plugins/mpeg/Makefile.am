@@ -19,7 +19,7 @@ PIXMAPS = \
 	record.png pause.png stop.png \
 	disk_empty.png drop.png time.png volume.png
 
-EXTRA_DIST = $(PIXMAPS)
+EXTRA_DIST = mpeg_properties.glade2 mpeg_strings.c $(PIXMAPS)
 BUILT_SOURCES = pixmaps.h
 noinst_HEADERS = $(BUILT_SOURCES)
 CLEANFILES = $(BUILT_SOURCES)

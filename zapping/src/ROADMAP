@@ -108,20 +108,20 @@ TV Card
 
    Tuner & audio demodulator
     |  Optional other tuner & audio demodulator
-    |   |  Digital / analog inputs 1)
+    |   |  Digital / analog inputs (1)
     |   |   | | | |
     *   *   | | * *   volume/mute, effects
     |   |   | | | |
   (-------Mux-------)
-           +== 2) ==> Line out, loopback
+           +== (2) ==> Line out, loopback
            | hw may support more outputs, but there's no API to select
-           2)
+          (2)
            | mux may support other than line out, but no API
            v
         PCM ADC, OSS/ALSA interface, optional
 
-  1) V4L2-2.5 can tell if mono or stereo capability.
-  2) Expect no volume control here.
+  (1) V4L2-2.5 can tell if mono or stereo capability.
+  (2) Expect no volume control here.
 
 Audio demodulator
 
@@ -632,3 +632,21 @@ Each channel:
 #<property name="icon">zapping-mute</property>
 #<property name="stock_pixmap">zapping-mute</property>
 
+-----
+
+Overlay
+
+1) target
+  - dma overlay into video memory: get|set_overlay_buffer
+  - chroma-key genlock: get|set_chroma_key. Client is
+    responsible for painting the screen.
+  - X window: get|set_overlay_xwindow
+2) windowing and clipping
+  - dma overlay: get|set_overlay_window, no clipping
+  - dma overlay: get|set_overlay_window, with clip list
+  - chroma-key: get|set_overlay_window
+  - x window frontend overlay: get|set_overlay_window
+  - x window backend overlay: get|set_overlay_window. XVideo
+    will paint c-k color (true?), must be another parameter.
+3) cropping and scaling
+  - get|set_overlay_source (zoom effect etc), where available.

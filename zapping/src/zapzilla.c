@@ -49,13 +49,13 @@ py_quit (PyObject *self, PyObject *args)
 }
 
 static void
-on_ttxview_model_changed		(ZModel		*model,
-					 gpointer	data)
+on_ttxview_zmodel_changed	(ZModel *		zmodel,
+				 gpointer		data)
 {
-  if (!GPOINTER_TO_INT(g_object_get_data(G_OBJECT(model), "user-data")))
+  if (NUM_TTXVIEWS (zmodel) == 0)
     {
       flag_exit_program = TRUE;
-      gtk_main_quit();
+      gtk_main_quit ();
     }
 }
 
@@ -101,7 +101,7 @@ int zapzilla_main(int argc, char * argv[])
 		      NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: zapzilla.c,v 1.4.2.3 2003-07-29 03:48:01 mschimek Exp $",
+	 "$Id: zapzilla.c,v 1.4.2.4 2003-08-24 23:59:10 mschimek Exp $",
 	 "Zapzilla", VERSION, __DATE__);
   D();
   /* FIXME: Find something better */
@@ -129,11 +129,11 @@ int zapzilla_main(int argc, char * argv[])
   D();
   startup_ttxview();
   D();
-  g_signal_connect(G_OBJECT(ttxview_model), "changed",
-		   G_CALLBACK(on_ttxview_model_changed),
+  g_signal_connect(G_OBJECT(ttxview_zmodel), "changed",
+		   G_CALLBACK(on_ttxview_zmodel_changed),
 		   NULL);
   D();
-  gtk_widget_show(build_ttxview());
+  gtk_widget_show (ttxview_new ());
   D();
   startup_keyboard();
   D();

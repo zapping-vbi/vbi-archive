@@ -20,118 +20,91 @@
 #  include <config.h>
 #endif
 
+#include <assert.h>
 #include "remote.h"
 
-PyObject 	*dict;
+PyObject *		dict;
 
-static GList *list = NULL;
+static GList *		c_list;
+static GtkWidget *	c_widget;
 
-void startup_remote (void)
+/* Callback glue for Gtk signals. */
+void
+on_python_command1		(GtkWidget *		widget,
+				 const gchar *		cmd)
 {
-  PyMethodDef empty [] = {
-    {NULL,		NULL}
-  };
-  PyObject *module;
-  
-  /* Initialize the Python interpreter */
-  Py_SetProgramName (PACKAGE);
-  Py_Initialize ();
+  char *buf;
+  unsigned int len;
 
-  /* Create the zapping class */
-  module = Py_InitModule ("zapping", empty);
-  dict = PyModule_GetDict (module);
+  c_widget = widget;
 
-  /* Load the zapping module */
-  PyRun_SimpleString("import zapping\n");
-}
+  len = strlen (cmd);
 
-void shutdown_remote (void)
-{
-  /* Unload the Python interpreter */
-  Py_Finalize ();
-}
+  buf = malloc (len + 2);
+  assert (buf != NULL);
 
-/**
- * We are leaking happily here. Not a bug really because Python
- * requires the passed method def to be around all of its lifetime,
- * and we will be registering every command just once during the
- * program's lifetime.
- */
-void cmd_register (const char *name, PyCFunction cfunc,
-		   int flags,
-		   const char *doc, const char *usage)
-{
-  PyMethodDef *def = (PyMethodDef*)malloc(sizeof(PyMethodDef));
-  PyObject *func;
+  memcpy (buf, cmd, len);
 
-  def->ml_name = strdup(name);
-  def->ml_meth = cfunc;
-  def->ml_flags = flags;
-  def->ml_doc = strdup(doc);
-  
-  func = PyCFunction_New(def, NULL);
-  PyDict_SetItemString(dict, (char*)name, func);
-  Py_DECREF(func);
+  buf[len + 0] = '\n';
+  buf[len + 1] = 0;
 
-  /* Append this cmd to the list of known methods */
-  list = g_list_append (list, strdup(usage));
-}
-
-void cmd_run (const char *cmd)
-{
-  char *buf = (char*)malloc(strlen(cmd)+5);
-  sprintf(buf, "%s\n", cmd);
   PyRun_SimpleString (buf);
+
   free (buf);
 }
 
-void cmd_run_printf (const char *fmt, ...)
+void
+on_python_command2		(GtkWidget *		widget,
+				 gpointer 		unused,
+				 const gchar *		cmd)
+{
+  on_python_command1 (widget, cmd);
+}
+
+void
+on_python_command3		(GtkWidget *		widget,
+				 gpointer 		unused1,
+				 gpointer 		unused2,
+				 const gchar *		cmd)
+{
+  on_python_command1 (widget, cmd);
+}
+
+void
+python_command_printf		(GtkWidget *		widget,
+				 const gchar *		fmt,
+				 ...)
 {
   char *buf;
   va_list ap;
   int result;
 
   va_start (ap, fmt);
-
   result = vasprintf (&buf, fmt, ap);
-
   va_end (ap);
 
-  if (result == -1)
+  if (-1 == result)
     {
       perror ("vsprintf");
       return;
     }
 
-  cmd_run (buf);
+  python_command (widget, buf);
+
   free (buf);
 }
 
-GList *cmd_list (void)
+GList *
+cmd_list			(void)
 {
-  return g_list_copy (list);
+  return g_list_copy (c_list);
 }
 
-static gpointer last_caller = NULL;
-
-void
-on_remote_command1 (void *lc, const char *cmd)
+/* Widget sending the last command, or NULL. */
+GtkWidget *
+python_command_widget		(void)
 {
-  last_caller = lc;
-  cmd_run (cmd);
-}
-
-void
-on_remote_command2 (void *lc, void *unused, const char *cmd)
-{
-  last_caller = lc;
-  cmd_run (cmd);
-}
-
-gpointer
-remote_last_caller (void)
-{
-  return last_caller;
+  return c_widget;
 }
 
 #define OPTIONAL	(1 << 0)
@@ -146,39 +119,36 @@ struct cmd_txl {
 };
 
 static const struct cmd_txl
-cmd_txl_table [] =
-  {
-    { "mute",			1,	OPTIONAL | TOGGLE },
-    { "volume_incr",		1,	OPTIONAL | INTEGER }, /* incr (+1) */
-    { "ttx_open_new",		2,	OPTIONAL | INTEGER }, /* page (100), sub (any) */
-    { "ttx_history_next",	0,	0 },
-    { "ttx_history_prev",	0,	0 },
-    { "ttx_page_incr",		1,	OPTIONAL | INTEGER }, /* incr (+1) */
-    { "ttx_subpage_incr",	1,	OPTIONAL | INTEGER }, /* incr (+1) */
-    { "ttx_reveal",		1,	OPTIONAL | TOGGLE },
-    { "ttx_home",		0,	0 },
-    { "ttx_hold",		1,	OPTIONAL | TOGGLE },
-    { "stoprec",		0,	0 },
-/*  { "pauserec",		0,	0 }, */ /* never implemented */
-    { "quickrec",		1,	OPTIONAL | STRING }, /* (last) */
-    { "record",			1,	OPTIONAL | STRING }, /* (last) */
-    { "quickshot",		1,	OPTIONAL | STRING }, /* (last) */
-    { "screenshot",		1,	OPTIONAL | STRING }, /* (last) */
-    { "lookup_channel",		1,	STRING },
-    { "set_channel",		1,	STRING },
-    { "channel_down",		0,	0 },
-    { "channel_up",		0,	0 },
-    { "quit",			0,	0 },
-    { "subtitle_overlay",	1,	OPTIONAL | TOGGLE },
-    { "restore_mode",		1,	OPTIONAL | STRING }, /* (toggle) */
-    { "toggle_mode",		1,	OPTIONAL | STRING }, /* (toggle) */
-    { "switch_mode",		1,	STRING },
-  };
+cmd_txl_table [] = {
+  { "mute",		1,	OPTIONAL | TOGGLE },
+  { "volume_incr",	1,	OPTIONAL | INTEGER }, /* incr (+1) */
+  { "ttx_open_new",	2,	OPTIONAL | INTEGER }, /* page (100), sub (any) */
+  { "ttx_history_next",	0,	0 },
+  { "ttx_history_prev",	0,	0 },
+  { "ttx_page_incr",	1,	OPTIONAL | INTEGER }, /* incr (+1) */
+  { "ttx_subpage_incr",	1,	OPTIONAL | INTEGER }, /* incr (+1) */
+  { "ttx_reveal",	1,	OPTIONAL | TOGGLE },
+  { "ttx_home",		0,	0 },
+  { "ttx_hold",		1,	OPTIONAL | TOGGLE },
+  { "stoprec",		0,	0 },
+/*  { "pauserec",	0,	0 }, */ /* never implemented */
+  { "quickrec",		1,	OPTIONAL | STRING }, /* (last) */
+  { "record",		1,	OPTIONAL | STRING }, /* (last) */
+  { "quickshot",	1,	OPTIONAL | STRING }, /* (last) */
+  { "screenshot",	1,	OPTIONAL | STRING }, /* (last) */
+  { "lookup_channel",	1,	STRING },
+  { "set_channel",	1,	STRING },
+  { "channel_down",	0,	0 },
+  { "channel_up",	0,	0 },
+  { "quit",		0,	0 },
+  { "subtitle_overlay",	1,	OPTIONAL | TOGGLE },
+  { "restore_mode",	1,	OPTIONAL | STRING }, /* (toggle) */
+  { "toggle_mode",	1,	OPTIONAL | STRING }, /* (toggle) */
+  { "switch_mode",	1,	STRING },
+};
 
-/*
- *  Translate pre-0.7 command to new Python command. You must
- *  g_free() the returned string.
- */
+/* Translate pre-0.7 command to new Python command. You must
+   g_free() the returned string. */
 gchar *
 cmd_compatibility		(const gchar *		cmd)
 {
@@ -278,4 +248,61 @@ cmd_compatibility		(const gchar *		cmd)
  bad_cmd:
   g_free (d);
   return g_strconcat ("/* ", cmd, " */", NULL);  
+}
+
+/* We leak happily here. Not a bug really because Python requires
+   the passed method def to be around all of its lifetime, and we
+   will be registering every command just once during the
+   program's lifetime. */
+void
+cmd_register			(const gchar *		name,
+				 PyCFunction		cfunc,
+				 int			flags,
+				 const gchar *		doc,
+				 const gchar *		usage)
+{
+  PyMethodDef *def;
+  PyObject *func;
+
+  def = (PyMethodDef *) malloc (sizeof (*def));
+  assert (def != NULL);
+
+  def->ml_name = strdup(name);
+  def->ml_meth = cfunc;
+  def->ml_flags = flags;
+  def->ml_doc = strdup(doc);
+  
+  func = PyCFunction_New (def, NULL);
+  PyDict_SetItemString (dict, (char *) name, func);
+  Py_DECREF (func);
+
+  /* Append this cmd to the list of known methods. */
+  c_list = g_list_append (c_list, g_strdup (usage));
+}
+
+void
+shutdown_remote			(void)
+{
+  /* Unload the Python interpreter */
+  Py_Finalize ();
+}
+
+void
+startup_remote			(void)
+{
+  PyMethodDef empty [] = {
+    { NULL, NULL }
+  };
+  PyObject *module;
+
+  /* Initialize the Python interpreter. */
+  Py_SetProgramName (PACKAGE);
+  Py_Initialize ();
+
+  /* Create the zapping class. */
+  module = Py_InitModule ("zapping", empty);
+  dict = PyModule_GetDict (module);
+
+  /* Load the zapping module. */
+  PyRun_SimpleString ("import zapping\n");
 }

@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zvideo.c,v 1.1.2.3 2003-07-29 03:36:14 mschimek Exp $ */
+/* $Id: zvideo.c,v 1.1.2.4 2003-08-24 23:59:11 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -545,6 +545,14 @@ events				(GtkWidget *		widget,
       break;
 
     case GDK_MOTION_NOTIFY:
+      /* Note there is a VidMode event, but we already get this event
+	 when the VidMode changed, by Ctrl-Alt-nk+/- anyway. Why this
+	 happens I can only speculate. Well, it is a desired sideeffect
+	 in fullscreen mode, connecting to the cursor-blanked signal to
+	 recenter the video. */
+
+      /* fall through */
+
     case GDK_BUTTON_PRESS:
       if (video->blank_cursor_timeout > 0)
 	z_video_set_cursor (video, video->blanked_cursor_type);

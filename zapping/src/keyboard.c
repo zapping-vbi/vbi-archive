@@ -382,10 +382,10 @@ on_key_press			(GtkWidget *		dialog,
 	gtk_dialog_response (GTK_DIALOG (dialog),
 			     GTK_RESPONSE_ACCEPT);      
 
-	return TRUE;
+	return TRUE; /* handled */
       }
 
-  return FALSE;
+  return FALSE; /* pass on */
 }
 
 static void
@@ -584,9 +584,9 @@ kb_add				(z_key			key,
 }
 
 gboolean
-on_user_key_press			(GtkWidget *	widget,
-					 GdkEventKey *	event,
-					 gpointer	user_data)
+on_user_key_press		(GtkWidget *		widget,
+				 GdkEventKey *		event,
+				 gpointer		user_data)
 {
   key_binding *kb;
   z_key key;
@@ -599,8 +599,8 @@ on_user_key_press			(GtkWidget *	widget,
   for (kb = kb_list; kb; kb = kb->next)
     if (z_key_equal (kb->key, key))
       {
-	cmd_run (kb->command);
-	return TRUE;
+	python_command (widget, kb->command);
+	return TRUE; /* handled */
       }
 
   return FALSE; /* not for us, pass on */
