@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: codec.h,v 1.2 2002-04-20 06:44:16 mschimek Exp $ */
+/* $Id: codec.h,v 1.3 2002-06-12 04:01:14 mschimek Exp $ */
 
 #ifndef CODEC_H
 #define CODEC_H
@@ -37,18 +37,18 @@
 typedef struct rte_codec rte_codec;
 
 typedef enum {
-  RTE_STREAM_VIDEO = 0,  /* XXX STREAM :-( need a better term */
-  RTE_STREAM_AUDIO,	 /* input/output distinction? */
+  RTE_STREAM_VIDEO = 1,	/* XXX STREAM :-( need a better term */
+  RTE_STREAM_AUDIO,	
   RTE_STREAM_RAW_VBI,
   RTE_STREAM_SLICED_VBI,
   RTE_STREAM_MAX = 15
 } rte_stream_type;
 
 typedef struct {
-	rte_stream_type		stream_type;
-	char *			keyword;	/* eg. mpeg2_audio_layer_2 */
-	char *			label;		/* gettext()ized _N() */
-	char *			tooltip;	/* or NULL, gettext()ized _N() */
+	rte_stream_type         stream_type;
+	const char *		keyword;	/* eg. mpeg2_audio_layer_2 */
+	const char *		label;		/* gettext()ized _N() */
+	const char *		tooltip;	/* or NULL, gettext()ized _N() */
 } rte_codec_info;
 
 /**
