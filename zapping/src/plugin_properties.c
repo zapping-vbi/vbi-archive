@@ -243,7 +243,7 @@ on_properties_destroy		(GtkObject *		object _unused_,
 
   action = gtk_action_group_get_action (zapping->generic_action_group,
 					"Plugins");
-  gtk_action_set_sensitive (action, TRUE);
+  z_action_set_sensitive (action, TRUE);
 
   PluginProperties = NULL;
 }
@@ -282,7 +282,7 @@ py_plugin_properties (PyObject *self _unused_, PyObject *args _unused_)
 
     action = gtk_action_group_get_action (zapping->generic_action_group,
 					  "Plugins");
-    gtk_action_set_sensitive (action, FALSE);
+    z_action_set_sensitive (action, FALSE);
 
     g_signal_connect (G_OBJECT (plugin_properties), "destroy",
 		      G_CALLBACK (on_properties_destroy), NULL);
