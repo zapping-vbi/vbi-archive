@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pixel_format.h,v 1.1 2004-09-10 04:56:15 mschimek Exp $ */
+/* $Id: pixel_format.h,v 1.2 2004-12-07 17:25:48 mschimek Exp $ */
 
 #ifndef __ZTV_PIXEL_FORMAT_H__
 #define __ZTV_PIXEL_FORMAT_H__
@@ -238,6 +238,16 @@ typedef uint64_t tv_pixfmt_set;
 	(tv_pixfmt_bytes_per_pixel (pixfmt))
 #endif
 
+/** Color space identifier. No values defined yet. */
+typedef enum {
+	TV_COLSPC_NONE,					/**< */
+	TV_COLSPC_UNKNOWN = TV_COLSPC_NONE,		/**< */
+	/** Unspecified RGB color space. */
+	TV_COLSPC_RGB,
+	/** Unspecified YUV (YCbCr) color space. */
+	TV_COLSPC_YUV,
+} tv_colspc;
+
 extern const char *
 tv_pixfmt_name			(tv_pixfmt		pixfmt);
 extern unsigned int
@@ -247,7 +257,7 @@ tv_pixfmt_bytes_per_pixel	(tv_pixfmt		pixfmt);
 
 typedef struct {
 	tv_pixfmt		pixfmt;
-	unsigned int		_reserved1;		/* color space */
+        tv_colspc		colspc;
 
 	/* Number of bits per pixel. For packed YUV 4:2:2 this is 16.
 	   For planar formats this refers to the Y plane only. */
@@ -257,11 +267,11 @@ typedef struct {
 	   per pixel. Averaged if U and V plane are smaller than Y plane. */
 	unsigned int		color_depth;
 
-	/* Width and height of the U and V plane must be multiplied
-	   by these values to get the size of the Y plane. Will be
-           1, 2 or 4. */
-	unsigned int		uv_hscale;
-	unsigned int		uv_vscale;
+	/* Width and height of the U and V plane:
+	   uv_width = width >> uv_hshift,
+	   uv_height = height >> uv_vshift. */
+	unsigned int		uv_hshift;
+	unsigned int		uv_vshift;
 
 	/* Format is packed and pixels are stored in 16, 24 or 32 bit
 	   (bits_per_pixel) quantities with most significant byte
@@ -300,12 +310,10 @@ typedef struct {
 	}			mask;
 } tv_pixel_format;
 
-extern tv_bool
-tv_pixel_format_from_pixfmt	(tv_pixel_format *	format,
-				 tv_pixfmt		pixfmt,
-				 unsigned int		reserved);
-extern tv_bool
-tv_pixel_format_to_pixfmt	(tv_pixel_format *	format);
+extern const tv_pixel_format *
+tv_pixel_format_from_pixfmt	(tv_pixfmt		pixfmt);
+extern tv_pixfmt
+tv_pixel_format_to_pixfmt	(const tv_pixel_format *format);
 
 TV_END_DECLS
 
