@@ -334,7 +334,8 @@ capturing_thread (void *x)
   }
 
  abort:
-  fprintf (stderr, "VBI capture thread terminates\n");
+  if (ZVBI_CAPTURE_THREAD_DEBUG)
+    fprintf (stderr, "VBI capture thread terminates\n");
 
   zf_rem_producer (&p);
 

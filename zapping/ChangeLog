@@ -1,3 +1,8 @@
+2004-07-02    <mschimek@users.sf.net>
+
+	* src/video_xv.c (add_backend_xv): Corrected nv overlay adaptor
+	  name.
+
 2004-06-16    <mschimek@users.sf.net>
 
 	* src/zvbi.c (capturing_thread): Log status and errors,
