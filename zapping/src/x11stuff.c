@@ -1471,6 +1471,10 @@ x11_screensaver_init		(void)
 
 #ifdef HAVE_DGA_EXTENSION
 
+#ifndef X11STUFF_DGA_DEBUG
+#define X11STUFF_DGA_DEBUG 0
+#endif
+
 /* man XF86DGA */
 #include <X11/extensions/xf86dga.h>
 
