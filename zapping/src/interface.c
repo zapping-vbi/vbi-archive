@@ -19,7 +19,10 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: interface.c,v 1.24.2.12 2003-09-24 18:37:41 mschimek Exp $ */
+/* $Id: interface.c,v 1.24.2.13 2003-11-04 21:04:04 mschimek Exp $ */
+
+/* XXX gtk+ 2.3 toolbar changes */
+#undef GTK_DISABLE_DEPRECATED
 
 #include "config.h"
 
@@ -465,6 +468,8 @@ zapping_popup_menu_new		(GdkEventButton *	event)
     gtk_menu_item_set_submenu (GTK_MENU_ITEM (widget), app_menu);
 
     widget = popup_appearance_uiinfo[0].widget;
+    gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (widget),
+      zconf_get_boolean (NULL, "/zapping/internal/callbacks/hide_controls"));
     zconf_add_hook_while_alive (G_OBJECT (widget),
 				"/zapping/internal/callbacks/hide_controls",
 				(ZConfHook) zconf_hook_toolbar,
@@ -473,6 +478,8 @@ zapping_popup_menu_new		(GdkEventButton *	event)
     widget = popup_appearance_uiinfo[1].widget;
     /* XXX tell why not */
     gtk_widget_set_sensitive (widget, !!have_wm_hints);
+    gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (widget),
+      zconf_get_boolean (NULL, "/zapping/options/main/keep_on_top"));
     zconf_add_hook_while_alive (G_OBJECT (widget),
 				"/zapping/options/main/keep_on_top",
 				(ZConfHook) zconf_hook_keep_window_on_top,
