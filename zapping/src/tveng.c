@@ -2239,7 +2239,9 @@ int
 tveng_ov511_get_button_state (tveng_device_info *info)
 {
   t_assert(info != NULL);
-  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
+  if (info->current_controller == TVENG_CONTROLLER_NONE)
+    return -1;
 
   TVLOCK;
 
