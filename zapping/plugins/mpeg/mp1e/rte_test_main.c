@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rte_test_main.c,v 1.23 2001-05-26 22:39:30 garetxe Exp $
+ * $Id: rte_test_main.c,v 1.24 2001-05-27 22:21:07 garetxe Exp $
  * This is a simple RTE test.
  */
 
@@ -45,7 +45,7 @@
 #include <esd.h>
 #endif
 
-#define TEST_VIDEO_FORMAT RTE_YUV420 /* or RTE_YUYV, etc... */
+#define TEST_VIDEO_FORMAT RTE_YUYV /* or RTE_YUYV, etc... */
 
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
@@ -148,6 +148,9 @@ init_video(const char * cap_dev, int * width, int * height)
 	if (TEST_VIDEO_FORMAT == RTE_YUV420) {
 		vfmt.fmt.pix.depth = 12;
 		vfmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUV420;
+	} else if (TEST_VIDEO_FORMAT == RTE_YVU420) {
+		vfmt.fmt.pix.depth = 12;
+		vfmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YVU420;
 	} else if (TEST_VIDEO_FORMAT == RTE_YUYV) {
 		vfmt.fmt.pix.depth = 16;
 		vfmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;

@@ -3,6 +3,7 @@
 	* Fixed rte buffered push capture, removed the possibility of
 	deadlock in kill_zombies (the solution isn't optimal,
 	though). rte_test works now with all possible combinations for me.
+	* YVU support.
 
 2001-05-10	<garetxe@users.sourceforge.net>
 

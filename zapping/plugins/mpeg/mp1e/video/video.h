@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: video.h,v 1.8 2000-10-21 23:28:23 garetxe Exp $ */
+/* $Id: video.h,v 1.9 2001-05-27 22:21:07 garetxe Exp $ */
 
 #include "../common/bstream.h"
 #include "../common/fifo.h"
@@ -56,6 +56,7 @@ extern int		video_look_ahead(char *gop_sequence);
 enum {
 	CM_INVALID,
 	CM_YUV,
+	CM_YVU,
 	CM_YUYV,
 	CM_YUYV_VERTICAL_DECIMATION,
 	CM_YUYV_TEMPORAL_INTERPOLATION,

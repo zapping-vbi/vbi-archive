@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.52 2001-05-26 22:39:30 garetxe Exp $ */
+/* $Id: rte.c,v 1.53 2001-05-27 22:21:07 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -479,6 +479,7 @@ int rte_set_video_parameters (rte_context * context,
 		context->video_bytes *= 2;
 		break;
 	case RTE_YUV420:
+	case RTE_YVU420:
 		context->video_bytes *= 1.5;
 		break;
 	default:
@@ -1082,6 +1083,10 @@ static int rte_fake_options(rte_context * context)
 		break;
 	case RTE_YUV420:
 		filter_mode = CM_YUV;
+		pitch = grab_width;
+		break;
+	case RTE_YVU420:
+		filter_mode = CM_YVU;
 		pitch = grab_width;
 		break;
 	default:

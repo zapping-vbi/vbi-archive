@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: filter.c,v 1.3 2000-08-10 01:18:59 mschimek Exp $ */
+/* $Id: filter.c,v 1.4 2001-05-27 22:21:07 garetxe Exp $ */
 
 #include "../common/log.h"
 #include "../common/mmx.h"
@@ -35,6 +35,7 @@ const char *
 filter_labels[] = {
 	"invalid",
 	"YUV 4:2:0 fastest",
+	"YVU 4:2:0 fastest",
 	"YUYV 4:2:2 fastest",
 	"YUYV 4:2:2 w/vertical decimation",
 	"YUYV 4:2:2 w/temporal interpolation",
@@ -393,17 +394,19 @@ filter_init(int pitch)
 	int y_bpp = 2, scale_y = 1;
 	int off_x, off_y;
 	int uv_size = 0;
+	int u = 4, v = 5;
 
 	temporal_interpolation = FALSE;
 	filter_y_pitch = pitch;
 
 	switch (filter_mode) {
+	case CM_YVU:
+		u = 5; v = 4;
 	case CM_YUV:
 		filter = mmx_YUV_420;
 		uv_size = width * height / 4;
 		y_bpp = 1;
 		break;
-
 	case CM_YUYV:
 	case CM_YUYV_PROGRESSIVE:
 		filter = mmx_YUYV_422;
@@ -471,8 +474,8 @@ filter_init(int pitch)
 	filter_y_offs = filter_y_pitch * off_y + off_x * y_bpp; 
 	filter_v_offs = filter_u_offs = filter_y_offs / 4;
 
-	filter_u_offs += uv_size * 4;
-	filter_v_offs += uv_size * 5;
+	filter_u_offs += uv_size * u;
+	filter_v_offs += uv_size * v;
 
 	printv(2, "Filter '%s'\n", filter_labels[filter_mode]);
 

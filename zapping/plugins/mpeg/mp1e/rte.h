@@ -32,7 +32,7 @@
 /*
  * Lib build ID, for debugging.
  */
-#define RTE_ID " $Id: rte.h,v 1.20 2001-05-26 22:39:30 garetxe Exp $ "
+#define RTE_ID " $Id: rte.h,v 1.21 2001-05-27 22:21:07 garetxe Exp $ "
 
 /*
  * What are we going to encode, audio only, video only or both
@@ -61,6 +61,7 @@ enum rte_interface {
 */
 enum rte_pixformat {
 	RTE_YUV420, /* Planar Y:Cb:Cr 1.5 bytes per pixel */
+	RTE_YVU420, /* Planar Y:Cr:Cb 1.5 bytes per pixel */
 	RTE_YUYV, /* YCbYCr linear, 2 bytes per pixel */
 	/* these are the additional formats mp1e supports */
 	/* in decimation modes the height of the buffer you have to
