@@ -898,11 +898,31 @@ zconf_create_controls		(tveng_tc_control *	tcc,
     }
 }
 
+tveng_tc_control *
+tveng_tc_control_by_id		(const tveng_device_info *info,
+				 tveng_tc_control *	tcc,
+				 guint			num_controls,
+				 tv_control_id		id)
+{
+  const tv_control *c;
+  guint i;
+
+  for (c = NULL; (c = tv_next_control (info, c));)
+    if (c->id == id)
+      break;
+
+  if (NULL != c)
+    for (i = 0; i < num_controls; ++i)
+      if (normstrcmp (c->label, tcc[i].name))
+	return tcc + i;
+
+  return NULL;
+}
+
 gint
 load_control_values		(tveng_device_info *	info,
 				 tveng_tc_control *	tcc,
-				 guint			num_controls,
-				 gboolean		skip_mute)
+				 guint			num_controls)
 {
   tv_control *ctrl;
   guint i;
@@ -933,10 +953,11 @@ load_control_values		(tveng_device_info *	info,
 		set_mute (value, /* controls */ TRUE, /* osd */ FALSE);
 	    }
 	  else
+#endif
 	    {
 	      tveng_set_control (ctrl, value, info);
 	    }
-#endif
+
 	  break;
 	}
 
@@ -1199,8 +1220,7 @@ z_switch_channel		(tveng_tuned_channel *	channel,
 
   if (channel->num_controls && zcg_bool(NULL, "save_controls"))
     /* XXX should we save mute state per-channel? */
-    load_control_values(info, channel->controls,
-			channel->num_controls, /* skip_mute */ TRUE);
+    load_control_values(info, channel->controls, channel->num_controls);
 
   update_control_box(info);
 
