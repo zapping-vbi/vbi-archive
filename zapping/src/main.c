@@ -176,6 +176,114 @@ init_zapping_stock		(void)
   z_icon_factory_add_pixdata ("zapping-video", &video_png);
 }
 
+static void
+restore_controls		(void)
+{
+  tveng_tc_control *controls;
+  guint num_controls;
+  gboolean start_muted;
+  tveng_tuned_channel *ch;
+
+  D();
+
+  zconf_get_integer (&num_controls, ZCONF_DOMAIN "num_controls");
+  controls = zconf_get_controls (num_controls, "/zapping/options/main");
+
+  start_muted = zcg_bool (NULL, "start_muted");
+
+  if (start_muted)
+    {
+      tveng_tc_control *mute;
+
+      if ((mute = tveng_tc_control_by_id (main_info,
+					  controls, num_controls,
+					  TV_CONTROL_ID_MUTE)))
+	mute->value = 1;
+    }
+
+  load_control_values (main_info, controls, num_controls);
+
+  set_mute (3 /* update */, /* controls */ TRUE, /* osd */ FALSE);
+
+  D();
+
+  /* Restore the input and the standard */
+
+  if (zcg_int(NULL, "current_input"))
+    z_switch_input(zcg_int(NULL, "current_input"), main_info);
+
+  if (zcg_int(NULL, "current_standard"))
+    z_switch_standard(zcg_int(NULL, "current_standard"), main_info);
+
+  cur_tuned_channel = zcg_int(NULL, "cur_tuned_channel");
+  ch = tveng_tuned_channel_nth (global_channel_list, cur_tuned_channel);
+
+  if (start_muted)
+    {
+      tveng_tc_control *mute;
+
+      if ((mute = tveng_tc_control_by_id (main_info,
+					  ch->controls,
+					  ch->num_controls,
+					  TV_CONTROL_ID_MUTE)))
+	mute->value = 1; /* XXX sub-optimal */
+    }
+
+  z_switch_channel (ch, main_info);
+}
+
+static void
+restore_last_capture_mode		(void)
+{
+  /* Start the capture in the last mode */
+
+  if (disable_preview)
+    {
+      if (-1 == zmisc_switch_mode (TVENG_CAPTURE_READ, main_info))
+	ShowBox (_("Capture mode couldn't be started:\n%s"),
+		 GTK_MESSAGE_ERROR, main_info->error);
+    }
+  else
+    {
+      enum tveng_capture_mode mode;
+
+      mode = (enum tveng_capture_mode) zcg_int (NULL, "capture_mode");
+
+      if (-1 == zmisc_switch_mode (mode, main_info))
+	{
+	  if (TVENG_CAPTURE_READ != mode)
+	    {
+	      if (0)
+		ShowBox(_("Cannot restore previous mode, will try capture mode:\n%s"),
+			GTK_MESSAGE_ERROR, main_info->error);
+
+	      if (-1 == zmisc_switch_mode (TVENG_CAPTURE_READ, main_info))
+		{
+		  if (0)
+		    ShowBox(_("Capture mode couldn't be started either:\n%s"),
+			    GTK_MESSAGE_ERROR, main_info->error);
+		  else
+		    ShowBox(_("Cannot restore previous mode:\n%s"),
+			    GTK_MESSAGE_ERROR, main_info->error);
+		}
+	    }
+	  else
+	    {
+	      ShowBox (_("Capture mode couldn't be started:\n%s"),
+		       GTK_MESSAGE_ERROR, main_info->error);
+	    }
+	}
+      else
+	{
+	  /* in callbacks.c */
+	  extern enum tveng_capture_mode last_mode;
+
+	  last_mode = TVENG_CAPTURE_WINDOW;
+	}
+    }
+}
+
+
 extern int zapzilla_main(int argc, char * argv[]);
 
 int main(int argc, char * argv[])
@@ -430,7 +538,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.178 2004-05-16 11:41:35 mschimek Exp $",
+	 "$Id: main.c,v 1.179 2004-05-24 01:58:04 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -728,104 +836,18 @@ int main(int argc, char * argv[])
   osd_set_window(tv_screen);
   D();
   xawtv_ipc_init (main_window);
-
-  printv("switching to mode %d (%d)\n",
-	 zcg_int (NULL, "capture_mode"), TVENG_CAPTURE_READ);
-
-  /* Start the capture in the last mode */
-  if (!disable_preview)
-    {
-      if (zmisc_switch_mode((enum tveng_capture_mode)
-			    zcg_int(NULL, "capture_mode"), main_info)
-	  == -1)
-	{
-	  if (TVENG_CAPTURE_READ == zcg_int (NULL, "capture_mode"))
-	    ShowBox(_("Cannot restore previous mode, will try capture mode:\n%s"),
-		    GTK_MESSAGE_ERROR, main_info->error);
-	  else
-	    ShowBox(_("Cannot restore previous mode:\n%s"),
-		    GTK_MESSAGE_ERROR, main_info->error);
-
-	  if ((zcg_int(NULL, "capture_mode") != TVENG_CAPTURE_READ) &&
-	      (zmisc_switch_mode(TVENG_CAPTURE_READ, main_info) == -1))
-	    ShowBox(_("Capture mode couldn't be started either:\n%s"),
-		    GTK_MESSAGE_ERROR, main_info->error);
-	}
-      else
-	{
-	  /* in callbacks.c */
-	  extern enum tveng_capture_mode last_mode;
-
-	  last_mode = TVENG_CAPTURE_WINDOW;
-	}
-    }
-  else /* preview disabled */
-      if (zmisc_switch_mode(TVENG_CAPTURE_READ, main_info) == -1)
-	ShowBox(_("Capture mode couldn't be started:\n%s"),
-		GTK_MESSAGE_ERROR, main_info->error);
   D();
-
   mixer_setup ();
-
-  {
-    tveng_tc_control *controls;
-    guint num_controls;
-    gboolean start_muted;
-    tveng_tuned_channel *ch;
-
-    D();
-
-    zconf_get_integer (&num_controls, ZCONF_DOMAIN "num_controls");
-    controls = zconf_get_controls (num_controls, "/zapping/options/main");
-
-    start_muted = zcg_bool (NULL, "start_muted");
-
-    if (start_muted)
-      {
-	tveng_tc_control *mute;
-
-	if ((mute = tveng_tc_control_by_id (main_info,
-					    controls, num_controls,
-					    TV_CONTROL_ID_MUTE)))
-	  mute->value = 1;
-      }
-
-    load_control_values (main_info, controls, num_controls);
-
-    set_mute (3 /* update */, /* controls */ TRUE, /* osd */ FALSE);
-
-    D();
-
-    /* Restore the input and the standard */
-
-    if (zcg_int(NULL, "current_input"))
-      z_switch_input(zcg_int(NULL, "current_input"), main_info);
-
-    if (zcg_int(NULL, "current_standard"))
-      z_switch_standard(zcg_int(NULL, "current_standard"), main_info);
-
-    cur_tuned_channel = zcg_int(NULL, "cur_tuned_channel");
-    ch = tveng_tuned_channel_nth (global_channel_list, cur_tuned_channel);
-
-    if (start_muted)
-      {
-	tveng_tc_control *mute;
-
-	if ((mute = tveng_tc_control_by_id (main_info,
-					    ch->controls,
-					    ch->num_controls,
-					    TV_CONTROL_ID_MUTE)))
-	  mute->value = 1; /* XXX sub-optimal */
-      }
-
-    z_switch_channel (ch, main_info);
-  }
-
+  D();
+  restore_controls ();
   D();
 
   if (!command)
     {
       gtk_widget_show(main_window);
+      D();
+      printv("switching to mode %d (%d)\n",
+	     zcg_int (NULL, "capture_mode"), TVENG_CAPTURE_READ);
       D();
       window_on_top (GTK_WINDOW (main_window), zconf_get_boolean
 		     (NULL, "/zapping/options/main/keep_on_top"));
@@ -841,12 +863,15 @@ int main(int argc, char * argv[])
       /* Sets the coords to the previous values, if the users wants to */
       if (zcg_bool(NULL, "keep_geometry"))
 	g_timeout_add (500, (GSourceFunc) resize_timeout, NULL);
-      D(); printv("going into main loop...\n");
+      D();
+      restore_last_capture_mode ();
+      D();
+      printv("going into main loop...\n");
       gtk_main();
     }
   else
     {
-      D(); printv("running command \"%s\"\n", command);
+      printv("running command \"%s\"\n", command);
       python_command (NULL, command);
     }
   /* Closes all fd's, writes the config to HD, and that kind of things
