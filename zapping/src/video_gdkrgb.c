@@ -111,7 +111,7 @@ image_put (zimage *image, guint w, guint h)
 			  (gint) (w - iw)/2,
 			  (gint) (h - ih)/2, iw, ih,
 			  GDK_RGB_DITHER_NORMAL, pimage->data,
-			  (gint) image->fmt.bytes_per_line);
+			  (gint) image->fmt.bytes_per_line[0]);
       gdk_display_flush (gdk_display_get_default ());
       break;
     case TV_PIXFMT_RGBA32_LE:
@@ -119,7 +119,7 @@ image_put (zimage *image, guint w, guint h)
 			     (gint) (w - iw)/2,
 			     (gint) (h - ih)/2, iw, ih,
 			     GDK_RGB_DITHER_NORMAL, pimage->data,
-			     (gint) image->fmt.bytes_per_line);
+			     (gint) image->fmt.bytes_per_line[0]);
       gdk_display_flush (gdk_display_get_default ());
       break;
     default:

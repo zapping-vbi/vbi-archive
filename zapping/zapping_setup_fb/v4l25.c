@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l25.c,v 1.9 2005-01-08 14:54:29 mschimek Exp $ */
+/* $Id: v4l25.c,v 1.10 2005-01-31 07:02:16 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -143,7 +143,7 @@ setup_v4l25			(const char *		device_name,
 #endif
     }
 
-  fb.fmt.bytesperline	= buffer->format.bytes_per_line;
+  fb.fmt.bytesperline	= buffer->format.bytes_per_line[0];
   fb.fmt.sizeimage	= buffer->format.height * fb.fmt.bytesperline;
 
   message (2, "Setting new frame buffer parameters.\n");
