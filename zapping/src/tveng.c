@@ -1181,12 +1181,26 @@ tveng_update_capture_format(tveng_device_info * info)
    XXX this is called from scan_devices to determine supported
    formats, which is overkill. Maybe we should have a dedicated
    function to query formats a la try_fmt.
+
+   FIXME request_capture_format_real needs a rewrite, see TODO.
+   In the meantime we will allow only YUV formats a la Zapping
+   0.0 - 0.6.
   */
 int
 tveng_set_capture_format(tveng_device_info * info)
 {
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
+  /* FIXME */
+  if (0 == (TV_PIXFMT_SET (info->format.pixfmt) &
+	    (TV_PIXFMT_SET (TV_PIXFMT_YUV420) |
+	     TV_PIXFMT_SET (TV_PIXFMT_YVU420) |
+	     TV_PIXFMT_SET (TV_PIXFMT_YUYV) |
+	     TV_PIXFMT_SET (TV_PIXFMT_UYVY))))
+    {
+      return -1;
+    }
 
   REQUIRE_IO_MODE (-1);
 
@@ -2949,13 +2963,6 @@ void tveng_set_xv_support(int disabled, tveng_device_info * info)
   info->priv->disable_xv = disabled;
 }
 
-void tveng_assume_yvu(int assume, tveng_device_info * info)
-{
-  t_assert(info != NULL);
-
-  info->priv->assume_yvu = assume;
-}
-
 #ifdef USE_XV
 void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
 {
@@ -4371,23 +4378,20 @@ append_video_line		(tv_video_line **	list,
 
 
 static __inline__ void
-tveng_copy_block		(void *			src,
-				 void *			dest,
+tveng_copy_block		(uint8_t *		src,
+				 uint8_t *		dst,
 				 unsigned int		src_stride,
-				 unsigned int		dest_stride,
+				 unsigned int		dst_stride,
 				 unsigned int		lines)
 {
-  if (src_stride != dest_stride)
-    {
-      unsigned int min_stride = MIN (src_stride, dest_stride);
+	if (src_stride != dst_stride) {
+		unsigned int min_stride = MIN (src_stride, dst_stride);
 
-      for (; lines-- > 0; src += src_stride, dest += dest_stride)
-	memcpy (dest, src, min_stride);
-    }
-  else
-    {
-      memcpy (dest, src, src_stride * lines);
-    }
+		for (; lines-- > 0; src += src_stride, dst += dst_stride)
+			memcpy (dst, src, min_stride);
+	} else {
+		memcpy (dst, src, src_stride * lines);
+	}
 }
 
 void
@@ -4395,40 +4399,41 @@ tveng_copy_frame		(unsigned char *	src,
 				 tveng_image_data *	where,
 				 tveng_device_info *	info)
 {
-  if (TV_PIXFMT_IS_PLANAR (info->format.pixfmt))
-    {
-      unsigned char *y = where->planar.y, *u = where->planar.u,
-	*v = where->planar.v;
-      unsigned char *src_y, *src_u, *src_v;
-      /* Assume that we are aligned */
-      int bytes = info->format.height * info->format.width;
+	if (TV_PIXFMT_IS_PLANAR (info->format.pixfmt)) {
+		unsigned int size_y;
+		uint8_t *src_y;
+		uint8_t *src_u;
+		uint8_t *src_v;
 
-      t_assert (info->format.pixfmt == TV_PIXFMT_YUV420 ||
-		info->format.pixfmt == TV_PIXFMT_YVU420);
-      if (info->priv->assume_yvu)
-	SWAP (u, v);
-      src_y = src;
-      src_u = src_y + bytes;
-      src_v = src_u + (bytes>>2);
-      if (info->format.pixfmt == TV_PIXFMT_YVU420)
-	SWAP (src_u, src_v);
-      tveng_copy_block (src_y, y, info->format.width,
-			where->planar.y_stride,
-			info->format.height);
-      tveng_copy_block (src_u, u, info->format.width/2,
-			where->planar.uv_stride,
-			info->format.height/2);
-      tveng_copy_block (src_v, v, info->format.width/2,
-			where->planar.uv_stride,
-			info->format.height/2);
-    }
-  else
-    {
-      /* linear */
-      tveng_copy_block (src, where->linear.data,
-			info->format.bytesperline, where->linear.stride,
-			info->format.height);
-    }
+		t_assert (TV_PIXFMT_YUV420 == info->format.pixfmt
+			  || TV_PIXFMT_YVU420 == info->format.pixfmt);
+
+		size_y = info->format.height * info->format.width;
+
+		src_y = src;
+		src_u = src_y + size_y;
+		src_v = src_u + (size_y >> 2);
+
+		tveng_copy_block (src_y, where->planar.y,
+				  info->format.width,
+				  where->planar.y_stride,
+				  info->format.height);
+
+		tveng_copy_block (src_u, where->planar.u,
+				  info->format.width >> 1,
+				  where->planar.uv_stride,
+				  info->format.height >> 1);
+
+		tveng_copy_block (src_v, where->planar.v,
+				  info->format.width >> 1,
+				  where->planar.uv_stride,
+				  info->format.height >> 1);
+	} else {
+		tveng_copy_block (src, where->linear.data,
+				  info->format.bytesperline,
+				  where->linear.stride,
+				  info->format.height);
+	}
 }
 
 /*
