@@ -924,153 +924,191 @@ z_build_path(const gchar *path, gchar **error_description)
   return TRUE;
 }
 
-gchar *
-z_replace_filename_extension (gchar *filename, gchar *new_ext)
+static gchar *
+strnmerge			(const gchar *		s1,
+				 guint			len1,
+				 const gchar *		s2,
+				 guint			len2)
 {
-  gchar *name, *ext;
+  gchar *d;
+
+  d = g_malloc (len1 + len2 + 1);
+
+  memcpy (d, s1, len1);
+  memcpy (d + len1, s2, len2);
+
+  d[len1 + len2] = 0;
+
+  return d;
+}
+
+gchar *
+z_replace_filename_extension	(const gchar *		filename,
+				 const gchar *		new_ext)
+{
+  const gchar *ext;
   gint len;
 
   if (!filename)
     return NULL;
 
   len = strlen (filename);
-
-  /* last '.' in last part of name */
+  /* Last '.' in basename. UTF-8 safe because we scan for ASCII only. */
   for (ext = filename + len - 1;
-       ext > filename && *ext != '.' && *ext != '/';
-       ext--);
+       ext > filename && *ext != '.' && *ext != '/'; ext--);
 
-  if (*ext != '.')
-    return g_strdup (filename);
+  if (len == 0 || *ext != '.')
+    {
+      if (!new_ext)
+	return g_strdup (filename);
+      else
+	return g_strconcat (filename, ".", new_ext, NULL);
+    }
 
   len = ext - filename;
 
-  if (!new_ext)
-    return g_strndup(filename, len);
-
-  name = g_malloc (len + strlen (new_ext) + 2);
-  memcpy (name, filename, len + 1);
-  strcpy (name + len + 1, new_ext);
-
-  return name;
-}
-
-gchar *
-z_build_filename (const gchar *dirname, const gchar *filename)
-{
-  gchar *name, *dir;
-  gint trailing_slashes = 0, i;
-
-  if (!dirname || strlen (dirname) == 0)
-    return g_strdup (filename);
-
-  dir = g_strdup (dirname);
-  g_strstrip (dir);
-
-  for (i = strlen (dir); i > 0 && dir[i - 1] == '/'; i--)
-    trailing_slashes++;
-
-  if (trailing_slashes <= 0)
-    name = g_strconcat (dir, "/", filename, NULL);
-  else if (trailing_slashes == 1)
-    name = g_strconcat (dir, filename, NULL);
+  if (new_ext)
+    return strnmerge (filename, len + 1, new_ext, strlen (new_ext));
   else
-    {
-      gchar *temp = g_strndup (dir, i + 1);
-      name = g_strconcat (dir, filename, NULL);
-      g_free (temp);
-    }
-
-  g_free (dir);
-
-  return name;
+    return g_strndup (filename, len);
 }
 
-/* Why has this function been deprecated in gtk 2 is a mistery to me */
 static void
-z_entry_append_text	(gpointer e, const gchar *text)
+append_text			(GtkEditable *		e,
+				 const gchar *		text)
 {
-  GtkEditable * _e = GTK_EDITABLE (e);
-  gint pos;
+  const gint end_pos = -1;
+  gint old_pos, new_pos;
 
-  gtk_editable_set_position (_e, -1);
-  pos = gtk_editable_get_position (_e);
-  gtk_editable_insert_text (_e, text, strlen (text), &pos);
+  gtk_editable_set_position (e, end_pos);
+  old_pos = gtk_editable_get_position (e);
+  new_pos = old_pos;
+
+  gtk_editable_insert_text (e, text, /* bytes */ strlen (text), &new_pos);
+
+  /* Move cursor before appended text */
+  gtk_editable_set_position (e, old_pos);
 }
 
 /* See ttx export or screenshot for a demo */
 void
-z_on_electric_filename (GtkWidget *w, gpointer user_data)
+z_on_electric_filename		(GtkWidget *		w,
+				 gpointer		user_data)
 {
-  gchar **bpp = (gchar **) user_data;
-  gchar *basename = (gchar *)
-    g_object_get_data (G_OBJECT (w), "basename");
-  const gchar *name = gtk_entry_get_text (GTK_ENTRY (w));
-  const gchar *ext;
-  gchar *baseext;
-  gint len, baselen, baseextlen;
+  const gchar *name;	/* editable: "/foo/bar.baz" */
+  const gchar *ext;	/* editable: "baz" */
+  gchar *basename;	/* proposed: "far.faz" */
+  gchar *baseext;	/* proposed: "faz" */
+  gchar **bpp;		/* copy entered name here */
+  gint len;
+  gint baselen;
+  gint baseextlen;
 
-  g_assert(basename != NULL);
-  baselen = strlen(basename);
-  /* last '.' in basename */
-  for (baseext = basename + baselen - 1; baseext > basename
-	 && *baseext != '.'; baseext--);
-  baseextlen = (*baseext == '.') ?
-    baselen - (baseext - basename) : 0;
+  name = gtk_entry_get_text (GTK_ENTRY (w));
+
+  len = strlen (name);
+  /* Last '/' in name. */
+  for (ext = name + len - 1; ext > name && *ext != '/'; ext--);
+  /* First '.' in last part of name. */
+  for (; *ext && *ext != '.'; ext++);
+
+  basename = (gchar *) g_object_get_data (G_OBJECT (w), "basename");
+  g_assert (basename != NULL);
+
+  baselen = strlen (basename);
+  /* Last '.' in basename. UTF-8 safe because we scan for ASCII only. */
+  for (baseext = basename + baselen - 1;
+       baseext > basename && *baseext != '.'; baseext--);
+  baseextlen = (*baseext == '.') ? baselen - (baseext - basename) : 0;
+
+  bpp = (gchar **) user_data;
 
   /* This function is usually a callback handler for the "changed"
      signal in a GtkEditable. Since we will change the editable too,
      block the signal emission while we are editing */
   g_signal_handlers_block_by_func (G_OBJECT (w), 
-				   z_on_electric_filename, user_data);
-
-  len = strlen(name);
-  /* last '/' in name */
-  for (ext = name + len - 1; ext > name && *ext != '/'; ext--);
-  /* first '.' in last part of name */
-  for (; *ext && *ext != '.'; ext++);
+				   z_on_electric_filename,
+				   user_data);
 
   /* Tack basename on if no name or ends with '/' */
   if (len == 0 || name[len - 1] == '/')
     {
-      z_entry_append_text (w, basename);
-      gtk_editable_set_position (GTK_EDITABLE (w), len);
+      append_text (GTK_EDITABLE (w), basename);
     }
   /* Cut off basename if not prepended by '/' */
   else if (len > baselen
-	   && strcmp(&name[len - baselen], basename) == 0
+	   && 0 == strcmp (&name[len - baselen], basename)
 	   && name[len - baselen - 1] != '/')
     {
-      gchar *buf = g_strndup(name, len - baselen);
+      const gint end_pos = -1;
+      gchar *buf = g_strndup (name, len - baselen);
+
       gtk_entry_set_text (GTK_ENTRY (w), buf);
-      /* Attach baseext if none already left of basename */
-      if (baseextlen > 0 && ext < (buf + len - baselen))
-	{
-	  z_entry_append_text (w, baseext);
-	  gtk_editable_set_position (GTK_EDITABLE (w), len - baselen);
-	}
-      g_free(buf);
+
+      /* Attach baseext if none already */
+      if (baseextlen > 0 && ext < (name + len - baselen))
+	append_text (GTK_EDITABLE (w), baseext);
+      else
+	gtk_editable_set_position (GTK_EDITABLE (w), end_pos);
+
+      g_free (buf);
     }
+#if 0
+  /* Tack baseext on if name ends with '.' */
+  else if (baseextlen > 0 && name[len - 1] == '.')
+    {
+      append_text (GTK_EDITABLE (w), baseext + 1);
+    }
+#endif
   /* Cut off baseext when duplicate */
   else if (baseextlen > 0 && len > baseextlen
-	   && strcmp(&name[len - baseextlen], baseext) == 0
+	   && 0 == strcmp (&name[len - baseextlen], baseext)
 	   && ext < (name + len - baseextlen))
     {
-      gchar *buf = g_strndup(name, len - baseextlen);
+      gchar *buf = g_strndup (name, len - baseextlen);
+
       gtk_entry_set_text (GTK_ENTRY (w), buf);
-      g_free(buf);
-    }
-  else if (bpp)
-    {
-      g_free(*bpp);
-      *bpp = g_strdup(name);
+
+      g_free (buf);
     }
 
-  /* unblock signal emission */
+  if (bpp)
+    {
+      g_free (*bpp);
+
+      *bpp = g_strdup (gtk_entry_get_text (GTK_ENTRY (w)));
+    }
+
   g_signal_handlers_unblock_by_func (G_OBJECT (w), 
 				     z_on_electric_filename,
 				     user_data);
-  g_signal_stop_emission_by_name (G_OBJECT (w), "changed");
+}
+
+void
+z_electric_replace_extension	(GtkWidget *		w,
+				 const gchar *		ext)
+{
+  const gchar *old_name;
+  gchar *old_base;
+  gchar *new_name;
+
+  old_base = (gchar *) g_object_get_data (G_OBJECT (w), "basename");
+  new_name = z_replace_filename_extension (old_base, ext);
+  g_object_set_data (G_OBJECT (w), "basename", (gpointer) new_name);
+
+  g_free (old_base);
+
+  old_name = gtk_entry_get_text (GTK_ENTRY (w));
+  new_name = z_replace_filename_extension (old_name, ext);
+  
+  g_signal_handlers_block_matched (G_OBJECT (w), G_SIGNAL_MATCH_FUNC,
+				   0, 0, 0, z_on_electric_filename, 0);
+
+  gtk_entry_set_text (GTK_ENTRY (w), new_name);
+
+  g_signal_handlers_unblock_matched (G_OBJECT (w), G_SIGNAL_MATCH_FUNC,
+				     0, 0, 0, z_on_electric_filename, 0);
+  g_free (new_name);
 }
 
 static void
