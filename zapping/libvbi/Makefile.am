@@ -7,12 +7,18 @@ BUILT_SOURCES = \
 
 EXTRA_DIST = \
 	$(BUILT_SOURCES) \
-	wstfont2.pbm \
+	fontgen.c \
+	wstfont2.pbm
+
+CLEANFILES = \
+	$(BUILT_SOURCES) \
 	fontgen
 
-CLEANFILES = $(BUILT_SOURCES)
-
-INCLUDES = -D_GNU_SOURCE -D_REENTRANT $(UNICODE_CFLAGS)
+INCLUDES = \
+	-I$(top_srcdir) \
+	-D_GNU_SOURCE \
+	-D_REENTRANT \
+	$(UNICODE_CFLAGS)
 
 libvbi_la_SOURCES = \
 	bcd.c bcd.h \
