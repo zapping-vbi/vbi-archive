@@ -17,9 +17,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  *
- *  $Id: proxy-msg.h,v 1.6 2003-06-07 09:43:08 tomzo Exp $
+ *  $Id: proxy-msg.h,v 1.6.2.1 2004-01-27 21:08:30 tomzo Exp $
  *
  *  $Log: not supported by cvs2svn $
+ *  Revision 1.6  2003/06/07 09:43:08  tomzo
+ *  - added new message types MSG_TYPE_DAEMON_PID_REQ,CNF
+ *  - added new struct VBIPROXY_MSG: holds message header and body structs
+ *
  *  Revision 1.5  2003/06/01 19:36:23  tomzo
  *  Implemented server-side TV channel switching
  *  - implemented messages MSG_TYPE_CHN_CHANGE_REQ/CNF/REJ; IND is still TODO
@@ -82,15 +86,6 @@ typedef struct
         uint32_t                len;
         uint32_t                type;
 } VBIPROXY_MSG_HEADER;
-
-typedef struct
-{
-        uint8_t                 is_valid;       /* boolean: ignore struct unless TRUE */
-        uint8_t                 chn_prio;       /* driver prio: record,interact,background */
-        uint8_t                 sub_prio;       /* background prio: VPS/PDC, initial load, update, check */
-        uint8_t                 allow_suspend;  /* boolean: suspend allowed for checks by other aps */
-        time_t                  duration;       /* min. continuous use of that channel */
-} VBIPROXY_CHN_PROFILE;
 
 #define VBIPROXY_MAGIC_STR                 "LIBZVBI VBIPROXY"
 #define VBIPROXY_MAGIC_LEN                 16
@@ -169,8 +164,9 @@ typedef struct
 typedef struct
 {
         uint32_t                chn_flags;
+        uint32_t                chn_prio;
         vbi_channel_desc        chn_desc;
-        VBIPROXY_CHN_PROFILE    chn_profile;
+        vbi_channel_profile     chn_profile;
         uint32_t                serial;
 } VBIPROXY_CHN_CHANGE_REQ;
 
@@ -191,6 +187,7 @@ typedef struct
 typedef struct
 {                                               /* note: sent both by client and daemon */
         vbi_channel_desc        chn_desc;
+        uint8_t                 chn_granted;
         uint32_t                scanning;
 } VBIPROXY_CHN_CHANGE_IND;
 
@@ -268,10 +265,6 @@ void     vbi_proxy_msg_close_io( VBIPROXY_MSG_STATE * pIO );
 void     vbi_proxy_msg_fill_magics( VBIPROXY_MAGICS * p_magic );
 void     vbi_proxy_msg_write( VBIPROXY_MSG_STATE * p_io, VBIPROXY_MSG_TYPE type,
                               uint32_t msgLen, VBIPROXY_MSG * pMsg, vbi_bool freeBuf );
-vbi_bool vbi_proxy_msg_write_queue( VBIPROXY_MSG_STATE * p_io, vbi_bool * p_blocked,
-                                    unsigned int services, int max_lines,
-                                    vbi_sliced * p_lines, unsigned int line_count,
-                                    double timestamp );
 
 int      vbi_proxy_msg_listen_socket( vbi_bool is_tcp_ip, const char * listen_ip, const char * listen_port );
 void     vbi_proxy_msg_stop_listen( vbi_bool is_tcp_ip, int sock_fd, char * pSrvPort );
