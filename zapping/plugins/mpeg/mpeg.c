@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.36.2.5 2003-03-06 21:57:00 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.36.2.6 2003-03-24 17:18:57 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -1818,9 +1818,7 @@ plugin_add_gui			(GnomeApp *		app)
   GtkWidget *tmp_toolbar_icon;
   gint sig_id;
 
-  tmp_toolbar_icon =
-    gtk_image_new_from_stock (GTK_STOCK_SELECT_COLOR,
-			      GTK_ICON_SIZE_LARGE_TOOLBAR);
+  tmp_toolbar_icon = z_load_pixmap ("recordtb.png");
 
   button = gtk_toolbar_append_item (GTK_TOOLBAR (toolbar1),
 				    _("Record"),
