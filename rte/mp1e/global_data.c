@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: global_data.c,v 1.19 2002-12-14 00:43:43 mschimek Exp $ */
+/* $Id: global_data.c,v 1.20 2003-01-03 05:33:56 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,9 +54,8 @@ int			mux_syn			= 2;			// 0 = null, elementary, MPEG-1, MPEG-2 PS
 
 char *			cap_dev			= "/dev/video";
 
-#if defined(HAVE_LIBASOUND)
-/* alsa 0.5: card #0, device #0; 0.9: "default" */
-char *			pcm_dev			= "alsa";
+#if defined(HAVE_ALSA)
+char *			pcm_dev			= "alsa/default";
 #elif defined(HAVE_OSS)
 char *			pcm_dev			= "/dev/dsp";
 #elif defined(USE_ESD)
