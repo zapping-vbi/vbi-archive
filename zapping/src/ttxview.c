@@ -63,7 +63,7 @@ extern int cur_tuned_channel;
 extern tveng_tuned_channel *global_channel_list;
 extern tveng_device_info *main_info;
 extern GtkWidget *main_window;
-extern int zvbi_page;
+extern vbi_pgno zvbi_page;
 
 /* Exported, notification of when do we create/destroy a view */
 ZModel *ttxview_model = NULL;

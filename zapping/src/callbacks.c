@@ -48,7 +48,7 @@ extern tveng_tuned_channel * global_channel_list;
 extern tveng_device_info * main_info; /* About the device we are using */
 extern gint disable_preview; /* TRUE if preview (fullscreen)
 				    doesn't work */
-extern gint zvbi_page;
+extern vbi_pgno zvbi_page;
 
 int cur_tuned_channel = 0; /* Currently tuned channel */
 
