@@ -1,6 +1,9 @@
 /*
  *  Copyright (C) 2004 Michael H. Schimek
  *
+ *  AltiVec detection based on code from Xine
+ *  Copyright (C) 1999-2001 Aaron Holtzman
+ *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -16,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cpu.c,v 1.3 2004-12-11 11:46:24 mschimek Exp $ */
+/* $Id: cpu.c,v 1.4 2005-01-08 14:37:56 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -221,7 +224,40 @@ cpu_detection			(void)
 	return cpu_features;
 }
 
-#else /* unknown CPU */
+#elif #cpu (powerpc)
+
+static sigjmp_buf		jmpbuf;
+
+static void
+sigill_handler			(int			sig)
+{
+	siglongjmp (jmpbuf, 1);
+}
+
+cpu_feature_set
+cpu_detection			(void)
+{
+	cpu_features = 0;
+
+	if (sigsetjmp (jmpbuf, 1)) {
+		signal (SIGILL, SIG_DFL);
+		return cpu_features;
+	}
+
+	signal (SIGILL, sigill_handler);
+
+	__asm__ __volatile__ (" mtspr 256, %0\n"
+			      " vand %%v0, %%v0, %%v0\n"
+			      :: "r" (-1));
+
+	signal (SIGILL, SIG_DFL);
+
+	cpu_features = CPU_FEATURE_ALTIVEC;
+
+	return cpu_features;
+}
+
+#else
 
 cpu_feature_set
 cpu_detection			(void)
@@ -231,4 +267,4 @@ cpu_detection			(void)
 	return cpu_features;
 }
 
-#endif /* unknown CPU */
+#endif
