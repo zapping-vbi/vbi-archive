@@ -60,14 +60,14 @@ image_new (tv_pixfmt pixfmt, guint w, guint h)
 
   image->fmt.width = w;
   image->fmt.height = h;
-  image->fmt.pixfmt = pixfmt;
-  image->fmt.bytes_per_line = (w * pf->bits_per_pixel) >> 3;
-  image->fmt.size = image->fmt.bytes_per_line * h;
+  image->fmt.pixel_format = tv_pixel_format_from_pixfmt (pixfmt);
+  image->fmt.offset[0] = 0;
+  image->fmt.bytes_per_line[0] = (w * pf->bits_per_pixel) >> 3;
+  image->fmt.size = image->fmt.bytes_per_line[0] * h;
 
   pimage->data = g_malloc (image->fmt.size);
 
-  image->data.linear.data = pimage->data;
-  image->data.linear.stride = image->fmt.bytes_per_line;
+  image->img = pimage->data;
 
   return image;
 }
@@ -104,14 +104,14 @@ image_put (zimage *image, guint w, guint h)
   g_assert (window != NULL);
 
   clear_canvas (window, w, h, iw, ih);
-  switch (image->fmt.pixfmt)
+  switch (image->fmt.pixel_format->pixfmt)
     {
     case TV_PIXFMT_RGB24_LE:
       gdk_draw_rgb_image (window, gc,
 			  (gint) (w - iw)/2,
 			  (gint) (h - ih)/2, iw, ih,
 			  GDK_RGB_DITHER_NORMAL, pimage->data,
-			  (gint) image->data.linear.stride);
+			  (gint) image->fmt.bytes_per_line);
       gdk_display_flush (gdk_display_get_default ());
       break;
     case TV_PIXFMT_RGBA32_LE:
@@ -119,7 +119,7 @@ image_put (zimage *image, guint w, guint h)
 			     (gint) (w - iw)/2,
 			     (gint) (h - ih)/2, iw, ih,
 			     GDK_RGB_DITHER_NORMAL, pimage->data,
-			     (gint) image->data.linear.stride);
+			     (gint) image->fmt.bytes_per_line);
       gdk_display_flush (gdk_display_get_default ());
       break;
     default:
@@ -180,31 +180,21 @@ static tv_pixfmt pixfmts[] = {
   TV_PIXFMT_RGBA32_LE
 };
 
-static gboolean
-suggest_format (void)
+static tv_pixfmt_set
+supported_formats		(void)
 {
-  capture_fmt fmt;
-  unsigned int i;
-
-  for (i=0; i<G_N_ELEMENTS (pixfmts); i++)
-    {
-      fmt.pixfmt = pixfmts[i];
-      fmt.locked = FALSE;
-      if (suggest_capture_format (&fmt) != -1)
-	return TRUE;
-    }
-
-  return FALSE;
+  return (TV_PIXFMT_SET (TV_PIXFMT_RGB24_LE) |
+	  TV_PIXFMT_SET (TV_PIXFMT_RGBA32_LE));
 }
 
 static video_backend gdkrgb = {
-  name:			"GdkRGB",
-  set_destination:	set_destination,
-  unset_destination:	unset_destination,
-  image_new:		image_new,
-  image_destroy:	image_destroy,
-  image_put:		image_put,
-  suggest_format:	suggest_format
+  .name			= "GdkRGB",
+  .set_destination	= set_destination,
+  .unset_destination	= unset_destination,
+  .image_new		= image_new,
+  .image_destroy	= image_destroy,
+  .image_put		= image_put,
+  .supported_formats	= supported_formats,
 };
 
 void add_backend_gdkrgb (void);

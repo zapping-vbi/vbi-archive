@@ -75,11 +75,11 @@ image_new (tv_pixfmt pixfmt, guint w, guint h)
 
   new_image->fmt.width = w;
   new_image->fmt.height = h;
-  new_image->fmt.pixfmt = pixfmt;
-  new_image->fmt.bytes_per_line = image->bpl;
+  new_image->fmt.pixel_format = tv_pixel_format_from_pixfmt (pixfmt);
+  new_image->fmt.offset[0] = 0;
+  new_image->fmt.bytes_per_line[0] = image->bpl;
   new_image->fmt.size = image->bpl * image->height;
-  new_image->data.linear.data = image->mem;
-  new_image->data.linear.stride = image->bpl;
+  new_image->img = image->mem;
 
   return new_image;
 }
@@ -170,32 +170,27 @@ unset_destination(tveng_device_info *info _unused_)
   black_gc = NULL;
 }
 
-static gboolean
-suggest_format (void)
+static tv_pixfmt_set
+supported_formats		(void)
 {
-  capture_fmt fmt;
-
-  fmt.pixfmt = x11_pixfmt;
-  fmt.locked = FALSE;
-
-  return (suggest_capture_format (&fmt) != -1);
+  return TV_PIXFMT_SET (x11_pixfmt);
 }
 
 static video_backend x11 = {
-  name:			"X11 PutImage",
-  set_destination:	set_destination,
-  unset_destination:	unset_destination,
-  image_new:		image_new,
-  image_destroy:	image_destroy,
-  image_put:		image_put,
-  suggest_format:	suggest_format
+  .name			= "X11 PutImage",
+  .set_destination	= set_destination,
+  .unset_destination	= unset_destination,
+  .image_new		= image_new,
+  .image_destroy	= image_destroy,
+  .image_put		= image_put,
+  .supported_formats	= supported_formats,
 };
 
 void add_backend_x11 (void);
 void add_backend_x11 (void)
 {
   /* Same for all screens. */
-  x11_pixfmt = screens->target.format.pixfmt;
+  x11_pixfmt = screens->target.format.pixel_format->pixfmt;
 
   g_assert (TV_PIXFMT_UNKNOWN != x11_pixfmt);
   g_assert (TV_PIXFMT_IS_PACKED (x11_pixfmt));

@@ -73,15 +73,15 @@ planar_image_new (const tv_pixel_format *pf, guint w, guint h)
 
   image->fmt.width = w;
   image->fmt.height = h;
-  image->fmt.pixfmt = pf->pixfmt;
-  image->fmt.bytes_per_line = w;
+  image->fmt.pixel_format = tv_pixel_format_from_pixfmt (pf->pixfmt);
+  image->fmt.bytes_per_line[0] = w;
   image->fmt.size = y_size + uv_size * 2;
 
-  image->data.planar.y = data;
-  image->data.planar.y_stride = w;
-  image->data.planar.u = data + y_size + pf->vu_order * uv_size;
-  image->data.planar.v = data + y_size + (pf->vu_order ^ 1) * uv_size;
-  image->data.planar.uv_stride = w >> pf->uv_hshift;
+  image->img = data;
+  image->fmt.offset[1] = y_size + pf->vu_order * uv_size;
+  image->fmt.offset[2] = y_size + (pf->vu_order ^ 1) * uv_size;
+  image->fmt.bytes_per_line[1] = w >> pf->uv_hshift;
+  image->fmt.bytes_per_line[2] = w >> pf->uv_hshift;
 
   return image;
 }
@@ -110,12 +110,11 @@ image_new (tv_pixfmt pixfmt, guint w, guint h)
   pimage->data = data;
   image->fmt.width = w;
   image->fmt.height = h;
-  image->fmt.pixfmt = pixfmt;
-  image->fmt.bytes_per_line = bpl;
+  image->fmt.pixel_format = tv_pixel_format_from_pixfmt (pixfmt);
+  image->fmt.bytes_per_line[0] = bpl;
   image->fmt.size = size;
 
-  image->data.linear.data = data;
-  image->data.linear.stride = bpl;
+  image->img = data;
 
   return image;
 }
@@ -129,10 +128,18 @@ image_destroy (zimage *image)
   g_free (pimage);
 }
 
+static tv_pixfmt_set
+supported_formats		(void)
+{
+  /* No formats displayable. */
+  return 0;
+}
+
 static video_backend mem = {
-  name:			"Memory backend",
-  image_new:		image_new,
-  image_destroy:	image_destroy
+  .name			= "Memory backend",
+  .image_new		= image_new,
+  .image_destroy	= image_destroy,
+  .supported_formats	= supported_formats,
 };
 
 void add_backend_mem (void);

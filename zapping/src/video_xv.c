@@ -245,8 +245,7 @@ image_new(tv_pixfmt pixfmt, guint w, guint h)
 
   new_image->fmt.width = w;
   new_image->fmt.height = h;
-  new_image->fmt.pixfmt = pixfmt;
-  new_image->fmt.bytes_per_line = (w * pf->bits_per_pixel) >> 3;
+  new_image->fmt.pixel_format = tv_pixel_format_from_pixfmt (pixfmt);
   new_image->fmt.size = pimage->image->data_size;
 
   if (TV_PIXFMT_SET_YUV_PLANAR & TV_PIXFMT_SET (pixfmt))
@@ -257,22 +256,19 @@ image_new(tv_pixfmt pixfmt, guint w, guint h)
       g_assert (pimage->image->pitches[1] ==
 		pimage->image->pitches[2]);
 
-      new_image->data.planar.y =
-	pimage->image->data + pimage->image->offsets[0];
-      new_image->data.planar.y_stride =
-	pimage->image->pitches[0];
-      new_image->data.planar.u =
-	pimage->image->data + pimage->image->offsets[1 + swap_uv];
-      new_image->data.planar.v =
-	pimage->image->data + pimage->image->offsets[2 - swap_uv];
-      new_image->data.planar.uv_stride =
-	pimage->image->pitches[1];
+      new_image->img = pimage->image->data;
+      new_image->fmt.offset[0] = pimage->image->offsets[0];
+      new_image->fmt.offset[1] = pimage->image->offsets[1 + swap_uv];
+      new_image->fmt.offset[2] = pimage->image->offsets[2 - swap_uv];
+      new_image->fmt.bytes_per_line[0] = pimage->image->pitches[0];
+      new_image->fmt.bytes_per_line[1] = pimage->image->pitches[1];
+      new_image->fmt.bytes_per_line[2] = pimage->image->pitches[2];
     }
   else if (TV_PIXFMT_SET_PACKED & TV_PIXFMT_SET (pixfmt))
     {
       g_assert (pimage->image->num_planes == 1);
-      new_image->data.linear.data = pimage->image->data;
-      new_image->data.linear.stride = pimage->image->pitches[0];
+      new_image->img = pimage->image->data;
+      new_image->fmt.bytes_per_line[0] = pimage->image->pitches[0];
     }
   else
     {
@@ -280,11 +276,11 @@ image_new(tv_pixfmt pixfmt, guint w, guint h)
     }
 
   printv ("Created image: %s %dx%d, %d, %d\n",
-	  tv_pixfmt_name (new_image->fmt.pixfmt),
+	  new_image->fmt.pixel_format->name,
 	  new_image->fmt.width,
 	  new_image->fmt.height,
-	  new_image->data.planar.y_stride,
-	  new_image->data.planar.uv_stride);
+	  new_image->fmt.bytes_per_line[0],
+	  new_image->fmt.bytes_per_line[1]);
 
   return new_image;
 
@@ -389,38 +385,29 @@ unset_destination(tveng_device_info *info _unused_)
   gc = NULL;
 }
 
-static gboolean
-suggest_format (void)
+static tv_pixfmt_set
+supported_formats		(void)
 {
-  /*  tv_pixfmt pixfmt;*/
+  tv_pixfmt_set pixfmt_set;
+  tv_pixfmt pixfmt;
 
-/* FIXME suggest what (as capture format)? We should
-   not suggest anything, just list supported formats and
-   how expensive they are in terms of CPU and memory usage. */
-#if 0
-  for (pixfmt = 0; pixfmt < TV_MAX_PIXFMTS; pixfmt++)
-    if (TV_PIXFMT_SET_ALL & TV_PIXFMT_SET (pixfmt))
-      if (formats[pixfmt].num_ports > 0)
-	{
-	  capture_fmt fmt;
-	  fmt.pixfmt = pixfmt;
-	  fmt.locked = FALSE;
-	  if (-1 != suggest_capture_format (&fmt))
-	    /* Capture format granted */
-	    return TRUE;
-	}
-#endif
-  return FALSE;
+  pixfmt_set = TV_PIXFMT_SET_EMPTY;
+
+  for (pixfmt = 0; pixfmt < TV_MAX_PIXFMTS; ++pixfmt)
+    if (formats[pixfmt].num_ports > 0)
+      pixfmt_set |= TV_PIXFMT_SET (pixfmt);
+
+  return pixfmt_set;
 }
 
 static video_backend xv = {
-  name:			"XVideo Backend Scaler",
-  set_destination:	set_destination,
-  unset_destination:	unset_destination,
-  image_new:		image_new,
-  image_destroy:	image_destroy,
-  image_put:		image_put,
-  suggest_format:	suggest_format
+  .name			= "XVideo Backend Scaler",
+  .set_destination	= set_destination,
+  .unset_destination	= unset_destination,
+  .image_new		= image_new,
+  .image_destroy	= image_destroy,
+  .image_put		= image_put,
+  .supported_formats	= supported_formats,
 };
 
 /*
