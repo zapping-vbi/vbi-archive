@@ -1,3 +1,8 @@
+2.12.2001	Fractional pixel problem <garetxe@users.sf.net>
+
+	* audio.c: Set configured mixer settings when opening the device.
+	* osd.c: Teletubbyfied Mr. Copperfield.
+
 1.12.2001	Mixer et co. <garetxe@users.sf.net>
 
 	* tveng: Added tveng_ov511_get_button_state (untested),

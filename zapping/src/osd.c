@@ -50,6 +50,14 @@ typedef struct _piece {
   /* relative geometry in the OSD window (0...1) */
   float		x, y, w, h;
 
+  /* sw is the width we scale p->unscaled to. Then the columns in
+     "double_columns" are duplicated to build scaled */
+  float		sw;
+
+  /* Columns to duplicate, ignored if sw = w */
+  int		*double_columns;
+  int		num_double_columns;
+
   /* called before the piece geometry is set to allow changing of
      x, y, w, h */
   void		(*position)(struct _piece *p);
@@ -99,7 +107,12 @@ static GtkWidget *orphanarium = NULL;
 static void
 set_piece_geometry		(piece		*p)
 {
-  gint dest_x, dest_y, dest_w, dest_h;
+  gint dest_x, dest_y, dest_w, dest_h, dest_sw;
+
+  if (p->double_columns)
+    g_free(p->double_columns);
+  p->double_columns = NULL;
+  p->num_double_columns = 0;
 
   if (p->position)
     {
@@ -108,12 +121,13 @@ set_piece_geometry		(piece		*p)
       dest_y = p->y;
       dest_w = p->w;
       dest_h = p->h;
+      dest_sw = p->sw;
     }
   else
     {
       dest_x = cx + p->x * cw;
       dest_y = cy + p->y * ch;
-      dest_w = p->w * cw;
+      dest_sw = dest_w = p->w * cw;
       dest_h = p->h * ch;
     }
 
@@ -122,13 +136,68 @@ set_piece_geometry		(piece		*p)
       (gdk_pixbuf_get_height(p->scaled) != dest_h)))
     {
       if (p->scaled)
-	gdk_pixbuf_unref(p->scaled);
+	{
+	  gdk_pixbuf_unref(p->scaled);
+	  p->scaled = NULL;
+	}
       if (dest_h > 0)
-	p->scaled = z_pixbuf_scale_simple(p->unscaled, dest_w,
-					  dest_h,
-					  GDK_INTERP_BILINEAR);
-      else
-	p->scaled = NULL;
+	{
+	  if (dest_w == dest_sw)
+	    p->scaled = z_pixbuf_scale_simple(p->unscaled,
+					      dest_w, dest_h,
+					      GDK_INTERP_BILINEAR);
+	  else
+	    {
+	      GdkPixbuf * canvas = z_pixbuf_scale_simple(p->unscaled,
+							 dest_sw, dest_h,
+							 GDK_INTERP_BILINEAR);
+	      /* Scaling with line duplication */
+	      if (canvas)
+		{
+		  int i, last_column = 0, scaled_x=0;
+		  p->scaled = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8,
+					     dest_w, dest_h);
+
+		  /* do the line duplication */
+		  for (i=0; i<p->num_double_columns; i++)
+		    {
+		      int width;
+
+		      width = p->double_columns[i] - last_column;
+		      if (width)
+			{
+			  z_pixbuf_copy_area(canvas, last_column,
+					     0, width, dest_h,
+					     p->scaled,
+					     scaled_x, 0);
+			  scaled_x += width;
+			}
+		      z_pixbuf_copy_area(canvas, p->double_columns[i], 0,
+					 1, dest_h,
+					 p->scaled, scaled_x, 0);
+		      scaled_x ++;
+		      last_column = p->double_columns[i];
+		    }
+		  /* Copy the remaining */
+		  if (p->num_double_columns)
+		    {
+		      int width = dest_sw - last_column;
+		      if (width > 0)
+			{
+			  z_pixbuf_copy_area(canvas, last_column, 0,
+					     width, dest_h,
+					     p->scaled, scaled_x, 0);
+			  scaled_x += width; /* for checking */
+			}
+		    }
+
+		  /* We should always draw the whole p->scaled, no
+		     more, no less. Otherwise sth is severely b0rken. */
+		  g_assert(scaled_x == dest_w);
+		  gdk_pixbuf_unref(canvas);
+		}
+	    }
+	}
     }
 
   if (!osd_window)
@@ -299,6 +368,9 @@ remove_piece			(int		row,
   else
     push_window(p->da);
 
+  if (p->double_columns)
+    g_free(p->double_columns);
+
   if (p_index != (matrix[row]->n_pieces - 1))
     memcpy(p, p+1,
 	   sizeof(piece)*((matrix[row]->n_pieces-p_index)-1));
@@ -410,7 +482,7 @@ ttx_position		(piece		*p)
   w -= (128*w)/768;
   h -= (76*h)/576;
 
-  p->w = ((p->column+p->width)*w)/p->max_columns
+  p->sw = p->w = ((p->column+p->width)*w)/p->max_columns
     - (p->column*w)/p->max_columns;
   p->h = ((p->row+1)*h)/p->max_rows-(p->row*h)/p->max_rows;
 
@@ -422,6 +494,10 @@ static void
 cc_position		(piece		*p)
 {
   gint x = 0, y = 0, w = cw, h = ch;
+  gint width0 /* min width of each char */,
+    extra /* pixels remaining for completing total width */,
+    total /* total width of the line */;
+  gint i, j=0 /* internal checking */;
 
   /* Text area 34x15 is (48, 45) - (591, 434) in a 640x480 screen */
   x += (48*w)/640;
@@ -429,11 +505,37 @@ cc_position		(piece		*p)
   w -= (96*w)/640;
   h -= (90*h)/480;
 
-  p->w = ((p->column+p->width)*w)/p->max_columns
-    - (p->column*w)/p->max_columns;
+  total = w;
+  width0 = total/p->max_columns;
+  extra = total - width0*p->max_columns;
+
+  p->num_double_columns = MIN(MAX(0, extra - p->column), p->width);
+  if (p->num_double_columns)
+    p->double_columns = g_malloc(p->num_double_columns *
+				 sizeof(p->double_columns[0]));
+
+  p->w = 0;
+  p->x = x;
+  for (i=0; i<p->column+p->width; i++)
+    {
+      int w = width0 + (i<extra);
+
+      if ((i-p->column) < p->num_double_columns &&
+	  (i-p->column) >= 0)
+	{
+	  p->double_columns[i-p->column] = (i-p->column)*width0;
+	  j++;
+	}
+
+      p->w += w * (i >= p->column) * (i < (p->column+p->width));
+      p->x += w * (i < p->column);
+    }
+
+  g_assert(j == p->num_double_columns);
+
+  p->sw = width0 * p->width;
   p->h = ((p->row+1)*h)/p->max_rows-(p->row*h)/p->max_rows;
 
-  p->x = x + (p->column*w)/p->max_columns;
   p->y = y + (p->row*h)/p->max_rows;
 }
 

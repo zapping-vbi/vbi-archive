@@ -59,6 +59,17 @@ typedef struct {
   gpointer	handle; /* for the backend */
 } mhandle;
 
+static void mixer_setup ( void )
+{
+  int cur_line = zcg_int(NULL, "record_source");
+
+  if (!cur_line)
+    return; /* Use system settings */
+
+  mixer_set_recording_line(cur_line);
+  mixer_set_volume(cur_line, zcg_int(NULL, "record_volume"));
+}
+
 /* Generic stuff */
 gpointer
 open_audio_device (gboolean stereo, gint rate, enum audio_format
@@ -80,6 +91,9 @@ open_audio_device (gboolean stereo, gint rate, enum audio_format
   mhandle = g_malloc0(sizeof(*mhandle));
   mhandle->handle = handle;
   mhandle->owner = cur_backend;
+
+  /* make sure we record from the appropiate source */
+  mixer_setup();
 
   return mhandle;
 }
