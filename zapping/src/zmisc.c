@@ -323,6 +323,19 @@ start_teletext			(void)
       || !zvbi_get_object ())
     return FALSE;
 
+  /* Bktr driver needs special programming for VBI-only mode. */
+  if (zapping->info->current_controller != TVENG_CONTROLLER_NONE)
+    tveng_close_device (zapping->info);
+  if (-1 == tveng_attach_device (zcg_char (NULL, "video_device"),
+				 GDK_WINDOW_XWINDOW
+				 (GTK_WIDGET (zapping->video)->window),
+				 TVENG_ATTACH_VBI, zapping->info))
+    {
+      ShowBox ("Teletext mode not available.",
+	       GTK_MESSAGE_ERROR);
+      return FALSE;
+    }
+
   view = (TeletextView *) _teletext_view_new ();
   gtk_widget_show (GTK_WIDGET (view));
 	  
@@ -342,7 +355,7 @@ start_teletext			(void)
 
   widget = _teletext_toolbar_new (view->action_group);
   gtk_widget_show (widget);
-	  
+
   view->toolbar = (TeletextToolbar *) widget;
 
   behaviour = BONOBO_DOCK_ITEM_BEH_EXCLUSIVE;
@@ -2710,7 +2723,7 @@ z_toggle_action_connect_gconf_key
 typedef struct {
   gc_notify		gcn;
   GtkComboBox *		combo_box;
-  GConfEnumStringPair *	lookup_table;
+  const GConfEnumStringPair *lookup_table;
 } gc_combo_box;
 
 static void
@@ -2765,7 +2778,7 @@ gc_combo_box_changed		(GtkComboBox *		combo_box,
 GtkWidget *
 z_gconf_combo_box_new		(const gchar **		option_menu,
 				 const gchar *		gconf_key,
-				 GConfEnumStringPair *	lookup_table)
+				 const GConfEnumStringPair *lookup_table)
 {
   gc_combo_box *g;
   GtkWidget *widget;
