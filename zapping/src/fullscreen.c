@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fullscreen.c,v 1.30 2004-10-03 10:04:23 mschimek Exp $ */
+/* $Id: fullscreen.c,v 1.31 2004-10-04 02:44:08 mschimek Exp $ */
 
 /**
  * Fullscreen mode handling
@@ -36,7 +36,6 @@
 #include "tveng_private.h"
 #include "osd.h"
 #include "x11stuff.h"
-#include "zmisc.h"
 #include "interface.h"
 #include "v4linterface.h"
 #include "fullscreen.h"
