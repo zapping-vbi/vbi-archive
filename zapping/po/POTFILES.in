@@ -30,3 +30,4 @@ libvbi/exp-gfx.c
 libvbi/exp-html.c
 libvbi/exp-txt.c
 libvbi/exp-vtx.c
+libvbi/v4lx.c

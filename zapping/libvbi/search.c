@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.16 2001-08-03 13:05:00 mschimek Exp $ */
+/* $Id: search.c,v 1.17 2001-08-05 09:57:55 mschimek Exp $ */
 
 #include <stdlib.h>
 #include <ctype.h>
@@ -75,7 +75,7 @@ highlight(struct search *s, struct vt_page *vtp,
 	s->col[0] = 0;
 
 	for (i = FIRST_ROW; i < LAST_ROW; i++) {
-		attr_char *acp = pg->text[i * pg->columns];
+		attr_char *acp = &pg->text[i * pg->columns];
 
 		for (j = 0; j < 40; acp++, j++) {
 			int offset = hp - first;

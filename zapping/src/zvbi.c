@@ -476,6 +476,7 @@ zvbi_open_device(char *device)
 {
   gint index;
   int given_fd;
+  char *err_str;
 
   int region_mapping[8] = {
     0, /* WCE */
@@ -496,21 +497,31 @@ zvbi_open_device(char *device)
     given_fd = -1;
   D();
     vbi_source = vbi_open_v4lx(device, given_fd,
-			       1 /* buffered */, 30 /* fifo depth */);
+			       1 /* buffered */, 30 /* fifo depth */,
+			       &err_str);
   if (!vbi_source)
     {
+      gchar *mknod_hint = _(
+	"This probably means that the required driver isn't loaded. "
+	"Add to your /etc/modules.conf the line:\n"
+	"alias char-major-81-224 bttv (replace bttv by the name "
+	"of your video driver)\n"
+        "and with mknod create /dev/vbi0 appropriately. If this "
+	"doesn't work, you can disable VBI in Settings/Preferences/VBI "
+	"options/Enable VBI decoding.");
+
       D();
-      // XXX check errno to avoid the ever popular "error: no error"
-      ShowBox(_("VBI: %s couldn't be opened: %d, %s\n"
-	        "This probably means that the required driver isn't loaded, "
-		"add to your /etc/modules.conf the line:\n"
-	        "alias char-major-81-224 bttv (replace bttv by the name "
-	        "of your video driver)\n"
-                "and with mknod create /dev/vbi0 appropriately. If this "
-		"doesn't work, you can disable VBI in Settings/Preferences/VBI "
-		"options/Enable VBI decoding."),
-	      GNOME_MESSAGE_BOX_ERROR, device, errno, strerror(errno));
+      if (errno != ENOENT)
+        mknod_hint = "";
+      if (err_str)
+        ShowBox(_("Failed to access vbi device:\n%s\n%s"),
+	  GNOME_MESSAGE_BOX_ERROR, err_str, mknod_hint);
+      else /* should not happen */
+        ShowBox(_("Failed to access vbi device %s, cause unknown.\n"),
+	  GNOME_MESSAGE_BOX_ERROR, device);
       D();
+      if (err_str)
+        free(err_str);
       return FALSE;
     }
   D();

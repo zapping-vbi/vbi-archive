@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.48 2001-08-01 08:40:16 mschimek Exp $ */
+/* $Id: main.c,v 1.49 2001-08-05 09:57:55 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -59,6 +59,7 @@
 
 char *			my_name;
 int			verbose;
+int			debug_msg; /* v4lx.c */
 
 static pthread_t	audio_thread_id;
 static fifo2 *		audio_cap_fifo;
@@ -163,6 +164,8 @@ main(int ac, char **av)
 
 	/* Capture init */
 
+	debug_msg = (verbose >= 3);
+
 	if (modules & MOD_AUDIO) {
 		struct stat st;
 		int psy_level = audio_mode / 10;
@@ -227,8 +230,14 @@ main(int ac, char **av)
 	}
 
 	if (modules & MOD_SUBTITLES) {
-		vbi_cap_fifo = vbi_open_v4lx(vbi_dev, -1, FALSE, 30);
-		ASSERT("open vbi device", vbi_cap_fifo != NULL);
+		char *err_str;
+
+		vbi_cap_fifo = vbi_open_v4lx(vbi_dev, -1, FALSE, 30, &err_str);
+
+		if (vbi_cap_fifo == NULL) {
+			fprintf(stderr, "Failed to access vbi device:\n%s\n", err_str);
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	/* Compression init */

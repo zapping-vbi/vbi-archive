@@ -5,8 +5,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.5\n"
-"POT-Creation-Date: 2001-07-31 10:56+0200\n"
-"PO-Revision-Date: 2001-07-31 14:56+02:00\n"
+"POT-Creation-Date: 2001-08-05 09:43+0200\n"
+"PO-Revision-Date: 2001-08-05 09:48+02:00\n"
 "Last-Translator: Michael H. Schimek <mschimek@users.sourceforge.net>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -349,7 +349,9 @@ msgid ""
 "Open this link with the predetermined Web browser.\n"
 "You can configure this in the GNOME Control Center, under Handlers/Url "
 "Navigator"
-msgstr "Sie können diesen Link mit dem Webbrowser öffnen der im GNOME Kontrollzentrum unter Handlers/Url Navigator eingestellt ist"
+msgstr ""
+"Sie können diesen Link mit dem Webbrowser öffnen der im GNOME "
+"Kontrollzentrum unter Dokument-Handler/Öffnen von URLs eingestellt ist"
 
 #: src/zvbi.c:426
 #, c-format
@@ -365,36 +367,50 @@ msgstr " Teletext Seite %x"
 msgid "Open this page with Zapzilla"
 msgstr "Seite mit Zapzilla öffnen"
 
-#: src/zvbi.c:504
-#, fuzzy, c-format
+#: src/zvbi.c:505
 msgid ""
-"VBI: %s couldn't be opened: %d, %s\n"
-"This probably means that the required driver isn't loaded, add to your "
+"This probably means that the required driver isn't loaded. Add to your "
 "/etc/modules.conf the line:\n"
 "alias char-major-81-224 bttv (replace bttv by the name of your video "
 "driver)\n"
 "and with mknod create /dev/vbi0 appropriately. If this doesn't work, you can "
 "disable VBI in Settings/Preferences/VBI options/Enable VBI decoding."
 msgstr ""
-"VBI: %s konnte nicht geöffnet werden: %d, %s\n"
-"Das bedeutet wahrscheinlich der nötige Treiber ist nicht geladen, fügen Sie die folgende Zeile in der Datei /etc/modules.conf ein:\n"
+"Das bedeutet wahrscheinlich der nötige Treiber ist nicht geladen. Fügen Sie die folgende Zeile in der Datei /etc/modules.conf ein:\n"
 "alias char-major-81-224 bttv ('bttv' durch den Namen Ihres Treibers ersetzen)\n"
 "danach erstellen Sie /dev/vbi0 mit mknod. Wenn das nicht funktioniert, können Sie VBI im Menu \"Einstellungen/VBI Optionen/VBI aktivieren\" abstellen."
 
-#: src/zvbi.c:1669
+#: src/zvbi.c:517
+#, c-format
+msgid ""
+"Failed to access vbi device:\n"
+"%s\n"
+"%s"
+msgstr ""
+"Kein Zugriff auf das VBI-Gerät:\n"
+"%s\n"
+"%s"
+
+#. should not happen
+#: src/zvbi.c:520
+#, c-format
+msgid "Failed to access vbi device %s, cause unknown.\n"
+msgstr "Kein Zugriff auf das VBI-Gerät %s, Ursache unbekannt.\n"
+
+#: src/zvbi.c:1680
 #, c-format
 msgid "%d %s"
 msgstr "%d %s"
 
-#: src/zvbi.c:1670
+#: src/zvbi.c:1681
 msgid "minute"
 msgstr "Minute"
 
-#: src/zvbi.c:1670
+#: src/zvbi.c:1681
 msgid "minutes"
 msgstr "Minuten"
 
-#: src/zvbi.c:1672
+#: src/zvbi.c:1683
 #, c-format
 msgid "%d h %d m"
 msgstr "%d h %d m"
@@ -410,7 +426,9 @@ msgstr "Kamera"
 
 #: src/tveng.c:1550
 msgid "Couldn't locate zapping_setup_fb, check your install"
-msgstr "Konnte zapping_setup_fb nicht finden, bitte prüfen Sie ob Zapping ordnungsgemäß installiert wurde"
+msgstr ""
+"Konnte zapping_setup_fb nicht finden, bitte prüfen Sie ob Zapping "
+"ordnungsgemäß installiert wurde"
 
 #: src/tveng.c:2180 src/tveng.c:2198
 msgid "Filter"
@@ -854,9 +872,8 @@ msgid "Not found"
 msgstr "Nicht gefunden"
 
 #: src/ttxview.c:1063
-#, fuzzy
 msgid "Empty cache"
-msgstr "Kein Seitenspeicher"
+msgstr "Seitenspeicher leer"
 
 #: src/ttxview.c:1186
 #, c-format
@@ -1096,7 +1113,6 @@ msgid "_Main help"
 msgstr "_Haupthilfe"
 
 #: glade/glade_strings.c:31
-#, fuzzy
 msgid "Select the previous station in the channel list [Page Up]"
 msgstr "Vorhergehender Fernsehkanal in der Liste [Bild auf]"
 
@@ -1121,7 +1137,6 @@ msgid "Controls"
 msgstr "Einstellungen"
 
 #: glade/glade_strings.c:37
-#, fuzzy
 msgid "Use Zapping as a Teletext navigator [Ctrl+Alt+T]"
 msgstr "Zapping als Teletext-Navigator benutzen [Strg-Alt-T]"
 
@@ -1200,13 +1215,17 @@ msgstr "Zapping stumm starten"
 #: glade/glade_strings.c:56
 msgid ""
 "Avoid some flicker in preview mode (leaves artifacts in the main window)"
-msgstr "Flackern im Overlay-Modus unterdrücken (kann Artefakte im Hauptfenster leider nicht verhindern)"
+msgstr ""
+"Flackern im Overlay-Modus unterdrücken (kann Artefakte im Hauptfenster "
+"leider nicht verhindern)"
 
 #: glade/glade_strings.c:57
 msgid ""
 "If this option is on, the brightness, contrast, etc. info is saved with the "
 "channel, and restored when you select it again"
-msgstr "Mit dieser Option wird die Helligkeit, Kontrast etc. für diesen Kanal gespeichert und bei erneuter Anwahl wieder hergestellt"
+msgstr ""
+"Mit dieser Option wird die Helligkeit, Kontrast etc. für diesen Kanal "
+"gespeichert und bei erneuter Anwahl wieder hergestellt"
 
 #: glade/glade_strings.c:58
 msgid "Save control values with the channel info"
@@ -1258,7 +1277,10 @@ msgid ""
 "Thanks to the XVideo extension, if present, the capture buffer can be scaled "
 "to arbitrary sizes using HW acceleration. Select here the capture size to "
 "use in this case."
-msgstr "Wenn die XVideo Extension verfügbar ist, kann der Capture-Puffer hardwareunterstützt beliebig skaliert werden. Die Größe läßt sich hier einstellen."
+msgstr ""
+"Wenn die XVideo Extension verfügbar ist, kann der Capture-Puffer "
+"hardwareunterstützt beliebig skaliert werden. Die Größe läßt sich hier "
+"einstellen."
 
 #: glade/glade_strings.c:70
 msgid "Biggest noninterlaced (autodetect)"
@@ -1281,7 +1303,10 @@ msgid ""
 "A format string describing what should the program put as the main window "
 "title when changing channels. $(alias), $(index), $(id), $(freq), "
 "$(standard) and $(input) are substituted by the proper values."
-msgstr "Eine Zeichenkette die beschreibt was in der Titelzeile des Hauptfensters gezeigt werden soll. $(alias), $(index), $(id), $(freq), $(standard) und $(input) werden durch die entsprechenden Werte ersetzt."
+msgstr ""
+"Eine Zeichenkette die beschreibt was in der Titelzeile des Hauptfensters "
+"gezeigt werden soll. $(alias), $(index), $(id), $(freq), $(standard) und "
+"$(input) werden durch die entsprechenden Werte ersetzt."
 
 #: glade/glade_strings.c:75
 msgid "General options"
@@ -1313,7 +1338,9 @@ msgstr "Wählen Sie ein Verzeichnis in dem Seiten gespeichert werden"
 
 #: glade/glade_strings.c:83
 msgid "Enter here the directory we will be exporting TTX pages to"
-msgstr "Geben Sie hier das Verzeichnis an, in dem Teletext-Seiten gespeichert werden sollen"
+msgstr ""
+"Geben Sie hier das Verzeichnis an, in dem Teletext-Seiten gespeichert werden "
+"sollen"
 
 #: glade/glade_strings.c:84
 msgid "Page to take subtitles from:"
@@ -1336,7 +1363,11 @@ msgid ""
 "Some stations fail to transmit a complete language identifier, so the "
 "Teletext viewer may not display the correct font or national characters. You "
 "can select your geographical region here as an additional hint."
-msgstr "Einige Sender geben die verwendete Sprache nur unvollständig an, dadurch kann der Teletext-Dekoder einen falschen Zeichensatz oder falsche Sonderzeichen zeigen. Zur Ergänzung können Sie hier ihre geographische Region vorgeben."
+msgstr ""
+"Einige Sender geben die verwendete Sprache nur unvollständig an, dadurch "
+"kann der Teletext-Dekoder einen falschen Zeichensatz oder falsche "
+"Sonderzeichen zeigen. Zur Ergänzung können Sie hier ihre geographische "
+"Region vorgeben."
 
 #: glade/glade_strings.c:89
 msgid "Western and Central Europe"
@@ -1375,7 +1406,9 @@ msgstr "Hebräisch und Arabisch"
 msgid ""
 "Zapping supports several levels of Teletext extensions, you can disable "
 "higher levels if you dislike the appearance."
-msgstr "Zapping unterstützt erweiterte Teletext-Funktionen die hier aktiviert werden können."
+msgstr ""
+"Zapping unterstützt erweiterte Teletext-Funktionen die hier aktiviert werden "
+"können."
 
 #: glade/glade_strings.c:98
 msgid "Level 1.0"
@@ -1949,7 +1982,6 @@ msgid "100"
 msgstr "100"
 
 #: glade/glade_strings.c:265
-#, fuzzy
 msgid "Reveal hidden characters [R]"
 msgstr "Verborgenen Text aufdecken [?]"
 
@@ -2157,7 +2189,9 @@ msgstr "Beschreibung:"
 msgid ""
 "If checked, the current channel will be automatically selected when the "
 "bookmark is selected"
-msgstr "Wenn aktiviert wird bei Anwahl dieses Lesezeichens automatisch zu diesem Kanal gewechselt"
+msgstr ""
+"Wenn aktiviert wird bei Anwahl dieses Lesezeichens automatisch zu diesem "
+"Kanal gewechselt"
 
 #: glade/glade_strings.c:321
 msgid "Switch to the current channel when the bookmark is selected"
@@ -2386,14 +2420,18 @@ msgid ""
 msgstr ""
 "Ein weiteres Plugin um Zapping mittels LIRC zu steuern\n"
 "\n"
-"Die Steuerdatei .lircrc wird in der LIRC Dokumentation beschrieben. Das Plugin registriert sich unter dem Namen \"zapping_lirc\" und stellt folgende Kommandos zur Verfügung:\n"
+"Die Steuerdatei .lircrc wird in der LIRC Dokumentation beschrieben. Das "
+"Plugin registriert sich unter dem Namen \"zapping_lirc\" und stellt folgende "
+"Kommandos zur Verfügung:\n"
 "  CHANUP: Kanalnummer erhöhen\n"
 "  CHANDOWN: Kanalnummer vermindern\n"
 "  ZOOM: Zwischen Fenster- und Vollbildmodus umschalten\n"
 "  SETCHANNEL <nummer>: Kanal <nummer> wählen (beginnend bei 0)\n"
 "  QUIT: Zapping beenden\n"
 "\n"
-"Hinweis: Wird SETCHANNEL zweimal innerhalb von 1,5 Sekunden aufgerufen dann werden, wie bei einem Fernseher, die Kanalnummern zu einer zweistelligen Zahl kombiniert. Z.B. SETCHANNEL 1, SETCHANNEL 3 ergibt Kanal 13.\n"
+"Hinweis: Wird SETCHANNEL zweimal innerhalb von 1,5 Sekunden aufgerufen dann "
+"werden, wie bei einem Fernseher, die Kanalnummern zu einer zweistelligen "
+"Zahl kombiniert. Z.B. SETCHANNEL 1, SETCHANNEL 3 ergibt Kanal 13.\n"
 "Weiter Informationen zum Plugin finden sich in der Datei README.alirc."
 
 #: plugins/alirc/alirc.c:48
@@ -2584,7 +2622,9 @@ msgstr "Papagei Plugin"
 msgid ""
 "This plugin stores the last frames of video and repeats them upon request, "
 "so you can see again and again and again that sequence you liked so much."
-msgstr "Dieses Plugin speichert die letzten Videobilder und kann die Sequenz die dir so gefällt auf Wunsch wieder und wieder abspielen."
+msgstr ""
+"Dieses Plugin speichert die letzten Videobilder und kann die Sequenz die dir "
+"so gefällt auf Wunsch wieder und wieder abspielen."
 
 #: plugins/parrot/parrot.c:28
 msgid "Superb parrot landing observatory."
@@ -2631,7 +2671,10 @@ msgid ""
 "This value is computed using the current capture parameters, and should only "
 "be taken as an estimation. Any change in the capture properties (window "
 "size, screen depth, etc) can make this number change significantly."
-msgstr "Dieser Wert wird anhand der aktuelle Videoparameter errechnet und ist lediglich eine Schätzung. Jede Änderung von Eigenschaften wie Fenstergröße, Farbtiefe etc. kann diese Zahl beträchtlich verändern."
+msgstr ""
+"Dieser Wert wird anhand der aktuelle Videoparameter errechnet und ist "
+"lediglich eine Schätzung. Jede Änderung von Eigenschaften wie Fenstergröße, "
+"Farbtiefe etc. kann diese Zahl beträchtlich verändern."
 
 #: plugins/parrot/parrot_strings.h:10
 msgid "label3"
@@ -2668,21 +2711,21 @@ msgstr "P_PM"
 msgid "Export this page as PPM image"
 msgstr "Diese Seite als PPM Grafik ausgeben"
 
-#: libvbi/exp-gfx.c:806 libvbi/exp-html.c:493
+#: libvbi/exp-gfx.c:808 libvbi/exp-html.c:493
 #, c-format
 msgid "Teletext Page %3x.%x"
 msgstr "Teletext Seite %3x.%x"
 
-#: libvbi/exp-gfx.c:808 libvbi/exp-html.c:495
+#: libvbi/exp-gfx.c:810 libvbi/exp-html.c:495
 #, c-format
 msgid "Teletext Page %3x"
 msgstr "Teletext Seite %3x"
 
-#: libvbi/exp-gfx.c:870
+#: libvbi/exp-gfx.c:876
 msgid "PNG"
 msgstr "P_NG"
 
-#: libvbi/exp-gfx.c:871
+#: libvbi/exp-gfx.c:877
 msgid "Export this page as PNG image"
 msgstr "Diese Seite als PNG Grafik ausgeben"
 
@@ -2825,6 +2868,184 @@ msgid ""
 "Export this page as VTX file, the format used by VideoteXt and vbidecode"
 msgstr ""
 "Diese Seite als VTX Datei ausgeben, das Format von VideoteXt und vbidecode"
+
+#: libvbi/v4lx.c:119
+msgid "Please contact the Zapzilla maintainers at <http://zapping.sf.net>."
+msgstr ""
+"Bitte kontaktieren Sie die Zapzilla Programmierer auf "
+"<http://zapping.sf.net>."
+
+#: libvbi/v4lx.c:151 libvbi/v4lx.c:215
+msgid "V4L/V4L2 VBI interface: Failed to read from the device"
+msgstr "V4L/V4L2 VBI Schnittstelle: Lesefehler"
+
+#: libvbi/v4lx.c:537
+msgid "driver unknown"
+msgstr "Treiber unbekannt"
+
+#: libvbi/v4lx.c:544 libvbi/v4lx.c:1046
+msgid "Virtual memory exhausted.\n"
+msgstr "Virtueller Speicher erschöpft.\n"
+
+#: libvbi/v4lx.c:549 libvbi/v4lx.c:1051
+#, c-format
+msgid "Cannot open '%s': %d, %s."
+msgstr "Kann Gerät '%s' nicht öffnen: %d, %s."
+
+#: libvbi/v4lx.c:576 libvbi/v4lx.c:1067
+#, c-format
+msgid "%s (%s) is not a raw VBI device.\n"
+msgstr "%s (%s) ist kein VBI-Gerät.\n"
+
+#: libvbi/v4lx.c:607 libvbi/v4lx.c:1109
+#, c-format
+msgid "Sorry, %s (%s) cannot capture the requested data services.\n"
+msgstr "%s (%s) kann die gewünschten Datendienste leider nicht empfangen.\n"
+
+#: libvbi/v4lx.c:635 libvbi/v4lx.c:1136
+#, c-format
+msgid "%s (%s) is already in use.\n"
+msgstr "%s (%s) wird bereits benutzt.\n"
+
+#: libvbi/v4lx.c:640 libvbi/v4lx.c:1152
+#, c-format
+msgid ""
+"Could not set the vbi capture parameters for %s (%s), possibly a driver bug. "
+"%s\n"
+msgstr ""
+"Kann die VBI Parameter für %s (%s) nicht einstellen, möglicherweise ein Bug "
+"des Treibers. %s\n"
+
+#: libvbi/v4lx.c:654 libvbi/v4lx.c:1180
+#, c-format
+msgid "%s (%s) offers unknown vbi sampling format #%d. %s"
+msgstr "%s (%s) verwendet ein unbekanntes VBI Samplingformat Nr. %d. %s"
+
+#: libvbi/v4lx.c:690
+#, c-format
+msgid "Cannot capture with %s (%s), has no standard vbi interface.\n"
+msgstr ""
+"Kann keine VBI Daten von %s (%s) lesen, der Treiber verwendet keine bekannte "
+"VBI Schnittstelle.\n"
+
+#: libvbi/v4lx.c:698 libvbi/v4lx.c:762
+#, c-format
+msgid "Cannot set or determine current videostandard of %s (%s).\n"
+msgstr ""
+"Kann den gegenwärtigen Videostandard von %s (%s) nicht feststellen oder "
+"setzen.\n"
+
+#: libvbi/v4lx.c:733
+#, c-format
+msgid "%s (%s) reports improbable vbi frame size. %s\n"
+msgstr "%s (%s) gibt eine unwahrscheinlichen VBI frame size an. %s\n"
+
+#: libvbi/v4lx.c:746 libvbi/v4lx.c:793 libvbi/v4lx.c:1197
+#, c-format
+msgid "Sorry, %s (%s) cannot capture any of the requested data services.\n"
+msgstr "%s (%s) kann die gewünschten Datendienste leider nicht empfangen.\n"
+
+#: libvbi/v4lx.c:784 libvbi/v4lx.c:1188
+#, c-format
+msgid ""
+"Cannot capture the requested data services with %s (%s), the sampling "
+"frequency is too low.\n"
+msgstr ""
+"Kann die gewünschten Datendienste mit %s (%s) nicht empfangen, die "
+"Samplingfrequenz ist zu niedrig.\n"
+
+#: libvbi/v4lx.c:810 libvbi/v4lx.c:818 libvbi/v4lx.c:1214 libvbi/v4lx.c:1222
+#: libvbi/v4lx.c:1319 libvbi/v4lx.c:1327
+#, c-format
+msgid "Not enough memory to allocate vbi data buffers (%d KB).\n"
+msgstr "Nicht genug Speicher um VBI Datenpuffer (%d KB) anzulegen.\n"
+
+#: libvbi/v4lx.c:831 libvbi/v4lx.c:1342
+#, c-format
+msgid "Not enough memory to allocate vbi capture buffer (%d KB).\n"
+msgstr "Nicht genug Speicher um VBI Capturepuffer (%d KB) anzulegen.\n"
+
+#: libvbi/v4lx.c:900
+msgid "V4L2 VBI interface: Capture stalled, no station tuned in?"
+msgstr "V4L2 VBI Schnittstelle: Empfang unterbrochen, kein Sender eingestellt?"
+
+#: libvbi/v4lx.c:912
+msgid "V4L2 VBI interface: Failed to read from the device"
+msgstr "V4L2 VBI Schnittstelle: Lesefehler"
+
+#: libvbi/v4lx.c:928
+msgid "V4L2 VBI interface: Cannot dequeue buffer, driver or application bug?"
+msgstr ""
+"V4L2 VBI Schnittstelle: Kann Capturepuffer nicht auslesen, Bug in Treiber "
+"oder Applikation?"
+
+#: libvbi/v4lx.c:949
+msgid "V4L2 VBI interface: Cannot enqueue buffer, driver or application bug?"
+msgstr ""
+"V4L2 VBI Schnittstelle: Kann Capturepuffer nicht schreiben, Bug in Treiber "
+"oder Applikation?"
+
+#. mandatory, http://www.thedirks.org/v4l2/v4l2dsi.htm
+#: libvbi/v4lx.c:1076
+#, c-format
+msgid ""
+"Cannot query current videostandard of %s (%s): %d, %s. Probably a driver "
+"bug.\n"
+msgstr ""
+"Kann den gegenwärtigen Videostandard von %s (%s) nicht feststellen: %d, %s. "
+"Wahrscheinlich ein Treiber Bug.\n"
+
+#: libvbi/v4lx.c:1098
+#, c-format
+msgid "Cannot query current vbi parameters of %s (%s): %d, %s.\n"
+msgstr ""
+"Kann die gegenwärtigen VBI Parameter von %s (%s) nicht feststellen: %d, %s.\n"
+
+#: libvbi/v4lx.c:1238
+#, c-format
+msgid ""
+"Cannot request streaming i/o buffers from %s (%s): %d, %s. Driver bug?\n"
+msgstr ""
+"Streaming I/O Puffer Anfrage an %s (%s) fehlgeschlagen: %d, %s. Treiber "
+"Bug?\n"
+
+#: libvbi/v4lx.c:1244
+#, c-format
+msgid "%s (%s) granted no streaming i/o buffers, physical memory exhausted?\n"
+msgstr ""
+"%s (%s) stellt keine Streaming I/O Puffer zur Verfügung, physischer Speicher "
+"erschöpft?\n"
+
+#: libvbi/v4lx.c:1261
+#, c-format
+msgid "Querying streaming i/o buffer #%d from %s (%s) failed: %d, %s.\n"
+msgstr ""
+"Kann Streaming I/O Puffer Nr. %d nicht von %s (%s) nicht abfragen: %d, %s.\n"
+
+#: libvbi/v4lx.c:1275
+#, c-format
+msgid "Memory mapping streaming i/o buffer #%d from %s (%s) failed: %d, %s.\n"
+msgstr ""
+"Memory mapping von Streaming I/O Puffer Nr. %d von %s (%s) fehlgeschlagen: "
+"%d, %s.\n"
+
+#: libvbi/v4lx.c:1299
+#, c-format
+msgid ""
+"Cannot enqueue streaming i/o buffer #%d to %s (%s): %d, %s. Driver bug?\n"
+msgstr ""
+"Kann Streaming I/O Puffer Nr. %d von %s (%s) nicht einreihen: %d, %s. "
+"Treiber Bug?\n"
+
+#: libvbi/v4lx.c:1352
+#, c-format
+msgid ""
+"%s (%s) lacks a vbi read interface, possibly an output only device or a "
+"driver bug. %s\n"
+msgstr "%s (%s) hat keine VBI Leseschnittstelle, möglicherweise ein Ausgabegerät oder ein Treiber Bug. %s\n"
+
+#~ msgid "Driver bug: %s (%s) lacks a valid i/o interface.\n"
+#~ msgstr "Treiber Bug: %s (%s)"
 
 #, fuzzy
 #~ msgid ""

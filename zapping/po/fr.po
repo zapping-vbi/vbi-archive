@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.6.0cvs\n"
-"POT-Creation-Date: 2001-07-31 10:56+0200\n"
+"POT-Creation-Date: 2001-08-05 09:43+0200\n"
 "PO-Revision-Date: 2001-07-04 18:08+0200\n"
 "Last-Translator: Christian Marillat <marillat.christian@wanadoo.fr>\n"
 "Language-Team: French <fr@li.org>\n"
@@ -356,11 +356,10 @@ msgstr "Page Teletext %x"
 msgid "Open this page with Zapzilla"
 msgstr "Ouvrir ceci avec Zapzilla"
 
-#: src/zvbi.c:504
-#, fuzzy, c-format
+#: src/zvbi.c:505
+#, fuzzy
 msgid ""
-"VBI: %s couldn't be opened: %d, %s\n"
-"This probably means that the required driver isn't loaded, add to your "
+"This probably means that the required driver isn't loaded. Add to your "
 "/etc/modules.conf the line:\n"
 "alias char-major-81-224 bttv (replace bttv by the name of your video "
 "driver)\n"
@@ -375,20 +374,34 @@ msgstr ""
 "et créez /dev/vbi0 . Si ceci ne marche pas, vous pouvez déactiver le VBI "
 "dans Paramètres/Préférences/options VBI/Activer le décodage VBI."
 
-#: src/zvbi.c:1669
+#: src/zvbi.c:517
+#, c-format
+msgid ""
+"Failed to access vbi device:\n"
+"%s\n"
+"%s"
+msgstr ""
+
+#. should not happen
+#: src/zvbi.c:520
+#, c-format
+msgid "Failed to access vbi device %s, cause unknown.\n"
+msgstr ""
+
+#: src/zvbi.c:1680
 #, c-format
 msgid "%d %s"
 msgstr "%d %s"
 
-#: src/zvbi.c:1670
+#: src/zvbi.c:1681
 msgid "minute"
 msgstr "minute"
 
-#: src/zvbi.c:1670
+#: src/zvbi.c:1681
 msgid "minutes"
 msgstr "minutes"
 
-#: src/zvbi.c:1672
+#: src/zvbi.c:1683
 #, c-format
 msgid "%d h %d m"
 msgstr "%d h %d m"
@@ -2639,21 +2652,21 @@ msgstr "PPM"
 msgid "Export this page as PPM image"
 msgstr "Exporter cette page en une image PPM"
 
-#: libvbi/exp-gfx.c:806 libvbi/exp-html.c:493
+#: libvbi/exp-gfx.c:808 libvbi/exp-html.c:493
 #, c-format
 msgid "Teletext Page %3x.%x"
 msgstr "Page Teletext %3x.%x"
 
-#: libvbi/exp-gfx.c:808 libvbi/exp-html.c:495
+#: libvbi/exp-gfx.c:810 libvbi/exp-html.c:495
 #, c-format
 msgid "Teletext Page %3x"
 msgstr "Page Teletext %3x"
 
-#: libvbi/exp-gfx.c:870
+#: libvbi/exp-gfx.c:876
 msgid "PNG"
 msgstr "PNG"
 
-#: libvbi/exp-gfx.c:871
+#: libvbi/exp-gfx.c:877
 msgid "Export this page as PNG image"
 msgstr "Exporter cette page en une image PNG"
 
@@ -2796,6 +2809,155 @@ msgid ""
 msgstr ""
 "Exporter cette page en un fichier VTX, le format utilisé par Videotext et "
 "vbidecode"
+
+#: libvbi/v4lx.c:119
+msgid "Please contact the Zapzilla maintainers at <http://zapping.sf.net>."
+msgstr ""
+
+#: libvbi/v4lx.c:151 libvbi/v4lx.c:215
+msgid "V4L/V4L2 VBI interface: Failed to read from the device"
+msgstr ""
+
+#: libvbi/v4lx.c:537
+msgid "driver unknown"
+msgstr ""
+
+#: libvbi/v4lx.c:544 libvbi/v4lx.c:1046
+msgid "Virtual memory exhausted.\n"
+msgstr ""
+
+#: libvbi/v4lx.c:549 libvbi/v4lx.c:1051
+#, fuzzy, c-format
+msgid "Cannot open '%s': %d, %s."
+msgstr "Ne peut créer le fichier '%s' : %s"
+
+#: libvbi/v4lx.c:576 libvbi/v4lx.c:1067
+#, c-format
+msgid "%s (%s) is not a raw VBI device.\n"
+msgstr ""
+
+#: libvbi/v4lx.c:607 libvbi/v4lx.c:1109
+#, c-format
+msgid "Sorry, %s (%s) cannot capture the requested data services.\n"
+msgstr ""
+
+#: libvbi/v4lx.c:635 libvbi/v4lx.c:1136
+#, c-format
+msgid "%s (%s) is already in use.\n"
+msgstr ""
+
+#: libvbi/v4lx.c:640 libvbi/v4lx.c:1152
+#, c-format
+msgid ""
+"Could not set the vbi capture parameters for %s (%s), possibly a driver bug. "
+"%s\n"
+msgstr ""
+
+#: libvbi/v4lx.c:654 libvbi/v4lx.c:1180
+#, c-format
+msgid "%s (%s) offers unknown vbi sampling format #%d. %s"
+msgstr ""
+
+#: libvbi/v4lx.c:690
+#, c-format
+msgid "Cannot capture with %s (%s), has no standard vbi interface.\n"
+msgstr ""
+
+#: libvbi/v4lx.c:698 libvbi/v4lx.c:762
+#, c-format
+msgid "Cannot set or determine current videostandard of %s (%s).\n"
+msgstr ""
+
+#: libvbi/v4lx.c:733
+#, c-format
+msgid "%s (%s) reports improbable vbi frame size. %s\n"
+msgstr ""
+
+#: libvbi/v4lx.c:746 libvbi/v4lx.c:793 libvbi/v4lx.c:1197
+#, c-format
+msgid "Sorry, %s (%s) cannot capture any of the requested data services.\n"
+msgstr ""
+
+#: libvbi/v4lx.c:784 libvbi/v4lx.c:1188
+#, c-format
+msgid ""
+"Cannot capture the requested data services with %s (%s), the sampling "
+"frequency is too low.\n"
+msgstr ""
+
+#: libvbi/v4lx.c:810 libvbi/v4lx.c:818 libvbi/v4lx.c:1214 libvbi/v4lx.c:1222
+#: libvbi/v4lx.c:1319 libvbi/v4lx.c:1327
+#, c-format
+msgid "Not enough memory to allocate vbi data buffers (%d KB).\n"
+msgstr ""
+
+#: libvbi/v4lx.c:831 libvbi/v4lx.c:1342
+#, c-format
+msgid "Not enough memory to allocate vbi capture buffer (%d KB).\n"
+msgstr ""
+
+#: libvbi/v4lx.c:900
+msgid "V4L2 VBI interface: Capture stalled, no station tuned in?"
+msgstr ""
+
+#: libvbi/v4lx.c:912
+msgid "V4L2 VBI interface: Failed to read from the device"
+msgstr ""
+
+#: libvbi/v4lx.c:928
+msgid "V4L2 VBI interface: Cannot dequeue buffer, driver or application bug?"
+msgstr ""
+
+#: libvbi/v4lx.c:949
+msgid "V4L2 VBI interface: Cannot enqueue buffer, driver or application bug?"
+msgstr ""
+
+#. mandatory, http://www.thedirks.org/v4l2/v4l2dsi.htm
+#: libvbi/v4lx.c:1076
+#, c-format
+msgid ""
+"Cannot query current videostandard of %s (%s): %d, %s. Probably a driver "
+"bug.\n"
+msgstr ""
+
+#: libvbi/v4lx.c:1098
+#, c-format
+msgid "Cannot query current vbi parameters of %s (%s): %d, %s.\n"
+msgstr ""
+
+#: libvbi/v4lx.c:1238
+#, c-format
+msgid ""
+"Cannot request streaming i/o buffers from %s (%s): %d, %s. Driver bug?\n"
+msgstr ""
+
+#: libvbi/v4lx.c:1244
+#, c-format
+msgid "%s (%s) granted no streaming i/o buffers, physical memory exhausted?\n"
+msgstr ""
+
+#: libvbi/v4lx.c:1261
+#, c-format
+msgid "Querying streaming i/o buffer #%d from %s (%s) failed: %d, %s.\n"
+msgstr ""
+
+#: libvbi/v4lx.c:1275
+#, c-format
+msgid "Memory mapping streaming i/o buffer #%d from %s (%s) failed: %d, %s.\n"
+msgstr ""
+
+#: libvbi/v4lx.c:1299
+#, c-format
+msgid ""
+"Cannot enqueue streaming i/o buffer #%d to %s (%s): %d, %s. Driver bug?\n"
+msgstr ""
+
+#: libvbi/v4lx.c:1352
+#, c-format
+msgid ""
+"%s (%s) lacks a vbi read interface, possibly an output only device or a "
+"driver bug. %s\n"
+msgstr ""
 
 #, fuzzy
 #~ msgid ""

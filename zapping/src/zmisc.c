@@ -42,7 +42,8 @@ extern volatile gboolean flag_exit_program;
 extern GtkWidget * main_window;
 extern gint disable_preview; /* TRUE if preview won't work */
 extern gboolean xv_present;
-gboolean debug_msg=FALSE; /* Debugging messages on or off */
+int /* gboolean */ debug_msg = FALSE; /* Debugging messages on or off */
+/* not gboolean, will be referenced by non-g */
 
 /*
   Prints a message box showing an error, with the location of the code

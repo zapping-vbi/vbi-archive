@@ -84,7 +84,7 @@ do { \
 } while (FALSE)
 
 /* Some debug messages to track the startup */
-extern gboolean debug_msg;
+extern int /* gboolean */ debug_msg;
 
 #define D() \
 do { \
@@ -94,9 +94,9 @@ do { \
 
 #define printv(format, args...) \
 do { \
-  if (debug_msg) \
+  if (debug_msg) { \
     fprintf(stderr, format ,##args); \
-  fflush(stderr); \
+  fflush(stderr); } \
 } while (FALSE)
 
 #define z_update_gui() \
