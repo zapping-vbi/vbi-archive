@@ -1171,6 +1171,7 @@ z_switch_channel		(tveng_tuned_channel *	channel,
   gboolean was_first_switch = first_switch;
   tveng_tuned_channel *tc;
   gboolean in_global_list;
+  gboolean avoid_noise;
 
   if (!channel)
     return;
@@ -1201,7 +1202,7 @@ z_switch_channel		(tveng_tuned_channel *	channel,
 #endif
     }
 
-  /* Always: if ((avoid_noise = zcg_bool (NULL, "avoid_noise"))) */
+  if ((avoid_noise = zcg_bool (NULL, "avoid_noise")))
     tv_quiet_set (main_info, TRUE);
 
   freeze_update();
@@ -1218,7 +1219,7 @@ z_switch_channel		(tveng_tuned_channel *	channel,
   if (channel->standard)
     z_switch_standard(channel->standard, info);
 
-  /* Always: if (avoid_noise) */
+  if (avoid_noise)
     reset_quiet (main_info, /* delay ms */ 500);
 
   if (info->cur_video_input
