@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: format.h,v 1.4.2.4 2003-09-24 18:49:56 mschimek Exp $ */
+/* $Id: format.h,v 1.4.2.5 2004-02-13 02:13:20 mschimek Exp $ */
 
 #ifndef FORMAT_H
 #define FORMAT_H
@@ -225,7 +225,8 @@ typedef struct vbi_char {
 	 * these are mapped to private code U+E620 ... U+E67F and U+E720 ...
 	 * U+E77F respectively. Table 47 G1 Block Mosaic is not representable
 	 * in Unicode, translated to private code U+EE00 ... U+EE7F. That is,
-	 * the contiguous form has bit 5 (0x20) set, the separate form cleared.
+	 * the contiguous form has bit 5 (0x20) set, the separate form
+	 * cleared.
 	 * Table 48 G3 "Smooth Mosaics and Line Drawing Set" is not
 	 * representable in Unicode, translated to private code
 	 * U+EF20 ... U+EF7F.
@@ -246,8 +247,6 @@ typedef struct vbi_char {
 	 */
 	unsigned	unicode		: 16;
 } vbi_char;
-
-struct vbi_font_descr;
 
 /**
  * @ingroup Page
@@ -270,28 +269,33 @@ typedef struct vbi_page {
 	 * Identifies the network broadcasting this page.
 	 */
         vbi_nuid	       	nuid;
+
 	/**
 	 * Page number, see vbi_pgno.
 	 */
  	vbi_pgno		pgno;
+
 	/**
 	 * Subpage number, see vbi_subno. Only applicable
 	 * if this is a Teletext page.
 	 */
 	vbi_subno		subno;
+
 	/**
 	 * Number of character rows in the page.
 	 */
 	unsigned int		rows;
+
 	/**
 	 * Number of character columns in the page.
 	 */
 	unsigned int		columns;
+
 	/**
 	 * The page contents, these are @a rows x @a columns without
 	 * padding between the rows. See vbi_char for details.
 	 */
-	vbi_char		text[1056];
+	vbi_char		text[26 * 64];
 
 	/**
 	 * To speed up rendering these variables mark the rows
@@ -314,92 +318,64 @@ typedef struct vbi_page {
 	}			dirty;
 
 	/**
-	 * When a TV displays Teletext or Closed Caption
-	 * pages, only a section in the center of the screen is
-	 * actually covered by characters. The remaining space is
-	 * referred to here as 'border', which can have a color different
-	 * from the typical black. (In the Teletext specs this is referred
-	 * to as the screen color, hence the field name.) This is a
-	 * vbi_color index into the @a color_map.
+	 * When a TV displays Teletext or Closed Caption only a subsection
+	 * of the screen is covered by the character matrix. The 'border'
+	 * around this area can have a distinct color, usually it is black.
+	 * @a screen_color is a vbi_color index into the @a color_map.
 	 */
 	vbi_color		screen_color;
+
 	/**
-	 * The 'border' can also have a distinguished
-	 * opacity. Typically this will be VBI_OPAQUE, but pages intended
-	 * for overlay onto video (Teletext subtitles, newsflash, Caption
-	 * pages) will have a @a screen_opacity of VBI_TRANSPARENT_SPACE.
+	 * The 'border' can also have a distinct opacity. Usually it will
+	 * be VBI_OPAQUE, but pages intended for overlay onto video
+	 * (Teletext subtitles, newsflash, Caption pages) will have a
+	 * @a screen_opacity of VBI_TRANSPARENT_SPACE.
 	 * See vbi_opacity for details.
 	 */
 	vbi_opacity		screen_opacity;
+
+	/**
+	 * Ordinary characters are bi-level colored, with pixels assuming
+	 * vbi_char->foreground or vbi_char->background color.
+	 *
+	 * The pixels of DRCS (Dynamically Redefinable Characters) can
+	 * assume one color of a set of 2, 4 or 16.
+	 *
+	 * For bi-level DRCS vbi_char->drcs_clut_offs is 0. Zero pixels
+	 * shall be painted in vbi_char->background color, one pixels in
+	 * vbi_char->foreground color.
+	 *
+	 * For 4- and 16-level DRCS the color is determined by one of
+	 * four color look-up tables. Here vbi_char->drcs_clut_offs is
+	 * >= 2, and the color is calculated like this:
+	 * @code
+	 * vbi_page->drcs_clut[vbi_char->drcs_clut_offs + pixel value]
+	 * @endcode
+	 */
+	vbi_color		drcs_clut[2 + 2 * 4 + 2 * 16];
+
 	/**
 	 * This is the color palette indexed by vbi_color in
-	 * vbi_char and elsewhere, colors defined as vbi_rgba. Note this
-	 * palette may not correspond to the vbi_color enumeration since
-	 * Teletext allows editors to redefine the entire palette.
-	 * Closed Caption and Teletext Level 1.0/1.5 pages use
-	 * entries 0 ... 7. Teletext Level 2.5/3.5 pages use entries
-	 * 0 ... 31. Navigation related text (TOP, FLOF) added by libzvbi
-	 * uses entries 32 ... 39 which are not subject to redefinition.
+	 * vbi_char and elsewhere, with colors defined as vbi_rgba.
+	 *
+	 * Note the palette may not correspond to the vbi_color
+	 * enumeration since Teletext allows editors to redefine
+	 * the entire palette, depending on the Teletext level.
+	 *
+	 * Closed Caption and Teletext Level 1.0 / 1.5 pages use
+	 * entries 0 ... 7. Teletext Level 2.5 / 3.5 pages use entries
+	 * 0 ... 31. Navigation text (TOP, FLOF) added by libzvbi
+	 * in row 25 uses entries 32 ... 39.
 	 */
 	vbi_rgba 		color_map[40];
-
-  /* XXX hide stuff below */
-
-	/**
-	 * DRCS (dynamically redefinable characters) can have
-	 * two, four or sixteen different colors. Without further details,
-	 * the effective color of each pixel is given by
-	 * @code
-	 * vbi_page->color_map[drcs_clut[drcs pixel color + vbi_char->drcs_clut_offs]],
-	 * @endcode
-	 * whereby drcs_clut[0] shall be replaced by vbi_char->foreground,
-	 * drcs_clut[1] by vbi_char->background. (Renderers are supposed to convert the
-	 * drcs_clut into a private color map of the desired pixel format.)
-	 * 
-	 * Practically vbi_char->drcs_clut_offs encodes the DRCS color depth
-	 * and selects between the vbi_char colors and one of two 4- or
-	 * 16-entry Color Look-Up Tables. Also the different resolution of DRCS and
-	 * the bitplane color coding is hidden to speed up rendering.
-	 */
-	const uint8_t *		drcs_clut;		/* 64 entries */
-	/**
-	 * Pointer to DRCS data. Per definition the maximum number of DRCS
-	 * usable at the same time, i. e. on one page, is limited to 96. However the
-	 * number of DRCS defined in a Teletext data stream can be much larger. The
-	 * 32 pointers here correspond to the 32 DRCS character planes mentioned
-	 * in the vbi_char description. Each of them points to an array of character
-	 * definitions, a DRCS font. One character occupies 60 bytes or 12 x 10 pixels,
-	 * stored left to right and top to bottom. The color of each pixel (index
-	 * into @a drcs_clut) is coded in four bits stored in little endian order,
-	 * first pixel 0x0F, second pixel 0xF0 and so on. For example the first,
-	 * top/leftmost pixel can be found at
-	 * @code
-	 * vbi_page->drcs[(unicode >> 6) & 0x1F][(unicode & 0x3F) * 60]
-	 * @endcode
-	 *
-	 * Do not access DRCS data unless referenced by a vbi_char in @a text, a
-	 * segfault may result. Do not access DRCS data after calling
-	 * vbi_unref_page(), it may not be cached anymore.
-	 */
-	const uint8_t *		drcs[32];
-
-	struct {
-		int			pgno, subno;
-	}			nav_link[6];
-	int8_t			nav_index[64];
-
-	struct vbi_font_descr *	font[2];
-	unsigned int		double_height_lower;	/* legacy */
-
-	vbi_opacity		page_opacity[2];
-	vbi_opacity		boxed_opacity[2];
 } vbi_page;
 
 typedef enum {
 	VBI_TABLE		= 1 << 0,
 	VBI_RTL			= 1 << 1,
-	VBI_REVEAL		= 1 << 2,
-	VBI_FLASH_OFF		= 1 << 3,
+	VBI_SCALE		= 1 << 2,
+	VBI_REVEAL		= 1 << 3,
+	VBI_FLASH_OFF		= 1 << 4,
 } vbi_export_flags;
 
 /* Private */
