@@ -505,8 +505,7 @@ zmisc_switch_mode(display_mode new_dmode,
   capture_mode old_cmode;
   extern int disable_overlay;
   gint muted;
-  GError *error;
-  guint timeout;
+  gint timeout;
 
   g_assert(info != NULL);
   g_assert(zapping->video != NULL);
@@ -517,17 +516,8 @@ zmisc_switch_mode(display_mode new_dmode,
 	     zapping->display_mode, info->capture_mode,
 	     new_dmode, new_cmode);
 
-  error = NULL;
-
-  timeout = (guint) gconf_client_get_int
-    (gconf_client, "/apps/zapping/blank_cursor_timeout", &error);
-
-  if (0 == timeout || error)
-    {
-      timeout = 1500; /* ms */
-      if (error)
-	g_error_free (error);
-    }
+  timeout = 1500; /* ms */
+  z_gconf_get_int (&timeout, "/apps/zapping/blank_cursor_timeout");
 
   if (zapping->display_mode == new_dmode
       && info->capture_mode == new_cmode)
@@ -2611,8 +2601,283 @@ z_set_overlay_buffer		(tveng_device_info *	info,
 				&screen->target);
 }
 
+/*
+	GConf helpers.
+*/
+
+static const gchar *
+z_gconf_value_type_name		(GConfValueType		type)
+{
+  switch (type)
+    {
+
+#undef CASE
+#define CASE(s) case GCONF_VALUE_##s : return #s
+
+      CASE (INVALID);
+      CASE (STRING);
+      CASE (INT);
+      CASE (FLOAT);
+      CASE (BOOL);
+      CASE (SCHEMA);
+      CASE (LIST);
+      CASE (PAIR);
+
+    default:
+      break;
+    }
+
+  return NULL;
+}
+
+static gboolean
+z_gconf_value_get		(gpointer		result,
+				 GConfValue *		value,
+				 const gchar *		key,
+				 GConfValueType		type)
+{
+  if (type == value->type)
+    {
+      switch (type)
+	{
+	case GCONF_VALUE_STRING:
+	  *((gchar *) result) = gconf_value_get_string (value);
+	  break;
+
+	case GCONF_VALUE_INT:
+	  *((gint *) result) = gconf_value_get_int (value);
+	  break;
+
+	case GCONF_VALUE_FLOAT:
+	  *((gdouble *) result) = gconf_value_get_float (value);
+	  break;
+
+	case GCONF_VALUE_BOOL:
+	  *((gboolean *) result) = gconf_value_get_bool (value);
+	  break;
+
+	default:
+	  g_assert_not_reached ();
+	  break;
+	}
+
+      return TRUE;
+    }
+  else
+    {
+      printv ("GConf key '%s' has wrong type %s, expected %s.\n",
+	      key ? key : "<unknown>",
+	      z_gconf_value_type_name (value->type),
+	      z_gconf_value_type_name (type));
+
+      return FALSE;
+    }
+}
+
+static void
+z_gconf_get_error		(const gchar *		key,
+				 GError **		error)
+{
+  static gboolean warned = FALSE;
+
+  if (*error)
+    {
+      printv ("GConf get '%s' error:\n%s\n", key, (*error)->message);
+      g_error_free (*error);
+      *error = NULL;
+    }
+  else if (!warned)
+    {
+      /* If ./configure --prefix is unusual consider
+	 --with-gconf-source=xml::$HOME/.gconf */
+      g_warning ("GConf key '%s' is unset and has no default. Schemas\n"
+		 "incomplete or not installed?\n",
+		 key);
+
+      warned = TRUE;
+    }
+}
+
+gboolean
+z_gconf_get			(gpointer		result,
+				 const gchar *		key,
+				 GConfValueType		type)
+{
+  GError *error = NULL;
+  GConfValue *value;
+
+  if ((value = gconf_client_get (gconf_client, key, &error)))
+    {
+      gboolean success;
+
+      g_assert (!error);
+
+      success = z_gconf_value_get (result, value, key, type);
+
+      gconf_value_free (value);
+
+      return success;
+    }
+  else
+    {
+      z_gconf_get_error (key, &error);
+
+      return FALSE;
+    }
+}
+
+gboolean
+z_gconf_get_string_enum		(gint *			enum_value,
+				 const gchar *		key,
+				 const GConfEnumStringPair *lookup_table)
+{
+  const gchar *s;
+
+  if (z_gconf_get (&s, key, GCONF_VALUE_STRING))
+    return gconf_string_to_enum (lookup_table, s, enum_value);
+
+  return FALSE;
+}
+
+gboolean
+z_gconf_set_bool		(const gchar *		key,
+				 gboolean		val)
+{
+  GError *error = NULL;
+  gboolean success;
+
+  success = gconf_client_set_bool (gconf_client, key, val, &error);
+
+  if (error)
+    {
+      printv ("GConf set '%s' error:\n%s\n", key, error->message);
+      g_error_free (error);
+      error = NULL;
+    }
+
+  return success;
+}
+
+gboolean
+z_gconf_set_int			(const gchar *		key,
+				 gint			val)
+{
+  GError *error = NULL;
+  gboolean success;
+
+  success = gconf_client_set_int (gconf_client, key, val, &error);
+
+  if (error)
+    {
+      printv ("GConf set '%s' error:\n%s\n", key, error->message);
+      g_error_free (error);
+      error = NULL;
+    }
+
+  return success;
+}
+
+gboolean
+z_gconf_set_string		(const gchar *		key,
+				 const gchar *		val)
+{
+  GError *error = NULL;
+  gboolean success;
+
+  success = gconf_client_set_string (gconf_client, key, val, &error);
+
+  if (error)
+    {
+      printv ("GConf set '%s' error:\n%s\n", key, error->message);
+      g_error_free (error);
+      error = NULL;
+    }
+
+  return success;
+}
+
+gboolean
+z_gconf_notify_add		(const gchar *		key,
+				 GConfClientNotifyFunc	func,
+				 gpointer		user_data)
+{
+  GError *error = NULL;
+  GConfEntry entry;
+  guint cnxn_id;
+
+  cnxn_id = gconf_client_notify_add (gconf_client,
+				     key,
+				     func, user_data,
+				     /* destroy */ NULL,
+				     &error);
+
+  if (error)
+    {
+      printv ("GConf notification '%s' error:\n%s\n", key, error->message);
+      g_error_free (error);
+      error = NULL;
+
+      return FALSE;
+    }
+
+  /* Initial value. */
+
+  entry.key = (gchar *) key;
+
+  if ((entry.value = gconf_client_get (gconf_client, key, &error)))
+    {
+      func (gconf_client, cnxn_id, &entry, user_data);
+
+      gconf_value_free (entry.value);
+
+      return TRUE;
+    }
+  else
+    {
+      z_gconf_get_error (key, &error);
+
+      gconf_client_notify_remove (gconf_client, cnxn_id);
+
+      return FALSE;
+    }
+}
+
+static void
+z_gconf_auto_bool		(GConfClient *		client _unused_,
+				 guint			cnxn_id _unused_,
+				 GConfEntry *		entry,
+				 gpointer		var)
+{
+  if (entry->value)
+    z_gconf_value_get (var, entry->value, NULL, GCONF_VALUE_BOOL);
+}
+
+void
+z_gconf_auto_update		(gpointer		var,
+				 const gchar *		key,
+				 GConfValueType		type)
+{
+  GConfClientNotifyFunc func;
+
+  switch (type)
+    {
+    case GCONF_VALUE_BOOL:
+      func = z_gconf_auto_bool;
+      break;
+
+    default:
+      g_assert_not_reached ();
+      break;
+    }
+
+  /* Error ignored. */
+  z_gconf_notify_add (key, func, var);
+}
+
+
 typedef struct {
   gchar *		key;
+  //  GConfValueType	type;  
   guint			cnxn;
 } gc_notify;
 
@@ -2632,9 +2897,7 @@ gc_notify_add			(gc_notify *		g,
 				 const char *		gconf_key,
 				 GConfClientNotifyFunc	func)
 {
-  GError *error;
-
-  error = NULL;
+  GError *error = NULL;
 
   g->key = g_strdup (gconf_key);
 
@@ -2645,6 +2908,8 @@ gc_notify_add			(gc_notify *		g,
       g_message ("GConf notification '%s' error:\n%s\n",
 		 gconf_key, error->message);
       g_error_free (error);
+      error = NULL;
+
       exit (EXIT_FAILURE);
     }
 }
@@ -2682,10 +2947,7 @@ gc_toggle_action_toggled	(GtkToggleAction *	toggle_action,
   active = gtk_toggle_action_get_active (toggle_action);
 
   /* Error ignored. */
-  gconf_client_set_bool (gconf_client,
-			 g->gcn.key,
-			 active,
-			 /* err */ NULL);
+  z_gconf_set_bool (g->gcn.key, active);
 }
 
 void
@@ -2693,10 +2955,11 @@ z_toggle_action_connect_gconf_key
 				(GtkToggleAction *	toggle_action,
 				 const gchar *		gconf_key)
 {
+  GError *error = NULL;
   gc_toggle_action *g;
   GConfValue *value;
 
-  if ((value = gconf_client_get (gconf_client, gconf_key, /* err */ NULL)))
+  if ((value = gconf_client_get (gconf_client, gconf_key, &error)))
     {
       gboolean active;
 
@@ -2706,6 +2969,17 @@ z_toggle_action_connect_gconf_key
       gconf_value_free (value);
 
       gtk_toggle_action_set_active (toggle_action, active);
+    }
+  else
+    {
+      /* Error ignored. */
+
+      if (error)
+	{
+	  printv ("GConf get '%s' error:\n%s\n", gconf_key, error->message);
+	  g_error_free (error);
+	  error = NULL;
+	}
     }
 
   g = g_malloc0 (sizeof (*g));
@@ -2770,10 +3044,7 @@ gc_combo_box_changed		(GtkComboBox *		combo_box,
   index = gtk_combo_box_get_active (combo_box);
 
   /* Error ignored. */
-  gconf_client_set_string (gconf_client,
-			   g->gcn.key,
-			   g->lookup_table[index].str,
-			   /* err */ NULL);
+  z_gconf_set_string (g->gcn.key, g->lookup_table[index].str);
 }
 
 GtkWidget *
@@ -2781,10 +3052,10 @@ z_gconf_combo_box_new		(const gchar **		option_menu,
 				 const gchar *		gconf_key,
 				 const GConfEnumStringPair *lookup_table)
 {
+  GError *error = NULL;
   gc_combo_box *g;
   GtkWidget *widget;
   guint i;
-  GError *error;
   gchar *s;
 
   g = g_malloc0 (sizeof (*g));
@@ -2794,8 +3065,6 @@ z_gconf_combo_box_new		(const gchar **		option_menu,
 
   for (i = 0; option_menu[i]; ++i)
     gtk_combo_box_append_text (g->combo_box, _(option_menu[i]));
-
-  error = NULL;
 
   if ((s = gconf_client_get_string (gconf_client, gconf_key, &error)))
     {
@@ -2808,15 +3077,16 @@ z_gconf_combo_box_new		(const gchar **		option_menu,
 	    }
 	}
     }
-  else if (error)
-    {
-      g_message ("GConf get '%s' error:\n%s\n", gconf_key, error->message);
-      g_error_free (error);
-    }
   else
     {
-      /* Unset? */
       gtk_combo_box_set_active (g->combo_box, 0);
+
+      if (error)
+	{
+	  g_message ("GConf get '%s' error:\n%s\n", gconf_key, error->message);
+	  g_error_free (error);
+	  error = NULL;
+	}
     }
 
   g->lookup_table = lookup_table;
@@ -2831,37 +3101,6 @@ z_gconf_combo_box_new		(const gchar **		option_menu,
 			    G_CALLBACK (gc_notify_destroy), g);
 
   return widget;
-}
-
-gboolean
-z_gconf_get_string_enum		(gint *			enum_value,
-				 const gchar *		gconf_key,
-				 const GConfEnumStringPair *lookup_table)
-{
-  GError *error;
-  gchar *s;
-  gboolean r;
-
-  error = NULL;
-
-  if ((s = gconf_client_get_string (gconf_client, gconf_key, &error)))
-    {
-      r = gconf_string_to_enum (lookup_table, s, enum_value);
-      g_free (s);
-    }
-  else if (error)
-    {
-      g_message ("GConf get '%s' error:\n%s\n", gconf_key, error->message);
-      g_error_free (error);
-      r = FALSE;
-    }
-  else
-    {
-      /* Unset? */
-      return FALSE;
-    }
-
-  return r;
 }
 
 /* Not available until Gtk+ 2.6 */
@@ -2882,4 +3121,34 @@ z_action_set_visible		(GtkAction *		action,
   g_object_set (G_OBJECT (action),
 		"visible", visible,
 		NULL);
+}
+
+void
+z_menu_shell_chop_off		(GtkMenuShell *		menu_shell,
+				 GtkMenuItem *		menu_item)
+{
+  GtkContainer *container;
+  GList *list;
+
+  g_assert (GTK_IS_MENU_SHELL (menu_shell));
+  g_assert (GTK_IS_MENU_ITEM (menu_item));
+
+  container = GTK_CONTAINER (menu_shell);
+
+  for (;;)
+    {
+      list = gtk_container_get_children (container);
+
+      for (; list; list = list->next)
+	if (list->data == menu_item)
+	  break;
+
+      if (!list || !list->next)
+	break;
+
+      gtk_container_remove (container, GTK_WIDGET (list->next->data));
+    }
+
+  if (list)
+    gtk_container_remove (container, GTK_WIDGET (list->data));
 }
