@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: codec.c,v 1.7 2002-08-22 22:09:06 mschimek Exp $ */
+/* $Id: codec.c,v 1.8 2002-09-26 20:42:47 mschimek Exp $ */
 
 #include "config.h"
 #include "rtepriv.h"
@@ -745,7 +745,7 @@ rte_set_input_callback_master(rte_codec *codec,
  *
  * Sets the input mode for the codec and puts the codec into ready state.
  * Using this method the codec allocates the necessary buffers. When it
- * needs more data it calls @a data_cb, passing a pointer to the buffer
+ * needs more data it calls @a read_cb, passing a pointer to the buffer
  * space where the client shall copy the data.
  *
  * Typical usage of rte_set_input_callback_slave():
