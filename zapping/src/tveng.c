@@ -4189,22 +4189,29 @@ ADD_NODE_CALLBACK_FUNC (video_standard);
 tv_pixfmt
 pig_depth_to_pixfmt		(unsigned int		depth)
 {
-	switch (depth) {
-#if Z_BYTE_ORDER == Z_BIG_ENDIAN
-	case 15:	return TV_PIXFMT_BGRA16_BE;
-	case 16:	return TV_PIXFMT_BGR16_BE;
-	case 24:	return TV_PIXFMT_BGR24_BE;
-	case 32:	return TV_PIXFMT_BGRA32_BE;
-#elif Z_BYTE_ORDER == Z_LITTLE_ENDIAN
-	case 15:	return TV_PIXFMT_BGRA16_LE;
-	case 16:	return TV_PIXFMT_BGR16_LE;
-	case 24:	return TV_PIXFMT_BGR24_LE;
-	case 32:	return TV_PIXFMT_BGRA32_LE;
-#else
-#  warning Unknown or unsupported endianess.
-#endif
-	default:	return TV_PIXFMT_UNKNOWN;
+	switch (Z_BYTE_ORDER) {
+	case Z_LITTLE_ENDIAN:
+		switch (depth) {
+		case 15:	return TV_PIXFMT_BGRA16_LE;
+		case 16:	return TV_PIXFMT_BGR16_LE;
+		case 24:	return TV_PIXFMT_BGR24_LE;
+		case 32:	return TV_PIXFMT_BGRA32_LE;
+		}
+
+		break;
+
+	case Z_BIG_ENDIAN:
+		switch (depth) {
+		case 15:	return TV_PIXFMT_BGRA16_BE;
+		case 16:	return TV_PIXFMT_BGR16_BE;
+		case 24:	return TV_PIXFMT_BGR24_BE;
+		case 32:	return TV_PIXFMT_BGRA32_BE;
+		}
+
+		break;
 	}
+
+	return TV_PIXFMT_UNKNOWN;
 }
 
 const char *
