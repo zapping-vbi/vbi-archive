@@ -65,4 +65,9 @@ typedef struct {
   void		(*apply_props)(GtkBox *vbox);
 } audio_backend_info;
 
+extern gboolean
+audio_set_mute			(gint			mute);
+extern gboolean
+audio_get_mute			(gint *			mute);
+
 #endif /* audio.h */

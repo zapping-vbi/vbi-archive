@@ -43,15 +43,7 @@ static PyObject* py_quit (PyObject *self, PyObject *args)
   if (!main_window)
     py_return_false;
 
-  /* Mute the device */
-  {
-    int cur_line = zconf_get_integer (NULL, "/zapping/options/audio/record_source");
-
-    if (main_info->audio_mutable)
-      tveng_set_mute (1, main_info);
-    else if (cur_line > 0)
-      mixer_set_mute (cur_line - 1, 1);
-  }
+  audio_set_mute (1);
 
   /* Save the currently tuned channel */
   zconf_set_integer (cur_tuned_channel,

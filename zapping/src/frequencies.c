@@ -30,6 +30,369 @@
 #include "strnatcmp.h"
 #include "frequencies.h"
 
+#if 0 /* future */
+
+Public interface.
+
+typedef struct {
+	const char *	table_canonical;	/* ASCII canonical name for config & lookup */
+	void *		reserved;
+	const char *	domain;			/* UTF8 localized, for display */
+	char		channel_name[8];	/* UTF8 sprintf'ed prefix & number, config & display */
+	unsigned int	frequency;		/* Hz, lookup & display */
+	unsigned int	bandwidth;		/* Hz, fine tuning bounds etc */
+	unsigned int	video_standards;	/* set, filter (standards menu, default standard) */
+} tv_rf_channel;
+
+bool tv_rfch_table (tv_rf_channel *, const char *)
+bool tv_rfch_next_table (tv_rf_channel *)
+bool tv_rfch_next_table_by_country (tv_rf_channel *, const char *)
+bool tv_rfch_next (tv_rf_channel *)
+bool tv_rfch (tv_rf_channel *, const char *)
+bool tv_rfch_by_frequency (tv_rf_channel *, unsigned int)
+
+Private stuff.
+FIXME video standards need a review.
+
+#define ALPHA	 (1 << 0) /* first ... last is alphabetic */
+#define UPSTREAM (1 << 1) /* Upstream channel (eg. cable modem) */
+
+struct range {
+	const char		prefix[4];
+	unsigned		flags		: 32;	/* ALPHA | UPSTREAM */
+	unsigned 		first		: 8;
+	unsigned 		last		: 8;	/* inclusive */
+	unsigned		bandwidth	: 16;	/* kHz */
+	unsigned		freq		: 32;	/* kHz */
+}
+
+#define RANGE_END		{ "", 0, 0, 0, 0, 0 }
+
+#define RANGE_NTSC_2_4		{ "",  0,  2,  4, 6000,  55250 }
+#define RANGE_NTSC_5_6		{ "",  0,  5,  6, 6000,  77250 }
+#define RANGE_NTSC_VHF		{ "",  0,  7, 13, 6000, 175250 }
+#define RANGE_NTSC_UHF		{ "",  0, 14, 83, 6000, 471250 }
+
+#define RANGE_CCIR_BAND_I	{ "E", 0,  2,  4, 7000,  48250 }
+#define RANGE_CCIR_SUBBAND	{ "L", 0,  1,  3, 7000,  69250 }
+/* CCIR Band II FM 88-108 MHz */
+#define RANGE_CCIR_USB		{ "S", 0,  1, 10, 7000, 105250 } /* Lower Hyperband */
+#define RANGE_CCIR_BAND_III	{ "E", 0,  5, 12, 7000, 175250 }
+#define RANGE_CCIR_OSB		{ "S", 0, 11, 20, 7000, 231250 } /* Upper Hyperband */
+#define RANGE_CCIR_ESB		{ "S", 0, 21, 41, 8000, 303250 } /* Extended Hyperband */
+#define RANGE_CCIR_UHF		{ "",  0, 21, 69, 8000, 471250 } /* Band IV (21-37), Band V (38-69) */
+
+#define VIDEOSTD_PAL_B          0x00000001
+#define VIDEOSTD_PAL_B1         0x00000002
+#define VIDEOSTD_PAL_G          0x00000004
+#define VIDEOSTD_PAL_H          0x00000008
+#define VIDEOSTD_PAL_I          0x00000010
+#define VIDEOSTD_PAL_D          0x00000020
+#define VIDEOSTD_PAL_D1         0x00000040
+#define VIDEOSTD_PAL_K          0x00000080
+
+#define VIDEOSTD_PAL_M          0x00000100
+#define VIDEOSTD_PAL_N          0x00000200
+#define VIDEOSTD_PAL_Nc         0x00000400
+
+#define VIDEOSTD_NTSC_M         0x00001000
+#define VIDEOSTD_NTSC_M_JP      0x00002000
+
+#define VIDEOSTD_SECAM_B        0x00010000
+#define VIDEOSTD_SECAM_D        0x00020000
+#define VIDEOSTD_SECAM_G        0x00040000
+#define VIDEOSTD_SECAM_H        0x00080000
+#define VIDEOSTD_SECAM_K        0x00100000
+#define VIDEOSTD_SECAM_K1       0x00200000
+#define VIDEOSTD_SECAM_L        0x00400000
+
+#define VIDEOSTD_PAL_BG		(VIDEOSTD_PAL_B		|\
+				 VIDEOSTD_PAL_B1	|\
+				 VIDEOSTD_PAL_G)
+#define VIDEOSTD_PAL_DK		(VIDEOSTD_PAL_D		|\
+				 VIDEOSTD_PAL_D1	|\
+				 VIDEOSTD_PAL_K)
+#define VIDEOSTD_PAL		(VIDEOSTD_PAL_BG	|\
+				 VIDEOSTD_PAL_DK	|\
+				 VIDEOSTD_PAL_H		|\
+				 VIDEOSTD_PAL_I)
+#define VIDEOSTD_NTSC           (VIDEOSTD_NTSC_M	|\
+				 VIDEOSTD_NTSC_M_JP)
+#define VIDEOSTD_SECAM		(VIDEOSTD_SECAM_B	|\
+				 VIDEOSTD_SECAM_D	|\
+				 VIDEOSTD_SECAM_G	|\
+				 VIDEOSTD_SECAM_H	|\
+				 VIDEOSTD_SECAM_K	|\
+				 VIDEOSTD_SECAM_K1	|\
+				 VIDEOSTD_SECAM_L)
+
+#define VIDEOSTD_525_60		(VIDEOSTD_PAL_M		|\
+				 VIDEOSTD_NTSC)
+#define VIDEOSTD_625_50		(VIDEOSTD_PAL		|\
+				 VIDEOSTD_PAL_N		|\
+				 VIDEOSTD_PAL_Nc	|\
+				 VIDEOSTD_SECAM)
+
+#define VIDEOSTD_UNKNOWN        0
+#define VIDEOSTD_ALL            (VIDEOSTD_525_60	|\
+				 VIDEOSTD_625_50)
+
+struct table {
+	const char *		canonical_name;
+	const char		(* countries)[4];	/* ISO 3166, lowercase */
+	const char *		domain;
+	unsigned int		video_standards;	/* set of VIDEOSTD_XXX */
+	struct range *		freq_ranges;
+};
+
+#define TABLE_END { NULL, NULL, 0, NULL }
+
+static const struct range
+ccir_ranges [] =
+{
+  RANGE_CCIR_BAND_I,
+  RANGE_CCIR_SUBBAND,
+  RANGE_CCIR_BAND_III,
+  RANGE_CCIR_USB,
+  RANGE_CCIR_OSB,
+  RANGE_CCIR_ESB,
+  RANGE_CCIR_UHF,
+  RANGE_END
+};
+
+static const struct table
+frequency_tables [] =
+{
+  {
+    "eia-terr", { "us", "" }, _("terrestrial"),
+    VIDEOSTD_NTSC_M,
+    {
+      RANGE_NTSC_2_4,
+      RANGE_NTSC_5_6,
+      RANGE_NTSC_VHF,
+      RANGE_NTSC_UHF,
+      RANGE_END
+    }
+  }, {
+    "eia-irc", { "us", "" }, _("cable IRC"), /* Incrementally Related Carriers */
+    VIDEOSTD_NTSC_M,
+    {
+      { "", 0, 1, 1, 6000, 73250 },
+      RANGE_NTSC_2_4,
+      RANGE_NTSC_5_6,
+      RANGE_NTSC_VHF,
+      { "", 0,  14,  22, 6000, 121250 },  /* EIA Midband */
+      { "", 0,  23,  94, 6000, 217250 },  /* EIA Superband (23-36), Hyperband (37-53) */
+      { "", 0,  95,  96, 6000,  91250 },
+      { "", 0,  97,  99, 6000, 103250 },
+      { "", 0, 100, 125, 6000, 649250 },
+      { "T", UPSTREAM, 7, 14, 6000, 8250 },
+      RANGE_END
+    }
+  }, {
+    "eia-hrc", { "us", "" }, _("cable HRC"), /* Harmonically Related Carriers */
+    VIDEOSTD_NTSC_M,
+    {
+      { "", 0,   1,   1, 6000,  72000 },
+      { "", 0,   2,   4, 6000,  54000 },
+      { "", 0,   5,   6, 6000,  78000 },
+      { "", 0,   7,  13, 6000, 174000 },
+      { "", 0,  14,  22, 6000, 120000 },
+      { "", 0,  23,  94, 6000, 216000 },
+      { "", 0,  95,  96, 6000,  90000 },
+      { "", 0,  97,  99, 6000, 102000 },
+      { "", 0, 100, 125, 6000, 648000 },
+      { "T", UPSTREAM, 7, 14, 6000, 7000 },
+      RANGE_END
+    }
+  }, {
+    "ca-cable", { "ca", "" }, _("cable"),
+    VIDEOSTD_NTSC_M,
+    {
+      { "", 0,   2,   4,  61750, 6000 },
+      { "", 0,   5,   6,  83750, 6000 },
+      { "", 0,   7,  13, 181750, 6000 },
+      { "", 0,  14,  22, 127750, 6000 },
+      { "", 0,  23,  94, 223750, 6000 },
+      { "", 0,  95,  95,  97750, 6000 },
+      { "", 0,  96,  99, 103750, 6000 },
+      { "", 0, 100, 125, 655750, 6000 },
+      RANGE_END
+    }
+  }, {
+    "eiaj-terr", { "jp", "" }, _("terrestrial"),
+    VIDEOSTD_NTSC_M_JP,
+    {
+      { "", 0,  1,  3, 6000,  91250 },
+      { "", 0,  4,  7, 6000, 171250 },  /* NB #7 is 189250 */
+      { "", 0,  8, 12, 6000, 193250 },
+      { "", 0, 13, 62, 6000, 471250 },
+      RANGE_END
+    }
+  }, {
+    "eiaj-cable", { "jp", "" }, _("cable"),
+    VIDEOSTD_NTSC_M_JP,
+    {
+      { "", 0, 13, 22, 6000, 109250 },
+      { "", 0, 23, 23, 6000, 223250 },
+      { "", 0, 24, 27, 6000, 231250 }, /* NB #27 is 249250 */
+      { "", 0, 28, 63, 6000, 253250 },
+      RANGE_END
+    }
+  }, {
+    "ccir",
+    { "at", "be", "ch", "de", "dk", "es", "fi", "gr",
+      "is", "li", "lu", "nl", "no", "pt", "se", "uk",
+      "" },
+    NULL,
+    VIDEOSTD_PAL_B | VIDEOSTD_PAL_G,
+    ccir_ranges
+  }, {
+    "au", { "au", "" }, NULL,
+    VIDEOSTD_PAL_B, /* I? */
+    {
+      { "", 0,  0,  0, 7000,  46250 },
+      { "", 0,  1,  2, 7000,  57250 },
+      { "", 0,  3,  3, 7000,  86250 },
+      { "", 0,  4,  5, 7000,  95250 },
+      { "", 0,  6,  9, 7000, 175250 },
+      { "", 0, 10, 11, 7000, 209250 },
+      { "", 0, 28, 69, 7000, 527250 }, /* Band IV-V */
+      RANGE_END
+    }
+  }, {
+    "it", { "it", "" }, NULL,
+    VIDEOSTD_PAL_B,
+    {
+      { "", 0,  2,  2, 7000,  53750 }, /* Band I (A-B) */
+      { "", 0,  3,  3, 7000,  62250 },
+      { "", 0,  4,  4, 7000,  82250 }, /* Band II (C) */
+      { "", 0,  5,  5, 7000, 175250 }, /* Band III (D-H) */
+      { "", 0,  6,  6, 7000, 183250 },
+      { "", 0,  7,  7, 7000, 192250 },
+      { "", 0,  8,  8, 7000, 201250 },
+      { "", 0,  9,  9, 7000, 210250 },
+      { "", 0, 11, 12, 7000, 217250 }, /* Band III (H1-H2) */
+      RANGE_END
+    }
+  }, {
+    "oirt",
+    { "al", "ba", "bg", "cz", "ee", "hr", "hu", "lt",
+      "lv", "mk", "pl", "ro", "si", "sk", "yu", "" }
+    NULL,
+    0,
+    {
+      { "R", 0,  1,  1, 7000,  49750 }, /* Band I (R1-R3) ... */
+      { "R", 0,  2,  2, 7000,  59250 },
+      { "R", 0,  3,  4, 7000,  77250 }, /* Band II (R4-R5) ... */
+      { "R", 0,  5,  5, 7000,  93250 },
+      { "R", 0,  6, 12, 8000, 175250 }, /* Band III ... */
+      { "S", 0,  1,  8, 8000, 111250 },
+      { "S", 0, 11, 19, 8000, 231250 },
+      { "S", 0, 21, 41, 8000, 303250 },
+      RANGE_CCIR_UHF,
+      RANGE_END
+    }
+  }, {
+    /* TRANSLATORS: Leave "Autocom" untranslated. */
+    "pl-atk", { "pl", "" }, _("Autocom cable"),
+    0,
+    {
+      { "S", 0,  1, 12, 8000, 111250 },
+      { "S", 0, 13, 42, 8000, 215250 },
+      { "S", 0, 43, 50, 8000, 471250 },
+      { "S", 0, 51, 64, 8000, 551250 },
+      { "S", 0, 65, 66, 8000, 711250 },
+      { "S", 0, 67, 67, 8000, 743250 },
+      RANGE_END
+    }
+  }, {
+    "ru", { "ru", "" }, NULL /* OIRT Russia */
+    0,
+    {
+      { "", 0,  1,  1, 8000,  48500 },
+      { "", 0,  2,  2, 8000,  58000 },
+      { "", 0,  3,  5, 8000,  76000 },
+      { "", 0,  6, 12, 8000, 174000 },
+      { "", 0, 21, 60, 8000, 470000 },
+      RANGE_END
+    }
+  }, {
+    "ie", { "ie", "" }, NULL, /* Ireland */
+    VIDEOSTD_PAL_I,
+    {
+      { "", 0,  0,  2, 8000,  45750 }, /* Band I (A-C) */
+      { "", 0,  3,  8, 8000, 175750 }, /* Band III (D-J) */
+      RANGE_CCIR_UHF,
+      RANGE_END
+    }
+  }, {
+    "fr", { "fr", "" }, NULL,
+    VIDEOSTD_SECAM_L,
+    {
+      { "K", 0, 1,  1, 7000,  47750 },
+      { "K", 0, 2,  2, 7000,  55750 },
+      { "K", 0, 3,  3, 7000,  60500 },
+      { "K", 0, 4,  4, 7000,  63750 },
+      { "K", 0, 5, 10, 8000, 176000 }, /* Band III (K5-K10) */
+      { "K", ALPHA, 'B', 'Q', 12000, 116750 }, /* former System E (1984) (KB-KQ) */
+      { "H", 0, 1, 19, 8000, 303250 },
+      RANGE_CCIR_UHF,
+      RANGE_END
+    }
+  }, {
+    "nz", { "nz", "" }, NULL, /* New Zealand */
+    0,
+    {
+      { "", 0, 1,  1, 7000,  45250 },
+      { "", 0, 2,  3, 7000,  55250 },
+      { "", 0, 4,  5, 7000, 175250 },
+      { "5", ALPHA, 'A', 'A', 7000, 138250 },
+      { "", 0, 6,  7, 7000, 189250 }, /* NB #7 is 196250 */
+      { "", 0, 8, 10, 7000, 203250 },
+      RANGE_CCIR_UHF,
+      RANGE_END
+    }
+  }, {
+    "za", { "za", "" }, NULL, /* South Africa */
+    0,
+    {
+      { "", 0,  4, 11, 8000, 175250 }, /* Band III (4-11) */
+      { "", 0, 13, 13, 8000, 247430 }, /* Band III (247,43 sic) */
+      RANGE_CCIR_UHF,
+      RANGE_END
+    }
+  }, {
+    "cn-pal", { "cn", "" }, NULL, /* China */
+    0,
+    {
+      { "", 0,  1,  3, 8000,  49750 },
+      { "", 0,  4,  5, 8000,  77250 },
+      { "", 0,  6, 49, 8000, 112250 },
+      { "", 0, 50, 94, 8000, 463250 },
+      RANGE_END
+    }
+  }, {
+    "pk-cable", { "pk", "" }, _("cable"),
+    VIDEOSTD_PAL_B | VIDEOSTD_PAL_G,
+    {
+      RANGE_CCIR_BAND_I,
+      RANGE_CCIR_SUBBAND,
+      { "Z",  0, 1, 2, 7000, 90250 },
+      RANGE_CCIR_BAND_III,
+      RANGE_CCIR_USB,
+      RANGE_CCIR_OSB,
+      RANGE_CCIR_ESB,
+      RANGE_CCIR_UHF,
+      RANGE_END
+    }
+  },
+
+  TABLE_END
+};
+
+#endif
+
 /* --------------------------------------------------------------------- */
 
 /* US terrestrial */

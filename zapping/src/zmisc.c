@@ -297,16 +297,8 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   gdk_window_get_origin(tv_screen->window, &x, &y);
 
   // FIXME
-  {
-    gint cur_line = zconf_get_integer (NULL, "/zapping/options/audio/record_source");
-
-    if (info->audio_mutable)
-      muted = tveng_get_mute(info);
-    else if (cur_line > 0)
-      muted = mixer_get_mute (cur_line - 1);
-    else
-      muted = -1;
-  } 
+  if (!audio_get_mute (&muted))
+    muted = -1;
 
   mode = info->current_mode;
 

@@ -900,17 +900,17 @@ z_switch_channel	(tveng_tuned_channel	*channel,
 
   muted = -1;
 
-  if (zcg_bool(NULL, "avoid_noise"))
+  if (zcg_bool (NULL, "avoid_noise"))
     {
-      gint cur_line = zconf_get_integer (NULL, "/zapping/options/audio/record_source");
-
-      if (info->audio_mutable)
-	muted = tveng_get_mute (info);
-      else if (cur_line > 0)
-	muted = mixer_get_mute (cur_line - 1);
-
-      if (muted == 0) /* not muted, no error */
-	set_mute (1, /* controls */ FALSE, /* osd */ FALSE);
+      if (audio_get_mute (&muted))
+	{
+	  if (muted == FALSE)
+	    set_mute (1, /* controls */ FALSE, /* osd */ FALSE);
+	}
+      else
+	{
+	  muted = -1;
+	}
     }
 
   freeze_update();
