@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.26 2004-09-10 04:51:05 mschimek Exp $
+ * $Id: fullscreen.c,v 1.27 2004-09-14 04:44:25 mschimek Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -183,9 +183,9 @@ start_fullscreen		(tveng_device_info *	info)
   unsigned int height;
   const x11_vidmode_info *vm;
 
-  /* Notes: The main window is not used in fullscreen mode but it
-     remains open all the time. black_window is an unmanaged,
-     fullscreen window without decorations.
+  /* Notes: The main window is not used in fullscreen mode, it
+     remains open (although invisible) all the time. black_window is
+     an unmanaged, fullscreen window without decorations.
      da is a drawing area of same size as the window.
      start_previewing enables Xv or v4l overlay into da->window.
      The video size is limited by the DMA hardware
@@ -304,11 +304,7 @@ start_fullscreen		(tveng_device_info *	info)
      not to be overwritten */
   gtk_widget_set_double_buffered (da, FALSE);
 
-#ifdef HAVE_VIDMODE_EXTENSION
   vm_name = zcg_char (NULL, "fullscreen/vidmode");
-#else
-  vm_name = NULL;
-#endif
 
   /* XXX we must distinguish between (limited) Xv overlay and Xv scaling.
    * 1) determine natural size (videostd -> 480, 576 -> 640, 768),
@@ -320,7 +316,7 @@ start_fullscreen		(tveng_device_info *	info)
   if (info->current_controller == TVENG_CONTROLLER_XV
       && (!vm_name || 0 == strcmp (vm_name, "auto")))
     {
-      vm_name = NULL; /* not needed  XXX wrong */
+      /* vm_name = NULL; */ /* not needed  XXX wrong */
     }
   else
     {
@@ -416,6 +412,8 @@ start_fullscreen		(tveng_device_info *	info)
   if (-1 == tveng_set_preview (TRUE, info))
     goto failure;
 
+  gtk_widget_hide (GTK_WIDGET (zapping));
+
   zapping->display_mode = DISPLAY_MODE_FULLSCREEN;
   info->capture_mode = CAPTURE_MODE_OVERLAY;
 
@@ -470,7 +468,7 @@ stop_fullscreen			(tveng_device_info *	info)
   zapping->display_mode = DISPLAY_MODE_NONE;
   info->capture_mode = CAPTURE_MODE_NONE;
 
-  x11_vidmode_restore (vidmodes, &old_vidmode);
+  x11_vidmode_restore (svidmodes, &old_vidmode);
 
   osd_unset_window ();
 
@@ -489,4 +487,6 @@ stop_fullscreen			(tveng_device_info *	info)
 
   x11_vidmode_list_delete (svidmodes);
   svidmodes = NULL;
+
+  gtk_widget_show (GTK_WIDGET (zapping));
 }
