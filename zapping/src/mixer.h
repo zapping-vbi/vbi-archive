@@ -26,6 +26,16 @@ int		mixer_get_bounds	(int	line,
  */
 int		mixer_set_volume	(int	line,
 					 int	volume);
+/**
+ * [Un]Mute a given line.
+ * Returns -1 on error, 0 on success.
+ */
+int		mixer_set_mute		(int	line,
+					 int	mute);
+/**
+ * Returns -1 on error, 0|1 on success.
+ */
+int		mixer_get_mute		(int	line);
 
 /**
  * Selects the given line for recording.
