@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cache.h,v 1.2.2.4 2003-09-24 18:49:56 mschimek Exp $ */
+/* $Id: cache.h,v 1.2.2.5 2004-02-13 02:14:34 mschimek Exp $ */
 
 #ifndef CACHE_H
 #define CACHE_H
@@ -134,6 +134,9 @@ vbi_cache_get			(vbi_decoder *		vbi,
 				 vbi_subno		subno,
 				 vbi_subno		subno_mask,
 				 vbi_bool		new_ref);
+extern void
+vbi_cache_ref			(vbi_decoder *		vbi,
+				 const vt_page *	vtp);
 extern void
 vbi_cache_unref			(vbi_decoder *		vbi,
 				 const vt_page *	vtp);
