@@ -24,6 +24,7 @@ BUILTIN_PIXMAPS = \
 	screenshot.png \
 	mute.png \
 	teletext.png \
+	subtitle.png \
 	video.png
 
 RATING_CA = \
