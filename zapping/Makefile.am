@@ -1,6 +1,12 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = common libtv po glade pixmaps plugins help zapping_setup_fb src 
+if NEED_ZSFB
+ZSFB_DIRS = zapping_setup_fb
+else
+ZSFB_DIRS =
+endif
+
+SUBDIRS = common libtv po glade pixmaps plugins help $(ZSFB_DIRS) src 
 
 EXTRA_DIST = autogen.sh acinclude.m4 \
 	README.plugins BUGS THANKS \
