@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext.c,v 1.7.2.5 2004-01-30 00:43:03 mschimek Exp $ */
+/* $Id: teletext.c,v 1.7.2.6 2004-02-13 02:10:55 mschimek Exp $ */
 
 #include "../config.h"
 #include "site_def.h"
@@ -35,145 +35,20 @@
 #include "vbi.h"
 #include "hamm.h"
 #include "lang.h"
+#include "pdc.h"
 
-struct pdc_date {
-	signed			year		: 8;	/* 0 ... 99 */
-	signed			month		: 8;	/* 0 ... 11 */
-	signed			day		: 8;	/* 0 ... 30 */
-} __attribute__ ((packed));
-
-struct pdc_time {
-	signed			hour		: 8;	/* 0 ... 23 */
-	signed			min		: 8;	/* 0 ... 59 */
-} __attribute__ ((packed));
-
-struct pdc_pos {
-	signed			row		: 8;	/* 1 ... 23 */
-	signed			column_begin	: 8;	/* 0 ... 39 */
-	signed			column_end	: 8;	/* 0 ... 40 */
-} __attribute__ ((packed));
-
-struct pdc_prog {
-	struct pdc_date		ad;			/* Method B: year -1 */
-	unsigned		pty		: 8;
-	struct pdc_time		at1;			/* Method B: not given */
-	struct pdc_time		at2;
-	signed			cni		: 32;
-	signed			length		: 16;	/* min */
-	/* Method A: position of AT-1 and up to three PTLs.
-	   Method B: position of PTL, elements 0, 2, 3 unused. */
-	struct pdc_pos		at1_ptl_pos[4];
-	signed			lto		: 8;	/* +/- 15 min */
-	unsigned		caf		: 1;	/* Method A: not given */
-};
+#define PGP_CHECK(ret_value)						\
+do {									\
+	assert (NULL != pg);						\
+									\
+	pgp = CONST_PARENT (pg, vbi_page_private, pg);			\
+									\
+	if (VBI_PAGE_PRIVATE_MAGIC != pgp->magic)			\
+		return ret_value;					\
+} while (0)
 
 static void
-dump_pdc_prog			(struct pdc_prog *	p,
-				 unsigned int		n)
-{
-	unsigned int i;
-
-	for (i = 0; i < n; ++i, ++p)
-		fprintf (stderr, "%2u: %02d-%02d-%02d "
-			 "%02d:%02d (%02d:%02d) %3d min "
-			 "cni=%08x pty=%02x lto=%d "
-			 "at1/ptl=%d:%d-%d,%d:%d-%d,%d:%d-%d,%d:%d-%d "
-			 "caf=%u\n",
-			 i, p->ad.year, p->ad.month + 1, p->ad.day + 1,
-			 p->at1.hour, p->at1.min,
-			 p->at2.hour, p->at2.min, p->length,
-			 p->cni, p->pty, p->lto,
-			 p->at1_ptl_pos[0].row,
-			 p->at1_ptl_pos[0].column_begin,
-			 p->at1_ptl_pos[0].column_end,
-			 p->at1_ptl_pos[1].row,
-			 p->at1_ptl_pos[1].column_begin,
-			 p->at1_ptl_pos[1].column_end,
-			 p->at1_ptl_pos[2].row,
-			 p->at1_ptl_pos[2].column_begin,
-			 p->at1_ptl_pos[2].column_end,
-			 p->at1_ptl_pos[3].row,
-			 p->at1_ptl_pos[3].column_begin,
-			 p->at1_ptl_pos[3].column_end,
-			 p->caf);
-}
-
-struct temp {
-	vbi_page		pg;
-
-	const vt_magazine *	mag;
-	const vt_extension *	ext;
-
-	const vt_page *		vtp;
-
-	vbi_wst_level		max_level;
-	vbi_format_flags	flags;
-
-	struct pdc_prog		pdc_table [25];
-	unsigned int		pdc_table_size;
-
-// stuff below not used yet, but it belongs here
-// (future private portion of vbi_page)
-
-	struct vbi_font_descr *	font[2];
-
-	uint32_t		double_height_lower;	/* legacy */
-
-	/* 0 header, 1 other rows. */
-	vbi_opacity		page_opacity[2];
-	vbi_opacity		boxed_opacity[2];
-
-	/* Navigation related, see vbi_page_nav_link(). For
-	   simplicity nav_index[] points from each character
-	   in the TOP/FLOF row 25 (max 64 columns) to the
-	   corresponding nav_link element. */
-	vt_pagenum		nav_link[6];
-	int8_t			nav_index[64];
-};
-
-static void
-dump_temp			(struct temp *		t,
-				 unsigned int		mode)
-{
-	unsigned int row;
-	unsigned int column;
-	vbi_char *acp;
-
-	acp = t->pg.text;
-
-	for (row = 0; row < t->pg.rows; ++row) {
-		fprintf (stderr, "%2d: ", row);
-
-		for (column = 0; column < t->pg.columns; ++acp, ++column) {
-			int c;
-
-			switch (mode) {
-			case 0:
-				c = acp->unicode;
-				if (c < 0x20 || c >= 0x7F)
-					c = '.';
-				fputc (c, stderr);
-				break;
-
-			case 1:
-				fprintf (stderr, "%04x ", acp->unicode);
-				break;
-
-			case 2:
-				fprintf (stderr, "%04xF%dB%dS%dO%d ",
-					 acp->unicode,
-					 acp->foreground, acp->background,
-					 acp->size, acp->opacity);
-				break;
-			}
-		}
-
-		fputc ('\n', stderr);
-	}
-}
-
-static void
-character_set_designation	(vbi_font_descr **	font,
+character_set_designation	(vbi_font_descr *	font[2],
 				 const vt_extension *	ext,
 				 const vt_page *	vtp);
 static void
@@ -181,772 +56,32 @@ screen_color			(vbi_page *		pg,
 				 unsigned int		flags,
 				 unsigned int		color);
 static vbi_bool
-enhance				(struct temp *		t,
+enhance				(vbi_page_private *		t,
 				 object_type		type,
 				 const vt_triplet *	p,
 				 int			n_triplets,
 				 int			inv_row,
 				 int			inv_column);
 
-/* PDC -------------------------------------------------------------------- */
 
-/*
- *  PDC Preselection method "A"
- *  ETS 300 231, Section 7.3.1.
- */
-
-/*
-
-type	pre	text		____          post           ____
-        1)                     /                                 \
-AT-1	+	zz.zz		+	%			<	2)
-AT-1	+	zz.zz-zz.zz	+	%			<	2)
-PTL	++	title		++	%%	::	:%	<	6)
-PW	%	hh		+	%			<	3)
-LTO	%	0zz		+	%			<
-LTO	%	9zz		+	%			<
-PTY	%	Fhh		+	%			<	4)
-AT-2	%	zzzz		+	%			<
-AT-1	%	zz.zz		+	%			<	2)
-CNI	%	hhzzz		+	%			<	3)
-AD	%	zzzzzz		+	%			<	3)
-PTL	%%	title		++	%%	::	:%	<	6)
-AT-2	:	zzzz		+	%			<
-AT-1	:	zz.zz		+	%			<	5)
-AD	:	zzzzzz		+	%			<
-
-Combined form: <pre><text><pre><text>...<pre><text><post>
-
-+  colour code except magenta
-:  magenta
-%  conceal
-<  end of row
-
-Some observations:
-
-0) Table 4 is wrong: '%' = 0x18; ',' = '+' | '%' | '<'
-1) Any control or other code can appear before the prefix, in
-   particular :% (as noted in spec) and :: (equal to single
-   colon) are valid prefixes.
-2) Encountered pages which have proper CNI and AD, but no AT-1.
-   Here random non-digit characters (usually space 0x20) can
-   appear in place of the + before and/or after AT-1. Also
-   encountered spaces before and/or after the minus, and a colon
-   in place of the period separating hour and minute digits.
-3) The % prefix form is permitted only when CNI, AD, PW combine,
-   otherwise :% should appear. Some stations also use space
-   0x20 as delimiter between combined CNI, AD, PW
-   (<pre><text>0x20<text>...).
-4) According to spec only the :% form is valid. (No evidence
-   to the contrary, but that would be an exception.)
-5) Encountered as end time of the last program on a page.
-   Note 2) applies accordingly.
-6) Postfix :% encountered in combined form ++PTL:%CNI.
-*/
-
-#define M_COLOR ((1 << 1) | (1 << 2) | (1 << 3) | (1 << 4) | (1 << 6) | (1 << 7))
-#define M_MAGENTA (1 << 0x05)
-#define M_CONCEAL (1 << 0x18)
-
-#define isnum(c) ((c) >= 0x30 && (c) <= 0x39)
-/* NB uppercase only, unlike isxdigit() */
-#define isxnum(c) (isnum (c) || ((c) >= 0x41 && (c) <= 0x46))
-#define iscolon(c) ((c) == 0x3A)
-#define isperiod(c) ((c) == 0x2E)
-#define isminus(c) ((c) == 0x2D)
-
-/* Caution! These macros assume c is a C0 (0x00 ... 0x1F) */
-#define iscontrol(c) ((M_COLOR | M_MAGENTA | M_CONCEAL) & (1 << (c)))
-#define ismagenta(c) ((c) == 0x05)
-#define isconceal(c) ((c) == 0x18)
-#define iscolour_conceal(c) ((M_COLOR | M_CONCEAL) & (1 << (c)))
-#define ismagenta_conceal(c) ((M_MAGENTA | M_CONCEAL) & (1 << (c)))
-
-#ifndef TELETEXT_PDC_LOG
-#define TELETEXT_PDC_LOG 0
-#endif
-
-#define pdc_log(templ, args...)						\
-do { /* Check syntax in any case */					\
-	if (TELETEXT_PDC_LOG)						\
-		fprintf (stderr, templ , ##args);			\
-} while (0)
-
-/* BCD coded time (e.g. 0x2359) to pdc_time. */
-static vbi_bool
-pdc_bcd_time			(struct pdc_time *	t,
-				 int			bcd)
-{
-	int h, m;
-
-	if (!vbi_is_bcd (bcd))
-		return FALSE;
-
-	m = (bcd & 15) + ((bcd >> 4) & 15) * 10;
-
-	bcd >>= 8;
-
-	h = (bcd & 15) +  (bcd >> 4)       * 10;
-
-	if (m >= 60 || h >= 24)
-		return FALSE;
-
-	t->hour = h;
-	t->min = m;
-
-	return TRUE;
-}
-
-/* Absolute difference of begin and end in minutes. */
-static __inline__ int
-pdc_time_diff			(struct pdc_time *	begin,
-				 struct pdc_time *	end)
-{
-	int t;
-
-	t = (end->hour - begin->hour) * 60 + end->min - begin->min;
-
-	if (t < 0)
-		t += 24 * 60;
-
-	return t;
-}
-
-/*
- *  Evaluates PTL, this is a subfunction of pdc_method_a().
- *  Returns next column to process, >= column parameter.
- *
- *  p		- store PTL info here
- *  raw		- raw level one page (current row)
- *  row, column	- current position
- */
-static __inline__ unsigned int
-pdc_ptl				(struct temp *		t,
-				 struct pdc_prog *	p,
-				 const uint8_t *	raw,
-				 unsigned int		row,
-				 unsigned int		column)
-{
-	unsigned int column_begin;
-	unsigned int column_end;
-	unsigned int column_at1;
-	int ctrl1;
-	int ctrl2;
-
-	column_begin = column;
-	column_end = 40;
-	column_at1 = 40;
-
-	ctrl2 = vbi_ipar8 (raw[column]);
-
-	for (;;) {
-		if (column >= 39) {
-			/* Line end postfix */
-			column = 40;
-			break;
-		}
-
-		ctrl1 = ctrl2;
-		ctrl2 = vbi_ipar8 (raw[column + 1]);
-
-		if (0)
-			pdc_log ("%d %d %02x-%02x\n",
-				 row, column, ctrl1, ctrl2);
-
-		if (ctrl2 < 0)
-			return 0; /* hamming error */
-
-		if (ctrl1 < 0x20 && iscontrol (ctrl1)) {
-			if (ctrl1 == ctrl2) {
-				column_end = column;
-				column += 2;
-				break;
-			} else if (ismagenta (ctrl1)
-				   && isconceal (ctrl2)) {
-				/* Observation 6) */
-				column_end = column;
-				break;
-			}
-		} else if (isnum (ctrl1)
-			   && isnum (ctrl2)
-			   && column <= 35
-			   && column_at1 == 40) {
-			int separator = vbi_ipar8 (raw[column + 2]);
-
-			if (iscolon (separator) || isperiod (separator)) {
-				int digit3 = vbi_ipar8 (raw[column + 3]);
-				int digit4 = vbi_ipar8 (raw[column + 4]);
-				unsigned int delimiter = (column < 35) ?
-					vbi_ipar8 (raw[column + 5]) : 0x20;
-
-				if (isnum (digit3)
-				    && isnum (digit4)
-				    && delimiter < 0x30) {
-					/* Unmarked AT-1 (end time?),
-					   observation 2), within PTL. */
-					column_at1 = column;
-				}
-			}
-		}
-
-		++column;
-	}
-
-	pdc_log ("PTL %d %d-%d\n", row, column_begin, column_end);
-
-	/* Record position of up to three PTLs. Entry #0
-	   stores AT-1 position in case there is no PTL. */
-
-	if (p > t->pdc_table) {
-	  	struct pdc_pos *tab;
-		struct pdc_pos *pp;
-
-		tab = p[-1].at1_ptl_pos;
-
-		for (pp = &tab[1]; pp <= &tab[3]; ++pp)
-			if (pp->row < 0) {
-				if (pp >= &tab[2]
-				    && (unsigned int) pp[-1].row < (row - 1))
-					break; /* probably unrelated */
-
-				pp->row		 = row;
-				pp->column_begin = column_begin;
-				pp->column_end   = column_end;
-				break;
-			}
-	}
-
-	/* No explicit postfix, must scan for unmarked
-	   elements within PTL. */
-	if (column == 40)
-		column = column_at1;
-
-	return column;
-}
-
-/* Copies AD, CNI, LTO in row p2 to rows p2 to pend - 1. */
-static struct pdc_prog *
-pdc_at2_fill			(struct pdc_prog *	table,
-				 struct pdc_prog *	p2,
-				 struct pdc_prog *	pend)
-{
-	while (p2 < pend) {
-		if (p2 > table) {
-			p2->ad	= p2[-1].ad;
-			p2->cni	= p2[-1].cni;
-			p2->lto	= p2[-1].lto;
-		}
-
-		p2->at2	= p2->at1;
-
-		++p2;
-	}
-
-	return p2;
-}
-
-/*
- *  Scans a raw level one page for PDC data and stores the
- *  data in t->pdc_table. Returns the number of entries
- *  written.
- */
-static unsigned int
-pdc_method_a			(struct temp *		t)
-{
-	struct pdc_prog *p1;
-	struct pdc_prog *p2;
-	struct pdc_prog *pend;
-	unsigned int row;
-	vbi_bool have_at2;
-	int pw_sum;
-	int pw;
-
-	CLEAR (t->pdc_table);
-
-	t->pdc_table_size = 0;
-
-	p1 = t->pdc_table; /* next AT-1 row */
-	p2 = t->pdc_table; /* next AT-2 row */
-
-	pend = t->pdc_table + N_ELEMENTS (t->pdc_table);
-
-	p2->ad.year = -1; /* not found */
-	p2->cni = -1;
-
-	have_at2 = FALSE;
-
-	pw_sum = 0;
-	pw = -1; /* XXX checksum to do */
-
-	for (row = 1; row <= 23; ++row) {
-		const uint8_t *raw;
-		unsigned int column;
-		unsigned int column_begin;
-		unsigned int value;
-		unsigned int digits;
-		vbi_bool combine;
-		int ctrl0; /* previous */
-		int ctrl1; /* current */
-		int ctrl2; /* next */
-
-		raw = t->vtp->data.lop.raw[row];
-
-		ctrl1 = 0xFF; /* nothing at raw[-1] */
-		ctrl2 = vbi_ipar8 (raw[0]);
-
-		combine = FALSE;
-
-		for (column = 0; column <= 38;) {
-			ctrl0 = ctrl1;
-			ctrl1 = ctrl2;
-			ctrl2 = vbi_ipar8 (raw[column + 1]);
-
-			if (0)
-				pdc_log ("%d,%d %02x-%02x-%02x %d\n",
-					 row, column, ctrl0, ctrl1,
-					 ctrl2, combine);
-
-			if ((ctrl0 | ctrl1 | ctrl2) < 0) {
-				return 0; /* hamming error */
-			} else if (ctrl1 < 0x20 && iscontrol (ctrl1)) {
-				if (ctrl0 == ctrl1
-				    && iscolour_conceal (ctrl1)
-				    && ctrl2 >= 0x20) {
-					column = pdc_ptl (t, p1, raw,
-							  row, column + 1);
-					if (column == 0)
-						return 0; /* hamming error */
-					goto bad; /* i.e. not a number */
-				} else if (isxnum (ctrl2)) {
-					++column; /* Numeric item */
-				} else {
-					++column;
-					combine = FALSE;
-					continue;
-				}
-			} else if (isxnum (ctrl1) && ctrl0 >= 0x20) {
-				/* Possible unmarked AT-1 2),
-				   combined CNI, AD, PW 3) */
-				ctrl1 = ctrl0;
-			} else {
-				++column;
-				combine = FALSE;
-				continue;
-			}
-
-			value = 0;
-			digits = 0;
-
-			column_begin = column;
-
-			for (; column <= 39; ++column) {
-				int c = vbi_ipar8 (raw[column]);
-
-				if (0)
-					pdc_log ("%d %02x value=%x "
-						 "digits=%x\n",
-						 column, c, value, digits);
-
-				switch (c) {
-				case 0x41 ... 0x46: /* xdigit */
-					c += 0x3A - 0x41;
-					/* fall through */
-
-				case 0x30 ... 0x39: /* digit */
-					value = value * 16 + c - 0x30;
-					digits += 1;
-					break;
-
-				case 0x01 ... 0x07: /* color */
-				case 0x18: /* conceal */
-					/* Postfix control code */
-					goto eval;
-
-				case 0x20: /* space, observation 2) */
-					for (; column <= 38; ++column) {
-						c = vbi_ipar8 (raw[column + 1]);
-
-						if (c != 0x20)
-							break;
-					}
-
-					if (digits == 0x104) {
-						if (column <= 38 && isminus (c))
-							continue; /* zz.zz<spaces> */
-						else
-							goto eval;
-					} else if (digits == 0x204) {
-						if (column <= 38 && isnum (c))
-							continue; /* zz.zz-<spaces> */
-						else
-							goto eval;
-					} else {
-						goto eval;
-					}
-
-				case 0x2E: /* period */
-				case 0x3A: /* colon, observation 2) */
-					if (digits == 0x002 || digits == 0x206) {
-						digits += 0x100;
-					} else {
-						goto bad;
-					}
-					break;
-
-				case 0x2D: /* minus */
-					if (digits == 0x104) {
-						digits = 0x204;
-					} else {
-						goto bad;
-					}
-					break;
-
-				default: /* junk, observation 2) */
-					if (digits == 0x104 || digits == 0x308) {
-						goto eval; /* junk after [zz.zz-]zz.zz */
-					} else {
-						goto bad;
-					}
-				}
-			}
-
-		eval:
-			switch (digits) {
-				unsigned int d, m, y;
-				struct pdc_time at;
-
-			case 0x002:
-				if (!((combine && ctrl1 == 0x20)
-				      || ismagenta_conceal (ctrl1)))
-					goto bad;
-
-				pdc_log ("PW %02x\n", value);
-
-				pw = value;
-
-				combine = TRUE;
-
-				break;
-
-			case 0x003:
-				if (!isconceal (ctrl1))
-					goto bad;
-
-				switch (value >> 8) {
-				case 0x0:
-				case 0x9:
-					if (!vbi_is_bcd (value))
-						goto bad;
-
-					pdc_log ("LTO %03x %d\n", value, p2->lto);
-
-					d = (value & 15) + ((value >> 4) & 15) * 10;
-
-					if (d >= 12 * 4)
-						goto bad; /* implausible */
-
-					if (!have_at2 && p1 > p2) /* see AD */
-						p2 = pdc_at2_fill (p2, p2, p1);
-
-					/* 0x999 = -0x001 (ok?) */
-					p2->lto = (value >= 0x900) ? d - 100: d;
-
-					break;
-
-				case 0xF:
-					if (!ismagenta (ctrl0))
-						goto bad;
-
-					pdc_log ("PTY %02x\n", value);
-
-					p2->pty = value & 0xFF;
-
-					break;
-
-				default:
-					goto bad;
-				}
-
-				break;
-
-			case 0x004:
-				if (!ismagenta_conceal (ctrl1))
-					goto bad;
-
-				if (value == 0x2500) {
-					/* Skip flag */
-					p2->at2.hour = 25;
-				} else {
-					if (!pdc_bcd_time (&p2->at2, value))
-						goto bad;
-				}
-
-				pdc_log ("AT-2 %04x\n", value);
-
-				have_at2 = TRUE;
-
-				if (++p2 >= pend)
-					goto finish;
-
-				p2->ad  = p2[-1].ad;
-				p2->cni = p2[-1].cni;
-				p2->lto = p2[-1].lto;
-
-				break;
-
-			case 0x104:
-				if (!pdc_bcd_time (&p1->at1, value))
-					goto bad;
-
-				pdc_log ("AT-1 %04x\n", value);
-
-				/* Shortcut: No date, not valid PDC-A */
-				if (t->pdc_table[0].ad.year < 0)
-					return 0;
-
-				p1->at1_ptl_pos[0].row = row;
-				p1->at1_ptl_pos[0].column_begin = column_begin;
-				p1->at1_ptl_pos[0].column_end = column;
-
-				if (++p1 >= pend)
-					goto finish;
-
-				break;
-
-			case 0x005:
-				if (!((combine && ctrl1 == 0x20)
-				      || ismagenta_conceal (ctrl1)))
-					goto bad;
-
-				if ((value & 0x00F00) > 0x00900)
-					goto bad;
-
-				pdc_log ("CNI %05x\n", value);
-
-				if (!have_at2 && p1 > p2) /* see AD */
-					p2 = pdc_at2_fill (p2, p2, p1);
-
-				p2->cni = value;
-
-				combine = TRUE;
-
-				break;
-
-			case 0x006:
-				if (!((combine && ctrl1 == 0x20)
-				      || ismagenta_conceal (ctrl1)))
-					goto bad;
-
-				if (!vbi_is_bcd (value))
-					goto bad;
-
-				y = (value & 15) + ((value >> 4) & 15) * 10; value >>= 8;
-				m = (value & 15) + ((value >> 4) & 15) * 10; value >>= 8;
-				d = (value & 15) + (value >> 4) * 10;
-
-				if (d == 0 || d > 31
-				    || m == 0 || m > 12)
-					goto bad;
-
-				pdc_log ("AD %02d-%02d-%02d\n", y, m, d);
-
-				/* ETS 300 231: "5) CNI, AD, LTO and PTY data are 
-				   entered in the next row in the table on which
-				   no AT-2 has as yet been written;" Literally
-				   this would forbid two ADs on a page without
-				   AT-2s, but such pages have been observed. */
-
-				if (!have_at2 && p1 > p2)
-					p2 = pdc_at2_fill (p2, p2, p1);
-
-				p2->ad.year = y;
-				p2->ad.month = m - 1;
-				p2->ad.day = d - 1;
-
-				combine = TRUE;
-
-				break;
-
-			case 0x308:
-				if (ismagenta_conceal (ctrl1))
-					goto bad;
-
-				if (!pdc_bcd_time (&at, value & 0xFFFF))
-					goto bad;
-				if (!pdc_bcd_time (&p1->at1, value >> 16))
-					goto bad;
-
-				pdc_log ("AT-1 %08x\n", value);
-
-				/* Shortcut: No date, not valid PDC-A */
-				if (t->pdc_table[0].ad.year < 0)
-					return 0;
-
-				p1->length = pdc_time_diff (&p1->at1, &at);
-
-				p1->at1_ptl_pos[0].row = row;
-				p1->at1_ptl_pos[0].column_begin = column_begin;
-				p1->at1_ptl_pos[0].column_end = column;
-
-				if (++p1 >= pend)
-					goto finish;
-
-				break;
-
-			default:
-				goto bad;
-			}
-
-			ctrl1 = (column > 0) ? vbi_ipar8 (raw[column - 1]) : 0xFF;
-			ctrl2 = (column < 40) ? vbi_ipar8 (raw[column]) : 0xFF;
-			continue;
-		bad:
-			ctrl1 = (column > 0) ? vbi_ipar8 (raw[column - 1]) : 0xFF;
-			ctrl2 = (column < 40) ? vbi_ipar8 (raw[column]) : 0xFF;
-			digits = 0;
-		}
-	}
-
- finish:
-	if (p2 > p1
-	    || p1 == t->pdc_table
-	    || t->pdc_table[0].ad.year < 0
-	    || t->pdc_table[0].cni < 0) {
-		return 0; /* invalid */
-	}
-
-	pdc_at2_fill (have_at2 ? t->pdc_table : p2, p2, p1);
-
-	for (p2 = t->pdc_table; p2 < p1; ++p2) {
-		struct pdc_prog *pp;
-		unsigned int i;
-
-		if (p2[0].length <= 0)
-			for (pp = p2 + 1; pp < p1; ++pp)
-				if (p2[0].cni == pp[0].cni) {
-					p2[0].length = pdc_time_diff
-						(&p2[0].at1, &pp[0].at1);
-					break;
-				}
-		if (p2[0].length <= 0)
-			for (pp = p2 + 1; pp < p1; ++pp)
-				if (pp[0].cni == pp[-1].cni) {
-					p2[0].length = pdc_time_diff
-						(&p2[0].at1, &pp[0].at1);
-					break;
-				}
-		if (p2[0].length <= 0 || p2[0].at2.hour == 25) {
-			memmove (p2, p2 + 1, (p1 - p2 - 1) * sizeof (*p2));
-			--p1;
-			--p2;
-			continue;
-		}
-
-		for (i = 0; i < 4; ++i) {
-			if (p2[0].at1_ptl_pos[i].row > 0) {
-				vbi_char *cp;
-				unsigned int j;
-
-				row = p2[0].at1_ptl_pos[i].row;
-
-				cp = t->pg.text + t->pg.columns * row;
-
-				for (j = 0; j < 40; ++j)
-					cp[j].pdc = TRUE;
-
-				if (t->pg.double_height_lower & (2 << row)) {
-					cp += t->pg.columns;
-
-					for (j = 0; j < 40; ++j)
-						cp[j].pdc = TRUE;
-				}
-			} else {
-				break;
-			}
-		}
-	}
-
-	if (0)
-		dump_pdc_prog (t->pdc_table, p2 - t->pdc_table);
-
-	return t->pdc_table_size = p2 - t->pdc_table;
-}
-
-/**
- * @param pg With vbi_fetch_vt_page() obtained vbi_page.
- * @param pl Place to store information about the link.
- * @param column Column 0 ... pg->columns - 1 of the character in question.
- * @param row Row 0 ... pg->rows - 1 of the character in question.
- * 
- * Describe me.
- *
- * @returns
- * TRUE if the link is valid.
- */
-vbi_bool
-vbi_page_pdc_link		(const vbi_page *	pg,
-				 vbi_pdc_preselection *	pl,
-				 unsigned int		column,
-				 unsigned int		row)
-{
-/*
-  XXX TODO
-
-  a) find table entry
-  b) if no year query system time
-  c) if no at1 assume same as at2
-  d) title
- */
-	return FALSE;
-}
-
-/**
- * @param pg With vbi_fetch_vt_page() obtained vbi_page.
- * @param pl Place to store information about the link.
- * @param index Number 0 ... n of item.
- * 
- * Describe me.
- *
- * @returns
- * FALSE if @a num is out of bounds.
- */
-vbi_bool
-vbi_page_pdc_enum		(const vbi_page *	pg,
-				 vbi_pdc_preselection *	pl,
-				 unsigned int		index)
-{
-#if 0 // XXX TODO
-	struct temp *t = PARENT (pg, struct temp, pg);
-
-	if (index > t->pdc_table_size)
-		return FALSE;
-
-	pdc_prog_to_presel (pl, t, index);
-
-	return TRUE;
-#else
-#endif
-	return FALSE;
-}
-
-/*  Teletext page formatting ----------------------------------------------- */
+/* Teletext page formatting ----------------------------------------------- */
 
 #ifndef TELETEXT_FMT_LOG
 #define TELETEXT_FMT_LOG 0
 #endif
 
 #define fmt_log(templ, args...)						\
-do { /* Check syntax in any case */					\
+do {									\
 	if (TELETEXT_FMT_LOG)						\
 		fprintf (stderr, templ , ##args);			\
 } while (0)
 
 static void
-character_set_designation	(vbi_font_descr **	font,
+character_set_designation	(vbi_font_descr *	font[2],
 				 const vt_extension *	ext,
 				 const vt_page *	vtp)
 {
-	int i;
+	unsigned int i;
 
 /* XXX TODO per-page font override */
 
@@ -962,7 +97,7 @@ character_set_designation	(vbi_font_descr **	font,
 	font[0] = vbi_font_descriptors + 0;
 	font[1] = vbi_font_descriptors + 0;
 
-	for (i = 0; i < 2; i++) {
+	for (i = 0; i < 2; ++i) {
 		int char_set = ext->char_set[i];
 
 		if (VALID_CHARACTER_SET(char_set))
@@ -991,9 +126,9 @@ screen_color			(vbi_page *		pg,
 }
 
 static const vt_page *
-resolve_obj_address		(struct temp *		t,
+resolve_obj_address		(vbi_page_private *	pgp,
 				 const vt_triplet **	trip,
-				 int *			remaining,
+				 unsigned int *		remaining,
 				 object_type		type,
 				 vbi_pgno		pgno,
 				 object_address		address,
@@ -1010,10 +145,10 @@ resolve_obj_address		(struct temp *		t,
 	i = ((address >> 5) & 3) * 3 + type;
 
 	fmt_log ("obj invocation, source page %03x/%04x, "
-		 "pointer packet %d triplet %d\n",
+		 "pointer packet %u triplet %u\n",
 		 pgno, subno, packet + 1, i);
 
-	vtp = vbi_cache_get (t->pg.vbi, NUID0, pgno, subno, 0x000F,
+	vtp = vbi_cache_get (pgp->pg.vbi, NUID0, pgno, subno, 0x000F,
 			     /* user access */ FALSE);
 
 	if (!vtp) {
@@ -1022,25 +157,27 @@ resolve_obj_address		(struct temp *		t,
 	}
 
 	if (vtp->function == PAGE_FUNCTION_UNKNOWN) {
-		if (!vbi_convert_cached_page (t->pg.vbi, &vtp, function)) {
+		if (!vbi_convert_cached_page (pgp->pg.vbi, &vtp, function)) {
 			fmt_log ("... no g/pop page or hamming error\n");
 			goto failure;
 		}
 	} else if (vtp->function == PAGE_FUNCTION_POP) {
 		/* vtp->function = function; */ /* POP/GPOP */
 	} else if (vtp->function != function) {
-		fmt_log ("... source page wrong function %d, expected %d\n",
-			 vtp->function, function);
+		fmt_log ("... source page wrong function %s, "
+			 "expected %s\n",
+			 page_function_name (vtp->function),
+			 page_function_name (function));
 		goto failure;
 	}
 
 	pointer = vtp->data.pop.pointer[packet * 24 + i * 2 
 					+ ((address >> 4) & 1)];
 
-	fmt_log ("... triplet pointer %d\n", pointer);
+	fmt_log ("... triplet pointer %u\n", pointer);
 
 	if (pointer > 506) {
-		fmt_log ("... triplet pointer out of bounds (%d)\n", pointer);
+		fmt_log ("... triplet pointer %u > 506\n", pointer);
 		goto failure;
 	}
 
@@ -1048,12 +185,12 @@ resolve_obj_address		(struct temp *		t,
 		packet = (pointer / 13) + 3;
 
 		if (packet <= 25) {
-			fmt_log ("... object start in packet %d, "
-				 "triplet %d (pointer %d)\n",
+			fmt_log ("... object start in packet %u, "
+				 "triplet %u (pointer %u)\n",
 				 packet, pointer % 13, pointer);
 		} else {
-			fmt_log ("... object start in packet 26/%d, "
-				 "triplet %d (pointer %d)\n",
+			fmt_log ("... object start in packet 26/%u, "
+				 "triplet %u (pointer %u)\n",
 				 packet - 26, pointer % 13, pointer);	
 		}
 	}
@@ -1061,13 +198,16 @@ resolve_obj_address		(struct temp *		t,
 	*trip = vtp->data.pop.triplet + pointer;
 	*remaining = N_ELEMENTS (vtp->data.pop.triplet) - (pointer + 1);
 
-	fmt_log ("... obj def: ad 0x%02x mo 0x%04x dat %d=0x%x\n",
-		 (*trip)->address, (*trip)->mode, (*trip)->data, (*trip)->data);
+	fmt_log ("... obj def: addr=0x%02x mode=0x%04x data=%u=0x%x\n",
+		 (*trip)->address,
+		 (*trip)->mode,
+		 (*trip)->data, (*trip)->data);
 
 	address ^= (*trip)->address << 7;
 	address ^= (*trip)->data;
 
-	if ((*trip)->mode != (type + 0x14) || (address & 0x1FF)) {
+	if ((*trip)->mode != (type + 0x14)
+	    || (address & 0x1FF)) {
 		fmt_log ("... no object definition\n");
 		goto failure;
 	}
@@ -1077,45 +217,7 @@ resolve_obj_address		(struct temp *		t,
 	return vtp;
 
  failure:
-	vbi_cache_unref (t->pg.vbi, vtp);
-
-	return NULL;
-}
-
-static __inline__ const vt_page *
-get_drcs_page			(struct temp *		t,
-				 vbi_nuid		nuid,
-				 vbi_pgno		pgno,
-				 vbi_subno		subno,
-				 page_function		function)
-{
-	const vt_page *vtp;
-
-	vtp = vbi_cache_get (t->pg.vbi, nuid, pgno, subno, 0x000F,
-			     /* user_access */ FALSE);
-
-	if (!vtp) {
-		fmt_log ("... page not cached\n");
-		goto failure;
-	}
-
-	if (vtp->function == PAGE_FUNCTION_UNKNOWN) {
-		if (!vbi_convert_cached_page (t->pg.vbi, &vtp, function)) {
-			fmt_log ("... no g/drcs page or hamming error\n");
-			goto failure;
-		}
-	} else if (vtp->function == PAGE_FUNCTION_DRCS) {
-		/* vtp->function = function; */ /* DRCS/GDRCS */
-	} else if (vtp->function != function) {
-		fmt_log ("... source page wrong function %d, expected %d\n",
-			 vtp->function, function);
-		goto failure;
-	}
-
-	return vtp;
-
- failure:
-	vbi_cache_unref (t->pg.vbi, vtp);
+	vbi_cache_unref (pgp->pg.vbi, vtp);
 
 	return NULL;
 }
@@ -1138,7 +240,7 @@ get_drcs_page			(struct temp *		t,
  */
 static void
 _enhance_flush			(int			column,
-				 struct temp *		t,
+				 vbi_page_private *	t,
 				 object_type		type,
 				 vbi_char *		ac,
 				 vbi_char *		mac,
@@ -1160,8 +262,8 @@ _enhance_flush			(int			column,
 		/* Flush entire row */
 
 		switch (type) {
-		case OBJ_TYPE_PASSIVE:
-		case OBJ_TYPE_ADAPTIVE:
+		case OBJECT_TYPE_PASSIVE:
+		case OBJECT_TYPE_ADAPTIVE:
 			column = *active_column + 1;
 			break;
 
@@ -1171,7 +273,7 @@ _enhance_flush			(int			column,
 		}
 	}
 
-	if (type == OBJ_TYPE_PASSIVE && !mac->unicode) {
+	if (type == OBJECT_TYPE_PASSIVE && !mac->unicode) {
 		*active_column = column;
 		return;
 	}
@@ -1239,13 +341,13 @@ _enhance_flush			(int			column,
 
 		acp[i++] = c;
 
-		if (type == OBJ_TYPE_PASSIVE)
+		if (type == OBJECT_TYPE_PASSIVE)
 			break;
 
-		if (type == OBJ_TYPE_ADAPTIVE)
+		if (type == OBJECT_TYPE_ADAPTIVE)
 			continue;
 
-		/* OBJ_TYPE_ACTIVE */
+		/* OBJECT_TYPE_ACTIVE */
 
 		raw = (row == 0 && i < 9) ?
 			0x20 : vbi_ipar8 (t->vtp->data.lop.raw[row][i - 1]);
@@ -1320,69 +422,93 @@ _enhance_flush			(int			column,
 	*active_column = column;
 }
 
-/*
- *  Recursive object invocation at row, column. Returns success.
+static __inline__ vbi_pgno
+magazine_pop_link		(vbi_page_private *	pgp,
+				 unsigned int		link)
+{
+	vbi_pgno pgno;
+
+	if (pgp->max_level >= VBI_WST_LEVEL_3p5) {
+		pgno = pgp->mag->pop_link[link + 8].pgno;
+
+		if (!NO_PAGE (pgno))
+			return pgno;
+	}
+
+	return pgp->mag->pop_link[link + 0].pgno;
+}
+
+/**
+ * @internal
+ * @param type Current object type
+ * @param p Triplet requesting the object
+ * @param row Current row
+ * @param column Current column
  *
- *  type	- current object type
- *  p		- triplet requesting object
+ * Recursive object invocation at row, column.
+ *
+ * @returns
+ * FALSE on failure.
  */
-static __inline__ vbi_bool
-object_invocation		(struct temp *		t,
+static vbi_bool
+object_invocation		(vbi_page_private *	pgp,
 				 object_type		type,
-				 const vt_triplet *	p,
+				 const vt_triplet *	trip,
 				 int			row,
 				 int			column)
 {
 	object_type new_type;
 	unsigned int source;
 	const vt_page *trip_vtp;
-	const vt_triplet *trip;
 	unsigned int n_triplets;
 	vbi_bool success;
 
-	fmt_log ("enhancement obj invocation source %d type %d\n",
-		 source, new_type);
+	new_type = trip->mode & 3;
+	source = (trip->address >> 3) & 3;
 
-	new_type = p->mode & 3;
-	source = (p->address >> 3) & 3;
+	fmt_log ("enhancement obj invocation source %u type %s\n",
+		 source, object_type_name (new_type));
 
 	if (new_type <= type) {
 		/* ETS 300 706, Section 13.2ff */
-		fmt_log ("... priority violation %d -> %d\n",
-			 type, new_type);
+		fmt_log ("... type priority violation %s -> %s\n",
+			 object_type_name (type),
+			 object_type_name (new_type));
 		return FALSE;
 	}
 
 	trip_vtp = NULL;
 	n_triplets = 0;
 
-	if (source == 0) {
+	if (0 == source) {
 		fmt_log ("... invalid source\n");
 		return FALSE;
-	} else if (source == 1) {
+	} else if (1 == source) {
 		unsigned int designation;
 		unsigned int triplet;
 		unsigned int offset;
 
-		designation = (p->data >> 4) + ((p->address & 1) << 4);
-		triplet = p->data & 15;
+		designation = (trip->data >> 4) + ((trip->address & 1) << 4);
+		triplet = trip->data & 15;
 
-		fmt_log ("... local obj %d/%d\n", designation, triplet);
+		fmt_log ("... local obj %u/%u\n", designation, triplet);
 
-		if (type != LOCAL_ENHANCEMENT_DATA || triplet > 12) {
-			fmt_log("... invalid type %d or triplet\n", type);
+		if (LOCAL_ENHANCEMENT_DATA != type
+		    || triplet > 12) {
+			fmt_log ("... invalid type %s or triplet\n",
+				 object_type_name (type));
 			return FALSE;
 		}
 
-		if (!(t->vtp->enh_lines & 1)) {
-			fmt_log("... no packet %d\n", designation);
+		if (0 == (pgp->vtp->enh_lines & 1)) {
+			fmt_log ("... have no packet %u\n", designation);
 			return FALSE;
 		}
 
 		offset = designation * 13 + triplet;
 
-		trip = t->vtp->data.enh_lop.enh + offset;
-		n_triplets = N_ELEMENTS (t->vtp->data.enh_lop.enh) - offset;
+		trip = pgp->vtp->data.enh_lop.enh + offset;
+		n_triplets = N_ELEMENTS (pgp->vtp->data.enh_lop.enh) - offset;
 	} else {
 		page_function function;
 		vbi_pgno pgno;
@@ -1390,71 +516,71 @@ object_invocation		(struct temp *		t,
 
 		link = 0;
 
-		if (source == 3) {
+		if (3 == source) {
 			fmt_log ("... global obj\n");
 
 			function = PAGE_FUNCTION_GPOP;
-			pgno = t->vtp->data.lop.link[24].pgno;
+			pgno = pgp->vtp->data.lop.link[24].pgno;
 
 			if (NO_PAGE (pgno)) {
-				if (t->max_level < VBI_WST_LEVEL_3p5
-				    || NO_PAGE (pgno = t->mag->pop_link[8].pgno))
-					pgno = t->mag->pop_link[0].pgno;
+				pgno = magazine_pop_link (pgp, 0);
 			} else {
-				fmt_log("... X/27/4 GPOP overrides MOT\n");
+				fmt_log ("... X/27/4 GPOP overrides MOT\n");
 			}
 		} else {
 			fmt_log ("... public obj\n");
 
 			function = PAGE_FUNCTION_POP;
-			pgno = t->vtp->data.lop.link[25].pgno;
+			pgno = pgp->vtp->data.lop.link[25].pgno;
 
 			if (NO_PAGE (pgno)) {
-				link = t->mag->pop_lut[t->vtp->pgno & 0xFF];
+				link = pgp->mag->pop_lut
+					[pgp->vtp->pgno & 0xFF];
 
-				if (link == 0) {
-					fmt_log("... MOT pop_lut empty\n");
+				if (0 == link) {
+					fmt_log ("... MOT pop_lut empty\n");
 					return FALSE;
 				}
 
-				if (t->max_level < VBI_WST_LEVEL_3p5
-				    || NO_PAGE (pgno = t->mag->pop_link
-						[link + 8].pgno))
-					pgno = t->mag->pop_link[link + 0].pgno;
+				pgno = magazine_pop_link (pgp, link);
 			} else {
-				fmt_log("... X/27/4 POP overrides MOT\n");
+				fmt_log ("... X/27/4 POP overrides MOT\n");
 			}
 		}
 
 		if (NO_PAGE (pgno)) {
-			fmt_log("... dead MOT link %u\n", link);
+			fmt_log ("... dead MOT link %u\n", link);
 			return FALSE;
 		}
 
-		trip_vtp = resolve_obj_address (t, &trip, &n_triplets,
-						new_type, pgno,
-						(p->address << 7) + p->data,
-						function);
+		trip_vtp = resolve_obj_address
+			(pgp, &trip, &n_triplets,
+			 new_type, pgno,
+			 (trip->address << 7) + trip->data,
+			 function);
 
 		if (!trip_vtp)
 			return FALSE;
 	}
 
-	success = enhance (t, new_type, trip, n_triplets, row, column);
+	success = enhance (pgp, new_type, trip, n_triplets, row, column);
 
-	vbi_cache_unref (t->pg.vbi, trip_vtp);
+	vbi_cache_unref (pgp->pg.vbi, trip_vtp);
 
-	fmt_log ("... object done, success %d\n", success);
+	fmt_log ("... object done, %s\n",
+		 success ? "success" : "failed");
 
 	return success;
 }
 
-/*
- *  Like object_invocation(), but uses default object links if
- *  available. Called when a page has no enhancement packets.
+/**
+ * @internal
+ *
+ * Like object_invocation(), but uses default object links if
+ * available. Called when a page has no enhancement packets.
  */
 static __inline__ vbi_bool
-default_object_invocation	(struct temp *		t)
+default_object_invocation	(vbi_page_private *	pgp)
 {
 	const vt_pop_link *pop;
 	unsigned int link;
@@ -1463,17 +589,18 @@ default_object_invocation	(struct temp *		t)
 
 	fmt_log ("default obj invocation\n");
 
-	link = t->mag->pop_lut[t->vtp->pgno & 0xFF];
+	link = pgp->mag->pop_lut[pgp->vtp->pgno & 0xFF];
 
-	if (link == 0) {
+	if (0 == link) {
 		fmt_log ("...no pop link\n");
 		return FALSE;
 	}
 
-	pop = t->mag->pop_link + link + 8;
+	pop = pgp->mag->pop_link + link + 8;
 
-	if (t->max_level < VBI_WST_LEVEL_3p5 || NO_PAGE (pop->pgno)) {
-		pop = t->mag->pop_link + link;
+	if (pgp->max_level < VBI_WST_LEVEL_3p5
+	    || NO_PAGE (pop->pgno)) {
+		pop = pgp->mag->pop_link + link;
 
 		if (NO_PAGE (pop->pgno)) {
 			fmt_log ("... dead MOT pop link %u\n", link);
@@ -1481,6 +608,7 @@ default_object_invocation	(struct temp *		t)
 		}
 	}
 
+	/* PASSIVE > ADAPTIVE > ACTIVE */
 	order = (pop->default_obj[0].type > pop->default_obj[1].type);
 
 	for (i = 0; i < 2; ++i) {
@@ -1492,13 +620,14 @@ default_object_invocation	(struct temp *		t)
 
 		type = pop->default_obj[i ^ order].type;
 
-		if (type == OBJ_TYPE_NONE)
+		if (OBJECT_TYPE_NONE == type)
 			continue;
 
-		fmt_log ("... invocation %d, type %d\n", i ^ order, type);
+		fmt_log ("... invocation %u, type %s\n", i ^ order,
+			 object_type_name (type));
 
 		trip_vtp = resolve_obj_address
-			(t, &trip, &n_triplets,
+			(pgp, &trip, &n_triplets,
 			 type, pop->pgno,
 			 pop->default_obj[i ^ order].address,
 			 PAGE_FUNCTION_POP);
@@ -1506,9 +635,9 @@ default_object_invocation	(struct temp *		t)
 		if (!trip_vtp)
 			return FALSE;
 
-		success = enhance (t, type, trip, n_triplets, 0, 0);
+		success = enhance (pgp, type, trip, n_triplets, 0, 0);
 
-		vbi_cache_unref (t->pg.vbi, trip_vtp);
+		vbi_cache_unref (pgp->pg.vbi, trip_vtp);
 
 		if (!success)
 			return FALSE;
@@ -1519,79 +648,190 @@ default_object_invocation	(struct temp *		t)
 	return TRUE;
 }
 
-static __inline__ vbi_bool
-reference_drcs_page		(struct temp *		t,
-				 unsigned int		normal,
-				 unsigned int		page,
-				 unsigned int		offset,
-				 unsigned int		s1)
+
+
+static __inline__ vbi_pgno
+magazine_drcs_link		(vbi_page_private *	pgp,
+				 unsigned int		link)
 {
-	/* if (!t->pg.drcs[page]) */ {
-		const vt_page *drcs_vtp;
-		page_function function;
-		vbi_pgno pgno;
-		unsigned int link;
+	vbi_pgno pgno;
 
-		link = 0;
+	if (pgp->max_level >= VBI_WST_LEVEL_3p5) {
+		pgno = pgp->mag->drcs_link[link + 8];
 
-		if (!normal) {
-			function = PAGE_FUNCTION_GDRCS;
-			pgno = t->vtp->data.lop.link[26].pgno;
-
-			if (NO_PAGE (pgno)) {
-				if (t->max_level < VBI_WST_LEVEL_3p5
-				    || NO_PAGE (pgno = t->mag->drcs_link[8]))
-					pgno = t->mag->drcs_link[0];
-			} else {
-				fmt_log ("... X/27/4 GDRCS overrides MOT\n");
-			}
-		} else {
-			function = PAGE_FUNCTION_DRCS;
-			pgno = t->vtp->data.lop.link[25].pgno;
-
-			if (NO_PAGE (pgno)) {
-				link = t->mag->drcs_lut[t->vtp->pgno & 0xFF];
-
-				if (link == 0) {
-					fmt_log ("... MOT drcs_lut empty\n");
-					return FALSE;
-				}
-
-				if (t->max_level < VBI_WST_LEVEL_3p5
-				    || NO_PAGE (pgno = t->mag->drcs_link[link + 8]))
-					pgno = t->mag->drcs_link[link + 0];
-			} else {
-				fmt_log ("... X/27/4 DRCS overrides MOT\n");
-			}
-		}
-
-		if (NO_PAGE (pgno)) {
-			fmt_log ("... dead MOT link %d\n", link);
-			return FALSE;
-		}
-
-		fmt_log ("... %s drcs from page %03x/%04x\n",
-			 normal ? "normal" : "global", pgno, s1);
-
-		drcs_vtp = get_drcs_page (t, NUID0, pgno, s1, function);
-
-		if (!drcs_vtp)
-			return FALSE;
-
-		if (drcs_vtp->data.drcs.invalid & (1ULL << offset)) {
-			fmt_log ("... invalid drcs, prob. tx error\n");
-			vbi_cache_unref (t->pg.vbi, drcs_vtp);
-			return FALSE;
-		}
-
-		/* FIXME keep reference */
-
-		t->pg.drcs[page] = drcs_vtp->data.drcs.bits[0];
-
-		vbi_cache_unref (t->pg.vbi, drcs_vtp);
+		if (!NO_PAGE (pgno))
+			return pgno;
 	}
 
+	return pgp->mag->drcs_link[link + 0];
+}
+
+static const vt_page *
+get_drcs_page			(vbi_page_private *	pgp,
+				 vbi_nuid		nuid,
+				 vbi_pgno		pgno,
+				 vbi_subno		subno,
+				 page_function		function)
+{
+	const vt_page *vtp;
+
+	vtp = vbi_cache_get (pgp->pg.vbi, nuid, pgno, subno, 0x000F,
+			     /* user_access */ FALSE);
+
+	if (!vtp) {
+		fmt_log ("... page %llx/%03x/%04x not cached\n",
+			 nuid, pgno, subno);
+		goto failure;
+	}
+
+	if (vtp->function == PAGE_FUNCTION_UNKNOWN) {
+		if (!vbi_convert_cached_page (pgp->pg.vbi, &vtp, function)) {
+			fmt_log ("... no g/drcs page or hamming error\n");
+			goto failure;
+		}
+	} else if (vtp->function == PAGE_FUNCTION_DRCS) {
+		/* vtp->function = function; */ /* DRCS/GDRCS */
+	} else if (vtp->function != function) {
+		fmt_log ("... source page wrong function %s, "
+			 "expected %s\n",
+			 page_function_name (vtp->function),
+			 page_function_name (function));
+		goto failure;
+	}
+
+	return vtp;
+
+ failure:
+	vbi_cache_unref (pgp->pg.vbi, vtp);
+
+	return NULL;
+}
+
+static __inline__ vbi_bool
+reference_drcs_page		(vbi_page_private *	pgp,
+				 unsigned int		normal,
+				 unsigned int		plane,
+				 unsigned int		offset,
+				 vbi_subno		subno)
+{
+	const vt_page *drcs_vtp;
+	page_function function;
+	vbi_pgno pgno;
+	unsigned int link;
+
+	drcs_vtp = pgp->drcs_vtp[plane];
+
+	if (NULL != drcs_vtp) {
+		if (drcs_vtp->data.drcs.invalid & (1ULL << offset)) {
+			fmt_log ("... invalid drcs, prob. tx error\n");
+			return FALSE;
+		}
+
+		return TRUE;
+	}
+
+	link = 0;
+
+	if (normal) {
+		function = PAGE_FUNCTION_DRCS;
+		pgno = pgp->vtp->data.lop.link[25].pgno;
+
+		if (NO_PAGE (pgno)) {
+			link = pgp->mag->drcs_lut[pgp->vtp->pgno & 0xFF];
+
+			if (0 == link) {
+				fmt_log ("... MOT drcs_lut empty\n");
+				return FALSE;
+			}
+
+			pgno = magazine_drcs_link (pgp, link);
+		} else {
+			fmt_log ("... X/27/4 DRCS overrides MOT\n");
+		}
+	} else {
+		function = PAGE_FUNCTION_GDRCS;
+		pgno = pgp->vtp->data.lop.link[26].pgno;
+
+		if (NO_PAGE (pgno)) {
+			pgno = magazine_drcs_link (pgp, 0);
+		} else {
+			fmt_log ("... X/27/4 GDRCS overrides MOT\n");
+		}
+	}
+
+	if (NO_PAGE (pgno)) {
+		fmt_log ("... dead MOT link %d\n", link);
+		return FALSE;
+	}
+
+	fmt_log ("... %s drcs from page %03x/%04x\n",
+		 normal ? "normal" : "global", pgno, subno);
+
+	drcs_vtp = get_drcs_page (pgp, pgp->pg.nuid, pgno, subno, function);
+
+	if (NULL == drcs_vtp)
+		return FALSE;
+
+	if (drcs_vtp->data.drcs.invalid & (1ULL << offset)) {
+		fmt_log ("... invalid drcs, prob. tx error\n");
+		vbi_cache_unref (pgp->pg.vbi, drcs_vtp);
+		return FALSE;
+	}
+
+	pgp->drcs_vtp[plane] = drcs_vtp;
+
 	return TRUE;
+}
+
+/**
+ * @param pg
+ * @param unicode DRCS character code.
+ *
+ * When a vbi_char on Teletext vbi_page @a pg is a Dynamically
+ * Redefinable Character, this function returns a pointer to the
+ * character shape. The data is valid until the page is deleted
+ * with vbi_page_delete().
+ *
+ * Characters are 12 pixels wide, 10 pixels high, and each pixel can
+ * assume one of a set of 2, 4 or 16 colors. Pixels are stored left to
+ * right and top to bottom. Every two pixels are stored in one byte,
+ * first pixel in the last significant four bits, second pixel in the
+ * most significant four bits.
+ *
+ * Pixels translate to color map indices through a color look-up table,
+ * see the description of vbi_page for details.
+ *
+ * @returns
+ * Pointer to character data, NULL if @a pg is invalid, @a unicode
+ * is not a DRCS code, or no font data is available.
+ */
+const uint8_t *
+vbi_page_drcs_data		(const vbi_page *	pg,
+				 unsigned int		unicode)
+{
+	const vbi_page_private *pgp;
+	const vt_page *drcs_vtp;
+	unsigned int plane;
+	unsigned int glyph;
+
+	PGP_CHECK (NULL);
+
+	if (!vbi_is_drcs (unicode))
+		return NULL;
+
+	plane = (unicode >> 6) & 0x1F;
+
+	drcs_vtp = pgp->drcs_vtp[plane];
+
+	if (NULL == drcs_vtp)
+		return NULL;
+
+	glyph = unicode & 0x3F;
+
+	if (glyph >= 48)
+		return NULL;
+
+	return drcs_vtp->data.drcs.bits[glyph];
 }
 
 /*
@@ -1607,7 +847,7 @@ reference_drcs_page		(struct temp *		t,
  *  XXX panels not implemented
  */
 static vbi_bool
-enhance				(struct temp *		t,
+enhance				(vbi_page_private *		t,
 				 object_type		type,
 				 const vt_triplet *	p,
 				 int			n_triplets,
@@ -1621,7 +861,7 @@ enhance				(struct temp *		t,
 	struct vbi_font_descr *font;
 	int invert;
 	int drcs_s1[2];
-	struct pdc_prog *p1, pdc_tmp;
+	pdc_program *p1, pdc_tmp;
 	int pdc_hour_mode;
 
 	/* Current position rel. inv_row, inv_column) */
@@ -1643,7 +883,7 @@ enhance				(struct temp *		t,
 	drcs_s1[0] = 0; /* global */
 	drcs_s1[1] = 0; /* normal */
 
-	font = t->pg.font[0];
+	font = t->font[0];
 
 	/* Accumulated attributes and attr mask */
 
@@ -1652,10 +892,10 @@ enhance				(struct temp *		t,
 
 	invert = 0;
 
-	if (type == OBJ_TYPE_PASSIVE) {
+	if (type == OBJECT_TYPE_PASSIVE) {
 		ac.foreground	= VBI_WHITE;
 		ac.background	= VBI_BLACK;
-		ac.opacity	= t->pg.page_opacity[1];
+		ac.opacity	= t->page_opacity[1];
 
 		mac.foreground	= ~0;
 		mac.background	= ~0;
@@ -1682,7 +922,6 @@ enhance				(struct temp *		t,
 
 	pdc_hour_mode = 0; /* mode of previous hour triplet */
 
-
 	for (; n_triplets > 0; ++p, --n_triplets) {
 		if (p->address >= 40) {
 			/*
@@ -1701,7 +940,7 @@ enhance				(struct temp *		t,
 			switch (p->mode) {
 			case 0x00:		/* full screen color */
 				if (t->max_level >= VBI_WST_LEVEL_2p5
-				    && s == 0 && type <= OBJ_TYPE_ACTIVE)
+				    && s == 0 && type <= OBJECT_TYPE_ACTIVE)
 					screen_color (&t->pg, t->vtp->flags,
 						      p->data & 0x1F);
 				break;
@@ -1743,7 +982,7 @@ enhance				(struct temp *		t,
 					row_color = next_row_color;
 
 			set_active:
-				if (row > 0 && (t->flags & VBI_HEADER_ONLY)) {
+				if (row > 0 && 1 == t->pg.rows) {
 					for (; n_triplets > 1; ++p, --n_triplets)
 						if (p[1].address >= 40) {
 							unsigned int mode;
@@ -1764,7 +1003,7 @@ enhance				(struct temp *		t,
 				if (row > active_row) {
 					enhance_flush (-1); /* flush row */
 
-					if (type != OBJ_TYPE_PASSIVE)
+					if (type != OBJECT_TYPE_PASSIVE)
 						CLEAR (mac);
 				}
 
@@ -1792,7 +1031,7 @@ enhance				(struct temp *		t,
 
 			case 0x0A:		/* PDC data - Cursor Row and
 						   Announced Starting Time Hours */
-				if (!(t->flags & VBI_PDC_LINKS))
+				if (!t->pdc_links)
 					break;
 
 				if (pdc_tmp.ad.month < 0
@@ -1979,7 +1218,7 @@ enhance				(struct temp *		t,
 			case 0x06:		/* PDC data - Cursor Column and
 						   Announced Starting and
 						   Finishing Time Minutes */
-				if (!(t->flags & VBI_PDC_LINKS))
+				if (!t->pdc_links)
 					break;
 
 				pdc_tmp.at2.min = (p->data >> 4) * 10
@@ -2065,7 +1304,7 @@ enhance				(struct temp *		t,
 					if (VALID_CHARACTER_SET(p->data))
 						font = vbi_font_descriptors + p->data;
 					else
-						font = t->pg.font[0];
+						font = t->font[0];
 
 					fmt_log ("enh col %d modify character "
 						 "set %d\n", active_column, p->data);
@@ -2106,7 +1345,7 @@ enhance				(struct temp *		t,
 					else
 						ac.opacity = VBI_TRANSPARENT_SPACE;
 				} else
-					ac.opacity = t->pg.page_opacity[1];
+					ac.opacity = t->page_opacity[1];
 				mac.opacity = ~0;
 
 				ac.conceal = !!(p->data & 4);
@@ -2149,7 +1388,8 @@ enhance				(struct temp *		t,
 				fmt_log ("enh col %d DRCS %d/0x%02x\n",
 					 active_column, page, p->data);
 
-				if (!reference_drcs_page (t, normal, page, offset,
+				if (!reference_drcs_page (t, normal,
+							  page, offset,
 							  drcs_s1[normal]))
 					return FALSE;
 
@@ -2232,34 +1472,23 @@ enhance				(struct temp *		t,
 
 finish:
 	if (p1 > t->pdc_table) {
-		struct pdc_prog *p2;
-
 		if (pdc_hour_mode || p1[-1].length == 0)
 			p1--; /* incomplete start or end tag */
 
-		for (p2 = t->pdc_table; p2 < p1; ++p2) {
-			vbi_char *cp;
-			unsigned int j;
-
-			cp = t->pg.text + t->pg.columns
-				* p2->at1_ptl_pos[1].row;
-
-			for (j = 0; j < 40; ++j)
-				cp[j].pdc = TRUE;
-		}
-
 		if (0)
-			dump_pdc_prog (t->pdc_table, p1 - t->pdc_table);
+			pdc_program_array_dump (t->pdc_table,
+						p1 - t->pdc_table,
+						stderr);
 	}
 
 	if (0)
-		dump_temp (t, 2);
+		vbi_page_private_dump (t, 2, stderr);
 
 	return TRUE;
 }
 
 static void
-post_enhance			(struct temp *		t)
+post_enhance			(vbi_page_private *		t)
 {
 	vbi_char ac, *acp;
 	unsigned int row;
@@ -2269,7 +1498,7 @@ post_enhance			(struct temp *		t)
 
 	acp = t->pg.text;
 
-	last_row = (t->flags & VBI_HEADER_ONLY) ? 0 : 25 - 2;
+	last_row = (1 == t->pg.rows) ? 0 : 25 - 2;
 	last_column = t->pg.columns - 1;
 
 	for (row = 0; row <= last_row; ++row) {
@@ -2341,76 +1570,90 @@ post_enhance			(struct temp *		t)
 	}
 }
 
-/*
- *  Often LOPs have a blank (black) first column, containing
- *  set-after attributes in all rows. Not so the last column.
- *
- *  For a more balanced view we optionally add a 41st column,
- *  if possible extending column 39.
- */
+/* Artificial 41st column. Often column 0 of a LOP contains only set-after
+   attributes and thus all black spaces, unlike column 39. To balance the
+   view we add a black column 40. If OTOH column 0 has been modified using
+   enhancement we extend column 39. */
 static void
-column_41			(struct temp *		t)
+column_41			(vbi_page_private *		t)
 {
-	vbi_char ac, *acp;
+	vbi_char *acp;
 	unsigned int row;
-	unsigned int first_row;
-	unsigned int last_row;
-
-	first_row = 0;
-	last_row = (t->flags & VBI_HEADER_ONLY) ? 0 : 25;
+	vbi_bool black0;
+	vbi_bool cont39;
 
 	acp = t->pg.text;
 
-	for (row = 0; row <= last_row; ++row, acp += 41) {
-		if ((acp[0].unicode == 0x0020
-		     && acp[0].foreground == VBI_BLACK)
-		    || (vbi_is_gfx (acp[39].unicode)
-			&& (acp[38].unicode != acp[39].unicode
-			    || acp[38].foreground != acp[39].foreground
-			    || acp[38].background != acp[39].background))) {
-			if (row == 0)
-				first_row = 1;
-			else
-				break;
+	/* Header. */
+
+	acp[40] = acp[39];
+	acp[40].unicode = 0x0020;
+
+	if (1 == t->pg.rows)
+		return;
+
+	acp += 41;
+
+	black0 = TRUE;
+	cont39 = TRUE;
+
+	for (row = 1; row <= 24; ++row) {
+		if (0x0020 != acp[0].unicode
+		    || VBI_BLACK != acp[0].background) {
+			black0 = FALSE;
 		}
-	}
 
-	CLEAR (ac);
-		
-	ac.unicode	= 0x0020;
-	ac.foreground	= t->ext->foreground_clut + VBI_WHITE;
-	ac.background	= t->ext->background_clut + VBI_BLACK;
+		if (vbi_is_gfx (acp[39].unicode)) {
+			if (acp[38].unicode != acp[39].unicode
+			    || acp[38].foreground != acp[39].foreground
+			    || acp[38].background != acp[39].background) {
+				cont39 = FALSE;
+			}
+		}
 
-	acp = t->pg.text;
-
-	/* Header goes separately. */
-
-	if (first_row > 0 || row <= last_row) {
-		ac.opacity = t->pg.page_opacity[0];
-		acp[40] = ac;
 		acp += 41;
 	}
 
-	if (row <= last_row) {
-		ac.opacity = t->pg.page_opacity[1];
+	acp = t->pg.text + 41;
 
-		for (row = 1; row <= last_row; ++row, acp += 41)
-			acp[40] = ac;
-	} else {
-		for (row = first_row; row <= last_row; ++row, acp += 41) {
+	if (!black0 && cont39) {
+		for (row = 1; row <= 24; ++row) {
 			acp[40] = acp[39];
 
 			if (!vbi_is_gfx (acp[39].unicode))
 				acp[40].unicode = 0x0020;
+
+			acp += 41;
+		}
+	} else {
+		vbi_char ac;
+
+		CLEAR (ac);
+
+		ac.unicode	= 0x0020;
+		ac.foreground	= t->ext->foreground_clut + VBI_WHITE;
+		ac.background	= t->ext->background_clut + VBI_BLACK;
+		ac.opacity	= t->page_opacity[1];
+
+		for (row = 1; row <= 24; ++row) {
+			acp[40] = ac;
+			acp += 41;
 		}
 	}
+
+	/* Navigation bar. */
+
+	acp[40] = acp[39];
+	acp[40].unicode = 0x0020;
 }
 
-/*
- *  Formats a level one page.
+/**
+ * @internal
+ *
+ * Formats a level one page. Source is pgp->vtp.
  */
 static void
-level_one_page			(struct temp *		t)
+level_one_page			(vbi_page_private *	pgp)
 {
 	static const unsigned int mosaic_separate = 0xEE00 - 0x20;
 	static const unsigned int mosaic_contiguous = 0xEE20 - 0x20;
@@ -2422,13 +1665,14 @@ level_one_page			(struct temp *		t)
 	/* Current page number in header */
 
 	sprintf (buf, "\2%03x.%02x\7",
-		 t->pg.pgno & 0xFFF, t->pg.subno & 0xFF);
+		 pgp->pg.pgno & 0xFFF,
+		 pgp->pg.subno & 0xFF);
 
-	t->pg.double_height_lower = 0;
+//	pgp->pg.double_height_lower = 0;
 
 	i = 0; /* t->vtp->data.lop.raw[] */
 
-	for (row = 0; row < t->pg.rows; ++row) {
+	for (row = 0; row < pgp->pg.rows; ++row) {
 		struct vbi_font_descr *font;
 		unsigned int mosaic_plane;
 		unsigned int held_mosaic_unicode;
@@ -2438,7 +1682,7 @@ level_one_page			(struct temp *		t)
 		vbi_bool wide_char;
 		vbi_char ac, *acp;
 
-		acp = t->pg.text + row * t->pg.columns;
+		acp = pgp->pg.text + row * pgp->pg.columns;
 
 		/* G1 block mosaic, blank, contiguous */
 		held_mosaic_unicode = mosaic_contiguous + 0x20;
@@ -2446,11 +1690,11 @@ level_one_page			(struct temp *		t)
 		CLEAR (ac);
 
 		ac.unicode	= 0x0020;
-		ac.foreground	= t->ext->foreground_clut + VBI_WHITE;
-		ac.background	= t->ext->background_clut + VBI_BLACK;
+		ac.foreground	= pgp->ext->foreground_clut + VBI_WHITE;
+		ac.background	= pgp->ext->background_clut + VBI_BLACK;
 		mosaic_plane	= mosaic_contiguous;
-		ac.opacity	= t->pg.page_opacity[row > 0];
-		font		= t->pg.font[0];
+		ac.opacity	= pgp->page_opacity[row > 0];
+		font		= pgp->font[0];
 		hold		= FALSE;
 		mosaic		= FALSE;
 
@@ -2464,7 +1708,8 @@ level_one_page			(struct temp *		t)
 				raw = buf[column];
 				++i;
 			} else {
-				raw = vbi_ipar8 (t->vtp->data.lop.raw[0][++i]);
+				raw = vbi_ipar8
+					(pgp->vtp->data.lop.raw[0][i++]);
 
 				if (raw < 0) /* parity error */
 					raw = 0x20;
@@ -2494,12 +1739,12 @@ level_one_page			(struct temp *		t)
 				break;
 
 			case 0x1C:		/* black background */
-				ac.background = t->ext->background_clut
+				ac.background = pgp->ext->background_clut
 					+ VBI_BLACK;
 				break;
 
 			case 0x1D:		/* new background */
-				ac.background = t->ext->background_clut
+				ac.background = pgp->ext->background_clut
 					+ (ac.foreground & 7);
 				break;
 
@@ -2516,7 +1761,8 @@ level_one_page			(struct temp *		t)
 					held_mosaic_unicode : 0x0020;
 			} else {
 				if (mosaic && (raw & 0x20)) {
-					held_mosaic_unicode = mosaic_plane + raw;
+					held_mosaic_unicode =
+						mosaic_plane + raw;
 					ac.unicode = held_mosaic_unicode;
 				} else {
 					ac.unicode = vbi_teletext_unicode
@@ -2527,7 +1773,8 @@ level_one_page			(struct temp *		t)
 			if (!wide_char) {
 				acp[column] = ac;
 
-				wide_char = /*!!*/(ac.size & VBI_DOUBLE_WIDTH);
+				wide_char = /* !! */
+					(ac.size & VBI_DOUBLE_WIDTH);
 
 				if (wide_char && column < 39) {
 					acp[column + 1] = ac;
@@ -2539,7 +1786,7 @@ level_one_page			(struct temp *		t)
 
 			switch (raw) {
 			case 0x00 ... 0x07:	/* alpha + foreground color */
-				ac.foreground = t->ext->foreground_clut
+				ac.foreground = pgp->ext->foreground_clut
 					+ (raw & 7);
 				ac.conceal = FALSE;
 				mosaic = FALSE;
@@ -2552,15 +1799,19 @@ level_one_page			(struct temp *		t)
 			case 0x0A:		/* end box */
 				if (column >= 39)
 					break;
-				if (0x0A == vbi_ipar8 (t->vtp->data.lop.raw[0][i]))
-					ac.opacity = t->pg.page_opacity[row > 0];
+				if (0x0A == vbi_ipar8
+				    (pgp->vtp->data.lop.raw[0][i]))
+					ac.opacity =
+						pgp->page_opacity[row > 0];
 				break;
 
 			case 0x0B:		/* start box */
 				if (column >= 39)
 					break;
-				if (0x0B == vbi_ipar8 (t->vtp->data.lop.raw[0][i]))
-					ac.opacity = t->pg.boxed_opacity[row > 0];
+				if (0x0B == vbi_ipar8
+				    (pgp->vtp->data.lop.raw[0][i]))
+					ac.opacity =
+						pgp->boxed_opacity[row > 0];
 				break;
 
 			case 0x0D:		/* double height */
@@ -2588,15 +1839,14 @@ level_one_page			(struct temp *		t)
 				break;
 
 			case 0x10 ... 0x17:	/* mosaic + foreground color */
-				ac.foreground = t->ext->foreground_clut
+				ac.foreground = pgp->ext->foreground_clut
 					+ (raw & 7);
 				ac.conceal = FALSE;
 				mosaic = TRUE;
 				break;
 
 			case 0x1B:		/* ESC */
-				font = (font == t->pg.font[0]) ?
-					t->pg.font[1] : t->pg.font[0];
+				font = pgp->font[font == pgp->font[0]];
 				break;
 
 			case 0x1F:		/* release mosaic */
@@ -2606,27 +1856,27 @@ level_one_page			(struct temp *		t)
 		}
 
 		if (double_height) {
-			for (column = 0; column < t->pg.columns; ++column) {
+			for (column = 0; column < pgp->pg.columns; ++column) {
 				ac = acp[column];
 
 				switch (ac.size) {
 				case VBI_DOUBLE_HEIGHT:
 					ac.size = VBI_DOUBLE_HEIGHT2;
-					acp[t->pg.columns + column] = ac;
+					acp[pgp->pg.columns + column] = ac;
 					break;
 		
 				case VBI_DOUBLE_SIZE:
 					ac.size = VBI_DOUBLE_SIZE2;
-					acp[t->pg.columns + column] = ac;
+					acp[pgp->pg.columns + column] = ac;
 					++column;
 					ac.size = VBI_OVER_BOTTOM;
-					acp[t->pg.columns + column] = ac;
+					acp[pgp->pg.columns + column] = ac;
 					break;
 
 				default: /* NORMAL, DOUBLE_WIDTH, OVER_TOP */
 					ac.size = VBI_NORMAL_SIZE;
 					ac.unicode = 0x0020;
-					acp[t->pg.columns + column] = ac;
+					acp[pgp->pg.columns + column] = ac;
 					break;
 				}
 			}
@@ -2634,7 +1884,7 @@ level_one_page			(struct temp *		t)
 			i += 40;
 			++row;
 
-			t->pg.double_height_lower |= 1 << row;
+//			pgp->pg.double_height_lower |= 1 << row;
 		}
 	}
 
@@ -2644,22 +1894,22 @@ level_one_page			(struct temp *		t)
 
 			CLEAR (ac);
 
-			ac.foreground	= t->ext->foreground_clut + VBI_WHITE;
-			ac.background	= t->ext->background_clut + VBI_BLACK;
-			ac.opacity	= t->pg.page_opacity[1];
+			ac.foreground	= pgp->ext->foreground_clut + VBI_WHITE;
+			ac.background	= pgp->ext->background_clut + VBI_BLACK;
+			ac.opacity	= pgp->page_opacity[1];
 			ac.unicode	= 0x0020;
 
-			for (i = row * t->pg.columns;
-			     i < t->pg.rows * t->pg.columns; ++i)
-				t->pg.text[i] = ac;
+			for (i = row * pgp->pg.columns;
+			     i < pgp->pg.rows * pgp->pg.columns; ++i)
+				pgp->pg.text[i] = ac;
 		}
 	}
 
 	if (0)
-		dump_temp (t, 0);
+		vbi_page_private_dump (pgp, 0, stderr);
 }
 
-/*  Hyperlinks  ------------------------------------------------------------ */
+/* Hyperlinks ------------------------------------------------------------- */
 
 static const uint8_t SECTION_SIGN = 0xA7;
 
@@ -2889,7 +2139,7 @@ keyword				(vbi_link *		ld,
  *  numbers, subpage numbers "n/m", next page ">>".
  */
 static __inline__ void
-hyperlinks			(struct temp *		t,
+hyperlinks			(vbi_page_private *		t,
 				 unsigned int		row)
 {
 	unsigned char buffer[43]; /* one row, two spaces on the sides and NUL */
@@ -2959,6 +2209,7 @@ vbi_page_hyperlink		(const vbi_page *	pg,
 				 unsigned int		column,
 				 unsigned int		row)
 {
+	const vbi_page_private *pgp;
 	char buffer[43];
 	const vbi_char *acp;
 	unsigned int i;
@@ -2966,7 +2217,8 @@ vbi_page_hyperlink		(const vbi_page *	pg,
 	unsigned int start;
 	unsigned int end;
 
-	assert (pg != NULL);
+	PGP_CHECK (FALSE);
+
 	assert (ld != NULL);
 	assert (column < pg->columns);
 	assert (row < pg->rows);
@@ -2982,11 +2234,11 @@ vbi_page_hyperlink		(const vbi_page *	pg,
 	if (row == 25) {
 		unsigned int i;
 
-		i = pg->nav_index[column];
+		i = pgp->nav_index[column];
 
 		ld->type	= VBI_LINK_PAGE;
-		ld->pgno	= pg->nav_link[i].pgno;
-		ld->subno	= pg->nav_link[i].subno;
+		ld->pgno	= pgp->nav_link[i].pgno;
+		ld->subno	= pgp->nav_link[i].subno;
 
 		return TRUE;
 	}
@@ -3015,7 +2267,7 @@ vbi_page_hyperlink		(const vbi_page *	pg,
 	return keyword (ld, buffer, pg->pgno, pg->subno, &start, &end);
 }
 
-/* Navigation enhancements ------------------------------------------------- */
+/* Navigation enhancements ------------------------------------------------ */
 
 #ifndef TELETEXT_NAV_LOG
 #define TELETEXT_NAV_LOG 0
@@ -3040,13 +2292,13 @@ flof_link_col [4] = {
 };
 
 static __inline__ vbi_char *
-navigation_row			(struct temp *		t)
+navigation_row			(vbi_page_private *		t)
 {
 	return t->pg.text + 25 * t->pg.columns;
 }
 
 static vbi_char *
-clear_navigation_bar		(struct temp *		t)
+clear_navigation_bar		(vbi_page_private *		t)
 {
 	vbi_char ac, *acp;
 	unsigned int i;
@@ -3057,11 +2309,12 @@ clear_navigation_bar		(struct temp *		t)
 
 	ac.foreground	= 32 + VBI_WHITE; /* 32: immutable color */
 	ac.background	= 32 + VBI_BLACK;
-	ac.opacity	= t->pg.page_opacity[1];
+	ac.opacity	= t->page_opacity[1];
 	ac.unicode	= 0x0020;
 
-	for (i = 0; i < t->pg.columns; ++i)
+	for (i = 0; i < t->pg.columns; ++i) {
 		acp[i] = ac;
+	}
 
 	return acp;
 }
@@ -3071,7 +2324,7 @@ clear_navigation_bar		(struct temp *		t)
  *  row 25 using the FLOF page numbers as labels.
  */
 static __inline__ void
-flof_navigation_bar		(struct temp *		t)
+flof_navigation_bar		(vbi_page_private *		t)
 {
 	vbi_char ac, *acp;
 	unsigned int i;
@@ -3102,11 +2355,10 @@ flof_navigation_bar		(struct temp *		t)
 
 			acp[pos + k] = ac;
 
-			t->pg.nav_index[pos + k] = i;
+			t->nav_index[pos + k] = i;
 		}
 
-		t->pg.nav_link[i].pgno = t->vtp->data.lop.link[i].pgno;
-		t->pg.nav_link[i].subno = t->vtp->data.lop.link[i].subno;
+		t->nav_link[i] = t->vtp->data.lop.link[i];
 	}
 }
 
@@ -3114,7 +2366,7 @@ flof_navigation_bar		(struct temp *		t)
  *  Adds link flags to a page navigation bar (row 25) from FLOF data.
  */
 static __inline__ void
-flof_links		(struct temp *		t)
+flof_links		(vbi_page_private *		t)
 {
 	vbi_char *acp;
 	unsigned int start;
@@ -3144,11 +2396,10 @@ flof_links		(struct temp *		t)
 
 				for (; end >= start; --end) {
 					acp[end].link = TRUE;
-					t->pg.nav_index[end] = k;
+					t->nav_index[end] = k;
 				}
 
-		    		t->pg.nav_link[k].pgno = t->vtp->data.lop.link[k].pgno;
-		    		t->pg.nav_link[k].subno = t->vtp->data.lop.link[k].subno;
+		    		t->nav_link[k] = t->vtp->data.lop.link[k];
 			}
 
 			if (i >= 40)
@@ -3173,7 +2424,7 @@ flof_links		(struct temp *		t)
  *  chars. This is a subfunction of top_navigation_bar().
  */
 static vbi_bool
-top_label			(struct temp *		t,
+top_label			(vbi_page_private *		t,
 				 vbi_font_descr *	font,
 				 unsigned int		index,
 				 vbi_pgno		pgno,
@@ -3218,8 +2469,8 @@ top_label			(struct temp *		t,
 			if (ait->page.pgno != pgno)
 				continue;
 
-			t->pg.nav_link[index].pgno = pgno;
-			t->pg.nav_link[index].subno = VBI_ANY_SUBNO;
+			t->nav_link[index].pgno = pgno;
+			t->nav_link[index].subno = VBI_ANY_SUBNO;
 
 			for (i = 11; i >= 0; --i)
 				if (ait->text[i] > 0x20)
@@ -3232,18 +2483,18 @@ top_label			(struct temp *		t,
 				column += sh;
 
 				acp[i + 1].link = TRUE;
-				t->pg.nav_index[column + i + 1] = index;
+				t->nav_index[column + i + 1] = index;
 
 				acp[i + 2].unicode = 0x003E;
 				acp[i + 2].foreground = foreground;
 				acp[i + 2].link = TRUE;
-				t->pg.nav_index[column + i + 2] = index;
+				t->nav_index[column + i + 2] = index;
 
 				if (ff > 1) {
 					acp[i + 3].unicode = 0x003E;
 					acp[i + 3].foreground = foreground;
 					acp[i + 3].link = TRUE;
-					t->pg.nav_index[column + i + 3] = index;
+					t->nav_index[column + i + 3] = index;
 				}
 			} else {
 				sh = (11 - i) >> 1;
@@ -3260,7 +2511,7 @@ top_label			(struct temp *		t,
 				acp[i].foreground = foreground;
 				acp[i].link = TRUE;
 				
-				t->pg.nav_index[column + i] = index;
+				t->nav_index[column + i] = index;
 			}
 
 			vbi_cache_unref (t->pg.vbi, vtp);
@@ -3286,7 +2537,7 @@ add_modulo			(vbi_pgno		pgno,
  *  Replaces row 25 by labels and links from TOP data.
  */
 static __inline__ void
-top_navigation_bar		(struct temp *		t)
+top_navigation_bar		(vbi_page_private *		t)
 {
 	vbi_pgno pgno;
 	vbi_bool have_group;
@@ -3296,7 +2547,7 @@ top_navigation_bar		(struct temp *		t)
 
 	clear_navigation_bar (t);
 
-	if (t->pg.page_opacity[1] != VBI_OPAQUE)
+	if (VBI_OPAQUE != t->page_opacity[1])
 		return;
 
 	/* Supposedly TOP bar should be formatted like
@@ -3315,7 +2566,7 @@ top_navigation_bar		(struct temp *		t)
 
 		if (type == VBI_TOP_BLOCK || type == VBI_TOP_GROUP) {
 			// XXX font?
-			top_label (t, t->pg.font[0], 0, pgno, 32 + VBI_WHITE, 0);
+			top_label (t, t->font[0], 0, pgno, 32 + VBI_WHITE, 0);
 			break;
 		}
 
@@ -3337,13 +2588,13 @@ top_navigation_bar		(struct temp *		t)
 
 		switch (t->pg.vbi->vt.page_info[pgno - 0x100].code) {
 		case VBI_TOP_BLOCK:
-			top_label (t, t->pg.font[0], 2,
+			top_label (t, t->font[0], 2,
 				   pgno, 32 + VBI_YELLOW, 2);
 			return;
 
 		case VBI_TOP_GROUP:
 			if (!have_group) {
-				top_label (t, t->pg.font[0], 1,
+				top_label (t, t->font[0], 1,
 					   pgno, 32 + VBI_GREEN, 1);
 				have_group = TRUE;
 			}
@@ -3449,15 +2700,21 @@ top_index(vbi_decoder *vbi, vbi_page *pg, int subno, int columns)
 	vbi_transp_colormap (vbi, pg->color_map,
 			     ext->color_map, N_ELEMENTS (pg->color_map));
 
-	pg->drcs_clut = ext->drcs_clut;
+	assert (sizeof (pg->drcs_clut)
+		== sizeof (ext->drcs_clut));
 
+	memcpy (pg->drcs_clut,
+		ext->drcs_clut,
+		sizeof (pg->drcs_clut));
+
+/*
 	pg->page_opacity[0] = VBI_OPAQUE;
 	pg->page_opacity[1] = VBI_OPAQUE;
 	pg->boxed_opacity[0] = VBI_OPAQUE;
 	pg->boxed_opacity[1] = VBI_OPAQUE;
 
 	CLEAR (pg->drcs);
-
+*/
 	CLEAR (ac);
 
 	ac.foreground	= VBI_BLACK; // 32 + VBI_BLACK;
@@ -3495,7 +2752,8 @@ top_index(vbi_decoder *vbi, vbi_page *pg, int subno, int columns)
 		xsubno = ait->page.subno;
 
 		/* No docs, correct? */
-		character_set_designation(pg->font, ext, vtp);
+#warning todo
+//		character_set_designation(pg->font, ext, vtp);
 
 		if (subno > 0) {
 			if (lines-- == 0) {
@@ -3520,11 +2778,13 @@ top_index(vbi_decoder *vbi, vbi_page *pg, int subno, int columns)
     			k = 1;
 		}
 
+#warning todo
+#if 0
 		for (j = 0; j <= i; j++) {
 			acp[k + j].unicode = vbi_teletext_unicode(pg->font[0]->G0,
 				pg->font[0]->subset, (ait->text[j] < 0x20) ? 0x20 : ait->text[j]);
 		}
-
+#endif
 		for (k += i + 2; k <= 33; k++)
 			acp[k].unicode = '.';
 
@@ -3635,15 +2895,15 @@ vbi_page_title(vbi_decoder *vbi, int pgno, int subno, char *buf)
  *  Navigation (TOP and FLOF) enhancements.
  */
 static void
-navigation			(struct temp *		t)
+navigation			(vbi_page_private *		t)
 {
 	if (t->vtp->data.lop.flof) {
 		vbi_pgno home_pgno = t->vtp->data.lop.link[5].pgno;
 
 		if (home_pgno >= 0x100 && home_pgno <= 0x899
 		    && (home_pgno & 0xFF) != 0xFF) {
-			t->pg.nav_link[5].pgno = home_pgno;
-			t->pg.nav_link[5].subno = t->vtp->data.lop.link[5].subno;
+			t->nav_link[5].pgno = home_pgno;
+			t->nav_link[5].subno = t->vtp->data.lop.link[5].subno;
 		}
 
 		if (t->vtp->lop_lines & (1 << 24)) {
@@ -3683,181 +2943,286 @@ vbi_page_nav_enum		(const vbi_page *	pg,
 				 vbi_link *		ld,
 				 unsigned int		index)
 {
-	assert (pg != NULL);
-	assert (ld != NULL);
+	const vbi_page_private *pgp;
+
+	PGP_CHECK (FALSE);
+
+	assert (NULL != ld);
 
 	if (pg->pgno < 0x100 || index > 5
-	    || pg->nav_link[index].pgno < 0x100) {
+	    || pgp->nav_link[index].pgno < 0x100) {
 		ld->type = VBI_LINK_NONE;
 		return FALSE;
 	}
 
 	ld->type = VBI_LINK_PAGE;
-	ld->pgno = pg->nav_link[index].pgno;
-	ld->subno = pg->nav_link[index].subno;
+	ld->pgno = pgp->nav_link[index].pgno;
+	ld->subno = pgp->nav_link[index].subno;
 
 	return TRUE;
 }
 
-/* ------------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------ */
 
 /**
  * @internal
- * @param vbi Initialized vbi_decoder context.
- * @param pg Place to store the formatted page.
- * @param vtp Raw Teletext page. 
- * @param max_level Format the page at this Teletext implementation level.
- * @flags
+ * @param Initialized vbi_decoder context.
+ * @param pgp Place to store the formatted page.
+ * @param vtp Raw Teletext page.
+ * @param ap Format option list.
  * 
- * Format a page @a pg from a raw Teletext page @a vtp. This function is
- * used internally by libzvbi only.
- * 
+ * See vbi_format_vt_page().
+ *
  * @return
  * @c TRUE if the page could be formatted.
  */
-int
-vbi_format_vt_page		(vbi_decoder *vbi,
-				 vbi_page *xpg,
-				 const vt_page *xvtp,
-				 vbi_wst_level		max_level,
-				 vbi_format_flags	flags)
+vbi_bool
+vbi_format_vt_page_va		(vbi_decoder *		vbi,
+				 vbi_page_private *	pgp,
+				 const vt_page *	vtp,
+				 va_list		ap)
 {
-	struct temp t;
+	vbi_bool option_navigation;
+	vbi_bool option_hyperlinks;
 
-	if (xvtp->function != PAGE_FUNCTION_LOP &&
-	    xvtp->function != PAGE_FUNCTION_TRIGGER)
+	if (vtp->function != PAGE_FUNCTION_LOP &&
+	    vtp->function != PAGE_FUNCTION_TRIGGER)
 		return FALSE;
 
-	fmt_log ("\nFormatting page %03x/%04x pg=%p lev=%d flags=0x%x\n",
-		 xvtp->pgno, xvtp->subno, xpg, max_level, flags);
+	fmt_log ("\nFormatting page %03x/%04x pgp=%p\n",
+		 vtp->pgno, vtp->subno, pgp);
 
-	t.max_level		= max_level;
-	t.flags			= flags;
+	pgp->pg.vbi		= vbi;
 
-	t.vtp			= xvtp;
+	/* Source page */
 
-	t.pg.vbi		= vbi;
+	pgp->pg.nuid		= vbi->network.ev.network.nuid;
+	pgp->pg.pgno		= vtp->pgno;
+	pgp->pg.subno		= vtp->subno;
 
-	t.pg.nuid		= vbi->network.ev.network.nuid;
-	t.pg.pgno		= t.vtp->pgno;
-	t.pg.subno		= t.vtp->subno;
+	vbi_cache_ref (pgp->pg.vbi, vtp);
 
-	t.pg.rows		= (flags & VBI_HEADER_ONLY) ? 1 : 25;
-	t.pg.columns		= (flags & VBI_41_COLUMNS) ? 40 : 41;
+	pgp->vtp		= vtp;
 
-	t.pg.dirty.y0		= 0;
-	t.pg.dirty.y1		= t.pg.rows - 1;
-	t.pg.dirty.roll		= 0;
+	pgp->pg.dirty.y0	= 0;
+	pgp->pg.dirty.y1	= pgp->pg.rows - 1;
+	pgp->pg.dirty.roll	= 0;
+
+	/* Options */
+
+	pgp->max_level		= VBI_WST_LEVEL_1;
+	pgp->pdc_links		= FALSE;
+
+	pgp->pg.rows		= 25;
+	pgp->pg.columns		= 40;
+
+	option_navigation = FALSE;
+	option_hyperlinks = FALSE;
+
+	for (;;) {
+		vbi_format_option option;
+
+		option = va_arg (ap, vbi_format_option);
+
+		switch (option) {
+		case VBI_END: /* zero */
+			break;
+
+		case VBI_HEADER_ONLY:
+			pgp->pg.rows = va_arg (ap, vbi_bool) ? 1 : 25;
+			break;
+
+		case VBI_41_COLUMNS:
+			pgp->pg.columns = va_arg (ap, vbi_bool) ? 41 : 40;
+			break;
+
+		case VBI_NAVIGATION:
+			option_navigation = va_arg (ap, vbi_bool);
+			break;
+
+		case VBI_HYPERLINKS:
+			option_hyperlinks = va_arg (ap, vbi_bool);
+			break;
+
+		case VBI_PDC_LINKS:
+			pgp->pdc_links = va_arg (ap, vbi_bool);
+			break;
+
+		case VBI_WST_LEVEL:
+			pgp->max_level = va_arg (ap, vbi_wst_level);
+			break;
+
+		default:
+			option = VBI_END;
+			break;
+		}
+
+		if (VBI_END == option)
+			break;
+	}
 
 	/* Magazine and extension defaults */
 
-	t.mag = (t.max_level <= VBI_WST_LEVEL_1p5) ?
+	pgp->mag = (pgp->max_level <= VBI_WST_LEVEL_1p5) ?
 		vbi->vt.magazine /* default magazine */
-		: vbi->vt.magazine + (t.vtp->pgno >> 8);
+		: vbi->vt.magazine + (vtp->pgno >> 8);
 
-	if (t.vtp->data.lop.ext)
-		t.ext = &t.vtp->data.ext_lop.ext;
+	if (vtp->data.lop.ext)
+		pgp->ext = &vtp->data.ext_lop.ext;
 	else
-		t.ext = &t.mag->extension;
+		pgp->ext = &pgp->mag->extension;
 
 	/* Character set designation */
 
-	character_set_designation (t.pg.font, t.ext, t.vtp);
+	character_set_designation (pgp->font, pgp->ext, vtp);
 
 	/* Colors */
 
-	screen_color (&t.pg, t.vtp->flags, t.ext->def_screen_color);
+	screen_color (&pgp->pg, vtp->flags, pgp->ext->def_screen_color);
 
 // XXX here?
-	vbi_transp_colormap (vbi, t.pg.color_map,
-			     t.ext->color_map, N_ELEMENTS (t.pg.color_map));
+	vbi_transp_colormap (vbi, pgp->pg.color_map,
+			     pgp->ext->color_map,
+			     N_ELEMENTS (pgp->pg.color_map));
 
-	t.pg.drcs_clut = t.ext->drcs_clut;
+	assert (sizeof (pgp->pg.drcs_clut)
+		== sizeof (pgp->ext->drcs_clut));
+
+	memcpy (pgp->pg.drcs_clut,
+		pgp->ext->drcs_clut,
+		sizeof (pgp->pg.drcs_clut));
 
 	/* Opacity */
 
-	t.pg.page_opacity[1] =
-		(t.vtp->flags & (C5_NEWSFLASH | C6_SUBTITLE | C10_INHIBIT_DISPLAY)) ?
-			VBI_TRANSPARENT_SPACE : VBI_OPAQUE;
+	pgp->page_opacity[1] = VBI_OPAQUE;
+	pgp->boxed_opacity[1] = VBI_SEMI_TRANSPARENT;
 
-	t.pg.boxed_opacity[1] =
-		(t.vtp->flags & C10_INHIBIT_DISPLAY) ?
-			VBI_TRANSPARENT_SPACE : VBI_SEMI_TRANSPARENT;
+	if (vtp->flags & (C5_NEWSFLASH | C6_SUBTITLE | C10_INHIBIT_DISPLAY))
+		pgp->page_opacity[1] = VBI_TRANSPARENT_SPACE;
 
-	if (t.vtp->flags & C7_SUPPRESS_HEADER) {
-		t.pg.page_opacity[0] = VBI_TRANSPARENT_SPACE;
-		t.pg.boxed_opacity[0] = VBI_TRANSPARENT_SPACE;
+	if (vtp->flags & C10_INHIBIT_DISPLAY)
+		pgp->boxed_opacity[1] =	VBI_TRANSPARENT_SPACE;
+
+	if (pgp->vtp->flags & C7_SUPPRESS_HEADER) {
+		pgp->page_opacity[0] = VBI_TRANSPARENT_SPACE;
+		pgp->boxed_opacity[0] = VBI_TRANSPARENT_SPACE;
 	} else {
-		t.pg.page_opacity[0] = t.pg.page_opacity[1];
-		t.pg.boxed_opacity[0] = t.pg.boxed_opacity[1];
+		pgp->page_opacity[0] = pgp->page_opacity[1];
+		pgp->boxed_opacity[0] = pgp->boxed_opacity[1];
 	}
 
 	/* Format level one page */
 
-	level_one_page (&t);
+	level_one_page (pgp);
 
 	/* PDC Preselection method "A" links */
 
-	if ((t.flags & (VBI_HEADER_ONLY | VBI_PDC_LINKS)) == VBI_PDC_LINKS)
-		pdc_method_a (&t);
+	if (pgp->pg.rows > 1 && pgp->pdc_links) {
+		pgp->pdc_table_size =
+			pdc_method_a (pgp->pdc_table,
+				      N_ELEMENTS (pgp->pdc_table),
+				      vtp->data.lop.raw);
+	}
 
 	/* Local enhancement data and objects */
 
-	if (t.max_level >= VBI_WST_LEVEL_1p5) {
+	if (pgp->max_level >= VBI_WST_LEVEL_1p5) {
 		vbi_page page;
 		vbi_bool success;
 
-		page = t.pg;
+		page = pgp->pg;
 
-		CLEAR (t.pg.drcs);
+		CLEAR (pgp->drcs_vtp);
 
-		if (!(t.vtp->flags & (C5_NEWSFLASH | C6_SUBTITLE))) {
-			t.pg.boxed_opacity[0] = VBI_TRANSPARENT_SPACE;
-			t.pg.boxed_opacity[1] = VBI_TRANSPARENT_SPACE;
+		if (!(vtp->flags & (C5_NEWSFLASH | C6_SUBTITLE))) {
+			pgp->boxed_opacity[0] = VBI_TRANSPARENT_SPACE;
+			pgp->boxed_opacity[1] = VBI_TRANSPARENT_SPACE;
 		}
 
-		if (t.vtp->enh_lines & 1) {
+		if (vtp->enh_lines & 1) {
 			fmt_log ("enhancement packets %08x\n",
-				t.vtp->enh_lines);
+				 vtp->enh_lines);
 
-			success = enhance (&t, LOCAL_ENHANCEMENT_DATA,
-					   t.vtp->data.enh_lop.enh,
-					   N_ELEMENTS (t.vtp->data.enh_lop.enh),
-					   0, 0);
+			success = enhance
+				(pgp, LOCAL_ENHANCEMENT_DATA,
+				 vtp->data.enh_lop.enh,
+				 N_ELEMENTS (vtp->data.enh_lop.enh),
+				 0, 0);
 		} else {
-			success = default_object_invocation (&t);
+			success = default_object_invocation (pgp);
 		}
 
 		if (success) {
-			if (t.max_level >= VBI_WST_LEVEL_2p5)
-				post_enhance (&t);
+			if (pgp->max_level >= VBI_WST_LEVEL_2p5)
+				post_enhance (pgp);
 		} else {
-			t.pg = page; /* restore level 1 page */
+			unsigned int i;
+
+			/* Roll back incomplete enhancements. */
+
+			for (i = 0; i < N_ELEMENTS (pgp->drcs_vtp); ++i) {
+				if (pgp->drcs_vtp[i])
+					vbi_cache_unref (vbi,
+							 pgp->drcs_vtp[i]);
+				pgp->drcs_vtp[i] = NULL;
+			}
+
+			pgp->pg = page;
 		}
 	}
 
-	t.pg.nav_link[5].pgno = vbi->vt.initial_page.pgno;
-	t.pg.nav_link[5].subno = vbi->vt.initial_page.subno;
+	pgp->nav_link[5] = vbi->vt.initial_page;
 
-	if (!(t.flags & VBI_HEADER_ONLY)) {
+	if (pgp->pg.rows > 1) {
 		unsigned int row;
 
-		if (t.flags & VBI_HYPERLINKS)
+		if (option_hyperlinks)
 			for (row = 1; row < 25; ++row)
-				hyperlinks (&t, row);
+				hyperlinks (pgp, row);
 
-		if (t.flags & VBI_NAVIGATION)
-			navigation (&t);
+		if (option_navigation)
+			navigation (pgp);
+
+		if (pgp->pdc_links)
+			vbi_page_mark_pdc (&pgp->pg, pgp->pdc_table,
+					   pgp->pdc_table
+					   + pgp->pdc_table_size);
 	}
 
-	if (t.flags & VBI_41_COLUMNS)
-		column_41 (&t);
-
-	// XXX
-
-	memcpy (xpg, &t.pg, sizeof (*xpg));
+	if (41 == pgp->pg.columns)
+		column_41 (pgp);
 
 	return TRUE;
+}
+
+/**
+ * @internal
+ * @param Initialized vbi_decoder context.
+ * @param pgp Place to store the formatted page.
+ * @param vtp Raw Teletext page.
+ * @param ... Format option list, see vbi_fetch_vt_page() for details.
+ * 
+ * Format a page @a pg from a raw Teletext page @a vtp.
+ * 
+ * @return
+ * @c TRUE if the page could be formatted.
+ */
+vbi_bool
+vbi_format_vt_page		(vbi_decoder *		vbi,
+				 vbi_page_private *	pgp,
+				 const vt_page *	vtp,
+				 ...)
+{
+	vbi_bool r;
+	va_list ap;
+
+	va_start (ap, vtp);
+
+	r = vbi_format_vt_page_va (vbi, pgp, vtp, ap);
+
+	va_end (ap);
+
+	return r;
 }
 
 /**
@@ -3865,10 +3230,7 @@ vbi_format_vt_page		(vbi_decoder *vbi,
  * @param pg Place to store the formatted page.
  * @param pgno Page number of the page to fetch, see vbi_pgno.
  * @param subno Subpage number to fetch (optional @c VBI_ANY_SUBNO).
- * @param max_level Format the page at this Teletext implementation level.
- * @param display_rows Number of rows to format, between 1 ... 25.
- * @param navigation Analyse the page and add navigation links,
- *   including TOP and FLOF.
+ * @param ap Format option list, see vbi_fetch_vt_page() for details.
  * 
  * Fetches a Teletext page designated by @a pgno and @a subno from the
  * cache, formats and stores it in @a pg. Formatting is limited to row
@@ -3876,10 +3238,6 @@ vbi_format_vt_page		(vbi_decoder *vbi,
  * are 1 (format header only) or 25 (everything). Likewise
  * @a navigation can be used to save unnecessary formatting time.
  * 
- * Although safe to do, this function is not supposed to be called from
- * an event handler since rendering may block decoding for extended
- * periods of time.
- *
  * @return
  * @c FALSE if the page is not cached or could not be formatted
  * for other reasons, for instance is a data page not intended for
@@ -3887,52 +3245,251 @@ vbi_format_vt_page		(vbi_decoder *vbi,
  * due to referencing data pages not in cache are formatted at a
  * lower level.
  */
-vbi_bool
-vbi_fetch_vt_page(vbi_decoder *vbi, vbi_page *pg,
-		  		vbi_pgno		pgno,
-				vbi_subno		subno,
-				vbi_wst_level		max_level,
-				vbi_format_flags	flags)
+vbi_page *
+vbi_fetch_vt_page_va		(vbi_decoder *		vbi,
+				 vbi_pgno		pgno,
+				 vbi_subno		subno,
+				 va_list		ap)
 {
-	const vt_page *vtp;
-	struct temp t;
-	vbi_bool r;
-	int row;
+	vbi_page *pg;
+	vbi_page_private *pgp;
 
-	switch (pgno) {
-	case 0x900:
+	if (!(pg = vbi_page_new ()))
+		return NULL;
+
+	pgp = PARENT (pg, vbi_page_private, pg);
+
+	if (0x900 == pgno) {
+		unsigned int row;
+
 		if (subno == VBI_ANY_SUBNO)
 			subno = 0;
 
-		if (!vbi->vt.top || !top_index(vbi, pg, subno,
-					       (flags & VBI_41_COLUMNS) ? 41 : 40))
-			return FALSE;
+		CLEAR (*pgp);
 
-		t.pg.nuid = vbi->network.ev.network.nuid;
-		t.pg.pgno = 0x900;
-		t.pg.subno = subno;
+		pgp->pg.vbi		= vbi;
 
-		post_enhance (&t);
+		pgp->pg.rows		= 25;
+		pgp->pg.columns		= 40;
 
-		for (row = 1; row < 25; row++)
-			hyperlinks (&t, row);
+		for (;;) {
+			vbi_format_option option;
 
-		// XXX
-		memcpy (pg, &t.pg, sizeof (*pg));
- 
-		return TRUE;
+			option = va_arg (ap, vbi_format_option);
 
-	default:
+			switch (option) {
+			case VBI_END: /* zero */
+				break;
+
+			case VBI_HEADER_ONLY:
+				pgp->pg.rows = va_arg (ap, vbi_bool) ?
+					1 : 25;
+				break;
+
+			case VBI_41_COLUMNS:
+				pgp->pg.columns = va_arg (ap, vbi_bool) ?
+					41 : 40;
+				break;
+
+			case VBI_NAVIGATION:
+			case VBI_HYPERLINKS:
+			case VBI_PDC_LINKS:
+				va_arg (ap, vbi_bool);
+				break;
+
+			case VBI_WST_LEVEL:
+				va_arg (ap, vbi_wst_level);
+				break;
+
+			default:
+				option = VBI_END;
+				break;
+			}
+
+			if (VBI_END == option)
+				break;
+		}
+
+		if (!vbi->vt.top
+		    || !top_index (vbi, &pgp->pg, subno, pgp->pg.columns)) {
+			vbi_page_delete (&pgp->pg);
+			return NULL;
+		}
+
+		pgp->pg.nuid = vbi->network.ev.network.nuid;
+		pgp->pg.pgno = 0x900;
+		pgp->pg.subno = subno;
+
+		post_enhance (pgp);
+
+		for (row = 1; row < pgp->pg.rows; ++row)
+			hyperlinks (pgp, row);
+	} else {
+		const vt_page *vtp;
+
 		vtp = vbi_cache_get (vbi, NUID0,
 				     pgno, subno, ~0,
 				     /* user access */ FALSE);
-		if (!vtp)
-			return FALSE;
 
-		r = vbi_format_vt_page (vbi, pg, vtp, max_level, flags);
+		if (NULL == vtp) {
+			vbi_page_delete (&pgp->pg);
+			return NULL;
+		}
+
+		if (!vbi_format_vt_page_va (vbi, pgp, vtp, ap)) {
+			vbi_page_delete (&pgp->pg);
+			return NULL;
+		}
 
 		vbi_cache_unref (vbi, vtp);
-
-		return r;
 	}
+
+	return &pgp->pg;
+}
+
+/**
+ * @param vbi Initialized vbi_decoder context.
+ * @param pg Place to store the formatted page.
+ * @param pgno Page number of the page to fetch, see vbi_pgno.
+ * @param subno Subpage number to fetch (optional @c VBI_ANY_SUBNO).
+ * @param ... Format option list, see vbi_fetch_vt_page() for details.
+ * 
+ * Fetches a Teletext page designated by @a pgno and @a subno from the
+ * cache, formats and stores it in @a pg. Formatting is limited to row
+ * 0 ... @a display_rows - 1 inclusive. The really useful values
+ * are 1 (format header only) or 25 (everything). Likewise
+ * @a navigation can be used to save unnecessary formatting time.
+ * 
+ * @return
+ * @c FALSE if the page is not cached or could not be formatted
+ * for other reasons, for instance is a data page not intended for
+ * display. Level 2.5/3.5 pages which could not be formatted e. g.
+ * due to referencing data pages not in cache are formatted at a
+ * lower level.
+ */
+vbi_page *
+vbi_fetch_vt_page		(vbi_decoder *		vbi,
+				 vbi_pgno		pgno,
+				 vbi_subno		subno,
+				 ...)
+{
+	vbi_page *pg;
+	va_list ap;
+
+	va_start (ap, subno);
+
+	pg = vbi_fetch_vt_page_va (vbi, pgno, subno, ap);
+
+	va_end (ap);
+
+	return pg;
+}
+
+/**
+ * @param pg A vbi_page allocated with vbi_page_new(),
+ *   vbi_fetch_vt_page() or vbi_fetch_vt_page_va().
+ *
+ * Creates a copy of the vbi_page.
+ *
+ * @returns
+ * Pointer to newly allocated vbi_page, which must be deleted with
+ * vbi_page_delete() when done, NULL if out of memory.
+ */
+vbi_page *
+vbi_page_copy			(const vbi_page *	pg)
+{
+	const vbi_page_private *old_pgp;
+	vbi_page_private *new_pgp;
+
+	assert (NULL != pg);
+
+	old_pgp = CONST_PARENT (pg, vbi_page_private, pg);
+
+	if (!(new_pgp = malloc (sizeof (*new_pgp)))) {
+		vbi_log_printf (__FUNCTION__, "Out of memory");
+		return NULL;
+	}
+
+	if (VBI_PAGE_PRIVATE_MAGIC != old_pgp->magic) {
+		CLEAR (*new_pgp);
+
+		new_pgp->pg = *pg;
+	} else {
+		*new_pgp = *old_pgp;
+
+		if (new_pgp->pg.vbi) {
+			unsigned int i;
+
+			if (new_pgp->vtp)
+				vbi_cache_ref (new_pgp->pg.vbi, new_pgp->vtp);
+
+			for (i = 0; i < N_ELEMENTS (new_pgp->drcs_vtp); ++i)
+				if (new_pgp->drcs_vtp[i])
+					vbi_cache_ref (new_pgp->pg.vbi,
+						       new_pgp->drcs_vtp[i]);
+		}
+	}
+
+	return &new_pgp->pg;
+}
+
+/**
+ * @param pg A vbi_page allocated with vbi_page_new(),
+ *   vbi_fetch_vt_page() or vbi_fetch_vt_page_va().
+ *
+ * Deletes a vbi_page.
+ */
+void
+vbi_page_delete			(vbi_page *		pg)
+{
+	vbi_page_private *pgp;
+
+	if (NULL == pg)
+		return;
+
+	pgp = PARENT (pg, vbi_page_private, pg);
+
+	if (VBI_PAGE_PRIVATE_MAGIC != pgp->magic) {
+		vbi_log_printf (__FUNCTION__,
+				"vbi_page %p not allocated by libzvbi", pg);
+		return;
+	}
+
+	if (pgp->pg.vbi) {
+		unsigned int i;
+
+		if (pgp->vtp)
+			vbi_cache_unref (pgp->pg.vbi, pgp->vtp);
+
+		for (i = 0; i < N_ELEMENTS (pgp->drcs_vtp); ++i)
+			if (pgp->drcs_vtp[i])
+				vbi_cache_unref (pgp->pg.vbi,
+						 pgp->drcs_vtp[i]);
+	}
+
+	CLEAR (*pgp);
+
+	free (pgp);
+}
+
+/**
+ * Allocates a new, empty vbi_page.
+ *
+ * @returns
+ * NULL when out of memory. The vbi_page must be deleted
+ * with vbi_page_delete() when done.
+ */
+vbi_page *
+vbi_page_new			(void)
+{
+	vbi_page_private *pgp;
+
+	if (!(pgp = calloc (1, sizeof (*pgp)))) {
+		vbi_log_printf (__FUNCTION__, "Out of memory");
+		return NULL;
+	}
+
+	pgp->magic = VBI_PAGE_PRIVATE_MAGIC;
+
+	return &pgp->pg;
 }
