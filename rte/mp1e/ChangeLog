@@ -1,3 +1,7 @@
+2003-02-10	<mschimek@users.sf.net>
+
+	* common/videodev25.h: Updated.
+
 2003-01-15	<mschimek@users.sf.net>
 
 	* common/videodev25.h, devices/v4l25.c, main.c: Added
