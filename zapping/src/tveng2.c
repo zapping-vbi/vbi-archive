@@ -56,7 +56,7 @@
 #include "tveng.h"
 #define TVENG2_PROTOTYPES 1
 #include "tveng2.h"
-#include "videodev2.h" /* the V4L2 definitions */
+#include "../common/videodev2.h" /* the V4L2 definitions */
 
 struct tveng2_vbuf
 {

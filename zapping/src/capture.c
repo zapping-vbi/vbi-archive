@@ -68,9 +68,8 @@ static GdkImage			*yuv_image = NULL; /* YUV420->RGB
 
 static void print_info(GtkWidget *main_window);
 
-/* FIXME: should be easier to change */
-#define BUNDLE_FORMAT TVENG_PIX_YVU420
-// #define BUNDLE_FORMAT TVENG_PIX_YUYV
+#define BUNDLE_FORMAT (zconf_get_integer(NULL, \
+					 "/zapping/options/main/yuv_format"))
 //#define FORCE_DATA 1
 
 static
@@ -470,7 +469,6 @@ static gint idle_handler(gpointer ignored)
 		  u = v + ((d->format.width * d->format.height)>>2);
 		  g_assert(d->format.pixformat == TVENG_PIX_YUV420 ||
 			   d->format.pixformat == TVENG_PIX_YVU420);
-		  /* FIXME: some way to override this is needed */
 		  if (d->format.pixformat == TVENG_PIX_YUV420)
 		    { t = u; u = v; v = t; }
 		  yuv2rgb(x11_get_data(yuv_image), y, u, v,

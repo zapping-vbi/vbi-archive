@@ -52,6 +52,15 @@ for me, if that doesn't work you can try using the --disable-pam
 switch to ./configure<p>
 <i>./configure --disable-pam</i></p>
 and then recompile, reinstall.
+Or alternatively, try running with the --no-zsfb command line flag.
+<li><i>In capture mode the image is completely screwed up, or it
+fails to start saying that pixformat is invalid... btw, i'm
+using a XVideo backend scaler.</i><br>
+Some V4L1/V4L2 drivers don't support the image format named YVU420, or
+this support is broken (happens with bttv 0.7.65, for example). Try
+with the --yuv-format=YUYV command line flag. You can tell whether a
+backend scaler is present because of the (usually blue) border that
+appears around the image when you move the window around.
 </ul>
 <H4>How can I help?</H4>
 The preferred way is with translations, patches and plugins.

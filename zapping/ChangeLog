@@ -1,3 +1,11 @@
+14.05.2001	--yuv-format flag <garetxe@users.sourceforge.net>
+
+	* src/main.c, capture.c, x11stuff.c: Added CLO [command line
+	option :-)] for deciding between YUYV and YVU420.
+	* src/fullscreen.c: No longer grabs the keyboard.
+	* src/videodev*: moved to /common, made libvbi use these versions
+	too for consistency.
+
 13.05.2001	CC classify gui <garetxe@users.sourceforge.net>
 
 	* src/ttxview.c: Added gui for the CC classification, added

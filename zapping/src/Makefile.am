@@ -15,7 +15,7 @@ VBI_LIB = $(top_srcdir)/libvbi/libvbi.a
 COMMON_LIB = $(top_srcdir)/common/libcommon.a
 
 ## Don't forget to put these files into the distribution
-EXTRA_DIST = videodev.h videodev2.h plugin_common.h ROADMAP
+EXTRA_DIST = ROADMAP
 
 zapping_SOURCES = \
 	main.c \
@@ -29,7 +29,7 @@ zapping_SOURCES = \
 	callbacks.c callbacks.h \
 	frequencies.c frequencies.h \
 	v4linterface.c v4linterface.h \
-	plugins.c plugins.h \
+	plugins.c plugins.h plugin_common.h \
 	zconf.c zconf.h \
 	zmisc.c error_console.c zmisc.h \
 	properties.c \

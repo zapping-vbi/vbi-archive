@@ -9,6 +9,8 @@ Outstanding issues for the next release (0.6.0)
 	+ Make the mpeg plugin work.
 	+ First run wizard.
 	+ Respect the control center settings regarding toolbar.
+	+ Make aspect ration relative to the tv_screen, not the whole
+	window (set_usize??)
 
 > 0.6.1
 	+ Add some remote control applet (or sth like that).

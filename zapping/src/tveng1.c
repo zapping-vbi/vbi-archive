@@ -57,7 +57,7 @@
 
 #define TVENG1_PROTOTYPES 1
 #include "tveng1.h"
-#include "videodev.h"
+#include "../common/videodev.h"
 
 /*
   If this is enabled, some specific features of the bttv driver are

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.14 2001-05-05 23:45:06 garetxe Exp $ */
+/* $Id: v4lx.c,v 1.15 2001-05-14 22:51:42 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,7 +34,7 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <asm/types.h>		// v4l2
-#include <linux/videodev.h>
+#include "../common/videodev2.h"
 
 #include "decoder.h"
 #include "../common/math.h"

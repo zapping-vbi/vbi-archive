@@ -417,16 +417,20 @@ get_window(void)
   da = gtk_drawing_area_new();
 
   gtk_widget_realize(window);
+  while (!window->window)
+    z_update_gui();
   gtk_container_add(GTK_CONTAINER(window), da);
-  gtk_widget_realize(window);
 
   gdk_window_set_back_pixmap(da->window, NULL, FALSE);
 
   gdk_window_set_decorations(window->window, 0);
 
   if (osd_parent_window)
-    gtk_window_set_transient_for(GTK_WINDOW(window),
-				 GTK_WINDOW(osd_parent_window));
+    {
+      gdk_window_set_transient_for(window->window,
+				   osd_parent_window->window);
+      gdk_window_set_group(window->window, osd_parent_window->window);
+    }
 
   gtk_widget_add_events(da, GDK_EXPOSURE_MASK);
 

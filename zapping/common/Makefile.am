@@ -12,4 +12,5 @@ libcommon_a_SOURCES = \
 	types.h \
 	math.h \
 	ure.c ure.h \
-	unicode.c ucs-2.h
+	unicode.c ucs-2.h \
+	videodev.h videodev2.h

@@ -2059,8 +2059,10 @@ build_subtitles_submenu(GtkWidget *widget,
 	{
 	  if (language)
 	    buffer = g_strdup_printf("%s", language);
+	  else if (count < 5)
+	    buffer = g_strdup_printf(_("Caption %x"), count);
 	  else
-	    buffer = g_strdup_printf(_("Page %x"), count);
+	    buffer = g_strdup_printf(_("Text %x"), count-4);
 
 	  menu_item = gtk_menu_item_new_with_label(buffer);
 	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
@@ -2073,7 +2075,10 @@ build_subtitles_submenu(GtkWidget *widget,
 
 	  if (language)
 	    {
-	      buffer = g_strdup_printf(_("Page %x"), count);
+	      if (count < 5)
+		buffer = g_strdup_printf(_("Caption %x"), count);
+	      else
+		buffer = g_strdup_printf(_("Text %x"), count-4);
 	      set_tooltip(menu_item, buffer);
 	      g_free(buffer);
 	    }

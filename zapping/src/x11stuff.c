@@ -27,6 +27,8 @@
 #include <gdk/gdkx.h>
 #include <gtk/gtk.h>
 #include <stdlib.h>
+#define ZCONF_DOMAIN "/zapping/options/main/"
+#include "zconf.h"
 #include "x11stuff.h"
 #include "zmisc.h"
 
@@ -354,7 +356,7 @@ xv_mode_id(char * fourcc)
 #define UYVY xv_mode_id("UYVY") /* UYVY (packed, 16 bits) */
 #define YUY2 xv_mode_id("YUY2") /* YUYV (packed, 16 bits) */
 
-#define XV_MODE YV12 /* preferred mode in Xv */
+#define XV_MODE (zcg_int(NULL, "yuv_format") == TVENG_PIX_YUYV ? YUY2 : YV12)
 
 static XvPortID		xvport; /* Xv port we will use */
 static gboolean		port_grabbed = FALSE; /* We own a port */

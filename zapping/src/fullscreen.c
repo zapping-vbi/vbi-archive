@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.7 2001-04-28 19:29:35 garetxe Exp $
+ * $Id: fullscreen.c,v 1.8 2001-05-14 22:51:42 garetxe Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -234,11 +234,6 @@ fullscreen_start(tveng_device_info * info)
 #endif
 
   gtk_widget_grab_focus(black_window);
-  /*
-    If something doesn't work, everything will be blocked here, maybe
-    this isn't a good idea... but it is apparently the less bad one.
-  */
-  gdk_keyboard_grab(black_window->window, TRUE, GDK_CURRENT_TIME);
 
   gdk_window_set_events(black_window->window, GDK_ALL_EVENTS_MASK);
 
@@ -261,8 +256,6 @@ fullscreen_start(tveng_device_info * info)
 void
 fullscreen_stop(tveng_device_info * info)
 {
-  gdk_keyboard_ungrab(GDK_CURRENT_TIME);
-
 #ifdef MESS_WITH_XSS
   /* Restore the normal screensaver */
   x11_set_screensaver(ON);

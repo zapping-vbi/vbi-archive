@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder.c,v 1.12 2001-03-30 06:48:38 mschimek Exp $ */
+/* $Id: vbi_decoder.c,v 1.13 2001-05-14 22:51:42 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,7 +36,7 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <asm/types.h>		// v4l2
-#include <linux/videodev.h>
+#include "../common/videodev2.h"
 
 
 

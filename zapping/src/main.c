@@ -210,6 +210,7 @@ int main(int argc, char * argv[])
   char *default_norm = NULL;
   char *video_device = NULL;
   char *command = NULL;
+  char *yuv_format = NULL;
   /* Some other common options in case the standard one fails */
   char *fallback_devices[] =
   {
@@ -309,6 +310,15 @@ int main(int argc, char * argv[])
       NULL
     },
     {
+      "yuv-format",
+      'y',
+      POPT_ARG_STRING,
+      &yuv_format,
+      0,
+      N_("Pixformat for XVideo capture mode [YUYV | YVU420]"),
+      N_("PIXFORMAT")
+    },
+    {
       NULL,
     } /* end the list */
   };
@@ -322,7 +332,7 @@ int main(int argc, char * argv[])
 			      0, NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.109 2001-05-13 16:03:36 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.110 2001-05-14 22:51:42 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -369,6 +379,21 @@ int main(int argc, char * argv[])
       tveng_device_info_destroy(main_info);
       return 0;
     }
+  D();
+
+  if (yuv_format)
+    {
+      if (!strcasecmp(yuv_format, "YUYV"))
+	zcs_int(TVENG_PIX_YUYV, "yuv_format");
+      else if (!strcasecmp(yuv_format, "YVU420"))
+	zcs_int(TVENG_PIX_YVU420, "yuv_format");
+      else
+	g_warning("Unkown pixformat %s: Must be one of (YUYV | YVU420)\n"
+		  "The current format is %s",
+		  yuv_format, zcg_int(NULL, "yuv_format") ==
+		  TVENG_PIX_YUYV ? "YUYV" : "YVU420");
+    }
+
   D();
 
   if (video_device)
@@ -800,6 +825,8 @@ static gboolean startup_zapping()
   zcc_int(0, "Current input", "current_input");
   zcc_int(TVENG_CAPTURE_WINDOW, "Current capture mode", "capture_mode");
   zcc_int(TVENG_CAPTURE_WINDOW, "Previous capture mode", "previous_mode");
+  zcc_int(TVENG_PIX_YVU420, "Pixformat used with XVideo capture",
+	  "yuv_format");
   zcc_bool(FALSE, "In videotext mode", "videotext_mode");
   zconf_create_boolean(FALSE, "Hide controls",
 		       "/zapping/internal/callbacks/hide_controls");

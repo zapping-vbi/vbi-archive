@@ -50,7 +50,7 @@
 #endif
 #include <X11/Xutil.h>
 
-#include "../src/videodev.h" /* V4L header file */
+#include "../common/videodev.h" /* V4L header file */
 
 #define FALSE (0)
 #define TRUE (!FALSE)
