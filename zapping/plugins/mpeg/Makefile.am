@@ -9,6 +9,8 @@ EXTRA_DIST = mpeg_properties.glade mpeg_strings.c
 libmpeg_zapping_la_SOURCES = plugin.c
 libmpeg_zapping_la_LIBADD = -lrte
 
+pkgdata_DATA = mpeg_properties.glade
+
 CFLAGS = -Wall -Wno-unused # Avoid warnings about undeclared statics
 INCLUDES = \
 -I$(top_srcdir)/intl \
