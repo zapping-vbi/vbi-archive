@@ -1,10 +1,11 @@
-$Id: BUGS,v 1.12.2.2 2003-06-16 06:05:24 mschimek Exp $
+$Id: BUGS,v 1.12.2.3 2003-09-24 18:49:43 mschimek Exp $
 
 * v4l and v4l2 i/o can ignore timeout parameter
   > maybe a sleep() loop works, but what about timestamping?
-
 * Clean up char types: "char" = text, could be ASCII, UTF-8,
   signed, unsigned, whatever. No more "signed char" or
   "unsigned char". When you mean ints, use int8_t or uint8_t.
   Subject: kwintv Digest, Vol 2, Issue 5
   Date: Sat, 10 May 2003 03:03:33 -0700
+* Search resume after cancel in progress callback doesn't seem
+  to work.

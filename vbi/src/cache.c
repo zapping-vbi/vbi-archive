@@ -62,6 +62,8 @@ for ((p) = PARENT((l)->head, typeof(*(p)), _node_);			\
      (p)->_node_.succ;							\
      (p) = PARENT((p)->_node_.succ, typeof(*(p)), _node_))
 
+#define is_head(l, n) ((l)->head == (n))
+
 /**
  * @internal
  * @param l list *
@@ -488,15 +490,14 @@ cache_unlock			(cache *		ca)
 
 static __inline__ cache_stat *
 cache_stat_from_nuid		(cache *		ca,
-				 vbi_nuid		nuid)
+				 vbi_nuid		client_nuid)
 {
 	cache_stat *cs;
 
 	for_all_nodes (cs, &ca->stations, node)
-		if (cs->temp_nuid == nuid || cs->real_nuid == nuid) {
-			if (__builtin_expect (ca->stations.head != &cs->node, 0)) {
-				/* Probably needed again soon */
-
+		if (cs->client_nuid == client_nuid) {
+			if (__builtin_expect (!is_head (&ca->stations, &cs->node), 0)) {
+				/* Probably needed again soon. */
 				unlink_node (&cs->node);
 				add_head (&ca->stations, &cs->node);
 			}
@@ -762,7 +763,7 @@ page_lookup			(cache *		ca,
  */
 const vt_page *
 vbi_cache_get			(vbi_decoder *		vbi,
-				 vbi_nuid		nuid,
+				 vbi_nuid		client_nuid,
 				 vbi_pgno		pgno,
 				 vbi_subno		subno,
 				 vbi_subno		subno_mask,
@@ -782,7 +783,7 @@ vbi_cache_get			(vbi_decoder *		vbi,
 		cache_dump (ca, '\n');
 	}
 
-	if (!(cs = cache_stat_from_nuid (ca, nuid)))
+	if (!(cs = cache_stat_from_nuid (ca, client_nuid)))
 		goto failure;
 
 	if (!(cp = page_lookup (ca, cs, pgno, subno, subno_mask, &hash_list)))
@@ -818,7 +819,7 @@ vbi_cache_get			(vbi_decoder *		vbi,
 /* XXX rethink */
 int
 vbi_cache_foreach		(vbi_decoder *		vbi,
-				 vbi_nuid		nuid,
+				 vbi_nuid		client_nuid,
 				 vbi_pgno		pgno,
 				 vbi_subno		subno,
 				 int			dir,
@@ -834,7 +835,7 @@ vbi_cache_foreach		(vbi_decoder *		vbi,
 
 	cache_lock (ca);
 
-	cs = cache_stat_from_nuid (ca, nuid);
+	cs = cache_stat_from_nuid (ca, client_nuid);
 
 	if (!cs || cs->num_pages == 0)
 		return 0;
@@ -929,15 +930,16 @@ cache_stations_flush		(cache *		ca)
 
 static cache_stat *
 cache_stat_create		(cache *		ca,
-				 vbi_nuid		nuid)
+				 vbi_nuid		client_nuid)
 {
-	cache_stat *cs = cache_stat_from_nuid (ca, nuid);
+	cache_stat *cs = cache_stat_from_nuid (ca, client_nuid);
 
 	if (cs) /* already present */
 		return cs;
 
 	if (ca->num_stations >= ca->max_stations) {
-		/* We absorb the last recently used cache_stat */
+		/* We absorb the last recently used cache_stat
+		   without references. */
 
 		cs = PARENT (ca->stations.tail, cache_stat, node);
 
@@ -946,7 +948,7 @@ cache_stat_create		(cache *		ca,
 
 			if (!cs->node.pred) {
 				if (CACHE_DEBUG)
-					fprintf (stderr, "all stations locked in "
+					fprintf (stderr, "All stations locked in "
 						 "cache_stat_create\n");
 				return NULL;
 			}
@@ -955,26 +957,23 @@ cache_stat_create		(cache *		ca,
 		if (cs->num_pages > 0)
 			delete_all_by_nuid (ca, cs);
 
-		cs->temp_nuid = nuid; /* FIXME */
-		cs->real_nuid = nuid;
-
 		cs->num_pages = 0;
 		cs->max_pages = 0;
 		cs->locked_pages = 0;
 		cs->ref_count = 0;
 
-		memset (cs->pages, 0, sizeof (cs->pages));
+		CLEAR (&cs->pages);
 
 		unlink_node (&cs->node);
 	} else {
 		if (!(cs = calloc (1, sizeof (*cs))))
 			return NULL;
 
-		cs->temp_nuid = nuid; /* FIXME */
-		cs->real_nuid = nuid;
-
-		ca->num_stations++;
+		++ca->num_stations;
 	}
+
+	cs->client_nuid = client_nuid;
+	cs->received_nuid = client_nuid;
 
 	add_head (&ca->stations, &cs->node);
 
@@ -1014,15 +1013,15 @@ vbi_cache_stat_unref		(vbi_decoder *		vbi,
  */
 const cache_stat *
 vbi_cache_stat			(vbi_decoder *		vbi,
-				 vbi_nuid		nuid)
+				 vbi_nuid		client_nuid)
 {
 	cache *ca = vbi->cache;
 	cache_stat *cs;
 
 	cache_lock (ca);
 
-	if ((cs = cache_stat_create (ca, nuid)))
-		cs->ref_count++;
+	if ((cs = cache_stat_create (ca, client_nuid)))
+		++cs->ref_count;
 
 	cache_unlock (ca);
 
@@ -1043,7 +1042,7 @@ vbi_cache_stat			(vbi_decoder *		vbi,
  */
 const vt_page *
 vbi_cache_put			(vbi_decoder *		vbi,
-				 vbi_nuid		nuid,
+				 vbi_nuid		client_nuid,
 				 const vt_page *	vtp,
 				 vbi_bool		new_ref)
 {
@@ -1072,7 +1071,7 @@ vbi_cache_put			(vbi_decoder *		vbi,
 		cache_dump (ca, ' ');
 	}
 
-	if (!(cs = cache_stat_create (ca, nuid)))
+	if (!(cs = cache_stat_create (ca, client_nuid)))
 		return FALSE;
 
 	if (CACHE_DEBUG)

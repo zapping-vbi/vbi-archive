@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vt.h,v 1.4.2.3 2003-06-16 06:01:47 mschimek Exp $ */
+/* $Id: vt.h,v 1.4.2.4 2003-09-24 18:49:57 mschimek Exp $ */
 
 #ifndef VT_H
 #define VT_H
@@ -433,17 +433,20 @@ struct teletext {
 extern void		vbi_teletext_set_default_region(vbi_decoder *vbi, int default_region);
 extern void		vbi_teletext_set_level(vbi_decoder *vbi, int level);
 /** @} */
+
 /**
  * @addtogroup Cache
  * @{
  */
-typedef enum {
+typedef enum vbi_format_flags vbi_format_flags;
+
+enum vbi_format_flags {
 	VBI_HEADER_ONLY		= 1 << 0,
 	VBI_41_COLUMNS		= 1 << 1,
 	VBI_NAVIGATION		= 1 << 2,
 	VBI_HYPERLINKS		= 1 << 3,
 	VBI_PDC_LINKS		= 1 << 4,
-} vbi_format_flags;
+};
 
 extern vbi_bool		vbi_fetch_vt_page(vbi_decoder *vbi, vbi_page *pg,
 		  		vbi_pgno		pgno,

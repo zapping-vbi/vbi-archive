@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: decoder.c,v 1.7.2.3 2003-06-16 06:02:35 mschimek Exp $ */
+/* $Id: decoder.c,v 1.7.2.4 2003-09-24 18:49:56 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,21 +29,18 @@
 #include "decoder.h"
 
 /**
- * @addtogroup Rawdec Raw VBI decoder
+ * @addtogroup Slicer Bit Slicer
  * @ingroup Raw
- * @brief Converting raw VBI samples to bits and bytes.
+ * @brief Function converting a single scan line of raw VBI
+ *   data to sliced VBI data.
  *
- * The libzvbi already offers hardware interfaces to obtain sliced
- * VBI data for further processing. However if you want to write your own
- * interface or decode data services not covered by libzvbi you can use
- * these lower level functions.
+ * This is a low level function most useful if you want to decode
+ * data services not covered by libzvbi. Usually you will want to
+ * use the Raw VBI decoder, converting several lines of different
+ * data services at once.
  */
 
-/*
- *  Bit Slicer
- *
- *  This is time critical, tinker with care.
- */
+/* This is time critical, tinker with care. */
 
 #define OVERSAMPLING 4		/* 1, 2, 4, 8 */
 #define THRESH_FRAC 9
@@ -200,19 +197,20 @@ BIT_SLICER (RGB16_BE)
 /**
  * @param slicer Pointer to vbi_bit_slicer object allocated with
  *   vbi_bit_slicer_new().
- * @param raw Input data. At least the number of pixels or samples
- *  given as @a samples_per_line to vbi_bit_slicer_new().
  * @param buf Output data. The buffer must be large enough to store
  *   the number of bits given as @a payload to vbi_bit_slicer_init().
+ * @param raw Input data. At least the number of pixels or samples
+ *  given as @a samples_per_line to vbi_bit_slicer_new().
  * 
  * Decodes one scan line of raw vbi data. Note the bit slicer tries
  * to adapt to the average signal amplitude, you should avoid
  * using the same vbi_bit_slicer object for data from different
  * devices.
  *
- * @note As a matter of speed this function does not lock the
- * @a slicer. When you want to share a vbi_bit_slicer object between
- * multiple threads you must implement your own locking mechanism.
+ * Unlike the higher level decoders, as a matter of speed this function
+ * does not lock the @a slicer. When you want to share a vbi_bit_slicer
+ * object between multiple threads you must implement your own locking
+ * mechanism.
  * 
  * @return
  * @c FALSE if the raw data does not contain the expected
@@ -473,12 +471,100 @@ vbi_bit_slicer_new		(vbi_pixfmt		sample_format,
 	return slicer;	
 }
 
+/* ------------------------------------------------------------------------- */
+
+/**
+ * @addtogroup Rawdec Raw VBI decoder
+ * @ingroup Raw
+ * @brief Functions to convert a raw VBI image to sliced VBI data.
+ *
+ * Blah.
+ */
+
+#define MAX_JOBS		8
+#define MAX_WAYS		8
+
+#if 0 // future
+
+typedef struct _vbi_raw_decoder vbi_raw_decoder;
+typedef struct _vbi_raw_decoder_job vbi_raw_decoder_job;
+
+typedef struct _vbi_service_par vbi_service_par;
+
+struct _vbi_raw_decoder_job {
+	vbi_service_par *	service; // XXX was int id
+	unsigned int		offset;		/* samples */
+	vbi_bit_slicer		slicer;
+};
+
+struct vbi_raw_decoder {
+	pthread_mutex_t		mutex;
+
+	vbi_sampling_parameters	param;
+
+	unsigned int		services;
+	unsigned int		num_jobs;
+
+	int8_t *		pattern;
+
+	vbi_raw_decoder_job	jobs[MAX_JOBS];
+};
+
+/*
+ *  Data Service Table
+ */
+
+struct vbi_service_par {
+	unsigned int		id;		/* VBI_SLICED_ */
+	const char *		label;
+
+	/* Most scan lines used by the data service, first and last
+	   line of first and second field. ITU-R numbering scheme.
+	   Zero if no data from this field, requires field sync. */
+	uint16_t		first[2];
+        uint16_t		last[2];
+
+	/* Leading edge hsync to leading edge first CRI one bit,
+	   half amplitude points, in nanoseconds. */
+	unsigned int		offset;	
+
+	unsigned int		cri_rate;	/* Hz */
+	unsigned int		bit_rate;	/* Hz */
+
+	/* Scanning system: 525 (FV = 59.94 Hz, FH = 15734 Hz),
+			    625 (FV = 50 Hz, FH = 15625 Hz). */
+	uint16_t		scanning;
+
+	/* Clock Run In and FRaming Code, LSB last txed bit of FRC. */
+	unsigned int		cri_frc;
+
+	/* CRI bits significant for identification. Note this isn't
+	   shifted by frc_bits. */
+	unsigned int		cri_mask;
+
+	/* cri_bits at cri_rate, frc_bits at bit_rate. */
+	uint8_t			cri_bits;
+	uint8_t			frc_bits;
+
+	uint8_t			payload;	/* bits */
+	uint8_t			modulation;
+};
+
+#endif
+
+
+
+
+
+
+
+
+
 /*
  * Data Service Table
  */
 
-#define MAX_JOBS		N_ELEMENTS (((vbi_raw_decoder *) 0)->jobs)
-#define MAX_WAYS		8
+
 
 struct vbi_service_par {
 	unsigned int	id;		/* VBI_SLICED_ */

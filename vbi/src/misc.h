@@ -1,5 +1,5 @@
 /*
- *  libzvbi
+ *  libzvbi - Miscellaneous types and macros
  *
  *  Copyright (C) 2002-2003 Michael H. Schimek
  *
@@ -18,22 +18,24 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.2.2.3 2003-06-16 06:04:37 mschimek Exp $ */
+/* $Id: misc.h,v 1.2.2.4 2003-09-24 18:49:56 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
 
 #include <stddef.h>
 #include <string.h>
+#include <assert.h>
 
 /* Public */
 
 /**
- * @addtogroup Basic Basic types
+ * @addtogroup Basic Types
  *
  * Apart of redefining TRUE and FALSE libzvbi reserves all type,
  * function, variable and constant names, and preprocessor symbols
- * starting with vbi_ or VBI_.
+ * starting with vbi_ or VBI_. In the future it may also reserve
+ * the C++ namespace vbi.
  */
 
 #ifndef DOXYGEN_SHOULD_IGNORE_THIS
@@ -60,6 +62,21 @@ typedef int vbi_bool;
  *
  * 0 = unknown network, bit 31 reserved for preliminary nuids.
  * Other network codes are arbitrary.
+ *
+ * XXX fixme
+a) custom, defined by the client (0<<63 + some)
+b) temporary, created by libzvbi (7<<61 + time_t, you get the idea)
+c) received call sign (6<<61 + 7 chars)
+d) received cni (5<<61 + table index) (cannot use cni directly, blah blah)
+Idea: Each channel cached by libzvbi has two nuids, one internal and
+one client visible. When libzvbi detects a channel switch it sets
+internal and visible to one new temporary nuid. When the client
+announces a channel switch it can name the channel in advance by
+assigning any nuid to visible, e.g. custom from a channel table
+index or a received nuid known from previous sessions. Likewise
+the client can rename a channel any time after a switch, e.g. when
+a nuid was actually received. An id received by libzvbi is assigned
+to internal and the client is notified about it, with value.
  */
 typedef unsigned int vbi_nuid;
 
@@ -73,10 +90,6 @@ typedef unsigned int vbi_nuid;
 /* Private */
 
 #define N_ELEMENTS(array) (sizeof (array) / sizeof (*(array)))
-
-#undef PARENT
-#define PARENT(ptr, type, member)					\
-  ((type *)(((char *)(ptr)) - offsetof (type, member)))
 
 #ifdef __GNUC__
 
@@ -94,6 +107,15 @@ typedef unsigned int vbi_nuid;
 #endif
 
 #define PACKED __attribute__ ((packed))
+
+/* &x == PARENT (&x.tm_min, struct tm, tm_min),
+   safer than &x == (struct tm *) &x.tm_min */
+#undef PARENT
+#define PARENT(_ptr, _type, _member) ({					\
+	__typeof__ (&((const _type *) 0)->_member) _p = (_ptr);		\
+	(_p != 0) ? (_type *)(((char *) _p) - offsetof (_type,		\
+	  _member)) : (_type *) 0;					\
+})
 
 #undef ABS
 #define ABS(n) ({							\
@@ -154,8 +176,18 @@ do {									\
 #else /* !__GNUC__ */
 
 #define __builtin_expect(exp, c) (exp)
+#undef __i386__
 #undef __i686__
 #define PACKED
+
+static char *
+PARENT_HELPER (char *p, unsigned int offset)
+{ return (p == 0) ? 0 : p - offset; }
+
+#undef PARENT
+#define PARENT(_ptr, _type, _member)					\
+	((offsetof (_type, _member) == 0) ? (_type *)(_ptr)		\
+	 : (_type *) PARENT_HELPER ((char *)(_ptr), offsetof (_type, _member)))
 
 #undef ABS
 #define ABS(n) (((n) < 0) ? -(n) : (n))
@@ -178,9 +210,18 @@ do {									\
 
 #endif /* !__GNUC__ */
 
+/* NB gcc inlines and optimizes when size is const. */
 #define SET(var) memset (&(var), ~0, sizeof (var))
 #define CLEAR(var) memset (&(var), 0, sizeof (var))
 #define MOVE(d, s) memmove (d, s, sizeof (d))
+
+extern size_t
+vbi_strlcpy			(char *			d,
+				 const char *		s,
+				 size_t			size);
+
+#define STRCOPY(d, s) (vbi_strlcpy (d, s, sizeof (d)) < sizeof (d))
+
 
 extern const char _zvbi_intl_domainname[];
 

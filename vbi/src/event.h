@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: event.h,v 1.5.2.2 2003-06-16 06:02:56 mschimek Exp $ */
+/* $Id: event.h,v 1.5.2.3 2003-09-24 18:49:56 mschimek Exp $ */
 
 #ifndef EVENT_H
 #define EVENT_H
@@ -221,31 +221,6 @@ typedef struct vbi_link {
 	 */
 	vbi_bool			autoload;
 } vbi_link;
-
-/* preliminary */
-typedef struct vbi_pdc_selection {
-	unsigned int			cni;
-
-	unsigned int			year;		/* 2000 ... */
-	unsigned int			month;		/* 0 ... 11 */
-	unsigned int			day;		/* 0 ... 30 */
-
-	unsigned int			at1_hour;	/* 0 ... 23 */
-	unsigned int			at1_minute;	/* 0 ... 59 */
-
-	unsigned int			at2_hour;
-	unsigned int			at2_minute;
-
-	unsigned int			length;		/* minutes */
-
-	int				lto;		/* -720 ... +720 minutes */
-
-	unsigned int			pty;
-
-	vbi_bool			caf;
-
-	char				title [200];
-} vbi_pdc_selection;
 
 /*
  *  Aspect ratio information.

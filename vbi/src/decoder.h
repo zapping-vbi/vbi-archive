@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: decoder.h,v 1.3.2.2 2003-06-16 06:02:46 mschimek Exp $ */
+/* $Id: decoder.h,v 1.3.2.3 2003-09-24 18:49:56 mschimek Exp $ */
 
 #ifndef DECODER_H
 #define DECODER_H
@@ -127,7 +127,7 @@
  * <td>&nbsp;</td><td>&nbsp;</td></tr>
  * </table>
  */
-/* Attn: keep this in sync with rte, don't change order */
+/* Attn: keep this in sync with rte & tveng, don't change order */
 typedef enum {
 	VBI_PIXFMT_YUV420 = 1,
 	VBI_PIXFMT_YUYV,
@@ -239,7 +239,7 @@ struct _vbi_sampling_parameters {
 };
 
 /**
- * @ingroup Rawdec
+ * @ingroup Slicer
  * @brief Modulation used for VBI data transmission.
  */
 typedef enum {
@@ -268,7 +268,7 @@ typedef enum {
 } vbi_modulation;
 
 /**
- * @ingroup Rawdec
+ * @ingroup Slicer
  * @brief Bit slicer context.
  *
  * The contents of this structure are private,
@@ -296,7 +296,7 @@ struct vbi_bit_slicer {
 };
 
 /**
- * @addtogroup Rawdec
+ * @addtogroup Slicer
  * @{
  */
 extern vbi_bit_slicer *

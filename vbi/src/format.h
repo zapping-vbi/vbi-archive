@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: format.h,v 1.4.2.3 2003-06-16 06:04:29 mschimek Exp $ */
+/* $Id: format.h,v 1.4.2.4 2003-09-24 18:49:56 mschimek Exp $ */
 
 #ifndef FORMAT_H
 #define FORMAT_H
@@ -136,7 +136,7 @@ typedef enum {
 /**
  * @ingroup Page
  * @brief Defines the size of a vbi_char in a vbi_page.
-
+ *
  * Double width or height characters expand into the next
  * column right and/or next row below.
  * 
@@ -238,8 +238,8 @@ typedef struct vbi_char {
 	 * @bug
 	 * Some Teletext character sets contain complementary
 	 * Latin characters. For example the Greek capital letters Alpha
-	 * and Beta are re-used as Latin capital letter A and B, while a
-	 * separate code exists for Latin capital letter C. libzvbi will
+	 * and Beta are reused as Latin capital letter A and B, while a
+	 * separate code exists for the Latin capital letter C. libzvbi will
 	 * not analyse the page contents, so Greek A and B are always
 	 * translated to Greek Alpha and Beta, C to Latin C, even if they
 	 * appear in a pure Latin character word.
@@ -406,6 +406,9 @@ typedef enum {
 
 #if 0
 
+inline flags operator|(flags lhs, flags rhs) { return static_cast<flags>(static_cast<unsigned>(lhs) | static_cast<unsigned>(rhs)); }
+inline flags& operator|=(flags& lhs, flags rhs) { return lhs = static_cast<flags>(static_cast<unsigned>(lhs) | static_cast<unsigned>(rhs)); }
+
 namespace vbi {
   class Char {
     vbi_char			ch;
@@ -459,40 +462,34 @@ namespace vbi {
     /* teletext */
     bool hyperlink	(vbi_link&		ld,
 			 unsigned int		column,
-			 unsigned int		row)
-      const
+			 unsigned int		row) const
       {
 	return vbi_page_hyperlink (pg, ld, column, row);
       }
     bool hyperlink	(vbi_link&		ld,
-			 const_reference	ref)
-      const
+			 const_reference	ref) const
       {
 	size_type i = &ref - pg->text;
 
 	return hyperlink (ld, i % pg->columns, i / pg->columns);
       }
     bool nav_link	(vbi_link&		ld,
-			 unsigned int		num)
-      const
+			 unsigned int		num) const
       {
 	return vbi_page_nav_link (pg, ld, num);
       }
-    bool home_link	(vbi_link&		ld)
-      const
+    bool home_link	(vbi_link&		ld) const
       {
 	return vbi_page_nav_link (pg, ld, 5);
       }
     bool pdc_link	(vbi_pdc_preselection&	lp,
 			 unsigned int		column,
-			 unsigned int		row)
-      const
+			 unsigned int		row) const
       {
 	return vbi_page_pdc_link (pg, lp, column, row);
       }
     bool pdc_link	(vbi_pdc_preselection&	lp,
-			 const_reference	ref)
-      const
+			 const_reference	ref) const
       {
 	size_type i = &ref - pg->text;
 	return pdc_link (ld, i % pg->columns, i / pg->columns);

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bcd.h,v 1.6.2.3 2003-06-16 06:02:09 mschimek Exp $ */
+/* $Id: bcd.h,v 1.6.2.4 2003-09-24 18:49:56 mschimek Exp $ */
 
 #ifndef BCD_H
 #define BCD_H
@@ -232,10 +232,13 @@ typedef int vbi_pgno;
  * @ingroup Service
  *
  * This is the subpage number only applicable to Teletext pages,
- * a BCD number in range 0x00 ... 0x99. On special 'clock' pages
- * (for example listing the current time in different time zones)
- * it can assume values between 0x0000 ... 0x2359 expressing
- * local time. These are not actually subpages.
+ * a BCD number in range 0x00 ... 0x99. Typically subpages are
+ * numbered 0x01 ... 0x99, while a page without subpages has
+ * subpage number 0x00. On special 'clock' pages (for example
+ * listing the current time in different time zones) it can
+ * assume values between 0x0000 ... 0x2359 expressing local
+ * time. These are not actually subpages. Likewise the special
+ * value 0x3F7F, symbolic @c VBI_ANY_SUBNO and @c VBI_NO_SUBNO.
  */
 typedef int vbi_subno;
 

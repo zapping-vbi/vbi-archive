@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.6.2.3 2003-06-16 06:03:36 mschimek Exp $ */
+/* $Id: vbi.c,v 1.6.2.4 2003-09-24 18:49:57 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -893,6 +893,29 @@ vbi_version			(unsigned int *		major,
 	if (major) *major = VBI_VERSION_MAJOR;
 	if (minor) *minor = VBI_VERSION_MINOR;
 	if (micro) *micro = VBI_VERSION_MICRO;
+}
+
+/**
+ * @internal
+ */
+size_t
+vbi_strlcpy			(char *			dst1,
+				 const char *		src,
+				 size_t			size)
+{
+	char c, *dst, *end;
+
+	assert (size > 0);
+
+	dst = dst1;
+	end = dst1 + size - 1;
+
+	while (dst < end && (c = *src++))
+		*dst++ = c;
+
+	*dst = 0;
+
+	return dst - dst1;
 }
 
 /**

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext.c,v 1.7.2.3 2003-06-16 06:01:20 mschimek Exp $ */
+/* $Id: teletext.c,v 1.7.2.4 2003-09-24 18:49:57 mschimek Exp $ */
 
 #include "../config.h"
 #include "site_def.h"
@@ -40,18 +40,18 @@ struct pdc_date {
 	signed			year		: 8;	/* 0 ... 99 */
 	signed			month		: 8;	/* 0 ... 11 */
 	signed			day		: 8;	/* 0 ... 30 */
-};
+} PACKED;
 
 struct pdc_time {
 	signed			hour		: 8;	/* 0 ... 23 */
 	signed			min		: 8;	/* 0 ... 59 */
-};
+} PACKED;
 
 struct pdc_pos {
 	signed			row		: 8;	/* 1 ... 23 */
 	signed			column_begin	: 8;	/* 0 ... 39 */
 	signed			column_end	: 8;	/* 0 ... 40 */
-};
+} PACKED;
 
 struct pdc_prog {
 	struct pdc_date		ad;			/* Method B: year -1 */
@@ -255,7 +255,7 @@ Some observations:
 #define isperiod(c) ((c) == 0x2E)
 #define isminus(c) ((c) == 0x2D)
 
-/* These macros assume c is a C0 (0x00 ... 0x1F) */
+/* Caution! These macros assume c is a C0 (0x00 ... 0x1F) */
 #define iscontrol(c) ((M_COLOR | M_MAGENTA | M_CONCEAL) & (1 << (c)))
 #define ismagenta(c) ((c) == 0x05)
 #define isconceal(c) ((c) == 0x18)
@@ -424,10 +424,7 @@ pdc_ptl				(struct temp *		t,
 	return column;
 }
 
-/*
- *  In table copies AD, CNI, LTO in row p2 to all rows
- *  p2 to pend - 1.
- */
+/* Copies AD, CNI, LTO in row p2 to rows p2 to pend - 1. */
 static struct pdc_prog *
 pdc_at2_fill			(struct pdc_prog *	table,
 				 struct pdc_prog *	p2,
@@ -2872,10 +2869,14 @@ keyword				(vbi_link *		ld,
 
 		*start -= recipient;
 
+		assert (sizeof (ld->url) > 43);
+
 		strncat (ld->url, s1 - recipient, recipient);
 		strcat  (ld->url, "@");
 		strncat (ld->url, s1 + proto, address);
 	} else {
+		assert (sizeof (ld->url) > 43);
+
 		strncat (ld->url, buf + *start, proto + address);
 	}
 

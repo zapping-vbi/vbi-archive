@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: trigger.c,v 1.4.2.1 2003-02-16 21:03:41 mschimek Exp $ */
+/* $Id: trigger.c,v 1.4.2.2 2003-09-24 18:49:57 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -302,7 +302,7 @@ parse_eacem(vbi_trigger *t, unsigned char *s1, unsigned int nuid, double now)
 				break;
 
 			case 4: /* name */
-				strncpy(t->link.name, text, sizeof(t->link.name) - 1);
+				STRCOPY (t->link.name, text);
 				break;
 
                         case 5: /* priority */
@@ -312,7 +312,7 @@ parse_eacem(vbi_trigger *t, unsigned char *s1, unsigned int nuid, double now)
 				break;
 
 			case 6: /* script */
-				strncpy(t->link.script, text, sizeof(t->link.script) - 1);
+				STRCOPY (t->link.script, text);
 				break;
 
 			default:
@@ -500,11 +500,11 @@ parse_atvef(vbi_trigger *t, unsigned char *s1, double now)
 				break;
 
 			case 2: /* name */
-				strncpy(t->link.name, text, sizeof(t->link.name) - 1);
+				STRCOPY (t->link.name, text);
 				break;
 
 			case 3: /* script */
-				strncpy(t->link.script, text, sizeof(t->link.script) - 1);
+				STRCOPY (t->link.script, text);
 				break;
 
 			case 4: /* type */

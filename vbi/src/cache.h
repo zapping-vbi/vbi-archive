@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cache.h,v 1.2.2.3 2003-06-16 06:02:26 mschimek Exp $ */
+/* $Id: cache.h,v 1.2.2.4 2003-09-24 18:49:56 mschimek Exp $ */
 
 #ifndef CACHE_H
 #define CACHE_H
@@ -74,10 +74,10 @@ struct page_stat {
 
 /* private, for vbi_page_stat */
 struct cache_stat {
-	node			node;		/* station chain */
+	node			node;		/* network chain */
 
-	vbi_nuid		temp_nuid;
-	vbi_nuid		real_nuid;
+	vbi_nuid		client_nuid;
+	vbi_nuid		received_nuid;
 
 	unsigned int		num_pages;	/* how many cached */
 	unsigned int		max_pages;	/* cached and deleted */
