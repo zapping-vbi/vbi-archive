@@ -18,7 +18,7 @@
 #  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 
-# $Id: motion_mmx.s,v 1.2 2000-11-01 13:48:22 mschimek Exp $
+# $Id: motion_mmx.s,v 1.3 2001-04-19 23:54:21 mschimek Exp $
 
 		.text
 		.align		16
@@ -457,3 +457,374 @@ mmx_predict_bidirectional_packed:
 	popl %ebp
 	addl $28,%esp
 	ret
+
+
+		.text
+		.align		16
+		.globl		mmx_bipp_sad
+
+mmx_bipp_sad:
+	pushl %ebp
+	movl %esp,%ebp
+	pushl %edi
+	pushl %esi
+	pushl %ebx
+	movl 8(%ebp),%ecx
+	movl 12(%ebp),%edx
+	movl 16(%ebp),%eax
+
+		pxor		%mm5,%mm5;
+		pxor		%mm6,%mm6;
+		pxor		%mm7,%mm7;
+
+		movl		$16,%ebx
+
+		.p2align	4,,7
+.L1164:
+		movq		(%eax),%mm4;
+		movq		(%ecx),%mm3;		
+		movq		%mm4,%mm2;
+		psubusb		%mm3,%mm2;		
+		psubusb		%mm4,%mm3;
+		por		%mm3,%mm2;
+		movq		%mm2,%mm3;
+		punpcklbw	%mm5,%mm2;
+		paddw		%mm2,%mm6;
+		punpckhbw	%mm5,%mm3;
+		paddw		%mm3,%mm6;
+
+		movq		1(%ecx),%mm1;
+		movq		%mm4,%mm0;		
+		psubusb		%mm1,%mm0;		
+		psubusb		%mm4,%mm1;		
+		por		%mm1,%mm0;		
+		movq		%mm0,%mm1;
+		punpcklbw	%mm5,%mm0;
+		paddw		%mm0,%mm7;
+		punpckhbw	%mm5,%mm1;
+		paddw		%mm1,%mm7;
+
+		movq		8(%eax),%mm4;		
+		movq		8(%ecx),%mm3;		
+		movq		%mm4,%mm2;
+		movq		%mm3,%mm0;		
+		psrlq		$8,%mm0;
+		psubusb		%mm3,%mm2;		
+		psubusb		%mm4,%mm3;		
+		por		%mm3,%mm2;		
+		movq		%mm2,%mm3;
+		punpcklbw	%mm5,%mm2;
+		paddw		%mm2,%mm6;
+		punpckhbw	%mm5,%mm3;
+		paddw		%mm3,%mm6;
+
+		movq		(%edx),%mm1;		
+		psllq		$56,%mm1;		
+		por		%mm0,%mm1;
+		movq		%mm4,%mm0;		
+		psubusb		%mm1,%mm0;		
+		psubusb		%mm4,%mm1;		
+		por		%mm1,%mm0;		
+		movq		%mm0,%mm1;		
+		punpcklbw	%mm5,%mm0;
+		paddw		%mm0,%mm7;		
+		punpckhbw	%mm5,%mm1;
+		paddw		%mm1,%mm7;
+
+		addl $16,%eax
+		addl $16,%ecx
+		incl %edx
+
+		decl %ebx
+		jne .L1164
+
+		movq		%mm7,%mm0;
+		punpcklwd	%mm6,%mm0;
+		punpckhwd	%mm6,%mm7;
+		paddw		%mm0,%mm7;
+
+		movq		%mm7,%mm0;
+		psrlq		$32,%mm0;
+		paddw		%mm0,%mm7;
+		movd		%mm7,%edx;
+		movl		%edx,%esi;
+
+		movl		24(%ebp),%eax
+		movzxw		%dx,%edx;
+		movl		%edx,(%eax); // right
+
+		movl		20(%ebp),%eax
+		shrl		$16,%esi
+		movl		%esi,(%eax)
+
+	popl %ebx
+	popl %esi
+	popl %edi
+	movl %ebp,%esp
+	popl %ebp
+	ret
+
+
+
+
+
+		.text
+		.align		16
+		.globl		mmx_sad
+
+mmx_sad:
+		movq		(%edx),%mm0;
+		pushl		%ebx;
+		movq		(%edx,%ecx),%mm2;
+		pxor		%mm6,%mm6;
+		movq		8(%edx),%mm1;
+		pxor		%mm7,%mm7;
+		movq		8(%edx,%ecx),%mm3;
+		leal		(%edx,%ecx,2),%edx;
+		movq		(%eax),%mm4;
+		movl		$7,%ebx;
+
+		.align 4
+1:
+		movq		%mm0,%mm5;
+		psubusb		%mm4,%mm0;
+		psubusb		%mm5,%mm4;
+		movq		(%edx),%mm5;
+		por		%mm4,%mm0;
+		movq		%mm0,%mm4;
+		punpcklbw	%mm6,%mm0;
+		paddw		%mm0,%mm7;
+		movq		8(%eax),%mm0;
+		punpckhbw	%mm6,%mm4;
+		paddw		%mm4,%mm7;
+		movq		%mm1,%mm4;
+		psubusb		%mm0,%mm1;
+		psubusb		%mm4,%mm0;
+		movq		(%edx,%ecx),%mm4;
+		por		%mm0,%mm1;
+		movq		%mm1,%mm0;
+		punpcklbw	%mm6,%mm1;
+		paddw		%mm1,%mm7;
+		movq		16(%eax),%mm1;
+		punpckhbw	%mm6,%mm0;
+		paddw		%mm0,%mm7;
+		movq		%mm5,%mm0;
+		movq		%mm2,%mm5;
+		psubusb		%mm1,%mm2;
+		psubusb		%mm5,%mm1;
+		movq		24(%eax),%mm5;
+		addl		$32,%eax;
+		por		%mm1,%mm2;
+		movq		%mm2,%mm1;
+		punpckhbw	%mm6,%mm1;
+		paddw		%mm1,%mm7;
+		movq		8(%edx),%mm1;
+		punpcklbw	%mm6,%mm2;
+		paddw		%mm2,%mm7;
+		movq		%mm4,%mm2;
+		movq		%mm3,%mm4;
+		psubusb		%mm5,%mm3;
+		psubusb		%mm4,%mm5;
+		movq		(%eax),%mm4;
+		por		%mm5,%mm3;
+		movq		%mm3,%mm5;
+		punpcklbw	%mm6,%mm3;
+		paddw		%mm3,%mm7;
+		movq		8(%edx,%ecx),%mm3;
+		leal		(%edx,%ecx,2),%edx;
+		punpckhbw	%mm6,%mm5;
+		paddw		%mm5,%mm7;
+
+		decl		%ebx;
+		jne		1b;
+
+		movq		%mm0,%mm5;
+		psubusb		%mm4,%mm0;
+		psubusb		%mm5,%mm4;
+		movq		8(%eax),%mm5;
+		por		%mm4,%mm0;
+		movq		%mm0,%mm4;
+		punpcklbw	%mm6,%mm0;
+		punpckhbw	%mm6,%mm4;
+		paddw		%mm0,%mm7;
+		movq		16(%eax),%mm0;
+		paddw		%mm4,%mm7;
+		movq		%mm1,%mm4;
+		psubusb		%mm5,%mm1;
+		psubusb		%mm4,%mm5;
+		por		%mm5,%mm1;
+		movq		24(%eax),%mm4;
+		movq		%mm1,%mm5;
+		punpcklbw	%mm6,%mm1;
+		punpckhbw	%mm6,%mm5;
+		paddw		%mm1,%mm7;
+		paddw		%mm5,%mm7;
+		movq		%mm2,%mm5;
+		psubusb		%mm0,%mm2;
+		psubusb		%mm5,%mm0;
+		movq		c1,%mm5;
+		por		%mm0,%mm2;
+		movq		%mm2,%mm0;
+		punpcklbw	%mm6,%mm2;
+		punpckhbw	%mm6,%mm0;
+		paddw		%mm2,%mm7;
+		paddw		%mm0,%mm7;
+		movq		%mm3,%mm1;
+		psubusb		%mm4,%mm3;
+		psubusb		%mm1,%mm4;
+		por		%mm4,%mm3;
+		movq		%mm3,%mm4;
+		punpcklbw	%mm6,%mm3;
+		punpckhbw	%mm6,%mm4;
+		paddw		%mm3,%mm7;
+		paddw		%mm4,%mm7;
+		pmaddwd		%mm5,%mm7;
+		popl		%ebx;
+		movq		%mm7,%mm0;
+		psrlq		$32,%mm7;
+		paddd		%mm0,%mm7;
+		movd		%mm7,%eax;
+		ret;
+
+		.text
+		.align		16
+		.globl		mmx_bipp_sad2
+# preliminary
+mmx_bipp_sad2:
+	pushl %ebp
+	movl %esp,%ebp
+	pushl %edi
+	pushl %esi
+	pushl %ebx
+	movl 8(%ebp),%ecx
+	movl 12(%ebp),%edx
+	movl 16(%ebp),%eax
+
+		pxor		%mm5,%mm5;
+		pxor		%mm6,%mm6;
+		pxor		%mm7,%mm7;
+
+		movl		$8,%ebx
+
+		.p2align	4,,7
+.L1165:
+// 0/0
+		movq		(%eax),%mm4;
+		movq		(%ecx),%mm3;		
+		movq		%mm4,%mm2;
+		psubusb		%mm3,%mm2;		
+		psubusb		%mm4,%mm3;
+		por		%mm3,%mm2;
+		movq		%mm2,%mm3;
+		punpcklbw	%mm5,%mm2;
+		paddw		%mm2,%mm6;
+		punpckhbw	%mm5,%mm3;
+		paddw		%mm3,%mm6;
+
+		movq		1(%ecx),%mm1;
+		movq		%mm4,%mm0;		
+		psubusb		%mm1,%mm0;		
+		psubusb		%mm4,%mm1;		
+		por		%mm1,%mm0;		
+		movq		%mm0,%mm1;
+		punpcklbw	%mm5,%mm0;
+		paddw		%mm0,%mm7;
+		punpckhbw	%mm5,%mm1;
+		paddw		%mm1,%mm7;
+
+		addl $16,%eax
+		addl $16,%ecx
+		incl %edx
+// 1/1
+		movq		8(%eax),%mm4;		
+		movq		8(%ecx),%mm3;		
+		movq		%mm4,%mm2;
+		movq		%mm3,%mm0;		
+		psubusb		%mm3,%mm2;		
+		psubusb		%mm4,%mm3;		
+		por		%mm3,%mm2;		
+		movq		%mm2,%mm3;
+		punpcklbw	%mm5,%mm2;
+		paddw		%mm2,%mm6;
+		punpckhbw	%mm5,%mm3;
+		paddw		%mm3,%mm6;
+
+		movq		(%edx),%mm1;		
+		psrlq		$8,%mm0;
+		psllq		$56,%mm1;		
+		por		%mm0,%mm1;
+		movq		%mm4,%mm0;		
+		psubusb		%mm1,%mm0;		
+		psubusb		%mm4,%mm1;		
+		por		%mm1,%mm0;		
+		movq		%mm0,%mm1;		
+		punpcklbw	%mm5,%mm0;
+		paddw		%mm0,%mm7;		
+		punpckhbw	%mm5,%mm1;
+		paddw		%mm1,%mm7;
+
+		addl $16,%eax
+		addl $16,%ecx
+		incl %edx
+
+		decl %ebx
+		jne .L1165
+
+		movq		%mm7,%mm0;
+		punpcklwd	%mm6,%mm0;
+		punpckhwd	%mm6,%mm7;
+		paddw		%mm0,%mm7;
+
+		movq		%mm7,%mm0;
+		psrlq		$32,%mm0;
+		paddw		%mm0,%mm7;
+		movd		%mm7,%edx;
+		movl		%edx,%esi;
+
+		movl		24(%ebp),%eax
+		movzxw		%dx,%edx;
+		movl		%edx,(%eax); // right
+
+		movl		20(%ebp),%eax
+		shrl		$16,%esi
+		movl		%esi,(%eax)
+
+	popl %ebx
+	popl %esi
+	popl %edi
+	movl %ebp,%esp
+	popl %ebp
+	ret
+
+	.align 16
+	.type	 rwmsr,@function
+	.globl	rwmsr
+rwmsr:
+	pushl %ebp
+	movl %esp,%ebp
+	pushl %esi
+	movl $192,%eax
+	pushl %ebx
+	movl 8(%ebp),%ebx
+	movl 12(%ebp),%ecx
+	movl 16(%ebp),%edx
+#APP
+	int $0x80
+#NO_APP
+	movl %eax,%esi
+	cmpl $-126,%esi
+	jbe .L312
+	call __errno_location
+	negl %esi
+	movl %esi,(%eax)
+	movl $-1,%esi
+	.align 4
+.L312:
+	movl %esi,%eax
+	leal -8(%ebp),%esp
+	popl %ebx
+	popl %esi
+	movl %ebp,%esp
+	popl %ebp
+	ret
+

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vlc.h,v 1.5 2001-03-22 08:28:47 mschimek Exp $ */
+/* $Id: vlc.h,v 1.6 2001-04-19 23:54:21 mschimek Exp $ */
 
 #include "../common/math.h"
 #include "../options.h"
@@ -82,7 +82,8 @@ struct motion {
 	VLCM *			vlc;
 	int			f_code;
 	int			f_mask;
-	int			range;
+	int			src_range;
+	int			max_range;
 
 	int			PMV[2], MV[2];
 };
@@ -100,7 +101,8 @@ motion_init(struct motion *m, int range)
 
 	range = saturate(range, motion_min, motion_max);
 	f = saturate(ffsr(range - 1) - 1, F_CODE_MIN, F_CODE_MAX);
-	m->range = saturate(range, 4, 4 << f);
+	m->max_range = 4 << f;
+	m->src_range = saturate(range, 4, 4 << f);
 	m->f_mask = 0xFF >> (4 - f);
 	m->f_code = f;
 

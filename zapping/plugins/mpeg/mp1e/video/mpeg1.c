@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.25 2001-04-12 19:06:20 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.26 2001-04-19 23:54:21 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -197,6 +197,7 @@ motion_dmv(struct motion *m, int dmv[2])
 #define T3RI 1
 #define PSKIP 0
 static const int motion = 0;
+#define zero_forward_motion()
 #else
 static int motion = 8 * 256;
 #include "test-3p1.c"
@@ -345,6 +346,7 @@ picture_i(unsigned char *org0, unsigned char *org1)
 				mpeg1_idct_intra(quant);	// mblock[1] -> newref
 				pr_end(23);
 
+				zero_forward_motion();
 				mba_col();
 			}
 #if TEST_PREVIEW
@@ -469,12 +471,12 @@ picture_p(unsigned char *org0, unsigned char *org1, int dist, int forward_motion
 		motion_init(&M, (dist * forward_motion) >> 8);
 	else {
 		M.f_code = 1;
-		M.range = 0;
+		M.src_range = 0;
 	}
 
 	printv(3, "Encoding P picture #%d GOP #%d, ref=%c, f_code=%d (%d)\n",
 		video_frame_count, gop_frame_count, "FT"[referenced],
-		M.f_code, M.range);
+		M.f_code, M.src_range);
 
 	pr_start(24, "Picture P");
 
@@ -556,7 +558,7 @@ picture_p(unsigned char *org0, unsigned char *org1, int dist, int forward_motion
 
 #if TEST3p1
 			if (motion) {
-				vmc = predict_forward_motion(&M, oldref);
+				vmc = predict_forward_motion(&M, oldref, dist);
 			} else
 #endif
 				vmc = predict_forward(oldref + mb_address.block[0].offset);
@@ -607,6 +609,8 @@ picture_p(unsigned char *org0, unsigned char *org1, int dist, int forward_motion
 					pr_start(23, "IDCT intra");
 					mpeg1_idct_intra(quant); // mblock[0] -> new
 					pr_end(23);
+
+					zero_forward_motion();
 				}
 			} else {
 				unsigned int cbp;
@@ -762,7 +766,7 @@ if (!T3RT) quant = 2;
 
 #if TEST3p1
 	t2();
-	t7(M.range, dist);
+	t7(M.src_range, dist);
 #endif
 
 	/* Rate control */
@@ -789,7 +793,8 @@ if (!T3RT) quant = 2;
 }
 
 static int
-picture_b(unsigned char *org0, unsigned char *org1, int forward_motion, int backward_motion)
+picture_b(unsigned char *org0, unsigned char *org1, int dist,
+	  int forward_motion, int backward_motion)
 {
 	double act, act_sum;
 	short (* iblock)[6][8][8];
@@ -807,12 +812,12 @@ picture_b(unsigned char *org0, unsigned char *org1, int forward_motion, int back
 		motion_init(&M[1], backward_motion >> 8);
 	} else {
 		M[0].f_code = 1; M[1].f_code = 1;
-		M[0].range = 0;	M[1].range = 0;
+		M[0].src_range = 0; M[1].src_range = 0;
 	}
 
 	printv(3, "Encoding B picture #%d GOP #%d, fwd=%c, f_code=%d (%d), %d (%d)\n",
 		video_frame_count, gop_frame_count, "FT"[!closed_gop],
-		M[0].f_code, M[0].range, M[1].f_code, M[1].range);
+		M[0].f_code, M[0].src_range, M[1].f_code, M[1].src_range);
 
 	pr_start(25, "Picture B");
 
@@ -885,7 +890,7 @@ picture_b(unsigned char *org0, unsigned char *org1, int forward_motion, int back
 #if TEST3p1
 				if (motion)
 					vmc = predict_bidirectional_motion(M, oldref, newref,
-						&vmcf, &vmcb);
+						&vmcf, &vmcb, dist);
 				else
 #endif
 					vmc = predict_bidirectional(
@@ -980,7 +985,7 @@ if (!TEST3)
 				act_sum += act = vmc / 65536.0 + 1;
 				act = (2.0 * act + avg_actp) / (act + 2.0 * avg_actp);
 
-				quant = saturate(lroundn((bwritten(&video_out) - Ti) * r31 * act), 1, quant_max);
+    quant = saturate(lroundn((bwritten(&video_out) - Ti) * r31 * act), 1, quant_max);
 if (!T3RT) quant = 2;
 
 				Ti += Tmb;
@@ -1129,6 +1134,10 @@ if (!T3RT) quant = 2;
 	}
 
 	emms();
+
+#if TEST3p1
+	t8();
+#endif
 
 	/* Rate control */
 
@@ -1361,7 +1370,7 @@ resume(int n)
 			obuf = wait_empty_buffer(video_fifo);
 			bstart(&video_out, obuf->data);
 			obuf->used = picture_b(stack[i].org[0], stack[i].org[1],
-				(i + 1) * motion, (n - i) * motion);
+				i + 1, (i + 1) * motion, (n - i) * motion);
 
 			if (stack[i].buffer)
 				send_empty_buffer(video_cap_fifo, stack[i].buffer);
@@ -1855,7 +1864,7 @@ video_init(void)
 		motion = (motion_min + motion_max) << 7;
 
 		p_inter_bias *= 2;
-		b_inter_bias *= 2;
+		b_inter_bias *= 4;
 #endif
 
 	mb_cx_row = mb_height;
