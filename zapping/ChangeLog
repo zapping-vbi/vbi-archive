@@ -1,3 +1,11 @@
+21.2.2001	caption integrated <garetxe@users.sourceforge.net>
+
+	* caption.c, osd.c: Integrated caption display into the program,
+	it works great :-) Flickers more than necessary when adding
+	text to the same row, could be solved by passing a starting_row to
+	the render function, thus avoiding the need to remove the
+	currently drawn portion of the line to draw again the same.
+
 20.2.2001	TTX <garetxe@users.sourceforge.net>
 
 	* export.c: Zero 'struct export *' on allocation, caused segv

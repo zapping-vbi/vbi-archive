@@ -285,7 +285,7 @@ int main(int argc, char * argv[])
 			      0, NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.90 2001-02-18 22:15:02 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.91 2001-02-21 23:19:51 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -459,6 +459,9 @@ int main(int argc, char * argv[])
   startup_ttxview();
   D();
   startup_osd();
+  D();
+  /* just for testing, needs some GUI */
+  osd_on(tv_screen, main_window);
   D();
   /* disable VBI if needed */
   if (!zvbi_get_object())

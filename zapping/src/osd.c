@@ -67,7 +67,8 @@ struct osd_row {
 };
 static struct osd_row * osd_matrix[NUM_ROWS];
 
-static GtkWidget *osd_window =NULL;
+static GtkWidget *osd_window = NULL;
+static GtkWidget *osd_parent_window = NULL;
 static volatile gboolean osd_started = FALSE; /* shared between
 						 threads */
 
@@ -124,7 +125,6 @@ startup_osd(void)
       osd_matrix[i] = g_malloc(sizeof(struct osd_row));
       memset(osd_matrix[i], 0, sizeof(struct osd_row));
     }
-  /* do nothing for the moment, will allocate window pool */
 
   osd_started = TRUE;
 
@@ -150,8 +150,6 @@ shutdown_osd(void)
   uninit_fifo(&osd_fifo);
 
   gtk_timeout_remove(keeper_id);
-
-  /* will free window pool */
 
   osd_started = FALSE;
 
@@ -197,7 +195,7 @@ set_piece_geometry(int row, int piece)
 }
 
 static void
-recompute_all_geometries(void)
+osd_geometry_update(void)
 {
   int i, j;
 
@@ -212,21 +210,55 @@ recompute_all_geometries(void)
       }
 }
 
+static
+gboolean on_osd_screen_configure	(GtkWidget	*widget,
+					 GdkEventConfigure *event,
+					 gpointer	user_data)
+{
+  osd_geometry_update();
+
+  return TRUE;
+}
+
+static
+void on_osd_screen_size_allocate	(GtkWidget	*widget,
+					 GtkAllocation	*allocation,
+					 gpointer	ignored)
+{
+  osd_geometry_update();
+}
+
 void
-osd_on(GtkWidget * dest_window)
+osd_on(GtkWidget * dest_window, GtkWidget *parent)
 {
   g_assert(osd_started == TRUE);
   g_assert(dest_window != NULL);
 
   osd_window = dest_window;
+  osd_parent_window = parent;
 
-  recompute_all_geometries();
+  gtk_signal_connect(GTK_OBJECT(dest_window), "size-allocate",
+		     GTK_SIGNAL_FUNC(on_osd_screen_size_allocate),
+		     NULL);
+  gtk_signal_connect(GTK_OBJECT(parent), "configure-event",
+		     GTK_SIGNAL_FUNC(on_osd_screen_configure),
+		     NULL);
+
+  osd_geometry_update();
 }
 
 void
 osd_off(void)
 {
   g_assert(osd_started == TRUE);
+
+  gtk_signal_disconnect_by_func(GTK_OBJECT(osd_window),
+				GTK_SIGNAL_FUNC(on_osd_screen_size_allocate),
+				NULL);
+  gtk_signal_disconnect_by_func(GTK_OBJECT(osd_parent_window),
+				GTK_SIGNAL_FUNC(on_osd_screen_configure),
+				NULL);
+
   osd_window = NULL;
 }
 
@@ -278,7 +310,7 @@ draw_row(unsigned char *canvas, attr_char *line, int width, int rowstride)
       switch (line[i].opacity)
 	{
 	case TRANSPARENT_SPACE:
-	  g_assert_not_reached(); /* programming error */
+	  g_assert_not_reached();
 	  break;
 
 	case TRANSPARENT:
@@ -373,7 +405,8 @@ get_window(void)
   gdk_window_set_back_pixmap(da->window, NULL, FALSE);
   gdk_window_set_decorations(window->window, 0);
 
-  gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(osd_window));
+  gtk_window_set_transient_for(GTK_WINDOW(window),
+			       GTK_WINDOW(osd_parent_window));
 
   gtk_widget_add_events(da, GDK_EXPOSURE_MASK);
 
@@ -434,6 +467,8 @@ add_piece(int col, int row, int width, attr_char *c)
   struct osd_piece p;
   GtkWidget *da;
   struct osd_piece *pp;
+  GdkEventExpose event;
+  gint w, h;
 
   g_assert(osd_started == TRUE);
   g_assert(row >= 0);
@@ -464,9 +499,13 @@ add_piece(int col, int row, int width, attr_char *c)
   gtk_signal_connect(GTK_OBJECT(da), "expose-event",
 		     GTK_SIGNAL_FUNC(on_osd_expose_event), pp);
 
-  gtk_widget_show(pp->window);
+  gdk_window_get_size(da->window, &w, &h);
 
-  g_assert(GTK_BIN(pp->window)->child  == da);
+  event.area.x = event.area.y = 0;
+  event.area.width = w; event.area.height = h;
+  on_osd_expose_event(da, &event, pp);
+
+  gtk_widget_show(pp->window);
 
   return osd_matrix[row]->n_pieces-1;
 }
@@ -483,7 +522,7 @@ static void osd_clear_row(int row)
 
 /* These routines (clear, render, roll_up) are the caption.c
    counterparts, they will communicate with the CC engine using an
-   event fifo (in zvbi, probably). This is needed since all GDK/GTK
+   event fifo. This is needed since all GDK/GTK
    calls should be done from the main thread. */
 void osd_clear(void)
 {
@@ -500,17 +539,22 @@ void osd_render(attr_char *buffer, int row)
   int height=1;
   int i, j;
   attr_char piece_buffer[NUM_COLS];
+  gint last_row;
 
   g_assert(osd_started == TRUE);
 
   if (row == -1)
     {
-      row = -1;
+      row = 0;
       height = NUM_ROWS;
     }
 
-  for (; row < (row+height); row++)
+  last_row = row+height;
+
+  for (; row < last_row; row++, buffer += NUM_COLS)
     {
+      /* FIXME: This produces flicker, we should allow rendering from
+	 an arbitrary row, there's no way to know from osd */
       osd_clear_row(row);
       for (i = j = 0; i<NUM_COLS; i++)
 	{
@@ -520,9 +564,11 @@ void osd_render(attr_char *buffer, int row)
 	      add_piece(i-j, row, j, piece_buffer);
 	      j = 0;
 	    }
-	  else
+	  else if (buffer[i].opacity != TRANSPARENT_SPACE)
 	    piece_buffer[j++] = buffer[i];
 	}
+      if (j)
+	add_piece(NUM_COLS-j, row, j, piece_buffer);
     }
 }
 
@@ -597,83 +643,3 @@ void cc_roll_up(attr_char *buffer, int first_row, int last_row)
   c.command = OSD_ROLL_UP;
   send_cc_command(&c);
 }
-
-#if 0
-static gboolean
-on_main_configure_event		(GtkWidget	*window,
-				 GdkEventConfigure *conf,
-				 gpointer data)
-{
-  recompute_all_geometries();
-  
-  return TRUE;
-}
-
-static gint
-actions_timeout			(gpointer	data)
-{
-  static gint counter = 0;
-  int i;
-  attr_char buffer[60];
-
-  memset(buffer, 0, sizeof(buffer[0])*60);
-
-  for (i=0; i<60; i++)
-    {
-      buffer[i].opacity = OPAQUE;
-      buffer[i].underline = rand()%2;
-      buffer[i].glyph = "abcdefghijklmnopq"[rand()%17];
-      buffer[i].foreground = rand()%8;
-      buffer[i].background = rand()%8;
-    }
-
-  switch (counter)
-    {
-    case 0:
-      add_piece(5, 7, 5, buffer);
-      add_piece(0, 0, 10, buffer+10);
-      add_piece(11, 0, NUM_COLS-15, buffer);
-      break;
-    case 3:
-      osd_clear_row(0);
-      break;
-    case 4:
-      add_piece(1, 1, NUM_COLS-1, buffer+4);
-      break;
-    case 5 ... 9:
-      osd_roll_up(NULL, 0, NUM_ROWS-1);
-      add_piece(1, NUM_ROWS-1, NUM_COLS-2, buffer+(rand()%6));
-      break;
-    default:
-      break;
-    }
-  
-  counter++;
-  return TRUE;
-}
-
-int main(int argc, char *argv[])
-{
-  GtkWidget *main_window;
-  
-  gtk_init(&argc, &argv);
-
-  main_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-
-  gtk_widget_show(main_window);
-  gtk_signal_connect(GTK_OBJECT(main_window), "configure-event",
-		     GTK_SIGNAL_FUNC(on_main_configure_event), NULL);
-
-  startup_osd();
-  osd_on(main_window);
-
-  gtk_timeout_add(1000, actions_timeout, 0);
-
-  gtk_main();
-
-  osd_off();
-  shutdown_osd();
-
-  return 0;
-}
-#endif

@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.13 2001-02-20 07:33:20 mschimek Exp $ */
+/* $Id: caption.c,v 1.14 2001-02-21 23:19:51 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,6 +37,8 @@
 #include "hamm.h"
 #include "tables.h"
 #include "lang.h"
+#define OSD_JUST_CC /* just the cc_* declarations */
+#include "../src/osd.h"
 
 #define XDS_DISABLE 0
 #define ITV_DISABLE 0
@@ -628,7 +630,7 @@ itv_separator(struct caption *cc, char c)
  *  If the same render() is used for WST we may need a bool indicating
  *  the required layout.
  */
-void render(struct fmt_page *pg, int row);
+static void render(struct fmt_page *pg, int row);
 
 /*
  *  Another render() shortcut, set all cols and rows to
@@ -636,7 +638,7 @@ void render(struct fmt_page *pg, int row);
  *  mode because we don't have the buffer to render() and erasing
  *  all data at once will be faster than scanning the buffer anyway.
  */
-void clear(int pgno);
+static void clear(int pgno);
 
 /*
  *  Start soft scrolling, move <first_row> + 1 ... <last_row> (inclusive)
@@ -648,7 +650,7 @@ void clear(int pgno);
  *  returning. Soft scrolling finished or not, render() can be called
  *  any time later, any row, so prepare.
  */
-void roll_up(struct fmt_page *pg, int first_row, int last_row);
+static void roll_up(struct fmt_page *pg, int first_row, int last_row);
 
 static void
 word_break(struct caption *cc, channel *ch)
@@ -1272,19 +1274,46 @@ vbi_init_caption(struct caption *cc)
 
 #if !TEST
 
-void
+static int		draw_page=-1;
+
+void vbi_caption_fetch(int page)
+{
+/*	channel *ch = &caption.channel[page - CC_PAGE_BASE];
+
+	draw_page = page;
+
+	if (ch->mode == MODE_POP_ON)
+		clear(page); // XXX have no displayed buffer, should we?
+	else
+	render(&ch->pg, -1);*/
+	draw_page = page;
+}
+
+static void
 render(struct fmt_page *pg, int row)
 {
+	if (draw_page >= 0 && pg->pgno != draw_page)
+		return;
+
+	if (row < 0)
+		cc_render(pg->text, row);
+	else
+		cc_render(pg->text + row*COLUMNS, row);
 }
 
-void
+static void
 clear(int pgno)
 {
+	if (draw_page >= 0 && pgno != draw_page)
+		return;
+
+	cc_clear();
 }
 
-void
+static void
 roll_up(struct fmt_page *pg, int first_row, int last_row)
 {
+	cc_roll_up(pg->text, first_row, last_row);
 }
 
 #else /* TEST */
@@ -1435,7 +1464,7 @@ bump(int n, bool draw)
 	shift -= n;
 }
 
-void
+static void
 render(struct fmt_page *pg, int row)
 {
 	ushort *canvas = ximgdata + 48 + 45 * DISP_WIDTH;
@@ -1462,7 +1491,7 @@ render(struct fmt_page *pg, int row)
 		0, 0, 0, 0, DISP_WIDTH, DISP_HEIGHT);
 }
 
-void
+static void
 clear(int page)
 {
 	int i;
@@ -1478,7 +1507,7 @@ clear(int page)
 		0, 0, 0, 0, DISP_WIDTH, DISP_HEIGHT);
 }
 
-void
+static void
 roll_up(struct fmt_page *pg, int first_row, int last_row)
 {
 	ushort *canvas = ximgdata + 45 * DISP_WIDTH;
