@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.163 2004-12-11 11:46:20 mschimek Exp $
+dnl $Id: configure.in,v 1.164 2005-01-08 14:32:51 mschimek Exp $
 
-AC_INIT(zapping, 0.8.2cvs,
+AC_INIT(zapping, 0.9cvs,
   [http://sourceforge.net/tracker/?atid=102599&group_id=2599&func=browse])
 AC_CONFIG_SRCDIR(configure.in)
 AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
@@ -33,6 +33,7 @@ test -e site_def.h || cat <<EOF >site_def.h
 #ifndef SITE_DEF_H
 #define SITE_DEF_H
 /* #define AUDIO_MIXER_LOG_FP stderr */
+/* #define DI_MAIN_HEIGHT_DIV 1 */
 /* #define KEYBOARD_KEY_LOG 1 */
 /* #define OSD_TEST 1 */
 /* #define OSS_LOG_FP stderr */
@@ -90,7 +91,7 @@ AC_DEFUN(CHECK_SIMD, [
     [HAVE_$1="no"])
   AM_CONDITIONAL(HAVE_$1, test "x$HAVE_$1" = "xyes")
   CFLAGS="$SAVE_CFLAGS"]
-  AC_MSG_RESULT(HAVE_$1))
+  AC_MSG_RESULT($HAVE_$1))
 
 dnl x86 and x86_64
 CHECK_SIMD(MMX, [-mmmx], [mmintrin.h], [_mm_setzero_si64 ()])
@@ -98,8 +99,7 @@ CHECK_SIMD(SSE, [-msse], [xmmintrin.h], [_mm_setzero_ps ()])
 CHECK_SIMD(SSE2, [-msse2], [emmintrin.h], [_mm_setzero_pd ()])
 
 dnl powerpc
-dnl No -maltivec switch here until we have runtime detection.
-CHECK_SIMD(ALTIVEC, [], [altivec.h], [vec_dssall ()])
+CHECK_SIMD(ALTIVEC, [-maltivec -mabi=altivec], [altivec.h], [vec_dssall ()])
 
 case "$host" in
 i?86-* | k?-*) dnl i386, i486, i586, i686, k6, k7
@@ -760,6 +760,11 @@ zapping_setup_fb/Makefile
 zapping_setup_fb/zapping_fix_overlay
 plugins/Makefile
 plugins/alirc/Makefile
+plugins/deinterlace/Makefile
+plugins/deinterlace/DI_GreedyH/Makefile
+plugins/deinterlace/DI_Misc/Makefile
+plugins/deinterlace/DI_MoComp2/Makefile
+plugins/deinterlace/DI_TomsMoComp/Makefile
 plugins/mpeg/Makefile
 plugins/screenshot/Makefile
 plugins/teletext/Makefile
@@ -769,11 +774,6 @@ help/C/Makefile
 test/Makefile
 ])
 
-dnl plugins/deinterlace/Makefile
-dnl plugins/deinterlace/DI_GreedyH/Makefile
-dnl plugins/deinterlace/DI_Misc/Makefile
-dnl plugins/deinterlace/DI_MoComp2/Makefile
-dnl plugins/deinterlace/DI_TomsMoComp/Makefile
 
 dnl ---------------------------------------------------------------------------
 
