@@ -17,9 +17,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet-830.c,v 1.2 2005-01-08 14:54:21 mschimek Exp $ */
+/* $Id: packet-830.c,v 1.3 2005-01-19 04:11:13 mschimek Exp $ */
 
-#include "../config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <assert.h>
 
@@ -34,7 +36,7 @@
  */
 
 /**
- * @param cni CNI of type VBI3_CNI_TYPE_8301 is stored here.
+ * @param cni CNI of type VBI3_CNI_TYPE_8301 will be stored here.
  * @param buffer Teletext packet as defined for @c VBI3_SLICED_TELETEXT_B,
  *   i.e. 42 bytes without clock run-in and framing code.
  *
@@ -58,7 +60,7 @@ vbi3_decode_teletext_8301_cni	(unsigned int *		cni,
 }
 
 /**
- * @param time UTC time is stored here.
+ * @param time UTC time will be stored here.
  * @param gmtoff Local time offset in seconds east of UTC is stored here,
  *   including daylight saving time, as in BSD and GNU struct tm tm_gmtoff.
  *   To get the local time of the network broadcasting this packet add
@@ -136,7 +138,7 @@ vbi3_decode_teletext_8301_local_time
 }
 
 /**
- * @param cni CNI of type VBI3_CNI_TYPE_8302 is stored here.
+ * @param cni CNI of type VBI3_CNI_TYPE_8302 will be stored here.
  * @param buffer Teletext packet as defined for @c VBI3_SLICED_TELETEXT_B,
  *   i.e. 42 bytes without clock run-in and framing code.
  *
@@ -157,10 +159,10 @@ vbi3_decode_teletext_8302_cni	(unsigned int *		cni,
 	assert (NULL != cni);
 	assert (NULL != buffer);
 
-	b[ 7] = vbi3_iham16p (buffer + 10);
-	b[ 8] = vbi3_iham16p (buffer + 12);
-	b[10] = vbi3_iham16p (buffer + 16);
-	b[11] = vbi3_iham16p (buffer + 18);
+	b[ 7] = vbi3_unham16p (buffer + 10);
+	b[ 8] = vbi3_unham16p (buffer + 12);
+	b[10] = vbi3_unham16p (buffer + 16);
+	b[11] = vbi3_unham16p (buffer + 18);
 
 	if ((b[7] | b[8] | b[10] | b[11]) < 0)
 		return FALSE;
@@ -180,7 +182,7 @@ vbi3_decode_teletext_8302_cni	(unsigned int *		cni,
 }
 
 /**
- * @param pid PDC data is stored here.
+ * @param pid PDC data will be stored here.
  * @param buffer Teletext packet as defined for @c VBI3_SLICED_TELETEXT_B,
  *   i.e. 42 bytes without clock run-in and framing code.
  * 
@@ -202,13 +204,13 @@ vbi3_decode_teletext_8302_pdc	(vbi3_program_id *	pid,
 	assert (NULL != pid);
 	assert (NULL != buffer);
 
-	error = vbi3_iham8 (buffer[10]);
+	error = vbi3_unham8 (buffer[10]);
 	b[ 6] = error;
 
 	for (i = 7; i <= 12; ++i) {
 		int t;
 
-		t = vbi3_iham16p (buffer + i * 2 - 4);
+		t = vbi3_unham16p (buffer + i * 2 - 4);
 		error |= t;
 		b[i] = vbi3_rev8 (t);
 	}

@@ -17,10 +17,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext.c,v 1.31 2005-01-08 14:54:21 mschimek Exp $ */
+/* $Id: teletext.c,v 1.32 2005-01-19 04:10:35 mschimek Exp $ */
 
-#include "../config.h"
 #include "site_def.h"
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <stdarg.h>
 #include <stdlib.h>
@@ -228,7 +231,7 @@ level_one_row			(vbi3_page_priv *	pgp,
 	wide_char		= FALSE;
 
 	for (column = 0; column < 40; ++column) {
-		raw = vbi3_ipar8 (*rawp++);
+		raw = vbi3_unpar8 (*rawp++);
 
 		if ((0 == row && column < 8) || raw < 0)
 			raw = 0x20;
@@ -316,7 +319,7 @@ level_one_row			(vbi3_page_priv *	pgp,
 			   as additional error protection. */
 			if (column >= 39)
 				break;
-			if (0x0A == vbi3_ipar8 (*rawp))
+			if (0x0A == vbi3_unpar8 (*rawp))
 				ac.opacity = pgp->page_opacity[row > 0];
 			break;
 
@@ -325,7 +328,7 @@ level_one_row			(vbi3_page_priv *	pgp,
 			   as additional error protection. */
 			if (column >= 39)
 				break;
-			if (0x0B == vbi3_ipar8 (*rawp))
+			if (0x0B == vbi3_unpar8 (*rawp))
 				ac.opacity = pgp->boxed_opacity[row > 0];
 			break;
 
@@ -1234,8 +1237,8 @@ enhance_flush			(enhance_state *	st,
 		/* OBJECT_TYPE_ACTIVE */
 
 		raw = (0 == row && column < 9) ?
-			0x20 : vbi3_ipar8 (st->pgp->cp->data.lop.raw
-					  [row][column - 1]);
+			0x20 : vbi3_unpar8 (st->pgp->cp->data.lop.raw
+					    [row][column - 1]);
 
 		/* Set-after spacing attributes cancelling non-spacing. */
 
@@ -1254,7 +1257,7 @@ enhance_flush			(enhance_state *	st,
 		case 0x0A:		/* end box */
 		case 0x0B:		/* start box */
 			if (column < 40
-			    && raw == vbi3_ipar8
+			    && raw == vbi3_unpar8
 			    (st->pgp->cp->data.lop.raw[row][column])) {
 				fmt_log ("... boxed term %d %02x\n",
 					 column, raw);
@@ -1275,8 +1278,8 @@ enhance_flush			(enhance_state *	st,
 			break;
 
 		raw = (0 == row && column < 8) ?
-			0x20 : vbi3_ipar8 (st->pgp->cp->data.lop.raw
-					  [row][column]);
+			0x20 : vbi3_unpar8 (st->pgp->cp->data.lop.raw
+					    [row][column]);
 
 		/* Set-at spacing attributes cancelling non-spacing. */
 

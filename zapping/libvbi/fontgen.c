@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fontgen.c,v 1.3 2005-01-08 14:54:20 mschimek Exp $ */
+/* $Id: fontgen.c,v 1.4 2005-01-19 04:12:37 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,7 +27,7 @@
 
 #include "misc.h"
 
-#include "hamm.c" /* vbi3_bit_reverse[] */
+#include "hamm.c" /* _vbi3_bit_reverse[] */
 
 static char *			font_name;
 
@@ -148,7 +148,7 @@ xbm_write			(void)
 
 			for (x = 0; x < image_width / 8; ++x) {
 				fprintf (fp, "0x%02x,",
-					 vbi3_bit_reverse[p[x]]);
+					 _vbi3_bit_reverse[p[x]]);
 
 				if (7 == (x % 8))
 					fputs ("\n  ", fp);

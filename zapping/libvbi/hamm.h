@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: hamm.h,v 1.12 2005-01-08 14:54:20 mschimek Exp $ */
+/* $Id: hamm.h,v 1.13 2005-01-19 04:11:56 mschimek Exp $ */
 
 #ifndef __ZVBI3_HAMM_H__
 #define __ZVBI3_HAMM_H__
@@ -31,10 +31,10 @@
 
 VBI3_BEGIN_DECLS
 
-extern const uint8_t		vbi3_bit_reverse [256];
-extern const uint8_t		vbi3_hamm8_fwd [16];
-extern const int8_t		vbi3_hamm8_inv [256];
-extern const int8_t		vbi3_hamm24_inv_par [3][256];
+extern const uint8_t		_vbi3_bit_reverse [256];
+extern const uint8_t		_vbi3_hamm8_fwd [16];
+extern const int8_t		_vbi3_hamm8_inv [256];
+extern const int8_t		_vbi3_hamm24_inv_par [3][256];
 
 /**
  * @addtogroup Error Error correction functions
@@ -54,7 +54,7 @@ extern const int8_t		vbi3_hamm24_inv_par [3][256];
 vbi3_inline unsigned int
 vbi3_rev8			(unsigned int		c)
 {
-	return vbi3_bit_reverse[(uint8_t) c];
+	return _vbi3_bit_reverse[(uint8_t) c];
 }
 
 /**
@@ -68,8 +68,8 @@ vbi3_rev8			(unsigned int		c)
 vbi3_inline unsigned int
 vbi3_rev16			(unsigned int		c)
 {
-	return vbi3_bit_reverse[(uint8_t) c] * 256
-		+ vbi3_bit_reverse[(uint8_t)(c >> 8)];
+	return _vbi3_bit_reverse[(uint8_t) c] * 256
+		+ _vbi3_bit_reverse[(uint8_t)(c >> 8)];
 }
 
 /**
@@ -84,8 +84,8 @@ vbi3_rev16			(unsigned int		c)
 vbi3_inline unsigned int
 vbi3_rev16p			(const uint8_t *	p)
 {
-	return vbi3_bit_reverse[p[0]] * 256
-		+ vbi3_bit_reverse[p[1]];
+	return _vbi3_bit_reverse[p[0]] * 256
+		+ _vbi3_bit_reverse[p[1]];
 }
 
 /**
@@ -96,12 +96,12 @@ vbi3_rev16p			(const uint8_t *	p)
  * to make the number of set bits odd.
  */
 vbi3_inline unsigned int
-vbi3_fpar8			(unsigned int		c)
+vbi3_par8			(unsigned int		c)
 {
 	c &= 255;
 
-	if (0 == (vbi3_hamm24_inv_par[0][c] & 32))
-		c ^= 128;
+	/* if 0 == (inv_par[] & 32) change bit 7 of c. */
+	c ^= 128 & ~(_vbi3_hamm24_inv_par[0][c] << 2);
 
 	return c;
 }
@@ -114,7 +114,7 @@ vbi3_fpar8			(unsigned int		c)
  * byte AND 127, otherwise a negative value.
  */
 vbi3_inline int
-vbi3_ipar8			(unsigned int		c)
+vbi3_unpar8			(unsigned int		c)
 {
 #ifdef __GNUC__
 #if #cpu (i686)
@@ -127,7 +127,7 @@ vbi3_ipar8			(unsigned int		c)
 	return r;
 #endif
 #endif
-	if (vbi3_hamm24_inv_par[0][(uint8_t) c] & 32) {
+	if (_vbi3_hamm24_inv_par[0][(uint8_t) c] & 32) {
 		return c & 127;
 	} else {
 		/* The idea is to OR results together to find a parity
@@ -138,10 +138,10 @@ vbi3_ipar8			(unsigned int		c)
 }
 
 extern void
-vbi3_fpar			(uint8_t *		p,
+vbi3_par				(uint8_t *		p,
 				 unsigned int		n);
 extern int
-vbi3_ipar			(uint8_t *		p,
+vbi3_unpar			(uint8_t *		p,
 				 unsigned int		n);
 
 /**
@@ -154,9 +154,9 @@ vbi3_ipar			(uint8_t *		p,
  * Hamming encoded unsigned byte, lsb first transmitted.
  */
 vbi3_inline unsigned int
-vbi3_fham8			(unsigned int		c)
+vbi3_ham8			(unsigned int		c)
 {
-	return vbi3_hamm8_fwd[c & 15];
+	return _vbi3_hamm8_fwd[c & 15];
 }
 
 /**
@@ -170,9 +170,9 @@ vbi3_fham8			(unsigned int		c)
  * value if the byte contained incorrectable errors.
  */
 vbi3_inline unsigned int
-vbi3_iham8			(unsigned int		c)
+vbi3_unham8			(unsigned int		c)
 {
-	return vbi3_hamm8_inv[(uint8_t) c];
+	return _vbi3_hamm8_inv[(uint8_t) c];
 }
 
 /**
@@ -188,14 +188,14 @@ vbi3_iham8			(unsigned int		c)
  * contained incorrectable errors.
  */
 vbi3_inline int
-vbi3_iham16p			(const uint8_t *	p)
+vbi3_unham16p			(const uint8_t *	p)
 {
-	return ((int) vbi3_hamm8_inv[p[0]])
-	  | (((int) vbi3_hamm8_inv[p[1]]) << 4);
+	return ((int) _vbi3_hamm8_inv[p[0]])
+	  | (((int) _vbi3_hamm8_inv[p[1]]) << 4);
 }
 
 extern int
-vbi3_iham24p			(const uint8_t *	p) vbi3_pure;
+vbi3_unham24p			(const uint8_t *	p) vbi3_pure;
 
 /** @} */
 

@@ -22,9 +22,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.23 2005-01-08 14:54:21 mschimek Exp $ */
+/* $Id: search.c,v 1.24 2005-01-19 04:10:52 mschimek Exp $ */
 
-#include "../config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <stdlib.h>		/* malloc() */
 #include <assert.h>
@@ -79,9 +81,6 @@ struct _vbi3_search {
 
 #define FIRST_ROW 1
 #define LAST_ROW 24
-
-#define printable(c)							\
-  ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
 
 static void
 highlight			(vbi3_search *		s,
@@ -287,9 +286,9 @@ search_page_fwd			(cache_page *		cp,
 		fprintf (stderr, "exec: %x/%x; start %d,%d; %c%c%c...\n",
 			 cp->pgno, cp->subno,
 			 s->row[0], s->col[0],
-			 printable (first[0]),
-			 printable (first[1]),
-			 printable (first[2]));
+			 vbi3_printable (first[0]),
+			 vbi3_printable (first[1]),
+			 vbi3_printable (first[2]));
 
 	if (!ure_exec (s->ud, flags, first, hp - first, &ms, &me))
 		return 0; /* try next page */
@@ -402,9 +401,9 @@ break2:
 		if (0)
 			fprintf (stderr, "exec: %x/%x; %d, %ld; '%c%c%c...'\n",
 				 cp->pgno, cp->subno, i, me,
-				 printable (s->haystack[me + 0]),
-				 printable (s->haystack[me + 1]),
-				 printable (s->haystack[me + 2]));
+				 vbi3_printable (s->haystack[me + 0]),
+				 vbi3_printable (s->haystack[me + 1]),
+				 vbi3_printable (s->haystack[me + 2]));
 
 		if (!ure_exec (s->ud, (me > 0) ? (flags | URE_NOTBOL) : flags,
 			       s->haystack + me,

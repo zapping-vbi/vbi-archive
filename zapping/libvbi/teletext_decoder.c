@@ -17,13 +17,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext_decoder.c,v 1.5 2005-01-08 14:54:21 mschimek Exp $ */
+/* $Id: teletext_decoder.c,v 1.6 2005-01-19 04:09:50 mschimek Exp $ */
 
 #include "../site_def.h"
 
 #include <stdlib.h>		/* malloc() */
 #include <assert.h>
-#include "hamm.h"		/* vbi3_iham functions */
+#include "hamm.h"		/* vbi3_unham functions */
 #include "packet-830.h"		/* vbi3_decode_teletext_830x functions */
 #include "conv.h"		/* _vbi3_strdup_locale_teletext() */
 #include "page-priv.h"
@@ -33,9 +33,6 @@
  * @addtogroup Teletext Teletext Decoder
  * @ingroup HiDec
  */
-
-#define printable(c)							\
-	((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
 
 #ifndef TELETEXT_DECODER_CHSW_TEST
 #define TELETEXT_DECODER_CHSW_TEST 0
@@ -246,7 +243,7 @@ cache_page_raw_dump		(const cache_page *	cp,
 				const uint8_t *p;
 
 				p = &cp->data.lop.raw[j][1 + i * 3];
-				fprintf (fp, "%05x ", vbi3_iham24p (p));
+				fprintf (fp, "%05x ", vbi3_unham24p (p));
 			}
 
 			break;
@@ -256,7 +253,7 @@ cache_page_raw_dump		(const cache_page *	cp,
 				unsigned int c;
 
 				c = cp->data.lop.raw[j][i];
-				fprintf (fp, "%x", vbi3_iham8 (c));
+				fprintf (fp, "%x", vbi3_unham8 (c));
 			}
 
 			break;
@@ -273,7 +270,7 @@ cache_page_raw_dump		(const cache_page *	cp,
 		}
 
 		for (i = 0; i < 40; ++i)
-			fputc (printable (cp->data.lop.raw[j][i]), fp);
+			fputc (vbi3_printable (cp->data.lop.raw[j][i]), fp);
 
 		fputc ('\n', fp);
 	}
@@ -333,15 +330,15 @@ extension_dump			(const extension *	ext,
 }
 
 static vbi3_bool
-iham8_page_number		(pagenum *		pn,
+unham8_page_number		(pagenum *		pn,
 				 const uint8_t		buffer[6],
 				 unsigned int		mag0)
 {
 	int b1, b2, b3;
 
-	b1 = vbi3_iham16p (buffer + 0);
-	b2 = vbi3_iham16p (buffer + 2);
-	b3 = vbi3_iham16p (buffer + 4);
+	b1 = vbi3_unham16p (buffer + 0);
+	b2 = vbi3_unham16p (buffer + 2);
+	b3 = vbi3_unham16p (buffer + 4);
 
 	if ((b1 | b2 | b3) < 0)
 		return FALSE;
@@ -400,12 +397,12 @@ decode_pop_packet		(cache_page *		cp,
 	int err;
 	unsigned int i;
 
-	designation = vbi3_iham8 (buffer[0]);
+	designation = vbi3_unham8 (buffer[0]);
 
 	err = 0;
 
 	for (i = 0; i < 13; ++i)
-		err |= n18[i] = vbi3_iham24p (buffer + 1 + i * 3);
+		err |= n18[i] = vbi3_unham24p (buffer + 1 + i * 3);
 
 	if (TELETEXT_DECODER_LOG) {
 		log ("POP page %x.%x flags %x packet %u designation %d\n",
@@ -531,8 +528,8 @@ decode_mot_page_lut		(magazine *		mag,
 {
 	int n0, n1;
 
-	n0 = vbi3_iham8 (buffer[0]);
-	n1 = vbi3_iham8 (buffer[1]);
+	n0 = vbi3_unham8 (buffer[0]);
+	n1 = vbi3_unham8 (buffer[1]);
 
 	if ((n0 | n1) < 0)
 		return;
@@ -560,7 +557,7 @@ decode_mot_page_pop		(vbi3_teletext_decoder *	td,
 		err = 0;
 
 		for (j = 0; j < 10; ++j)
-			err |= n4[j] = vbi3_iham8 (buffer[j]);
+			err |= n4[j] = vbi3_unham8 (buffer[j]);
 
 		if (err < 0)
 			continue;
@@ -617,7 +614,7 @@ decode_mot_page_drcs		(vbi3_teletext_decoder *	td,
 		err = 0;
 
 		for (j = 0; j < 4; ++j)
-			err |= n4[j] = vbi3_iham8 (buffer[j]);
+			err |= n4[j] = vbi3_unham8 (buffer[j]);
 
 		if (err < 0)
 			continue;
@@ -739,7 +736,7 @@ top_page_number			(pagenum *		pn,
 	err = 0;
 
 	for (i = 0; i < 8; ++i)
-		err |= n4[i] = vbi3_iham8 (buffer[i]);
+		err |= n4[i] = vbi3_unham8 (buffer[i]);
 
 	pgno = n4[0] * 256 + n4[1] * 16 + n4[2];
 
@@ -927,7 +924,7 @@ decode_btt_page			(vbi3_teletext_decoder *	td,
 			for (i = 0; i < 40; ++i) {
 				btt_page_type btt_type;
 
-				btt_type = vbi3_iham8 (raw[i]);
+				btt_type = vbi3_unham8 (raw[i]);
 
 				if ((int) btt_type < 0) {
 					pgno = vbi3_add_bcd (pgno, 1);
@@ -1009,7 +1006,7 @@ decode_ait_packet		(cache_page *		cp,
 		for (j = 0; j < 12; ++j) {
 			/* Usually filled up with spaces, but zeroes also
 			   possible. */
-			c = vbi3_ipar8 (buffer[j]);
+			c = vbi3_unpar8 (buffer[j]);
 			if (c && c < 0x20)
 				break;
 
@@ -1029,7 +1026,7 @@ decode_ait_packet		(cache_page *		cp,
 				log ("%02x ", temp.text[j] & 0xFF);
 			fputc ('>', stderr);
 			for (j = 0; j < 12; ++j)
-				fputc (printable (temp.text[j]), stderr);
+				fputc (vbi3_printable (temp.text[j]), stderr);
 			fputs ("<\n", stderr);
 		}
 
@@ -1090,7 +1087,7 @@ decode_mpt_page			(vbi3_teletext_decoder *	td,
 				unsigned int subcode;
 				int n;
 
-				if ((n = vbi3_iham8 (raw[i])) < 0) {
+				if ((n = vbi3_unham8 (raw[i])) < 0) {
 					pgno = vbi3_add_bcd (pgno, 1);
 					continue;
 				}
@@ -1218,7 +1215,7 @@ mip_page_stat			(cache_network *	cn,
 	unsigned int old_subcode;
 	vbi3_bool changed;
 
-	code = vbi3_iham16p (*raw);
+	code = vbi3_unham16p (*raw);
 	*raw += 2;
 
 	if (code < 0)
@@ -1276,7 +1273,7 @@ mip_page_stat			(cache_network *	cn,
 
 		raw = &cp->data.unknown.raw[packet][*sub_index % 13];
 
-		n = vbi3_iham16p (raw) | (vbi3_iham8 (raw[2]) << 8);
+		n = vbi3_unham16p (raw) | (vbi3_unham8 (raw[2]) << 8);
 
 		if (n < 0) {
 			return FALSE;
@@ -1545,7 +1542,7 @@ decode_drcs_page		(cache_page *		cp)
 			unsigned int j;
 
 			for (j = 0; j < 40; ++j)
-				if (vbi3_ipar8 (s[j]) < 0x40) {
+				if (vbi3_unpar8 (s[j]) < 0x40) {
 					invalid |= ((uint64_t) 3) << (i * 2);
 					break;
 				}
@@ -1844,7 +1841,7 @@ same_header			(vbi3_pgno		cur_pgno,
 	buf[1] = ((cur_pgno >> 4) & 15) + '0';
 	buf[0] =  (cur_pgno >> 8)       + '0';
 
-	vbi3_fpar (buf, 3);
+	vbi3_par (buf, 3);
 
 	j = 32;
 
@@ -1859,8 +1856,8 @@ same_header			(vbi3_pgno		cur_pgno,
 		    && cur[1] == buf[1]
 		    && cur[2] == buf[2])
 			break;
-		err |= vbi3_ipar8 (*cur);
-		err |= vbi3_ipar8 (*ref);
+		err |= vbi3_unpar8 (*cur);
+		err |= vbi3_unpar8 (*ref);
 		neq |= *cur++ ^ *ref++;
 	}
 
@@ -1872,8 +1869,8 @@ same_header			(vbi3_pgno		cur_pgno,
 	ref += 3;
 
 	for (; i < 32; ++i) {
-		err |= vbi3_ipar8 (*cur);
-		err |= vbi3_ipar8 (*ref);
+		err |= vbi3_unpar8 (*cur);
+		err |= vbi3_unpar8 (*ref);
 		neq |= *cur++ ^ *ref++;
 	}
 
@@ -2323,7 +2320,7 @@ decode_packet_0			(vbi3_teletext_decoder *	td,
 	unsigned int flags;
 	cache_page *cached_cp;
 
-	if ((page = vbi3_iham16p (buffer + 2)) < 0) {
+	if ((page = vbi3_unham16p (buffer + 2)) < 0) {
 		_vbi3_teletext_decoder_resync (td);
 
 		log ("Hamming error in packet 0 page number\n");
@@ -2365,11 +2362,11 @@ decode_packet_0			(vbi3_teletext_decoder *	td,
 		return TRUE;
 	}
 
-	subno = (vbi3_iham16p (buffer + 4)
-		 + vbi3_iham16p (buffer + 6) * 256);
+	subno = (vbi3_unham16p (buffer + 4)
+		 + vbi3_unham16p (buffer + 6) * 256);
 
 	/* C7 ... C14 */
-	flags = vbi3_iham16p (buffer + 8);
+	flags = vbi3_unham16p (buffer + 8);
 
 	if ((int)(subno | flags) < 0) {
 		td->current = NULL;
@@ -2757,12 +2754,12 @@ decode_packet_26		(vbi3_teletext_decoder *	td,
 		break;
 	}
 
-	designation = vbi3_iham8 (buffer[2]);
+	designation = vbi3_unham8 (buffer[2]);
 
 	err = 0;
 
 	for (i = 0; i < 13; ++i)
-		err |= n18[i] = vbi3_iham24p (buffer + 3 + i * 3);
+		err |= n18[i] = vbi3_unham24p (buffer + 3 + i * 3);
 
 	if (TELETEXT_DECODER_LOG) {
 		log ("Packet X/26/%u page %x.%x flags %x\n",
@@ -2839,7 +2836,7 @@ decode_packet_27		(vbi3_teletext_decoder *	td,
 		break;
 	}
 
-	if ((designation = vbi3_iham8 (buffer[2])) < 0)
+	if ((designation = vbi3_unham8 (buffer[2])) < 0)
 		return FALSE;
 
 	log ("Packet X/27/%u page %03x.%x\n",
@@ -2853,7 +2850,7 @@ decode_packet_27		(vbi3_teletext_decoder *	td,
 		int control;
 		unsigned int crc;
 
-		if ((control = vbi3_iham8 (buffer[39])) < 0)
+		if ((control = vbi3_unham8 (buffer[39])) < 0)
 			return FALSE;
 
 		log ("... control %02x\n", control);
@@ -2887,7 +2884,7 @@ decode_packet_27		(vbi3_teletext_decoder *	td,
 
 			/* Hamming error ignored. We just don't store
 			   broken page numbers. */
-			iham8_page_number (pn, p,
+			unham8_page_number (pn, p,
 					   (unsigned int)(cp->pgno >> 8) & 7);
 			p += 6;
 
@@ -2913,8 +2910,8 @@ decode_packet_27		(vbi3_teletext_decoder *	td,
 			pagenum *pn;
 			int t1, t2;
 
-			t1 = vbi3_iham24p (p + 0);
-			t2 = vbi3_iham24p (p + 3);
+			t1 = vbi3_unham24p (p + 0);
+			t2 = vbi3_unham24p (p + 3);
 
 			if ((t1 | t2) < 0)
 				break;
@@ -3046,7 +3043,7 @@ decode_packet_28_29		(vbi3_teletext_decoder *	td,
 
 	p = buffer + 2;
 
-	if ((designation = vbi3_iham8 (*p++)) < 0)
+	if ((designation = vbi3_unham8 (*p++)) < 0)
 		return FALSE;
 
 	log ("Packet %u/%u/%u page %03x.%x\n",
@@ -3056,7 +3053,7 @@ decode_packet_28_29		(vbi3_teletext_decoder *	td,
 	err = 0;
 
 	for (i = 0; i < 13; ++i) {
-		err |= n18[i] = vbi3_iham24p (p);
+		err |= n18[i] = vbi3_unham24p (p);
 		p += 3;
 	}
 
@@ -3511,7 +3508,7 @@ decode_packet_8_30		(vbi3_teletext_decoder *	td,
 {
 	int designation;
 
-	if ((designation = vbi3_iham8 (buffer[2])) < 0)
+	if ((designation = vbi3_unham8 (buffer[2])) < 0)
 		return FALSE;
 
 	log ("Packet 8/30/%d\n", designation);
@@ -3523,7 +3520,7 @@ decode_packet_8_30		(vbi3_teletext_decoder *	td,
 		if (td->handlers.event_mask & VBI3_EVENT_TTX_PAGE) {
 			pagenum pn;
 
-			if (!iham8_page_number (&pn, buffer + 3, 0))
+			if (!unham8_page_number (&pn, buffer + 3, 0))
 				return FALSE;
 
 			/* 9.8.1 Table 18 Note 2 */
@@ -3541,14 +3538,17 @@ decode_packet_8_30		(vbi3_teletext_decoder *	td,
 			err = 0;
 
 			for (i = 0; i < 20; ++i) {
-				err |= vbi3_ipar8 (buffer[i + 22]);
+				err |= vbi3_unpar8 (buffer[i + 22]);
 
-				if (0)
+				if (0) {
+					int c = buffer[i + 22];
+
 					fprintf (stderr, "%2u %02x %02x %c\n",
 						 i,
 						 td->network->status[i],
-						 buffer[i + 22] & 0x7F,
-						 printable (buffer[i + 22]));
+						 c & 0x7F,
+						 vbi3_printable (c));
+				}
 			}
 
 			if (err < 0)
@@ -3799,7 +3799,7 @@ vbi3_teletext_decoder_decode	(vbi3_teletext_decoder *	td,
 		network_event (td);
 	}
 
-	if ((pmag = vbi3_iham16p (buffer)) < 0)
+	if ((pmag = vbi3_unham16p (buffer)) < 0)
 		return FALSE;
 
 	mag0 = pmag & 7;
@@ -3814,7 +3814,7 @@ vbi3_teletext_decoder_decode	(vbi3_teletext_decoder *	td,
 			 (0 == mag0) ? 8 : mag0, packet);
 
 		for (i = 0; i < 40; i++)
-			fputc (printable (buffer[2 + i]), stderr);
+			fputc (vbi3_printable (buffer[2 + i]), stderr);
 
 		fprintf (stderr, "<\n");
 	}
@@ -3870,7 +3870,7 @@ vbi3_teletext_decoder_decode	(vbi3_teletext_decoder *	td,
 			err = 0;
 
 			for (i = 0; i < 40; ++i)
-				err |= vbi3_ipar8 (buffer[2 + i]);
+				err |= vbi3_unpar8 (buffer[2 + i]);
 
 			if (err < 0)
 				return FALSE;
@@ -4230,7 +4230,7 @@ cache_network_dump_teletext	(const cache_network *	cn,
 	fputs ("\nstatus=\"", fp);
 
 	for (i = 0; i < N_ELEMENTS (cn->status); ++i)
-		fputc (printable (cn->status[i]), fp);
+		fputc (vbi3_printable (cn->status[i]), fp);
 
 	fputs ("\"\npage_stat=\n", fp);
 

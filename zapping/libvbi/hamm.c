@@ -21,12 +21,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: hamm.c,v 1.12 2005-01-08 14:54:20 mschimek Exp $ */
+/* $Id: hamm.c,v 1.13 2005-01-19 04:12:17 mschimek Exp $ */
 
+#include <limits.h>		/* CHAR_BIT */
 #include "hamm.h"
 
 const uint8_t
-vbi3_bit_reverse [256] = {
+_vbi3_bit_reverse [256] = {
 	0x00, 0x80, 0x40, 0xc0, 0x20, 0xa0, 0x60, 0xe0,	
 	0x10, 0x90, 0x50, 0xd0, 0x30, 0xb0, 0x70, 0xf0,
 	0x08, 0x88, 0x48, 0xc8, 0x28, 0xa8, 0x68, 0xe8,	
@@ -78,14 +79,14 @@ vbi3_bit_reverse [256] = {
  * bit to make the number of set bits odd.
  */
 void
-vbi3_fpar			(uint8_t *		p,
+vbi3_par				(uint8_t *		p,
 				 unsigned int		n)
 {
-	for (; n-- > 0; p++) {
-		unsigned int c = *p;
-		
-		if (0 == (vbi3_hamm24_inv_par[0][c] & 32))
-			*p = c ^ 128;
+	while (n-- > 0) {
+		uint8_t c = *p;
+
+		/* if 0 == (inv_par[] & 32) change msb of *p. */
+		*p++ = c ^ (128 & ~(_vbi3_hamm24_inv_par[0][c] << 2));
 	}
 }
 
@@ -102,33 +103,34 @@ vbi3_fpar			(uint8_t *		p,
  * parity (sum of bits modulo 2 is 0).
  */
 int
-vbi3_ipar			(uint8_t *		p,
+vbi3_unpar			(uint8_t *		p,
 				 unsigned int		n)
 {
 	int r = 0;
 
-	for (; n-- > 0; p++) {
-		int c = vbi3_ipar8 (*p);
+	while (n-- > 0) {
+		uint8_t c = *p;
 
-		*p = c;
-		r |= c;
+		/* if 0 == (inv_par[] & 32) set msb of r. */
+		r |= ~ _vbi3_hamm24_inv_par[0][c]
+			<< (sizeof (int) * CHAR_BIT - 1 - 5);
+
+		*p++ = c & 127;
 	}
 
 	return r;
 }
 
-/*
- *  ETS 300 706, Section 8.2 Hamming 8/4
- */
+/* ETS 300 706, Section 8.2 Hamming 8/4 */
 
 const uint8_t
-vbi3_hamm8_fwd [16] = {
+_vbi3_hamm8_fwd [16] = {
 	0x15, 0x02, 0x49, 0x5e, 0x64, 0x73, 0x38, 0x2f,
 	0xd0, 0xc7, 0x8c, 0x9b, 0xa1, 0xb6, 0xfd, 0xea
 };
 
 const int8_t
-vbi3_hamm8_inv [256] = {
+_vbi3_hamm8_inv [256] = {
 	0x01, 0xff, 0x01, 0x01, 0xff, 0x00, 0x01, 0xff, 
 	0xff, 0x02, 0x01, 0xff, 0x0a, 0xff, 0xff, 0x07, 
 	0xff, 0x00, 0x01, 0xff, 0x00, 0x00, 0xff, 0x00, 
@@ -170,15 +172,13 @@ vbi3_hamm8_inv [256] = {
 	0xff, 0x0e, 0x0f, 0xff, 0x0e, 0x0e, 0xff, 0x0e
 };
 
-/*
- *  ETS 300 706, Section 8.3 Hamming 18/24 (code from AleVT)
- */
+/* ETS 300 706, Section 8.3 Hamming 18/24 (code from AleVT) */
 
 /* This table generates the parity checks for hamm24/18 decoding.
    Bit 0 is for test A, 1 for B, ...
    Thanks to R. Gancarz for this fine table *g* */
 const int8_t
-vbi3_hamm24_inv_par [3][256] = {
+_vbi3_hamm24_inv_par [3][256] = {
     {
         /* Parities of first byte */
 	 0, 33, 34,  3, 35,  2,  1, 32, 36,  5,  6, 39,  7, 38, 37,  4,
@@ -248,7 +248,7 @@ vbi3_hamm24_inv_par [3][256] = {
 /* Table to extract the lower 4 bits from first hamm24/18
    encoded byte (P4 D4 D3 D2 P3 D1 P2 P1) */
 static const int8_t
-vbi3_hamm24_val [128] = {
+_vbi3_hamm24_val [128] = {
 	 0,  0,  0,  0,  1,  1,  1,  1,  0,  0,  0,  0,  1,  1,  1,  1,
 	 2,  2,  2,  2,  3,  3,  3,  3,  2,  2,  2,  2,  3,  3,  3,  3,
 	 4,  4,  4,  4,  5,  5,  5,  5,  4,  4,  4,  4,  5,  5,  5,  5,
@@ -264,7 +264,7 @@ vbi3_hamm24_val [128] = {
    according to test A ... F in table vbi3_hamm24_inv_tst.
    MSB indicates double bit error. */
 static const int32_t
-vbi3_hamm24_cor [64] = {
+_vbi3_hamm24_corr [64] = {
 	0x00000000, 0x80000000, 0x80000000, 0x80000000,
 	0x80000000, 0x80000000, 0x80000000, 0x80000000,
 	0x80000000, 0x80000000, 0x80000000, 0x80000000,
@@ -299,15 +299,15 @@ vbi3_hamm24_cor [64] = {
  * if the triplet contained incorrectable errors.
  */
 int
-vbi3_iham24p			(const uint8_t *	p)
+vbi3_unham24p			(const uint8_t *	p)
 {
-	int e = vbi3_hamm24_inv_par[0][p[0]]
-		^ vbi3_hamm24_inv_par[1][p[1]]
-		^ vbi3_hamm24_inv_par[2][p[2]];
+	int e = _vbi3_hamm24_inv_par[0][p[0]]
+		^ _vbi3_hamm24_inv_par[1][p[1]]
+		^ _vbi3_hamm24_inv_par[2][p[2]];
 
-	int x = vbi3_hamm24_val[p[0] & 127]
+	int x = _vbi3_hamm24_val[p[0] & 127]
 		+ (p[1] & 127) * 16
 		+ (p[2] & 127) * 2048;
 
-	return x ^ (int) vbi3_hamm24_cor[e];
+	return x ^ (int) _vbi3_hamm24_corr[e];
 }

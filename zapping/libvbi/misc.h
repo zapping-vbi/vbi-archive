@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.6 2005-01-08 14:54:20 mschimek Exp $ */
+/* $Id: misc.h,v 1.7 2005-01-19 04:11:35 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
@@ -32,6 +32,8 @@
 #ifndef ZAPPING8
 #include "vbi.h"		/* vbi3_log_level */
 #endif
+
+#include "macros.h"
 
 #define N_ELEMENTS(array) (sizeof (array) / sizeof (*(array)))
 
@@ -243,6 +245,20 @@ _vbi3_asprintf			(char **		dstp,
 /* Set and clear bits. */
 #define COPY_SET_CLEAR(to, set, clear)					\
 	(to = (to & ~(clear)) | (set))
+
+vbi3_inline int
+vbi3_printable			(int			c)
+{
+	if (c < 0)
+		return '?';
+
+	c &= 0x7F;
+
+	if (c < 0x20 || c >= 0x7F)
+		return '.';
+
+	return c;
+}
 
 #ifndef __BYTE_ORDER
 /* Should be __LITTLE_ENDIAN or __BIG_ENDIAN, but I guess
