@@ -76,6 +76,7 @@ static
 gboolean request_default_format(gint w, gint h, tveng_device_info *info)
 {
   gboolean success = FALSE;
+  enum tveng_frame_pixformat bundle_format2;
 
 #ifdef FORCE_DATA
   success = request_bundle_format(BUNDLE_FORMAT, w, h);
@@ -83,20 +84,61 @@ gboolean request_default_format(gint w, gint h, tveng_device_info *info)
 
   if (have_xv && !success)
     {
+      if (BUNDLE_FORMAT == TVENG_PIX_YVU420)
+	bundle_format2 = TVENG_PIX_YUYV;
+      else
+	bundle_format2 = TVENG_PIX_YVU420;
+
       if ((!zcg_int(NULL, "xvsize")) && /* biggest noninterlaced */
 	  (info->num_standards))
-	success =
-	  request_bundle_format(BUNDLE_FORMAT,
-				info->standards[info->cur_standard].width/2,
-				info->standards[info->cur_standard].height/2);
+	{
+	  success =
+	    request_bundle_format(BUNDLE_FORMAT,
+				  info->standards[info->cur_standard].width/2,
+				  info->standards[info->cur_standard].height/2);
+	  if (!success) /* try with the other YUV pixformat */
+	    {
+	      success =
+		request_bundle_format(bundle_format2,
+				      info->standards[info->cur_standard].width/2,
+				      info->standards[info->cur_standard].height/2);
+	      if (success)
+		zconf_set_integer(bundle_format2,
+				  "/zapping/options/main/yuv_format");
+	    }
+	}
       
       if ((zcg_int(NULL, "xvsize") == 1) || /* 320x240 */
 	  ((!zcg_int(NULL, "xvsize")) && (!success)))
-	success =
-	  request_bundle_format(BUNDLE_FORMAT, 320, 240);
+	{
+	  success =
+	    request_bundle_format(BUNDLE_FORMAT, 320, 240);
+
+	  if (!success)
+	    {
+	      success =
+		request_bundle_format(bundle_format2,
+				      320, 240);
+	      if (success)
+		zconf_set_integer(bundle_format2,
+				  "/zapping/options/main/yuv_format");
+	    }
+	}
       
       if (!success)
-	success = request_bundle_format(BUNDLE_FORMAT, w, h);
+	{
+	  success = request_bundle_format(BUNDLE_FORMAT, w, h);
+
+	  if (!success)
+	    {
+	      success =
+		request_bundle_format(bundle_format2, w, h);
+
+	      if (success)
+		zconf_set_integer(bundle_format2,
+				  "/zapping/options/main/yuv_format");
+	    }
+	}
     }
   
   if (!success)
