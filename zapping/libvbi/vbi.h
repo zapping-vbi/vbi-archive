@@ -20,6 +20,8 @@ struct raw_page
 
 #define BUFS 4
 
+
+
 struct vbi
 {
     int fd;

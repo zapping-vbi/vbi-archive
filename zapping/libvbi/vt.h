@@ -52,6 +52,13 @@ struct vt_page
     } link[6];		// FastText links (FLOF)
 };
 
+#define C5_NEWSFLASH		0x40	/* box and overlay */
+#define C6_SUBTITLE		0x80	/* box and overlay */
+#define C7_SUPPRESS_HEADER	0x01	/* row 0 not to be displayed */
+#define C10_INHIBIT_DISPLAY	0x08	/* rows 1-24 not to be displayed */
+
+
+
 #define PG_SUPPHEADER	0x01	// C7  row 0 is not to be displayed
 #define PG_UPDATE	0x02	// C8  row 1-28 has modified (editors flag)
 #define PG_OUTOFSEQ	0x04	// C9  page out of numerical order
@@ -64,5 +71,18 @@ struct vt_page
 #define PG_ACTIVE	0x100	// currently fetching this page
 
 #define ANY_SUB		0x3f7f	// universal subpage number
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #endif

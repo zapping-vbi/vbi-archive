@@ -16,12 +16,15 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: types.h,v 1.1 2000-12-11 04:12:53 mschimek Exp $ */
+/* $Id: types.h,v 1.2 2000-12-13 04:09:50 mschimek Exp $ */
 
 #ifndef TYPES_H
 #define TYPES_H
 
 #include <stddef.h>
+
+#undef TRUE
+#undef FALSE
 
 enum { FALSE, TRUE };
 

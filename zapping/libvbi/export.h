@@ -3,16 +3,38 @@
 
 #include "vt.h"
 #include "misc.h"
+#include "../common/types.h"
 
-struct fmt_char
+
+typedef enum {
+	TRANSPARENT_SPACE, TRANSPARENT, SEMI_TRANSPARENT, OPAQUE
+} opacity;
+
+typedef enum {
+	BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE
+} colours;
+
+/*
+	N	DW  OT	    DH	    DS  OT
+			    DH2	    DS2 OB
+ */
+typedef enum {
+	NORMAL,	DOUBLE_WIDTH, DOUBLE_HEIGHT, DOUBLE_SIZE,
+	OVER_TOP, OVER_BOTTOM, DOUBLE_HEIGHT2, DOUBLE_SIZE2
+} glyph_size;
+
+typedef struct fmt_char
 {
-    u8 ch, fg, bg, attr;
-};
+    u8 ch, attr; // aletv
+	unsigned	underline	: 1;
+	unsigned	flash		: 1;
+	unsigned	size		: 3;
+	unsigned	opacity		: 2;
+	unsigned	foreground	: 5;
+	unsigned	background	: 5;
+	unsigned	glyph		: 16;
+} attr_char;
 
-#define EA_DOUBLE	1	// double height char
-#define EA_HDOUBLE	2	// single height char in double height line
-#define EA_BLINK	4	// blink
-#define EA_CONCEALED	8	// concealed
 #define EA_GRAPHIC	16	// graphic symbol
 #define EA_SEPARATED	32	// use separated graphic symbol
 
@@ -23,7 +45,6 @@ struct fmt_char
 struct fmt_page
 {
     struct vt_page *vtp;
-    u32 dbl, hid;
     struct fmt_char data[H][W];
 };
 

@@ -67,7 +67,7 @@ static gint cur_page=0x100, cur_subpage=ANY_SUB;
 static void event(struct dl_head *reqs, struct vt_event *ev);
 
 /* thread function (just a loop that selects on the VBI device) */
-static void * zvbi_thread(void * unused);
+static void * zvbi_thread(void * vbi);
 
 /* Some info about the last processed header, protected by a mutex */
 static struct {
@@ -115,7 +115,8 @@ zvbi_open_device(gint newbttv)
   erc = zcg_bool(NULL, "erc");
   vbi_set_glyphs(zcg_int(NULL, "glyphs"));
 
-  fdset_init(fds);
+/* fifo - OBSOLETE */
+/*  fdset_init(fds);*/
 
   if (!(vbi = vbi_open(device, cache_open(), finetune, newbttv)))
     {
@@ -134,7 +135,7 @@ zvbi_open_device(gint newbttv)
 
   pthread_mutex_init(&(last_info.mutex), NULL);
   pthread_cond_init(&(last_info.xpacket_cond), NULL);
-  if (pthread_create(&zvbi_thread_id, NULL, zvbi_thread, NULL))
+  if (pthread_create(&zvbi_thread_id, NULL, zvbi_thread, vbi))
     {
       vbi_del_handler(vbi, event, NULL);
       vbi_close(vbi);
@@ -331,11 +332,30 @@ zvbi_get_time(gint * hour, gint * min, gint * sec)
   pthread_mutex_unlock(&(last_info.mutex));
 }
 
+#undef TRUE
+#undef FALSE // duh.
+#include "../common/fifo.h"
+
 /* thread function (just a loop that selects on the VBI device) */
-static void * zvbi_thread(void * unused)
+static void * zvbi_thread(void *p)
 {
-  while (!exit_thread)
-    fdset_select(fds, 200); /* 0.2s timeout */
+  extern void vbi_teletext(struct vbi *vbi, buffer *b);
+  struct vbi *vbi = p;
+  buffer *b;
+
+  while (!exit_thread) {
+    b = wait_full_buffer(vbi->fifo);
+
+    if (!b) {
+      fprintf(stderr, "Oops! VBI read error and "
+              "I don't know how to handle it.\n");
+      exit(EXIT_FAILURE);
+    }
+
+    vbi_teletext(vbi, b);
+
+    send_empty_buffer(vbi->fifo, b);
+  }
 
   return NULL;
 }
@@ -590,8 +610,18 @@ zvbi_resolve_page(gint x, gint y, struct vt_page * vtp, gint *page,
     return FALSE;
 
   fmt_page(FALSE, &pg, vtp); /* It's easier to parse this way */
-  if (pg.hid & (1 << y))
-    y--;
+// {mhs}
+//  if (pg.hid & (1 << y))
+//    y--;
+// XXX new .ch:  123  123  112233  112233
+//                    123          112233
+// propose a new link approach:
+//  * at render time, scan fmt_page for page numbers and create
+//    a link list: row, start_col, end_col, page_number, channel
+//    including FLOF links.
+//  * on left button, lookup link and jump to page
+//  * on right button, ... page in new window
+//  * on mouse move, lookup and change pointer image when over link
 
   if (y < 0)
     return FALSE;

@@ -116,6 +116,101 @@ vbi_pll_reset(struct vbi *vbi, int fine_tune)
 	vbi->pll_adj = fine_tune;
 }
 
+
+
+/*
+ *  Packet 28/29
+ */
+
+/*
+ *  Table 30: Colour Map (0xBGR)
+ */
+static u16
+default_colour_map[32] = {
+    0x000, 0x00F, 0x0F0, 0x0FF,
+    0xF00, 0xF0F, 0xFF0, 0xFFF,
+    0x000, 0x007, 0x070, 0x077,
+    0x700, 0x707, 0x770, 0x777,
+    0x50F, 0x07F, 0x7F0, 0xBFF,
+    0xAC0, 0x005, 0x256, 0x77C,
+    0x333, 0x77F, 0x7F7, 0x7FF,
+    0xF77, 0xF7F, 0xFF7, 0xDDD
+};
+
+/* channel -> magazine -> page */
+
+struct page_extension {
+
+	char		primary_char_set;
+	char		secondary_char_set;
+
+	char		def_screen_colour;	/* border */
+	char		def_row_colour;
+
+	char		foreground_clut;	/* 0, 8, 16, 24 */
+	char		background_clut;
+
+	u16		colour_map[32];
+};
+
+static int
+parse_extension(u8 *p)
+{
+	int triplets[13], *triplet = triplets, buf = 0, left = 0;
+	int i, err = 0;
+
+	static int
+	bits(int count)
+	{
+		int r, n;
+
+		r = buf;
+		if ((n = count - left) > 0) {
+			r |= (buf = *triplet++) << left;
+			left = 18;
+		} else
+			n = count;
+		buf >>= n;
+		left -= n;
+
+		return r & ((1UL << count) - 1);
+	}
+
+	for (i = 0; i < 13; p += 3, i++)
+		triplet[i] = hamm24(p, &err);
+
+	if (err & 0xf000)
+		return 0;
+
+	printf("page function %d\n", bits(4));
+	printf("page coding %d\n", bits(3));
+	printf("c/s designation %d\n", bits(7));
+	printf("c/s second %d\n", bits(7));
+	printf("left panel %d\n", bits(1));
+	printf("right panel %d\n", bits(1));
+	printf("panel status %d\n", bits(1));
+	printf("side panel columns %d\n", bits(4));
+	for (i = 0; i <= 15; i++)
+		printf("clut entry %d %03x (bgr)\n", i, bits(12));
+	printf("def screen col %d\n", bits(5));
+	printf("def row col %d\n", bits(5));
+	printf("bbg subst %d\n", bits(1));
+	printf("colour table remapping %d\n", bits(3));
+	printf("\n");
+
+	return 1;
+}
+
+
+
+
+
+
+
+
+
+
+
 // process one videotext packet
 
 static int
@@ -195,6 +290,9 @@ vt_packet(struct vbi *vbi, u8 *p)
 	    memcpy(cvtp->data[pkt], p, 40);
 	    return 0;
 	}
+
+	/* X/25: keyword search ...? */
+
 	case 26:
 	{
 	    int d, t[13];
@@ -211,10 +309,11 @@ vt_packet(struct vbi *vbi, u8 *p)
 	    if (err & 0xf000)
 		return 4;
 
-	    //printf("enhance on %x/%x\n", cvtp->pgno, cvtp->subno);
+//	    printf("enhance on %x/%x\n", cvtp->pgno, cvtp->subno);
 	    add_enhance(rvtp->enh, d, t);
 	    return 0;
 	}
+
 	case 27:
 	{
 	    // FLOF data (FastText)
@@ -245,6 +344,35 @@ vt_packet(struct vbi *vbi, u8 *p)
 	    cvtp->flof = 1;
 	    return 0;
 	}
+
+	case 28:
+	{
+	    int d;
+
+	    d = hamm8(p, &err);
+	    if (err & 0xf000)
+		return 4;
+
+//	    printf("%d/28/%d\n", mag8, d);
+//	    parse_extension(p + 1);
+
+	    return 0;
+	}
+
+	case 29:
+	{
+	    int d;
+
+	    d = hamm8(p, &err);
+	    if (err & 0xf000)
+		return 4;
+
+//	    printf("%d/29/%d\n", mag8, d);
+//	    parse_extension(p + 1);
+
+	    return 0;
+	}
+
 	case 30:
 	{
 	    if (mag8 != 8)
@@ -263,6 +391,7 @@ vt_packet(struct vbi *vbi, u8 *p)
 	    vbi_send(vbi, EV_XPACKET, mag8, pkt, err, p);
 	    return 0;
 	}
+
 	default:
 	    // unused at the moment...
 	    //vbi_send(vbi, EV_XPACKET, mag8, pkt, err, p);

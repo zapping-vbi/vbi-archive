@@ -59,27 +59,26 @@ prepare_colour_matrix(/*struct export *e,*/
 	{
 	  for (x = 0; x < W; ++x)
 	    { 
-	      if (pg->dbl & (1<<(y-1)))
-		{
-		  if (pg->data[y-1][x].attr & EA_HDOUBLE)
-		     draw_char(colour_matrix, pg->data[y][x].fg, 
-			    pg->data[y][x].bg, pg->data[y][x].ch, 
-			    (0), 
-			    x, y, 
-			    ((pg->data[y][x].attr & EA_SEPARATED) ? 1 : 0)
-			    );
-		}
-	      else
-		{
-		  draw_char(colour_matrix, pg->data[y][x].fg, 
-			    pg->data[y][x].bg, pg->data[y][x].ch, 
-			    ((pg->data[y][x].attr & EA_DOUBLE) ? 1 : 0), 
-			    x, y, 
-			    ((pg->data[y][x].attr & EA_SEPARATED) ? 1 : 0)
-			    );
+		switch (pg->data[y][x].size) {
+		case NORMAL:
+		case DOUBLE_HEIGHT:
+		case DOUBLE_WIDTH: /* temporary */
+		case DOUBLE_SIZE: /* temporary */
+		    draw_char(colour_matrix, 
+			pg->data[y][x].foreground,
+			pg->data[y][x].background,
+			pg->data[y][x].ch, 
+			!!(pg->data[y][x].size & DOUBLE_HEIGHT),
+			x, y,
+			((pg->data[y][x].attr & EA_SEPARATED) ? 1 : 0));
+		    break;
+
+		default: /* OVER_TOP, OVER_BOTTOM, DOUBLE_HEIGHT2, DOUBLE_SIZE2 */
+		    break;
 		}
 	    }
 	}
+
     return;
 }
 
@@ -92,6 +91,7 @@ static int ppm_output(struct export *e, char *name, struct fmt_page *pg);
 
 struct export_module export_ppm[1] =	// exported module definition
 {
+  {
     "ppm",			// id
     "ppm",			// extension
     0,				// options
@@ -100,6 +100,7 @@ struct export_module export_ppm[1] =	// exported module definition
     0,				// close
     0,				// option
     ppm_output			// output
+  }
 };
 
 static int
@@ -159,7 +160,7 @@ mem_output(struct fmt_page *pg, int *width, int *height)
   unsigned char *mem;
 
   if ((!pg) || (!width) || (!height))
-    return -1;
+    return (char *) -1;
 
   mem = malloc(WW*WH);
   if (!mem)

@@ -56,10 +56,10 @@ find_opt(char **opts, char *opt, char *arg)
     char buf[256];
     char **oo, *o, *a;
 
-    if (oo = opts)
-	while (o = *oo++)
+    if ((oo = opts))
+	while ((o = *oo++))
 	{
-	    if (a = strchr(o, '='))
+	    if ((a = strchr(o, '=')))
 	    {
 		a = buf + (a - o);
 		o = strcpy(buf, o);
@@ -84,16 +84,16 @@ export_open(char *fmt)
     char *opt, *optend, *optarg;
     int opti;
 
-    if (fmt = strdup(fmt))
+    if ((fmt = strdup(fmt)))
     {
-	if (opt = strchr(fmt, ','))
+	if ((opt = strchr(fmt, ',')))
 	    *opt++ = 0;
-	for (eem = modules; em = *eem; eem++)
+	for (eem = modules; (em = *eem); eem++)
 	    if (strcasecmp(em->fmt_name, fmt) == 0)
 		break;
 	if (em)
 	{
-	    if (e = malloc(sizeof(*e) + em->local_size))
+	    if ((e = malloc(sizeof(*e) + em->local_size)))
 	    {
 		e->mod = em;
 		e->fmt_str = fmt;
@@ -103,11 +103,11 @@ export_open(char *fmt)
 		{
 		    for (; opt; opt = optend)
 		    {
-			if (optend = strchr(opt, ','))
+			if ((optend = strchr(opt, ',')))
 			    *optend++ = 0;
 			if (not *opt)
 			    continue;
-			if (optarg = strchr(opt, '='))
+			if ((optarg = strchr(opt, '=')))
 			    *optarg++ = 0;
 			if ((opti = find_opt(glbl_opts, opt, optarg)) > 0)
 			{
@@ -186,7 +186,7 @@ adjust(char *p, char *str, char fill, int width)
 
     while (l-- > 0)
 	*p++ = fill;
-    while (*p = *str++)
+    while ((*p = *str++))
 	p++;
     return p;
 }
@@ -197,7 +197,7 @@ export_mkname(struct export *e, char *fmt, struct vt_page *vtp, char *usr)
     char bbuf[1024];
     char *p = bbuf;
 
-    while (*p = *fmt++)
+    while ((*p = *fmt++))
 	if (*p++ == '%')
 	{
 	    char buf[32], buf2[32];
@@ -245,114 +245,204 @@ fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 {
     char buf[16];
     int x, y;
-    u8 c, *p = vtp->data[0];
-
-    pg->dbl = 0;
+    u8  *p = vtp->data[0];
+    int page_opacity;
 
     sprintf(buf, "\2%x.%02x\7", vtp->pgno, vtp->subno & 0xff);
 
+    if (vtp->flags & (C5_NEWSFLASH | C6_SUBTITLE))
+	page_opacity = TRANSPARENT_SPACE;
+    else
+	page_opacity = OPAQUE;
+
     for (y = 0; y < H; y++)
     {
-	struct fmt_char c;
-	int last_ch = ' ';
-	int dbl = 0, hold = 0;
+	int held_mosaic = ' ';
+	int held_separated = FALSE;
+	int hold = 0;
+	attr_char at, after;
+	int double_height;
+	int concealed;
 
-	c.fg = 7;
-	c.bg = 0;
-	c.attr = 0;
+	at.foreground	= WHITE;
+	at.background	= BLACK;
+	at.attr = 0;
+	at.flash	= FALSE;
+	at.opacity	= page_opacity;
+	at.size		= NORMAL;
+	concealed	= FALSE;
+	double_height	= FALSE;
+
+	after = at;
 
 	for (x = 0; x < W; ++x)
 	{
-	    c.ch = *p++;
+	    at.ch = *p++;
+
 	    if (y == 0 && x < 8)
-		c.ch = buf[x];
-	    switch (c.ch)
-	    {
+		at.ch = buf[x];
+
+	    switch (at.ch) {
 		case 0x00 ... 0x07:	/* alpha + fg color */
-		    c.fg = c.ch & 7;
-		    c.attr &= ~(EA_GRAPHIC | EA_SEPARATED | EA_CONCEALED);
+		    after.foreground = at.ch & 7;
+		    after.attr &= ~(EA_GRAPHIC | EA_SEPARATED);
+		    concealed = FALSE;
 		    goto ctrl;
+
 		case 0x08:		/* flash */
-		    c.attr |= EA_BLINK;
+		    after.flash = TRUE;
 		    goto ctrl;
+
 		case 0x09:		/* steady */
-		    c.attr &= ~EA_BLINK;
-		    goto ctrl;
+		    at.flash = FALSE;
+		    after.flash = FALSE;
+ 		    goto ctrl;
+
 		case 0x0a:		/* end box */
+		    if (*p == 0x0a) /* double transmission, see G.3.1 */
+			after.opacity = page_opacity;
+		    goto ctrl;
+
 		case 0x0b:		/* start box */
+		    if (*p == 0x0b) /* double transmission, see G.3.1 */
+			after.opacity = OPAQUE;
 		    goto ctrl;
+
 		case 0x0c:		/* normal height */
-		    c.attr &= EA_DOUBLE;
+		    at.size = NORMAL;
+		    after.size = NORMAL;
 		    goto ctrl;
+
 		case 0x0d:		/* double height */
-		    c.attr |= EA_DOUBLE;
-		    dbl = 1;
+		    if (y <= 0 || y >= 23)
+			    goto ctrl;
+
+		    after.size = DOUBLE_HEIGHT;
+		    double_height = TRUE;
+
 		    goto ctrl;
-		case 0x10 ... 0x17:	/* gfx + fg color */
-		    c.fg = c.ch & 7;
-		    c.attr |= EA_GRAPHIC;
-		    c.attr &= ~EA_CONCEALED;
+
+		case 0x0e:		/* double width */
+		    if (x < 39)
+			after.size = DOUBLE_WIDTH;
 		    goto ctrl;
+
+		case 0x0f:		/* double size */
+		    if (x >= 39 || y <= 0 || y >= 22)
+			    goto ctrl;
+
+		    after.size = DOUBLE_SIZE;
+		    double_height = TRUE;
+
+		    goto ctrl;
+
+		case 0x10 ... 0x17:	/* mosaic + fg color */
+		    after.foreground = at.ch & 7;
+		    after.attr |= EA_GRAPHIC;
+		    concealed = FALSE;
+		    goto ctrl;
+
 		case 0x18:		/* conceal */
-		    c.attr |= EA_CONCEALED;
+		    concealed = TRUE;
 		    goto ctrl;
-		case 0x19:		/* contiguous gfx */
-		    c.attr &= ~EA_SEPARATED;
+
+		case 0x19:		/* contiguous mosaics */
+		    at.attr &= ~EA_SEPARATED;
+		    after.attr &= ~EA_SEPARATED;
 		    goto ctrl;
-		case 0x1a:		/* separate gfx */
-		    c.attr |= EA_SEPARATED;
+
+		case 0x1a:		/* separated mosaics */
+		    at.attr |= EA_SEPARATED;
+		    after.attr |= EA_SEPARATED;
 		    goto ctrl;
+
 		case 0x1c:		/* black bf */
-		    c.bg = 0;
+		    at.background = 0;
+		    after.background = 0;
 		    goto ctrl;
+		
 		case 0x1d:		/* new bg */
-		    c.bg = c.fg;
+		    at.background = at.foreground;
+		    after.background = at.foreground;
 		    goto ctrl;
+
 		case 0x1e:		/* hold gfx */
 		    hold = 1;
 		    goto ctrl;
+		
 		case 0x1f:		/* release gfx */
-		    hold = 0;
+		    hold = 0; // after ??
 		    goto ctrl;
 
-		case 0x0e:		/* SO */
-		case 0x0f:		/* SI */
 		case 0x1b:		/* ESC */
-		    c.ch = ' ';
+		    at.ch = ' ';
 		    break;
 
 		ctrl:
-		    c.ch = ' ';
-		    if (hold && (c.attr & EA_GRAPHIC))
-			c.ch = last_ch;
+		    if (hold && (at.attr & EA_GRAPHIC)) {
+			at.ch = held_mosaic;
+			if (held_separated) /* G.3.3 */
+			    at.attr |= EA_SEPARATED;
+			else
+			    at.attr &= ~EA_SEPARATED;
+		    } else
+			at.ch = ' ';
 		    break;
 	    }
-	    if (c.attr & EA_GRAPHIC)
-		if ((c.ch & 0xa0) == 0x20)
-		{
-		    last_ch = c.ch;
-		    c.ch += (c.ch & 0x40) ? 32 : -32;
-		}
-	    if (c.attr & EA_CONCEALED)
-		if (not reveal)
-		    c.ch = ' ';
-	    pg->data[y][x] = c;
-	}
-	if (dbl)
-	{
-	    pg->dbl |= 1 << y;
-	    for (x = 0; x < W; ++x)
-	    {
-		if (~pg->data[y][x].attr & EA_DOUBLE)
-		    pg->data[y][x].attr |= EA_HDOUBLE;
-		pg->data[y+1][x] = pg->data[y][x];
-		pg->data[y+1][x].ch = ' ';
+
+	    if ((at.attr & EA_GRAPHIC)
+		&& (at.ch & 0xA0) == 0x20) {
+		held_mosaic = at.ch;
+		held_separated = !!(at.attr & EA_SEPARATED);
+		at.ch += (at.ch & 0x40) ? 32 : -32;
 	    }
+
+	    if (concealed && !reveal)
+		at.ch = ' ';
+
+	    if ((y == 0 && (vtp->flags & C7_SUPPRESS_HEADER))
+		|| (y > 0 && (vtp->flags & C10_INHIBIT_DISPLAY)))
+		at.opacity = TRANSPARENT_SPACE;
+
+	    pg->data[y][x] = at;
+
+	    if (at.size == DOUBLE_WIDTH	|| at.size == DOUBLE_SIZE) {
+		at.size = OVER_TOP;
+		pg->data[y][++x] = at;
+	    }
+
+	    at = after;
+	}
+
+	if (double_height) {
+	    for (x = 0; x < W; x++) {
+		at = pg->data[y][x];
+
+		switch (at.size) {
+		case DOUBLE_HEIGHT:
+		    at.size = DOUBLE_HEIGHT2;
+		    pg->data[y + 1][x] = at;
+		    break;
+		
+		case DOUBLE_SIZE:
+		    at.size = DOUBLE_SIZE2;
+		    pg->data[y + 1][x] = at;
+		    at.size = OVER_BOTTOM;
+		    pg->data[y + 1][++x] = at;
+		    break;
+
+		default: /* NORMAL, DOUBLE_WIDTH, OVER_TOP */
+		    at.size = NORMAL;
+		    at.ch = ' ';
+		    pg->data[y + 1][x] = at;
+		    break;
+		}
+	    }
+
 	    y++;
 	    p += W;
 	}
     }
-    pg->hid = pg->dbl << 1;
 }
 
 int

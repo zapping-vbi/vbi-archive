@@ -24,6 +24,7 @@ struct html_data			// private data in struct export
 
 struct export_module export_html[1] =	// exported module definition
 {
+  {
     "html",			// id
     "html",			// extension
     html_opts,			// options
@@ -32,6 +33,7 @@ struct export_module export_html[1] =	// exported module definition
     0,				// close
     html_option,		// option
     html_output			// output
+  }
 };
 
 #define D  ((struct html_data *)e->data)
@@ -161,31 +163,31 @@ if (!D->bare)
 		{
 		  if ((pg->data[y][x-1].ch!=' ')
 		      &&(pg->data[y][x+1].ch!=' ')
-		      &&(pg->data[y][x-1].attr & EA_BLINK)
-		      &&(pg->data[y][x+1].attr & EA_BLINK))
-		    {pg->data[y][x].attr |= EA_BLINK;}
+		      &&(pg->data[y][x-1].flash)
+		      &&(pg->data[y][x+1].flash))
+		    {pg->data[y][x].flash = 1;}
 		  else 		    
-		    {pg->data[y][x].attr &= ~EA_BLINK;}
+		    {pg->data[y][x].flash = 0;}
 		  	    
 		  if ((pg->data[y][x-1].ch!=' ')
 		      &&(pg->data[y][x+1].ch!=' ')
-		      &&(pg->data[y][x-1].fg==pg->data[y][x+1].fg))
-		    {pg->data[y][x].fg=pg->data[y][x-1].fg;}
+		      &&(pg->data[y][x-1].foreground ==pg->data[y][x+1].foreground ))
+		    {pg->data[y][x].foreground =pg->data[y][x-1].foreground ;}
 		  else
-		    pg->data[y][x].fg=7;
+		    pg->data[y][x].foreground =7;
 		}
 	      else
 		{
-		  pg->data[y][x].attr &= ~EA_BLINK;
-		  pg->data[y][x].fg=7;
+		  pg->data[y][x].flash = 0;
+		  pg->data[y][x].foreground =7;
 		}
 	    }
 	  else
 	    {
 	      // if foreground is black set the foreground to previous 
 	      // background colour to let it be visible
-	      if (!pg->data[y][x].fg) 
-		{pg->data[y][x].fg=pg->data[y][x].bg;}
+	      if (!pg->data[y][x].foreground ) 
+		{pg->data[y][x].foreground =pg->data[y][x].background ;}
 	    }
 	  //check if attributes changed, 
 	  //if yes then print chars and update first_unprinted
@@ -193,13 +195,13 @@ if (!D->bare)
 	  if (x)
 	    {
 	      if (((
-		    (pg->data[y][x].attr & EA_BLINK)
+		    (pg->data[y][x].flash)
 		    ==
-		    (pg->data[y][x-1].attr & EA_BLINK)
+		    (pg->data[y][x-1].flash)
 		    )
 		   &&
 		   (
-		    pg->data[y][x].fg == pg->data[y][x-1].fg
+		    pg->data[y][x].foreground  == pg->data[y][x-1].foreground 
 		    ))
 		  &&(x!=last_nonblank))
 		
@@ -230,16 +232,16 @@ if (!D->bare)
 	    
 	    if (z==x) continue; 
 	    
-	    if (pg->data[y][first_unprinted].attr & EA_BLINK) 
+	    if (pg->data[y][first_unprinted].flash) 
 	      {
 		fprintf(fp,"<blink>");
 		nbsp=0;
 	      }
 	    
-	    if (pg->data[y][first_unprinted].fg!=7)
+	    if (pg->data[y][first_unprinted].foreground !=7)
 	      {
 		fprintf(fp,"<font color=%s>",
-			html_colours[pg->data[y][first_unprinted].fg]);
+			html_colours[pg->data[y][first_unprinted].foreground ]);
 		nbsp=0;
 	      }
 	    for(;(z<x)||(z==last_nonblank);z++)
@@ -273,11 +275,11 @@ if (!D->bare)
 		    nbsp=0;
 		  }
 	      }
-	    if (pg->data[y][first_unprinted].fg!=7)
+	    if (pg->data[y][first_unprinted].foreground !=7)
 	      {
 		fprintf(fp,"</font>");
 	      }
-	    if (pg->data[y][first_unprinted].attr & EA_BLINK)
+	    if (pg->data[y][first_unprinted].flash)
 	      fprintf(fp,"</blink>");
 	    
 	    first_unprinted=z;
