@@ -1201,13 +1201,6 @@ tveng_attach_mixer_line		(tveng_device_info *	info,
 extern void
 tv_clear_error			(tveng_device_info *	info);
 
-
-/* Sanity checks should use this */
-#define t_assert(condition) if (!(condition)) { \
-fprintf(stderr, _("%s (%d): %s: assertion (%s) failed\n"), __FILE__, \
-__LINE__, __PRETTY_FUNCTION__, #condition); \
-exit(1);}
-
 #define t_warn(templ, args...)						\
   fprintf (stderr, "%s:%u: " templ, __FILE__, __LINE__ ,##args );
 
@@ -1215,21 +1208,13 @@ exit(1);}
 do {									\
   snprintf ((info)->error, 255, template ,##args );			\
   if ((info)->debug_level > 0)						\
-    fprintf (stderr, "%s:%u:%s:%s", __FILE__, __LINE__,			\
-	     __PRETTY_FUNCTION__, (info)->error);			\
+    fprintf (stderr, "%s:%u:%s: %s\n", __FILE__, __LINE__,     		\
+	     __FUNCTION__, (info)->error);			        \
 } while (0)
 
 /* Builds an error message that lets me debug much better */
 #define t_error(str_error, info)					\
   tv_error_msg ((info), "%s: %d, %s", (str_error),			\
 	        (info)->tveng_errno, strerror((info)->tveng_errno))
-
-/* Defines a point that should never be reached */
-#define t_assert_not_reached() do {\
-fprintf(stderr, \
-_("[%s: %d: %s] This should have never been reached\n" ), __FILE__, \
-__LINE__, __PRETTY_FUNCTION__); \
-exit(1); \
-} while (0)
 
 #endif /* TVENG.H */
