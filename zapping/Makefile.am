@@ -32,17 +32,15 @@ EXTRA_DIST = \
 	README.plugins \
 	THANKS \
 	zapping.desktop.in \
-	zapping.schemas
+	zapping.schemas.in
 
 desktopdir = $(datadir)/applications
 desktop_DATA = zapping.desktop
 @INTLTOOL_DESKTOP_RULE@
 
-DISTCLEANFILES = \
-	intltool-extract \
-	intltool-merge \
-	intltool-update \
-	zapping.desktop
+schemadir = @GCONF_SCHEMA_FILE_DIR@
+schema_DATA = zapping.schemas
+@INTLTOOL_SCHEMAS_RULE@
 
 if GCONF_SCHEMAS_INSTALL
 install-data-local:
@@ -55,6 +53,13 @@ else
 install-data-local:
 uninstall-local:
 endif
+
+DISTCLEANFILES = \
+	intltool-extract \
+	intltool-merge \
+	intltool-update \
+	zapping.desktop \
+	zapping.schemas
 
 # configure creates site_def.h if it doesn't already exist.
 distcleancheck_listfiles = \
