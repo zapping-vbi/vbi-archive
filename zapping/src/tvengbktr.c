@@ -45,6 +45,7 @@ struct private_tvengbktr_device_info
 	int			tuner_fd;
 
 	tv_control *		mute_control;
+	tv_video_standard *     pal_standard;
 
 	/* Maps tv_pixfmt to METEORSACTPIXFMT index, -1 if none. */
 	int			pixfmt_lut[TV_MAX_PIXFMTS];
@@ -496,12 +497,11 @@ set_video_standard		(tveng_device_info *	info,
 				 tv_video_standard *	s)
 {
 	struct private_tvengbktr_device_info *p_info = P_INFO (info);
-	capture_mode current_mode;
-	gboolean was_active;
 	int r;
 
-	if (p_info->ovl_active | p_info->cap_active)
-		return FALSE;
+	if (CAPTURE_MODE_TELETEXT != info->capture_mode)
+		if (p_info->ovl_active | p_info->cap_active)
+			return FALSE;
 
 	if (p_info->bktr_driver) {
 		r = bktr_ioctl (info, BT848SFMT, &S(s)->fmt);
@@ -577,10 +577,16 @@ get_standard_list		(tveng_device_info *	info)
 			     sizeof (*s))))) {
 			free_video_standard_list
 				(&info->panel.video_standards);
+
+			P_INFO (info)->pal_standard = NULL;
+
 			return FALSE;
 		}
 
 		s->fmt = table->fmt;
+
+		if (TV_VIDEOSTD_SET_PAL == table->videostd_set)
+			P_INFO (info)->pal_standard = &s->pub;
 	}
 
 	return get_video_standard (info);
@@ -668,8 +674,13 @@ get_signal_strength		(tveng_device_info *	info,
 /*  unsigned short status2; */
 	unsigned int status3;
 
+	if (afc)
+	  *afc = 0;
+
 	if (!strength)
 		return TRUE;
+
+	*strength = 0;
 
 /*
   if (-1 == tuner_ioctl (info, TVTUNER_GETSTATUS, &status))
@@ -705,10 +716,12 @@ get_video_input			(tveng_device_info *	info)
 
 	store_cur_video_input (info, l);
 
-	if (l)
+	if (l) {
 		get_standard_list (info);
-	else
+	} else {
 		free_video_standards (info);
+		P_INFO (info)->pal_standard = NULL;
+	}
 
 	return TRUE;
 }
@@ -718,9 +731,6 @@ set_video_input			(tveng_device_info *	info,
 				 tv_video_line *	l)
 {
 	struct private_tvengbktr_device_info *p_info = P_INFO (info);
-	capture_mode current_mode;
-	gboolean was_active;
-	tv_pixfmt pixfmt;
 
 	if (p_info->info.panel.cur_video_input) {
 		unsigned long dev;
@@ -730,8 +740,9 @@ set_video_input			(tveng_device_info *	info,
 				return TRUE;
 	}
 
-	if (p_info->ovl_active | p_info->cap_active)
-		return FALSE;
+	if (CAPTURE_MODE_TELETEXT != info->capture_mode)
+		if (p_info->ovl_active | p_info->cap_active)
+			return FALSE;
 
 	if (-1 == bktr_ioctl (&p_info->info, METEORSINPUT, &VI(l)->dev))
 		return FALSE;
@@ -1070,7 +1081,7 @@ init_pixfmt_lut			(tveng_device_info *	info)
 }
 
 static void
-signal_handler			(int			unused)
+signal_handler			(int			unused _unused_)
 {
 	if (0) {
 		fprintf (stderr, ",");
@@ -1256,7 +1267,6 @@ set_overlay_buffer		(tveng_device_info *	info,
 				 const tv_overlay_buffer *t)
 {
 	struct private_tvengbktr_device_info *p_info = P_INFO (info);
-	tv_pixel_format format;
 
 	if (-1 == p_info->pixfmt_lut[t->format.pixel_format->pixfmt]) {
 		return FALSE;
@@ -1269,7 +1279,7 @@ set_overlay_buffer		(tveng_device_info *	info,
 }
 
 static tv_bool
-get_overlay_buffer		(tveng_device_info *	info)
+get_overlay_buffer		(tveng_device_info *	info _unused_)
 {
 	/* Nothing to do. */
 
@@ -1470,7 +1480,7 @@ set_overlay_window		(tveng_device_info *	info,
 }
 
 static tv_bool
-get_overlay_window		(tveng_device_info *	info)
+get_overlay_window		(tveng_device_info *	info _unused_)
 {
 	/* TODO */
 	return FALSE;
@@ -1587,8 +1597,6 @@ set_capture_format		(tveng_device_info *	info,
 				 const tv_image_format *fmt)
 {
 	struct private_tvengbktr_device_info *p_info = P_INFO (info);
-	capture_mode current_mode;
-	gboolean overlay_was_active;
 
 	if (p_info->ovl_active | p_info->cap_active)
 		return FALSE;
@@ -1654,14 +1662,14 @@ start_capturing			(tveng_device_info *	info)
 	timestamp_init(info);
 
 	p_info->mmapped_data = device_mmap (info->log_fp,
-					    /* start */ 0,
+					    /* start: any */ NULL,
 					    /* length */ 768 * 576 * 8,
 					    PROT_READ,
 					    MAP_SHARED,
 					    info->fd,
 					    /* offset */ 0);
 
-	if ((char *) -1 == p_info->mmapped_data) {
+	if (MAP_FAILED == p_info->mmapped_data) {
 		return FALSE;
 	}
 
@@ -1703,7 +1711,8 @@ stop_capturing			(tveng_device_info *	info)
 		return TRUE; /* Nothing to be done */
 	}
 
-	assert (CAPTURE_MODE_READ == info->capture_mode);
+	assert (CAPTURE_MODE_READ == info->capture_mode
+		|| CAPTURE_MODE_TELETEXT == info->capture_mode);
 
 	if (-1 == bktr_ioctl (info, METEORCAPTUR, &cap_stop_cont)) {
 		return FALSE;
@@ -1735,7 +1744,6 @@ enable_capture			(tveng_device_info *	info,
 				 tv_bool		enable)
 {
 	struct private_tvengbktr_device_info *p_info = P_INFO (info);
-	int r;
 
 	if (p_info->ovl_active)
 		return FALSE;
@@ -1915,7 +1923,9 @@ tvengbktr_close_device (tveng_device_info * info)
     }
 
   free_controls (info);
+  P_INFO (info)->mute_control = NULL;
   free_video_standards (info);
+  P_INFO (info)->pal_standard = NULL;
   free_video_inputs (info);
 }
 
@@ -2121,18 +2131,27 @@ tvengbktr_attach_device (const char* device_file,
 	/* Bug: VBI capturing works only if we capture video
 	   at the same time. Additionally the video capture
 	   format must be RGB. */
+
 	if (TVENG_ATTACH_VBI == attach_mode) {
 		unsigned long ul;
 
 		/* We need this only for Teletext, which implies PAL. */
-		ul = BT848_IFORM_F_PALBDGHI;
-		bktr_ioctl (info, BT848SFMT, &ul);
+		if (!info->panel.cur_video_standard
+		    || !(info->panel.cur_video_standard->videostd_set
+			 & TV_VIDEOSTD_SET_PAL)) {
+			assert (NULL != P_INFO (info)->pal_standard);
+			if (!set_video_standard (info,
+						 P_INFO (info)->pal_standard))
+				goto failure;
+		}
 
 		if (!set_capture_format (info, &info->capture.format))
 			goto failure;
 
 		if (!start_capturing (info))
 			goto failure;
+
+		info->capture_mode = CAPTURE_MODE_TELETEXT;
 	}
 
   return info->fd;
