@@ -22,6 +22,7 @@
 #define __RTEPRIV_H__
 #include "rte.h"
 
+/* fixme: this symbol will make namespace collisions, change it */
 extern rte_context * rte_global_context;
 
 /*
@@ -36,15 +37,15 @@ struct _rte_context_private {
 	rteDataCallback data_callback; /* need-data Callback */
 	int fd; /* file descriptor of the file we are saving */
 	void * user_data; /* user data given to the callback */
-	fifo aud, vid; /* fifos for pushing */
+	_fifo aud, vid; /* fifos for pushing */
 	int v_ubuffer; /* for unget() */
-	buffer * a_ubuffer; /* for unget() */
+	_buffer * a_ubuffer; /* for unget() */
 	int a_again; /* if 1, return a_ubuffer again */
 	int depth; /* video bit depth (bytes per pixel, includes
 		      packing) */
-	buffer * last_video_buffer; /* video buffer the app should be
+	_buffer * last_video_buffer; /* video buffer the app should be
 				       encoding to */
-	buffer * last_audio_buffer; /* audio buffer */
+	_buffer * last_audio_buffer; /* audio buffer */
 	/* video fetcher (callbacks) */
 	int video_pending; /* Pending video frames */
 	pthread_t video_fetcher_id; /* id of the video fetcher thread */

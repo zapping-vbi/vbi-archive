@@ -28,8 +28,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "options.h"
-#include "fifo.h"
-#include "mmx.h"
+#include "common/fifo.h"
+#include "common/mmx.h"
 #include "rtepriv.h"
 #include "video/video.h" /* fixme: video_unget_frame and friends */
 #include "audio/audio.h" /* fixme: audio_read, audio_unget prots. */
