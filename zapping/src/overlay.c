@@ -394,30 +394,27 @@ startup_overlay(GtkWidget * window, GtkWidget * main_window,
 			  &tv_info.h, NULL);
   gdk_window_get_origin(window->window, &tv_info.x, &tv_info.y);
 
-  if (info->current_controller != TVENG_CONTROLLER_XV)
+  if (info->current_controller != TVENG_CONTROLLER_XV &&
+      info->caps.flags & TVENG_CAPS_CHROMAKEY)
     {
-      if (info->caps.flags & TVENG_CAPS_CHROMAKEY)
-	{
-	  chroma.red = chroma.green = 0;
-	  chroma.blue = 0xffff;
+      chroma.red = chroma.green = 0;
+      chroma.blue = 0xffff;
 	  
-	  if (gdk_colormap_alloc_color(gdk_colormap_get_system(), &chroma,
-				       FALSE, TRUE))
-	    tveng_set_chromakey(chroma.red >> 8, chroma.green >> 8,
-				chroma.blue >> 8, info);
-	  else
-	    ShowBox("Couldn't allocate chromakey, chroma won't work",
-		    GTK_MESSAGE_WARNING);
+      if (gdk_colormap_alloc_color(gdk_colormap_get_system(), &chroma,
+				   FALSE, TRUE))
+	{
+	  tveng_set_chromakey(chroma.pixel, info);
+	  gdk_window_set_background(window->window, &chroma);
+	  gdk_colormap_free_colors(gdk_colormap_get_system(), &chroma,
+				   1);
 	}
-
-      gdk_window_set_background(window->window, &chroma);
-
-      if (chroma.pixel != 0)
-	gdk_colormap_free_colors(gdk_colormap_get_system(), &chroma,
-				 1);
+      else
+	ShowBox("Couldn't allocate chromakey, chroma won't work",
+		GTK_MESSAGE_WARNING);
     }
-  else
-    gdk_window_set_back_pixmap(window->window, NULL, FALSE);
+  else if (info->current_controller == TVENG_CONTROLLER_XV &&
+	   tveng_get_chromakey (&chroma.pixel, info) == 0)
+    gdk_window_set_background(window->window, &chroma);      
 
   if (tv_info.needs_cleaning)
     {

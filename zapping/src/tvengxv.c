@@ -1149,6 +1149,31 @@ tvengxv_stop_previewing (tveng_device_info * info)
   return 0;
 }
 
+static void
+tvengxv_set_chromakey (uint32_t chroma, tveng_device_info *info)
+{
+  struct private_tvengxv_device_info * p_info =
+    (struct private_tvengxv_device_info *)info;
+
+  if (p_info->colorkey != None)
+    XvSetPortAttribute (info->priv->display, p_info->port,
+			p_info->colorkey, chroma);
+}
+
+static int
+tvengxv_get_chromakey (uint32_t *chroma, tveng_device_info *info)
+{
+  struct private_tvengxv_device_info * p_info =
+    (struct private_tvengxv_device_info *)info;
+
+  if (p_info->colorkey == None)
+    return -1;
+
+  XvGetPortAttribute (info->priv->display, p_info->port,
+		      p_info->colorkey, chroma);
+  return 0;
+}
+
 static struct tveng_module_info tvengxv_module_info = {
   attach_device:		tvengxv_attach_device,
   describe_controller:		tvengxv_describe_controller,
@@ -1173,6 +1198,8 @@ static struct tveng_module_info tvengxv_module_info = {
   set_preview:			tvengxv_set_preview,
   start_previewing:		tvengxv_start_previewing,
   stop_previewing:		tvengxv_stop_previewing,
+  get_chromakey:		tvengxv_get_chromakey,
+  set_chromakey:		tvengxv_set_chromakey,
 
   private_size:			sizeof(struct private_tvengxv_device_info)
 };

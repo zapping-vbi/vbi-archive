@@ -789,7 +789,8 @@ static PyObject* py_ttx_home (PyObject *self, PyObject *args)
     (GTK_WIDGET (remote_last_caller ()));
   vbi_link ld;
 
-  g_assert (data != NULL);
+  if (!data)
+    py_return_true;
 
   vbi_resolve_home (data->fmt_page, &ld);
 
@@ -816,7 +817,8 @@ static PyObject* py_ttx_page_incr (PyObject *self, PyObject *args)
   if (!ok)
     g_error ("zapping.ttx_page_incr(|i)");
 
-  g_assert (data != NULL);
+  if (!data)
+    py_return_true;
 
   if (abs (value) > 999)
     py_return_false;
@@ -847,7 +849,8 @@ static PyObject* py_ttx_subpage_incr (PyObject *self, PyObject *args)
   if (!ok)
     g_error ("zapping.ttx_subpage_incr(|i)");
 
-  g_assert (data != NULL);
+  if (!data)
+    py_return_none;
 
   if (abs (value) > 99)
     py_return_false;
@@ -895,7 +898,8 @@ static PyObject* py_ttx_hold (PyObject *self, PyObject *args)
   if (!ok)
     g_error ("zapping.ttx_hold(|i)");
 
-  g_assert (data != NULL);
+  if (!data)
+    py_return_true;
 
   if (hold < 0)
     hold = !data->hold;
@@ -918,7 +922,8 @@ static PyObject* py_ttx_reveal (PyObject *self, PyObject *args)
   if (!ok)
     g_error ("zapping.ttx_reveal(|i)");
 
-  g_assert (data != NULL);
+  if (!data)
+    py_return_true;
 
   if (reveal < 0)
     reveal = !zcg_bool (NULL, "reveal");
@@ -944,7 +949,7 @@ static PyObject* py_ttx_history_next (PyObject *self, PyObject *args)
     (GTK_WIDGET (remote_last_caller ()));
   gint page, page_code, pc_subpage;
 
-  g_assert (data != NULL);
+  py_return_true;
 
   if (data->history_stack_size == (data->history_sp + 1))
     py_return_false;
@@ -970,7 +975,8 @@ static PyObject* py_ttx_history_prev (PyObject *self, PyObject *args)
     (GTK_WIDGET (remote_last_caller ()));
   gint page, page_code, pc_subpage;
 
-  g_assert (data != NULL);
+  if (!data)
+    py_return_true;
 
   if (data->history_sp == 0)
     py_return_false;

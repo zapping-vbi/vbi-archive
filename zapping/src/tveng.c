@@ -1722,9 +1722,33 @@ tveng_set_zapping_setup_fb_verbosity(int level, tveng_device_info *
 }
 
 /* Sets the chromakey */
-void tveng_set_chromakey(int r, int g, int b, tveng_device_info *info)
+void tveng_set_chromakey(uint32_t chroma, tveng_device_info *info)
 {
-  info->priv->chromakey = ((r&0xff)<<16) + ((g&0xff)<<8) + (b&0xff);
+  t_assert (info != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
+  TVLOCK;
+
+  if (info->priv->module.set_chromakey)
+    info->priv->module.set_chromakey (chroma, info);
+
+  UNTVLOCK;
+  return;
+}
+
+int tveng_get_chromakey (uint32_t *chroma, tveng_device_info *info)
+{
+  t_assert (info != NULL);
+  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
+
+  TVLOCK;
+
+  if (info->priv->module.get_chromakey)
+    RETURN_UNTVLOCK (info->priv->module.get_chromakey (chroma, info));
+
+  TVUNSUPPORTED;
+  UNTVLOCK;
+  return -1;
 }
 
 /* Sets the dword align flag */

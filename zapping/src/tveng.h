@@ -652,10 +652,15 @@ void tveng_set_dword_align(int dword_align, tveng_device_info *info);
 
 /*
  * Sets the chroma value to the given one, has only effect if the
- * driver supports it. r, g, b are in the 0..255 range
+ * driver supports it.
  */
-void tveng_set_chromakey(int r, int g, int b,
-			 tveng_device_info *info);
+void tveng_set_chromakey(uint32_t chroma, tveng_device_info *info);
+
+/*
+ * Returns the current chromakey value as a pixel value. If the driver
+ * doesn't support this -1 is returned and chroma is left untouched.
+ */
+int tveng_get_chromakey (uint32_t *chroma, tveng_device_info *info);
 
 /* Returns the current verbosity value passed to zapping_setup_fb */
 int

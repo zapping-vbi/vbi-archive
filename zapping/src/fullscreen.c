@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.21.2.1 2002-07-19 20:53:47 garetxe Exp $
+ * $Id: fullscreen.c,v 1.21.2.2 2002-08-02 16:43:44 garetxe Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -126,7 +126,7 @@ fullscreen_start(tveng_device_info * info)
 
   /* Add a black background */
   black_window = gtk_window_new( GTK_WINDOW_POPUP );
-  da = gtk_fixed_new();
+  da = gtk_drawing_area_new();
 
   gtk_widget_show(da);
 
@@ -134,12 +134,11 @@ fullscreen_start(tveng_device_info * info)
   gtk_widget_set_size_request(black_window, gdk_screen_width(),
 		       gdk_screen_height());
 
-  gtk_widget_realize(black_window);
-  gtk_widget_realize(da);
-  gdk_window_set_events(black_window->window, GDK_ALL_EVENTS_MASK);
-  gdk_window_set_events(da->window, GDK_ALL_EVENTS_MASK);
+  gtk_widget_add_events(da, GDK_BUTTON_PRESS_MASK);
   gtk_window_set_modal(GTK_WINDOW(black_window), TRUE);
-  gdk_window_set_decorations(black_window->window, 0);
+  gtk_widget_realize (black_window);
+  gdk_window_set_decorations (black_window->window, 0);
+  gtk_widget_show (black_window);
 
   /* hide the cursor in fullscreen mode */
   z_set_cursor(da->window, 0);
@@ -152,18 +151,19 @@ fullscreen_start(tveng_device_info * info)
       
       if (gdk_colormap_alloc_color(gdk_colormap_get_system(), &chroma,
 				   FALSE, TRUE))
-	tveng_set_chromakey(chroma.red >> 8, chroma.green >> 8,
-			    chroma.blue >> 8, info);
+	{
+	  tveng_set_chromakey(chroma.pixel, info);
+	  gdk_window_set_background(da->window, &chroma);
+	  gdk_colormap_free_colors(gdk_colormap_get_system(), &chroma,
+				   1);
+	}
       else
 	ShowBox("Couldn't allocate chromakey, chroma won't work",
 		GTK_MESSAGE_WARNING);
     }
-
-  gdk_window_set_background(da->window, &chroma);
-
-  if (chroma.pixel != 0)
-    gdk_colormap_free_colors(gdk_colormap_get_system(), &chroma,
-			     1);
+  else if (info->current_controller == TVENG_CONTROLLER_XV &&
+	   tveng_get_chromakey (&chroma.pixel, info) == 0)
+    gdk_window_set_background(da->window, &chroma);
 
   /* Needed for XV fullscreen */
   info->window.win = GDK_WINDOW_XWINDOW(da->window);
@@ -177,8 +177,6 @@ fullscreen_start(tveng_device_info * info)
       zmisc_switch_mode(TVENG_CAPTURE_READ, info);
       return -1;
     }
-
-  gtk_widget_show(black_window);
 
   if (info -> current_mode != TVENG_CAPTURE_PREVIEW)
     g_warning("Setting preview succeeded, but the mode is not set");

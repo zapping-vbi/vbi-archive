@@ -87,6 +87,8 @@ struct tveng_module_info {
   int	(*set_preview)(int on, tveng_device_info *info);
   int	(*start_previewing)(tveng_device_info *info);
   int	(*stop_previewing)(tveng_device_info *info);
+  void	(*set_chromakey)(uint32_t pixel, tveng_device_info *info);
+  int	(*get_chromakey)(uint32_t *pixel, tveng_device_info *info);
 
   /* Device specific stuff */
   int	(*ov511_get_button_state)(tveng_device_info *info);
@@ -112,7 +114,6 @@ struct tveng_private {
   int		change_mode;
   int		assume_yvu; /* assume destination is YVU */
   int		disable_xv; /* 1 if XVideo should be disabled */
-  int		chromakey; /* RGB32 */
   int		dword_align; /* 1 if x and w should be dword aligned */
 
   pthread_mutex_t mutex; /* Thread safety */

@@ -72,6 +72,7 @@ struct private_tveng2_device_info
   int num_buffers; /* Number of mmaped buffers */
   struct tveng2_vbuf * buffers; /* Array of buffers */
   double last_timestamp; /* The timestamp of the last captured buffer */
+  uint32_t chroma;
 };
 
 /* Private, builds the controls structure */
@@ -1849,6 +1850,8 @@ tveng2_set_preview_window(tveng_device_info * info)
 {
   struct v4l2_window window;
   struct v4l2_clip * clip=NULL;
+  struct private_tveng2_device_info * p_info =
+    (struct private_tveng2_device_info*) info;
   int i;
 
   t_assert(info != NULL);
@@ -1861,7 +1864,7 @@ tveng2_set_preview_window(tveng_device_info * info)
   window.width = info->window.width;
   window.height = info->window.height;
   window.clipcount = info->window.clipcount;
-  window.chromakey = info->priv->chromakey;
+  window.chromakey = p_info->chroma;
   if (window.clipcount == 0)
     window.clips = NULL;
   else
@@ -2033,6 +2036,28 @@ tveng2_stop_previewing(tveng_device_info * info)
 #endif
 }
 
+static void
+tveng2_set_chromakey		(uint32_t chroma, tveng_device_info *info)
+{
+  struct private_tveng2_device_info * p_info =
+    (struct private_tveng2_device_info*) info;
+
+  p_info->chroma = chroma;
+
+  /* Will be set in the next set_window call */
+}
+
+static int
+tveng2_get_chromakey		(uint32_t *chroma, tveng_device_info *info)
+{
+  struct private_tveng2_device_info * p_info =
+    (struct private_tveng2_device_info*) info;
+
+  *chroma = p_info->chroma;
+
+  return 0;
+}
+
 static struct tveng_module_info tveng2_module_info = {
   attach_device:		tveng2_attach_device,
   describe_controller:		tveng2_describe_controller,
@@ -2063,6 +2088,8 @@ static struct tveng_module_info tveng2_module_info = {
   set_preview:			tveng2_set_preview,
   start_previewing:		tveng2_start_previewing,
   stop_previewing:		tveng2_stop_previewing,
+  get_chromakey:		tveng2_get_chromakey,
+  set_chromakey:		tveng2_set_chromakey,
 
   private_size:			sizeof(struct private_tveng2_device_info)
 };

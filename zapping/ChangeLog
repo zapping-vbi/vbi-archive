@@ -1,3 +1,13 @@
+02.08.2002	Chroma+gtk2 fixes <garetxe@users.sf.net>
+
+	* overlay, fullscreen: Found and fixed the infamous "video not
+	redrawn with xvideo" problem, it appeared because gtk2 was drawing
+	over the chromakey whenever it received an expose event. Thanks to
+	Gerd Knorr for some advice regarding this bug.
+	* tveng (tveng_[gs]et_chromakey): Added saner chromakey handling,
+	prolly the V4L[2] code chromakey isn't 100% correct but i have no
+	way to know. It isn't worse than before, anyway.
+
 23.07.2002	Further fixes <garetxe@users.sf.net>
 
 	* zapping: Fixes and missing functionality, it's getting quite

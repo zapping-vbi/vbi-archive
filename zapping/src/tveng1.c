@@ -46,6 +46,7 @@
 #include <linux/fs.h>
 #include <errno.h>
 #include <math.h>
+#include <endian.h>
 
 /* We need video extensions (DGA) */
 #include <X11/X.h>
@@ -88,6 +89,9 @@ struct private_tveng1_device_info
   double capture_time;
   double frame_period_near;
   double frame_period_far;
+
+  uint32_t chroma; /* Pixel value for the chromakey */
+  uint32_t r, g, b; /* 0-65535 components for the chroma */
 
   /* OV511 camera */
   int ogb_fd;
@@ -2232,6 +2236,37 @@ tveng1_detect_preview (tveng_device_info * info)
 }
 
 /*
+  According to the V4L spec we should return a host order RGB32
+  value. Using the pixel value directly would make much more sense,
+  not to mention "host order RGB32" doesn't mean anything till you
+  define what RGB32 means :-)
+  Hope this works, i have no way of testing apart from feedback.
+*/
+static uint32_t calc_chroma (tveng_device_info * info)
+{
+  struct private_tveng1_device_info * p_info =
+    (struct private_tveng1_device_info*) info;
+  uint32_t r, g, b, pixel;
+
+  r = p_info->r;
+  g = p_info->g;
+  b = p_info->b;
+
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+  /* ARGB */
+  pixel = (r<<16) + (g<<8) + b;
+#elif __BYTE_ORDER == __BIG_ENDIAN
+  /* ABGR or BGRA ??? Try with BGRA */
+  pixel = (b<<24) + (g<<16) + (r<<8);
+#else /* pdp endian */
+  /* GBAR */
+  pixel = (g<<24) + (b<<16) + r;
+#endif
+
+  return pixel;
+}
+
+/*
   Sets the preview window dimensions to the given window.
   Returns -1 on error, something else on success.
   Success doesn't mean that the requested dimensions are used, maybe
@@ -2256,7 +2291,7 @@ tveng1_set_preview_window(tveng_device_info * info)
   v4l_window.height = info->window.height;
   v4l_window.clipcount = info->window.clipcount;
   v4l_window.clips = NULL;
-  v4l_window.chromakey = info->priv->chromakey;
+  v4l_window.chromakey = calc_chroma (info);
   if (v4l_window.clipcount)
     {
       clips = (struct video_clip*)malloc(v4l_window.clipcount* 
@@ -2437,6 +2472,42 @@ tveng1_stop_previewing(tveng_device_info * info)
 #endif
 }
 
+static void
+tveng1_set_chromakey		(uint32_t chroma, tveng_device_info *info)
+{
+  struct private_tveng1_device_info * p_info =
+    (struct private_tveng1_device_info*) info;
+  XColor color;
+  Display *dpy = info->priv->display;
+
+  color.pixel = chroma;
+  XQueryColor (dpy, DefaultColormap(dpy, DefaultScreen(dpy)),
+	       &color);
+
+  p_info->chroma = chroma;
+  p_info->r = color.red>>8;
+  p_info->g = color.green>>8;
+  p_info->b = color.blue>>8;
+
+  /* Will be set in the next set_window call */
+}
+
+static int
+tveng1_get_chromakey		(uint32_t *chroma, tveng_device_info *info)
+{
+  struct private_tveng1_device_info * p_info =
+    (struct private_tveng1_device_info*) info;
+
+  /* We aren't returning the chromakey currently used by the driver,
+     but the one previously set. The reason for this is that it is
+     unclear whether calc_chroma works correctly or not, and that
+     color precision could be lost during the V4L->X conversion. In
+     other words, this is prolly good enough. */
+  *chroma = p_info->chroma;
+
+  return 0;
+}
+
 static int
 ov511_get_button_state		(tveng_device_info	*info)
 {
@@ -2484,6 +2555,8 @@ static struct tveng_module_info tveng1_module_info = {
   set_preview:			tveng1_set_preview,
   start_previewing:		tveng1_start_previewing,
   stop_previewing:		tveng1_stop_previewing,
+  set_chromakey:		tveng1_set_chromakey,
+  get_chromakey:		tveng1_get_chromakey,
 
   ov511_get_button_state:	ov511_get_button_state,
 
