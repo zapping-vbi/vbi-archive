@@ -1,3 +1,9 @@
+2001-08-27	post-release fixes <mschimek@users.sf.net>
+
+	* configure.in: Temporary change of the alsa test due to 0.9
+	  incompatibility.
+	* global_data.c: Back to default -F1, was a bad idea apparently.
+
 2001-08-19	rte fix <mschimek@users.sf.net>
 
 	* mp1e_b.c didn't select a multiplexer, static default mpeg1-ps,
