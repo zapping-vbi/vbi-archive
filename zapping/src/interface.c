@@ -13,6 +13,10 @@
 #include "properties-handler.h"
 #include "zvideo.h"
 #include "callbacks.h"
+#include "v4linterface.h"
+#include "plugins.h"
+#include "ttxview.h"
+#include "zvbi.h"
 
 extern gboolean have_wm_hints;
 
@@ -80,29 +84,30 @@ lookup_widget				(GtkWidget *	parent,
 }
 
 void
-register_widget(GtkWidget * widget, const char * name)
+register_widget(GtkWidget *parent, GtkWidget * widget, const char * name)
 {
-  GtkWidget * this_widget = widget;
-  gchar *buf;
+  if (NULL == parent)
+    parent = widget;
 
-  /* Walk to the topmost level and register */
   for (;;)
     {
-      if (!GTK_IS_MENU(widget) && !widget->parent)
+      if (!GTK_IS_MENU(parent) && !parent->parent)
 	{
+	  gchar *buf;
+
 	  buf = g_strdup_printf("registered-widget-%s", name);
-	  g_object_set_data(G_OBJECT(widget), buf, this_widget);
+	  g_object_set_data(G_OBJECT(parent), buf, widget);
 	  g_free(buf);
 	  return;
 	}
 
       /* try to go to the parent widget */
-      if (GTK_IS_MENU(widget))
-	widget = gtk_menu_get_attach_widget (GTK_MENU (widget) );
+      if (GTK_IS_MENU(parent))
+	parent = gtk_menu_get_attach_widget (GTK_MENU (parent));
       else
-	widget = widget -> parent;
+	parent = parent->parent;
 
-      if (!widget)
+      if (!parent)
 	return; /* Toplevel not found */
     }
 }
@@ -157,42 +162,340 @@ build_widget			(const gchar *		name,
   return widget;
 }
 
+
 static void
-on_toolbar_toggled		(GtkCheckMenuItem *	checkmenuitem,
+on_toolbar_toggled		(GtkCheckMenuItem *	check_menu_item,
 				 gpointer		user_data)
 {
-  cmd_run_printf ("zapping.hide_controls(%u)", !checkmenuitem->active);
+  python_command_printf (GTK_WIDGET (check_menu_item),
+			 "zapping.hide_controls(%u)",
+			 !check_menu_item->active);
 }
 
 static void
-on_keep_window_on_top_toggled	(GtkCheckMenuItem *	checkmenuitem,
-				 gpointer		user_data)
+zconf_hook_toolbar		(const gchar *		key,
+				 gpointer		new_value_ptr,
+				 gpointer		data)
 {
-  cmd_run_printf ("zapping.keep_on_top(%u)", checkmenuitem->active);
+  gboolean hide = * (gboolean *) new_value_ptr;
+  GtkCheckMenuItem *item = data;
+  GtkWidget *menu;
+  GtkWidget *toolbar;
+
+  if (hide == item->active)
+    gtk_check_menu_item_set_active (item, !hide);
+
+  menu = GTK_WIDGET (gnome_app_get_dock_item_by_name
+		     (GNOME_APP (main_window), GNOME_APP_MENUBAR_NAME));
+  toolbar = GTK_WIDGET (gnome_app_get_dock_item_by_name
+			(GNOME_APP (main_window), GNOME_APP_TOOLBAR_NAME));
+  if (hide)
+    {
+      gtk_widget_hide (menu);
+      gtk_widget_hide (toolbar);
+    }
+  else
+    {
+      gtk_widget_show (menu);
+      gtk_widget_show (toolbar);
+    }
+
+  gtk_widget_queue_resize (main_window);
 }
 
-#define PY_CMD(_name, _signal, _cmd)				\
-  w = lookup_widget (widget, #_name);				\
-  g_signal_connect (G_OBJECT (w), _signal,			\
-		    (GCallback) on_remote_command1,		\
-		    (gpointer)((const gchar *) _cmd));
 
-GtkWidget*
-create_zapping (void)
+static void
+on_keep_window_on_top_toggled	(GtkCheckMenuItem *	check_menu_item,
+				 gpointer		user_data)
+{
+  python_command_printf (GTK_WIDGET (check_menu_item),
+			 "zapping.keep_on_top(%u)",
+			 check_menu_item->active);
+}
+
+static void
+zconf_hook_keep_window_on_top	(const gchar *		key,
+				 gpointer		new_value_ptr,
+				 gpointer		data)
+{
+  gboolean keep = * (gboolean *) new_value_ptr;
+  GtkCheckMenuItem *item = data;
+
+  keep &= have_wm_hints;
+
+  if (keep != item->active)
+    gtk_check_menu_item_set_active (item, keep);
+}
+
+static void
+zconf_hook_toolbar_style	(const gchar *		key,
+				 gpointer		new_value_ptr,
+				 gpointer		data)
+{
+#if 0
+  gint style = * (gint *) new_value_ptr;
+  GtkToolbar *toolbar = data;
+
+  z_toolbar_set_style_recursive (toolbar, (GtkToolbarStyle) style);
+#endif
+}
+
+
+static GnomeUIInfo
+main_file_uiinfo [] = {
+  GNOMEUIINFO_MENU_QUIT_ITEM (on_python_command1, "zapping.quit()"),
+  GNOMEUIINFO_END
+};
+
+static GnomeUIInfo
+main_edit_uiinfo [] = {
+  GNOMEUIINFO_MENU_PREFERENCES_ITEM (on_python_command1, "zapping.properties()"),
+  {
+    GNOME_APP_UI_ITEM, N_("P_lugins"), NULL,
+    G_CALLBACK (on_python_command1), "zapping.plugin_properties()", NULL,
+    GNOME_APP_PIXMAP_STOCK, "gnome-stock-attach",
+    0, (GdkModifierType) 0, NULL
+  },
+  GNOMEUIINFO_SEPARATOR,
+  {
+    GNOME_APP_UI_ITEM, N_("_TV Channels"), NULL,
+    G_CALLBACK (on_python_command1), "zapping.channel_editor()", NULL,
+    GNOME_APP_PIXMAP_STOCK, "gtk-index",
+    0, (GdkModifierType) 0, NULL
+  },
+  GNOMEUIINFO_END
+};
+
+static GnomeUIInfo
+main_view_uiinfo [] = {
+  {
+    GNOME_APP_UI_ITEM, N_("_Fullscreen"), NULL,
+    G_CALLBACK (on_python_command1), "zapping.switch_mode('fullscreen')", NULL,
+    GNOME_APP_PIXMAP_STOCK, "gtk-execute",
+    GDK_F, (GdkModifierType) GDK_CONTROL_MASK, NULL
+  },
+  {
+    GNOME_APP_UI_ITEM, N_("_Overlay mode"), NULL,
+    G_CALLBACK (on_python_command1), "zapping.switch_mode('preview')", NULL,
+    GNOME_APP_PIXMAP_STOCK, "gtk-execute",
+    GDK_O, (GdkModifierType) GDK_CONTROL_MASK, NULL
+  },
+  {
+    GNOME_APP_UI_ITEM, N_("_Capture mode"), NULL,
+    G_CALLBACK (on_python_command1), "zapping.switch_mode('capture')", NULL,
+    GNOME_APP_PIXMAP_STOCK, "gtk-execute",
+    GDK_C, (GdkModifierType) GDK_CONTROL_MASK, NULL
+  },
+  GNOMEUIINFO_SEPARATOR,
+  {
+    GNOME_APP_UI_ITEM, N_("_Teletext"), NULL,
+    G_CALLBACK (on_python_command1), "zapping.switch_mode('teletext')", NULL,
+    GNOME_APP_PIXMAP_STOCK, "zapping-teletext",
+    GDK_T, (GdkModifierType) GDK_CONTROL_MASK, NULL
+  },
+  {
+    GNOME_APP_UI_ITEM, N_("_New Teletext View"), NULL,
+    G_CALLBACK (on_python_command1), "zapping.ttx_open_new()", NULL,
+    GNOME_APP_PIXMAP_NONE, NULL,
+    GDK_N, (GdkModifierType) GDK_CONTROL_MASK, NULL
+  },
+  GNOMEUIINFO_SEPARATOR,
+  {
+    GNOME_APP_UI_TOGGLEITEM, N_("_Mute"), NULL,
+    G_CALLBACK (on_python_command1), "zapping.mute()", NULL,
+    GNOME_APP_PIXMAP_STOCK, "zapping-mute",
+    GDK_A, (GdkModifierType) GDK_CONTROL_MASK, NULL
+  },
+  {
+    GNOME_APP_UI_TOGGLEITEM, N_("_Subtitles"), NULL,
+    G_CALLBACK (on_python_command1), "zapping.closed_caption()", NULL,
+    GNOME_APP_PIXMAP_NONE, NULL,
+    0, (GdkModifierType) 0, NULL
+  },
+  GNOMEUIINFO_SEPARATOR,
+  {
+    GNOME_APP_UI_TOGGLEITEM, N_("Menu and toolbar"), NULL,
+    NULL, NULL, NULL,
+    GNOME_APP_PIXMAP_NONE, NULL,
+    GDK_H, (GdkModifierType) GDK_CONTROL_MASK, NULL
+  },
+  {
+    GNOME_APP_UI_TOGGLEITEM, N_("Keep window on top"), NULL,
+    NULL, NULL, NULL,
+    GNOME_APP_PIXMAP_NONE, NULL,
+    GDK_K, (GdkModifierType) GDK_CONTROL_MASK, NULL
+  },
+  GNOMEUIINFO_END
+};
+
+static GnomeUIInfo
+main_help_uiinfo [] = {
+  GNOMEUIINFO_HELP ("Zapping"),
+  GNOMEUIINFO_SEPARATOR,
+  GNOMEUIINFO_MENU_ABOUT_ITEM (on_python_command1, "zapping.about()"),
+  GNOMEUIINFO_END
+};
+
+static GnomeUIInfo
+main_uiinfo [] = {
+  GNOMEUIINFO_MENU_FILE_TREE (main_file_uiinfo),
+  GNOMEUIINFO_MENU_SETTINGS_TREE (main_edit_uiinfo),
+  GNOMEUIINFO_MENU_VIEW_TREE (main_view_uiinfo),
+  {
+    GNOME_APP_UI_ITEM, N_("_Channels"), NULL,
+    NULL, NULL, NULL,
+    GNOME_APP_PIXMAP_NONE, NULL,
+    0, (GdkModifierType) 0, NULL
+  },
+  GNOMEUIINFO_MENU_HELP_TREE (main_help_uiinfo),
+  GNOMEUIINFO_END
+};
+
+static GtkWidget *
+zapping_menu_new		(GtkWidget *		zapping)
+{
+  GtkWidget *menu;
+  GtkWidget *widget;
+
+  menu = gtk_menu_bar_new ();
+
+  gnome_app_ui_configure_configurable (main_uiinfo);
+
+  gnome_app_fill_menu (GTK_MENU_SHELL (menu), main_uiinfo,
+		       GNOME_APP (zapping)->accel_group,
+		       /* mnemo */ TRUE,
+		       /* position */ 0);
+
+  register_widget (zapping, main_uiinfo[3].widget, "channels");
+
+  register_widget (zapping, main_edit_uiinfo[0].widget, "propiedades1");
+  register_widget (zapping, main_edit_uiinfo[1].widget, "plugins1");
+
+  register_widget (zapping, main_view_uiinfo[0].widget, "go_fullscreen1");
+  register_widget (zapping, main_view_uiinfo[1].widget, "go_previewing2");
+  register_widget (zapping, main_view_uiinfo[4].widget, "videotext1");
+  register_widget (zapping, main_view_uiinfo[5].widget, "new_ttxview");
+  register_widget (zapping, main_view_uiinfo[6].widget, "separador5");
+  register_widget (zapping, main_view_uiinfo[7].widget, "mute2");
+  register_widget (zapping, main_view_uiinfo[8].widget, "closed_caption1");
+
+  widget = main_view_uiinfo[10].widget; /* hide menu and toolbar */
+  g_signal_connect (G_OBJECT (widget), "toggled",
+		    (GCallback) on_toolbar_toggled, NULL);
+  zconf_add_hook_while_alive (G_OBJECT (widget),
+			      "/zapping/internal/callbacks/hide_controls",
+			      zconf_hook_toolbar,
+			      GTK_CHECK_MENU_ITEM (widget), FALSE);
+
+  widget = main_view_uiinfo[11].widget; /* keep window on top */
+  /* XXX tell why not */
+  gtk_widget_set_sensitive (widget, !!have_wm_hints);
+  g_signal_connect (G_OBJECT (widget), "toggled",
+		    (GCallback) on_keep_window_on_top_toggled, NULL);
+  zconf_add_hook_while_alive (G_OBJECT (widget),
+			      "/zapping/options/main/keep_on_top",
+			      zconf_hook_keep_window_on_top,
+			      GTK_CHECK_MENU_ITEM (widget), FALSE);
+
+  return menu;
+}
+
+static GtkWidget *
+zapping_toolbar_new		(GtkWidget *		zapping)
+{
+  GtkToolbar *toolbar;
+  GtkIconSize icon_size;
+  GtkWidget *widget;
+  GtkWidget *icon;
+
+  widget = gtk_toolbar_new ();
+  toolbar = GTK_TOOLBAR (widget);
+
+  register_widget (zapping, widget, "toolbar1");
+
+  icon_size = gtk_toolbar_get_icon_size (toolbar);
+
+  icon = gtk_image_new_from_stock (GTK_STOCK_GO_UP, icon_size);
+  widget = gtk_toolbar_append_item
+    (toolbar, _("Ch. Up"),  _("Switch to higher channel"),
+     NULL, icon, G_CALLBACK (on_python_command1), "zapping.channel_up()");
+
+  icon = gtk_image_new_from_stock (GTK_STOCK_GO_DOWN, icon_size);
+  widget = gtk_toolbar_append_item
+    (toolbar, _("Ch. Down"),  _("Switch to lower channel"),
+     NULL, icon, G_CALLBACK (on_python_command1), "zapping.channel_down()");
+
+  gtk_toolbar_append_space (toolbar);
+
+  icon = gtk_image_new_from_stock (GTK_STOCK_EXECUTE, icon_size);
+  widget = gtk_toolbar_append_item
+    (toolbar, _("Controls"),  _("Change picture controls"),
+     NULL, icon, G_CALLBACK (on_python_command1), "zapping.control_box()");
+  register_widget (zapping, widget, "toolbar-controls");
+
+  icon = gtk_image_new_from_stock ("zapping-mute", icon_size);
+  widget = gtk_toolbar_append_element
+    (toolbar, GTK_TOOLBAR_CHILD_TOGGLEBUTTON, NULL,
+     _("Mute"), _("Switch audio on and off"), NULL,
+     icon, G_CALLBACK (on_python_command1), "zapping.mute()");
+  register_widget (zapping, widget, "toolbar-mute");
+
+  widget = gtk_toolbar_insert_stock (toolbar, "zapping-teletext",
+				     _("Activate Teletext mode"), NULL,
+				     G_CALLBACK (on_python_command1),
+				     "zapping.switch_mode('teletext')", -1);
+  register_widget (zapping, widget, "toolbar-teletext");
+
+  gtk_container_foreach (GTK_CONTAINER (widget),
+			 (GtkCallback) gtk_widget_show_all,
+                         NULL);
+
+  return GTK_WIDGET (toolbar);
+}
+
+GtkWidget *
+create_zapping			(void)
 {
   GdkColor col = { 0, 0, 0, 0 };
-  GtkWidget *widget, *w;
+  GnomeApp *gnome_app;
+  GtkWidget *zapping;
+  GtkWidget *menubar;
+  GtkWidget *toolbar;
   GtkWidget *box;
+  GtkWidget *appbar;
   GtkWidget *tv_screen;
 
-  widget = build_widget ("zapping", NULL);
+  zapping = gnome_app_new ("Zapping", _("Zapping"));
+  gnome_app = GNOME_APP (zapping);
 
-  box = lookup_widget (widget, "tv_screen_box");
+  menubar = zapping_menu_new (zapping);
+  gtk_widget_show (menubar);
+  gnome_app_set_menus (gnome_app, GTK_MENU_BAR (menubar));
+
+  toolbar = zapping_toolbar_new (zapping);
+  gtk_widget_show (toolbar);
+  gnome_app_set_toolbar (gnome_app, GTK_TOOLBAR (toolbar));
+
+  box = gtk_hbox_new (FALSE, 0);
+  gtk_widget_show (box);
+  gnome_app_set_contents (gnome_app, box);
+
   gtk_widget_modify_bg (box, GTK_STATE_NORMAL, &col);
 
+  appbar = gnome_appbar_new (/* progress */ FALSE,
+			     /* status */ TRUE,
+			     /* interactive */ GNOME_PREFERENCES_NEVER);
+  /* Status bar is only used in Teletext mode. */
+  gtk_widget_hide (appbar);
+  gnome_app_set_statusbar (gnome_app, appbar);
+  register_widget (zapping, appbar, "appbar2");
+
   tv_screen = z_video_new ();
+  gtk_widget_show (tv_screen);
   gtk_container_add (GTK_CONTAINER (box), tv_screen);
-  register_widget (tv_screen, "tv-screen");
+  register_widget (zapping, tv_screen, "tv-screen");
+
+  gtk_widget_modify_bg (tv_screen, GTK_STATE_NORMAL, &col);
 
   z_video_set_min_size (Z_VIDEO (tv_screen), 64, 64 * 3 / 4);
 
@@ -212,87 +515,240 @@ create_zapping (void)
 		    (GCallback) on_tv_screen_button_press_event,
 		    (gpointer) NULL);
 
-  gtk_widget_show (tv_screen);
+  if (0) {
+    static const char *zc = "/zapping/options/main/toolbar_style";
+    GtkWidget *w;
 
-  w = lookup_widget (widget, "keep_window_on_top2");
-  gtk_widget_set_sensitive (w, !!have_wm_hints);
-  /* XXX tell why not */
-  gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (w),
-    zconf_get_boolean (NULL, "/zapping/options/main/keep_on_top")
-    && !!have_wm_hints);
+    w = lookup_widget (zapping, "toolbar1");
+    //    propagate_toolbar_changes (w);
+    zconf_add_hook_while_alive (G_OBJECT (w), zc,
+				zconf_hook_toolbar_style,
+				GTK_TOOLBAR (w), /* call now */ TRUE);
+  }
 
-  w = lookup_widget (widget, "hide_controls2");
-  g_signal_connect (G_OBJECT (w), "toggled",
-		    (GCallback) on_toolbar_toggled, NULL);
-
-  w = lookup_widget (widget, "keep_window_on_top2");
-  g_signal_connect (G_OBJECT (w), "toggled",
-		    (GCallback) on_keep_window_on_top_toggled, NULL);
-
-  PY_CMD (quit1,		"activate",	"zapping.quit()");
-  PY_CMD (go_fullscreen1,	"activate",	"zapping.switch_mode('fullscreen')");
-  PY_CMD (go_previewing2,	"activate",	"zapping.switch_mode('preview')");
-  PY_CMD (go_capturing2,	"activate",	"zapping.switch_mode('capture')");
-  PY_CMD (videotext1,		"activate",	"zapping.switch_mode('teletext')");
-  PY_CMD (new_ttxview,		"activate",	"zapping.ttx_open_new()");
-  PY_CMD (mute2,		"activate",	"zapping.mute()");
-  PY_CMD (about1,		"activate",	"zapping.about()");
-  PY_CMD (propiedades1,		"activate",	"zapping.properties()");
-  PY_CMD (plugins1,		"activate",	"zapping.plugin_properties()");
-  PY_CMD (main_help1,		"activate",	"zapping.help()");
-  PY_CMD (vbi_info1,		"activate",	"zapping.network_info()");
-  PY_CMD (program_info1,	"activate",	"zapping.program_info()");
-  PY_CMD (closed_caption1,	"activate",	"zapping.closed_caption()");
-  PY_CMD (channels1,		"activate",	"zapping.channel_editor()");
-  PY_CMD (channel_up,		"clicked",	"zapping.channel_up()");
-  PY_CMD (channel_down,		"clicked",	"zapping.channel_down()");
-  PY_CMD (tb-mute,		"toggled",	"zapping.mute()");
-  PY_CMD (controls,		"clicked",	"zapping.control_box()");
-
-  propagate_toolbar_changes (lookup_widget (widget, "toolbar1"));
-
-#if 0
-  zconf_create_integer (2, "Display icons, text or both",
-		        "/zapping/options/main/toolbar_style");
-  change_toolbar_style (widget, zconf_get_integer (NULL,
-		        "/zapping/options/main/toolbar_style"));
-#endif
-
-  return widget;
+  return zapping;
 }
 
-GtkWidget*
-create_popup_menu1 (void)
+
+static GnomeUIInfo
+popup_appearance_uiinfo [] = {
+  {
+    GNOME_APP_UI_TOGGLEITEM, N_("Menu and Toolbar"), NULL,
+    G_CALLBACK (on_toolbar_toggled), NULL, NULL,
+    GNOME_APP_PIXMAP_NONE, NULL,
+    GDK_H, (GdkModifierType) GDK_CONTROL_MASK, NULL
+  },
+  {
+    GNOME_APP_UI_TOGGLEITEM, N_("Keep Window on Top"), NULL,
+    G_CALLBACK (on_keep_window_on_top_toggled), NULL, NULL,
+    GNOME_APP_PIXMAP_NONE, NULL,
+    GDK_K, (GdkModifierType) GDK_CONTROL_MASK, NULL
+  },
+  GNOMEUIINFO_END
+};
+
+static GnomeUIInfo
+popup_uiinfo [] = {
+  GNOMEUIINFO_SEPARATOR,
+  {
+    GNOME_APP_UI_ITEM, N_("_Fullscreen"), NULL,
+    G_CALLBACK (on_python_command1), "zapping.switch_mode('fullscreen')", NULL,
+    GNOME_APP_PIXMAP_STOCK, GTK_STOCK_EXECUTE,
+    GDK_F, (GdkModifierType) GDK_CONTROL_MASK, NULL
+  },
+  {
+    GNOME_APP_UI_ITEM, N_("_Overlay mode"), NULL,
+    G_CALLBACK (on_python_command1), "zapping.switch_mode('preview')", NULL,
+    GNOME_APP_PIXMAP_STOCK, GTK_STOCK_EXECUTE,
+    GDK_O, (GdkModifierType) GDK_CONTROL_MASK, NULL
+  },
+  {
+    GNOME_APP_UI_ITEM, N_("_Capture mode"), NULL,
+    G_CALLBACK (on_python_command1), "zapping.switch_mode('capture')", NULL,
+    GNOME_APP_PIXMAP_STOCK, GTK_STOCK_EXECUTE,
+    GDK_C, (GdkModifierType) GDK_CONTROL_MASK, NULL
+  },
+  GNOMEUIINFO_SEPARATOR,
+  {
+    GNOME_APP_UI_ITEM, N_("_Teletext"), NULL,
+    NULL, NULL, NULL,
+    GNOME_APP_PIXMAP_STOCK, "zapping-teletext",
+    0, (GdkModifierType) 0, NULL
+  },
+  {
+    GNOME_APP_UI_ITEM, N_("_Subtitles"), NULL,
+    NULL, NULL, NULL,
+    GNOME_APP_PIXMAP_NONE, NULL,
+    0, (GdkModifierType) 0, NULL
+  },
+  {
+    GNOME_APP_UI_ITEM, N_("_Bookmarks"), NULL,
+    NULL, NULL, NULL,
+    GNOME_APP_PIXMAP_NONE, NULL,
+    0, (GdkModifierType) 0, NULL
+  },
+  GNOMEUIINFO_END
+};
+
+GtkWidget *
+create_popup_menu1		(GdkEventButton *	event)
 {
+  GtkWidget *menu;
   GtkWidget *widget;
-  GtkWidget *w;
 
-  widget = build_widget ("popup_menu1", NULL);
+  menu = gtk_menu_new ();
 
-  w = lookup_widget (widget, "keep_window_on_top1");
-  gtk_widget_set_sensitive (w, !!have_wm_hints);
-  /* XXX tell why not */
-  gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (w),
-				  zconf_get_boolean
-				  (NULL, "/zapping/options/main/keep_on_top")
-				  && !!have_wm_hints);
+  gnome_app_fill_menu (GTK_MENU_SHELL (menu), popup_uiinfo,
+		       /* accel */ NULL,
+		       /* mnemo */ FALSE,
+		       /* position */ 0);
 
-  w = lookup_widget (widget, "hide_controls1");
-  g_signal_connect (G_OBJECT (w), "toggled",
-		    (GCallback) on_toolbar_toggled, NULL);
+  add_channel_entries (GTK_MENU_SHELL (menu), 0, 10, main_info);
 
-  w = lookup_widget (widget, "keep_window_on_top1");
-  g_signal_connect (G_OBJECT (w), "toggled",
-		    (GCallback) on_keep_window_on_top_toggled, NULL);
+  if (disable_preview)
+    {
+      widget = popup_uiinfo[1].widget; /* fullscreen */
+      gtk_widget_set_sensitive (widget, FALSE);
 
-  PY_CMD (go_fullscreen2,	"activate", "zapping.switch_mode('fullscreen')");
-  PY_CMD (go_previewing2,	"activate", "zapping.switch_mode('preview')");
-  PY_CMD (go_capturing2,	"activate", "zapping.switch_mode('capture')");
-  PY_CMD (videotext2,		"activate", "zapping.switch_mode('teletext')");
-  PY_CMD (new_ttxview2,		"activate", "zapping.ttx_open_new()");
+      widget = popup_uiinfo[2].widget; /* overlay mode */
+      gtk_widget_set_sensitive (widget, FALSE);
+    }
 
-  w = lookup_widget (widget, "appearance1_menu");
-  picture_sizes_append_menu (GTK_MENU_SHELL (w));
+#ifdef HAVE_LIBZVBI
+  if (zvbi_get_object ())
+    {
+      GtkWidget *teletext;
 
-  return widget;
+      teletext = popup_uiinfo[5].widget; /* teletext */
+
+      if (TVENG_TELETEXT == main_info->current_mode)
+	{
+	  GtkWidget *ttxview_menu;
+
+	  if (event)
+	    ttxview_menu = ttxview_popup (main_window, event);
+
+	  if (event && ttxview_menu)
+	    {
+	      gtk_menu_item_set_submenu (GTK_MENU_ITEM (teletext),
+					 ttxview_menu);
+	    }
+	  else
+	    {
+	      gtk_widget_set_sensitive (teletext, FALSE);
+	      gtk_widget_hide (teletext);
+	    }
+
+	  /*
+	    widget = lookup_widget(mw, "videotext2");
+	    z_change_menuitem(widget,
+			      "gnome-stock-table-fill",
+			      _("Overlay this page"),
+			      _("Return to windowed mode and use the current "
+				"page as subtitles"));
+	  */
+
+	  widget = popup_uiinfo[7].widget; /* bookmarks */
+	  gtk_menu_item_set_submenu (GTK_MENU_ITEM (widget),
+				     ttxview_bookmarks_menu_new (main_window));
+	}
+      else
+	{
+	  g_signal_connect (G_OBJECT (teletext), "activate",
+			    G_CALLBACK (on_python_command1),
+			    "zapping.switch_mode('teletext')");
+
+	  widget = popup_uiinfo[7].widget; /* bookmarks */
+	  gtk_widget_set_sensitive (widget, FALSE);
+	  gtk_widget_hide (widget);
+	}
+
+      {
+	GtkWidget *subtitles_menu;
+
+	widget = popup_uiinfo[6].widget; /* subtitles */
+
+	if ((subtitles_menu = ttxview_subtitles_menu_new ()))
+	  {
+	    gtk_menu_item_set_submenu (GTK_MENU_ITEM (widget),
+				       subtitles_menu);
+	  }
+	else
+	  {
+	    gtk_widget_set_sensitive (widget, FALSE);
+	    gtk_widget_hide (widget);
+	  }
+      }
+
+      ttxview_hotlist_menu_append (GTK_MENU_SHELL (menu),
+				   /* separator */ FALSE);
+    }
+  else
+#endif
+    {
+      widget = popup_uiinfo[4].widget; /* separator */
+      gtk_widget_set_sensitive (widget, FALSE);
+      gtk_widget_hide (widget);
+
+      widget = popup_uiinfo[5].widget; /* teletext */
+      gtk_widget_set_sensitive (widget, FALSE);
+      gtk_widget_hide (widget);
+
+      widget = popup_uiinfo[6].widget; /* subtitles */
+      gtk_widget_set_sensitive (widget, FALSE);
+      gtk_widget_hide (widget);
+
+      widget = popup_uiinfo[7].widget; /* bookmarks */
+      gtk_widget_set_sensitive (widget, FALSE);
+      gtk_widget_hide (widget);
+    }
+
+  {
+    GtkWidget *app_menu;
+
+    widget = gtk_separator_menu_item_new ();
+    gtk_widget_show (widget);
+    gtk_menu_shell_append (GTK_MENU_SHELL (menu), widget);
+
+    widget = z_gtk_pixmap_menu_item_new (_("Appearance"), GTK_STOCK_CONVERT);
+    gtk_widget_show (widget);
+    gtk_menu_shell_append (GTK_MENU_SHELL (menu), widget);
+
+    app_menu = gtk_menu_new ();
+
+    gnome_app_fill_menu (GTK_MENU_SHELL (app_menu), popup_appearance_uiinfo,
+			 /* accel */ NULL,
+			 /* mnemo */ FALSE,
+			 /* position */ 0);
+
+    gtk_menu_item_set_submenu (GTK_MENU_ITEM (widget), app_menu);
+
+    widget = popup_appearance_uiinfo[0].widget;
+    zconf_add_hook_while_alive (G_OBJECT (widget),
+				"/zapping/internal/callbacks/hide_controls",
+				zconf_hook_toolbar,
+				GTK_CHECK_MENU_ITEM (widget), FALSE);
+
+    widget = popup_appearance_uiinfo[1].widget;
+    /* XXX tell why not */
+    gtk_widget_set_sensitive (widget, !!have_wm_hints);
+    zconf_add_hook_while_alive (G_OBJECT (widget),
+				"/zapping/options/main/keep_on_top",
+				zconf_hook_keep_window_on_top,
+				GTK_CHECK_MENU_ITEM (widget), FALSE);
+
+    picture_sizes_append_menu (GTK_MENU_SHELL (app_menu));
+  }
+
+  {
+    GList *glist;
+
+    /* Let plugins add their GUI to this context menu */
+    for (glist = plugin_list; glist; glist = glist->next)
+      plugin_process_popup_menu (main_window, event,
+				 GTK_MENU (menu),
+				 (struct plugin_info *) glist->data);
+  }
+
+  return menu;
 }
