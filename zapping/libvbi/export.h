@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.h,v 1.30 2001-09-02 03:25:58 mschimek Exp $ */
+/* $Id: export.h,v 1.31 2001-09-11 07:13:41 mschimek Exp $ */
 
 #ifndef EXPORT_H
 #define EXPORT_H
@@ -30,6 +30,7 @@
 #include "../common/types.h"
 #include "../common/errstr.h"
 
+#ifndef _
 #ifdef ENABLE_NLS
 #    include <libintl.h>
 #    define _(String) gettext (String)
@@ -48,13 +49,13 @@
 #    define _(String) (String)
 #    define N_(String) (String)
 #endif
+#endif
 
 typedef struct _vbi_export_module_priv vbi_export_module_priv;
 
 struct vbi_export {
 	vbi_export_module_priv *mod;
 	vbi_network		network;
-
 	bool                    reveal;	  /* reveal hidden chars */
 	char *                  fmt_str;  /* saved option string (splitted) */
 
@@ -93,6 +94,3 @@ static void vbi_autoreg_##name(void) {					\
 extern void		vbi_export_write_error(vbi_export *, char *);
 
 #endif /* EXPORT_H */
-
-
-

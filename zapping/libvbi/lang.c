@@ -17,10 +17,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.c,v 1.17 2001-08-30 20:24:03 garetxe Exp $ */
+/* $Id: lang.c,v 1.18 2001-09-11 07:13:41 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include "../config.h"
 #endif
 
 #include "lang.h"

@@ -22,10 +22,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.24 2001-09-02 03:25:58 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.25 2001-09-11 07:13:41 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include "../config.h"
 #endif
 
 #include <stdio.h>

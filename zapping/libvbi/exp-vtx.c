@@ -25,7 +25,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-vtx.c,v 1.7 2001-09-02 03:25:58 mschimek Exp $ */
+/* $Id: exp-vtx.c,v 1.8 2001-09-11 07:13:41 mschimek Exp $ */
 
 /*
  *  VTX is the file format used by VideoteXt. It stores Teletext pages in
@@ -38,7 +38,7 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include "../config.h"
 #endif
 
 #include <stdio.h>

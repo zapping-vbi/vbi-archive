@@ -17,7 +17,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sliced.h,v 1.5 2001-08-22 01:26:53 mschimek Exp $ */
+/* $Id: sliced.h,v 1.6 2001-09-11 07:13:41 mschimek Exp $ */
+
+#include <stdint.h>
 
 /*
     Definition of sliced vbi data (vbi device interface),
@@ -45,13 +47,7 @@
 #define SLICED_VBI_525			(1UL << 31)
 
 typedef struct {
-	unsigned int		id;		/* set of SLICED_ */
-	unsigned int		line;		/* ITU-R line number 1..n, 0: unknown */
-	unsigned char		data[56];
+	uint32_t		id;		/* set of SLICED_ */
+	uint32_t		line;		/* ITU-R line number 1..n, 0: unknown */
+	uint8_t			data[56];	/* XXX tbd */
 } vbi_sliced;
-
-
-
-
-
-

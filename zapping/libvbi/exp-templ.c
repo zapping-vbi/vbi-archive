@@ -4,10 +4,10 @@
  *  Placed in the public domain.
  */
 
-/* $Id: exp-templ.c,v 1.4 2001-09-02 03:25:58 mschimek Exp $ */
+/* $Id: exp-templ.c,v 1.5 2001-09-11 07:13:41 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include "../config.h"
 #endif
 
 #include <stdio.h>
@@ -171,3 +171,6 @@ export_tmpl = {
  *  Doesn't work, sigh. Register in export.c.
  */
 // VBI_AUTOREG_EXPORT_MODULE(export_tmpl)
+
+
+
