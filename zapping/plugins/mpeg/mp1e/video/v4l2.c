@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.3 2000-08-10 01:18:59 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.4 2000-08-25 21:27:55 garetxe Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -32,6 +32,9 @@
 #include "../common/fifo.h"
 #include "../common/math.h"
 #include "../options.h"
+#ifdef TESTING_RGBMODE
+#include "../rte.h"
+#endif
 #include "video.h"
 
 #ifdef V4L2_MAJOR_VERSION
@@ -233,6 +236,40 @@ v4l2_init(void)
 			vfmt.fmt.pix.depth = 16;
 			vfmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
 		}
+
+#ifdef TESTING_RGBMODE
+		switch (TESTING_RGBMODE)
+		{
+		case RTE_RGB555:
+			vfmt.fmt.pix.depth = 16;
+			vfmt.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB555;
+			break;
+		case RTE_RGB565:
+			vfmt.fmt.pix.depth = 16;
+			vfmt.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB565;
+			break;
+		case RTE_RGB24:
+			vfmt.fmt.pix.depth = 24;
+			vfmt.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB24;
+			break;
+		case RTE_BGR24:
+			vfmt.fmt.pix.depth = 24;
+			vfmt.fmt.pix.pixelformat = V4L2_PIX_FMT_BGR24;
+			break;
+		case RTE_RGB32:
+			vfmt.fmt.pix.depth = 32;
+			vfmt.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB32;
+			break;
+		case RTE_BGR32:
+			vfmt.fmt.pix.depth = 32;
+			vfmt.fmt.pix.pixelformat = V4L2_PIX_FMT_BGR32;
+			break;
+		default:
+			fprintf(stderr, "Sorry, i dunno how to test %d\n",
+				TESTING_RGBMODE);
+			break;
+		}
+#endif
 
 		if (PROGRESSIVE(filter_mode))
 			vfmt.fmt.pix.flags = V4L2_FMT_FLAG_TOPFIELD |

@@ -325,6 +325,9 @@ void * rte_context_destroy ( rte_context * context )
 	return NULL;
 }
 
+#define DECIMATING(mode) (mode == RTE_YUYV_VERTICAL_DECIMATION ||	\
+			  mode == RTE_YUYV_EXP_VERTICAL_DECIMATION)
+
 void rte_set_video_parameters (rte_context * context,
 			       enum rte_pixformat frame_format,
 			       int width, int height,
@@ -351,6 +354,8 @@ void rte_set_video_parameters (rte_context * context,
 	context->video_format = frame_format;
 	context->width = MIN(width, MAX_WIDTH);
 	context->height = MIN(height, MAX_HEIGHT);
+	if (DECIMATING(context->video_format))
+		context->height *= 2;
 	context->video_rate = video_rate;
 	context->output_video_bits = output_video_bits;
 	context->video_bytes = context->width * context->height;
@@ -363,6 +368,14 @@ void rte_set_video_parameters (rte_context * context,
 
 	switch (frame_format)
 	{
+	case RTE_YUYV_VERTICAL_DECIMATION:
+	case RTE_YUYV_TEMPORAL_INTERPOLATION:
+	case RTE_YUYV_VERTICAL_INTERPOLATION:
+	case RTE_YUYV_PROGRESSIVE:
+	case RTE_YUYV_PROGRESSIVE_TEMPORAL:
+	case RTE_YUYV_EXP:
+	case RTE_YUYV_EXP_VERTICAL_DECIMATION:
+	case RTE_YUYV_EXP2:
 	case RTE_YUYV:
 		context->video_bytes *= 2;
 		break;
@@ -370,37 +383,37 @@ void rte_set_video_parameters (rte_context * context,
 		context->video_bytes *= 1.5;
 		break;
 	case RTE_RGB555:
-		context->video_bytes *= 1.5;
+		context->video_bytes *= 2;
 		context->private->rgbfilter = convert_rgb555_ycbcr420;
 		context->private->rgbmem =
 			malloc(context->width*context->height*2);
 		break;
 	case RTE_RGB565:
-		context->video_bytes *= 1.5;
+		context->video_bytes *= 2;
 		context->private->rgbfilter = convert_rgb565_ycbcr420;
 		context->private->rgbmem =
 			malloc(context->width*context->height*2);
 		break;
 	case RTE_RGB24:
-		context->video_bytes *= 1.5;
+		context->video_bytes *= 3;
 		context->private->rgbfilter = convert_rgb24_ycbcr420;
 		context->private->rgbmem =
 			malloc(context->width*context->height*3);
 		break;
 	case RTE_BGR24:
-		context->video_bytes *= 1.5;
+		context->video_bytes *= 3;
 		context->private->rgbfilter = convert_bgr24_ycbcr420;
 		context->private->rgbmem =
 			malloc(context->width*context->height*3);
 		break;
 	case RTE_RGB32:
-		context->video_bytes *= 1.5;
+		context->video_bytes *= 4;
 		context->private->rgbfilter = convert_rgb32_ycbcr420;
 		context->private->rgbmem =
 			malloc(context->width*context->height*4);
 		break;
 	case RTE_BGR32:
-		context->video_bytes *= 1.5;
+		context->video_bytes *= 4;
 		context->private->rgbfilter = convert_bgr32_ycbcr420;
 		context->private->rgbmem =
 			malloc(context->width*context->height*4);
@@ -583,6 +596,8 @@ static int rte_fake_options(rte_context * context);
 
 int rte_start ( rte_context * context )
 {
+	int alloc_bytes; /* bytes allocated for the video fifo */
+
 	if (!context)
 	{
 		rte_error(NULL, "context == NULL");
@@ -625,8 +640,32 @@ int rte_start ( rte_context * context )
 	   2-3 frames ahead). With 16 buffers we lose fewer frames */
 	if (context->mode & 1)
 	{
+		alloc_bytes = context->video_bytes;
+		switch (context->video_format)
+		{
+		case RTE_RGB555:
+		case RTE_RGB565:
+		case RTE_RGB24:
+		case RTE_BGR24:
+		case RTE_RGB32:
+		case RTE_BGR32:
+		case RTE_YUV420:
+			alloc_bytes = context->width*context->height*1.5;
+			break;
+		case RTE_YUYV_VERTICAL_DECIMATION:
+		case RTE_YUYV_TEMPORAL_INTERPOLATION:
+		case RTE_YUYV_VERTICAL_INTERPOLATION:
+		case RTE_YUYV_PROGRESSIVE:
+		case RTE_YUYV_PROGRESSIVE_TEMPORAL:
+		case RTE_YUYV_EXP:
+		case RTE_YUYV_EXP_VERTICAL_DECIMATION:
+		case RTE_YUYV_EXP2:
+		case RTE_YUYV:
+			alloc_bytes = context->video_bytes;
+			break;
+		}
 		_init_fifo(&(context->private->vid), "video input",
-			  context->video_bytes, 8);
+			  alloc_bytes, 8);
 		context->private->video_pending = 0;
 		if (context->private->data_callback) {
 			pthread_mutex_init(&(context->private->video_mutex),
@@ -994,6 +1033,19 @@ static int rte_fake_options(rte_context * context)
 	}
 	frame_rate_code = context->video_rate;
 	switch (context->video_format) {
+	case RTE_YUYV_VERTICAL_DECIMATION:
+	case RTE_YUYV_TEMPORAL_INTERPOLATION:
+	case RTE_YUYV_VERTICAL_INTERPOLATION:
+	case RTE_YUYV_PROGRESSIVE:
+	case RTE_YUYV_PROGRESSIVE_TEMPORAL:
+	case RTE_YUYV_EXP:
+	case RTE_YUYV_EXP_VERTICAL_DECIMATION:
+	case RTE_YUYV_EXP2:
+		pitch = grab_width*2;
+		filter_mode = /* errr... a bit hackish, maybe :-) */
+			(context->video_format-RTE_YUYV_VERTICAL_DECIMATION) + 
+			CM_YUYV_VERTICAL_DECIMATION;
+		break;
 	case RTE_YUYV:
 		filter_mode = CM_YUYV;
 		pitch = grab_width*2;

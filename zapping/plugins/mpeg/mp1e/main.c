@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.13 2000-08-25 16:21:35 garetxe Exp $ */
+/* $Id: main.c,v 1.14 2000-08-25 21:27:19 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -134,19 +134,40 @@ void * video_emulation_thread (void * ptr)
 	double timestamp;
 	unsigned char * data;
 	void * video_data;
-
+#ifdef TESTING_RGBMODE
+	int * factory_data;
+	int color;
+#endif
 	rte_context * context = (rte_context *)ptr;
+
+#ifdef TESTING_RGBMODE
+	factory_data = malloc(context->width*context->height*4);
+	/* Create three strips of pure colour */
+	/* red, green and blue */
+	memset(factory_data, 0x000000ff, context->width*context->height/3);
+	memset(factory_data+(context->width*context->height/3),
+	       0x0000ff00, context->width*context->height/3);
+	memset(factory_data+(context->width*context->height/3)*2,
+	       0x00ff0000, context->width*context->height/3);
+#endif
 
 	data = rte_push_video_data(context, NULL, 0);
 	for (;data;) {
 		pthread_mutex_lock(&video_device_mutex);
 		video_data = ye_olde_wait_frame(&timestamp, &frame);
 		pthread_mutex_unlock(&video_device_mutex);
+#ifdef TESTING_RGBMODE
+		video_data = (void*)factory_data;
+#endif
 		memcpy(data, video_data, context->video_bytes);
 		data = rte_push_video_data(context, data, timestamp);
 		ye_olde_frame_done(frame);
 	}
 	fprintf(stderr, "video emulation: %s\n", context->error);
+
+#ifdef TESTING_RGBMODE
+	free(factory_data);
+#endif
 	return NULL;
 }
 
@@ -210,7 +231,6 @@ int emulation_thread_init ( void )
 		return 0;
 	}
 
-	format = context->video_format;
 	switch (filter_mode) {
 	case CM_YUYV:
 		format = RTE_YUYV;
@@ -218,12 +238,31 @@ int emulation_thread_init ( void )
 	case CM_YUV:
 		format = RTE_YUV420;
 		break;
+	case CM_YUYV_VERTICAL_DECIMATION:
+	case CM_YUYV_TEMPORAL_INTERPOLATION:
+	case CM_YUYV_VERTICAL_INTERPOLATION:
+	case CM_YUYV_PROGRESSIVE:
+	case CM_YUYV_PROGRESSIVE_TEMPORAL:
+	case CM_YUYV_EXP:
+	case CM_YUYV_EXP_VERTICAL_DECIMATION:
+	case CM_YUYV_EXP2:
+		format = (filter_mode-CM_YUYV_VERTICAL_DECIMATION) + 
+			RTE_YUYV_VERTICAL_DECIMATION;
+		break;
 	default:
-		printv(1, "filter mode not supported: %d\n", filter_mode);
+		printv(1, "filter mode not supported: %d\nfalling back "
+		       "to YUYV mode\n", filter_mode);
 		format = RTE_YUYV;
-// XXX bug; try ./mp1e -F3 ...
 		break;
 	}
+
+#ifdef TESTING_RGBMODE
+	format = TESTING_RGBMODE;
+#endif
+
+	rte_set_video_parameters(context, format, context->width,
+				 context->height, context->video_rate,
+				 context->output_video_bits);
 
 	if (!rte_start(context))
 	{

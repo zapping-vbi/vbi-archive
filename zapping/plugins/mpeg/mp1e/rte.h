@@ -49,8 +49,18 @@ enum rte_pixformat {
 	RTE_BGR24,
 	RTE_RGB24,
 	RTE_BGR32,
-	RTE_RGB32
-	/* more formats to come ... */
+	RTE_RGB32,
+	/* these are the additional formats mp1e supports */
+	/* in decimation modes the height of the buffer you have to
+	   fill is twice the height of the resulting image */
+	RTE_YUYV_VERTICAL_DECIMATION,
+	RTE_YUYV_TEMPORAL_INTERPOLATION,
+	RTE_YUYV_VERTICAL_INTERPOLATION,
+	RTE_YUYV_PROGRESSIVE,
+	RTE_YUYV_PROGRESSIVE_TEMPORAL,
+	RTE_YUYV_EXP,
+	RTE_YUYV_EXP_VERTICAL_DECIMATION,
+	RTE_YUYV_EXP2
 };
 
 /*
