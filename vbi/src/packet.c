@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet.c,v 1.9.2.4 2003-09-24 18:49:57 mschimek Exp $ */
+/* $Id: packet.c,v 1.9.2.5 2004-01-30 00:39:00 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -153,9 +153,9 @@ hamm8_page_number		(vt_pagenum *		pn,
 {
 	int b1, b2, b3, err, m;
 
-	err  = b1 = vbi_iham16 (raw + 0);
-	err |= b2 = vbi_iham16 (raw + 2);
-	err |= b3 = vbi_iham16 (raw + 4);
+	err  = b1 = vbi_iham16p (raw + 0);
+	err |= b2 = vbi_iham16p (raw + 2);
+	err |= b3 = vbi_iham16p (raw + 4);
 
 	if (err < 0)
 		return FALSE;
@@ -302,7 +302,7 @@ parse_pop(vt_page *vtp, const uint8_t *raw, int packet)
 		return FALSE;
 
 	for (raw++, i = 0; i < 13; raw += 3, i++)
-		triplet[i] = vbi_iham24 (raw);
+		triplet[i] = vbi_iham24p (raw);
 
 	if (packet == 26)
 		packet += designation;
@@ -555,7 +555,7 @@ parse_mip_page(vbi_decoder *vbi, const vt_page *vtp,
 				    [(*subp_index % 13) * 3 + 1];
 		(*subp_index)++;
 
-		if ((subc = vbi_iham16(raw) | (vbi_iham8(raw[2]) << 8)) < 0)
+		if ((subc = vbi_iham16p(raw) | (vbi_iham8(raw[2]) << 8)) < 0)
 			return FALSE;
 
 		if ((code & 15) == 1)
@@ -606,10 +606,10 @@ parse_mip(vbi_decoder *vbi, const vt_page *vtp)
 			uint8_t *raw = vtp->data.unknown.raw[packet];
 
 			for (i = 0x00; i <= 0x09; raw += 2, i++)
-				if (!parse_mip_page(vbi, vtp, pgno + i, vbi_iham16(raw), &spi))
+				if (!parse_mip_page(vbi, vtp, pgno + i, vbi_iham16p(raw), &spi))
 					return FALSE;
 			for (i = 0x10; i <= 0x19; raw += 2, i++)
-				if (!parse_mip_page(vbi, vtp, pgno + i, vbi_iham16(raw), &spi))
+				if (!parse_mip_page(vbi, vtp, pgno + i, vbi_iham16p(raw), &spi))
 					return FALSE;
 		}
 
@@ -619,17 +619,17 @@ parse_mip(vbi_decoder *vbi, const vt_page *vtp)
 
 			for (i = 0x0A; i <= 0x0F; raw += 2, i++)
 				if (!parse_mip_page(vbi, vtp, pgno + i,
-						    vbi_iham16(raw), &spi))
+						    vbi_iham16p(raw), &spi))
 					return FALSE;
 			if (packet == 14) /* 0xFA ... 0xFF */
 				break;
 			for (i = 0x1A; i <= 0x1F; raw += 2, i++)
 				if (!parse_mip_page(vbi, vtp, pgno + i,
-						    vbi_iham16(raw), &spi))
+						    vbi_iham16p(raw), &spi))
 					return FALSE;
 			for (i = 0x2A; i <= 0x2F; raw += 2, i++)
 				if (!parse_mip_page(vbi, vtp, pgno + i,
-						    vbi_iham16(raw), &spi))
+						    vbi_iham16p(raw), &spi))
 					return FALSE;
 		}
 
@@ -1387,7 +1387,7 @@ parse_bsd(vbi_decoder *vbi, uint8_t *raw, int packet, int designation)
 			printf("\nPacket 8/30/%d:\n", designation);
 #endif
 			for (err = i = 0; i < 7; i++) {
-				err |= t = vbi_iham16(raw + i * 2 + 6);
+				err |= t = vbi_iham16p(raw + i * 2 + 6);
 				b[i] = vbi_rev8(t);
 			}
 
@@ -1538,8 +1538,8 @@ parse_page_clear(struct page_clear *pc, uint8_t *p, int packet)
 			col += size;
 
 			if (pc->pfc.application_id < 0) {
-				int sh = vbi_iham16(pc->pfc.block)
-					+ vbi_iham16(pc->pfc.block + 2) * 256;
+				int sh = vbi_iham16p(pc->pfc.block)
+					+ vbi_iham16p(pc->pfc.block + 2) * 256;
 
 				pc->pfc.application_id = sh & 0x1F;
 				pc->pfc.block_size =
@@ -1869,8 +1869,8 @@ parse_27(vbi_decoder *vbi, uint8_t *p,
 		for (p++, i = 0; i <= 5; p += 6, i++) {
 			int t1, t2;
 
-			t1 = vbi_iham24(p + 0);
-			t2 = vbi_iham24(p + 3);
+			t1 = vbi_iham24p(p + 0);
+			t2 = vbi_iham24p(p + 3);
 
 			if ((t1 | t2) < 0)
 				return FALSE;
@@ -1933,7 +1933,7 @@ parse_28_29(vbi_decoder *vbi, uint8_t *p,
 			mag8, packet, designation, cvtp->pgno);
 
 	for (p++, i = 0; i < 13; p += 3, i++)
-		err |= triplet[i] = vbi_iham24 (p);
+		err |= triplet[i] = vbi_iham24p (p);
 
 	switch (designation) {
 	case 0: /* X/28/0, M/29/0 Level 2.5 */
@@ -2166,7 +2166,7 @@ vbi_decode_teletext(vbi_decoder *vbi, uint8_t *p)
 	int pmag, mag0, mag8, packet;
 	vt_magazine *mag;
 
-	if ((pmag = vbi_iham16(p)) < 0)
+	if ((pmag = vbi_iham16p(p)) < 0)
 		return FALSE;
 
 	mag0 = pmag & 7;
@@ -2201,7 +2201,7 @@ vbi_decode_teletext(vbi_decoder *vbi, uint8_t *p)
 		struct raw_page *curr;
 		int i;
 
-		if ((page = vbi_iham16(p)) < 0) {
+		if ((page = vbi_iham16p(p)) < 0) {
 			vbi_teletext_desync(vbi);
 //			printf("Hamming error in packet 0 page number\n");
 			return FALSE;
@@ -2266,8 +2266,8 @@ vbi_decode_teletext(vbi_decoder *vbi, uint8_t *p)
 		cvtp->pgno = pgno;
 		vbi->vt.current = rvtp;
 
-		subpage = vbi_iham16(p + 2) + vbi_iham16(p + 4) * 256;
-		flags = vbi_iham16(p + 6);
+		subpage = vbi_iham16p(p + 2) + vbi_iham16p(p + 4) * 256;
+		flags = vbi_iham16p(p + 6);
 
 		if (page == 0xFF || (subpage | flags) < 0) {
 			cvtp->function = PAGE_FUNCTION_DISCARD;
@@ -2581,7 +2581,7 @@ vbi_decode_teletext(vbi_decoder *vbi, uint8_t *p)
 		}
 
 		for (p++, i = 0; i < 13; p += 3, i++) {
-			int t = vbi_iham24(p);
+			int t = vbi_iham24p(p);
 
 			if (t < 0)
 				break; /* XXX */
