@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.h,v 1.5.2.3 2003-06-16 06:03:20 mschimek Exp $ */
+/* $Id: vbi.h,v 1.5.2.4 2004-01-30 00:41:20 mschimek Exp $ */
 
 #ifndef VBI_H
 #define VBI_H
@@ -31,7 +31,7 @@
 
 #include "vt.h"
 #include "cc.h"
-#include "decoder.h"
+#include "sliced.h"
 #include "event.h"
 #include "cache.h"
 #include "trigger.h"
@@ -245,6 +245,13 @@ vbi_cache_page_language		(vbi_decoder *		vbi,
 extern vbi_page_type	vbi_classify_page(vbi_decoder *vbi, vbi_pgno pgno,
 					  vbi_subno *subno);
 extern void		vbi_version(unsigned int *major, unsigned int *minor, unsigned int *micro);
+
+typedef void vbi_log_fn		(const char *		function,
+				 const char *		message,
+				 void *			user_data);
+extern void
+vbi_set_log_fn			(vbi_log_fn *		function,
+				 void *			user_data);
 /** @} */
 
 /* Private */

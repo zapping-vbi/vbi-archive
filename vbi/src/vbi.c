@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.6.2.4 2003-09-24 18:49:57 mschimek Exp $ */
+/* $Id: vbi.c,v 1.6.2.5 2004-01-30 00:40:59 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -942,6 +942,42 @@ vbi_asprintf(char **errstr, char *templ, ...)
 	va_end(ap);
 
 	*errstr = strdup(buf);
+
+	errno = temp;
+}
+
+static vbi_log_fn *		log_function;
+static void *			log_user_data;
+
+void
+vbi_set_log_fn			(vbi_log_fn *		function,
+				 void *			user_data)
+{
+	log_function = function;
+	log_user_data = user_data;
+}
+
+void
+vbi_log_printf			(const char *		function,
+				 const char *		template,
+				 ...)
+{
+	char buf[512];
+	va_list ap;
+	int temp;
+
+	if (NULL == log_function)
+		return;
+
+	temp = errno;
+
+	va_start (ap, template);
+
+	vsnprintf (buf, sizeof (buf) - 1, template, ap);
+
+	va_end (ap);
+
+	log_function (function, buf, log_user_data);
 
 	errno = temp;
 }
