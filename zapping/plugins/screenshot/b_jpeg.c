@@ -28,8 +28,9 @@
 #undef HAVE_PROTOTYPES
 #include <jpeglib.h>
 #if 0
-#define PARENT(ptr, type, member) \
-        ((type *)(((char *) ptr) - offsetof(type, member)))
+#define PARENT(_ptr, _type, _member)					\
+	({ char *_p = (char *)(_ptr); (_p != 0) ?			\
+	  (_type *)(_p - offsetof (_type, _member)) : (_type *) 0; })
 #endif
 
 struct backend_private {

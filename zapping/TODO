@@ -16,6 +16,7 @@ Outstanding issues for future releases
 * http://developer.gnome.org/dotplan/porting/ checklist.
 * Are we using window fully visible, partially visible and
   fully obscured X11 events to optimize capture mode?
+  See overlay.c.
 * preferences from context menu (zapping-misc 2003-01-05)
 * configure.in: esd, oss etc checks
 * Video standard question.

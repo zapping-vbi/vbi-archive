@@ -56,14 +56,20 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
     {
     case 3:
       {
-	GtkMenuShell * menu = GTK_MENU_SHELL(create_popup_menu1());
+	GtkMenuShell *menu;
+	GtkWidget *mw;
+
+	menu = GTK_MENU_SHELL (create_popup_menu1 ());
+	mw = GTK_WIDGET (menu);
+
 	add_channel_entries(menu, 1, 10, main_info);
+
 	if (disable_preview)
 	  {
-	    widget = lookup_widget(GTK_WIDGET(menu), "go_fullscreen2");
+	    widget = lookup_widget (mw, "go_fullscreen2");
 	    gtk_widget_set_sensitive(widget, FALSE);
 	    gtk_widget_hide(widget);
-	    widget = lookup_widget(GTK_WIDGET(menu), "go_previewing2");
+	    widget = lookup_widget(mw, "go_previewing2");
 	    gtk_widget_set_sensitive(widget, FALSE);
 	    gtk_widget_hide(widget);
 	  }
@@ -72,20 +78,20 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 	if (!zvbi_get_object())
 #endif
 	  {
-	    widget = lookup_widget(GTK_WIDGET(menu), "separador6");
+	    widget = lookup_widget(mw, "separador6");
 	    gtk_widget_set_sensitive(widget, FALSE);
 	    gtk_widget_hide(widget);
-	    widget = lookup_widget(GTK_WIDGET(menu), "videotext2");
+	    widget = lookup_widget(mw, "videotext2");
 	    gtk_widget_set_sensitive(widget, FALSE);
 	    gtk_widget_hide(widget);
-	    widget = lookup_widget(GTK_WIDGET(menu), "new_ttxview2");
+	    widget = lookup_widget(mw, "new_ttxview2");
 	    gtk_widget_set_sensitive(widget, FALSE);
 	    gtk_widget_hide(widget);
 	  }
 #ifdef HAVE_LIBZVBI
 	else if (main_info->current_mode == TVENG_NO_CAPTURE)
 	  {
-	    widget = lookup_widget(GTK_WIDGET(menu), "videotext2");
+	    widget = lookup_widget(mw, "videotext2");
 	    z_change_menuitem(widget,
 			      "gnome-stock-table-fill",
 			      _("Overlay this page"),
@@ -99,18 +105,23 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 	if (disable_preview)
 #endif
 	  {
-	    gtk_widget_hide(lookup_widget(GTK_WIDGET(menu),
+	    gtk_widget_hide(lookup_widget(mw,
 					  "separador3"));
-	    widget = lookup_widget(GTK_WIDGET(menu), "go_capturing2");
+	    widget = lookup_widget(mw, "go_capturing2");
 	    gtk_widget_set_sensitive(widget, FALSE);
 	    gtk_widget_hide(widget);
 	  }
 
-	if (zcg_bool(NULL, "hide_controls"))
-	  z_change_menuitem(lookup_widget(GTK_WIDGET(menu),
-					  "hide_controls1"),
-			    "gnome-stock-book-open",
-			    _("Show menu and toolbar"), NULL);
+	{
+	  GtkCheckMenuItem *item;
+	  gboolean hide;
+
+	  item = GTK_CHECK_MENU_ITEM (lookup_widget (mw, "hide_controls1"));
+	  hide = zcg_bool (NULL, "hide_controls");
+
+	  if (hide == item->active)
+	    gtk_check_menu_item_set_active (item, !hide);
+	}
 
 #ifdef HAVE_LIBZVBI
 	process_ttxview_menu_popup(main_window, bevent, menu);

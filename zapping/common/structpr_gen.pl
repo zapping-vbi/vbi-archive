@@ -6,13 +6,13 @@
 #  GPL2 blah blah blah.
 #
 #  This script turns a C header file into functions printing
-#  ioctl arguments. It's part of the debugging routines of
-#  the Zapping tv viewer http://zapping.sf.net.
+#  and checking ioctl arguments. It's part of the debugging
+#  routines of the Zapping tv viewer http://zapping.sf.net.
 #
 #  Perl and C gurus cover your eyes. This is one of my first
 #  attempts in this funny tongue and far from a proper C parser.
 
-# $Id: structpr_gen.pl,v 1.1.2.2 2003-03-06 21:59:28 mschimek Exp $
+# $Id: structpr_gen.pl,v 1.1.2.3 2003-07-29 03:48:01 mschimek Exp $
 
 $number		= '[0-9]+';
 $ident		= '\~?_*[a-zA-Z][a-zA-Z0-9_]*';
@@ -21,11 +21,12 @@ $unsigned	= '(((unsigned\s*)|u|u_)(char|short|int|long))|__u8|__u16|__u32|unsign
 $define		= '^\s*\#\s*define\s+';
 
 while (@ARGV) {
+    # Syntax of arguments, in brief:
     # struct.field=SYM_
     #   says struct.field contains symbols starting with SYM_
     # struct.field=string|hex|fourcc
-    #   print that field appropriately. Try first without,
-    #   there's some wisdom built in.
+    #   print that field appropriately. Try first without
+    #   a hint, there's some wisdom built into this script.
     # typedef=see above
     # struct={ fprintf(fp, "<$s>", t->narf); }
     #   print like this.
@@ -66,13 +67,25 @@ $contents =~ s/\\\s*\n/$1\05/gs;
 while ($contents =~ s/\05([^\n\05]+)\05/$1\05\05/gs) {}
 $contents =~ s/(\05+)([^\n]*)/"$2"."\n" x length($1)/ges;
 
+sub add_ioctl_check {
+    my ($name, $dir, $type) = @_;
+
+    $ioctl_check .= "static __inline__ void IOCTL_ARG_TYPE_CHECK_$name ";
+    
+    if ($dir eq "W") {
+	$ioctl_check .= "(const $type *arg) {}\n";
+    } else {
+	$ioctl_check .= "($type *arg) {}\n";
+    }
+}
+
 sub add_ioctl {
-    my ($name, $type) = @_;
+    my ($name, $dir, $type) = @_;
 
     $ioctl_cases{$type} .= "\tcase $name:\n"
 	. "\t\tif (!arg) { fputs (\"$name\", fp); return; }\n";
 
-    $ioctl_check .= "static __inline__ void IOCTL_ARG_TYPE_CHECK_$name ($type *arg) {}\n";
+    &add_ioctl_check ($name, $dir, $type);
 }
 
 # Find macro definitions, create ioctl & symbol table.
@@ -91,12 +104,12 @@ foreach ($contents =~ /^(.*)/gm) {
     if (/^\s*#\s*if\s+0/) {
 	$skip = 1;
     # Ioctls
-    } elsif (/$define($ident)\s+_IO.*\(.*,\s*$number\s*,\s*(struct|union)\s*($ident)\s*\)\s*$/) {
-	&add_ioctl ($1, "$2 $3");
-    } elsif (/$define($ident)\s+_IO.*\(.*,\s*$number\s*,\s*(($signed)|($unsigned))\s*\)\s*$/) {
-	&add_ioctl ($1, "$2");
-    } elsif (/$define($ident)\s+_IO.*\(.*,\s*$number\s*,\s*([^*]+)\s*\)\s*$/) {
-	$ioctl_check .= "static __inline__ void IOCTL_ARG_TYPE_CHECK_$1 ($2 *arg) {}\n";
+    } elsif (/$define($ident)\s+_IO(WR|R|W).*\(.*,\s*$number\s*,\s*(struct|union)\s*($ident)\s*\)\s*$/) {
+	&add_ioctl ($1, $2, "$3 $4");
+    } elsif (/$define($ident)\s+_IO(WR|R|W).*\(.*,\s*$number\s*,\s*(($signed)|($unsigned))\s*\)\s*$/) {
+	&add_ioctl ($1, $2, "$3");
+    } elsif (/$define($ident)\s+_IO(WR|R|W).*\(.*,\s*$number\s*,\s*([^*]+)\s*\)\s*$/) {
+	&add_ioctl_check ($1, $2, $3);
     # Define 
     } elsif (/$define($ident)/) {
 	push @global_symbols, $1;
@@ -294,7 +307,7 @@ sub aggregate_body {
 	    } elsif ($ptr eq "*") {
 		# Array of pointers?
 		if ($size ne "") {
-		    # ignore
+		    # Not smart enough, ignore
 		    $templ .= "$field\[\]=? ";
 	        # Wisdom: char pointer is probably a string.
 		} elsif ($type eq "char" || $field eq "name" || $hint eq "string") {
@@ -320,7 +333,8 @@ sub aggregate_body {
 	        if ($hint ne "") {
 		    &add_symbolic ($text, $deps, 2, $ref, $field, $hint);
 		} else {
-		    &add_arg ("unsigned long", $ref, $field, "0x%lx"); # flags in hex
+		    # flags in hex
+		    &add_arg ("unsigned long", $ref, $field, "0x%lx");
 		}
 	    # Hint: something funny
 	    } elsif ($hint eq "hex") {
@@ -331,8 +345,8 @@ sub aggregate_body {
 	    # Field contains symbols, could be flags or enum or both
 	    } elsif ($hint ne "") {
 	        &add_symbolic ($text, $deps, 0, $ref, $field, $hint);
-	    # Miscellaneous integers. Suffice to distinguish
-	    # signed and unsigned, compiler will do the rest.
+	    # Miscellaneous integers. Suffice to distinguish signed and
+	    # unsigned, compiler will convert to long automatically
 	    } elsif ($type =~ m/$unsigned/) {
 	        &add_arg ("unsigned long", $ref, $field, "%lu");
 	    } elsif ($type =~ m/$signed/) {

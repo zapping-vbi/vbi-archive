@@ -49,10 +49,10 @@ di_setup		(GtkWidget	*page)
   extern tveng_device_info *main_info;
   GtkWidget *widget;
   gchar *buffer;
-  gint i;
   GtkNotebook *nb;
   GtkWidget * nb_label;
   GtkWidget * nb_body;
+  const tv_video_line *l;
 
   /* The device name */
   widget = lookup_widget(page, "label27");
@@ -103,7 +103,7 @@ di_setup		(GtkWidget	*page)
   g_free(buffer);
 
   nb = GTK_NOTEBOOK (lookup_widget(page, "notebook2"));
-  if (main_info -> num_inputs == 0)
+  if (!main_info->video_inputs)
     {
       nb_label = gtk_label_new(_("No available inputs"));
       gtk_widget_show (nb_label);
@@ -113,24 +113,27 @@ di_setup		(GtkWidget	*page)
       gtk_widget_set_sensitive(GTK_WIDGET(nb), FALSE);
    }
   else
-    for (i = 0; i < main_info->num_inputs; i++)
+    for (l = tv_next_video_input (main_info, NULL);
+	 l; l = tv_next_video_input (main_info, l))
       {
 	char *type_str;
 
-	nb_label = gtk_label_new(main_info->inputs[i].name);
+	nb_label = gtk_label_new(l->label);
 	gtk_widget_show (nb_label);
 
-	if (main_info->inputs[i].type == TVENG_INPUT_TYPE_TV)
+	if (l->type == TV_VIDEO_LINE_TYPE_TUNER)
 	  type_str = _("TV input");
 	else
 	  type_str = _("Camera");
 
+#if 0 // obsolete
 	if (main_info->inputs[i].tuners)
 	  buffer = g_strdup_printf (ngettext ("%s with %d tuner",
 	                                      "%s with %d tuners",
 			                      main_info->inputs[i].tuners),
 				    type_str, main_info->inputs[i].tuners);
 	else
+#endif
           buffer = g_strdup_printf ("%s", type_str);
 
 	nb_body = gtk_label_new (buffer);

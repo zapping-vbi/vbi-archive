@@ -1,3 +1,128 @@
+28.7.2003	<mschimek@users.sf.net>
+
+	* src/zvideo.c: Gtk version check for aspect bug.
+
+	* configure.in: gdk_pixbuf_csource helper app check.
+	* pixmaps: Some work to embed pixmaps as stock into the application
+	  instead of loading at runtime, unfinished.
+	* src/main.c (init_zapping_stock): Added.
+	* plugins/mpeg/Makefile.am, plugins/mpeg/mpeg.c: Use GtkPixdata
+	  and application stock instead of loading pixmaps at runtime.
+	* plugins/screenshot/screenshot.c: Use application stock instead
+	  of loading toolbutton image at runtime.
+	* src/zmisc.c, src/zmisc.h: Rewrote helper functions for application
+	  stock icons.
+	* src/ttxview.c: Use GtkPixdata and application stock instead of
+	  loading pixmaps at runtime.
+
+	* glade/zapping.glade2: "s/Hide// menu and toolbar" as recommeded
+	  in HIG. Use application stock pixmaps.
+	* src/callbacks.c (on_tv_screen_button_press_event), src/cmd.c
+	  (py_hide_controls): Changed hide/show menu and toolbar menu to
+	  check menu as recommended in HIG.
+	* src/interface.c: Added on_toggle callbacks for toolbar and
+	  keep-on-top check menus calling python. Fixes possible keep-on-top
+	  menu check mark and state inconsistency.
+
+	* src/tveng.c, src/tveng.h, src/tveng_private.h: Replaced video
+	  input	and video standard vectors of tveng_device_info by linked
+	  lists, with appropriate methods, callbacks, helper functions
+	  and macros.
+	* src/tveng.c, src/tveng.h: Rewrote tv_control and its methods to
+	  follow the design of other enumerated items.
+	* src/tveng.c, src/tveng.h: tv_callback_s/node//, Added
+	  tv_callback_fn type.
+	* src/tveng.c, src/tveng_private.h, src/tveng1.c,
+	  src/tveng2.c, src/tveng25.c: Helper function ioctl_failure
+	  to record ioctl name and errno in case of failure. Called
+	  automagically from ioctl macros.
+	* src/v4linterface.c: Don't make station menu insensitive when there
+	  are no channels, we still have baseband inputs. Rewrote video
+	  input and video standard menu building functions. These are now
+	  radio menus with automatic update and rebuilding taking advantage
+	  of tv_callbacks.
+	* src/zmisc.c, src/zmisc.h: Added z_menu_shell_nth_item() helper.
+	* plugins/mpeg/mpeg.c, src/channel_editor.c, src/main.c,
+	  src/properties-handler.c, src/zmisc.c: Updated for new video input
+	  and standard enumeration.
+	* src/tveng.c, src/tveng.h: Replaced tv_mixer_line by generic
+	  tv_audio_line. Added audio input list to tveng_device_info, audio
+	  input helper functions, not used yet.
+	* src/audio.c, src/globals.c, src/globals.h, src/mixer.c, src/oss.c:
+	  Replaced tv_mixer_line by generic tv_audio_line.
+	* src/tveng.c, src/tveng.h: Work towards audio mode interface
+	  (mono/stereo/...), unfinished.
+
+	* src/tveng.c, src/tveng.h: Replaced tveng_clip by tv_clip and
+	  tv_clip_vector structures and methods, updated tveng_window (now
+	  tv_overlay_window) accordingly. Makes things a lot cleaner. New
+	  function tv_clip_vector_add_clip_xy sorts clips, will be necessary
+	  for bktr.
+	* src/tveng.c, src/tveng.h: Rewrote get/set frame buffer
+	  routines. Setting checks if already initialized, saving the
+	  zapping_setup_fb call, and again if the helper really worked as
+	  expected.
+	* src/tveng.c (tveng_set_preview): DMA target check before
+	  overlay is enabled to prevent memory corruption.
+	* src/tveng1.c, src/tveng2.c, src/tveng25.c, src/tvengxv.c,
+	  src/tvengemu.c, src/tveng1.h, src/tveng2.h, src/tveng25.h,
+	  src/tvengxv.h, src/tvengemu.h: Rewrote video input, standard and
+	  some overlay functions. Removed redundant detect_preview and
+	  start/stop_previewing (fullscreen overlay) functions.
+	* src/tvengemu.c, src/tveng_private.h: Added tv_set_overlay_buffer
+	  function. Not used yet, except in tvengemu.c where calling
+	  zapping_setup_fb makes no sense.
+	* src/main.c (main): Pixfmt breakdown in DGA parameter dump. Moved
+	  zapping_setup_fb call after device open to permit check if
+	  parameters are already initialized.
+	* src/overlay.c, src/overlay.h: Major cleanup. Fixed (non-)clipping
+	  against window bounds (right border trashing bug due to DMA
+	  overlay alignment by (bttv <= 0.8) driver), tooltip flicker,
+	  screen cleanup. All windowed overlay is now controlled by
+	  start_overlay() and stop_overlay() in this file.
+	* src/x11stuff.c, src/x11stuff.h: Rewrote clip vector building
+	  routines. Simpler now, and take window boundary into account.
+	* src/fullscreen.c: Update to new tv_overlay_window and
+	  tv_clip_vector.
+	* src/tveng.c, src/tveng.h: Replaced tveng_fb_info by
+	  tv_overlay_buffer structure, also used to hold DGA parameters.
+	* src/tveng.c, src/tveng.h, src/video_mem.c: Added
+	  tv_pixfmt_to_pixel_format(), with argument struct tv_pixel_format.
+	  Breaks down pixfmt, for clients requiring more details.
+	  Accordingly removed redundant color depth and bpp from DGA
+	  parameters and tveng_pixformat_bits_per_pixel function.
+	* src/x11stuff.c, src/x11stuff.h: Replaced x11_dga_parameters by
+	  tv_overlay_buffer structure in DGA routines. The same structure
+	  is used in tveng to program overlay.
+	* src/globals.c, src/globals.h: Replaced x11_dga_parameters by
+	  tv_overlay_buffer.
+	* src/zmisc.c (zmisc_stop): Replaced tveng_stop_everything() calls,
+	  this function is tveng internal now.
+	* src/zmisc.c (zmisc_restart): Removed, tveng_restart_everything()
+	  is tveng internal now and the function wasn't used anyway.
+	* src/zmisc.c (zmisc_switch_mode): Replaced obsolete
+	  tveng_detect_preview() call. Simplified switch to windowed
+	  overlay, all initialization now in overlay.c/start_overlay().
+	* src/tveng.c, src/tveng.h, src/tveng_private.h: Added
+	  tv_set_overlay_xwindow as set_overlay_buffer (video memory)
+	  counterpart.
+	* src/tveng.c, src/tveng.h, src/tveng_private.h:
+	  tveng_stop_everything() conflicts with encapsulation of overlay
+ 	  code in overlay.c, therefore now tveng internal. Actually it
+	  shouldn't be used at all (before video standard change etc),
+	  permitting asynchronous video parameter changes and what not.
+	  But fixing this is complicated, postponed until a later date.
+	* src/tveng.c (round_boundary_4): Replaced doubleword alignment of
+	  images by more elaborate rounding function.
+
+	* src/capture.c (scan_device): Restore pixfmt after scan.
+	* common/Makefile.am: VPATH fix: location of structpr_gen.pl script.
+	* common/types.h, src/zmisc.h: PARENT macro passes through NULL.
+	* src/zmisc.c, src/zmisc.h: Added z_strlcpy() helper. Sane version
+	  of strncpy, idea from FreeBSD.
+	* zapping_setup_fb/zapping_setup_fb.c: #include <sys/stat.h> for 
+	  device_open_safer(). Oops.
+
 28.5.2003	<mschimek@users.sf.net>
 
 	* plugins/screenshot/screenshot.c: Fix incompatibility
@@ -5,6 +130,7 @@
 	* zapping_setup_fb/Makefile.am,
 	  zapping_setup_fb/zapping_setup_fb.pam: Consolehelper
 	  mediation didn't work on RH9. Fix borrowed from v4l-conf.
+
 26.4.2003	<mschimek@users.sf.net>
 
 	* src/zmisc.c, src/zmisc.h: Cleaned up & improved filename

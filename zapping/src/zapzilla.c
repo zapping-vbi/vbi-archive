@@ -101,11 +101,12 @@ int zapzilla_main(int argc, char * argv[])
 		      NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: zapzilla.c,v 1.4.2.2 2003-01-08 14:52:55 mschimek Exp $",
+	 "$Id: zapzilla.c,v 1.4.2.3 2003-07-29 03:48:01 mschimek Exp $",
 	 "Zapzilla", VERSION, __DATE__);
   D();
   /* FIXME: Find something better */
-  gnome_window_icon_set_default_from_file(PACKAGE_PIXMAPS_DIR "/gnome-television.png");
+  gnome_window_icon_set_default_from_file
+    (PACKAGE_PIXMAPS_DIR "/gnome-television.png");
   D();
   if (!startup_zapzilla())
     {

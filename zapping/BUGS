@@ -5,30 +5,21 @@ Known bugs with zapping, don't report them
 ! == Killer
 ------------------------------------------
 
-	* (Zapping 0.6.7) Saving QVC-600 TTX page in HTML
-	  segfaults.
+	* Channel editor: extra null channel at end of frequency table.
+	* Setting color control doesn't work, try control box and emu.
+	* (Zapping 0.6.7) Saving QVC-600 TTX page in HTML segfaults.
 	* Station search doesn't work in overlay mode
 	  (Xv/v4l no signal strength), need check/switch.
 	- In capture mode window resizing flickers.
-	* Wrong aspect when video window opens:
-	  bugzilla.gnome.org #108237. Fixed. Need to
-	  add version check to disable work-around.
 	! bttv 0.9.5 seems to crash the X server whenever
 	  XvPutImage is called (field ANY not handled?).
 	  Gerd notified, promised fix in 0.9.6.
-	* v4l/v4l2 fbuf params must be validated in case
-	  setup_fb failed, but were initialized before.
-	  Try modifying XF86Config, then restart the X session.
-	  (Not a safety/security matter, just wrong bpl/bpp.)
 	* resize menu key accel doesn't work?
 	* Need to handle BadAtom errors resulting from Xv out
 	  of video memory (or no v4l device?). Currently gdk
 	  just aborts the app.
 	* Need better no-overlay-present handling.
 	* Capture with --no-xv doesn't work?
-	* Some routine starting --no-xv overlay clamps against
-	  info->caps.min when the window is smaller, and
-	  seems to forget to clip the overhang.
 	* Capture won't work under PPC (endianess)
 	* Look for endianness problems.
 	* vbi eats too much CPU, investigate.
