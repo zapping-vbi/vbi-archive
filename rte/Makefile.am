@@ -22,7 +22,7 @@ librteincludedir = $(includedir)
 librteinclude_HEADERS = rte.h
 librte_la_SOURCES = rte.c rte.h rtepriv.h
 librte_la_LIBADD = $(ffmpeg) $(mp1e) -lpthread -lm
-librte_la_LDFLAGS = -export-dynamic
+librte_la_LDFLAGS = -export-dynamic -release @VERSION@
 
 rte_test_SOURCES = rte_test_main.c
 

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.4 2001-08-22 01:28:07 mschimek Exp $ */
+/* $Id: main.c,v 1.5 2001-08-24 17:52:49 garetxe Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -54,6 +54,7 @@
 #include "common/mmx.h"
 #include "common/bstream.h"
 #include "common/sync.h"
+#include "common/errstr.h"
 #include "options.h"
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
@@ -236,12 +237,13 @@ main(int ac, char **av)
 	}
 
 	if (modules & MOD_SUBTITLES) {
-		char *err_str;
-
-		vbi_cap_fifo = vbi_open_v4lx(vbi_dev, -1, FALSE, 30, &err_str);
+		vbi_cap_fifo = vbi_open_v4lx(vbi_dev, -1, FALSE, 30);
 
 		if (vbi_cap_fifo == NULL) {
-			fprintf(stderr, "Failed to access vbi device:\n%s\n", err_str);
+			if (errstr)
+				fprintf(stderr, "Failed to access vbi device:\n%s\n", errstr);
+			else
+				fprintf(stderr, "Failed to access vbi device: Cause unknown\n");
 			exit(EXIT_FAILURE);
 		}
 	}
