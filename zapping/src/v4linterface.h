@@ -36,13 +36,13 @@ extern ZModel *z_input_model;
 /**
  * Sets the given input, based on its hash.
  */
-void
+gboolean
 z_switch_input			(int hash, tveng_device_info *info);
 
 /**
  * Sets the given standard, based on its hash.
  */
-void
+gboolean
 z_switch_standard		(int hash, tveng_device_info *info);
 
 /**
