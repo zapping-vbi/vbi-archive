@@ -247,16 +247,13 @@ const audio_backend_info oss_backend =
 
 
 
-
-/* Future */
-
 /* XXX check for freebsd quirks */
 
-#include "mixer.h"
+#include "tveng_private.h"
 
 #include "../common/device.h"
 
-#define VOL_MIN 0
+#define VOL_MIN 1	/* 0 = muted */
 #define VOL_MAX 100
 
 #ifndef SOUND_MIXER_READ_OUTMASK
@@ -271,9 +268,21 @@ const audio_backend_info oss_backend =
 #define SOUND_MIXER_WRITE_OUTSRC MIXER_WRITE (SOUND_MIXER_OUTSRC)
 #endif
 
-#define CASE(x) case x: if (!arg) { fputs (# x, fp); return; }
-
 static const char *dev_names [] = SOUND_DEVICE_LABELS;
+
+static const unsigned int INPUTS =
+	SOUND_MASK_LINE | SOUND_MASK_MIC |
+	SOUND_MASK_CD | SOUND_MASK_PHONEIN |
+	SOUND_MASK_VIDEO | SOUND_MASK_RADIO |
+	/*
+	 *  soundcard.h suggests inputs, but some drivers
+	 *  use them for outputs. :-(
+	 */
+	SOUND_MASK_LINE1 | SOUND_MASK_LINE2 |
+	SOUND_MASK_LINE3 | SOUND_MASK_DIGITAL1 |
+	SOUND_MASK_DIGITAL2 | SOUND_MASK_DIGITAL3;
+
+#define CASE(x) case x: if (!arg) { fputs (# x, fp); return; }
 
 static void
 fprintf_ioctl_arg		(FILE *			fp,
@@ -316,10 +325,15 @@ fprintf_ioctl_arg		(FILE *			fp,
 		const char *rw = "?";
 		unsigned int line;
 
-		if (IOCTL_READ (cmd))
-			rw = "READ";
-		else if (IOCTL_READ_WRITE (cmd))
+		/*
+		 *  Note: MIXER_WRITE() is really write-read, but it
+		 *  just returns the argument, not the actual volume.
+		 */
+		if (IOCTL_READ_WRITE (cmd))
 			rw = "WRITE";			
+		else if (IOCTL_READ (cmd))
+			rw = "READ";
+
 
 		line = IOCTL_NUMBER (cmd);
 
@@ -333,30 +347,27 @@ fprintf_ioctl_arg		(FILE *			fp,
 				 (* (int *) arg) & 0xFF,
 				 ((* (int *) arg) >> 8) & 0xFF);
 		else
-			fprintf (fp, "SOUND_MIXER_%s <%u %s>",
+			fprintf (fp, "SOUND_MIXER_%s<%u %s>",
 				 rw, line, dev_names[line]);
 	}
 	}
 }
 
 #define mixer_ioctl(fd, cmd, arg)					\
-  (0 == device_ioctl (fd, cmd, arg, m->dev.log, fprintf_ioctl_arg))
+  (0 == device_ioctl (m->pub._log, fprintf_ioctl_arg, fd, cmd, arg))
 
 struct line {
-	tv_dev_mixer_line	dev;
-
+	tv_mixer_line		pub;
 	int			id;
-
 	int			old_volume;		/* restore */
 };
 
-#define L(l) PARENT (l, struct line, dev)
-#define LL(l) PARENT (l, struct line, dev.pub)
+#define L(l) PARENT (l, struct line, pub)
 
-#define NOTIFY(l) tv_callback_notify (&l->dev.pub, l->dev.callback)
+#define NOTIFY(l) tv_callback_notify (&l->pub, l->pub._callback)
 
 struct mixer {
-	tv_dev_mixer		dev;
+	tv_mixer		pub;
 
 	int			fd;
 
@@ -389,123 +400,117 @@ struct mixer {
 	int			old_outsrc;
 };
 
-#define M(m) PARENT (m, struct mixer, dev)
-#define MM(m) PARENT (m, struct mixer, dev.pub)
+#define M(m) PARENT (m, struct mixer, pub)
 
-static tv_bool
-volume_changed			(struct line *		l,
-				 int			volume)
-{
-	unsigned int left, right;
-
-	left = volume & 0xFF;
-	right = (volume >> 8) & 0xFF; /* higher bits are undefined */
-
-	/*
-	 *  Scaling applies integer division rounding to zero
-	 *  ret = (int)((int)(req * scale / 100) * 100 / scale),
-	 *  this must be corrected to prevent error accumulation.
-	 */
-	left = MIN (left + 1, (unsigned int) VOL_MAX);
-
-	if (!l->dev.pub.stereo)
-		right = left;
-	else
-		right = MIN (right + 1, (unsigned int) VOL_MAX);
-
-	if (l->dev.pub.volume[0] != left
-	    || l->dev.pub.volume[1] != right) {
-		l->dev.pub.volume[0] = left;
-		l->dev.pub.volume[1] = right;
-		return TRUE;
-	}
-
-	return FALSE;
-}
+#define HARD_MUTABLE(m, l) ((m)->has_outsrc && ((m)->out_mask & (1 << (l)->id)))
 
 static tv_bool
 update_line			(struct mixer *		m,
 				 struct line *		l,
 				 int *			volume)
 {
+	unsigned int left, right;
+	tv_bool muted;
+
 	*volume = 0;
 
 	if (!mixer_ioctl (m->fd, MIXER_READ (l->id), volume))
 		return FALSE;
 
-	if (*volume == 0) {
-		if (!l->dev.pub.muted) {
-			l->dev.pub.muted = TRUE;
-			NOTIFY(l);
-		}
-	} else {
-		tv_bool muted = FALSE;
-
 #ifdef SOUND_MIXER_OUTSRC
 
-		if (m->has_outsrc && (m->out_mask & (1 << l->id))) {
-			int outsrc; /* sic */
+	if (HARD_MUTABLE (m, l)) {
+		int outsrc; /* sic */
 
-			if (!mixer_ioctl (m->fd, SOUND_MIXER_READ_OUTSRC, &outsrc))
-				return FALSE;
+		if (!mixer_ioctl (m->fd, SOUND_MIXER_READ_OUTSRC, &outsrc))
+			return FALSE;
 
-			if (0 == (outsrc & (1 << l->id)))
-				muted = TRUE;
-		}
+		muted = (0 == (outsrc & (1 << l->id)));
+	} else
 #endif
-		if (volume_changed (l, *volume)
-		    || l->dev.pub.muted != muted) {
-			l->dev.pub.muted = muted;
-			NOTIFY(l);
+	{
+		if ((muted = (*volume == 0))) {
+			if (l->pub.muted != muted) {
+				l->pub.muted = muted;
+				NOTIFY(l);
+			}
+
+			return TRUE;
 		}
+	}
+
+	left = *volume & 0xFF;
+	/* left = left ? MIN (left + 1, (unsigned int) VOL_MAX) : 0; */
+
+	if (!l->pub.stereo) {
+		right = (*volume >> 8) & 0xFF; /* higher bits are undefined */
+		/* right = right ? MIN (right + 1, (unsigned int) VOL_MAX) : 0; */
+	} else {
+		right = left;
+	}
+
+	if (l->pub.volume[0] != left
+	    || l->pub.volume[1] != right
+	    || l->pub.muted != muted) {
+		l->pub.volume[0] = left;
+		l->pub.volume[1] = right;
+		l->pub.muted = muted;
+		NOTIFY(l);
 	}
 
 	return TRUE;
 }
 
 static tv_bool
-oss_mixer_update_line		(tv_dev_mixer_line *	line)
+oss_mixer_update_line		(tv_mixer_line *	line)
 {
 	int volume; /* auxiliary result ignored */
 
-	return update_line (M (line->mixer), L (line), &volume);
+	return update_line (M (line->_mixer), L (line), &volume);
 }
 
 static tv_bool
-oss_mixer_set_volume		(tv_dev_mixer_line *	line,
+oss_mixer_set_volume		(tv_mixer_line *	line,
 				 unsigned int		left,
 				 unsigned int		right)
 {
-	struct mixer *m = M (line->mixer);
+	struct mixer *m = M (line->_mixer);
 	struct line *l = L (line);
-	int volume; /* sic */
 
-	volume = left | (right << 8);
+	if (!l->pub.muted || HARD_MUTABLE (m, l)) {
+		int volume; /* sic */
 
-	if (!l->dev.pub.muted) {
+		volume = left | (right << 8);
+
 		/* We don't know the current volume, so let's switch anyway. */
 
 		if (!mixer_ioctl (m->fd, MIXER_WRITE (l->id), &volume))
 			return FALSE;
+
+		/*
+		 *  OSS scales volume to hardware resolution and back.
+		 *  The actual volume returned by MIXER_WRITE is likely not
+		 *  what was requested. It's desirable the UI reflects this.
+		 */
+		return update_line (m, l, &volume);
+	} else {
+		if (l->pub.volume[0] != left
+		    || l->pub.volume[1] != right) {
+			l->pub.volume[0] = left;
+			l->pub.volume[1] = right;
+			NOTIFY(l);
+		}
+
+		return TRUE;
 	}
-
-	/*
-	 *  OSS scales volume to hardware resolution and back.
-	 *  The actual volume returned by MIXER_WRITE is likely not
-	 *  what was requested, and it's desirable the UI reflects this.
-	 */
-	if (volume_changed (l, volume))
-		NOTIFY(l);
-
-	return TRUE;
 }
 
 static tv_bool
-oss_mixer_set_mute		(tv_dev_mixer_line *	line,
+oss_mixer_set_mute		(tv_mixer_line *	line,
 				 tv_bool		mute)
 {
 	struct line *l = L (line);
-	struct mixer *m = M (l->dev.mixer);
+	struct mixer *m = M (line->_mixer);
 
 	/*
 	 *  Hopefully using the hardware mute switch will prevent an
@@ -515,10 +520,8 @@ oss_mixer_set_mute		(tv_dev_mixer_line *	line,
 
 #ifdef SOUND_MIXER_OUTSRC
 
-	if (0 && m->has_outsrc && (m->out_mask & (1 << l->id))) {
+	if (HARD_MUTABLE (m, l)) {
 		int outsrc; /* sic */
-
-#warning test me with SB16.
 
 		/* We don't know the current outsrc, so let's switch anyway. */
 
@@ -533,8 +536,8 @@ oss_mixer_set_mute		(tv_dev_mixer_line *	line,
 		if (!mixer_ioctl (m->fd, SOUND_MIXER_WRITE_OUTSRC, &outsrc))
 			return FALSE;
 
-		if (l->dev.pub.muted != mute) {
-			l->dev.pub.muted = mute;
+		if (l->pub.muted != mute) {
+			l->pub.muted = mute;
 			NOTIFY(l);
 		}
 	} else
@@ -545,16 +548,15 @@ oss_mixer_set_mute		(tv_dev_mixer_line *	line,
 		if (mute)
 			volume = 0;
 		else
-			volume = l->dev.pub.volume[0] | (l->dev.pub.volume[1] << 8);
+			volume = l->pub.volume[0] | (l->pub.volume[1] << 8);
 
 		/* We don't know the current volume, so let's switch anyway. */
 
 		if (!mixer_ioctl (m->fd, MIXER_WRITE (l->id), &volume))
 			return FALSE;
 
-		if ((!mute && volume_changed (l, volume))
-		    || l->dev.pub.muted != mute) {
-			l->dev.pub.muted = mute;
+		if (l->pub.muted != mute) {
+			l->pub.muted = mute;
 			NOTIFY(l);
 		}
 	}
@@ -568,9 +570,9 @@ find_rec_line			(tv_mixer *		m,
 {
 	struct line *l;
 
-	for (l = LL (m->inputs); l; l = LL (l->dev.pub.next)) {
+	for (l = L (m->inputs); l; l = L (l->pub.next)) {
 		if (set & (1 << l->id))
-			return &l->dev.pub;
+			return &l->pub;
 	}
 
 	fprintf (stderr, "%s: Unknown recording source 0x%08x reported\n",
@@ -583,20 +585,20 @@ static tv_bool
 rec_source_changed		(struct mixer *		m,
 				 unsigned int		set)
 {
-	if (NULL != m->dev.pub.rec_line) {
-		unsigned int mask = 1 << LL (m->dev.pub.rec_line)->id;
+	if (NULL != m->pub.rec_line) {
+		unsigned int mask = 1 << L (m->pub.rec_line)->id;
 
 		if (0 == set) {
-			m->dev.pub.rec_line = NULL;
+			m->pub.rec_line = NULL;
 			return TRUE;
 		} else if (0 == (set & mask)) {
-			m->dev.pub.rec_line = find_rec_line (&m->dev.pub, set);
+			m->pub.rec_line = find_rec_line (&m->pub, set);
 			return TRUE;
 		}
 	} else {
 		if (0 != set) {
-			m->dev.pub.rec_line = find_rec_line (&m->dev.pub, set);
-			return (NULL != m->dev.pub.rec_line);
+			m->pub.rec_line = find_rec_line (&m->pub, set);
+			return (NULL != m->pub.rec_line);
 		}
 	}
 
@@ -604,7 +606,7 @@ rec_source_changed		(struct mixer *		m,
 }
 
 static tv_bool
-oss_mixer_update_mixer		(tv_dev_mixer *		mixer)
+oss_mixer_update_mixer		(tv_mixer *		mixer)
 {
 	struct mixer *m = M (mixer);
 	int set; /* sic */
@@ -614,15 +616,15 @@ oss_mixer_update_mixer		(tv_dev_mixer *		mixer)
 			return FALSE;
 
 		if (rec_source_changed (m, set))
-			tv_callback_notify (&m->dev.pub, m->dev.callback);
+			tv_callback_notify (&m->pub, m->pub._callback);
 	}
 
 	return TRUE;
 }
 
 static tv_bool
-oss_mixer_set_rec_line		(tv_dev_mixer *		mixer,
-				 tv_dev_mixer_line *	line,
+oss_mixer_set_rec_line		(tv_mixer *		mixer,
+				 tv_mixer_line *	line,
 				 tv_bool		exclusive)
 {
 	struct mixer *m = M (mixer);
@@ -637,8 +639,8 @@ oss_mixer_set_rec_line		(tv_dev_mixer *		mixer,
 		if (!mixer_ioctl (m->fd, SOUND_MIXER_READ_RECSRC, &set))
 			return FALSE;
 
-		if (m->dev.pub.rec_line)
-			set &= ~ LL (m->dev.pub.rec_line)->id;
+		if (m->pub.rec_line)
+			set &= ~ L (m->pub.rec_line)->id;
 	}
 
 	if (line)
@@ -652,7 +654,7 @@ oss_mixer_set_rec_line		(tv_dev_mixer *		mixer,
 	/* NB the driver will never return set = 0, it defaults to Mic. */
 
 	if (rec_source_changed (m, set))
-		tv_callback_notify (&m->dev.pub, m->dev.callback);
+		tv_callback_notify (&m->pub, m->pub._callback);
 
 	return TRUE;
 }
@@ -665,36 +667,36 @@ free_mixer_lines		(struct mixer *		m,
 	while (line) {
 		struct line *l;
 	
-		l = LL (line);
-		line = l->dev.pub.next;
+		l = L (line);
+		line = l->pub.next;
 
-		tv_callback_destroy (&l->dev.pub, &l->dev.callback);
+		tv_callback_destroy (&l->pub, &l->pub._callback);
 
 		if (restore) {
 			/* Error ignored */
 			mixer_ioctl (m->fd, MIXER_WRITE (l->id), &l->old_volume);
 		}
 
-		free ((char *) l->dev.pub.label);
+		free ((char *) l->pub.label);
 		free (l);
 	}
 }
 
 static void
-oss_mixer_destroy		(tv_dev_mixer *		mixer,
+destroy_mixer			(tv_device_node *	n,
 				 tv_bool		restore)
 {
 	struct mixer *m;
 	int saved_errno;
 
-	if (!mixer)
+	if (!n)
 		return;
 
-	m = M (mixer);
+	m = PARENT (n, struct mixer, pub.node);
 
 	saved_errno = errno;
 
-	tv_callback_destroy (&m->dev.pub, &m->dev.callback);
+	tv_callback_destroy (&m->pub, &m->pub._callback);
 
 	if (restore) {
 		/* Error ignored */
@@ -706,15 +708,17 @@ oss_mixer_destroy		(tv_dev_mixer *		mixer,
 #endif
 	}
 
-	free ((char *) m->dev.pub.name);
-	free ((char *) m->dev.pub.device);
+	free (m->pub.node.device);
+	free (m->pub.node.version);
+	free (m->pub.node.driver);
+	free (m->pub.node.label);
 
-	free_mixer_lines (m, m->dev.pub.inputs, restore);
-	free_mixer_lines (m, m->dev.pub.rec_gain, restore);
-	free_mixer_lines (m, m->dev.pub.play_gain, restore);
+	free_mixer_lines (m, m->pub.inputs, restore);
+	free_mixer_lines (m, m->pub.rec_gain, restore);
+	free_mixer_lines (m, m->pub.play_gain, restore);
 
 	if (m->fd >= 0)
-		close (m->fd);
+		device_close (m->pub._log, m->fd);
 
 	CLEAR (*m);
 
@@ -736,102 +740,130 @@ add_mixer_line			(struct mixer *		m,
 	while (*linepp)
 		linepp = &(*linepp)->next;
 
-	*linepp = &l->dev.pub;
+	*linepp = &l->pub;
 
 	l->id = oss_id;
 
-	l->dev.mixer = &m->dev;
+	l->pub._mixer = &m->pub;
 
-	l->dev.pub.id = TV_MIXER_LINE_ID_UNKNOWN;
+	l->pub.id = TV_MIXER_LINE_ID_UNKNOWN;
+	l->pub.hash = oss_id;
 
-	l->dev.pub.stereo = ((m->stereo_mask & (1 << oss_id)) != 0);
-	l->dev.pub.recordable = ((m->rec_mask & (1 << oss_id)) != 0);
+	l->pub.stereo = ((m->stereo_mask & (1 << oss_id)) != 0);
+	l->pub.recordable = ((m->rec_mask & (1 << oss_id)) != 0);
 
-	if (m->stereo_mask && !l->dev.pub.stereo) {
+	if (m->stereo_mask && !l->pub.stereo) {
 		char buf[80];
 
 		snprintf (buf, sizeof (buf) - 1,
 			  /* TRANSLATORS: Mixer line, mono as opposed to stereo. */
 			  _("%s (Mono)"), dev_names[oss_id]);
 
-		if (!(l->dev.pub.label = strdup (buf)))
+		if (!(l->pub.label = strdup (buf)))
 			return FALSE;
 	} else {
-		if (!(l->dev.pub.label = strdup (dev_names[oss_id])));
+		if (!(l->pub.label = strdup (dev_names[oss_id])))
 			return FALSE;
 	}
 
-	l->dev.pub.minimum = VOL_MIN;
-	l->dev.pub.maximum = VOL_MAX;
-	l->dev.pub.step = 1; /* or so */
-	l->dev.pub.reset = 67; /* ok for most */
+	l->pub.minimum	= VOL_MIN;
+	l->pub.maximum	= VOL_MAX;
+	l->pub.step	= 4;		/* or so, could be probed */
+	l->pub.reset	= 80;		/* or so */
 
 	update_line (m, l, &l->old_volume);
 
 	return TRUE;
 }
 
-tv_dev_mixer *
-oss_mixer_open			(tv_dev_mixer_interface *mi,
-				 const char *		dev_name,
-				 FILE *			log)
+static struct mixer *
+open_mixer			(const tv_mixer_interface *mi,
+				 FILE *			log,
+				 const char *		device)
 {
+	struct stat st;
 	struct mixer *m;
-	int saved_errno;
 	int capabilities; /* sic */
-	unsigned int inputs;
 	unsigned int i;
 
-	if (!(m = calloc (1, sizeof (*m))))
-		goto failure;
+	if (-1 == stat (device, &st))
+		return NULL;
 
-	m->fd = open (dev_name, O_RDWR, 0);
-
-	if (log) {
-		saved_errno = errno;
-
-		m->dev.log = log;
-
-		fprintf (m->dev.log, "%s: %d = open (\"%s\", O_RDWR, 0)",
-			 __FILE__, m->fd, dev_name);
-
-		if (m->fd == -1)
-			fprintf (m->dev.log, " errno=%d %s",
-				 saved_errno, strerror (saved_errno));
-
-		fputc ('\n', m->dev.log);
-
-		errno = saved_errno;
+	/* Don't accidentally overwrite a regular file. */
+	if (!S_ISCHR (st.st_mode)) {
+		errno = EINVAL;
+		return NULL;
 	}
 
-	if (m->fd < 0)
-		goto failure;
+	/* Mixers have minor n*16, major on Linux 14, FreeBSD 30. Check? */
+
+	if (!(m = calloc (1, sizeof (*m))))
+		goto error;
+
+	m->pub.node.destroy = destroy_mixer;
+	m->pub._log = log;
+	m->pub._interface = mi;
+
+	m->fd = device_open (m->pub._log, device, O_RDWR, 0);
+
+	if (-1 == m->fd)
+		goto error;
+
+	if (!(m->pub.node.device = strdup (device)))
+		goto error;
 
 #ifdef SOUND_MIXER_INFO
+	if (mixer_ioctl (m->fd, SOUND_MIXER_INFO, &m->mixer_info)) {
+		if (m->mixer_info.name[0]) {
+			m->pub.node.label = tveng_strdup_printf
+				("%.*s", N_ELEMENTS (m->mixer_info.name), m->mixer_info.name);
 
-	if (!mixer_ioctl (m->fd, SOUND_MIXER_INFO, &m->mixer_info)) {
-		if (errno == EINVAL) {
-			/* Not Open Sound System device */
-		} else if (errno == ENXIO) {
-			/* OSS installed but no hardware. */
+			if (!m->pub.node.label)
+				goto error;
 		}
 
-		goto failure;
+		if (m->mixer_info.id[0]) {
+			m->pub.node.driver = tveng_strdup_printf
+				("%.*s", N_ELEMENTS (m->mixer_info.id), m->mixer_info.id);
+
+			if (!m->pub.node.driver)
+				goto error;
+		}
+
+		/* Will you please stick to C conventions. */
+		m->mixer_info.id [N_ELEMENTS (m->mixer_info.id) - 1] = 0;
+		m->mixer_info.name [N_ELEMENTS (m->mixer_info.name) - 1] = 0;
+	} else {
+		if (errno == EINVAL) {
+			/* Probably not Open Sound System device, or something
+			   ancient. DEVMASK below should be conclusive.*/
+		} else if (errno == ENXIO) {
+			/* OSS installed but no hardware. */
+		} else {
+			/* ? */
+			goto error;
+		}
 	}
-
-	/* Will you please stick to C conventions. */
-	m->mixer_info.id [N_ELEMENTS (m->mixer_info.id) - 1] = 0;
-	m->mixer_info.name [N_ELEMENTS (m->mixer_info.name) - 1] = 0;
-
 #endif
 
 #ifdef OSS_GETVERSION
 	/* Introduced in OSS 3.6, error ignored */
 	mixer_ioctl (m->fd, OSS_GETVERSION, &m->version);
+
+	if (m->version > 0) {
+		m->pub.node.version = tveng_strdup_printf
+			(_("OSS %u.%u.%u"),
+			 (m->version >> 16) & 0xFF,
+			 (m->version >> 8) & 0xFF,
+			 (m->version >> 0) & 0xFF);
+
+		if (!m->pub.node.version)
+			goto error;
+	}
 #endif
 
 	if (!mixer_ioctl (m->fd, SOUND_MIXER_READ_DEVMASK, &m->dev_mask))
-		goto failure;
+		goto error;
 
 	/* Error ignored */
 	mixer_ioctl (m->fd, SOUND_MIXER_READ_STEREODEVS, &m->stereo_mask);
@@ -845,105 +877,101 @@ oss_mixer_open			(tv_dev_mixer_interface *mi,
 		m->has_recsrc = TRUE;
 
 #if defined (SOUND_MIXER_OUTMASK) && defined (SOUND_MIXER_OUTSRC)
-
+#warning test me with SB16.
+#if 0
 	if (mixer_ioctl (m->fd, SOUND_MIXER_READ_OUTMASK, &m->out_mask)
 	    && mixer_ioctl (m->fd, SOUND_MIXER_READ_OUTSRC, &m->old_outsrc))
 		m->has_outsrc = TRUE;
 #endif
-
-	if (m->has_recsrc && m->has_outsrc) {
-		/* Our basic assumption. */
-		inputs = m->rec_mask & m->out_mask;
-	} else if (m->has_recsrc) {
-		/* Guess. */
-		inputs = m->rec_mask;
-	} else {
-		inputs = SOUND_MASK_LINE | SOUND_MASK_MIC |
-			SOUND_MASK_CD | SOUND_MASK_PHONEIN |
-			SOUND_MASK_VIDEO | SOUND_MASK_RADIO;
-		/*
-		 *  soundcard.h suggests inputs, but some drivers
-		 *  use them for outputs. :-(
-		 */
-		inputs |= SOUND_MASK_LINE1 | SOUND_MASK_LINE2 |
-			SOUND_MASK_LINE3 | SOUND_MASK_DIGITAL1 |
-			SOUND_MASK_DIGITAL2 | SOUND_MASK_DIGITAL3;
-	}
-
-#ifdef SOUND_MIXER_INFO
-
-	if (m->mixer_info.name[0]) {
-		if (!(m->dev.pub.name = strdup (m->mixer_info.name)))
-			goto failure;
-	} else
 #endif
-	{
-		if (!(m->dev.pub.name = strdup (dev_name)))
-			goto failure;
-	}
-
-	/* XXX */
-	if (!(m->dev.pub.device = strdup (dev_name)))
-		goto failure;
 
 	for (i = 0; i < SOUND_MIXER_NRDEVICES; i++) {
 		if (0 == (m->dev_mask & (1 << i)))
 			continue;
 
 		if (SOUND_MIXER_IGAIN == i) {
-			if (!add_mixer_line (m, &m->dev.pub.rec_gain, i))
-				goto failure;
+			if (!add_mixer_line (m, &m->pub.rec_gain, i))
+				goto error;
 			continue;
 		}
 
 		if (SOUND_MIXER_PCM == i) {
-			if (!add_mixer_line (m, &m->dev.pub.play_gain, i))
-				goto failure;
+			if (!add_mixer_line (m, &m->pub.play_gain, i))
+				goto error;
 			continue;
 		}
 
-		if (inputs & (1 << i)) {
-			if (!add_mixer_line (m,	&m->dev.pub.inputs, i))
-				goto failure;
+		if (INPUTS & (1 << i)) {
+			if (!add_mixer_line (m,	&m->pub.inputs, i))
+				goto error;
 		}
 	}
 
-	if (m->has_recsrc)
-		m->dev.pub.rec_line = find_rec_line (&m->dev.pub, m->old_recsrc);
+	if (m->has_recsrc && 0 != m->old_recsrc)
+		m->pub.rec_line = find_rec_line (&m->pub, m->old_recsrc);
 
-	m->dev.update_line	= oss_mixer_update_line;
-	m->dev.set_volume	= oss_mixer_set_volume;
-	m->dev.set_mute		= oss_mixer_set_mute;
-	m->dev.set_rec_line	= oss_mixer_set_rec_line;
+	return m;
 
-	m->dev.update_mixer	= oss_mixer_update_mixer;
-	m->dev.destroy		= oss_mixer_destroy;
-
-	return &m->dev;
-
- failure:
+ error:
 	if (m)
-		oss_mixer_destroy (&m->dev, FALSE);
+		destroy_mixer (&m->pub.node, FALSE);
 
 	return NULL;
 }
 
-static tv_dev_mixer *
-oss_mixer_scan			(tv_dev_mixer_interface *mi)
+static tv_mixer *
+oss_mixer_open			(const tv_mixer_interface *mi,
+				 FILE *			log, 
+				 const char *		dev_name)
 {
+	struct mixer *m;
+
+	if ((m = open_mixer (mi, log, dev_name)))
+		return &m->pub;
+
 	return NULL;
-/*
-	find & open all oss mixer devices in /dev,
-	take care to eliminate duplicates (symlink, different names)
- */
 }
 
-const tv_dev_mixer_interface
+static tv_mixer *
+oss_mixer_scan			(const tv_mixer_interface *mi,
+				 FILE *			log)
+{
+	static const char *mixer_devices [] = {
+		"/dev/mixer",
+		"/dev/mixer0",
+		"/dev/mixer1",
+		"/dev/mixer2",
+		"/dev/mixer3",
+	};
+	tv_device_node *list = NULL;
+	const char **sp;
+
+	for (sp = mixer_devices; *sp; sp++) {
+		if (!tv_device_node_find (list, *sp)) {
+			struct mixer *m;
+
+			if ((m = open_mixer (mi, log, *sp))) {
+				tv_device_node_add (&list, &m->pub.node);
+			}
+		}
+	}
+
+	return list ? PARENT (list, tv_mixer, node) : NULL;
+}
+
+const tv_mixer_interface
 oss_mixer_interface = {
 	.name 		= "Open Sound System",
 
 	.open		= oss_mixer_open,
 	.scan		= oss_mixer_scan,
+
+	.update_line	= oss_mixer_update_line,
+	.set_volume	= oss_mixer_set_volume,
+	.set_mute	= oss_mixer_set_mute,
+	.set_rec_line	= oss_mixer_set_rec_line,
+
+	.update_mixer	= oss_mixer_update_mixer,
 };
 
 #endif /* OSS backend */
