@@ -240,10 +240,10 @@ capturing_thread (void *x)
     switch (vbi_capture_read_sliced (capture, (vbi_sliced *) b->data,
 				     &lines, &b->time, &timeout))
       {
-      case 1:
+      case 1: /* ok */
 	break;
 
-      case 0:
+      case 0: /* timeout */
 #if 0
 	for (; stacked > 0; stacked--)
 	  send_full_buffer (&p, PARENT (rem_head(&stack), buffer, node));
@@ -256,7 +256,7 @@ capturing_thread (void *x)
 
 	goto abort;
 
-      default:
+      default: /* error */
 #if 0
 	for (; stacked > 0; stacked--)
 	  send_full_buffer (&p, PARENT (rem_head(&stack), buffer, node));
@@ -326,19 +326,26 @@ capturing_thread (void *x)
 		  VBI_SLICED_WSS_625 | VBI_SLICED_WSS_CPR1204)
 
 static gint
-join (pthread_t id, gboolean *ack, gint timeout)
+join (char *who, pthread_t id, gboolean *ack, gint timeout)
 {
   vbi_quit = TRUE;
 
   /* Dirty. Where is pthread_try_join()? */
-  for (; !*ack && timeout > 0; timeout--) {
+  for (; (!*ack) && timeout > 0; timeout--) {
     usleep (100000);
   }
 
   /* Ok, you asked for it */
   if (timeout == 0) {
+    int r;
+
     printv("Unfriendly termination\n");
-    pthread_cancel (id);
+    r = pthread_cancel (id);
+    if (r != 0)
+      {
+	printv("Cancellation of %s failed: %d\n", who, r);
+	return 0;
+      }
   }
 
   pthread_join (id, NULL);
@@ -443,7 +450,7 @@ threads_init (gchar *dev_name, int given_fd)
   if (pthread_create (&capturer_id, NULL, capturing_thread, NULL))
     {
       ShowBox(failed, GNOME_MESSAGE_BOX_ERROR, thread);
-      join (decoder_id, &decoder_quit_ack, 15);
+      join ("dec0", decoder_id, &decoder_quit_ack, 15);
       destroy_fifo (&sliced_fifo);
       vbi_capture_delete (capture);
       vbi_decoder_delete (vbi);
@@ -464,13 +471,14 @@ threads_destroy (void)
   if (vbi)
     {
       D();
-
-      join (decoder_id, &decoder_quit_ack,
-	    join (capturer_id, &capturer_quit_ack, 15));
-
+      join ("cap", capturer_id, &capturer_quit_ack, 15);
+      D();
+      join ("dec", decoder_id, &decoder_quit_ack, 15);
+      D();
       destroy_fifo (&sliced_fifo);
-
+      D();
       vbi_capture_delete (capture);
+      D();
       vbi_decoder_delete (vbi);
 
       vbi = NULL;
