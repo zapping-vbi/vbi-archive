@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.19 2001-02-22 14:15:51 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.20 2001-03-09 17:39:01 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -144,58 +144,17 @@ extern bool		temporal_interpolation;
 extern int		preview;
 extern void		packed_preview(unsigned char *buffer, int mb_cols, int mb_rows);
 
-int p_inter_bias = 65536 * 48,
-    b_inter_bias = 65536 * 96,
+int p_inter_bias = PACKED ? 65536 * 48 : 65536 * 100,
+    b_inter_bias = PACKED ? 65536 * 96 : 65536 * 200,
     x_bias = 65536 * 31,
     quant_max = 31;
 
 #define QS 1
-#define F_PLUS 0
+#define F_PLUS 2 // XXX insufficient, use log2
 
 fifo *			video_fifo;
 
 #include "dct/ieee.h"
-
-#if 0
-
-static void
-mstore(unsigned char *p)
-{
-	int x, y;
-
-	p += mb_col * 16 + mb_row * 16 * 352;
-
-	for (y = 0; y < 16; y++) {
-		for (x = 0; x < 8; x++) {
-			p[x + 0] = mblock[0][0][y][x];
-			p[x + 8] = mblock[0][2][y][x];
-		}
-
-		p += 352;
-	}
-}
-
-unsigned char dpic1[352 * 288 * 3 / 2];
-unsigned char dpic2[352 * 288 * 3 / 2];
-unsigned char dpic3[352 * 288 * 3 / 2];
-
-static void
-dstoreS(short mblo[6][8][8], unsigned char *dpic)
-{
-	int x, y;
-	unsigned char *p = dpic + mb_col * 16 + mb_row * 16 * 352;
-
-	for (y = 0; y < 16; y++) {
-		for (x = 0; x < 8; x++) {
-			p[x + 0] = mblo[0][y][x] + 128; // signed is
-			p[x + 8] = mblo[2][y][x] + 128;
-		}
-
-		p += 352;
-	}
-}
-
-#endif
 
 /*
  *  Picture layer
@@ -223,12 +182,14 @@ do {									\
 } while (0)
 
 
-static const int motion = 0;
+static const int motion = !PACKED;
 static int MV[2][2] = {
 	{ 0, 0 },
 	{ 0, 0 }
 };
 
+#define T3RT 1
+// #include "test-3p1.c"
 
 static int
 picture_i(unsigned char *org0, unsigned char *org1)
@@ -264,7 +225,9 @@ picture_i(unsigned char *org0, unsigned char *org1)
 	act_sum = 0.0;
 
 	swap(oldref, newref);
-//	swap(moldref, mnewref);
+#if TEST3p1
+	t0();
+#endif
 
 	reset_mba();
 	reset_dct_pred();
@@ -295,9 +258,9 @@ picture_i(unsigned char *org0, unsigned char *org1)
 			pr_end(41);
 
 			emms();
-
-//			mstore(mnewref);
-
+#if TEST3p1
+			t1();
+#endif
 			/* Calculate quantization factor */
 
 			act_sum += act = var / 65536.0 + 1;
@@ -384,7 +347,11 @@ picture_i(unsigned char *org0, unsigned char *org1)
 	}
 
 	emms();
- 
+
+#if TEST3p1
+	t2();
+#endif
+
 	/* Rate control */
 
 	S = bflush(&video_out);
@@ -472,7 +439,7 @@ do {									\
 	bprolog(&video_out);						\
 } while (0)
 
-#define HOT_AIR 1
+#define HOT_AIR 0
 
 static int
 picture_p(unsigned char *org0, unsigned char *org1,
@@ -498,8 +465,9 @@ picture_p(unsigned char *org0, unsigned char *org1,
 	/* Initialize rate control parameters */
 
 	swap(oldref, newref);
-//	swap(moldref, mnewref);
-
+#if TEST3p1
+	t0();
+#endif
 	reset_mba();
 
 #if TEST_PREVIEW
@@ -569,31 +537,19 @@ picture_p(unsigned char *org0, unsigned char *org1,
 			var = (*filter)(org0, org1); // -> mblock[0]
 			pr_end(41);
 
-//			mstore(mnewref);
-
+#if TEST3p1
+			t1();
+#endif
 			pr_start(51, "Predict forward");
 
-			if (0 && motion) {
-#if 0
-//moldref
-full_search(moldref, mb_address.block[0].pitch, 2 << forward_f_code, 
-	mb_col * 16 + PMV[0][0] / 2, mb_row * 16 + PMV[0][1] / 2, &MV[0][0], &MV[0][1]);
-vmc = predict_forward_motion(oldref, MV[0][0], MV[0][1]);
-MV[0][0] -= mb_col * 16 * 2;
-MV[0][1] -= mb_row * 16 * 2;
-/*
-emms();
-printv(0, "MV %03d %+5.1f %+5.1f\n", mb_count, MV[0][0] / 2.0, MV[0][1] / 2.0);
-fflush(stdout);
-*/
+#if TEST3p1
+			if (motion)
+				vmc = predict_forward_motion(oldref, &MV[0][0], &MV[0][1]);
+			else
 #endif
-			} else {
 				vmc = predict_forward(oldref + mb_address.block[0].offset);
-			}
 
 			pr_end(51);
-
-//dstoreS(mblock[1],dpic1);
 
 			emms();
 
@@ -601,7 +557,7 @@ fflush(stdout);
 
 			/* Encode macroblock */
 
-			if (vmc > p_inter_bias) {
+			if (T3RT && vmc > p_inter_bias) {
 //			if (vmc > var || vmc > p_inter_bias) {
 				int length, i;
 
@@ -684,9 +640,12 @@ fflush(stdout);
 					pr_end(26);
 
 					if (cbp == 0 && mb_count > 1 && mb_count < mb_num &&
-						(!motion || (dmv[0] | dmv[1]) == 0)) {
+						(!motion 
+					// XXX ? || (dmv[0] | dmv[1]) == 0
+						)) {
 						mmx_copy_refblock();
 
+						// XXX ?
 						if (motion) {
 							PMV[0][0] = 0;
 							PMV[0][1] = 0;
@@ -801,6 +760,10 @@ fflush(stdout);
 
 	emms();
 
+#if TEST3p1
+	t2();
+#endif
+
 	/* Rate control */
 
 	S = bflush(&video_out);
@@ -819,16 +782,6 @@ fflush(stdout);
 #if TEST_PREVIEW
 	if (preview == 1)
 		packed_preview(newref, mb_width, mb_height);
-#endif
-
-#if 0
-	if (0) {
-		FILE *fi = fopen("delta", "a");
-		int i;
-		for (i = 352*288; i < 352*288*3/2; i++) dpic1[i] = 128;
-	        fwrite(dpic1, sizeof dpic1, 1, fi);
-		fclose(fi);
-	}
 #endif
 
 	return S >> 3;
@@ -898,7 +851,6 @@ picture_b(unsigned char *org0, unsigned char *org1,
 	mb_skipped = 0;
 	mb_type_last = -1;
 
-
 	/* Picture header */
 
 	bepilog(&video_out);
@@ -935,27 +887,13 @@ picture_b(unsigned char *org0, unsigned char *org1,
 
 			if (!closed_gop) {
 				pr_start(52, "Predict bidirectional");
-				if (0 && motion) {
-#if 0
-// moldref
-full_search(moldref, mb_address.block[0].pitch, 2 << forward_f_code, 
-	mb_col * 16, mb_row * 16, &MV[0][0], &MV[0][1]);
-full_search(mnewref, mb_address.block[0].pitch, 2 << backward_f_code,
-	mb_col * 16, mb_row * 16, &MV[1][0], &MV[1][1]);
-vmc = predict_bidirectional_motion(oldref, newref,
-	MV[0][0], MV[0][1], MV[1][0], MV[1][1], &vmcf, &vmcb);
-MV[0][0] -= mb_col * 16 * 2;
-MV[0][1] -= mb_row * 16 * 2;
-MV[1][0] -= mb_col * 16 * 2;
-MV[1][1] -= mb_row * 16 * 2;
-/*
-emms();
-printv(0, "MV %03d %+5.1f %+5.1f %+5.1f %+5.1f\n", mb_count,
-	MV[0][0] / 2.0, MV[0][1] / 2.0, MV[1][0] / 2.0, MV[1][1] / 2.0);
-fflush(stdout);
-*/
+#if TEST3p1
+				if (motion)
+					vmc = predict_bidirectional_motion(oldref, newref,
+						&MV[0][0], &MV[0][1], &MV[1][0], &MV[1][1],
+						&vmcf, &vmcb);
+				else
 #endif
-				} else
 					vmc = predict_bidirectional(
 						oldref + mb_address.block[0].offset,
 						newref + mb_address.block[0].offset,
@@ -1002,16 +940,12 @@ if (TEST3) {
 			}
 
 			emms();
-//dstoreS(*iblock,dpic1);
-//dstoreS(*iblock,dpic2);
-//dstoreS(*iblock,dpic3);
-
 if (!TEST3)
 			vmc <<= 8;
 
 			/* Encode macroblock */
 
-			if (vmc > b_inter_bias) {
+			if (T3RT && vmc > b_inter_bias) {
 //			if (vmc > var || vmc > b_inter_bias) {
 				int length;
 				int i;
@@ -1222,22 +1156,6 @@ if (!TEST3)
 
 	pr_end(25);
 
-#if 0
-	if (0) {
-		FILE *fi = fopen("DELTA", "a");
-		int i;
-		for (i = 352*288; i < 352*288*3/2; i++) dpic1[i] = 128;
-		fwrite(dpic1, sizeof dpic1, 1, fi);
-/*
-		for (i = 352*288; i < 352*288*3/2; i++) dpic2[i] = 128;
-		fwrite(dpic2, sizeof dpic2, 1, fi);
-		for (i = 352*288; i < 352*288*3/2; i++) dpic3[i] = 128;
-		fwrite(dpic3, sizeof dpic3, 1, fi);
-*/
-		fclose(fi);
-	}
-#endif
-
 	return S >> 3;
 }
 
@@ -1391,7 +1309,7 @@ promote(int n)
 		if (p_succ < MAX_P_SUCC) {
 			bstart(&video_out, obuf->data);
 			if ((obuf->used = picture_p(stack[i].org[0], stack[i].org[1],
-				saturate(1, F_CODE_MIN, F_CODE_MAX)))) {
+				saturate(1 + F_PLUS, F_CODE_MIN, F_CODE_MAX)))) {
 				obuf->type = P_TYPE;
 				p_succ++;
 			}
@@ -1725,7 +1643,7 @@ gop_count++;
 			brewind(&mark, &video_out);
 
 			if ((obuf->used = picture_p(this->org[0], this->org[1],
-				saturate(sp, F_CODE_MIN, F_CODE_MAX)))) {
+				saturate(sp + F_PLUS, F_CODE_MIN, F_CODE_MAX)))) {
 				/* 1...n -> 1,2,3,4,4,5,... -> 8,16,32,32,64,64,64,64,128,... */
 				obuf->type = P_TYPE;
 				p_succ++;
@@ -1859,9 +1777,6 @@ video_init(void)
 
 	ASSERT("allocate backward reference buffer",
 		(newref = calloc_aligned(mb_num * 6 * 64 * sizeof(unsigned char), 4096)) != NULL);
-
-//moldref = calloc_aligned(352*288, 4096);
-//mnewref = calloc_aligned(352*288, 4096);
 
 	bstart(&video_out, oldref);
 	Sz = picture_zero();

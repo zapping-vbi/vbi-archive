@@ -1,3 +1,7 @@
+9.3.2001	Cleanup <mschimek@users.sourceforge.net>
+
+	* Updated de.po
+
 8.3.2001	Fullscreen <garetxe@users.sourceforge.net>
 
 	* src/fullscreen: Added, holds the code for fullscreen mode. Added

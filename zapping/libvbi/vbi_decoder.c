@@ -20,14 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder.c,v 1.10 2000-12-11 22:19:40 garetxe Exp $ */
-
-/*
-    TODO:
-    - test streaming
-    - write close functions
-    - write T thread & multi consumer fifo
- */
+/* $Id: vbi_decoder.c,v 1.11 2001-03-09 17:39:01 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>

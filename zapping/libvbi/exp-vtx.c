@@ -25,12 +25,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-vtx.c,v 1.1 2001-02-28 17:33:14 mschimek Exp $ */
+/* $Id: exp-vtx.c,v 1.2 2001-03-09 17:39:01 mschimek Exp $ */
 
 /*
  *  VTX is the file format used by VideoteXt. It stores Teletext pages in
  *  raw level 1.0 format. Level 1.5 additional characters (e.g. accents), the
  *  FLOF and TOP navigation bars and the level 2.5 chrome will be lost.
+ *  (People interested in an XML based successor to VTX drop us a mail.)
  *
  *  Since restoring the raw page from a fmt_page is complicated we violate
  *  encapsulation by fetching a raw copy from the cache. :-(

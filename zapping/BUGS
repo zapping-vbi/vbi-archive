@@ -10,3 +10,5 @@ Known bugs with zapping, don't report them
 	! Sometimes the program hangs when exiting (i cannot reproduce
 	this now, maybe it's fixed?)
 	* The standard is changed when changing modes.
+	* Sometimes spurious blinking in row #0, image shifted
+	* OSD w/ttx no visual update when the box size remains the same

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: decoder.c,v 1.2 2001-01-09 06:27:42 mschimek Exp $ */
+/* $Id: decoder.c,v 1.3 2001-03-09 17:39:01 mschimek Exp $ */
 
 /*
     XXX NTSC transmits 0-4 (AFAIS) CC packets per frame,
@@ -33,6 +33,7 @@
 
 /*
  *  Bit Slicer
+ *  XXX restore old
  */
 
 #define OVERSAMPLING 2		// 1, 2, 4, 8
@@ -177,13 +178,6 @@ vbi_services[] = {
 		SLICED_TELETEXT_B_L10_625, "Teletext System B Level 1.5, 625",
 		{ 7, 320 },
 		{ 22, 335 },
-		/*
-		    "F.4 Allocation of Teletext packets to VBI lines:
-		     Some existing Level 1 and 1.5 decoders may not decode Teletext
-		     signals on lines 6, 318 and 319. Thus these lines should be used
-		     for Level 2.5 or 3.5 enhancement data only, or non-Teletext signals
-		     (see annex P). Further information can be found in TR 101 233 [7]."
-		 */
 		10300, 6937500, 6937500, /* 444 x FH */
 		625, 0x00AAAAE4, 10, 6, 42, MOD_NRZ_LSB_ENDIAN
 	}, {

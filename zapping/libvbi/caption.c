@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.18 2001-03-03 15:16:29 mschimek Exp $ */
+/* $Id: caption.c,v 1.19 2001-03-09 17:39:01 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,7 +46,7 @@
 #include "lang.h"
 
 #define XDS_DEBUG 0
-#define ITV_DISABLE 1
+#define ITV_DEBUG 0
 
 #endif
 
@@ -519,15 +519,12 @@ itv_chksum(char *s, unsigned int sum)
 static void
 itv_decoder(struct caption *cc, char *s1)
 {
+#if ITV_DEBUG
 	char *s, *e;
 	char *d, ripped[sizeof(cc->itv_buf)];
 	int type = -1, view = 'w';
 	char *url = NULL, *name = NULL;
 	char *script = NULL, *expires = "29991231T235959";
-
-#if ITV_DISABLE
-	return;
-#endif
 
 	for (s = s1, d = ripped;; s++) {
 		e = s;
@@ -632,6 +629,9 @@ itv_decoder(struct caption *cc, char *s1)
 	default:  printf("unknown");
 	}
 	putchar('\n');
+
+#endif /* ITV_DEBUG */
+
 }
 
 static void
@@ -662,7 +662,6 @@ itv_separator(struct caption *cc, char c)
 #define COLUMNS			34
 
 /* Mostly obsolete - now cc_event & pg.dirty */
-/* XXX TEST config to be updated */
 
 /*
  *  Render <row> 0 ... 14 or -1 all rows, from <pg->text> if you're
@@ -2011,10 +2010,21 @@ hello_world(void)
 	ROLL_UP(2);
 	ERASE_DISPLAY;
 	prints(" ROLL-UP TEST "); PAUSE(20);
-	prints(" LATEST NEWS: "); CR; PAUSE(20);
-	prints(" LINUX ROCKS! "); CR; PAUSE(20);
-	prints(" >> MARY HAD A LITTLE LAMB. "); CR; PAUSE(30);
-	prints(" HER SENTENCE WAS MUCH TOO LONG TO FIT IN A SINGLE LINE. "); CR; PAUSE(30);
+	prints(">> A young Jedi named Darth Vader,"); CR; PAUSE(20);
+	prints("who was a pupil of mine until he"); CR; PAUSE(20);
+	prints("turned to evil, helped the Empire"); CR; PAUSE(20);
+	prints("hunt down and destroy the Jedi Knights."); CR; PAUSE(20);
+	prints("He betrayed and murdered your father."); CR; PAUSE(20);
+	prints("Now the Jedi are all but extinct."); CR; PAUSE(20);
+	prints("Vader was seduced by the dark side of"); CR; PAUSE(20);
+	prints("the Force."); CR; PAUSE(20);                        
+	prints(">> The Force?"); CR; PAUSE(20);
+	prints(">> Well, the Force is what gives a"); CR; PAUSE(20);
+	prints("Jedi his power. It's an energy field"); CR; PAUSE(20);
+	prints("created by all living things."); CR; PAUSE(20);
+	prints("It surrounds us and penetrates us."); CR; PAUSE(20);
+	prints("It binds the galaxy together."); CR; PAUSE(20);
+	CR; PAUSE(30);
 	prints(" DONE - Caption 1 ");
 	PAUSE(30);
 

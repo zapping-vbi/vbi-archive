@@ -457,6 +457,8 @@ keyword(vbi_link *ld, unsigned char *p, int column,
 	 *  A few German networks invented this format since Latin1/German
 	 *  replaced the at sign with a paragraph sign and they apparently
 	 *  can't afford a level 1.5 generator.
+	 *
+	 *  XXX 2do: xxx(a)yyy, xxx(at)yyy
 	 */
 	} else if (*s == '@' || *s == 167) {
 		ld->type = VBI_LINK_EMAIL;
@@ -609,6 +611,7 @@ vbi_resolve_home(struct fmt_page *pg, vbi_link *ld)
  *  TRUE if success, buf min 41 chars.
  *
  *  TODO: FLOF, TTX character set, buf character set (currently Latin-1 assumed).
+ *  XXX bug: incorrect use of national subset.
  */
 int
 vbi_page_title(struct vbi *vbi, int pgno, int subno, char *buf)

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: format.h,v 1.6 2001-03-03 15:16:29 mschimek Exp $ */
+/* $Id: format.h,v 1.7 2001-03-09 17:39:01 mschimek Exp $ */
 
 #ifndef FORMAT_H
 #define FORMAT_H
@@ -170,6 +170,7 @@ struct fmt_page
 	 *  DRCS LUTs, see exp_gfx.c.
 	 */
 	uint8_t *		drcs_clut;		/* 64 entries */
+	/* XXX these pointers reference cache directly  */
 	uint8_t *		drcs[32];		/* 16 * 48 * 12 * 10 nibbles, LSN first */
 
 	/* Private */

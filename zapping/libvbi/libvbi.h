@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvbi.h,v 1.24 2001-03-03 15:16:29 mschimek Exp $ */
+/* $Id: libvbi.h,v 1.25 2001-03-09 17:39:01 mschimek Exp $ */
 
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
@@ -45,13 +45,13 @@
 static inline unsigned int
 dec2bcd(unsigned int dec)
 {
-	return (dec % 10) + ((dec / 10) % 10) * 16 + (dec / 100) * 256;
+	return (dec % 10) + ((dec / 10) % 10) * 16 + ((dec / 100) % 10) * 256;
 }
 
 static inline unsigned int
 bcd2dec(unsigned int bcd)
 {
-	return (bcd & 15) + ((bcd >> 4) & 15) * 10 + (bcd >> 8) * 100;
+	return (bcd & 15) + ((bcd >> 4) & 15) * 10 + ((bcd >> 8) & 15) * 100;
 }
 
 static inline unsigned int
@@ -71,7 +71,7 @@ add_bcd(unsigned int a, unsigned int b)
 static inline int
 is_bcd(unsigned int bcd)
 {
-	const unsigned int x = 0x06666666;
+	static const unsigned int x = 0x06666666;
 
 	return (((bcd + x) ^ (bcd ^ x)) & 0x110) == 0;
 }

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.8 2001-03-02 23:55:17 garetxe Exp $ */
+/* $Id: v4lx.c,v 1.9 2001-03-09 17:39:01 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -440,7 +440,7 @@ open_v4l(vbi_device **pvbi, char *dev_name,
 		case 625:
 			vbi->dec.sampling_rate = 35468950;
 			vbi->dec.offset = 10.2e-6 * 35468950;
-			vbi->dec.start[0] = -1; // who knows
+			vbi->dec.start[0] = -1; // XXX FIX ME for CC-625
 			vbi->dec.start[1] = -1;
 			break;
 
@@ -967,7 +967,7 @@ open_vbi_v4lx(char *dev_name, int given_fd)
 	if (r < 0)
 		goto failure;
 
-	if (!start_fifo(&vbi->fifo)) /* here? */
+	if (!start_fifo(&vbi->fifo)) /* XXX consider moving this into the decoder thread */
 		goto failure;
 	return &vbi->fifo;
 

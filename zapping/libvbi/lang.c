@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.c,v 1.9 2001-02-20 07:33:20 mschimek Exp $ */
+/* $Id: lang.c,v 1.10 2001-03-09 17:39:01 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -145,6 +145,8 @@ font_descriptors[88] = {
  *
  *  Latin G0 character code to glyph mapping per national_subset,
  *  unmodified codes (NO_SUBSET) in row zero.
+ *
+ *  :-P regret the decision for accent overlay.
  */
 static const unsigned int
 national_subst[14][13] = {
