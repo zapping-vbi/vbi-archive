@@ -56,38 +56,38 @@ void csconvert(int id, tveng_image_data *src, tveng_image_data *dest,
 
   filters[src_pixfmt][dst_pixfmt].convert
     (src, dest, width, height, filters[src_pixfmt][dst_pixfmt].user_data);
+
+
 }
 
-int register_converter (tv_pixfmt src_pixfmt,
+int register_converter (const char *	name,
+			tv_pixfmt src_pixfmt,
 			tv_pixfmt dst_pixfmt,
 			CSConverter_fn *	converter,
 			gpointer	user_data)
 {
-  if (lookup_csconvert (src_pixfmt, dst_pixfmt) > -1)
-    return -1;
-  
+  if (-1 != lookup_csconvert (src_pixfmt, dst_pixfmt))
+    return -1; /* already registered */
+
   filters[src_pixfmt][dst_pixfmt].convert = converter;
   filters[src_pixfmt][dst_pixfmt].user_data = user_data;
 
   return 0;
 }
 
-int register_converters (CSFilter	*converters,
+int register_converters (const char *	name,
+			 CSFilter	*converters,
 			 int		num_converters)
 {
   int i, count=0;
 
-  for (i=0; i<num_converters; i++)
-    if (lookup_csconvert (converters[i].src_pixfmt, converters[i].dst_pixfmt) == -1)
-      {
-	tv_pixfmt src_pixfmt = converters[i].src_pixfmt;
-	tv_pixfmt dst_pixfmt = converters[i].dst_pixfmt;
-
-	filters[src_pixfmt][dst_pixfmt].convert = converters[i].convert;
-	filters[src_pixfmt][dst_pixfmt].user_data = converters[i].user_data;
-
-	count ++;
-      }
+  for (i = 0; i < num_converters; ++i)
+    if (0 == register_converter (name,
+				 converters[i].src_pixfmt,
+				 converters[i].dst_pixfmt,
+				 converters[i].convert,
+				 converters[i].user_data))
+      ++count;
 
   return count;
 }
@@ -328,7 +328,7 @@ void startup_csconvert(void)
 
   CLEAR (filters);
 
-  register_converters (rgb_filters, N_ELEMENTS (rgb_filters));
+  register_converters ("c", rgb_filters, N_ELEMENTS (rgb_filters));
 
   /* Load the YUV <-> RGB filters */
   startup_yuv2rgb ();

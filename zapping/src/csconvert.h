@@ -39,7 +39,8 @@ void csconvert(int id, tveng_image_data *src,
  * already a converter for the given pair, something else on success.
  * User data will be passed to the converter each time it's called.
  */
-int register_converter (tv_pixfmt src_pixfmt,
+int register_converter (const char *name,
+			tv_pixfmt src_pixfmt,
 			tv_pixfmt dst_pixfmt,
 			CSConverter_fn *converter,
 			gpointer	user_data);
@@ -49,7 +50,8 @@ int register_converter (tv_pixfmt src_pixfmt,
  * registering them one by one, it's just convenience. Returns
  * the number of successfully registered converters.
  */
-int register_converters (CSFilter	*converters,
+int register_converters (const char *name,
+			 CSFilter	*converters,
 			 int		num_converters);
 
 /* startup and shutdown of the conversions */

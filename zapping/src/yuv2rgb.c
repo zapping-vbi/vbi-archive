@@ -359,21 +359,21 @@ static void mmx_register_converters (void)
     {
       if ((p = yuv2rgb_init_swar (cpu, pixfmts[i])))
 	{
-	  register_converter (TV_PIXFMT_YUV420, pixfmts[i], yuv420_rgb_proxy, p);
-	  register_converter (TV_PIXFMT_YVU420, pixfmts[i], yvu420_rgb_proxy, p);
+	  register_converter ("mmx", TV_PIXFMT_YUV420, pixfmts[i], yuv420_rgb_proxy, p);
+	  register_converter ("mmx", TV_PIXFMT_YVU420, pixfmts[i], yvu420_rgb_proxy, p);
 	}
 
       if ((p = rgb2yuv_init_swar (cpu, pixfmts[i])))
 	{
-	  register_converter (pixfmts[i], TV_PIXFMT_YUV420, rgb_yuv420_proxy, p);
-	  register_converter (pixfmts[i], TV_PIXFMT_YVU420, rgb_yvu420_proxy, p);
+	  register_converter ("mmx", pixfmts[i], TV_PIXFMT_YUV420, rgb_yuv420_proxy, p);
+	  register_converter ("mmx", pixfmts[i], TV_PIXFMT_YVU420, rgb_yvu420_proxy, p);
 	}
 
       if ((p = yuyv2rgb_init_swar (cpu, pixfmts[i])))
-	register_converter (TV_PIXFMT_YUYV, pixfmts[i], yuyv_rgb_proxy, p);
+	register_converter ("mmx", TV_PIXFMT_YUYV, pixfmts[i], yuyv_rgb_proxy, p);
 
       if ((p = rgb2yuyv_init_swar (cpu, pixfmts[i])))
-	register_converter (pixfmts[i], TV_PIXFMT_YUYV, yuyv_rgb_proxy, p);
+	register_converter ("mmx", pixfmts[i], TV_PIXFMT_YUYV, yuyv_rgb_proxy, p);
     }
 }
 
@@ -906,7 +906,7 @@ void startup_yuv2rgb (void)
 
   /* Register the C version of the converters when we don't have
      MMX versions registered */
-  register_converters (cfuncs, N_ELEMENTS (cfuncs));
+  register_converters ("c", cfuncs, N_ELEMENTS (cfuncs));
 }
 
 void shutdown_yuv2rgb (void)
