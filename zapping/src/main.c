@@ -138,6 +138,10 @@ static gint timeout_handler(gpointer unused)
 	rw = 16;
 	rh = 9;
 	break;
+      case 3:
+	rw = 3;
+	rh = 2;
+	break;
       default:
 	break;
       }
@@ -372,7 +376,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.116 2001-07-24 17:19:27 garetxe Exp $",
+	 "$Id: main.c,v 1.117 2001-07-25 18:10:38 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU support... ");
   switch (cpu_detection())
