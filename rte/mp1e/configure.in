@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.12 2001-12-16 18:06:31 garetxe Exp $
+dnl $Id: configure.in,v 1.13 2002-02-20 19:58:31 garetxe Exp $
 
 AC_INIT(configure.in)
 AM_INIT_AUTOMAKE(mp1e, 1.9.2)
@@ -91,6 +91,9 @@ dnl ALSA support (libasound)
 dnl
 have_libasound=no
 AM_PATH_ALSA_([0.5.9], have_libasound=yes, true)
+if test "x$have_libasound" = "xyes"; then
+	AC_DEFINE(HAVE_ALSA, 1, [Define if you have ALSA.])
+fi
 
 dnl
 dnl EsounD support

@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alsa.c,v 1.15 2002-02-12 00:18:14 mschimek Exp $ */
+/* $Id: alsa.c,v 1.16 2002-02-20 19:58:33 garetxe Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -31,7 +31,7 @@
 
 #include "audio.h"
 
-#ifdef HAVE_LIBASOUND
+#ifdef HAVE_ALSA
 
 #define ASSERT_ALSA(what, func, args...)				\
 do {									\
@@ -638,7 +638,7 @@ open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo, fifo **f)
 
 #endif /* SND_LIB >= 0.9 */
 
-#else /* !HAVE_LIBASOUND */
+#else /* !HAVE_ALSA */
 
 void
 open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo, fifo **f)
