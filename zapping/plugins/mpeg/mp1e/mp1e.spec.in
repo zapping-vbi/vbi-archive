@@ -38,6 +38,7 @@ rm -rf %{buildroot}
 %{_bindir}/mp1e
 %{_libdir}/librte.*
 %{_includedir}/rte.h
+%{_mandir}/*
 
 %changelog
 * Tue May 8 2001 Iñaki García Etxebarria <garetxe@users.sourceforge.net>

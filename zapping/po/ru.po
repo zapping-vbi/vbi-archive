@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: 0.5.8cvs\n"
-"POT-Creation-Date: 2001-06-18 12:02+0200\n"
+"POT-Creation-Date: 2001-07-02 21:01+0200\n"
 "PO-Revision-Date: 2000-11-18 17:00+0300\n"
 "Last-Translator: Sergey Nikulin <sergey-nikulin@mail.ru>\n"
 "Language-Team: LANGUAGE <ru@li.org>\n"
@@ -11,100 +11,104 @@ msgstr ""
 "Content-Type: text/plain; charset=koi8-r\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/main.c:237
+#: src/main.c:239
 msgid "Color depth of the X display"
 msgstr "Глубина цвета Х-дисплея"
 
-#: src/main.c:238
+#: src/main.c:240
 msgid "BPP"
 msgstr ""
 
-#: src/main.c:246
+#: src/main.c:248
 msgid "Set debug messages on"
 msgstr "Устнановить отладлчные сообщения на"
 
-#: src/main.c:255
+#: src/main.c:257
 msgid "Disable VBI support"
 msgstr "Отключить поддержку VBI"
 
-#: src/main.c:264
+#: src/main.c:266
 msgid "Set the default standard/norm for tunerless inputs"
 msgstr "Установить стандарт/норму по умолчанию для входов без тюнера"
 
-#: src/main.c:265
+#: src/main.c:267
 msgid "NORM"
 msgstr "НОРМА"
 
-#: src/main.c:273
+#: src/main.c:275
 #, fuzzy
 msgid "Video device to use"
 msgstr "Возможности видео устройства"
 
-#: src/main.c:274
+#: src/main.c:276
 msgid "DEVICE"
 msgstr ""
 
-#: src/main.c:282
+#: src/main.c:284
 #, fuzzy
 msgid "Disable XVideo extension support"
 msgstr "Отключить поддержку VBI"
 
-#: src/main.c:291
+#: src/main.c:293
 msgid "Force dword aligning of the overlay window"
 msgstr ""
 
-#: src/main.c:300
+#: src/main.c:302
 msgid "Execute the given command and exit"
 msgstr ""
 
-#: src/main.c:301
+#: src/main.c:303
 msgid "CMD"
 msgstr ""
 
-#: src/main.c:309
+#: src/main.c:311
 #, fuzzy
 msgid "Do not call zapping_setup_fb on startup"
 msgstr "Не могу найти zapping_setup_fb, проверте инсталляцию"
 
-#: src/main.c:318
+#: src/main.c:320
 msgid "Pixformat for XVideo capture mode [YUYV | YVU420]"
 msgstr ""
 
-#: src/main.c:319
+#: src/main.c:321
 msgid "PIXFORMAT"
 msgstr ""
 
-#: src/main.c:361
+#: src/main.c:329
+msgid "Redirect the error messages to the console"
+msgstr ""
+
+#: src/main.c:375
 #, fuzzy
 msgid "Sorry, but there is no module support in GLib"
 msgstr "Извините, нет поддержки модулей"
 
-#: src/main.c:369
+#: src/main.c:383
 msgid "Cannot get device info struct"
 msgstr "Не могу получить информацию об устройстве"
 
-#: src/main.c:378
+#: src/main.c:392
 msgid "Zapping couldn't be started"
 msgstr "Zapping не может стартовать"
 
-#: src/main.c:434
+#: src/main.c:448
 #, c-format
 msgid "Couldn't open %s, should I try some common options?"
 msgstr ""
 
-#: src/main.c:468
+#: src/main.c:482
 #, c-format
 msgid "%s suceeded, setting it as the new default"
 msgstr ""
 
-#: src/main.c:477
+#: src/main.c:491
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
 "%s"
 msgstr "Извините, но \"%s\" не может быть открыт:%s"
 
-#: src/main.c:572
+#: src/main.c:586
 #, c-format
 msgid ""
 "Cannot restore previous mode%s:\n"
@@ -113,11 +117,11 @@ msgstr ""
 "Не могу восстановить предыдущий режим%s:\n"
 "%s"
 
-#: src/main.c:575
+#: src/main.c:589
 msgid ", I will try starting capture mode"
 msgstr ", я попробую запустить режим захвата"
 
-#: src/main.c:579
+#: src/main.c:593
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
@@ -126,7 +130,7 @@ msgstr ""
 "Режим захвата не может быть запущен из-за:\n"
 "%s"
 
-#: src/main.c:592
+#: src/main.c:606
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
@@ -135,24 +139,24 @@ msgstr ""
 "Режим захвата не может быть запущен:\n"
 "%s"
 
-#: src/callbacks.c:186 src/callbacks.c:574 src/main.c:620
+#: src/callbacks.c:186 src/callbacks.c:577 src/main.c:634
 #, fuzzy
 msgid "Show controls"
 msgstr "Настройки"
 
-#: src/callbacks.c:187 src/callbacks.c:575 src/main.c:621
+#: src/callbacks.c:187 src/callbacks.c:578 src/main.c:635
 msgid "Show the menu and the toolbar"
 msgstr ""
 
-#: src/callbacks.c:216 src/callbacks.c:567 src/main.c:632
+#: src/callbacks.c:216 src/callbacks.c:570 src/main.c:646
 msgid "Show extra controls"
 msgstr ""
 
-#: src/callbacks.c:217 src/callbacks.c:568 src/main.c:633
+#: src/callbacks.c:217 src/callbacks.c:571 src/main.c:647
 msgid "Show Input, Standards and subtitle selection"
 msgstr ""
 
-#: src/main.c:778
+#: src/main.c:792
 msgid ""
 "ZConf could not be closed properly , your\n"
 "configuration will be lost.\n"
@@ -172,7 +176,7 @@ msgstr ""
 "   - или, что более вероятно, вы нашли баг в\n"
 "     Zapping. Пожалуйста свяжитесь с автором.\n"
 
-#: src/main.c:802
+#: src/main.c:816
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Извините, Zapping не может создать конфигурационное дерево"
 
@@ -335,191 +339,191 @@ msgid ""
 "in Settings/Preferences/VBI options/Enable VBI decoding."
 msgstr ""
 
-#: src/zvbi.c:1575
+#: src/zvbi.c:1576
 #, c-format
 msgid "%d %s"
 msgstr ""
 
-#: src/zvbi.c:1576
+#: src/zvbi.c:1577
 #, fuzzy
 msgid "minute"
 msgstr "Отключить звук"
 
-#: src/zvbi.c:1576
+#: src/zvbi.c:1577
 msgid "minutes"
 msgstr ""
 
-#: src/zvbi.c:1578
+#: src/zvbi.c:1579
 #, c-format
 msgid "%d h %d m"
 msgstr ""
 
-#: src/tveng.c:264
+#: src/tveng.c:268
 msgid "TV"
 msgstr ""
 
 #: src/properties.c:135 src/properties.c:142 src/properties.c:149
-#: src/tveng.c:265
+#: src/tveng.c:269
 msgid "Camera"
 msgstr "Камера"
 
-#: src/tveng.c:1542
+#: src/tveng.c:1546
 msgid "Couldn't locate zapping_setup_fb, check your install"
 msgstr "Не могу найти zapping_setup_fb, проверте инсталляцию"
 
-#: src/tveng.c:2172 src/tveng.c:2190
+#: src/tveng.c:2176 src/tveng.c:2194
 msgid "Filter"
 msgstr ""
 
-#: src/tveng.c:2208
+#: src/tveng.c:2212
 #, fuzzy
 msgid "Colorkey"
 msgstr "Цвет"
 
-#: src/tveng1.c:984
+#: src/tveng1.c:986
 msgid "Mono"
 msgstr "Моно"
 
-#: src/tveng1.c:985
+#: src/tveng1.c:987
 msgid "Stereo"
 msgstr "Стерео"
 
-#: src/tveng1.c:986
+#: src/tveng1.c:988
 msgid "Alternate 1"
 msgstr ""
 
-#: src/tveng1.c:987
+#: src/tveng1.c:989
 msgid "Alternate 2"
 msgstr ""
 
-#: src/tveng1.c:1098 src/tveng2.c:888
+#: src/tveng1.c:1100 src/tveng2.c:889
 msgid "Brightness"
 msgstr "Яркость"
 
-#: src/tveng1.c:1108 src/tveng2.c:891
+#: src/tveng1.c:1110 src/tveng2.c:892
 msgid "Hue"
 msgstr "Тон"
 
-#: src/tveng1.c:1118
+#: src/tveng1.c:1120
 msgid "Colour"
 msgstr "Цвет"
 
-#: src/tveng1.c:1128 src/tveng2.c:889
+#: src/tveng1.c:1130 src/tveng2.c:890
 msgid "Contrast"
 msgstr "Контраст"
 
-#: src/tveng1.c:1141 src/tveng1.c:1470 src/tveng1.c:1483 src/tveng2.c:907
+#: src/tveng1.c:1143 src/tveng1.c:1472 src/tveng1.c:1485 src/tveng2.c:908
 msgid "Mute"
 msgstr "Отключить звук"
 
-#: src/tveng1.c:1153 src/tveng2.c:906
+#: src/tveng1.c:1155 src/tveng2.c:907
 msgid "Volume"
 msgstr "Громкость"
 
-#: src/tveng1.c:1165 src/tveng2.c:913
+#: src/tveng1.c:1167 src/tveng2.c:914
 msgid "Bass"
 msgstr "Низкие"
 
-#: src/tveng1.c:1177 src/tveng2.c:911
+#: src/tveng1.c:1179 src/tveng2.c:912
 msgid "Treble"
 msgstr "Высокие"
 
-#: src/tveng1.c:1192 src/tveng2.c:909
+#: src/tveng1.c:1194 src/tveng2.c:910
 msgid "Balance"
 msgstr "Баланс"
 
-#: src/tveng1.c:1205
+#: src/tveng1.c:1207
 msgid "Audio Decoding"
 msgstr "Авто декодирование"
 
-#: src/tveng1.c:1606
+#: src/tveng1.c:1608
 msgid "There are no tuners for the active input"
 msgstr "Нет тюнеров для активного входа"
 
-#: src/tveng2.c:117
+#: src/tveng2.c:118
 #, c-format
 msgid "%s doesn't look like a valid capture device"
 msgstr "%s не похоже на корректное устройства захвата"
 
-#: src/tveng2.c:128
+#: src/tveng2.c:129
 #, c-format
 msgid "Sorry, but \"%s\" cannot do streaming"
 msgstr ""
 
-#: src/tveng2.c:138
+#: src/tveng2.c:139
 #, c-format
 msgid "Sorry, but \"%s\" cannot do select() on file descriptors"
 msgstr ""
 
-#: src/tveng2.c:890
+#: src/tveng2.c:891
 msgid "Saturation"
 msgstr "Насыщенность"
 
-#: src/tveng2.c:892
+#: src/tveng2.c:893
 msgid "Whiteness"
 msgstr "Уровень белого"
 
-#: src/tveng2.c:893
+#: src/tveng2.c:894
 msgid "Black level"
 msgstr "Уровень черного"
 
-#: src/tveng2.c:894
+#: src/tveng2.c:895
 msgid "White balance"
 msgstr "Баланс белого"
 
-#: src/tveng2.c:895
+#: src/tveng2.c:896
 msgid "Do white balance"
 msgstr ""
 
-#: src/tveng2.c:896
+#: src/tveng2.c:897
 msgid "Red balance"
 msgstr "Баланс красного"
 
-#: src/tveng2.c:897
+#: src/tveng2.c:898
 msgid "Blue balance"
 msgstr "Баланс синего"
 
-#: src/tveng2.c:898
+#: src/tveng2.c:899
 msgid "Gamma"
 msgstr "Гамма"
 
-#: src/tveng2.c:899
+#: src/tveng2.c:900
 msgid "Exposure"
 msgstr "Экспозиция"
 
-#: src/tveng2.c:900
+#: src/tveng2.c:901
 msgid "Auto gain"
 msgstr ""
 
-#: src/tveng2.c:901
+#: src/tveng2.c:902
 msgid "Gain"
 msgstr ""
 
-#: src/tveng2.c:902
+#: src/tveng2.c:903
 msgid "HCenter"
 msgstr ""
 
-#: src/tveng2.c:903
+#: src/tveng2.c:904
 msgid "VCenter"
 msgstr ""
 
-#: src/tveng2.c:904
+#: src/tveng2.c:905
 msgid "Horizontal flipping"
 msgstr ""
 
-#: src/tveng2.c:905
+#: src/tveng2.c:906
 msgid "Vertical flipping"
 msgstr ""
 
-#: src/tveng2.c:908
+#: src/tveng2.c:909
 msgid "Audio Mute"
 msgstr "Отключить звук"
 
-#: src/tveng2.c:910
+#: src/tveng2.c:911
 msgid "Audio Balance"
 msgstr "Аудио Баланс"
 
-#: src/tveng2.c:912
+#: src/tveng2.c:913
 msgid "Loudness"
 msgstr "Громче"
 
@@ -679,7 +683,17 @@ msgstr ""
 "Автоопределение\n"
 "Не изменять режим\n"
 
-#: src/channel_editor.c:1162
+#: src/channel_editor.c:594
+#, fuzzy
+msgid "Add Channel"
+msgstr "Канал"
+
+#: src/channel_editor.c:594
+#, fuzzy
+msgid "New channel name:"
+msgstr "Канал"
+
+#: src/channel_editor.c:1198
 #, c-format
 msgid ""
 "Channel autosearching won't work with XVideo.\n"
@@ -689,7 +703,7 @@ msgid ""
 "%s"
 msgstr ""
 
-#: src/channel_editor.c:1168
+#: src/channel_editor.c:1204
 msgid "Your current V4L/V4L2 driver cannot do, channel autosearching, sorry"
 msgstr ""
 
@@ -829,107 +843,107 @@ msgstr "Выберите дирректорию для сохранения скриншотов"
 msgid "Options"
 msgstr "VBI опции"
 
-#: src/ttxview.c:2031
+#: src/ttxview.c:2030
 msgid "You must first set the destination dir in the properties dialog"
 msgstr ""
 
-#: src/ttxview.c:2040 src/ttxview.c:2808
+#: src/ttxview.c:2039 src/ttxview.c:2807
 msgid "No page loaded"
 msgstr ""
 
-#: glade/glade_strings.c:243 src/ttxview.c:2046
+#: glade/glade_strings.c:243 src/ttxview.c:2045
 msgid "Zapzilla"
 msgstr ""
 
-#: src/ttxview.c:2075
+#: src/ttxview.c:2074
 #, c-format
 msgid "Export to %s failed: %s"
 msgstr ""
 
-#: src/ttxview.c:2084
+#: src/ttxview.c:2083
 #, c-format
 msgid "%s saved"
 msgstr ""
 
-#: src/ttxview.c:2095
+#: src/ttxview.c:2094
 #, c-format
 msgid "Export failed: %s"
 msgstr ""
 
-#: src/ttxview.c:2263
+#: src/ttxview.c:2262
 #, c-format
 msgid "Caption %x - %s"
 msgstr ""
 
-#: src/ttxview.c:2265
+#: src/ttxview.c:2264
 #, c-format
 msgid "Text %x - %s"
 msgstr ""
 
-#: src/ttxview.c:2269
+#: src/ttxview.c:2268
 #, c-format
 msgid "Caption %x"
 msgstr ""
 
-#: src/ttxview.c:2271
+#: src/ttxview.c:2270
 #, c-format
 msgid "Text %x"
 msgstr ""
 
-#: src/ttxview.c:2297
+#: src/ttxview.c:2296
 #, c-format
 msgid "%x: Unknown language"
 msgstr ""
 
-#: src/ttxview.c:2310 src/ttxview.c:2325 src/ttxview.c:2349 src/ttxview.c:2365
-#: src/ttxview.c:2381 src/ttxview.c:2397 src/ttxview.c:2413
+#: src/ttxview.c:2309 src/ttxview.c:2324 src/ttxview.c:2348 src/ttxview.c:2364
+#: src/ttxview.c:2380 src/ttxview.c:2396 src/ttxview.c:2412
 #, fuzzy, c-format
 msgid "Page %x"
 msgstr "Страница"
 
-#: src/ttxview.c:2319
+#: src/ttxview.c:2318
 msgid "Index"
 msgstr ""
 
-#: src/ttxview.c:2343
+#: src/ttxview.c:2342
 msgid "Now and Next"
 msgstr ""
 
-#: src/ttxview.c:2359
+#: src/ttxview.c:2358
 #, fuzzy
 msgid "Current program"
 msgstr "Текущий контроллер:"
 
-#: src/ttxview.c:2375
+#: src/ttxview.c:2374
 msgid "Program Index"
 msgstr ""
 
-#: src/ttxview.c:2391
+#: src/ttxview.c:2390
 msgid "Program Schedule"
 msgstr ""
 
-#: src/ttxview.c:2407
+#: src/ttxview.c:2406
 msgid "Program Warning"
 msgstr ""
 
-#: src/ttxview.c:2427
+#: src/ttxview.c:2426
 msgid "Subtitles"
 msgstr ""
 
-#: src/ttxview.c:2429
+#: src/ttxview.c:2428
 msgid "Select subtitles page"
 msgstr ""
 
-#: src/ttxview.c:2502
+#: src/ttxview.c:2501
 #, c-format
 msgid "%s in %s"
 msgstr ""
 
-#: src/ttxview.c:2817
+#: src/ttxview.c:2816
 msgid "Selecting - hold Shift for table mode"
 msgstr ""
 
-#: src/ttxview.c:2931
+#: src/ttxview.c:2930
 msgid "Selection copied to clipboard"
 msgstr ""
 
@@ -2283,22 +2297,22 @@ msgstr "_Добавить"
 msgid "Delete"
 msgstr "_Телетекст"
 
-#: libvbi/exp-gfx.c:443
+#: libvbi/exp-gfx.c:444
 msgid "Correct aspect ratio"
 msgstr ""
 
-#: libvbi/exp-gfx.c:444
+#: libvbi/exp-gfx.c:445
 msgid ""
 "Approach an image aspect ratio similar to a real TV, this will add redundant "
 "information"
 msgstr ""
 
-#: libvbi/exp-gfx.c:477 libvbi/exp-gfx.c:739
+#: libvbi/exp-gfx.c:478 libvbi/exp-gfx.c:740
 #, c-format
 msgid "Unable to allocate %d KB image buffer"
 msgstr ""
 
-#: libvbi/exp-gfx.c:489 libvbi/exp-gfx.c:745 libvbi/exp-html.c:288
+#: libvbi/exp-gfx.c:490 libvbi/exp-gfx.c:746 libvbi/exp-html.c:289
 #: libvbi/exp-vtx.c:119
 #, fuzzy, c-format
 msgid "Cannot create file '%s': %s"
@@ -2306,30 +2320,30 @@ msgstr ""
 "Не могу восстановить предыдущий режим%s:\n"
 "%s"
 
-#: libvbi/exp-gfx.c:588
+#: libvbi/exp-gfx.c:589
 msgid "PPM"
 msgstr ""
 
-#: libvbi/exp-gfx.c:589
+#: libvbi/exp-gfx.c:590
 #, fuzzy
 msgid "Export this page as PPM image"
 msgstr "Извините, но текущий вход не имеет тюнеров"
 
-#: libvbi/exp-gfx.c:804 libvbi/exp-html.c:487
+#: libvbi/exp-gfx.c:805 libvbi/exp-html.c:488
 #, c-format
 msgid "Teletext Page %3x.%x"
 msgstr ""
 
-#: libvbi/exp-gfx.c:806 libvbi/exp-html.c:489
+#: libvbi/exp-gfx.c:807 libvbi/exp-html.c:490
 #, fuzzy, c-format
 msgid "Teletext Page %3x"
 msgstr "_Телетекст"
 
-#: libvbi/exp-gfx.c:868
+#: libvbi/exp-gfx.c:869
 msgid "PNG"
 msgstr ""
 
-#: libvbi/exp-gfx.c:869
+#: libvbi/exp-gfx.c:870
 #, fuzzy
 msgid "Export this page as PNG image"
 msgstr "Извините, но текущий вход не имеет тюнеров"
@@ -2352,7 +2366,7 @@ msgstr ""
 msgid "Include HTML page header"
 msgstr ""
 
-#: libvbi/exp-html.c:283
+#: libvbi/exp-html.c:284
 #, c-format
 msgid "Character conversion Unicode -> %s not supported"
 msgstr ""
@@ -2361,15 +2375,15 @@ msgstr ""
 #. *  "lang=\"en\" refers to "Teletext Page..." below,
 #. *  specify "de", "fr", "es" etc.
 #.
-#: libvbi/exp-html.c:477
+#: libvbi/exp-html.c:478
 msgid "<title lang=\"en\">"
 msgstr ""
 
-#: libvbi/exp-html.c:711
+#: libvbi/exp-html.c:714
 msgid "HTML"
 msgstr ""
 
-#: libvbi/exp-html.c:712
+#: libvbi/exp-html.c:715
 #, fuzzy
 msgid "Export this page as HTML page"
 msgstr "Извините, но текущий вход не имеет тюнеров"
