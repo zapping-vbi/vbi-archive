@@ -218,7 +218,6 @@ int tveng_attach_device(const char* device_file,
 			enum tveng_attach_mode attach_mode,
 			tveng_device_info * info)
 {
-  int i;
   char *long_str, *short_str, *sign = NULL;
   tv_control *tc;
   int num_controls;
@@ -261,16 +260,33 @@ int tveng_attach_device(const char* device_file,
       return -1;
     }
 
-  for (i=0; i<(sizeof(tveng_controllers)/sizeof(tveng_controller));
-       i++)
+  if (0 == strcmp (device_file, "emulator"))
     {
-      info -> fd = 0;
-      tveng_controllers[i](&(info->priv->module));
-      if (!info->priv->module.attach_device)
-	continue;
-      if (-1 != info->priv->module.attach_device(device_file, attach_mode,
-						    info))
-	goto success;
+      info->fd = -1;
+
+      tvengemu_init_module (&info->priv->module);
+
+      info->priv->module.attach_device (device_file, attach_mode, info);
+
+      goto success;
+    }
+  else
+    {
+      unsigned int i;
+
+      for (i = 0; i < N_ELEMENTS (tveng_controllers); ++i)
+	{
+	  info->fd = -1;
+
+	  tveng_controllers[i](&(info->priv->module));
+
+	  if (!info->priv->module.attach_device)
+	    continue;
+
+	  if (-1 != info->priv->module.attach_device
+	      (device_file, attach_mode, info))
+	    goto success;
+	}
     }
 
   /* Error */
@@ -1215,14 +1231,25 @@ p_tveng_set_capture_format(tveng_device_info * info)
 {
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  /* FIXME */
-  if (0 == (TV_PIXFMT_SET (info->format.pixfmt) &
-	    (TV_PIXFMT_SET (TV_PIXFMT_YUV420) |
-	     TV_PIXFMT_SET (TV_PIXFMT_YVU420) |
-	     TV_PIXFMT_SET (TV_PIXFMT_YUYV) |
-	     TV_PIXFMT_SET (TV_PIXFMT_UYVY))))
+  if (TVENG_CAPTURE_READ == info->current_mode)
     {
-      return -1;
+#ifdef TVENG_FORCE_FORMAT
+      if (0 == (TV_PIXFMT_SET (info->format.pixfmt)
+	        & TV_PIXFMT_SET (TVENG_FORCE_FORMAT)))
+        {
+          return -1;
+        }
+#else
+      /* FIXME */
+      if (0 == (TV_PIXFMT_SET (info->format.pixfmt) &
+	        (TV_PIXFMT_SET (TV_PIXFMT_YUV420) |
+	         TV_PIXFMT_SET (TV_PIXFMT_YVU420) |
+	         TV_PIXFMT_SET (TV_PIXFMT_YUYV) |
+	         TV_PIXFMT_SET (TV_PIXFMT_UYVY))))
+        {
+          return -1;
+        }
+#endif
     }
 
   REQUIRE_IO_MODE (-1);
@@ -1455,7 +1482,7 @@ set_control_audio		(tveng_device_info *	info,
 				 tv_bool		quiet,
 				 tv_bool		reset)
 {
-  tv_bool success;
+  tv_bool success = FALSE;
 
   if (NULL == c->pub._parent)
     {
@@ -1666,7 +1693,6 @@ tveng_get_control_by_name(const char * control_name,
 			  int * cur_value,
 			  tveng_device_info * info)
 {
-  int value;
   tv_control *tc;
 
   t_assert(info != NULL);
@@ -1676,11 +1702,10 @@ tveng_get_control_by_name(const char * control_name,
   TVLOCK;
 
   /* Update the controls (their values) */
-  if (info->priv->quiet
-      && (tc->id == TV_CONTROL_ID_VOLUME
-	  || tc->id == TV_CONTROL_ID_MUTE))
+  if (info->priv->quiet)
     {
       /* not now */
+      /* FIXME volume and mute only */
     }
   else
     {
@@ -1693,6 +1718,8 @@ tveng_get_control_by_name(const char * control_name,
     if (!strcasecmp(tc->label,control_name))
       /* we found it */
       {
+	int value;
+
 	value = tc->value;
 	if (cur_value)
 	  *cur_value = value;
@@ -2524,12 +2551,15 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 		goto failure;
 
 	case 0: /* in child */
-		/* First try the zapping_setup_fb install path. */
-		r = execvp (PACKAGE_ZSFB_DIR "/zapping_setup_fb", argv);
+	  	/* Try in $PATH. Note this might be a consolehelper link. */
+	  	r = execvp ("zapping_setup_fb", argv);
 
 		if (-1 == r && ENOENT == errno) {
-			/* Try in $PATH. */
-			r = execvp ("zapping_setup_fb", argv);
+			/* Try the zapping_setup_fb install path.
+			   Might fail due to missing SUID root, hence
+			   second choice. */
+		        r = execvp (PACKAGE_ZSFB_DIR "/zapping_setup_fb",
+				    argv);
 
 			if (-1 == r && ENOENT == errno)
 				_exit (2);
@@ -2559,7 +2589,7 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 
 	if (!WIFEXITED (status)) {
 		info->tveng_errno = errno;
-		tv_error_msg (info, _("zapping_setup_fb exited abnormally."));
+		tv_error_msg (info, _("Cannot execute zapping_setup_fb."));
 		goto failure;
 	}
 
@@ -2574,18 +2604,19 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 		break;
 
 	case 1: /* zapping_setup_fb failure */
-		info->tveng_errno = -1; /* unknown */
+		info->tveng_errno = -1;
 		tv_error_msg (info, _("zapping_setup_fb failed."));
 		goto failure;
 
 	case 2: /* zapping_setup_fb ENOENT */
 		info->tveng_errno = ENOENT;
-		tv_error_msg (info, _("zapping_setup_fb not found in "
-			PACKAGE_ZSFB_DIR " or executable search path."));
+		tv_error_msg (info, _("zapping_setup_fb not found in \"%s\""
+				      " or executable search path."),
+			      PACKAGE_ZSFB_DIR);
 		goto failure;
 
 	default:
-		info->tveng_errno = -1; /* unknown */
+		info->tveng_errno = -1;
 		tv_error_msg (info, _("Unknown error in zapping_setup_fb."));
 	failure:
 		RETURN_UNTVLOCK (FALSE);
@@ -3138,6 +3169,7 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info)
 	    info->priv->colorkey = XInternAtom(dpy, "XV_COLORKEY",
 						False);
 	    c.atom = info->priv->colorkey;
+	    /* TRANSLATORS: Color replaced by video in overlay mode. */
 	    if (!(c.pub.label = strdup (_("Colorkey"))))
 	      goto failure3;
 	    c.pub.minimum = at[i].min_value;
