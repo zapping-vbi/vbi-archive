@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.3 2002-06-24 03:20:44 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.4 2002-08-22 22:05:14 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -220,7 +220,7 @@ drop:
 		IOCTL(fd, VIDIOC_DQBUF, &vbuf) == 0);
 
 #ifdef V4L2_DROP_TEST
-	if ((rand() % 100) > 90) {
+	if ((rand() % 100) > 50) {
 		ASSERT("enqueue capture buffer",
 		       IOCTL(fd, VIDIOC_QBUF, &vbuf) == 0);
 		fprintf(stderr, "video drop\n");
@@ -341,9 +341,13 @@ mute_restore(void)
 }
 
 #define YUV420(mode) (mode == CM_YUV || mode == CM_YUV_VERTICAL_DECIMATION)
-#define DECIMATING(mode) (mode == CM_YUYV_VERTICAL_DECIMATION || \
-			  mode == CM_YUV_VERTICAL_DECIMATION || \
-			  mode == CM_YUYV_EXP_VERTICAL_DECIMATION)
+#define DECIMATING_HOR(mode) (mode == CM_YUYV_HORIZONTAL_DECIMATION || \
+			      mode == CM_YUYV_QUAD_DECIMATION)
+#define DECIMATING_VERT(mode) (mode == CM_YUYV_VERTICAL_DECIMATION || \
+			       mode == CM_YUV_VERTICAL_DECIMATION || \
+			       mode == CM_YUYV_QUAD_DECIMATION \
+			  /* removed mode == CM_YUYV_EXP_VERTICAL_DECIMATION */)
+#define DECIMATING(mode) (DECIMATING_HOR(mode) || DECIMATING_VERT(mode))
 #define PROGRESSIVE(mode) (mode == CM_YUYV_PROGRESSIVE || \
 			   mode == CM_YUYV_PROGRESSIVE_TEMPORAL)
 
@@ -352,7 +356,7 @@ v4l2_init(rte_video_stream_params *par, struct filter_param *fp)
 {
 	unsigned int probed_modes = 0;
 	int min_cap_buffers = video_look_ahead(gop_sequence);
-	int mod, i, height1;
+	int hmod, vmod, i, width1, height1;
 
 	ASSERT("open video capture device",
 	       (fd = open(cap_dev, O_RDWR)) != -1);
@@ -421,17 +425,21 @@ v4l2_init(rte_video_stream_params *par, struct filter_param *fp)
 	par->width = saturate(par->width, 1, MAX_WIDTH);
 	par->height = saturate(par->height, 1, MAX_HEIGHT);
 
+	width1 = par->width;
 	height1 = par->height;
 
-	par->width  = (par->width + 15) & -16;
+	if (DECIMATING_HOR(filter_mode))
+		par->width = (width1 * 2 + 31) & -32;
+	else
+		par->width  = (width1 + 15) & -16;
 
-	if (DECIMATING(filter_mode))
-		par->height = (height1 * 2 + 15) & -16;
+	if (DECIMATING_VERT(filter_mode))
+		par->height = (height1 * 2 + 31) & -32;
 	else
 		par->height = (height1 + 15) & -16;
 
 	for (;;) {
-		int new_mode, new_height;
+		int new_mode, new_width, new_height;
 
 		probed_modes |= 1 << filter_mode;
 
@@ -456,21 +464,31 @@ v4l2_init(rte_video_stream_params *par, struct filter_param *fp)
 		if (IOCTL(fd, VIDIOC_S_FMT, &vfmt) == 0) {
 			if (!DECIMATING(filter_mode))
 				break;
-			if (vfmt.fmt.pix.height > par->height * 0.7)
+			if (vfmt.fmt.pix.height > par->height * 0.7
+			    && vfmt.fmt.pix.width > par->width * 0.7)
 				break;
 		}
 
 		if (filter_mode == CM_YUYV) {
 			new_mode = CM_YUV;
+			new_width = par->width;
 			new_height = par->height;
 		} else if (filter_mode == CM_YUYV_VERTICAL_DECIMATION) {
 			new_mode = CM_YUYV_VERTICAL_INTERPOLATION;
+			new_width = par->width;
 			new_height = (height1 + 15) & -16;
 		} else if (filter_mode == CM_YUV_VERTICAL_DECIMATION) {
 			new_mode = CM_YUYV_VERTICAL_DECIMATION;
+			new_width = par->width;
 			new_height = par->height;
+		} else if (filter_mode == CM_YUYV_HORIZONTAL_DECIMATION
+			   || filter_mode == CM_YUYV_QUAD_DECIMATION) {
+			new_mode = CM_YUYV;
+			new_width = (width1 + 15) & -16;
+			new_height = (height1 + 15) & -16;
 		} else {
 			new_mode = CM_YUYV;
+			new_width = par->width;
 			new_height = par->height;
 		}
 
@@ -484,22 +502,24 @@ v4l2_init(rte_video_stream_params *par, struct filter_param *fp)
 			filter_labels[new_mode]);
 
 		filter_mode = new_mode;
+		par->width = new_width;
 		par->height = new_height;
 	}
 
 	par->pixfmt = YUV420(filter_mode) ? RTE_PIXFMT_YUV420 : RTE_PIXFMT_YUYV;
 
-	mod = DECIMATING(filter_mode) ? 32 : 16;
+	vmod = DECIMATING_VERT(filter_mode) ? 32 : 16;
+	hmod = DECIMATING_HOR(filter_mode) ? 32 : 16;
 
-	if (vfmt.fmt.pix.width & 15 || vfmt.fmt.pix.height & (mod - 1)) {
+	if (vfmt.fmt.pix.width & (hmod - 1) || vfmt.fmt.pix.height & (vmod - 1)) {
 		printv(3, "Format granted %d x %d, attempt to modify\n",
 			vfmt.fmt.pix.width, vfmt.fmt.pix.height);
 
-		vfmt.fmt.pix.width	&= -16;
-		vfmt.fmt.pix.height	&= -mod;
+		vfmt.fmt.pix.width	&= -hmod;
+		vfmt.fmt.pix.height	&= -vmod;
 
 		if (IOCTL(fd, VIDIOC_S_FMT, &vfmt) != 0 ||
-		    vfmt.fmt.pix.width & 15 || vfmt.fmt.pix.height & (mod - 1)) {
+		    vfmt.fmt.pix.width & (hmod - 1) || vfmt.fmt.pix.height & (vmod - 1)) {
 			FAIL("Please try a different grab size");
 		}
 	}
@@ -510,8 +530,9 @@ v4l2_init(rte_video_stream_params *par, struct filter_param *fp)
 			char str[256];
 
 			fprintf(stderr, "'%s' offers a grab size %d x %d, continue? ",
-				vcap.name, vfmt.fmt.pix.width,
-				vfmt.fmt.pix.height / (DECIMATING(filter_mode) ? 2 : 1));
+				vcap.name,
+				vfmt.fmt.pix.width / (DECIMATING_HOR(filter_mode) ? 2 : 1),
+				vfmt.fmt.pix.height / (DECIMATING_VERT(filter_mode) ? 2 : 1));
 			fflush(stderr);
 
 			fgets(str, 256, stdin);
@@ -522,13 +543,17 @@ v4l2_init(rte_video_stream_params *par, struct filter_param *fp)
 			FAIL("Requested grab size not available");
 	}
 
-	par->width = vfmt.fmt.pix.width & -16;
-        par->height = vfmt.fmt.pix.height & -mod;
+	par->width = vfmt.fmt.pix.width & -hmod;
+        par->height = vfmt.fmt.pix.height & -vmod;
 
 	if (width > par->width)
 		width = par->width;
 	if (height > par->height)
 		height = par->height;
+
+	par->sample_aspect = video_sampling_aspect (par->frame_rate,
+			  par->width >> !!DECIMATING_HOR (filter_mode),
+			  par->height >> !!DECIMATING_VERT (filter_mode));
 
 	filter_init(par, fp);
 

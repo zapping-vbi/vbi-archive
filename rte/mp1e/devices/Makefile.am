@@ -2,7 +2,7 @@
 
 noinst_LTLIBRARIES = libdevices.la
 
-INCLUDES = -D_GNU_SOURCE -D_REENTRANT -DFLOAT=float $(RTE_CFLAGS) \
+INCLUDES = -D_GNU_SOURCE -D_REENTRANT -DFLOAT=float \
 	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
 
 libdevices_la_SOURCES = \

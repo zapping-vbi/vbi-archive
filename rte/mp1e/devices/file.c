@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: file.c,v 1.1 2002-06-12 04:00:40 mschimek Exp $ */
+/* $Id: file.c,v 1.2 2002-08-22 22:05:14 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -280,6 +280,9 @@ file_init(rte_video_stream_params *par, struct filter_param *fp)
 		FAIL("Filter '%s' not supported",
 			filter_labels[filter_mode]);
 	}
+
+	par->sample_aspect = video_sampling_aspect (
+		par->frame_rate, par->width, par->height);
 
 	filter_init(par, fp);
 
