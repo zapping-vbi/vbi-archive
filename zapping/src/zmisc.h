@@ -187,9 +187,19 @@ z_restart_everything(enum tveng_capture_mode mode,
 /**
  * Prints the message in the status bar.
  * if the bar is hidden, it's shown.
+ * Timeout is the time in ms to wait before the status is
+ * automagically hidden again. Can be <= 0, in this case the bar
+ * doesn't hide automatically.
  */
 void
-z_status_print(const gchar *message);
+z_status_print(const gchar *message, gint timeout);
+
+/**
+ * Same thing but pango markup is allowed.
+ * if the bar is hidden, it's shown.
+ */
+void
+z_status_print_markup(const gchar *markup, gint timeout);
 
 /**
  * Adds the given widget to the status bar, it replaces any widgets

@@ -910,7 +910,8 @@ z_switch_channel	(tveng_tuned_channel	*channel,
   zvbi_channel_switched();
 
   if (info->current_mode == TVENG_CAPTURE_PREVIEW)
-    osd_render_sgml(NULL, _("Channel: <yellow>%s</yellow>"), channel->name);
+    osd_render_markup (NULL,
+	_("Channel: <span foreground=\"yellow\">%s</span>"), channel->name);
 #endif
 }
 
@@ -1070,7 +1071,9 @@ kp_key_press			(GdkEventKey *		event,
     show:
       kp_clear = FALSE;
       /* NLS: Channel name being entered on numeric keypad */
-      osd_render_sgml (kp_timeout, _("<green>%s</green>"), kp_chsel_buf);
+      osd_render_markup (kp_timeout,
+			 _("<span foreground=\"green\">%s</span>"),
+			 kp_chsel_buf);
       kp_clear = TRUE;
 
       return TRUE;
@@ -1089,7 +1092,8 @@ kp_key_press			(GdkEventKey *		event,
       else
 	{
 	  kp_clear = TRUE;
-	  osd_render_sgml (kp_timeout, "<black>/</black>");
+	  osd_render_markup (kp_timeout,
+			     "<span foreground=\"black\">/</span>");
 	}
 
       return TRUE;

@@ -1,3 +1,9 @@
+30.12.2202	<garetxe@users.sf.net>
+
+	* src/frequencies.c: Added Poland Autocom cable Frequency table,
+	contributed by Artur Flinta.
+	* src/osd.c: Ported to Pango.
+
 26.12.2002	<mschimek@users.sf.net>
 
 	* src/properties-handler.c, src/properties-handler.h: Popup menu

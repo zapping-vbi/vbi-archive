@@ -206,7 +206,7 @@
  * zapping.closed_caption(toggle)
    Wether to display closed caption superimposed onto the picture.
 
- * zapping.osd_render_sgml('Hello <blue>World</blue>!')
+ * zapping.osd_render_markup('Hello <i>World</i>!')
    Display text superimposed onto the picture.
    
  * zapping.osd_render('Hello World!')

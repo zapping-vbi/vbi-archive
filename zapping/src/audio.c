@@ -355,8 +355,8 @@ py_volume_incr			(PyObject *self, PyObject *args)
 
 #ifdef HAVE_LIBZVBI
   /* NLS: Record volume */
-  osd_render_sgml(NULL, _("<blue>%3d %%</blue>"),
-		  (cur - min) * 100 / range);
+  osd_render_markup(NULL, _("<span foreground=\"blue\">%3d %%</span>"),
+		    (cur - min) * 100 / range);
 #endif
 
  done:
@@ -435,9 +435,9 @@ set_mute1				(gint	        mode,
   if (mute_osd)
     if (main_info->current_mode == TVENG_CAPTURE_PREVIEW ||
 	!GTK_WIDGET_VISIBLE(lookup_widget(main_window, "bonobodockitem2")))
-      osd_render_sgml(NULL, mute ?
-		      _("<blue>audio off</blue>") :
-		      _("<yellow>AUDIO ON</yellow>"));
+      osd_render_markup(NULL, mute ?
+			_("<span foreground=\"blue\">audio off</span>") :
+			_("<span foreground=\"yellow\">AUDIO ON</span>"));
 
   mute_controls = TRUE;
   mute_osd = TRUE;

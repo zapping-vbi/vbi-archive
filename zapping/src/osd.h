@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: osd.h,v 1.17 2002-02-05 05:28:31 mschimek Exp $ */
+/* $Id: osd.h,v 1.17.2.1 2002-12-31 00:15:48 garetxe Exp $ */
 
 #ifndef __OSD_H__
 #define __OSD_H__
@@ -41,19 +41,19 @@ void osd_unset_window(void);
 void osd_clear(void);
 
 /**
- * Formats and renders the given string, that should be in the current
- * locale. The behaviour of this function is controlled by the OSD
- * properties.
+ * Formats and renders the given string that might contain pango
+ * markup.
  * @timeout_cb: When given and osd timed out, called with TRUE, when
  *   when given and error or replaced, called with FALSE. 
  * @string: Chars to draw.
  */
 void
-osd_render_sgml		(void (* timeout_cb)(gboolean),
+osd_render_markup	(void (* timeout_cb)(gboolean),
 			 const char *string, ...);
 
 /**
- * Like osd_render_sgml but no sgml parsing is done
+ * Like osd_render_pango_markup but no markup parsing is done, the
+ * string is printed as is.
  */
 void
 osd_render		(void (* timeout_cb)(gboolean),
