@@ -626,34 +626,35 @@ static struct {
    *  Note Ctrl+ is reserved for Gnome shortcuts (exception Ctrl+S and +R),
    *  which are all defined in zapping.glade.
    */
-  { 0,			GDK_a,		"zapping.mute()" },			/* XawTV */
-  { CTRL + ALT,		GDK_c,		"zapping.toggle_mode('capture')" },	/* historic */
+  { 0,			GDK_a,		"zapping.mute()" },				/* XawTV */
+  { CTRL + ALT,		GDK_c,		"zapping.toggle_mode('capture')" },		/* historic */
   { 0,			GDK_c,		"zapping.toggle_mode('capture')" },
   { SHIFT,		GDK_c,		"zapping.ttx_open_new()" },
+  { 0,			GDK_e,		"zapping.channel_editor()" },			/* XawTV */
   { 0,			GDK_f,		"zapping.toggle_mode('fullscreen')" },
-  { 0,			GDK_g,		"zapping.quickshot('ppm')" },		/* XawTV */
+  { 0,			GDK_g,		"zapping.quickshot('ppm')" },			/* XawTV */
   { 0,			GDK_h,		"zapping.ttx_hold()" },
   { SHIFT,		GDK_h,		"zapping.ttx_hold()" },
-  { 0,			GDK_j,		"zapping.quickshot('jpeg')" },		/* XawTV */
-  { CTRL + ALT,		GDK_n,		"zapping.ttx_open_new()" },		/* historic */
+  { 0,			GDK_j,		"zapping.quickshot('jpeg')" },			/* XawTV */
+  { CTRL + ALT,		GDK_n,		"zapping.ttx_open_new()" },			/* historic */
   { 0,			GDK_n,		"zapping.ttx_open_new()" },
-  { CTRL + ALT,		GDK_o,		"zapping.toggle_mode('preview')" },	/* historic */
+  { CTRL + ALT,		GDK_o,		"zapping.toggle_mode('preview')" },		/* historic */
   { 0,			GDK_o,		"zapping.toggle_mode('preview')" },
-  { CTRL + ALT,		GDK_p,		"zapping.toggle_mode('preview')" },	/* historic */
-  { CTRL,		GDK_p,		"zapping.toggle_mode('preview')" },	/* historic */
+  { CTRL + ALT,		GDK_p,		"zapping.toggle_mode('preview')" },		/* historic */
+  { CTRL,		GDK_p,		"zapping.toggle_mode('preview')" },		/* historic */
   { 0,			GDK_p,		"zapping.toggle_mode('preview')" },
-  { 0,			GDK_q,		"zapping.quit()" },			/* XawTV */
+  { 0,			GDK_q,		"zapping.quit()" },				/* XawTV */
   { SHIFT,		GDK_r,		"zapping.ttx_reveal()" },
-  { 0,			GDK_r,		"zapping.record()" },			/* XawTV */
+  { 0,			GDK_r,		"zapping.record()" },				/* XawTV */
   { CTRL,		GDK_r,		"zapping.quickrec()" },
   { 0,			GDK_s,		"zapping.screenshot()" },
   { CTRL,		GDK_s,		"zapping.quickshot()" },
-  { CTRL + ALT,		GDK_t,		"zapping.switch_mode('teletext')" },	/* historic */
+  { CTRL + ALT,		GDK_t,		"zapping.switch_mode('teletext')" },		/* historic */
   { 0,			GDK_t,		"zapping.switch_mode('teletext')" },
-  { 0,			GDK_space,	"zapping.channel_up()" },		/* XawTV */
+  { 0,			GDK_space,	"zapping.channel_up()" },			/* XawTV */
   { 0,			GDK_question,	"zapping.ttx_reveal()" },
-  { 0,			GDK_plus,	"zapping.volume_incr(+1)" },
-  { 0,			GDK_minus,	"zapping.volume_incr(-1)" },
+  { 0,			GDK_plus,	"zapping.control_incr('volume',+1)" },
+  { 0,			GDK_minus,	"zapping.control_incr('volume',-1)" },
   { 0,			GDK_Page_Up,	"zapping.channel_up()" },
   { 0,			GDK_KP_Page_Up,	"zapping.channel_up()" },
   { 0,			GDK_Page_Down,	"zapping.channel_down()" },
@@ -672,13 +673,26 @@ static struct {
   { 0,			GDK_KP_Left,	"zapping.ttx_subpage_incr(-1)" },
   { 0,			GDK_Right,	"zapping.ttx_subpage_incr(+1)" },
   { 0,			GDK_KP_Right,	"zapping.ttx_subpage_incr(+1)" },
-  { 0,			GDK_KP_Add,	"zapping.picture_size_cycle(+1)" },	/* was ttx_subpage_incr */
-  { 0,			GDK_KP_Subtract,"zapping.picture_size_cycle(-1)" },	/* was ttx_subpage_incr */
-  { 0,			GDK_Escape,	"zapping.toggle_mode()" },
-  { 0,			GDK_F11,	"zapping.toggle_mode('fullscreen')" },
+  { 0,			GDK_KP_Add,	"zapping.control_incr('volume',+1)" },		/* XawTV */
+  { SHIFT,		GDK_KP_Add,	"zapping.picture_size_cycle(+1)" },
+  { 0,			GDK_KP_Subtract,"zapping.control_incr('volume',-1)" },		/* XawTV */
+  { SHIFT,		GDK_KP_Subtract,"zapping.picture_size_cycle(-1)" },
+  { 0,			GDK_KP_Enter,	"zapping.mute()" },				/* XawTV */
+  /* conflict with keypad channel number entering
+  { 0,			GDK_Escape,	"zapping.toggle_mode()" }, */
+  { 0,			GDK_F5,		"zapping.control_incr('brightness',-1)" },	/* XawTV */
+  { 0,			GDK_F6,		"zapping.control_incr('brightness',+1)" },	/* XawTV */
+  { 0,			GDK_F7,		"zapping.control_incr('hue',-1)" },		/* XawTV */
+  { 0,			GDK_F8,		"zapping.control_incr('hue',+1)" },		/* XawTV */
+  { 0,			GDK_F9,		"zapping.control_incr('contrast',-1)" },	/* XawTV */
+  { 0,			GDK_F10,	"zapping.control_incr('contrast',+1)" },	/* XawTV */
+  { 0,			GDK_F11,	"zapping.toggle_mode('fullscreen')" },		/* historic */
+  /* conflict
+  { 0,			GDK_F11,	"zapping.control_incr('saturation',-1)" },*/	/* XawTV */
+  { 0,			GDK_F12,	"zapping.control_incr('saturation',+1)" },	/* XawTV */
 };
-static const gint num_default_key_bindings =
-  sizeof (default_key_bindings) / sizeof (default_key_bindings[0]);
+
+static const gint num_default_key_bindings = G_N_ELEMENTS (default_key_bindings);
 
 static void
 load_default_key_bindings		(void)
