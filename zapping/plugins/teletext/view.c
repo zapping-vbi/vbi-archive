@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: view.c,v 1.6 2004-11-08 16:24:57 mschimek Exp $ */
+/* $Id: view.c,v 1.7 2004-11-09 07:00:14 mschimek Exp $ */
 
 /*
  *  Zapping (TV viewer for the Gnome Desktop)
@@ -42,7 +42,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: view.c,v 1.6 2004-11-08 16:24:57 mschimek Exp $ */
+/* $Id: view.c,v 1.7 2004-11-09 07:00:14 mschimek Exp $ */
 
 #include "config.h"
 
@@ -1172,6 +1172,12 @@ view_vbi3_event_handler		(const vbi3_event *	ev,
 
   switch (ev->type) {
   case VBI3_EVENT_NETWORK:
+    if (1)
+      {
+	_vbi3_network_dump (ev->network, stderr);
+	fputc ('\n', stderr);
+      }
+
     for (p = g_list_first (teletext_views); p; p = p->next)
       {
 	TeletextView *view;
@@ -1181,7 +1187,7 @@ view_vbi3_event_handler		(const vbi3_event *	ev,
 	if (!vbi3_network_is_anonymous (&view->req.network))
 	  continue;
 
-	if (-1 != view->charset)
+	if ((unsigned int) -1 != view->charset)
 	  {
 	    /* XXX should use default charset of the new network
 	       from config if one exists. */
@@ -1451,75 +1457,6 @@ teletext_view_show_page		(TeletextView *		view,
   redraw_view (view);
 
   z_update_gui ();
-}
-
-
-
-
-
-extern GList *sliced_list;
-
-/* From libzvbi.h, we cannot include that here. */
-#define VBI3_SLICED_TELETEXT_B_L10_625   0x00000001
-#define VBI3_SLICED_TELETEXT_B_L25_625   0x00000002
-#define VBI3_SLICED_TELETEXT_B           (VBI3_SLICED_TELETEXT_B_L10_625 | \
-					 VBI3_SLICED_TELETEXT_B_L25_625)
-typedef struct {
-        uint32_t                id;
-        uint32_t                line;
-        uint8_t                 data[56];
-} vbi3_sliced;
-
-static void
-decoder				(const vbi3_sliced *	sliced,
-				 unsigned int		n_lines,
-				 double			timestamp)
-{
-  while (n_lines > 0)
-    {
-      if (sliced->id & VBI3_SLICED_TELETEXT_B)
-	vbi3_teletext_decoder_decode (td,
-				     sliced->data,
-				     timestamp);
-      ++sliced;
-      --n_lines;
-    }
-}
-
-void
-stop_zvbi			(void)
-{
-  sliced_list = g_list_remove (sliced_list, decoder);
-}
-
-void
-start_zvbi			(void)
-{
-  vbi3_cache *ca;
-  gint value;
-  vbi3_bool success;
-
-  ca = vbi3_teletext_decoder_get_cache (td);
-
-  value = 1 << 30;
-  z_gconf_get_int (&value, GCONF_DIR "/cache_size");
-  vbi3_cache_set_memory_limit (ca, (unsigned int) value);
-
-  value = 1;
-  z_gconf_get_int (&value, GCONF_DIR "/cache_networks");
-  vbi3_cache_set_network_limit (ca, (unsigned int) value);
-
-  vbi3_cache_unref (ca);
-
-  /* Send all events to our main event handler */
-  success = vbi3_teletext_decoder_add_event_handler
-    (td,
-     (VBI3_EVENT_NETWORK |
-      VBI3_EVENT_TTX_PAGE),
-     view_vbi3_event_handler, /* user_data */ NULL);
-  g_assert (success);
-
-  sliced_list = g_list_append (sliced_list, decoder);
 }
 
 /*
@@ -1853,7 +1790,7 @@ gboolean
 teletext_view_switch_network	(TeletextView *		view,
 				 const vbi3_network *	nk)
 {
-  if (-1 != view->charset)
+  if ((unsigned int) -1 != view->charset)
     {
       view->charset = -1;
 
@@ -3420,6 +3357,7 @@ class_init			(gpointer		g_class,
 {
   GObjectClass *object_class;
   GtkWidgetClass *widget_class;
+  vbi3_bool success;
 
   object_class = G_OBJECT_CLASS (g_class);
   widget_class = GTK_WIDGET_CLASS (g_class);
@@ -3500,6 +3438,15 @@ class_init			(gpointer		g_class,
 		("Teletext search"), "zapping.ttx_search()");
   cmd_register ("ttx_export", py_ttx_export, METH_VARARGS,
 		("Teletext export"), "zapping.ttx_export()");
+
+  /* Send all events to our main event handler. */
+  success = vbi3_teletext_decoder_add_event_handler
+    (td,
+     (VBI3_EVENT_NETWORK |
+      VBI3_EVENT_TTX_PAGE),
+     view_vbi3_event_handler, /* user_data */ NULL);
+
+  g_assert (success);
 }
 
 GType
