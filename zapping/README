@@ -49,20 +49,24 @@ I need feedback specially on these bugs:
 *) Preview doesn't work, image through all screen:
 	- Use the command line --bpp option giving the real X
 	server depth. Usually 24 or 32 if you have this problem.
+
 *) The program just hangs after showing the main window.
 	I have experienced this one myself with a 2.4.0test8
 	kernel, and appearently it gets fixed in the 5.4 release. I
 	would really appreciate some feedback on this one.
+
 *) Teletext just shows loading..., no page ever loaded
-	Try using the -d option. If it doesn't show
-	'vtx page: xxx.xxx' you aren't receiving anything Zapping can
-	understand. If AleVT works and Zapping's Teletext doesn't,
-	please mail me, otherwise it's probably a bug in the drivers
-	you are using.
+	Try using the --old-bttv option, it fixes the problem for some
+	people. The code i'm using for decoding teletext comes from
+	AleVT, check with it before reporting a bug. If AleVT doesn't
+	work either, there's little I can do, sorry. But the original
+	AleVT author will appreciate your reports, though ;-) Links below.
+
 *) The camera/dvd player/whatever connected to Composite uses
 NTSC/SECAM/..., and the image appears horribly distorted/colorless/...
 	That's because PAL is being used for those inputs. Use the
-	--tunerless-norm option to set the norm for those inputs.
+	--tunerless-norm option to set the norm for those inputs. You
+	might switch to V4L2, since it doesn't have this limitation.
 
 USEFUL ADDRESSES
 ----------------
@@ -71,6 +75,8 @@ http://millennium.diads.com/bdirks/v4l2.htm
 	pages regarding the V4L2 project.
 http://me.in-berlin.de/~kraxel/bttv.html
 	Video for Linux home page. Actually the bttv page.
+http://user.exit.de/froese
+	AleVT home page. Probably the best Teletext decoder around.
 http://www.gnome.org
 	The home page of the GNOME community. Lots of info about
 	projects and programming.

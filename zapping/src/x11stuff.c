@@ -228,3 +228,28 @@ x11_window_viewable(GdkWindow *window)
 
   return ((wts.map_state & IsViewable) ? TRUE : FALSE);
 }
+
+/*
+ * Sets the X screen saver on/off
+ */
+void
+x11_set_screensaver(gboolean on)
+{
+  static int timeout=-2, interval, prefer_blanking, allow_exposures;
+
+  if (on) {
+    if (timeout == -2) {
+      g_warning("cannot activate screensaver before deactivating");
+      return;
+    }
+    XSetScreenSaver(GDK_DISPLAY(), timeout, interval, prefer_blanking,
+		    allow_exposures);
+  } else {
+    XGetScreenSaver(GDK_DISPLAY(), &timeout, &interval,
+		    &prefer_blanking, &allow_exposures);
+    /* fixme: this doesn't appear to work yet (it should, according to
+       man, what am i missing?) */
+    XSetScreenSaver(GDK_DISPLAY(), 0, interval, prefer_blanking,
+		    allow_exposures);
+  }
+}

@@ -432,7 +432,7 @@ on_go_fullscreen1_activate             (GtkMenuItem     *menuitem,
 
 #ifdef MESS_WITH_XSS
   /* Set the blank screensaver */
-  gnome_execute_shell(NULL, "xscreensaver-command -throttle");
+  x11_set_screensaver(OFF);
 #endif
 
   gtk_widget_grab_focus(black_window);
@@ -476,7 +476,7 @@ on_go_windowed1_activate               (GtkMenuItem     *menuitem,
 
 #ifdef MESS_WITH_XSS
   /* Restore the normal screensaver */
-  gnome_execute_shell(NULL, "xscreensaver-command -unthrottle");
+  x11_set_screensaver(ON);
 #endif
 
   /* Remove the black window */

@@ -1,3 +1,8 @@
+14.10.2000	XGetScreenSaver <garetxe@users.sourceforge.net>
+
+	* src/x11stuff.c: Use XGetScreenSaver and friends to modify the
+	screensaver, but it doesn't appear to work yet :-(
+
 5.10.2000	Russian frequency table <garetxe@eusers.sourceforge.net>
 
 	* src/frequencies.c: Added russian frequency table, donated by

@@ -293,9 +293,12 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   /* If we are fullscreen, something else needs to be done */
   if (info->current_mode == TVENG_CAPTURE_PREVIEW)
     {
+      /* fixme: we should avoid the code duplication here and
+	 callbacks.c */
       extern GtkWidget *black_window; /* from callbacks.c */
       gdk_keyboard_ungrab(GDK_CURRENT_TIME);
       gtk_widget_destroy(black_window);
+      x11_set_screensaver(ON);
     }
   tveng_stop_everything(info);
 

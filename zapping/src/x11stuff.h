@@ -67,4 +67,18 @@ x11_force_expose(gint x, gint y, gint w, gint h);
 gboolean
 x11_window_viewable(GdkWindow *window);
 
+/*
+ * Sets the X screen saver on/off
+ */
+void
+x11_set_screensaver(gboolean on);
+
+/* some useful constants */
+#ifndef OFF
+#define OFF FALSE
+#endif
+#ifndef ON
+#define ON TRUE
+#endif
+
 #endif /* x11stuff.h */
