@@ -1,3 +1,8 @@
+04.6.2000	Plugin code remade <garetxe@users.sourceforge.net>
+
+	* src/plugin_properties.c:
+	* glade/zapping.glade: Dialog layout redesigned.
+	
 02.6.2000	First problems fixed <garetxe@users.sourceforge.net>
 
 	* configure.in: Added the option to disable X extensions (DGA)

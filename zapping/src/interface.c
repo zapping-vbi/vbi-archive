@@ -74,7 +74,7 @@ GtkWidget*
 build_widget(const char* name)
 {
   GladeXML* xml = glade_xml_new(PACKAGE_DATA_DIR "/zapping.glade",
-				 name);
+      name);
   GtkWidget * widget;
 
   if ( !xml )

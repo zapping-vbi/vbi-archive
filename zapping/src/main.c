@@ -179,6 +179,14 @@ int main(int argc, char * argv[])
 
   main_window = create_zapping();
 
+  if (!main_window)
+    {
+      g_warning("Sorry, but the interface (zapping.glade) couldn't"
+		" be loaded.\nCheck your installation.");
+      tveng_device_info_destroy(main_info);
+      return 0;
+    }
+
   tv_screen = lookup_widget(main_window, "tv_screen");
 
   /* Set the minimum size for this widget */

@@ -54,6 +54,12 @@ GtkWidget * ShowBoxReal(const gchar * sourcefile,
 
   gtk_window_set_title(GTK_WINDOW (dialog), str);
 
+  /*
+    I know this isn't usual for a dialog box, but this way we can see
+    all the title bar if we want to
+  */
+  gtk_window_set_policy(GTK_WINDOW (dialog), FALSE, TRUE, TRUE);
+
   g_free(str);
 
   if (blocking)

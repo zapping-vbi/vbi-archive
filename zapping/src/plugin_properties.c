@@ -107,8 +107,7 @@ on_plugin_list_select_row                   (GtkCList        *clist,
   GtkLabel * label72; /* Plugin version */
   GtkLabel * label73; /* Plugin priority */
   GtkText * text1; /* Plugin description */
-  GtkLabel * label74; /* Symbol prototype */
-  GtkLabel * label75; /* Symbol description */
+  GtkText * text3; /* Symbol type and description */
   GtkLabel * label76; /* "Symbols exported by the plugin" label */
   GtkWidget * vbox13; /* The vbox where the exported symbols are */
   GtkWidget * plugin_start_w;
@@ -139,8 +138,7 @@ on_plugin_list_select_row                   (GtkCList        *clist,
   label71 = GTK_LABEL(lookup_widget(plugin_properties, "label71"));
   label72 = GTK_LABEL(lookup_widget(plugin_properties, "label72"));
   label73 = GTK_LABEL(lookup_widget(plugin_properties, "label73"));
-  label74 = GTK_LABEL(lookup_widget(plugin_properties, "label74"));
-  label75 = GTK_LABEL(lookup_widget(plugin_properties, "label75"));
+  text3   = GTK_TEXT (lookup_widget(plugin_properties, "text3"));
   label76 = GTK_LABEL(lookup_widget(plugin_properties, "label76"));
   plugin_start_w = lookup_widget(plugin_properties, "plugin_start");
   plugin_stop_w = lookup_widget(plugin_properties, "plugin_stop");
@@ -195,8 +193,7 @@ on_plugin_list_select_row                   (GtkCList        *clist,
     {
       gtk_widget_set_sensitive(vbox13, FALSE);
       gtk_clist_clear(symbol_list);
-      gtk_label_set_text(label74, "");
-      gtk_label_set_text(label75, "");
+      gtk_editable_delete_text(GTK_EDITABLE(text3), 0, -1);
       gtk_label_set_text(label76,
 			 _("This plugin has no public symbols"));
     }
@@ -235,17 +232,21 @@ on_symbol_list_select_row                   (GtkCList        *clist,
     gtk_clist_get_row_data(clist, row);
   GtkWidget * plugin_properties =
     lookup_widget(GTK_WIDGET(clist), "plugin_properties");
-  GtkLabel * label74; /* Symbol prototype */
-  GtkLabel * label75; /* Symbol description */
+  GtkText * text3; /* Symbol description and properties */
+  gchar * buffer;
 
   if (!symbol)
     return; /* It is too soon to display anything */
 
-  label74 = GTK_LABEL(lookup_widget(plugin_properties, "label74"));
-  label75 = GTK_LABEL(lookup_widget(plugin_properties, "label75"));
+  text3 = GTK_TEXT(lookup_widget(plugin_properties, "text3"));
 
-  gtk_label_set_text(label74, symbol->type);
-  gtk_label_set_text(label75, symbol->description);
+  gtk_editable_delete_text(GTK_EDITABLE(text3), 0, -1);
+  gtk_text_set_word_wrap(text3, TRUE);
+  buffer = g_strconcat(symbol->description, "\n\n", symbol->type, NULL);
+
+  gtk_text_insert(text3, NULL, NULL, NULL, buffer, -1);
+
+  g_free(buffer);
 }
 
 void
@@ -317,6 +318,14 @@ on_plugin_stop_clicked                (GtkButton       *button,
       gtk_widget_set_sensitive(plugin_stop_w, FALSE);
       gtk_object_set_user_data(GTK_OBJECT(plugin_start_w), info);
     }  
+}
+
+void
+on_plugin_help_clicked                 (GtkButton       *button,
+                                        gpointer         user_data)
+{
+  ShowBox("Sorry, but there is no help for this dialog",
+	  GNOME_MESSAGE_BOX_INFO);
 }
 
 gboolean

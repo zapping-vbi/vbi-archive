@@ -226,6 +226,10 @@ void
 on_plugin_stop_clicked                 (GtkButton       *button,
 					gpointer         user_data);
 
+void
+on_plugin_help_clicked                 (GtkButton       *button,
+					gpointer         user_data);
+
 gboolean
 on_plugin_properties_delete_event      (GtkWidget       *widget,
                                         GdkEvent        *event,
