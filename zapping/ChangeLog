@@ -1,3 +1,21 @@
+2003-10-11    <mschimek@users.sf.net>
+
+	* src/yuv2rgb.c (startup_yuv2rgb): cfuncs r<->b fix.
+	* src/tveng_private.h: tveng_private.assume_yvu useless, removed.
+	* src/video_mem.c (planar_image_new): Incorrect uv_stride.
+	* src/capture.c (request_capture_format_real): No
+	  tveng_set_capture_format call if the format is still the same.
+	* src/tveng.c (tveng_set_capture_format): We have a few problems in
+          request_capture_format_real, see TODO. Fix is complex. For now
+	  this function will block requests for RGB formats. Zapping 0.0
+	  to 0.6 worked well enough this way.
+	  (tveng_copy_frame): assume_yvu useless, removed. Implicit YVU420
+	  to YUV420 conversion removed.
+	* src/tveng.c, src/tveng.h: tveng_assume_yvu() useless, removed.
+	* src/video_xv.c (traverse_ports): Did not register YVU420 ports.
+	  (image_new): Proper U/V plane swapping for YUV/YVU 4:2:0, support
+	  more packed formats.
+
 2003-10-10    <mschimek@users.sf.net>
 
 	* plugins/screenshot/screenshot.c,
