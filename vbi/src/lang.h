@@ -17,86 +17,97 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.h,v 1.2.2.2 2003-06-16 06:03:56 mschimek Exp $ */
+/* $Id: lang.h,v 1.2.2.3 2004-02-25 17:31:25 mschimek Exp $ */
 
 #ifndef LANG_H
 #define LANG_H
 
-#include "bcd.h" /* vbi_bool */
-#include "format.h" /* vbi_page */
-
-/**
- * @internal
- *
- * Teletext character set according to ETS 300 706, Section 15.
- */
-typedef enum {
-	LATIN_G0 = 1,
-	LATIN_G2,
-	CYRILLIC_1_G0,
-	CYRILLIC_2_G0,
-	CYRILLIC_3_G0,
-	CYRILLIC_G2,
-	GREEK_G0,
-	GREEK_G2,
-	ARABIC_G0,
-	ARABIC_G2,
-	HEBREW_G0,
-	BLOCK_MOSAIC_G1,
-	SMOOTH_MOSAIC_G3
-} vbi_character_set;
-
-/**
- * @internal
- *
- * Teletext Latin G0 national option subsets according to
- * ETS 300 706, Section 15.2; Section 15.6.2 Table 36.
- */
-typedef enum {
-	NO_SUBSET,
-	CZECH_SLOVAK,
-	ENGLISH,
-	ESTONIAN,
-	FRENCH,
-	GERMAN,
-	ITALIAN,
-	LETT_LITH,
-	POLISH,
-	PORTUG_SPANISH,
-	RUMANIAN,
-	SERB_CRO_SLO,
-	SWE_FIN_HUN,
-	TURKISH
-} vbi_national_subset;
-
-/**
- * @internal
- *
- * vbi_font_descriptors[], array of vbi_font_descr implements
- * the Teletext character set designation tables in ETS 300 706,
- * Section 15, Table 32, 33 and 34.  
- */
-struct vbi_font_descr {
-	vbi_character_set	G0;
-	vbi_character_set	G2;
-	vbi_national_subset	subset;		/* applies only to LATIN_G0 */
-	const char *		lang_code[4];	/* ISO 639 */	
-};
-
-extern struct vbi_font_descr	vbi_font_descriptors[88];
-
-#define VALID_CHARACTER_SET(n) ((n) < 88 && vbi_font_descriptors[n].G0)
+#include "misc.h"
+#include "format.h"
 
 /* Public */
 
 /**
- * @ingroup Page
- * @brief Opaque font descriptor.
+ * Teletext character set code as defined in
+ * ETS 300 706, Section 15, Table 33.
+ *
+ * Valid codes are in range 0 ... 127.
  */
-typedef struct vbi_font_descr vbi_font_descr;
+typedef unsigned int vbi_character_set_code;
 
 /**
- * @ingroup Page
+ * Teletext character sets defined in ETS 300 706, Section 15.
+ */
+typedef enum {
+	VBI_CHARSET_NONE,
+	VBI_CHARSET_LATIN_G0,
+	VBI_CHARSET_LATIN_G2,
+	VBI_CHARSET_CYRILLIC1_G0,
+	VBI_CHARSET_CYRILLIC2_G0,
+	VBI_CHARSET_CYRILLIC3_G0,
+	VBI_CHARSET_CYRILLIC_G2,
+	VBI_CHARSET_GREEK_G0,
+	VBI_CHARSET_GREEK_G2,
+	VBI_CHARSET_ARABIC_G0,
+	VBI_CHARSET_ARABIC_G2,
+	VBI_CHARSET_HEBREW_G0,
+	VBI_CHARSET_BLOCK_MOSAIC_G1,
+	VBI_CHARSET_SMOOTH_MOSAIC_G3
+} vbi_charset;
+
+/**
+ * Teletext Latin G0 national option subsets defined in
+ * ETS 300 706, Section 15.2 and Section 15.6.2 Table 36.
+ */
+typedef enum {
+	VBI_SUBSET_NONE,
+	VBI_SUBSET_CZECH_SLOVAK,
+	VBI_SUBSET_ENGLISH,
+	VBI_SUBSET_ESTONIAN,
+	VBI_SUBSET_FRENCH,
+	VBI_SUBSET_GERMAN,
+	VBI_SUBSET_ITALIAN,
+	VBI_SUBSET_LETTISH_LITHUANIAN,
+	VBI_SUBSET_POLISH,
+	VBI_SUBSET_PORTUGUESE_SPANISH,
+	VBI_SUBSET_RUMANIAN,
+	VBI_SUBSET_SERBIAN_CROATIAN_SLOVENIAN,
+	VBI_SUBSET_SWEDISH_FINNISH_HUNGARIAN,
+	VBI_SUBSET_TURKISH
+} vbi_subset;
+
+/**
+ * Teletext character set designation defined in
+ * ETS 300 706, Section 15, Table 32, 33 and 34.
+ */
+typedef struct {
+	vbi_character_set_code	code;
+
+	/** Character set used for G0 characters (0x20 ... 0x7F). */
+	vbi_charset		g0;
+	/** Character set used for G2 characters (0xA0 ... 0xFF). */
+	vbi_charset		g2;
+	/** National character subset used with VBI_CHARSET_LATIN_G0. */
+	vbi_subset		subset;		/* applies only to LATIN_G0 */
+	/**
+	 * Languages covered. These are ISO 639 two-character language code
+	 * strings, for example "fr" for French. The array is terminated
+	 * by a NULL pointer.
+	 */
+	const char *		language_code[16];
+} vbi_character_set;
+
+extern const vbi_character_set *
+vbi_character_set_from_code	(vbi_character_set_code code);
+
+extern unsigned int
+vbi_teletext_unicode		(vbi_charset		charset,
+				 vbi_subset		subset,
+				 unsigned int		c);
+extern unsigned int
+vbi_caption_unicode		(unsigned int		c);
+
+/**
  * @param unicode Unicode as in vbi_char.
  * 
  * @return
@@ -109,13 +120,12 @@ typedef struct vbi_font_descr vbi_font_descr;
  * Teletext DRCS coded U+F000 ... U+F7FF.
  */
 static_inline vbi_bool
-vbi_is_print(unsigned int unicode)
+vbi_is_print			(unsigned int		unicode)
 {
 	return unicode < 0xE600;
 }
 
 /**
- * @ingroup Page
  * @param unicode Unicode as in vbi_char.
  * 
  * @return
@@ -123,13 +133,12 @@ vbi_is_print(unsigned int unicode)
  * Mosaics and Line Drawing Set, that is a code in range U+EE00 ... U+EFFF.
  */
 static_inline vbi_bool
-vbi_is_gfx(unsigned int unicode)
+vbi_is_gfx			(unsigned int		unicode)
 {
 	return unicode >= 0xEE00 && unicode <= 0xEFFF;
 }
 
 /**
- * @ingroup Page
  * @param unicode Unicode as in vbi_char.
  * 
  * @return
@@ -137,17 +146,17 @@ vbi_is_gfx(unsigned int unicode)
  * Redefinable Character), that is a code in range U+F000 ... U+F7FF.
  **/
 static_inline vbi_bool
-vbi_is_drcs(unsigned int unicode)
+vbi_is_drcs			(unsigned int		unicode)
 {
 	return unicode >= 0xF000;
 }
 
 /* Private */
 
-extern unsigned int	vbi_teletext_unicode(vbi_character_set s, vbi_national_subset n, unsigned int c);
-extern unsigned int	vbi_teletext_composed_unicode(unsigned int a, unsigned int c);
-extern unsigned int	vbi_caption_unicode(unsigned int c);
-
-extern void		vbi_optimize_page(vbi_page *pg, int column, int row, int width, int height);
+extern unsigned int
+vbi_teletext_ascii_art		(unsigned int		c);
+extern unsigned int
+vbi_teletext_composed_unicode	(unsigned int		a,
+				 unsigned int		c);
 
 #endif /* LANG_H */
