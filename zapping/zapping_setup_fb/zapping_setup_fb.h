@@ -2,7 +2,7 @@
  *  Zapping (TV viewer for the Gnome Desktop)
  *
  * Copyright (C) 2000 Iñaki García Etxebarria
- * Copyright (C) 2003 Michael H. Schimek
+ * Copyright (C) 2003-2004 Michael H. Schimek
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,11 +19,14 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping_setup_fb.h,v 1.4 2003-11-29 19:43:24 mschimek Exp $ */
+/* $Id: zapping_setup_fb.h,v 1.5 2004-09-10 04:46:26 mschimek Exp $ */
 
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+
+#include "../libtv/screen.h"	/* Xinerama & DGA interface */
+#include "../common/device.h"	/* generic device access routines */
 
 #define ROOT_UID 0
 
@@ -52,19 +55,11 @@ do {									\
 	   "Try consolehelper, sudo, su or set the SUID flag with "	\
 	   "chmod +s.\n", program_invocation_name);
 
-#undef FALSE
-#define FALSE 0
-#undef TRUE
-#define TRUE 1
-
 extern char *           program_invocation_name;
 extern char *           program_invocation_short_name;
 extern int		verbosity;
-
-#include "../common/device.h"	/* generic device access routines */
-
-extern int		uid;
-extern int		euid;
+extern unsigned int	uid;
+extern unsigned int	euid;
 extern FILE *		log_fp;
 
 extern void
@@ -77,37 +72,12 @@ device_open_safer		(const char *		device_name,
 				 int			major_number,
 				 int			flags);
 
-
-typedef int gboolean;
-
-typedef struct _x11_dga_parameters x11_dga_parameters;
-
-struct _x11_dga_parameters {
-  void *		base;			/* frame buffer */
-  unsigned int		size;			/* 2048 * 768, bytes */
-
-  unsigned int		width;			/* 1024 */
-  unsigned int		height;			/* 768 */
-
-  /* XXX rgb1? 1rgb? 1bgr? bgr1? le/be? */
-  unsigned int		depth;			/* 15 */
-
-  unsigned int		bytes_per_line;		/* 2048 */
-  unsigned int		bits_per_pixel;		/* 16 */
-};
-
-gboolean
-x11_dga_query			(x11_dga_parameters *	par,
-				 const char *		display,
-				 int			bpp_hint);
-
-
 extern int
 setup_v4l	 		(const char *		device_name,
-				 x11_dga_parameters *	dga);
+				 const tv_overlay_buffer *buffer);
 extern int
 setup_v4l2	 		(const char *		device_name,
-				 x11_dga_parameters *	dga);
+				 const tv_overlay_buffer *buffer);
 extern int
 setup_v4l25	 		(const char *		device_name,
-				 x11_dga_parameters *	dga);
+				 const tv_overlay_buffer *buffer);
