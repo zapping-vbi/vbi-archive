@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.47 2005-01-19 04:17:54 mschimek Exp $ */
+/* $Id: export.c,v 1.48 2005-01-31 07:10:54 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -745,10 +745,8 @@ vbi3_export_option_menu_get	(vbi3_export *		e,
 	unsigned int i;
 
 	assert (NULL != e);
+	assert (NULL != keyword);
 	assert (NULL != entry);
-
-	if (!keyword)
-		return FALSE;
 
 	reset_error (e);
 
@@ -814,9 +812,7 @@ vbi3_export_option_menu_set	(vbi3_export *		e,
 	const vbi3_option_info *oi;
 
 	assert (NULL != e);
-
-	if (!keyword)
-		return FALSE;
+	assert (NULL != keyword);
 
 	reset_error (e);
 
@@ -874,10 +870,8 @@ vbi3_export_option_get		(vbi3_export *		e,
 	vbi3_bool r;
 
 	assert (NULL != e);
+	assert (NULL != keyword);
 	assert (NULL != value);
-
-	if (!keyword)
-		return FALSE;
 
 	reset_error (e);
 
@@ -948,9 +942,7 @@ vbi3_export_option_set		(vbi3_export *		e,
 	va_list ap;
 
 	assert (NULL != e);
-
-	if (!keyword)
-		return FALSE;
+	assert (NULL != keyword);
 
 	reset_error (e);
 
@@ -994,18 +986,18 @@ vbi3_export_option_set		(vbi3_export *		e,
 
 /**
  * @param e Initialized vbi3_export object.
- * @param index Index into the option table 0 ... n.
+ * @param indx Index into the option table 0 ... n.
  *
  * Enumerates the options available for the given export module. You
  * should start at index 0, incrementing.
  *
  * @returns
  * Pointer to a vbi3_option_info structure,
- * @c NULL if @a index is out of bounds.
+ * @c NULL if @a indx is out of bounds.
  */
 const vbi3_option_info *
 vbi3_export_option_info_enum	(vbi3_export *		e,
-				 unsigned int		index)
+				 unsigned int		indx)
 {
 	unsigned int size;
 
@@ -1015,10 +1007,10 @@ vbi3_export_option_info_enum	(vbi3_export *		e,
 
 	size = N_ELEMENTS (generic_options) + e->module->option_info_size;
 
-	if (index >= size)
+	if (indx >= size)
 		return NULL;
 
-	return e->local_option_info + index;
+	return e->local_option_info + indx;
 }
 
 /**
@@ -1060,7 +1052,7 @@ vbi3_export_option_info_by_keyword
 }
 
 /**
- * @param index Index into the export module list 0 ... n.
+ * @param indx Index into the export module list 0 ... n.
  *
  * Enumerates available export modules. You should start at index 0,
  * incrementing. Some modules may depend on machine features or the presence
@@ -1068,19 +1060,19 @@ vbi3_export_option_info_by_keyword
  *
  * @return
  * Pointer to a vbi3_export_info structure,
- * @c NULL if the index is out of bounds.
+ * @c NULL if the @a indx is out of bounds.
  */
 const vbi3_export_info *
-vbi3_export_info_enum		(unsigned int		index)
+vbi3_export_info_enum		(unsigned int		indx)
 {
 	const _vbi3_export_module *xc;
 	vbi3_export_info *xi;
 
-	if (index >= N_ELEMENTS (export_modules))
+	if (indx >= N_ELEMENTS (export_modules))
 		return NULL;
 
-	xc = export_modules[index];
-	xi = local_export_info + index;
+	xc = export_modules[indx];
+	xi = local_export_info + indx;
 
 	xi->keyword	= xc->export_info->keyword;
 	xi->label	= _(xc->export_info->label);
