@@ -258,6 +258,23 @@ do { \
     gtk_main_iteration(); \
 } while (FALSE)
 
+extern GQuark
+z_misc_error_quark		(void);
+
+#define Z_MISC_ERROR z_misc_error_quark ()
+
+typedef enum {
+  Z_MISC_ERROR_MKDIR = 1,
+
+} ZMiscError;
+
+extern void
+z_show_non_modal_message_dialog	(GtkWindow *		parent,
+				 GtkMessageType		type,
+				 const gchar *		primary,
+				 const gchar *		secondary,
+				 ...);
+
 /**
  * Asks for a string, returning it, or NULL if it the operation was
  * cancelled
@@ -433,15 +450,12 @@ z_pixbuf_scale_simple		(GdkPixbuf	*source,
   return gdk_pixbuf_scale_simple(source, destw, desth, interp);
 }
 
-/**
- * Builds the given path if it doesn't exist and checks that it's a
- * valid dir.
- * On error returns FALSE and fills in error_description with a newly
- * allocated string if it isn't NULL.
- * Upon success, TRUE is returned and error_description is untouched.
- */
-gboolean
-z_build_path(const gchar *path, gchar **error_description);
+extern gboolean
+z_build_path			(const gchar *		path,
+				 GError **		error);
+extern gboolean
+z_build_path_with_alert		(GtkWindow *		parent,
+				 const gchar *		path);
 
 void
 z_electric_set_basename		(GtkWidget *		w,
@@ -593,8 +607,16 @@ z_tree_view_remove_selected	(GtkTreeView *		tree_view,
 				 GtkTreeModel *		model);
 
 extern gboolean
-z_overwrite_file		(GtkWindow *		parent,
+z_overwrite_file_dialog		(GtkWindow *		parent,
+				 const gchar *		primary,
 				 const gchar *		filename);
+extern void
+z_help_display			(GtkWindow *		parent,
+				 const gchar *		filename,
+				 const gchar *		link_id);
+extern void
+z_url_show			(GtkWindow *		parent,
+				 const gchar *		url);
 
 enum old_tveng_capture_mode
 {
@@ -669,6 +691,10 @@ extern GtkWidget *
 z_gconf_combo_box_new		(const gchar **		option_menu,
 				 const gchar *		gconf_key,
 				 const GConfEnumStringPair *lookup_table);
+extern GtkWidget *
+z_gconf_check_button_new	(const gchar *		label,
+				 const gchar *		key,
+				 gboolean		active);
 extern void
 z_action_set_sensitive		(GtkAction *		action,
 				 gboolean		sensitive);
@@ -676,8 +702,15 @@ extern void
 z_action_set_visible		(GtkAction *		action,
 				 gboolean		visible);
 extern void
+z_show_empty_submenu		(GtkActionGroup *	action_group,
+				 const gchar *		action_name);
+extern void
 z_menu_shell_chop_off		(GtkMenuShell *		menu_shell,
 				 GtkMenuItem *		menu_item);
+extern gchar *
+z_strappend			(gchar *		string1,
+				 const gchar *		string2,
+				 ...);
 
 /* Common constants for item position in Gtk insert functions. */
 #define PREPEND 0
