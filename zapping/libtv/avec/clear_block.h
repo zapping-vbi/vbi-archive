@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: clear_block.h,v 1.2 2005-01-08 14:43:32 mschimek Exp $ */
+/* $Id: clear_block.h,v 1.3 2005-02-18 07:56:10 mschimek Exp $ */
 
 #include <inttypes.h>
 #include <altivec.h>
@@ -45,13 +45,12 @@ NAME				(void *			d,
 				 unsigned int		height,
 				 unsigned int		bytes_per_line)
 {
-	const vector char sel0 = { 3,2,1,3, 2,1,3,2, 1,3,2,1, 3,2,1,3 };
-	const vector char sel1 = { 2,1,3,2, 1,3,2,1, 3,2,1,3, 2,1,3,2 };
-	const vector char sel2 = { 1,3,2,1, 3,2,1,3, 2,1,3,2, 1,3,2,1 };
+	const vector char sel0 = { 1,2,3,1, 2,3,1,2, 3,1,2,3, 1,2,3,1 };
+	const vector char sel1 = { 2,3,1,2, 3,1,2,3, 1,2,3,1, 2,3,1,2 };
+	const vector char sel2 = { 3,1,2,3, 1,2,3,1, 2,3,1,2, 3,1,2,3 };
 	vector char v0, v1, v2, v3;
 	unsigned int padding;
 
-	/* Note value is LE. */
 	v3 = (vector char)((vector int){ value, value, value, value });
 
 	v0 = vec_perm (v3, v3, sel0);
@@ -76,7 +75,7 @@ NAME				(void *			d,
 				p[2] = v2;
 				p += 3;
 			}
-			
+
 			return;
 		}
 	}
