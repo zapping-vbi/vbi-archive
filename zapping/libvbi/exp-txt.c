@@ -22,9 +22,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.7 2001-02-07 04:39:30 mschimek Exp $ */
+/* $Id: exp-txt.c,v 1.8 2001-02-11 23:43:29 garetxe Exp $ */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "os.h"
 #include "export.h"
@@ -32,6 +33,8 @@
 static int txt_open(struct export *e);
 static int txt_option(struct export *e, int opt, char *arg);
 static int txt_output(struct export *e, char *name, struct fmt_page *pg);
+static int string_option(struct export *e, int opt, char *arg);
+static int string_output(struct export *e, char *name, struct fmt_page *pg);
 
 static char *txt_opts[] =	// module options
 {
@@ -39,6 +42,15 @@ static char *txt_opts[] =	// module options
     "gfx-chr=<char>",		// substitute <char> for gfx-symbols
     "fg=<0-7|none>",		// assume term has <x> as foreground color
     "bg=<0-7|none>",		// assume term has <x> as background color
+    0
+};
+
+static char *string_opts[] =	// module options
+{
+	"col=<0-39>",
+	"row=<0-24>",
+	"width=<int>",
+	"height=<int>",
     0
 };
 
@@ -50,6 +62,14 @@ struct txt_data			// private data in struct export
     u8 def_bg;
     attr_char curr[1];
     FILE *fp;
+};
+
+struct string_data
+{
+	int col;
+	int row;
+	int width;
+	int height;
 };
 
 struct export_module export_txt[1] =	// exported module definition
@@ -80,10 +100,24 @@ struct export_module export_ansi[1] =	// exported module definition
   }
 };
 
+struct export_module export_string[1] =	// exported module definition
+{
+  {
+    "string",			// id
+    "txt",			// extension
+    string_opts,			// options
+    sizeof(struct string_data),	// data size
+    0,			// open
+    0,				// close
+    string_option,		// option
+    string_output,		// output
+  }
+};
+
 ///////////////////////////////////////////////////////
 
 #define D  ((struct txt_data *)e->data)
-
+#define S  ((struct string_data *)e->data)
 
 #ifdef BSD
 char *
@@ -107,6 +141,16 @@ txt_open(struct export *e)
     return 0;
 }
 
+static int number(const char *arg)
+{
+	int result = 0;
+
+	for (;*arg >= '0' && *arg <= '9'; arg++)
+		result = result*10 + (*arg-'0');
+
+	return result;
+}
+
 static int
 txt_option(struct export *e, int opt, char *arg)
 {
@@ -128,6 +172,26 @@ txt_option(struct export *e, int opt, char *arg)
     return 0;
 }
 
+static int
+string_option(struct export *e, int opt, char *arg)
+{
+    switch (opt)
+    {
+	case 1: // color
+	    S->col = number(arg);
+	    break;
+	case 2: // row
+	    S->row = number(arg);
+	    break;
+	case 3: // width
+	    S->width = number(arg);
+	    break;
+	case 4: // height
+	    S->height = number(arg);
+	    break;
+    }
+    return 0;
+}
 
 static void
 put_attr(struct export *e, attr_char *new)
@@ -255,4 +319,56 @@ txt_output(struct export *e, char *name, struct fmt_page *pg)
 	}
     fclose(D->fp);
     return 0;
+}
+
+static int
+string_output(struct export *e, char *name, struct fmt_page *pg)
+{
+    int x, y;
+    char *dest_buf, *p;
+
+    if (S->col < 0  ||  S->col > 39  || S->col+S->width > 40  ||
+	S->width < 0)
+	return 0;
+
+    if (S->row < 0  ||  S->row > 24  || S->row+S->height > 25 ||
+	S->height < 0)
+	return 0;
+
+    dest_buf = malloc((S->width+1)*S->height*sizeof(char) + 1);
+    if (!dest_buf)
+	return 0;
+    p = dest_buf;
+
+    for (y = S->row; y < S->row+S->height; y++)
+	{
+	    if (pg->double_height_lower & (1<<y))
+		continue;
+
+	    // character conversion
+	    for (x = S->col; x < S->col+S->width; ++x)
+		{
+		    attr_char ac = pg->data[y][x];
+		    
+		    if (ac.size > DOUBLE_SIZE) {
+			ac.glyph = 0x20;
+			ac.size = NORMAL;
+		    } else {
+			ac.glyph = glyph2latin(ac.glyph);
+			
+			if (ac.glyph == 0xA0)
+			    ac.glyph = 0x20;
+		    }
+		    
+		    *p++ = ac.glyph;
+		}
+	    
+	    if (y < S->row+S->height-1)
+		*p++ = '\n';
+	}
+    
+    *p = 0;
+    
+    /* hope the architecture supports this (most will) */
+    return (int)dest_buf;
 }

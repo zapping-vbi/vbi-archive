@@ -40,6 +40,7 @@ static int max_level = LEVEL_3p5;
 
 extern struct export_module export_txt[1];
 extern struct export_module export_ansi[1];
+extern struct export_module export_string[1];
 extern struct export_module export_html[1];
 extern struct export_module export_png[1];
 extern struct export_module export_ppm[1];
@@ -48,6 +49,7 @@ struct export_module *modules[] =
 {
     export_txt,
     export_ansi,
+    export_string,
     export_html,
     export_ppm,
 #ifdef HAVE_LIBPNG
@@ -280,11 +282,6 @@ export(struct export *e, struct vt_page *vtp, char *name)
     vbi_format_page(pg, vtp, 25);
     return e->mod->output(e, name, pg);
 }
-
-
-
-
-
 
 
 #define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
