@@ -629,7 +629,33 @@ change_priority			(cache *		ca,
  * @param vbi
  * @param vtp
  * 
- * Unref a page returned by vbi_cache_get ().
+ * Duplicate vt_page reference.
+ */
+void
+vbi_cache_ref			(vbi_decoder *		vbi,
+				 const vt_page *	vtp)
+{
+	cache *ca = vbi->cache;
+	cache_page *cp;
+
+	assert (NULL != vtp);
+
+	cp = PARENT ((vt_page *) vtp, cache_page, page);
+
+	cache_lock (ca);
+
+	++cp->ref_count;
+
+	cache_unlock (ca);
+}
+
+/**
+ * @internal
+ * @param vbi
+ * @param vtp
+ * 
+ * Unref a page returned by vbi_cache_get() or re-referenced
+ * by vbi_cache_ref().
  */
 void
 vbi_cache_unref			(vbi_decoder *		vbi,
@@ -653,7 +679,7 @@ vbi_cache_unref			(vbi_decoder *		vbi,
 		cache_page_dump (cp, ' ');
 	}
 
-	if (__builtin_expect (--cp->ref_count == 0, 1)) {
+	if (--cp->ref_count == 0) {
 		if (__builtin_expect (cp->priority == CACHE_PRI_ZOMBIE, 0)) {
 			delete_page (ca, cp);
 
@@ -1427,7 +1453,6 @@ vbi_cache_init			(vbi_decoder *		vbi)
 void
 vbi_unref_page(vbi_page *pg)
 {
-#warning XXX
-	if (pg && pg->vbi)
-		pg->vbi->pageref--;
+  // obsolete
+  assert (0);
 }
