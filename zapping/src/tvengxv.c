@@ -393,7 +393,7 @@ enable_overlay			(tveng_device_info *	info,
 	unsigned int width, height;
 	unsigned int dummy;
 
-  t_assert(info != NULL);
+	assert (NULL != info);
 
   	if (p_info->window == 0 || p_info->gc == 0) {
 		info->tveng_errno = -1;
@@ -970,7 +970,7 @@ get_video_input			(tveng_device_info *	info)
 
 	vi = find_video_input (info->panel.video_inputs, input);
 
-	assert (vi != NULL);
+	assert (NULL != vi);
 
 	get_video_standard_list (info);
 
@@ -1177,7 +1177,7 @@ int tvengxv_attach_device(const char* device_file _unused_,
   int i;
   unsigned int j;
 
-  t_assert(info != NULL);
+  assert (NULL != info);
 
   if (info->disable_xv_video || disable_overlay)
     {
@@ -1408,7 +1408,7 @@ static void tvengxv_close_device(tveng_device_info * info)
     (struct private_tvengxv_device_info*) info;
   gboolean dummy;
 
-  t_assert(info != NULL);
+  assert (NULL != info);
 
   p_tveng_stop_everything(info, &dummy);
 
@@ -1462,7 +1462,7 @@ static struct tveng_module_info tvengxv_module_info = {
 */
 void tvengxv_init_module(struct tveng_module_info *module_info)
 {
-  t_assert(module_info != NULL);
+  assert (NULL != module_info);
 
   memcpy(module_info, &tvengxv_module_info,
 	 sizeof(struct tveng_module_info));
@@ -1471,7 +1471,7 @@ void tvengxv_init_module(struct tveng_module_info *module_info)
 #include "tvengxv.h"
 void tvengxv_init_module(struct tveng_module_info *module_info)
 {
-  t_assert(module_info != NULL);
+  assert (NULL != module_info);
 
   CLEAR (*module_info);
 }
