@@ -439,6 +439,7 @@ static const unsigned int INPUTS =
 static void
 fprintf_ioctl_arg		(FILE *			fp,
 				 unsigned int		cmd,
+				 int			rw,
 				 void *			arg)
 {
 	switch (cmd) {
