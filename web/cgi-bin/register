@@ -1,0 +1,229 @@
+#!/usr/bin/perl -wT
+#
+# TWiki Collaboration Platform, http://TWiki.org/
+#
+# Copyright (C) 1999-2004 Peter Thoeny, peter@thoeny.com
+#
+# For licensing info read license.txt file in the TWiki root.
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details, published at 
+# http://www.gnu.org/copyleft/gpl.html
+
+BEGIN {
+    # Set default current working directory
+    if( $ENV{"SCRIPT_FILENAME"} && $ENV{"SCRIPT_FILENAME"} =~ /^(.+)\/[^\/]+$/ ) {
+        chdir $1;
+    }
+    # Set library paths in @INC at compile time
+    unshift @INC, '.';
+    require 'setlib.cfg';
+}
+
+# I18N: No locale settings necessary yet - only 7-bit ASCII due
+# to Apache limitations on userids.
+
+
+use CGI::Carp qw(fatalsToBrowser);
+use CGI;
+use TWiki;
+use TWiki::Net;
+use TWiki::Plugins;
+use TWiki::User;
+
+&main();
+
+sub main
+{
+    my $query = new CGI;
+
+    # get all parameters from the form
+    my @paramNames = $query->param();
+    my @formDataName = ();
+    my @formDataValue = ();
+    my @formDataRequired = ();
+    my $name = "";
+    my $value = "";
+    my $emailAddress = "";
+    my $firstLastName = "";
+    my $wikiName = "";
+    my $remoteUser = "";
+    my $passwordA = "";
+    my $passwordB = "";
+
+    foreach( @paramNames ) {
+        if( /^(Twk)([0-9])(.*)/ ) {
+            $value = $query->param( "$1$2$3" );
+            $formDataRequired[@formDataRequired] = $2;
+            $name = $3;
+	    # TODO: I18N fix here ???
+            $name =~ s/([a-z0-9])([A-Z0-9])/$1 $2/go; # Space the names
+            $name =~ s/(AIM)(Screen)/$1 $2/go;  # Horrible hack to space AIMScreen
+            $formDataName[@formDataName] = $name;
+            $formDataValue[@formDataValue] = $value;
+
+            if( $name eq "Name" ) {
+                $firstLastName = $value;
+            } elsif( $name eq "Wiki Name" ) {
+                $wikiName = $value;
+            } elsif( $name eq "Login Name" ) {
+                $remoteUser = $value;
+            } elsif( $name eq "Email" ) {
+                $emailAddress = $value;
+            } elsif( $name eq "Password" ) {
+                $passwordA = $value;
+            } elsif( $name eq "Confirm" ) {
+                $passwordB = $value;
+            }
+        }
+    }
+    my $formLen = @formDataValue;
+
+    my $topicName = $query->param( 'TopicName' );
+    my $thePathInfo = $query->path_info(); 
+    my $theUrl = $query->url;
+    ( $topic, $webName ) = 
+	&TWiki::initialize( $thePathInfo, $wikiName, $topicName, $theUrl, $query );
+
+    my $text = "";
+    my $url = "";
+
+    # check if user entry already exists
+    if(  ( $wikiName ) 
+      && (  ( &TWiki::Store::topicExists( $webName,  $wikiName ) )
+         || ( TWiki::User::UserPasswordExists( $wikiName ) ) 
+         ) ) {
+        # PTh 20 Jun 2000: changed to getOopsUrl
+        $url = &TWiki::getOopsUrl( $webName, $topic, "oopsregexist", $wikiName );
+        TWiki::redirect( $query, $url );
+        return;
+    }
+
+    # check if required fields are filled in
+    my $x;
+    for( $x = 0; $x < $formLen; $x++ ) {
+        if( ( $formDataRequired[$x] ) && ( ! $formDataValue[$x] ) ) {
+            $url = &TWiki::getOopsUrl( $webName, $topic, "oopsregrequ", );
+            TWiki::redirect( $query, $url );
+            return;
+        }
+    }
+
+    # check if wikiName is a WikiName
+    if( ! &TWiki::isWikiName( $wikiName ) ) {
+        $url = &TWiki::getOopsUrl( $webName, $topic, "oopsregwiki" );
+        TWiki::redirect( $query, $url );
+        return;
+    }
+
+    # a WikiName is safe, so untaint variable
+    $wikiName =~ /(.*)/;
+    $wikiName = $1;
+
+    # check if passwords are identical
+    if ( $passwordA ne $passwordB ) {
+        $url = &TWiki::getOopsUrl( $webName, $topic, "oopsregpasswd" );
+        TWiki::redirect( $query, $url );
+        return;
+    }
+
+    # check valid email address
+    if( $emailAddress !~ $TWiki::regex{emailAddrRegex} ) {
+        $url = &TWiki::getOopsUrl( $webName, $topic, "oopsregemail" );
+        TWiki::redirect( $query, $url );
+        return;
+    }
+
+
+    # everything OK
+
+    # generate user entry and add to .htpasswd file
+    unless( $remoteUser ) {
+        if ( ! TWiki::User::AddUserPassword($wikiName, $passwordA ) ) {
+	    $url = &TWiki::getOopsUrl( $webName, $topic, "oopsregerr" );
+       	    TWiki::redirect( $query, $url );
+            return;
+	}
+    }
+
+    # send email confirmation
+    my $skin = $query->param( "skin" ) || TWiki::Prefs::getPreferencesValue( "SKIN" );
+    $text = TWiki::Store::readTemplate( "registernotify", $skin );
+    $text =~ s/%FIRSTLASTNAME%/$firstLastName/go;
+    $text =~ s/%WIKINAME%/$wikiName/go;
+    $text =~ s/%EMAILADDRESS%/$emailAddress/go;
+    ( $before, $after) = split( /%FORMDATA%/, $text );
+    for( $x = 0; $x < $formLen; $x++ ) {
+        $name = $formDataName[$x];
+        $value = $formDataValue[$x];
+        if( ( $name eq "Password" ) && ( $TWiki::doHidePasswdInRegistration ) ) {
+            $value = "*******";
+        }
+        if( $name ne "Confirm" ) {
+            $before .= "   * $name\: $value\n";
+        }
+    }
+    $text = "$before$after";
+    $text = &TWiki::handleCommonTags( $text, $wikiName );
+    $text =~ s/( ?) *<\/?(nop|noautolink)\/?>\n?/$1/gois;   # remove <nop> and <noautolink> tags
+
+    my $senderr = &TWiki::Net::sendEmail( $text );
+
+    # create user topic if it does not exist
+    if( ! &TWiki::Store::topicExists( $TWiki::mainWebname, $wikiName ) ) {
+        my $meta = "";
+        my $row = "";
+        ( $meta, $text ) = &TWiki::Store::readTemplateTopic( "NewUserTemplate" );
+        $text = "%SPLIT%\n\t* %KEY%: %VALUE%%SPLIT%\n" unless $text;
+        ( $before, $repeat, $after) = split( /%SPLIT%/, $text );
+        for( $x = 0; $x < $formLen; $x++ ) {
+            $name = $formDataName[$x];
+            $value = $formDataValue[$x];
+            $value =~ s/[\n\r]/ /go;
+            if( ! (    ( $name eq "Wiki Name" )
+                    || ( $name eq "Password" )
+                    || ( $name eq "Confirm" ) ) ) {
+                $row = $repeat;
+                $row =~ s/%KEY%/$name/go;
+                $row =~ s/%VALUE%/$value/go;
+                $before .= $row;
+            }
+        }
+        $text = "$before$after";
+
+       my $userName = $remoteUser || $wikiName;
+       $text = TWiki::expandVariablesOnTopicCreation( $text, $userName, $wikiName, "$webName.$wikiName" );
+
+        $meta->put( "TOPICPARENT", ( "name" => $TWiki::wikiUsersTopicname ) );
+        &TWiki::Store::saveTopic( $webName, $wikiName, $text, $meta, "", 1 );
+    }
+
+    # Plugin callback to set cookies. Contrib by SvenDowideit
+    &TWiki::Plugins::registrationHandler( $webName, $wikiName, $remoteUser );
+
+    # add user to TWikiUsers topic
+    my $userTopic = TWiki::User::addUserToTWikiUsersTopic( $wikiName, $remoteUser );
+
+    # write log entry
+    if( $TWiki::doLogRegistration ) {
+        &TWiki::Store::writeLog( "register", "$webName.$wikiName", $emailAddress, $wikiName );
+    }
+
+    if( $senderr ) {
+        my $url = &TWiki::getOopsUrl( $webName, $wikiName, "oopssendmailerr", $senderr );
+        TWiki::redirect( $query, $url );
+    }
+
+    # and finally display thank you page
+    $url = &TWiki::getOopsUrl( $webName, $wikiName, "oopsregthanks", $emailAddress );
+    TWiki::redirect( $query, $url );
+}
+
+
+# EOF

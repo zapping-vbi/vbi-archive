@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: prepare_dox.sh,v 1.8 2004-04-19 17:04:08 mschimek Exp $
+# $Id: prepare_dox.sh,v 1.9 2004-04-30 02:15:46 mschimek Exp $
 #
 # This checks out a copy of the module, runs doxygen, puts
 # the generated files online and cleans up.
@@ -9,8 +9,11 @@
 # ./prepare_dox.sh vbi libzvbi
 # ./prepare_dox.sh rte librte
 
+# Trace execution, abort on error.
+set -e -x
+
 # By default all files are world read-only.
-umask 006 || exit 1
+umask 006
 
 cvs -z3 -d:pserver:anonymous@cvs1:/cvsroot/zapping co $1
 

@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: nodo.sh,v 1.1 2004-04-19 17:04:08 mschimek Exp $
+# $Id: nodo.sh,v 1.2 2004-04-30 02:15:46 mschimek Exp $
 #
 # Execute a command as user nobody.
 # Be careful what you do, this creates a temporary CGI script.
@@ -8,9 +8,12 @@
 # cd /home/groups/z/za/zapping
 # ./nodo.sh "whoami; pwd"
 
+# Trace execution, abort on error.
+set -e -x
+
 script=cgi-bin/nobody-temp-$$
 
-umask 666 || exit 1
+umask 666
 
 cat <<EOF >$script
 #!/bin/sh
