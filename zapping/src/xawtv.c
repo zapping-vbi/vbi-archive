@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xawtv.c,v 1.6 2004-05-20 05:21:26 mschimek Exp $ */
+/* $Id: xawtv.c,v 1.7 2004-05-24 01:57:13 mschimek Exp $ */
 
 /*
    XawTV compatibility functions:
@@ -45,179 +45,128 @@
 #define XAWTV_CONFIG_TEST 0
 #endif
 
-static const GScannerConfig
-config = {
-  .cset_skip_characters = " \t",
-
-  .cset_identifier_first = (G_CSET_a_2_z
-			    G_CSET_A_2_Z
-			    G_CSET_LATINC
-			    G_CSET_LATINS),
-  .cset_identifier_nth   = ("_+-"
-			    G_CSET_DIGITS
-			    G_CSET_a_2_z
-			    G_CSET_A_2_Z
-			    G_CSET_LATINC
-			    G_CSET_LATINS),
-
-  .cpair_comment_single = "#\n",
-
-  .case_sensitive = TRUE,
-
-  .skip_comment_multi = FALSE,
-  .skip_comment_single = TRUE,
-  .scan_comment_multi = FALSE,
-  .scan_identifier = TRUE,
-  .scan_identifier_1char = FALSE,
-  .scan_identifier_NULL = FALSE,
-  .scan_symbols = FALSE,
-  .scan_binary = FALSE,
-  .scan_octal = FALSE,
-  .scan_float = TRUE,
-  .scan_hex = TRUE,
-  .scan_hex_dollar = FALSE,
-  .scan_string_sq = FALSE,
-  .scan_string_dq = FALSE,
-  .numbers_2_int = FALSE,
-  .int_2_float = FALSE,
-  .identifier_2_string = FALSE,
-  .char_2_token = TRUE,
-  .symbol_2_token = FALSE,
-  .scope_0_fallback = FALSE,
-  /* XXX unknown?  .store_int64 = FALSE, */
-};
-
-typedef enum {
-  MIXER = 1,
-  FREQTAB,
-  FULLSCREEN,
-  PIXSIZE,
-  PIXCOLS,
-  WM_OFF_BY,
-  RATIO,
-  JPEG_QUALITY,
-  MJPEG_QUALITY,
-  KEYPAD_NTSC,
-  KEYPAD_PARTIAL,
-  KEYPAD_OSD,
-  MOV_DRIVER,
-  MOV_VIDEO,
-  MOV_FPS,
-  MOV_AUDIO,
-  MOV_RATE,
-  OSD,
-  OSD_POSITION,
-  USE_WM_FULLSCREEN,
-} global_symbol;
-
-typedef enum {
-  CAPTURE = 1,
-  INPUT,
-  SOURCE,
-  NORM,
-  AUDIO,
-  CHANNEL,
-  FREQ,
-  FINE,
-  KEY,
-  COLOR,
-  BRIGHT,
-  HUE,
-  CONTRAST,
-  GROUP,
-} channel_symbol;
-
-static const gchar *
-global_symbols [] = {
-  "mixer",
-  "freqtab",
-  "fullscreen",
-  "pixsize",
-  "pixcols",
-  "wm-off-by",
-  "ratio",
-  "jpeg-quality",
-  "mjpeg-quality",
-  "keypad-ntsc",
-  "keypad-partial",
-  "keypad-osd",
-  "mov-driver",
-  "mov-video",
-  "mov-fps",
-  "mov-audio",
-  "mov-rate",
-  "osd",
-  "osd-position",
-  "use-wm-fullscreen",
-};
-
-static const gchar *
-channel_symbols [] = {
-  "capture",
-  "input",
-  "source",
-  "norm",
-  "audio",
-  "channel",
-  "freq",
-  "fine",
-  "key",
-  "color",
-  "bright",
-  "hue",
-  "contrast",
-  "group",
-};
-
-#define eat(symbol)							\
-  if (symbol != g_scanner_get_next_token (scanner))			\
-    goto failure;
-
-#define expect(symbol)							\
-  if (symbol != g_scanner_get_next_token (scanner))			\
-    goto bad_symbol;
-
-static void
-skip_section			(GScanner *		scanner)
+static gboolean
+get_value			(FILE *			fp,
+				 char			buffer[300],
+				 char **		ident,
+				 char **		value)
 {
-  while (G_TOKEN_EOF != g_scanner_peek_next_token (scanner))
-    if (G_TOKEN_LEFT_BRACE != scanner->next_token)
-      do
-	if (G_TOKEN_EOF == g_scanner_get_next_token (scanner))
-	  return;
-      while ('\n' != scanner->token);
-    else
-      break;
+  int c;
+  char *s;
+  unsigned int len;
+
+  do
+    c = fgetc (fp);
+  while (' ' == c || '\t' == c);
+
+  if (EOF == c || ferror (fp))
+    return FALSE;
+
+  ungetc (c, fp);
+
+  if (c < 'a' || c > 'z')
+    return FALSE;
+
+  fgets (buffer, 300, fp);
+
+  if (feof (fp) || ferror (fp))
+    return FALSE;
+
+  s = buffer;
+
+  while (' ' == *s || '\t' == *s)
+    ++s;
+
+  *ident = s;
+
+  len = 0;
+
+  while ('-' == (c = s[len])
+	 || (c >= '0' && c <= '9')
+	 || (c >= 'a' && c <= 'z'))
+    ++len;
+
+  s += len;
+
+  while (' ' == *s || '\t' == *s)
+    ++s;
+
+  if (0 == len || '=' != *s)
+    return FALSE;
+
+  (*ident)[len] = 0;
+  ++s;
+
+  while (' ' == *s || '\t' == *s)
+    ++s;
+
+  len = strlen (s);
+  while (len > 0 && s[len - 1] <= ' ')
+    --len;
+
+  *value = s;
+  s[len] = 0;
+
+  if (XAWTV_CONFIG_TEST)
+    fprintf (stderr, "<%s>=<%s>\n", *ident, *value);
+
+  return TRUE;
 }
 
 static gboolean
-global_section			(GScanner *		scanner,
+skip_section			(FILE *			fp)
+{
+  gboolean newline;
+  int c;
+
+  newline = TRUE;
+
+  while (EOF != (c = fgetc (fp)))
+    {
+      if (ferror (fp))
+	return FALSE;
+
+      switch (c)
+	{
+	case '\n':
+	  newline = TRUE;
+	  break;
+
+	case ' ':
+	case '\t':
+	  break;
+
+	case '[':
+	  if (newline)
+	    return (c == ungetc (c, fp));
+	  break;
+
+	default:
+	  newline = FALSE;
+	  break;
+	}
+    }
+
+  return TRUE;
+}
+
+static gboolean
+global_section			(FILE *			fp,
 				 tv_rf_channel *	rf_ch)
 {
+  char buffer[300];
+  char *ident;
+  char *value;
   gchar *freqtab;
+  gboolean r;
 
   freqtab = NULL;
+  r = FALSE;
 
-  while (G_TOKEN_EOF != g_scanner_peek_next_token (scanner)
-	 && G_TOKEN_LEFT_BRACE != scanner->next_token)
+  while (get_value (fp, buffer, &ident, &value))
     {
-      gpointer symbol;
-
-      if ('\n' == g_scanner_get_next_token (scanner))
+      if (0 == value[0])
 	continue;
-
-      if (G_TOKEN_IDENTIFIER != scanner->token)
-	goto failure;
-
-      symbol = g_scanner_scope_lookup_symbol
-	(scanner, 1, scanner->value.v_identifier);
-
-      if (XAWTV_CONFIG_TEST)
-	if (0 == symbol)
-	  fprintf (stderr, "Unknown global identifier '%s'\n",
-		   scanner->value.v_identifier);
-
-      eat (G_TOKEN_EQUAL_SIGN);
 
       /* mixer = <device_file>:<line_number> */
       /* fullscreen = <width> x <height> */
@@ -239,329 +188,170 @@ global_section			(GScanner *		scanner,
       /* osd-position = <x> , <y> */
       /* use-wm-fullscreen = <bool> */
 
-      switch (GPOINTER_TO_INT (symbol))
+      if (0 == strcmp (ident, "freqtab"))
 	{
-	case FREQTAB:
-	  if (!rf_ch)
-	    goto bad_symbol;
-
-	  expect (G_TOKEN_IDENTIFIER);
-
-	  if (freqtab)
-	    g_free (freqtab);
-
-	  freqtab = g_strdup (scanner->value.v_identifier);
-
-	  eat ('\n');
-
-	  break;
-
-	default:
-	bad_symbol:
-	  while ('\n' != scanner->token)
-	    {
-	      if (G_TOKEN_EOF == scanner->token)
-		goto finish;
-
-	      g_scanner_get_next_token (scanner);
-	    }
-
-	  break;
+	  g_free (freqtab);
+	  freqtab = g_strdup (value);
+	}
+      else
+	{
+	  if (XAWTV_CONFIG_TEST)
+	    fprintf (stderr, "Unknown %s\n", ident);
 	}
     }
 
- finish:
-  if (rf_ch)
-    {
-      gboolean r;
+  if (rf_ch && freqtab)
+    r = tv_rf_channel_table_by_name (rf_ch, freqtab);
 
-      if (!freqtab)
-	return FALSE;
-
-      r = tv_rf_channel_table_by_name (rf_ch, freqtab);
-
-      g_free (freqtab);
-
-      if (!r)
-	return FALSE;
-    }
-
-  return TRUE;
-
- failure:
   g_free (freqtab);
-  return TRUE;
+
+  return r;
 }
 
 static gboolean
 set_control			(const tveng_device_info *info,
 				 tveng_tuned_channel *	ch,
-				 channel_symbol		symbol,
-				 gfloat			value)
+				 tv_control_id		id,
+				 const gchar *		value)
 {
   tv_control *c;
-  tv_control_id id;
+  gdouble d;
 
-  switch (symbol)
-    {
-    case COLOR:
-      id = TV_CONTROL_ID_SATURATION;
-      break;
-
-    case BRIGHT:
-      id = TV_CONTROL_ID_BRIGHTNESS;
-      break;
-
-    case HUE:
-      id = TV_CONTROL_ID_HUE;
-      break;
-
-    case CONTRAST:
-      id = TV_CONTROL_ID_CONTRAST;
-      break;
-
-    default:
-      assert (0);
-    }
+  d = strtod (value, NULL) / 100.0;
+  d = SATURATE (d, 0.0, 1.0);
 
   for (c = NULL; (c = tv_next_control (info, c));)
     if (c->id == id)
       break;
 
-  if (NULL == c)
+  if (!c)
     return TRUE; /* not supported by device */
 
-  return tveng_tuned_channel_set_control (ch, c->label, value);
+  return tveng_tuned_channel_set_control (ch, c->label, d);
 }
 
 static gboolean
-channel_section			(GScanner *		scanner,
+channel_section			(FILE *			fp,
 				 const tveng_device_info *info,
 				 tv_rf_channel *	rf_ch,
 				 tveng_tuned_channel *	tt_ch,
 				 gboolean *		have_channel)
 {
+  char buffer[300];
+  char *ident;
+  char *value;
   gint fine_tuning;
 
   tt_ch->frequ = 0; /* Hz */
+  fine_tuning = 0; /* Hz */
 
   *have_channel = FALSE;
 
-  fine_tuning = 0; /* Hz */
-
-  while (G_TOKEN_EOF != g_scanner_peek_next_token (scanner)
-	 && G_TOKEN_LEFT_BRACE != scanner->next_token)
+  while (get_value (fp, buffer, &ident, &value))
     {
-      gpointer symbol;
-
-      if ('\n' == g_scanner_get_next_token (scanner))
+      if (0 == value[0])
 	continue;
 
-      if (G_TOKEN_IDENTIFIER != scanner->token)
-	goto failure;
+      /* capture = on | off | overlay | grabdisplay */
+      /* audio = <int> */
+      /* group = <string> -? */
 
-      symbol = g_scanner_scope_lookup_symbol
-	(scanner, 3, scanner->value.v_identifier);
-
-      if (XAWTV_CONFIG_TEST)
-	if (0 == symbol)
-	  fprintf (stderr, "Unknown channel identifier '%s'\n",
-		   scanner->value.v_identifier);
-
-      eat (G_TOKEN_EQUAL_SIGN);
-
-      switch (GPOINTER_TO_INT (symbol))
+      if (0 == strcmp (ident, "input")
+	  || 0 == strcmp (ident, "source"))
 	{
-	case INPUT:
-	case SOURCE:
-	  {
-	    const tv_video_line *l;
+	  const tv_video_line *l;
 
-	    expect (G_TOKEN_IDENTIFIER);
+	  for (l = NULL; (l = tv_next_video_input (info, l));)
+	    if (0 == g_ascii_strcasecmp (l->label, value))
+	      break;
+	  if (l)
+	    tt_ch->input = l->hash;
+	}
+      else if (0 == strcmp (ident, "norm"))
+	{
+	  const tv_video_standard *s;
 
-	    for (l = NULL; (l = tv_next_video_input (info, l));)
-	      if (0 == g_ascii_strcasecmp (l->label, scanner->value.v_identifier))
-		break;
-
-	    eat ('\n');
-
-	    if (NULL != l)
-	      tt_ch->input = l->hash;
-
-	    break;
-	  }
-
-	case NORM:
-	  {
-	    const tv_video_standard *s;
-
-	    expect (G_TOKEN_IDENTIFIER);
-
-	    for (s = NULL; (s = tv_next_video_standard (info, s));)
-	      if (0 == g_ascii_strcasecmp (s->label, scanner->value.v_identifier))
-		break;
-
-	    eat ('\n');
-
-	    if (NULL != s)
-	      tt_ch->standard = s->hash;
-
-	    break;
-	  }
-
-	case CHANNEL:
-	  {
-	    gchar *s;
-
-	    g_scanner_get_next_token (scanner);
-
-	    if (G_TOKEN_IDENTIFIER == scanner->token)
-	      s = g_strdup (scanner->value.v_identifier);
-	    else if (G_TOKEN_INT == scanner->token)
-	      s = g_strdup_printf ("%u", (guint) scanner->value.v_int);
-	    else
-	      goto bad_symbol;
-
-	    if ('\n' != g_scanner_get_next_token (scanner))
-	      {
-		g_free (s);
-		goto failure;
-	      }
-
-	    if (tv_rf_channel_by_name (rf_ch, s))
-	      {
-		if (0 == tt_ch->frequ)
-		  tt_ch->frequ = rf_ch->frequency;
- 
-		*have_channel = TRUE;	      
-	      }
-
-	    g_free (s);
-
-	    break;
-	  }
-
-	case FREQ:
-	  {
-	    guint frequ;
-
-	    g_scanner_get_next_token (scanner);
-
-	    if (G_TOKEN_FLOAT == scanner->token)
-	      {
-		if (scanner->value.v_float < 0
-		    || scanner->value.v_float > 1000)
-		  goto bad_symbol;
-
-		frequ = (guint)(scanner->value.v_float * 1e6);
-	      }
-	    else if (G_TOKEN_INT == scanner->token)
-	      {
-		if (scanner->value.v_int < 0
-		    || scanner->value.v_int > 1000)
-		  goto bad_symbol;
-
-		frequ = scanner->value.v_int * 1000000; /* -> Hz */
-	      }
-	    else
-	      {
-		goto bad_symbol;
-	      }
-
-	    eat ('\n');
-
-	    tt_ch->frequ = frequ;
-
-	    if (!*have_channel)
-	      if (!tv_rf_channel_by_frequency (rf_ch, frequ))
-		tv_rf_channel_first (rf_ch);
-
-	    *have_channel = TRUE;
-
-	    break;
-	  }
-
-	case FINE:
-	  expect (G_TOKEN_INT);
-
-	  fine_tuning = scanner->value.v_int;
-
-	  eat ('\n');
-
-	  if (fine_tuning < -128 || fine_tuning > 127)
+	  for (s = NULL; (s = tv_next_video_standard (info, s));)
+	    if (0 == g_ascii_strcasecmp (s->label, value))
+	      break;
+	  if (s)
+	    tt_ch->standard = s->hash;
+	}
+      else if (0 == strcmp (ident, "channel"))
+	{
+	  if (tv_rf_channel_by_name (rf_ch, value))
 	    {
-	      fine_tuning = 0;
-	      goto bad_symbol;
+	      if (0 == tt_ch->frequ)
+		tt_ch->frequ = rf_ch->frequency;
+
+	      *have_channel = TRUE;	      
 	    }
+	}
+      else if (0 == strcmp (ident, "freq"))
+	{
+	  double d;
 
-	  fine_tuning *= 62500; /* -> Hz */
+	  d = strtod (value, NULL);
+	  if (d > 100 && d < 1000)
+	    {
+	      guint frequ;
 
-	  break;
+	      frequ = (guint)(d * 1e6); /* -> Hz */
 
-	case KEY:
+	      tt_ch->frequ = frequ;
+
+	      if (!*have_channel)
+		if (!tv_rf_channel_by_frequency (rf_ch, frequ))
+		  tv_rf_channel_first (rf_ch);
+
+	      *have_channel = TRUE;
+	    }
+	}
+      else if (0 == strcmp (ident, "freq"))
+	{
+	  fine_tuning = strtol (value, NULL, 0);
+	  if (fine_tuning < -128 || fine_tuning > 127)
+	    fine_tuning = 0;
+	  else
+	    fine_tuning *= 62500; /* -> Hz */
+	}
+      else if (0 == strcmp (ident, "key"))
+	{
 	  /* XXX Xt application resource translation, like
 	     "qual<Key>key: command" (try apropos resource), stored here
 	     as "key" or "qual+key". How can we properly translate? */
-	  goto bad_symbol;
-
-	case COLOR:
-	case BRIGHT:
-	case HUE:
-	case CONTRAST:
-	  {
-	    gfloat value;
-
-	    g_scanner_get_next_token (scanner);
-
-	    if (G_TOKEN_INT == scanner->token)
-	      value = scanner->value.v_int / 100.0;
-	    else if (G_TOKEN_FLOAT == scanner->token)
-	      value = scanner->value.v_float / 100.0;
-	    else
-	      goto bad_symbol;
-
-	    if ('%' == g_scanner_peek_next_token (scanner))
-	      g_scanner_get_next_token (scanner);
-
-	    eat ('\n');
-
-	    /* Error ignored */
-	    set_control (info, tt_ch,
-			 GPOINTER_TO_INT (symbol),
-			 SATURATE (value, 0.0, 1.0));
-
-	    break;
-	  }
-
-	case CAPTURE: /* on | off | overlay | grabdisplay */
-	case AUDIO: /* <int> */
-	case GROUP: /* <string> -? */
-	default:
-
-	bad_symbol:
-	  while ('\n' != scanner->token)
-	    {
-	      if (G_TOKEN_EOF == scanner->token)
-		goto finish;
-
-	      g_scanner_get_next_token (scanner);
-	    }
-
-	  break;
+	}
+      /* color = n % */
+      else if (0 == strcmp (ident, "color"))
+	{
+	  set_control (info, tt_ch, TV_CONTROL_ID_SATURATION, value);
+	}
+      else if (0 == strcmp (ident, "bright"))
+	{
+	  set_control (info, tt_ch, TV_CONTROL_ID_BRIGHTNESS, value);
+	}
+      else if (0 == strcmp (ident, "hue"))
+	{
+	  set_control (info, tt_ch, TV_CONTROL_ID_HUE, value);
+	}
+      else if (0 == strcmp (ident, "contrast"))
+	{
+	  set_control (info, tt_ch, TV_CONTROL_ID_CONTRAST, value);
+	}
+      else
+	{
+	  if (XAWTV_CONFIG_TEST)
+	    fprintf (stderr, "Unknown %s\n", ident);
 	}
     }
 
- finish:
   tt_ch->frequ += fine_tuning;
 
   return TRUE;
-
- failure:
-  return FALSE;
 }
 
 static gboolean
-section				(GScanner *		scanner,
+section				(FILE *			fp,
 				 const tveng_device_info *info,
 				 tveng_tuned_channel **	channel_list,
 				 guint *		pass,
@@ -569,6 +359,9 @@ section				(GScanner *		scanner,
 				 tveng_tuned_channel *	default_channel,
 				 const gchar *		identifier)
 {
+  if (XAWTV_CONFIG_TEST)
+    fprintf (stderr, "Section <%s>\n", identifier);
+
   if (0 == strcmp (identifier, "global"))
     {
       if (0 == *pass)
@@ -576,18 +369,18 @@ section				(GScanner *		scanner,
 	  *pass = 1;
 
 	  /* rf_channel = frequency table */
-	  if (!global_section (scanner, rf_channel))
+	  if (!global_section (fp, rf_channel))
 	    return FALSE;
 	}
       else
 	{
-	  skip_section (scanner);
+	  skip_section (fp);
 	}
     }
   else if (0 == strcmp (identifier, "launch"))
     {
       /* Key bindings */
-      skip_section (scanner);
+      skip_section (fp);
     }
   else if (0 == strcmp (identifier, "defaults"))
     {
@@ -599,18 +392,21 @@ section				(GScanner *		scanner,
 
 	  *pass = 2;
 
-	  if (!channel_section (scanner, info,
-				rf_channel, default_channel,
-				&dummy))
+	  if (!channel_section (fp, info, rf_channel, default_channel, &dummy))
 	    return FALSE;
 	}
       else
 	{
-	  skip_section (scanner);
+	  skip_section (fp);
 	}
     }
   else
     {
+      gchar *t;
+
+      if (!(t = g_locale_to_utf8 (identifier, -1, NULL, NULL, NULL)))
+	return FALSE;
+
       if (2 == *pass)
 	{
 	  tveng_tuned_channel channel;
@@ -624,19 +420,20 @@ section				(GScanner *		scanner,
 		      default_channel->num_controls
 		      * sizeof (*default_channel->controls));
 
-	  if (!channel_section (scanner, info, rf_channel, &channel, &have_channel)
+	  if (!channel_section (fp, info, rf_channel, &channel, &have_channel)
 	      || !have_channel)
 	    {
 	      g_free (channel.controls);
+	      g_free (t);
 	      return FALSE;
 	    }
 
-	  channel.name = (gchar *) identifier;
+	  channel.name = (gchar *) t;
 
 	  channel.rf_table = (gchar *) rf_channel->table_name;
 	  channel.rf_name = rf_channel->channel_name;
 
-	  if ((ch = tveng_tuned_channel_by_name (*channel_list, identifier)))
+	  if ((ch = tveng_tuned_channel_by_name (*channel_list, t)))
 	    {
 	      tveng_tuned_channel_copy (ch, &channel);
 	    }
@@ -650,8 +447,10 @@ section				(GScanner *		scanner,
 	}
       else
 	{
-	  skip_section (scanner);
+	  skip_section (fp);
 	}
+
+      g_free (t);
     }
 
   return TRUE;
@@ -680,9 +479,11 @@ xawtv_import_config		(const tveng_device_info *info,
 				 tveng_tuned_channel **	channel_list)
 {
   guint pass;
+  FILE *fp;
   tv_rf_channel rf_channel;
   tveng_tuned_channel default_channel;
 
+  fp = NULL;
   CLEAR (default_channel);
 
   /* Usually the file will contain the information we need in
@@ -690,82 +491,69 @@ xawtv_import_config		(const tveng_device_info *info,
   for (pass = 0; pass < 3; ++pass)
     {
       gchar *filename;
-      int fd;
-      GScanner *scanner;
-      guint i;
+      int c;
 
       filename = g_strconcat (g_get_home_dir (), "/.xawtv", NULL);
 
-      if (-1 == (fd = open (filename, O_RDONLY)))
+      if (!(fp = fopen (filename, "r")))
 	{
 	  g_free (filename);
 	  return FALSE; /* XXX error message please */
 	}
 
-      scanner = g_scanner_new (&config);
-
-      scanner->input_name = filename;
-
-      g_scanner_input_file (scanner, fd);
-
-      for (i = 0; i < G_N_ELEMENTS (global_symbols); ++i)
-	g_scanner_scope_add_symbol (scanner, 1, global_symbols[i],
-				    GINT_TO_POINTER (i + 1));
-
-      for (i = 0; i < G_N_ELEMENTS (channel_symbols); ++i)
-	g_scanner_scope_add_symbol (scanner, 3, channel_symbols[i],
-				    GINT_TO_POINTER (i + 1));
-
-      scanner->token = '0';
-
-      while (G_TOKEN_EOF != scanner->token)
-	{
-	  gchar *s;
-
-	  s = NULL;
-
-	  eat (G_TOKEN_LEFT_BRACE);
-	  eat (G_TOKEN_IDENTIFIER);
-
-	  s = g_locale_to_utf8 (scanner->value.v_identifier,
-				strlen (scanner->value.v_identifier),
-				NULL, NULL, NULL);
-
-	  g_assert (NULL != s);
-
-	  eat (G_TOKEN_RIGHT_BRACE);
-	  eat ('\n');
-
-	  if (!section (scanner, info, channel_list,
-			&pass, &rf_channel, &default_channel, s))
-	    {
-	      g_free (s);
-
-	      g_scanner_destroy (scanner);
-	      close (fd);
-	      g_free (filename);
-
-	      return FALSE;
-	    }
-
-	  g_free (s);
-
-	  continue;
-
-	failure:
-	  g_free (s);
-
-	  while (G_TOKEN_EOF != scanner->token
-		 && '\n' != scanner->token)
-	    g_scanner_get_next_token (scanner);
-	}
-
-      g_scanner_destroy (scanner);
-      close (fd);
       g_free (filename);
+
+      while (EOF != (c = fgetc (fp)))
+	{
+	  if (ferror (fp))
+	    goto failure;
+
+	  switch (c)
+	    {
+	      char buffer[300];
+	      unsigned int len;
+
+	    case ' ':
+	    case '\t':
+	    case '\n':
+	      continue;
+
+	    case '#':
+	    case '[':
+	      fgets (buffer, sizeof (buffer), fp);
+
+	      if (ferror (fp))
+		goto failure;
+
+	      if ('#' == c)
+		continue;
+
+	      len = strlen (buffer);
+	      while (len > 0 && buffer[len - 1] <= ' ')
+		--len;
+
+	      if (len < 2 || ']' != buffer[--len])
+		goto failure;
+
+	      buffer[len] = 0;
+
+	      if (!section (fp, info, channel_list,
+			    &pass, &rf_channel, &default_channel,
+			    buffer))
+		goto failure;
+
+	      break;
+	    }
+	}
     }
 
   return TRUE;
+
+ failure:
+  if (fp)
+    fclose (fp);
+
+  return FALSE;
 }
 
 /* XawTV IPC */
