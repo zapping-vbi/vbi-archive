@@ -748,7 +748,7 @@ acknowledge_trigger			(vbi_link	*link)
         buffer = g_strdup_printf(" %s", link->name /* , link->url */);
       else
         buffer = g_strdup_printf(" %s", link->url);
-      set_tooltip(button,
+      z_tooltip_set(button,
 		  _("Open this link with the predetermined Web browser.\n"
 		    "You can configure this in the GNOME Control Center, "
 		    "under Handlers/Url Navigator"));
@@ -760,7 +760,7 @@ acknowledge_trigger			(vbi_link	*link)
 				 link->name, link->pgno);
       else
         buffer = g_strdup_printf(_(" Teletext Page %x"), link->pgno);
-      set_tooltip(button, _("Open this page with Zapzilla"));
+      z_tooltip_set(button, _("Open this page with Zapzilla"));
       break;
     case VBI_LINK_MESSAGE:
       buffer = g_strdup_printf(" %s", link->name);

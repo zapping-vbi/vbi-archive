@@ -1746,7 +1746,7 @@ create_export_entry (GtkWidget *table, vbi_option_info *oi,
   gtk_widget_show (label);
 
   entry = gtk_entry_new ();
-  set_tooltip (entry, _(oi->tooltip));
+  z_tooltip_set (entry, _(oi->tooltip));
   gtk_widget_show (entry);
   zconf_create_string (oi->def.str, oi->tooltip, zcname);
   gtk_entry_set_text (GTK_ENTRY (entry),
@@ -1829,7 +1829,7 @@ create_export_menu (GtkWidget *table, vbi_option_info *oi,
   gtk_option_menu_set_history (GTK_OPTION_MENU (option_menu), saved);
   g_free (zcname);
   gtk_widget_show (menu);
-  set_tooltip (option_menu, _(oi->tooltip));
+  z_tooltip_set (option_menu, _(oi->tooltip));
   gtk_widget_show (option_menu);
 
   gtk_table_resize (GTK_TABLE (table), index + 1, 2);
@@ -1881,7 +1881,7 @@ create_export_slider (GtkWidget *table, vbi_option_info *oi,
   hscale = gtk_hscale_new (GTK_ADJUSTMENT (adj));
   gtk_scale_set_value_pos (GTK_SCALE (hscale), GTK_POS_LEFT);
   gtk_scale_set_digits (GTK_SCALE (hscale), 0);
-  set_tooltip (hscale, _(oi->tooltip));
+  z_tooltip_set (hscale, _(oi->tooltip));
   gtk_widget_show (hscale);
 
   gtk_table_resize (GTK_TABLE (table), index + 1, 2);
@@ -1905,7 +1905,7 @@ create_export_checkbutton (GtkWidget *table, vbi_option_info *oi,
   zconf_create_boolean (oi->def.num, oi->tooltip, zcname);
 
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (cb), FALSE);
-  set_tooltip (cb, _(oi->tooltip));
+  z_tooltip_set (cb, _(oi->tooltip));
   gtk_widget_show (cb);
 
   gtk_object_set_data (GTK_OBJECT (cb), "key", oi->keyword);
@@ -2487,7 +2487,7 @@ build_subtitles_submenu(GtkWidget *widget,
 	  if (language)
 	    {
 	      buffer = g_strdup_printf(_("Page %x"), count);
-	      set_tooltip(menu_item, buffer);
+	      z_tooltip_set(menu_item, buffer);
 	      g_free(buffer);
 	    }
 	  empty = FALSE;
@@ -2502,7 +2502,7 @@ build_subtitles_submenu(GtkWidget *widget,
 			     GTK_SIGNAL_FUNC(on_subtitle_page_ttxview),
 			     GINT_TO_POINTER(count<<16) + VBI_ANY_SUBNO);
 	  buffer = g_strdup_printf(_("Page %x"), count);
-	  set_tooltip(menu_item, buffer);
+	  z_tooltip_set(menu_item, buffer);
 	  g_free(buffer);
 	  gtk_menu_insert(menu, menu_item, 1);
 	  gtk_widget_show(menu_item);
@@ -2526,7 +2526,7 @@ build_subtitles_submenu(GtkWidget *widget,
 			     GTK_SIGNAL_FUNC(on_subtitle_page_main),
 			     GINT_TO_POINTER((count << 16) + VBI_ANY_SUBNO));
 	  buffer = g_strdup_printf(_("Page %x"), count);
-	  set_tooltip(menu_item, buffer);
+	  z_tooltip_set(menu_item, buffer);
 	  g_free(buffer);
 	  gtk_menu_insert(zmenu, menu_item, insert_index++);
 	  gtk_widget_show(menu_item);
@@ -2542,7 +2542,7 @@ build_subtitles_submenu(GtkWidget *widget,
 			     GTK_SIGNAL_FUNC(on_subtitle_page_ttxview),
 			     GINT_TO_POINTER((count<<16) + subpage));
 	  buffer = g_strdup_printf(_("Page %x"), count);
-	  set_tooltip(menu_item, buffer);
+	  z_tooltip_set(menu_item, buffer);
 	  g_free(buffer);
 	  gtk_menu_insert(zmenu, menu_item, insert_index++);
 	  gtk_widget_show(menu_item);
@@ -2558,7 +2558,7 @@ build_subtitles_submenu(GtkWidget *widget,
 			     GTK_SIGNAL_FUNC(on_subtitle_page_ttxview),
 			     GINT_TO_POINTER((count << 16) + VBI_ANY_SUBNO));
 	  buffer = g_strdup_printf(_("Page %x"), count);
-	  set_tooltip(menu_item, buffer);
+	  z_tooltip_set(menu_item, buffer);
 	  g_free(buffer);
 	  gtk_menu_insert(zmenu, menu_item, insert_index++);
 	  gtk_widget_show(menu_item);
@@ -2574,7 +2574,7 @@ build_subtitles_submenu(GtkWidget *widget,
 			     GTK_SIGNAL_FUNC(on_subtitle_page_ttxview),
 			     GINT_TO_POINTER((count<<16) + subpage));
 	  buffer = g_strdup_printf(_("Page %x"), count);
-	  set_tooltip(menu_item, buffer);
+	  z_tooltip_set(menu_item, buffer);
 	  g_free(buffer);
 	  gtk_menu_insert(zmenu, menu_item, insert_index++);
 	  gtk_widget_show(menu_item);
@@ -2590,7 +2590,7 @@ build_subtitles_submenu(GtkWidget *widget,
 			     GTK_SIGNAL_FUNC(on_subtitle_page_main),
 			     GINT_TO_POINTER((count << 16) + VBI_ANY_SUBNO));
 	  buffer = g_strdup_printf(_("Page %x"), count);
-	  set_tooltip(menu_item, buffer);
+	  z_tooltip_set(menu_item, buffer);
 	  g_free(buffer);
 	  gtk_menu_insert(zmenu, menu_item, insert_index++);
 	  gtk_widget_show(menu_item);
@@ -2605,7 +2605,7 @@ build_subtitles_submenu(GtkWidget *widget,
       menu_item =
 	z_gtk_pixmap_menu_item_new(_("Subtitles"),
 				   GNOME_STOCK_PIXMAP_ALIGN_JUSTIFY);
-      set_tooltip(menu_item, _("Select subtitles page"));
+      z_tooltip_set(menu_item, _("Select subtitles page"));
       gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item),
 				GTK_WIDGET(menu));
       gtk_widget_show(menu_item);
@@ -2681,7 +2681,7 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
 	  buffer2 = g_strdup_printf(_("%s in %s"), buffer, bookmark->channel);
 	else
 	  buffer2 = g_strdup(buffer);
-	set_tooltip(menuitem, buffer2);
+	z_tooltip_set(menuitem, buffer2);
 	g_free(buffer2);
 	g_free(buffer);
 	gtk_object_set_user_data(GTK_OBJECT(menuitem), bookmark);
@@ -2714,7 +2714,7 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
           {
 	    menuitem = gtk_menu_item_new_with_label(xm->label);
 	    if (xm->tooltip)
-	      set_tooltip(menuitem, xm->tooltip);
+	      z_tooltip_set(menuitem, xm->tooltip);
 	    gtk_object_set_user_data(GTK_OBJECT(menuitem), xm->keyword);
 	    gtk_widget_show(menuitem);
 	    gtk_menu_append(GTK_MENU(menu), menuitem);
