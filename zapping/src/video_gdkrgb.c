@@ -60,13 +60,13 @@ image_new (tv_pixfmt pixfmt, gint w, gint h)
   image->fmt.width = w;
   image->fmt.height = h;
   image->fmt.pixfmt = pixfmt;
-  image->fmt.bytesperline = (w * format.bits_per_pixel) >> 3;
-  image->fmt.sizeimage = image->fmt.bytesperline * h;
+  image->fmt.bytes_per_line = (w * format.bits_per_pixel) >> 3;
+  image->fmt.size = image->fmt.bytes_per_line * h;
 
-  pimage->data = g_malloc (image->fmt.sizeimage);
+  pimage->data = g_malloc (image->fmt.size);
 
   image->data.linear.data = pimage->data;
-  image->data.linear.stride = image->fmt.bytesperline;
+  image->data.linear.stride = image->fmt.bytes_per_line;
 
   return image;
 }

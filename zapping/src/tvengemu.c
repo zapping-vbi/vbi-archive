@@ -271,9 +271,9 @@ int tvengemu_attach_device(const char* device_file,
   info->overlay_window.clip_vector.capacity = 0;
 
   /* Framebuffer */
-  info->overlay_buffer.base = NULL;
-  info->overlay_buffer.width = info->caps.maxwidth;
-  info->overlay_buffer.height = info->caps.maxheight;
+  info->overlay_buffer.base = 0;
+  info->overlay_buffer.format.width = info->caps.maxwidth;
+  info->overlay_buffer.format.height = info->caps.maxheight;
   //  info->overlay_buffer.depth = 17;
   //  info->overlay_buffer.bytes_per_line = (info->overlay_buffer.depth+7)/8 *
   //    info->overlay_buffer.width;
@@ -334,15 +334,15 @@ tvengemu_update_capture_format (tveng_device_info *info)
 
   tv_pixfmt_to_pixel_format (&format, info->format.pixfmt, 0);
 
-  info->format.bytesperline =
+  info->format.bytes_per_line =
     (info->format.width * format.bits_per_pixel) >> 3;
 
   if (format.planar)
-    info->format.sizeimage =
+    info->format.size =
       (info->format.width * info->format.height * format.color_depth) >> 3;
   else
-    info->format.sizeimage =
-      info->format.height * info->format.bytesperline;
+    info->format.size =
+      info->format.height * info->format.bytes_per_line;
 
   return 0;
 }

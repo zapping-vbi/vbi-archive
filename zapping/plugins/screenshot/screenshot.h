@@ -42,7 +42,7 @@ struct screenshot_data
   gdouble		size_est;
 
   tveng_image_data	data;
-  struct tveng_frame_format format;	/* Format of the grabbed image */
+  tv_image_format	format;	/* Format of the grabbed image */
 
   gpointer		deint_data;
 

@@ -113,11 +113,11 @@ free_bundle (zf_buffer *b)
 static void
 fill_bundle_tveng (producer_buffer *p, tveng_device_info *info)
 {
-  if (p->src_image)
+  if (p->src_image) {
     tveng_read_frame (&p->src_image->data, 50, info);
-  else /* read & discard */
+  } else { /* read & discard */
     tveng_read_frame (NULL, 50, info);
-
+  }
   p->frame.timestamp = tveng_get_timestamp (info);
 
   CLEAR (p->converted);
@@ -208,11 +208,21 @@ capture_thread (void *data)
 
       pthread_rwlock_unlock (&size_rwlock);
 
-      p->frame.b.time = p->frame.timestamp;
-      if (p->src_image)
-	p->frame.b.used = p->src_image->fmt.sizeimage;
+      /* FIXME something is wrong here with timestamps.
+	 We start capturing, then get_timestamp() before
+	 the first buffer dequeue. */
+      if (p->src_image && p->frame.timestamp > 0)
+	{
+	  p->frame.b.time = p->frame.timestamp;
+
+	  p->frame.b.data = p->src_image->data.linear.data;
+	  p->frame.b.used = p->src_image->fmt.size;
+	}
       else
-	p->frame.b.used = 1;
+	{
+	  p->frame.b.data = NULL;
+	  p->frame.b.used = 1;
+	}
 
       zf_send_full_buffer(&prod, &p->frame.b);
     }
@@ -366,6 +376,7 @@ static gint idle_handler(gpointer _info)
 
 	    if (info->format.pixfmt == i)
 	      {
+		/* XXX is this correct? */
 		pb->src_index = pb->num_images;
 		pb->src_image = pb->images[pb->num_images];
 	      }
@@ -494,6 +505,12 @@ find_request_size (capture_fmt *fmt, gint *width, gint *height)
   for (i=0; i<num_formats; i++)
     if (formats[i].fmt.locked)
       {
+	/* We cannot change the capture size, caller
+	   must take this or scale.
+
+	   FIXME one should only scale down, and
+	   don't forget about interlaced video. */
+
 	*width = formats[i].fmt.width;
 	*height = formats[i].fmt.height;
 	return TRUE;
@@ -501,20 +518,18 @@ find_request_size (capture_fmt *fmt, gint *width, gint *height)
 
   if (fmt && fmt->locked)
     {
+      /* We can change, must use requested size
+	 instead of current. */
+
       *width = fmt->width;
       *height = fmt->height;
       return TRUE;
     }
 
-  /* Not specified, use config defaults */
-  /* FIXME: Query zconf and use the values in there */
+  /* Any size will do. */
 
-  /* mhs FIXME: The intention isn't clear to me. */
-
-#if 0
-  *width = 320;
-  *height = 240;
-#else
+  /* FIXME this should query tveng or use
+     some user configured values. */
   {
     GtkWidget *widget;
 
@@ -523,7 +538,6 @@ find_request_size (capture_fmt *fmt, gint *width, gint *height)
     *width = MAX (64, widget->allocation.width);
     *height = MAX (64 * 3/4, widget->allocation.height);
   }
-#endif
 
   return FALSE;
 }
@@ -553,7 +567,7 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
   gint k;
   static gint counter = 0;
   gint conversions = 999;
-  struct tveng_frame_format prev_fmt;
+  tv_image_format prev_fmt;
   gint req_w, req_h;
 
   req_mask = fmt ? TV_PIXFMT_SET (fmt->pixfmt) : TV_PIXFMT_SET_EMPTY;
@@ -713,6 +727,17 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
   return 0;
 }
 
+/* Hack to improve format request for recording,
+   see plugins/mpeg/mpeg.c. */
+tv_pixfmt
+native_capture_format		(void)
+{
+  if (0 == num_formats)
+    return TV_PIXFMT_UNKNOWN;
+  else
+    return formats[0].fmt.pixfmt;
+}
+
 gint request_capture_format (capture_fmt *fmt)
 {
   g_assert (fmt != NULL);
@@ -737,18 +762,18 @@ void release_capture_format (gint id)
 
   _pthread_rwlock_wrlock (&fmt_rwlock);
 
-  for (index=0; index<num_formats; index++)
+  for (index = 0; index < num_formats; ++index) {
     if (formats[index].id == id)
       break;
+  }
 
   g_assert (index != num_formats);
 
   num_formats--;
-  if (index != num_formats)
-    memcpy (&formats[index], &formats[index+1],
-	    (num_formats - index) * sizeof (formats[0]));
 
-  formats = g_realloc (formats, num_formats*sizeof(formats[0]));
+  if (index != num_formats)
+    memmove (&formats[index], &formats[index+1],
+	    (num_formats - index) * sizeof (formats[0]));
 
   pthread_rwlock_unlock (&fmt_rwlock);
 

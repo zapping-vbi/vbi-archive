@@ -68,8 +68,8 @@ planar_image_new (tv_pixfmt pixfmt, gint w, gint h)
   image->fmt.width = w;
   image->fmt.height = h;
   image->fmt.pixfmt = pixfmt;
-  image->fmt.bytesperline = w * 8; /* XXX ? */
-  image->fmt.sizeimage = (w * h * 3) >> 1;
+  image->fmt.bytes_per_line = w * 8; /* XXX ? */
+  image->fmt.size = (w * h * 3) >> 1;
 
   image->data.planar.y = data;
   image->data.planar.y_stride = w;
@@ -104,8 +104,8 @@ image_new (tv_pixfmt pixfmt, gint w, gint h)
   image->fmt.width = w;
   image->fmt.height = h;
   image->fmt.pixfmt = pixfmt;
-  image->fmt.bytesperline = bpl;
-  image->fmt.sizeimage = size;
+  image->fmt.bytes_per_line = bpl;
+  image->fmt.size = size;
 
   image->data.linear.data = data;
   image->data.linear.stride = bpl;

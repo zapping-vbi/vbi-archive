@@ -854,23 +854,21 @@ get_overlay_buffer		(tveng_device_info *	info,
 
 	// XXX fb.capability, fb.flags ignored
 
-	t->base			= fb.base;
+	t->base			= (unsigned long) fb.base;
 
-	t->bytes_per_line	= fb.fmt.bytesperline;
-	t->size			= fb.fmt.sizeimage;
+	t->format.bytes_per_line = fb.fmt.bytesperline;
+	t->format.size		= fb.fmt.sizeimage;
 
-	t->width		= fb.fmt.width;
-	t->height		= fb.fmt.height;
+	t->format.width		= fb.fmt.width;
+	t->format.height	= fb.fmt.height;
 
-	if (t->size == 0) /* huh? */
-		t->size = fb.fmt.bytesperline * fb.fmt.height;
+	if (t->format.size == 0) /* huh? */
+		t->format.size = fb.fmt.bytesperline * fb.fmt.height;
 
-	t->pixfmt = pixelformat_to_pixfmt (fb.fmt.pixelformat);
+	t->format.pixfmt = pixelformat_to_pixfmt (fb.fmt.pixelformat);
 
-	if (TV_PIXFMT_UNKNOWN == t->pixfmt)
+	if (TV_PIXFMT_UNKNOWN == t->format.pixfmt)
 		CLEAR (*t);
-
-	//	t->bits_per_pixel	= (t->depth + 7) & -8;
 
 	return TRUE;
 }
@@ -1336,8 +1334,8 @@ tveng25_update_capture_format(tveng_device_info * info)
   min_bpl = (format.fmt.pix.width * pixel_format.bits_per_pixel) >> 3;
   format.fmt.pix.bytesperline = MAX (min_bpl, format.fmt.pix.bytesperline);
 
-  info->format.bytesperline = format.fmt.pix.bytesperline;
-  info->format.sizeimage = format.fmt.pix.sizeimage;
+  info->format.bytes_per_line = format.fmt.pix.bytesperline;
+  info->format.size = format.fmt.pix.sizeimage;
 
   CLEAR (format);
 

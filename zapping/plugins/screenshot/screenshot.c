@@ -968,7 +968,7 @@ static void
 preview (screenshot_data *data)
 {
   tveng_image_data old_data;
-  struct tveng_frame_format old_format;
+  tv_image_format old_format;
   tv_pixel_format pixel_format;
 
   if (!data || !data->drawingarea || !data->pixbuf)
@@ -1492,13 +1492,12 @@ copy_image (screenshot_data *data, capture_frame *frame)
     return FALSE;
 
   memcpy (&data->data, &image->data, sizeof (image->data));
-  data->data.linear.data =
-    g_malloc (image->fmt.sizeimage);
+  data->data.linear.data = g_malloc (image->fmt.size);
 
   memcpy (&data->format, &image->fmt, sizeof(data->format));
 
   memcpy (data->data.linear.data, image->data.linear.data,
-	  image->fmt.sizeimage);
+	  image->fmt.size);
 
   return TRUE;
 }

@@ -13,7 +13,7 @@ void shutdown_zimage (void);
 typedef struct _zimage_private zimage_private;
 
 typedef struct {
-  struct tveng_frame_format fmt;
+  tv_image_format fmt;
   tveng_image_data	data;
 
   /* Video backend dependant */

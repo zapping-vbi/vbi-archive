@@ -75,8 +75,8 @@ image_new (tv_pixfmt pixfmt, gint w, gint h)
   new_image->fmt.width = w;
   new_image->fmt.height = h;
   new_image->fmt.pixfmt = pixfmt;
-  new_image->fmt.bytesperline = image->bpl;
-  new_image->fmt.sizeimage = image->bpl * image->height;
+  new_image->fmt.bytes_per_line = image->bpl;
+  new_image->fmt.size = image->bpl * image->height;
   new_image->data.linear.data = image->mem;
   new_image->data.linear.stride = image->bpl;
 
@@ -194,7 +194,7 @@ void add_backend_x11 (void)
   if (!x11_dga_present (&dga_param))
     return;
 
-  x11_pixfmt = dga_param.pixfmt;
+  x11_pixfmt = dga_param.format.pixfmt;
 
   g_assert (TV_PIXFMT_UNKNOWN != x11_pixfmt);
   g_assert (TV_PIXFMT_IS_PACKED (x11_pixfmt));

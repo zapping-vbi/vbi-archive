@@ -237,8 +237,8 @@ image_new(tv_pixfmt pixfmt, gint w, gint h)
   new_image->fmt.width = w;
   new_image->fmt.height = h;
   new_image->fmt.pixfmt = pixfmt;
-  new_image->fmt.bytesperline = (w * format.bits_per_pixel) >> 3;
-  new_image->fmt.sizeimage = pimage->image->data_size;
+  new_image->fmt.bytes_per_line = (w * format.bits_per_pixel) >> 3;
+  new_image->fmt.size = pimage->image->data_size;
 
   if (TV_PIXFMT_SET_YUV_PLANAR & TV_PIXFMT_SET (pixfmt))
     {
@@ -270,10 +270,10 @@ image_new(tv_pixfmt pixfmt, gint w, gint h)
       g_assert_not_reached ();
     }
 
-  printv ("Created image: %d, %d, %d, %d, %d\n",
+  printv ("Created image: %s %dx%d, %d, %d\n",
+	  tv_pixfmt_name (new_image->fmt.pixfmt),
 	  new_image->fmt.width,
 	  new_image->fmt.height,
-	  new_image->fmt.pixfmt,
 	  new_image->data.planar.y_stride,
 	  new_image->data.planar.uv_stride);
 

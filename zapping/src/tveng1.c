@@ -1448,27 +1448,35 @@ get_overlay_buffer		(tveng_device_info *	info,
 	struct video_buffer buffer;
   
 	if (!(info->caps.flags & TVENG_CAPS_OVERLAY))
-		return FALSE;
+		goto failure;
 
 	if (-1 == v4l_ioctl (info, VIDIOCGFBUF, &buffer))
-		return FALSE;
+		goto failure;
 
-	t->base			= buffer.base;
+	t->base = (unsigned long) buffer.base;
 
-	t->bytes_per_line	= buffer.bytesperline;
-	t->size			= buffer.bytesperline * buffer.height;
+	if (!tv_image_format_init (&t->format,
+				   buffer.width,
+				   buffer.height,
+				   pig_depth_to_pixfmt (buffer.depth),
+				   0))
+		goto failure;
 
-	t->width		= buffer.width;
-	t->height		= buffer.height;
+	assert (buffer.bytesperline >= t->format.bytes_per_line);
 
-	t->pixfmt		= pig_depth_to_pixfmt (buffer.depth);
+	if (buffer.bytesperline > t->format.bytes_per_line) {
+		assert (TV_PIXFMT_IS_PACKED (t->format.pixfmt));
 
-	if (TV_PIXFMT_UNKNOWN == t->pixfmt) {
-		CLEAR (*t);
-		return FALSE;
+		t->format.bytes_per_line = buffer.bytesperline;
+		t->format.size = buffer.bytesperline * buffer.height;
 	}
 
 	return TRUE;
+
+ failure:
+	CLEAR (*t);
+
+	return FALSE;
 }
 
 
@@ -1867,9 +1875,11 @@ int tveng1_attach_device(const char* device_file,
       return -1;
     }
 
-  info->format.pixfmt = pig_depth_to_pixfmt (error);
-
-  if (TV_PIXFMT_UNKNOWN == info->format.pixfmt) {
+  if (!tv_image_format_init (&info->format,
+			     (info->caps.minwidth + info->caps.maxwidth) / 2, 
+			     (info->caps.minheight + info->caps.maxheight) / 2,
+			     pig_depth_to_pixfmt (error),
+			     0)) {
     info -> tveng_errno = -1;
     t_error_msg("switch()", 
 		"Cannot find appropiate palette for current display",
@@ -1877,12 +1887,6 @@ int tveng1_attach_device(const char* device_file,
     tveng1_close_device(info);
     return -1;
   }
-
-
-  /* Set our desired size, make it halfway */
-  info -> format.width = (info->caps.minwidth + info->caps.maxwidth)/2;
-  info -> format.height = (info->caps.minheight +
-			   info->caps.maxheight)/2;
 
   tveng1_set_capture_format(info);
 
@@ -2002,7 +2006,6 @@ tveng1_update_capture_format(tveng_device_info * info)
 {
   struct video_picture pict;
   struct video_window window;
-  tv_pixel_format format;
 
   t_assert(info != NULL);
 
@@ -2011,31 +2014,19 @@ tveng1_update_capture_format(tveng_device_info * info)
   if (v4l_ioctl(info, VIDIOCGPICT, &pict))
       return -1;
 
-  info->format.pixfmt = palette_to_pixfmt (pict.palette);
-
-  if (TV_PIXFMT_UNKNOWN == info->format.pixfmt) {
-      info->tveng_errno = -1; /* unknown */
-      t_error_msg("switch()",
-		  "Cannot understand the actual palette", info);
-      return -1;
-    }
-
-  tv_pixfmt_to_pixel_format (&format, info->format.pixfmt, 0);
-
-  /* Ok, now get the video window dimensions */
   if (v4l_ioctl(info, VIDIOCGWIN, &window))
       return -1;
 
-  /* Fill in the format structure (except for the data field) */
-  info->format.width = window.width;
-  info->format.height = window.height;
-  info->format.bytesperline = (window.width * format.bits_per_pixel) >> 3;
-
-  if (format.planar)
-    info->format.sizeimage = (window.width * window.height
-			      * format.color_depth) >> 3;
-  else
-    info->format.sizeimage = window.height * info->format.bytesperline;
+  if (!tv_image_format_init (&info->format,
+			     window.width,
+			     window.height,
+			     palette_to_pixfmt (pict.palette),
+			     0)) {
+      info->tveng_errno = -1; /* unknown */
+      t_error_msg("switch()",
+		  "Cannot understand the actual palette", info);
+    return -1;
+  }
 
   info->overlay_window.x = window.x;
   info->overlay_window.y = window.y;
@@ -2616,14 +2607,8 @@ int tveng1_set_capture_size(int width, int height, tveng_device_info * info)
 
   current_mode = tveng_stop_everything(info);
 
-  if (width < info->caps.minwidth)
-    width = info->caps.minwidth;
-  else if (width > info->caps.maxwidth)
-    width = info->caps.maxwidth;
-  if (height < info->caps.minheight)
-    height = info->caps.minheight;
-  else if (height > info->caps.maxheight)
-    height = info->caps.maxheight;
+  height = SATURATE (height, info->caps.minheight, info->caps.maxheight);
+  width  = SATURATE (width, info->caps.minwidth, info->caps.maxwidth);
 
   info -> format.width = width;
   info -> format.height = height;
