@@ -60,8 +60,9 @@ ttxview_subtitles_menu_new	(void);
 GtkWidget *
 ttxview_bookmarks_menu_new	(GtkWidget *		widget);
 extern guint
-ttxview_hotlist_menu_append	(GtkMenuShell *		menu,
-				 gboolean		separator);
+ttxview_hotlist_menu_insert	(GtkMenuShell *		menu,
+				 gboolean		separator,
+				 gint			position);
 
 extern gboolean
 startup_ttxview			(void);

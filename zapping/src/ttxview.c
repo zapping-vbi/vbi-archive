@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: ttxview.c,v 1.126 2004-09-10 04:58:52 mschimek Exp $ */
+/* $Id: ttxview.c,v 1.127 2004-09-20 04:40:25 mschimek Exp $ */
 
 /*
  *  Teletext View
@@ -3592,8 +3592,9 @@ ttxview_subtitles_menu_new	(void)
 #define ONCE(b) if (b) continue; else b = TRUE;
 
 guint
-ttxview_hotlist_menu_append	(GtkMenuShell *		menu,
-				 gboolean		separator)
+ttxview_hotlist_menu_insert	(GtkMenuShell *		menu,
+				 gboolean		separator,
+				 gint			position)
 {
   vbi_decoder *vbi = zvbi_get_object ();
   vbi_pgno pgno;
@@ -3674,7 +3675,9 @@ ttxview_hotlist_menu_append	(GtkMenuShell *		menu,
 
 	  menu_item = gtk_separator_menu_item_new ();
 	  gtk_widget_show (menu_item);
-	  gtk_menu_shell_append (menu, menu_item);
+	  gtk_menu_shell_insert (menu, menu_item, position);
+	  if (position > 0)
+	    ++position;
 
 	  separator = FALSE;
 	}
@@ -3698,7 +3701,9 @@ ttxview_hotlist_menu_append	(GtkMenuShell *		menu,
       g_signal_connect_swapped (G_OBJECT (menu_item), "destroy",
 				G_CALLBACK (g_free), buffer);
 
-      gtk_menu_shell_append (menu, menu_item);
+      gtk_menu_shell_insert (menu, menu_item, position);
+      if (position > 0)
+	++position;
 
       ++count;
     }
@@ -3896,8 +3901,8 @@ ttxview_popup_menu_new		(ttxview_data *		data,
       gtk_menu_item_set_submenu (GTK_MENU_ITEM (widget),
 				 bookmarks_menu_new (data));
 
-      ttxview_hotlist_menu_append (GTK_MENU_SHELL (menu),
-				   /* separator */ TRUE);
+      ttxview_hotlist_menu_insert (GTK_MENU_SHELL (menu),
+				   /* separator */ TRUE, APPEND);
     }
   else
     {
