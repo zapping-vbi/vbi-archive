@@ -591,7 +591,7 @@ int rte_start ( rte_context * context )
 					  NULL);
 			pthread_create(&(context->private->video_fetcher_id),
 				       NULL, video_input_thread, context);
-			schedule_video_fetch(context);
+//			schedule_video_fetch(context);
 			/* Wait until we get the frames (avoid frame drops) */
 			pthread_mutex_lock(&(context->private->video_mutex));
 			while (context->private->video_pending)

@@ -423,6 +423,7 @@ gboolean startup_zapping()
 	   "start_muted");
   zcc_int(0, "Verbosity value given to zapping_setup_fb",
 	  "zapping_setup_fb_verbosity");
+  zcc_int(0, "Ratio mode", "ratio");
   zcc_int(0, "Current standard", "current_standard");
   zcc_int(0, "Current input", "current_input");
 

@@ -32,12 +32,17 @@ gchar *s = N_("Maximum capture size:");
 gchar *s = N_("label28");
 gchar *s = N_("label29");
 gchar *s = N_("Device info");
+gchar *s = N_("Verbosity value given to zapping_setup_fb:");
+gchar *s = N_("The bigger this value is, the more verbose zapping_setup_fb will be");
 gchar *s = N_("Avoid noise while changing channels");
 gchar *s = N_("Save window geometry (some WM's don't like it)");
 gchar *s = N_("Resize using fixed increments");
 gchar *s = N_("Start Zapping muted");
-gchar *s = N_("Verbosity value given to zapping_setup_fb:");
-gchar *s = N_("The bigger this value is, the more verbose zapping_setup_fb will be");
+gchar *s = N_("Ratio mode:");
+gchar *s = N_("No fixed ratio\n"
+              "4:3\n"
+              "16:9\n"
+              "");
 gchar *s = N_("General options");
 gchar *s = N_("Channel choosing");
 gchar *s = N_("Choose here the channels you want to use.\n"

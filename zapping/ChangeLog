@@ -1,3 +1,9 @@
+19.7.2000	Option for keeping the ratio <garetxe@users.sourceforge.net>
+
+	* src/properties.c: Added the option (doesn't do anything for now)
+	to keep a given aspect ratio when resizing.
+	* glade/zapping.glade: Updated the properties dialog accordingly.
+
 04.7.2000	configure.in fix <garetxe@users.sourceforge.net>
 
 	* configure.in: configure.in now tries "-lpng -lz" if "-lpng"

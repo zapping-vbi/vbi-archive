@@ -221,6 +221,16 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
 		     GTK_SIGNAL_FUNC(on_property_item_changed),
 		     zapping_properties);
 
+  /* ration mode to use */
+  widget = lookup_widget(zapping_properties, "optionmenu1");
+  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
+    zconf_get_integer(NULL,
+		      "/zapping/options/main/ratio"));
+
+  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+
   /* Let the plugins add their properties */
   while (p)
     {
@@ -280,6 +290,15 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
       zconf_set_integer(
 	gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widget)),
 			"/zapping/options/main/zapping_setup_fb_verbosity");
+
+      widget = lookup_widget(pbox, "optionmenu1");
+      widget = GTK_WIDGET(GTK_OPTION_MENU(widget)->menu);
+
+      zconf_set_integer(
+	g_list_index(GTK_MENU_SHELL(widget)->children,
+		     gtk_menu_get_active(GTK_MENU(widget))),
+	"/zapping/options/main/ratio");
+
       break;
     default:
       p = g_list_first(plugin_list);
