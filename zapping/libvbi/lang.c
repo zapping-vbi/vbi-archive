@@ -1,12 +1,11 @@
 /*
- *  Zapzilla - Teletext character set
+ *  Zapzilla/libvbi - Teletext and Closed Caption character set
  *
  *  Copyright (C) 2000 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *  it under the terms of the GNU General Public License version 2 as
+ *  published by the Free Software Foundation.
  *
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.c,v 1.15 2001-08-14 16:36:48 mschimek Exp $ */
+/* $Id: lang.c,v 1.16 2001-08-26 19:42:47 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -247,25 +246,25 @@ glyph_lookup(character_set s, national_subset n, int c)
 			return GL_LATIN_G0 + c;
 		if (c == 0x59)
 			return GL_LATIN_G0 + 'I';
-		if (c == 0x79)
-			return GL_LATIN_G0 + 'i';
 		if (c == 0x5C)
 			return 0x000088;
 		if (c == 0x5F)
 			return 0x000010;
 		if (c == 0x67)
 			return 0x000099;
+		if (c == 0x79)
+			return GL_LATIN_G0 + 'i';
 		if (c == 0x7C)
 			return 0x000098;
 		return GL_CYRILLIC_2_G0_ALPHA - 0x40 + c;
 
 	case CYRILLIC_G2:
 		if (c == 0x59)
-			return 0x0000E8;
+			return 0x0000E8; /* /L */
 		if (c == 0x5A)
-			return 0x0000F8;
+			return 0x0000F8; /* /l */
 		if (c == 0x5B)
-			return 0x0000FB;
+			return 0x0000FB; /* sz */
 		if (c <= 0x5F)
 			return GL_LATIN_G2 + c;
 		return GL_LATIN_G0 + "DEFGIJKLNQRSUVWZdefgijklnqrsuvwz"[c - 0x60];
@@ -307,6 +306,8 @@ glyph_lookup(character_set s, national_subset n, int c)
 			return GL_LATIN_G0 + '<';
 		if (c == 0x3F)
 			return 0x00009F;
+		if (c <= 0x3F)
+			return GL_LATIN_G0 + c;
 		return GL_ARABIC_G0_ALPHA - 0x40 + c;
 
 	case ARABIC_G2:
@@ -316,23 +317,23 @@ glyph_lookup(character_set s, national_subset n, int c)
 			return GL_LATIN_G0 + 0x100000 + 'a';
 		if (c == 0x60)
 			return GL_LATIN_G0 + 0x200000 + 'e';
-		if (c == 0x4B)
+		if (c == 0x5B)
 			return GL_LATIN_G0 + 0x800000 + 'e';
-		if (c == 0x4C)
+		if (c == 0x5C)
 			return GL_LATIN_G0 + 0x300000 + 'e';
-		if (c == 0x4D)
+		if (c == 0x5D)
 			return GL_LATIN_G0 + 0x100000 + 'u';
-		if (c == 0x4E)
-			return 0xF4F5;
-		if (c == 0x4F)
+		if (c == 0x5E)
+			return 0x300000 + 0xF5; /* ^i */
+		if (c == 0x5F)
 			return 0x008F;
-		if (c == 0x4B)
+		if (c == 0x7B)
 			return GL_LATIN_G0 + 0x340000 + 'a';
-		if (c == 0x4C)
+		if (c == 0x7C)
 			return GL_LATIN_G0 + 0x300000 + 'o';
-		if (c == 0x4D)
+		if (c == 0x7D)
 			return GL_LATIN_G0 + 0x300000 + 'u';
-		if (c == 0x4E)
+		if (c == 0x7E)
 			return GL_LATIN_G0 + 0xB00000 + 'c';
 		return GL_LATIN_G0 + c;
 
@@ -341,16 +342,18 @@ glyph_lookup(character_set s, national_subset n, int c)
 			return 0x0000A3;
 		if (c == 0x24)
 			return 0x0000A4;
-		if (c == 0x4B)
+		if (c == 0x5B)
 			return 0x0000AC;
-		if (c == 0x4C)
+		if (c == 0x5C)
 			return 0x0000BD;
-		if (c == 0x4D)
+		if (c == 0x5D)
 			return 0x0000AE;
-		if (c == 0x4E)
+		if (c == 0x5E)
 			return 0x0000AD;
-		if (c == 0x4F)
+		if (c == 0x5F)
 			return GL_LATIN_G0 + '#';
+		if (c <= 0x5F)
+			return GL_LATIN_G0 + c;
 		return GL_HEBREW_G0_LOWER - 0x60 + c;
 
 	default:
