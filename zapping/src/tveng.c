@@ -284,9 +284,9 @@ int tveng_attach_device(const char* device_file,
 
     num_controls = 0;
 
-    for (tc = info->controls; tc; tc = tc->next) {
+    for (tc = info->controls; tc; tc = tc->_next) {
       if (tc->id == TV_CONTROL_ID_MUTE
-	  && (!tc->ignore)
+	  && (!tc->_ignore)
 	  && info->priv->control_mute == NULL) {
 	//	if (tv_control_callback_add (tc, NULL, (void *) deref_callback,
 	//			     &info->priv->control_mute))
@@ -352,7 +352,7 @@ int tveng_attach_device(const char* device_file,
 		  info->inputs[i].flags);
 	}
       fprintf(stderr, "Available controls:\n");
-      for (tc = info->controls; tc; tc = tc->next)
+      for (tc = info->controls; tc; tc = tc->_next)
 	{
 	  fprintf(stderr, "  %d) [%s] ID: %d  Range: (%d, %d)  Value: %d ",
 		  i, tc->label, tc->id,
@@ -843,6 +843,25 @@ XX();
  *  Controls
  */
 
+tv_control *
+tv_control_next			(tveng_device_info *	info,
+				 const tv_control *	control)
+{
+	if (!control) {
+		if (!info || !(control = info->controls))
+			return NULL;
+
+		if (!control->_ignore)
+			return (tv_control *) control;
+	}
+
+	while ((control = control->_next))
+		if (!control->_ignore)
+			return (tv_control *) control;
+
+	return NULL;
+}
+
 tv_callback_node *
 tv_control_callback_add		(tv_control *		control,
 				 void			(* notify)(tv_control *, void *user_data),
@@ -992,7 +1011,7 @@ tveng_update_controls(tveng_device_info * info)
   /* FIXME quiet */
 
   /* Update the controls we maintain */
-  for (tc = info->controls; tc; tc = tc->next)
+  for (tc = info->controls; tc; tc = tc->_next)
     if (tc->_device == NULL /* TVENG_CONTROLLER_MOTHER */)
       update_xv_control (info, C(tc));
 
@@ -1014,7 +1033,7 @@ reset_video_volume		(tveng_device_info *	info,
 {
   tv_control *tc;
 
-  for (tc = info->controls; tc; tc = tc->next)
+  for (tc = info->controls; tc; tc = tc->_next)
     {
       if (tc->_device != NULL)
 	switch (tc->id)
@@ -1196,7 +1215,7 @@ tveng_get_control_by_name(const char * control_name,
     RETURN_UNTVLOCK(-1);
 
   /* iterate through the info struct to find the control */
-  for (tc = info->controls; tc; tc = tc->next)
+  for (tc = info->controls; tc; tc = tc->_next)
     if (!strcasecmp(tc->label,control_name))
       /* we found it */
       {
@@ -1236,7 +1255,7 @@ tveng_set_control_by_name(const char * control_name,
 
   TVLOCK;
 
-  for (tc = info->controls; tc; tc = tc->next)
+  for (tc = info->controls; tc; tc = tc->_next)
     if (!strcasecmp(tc->label,control_name))
       /* we found it */
       RETURN_UNTVLOCK((tveng_set_control(tc, new_value, info)));
@@ -1412,13 +1431,13 @@ mixer_line_destroy_cb		(tv_mixer_line *	line,
       if (tc == &c->pub)
 	{
 	  tv_callback_destroy (tc, &tc->_callback);
-	  *tcp = tc->next;
+	  *tcp = tc->_next;
 	  free (tc);
 	  continue;
 	}
       else if (tc->id == id)
 	{
-	  tc->ignore = FALSE;
+	  tc->_ignore = FALSE;
 
 	  if (id == TV_CONTROL_ID_MUTE)
 	    {
@@ -1427,7 +1446,7 @@ mixer_line_destroy_cb		(tv_mixer_line *	line,
 	    }
 	}
 
-      tcp = &tc->next;
+      tcp = &tc->_next;
     }
 }
 
@@ -1479,7 +1498,7 @@ mixer_replace			(tveng_device_info *	info,
 		  tv_callback_destroy (tc, &tc->_callback);
 		  tv_callback_remove (c->line_cb);
 
-		  *tcp = tc->next;
+		  *tcp = tc->_next;
 		  free (tc);
 
 		  done = TRUE;
@@ -1489,13 +1508,13 @@ mixer_replace			(tveng_device_info *	info,
 	  else /* video device control */
 	    {
 	      if (!TVENG_MIXER_VOLUME_DEBUG)
-		tc->ignore = (line != NULL);
+		tc->_ignore = (line != NULL);
 
 	      orig = tc;
 	    }
 	}
 
-      tcp = &tc->next;
+      tcp = &tc->_next;
     }
 
   if (done || !line)
@@ -1537,8 +1556,8 @@ mixer_replace			(tveng_device_info *	info,
 
   if (orig)
     {
-      c->pub.next = orig->next;
-      orig->next = &c->pub;
+      c->pub._next = orig->_next;
+      orig->_next = &c->pub;
     }
   else
     {
@@ -1587,8 +1606,8 @@ tveng_attach_mixer_line		(tveng_device_info *	info,
   mixer_replace (info, line, TV_CONTROL_ID_VOLUME);
   mixer_replace (info, line, TV_CONTROL_ID_MUTE);
 
-  for (tc = info->controls; tc; tc = tc->next)
-    if (tc->id == TV_CONTROL_ID_MUTE && !tc->ignore)
+  for (tc = info->controls; tc; tc = tc->_next)
+    if (tc->id == TV_CONTROL_ID_MUTE && !tc->_ignore)
       {
 	info->priv->control_mute = tc;
 	info->audio_mutable = 1; /* preliminary */
@@ -1623,9 +1642,9 @@ tv_quiet_set			(tveng_device_info *	info,
 
       reset = FALSE;
 
-      for (tc = info->controls; tc; tc = tc->next)
+      for (tc = info->controls; tc; tc = tc->_next)
 	{
-	  if (!tc->ignore)
+	  if (!tc->_ignore)
 	    {
 	      if (tc->id == TV_CONTROL_ID_VOLUME)
 		{
@@ -3176,3 +3195,120 @@ tv_device_node_find		(tv_device_node *	list,
 
 	return *list;
 #endif
+
+/*
+ *  Helper functions
+ */
+
+void
+free_control			(tv_control *		tc)
+{
+	if (!tc)
+		return;
+
+	tv_callback_destroy (tc, &tc->_callback);
+
+	if (tc->label) {
+		free ((char *) tc->label);
+	}
+
+	if (tc->menu) {
+	      unsigned int i;
+
+	      for (i = 0; tc->menu[i]; i++) {
+		      free ((char *) tc->menu[i]);
+	      }
+
+	      free (tc->menu);
+	}
+
+	free (tc);
+}
+
+tv_control *
+append_control			(tveng_device_info *	info,
+				 tv_control *		tc,
+				 unsigned int		size)
+{
+	tv_control **tcp;
+
+	for (tcp = &info->controls; *tcp; tcp = &(*tcp)->_next)
+		;
+
+	if (size > 0) {
+		*tcp = malloc (size);
+
+		if (!*tcp) {
+			info->tveng_errno = errno;
+			t_error("malloc", info);
+			return NULL;
+		}
+
+		memcpy (*tcp, tc, size);
+
+		tc = *tcp;
+	} else {
+		*tcp = tc;
+	}
+
+	tc->_next = NULL;
+
+	return tc;
+}
+
+static __inline__ void
+tveng_copy_block		(void *			src,
+				 void *			dest,
+				 unsigned int		src_stride,
+				 unsigned int		dest_stride,
+				 unsigned int		lines)
+{
+  if (src_stride != dest_stride)
+    {
+      unsigned int min_stride = MIN (src_stride, dest_stride);
+
+      for (; lines-- > 0; src += src_stride, dest += dest_stride)
+	memcpy (dest, src, min_stride);
+    }
+  else
+    {
+      memcpy (dest, src, src_stride * lines);
+    }
+}
+
+void
+tveng_copy_frame		(unsigned char *	src,
+				 tveng_image_data *	where,
+				 tveng_device_info *	info)
+{
+  if (tveng_is_planar (info->format.pixformat))
+    {
+      unsigned char *y = where->planar.y, *u = where->planar.u,
+	*v = where->planar.v;
+      unsigned char *src_y, *src_u, *src_v;
+      /* Assume that we are aligned */
+      int bytes = info->format.height * info->format.width;
+      t_assert (info->format.pixformat == TVENG_PIX_YUV420 ||
+		info->format.pixformat == TVENG_PIX_YVU420);
+      if (info->priv->assume_yvu)
+	SWAP (u, v);
+      src_y = src;
+      src_u = src_y + bytes;
+      src_v = src_u + (bytes>>2);
+      if (info->format.pixformat == TVENG_PIX_YVU420)
+	SWAP (src_u, src_v);
+      tveng_copy_block (src_y, y, info->format.width,
+			where->planar.y_stride,
+			info->format.height);
+      tveng_copy_block (src_u, u, info->format.width/2,
+			where->planar.uv_stride,
+			info->format.height/2);
+      tveng_copy_block (src_v, v, info->format.width/2,
+			where->planar.uv_stride,
+			info->format.height/2);
+    }
+  else /* linear */
+    tveng_copy_block (src, where->linear.data,
+		      info->format.bytesperline, where->linear.stride,
+		      info->format.height);
+}
