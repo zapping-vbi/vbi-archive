@@ -25,6 +25,8 @@
   A nice set of HTML rendered docs can be found here:
   http://zapping.sf.net/docs/rte/index.html
   FIXME: Upload docs before the release.
+  FIXME: Document unions.
+  TODO: Status [, verbosity???]
 */
 
 #include "rte-enums.h"
@@ -101,7 +103,7 @@ rte_context_info_context (rte_context *context);
  * named context format is unavailable or some other error occurred.
  **/
 rte_context *
-rte_context_new(const char *keyword, void *user_data);
+rte_context_new(const char *keyword, rte_pointer user_data);
 
 /**
  * rte_context_delete:
@@ -123,7 +125,7 @@ rte_context_delete(rte_context *context);
  * with rte_context_get_user_data().
  **/
 void
-rte_context_set_user_data(rte_context *context, void *user_data);
+rte_context_set_user_data(rte_context *context, rte_pointer user_data);
 
 /**
  * rte_context_get_user_data:
@@ -131,8 +133,10 @@ rte_context_set_user_data(rte_context *context, void *user_data);
  *
  * Gets the custom data @context holds, it can be set with rte_context_new()
  * or rte_context_set_user_data().
+ *
+ * Return value: User data or %NULL if nothing set.
  **/
-void *
+rte_pointer
 rte_context_get_user_data	(rte_context *	context);
 
 /**
@@ -192,7 +196,7 @@ rte_codec_info_codec(rte_codec *codec);
  * codec's type and @stream_index of the format this context stands for.
  * The stream number refers for example to one of the 16 video or 32 audio
  * streams contained in a MPEG-1 program stream. The valid number of elementary
- * streams of each type is available from &rte_context_info, see
+ * streams of each type is available from rte_context_info, see
  * rte_context_enum(). The first (default) stream has index number 0.
  *
  * Setting a codec resets all properties of the codec for this stream type
@@ -234,7 +238,31 @@ rte_codec *
 rte_codec_get(rte_context *context, rte_stream_type stream_type,
 	      int stream_index);
 
+/**
+ * rte_codec_set_user_data:
+ * @codec: Pointer to a rte_codec returned by rte_codec_get() or
+ *	   rte_codec_set()
+ * @data: Whatever you want @codec to hold.
+ *
+ * Sets the custom data the codec will hold, query it later with
+ * rte_codec_get_user_data().
+ **/
+void
+rte_codec_set_user_data(rte_codec *codec, rte_pointer data);
 
+/**
+ * rte_codec_get_user_data:
+ * @codec: Pointer to a rte_codec returned by rte_codec_get() or
+ *	   rte_codec_set()
+ *
+ * Retrieves the user data you've set previously with
+ * rte_codec_get_user_data().
+ *
+ * Return value: User data or %NULL if nothing set.
+ **/
+rte_pointer
+rte_codec_get_user_data(rte_codec *codec);
+ 
 /**
  * rte_codec_set_parameters:
  * @codec: Pointer to a rte_codec returned by rte_codec_get() or
@@ -256,7 +284,6 @@ rte_codec_get(rte_context *context, rte_stream_type stream_type,
  * params->video.frame_rate = 24;
  * params->video.width = 384;
  * params->video.height = 288;
- * params->feed_mode = RTE_PUSH_COPY;
  * rte_codec_set_parameters(codec, params);
  * </programlisting>
  *
@@ -265,6 +292,140 @@ rte_codec_get(rte_context *context, rte_stream_type stream_type,
  **/
 rte_bool
 rte_codec_set_parameters(rte_codec *codec, rte_stream_parameters *params);
+
+/**
+ * rte_set_input_callback_buffered:
+ * @codec: Pointer to a rte_codec returned by rte_codec_get() or
+ *	   rte_codec_set()
+ * @get_cb: Callback when more data is needed.
+ * @unref_cb: Called when a buffer is no longer needed.
+ *
+ * Sets the input mode for the given codec as callback buffered.
+ * That means that when @codec needs more data, it will call
+ * @get_cb with the correct values. After using the data in the buffer,
+ * it is released calling @unref_cb. If you use this input interface you
+ * don't need to copy data around.
+ **/
+void
+rte_set_input_callback_buffered(rte_codec *codec,
+				rteBufferCallback get_cb,
+				rteBufferCallback unref_cb);
+
+/**
+ * rte_set_input_callback_data:
+ * @codec: Pointer to a rte_codec returned by rte_codec_get() or
+ *	   rte_codec_set()
+ * @data_cb: Callback when more data is needed.
+ *
+ * Sets the input as callback copy. When @codec needs more data, @data_cb
+ * is called, you should copy the frame to the provided buffer then.
+ **/
+void
+rte_set_input_callback_data(rte_codec *codec,
+			    rteDataCallback data_cb);
+
+/**
+ * rte_set_input_push_buffered:
+ * @codec: Pointer to a rte_codec returned by rte_codec_get() or
+ *	   rte_codec_set()
+ * @unref_cb: Called the the buffer supplied with push_buffer is no
+ *	      longer needed.
+ *
+ * Sets the input mode as push_buffered. In this mode, you should
+ * provide the data to be encoded using rte_push_buffer().
+ **/
+void
+rte_set_input_push_buffered(rte_codec *codec,
+			    rteBufferCallback unref_cb);
+
+/**
+ * rte_set_input_push_data:
+ * @codec: Pointer to a rte_codec returned by rte_codec_get() or
+ *	   rte_codec_set()
+ *
+ * Sets the input mode as push_copy. In this mode, you should
+ * provide the data to be encoded using rte_push_data().
+ **/
+void
+rte_set_input_push_data(rte_codec *codec);
+
+/**
+ * rte_push_buffer:
+ * @codec: Pointer to a rte_codec returned by rte_codec_get() or
+ *	   rte_codec_set()
+ * @buffer: Buffer with a complete sample of data.
+ * @blocking: %TRUE when you want blocking push().
+ * 
+ * If @blocking is %TRUE, then rte_push_data() will wait until the
+ * library accepts the data, otherwise it will fail unless the data
+ * can be delivered without delays.
+ * @buffer must contain a complete sample matching the parameters you
+ * set with rte_set_parameters().
+ *
+ * Typical usage is:
+ * <programlisting>
+ * rte_buffer buffer;
+ * void *data = malloc(enough_room);
+ * double timestamp;
+ * while (have_data) {
+ *	read_data(data, &amp;timestamp);
+ *	buffer.data = data;
+ *	buffer.timestamp = timestamp;
+ *	buffer.user_data = 0xdeafbead;
+ *	rte_push_buffer(codec, &amp;buffer, TRUE);
+ * }
+ * </programlisting>
+ **/
+void
+rte_push_buffer(rte_codec *codec, rte_buffer *buffer,
+		rte_bool blocking);
+
+/**
+ * rte_push_data:
+ * @codec: Pointer to a rte_codec returned by rte_codec_get() or
+ *	   rte_codec_set()
+ * @data: Data to encode.
+ * @timestamp: Timestamp of the data in seconds.
+ * @blocking: %TRUE when you want blocking push().
+ * 
+ * If @blocking is %TRUE, then rte_push_data() will wait until the
+ * library accepts the data, otherwise it will fail unless the data
+ * can be delivered without delays.
+ * @data must be a complete sample (eg. the whole video frame), it
+ * should match the codec parameters you set with
+ * rte_set_parameters(). The first time you use this function you can
+ * pass %NULL here to get a pointer to the destination area.
+ *
+ * Typical usage:
+ * <programlisting>
+ * void * frame = rte_push_buffer(codec, NULL, 0);
+ * while (have_data) {
+ *	read_data(frame, &amp;timestamp);
+ *	frame = rte_push_data(codec, frame, timestamp, TRUE);
+ * }
+ * </programlisting>
+ *
+ * Return value: A pointer to the next block you should write to.
+ **/
+rte_pointer
+rte_push_data(rte_codec *codec, rte_pointer data, double timestamp,
+	      rte_bool blocking);
+
+/**
+ * rte_set_output_callback:
+ * @context: Initialized rte_context.
+ * @write_cb: Called when there's encoded data to write.
+ * @seek_cb: Called when seeking is needed.
+ *
+ * When the context has produced any compressed data @write_cb is
+ * called so you can dump to destination.
+ * @seek_cb is used when the codec needs seeking to a different file
+ * position (to write the header when finished, for example).
+ **/
+void
+rte_set_output_callback(rte_context *context,
+			rteWriteCallback write_cb,
+			rteSeekCallback seek_cb);
 
 /**
  * rte_option_info_enum:

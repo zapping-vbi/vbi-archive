@@ -20,6 +20,12 @@ Basic types
 </para>
 
 
+<!-- ##### TYPEDEF rte_pointer ##### -->
+<para>
+
+</para>
+
+
 <!-- ##### TYPEDEF rte_context_info ##### -->
 <para>
 
@@ -46,5 +52,72 @@ Basic types
 <para>
 
 </para>
+
+
+<!-- ##### TYPEDEF rte_stream_parameters ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### TYPEDEF rte_video_stream_parameters ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### TYPEDEF rte_audio_stream_parameters ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### TYPEDEF rte_buffer ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### USER_FUNCTION rteBufferCallback ##### -->
+<para>
+
+</para>
+
+@context: 
+@codec: 
+@buffer: 
+
+
+<!-- ##### USER_FUNCTION rteDataCallback ##### -->
+<para>
+
+</para>
+
+@context: 
+@codec: 
+@data: 
+@time: 
+<!-- # Unused Parameters # -->
+@bytes: 
+
+
+<!-- ##### USER_FUNCTION rteWriteCallback ##### -->
+<para>
+
+</para>
+
+@context: 
+@data: 
+@bytes: 
+
+
+<!-- ##### USER_FUNCTION rteSeekCallback ##### -->
+<para>
+
+</para>
+
+@context: 
+@offset: 
+@whence: 
 
 

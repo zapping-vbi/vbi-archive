@@ -1,7 +1,6 @@
 <SECTION>
-<TITLE>Library interface</TITLE>
-<FILE>rte</FILE>
-rte_init
+<TITLE>Creating encoding contexts.</TITLE>
+<FILE>contexts</FILE>
 rte_context_info_enum
 rte_context_info_keyword
 rte_context_info_context
@@ -9,12 +8,24 @@ rte_context_new
 rte_context_delete
 rte_context_set_user_data
 rte_context_get_user_data
+</SECTION>
+
+<SECTION>
+<TITLE>Selecting codecs.</TITLE>
+<FILE>codecs</FILE>
 rte_codec_info_enum
 rte_codec_info_keyword
 rte_codec_info_codec
 rte_codec_set
 rte_codec_get
+rte_codec_set_user_data
+rte_codec_get_user_data
 rte_codec_set_parameters
+</SECTION>
+
+<SECTION>
+<TITLE>Setting encoding options.</TITLE>
+<FILE>options</FILE>
 rte_option_info_enum
 rte_option_info_keyword
 rte_option_get
@@ -22,15 +33,33 @@ rte_option_set
 </SECTION>
 
 <SECTION>
-<TITLE>Fundamental types</TITLE>
+<TITLE>Input-output interfaces.</TITLE>
+<FILE>io</FILE>
+rte_set_input_callback_buffered
+rte_set_input_callback_data
+rte_set_input_push_buffered
+rte_set_input_push_data
+rte_push_buffer
+rte_push_data
+rte_set_output_callback
+</SECTION>
+
+<SECTION>
+<TITLE>Fundamental types.</TITLE>
 <FILE>types</FILE>
 rte_bool
+rte_pointer
 rte_context_info
-rte_context
 rte_codec_info
-rte_codec
 rte_stream_type
 rte_option_value
 rte_option_info
 rte_stream_parameters
+rte_video_stream_parameters
+rte_audio_stream_parameters
+rte_buffer
+rteBufferCallback
+rteDataCallback
+rteWriteCallback
+rteSeekCallback
 </SECTION>

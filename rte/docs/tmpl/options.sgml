@@ -1,0 +1,58 @@
+<!-- ##### SECTION Title ##### -->
+Setting encoding options.
+
+<!-- ##### SECTION Short_Description ##### -->
+
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### FUNCTION rte_option_info_enum ##### -->
+<para>
+
+</para>
+
+@codec: 
+@index: 
+@Returns: 
+
+
+<!-- ##### FUNCTION rte_option_info_keyword ##### -->
+<para>
+
+</para>
+
+@codec: 
+@keyword: 
+@Returns: 
+
+
+<!-- ##### FUNCTION rte_option_get ##### -->
+<para>
+
+</para>
+
+@codec: 
+@keyword: 
+@value: 
+@Returns: 
+
+
+<!-- ##### FUNCTION rte_option_set ##### -->
+<para>
+
+</para>
+
+@codec: 
+@keyword: 
+@Varargs: 
+@Returns: 
+
+

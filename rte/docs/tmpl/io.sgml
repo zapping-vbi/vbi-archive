@@ -1,0 +1,87 @@
+<!-- ##### SECTION Title ##### -->
+Selecting Input/output interface.
+
+<!-- ##### SECTION Short_Description ##### -->
+
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### FUNCTION rte_set_input_callback_buffered ##### -->
+<para>
+
+</para>
+
+@codec: 
+@get_cb: 
+@unref_cb: 
+<!-- # Unused Parameters # -->
+@get_ab: 
+@unref_ab: 
+
+
+<!-- ##### FUNCTION rte_set_input_callback_data ##### -->
+<para>
+
+</para>
+
+@codec: 
+@data_cb: 
+
+
+<!-- ##### FUNCTION rte_set_input_push_buffered ##### -->
+<para>
+
+</para>
+
+@codec: 
+@unref_cb: 
+
+
+<!-- ##### FUNCTION rte_set_input_push_data ##### -->
+<para>
+
+</para>
+
+@codec: 
+
+
+<!-- ##### FUNCTION rte_push_buffer ##### -->
+<para>
+
+</para>
+
+@codec: 
+@buffer: 
+@blocking: 
+
+
+<!-- ##### FUNCTION rte_push_data ##### -->
+<para>
+
+</para>
+
+@codec: 
+@data: 
+@timestamp: 
+@blocking: 
+@Returns: 
+
+
+<!-- ##### FUNCTION rte_set_output_callback ##### -->
+<para>
+
+</para>
+
+@context: 
+@write_cb: 
+@seek_cb: 
+
+

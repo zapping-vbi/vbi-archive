@@ -1,0 +1,96 @@
+<!-- ##### SECTION Title ##### -->
+Selecting codecs.
+
+<!-- ##### SECTION Short_Description ##### -->
+
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### FUNCTION rte_codec_info_enum ##### -->
+<para>
+
+</para>
+
+@context: 
+@stream_type: 
+@index: 
+@Returns: 
+
+
+<!-- ##### FUNCTION rte_codec_info_keyword ##### -->
+<para>
+
+</para>
+
+@context: 
+@keyword: 
+@Returns: 
+
+
+<!-- ##### FUNCTION rte_codec_info_codec ##### -->
+<para>
+
+</para>
+
+@codec: 
+@Returns: 
+
+
+<!-- ##### FUNCTION rte_codec_set ##### -->
+<para>
+
+</para>
+
+@context: 
+@stream_index: 
+@codec_keyword: 
+@Returns: 
+
+
+<!-- ##### FUNCTION rte_codec_get ##### -->
+<para>
+
+</para>
+
+@context: 
+@stream_type: 
+@stream_index: 
+@Returns: 
+
+
+<!-- ##### FUNCTION rte_codec_set_user_data ##### -->
+<para>
+
+</para>
+
+@codec: 
+@data: 
+
+
+<!-- ##### FUNCTION rte_codec_get_user_data ##### -->
+<para>
+
+</para>
+
+@codec: 
+@Returns: 
+
+
+<!-- ##### FUNCTION rte_codec_set_parameters ##### -->
+<para>
+
+</para>
+
+@codec: 
+@params: 
+@Returns: 
+
+

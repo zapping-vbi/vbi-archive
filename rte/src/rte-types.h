@@ -21,7 +21,13 @@
 #ifndef __RTE_TYPES_H__
 #define __RTE_TYPES_H__
 
+/* FIXME: This should be improved (requirements for off64_t) */
+#define _GNU_SOURCE
+#include <sys/types.h>
+#include <unistd.h>
+
 typedef int rte_bool;
+typedef void* rte_pointer;
 
 typedef struct {
   char *		keyword;	/* eg. "mp1e-mpeg1-ps" */
@@ -96,33 +102,58 @@ typedef struct {
 } rte_option_info;
 
 typedef struct {
-  union {
-    struct rte_video_stream_parameters {
-      rte_pixfmt	pixfmt;
-      double		frame_rate;	    /* 24, 25, 30, 30000 / 1001, .. */
-      int		width, height;    /* pixels, Y if YUV 4:2:0 */
-      int		u_offset, v_offset; /* bytes rel. Y org or ignored */
-      int		stride;	    /* bytes, Y if YUV 4:2:0 */
-      int		uv_stride;	    /* bytes or ignored */
-      /* scaling? */
-    }			video;
-    struct rte_audio_stream_parameters {
-      rte_sndfmt	sndfmt;
-      int		sampling_freq;	/* Hz */
-      int		channels;		/* mono: 1, stereo: 2 */
-      int		fragment_size;	/* bytes */
-    }			audio;
-    char		pad[128]; /* binary compat */
-  }
+  rte_pixfmt	pixfmt;
+  double	frame_rate;	    /* 24, 25, 30, 30000 / 1001, .. */
+  double	pixel_aspect;
+  int		width, height;    /* pixels, Y if YUV 4:2:0 */
+  int		u_offset, v_offset; /* bytes rel. Y org or ignored */
+  int		stride;	    /* bytes, Y if YUV 4:2:0 */
+  int		uv_stride;	    /* bytes or ignored */
+  /* scaling? */
+} rte_video_stream_parameters;
 
-  enum {
-			RTE_PUSH_BUFFERED = 1
-			RTE_PUSH_COPY,
-			RTE_CALLBACKS_BUFFERED,
-			RTE_CALLBACKS_COPY
-  } feed_mode;
-  
-  rte_bool non_blocking;
+typedef struct {
+  rte_sndfmt	sndfmt;
+  int		sampling_freq;	/* Hz */
+  int		channels;	/* mono: 1, stereo: 2 */
+  int		fragment_size;	/* bytes */
+} rte_audio_stream_parameters;
+
+typedef union {
+  rte_video_stream_parameters	video;
+  rte_audio_stream_parameters	audio;
+  char				pad[128]; /* binary compat */
 } rte_stream_parameters;
 
+typedef struct {
+  rte_pointer	data; /* Pointer to the data in the buffer */
+  double	timestamp; /* timestamp for the buffer */
+  rte_pointer	user_data; /* Whatever data the user wants to store */
+} rte_buffer;
+
+typedef void (*rteDataCallback)(rte_context * context,
+				rte_codec * codec,
+				rte_pointer data,
+				double * time);
+
+typedef void (*rteBufferCallback)(rte_context * context,
+				  rte_codec * codec,
+				  rte_buffer * buffer);
+
+typedef void (*rteWriteCallback)(rte_context * context,
+				 rte_pointer data,
+				 int bytes);
+
+/**
+ * rteSeekCallback:
+ * @context: Context that requests the seek().
+ * @offset: Position to seek to.
+ * @whence: SEEK_SET..., see man lseek.
+ *
+ * The context requests to seek to the given resulting stream
+ * position. @offset and @whence follow lseek semantics.
+ **/
+typedef void (*rteSeekCallback)(rte_context * context,
+				off64_t offset,
+				int whence);
 #endif

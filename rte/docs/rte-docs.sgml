@@ -1,6 +1,8 @@
 <!doctype book PUBLIC "-//Davenport//DTD DocBook V3.0//EN" [
-<!ENTITY rte-rte SYSTEM "sgml/rte.sgml">
-<!ENTITY rte-enums SYSTEM "sgml/enums.sgml">
+<!ENTITY rte-contexts SYSTEM "sgml/contexts.sgml">
+<!ENTITY rte-codecs SYSTEM "sgml/codecs.sgml">
+<!ENTITY rte-options SYSTEM "sgml/options.sgml">
+<!ENTITY rte-io SYSTEM "sgml/io.sgml">
 <!ENTITY rte-types SYSTEM "sgml/types.sgml">
 ]>
 <book id="index">
@@ -10,8 +12,10 @@
 
   <chapter>
     <title>RTE</title>
-    &rte-rte;
+    &rte-contexts;
+    &rte-codecs;
+    &rte-options;
+    &rte-io;
     &rte-types;
-    &rte-enums;
   </chapter>
 </book>

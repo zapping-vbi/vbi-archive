@@ -38,6 +38,26 @@ enums
 Fundamental types
 
 
+<!-- ##### SECTION ./tmpl/rte.sgml:Long_Description ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION ./tmpl/rte.sgml:See_Also ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION ./tmpl/rte.sgml:Short_Description ##### -->
+
+
+
+<!-- ##### SECTION ./tmpl/rte.sgml:Title ##### -->
+Library interface
+
+
 <!-- ##### MACRO RTE_VBIFMTS_2xCAPTION_525 ##### -->
 <para>
 
@@ -130,6 +150,13 @@ Fundamental types
 @context: 
 @Returns: 
 
+<!-- ##### FUNCTION rte_init ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
 <!-- ##### ENUM rte_option_type ##### -->
 <para>
 
@@ -160,6 +187,21 @@ Fundamental types
 @RTE_PIXFMT_RGB15: 
 @RTE_PIXFMT_BGR15: 
 @RTE_PIXFMT_MAX: 
+
+<!-- ##### FUNCTION rte_set_input_callback_copy ##### -->
+<para>
+
+</para>
+
+@codec: 
+@copy_cb: 
+
+<!-- ##### FUNCTION rte_set_input_push_copy ##### -->
+<para>
+
+</para>
+
+@codec: 
 
 <!-- ##### FUNCTION rte_set_parameters ##### -->
 <para>
