@@ -1,3 +1,11 @@
+2005-02-06    <mschimek@users.sf.net>
+
+	* test/Makefile.am (INCLUDES): Include top_srcdir.
+	* test/clear_image.c: Out of date wrt tv_pixel_format.
+	* libtv/image_format.c (tv_clear_image altivec path)
+	  zapping_setup_fb/v4l.c (setup_v4l): Used bytes_per_line instead
+	  of bytes_per_line[0].
+
 2005-02-05    <mschimek@users.sf.net>
 
 	* autogen.sh: Prepared for autoconf/make version test.

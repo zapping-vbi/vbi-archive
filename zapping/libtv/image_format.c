@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.c,v 1.7 2005-01-31 07:04:04 mschimek Exp $ */
+/* $Id: image_format.c,v 1.8 2005-02-06 21:42:07 mschimek Exp $ */
 
 #include <string.h>		/* memset() */
 #include <assert.h>
@@ -343,7 +343,7 @@ tv_clear_image			(void *			image,
 
 #ifdef HAVE_ALTIVEC
 	if (0 /* UNTESTED */ &&
-	    0 == ((unsigned long) image | format->bytes_per_line) % 16)
+	    0 == ((unsigned long) image | format->bytes_per_line[0]) % 16)
 		clear_block = clear_block_altivec;
 	else
 #endif

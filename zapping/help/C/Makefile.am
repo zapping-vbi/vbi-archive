@@ -13,5 +13,5 @@ include $(top_srcdir)/help/xmldocs.make
 
 dist-hook: app-dist-hook
 
-check: $(entitites)
+xmlcheck: $(entitites)
 	nsgmls -s -E2000 zapping.xml

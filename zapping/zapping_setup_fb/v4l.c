@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.9 2005-01-08 14:54:29 mschimek Exp $ */
+/* $Id: v4l.c,v 1.10 2005-02-06 21:42:09 mschimek Exp $ */
 
 #include "config.h"
 #include "zapping_setup_fb.h"
@@ -91,7 +91,7 @@ setup_v4l			(const char *		device_name,
   else
     fb.depth		= pf->color_depth; /* 15, 16, 24 */
 
-  fb.bytesperline	= buffer->format.bytes_per_line;
+  fb.bytesperline	= buffer->format.bytes_per_line[0];
 
   message (2, "Setting new FB parameters.\n");
 

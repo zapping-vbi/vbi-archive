@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: memcpy.c,v 1.1 2005-01-08 14:43:22 mschimek Exp $ */
+/* $Id: memcpy.c,v 1.2 2005-02-06 21:42:08 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -39,11 +39,13 @@ test1				(uint8_t *		dst,
 				 unsigned int		n_bytes)
 {
 	unsigned int i;
+	unsigned int size;
 	uint8_t *p;
 
 	memset (dbuffer, 0xAA, dbuffer_end - dbuffer);
 
-	for (i = 0; i < sbuffer_end - sbuffer; ++i)
+	size = sbuffer_end - sbuffer;
+	for (i = 0; i < size; ++i)
 		sbuffer[i] = i;
 
 	tv_memcpy (dst, src, n_bytes);

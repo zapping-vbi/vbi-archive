@@ -1382,13 +1382,13 @@ image_format_from_format	(tveng_device_info *	info _unused_,
 				 const struct v4l2_format *vfmt)
 {
 	tv_pixfmt pixfmt;
-	unsigned int bytes_per_line;
+	unsigned int bytes_per_line[4];
 
 	CLEAR (*f);
 
 	if (TVENG25_BAYER_TEST) {
 		pixfmt = TV_PIXFMT_SBGGR;
-		bytes_per_line = vfmt->fmt.pix.width;
+		bytes_per_line[0] = vfmt->fmt.pix.width;
 	} else {
 		pixfmt = pixelformat_to_pixfmt (vfmt->fmt.pix.pixelformat);
 
@@ -1397,14 +1397,14 @@ image_format_from_format	(tveng_device_info *	info _unused_,
 
 		/* bttv 0.9.12 bug:
 		   returns bpl = width * bpp, w/ bpp > 1 if planar YUV */
-		bytes_per_line = vfmt->fmt.pix.width
+		bytes_per_line[0] = vfmt->fmt.pix.width
 			* tv_pixfmt_bytes_per_pixel (pixfmt);
 	}
 
 	tv_image_format_init (f,
 			      vfmt->fmt.pix.width,
 			      vfmt->fmt.pix.height,
-			      bytes_per_line,
+			      bytes_per_line[0],
 			      pixfmt,
 			      TV_COLSPC_UNKNOWN);
 
