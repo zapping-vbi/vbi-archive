@@ -4,7 +4,8 @@
  *  Copyright (C) 2001 Michael H. Schimek
  *
  *  Based on code by Justin Schoeman,
- *  modified by Iñaki G. Etxebarria
+ *  modified by Iñaki G. Etxebarria,
+ *  and more code from ffmpeg by Gerard Lantau.
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.3 2001-08-10 22:41:09 garetxe Exp $ */
+/* $Id: v4l.c,v 1.4 2001-08-11 00:56:30 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -45,14 +46,14 @@ static int			fd;
 static fifo			cap_fifo;
 static producer			cap_prod;
 
-static struct video_capability	vcap;
-static struct video_channel	chan;
-static struct video_mbuf	buf;
-static struct video_mmap	vmmap;
 static struct video_audio	old_vaud;
-static unsigned long		buf_base;
-
 static pthread_t		thread_id;
+
+static int			use_mmap = 0;
+static int			gb_frame = 0;
+static struct video_mmap	gb_buf;
+static struct video_mbuf	gb_buffers;
+static unsigned char *		video_buf;
 
 #define IOCTL(fd, cmd, data) (TEMP_FAILURE_RETRY(ioctl(fd, cmd, data)))
 
@@ -68,44 +69,66 @@ static void *
 v4l_cap_thread(void *unused)
 {
 	buffer *b;
-	int cframe;
-	int r;
 
-	for (cframe = 0; cframe < buf.frames; cframe++) {
-		vmmap.frame = cframe;
-		ASSERT("queue v4l capture buffer #%d",
-			ioctl(fd, VIDIOCMCAPTURE, &vmmap) == 0,
-			cframe);
+	if (!use_mmap) {
+		int val = 1;
+
+		ASSERT("start capturing (VIDIOCCAPTURE)",
+			IOCTL(fd, VIDIOCCAPTURE, &val) == 0);
 	}
 
-	cframe = 0;
-
 	for (;;) {
-		/* Just in case wait_empty never waits */
+		/* Just in case wait_empty_buffer never waits */
 		pthread_testcancel();
 
 		b = wait_empty_buffer(&cap_prod);
 
-		r = IOCTL(fd, VIDIOCSYNC, &cframe);
+		if (use_mmap) {
+			gb_buf.frame = gb_frame;
 
-		b->time = current_time();
+		    	ASSERT("VIDIOCMCAPTURE",
+				IOCTL(fd, VIDIOCMCAPTURE, &gb_buf) >= 0);
 
-		ASSERT("ioctl VIDIOCSYNC", r >= 0);
+			gb_frame = 1 - gb_frame;
 
-		b->used = b->size;
-		memcpy(b->data, (unsigned char *)(buf_base
-			+ buf.offsets[cframe]), b->used);
+			if (IOCTL(fd, VIDIOCSYNC, &gb_frame) < 0)
+				ASSERT("VIDIOCSYNC", errno == EAGAIN);
 
-		vmmap.frame = cframe;
+			b->time = current_time();
 
-		ASSERT("queue v4l capture buffer #%d",
-			IOCTL(fd, VIDIOCMCAPTURE, &vmmap) == 0,
-			cframe);
+			/* NB: typ. 3-20 MB/s, a horrible waste of cycles. */
+			memcpy(b->data, video_buf
+				+ gb_buffers.offsets[gb_frame], b->size);
+
+			b->used = b->size;
+		} else {
+			unsigned char *p = b->data;
+			ssize_t r, n = b->size;
+
+			while (n > 0) {
+				r = read(fd, p, n);
+
+				if (r < 0) {
+					if (errno == EINTR)
+						continue;
+
+					if (errno == EAGAIN) {
+						usleep(5000);
+						continue;
+					}
+
+					ASSERT("read video data", 0);
+				}
+
+				p += r;
+				n -= r;
+			}
+
+			b->time = current_time();
+			b->used = b->size;
+		}
 
 		send_full_buffer(&cap_prod, b);
-
-		if (++cframe >= buf.frames)
-			cframe = 0;
 	}
 
 	return NULL;
@@ -120,42 +143,48 @@ restore_audio(void)
 	IOCTL(fd, VIDIOCSAUDIO, &old_vaud);
 }
 
+#define DECIMATING(mode) (mode == CM_YUYV_VERTICAL_DECIMATION ||	\
+			  mode == CM_YUYV_EXP_VERTICAL_DECIMATION)
+
 fifo *
 v4l_init(void)
 {
+	struct video_capability vcap;
 	int min_cap_buffers = video_look_ahead(gop_sequence);
-	int aligned_width;
-	int aligned_height;
+	int aligned_width, aligned_height;
 	unsigned long buf_size;
 	int buf_count;
 
 	grab_width = width = saturate(width, 1, MAX_WIDTH);
 	grab_height = height = saturate(height, 1, MAX_HEIGHT);
 
-	aligned_width  = (width + 15) & -16;
-	aligned_height = (height + 15) & -16;
+	aligned_width  = (grab_width + 15) & -16;
+	aligned_height = (grab_height + 15) & -16;
 
 	buf_count = MAX(cap_buffers, min_cap_buffers);
 
-	ASSERT("open capture device", (fd = open(cap_dev, O_RDONLY)) != -1);
+	ASSERT("open capture device",
+		(fd = open(cap_dev, O_RDWR)) >= 0);
 
 	ASSERT("query video capture capabilities of %s (no v4l device?)",
-		IOCTL(fd, VIDIOCGCAP, &vcap) == 0, cap_dev);
+		IOCTL(fd, VIDIOCGCAP, &vcap) >= 0, cap_dev);
 
 	if (!(vcap.type & VID_TYPE_CAPTURE))
 		FAIL("%s ('%s') is not a video capture device",
 			cap_dev, vcap.name);
 
-	if (IOCTL(fd, VIDIOCGAUDIO, &old_vaud) == 0) {
+	/* Unmute audio (bttv) */
+
+	if (IOCTL(fd, VIDIOCGAUDIO, &old_vaud) >= 0) {
 		struct video_audio vaud;
 
 		memcpy(&vaud, &old_vaud, sizeof(vaud));
 
 		vaud.flags &= ~VIDEO_AUDIO_MUTE;
-		vaud.volume = 60000;
+		/* vaud.volume = 60000; */
 
 		ASSERT("enable sound of %s",
-			IOCTL(fd, VIDIOCSAUDIO, &vaud) == 0,
+			IOCTL(fd, VIDIOCSAUDIO, &vaud) >= 0,
 			cap_dev);
 
 		atexit(restore_audio);
@@ -163,47 +192,189 @@ v4l_init(void)
 
 	printv(2, "Opened %s ('%s')\n", cap_dev, vcap.name);
 
-	ASSERT("query video channel", IOCTL(fd, VIDIOCGCHAN, &chan) == 0);
+	/* Determine current video standard */
 
-	if (chan.norm == 0) /* PAL */
-		frame_rate_code = 3;
-	else /* NTSC */
-		frame_rate_code = 4;
+	{
+		struct video_tuner vtuner;
+		struct video_channel vchan;
 
-	printv(2, "Video standard is '%s'\n",
-		chan.norm == 0 ? "PAL" : "NTSC");
+		if (IOCTL(fd, VIDIOCGTUNER, &vtuner) == -1) {
+			printv(2, "Apparently the device has no tuner\n");
 
-	if (frame_rate_code == 4 && grab_height == 288)
-		height = aligned_height = grab_height = 240;
-	if (frame_rate_code == 4 && grab_height == 576)
-		height = aligned_height = grab_height = 480;
+			ASSERT("query current video input of %s (VIDIOCGCHAN), "
+			       "cannot determine video standard (VIDIOCGTUNER didn't work either)\n",
+			       IOCTL(fd, VIDIOCGCHAN, &vchan) == 0,
+			       cap_dev);
 
-	vmmap.width	= aligned_width;
-	vmmap.height	= aligned_height;
+			vtuner.mode = vchan.norm;
+		}
 
-	if (filter_mode == CM_YUV) {
-		vmmap.format = VIDEO_PALETTE_YUV420P;
-		buf_size = vmmap.width * vmmap.height * 3 / 2;
-	} else {
-		vmmap.format = VIDEO_PALETTE_YUV422;
-		buf_size = vmmap.width * vmmap.height * 2;
+		switch (vtuner.mode) {
+		case VIDEO_MODE_PAL:
+		case VIDEO_MODE_SECAM:
+			printv(2, "Video standard is PAL/SECAM\n");
+			frame_rate_code = 3;
+			break;
+
+		case VIDEO_MODE_NTSC:
+			printv(2, "Video standard is NTSC\n");
+			frame_rate_code = 4;
+
+			if (grab_height == 288) /* that's the default, assuming PAL */
+				height = aligned_height = grab_height = 240;
+			if (grab_height == 576)
+				height = aligned_height = grab_height = 480;
+
+			break;
+
+		default:
+			FAIL("Current video standard #%d unknown.\n", vtuner.mode);
+			break;
+		}
 	}
 
-	filter_init(vmmap.width);
+	if (IOCTL(fd, VIDIOCGMBUF, &gb_buffers) == -1) {
+		struct video_window win;
+		struct video_picture pict;
 
-	ASSERT("request capture buffers", IOCTL(fd, VIDIOCGMBUF, &buf) == 0);
+		printv(2, "VIDICGMBUF failed, using read interface\n");
 
-	if (buf.frames == 0)
-		FAIL("No capture buffers granted");
+		use_mmap = 0;
 
-	printv(2, "%d capture buffers granted\n", buf.frames);
+		/* Set capture format and dimensions */
 
-	printv(3, "Mapping capture buffers.\n");
+		memset(&win, 0, sizeof(win));
 
-	buf_base = (unsigned long) mmap(NULL, buf.size, PROT_READ,
+		win.width = aligned_width;
+		win.height = aligned_height;
+
+		if (DECIMATING(filter_mode))
+			win.height *= 2;
+
+		win.chromakey = -1;
+
+		ASSERT("set the grab size of %s to %dx%d, "
+		       "suggest other -s, -G, -F values",
+			IOCTL(fd, VIDIOCSWIN, &win),
+			cap_dev, win.width, win.height);
+
+		ASSERT("determine the current image format of %s (VIDIOCGPICT)",
+		        IOCTL(fd, VIDIOCGPICT, &pict), cap_dev);
+
+		if (filter_mode == CM_YUV)
+			pict.palette = VIDEO_PALETTE_YUV420P;
+		else
+			pict.palette = VIDEO_PALETTE_YUV422;
+
+		if (IOCTL(fd, VIDIOCSPICT, &pict) < 0) {
+			printv(2, "Image format %d not accepted.\n",
+				pict.palette);
+
+			if (filter_mode == CM_YUV) {
+				filter_mode = CM_YUYV;
+				pict.palette = VIDEO_PALETTE_YUV422;
+			} else {
+				if (DECIMATING(filter_mode)) {
+					memset(&win, 0, sizeof(win));
+					win.width = aligned_width;
+					win.height = aligned_height;
+					win.chromakey = -1;
+
+					ASSERT("set the grab size of %s to %dx%d, "
+					       "suggest other -s, -G, -F values",
+						IOCTL(fd, VIDIOCSWIN, &win),
+						cap_dev, win.width, win.height);
+				}
+
+				filter_mode = CM_YUV;
+				pict.palette = VIDEO_PALETTE_YUV420P;
+			}
+
+			ASSERT("set image format of %s, "
+			       "probably none of YUV 4:2:0 or 4:2:2 are supported",
+		    		IOCTL(fd, VIDIOCSPICT, &pict), cap_dev);
+		}
+
+		if (filter_mode == CM_YUV) {
+	    		filter_init(win.width); /* line stride in bytes */
+			buf_size = win.width * win.height * 3 / 2;
+		} else {
+	    		filter_init(win.width * 2);
+			buf_size = win.width * win.height * 2;
+		}
+	} else {
+		int r;
+
+		printv(2, "Using mmap interface, %d capture buffers granted.\n",
+			gb_buffers.frames);
+
+		use_mmap = 1;
+
+		if (gb_buffers.frames < 2)
+			FAIL("Expected 2+ buffers from %s, got %d",
+				cap_dev, gb_buffers.frames);
+
+		printv(2, "Mapping capture buffers\n");
+
+		video_buf = mmap(NULL, gb_buffers.size, PROT_READ | PROT_WRITE,
 			MAP_SHARED, fd, 0);
 
-	ASSERT("map capture buffers", buf_base != -1);
+		ASSERT("map capture buffers from %s",
+			video_buf != (void *) -1, cap_dev);
+
+		gb_frame = 0;
+
+		printv(2, "Grab 1st frame and set capture format and dimensions.\n");
+		/* @:-} IMHO */
+
+		gb_buf.frame = 1 - gb_frame;
+		gb_buf.width = aligned_width;
+		gb_buf.height = aligned_height;
+
+		if (DECIMATING(filter_mode))
+			gb_buf.height *= 2;
+
+		if (filter_mode == CM_YUV)
+			gb_buf.format = VIDEO_PALETTE_YUV420P;
+		else
+			gb_buf.format = VIDEO_PALETTE_YUV422;
+
+    		r = IOCTL(fd, VIDIOCMCAPTURE, &gb_buf);
+
+		if (r < 0 && errno != EAGAIN) {
+			printv(2, "Image format %d not accepted.\n",
+				gb_buf.format);
+
+			if (filter_mode == CM_YUV) {
+				filter_mode = CM_YUYV;
+				gb_buf.format = VIDEO_PALETTE_YUV422;
+			} else {
+				filter_mode = CM_YUV;
+				gb_buf.width = aligned_width;
+				gb_buf.height = aligned_height;
+				gb_buf.format = VIDEO_PALETTE_YUV420P;
+			}
+
+			r = IOCTL(fd, VIDIOCMCAPTURE, &gb_buf);
+		}
+
+    		if (r < 0 && errno == EAGAIN)
+			FAIL("%s does not receive a video signal.\n", cap_dev);
+
+		ASSERT("start capturing (VIDIOCMCAPTURE) from %s, maybe the device doesn't\n"
+		       "support YUV 4:2:0 or 4:2:2, or the grab size %dx%d is not suitable.\n"
+		       "Different -s, -G, -F values may help.",
+		       r >= 0,
+		       cap_dev, gb_buf.width, gb_buf.height);
+
+		if (filter_mode == CM_YUV) {
+	    		filter_init(gb_buf.width); /* line stride in bytes */
+			buf_size = gb_buf.width * gb_buf.height * 3 / 2;
+		} else {
+	    		filter_init(gb_buf.width * 2);
+			buf_size = gb_buf.width * gb_buf.height * 2;
+		}
+        }
 
 	ASSERT("initialize v4l fifo", init_buffered_fifo(
 		&cap_fifo, "video-v4l2",
@@ -216,9 +387,9 @@ v4l_init(void)
 
 	ASSERT("create v4l capture thread",
 		!pthread_create(&thread_id, NULL,
-			v4l_cap_thread, NULL));
+		v4l_cap_thread, NULL));
 
-	printv(2, "V4L capture thread launched (you should really use V4L2...)\n");
+	printv(2, "V4L capture thread launched\n");
 
 	return &cap_fifo;
 }
