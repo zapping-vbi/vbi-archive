@@ -1,3 +1,9 @@
+25.07.2001	rearranged gui <garetxe@users.sf.net>
+
+	* src/v4linterface.c, glade/zapping.glade: Left just channel
+	up/down in the toolbar, moved Channels, standards and inputs to
+	the menu. Set channel name in the main window title bar.
+
 24.07.2001	french translation <garetxe@users.sf.net>
 
 	* src/channel_editor.c: Doesn't add the channel if Cancel is

@@ -33,6 +33,7 @@
 #include "interface.h"
 #include "ttxview.h"
 #include "frequencies.h"
+#include "v4linterface.h"
 
 #include <tveng.h>
 
@@ -159,28 +160,19 @@ gpointer remote_command(gchar *command, gpointer arg)
   else if (!strcasecmp(command, "set_channel"))
     {
       int channel_num = GPOINTER_TO_INT(arg);
-      GtkWidget * Channels = lookup_widget(main_window, "Channels");
       if (channel_num < 0)
 	channel_num = 0;
       if (channel_num >= tveng_tuned_channel_num(global_channel_list))
 	channel_num = tveng_tuned_channel_num(global_channel_list)-1;
-      on_channel_activate(NULL,
-			  GINT_TO_POINTER(channel_num));
-      /* Update the option menu */
-      gtk_option_menu_set_history(GTK_OPTION_MENU (Channels),
-				  channel_num);
+      z_select_channel(channel_num);
     }
   else if (!strcasecmp(command, "channel_up"))
     {
-      on_channel_up1_activate(GTK_MENU_ITEM(lookup_widget(main_window,
-					    "channel_up1")),
-			      NULL);
+      z_channel_up();
     }
   else if (!strcasecmp(command, "channel_down"))
     {
-      on_channel_down1_activate(GTK_MENU_ITEM(lookup_widget(main_window,
-					      "channel_down1")),
-				NULL);
+      z_channel_down();
     }
   else if (!strcasecmp(command, "set_vbi_mode"))
     {

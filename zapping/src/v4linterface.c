@@ -41,13 +41,8 @@ extern int cur_tuned_channel; /* currently tuned channel (in callbacks.c) */
 GtkWidget * ToolBox = NULL; /* Pointer to the last control box */
 ZModel *z_input_model = NULL;
 
-/* Activate an standard */
-static
-void on_standard_activate              (GtkMenuItem     *menuitem,
-					gpointer        user_data)
-{
-  z_switch_standard(GPOINTER_TO_INT(user_data), main_info);
-}
+/* Minimize updates */
+static gboolean freeze = FALSE, needs_refresh = FALSE;
 
 /* Activate an input */
 static
@@ -57,151 +52,147 @@ void on_input_activate              (GtkMenuItem     *menuitem,
   z_switch_input(GPOINTER_TO_INT(user_data), main_info);
 }
 
-/* 
-   Update the menu from where we can choose the standard. Widget is
-   any widget in the same window as the standard menu (we lookup() it)
-*/
+/* Activate an standard */
 static
-void update_standards_menu(GtkWidget * widget, tveng_device_info *
-			   info)
+void on_standard_activate              (GtkMenuItem     *menuitem,
+					gpointer        user_data)
 {
-  GtkWidget * Standards = lookup_widget(widget, "Standards");
-  GtkWidget * NewMenu; /* New menu */
-  GtkWidget * menu_item;
-  int i;
-  
-  /* remove old (dummy) menu */
-  gtk_widget_destroy(gtk_option_menu_get_menu (GTK_OPTION_MENU (Standards)));
-
-  NewMenu = gtk_menu_new ();
-
-  if (info -> num_standards == 0)
-    gtk_widget_set_sensitive(Standards, FALSE);
-  else
-    gtk_widget_set_sensitive(Standards, TRUE);
-
-  for (i = 0; i < info->num_standards; i++)
-  {
-    menu_item =
-      gtk_menu_item_new_with_label(info->standards[i].name);
-    gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
-		       GTK_SIGNAL_FUNC(on_standard_activate),
-		       GINT_TO_POINTER(info->standards[i].hash));
-    gtk_widget_show (menu_item);
-    gtk_menu_append(GTK_MENU (NewMenu), menu_item);
-  }
-
-  if (info -> num_standards == 0)
-    {
-      menu_item =
-	gtk_menu_item_new_with_label(_("No available standards"));
-      gtk_widget_set_sensitive(menu_item, FALSE);
-      gtk_widget_show (menu_item);
-      gtk_menu_append (GTK_MENU (NewMenu), menu_item);
-    }
-
-  gtk_option_menu_set_menu (GTK_OPTION_MENU (Standards), NewMenu);
-
-  gtk_option_menu_set_history (GTK_OPTION_MENU (Standards), 
-			       info -> cur_standard);
-}
-
-/* 
-   Update the menu from where we can choose the input. Widget is
-   any widget in the same window as the standard menu (we lookup() it)
- */
-static
-void update_inputs_menu(GtkWidget * widget, tveng_device_info *
-			info)
-{
-  GtkWidget * Inputs = lookup_widget(widget, "Inputs");
-  GtkWidget * NewMenu; /* New menu */
-  GtkWidget * menu_item;
-  int i;
-
-  /* remove old menu */
-  gtk_widget_destroy(gtk_option_menu_get_menu (GTK_OPTION_MENU (Inputs)));
-
-  NewMenu = gtk_menu_new ();
-
-  for (i = 0; i < info->num_inputs; i++)
-  {
-    menu_item =
-      gtk_menu_item_new_with_label(info->inputs[i].name);
-
-    gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
-		       GTK_SIGNAL_FUNC(on_input_activate),
-		       GINT_TO_POINTER(info->inputs[i].hash));
-    gtk_widget_show (menu_item);
-    gtk_menu_append(GTK_MENU (NewMenu), menu_item);
-  }
-
-  gtk_option_menu_set_menu (GTK_OPTION_MENU (Inputs), NewMenu);
-
-  gtk_option_menu_set_history (GTK_OPTION_MENU (Inputs),
-			       info->cur_input);
-}
-
-/*
-  Update the menu from where we can choose the TV channel. Widget is
-  any widget in the same window as the standard menu (we lookup() it)
-*/
-static
-void update_channels_menu(GtkWidget* widget, tveng_device_info * info)
-{
-  GtkWidget * Channels = lookup_widget(widget, "Channels");
-  GtkWidget * NewMenu; /* New menu */
-  int i = 0;
-  tveng_tuned_channel * tuned;
-  GtkWidget * menu_item;
-  gboolean tunes = TRUE;
-
-  /* remove old menu */
-  gtk_widget_destroy(gtk_option_menu_get_menu (GTK_OPTION_MENU (Channels)));
-
-  NewMenu = gtk_menu_new ();
-  
-  /* If no tuned channels show error not sensitive */
-  if (tveng_tuned_channel_num(global_channel_list) == 0)
-    tunes = FALSE;
-
-  gtk_widget_set_sensitive(Channels, tunes);
-
-  /* Different menus depending on the input */
-  if (tunes)
-    for (i = 0;
-	 (tuned = tveng_retrieve_tuned_channel_by_index(i,
-							global_channel_list));
-	 i++)
-      {
-	menu_item =
-	  gtk_menu_item_new_with_label(tuned -> name);
-	gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
-			   GTK_SIGNAL_FUNC(on_channel_activate),
-			   GINT_TO_POINTER ( i )); /* it should know about
-					    itself */
-	gtk_widget_show (menu_item);
-	gtk_menu_append (GTK_MENU (NewMenu), menu_item);
-      }
-  else
-    {
-      menu_item = gtk_menu_item_new_with_label(_("No tuned channels"));
-      gtk_widget_show (menu_item);
-      gtk_menu_append (GTK_MENU (NewMenu), menu_item);
-    }
-
-  gtk_option_menu_set_menu (GTK_OPTION_MENU (Channels), NewMenu);
-
-  gtk_option_menu_set_history (GTK_OPTION_MENU (Channels), cur_tuned_channel);
+  z_switch_standard(GPOINTER_TO_INT(user_data), main_info);
 }
 
 static void
 update_bundle				(ZModel		*model,
 					 tveng_device_info *info)
 {
-  update_inputs_menu(lookup_widget(main_window, "Inputs"), info);
-  update_standards_menu(lookup_widget(main_window, "Standards"), info);
-  update_channels_menu(lookup_widget(main_window, "Channels"), info);
+  GtkMenuItem *channels =
+    GTK_MENU_ITEM(lookup_widget(main_window, "channels"));
+  GtkMenu *menu, *menu2;
+  GtkWidget *menu_item;
+  gint i;
+  tveng_tuned_channel *tc;
+  gchar *tooltip;
+  gboolean sth = FALSE;
+
+  if (freeze)
+    {
+      needs_refresh = TRUE;
+      return;
+    }
+
+  menu = GTK_MENU(gtk_menu_new());
+
+  menu_item = gtk_tearoff_menu_item_new();
+  gtk_widget_show(menu_item);
+  gtk_menu_append(menu, menu_item);
+
+  /* If no tuned channels show error not sensitive */
+  if (tveng_tuned_channel_num(global_channel_list))
+    for (i = 0;
+	 (tc = tveng_retrieve_tuned_channel_by_index(i,
+						     global_channel_list));
+	 i++)
+      {
+	menu_item =
+	  z_gtk_pixmap_menu_item_new(tc->name,
+				     GNOME_STOCK_PIXMAP_PROPERTIES);
+	gtk_signal_connect_object(GTK_OBJECT(menu_item), "activate",
+				  GTK_SIGNAL_FUNC(z_select_channel),
+				  GINT_TO_POINTER(i));
+	tooltip = build_channel_tooltip(tc);
+	if (tooltip)
+	  {
+	    set_tooltip(menu_item, tooltip);
+	    g_free(tooltip);
+	  }
+	gtk_widget_show(menu_item);
+	gtk_menu_append(menu, menu_item);
+	sth = TRUE;
+      }
+  else
+    {
+      menu_item = gtk_menu_item_new_with_label(_("No tuned channels"));
+      gtk_widget_show (menu_item);
+      gtk_widget_set_sensitive(menu_item, FALSE);
+      gtk_menu_append (GTK_MENU (menu), menu_item);
+    }
+
+  if (info->num_standards || info->num_inputs)
+    {
+      sth = TRUE;
+      /* separator */
+      menu_item = gtk_menu_item_new();
+      gtk_widget_show(menu_item);
+      gtk_menu_append (GTK_MENU (menu), menu_item);
+    }
+
+  if (info->num_inputs)
+    {
+      menu2 = GTK_MENU(gtk_menu_new());
+      menu_item =
+	    z_gtk_pixmap_menu_item_new(_("Inputs"),
+				       GNOME_STOCK_PIXMAP_LINE_IN);
+      gtk_widget_show(menu_item);
+      gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item),
+				GTK_WIDGET(menu2));
+      gtk_menu_append(menu, menu_item);
+      for (i = 0; i<info->num_inputs; i++)
+	{
+	  menu_item =
+	    z_gtk_pixmap_menu_item_new(info->inputs[i].name,
+				       GNOME_STOCK_PIXMAP_LINE_IN);
+	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
+			     GTK_SIGNAL_FUNC(on_input_activate),
+			     GINT_TO_POINTER(info->inputs[i].hash));
+	  gtk_widget_show(menu_item);
+	  gtk_menu_append(menu2, menu_item);
+	}
+    }
+
+  if (info->num_standards)
+    {
+      menu2 = GTK_MENU(gtk_menu_new());
+      menu_item =
+	    z_gtk_pixmap_menu_item_new("Standards",
+				       GNOME_STOCK_PIXMAP_COLORSELECTOR);
+      gtk_widget_show(menu_item);
+      gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item),
+				GTK_WIDGET(menu2));
+      gtk_menu_append(menu, menu_item);
+      for (i = 0; i<info->num_standards; i++)
+	{
+	  menu_item =
+	    z_gtk_pixmap_menu_item_new(info->standards[i].name,
+				       GNOME_STOCK_PIXMAP_COLORSELECTOR);
+	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
+			     GTK_SIGNAL_FUNC(on_standard_activate),
+			     GINT_TO_POINTER(info->standards[i].hash));
+	  gtk_widget_show(menu_item);
+	  gtk_menu_append(menu2, menu_item);
+	}
+    }
+
+  gtk_widget_show(GTK_WIDGET(menu));
+  gtk_menu_item_remove_submenu(channels);
+  gtk_menu_item_set_submenu(channels, GTK_WIDGET(menu));
+  gtk_widget_set_sensitive(GTK_WIDGET(channels), sth);
+}
+
+static void
+freeze_update (void)
+{
+  freeze = TRUE;
+  needs_refresh = FALSE;
+}
+
+static void
+thaw_update (void)
+{
+  freeze = FALSE;
+
+  if (needs_refresh)
+    update_bundle(z_input_model, main_info);
+
+  needs_refresh = FALSE;
 }
 
 static void
@@ -345,7 +336,7 @@ GtkWidget * create_menu(struct tveng_control * qc,
       gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
 			 GTK_SIGNAL_FUNC(on_control_menuitem_activate),
 			 GINT_TO_POINTER(index)); /* it should know about
-						     itself*/
+						     itself */
       gtk_widget_show(menu_item);
       gtk_menu_append(GTK_MENU(menu), menu_item);
       i++;
@@ -652,8 +643,6 @@ z_switch_standard		(int hash, tveng_device_info *info)
     ShowBox("Couldn't switch to standard %s\n%s",
 	    GNOME_MESSAGE_BOX_ERROR,
 	    standard->name, info->error);
-  else
-    zmodel_changed(z_input_model);
 }
 
 /* Returns a newly allocated copy of the string, normalized */
@@ -732,9 +721,11 @@ z_switch_channel	(tveng_tuned_channel	*channel,
 			 tveng_device_info	*info)
 {
   int mute=0;
+  gboolean was_first_switch = first_switch;
   tveng_tuned_channel *tc;
   gboolean in_global_list =
     tveng_tuned_channel_in_list(channel, global_channel_list);
+  gchar *buffer;
 
   if (!channel)
     return;
@@ -760,6 +751,12 @@ z_switch_channel	(tveng_tuned_channel	*channel,
 	tveng_set_mute(1, info);
     }
 
+  freeze_update();
+
+  /* force rebuild on startup */
+  if (was_first_switch)
+    zmodel_changed(z_input_model);
+
   if (channel->input)
     z_switch_input(channel->input, info);
 
@@ -781,11 +778,21 @@ z_switch_channel	(tveng_tuned_channel	*channel,
 
   if (in_global_list)
     {
+      if (channel->name && *channel->name)
+	{
+	  buffer = g_strdup_printf("Zapping: %s", channel->name);
+	  gtk_window_set_title(GTK_WINDOW(main_window), buffer);
+	  g_free(buffer);
+	}
+      else
+	gtk_window_set_title(GTK_WINDOW(main_window), "Zapping");
+
       cur_tuned_channel = channel->index;
-      
-      update_channels_menu(lookup_widget(main_window, "Channels"),
-			   info);
     }
+  else
+    gtk_window_set_title(GTK_WINDOW(main_window), "Zapping");
+
+  thaw_update();
 
   if (channel->num_controls &&
       zcg_bool(NULL, "save_controls"))
@@ -793,6 +800,56 @@ z_switch_channel	(tveng_tuned_channel	*channel,
 			info);
 
   update_control_box(info);
+}
+
+void
+z_select_channel			(gint num_channel)
+{
+  tveng_tuned_channel * channel =
+    tveng_retrieve_tuned_channel_by_index(num_channel, global_channel_list);
+
+  if (!channel)
+    {
+      g_warning("Cannot tune given channel %d (no such channel)",
+		num_channel);
+      return;
+    }
+
+  z_switch_channel(channel, main_info);
+}
+
+void
+z_channel_up				(void)
+{
+  gint num_channels = tveng_tuned_channel_num(global_channel_list);
+  gint new_channel;
+
+  if (num_channels == 0) /* If there are no tuned channels stop
+			    processing */
+    return;
+
+  new_channel = cur_tuned_channel - 1;
+  if (new_channel < 0)
+    new_channel = num_channels - 1;
+  
+  z_select_channel(new_channel);
+}
+
+void
+z_channel_down				(void)
+{
+  gint num_channels = tveng_tuned_channel_num(global_channel_list);
+  gint new_channel;
+
+  if (num_channels == 0) /* If there are no tuned channels stop
+			    processing */
+    return;
+
+  new_channel = cur_tuned_channel + 1;
+  if (new_channel >= num_channels)
+    new_channel = 0;
+
+  z_select_channel(new_channel);
 }
 
 void store_control_values(gint *num_controls,

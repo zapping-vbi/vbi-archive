@@ -57,6 +57,23 @@ void
 z_switch_channel		(tveng_tuned_channel	*channel,
 				 tveng_device_info	*info);
 
+/**
+ * Sets the channel that has the given index in global_channel_list
+ */
+void
+z_select_channel		(gint num_channel);
+
+/**
+ * Select previous channel
+ */
+void
+z_channel_up			(void);
+
+/**
+ * Select next channel
+ */
+void
+z_channel_down			(void);
 
 /**
  * Stores the current values of the known controls in the given

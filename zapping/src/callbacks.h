@@ -50,10 +50,6 @@ void
 on_hide_controls1_activate             (GtkMenuItem     *menuitem,
 					gpointer         user_data);
 
-void
-on_hide_menubars1_activate             (GtkMenuItem     *menuitem,
-					gpointer         user_data);
-
 gboolean
 on_zapping_delete_event                (GtkWidget       *widget,
                                         GdkEvent        *event,
@@ -74,10 +70,6 @@ on_channel_activate                    (GtkMenuItem     *menuitem,
 				        gpointer        user_data);
 
 void
-on_channel2_activate                   (GtkMenuItem     *menuitem,
-			       	        gpointer        user_data);
-
-void
 on_controls_clicked                    (GtkButton       *button,
                                         gpointer         user_data);
 
@@ -89,10 +81,6 @@ on_control_box_delete_event            (GtkWidget      *widget,
 
 void
 on_go_fullscreen1_activate             (GtkMenuItem     *menuitem,
-                                        gpointer         user_data);
-
-void
-on_go_windowed1_activate               (GtkMenuItem     *menuitem,
                                         gpointer         user_data);
 
 void
@@ -118,15 +106,6 @@ on_go_capturing2_activate              (GtkMenuItem     *menuitem,
 void
 on_go_previewing2_activate             (GtkMenuItem     *menuitem,
                                         gpointer         user_data);
-
-void
-on_channel_up1_activate                (GtkMenuItem     *menuitem,
-                                        gpointer         user_data);
-
-void
-on_channel_down1_activate              (GtkMenuItem     *menuitem,
-                                        gpointer         user_data);
-
 
 gboolean
 on_tv_screen_button_press_event        (GtkWidget       *widget,

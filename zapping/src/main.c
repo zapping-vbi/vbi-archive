@@ -175,7 +175,6 @@ gboolean on_zapping_key_press		(GtkWidget	*widget,
 {
   tveng_tuned_channel * tc;
   int i = 0;
-  GtkWidget * Channels = lookup_widget(widget, "Channels");
 
   while ((tc =
 	  tveng_retrieve_tuned_channel_by_index(i++, global_channel_list)))
@@ -183,9 +182,7 @@ gboolean on_zapping_key_press		(GtkWidget	*widget,
       if ((event->keyval == tc->accel_key) &&
 	  ((tc->accel_mask & event->state) == tc->accel_mask))
 	{
-	  gtk_option_menu_set_history(GTK_OPTION_MENU(Channels),
-				      tc->index);
-	  on_channel_activate(NULL, GINT_TO_POINTER(tc->index));
+	  z_select_channel(tc->index);
 	  return TRUE;
 	}
     }
@@ -376,7 +373,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.117 2001-07-25 18:10:38 garetxe Exp $",
+	 "$Id: main.c,v 1.118 2001-07-25 21:46:46 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU support... ");
   switch (cpu_detection())
@@ -683,18 +680,6 @@ int main(int argc, char * argv[])
 			    GNOME_STOCK_PIXMAP_BOOK_OPEN,
 			    _("Show controls"),
 			    _("Show the menu and the toolbar"));
-	}
-      if (zconf_get_boolean(NULL, "/zapping/internal/callbacks/hide_extra"))
-	{
-	  gtk_widget_hide(lookup_widget(main_window, "Inputs"));
-	  gtk_widget_hide(lookup_widget(main_window, "Standards"));
-	  gtk_widget_queue_resize(main_window);
-	  
-	  z_change_menuitem(lookup_widget(GTK_WIDGET(main_window),
-					  "hide_menubars2"),
-			    GNOME_STOCK_PIXMAP_BOOK_OPEN,
-			    _("Show extra controls"),
-			    _("Show Input, Standards and subtitle selection"));
 	}
       /* setup subtitles page button */
       zconf_get_integer(&zvbi_page,

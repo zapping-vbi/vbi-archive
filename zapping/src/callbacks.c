@@ -65,7 +65,6 @@ gboolean startup_callbacks(void)
   zcc_int(0, "Currently tuned channel", "cur_tuned_channel");
   zcc_bool(TRUE, "Show the Closed Caption", "closed_caption");
   cur_tuned_channel = zcg_int(NULL, "cur_tuned_channel");
-  zcc_bool(FALSE, "Hide the extra controls", "hide_extra");
   zcc_int(0x1, "Subtitles page", "zvbi_page");
 
   return TRUE;
@@ -188,36 +187,6 @@ on_hide_controls1_activate             (GtkMenuItem     *menuitem,
     }
 }
 
-void
-on_hide_menubars1_activate             (GtkMenuItem     *menuitem,
-					gpointer         user_data)
-{
-  if (zcg_bool(NULL, "hide_extra"))
-    {
-      zcs_bool(FALSE, "hide_extra");
-      gtk_widget_show(lookup_widget(main_window, "Inputs"));
-      gtk_widget_show(lookup_widget(main_window, "Standards")); 
-
-      z_change_menuitem(lookup_widget(GTK_WIDGET(main_window),
-				      "hide_menubars2"),
-			GNOME_STOCK_PIXMAP_BOOK_BLUE,
-			_("Hide extra controls"),
-			_("Hide Input, Standards and subtitle selection"));
-    }
-  else
-    {
-      zcs_bool(TRUE, "hide_extra");
-      gtk_widget_hide(lookup_widget(main_window, "Inputs"));
-      gtk_widget_hide(lookup_widget(main_window, "Standards"));
-
-      z_change_menuitem(lookup_widget(GTK_WIDGET(main_window),
-				      "hide_menubars2"),
-			GNOME_STOCK_PIXMAP_BOOK_OPEN,
-			_("Show extra controls"),
-			_("Show Input, Standards and subtitle selection"));
-    }
-}
-
 gboolean
 on_zapping_delete_event                (GtkWidget       *widget,
                                         GdkEvent        *event,
@@ -247,32 +216,7 @@ on_zapping_delete_event                (GtkWidget       *widget,
 void on_channel_activate              (GtkMenuItem     *menuitem,
 				       gpointer        user_data)
 {
-  gint num_channel = GPOINTER_TO_INT(user_data);
-
-  tveng_tuned_channel * channel =
-    tveng_retrieve_tuned_channel_by_index(num_channel, global_channel_list);
-
-  if (!channel)
-    {
-      g_warning("Cannot tune given channel %d (no such channel)",
-		num_channel);
-      return;
-    }
-
-  z_switch_channel(channel, main_info);
-}
-
-void
-on_channel2_activate                   (GtkMenuItem     *menuitem,
-			       	        gpointer        user_data)
-{
-  GtkWidget * zapping =
-    GTK_WIDGET(gtk_object_get_user_data(GTK_OBJECT(menuitem)));
-  GtkWidget * Channels = lookup_widget(zapping, "Channels");
-
-  gtk_option_menu_set_history(GTK_OPTION_MENU(Channels),
-			      GPOINTER_TO_INT(user_data));
-  on_channel_activate(NULL, user_data);
+  z_select_channel(GPOINTER_TO_INT(user_data));
 }
 
 void
@@ -301,13 +245,6 @@ on_go_fullscreen1_activate             (GtkMenuItem     *menuitem,
   restore_mode = main_info->current_mode;
 
   zmisc_switch_mode(TVENG_CAPTURE_PREVIEW, main_info);
-}
-
-void
-on_go_windowed1_activate               (GtkMenuItem     *menuitem,
-                                        gpointer         user_data)
-{
-  zmisc_switch_mode(restore_mode, main_info);
 }
 
 void
@@ -363,60 +300,8 @@ on_go_previewing2_activate             (GtkMenuItem     *menuitem,
     ShowBox(main_info->error, GNOME_MESSAGE_BOX_ERROR);
 }
 
-void
-on_channel_up1_activate                (GtkMenuItem     *menuitem,
-                                        gpointer         user_data)
-{
-  int num_channels = tveng_tuned_channel_num(global_channel_list);
-  GtkWidget * Channels = lookup_widget(GTK_WIDGET(menuitem),
-					     "Channels");
-
-  int new_channel;
-
-  if (num_channels == 0) /* If there are no tuned channels stop
-			    processing */
-    return;
-
-  new_channel = cur_tuned_channel - 1;
-  if (new_channel < 0)
-    new_channel = num_channels - 1;
-
-  /* Simulate a callback */
-  on_channel_activate(NULL, GINT_TO_POINTER(new_channel));
-  
-  /* Update the option menu */
-  gtk_option_menu_set_history(GTK_OPTION_MENU (Channels),
-			      new_channel);
-}
-
-void
-on_channel_down1_activate              (GtkMenuItem     *menuitem,
-                                        gpointer         user_data)
-{
-  int num_channels = tveng_tuned_channel_num(global_channel_list);
-  GtkWidget * Channels = lookup_widget(GTK_WIDGET(menuitem),
-					     "Channels");
-
-  int new_channel;
-
-  if (num_channels == 0) /* If there are no tuned channels stop
-			    processing */
-    return;
-
-  new_channel = cur_tuned_channel + 1;
-  if (new_channel >= num_channels)
-    new_channel = 0;
-
-  /* Simulate a callback */
-  on_channel_activate(NULL, GINT_TO_POINTER(new_channel));
-  
-  /* Update the option menu */
-  gtk_option_menu_set_history(GTK_OPTION_MENU (Channels),
-			      new_channel);
-}
-
 /* the returned string needs to be g_free'ed */
-static gchar *
+gchar *
 build_channel_tooltip(tveng_tuned_channel * tuned_channel)
 {
   gchar * buffer;
@@ -483,9 +368,8 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 		    z_gtk_pixmap_menu_item_new(tuned->name,
 					       GNOME_STOCK_PIXMAP_PROPERTIES);
 		  gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
-				     GTK_SIGNAL_FUNC(on_channel2_activate),
+				     GTK_SIGNAL_FUNC(on_channel_activate),
 				     GINT_TO_POINTER(i));
-		  gtk_object_set_user_data(GTK_OBJECT(menuitem), zapping);
 		  tooltip = build_channel_tooltip(tuned);
 		  if (tooltip)
 		    {
@@ -517,10 +401,8 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 		      z_gtk_pixmap_menu_item_new(tuned->name,
 					 GNOME_STOCK_PIXMAP_PROPERTIES);
 		    gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
-				       GTK_SIGNAL_FUNC(on_channel2_activate),
+				       GTK_SIGNAL_FUNC(on_channel_activate),
 				       GINT_TO_POINTER(i));
-		    gtk_object_set_user_data(GTK_OBJECT(menuitem),
-					     zapping);
 		    tooltip = build_channel_tooltip(tuned);
 		    if (tooltip)
 		      {
@@ -563,13 +445,6 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 	    gtk_widget_hide(widget);
 	  }
 
-	if (zcg_bool(NULL, "hide_extra"))
-	  z_change_menuitem(lookup_widget(GTK_WIDGET(menu),
-					  "hide_menubars1"),
-			    GNOME_STOCK_PIXMAP_BOOK_OPEN,
-			    _("Show extra controls"),
-			    _("Show Input, Standards and subtitle selection"));
-
 	if (zcg_bool(NULL, "hide_controls"))
 	  z_change_menuitem(lookup_widget(GTK_WIDGET(menu),
 					  "hide_controls1"),
@@ -584,14 +459,10 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
       }
       return TRUE;
     case 4:
-      on_channel_up1_activate(GTK_MENU_ITEM(lookup_widget(widget,
-							  "channel_up1")),
-			      NULL);
+      z_channel_up();
       return TRUE;
     case 5:
-      on_channel_down1_activate(GTK_MENU_ITEM(lookup_widget(widget,
-					      "channel_down1")),
-				NULL);
+      z_channel_down();
       return TRUE;
     case 2:
       if (main_info->current_mode == TVENG_NO_CAPTURE)

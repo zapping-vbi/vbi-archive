@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.10 2001-06-22 22:22:39 garetxe Exp $
+ * $Id: fullscreen.c,v 1.11 2001-07-25 21:46:46 garetxe Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -35,6 +35,7 @@
 #include "zconf.h"
 #include "interface.h"
 #include "callbacks.h"
+#include "v4linterface.h"
 #include "fullscreen.h"
 
 static GtkWidget * black_window = NULL; /* The black window when you go
@@ -45,6 +46,10 @@ extern GtkWidget * main_window;
 
 extern tveng_tuned_channel *global_channel_list;
 
+extern enum tveng_capture_mode restore_mode;
+
+extern tveng_device_info *main_info;
+
 /* Comment out the next line if you don't want to mess with the
    XScreensaver */
 #define MESS_WITH_XSS 1
@@ -54,15 +59,8 @@ gboolean on_fullscreen_event (GtkWidget * widget, GdkEvent * event,
 			      gpointer user_data)
 {
   GtkWidget * window = GTK_WIDGET(user_data);
-  GtkMenuItem * channel_up1 =
-    GTK_MENU_ITEM(lookup_widget(window, "channel_up1"));
-  GtkMenuItem * channel_down1 =
-    GTK_MENU_ITEM(lookup_widget(window, "channel_down1"));
-  GtkMenuItem * go_windowed1 =
-    GTK_MENU_ITEM(lookup_widget(window, "channel_down1"));
   GtkMenuItem * exit2 =
     GTK_MENU_ITEM(lookup_widget(window, "exit2"));
-  GtkWidget * Channels = lookup_widget(window, "Channels");
   tveng_tuned_channel *tc;
   gint i = 0;
 
@@ -73,15 +71,15 @@ gboolean on_fullscreen_event (GtkWidget * widget, GdkEvent * event,
 	{
 	case GDK_Page_Up:
 	case GDK_KP_Page_Up:
-	  on_channel_up1_activate(channel_up1, NULL);
+	  z_channel_up();
 	  break;
 	case GDK_Page_Down:
 	case GDK_KP_Page_Down:
-	  on_channel_down1_activate(channel_down1, NULL);
+	  z_channel_down();
 	  break;
 	case GDK_Escape:
 	case GDK_F11: /* Might be common too */
-	  on_go_windowed1_activate(go_windowed1, NULL);
+	  zmisc_switch_mode(restore_mode, main_info);
 	  break;
 	  /* Let control-Q exit the app */
 	case GDK_q:
@@ -89,7 +87,7 @@ gboolean on_fullscreen_event (GtkWidget * widget, GdkEvent * event,
 	    {
 	      extern gboolean was_fullscreen;
 	      was_fullscreen = TRUE;
-	      on_go_windowed1_activate(go_windowed1, NULL);
+	      zmisc_switch_mode(restore_mode, main_info);
 	      on_exit2_activate(exit2, NULL);
 	    }
 	  break;
@@ -101,9 +99,7 @@ gboolean on_fullscreen_event (GtkWidget * widget, GdkEvent * event,
 	      if ((kevent->keyval == tc->accel_key) &&
 		  ((tc->accel_mask & kevent->state) == tc->accel_mask))
 		{
-		  gtk_option_menu_set_history(GTK_OPTION_MENU(Channels),
-					      tc->index);
-		  on_channel_activate(NULL, GINT_TO_POINTER(tc->index));
+		  z_select_channel(tc->index);
 		  return TRUE;
 		}
 	    }
@@ -112,7 +108,7 @@ gboolean on_fullscreen_event (GtkWidget * widget, GdkEvent * event,
       return TRUE; /* Event processing done */
     }
   else if (event->type == GDK_BUTTON_PRESS)
-    on_go_windowed1_activate(go_windowed1, NULL);
+    zmisc_switch_mode(restore_mode, main_info);
 
   return FALSE; /* We aren't interested in this event, pass it on */
 }
