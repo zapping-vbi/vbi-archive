@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.c,v 1.25 2004-09-10 04:52:09 mschimek Exp $ */
+/* $Id: audio.c,v 1.26 2004-09-20 04:41:09 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu */
 #undef GTK_DISABLE_DEPRECATED
@@ -608,26 +608,12 @@ set_mute				(gint	        mode,
   /* Update GUI */
 
   {
-    GtkWidget *button;
-    GtkCheckMenuItem *check;
+    GtkAction *action;
 
-    button = lookup_widget (GTK_WIDGET (zapping), "toolbar-mute");
-
-    if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (button)) != mute)
-	SIGNAL_BLOCK (button, "toggled",
-		      gtk_toggle_button_set_active
-		      (GTK_TOGGLE_BUTTON (button), mute));
-
-    check = GTK_CHECK_MENU_ITEM (lookup_widget (GTK_WIDGET (zapping), "mute2"));
-
-    if (check->active != mute)
-	SIGNAL_BLOCK (check, "toggled",
-		      gtk_check_menu_item_set_active (check, mute));
-
-    /* obsolete, using callbacks now
-    if (controls)
-      update_control_box (main_info);
-    */
+    action = gtk_action_group_get_action (zapping->generic_action_group,
+					  "Mute");
+    if (mute != gtk_toggle_action_get_active (GTK_TOGGLE_ACTION (action)))
+      gtk_toggle_action_set_active (GTK_TOGGLE_ACTION (action), mute);
 
     if (osd)
       {

@@ -235,13 +235,24 @@ on_plugin_stop_clicked                (GtkWidget	*button,
   gtk_widget_set_sensitive (plugin_stop_w, running);
 }
 
+static void
+on_properties_destroy		(GtkObject *		object _unused_,
+				 gpointer		user_data _unused_)
+{
+  GtkAction *action;
+
+  action = gtk_action_group_get_action (zapping->generic_action_group,
+					"Plugins");
+  gtk_action_set_sensitive (action, TRUE);
+
+  PluginProperties = NULL;
+}
+
 static PyObject *
 py_plugin_properties (PyObject *self _unused_, PyObject *args _unused_)
 {
   GtkWidget * plugin_properties;
   GtkTreeView * plugin_treeview, *symbol_treeview;
-  GtkWidget *menuitem =
-    lookup_widget (GTK_WIDGET (zapping), "plugins1");
   GtkListStore *model;
   GtkTreeIter iter;
   GtkTreeSelection *sel;
@@ -266,15 +277,16 @@ py_plugin_properties (PyObject *self _unused_, PyObject *args _unused_)
 
   plugin_properties = build_widget("plugin_properties", NULL);
 
-  /* Set the menuitem sensitive again when we are destroyed */
-  gtk_widget_set_sensitive(menuitem, FALSE);
-  g_signal_connect_swapped (G_OBJECT (plugin_properties), "destroy",
-			    G_CALLBACK (gtk_widget_set_sensitive),
-			    menuitem);
-  /* Nullify PluginProperties on destroy */
-  g_signal_connect_swapped (G_OBJECT (plugin_properties), "destroy",
-			    G_CALLBACK (g_nullify_pointer),
-			    &PluginProperties);
+  {
+    GtkAction *action;
+
+    action = gtk_action_group_get_action (zapping->generic_action_group,
+					  "Plugins");
+    gtk_action_set_sensitive (action, FALSE);
+
+    g_signal_connect (G_OBJECT (plugin_properties), "destroy",
+		      G_CALLBACK (on_properties_destroy), NULL);
+  }
 
   PluginProperties = plugin_properties;
 

@@ -566,7 +566,18 @@ build_properties_contents	(GtkDialog	*dialog)
     }
 }
 
+static void
+on_properties_destroy		(GtkObject *		object,
+				 gpointer		user_data)
+{
+  GtkAction *action;
 
+  action = gtk_action_group_get_action (zapping->generic_action_group,
+					"Preferences");
+  gtk_action_set_sensitive (action, TRUE);
+
+  PropertiesDialog = NULL;
+}
 
 GtkWidget*
 build_properties_dialog			(void)
@@ -592,11 +603,13 @@ build_properties_dialog			(void)
 
   if (zapping)
     {
-      menuitem = lookup_widget (GTK_WIDGET (zapping), "propiedades1");
-      gtk_widget_set_sensitive (menuitem, FALSE);
-      g_signal_connect_swapped (G_OBJECT (dialog), "destroy",
-				G_CALLBACK (gtk_widget_set_sensitive),
-				menuitem);
+      GtkAction *action;
+
+      action = gtk_action_group_get_action (zapping->generic_action_group,
+					    "Preferences");
+      gtk_action_set_sensitive (action, FALSE);
+      g_signal_connect (G_OBJECT (dialog), "destroy",
+			G_CALLBACK (on_properties_destroy), NULL);
     }
 
   gtk_dialog_set_response_sensitive(dialog, GTK_RESPONSE_APPLY, FALSE);
