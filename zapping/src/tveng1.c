@@ -56,10 +56,11 @@
 /* #define TVENG1_PAL_N 1 */
 
 /* Private, builds the controls structure */
-int
+static int
 p_tveng1_build_controls(tveng_device_info * info);
 
 /* Internal function declaration */
+static
 int p_tveng1_open_device_file(int flags, tveng_device_info * info);
 
 /*
@@ -67,6 +68,7 @@ int p_tveng1_open_device_file(int flags, tveng_device_info * info);
   valid video device. -1 on error.
   Flags will be used for open()'ing the file 
 */
+static
 int p_tveng1_open_device_file(int flags, tveng_device_info * info)
 {
   struct video_capability caps;
@@ -948,6 +950,7 @@ struct p_tveng1_audio_decoding_entry
   __u16 id;
 };
 
+static
 struct p_tveng1_audio_decoding_entry audio_decoding_modes[] =
 {
   { N_("Mono"), VIDEO_SOUND_MONO },
@@ -961,11 +964,11 @@ struct p_tveng1_audio_decoding_entry audio_decoding_modes[] =
 (sizeof(audio_decoding_modes)/sizeof(struct p_tveng1_audio_decoding_entry))
 
 /* private, add a control to the control structure, -1 means ENOMEM */
-int
+static int
 p_tveng1_append_control(struct tveng_control * new_control, 
 		       tveng_device_info * info);
 
-int
+static int
 p_tveng1_append_control(struct tveng_control * new_control, 
 		       tveng_device_info * info)
 {
@@ -988,9 +991,9 @@ p_tveng1_append_control(struct tveng_control * new_control,
 }
 
 /* tests if audio decoding selecting actually works, NULL if not */
-char ** p_tveng1_test_audio_decode (tveng_device_info * info);
+static char ** p_tveng1_test_audio_decode (tveng_device_info * info);
 
-char ** p_tveng1_test_audio_decode (tveng_device_info * info)
+static char ** p_tveng1_test_audio_decode (tveng_device_info * info)
 {
   struct video_audio audio;
   __u16 cur_value;
@@ -1077,7 +1080,7 @@ char ** p_tveng1_test_audio_decode (tveng_device_info * info)
 }
 
 /* Private, builds the controls structure */
-int
+static int
 p_tveng1_build_controls(tveng_device_info * info)
 {
   /* Info about the video device */
@@ -1673,7 +1676,7 @@ tveng1_tune_input(__u32 freq, tveng_device_info * info)
 
   /* Restore the mute status. This makes bttv behave like i want */
   if (!muted)
-    tveng1_set_mute(FALSE, info);
+    tveng1_set_mute(0, info);
 
   return 0; /* Success */
 }
@@ -1825,8 +1828,8 @@ tveng1_get_tuner_bounds(__u32 * min, __u32 * max, tveng_device_info *
 }
 
 /* Two internal functions, both return -1 on error */
-int p_tveng1_queue(tveng_device_info * info);
-int p_tveng1_dequeue(void * where, tveng_device_info * info);
+static int p_tveng1_queue(tveng_device_info * info);
+static int p_tveng1_dequeue(void * where, tveng_device_info * info);
 
 /*
   Sets up the capture device so any read() call after this one
@@ -1923,7 +1926,7 @@ tveng1_stop_capturing(tveng_device_info * info)
   return 0;
 }
 
-int p_tveng1_queue(tveng_device_info * info)
+static int p_tveng1_queue(tveng_device_info * info)
 {
   struct video_mmap bm;
   struct private_tveng1_device_info * p_info =
@@ -1977,7 +1980,7 @@ int p_tveng1_queue(tveng_device_info * info)
   return 0; /* Success */
 }
 
-int p_tveng1_dequeue(void * where, tveng_device_info * info)
+static int p_tveng1_dequeue(void * where, tveng_device_info * info)
 {
   struct video_mmap bm;
   struct private_tveng1_device_info * p_info =

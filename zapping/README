@@ -26,7 +26,7 @@ up everything and returns. There is a potential secutiry flaw here (i
 tried to make it secure, but don't trust it very much), so if you
 really care about security, you may:
 	a) Uninstall the program (check its location with 
-		'whereis zapping-setup-fb').
+		'whereis zapping_setup_fb').
 	    You won't have fullscreen mode then, but there would be no
 	    security flaw.
 	b) Check the suid's sources and locate the security flaws.

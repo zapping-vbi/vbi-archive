@@ -40,16 +40,16 @@
 #include "videodev2.h" /* the V4L2 definitions */
 
 /* Private, builds the controls structure */
-int
+static int
 p_tveng2_build_controls(tveng_device_info * info);
 
-int p_tveng2_open_device_file(int flags, tveng_device_info * info);
+static int p_tveng2_open_device_file(int flags, tveng_device_info * info);
 /*
   Return fd for the device file opened. Checks if the device is a
   valid video device. -1 on error.
   Flags will be used for open()'ing the file 
 */
-int p_tveng2_open_device_file(int flags, tveng_device_info * info)
+static int p_tveng2_open_device_file(int flags, tveng_device_info * info)
 {
   struct v4l2_capability caps;
   struct v4l2_framebuffer fb;
@@ -896,11 +896,11 @@ tveng2_set_capture_format(tveng_device_info * info)
 }
 
 /* private, add a control to the control structure, -1 means ENOMEM */
-int
+static int
 p_tveng2_append_control(struct tveng_control * new_control, 
 			tveng_device_info * info);
 
-int
+static int
 p_tveng2_append_control(struct tveng_control * new_control, 
 			tveng_device_info * info)
 {
@@ -932,7 +932,7 @@ struct p_tveng2_control_with_i18n
 };
 
 /* Private, builds the controls structure */
-int
+static int
 p_tveng2_build_controls(tveng_device_info * info)
 {
   struct v4l2_queryctrl qc;
@@ -1035,7 +1035,7 @@ p_tveng2_build_controls(tveng_device_info * info)
 	    return -1;
 	}
     }
-  return 0;
+  return tveng2_update_controls(info);
 }
 
 /*
@@ -1452,11 +1452,11 @@ tveng2_get_tuner_bounds(__u32 * min, __u32 * max, tveng_device_info *
 }
 
 /* Some private functions */
-int p_tveng2_qbuf(int index, tveng_device_info * info);
-int p_tveng2_dqbuf(tveng_device_info * info);
+static int p_tveng2_qbuf(int index, tveng_device_info * info);
+static int p_tveng2_dqbuf(tveng_device_info * info);
 
 /* Queues an specific buffer. -1 on error */
-int p_tveng2_qbuf(int index, tveng_device_info * info)
+static int p_tveng2_qbuf(int index, tveng_device_info * info)
 {
   struct v4l2_buffer tmp_buffer;
   struct private_tveng2_device_info * p_info =
@@ -1478,7 +1478,7 @@ int p_tveng2_qbuf(int index, tveng_device_info * info)
 }
 
 /* dequeues next available buffer and returns it's id. -1 on error */
-int p_tveng2_dqbuf(tveng_device_info * info)
+static int p_tveng2_dqbuf(tveng_device_info * info)
 {
   struct v4l2_buffer tmp_buffer;
   struct private_tveng2_device_info * p_info =
@@ -1702,7 +1702,7 @@ int tveng2_read_frame(void * where, unsigned int size,
       break;
     p_tveng2_qbuf(n, info);
     n = p_tveng2_dqbuf(info);
-  } while (TRUE);
+  } while (1);
 
   /* Copy the data to the address given */
   memcpy(where, p_info->buffers[n].vmem,

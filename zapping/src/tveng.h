@@ -19,8 +19,6 @@
 #ifndef __TVENG_H__
 #define __TVENG_H__
 
-#include <gnome.h> /* For i18n support */
-
 #include <stdio.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
@@ -42,6 +40,18 @@
 #include <X11/Xlib.h>
 #include <X11/Xfuncs.h>
 #include <X11/extensions/xf86dga.h>
+
+/* i18n support if it hasn't been defined previously */
+#ifndef gettext
+#include <libintl.h>
+
+#ifndef _
+#define _(String) gettext (String)
+#endif
+#ifndef N_
+#define N_(String) (String)
+#endif
+#endif
 
 /* The video device capabilities flags */
 #define TVENG_CAPS_CAPTURE 1 /* Can capture to memory */

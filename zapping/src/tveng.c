@@ -52,10 +52,6 @@ struct private_tveng_device_info
   } do_not_touch_this;
 };
 
-/* Private, builds the controls structure */
-int
-p_tveng_build_controls(tveng_device_info * info);
-
 /* Initializes a tveng_device_info object */
 tveng_device_info * tveng_device_info_new(Display * display)
 {

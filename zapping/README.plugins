@@ -8,30 +8,21 @@ one of those plugins for zapping.
 Plugin API
 ----------
 
--- Not described yet, see test_plugin.c (not distributed, look below) --
+This will be documented in the 0.5.1 release. You can always take a
+look to the sample plugins distributed to get an idea of how it
+works. The API has changed a lot since the last release, and i don't
+want to publish half-cooked docs. Sorry.
 
 Where will zapping look for plugins
 -----------------------------------
-Zapping will only try to load files that have the ".zapping.so" string
-in their name. It will look for these files in the following dirs (in
-this order):
 
- * Paths listed under the LD_LIBRARY env var.
- * Paths extracted from the /etc/ld.so.conf file
- * /usr/lib
- * /lib
- * $HOME/.zapping_plugins
+The program will search for plugins in the following locations:
 
-Notes
------
-
-Any plugin must have some exported funcions with some given names, so
-zapping can communicate with the plugin. You can see how it works in
-the test plugin (not included yet in the standard zapping
-distribution, ask me (garetxe@users.sourceforge.net) for it for the
-moment).
-
-For more info regarding how to build or use any plugin, please contact
-me <garetxe@users.sourceforge.net>
+. $(prefix)/share/zapping/plugins, where $prefix usually is /usr or
+  /usr/local. This is determined when configuring.
+. $HOME/.zapping/plugins, if that dir exists.
+. All the directories listed in the file $HOME/.zapping/plugin_dirs,
+  if that file exists.
+All zapping plugins must end in ".zapping.so".
 
 Iñaki
