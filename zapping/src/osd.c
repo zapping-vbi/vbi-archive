@@ -632,8 +632,6 @@ osd_event		(gpointer	   data,
 {
   vbi_decoder *vbi = zvbi_get_object();
   char dummy[16];
-  extern vbi_pgno zvbi_page;
-  extern vbi_subno zvbi_subpage;
 
   if (!vbi)
     return;
@@ -644,17 +642,23 @@ osd_event		(gpointer	   data,
   if (!zconf_get_boolean(NULL, "/zapping/internal/callbacks/closed_caption"))
     return;
 
-  if (zvbi_page <= 8)
-    {
-      if (!vbi_fetch_cc_page(vbi, &osd_page, zvbi_page, TRUE))
-        return; /* trouble in outer space */
-    }
-  else
-    {
-      if (!vbi_fetch_vt_page(vbi, &osd_page, zvbi_page, zvbi_subpage,
-			     zvbi_teletext_level(), 25 /* rows */, TRUE /* nav */))
-        return;
-    }
+ switch (zvbi_caption_pgno)
+   {
+   case 1 ... 8:
+     if (!vbi_fetch_cc_page(vbi, &osd_page, zvbi_caption_pgno, TRUE))
+       return; /* trouble in outer space */
+     break;
+
+   case 0x100 ... 0x899:
+     if (!vbi_fetch_vt_page(vbi, &osd_page,
+			    zvbi_caption_pgno, VBI_ANY_SUBNO,
+			    zvbi_teletext_level(), 25 /* rows */, TRUE /* nav */))
+       return;
+     break;
+
+   default:
+     return;
+   }
 
   if (osd_page.dirty.y0 > osd_page.dirty.y1)
     return; /* not dirty (caption only) */
