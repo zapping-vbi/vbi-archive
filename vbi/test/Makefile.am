@@ -1,16 +1,14 @@
 ## Process this file with automake to produce Makefile.in
 
-TESTS = test-bcd test-hamm
+TESTS = test-bcd test-hamm test-raw_decoder
 # exoptest
-# test-bitslicer
 
 noinst_PROGRAMS = unicode glyph explist caption export osc capture \
-	test-bcd test-hamm
-# test-bitslicer
+	test-bcd test-hamm test-raw_decoder
 
 test_bcd_SOURCES = test-bcd.cc
 test_hamm_SOURCES = test-hamm.cc
-#test_bitslicer_SOURCES = test-bitslicer.cc
+test_raw_decoder_SOURCES = test-raw_decoder.cc
 
 EXTRA_DIST = $(TESTS) README uclist sim.c
 
