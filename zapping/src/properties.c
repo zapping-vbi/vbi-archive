@@ -51,8 +51,8 @@
 #include "properties.h"
 #include "zmisc.h"
 #include "remote.h"
+#include "globals.h"
 
-extern GtkWidget * main_window;
 
 static GtkDialog *PropertiesDialog = NULL; /* Only you.. */
 static property_handler *handlers = NULL;
@@ -113,7 +113,7 @@ z_property_item_modified	(GtkWidget	*widget)
 
 static void
 font_set_bridge	(GtkWidget	*widget,
-		 const gchar	*new_font,
+		 const gchar	*new_font _unused_,
 		 gpointer	page_id_ptr)
 {
   GtkDialog *dialog = GTK_DIALOG
@@ -125,10 +125,10 @@ font_set_bridge	(GtkWidget	*widget,
 
 static void
 color_set_bridge (GtkWidget	*widget,
-		  guint		r,
-		  guint		g,
-		  guint		b,
-		  guint		a,
+		  guint		r _unused_,
+		  guint		g _unused_,
+		  guint		b _unused_,
+		  guint		a _unused_,
 		  gpointer	page_id_ptr)
 {
   GtkDialog *dialog = GTK_DIALOG
@@ -239,7 +239,7 @@ find_selected_group		(GtkWidget	*widget,
  */
 static GtkWidget*
 nth_group_contents		(gpointer	dialog,
-				 gint		n)
+				 guint		n)
 {
   GtkContainer *group_container = GTK_CONTAINER
     (lookup_widget(GTK_WIDGET(dialog), "group-container"));
@@ -271,7 +271,7 @@ get_cur_sel			(GtkWidget	*dialog,
   if (*group == -1)
     return; /* Nothing shown yet */
   
-  group_widget = nth_group_contents(dialog, *group);
+  group_widget = nth_group_contents(dialog, (guint) *group);
   group_list = g_object_get_data(G_OBJECT(group_widget), "group_list");
 
   while (group_list)
@@ -370,7 +370,7 @@ generic_close			(GtkWidget	*dialog)
 
   if (cur_group != -1 &&
       (group_name = g_object_get_data(G_OBJECT
-				      (nth_group_contents(dialog, cur_group)), "group-name")))
+      	(nth_group_contents(dialog, (guint) cur_group)), "group-name")))
     zcs_char(group_name, "last_group");
 
   PropertiesDialog = NULL;
@@ -379,7 +379,7 @@ generic_close			(GtkWidget	*dialog)
 static void
 on_properties_response		(GtkDialog	*dialog,
 				 gint		response,
-				 gpointer	unused)
+				 gpointer	unused _unused_)
 {
   switch (response)
     {
@@ -536,7 +536,7 @@ build_properties_contents	(GtkDialog	*dialog)
       /* gdk_color_parse ("#FFFFFF", &color); */
 	 /* gtk_widget_modify_bg (box, GTK_STATE_NORMAL, &color); */
       gtk_container_add (GTK_CONTAINER (box), logo);
-      gtk_misc_set_alignment (GTK_MISC (logo), 1, 1);
+      gtk_misc_set_alignment (GTK_MISC (logo), 1.0, 1.0);
 
       gtk_notebook_append_page(notebook, box, gtk_label_new(""));
       page_count ++; /* No handler for this page */
@@ -582,7 +582,7 @@ build_properties_dialog			(void)
 
   dialog = GTK_DIALOG(gtk_dialog_new_with_buttons
 		      (_("Zapping Properties"),
-		       GTK_WINDOW (main_window),
+		       GTK_WINDOW (zapping),
 		       GTK_DIALOG_DESTROY_WITH_PARENT,
 		       GTK_STOCK_OK, GTK_RESPONSE_OK,
 		       GTK_STOCK_APPLY, GTK_RESPONSE_APPLY,
@@ -590,9 +590,9 @@ build_properties_dialog			(void)
 		       GTK_STOCK_HELP, GTK_RESPONSE_HELP,
 		       NULL));
 
-  if (main_window)
+  if (zapping)
     {
-      menuitem = lookup_widget (main_window, "propiedades1");
+      menuitem = lookup_widget (GTK_WIDGET (zapping), "propiedades1");
       gtk_widget_set_sensitive (menuitem, FALSE);
       g_signal_connect_swapped (G_OBJECT (dialog), "destroy",
 				G_CALLBACK (gtk_widget_set_sensitive),
@@ -743,7 +743,7 @@ open_properties_group		(GtkWidget	*dialog,
   get_cur_sel(dialog, &cur_group, &cur_item);
 
   if (cur_group == -1 ||
-      nth_group_contents(dialog, cur_group) != contents)
+      nth_group_contents(dialog, (guint) cur_group) != contents)
     gtk_container_foreach(GTK_CONTAINER(group_container),
 			  (GtkCallback)show_hide_foreach,
 			  contents);
@@ -812,7 +812,7 @@ standard_properties_add		(GtkDialog	*dialog,
 }
 
 static void
-apply				(GtkDialog	*dialog,
+apply				(GtkDialog	*dialog _unused_,
 				 GtkWidget	*page)
 {
   void (*page_apply)(GtkWidget *page) =
@@ -824,7 +824,7 @@ apply				(GtkDialog	*dialog,
 }
 
 static void
-help		(GtkDialog	*dialog,
+help		(GtkDialog	*dialog _unused_,
 		 GtkWidget	*page)
 {
   const gchar *link_id =
@@ -842,7 +842,7 @@ help		(GtkDialog	*dialog,
 }
 
 static void
-cancel		(GtkDialog	*dialog,
+cancel		(GtkDialog	*dialog _unused_,
 		 GtkWidget	*page)
 {
   void (*page_cancel)(GtkWidget *page) =
@@ -905,11 +905,11 @@ void append_property_handler (const property_handler *p)
 }
 
 static PyObject *
-py_properties(PyObject *self, PyObject *args, PyObject *keywds)
+py_properties(PyObject *self _unused_, PyObject *args, PyObject *keywds)
 {
   char *group = NULL;
   char *item = NULL;
-  char *kwlist[] = {"group", "item", NULL};
+  const char *kwlist[] = {"group", "item", NULL};
   GtkWidget *dialog;
   
   if (!PyArg_ParseTupleAndKeywords(args, keywds, "|ss", kwlist, 

@@ -25,7 +25,7 @@
 
 #include "screenshot.h"
 #include "src/yuv2rgb.h"
-#include "src/ttxview.h"
+/* #include "plugins/teletext/ttxview.h" */
 #include "src/properties.h"
 #include <gdk-pixbuf/gdk-pixbuf.h> /* previews */
 #include <sys/stat.h>
@@ -85,13 +85,6 @@ static gint screenshot_option_deint;
 static void
 properties_add			(GtkDialog	*dialog);
 
-/* Callbacks */
-static void
-on_screenshot_button_clicked          (GtkButton       *button,
-				       gpointer         user_data);
-static void
-on_screenshot_button_fast_clicked	(GtkButton       *button,
-					 gpointer         user_data);
 
 /*
  *  plugin_read_frame interface
@@ -123,57 +116,6 @@ gint plugin_get_protocol ( void )
 {
   /* You don't need to modify this function */
   return PLUGIN_PROTOCOL;
-}
-
-/* Return FALSE if we aren't able to access a symbol, you should only
-   need to edit the pointer table, not the code */
-gboolean
-plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
-{
-  /* Usually this table is the only thing you will need to change */
-  struct plugin_exported_symbol table_of_symbols[] =
-  {
-    SYMBOL(plugin_init, 0x1234),
-    SYMBOL(plugin_get_info, 0x1234),
-    SYMBOL(plugin_close, 0x1234),
-    SYMBOL(plugin_start, 0x1234),
-    SYMBOL(plugin_load_config, 0x1234),
-    SYMBOL(plugin_save_config, 0x1234),
-    SYMBOL(plugin_read_frame, 0x1234),
-    SYMBOL(plugin_get_public_info, 0x1234),
-    SYMBOL(plugin_add_gui, 0x1234),
-    SYMBOL(plugin_remove_gui, 0x1234),
-    SYMBOL(plugin_get_misc_info, 0x1234)
-  };
-  gint num_exported_symbols =
-    sizeof(table_of_symbols)/sizeof(struct plugin_exported_symbol);
-  gint i;
-
-  /* Try to find the given symbol in the table of exported symbols
-   of the plugin */
-  for (i=0; i<num_exported_symbols; i++)
-    if (!strcmp(table_of_symbols[i].symbol, name))
-      {
-	if (table_of_symbols[i].hash != hash)
-	  {
-	    if (ptr)
-	      *ptr = GINT_TO_POINTER(0x3); /* hash collision code */
-	    /* Warn */
-	    g_warning(_("Check error: \"%s\" in plugin %s"
-		       " has hash 0x%x vs. 0x%x"), name,
-		      str_canonical_name, 
-		      table_of_symbols[i].hash,
-		      hash);
-	    return FALSE;
-	  }
-	if (ptr)
-	  *ptr = table_of_symbols[i].ptr;
-	return TRUE; /* Success */
-      }
-
-  if (ptr)
-    *ptr = GINT_TO_POINTER(0x2); /* Symbol not found in the plugin */
-  return FALSE;
 }
 
 static void
@@ -209,14 +151,14 @@ plugin_get_info (const gchar ** canonical_name,
  *  (nothing fancy, just a gboolean) and calls plugin_start.
  */
 
-static guint ogb_timeout_id = -1;
+static guint ogb_timeout_id = NO_SOURCE_ID;
 static volatile gboolean ov511_clicked = FALSE;
 static volatile gboolean ov511_poll_quit = FALSE;
 static gboolean have_ov511_poll_thread = FALSE;
 static pthread_t ov511_poll_thread_id;
 
 static void *
-ov511_poll_thread (void *unused)
+ov511_poll_thread (void *unused _unused_)
 {
   /* I know this while (!quit) isn't the best thing since sliced
      bread, but it's easy to do and will work just fine */
@@ -246,7 +188,7 @@ ov511_grab_button_timeout (guint *timeout_id)
     {
       if (tveng_ov511_get_button_state(zapping_info) < 0)
 	{
-	  *timeout_id = -1;
+	  *timeout_id = NO_SOURCE_ID;
 	  return FALSE;
 	}
       have_ov511_poll_thread =
@@ -258,6 +200,8 @@ ov511_grab_button_timeout (guint *timeout_id)
   /* only done afterwards */
   if (ov511_clicked)
     {
+      static gboolean plugin_start (void);
+
       ov511_clicked = FALSE;
       plugin_start();
     }
@@ -283,10 +227,10 @@ find_backend (gchar *keyword)
 }
 
 static PyObject*
-py_screenshot	(PyObject *self, PyObject *args)
+py_screenshot	(PyObject *self _unused_, PyObject *args _unused_)
 {
   char *_format = NULL;
-  int ok = PyArg_ParseTuple (args, "|s", &_format);
+  int ok = ParseTuple (args, "|s", &_format);
 
   if (!ok)
     g_error ("py_screenshot(|s)");
@@ -308,10 +252,10 @@ py_screenshot	(PyObject *self, PyObject *args)
 }
 
 static PyObject*
-py_quickshot	(PyObject *self, PyObject *args)
+py_quickshot	(PyObject *self _unused_, PyObject *args _unused_)
 {
   char *_format = NULL;
-  int ok = PyArg_ParseTuple (args, "|s", &_format);
+  int ok = ParseTuple (args, "|s", &_format);
 
   if (!ok)
     g_error ("py_quickshot(|s)");
@@ -333,7 +277,7 @@ py_quickshot	(PyObject *self, PyObject *args)
 }
 
 static gboolean
-plugin_init ( PluginBridge bridge, tveng_device_info * info )
+plugin_init ( PluginBridge bridge _unused_, tveng_device_info * info )
 {
   /* Register the plugin as interested in the properties dialog */
   property_handler screenshot_handler =
@@ -365,10 +309,10 @@ plugin_close(void)
 {
   screenshot_close_everything = TRUE;
 
-  if (ogb_timeout_id > 0)
+  if (ogb_timeout_id != NO_SOURCE_ID)
     {
       g_source_remove (ogb_timeout_id);
-      ogb_timeout_id = -1;
+      ogb_timeout_id = NO_SOURCE_ID;
     }
 
   if (have_ov511_poll_thread)
@@ -418,12 +362,12 @@ plugin_load_config (gchar *root_key)
     screenshot_option_command = g_strdup ("");
 
   LOAD_CONFIG (boolean, FALSE, grab_on_ok, "Grab on clicking OK");
-  LOAD_CONFIG (integer, 0, skip, "Skip pictures before grabbing");
+  LOAD_CONFIG (int, 0, skip, "Skip pictures before grabbing");
 
   LOAD_CONFIG (string, "jpeg", format, "File format");
 
-  LOAD_CONFIG (integer, 75, quality, "Quality of the compressed image");
-  LOAD_CONFIG (integer, 0, deint, "Deinterlace mode");
+  LOAD_CONFIG (int, 75, quality, "Quality of the compressed image");
+  LOAD_CONFIG (int, 0, deint, "Deinterlace mode");
 
   LOAD_CONFIG (boolean, TRUE, toolbutton, "Add toolbar button");
 }
@@ -451,21 +395,21 @@ plugin_save_config (gchar * root_key)
   screenshot_option_command = NULL;
 
   SAVE_CONFIG (boolean, grab_on_ok);
-  SAVE_CONFIG (integer, skip);
+  SAVE_CONFIG (int, skip);
 
   SAVE_CONFIG (string, format);
   g_free (screenshot_option_format);
   screenshot_option_format = NULL;
 
-  SAVE_CONFIG (integer, quality);
-  SAVE_CONFIG (integer, deint);
+  SAVE_CONFIG (int, quality);
+  SAVE_CONFIG (int, deint);
 
   SAVE_CONFIG (boolean, toolbutton);
 }
 
 static gboolean
-plugin_get_public_info (gint index, gpointer * ptr, gchar **
-			symbol, gchar ** description, gchar **
+plugin_get_public_info (gint index, gpointer * ptr, const gchar **
+			symbol, const gchar ** description, const gchar **
 			type, gint * hash)
 {
   /* Export the conversion functions */
@@ -523,7 +467,7 @@ screenshot_setup		(GtkWidget	*page)
 static void
 screenshot_apply		(GtkWidget	*page)
 {
-  void plugin_add_gui (GnomeApp *);
+  static void plugin_add_gui (GnomeApp *);
   GtkWidget *w;
 
   w = lookup_widget (page, "screenshot_command");
@@ -539,7 +483,7 @@ screenshot_apply		(GtkWidget	*page)
 
   GET_BOOL (toolbutton);
 
-  plugin_add_gui ((GnomeApp *) main_window);
+  plugin_add_gui (&zapping->app);
 }
 
 static void
@@ -582,8 +526,7 @@ void plugin_add_gui (GnomeApp * app)
 					_("Take a screenshot"), NULL,
 					tmp_toolbar_icon,
 					GTK_SIGNAL_FUNC(on_python_command1),
-					(gpointer)((const gchar *)
-						   "zapping.screenshot()"));
+					(gpointer) "zapping.screenshot()");
     }
 
   if (screenshot_option_toolbutton)
@@ -681,7 +624,7 @@ static screenshot_data *
 screenshot_new (void)
 {
     gint i;
-    gint private_max = 0;
+    guint private_max = 0;
 
     for (i = 0; backends[i]; i++)
       if (backends[i]->sizeof_private > private_max)
@@ -692,7 +635,7 @@ screenshot_new (void)
 }
 
 static gboolean
-io_buffer_init (screenshot_data *data, gint size)
+io_buffer_init (screenshot_data *data, guint size)
 {
   data->io_buffer = g_malloc (size);
 
@@ -706,7 +649,7 @@ io_buffer_init (screenshot_data *data, gint size)
 }
 
 static gboolean
-io_flush_stdio (screenshot_data *data, gint size)
+io_flush_stdio (screenshot_data *data, guint size)
 {
   if (data->thread_abort)
     return FALSE;
@@ -726,7 +669,7 @@ io_flush_stdio (screenshot_data *data, gint size)
 }
 
 static gboolean
-io_flush_memory (screenshot_data *data, gint size)
+io_flush_memory (screenshot_data *data, guint size)
 {
   if (data->io_buffer_used > 0)
     {
@@ -742,8 +685,6 @@ io_flush_memory (screenshot_data *data, gint size)
 static void
 execute_command (screenshot_data *data)
 {
-  extern int cur_tuned_channel;
-  extern tveng_tuned_channel *global_channel_list;
   tveng_tuned_channel *tc;
   char *argv[10];
   int argc = 0;
@@ -760,7 +701,8 @@ execute_command (screenshot_data *data)
   env[envc++] = g_strdup_printf ("SCREENSHOT_PATH=%s", data->filename);
 
   /* XXX thread safe? prolly not */
-  tc = tveng_tuned_channel_nth (global_channel_list, cur_tuned_channel);
+  tc = tveng_tuned_channel_nth (global_channel_list,
+				(guint) cur_tuned_channel);
 
   if (tc)
     {
@@ -829,8 +771,8 @@ screenshot_saving_thread (void *_data)
 }
 
 static gboolean
-on_progress_delete_event               (GtkWidget       *widget,
-					GdkEvent        *event,
+on_progress_delete_event               (GtkWidget       *widget _unused_,
+					GdkEvent        *event _unused_,
 					screenshot_data *data)
 {
   data->thread_abort = TRUE; /* thread shall abort */
@@ -873,19 +815,18 @@ create_status_window (screenshot_data *data)
 static gboolean
 screenshot_save			(screenshot_data *	data)
 {
-  GtkWindow *window;
-  gchar *dirname;
-  gchar *basename;
+  gchar *dir_name;
+  gchar *base_name;
   gchar *errmsg;
 
-  dirname = g_path_get_dirname (data->filename);
-  basename = g_path_get_basename (data->filename);
+  dir_name = g_path_get_dirname (data->filename);
+  base_name = g_path_get_basename (data->filename);
 
-  if (!z_build_path (dirname, &errmsg))
+  if (!z_build_path (dir_name, &errmsg))
     {
       /* XXX check errno and possibly retry */
       ShowBox (_("Cannot create directory:\n%s\n%s"),
-	       GTK_MESSAGE_WARNING, dirname, errmsg);
+	       GTK_MESSAGE_WARNING, dir_name, errmsg);
       g_free (errmsg);
       goto failure;
     }
@@ -954,16 +895,16 @@ screenshot_save			(screenshot_data *	data)
     }
 
   g_free (screenshot_option_save_dir);
-  screenshot_option_save_dir = dirname;
+  screenshot_option_save_dir = dir_name;
 
   g_free (screenshot_option_save_base);
-  screenshot_option_save_base = basename;
+  screenshot_option_save_base = base_name;
 
   return TRUE;
 
  failure:
-  g_free (basename);
-  g_free (dirname);
+  g_free (base_name);
+  g_free (dir_name);
 
   return FALSE;
 }
@@ -989,14 +930,15 @@ preview (screenshot_data *data)
   old_data = data->data;
   old_format = data->format;
 
-  tv_pixfmt_to_pixel_format (&pixel_format, data->format.pixfmt, 0);
+  tv_pixel_format_from_pixfmt (&pixel_format, data->format.pixfmt, 0);
 
-  data->data.linear.data += (int)
-    (((((data->format.width - PREVIEW_WIDTH) >> 1)
-       * pixel_format.bits_per_pixel) >> 3)
-     + (((data->format.height - PREVIEW_HEIGHT) >> 1)
-	& -1) /* top field first */
-     * data->data.linear.stride);
+  data->data.linear.data =
+    (char *) data->data.linear.data
+    + (int) (((((data->format.width - PREVIEW_WIDTH) >> 1)
+	       * pixel_format.bits_per_pixel) >> 3)
+	     + (((data->format.height - PREVIEW_HEIGHT) >> 1)
+		& (unsigned int) -1) /* top field first */
+	     * data->data.linear.stride);
 
   data->format.width = PREVIEW_WIDTH;
   data->format.height = PREVIEW_HEIGHT;
@@ -1062,8 +1004,8 @@ preview (screenshot_data *data)
     }
   else /* backend doesn't support preview (lossless format?) */
     {
-      gint line, rowstride;
-      gchar *s, *d, *row;
+      guint line, rowstride;
+      gchar *s, *d;
 
       s = data->data.linear.data;
       d = gdk_pixbuf_get_pixels (data->pixbuf);
@@ -1089,8 +1031,8 @@ preview (screenshot_data *data)
 }
 
 static gboolean
-on_drawingarea_expose_event             (GtkWidget      *widget,
-                                         GdkEventExpose *event,
+on_drawingarea_expose_event             (GtkWidget      *widget _unused_,
+                                         GdkEventExpose *event _unused_,
                                          screenshot_data *data)
 {
   gchar buf[80];
@@ -1208,11 +1150,9 @@ build_dialog (screenshot_data *data)
 {
   GtkWidget *widget;
   GtkWidget *menu, *menu_item;
-  GtkWidget *quality_slider;
   GtkAdjustment *adj;
-  gchar *filename;
-  gint default_item = 0;
-  gint i;
+  guint default_item = 0;
+  guint i;
 
   data->dialog = build_widget ("dialog1", "screenshot.glade2");
   /* Format menu */
@@ -1323,7 +1263,7 @@ build_dialog (screenshot_data *data)
 				_("This format has no quality option"));
 
   gtk_window_set_transient_for (GTK_WINDOW (data->dialog),
-				GTK_WINDOW (main_window));
+				GTK_WINDOW (zapping));
 
   gtk_widget_grab_focus (GTK_WIDGET (data->entry));
 
@@ -1555,7 +1495,6 @@ plugin_read_frame (capture_frame *frame)
 static gboolean
 screenshot_grab (gint dialog)
 {
-  GdkPixbuf *pixbuf;
   screenshot_data *data;
   capture_fmt fmt;
 
@@ -1571,12 +1510,13 @@ screenshot_grab (gint dialog)
    *  Switch to capture mode if we aren't viewing Teletext
    *  (associated with TVENG_NO_CAPTURE)
    */
-  if (zapping_info->current_mode != TVENG_NO_CAPTURE)
+  if (CAPTURE_MODE_NONE != zapping_info->capture_mode)
     {
-      if (zapping_info->current_mode != TVENG_CAPTURE_READ)
-	zmisc_switch_mode (TVENG_CAPTURE_READ, zapping_info);
+      if (CAPTURE_MODE_READ != zapping_info->capture_mode)
+	zmisc_switch_mode (DISPLAY_MODE_WINDOW,
+			   CAPTURE_MODE_READ, zapping_info);
 
-      if (zapping_info->current_mode != TVENG_CAPTURE_READ)
+      if (zapping_info->capture_mode != CAPTURE_MODE_READ)
 	{
 	  screenshot_destroy (data);
 	  return FALSE; /* unable to set the mode */
@@ -1594,7 +1534,7 @@ screenshot_grab (gint dialog)
 	}
     }
 
-#if GNOME2_CONVERSION_COMPLETE
+#ifdef GNOME2_CONVERSION_COMPLETE
 #ifdef HAVE_LIBZVBI
   /*
    *  Otherwise request TTX image 
@@ -1639,3 +1579,55 @@ screenshot_grab (gint dialog)
 
   return TRUE;
 }
+
+/* Return FALSE if we aren't able to access a symbol, you should only
+   need to edit the pointer table, not the code */
+gboolean
+plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
+{
+  /* Usually this table is the only thing you will need to change */
+  struct plugin_exported_symbol table_of_symbols[] =
+  {
+    SYMBOL(plugin_init, 0x1234),
+    SYMBOL(plugin_get_info, 0x1234),
+    SYMBOL(plugin_close, 0x1234),
+    SYMBOL(plugin_start, 0x1234),
+    SYMBOL(plugin_load_config, 0x1234),
+    SYMBOL(plugin_save_config, 0x1234),
+    SYMBOL(plugin_read_frame, 0x1234),
+    SYMBOL(plugin_get_public_info, 0x1234),
+    SYMBOL(plugin_add_gui, 0x1234),
+    SYMBOL(plugin_remove_gui, 0x1234),
+    SYMBOL(plugin_get_misc_info, 0x1234)
+  };
+  gint num_exported_symbols =
+    sizeof(table_of_symbols)/sizeof(struct plugin_exported_symbol);
+  gint i;
+
+  /* Try to find the given symbol in the table of exported symbols
+   of the plugin */
+  for (i=0; i<num_exported_symbols; i++)
+    if (!strcmp(table_of_symbols[i].symbol, name))
+      {
+	if (table_of_symbols[i].hash != hash)
+	  {
+	    if (ptr)
+	      *ptr = GINT_TO_POINTER(0x3); /* hash collision code */
+	    /* Warn */
+	    g_warning(_("Check error: \"%s\" in plugin %s"
+		       " has hash 0x%x vs. 0x%x"), name,
+		      str_canonical_name, 
+		      table_of_symbols[i].hash,
+		      hash);
+	    return FALSE;
+	  }
+	if (ptr)
+	  *ptr = table_of_symbols[i].ptr;
+	return TRUE; /* Success */
+      }
+
+  if (ptr)
+    *ptr = GINT_TO_POINTER(0x2); /* Symbol not found in the plugin */
+  return FALSE;
+}
+
