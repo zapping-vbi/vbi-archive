@@ -375,7 +375,7 @@ void shutdown_zapping(void)
 	      "     Zapping. Please contact the author.\n"
 	      ), GNOME_MESSAGE_BOX_ERROR);
 
-  /* Mute the device again and close the device */
+  /* Mute the device again and close */
   tveng_set_mute(1, main_info);
   tveng_device_info_destroy(main_info);
 

@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-06-14 23:25+0200\n"
+"POT-Creation-Date: 2000-06-15 15:24+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -92,19 +92,19 @@ msgstr ""
 msgid "Cannot tune input"
 msgstr ""
 
-#: src/callbacks.c:395
+#: src/callbacks.c:398
 msgid "Sorry, but cannot go fullscreen"
 msgstr ""
 
-#: src/callbacks.c:455
+#: src/callbacks.c:459
 msgid "I cannot find the main zapping window, weird..."
 msgstr ""
 
-#: src/callbacks.c:586 src/v4linterface.c:161
+#: src/callbacks.c:590 src/v4linterface.c:161
 msgid "No tuner"
 msgstr ""
 
-#: src/callbacks.c:594 src/v4linterface.c:163
+#: src/callbacks.c:598 src/v4linterface.c:163
 msgid "No tuned channels"
 msgstr ""
 
@@ -312,12 +312,12 @@ msgstr ""
 msgid "Alternate 2"
 msgstr ""
 
-#: src/tveng1.c:1128 src/tveng1.c:1624 src/tveng1.c:1637 src/tveng2.c:981
-#: src/tveng2.c:1266 src/tveng2.c:1279
+#: src/tveng1.c:1128 src/tveng1.c:1624 src/tveng1.c:1637 src/tveng2.c:980
+#: src/tveng2.c:1265 src/tveng2.c:1278
 msgid "Mute"
 msgstr ""
 
-#: src/tveng1.c:1139 src/tveng2.c:980
+#: src/tveng1.c:1139 src/tveng2.c:979
 msgid "Volume"
 msgstr ""
 
@@ -325,11 +325,11 @@ msgstr ""
 msgid "Bass"
 msgstr ""
 
-#: src/tveng1.c:1161 src/tveng2.c:983
+#: src/tveng1.c:1161 src/tveng2.c:982
 msgid "Treble"
 msgstr ""
 
-#: src/tveng1.c:1176 src/tveng2.c:982
+#: src/tveng1.c:1176 src/tveng2.c:981
 msgid "Balance"
 msgstr ""
 
@@ -337,11 +337,11 @@ msgstr ""
 msgid "Audio Decoding"
 msgstr ""
 
-#: src/tveng1.c:1203 src/tveng2.c:963
+#: src/tveng1.c:1203 src/tveng2.c:962
 msgid "Brightness"
 msgstr ""
 
-#: src/tveng1.c:1212 src/tveng2.c:966
+#: src/tveng1.c:1212 src/tveng2.c:965
 msgid "Hue"
 msgstr ""
 
@@ -349,7 +349,7 @@ msgstr ""
 msgid "Colour"
 msgstr ""
 
-#: src/tveng1.c:1230 src/tveng2.c:964
+#: src/tveng1.c:1230 src/tveng2.c:963
 msgid "Contrast"
 msgstr ""
 
@@ -372,21 +372,21 @@ msgstr ""
 msgid "Unknown video control: %s (%d)"
 msgstr ""
 
-#: src/tveng1.c:1517 src/tveng1.c:1547 src/tveng2.c:1156 src/tveng2.c:1187
+#: src/tveng1.c:1517 src/tveng1.c:1547 src/tveng2.c:1155 src/tveng2.c:1186
 #, c-format
 msgid "Cannot find control \"%s\" in the list of controls"
 msgstr ""
 
-#: src/tveng1.c:1586 src/tveng1.c:1611 src/tveng2.c:1227 src/tveng2.c:1253
+#: src/tveng1.c:1586 src/tveng1.c:1611 src/tveng2.c:1226 src/tveng2.c:1252
 #, c-format
 msgid "Cannot find control %d in the list of controls"
 msgstr ""
 
-#: src/tveng1.c:1760 src/tveng2.c:1388
+#: src/tveng1.c:1760 src/tveng2.c:1387
 msgid "There are no tuners for the active input"
 msgstr ""
 
-#: src/tveng1.c:1914 src/tveng2.c:1613
+#: src/tveng1.c:1914 src/tveng2.c:1612
 msgid "Warning: trying to stop capture with no capture active\n"
 msgstr ""
 
@@ -398,19 +398,19 @@ msgstr ""
 msgid "Grabber chip can't sync (no station tuned in?)"
 msgstr ""
 
-#: src/tveng1.c:2079 src/tveng2.c:1671
+#: src/tveng1.c:2079 src/tveng2.c:1670
 msgid "Current capture mode is not READ"
 msgstr ""
 
-#: src/tveng1.c:2088 src/tveng2.c:1680
+#: src/tveng1.c:2088 src/tveng2.c:1679
 msgid "Size check failed, quitting to avoid segfault"
 msgstr ""
 
-#: src/tveng1.c:2230 src/tveng2.c:1843
+#: src/tveng1.c:2230 src/tveng2.c:1842
 msgid "The capability field says that there is no overlay"
 msgstr ""
 
-#: src/tveng1.c:2465 src/tveng2.c:2092
+#: src/tveng1.c:2465 src/tveng2.c:2091
 msgid "Warning: trying to stop preview with no capture active\n"
 msgstr ""
 
@@ -429,76 +429,76 @@ msgstr ""
 msgid "Sorry, but \"%s\" has no tuner"
 msgstr ""
 
-#: src/tveng2.c:965
+#: src/tveng2.c:964
 msgid "Saturation"
 msgstr ""
 
-#: src/tveng2.c:967
+#: src/tveng2.c:966
 msgid "Whiteness"
 msgstr ""
 
-#: src/tveng2.c:968
+#: src/tveng2.c:967
 msgid "Black level"
 msgstr ""
 
-#: src/tveng2.c:969
+#: src/tveng2.c:968
 msgid "White balance"
 msgstr ""
 
-#: src/tveng2.c:970
+#: src/tveng2.c:969
 msgid "Do white balance"
 msgstr ""
 
-#: src/tveng2.c:971
+#: src/tveng2.c:970
 msgid "Red balance"
 msgstr ""
 
-#: src/tveng2.c:972
+#: src/tveng2.c:971
 msgid "Blue balance"
 msgstr ""
 
-#: src/tveng2.c:973
+#: src/tveng2.c:972
 msgid "Gamma"
 msgstr ""
 
-#: src/tveng2.c:974
+#: src/tveng2.c:973
 msgid "Exposure"
 msgstr ""
 
-#: src/tveng2.c:975
+#: src/tveng2.c:974
 msgid "Gain"
 msgstr ""
 
-#: src/tveng2.c:976
+#: src/tveng2.c:975
 msgid "HCenter"
 msgstr ""
 
-#: src/tveng2.c:977
+#: src/tveng2.c:976
 msgid "VCenter"
 msgstr ""
 
-#: src/tveng2.c:978
+#: src/tveng2.c:977
 msgid "Horizontal flipping"
 msgstr ""
 
-#: src/tveng2.c:979
+#: src/tveng2.c:978
 msgid "Vertical flipping"
 msgstr ""
 
-#: src/tveng2.c:984
+#: src/tveng2.c:983
 msgid "Loudness"
 msgstr ""
 
-#: src/tveng2.c:1034
+#: src/tveng2.c:1033
 msgid "<Broken menu entry>"
 msgstr ""
 
-#: src/tveng2.c:1044
+#: src/tveng2.c:1043
 #, c-format
 msgid "V4L2: Unknown control type 0x%x (%s)\n"
 msgstr ""
 
-#: src/tveng2.c:1550
+#: src/tveng2.c:1549
 msgid "Not enough buffers"
 msgstr ""
 

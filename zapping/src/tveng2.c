@@ -956,7 +956,6 @@ p_tveng2_build_controls(tveng_device_info * info)
   int j;
 
   /* This shouldn't be neccessary is control querying worked properly */
-  /* FIXME: add some ifdef's to use the sane way to query controls */
   /* FIXME: add audio subchannels selecting controls */
   struct p_tveng2_control_with_i18n cids[] =
   {
