@@ -25,7 +25,7 @@
 #  Perl and C gurus cover your eyes. This is one of my first
 #  attempts in this funny tongue and far from a proper C parser.
 
-# $Id: structpr_gen.pl,v 1.4 2004-05-16 11:43:17 mschimek Exp $
+# $Id: structpr_gen.pl,v 1.5 2004-08-13 01:11:52 mschimek Exp $
 
 $number		= '[0-9]+';
 $ident		= '\~?_*[a-zA-Z][a-zA-Z0-9_]*';
@@ -131,12 +131,12 @@ sub add_ioctl_check {
 }
 
 sub add_ioctl {
-    my ($name, $dir, $type) = @_;
+    my ($name, $dir, $i_type, $real_type) = @_;
 
-    $ioctl_cases{$type} .= "case $name:\n"
+    $ioctl_cases{$i_type} .= "case $name:\n"
 	. "if (!arg) { fputs (\"$name\", fp); return; }\n";
 
-    &add_ioctl_check ($name, $dir, $type);
+    &add_ioctl_check ($name, $dir, $real_type);
 }
 
 # Find macro definitions, create ioctl & symbol table.
@@ -156,9 +156,14 @@ foreach ($contents =~ /^(.*)/gm) {
 	$skip = 1;
     # Ioctls
     } elsif (/$define($ident)\s+_IO(WR|R|W).*\(.*,\s*$number\s*,\s*(struct|union)\s*($ident)\s*\)\s*$/) {
-	&add_ioctl ($1, $2, "$3 $4");
+	&add_ioctl ($1, $2, "$3 $4", "$3 $4");
     } elsif (/$define($ident)\s+_IO(WR|R|W).*\(.*,\s*$number\s*,\s*(($signed)|($unsigned))\s*\)\s*$/) {
-	&add_ioctl ($1, $2, "$3");
+	if ($symbolic{$1}) {
+	    $int_ioctls{$1} = $3;
+	    &add_ioctl ($1, $2, $1, $3);
+	} else {
+	    &add_ioctl ($1, $2, $3, $3);
+	}
     } elsif (/$define($ident)\s+_IO(WR|R|W).*\(.*,\s*$number\s*,\s*([^*]+)\s*\)\s*$/) {
 	&add_ioctl_check ($1, $2, $3);
     # Define 
@@ -636,6 +641,32 @@ print "/* Generated file, do not edit! */
 #endif
 
 ";
+
+while (($name, $type) = each %int_ioctls) {
+    my $prefix;
+    my $sbody;
+
+    $prefix = $symbolic{$name};
+
+    foreach (@global_symbols) {
+	if (/^$prefix/) {
+	    $str = $_;
+	    $str =~ s/^$prefix//;
+	    $sbody .= "\"$str\", (unsigned long) $_,\n";
+	}
+    }
+
+    # No switch() such that fprint_symbolic() can determine if
+    # these are flags or enum.
+    $funcs{$name} = {
+	text => "static void\n"
+	    . "fprint_$name (FILE *fp, "
+	    . "int rw __attribute__ ((unused)), $type *arg)\n"
+	    . "{\nfprint_symbolic (fp, 0, (unsigned long) *arg,\n"
+	    . $sbody . "0);\n}\n\n",
+	deps => []
+    };
+}
 
 sub print_type {
     my ($type) = @_;
