@@ -1,5 +1,5 @@
 #!/bin/sh
-#$Id: prepare_web.sh,v 1.15 2004-04-30 02:15:46 mschimek Exp $
+#$Id: prepare_web.sh,v 1.16 2004-05-02 02:48:41 mschimek Exp $
 #
 # Checks our html pages out of cvs, puts the files online
 # and cleans up.
@@ -14,7 +14,7 @@
 set -e -x
 
 # By default no files are world accessible.
-chmod ug=rwX,o-rwx ./* -R
+chmod u=rwX,go-rwx ./* -R
 
 umask 007
 
@@ -106,14 +106,16 @@ chmod a+rX templates/*.tmpl
 
 # 'nobody' executes cgi scripts and needs write access
 # to TWiki data (pages) and htdocs/pub (attachments).
-# Only root or a cgi script can do this,
-# but for clarity, this is what we want:
+# Only root can do this, but for clarity this is what we want:
 
 if test `whoami` = "root"; then
   chown nobody.nogroup twiki -R
   chmod u+w,go-w,a+rX twiki -R
   chown nobody.nogroup htdocs/pub -R
   chmod u+w,go-w,a+rX htdocs/pub -R
+else
+  chmod a+rwX twiki -R
+  chmod a+rwX htdocs/pub -R
 fi
 
 ) 2>&1 | tee prepare_web.log
