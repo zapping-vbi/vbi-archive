@@ -1,5 +1,6 @@
 /*
- * Zapping (TV viewer for the Gnome Desktop)
+ *  Zapping (TV viewer for the Gnome Desktop)
+ *
  * Copyright (C) 2001 Iñaki García Etxebarria
  * Copyright (C) 2003 Michael H. Schimek
  *
@@ -18,22 +19,24 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+/* $Id: ttxview.c,v 1.116.2.13 2003-09-24 18:36:37 mschimek Exp $ */
+
 /*
- * GUI view for the Teletext data
+ *  Teletext View
  */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
+#include "config.h"
 
+#ifdef HAVE_LIBZVBI
+
+/* Libzvbi returns static strings which must be localized using
+   the zvbi domain. Stupid. Fix planned for next version. */
 #ifdef ENABLE_NLS
 #  include <libintl.h>
 #  define V_(String) dgettext("zvbi", String)
 #else
 #  define V_(String) (String)
 #endif
-
-#ifdef HAVE_LIBZVBI
 
 #include <gnome.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
@@ -49,11 +52,11 @@
 #include "zconf.h"
 #include "zmisc.h"
 #include "zmodel.h"
-#include "../common/fifo.h"
-#include "../common/ucs-2.h"
+#include "common/fifo.h"
+#include "common/ucs-2.h"
 #include "osd.h"
-#include "callbacks.h"
 #include "remote.h"
+#include "properties-handler.h"
 
 extern gboolean			flag_exit_program;
 extern tveng_tuned_channel *	global_channel_list;
@@ -2435,46 +2438,13 @@ bookmark_dialog_append		(bookmark_dialog *	sp,
 		      -1);
 }
 
-#define VALID_ITER(iter, list_store)					\
-  ((iter) != NULL							\
-   && (iter)->user_data != NULL						\
-   && ((GTK_LIST_STORE (list_store))->stamp == (iter)->stamp))
-
 static void
 on_bookmark_dialog_remove_clicked
 				(GtkWidget *		widget,
 				 bookmark_dialog *	sp)
 {
-  GtkTreeIter iter;
-
-  if (!gtk_tree_model_get_iter_first (GTK_TREE_MODEL (sp->store), &iter))
-    return; /* empty list */
-
-  while (!gtk_tree_selection_iter_is_selected (sp->selection, &iter))
-    if (!gtk_tree_model_iter_next (GTK_TREE_MODEL (sp->store), &iter))
-      return; /* nothing selected */
-
-  while (VALID_ITER (&iter, sp->store))
-    {
-      if (!gtk_tree_selection_iter_is_selected (sp->selection, &iter))
-	break;
-
-      gtk_list_store_remove (sp->store, &iter);
-    }
-
-  if (VALID_ITER (&iter, sp->store))
-    {
-      GtkTreePath *path;
-
-      gtk_tree_selection_select_iter (sp->selection, &iter);
-
-      if ((path = gtk_tree_model_get_path (GTK_TREE_MODEL (sp->store), &iter)))
-	{
-	  gtk_tree_view_scroll_to_cell (sp->tree_view, path, NULL,
-					/* use_align */ TRUE, 0.5, 0.0);
-	  gtk_tree_path_free (path);
-	}
-    }
+  z_tree_view_remove_selected (sp->tree_view, sp->selection,
+			       GTK_TREE_MODEL (sp->store));
 }
 
 static void
@@ -2483,19 +2453,13 @@ on_bookmark_dialog_selection_changed
 				 bookmark_dialog *	sp)
 {
   GtkTreeIter iter;
+  gboolean selected;
 
-  if (!gtk_tree_model_get_iter_first (GTK_TREE_MODEL (sp->store), &iter))
-    goto insensitive; /* empty list */
+  selected = z_tree_selection_iter_first (selection,
+					  GTK_TREE_MODEL (sp->store),
+					  &iter);
 
-  while (!gtk_tree_selection_iter_is_selected (sp->selection, &iter))
-    if (!gtk_tree_model_iter_next (GTK_TREE_MODEL (sp->store), &iter))
-      {
-      insensitive:
-	gtk_widget_set_sensitive (sp->remove, FALSE);
-	return;
-      }
-
-  gtk_widget_set_sensitive (sp->remove, TRUE);
+  gtk_widget_set_sensitive (sp->remove, selected);
 }
 
 static void
@@ -4419,18 +4383,19 @@ on_ttxview_key_press		(GtkWidget *		widget,
     }
 
   /* Try user defined keys. */
-  return on_user_key_press (widget, event, data);
+  return on_user_key_press (widget, event, data)
+    || on_picture_size_key_press (widget, event, data);
 }
 
 /*
  *  Toolbar
  */
 
-#include "../pixmaps/left.h"
-#include "../pixmaps/down.h"
-#include "../pixmaps/up.h"
-#include "../pixmaps/right.h"
-#include "../pixmaps/reveal.h"
+#include "pixmaps/left.h"
+#include "pixmaps/down.h"
+#include "pixmaps/up.h"
+#include "pixmaps/right.h"
+#include "pixmaps/reveal.h"
 
 static void
 on_toolbar_hold_toggled		(GtkToggleButton *	button,
@@ -5149,37 +5114,27 @@ startup_ttxview			(void)
 
   bookmark_load ();
 
-  cmd_register ("ttx_open", py_ttx_open, METH_VARARGS,
-		_("Open Teletext page"),
-		"zapping.ttx_open(100,2)");
+  cmd_register ("ttx_open", py_ttx_open, METH_VARARGS);
   cmd_register ("ttx_open_new", py_ttx_open_new, METH_VARARGS,
-		_("Open new Teletext window"),
-		"zapping.ttx_open_new(300)");
+		("Open new Teletext window"), "zapping.ttx_open_new()");
   cmd_register ("ttx_page_incr", py_ttx_page_incr, METH_VARARGS,
-		_("Advance page number"),
-		"zapping.ttx_page_incr(-4)");
+		("Increment Teletext page number"), "zapping.ttx_page_incr(+1)",
+		("Decrement Teletext page number"), "zapping.ttx_page_incr(-1)");
   cmd_register ("ttx_subpage_incr", py_ttx_subpage_incr, METH_VARARGS,
-		_("Advance subpage number"),
-		"zapping.ttx_subpage_incr(-1)");
+		("Increment Teletext subpage number"), "zapping.ttx_subpage_incr(+1)",
+		("Decrement Teletext subpage number"), "zapping.ttx_subpage_incr(-1)");
   cmd_register ("ttx_home", py_ttx_home, METH_VARARGS,
-		_("Go to index page"),
-		"zapping.ttx_home()");
-
+		("Go to Teletext index page"), "zapping.ttx_home()");
   cmd_register ("ttx_hold", py_ttx_hold, METH_VARARGS,
-		_("Hold current subpage"), "zapping.hold(1)");
+		("Hold Teletext subpage"), "zapping.ttx_hold()");
   cmd_register ("ttx_reveal", py_ttx_reveal, METH_VARARGS,
-		_("Reveal concealed text"), "zapping.reveal(0)");
-
+		("Reveal concealed text"), "zapping.ttx_reveal()");
   cmd_register ("ttx_history_prev", py_ttx_history_prev, METH_VARARGS,
-		_("Previous page in history"),
-		"zapping.ttx_history_prev()");
+		("Previous Teletext page in history"), "zapping.ttx_history_prev()");
   cmd_register ("ttx_history_next", py_ttx_history_next, METH_VARARGS,
-		_("Next page in history"),
-		"zapping.ttx_history_next()");
-
+		("Next Teletext page in history"), "zapping.ttx_history_next()");
   cmd_register ("ttx_search", py_ttx_search, METH_VARARGS,
-		_("Open search dialog"),
-		"zapping.ttx_search()");
+		("Teletext search"), "zapping.ttx_search()");
 
   return TRUE;
 }
