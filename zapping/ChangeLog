@@ -1,3 +1,11 @@
+12.6.2000	Docs added <garetxe@users.sourceforge.net>
+
+	* help/C/channel_editor.html: Added.
+	* src/sound.c: Sound capturing support is now complete. It is
+	slow, though.
+	* src/tveng.c: Fixed a couple of memleaks in
+	tveng_get_display_depth (memprof is great!)
+	
 09.6.2000	VidMode extension <garetxe@users.sourceforge.net>
 
 	* tveng.c: If a better resolution for going fullscreen is

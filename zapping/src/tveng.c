@@ -1223,6 +1223,7 @@ tveng_get_display_depth(tveng_device_info * info)
     info -> tveng_errno = -1;
     t_error_msg("XGetVisualInfo",
 		_("Cannot find an appropiate visual"), info);
+    XFree(visual_info);
     return 0;
   }
   
@@ -1238,8 +1239,13 @@ tveng_get_display_depth(tveng_device_info * info)
     info -> tveng_errno = -1;
     t_error_msg("XListPixmapFormats",
 		_("Cannot figure out X depth"), info);
+    XFree(visual_info);
+    XFree(pf);
     return 0;
   }
+
+  XFree(visual_info);
+  XFree(pf);
   return bpp;
 }
 

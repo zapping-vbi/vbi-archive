@@ -40,18 +40,11 @@ make
 [ -n "$RPM_BUILD_ROOT" -a "$RPM_BUILD_ROOT" != / ] && rm -rf $RPM_BUILD_ROOT
 
 make prefix=$RPM_BUILD_ROOT%{prefix} install
-#
-# Auto detect the lang files.
-#
-if [ -f /usr/lib/rpm/find-lang.sh ] ; then
- /usr/lib/rpm/find-lang.sh $RPM_BUILD_ROOT %name
- sed "s:(644, root, root, 755):(444, bin, bin, 555):" %{name}.lang >tmp.lang && mv tmp.lang %{name}.lang
-fi
 
 %clean
 [ -n "$RPM_BUILD_ROOT" -a "$RPM_BUILD_ROOT" != / ] && rm -rf $RPM_BUILD_ROOT
 
-%files -f %{name}.lang
+%files
 
 %defattr (4555, bin, bin)
 %{prefix}/bin/zapping_setup_fb
@@ -67,13 +60,14 @@ fi
 %{prefix}/share/gnome/help/zapping/C/*.html
 %{prefix}/share/gnome/help/zapping/C/*.dat
 %{prefix}/share/pixmaps/zapping/*
+%{prefix}/share/locale/*/*/*
 
 %defattr (0444, bin, bin, 555)
 %doc AUTHORS THANKS ChangeLog README COPYING TODO BUGS po/zapping.pot
 
 %changelog
-* Thu Jun 06 2000 Iñaki García Etxebarria <garetxe@users.sourceforge.net>
-	- Now it works fine.
+* Mon Jun 12 2000 Iñaki García Etxebarria <garetxe@users.sourceforge.net>
+	- Fixed, it didn't include the translations properly.
 
 * Thu Jun 06 2000 Iñaki García Etxebarria <garetxe@users.sourceforge.net>
-	- Created
+	- Created, it works fine.

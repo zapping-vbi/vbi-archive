@@ -160,9 +160,6 @@ on_channel_list_select_row             (GtkCList        *clist,
                                         gint             column,
                                         GdkEvent        *event,
                                         gpointer         user_data);
-void
-on_autotune_clicked                    (GtkButton       *button,
-                                        gpointer         user_data);
 
 void
 on_channels_done_clicked               (GtkButton       *button,

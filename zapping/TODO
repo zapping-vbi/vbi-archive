@@ -1,7 +1,7 @@
 Outstanding issues for the next release
 ---------------------------------------
-	+ Add support for capturing the sound stream
-	+ Write docs on tveng and plugins
+	+ Write docs on tveng and plugins (maybe not)
 	+ Build RPMS (rpm -tb) and DEBS (using alien)
 	+ Fix bugs
 	> Release 0.5.1
+	+ Integrate sound into the plugins.

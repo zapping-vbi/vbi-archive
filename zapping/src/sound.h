@@ -28,10 +28,34 @@
 
 #include <gnome.h>
 
+/* This struct holds some info about a sound sample */
+struct soundinfo
+{
+  gint buffer_size; /* Actual size of the buffer */
+  gint size; /* Number of available bytes in the buffer struct */
+  gpointer buffer; /* pointer to the data */
+  struct timeval tv; /* When was captured this sample */
+  gint rate; /* Sound sampling frequence, usually 44.1 kHz */
+  gint bits; /* Bits per sample (usually 16) */
+};
+
 /* Start the sound, return FALSE on error */
 gboolean startup_sound( void );
 
 /* Shutdown all sound */
 void shutdown_sound ( void);
+
+/* Create the struct needed for communicating with the sound thread */
+struct soundinfo * sound_create_struct( void );
+
+/* Free all the mem the struct uses */
+void sound_destroy_struct (struct soundinfo * si);
+
+/*
+  Read the data captured by the sound capturing thread into the si
+  struct. Returns the number of available bytes in the struct, same as
+  si.size
+*/
+gint sound_read_data(struct soundinfo * si);
 
 #endif /* SOUND.H */

@@ -12,5 +12,3 @@ but with Mozilla. Annoying, since Mozilla needs a lot of resources.
 	* Some users have reported that FS mode doesn't work
 correctly. Add support for the vidmode extension and add some debug
 messages to find out what's happening (done, now wait for bug reports).
-	* It looks like the RPM doesn't install correctly the
-translations. Check this before releasing.

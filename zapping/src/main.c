@@ -42,6 +42,7 @@ tveng_device_info * main_info;
 gboolean flag_exit_program = FALSE;
 tveng_channels * current_country = NULL;
 GList * plugin_list = NULL;
+struct soundinfo * si;
 
 void shutdown_zapping(void);
 gboolean startup_zapping(void);
@@ -260,6 +261,10 @@ int main(int argc, char * argv[])
 					GDK_HINT_MIN_SIZE);
 	}
 
+      /* Collect the sound data (the queue needs to be emptied,
+	 otherwise mem usage will grow a lot) */
+      sound_read_data(si);
+
       /* We are probably viewing fullscreen, just do nothing */
       if (main_info -> current_mode != TVENG_CAPTURE_READ)
 	continue;
@@ -349,6 +354,8 @@ void shutdown_zapping(void)
     zcs_int(main_info -> cur_standard, "current_standard");
   if (main_info->num_inputs)
     zcs_int(main_info -> cur_input, "current_input");
+
+  sound_destroy_struct(si);
 
   /* Shutdown sound */
   shutdown_sound();
@@ -470,6 +477,8 @@ gboolean startup_zapping()
 	}
       p = p->next;
     }
+
+  si = sound_create_struct();
 
   return TRUE;
 }

@@ -420,8 +420,17 @@ void
 on_help_channels_clicked               (GtkButton       *button,
                                         gpointer         user_data)
 {
-  ShowBox(_("Sorry, but the help for this box isn't written yet"),
-	  GNOME_MESSAGE_BOX_INFO);
+  GnomeHelpMenuEntry help_ref = { NULL,
+				  "channel_editor.html" };
+  enum tveng_capture_mode cur_mode;
+
+  cur_mode = tveng_stop_everything(main_info);
+
+  help_ref.name = gnome_app_id;
+  gnome_help_display (NULL, &help_ref);
+
+  if (tveng_restart_everything(cur_mode, main_info) == -1)
+    ShowBox(main_info->error, GNOME_MESSAGE_BOX_ERROR);
 }
 
 void
@@ -526,15 +535,6 @@ on_channel_list_select_row             (GtkCList        *clist,
 
   p_channel_editor_update_label43 (GTK_WIDGET(clist1));
 }
-
-void
-on_autotune_clicked                    (GtkButton       *button,
-                                        gpointer         user_data)
-{
-  ShowBox(_("Sorry, but autotuning doesn't work yet"),
-	  GNOME_MESSAGE_BOX_INFO);
-}
-
 
 /*
   Called when a key is pressed in the channel list. Should call remove
