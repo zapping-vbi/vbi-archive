@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: window.c,v 1.5 2004-11-09 07:01:24 mschimek Exp $ */
+/* $Id: window.c,v 1.6 2004-11-11 14:33:54 mschimek Exp $ */
 
 #include "config.h"
 
@@ -737,10 +737,11 @@ key_press_event			(GtkWidget *		widget,
 }
 
 static gboolean
-button_press_event		(GtkWidget *		widget,
-				 GdkEventButton *	event)
+on_button_press_event		(GtkWidget *		widget,
+				 GdkEventButton *	event,
+				 gpointer		user_data)
 {
-  TeletextWindow *window = TELETEXT_WINDOW (widget);
+  TeletextWindow *window = TELETEXT_WINDOW (user_data);
   vbi3_link link;
   gboolean success;
   GtkWidget *menu;
@@ -952,6 +953,10 @@ instance_init			(GTypeInstance *	instance,
   object = G_OBJECT (window);
   g_object_set_data (object, "TeletextView", window->view);
 
+  /* NOTE view only, not the entire window. */
+  g_signal_connect (G_OBJECT (window->view), "button-press-event",
+		    G_CALLBACK (on_button_press_event), window);
+
   gtk_widget_set_size_request (widget, 260, 250);
 
   gnome_app_set_contents (app, widget);
@@ -1002,10 +1007,10 @@ instance_init			(GTypeInstance *	instance,
     g_assert (success);
   }
 
-  g_signal_connect (G_OBJECT (window->view), "charset-changed",
+  g_signal_connect (G_OBJECT (window->view), "z-charset-changed",
 		    G_CALLBACK (on_view_charset_changed), window);
 
-  g_signal_connect (G_OBJECT (window->view), "request-changed",
+  g_signal_connect (G_OBJECT (window->view), "z-request-changed",
 		    G_CALLBACK (on_view_request_changed), window);
 
   g_signal_connect (G_OBJECT (zvbi_get_model ()), "changed",
@@ -1034,7 +1039,6 @@ class_init			(gpointer		g_class,
   object_class->finalize = instance_finalize;
 
   widget_class->key_press_event = key_press_event;
-  widget_class->button_press_event = button_press_event;
 }
 
 GType
