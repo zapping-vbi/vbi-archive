@@ -176,13 +176,9 @@ _videodev25.h: Makefile.am $(structpr) videodev25.h
 	v4l2_querymenu=R \
 	v4l2_querymenu.id=WR,V4L2_CID_ \
 	v4l2_querymenu.index=WR,V4L2_CID_ \
-	v4l2_tuner=R \
-	v4l2_tuner.index=WR \
 	v4l2_tuner.capability=V4L2_TUNER_CAP_ \
 	v4l2_tuner.rxsubchans=V4L2_TUNER_SUB_ \
 	v4l2_tuner.audmode=V4L2_TUNER_MODE_ \
-	v4l2_modulator=R \
-	v4l2_modulator.index=WR \
 	v4l2_modulator.capability=V4L2_TUNER_CAP_ \
 	v4l2_modulator.txsubchans=V4L2_TUNER_SUB_ \
 	v4l2_audio=R \
@@ -201,4 +197,20 @@ _videodev25.h: Makefile.am $(structpr) videodev25.h
 _bktr.h: Makefile.am $(structpr) ioctl_bt848.h ioctl_meteor.h
 	cat $(srcdir)/ioctl_bt848.h $(srcdir)/ioctl_meteor.h | \
 	$(srcdir)/$(structpr) \
+	METEORCAPTUR=METEOR_CAP_ \
+	METEORSTATUS=METEOR_STATUS_ \
+	METEORSFMT=METEOR_FMT_ \
+	METEORGFMT=METEOR_FMT_ \
+	METEORSINPUT=METEOR_INPUT_ \
+	METEORGINPUT=METEOR_INPUT_ \
+	METEORSSIGNAL=METEOR_SIG_ \
+	METEORGSIGNAL=METEOR_SIG_ \
+	TVTUNER_SETCHNL=CHNLSET_ \
+	TVTUNER_GETCHNL=CHNLSET_ \
+	BT848_SAUDIO=AUDIO_ \
+	BT848_GAUDIO=AUDIO_ \
+	RADIO_SETMODE=RADIO_ \
+	RADIO_GETMODE=RADIO_ \
+	BT848SFMT=BT848_IFORM_F_ \
+	meteor_geomet.oformat=METEOR_GEO_ \
 	> $@
