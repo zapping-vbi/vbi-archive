@@ -668,7 +668,8 @@ start_saving_screenshot (gpointer data_to_save,
     {
       window_title = g_strconcat(_("Sorry, but I cannot write\n"),
 				 buffer,
-				 _("\nThe image won't be saved."),
+				 _("\nThe image won't be saved.\n"),
+				 strerror(errno),
 				 NULL);
 
       ShowBox(window_title,

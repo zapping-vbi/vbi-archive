@@ -1,6 +1,6 @@
 18.08.2001	pl translation <garetxe@users.sf.net>
 
-	* pl.po: Commited pl translation, contributed by Pawel Sakowski.
+	* pl.po: Commited pl translation, contributed by Paweł Sakowski.
 		 Thanks!
 
 17.08.2001	many channels <garetxe@users.sf.net>
@@ -910,7 +910,7 @@
 	* ASCII/ANSI export restored, enabled
 	* vbi_page_title added, unfinished
 	* fixed a problem with ttxview subpage display
-	* modified toolbar, let's see what I�aki sez ;-)
+	* modified toolbar, let's see what Iñaki sez ;-)
 
 3.01.2001	gui for export filters <garetxe@users.sourceforge.net>
 

@@ -20,6 +20,7 @@ Known bugs with zapping, don't report them
 	~ Not really a bug, but I didn't test caption for some time,
           expect bit rot.
 	* Don't compile conv_gen.s if $host != x86
+	* PgUp/PgDown changes the channel in TTX mode.
 	* html-exp: buttons don't remember. anchor broken.
 
 
