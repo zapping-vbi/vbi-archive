@@ -498,9 +498,11 @@ add_controls			(struct control_window *cb,
   /* Update the values of all the controls */
   if (-1 == tveng_update_controls (info))
     {
+      /* FIXME aborting is no proper way to handle this.
       ShowBox ("Tveng critical error, Zapping will exit NOW.",
 	       GTK_MESSAGE_ERROR);
       g_error ("tveng critical: %s", info->error);
+      */
     }
 
   cb->table = NULL;
@@ -729,7 +731,7 @@ update_control_box		(tveng_device_info *	info)
    new configuration. */
 
 gboolean
-z_switch_input			(int hash, tveng_device_info *info)
+z_switch_video_input		(int hash, tveng_device_info *info)
 {
   const tv_video_line *l;
 
@@ -744,7 +746,34 @@ z_switch_input			(int hash, tveng_device_info *info)
 
   if (!tv_set_video_input (info, l))
     {
-      ShowBox("Couldn't switch to input %s\n%s",
+      ShowBox("Couldn't switch to video input %s\n%s",
+	      GTK_MESSAGE_ERROR,
+	      l->label, info->error);
+      return FALSE;
+    }
+
+  zmodel_changed(z_input_model);
+
+  return TRUE;
+}
+
+gboolean
+z_switch_audio_input		(int hash, tveng_device_info *info)
+{
+  const tv_audio_line *l;
+
+  if (!(l = tv_audio_input_by_hash (info, hash)))
+    {
+#if 0 /* annoying */
+      ShowBox("Couldn't find audio input with hash %x",
+	      GTK_MESSAGE_ERROR, hash);
+#endif
+      return FALSE;
+    }
+
+  if (!tv_set_audio_input (info, l))
+    {
+      ShowBox("Couldn't switch to audio input %s\n%s",
 	      GTK_MESSAGE_ERROR,
 	      l->label, info->error);
       return FALSE;
@@ -759,6 +788,10 @@ gboolean
 z_switch_standard		(int hash, tveng_device_info *info)
 {
   const tv_video_standard *s;
+  tv_bool r;
+#ifdef HAVE_LIBZVBI
+  vbi_decoder *vbi;
+#endif
 
   for (s = tv_next_video_standard (info, NULL);
        s; s = tv_next_video_standard (info, s))
@@ -775,7 +808,26 @@ z_switch_standard		(int hash, tveng_device_info *info)
       return FALSE;
     }
 
-  if (!tv_set_video_standard (info, s))
+#ifdef HAVE_LIBZVBI
+  if ((vbi = zvbi_get_object ()))
+    {
+      zvbi_close_device ();
+    }
+#endif
+
+  r = tv_set_video_standard (info, s);
+
+#ifdef HAVE_LIBZVBI
+  if (vbi)
+    {
+      const gchar *device;
+
+      device = zconf_get_string (NULL, "/zapping/options/vbi/vbi_device");
+      zvbi_open_device (device);
+    }
+#endif
+
+  if (!r)
     {
       ShowBox("Couldn't switch to standard %s\n%s",
 	      GTK_MESSAGE_ERROR,
@@ -871,7 +923,7 @@ zconf_get_controls		(guint			num_controls,
 	  continue;
 	}
 
-      strncpy (tcc[i].name, s, 32);
+      g_strlcpy (tcc[i].name, s, 32);
 
       name = g_strconcat (control, "/value", NULL);
       zconf_get_float (&tcc[i].value, name);
@@ -1214,8 +1266,15 @@ z_switch_channel		(tveng_tuned_channel *	channel,
 
   if (channel->input)
     {
-    z_switch_input(channel->input, info);
+    z_switch_video_input(channel->input, info);
     }
+
+  /*
+  if (channel->audio_input)
+    {
+    z_switch_audio_input(channel->audio_input, info);
+    }
+  */
 
   if (channel->standard)
     z_switch_standard(channel->standard, info);
@@ -1479,7 +1538,7 @@ kp_key_press			(GdkEventKey *		event,
 		}
 
 	    if (tc)
-	      strncpy (kp_chsel_buf, tc->rf_name, sizeof (kp_chsel_buf) - 1);
+	      g_strlcpy (kp_chsel_buf, tc->rf_name, sizeof (kp_chsel_buf) - 1);
 	  }
 
 	kp_clear = FALSE;
@@ -1537,7 +1596,7 @@ kp_key_press			(GdkEventKey *		event,
 
 	  if ((prefix = tv_rf_channel_table_prefix (&ch, kp_chsel_prefix)))
 	    {
-	      strncpy (kp_chsel_buf, prefix, sizeof (kp_chsel_buf) - 1);
+	      g_strlcpy (kp_chsel_buf, prefix, sizeof (kp_chsel_buf) - 1);
 	      kp_chsel_buf[sizeof (kp_chsel_buf) - 1] = 0;
 	      kp_chsel_prefix++;
 	      goto show;
@@ -1663,7 +1722,8 @@ select_cur_video_standard_item	(GtkMenuShell *		menu_shell,
   GtkWidget *menu_item;
   guint index;
 
-  g_assert (info->cur_video_standard != NULL);
+  if (!info->cur_video_standard)
+    return;
 
   index = tv_video_standard_position (info, info->cur_video_standard);
   menu_item = z_menu_shell_nth_item (menu_shell, index + 1 /* tear-off */);
@@ -1774,7 +1834,130 @@ video_standard_menu		(source_menu *		sm)
 
 /* Audio inputs */
 
-  /* to do */
+static void
+on_audio_input_activate		(GtkMenuItem *		menu_item,
+				 gpointer		user_data);
+static GtkWidget *
+audio_input_menu		(source_menu *		sm);
+
+static void
+select_cur_audio_input_item	(GtkMenuShell *		menu_shell,
+				 tveng_device_info *	info)
+{
+  GtkWidget *menu_item;
+  guint index;
+
+  if (!info->cur_audio_input)
+    return;
+
+  g_assert (info->cur_audio_input != NULL);
+
+  index = tv_audio_input_position (info, info->cur_audio_input);
+  menu_item = z_menu_shell_nth_item (menu_shell, index + 1 /* tear-off */);
+  g_assert (menu_item != NULL);
+
+  SIGNAL_HANDLER_BLOCK (menu_item, on_audio_input_activate,
+			gtk_menu_shell_select_item (menu_shell, menu_item));
+}
+
+static void
+on_tv_audio_input_change	(tveng_device_info *	info,
+				 void *			user_data)
+{
+  source_menu *sm = user_data;
+
+  if (!sm->info->cur_audio_input)
+    {
+      gtk_widget_set_sensitive (GTK_WIDGET (sm->menu_item), FALSE);
+      gtk_menu_item_remove_submenu (sm->menu_item);
+    }
+  else
+    {
+      GtkWidget *w;
+
+      if (!(w = gtk_menu_item_get_submenu (sm->menu_item)))
+	{
+	  gtk_widget_set_sensitive (GTK_WIDGET (sm->menu_item), TRUE);
+	  gtk_menu_item_set_submenu (sm->menu_item, audio_input_menu (sm));
+	}
+      else
+	{
+	  GtkMenuShell *menu_shell;
+
+	  menu_shell = GTK_MENU_SHELL (w);
+	  select_cur_audio_input_item (menu_shell, sm->info);
+	}
+    }
+}
+
+static void
+on_audio_input_activate		(GtkMenuItem *		menu_item,
+				 gpointer		user_data)
+{
+  const source_menu *sm = user_data;
+  GtkMenuShell *menu_shell;
+  const tv_audio_line *l;
+  gboolean success;
+  gint index;
+
+  menu_shell = GTK_MENU_SHELL (gtk_menu_item_get_submenu (sm->menu_item));
+  index = g_list_index (menu_shell->children, menu_item);
+
+  success = FALSE;
+
+  rebuild_channel_menu = FALSE; /* old stuff */
+
+  if (index >= 1 && (l = tv_nth_audio_input (sm->info, index - 1 /* tear-off */)))
+    TV_CALLBACK_BLOCK (sm->callback, (success = z_switch_audio_input (l->hash, main_info)));
+
+  rebuild_channel_menu = TRUE;
+
+  if (success)
+    {
+#ifdef HAVE_LIBZVBI
+      zvbi_channel_switched ();
+#endif
+    }
+  else
+    {
+      select_cur_audio_input_item (menu_shell, sm->info);
+    }
+}
+
+static GtkWidget *
+audio_input_menu		(source_menu *		sm)
+{
+  const tv_audio_line *l;
+  GtkMenuShell *menu_shell;
+  GtkWidget *menu_item;
+  GSList *group;
+
+  if (!(l = tv_next_audio_input (sm->info, NULL)))
+    return NULL;
+
+  menu_shell = GTK_MENU_SHELL (gtk_menu_new ());
+
+  menu_item = gtk_tearoff_menu_item_new ();
+  gtk_widget_show (menu_item);
+  gtk_menu_shell_append (menu_shell, menu_item);
+
+  group = NULL;
+
+  for (; l; l = tv_next_audio_input (sm->info, l))
+    append_radio_menu_item (&menu_shell, &group, l->label,
+			    /* active */ l == sm->info->cur_audio_input,
+			    G_CALLBACK (on_audio_input_activate), sm);
+
+  select_cur_audio_input_item (menu_shell, sm->info);
+
+  if (!sm->callback)
+    sm->callback = tv_add_audio_input_callback
+      (sm->info, on_tv_audio_input_change, NULL, sm);
+
+  g_assert (sm->callback != NULL);
+
+  return GTK_WIDGET (menu_shell);
+}
 
 /* Video inputs */
 
@@ -1791,7 +1974,8 @@ select_cur_video_input_item	(GtkMenuShell *		menu_shell,
   GtkWidget *menu_item;
   guint index;
 
-  g_assert (info->cur_video_input != NULL);
+  if (!info->cur_video_input)
+    return;
 
   index = tv_video_input_position (info, info->cur_video_input);
   menu_item = z_menu_shell_nth_item (menu_shell, index + 1 /* tear-off */);
@@ -1853,7 +2037,8 @@ on_video_input_activate		(GtkMenuItem *		menu_item,
   rebuild_channel_menu = FALSE; /* old stuff */
 
   if (index >= 1 && (l = tv_nth_video_input (sm->info, index - 1 /* tear-off */)))
-    TV_CALLBACK_BLOCK (sm->callback, (success = z_switch_input (l->hash, main_info)));
+    TV_CALLBACK_BLOCK (sm->callback,
+		       (success = z_switch_video_input (l->hash, main_info)));
 
   rebuild_channel_menu = TRUE;
 
@@ -1933,20 +2118,31 @@ add_source_items		(GtkMenuShell *		menu,
   }
 
   {
-    item = z_gtk_pixmap_menu_item_new (_("Audio inputs"), "gnome-stock-line-in");
+    sm = g_malloc0 (sizeof (*sm));
+    sm->info = info;
+
+    item = z_gtk_pixmap_menu_item_new (_("Audio inputs"),
+				       "gnome-stock-line-in");
     gtk_widget_show (item);
+
+    sm->menu_item = GTK_MENU_ITEM (item);
+    g_object_set_data_full (G_OBJECT (item), "sm", sm,
+			    (GtkDestroyNotify) on_menu_item_destroy);
 
     gtk_menu_shell_insert (menu, item, pos);
 
-    /* Not used yet. */
-    gtk_widget_set_sensitive (item, FALSE);
+    if ((item = audio_input_menu (sm)))
+      gtk_menu_item_set_submenu (sm->menu_item, item);
+    else
+      gtk_widget_set_sensitive (GTK_WIDGET (sm->menu_item), FALSE);
   }
 
   {
     sm = g_malloc0 (sizeof (*sm));
     sm->info = info;
 
-    item = z_gtk_pixmap_menu_item_new (_("Video inputs"), "gnome-stock-line-in");
+    item = z_gtk_pixmap_menu_item_new (_("Video inputs"),
+				       "gnome-stock-line-in");
     gtk_widget_show (item);
 
     sm->menu_item = GTK_MENU_ITEM (item);
