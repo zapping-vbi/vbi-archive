@@ -79,7 +79,13 @@ struct tveng_module_info {
 	int		(* ioctl)		(tveng_device_info *,
 						 int,
 						 char *);
-
+	/*
+	 *  Sets the current video input to one in the video
+	 *  input list. This implies update_video_input with all
+	 *  side effects mentioned.
+	 */
+	tv_bool		(* set_video_input)	(tveng_device_info *,
+						 const tv_video_line *);
 	/*
 	 *  Updates info.cur_video_input to notice asynchronous changes
 	 *  by other applications, may call the video_input_callback.
@@ -88,22 +94,12 @@ struct tveng_module_info {
 	 */
 	tv_bool		(* update_video_input)	(tveng_device_info *);
 
-	/*
-	 *  Sets the current video input to one in the video
-	 *  input list. This implies update_video_input with all
-	 *  side effects mentioned.
-	 */
-	tv_bool		(* set_video_input)	(tveng_device_info *,
-						 const tv_video_line *);
-
-	/*
-	 *  Updates info.current_videostd to notice asynchronous changes
-	 *  by other applications, may call the videostd_callback.
-	 *  To update the list of supported standards update the
-	 *  current input property instead.
-	 */
-	tv_bool		(* update_standard)	(tveng_device_info *);
-
+	tv_bool		(* set_tuner_frequency)	(tveng_device_info *,
+						 tv_video_line *,
+						 unsigned int);
+	tv_bool		(* update_tuner_frequency)
+						(tveng_device_info *,
+						 tv_video_line *);
 	/*
 	 *  Sets the current video standard to one in the video
 	 *  standard list. This implies update_standard with all
@@ -111,10 +107,20 @@ struct tveng_module_info {
 	 */
 	tv_bool		(* set_standard)	(tveng_device_info *,
 						 const tv_video_standard *);
-
-  int	(*update_capture_format)(tveng_device_info *info);
-  int	(*set_capture_format)(tveng_device_info *info);
-
+	/*
+	 *  Updates info.current_videostd to notice asynchronous changes
+	 *  by other applications, may call the videostd_callback.
+	 *  To update the list of supported standards update the
+	 *  current input property instead.
+	 */
+	tv_bool		(* update_standard)	(tveng_device_info *);
+	/*
+	 *  Sets the value of a control, this implies update_control
+	 *  with all side effects mentioned.
+	 */
+  	tv_bool		(* set_control)		(tveng_device_info *,
+						 tv_control *,
+						 int);
 	/*
 	 *  Updates tv_control.value to notice asynchronous changes
 	 *  by other applications, may call tv_control.callback.
@@ -124,20 +130,13 @@ struct tveng_module_info {
 	 */
 	tv_bool		(* update_control)	(tveng_device_info *,
 						 tv_control *);
-	/*
-	 *  Sets the value of a control, this implies update_control
-	 *  with all side effects mentioned.
-	 */
-  	tv_bool		(* set_control)		(tveng_device_info *,
-						 tv_control *,
-						 int);
 
-  int	(*tune_input)(uint32_t freq, tveng_device_info *info);
+  int	(*update_capture_format)(tveng_device_info *info);
+  int	(*set_capture_format)(tveng_device_info *info);
+
   int	(*get_signal_strength)(int *strength, int *afc,
 			       tveng_device_info *info);
-  int	(*get_tune)(uint32_t *freq, tveng_device_info *info);
-  int	(*get_tuner_bounds)(uint32_t *min, uint32_t *max,
-			    tveng_device_info *info);
+
   int	(*start_capturing)(tveng_device_info *info);
   int	(*stop_capturing)(tveng_device_info *info);
   int	(*read_frame)(tveng_image_data *where,
@@ -210,7 +209,7 @@ struct tveng_private {
 
 #define for_all(p, pslist) for (p = pslist; p; p = p->_next)
 
-#define TUNER_LINE(l) ((l) && (l)->type == TV_VIDEO_LINE_TYPE_TUNER)
+#define IS_TUNER_LINE(l) ((l) && (l)->type == TV_VIDEO_LINE_TYPE_TUNER)
 
 #define NODE_HELPER_FUNCTIONS(item, kind)				\
 extern void								\
@@ -218,7 +217,7 @@ free_##kind			(tv_##kind *		p);		\
 extern void								\
 free_##kind##_list		(tv_##kind **		list);		\
 extern void								\
-set_cur_##item			(tveng_device_info *	info,		\
+store_cur_##item		(tveng_device_info *	info,		\
 				 const tv_##kind *	p);
 
 NODE_HELPER_FUNCTIONS		(control, control);
