@@ -47,6 +47,7 @@ struct video_input {
 };
 
 #define VI(l) PARENT (l, struct video_input, pub)
+#define CVI(l) CONST_PARENT (l, struct video_input, pub)
 
 struct standard {
 	tv_video_standard	pub;
@@ -55,6 +56,7 @@ struct standard {
 };
 
 #define S(l) PARENT (l, struct standard, pub)
+#define CS(l) CONST_PARENT (l, struct standard, pub)
 
 struct control {
 	tv_control		pub;
@@ -69,7 +71,7 @@ struct private_tvengxv_device_info
   XvPortID	port; /* port id */
   XvEncodingInfo *ei; /* list of encodings, for reference */
   int encodings; /* number of encodings */
-  int cur_encoding;
+  unsigned int cur_encoding;
   /* This atoms define the controls */
 	Atom			xa_encoding;
   int encoding_max, encoding_min, encoding_gettable;
@@ -105,7 +107,7 @@ find_encoding			(tveng_device_info *	info,
 	snprintf (encoding, 199, "%s-%s", standard, input);
 	encoding[199] = 0;
 
-	for (i = 0; i < p_info->encodings; ++i)
+	for (i = 0; i < (unsigned int) p_info->encodings; ++i)
 		if (0 == strcasecmp (encoding, p_info->ei[i].name))
 			return i;
 
@@ -165,7 +167,7 @@ grab_port			(Display *		display,
 	{
 	  if (ANY_PORT == port_id)
 	    {
-	      int i;
+	      unsigned int i;
 
 	      for (i = 0; i < pAdaptor->num_ports; ++i)
 		if (Success == XvGrabPort (display, pAdaptor->base_id + i,
@@ -190,7 +192,8 @@ grab_port			(Display *		display,
 }
 
 static int
-p_tvengxv_open_device(tveng_device_info *info)
+p_tvengxv_open_device(tveng_device_info *info,
+		      Window window)
 {
   struct private_tvengxv_device_info *p_info = P_INFO (info);
   Display *display;
@@ -199,7 +202,6 @@ p_tvengxv_open_device(tveng_device_info *info)
   unsigned int major_opcode;
   unsigned int event_base;
   unsigned int error_base;
-  Window root;
   XvAdaptorInfo *pAdaptors;
   int nAdaptors;
   XvAttribute *pAttributes;
@@ -238,9 +240,11 @@ p_tvengxv_open_device(tveng_device_info *info)
       goto failure;
     }
 
-  root = DefaultRootWindow (display);
+  /* We query adaptors which can render into this window. */
+  if (None == window)
+    window = DefaultRootWindow (display);
 
-  if (Success != XvQueryAdaptors (display, root, &nAdaptors, &pAdaptors))
+  if (Success != XvQueryAdaptors (display, window, &nAdaptors, &pAdaptors))
     {
       printv ("XvQueryAdaptors failed\n");
       goto failure;
@@ -252,9 +256,11 @@ p_tvengxv_open_device(tveng_device_info *info)
       goto failure;
     }
 
-  p_info->port = grab_port (display, pAdaptors, nAdaptors, xv_video_port);
+  p_info->port = grab_port (display, pAdaptors, nAdaptors,
+			    (XvPortID) xv_video_port);
 
-  if (NO_PORT == p_info->port && ANY_PORT != xv_video_port)
+  if (NO_PORT == p_info->port
+      && ANY_PORT != xv_video_port)
     {
       printv ("XVideo video input port 0x%x not found\n",
 	      (unsigned int) xv_video_port);
@@ -350,23 +356,6 @@ set_overlay_xwindow		(tveng_device_info *	info,
 }
 
 static tv_bool
-set_overlay_window		(tveng_device_info *	info,
-				 const tv_window *	w)
-{
-	/* Not used yet. */
-
-	return TRUE;
-}
-
-static tv_bool
-get_overlay_window		(tveng_device_info *	info)
-{
-	/* Nothing to do. */
-
-	return 0;
-}
-
-static tv_bool
 enable_overlay			(tveng_device_info *	info,
 				 tv_bool		on)
 {
@@ -433,8 +422,10 @@ tvengxv_set_chromakey (uint32_t chroma, tveng_device_info *info)
 				 "XA_COLORKEY 0x%x\n", chroma);
 		}
 
-		XvSetPortAttribute (info->priv->display, p_info->port,
-				    p_info->xa_colorkey, chroma);
+		XvSetPortAttribute (info->priv->display,
+				    p_info->port,
+				    p_info->xa_colorkey,
+				    (int) chroma);
 	}
 }
 
@@ -624,9 +615,9 @@ set_video_standard		(tveng_device_info *	info,
 	XvSetPortAttribute (info->priv->display,
 			    p_info->port,
 			    p_info->xa_encoding,
-			    S(s)->num);
+			    (int) CS(s)->num);
 
-	p_info->cur_encoding = S(s)->num;
+	p_info->cur_encoding = CS(s)->num;
 
 	store_cur_video_standard (info, s);
 
@@ -668,7 +659,7 @@ get_video_standard_list		(tveng_device_info *	info)
 
 	custom = 32;
 
-	for (i = 0; i < p_info->encodings; ++i) {
+	for (i = 0; i < (unsigned int) p_info->encodings; ++i) {
 		struct standard *s;
 		char buf[sizeof (s->name)];
 		const char *input;
@@ -850,6 +841,7 @@ get_video_input			(tveng_device_info *	info)
 	struct video_input *vi;
 	const char *input;
 	tv_video_standard *ts;
+	int enc;
 
 	if (p_info->xa_encoding == None
 	    || !p_info->encoding_gettable) {
@@ -860,13 +852,16 @@ get_video_input			(tveng_device_info *	info)
 	XvGetPortAttribute (info->priv->display,
 			    p_info->port,
 			    p_info->xa_encoding,
-			    &p_info->cur_encoding);
+			    &enc);
 
 	/* XXX Xv/v4l BUG? */
-	if (p_info->cur_encoding < 0 || p_info->cur_encoding > 10 /*XXX*/)
+	if (enc < 0 || enc > 10 /*XXX*/)
 		p_info->cur_encoding = 0;
+	else
+		p_info->cur_encoding = enc;
 
-	input = split_encoding (NULL, 0, p_info->ei[p_info->cur_encoding].name);
+	input = split_encoding (NULL, 0,
+				p_info->ei[p_info->cur_encoding].name);
 
 	vi = find_video_input (info->video_inputs, input);
 
@@ -888,11 +883,11 @@ set_video_input			(tveng_device_info *	info,
 				 const tv_video_line *	tl)
 {
 	struct private_tvengxv_device_info *p_info = P_INFO (info);
-	struct video_input *vi;
+	const struct video_input *vi;
 	const tv_video_standard *ts;
 	int num;
 
-	vi = VI(tl);
+	vi = CVI(tl);
 	num = -1;
 
 	if (info->cur_video_standard) {
@@ -933,7 +928,7 @@ set_video_input			(tveng_device_info *	info,
 	p_info->cur_encoding = num;
 
 	for_all (ts, info->video_standards)
-		if (S(ts)->num == num)
+		if (CS(ts)->num == p_info->cur_encoding)
 			break;
 
 	set_source (info, tl, ts);
@@ -959,7 +954,7 @@ get_video_input_list		(tveng_device_info *	info)
 	if (p_info->xa_encoding == None)
 		return TRUE;
 
-	for (i = 0; i < p_info->encodings; ++i) {
+	for (i = 0; i < (unsigned int) p_info->encodings; ++i) {
 		struct video_input *vi;
 		char buf[100];
 		const char *input;
@@ -1071,7 +1066,8 @@ get_video_input_list		(tveng_device_info *	info)
   info: The structure to be associated with the device
 */
 static
-int tvengxv_attach_device(const char* device_file,
+int tvengxv_attach_device(const char* device_file _unused_,
+			  Window window,
 			  enum tveng_attach_mode attach_mode,
 			  tveng_device_info * info)
 {
@@ -1081,7 +1077,8 @@ int tvengxv_attach_device(const char* device_file,
   extern int disable_overlay;
   XvAttribute *at;
   int num_attributes;
-  int i, j;
+  int i;
+  unsigned int j;
 
   t_assert(info != NULL);
 
@@ -1121,7 +1118,7 @@ int tvengxv_attach_device(const char* device_file,
     {
       /* In V4L there is no control-only mode */
     case TVENG_ATTACH_XV:
-      info -> fd = p_tvengxv_open_device(info);
+      info -> fd = p_tvengxv_open_device(info,window);
       break;
     default:
       t_error_msg("switch()", "This module only supports TVENG_ATTACH_XV",
@@ -1136,7 +1133,7 @@ int tvengxv_attach_device(const char* device_file,
   
   info -> attach_mode = attach_mode;
   /* Current capture mode is no capture at all */
-  info -> current_mode = TVENG_NO_CAPTURE;
+  info -> capture_mode = CAPTURE_MODE_NONE;
 
   info->caps.flags = TVENG_CAPS_OVERLAY | TVENG_CAPS_CLIPPING;
   info->caps.audios = 0;
@@ -1289,7 +1286,7 @@ int tvengxv_attach_device(const char* device_file,
   This function always succeeds.
 */
 static void
-tvengxv_describe_controller(char ** short_str, char ** long_str,
+tvengxv_describe_controller(const char ** short_str, const char ** long_str,
 			   tveng_device_info * info)
 {
   t_assert(info != NULL);
@@ -1334,13 +1331,13 @@ static void tvengxv_close_device(tveng_device_info * info)
 
 
 static int
-tvengxv_set_capture_format(tveng_device_info * info)
+tvengxv_set_capture_format(tveng_device_info * info _unused_)
 {
   return 0; /* this just doesn't make sense in XVideo */
 }
 
 static int
-tvengxv_update_capture_format(tveng_device_info * info)
+tvengxv_update_capture_format(tveng_device_info * info _unused_)
 {
   return 0; /* This one was easy too :-) */
 }
@@ -1403,8 +1400,6 @@ static struct tveng_module_info tvengxv_module_info = {
   .get_signal_strength =	tvengxv_get_signal_strength,
 
   .set_overlay_xwindow		= set_overlay_xwindow,
-  .set_overlay_window		= set_overlay_window,
-  .get_overlay_window		= get_overlay_window,
   .enable_overlay		= enable_overlay,
   .get_chromakey =		tvengxv_get_chromakey,
   .set_chromakey =		tvengxv_set_chromakey,
