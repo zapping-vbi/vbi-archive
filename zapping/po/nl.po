@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zapping 0.7\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2005-02-06 22:43+0100\n"
-"PO-Revision-Date: 2004-09-26 15:15+0200\n"
+"PO-Revision-Date: 2005-02-07 03:42+0100\n"
 "Last-Translator: Guus Bonnema <abonnema@xs4all.nl>\n"
 "Language-Team: Dutch\n"
 "MIME-Version: 1.0\n"
@@ -379,22 +379,18 @@ msgid "Correct aspect ratio"
 msgstr "Corrigeer beeldverhouding"
 
 #: libvbi/exp-gfx.c:1491
-#, fuzzy
 msgid ""
 "Approach an image aspect ratio similar to a real TV. This will double the "
 "image size."
-msgstr ""
-"Een standaard TV (4:3) verhouding benaderen, hierdoor wordt overbodige "
-"beeldinformatie toegevoegd"
+msgstr "Een standaard TV (4:3) verhouding benaderen, hierdoor krijg je een dubbel beeldafmeting."
 
 #: libvbi/exp-gfx.c:1634
 msgid "PPM"
 msgstr "_PPM"
 
 #: libvbi/exp-gfx.c:1635
-#, fuzzy
 msgid "Export this page as raw PPM image"
-msgstr "Exporteer deze pagina in PPM-formaat"
+msgstr "Exporteer deze pagina in (raw) PPM-formaat"
 
 #: libvbi/exp-gfx.c:1946 libvbi/exp-html.c:528
 #, c-format
@@ -427,13 +423,12 @@ msgstr ""
 "(32) ofhexadecimale (0x20) code"
 
 #: libvbi/exp-html.c:110 libvbi/exp-txt.c:133
-#, fuzzy
 msgid "ASCII art"
-msgstr "_ASCII"
+msgstr "ASCII art"
 
 #: libvbi/exp-html.c:111 libvbi/exp-txt.c:134
 msgid "Replace graphic characters by ASCII art"
-msgstr ""
+msgstr "Vervang grafische characters door ASCII art"
 
 #: libvbi/exp-html.c:113
 msgid "Color (CSS)"
@@ -476,7 +471,7 @@ msgstr "ISO-8859-1 (Latin-1 Westerse talen)"
 
 #: libvbi/exp-txt.c:79
 msgid "ISO-8859-2 (Latin-2 Central and Eastern European languages)"
-msgstr ""
+msgstr "ISO-8859-2 (Latin-2 Centraal en Oost Europese talen)"
 
 #: libvbi/exp-txt.c:80
 msgid "ISO-8859-4 (Latin-3 Baltic languages)"
@@ -526,36 +521,31 @@ msgstr "VT 200"
 #. TRANSLATORS: Text export encoding (ASCII, Unicode, ...) menu
 #: libvbi/exp-txt.c:123
 msgid "Encoding"
-msgstr ""
+msgstr "Codering"
 
 #: libvbi/exp-txt.c:136
-#, fuzzy
 msgid "Control codes"
-msgstr "Regelpanelen"
+msgstr "Control codes"
 
 #: libvbi/exp-txt.c:1023
 msgid "Text"
 msgstr "Tekst"
 
 #: libvbi/exp-txt.c:1024
-#, fuzzy
 msgid "Export this page as text file"
-msgstr "Exporteren als ANSI-tekst"
+msgstr "Exporteer deze pagina als tekstbestand"
 
 #: libvbi/exp-vtx.c:77
-#, fuzzy
 msgid "Can only export Teletext pages."
 msgstr "Kan alleen teletekstpaginas exporteren"
 
 #: libvbi/exp-vtx.c:84
-#, fuzzy
 msgid "Page is not cached."
-msgstr "Pagina is helaas niet gecached"
+msgstr "Pagina is niet gecached"
 
 #: libvbi/exp-vtx.c:93
-#, fuzzy
 msgid "Cannot export this page, is not displayable."
-msgstr "Exporteren als HTML-pagina"
+msgstr "Kan deze pagina niet exporteren (niet displayable)"
 
 #: libvbi/exp-vtx.c:130
 msgid "VTX"
@@ -570,17 +560,16 @@ msgstr ""
 
 #: libvbi/export.c:198
 msgid "Write error."
-msgstr ""
+msgstr "Schrijf fout"
 
 #: libvbi/export.c:208
-#, fuzzy
 msgid "Out of memory."
 msgstr "Geheugentekort."
 
 #: libvbi/export.c:233
 #, c-format
 msgid "Export module %s has no option %s."
-msgstr ""
+msgstr "Export module %s heeft geen optie %s."
 
 #: libvbi/export.c:293
 #, c-format
@@ -588,14 +577,13 @@ msgid "Invalid argument %s for option %s of export module %s."
 msgstr "Ongeldig argument %s voor optie %s van export module %s."
 
 #: libvbi/export.c:348
-#, fuzzy
 msgid "Unknown error."
-msgstr "Onbekende audio"
+msgstr "Onbekende fout"
 
 #: libvbi/export.c:434
-#, fuzzy, c-format
+#, c-format
 msgid "Could not create %s. %s."
-msgstr "Kan '%s' niet aanmaken: %s"
+msgstr "Kon '%s' niet aanmaken: %s"
 
 #: libvbi/export.c:1326
 #, c-format
@@ -614,10 +602,9 @@ msgstr ""
 "Kan export module '%s' niet initialiseren. Waarschijnlijk geheugenprobleem."
 
 #: libvbi/export.c:1461
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot initialize export module '%s', out of memory."
-msgstr ""
-"Kan export module '%s' niet initialiseren. Waarschijnlijk geheugenprobleem."
+msgstr "Kan export module '%s' niet initialiseren, geheugentekort."
 
 #: plugins/alirc/alirc.c:37
 msgid "Another lirc plugin"
@@ -650,19 +637,17 @@ msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr "Waarschuwing: \"%s\" in plugin %s heeft checksum 0x%x i.p.v. 0x%x"
 
 #: plugins/deinterlace/main.c:340
-#, fuzzy
 msgid "Could not start deinterlace plugin"
-msgstr "Huidige subpagina vastzetten"
+msgstr "Kon deinterlace plugin niet starten"
 
 #: plugins/deinterlace/main.c:341
 #, c-format
 msgid "Could not switch to capture format YUYV %u x %u."
-msgstr ""
+msgstr "Overgang naar capture formaat YUYV %u x %u lukte niet."
 
 #: plugins/deinterlace/main.c:434
-#, fuzzy
 msgid "Deinterlace"
-msgstr "_Deinterlacen"
+msgstr "Deinterlacen"
 
 #: plugins/deinterlace/main.c:441 plugins/mpeg/mpeg.c:1485
 #: plugins/mpeg/mpeg.c:2096 plugins/screenshot/screenshot.c:509
@@ -671,18 +656,16 @@ msgid "Plugins"
 msgstr "Plugins"
 
 #: plugins/deinterlace/main.c:521
-#, fuzzy
 msgid "Deinterlace plugin"
-msgstr "_Deinterlacen"
+msgstr "Deinterlace plugin"
 
 #: plugins/deinterlace/preferences.c:48 src/plugin_properties.c:120
 msgid "Low"
 msgstr "Laag"
 
 #: plugins/deinterlace/preferences.c:49
-#, fuzzy
 msgid "Medium"
-msgstr "Menubalk"
+msgstr "Medium"
 
 #: plugins/deinterlace/preferences.c:50 src/plugin_properties.c:128
 msgid "High"
@@ -690,15 +673,14 @@ msgstr "Hoog"
 
 #: plugins/deinterlace/preferences.c:319
 msgid "_Resolution:"
-msgstr ""
+msgstr "_Resolutie:"
 
 # src/frequencies.c:827
 #. TRANSLATORS: Relative display duration of the first and
 #. second field in deinterlace mode.
 #: plugins/deinterlace/preferences.c:328
-#, fuzzy
 msgid "_Field Balance:"
-msgstr "Roodbalans"
+msgstr "_Field Balans:"
 
 #: plugins/deinterlace/preferences.c:734 src/eggcellrendererkeys.c:222
 msgid "Disabled"
@@ -706,178 +688,173 @@ msgstr "Uitgeschakeld"
 
 #: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:140
 msgid "Max Comb"
-msgstr ""
+msgstr "Max Comb"
 
 #: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:147
 msgid "Motion Threshold"
-msgstr ""
+msgstr "Bewegingsgrenswaarde"
 
 #: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:154
 msgid "Motion Sense"
-msgstr ""
+msgstr "Bewegingssensor"
 
 #: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:161
 msgid "Good PullDown Lvl"
-msgstr ""
+msgstr "Goed pulldown nivo"
 
 #: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:168
 msgid "Bad PullDown Lvl"
-msgstr ""
+msgstr "Slecht pulldown nivo"
 
 #: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:175
 #: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:232
 msgid "H. Sharpness"
-msgstr ""
+msgstr "H. scherpte"
 
 #: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:182
 #: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:225
 msgid "V. Sharpness"
-msgstr ""
+msgstr "V. scherpte"
 
 #: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:190
 #: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:218
-#, fuzzy
 msgid "Median Filter"
-msgstr "Filter"
+msgstr "Median Filter"
 
 #: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:197
 msgid "High Comb Skip"
-msgstr ""
+msgstr "High comb skip"
 
 #: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:204
 msgid "Auto Pull-Down"
-msgstr ""
+msgstr "Auto pull-down"
 
 #: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:211
 msgid "In-Between Frames"
-msgstr ""
+msgstr "Tussen-frames"
 
 #. size of this struct
 #. curr version compiled
 #: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:618
 msgid "Video (Greedy, High Motion)"
-msgstr ""
+msgstr "Video (greedy, high motion)"
 
 #: plugins/deinterlace/DI_Misc/DI_Adaptive.c:310
 msgid "Adaptive"
-msgstr ""
+msgstr "Aanpassend"
 
 #: plugins/deinterlace/DI_Misc/DI_BlendedClip.c:966
 msgid "Blended Clip"
-msgstr ""
+msgstr "Blended chip"
 
 #: plugins/deinterlace/DI_Misc/DI_Bob.c:271
 msgid "Simple Bob"
-msgstr ""
+msgstr "Simple Bob"
 
 #: plugins/deinterlace/DI_Misc/DI_EvenOnly.c:92
 msgid "Even Scanlines Only"
-msgstr ""
+msgstr "Alleen even scanregels"
 
 #: plugins/deinterlace/DI_Misc/DI_Greedy.c:77
 msgid "Greedy Max Comb"
-msgstr ""
+msgstr "Greedy max comb"
 
 #: plugins/deinterlace/DI_Misc/DI_Greedy.c:88
 msgid "Video (Greedy, Low Motion)"
-msgstr ""
+msgstr "Video (Greedy, Low Motion)"
 
 #: plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c:78
 msgid "Greedy 2 Frame Luma Threshold"
-msgstr ""
+msgstr "Greedy 2 frame Luma grenswaarde"
 
 #: plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c:84
 msgid "Greedy 2 Frame Chroma Threshold"
-msgstr ""
+msgstr "Greedy 2 frame chroma grenswaarde"
 
 #: plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c:96
 msgid "Greedy 2 Frame"
-msgstr ""
+msgstr "Greedy 2 frame"
 
 #: plugins/deinterlace/DI_Misc/DI_OddOnly.c:91
 msgid "Odd Scanlines Only"
-msgstr ""
+msgstr "Alleen oneven scanregels"
 
 #: plugins/deinterlace/DI_Misc/DI_OldGame.c:147
 msgid "Maximum motion"
-msgstr ""
+msgstr "maximale beweging"
 
 #: plugins/deinterlace/DI_Misc/DI_OldGame.c:153
-#, fuzzy
 msgid "Composite mode"
-msgstr "_Capture mode"
+msgstr "Composite mode"
 
 #: plugins/deinterlace/DI_Misc/DI_OldGame.c:165
 msgid "Old Game"
-msgstr ""
+msgstr "Oud spel"
 
 #: plugins/deinterlace/DI_Misc/DI_ScalerBob.c:80
 msgid "Scaler Bob"
-msgstr ""
+msgstr "Scaler Bob"
 
 #: plugins/deinterlace/DI_Misc/DI_TwoFrame.c:78
 msgid "2 Frame Spatial Tolerance"
-msgstr ""
+msgstr "2 Frame Spatial Tolerantie"
 
 #: plugins/deinterlace/DI_Misc/DI_TwoFrame.c:84
 msgid "2 Frame Temporal Tolerance"
-msgstr ""
+msgstr "2 Frame Tijd tolerantie"
 
 #: plugins/deinterlace/DI_Misc/DI_TwoFrame.c:95
 msgid "Video Deinterlace (2-Frame)"
-msgstr ""
+msgstr "Video deinterlace (2-frame)"
 
 #: plugins/deinterlace/DI_Misc/DI_VideoBob.c:82
 msgid "Weave Edge Detect"
-msgstr ""
+msgstr "Weave edge detect"
 
 #: plugins/deinterlace/DI_Misc/DI_VideoBob.c:88
 msgid "Weave Jaggie Threshold"
-msgstr ""
+msgstr "Weave jaggie grenswaarde"
 
 #: plugins/deinterlace/DI_Misc/DI_VideoBob.c:99
-#, fuzzy
 msgid "Video Deinterlace (Bob)"
-msgstr "_Deinterlacen"
+msgstr "Video deinterlacen (Bob)"
 
 #: plugins/deinterlace/DI_Misc/DI_VideoWeave.c:79
 msgid "Temporal Tolerance"
-msgstr ""
+msgstr "Tijd tolerantie"
 
 #: plugins/deinterlace/DI_Misc/DI_VideoWeave.c:85
 msgid "Spatial Tolerance"
-msgstr ""
+msgstr "Ruimtelijke tolerantie"
 
 #: plugins/deinterlace/DI_Misc/DI_VideoWeave.c:91
 msgid "Similarity Threshold"
-msgstr ""
+msgstr "Overeenkomst grenswaarde"
 
 #: plugins/deinterlace/DI_Misc/DI_VideoWeave.c:102
-#, fuzzy
 msgid "Video Deinterlace (Weave)"
-msgstr "_Deinterlacen"
+msgstr "Video Deinterlace (Weave)"
 
 #: plugins/deinterlace/DI_Misc/DI_Weave.c:102
 msgid "Simple Weave"
-msgstr ""
+msgstr "Simple weave"
 
 #: plugins/deinterlace/DI_MoComp2/DI_MoComp2.c:82
 #: plugins/deinterlace/DI_TomsMoComp/DI_TomsMoComp.c:96
-#, fuzzy
 msgid "Search Effort"
-msgstr "Zoek tekst:"
+msgstr "Zoek effort"
 
 #: plugins/deinterlace/DI_MoComp2/DI_MoComp2.c:93
 msgid "Video (MoComp2)"
-msgstr ""
+msgstr "Video (MoComp2)"
 
 #: plugins/deinterlace/DI_TomsMoComp/DI_TomsMoComp.c:102
 msgid "Use Strange Bob"
-msgstr ""
+msgstr "Gebruik Strange Bob"
 
 #: plugins/deinterlace/DI_TomsMoComp/DI_TomsMoComp.c:113
 msgid "Video (TomsMoComp)"
-msgstr ""
+msgstr "Video (TomsMoComp)"
 
 #: plugins/mpeg/mpeg.c:417
 #, c-format
@@ -928,9 +905,8 @@ msgstr "Opties"
 
 #. TRANSLATORS: Which codec: None, A, B, C, ...
 #: plugins/mpeg/options.c:740
-#, fuzzy
 msgid "No codec"
-msgstr "Kein Seitenspeicher"
+msgstr "Geen codec"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:2
 msgid "Capture _height:"
@@ -1080,7 +1056,7 @@ msgstr "Voorwaarts"
 
 #: plugins/screenshot/screenshot.glade2.h:5
 msgid "Grab full size image"
-msgstr ""
+msgstr "Pak volledig image formaat"
 
 #: plugins/screenshot/screenshot.glade2.h:6
 msgid "Off"
@@ -1163,9 +1139,8 @@ msgid "Description"
 msgstr "Beschrijving"
 
 #: plugins/teletext/export.c:481 plugins/teletext/export.c:507
-#, fuzzy
 msgid "Could not save page"
-msgstr "Huidige subpagina vastzetten"
+msgstr "Kon pagina niet saven"
 
 #: plugins/teletext/export.c:552
 msgid "Save as"
@@ -1176,9 +1151,8 @@ msgid "Format:"
 msgstr "Formaat: "
 
 #: plugins/teletext/main.c:179
-#, fuzzy
 msgid "_Preferences"
-msgstr "Open voorkeuren"
+msgstr "_Preferenties"
 
 #: plugins/teletext/main.c:181
 msgid "_Colors"
@@ -1189,9 +1163,8 @@ msgid "Teletext"
 msgstr "Teletekst"
 
 #: plugins/teletext/main.c:332
-#, fuzzy
 msgid "Teletext plugin"
-msgstr "Teletekst"
+msgstr "Teletekst plugin"
 
 #: plugins/teletext/preferences.c:52
 msgid "Western and Central Europe"
@@ -1227,55 +1200,48 @@ msgid "Hebrew and Arabic"
 msgstr "Hebreeuws en Arabisch"
 
 #: plugins/teletext/preferences.c:74
-#, fuzzy
 msgid "Level 1"
-msgstr "Level 1.0"
+msgstr "Level 1"
 
 #: plugins/teletext/preferences.c:75
 msgid "Level 1.5 (additional national characters)"
 msgstr "Level 1.5 (extra vreemde tekens)"
 
 #: plugins/teletext/preferences.c:76
-#, fuzzy
 msgid "Level 2.5 (more colors, font styles and graphics)"
 msgstr "Level 2.5 (meer kleur, lettertypen en figuren)"
 
 #: plugins/teletext/preferences.c:77
-#, fuzzy
 msgid "Level 3.5 (proportional spacing, multicolor graphics)"
 msgstr "Level 3.5 (proportionele letters, meerkleurige figuren)"
 
 #: plugins/teletext/preferences.c:92
-#, fuzzy
 msgid "Nearest (fast, low quality)"
-msgstr "Nearest (snel, lelijk bij schalen)"
+msgstr "Nearest (snel, lage kwaliteit)"
 
 #: plugins/teletext/preferences.c:93
-#, fuzzy
 msgid "Tiles"
-msgstr "_Bestand"
+msgstr "Overlappend"
 
 #: plugins/teletext/preferences.c:94
 msgid "Bilinear"
-msgstr ""
+msgstr "Bilineair"
 
 #: plugins/teletext/preferences.c:95
 msgid "Hyper (slow, high quality)"
-msgstr ""
+msgstr "Hyper (slow, hoge kwaliteit)"
 
 #: plugins/teletext/preferences.c:276
-#, fuzzy
 msgid "<b>General</b>"
-msgstr "Algemene opties"
+msgstr "<b>Algemeen</b>"
 
 #: plugins/teletext/preferences.c:278
 msgid "_Teletext implementation:"
 msgstr "_Teletekstprotocol:"
 
 #: plugins/teletext/preferences.c:284
-#, fuzzy
 msgid "_Default encoding:"
-msgstr "Default _region:"
+msgstr "Default codering:"
 
 #: plugins/teletext/preferences.c:288
 msgid ""
@@ -1289,7 +1255,7 @@ msgstr ""
 
 #: plugins/teletext/preferences.c:294
 msgid "<b>Page memory</b>"
-msgstr ""
+msgstr "<b>Page geheugen</b>"
 
 #: plugins/teletext/preferences.c:296
 msgid "_Size:"
@@ -1301,11 +1267,10 @@ msgstr "_Grootte:"
 #. TRANSLATORS: Kilobyte (2^10)
 #: plugins/teletext/preferences.c:322
 msgid "KiB"
-msgstr ""
+msgstr "KiB"
 
 # src/interface.c:362
 #: plugins/teletext/preferences.c:329
-#, fuzzy
 msgid "_Channels:"
 msgstr "_Kanalen"
 
@@ -1314,19 +1279,17 @@ msgid "<b>Display</b>"
 msgstr "<b>Weergave</b>"
 
 #: plugins/teletext/preferences.c:351
-#, fuzzy
 msgid "_Brightness:"
-msgstr "Helderheid"
+msgstr "_Brightness"
 
 # src/interface.c:247
 #: plugins/teletext/preferences.c:373
-#, fuzzy
 msgid "_Contrast:"
-msgstr "Contrast"
+msgstr "_Contrast:"
 
 #: plugins/teletext/preferences.c:395
 msgid "S_caling:"
-msgstr ""
+msgstr "S-chaling:"
 
 #: plugins/teletext/preferences.c:399
 msgid "Quality/speed trade-off when scaling and anti-aliasing the page."
@@ -1366,9 +1329,8 @@ msgstr "Hoofdletterongevoelig"
 # src/v4l2interface.c:146
 #. Future stuff.
 #: plugins/teletext/search.c:365
-#, fuzzy
 msgid "_All channels"
-msgstr "_Alle kanalen toevoegen"
+msgstr "_Alle kanalen"
 
 #: plugins/teletext/toolbar.c:122
 msgid "Next page"
@@ -1413,14 +1375,14 @@ msgid " Subpage %x"
 msgstr " Subpagina %x"
 
 #: plugins/teletext/view.c:1362
-#, fuzzy, c-format
+#, c-format
 msgid "Loading page %X..."
-msgstr "Laden van pagina %x..."
+msgstr "Laden van pagina %X..."
 
 #: plugins/teletext/view.c:1364
-#, fuzzy, c-format
+#, c-format
 msgid "Loading page %X.%02X..."
-msgstr "Laden pagina %x. %02x..."
+msgstr "Laden pagina %X. %02X..."
 
 #: plugins/teletext/view.c:2284
 msgid "Selection copied to clipboard"
@@ -1513,35 +1475,31 @@ msgid "Go to the index page"
 msgstr "Ga naar de indexpagina"
 
 #: plugins/teletext/view.c:3163
-#, fuzzy
 msgid "Save this page to a file"
-msgstr "Opslaan als bestand"
+msgstr "Sla deze pagina op als bestand"
 
 #. TRANSLATORS: Choose from the Teletext page cache the currently
 #. received channel.
 #: plugins/teletext/window.c:310
-#, fuzzy
 msgid "_Received"
-msgstr "_Opnemen"
+msgstr "_Ontvangen"
 
 #: plugins/teletext/window.c:341 src/v4linterface.c:1166
 #: src/v4linterface.c:2270
 msgid "Unnamed"
-msgstr "Unbenannt"
+msgstr "Unbenoemd"
 
 #: plugins/teletext/window.c:563
 msgid " (Latin)"
-msgstr ""
+msgstr " (Latin)"
 
 #: plugins/teletext/window.c:565
-#, fuzzy
 msgid " (Cyrillic)"
-msgstr "Cyrillisch"
+msgstr " (Cyrillisch)"
 
 #: plugins/teletext/window.c:608
-#, fuzzy
 msgid "_Automatic"
-msgstr "Automatisch"
+msgstr "_Automatisch"
 
 #: plugins/teletext/window.c:796 src/zapping.c:404
 msgid "_File"
@@ -1557,9 +1515,8 @@ msgid "_View"
 msgstr "Beel_d"
 
 #: plugins/teletext/window.c:802
-#, fuzzy
 msgid "_Encoding"
-msgstr "Activeren _VBI-decodering"
+msgstr "_Encodering"
 
 # src/interface.c:362
 #. 2.6 GTK_STOCK_EDIT
@@ -1569,12 +1526,10 @@ msgstr "_Kanalen"
 
 # src/v4l2interface.c:344
 #: plugins/teletext/window.c:863 src/zapping.c:446
-#, fuzzy
 msgid "_Toolbar"
-msgstr "Toetsenbalk"
+msgstr "_Toetsenbalk"
 
 #: plugins/teletext/window.c:865
-#, fuzzy
 msgid "_Statusbar"
 msgstr "_Statusbalk"
 
@@ -2028,9 +1983,8 @@ msgid "Very low"
 msgstr "Zeer laag"
 
 #: src/plugin_properties.c:122
-#, fuzzy
 msgid "Lower"
-msgstr "Laag"
+msgstr "Lager"
 
 #: src/plugin_properties.c:124
 msgid "Normal"
@@ -2041,9 +1995,8 @@ msgid "Very high"
 msgstr "Zeer hoog"
 
 #: src/plugin_properties.c:130
-#, fuzzy
 msgid "Higher"
-msgstr "Hoog"
+msgstr "Hoger"
 
 #: src/plugin_properties.c:152
 msgid "This plugin has no public symbols"
@@ -2272,18 +2225,18 @@ msgstr "Stereo"
 
 #: src/tveng.c:4456
 msgid "Language 2"
-msgstr ""
+msgstr "Taal 2"
 
 #: src/tveng1.c:1153
 msgid "Frame Rate"
-msgstr ""
+msgstr "Frame snelheid (rate)"
 
 #. TRANSLATORS: PWC driver control.  In 'Snapshot' mode the
 #. camera freezes its automatic exposure and colour balance
 #. controls.
 #: src/tveng1.c:1166
 msgid "Snapshot Mode"
-msgstr ""
+msgstr "Snapshot mode"
 
 #: src/tveng25.c:476 src/tvengbktr.c:381 src/tvengbktr.c:398 src/tvengxv.c:543
 msgid "Brightness"
@@ -2541,9 +2494,8 @@ msgid "Switch audio on or off"
 msgstr "Aan- en uitschakelen van geluid"
 
 #: src/zapping.c:444
-#, fuzzy
 msgid "Menu"
-msgstr "Menubalk"
+msgstr "Menu"
 
 #: src/zapping.c:448 src/zapping.c:1027
 msgid "Keep window on top"
@@ -2620,16 +2572,14 @@ msgid "Hide the statusbar"
 msgstr "Verberg de statusbalk"
 
 #: src/zmisc.c:1197
-#, fuzzy, c-format
+#, c-format
 msgid "%s is not a directory."
-msgstr "%s is geen map"
+msgstr "%s is geen directory"
 
 #: src/zmisc.c:1239
-#, fuzzy, c-format
+#, c-format
 msgid "Could not create directory %s"
-msgstr ""
-"Kan directory '%s' niet aanmaken: \n"
-"%s"
+msgstr "Kon directory '%s' niet aanmaken"
 
 #: src/zmisc.c:1959
 msgid "Device:"
@@ -2646,35 +2596,33 @@ msgstr "Apparaatbestand:"
 #: src/zmisc.c:2307
 #, c-format
 msgid "Overwrite %s?"
-msgstr ""
+msgstr "%s overschrijven?"
 
 #: src/zmisc.c:2312
 msgid "_Overwrite"
 msgstr "_Overschrijven"
 
 #: src/zmisc.c:2320
-#, fuzzy, c-format
+#, c-format
 msgid "%s is a directory."
-msgstr "%s is geen map"
+msgstr "%s is een directory"
 
 #: src/zmisc.c:2335
 #, c-format
 msgid "%s is a special file"
-msgstr ""
+msgstr "%s is een speciale file"
 
 #: src/zmisc.c:2339
-#, fuzzy
 msgid "Continue"
-msgstr "Configureren"
+msgstr "Continueer"
 
 #: src/zmisc.c:2616
-#, fuzzy
 msgid "Could not open help file"
-msgstr "Kon %s niet openen - andere devices proberen?"
+msgstr "Kon help file niet openen"
 
 #: src/zmisc.c:2648
 msgid "Could not open URL"
-msgstr ""
+msgstr "Kon URL niet openen"
 
 #: src/zvbi.c:300
 #, c-format

@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: rte 0.5\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2004-08-07 02:03+0200\n"
-"PO-Revision-Date: 2002-10-03 21:16+0200\n"
+"PO-Revision-Date: 2005-02-07 04:02+0100\n"
 "Last-Translator: Guus Bonnema <abonnema@xs4all.nl>\n"
 "Language-Team: Dutch <nl@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -438,7 +438,6 @@ msgid "DivX Video Elementary Stream"
 msgstr "DivX Video Elementary Stream"
 
 #: divx4linux/b_divx4linux.c:1113
-#, fuzzy
 msgid "DivX AVI Stream"
 msgstr "DivX AVI Stream"
 
