@@ -23,7 +23,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.37 2001-07-31 12:59:50 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.38 2001-08-01 20:05:05 garetxe Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -757,8 +757,10 @@ png_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg)
 		goto unknown_error;
 	}
 
+	/* avoid possible longjmp breakage due to libpng ugliness */
+	{ static int do_write() {
 	if (setjmp(png_ptr->jmpbuf))
-		goto write_error;
+		return 1;
 
 	png_init_io(png_ptr, fp);
 
@@ -834,6 +836,10 @@ png_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg)
 	png_write_end(png_ptr, info_ptr);
 
 	png_destroy_write_struct(&png_ptr, &info_ptr);
+	return 0;
+
+	} if (do_write()) goto write_error; }
+
 
 	free(image);
 	image = NULL;
