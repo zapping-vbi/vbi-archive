@@ -27,13 +27,12 @@
 #endif
 
 #include <gnome.h>
-#ifdef HAVE_GDKPIXBUF
 #include <gdk-pixbuf/gdk-pixbuf.h>
-#endif
 #include <libvbi.h>
 #include <pthread.h>
 #include <ctype.h>
 #include <time.h>
+#include <pthread.h>
 
 #include "tveng.h"
 #include "zconf.h"
@@ -43,6 +42,18 @@
 #include "callbacks.h"
 #include "zvbi.h"
 #include "interface.h"
+
+/*
+ * TODO:
+ *	- protect against vbi=NULL
+ *	- remove old cruft
+ *	- lower mem usage, improve performance
+ *	- history_stack per client, history global
+ */
+
+#undef TRUE
+#undef FALSE
+#include "../common/fifo.h"
 
 /* fixme: The history_stack should keep track of subpages too */
 
@@ -56,9 +67,24 @@ static gint history_stack_size=0; /* Number of items in history_stack */
 static gint history_sp=0; /* Pointer in the stack */
 static pthread_t zvbi_thread_id; /* Just a dummy thread to select() */
 static gboolean exit_thread = FALSE; /* just an atomic flag to tell the
-					thread to exit*/
+					thread to exit */
 
 static gboolean vbi_mode=FALSE; /* VBI mode, default off */
+
+struct ttx_client {
+  fifo		mqueue;
+  int		page, subpage; /* monitored page, subpage */
+  int		id; /* of the client */
+  pthread_mutex_t mutex;
+  struct vt_page vtp; /* unformatted page */
+  struct fmt_page fp; /* formatted page */
+  GdkPixbuf	*unscaled; /* unscaled version of the page */
+  GdkPixbuf	*scaled; /* scaled version of the page */
+  int		w, h;
+};
+
+static GList *ttx_clients = NULL;
+static pthread_mutex_t clients_mutex;
 
 /* Go to the index by default */
 static gint cur_page=0x100, cur_subpage=ANY_SUB;
@@ -84,12 +110,10 @@ static struct {
   int hour, min, sec;
 } last_info;
 
-#ifdef HAVE_GDKPIXBUF
 /* the current unscaled teletext page */
 static GdkPixbuf * teletext_page = NULL;
 /* The scaled version of the above */
 static GdkPixbuf * scaled_teletext_page = NULL;
-#endif
 
 /* Open the configured VBI device, FALSE on error */
 gboolean
@@ -157,14 +181,319 @@ zvbi_open_device(gint newbttv)
   if (index > 7)
     index = 7;
   vbi_set_default_region(vbi, region_mapping[index]);
+  pthread_mutex_init(&clients_mutex, NULL);
 
   return TRUE;
+}
+
+static void
+send_ttx_message(struct ttx_client *client,
+		 enum ttx_message message)
+{
+  buffer *b = wait_empty_buffer(&client->mqueue);
+  b->data = GINT_TO_POINTER(message);
+  send_full_buffer(&client->mqueue, b);
+}
+
+static void
+remove_client(struct ttx_client *client)
+{
+  uninit_fifo(&client->mqueue);
+  pthread_mutex_destroy(&client->mutex);
+  if (client->unscaled)
+    gdk_pixbuf_unref(client->unscaled);
+  if (client->scaled)
+    gdk_pixbuf_unref(client->scaled);
+  g_free(client);
+}
+
+/* returns the id */
+int
+register_ttx_client(void)
+{
+  static int id;
+  struct ttx_client *client;
+  gchar *filename;
+
+  pthread_mutex_lock(&clients_mutex);
+  client = g_malloc(sizeof(struct ttx_client));
+  memset(client, 0, sizeof(struct ttx_client));
+  client->id = id++;
+  pthread_mutex_init(&client->mutex, NULL);
+  filename = g_strdup_printf("%s/%s%d.jpeg", PACKAGE_DATA_DIR,
+			     "../pixmaps/zapping/vt_loading",
+			     (rand()%2)+1);
+  client->unscaled = gdk_pixbuf_new_from_file(filename);
+  g_free(filename);
+  g_assert(init_buffered_fifo(&client->mqueue, NULL, 16, 0) > 0);
+  ttx_clients = g_list_append(ttx_clients, client);
+  pthread_mutex_unlock(&clients_mutex);
+  return client->id;
+}
+
+static inline struct ttx_client*
+find_client(int id)
+{
+  GList *find;
+
+  find= g_list_first(ttx_clients);
+  while (find)
+    {
+      if (((struct ttx_client*)find->data)->id == id)
+	return ((struct ttx_client*)find->data);
+
+      find = find->next;
+    }
+
+  return NULL; /* not found */
+}
+
+struct fmt_page*
+get_ttx_fmt_page(int id)
+{
+  struct ttx_client *client;
+  struct fmt_page *result=NULL;
+
+  pthread_mutex_lock(&clients_mutex);
+  if ((client = find_client(id)))
+    result = &client->fp;
+  pthread_mutex_unlock(&clients_mutex);
+
+  return result;
+}
+
+enum ttx_message
+peek_ttx_message(int id)
+{
+  struct ttx_client *client;
+  buffer *b;
+  enum ttx_message message;
+
+  pthread_mutex_lock(&clients_mutex);
+
+  if ((client = find_client(id)))
+    {
+      b = recv_full_buffer(&client->mqueue);
+      if (b)
+	{
+	  message = GPOINTER_TO_INT(b->data);
+	  send_empty_buffer(&client->mqueue, b);
+	}
+      else
+	message = TTX_NONE;
+    }
+  else
+    message = TTX_BROKEN_PIPE;
+
+  pthread_mutex_unlock(&clients_mutex);
+
+  return message;
+}
+
+enum ttx_message
+get_ttx_message(int id)
+{
+  struct ttx_client *client;
+  buffer *b;
+  enum ttx_message message;
+
+  pthread_mutex_lock(&clients_mutex);
+
+  if ((client = find_client(id)))
+    {
+      b = wait_full_buffer(&client->mqueue);
+      g_assert(b != NULL);
+      message = GPOINTER_TO_INT(b->data);
+      send_empty_buffer(&client->mqueue, b);
+    }
+  else
+    message = TTX_BROKEN_PIPE;
+
+  pthread_mutex_unlock(&clients_mutex);
+
+  return message;
+}
+
+static void
+clear_message_queue(struct ttx_client *client)
+{
+  buffer *b;
+
+  while ((b=recv_full_buffer(&client->mqueue)))
+    send_empty_buffer(&client->mqueue, b);
+}
+
+void
+unregister_ttx_client(int id)
+{
+  GList *search;
+
+  pthread_mutex_lock(&clients_mutex);
+  search = g_list_first(ttx_clients);
+  while (search)
+    {
+      if (((struct ttx_client*)search->data)->id == id)
+	{
+	  remove_client((struct ttx_client*)search->data);
+	  ttx_clients = g_list_remove(ttx_clients, search->data);
+	  break;
+	}
+      search = search->next;
+    }
+  pthread_mutex_unlock(&clients_mutex);
+}
+
+static void
+free_pixbuf_mem(guchar *pixels, gpointer data)
+{
+  free(pixels);
+}
+
+static void
+build_client_page(struct ttx_client *client, struct vt_page *vtp)
+{
+  guchar *mem;
+  int width, height;
+
+  g_assert(client != NULL);
+  g_assert(vtp != NULL);
+
+  pthread_mutex_lock(&client->mutex);
+  memcpy(&client->vtp, vtp, sizeof(struct vt_page));
+  fmt_page(FALSE, &client->fp, vtp);
+  if (client->unscaled)
+    gdk_pixbuf_unref(client->unscaled);
+  mem = (guchar*) mem_output(&client->fp, &width, &height);
+  if (mem)
+    client->unscaled =
+      gdk_pixbuf_new_from_data(mem, GDK_COLORSPACE_RGB, TRUE, 8,
+			       width, height, width*4,
+			       free_pixbuf_mem, NULL);
+  else
+    client->unscaled = NULL;
+  if (client->unscaled)
+    {
+      if (client->scaled)
+	gdk_pixbuf_unref(client->scaled);
+      client->scaled = NULL;
+      if ((client->w > 0) && (client->h > 0))
+	client->scaled = gdk_pixbuf_scale_simple(client->unscaled,
+						 client->w, client->h,
+						 GDK_INTERP_BILINEAR);
+    }
+  pthread_mutex_unlock(&client->mutex);
+}
+
+void
+monitor_ttx_page(int id/*client*/, int page, int subpage)
+{
+  struct ttx_client *client;
+  struct vt_page *cached=NULL;
+
+  pthread_mutex_lock(&clients_mutex);
+  client = find_client(id);
+  if (client)
+    {
+      client->page = page;
+      client->subpage = subpage;
+      if (vbi->cache) {
+	cached = vbi->cache->op->get(vbi->cache, page, subpage);
+	if (cached)
+	  {
+	    build_client_page(client, cached);
+	    clear_message_queue(client);
+	    send_ttx_message(client, TTX_PAGE_RECEIVED);
+	  }
+      }
+    }
+  pthread_mutex_unlock(&clients_mutex);
+}
+
+void
+get_ttx_index(int id, int *pgno, int *subno)
+{
+  struct ttx_client *client;
+
+  if ((!pgno) || (!subno))
+    return;
+
+  pthread_mutex_lock(&clients_mutex);
+  if ((client = find_client(id)))
+    {
+      *pgno = client->vtp.link[5].pgno;
+      *subno = client->vtp.link[5].subno;
+      if ((*pgno & 0xff) == 0xff)
+	{
+	  *pgno = vbi->initial_page.pgno;
+	  *subno = vbi->initial_page.subno;
+	}
+    }
+  pthread_mutex_unlock(&clients_mutex);
+}
+
+static void
+notify_clients(int page, int subpage, struct vt_page *vtp)
+{
+  GList *p;
+  struct ttx_client *client;
+
+  pthread_mutex_lock(&clients_mutex);
+  p = g_list_first(ttx_clients);
+  while (p)
+    {
+      client = (struct ttx_client*)p->data;
+      if ((client->page == page) &&
+	  ((client->subpage == subpage) || (client->subpage == ANY_SUB)))
+	{
+	  build_client_page(client, vtp);
+	  send_ttx_message(client, TTX_PAGE_RECEIVED);
+	}
+      p = p->next;
+    }
+  pthread_mutex_unlock(&clients_mutex);
+}
+
+void render_ttx_page(int id, GdkDrawable *drawable,
+		     GdkGC *gc, gint w, gint h)
+{
+  struct ttx_client *client;
+
+  pthread_mutex_lock(&clients_mutex);
+  if ((client = find_client(id)))
+    {
+      pthread_mutex_lock(&client->mutex);
+      if (client->unscaled)
+	{
+	  if ((client->w != w) ||
+	      (client->h != h))
+	    {
+	      if (client->scaled)
+		gdk_pixbuf_unref(client->scaled);
+	      client->scaled =
+		gdk_pixbuf_scale_simple(client->unscaled,
+					w, h, GDK_INTERP_BILINEAR);
+	      client->w = w;
+	      client->h = h;
+	    }
+
+	  if (client->scaled)
+	    gdk_pixbuf_render_to_drawable(client->scaled,
+					  drawable,
+					  gc,
+					  0, 0, 0, 0, w, h,
+					  GDK_RGB_DITHER_NONE, 0, 0);
+	}
+      pthread_mutex_unlock(&client->mutex);
+    }
+  pthread_mutex_unlock(&clients_mutex);
 }
 
 /* Closes the VBI device */
 void
 zvbi_close_device(void)
 {
+  GList * destruction;
+
   if (!vbi) /* disabled */
     return;
 
@@ -176,6 +505,17 @@ zvbi_close_device(void)
   pthread_cond_destroy(&(last_info.xpacket_cond));
 
   vbi_del_handler(vbi, event, NULL);
+  pthread_mutex_lock(&clients_mutex);
+  destruction = g_list_first(ttx_clients);
+  while (destruction)
+    {
+      remove_client((struct ttx_client*) destruction->data);
+      destruction = destruction->next;
+    }
+  g_list_free(ttx_clients);
+  ttx_clients = NULL;
+  pthread_mutex_unlock(&clients_mutex);
+  pthread_mutex_destroy(&clients_mutex);
   vbi_close(vbi);
   vbi = NULL;
 }
@@ -247,11 +587,13 @@ event(struct dl_head *reqs, struct vt_event *ev)
 	vtp = ev->p1;
 	printv("vtx page %x.%02x  \r", vtp->pgno,
 	       vtp->subno);
+	
 	/* Set the dirty flag on the page */
-	zvbi_set_page_state(vtp->pgno, vtp->subno, TRUE, time(NULL));
+	notify_clients(vtp->pgno, vtp->subno, vtp);
+	//	zvbi_set_page_state(vtp->pgno, vtp->subno, TRUE, time(NULL));
 	/* Now render the mem version of the page */
-	if (vbi_mode)
-	  zvbi_render_monitored_page(vtp);
+	//	if (vbi_mode)
+	//	  zvbi_render_monitored_page(vtp);
 	break;
     case EV_XPACKET:
 	p = ev->p1;
@@ -342,10 +684,6 @@ zvbi_get_time(gint * hour, gint * min, gint * sec)
 
   pthread_mutex_unlock(&(last_info.mutex));
 }
-
-#undef TRUE
-#undef FALSE // duh.
-#include "../common/fifo.h"
 
 static void * zvbi_thread(void *p)
 {
@@ -457,54 +795,10 @@ unsigned char*
 zvbi_render_page_rgba(struct fmt_page *pg, gint *width, gint *height,
 		      unsigned char * alpha)
 {
-  unsigned int * mem;
-  unsigned char * extra_mem;
-  int x, y;
-  gint rowstride;
-  /* obsolete, fmt_page provides a colour map */
-  unsigned char rgb8[][4]={{  0,  0,  0,  0},
-			   {255,  0,  0,  0},
-			   {  0,255,  0,  0},
-			   {255,255,  0,  0},
-			   {  0,  0,255,  0},
-			   {255,  0,255,  0},
-			   {  0,255,255,  0},
-			   {255,255,255,  0}};
-
   if ((!vbi) || (!width) || (!height) || (!pg))
     return NULL;
 
-  mem = zvbi_render_page(pg, width, height);
-
-return (unsigned char *) mem;
-#if 0
-  if (!mem)
-    return NULL;
-
-  extra_mem = malloc((*width)*(*height)*4);
-
-  if (!extra_mem)
-    {
-      free(mem);
-      return NULL;
-    }
-
-  rowstride = *width;
-
-  for (x=0;x<32;x++) {
-    rgb8[x & 7][3] = alpha[x & 7];
-    pg->colour_map[x] |= alpha[x & 7] << 24;
-  }
-  
-  for (y=0;y<*height;y++)
-    for (x=0; x<*width;x++)
-      ((gint32*)extra_mem)[y*rowstride+x] =
-//	((gint32*)rgb8)[mem[y*rowstride+x]];
-	pg->colour_map[mem[y*rowstride+x]]; /* 0x00BBGGRR */
-
-  free(mem);
-  return extra_mem;
-#endif
+  return (unsigned char *)zvbi_render_page(pg, width, height);
 }
 
 /*
@@ -526,150 +820,6 @@ struct monitor_page {
 
 pthread_mutex_t monitor_mutex = PTHREAD_MUTEX_INITIALIZER;
 static GList *monitor=NULL; /* List of all the pages marked to monitor */
-
-/*
-  FLOF (fast text) navigation. Given a x, tells which page/subpage it
-  corresponds to. It returns a code of -1 in page if it couldn't be
-  resolved, and FALSE.
-  Fast text navigation is the "color" navigation, emitted in the
-  bottom line of the teletext page.
-*/
-static gboolean
-zvbi_resolve_flof(gint x, struct vt_page *vtp, gint *page, gint *subpage)
-{
-  gint code= 7, i, c;
-  if ((!vbi) || (!vtp) || (!page) || (!subpage))
-    return FALSE;
-
-  if (!(vtp->flof))
-    return FALSE;
-
-  for (i=0; (i <= x) && (i<40); i++)
-    if ((c = vtp->data[24][i]) < 8) /* color code */
-      code = c; /* Store it for later on */
-
-  if (code >= 8) /* not found ... weird */
-    return FALSE;
-
-  code = " \0\1\2\3 \3 "[code]; /* color->link conversion table */
-  
-  if ((code > 6) || ((vtp->link[code].pgno & 0xff) == 0xff))
-    return FALSE;
-
-  *page = vtp->link[code].pgno;
-  *subpage = vtp->link[code].subno; /* 0x3f7f handled? */
-
-  return TRUE;
-}
-
-#define notdigit(x) (!isdigit(x))
-
-static gboolean
-zvbi_check_subpage(gchar *p, int x, gint *n1, gint *n2)
-{
-    p += x;
-
-    if (x >= 0 && x < 42-5)
-	if (notdigit(p[1]) || notdigit(p[0]))
-	    if (isdigit(p[2]))
-		if (p[3] == '/' || p[3] == ':')
-		    if (isdigit(p[4]))
-			if (notdigit(p[5]) || notdigit(p[6]))
-			{
-			    *n1 = p[2] % 16;
-			    if (isdigit(p[1]))
-				*n1 += p[1] % 16 * 16;
-			    *n2 = p[4] % 16;
-			    if (isdigit(p[5]))
-				*n2 = *n2 * 16 + p[5] % 16;
-			    if ((*n2 > 0x99) || (*n1 > 0x99) ||
-				(*n1 > *n2))
-			      return FALSE;
-			    return TRUE;
-			}
-    return FALSE;
-}
-
-static gboolean
-zvbi_check_page(gchar *p, int x, gint *pgno, gint *subno)
-{
-    p += x;
-
-    if (x >= 0 && x < 42-4)
-      if (notdigit(p[0]) && notdigit(p[4]))
-	if (isdigit(p[1]))
-	  if (isdigit(p[2]))
-	    if (isdigit(p[3]))
-	      {
-		*pgno = p[1] % 16 * 256 + p[2] % 16 * 16 + p[3] % 16;
-		*subno = ANY_SUB;
-		if (*pgno >= 0x100 && *pgno <= 0x899)
-		  return TRUE;
-	      }
-    return FALSE;
-}
-
-/*
-  Text navigation.
-  Given the page, the x and y, tries to find a page number in that
-  position. In success, returns TRUE
-*/
-static gint
-zvbi_resolve_page(gint x, gint y, struct vt_page * vtp, gint *page,
-		  gint *subpage)
-{
-  struct fmt_page pg;
-  gint i, n1, n2;
-  gchar buffer[42]; /* The line and two spaces on the sides */
-
-  if ((y > 24) || (y < 0) || (x < 0) || (x > 39) || (!vbi) || (!vtp)
-      || (!page) || (!subpage))
-    return FALSE;
-
-  fmt_page(FALSE, &pg, vtp); /* It's easier to parse this way */
-// {mhs}
-//  if (pg.hid & (1 << y))
-//    y--;
-// XXX new .ch:  123  123  112233  112233
-//                    123          112233
-// propose a new link approach:
-//  * at render time, scan fmt_page for page numbers and create
-//    a link list: row, start_col, end_col, page_number, channel
-//    including FLOF links.
-//  * on left button, lookup link and jump to page
-//  * on right button, ... page in new window
-//  * on mouse move, lookup and change pointer image when over link
-
-  if (y < 0)
-    return FALSE;
-
-  buffer[0] = buffer[41] = ' ';
-
-  for (i=1; i<41; i++)
-    buffer[i] = pg.data[y][i-1].glyph & 0x3FF; // careful, not pure ASCII
-
-  for (i = -2; i < 1; i++)
-    if (zvbi_check_page(buffer, x+i, page, subpage))
-      return TRUE;
-
-  /* try to resolve subpage */
-  for (i = -4; i < 1; i++)
-    if (zvbi_check_subpage(buffer, x+i, &n1, &n2))
-      {
-	if ((cur_subpage != n1) && (cur_subpage != ANY_SUB))
-	  return FALSE; /* mismatch */
-	if (cur_subpage != ANY_SUB)
-	  n1 = cur_subpage;
-	n1 = dec2hex(hex2dec(n1)+1);
-	if (n1 > n2)
-	  n1 = 1;
-	*page = cur_page;
-	*subpage = n1;
-	return TRUE;
-      }
-
-  return FALSE;
-}
 
 /*
   Tells the VBI engine to monitor a page. This way you can know if the
@@ -1012,9 +1162,9 @@ on_zvbi_button_press_event		(GtkWidget	*widget,
   struct vt_page vtp; /* This is a local copy of the current monitored
 		       page, to avoid locking for a long time */
   gint w=0, h=0;
-  gint page, subpage;
+  //  gint page, subpage;
   gint x, y; /* coords in the 40*25 buffer */
-  gboolean result;
+  //  gboolean result;
 
   if ((event->type != GDK_BUTTON_PRESS) ||
       (bevent->button != 1) ||
@@ -1045,14 +1195,14 @@ on_zvbi_button_press_event		(GtkWidget	*widget,
     case 0: /* Header, no useful info there*/
       break;
     case 1 ... 23: /* body of the page */
-      result = zvbi_resolve_page(x, y, &vtp, &page, &subpage);
-      if (result)
-	zvbi_set_current_page(page, subpage);
+      //      result = vbi_resolve_page(x, y, &vtp, &page, &subpage);
+      //      if (result)
+      //	zvbi_set_current_page(page, subpage);
       break;
     default: /* Bottom line, fast navigation */
-      if (!zvbi_resolve_flof(x, &vtp, &page, &subpage))
-	break;
-      zvbi_set_current_page(page, subpage);
+      //      if (!zvbi_resolve_flof(x, &vtp, &page, &subpage))
+      //	break;
+      //      zvbi_set_current_page(page, subpage);
       break;
     }
 

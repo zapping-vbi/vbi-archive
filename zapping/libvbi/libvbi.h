@@ -1,8 +1,6 @@
 /*
- * (C) Iñaki García Etxebarria 2000
- *
+ * (C) 200 Iñaki García Etxebarria
  * Just a convenience wrapper
- *
  */
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__

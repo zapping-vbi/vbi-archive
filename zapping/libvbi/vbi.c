@@ -430,13 +430,13 @@ vt_packet(struct vbi *vbi, u8 *p)
 		if (err & 0xf000)
 			return 4;
 
-printf("X/27/%d\n", designation);
+//printf("X/27/%d\n", designation);
 		switch (designation) {
 		case 0:
 			control = hamm8(p + 37, &err);
 			if (err & 0xf000)
 				return 4;
-printf("X/27/%d %02x\n", designation, control);
+//printf("X/27/%d %02x\n", designation, control);
 
 			crc = p[38] + p[39] * 256;
 

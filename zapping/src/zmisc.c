@@ -98,28 +98,6 @@ GtkWidget * ShowBoxReal(const gchar * sourcefile,
   return dialog;
 }
 
-/* Takes and hex number with only decimal digits in its
-   representation, and returns the representation as if it was in 10,
-   base. I.e. 0x123 becomes 123 (decimal) */
-gint hex2dec(gint hex)
-{
-  int returned_value=0;
-  gchar * representation = g_strdup_printf("%x", hex);
-  sscanf(representation, "%d", &returned_value);
-  g_free(representation);
-  return returned_value;
-}
-
-/* The inverse of the above, converts 145d to 0x145 */
-gint dec2hex(gint dec)
-{
-  int returned_value=0;
-  gchar * representation = g_strdup_printf("%d", dec);
-  sscanf(representation, "%x", &returned_value);
-  g_free(representation);
-  return returned_value;
-}
-
 /*
   Creates a GtkPixmapMenuEntry with the desired pixmap and the
   desired label.

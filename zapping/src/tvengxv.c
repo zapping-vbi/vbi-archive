@@ -942,6 +942,7 @@ tvengxv_get_tune(__u32 * freq, tveng_device_info *info)
 {
   struct private_tvengxv_device_info * p_info =
     (struct private_tvengxv_device_info*)info;
+  int returned_freq;
 
   t_assert(info != NULL);
   if (!freq || p_info->freq == None)
@@ -950,9 +951,9 @@ tvengxv_get_tune(__u32 * freq, tveng_device_info *info)
   XvGetPortAttribute(info->private->display,
 		     p_info->port,
 		     p_info->freq,
-		     (int*)(&freq));
+		     (&returned_freq));
 
-  *freq = *freq / 0.016;
+  *freq = returned_freq / 0.016;
 
   return 0;
 }

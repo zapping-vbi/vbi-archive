@@ -1,3 +1,13 @@
+20.12.2000	TTXView, T thread <garetxe@users.osurceforge.net>
+
+	* src/ttxview.c: All the difficult things are done by now, lacks
+	history.
+	* src/zvbi.c: Created T thread as discussed, loads of old code
+	need to be removed now.
+	* src/tvengxv.c (tvengxv_get_tune): Fixed(?) a bug, the pointer
+	was apparently wrongly passed. This could be a memleak, needs
+	further investigation, i just fixed the sympthoms.
+
 17.12.2000	TTXView started <garetxe@users.sourceforge.net>
 
 	* src/ttxview.c: Started, will be the GUI for the TTX decoder.

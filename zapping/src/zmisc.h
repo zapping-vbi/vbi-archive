@@ -83,16 +83,6 @@ GtkWidget * ShowBoxReal(const gchar * sourcefile,
 			gboolean blocking, gboolean modal);
 
 /*
-  Converts 0x123 into 123d
-*/
-gint hex2dec(gint hex);
-
-/*
-  Converts 123d into 0x123
-*/
-gint dec2hex(gint dec);
-
-/*
   Creates a GtkPixmapMenuEntry with the desired pixmap and the
   desired label. The pixmap is a stock GNOME pixmap.
 */

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include "vt.h"
 #include "misc.h"
 #include "export.h"
@@ -1090,6 +1091,131 @@ new_enhance(struct fmt_page *pg, struct vt_page *vtp,
 	}
 }
 
+static int
+vbi_resolve_flof(int x, struct vt_page *vtp, int *page, int *subpage)
+{
+	int code= 7, i, c;
+	
+	if ((!vtp) || (!page) || (!subpage))
+		return FALSE;
+	
+	if (!(vtp->flof))
+		return FALSE;
+	
+	for (i=0; (i <= x) && (i<40); i++)
+		if ((c = vtp->data[24][i]) < 8) /* color code */
+			code = c; /* Store it for later on */
+	
+	if (code >= 8) /* not found ... weird */
+		return FALSE;
+	
+	code = " \0\1\2\3 \3 "[code]; /* color->link conversion table */
+	
+	if ((code > 6) || ((vtp->link[code].pgno & 0xff) == 0xff))
+		return FALSE;
+	
+	*page = vtp->link[code].pgno;
+	*subpage = vtp->link[code].subno; /* 0x3f7f handled? */
+	
+	return TRUE;
+}
+
+#define notdigit(x) (!isdigit(x))
+
+static int
+vbi_check_subpage(const char *p, int x, int *n1, int *n2)
+{
+    p += x;
+
+    if (x >= 0 && x < 42-5)
+	if (notdigit(p[1]) || notdigit(p[0]))
+	    if (isdigit(p[2]))
+		if (p[3] == '/' || p[3] == ':')
+		    if (isdigit(p[4]))
+			if (notdigit(p[5]) || notdigit(p[6]))
+			{
+			    *n1 = p[2] % 16;
+			    if (isdigit(p[1]))
+				*n1 += p[1] % 16 * 16;
+			    *n2 = p[4] % 16;
+			    if (isdigit(p[5]))
+				*n2 = *n2 * 16 + p[5] % 16;
+			    if ((*n2 > 0x99) || (*n1 > 0x99) ||
+				(*n1 > *n2))
+			      return FALSE;
+			    return TRUE;
+			}
+    return FALSE;
+}
+
+static int
+vbi_check_page(const char *p, int x, int *pgno, int *subno)
+{
+    p += x;
+
+    if (x >= 0 && x < 42-4)
+      if (notdigit(p[0]) && notdigit(p[4]))
+	if (isdigit(p[1]))
+	  if (isdigit(p[2]))
+	    if (isdigit(p[3]))
+	      {
+		*pgno = p[1] % 16 * 256 + p[2] % 16 * 16 + p[3] % 16;
+		*subno = ANY_SUB;
+		if (*pgno >= 0x100 && *pgno <= 0x899)
+		  return TRUE;
+	      }
+    return FALSE;
+}
+
+/*
+  Text navigation.
+  Given the page, the x and y, tries to find a page number in that
+  position. If succeeds, returns TRUE
+*/
+static int
+vbi_resolve_page(int x, int y, struct vt_page *vtp, int *page,
+		 int *subpage, struct fmt_page *pg)
+{
+	int i, n1, n2;
+	char buffer[42]; /* The line and two spaces on the sides */
+
+	if ((y > 24) || (y <= 0) || (x < 0) || (x > 39) || (!vtp)
+	    || (!page) || (!subpage) || (!pg))
+		return FALSE;
+
+// {mhs}
+// XXX new .ch:  123  123  112233  112233
+//                    123          112233
+
+	if (y == 24)
+		return vbi_resolve_flof(x, vtp, page, subpage);
+
+	buffer[0] = buffer[41] = ' ';
+
+	for (i=1; i<41; i++)
+		buffer[i] = pg->data[y][i-1].glyph & 0x3FF; // careful, not pure ASCII
+
+	for (i = -2; i < 1; i++)
+		if (vbi_check_page(buffer, x+i, page, subpage))
+			return TRUE;
+
+	/* try to resolve subpage */
+	for (i = -4; i < 1; i++)
+		if (vbi_check_subpage(buffer, x+i, &n1, &n2))
+		{
+			if (vtp->subno != n1)
+				return FALSE; /* mismatch */
+			n1 = dec2hex(hex2dec(n1)+1);
+			if (n1 > n2)
+				n1 = 1;
+			*page = vtp->pgno;
+			*subpage = n1;
+			return TRUE;
+		}
+	
+	return FALSE;
+}
+
 void
 fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 {
@@ -1098,6 +1224,7 @@ fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 	struct font_d *g0_font[2];
 	int column, row, i;
 	int display_rows;
+	int page, subpage;
 
 	display_rows = vtp->flof ? 25 : 24;
 
@@ -1381,6 +1508,15 @@ fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 					}
 				}
 			}
+
+	for (row = 0; row < display_rows; row++)
+		for (column = 0; column < W; column++) {
+			if (!vbi_resolve_page(column, row, vtp, &page,
+					      &subpage, pg))
+				page = subpage = 0;
+			pg->data[row][column].link_page = page;
+			pg->data[row][column].link_subpage = subpage;
+		}
 }
 
 int

@@ -2796,6 +2796,8 @@ in the next release of this program.</label>
 <widget>
   <class>GnomeApp</class>
   <name>ttxview</name>
+  <height>320</height>
+  <events>GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK</events>
   <title>Teletext</title>
   <type>GTK_WINDOW_TOPLEVEL</type>
   <position>GTK_WIN_POS_NONE</position>
@@ -2916,6 +2918,7 @@ in the next release of this program.</label>
       <child_name>GnomeDock:contents</child_name>
       <name>drawingarea1</name>
       <height>256</height>
+      <events>GDK_POINTER_MOTION_MASK | GDK_BUTTON_PRESS_MASK</events>
     </widget>
   </widget>
 

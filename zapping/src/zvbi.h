@@ -36,6 +36,56 @@
 #include <libvbi.h>
 #include "tveng.h"
 
+enum ttx_message {
+  TTX_NONE=0, /* No messages */
+  TTX_PAGE_RECEIVED, /* The monitored page has been received */
+  TTX_BROKEN_PIPE /* No longer connected to the TTX decoder */
+};
+
+/*
+ * Register a client as TTX receiver, and returns the id that the
+ * client should use to identify itself.
+ */
+int register_ttx_client(void);
+
+/*
+ * Gets the next message in the queue, or TTX_NONE if nothing available.
+ */
+enum ttx_message peek_ttx_message(int id);
+
+/*
+ * Like peek, but waits until something is available
+ */
+enum ttx_message get_ttx_message(int id);
+
+/*
+ * Unregisters a client, telling that it won't continue porocessing
+ * data
+ */
+void unregister_ttx_client(int id);
+
+/*
+ * Sets the given page as the page the client is interested in.
+ * Use ANY_SUB in subpage for getting all subpages
+ */
+void monitor_ttx_page(int id/*client*/, int page, int subpage);
+
+/*
+ * Gets the page number of the index page
+ */
+void get_ttx_index(int id, int *pgno, int *subno);
+
+/*
+ * Returns a pointer to the formatted page the client is rendering
+ */
+struct fmt_page* get_ttx_fmt_page(int id);
+
+/*
+ * Renders the currently monitored page into the give drawable.
+ */
+void render_ttx_page(int id, GdkDrawable *drawable, GdkGC *gc, gint w,
+		     gint h);
+
 /* Open the configured VBI device, FALSE on error */
 gboolean
 zvbi_open_device(gint newbttv);
