@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alsa.c,v 1.8 2000-12-15 00:14:19 garetxe Exp $ */
+/* $Id: alsa.c,v 1.9 2001-01-06 21:00:27 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -145,6 +145,19 @@ send_empty(fifo *f, buffer *b)
 	b->data = NULL;
 }
 
+static bool
+start(fifo *f)
+{
+	struct alsa_context *alsa = f->user_data;
+	int err;
+
+	if ((err = snd_pcm_plugin_prepare(alsa->handle, SND_PCM_CHANNEL_CAPTURE)) < 0)
+		FAIL("Failed to prepare ALSA PCM plugin for recording (%d, %s)",
+			err, snd_strerror(err));
+
+	return TRUE;
+}
+
 fifo *
 open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo)
 {
@@ -197,7 +210,7 @@ open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo)
 	params.format.rate = sampling_rate;
 	params.format.voices = stereo + 1;
 	params.start_mode = SND_PCM_START_DATA;
-	params.stop_mode = SND_PCM_STOP_STOP;
+	params.stop_mode = SND_PCM_STOP_ROLLOVER;
 	params.time = 1;
 	params.buf.stream.queue_size = BUFFER_SIZE * 2;
 	params.buf.stream.fill = SND_PCM_FILL_NONE;
@@ -215,11 +228,10 @@ open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo)
 		setup.format.rate, setup.format.voices,
 		setup.buf.stream.queue_size);
 
-	if ((err = snd_pcm_plugin_prepare(alsa->handle, SND_PCM_CHANNEL_CAPTURE)) < 0)
-		FAIL("Failed to prepare ALSA PCM plugin for recording (%d, %s)", err, snd_strerror(err));
-
 	ASSERT("init pcm/alsa capture fifo", init_callback_fifo(audio_cap_fifo = &alsa->pcm.fifo,
 		wait_full, send_empty, NULL, NULL, 1, buffer_size));
+
+	alsa->pcm.fifo.start = start;
 
 	alsa->pcm.fifo.buffers[0].data = NULL;
 	alsa->pcm.fifo.buffers[0].used =
