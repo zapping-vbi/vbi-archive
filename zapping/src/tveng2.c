@@ -225,16 +225,12 @@ tveng2_update_capture_format(tveng_device_info * info)
   return 0;
 }
 
-/* -1 if failed. Sets the pixformat and fills in info -> pix_format
-   with the correct values  */
 static int
-tveng2_set_capture_format(tveng_device_info * info)
+set_capture_format(tveng_device_info * info)
 {
   struct v4l2_format format;
 
-  t_assert(info != NULL);
-
-  memset(&format, 0, sizeof(struct v4l2_format));
+  CLEAR (format);
 
   format.type = V4L2_BUF_TYPE_CAPTURE;
 
@@ -315,6 +311,26 @@ tveng2_set_capture_format(tveng_device_info * info)
   /* Check fill in info with the current values (may not be the ones
      requested) */
   tveng2_update_capture_format(info);
+
+  return 0; /* Success */
+}
+
+/* -1 if failed. Sets the pixformat and fills in info -> pix_format
+   with the correct values  */
+static int
+tveng2_set_capture_format(tveng_device_info * info)
+{
+  enum tveng_capture_mode current_mode;
+  enum tveng_frame_pixformat pixformat;
+
+  pixformat = info->format.pixformat;
+  current_mode = tveng_stop_everything(info);
+  info->format.pixformat = pixformat;
+
+  set_capture_format(info);
+
+  /* Start capturing again as if nothing had happened */
+  tveng_restart_everything(current_mode, info);
 
   return 0; /* Success */
 }
@@ -1989,7 +2005,7 @@ static void tveng2_close_device(tveng_device_info * info)
 {
   tveng_stop_everything(info);
 
-  close(info -> fd);
+  device_close (info->log_fp, info->fd);
   info -> fd = 0;
   info -> current_controller = TVENG_CONTROLLER_NONE;
 
