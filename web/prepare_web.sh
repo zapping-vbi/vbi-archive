@@ -1,5 +1,5 @@
 #!/bin/sh
-#$Id: prepare_web.sh,v 1.16 2004-05-02 02:48:41 mschimek Exp $
+#$Id: prepare_web.sh,v 1.17 2004-05-02 02:55:14 mschimek Exp $
 #
 # Checks our html pages out of cvs, puts the files online
 # and cleans up.
@@ -111,11 +111,8 @@ chmod a+rX templates/*.tmpl
 if test `whoami` = "root"; then
   chown nobody.nogroup twiki -R
   chmod u+w,go-w,a+rX twiki -R
-  chown nobody.nogroup htdocs/pub -R
-  chmod u+w,go-w,a+rX htdocs/pub -R
 else
   chmod a+rwX twiki -R
-  chmod a+rwX htdocs/pub -R
 fi
 
 ) 2>&1 | tee prepare_web.log
