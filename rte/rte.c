@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.14 2001-10-17 05:07:05 mschimek Exp $ */
+/* $Id: rte.c,v 1.15 2001-10-19 06:57:56 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -250,10 +250,10 @@ rte_context * rte_context_new (int width, int height,
 	rte_context * context;
 	int priv_bytes=0, i;
 
-
+	/*
 fprintf(stderr, "rte out of order\n");
 abort();
-
+	*/
 
 	context = malloc(sizeof(rte_context));
 
@@ -1015,7 +1015,7 @@ void rte_get_status ( rte_context * context,
 /* Experimental */
 
 /**
- * rte_enum_codec:
+ * rte_codec_enum:
  * @context: Initialized rte_context.
  * @index: Index into the codec table, 0 ... n.
  * 
@@ -1039,6 +1039,38 @@ rte_codec_enum(rte_context *context, int index)
 		return NULL;
 
 	return BACKEND->enum_codec(context, index);
+}
+
+/**
+ * rte_codec_by_keyword:
+ * @context: Initialized rte_context.
+ * @keyword: Codec identifier as in rte_codec_info, rte_codec_get|set..
+ * 
+ * Similar to rte_codec_enum, but this function attempts to find a
+ * codec by keyword.
+ * 
+ * Return value:
+ * Pointer to a rte_codec_info structure, %NULL if the context is invalid
+ * or the named codec has not been found.
+ **/
+rte_codec_info *
+rte_codec_by_keyword(rte_context *context, char *keyword)
+{
+	rte_codec_info *rci;
+	int i;
+
+	nullcheck(context, return NULL);
+
+	/* XXX check backend validity */
+
+	if (!BACKEND->enum_codec)
+		return NULL;
+
+	for (i = 0;; i++)
+	        if (!(rci = BACKEND->enum_codec(context, i))
+		    || strcmp(keyword, rci->keyword) == 0)
+			break;
+	return rci;
 }
 
 rte_codec *

@@ -568,6 +568,15 @@ int tveng2_get_standards(tveng_device_info * info)
       info->standards[count].name[31] = 0; /* not needed, std.name < 24 */
       info->standards[count].hash =
 	tveng_build_hash(info->standards[count].name);
+
+      info -> standards[count].height = enumstd.std.framelines;
+      /* unreliable, a driver may report a 16:9 etc standard (api miss?) */
+      info -> standards[count].width = (enumstd.std.framelines * 4) / 3;
+      info -> standards[count].frame_rate =
+	enumstd.std.framerate.numerator
+	/ (double) enumstd.std.framerate.denominator;
+
+/* Only a label, contents by definition unknown.
       if (strstr(enumstd.std.name, "ntsc") ||
 	  strstr(enumstd.std.name, "NTSC") ||
 	  strstr(enumstd.std.name, "Ntsc"))
@@ -580,6 +589,7 @@ int tveng2_get_standards(tveng_device_info * info)
 	  info -> standards[count].width = 768;
 	  info -> standards[count].height = 576;
 	}
+*/      
       count++;
     }
 

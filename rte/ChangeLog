@@ -1,3 +1,7 @@
+2001-10-19	<mschimek@users.sf.net>
+
+	* Added rte_codec(_info)_by_keyword.
+
 2001-10-17	<mschimek@users.sf.net>
 
 	* Added new rte_set_parameters, codec status (private).

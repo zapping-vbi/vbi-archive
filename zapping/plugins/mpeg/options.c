@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.5 2001-10-17 05:05:45 mschimek Exp $ */
+/* $Id: options.c,v 1.6 2001-10-19 06:57:09 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -35,6 +35,7 @@ typedef struct grte_options {
   rte_codec *		codec;
 
   GtkWidget *		table;
+  GnomePropertyBox *	propertybox;
 } grte_options;
 
 static void
@@ -60,7 +61,7 @@ ro_label_new (rte_option *ro)
 }
 
 static void
-on_option_control (GtkWidget *w, gpointer user_data)
+do_option_control (GtkWidget *w, gpointer user_data)
 {
   grte_options *opts = (grte_options *) user_data;
   char *keyword = (char *) gtk_object_get_data (GTK_OBJECT (w), "key");
@@ -119,6 +120,17 @@ on_option_control (GtkWidget *w, gpointer user_data)
 }
 
 static void
+on_option_control (GtkWidget *w, gpointer user_data)
+{
+  grte_options *opts = (grte_options *) user_data;
+
+  do_option_control (w, user_data);
+
+  if (opts->propertybox)
+    gnome_property_box_changed (opts->propertybox);
+}
+
+static void
 on_reset_slider (GtkWidget *w, gpointer user_data)
 {
   grte_options *opts = (grte_options *) user_data;
@@ -159,7 +171,7 @@ create_entry (grte_options *opts, rte_option *ro, int index)
   gtk_signal_connect (GTK_OBJECT (entry), "changed",
 		      GTK_SIGNAL_FUNC (on_option_control), opts);
 
-  on_option_control (entry, opts);
+  do_option_control (entry, opts);
 
   gtk_table_resize (GTK_TABLE (opts->table), index + 1, 2);
   gtk_table_attach (GTK_TABLE (opts->table), label, 0, 1, index, index + 1,
@@ -228,7 +240,7 @@ create_menu (grte_options *opts, rte_option *ro, int index)
       gtk_menu_append (GTK_MENU (menu), menu_item);
 
       if (current == i)
-	on_option_control (menu_item, opts);
+	do_option_control (menu_item, opts);
     }
 
   gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu), menu);
@@ -256,7 +268,7 @@ create_slider (grte_options *opts, rte_option *ro, int index)
   GtkWidget *hscale;
   GtkWidget *button; /* Reset button */
   GtkObject *adj; /* Adjustment object for the slider */
-  gfloat def, min, max, step;
+  gfloat def, min, max, step, foo;
   rte_option_value val;
   char *s;
 
@@ -286,16 +298,19 @@ create_slider (grte_options *opts, rte_option *ro, int index)
       min = ro->min.dbl; max = ro->max.dbl;
     }
 
-  adj = gtk_adjustment_new (def, min, max, step, step * 10,
-			    (max - min + step) / 10);
+  foo = (max - min + step) / 10;
+  if (0)
+    fprintf(stderr, "slider %s: def=%f min=%f max=%f step=%f foo=%f cur=%f\n",
+	    ro->keyword, (double) def, (double) min,
+	    (double) max, (double) step, (double) foo, val.dbl);
+  adj = gtk_adjustment_new (def, min, max + foo, step, step, foo);
   gtk_adjustment_set_value (GTK_ADJUSTMENT (adj), val.dbl);
-
   gtk_object_set_data (GTK_OBJECT (adj), "key", ro->keyword);
   gtk_object_set_data (GTK_OBJECT (adj), "label", label2);
-  gtk_signal_connect (adj, "value-changed",
+  gtk_signal_connect (GTK_OBJECT (adj), "value-changed",
 		      GTK_SIGNAL_FUNC (on_option_control), opts);
 
-  on_option_control (GTK_WIDGET (adj), opts);
+  do_option_control (GTK_OBJECT (adj), opts);
 
   hscale = gtk_hscale_new (GTK_ADJUSTMENT (adj));
   gtk_scale_set_draw_value (GTK_SCALE (hscale), FALSE);
@@ -344,7 +359,7 @@ create_checkbutton (grte_options *opts, rte_option *ro, int index)
   gtk_signal_connect (GTK_OBJECT (cb), "toggled",
 		      GTK_SIGNAL_FUNC (on_option_control), opts);
 
-  on_option_control (cb, opts);
+  do_option_control (cb, opts);
 
   gtk_table_resize (GTK_TABLE (opts->table), index + 1, 2);
   gtk_table_attach (GTK_TABLE (opts->table), cb, 1, 3, index, index + 1,
@@ -363,7 +378,8 @@ create_checkbutton (grte_options *opts, rte_option *ro, int index)
  *      + option
  */
 GtkWidget *
-grte_options_create (rte_context *context, rte_codec *codec)
+grte_options_create (rte_context *context, rte_codec *codec,
+		     GnomePropertyBox *propertybox)
 {
   GtkWidget *frame;
   grte_options *opts;
@@ -378,6 +394,7 @@ grte_options_create (rte_context *context, rte_codec *codec)
 
   opts->context = context;
   opts->codec = codec;
+  opts->propertybox = propertybox;
 
   frame = gtk_frame_new (_("Options"));
   gtk_widget_show (frame);
@@ -449,7 +466,7 @@ grte_options_load (rte_codec *codec, gchar *zc_domain)
 
   for (i = 0; (ro = rte_option_enum (codec, i)); i++)
     {
-      gchar *zcname = g_strdup_printf ("%s/%s", zc_domain, ro->keyword);
+      gchar *zcname = g_strconcat (zc_domain, "/", ro->keyword, NULL);
       rte_option_value val;
 
       switch (ro->type)
@@ -497,7 +514,7 @@ grte_options_save (rte_codec *codec, gchar *zc_domain)
 
   for (i = 0; (ro = rte_option_enum (codec, i)); i++)
     {
-      gchar *zcname = g_strdup_printf ("%s/%s", zc_domain, ro->keyword);
+      gchar *zcname = g_strconcat (zc_domain, "/", ro->keyword, NULL);
       rte_option_value val;
 
       if (!rte_option_get (codec, ro->keyword, &val))

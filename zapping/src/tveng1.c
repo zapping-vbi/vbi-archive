@@ -42,6 +42,7 @@
 #include <errno.h>
 #include <linux/kernel.h>
 #include <errno.h>
+#include <math.h>
 
 /* We need video extensions (DGA) */
 #include <X11/X.h>
@@ -80,6 +81,10 @@ struct private_tveng1_device_info
   struct video_mbuf mmbuf; /* Info about the location of the frames */
   int queued, dequeued; /* The index of the [de]queued frames */
   double last_timestamp; /* Timestamp of the last frame captured */
+
+  double capture_time;
+  double frame_period_near;
+  double frame_period_far;
 };
 
 /*
@@ -667,15 +672,25 @@ static int tveng1_get_standards(tveng_device_info * info)
       /* Weird that there's no strcasestr */
       if (strstr(std_t[count].name, "ntsc") ||
 	  strstr(std_t[count].name, "NTSC") ||
-	  strstr(std_t[count].name, "Ntsc"))
+	  strstr(std_t[count].name, "Ntsc") ||
+	  strstr(std_t[count].name, "PAL-M"))
 	{
+	  /* (M) NTSC, NTSC-J (Japan) */
+	  /* (M) PAL similar (M) NTSC except PAL color modulation */
+	  /* NTSC 4.43 aka PAL-60 (525/60, PAL modulation, 4.43 MHz FSC) */
+	  /*  what's the PAL VHS -> NTSC TV counterpart, "PAL 3.57"? */
 	  info -> standards[count].width = 640;
 	  info -> standards[count].height = 480;
+	  info -> standards[count].frame_rate = 30000 / 1001.0;
 	}
       else
 	{
+	  /* (B, B1, G, H, I, D, N) PAL */
+	  /* (Nc) PAL similar (N) PAL except 3.58 MHz FSC */
+	  /* (B, G, D, K, K1, L) SECAM */
 	  info -> standards[count].width = 768;
 	  info -> standards[count].height = 576;
+	  info -> standards[count].frame_rate = 25.0;
 	}
       count++;
     }
@@ -1670,6 +1685,8 @@ static int p_tveng1_queue(tveng_device_info * info);
 static int p_tveng1_dequeue(unsigned char * where, tveng_device_info *
 			    info, unsigned int bpl);
 
+static void p_tveng1_timestamp_init(tveng_device_info *info);
+
 /*
   Sets up the capture device so any read() call after this one
   succeeds. Returns -1 on error.
@@ -1682,6 +1699,8 @@ tveng1_start_capturing(tveng_device_info * info)
 
   tveng_stop_everything(info);
   t_assert(info -> current_mode == TVENG_NO_CAPTURE);
+
+  p_tveng1_timestamp_init(info);
 
   /* Make the pointer a invalid pointer */
   p_info -> mmaped_data = (char*) -1;
@@ -1818,6 +1837,51 @@ static int p_tveng1_queue(tveng_device_info * info)
   return 0; /* Success */
 }
 
+/*
+ *  From rte/mp1e since it now needs much more stable
+ *  time stamps than v4l/gettimeofday can provide. 
+ */
+static inline double
+p_tveng1_timestamp(struct private_tveng1_device_info *p_info)
+{
+  double now = current_time();
+  double stamp;
+
+  if (p_info->capture_time > 0) {
+    double dt = now - p_info->capture_time;
+    double ddt = p_info->frame_period_far - dt;
+
+    if (fabs(p_info->frame_period_near)
+	< p_info->frame_period_far * 1.5) {
+      p_info->frame_period_near =
+	(p_info->frame_period_near - dt) * 0.8 + dt;
+      p_info->frame_period_far = ddt * 0.9999 + dt;
+      stamp = p_info->capture_time += p_info->frame_period_far;
+    } else {
+      /* Frame dropping detected & confirmed */
+      p_info->frame_period_near = p_info->frame_period_far;
+      stamp = p_info->capture_time = now;
+    }
+  } else {
+    /* First iteration */
+    stamp = p_info->capture_time = now;
+  }
+
+  return stamp;
+}
+
+static void
+p_tveng1_timestamp_init(tveng_device_info *info)
+{
+  struct private_tveng1_device_info *p_info =
+    (struct private_tveng1_device_info *) info;
+
+  p_info->capture_time = 0.0;
+  p_info->frame_period_near =
+    p_info->frame_period_far =
+      1.0 / info->standards[info->cur_standard].frame_rate;
+}
+
 static int p_tveng1_dequeue(unsigned char * where, tveng_device_info *
 			    info, unsigned int bpl)
 {
@@ -1880,7 +1944,7 @@ static int p_tveng1_dequeue(unsigned char * where, tveng_device_info *
       return -1;
     }
 
-  p_info->last_timestamp = current_time();
+  p_info->last_timestamp = p_tveng1_timestamp(p_info);
 
   /* Copy the mmaped data to the data struct, if it is not null */
   if (where)

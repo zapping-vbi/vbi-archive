@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.17 2001-10-17 05:07:05 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.18 2001-10-19 06:57:56 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -572,7 +572,7 @@ get_codec(rte_context *context, rte_stream_type stream_type,
 	}
 
 	if (codec_keyword_p)
-		*codec_keyword_p = info->public.keyword;
+		*codec_keyword_p = strdup(info->public.keyword);
 
 	return codec;
 }

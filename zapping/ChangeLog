@@ -1,3 +1,21 @@
+19.10.2001	Mpeg plugin <mschimek@users.sf.net>
+
+	* tveng1.c: Added mp1e/video/v4l.c timestamping method to get
+	  sufficently accurate time. Prerequisities:
+	* tveng.h: Added frame rate field to tveng_enumstd, will be set
+	  in tveng1.c, tveng2.c, tvengxv.c.
+	* tveng1.c: Fixed PAL-M incorrectly assumed 625/50.
+	* tveng2.c: Replaced strstr(enumstd.std.name, "ntsc"); Unless
+	  the driver is borken the w/h info is more reliable deduced
+	  from enumstd.std.framelines. May have incorrectly assumed
+	  PAL-M, PAL-60 are 625/50.
+	* esd.c, oss.c: Added mp1e esd.c, oss.c timestamping, tested, works.
+	* arts.c: Added mp1e esd.c timestamping, untested. (Not installed
+	  on my box.)
+	* src/properties.c: Complained "no plugin accepts..." (arg1 == 0),
+	  moved handlers[i].apply() loop under default: as it was supposedly
+	  intended.
+
 18.10.2001	Easy stuff <garetxe@users.sf.net>
 
 	* v4linterface.c: Fixed an stupid bug in control saving, appears

@@ -4,7 +4,6 @@ Known bugs with zapping, don't report them
 ! == Bug that needs fixing, very important
 ------------------------------------------
 
-	! MPEG plugin crashes on mp1e_mp2_init
 	! "zapping: fifo.c:1101: rem_consumer: Assertion "c->dequeued
 == 0" failed" when recording video only.
 	* Need better no-overlay-present handling.

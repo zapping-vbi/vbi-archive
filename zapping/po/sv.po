@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.6\n"
-"POT-Creation-Date: 2001-09-18 01:27+0200\n"
+"POT-Creation-Date: 2001-09-20 23:33+0200\n"
 "PO-Revision-Date: 2001-08-31 01:29+01:00\n"
 "Last-Translator: <snout@ctrl-c.liu.se>\n"
 "Language-Team: Swedish <sv@li.org>\n"
@@ -342,7 +342,7 @@ msgstr "Ingångar"
 msgid "No tuned channels"
 msgstr "Inga inställda kanaler"
 
-#: src/zvbi.c:140
+#: src/zvbi.c:139
 #, c-format
 msgid ""
 "Sorry, but %s couldn't be opened:\n"
@@ -352,11 +352,11 @@ msgstr ""
 "%s (%d)"
 
 #. pixmaps not installed
-#: src/zvbi.c:401
+#: src/zvbi.c:400
 msgid "Click me"
 msgstr "Klicka på mig"
 
-#: src/zvbi.c:435
+#: src/zvbi.c:434
 msgid ""
 "Open this link with the predetermined Web browser.\n"
 "You can configure this in the GNOME Control Center, under Handlers/Url "
@@ -365,21 +365,21 @@ msgstr ""
 "Öppna denna länk med den förvalda webbläsaren.\n"
 "Du kan ställa in detta i GNOMEs Kontrollpanel, under Handlers/Url "
 
-#: src/zvbi.c:442
+#: src/zvbi.c:441
 #, c-format
 msgid " %s: Teletext Page %x"
 msgstr " %s: Teletext sida %x"
 
-#: src/zvbi.c:445
+#: src/zvbi.c:444
 #, c-format
 msgid " Teletext Page %x"
 msgstr " Teletext sida %x"
 
-#: src/zvbi.c:446
+#: src/zvbi.c:445
 msgid "Open this page with Zapzilla"
 msgstr "Öppna denna sida med Zapzilla"
 
-#: src/zvbi.c:539
+#: src/zvbi.c:538
 msgid ""
 "This probably means that the required driver isn't loaded. Add to your /etc/"
 "modules.conf the line:\n"
@@ -394,7 +394,7 @@ msgstr ""
 " och skapa /dev/vbi0 med mknod. Om det inte fungerar, så kan du stänga av "
 "VBI i Inställningar/Alternativ/VBI-val/Slå på VBI-avkodning."
 
-#: src/zvbi.c:551
+#: src/zvbi.c:550
 #, c-format
 msgid ""
 "Failed to access vbi device:\n"
@@ -406,18 +406,12 @@ msgstr ""
 "%s"
 
 #. should not happen
-#: src/zvbi.c:554
+#: src/zvbi.c:553
 #, c-format
 msgid "Failed to access vbi device %s, cause unknown.\n"
 msgstr "Kunde inte komma åt VBI-enheten %s, okänt skäl.\n"
 
-#: src/zvbi.c:1754
-#, fuzzy, c-format
-msgid "%d minute"
-msgid_plural "%d minutes"
-msgstr[0] "minut"
-
-#: src/zvbi.c:1756
+#: src/zvbi.c:1755
 #, c-format
 msgid "%d h %d m"
 msgstr "%d h %d m"
@@ -669,16 +663,21 @@ msgstr "Preview fungerar inte: %s"
 msgid "VBI has been disabled, or it doesn't work."
 msgstr "VBI har blivit avstängd, eller fungerar inte."
 
-#: src/zmisc.c:672
+#: src/zmisc.c:650
+#, fuzzy
+msgid "Hide the status bar"
+msgstr "Visa i statusraden"
+
+#: src/zmisc.c:707
 msgid "The path must start with /"
 msgstr "Katalognamnet måste börja med /"
 
-#: src/zmisc.c:687
+#: src/zmisc.c:722
 #, c-format
 msgid "Cannot create %s: %s"
 msgstr "Kan inte skapa %s: %s"
 
-#: src/zmisc.c:700
+#: src/zmisc.c:735
 #, c-format
 msgid "%s is not a directory"
 msgstr "%s är inte en katalog."
@@ -751,11 +750,11 @@ msgstr "%s med en tuner"
 msgid "%s with %d tuners"
 msgstr "%s med %d tuners"
 
-#: src/properties.c:742
+#: src/properties.c:743
 msgid "No plugin accepts this page."
 msgstr "Ingen plugin accepterar denna sida."
 
-#: src/properties.c:777
+#: src/properties.c:778
 msgid ""
 "The plugin that created the active page doesn't provide help for it. Sorry."
 msgstr ""
@@ -846,10 +845,6 @@ msgstr "Tyvärr, men pluginen kunde inte startas"
 msgid "Sorry, the plugin doesn't provide help for this"
 msgstr "Tyvärr, pluginen ger ingen hjälp för det här"
 
-#: src/ttxview.c:173 src/ttxview.c:1248
-msgid "VBI has been disabled"
-msgstr "VBI har stängts av"
-
 #: src/ttxview.c:522
 #, c-format
 msgid "Loading page %x..."
@@ -908,6 +903,10 @@ msgstr "Tomt sidminne"
 #, c-format
 msgid "Scanning %x.%02x"
 msgstr "Söker igenom %x.%02x"
+
+#: src/ttxview.c:1248
+msgid "VBI has been disabled"
+msgstr "VBI har stängts av"
 
 #: src/ttxview.c:1542
 #, c-format
@@ -2442,20 +2441,6 @@ msgstr "Denna plugin sparar ner bilden och ljudet till en MPEG-fil"
 msgid "Encode the stream as MPEG."
 msgstr "Spara strömmen som MPEG."
 
-#: plugins/mpeg/mpeg.c:481
-#, c-format
-msgid "%d frame dropped"
-msgid_plural "%d frames dropped"
-msgstr[0] ""
-msgstr[1] ""
-
-#: plugins/mpeg/mpeg.c:485
-#, c-format
-msgid "%d frame processed"
-msgid_plural "%d frames processed"
-msgstr[0] ""
-msgstr[1] ""
-
 #: plugins/mpeg/mpeg.c:489
 #, c-format
 msgid "%.1f MB : %s : %s"
@@ -2778,7 +2763,7 @@ msgid "Teletext Page %3x.%x"
 msgstr "Teletext sida %3x.%x"
 
 #: libvbi/exp-gfx.c:840 libvbi/exp-html.c:209
-#, c-format, ycp-format
+#, c-format
 msgid "Teletext Page %3x"
 msgstr "Teletext sida %3x"
 
@@ -3102,6 +3087,11 @@ msgid ""
 msgstr ""
 "%s (%s) har inget läsgränssnitt för VBI, möjligen är det en endast skrivbar "
 "enhet eller ett drivarfel. %s\n"
+
+#, fuzzy
+#~ msgid "%d minute"
+#~ msgid_plural "%d minutes"
+#~ msgstr[0] "minut"
 
 #~ msgid "Verbosity value given to zapping__setup__fb:"
 #~ msgstr "Debugläge för zapping__setup__fb:"

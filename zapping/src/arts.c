@@ -25,7 +25,6 @@
 /** aRts (KDE sound server) backend **/
 
 #include <gnome.h>
-#include <common/fifo.h> // current_time
 #include <math.h>
 #include <unistd.h>
 
@@ -43,6 +42,9 @@ typedef struct {
   arts_stream_t		stream;
   int			stereo;
   int			sampling_rate;
+  double		time;
+  double		buffer_period_near;
+  double		buffer_period_far;
 } arts_handle;
 
 static gpointer
@@ -82,6 +84,8 @@ arts_open (gboolean stereo, gint rate, enum audio_format format)
   h->stereo = !!stereo;
   h->sampling_rate = rate;
 
+  h->time = 0.0;
+
   return h;
 
  fail:
@@ -107,6 +111,8 @@ _arts_read (gpointer handle, gpointer dest, gint num_bytes,
   arts_handle *h = handle;
   unsigned char *p;
   ssize_t r, n;
+  struct timeval tv;
+  double now;
 
   for (p = dest, n = num_bytes; n > 0;)
     {
@@ -124,10 +130,37 @@ _arts_read (gpointer handle, gpointer dest, gint num_bytes,
       n -= r;
     }
 
-  /* FIXME: Improve the timestamping */
-  *timestamp = current_time();
-  *timestamp -= (((num_bytes - n)/sizeof(short))>>h->stereo)
-    / (double) h->sampling_rate;
+  gettimeofday(&tv, NULL);
+  now = tv.tv_sec + tv.tv_usec * (1 / 1e6);
+
+  if (h->time > 0.0) 
+    {
+      double dt = now - h->time;
+      double ddt = h->buffer_period_far - dt;
+      
+      if (fabs(h->buffer_period_near)
+	  < h->buffer_period_far * 1.5) 
+	{
+	  h->buffer_period_near =
+	    (h->buffer_period_near - dt) * 0.8 + dt;
+	  h->buffer_period_far = ddt * 0.9999 + dt;
+	  *timestamp = h->time += h->buffer_period_far;
+	} 
+      else 
+	{
+	  h->buffer_period_near = h->buffer_period_far;
+	  *timestamp = h->time = now;
+	}
+    } 
+  else 
+    {
+      *timestamp = h->time = now;
+
+      /* XXX assuming num_bytes won't change */
+      h->buffer_period_near =
+	h->buffer_period_far =
+          num_bytes / (double)(h->sampling_rate * 2 << h->stereo);
+    }
 }
 
 const audio_backend_info arts_backend =

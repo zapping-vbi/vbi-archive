@@ -751,16 +751,15 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
 
       break;
     default:
+      for (i=0; i<num_handlers; i++)
+	if (handlers[i].apply(gnomepropertybox, arg1))
+	  break;
+
+      if (i == num_handlers)
+	ShowBox("Nothing accepts this page!!\nPlease contact the maintainer",
+		GNOME_MESSAGE_BOX_WARNING);
       break;
     }
-
-  for (i=0; i<num_handlers; i++)
-    if (handlers[i].apply(gnomepropertybox, arg1))
-      break;
-
-  if (arg1 != -1 && i == num_handlers)
-    ShowBox("Nothing accepts this page!!\nPlease contact the maintainer",
-	    GNOME_MESSAGE_BOX_WARNING);
 }
 
 

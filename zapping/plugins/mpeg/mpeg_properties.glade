@@ -63,23 +63,6 @@
       </widget>
 
       <widget>
-	<class>GtkOptionMenu</class>
-	<name>optionmenu2</name>
-	<tooltip>Whether to encode audio and/or video</tooltip>
-	<can_focus>True</can_focus>
-	<items>Audio only
-Video only
-Audio and Video
-</items>
-	<initial_choice>2</initial_choice>
-	<child>
-	  <padding>0</padding>
-	  <expand>False</expand>
-	  <fill>False</fill>
-	</child>
-      </widget>
-
-      <widget>
 	<class>GtkHBox</class>
 	<name>hbox5</name>
 	<homogeneous>False</homogeneous>

@@ -182,6 +182,7 @@ struct tveng_enumstd{
   char name[32]; /* Canonical name for the standard */
   int width; /* width (double of uninterlaced width) */
   int height; /* height (double of uninterlaced height) */
+  double frame_rate; /* nominal frames/s (eg. PAL 25) */
 };
 
 /* Flags for the input */

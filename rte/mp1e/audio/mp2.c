@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.13 2001-10-17 05:07:05 mschimek Exp $ */
+/* $Id: mp2.c,v 1.14 2001-10-19 06:57:56 mschimek Exp $ */
 
 #include <limits.h>
 #include "../common/log.h"

@@ -16,8 +16,10 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.h,v 1.4 2001-10-17 05:05:45 mschimek Exp $ */
+/* $Id: mpeg.h,v 1.5 2001-10-19 06:57:09 mschimek Exp $ */
 
-extern GtkWidget *grte_options_create (rte_context *context, rte_codec *codec);
+extern GtkWidget *grte_options_create (rte_context *context, rte_codec *codec,
+				       GnomePropertyBox *propertybox);
+
 extern gboolean grte_options_load (rte_codec *codec, gchar *zc_domain);
 extern gboolean grte_options_save (rte_codec *codec, gchar *zc_domain);

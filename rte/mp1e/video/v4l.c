@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.11 2001-10-16 11:18:18 mschimek Exp $ */
+/* $Id: v4l.c,v 1.12 2001-10-19 06:57:56 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -76,7 +76,8 @@ timestamp(buffer *b)
 		double dt = now - cap_time;
 		double ddt = frame_period_far - dt;
 
-		if (frame_period_near < frame_period_far * 1.5) {
+		if (fabs(frame_period_near)
+		    < frame_period_far * 1.5) {
 			frame_period_near = (frame_period_near - dt) * 0.8 + dt;
 			frame_period_far = ddt * 0.9999 + dt;
 			b->time = cap_time += frame_period_far;

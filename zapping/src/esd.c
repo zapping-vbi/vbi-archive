@@ -21,7 +21,6 @@
 #endif
 
 #include <gnome.h>
-#include <common/fifo.h> // current_time
 #include <math.h>
 #include <unistd.h>
 
@@ -38,6 +37,9 @@ typedef struct {
   int		socket;
   int		stereo;
   int		sampling_rate;
+  double	time;
+  double	buffer_period_near;
+  double	buffer_period_far;
 } esd_handle;
 
 /** ESD backend ***/
@@ -63,6 +65,8 @@ esd_open (gboolean stereo, gint rate, enum audio_format format)
   h->socket = esd_record_stream_fallback(fmt, rate, NULL, NULL);
   h->sampling_rate = rate;
   h->stereo = stereo;
+
+  h->time = 0.0;
 
   if (h->socket < 0)
     {
@@ -92,6 +96,7 @@ esd_read (gpointer handle, gpointer dest, gint num_bytes,
   struct timeval tv;
   unsigned char *p;
   ssize_t r, n;
+  double now;
 
   for (p = dest, n = num_bytes; n > 0;)
     {
@@ -123,10 +128,37 @@ esd_read (gpointer handle, gpointer dest, gint num_bytes,
       n -= r;
     }
 
-  /* FIXME: Improve the timestamping */
-  *timestamp = current_time();
-  *timestamp -= ((num_bytes/sizeof(short))>>h->stereo)
-    / (double) h->sampling_rate;
+  gettimeofday(&tv, NULL);
+  now = tv.tv_sec + tv.tv_usec * (1 / 1e6);
+
+  if (h->time > 0.0)
+    {
+      double dt = now - h->time;
+      double ddt = h->buffer_period_far - dt;
+
+      if (fabs(h->buffer_period_near)
+	  < h->buffer_period_far * 1.5)
+	{
+	  h->buffer_period_near =
+	    (h->buffer_period_near - dt) * 0.8 + dt;
+	  h->buffer_period_far = ddt * 0.9999 + dt;
+	  *timestamp = h->time += h->buffer_period_far;
+	} 
+      else 
+	{
+	  h->buffer_period_near = h->buffer_period_far;
+	  *timestamp = h->time = now;
+	}
+    } 
+  else 
+    {
+      *timestamp = h->time = now;
+      
+      /* XXX assuming num_bytes won't change */
+      h->buffer_period_near =
+	h->buffer_period_far =
+          num_bytes / (double)(h->sampling_rate * 2 << h->stereo);
+    }
 }
 
 const audio_backend_info esd_backend =

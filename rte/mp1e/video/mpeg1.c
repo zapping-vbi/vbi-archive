@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.14 2001-10-17 05:07:05 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.15 2001-10-19 06:57:56 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -1778,6 +1778,8 @@ finish:
 
 	rem_consumer(&mpeg1->cons);
 
+	static_context = NULL;
+
 	return NULL;
 }
 
@@ -2172,7 +2174,7 @@ mpeg1_options[] = {
 	   (double *) &frame_rate_value[1], 8, (NULL)),
 	RTE_OPTION_REAL_INITIALIZER
 	  ("virtual_frame_rate", N_("Virtual frame rate"),
-	   60.0, 0.0002, 60.0, 1e-4, NULL, 0,
+	   60.0, 0.0002, 60.0, 1e-3, NULL, 0,
 	   N_("MPEG-1 allows only a few discrete values for frames/s, "
 	      "but this codec can skip frames if you wish. Choose the "
 	      "output bit rate accordingly.")),

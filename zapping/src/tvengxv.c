@@ -664,6 +664,8 @@ tvengxv_get_standards(tveng_device_info *info)
       info->standards[info->num_standards].index = info->num_standards;
       info->standards[info->num_standards].width = p_info->ei[i].width;
       info->standards[info->num_standards].height = p_info->ei[i].height;
+      info->standards[info->num_standards].frame_rate =
+	p_info->ei[i].rate.numerator / (double) p_info->ei[i].rate.denominator;
       info->num_standards++;
     }
 

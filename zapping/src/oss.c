@@ -42,10 +42,12 @@ typedef struct {
   int		fd;
   int		stereo;
   int		sampling_rate;
+  double	time, buffer_period;
 } oss_handle;
 
-/* TFR repeats the ioctl when interrupted (EINTR) */
-#define IOCTL(fd, cmd, data) (TEMP_FAILURE_RETRY(ioctl(fd, cmd, data)))
+#define IOCTL(fd, cmd, data)						\
+({ int __result; do __result = ioctl(fd, cmd, data);			\
+   while (__result == -1L && errno == EINTR); __result; })
 
 static gpointer
 oss_open (gboolean stereo, gint rate, enum audio_format format)
@@ -76,7 +78,8 @@ oss_open (gboolean stereo, gint rate, enum audio_format format)
   h->fd = oss_fd;
   h->stereo = stereo;
   h->sampling_rate = rate;
-  
+  h->time = 0.0;
+
   return h;
   
  failed:
@@ -98,40 +101,72 @@ static void
 oss_read (gpointer handle, gpointer dest, gint num_bytes,
 	  double *timestamp)
 {
-  oss_handle *h = (oss_handle*)h;
-  int stereo = h->stereo;
-  int sampling_rate = h->sampling_rate;
+  oss_handle *h = handle;
   ssize_t r, n = num_bytes;
   struct audio_buf_info info;
   char *data = dest;
-  int oss_fd = h->fd;
+  struct timeval tv1, tv2;
+  double now;
 
   while (n > 0)
     {
-      r = read(oss_fd, data, n);
+      r = read(h->fd, data, n);
 		
-      if (r < 0 && errno == EINTR)
+      if (r == 0 || (r < 0 && errno == EINTR))
 	continue;
 
-      if (r == 0)
-        {
-	  memset(data, 0, n);
-	  break;
-	}
-	
       g_assert(r > 0 && "OSS read failed");
 
       data = (char *) data + r;
       n -= r;
     }
 
-  *timestamp = current_time();
+  /* XXX asks for improvements */
 
-  if (IOCTL(oss_fd, SNDCTL_DSP_GETISPACE, &info) == -1)
-    g_assert(!"SNDCTL_DSP_GETISPACE failed");
+  r = 5;
 
-  *timestamp -= (((num_bytes - (n+info.bytes))/sizeof(short))>>stereo)
-    / (double) sampling_rate;
+  do
+    {
+      gettimeofday(&tv1, NULL);
+
+      if (ioctl(h->fd, SNDCTL_DSP_GETISPACE, &info) != 0)
+	{
+	  g_assert(errno != EINTR && !"SNDCTL_DSP_GETISPACE failed");
+	  continue;
+	}
+
+      gettimeofday(&tv2, NULL);
+      
+      tv2.tv_sec -= tv1.tv_sec;
+      tv2.tv_usec -= tv1.tv_usec + (tv2.tv_sec ? 1000000 : 0);
+    }
+  while ((tv2.tv_sec > 1 || tv2.tv_usec > 100) && r--);
+
+  now = tv1.tv_sec + tv1.tv_usec * (1 / 1e6);
+
+  if ((n -= info.bytes) == 0) /* usually */
+    now -= h->buffer_period;
+  else
+    now -= (num_bytes - n) * h->buffer_period / (double) num_bytes;
+
+  if (h->time > 0)
+    {
+      double dt = now - h->time;
+      double ddt = h->buffer_period - dt;
+      double q = 128 * fabs(ddt) / h->buffer_period;
+
+      h->buffer_period = ddt * MIN(q, 0.9999) + dt;
+      *timestamp = h->time;
+      h->time += h->buffer_period;
+    } 
+  else
+    {
+      *timestamp = h->time = now;
+
+      /* XXX assuming num_bytes won't change */
+      h->buffer_period =
+          num_bytes / (double)(h->sampling_rate * 2 << h->stereo);
+    }
 }
 
 static void

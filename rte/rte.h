@@ -36,7 +36,7 @@
 /*
  * Lib build ID, for debugging.
  */
-#define RTE_ID " $Id: rte.h,v 1.13 2001-10-17 05:07:05 mschimek Exp $ "
+#define RTE_ID " $Id: rte.h,v 1.14 2001-10-19 06:57:56 mschimek Exp $ "
 
 /*
  * What are we going to encode, audio only, video only or both
@@ -564,7 +564,9 @@ typedef struct rte_codec_info {
 } rte_codec_info;
 
 extern rte_codec_info *rte_codec_enum(rte_context *context, int index);
+extern rte_codec_info *rte_codec_by_keyword(rte_context *, char *);
 
+/*** 'set' copies string values, 'get' strings must be free()ed */
 extern rte_codec *rte_codec_get(rte_context *, rte_stream_type, int, char **);
 extern rte_codec *rte_codec_set(rte_context *, rte_stream_type, int, char *);
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: oss.c,v 1.10 2001-10-16 21:49:54 mschimek Exp $ */
+/* $Id: oss.c,v 1.11 2001-10-19 06:57:56 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -109,12 +109,14 @@ wait_full(fifo *f)
 	else
 		now -= (b->size - n) * oss->buffer_period / (double) b->size;
 
+	// XXX improveme
+
 	if (oss->time > 0) {
 		double dt = now - oss->time;
 		double ddt = oss->buffer_period - dt;
 		double q = 128 * fabs(ddt) / oss->buffer_period;
 
-		oss->buffer_period = ddt * MIN(q, 0.999) + dt;
+		oss->buffer_period = ddt * MIN(q, 0.9999) + dt;
 		b->time = oss->time;
 		oss->time += oss->buffer_period;
 	} else
@@ -134,6 +136,14 @@ send_empty(consumer *c, buffer *b)
 	b->data = NULL;
 }
 
+static const int format_preference[][2] = {
+	{ AFMT_S16_LE, RTE_SNDFMT_S16LE },
+	{ AFMT_U16_LE, RTE_SNDFMT_U16LE },
+	{ AFMT_U8, RTE_SNDFMT_U8 },
+	{ AFMT_S8, RTE_SNDFMT_S8 },
+	{ -1, -1 }
+};
+
 fifo *
 open_pcm_oss(char *dev_name, int sampling_rate, bool stereo)
 {
@@ -143,6 +153,7 @@ open_pcm_oss(char *dev_name, int sampling_rate, bool stereo)
 	int oss_stereo = stereo;
 	int oss_frag_size;
 	int dma_size = 128 << (10 + !!stereo); /* bytes */
+	int i;
 	buffer *b;
 
 	ASSERT("allocate pcm context",
@@ -171,8 +182,15 @@ open_pcm_oss(char *dev_name, int sampling_rate, bool stereo)
 		if ((oss_frag_size -= 1 << 16) < (2 << 16))
 			break;
 #endif
-	ASSERT("set OSS PCM AFMT_S16_LE",
-		IOCTL(oss->fd, SNDCTL_DSP_SETFMT, &oss_format) == 0);
+	for (i = 0; (oss_format = format_preference[i][0]) >= 0; i++)
+		if (IOCTL(oss->fd, SNDCTL_DSP_SETFMT, &oss_format) == 0)
+			break;
+
+	oss->pcm.format = format_preference[i][1];
+
+	if (format_preference[i][0] < 0)
+		FAIL("OSS driver did not accept sample format "
+		     "S|U8 or S|U16LE\n");
 
 	ASSERT("set OSS PCM %d channels",
 		IOCTL(oss->fd, SNDCTL_DSP_STEREO, &oss_stereo) == 0, stereo + 1);
