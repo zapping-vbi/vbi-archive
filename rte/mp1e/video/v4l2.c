@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.10 2002-01-21 07:41:04 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.11 2002-01-21 13:54:53 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -200,10 +200,10 @@ drop:
 		IOCTL(fd, VIDIOC_DQBUF, &vbuf) == 0);
 
 #ifdef V4L2_DROP_TEST
-	if ((rand() % 100) > 95) {
+	if ((rand() % 100) > 98) {
 		ASSERT("enqueue capture buffer",
 		       IOCTL(fd, VIDIOC_QBUF, &vbuf) == 0);
-		fprintf(stderr, "drop\n");
+		fprintf(stderr, "video drop\n");
 		goto drop;
 	}
 #endif

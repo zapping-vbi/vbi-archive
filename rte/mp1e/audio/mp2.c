@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.22 2002-01-13 09:53:16 mschimek Exp $ */
+/* $Id: mp2.c,v 1.23 2002-01-21 13:54:53 mschimek Exp $ */
 
 #include <limits.h>
 #include "../common/log.h"
@@ -91,37 +91,46 @@ terminate(mp2_context *mp2)
 static inline buffer *
 next_buffer(mp2_context *mp2, buffer *buf, int channels, double elapsed)
 {
-	double period;
+	double period, drift;
 
-	if (buf)
-		send_empty_buffer(&mp2->cons, buf);
+	if (!buf || mp2->incr > 1) {
+		if (buf)
+			send_empty_buffer(&mp2->cons, buf);
 
-	mp2->ibuf = buf = wait_full_buffer(&mp2->cons);
+		mp2->ibuf = buf = wait_full_buffer(&mp2->cons);
 
-	if (buf->used <= 0) {
-		send_empty_buffer(&mp2->cons, buf);
-		terminate(mp2);
-	} else {
+		if (buf->used <= 0) {
+			send_empty_buffer(&mp2->cons, buf);
+			terminate(mp2);
+		}
+
 		pthread_mutex_lock(&mp2->codec.mutex);
 		mp2->codec.frame_input_count++;
 		pthread_mutex_unlock(&mp2->codec.mutex);
 
 		assert(buf->used < (1 << 14));
-
 		mp2->i16 -= mp2->e16; /* (samples / channel) << 16 */
-		mp2->e16 = buf->used << (16 - channels + mp2->format_scale);
-
-		if (mp2->i16 > mp2->e16)
-			mp2->i16 = 0;
-
-		period = buf->used * mp2->sstr.byte_period;
-
-		mp2->incr = lroundn((period + mp1e_sync_drift(&mp2->sstr, buf->time, elapsed))
-			/ period * (double)(1 << 16));
-
-		if (mp2->incr < 0)
-			mp2->incr = 0;
 	}
+
+	mp2->e16 = buf->used << (16 - channels + mp2->format_scale);
+
+	if (mp2->i16 > mp2->e16)
+		mp2->i16 = 0;
+
+	period = buf->used * mp2->sstr.byte_period;
+	drift = mp1e_sync_drift(&mp2->sstr, buf->time, elapsed);
+	if (drift < period * -0.5) {
+		/* XXX improve me */
+		mp2->incr = 1;
+		mp2->e16 = mp2->i16 -
+			lroundn(drift / (mp2->sstr.byte_period
+					 * mp2->sstr.bytes_per_sample * channels));
+	} else {
+	    mp2->incr = lroundn((period + drift) / period * (double)(1 << 16));
+	}
+
+	if (mp2->incr < 1)
+		mp2->incr = 1;
 
 	return buf;
 }

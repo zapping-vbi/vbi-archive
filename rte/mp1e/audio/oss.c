@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: oss.c,v 1.15 2002-01-21 07:41:04 mschimek Exp $ */
+/* $Id: oss.c,v 1.16 2002-01-21 13:54:53 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -115,10 +115,10 @@ wait_full(fifo *f)
 
 		now = tv1.tv_sec + tv1.tv_usec * (1 / 1e6);
 
-		OSS_DROP_TEST(if ((rand() % 100) < 90))
+		OSS_DROP_TEST(if ((rand() % 100) < 98))
 			break;
 
-		printv(0, "drop\n");
+		printv(0, "audio drop\n");
 	}
 
 	/*

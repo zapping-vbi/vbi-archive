@@ -1,6 +1,7 @@
 2002-01-18	Fixes <mschimek@users.sf.net>
 
 	* Improved timestamping in audio&video interfaces.
+	* audio/mp2.c: Fixed audio frame dropping bug.
 	* audio/arts.c: Added, ported from Zapping. (Just for
 	  completeness, stinks no less than the ESD interface.)
 

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sync.h,v 1.6 2002-01-21 07:41:04 mschimek Exp $ */
+/* $Id: sync.h,v 1.7 2002-01-21 13:54:53 mschimek Exp $ */
 
 #ifndef SYNC_H
 #define SYNC_H
@@ -112,7 +112,8 @@ mp1e_sync_drift(synchr_stream *str, double time, double elapsed)
 
 		drift = elapsed - ref_time;
 
-		printv(4, "SD%02d ref %f o%f, drift %+9.6f s, %+9.6f ppm, %+9.6f units\n",
+		printv(4, "SD%02d ref %f o%f, drift %+9.6f s, "
+		       "%+9.6f ppm, %+9.6f units\n",
 		       str->this_module, ref_time, elapsed, drift,
 		       elapsed * 1e6 / ref_time - 1e6,
 		       drift / (str->frame_period + str->byte_period));
