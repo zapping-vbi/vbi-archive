@@ -323,7 +323,6 @@ custom_properties_add		(GnomeDialog	*dialog,
       for (j = 0; j<groups[i].num_items; j++)
 	{
 	  GtkWidget *pixmap;
-	  GtkWidget *page = gtk_vbox_new(FALSE, 15);
 
 	  if (groups[i].items[j].icon_source ==	ICON_ZAPPING)
 	    {
@@ -338,6 +337,8 @@ custom_properties_add		(GnomeDialog	*dialog,
 
 	      g_free (pixmap_path);
 	    }
+
+	  GtkWidget *page = gtk_vbox_new(FALSE, 15);
 
 	  gtk_object_set_data(GTK_OBJECT(page), "apply",
 			      groups[i].items[j].apply);
