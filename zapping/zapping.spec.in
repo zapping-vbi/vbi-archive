@@ -69,9 +69,11 @@ fi
 %{prefix}/share/pixmaps/zapping/*
 
 %defattr (0444, bin, bin, 555)
-%doc AUTHORS ChangeLog README COPYING TODO BUGS po/zapping.pot
+%doc AUTHORS THANKS ChangeLog README COPYING TODO BUGS po/zapping.pot
 
 %changelog
 * Thu Jun 06 2000 Iñaki García Etxebarria <garetxe@users.sourceforge.net>
-	- Created
+	- Now it works fine.
 
+* Thu Jun 06 2000 Iñaki García Etxebarria <garetxe@users.sourceforge.net>
+	- Created

@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-EXTRA_DIST = README.plugins BUGS zapping.spec.in zapping.spec
+EXTRA_DIST = README.plugins BUGS THANKS zapping.spec.in zapping.spec
 SUBDIRS = intl po macros src zapping_setup_fb glade help plugins
 
 install-data-local:

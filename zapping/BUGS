@@ -1,17 +1,16 @@
 Known bugs with zapping
------------------------
+------------------------------------------
 * == Bug that needs fixing
 ! == Bug that needs fixing, very important
-------------------------
+------------------------------------------
 
 	! Sometimes Zapping starts at minimum size, when it
 shouldn't (i'm trying to find a pattern for it, i've no idea of what
-the problem is)
-	* In the plugin dialog, text widget shows the end with long
-descriptions (will be fixed in 0.5.1).
+the problem is) (Note: This doesn't happen now, maybe it's fixed).
 	* Somehow the docs aren't displayed with the GnomeHelpBrowser
 but with Mozilla. Annoying, since Mozilla needs a lot of resources.
-	* The geometry isn't kept, probably a libglade bug.
 	* Some users have reported that FS mode doesn't work
 correctly. Add support for the vidmode extension and add some debug
 messages to find out what's happening.
+	* It looks like the RPM doesn't install correctly the
+translations. Check this before releasing.
