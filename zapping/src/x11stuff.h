@@ -26,7 +26,7 @@
 #endif
 #include <gtk/gtk.h>
 
-#include "tveng.h" /* tv_overlay_target */
+#include "tveng.h" /* tv_overlay_target, tv_pixfmt */
 
 /*
  * Returns a pointer to the data contained in the given GdkImage
@@ -136,6 +136,20 @@ x11_dga_present			(tv_overlay_buffer *	target)
 {
   return target->base != 0;
 }
+
+/* XVideo routines */
+
+#ifdef HAVE_XV_EXTENSION
+
+#include <X11/extensions/Xvlib.h>
+
+extern tv_pixfmt
+x11_xv_image_format_to_pixfmt	(const XvImageFormatValues *format);
+
+#endif
+
+extern void
+x11_xvideo_dump			(void);
 
 /* Clipping */
 

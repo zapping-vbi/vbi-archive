@@ -48,6 +48,8 @@
 #include "zmisc.h"
 #include "globals.h"
 
+
+
 #include <X11/X.h>
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
@@ -572,17 +574,17 @@ x11_vidmode_list_new		(void)
 
   if (!XF86VidModeQueryExtension (display, &event_base, &error_base))
     {
-      printv ("XF86VidMode extension not available.\n");
+      printv ("XF86VidMode extension not available\n");
       return NULL;
     }
 
   if (!XF86VidModeQueryVersion (display, &major_version, &minor_version))
     {
-      printv ("XF86VidMode extension not usable.\n");
+      printv ("XF86VidMode extension not usable\n");
       return NULL;
     }
 
-  printv ("XF86VidMode base %d, %d, version %d.%d.\n",
+  printv ("XF86VidMode base %d, %d, version %d.%d\n",
 	  event_base, error_base,
 	  major_version, minor_version);
 
@@ -1352,7 +1354,11 @@ x11_screensaver_init		(void)
 
   dpms_usable = TRUE;
 
-#endif /* HAVE_DPMS_EXTENSION */
+#else /* !HAVE_DPMS_EXTENSION */
+
+  printv ("DPMS extension support not compiled in\n");
+
+#endif /* !HAVE_DPMS_EXTENSION */
 
 }
 
@@ -1378,14 +1384,14 @@ x11_dga_query			(tv_overlay_buffer *	target,
 				 int			bpp_hint)
 {
   tv_overlay_buffer overlay_buffer;
+  tv_pixel_format format;
   Display *display;
   int event_base, error_base;
   int major_version, minor_version;
   int screen;
   int flags;
   
-  // XXX
-  int depth, bits_per_pixel;
+  CLEAR (format);
 
   if (target)
     CLEAR (*target);
@@ -1483,7 +1489,8 @@ x11_dga_query			(tv_overlay_buffer *	target,
   }
 
   {
-    XVisualInfo *info, templ;
+    XVisualInfo templ;
+    XVisualInfo *info;
     int i, nitems;
 
     templ.screen = screen;
@@ -1491,12 +1498,24 @@ x11_dga_query			(tv_overlay_buffer *	target,
     info = XGetVisualInfo (display, VisualScreenMask, &templ, &nitems);
 
     for (i = 0; i < nitems; i++)
-      if (info[i].class == TrueColor && info[i].depth >= 15)
+      /* XXX We might support depth 7-8 after requesting a
+         TrueColor visual for the video window. */
+      if (info[i].class == TrueColor && info[i].depth > 8)
 	{
 	  if (X11STUFF_DGA_DEBUG)
 	    printv ("DGA vi[%u] depth=%u\n", i, info[i].depth);
 
-	  depth = info[i].depth;
+	  /* NB info[i].bits_per_rgb is not bits_per_pixel, but the
+	     number of significant bits per color component. Usually
+	     8 (as in 8 bit DAC for each of R, G, B). */
+
+	  /* info[i].depth counts R, G and B bits, not Alpha. */
+	  format.color_depth = info[i].depth;
+
+	  format.mask.rgb.r = info[i].red_mask;
+	  format.mask.rgb.g = info[i].green_mask;
+	  format.mask.rgb.b = info[i].blue_mask;
+
 	  break;
 	}
 
@@ -1514,7 +1533,7 @@ x11_dga_query			(tv_overlay_buffer *	target,
       case 16:
       case 24:
       case 32:
-	bits_per_pixel = bpp_hint;
+	format.bits_per_pixel = bpp_hint;
 	break;
 
       default:
@@ -1524,7 +1543,7 @@ x11_dga_query			(tv_overlay_buffer *	target,
 
 	  /* BPP heuristic */
 
-	  bits_per_pixel = 0;
+	  format.bits_per_pixel = 0;
 
 	  pf = XListPixmapFormats (display, &count);
 
@@ -1534,9 +1553,9 @@ x11_dga_query			(tv_overlay_buffer *	target,
 		printv ("DGA pf[%u]: depth=%u bpp=%u\n",
 			i, pf[i].depth, pf[i].bits_per_pixel);
 
-	      if (pf[i].depth == depth)
+	      if (pf[i].depth == format.color_depth)
 		{
-		  bits_per_pixel = pf[i].bits_per_pixel;
+		  format.bits_per_pixel = pf[i].bits_per_pixel;
 		  break;
 		}
 	    }
@@ -1552,10 +1571,10 @@ x11_dga_query			(tv_overlay_buffer *	target,
 	}
       }
 
-    /* XImageByteOrder() ? */
+    format.big_endian = (MSBFirst == XImageByteOrder (display));
   }
 
-  target->bytes_per_line = target->width * bits_per_pixel;
+  target->bytes_per_line = target->width * format.bits_per_pixel;
 
   if (target->bytes_per_line & 7)
     {
@@ -1568,28 +1587,15 @@ x11_dga_query			(tv_overlay_buffer *	target,
 
   target->size = target->height * target->bytes_per_line;
 
-  switch (depth) {
-  case 15:
-    target->pixfmt = TVENG_PIX_RGB555; // XXX inexact
-    break;
+  tv_pixel_format_to_pixfmt (&format);
 
-  case 16:
-    target->pixfmt = TVENG_PIX_RGB565; // XXX inexact
-    break;
-
-  case 24: // XXX RGB or BGR? 24??
-    target->pixfmt = TVENG_PIX_BGR32; // XXX inexact
-    break;
-
-  case 32: // XXX RGB or BGR? *depth* 32??
-    target->pixfmt = TVENG_PIX_BGR32; // XXX inexact
-    break;
-
-  default:
-    printv ("DGA: Unknown frame buffer depth\n");
+  if (TV_PIXFMT_UNKNOWN == format.pixfmt) {
+    printv ("DGA: Unknown frame buffer format\n");
     CLEAR (*target);
     return FALSE;
   }
+
+  target->pixfmt = format.pixfmt;
 
   return TRUE;
 }
@@ -1610,6 +1616,332 @@ x11_dga_query			(tv_overlay_buffer *	target,
 }
 
 #endif /* !HAVE_DGA_EXTENSION */
+
+/*
+ *  XVideo helpers
+ */
+
+#ifdef HAVE_XV_EXTENSION
+
+#include <X11/extensions/Xvlib.h>
+
+#define FOURCC(a, b, c, d)						\
+  (+ ((unsigned int)(a) << 0)						\
+   + ((unsigned int)(b) << 8)						\
+   + ((unsigned int)(c) << 16)						\
+   + ((unsigned int)(d) << 24))
+
+tv_pixfmt
+x11_xv_image_format_to_pixfmt	(const XvImageFormatValues *format)
+{
+	static struct {
+		unsigned int	fourcc;
+		tv_pixfmt		pixfmt;
+	} fourcc_mapping [] = {
+		/* These are Windows FOURCCs. Note the APM driver supports
+		   Y211 which is just a half width YUY2, hence not listed. */
+
+		{ FOURCC ('Y','U','V','A'), TV_PIXFMT_YUVA24_LE }, /* Glint */
+		{ FOURCC ('U','Y','V','Y'), TV_PIXFMT_UYVY },
+		{ FOURCC ('U','Y','N','V'), TV_PIXFMT_UYVY },
+		{ FOURCC ('Y','U','Y','2'), TV_PIXFMT_YUYV },
+		{ FOURCC ('Y','U','N','V'), TV_PIXFMT_YUYV },
+		{ FOURCC ('V','4','2','2'), TV_PIXFMT_YUYV },
+		{ FOURCC ('Y','V','Y','U'), TV_PIXFMT_YVYU },
+		{ FOURCC ('Y','2','Y','0'), TV_PIXFMT_YVYU }, /* NSC */
+		{ FOURCC ('V','Y','U','Y'), TV_PIXFMT_VYUY }, /* APM */
+		{ FOURCC ('I','4','2','0'), TV_PIXFMT_YUV420 },
+		{ FOURCC ('I','Y','U','V'), TV_PIXFMT_YUV420 },
+		{ FOURCC ('Y','V','1','2'), TV_PIXFMT_YVU420 },
+		{ FOURCC ('Y','V','U','9'), TV_PIXFMT_YVU410 },
+		{ FOURCC ('Y','8','0','0'), TV_PIXFMT_Y8 }, /* NSC */
+		{ FOURCC ('Y','Y','Y','Y'), TV_PIXFMT_Y8 }, /* APM */
+	};
+
+	if (XvYUV == format->type) {
+		unsigned int fourcc;
+		unsigned int i;
+
+		fourcc = FOURCC (format->guid[0],
+				 format->guid[1],
+				 format->guid[2],
+				 format->guid[3]);
+
+		for (i = 0; i < N_ELEMENTS (fourcc_mapping); ++i)
+			if (fourcc_mapping[i].fourcc == fourcc)
+				return fourcc_mapping[i].pixfmt;
+	} else if (XvRGB == format->type) {
+		tv_pixel_format pixel_format;
+
+		if (XvPlanar == format->format)
+			return TV_PIXFMT_UNKNOWN;
+
+		CLEAR (pixel_format);
+
+		pixel_format.bits_per_pixel = format->bits_per_pixel;
+		pixel_format.color_depth = format->depth;
+		pixel_format.big_endian = (MSBFirst == format->byte_order);
+		pixel_format.mask.rgb.r = format->red_mask;
+		pixel_format.mask.rgb.g = format->green_mask;
+		pixel_format.mask.rgb.b = format->blue_mask;
+
+		if (tv_pixel_format_to_pixfmt (&pixel_format))
+			return pixel_format.pixfmt;
+	}
+
+	return TV_PIXFMT_UNKNOWN;
+}
+
+static __inline__ char
+printable			(char			c)
+{
+	return (c < 0x20 || c >= 0x7F) ? '.' : c;
+}
+
+static void
+xv_image_format_dump		(const XvImageFormatValues *format,
+				 unsigned int		index)
+{
+	unsigned int i;
+	tv_pixfmt pixfmt;
+
+	fprintf (stderr, "    XvImageFormat [%u]:\n"
+		 "      id                0x%x ('%c%c%c%c')\n"
+		 "      guid              ",
+		 index,
+		 (unsigned int) format->id,
+		 printable ((unsigned int) format->id >> 0),
+		 printable ((unsigned int) format->id >> 8),
+		 printable ((unsigned int) format->id >> 16),
+		 printable ((unsigned int) format->id >> 24));
+
+	for (i = 0; i < 16; ++i)
+		fprintf (stderr, "%02x%s",
+			 format->guid[i] & 0xFF,
+			 (0x2A8 & (1 << i)) ? "-" : "");
+
+	fprintf (stderr, "\n"
+		 "      type              %s\n"
+		 "      format            %s\n"
+		 "      num_planes        %u\n"
+		 "      byte_order        %s\n"
+		 "      bits_per_pixel    %u\n",
+		 (format->type == XvRGB) ? "RGB" :
+		  (format->type == XvYUV) ? "YUV" : "?",
+		 (format->format == XvPacked) ? "Packed" :
+		  (format->format == XvPlanar) ? "Planar" : "?",
+		 (unsigned int) format->num_planes,
+		 (format->byte_order == LSBFirst) ? "LSBFirst/NoOrder" :
+		  (format->byte_order == MSBFirst) ? "MSBFirst" : "?",
+		 (unsigned int) format->bits_per_pixel);
+
+	switch (format->type) {
+	case XvRGB:
+		fprintf (stderr,
+			 "      rgb mask          0x%08x 0x%08x 0x%08x\n"
+			 "      depth             %u\n",
+			 (unsigned int) format->red_mask,
+			 (unsigned int) format->green_mask,
+			 (unsigned int) format->blue_mask,
+			 (unsigned int) format->depth);
+		break;
+
+	case XvYUV:
+		fprintf (stderr,
+			 "      yuv bits          %u %u %u\n"
+			 "      yuv hor. period   %u %u %u\n"
+			 "      yuv vert. period  %u %u %u\n",
+			 (unsigned int) format->y_sample_bits,
+			 (unsigned int) format->u_sample_bits,
+			 (unsigned int) format->v_sample_bits,
+			 (unsigned int) format->horz_y_period,
+			 (unsigned int) format->horz_u_period,
+			 (unsigned int) format->horz_v_period,
+			 (unsigned int) format->vert_y_period,
+			 (unsigned int) format->vert_u_period,
+			 (unsigned int) format->vert_v_period);
+		break;
+
+	default:
+		break;
+	}
+
+	fprintf (stderr, "      component_order   ");
+
+	for (i = 0; i < sizeof (format->component_order); ++i)
+		fputc (printable (format->component_order[i]), stderr);
+
+	fprintf (stderr, "\n"
+		 "      scanline_order    %s\n",
+		 (format->scanline_order == XvTopToBottom) ? "TopToBottom" :
+		  (format->scanline_order == XvBottomToTop) ? "BottomToTop" :
+		   "");
+
+	pixfmt = x11_xv_image_format_to_pixfmt (format);
+
+	fprintf (stderr, "      pixfmt equiv      %s\n",
+		 tv_pixfmt_name (pixfmt));
+}
+
+static void
+xv_adaptor_info_dump		(const XvAdaptorInfo *	adaptor,
+				 unsigned int		index)
+{
+	static struct {
+		unsigned int		mask;
+		const char *		name;
+	} adaptor_types [] = {
+		{ XvInputMask,	"Input" },
+		{ XvOutputMask,	"Output" },
+		{ XvVideoMask,	"Video" },
+		{ XvStillMask,	"Still" },
+		{ XvImageMask,	"Image" },
+	};
+	unsigned int type;
+	unsigned int count;
+	unsigned int i;
+
+	fprintf (stderr, "XvAdaptorInfo [%u]:\n"
+		 "  name         \"%s\"\n"
+		 "  base_id      0x%x\n"
+		 "  num_ports    %u\n"
+		 "  type         ",
+		 index,
+		 adaptor->name,
+		 (unsigned int) adaptor->base_id,
+		 (unsigned int) adaptor->num_ports);
+
+	type = adaptor->type;
+	count = 0;
+
+	for (i = 0; i < N_ELEMENTS (adaptor_types); ++i)
+		if (type & adaptor_types[i].mask) {
+			fprintf (stderr, "%s%s",
+				 count ? "|" : "",
+				 adaptor_types[i].name);
+			type &= ~adaptor_types[i].mask;
+			++count;
+		}
+
+	if (type != 0)
+		fprintf (stderr, "%s0x%x", count ? "|" : "", type);
+
+	fprintf (stderr, "\n"
+		 "  num_formats  %u\n",
+		 (unsigned int) adaptor->num_formats);
+}
+
+static void
+xv_adaptor_dump			(Display *		display,
+				 const XvAdaptorInfo *	adaptor,
+				 unsigned int		index)
+{
+	XvImageFormatValues *pImageFormats[2];
+	int nImageFormats[2];
+	int i;
+
+	xv_adaptor_info_dump (adaptor, index);
+
+	CLEAR (nImageFormats);
+
+	for (i = 0; i < adaptor->num_ports; ++i) {
+		XvPortID xvport;
+
+		fprintf (stderr, "  Port [%u]\n", i);
+
+		xvport = adaptor->base_id + i;
+
+		pImageFormats[1] =
+			XvListImageFormats (display, xvport,
+					    &nImageFormats[1]);
+
+		if (NULL == pImageFormats[1] || 0 == nImageFormats[1])
+			continue;
+
+		if (nImageFormats[0] == nImageFormats[1]
+		    && 0 == memcmp (pImageFormats[0], pImageFormats[1],
+				    sizeof (*pImageFormats[0])
+				    * nImageFormats[0])) {
+			fprintf (stderr, "    %u formats as above\n",
+				 nImageFormats[1]);
+		} else {
+			int i;
+
+			for (i = 0; i < nImageFormats[1]; ++i)
+				xv_image_format_dump (pImageFormats[1] + i, i);
+		}
+
+		if (nImageFormats[0] > 0)
+			XFree (pImageFormats[0]);
+
+		pImageFormats[0] = pImageFormats[1];
+		nImageFormats[0] = nImageFormats[1];
+	}
+
+	if (nImageFormats[0] > 0)
+		XFree (pImageFormats[0]);
+}
+
+void
+x11_xvideo_dump			(void)
+{
+  Display *display;
+  unsigned int version;
+  unsigned int revision;
+  unsigned int major_opcode;
+  unsigned int event_base;
+  unsigned int error_base;
+  Window root;
+  XvAdaptorInfo *pAdaptors;
+  int nAdaptors;
+  int i;
+
+  display = GDK_DISPLAY ();
+
+  if (Success != XvQueryExtension (display,
+				   &version, &revision,
+				   &major_opcode,
+				   &event_base, &error_base))
+    {
+      printv ("XVideo extension not available\n");
+      return;
+    }
+
+  printv ("XVideo opcode %d, base %d, %d, version %d.%d\n",
+	  major_opcode,
+	  event_base, error_base,
+	  version, revision);
+
+  if (version < 2 || (version == 2 && revision < 2))
+    {
+      printv ("XVideo extension not usable\n");
+      return;
+    }
+
+  root = DefaultRootWindow (display);
+
+  if (Success != XvQueryAdaptors (display, root, &nAdaptors, &pAdaptors))
+    {
+      printv ("XvQueryAdaptors failed\n");
+      return;
+    }
+
+  for (i = 0; i < nAdaptors; ++i)
+    xv_adaptor_dump (display, pAdaptors + i, i);
+
+  if (nAdaptors > 0)
+    XvFreeAdaptorInfo (pAdaptors);
+}
+
+#else /* !HAVE_XV_EXTENSION */
+
+void
+x11_xvideo_dump			(void)
+{
+	fprintf (stderr, "XVideo extension support not compiled in\n");
+}
+
+#endif /* !HAVE_XV_EXTENSION */
 
 /*
  *  Clipping helpers
