@@ -85,6 +85,7 @@ PACKAGE_PIXMAPS_DIR="`${GNOME_CONFIG} --datadir`/pixmaps/${PACKAGE}"
 AC_SUBST(PACKAGE_PIXMAPS_DIR)
 
 AC_OUTPUT([
+zapping.spec
 Makefile
 macros/Makefile
 src/Makefile

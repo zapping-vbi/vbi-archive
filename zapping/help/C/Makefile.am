@@ -1,12 +1,22 @@
 ## Process this file with automake to produce Makefile.in
 
-EXTRA_DIST = index.html plugin_devel.html topic.dat
+zapping_helpfiles = \
+index.html plugin_devel.html properties.html \
+device_info.jpeg general_options.jpeg topic.dat
+
+EXTRA_DIST = $(zapping_helpfiles)
 
 zapping_helpdir = `$(GNOME_CONFIG) --datadir`/gnome/help/zapping/C
 
 install-data-local:
 	$(mkinstalldirs) $(zapping_helpdir)
-	$(INSTALL_DATA) $(srcdir)/topic.dat $(zapping_helpdir)/topic.dat
-	$(INSTALL_DATA) $(srcdir)/index.html $(zapping_helpdir)/index.html
-	$(INSTALL_DATA) $(srcdir)/plugin_devel.html \
-		$(zapping_helpdir)/plugin_devel.html
+	for i in $(zapping_helpfiles); do \
+	  if test -f $$i; then \
+		$(INSTALL_DATA) $(srcdir)/$$i $(zapping_helpdir); \
+	  fi \
+	done
+
+uninstall-local:
+	if test -d $(zapping_helpdir); then \
+	  rm -rf $(zapping_helpdir); \
+	fi

@@ -12,3 +12,6 @@ descriptions (will be fixed in 0.5.1).
 	* Somehow the docs aren't displayed with the GnomeHelpBrowser
 but with Mozilla. Annoying, since Mozilla needs a lot of resources.
 	* The geometry isn't kept, probably a libglade bug.
+	* Some users have reported that FS mode doesn't work
+correctly. Add support for the vidmode extension and add some debug
+messages to find out what's happening.

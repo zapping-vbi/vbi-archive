@@ -1,3 +1,9 @@
+06.6.2000	Lazy day <garetxe@users.sourceforge.net>
+
+	* help/C/properties.c: Added the help for the properties
+	* zapping.spec.in: Written, but it doesn't build yet, and lacks
+	dependencies.
+	
 04.6.2000	Plugin code remade <garetxe@users.sourceforge.net>
 
 	* src/plugin_properties.c:

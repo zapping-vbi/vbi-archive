@@ -1,0 +1,47 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML Level 2//EN//2.0">
+<HTML>
+
+<HEAD>
+<TITLE>Zapping documentation: properties</TITLE>
+</HEAD>
+<BODY BGCOLOR="#fffefe">
+<center><H2>Properties dialog</H2></center>
+<center><img src="device_info.jpeg"></center><p>
+You can see here some properties about the video device currently in use.<p>
+<i>Capabilities</i> shows what can the video device do, as reported by
+V4L.<br>
+<i>Device name</i> refers to the name the video driver gives to this video
+device, whilst <i>Current controller</i> shows which API is using
+Zapping to communicate with the device, in this case it has detected a
+V4L2 device, and it is using its native calls.<br>
+<i>Device file</i> lets you choose the video device file Zapping will
+open to communicate with the V4L driver.<br>
+<i>Minimum capture size</i> and <i>Maximum capture size</i> refer to
+which are the maximum and minimum capabilities of the device, you
+won't be able to get any image with dimensions out of this bounds.<p>
+<center><img src="general_options.jpeg"></center><p>
+Thanks God, not eveybody thinks alike. Thus, not everybody likes the
+same things. This label lets you choose how will those little things
+work.<p>
+<i>Avoid noise while changing channels</i> will mute the device while
+changing channels. This results in a smoother behaviour, without
+clicks, but changing the channel will take a little (~200ms) longer.<br>
+<i>Save window geometry</i> makes Zapping save its screen location and
+size when closing, and restore them the next time you start it. Note
+that this only refers to the window geometry, and not docks
+layout. That should be saved automagically regardless of this option,
+but it is broken now. This isn't a recommended practice, but I like
+it, so it's configurable.<br>
+<i>Resize using fixed increments</i> makes the main window resize in
+64x48 increments, keeping a good width/height ratio. This is the way
+Xawtv resizes, and some people (/me) are used to and like it .<br>
+<i>Start Zapping muted</i> switchs off the sound when starting the
+program.<br>
+<i>Verbosity value given to zapping_setup_fb</i>. zapping_setup_fb is
+an auxiliary suid program used to startup the framebuffer. If this
+value is greater than 0, the program will print some debugging info
+useful when something doesn't work properly. This is equivalent to the
+--verbose command line option.
+
+</BODY>
+</HTML>

@@ -305,7 +305,13 @@ on_zapping_properties_help             (GnomePropertyBox *gnomepropertybox,
                                         gint             arg1,
                                         gpointer         user_data)
 {
+  GnomeHelpMenuEntry entry = {"zapping", "properties.html"};
+
   GList * p = g_list_first(plugin_list); /* Traverse all the plugins */
+
+  enum tveng_capture_mode cur_mode;
+
+  cur_mode = tveng_stop_everything(main_info);
 
   switch (arg1)
     {
@@ -313,8 +319,7 @@ on_zapping_properties_help             (GnomePropertyBox *gnomepropertybox,
       break; /* end of the calls */
     case 0:
     case 1:
-      ShowBox(_("Sorry, no help for the properties dialog has been"
-		" created yet"), GNOME_MESSAGE_BOX_INFO);
+      gnome_help_display(NULL, &entry);
       break;
     default:
       while (p)
@@ -329,6 +334,9 @@ on_zapping_properties_help             (GnomePropertyBox *gnomepropertybox,
 		  " provide help for it. Sorry."),
 		GNOME_MESSAGE_BOX_INFO);
     }
+
+  if (tveng_restart_everything(cur_mode, main_info) == -1)
+    ShowBox(main_info->error, GNOME_MESSAGE_BOX_ERROR);
 }
 
 /* This function is called when some item in the property box changes */

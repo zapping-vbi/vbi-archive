@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-06-04 22:36+0200\n"
+"POT-Creation-Date: 2000-06-06 16:47+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -725,11 +725,7 @@ msgstr ""
 msgid "No plugin accepts this page."
 msgstr ""
 
-#: src/properties.c:316
-msgid "Sorry, no help for the properties dialog has been created yet"
-msgstr ""
-
-#: src/properties.c:328
+#: src/properties.c:333
 msgid ""
 "The plugin that created the active page doesn't provide help for it. Sorry."
 msgstr ""
