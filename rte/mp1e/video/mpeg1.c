@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.30 2002-05-10 09:53:20 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.31 2002-05-13 05:37:28 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -175,12 +175,7 @@ tmp_slice_i(mpeg1_context *mpeg1, bool motion)
 		struct bs_rec mark;
 
 		pr_start(41, "Filter");
-#if TEST21
 		var = mpeg1->filter_param[0].func(&mpeg1->filter_param[0], mb_col, mb_row);
-#else
-		var = (*filter)(mpeg1->filter_param[0].src,
-				mpeg1->filter_param[0].src); // -> mblock[0]
-#endif
 		pr_end(41);
 
 		if (motion && __builtin_expect(mpeg1->referenced, 1)) {
@@ -506,11 +501,7 @@ tmp_picture_p(mpeg1_context *mpeg1, unsigned char *org,
 			/* Read macroblock (MMX state) */
 
 			pr_start(41, "Filter");
-#if TEST21
 			var = mpeg1->filter_param[0].func(&mpeg1->filter_param[0], mb_col, mb_row);
-#else
-			var = (*filter)(org, org); // -> mblock[0]
-#endif
 			pr_end(41);
 
 			if (motion) {
@@ -860,11 +851,7 @@ tmp_picture_b(mpeg1_context *mpeg1, unsigned char *org,
 			/* Read macroblock (MMX state) */
 
 			pr_start(41, "Filter");
-#if TEST21
 			var = mpeg1->filter_param[0].func(&mpeg1->filter_param[0], mb_col, mb_row);
-#else
-			var = (*filter)(org, org); // -> mblock[0]
-#endif
 			pr_end(41);
 
 			/* Choose prediction type */
@@ -2032,29 +2019,7 @@ mp1e_mpeg1(void *codec)
 		return (void *) -1;
 	}
 
-#if TEST21
-{
-	extern void mmx_YUV_420(void);
-	extern void mmx_YUYV_422(void);
-	extern int pmmx_YUV420_0(filter_param *, int, int) __attribute__ ((regparm (3)));
-	extern int pmmx_YUYV_0(filter_param *, int, int) __attribute__ ((regparm (3)));
-	extern int filter_y_offs, filter_u_offs, filter_v_offs, filter_y_pitch;
-
-	mpeg1->filter_param[0].dest = &mblock[0];
-	mpeg1->filter_param[0].offset = filter_y_offs;
-	mpeg1->filter_param[0].u_offset = filter_u_offs;
-	mpeg1->filter_param[0].v_offset = filter_v_offs;
-	mpeg1->filter_param[0].stride = filter_y_pitch;
-	mpeg1->filter_param[0].uv_stride = filter_y_pitch >> 1;
-
-	if (filter == mmx_YUV_420)
-		mpeg1->filter_param[0].func = pmmx_YUV420_0;
-	else if (filter == mmx_YUYV_422)
-		mpeg1->filter_param[0].func = pmmx_YUYV_0;
-	else
-		assert(0);	
-}
-#endif
+	mpeg1->filter_param[0].dest = (void *) &mblock[0];
 
 	for (;;) {
 		extern int split_sequence;
@@ -2300,12 +2265,8 @@ dvec_imin(const double *vec, int size, double val)
 static rte_bool
 parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 {
-	extern int filter_y_offs, filter_u_offs, filter_v_offs, filter_y_pitch;
-	extern int (* filter)(unsigned char *, unsigned char *);
-	extern int pmmx_YUV420_0(filter_param *, int, int) __attribute__ ((regparm (3)));
-	extern int pmmx_YUYV_0(filter_param *, int, int) __attribute__ ((regparm (3)));
-	extern int mmx_YUV_420(unsigned char *, unsigned char *);
-	extern int mmx_YUYV_422_vi(unsigned char *, unsigned char *);
+	extern filter_fn pmmx_YUV420_0, sse_YUV420_0;
+	extern filter_fn pmmx_YUYV_6, sse_YUYV_6;
 	extern int filter_mode;
 	mpeg1_context *mpeg1 = PARENT(codec, mpeg1_context, codec);
 	rte_bool packed = TRUE;
@@ -2347,6 +2308,9 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 		mpeg1->motion_min = motion_min; // option
 		mpeg1->motion_max = motion_max;
 	} else {
+		extern int cpu_type;
+	  	int sse;
+
 	// XXX relax
 	rsp->video.width = (saturate(rsp->video.width, 16, MAX_WIDTH) + 8) & -16;
 	rsp->video.height = (saturate(rsp->video.height, 16, MAX_HEIGHT) + 8) & -16;
@@ -2355,6 +2319,18 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 	mpeg1->coded_height = rsp->video.height;
 
 	video_coding_size(mpeg1->coded_width, mpeg1->coded_height);
+
+	switch (cpu_type) {
+	case CPU_PENTIUM_III:
+	case CPU_PENTIUM_4:
+	case CPU_ATHLON:
+		sse = 1;
+		break;
+
+	default:
+		sse = 0;
+		break;
+	}
 
 	switch (rsp->video.pixfmt) {
 	case RTE_PIXFMT_YUV420:
@@ -2372,22 +2348,14 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 			    MAX(rsp->video.u_offset, rsp->video.v_offset)
 			    + rsp->video.uv_stride * (rsp->video.height >> 1));
 
-#if 1 /* old */
-		filter_y_offs = rsp->video.offset;
-		filter_u_offs = rsp->video.u_offset;
-		filter_v_offs = rsp->video.v_offset;
-		filter_y_pitch = rsp->video.stride;
-		/* uv_pitch assumed y_pitch / 2 */
-		filter = mmx_YUV_420;
-#else /* new */
-		mpeg1->filter_param[0].dest = &mblock[0];
+		mpeg1->filter_param[0].dest = (void *) &mblock[0];
 		mpeg1->filter_param[0].offset = rsp->video.offset;
 		mpeg1->filter_param[0].u_offset = rsp->video.u_offset;
 		mpeg1->filter_param[0].v_offset = rsp->video.v_offset;
 		mpeg1->filter_param[0].stride = rsp->video.stride;
 		mpeg1->filter_param[0].uv_stride = rsp->video.uv_stride;
-		mpeg1->filter_param[0].func = pmmx_YUV420_0;
-#endif
+		mpeg1->filter_param[0].func = sse ? sse_YUV420_0 : pmmx_YUV420_0;
+
 		break;
 
 	case RTE_PIXFMT_YUYV:
@@ -2397,16 +2365,11 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 		mpeg1->codec.input_buffer_size =
 			rsp->video.offset + rsp->video.stride * rsp->video.height;
 
-#if 1 /* old */
-		filter_y_offs = rsp->video.offset;
-		filter_y_pitch = rsp->video.stride;
-		filter = mmx_YUYV_422_vi;
-#else /* new */
-		mpeg1->filter_param[0].dest = &mblock[0];
+		mpeg1->filter_param[0].dest = (void *) &mblock[0];
 		mpeg1->filter_param[0].offset = rsp->video.offset;
 		mpeg1->filter_param[0].stride = rsp->video.stride;
-		mpeg1->filter_param[0].func = pmmx_YUYV_0;
-#endif
+		mpeg1->filter_param[0].func = sse ? sse_YUYV_6 : pmmx_YUYV_6;
+
 		break;
 
 	default:
@@ -2557,9 +2520,6 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 
 		mpeg1->predict_forward = mmx_predict_forward_packed;
 		mpeg1->predict_bidirectional = mmx_predict_bidirectional_packed;
-
-// 		predict_forward = predict_forward_packed;
-// 		predict_bidirectional = predict_bidirectional_packed;
 	} else {
 		int i;
 
