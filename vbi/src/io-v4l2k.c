@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-v4l2k.c,v 1.14 2003-10-16 18:16:11 mschimek Exp $";
+static char rcsid[] = "$Id: io-v4l2k.c,v 1.14.2.1 2004-01-27 21:06:40 tomzo Exp $";
 
 /*
  *  Around Oct-Nov 2002 the V4L2 API was revised for inclusion into
@@ -53,14 +53,6 @@ static char rcsid[] = "$Id: io-v4l2k.c,v 1.14 2003-10-16 18:16:11 mschimek Exp $
 
 #include "videodev2k.h"
 
-/*#define USE_V4L2K_CHNPRIO*/ /* XXX enable for patched drivers only */
-#ifdef USE_V4L2K_CHNPRIO
-/* XXX note: the following should go into videodev2.h */
-#define BASE_VIDIOCPRIVATE	192		/* 192-255 are private */
-#define VIDIOC_G_CHNPRIO        _IOR('V' , BASE_VIDIOCPRIVATE+10, int)
-#define VIDIOC_S_CHNPRIO        _IOW('V' , BASE_VIDIOCPRIVATE+11, int)
-#endif
-
 /* same as ioctl(), but repeat if interrupted */
 #define IOCTL(fd, cmd, data)						\
 ({ int __result; do __result = ioctl(fd, cmd, data);			\
@@ -83,13 +75,15 @@ do {									\
 #define ENQUEUE_BUFS_QUEUED     -1
 #define ENQUEUE_IS_UNQUEUED(X)  ((X) >= 0)
 
+#define FLUSH_FRAME_COUNT       2
+
 typedef struct vbi_capture_v4l2 {
 	vbi_capture		capture;
 
 	int			fd;
 	vbi_bool		close_me;
-#ifdef USE_V4L2K_CHNPRIO
-	int                     chn_prio;
+#ifdef VIDIOC_S_PRIORITY
+	int			chn_prio;
 #endif
 	int			btype;			/* v4l2 stream type */
 	vbi_bool		streaming;
@@ -98,7 +92,7 @@ typedef struct vbi_capture_v4l2 {
 	signed char		has_try_fmt;
 	int			enqueue;
 	struct v4l2_capability  vcap;
-	char                  * p_dev_name;
+	char		      * p_dev_name;
 
 	vbi_raw_decoder		dec;
 
@@ -109,6 +103,7 @@ typedef struct vbi_capture_v4l2 {
 	int			buf_req_count;
 
 	vbi_capture_buffer	sliced_buffer;
+	int			flush_frame_count;
 
 } vbi_capture_v4l2;
 
@@ -129,8 +124,8 @@ v4l2_stream_stop(vbi_capture_v4l2 *v)
 	}
 
 	if (v->raw_buffer != NULL) {
-	        free(v->raw_buffer);
-	        v->raw_buffer = NULL;
+		free(v->raw_buffer);
+		v->raw_buffer = NULL;
 	}
 
 	v->enqueue = ENQUEUE_SUSPENDED;
@@ -256,15 +251,17 @@ failure:
 
 static int
 v4l2_stream(vbi_capture *vc, vbi_capture_buffer **raw,
-	    vbi_capture_buffer **sliced, struct timeval *timeout)
+	    vbi_capture_buffer **sliced, struct timeval *timeout_orig)
 {
 	vbi_capture_v4l2 *v = PARENT(vc, vbi_capture_v4l2, capture);
+	struct timeval timeout = *timeout_orig;
 	struct v4l2_buffer vbuf;
 	double time;
+	int r;
 
 	if (v->enqueue == ENQUEUE_SUSPENDED) {
 		/* stream was suspended (add_services not committed) */
-	        printv("stream-read: ERROR: streaming is suspended\n");
+		printv("stream-read: ERROR: streaming is suspended\n");
 		errno = ESRCH;
 		return -1;
 	}
@@ -282,32 +279,36 @@ v4l2_stream(vbi_capture *vc, vbi_capture_buffer **raw,
 
 	v->enqueue = ENQUEUE_BUFS_QUEUED;
 
-	for (;;) {
-		struct timeval tv;
-		fd_set fds;
-		int r;
+	while (1)
+	{
+		/* wait for the next frame */
+		r = vbi_capture_io_select(v->fd, &timeout);
+		if (r <= 0) {
+			if (r < 0)
+				printv("stream-read: select: %d (%s)\n", errno, strerror(errno));
+			return r;
+		}
 
-		FD_ZERO(&fds);
-		FD_SET(v->fd, &fds);
+		vbuf.type = v->btype;
 
-		tv = *timeout; /* Linux kernel overwrites this */
+		/* retrieve the captured frame from the queue */
+		r = IOCTL(v->fd, VIDIOC_DQBUF, &vbuf);
+		if (r == -1) {
+			printv("stream-read: ioctl DQBUF: %d (%s)\n", errno, strerror(errno));
+			return -1;
+		}
 
-		r = select(v->fd + 1, &fds, NULL, NULL, &tv);
+		if (v->flush_frame_count > 0) {
+			v->flush_frame_count -= 1;
+			printv("Skipping frame (%d remaining)\n", v->flush_frame_count);
 
-		if (r < 0 && errno == EINTR)
-			continue;
-
-		if (r <= 0)
-			return r; /* timeout or error */
-
-		break;
-	}
-
-	vbuf.type = v->btype;
-
-	if (IOCTL(v->fd, VIDIOC_DQBUF, &vbuf) == -1) {
-	        printv("stream-read: ioctl DQBUF: %d (%s)\n", errno, strerror(errno));
-		return -1;
+			if (IOCTL(v->fd, VIDIOC_QBUF, &vbuf) == -1) {
+				printv("stream-read: ioctl QBUF: %d (%s)\n", errno, strerror(errno));
+				return -1;
+			}
+		}
+                else
+			break;
 	}
 
 	time = vbuf.timestamp.tv_sec
@@ -346,22 +347,21 @@ v4l2_stream(vbi_capture *vc, vbi_capture_buffer **raw,
 	** else the buffer is re-queued upon the next call to read() */
 	if (v->enqueue == ENQUEUE_BUFS_QUEUED) {
 		if (IOCTL(v->fd, VIDIOC_QBUF, &vbuf) == -1) {
-	                printv("stream-read: ioctl QBUF: %d (%s)\n", errno, strerror(errno));
+			printv("stream-read: ioctl QBUF: %d (%s)\n", errno, strerror(errno));
 			return -1;
-	        }
+		}
 	}
 
 	return 1;
 }
 
-static void v4l2_stream_flush(vbi_capture *vc)
+static void
+v4l2_stream_flush(vbi_capture *vc)
 {
 	vbi_capture_v4l2 *v = PARENT(vc, vbi_capture_v4l2, capture);
 	struct v4l2_buffer vbuf;
 	struct timeval tv;
-	fd_set fds;
 	unsigned int max_loop;
-	int ret;
 
 	/* stream not enabled yet -> nothing to flush */
 	if ( (v->enqueue == ENQUEUE_SUSPENDED) ||
@@ -373,33 +373,19 @@ static void v4l2_stream_flush(vbi_capture *vc)
 		vbuf.index = v->enqueue;
 
 		if (IOCTL(v->fd, VIDIOC_QBUF, &vbuf) == -1) {
-	                printv("stream-flush: ioctl QBUF: %d (%s)\n", errno, strerror(errno));
+			printv("stream-flush: ioctl QBUF: %d (%s)\n", errno, strerror(errno));
 			return;
-	        }
+		}
 	}
 	v->enqueue = ENQUEUE_BUFS_QUEUED;
 
 	for (max_loop = 0; max_loop < v->num_raw_buffers; max_loop++) {
 
 		/* check if there are any buffers pending for de-queueing */
-		while (1) {
-			FD_ZERO(&fds);
-			FD_SET(v->fd, &fds);
-
-			/* use zero timeout to prevent select() from blocking */
-			memset(&tv, 0, sizeof(tv));
-
-			ret = select(v->fd + 1, &fds, NULL, NULL, &tv);
-
-			if ((ret < 0) && (errno == EINTR))
-				continue;
-
-			/* no buffers ready or an error occurred -> return */
-			if (ret <= 0)
-				return;
-
-			break;
-		}
+		/* use zero timeout to prevent select() from blocking */
+		memset(&tv, 0, sizeof(tv));
+		if (vbi_capture_io_select(v->fd, &tv) <= 0)
+			return;
 
 		if (IOCTL(v->fd, VIDIOC_DQBUF, &vbuf) == -1)
 			return;
@@ -450,7 +436,7 @@ v4l2_suspend(vbi_capture_v4l2 *v)
 			dup2(fd, v->fd);
 			close(fd);
 
-	        	v->read_active = FALSE;
+			v->read_active = FALSE;
 		}
 	}
 	return 0;
@@ -491,6 +477,39 @@ failure:
 	return -1;
 }
 
+static int
+v4l2_read_frame(vbi_capture_v4l2 *v, vbi_capture_buffer *raw, struct timeval *timeout)
+{
+	int r;
+
+	/* wait until data is available or timeout expires */
+	r = vbi_capture_io_select(v->fd, timeout);
+	if (r <= 0) {
+		if (r < 0)
+			printv("read-frame: select: %d (%s)\n", errno, strerror(errno));
+		return r;
+	}
+
+	v->read_active = TRUE;
+
+	for (;;) {
+		/* from zapping/libvbi/v4lx.c */
+		pthread_testcancel();
+
+		r = read(v->fd, raw->data, raw->size);
+
+		if (r == -1  && (errno == EINTR || errno == ETIME))
+			continue;
+
+		if (r != raw->size) {
+			errno = EIO;
+			return -1;
+		}
+		else
+			break;
+	}
+	return 1;
+}
 
 static int
 v4l2_read(vbi_capture *vc, vbi_capture_buffer **raw,
@@ -503,27 +522,8 @@ v4l2_read(vbi_capture *vc, vbi_capture_buffer **raw,
 
 	if (my_raw == NULL) {
 		printv("read buffer not allocated (must add services first)\n");
-	        errno = EINVAL;
-	        return -1;
-	}
-
-	while (1) {
-		fd_set fds;
-
-		FD_ZERO(&fds);
-		FD_SET(v->fd, &fds);
-
-		tv = *timeout; /* Linux kernel overwrites this */
-
-		r = select(v->fd + 1, &fds, NULL, NULL, &tv);
-
-		if (r < 0 && errno == EINTR)
-			continue;
-
-		if (r <= 0)
-			return r; /* timeout or error */
-
-		break;
+		errno = EINVAL;
+		return -1;
 	}
 
 	if (raw == NULL)
@@ -533,21 +533,19 @@ v4l2_read(vbi_capture *vc, vbi_capture_buffer **raw,
 	else
 		(*raw)->size = v->raw_buffer[0].size;
 
-	v->read_active = TRUE;
+	tv = *timeout;
+	while (1)
+	{
+		r = v4l2_read_frame(v, *raw, &tv);
+		if (r <= 0)
+			return r;
 
-	for (;;) {
-		/* from zapping/libvbi/v4lx.c */
-		pthread_testcancel();
-
-		r = read(v->fd, (*raw)->data, (*raw)->size);
-
-		if (r == -1  && (errno == EINTR || errno == ETIME))
-			continue;
-
-		if (r == (*raw)->size)
-			break;
+		if (v->flush_frame_count > 0) {
+			v->flush_frame_count -= 1;
+			printv("Skipping frame (%d remaining)\n", v->flush_frame_count);
+		}
 		else
-			return -1;
+			break;
 	}
 
 	gettimeofday(&tv, NULL);
@@ -578,27 +576,56 @@ static void v4l2_read_flush(vbi_capture *vc)
 	vbi_capture_v4l2 *v = PARENT(vc, vbi_capture_v4l2, capture);
 	struct timeval tv;
 	int r;
-	fd_set fds;
 
-	while (1) {
-		FD_ZERO(&fds);
-		FD_SET(v->fd, &fds);
+	memset(&tv, 0, sizeof(tv));
 
-		memset(&tv, 0, sizeof(tv));
+	r = vbi_capture_io_select(v->fd, &tv);
+	if (r <= 0)
+		return;
 
-		r = select(v->fd + 1, &fds, NULL, NULL, &tv);
+	do
+	{
+		r = read(v->fd, v->raw_buffer->data, v->raw_buffer->size);
+	}
+	while ((r < 0) && (errno == EINTR));
+}
 
-		if ((r < 0) && (errno == EINTR))
-			continue;
+static vbi_bool
+v4l2_get_videostd(vbi_capture_v4l2 *v, char ** errorstr)
+{
+	struct v4l2_standard vstd;
+	v4l2_std_id stdid;
+	int r;
+	char * guess;
 
-		/* if no data is ready or an error occurred, return */
-		if (r <= 0)
-			return;
-
-		break;
+	if (-1 == IOCTL(v->fd, VIDIOC_G_STD, &stdid)) {
+		vbi_asprintf(errorstr, _("Cannot query current videostandard of %s (%s): %d, %s."),
+			     v->p_dev_name, v->vcap.card, errno, strerror(errno));
+		guess = _("Probably a driver bug.");
+		return FALSE;
 	}
 
-	r = read(v->fd, v->raw_buffer->data, v->raw_buffer->size);
+	vstd.index = 0;
+
+	while (0 == (r = IOCTL(v->fd, VIDIOC_ENUMSTD, &vstd))) {
+		if (vstd.id & stdid)
+			break;
+		vstd.index++;
+	}
+
+	if (-1 == r) {
+		vbi_asprintf(errorstr, _("Cannot query current videostandard of %s (%s): %d, %s."),
+			     v->p_dev_name, v->vcap.card, errno, strerror(errno));
+		guess = _("Probably a driver bug.");
+		return FALSE;
+	}
+
+	printv ("Current scanning system is %d\n", vstd.framelines);
+
+	/* add_vbi_services() eliminates non 525/625 */
+	v->dec.scanning = vstd.framelines;
+
+	return TRUE;
 }
 
 static void
@@ -868,13 +895,33 @@ v4l2_delete(vbi_capture *vc)
 	free(v);
 }
 
+static vbi_bool
+v4l2_setup(vbi_capture *vc, vbi_setup_parm *config)
+{
+	vbi_capture_v4l2 *v = PARENT(vc, vbi_capture_v4l2, capture);
+	vbi_bool result;
+
+	switch (config->type)
+	{
+	    case VBI_SETUP_GET_FD_TYPE:
+		config->u.get_fd_type.has_select = TRUE;
+		config->u.get_fd_type.is_device  = TRUE;
+		result = TRUE;
+		break;
+	    case VBI_SETUP_ENABLE_CHN_IND:
+	    case VBI_SETUP_GET_CHN_DESC:
+		/* XXX TODO */
+	    default:
+		result = FALSE;
+		break;
+	}
+	return result;
+}
+
 static int
 v4l2_get_fd(vbi_capture *vc)
 {
 	vbi_capture_v4l2 *v = PARENT(vc, vbi_capture_v4l2, capture);
-
-	/* v4l2 devices always support select (since 2002-10 revision),
-	** hence no separate get_fd() function is required for get_poll_fd queries */
 
 	return v->fd;
 }
@@ -889,26 +936,30 @@ v4l2_channel_change(vbi_capture *vc,
 	vbi_capture_v4l2 *v = PARENT(vc, vbi_capture_v4l2, capture);
 	struct v4l2_frequency vfreq;
 	v4l2_std_id mode;
+	v4l2_std_id old_mode = -1;
 	int  old_channel = -1;
 
-#ifdef USE_V4L2K_CHNPRIO
+#ifdef VIDIOC_S_PRIORITY
 	if (chn_prio != v->chn_prio) {
 		v->chn_prio = chn_prio;
-		if (ioctl(v->fd, VIDIOC_S_CHNPRIO, &v->chn_prio) != 0)
+		if (ioctl(v->fd, VIDIOC_S_PRIORITY, &v->chn_prio) != 0)
 			printv("Failed to set register channel prio: %d (%s)\n",
 			       errno, strerror(errno));
 	}
 #endif
 
-	if (chn_flags & VBI_CHN_FLUSH_ONLY)
+	if (chn_flags & VBI_CHN_PRIO_ONLY)
 		goto done;
 
-	if (p_chn_desc->type != 0) {
-		vbi_asprintf(errorstr, "Bad channel descriptor type");
-		goto failure;
+	if (chn_flags & VBI_CHN_FLUSH_ONLY)
+		goto flush;
+
+	if (p_chn_desc->type != VBI_CHN_DESC_TYPE_ANALOG) {
+		vbi_asprintf(errorstr, _("Not an analog channel descriptor type"));
+		goto failure1;
 	}
 
-	/* convert video mode/norm ID to v4l1 */
+	/* convert video mode/norm */
 	if (p_chn_desc->u.analog.mode_std != -1) {
 		mode = p_chn_desc->u.analog.mode_std;
 	}
@@ -926,11 +977,20 @@ v4l2_channel_change(vbi_capture *vc,
 		mode = -1;
 
 	if (mode != -1) {
-		if (IOCTL(v->fd, VIDIOC_S_STD, &mode) != 0) {
+		if (IOCTL(v->fd, VIDIOC_G_STD, &old_mode) == -1) {
+			old_mode = -1;
+		}
+		if ( (mode != old_mode) &&
+		     (IOCTL(v->fd, VIDIOC_S_STD, &mode) != 0) ) {
+			/* XXX TODO: upon EBUSY: disable capture, try again */
 			printv("ioctl S_STD(0x%X) failed: %d (%s)\n", (int)mode, errno, strerror(errno));
 			vbi_asprintf(errorstr, _("Failed to switch video standard"));
-			goto failure;
+			goto failure1;
 		}
+	}
+	else if (IOCTL(v->fd, VIDIOC_G_STD, &mode) != -1) {
+		p_chn_desc->u.analog.mode_color = -1;
+		p_chn_desc->u.analog.mode_std   = mode;
 	}
 
 	if (p_chn_desc->u.analog.channel != -1) {
@@ -940,7 +1000,7 @@ v4l2_channel_change(vbi_capture *vc,
 			vbi_asprintf(errorstr, _("Failed to query channel #%d, "
 						 "probably invalid index."),
 						 p_chn_desc->u.analog.channel);
-			goto failure;
+			goto failure2;
 		}
 
 		/* switch input channel */
@@ -950,8 +1010,10 @@ v4l2_channel_change(vbi_capture *vc,
 			       p_chn_desc->u.analog.channel, errno, strerror(errno));
 			vbi_asprintf(errorstr, _("Failed to switch to channel #%d."),
 			             p_chn_desc->u.analog.channel);
-			goto failure;
+			goto failure2;
 		}
+	} else {
+		IOCTL(v->fd, VIDIOC_G_INPUT, &p_chn_desc->u.analog.channel);
 	}
 
 	/* set tuner parameters */
@@ -966,66 +1028,49 @@ v4l2_channel_change(vbi_capture *vc,
 			       errno, strerror(errno));
 			vbi_asprintf(errorstr, _("Failed to set TV tuner frequency."));
 
-			if (old_channel != -1) {
-				/* attempt to set old channel again */
-				if (IOCTL(v->fd, VIDIOC_S_INPUT, (int *) &old_channel) != 0)
-					printv("ioctl S_INPUT failed to switch to prev. channel #%d: %d (%s)\n",
-					       old_channel, errno, strerror(errno));
-			}
-			goto failure;
+			goto failure3;
+		}
+	} else {
+		memset(&vfreq, 0, sizeof(vfreq));
+		if (IOCTL(v->fd, VIDIOC_G_FREQUENCY, &vfreq) == 0) {
+			p_chn_desc->u.analog.freq  = vfreq.frequency;
+			p_chn_desc->u.analog.tuner = vfreq.tuner;
 		}
 	}
 
 	printv("Successfully switched channel and/or frequency.\n");
-done:
+flush:
+	v4l2_get_videostd(v, errorstr);
+	if (p_scanning != NULL)
+		*p_scanning = v->dec.scanning;
+
+	v->flush_frame_count = FLUSH_FRAME_COUNT;
 
 	if (v->streaming)
 		v4l2_stream_flush(vc);
 	else
 		v4l2_read_flush(vc);
 
+done:
 	return 0;
 
-failure:
+failure3:
+	if (old_channel != -1) {
+		/* attempt to set old channel again */
+		if (IOCTL(v->fd, VIDIOC_S_INPUT, (int *) &old_channel) != 0)
+			printv("ioctl S_INPUT failed to switch to prev. channel #%d: %d (%s)\n",
+			       old_channel, errno, strerror(errno));
+	}
+failure2:
+	if (old_mode != -1) {
+		/* attempt to set old mode again */
+		if (IOCTL(v->fd, VIDIOC_S_STD, &old_mode) != 0) {
+			printv("ioctl S_STD failed to switch to prev. mode 0x%llX: %d (%s)\n",
+			       old_mode, errno, strerror(errno));
+		}
+	}
+failure1:
 	return -1;
-}
-
-static vbi_bool
-v4l2_get_videostd(vbi_capture_v4l2 *v, char ** errorstr)
-{
-	struct v4l2_standard vstd;
-	v4l2_std_id stdid;
-	int r;
-	char * guess;
-
-	if (-1 == IOCTL(v->fd, VIDIOC_G_STD, &stdid)) {
-		vbi_asprintf(errorstr, _("Cannot query current videostandard of %s (%s): %d, %s."),
-			     v->p_dev_name, v->vcap.card, errno, strerror(errno));
-		guess = _("Probably a driver bug.");
-		return FALSE;
-	}
-
-	vstd.index = 0;
-
-	while (0 == (r = IOCTL(v->fd, VIDIOC_ENUMSTD, &vstd))) {
-		if (vstd.id & stdid)
-			break;
-		vstd.index++;
-	}
-
-	if (-1 == r) {
-		vbi_asprintf(errorstr, _("Cannot query current videostandard of %s (%s): %d, %s."),
-			     v->p_dev_name, v->vcap.card, errno, strerror(errno));
-		guess = _("Probably a driver bug.");
-		return FALSE;
-	}
-
-	printv ("Current scanning system is %d\n", vstd.framelines);
-
-	/* add_vbi_services() eliminates non 525/625 */
-	v->dec.scanning = vstd.framelines;
-
-	return TRUE;
 }
 
 /* document below */
@@ -1067,8 +1112,8 @@ vbi_capture_v4l2k_new		(const char *		dev_name,
 
 	v->capture.parameters = v4l2_parameters;
 	v->capture._delete = v4l2_delete;
+	v->capture.setup = v4l2_setup;
 	v->capture.get_fd = v4l2_get_fd;
-	v->capture.get_poll_fd = v4l2_get_fd;
 	v->capture.add_services = v4l2_add_services;
 	v->capture.channel_change = v4l2_channel_change;
 
@@ -1126,7 +1171,7 @@ vbi_capture_v4l2k_new		(const char *		dev_name,
 
 		v->capture.read = v4l2_read;
 
-	        v->read_active = FALSE;
+		v->read_active = FALSE;
 
 	} else {
 		vbi_asprintf(errorstr, _("%s (%s) lacks a vbi read interface, "
@@ -1140,13 +1185,9 @@ vbi_capture_v4l2k_new		(const char *		dev_name,
 	if (*services == 0)
 		goto failure;
 
-#ifdef USE_V4L2K_CHNPRIO
-	if (v->close_me) {
-		/* channel priority is lowered to "background" by default */
-		v->chn_prio = 0;
-		if (ioctl(v->fd, VIDIOC_S_CHNPRIO, &v->chn_prio) != 0)
-			printv("Failed to set register channel prio: %d (%s)\n", errno, strerror(errno));
-	}
+#ifdef VIDIOC_S_PRIORITY
+	/* channel prio remains at device default until first channel change */
+	v->chn_prio = -1;
 #endif
 
 	printv("Successful opened %s (%s)\n",
