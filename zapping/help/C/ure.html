@@ -24,6 +24,8 @@
     <ul>
       <li><a href="#Foreword">Foreword</a></li>
 
+      <li><a href="#Unicode">Unicode</a></li>
+
       <li><a href="#Introduction">Introduction</a></li>
 
       <li><a href="#Formal description">Formal description</a></li>
@@ -47,9 +49,15 @@
     <h3><a name="Foreword"></a>Foreword</h3>
     Regular expressions are a powerful way to search certain
     patterns in a text. Apart of simply giving the text you want to
-    find, you can build a set of rules to be matched, this allows
-    for a much more powerful search. [FIXME: Zapping... Unicode...]
-    
+    find, you can build a set of rules to be matched, allowing for
+    much more complex search patterns.
+
+    <h3><a name="Unicode"></a>Unicode</h3>
+    Unicode is a way of encoding characters that aims to support all
+    possible character sets in the world. Using Unicode we can assing
+    an unique ID to every char, disregarding whether it's Arabic,
+    Hebrew or Cyrillic. The teletext engine uses an Unicode flavour
+    called UCS-2, that uses 16 bits to represent each char.
 
     <h3><a name="Introduction">Introduction</a></h3>
     Regular expressions have a syntax in which a few characters are
@@ -226,7 +234,14 @@
     expressions in the manual page: <b>man 7 regex</b> 
 
     <h3><a name="Formal description">Formal description</a></h3>
+    <p>The current implementation is by no means complete, but it is
+    pretty stable, and has most of the commonly used features. An
+    interesting missing operator is <tt>{a[,[b]]}</tt> (matching a definite
+    amount of times, similar to <tt>*<tt> and friends, but
+    finite).</p>
+    
     From the URE README:<br>
+
 <pre>
 This is a simple regular expression package for matching
 against Unicode text in UCS2 form. The implementation of this

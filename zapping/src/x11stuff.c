@@ -211,6 +211,50 @@ x11_force_expose(gint x, gint y, gint w, gint h)
   XDestroyWindow(GDK_DISPLAY(), win);
 }
 
+static void
+_x11_force_expose(gint x, gint y, gint w, gint h)
+{
+  Display *dpy = GDK_DISPLAY();
+  XWindowAttributes wts;
+  Window root, rroot, parent, *children;
+  uint nchildren, i;
+  XErrorHandler olderror;
+  XExposeEvent event;
+
+  event.type = Expose;
+  event.count = 0;
+
+  root=GDK_ROOT_WINDOW();
+  XQueryTree(dpy, root, &rroot, &parent, &children, &nchildren);
+    
+  /* enter error-ignore mode */
+  olderror = XSetErrorHandler(xerror);
+  for (i=0; i<nchildren; i++) {
+    XGetWindowAttributes(dpy, children[i], &wts);
+    if (!(wts.map_state & IsViewable))
+      continue;
+    if (wts.class != InputOutput)
+      continue;
+    if ((wts.x >= x+w) || (wts.y >= x+h) ||
+    	(wts.x+wts.width < x) || (wts.y+wts.height < y))
+      continue;
+    
+    event.window = children[i];
+    event.x = 0;
+    event.y = 0;
+    event.width = wts.width;
+    event.height = wts.height;
+    XSendEvent(GDK_DISPLAY(), children[i], False,
+	       ExposureMask, (XEvent*)&event);
+  }
+  XSync (GDK_DISPLAY(), False);
+  XSetErrorHandler(olderror);
+  /* leave error-ignore mode */
+
+  if (children)
+    XFree((char *) children);
+}
+
 /*
  * Returns TRUE if the window is viewable
  */

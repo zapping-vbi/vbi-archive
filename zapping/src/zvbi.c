@@ -77,6 +77,7 @@ struct ttx_client {
   GdkPixbuf	*unscaled; /* unscaled version of the page */
   GdkPixbuf	*scaled; /* scaled version of the page */
   int		w, h;
+  int		freezed; /* do not refresh the current page */
 };
 
 static GList *ttx_clients = NULL;
@@ -423,6 +424,7 @@ monitor_ttx_page(int id/*client*/, int page, int subpage)
   client = find_client(id);
   if (client)
     {
+      client->freezed = FALSE;
       client->page = page;
       client->subpage = subpage;
       if ((page >= 0x100) && (page <= 0x899)) {
@@ -456,6 +458,7 @@ void monitor_ttx_this(int id, struct fmt_page *pg)
     {
       client->page = pg->vtp->pgno;
       client->subpage = pg->vtp->subno;
+      client->freezed = TRUE; /* FIXME: Until when? */
       memcpy(&client->vtp, pg->vtp, sizeof(struct vt_page));
       memcpy(&client->fp, pg, sizeof(struct fmt_page));
       vbi_draw_page(&client->fp,
@@ -500,7 +503,7 @@ notify_clients(int page, int subpage, struct vt_page *vtp)
   while (p)
     {
       client = (struct ttx_client*)p->data;
-      if ((client->page == page) &&
+      if ((client->page == page) && (!client->freezed) &&
 	  ((client->subpage == subpage) || (client->subpage == ANY_SUB)))
 	{
 	  build_client_page(client, vtp);

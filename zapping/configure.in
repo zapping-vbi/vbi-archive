@@ -90,7 +90,11 @@ UNICODE_LIB=""
 HAVE_UNICODE="yes"
 AC_CHECK_LIB(unicode, main, UNICODE_LIB="-lunicode", HAVE_UNICODE="no")
 if test "x$HAVE_UNICODE" = "xyes"; then
-AC_DEFINE(HAVE_LIBUNICODE)
+	AC_DEFINE(HAVE_LIBUNICODE)
+else
+	AC_MSG_ERROR([This version of Zapping requires libunicode:
+	ftp://ftp.gnome.org/pub/GNOME/unstable/sources])
+	HAVE_GDK_PIXBUF="no"
 fi
 AC_SUBST(UNICODE_LIB)
 

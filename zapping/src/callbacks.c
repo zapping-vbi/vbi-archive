@@ -61,7 +61,7 @@ gboolean startup_callbacks(void)
   zcc_int(480, "Height of the Zapping window", "h");
   zcc_int(0, "Currently tuned channel", "cur_tuned_channel");
   cur_tuned_channel = zcg_int(NULL, "cur_tuned_channel");
-  zcc_bool(FALSE, "Hide th extra controls", "hide_extra");
+  zcc_bool(FALSE, "Hide the extra controls", "hide_extra");
 
   return TRUE;
 }
@@ -146,6 +146,24 @@ on_main_help1_activate                 (GtkMenuItem     *menuitem,
 
   if (tveng_restart_everything(cur_mode, main_info) == -1)
     ShowBox(main_info->error, GNOME_MESSAGE_BOX_ERROR);
+}
+
+void
+on_hide_controls1_activate             (GtkMenuItem     *menuitem,
+					gpointer         user_data)
+{
+  if (zcg_bool(NULL, "hide_controls"))
+    {
+      zcs_bool(FALSE, "hide_controls");
+      gtk_widget_show(lookup_widget(main_window, "dockitem1"));
+      gtk_widget_show(lookup_widget(main_window, "dockitem2")); 
+    }
+  else
+    {
+      zcs_bool(TRUE, "hide_controls");
+      gtk_widget_hide(lookup_widget(main_window, "dockitem1"));
+      gtk_widget_hide(lookup_widget(main_window, "dockitem2"));
+    }
 }
 
 void
@@ -563,6 +581,24 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 	  change_pixmenuitem_label(widget, _("Show extra controls"));
 	  set_tooltip(widget,
 		      _("Show the Inputs and Standards menu"));
+	  spixmap =
+	    gnome_stock_pixmap_widget_at_size(widget,
+					      GNOME_STOCK_PIXMAP_BOOK_OPEN,
+					      16, 16);
+	  /************* THIS SHOULD NEVER BE DONE ***********/
+	  gtk_object_destroy(GTK_OBJECT(GTK_PIXMAP_MENU_ITEM(widget)->pixmap));
+	  GTK_PIXMAP_MENU_ITEM(widget)->pixmap = NULL;
+	  /********** BUT THERE'S NO OTHER WAY TO DO IT ******/
+	  gtk_pixmap_menu_item_set_pixmap(GTK_PIXMAP_MENU_ITEM(widget),
+					  spixmap);
+	  gtk_widget_show(spixmap);
+	}
+      if (zcg_bool(NULL, "hide_controls"))
+	{
+	  widget = lookup_widget(GTK_WIDGET(menu), "hide_controls1");
+	  change_pixmenuitem_label(widget, _("Show controls"));
+	  set_tooltip(widget,
+		      _("Show the menu and the toolbar"));
 	  spixmap =
 	    gnome_stock_pixmap_widget_at_size(widget,
 					      GNOME_STOCK_PIXMAP_BOOK_OPEN,

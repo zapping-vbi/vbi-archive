@@ -242,7 +242,7 @@ int main(int argc, char * argv[])
     newbttv = 0;
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.80 2001-01-14 20:52:09 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.81 2001-01-23 23:28:51 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -481,6 +481,11 @@ int main(int argc, char * argv[])
       gdk_window_move_resize(main_window->window, x, y, w, h);
     }
   D();
+  if (zconf_get_boolean(NULL, "/zapping/internal/callbacks/hide_controls"))
+    {
+      gtk_widget_hide(lookup_widget(main_window, "dockitem1"));
+      gtk_widget_hide(lookup_widget(main_window, "dockitem2"));
+    }
   if (zconf_get_boolean(NULL, "/zapping/internal/callbacks/hide_extra"))
     {
       gtk_widget_hide(lookup_widget(main_window, "Inputs"));
@@ -626,6 +631,8 @@ static gboolean startup_zapping()
   zcc_int(0, "Current input", "current_input");
   zcc_int(TVENG_CAPTURE_WINDOW, "Current capture mode", "capture_mode");
   zcc_bool(FALSE, "In videotext mode", "videotext_mode");
+  zconf_create_boolean(FALSE, "Hide controls",
+		       "/zapping/internal/callbacks/hide_controls");
   D();
   /* Loads all the tuned channels */
   while (zconf_get_nth(i, &buffer, ZCONF_DOMAIN "tuned_channels") !=

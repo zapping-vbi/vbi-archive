@@ -47,6 +47,10 @@ on_main_help1_activate                 (GtkMenuItem     *menuitem,
 					gpointer         user_data);
 
 void
+on_hide_controls1_activate             (GtkMenuItem     *menuitem,
+					gpointer         user_data);
+
+void
 on_hide_menubars1_activate             (GtkMenuItem     *menuitem,
 					gpointer         user_data);
 

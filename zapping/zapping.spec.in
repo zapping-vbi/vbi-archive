@@ -19,7 +19,8 @@ Requires: gtk+ >= 1.2.6
 Requires: gnome-libs >= 1.0.40
 Requires: libxml >= 1.4.0
 Requires: libglade >= 0.9
-Requires: gdk-pixbuf >= 0.7
+Requires: gdk-pixbuf >= 0.8
+Requires: libunicode >= 0.4
 
 %description
 GNOME (GNU Network Object Model Environment) is a user-friendly set of

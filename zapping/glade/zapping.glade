@@ -2486,6 +2486,20 @@ in the next release of this program.</label>
 
   <widget>
     <class>GtkPixmapMenuItem</class>
+    <name>hide_controls1</name>
+    <tooltip>Hide the menu and the toolbar</tooltip>
+    <signal>
+      <name>activate</name>
+      <handler>on_hide_controls1_activate</handler>
+      <last_modification_time>Tue, 23 Jan 2001 20:39:56 GMT</last_modification_time>
+    </signal>
+    <label>Hide controls</label>
+    <right_justify>False</right_justify>
+    <stock_icon>GNOME_STOCK_MENU_BOOK_YELLOW</stock_icon>
+  </widget>
+
+  <widget>
+    <class>GtkPixmapMenuItem</class>
     <name>hide_menubars1</name>
     <tooltip>Hide the Inputs and Standards menus</tooltip>
     <signal>
@@ -3243,20 +3257,26 @@ in the next release of this program.</label>
       </widget>
 
       <widget>
-	<class>GtkEntry</class>
-	<name>entry1</name>
-	<tooltip>Enter here the word or phrase you want to find.
-. matches any character, .* matches zero or more characters. A preceding \ escapes the special characters .*\$^+?[]. Click help for more information about regular expressions.</tooltip>
-	<can_focus>True</can_focus>
-	<editable>True</editable>
-	<text_visible>True</text_visible>
-	<text_max_length>0</text_max_length>
-	<text></text>
+	<class>GnomeEntry</class>
+	<name>entry2</name>
+	<history_id>ure_search_history</history_id>
+	<max_saved>10</max_saved>
 	<child>
 	  <padding>0</padding>
 	  <expand>False</expand>
 	  <fill>False</fill>
 	</child>
+
+	<widget>
+	  <class>GtkEntry</class>
+	  <child_name>GnomeEntry:entry</child_name>
+	  <name>combo-entry4</name>
+	  <can_focus>True</can_focus>
+	  <editable>True</editable>
+	  <text_visible>True</text_visible>
+	  <text_max_length>0</text_max_length>
+	  <text></text>
+	</widget>
       </widget>
 
       <widget>
@@ -3335,6 +3355,7 @@ in the next release of this program.</label>
       <widget>
 	<class>GtkButton</class>
 	<name>button19</name>
+	<tooltip>Cancel the current search</tooltip>
 	<can_default>True</can_default>
 	<can_focus>True</can_focus>
 	<stock_button>GNOME_STOCK_BUTTON_CANCEL</stock_button>
@@ -3343,6 +3364,7 @@ in the next release of this program.</label>
       <widget>
 	<class>GtkButton</class>
 	<name>button21</name>
+	<tooltip>Search forwards for the next match</tooltip>
 	<can_default>True</can_default>
 	<can_focus>True</can_focus>
 	<stock_button>GNOME_STOCK_BUTTON_NEXT</stock_button>
@@ -3351,9 +3373,20 @@ in the next release of this program.</label>
       <widget>
 	<class>GtkButton</class>
 	<name>button22</name>
+	<tooltip>Search backwards for the previous match</tooltip>
 	<can_default>True</can_default>
 	<can_focus>True</can_focus>
 	<stock_button>GNOME_STOCK_BUTTON_PREV</stock_button>
+      </widget>
+
+      <widget>
+	<class>GtkButton</class>
+	<name>button23</name>
+	<tooltip>Start a new search</tooltip>
+	<can_default>True</can_default>
+	<can_focus>True</can_focus>
+	<label>New</label>
+	<stock_pixmap>GNOME_STOCK_PIXMAP_NEW</stock_pixmap>
       </widget>
     </widget>
 

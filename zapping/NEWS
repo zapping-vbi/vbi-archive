@@ -1,13 +1,7 @@
 New stuff, refer to the ChangeLog for a more detailed description of
 the changes.
 
-0.5.8
+0.5.9
 -----
-- Screenshot plugin moved from PNG into JPEG
-- XVideo support added (XvPutImage and XvPutVideo)
-- Russian freq table (Eugene Crosser), Cyrillic Teletext glyphs
-	(Sergey Nikulin)
-- V4L2 support into libvbi.
-- Updated fr.po (Christian), es.po (me) added ru.po (Sergey) and
-	de.po (Michael).
-- Many bugfixes, some new bugs to play with :-)
+- Greatly improved Teletext engine (michael, me)
+- South African frequency table (Jeremy Maccelary)

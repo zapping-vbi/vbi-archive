@@ -1,3 +1,13 @@
+23.1.2001	libunicode <garetxe@users.sourceforge.net>
+
+	* configure.in, zapping.spec.in: Added dependency on libunicode
+	* src/callbacks.c: Added option to hide menubars and toolbar.
+	* help/C/ure.html: [Extremely] Brief introduction to Unicode, and
+	some comments on the regex implementation.
+	* src/ttxview.c: New search button, pattern history.
+	* src/zvbi.c: Search results are freezed.
+	* po/*.po: Removed obsolete strings.
+
 14.1.2001	** bug <garetxe@users.sourceforge.net>
 
 	* common/ure.c: Fixed the "**" pattern bug.
