@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = $(GTK_CFLAGS) -D_GNU_SOURCE -include $(top_srcdir)/config.h \
+INCLUDES = $(GTK_CFLAGS) -D_GNU_SOURCE -include $(top_builddir)/config.h \
 	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
 
 noinst_LTLIBRARIES = libtest.la

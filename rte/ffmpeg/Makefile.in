@@ -121,7 +121,6 @@ INCLUDES = -D_REENTRANT -D_GNU_SOURCE \
 	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
 
 
-# -I$(srcdir)/libavcodec
 libffmpeg_la_SOURCES = \
 	bswap.h mangle.h \
 	b_ffmpeg.c b_ffmpeg.h

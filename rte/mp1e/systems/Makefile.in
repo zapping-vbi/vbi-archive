@@ -36,7 +36,8 @@ oldincludedir = /usr/include
 pkgdatadir = $(datadir)/@PACKAGE@
 pkglibdir = $(libdir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
-top_builddir = ../..
+@BACKEND_MP1E_FALSE@top_builddir = ..
+@BACKEND_MP1E_TRUE@top_builddir = ../..
 
 ACLOCAL = @ACLOCAL@
 AUTOCONF = @AUTOCONF@
@@ -65,65 +66,71 @@ host_triplet = @host@
 EXEEXT = @EXEEXT@
 OBJEXT = @OBJEXT@
 PATH_SEPARATOR = @PATH_SEPARATOR@
+@BACKEND_MP1E_FALSE@ALSA_CFLAGS = @ALSA_CFLAGS@
+@BACKEND_MP1E_FALSE@ALSA_LIBS = @ALSA_LIBS@
 AMTAR = @AMTAR@
 AS = @AS@
 AWK = @AWK@
-BUILD_INCLUDED_LIBINTL = @BUILD_INCLUDED_LIBINTL@
-CATOBJEXT = @CATOBJEXT@
+@BACKEND_MP1E_TRUE@BUILD_INCLUDED_LIBINTL = @BUILD_INCLUDED_LIBINTL@
+@BACKEND_MP1E_TRUE@CATOBJEXT = @CATOBJEXT@
 CC = @CC@
 CCAS = @CCAS@
 CCASFLAGS = @CCASFLAGS@
-CCMALLOC = @CCMALLOC@
-CXX = @CXX@
-DATADIRNAME = @DATADIRNAME@
+@BACKEND_MP1E_TRUE@CCMALLOC = @CCMALLOC@
+@BACKEND_MP1E_TRUE@CXX = @CXX@
+@BACKEND_MP1E_TRUE@DATADIRNAME = @DATADIRNAME@
 DEPDIR = @DEPDIR@
 DLLTOOL = @DLLTOOL@
 ECHO = @ECHO@
-GENCAT = @GENCAT@
-GLIBC21 = @GLIBC21@
-GMSGFMT = @GMSGFMT@
-HAVE_DOXYGEN = @HAVE_DOXYGEN@
-HAVE_LIB = @HAVE_LIB@
+@BACKEND_MP1E_FALSE@ESD_CFLAGS = @ESD_CFLAGS@
+@BACKEND_MP1E_FALSE@ESD_LIBS = @ESD_LIBS@
+@BACKEND_MP1E_FALSE@GTK_CFLAGS = @GTK_CFLAGS@
+@BACKEND_MP1E_FALSE@GTK_LIBS = @GTK_LIBS@
+@BACKEND_MP1E_TRUE@GENCAT = @GENCAT@
+@BACKEND_MP1E_TRUE@GLIBC21 = @GLIBC21@
+@BACKEND_MP1E_TRUE@GMSGFMT = @GMSGFMT@
+@BACKEND_MP1E_TRUE@HAVE_DOXYGEN = @HAVE_DOXYGEN@
+@BACKEND_MP1E_TRUE@HAVE_LIB = @HAVE_LIB@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
-INSTOBJEXT = @INSTOBJEXT@
-INTLBISON = @INTLBISON@
-INTLLIBS = @INTLLIBS@
-INTLOBJS = @INTLOBJS@
-INTL_LIBTOOL_SUFFIX_PREFIX = @INTL_LIBTOOL_SUFFIX_PREFIX@
-LIB = @LIB@
-LIBICONV = @LIBICONV@
-LIBINTL = @LIBINTL@
+@BACKEND_MP1E_TRUE@INSTOBJEXT = @INSTOBJEXT@
+@BACKEND_MP1E_TRUE@INTLBISON = @INTLBISON@
+@BACKEND_MP1E_TRUE@INTLLIBS = @INTLLIBS@
+@BACKEND_MP1E_TRUE@INTLOBJS = @INTLOBJS@
+@BACKEND_MP1E_TRUE@INTL_LIBTOOL_SUFFIX_PREFIX = @INTL_LIBTOOL_SUFFIX_PREFIX@
+@BACKEND_MP1E_TRUE@LIB = @LIB@
+@BACKEND_MP1E_TRUE@LIBICONV = @LIBICONV@
+@BACKEND_MP1E_TRUE@LIBINTL = @LIBINTL@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
-LTLIB = @LTLIB@
-LTLIBICONV = @LTLIBICONV@
-LTLIBINTL = @LTLIBINTL@
-MKINSTALLDIRS = @MKINSTALLDIRS@
+@BACKEND_MP1E_TRUE@LTLIB = @LTLIB@
+@BACKEND_MP1E_TRUE@LTLIBICONV = @LTLIBICONV@
+@BACKEND_MP1E_TRUE@LTLIBINTL = @LTLIBINTL@
+@BACKEND_MP1E_TRUE@MKINSTALLDIRS = @MKINSTALLDIRS@
 OBJDUMP = @OBJDUMP@
 PACKAGE = @PACKAGE@
-POSUB = @POSUB@
+@BACKEND_MP1E_TRUE@POSUB = @POSUB@
 RANLIB = @RANLIB@
 STRIP = @STRIP@
-USE_INCLUDED_LIBINTL = @USE_INCLUDED_LIBINTL@
-USE_NLS = @USE_NLS@
+@BACKEND_MP1E_TRUE@USE_INCLUDED_LIBINTL = @USE_INCLUDED_LIBINTL@
+@BACKEND_MP1E_TRUE@USE_NLS = @USE_NLS@
 VERSION = @VERSION@
+@BACKEND_MP1E_FALSE@X_CFLAGS = @X_CFLAGS@
+@BACKEND_MP1E_FALSE@X_EXTRA_LIBS = @X_EXTRA_LIBS@
+@BACKEND_MP1E_FALSE@X_LIBS = @X_LIBS@
+@BACKEND_MP1E_FALSE@X_PRE_LIBS = @X_PRE_LIBS@
 am__include = @am__include@
 am__quote = @am__quote@
 install_sh = @install_sh@
 
 noinst_LTLIBRARIES = libsystems.la
 
-INCLUDES = -D_GNU_SOURCE -D_REENTRANT -include $(top_srcdir)/config.h \
-	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
+INCLUDES = -D_GNU_SOURCE -D_REENTRANT -include $(top_builddir)/config.h 	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
 
 
-libsystems_la_SOURCES = \
-	mpeg1.c mpeg2.c vcd.c mpeg.h \
-	output.c output.h \
-	systems.c systems.h \
-	libsystems.h
+libsystems_la_SOURCES = 	mpeg1.c mpeg2.c vcd.c mpeg.h 	output.c output.h 	systems.c systems.h 	libsystems.h
 
-subdir = mp1e/systems
+@BACKEND_MP1E_FALSE@subdir = systems
+@BACKEND_MP1E_TRUE@subdir = mp1e/systems
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
@@ -141,16 +148,11 @@ LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
-@AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/mpeg1.Plo ./$(DEPDIR)/mpeg2.Plo \
-@AMDEP_TRUE@	./$(DEPDIR)/output.Plo ./$(DEPDIR)/systems.Plo \
-@AMDEP_TRUE@	./$(DEPDIR)/vcd.Plo
-COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
-	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
-LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) \
-	$(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+@AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/mpeg1.Plo ./$(DEPDIR)/mpeg2.Plo @AMDEP_TRUE@	./$(DEPDIR)/output.Plo ./$(DEPDIR)/systems.Plo @AMDEP_TRUE@	./$(DEPDIR)/vcd.Plo
+COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) 	$(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
-LINK = $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
-	$(AM_LDFLAGS) $(LDFLAGS) -o $@
+LINK = $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 CFLAGS = @CFLAGS@
 DIST_SOURCES = $(libsystems_la_SOURCES)
 DIST_COMMON = Makefile.am Makefile.in
@@ -161,19 +163,14 @@ all: all-am
 .SUFFIXES:
 .SUFFIXES: .c .lo .o .obj
 $(srcdir)/Makefile.in:  Makefile.am  $(top_srcdir)/configure.in $(ACLOCAL_M4)
-	cd $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu  mp1e/systems/Makefile
+@BACKEND_MP1E_FALSE@	cd $(top_srcdir) && 	  $(AUTOMAKE) --gnu  systems/Makefile
+@BACKEND_MP1E_TRUE@	cd $(top_srcdir) && 	  $(AUTOMAKE) --gnu  mp1e/systems/Makefile
 Makefile:  $(srcdir)/Makefile.in  $(top_builddir)/config.status
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@ $(am__depfiles_maybe)
 
 clean-noinstLTLIBRARIES:
 	-test -z "$(noinst_LTLIBRARIES)" || rm -f $(noinst_LTLIBRARIES)
-	@list='$(noinst_LTLIBRARIES)'; for p in $$list; do \
-	  dir="`echo $$p | sed -e 's|/[^/]*$$||'`"; \
-	  test -z "$dir" && dir=.; \
-	  echo "rm -f \"$${dir}/so_locations\""; \
-	  rm -f "$${dir}/so_locations"; \
-	done
+	@list='$(noinst_LTLIBRARIES)'; for p in $$list; do 	  dir="`echo $$p | sed -e 's|/[^/]*$$||'`"; 	  test -z "$dir" && dir=.; 	  echo "rm -f \"$${dir}/so_locations\""; 	  rm -f "$${dir}/so_locations"; 	done
 libsystems.la: $(libsystems_la_OBJECTS) $(libsystems_la_DEPENDENCIES) 
 	$(LINK)  $(libsystems_la_LDFLAGS) $(libsystems_la_OBJECTS) $(libsystems_la_LIBADD) $(LIBS)
 
@@ -227,61 +224,24 @@ ETAGSFLAGS =
 tags: TAGS
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
-	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
-	unique=`for i in $$list; do \
-	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
-	  done | \
-	  $(AWK) '    { files[$$0] = 1; } \
-	       END { for (i in files) print i; }'`; \
-	mkid -fID $$unique
+	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; 	unique=`for i in $$list; do 	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; 	  done | 	  $(AWK) '    { files[$$0] = 1; } 	       END { for (i in files) print i; }'`; 	mkid -fID $$unique
 
-TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
-		$(TAGS_FILES) $(LISP)
-	tags=; \
-	here=`pwd`; \
-	list='$(SOURCES) $(HEADERS)  $(LISP) $(TAGS_FILES)'; \
-	unique=`for i in $$list; do \
-	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
-	  done | \
-	  $(AWK) '    { files[$$0] = 1; } \
-	       END { for (i in files) print i; }'`; \
-	test -z "$(ETAGS_ARGS)$$tags$$unique" \
-	  || $(ETAGS) $(ETAGSFLAGS) $(AM_ETAGSFLAGS) $(ETAGS_ARGS) \
-	     $$tags $$unique
+TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) 		$(TAGS_FILES) $(LISP)
+	tags=; 	here=`pwd`; 	list='$(SOURCES) $(HEADERS)  $(LISP) $(TAGS_FILES)'; 	unique=`for i in $$list; do 	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; 	  done | 	  $(AWK) '    { files[$$0] = 1; } 	       END { for (i in files) print i; }'`; 	test -z "$(ETAGS_ARGS)$$tags$$unique" 	  || $(ETAGS) $(ETAGSFLAGS) $(AM_ETAGSFLAGS) $(ETAGS_ARGS) 	     $$tags $$unique
 
 GTAGS:
-	here=`$(am__cd) $(top_builddir) && pwd` \
-	  && cd $(top_srcdir) \
-	  && gtags -i $(GTAGS_ARGS) $$here
+	here=`$(am__cd) $(top_builddir) && pwd` 	  && cd $(top_srcdir) 	  && gtags -i $(GTAGS_ARGS) $$here
 
 distclean-tags:
 	-rm -f TAGS ID GTAGS GRTAGS GSYMS GPATH
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 
-top_distdir = ../..
+@BACKEND_MP1E_FALSE@top_distdir = ..
+@BACKEND_MP1E_TRUE@top_distdir = ../..
 distdir = $(top_distdir)/$(PACKAGE)-$(VERSION)
 
 distdir: $(DISTFILES)
-	@list='$(DISTFILES)'; for file in $$list; do \
-	  if test -f $$file || test -d $$file; then d=.; else d=$(srcdir); fi; \
-	  dir=`echo "$$file" | sed -e 's,/[^/]*$$,,'`; \
-	  if test "$$dir" != "$$file" && test "$$dir" != "."; then \
-	    dir="/$$dir"; \
-	    $(mkinstalldirs) "$(distdir)$$dir"; \
-	  else \
-	    dir=''; \
-	  fi; \
-	  if test -d $$d/$$file; then \
-	    if test -d $(srcdir)/$$file && test $$d != $(srcdir); then \
-	      cp -pR $(srcdir)/$$file $(distdir)$$dir || exit 1; \
-	    fi; \
-	    cp -pR $$d/$$file $(distdir)$$dir || exit 1; \
-	  else \
-	    test -f $(distdir)/$$file \
-	    || cp -p $$d/$$file $(distdir)/$$file \
-	    || exit 1; \
-	  fi; \
-	done
+	@list='$(DISTFILES)'; for file in $$list; do 	  if test -f $$file || test -d $$file; then d=.; else d=$(srcdir); fi; 	  dir=`echo "$$file" | sed -e 's,/[^/]*$$,,'`; 	  if test "$$dir" != "$$file" && test "$$dir" != "."; then 	    dir="/$$dir"; 	    $(mkinstalldirs) "$(distdir)$$dir"; 	  else 	    dir=''; 	  fi; 	  if test -d $$d/$$file; then 	    if test -d $(srcdir)/$$file && test $$d != $(srcdir); then 	      cp -pR $(srcdir)/$$file $(distdir)$$dir || exit 1; 	    fi; 	    cp -pR $$d/$$file $(distdir)$$dir || exit 1; 	  else 	    test -f $(distdir)/$$file 	    || cp -p $$d/$$file $(distdir)/$$file 	    || exit 1; 	  fi; 	done
 check-am: all-am
 check: check-am
 all-am: Makefile $(LTLIBRARIES)
@@ -298,10 +258,7 @@ install-am: all-am
 
 installcheck: installcheck-am
 install-strip:
-	$(MAKE) $(AM_MAKEFLAGS) INSTALL_PROGRAM="$(INSTALL_STRIP_PROGRAM)" \
-	  INSTALL_STRIP_FLAG=-s \
-	  `test -z '$(STRIP)' || \
-	    echo "INSTALL_PROGRAM_ENV=STRIPPROG='$(STRIP)'"` install
+	$(MAKE) $(AM_MAKEFLAGS) INSTALL_PROGRAM="$(INSTALL_STRIP_PROGRAM)" 	  INSTALL_STRIP_FLAG=-s 	  `test -z '$(STRIP)' || 	    echo "INSTALL_PROGRAM_ENV=STRIPPROG='$(STRIP)'"` install
 mostlyclean-generic:
 
 clean-generic:
@@ -314,13 +271,11 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-generic clean-libtool clean-noinstLTLIBRARIES \
-	mostlyclean-am
+clean-am: clean-generic clean-libtool clean-noinstLTLIBRARIES 	mostlyclean-am
 
 distclean: distclean-am
 
-distclean-am: clean-am distclean-compile distclean-depend \
-	distclean-generic distclean-libtool distclean-tags
+distclean-am: clean-am distclean-compile distclean-depend 	distclean-generic distclean-libtool distclean-tags
 
 dvi: dvi-am
 
@@ -346,22 +301,11 @@ maintainer-clean-am: distclean-am maintainer-clean-generic
 
 mostlyclean: mostlyclean-am
 
-mostlyclean-am: mostlyclean-compile mostlyclean-generic \
-	mostlyclean-libtool
+mostlyclean-am: mostlyclean-compile mostlyclean-generic 	mostlyclean-libtool
 
 uninstall-am: uninstall-info-am
 
-.PHONY: GTAGS all all-am check check-am clean clean-generic \
-	clean-libtool clean-noinstLTLIBRARIES distclean \
-	distclean-compile distclean-depend distclean-generic \
-	distclean-libtool distclean-tags distdir dvi dvi-am info \
-	info-am install install-am install-data install-data-am \
-	install-exec install-exec-am install-info install-info-am \
-	install-man install-strip installcheck installcheck-am \
-	installdirs maintainer-clean maintainer-clean-generic \
-	mostlyclean mostlyclean-compile mostlyclean-generic \
-	mostlyclean-libtool tags uninstall uninstall-am \
-	uninstall-info-am
+.PHONY: GTAGS all all-am check check-am clean clean-generic 	clean-libtool clean-noinstLTLIBRARIES distclean 	distclean-compile distclean-depend distclean-generic 	distclean-libtool distclean-tags distdir dvi dvi-am info 	info-am install install-am install-data install-data-am 	install-exec install-exec-am install-info install-info-am 	install-man install-strip installcheck installcheck-am 	installdirs maintainer-clean maintainer-clean-generic 	mostlyclean mostlyclean-compile mostlyclean-generic 	mostlyclean-libtool tags uninstall uninstall-am 	uninstall-info-am
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

@@ -3,7 +3,7 @@
 noinst_LTLIBRARIES = libdevices.la
 
 INCLUDES = -D_GNU_SOURCE -D_REENTRANT -DFLOAT=float \
-	-include $(top_srcdir)/config.h \
+	-include $(top_builddir)/config.h \
 	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
 
 libdevices_la_SOURCES = \

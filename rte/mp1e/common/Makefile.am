@@ -2,7 +2,7 @@
 
 noinst_LTLIBRARIES = libcommon.la
 
-INCLUDES = -D_GNU_SOURCE -D_REENTRANT -include $(top_srcdir)/config.h \
+INCLUDES = -D_GNU_SOURCE -D_REENTRANT -include $(top_builddir)/config.h \
 	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
 
 libcommon_la_SOURCES = \
