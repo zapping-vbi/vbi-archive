@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.34 2002-06-18 20:36:03 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.35 2002-06-19 08:16:26 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -1223,10 +1223,11 @@ void plugin_add_gui (GnomeApp * app)
   button = gtk_toolbar_append_element (GTK_TOOLBAR (toolbar1),
 				       GTK_TOOLBAR_CHILD_BUTTON, NULL,
 				       _("MPEG"),
-				       _(tooltip),
-				       NULL, tmp_toolbar_icon,
+				       NULL, NULL, tmp_toolbar_icon,
 				       on_remote_command1,
 				       (gpointer)((const gchar *) "record"));
+
+  z_tooltip_set (button, _(tooltip));
 
   /* Set up the widget so we can find it later */
   gtk_object_set_data (GTK_OBJECT (app), "mpeg_button",
@@ -1259,7 +1260,7 @@ plugin_process_popup_menu		 (GtkWidget	*widget,
 
   menuitem = z_gtk_pixmap_menu_item_new (_("Record as MPEG"),
 					GNOME_STOCK_PIXMAP_COLORSELECTOR);
-  set_tooltip (menuitem, _(tooltip));
+  z_tooltip_set (menuitem, _(tooltip));
 
   gtk_signal_connect (GTK_OBJECT (menuitem), "activate",
 		      (GtkSignalFunc) on_remote_command1,
@@ -2379,9 +2380,9 @@ pref_rebuild_configs		(GtkWidget *		page,
 		      GTK_SIGNAL_FUNC (on_pref_config_changed), page);
 
   why = NULL;
-  set_sensitive_with_tooltip (configs, nformats > 0, NULL, why);
-  set_sensitive_with_tooltip (lookup_widget (page, "delete"), nformats > 0, NULL, why);
-  set_sensitive_with_tooltip (lookup_widget (page, "notebook2"), nformats > 0, NULL, why);
+  z_set_sensitive_with_tooltip (configs, nformats > 0, NULL, why);
+  z_set_sensitive_with_tooltip (lookup_widget (page, "delete"), nformats > 0, NULL, why);
+  z_set_sensitive_with_tooltip (lookup_widget (page, "notebook2"), nformats > 0, NULL, why);
 
   if (nformats > 0)
     on_pref_config_changed (NULL, page);
@@ -2726,8 +2727,8 @@ on_saving_record_clicked	(GtkButton *		button,
 
   if (do_start (record_option_filename))
     {
-      set_sensitive_with_tooltip (lookup_widget (saving_dialog, "optionmenu14"),
-				  FALSE, NULL, NULL);
+      z_set_sensitive_with_tooltip (lookup_widget (saving_dialog, "optionmenu14"),
+				    FALSE, NULL, NULL);
 
       gtk_widget_set_sensitive (lookup_widget (saving_dialog, "fileentry3"), FALSE);
       gtk_widget_set_sensitive (GTK_WIDGET (record), FALSE);
@@ -2755,7 +2756,7 @@ saving_dialog_attach_formats	(void)
   gchar *name;
 
   nformats = record_config_menu_attach (zconf_root, configs, NULL);
-  set_sensitive_with_tooltip (configs, nformats > 0, NULL, NULL);
+  z_set_sensitive_with_tooltip (configs, nformats > 0, NULL, NULL);
 
   /*
    *  Proposed filename is last one, with appropriate extension
@@ -2890,7 +2891,7 @@ saving_dialog_new		(void)
 
   widget = lookup_widget (saving_dialog, "pause");
   gtk_widget_set_sensitive (widget, FALSE);
-  set_tooltip (widget, _("Not implemented yet"));
+  z_tooltip_set (widget, _("Not implemented yet"));
 
   gtk_widget_set_sensitive (lookup_widget (saving_dialog, "stop"), FALSE);
 
@@ -3076,10 +3077,11 @@ plugin_add_gui			(GnomeApp *		app)
   button = gtk_toolbar_append_element (GTK_TOOLBAR (toolbar1),
 				       GTK_TOOLBAR_CHILD_BUTTON, NULL,
 				       _("Record"),
-				       _(tooltip),
-				       NULL, tmp_toolbar_icon,
+				       NULL, NULL, tmp_toolbar_icon,
 				       on_remote_command1,
 				       (gpointer)((const gchar *) "record"));
+
+  z_tooltip_set (button, _(tooltip));
 
   /* Set up the widget so we can find it later */
   gtk_object_set_data (GTK_OBJECT (app), "mpeg_button", button);
@@ -3100,7 +3102,7 @@ plugin_process_popup_menu	(GtkWidget *		widget,
 
   menuitem = z_gtk_pixmap_menu_item_new (_("Record"),
 					 GNOME_STOCK_PIXMAP_COLORSELECTOR);
-  set_tooltip (menuitem, _(tooltip));
+  z_tooltip_set (menuitem, _(tooltip));
 
   gtk_signal_connect (GTK_OBJECT (menuitem), "activate",
 		      (GtkSignalFunc) on_remote_command1,

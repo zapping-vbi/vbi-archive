@@ -121,7 +121,6 @@
 	    <widget>
 	      <class>GtkPixmapMenuItem</class>
 	      <name>plugins1</name>
-	      <tooltip>Manages the installed plug-ins</tooltip>
 	      <signal>
 		<name>activate</name>
 		<handler>on_plugins1_activate</handler>
@@ -141,7 +140,7 @@
 	    <widget>
 	      <class>GtkPixmapMenuItem</class>
 	      <name>channels1</name>
-	      <tooltip>Edit here the channels you have tuned</tooltip>
+	      <tooltip>Edit the channel list</tooltip>
 	      <signal>
 		<name>activate</name>
 		<handler>on_channels1_activate</handler>
@@ -166,7 +165,7 @@
 	    <widget>
 	      <class>GtkPixmapMenuItem</class>
 	      <name>go_fullscreen1</name>
-	      <tooltip>Use this to go fullscreen. Press ESC to return to Windowed mode</tooltip>
+	      <tooltip>Switch to fullscreen mode. Press ESC to return to windowed mode</tooltip>
 	      <accelerator>
 		<modifiers>GDK_CONTROL_MASK</modifiers>
 		<key>GDK_F</key>
@@ -180,7 +179,7 @@
 	    <widget>
 	      <class>GtkPixmapMenuItem</class>
 	      <name>go_previewing2</name>
-	      <tooltip>Use this to start the windowed overlay mode</tooltip>
+	      <tooltip>Switch to windowed overlay mode</tooltip>
 	      <accelerator>
 		<modifiers>GDK_CONTROL_MASK</modifiers>
 		<key>GDK_P</key>
@@ -194,7 +193,7 @@
 	    <widget>
 	      <class>GtkPixmapMenuItem</class>
 	      <name>go_capturing2</name>
-	      <tooltip>Use this to start the windowed capture mode</tooltip>
+	      <tooltip>Switch to windowed capture mode</tooltip>
 	      <accelerator>
 		<modifiers>GDK_CONTROL_MASK</modifiers>
 		<key>GDK_C</key>
@@ -214,7 +213,7 @@
 	    <widget>
 	      <class>GtkPixmapMenuItem</class>
 	      <name>videotext1</name>
-	      <tooltip>Use Zapping as a Teletext navigator</tooltip>
+	      <tooltip>Switch to Teletext mode</tooltip>
 	      <accelerator>
 		<modifiers>GDK_CONTROL_MASK</modifiers>
 		<key>GDK_T</key>
@@ -228,7 +227,6 @@
 	    <widget>
 	      <class>GtkPixmapMenuItem</class>
 	      <name>new_ttxview</name>
-	      <tooltip>Starts the Teletext decoder in a new window</tooltip>
 	      <accelerator>
 		<modifiers>GDK_CONTROL_MASK</modifiers>
 		<key>GDK_N</key>
@@ -242,7 +240,7 @@
 	    <widget>
 	      <class>GtkPixmapMenuItem</class>
 	      <name>vbi_info1</name>
-	      <tooltip>Info about the current network</tooltip>
+	      <tooltip>Info about the currently tuned network</tooltip>
 	      <signal>
 		<name>activate</name>
 		<handler>on_vbi_info1_activate</handler>
@@ -289,7 +287,7 @@
 	    <widget>
 	      <class>GtkCheckMenuItem</class>
 	      <name>closed_caption1</name>
-	      <tooltip>Toggle Subtitles Display (if transmitted)</tooltip>
+	      <tooltip>Switch subtitles on and off</tooltip>
 	      <signal>
 		<name>activate</name>
 		<handler>on_closed_caption1_activate</handler>
@@ -309,7 +307,6 @@
 	    <widget>
 	      <class>GtkPixmapMenuItem</class>
 	      <name>hide_controls2</name>
-	      <tooltip>Hide the menu and the toolbar</tooltip>
 	      <accelerator>
 		<modifiers>GDK_CONTROL_MASK</modifiers>
 		<key>GDK_H</key>
@@ -320,7 +317,7 @@
 		<handler>on_hide_controls1_activate</handler>
 		<last_modification_time>Mon, 02 Apr 2001 18:39:33 GMT</last_modification_time>
 	      </signal>
-	      <label>Hide toolbar</label>
+	      <label>Hide menu and toolbar</label>
 	      <right_justify>False</right_justify>
 	      <stock_icon>GNOME_STOCK_MENU_BOOK_YELLOW</stock_icon>
 	    </widget>
@@ -346,7 +343,6 @@
 	    <widget>
 	      <class>GtkPixmapMenuItem</class>
 	      <name>main_help1</name>
-	      <tooltip>You can get here some info about this program</tooltip>
 	      <signal>
 		<name>activate</name>
 		<handler>on_main_help1_activate</handler>
@@ -966,6 +962,20 @@
 	  <name>checkbutton4</name>
 	  <can_focus>True</can_focus>
 	  <label>Resize using fixed increments</label>
+	  <active>False</active>
+	  <draw_indicator>True</draw_indicator>
+	  <child>
+	    <padding>0</padding>
+	    <expand>False</expand>
+	    <fill>False</fill>
+	  </child>
+	</widget>
+
+	<widget>
+	  <class>GtkCheckButton</class>
+	  <name>checkbutton14</name>
+	  <can_focus>True</can_focus>
+	  <label>Show tooltips</label>
 	  <active>False</active>
 	  <draw_indicator>True</draw_indicator>
 	  <child>
@@ -3558,7 +3568,6 @@ Open automatically
   <widget>
     <class>GtkPixmapMenuItem</class>
     <name>go_fullscreen2</name>
-    <tooltip>Use this for starting the fullscreen mode</tooltip>
     <accelerator>
       <modifiers>GDK_CONTROL_MASK</modifiers>
       <key>GDK_F</key>
@@ -3572,7 +3581,6 @@ Open automatically
   <widget>
     <class>GtkPixmapMenuItem</class>
     <name>go_previewing2</name>
-    <tooltip>Use this to start the windowed overlay mode</tooltip>
     <accelerator>
       <modifiers>GDK_CONTROL_MASK</modifiers>
       <key>GDK_P</key>
@@ -3586,7 +3594,6 @@ Open automatically
   <widget>
     <class>GtkPixmapMenuItem</class>
     <name>go_capturing2</name>
-    <tooltip>Use this to start the windowed capture mode</tooltip>
     <accelerator>
       <modifiers>GDK_CONTROL_MASK</modifiers>
       <key>GDK_C</key>
@@ -3606,7 +3613,6 @@ Open automatically
   <widget>
     <class>GtkPixmapMenuItem</class>
     <name>videotext2</name>
-    <tooltip>Use Zapping as a teletext navigator</tooltip>
     <accelerator>
       <modifiers>GDK_CONTROL_MASK</modifiers>
       <key>GDK_T</key>
@@ -3620,7 +3626,6 @@ Open automatically
   <widget>
     <class>GtkPixmapMenuItem</class>
     <name>new_ttxview2</name>
-    <tooltip>Starts the Teletext decoder in a new window</tooltip>
     <accelerator>
       <modifiers>GDK_CONTROL_MASK</modifiers>
       <key>GDK_N</key>
@@ -3640,7 +3645,6 @@ Open automatically
   <widget>
     <class>GtkPixmapMenuItem</class>
     <name>appearance1</name>
-    <tooltip>Resize the main window, hide/show toolbars</tooltip>
     <label>_Appearance</label>
     <right_justify>False</right_justify>
     <stock_icon>GNOME_STOCK_MENU_CONVERT</stock_icon>
@@ -3652,7 +3656,6 @@ Open automatically
       <widget>
 	<class>GtkPixmapMenuItem</class>
 	<name>hide_controls1</name>
-	<tooltip>Hide the menu and the toolbar</tooltip>
 	<accelerator>
 	  <modifiers>GDK_CONTROL_MASK</modifiers>
 	  <key>GDK_H</key>
@@ -3663,7 +3666,7 @@ Open automatically
 	  <handler>on_hide_controls1_activate</handler>
 	  <last_modification_time>Tue, 23 Jan 2001 20:39:56 GMT</last_modification_time>
 	</signal>
-	<label>Hide controls</label>
+	<label>Hide menu and toolbar</label>
 	<right_justify>False</right_justify>
 	<stock_icon>GNOME_STOCK_MENU_BOOK_YELLOW</stock_icon>
       </widget>
@@ -4130,7 +4133,6 @@ Open automatically
   <widget>
     <class>GtkPixmapMenuItem</class>
     <name>open_in_new_window1</name>
-    <tooltip>Open this link in a new window</tooltip>
     <label>_Open in new window</label>
     <right_justify>False</right_justify>
     <stock_icon>GNOME_STOCK_MENU_NEW</stock_icon>
@@ -4145,8 +4147,7 @@ Open automatically
   <widget>
     <class>GtkPixmapMenuItem</class>
     <name>search1</name>
-    <tooltip>Search for a given pattern in the cache</tooltip>
-    <label>_Search...</label>
+    <label>_Search page cache...</label>
     <right_justify>False</right_justify>
     <stock_icon>GNOME_STOCK_MENU_SEARCH</stock_icon>
   </widget>
@@ -4154,8 +4155,7 @@ Open automatically
   <widget>
     <class>GtkPixmapMenuItem</class>
     <name>export1</name>
-    <tooltip>Export the current page to different formats</tooltip>
-    <label>_Export</label>
+    <label>_Export this page</label>
     <right_justify>False</right_justify>
     <stock_icon>GNOME_STOCK_MENU_CONVERT</stock_icon>
   </widget>
@@ -4163,7 +4163,6 @@ Open automatically
   <widget>
     <class>GtkPixmapMenuItem</class>
     <name>bookmarks1</name>
-    <tooltip>Manage your bookmarks</tooltip>
     <label>_Bookmarks</label>
     <right_justify>False</right_justify>
     <stock_icon>GNOME_STOCK_MENU_INDEX</stock_icon>
@@ -4175,7 +4174,6 @@ Open automatically
       <widget>
 	<class>GtkPixmapMenuItem</class>
 	<name>add_bookmark</name>
-	<tooltip>Add the current page to the bookmarks</tooltip>
 	<label>_Add current page...</label>
 	<right_justify>False</right_justify>
 	<stock_icon>GNOME_STOCK_MENU_PROP</stock_icon>
@@ -4184,7 +4182,6 @@ Open automatically
       <widget>
 	<class>GtkPixmapMenuItem</class>
 	<name>edit_bookmarks</name>
-	<tooltip>Use this dialog to delete any bookmarks you wish to remove</tooltip>
 	<label>_Edit Bookmarks...</label>
 	<right_justify>False</right_justify>
 	<stock_icon>GNOME_STOCK_MENU_INDEX</stock_icon>

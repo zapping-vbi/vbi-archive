@@ -1138,7 +1138,7 @@ insert_one_channel			(GtkMenu *menu,
 
   if ((tooltip = z_key_name (tuned->accel)))
     {
-      set_tooltip (menu_item, tooltip);
+      z_tooltip_set (menu_item, tooltip);
       g_free (tooltip);
     }
 

@@ -465,7 +465,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.163 2002-05-30 14:49:38 mschimek Exp $",
+	 "$Id: main.c,v 1.164 2002-06-19 08:14:51 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -657,6 +657,9 @@ int main(int argc, char * argv[])
       gtk_widget_hide(lookup_widget(main_window, "tb-mute"));
       D();
     }
+  D();
+  z_tooltips_active (zconf_get_boolean
+		     (NULL, "/zapping/options/main/show_tooltips"));
   D();
   main_window = create_zapping();
   D();
@@ -1064,6 +1067,7 @@ static gboolean startup_zapping(gboolean load_plugins)
   zcc_bool(TRUE, "Save and restore zapping geometry (non ICCM compliant)", 
 	   "keep_geometry");
   zcc_bool(FALSE, "Keep main window on top", "keep_on_top");
+  zcc_bool(TRUE, "Show tooltips", "show_tooltips");
   zcc_bool(TRUE, "Resize by fixed increments", "fixed_increments");
   zcc_char(tveng_get_country_tune_by_id(0)->name,
 	     "The country you are currently in", "current_country");

@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.18 2002-06-18 20:36:03 mschimek Exp $ */
+/* $Id: options.c,v 1.19 2002-06-19 08:16:32 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -152,7 +152,7 @@ create_entry (grte_options *opts, rte_option_info *ro, int index)
   label = ro_label_new (ro);
 
   entry = gtk_entry_new ();
-  set_tooltip (entry, _(ro->tooltip));
+  z_tooltip_set (entry, _(ro->tooltip));
   gtk_widget_show (entry);
 
   g_assert (rte_codec_option_get (opts->codec, ro->keyword, &val));
@@ -247,7 +247,7 @@ create_menu (grte_options *opts, rte_option_info *ro, int index)
   gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu), menu);
   gtk_option_menu_set_history (GTK_OPTION_MENU (option_menu), current);
   gtk_widget_show (menu);
-  set_tooltip (option_menu, _(ro->tooltip));
+  z_tooltip_set (option_menu, _(ro->tooltip));
   gtk_widget_show (option_menu);
 
   gtk_table_resize (GTK_TABLE (opts->table), index + 1, 2);
@@ -320,7 +320,7 @@ create_checkbutton (grte_options *opts, rte_option_info *ro, int index)
   cb = gtk_check_button_new_with_label (_(ro->label));
 
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (cb), FALSE);
-  set_tooltip (cb, _(ro->tooltip));
+  z_tooltip_set (cb, _(ro->tooltip));
   gtk_widget_show (cb);
 
   g_assert (rte_codec_option_get (opts->codec, ro->keyword, &val));
@@ -698,7 +698,7 @@ grte_codec_create_menu		(rte_context *		context,
       menu_item = gtk_menu_item_new_with_label (_(cdinfo->label));
       gtk_object_set_data (GTK_OBJECT (menu_item), "keyword",
 			   (void *) cdinfo->keyword);
-      set_tooltip (menu_item, _(cdinfo->tooltip));
+      z_tooltip_set (menu_item, _(cdinfo->tooltip));
       gtk_widget_show (menu_item);
       gtk_menu_append (GTK_MENU (menu), menu_item);
 
@@ -900,7 +900,7 @@ grte_context_create_menu	(const gchar *		zc_root,
       g_free(label);
       gtk_object_set_data (GTK_OBJECT (menu_item), "keyword",
 			   (void *) info->keyword);
-      set_tooltip (menu_item, _(info->tooltip));
+      z_tooltip_set (menu_item, _(info->tooltip));
       gtk_widget_show (menu_item);
       gtk_menu_append (GTK_MENU (menu), menu_item);
 
