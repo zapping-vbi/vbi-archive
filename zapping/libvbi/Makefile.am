@@ -4,7 +4,7 @@ EXTRA_DIST = font1.xbm font2.xbm font3.xbm font4.xbm README
 
 ## Avoid warning messages (i'm not going to maintain this code)
 ## mhs testing new vbi code; CFLAGS = -w $(ARCH_CFLAGS)
-CFLAGS = -g -O0 -Wall $(ARCH_CFLAGS)
+CFLAGS = -D_GNU_SOURCE -g -O0 -Wall $(ARCH_CFLAGS)
 
 libvbi_a_SOURCES = \
 	decoder.c decoder.h v4lx.c v4lx.h \

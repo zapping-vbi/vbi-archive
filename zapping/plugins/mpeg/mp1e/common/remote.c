@@ -18,9 +18,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: remote.c,v 1.3 2000-11-03 06:18:26 mschimek Exp $ */
+/* $Id: remote.c,v 1.4 2000-12-15 23:26:46 garetxe Exp $ */
 
 #include <float.h>
+#include "../common/log.h"
 #include "remote.h"
 #include "math.h"
 

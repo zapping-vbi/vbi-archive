@@ -18,8 +18,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.c,v 1.2 2000-11-30 09:36:38 mschimek Exp $ */
+/* $Id: pdc.c,v 1.3 2000-12-15 23:26:46 garetxe Exp $ */
 
+#include "../common/log.h"
 #include "vbi.h"
 
 /*

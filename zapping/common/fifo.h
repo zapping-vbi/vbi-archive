@@ -18,21 +18,18 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.2 2000-12-15 00:14:16 garetxe Exp $ */
+/* $Id: fifo.h,v 1.3 2000-12-15 23:26:46 garetxe Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
 
+#include <stdlib.h>
 #include "list.h"
 #include "types.h"
 #include "threads.h"
 
 /*
   TODO:
-  - pthread_* rewrite:
-    + Figure out some way to avoid blocking all consumers when accesing
-      one's full list [rwlock, i believe, but no man page]
-    + Use thread-specific data [pthread_key]
   - Store some buffers in fifos without consumers (producer-side).
   - Killing dead consumers
   - Stealing buffers from slow consumers
@@ -71,18 +68,24 @@ typedef struct {
 	void *			user_data;
 } buffer;
 
+typedef struct _fifo fifo;
+
 typedef struct {
-	pthread_t		owner;
 	list			full;
 	mucon			consumer;
+	fifo			*f;
+	int			index; /* in consumers */
 } coninfo;
 
-typedef struct _fifo {
+struct _fifo {
 	mucon			producer;
 
+	/* Consumers */
 	coninfo *		consumers;
+	pthread_rwlock_t	consumers_rwlock;
 	int			num_consumers;
-	pthread_mutex_t		consumers_mutex;
+	pthread_key_t		consumer_key;
+	/* Producer */
 	list			empty;		/* LIFO */
 
 	buffer *		(* wait_full)(struct _fifo *);
@@ -99,7 +102,7 @@ typedef struct _fifo {
 	int			num_buffers;
 
 	void *			user_data;
-} fifo;
+};
 
 extern bool	init_buffer(buffer *b, int size);
 extern void	uninit_buffer(buffer *b);
@@ -127,31 +130,42 @@ extern void	remove_consumer(fifo *f);
 static inline void
 query_consumer(fifo *f, list **full, mucon **consumer)
 {
-	pthread_t current_thread = pthread_self();
 	int i;
+	coninfo *current=pthread_getspecific(f->consumer_key);
 
-	for (i=0; i<f->num_consumers;i++)
-		if (pthread_equal(f->consumers[i].owner,
-				  current_thread)) {
-			if (full)
-				*full = &(f->consumers[i].full);
-			if (consumer)
-				*consumer = &(f->consumers[i].consumer);
-			return;
-		}
+	if (current) {
+		if (full)
+			*full = &(current->full);
+		if (consumer)
+			*consumer = &(current->consumer);
+		return;
+	}
 	
 	/* nonexistant, create a new entry for the current thread */
+	/* no recursive rwlocks, this is non-atomic */
+	pthread_rwlock_unlock(&f->consumers_rwlock);
+	pthread_rwlock_wrlock(&f->consumers_rwlock);
+	/*
+	  there's the theoretical possibility that num_consumers changes
+	  between the unlock and the wrlock.
+	*/
+	i = f->num_consumers;
 	f->consumers = (coninfo*)
 		realloc(f->consumers, sizeof(coninfo)*(i+1));
 	
 	memset(&(f->consumers[i]), 0, sizeof(coninfo));
-	f->consumers[i].owner = current_thread;
+	f->consumers[i].index = i;
+	f->consumers[i].f = f;
+	pthread_setspecific(f->consumer_key, &(f->consumers[i]));
 	mucon_init(&(f->consumers[i].consumer));
 	if (full)
 		*full = &(f->consumers[i].full);
 	if (consumer)
 		*consumer = &(f->consumers[i].consumer);
 	f->num_consumers++;
+
+	pthread_rwlock_unlock(&f->consumers_rwlock);
+	pthread_rwlock_rdlock(&f->consumers_rwlock);
 }
 
 static inline bool
@@ -181,7 +195,7 @@ unget_full_buffer(fifo *f, buffer *b)
 {
 	list *full; mucon *consumer;
 
-	pthread_mutex_lock(&f->consumers_mutex);
+	pthread_rwlock_rdlock(&f->consumers_rwlock);
 	query_consumer(f, &full, &consumer);
 	pthread_mutex_lock(&consumer->mutex);
 
@@ -189,7 +203,7 @@ unget_full_buffer(fifo *f, buffer *b)
 
 	pthread_mutex_unlock(&consumer->mutex);
 	pthread_cond_broadcast(&consumer->cond);
-	pthread_mutex_unlock(&f->consumers_mutex);
+	pthread_rwlock_unlock(&f->consumers_rwlock);
 }
 
 static inline buffer *
@@ -198,7 +212,7 @@ wait_full_buffer(fifo *f)
 	buffer *b;
 	list *full; mucon *consumer;
 
-	pthread_mutex_lock(&f->consumers_mutex);
+	pthread_rwlock_rdlock(&f->consumers_rwlock);
 	query_consumer(f, &full, &consumer);
 
 	pthread_mutex_lock(&consumer->mutex);
@@ -212,7 +226,6 @@ wait_full_buffer(fifo *f)
 		send_full_buffer(f, b);
 		b = (buffer*) rem_head(full); /* Should always work */
 	} else if (!b) {
-		pthread_mutex_unlock(&f->consumers_mutex);
 		pthread_mutex_lock(&consumer->mutex);
 
 		while (!(b = (buffer *) rem_head(full)))
@@ -220,10 +233,9 @@ wait_full_buffer(fifo *f)
 					  &consumer->mutex);
 		
 		pthread_mutex_unlock(&consumer->mutex);
-		pthread_mutex_lock(&f->consumers_mutex);
 	}
 
-	pthread_mutex_unlock(&f->consumers_mutex);
+	pthread_rwlock_unlock(&f->consumers_rwlock);
 
 	return b;
 }
@@ -234,7 +246,7 @@ recv_full_buffer(fifo *f)
 	buffer *b;
 	list *full; mucon *consumer;
 
-	pthread_mutex_lock(&f->consumers_mutex);
+	pthread_rwlock_rdlock(&f->consumers_rwlock);
 	query_consumer(f, &full, &consumer);
 
 	pthread_mutex_lock(&consumer->mutex);
@@ -243,17 +255,14 @@ recv_full_buffer(fifo *f)
 
 	if ((!b) && (f->wait_full)) {
 		/* Send a new buffer to all consumers */
-		send_full_buffer(f, f->wait_full(f));
-		b = (buffer*) rem_head(full); /* Should always work */
-	} else if (!b) {
-		pthread_mutex_lock(&consumer->mutex);
-
-		b = (buffer *) rem_head(full);
-		
-		pthread_mutex_unlock(&consumer->mutex);
+		b = f->wait_full(f);
+		if (b) {
+			send_full_buffer(f, b);
+			b = (buffer*) rem_head(full); /* Should always work */
+		}
 	}
 
-	pthread_mutex_unlock(&f->consumers_mutex);
+	pthread_rwlock_unlock(&f->consumers_rwlock);
 
 	return b;
 }

@@ -20,9 +20,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.10 2000-11-11 02:32:21 mschimek Exp $ */
+/* $Id: mp2.c,v 1.11 2000-12-15 23:26:46 garetxe Exp $ */
 
 #include <limits.h>
+#include "../common/log.h"
 #include "../options.h"
 #include "../common/mmx.h"
 #include "../common/profile.h"

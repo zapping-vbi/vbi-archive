@@ -102,10 +102,6 @@ txt_option(struct export *e, int opt, char *arg)
     return 0;
 }
 
-// string.h ??
-extern char * stpcpy(char *, char *);
-
-
 static void
 put_attr(struct export *e, struct fmt_char *new)
 {

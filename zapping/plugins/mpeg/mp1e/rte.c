@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.40 2000-12-15 00:14:19 garetxe Exp $ */
+/* $Id: rte.c,v 1.41 2000-12-15 23:26:46 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -133,7 +133,7 @@ wait_data(rte_context * context, int video)
 		buffer_callback = &context->private->audio_buffer_callback;
 	}
 
-	pthread_mutex_lock(&f->consumers_mutex);
+	pthread_rwlock_rdlock(&f->consumers_rwlock);
 	query_consumer(f, &full, &consumer);
 
 	/* do we have an available buffer from the push interface? */
@@ -152,7 +152,7 @@ wait_data(rte_context * context, int video)
 					 stream, context->private->user_data);
 			
 			pthread_mutex_unlock(&consumer->mutex);
-			pthread_mutex_unlock(&f->consumers_mutex);
+			pthread_rwlock_unlock(&f->consumers_rwlock);
 			return b;
 		} else if (*buffer_callback) {
 			b = wait_empty_buffer(f);
@@ -163,7 +163,7 @@ wait_data(rte_context * context, int video)
 			b->user_data = rbuf.user_data;
 
 			pthread_mutex_unlock(&consumer->mutex);
-			pthread_mutex_unlock(&f->consumers_mutex);
+			pthread_rwlock_unlock(&f->consumers_rwlock);
 			return b;
 		}
 		/* wait for the push interface */
@@ -171,7 +171,7 @@ wait_data(rte_context * context, int video)
 	}
 
 	pthread_mutex_unlock(&consumer->mutex);
-	pthread_mutex_unlock(&f->consumers_mutex);
+	pthread_rwlock_unlock(&f->consumers_rwlock);
 	return b;
 }
 

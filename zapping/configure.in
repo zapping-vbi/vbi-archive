@@ -147,11 +147,11 @@ i?86-* | k?-*) dnl catch i386,i486,i586,i686,k6,k7
 			HAVE_MMX="yes"			
 			ARCH_CFLAGS="-march=pentiumpro";;
 		k6-*)
-			HAVE_MMX="yes"			
-			ARCH_CFLAGS="-march=k6";;
+			HAVE_MMX="yes";;		
+dnl			ARCH_CFLAGS="-march=k6";;
 		k7-*)
-			HAVE_MMX="yes"			
-			ARCH_CFLAGS="-march=k7";;
+			HAVE_MMX="yes";;			
+dnl			ARCH_CFLAGS="-march=k7";;
 	esac;;
 alpha*-*) AC_DEFINE(__alpha__);;
 sparc-*) 
@@ -207,6 +207,8 @@ PACKAGE_PIXMAPS_DIR="${datadir}/pixmaps/${PACKAGE}"
 AC_SUBST(PACKAGE_PIXMAPS_DIR)
 
 AC_SUBST(PLUGINS_TO_BUILD)
+
+CFLAGS="-D_GNU_SOURCE $CFLAGS"
 
 AC_OUTPUT([
 zapping.spec

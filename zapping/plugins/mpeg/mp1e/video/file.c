@@ -18,10 +18,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: file.c,v 1.5 2000-12-15 00:14:19 garetxe Exp $ */
+/* $Id: file.c,v 1.6 2000-12-15 23:26:46 garetxe Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
+#include "../common/log.h"
 #include "../common/fifo.h"
 #include "../options.h"
 #include "../common/math.h"

@@ -1,3 +1,8 @@
+16.12.2000	MC fifos <garetxe@users.sourceforge.net>
+
+	* common/fifo.[ch]: Converted to multi-consumers. Lacks some
+	things yet.
+
 6.12.2000	XV bugfixes, remote.c <garetxe@users.sourceforge.net>
 
 	* src/remote.[ch]: Created, allows running some internal Zapping

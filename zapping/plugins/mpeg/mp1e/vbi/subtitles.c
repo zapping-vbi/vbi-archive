@@ -18,9 +18,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: subtitles.c,v 1.3 2000-11-01 08:59:18 mschimek Exp $ */
+/* $Id: subtitles.c,v 1.4 2000-12-15 23:26:46 garetxe Exp $ */
 
 #include <ctype.h>
+#include "../common/log.h"
 #include "vbi.h"
 
 /*

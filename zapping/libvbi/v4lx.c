@@ -18,9 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.3 2000-12-15 00:14:19 garetxe Exp $ */
-
-#define _GNU_SOURCE
+/* $Id: v4lx.c,v 1.4 2000-12-15 23:26:46 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,8 +40,8 @@
 #include "../common/math.h"
 #include "../common/fifo.h"
 
-#define IODIAG(templ, args...) /* with errno */
-#define DIAG(templ, args...)
+#define IODIAG(templ, args...) //fprintf(stderr, templ ": %s\n" ,##args , strerror(errno))/* with errno */
+#define DIAG(templ, args...) //fprintf(stderr, templ,##args)
 
 #define V4L2_LINE 		0 /* API rev. Nov 2000 (-1 -> 0) */
 
@@ -915,7 +913,7 @@ close_vbi_v4lx(fifo *f)
 fifo *
 open_vbi_v4lx(char *dev_name)
 {
-	vbi_device *vbi;
+	vbi_device *vbi=NULL;
 	int r;
 
 	if (!(r = open_v4l2(&vbi, dev_name, 1,
@@ -931,7 +929,6 @@ open_vbi_v4lx(char *dev_name)
 
 	if (!start_fifo(&vbi->fifo)) /* here? */
 		goto failure;
-
 	return &vbi->fifo;
 
 failure:

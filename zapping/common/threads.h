@@ -16,10 +16,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: threads.h,v 1.1 2000-12-11 04:12:53 mschimek Exp $ */
+/* $Id: threads.h,v 1.2 2000-12-15 23:26:46 garetxe Exp $ */
 
 #ifndef THREADS_H
 #define THREADS_H
+
+#undef _GNU_SOURCE
+#define _GNU_SOURCE 1
 
 #include <pthread.h>
 

@@ -16,9 +16,8 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.2 2000-12-15 00:14:16 garetxe Exp $ */
+/* $Id: fifo.c,v 1.3 2000-12-15 23:26:46 garetxe Exp $ */
 
-#define _GNU_SOURCE 1
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -122,7 +121,7 @@ start(fifo *f)
 static inline void
 dealloc_consumer_info(fifo *f, int index)
 {
-	buffer *b;
+	buffer *b; int i;
 	list * full=&(f->consumers[index].full);
 	mucon *consumer=&(f->consumers[index].consumer);
 
@@ -139,32 +138,36 @@ dealloc_consumer_info(fifo *f, int index)
 
 	f->consumers = realloc(f->consumers,
 			       (--(f->num_consumers))*sizeof(coninfo));
+
+	for (i=0; i<f->num_consumers; i++) /* reindex */
+		f->consumers[i].index = i;
+
+	pthread_setspecific(f->consumer_key, NULL);
 }
 
 void
 remove_consumer(fifo *f)
 {
-	int i;
-	pthread_t owner = pthread_self();
+	coninfo *consumer =
+		(coninfo*)pthread_getspecific(f->consumer_key);
 
-	pthread_mutex_lock(&f->consumers_mutex);
-	for (i=0; i<f->num_consumers; i++)
-		if (pthread_equal(f->consumers[i].owner, owner)) {
-			dealloc_consumer_info(f, i);
-			break;
-		}
-	pthread_mutex_unlock(&f->consumers_mutex);
+	if (consumer) {
+		pthread_rwlock_wrlock(&f->consumers_rwlock);
+		dealloc_consumer_info(f, consumer->index);
+		pthread_rwlock_unlock(&f->consumers_rwlock);
+	}
 }
 
 static void
 uninit(fifo * f)
 {
-	pthread_mutex_lock(&f->consumers_mutex);
+	pthread_rwlock_wrlock(&f->consumers_rwlock);
 	while (f->num_consumers)
 		dealloc_consumer_info(f, 0);
-	pthread_mutex_unlock(&f->consumers_mutex);
+	pthread_rwlock_unlock(&f->consumers_rwlock);
 
-	pthread_mutex_destroy(&f->consumers_mutex);
+	pthread_rwlock_destroy(&f->consumers_rwlock);
+	pthread_key_delete(f->consumer_key);
 
 	if (f->buffers)
 		free_buffer_vec(f->buffers, f->num_buffers);
@@ -201,7 +204,7 @@ send_full(fifo *f, buffer *b)
 {
 	int i;
 
-	pthread_mutex_lock(&f->consumers_mutex);
+	pthread_rwlock_rdlock(&f->consumers_rwlock);
 
 	if (f->num_consumers) {
 		b->refcount = f->num_consumers;
@@ -215,10 +218,22 @@ send_full(fifo *f, buffer *b)
 	} else {
 		b->refcount = 1;
 		send_empty(f, b);
-		fprintf(stderr, "Ignoring full buffer: no consumers in fifo %p\n", f);
 	}
 	
-	pthread_mutex_unlock(&f->consumers_mutex);
+	pthread_rwlock_unlock(&f->consumers_rwlock);
+}
+
+/* A consumer thread has disappeared without unregistering as a consumer */
+static void
+key_destroy_callback(void *param)
+{
+	coninfo *consumer = (coninfo*) param;
+
+	if (consumer) { /* param MUST be != NULL, just paranoid */
+		pthread_rwlock_wrlock(&consumer->f->consumers_rwlock);
+		dealloc_consumer_info(consumer->f, consumer->index);
+		pthread_rwlock_unlock(&consumer->f->consumers_rwlock);
+	}	
 }
 
 int
@@ -230,18 +245,11 @@ init_callback_fifo(fifo *f,
 	int num_buffers, int buffer_size)
 {
 	int i;
-	pthread_mutexattr_t mutexattr;
 
 	memset(f, 0, sizeof(fifo));
 
 	/*	if (custom_send_full)
 		FAIL("send_full callback not allowed");*/
-
-	pthread_mutexattr_init(&mutexattr);
-	pthread_mutexattr_settype(&mutexattr,
-				  PTHREAD_MUTEX_RECURSIVE_NP);
-	pthread_mutex_init(&(f->consumers_mutex), &mutexattr);
-	pthread_mutexattr_destroy(&mutexattr);
 
 	if (num_buffers > 0) {
 		f->num_buffers = alloc_buffer_vec(&f->buffers,
@@ -253,6 +261,9 @@ init_callback_fifo(fifo *f,
 		for (i = 0; i < f->num_buffers; i++)
 			add_tail(&f->empty, &f->buffers[i].node);
 	}
+
+	pthread_rwlock_init(&f->consumers_rwlock, NULL);
+	pthread_key_create(&f->consumer_key, key_destroy_callback);
 
 	mucon_init(&f->producer);
 
@@ -288,14 +299,16 @@ init_buffered_fifo(fifo *f, mucon *consumer, int num_buffers, int buffer_size)
 	return f->num_buffers;
 }
 
+/* fixme: What should we do with this? */
 int
 num_buffers_queued(fifo *f)
 {
+#if 0
 	node *n;
 	int i;
 	list *full; mucon *consumer;
 
-	pthread_mutex_lock(&f->consumers_mutex);
+	pthread_rwlock_rdlock(&f->consumers_rwlock);
 	query_consumer(f, &full, &consumer);
 	pthread_mutex_lock(&consumer->mutex);
 
@@ -305,4 +318,6 @@ num_buffers_queued(fifo *f)
 	pthread_mutex_unlock(&f->consumers_mutex);
 
 	return i;
+#endif
+	return 0;
 }

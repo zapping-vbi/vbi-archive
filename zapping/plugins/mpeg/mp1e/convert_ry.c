@@ -28,6 +28,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "options.h"
+#include "common/log.h"
 #include "common/fifo.h"
 #include "common/mmx.h"
 #include "rtepriv.h"
