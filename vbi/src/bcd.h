@@ -18,82 +18,34 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bcd.h,v 1.6.2.4 2003-09-24 18:49:56 mschimek Exp $ */
+/* $Id: bcd.h,v 1.6.2.5 2003-10-16 18:14:38 mschimek Exp $ */
 
 #ifndef BCD_H
 #define BCD_H
 
 #include "misc.h"
 
-/**
- * @addtogroup BCD BCD arithmetic for Teletext page numbers
- * @ingroup Service
- *
- * Teletext page numbers are expressed as binary coded decimal numbers
- * in range 0x100 to 0x8FF. The bcd format encodes one decimal digit in
- * every hex nibble (four bits) of the number. Page numbers containing
- * digits 0xA to 0xF are reserved for various system purposes and not
- * intended for display.
- */
-
 /* Public */
 
-/**
- * @ingroup BCD
- * @param dec Decimal number.
- * 
- * Converts a two's complement binary to a packed bcd value.
- * Currently the argument @a dec must be in range 0 ... 9999.
- * Other values yield an undefined result.
- *
- * @return
- * Packed bcd number.
- */
-static_inline int
-vbi_dec2bcd			(int			dec)
-{
-	int t;
+#ifndef DOXYGEN_SHOULD_IGNORE_THIS
 
-	/* Should try x87 bcd, hence the undefined clause above.
-	   Don't forget to add limit constants. */
+#define VBI_BCD_10 (((int) 0x1111111111111111LL) << 4)
+#define VBI_BCD_06 (((int) 0x6666666666666666LL) >> 4)
 
-	t =  (dec % 10) << 0; dec /= 10;
-	t += (dec % 10) << 4; dec /= 10;
-	t += (dec % 10) << 8; dec /= 10;
-	t += (dec % 10) << 12;
+#endif
 
-	return t;
-}
+#define VBI_BCD_MIN (0xF << (sizeof (int) * 8 - 4))
+#define VBI_BCD_MAX (VBI_BCD_MIN ^ ~VBI_BCD_06)
 
-/**
- * @ingroup BCD
- * @param bcd BCD number.
- * 
- * Converts a packed bcd in to a two's complement binary value.
- * Currently the argument @a bcd must be in range 0x0 ... 0x9999.
- * Other values yield an undefined result.
- * 
- * @return
- * Binary number. The result is undefined when the bcd number
- * contains hex digits 0xA ... 0xF.
- */
-static_inline int
-vbi_bcd2dec			(int			bcd)
-{
-	int t;
+#define VBI_BCD_DEC_MAX							\
+	((sizeof (int) == 4) ? 9999999 :				\
+	 ((sizeof (int) == 8) ? 999999999999999LL : 0))
+#define VBI_BCD_DEC_MIN (-VBI_BCD_INT_MAX - 1)
 
-	t  = (bcd & 15); bcd >>= 4;
-	t += (bcd & 15) * 10; bcd >>= 4;
-	t += (bcd & 15) * 100; bcd >>= 4;
-	t += (bcd & 15) * 1000;
-
-	return t;
-}
-
-/* Consider 64 bit ints. */
-
-#define VBI_BCD10 (((int) 0x1111111111111111LL) << 4)
-#define VBI_BCD06 (((int) 0x6666666666666666LL) >> 4)
+extern int
+vbi_dec2bcd			(int			dec);
+extern int
+vbi_bcd2dec			(int			bcd);
 
 /**
  * @ingroup BCD
@@ -103,16 +55,16 @@ vbi_bcd2dec			(int			bcd)
  * Adds two packed bcd numbers, returning a packed bcd sum.
  * 
  * @return
- * BCD number. The result is undefined when the bcd number
+ * BCD number. The result is undefined when any of the arguments
  * contains hex digits 0xA ... 0xF.
  */
 static_inline int
 vbi_add_bcd			(int			a,
 				 int			b)
 {
-	int t = a + (b += VBI_BCD06);
+	int t = a + (b += VBI_BCD_06);
 
-	a  = ((~(b ^ a ^ t) & VBI_BCD10) >> 3) * 3;
+	a  = ((~(b ^ a ^ t) & VBI_BCD_10) >> 3) * 3;
 
 	return t - a;
 }
@@ -122,18 +74,19 @@ vbi_add_bcd			(int			a,
  * @param bcd BCD number.
  * 
  * Calculates the 10's complement of a packed bcd. The most significant
- * nibble is the sign, e.g. 0xF999&nbsp;9999 = vbi_neg_bcd (0x0000&nbsp;00001).
+ * nibble is the sign, e.g. 0xF999&nbsp;9999 = vbi_neg_bcd
+ * (0x0000&nbsp;00001) presumed sizeof(int) is 4.
  * 
  * @return
- * BCD number. The result is undefined when the bcd number contains
- * hex digits 0xA ... 0xF.
+ * BCD number. The result is undefined when any of the arguments
+ * contains hex digits 0xA ... 0xF.
  */
 static_inline int
 vbi_neg_bcd			(int			bcd)
 {
 	int t = -bcd;
 
-	return t - (((bcd ^ t) & VBI_BCD10) >> 3) * 3;
+	return t - (((bcd ^ t) & VBI_BCD_10) >> 3) * 3;
 }
 
 /**
@@ -167,19 +120,20 @@ vbi_sub_bcd			(int			a,
 static_inline vbi_bool
 vbi_is_bcd			(int			bcd)
 {
-	if (bcd < 0) bcd ^= 0xF << (8 * sizeof (int) - 4);
+	bcd &= ~VBI_BCD_MIN;
 
-	return (((bcd + VBI_BCD06) ^ bcd ^ VBI_BCD06) & VBI_BCD10) == 0;
+	return (((bcd + VBI_BCD_06) ^ bcd ^ VBI_BCD_06) & VBI_BCD_10) == 0;
 }
 
 /**
  * @ingroup BCD
  * @param bcd Unsigned BCD number.
- * @param maximum Maximum value.
+ * @param maximum Unsigned maximum value.
  *
  * Compares a bcd value digit-wise against a maximum value,
- * for example 0x295959. @a maximum can contain digits
- * 0x0 ... 0xF.
+ * for example 0x295959. The function executes in constant time,
+ * about six instructions. @a maximum can contain digits 0x0 ...
+ * 0xF.
  *
  * @return
  * @c FALSE if any digit of @a bcd is greater than the
@@ -191,7 +145,7 @@ vbi_bcd_limit			(unsigned int		bcd,
 {
 	maximum ^= ~0;
 
-	return (((bcd + maximum) ^ bcd ^ maximum) & VBI_BCD10) == 0;
+	return (((bcd + maximum) ^ bcd ^ maximum) & VBI_BCD_10) == 0;
 }
 
 /**
