@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_divx4linux.c,v 1.6 2003-11-13 07:19:00 mschimek Exp $ */
+/* $Id: b_divx4linux.c,v 1.7 2004-04-09 05:13:37 mschimek Exp $ */
 
 #include <dlfcn.h>
 #include "b_divx4linux.h"
@@ -39,25 +39,185 @@ static int		(* encore_fn)(void *		handle,
 				      void *		param2);
 static int		encore_vers;
 
-static __inline__ int
-encore_init4			(ENC_PARAM4 *		param)
+#if ENCORE_VERSION == 20010807
+
+static int
+encore_init			(d4l_context *		dx)
 {
-	return encore_fn (NULL, ENC_OPT_INIT, param, NULL);
+	
+	ENC_PARAM param;
+	int r;
+
+	switch (dx->codec.params.video.pixfmt) {
+	case RTE_PIXFMT_BGR24:
+		dx->enc_frame.colorspace = ENC_CSP_RGB24;
+		break;
+	case RTE_PIXFMT_YUV420:
+		if (dx->codec.params.video.v_offset
+		    < dx->codec.params.video.u_offset)
+			dx->enc_frame.colorspace = ENC_CSP_YV12;
+		else
+			dx->enc_frame.colorspace = ENC_CSP_I420;
+		break;
+	case RTE_PIXFMT_YUYV:
+		dx->enc_frame.colorspace = ENC_CSP_YUY2;
+		break;
+	case RTE_PIXFMT_UYVY:
+		dx->enc_frame.colorspace = ENC_CSP_UYVY;
+		break;
+	default:
+		assert (!"reached");
+	}
+
+	memset (&param, 0, sizeof (param));
+
+	param.x_dim		= dx->x_dim;
+	param.y_dim		= dx->y_dim;
+	param.framerate		= dx->frame_rate;
+	param.bitrate		= dx->bit_rate;
+	param.max_key_interval	= dx->max_key_interval;
+	param.use_bidirect	= dx->use_bidirect;
+	param.deinterlace	= dx->deinterlace;
+	param.quality		= dx->quality;
+	param.obmc		= dx->obmc;
+
+	r = encore_fn (NULL, ENC_OPT_INIT, &param, NULL);
+
+	dx->handle = param.handle;
+
+	return r;
 }
 
-static __inline__ int
-encore_init5			(ENC_PARAM *		param)
+#elif ENCORE_VERSION == 20020304
+
+static int
+encore_init			(d4l_context *		dx)
 {
-	return encore_fn (NULL, ENC_OPT_INIT, param, NULL);
+	ENC_PARAM param;
+	int r;
+
+	switch (dx->codec.params.video.pixfmt) {
+	case RTE_PIXFMT_BGR24:
+		dx->enc_frame.colorspace = ENC_CSP_RGB24;
+		break;
+	case RTE_PIXFMT_YUV420:
+		if (dx->codec.params.video.v_offset
+		    < dx->codec.params.video.u_offset)
+			dx->enc_frame.colorspace = ENC_CSP_YV12;
+		else
+			dx->enc_frame.colorspace = ENC_CSP_I420;
+		break;
+	case RTE_PIXFMT_YUYV:
+		dx->enc_frame.colorspace = ENC_CSP_YUY2;
+		break;
+	case RTE_PIXFMT_UYVY:
+		dx->enc_frame.colorspace = ENC_CSP_UYVY;
+		break;
+	default:
+		assert (!"reached");
+	}
+
+	memset (&param, 0, sizeof (param));
+
+	param.x_dim		= dx->x_dim;
+	param.y_dim		= dx->y_dim;
+	param.framerate		= dx->frame_rate;
+	param.bitrate		= dx->bit_rate;
+	param.max_key_interval	= dx->max_key_interval;
+	param.deinterlace	= dx->deinterlace;
+	param.quality		= dx->quality;
+
+	param.extensions.use_bidirect	= dx->use_bidirect;
+	param.extensions.obmc		= dx->obmc;
+
+	r = encore_fn (NULL, ENC_OPT_INIT, &param, NULL);
+
+	dx->handle = param.handle;
+
+	return r;
 }
 
-static __inline__ int
+#elif ENCORE_VERSION == 20021024
+
+#define FOURCC(a,b,c,d) (a | (b << 8) | (c << 16) | (d << 24))
+
+static int
+encore_init			(d4l_context *		dx)
+{
+	DivXBitmapInfoHeader format;
+	SETTINGS param;
+	int r;
+
+	memset (&format, 0, sizeof (format));
+
+	format.biSize		= sizeof (format);
+	format.biWidth		= dx->x_dim;
+	format.biHeight		= dx->y_dim;
+
+	switch (dx->codec.params.video.pixfmt) {
+	case RTE_PIXFMT_BGR24:
+		format.biBitCount = 24;
+		break;
+	case RTE_PIXFMT_YUV420:
+		if (dx->codec.params.video.v_offset
+		    < dx->codec.params.video.u_offset) {
+			format.biCompression = FOURCC('Y','V','1','2');
+		} else {
+			format.biCompression = FOURCC('I','4','2','0');
+		}
+		break;
+	case RTE_PIXFMT_YUYV:
+		format.biCompression = FOURCC('Y','U','Y','2');
+		break;
+	case RTE_PIXFMT_UYVY:
+		format.biCompression = FOURCC('U','Y','V','Y');
+		break;
+	default:
+		assert (!"reached");
+	}
+
+	memset (&param, 0, sizeof (param));
+
+	if (dx->frame_rate > 27.0) {
+		param.input_clock = 30000;
+		param.input_frame_period = 1001;
+	} else {
+		param.input_clock = 100;
+		param.input_frame_period = 4;
+	}
+
+	param.bitrate		= dx->bit_rate;
+	param.max_key_interval	= dx->max_key_interval;
+	param.deinterlace	= dx->deinterlace;
+	param.quality		= dx->quality;
+
+	param.use_bidirect	= dx->use_bidirect;
+	param.use_gmc		= dx->obmc;
+
+	r = encore_fn ((void *) &dx->handle,
+		       ENC_OPT_INIT, &format, &param);
+
+	return r;
+}
+
+#else
+#warning
+
+static int
+encore_init			(d4l_context *		dx)
+{
+	return -1;
+}
+
+#endif
+
+static int
 encore_release			(void *			handle)
 {
 	return encore_fn (handle, ENC_OPT_RELEASE, NULL, NULL);
 }
 
-static __inline__ int
+static int
 encore_encode			(void *			handle,
 				 ENC_FRAME *		frame,
 				 ENC_RESULT *		result)
@@ -65,10 +225,14 @@ encore_encode			(void *			handle,
 	return encore_fn (handle, ENC_OPT_ENCODE, frame, result);
 }
 
-static __inline__ int
+static int
 encore_version			(void)
 {
+#ifdef ENC_OPT_VERSION
 	return encore_fn (NULL, ENC_OPT_VERSION, NULL, NULL);
+#else
+	return 0;
+#endif
 }
 
 static void reset_input		(rte_codec *		codec);
@@ -140,9 +304,8 @@ avi_write_header		(d4l_context *		dx,
 
 	/* avi header */
 	avih = start_tag ("avih");
-	put_le32 ((unsigned int)		/* frame period */
-		  (1000000 / dx->enc_param4.framerate));
-	put_le32 ((dx->enc_param4.bitrate + 7) >> 3);
+	put_le32 ((unsigned int)(1000000 / dx->frame_rate));
+	put_le32 ((dx->bit_rate + 7) >> 3);
 	put_le32 (0);				/* padding */
 	put_le32 (AVIF_TRUSTCKTYPE
 		  | AVIF_HASINDEX
@@ -152,8 +315,8 @@ avi_write_header		(d4l_context *		dx,
 	put_le32 (0);				/* initial frame */
 	put_le32 (1);				/* num streams */
 	put_le32 (1024 * 1024);			/* suggested buffer size */
-	put_le32 (dx->enc_param4.x_dim);
-	put_le32 (dx->enc_param4.y_dim);
+	put_le32 (dx->x_dim);
+	put_le32 (dx->y_dim);
 	put_le32 (0);				/* reserved */
 	put_le32 (0);				/* reserved */
 	put_le32 (0);				/* reserved */
@@ -173,32 +336,27 @@ avi_write_header		(d4l_context *		dx,
 	put_le16 (0);				/* language */
 	put_le32 (0);				/* initial frame */
 	put_le32 (1000);			/* scale */
-	put_le32 ((unsigned int)		/* rate */
-		  (1000 * dx->enc_param4.framerate));
+	put_le32 ((unsigned int)(1000 * dx->frame_rate));
 	put_le32 (0);				/* start */
 	nframes2 = p - p0;
 	put_le32 (0);				/* num frames (later) */
 	put_le32 (1024 * 1024);			/* suggested buffer size */
 	put_le32 (-1);				/* quality */
-	put_le32 (3
-		  * dx->enc_param4.x_dim
-		  * dx->enc_param4.y_dim);	/* sample size */
+	put_le32 (3 * dx->x_dim * dx->y_dim);	/* sample size */
 	put_le16 (0);
 	put_le16 (0);
-	put_le16 (dx->enc_param4.x_dim);
-	put_le16 (dx->enc_param4.y_dim);
+	put_le16 (dx->x_dim);
+	put_le16 (dx->y_dim);
 	end_tag (strh);
 
 	strf = start_tag ("strf");
 	put_le32 (40);				/* BITMAPINFOHEADER size */
-	put_le32 (dx->enc_param4.x_dim);
-	put_le32 (dx->enc_param4.y_dim);
+	put_le32 (dx->x_dim);
+	put_le32 (dx->y_dim);
 	put_le16 (1);				/* planes */
 	put_le16 (24);				/* depth */
 	put_tag (codec_tag);			/* compression type */
-	put_le32 (3
-		  * dx->enc_param4.x_dim
-		  * dx->enc_param4.y_dim);
+	put_le32 (3 * dx->x_dim * dx->y_dim);
 	put_le32 (0);
 	put_le32 (0);
 	put_le32 (0);
@@ -405,16 +563,7 @@ start				(rte_context *		context,
 		return FALSE;
 	}
 
-#if ENCORE_VERSION >= ENCORE5_VERSION
-	if (encore_vers >= ENCORE5_VERSION) {
-		encore_init5 (&dx->enc_param5);
-		dx->handle = dx->enc_param5.handle;
-	} else
-#endif
-	{
-		encore_init4 (&dx->enc_param4);
-		dx->handle = dx->enc_param4.handle;
-	}
+	encore_init (dx);
 
 	dx->context.state = RTE_STATE_RUNNING;
 	dx->codec.state = RTE_STATE_RUNNING;
@@ -581,32 +730,28 @@ parameters_set			(rte_codec *		codec,
 	rsp->video.spatial_order = 0;
 	rsp->video.temporal_order = 0;
 
-	dx->enc_param4.framerate = rsp->video.frame_rate;
+	dx->frame_rate = rsp->video.frame_rate;
 
 	/* aspect ratio ignored */
 
-	dx->enc_param4.x_dim = rsp->video.width =
+	dx->x_dim = rsp->video.width =
 		(saturate (rsp->video.width, 16, 768) + 8) & -16;
-	dx->enc_param4.y_dim = rsp->video.height =
+	dx->y_dim = rsp->video.height =
 		(saturate (rsp->video.height, 16, 576) + 8) & -16;
 
 	rsp->video.offset = 0;
 
 	switch (rsp->video.pixfmt) {
 	case RTE_PIXFMT_BGR24:
-		dx->enc_frame.colorspace = ENC_CSP_RGB24;
 		rsp->video.stride = rsp->video.width * 3;
 		break;
 
 	case RTE_PIXFMT_YUV420:
 		if (rsp->video.v_offset < rsp->video.u_offset) {
 	default:
-			rsp->video.pixfmt = RTE_PIXFMT_YUV420;
-			dx->enc_frame.colorspace = ENC_CSP_YV12;
 			rsp->video.v_offset = rsp->video.width * rsp->video.height;
 			rsp->video.u_offset = (rsp->video.v_offset * 5) >> 2;
 		} else {
-			dx->enc_frame.colorspace = ENC_CSP_I420;
 			rsp->video.u_offset = rsp->video.width * rsp->video.height;
 			rsp->video.v_offset = (rsp->video.u_offset * 5) >> 2;
 		}
@@ -615,29 +760,13 @@ parameters_set			(rte_codec *		codec,
 		break;
 
 	case RTE_PIXFMT_YUYV:
-		dx->enc_frame.colorspace = ENC_CSP_YUY2;
 		rsp->video.stride = rsp->video.width * 2;
 		break;
 
 	case RTE_PIXFMT_UYVY:
-		dx->enc_frame.colorspace = ENC_CSP_UYVY;
 		rsp->video.stride = rsp->video.width * 2;
 		break;
 	}
-
-#if ENCORE_VERSION >= ENCORE5_VERSION
-	if (encore_vers >= ENCORE5_VERSION) {
-		dx->enc_param5.x_dim			= dx->enc_param4.x_dim;
-		dx->enc_param5.y_dim			= dx->enc_param4.y_dim;
-		dx->enc_param5.framerate		= dx->enc_param4.framerate;
-		dx->enc_param5.bitrate			= dx->enc_param4.bitrate;
-		dx->enc_param5.max_key_interval		= dx->enc_param4.max_key_interval;
-		dx->enc_param5.quality			= dx->enc_param4.quality;
-		dx->enc_param5.extensions.use_bidirect	= dx->enc_param4.use_bidirect;
-		dx->enc_param5.extensions.obmc		= dx->enc_param4.obmc;
-		dx->enc_param5.deinterlace		= dx->enc_param4.deinterlace;
-	}
-#endif
 
 	rsp->video.frame_size = 0;
 
@@ -734,17 +863,17 @@ option_get			(rte_codec *		codec,
         d4l_context *dx = DX (context);
 
 	if (KEYWORD ("bit_rate")) {
-		v->num = dx->enc_param4.bitrate;
+		v->num = dx->bit_rate;
 	} else if (KEYWORD ("i_dist")) {
-		v->num = dx->enc_param4.max_key_interval;
+		v->num = dx->max_key_interval;
 	} else if (KEYWORD ("quality")) {
-		v->num = dx->enc_param4.quality - 1;
+		v->num = dx->quality - 1;
 	} else if (KEYWORD ("bidirect")) {
-		v->num = dx->enc_param4.use_bidirect;
+		v->num = dx->use_bidirect;
 	} else if (KEYWORD ("obmc")) {
-		v->num = dx->enc_param4.obmc;
+		v->num = dx->obmc;
 	} else if (KEYWORD ("deinterlace")) {
-		v->num = dx->enc_param4.deinterlace;
+		v->num = dx->deinterlace;
 	} else {
 		rte_unknown_option (context, codec, keyword);
 		return FALSE;
@@ -762,17 +891,17 @@ option_set			(rte_codec *		codec,
         d4l_context *dx = DX (context);
 
 	if (KEYWORD ("bit_rate")) {
-		dx->enc_param4.bitrate = RTE_OPTION_ARG (int, 30000, 8000000);
+		dx->bit_rate = RTE_OPTION_ARG (int, 30000, 8000000);
 	} else if (KEYWORD ("i_dist")) {
-		dx->enc_param4.max_key_interval = RTE_OPTION_ARG (int, 0, 1024);
+		dx->max_key_interval = RTE_OPTION_ARG (int, 0, 1024);
 	} else if (KEYWORD ("quality")) {
-		dx->enc_param4.quality = RTE_OPTION_ARG_SAT(int, 0, 4) - 1;
+		dx->quality = RTE_OPTION_ARG_SAT(int, 0, 4) - 1;
 	} else if (KEYWORD ("bidirect")) {
-		dx->enc_param4.use_bidirect = !!va_arg (args, int);
+		dx->use_bidirect = !!va_arg (args, int);
 	} else if (KEYWORD ("obmc")) {
-		dx->enc_param4.obmc = !!va_arg (args, int);
+		dx->obmc = !!va_arg (args, int);
 	} else if (KEYWORD ("deinterlace")) {
-		dx->enc_param4.deinterlace = !!va_arg (args, int);
+		dx->deinterlace = !!va_arg (args, int);
 	} else {
 		rte_unknown_option (context, codec, keyword);
 		return FALSE;
@@ -1032,11 +1161,11 @@ backend_init			(void)
 
 	encore_vers = encore_version ();
 
-	if (encore_vers != ENCORE4_VERSION
-#if ENCORE_VERSION >= ENCORE5_VERSION
-	    && encore_vers != ENCORE5_VERSION
+#ifdef ENCORE_VERSION
+	if (encore_vers != ENCORE_VERSION) {
+#else
+	if (1) {
 #endif
-	    ) {
 		rte_asprintf (&open_error, _("Version %d not supported\n"), encore_vers);
 		dprintf ("version mismatch: %d\n", encore_vers);
 		dlclose (encore_lib);
@@ -1050,7 +1179,7 @@ backend_init			(void)
 	divx_avi_context._new = context_new;
 	divx_avi_context._delete = context_delete;
 
-	if (encore_vers >= ENCORE5_VERSION) {
+	if (encore_vers >= 20020304) {
 		codec_tag = "DX50";
 		d4l_codec._public->keyword = "divx5_video";
 		d4l_codec._public->label = N_("DivX 5.x Video");
