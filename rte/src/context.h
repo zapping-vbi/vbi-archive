@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: context.h,v 1.11 2004-06-06 12:59:48 mschimek Exp $ */
+/* $Id: context.h,v 1.12 2005-02-25 18:16:51 mschimek Exp $ */
 
 #ifndef CONTEXT_H
 #define CONTEXT_H
@@ -165,7 +165,11 @@ rte_context_status(rte_context *context, rte_status *status)
  * @addtogroup Error
  * @{
  **/
-extern void			rte_error_printf(rte_context *context, const char *templ, ...);
+extern void
+rte_error_printf		(rte_context *		context,
+				 const char *		templ,
+				 ...)
+  __attribute__ ((format (printf, 2, 3)));
 extern char *			rte_errstr(rte_context *context);
 /** @} */
 
