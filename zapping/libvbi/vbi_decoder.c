@@ -1,7 +1,7 @@
 /*
  *  V4L/V4L2 VBI Decoder  DRAFT
  *
- *  gcc -O2 -othis this.c mp1e/vbi/tables.c -lm
+ *  gcc -O2 -othis this.c mp1e/vbi/tables.c -L/usr/X11R6/lib -lm -lX11
  *
  *  Copyright (C) 1999-2000 Michael H. Schimek
  *
@@ -20,12 +20,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder.c,v 1.2 2000-11-27 04:43:25 mschimek Exp $ */
+/* $Id: vbi_decoder.c,v 1.3 2000-11-27 06:56:01 mschimek Exp $ */
 
 /*
     TODO:
     - test streaming
     - test v4l interface
+    - write close functions
     - write T thread & multi consumer fifo
  */
 
@@ -135,6 +136,7 @@ int			opt_ccsim;
 int			opt_pattern;
 int			opt_all;
 int			opt_raw;
+int			opt_graph;
 int			opt_strict = 0;
 int			opt_surrender = 1;
 
@@ -446,6 +448,9 @@ typedef struct {
 	unsigned char		data[48];
 } vbi_sliced;
 
+/* forward */ static void
+draw(struct vbi_capture *vbi, unsigned char *data);
+
 static int
 decode(struct vbi_capture *vbi, unsigned char *raw1, vbi_sliced *out1)
 {
@@ -460,6 +465,9 @@ decode(struct vbi_capture *vbi, unsigned char *raw1, vbi_sliced *out1)
 	tsc_t sum = 0LL, begin;
 	int repeats = 0;
 #endif
+
+	if (opt_graph)
+		draw(vbi, raw1);
 
 	if (opt_pattern && readj == 0) {
 		for (i = 0; i < (vbi->count[0] + vbi->count[1]) * MAX_WAYS; i++) {
@@ -2103,6 +2111,276 @@ dump_sliced_raw(vbi_sliced *s, int lines, double time)
 	last = time;
 }
 
+#include <X11/Xlib.h>
+#include <X11/keysym.h>
+#include <X11/Xutil.h>
+#include <X11/xpm.h>
+
+Display *		display;
+int			screen;
+Colormap		cmap;
+Window			window;
+int			dst_w, dst_h;
+GC			gc;
+XEvent			event;
+XImage *		ximage;
+void *			ximgdata;
+int			palette[256];
+int			depth;
+unsigned char *		save_raw;
+int			draw_row, draw_offset;
+int			draw_count = -1;
+
+static void
+draw(struct vbi_capture *vbi, unsigned char *data1)
+{
+	int lines = vbi->count[0] + vbi->count[1];
+	int rem = vbi->samples_per_line - draw_offset;
+	unsigned char buf[256];
+	unsigned char *data = data1;
+	int i, v, h0, field, end;
+        XTextItem xti;
+
+	if (draw_count == 0)
+		return;
+
+	if (draw_count > 0)
+		draw_count--;
+
+	memcpy(save_raw, data1, vbi->samples_per_line * lines);
+
+	if (depth == 24) {
+		unsigned int *p = ximgdata;
+		
+		for (i = (vbi->count[0] + vbi->count[1])
+		     * vbi->samples_per_line; i >= 0; i--)
+			*p++ = palette[(int) *data++];
+	} else {
+		unsigned short *p = ximgdata; // 64bit safe?
+
+		for (i = (vbi->count[0] + vbi->count[1])
+		     * vbi->samples_per_line; i >= 0; i--)
+			*p++ = palette[(int) *data++];
+	}
+
+	XPutImage(display, window, gc, ximage,
+		draw_offset, 0, 0, 0, rem, lines);
+
+	XSetForeground(display, gc, 0);
+
+	if (rem < dst_w)
+		XFillRectangle(display, window, gc,
+			rem, 0, dst_w, lines);
+
+	if ((v = dst_h - lines) <= 0)
+		return;
+
+	XSetForeground(display, gc, 0);
+	XFillRectangle(display, window, gc,
+		0, lines, dst_w, dst_h);
+
+	XSetForeground(display, gc, ~0);
+
+	field = (draw_row >= vbi->count[0]);
+
+	if (vbi->start[field] < 0)
+		xti.nchars = snprintf(buf, 255, "Row %d Line ?", draw_row);
+	else if (field == 0) 
+		xti.nchars = snprintf(buf, 255, "Row %d Line %d", draw_row,
+			draw_row + vbi->start[0]);
+	else
+		xti.nchars = snprintf(buf, 255, "Row %d Line %d", draw_row,
+			draw_row - vbi->count[0] + vbi->start[1]);
+
+	xti.chars = buf;
+	xti.delta = 0;
+	xti.font = 0;
+
+	XDrawText(display, window, gc, 4, lines + 12, &xti, 1);
+
+	data1 += draw_offset + draw_row * vbi->samples_per_line;
+	h0 = dst_h - (data1[0] * v) / 256;
+	end = MIN(vbi->samples_per_line - draw_offset, dst_w);
+
+	for (i = 1; i < end; i++) {
+		int h = dst_h - (data1[i] * v) / 256;
+
+		XDrawLine(display, window, gc, i - 1, h0, i, h);
+		h0 = h;
+	}
+}
+
+static void
+xevent(struct vbi_capture *vbi)
+{
+	while (XPending(display)) {
+		XNextEvent(display, &event);
+
+		switch (event.type) {
+		case KeyPress:
+		{
+			switch (XLookupKeysym(&event.xkey, 0)) {
+			case 'g':
+				draw_count = 1;
+				break;
+
+			case 'l':
+				draw_count = -1;
+				break;
+
+			case 'q':
+			case 'c':
+				exit(EXIT_SUCCESS);
+
+			case XK_Up:
+			    if (draw_row > 0)
+				    draw_row--;
+			    goto redraw;
+
+			case XK_Down:
+			    if (draw_row < (vbi->count[0] + vbi->count[1] - 1))
+				    draw_row++;
+			    goto redraw;
+
+			case XK_Left:
+			    if (draw_offset > 0)
+				    draw_offset -= 10;
+			    goto redraw;
+
+			case XK_Right:
+			    if (draw_offset < vbi->samples_per_line - 10)
+				    draw_offset += 10;
+			    goto redraw;		    
+			}
+
+			break;
+		}
+
+	        case ButtonPress:
+			break;
+
+		case FocusIn:
+			break;
+
+		case ConfigureNotify:
+			dst_w = event.xconfigurerequest.width;
+			dst_h = event.xconfigurerequest.height;
+redraw:
+			if (draw_count == 0) {
+				draw_count = 1;
+				draw(vbi, save_raw);
+			}
+
+			break;
+
+		case ClientMessage:
+			exit(EXIT_SUCCESS);
+		}
+	}
+}
+
+static bool
+init_graph(int ac, char **av, struct vbi_capture *vbi)
+{
+	Atom delete_window_atom;
+	XWindowAttributes wa;
+	int lines = vbi->count[0] + vbi->count[1];
+	int i;
+
+	if (!(display = XOpenDisplay(NULL))) {
+		DIAG("No display");
+		return FALSE;
+	}
+
+	screen = DefaultScreen(display);
+	cmap = DefaultColormap(display, screen);
+ 
+	window = XCreateSimpleWindow(display,
+		RootWindow(display, screen),
+		0, 0,		// x, y
+		dst_w = 768, dst_h = lines + 110,
+				// w, h
+		2,		// borderwidth
+		0xffffffff,	// fgd
+		0x00000000);	// bgd 
+
+	if (!window) {
+		DIAG("No window");
+		return FALSE;
+	}
+			
+	XGetWindowAttributes(display, window, &wa);
+	depth = wa.depth;
+			
+	if (depth != 15 && depth != 16 && depth != 24) {
+		DIAG("Cannot run at colour depth %d\n", depth);
+		return FALSE;
+	}
+
+	for (i = 0; i < 256; i++) {
+		switch (depth) {
+		case 15:
+			palette[i] = ((i & 0xF8) << 7)
+				   + ((i & 0xF8) << 2)
+				   + ((i & 0xF8) >> 3);
+				break;
+
+		case 16:
+			palette[i] = ((i & 0xF8) << 8)
+				   + ((i & 0xFC) << 3)
+				   + ((i & 0xF8) >> 3);
+				break;
+
+		case 24:
+			palette[i] = (i << 16) + (i << 8) + i;
+				break;
+		}
+	}
+
+	if (depth == 24) {
+		if (!(ximgdata = malloc(vbi->samples_per_line * lines * 4))) {
+			DIAG("virtual memory exhausted");
+			return FALSE;
+		}
+	} else
+		if (!(ximgdata = malloc(vbi->samples_per_line * lines * 2))) {
+			DIAG("virtual memory exhausted");
+			return FALSE;
+		}
+
+	if (!(save_raw = malloc(vbi->samples_per_line * lines))) {
+		DIAG("virtual memory exhausted");
+		return FALSE;
+	}
+
+	ximage = XCreateImage(display,
+		DefaultVisual(display, screen),
+		DefaultDepth(display, screen),
+		ZPixmap, 0, (char *) ximgdata,
+		vbi->samples_per_line, lines,
+		8, 0);
+
+	if (!ximage) {
+		DIAG("No ximage");
+		return FALSE;
+	}
+
+	delete_window_atom = XInternAtom(display, "WM_DELETE_WINDOW", False);
+
+	XSelectInput(display, window, KeyPressMask | ExposureMask | StructureNotifyMask);
+	XSetWMProtocols(display, window, &delete_window_atom, 1);
+	XStoreName(display, window, "VBI Graph - [cursor] [g]rab [l]ive");
+
+	gc = XCreateGC(display, window, 0, NULL);
+
+	XMapWindow(display, window);
+	       
+	XSync(display, False);
+
+	return TRUE;
+}
+
+
 /*
  *  Main
  */
@@ -2125,6 +2403,7 @@ long_options[] = {
 	{ "ccsim",			no_argument,		&opt_ccsim,	1 },
 	{ "pattern",			no_argument,		&opt_pattern,	1 },
 	{ "all",			no_argument,		&opt_all,	1 },
+	{ "graph",			no_argument,		&opt_graph,	1 },
 	{ "raw",			no_argument,		&opt_raw,	1 },
 	{ NULL }
 };
@@ -2150,12 +2429,13 @@ usage(int ac, char **av)
 		"--pattern    dump the decoder pattern memory\n"
 		"             plus rough vbi analysis. Other output\n"
 		"             options not recommended.\n"
+		"--graph      draw funny patterns and lines\n"
 		"--strict n   0: ignore the driver's vbi parameters as\n"
 		"             far as possible; 1: match with data service\n"
 		"             parameters; 2: paranoid matching. Default 0.\n"
 		"\n"
 		"--raw        dump RAW sliced data buffer on STDERR,\n"
-		"             '%s --all --raw 2>raw_data' recommended.\n"
+		"             '%s --all --raw 2>raw_data' recommended.\n",
 		av[0], av[0]);
 }
 
@@ -2206,7 +2486,7 @@ main(int ac, char **av)
 		opt_caption =
 		opt_xds = 1;
 
-	if (!opt_raw && !opt_sliced && !opt_pattern && !opt_profile
+	if (!opt_raw && !opt_sliced && !opt_pattern && !opt_profile && !opt_graph
 	    && !opt_teletext && !opt_cni && !opt_vps && !opt_caption && !opt_xds) {
 		printf("Please choose an output option\n");
 		usage(ac, av);
@@ -2222,6 +2502,10 @@ main(int ac, char **av)
 			goto failure;
 	if (r < 0)
 		goto failure;
+
+	if (opt_graph)
+		if (!(init_graph(ac, av, vbi)))
+			goto failure;
 
 	if (!vbi->fifo.start(&vbi->fifo))
 		goto failure;
@@ -2242,6 +2526,9 @@ main(int ac, char **av)
 			decode_sliced((vbi_sliced *) b->data, b->used / sizeof(vbi_sliced));
 
 		vbi->fifo.send_empty(&vbi->fifo, b);
+
+		if (opt_graph)
+			xevent(vbi);
 	}
 
 	exit(EXIT_SUCCESS);
