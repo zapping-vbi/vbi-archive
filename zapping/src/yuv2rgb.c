@@ -46,8 +46,6 @@
 #define MODE_RGB  0x1
 #define MODE_BGR  0x2
 
-#warning untested
-
 #ifdef HAVE_GAS
 
 /* XXX This is getting out of hand. We should switch to a
@@ -891,16 +889,16 @@ void startup_yuv2rgb (void)
 {
   CSFilter cfuncs[] =
     {
-      {TV_PIXFMT_YUV420, TV_PIXFMT_RGBA15_LE, yuv2rgb_c_proxy, (void*)YUV420_RGB555},
-      {TV_PIXFMT_YVU420, TV_PIXFMT_RGBA15_LE, yuv2rgb_c_proxy, (void*)YVU420_RGB555},
-      {TV_PIXFMT_YUV420, TV_PIXFMT_RGB16_LE, yuv2rgb_c_proxy, (void*)YUV420_RGB565},
-      {TV_PIXFMT_YVU420, TV_PIXFMT_RGB16_LE, yuv2rgb_c_proxy, (void*)YVU420_RGB565},
+      {TV_PIXFMT_YUV420, TV_PIXFMT_BGRA15_LE, yuv2rgb_c_proxy, (void*)YUV420_RGB555},
+      {TV_PIXFMT_YVU420, TV_PIXFMT_BGRA15_LE, yuv2rgb_c_proxy, (void*)YVU420_RGB555},
+      {TV_PIXFMT_YUV420, TV_PIXFMT_BGR16_LE, yuv2rgb_c_proxy, (void*)YUV420_RGB565},
+      {TV_PIXFMT_YVU420, TV_PIXFMT_BGR16_LE, yuv2rgb_c_proxy, (void*)YVU420_RGB565},
       {TV_PIXFMT_YUV420, TV_PIXFMT_RGB24_LE, yuv2rgb_c_proxy, (void*)YUV420_RGB24},
       {TV_PIXFMT_YVU420, TV_PIXFMT_RGB24_LE, yuv2rgb_c_proxy, (void*)YVU420_RGB24},
       {TV_PIXFMT_YUV420, TV_PIXFMT_BGR24_LE, yuv2rgb_c_proxy, (void*)YUV420_BGR24},
       {TV_PIXFMT_YVU420, TV_PIXFMT_BGR24_LE, yuv2rgb_c_proxy, (void*)YVU420_BGR24},
-      {TV_PIXFMT_YUV420, TV_PIXFMT_RGBA24_LE, yuv2rgb_c_proxy, (void*)YUV420_RGB32},
-      {TV_PIXFMT_YVU420, TV_PIXFMT_RGBA24_LE, yuv2rgb_c_proxy, (void*)YVU420_RGB32}
+      {TV_PIXFMT_YUV420, TV_PIXFMT_BGRA24_LE, yuv2rgb_c_proxy, (void*)YUV420_RGB32},
+      {TV_PIXFMT_YVU420, TV_PIXFMT_BGRA24_LE, yuv2rgb_c_proxy, (void*)YVU420_RGB32}
     };
 
   /* Try first the MMX versions of the functions */
