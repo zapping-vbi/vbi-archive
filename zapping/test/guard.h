@@ -1,6 +1,8 @@
 /*
  *  Copyright (C) 2004 Michael H. Schimek
  *
+ *  Based on efence (C) Bruce Perens
+ *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -16,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: guard.h,v 1.1 2004-12-11 11:46:25 mschimek Exp $ */
+/* $Id: guard.h,v 1.2 2005-02-15 17:26:08 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -29,6 +31,11 @@
 #include <string.h>
 #include <signal.h>
 #include <assert.h>
+
+/* 386 BSD has MAP_ANON instead of MAP_ANONYMOUS. */
+#if ( !defined(MAP_ANONYMOUS) && defined(MAP_ANON) )
+#  define MAP_ANONYMOUS MAP_ANON
+#endif
 
 static int
 dev_zero			(void)
@@ -60,14 +67,27 @@ guard_alloc			(size_t			n_bytes)
 	page_size = getpagesize ();
 	assert (0 == n_bytes % page_size);
 
+#ifdef MAP_ANONYMOUS
 	p = mmap (/* start: any */ NULL,
 		  n_bytes * 3,
 		  PROT_READ | PROT_WRITE,
 		  MAP_PRIVATE | MAP_ANONYMOUS,
+		  /* fd: n/a */ -1,
+		  /* offset */ 0);
+#else
+	p = mmap (/* start: any */ NULL,
+		  n_bytes * 3,
+		  PROT_READ | PROT_WRITE,
+		  MAP_PRIVATE,
 		  dev_zero (),
 		  /* offset */ 0);
+#endif
 
-	assert ((void *) -1 != p);
+	if (MAP_FAILED == p) {
+		fprintf (stderr, "Guarded memory allocation failed: %d, %s\n",
+			 errno, strerror (errno));
+		exit (EXIT_FAILURE);
+	}
 
 	r = mprotect (p, n_bytes, PROT_NONE);
 	assert (-1 != r);
