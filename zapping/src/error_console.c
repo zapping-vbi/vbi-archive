@@ -60,8 +60,8 @@ static GtkWidget *create_console	(void)
   gnome_dialog_set_close(GNOME_DIALOG(ec), TRUE);
 
   buffer =
-    g_strdup_printf(_("Console started, stardate %s"
-		      "Please tell the maintainer about any bugs you find."),
+    g_strdup_printf("Console started, stardate %s"
+		     "Please tell the maintainer about any bugs you find.",
 		    ctime(&t));
 
   gdk_color_parse("red", &red);

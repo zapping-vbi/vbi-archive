@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.36.2.16 2003-11-15 15:16:15 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.36.2.17 2003-11-28 18:37:58 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu -> ? */
 #undef GTK_DISABLE_DEPRECATED
@@ -656,8 +656,8 @@ do_start			(const gchar *		file_name)
       g_free(dir);
 
       if (!rte_set_output_file (context, file_name))
+	  /* XXX more info please */
         {
-	  // XXX more info please
 	  ShowBox (_("Cannot create file %s: %s\n"),
 		   GTK_MESSAGE_WARNING,
 		   file_name, rte_errstr (context));
@@ -1882,7 +1882,7 @@ plugin_remove_gui		(GnomeApp *		app)
   gtk_container_remove (GTK_CONTAINER (toolbar1), button);
 }
 
-static const gchar *tooltip = N_("Recording dialog");
+static const gchar *tooltip = N_("Record a video stream");
 
 static void
 plugin_add_gui			(GnomeApp *		app)

@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.21.2.14 2003-11-26 07:17:39 mschimek Exp $
+ * $Id: fullscreen.c,v 1.21.2.15 2003-11-28 18:37:39 mschimek Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -252,7 +252,11 @@ start_fullscreen		(tveng_device_info *	info)
   info->overlay_window.win = GDK_WINDOW_XWINDOW(da->window);
   info->overlay_window.gc = GDK_GC_XGC(da->style->white_gc);
 
+#ifdef HAVE_VIDMODE_EXTENSION
   vidmode = zcg_char (NULL, "fullscreen/vidmode");
+#else
+  vidmode = NULL;
+#endif
 
   /* XXX we must distinguish between (limited) Xv overlay and Xv scaling.
    * 1) determine natural size (videostd -> 480, 576 -> 640, 768),

@@ -71,7 +71,7 @@ int zapzilla_main(int argc, char * argv[])
       POPT_ARG_NONE,
       &debug_msg,
       0,
-      N_("Set debug messages on"),
+      N_("Print debug messages"),
       NULL
     },
     {
@@ -101,7 +101,7 @@ int zapzilla_main(int argc, char * argv[])
 		      NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: zapzilla.c,v 1.4.2.6 2003-09-24 19:13:45 mschimek Exp $",
+	 "$Id: zapzilla.c,v 1.4.2.7 2003-11-28 18:37:39 mschimek Exp $",
 	 "Zapzilla", VERSION, __DATE__);
   D();
   /* FIXME: Find something better */

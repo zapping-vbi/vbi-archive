@@ -76,7 +76,7 @@ screenshot_backend
 screenshot_backend_ppm =
 {
   .keyword		= "ppm",
-  .label		= N_("PPM"),
+  .label		= "PPM",
   .extension		= "ppm",
   .quality		= FALSE,
   .bpp_est		= 3.0,

@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.19.2.9 2003-11-04 21:09:21 mschimek Exp $ */
+/* $Id: options.c,v 1.19.2.10 2003-11-28 18:37:58 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu -> ? */
 #undef GTK_DISABLE_DEPRECATED
@@ -736,6 +736,7 @@ grte_codec_create_menu		(rte_context *		context,
 
   if (cxinfo->min_elementary[stream_type] != 1) /* "None" permitted? */
     {
+      /* TRANSLATORS: Which codec: None, A, B, C, ... */
       menu_item = gtk_menu_item_new_with_label (_("None"));
       gtk_widget_show (menu_item);
       gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);

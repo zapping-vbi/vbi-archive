@@ -163,7 +163,7 @@ _arts_read (gpointer handle, gpointer dest, gint num_bytes,
 
 const audio_backend_info arts_backend =
 {
-  name:		N_("KDE Sound Server (aRts)"),
+  name:		"KDE Sound Server (aRts)",
   open:		arts_open,
   close:	arts_close,
   read:		_arts_read,

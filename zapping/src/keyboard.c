@@ -434,7 +434,7 @@ on_key_table_clicked		(GtkWidget *		w,
   /* Append our single column */
   renderer = gtk_cell_renderer_text_new ();
   column = gtk_tree_view_column_new_with_attributes
-    (_("Key"), renderer,
+    (_("Accelerator"), renderer,
      /* Render the 0th entry in the model */ "text", 0, NULL);
   gtk_tree_view_append_column (key_view, column);
   gtk_tree_view_set_search_column (key_view, 0);

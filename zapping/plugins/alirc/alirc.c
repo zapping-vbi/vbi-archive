@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alirc.c,v 1.4.2.5 2003-11-13 05:31:00 mschimek Exp $ */
+/* $Id: alirc.c,v 1.4.2.6 2003-11-28 18:37:58 mschimek Exp $ */
 
 /* XXX gtk_input */
 #undef GTK_DISABLE_DEPRECATED
@@ -37,8 +37,8 @@ static const gchar str_descriptive_name[] =
 N_("Another lirc plugin");
 static const gchar str_description[] =
 N_("Another plugin to control zapping through lirc\n\n\
-To enable this plugin you must edit your ~/.lircrc\n\n\
-file. Please see README.alirc for instructions.\n\n");
+To enable this plugin you must edit your ~/.lircrc\n\
+file. See the Zapping documentation for details.\n");
 
 static const gchar str_short_description[] = 
 N_("Lets you control zapping through lirc");

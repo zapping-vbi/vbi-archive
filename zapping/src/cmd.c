@@ -101,8 +101,8 @@ resolve_mode			(const gchar *		mode_str)
   else if (0 == strcasecmp (mode_str, "teletext"))
     return TVENG_TELETEXT;
   else
-    ShowBox (_("Unknown display mode '%s', possible choices are:\n"
-	       "preview, fullscreen, capture and teletext"),
+    ShowBox ("Unknown display mode \"%s\", possible choices are:\n"
+	     "preview, fullscreen, capture and teletext",
 	     GTK_MESSAGE_ERROR, mode_str);
 
   return TVENG_NO_CAPTURE;

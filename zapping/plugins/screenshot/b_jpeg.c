@@ -206,7 +206,7 @@ screenshot_backend
 screenshot_backend_jpeg =
 {
   .keyword		= "jpeg",
-  .label		= N_("JPEG"),
+  .label		= "JPEG",
   .extension		= "jpeg",
   .sizeof_private	= sizeof (backend_private),
   .quality		= TRUE,

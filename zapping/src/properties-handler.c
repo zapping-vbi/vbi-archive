@@ -1004,6 +1004,9 @@ video_setup		(GtkWidget	*page)
      zconf_get_integer(NULL,
 		       "/zapping/options/main/zapping_setup_fb_verbosity"));
 #endif
+
+#ifdef HAVE_VIDMODE_EXTENSION
+
   {
     GtkWidget *menu;
     GtkWidget *menuitem;
@@ -1053,11 +1056,31 @@ video_setup		(GtkWidget	*page)
     gtk_option_menu_set_history (GTK_OPTION_MENU(widget), h);
   }
 
+#else /* !HAVE_VIDMODE_EXTENSION */
+
+  widget = lookup_widget (page, "label90");
+  gtk_widget_set_sensitive (widget, FALSE);
+  widget = lookup_widget (page, "optionmenu2");
+  gtk_widget_set_sensitive (widget, FALSE);
+
+#endif
+
+#ifdef HAVE_XV_EXTENSION
+
   /* capture size under XVideo */
   widget = lookup_widget(page, "optionmenu20");
   gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
     zconf_get_integer(NULL,
 		      "/zapping/options/capture/xvsize"));
+
+#else
+
+  widget = lookup_widget (page, "label220");
+  gtk_widget_set_sensitive (widget, FALSE);
+  widget = lookup_widget (page, "optionmenu20");
+  gtk_widget_set_sensitive (widget, FALSE);
+
+#endif
 
   widget = lookup_widget (page, "general-video-fixed-inc");
   active = zconf_get_boolean (NULL, "/zapping/options/main/fixed_increments");
@@ -1080,6 +1103,9 @@ video_apply		(GtkWidget	*page)
 	gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widget)),
 		"/zapping/options/main/zapping_setup_fb_verbosity");
 #endif
+
+#ifdef HAVE_VIDMODE_EXTENSION
+
   {
     const gchar *opt = "/zapping/options/main/fullscreen/vidmode";
     guint i;
@@ -1117,9 +1143,15 @@ video_apply		(GtkWidget	*page)
       }
   }
 
+#endif /* HAVE_VIDMODE_EXTENSION */
+
+#ifdef HAVE_XV_EXTENSION
+
   widget = lookup_widget(page, "optionmenu20"); /* xv capture size */
   zconf_set_integer(z_option_menu_get_active(widget),
 		    "/zapping/options/capture/xvsize");
+
+#endif
 
   widget = lookup_widget (page, "general-video-fixed-inc");
   active = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
@@ -1157,6 +1189,9 @@ on_enable_vbi_toggled	(GtkWidget	*widget,
 static void
 vbi_general_setup	(GtkWidget	*page)
 {
+
+#ifdef HAVE_LIBZVBI
+
   GtkWidget *widget;
 
   /* Enable VBI decoding */
@@ -1192,6 +1227,13 @@ vbi_general_setup	(GtkWidget	*page)
   gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
     zconf_get_integer(NULL,
 		      "/zapping/options/vbi/qstradeoff"));
+
+#else /* !HAVE_LIBZVBI */
+
+  gtk_widget_set_sensitive (page, FALSE);
+
+#endif
+
 }
 
 typedef enum {
@@ -1223,7 +1265,9 @@ set_toggle		(GtkWidget *page,
 static void
 vbi_general_apply	(GtkWidget	*page)
 {
+
 #ifdef HAVE_LIBZVBI
+
   togglean enable_vbi;
   GtkWidget *widget;
   gchar *text;
@@ -1301,6 +1345,7 @@ vbi_general_apply	(GtkWidget	*page)
   zconf_set_integer(index, "/zapping/options/vbi/qstradeoff");
 
 #endif /* HAVE_LIBZVBI */
+
 }
 
 #if 0

@@ -898,11 +898,8 @@ screenshot_save (screenshot_data *data)
     {
       gchar *window_title;
 
-      window_title = g_strconcat (_("Sorry, but I cannot write\n"),
-				  data->filename,
-				  _("\nThe image won't be saved.\n"),
-				  strerror (errno),
-				  NULL);
+      window_title = g_strdup_printf (_("Sorry, but I cannot write %s\n%s"),
+				      data->filename, strerror (errno));
       ShowBox (window_title, GTK_MESSAGE_ERROR);
       g_free (window_title);
       return FALSE;

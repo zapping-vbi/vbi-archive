@@ -326,7 +326,7 @@ open_pcm			(void *			unused,
 
 		if (version > 0) {
 			p->node.version = tv_strdup_printf
-				(_("OSS %u.%u.%u"),
+				("OSS %u.%u.%u",
 				 (version >> 16) & 0xFF,
 				 (version >> 8) & 0xFF,
 				 (version >> 0) & 0xFF);
@@ -910,7 +910,8 @@ add_mixer_line			(struct mixer *		m,
 		char buf[80];
 
 		snprintf (buf, sizeof (buf) - 1,
-			  /* TRANSLATORS: Mixer line, mono as opposed to stereo. */
+			  /* TRANSLATORS: Name of mixer line, mono as
+			     opposed to stereo. */
 			  _("%s (Mono)"), dev_names[oss_id]);
 
 		if (!(l->pub.label = strdup (buf)))
@@ -1011,7 +1012,7 @@ open_mixer			(const tv_mixer_interface *mi,
 
 	if (m->version > 0) {
 		m->pub.node.version = tv_strdup_printf
-			(_("OSS %u.%u.%u"),
+			("OSS %u.%u.%u",
 			 (m->version >> 16) & 0xFF,
 			 (m->version >> 8) & 0xFF,
 			 (m->version >> 0) & 0xFF);

@@ -221,8 +221,7 @@ static gboolean plugin_load(gchar * file_name, struct plugin_info * info)
 	   realloc(info->exported_symbols,
 		   sizeof(struct plugin_exported_symbol)*(i+1));
 	 if (!info->exported_symbols)
-	  g_error(_("There wasn't enough mem for allocating symbol %d in %s"),
-		  i+1, info->file_name);
+	  g_error(_("Insufficient memory"));
 	
 	info->exported_symbols[i].symbol = g_strdup(symbol);
  	info->exported_symbols[i].type = g_strdup(type);
@@ -231,7 +230,7 @@ static gboolean plugin_load(gchar * file_name, struct plugin_info * info)
 	    g_strdup(description);
 	else
 	  info->exported_symbols[i].description =
-	    g_strdup(_("[No description provided]"));
+	    g_strdup(_("No description available"));
 	info->exported_symbols[i].ptr = ptr;
 	info->exported_symbols[i].hash = hash;
 	info->num_exported_symbols++;
