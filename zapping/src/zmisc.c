@@ -395,7 +395,7 @@ zmisc_switch_mode(display_mode new_dmode,
 					     5);
 	  register_widget (GTK_WIDGET (zapping), button, "toolbar-teletext");
 	}
-      else if (new_cmode == CAPTURE_MODE_TELETEXT)
+      else
 	{
 	  GtkWidget *appbar;
 
@@ -576,7 +576,7 @@ zmisc_switch_mode(display_mode new_dmode,
     {
       zapping->display_mode = new_dmode;
 
-      zcs_int ((int) to_old_tveng_capture_mode (new_dmode, new_cmode),
+      zcs_int ((int) to_old_tveng_capture_mode (old_dmode, old_cmode),
 	       "previous_mode");
 
       last_dmode = old_dmode;
