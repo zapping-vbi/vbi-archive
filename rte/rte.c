@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.15 2001-10-19 06:57:56 mschimek Exp $ */
+/* $Id: rte.c,v 1.16 2001-10-19 17:11:21 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -250,10 +250,7 @@ rte_context * rte_context_new (int width, int height,
 	rte_context * context;
 	int priv_bytes=0, i;
 
-	/*
-fprintf(stderr, "rte out of order\n");
-abort();
-	*/
+fprintf(stderr, "WARNING rte under construction\n");
 
 	context = malloc(sizeof(rte_context));
 

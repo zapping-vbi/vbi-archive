@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.6 2001-10-19 06:57:09 mschimek Exp $ */
+/* $Id: options.c,v 1.7 2001-10-19 17:11:06 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -310,7 +310,7 @@ create_slider (grte_options *opts, rte_option *ro, int index)
   gtk_signal_connect (GTK_OBJECT (adj), "value-changed",
 		      GTK_SIGNAL_FUNC (on_option_control), opts);
 
-  do_option_control (GTK_OBJECT (adj), opts);
+  do_option_control (GTK_WIDGET (adj), opts);
 
   hscale = gtk_hscale_new (GTK_ADJUSTMENT (adj));
   gtk_scale_set_draw_value (GTK_SCALE (hscale), FALSE);
@@ -409,7 +409,6 @@ grte_options_create (rte_context *context, rte_codec *codec,
     {
       if (strcmp(ro->keyword, "coded_frame_rate") == 0)
 	/* we'll override this */
-#warning dont forget
 	continue;
       else if (ro->entries > 0)
 	create_menu (opts, ro, index++);
@@ -523,17 +522,24 @@ grte_options_save (rte_codec *codec, gchar *zc_domain)
       switch (ro->type)
 	{
 	  case RTE_OPTION_BOOL:
+	    /* Create won't set an already existing variable,
+	     * Set won't create one with description.
+	     */
 	    zconf_create_boolean (val.num, _(ro->tooltip), zcname);
+	    zconf_set_boolean (val.num, zcname);
 	    break;
 	  case RTE_OPTION_INT:
 	  case RTE_OPTION_MENU:
 	    zconf_create_integer (val.num, _(ro->tooltip), zcname);
+	    zconf_set_integer (val.num, zcname);
 	    break;
 	  case RTE_OPTION_REAL:
 	    zconf_create_float (val.dbl, _(ro->tooltip), zcname);
+	    zconf_set_float (val.dbl, zcname);
 	    break;
 	  case RTE_OPTION_STRING:
 	    zconf_create_string (val.str, _(ro->tooltip), zcname);
+	    zconf_set_string (val.str, zcname);
 	    free (val.str);
 	    break;
 	  default:
