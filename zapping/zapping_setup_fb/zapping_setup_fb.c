@@ -37,6 +37,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
 #include <assert.h>
 
 #include "zapping_setup_fb.h"

@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping_setup_fb.h,v 1.2 2003-01-21 09:38:24 mschimek Exp $ */
+/* $Id: zapping_setup_fb.h,v 1.3 2003-01-25 23:42:03 mschimek Exp $ */
 
 #include <stdio.h>
 #include <string.h>
@@ -52,6 +52,7 @@ do {									\
     fprintf (stderr, template , ##args);				\
 } while (0)
 
+extern char *           program_invocation_name;
 extern char *           program_invocation_short_name;
 extern int		verbosity;
 
