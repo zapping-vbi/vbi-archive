@@ -39,8 +39,6 @@ struct tveng_module_info {
 			 Window window,
 			 enum tveng_attach_mode  attach_mode,
 			 tveng_device_info * info);
-  void	(*describe_controller)(const char **short_str, const char **long_str,
-			       tveng_device_info *info);
   void	(*close_device)(tveng_device_info *info);
 	/*
 	 */
@@ -48,60 +46,150 @@ struct tveng_module_info {
 						 unsigned int,
 						 char *);
 
-
-	/* Sets the current video input from info->video_inputs,
-	   with all effects of get_video_input(). */
-	tv_bool		(* set_video_input)	(tveng_device_info *,
-						 const tv_video_line *);
-	/* Reads the current video input from the device and stores
-	   it in info->cur_video_input. May update info->video_standards
-	   and info->cur_video_standards. */
-	tv_bool		(* get_video_input)	(tveng_device_info *);
-	/* Sets the frequency of a video input if a tuner, with all
-	   effects of get_tuner_frequency(). */
-	tv_bool		(* set_tuner_frequency)	(tveng_device_info *,
-						 tv_video_line *,
-						 unsigned int);
-	/* Reads the current frequency of a video input and stores it
-	   in the tv_video_line struct. */
-	tv_bool		(* get_tuner_frequency)	(tveng_device_info *,
-						 tv_video_line *);
-	/* Sets the current video standard, with all effects of
-	   get_standard(). */
-	tv_bool		(* set_video_standard)	(tveng_device_info *,
-						 const tv_video_standard *);
-	/* Reads the current video standard from the device and updates
-	   info->cur_video_standard. To update info->video_standards
-	   call update_video_input. */
-	tv_bool		(* get_video_standard)	(tveng_device_info *);
-	/* Sets the current audio input from info->audio_inputs,
-	   with all effects of get_audio_input(). */
-	tv_bool		(* set_audio_input)	(tveng_device_info *,
-						 const tv_audio_line *);
-	/* Reads the current audio input from the device and stores
-	   it in info->cur_audio_input. */
-	tv_bool		(* get_audio_input)	(tveng_device_info *);
-	/* Sets the value of a control, with all effects of get_control(). */
-  	tv_bool		(* set_control)		(tveng_device_info *,
-						 tv_control *,
-						 int);
-	/* Reads the current control value and stores it in tv_control.
-	   If the control is NULL updates all controls. */
-	tv_bool		(* get_control)		(tveng_device_info *,
-						 tv_control *);
-
-	tv_bool		(* set_audio_mode)	(tveng_device_info *,
-						 tv_audio_mode);
-
-  int	(*get_signal_strength)(int *strength, int *afc,
-			       tveng_device_info *info);
-
-
   /* Device specific stuff */
   int	(*ov511_get_button_state)(tveng_device_info *info);
 
+	const char *		interface_label;
+
   /* size of the private data of the module */
   int	private_size;
+};
+
+struct panel_device {
+	tv_control *		controls;
+
+	/* Sets the value of a control, with all effects of get_control(). */
+  	tv_bool			(* set_control)
+					(tveng_device_info *	info,
+					 tv_control *		control,
+					 int			value);
+	/* Reads the current control value and stores it in tv_control.
+	   If the control is NULL updates all controls. */
+	tv_bool			(* get_control)
+					(tveng_device_info *	info,
+					 tv_control *		control);
+
+	/* Video inputs of the device, invariable. */
+	tv_video_line *		video_inputs;
+	/* Pointer into video_inputs list, can be NULL when no list exists. */
+	tv_video_line *		cur_video_input;
+
+	tv_callback *		video_input_callback;
+
+	/* Sets the current video input from one of video_inputs,
+	   with all effects of get_video_input(). */
+	tv_bool			(* set_video_input)
+					(tveng_device_info *	info,
+					 tv_video_line *	line);
+	/* Reads the current video input from the device and stores
+	   it in cur_video_input. May update video_standards
+	   and cur_video_standards. */
+	tv_bool			(* get_video_input)
+					(tveng_device_info *	info);
+
+	tv_video_line *		video_outputs;
+	tv_video_line *		cur_video_output;
+
+	tv_callback *		video_output_callback;
+
+	tv_bool			(* set_video_output)
+					(tveng_device_info *	info,
+					 tv_video_line *	line);
+	tv_bool			(* get_video_output)
+					(tveng_device_info *	info);
+
+	/* Sets the frequency of a video input if a tuner, with all
+	   effects of get_tuner_frequency(). */
+	tv_bool			(* set_tuner_frequency)
+					(tveng_device_info *	info,
+					 tv_video_line *	line,
+					 unsigned int		frequency);
+	/* Reads the current frequency of a video input and stores it
+	   in the tv_video_line struct. */
+	tv_bool			(* get_tuner_frequency)
+					(tveng_device_info *	info,
+					 tv_video_line *	line);
+	/**
+	 * @param strength If not @c NULL stores the signal strenght here.
+	 *   Higher values are better. Initially zero, unknown.
+	 * @param afc If not @c NULL stores an automatic frequency control
+	 *   value here. If negative current frequency is too low, if
+	 *   positive too high. Initially zero, unknown.
+	 *
+	 * Reads the signal strenght from the cur_video_input, which is
+	 * not @c NULL and IS_TUNER_LINE(). @a strenght and @a afc will
+	 * not be both @c NULL.
+	 *
+	 * @returns
+	 * @c FALSE on failure.
+	 */
+	tv_bool			(* get_signal_strength)
+					(tveng_device_info *	info,
+					 int *			strength,
+					 int *			afc);
+
+	/* Video standards supported by the current video input and output.
+	   Note videostd_ids are bitwise mutually exclusive, i.e. no two
+	   listed standards can have the same videostd_id bit set. */
+	tv_video_standard *	video_standards;
+	/* This can be NULL if we don't know. If it matters,
+	   and video_standards is not NULL, clients should ask the user. */
+	tv_video_standard *	cur_video_standard;
+
+	tv_callback *		video_standard_callback;
+
+	/* Sets the current video standard, with all effects of
+	   get_standard(). */
+	tv_bool			(* set_video_standard)
+					(tveng_device_info *	info,
+					 tv_video_standard *	std);
+	/* Reads the current video standard from the device and updates
+	   cur_video_standard. To update video_standards call
+	   update_video_input. */
+	tv_bool			(* get_video_standard)
+					(tveng_device_info *	info);
+
+	/* Audio inputs of the device, invariable. Not supported yet.
+	   Need a function telling which video and audio inputs combine. */
+	tv_audio_line *		audio_inputs;
+	/* Pointer into audio_inputs list, can be NULL when no list exists. */
+	tv_audio_line *		cur_audio_input;
+
+	tv_callback *		audio_input_callback;
+
+	/* Sets the current audio input from one of audio_inputs,
+	   with all effects of get_audio_input(). */
+	tv_bool			(* set_audio_input)
+					(tveng_device_info *	info,
+					 tv_audio_line *	line);
+	/* Reads the current audio input from the device and stores
+	   it in info->cur_audio_input. */
+	tv_bool			(* get_audio_input)
+					(tveng_device_info *	info);
+
+	tv_audio_line *		audio_outputs;
+	tv_audio_line *		cur_audio_output;
+
+	tv_callback *		audio_output_callback;
+
+	tv_bool			(* set_audio_output)
+					(tveng_device_info *	info,
+					 tv_audio_line *	line);
+	tv_bool			(* get_audio_output)
+					(tveng_device_info *	info);
+
+	/* Audio mode */
+	tv_audio_capability	audio_capability;
+	/* lang1/2: 0-none/unknown 1-mono 2-stereo */
+	unsigned int		audio_reception[2];
+	tv_audio_mode		audio_mode;
+
+	/* when audio capability or reception changes */
+	tv_callback *		audio_callback;
+
+	tv_bool			(* set_audio_mode)
+					(tveng_device_info *	info,
+					 tv_audio_mode		mode);
 };
 
 struct capture_device {
@@ -110,19 +198,44 @@ struct capture_device {
 	/* Preliminary. If zero try set_format. */
 	tv_pixfmt_set		supported_pixfmt_set;
 
-	tv_bool			(* set_format)	(tveng_device_info *,
-						 const tv_image_format *);
-	tv_bool			(* get_format)	(tveng_device_info *);
+	tv_bool			(* set_format)
+					(tveng_device_info *	info,
+					 const tv_image_format *format);
+	tv_bool			(* get_format)
+					(tveng_device_info *	info);
+	/**
+	 * @param buffer The image will be stored here. Can be @c NULL
+	 *   to read and discard the image. buffer->format crops the image
+	 *   according to format->width, height, offset[] and bytes_per_line[].
+	 *   No conversion yet. If @c NULL capture_device.format applies.
+	 * @param timeout Time to wait for a new frame. If zero return
+	 *   immediately when no frame is available. If @c NULL block
+	 *   indefinitely. (as select(2))
+	 *
+	 * Reads the next frame from the device.
+	 *
+	 * @returns
+	 * -1 on error, 0 on timeout, 1 on success (as select(2)).
+	 */
+	int			(* read_frame)
+					(tveng_device_info *	info,
+					 tv_capture_buffer *	buffer,
+					 const struct timeval *	timeout);
+	tv_bool			(* queue_buffer)
+					(tveng_device_info *	info,
+					 tv_capture_buffer *	buffer);
+	int			(* dequeue_buffer)
+					(tveng_device_info *	info,
+					 tv_capture_buffer **	buffer,
+					 const struct timeval *	timeout);
+	tv_bool			(* flush_buffers)
+       					(tveng_device_info *	info);
+	tv_bool			(* enable)
+					(tveng_device_info *	info,
+					 tv_bool		enable);
+};
 
-  int	(*start_capturing)(tveng_device_info *info);
-  int	(*stop_capturing)(tveng_device_info *info);
-  int	(*read_frame)(tveng_image_data *where,
-		      unsigned int time, tveng_device_info *info);
-  tv_bool (*queue_buffer)(tveng_device_info *info,
-			  const tv_capture_buffer *buffer);
-  const tv_capture_buffer * (*dequeue_buffer)(tveng_device_info *info,
-				      unsigned int time);
-  double (*get_timestamp)(tveng_device_info *info);
+struct output_device {
 };
 
 struct overlay_device {
@@ -135,29 +248,38 @@ struct overlay_device {
 
 	tv_bool			active; /* XXX internal */
 
-	tv_bool			(* set_buffer)	(tveng_device_info *,
-						 const tv_overlay_buffer *);
-	tv_bool			(* get_buffer)	(tveng_device_info *);
+	tv_bool			(* set_buffer)
+					(tveng_device_info *	info,
+					 const tv_overlay_buffer *buffer);
+	tv_bool			(* get_buffer)
+					(tveng_device_info *	info);
 	tv_bool			(* set_window_clipvec)
-       						(tveng_device_info *,
-						 const tv_window *,
-						 const tv_clip_vector *);
+       					(tveng_device_info *	info,
+					 const tv_window *	window,
+					 const tv_clip_vector *	vector);
 	tv_bool			(* set_window_chromakey)
-						(tveng_device_info *,
-						 const tv_window *,
-						 unsigned int);
-	tv_bool			(* set_xwindow)	(tveng_device_info *,
-						 Window,
-						 GC);
-	tv_bool			(* get_window)	(tveng_device_info *);
-	tv_bool			(* get_chromakey)(tveng_device_info *);
-	tv_bool			(* enable)	(tveng_device_info *,
-						 tv_bool);
+					(tveng_device_info *	info,
+					 const tv_window *	window,
+					 unsigned int		chromakey);
+	tv_bool			(* set_xwindow)
+					(tveng_device_info *	info,
+					 Window			window,
+					 GC			gc);
+	tv_bool			(* get_window)
+					(tveng_device_info *	info);
+	tv_bool			(* get_chromakey)
+					(tveng_device_info *	info);
+	tv_bool			(* enable)
+					(tveng_device_info *	info,
+					 tv_bool		enable);
 };
 
 /* The structure used to hold info about a video_device */
 struct _tveng_device_info
 {
+	/* XXX incomplete */
+	tv_device_node		node;
+
   char * file_name; /* The name used to open() this fd */
   int fd; /* Video device file descriptor */
   capture_mode capture_mode; /* Current capture mode */
@@ -166,7 +288,7 @@ struct _tveng_device_info
   enum tveng_controller current_controller; /* Controller used */
   struct tveng_caps caps; /* Video system capabilities */
 
-
+  struct panel_device panel;
   struct capture_device capture;
   struct overlay_device overlay;
 
@@ -174,37 +296,9 @@ struct _tveng_device_info
 	   through this fp when non-NULL. */
 	FILE *			log_fp;
 
-	/* Panel properties */
+	tv_bool			freq_change_restart;
 
-	/* Video inputs of the device, invariable. */
-	tv_video_line *		video_inputs;
-	/* Can be NULL only when no list exists. */
-	tv_video_line *		cur_video_input;
-
-	/* Audio inputs of the device, invariable. Not supported yet.
-	   Need a function telling which video and audio inputs combine. */
-	tv_audio_line *		audio_inputs;
-	/* Can be NULL only when no list exists. */
-	tv_audio_line *		cur_audio_input;
-
-	/* Video standards supported by the current video input. Note
-	   videostd_ids are bitwise mutually exclusive, i.e. no two listed
-	   standards can have the same videostd_id bit set. */
-	tv_video_standard *	video_standards;
-	/* This can be NULL if we don't know. If it matters,
-	   and video_standards is not NULL, clients should ask the user. */
-	tv_video_standard *	cur_video_standard;
-
-	/* Controls */
-	tv_control *		controls;
 	unsigned		audio_mutable : 1;
-
-	/* Audio mode */
-	tv_audio_capability	audio_capability;
-	/* lang1/2: 0-none/unknown 1-mono 2-stereo */
-	unsigned int		audio_reception[2];
-	tv_audio_mode		audio_mode;
-
 
   /* Unique integer that indentifies this device */
   int signature;
@@ -215,7 +309,6 @@ struct _tveng_device_info
   int debug_level; /* 0 for no errors, increase for greater verbosity */
 
   Display	*display;
-  int		save_x, save_y;
   int		bpp;
   int		current_bpp;
 
@@ -242,15 +335,10 @@ struct _tveng_device_info
 
   unsigned int		callback_recursion;
 
-  tv_callback *		video_input_callback;
-  tv_callback *		audio_input_callback;
-  tv_callback *		video_standard_callback;
 
   tv_control *		control_mute;
   tv_bool		quiet;
 
-  /* when audio capability or reception changes */
-  tv_callback *		audio_callback;
 
 };
 
