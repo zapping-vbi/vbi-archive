@@ -19,11 +19,11 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.15 2002-03-06 00:53:49 mschimek Exp $ */
+/* $Id: options.c,v 1.16 2002-04-20 06:37:54 mschimek Exp $ */
 
 #include "plugin_common.h"
 
-#ifdef HAVE_LIBRTE
+#if defined(HAVE_LIBRTE4) || defined(HAVE_LIBRTE5)
 
 #include <math.h>
 
@@ -76,15 +76,19 @@ do_option_control (GtkWidget *w, gpointer user_data)
   g_assert (opts && keyword);
 
   if (!opts->context || !opts->codec
-      || !(ro = rte_option_info_by_keyword (opts->codec, keyword)))
+      || !(ro = rte_codec_option_info_keyword (opts->codec, keyword)))
     return;
 
   /* rte_option_set errors ignored */
 
+#ifdef HAVE_LIBRTE4
   if (ro->entries > 0)
+#else
+  if (ro->menu.num)
+#endif
     {
       val.num = (gint) gtk_object_get_data (GTK_OBJECT (w), "idx");
-      rte_option_set_menu (opts->codec, ro->keyword, val.num);
+      rte_codec_option_menu_set (opts->codec, ro->keyword, val.num);
     }
   else
     {
@@ -119,7 +123,7 @@ do_option_control (GtkWidget *w, gpointer user_data)
 		       ro->type, ro->keyword);
 	}
 
-      rte_option_set (opts->codec, ro->keyword, val);
+      rte_codec_option_set (opts->codec, ro->keyword, val);
     }
 }
 
@@ -151,7 +155,7 @@ create_entry (grte_options *opts, rte_option_info *ro, int index)
   set_tooltip (entry, _(ro->tooltip));
   gtk_widget_show (entry);
 
-  g_assert (rte_option_get (opts->codec, ro->keyword, &val));
+  g_assert (rte_codec_option_get (opts->codec, ro->keyword, &val));
   gtk_entry_set_text (GTK_ENTRY (entry), val.str);
   free (val.str);
 
@@ -185,12 +189,21 @@ create_menu (grte_options *opts, rte_option_info *ro, int index)
   option_menu = gtk_option_menu_new ();
   menu = gtk_menu_new ();
 
+#ifdef HAVE_LIBRTE4
   g_assert (ro->entries > 0);
 
-  if (!rte_option_get_menu (opts->codec, ro->keyword, &current))
+  if (!rte_codec_option_menu_get (opts->codec, ro->keyword, &current))
     current = 0;
 
   for (i = 0; i < ro->entries; i++)
+#else /* LIBRTE5 */
+  g_assert (ro->menu.num != NULL);
+
+  if (!rte_codec_option_menu_get (opts->codec, ro->keyword, &current))
+    current = 0;
+
+  for (i = ro->min.num; i <= ro->max.num; i++)
+#endif
     {
       char *str;
 
@@ -198,16 +211,16 @@ create_menu (grte_options *opts, rte_option_info *ro, int index)
 	{
 	  case RTE_OPTION_BOOL:
 	  case RTE_OPTION_INT:
-	    str = rte_option_print (opts->codec, ro->keyword, ro->menu.num[i]);
+	    str = rte_codec_option_print (opts->codec, ro->keyword, ro->menu.num[i]);
 	    break;
 	  case RTE_OPTION_REAL:
-	    str = rte_option_print (opts->codec, ro->keyword, ro->menu.dbl[i]);
+	    str = rte_codec_option_print (opts->codec, ro->keyword, ro->menu.dbl[i]);
 	    break;
 	  case RTE_OPTION_STRING:
-	    str = rte_option_print (opts->codec, ro->keyword, ro->menu.str[i]);
+	    str = rte_codec_option_print (opts->codec, ro->keyword, ro->menu.str[i]);
 	    break;
 	  case RTE_OPTION_MENU:
-	    str = rte_option_print (opts->codec, ro->keyword, i);
+	    str = rte_codec_option_print (opts->codec, ro->keyword, i);
 	    break;
 	  default:
 	    g_warning ("Type %d of RTE option %s is not supported",
@@ -258,10 +271,10 @@ create_slider (grte_options *opts, rte_option_info *ro, int index)
   char *s;
 
   label = ro_label_new (ro);
-  s = rte_option_print (opts->codec, ro->keyword, ro->max);
+  s = rte_codec_option_print (opts->codec, ro->keyword, ro->max);
   maxp = strtod (s, &s);
   while (*s == ' ') s++;
-  g_assert (rte_option_get (opts->codec, ro->keyword, &val));
+  g_assert (rte_codec_option_get (opts->codec, ro->keyword, &val));
   if (ro->type == RTE_OPTION_INT)
     {
       def = ro->def.num; step = ro->step.num;
@@ -310,7 +323,7 @@ create_checkbutton (grte_options *opts, rte_option_info *ro, int index)
   set_tooltip (cb, _(ro->tooltip));
   gtk_widget_show (cb);
 
-  g_assert (rte_option_get (opts->codec, ro->keyword, &val));
+  g_assert (rte_codec_option_get (opts->codec, ro->keyword, &val));
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (cb), val.num);
 
   gtk_object_set_data (GTK_OBJECT (cb), "key", ro->keyword);
@@ -361,7 +374,7 @@ grte_options_create (rte_context *context, rte_codec *codec)
   gint index;
   int i;
 
-  if (!rte_option_info_enum (codec, 0))
+  if (!rte_codec_option_info_enum (codec, 0))
     return NULL; /* no options */
 
   opts = g_malloc (sizeof (*opts));
@@ -378,12 +391,17 @@ grte_options_create (rte_context *context, rte_codec *codec)
   opts->table = gtk_table_new (1, 3, FALSE);
   gtk_widget_show (opts->table);
 
-  for (i = 0, index = 0; (ro = rte_option_info_enum (codec, i)); i++)
+  for (i = 0, index = 0; (ro = rte_codec_option_info_enum (codec, i)); i++)
     {
+#ifdef LIBRTE4
       if (strcmp(ro->keyword, "coded_frame_rate") == 0)
-	/* we'll override this */
-	continue;
+	continue; /* we'll override this */
       else if (ro->entries > 0)
+#else
+      if (!ro->label)
+	continue; /* experts only */
+      else if (ro->menu.num)
+#endif
 	create_menu (opts, ro, index++);
       else
 	switch (ro->type)
@@ -472,7 +490,7 @@ grte_options_load (rte_codec *codec, gchar *zc_domain)
 
   g_assert (codec && zc_domain);
 
-  for (i = 0; (ro = rte_option_info_enum (codec, i)); i++)
+  for (i = 0; (ro = rte_codec_option_info_enum (codec, i)); i++)
     {
       gchar *zcname = g_strconcat (zc_domain, "/", ro->keyword, NULL);
       rte_option_value val;
@@ -502,7 +520,7 @@ grte_options_load (rte_codec *codec, gchar *zc_domain)
       if (zconf_error ())
 	continue;
 
-      if (!rte_option_set (codec, ro->keyword, val))
+      if (!rte_codec_option_set (codec, ro->keyword, val))
 	return FALSE;
     }
 
@@ -529,12 +547,12 @@ grte_options_save (rte_codec *codec, gchar *zc_domain)
 
   g_assert (codec && zc_domain);
 
-  for (i = 0; (ro = rte_option_info_enum (codec, i)); i++)
+  for (i = 0; (ro = rte_codec_option_info_enum (codec, i)); i++)
     {
       gchar *zcname = g_strconcat (zc_domain, "/", ro->keyword, NULL);
       rte_option_value val;
 
-      if (!rte_option_get (codec, ro->keyword, &val))
+      if (!rte_codec_option_get (codec, ro->keyword, &val))
 	{
 	  g_free(zcname);
 	  return FALSE;
@@ -612,7 +630,8 @@ grte_codec_create_menu (rte_context *context, gchar *zc_subdomain,
 			rte_stream_type stream_type, gint *default_item)
 {
   GtkWidget *menu, *menu_item;
-  rte_codec_info *info;
+  rte_context_info *cxinfo;
+  rte_codec_info *cdinfo;
   gchar *zcname, *keyword = 0;
   gint base = 1, items = 0;
   int i;
@@ -637,7 +656,13 @@ grte_codec_create_menu (rte_context *context, gchar *zc_subdomain,
 
   menu = gtk_menu_new ();
 
+  g_assert ((cxinfo = rte_context_info_context (context)));
+
+#ifdef HAVE_LIBRTE4
   if (1) /* "None" permitted? */
+#else
+  if (cxinfo->min_elementary[stream_type] != 1) /* "None" permitted? */
+#endif
     {
       menu_item = gtk_menu_item_new_with_label (_("None"));
       gtk_widget_show (menu_item);
@@ -653,19 +678,19 @@ grte_codec_create_menu (rte_context *context, gchar *zc_subdomain,
 
   // XXX it makes no sense to display a menu when there's
   // really no choice
-  for (i = 0; (info = rte_codec_info_enum (context, i)); i++)
+  for (i = 0; (cdinfo = rte_codec_info_enum (context, i)); i++)
     {
-      if (info->stream_type != stream_type)
+      if (cdinfo->stream_type != stream_type)
         continue;
 
-      menu_item = gtk_menu_item_new_with_label (_(info->label));
-      gtk_object_set_data (GTK_OBJECT (menu_item), "keyword", info->keyword);
-      set_tooltip (menu_item, _(info->tooltip));
+      menu_item = gtk_menu_item_new_with_label (_(cdinfo->label));
+      gtk_object_set_data (GTK_OBJECT (menu_item), "keyword", cdinfo->keyword);
+      set_tooltip (menu_item, _(cdinfo->tooltip));
       gtk_widget_show (menu_item);
       gtk_menu_append (GTK_MENU (menu), menu_item);
 
       if (default_item)
-	if (strcmp (keyword, info->keyword) == 0)
+	if (strcmp (keyword, cdinfo->keyword) == 0)
 	  *default_item = base + items;
 
       items++;
@@ -673,6 +698,40 @@ grte_codec_create_menu (rte_context *context, gchar *zc_subdomain,
 
   return menu;
 }
+
+#ifdef HAVE_LIBRTE5
+
+/**
+ * grte_num_codecs:
+ * @context: 
+ * @stream_type: 
+ * @info_p: 
+ * 
+ * Return value: 
+ * Number of codecs of @stream_type available for @context. When
+ * @info_p is not %NULL and number of codecs is 1, a pointer to
+ * its #rte_codec_info is stored here.
+ **/
+gint
+grte_num_codecs (rte_context *context, rte_stream_type stream_type,
+		 rte_codec_info **info_p)
+{
+  rte_codec_info *info;
+  gint count, i;
+
+  if (!info_p)
+    info_p = &info;
+
+  count = 0;
+
+  for (i = 0; (*info_p = rte_codec_info_enum (context, i)); i++)
+    if ((*info_p)->stream_type == stream_type)
+      count++;
+
+  return count;
+}
+
+#endif /* HAVE_LIBRTE5 */
 
 /**
  * grte_codec_load:
@@ -707,7 +766,11 @@ grte_codec_load (rte_context *context, gchar *zc_subdomain,
 
   if (keyword && keyword[0])
     {
+#ifdef HAVE_LIBRTE4
       codec = rte_codec_set (context, stream_type, 0, keyword);
+#else /* LIBRTE5 */
+      codec = rte_codec_set (context, keyword, 0, NULL);
+#endif
 
       if (codec)
 	{
@@ -745,7 +808,7 @@ grte_codec_save (rte_context *context, gchar *zc_subdomain,
 
   if (codec)
     {
-      g_assert ((info = rte_codec_info_by_codec (codec)));
+      g_assert ((info = rte_codec_info_codec (codec)));
 
       zconf_set_string (info->keyword, zcname);
       g_free (zcname);
@@ -864,7 +927,11 @@ grte_context_load (gchar *zc_subdomain, gchar *keyword,
 	return NULL;
     }
 
+#ifdef HAVE_LIBRTE4
   context = rte_context_new (352, 288, keyword, NULL);
+#else
+  context = rte_context_new (keyword, NULL, NULL);
+#endif
 
   if (!context)
     return NULL;
@@ -889,11 +956,10 @@ grte_context_load (gchar *zc_subdomain, gchar *keyword,
 void
 grte_context_save (rte_context *context, gchar *zc_subdomain)
 {
-  extern rte_context_info *rte_context_info_by_context (rte_context *);
   rte_context_info *info;
   gchar *zcname;
 
-  g_assert ((info = rte_context_info_by_context (context)));
+  g_assert ((info = rte_context_info_context (context)));
 
   zcname = g_strconcat (ZCONF_DOMAIN "/", zc_subdomain, "/format", NULL);
   zconf_set_string (info->keyword, zcname);
