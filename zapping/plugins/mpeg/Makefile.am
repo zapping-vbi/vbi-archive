@@ -14,10 +14,15 @@ CFLAGS = $(PLUGIN_DEFAULT_FLAGS)
 INCLUDES = -I$(top_srcdir) $(COMMON_INCLUDES)
 
 PIXMAPS = \
-	record.png pause.png stop.png \
-	disk_empty.png drop.png time.png volume.png
+	record.png \
+	pause.png \
+	stop.png \
+	disk_empty.png \
+	drop.png \
+	time.png \
+	volume.png
 
-EXTRA_DIST = mpeg_properties.glade2 mpeg_strings.c $(PIXMAPS)
+EXTRA_DIST = mpeg_properties.glade2 $(PIXMAPS)
 BUILT_SOURCES = pixmaps.h
 noinst_HEADERS = $(BUILT_SOURCES)
 CLEANFILES = $(BUILT_SOURCES)
