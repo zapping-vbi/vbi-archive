@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.h,v 1.2.2.1 2003-02-16 21:03:36 mschimek Exp $ */
+/* $Id: lang.h,v 1.2.2.2 2003-06-16 06:03:56 mschimek Exp $ */
 
 #ifndef LANG_H
 #define LANG_H
@@ -74,13 +74,13 @@ typedef enum {
  *
  * vbi_font_descriptors[], array of vbi_font_descr implements
  * the Teletext character set designation tables in ETS 300 706,
- * Section 15: Table 32, 33 and 34.  
+ * Section 15, Table 32, 33 and 34.  
  */
 struct vbi_font_descr {
 	vbi_character_set	G0;
-	vbi_character_set	G2;	
+	vbi_character_set	G2;
 	vbi_national_subset	subset;		/* applies only to LATIN_G0 */
-	const char *		label;		/* Latin-1 */
+	const char *		lang_code[4];	/* ISO 639 */	
 };
 
 extern struct vbi_font_descr	vbi_font_descriptors[88];

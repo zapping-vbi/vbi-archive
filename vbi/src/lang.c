@@ -1,7 +1,7 @@
 /*
  *  libzvbi - Teletext and Closed Caption character set
  *
- *  Copyright (C) 2000, 2001 Michael H. Schimek
+ *  Copyright (C) 2000-2003 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.c,v 1.4 2002-10-11 12:31:49 mschimek Exp $ */
+/* $Id: lang.c,v 1.4.2.1 2003-06-16 06:03:48 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -37,111 +37,111 @@
 struct vbi_font_descr
 vbi_font_descriptors[88] = {
 	/* 0 - Western and Central Europe */
-	{ LATIN_G0, LATIN_G2, ENGLISH,		"English" },
-	{ LATIN_G0, LATIN_G2, GERMAN,		"Deutsch" },
-	{ LATIN_G0, LATIN_G2, SWE_FIN_HUN,	"Svenska / Suomi / Magyar" },
-	{ LATIN_G0, LATIN_G2, ITALIAN,		"Italiano" },
-	{ LATIN_G0, LATIN_G2, FRENCH,		"Français" },
-	{ LATIN_G0, LATIN_G2, PORTUG_SPANISH,	"Português / Español" },
-	{ LATIN_G0, LATIN_G2, CZECH_SLOVAK,	"Cesky / Slovencina" },
-	{ LATIN_G0, LATIN_G2, NO_SUBSET,	0 },
+	{ LATIN_G0, LATIN_G2, ENGLISH,		{ "en",    0,    0, 0 } },
+	{ LATIN_G0, LATIN_G2, GERMAN,		{ "de",    0,    0, 0 } },
+	{ LATIN_G0, LATIN_G2, SWE_FIN_HUN,	{ "sv", "fi", "hu", 0 } },
+	{ LATIN_G0, LATIN_G2, ITALIAN,		{ "it",    0,    0, 0 } },
+	{ LATIN_G0, LATIN_G2, FRENCH,		{ "fr",    0,    0, 0 } },
+	{ LATIN_G0, LATIN_G2, PORTUG_SPANISH,	{ "es", "pt",    0, 0 } },
+	{ LATIN_G0, LATIN_G2, CZECH_SLOVAK,	{ "cs", "sk",    0, 0 } },
+	{ LATIN_G0, LATIN_G2, NO_SUBSET,	{    0,    0,    0, 0 } },
 
 	/* 8 - Eastern Europe */
-	{ LATIN_G0, LATIN_G2, POLISH,		"Polski" },
-	{ LATIN_G0, LATIN_G2, GERMAN,		"Deutsch" },
-	{ LATIN_G0, LATIN_G2, SWE_FIN_HUN,	"Svenska / Suomi / Magyar" },
-	{ LATIN_G0, LATIN_G2, ITALIAN,		"Italiano" },
-	{ LATIN_G0, LATIN_G2, FRENCH,		"Français" },
-	{ LATIN_G0, LATIN_G2, NO_SUBSET,	0 },
-	{ LATIN_G0, LATIN_G2, CZECH_SLOVAK,	"Cesky / Slovencina" },
-	{ LATIN_G0, LATIN_G2, NO_SUBSET,	0 },
+	{ LATIN_G0, LATIN_G2, POLISH,		{ "pl",    0,    0, 0 } },
+	{ LATIN_G0, LATIN_G2, GERMAN,		{ "de",    0,    0, 0 } },
+	{ LATIN_G0, LATIN_G2, SWE_FIN_HUN,	{ "sv", "fi", "hu", 0 } },
+	{ LATIN_G0, LATIN_G2, ITALIAN,		{ "it",    0,    0, 0 } },
+	{ LATIN_G0, LATIN_G2, FRENCH,		{ "fr",    0,    0, 0 } },
+	{ LATIN_G0, LATIN_G2, NO_SUBSET,	{    0,    0,    0, 0 } },
+	{ LATIN_G0, LATIN_G2, CZECH_SLOVAK,	{ "cs", "sk",    0, 0 } },
+	{ LATIN_G0, LATIN_G2, NO_SUBSET,	{    0,    0,    0, 0 } },
 
 	/* 16 - Western Europe and Turkey */
-	{ LATIN_G0, LATIN_G2, ENGLISH,		"English" },
-	{ LATIN_G0, LATIN_G2, GERMAN,		"Deutsch" },
-	{ LATIN_G0, LATIN_G2, SWE_FIN_HUN,	"Svenska / Suomi / Magyar" },
-	{ LATIN_G0, LATIN_G2, ITALIAN,		"Italiano" },
-	{ LATIN_G0, LATIN_G2, FRENCH,		"Français" },
-	{ LATIN_G0, LATIN_G2, PORTUG_SPANISH,	"Português / Español" },
-	{ LATIN_G0, LATIN_G2, TURKISH,		"Türkçe" },
-	{ LATIN_G0, LATIN_G2, NO_SUBSET,	0 },
+	{ LATIN_G0, LATIN_G2, ENGLISH,		{ "en",    0,    0, 0 } },
+	{ LATIN_G0, LATIN_G2, GERMAN,		{ "de",    0,    0, 0 } },
+	{ LATIN_G0, LATIN_G2, SWE_FIN_HUN,	{ "sv", "fi", "hu", 0 } },
+	{ LATIN_G0, LATIN_G2, ITALIAN,		{ "it",    0,    0, 0 } },
+	{ LATIN_G0, LATIN_G2, FRENCH,		{ "fr",    0,    0, 0 } },
+	{ LATIN_G0, LATIN_G2, PORTUG_SPANISH,	{ "es", "pt",    0, 0 } },
+	{ LATIN_G0, LATIN_G2, TURKISH,		{ "tr",    0,    0, 0 } },
+	{ LATIN_G0, LATIN_G2, NO_SUBSET,	{    0,    0,    0, 0 } },
 
 	/* 24 - Central and Southeast Europe */
-	{ LATIN_G0, LATIN_G2, NO_SUBSET,	0 },
-	{ LATIN_G0, LATIN_G2, NO_SUBSET,	0 },
-	{ LATIN_G0, LATIN_G2, NO_SUBSET,	0 },
-	{ LATIN_G0, LATIN_G2, NO_SUBSET,	0 },
-	{ LATIN_G0, LATIN_G2, NO_SUBSET,	0 },
-	{ LATIN_G0, LATIN_G2, SERB_CRO_SLO,	"Srbski / Hrvatski / Slovenscina" },
-	{ LATIN_G0, LATIN_G2, NO_SUBSET,	0 },
-	{ LATIN_G0, LATIN_G2, RUMANIAN,		"Româna" },
+	{ LATIN_G0, LATIN_G2, NO_SUBSET,	{    0,    0,    0, 0 } },
+	{ LATIN_G0, LATIN_G2, NO_SUBSET,	{    0,    0,    0, 0 } },
+	{ LATIN_G0, LATIN_G2, NO_SUBSET,	{    0,    0,    0, 0 } },
+	{ LATIN_G0, LATIN_G2, NO_SUBSET,	{    0,    0,    0, 0 } },
+	{ LATIN_G0, LATIN_G2, NO_SUBSET,	{    0,    0,    0, 0 } },
+	{ LATIN_G0, LATIN_G2, SERB_CRO_SLO,	{ "sr", "hr", "sl", 0 } },
+	{ LATIN_G0, LATIN_G2, NO_SUBSET,	{    0,    0,    0, 0 } },
+	{ LATIN_G0, LATIN_G2, RUMANIAN,		{ "ro",    0,    0, 0 } },
 
 	/* 32 - Cyrillic */
-	{ CYRILLIC_1_G0, CYRILLIC_G2, NO_SUBSET, "Srpski / Hrvatski" },
-	{ LATIN_G0, LATIN_G2, GERMAN,		"Deutsch" },
-	{ LATIN_G0, LATIN_G2, ESTONIAN,		"Eesti" },
-	{ LATIN_G0, LATIN_G2, LETT_LITH,	"Lettish / Lietuviskai" },
-	{ CYRILLIC_2_G0, CYRILLIC_G2, NO_SUBSET, "Russky / Balgarski " },
-	{ CYRILLIC_3_G0, CYRILLIC_G2, NO_SUBSET, "Ukrayins'ka" },
-	{ LATIN_G0, LATIN_G2, CZECH_SLOVAK,	"Cesky / Slovencina" },
-	{ 0, 0, NO_SUBSET,			0 },
+	{ CYRILLIC_1_G0, CYRILLIC_G2, NO_SUBSET, { "sr", "hr", "sl", 0 } },
+	{ LATIN_G0, LATIN_G2, GERMAN,		 { "de",    0,    0, 0 } },
+	{ LATIN_G0, LATIN_G2, ESTONIAN,		 { "et",    0,    0, 0 } },
+	{ LATIN_G0, LATIN_G2, LETT_LITH,	 { "lv", "lt",    0, 0 } },
+	{ CYRILLIC_2_G0, CYRILLIC_G2, NO_SUBSET, { "ru", "bg",    0, 0 } },
+	{ CYRILLIC_3_G0, CYRILLIC_G2, NO_SUBSET, { "uk",    0,    0, 0 } },
+	{ LATIN_G0, LATIN_G2, CZECH_SLOVAK,	 { "cs", "sk",    0, 0 } },
+	{ 0, 0, NO_SUBSET,			 {    0,    0,    0, 0 } },
 
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
 
 	/* 48 */
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ LATIN_G0, LATIN_G2, TURKISH,		"Türkçe" },
-	{ GREEK_G0, GREEK_G2, NO_SUBSET,	"Ellinika'" },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ LATIN_G0, LATIN_G2, TURKISH,		{ "tr",    0,    0, 0 } },
+	{ GREEK_G0, GREEK_G2, NO_SUBSET,	{ "el",    0,    0, 0 } },
 
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
 
 	/* 64 - Arabic */
-	{ LATIN_G0, ARABIC_G2, ENGLISH,		"Alarabia / English" },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ LATIN_G0, ARABIC_G2, FRENCH,		"Alarabia / Français" },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ ARABIC_G0, ARABIC_G2, NO_SUBSET,	"Alarabia" },
+	{ LATIN_G0, ARABIC_G2, ENGLISH,		{ "ar", "en",    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ LATIN_G0, ARABIC_G2, FRENCH,		{ "ar", "fr",    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ ARABIC_G0, ARABIC_G2, NO_SUBSET,	{ "ar",    0,    0, 0 } },
 
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
 
 	/* 80 */
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ HEBREW_G0, ARABIC_G2, NO_SUBSET,	"Ivrit" },
-	{ 0, 0, NO_SUBSET,			0 },
-	{ ARABIC_G0, ARABIC_G2, NO_SUBSET,	"Alarabia" },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ HEBREW_G0, ARABIC_G2, NO_SUBSET,	{ "he",    0,    0, 0 } },
+	{ 0, 0, NO_SUBSET,			{    0,    0,    0, 0 } },
+	{ ARABIC_G0, ARABIC_G2, NO_SUBSET,	{ "ar",    0,    0, 0 } },
 };
 
 #if 0
@@ -568,9 +568,9 @@ caption_special[] = {
  * Unicode value.
  */
 unsigned int
-vbi_caption_unicode(unsigned int c)
+vbi_caption_unicode		(unsigned int		c)
 {
-	assert(c <= 15 || (c >= 0x20 && c <= 0x7F));
+	assert (c <= 0x0F || (c >= 0x20 && c <= 0x7F));
 
 	if (c < 0x10)
 		return caption_special[c];
@@ -579,7 +579,7 @@ vbi_caption_unicode(unsigned int c)
 }
 
 static inline int
-isblank(vbi_char c)
+isblank				(vbi_char		c)
 {
 	/* flash/conceal: undecided; underline: nope. */
 	if (c.flash || c.conceal || c.underline)
