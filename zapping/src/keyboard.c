@@ -159,7 +159,7 @@ zconf_create_z_key			(z_key		key,
   zconf_create_integer ((gint) key.key, desc, s);
   g_free (s);
 
-  if (zconf_error())
+  if (zconf_error ())
     return;
 
   s = g_strjoin (NULL, path, "_mask", NULL);
@@ -476,6 +476,18 @@ kb_delete				(key_binding *	kb)
 }
 
 static void
+kb_flush				(void)
+{
+  key_binding *k;
+
+  while ((k = kb_list))
+    {
+      kb_list = k->next;
+      kb_delete (k);
+    }
+}
+
+static void
 kb_add					(z_key		key,
 					 const gchar *	command)
 {
@@ -606,6 +618,61 @@ load_default_key_bindings		(void)
     }
 }
 
+static void
+load_key_bindings			(void)
+{
+  gchar *buffer;
+  gchar *command;
+  z_key key;
+  gint i;
+
+  kb_flush ();
+
+  for (i = 0;; i++)
+    {
+      buffer = g_strdup_printf ("/zapping/options/main/keys/%d_cmd", i);
+      command = zconf_get_string (NULL, buffer);
+      g_free (buffer);
+
+      if (command == NULL)
+        {
+	  if (i == 0)
+	    load_default_key_bindings ();
+
+	  break;
+	}
+
+      buffer = g_strdup_printf ("/zapping/options/main/keys/%d", i);
+      zconf_get_z_key (&key, buffer);
+      g_free (buffer);
+
+      kb_add (key, command);
+    }
+}
+
+static void
+save_key_bindings			(void)
+{
+  key_binding *kb;
+  z_key key;
+  int i;
+
+  zconf_delete("/zapping/options/main/keys");
+
+  for (kb = kb_list, i = 0; kb; kb = kb->next, i++)
+    {
+      gchar *buffer;
+
+      buffer = g_strdup_printf ("/zapping/options/main/keys/%d_cmd", i);
+      zconf_create_string (kb->command, NULL, buffer);
+      g_free (buffer);
+
+      buffer = g_strdup_printf ("/zapping/options/main/keys/%d", i);
+      zconf_create_z_key (kb->key, NULL, buffer);
+      g_free (buffer);
+    }
+}
+
 /*
  *  Preferences
  */
@@ -720,15 +787,10 @@ static void
 apply					(GtkWidget *	page)
 {
   GtkWidget *clist = lookup_widget (page, "clist2");
-  key_binding *kb;
   gchar *key, *cmd;
   gint row;
 
-  while ((kb = kb_list))
-    {
-      kb_list = kb->next;
-      kb_delete (kb);
-    }
+  kb_flush ();
 
   for (row = 0; gtk_clist_get_text (GTK_CLIST (clist), row, 0, &key); row++)
     {
@@ -755,13 +817,9 @@ add				(GnomeDialog *		dialog)
 void
 shutdown_keyboard (void)
 {
-  key_binding *k;
+  save_key_bindings ();
 
-  while ((k = kb_list))
-    {
-      kb_list = k->next;
-      kb_delete (k);
-    }
+  kb_flush ();
 }
 
 void
@@ -771,7 +829,7 @@ startup_keyboard (void)
     add: add
   };
 
-  load_default_key_bindings ();
+  load_key_bindings ();
 
   prepend_property_handler (&keyb_handler);
 }

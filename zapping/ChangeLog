@@ -1,3 +1,4 @@
+
 08.03.2002	zapping_setup_fb <mschimek@users.sf.net>
 
 	* zapping_setup_fb/Makefile.am: Automake or autoconf created
