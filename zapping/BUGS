@@ -17,13 +17,5 @@ Known bugs with zapping, don't report them
 	* Zapzilla: No fallback on incomplete DRCS page?
 	~ Zapzilla: Calls fetch_page more often than necessary,
 	  investigate.
-	* Don't compile conv_gen.s if $host != x86
 	~ Zapzilla: what's v4lx doing on standard change?
 	* Look for endianness problems.
-
-
-
-
-
-
-

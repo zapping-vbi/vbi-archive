@@ -23,6 +23,8 @@
 #undef ENABLE_V4L
 // Set if MMX support will be built
 #undef USE_MMX
+// MMX present and GNU as found
+#undef HAVE_GAS
 // Architecture
 #undef __i386__
 #undef __alpha__

@@ -79,7 +79,7 @@ static void yuv2rgb_c (void * dst, uint8_t * py,
     }
 }
 
-#if #cpu (i386)
+#ifdef HAVE_GAS
 
 static yuv2rgb_fun
 yuv2rgb_init_swar (int bpp, int mode)
@@ -273,7 +273,7 @@ yuyv2rgb_init_swar (int bpp, int mode)
   return NULL; /* Fallback to C */
 }
 
-#else /* !cpu x86 */
+#else /* !HAVE_GAS */
 
 static yuv2rgb_fun
 yuv2rgb_init_swar (int bpp, int mode)
@@ -287,7 +287,7 @@ yuyv2rgb_init_swar (int bpp, int mode)
   return NULL; /* Fallback to C */
 }
 
-#endif /* !cpu x86 */
+#endif /* !HAVE_GAS */
 
 void yuv2rgb_init (int bpp, int mode) 
 {

@@ -292,6 +292,17 @@ esac
 
 if test "x$HAVE_MMX" = "xyes"; then
 	AC_DEFINE(USE_MMX)
+	AC_PATH_PROG(AS_LOCATION, "as")
+	if test "x$AS_LOCATION" != "x"; then
+		AS_VERSION=`$AS_LOCATION --version | grep GNU`
+		if test "x$AS_VERSION" != "x"; then
+			GEN_CONV_S="gen_conv.s"
+			AC_SUBST(GEN_CONV_S)
+			GEN_CONV_O="gen_conv.o"
+			AC_SUBST(GEN_CONV_O)
+			AC_DEFINE(HAVE_GAS)
+		fi
+	fi
 fi
 
 AC_SUBST(ARCH_CFLAGS)
