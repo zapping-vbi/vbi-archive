@@ -199,6 +199,8 @@ tv_audio_mode_to_audmode	(tv_audio_mode		mode)
 	}
 
 	assert (!"reached");
+
+	return 0;
 }
 
 static unsigned int
@@ -219,6 +221,8 @@ tv_audio_mode_to_v4l_mode	(tv_audio_mode		mode)
 	}
 
 	assert (!"reached");
+
+	return 0;
 }
 
 #if 0

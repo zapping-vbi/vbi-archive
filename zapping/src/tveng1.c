@@ -39,8 +39,6 @@
 #include <sys/mman.h>
 #undef WNOHANG
 #undef WUNTRACED
-//#include <linux/kernel.h>
-//#include <linux/fs.h>
 #include <errno.h>
 #include <math.h>
 #include <endian.h>
@@ -295,10 +293,6 @@ static tv_audio_mode
 tv_audio_mode_from_v4l_mode	(unsigned int		mode)
 {
 	switch (mode) {
-	case 0:
-	default:
-		return TV_AUDIO_MODE_AUTO;
-
 	case VIDEO_SOUND_MONO:
 	case VIDEO_SOUND_LANG1:
 		return TV_AUDIO_MODE_LANG1_MONO;
@@ -308,7 +302,12 @@ tv_audio_mode_from_v4l_mode	(unsigned int		mode)
 
 	case VIDEO_SOUND_LANG2:
 		return TV_AUDIO_MODE_LANG2_MONO;
+
+	default:
+		break;
 	}
+
+	return TV_AUDIO_MODE_AUTO;
 }
 
 static void
