@@ -8,6 +8,17 @@ libvbi/exp-vtx.c
 libvbi/export.c
 libvbi/teletext.c
 plugins/alirc/alirc.c
+plugins/deinterlace/main.c
+plugins/deinterlace/preferences.c
+plugins/deinterlace/DI_GreedyH/DI_GreedyH.c
+plugins/deinterlace/DI_Misc/DI_Greedy.c
+plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c
+plugins/deinterlace/DI_Misc/DI_OldGame.c
+plugins/deinterlace/DI_Misc/DI_TwoFrame.c
+plugins/deinterlace/DI_Misc/DI_VideoBob.c
+plugins/deinterlace/DI_Misc/DI_VideoWeave.c
+plugins/deinterlace/DI_MoComp2/DI_MoComp2.c
+plugins/deinterlace/DI_TomsMoComp/DI_TomsMoComp.c
 plugins/mpeg/mpeg.c
 plugins/mpeg/options.c
 plugins/mpeg/mpeg_properties.glade2
