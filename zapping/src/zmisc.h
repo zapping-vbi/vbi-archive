@@ -336,4 +336,8 @@ void
 z_set_cursor			(GdkWindow	*window,
 				 guint		cid);
 
+/* Creates a GtkPixmap from the given filename, NULL if not found */
+GtkWidget *
+z_pixmap_new_from_file		(const gchar	*file);
+
 #endif /* ZMISC.H */

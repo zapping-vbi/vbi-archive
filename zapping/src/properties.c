@@ -39,37 +39,37 @@
 #include "osd.h"
 
 extern tveng_device_info * main_info; /* About the device we are using */
+extern GtkWidget * main_window;
 
-static property_handler *handlers = NULL;
-static gint num_handlers = 0;
+/* Signals that the given page has been modified */
+static void
+page_modified			(GnomeDialog	*dialog,
+				 gint		page_id)
+{
+  g_message("modify!!");
+}
 
 static void
-update_sensitivity(GtkWidget *widget)
+modify_page			(GtkWidget	*widget,
+				 gpointer	page_id_ptr)
 {
-  if (lookup_widget(widget, "checkbutton6") == widget)
-    {
-      gboolean active =
-	gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget));
-      gtk_widget_set_sensitive(lookup_widget(widget,
-					     "vbox19"), active);      
-      gtk_widget_set_sensitive(lookup_widget(widget,
-					     "vbox33"), active);      
-    }
-  else if (gtk_option_menu_get_menu(GTK_OPTION_MENU(lookup_widget(widget,
-			    "optionmenu22"))) == widget)
-    {
-      widget = lookup_widget(widget, "optionmenu22");
-      gtk_widget_set_sensitive(lookup_widget(widget, "vbox38"),
-			       !z_option_menu_get_active(widget));
-    }
+  GnomeDialog *dialog = GNOME_DIALOG
+    (gtk_object_get_data(GTK_OBJECT(widget), "modify_page_dialog"));
+  gint page_id = GPOINTER_TO_INT(page_id_ptr);
+
+  page_modified(dialog, page_id);
 }
 
 static void
 font_set_bridge	(GtkWidget	*widget,
 		 const gchar	*new_font,
-		 GnomePropertyBox *box)
+		 gpointer	page_id_ptr)
 {
-  on_property_item_changed(widget, box);
+  GnomeDialog *dialog = GNOME_DIALOG
+    (gtk_object_get_data(GTK_OBJECT(widget), "modify_page_dialog"));
+  gint page_id = GPOINTER_TO_INT(page_id_ptr);
+
+  page_modified(dialog, page_id);
 }
 
 static void
@@ -78,758 +78,505 @@ color_set_bridge (GtkWidget	*widget,
 		  guint		g,
 		  guint		b,
 		  guint		a,
-		  GnomePropertyBox *box)
+		  gpointer	page_id_ptr)
 {
-  on_property_item_changed(widget, box);
+  GnomeDialog *dialog = GNOME_DIALOG
+    (gtk_object_get_data(GTK_OBJECT(widget), "modify_page_dialog"));
+  gint page_id = GPOINTER_TO_INT(page_id_ptr);
+
+  page_modified(dialog, page_id);
+}
+
+/**
+ * Makes modifications on the widgets descending from widget trigger a
+ * page_modifed call.
+ */
+static void
+autoconnect_modify		(GnomeDialog	*dialog,
+				 GtkWidget	*widget,
+				 gint		page_id)
+{
+  GList *children;
+
+  if (GTK_IS_CONTAINER(widget))
+    {
+      children = gtk_container_children(GTK_CONTAINER(widget));
+      while (children)
+	{
+	  autoconnect_modify(dialog, GTK_WIDGET(children->data),
+			     page_id);
+	  children = children->next;
+	}
+    }
+
+  if (GNOME_IS_FILE_ENTRY(widget))
+    {
+      widget = gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(widget));
+      autoconnect_modify(dialog, widget, page_id);
+    }
+  else if (GNOME_IS_ENTRY(widget))
+    {
+      widget = gnome_entry_gtk_entry(GNOME_ENTRY(widget));
+      autoconnect_modify(dialog, widget, page_id);
+    }
+  else if (GTK_IS_TOGGLE_BUTTON(widget))
+    {
+      gtk_signal_connect(GTK_OBJECT(widget), "toggled",
+			 GTK_SIGNAL_FUNC(modify_page),
+			 GINT_TO_POINTER(page_id));
+    }
+  else if (GTK_IS_ENTRY(widget))
+    {
+      gtk_signal_connect(GTK_OBJECT(widget), "changed",
+			 GTK_SIGNAL_FUNC(modify_page),
+			 GINT_TO_POINTER(page_id));      
+    }
+  else if (GTK_IS_OPTION_MENU(widget))
+    {
+      widget = GTK_WIDGET(GTK_OPTION_MENU(widget)->menu);
+
+      gtk_signal_connect(GTK_OBJECT(widget),
+			 "deactivate",
+			 GTK_SIGNAL_FUNC(modify_page),
+			 GINT_TO_POINTER(page_id));
+    }
+  else if (GNOME_IS_FONT_PICKER(widget))
+    {
+      gtk_signal_connect(GTK_OBJECT(widget), "font-set",
+			 GTK_SIGNAL_FUNC(font_set_bridge),
+			 GINT_TO_POINTER(page_id));
+    }
+  else if (GNOME_IS_COLOR_PICKER(widget))
+    {
+      gtk_signal_connect(GTK_OBJECT(widget), "color-set",
+			 GTK_SIGNAL_FUNC(color_set_bridge),
+			 GINT_TO_POINTER(page_id));
+    }
+
+  gtk_object_set_data(GTK_OBJECT(widget), "modify_page_dialog", dialog);
+}
+
+static void
+find_selected_group		(GtkWidget	*widget,
+				 gint		*group)
+{
+  GtkContainer *group_container =
+    GTK_CONTAINER(lookup_widget(widget, "group-container"));
+
+  if (GTK_IS_BUTTON(widget))
+    return; /* Nothing to be done for buttons */
+
+  if (GTK_WIDGET_VISIBLE(widget))
+    *group = g_list_index(gtk_container_children(group_container), widget)/2;
+}
+
+/* Gets the currently selected group and item, or sets to -1 both
+   group and item if nothing is selected yet */
+static void
+get_cur_sel			(GtkWidget	*dialog,
+				 gint		*group,
+				 gint		*item)
+{
+  GtkContainer *group_container =
+    GTK_CONTAINER(lookup_widget(GTK_WIDGET(dialog), "group-container"));
+  GtkWidget *group_widget;
+  GSList *group_list;
+  gint count = 0;
+
+  *group = *item = -1;
+
+  gtk_container_foreach(group_container,
+			GTK_SIGNAL_FUNC(find_selected_group),
+			group);
+
+  if (*group == -1)
+    return; /* Nothing shown yet */
+  
+  group_widget = GTK_WIDGET
+    (g_list_nth_data(gtk_container_children(group_container),
+		     2*(*group) + 1));
+  group_list = gtk_object_get_data(GTK_OBJECT(group_widget), "group_list");
+
+  while (group_list)
+    {
+      if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(group_list->data)))
+	*item = count;
+      count ++;
+      group_list = group_list->next;
+    }
+
+  /* For some weird reason the group list is reversed ?!?!?! */
+  *item = count - (*item + 1);
+}
+
+static void
+on_properties_ok_clicked	(GtkWidget	*button,
+				 GnomeDialog	*dialog)
+{
+  gnome_dialog_close(dialog);
+}
+
+static void
+on_properties_apply_clicked	(GtkWidget	*button,
+				 GnomeDialog	*dialog)
+{
+  gtk_signal_emit_stop_by_name(GTK_OBJECT(button), "clicked");
+}
+
+static void
+on_properties_cancel_clicked	(GtkWidget	*button,
+				 GnomeDialog	*dialog)
+{
+  gnome_dialog_close(dialog);
+}
+
+static void
+on_properties_help_clicked	(GtkWidget	*button,
+				 GnomeDialog	*dialog)
+{
+}
+
+static gint
+on_properties_close		(GnomeDialog	*dialog,
+				 gpointer	unused)
+{
+  return FALSE; /* done */
+}
+
+static void
+show_hide_foreach		(GtkWidget	*widget,
+				 GtkWidget	*show)
+{
+  if (GTK_IS_BUTTON(widget))
+    return; /* Nothing to be done for buttons */
+
+  if (widget == show)
+    gtk_widget_show(widget);
+  else
+    gtk_widget_hide(widget);
+}
+
+static void
+open_properties_group		(GtkWidget	*dialog,
+				 const gchar	*group)
+{
+  gchar *buf = g_strdup_printf("group-contents-%s", group);
+  GtkWidget *contents = lookup_widget(dialog, buf);
+  GtkContainer *group_container = GTK_CONTAINER
+    (lookup_widget(dialog, "group-container"));
+  gint cur_group, cur_item;
+
+  /* If the current selection is in a different group, switch and
+     select the hidden toggle */
+  get_cur_sel(dialog, &cur_group, &cur_item);
+
+  if (cur_group == -1 ||
+      GTK_WIDGET
+      (g_list_nth_data(gtk_container_children(group_container),
+		       2*cur_group + 1)) != contents)
+  {
+    gtk_button_clicked(GTK_BUTTON(gtk_object_get_data(GTK_OBJECT(contents),
+						      "nsbutton")));
+    gtk_container_foreach(GTK_CONTAINER(group_container),
+			  GTK_SIGNAL_FUNC(show_hide_foreach),
+			  contents);
+  }
+
+  g_free(buf);
+}
+
+/**
+ * Makes sure that parent is at least as wide as widget.
+ */
+static void
+ensure_width			(GtkWidget	*widget,
+				 GtkWidget	*parent)
+{
+  GtkRequisition request;
+  gint req_max_width = GPOINTER_TO_INT
+    (gtk_object_get_data(GTK_OBJECT(parent), "req_max_width"));
+
+  gtk_widget_size_request(widget, &request);
+  if (request.width > req_max_width)
+    {
+      req_max_width = request.width;
+      gtk_object_set_data(GTK_OBJECT(parent), "req_max_width",
+			  GINT_TO_POINTER(req_max_width));
+      gtk_widget_set_usize(parent, req_max_width, -2);
+    }
+}
+
+static void
+append_properties_group		(GnomeDialog	*dialog,
+				 const gchar	*group)
+{
+  GtkWidget *button;
+  GtkWidget *vbox = lookup_widget(GTK_WIDGET(dialog), "group-container");
+  GtkWidget *contents;
+  gchar *buf;
+  GtkWidget *nsbutton;
+
+  buf = g_strdup_printf("group-button-%s", group);
+  if (find_widget(GTK_WIDGET(dialog), buf))
+    g_error("A group named %s already exists in this dialog", buf);
+
+  button = gtk_button_new_with_label(group);
+  gtk_box_pack_start(GTK_BOX(vbox), button, FALSE, TRUE, 0);
+  gtk_widget_show(button);
+  register_widget(button, buf);
+  gtk_signal_connect(GTK_OBJECT(button), "clicked",
+		     GTK_SIGNAL_FUNC(open_properties_group),
+		     (gpointer)group);
+  ensure_width(button, vbox);
+
+  g_free(buf);
+
+  buf = g_strdup_printf("group-contents-%s", group);
+  contents = gtk_vbox_new(FALSE, 0);
+  gtk_box_pack_start_defaults(GTK_BOX(vbox), contents);
+  /* Note that we don't show() contents */
+  register_widget(contents, buf);
+  g_free(buf);
+
+  /* Add the nothing selected button */
+  nsbutton = gtk_radio_button_new(NULL);
+  gtk_box_pack_start(GTK_BOX(contents), nsbutton, FALSE, TRUE, 0);
+  gtk_object_set_data(GTK_OBJECT(contents), "group_list",
+		      gtk_radio_button_group(GTK_RADIO_BUTTON(nsbutton)));
+  gtk_object_set_data(GTK_OBJECT(contents), "nsbutton", nsbutton);
+}
+
+static void
+on_radio_toggled		(GtkWidget	*selector,
+				 gpointer	page_id_ptr)
+{
+  GtkNotebook * notebook =
+    GTK_NOTEBOOK(lookup_widget(selector, "notebook"));
+  gint page_id = GPOINTER_TO_INT(page_id_ptr);
+
+  gtk_notebook_set_page(notebook, page_id);
+}
+
+static void
+append_properties_page		(GnomeDialog	*dialog,
+				 const gchar	*group,
+				 const gchar	*label,
+				 GtkWidget	*pixmap,
+				 GtkWidget	*page)
+{
+  gchar *buf = g_strdup_printf("group-contents-%s", group);
+  GtkWidget *contents = lookup_widget(GTK_WIDGET(dialog), buf);
+  GtkWidget *radio;
+  GSList *group_list = gtk_object_get_data(GTK_OBJECT(contents),
+					   "group_list");
+  GtkWidget *notebook = lookup_widget(GTK_WIDGET(dialog), "notebook");
+  GtkWidget *container = lookup_widget(contents, "group-container");
+  GtkWidget *vbox;
+  GtkWidget *label_widget;
+  guint page_id;
+
+  radio = gtk_radio_button_new(group_list);
+  gtk_toggle_button_set_mode(GTK_TOGGLE_BUTTON(radio), FALSE);
+  gtk_box_pack_start(GTK_BOX(contents), radio, FALSE, TRUE, 0);
+  gtk_notebook_append_page(GTK_NOTEBOOK(notebook), page, gtk_label_new(""));
+  page_id = gtk_notebook_page_num(GTK_NOTEBOOK(notebook), page);
+  autoconnect_modify(dialog, page, page_id);
+
+  gtk_signal_connect(GTK_OBJECT(radio), "toggled",
+		     GTK_SIGNAL_FUNC(on_radio_toggled),
+		     GINT_TO_POINTER(page_id));
+
+  group_list = gtk_radio_button_group(GTK_RADIO_BUTTON(radio));
+  gtk_object_set_data(GTK_OBJECT(contents), "group_list", group_list);
+
+  vbox = gtk_vbox_new(FALSE, 0);
+  gtk_container_add(GTK_CONTAINER(radio), vbox);
+  if (pixmap)
+    gtk_box_pack_start_defaults(GTK_BOX(vbox), pixmap);
+  label_widget = gtk_label_new(label);
+  gtk_box_pack_start_defaults(GTK_BOX(vbox), label_widget);
+
+  gtk_button_set_relief(GTK_BUTTON(radio), GTK_RELIEF_NONE);
+
+  gtk_widget_show_all(radio);
+
+  ensure_width(radio, container);
+}
+
+typedef struct {
+  /* Label for the entry */
+  const gchar	*label;
+  /* Source of the icon (we use both GNOME and Z icons for the moment) */
+  enum {
+    ICON_ZAPPING,
+    ICON_GNOME
+  } icon_source;
+  const gchar	*icon_name; /* relative to PACKAGE_PIXMAPS_DIR or
+			       gnome_pixmap_file */
+  const gchar	*widget; /* Notebook page to use (must be in zapping.glade) */
+} SidebarEntry;
+
+typedef struct {
+  /* Label */
+  const gchar	*label;
+  /* Contents of the group */
+  SidebarEntry	*items;
+  /* Number of entries in the group */
+  gint num_items;
+} SidebarGroup;
+
+#ifndef acount
+#define acount(x) ((sizeof(x))/(sizeof(x[0])))
+#else
+#warning "Redefining acount"
+#endif
+
+static void
+populate_sidebar		(GnomeDialog	*dialog)
+{
+  SidebarEntry device_info[] = {
+    { N_("Device Info"), ICON_GNOME, "gnome-info.png", "vbox9" }
+  };
+  SidebarEntry general_options[] = {
+    { N_("Main Window"), ICON_GNOME, "gnome-session.png", "vbox35" },
+    { N_("Video"), ICON_ZAPPING, "gnome-television.png", "vbox36" },
+    { N_("Audio"), ICON_GNOME, "gnome-grecord.png", "vbox39" },
+    { N_("OSD"), ICON_GNOME, "gnome-oscilloscope.png", "vbox37" }
+  };
+  SidebarEntry vbi_options[] = {
+    { N_("General"), ICON_GNOME, "gnome-monitor.png", "vbox17" },
+    { N_("Interactive TV"), ICON_GNOME, "gnome-monitor.png", "vbox33" }
+  };
+  SidebarGroup groups[] = {
+    { N_("Device Info"), device_info, acount(device_info) },
+    { N_("General Options"), general_options, acount(general_options) },
+    { N_("VBI Options"), vbi_options, acount(vbi_options) }
+  };
+  gint i, j;
+
+  for (i = 0; i<acount(groups); i++)
+    {
+      append_properties_group(dialog, _(groups[i].label));
+
+      for (j = 0; j<groups[i].num_items; j++)
+	{
+	  const gchar *icon_name = groups[i].items[j].icon_name;
+	  gchar *pixmap_path = (groups[i].items[j].icon_source ==
+				ICON_ZAPPING) ?
+	    g_strdup_printf("%s/%s", PACKAGE_PIXMAPS_DIR, icon_name) :
+	    g_strdup(gnome_pixmap_file(icon_name)); /* FIXME: leak?? */
+	  GtkWidget *pixmap = z_pixmap_new_from_file(pixmap_path);
+	  GtkWidget *page = build_widget(groups[i].items[j].widget,
+					 PACKAGE_DATA_DIR "/zapping.glade");
+
+	  append_properties_page(dialog, _(groups[i].label),
+				 _(groups[i].items[j].label),
+				 pixmap, page);
+
+	  g_free(pixmap_path);
+	}
+    }
+
+  open_properties_group(GTK_WIDGET(dialog), _("General Options"));
+}
+
+static void
+build_properties_contents	(GnomeDialog	*dialog)
+{
+  GtkWidget *hbox;
+  GtkWidget *frame;
+  GtkNotebook *notebook;
+  GtkWidget *vbox;
+  GtkWidget *logo;
+
+  hbox = gtk_hbox_new(FALSE, 3);
+  gtk_box_pack_start_defaults(GTK_BOX(dialog->vbox), hbox);
+  frame = gtk_frame_new(NULL);
+  gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_IN);
+  gtk_box_pack_start(GTK_BOX(hbox), frame, FALSE, FALSE, 0);
+  vbox = gtk_vbox_new(FALSE, 0);
+  gtk_container_add(GTK_CONTAINER(frame), vbox);
+  register_widget(vbox, "group-container");
+
+  /* Set the minimum height to something usable */
+  /* FIXME: something in the line of ensure_width would be better */
+  gtk_widget_set_usize(frame, -2, 400);
+
+  /* Create a notebook for holding the pages. Note that we don't rely
+     on any of the notebook's features, we select the active page
+     programatically */
+  notebook = GTK_NOTEBOOK(gtk_notebook_new());
+  gtk_notebook_set_show_tabs(notebook, FALSE);
+  gtk_notebook_set_show_border(notebook, FALSE);
+  gtk_notebook_set_scrollable(notebook, FALSE);
+  gtk_notebook_popup_disable(notebook);
+  gtk_box_pack_start_defaults(GTK_BOX(hbox), GTK_WIDGET(notebook));
+  register_widget(GTK_WIDGET(notebook), "notebook");
+
+  /* Put our logo when nothing is selected yet */
+  logo = z_pixmap_new_from_file(PACKAGE_PIXMAPS_DIR "/logo.png");
+  if (logo)
+    {
+      gtk_widget_show(logo);
+      gtk_notebook_append_page(notebook, logo, gtk_label_new(""));
+    }
+
+  gtk_widget_show_all(hbox);
+
+  populate_sidebar(dialog);
 }
 
 void
 on_propiedades1_activate               (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
-  GtkWidget * zapping_properties = create_zapping_properties();
-
-  GtkNotebook * nb;
-  GtkWidget * nb_label;
-  GtkWidget * nb_body;
-  guint32 i=0;
-
-  gchar * buffer; /* Some temporary buffer */
-
-  /* Widget for assigning the callbacks (generic) */
-  GtkWidget * widget;
-
-  /* Connect the widgets to the apropiate callbacks, so the Apply
-     button works correctly. Set the correct values too */
-
-  /* The device name */
-  widget = lookup_widget(zapping_properties, "label27");
-  gtk_label_set_text(GTK_LABEL(widget), main_info->caps.name);
-
-  /* Minimum capture dimensions */
-  widget = lookup_widget(zapping_properties, "label28");
-  buffer = g_strdup_printf("%d x %d", main_info->caps.minwidth,
-			   main_info->caps.minheight);
-  gtk_label_set_text(GTK_LABEL(widget), buffer);
-  g_free(buffer);
-
-  /* Maximum capture dimensions */
-  widget = lookup_widget(zapping_properties, "label29");
-  buffer = g_strdup_printf("%d x %d", main_info->caps.maxwidth,
-			   main_info->caps.maxheight);
-  gtk_label_set_text(GTK_LABEL(widget), buffer);
-  g_free(buffer);
-
-  /* Reported device capabilities */
-  widget = lookup_widget(zapping_properties, "label30");
-  buffer = g_strdup_printf("%s%s%s%s%s%s%s%s%s%s",
-			   main_info->caps.flags & TVENG_CAPS_CAPTURE
-			   ? _("Can capture to memory.\n") : "",
-			   main_info->caps.flags & TVENG_CAPS_TUNER
-			   ? _("Has some tuner.\n") : "",
-			   main_info->caps.flags & TVENG_CAPS_TELETEXT
-			   ? _("Supports the teletext service.\n") : "",
-			   main_info->caps.flags & TVENG_CAPS_OVERLAY
-			   ? _("Can overlay the image.\n") : "",
-			   main_info->caps.flags & TVENG_CAPS_CHROMAKEY
-			   ? _("Can chromakey the image.\n") : "",
-			   main_info->caps.flags & TVENG_CAPS_CLIPPING
-			   ? _("Clipping rectangles are supported.\n") : "",
-			   main_info->caps.flags & TVENG_CAPS_FRAMERAM
-			   ? _("Framebuffer memory is overwritten.\n") : "",
-			   main_info->caps.flags & TVENG_CAPS_SCALES
-			   ? _("The capture can be scaled.\n") : "",
-			   main_info->caps.flags & TVENG_CAPS_MONOCHROME
-			   ? _("Only monochrome is available\n") : "",
-			   main_info->caps.flags & TVENG_CAPS_SUBCAPTURE
-			   ? _("The capture can be zoomed\n") : "");
-  /* Delete the last '\n' to save some space */
-  if ((strlen(buffer) > 0) && (buffer[strlen(buffer)-1] == '\n'))
-    buffer[strlen(buffer)-1] = 0;
-
-  gtk_label_set_text(GTK_LABEL(widget), buffer);
-  g_free(buffer);
-
-  nb = GTK_NOTEBOOK (lookup_widget(zapping_properties, "notebook2"));
-  if (main_info -> num_inputs == 0)
-    {
-      nb_label = gtk_label_new(_("No available inputs"));
-      gtk_widget_show (nb_label);
-      nb_body = gtk_label_new(_("Your video device has no inputs"));
-      gtk_widget_show(nb_body);
-      gtk_notebook_append_page(nb, nb_body, nb_label);
-      gtk_widget_set_sensitive(GTK_WIDGET(nb), FALSE);
-   }
-  else
-    for (i = 0; i < main_info->num_inputs; i++)
-      {
-	nb_label = gtk_label_new(main_info->inputs[i].name);
-	gtk_widget_show (nb_label);
-	switch (main_info->inputs[i].tuners)
-	  {
-	  case 0:
-	    buffer = 
-	      g_strdup_printf(_("%s"),
-			      main_info->inputs[i].type ==
-			      TVENG_INPUT_TYPE_TV ? _("TV input") :
-			      _("Camera"));
-	      break;
-	  case 1:
-	    buffer =
-	      g_strdup_printf(_("%s with a tuner"),
-			      main_info->inputs[i].type ==
-			      TVENG_INPUT_TYPE_TV ? _("TV input") :
-			      _("Camera"));
-	    break;
-	  default:
-	    buffer =
-	      g_strdup_printf(_("%s with %d tuners"),
-			      main_info->inputs[i].type ==
-			      TVENG_INPUT_TYPE_TV ? _("TV input") :
-			      _("Camera"),
-			      main_info->inputs[i].tuners);
-	    break;
-	  }
-	nb_body = gtk_label_new (buffer);
-	g_free (buffer);
-	gtk_widget_show (nb_body);
-	gtk_notebook_append_page(nb, nb_body, nb_label);
-      }
-  
-  widget = lookup_widget(zapping_properties, "fileentry1");
-  widget = gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(widget));
-  gtk_entry_set_text(GTK_ENTRY(widget),
-		     zconf_get_string(NULL,
-				      "/zapping/options/main/video_device"));
-
-  gtk_signal_connect(GTK_OBJECT(widget), "changed",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  /* Current controller */
-  widget = lookup_widget(zapping_properties, "label31");
-  tveng_describe_controller(NULL, &buffer, main_info);
-  gtk_label_set_text(GTK_LABEL(widget), buffer);
-
-  /* Avoid noise while changing channels */
-  widget = lookup_widget(zapping_properties, "checkbutton1");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-    zconf_get_boolean(NULL, "/zapping/options/main/avoid_noise"));
-
-  gtk_signal_connect(GTK_OBJECT(widget), "toggled",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  /* Save the geometry through sessions */
-  widget = lookup_widget(zapping_properties, "checkbutton2");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-    zconf_get_boolean(NULL, "/zapping/options/main/keep_geometry"));
-
-  gtk_signal_connect(GTK_OBJECT(widget), "toggled",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  /* Resize using fixed increments */
-  widget = lookup_widget(zapping_properties, "checkbutton4");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-    zconf_get_boolean(NULL, "/zapping/options/main/fixed_increments"));
-
-  gtk_signal_connect(GTK_OBJECT(widget), "toggled",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  /* Swap Page Up/Down */
-  widget = lookup_widget(zapping_properties, "checkbutton13");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-    zconf_get_boolean(NULL, "/zapping/options/main/swap_up_down"));
-
-  gtk_signal_connect(GTK_OBJECT(widget), "toggled",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  /* Start zapping muted */
-  widget = lookup_widget(zapping_properties, "checkbutton3");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-    zconf_get_boolean(NULL, "/zapping/options/main/start_muted"));
-
-  gtk_signal_connect(GTK_OBJECT(widget), "toggled",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  /* Hide the mouse pointer */
-  widget = lookup_widget(zapping_properties, "checkbutton14");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-    zconf_get_boolean(NULL, "/zapping/options/main/hide_pointer"));
-
-  gtk_signal_connect(GTK_OBJECT(widget), "toggled",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  /* Avoid some flicker in preview mode */
-  widget = lookup_widget(zapping_properties, "checkbutton5");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-    zconf_get_boolean(NULL, "/zapping/options/main/avoid_flicker"));
-
-  gtk_signal_connect(GTK_OBJECT(widget), "toggled",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  /* Save control info with the channel */
-  widget = lookup_widget(zapping_properties, "checkbutton11");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-    zconf_get_boolean(NULL, "/zapping/options/main/save_controls"));
-
-  gtk_signal_connect(GTK_OBJECT(widget), "toggled",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  /* Title format Z will use */
-  widget = lookup_widget(zapping_properties, "title_format");
-  widget = gnome_entry_gtk_entry(GNOME_ENTRY(widget));
-  gtk_entry_set_text(GTK_ENTRY(widget),
-		     zconf_get_string(NULL,
-				      "/zapping/options/main/title_format"));
-
-  gtk_signal_connect(GTK_OBJECT(widget), "changed",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  /* Verbosity value passed to zapping_setup_fb */
-  widget = lookup_widget(zapping_properties, "spinbutton1");
-  gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget),
-     zconf_get_integer(NULL,
-		       "/zapping/options/main/zapping_setup_fb_verbosity"));
-
-  gtk_signal_connect(GTK_OBJECT(widget), "changed",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  /* ratio mode to use */
-  widget = lookup_widget(zapping_properties, "optionmenu1");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL,
-		      "/zapping/options/main/ratio"));
-
-  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  /* fullscreen video mode */
-  widget = lookup_widget(zapping_properties, "optionmenu2");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL,
-		      "/zapping/options/main/change_mode"));
-
-  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  /* capture size under XVideo */
-  widget = lookup_widget(zapping_properties, "optionmenu20");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL,
-		      "/zapping/options/capture/xvsize"));
-
-  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  /* OSD type */
-  widget = lookup_widget(zapping_properties, "optionmenu22");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL,
-		      "/zapping/options/osd/osd_type"));
-
-  gtk_widget_set_sensitive(lookup_widget(widget, "vbox38"),
-	   !zconf_get_integer(NULL, "/zapping/options/osd/osd_type"));
-
-  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  /* OSD font */
-  widget = lookup_widget(zapping_properties, "fontpicker1");
-  if (zconf_get_string(NULL, "/zapping/options/osd/font"))
-    gnome_font_picker_set_font_name(GNOME_FONT_PICKER(widget),
-    zconf_get_string(NULL, "/zapping/options/osd/font"));
-
-  gtk_signal_connect(GTK_OBJECT(widget), "font-set",
-		     GTK_SIGNAL_FUNC(font_set_bridge),
-		     zapping_properties);
-
-  /* OSD foreground color */
-  widget = lookup_widget(zapping_properties, "colorpicker1");
-  gnome_color_picker_set_d(GNOME_COLOR_PICKER(widget),
-		   zconf_get_float(NULL, "/zapping/options/osd/fg_r"),
-		   zconf_get_float(NULL, "/zapping/options/osd/fg_g"),
-		   zconf_get_float(NULL, "/zapping/options/osd/fg_b"),
-		   0);
-
-  gtk_signal_connect(GTK_OBJECT(widget), "color-set",
-		     GTK_SIGNAL_FUNC(color_set_bridge),
-		     zapping_properties);
-
-  /* OSD background color */
-  widget = lookup_widget(zapping_properties, "colorpicker2");
-  gnome_color_picker_set_d(GNOME_COLOR_PICKER(widget),
-		   zconf_get_float(NULL, "/zapping/options/osd/bg_r"),
-		   zconf_get_float(NULL, "/zapping/options/osd/bg_g"),
-		   zconf_get_float(NULL, "/zapping/options/osd/bg_b"),
-		   0);
-
-  gtk_signal_connect(GTK_OBJECT(widget), "color-set",
-		     GTK_SIGNAL_FUNC(color_set_bridge),
-		     zapping_properties);
-
-  /* OSD timeout in seconds */
-  widget = lookup_widget(zapping_properties, "spinbutton2");
-  gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget),
-     zconf_get_float(NULL,
-		       "/zapping/options/osd/timeout"));
-
-  gtk_signal_connect(GTK_OBJECT(widget), "changed",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  /* Enable VBI decoding */
-  widget = lookup_widget(zapping_properties, "checkbutton6");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-    zconf_get_boolean(NULL, "/zapping/options/vbi/enable_vbi"));
-
-  update_sensitivity(widget);
-
-  gtk_signal_connect(GTK_OBJECT(widget), "toggled",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  /* use VBI for getting station names */
-  widget = lookup_widget(zapping_properties, "checkbutton7");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-    zconf_get_boolean(NULL, "/zapping/options/vbi/use_vbi"));
-
-  gtk_signal_connect(GTK_OBJECT(widget), "toggled",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  /* overlay subtitle pages automagically */
-  widget = lookup_widget(zapping_properties, "checkbutton12");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-    zconf_get_boolean(NULL, "/zapping/options/vbi/auto_overlay"));
-
-  gtk_signal_connect(GTK_OBJECT(widget), "toggled",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);  
-
-  /* VBI device */
-  widget = lookup_widget(zapping_properties, "fileentry2");
-  widget = gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(widget));
-  gtk_entry_set_text(GTK_ENTRY(widget),
-		     zconf_get_string(NULL,
-				      "/zapping/options/vbi/vbi_device"));
-
-  gtk_signal_connect(GTK_OBJECT(widget), "changed",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  /* Default region */
-  widget = lookup_widget(zapping_properties, "optionmenu3");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL,
-		      "/zapping/options/vbi/default_region"));
-
-  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  /* Teletext level */
-  widget = lookup_widget(zapping_properties, "optionmenu4");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL,
-		      "/zapping/options/vbi/teletext_level"));
-
-  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  /* Quality/speed tradeoff */
-  widget = lookup_widget(zapping_properties, "optionmenu21");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL,
-		      "/zapping/options/vbi/qstradeoff"));
-
-  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  /* Default subtitle page */
-  widget = lookup_widget(zapping_properties, "subtitle_page");
-  gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget),
-			    bcd2dec(zcg_int(NULL, "zvbi_page")));
-
-  gtk_signal_connect(GTK_OBJECT(widget), "changed",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  /* The various itv filters */
-  widget = lookup_widget(zapping_properties, "optionmenu12");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL,
-		      "/zapping/options/vbi/pr_trigger"));
-  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  widget = lookup_widget(zapping_properties, "optionmenu16");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL,
-		      "/zapping/options/vbi/nw_trigger"));
-  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  widget = lookup_widget(zapping_properties, "optionmenu17");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL,
-		      "/zapping/options/vbi/st_trigger"));
-  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  widget = lookup_widget(zapping_properties, "optionmenu18");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL,
-		      "/zapping/options/vbi/sp_trigger"));
-  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  widget = lookup_widget(zapping_properties, "optionmenu19");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL,
-		      "/zapping/options/vbi/op_trigger"));
-  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  widget = lookup_widget(zapping_properties, "optionmenu6");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL,
-		      "/zapping/options/vbi/trigger_default"));
-  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  /* Filter level */
-  widget = lookup_widget(zapping_properties, "optionmenu5");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL,
-		      "/zapping/options/vbi/filter_level"));
-  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
-		     GTK_SIGNAL_FUNC(on_property_item_changed),
-		     zapping_properties);
-
-  /* Let other modules build their config */
-  for (i=0; i<num_handlers; i++)
-    handlers[i].add(GNOME_PROPERTY_BOX(zapping_properties));
-
-  /* Make sure there can be just one properties dialog open */
-  gtk_widget_set_sensitive(GTK_WIDGET(menuitem), FALSE);
-  gtk_signal_connect_object(GTK_OBJECT(zapping_properties), "destroy",
-			    GTK_SIGNAL_FUNC(gtk_widget_set_sensitive),
-			    GTK_OBJECT(menuitem));
-
-  gtk_widget_show(zapping_properties);
-}
-
-
-void
-on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
-                                        gint             arg1,
-                                        gpointer         user_data)
-{
-  GtkWidget * widget; /* Generic widget */
-  GtkWidget * pbox = GTK_WIDGET(gnomepropertybox); /* Very long name */
-  gchar * text; /* Pointer to returned text */
-  gint index, i;
-  gdouble r, g, b, a;
-
-  static int region_mapping[8] = {
-    0, /* WCE */
-    8, /* EE */
-    16, /* WET */
-    24, /* CSE */
-    32, /* C */
-    48, /* GC */
-    64, /* A */
-    80 /* I */
+  GnomeDialog *dialog;
+  enum {
+    OK_ID, APPLY_ID, CANCEL_ID, HELP_ID
   };
 
-  /* Apply just the given page */
-  switch (arg1)
-    {
-    case -1:
-      break; /* End of the calls */
-    case 0:
-      widget = lookup_widget(pbox, "fileentry1"); /* Video device entry
-						    */
-      text = gnome_file_entry_get_full_path (GNOME_FILE_ENTRY(widget),
-					     TRUE);
-      if (text)
-	zconf_set_string(text, "/zapping/options/main/video_device");
+  dialog = GNOME_DIALOG(gnome_dialog_new(_("Zapping Properties"),
+					 GNOME_STOCK_BUTTON_OK,
+					 GNOME_STOCK_BUTTON_APPLY,
+					 GNOME_STOCK_BUTTON_CANCEL,
+					 GNOME_STOCK_BUTTON_HELP,
+					 NULL));
 
-      g_free(text); /* In the docs it says this should be freed */
-      break;
-    case 1:
-      widget = lookup_widget(pbox, "checkbutton1"); /* avoid noise */
-      zconf_set_boolean(gtk_toggle_button_get_active(
-	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/avoid_noise");
+  gtk_window_set_policy(GTK_WINDOW(dialog), FALSE, TRUE, FALSE);
 
-      widget = lookup_widget(pbox, "checkbutton2"); /* keep geometry */
-      zconf_set_boolean(gtk_toggle_button_get_active(
-	GTK_TOGGLE_BUTTON(widget)),
-			"/zapping/options/main/keep_geometry");
+  build_properties_contents(dialog);
 
-      widget = lookup_widget(pbox, "checkbutton4"); /* fixed increments */
-      zconf_set_boolean(gtk_toggle_button_get_active(
-	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/fixed_increments");
+  gnome_dialog_set_default(dialog, OK_ID);
+  gnome_dialog_set_parent(dialog, GTK_WINDOW(main_window));
+  gnome_dialog_close_hides(dialog, FALSE); /* destroy on close */
+  gnome_dialog_set_close(dialog, FALSE);
 
-      widget = lookup_widget(pbox, "checkbutton13"); /* swap chan up/down */
-      zconf_set_boolean(gtk_toggle_button_get_active(
-	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/swap_up_down");
+  /* callbacks */
+  gtk_signal_connect(GTK_OBJECT(dialog), "close",
+		     GTK_SIGNAL_FUNC(on_properties_close),
+		     dialog);
+  gnome_dialog_button_connect(dialog, OK_ID,
+			      GTK_SIGNAL_FUNC(on_properties_ok_clicked),
+			      dialog);
+  gnome_dialog_button_connect(dialog, APPLY_ID,
+			      GTK_SIGNAL_FUNC(on_properties_apply_clicked),
+			      dialog);
+  gnome_dialog_button_connect(dialog, CANCEL_ID,
+			      GTK_SIGNAL_FUNC(on_properties_cancel_clicked),
+			      dialog);
+  gnome_dialog_button_connect(dialog, HELP_ID,
+			      GTK_SIGNAL_FUNC(on_properties_help_clicked),
+			      dialog);
 
-      widget = lookup_widget(pbox, "checkbutton14"); /* mouse pointer */
-      zconf_set_boolean(gtk_toggle_button_get_active(
-	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/hide_pointer");
-
-      widget = lookup_widget(pbox, "checkbutton3"); /* start muted */
-      zconf_set_boolean(gtk_toggle_button_get_active(
-	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/start_muted");
-
-      widget = lookup_widget(pbox, "checkbutton5"); /* avoid flicker */
-      zconf_set_boolean(gtk_toggle_button_get_active(
-	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/avoid_flicker");
-
-      widget = lookup_widget(pbox, "checkbutton11"); /* save controls */
-      zconf_set_boolean(gtk_toggle_button_get_active(
-	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/save_controls");
-
-      widget = lookup_widget(pbox, "title_format"); /* title format */
-      widget = gnome_entry_gtk_entry(GNOME_ENTRY(widget));
-      zconf_set_string(gtk_entry_get_text(GTK_ENTRY(widget)),
-			"/zapping/options/main/title_format");
-
-      widget = lookup_widget(pbox, "spinbutton1"); /* zapping_setup_fb
-						    verbosity */
-      zconf_set_integer(
-	gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widget)),
-			"/zapping/options/main/zapping_setup_fb_verbosity");
-
-      widget = lookup_widget(pbox, "optionmenu1"); /* ratio mode */
-
-      zconf_set_integer(z_option_menu_get_active(widget),
-			"/zapping/options/main/ratio");
-
-      widget = lookup_widget(pbox, "optionmenu2"); /* change mode */
-
-      zconf_set_integer(z_option_menu_get_active(widget),
-			"/zapping/options/main/change_mode");
-
-      widget = lookup_widget(pbox, "optionmenu20"); /* xv capture size */
-
-      zconf_set_integer(z_option_menu_get_active(widget),
-			"/zapping/options/capture/xvsize");
-
-      widget = lookup_widget(pbox, "optionmenu22"); /* osd type */
-
-      zconf_set_integer(z_option_menu_get_active(widget),
-			"/zapping/options/osd/osd_type");
-
-      widget = lookup_widget(pbox, "fontpicker1");
-      zconf_set_string(gnome_font_picker_get_font_name(GNOME_FONT_PICKER(widget)),
-		       "/zapping/options/osd/font");
-
-      widget = lookup_widget(pbox, "colorpicker1");
-
-      gnome_color_picker_get_d(GNOME_COLOR_PICKER(widget), &r, &g, &b,
-			       &a);
-      zconf_set_float(r, "/zapping/options/osd/fg_r");
-      zconf_set_float(g, "/zapping/options/osd/fg_g");
-      zconf_set_float(b, "/zapping/options/osd/fg_b");
-
-      widget = lookup_widget(pbox, "colorpicker2");
-
-      gnome_color_picker_get_d(GNOME_COLOR_PICKER(widget), &r, &g, &b,
-			       &a);
-      zconf_set_float(r, "/zapping/options/osd/bg_r");
-      zconf_set_float(g, "/zapping/options/osd/bg_g");
-      zconf_set_float(b, "/zapping/options/osd/bg_b");
-
-      widget = lookup_widget(pbox, "spinbutton2"); /* osd timeout */
-      zconf_set_float(
-	gtk_spin_button_get_value_as_float(GTK_SPIN_BUTTON(widget)),
-			"/zapping/options/osd/timeout");
-
-      break;
-    case 2:
-      widget = lookup_widget(pbox, "checkbutton6"); /* enable VBI
-						       decoding */
-      zconf_set_boolean(gtk_toggle_button_get_active(
-	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/vbi/enable_vbi");
-
-      widget = lookup_widget(pbox, "checkbutton7"); /* Use VBI
-						       station names */
-      zconf_set_boolean(gtk_toggle_button_get_active(
-	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/vbi/use_vbi");
-
-      widget = lookup_widget(pbox, "checkbutton12"); /* Overlay TTX
-						       pages
-						       automagically */
-      zconf_set_boolean(gtk_toggle_button_get_active(
-	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/vbi/auto_overlay");
-
-      widget = lookup_widget(pbox, "fileentry2"); /* VBI device entry */
-      text = gnome_file_entry_get_full_path (GNOME_FILE_ENTRY(widget),
-					     TRUE);
-      if (text)
-	zconf_set_string(text, "/zapping/options/vbi/vbi_device");
-
-      g_free(text); /* In the docs it says this should be freed */
-
-      /* default_region */
-      widget = lookup_widget(pbox, "optionmenu3");
-      index = z_option_menu_get_active(widget);
-
-      if (index < 0)
-	index = 0;
-      if (index > 7)
-	index = 7;
-
-      zconf_set_integer(index, "/zapping/options/vbi/default_region");
-      if (zvbi_get_object())
-	vbi_teletext_set_default_region(zvbi_get_object(), region_mapping[index]);
-
-      /* teletext_level */
-      widget = lookup_widget(pbox, "optionmenu4");
-      index = z_option_menu_get_active(widget);
-
-      if (index < 0)
-	index = 0;
-      if (index > 3)
-	index = 3;
-
-      zconf_set_integer(index, "/zapping/options/vbi/teletext_level");
-      if (zvbi_get_object())
-	vbi_teletext_set_level(zvbi_get_object(), index);
-
-      /* Quality/speed tradeoff */
-      widget = lookup_widget(pbox, "optionmenu21");
-      index = z_option_menu_get_active(widget);
-
-      if (index < 0)
-	index = 0;
-      if (index > 3)
-	index = 3;
-
-      zconf_set_integer(index, "/zapping/options/vbi/qstradeoff");
-
-      widget = lookup_widget(pbox, "subtitle_page"); /* subtitle page */
-      zvbi_page =
-	dec2bcd(gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widget)));
-      zcs_int(zvbi_page, "zvbi_page");
-      osd_clear();
-
-      /* The many itv filters */
-      widget = lookup_widget(pbox, "optionmenu12");
-      index = z_option_menu_get_active(widget);
-      zconf_set_integer(index, "/zapping/options/vbi/pr_trigger");
-
-      widget = lookup_widget(pbox, "optionmenu16");
-      index = z_option_menu_get_active(widget);
-      zconf_set_integer(index, "/zapping/options/vbi/nw_trigger");
-
-      widget = lookup_widget(pbox, "optionmenu17");
-      index = z_option_menu_get_active(widget);
-      zconf_set_integer(index, "/zapping/options/vbi/st_trigger");
-
-      widget = lookup_widget(pbox, "optionmenu18");
-      index = z_option_menu_get_active(widget);
-      zconf_set_integer(index, "/zapping/options/vbi/sp_trigger");
-
-      widget = lookup_widget(pbox, "optionmenu19");
-      index = z_option_menu_get_active(widget);
-      zconf_set_integer(index, "/zapping/options/vbi/op_trigger");
-
-      widget = lookup_widget(pbox, "optionmenu6");
-      index = z_option_menu_get_active(widget);
-      zconf_set_integer(index, "/zapping/options/vbi/trigger_default");
-
-      /* Filter level */
-      widget = lookup_widget(pbox, "optionmenu5");
-      index = z_option_menu_get_active(widget);
-      zconf_set_integer(index, "/zapping/options/vbi/filter_level");
-
-      break;
-    default:
-      for (i=0; i<num_handlers; i++)
-	if (handlers[i].apply(gnomepropertybox, arg1))
-	  break;
-
-      if (i == num_handlers)
-	ShowBox("Nothing accepts this page!!\nPlease contact the maintainer",
-		GNOME_MESSAGE_BOX_WARNING);
-      break;
-    }
+  gnome_dialog_run_and_close(dialog);
 }
 
-
-void
-on_zapping_properties_help             (GnomePropertyBox *gnomepropertybox,
-                                        gint             arg1,
-                                        gpointer         user_data)
-{
-  GnomeHelpMenuEntry entry = {"zapping", "properties.html"};
-  gint i;
-
-  enum tveng_capture_mode cur_mode;
-
-  cur_mode = tveng_stop_everything(main_info);
-
-  switch (arg1)
-    {
-    case -1:
-      break; /* end of the calls */
-    case 0 ... 2:
-      gnome_help_display(NULL, &entry);
-      break;
-    default:
-      break;
-    }
-
-  for (i=0; i<num_handlers; i++)
-    if (handlers[i].help(gnomepropertybox, arg1))
-      break;
-  
-  if (i == num_handlers)
-    ShowBox("The code that created the active page doesn't"
-	    " provide help for it!!!\nPlease contact the maintainer",
-	    GNOME_MESSAGE_BOX_WARNING);
-
-  if (z_restart_everything(cur_mode, main_info) == -1)
-    ShowBox(main_info->error, GNOME_MESSAGE_BOX_ERROR);
-}
-
-/* This function is called when some item in the property box changes */
-void
-on_property_item_changed              (GtkWidget * changed_widget,
-				       GnomePropertyBox *propertybox)
-{
-  update_sensitivity(changed_widget);
-
-  gnome_property_box_changed (propertybox);
-}
+static property_handler *handlers = NULL;
+static gint num_handlers = 0;
 
 void register_properties_handler (property_handler *p)
 {
   handlers = g_realloc(handlers, (num_handlers+1)*sizeof(handlers[0]));
   memcpy(&handlers[num_handlers++], p, sizeof(*p));
 }
+

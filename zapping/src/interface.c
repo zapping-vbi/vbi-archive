@@ -22,9 +22,19 @@ find_widget(GtkWidget * parent, const char * name)
 {
   GtkWidget * widget = parent;
   GladeXML* tree;
+  gchar *buf;
+  gpointer p;
+
+  buf = g_strdup_printf("registered-widget-%s", name);
 
   for (;;)
     {
+      if ((p = gtk_object_get_data(GTK_OBJECT(widget), buf)))
+	{
+	  g_free(buf);
+	  return p;
+	}
+
       tree = glade_get_widget_tree(widget);
       if (tree)
 	break; /* We foud a tree, success */
@@ -36,12 +46,10 @@ find_widget(GtkWidget * parent, const char * name)
 	widget = widget -> parent;
 
       if (!widget)
-	{
-	  RunBox("No widget tree found for %s, please contact the maintainer",
-		 GNOME_MESSAGE_BOX_ERROR, name);
-	  exit(1);
-	}
+	return NULL;
     }
+
+  g_free(buf);
 
   /* if we reach this, we have a tree */
   return glade_xml_get_widget (tree, name);
@@ -67,6 +75,34 @@ lookup_widget( GtkWidget *parent, const char *name)
     }
 
   return widget;
+}
+
+void
+register_widget(GtkWidget * widget, const char * name)
+{
+  GtkWidget * this_widget = widget;
+  gchar *buf;
+
+  /* Walk to the topmost level and register */
+  for (;;)
+    {
+      if (!GTK_IS_MENU(widget) && !widget->parent)
+	{
+	  buf = g_strdup_printf("registered-widget-%s", name);
+	  gtk_object_set_data(GTK_OBJECT(widget), buf, this_widget);
+	  g_free(buf);
+	  return;
+	}
+
+      /* try to go to the parent widget */
+      if (GTK_IS_MENU(widget))
+	widget = gtk_menu_get_attach_widget (GTK_MENU (widget) );
+      else
+	widget = widget -> parent;
+
+      if (!widget)
+	return; /* Toplevel not found */
+    }
 }
 
 /*
@@ -110,7 +146,6 @@ create_zapping (void)
 GtkWidget*
 create_zapping_properties (void)
 {
-
   return build_widget("zapping_properties", PACKAGE_DATA_DIR "/zapping.glade");
 }
 

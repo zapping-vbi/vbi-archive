@@ -18,6 +18,12 @@ find_widget(GtkWidget * parent, const char * name);
 GtkWidget*
 lookup_widget(GtkWidget * parent, const char * name);
 
+/**
+ * Registers a widget created by the app so lookup_widget finds it.
+ */
+void
+register_widget(GtkWidget * widget, const char * name);
+
 /*
  * Loads a GtkWidget from zapping.glade. All the memory is freed when
  * the object (widget) is destroyed. If name is NULL, all widgets are

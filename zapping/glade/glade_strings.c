@@ -319,3 +319,4 @@ gchar *s = N_("Create a new channel with these settings");
 gchar *s = N_("_Add as a new channel");
 gchar *s = N_("Apply the current settings to the selected channels above");
 gchar *s = N_("_Modify selected channels");
+gchar *s = N_("Configuration");

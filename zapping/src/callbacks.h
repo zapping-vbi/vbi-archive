@@ -144,20 +144,6 @@ void
 on_propiedades1_activate               (GtkMenuItem     *menuitem,
                                         gpointer         user_data);
 
-void
-on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
-                                        gint             arg1,
-                                        gpointer         user_data);
-
-void
-on_zapping_properties_help             (GnomePropertyBox *gnomepropertybox,
-                                        gint             arg1,
-                                        gpointer         user_data);
-
-void
-on_property_item_changed               (GtkWidget * changed_widget,
-				        GnomePropertyBox *propertybox);
-
 /******************************************************************************
  Stuff located in channel_editor.c
 ******************************************************************************/

@@ -392,7 +392,7 @@ acknowledge_trigger			(vbi_link	*link)
       gdk_pixbuf_unref(pb);
       pix = gtk_pixmap_new(pixmap, mask);
       gdk_bitmap_unref(mask);
-      gdk_bitmap_unref(pixmap);
+      gdk_pixmap_unref(pixmap);
 
       gtk_widget_show(pix);
       gtk_container_add(GTK_CONTAINER(button), pix);

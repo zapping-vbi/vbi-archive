@@ -1,3 +1,9 @@
+4.10.2001	New properties dialog <garetxe@users.sf.net>
+
+	* properties.c: New Galeon style properties code. Still under
+	construction (and nonfunctional), but I couldn't resist commiting
+	:-) Plugins can	be configured in the 'Plugins' dialog.
+
 2.10.2001	GUI sweetpill <garetxe@users.sf.net>
 
 	* channel_editor: Rearranged as discussed in the mailing list.

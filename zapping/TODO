@@ -9,6 +9,7 @@ Outstanding issues for the next release (0.6.2)
 	+ Improve documentation.
 	+ TTX export: Make blockgfx replacement smarter.
 	+ Add index to the channels.
+	+ Ctrl "fast" variants of screenshot/mpeg.
 
 > 0.6.3
 	+ Examine the possiblity of linking movie titles, VBI plugin API.

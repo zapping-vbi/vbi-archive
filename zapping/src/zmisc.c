@@ -994,3 +994,26 @@ z_set_cursor	(GdkWindow	*window,
   gdk_window_set_cursor(window, cursor);
   gdk_cursor_destroy(cursor);
 }
+
+GtkWidget *
+z_pixmap_new_from_file		(const gchar	*file)
+{
+  GdkBitmap *mask;
+  GdkPixmap *pixmap;
+  GdkPixbuf *pb;
+  GtkWidget *pix;
+
+  pb = gdk_pixbuf_new_from_file(file);
+
+  if (!pb)
+    return NULL;
+
+  gdk_pixbuf_render_pixmap_and_mask(pb, &pixmap, &mask, 128);
+  gdk_pixbuf_unref(pb);
+  pix = gtk_pixmap_new(pixmap, mask);
+  if (mask)
+    gdk_bitmap_unref(mask);
+  gdk_pixmap_unref(pixmap);
+
+  return pix;
+}
