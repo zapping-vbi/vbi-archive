@@ -603,6 +603,11 @@ z_set_overlay_buffer		(tveng_device_info *	info,
 				 const tv_screen *	screen,
 				 const GdkWindow *	window);
 
+extern void
+z_toggle_action_connect_gconf_key
+				(GtkToggleAction *	toggle_action,
+				 const gchar *		key);
+
 /* Common constants for item position in Gtk insert functions. */
 #define PREPEND 0
 #define APPEND -1
