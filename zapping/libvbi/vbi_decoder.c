@@ -1,7 +1,7 @@
 /*
  *  V4L/V4L2 VBI Decoder  DRAFT
  *
- *  gcc -O2 -othis this.c mp1e/vbi/tables.c
+ *  gcc -O2 -othis this.c mp1e/vbi/tables.c -lm
  *
  *  Copyright (C) 1999-2000 Michael H. Schimek
  *
@@ -20,22 +20,24 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder.c,v 1.1 2000-11-22 06:49:30 mschimek Exp $ */
+/* $Id: vbi_decoder.c,v 1.2 2000-11-27 04:43:25 mschimek Exp $ */
 
 /*
     TODO:
     - test streaming
-    - write v4l interface
-    - write cc test
+    - test v4l interface
     - write T thread & multi consumer fifo
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <getopt.h>
+#include <assert.h>
 #include <sys/time.h>		// timeval
 #include <sys/types.h>		// fd_set
 #include <sys/ioctl.h>
@@ -69,7 +71,7 @@ typedef struct _fifo {
 	buffer *		buffers;
 	int			num_buffers;
 
-	void *			user_data; // Useful for callbacks
+	void *			user_data;
 } fifo;
 
 static inline unsigned int
@@ -86,6 +88,8 @@ nbabs(register int n)
 
 typedef long long int tsc_t;
 
+#if #cpu (i386)
+
 tsc_t rdtsc(void)
 {
 	tsc_t tsc;
@@ -94,10 +98,45 @@ tsc_t rdtsc(void)
 	return tsc;
 }
 
-#define PROFILE 0
+#endif
+
+char err_str[1024];
+
+#define IODIAG(templ, args...)				\
+do {							\
+	snprintf(err_str + strlen(err_str),		\
+		sizeof(err_str) - strlen(err_str) - 1,	\
+		templ ":\n %d, %s"			\
+		,##args, errno, strerror(errno));	\
+} while (0)
+
+#define DIAG(templ, args...)				\
+do {							\
+	snprintf(err_str + strlen(err_str),		\
+		sizeof(err_str) - strlen(err_str) - 1,	\
+		templ,##args);				\
+} while (0)
+
 
 #define V4L2_LINE -1 // API rev. Nov 2000 (-1 -> 0)
 
+
+
+/* Options */
+
+int			opt_teletext;
+int			opt_cni;
+int			opt_vps;
+int			opt_caption;
+int			opt_xds;
+int			opt_sliced;
+int			opt_profile;
+int			opt_ccsim;
+int			opt_pattern;
+int			opt_all;
+int			opt_raw;
+int			opt_strict = 0;
+int			opt_surrender = 1;
 
 
 
@@ -111,99 +150,114 @@ tsc_t rdtsc(void)
 #define MOD_BIPHASE_MSB_ENDIAN	3
 
 struct bit_slicer {
-	unsigned int	framing_code, frc_mask;
-	int		frc_bytes;
-	int		phase_shift, step8;
-	int		frc_rate;
-	int		oversampling_rate;
-	int		payload;
+	unsigned int	cri;
+	unsigned int	cri_mask;
 	int		thresh;
-	bool		lsb_endian;
+	int		cri_bytes;
+	int		cri_rate;
+	int		oversampling_rate;
+	int		phase_shift;
+	int		step;
+	unsigned int	frc;
+	int		frc_bits;
+	int		payload;
+	int		lsb_endian;
 };
 
-#define OVERS 2		// 1, 2, 4, 8
+#define OVERSAMPLING 2		// 1, 2, 4, 8
 
 static inline void
 init_bit_slicer(struct bit_slicer *d,
-	int raw_bytes, int sampling_rate, int frc_rate, int bit_rate,
-	unsigned int frc, unsigned int frc_mask, int payload, int modulation)
+	int raw_bytes, int sampling_rate, int cri_rate, int bit_rate,
+	unsigned int cri_frc, int cri_bits, int frc_bits, int payload, int modulation)
 {
-	d->frc_mask		= frc_mask;
-	d->framing_code 	= frc & frc_mask;
-	d->frc_bytes		= raw_bytes - ((long long) sampling_rate * (8 * payload + 1)) / bit_rate;
-	d->frc_rate		= frc_rate;
-	d->oversampling_rate	= sampling_rate * OVERS;
+	d->cri_mask		= (1 << cri_bits) - 1;
+	d->cri		 	= (cri_frc >> frc_bits) & d->cri_mask;
+	d->cri_bytes		= raw_bytes
+		- ((long long) sampling_rate * (8 * payload + frc_bits)) / bit_rate;
+	d->cri_rate		= cri_rate;
+	d->oversampling_rate	= sampling_rate * OVERSAMPLING;
+	d->thresh		= 105 << 9;
+	d->frc			= cri_frc & ((1 << frc_bits) - 1);
+	d->frc_bits		= frc_bits;
+	d->step			= sampling_rate * 256.0 / bit_rate;
 	d->payload		= payload;
-	d->thresh		= 105 << 10;
-	d->step8		= sampling_rate * 256.0 / bit_rate;
 	d->lsb_endian		= TRUE;
 
 	switch (modulation) {
 	case MOD_NRZ_MSB_ENDIAN:
 		d->lsb_endian = FALSE;
 	case MOD_NRZ_LSB_ENDIAN:
-		d->phase_shift = sampling_rate * 256.0 / frc_rate * .5
+		d->phase_shift = sampling_rate * 256.0 / cri_rate * .5
 			         + sampling_rate * 256.0 / bit_rate * .5 + 128;
 		break;
 
 	case MOD_BIPHASE_MSB_ENDIAN:
 		d->lsb_endian = FALSE;
 	case MOD_BIPHASE_LSB_ENDIAN:
-		d->phase_shift = sampling_rate * 256.0 / frc_rate * .5
+		d->phase_shift = sampling_rate * 256.0 / cri_rate * .5
 			         + sampling_rate * 256.0 / bit_rate * .25 + 128;
 		break;
 	}
 }
 
-static inline bool
+static bool
 bit_slicer(struct bit_slicer *d, unsigned char *raw, unsigned char *buf)
 {
-	int i, j, k;
-        int tr, b, b1 = 0, cl = 0;
-	unsigned int c = 0, t, s;
+	int i, j, k, cl = 0, thresh0 = d->thresh;
+	unsigned int c = 0, t;
+	unsigned char b, b1 = 0, tr;
 
-	for (i = d->frc_bytes; i > 0; raw++, i--) {
-		tr = d->thresh >> 10;
+	for (i = d->cri_bytes; i > 0; raw++, i--) {
+		tr = d->thresh >> 9;
 		d->thresh += ((int) raw[0] - tr) * nbabs(raw[1] - raw[0]);
-		t = raw[0] * OVERS;
+		t = raw[0] * OVERSAMPLING;
 
-		for (j = OVERS; j > 0; j--) {
-			s = (t + (OVERS / 2)) / OVERS;
-			b = (s >= tr);
+		for (j = OVERSAMPLING; j > 0; j--) {
+			b = ((t + (OVERSAMPLING / 2)) / OVERSAMPLING >= tr);
 
     			if (b ^ b1) {
 				cl = d->oversampling_rate >> 1;
 			} else {
-				cl += d->frc_rate;
+				cl += d->cri_rate;
 
 				if (cl >= d->oversampling_rate) {
 					cl -= d->oversampling_rate;
 
 					c = c * 2 + b;
 
-					if ((c & d->frc_mask) == d->framing_code) {
+					if ((c & d->cri_mask) == d->cri) {
 						i = d->phase_shift;
 						c = 0;
 
-						if (d->lsb_endian)
+						for (j = d->frc_bits; j > 0; j--) {
+							c = c * 2 + (raw[i >> 8] >= tr);
+    							i += d->step;
+						}
+
+						if (c ^= d->frc)
+							return FALSE;
+
+						if (d->lsb_endian) {
 							for (j = d->payload; j > 0; j--) {
-								for (k = 8; k > 0; k--) {
+								for (k = 0; k < 8; k++) {
 						    			c >>= 1;
 									c += (raw[i >> 8] >= tr) << 7;
-			    						i += d->step8;
+			    						i += d->step;
 								}
 
 								*buf++ = c;
 					    		}
-						else
+						} else {
 							for (j = d->payload; j > 0; j--) {
-								for (k = 8; k > 0; k--) {
+								for (k = 0; k < 8; k++) {
 									c = c * 2 + (raw[i >> 8] >= tr);
-			    						i += d->step8;
+			    						i += d->step;
 								}
 
 								*buf++ = c;
 					    		}
+						}
 
 			    			return TRUE;
 					}
@@ -212,18 +266,29 @@ bit_slicer(struct bit_slicer *d, unsigned char *raw, unsigned char *buf)
 
 			b1 = b;
 
-			if (OVERS > 1) {
+			if (OVERSAMPLING > 1) {
 				t += raw[1];
 				t -= raw[0];
 			}
 		}
 	}
 
+	d->thresh = thresh0;
+
 	return FALSE;
 }
 
+
+
 #define MAX_RAW_BUFFERS 	5
-#define MAX_JOBS		16
+#define MAX_JOBS		8
+#define MAX_WAYS		4
+
+struct job {
+	unsigned int		id;
+	int			offset;
+	struct bit_slicer 	slicer;
+};
 
 struct vbi_capture {
 	fifo			fifo;
@@ -239,7 +304,6 @@ struct vbi_capture {
 	bool			stream;
 	buffer 			buf;
 
-
 	int			scanning;
 	int			sampling_rate;
 	int			samples_per_line;
@@ -252,13 +316,8 @@ struct vbi_capture {
 	unsigned int		services;
 	int			num_jobs;
 
-	struct job {
-		unsigned int		id;
-		struct bit_slicer 	slicer;
-		int			offset;
-		int			start;
-		int			count;
-	}			jobs[MAX_JOBS];
+	char *			pattern;
+	struct job		jobs[MAX_JOBS];
 };
 
 /*
@@ -285,20 +344,21 @@ struct vbi_service_par {
 	int		last[2];	/*  zero: no data from this field, requires field sync */
 	int		offset;		/* leading edge hsync to leading edge first CRI one bit
 					    half amplitude points, nanoseconds */
-	int		frc_rate;	/* Hz */
+	int		cri_rate;	/* Hz */
 	int		bit_rate;	/* Hz */
 	int		scanning;	/* scanning system: 525 (FV = 59.94 Hz, FH = 15734 Hz),
 							    625 (FV = 50 Hz, FH = 15625 Hz) */
-	unsigned int	frc;		/* Clock Run In and FRaming Code, LSB last txed bit of FRC */
-	unsigned int	frc_mask;	/* identification, advice: ignore leading CRI bits */
-	int		payload;	/* in bytes */
-	int		modulation;	/* payload modulation */
+	unsigned int	cri_frc;	/* Clock Run In and FRaming Code, LSB last txed bit of FRC */
+	char		cri_bits;	/* cri_frc bits significant for identification, advice: ignore */
+	char		frc_bits;	/*  leading CRI bits; frc_bits at bit_rate */
+	char		payload;	/* in bytes */
+	char		modulation;	/* payload modulation */
 };
 
 const struct vbi_service_par
 vbi_services[] = {
 	{
-		SLICED_TELETEXT_B_L10_625, "Teletext System B, 625",
+		SLICED_TELETEXT_B_L10_625, "Teletext System B Level 1.5, 625",
 		{ 7, 320 },
 		{ 22, 335 },
 		/*
@@ -309,77 +369,73 @@ vbi_services[] = {
 		     (see annex P). Further information can be found in TR 101 233 [7]."
 		 */
 		10300, 6937500, 6937500, /* 444 x FH */
-		625, 0x00AAAAE4, 0x0000FFFF, 42, MOD_NRZ_LSB_ENDIAN
+		625, 0x00AAAAE4, 10, 6, 42, MOD_NRZ_LSB_ENDIAN
 	}, {
-		SLICED_TELETEXT_B_L25_625, "Teletext System B Level 2.5, 625",
+		SLICED_TELETEXT_B_L25_625, "Teletext System B, 625",
 		{ 6, 318 },
 		{ 22, 335 },
 		10300, 6937500, 6937500, /* 444 x FH */
-		625, 0x00AAAAE4, 0x0000FFFF, 42, MOD_NRZ_LSB_ENDIAN
+		625, 0x00AAAAE4, 10, 6, 42, MOD_NRZ_LSB_ENDIAN
 	}, {
 		SLICED_VPS, "Video Programming System",
 		{ 16, 0 },
 		{ 16, 0 },
 		12500, 5000000, 2500000, /* 160 x FH */
-		625, 0xAAAA8A99, 0x00FFFFFF, 13, MOD_BIPHASE_MSB_ENDIAN
+		625, 0xAAAA8A99, 24, 0, 13, MOD_BIPHASE_MSB_ENDIAN
 	}, {
 		SLICED_CAPTION_625_F1, "Closed Caption 625, single field",
 		{ 22, 0 },
 		{ 22, 0 },
 		10500, 1000000, 500000, /* 32 x FH */
-		625, 0x00055543, 0x00000FFF, 2, MOD_NRZ_LSB_ENDIAN
+		625, 0x00005551, 9, 2, 2, MOD_NRZ_LSB_ENDIAN
 	}, {
 		SLICED_CAPTION_625, "Closed Caption 625", /* Videotapes, LD */
 		{ 22, 335 },
 		{ 22, 335 },
 		10500, 1000000, 500000, /* 32 x FH */
-		625, 0x00055543, 0x00000FFF, 2, MOD_NRZ_LSB_ENDIAN
+		625, 0x00005551, 9, 2, 2, MOD_NRZ_LSB_ENDIAN
 	}, {
 		SLICED_VBI_625, "VBI 625", /* Blank VBI */
 		{ 6, 318 },
 		{ 22, 335 },
 		10000, 1510000, 1510000,
-		625, 0, 0, 10, 0 /* 10.0-2 ... 62.9+1 us */
+		625, 0, 0, 0, 10, 0 /* 10.0-2 ... 62.9+1 us */
 	}, {
 		SLICED_NABTS, "Teletext System C, 525", /* NOT CONFIRMED */
 		{ 10, 0 },
 		{ 21, 0 },
 		10500, 5727272, 5727272,
-		525, 0x00AAAAE7, 0x0000FFFF, 33, MOD_NRZ_LSB_ENDIAN /* Tb. */
+		525, 0x00AAAAE7, 10, 6, 33, MOD_NRZ_LSB_ENDIAN /* Tb. */
 	}, {
 		SLICED_CAPTION_525_F1, "Closed Caption 525, single field",
 		{ 21, 0 },
 		{ 21, 0 },
 		10500, 1006976, 503488, /* 32 x FH */
-		525, 0x00055543, 0x00000FFF, 2, MOD_NRZ_LSB_ENDIAN
-		/*
-		 *  CRI is actually 6.5 cycles at 32 x FH
-		 *  ('10101010101' at 64 x FH), FRC '001' at 32 x FH
-		 */
+		525, 0x00005551, 9, 2, 2, MOD_NRZ_LSB_ENDIAN
 	}, {
 		SLICED_CAPTION_525, "Closed Caption 525",
 		{ 21, 284 },
 		{ 21, 284 },
 		10500, 1006976, 503488, /* 32 x FH */
-		525, 0x00055543, 0x00000FFF, 2, MOD_NRZ_LSB_ENDIAN
+		525, 0x00005551, 9, 2, 2, MOD_NRZ_LSB_ENDIAN
 	}, {
 		SLICED_2xCAPTION_525, "2xCaption 525", /* NOT CONFIRMED */
 		{ 10, 0 },
 		{ 21, 0 },
 		10500, 1006976, 1006976, /* 64 x FH */
-		525, 0x000554ED, 0x00000FFF, 4, MOD_NRZ_LSB_ENDIAN /* Tb. */
+		525, 0x000554ED, 8, 8, 4, MOD_NRZ_LSB_ENDIAN /* Tb. */
 	}, {
 		SLICED_TELETEXT_BD_525, "Teletext System B / D (Japan), 525", /* NOT CONFIRMED */
 		{ 10, 0 },
 		{ 21, 0 },
 		9600, 5727272, 5727272,
-		525, 0x00AAAAE4, 0x0000FFFF, 34, MOD_NRZ_LSB_ENDIAN /* Tb. */
+		525, 0x00AAAAE4, 10, 6, 34, MOD_NRZ_LSB_ENDIAN /* Tb. */
 	}, {
 		SLICED_VBI_525, "VBI 525", /* Blank VBI */
 		{ 10, 272 },
 		{ 21, 284 },
 		9500, 1510000, 1510000,
-		525, 0, 0, 10, 0 /* 9.5-1 ... 62.4+1 us */
+		525, 0, 0, 0, 10, 0 /* 9.5-1 ... 62.4+1 us */
 	},
 	{ 0 }
 };
@@ -390,85 +446,164 @@ typedef struct {
 	unsigned char		data[48];
 } vbi_sliced;
 
-#if PROFILE
-
-/* bit_slicer appx 20 kcycles on my machine, too slow?
-   Sum appx 1 (CC only),
-   20 (PAL: WST & VPS & CC),
-   40 (PAL, probe all lines) Mcycles/s
-   decode() should learn which lines carry what services
- */
-
 static int
 decode(struct vbi_capture *vbi, unsigned char *raw1, vbi_sliced *out1)
 {
+	static int readj = 1;
 	int pitch = vbi->samples_per_line << vbi->interlaced;
-	struct job *job = vbi->jobs;
+	char *pat, *pattern = vbi->pattern;
+	unsigned char *raw = raw1;
 	vbi_sliced *out = out1;
-	int i, j, repeats = 0;
-	tsc_t sum = 0LL;
-
-	for (i = 0; i < vbi->num_jobs; i++, job++) {
-		unsigned char *raw = raw1 + job->offset;
-
-		for (j = 0; j < job->count; j++, raw += pitch) {
-			tsc_t begin = rdtsc();
-
-			if (bit_slicer(&job->slicer, raw, out->data)) {
-				out->id = job->id;
-				out->line = job->start ? job->start + j : 0;
-				out++;
-			}
-
-			sum += rdtsc() - begin;
-			repeats++;
-		}
-	}
-
-	fprintf(stderr, "decode() %d jobs, %d raw lines, %d active; bit_slicer() %lld cycles, %d/frame\n",
-		vbi->num_jobs, vbi->count[0] + vbi->count[1], out - out1,
-		sum / repeats, repeats);
-
-	return out - out1;
-}
-
-#else
-
-static int
-decode(struct vbi_capture *vbi, unsigned char *raw1, vbi_sliced *out1)
-{
-	int pitch = vbi->samples_per_line << vbi->interlaced;
-	struct job *job = vbi->jobs;
-	vbi_sliced *out = out1;
+	struct job *job;
 	int i, j;
+#if #cpu (i386)
+	tsc_t sum = 0LL, begin;
+	int repeats = 0;
+#endif
 
-	for (i = 0; i < vbi->num_jobs; i++, job++) {
-		unsigned char *raw = raw1 + job->offset;
+	if (opt_pattern && readj == 0) {
+		for (i = 0; i < (vbi->count[0] + vbi->count[1]) * MAX_WAYS; i++) {
+			if (vbi->interlaced && i == vbi->count[0])
+				raw = raw1 + vbi->samples_per_line;
 
-		for (j = 0; j < job->count; j++, raw += pitch)
-			if (bit_slicer(&job->slicer, raw, out->data)) {
-				out->id = job->id;
-				out->line = job->start ? job->start + j : 0;
-				out++;
+			if (i % MAX_WAYS == 0) {
+				if ((j = i / MAX_WAYS) < vbi->count[0])
+					printf("%3d ", (vbi->start[0] >= 0) ? vbi->start[0] + j : 0);
+				else
+					printf("%3d ", (vbi->start[1] >= 0) ? vbi->start[1] - vbi->count[0] + j : 0);
 			}
+
+			printf("%04x ", (vbi->pattern[i] > 0) ? vbi->jobs[vbi->pattern[i] - 1].id : 0);
+
+			if (i % MAX_WAYS == MAX_WAYS - 1) {
+				if (vbi->pattern[i - 3] > 0) {
+					int jj = 0;
+
+					job = vbi->jobs + (vbi->pattern[i - 3] - 1);
+
+					for (j = 0; vbi_services[j].id; j++)
+						if (vbi_services[j].id & job->id)
+							jj = j; // broadest last
+
+					printf("%s\n", vbi_services[jj].label);
+				} else {
+					int s = 0, sd = 0;
+
+					for (j = 0; j < vbi->samples_per_line; j++)
+						s += raw[j];
+
+					s /= vbi->samples_per_line;
+
+					for (j = 0; j < vbi->samples_per_line; j++)
+						sd += nbabs(raw[j] - s);
+
+					sd /= vbi->samples_per_line;
+
+					if (sd < 5)
+						puts("Blank");
+					else
+						puts("Unknown signal");
+				}
+
+				raw += pitch;
+			}
+		}
+
+		putchar('\n');
+
+		raw = raw1;
 	}
+
+#if #cpu (i386)
+	if (opt_profile)
+		begin = rdtsc();
+#endif
+
+	for (i = 0; i < vbi->count[0] + vbi->count[1]; i++) {
+		if (vbi->interlaced && i == vbi->count[0])
+			raw = raw1 + vbi->samples_per_line;
+
+		for (pat = pattern;; pat++) {
+			if ((j = *pat) > 0) {
+				job = vbi->jobs + (j - 1);
+#if #cpu (i386)
+				if (opt_profile) {
+					tsc_t begin = rdtsc();
+					bool r = bit_slicer(&job->slicer, raw + job->offset, out->data);
+
+					sum += rdtsc() - begin;
+					repeats++;
+					
+					if (!r)
+						continue;
+				} else
+#endif
+				if (!bit_slicer(&job->slicer, raw + job->offset, out->data))
+					continue;
+
+				out->id = job->id;
+				if (i >= vbi->count[0])
+					out->line = (vbi->start[1] > 0) ? vbi->start[1] - vbi->count[0] + i : 0;
+				else
+					out->line = (vbi->start[0] > 0) ? vbi->start[0] + i : 0;
+				out++;
+				pattern[MAX_WAYS - 1] = -128;
+			} else if (pat == pattern) {
+				if (readj == 0) {
+					j = pattern[1];
+					pattern[1] = pattern[2];
+					pattern[2] = pattern[3];
+					pat += MAX_WAYS - 1;
+				}
+			} else if ((j = pattern[MAX_WAYS - 1]) < 0) {
+				pattern[MAX_WAYS - 1] = j + 1;
+    				break;
+			}
+			*pat = pattern[0];
+			pattern[0] = j;
+			break;
+		}
+
+		raw += pitch;
+		pattern += MAX_WAYS;
+	}
+
+#if #cpu (i386)
+	if (opt_profile) {
+		begin = rdtsc() - begin;
+
+		printf("decode() %lld cycles, %d jobs, %d raw lines, %d active; "
+		       "bit_slicer() %lld cycles, %d/frame\n",
+			begin, vbi->num_jobs, vbi->count[0] + vbi->count[1], out - out1,
+			sum / repeats, repeats);
+	}
+#endif
+
+	readj = (readj + 1) & 15;
 
 	return out - out1;
 }
-
-#endif
 
 static unsigned int
 remove_services(struct vbi_capture *vbi, unsigned int services)
 {
-	int i;
+	int i, j;
+	int pattern_size = (vbi->count[0] + vbi->count[1]) * MAX_WAYS;
 
 	for (i = 0; i < vbi->num_jobs;) {
 		if (vbi->jobs[i].id & services) {
-			memmove(&vbi->jobs[i], &vbi->jobs[i + 1],
-				(MAX_JOBS - i - 1) * sizeof(vbi->jobs[0]));
+			if (vbi->pattern)
+				for (j = 0; j < pattern_size; j++)
+					if (vbi->pattern[j] == i + 1) {
+						int ways_left = MAX_WAYS - 1 - j % MAX_WAYS;
 
-			vbi->num_jobs--;
+						memmove(&vbi->pattern[j], &vbi->pattern[j + 1],
+							ways_left * sizeof(&vbi->pattern[0]));
+						vbi->pattern[j + ways_left] = 0;
+					}
+
+			memmove(vbi->jobs + i, vbi->jobs + (i + 1), (MAX_JOBS - i - 1) * sizeof(vbi->jobs[0]));
+			vbi->jobs[--vbi->num_jobs].id = 0;
 		} else
 			i++;
 	}
@@ -480,16 +615,21 @@ static unsigned int
 add_services(struct vbi_capture *vbi, unsigned int services, int strict)
 {
 	double off_min = (vbi->scanning == 525) ? 7.9e-6 : 8.0e-6;
-	struct job *job = &vbi->jobs[vbi->num_jobs];
+	int row[2], count[2], way;
+	struct job *job;
+	char *pattern;
 	int i, j, k;
 
 	services &= ~(SLICED_VBI_525 | SLICED_VBI_625);
 
+	if (!vbi->pattern)
+		vbi->pattern = calloc((vbi->count[0] + vbi->count[1]) * MAX_WAYS, sizeof(vbi->pattern[0]));
+
 	for (i = 0; vbi_services[i].id; i++) {
 		double signal;
-		int frc_bits, skip = 0;
+		int skip = 0;
 
-		if (vbi->num_jobs >= MAX_JOBS - 2)
+		if (vbi->num_jobs >= MAX_JOBS)
 			break;
 
 		if (!(vbi_services[i].id & services))
@@ -498,13 +638,9 @@ add_services(struct vbi_capture *vbi, unsigned int services, int strict)
 		if (vbi_services[i].scanning != vbi->scanning)
 			goto eliminate;
 
-		if ((int) vbi_services[i].frc < 0)
-			frc_bits = 32;
-		else
-			for (frc_bits = 0; vbi_services[i].frc >> frc_bits; frc_bits++);
-
-		signal = frc_bits / (double) vbi_services[i].frc_rate
-			 + vbi_services[i].payload * 8 / (double) vbi_services[i].bit_rate;
+		signal = vbi_services[i].cri_bits / (double) vbi_services[i].cri_rate
+			 + (vbi_services[i].frc_bits + vbi_services[i].payload * 8)
+			   / (double) vbi_services[i].bit_rate;
 
 		if (vbi->offset > 0 && strict > 0) {
 			double offset = vbi->offset / (double) vbi->sampling_rate;
@@ -526,16 +662,26 @@ add_services(struct vbi_capture *vbi, unsigned int services, int strict)
 				goto eliminate;
 		}
 
-		for (j = k = 0; j < 2; j++) {
+		for (j = 0, job = vbi->jobs; j < vbi->num_jobs; job++, j++) {
+			unsigned int id = job->id | vbi_services[i].id;
+
+			if ((id & ~(SLICED_TELETEXT_B_L10_625 | SLICED_TELETEXT_B_L25_625)) == 0
+			    || (id & ~(SLICED_CAPTION_625_F1 | SLICED_CAPTION_625)) == 0
+			    || (id & ~(SLICED_CAPTION_525_F1 | SLICED_CAPTION_525)) == 0)
+				break;
+		}
+
+		for (j = 0; j < 2; j++) {
 			int start = vbi->start[j];
 			int end = start + vbi->count[j] - 1;
-			int row;
 
 			if (!vbi->synchronous)
 				goto eliminate; // too difficult
 
-			if (!(vbi_services[i].first[j] && vbi_services[i].last[j]))
+			if (!(vbi_services[i].first[j] && vbi_services[i].last[j])) {
+				count[j] = 0;
 				continue;
+			}
 
 			if (vbi->count[j] == 0)
 				goto eliminate;
@@ -552,55 +698,53 @@ add_services(struct vbi_capture *vbi, unsigned int services, int strict)
 					    end < vbi_services[i].last[j])
 						goto eliminate;
 
-				row = MAX(0, (int) vbi_services[i].first[j] - start);
-				job[k].start = MAX(start, vbi_services[i].first[j]);
-				job[k].count = MIN(end, vbi_services[i].last[j])
-					       - job->start + 1;
+				row[j] = MAX(0, (int) vbi_services[i].first[j] - start);
+				count[j] = MIN(end, vbi_services[i].last[j]) - start + 1;
 			} else {
-				row = 0;
-				job[k].start = (vbi->start[j] > 0) ? vbi->start[j] : 0;
-				job[k].count = vbi->count[j];
+				row[j] = 0;
+				count[j] = vbi->count[j];
 			}
 
-			if (vbi->interlaced)
-				job[k].offset = skip + (row * 2 + j) *
-					vbi->samples_per_line;
-			else
-				job[k].offset = skip + (row + vbi->count[0] * j) *
-					vbi->samples_per_line;
+			row[1] += vbi->count[0];
 
-			job[k].id = vbi_services[i].id;
+			for (pattern = vbi->pattern + row[j] * MAX_WAYS, k = count[j]; k > 0; pattern += MAX_WAYS, k--) {
+				int free = 0;
 
-			init_bit_slicer(&job[k].slicer,
+				for (way = 0; way < MAX_WAYS; way++)
+					free += (pattern[way] <= 0 || (pattern[way] - 1) == job - vbi->jobs);
+
+				if (free <= 1) // reserve one NULL way
+					goto eliminate;
+			}
+		}
+
+		for (j = 0; j < 2; j++)
+			for (pattern = vbi->pattern + row[j] * MAX_WAYS, k = count[j]; k > 0; pattern += MAX_WAYS, k--) {
+				for (way = 0; pattern[way] > 0 && (pattern[way] - 1) != (job - vbi->jobs); way++);
+				pattern[way] = (job - vbi->jobs) + 1;
+				pattern[MAX_WAYS - 1] = -128;
+			}
+
+		job->id |= vbi_services[i].id;
+		job->offset = skip;
+
+		init_bit_slicer(&job->slicer,
 				vbi->samples_per_line - skip,
 				vbi->sampling_rate,
-		    		vbi_services[i].frc_rate,
+		    		vbi_services[i].cri_rate,
 				vbi_services[i].bit_rate,
-				vbi_services[i].frc,
-				vbi_services[i].frc_mask,
+				vbi_services[i].cri_frc,
+				vbi_services[i].cri_bits,
+				vbi_services[i].frc_bits,
 				vbi_services[i].payload,
 				vbi_services[i].modulation);
 
-			k++;
-		}
+		if (job >= vbi->jobs + vbi->num_jobs)
+			vbi->num_jobs++;
 
-		job += k;
-		vbi->num_jobs += k;
 		vbi->services |= vbi_services[i].id;
 eliminate:
 	}
-
-	services = 0;
-
-	if (vbi->services & SLICED_TELETEXT_B_L25_625)
-		services |= SLICED_TELETEXT_B_L10_625;
-	if (vbi->services & SLICED_CAPTION_625)
-		services |= SLICED_CAPTION_625_F1;
-	if (vbi->services & SLICED_CAPTION_525)
-		services |= SLICED_CAPTION_525_F1;
-
-	if (vbi->services & services)
-		remove_services(vbi, services);
 
 	return vbi->services;
 }
@@ -608,17 +752,95 @@ eliminate:
 static void
 reset_decoder(struct vbi_capture *vbi)
 {
+	if (vbi->pattern)
+		free(vbi->pattern);
+
 	vbi->services = 0;
 	vbi->num_jobs = 0;
+
+	vbi->pattern = NULL;
 
 	memset(vbi->jobs, 0, sizeof(vbi->jobs));
 }
 
+/*
+ *  Closed Caption Signal Simulator
+ *  (not approved by the FCC :-)
+ */
 
+static inline double
+cc_sim(double t, double F, unsigned char b1, unsigned char b2)
+{
+	int bits = (b2 << 10) + (b1 << 2) + 2; // start bit 0 -> 1
+	double t1 = 10.5e-6 - .25 / F;
+	double t2 = t1 + 7 / F;		// CRI 7 cycles
+	double t3 = t2 + 1.5 / F;
+	double t4 = t3 + 18 / F;	// 17 bits + raise and fall time
+	double ph;
+
+	if (t < t1)
+		return 0.0;
+	else if (t < t2) {
+		t -= t2;
+		ph = M_PI * 2 * t * F - (M_PI * .5);
+		return sin(ph) / 2 + .5;
+	} else if (t < t3)
+		return 0.0;
+	else if (t < t4) {
+		int i, n;
+
+		t -= t3;
+		i = (t * F - .5);
+		n = (bits >> i) & 3; // low = 0, up, down, high
+		if (n == 0)
+			return 0.0;
+		else if (n == 3)
+			return 1.0;
+
+		if ((n ^ i) & 1) // down
+			ph = M_PI * 2 * (t - 1 / F) * F / 4;
+		else // up
+			ph = M_PI * 2 * (t - 0 / F) * F / 4;
+		return sin(ph) * sin(ph);
+	} else
+		return 0.0;
+}
+
+static void
+cc_gen(struct vbi_capture *vbi, unsigned char *buf)
+{
+	static unsigned char c;
+	double start, inc = 1 / (double) vbi->sampling_rate;
+	int i, row;
+
+	if (vbi->start[0] >= 0)
+		row = MAX(MIN(0, 22 + (vbi->scanning == 625) - vbi->start[0]), vbi->count[0] - 1);
+	else
+		row = vbi->count[0] - 1;
+
+	buf += row * vbi->samples_per_line;
+
+	if (vbi->offset)
+		start = vbi->offset / (double) vbi->sampling_rate;
+	else
+		start = 10e-6;
+
+	for (i = 0; i < vbi->samples_per_line; i++) {
+		if (vbi->scanning == 525)
+			buf[i] = cc_sim(start + i * inc, 15734 * 32, c & 0x7F, (c + 1) & 0x7F) * 110 + 10;
+		else
+			buf[i] = cc_sim(start + i * inc, 15625 * 32, c & 0x7F, (c + 1) & 0x7F) * 110 + 10;
+	}
+
+	c += 2;
+}
 
 /*
  *  Device Specific Code / Callback Interface
  */
+
+#define BTTV_VBISIZE		_IOR('v' , BASE_VIDIOCPRIVATE+8, int)
+#define HAVE_V4L_VBI_FORMAT	0 // Linux 2.4
 
 static buffer *
 wait_full_read(fifo *f)
@@ -628,14 +850,14 @@ wait_full_read(fifo *f)
 	buffer *b;
 	size_t r;
 
-//	dequeue
-
-    b = &vbi->buf;
+//	b = (buffer *) rem_head(&f->empty);
+        b = &vbi->buf;
 
 	r = read(vbi->fd, vbi->raw_buffer[0].data,
 		 vbi->raw_buffer[0].size);
 
 	if (r != vbi->raw_buffer[0].size) {
+		IODIAG("VBI Read error");
 		return NULL;
 	}
 
@@ -643,6 +865,9 @@ wait_full_read(fifo *f)
 
 	b->data = b->allocated;
 	b->time = tv.tv_sec + tv.tv_usec / 1e6;
+
+	if (opt_ccsim)
+		cc_gen(vbi, vbi->raw_buffer[0].data);
 
 	b->used = sizeof(vbi_sliced) *
 		decode(vbi, vbi->raw_buffer[0].data,
@@ -654,14 +879,299 @@ wait_full_read(fifo *f)
 static void
 send_empty_read(fifo *f, buffer *b)
 {
-//	enqueue
+//	add_head(&f->empty, &b->node);
 }
 
 static bool
 capture_on_read(fifo *f)
 {
 	return TRUE;
-// XXX EBUSY test
+/*
+	buffer *b;
+
+	if ((b = wait_full_read(f))) {
+		unget_full_buffer(f, b);
+		return TRUE; // access should be finally granted
+	}
+
+	return FALSE; // EBUSY et al
+*/
+}
+
+static int
+open_v4l(struct vbi_capture **pvbi, char *dev_name,
+	int fifo_depth, unsigned int services)
+{
+#if HAVE_V4L_VBI_FORMAT
+	struct vbi_format vfmt;
+#endif
+	struct video_capability vcap;
+	struct video_channel vchan;
+	struct vbi_capture *vbi;
+	int max_rate, buffer_size;
+
+	if (!(vbi = calloc(1, sizeof(struct vbi_capture)))) {
+		DIAG("Virtual memory exhausted");
+		return 0;
+	}
+
+	if ((vbi->fd = open(dev_name, O_RDONLY)) == -1) {
+		free(vbi);
+		IODIAG("Cannot open %s", dev_name);
+		return 0;
+	}
+
+	if (ioctl(vbi->fd, VIDIOCGCAP, &vcap) == -1) {
+		close(vbi->fd);
+		free(vbi);
+		return -1; // not V4L
+	}
+
+	DIAG("Opened %s, ", dev_name);
+
+	if (!(vcap.type & VID_TYPE_TELETEXT)) {
+		DIAG("not a raw VBI device");
+		goto failure;
+	}
+
+	if (ioctl(vbi->fd, VIDIOCGCHAN, &vchan) == -1) {
+		IODIAG("cannot query current input line (broken driver?)");
+		goto failure;
+	}
+
+	switch (vchan.norm) {
+	case VIDEO_MODE_NTSC:
+		vbi->scanning = 525;
+		break;
+
+	case VIDEO_MODE_PAL:
+	case VIDEO_MODE_SECAM:
+		vbi->scanning = 625;
+		break;
+
+	default:
+		vbi->scanning = 0; // 2 b guessed
+		opt_surrender = TRUE;
+		break;
+	}
+
+	max_rate = 0;
+
+#if HAVE_V4L_VBI_FORMAT
+
+	if (ioctl(vbi->fd, VIDIOCGVBIFMT, &vfmt) != -1) {
+		/*
+		 *  Speculative, vbi_format is not documented.
+		 */
+		if (!opt_surrender) {
+			memset(&vfmt, 0, sizeof(struct vbi_format));
+
+			vfmt.sampling_rate = 27000000; // ITU-R Rec. 601
+			vfmt.sample_format = VIDEO_PALETTE_RAW;
+
+			vfmt.start[0] = 1000;
+			vfmt.start[1] = 1000;
+
+			for (i = 0; vbi_services[i].id; i++) {
+				if (!(vbi_services[i].id & services))
+					continue;
+
+				if (vbi_services[i].scanning != vbi->scanning) {
+					services &= ~vbi_services[i].id;
+				}
+
+				max_rate = MAX(max_rate,
+					MAX(vbi_services[i].cri_rate,
+					    vbi_services[i].bit_rate));
+
+				/*
+				 *  vfmt.samples_per_line is zero, the driver
+				 *  has to return the actual value. Setting
+				 *  samples_per_line is pointless when we
+				 *  don't know a 0H offset.
+				 */
+
+				for (j = 0; j < 2; j++)
+					if (vbi_services[i].first[j] &&
+					    vbi_services[i].last[j]) {
+						vfmt.start[j] =
+							MIN(vfmt.start[j], vbi_services[i].first[j]);
+						vfmt.count[j] =
+							MAX(vfmt.start[j] + vfmt.count[j],
+							    vbi_services[i].last[j] + 1) - vfmt.start[j];
+					}
+			}
+
+			if (!vfmt.count[0]) {
+				vfmt.start[0] = (vbi->scanning == 625) ? 6 : 10;
+				vfmt.count[0] = 1;
+			} else if (!vfmt.count[1]) {
+				vfmt.start[1] = (vbi->scanning == 625) ? 318 : 272;
+				vfmt.count[1] = 1;
+			}
+
+			if (!services) {
+				DIAG("device cannot capture requested data services");
+				goto failure;
+			}
+
+			if (ioctl(vbi->fd, VIDIOCSVBIFMT, &vfmt) == -1) {
+				switch (errno) {
+				case EBUSY:
+					DIAG("device is already in use");
+					break;
+
+		    		default:
+					IODIAG("VBI parameters rejected (broken driver?)");
+					break;
+				}
+
+				goto failure;
+			}
+
+		} // !opt_surrender
+
+		if (vfmt.sample_format != VIDEO_PALETTE_RAW) {
+			DIAG("unknown VBI sampling format %d, "
+			    "please contact maintainer of this program for service", vfmt.sample_format);
+			goto failure;
+		}
+
+		vbi->sampling_rate	= vfmt.sampling_rate;
+		vbi->samples_per_line 	= vfmt.samples_per_line;
+		vbi->offset		= ((vbi->scanning == 625) ? 10.2e-6 : 9.2e-6)
+					  * vfmt.sampling_rate;
+		vbi->start[0] 		= vfmt.start[0];
+		vbi->count[0] 		= vfmt.count[0];
+		vbi->start[1] 		= vfmt.start[1];
+		vbi->count[1] 		= vfmt.count[1];
+		vbi->interlaced		= !!(vfmt.flags & VBI_INTERLACED);
+		vbi->synchronous	= !(vfmt.flags & VBI_UNSYNC);
+
+	} else // VIDIOCGVBIFMT failed
+
+#endif // HAVE_V4L_VBI_FORMAT
+
+	{
+		int size;
+
+		/*
+		 *  If a more reliable method exists to identify the bttv
+		 *  driver I'll be glad to hear about it. Lesson: Don't
+		 *  call a v4l private ioctl without knowing who's
+		 *  listening.
+		 */
+		if (!strstr(vcap.name, "bttv") && !strstr(vcap.name, "BTTV")) {
+			DIAG("unable to identify driver, has no standard VBI interface");
+			goto failure;
+		}
+
+		switch (vbi->scanning) {
+		case 625:
+			vbi->sampling_rate = 35468950;
+			vbi->offset = 10.2e-6 * 35468950;
+			break;
+
+		case 525:
+			vbi->sampling_rate = 28636363;
+			vbi->offset = 9.2e-6 * 28636363;
+			break;
+
+		default:
+			DIAG("driver clueless about video standard");
+			goto failure;
+		}
+
+		vbi->samples_per_line 	= 2048;
+		vbi->start[0] 		= -1; // who knows
+		vbi->start[1] 		= -1;
+		vbi->interlaced		= FALSE;
+		vbi->synchronous	= TRUE;
+
+		if ((size = ioctl(vbi->fd, BTTV_VBISIZE, 0)) == -1) {
+			// BSD or older bttv driver.
+			vbi->count[0] = 16;
+			vbi->count[1] = 16;
+		} else if (size % 2048) {
+			DIAG("unexpected size of raw VBI buffer (broken driver?)");
+			goto failure;
+		} else {
+			size /= 2048;
+			vbi->count[0] = size >> 1;
+			vbi->count[1] = size - vbi->count[0];
+		}
+	}
+
+	if (!services) {
+		DIAG("device cannot capture requested data services");
+		goto failure;
+	}
+
+	if (!vbi->scanning) {
+		if (opt_strict >= 1 || vbi->start[1] <= 0 || !vbi->count[1]) {
+			DIAG("driver clueless about video standard");
+			goto failure;
+		}
+
+		if (vbi->start[1] >= 286)
+			vbi->scanning = 625;
+		else
+			vbi->scanning = 525;
+	}
+
+	// Nyquist
+
+	if (vbi->sampling_rate < max_rate * 3 / 2) {
+		DIAG("VBI sampling frequency too low");
+		goto failure;
+	} else if (vbi->sampling_rate < max_rate * 6 / 2) {
+		DIAG("VBI sampling frequency too low for me");
+		goto failure; // Need smarter bit slicer
+	}
+
+	add_services(vbi, services, opt_strict);
+
+	if (!vbi->services) {
+		DIAG("device cannot capture requested data services");
+		goto failure;
+	}
+
+	buffer_size = (vbi->count[0] + vbi->count[1])
+		      * vbi->samples_per_line;
+/*
+	if (!init_callback_fifo(&vbi->fifo,
+	    wait_full_read, send_empty_read, NULL, NULL,
+	    sizeof(vbi_sliced) * (vbi->count[0] + vbi->count[1]), fifo_depth)) {
+		goto failure;
+	}
+*/
+
+vbi->fifo.wait_full = wait_full_read;
+vbi->fifo.send_empty = send_empty_read;
+vbi->buf.allocated = malloc(sizeof(vbi_sliced) * (vbi->count[0] + vbi->count[1]));
+vbi->buf.size = sizeof(vbi_sliced) * (vbi->count[0] + vbi->count[1]);
+
+	if (!(vbi->raw_buffer[0].data = malloc(buffer_size))) {
+//		uninit_fifo(&vbi->fifo);
+		DIAG("virtual memory exhausted");
+		goto failure;
+	}
+
+	vbi->raw_buffer[0].size = buffer_size;
+	vbi->num_raw_buffers = 1;
+
+	vbi->fifo.start = capture_on_read;
+	vbi->fifo.user_data = vbi;
+
+	*pvbi = vbi;
+
+	return 1;
+
+failure:
+	close(vbi->fd);
+	free(vbi);
+
+	return 0;
 }
 
 #ifdef V4L2_MAJOR_VERSION
@@ -682,7 +1192,7 @@ wait_full_stream(fifo *f)
 	int r = -1;
 
 //	b = (buffer *) rem_head(&f->empty);
-    b = &vbi->buf;
+	b = &vbi->buf;
 
 	while (r <= 0) {
 		FD_ZERO(&fds);
@@ -696,11 +1206,11 @@ wait_full_stream(fifo *f)
 		if (r < 0 && errno == EINTR)
 			continue;
 
-		if (r == 0) {
-			/* VBI capture timeout */
+		if (r == 0) { /* timeout */
+			DIAG("VBI capture stalled, no station tuned in?");
 			return NULL;
 		} else if (r < 0) {
-			/* select failure -> errno */
+			IODIAG("Unknown VBI select failure");
 			return NULL;
 		}
 	}
@@ -708,16 +1218,24 @@ wait_full_stream(fifo *f)
 	vbuf.type = V4L2_BUF_TYPE_VBI;
 
 	if (ioctl(vbi->fd, VIDIOC_DQBUF, &vbuf) == -1) {
+		IODIAG("Cannot dequeue streaming I/O VBI buffer "
+			"(broken driver or application?)");
 		return NULL;
 	}
 
+	b->data = b->allocated;
 	b->time = vbuf.timestamp / 1e9;
+
+	if (opt_ccsim)
+		cc_gen(vbi, vbi->raw_buffer[vbuf.index].data);
+
 	b->used = sizeof(vbi_sliced) *
 		decode(vbi, vbi->raw_buffer[vbuf.index].data,
 		       (vbi_sliced *) b->data);
 
 	if (ioctl(vbi->fd, VIDIOC_QBUF, &vbuf) == -1) {
-// unget b
+//		unget_full_buffer(f, b);
+		IODIAG("Cannot enqueue streaming I/O VBI buffer (broken driver?)");
 		return NULL;
 	}
 
@@ -736,13 +1254,27 @@ capture_on_stream(fifo *f)
 	struct vbi_capture *vbi = f->user_data;
 	int str_type = V4L2_BUF_TYPE_VBI;
 
-	return (ioctl(vbi->fd, VIDIOC_STREAMON, &str_type) != -1);
+	if (ioctl(vbi->fd, VIDIOC_STREAMON, &str_type) == -1) {
+		IODIAG("Cannot start VBI capturing");
+		return FALSE;
+	}
 
-// XXX EBUSY
+	// Subsequent I/O shouldn't fail, let's try anyway
+/*
+	buffer *b;
+
+	if ((b = wait_full_stream(f))) {
+		unget_full_buffer(f, b);
+		return TRUE;
+	}
+
+	return FALSE;
+*/
 }
 
 static int
-open_v4l2(struct vbi_capture **pvbi, char *dev_name, int fifo_depth, bool surrender, unsigned int services)
+open_v4l2(struct vbi_capture **pvbi, char *dev_name,
+	int fifo_depth, unsigned int services)
 {
 	struct v4l2_capability vcap;
 	struct v4l2_format vfmt;
@@ -752,11 +1284,14 @@ open_v4l2(struct vbi_capture **pvbi, char *dev_name, int fifo_depth, bool surren
 	struct vbi_capture *vbi;
 	int max_rate, i, j;
 
-	if (!(vbi = calloc(1, sizeof(struct vbi_capture))))
+	if (!(vbi = calloc(1, sizeof(struct vbi_capture)))) {
+		DIAG("Virtual memory exhausted\n");
 		return 0;
+	}
 
 	if ((vbi->fd = open(dev_name, O_RDONLY)) == -1) {
 		free(vbi);
+		IODIAG("Cannot open %s", dev_name);
 		return 0;
 	}
 
@@ -766,34 +1301,41 @@ open_v4l2(struct vbi_capture **pvbi, char *dev_name, int fifo_depth, bool surren
 		return -1; // not V4L2
 	}
 
+	DIAG("Opened %s (%s), ", dev_name, vcap.name);
+
 	if (vcap.type != V4L2_TYPE_VBI) {
+		DIAG("not a raw VBI device");
 		goto failure;
 	}
 
 	if (ioctl(vbi->fd, VIDIOC_G_STD, &vstd) == -1) {
+		IODIAG("cannot query current video standard (broken driver?)");
 		goto failure;
 	}
 
 	vbi->scanning = vstd.framelines;
+	// add_services() eliminates non 525/625
 
 	memset(&vfmt, 0, sizeof(vfmt));
 
 	vfmt.type = V4L2_BUF_TYPE_VBI;
 
 	if (ioctl(vbi->fd, VIDIOC_G_FMT, &vfmt) == -1) {
+		IODIAG("cannot query current VBI parameters (broken driver?)");
 		goto failure;
 	}
 
-	vfmt.fmt.vbi.sample_format = V4L2_VBI_SF_UBYTE;
-
 	max_rate = 0;
 
-	if (!surrender) {
+	if (!opt_surrender) {
 		vfmt.fmt.vbi.sampling_rate = 27000000;	// ITU-R Rec. 601
+		vfmt.fmt.vbi.sample_format = V4L2_VBI_SF_UBYTE;
 
 		vfmt.fmt.vbi.offset = 1000e-6 * 27e6;
 		vfmt.fmt.vbi.start[0] = 1000;
+		vfmt.fmt.vbi.count[0] = 0;
 		vfmt.fmt.vbi.start[1] = 1000;
+		vfmt.fmt.vbi.count[1] = 0;
 
 		/*
 		 *  Will only allocate as much as we need, eg.
@@ -802,7 +1344,7 @@ open_v4l2(struct vbi_capture **pvbi, char *dev_name, int fifo_depth, bool surren
 		 */
 		for (i = 0; vbi_services[i].id; i++) {
 			double left_margin = (vbi->scanning == 525) ? 1.0e-6 : 2.0e-6;
-			int frc_bits, offset, samples;
+			int offset, samples;
 			double signal;
 
 			if (!(vbi_services[i].id & services))
@@ -813,16 +1355,12 @@ open_v4l2(struct vbi_capture **pvbi, char *dev_name, int fifo_depth, bool surren
 			}
 
 			max_rate = MAX(max_rate,
-				MAX(vbi_services[i].frc_rate,
+				MAX(vbi_services[i].cri_rate,
 				    vbi_services[i].bit_rate));
 
-			if ((int) vbi_services[i].frc < 0)
-				frc_bits = 32;
-			else
-				for (frc_bits = 0; vbi_services[i].frc >> frc_bits; frc_bits++);
-
-			signal = frc_bits / (double) vbi_services[i].frc_rate
-				 + vbi_services[i].payload * 8 / (double) vbi_services[i].bit_rate;
+			signal = vbi_services[i].cri_bits / (double) vbi_services[i].cri_rate
+				 + (vbi_services[i].frc_bits + vbi_services[i].payload * 8)
+				   / (double) vbi_services[i].bit_rate;
 
 			offset = (vbi_services[i].offset / 1e9 - left_margin) * 27e6 + 0.5;
 			samples = (signal + left_margin + 1.0e-6) * 27e6 + 0.5;
@@ -840,11 +1378,9 @@ open_v4l2(struct vbi_capture **pvbi, char *dev_name, int fifo_depth, bool surren
 					vfmt.fmt.vbi.start[j] =
 						MIN(vfmt.fmt.vbi.start[j],
 						    vbi_services[i].first[j] + V4L2_LINE);
-
 					vfmt.fmt.vbi.count[j] =
-						MAX(vfmt.fmt.vbi.count[j],
-						    vbi_services[i].last[j]
-						    - vbi_services[i].first[j] + 1);
+						MAX(vfmt.fmt.vbi.start[j] + vfmt.fmt.vbi.count[j],
+						    vbi_services[i].last[j] + 1) - vfmt.fmt.vbi.start[j];
 				}
 		}
 
@@ -852,24 +1388,26 @@ open_v4l2(struct vbi_capture **pvbi, char *dev_name, int fifo_depth, bool surren
 
 		if (!vfmt.fmt.vbi.count[0]) {
 			vfmt.fmt.vbi.start[0] = ((vbi->scanning == 625) ? 6 : 10) + V4L2_LINE;
-			vfmt.fmt.vbi.count[0] = vfmt.fmt.vbi.count[1];
+			vfmt.fmt.vbi.count[0] = 1;
 		} else if (!vfmt.fmt.vbi.count[1]) {
 			vfmt.fmt.vbi.start[1] = ((vbi->scanning == 625) ? 318 : 272) + V4L2_LINE;
-			vfmt.fmt.vbi.count[1] = vfmt.fmt.vbi.count[0];
+			vfmt.fmt.vbi.count[1] = 1;
 		}
 	}
 
 	if (!services) {
+		DIAG("device cannot capture requested data services");
 		goto failure;
 	}
 
 	if (ioctl(vbi->fd, VIDIOC_S_FMT, &vfmt) == -1) {
 		switch (errno) {
 		case EBUSY:
+			DIAG("device is already in use");
 			break;
 
-		default:
-			break;
+    		default:
+			IODIAG("VBI parameters rejected (broken driver?)");
 		}
 
 		goto failure;
@@ -886,25 +1424,29 @@ open_v4l2(struct vbi_capture **pvbi, char *dev_name, int fifo_depth, bool surren
 	vbi->synchronous	= !(vfmt.fmt.vbi.flags & V4L2_VBI_UNSYNC);
 
 	if (vfmt.fmt.vbi.sample_format != V4L2_VBI_SF_UBYTE) {
+		DIAG("unknown VBI sampling format %d, "
+		    "please contact maintainer of this program for service", vfmt.fmt.vbi.sample_format);
 		goto failure;
 	}
 
 	// Nyquist
 
 	if (vbi->sampling_rate < max_rate * 3 / 2) {
+		DIAG("VBI sampling frequency too low");
 		goto failure;
 	} else if (vbi->sampling_rate < max_rate * 6 / 2) {
+		DIAG("VBI sampling frequency too low for me");
 		goto failure; // Need smarter bit slicer
 	}
 
-	add_services(vbi, services, 0);
+	add_services(vbi, services, opt_strict);
 
 	if (!vbi->services) {
+		DIAG("device cannot capture requested data services");
 		goto failure;
 	}
 
-	if (vcap.flags & V4L2_FLAG_STREAMING
-	    && vcap.flags & V4L2_FLAG_SELECT) {
+	if (vcap.flags & V4L2_FLAG_STREAMING && vcap.flags & V4L2_FLAG_SELECT) {
 		vbi->stream = TRUE;
 /*
 		if (!init_callback_fifo(&vbi->fifo,
@@ -914,10 +1456,10 @@ open_v4l2(struct vbi_capture **pvbi, char *dev_name, int fifo_depth, bool surren
 		}
 */
 
-	vbi->fifo.wait_full = wait_full_stream;
-	vbi->fifo.send_empty = send_empty_stream;
-	vbi->buf.allocated = malloc(sizeof(vbi_sliced) * (vbi->count[0] + vbi->count[1]));
-	vbi->buf.size = sizeof(vbi_sliced) * (vbi->count[0] + vbi->count[1]);
+vbi->fifo.wait_full = wait_full_stream;
+vbi->fifo.send_empty = send_empty_stream;
+vbi->buf.allocated = malloc(sizeof(vbi_sliced) * (vbi->count[0] + vbi->count[1]));
+vbi->buf.size = sizeof(vbi_sliced) * (vbi->count[0] + vbi->count[1]);
 
 		vbi->fifo.start = capture_on_stream;
 		vbi->fifo.user_data = vbi;
@@ -926,10 +1468,12 @@ open_v4l2(struct vbi_capture **pvbi, char *dev_name, int fifo_depth, bool surren
 		vrbuf.count = MAX_RAW_BUFFERS;
 
 		if (ioctl(vbi->fd, VIDIOC_REQBUFS, &vfmt) == -1) {
+			IODIAG("streaming I/O buffer request failed (broken driver?)");
 			goto fifo_failure;
 		}
 
 		if (vrbuf.count == 0) {
+			DIAG("no streaming I/O buffers granted, physical memory exhausted?");
 			goto fifo_failure;
 		}
 
@@ -946,15 +1490,18 @@ open_v4l2(struct vbi_capture **pvbi, char *dev_name, int fifo_depth, bool surren
 			vbuf.index = vbi->num_raw_buffers;
 
 			if (ioctl(vbi->fd, VIDIOC_QUERYBUF, &vbuf) == -1) {
+				IODIAG("streaming I/O buffer query failed");
 				goto mmap_failure;
 			}
 
-			p = mmap(NULL, vbuf.length, PROT_READ, MAP_SHARED, vbi->fd, vbuf.offset);
+			p = mmap(NULL, vbuf.length, PROT_READ | PROT_WRITE, // _WRITE for cc_sim
+				MAP_SHARED, vbi->fd, vbuf.offset); // _PRIVATE ?
 
 			if ((int) p == -1) {
-				if (errno == ENOMEM && vbi->num_raw_buffers > 0)
+				if (errno == ENOMEM && vbi->num_raw_buffers >= 2)
 					break;
 			    	else {
+					IODIAG("memory mapping failure");
 					goto mmap_failure;
 				}
 			} else {
@@ -963,6 +1510,7 @@ open_v4l2(struct vbi_capture **pvbi, char *dev_name, int fifo_depth, bool surren
 			}
 
 			if (ioctl(vbi->fd, VIDIOC_QBUF, &vbuf) == -1) {
+				IODIAG("cannot enqueue streaming I/O buffer (broken driver?)");
 				goto mmap_failure;
 			}
 
@@ -978,12 +1526,14 @@ open_v4l2(struct vbi_capture **pvbi, char *dev_name, int fifo_depth, bool surren
 			goto failure;
 		}
 */
-	vbi->fifo.wait_full = wait_full_read;
-	vbi->fifo.send_empty = send_empty_read;
-	vbi->buf.allocated = malloc(sizeof(vbi_sliced) * (vbi->count[0] + vbi->count[1]));
-	vbi->buf.size = sizeof(vbi_sliced) * (vbi->count[0] + vbi->count[1]);
+
+vbi->fifo.wait_full = wait_full_read;
+vbi->fifo.send_empty = send_empty_read;
+vbi->buf.allocated = malloc(sizeof(vbi_sliced) * (vbi->count[0] + vbi->count[1]));
+vbi->buf.size = sizeof(vbi_sliced) * (vbi->count[0] + vbi->count[1]);
 
 		if (!(vbi->raw_buffer[0].data = malloc(buffer_size))) {
+			DIAG("virtual memory exhausted");
 			goto fifo_failure;
 		}
 
@@ -993,6 +1543,7 @@ open_v4l2(struct vbi_capture **pvbi, char *dev_name, int fifo_depth, bool surren
 		vbi->fifo.start = capture_on_read;
 		vbi->fifo.user_data = vbi;
 	} else {
+		DIAG("broken driver, no data interface");
 		goto failure;
 	}
 
@@ -1006,9 +1557,7 @@ mmap_failure:
 		       vbi->raw_buffer[vbi->num_raw_buffers - 1].size);
 
 fifo_failure:
-/*
-	uninit_fifo(&vbi->fifo);
-*/
+//	uninit_fifo(&vbi->fifo);
 
 failure:
 	close(vbi->fd);
@@ -1017,10 +1566,19 @@ failure:
 	return 0;
 }
 
-#endif // HAVE_V4L2
+#else // !HAVE_V4L2
+
+static int
+open_v4l2(struct vbi_capture **pvbi, char *dev_name,
+	int fifo_depth, unsigned int services)
+{
+	return -1;
+}
+
+#endif // !HAVE_V4L2
 
 /*
- *  Station identification
+ *  Service decoding (test)
  */
 
 #define CACHE_LINE 32
@@ -1099,7 +1657,6 @@ unham84(unsigned char *d)
 	return c2 * 16 + c1;
 }
 
-
 /* tables.c */
 
 extern const char * country_names_en[];
@@ -1123,8 +1680,7 @@ extern const struct vps_cni {
 extern const char *program_class[16];
 extern const char *program_type[8][16];
 
-
-
+/* end of tables.c */
 
 static const char *pcs_names[] = {
 	"unknown", "mono", "stereo", "bilingual"
@@ -1390,8 +1946,8 @@ decode_ttx2(unsigned char *buf, int line)
 	packet = packet_address >> 3;
 
 	if (magazine != 0 /* 0 -> 8 */ || packet != 30) {
-		if (0) {
-			printf("%x %02d %02d >", magazine, packet, line);
+		if (opt_teletext) {
+			printf("WST %x %02d %03d >", magazine, packet, line);
 
 			for (j = 0; j < 42; j++) {
 				char c = printable(buf[j]);
@@ -1399,6 +1955,7 @@ decode_ttx2(unsigned char *buf, int line)
 				putchar(c);
 			}
 
+			putchar('<');
 			putchar('\n');
 		}
 
@@ -1409,12 +1966,12 @@ decode_ttx2(unsigned char *buf, int line)
 
 	if (designation < 0) {
 		return; /* hamming error */
-	} else if (designation <= 1) {
+	} else if (designation <= 1 && opt_cni) {
 		printf("\nPacket 8/30/1:\n");
 
 		decode_8301(buf);
 		dump_status(buf + 22);
-	} else if (designation <= 3) {
+	} else if (designation <= 3 && opt_cni) {
 		printf("\nPacket 8/30/2:\n");
 
 		for (j = 0; j < 7; j++) {
@@ -1431,19 +1988,71 @@ decode_ttx2(unsigned char *buf, int line)
 	}
 }
 
+/* untested */
+
+static void
+decode_xds(unsigned char *buf)
+{
+	if (opt_xds) {
+		char c;
+
+		c = odd_parity[buf[0]] ? buf[0] & 0x7F : '?';
+		c = printable(c);
+		putchar(c);
+		c = odd_parity[buf[1]] ? buf[1] & 0x7F : '?';
+		c = printable(c);
+		putchar(c);
+		fflush(stdout);
+	} else {
+		// http://chroot.ath.cx/fade/etexts/hitch1.txt
+	}
+}
+
+static void
+decode_caption(unsigned char *buf)
+{
+	static bool xds_transport = FALSE;
+	char c = buf[0] & 0x7F;
+
+	// field 2 only, check?
+	// 0x01xx..0x0Exx ASCII_or_NUL[0..32] 0x0Fcks
+	if (odd_parity[buf[0]] && (c >= 0x01 && c <= 0x0F)) {
+		decode_xds(buf);
+		xds_transport = (c != 0x0F);
+		return;
+	} else if (xds_transport) {
+		decode_xds(buf);
+		return;
+	}
+
+	if (opt_caption) {
+		c = odd_parity[buf[0]] ? buf[0] & 0x7F : '?';
+		c = printable(c);
+		putchar(c);
+		c = odd_parity[buf[1]] ? buf[1] & 0x7F : '?';
+		c = printable(c);
+		putchar(c);
+		fflush(stdout);
+	}
+}
+
+/*
+ *  Sliced
+ */
+
 #define SLICED_TELETEXT_B		(SLICED_TELETEXT_B_L10_625 | SLICED_TELETEXT_B_L25_625)
 #define SLICED_CAPTION			(SLICED_CAPTION_625_F1 | SLICED_CAPTION_625 \
 					 | SLICED_CAPTION_525_F1 | SLICED_CAPTION_525)
 static void
-cni_sliced(vbi_sliced *s, int lines)
+decode_sliced(vbi_sliced *s, int lines)
 {
 	for (; lines; s++, lines--) {
-		if (s->id & SLICED_VPS) {
+		if ((s->id & SLICED_VPS) && opt_vps) {
 			decode_vps2(s->data);
-		} else if (s->id & SLICED_TELETEXT_B) {
+		} else if ((s->id & SLICED_TELETEXT_B) && (opt_teletext | opt_cni)) {
 			decode_ttx2(s->data, s->line);
-		} else if (s->id & SLICED_CAPTION) {
-			;
+		} else if ((s->id & SLICED_CAPTION) && (opt_caption | opt_xds)) {
+			decode_caption(s->data);
 		}
 	}
 }
@@ -1453,18 +2062,15 @@ dump_sliced(vbi_sliced *s, int lines, double time)
 {
 	int i, j;
 
-	printf("time: %f\n", time);
+	printf("sliced frame time: %f\n", time);
 
 	for (; lines; s++, lines--)
 		for (i = 0; vbi_services[i].id; i++) {
-			if (s->id == vbi_services[i].id) {
+			if (s->id & vbi_services[i].id) {
 				printf("%04x %3d >", s->id, s->line);
 
 				for (j = 0; j < vbi_services[i].payload; j++) {
-					char c = s->data[j] & 0x7F;
-
-					if (c < 0x20 || c == 0x7F)
-						c = '.';
+					char c = printable(s->data[j]);
 
 					putchar(c);
 				}
@@ -1477,35 +2083,171 @@ dump_sliced(vbi_sliced *s, int lines, double time)
 		}
 }
 
+static void
+dump_sliced_raw(vbi_sliced *s, int lines, double time)
+{
+	static double last = 0.0;
+	int i;
+
+	fprintf(stderr, "%f\n%c", time - last, lines);
+
+	for (; lines; s++, lines--)
+		for (i = 0; vbi_services[i].id; i++) {
+			if (s->id & vbi_services[i].id) {
+				fprintf(stderr, "%c%c%c", i, s->line & 0xFF, s->line >> 8);
+				fwrite(s->data, 1, vbi_services[i].payload, stderr);
+				break;
+			}
+		}
+
+	last = time;
+}
+
+/*
+ *  Main
+ */
+
+unsigned char *		dev_name = "/dev/vbi";
+
+static const struct option
+long_options[] = {
+	{ "help",			no_argument,		NULL,		'h' },
+	{ "device",			required_argument,	NULL,		'd' },
+	{ "strict",			required_argument,	NULL,		's' },
+	{ "surrender",			no_argument,		NULL,		'u' },
+	{ "teletext",			no_argument,		&opt_teletext,	1 },
+	{ "pdc",			no_argument,		&opt_cni,	1 },
+	{ "vps",			no_argument,		&opt_vps,	1 },
+	{ "caption",			no_argument,		&opt_caption,	1 },
+	{ "xds",			no_argument,		&opt_xds,	1 },
+	{ "sliced",			no_argument,		&opt_sliced,	1 },
+	{ "profile",			no_argument,		&opt_profile,	1 },
+	{ "ccsim",			no_argument,		&opt_ccsim,	1 },
+	{ "pattern",			no_argument,		&opt_pattern,	1 },
+	{ "all",			no_argument,		&opt_all,	1 },
+	{ "raw",			no_argument,		&opt_raw,	1 },
+	{ NULL }
+};
+
+void
+usage(int ac, char **av)
+{
+	printf("Usage: %s options\n"
+		"-d <dev>     open VBI device <dev>, default /dev/vbi\n"
+		"Output options:\n"
+		"--teletext   dump raw Teletext data\n"
+		"--pdc        dump cooked PDC/CNI data\n"
+		"--vps        dump cooked VPS data\n"
+		"--caption    dump raw Closed Caption data\n"
+		"--xds        dump raw XDS data\n"
+		"--all        dump all of the above\n"
+		"--sliced     dump cooked sliced data buffer\n"
+		"Special offer:\n"
+		"--ccsim      add simulated Closed Caption signal on line 21/22\n"
+		"--profile    the decoder and bit_slicer.\n"
+		"--surrender  accept the driver's current vbi parameters,\n"
+		"             default yes, option toggles yes/no.\n"
+		"--pattern    dump the decoder pattern memory\n"
+		"             plus rough vbi analysis. Other output\n"
+		"             options not recommended.\n"
+		"--strict n   0: ignore the driver's vbi parameters as\n"
+		"             far as possible; 1: match with data service\n"
+		"             parameters; 2: paranoid matching. Default 0.\n"
+		"\n"
+		"--raw        dump RAW sliced data buffer on STDERR,\n"
+		"             '%s --all --raw 2>raw_data' recommended.\n"
+		av[0], av[0]);
+}
+
+void
+options(int ac, char **av)
+{
+	char c;
+	int index;
+
+	while ((c = getopt_long(ac, av, "hd:s:", long_options, &index)) != -1) {
+		switch (c) {
+		case 0:
+			break;
+
+		case 'd':
+			dev_name = optarg;
+			break;
+		
+		case 's':
+			opt_strict = strtol(optarg, NULL, 0);
+			break;
+
+		case 'u':
+			opt_surrender ^= TRUE;
+			break;
+
+		case 'h':
+		default:
+			usage(ac, av);
+			exit(EXIT_SUCCESS);
+		}
+	}
+}
+
 int
 main(int ac, char **av)
 {
 	struct vbi_capture *vbi;
 	buffer *b;
+	int r;
 
-	if (open_v4l2(&vbi, "/dev/vbi1", 1, 1,
-	    SLICED_TELETEXT_B | SLICED_VPS | SLICED_CAPTION) <= 0)
+	options(ac, av);
+
+	if (opt_all)
+		opt_teletext =
+		opt_cni =
+		opt_vps =
+		opt_caption =
+		opt_xds = 1;
+
+	if (!opt_raw && !opt_sliced && !opt_pattern && !opt_profile
+	    && !opt_teletext && !opt_cni && !opt_vps && !opt_caption && !opt_xds) {
+		printf("Please choose an output option\n");
+		usage(ac, av);
 		exit(EXIT_FAILURE);
+	}
+
+		if (!(r = open_v4l2(&vbi, dev_name, 1,
+		    SLICED_TELETEXT_B | SLICED_VPS | SLICED_CAPTION)))
+			goto failure;
+	if (r < 0)
+		if (!(r = open_v4l(&vbi, dev_name, 1,
+		    SLICED_TELETEXT_B | SLICED_VPS | SLICED_CAPTION)))
+			goto failure;
+	if (r < 0)
+		goto failure;
 
 	if (!vbi->fifo.start(&vbi->fifo))
-		exit(EXIT_FAILURE);
+		goto failure;
 
 	for (;;) {
 		b = vbi->fifo.wait_full(&vbi->fifo);
 
 		if (!b)
-			exit(EXIT_FAILURE);
+			goto failure;
 
-		if (1)
-			dump_sliced((vbi_sliced *) b->data,
-				b->used / sizeof(vbi_sliced), b->time);
+		if (opt_raw)
+			dump_sliced_raw((vbi_sliced *) b->data,	b->used / sizeof(vbi_sliced), b->time);
 
-		if (1) // check if WST & VPS are correctly sampled
-			cni_sliced((vbi_sliced *) b->data,
-				b->used / sizeof(vbi_sliced));
+		if (opt_sliced)
+			dump_sliced((vbi_sliced *) b->data, b->used / sizeof(vbi_sliced), b->time);
+
+		if (opt_teletext | opt_cni | opt_vps | opt_caption | opt_xds)
+			decode_sliced((vbi_sliced *) b->data, b->used / sizeof(vbi_sliced));
 
 		vbi->fifo.send_empty(&vbi->fifo, b);
 	}
 
 	exit(EXIT_SUCCESS);
+
+failure:
+	puts(err_str);
+
+	exit(EXIT_FAILURE);
 }
