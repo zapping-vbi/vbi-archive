@@ -2917,9 +2917,9 @@ in the next release of this program.</label>
 	  <class>GtkButton</class>
 	  <child_name>Toolbar:button</child_name>
 	  <name>ttxview_clone</name>
-	  <tooltip>Open a new Teletext window</tooltip>
-	  <label>Clone</label>
-	  <stock_pixmap>GNOME_STOCK_PIXMAP_MULTIPLE</stock_pixmap>
+	  <tooltip>Clone the current Teletext window</tooltip>
+	  <label>button13</label>
+	  <stock_pixmap>GNOME_STOCK_PIXMAP_COPY</stock_pixmap>
 	</widget>
 
 	<widget>
@@ -2939,10 +2939,28 @@ in the next release of this program.</label>
 	<widget>
 	  <class>GtkButton</class>
 	  <child_name>Toolbar:button</child_name>
-	  <name>ttxview_extra</name>
-	  <tooltip>Show the extra controls</tooltip>
-	  <label></label>
-	  <stock_pixmap>GNOME_STOCK_PIXMAP_BOOK_OPEN</stock_pixmap>
+	  <name>ttxview_search</name>
+	  <tooltip>Search for a given pattern in the cache</tooltip>
+	  <label>Search</label>
+	  <stock_pixmap>GNOME_STOCK_PIXMAP_SEARCH</stock_pixmap>
+	</widget>
+
+	<widget>
+	  <class>GtkButton</class>
+	  <child_name>Toolbar:button</child_name>
+	  <name>ttxview_history_prev</name>
+	  <tooltip>Previous page in history</tooltip>
+	  <label>Previous</label>
+	  <stock_pixmap>GNOME_STOCK_PIXMAP_BACK</stock_pixmap>
+	</widget>
+
+	<widget>
+	  <class>GtkButton</class>
+	  <child_name>Toolbar:button</child_name>
+	  <name>ttxview_history_next</name>
+	  <tooltip>Next page in history</tooltip>
+	  <label>Next</label>
+	  <stock_pixmap>GNOME_STOCK_PIXMAP_FORWARD</stock_pixmap>
 	</widget>
 
 	<widget>
@@ -2990,26 +3008,43 @@ in the next release of this program.</label>
 	    </widget>
 
 	    <widget>
-	      <class>GtkFrame</class>
-	      <name>frame3</name>
-	      <label_xalign>0</label_xalign>
-	      <shadow_type>GTK_SHADOW_IN</shadow_type>
+	      <class>GtkToggleButton</class>
+	      <name>ttxview_hold</name>
+	      <tooltip>Hold the current subpage [H]</tooltip>
+	      <accelerator>
+		<modifiers>0</modifiers>
+		<key>GDK_h</key>
+		<signal>clicked</signal>
+	      </accelerator>
+	      <accelerator>
+		<modifiers>0</modifiers>
+		<key>GDK_H</key>
+		<signal>clicked</signal>
+	      </accelerator>
+	      <active>False</active>
 	      <child>
 		<padding>0</padding>
-		<expand>True</expand>
-		<fill>True</fill>
+		<expand>False</expand>
+		<fill>False</fill>
 	      </child>
 
 	      <widget>
-		<class>GtkLabel</class>
-		<name>ttxview_subpage</name>
-		<label>S0</label>
-		<justify>GTK_JUSTIFY_CENTER</justify>
-		<wrap>False</wrap>
-		<xalign>0.5</xalign>
-		<yalign>0.5</yalign>
-		<xpad>0</xpad>
-		<ypad>0</ypad>
+		<class>GtkFrame</class>
+		<name>frame3</name>
+		<label_xalign>0</label_xalign>
+		<shadow_type>GTK_SHADOW_IN</shadow_type>
+
+		<widget>
+		  <class>GtkLabel</class>
+		  <name>ttxview_subpage</name>
+		  <label>S0</label>
+		  <justify>GTK_JUSTIFY_CENTER</justify>
+		  <wrap>False</wrap>
+		  <xalign>0.5</xalign>
+		  <yalign>0.5</yalign>
+		  <xpad>0</xpad>
+		  <ypad>0</ypad>
+		</widget>
 	      </widget>
 	    </widget>
 
@@ -3047,180 +3082,39 @@ in the next release of this program.</label>
 	  </widget>
 
 	  <widget>
-	    <class>GtkToggleButton</class>
-	    <name>ttxview_hold</name>
-	    <tooltip>Hold the current subpage [H]</tooltip>
-	    <accelerator>
-	      <modifiers>0</modifiers>
-	      <key>GDK_h</key>
-	      <signal>clicked</signal>
-	    </accelerator>
-	    <accelerator>
-	      <modifiers>0</modifiers>
-	      <key>GDK_H</key>
-	      <signal>clicked</signal>
-	    </accelerator>
-	    <label>H</label>
-	    <active>False</active>
+	    <class>GtkFrame</class>
+	    <name>frame2</name>
+	    <label_xalign>0</label_xalign>
+	    <shadow_type>GTK_SHADOW_ETCHED_OUT</shadow_type>
 	    <child>
 	      <padding>0</padding>
 	      <expand>False</expand>
 	      <fill>False</fill>
 	    </child>
-	  </widget>
-	</widget>
 
-	<widget>
-	  <class>GtkFrame</class>
-	  <name>frame2</name>
-	  <label_xalign>0</label_xalign>
-	  <shadow_type>GTK_SHADOW_ETCHED_OUT</shadow_type>
-
-	  <widget>
-	    <class>GtkLabel</class>
-	    <name>ttxview_url</name>
-	    <label>100</label>
-	    <justify>GTK_JUSTIFY_CENTER</justify>
-	    <wrap>False</wrap>
-	    <xalign>0.5</xalign>
-	    <yalign>0.5</yalign>
-	    <xpad>0</xpad>
-	    <ypad>0</ypad>
+	    <widget>
+	      <class>GtkLabel</class>
+	      <name>ttxview_url</name>
+	      <label>100</label>
+	      <justify>GTK_JUSTIFY_CENTER</justify>
+	      <wrap>False</wrap>
+	      <xalign>0.5</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	    </widget>
 	  </widget>
 	</widget>
       </widget>
     </widget>
 
     <widget>
-      <class>GtkHBox</class>
+      <class>GtkDrawingArea</class>
       <child_name>GnomeDock:contents</child_name>
-      <name>hbox25</name>
-      <homogeneous>False</homogeneous>
-      <spacing>0</spacing>
-
-      <widget>
-	<class>GtkDrawingArea</class>
-	<child_name>GnomeDock:contents</child_name>
-	<name>drawingarea1</name>
-	<can_focus>True</can_focus>
-	<has_focus>True</has_focus>
-	<events>GDK_POINTER_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_KEY_PRESS_MASK</events>
-	<child>
-	  <padding>0</padding>
-	  <expand>True</expand>
-	  <fill>True</fill>
-	</child>
-      </widget>
-
-      <widget>
-	<class>GtkHandleBox</class>
-	<name>handlebox1</name>
-	<visible>False</visible>
-	<shadow_type>GTK_SHADOW_OUT</shadow_type>
-	<handle_position>GTK_POS_TOP</handle_position>
-	<snap_edge>GTK_POS_TOP</snap_edge>
-	<child>
-	  <padding>0</padding>
-	  <expand>False</expand>
-	  <fill>True</fill>
-	</child>
-
-	<widget>
-	  <class>GtkToolbar</class>
-	  <name>toolbar3</name>
-	  <border_width>2</border_width>
-	  <orientation>GTK_ORIENTATION_VERTICAL</orientation>
-	  <type>GTK_TOOLBAR_BOTH</type>
-	  <space_size>0</space_size>
-	  <space_style>GTK_TOOLBAR_SPACE_EMPTY</space_style>
-	  <relief>GTK_RELIEF_NONE</relief>
-	  <tooltips>True</tooltips>
-
-	  <widget>
-	    <class>GtkToolbar</class>
-	    <name>toolbar4</name>
-	    <orientation>GTK_ORIENTATION_HORIZONTAL</orientation>
-	    <type>GTK_TOOLBAR_ICONS</type>
-	    <space_size>5</space_size>
-	    <space_style>GTK_TOOLBAR_SPACE_EMPTY</space_style>
-	    <relief>GTK_RELIEF_NONE</relief>
-	    <tooltips>True</tooltips>
-
-	    <widget>
-	      <class>GtkButton</class>
-	      <child_name>Toolbar:button</child_name>
-	      <name>ttxview_search</name>
-	      <tooltip>Search for a given pattern in the cache</tooltip>
-	      <label>Search</label>
-	      <stock_pixmap>GNOME_STOCK_PIXMAP_SEARCH</stock_pixmap>
-	    </widget>
-
-	    <widget>
-	      <class>GtkButton</class>
-	      <child_name>Toolbar:button</child_name>
-	      <name>ttxview_history_prev</name>
-	      <tooltip>Previous page in history</tooltip>
-	      <label>Previous</label>
-	      <stock_pixmap>GNOME_STOCK_PIXMAP_BACK</stock_pixmap>
-	    </widget>
-
-	    <widget>
-	      <class>GtkButton</class>
-	      <child_name>Toolbar:button</child_name>
-	      <name>ttxview_history_next</name>
-	      <tooltip>Next page in history</tooltip>
-	      <label>Next</label>
-	      <stock_pixmap>GNOME_STOCK_PIXMAP_FORWARD</stock_pixmap>
-	    </widget>
-	  </widget>
-
-	  <widget>
-	    <class>GtkLabel</class>
-	    <name>label94</name>
-	    <label>Visited pages</label>
-	    <justify>GTK_JUSTIFY_CENTER</justify>
-	    <wrap>False</wrap>
-	    <xalign>0.5</xalign>
-	    <yalign>0.5</yalign>
-	    <xpad>0</xpad>
-	    <ypad>0</ypad>
-	  </widget>
-
-	  <widget>
-	    <class>GtkScrolledWindow</class>
-	    <name>scrolledwindow12</name>
-	    <hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
-	    <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
-	    <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
-	    <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
-
-	    <widget>
-	      <class>GtkCList</class>
-	      <name>ttxview_history</name>
-	      <height>208</height>
-	      <can_focus>True</can_focus>
-	      <columns>1</columns>
-	      <column_widths>80</column_widths>
-	      <selection_mode>GTK_SELECTION_SINGLE</selection_mode>
-	      <show_titles>True</show_titles>
-	      <shadow_type>GTK_SHADOW_IN</shadow_type>
-
-	      <widget>
-		<class>GtkLabel</class>
-		<child_name>CList:title</child_name>
-		<name>label95</name>
-		<label>History</label>
-		<justify>GTK_JUSTIFY_CENTER</justify>
-		<wrap>False</wrap>
-		<xalign>0.5</xalign>
-		<yalign>0.5</yalign>
-		<xpad>0</xpad>
-		<ypad>0</ypad>
-	      </widget>
-	    </widget>
-	  </widget>
-	</widget>
-      </widget>
+      <name>drawingarea1</name>
+      <can_focus>True</can_focus>
+      <has_focus>True</has_focus>
+      <events>GDK_POINTER_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_KEY_PRESS_MASK</events>
     </widget>
   </widget>
 

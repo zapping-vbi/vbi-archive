@@ -1,3 +1,10 @@
+28.12.2000	YAGR <garetxe@users.sourceforge.net>
+
+	* glade/zapping.glade: Yet another GUi revamp. We are getting
+	closer to perfection :-)
+	* src/ttxview.c: Made the prev, next subpage buttons traverse the
+	cache of pages. We probably need some way to request a given subpage.
+
 26.12.2000	GUI changes <garetxe@users.sourceforge.net>
 
 	* glade/zapping.glade: Added some GUI elements to access the new

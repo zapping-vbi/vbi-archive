@@ -6,4 +6,9 @@ Known bugs with zapping, don't report them
 	
 	! Something leaks horribly every n-milliseconds, memprof says
 	it's x11_add_clips. Weird, but needs fixing.
+	! There's a possible SEGFAULT in the TTXView, it happens if a
+	page is being received, and we monitor it. The monitor
+	function finds it in the cache, but it isn't complete, and the
+	ext field points to somewhere in the computer limbo.
+	But that's only my guesswork, of course :-)
 	* Need better no-overlay-present handling.

@@ -81,10 +81,10 @@ void get_ttx_index(int id, int *pgno, int *subno);
 struct fmt_page* get_ttx_fmt_page(int id);
 
 /*
- * Renders the currently monitored page into the give drawable.
+ * Renders the currently monitored page into the given drawable.
  */
-void render_ttx_page(int id, GdkDrawable *drawable, GdkGC *gc, gint w,
-		     gint h);
+void render_ttx_page(int id, GdkDrawable *drawable, GdkGC *gc,
+		     GdkBitmap *mask, gint w, gint h);
 
 /* Open the configured VBI device, FALSE on error */
 gboolean

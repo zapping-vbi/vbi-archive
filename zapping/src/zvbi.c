@@ -54,6 +54,18 @@
 #undef FALSE
 #include "../common/fifo.h"
 
+/*
+  Quality-speed tradeoff when scaling+antialing the page:
+  - GDK_INTERP_NEAREST: Very fast scaling but visually pure rubbish
+  - GDK_INTERP_TILES: Slower, and doesn't look very good at high (>2x)
+			scalings
+  - GDK_INTERP_BILINEAR: Very good quality, but slower than nearest
+			and tiles.
+  - GDK_INTERP_HYPER: Slower than Bilinear, slightly better at very
+			high (>3x) scalings
+*/
+#define INTERP_MODE GDK_INTERP_HYPER
+
 static struct vbi *vbi=NULL; /* holds the vbi object */
 static GtkWidget* txtcontrols=NULL; /* GUI controller for the TXT */
 static GList *history=NULL; /* visited pages, no duplicates, sorted by
@@ -375,11 +387,11 @@ build_client_page(struct ttx_client *client, struct vt_page *vtp)
     {
       if (client->scaled)
 	gdk_pixbuf_unref(client->scaled);
-
+      client->scaled = NULL;
       if ((client->w > 0) && (client->h > 0))
 	client->scaled = gdk_pixbuf_scale_simple(client->unscaled,
 						 client->w, client->h,
-						 GDK_INTERP_BILINEAR);
+						 INTERP_MODE);
     }
   pthread_mutex_unlock(&client->mutex);
 }
@@ -454,7 +466,7 @@ notify_clients(int page, int subpage, struct vt_page *vtp)
 }
 
 void render_ttx_page(int id, GdkDrawable *drawable,
-		     GdkGC *gc, gint w, gint h)
+		     GdkGC *gc, GdkBitmap *mask, gint w, gint h)
 {
   struct ttx_client *client;
 
@@ -469,21 +481,24 @@ void render_ttx_page(int id, GdkDrawable *drawable,
 	    {
 	      if (client->scaled)
 		gdk_pixbuf_unref(client->scaled);
-
 	      client->scaled = gdk_pixbuf_scale_simple(client->unscaled,
 						       w, h,
-						       GDK_INTERP_BILINEAR);
-
+						       INTERP_MODE);
 	      client->w = w;
 	      client->h = h;
 	    }
 	  
 	  if (client->scaled)
-	    gdk_pixbuf_render_to_drawable(client->scaled,
-					  drawable,
-					  gc,
-					  0, 0, 0, 0, w, h,
-					  GDK_RGB_DITHER_NONE, 0, 0);
+	    {
+	      gdk_pixbuf_render_to_drawable(client->scaled,
+					    drawable,
+					    gc,
+					    0, 0, 0, 0, w, h,
+					    GDK_RGB_DITHER_NONE, 0,
+					    0);
+	      gdk_pixbuf_render_threshold_alpha(client->scaled, mask,
+						0, 0, 0, 0, w, h, 127);
+	    }
 	}
       pthread_mutex_unlock(&client->mutex);
     }
@@ -586,7 +601,7 @@ event(struct dl_head *reqs, struct vt_event *ev)
 	pthread_mutex_unlock(&(last_info.mutex));
 	break;
     case EV_PAGE:
-	vtp = ev->p1;
+      vtp = (struct vt_page*)ev->p1;
 	printv("vtx page %x.%02x  \r", vtp->pgno,
 	       vtp->subno);
 	

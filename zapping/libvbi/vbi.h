@@ -6,10 +6,6 @@
 #include "cache.h"
 //#include "lang.h"
 
-/* #include "../common/fifo.h"
-  libvbi.h exports this globally :-(
- */
-
 #include "../common/types.h"
 
 // #define PLL_ADJUST	4

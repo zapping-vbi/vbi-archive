@@ -150,8 +150,6 @@ void
 on_hide_menubars1_activate             (GtkMenuItem     *menuitem,
 					gpointer         user_data)
 {
-  gint w, h;
-
   if (zcg_bool(NULL, "hide_extra"))
     {
       zcs_bool(FALSE, "hide_extra");

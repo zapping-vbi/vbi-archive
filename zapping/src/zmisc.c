@@ -204,6 +204,7 @@ fullscreen_stop(tveng_device_info * info)
 
   /* Remove the black window */
   gtk_widget_destroy(black_window);
+  x11_force_expose(0, 0, gdk_screen_width(), gdk_screen_height());
 }
 
 /*
