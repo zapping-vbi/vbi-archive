@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cc.h,v 1.2.2.1 2003-02-16 21:03:32 mschimek Exp $ */
+/* $Id: cc.h,v 1.2.2.2 2003-06-16 06:04:19 mschimek Exp $ */
 
 #ifndef CC_H
 #define CC_H
@@ -56,7 +56,12 @@ typedef struct {
 
         int			nul_ct;	/* XXX should be 'silence count' */
 	double			time;
-	unsigned char *		language;		/* Latin-1 */
+
+	/*
+	 *  ISO 639 language code (e.g. "fr"), and a NULL array terminator.
+	 *  Used by vbi_cache_page_language().
+	 */
+	const char *		lang_code[2];
 
 	vbi_char		attr;
 	vbi_char *		line;
@@ -72,7 +77,13 @@ struct caption {
 
 	int			curr_chan;
 	vbi_char		transp_space[2];	/* caption, text mode */
-	cc_channel		channel[9];		/* caption 1-4, text 1-4, garbage */
+
+	/*
+	 *  The CC "page cache". Indices refer to caption channel
+	 *  1-4, text channel 1-4. channel[8] stores the garbage
+	 *  when we don't know the channel number.
+	 */
+	cc_channel		channel[9];
 
 	xds_sub_packet		sub_packet[4][0x18];
 	xds_sub_packet *	curr_sp;
