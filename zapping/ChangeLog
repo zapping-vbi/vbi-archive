@@ -1,3 +1,38 @@
+2003-11-13    <mschimek@users.sf.net>
+
+	* plugins/mpeg/mpeg.c (py_record): Missing check if dialog
+	  already opened.
+	* src/zimage.h, src/video_xv.c, src/video_x11.c, src/video_mem.c,
+	  src/video_gdkrgb.c, src/tvengemu.c, src/tveng25.c, src/tveng2.c,
+	  src/tveng1.c, src/tveng.c, src/tveng.h, src/capture.c,
+	  plugins/screenshot/screenshot.c,
+	  plugins/screenshot/screenshot.h: struct tveng_frame_format
+	  replaced by tv_image_format. More work required.
+	* src/x11stuff.c, src/tveng.c, src/main.c, src/zmisc.h,
+	  src/fullscreen.c: Update due to tv_image_format
+	  in tv_overlay_buffer (dga_param).
+	* src/tveng.h: Replaced image format parameters in struct
+	  tv_overlay_buffer by tv_image_format. Replaced base pointer by
+	  ulong, since it refers to another address space.
+	* src/tveng.c (tv_pixfmt_bytes_per_pixel): Added to speed up future
+	  copy functions.
+	* plugins/mpeg/mpeg.c (video_callback): Missing retrieve_frame(),
+	  abort loop if necessary.
+	  (do_start): Preliminary hack to prefer native image format
+	  if 4:2:0 or 4:2:2. Missing size locking of requested capture
+	  format. Translation to RTE_PIXFMT_YUV had UV order wrong.
+	  Added support for TV_PIXFMT_YUV420. False negative in format
+	  retry loop.
+	* plugins/mpeg/mpeg.c: Missing release_capture_format() calls.
+	
+2003-11-07    <mschimek@users.sf.net>
+
+	* plugins/screenshot/screenshot.glade2: File selection dialog didn't
+	  focus. Apparently it must be modal if parent is (by using
+	  gtk_dialog_run).
+	* src/cmd.c (py_quit): Quit-muted fix (wrong zconf key).
+	  (py_toggle_mode): Logic fix.
+
 2003-11-04    <mschimek@users.sf.net>
 
 	* src/interface.c (zapping_popup_menu_new): Show toolbar and

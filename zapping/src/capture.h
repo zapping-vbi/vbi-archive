@@ -125,5 +125,7 @@ extern zf_fifo *capture_fifo;
  */
 zimage *retrieve_frame (capture_frame *frame,
 			tv_pixfmt pixfmt);
+tv_pixfmt
+native_capture_format		(void);
 
 #endif

@@ -1036,8 +1036,7 @@ open_mixer			(const tv_mixer_interface *mi,
 		m->has_recsrc = TRUE;
 
 #if defined (SOUND_MIXER_OUTMASK) && defined (SOUND_MIXER_OUTSRC)
-#warning test me with SB16.
-#if 0
+#if 0 /* XXX test me with SB16. */
 	if (mixer_ioctl (m->fd, SOUND_MIXER_READ_OUTMASK, &m->out_mask)
 	    && mixer_ioctl (m->fd, SOUND_MIXER_READ_OUTSRC, &m->old_outsrc))
 		m->has_outsrc = TRUE;

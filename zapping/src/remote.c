@@ -46,6 +46,9 @@ on_python_command1		(GtkWidget *		widget,
   char *buf;
   unsigned int len;
 
+  if (0)
+    fprintf (stderr, "python command: '%s'\n", cmd);
+
   c_widget = widget;
 
   len = strlen (cmd);

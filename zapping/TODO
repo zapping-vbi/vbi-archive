@@ -120,6 +120,8 @@ Outstanding issues for future releases
   * XVideo display can convert on the fly without costs, except in a
     few cases byte reordering YUV 4:2:0 to 4:2:2. Memory bandwidth
     is still significant.
+  * Planar YUV can be converted to YVU and vice versa by pointer
+    swapping.
   * Transient format requests, eg. to take a screenshot, cause two
     source format switches and thereby frame loss. In some cases the
     driver may pass a broken image. Conversion of images already in

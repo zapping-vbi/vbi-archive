@@ -18,7 +18,10 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alirc.c,v 1.4.2.4 2003-09-24 18:38:31 mschimek Exp $ */
+/* $Id: alirc.c,v 1.4.2.5 2003-11-13 05:31:00 mschimek Exp $ */
+
+/* XXX gtk_input */
+#undef GTK_DISABLE_DEPRECATED
 
 #include "src/v4linterface.h" /* channel_key_press() */
 #include "src/plugin_common.h"

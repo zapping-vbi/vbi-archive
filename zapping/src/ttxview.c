@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: ttxview.c,v 1.116.2.15 2003-11-04 21:09:21 mschimek Exp $ */
+/* $Id: ttxview.c,v 1.116.2.16 2003-11-13 05:31:01 mschimek Exp $ */
 
 /*
  *  Teletext View
@@ -863,9 +863,12 @@ on_ttxview_selection_get	(GtkWidget *		widget,
 
 	    if ((buf = malloc (size)))
 	      {
+		/* XXX According to ICCC Manual 2.0 the STRING target
+		   uses encoding ISO Latin-1. How can we use UTF-8? */
+
 #if VBI_VERSION_MAJOR >= 1
 		actual = vbi_print_page_region (&data->select.page,
-						buf, size, "ISO-8859-1" /* OK? */,
+						buf, size, "ISO-8859-1",
 						NULL, 0, /* std separator */
 						data->select.table_mode,
 						/* rtl */ FALSE,
@@ -875,7 +878,7 @@ on_ttxview_selection_get	(GtkWidget *		widget,
 						height);
 #else
 		actual = vbi_print_page_region (&data->select.page,
-						buf, size, "ISO-8859-1" /* OK? */,
+						buf, size, "ISO-8859-1",
 						data->select.table_mode,
 						/* ltr */ TRUE,
 						data->select.column1,

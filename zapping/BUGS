@@ -1,18 +1,14 @@
 Known bugs in Zapping, don't report them
 ----------------------------------------
 
-* Screenshot add toolbar button option doesn't work right.
-* Mute on exit option doesn't work, mutes always.
-* Screenshot: file selection dialog doesn't focus.
-* Switching to fullscreen and back doesn't work quite right.
-* Recording: audio ok, video doesn't start and stop (no data).
+* Click on tool button while recording video freezes GUI,
+  recording continues.
 * TTX to video mode switch: "(zapping:14644): Gtk-WARNING
   **: Toolbar position 8 is not a space", separator not removed.
+  (gtk 2.3)
 * TTX mode, channel switch in ch editor,
   SEGV in vbi_draw_vt_page_region
 * Edited channels, clicked ok, tc==NULL in tuned_channel_nth_name().
-* V4L2 (0.20 and 2.5) RGB pixel formats are incorrectly defined.
-  Gerd Knorr notified, solution pending. Workaround is in place.
 * Pointer does not properly reappear in windowed mode.
 * Go Fullscreen w/automatic vidmode hangs on RH
 * ** (zapping:14562): WARNING **: Group Allgemeine Optionen not found
@@ -50,6 +46,18 @@ Known bugs in Zapping, don't report them
 * config.h is also full of hardcoded paths.
 * Spinslider minimum sizes.
 * Bad reception breaks vbi decoding: i/o error.
+
+Needs more work:
+* Prefs does not apply screenshot add toolbar option. Seems to be
+  another gtk_widget_show/hide toolbar item problem.
+* capture.c/retrieve_frame() fails to convert a previously
+  successfully requested format (specifically YUV420 to YUYV
+  requested by plugins/mpeg/mpeg.c).
+* When a/v recording is started under high system load the
+  timestamps may differ too much, triggering the mp1e
+  "cannot sync" check and aborting Zapping.
+* V4L2 (0.20 and 2.5) RGB pixel formats are incorrectly defined.
+  Gerd Knorr notified, solution pending. Workaround is in place.
 
 tvengxv.c
 * Need to handle BadAtom errors resulting from Xv out

@@ -291,5 +291,10 @@ extern void
 zconf_hook_widget_show		(const gchar *		key,
 				 gpointer		new_value_ptr,
 				 gpointer		user_data);
+extern void
+zconf_hook_toggle_button	(const gchar *		key,
+				 gpointer		new_value_ptr,
+				 gpointer		user_data);
+
 
 #endif /* ZCONF.H */

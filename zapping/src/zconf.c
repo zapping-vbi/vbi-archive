@@ -1763,3 +1763,14 @@ zconf_hook_widget_show		(const gchar *		key,
   else
     gtk_widget_hide (widget);
 }
+
+void
+zconf_hook_toggle_button	(const gchar *		key,
+				 gpointer		new_value_ptr,
+				 gpointer		user_data)
+{
+  gboolean on = * (gboolean *) new_value_ptr;
+  GtkWidget *widget = user_data;
+
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (widget), on);
+}

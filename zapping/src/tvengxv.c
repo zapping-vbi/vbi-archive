@@ -831,8 +831,7 @@ update_video_input		(tveng_device_info *	info)
 			    p_info->xa_encoding,
 			    &p_info->cur_encoding);
 
-#warning
-	/* Xv/v4l BUG? */
+	/* XXX Xv/v4l BUG? */
 	if (p_info->cur_encoding < 0 || p_info->cur_encoding > 10 /*XXX*/)
 		p_info->cur_encoding = 0;
 

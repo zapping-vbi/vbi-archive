@@ -497,7 +497,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	    }
 	}
 
-      pixfmt = dga_param.pixfmt;
+      pixfmt = dga_param.format.pixfmt;
 
       if ((pixfmt != TV_PIXFMT_UNKNOWN) &&
 	  (info->current_controller != TVENG_CONTROLLER_XV))
@@ -556,7 +556,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	    }
 	}
 
-      pixfmt = dga_param.pixfmt;
+      pixfmt = dga_param.format.pixfmt;
 
       if ((pixfmt != TV_PIXFMT_UNKNOWN) &&
 	  (info->current_controller != TVENG_CONTROLLER_XV))

@@ -134,7 +134,7 @@ x11_dga_query			(tv_overlay_buffer *	target,
 static __inline__ gboolean
 x11_dga_present			(tv_overlay_buffer *	target)
 {
-  return target->base != 0;
+  return 0 != target->base;
 }
 
 /* XVideo routines */

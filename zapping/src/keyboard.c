@@ -121,7 +121,7 @@ z_key_from_name			(const gchar *		name)
 	str = _(modifiers[i].str);
 	len = strlen (str);
 
-#warning utf8
+	/* XXX utf8 ? */
 	if (g_ascii_strncasecmp (name, str, len) == 0)
 	  break;
       }
