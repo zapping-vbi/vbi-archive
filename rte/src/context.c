@@ -1,5 +1,5 @@
 /*
- *  Real Time Encoder
+ *  Real Time Encoding Library
  *
  *  Copyright (C) 2000, 2001 Iñaki García Etxebarria
  *  Copyright (C) 2000, 2001, 2002 Michael H. Schimek
@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: context.c,v 1.2 2002-02-25 06:22:20 mschimek Exp $ */
+/* $Id: context.c,v 1.3 2002-03-16 16:35:37 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>

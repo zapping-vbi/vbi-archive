@@ -19,12 +19,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.h,v 1.2 2002-02-25 06:22:19 mschimek Exp $ */
+/* $Id: b_mp1e.h,v 1.3 2002-03-16 16:32:29 mschimek Exp $ */
 
 #ifndef B_MP1E_H
 #define B_MP1E_H
 
-#include "../src/rtepriv.h"
+#include "rtepriv.h"
 #include "common/sync.h"
 
 #define MAX_ELEMENTARY_STREAMS ((sizeof(sync_set) * 8) - 1)

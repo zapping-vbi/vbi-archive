@@ -40,24 +40,24 @@ really care about security, you may:
 KEYS
 ----
 
-Zapping maintains there tables of keys: The Gnome accelerators
+Zapping maintains four tables of keys: The Gnome accelerators
 (Ctrl+some) you see in menus, some built-in keys, those you can
 assign functions in the preferences keyboard dialog, and those
 bound to TV channels (to switch to said channel, say, using F1
 to F8) in the channel dialog.
 
 When you hit a key Zapping looks it up in these tables, in this
-order. As the other keys are listed in the GUI, here just a
+order. Because the other keys are listed in the GUI, here just a
 summary of the built-in keys:
 
 In the main window you can type a channel number on the numeric
-key pad. The number refers to channel memory (European style)
+keypad. The number refers to channel memory (European style)
 or is interpreted as the RF channel name (US style) depending
 on the respective Preferences / General / Main Window option.
 Use the decimal point key to enter channel prefixes (T, S, E,
 etc). Don't forget to activate NumLock. :-)
 
-In a Teletext window you can use the main or key pad number
+In a Teletext window you can use the main or keypad number
 keys to enter page numbers.
 
 COMMANDS

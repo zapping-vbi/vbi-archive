@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io.c,v 1.1 2002-02-25 06:22:20 mschimek Exp $ */
+/* $Id: io.c,v 1.2 2002-03-16 16:35:38 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -29,8 +29,9 @@
 #include <assert.h>
 #include <getopt.h>
 #include <math.h>
+#include <unistd.h>
 
-#include "../src/rte.h"
+#include "../src/librte.h"
 
 #ifndef BYTE_ORDER /* BSD feat */
 /* FIXME a GNU libc feature */

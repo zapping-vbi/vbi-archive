@@ -1,3 +1,11 @@
+15.03.2002	<mschimek@users.sf.net>
+
+	* zapping_setup_fb/zapping_setup_fb.c: Changed messages refering
+	  to "this program", which is confusing, to "zapping_setup_fb".
+	* src/main.c: Replaced "overlay" in error messages by "previewing"
+	  for consistency with the GUI. Actually overlay would be the better
+	  term.
+
 12.03.2002	<mschimek@users.sf.net>
 
 	* configure.in: Added "/opt/gnome/share/aclocal" to

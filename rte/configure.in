@@ -1,13 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.15 2002-03-06 00:11:25 mschimek Exp $
+dnl $Id: configure.in,v 1.16 2002-03-16 16:35:37 mschimek Exp $
 
 AC_INIT(configure.in)
-RTE_VERSION_MAJOR=0
-RTE_VERSION_MINOR=5
-RTE_VERSION_MICRO=0
-AC_SUBST(RTE_VERSION_MAJOR)
-AC_SUBST(RTE_VERSION_MINOR)
-AC_SUBST(RTE_VERSION_MICRO)
 AM_INIT_AUTOMAKE(rte, 0.5.0)
 AM_CONFIG_HEADER(config.h)
 
@@ -106,7 +100,6 @@ intl/Makefile
 common/Makefile
 docs/Makefile
 src/Makefile
-src/rte-version.h
 test/Makefile
 po/Makefile.in
 rte.spec

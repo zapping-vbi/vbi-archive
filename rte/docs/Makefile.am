@@ -24,7 +24,7 @@ HFILE_GLOB=$(top_srcdir)/src/*.c
 CFILE_GLOB=$(top_srcdir)/src/*.h
 
 # Header files to ignore when scanning.
-IGNORE_HFILES=rtepriv.h rte-version.h
+IGNORE_HFILES=librte.h
 
 # Images to copy into HTML directory.
 HTML_IMAGES =

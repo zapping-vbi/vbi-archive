@@ -19,79 +19,102 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.h,v 1.14 2002-02-25 06:22:20 mschimek Exp $ */
+/* $Id: rte.h,v 1.15 2002-03-16 16:35:38 mschimek Exp $ */
 
-#ifndef __RTE_H__
-#define __RTE_H__
+#ifndef RTE_H
+#define RTE_H
+
+/* FIXME: This should be improved (requirements for off64_t) */
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE 1
+#endif
 
 /* Public */
 
-/*
-  A nice set of HTML rendered docs can be found here:
-  http://zapping.sf.net/docs/rte/index.html
-  FIXME: Upload docs before the release.
-  FIXME: Document unions.
-  FIXME: Document codec status.
-*/
+/**
+ * rte_buffer:
+ *
+ * This structure holds information about data packets exchanged
+ * with the codec, for example one video frame or one block of audio
+ * samples as defined with rte_codec_parameters_set().
+ *
+ * Depending on data direction @data points to the data and @size
+ * is the size of the data in bytes, or @data points to buffer space
+ * to store data and @size is the space available.
+ *
+ * When data is passed, @timestamp is the capture instant (of the
+ * first byte if you wish) in seconds and fractions since 1970-01-01
+ * 00:00. A codec may use the timestamps for synchronization and to
+ * detect frame dropping. Timestamps must increment with each buffer
+ * passed, and should increment by 1 / nominal buffer rate. That is
+ * #rte_video_stream_params.frame_rate or
+ * #rte_audio_stream_params.sampling_freq * channels and samples per
+ * buffer.
+ *
+ * The @user_data will be returned along @data with rte_push_buffer()
+ * in passive push mode, and the unreference callback in passive
+ * callback mode, is otherwise ignored.
+ **/
+typedef struct {
+	void *			data;
+	unsigned int		size;
+	double			timestamp;
+	void *			user_data;
+} rte_buffer;
 
-#include "rte-enums.h"
-#include "rte-types.h"
-#include "rte-version.h"
+/**
+ * rte_buffer_callback:
+ * @context: #rte_context this operation refers to.
+ * @codec: #rte_codec this operation refers to (if any).
+ * @buffer: Pointer to #rte_buffer.
+ *
+ * When a function of this type is called to read more data
+ * in active callback mode, the rte client must initialize the
+ * @buffer fields .data, .size and .timestamp. In passive
+ * callback mode .data points to the buffer space to store
+ * the data and .size is the free space, so the client
+ * must initialize .timestamp and may set .size and
+ * .user_data.
+ *
+ * When a function of this type is called to unreference data,
+ * the same @buffer contents will be passed as to the read
+ * callback or rte_push_buffer() before.
+ *
+ * When a function of this type is called to write data,
+ * @codec is NULL and the @buffer fields .data and .size
+ * are initialized. @buffer can be %NULL to indicate the
+ * end of the stream.
+ *
+ * Do <emphasis>not</> depend on the value of the @buffer
+ * pointer, use buffer.user_data instead.
+ *
+ * Attention: A codec may read more than once before freeing
+ * the data, and it may also free the data in a different order
+ * than it has been read.
+ *
+ * Return value:
+ * The callback can return %FALSE to terminate (or in case
+ * of an i/o error abort) the encoding.
+ **/
+typedef rte_bool (* rte_buffer_callback)(rte_context *context,
+					 rte_codec *codec,
+					 rte_buffer *buffer);
 
-/* Context */
-
-extern rte_context_info *	rte_context_info_enum(int index);
-extern rte_context_info *	rte_context_info_keyword(const char *keyword);
-extern rte_context_info *	rte_context_info_context(rte_context *context);
-
-extern rte_context *		rte_context_new(const char *keyword, void *user_data, char **errstr);
-extern void			rte_context_delete(rte_context *context);
-
-extern void *			rte_context_user_data(rte_context *context);
-
-extern rte_option_info *	rte_context_option_info_enum(rte_context *context, int index);
-extern rte_option_info *	rte_context_option_info_keyword(rte_context *context, const char *keyword);
-extern rte_bool			rte_context_option_get(rte_context *context, const char *keyword, rte_option_value *value);
-extern rte_bool			rte_context_option_set(rte_context *context, const char *keyword, ...);
-extern char *			rte_context_option_print(rte_context *context, const char *keyword, ...);
-extern rte_bool			rte_context_option_menu_get(rte_context *context, const char *keyword, int *entry);
-extern rte_bool			rte_context_option_menu_set(rte_context *context, const char *keyword, int entry);
-extern rte_bool			rte_context_options_reset(rte_context *context);
-
-extern rte_status_info *	rte_context_status_enum(rte_context *context, int n);
-extern rte_status_info *	rte_context_status_keyword(rte_context *context, const char *keyword);
-
-extern void			rte_error_printf(rte_context *context, const char *templ, ...);
-extern char *			rte_errstr(rte_context *context);
-
-/* Codec */
-
-extern rte_codec_info *		rte_codec_info_enum(rte_context *context, int index);
-extern rte_codec_info *		rte_codec_info_keyword(rte_context *context, const char *keyword);
-extern rte_codec_info *		rte_codec_info_codec(rte_codec *codec);
-
-extern rte_codec *		rte_codec_set(rte_context *context, const char *keyword, int stream_index, void *user_data);
-extern void			rte_codec_remove(rte_context *context, rte_stream_type stream_type, int stream_index);
-extern rte_codec *		rte_codec_get(rte_context *context, rte_stream_type stream_type, int stream_index);
-
-extern void *			rte_codec_user_data(rte_codec *codec);
-
-extern rte_option_info *	rte_codec_option_info_enum(rte_codec *codec, int index);
-extern rte_option_info *	rte_codec_option_info_keyword(rte_codec *codec, const char *keyword);
-extern rte_bool			rte_codec_option_get(rte_codec *codec, const char *keyword, rte_option_value *value);
-extern rte_bool			rte_codec_option_set(rte_codec *codec, const char *keyword, ...);
-extern char *			rte_codec_option_print(rte_codec *codec, const char *keyword, ...);
-extern rte_bool			rte_codec_option_menu_get(rte_codec *codec, const char *keyword, int *entry);
-extern rte_bool			rte_codec_option_menu_set(rte_codec *codec, const char *keyword, int entry);
-extern rte_bool			rte_codec_options_reset(rte_codec *codec);
-
-extern rte_bool			rte_codec_parameters_set(rte_codec *codec, rte_stream_parameters *params);
-extern rte_bool			rte_codec_parameters_get(rte_codec *codec, rte_stream_parameters *params);
-
-extern rte_status_info *	rte_codec_status_enum(rte_codec *codec, int n);
-extern rte_status_info *	rte_codec_status_keyword(rte_codec *codec, const char *keyword);
-
-/* I/O */
+/**
+ * rte_seek_callback:
+ * @context: #rte_context this operation refers to.
+ * @offset: Position to seek to.
+ * @whence: SEEK_SET..., see man lseek.
+ *
+ * The context requests to seek to the given resulting stream
+ * position. @offset and @whence follow lseek semantics.
+ *
+ * Return value:
+ * %FALSE on error.
+ **/
+typedef rte_bool (*rte_seek_callback)(rte_context *context,
+				      off64_t offset,
+				      int whence);
 
 extern rte_bool			rte_set_input_callback_active(rte_codec *codec, rte_buffer_callback read_cb, rte_buffer_callback unref_cb, int *queue_length);
 extern rte_bool			rte_set_input_callback_passive(rte_codec *codec, rte_buffer_callback read_cb);
@@ -109,16 +132,6 @@ extern rte_bool			rte_stop(rte_context *context, double timestamp);
 
 
 
-/**
- * rte_status_free:
- * @status: Pointer to a rte_status object, or %NULL.
- *
- * Frees all the memory associated with @status. Does nothing if
- * @status is %NULL.
- **/
-void
-rte_status_free(rte_status_info *status);
-
 /* Private */
 
-#endif /* rte.h */
+#endif /* RTE_H */

@@ -1,3 +1,9 @@
+2002-03-14	<mschimek@users.sf.net>
+
+	* systems/vcd.c: VCDImager requires n * sector size file.
+	* main.c: Added warnings about audio bit rate and vcd
+	  parameter limits.
+
 2002-03-11	<mschimek@users.sf.net>
 
 	* options.c: Fixed typo in -o error check. -a, -m,

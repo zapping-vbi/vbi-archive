@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.14 2002-02-25 06:22:19 mschimek Exp $
+dnl $Id: configure.in,v 1.15 2002-03-16 16:32:29 mschimek Exp $
 
 AC_INIT(configure.in)
 AM_INIT_AUTOMAKE(mp1e, 1.9.2)
@@ -43,7 +43,10 @@ create_links () {
 
 create_links ../../zapping/common common \
 "list.h fifo.h threads.h videodev.h videodev2.h"
-create_links ../src . "rte.h rtepriv.h rte-enums.h rte-types.h rte-version.h"
+
+dnl mp1e standalone distr cuts rte off, hence
+create_links ../src . \
+"context.h codec.h rte.h option.h rtepriv.h"
 
 AC_ARG_ENABLE(debugging, [  --enable-debugging      add debugging info],
         [CFLAGS="-Wall -O0 -g -fomit-frame-pointer"
