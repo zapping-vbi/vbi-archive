@@ -16,6 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
@@ -37,6 +38,7 @@
 #include "callbacks.h"
 #include "globals.h"
 #include "v4linterface.h"
+
 
 extern audio_backend_info esd_backend;
 #if USE_OSS
@@ -64,7 +66,7 @@ typedef struct mhandle {
   gpointer	handle; /* for the backend */
 } mhandle;
 
-static void mixer_setup ( void )
+void mixer_setup ( void )
 {
   int cur_line = zcg_int(NULL, "record_source");
 
@@ -365,19 +367,20 @@ py_volume_incr			(PyObject *self, PyObject *args)
   return Py_None;
 }
 
-/* FIXME */
-#define ORC_BLOCK(X) (X)
-static gboolean		mute_controls	= FALSE;
-static gboolean		mute_osd	= FALSE;
-
+/*
+ *  Global mute function. XXX switch to callbacks.
+ *  mode: 0=sound, 1=mute, 2=toggle, 3=just update GUI
+ *  controls: update controls box
+ *  osd: show state on screen
+ */
 gboolean
-set_mute1				(gint	        mode,
+set_mute				(gint	        mode,
 					 gboolean	controls,
 					 gboolean	osd)
 {
   static gboolean recursion = FALSE;
-  GtkCheckMenuItem *check;
-  GtkWidget *button;
+  int audio_mutable = main_info->audio_mutable;
+  int cur_line = zconf_get_integer (NULL, "/zapping/options/audio/record_source");
   gint mute;
 
   if (recursion)
@@ -385,13 +388,23 @@ set_mute1				(gint	        mode,
 
   recursion = TRUE;
 
+  /* Get current state */
+
   if (mode >= 2)
     {
-      if ((mute = tveng_get_mute(main_info)) < 0)
+      if (audio_mutable)
+        {
+	  if ((mute = tveng_get_mute(main_info)) < 0)
+	    goto failure;
+	}
+      else if (cur_line > 0)
+        {
+	  if ((mute = mixer_get_mute(cur_line - 1)) < 0)
+	    goto failure;
+	}
+      else
 	{
-	  printv("tveng_get_mute failed\n");
-	  recursion = FALSE;
-	  return FALSE;
+	  goto end;
 	}
 
       if (mode == 2)
@@ -400,51 +413,69 @@ set_mute1				(gint	        mode,
   else
     mute = !!mode;
 
+  /* Set new state */
+
   if (mode <= 2)
     {
-      if (tveng_set_mute(mute, main_info) < 0)
+      if (audio_mutable)
+        {
+          if (tveng_set_mute(mute, main_info) < 0)
+	    goto failure;
+	}
+      else if (cur_line > 0)
+        {
+          if (mixer_set_mute(cur_line - 1, mute) < 0)
+	    goto failure;
+	}
+      else
 	{
-	  printv("tveng_set_mute failed\n");
-	  recursion = FALSE;
-	  return FALSE;
+	  goto end;
 	}
     }
 
-  /* Reflect change in GUI */
+  /* Update GUI */
 
-  mute_controls = controls;
-  mute_osd = osd;
+  {
+    GtkWidget *button;
+    GtkCheckMenuItem *check;
 
-  /* The if's here break the signal -> change -> signal recursion */
+    button = lookup_widget (main_window, "tb-mute");
 
-  button = lookup_widget (main_window, "tb-mute");
+    if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (button)) != mute)
+      {
+	SIGNAL_HANDLER_BLOCK (button, on_remote_command1,
+			      gtk_toggle_button_set_active
+			      (GTK_TOGGLE_BUTTON (button), mute));
+      }
 
-  check = GTK_CHECK_MENU_ITEM (lookup_widget (main_window, "mute2"));
+    check = GTK_CHECK_MENU_ITEM (lookup_widget (main_window, "mute2"));
 
-  if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (button)) != mute)
-    ORC_BLOCK (gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (button), mute));
-  else if (check->active == mute)
-    mute_controls = FALSE;
+    if (check->active != mute)
+      {
+	SIGNAL_HANDLER_BLOCK (check, on_remote_command1,
+			      gtk_check_menu_item_set_active (check, mute));
+      }
 
-  if (check->active != mute)
-    ORC_BLOCK (gtk_check_menu_item_set_active (check, mute));
+    if (controls)
+      update_control_box (main_info);
 
-  if (mute_controls)
-    update_control_box (main_info);
+    if (osd)
+      {
+	if (main_info->current_mode == TVENG_CAPTURE_PREVIEW ||
+	    !GTK_WIDGET_VISIBLE (lookup_widget (main_window, "bonobodockitem2")))
+	  osd_render_sgml (NULL, mute ?
+			   _("<blue>audio off</blue>") :
+			   _("<yellow>AUDIO ON</yellow>"));
+      }
+  }
 
-  if (mute_osd)
-    if (main_info->current_mode == TVENG_CAPTURE_PREVIEW ||
-	!GTK_WIDGET_VISIBLE(lookup_widget(main_window, "bonobodockitem2")))
-      osd_render_markup(NULL, mute ?
-			_("<span foreground=\"blue\">audio off</span>") :
-			_("<span foreground=\"yellow\">AUDIO ON</span>"));
-
-  mute_controls = TRUE;
-  mute_osd = TRUE;
-
+ end:
   recursion = FALSE;
-
   return TRUE;
+
+ failure:
+  recursion = FALSE;
+  return FALSE;
 }
 
 static PyObject* py_mute (PyObject *self, PyObject *args)
@@ -458,7 +489,7 @@ static PyObject* py_mute (PyObject *self, PyObject *args)
       py_return_false;
     }
 
-  set_mute1 (value, mute_controls, mute_osd);
+  set_mute (value, TRUE, TRUE);
 
   py_return_true;
 }
