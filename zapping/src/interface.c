@@ -9,6 +9,9 @@
 #include "remote.h"
 #include "zmisc.h"
 #include "globals.h"
+#include "zconf.h"
+
+extern gboolean have_wm_hints;
 
 /**
  * Finds in the tree the given widget, returns a pointer to it or NULL
@@ -173,6 +176,13 @@ create_zapping (void)
 			 GDK_VISIBILITY_NOTIFY_MASK |
 			 GDK_KEY_PRESS_MASK);
 
+  w = lookup_widget (widget, "keep_window_on_top2");
+  gtk_widget_set_sensitive (w, !!have_wm_hints);
+  /* XXX tell why not */
+  gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (w),
+				  zconf_get_boolean (NULL, "/zapping/options/main/keep_on_top")
+				  && !!have_wm_hints);
+
   /* Menu remote commands, not possible with glade */
   MENU_CMD (quit1,		"zapping.quit()");
   MENU_CMD (go_fullscreen1,	"zapping.switch_mode('fullscreen')");
@@ -184,6 +194,7 @@ create_zapping (void)
   MENU_CMD (about1,		"zapping.about()");
   MENU_CMD (propiedades1,	"zapping.properties()");
   MENU_CMD (hide_controls2,	"zapping.hide_controls()");
+  MENU_CMD (keep_window_on_top2, "zapping.keep_on_top()");
   MENU_CMD (plugins1,		"zapping.plugin_properties()");
   MENU_CMD (main_help1,		"zapping.help()");
   MENU_CMD (vbi_info1,		"zapping.network_info()");
@@ -222,7 +233,14 @@ create_popup_menu1 (void)
   GtkWidget *w;
 
   widget = build_widget ("popup_menu1", NULL);
- 
+
+  w = lookup_widget (widget, "keep_window_on_top1");
+  gtk_widget_set_sensitive (w, !!have_wm_hints);
+  /* XXX tell why not */
+  gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (w),
+				  zconf_get_boolean (NULL, "/zapping/options/main/keep_on_top")
+				  && !!have_wm_hints);
+
   /* Menu remote commands, not possible with glade */
   MENU_CMD (go_fullscreen2,	"zapping.switch_mode('fullscreen')");
   MENU_CMD (go_previewing2,	"zapping.switch_mode('preview')");
@@ -232,6 +250,7 @@ create_popup_menu1 (void)
 
   /* Fixme: These don't work, dunno why */
   MENU_CMD (hide_controls1,	"zapping.hide_controls()");
+  MENU_CMD (keep_window_on_top1,"zapping.keep_on_top()");
   MENU_CMD (pal_big,		"zapping.resize_screen(768, 576)");
   MENU_CMD (rec601_pal_big,	"zapping.resize_screen(720, 576)");
   MENU_CMD (ntsc_big,		"zapping.resize_screen(640, 480)");
