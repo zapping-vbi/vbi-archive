@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.36.2.2 2002-07-22 19:04:19 garetxe Exp $ */
+/* $Id: mpeg.c,v 1.36.2.3 2002-10-09 14:24:51 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -1761,12 +1761,13 @@ do_start			(const gchar *		file_name)
       captured_frame_rate = zapping_info->standards[
 	zapping_info->cur_standard].frame_rate;
 
-      g_assert (rte_codec_option_set (video_codec, "coded_frame_rate",
+      /* not supported by all codecs */
+      /* g_assert */ (rte_codec_option_set (video_codec, "coded_frame_rate",
 				      (double) captured_frame_rate));
 
       par->frame_rate = captured_frame_rate;
 
-      if (!rte_codec_parameters_set (video_codec, &video_params))
+      if (!rte_parameters_set (video_codec, &video_params))
 	{
 	  rte_context_delete (context);
 	  context_enc = NULL;
@@ -1787,7 +1788,7 @@ do_start			(const gchar *		file_name)
 
       /* XXX improve */
 
-      g_assert (rte_codec_parameters_set (audio_codec, &audio_params));
+      g_assert (rte_parameters_set (audio_codec, &audio_params));
 
       audio_handle = open_audio_device (par->channels > 1,
 					par->sampling_freq,
@@ -1809,12 +1810,12 @@ do_start			(const gchar *		file_name)
 
   if (audio_codec)
     { // XXX
-      rte_set_input_callback_active (audio_codec, audio_callback, NULL, NULL);
+      rte_set_input_callback_master (audio_codec, audio_callback, NULL, NULL);
     }
 
   if (video_codec)
     { // XXX
-      rte_set_input_callback_active (video_codec, video_callback,
+      rte_set_input_callback_master (video_codec, video_callback,
 				     video_unref, NULL);
     }
 
@@ -2103,7 +2104,7 @@ select_codec			(GtkWidget *		mpeg_properties,
     }
   else
     {
-      rte_codec_remove (context_prop, stream_type, 0);
+      rte_remove_codec (context_prop, stream_type, 0);
     }
 }
 
@@ -2525,7 +2526,7 @@ file_format_ext			(const gchar *		conf_name)
   if (!context)
     return NULL;
 
-  info = rte_context_info_context (context);
+  info = rte_context_info_by_context (context);
 
   if (!info->extension)
     {
@@ -2632,6 +2633,9 @@ on_saving_record_clicked	(GtkButton *		button,
   const gchar *buffer;
 
   g_assert (saving_dialog != NULL);
+
+  if (active)
+    return;
 
   record = GTK_TOGGLE_BUTTON (lookup_widget (saving_dialog, "record"));
 
@@ -2765,10 +2769,11 @@ saving_dialog_delete		(void)
 }
 
 static void
-saving_dialog_new		(void)
+saving_dialog_new		(gboolean		recording)
 {
   GtkWidget *widget, *pixmap;
   GtkWidget *dialog, *label;
+  GtkWidget *record, *stop;
   gchar *buffer, *filename;
   gint nformats;
 
@@ -2819,18 +2824,31 @@ saving_dialog_new		(void)
   g_signal_connect (G_OBJECT (lookup_widget (saving_dialog, "entry1")),
 		    "changed",
 		    G_CALLBACK (on_saving_filename_changed), NULL);
-  g_signal_connect (G_OBJECT (lookup_widget (saving_dialog, "record")),
-		    "clicked",
+
+  record = lookup_widget (saving_dialog, "record");
+  if (recording) {
+    gtk_toggle_button_set_active (record, TRUE);
+    gtk_widget_set_sensitive (record, FALSE);
+  }
+
+  g_signal_connect (G_OBJECT (record), "clicked",
 		    G_CALLBACK (on_saving_record_clicked), NULL);
-  g_signal_connect (G_OBJECT (lookup_widget (saving_dialog, "stop")),
-		    "clicked",
+
+  stop = lookup_widget (saving_dialog, "stop");
+  gtk_widget_set_sensitive (stop, recording);
+
+  g_signal_connect (G_OBJECT (stop), "clicked",
 		    G_CALLBACK (on_saving_stop_clicked), NULL);
 
   widget = lookup_widget (saving_dialog, "pause");
   gtk_widget_set_sensitive (widget, FALSE);
   z_tooltip_set (widget, _("Not implemented yet"));
 
-  gtk_widget_set_sensitive (lookup_widget (saving_dialog, "stop"), FALSE);
+  if (recording) {
+    z_set_sensitive_with_tooltip (lookup_widget (saving_dialog, "optionmenu14"),
+				  FALSE, NULL, NULL);
+    gtk_widget_set_sensitive (lookup_widget (saving_dialog, "fileentry3"), FALSE);
+  }
 
   gtk_widget_show (saving_dialog);
 }
@@ -2878,7 +2896,17 @@ py_quickrec (PyObject *self, PyObject *args)
   ext = file_format_ext (record_config_name);
   name = find_unused_name (NULL, record_option_filename, ext);
 
+  saving_dialog_new (TRUE);
+
   success = do_start (name);
+
+  if (success) {
+    GtkToggleButton *record;
+
+    record = GTK_TOGGLE_BUTTON (lookup_widget (saving_dialog, "record"));
+  } else {
+    saving_dialog_delete ();
+  }
 
   g_free (name);
   g_free (ext);
@@ -2889,7 +2917,7 @@ py_quickrec (PyObject *self, PyObject *args)
 static PyObject*
 py_record (PyObject *self, PyObject *args)
 {
-  saving_dialog_new ();
+  saving_dialog_new (FALSE);
 
   py_return_true;
 }
@@ -2967,7 +2995,7 @@ plugin_capture_stop		(void)
 static gboolean
 plugin_start			(void)
 {
-  saving_dialog_new ();
+  saving_dialog_new (FALSE);
 
   return TRUE;
 }
