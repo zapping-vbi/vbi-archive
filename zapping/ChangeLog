@@ -1,3 +1,7 @@
+2003-10-14    <mschimek@users.sf.net>
+
+	* src/tveng.c (tveng_unset_xv_port): Only #ifdef USE_XV.
+
 2003-10-11    <mschimek@users.sf.net>
 
 	* src/yuv2rgb.c (startup_yuv2rgb): cfuncs r<->b fix.
