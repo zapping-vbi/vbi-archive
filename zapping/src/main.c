@@ -1,5 +1,5 @@
 /* Zapping (TV viewer for the Gnome Desktop)
- * Copyright (C) 2000-2001 Iñaki García Etxebarria
+ * Copyright (C) 2000 Iñaki García Etxebarria
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,1014 +21,1024 @@
 #endif
 
 #include <gnome.h>
-#include <libgnomeui/gnome-window-icon.h> /* only gnome 1.2 and above */
-#include <gdk/gdkx.h>
 #include <gnome-xml/tree.h>
 #include <gnome-xml/parser.h>
-#include <glade/glade.h>
-#include <signal.h>
-#define ZCONF_DOMAIN "/zapping/options/main/"
-#include "zconf.h"
-#include "zmisc.h"
+
 #include "interface.h"
+#include "support.h"
 #include "tveng.h"
-#include "v4linterface.h"
-#include "plugins.h"
-#include "frequencies.h"
-#include "zvbi.h"
-#include "cpu.h"
-#include "overlay.h"
-#include "capture.h"
-#include "x11stuff.h"
-#include "ttxview.h"
-#include "yuv2rgb.h"
-#include "osd.h"
-#include "remote.h"
+#include "v4l2interface.h"
+#include "io.h"
 
-/* This comes from callbacks.c */
-extern enum tveng_capture_mode restore_mode; /* the mode set when we went
-						fullscreen */
+extern gboolean flag_exit_program;
+extern gboolean take_screenshot; /* Set to TRUE when they want an
+				    screenshot */
 extern int cur_tuned_channel;
-/* from channel_editor.c */
-extern GtkWidget *ChannelWindow;
 
-/**** GLOBAL STUFF ****/
+tveng_device_info info; /* make this global, so all modules have
+			   access to it */
 
-/* These are accessed by other modules as extern variables */
-tveng_device_info	*main_info = NULL;
-volatile gboolean	flag_exit_program = FALSE;
-tveng_channels		*current_country = NULL;
-GList			*plugin_list = NULL;
-gint			disable_preview = FALSE;/* preview should be
-						   disabled */
-gint			disable_xv = FALSE; /* XVideo should be
-					       disabled */
-gboolean		xv_present = FALSE; /* Whether the
-					       device can be attached as XV */
-GtkWidget		*main_window = NULL;
-gboolean		was_fullscreen=FALSE; /* will be TRUE if when
-						 quitting we were
-						 fullscreen */
-tveng_tuned_channel	*global_channel_list=NULL;
-gint			console_errors = FALSE;
+struct ParseStruct
+{
+  gchar * name; /* The name to parse */
+  gchar * format; /* The format to sscanf */
+  gpointer * where; /* Where to store the value, make sure it has the
+		       correct size for sscanf()'ing it */
+  int max_length; /* If max_length > 0, "where" is supposed to be a
+		     string and g_snprintf is used instead of sscanf */
+};
 
-/*** END OF GLOBAL STUFF ***/
+/* Current configuration */
+struct config_struct config;
 
-static gboolean		disable_vbi = FALSE; /* TRUE for disabling VBI
-						support */
-
-static void shutdown_zapping(void);
-static gboolean startup_zapping(void);
+/* This will be extern */
+int zapping_window_x, zapping_window_y;
+int zapping_window_width, zapping_window_height;
+tveng_channels * current_country;
 
 /*
- * This removes the bug when resizing toolbar makes the tv_screen have
- * 1 unit height.
+  Configuration saving/loading functions. The configuration will be
+  stored in a file called "$(HOME)/.zappingrc", in XML format.
 */
-static gint old_height=-1;
 
-static void
-on_tv_screen_size_allocate	(GtkWidget	*widget,
-				 GtkAllocation	*allocation,
-				 gpointer	data)
-{
-  gint oldw;
+#define ZAPPING_CONFIG_FILE ".zappingrc"
 
-  if (old_height == -1)
-    old_height = gdk_screen_height()/2;
+/* Reads the configuration, FALSE on error */
+gboolean ReadConfig(struct config_struct * config);
 
-  if (!main_window->window)
-    return;
-  
-  if (allocation->height == 1)
-    gdk_window_resize(main_window->window,
-		      main_window->allocation.width,
-		      old_height);
-  else
-    gdk_window_get_size(main_window->window, &oldw, &old_height);
-}
+/* Save the configuration to the given file, FALSE on error */
+gboolean SaveConfig(struct config_struct * config);
 
-/* Adjusts geometry */
-static gint timeout_handler(gpointer unused)
-{
-  GdkGeometry geometry;
-  GdkWindowHints hints=0;
-  GtkWidget *tv_screen;
-  gint tvs_w, tvs_h, mw_w, mw_h;
-  double rw = 0, rh=0;
+/* Saves the info regarding tuning */
+void
+SaveTuning(xmlNodePtr tree, struct config_struct * config);
 
-  if ((flag_exit_program) || (!main_window->window))
-    return 0;
+/* Saves all the info regarding (main) window dimensions */
+void
+SaveWindowDimensions(xmlNodePtr tree, struct config_struct * config);
 
-  if (main_info->current_mode != TVENG_CAPTURE_PREVIEW)
-    {
-      /* Set the geometry flags if needed */
-      if (zcg_bool(NULL, "fixed_increments"))
-	{
-	  geometry.width_inc = 64;
-	  geometry.height_inc = 48;
-	  hints |= GDK_HINT_RESIZE_INC;
-	}
-      
-      switch (zcg_int(NULL, "ratio")) {
-      case 1:
-	rw = 4;
-	rh = 3;
-	break;
-      case 2:
-	rw = 16;
-	rh = 9;
-	break;
-      default:
-	break;
-      }
+/* Saves the miscellaneous options */
+void
+SaveMiscOptions(xmlNodePtr tree, struct config_struct * config);
 
-      if (rw)
-	{
-	  hints |= GDK_HINT_ASPECT;
+/* Saves all the info regarding video capture */
+void
+SaveVideoCapture(xmlNodePtr tree, struct config_struct * config);
 
-	  /* toolbars correction */
-	  tv_screen = lookup_widget(main_window, "tv_screen");
-	  gdk_window_get_size(tv_screen->window, &tvs_w, &tvs_h);
-	  gdk_window_get_size(main_window->window, &mw_w, &mw_h);
+/* Saves currently tuned channel info */
+void
+SaveTunedChannels(xmlNodePtr tree);
 
-	  rw = rw*(((double)mw_w)/tvs_w);
-	  rh = rh*(((double)mw_h)/tvs_h);
+/* Saves PNG saving options info */
+void
+SavePNGOptions(xmlNodePtr tree, struct config_struct * config);
 
-	  geometry.min_aspect = geometry.max_aspect = rw/rh;
-	}
-      
-      gdk_window_set_geometry_hints(main_window->window, &geometry,
-				    hints);
-    }
+/* Saves the config document in XML format (could change, better call
+   SaveConfig()) */
+int
+SaveConfigDoc (gchar * file_name, struct config_struct * config);
 
-  return 1; /* Keep calling me */
-}
-
-static
-gboolean on_zapping_key_press		(GtkWidget	*widget,
-					 GdkEventKey	*event,
-					 gpointer	*ignored)
-{
-  tveng_tuned_channel * tc;
-  int i = 0;
-
-  while ((tc =
-	  tveng_retrieve_tuned_channel_by_index(i++, global_channel_list)))
-    {
-      if ((event->keyval == tc->accel_key) &&
-	  ((tc->accel_mask & event->state) == tc->accel_mask))
-	{
-	  z_select_channel(tc->index);
-	  return TRUE;
-	}
-    }
-
-  return FALSE;
-}
-
-/* Start VBI services, and warn if we cannot */
-static void
-startup_teletext(void)
-{
-  startup_zvbi();
-
-  if (disable_vbi)
-    zconf_set_boolean(FALSE, "/zapping/options/vbi/enable_vbi");
-
-  /* Make the vbi module open the device */
-  D();
-  zconf_touch("/zapping/options/vbi/enable_vbi");
-  D();
-}
+/* 
+   This is the Parser. It is given the xmlDocPtr to parse,
+   the xmlNodePtr to start from, and a ParseStruct to operate on
+*/
+void
+Parser(xmlDocPtr config_doc,
+       xmlNodePtr node, struct ParseStruct * parser);
 
 /*
-  Called 0.5s after the main window is created, should solve all the
-  problems with geometry restoring.
+  Parses the given tree and fills in the given config structure. In
+  case of error, returns FALSE, and config_struct fields are undefined.
 */
-static
-gint resize_timeout		( gpointer ignored )
+gboolean
+ParseConfigDoc (xmlDocPtr config_doc, struct config_struct *
+		config);
+
+/* Parses window dimensions block, don't call this directly */
+void
+ParseWindowDimensions(xmlDocPtr config_doc, 
+		      xmlNodePtr node, struct config_struct * config);
+
+/* Parses misc options block */
+void
+ParseMiscOptions(xmlDocPtr config_doc, 
+		 xmlNodePtr node, struct config_struct * config);
+
+/* Parses video capture block */
+void
+ParseVideoCapture(xmlDocPtr config_doc, 
+		      xmlNodePtr node, struct config_struct * config);
+
+/* Parses the tuning info block  */
+void
+ParseTuning(xmlDocPtr config_doc, 
+	    xmlNodePtr node, struct config_struct * config);
+
+/* 
+   This function doesn't require any config_struct parameter since it
+   operates on tveng_insert_tuned_channel directly.
+*/
+void
+ParseTunedChannels(xmlDocPtr config_doc,
+		   xmlNodePtr node);
+
+/* Parses the PNG options block */
+void
+ParsePNGOptions(xmlDocPtr config_doc, 
+	    xmlNodePtr node, struct config_struct * config);
+
+/*
+  Fills in a config_struct with default values, just to have the
+  struct working
+*/
+void
+ParseDummyDoc (struct config_struct * config);
+
+/*
+  Open config file, and check for its validity, returns NULL on
+   error, the XML document to parse otherwise. Name is the file name
+   to open.
+*/
+xmlDocPtr
+OpenConfigDoc (gchar * name);
+
+int
+main (int argc, char *argv[])
 {
-  gint x, y, w, h; /* Saved geometry */
+  GtkWidget *zapping;
+  GtkWidget *da; /* drawing area */
 
-  zconf_get_integer(&x, "/zapping/internal/callbacks/x");
-  zconf_get_integer(&y, "/zapping/internal/callbacks/y");
-  zconf_get_integer(&w, "/zapping/internal/callbacks/w");
-  zconf_get_integer(&h, "/zapping/internal/callbacks/h");
-  printv("Restoring geometry: <%d,%d> <%d x %d>\n", x, y, w, h);
-  gdk_window_move_resize(main_window->window, x, y, w, h);
-  
-  return FALSE;
-}
+  tveng_tuned_channel* last_tuned_channel;
 
-extern int zapzilla_main(int argc, char * argv[]);
+  fd_set rdset;
+  struct timeval timeout;
+  int n;
 
-int main(int argc, char * argv[])
-{
-  GtkWidget * tv_screen;
-  GList * p;
-  gint x_bpp = -1;
-  gint dword_align = FALSE;
-  gint disable_zsfb = FALSE;
-  char *default_norm = NULL;
-  char *video_device = NULL;
-  char *command = NULL;
-  char *yuv_format = NULL;
-  /* Some other common options in case the standard one fails */
-  char *fallback_devices[] =
-  {
-    "/dev/video",
-    "/dev/video0",
-    "/dev/v4l/video0",
-    "/dev/v4l/video",
-    "/dev/video1",
-    "/dev/video2",
-    "/dev/video3",
-    "/dev/v4l/video1",
-    "/dev/v4l/video2",
-    "/dev/v4l/video3"
-  };
-  gint num_fallbacks = sizeof(fallback_devices)/sizeof(char*);
-
-  const struct poptOption options[] = {
-    {
-      "bpp",
-      'b',
-      POPT_ARG_INT,
-      &x_bpp,
-      0,
-      N_("Color depth of the X display"),
-      N_("BPP")
-    },
-    {
-      "debug",
-      'd',
-      POPT_ARG_NONE,
-      &debug_msg,
-      0,
-      N_("Set debug messages on"),
-      NULL
-    },
-    {
-      "no-vbi",
-      0,
-      POPT_ARG_NONE,
-      &disable_vbi,
-      0,
-      N_("Disable VBI support"),
-      NULL
-    },
-    {
-      "tunerless-norm",
-      'n',
-      POPT_ARG_STRING,
-      &default_norm,
-      0,
-      N_("Set the default standard/norm for tunerless inputs"),
-      N_("NORM")
-    },
-    {
-      "device",
-      0,
-      POPT_ARG_STRING,
-      &video_device,
-      0,
-      N_("Video device to use"),
-      N_("DEVICE")
-    },
-    {
-      "no-xv",
-      'v',
-      POPT_ARG_NONE,
-      &disable_xv,
-      0,
-      N_("Disable XVideo extension support"),
-      NULL
-    },
-    {
-      "dword-align",
-      0,
-      POPT_ARG_NONE,
-      &dword_align,
-      0,
-      N_("Force dword aligning of the overlay window"),
-      NULL
-    },
-    {
-      "command",
-      'c',
-      POPT_ARG_STRING,
-      &command,
-      0,
-      N_("Execute the given command and exit"),
-      N_("CMD")
-    },
-    {
-      "no-zsfb",
-      'z',
-      POPT_ARG_NONE,
-      &disable_zsfb,
-      0,
-      N_("Do not call zapping_setup_fb on startup"),
-      NULL
-    },
-    {
-      "yuv-format",
-      'y',
-      POPT_ARG_STRING,
-      &yuv_format,
-      0,
-      N_("Pixformat for XVideo capture mode [YUYV | YVU420]"),
-      N_("PIXFORMAT")
-    },
-    {
-      "console-errors",
-      0,
-      POPT_ARG_NONE,
-      &console_errors,
-      0,
-      N_("Redirect the error messages to the console"),
-      NULL
-    },
-    {
-      NULL,
-    } /* end the list */
-  };
-
-  if (strlen(argv[0]) >= strlen("zapzilla") &&
-      !(strcmp(&argv[0][strlen(argv[0])-strlen("zapzilla")], "zapzilla")))
-    return zapzilla_main(argc, argv);
+#ifndef NDEBUG
+  int i;
+#endif
 
 #ifdef ENABLE_NLS
   bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
   textdomain (PACKAGE);
 #endif
 
-  /* Init gnome, libglade, modules and tveng */
-  gnome_init_with_popt_table ("zapping", VERSION, argc, argv, options,
-			      0, NULL);
+  gnome_init ("zapping", VERSION, argc, argv);
 
-  if (x11_get_bpp() < 15)
-    {
-      RunBox("The current depth (%i bpp) isn't supported by Zapping",
-	     GNOME_MESSAGE_BOX_ERROR, x11_get_bpp());
-      return 0;
-    }
-
-  printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.123 2001-08-06 23:28:40 garetxe Exp $",
-	 "Zapping", VERSION, __DATE__);
-  printv("Checking for CPU support... ");
-  switch (cpu_detection())
-    {
-    case CPU_PENTIUM_MMX:
-    case CPU_PENTIUM_II:
-      printv("Intel Pentium MMX / Pentium II. MMX support enabled.\n");
-      break;
-
-    case CPU_PENTIUM_III:
-    case CPU_PENTIUM_4:
-      printv("Intel Pentium III / Pentium 4. SSE support enabled.\n");
-      break;
-
-    case CPU_K6_2:
-      printv("AMD K6-2 / K6-III. 3DNow support enabled.\n");
-      break;
-
-    case CPU_CYRIX_MII:
-    case CPU_CYRIX_III:
-      printv("Cyrix MII / Cyrix III. MMX support enabled.\n");
-      break;
-
-    case CPU_ATHLON:
-      printv("AMD Athlon. MMX/3DNow/SSE support enabled.\n");
-      break;
-
-    default:
-      printv("unknow CPU type. Using plain C.\n");
-      break;
-    }
-  D();
-  /* init the conversion routines */
-  yuv2rgb_init(x11_get_bpp(),
-	       (x11_get_byte_order()==GDK_MSB_FIRST)?MODE_BGR:MODE_RGB);
-  yuyv2rgb_init(x11_get_bpp(),
-	       (x11_get_byte_order()==GDK_MSB_FIRST)?MODE_BGR:MODE_RGB);
-
-  D();
-  glade_gnome_init();
-  D();
-  gnome_window_icon_set_default_from_file(PACKAGE_PIXMAPS_DIR "/gnome-television.png");
-  D();
-  if (!g_module_supported ())
-    {
-      RunBox(_("Sorry, but there is no module support in GLib"),
-	     GNOME_MESSAGE_BOX_ERROR);
-      return 0;
-    }
-  D();
-  main_info = tveng_device_info_new( GDK_DISPLAY(), x_bpp, default_norm);
-  if (!main_info)
-    {
-      g_error(_("Cannot get device info struct"));
-      return -1;
-    }
-  tveng_set_debug_level(debug_msg, main_info);
-  tveng_set_xv_support(disable_xv, main_info);
-  tveng_set_dword_align(dword_align, main_info);
-  D();
-  if (!startup_zapping())
-    {
-      RunBox(_("Zapping couldn't be started"), GNOME_MESSAGE_BOX_ERROR);
-      tveng_device_info_destroy(main_info);
-      return 0;
-    }
-  D();
-
-  if (yuv_format)
-    {
-      if (!strcasecmp(yuv_format, "YUYV"))
-	zcs_int(TVENG_PIX_YUYV, "yuv_format");
-      else if (!strcasecmp(yuv_format, "YVU420"))
-	zcs_int(TVENG_PIX_YVU420, "yuv_format");
-      else
-	g_warning("Unkown pixformat %s: Must be one of (YUYV | YVU420)\n"
-		  "The current format is %s",
-		  yuv_format, zcg_int(NULL, "yuv_format") ==
-		  TVENG_PIX_YUYV ? "YUYV" : "YVU420");
-    }
-
-  D();
-
-  if (video_device)
-    zcs_char(video_device, "video_device");
-
-  if (!debug_msg)
-    tveng_set_zapping_setup_fb_verbosity(zcg_int(NULL,
-						 "zapping_setup_fb_verbosity"),
-					 main_info);
-  else
-    tveng_set_zapping_setup_fb_verbosity(3, main_info);
-
-  main_info -> file_name = strdup(zcg_char(NULL, "video_device"));
-
-  if (!main_info -> file_name)
-    {
-      perror("strdup");
-      return 1;
-    }
-  D();
-  /* try to run the auxiliary suid program */
-  if (!disable_zsfb &&
-      tveng_run_zapping_setup_fb(main_info) == -1)
-    g_message("Error while executing zapping_setup_fb,\n"
-	      "Overlay might not work:\n%s", main_info->error);
-  D();
-  free(main_info -> file_name);
-
-  D();
-
-  if (tveng_attach_device(zcg_char(NULL, "video_device"),
-			  TVENG_ATTACH_XV,
-			  main_info) == -1)
-    {
-      GtkWidget * question_box;
-      gint i;
-      gchar * buffer =
-	g_strdup_printf(_("Couldn't open %s, should I try "
-			  "some common options?"),
-			zcg_char(NULL, "video_device"));
-      question_box = gnome_message_box_new(buffer,
-					   GNOME_MESSAGE_BOX_QUESTION,
-					   GNOME_STOCK_BUTTON_YES,
-					   GNOME_STOCK_BUTTON_NO,
-					   NULL);
-
-      g_free(buffer);
-
-      gtk_window_set_title(GTK_WINDOW(question_box),
-			   zcg_char(NULL, "video_device"));
-	 
-      if (!gnome_dialog_run(GNOME_DIALOG(question_box)))
-	{ /* retry */
-	  for (i = 0; i<num_fallbacks; i++)
-	    {
-	      printf("trying device: %s\n", fallback_devices[i]);
-	      main_info -> file_name = strdup(fallback_devices[i]);
+#ifndef NDEBUG  
+  gdk_rgb_set_verbose (TRUE);
+#endif
   
-	      D();
-	      /* try to run the auxiliary suid program */
-	      if (tveng_run_zapping_setup_fb(main_info) == -1)
-		g_message("Error while executing zapping_setup_fb,\n"
-			  "Overlay might not work:\n%s", main_info->error);
-	      D();
-	      free(main_info -> file_name);
+  gdk_rgb_init();
+  
+  gtk_widget_set_default_colormap (gdk_rgb_get_cmap());
+  gtk_widget_set_default_visual (gdk_rgb_get_visual());
 
-	      if (tveng_attach_device(fallback_devices[i],
-				      TVENG_ATTACH_XV,
-				      main_info) != -1)
+  info.num_desired_buffers = 8; /* Try to use 8 buffers by default */
+  if (!ReadConfig(&config))
+    ShowBox(_("Cannot read $HOME/.zappingrc, defaulting to standards..."),
+	    GNOME_MESSAGE_BOX_ERROR);
+
+ open_devices:; /* So we can retry later */
+  if (tveng_init_device(config.video_device, O_RDONLY, &info) > 0)
+    {
+      /*
+	We print useful info about this device if debugging is on
+      */
+#ifndef NDEBUG
+      printf("Dimensions of %s: min=(%d, %d), Max=(%d,%d)\n"
+	     "%s Teletext\n", 
+	     info.caps.name,
+	     info.caps.minwidth,
+	     info.caps.minheight,
+	     info.caps.maxwidth,
+	     info.caps.maxheight,
+	     (info.caps.flags & V4L2_FLAG_DATA_SERVICE) ? "Has" : "No"
+	     );
+
+      printf("%d input%s available\n",
+	     info.num_inputs,
+	     info.num_inputs == 1 ? "" : "s");
+
+      for (i=0; i < info.num_inputs; i++)
+	printf("  - %s is an %s with%s audio\n",
+	       info.inputs[i].input.name,
+	       (info.inputs[i].input.type == V4L2_INPUT_TYPE_TUNER) ?
+	           "analog TV tuner" : "analog baseband input",
+	       (info.inputs[i].input.capability & V4L2_INPUT_CAP_AUDIO) ? 
+	           "" : "out");
+#endif
+
+      if (tveng_start_capturing(&info) == NULL)
+	{
+	  ShowBox(_("Sorry, cannot start capturing frames"),
+		  GNOME_MESSAGE_BOX_ERROR);
+	  return 0;
+	}
+
+      zapping = create_zapping ();
+
+      da = lookup_widget(zapping,"tv_screen");
+
+      /* Set minimum size */
+      gtk_widget_set_usize(da, info.caps.minwidth, info.caps.minheight);
+
+      gdk_window_set_back_pixmap((GdkWindow*)zapping, NULL, FALSE);
+
+      gtk_widget_set_app_paintable(da, FALSE);
+      gtk_widget_set_app_paintable(zapping, FALSE);
+
+      if (tveng_update_standard(&info) == -1)
+	printf("Update standard failed...\n");
+
+      if (tveng_update_input(&info) == -1)
+	printf("Update input failed...\n");
+
+      /* Set the tune to the first country */
+      current_country = tveng_get_country_tune_by_id(0);
+
+      /* Apply configuration */
+      tveng_set_standard(config.standard, &info);
+      tveng_set_input_by_name(config.input, &info);
+
+      current_country =
+	tveng_get_country_tune_by_name(config.country);
+
+      /* If the previous didn't work this works for sure */
+      if (!current_country)
+	current_country = tveng_get_country_tune_by_id(0);
+
+      last_tuned_channel =
+	tveng_retrieve_tuned_channel_by_name(config.tuned_channel, 0);
+
+      if (last_tuned_channel)
+	cur_tuned_channel = last_tuned_channel -> index;
+
+      if (config.freq)
+	tveng_tune_input(info.cur_input, config.freq,
+			 &info);
+
+      update_standards_menu(zapping, &info);
+
+      gtk_widget_show (zapping);
+
+      info.interlaced = config.capture_interlaced;
+
+      /* Set to nearest 4-multiplus */
+      config.width = ((config.width+3) >> 2) << 2;
+
+      gdk_window_move_resize(zapping -> window,
+			     config.x, config.y, config.width, 
+			     config.height);
+
+      flag_exit_program = FALSE;
+
+#ifndef NDEBUG
+      if (info.pix_format.fmt.pix.flags & V4L2_FMT_FLAG_BYTESPERLINE)
+	printf("Bytes per line field is valid\n");
+
+      printf("Capture buffer is size %dx%dx%d\n", 
+	     info.pix_format.fmt.pix.width, 
+	     info.pix_format.fmt.pix.height,
+	     info.bpl);
+
+      printf("We have %d buffers\n", info.num_buffers);
+
+#endif
+
+      /* Start sound, avoid having to open the ToolBox */
+      tveng_set_mute(0, &info);
+
+      while (!flag_exit_program)
+	{
+	  while (gtk_events_pending())
+	    gtk_main_iteration();
+
+	  if (info.current_mode != TVENG_CAPTURE_MMAPED_BUFFERS)
+	    continue;
+
+	  if (flag_exit_program)
+	    continue; /* Exit the loop if the exit flag has been
+			 raised */
+
+	  FD_ZERO(&rdset);
+	  FD_SET(info.fd, &rdset);
+	  timeout.tv_sec = 1;
+	  timeout.tv_usec = 0;
+	  n = select(info.fd + 1, &rdset, NULL, NULL, &timeout);
+	  if (n == -1)
+	    fprintf(stderr, _("select() error\n"));
+	  else if (n == 0)
+	    fprintf(stderr, _("select() timeout\n"));
+	  else if (FD_ISSET(info.fd, &rdset))
+	    {
+	      /* We have data to be dequeued, dequeue it */
+	      n = tveng_dqbuf(&info);
+	      if (n != -1) /* No errors */
 		{
-		  zcs_char(fallback_devices[i], "video_device");
-		  ShowBox(_("%s suceeded, setting it as the new default"),
-			  GNOME_MESSAGE_BOX_INFO,
-			  fallback_devices[i]);
-		  goto device_ok;
+		  /* Wait for loaded frames */
+		  do{
+		    FD_ZERO(&rdset);
+		    FD_SET(info.fd, &rdset);
+		    timeout.tv_sec = timeout.tv_usec = 0;
+		    if (select(info.fd +1, &rdset, NULL, NULL,
+			       &timeout) < 1)
+		      break;
+		    tveng_qbuf(n, &info);
+		    n = tveng_dqbuf(&info);
+		      } while (TRUE);
+
+		  switch (info.pix_format.fmt.pix.pixelformat)
+		    {
+		    case V4L2_PIX_FMT_BGR32:
+		      info.ximage -> data = info.buffers[n].vmem;
+		      gdk_draw_image(da -> window,
+				     da -> style -> white_gc,
+				     info.image,
+				     0, 0, 0, 0,
+				     info.ppl,
+				     info.pix_format.fmt.pix.height);
+		      break;
+
+		    case V4L2_PIX_FMT_BGR24:
+		      info.ximage -> data = info.buffers[n].vmem;
+		      gdk_draw_image(da -> window,
+				     da -> style -> white_gc,
+				     info.image,
+				     0, 0, 0, 0,
+				     info.ppl,
+				     info.pix_format.fmt.pix.height);
+		      break;
+
+		    case V4L2_PIX_FMT_RGB32:
+		      gdk_draw_rgb_32_image(da -> window,
+					    da -> style -> white_gc,
+					    0, 0,
+					    info.ppl,
+					    info.pix_format.fmt.pix.height,
+					    GDK_RGB_DITHER_MAX,
+					    info.buffers[n].vmem,
+					    info.bpl);
+		      break;
+		    case V4L2_PIX_FMT_RGB24:
+		      gdk_draw_rgb_image(da -> window,
+					 da -> style -> white_gc,
+					 0, 0, 
+					 info.ppl,
+					 info.pix_format.fmt.pix.height,
+					 GDK_RGB_DITHER_MAX,
+					 info.buffers[n].vmem,
+					 info.bpl);
+					 break;
+		      break;
+		    case V4L2_PIX_FMT_RGB565:
+		      info.ximage -> data = info.buffers[n].vmem;
+
+		      gdk_draw_image(da -> window,
+				     da -> style -> white_gc,
+				     info.image,
+				     0, 0, 0, 0,
+				     info.ppl,
+				     info.pix_format.fmt.pix.height);
+		      break;
+		    case V4L2_PIX_FMT_RGB555:
+		      info.ximage -> data = info.buffers[n].vmem;
+		      
+		      gdk_draw_image(da -> window,
+				     da -> style -> white_gc,
+				     info.image,
+				     0,0,0,0,
+				     info.ppl,
+				     info.pix_format.fmt.pix.height);
+		      break;
+		    default:
+#ifndef NDEBUG
+		      fprintf(stderr,"SWITCH ERROR !!!\n");
+#endif
+		      break;
+		    }
+
+		  /* Take the screenshot of the current image */
+		  if (take_screenshot)
+		    {
+		      Save_PNG_shot(info.buffers[n].vmem,
+				    &info,
+				    config.png_src_dir,
+				    config.png_prefix,
+				    config.png_show_progress);
+
+		      /* Clear flag */
+		      take_screenshot = FALSE;
+		    }
+		  /* and queue  the buffer again*/
+		  tveng_qbuf(n, &info);
 		}
+	      else
+		perror("tveng_dqbuf");
+	    }
+	  /* The channels have been updated by the channel editor,
+	     show the changes */
+	  if (channels_updated)
+	    {
+	      channels_updated = FALSE; /* We are done updating the
+					   channels */
+	      update_channels_menu(zapping, &info);
 	    }
 	}
+      /* Stop current capture */
+      switch (info.current_mode)
+	{
+	case TVENG_CAPTURE_MMAPED_BUFFERS:
+	  tveng_stop_capturing(&info);
+	  break;
+	case TVENG_CAPTURE_FULLSCREEN:
+	  tveng_stop_fullscreen_previewing(&info);
+	  break;
+	default:
+	  break;
+	};
 
-      buffer =
-	g_strdup_printf(_("Sorry, but \"%s\" could not be opened:\n%s"),
-			zcg_char(NULL, "video_device"),
-			main_info->error);
+      /* Fill in the config struct */
+      config.x = zapping_window_x;
+      config.y = zapping_window_y;
+      config.width = zapping_window_width;
+      config.height = zapping_window_height;
+      config.capture_interlaced = info.interlaced;
+      
+      if (current_country)
+	g_snprintf(config.country, 32, current_country->name);
 
-      RunBox(buffer, GNOME_MESSAGE_BOX_ERROR);
+      if (cur_tuned_channel < tveng_tuned_channel_num())
+      g_snprintf(config.tuned_channel, 32,
+		 tveng_retrieve_tuned_channel_by_index(cur_tuned_channel) 
+		 -> name);
 
-      g_free(buffer);
+      /* Get the current tuning values */
+      if (tveng_get_tune(&(config.freq), &info) == -1)
+	config.freq = 0; /* Don't store anything */
 
-      return -1;
-    }
+      tveng_update_input(&(info));
+      tveng_update_standard(&(info));
 
- device_ok:
-  if (main_info->current_controller == TVENG_CONTROLLER_XV)
-    xv_present = TRUE;
+      g_snprintf(config.input, 32, info.inputs[info.cur_input].input.name);
+      g_snprintf(config.standard, 32, info.cur_standard.name);
 
-  D();
-  /* mute the device while we are starting up */
-  tveng_set_mute(1, main_info);
-  D();
-  main_window = create_zapping();
-  /* Change the pixmaps, work around glade bug */
-  set_stock_pixmap(lookup_widget(main_window, "channel_up"),
-		   GNOME_STOCK_PIXMAP_UP);
-  set_stock_pixmap(lookup_widget(main_window, "channel_down"),
-		   GNOME_STOCK_PIXMAP_DOWN);
-  /* hidden menuitem trick for getting cheap accels */
-  gtk_widget_hide(lookup_widget(main_window, "toggle_muted1"));
-  D();
-  tv_screen = lookup_widget(main_window, "tv_screen");
-  /* Avoid dumb resizes to 1 pixel height */
-  gtk_signal_connect(GTK_OBJECT(tv_screen), "size-allocate",
-		     GTK_SIGNAL_FUNC(on_tv_screen_size_allocate),
-		     NULL);
-  gtk_signal_connect(GTK_OBJECT(main_window),
-		     "key-press-event",
-		     GTK_SIGNAL_FUNC(on_zapping_key_press), NULL);
-  /* set periodically the geometry flags on the main window */
-  gtk_timeout_add(100, (GtkFunction)timeout_handler, NULL);
-  /* ensure that the main window is realized */
-  gtk_widget_realize(main_window);
-  gtk_widget_realize(tv_screen);
-  while (!tv_screen->window)
-    z_update_gui();
-  D();
-  if (!startup_capture(tv_screen))
-    {
-      RunBox("The capture couldn't be started", GNOME_MESSAGE_BOX_ERROR);
-      tveng_device_info_destroy(main_info);
-      return 0;
-    }
-  D();
-  /* Add the plugins to the GUI */
-  p = g_list_first(plugin_list);
-  while (p)
-    {
-      plugin_add_gui(GNOME_APP(main_window),
-		     (struct plugin_info*)p->data);
-      p = p->next;
-    }
-  /* Disable preview if needed */
-  if (disable_preview)
-    {
-      printv("Preview disabled, removing GUI items\n");
-      gtk_widget_set_sensitive(lookup_widget(main_window, "go_previewing2"),
-			       FALSE);
-      gtk_widget_hide(lookup_widget(main_window, "go_previewing2"));
-      gtk_widget_set_sensitive(lookup_widget(main_window, "go_fullscreen1"),
-			       FALSE);
-      gtk_widget_hide(lookup_widget(main_window, "go_fullscreen1"));
-    }
-  D();
-  startup_teletext();
-  D();
-  startup_ttxview();
-  D();
-  startup_osd();
-  D();
-  if (zconf_get_boolean(NULL, "/zapping/internal/callbacks/closed_caption"))
-    {
-      GtkWidget *closed_caption1 = lookup_widget(main_window,
-						 "closed_caption1");
-      osd_on(tv_screen, main_window);
-      gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(closed_caption1),
-				     TRUE);
+      /* Save current configuration */
+      if (!SaveConfig(&config))
+	printf(_("There was some error writing the configuration\n"));
+
+      tveng_close_device(&info);
     }
   else
     {
-      GtkWidget *closed_caption1 = lookup_widget(main_window,
-						 "closed_caption1");
-      gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(closed_caption1),
-				     FALSE);
-    }
-  D();
-  printv("switching to mode %d (%d)\n", zcg_int(NULL,
-						"capture_mode"),
-	 TVENG_CAPTURE_READ);
-  /* Start the capture in the last mode */
-  if (!disable_preview)
-    {
-      if (zmisc_switch_mode(zcg_int(NULL, "capture_mode"), main_info)
-	  == -1)
+      if (!strcasecmp(config.video_device, "/dev/video"))
+	ShowBox(_("Sorry, dude. No v4l2 for you today...\n"
+		  "(v4l2 must be correctly installed before running this program)"
+		  ),
+		GNOME_MESSAGE_BOX_ERROR);
+      else /* Other device selected, try with /dev/video */
 	{
-	  ShowBox(_("Cannot restore previous mode%s:\n%s"),
-		  GNOME_MESSAGE_BOX_ERROR,
-		  (zcg_int(NULL, "capture_mode") == TVENG_CAPTURE_READ) ? ""
-		  : _(", I will try starting capture mode"),
-		  main_info->error);
-	  if ((zcg_int(NULL, "capture_mode") != TVENG_CAPTURE_READ) &&
-	      (zmisc_switch_mode(TVENG_CAPTURE_READ, main_info) == -1))
-	    ShowBox(_("Capture mode couldn't be started either:\n%s"),
-		    GNOME_MESSAGE_BOX_ERROR, main_info->error);
-	}
-      else
-	{
-	  /* in callbacks.c */
-	  extern enum tveng_capture_mode restore_mode;
-
-	  restore_mode = TVENG_CAPTURE_WINDOW;
+	  GtkWidget * question_box = gnome_message_box_new(
+               _("Should I try \"/dev/video\"?"),
+	       GNOME_MESSAGE_BOX_QUESTION,
+	       GNOME_STOCK_BUTTON_YES,
+	       GNOME_STOCK_BUTTON_NO,
+	       NULL);
+	 
+	  switch (gnome_dialog_run(GNOME_DIALOG(question_box)))
+	    {
+	    case 0: /* Retry */
+	      sprintf(config.video_device, "/dev/video");
+	      goto open_devices;
+	    default:
+	      break; /* Don't do anything */
+	    }
 	}
     }
-  else /* preview disabled */
-      if (zmisc_switch_mode(TVENG_CAPTURE_READ, main_info) == -1)
-	ShowBox(_("Capture mode couldn't be started:\n%s"),
-		GNOME_MESSAGE_BOX_ERROR, main_info->error);
-  D();
-  if (-1 == tveng_set_mute(zcg_bool(NULL, "start_muted"), main_info))
-    printv("%s\n", main_info->error);
-  D();
-  /* Restore the input and the standard */
-  if (zcg_int(NULL, "current_input"))
-    z_switch_input(zcg_int(NULL, "current_input"), main_info);
-  if (zcg_int(NULL, "current_standard"))
-    z_switch_standard(zcg_int(NULL, "current_standard"), main_info);
-  z_switch_channel(tveng_retrieve_tuned_channel_by_index(cur_tuned_channel,
-							 global_channel_list),
-		   main_info);
-  if (!command)
-    {
-      gtk_widget_show(main_window);
-      resize_timeout(NULL);
-      /* hide toolbars and co. if necessary */
-      if (zconf_get_boolean(NULL, "/zapping/internal/callbacks/hide_controls"))
-	{
-	  gtk_widget_hide(lookup_widget(main_window, "dockitem1"));
-	  gtk_widget_hide(lookup_widget(main_window, "dockitem2"));
-	  gtk_widget_queue_resize(main_window);
-	  
-	  z_change_menuitem(lookup_widget(GTK_WIDGET(main_window),
-				      "hide_controls2"),
-			    GNOME_STOCK_PIXMAP_BOOK_OPEN,
-			    _("Show controls"),
-			    _("Show the menu and the toolbar"));
-	}
-      /* setup subtitles page button */
-      zconf_get_integer(&zvbi_page,
-			"/zapping/internal/callbacks/zvbi_page");
-      D();
-      /* Sets the coords to the previous values, if the users wants to */
-      if (zcg_bool(NULL, "keep_geometry"))
-	gtk_timeout_add(500, resize_timeout, NULL);
-      D(); printv("going into main loop...\n");
-      gtk_main();
-    }
-  else
-    {
-      D(); printv("running command \"%s\"\n", command);
-      run_command(command);
-    }
-  /* Closes all fd's, writes the config to HD, and that kind of things
-   */
-  shutdown_zapping();
   return 0;
 }
 
-static void shutdown_zapping(void)
+/*
+  Configuration saving/loading functions. The configuration will be
+  stored in a file called "$(HOME)/.zappingrc", in XML format.
+*/
+
+/* Reads the configuration, FALSE on error */
+gboolean ReadConfig(struct config_struct * config)
 {
-  int i = 0, j = 0;
-  gchar * buffer = NULL;
-  tveng_tuned_channel * channel;
+  gchar * buffer;
+  gchar * home;
+  xmlDocPtr config_doc;
 
-  printv("Shutting down the beast:\n");
+  home = getenv("HOME");
 
-  if (was_fullscreen)
-    zcs_int(TVENG_CAPTURE_PREVIEW, "capture_mode");
+  if (home[strlen(home)-1] == '/')
+    buffer = g_strconcat(home, ZAPPING_CONFIG_FILE, NULL);
+  else
+    buffer = g_strconcat(home, "/", ZAPPING_CONFIG_FILE, NULL);
 
-  /* Unloads all plugins, this tells them to save their config too */
-  printv("plugins");
-  plugin_unload_plugins(plugin_list);
-  plugin_list = NULL;
+  if (!buffer)
+    return FALSE;
 
-  /* Write the currently tuned channels */
-  printv(" channels");
-  zconf_delete(ZCONF_DOMAIN "tuned_channels");
-  while ((channel = tveng_retrieve_tuned_channel_by_index(i,
-							  global_channel_list))
-	 != NULL)
+  config_doc = OpenConfigDoc(buffer);
+
+  g_free(buffer);
+
+  /* No config, open defaults */
+  if (!config_doc)
     {
-      if ((i == cur_tuned_channel) &&
-	  !ChannelWindow) /* Having the channel editor open screws this
-			   logic up, do not save controls in this case */
-	{
-	  g_free(channel->controls);
-	  store_control_values(&channel->num_controls,
-			       &channel->controls, main_info);
-	}
-      buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/name",
-			       i);
-      zconf_create_string(channel->name, "Channel name", buffer);
-      g_free(buffer);
-      buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/freq",
-			       i);
-      zconf_create_integer((int)channel->freq, "Tuning frequence", buffer);
-      g_free(buffer);
-      buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/accel_key",
-			       i);
-      zconf_create_integer((int)channel->accel_key, "Accelator key",
-			   buffer);
-      g_free(buffer);
-      buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/accel_mask",
-			       i);
-      zconf_create_integer((int)channel->accel_mask, "Accelerator mask",
-			   buffer);
-      g_free(buffer);
-      buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/real_name",
-			       i);
-      zconf_create_string(channel->real_name, "Real channel name", buffer);
-      g_free(buffer);
-      buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/country",
-			       i);
-      zconf_create_string(channel->country, 
-			  "Country the channel is in", buffer);
-      g_free(buffer);
-      buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/input",
-			       i);
-      zconf_create_integer(channel->input, "Attached input", buffer);
-      g_free(buffer);
-      buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/standard",
-			       i);
-      zconf_create_integer(channel->standard, "Attached standard", buffer);
-      g_free(buffer);
-
-      buffer = g_strdup_printf(ZCONF_DOMAIN "tuned_channels/%d/num_controls",
-			       i);
-      zconf_create_integer(channel->num_controls, "Saved controls", buffer);
-      g_free(buffer);
-
-      for (j = 0; j<channel->num_controls; j++)
-	{
-	  buffer =
-	    g_strdup_printf(ZCONF_DOMAIN
-			    "tuned_channels/%d/controls/%d/name",
-			    i, j);
-	  zconf_create_string(channel->controls[j].name, "Control name",
-			      buffer);
-	  g_free(buffer);
-	  buffer =
-	    g_strdup_printf(ZCONF_DOMAIN
-			    "tuned_channels/%d/controls/%d/value",
-			    i, j);
-	  zconf_create_float(channel->controls[j].value, "Control value",
-			     buffer);
-	  g_free(buffer);
-	}
-
-      i++;
+#ifndef NDEBUG
+      printf("Defaulting to standard values...\n");
+#endif
+      ParseDummyDoc(config);
+      return TRUE;
     }
-  global_channel_list = tveng_clear_tuned_channel(global_channel_list);
 
-  zcs_char(current_country -> name, "current_country");
-
-  if (main_info->num_standards)
-    zcs_int(main_info->standards[main_info -> cur_standard].hash,
-	    "current_standard");
-  else
-    zcs_int(0, "current_standard");
-
-  if (main_info->num_inputs)
-    zcs_int(main_info->inputs[main_info->cur_input].hash,
-	    "current_input");
-  else
-    zcs_int(0, "current_input");
-
-  tveng_set_mute(1, main_info);
-
-  /* Shutdown all other modules */
-  printv(" callbacks");
-  shutdown_callbacks();
-
-  /*
-   * Shuts down the teletext view
-   */
-  printv(" ttxview");
-  shutdown_ttxview();
-
-  /* Shut down vbi */
-  printv(" vbi");
-  shutdown_zvbi();
-
-  /* inputs, standards handling */
-  printv(" v4linterface");
-  shutdown_v4linterface();
-
-  /*
-   * Tell the overlay engine to shut down and to do a cleanup if necessary
-   */
-  printv(" overlay");
-  shutdown_overlay();
-
-  /*
-   * Shuts down the OSD info
-   */
-  printv(" osd");
-  shutdown_osd();
-
-  /*
-   * Shuts down the capture engine
-   */
-  printv(" capture");
-  shutdown_capture(main_info);
-
-  /* Close */
-  printv(" video device");
-  tveng_device_info_destroy(main_info);
-
-  /* Save the config and show an error if something failed */
-  printv(" config");
-  if (!zconf_close())
-    ShowBox(_("ZConf could not be closed properly , your\n"
-	      "configuration will be lost.\n"
-	      "Possible causes for this are:\n"
-	      "   - There is not enough free memory\n"
-	      "   - You do not have permissions to write to $HOME/.zapping\n"
-	      "   - libxml is non-functional (?)\n"
-	      "   - or, more probably, you have found a bug in\n"
-	      "     %s. Please contact the author.\n"
-	      ), GNOME_MESSAGE_BOX_ERROR, "Zapping");
-
-  printv(".\nShutdown complete, goodbye.\n");
+  return (ParseConfigDoc(config_doc, config));
 }
 
-static gboolean startup_zapping()
+/* Saves configuration to the given file. FALSE on error */
+gboolean SaveConfig(struct config_struct * config)
 {
-  int i = 0, j;
-  gchar * buffer = NULL;
-  gchar * buffer2 = NULL;
-  gchar * buffer3 = NULL;
-  gchar * buffer4 = NULL;
-  tveng_tuned_channel new_channel;
-  GList * p;
-  D();
-  /* Starts the configuration engine */
-  if (!zconf_init("zapping"))
-    {
-      g_error(_("Sorry, Zapping is unable to create the config tree"));
-      return FALSE;
-    }
-  D();
-  /* Sets defaults for zconf */
-  zcc_bool(TRUE, "Save and restore zapping geometry (non ICCM compliant)", 
-	   "keep_geometry");
-  zcc_bool(TRUE, "Resize by fixed increments", "fixed_increments");
-  zcc_char(tveng_get_country_tune_by_id(0)->name,
-	     "The country you are currently in", "current_country");
-  current_country = 
-    tveng_get_country_tune_by_name(zcg_char(NULL, "current_country"));
-  zcc_char("/dev/video0", "The device file to open on startup",
-	   "video_device");
-  zcc_bool(FALSE, "TRUE if Zapping should be started without sound",
-	   "start_muted");
-  zcc_bool(TRUE, "TRUE if some flickering should be avoided in preview mode",
-	   "avoid_flicker");
-  zcc_bool(FALSE, "TRUE if the controls info should be saved with each "
-	   "channel", "save_controls");
-  zcc_int(0, "Verbosity value given to zapping_setup_fb",
-	  "zapping_setup_fb_verbosity");
-  zcc_int(0, "Ratio mode", "ratio");
-  zcc_int(0, "Change the video mode when going fullscreen", "change_mode");
-  zcc_int(0, "Current standard", "current_standard");
-  zcc_int(0, "Current input", "current_input");
-  zcc_int(TVENG_CAPTURE_WINDOW, "Current capture mode", "capture_mode");
-  zcc_int(TVENG_CAPTURE_WINDOW, "Previous capture mode", "previous_mode");
-  zcc_int(TVENG_PIX_YUYV, "Pixformat used with XVideo capture",
-	  "yuv_format");
-  zcc_bool(FALSE, "In videotext mode", "videotext_mode");
-  zconf_create_boolean(FALSE, "Hide controls",
-		       "/zapping/internal/callbacks/hide_controls");
-  D();
-  /* Loads all the tuned channels */
-  while (zconf_get_nth(i, &buffer, ZCONF_DOMAIN "tuned_channels") !=
-	 NULL)
-    {
-      g_assert(strlen(buffer) > 0);
+  gchar * buffer;
+  gchar * home;
+  int returned_value;
 
-      memset(&new_channel, 0, sizeof(new_channel));
+  home = getenv("HOME");
 
-      if (buffer[strlen(buffer)-1] == '/')
-	buffer[strlen(buffer)-1] = 0;
+  if (home[strlen(home)-1] == '/')
+    buffer = g_strconcat(home, ZAPPING_CONFIG_FILE, NULL);
+  else
+    buffer = g_strconcat(home, "/", ZAPPING_CONFIG_FILE, NULL);
 
-      /* Get all the items from here  */
-      buffer2 = g_strconcat(buffer, "/name", NULL);
-      zconf_get_string(&new_channel.name, buffer2);
-      g_free(buffer2);
-      buffer2 = g_strconcat(buffer, "/real_name", NULL);
-      zconf_get_string(&new_channel.real_name, buffer2);
-      g_free(buffer2);
-      buffer2 = g_strconcat(buffer, "/freq", NULL);
-      zconf_get_integer(&new_channel.freq, buffer2);
-      g_free(buffer2);
-      buffer2 = g_strconcat(buffer, "/accel_key", NULL);
-      zconf_get_integer(&new_channel.accel_key, buffer2);
-      g_free(buffer2);
-      buffer2 = g_strconcat(buffer, "/accel_mask", NULL);
-      zconf_get_integer(&new_channel.accel_mask, buffer2);
-      g_free(buffer2);
-      buffer2 = g_strconcat(buffer, "/country", NULL);
-      zconf_get_string(&new_channel.country, buffer2);
-      g_free(buffer2);
-
-      buffer2 = g_strconcat(buffer, "/input", NULL);
-      zconf_get_integer(&new_channel.input, buffer2);
-      g_free(buffer2);
-      buffer2 = g_strconcat(buffer, "/standard", NULL);
-      zconf_get_integer(&new_channel.standard, buffer2);
-      g_free(buffer2);
-
-      buffer2 = g_strconcat(buffer, "/num_controls", NULL);
-      zconf_get_integer(&new_channel.num_controls, buffer2);
-      g_free(buffer2);
-
-      buffer2 = g_strconcat(buffer, "/controls", NULL);
-      if (new_channel.num_controls)
-	new_channel.controls =
-	  g_malloc0(sizeof(tveng_tc_control) *
-		    new_channel.num_controls);
-      for (j = 0; j<new_channel.num_controls; j++)
-	{
-	  if (!zconf_get_nth(j, &buffer3, buffer2))
-	    {
-	      g_warning("Control %d of channel %d [%s] is malformed, skipping",
-			j, i, new_channel.name);
-	      continue;
-	    }
-	  buffer4 = g_strconcat(buffer3, "/name", NULL);
-	  strncpy(new_channel.controls[j].name,
-		  zconf_get_string(NULL, buffer4), 32);
-	  g_free(buffer4);
-	  buffer4 = g_strconcat(buffer3, "/value", NULL);
-	  zconf_get_float(&new_channel.controls[j].value, buffer4);
-	  g_free(buffer4);
-	  g_free(buffer3);
-	}
-      g_free(buffer2);
-
-      new_channel.index = 0;
-      global_channel_list =
-	tveng_append_tuned_channel(&new_channel, global_channel_list);
-
-      /* Free the previously allocated mem */
-      g_free(new_channel.name);
-      g_free(new_channel.real_name);
-      g_free(new_channel.country);
-      g_free(new_channel.controls);
-
-      g_free(buffer);
-      i++;
-    }
-  D();
-  /* Starts all modules */
-  startup_v4linterface(main_info);
-  D();
-  if (!startup_callbacks())
+  if (!buffer)
     return FALSE;
-  D();
-  /* Loads the plugins */
-  plugin_list = plugin_load_plugins();
-  D();
-  /* init them, and remove the ones that couldn't be inited */
- restart_loop:
 
-  p = g_list_first(plugin_list);
-  while (p)
-    {
-      plugin_load_config((struct plugin_info*)p->data);
-      if (!plugin_init(main_info, (struct plugin_info*)p->data))
-	{
-	  plugin_unload((struct plugin_info*)p->data);
-	  plugin_list = g_list_remove_link(plugin_list, p);
-	  g_list_free_1(p);
-	  goto restart_loop;
-	}
-      p = p->next;
-    }
-  D();
+  returned_value = SaveConfigDoc(buffer, config);
+
+  g_free(buffer);
+
+  if (returned_value < 1) /* SaveConfigDoc returns the number of items
+			   written */
+    return FALSE;
+
   return TRUE;
+}
+
+/*
+  Open config file, and check for its validity, returns NULL on
+   error, the XML document to parse otherwise. Name is the file name
+   to open.
+*/
+xmlDocPtr
+OpenConfigDoc (gchar * name)
+{
+ xmlDocPtr config_doc;
+
+ config_doc = xmlParseFile(name);
+ 
+ if (!name)
+    return NULL;
+
+ return (config_doc);
+}
+
+/*
+  Fills in a config_struct with default values, just to have the
+  struct working
+*/
+void
+ParseDummyDoc (struct config_struct * config)
+{
+  /* We have here more than one country for sure (at least for 0.2
+     release) */
+  config -> country[31] = 0;
+
+  g_snprintf(config->country, 31, tveng_get_country_tune_by_id (0) ->
+	     name);
+
+  config->tuned_channel[0] = 0; /* No tuned channel stored */
+  config->input[0] = 0; /* No default input */
+  config->standard[0] = 0; /* No default standard */
+
+  /* Config should have been called after initing V4L2 */
+  config -> width = 200; /* Just something to start with */
+  config -> height = 320; /* Just something to start with */
+  config -> x = 50;
+  config -> y = 50;
+  config -> freq = 0; /* No freq code stored */
+
+  /* PNG entries */
+  config -> png_src_dir[PATH_MAX-1] = 0;
+  g_snprintf(config -> png_src_dir, PATH_MAX-1, getenv("HOME"));
+  config -> png_prefix[31] = 0;
+  g_snprintf(config -> png_prefix, 31, "shot");
+  config -> png_show_progress = TRUE; /* Show GUI item by default */
+
+  config -> capture_interlaced = TRUE; /* Interlaced capture by default */
+  g_snprintf(config -> video_device, FILENAME_MAX-1, "/dev/video");
+
+  config -> zapping_setup_fb_verbosity = 0; /* Quiet by default */
+  config -> avoid_noise = 1; /* Avoid noises by default */
+}
+
+/* 
+   This is the Parser. It is given the xmlDocPtr to parse,
+   the xmlNodePtr to start from, and a ParseStruct to operate on
+*/
+void
+Parser(xmlDocPtr config_doc,
+       xmlNodePtr node, struct ParseStruct * parser)
+{
+  gchar * read_string;
+  int parser_index;
+
+  while (node)
+    {
+      /* Check which entry in the parser are we going to use (if any)
+       */
+      for (parser_index = 0; parser[parser_index].name; parser_index++)
+	{
+	  if (!strcasecmp(node->name, parser[parser_index].name))
+	    break; /* We have found an entry */
+	}
+      
+      if (parser[parser_index].name == NULL)
+	{
+	  node = node->next;
+	  continue;
+	}
+      
+      read_string = xmlNodeListGetString(config_doc, node->childs,
+					 1);
+      
+      node = node -> next;
+      
+      if (!read_string) /* We can get a NULL string here, avoid
+			   segfault */
+	continue;
+
+      if (parser[parser_index].max_length < 1)
+	sscanf(read_string, parser[parser_index].format,
+	       parser[parser_index].where);
+      else /*  We are getting a string */
+	{
+	  ((gchar*) parser[parser_index].where)
+	    [parser[parser_index].max_length - 1] = 0;
+
+	  g_snprintf((gchar*) parser[parser_index].where,
+		     parser[parser_index].max_length - 1,
+		     read_string);
+	}
+    }
+}
+
+/* Parses window dimensions block */
+void
+ParseWindowDimensions(xmlDocPtr config_doc, 
+		      xmlNodePtr node, struct config_struct * config)
+{
+  struct ParseStruct parser[] =
+  {
+    {"XPos", "%d", (gpointer) &(config->x), 0},
+    {"YPos", "%d", (gpointer) &(config->y), 0},
+    {"Width", "%d", (gpointer) &(config->width), 0},
+    {"Height", "%d", (gpointer) &(config->height), 0},
+    {NULL, NULL, NULL, 0} /* End-of-struct */
+  };
+
+  Parser(config_doc, node, parser);
+}
+
+/* Parses misc options block */
+void
+ParseMiscOptions(xmlDocPtr config_doc, 
+		 xmlNodePtr node, struct config_struct * config)
+{
+  struct ParseStruct parser[] =
+  {
+    {"ZappingSetupFbVerbosity", "%d", (gpointer)
+     &(config->zapping_setup_fb_verbosity), 0},
+    {"AvoidNoise", "%d", (gpointer) &(config->avoid_noise), 0},
+    {NULL, NULL, NULL, 0} /* End-of-struct */
+  };
+
+  Parser(config_doc, node, parser);
+}
+
+/* Parses video capture info */
+void
+ParseVideoCapture(xmlDocPtr config_doc, 
+		      xmlNodePtr node, struct config_struct * config)
+{
+  struct ParseStruct parser[] =
+  {
+    {"Interlaced", "%d", (gpointer) &(config->capture_interlaced), 0},
+    {"VideoDevice", "%s", (gpointer) &(config->video_device),
+     FILENAME_MAX},
+    {"NumDesiredBuffers", "%d", (gpointer)
+     &(info.num_desired_buffers), 0},
+    {NULL, NULL, NULL, 0} /* End-of-struct */
+  };
+
+  Parser(config_doc, node, parser);
+}
+
+/* Parses the tuning info block  */
+void
+ParseTuning(xmlDocPtr config_doc, 
+	    xmlNodePtr node, struct config_struct * config)
+{
+  struct ParseStruct parser[] =
+  {
+    {"Country", "%s", (gpointer) &(config->country), 32},
+    {"Channel", "%s", (gpointer) &(config->tuned_channel), 32},
+    {"Input", "%s", (gpointer) &(config->input), 32},
+    {"Standard", "%s", (gpointer) &(config->standard), 32},
+    {"Frequence", "%u", (gpointer) &(config->freq), 0},
+    {NULL, NULL, NULL} /* End-of-struct */
+  };
+
+  Parser(config_doc, node, parser);
+}
+
+/* Parses the PNG options block */
+void
+ParsePNGOptions(xmlDocPtr config_doc, 
+	    xmlNodePtr node, struct config_struct * config)
+{
+  struct ParseStruct parser[] =
+  {
+    {"SrcDir", "%s", (gpointer) &(config->png_src_dir), PATH_MAX},
+    {"Prefix", "%s", (gpointer) &(config->png_prefix), 32},
+    {"ShowProgress", "%d", (gpointer) &(config->png_show_progress), 0},
+    {NULL, NULL, NULL} /* End-of-struct */
+  };
+
+  Parser(config_doc, node, parser);
+}
+
+/* 
+   This function doesn't require any config_struct parameter since it
+   operates on tveng_insert_tuned_channel directly.
+*/
+void
+ParseTunedChannels(xmlDocPtr config_doc,
+		   xmlNodePtr node)
+{
+  /* This function doesn't use the Parser facilities since its
+     structure is slightly different (although it's mostly
+     cut'n'paste from Parser) */
+  gchar * read_string; /* frequence as a string */
+  const xmlChar * property; /* Property value holding the "real name" */
+  const xmlChar * name; /* Given name to the channel */
+  __u32 freq; /* Frequence of the tunned channel */
+  tveng_tuned_channel channel_added; /* Channel we are adding */
+
+  while (node)
+    {
+      read_string = xmlNodeListGetString(config_doc, node->childs,
+					 1);
+
+      /* get name Property */
+      name = xmlGetProp(node, "Name");
+
+      /* get Real name property */
+      property = xmlGetProp(node, "RName");
+
+      node = node -> next;      
+      
+      if (!read_string) /* We can get a NULL string here, avoid
+			   segfault */
+	continue;
+
+      if (sscanf(read_string, "%u", &freq) < 1)
+	continue;
+
+      if (!name)
+	continue;
+
+      /* Copy the relevant members of the struct */
+      channel_added.name = (gchar*) name;
+      channel_added.real_name = (gchar*) property;
+      channel_added.freq = freq;
+
+      tveng_insert_tuned_channel(&channel_added);
+    }  
+}
+
+/*
+  Parses the given tree and fills in the given config structure. In
+  case of error, returns FALSE, and config_struct fields are undefined.
+*/
+gboolean
+ParseConfigDoc (xmlDocPtr config_doc, struct config_struct *
+		config)
+{
+  xmlNodePtr node = config_doc -> root -> childs;
+
+  if (!config)
+    return FALSE;
+
+  /* Fill in with defaults */
+  ParseDummyDoc(config);
+
+  /* Start parsing */
+  while (node)
+    {
+      if (!strcasecmp(node -> name, "Window_Dimensions"))
+	ParseWindowDimensions(config_doc, node -> childs, config);
+
+      if (!strcasecmp(node -> name, "Misc_Options"))
+	ParseMiscOptions(config_doc, node -> childs, config);
+
+      else if (!strcasecmp(node -> name, "Video_Capture"))
+	ParseVideoCapture(config_doc, node -> childs, config);
+
+      else if (!strcasecmp(node -> name, "Tuning"))
+	ParseTuning(config_doc, node -> childs, config);
+      
+      else if (!strcasecmp(node -> name, "Tuned_Channels"))
+	ParseTunedChannels(config_doc, node->childs);
+
+      else if (!strcasecmp(node -> name, "PNG_Options"))
+	ParsePNGOptions(config_doc, node->childs, config);
+
+      node = node -> next;
+    };
+  
+  return TRUE;
+}
+
+/* Saves all the info regarding (main) window dimensions */
+void
+SaveWindowDimensions(xmlNodePtr tree, struct config_struct * config)
+{
+  gchar buffer[256];
+  buffer[255] = 0;
+
+  g_snprintf(buffer, 255, "%d", config->x);
+  xmlNewChild(tree, NULL, "XPos", buffer);
+  
+  g_snprintf(buffer, 255, "%d", config->y);
+  xmlNewChild(tree, NULL, "YPos", buffer);
+
+  g_snprintf(buffer, 255, "%d", config->width);
+  xmlNewChild(tree, NULL, "Width", buffer);
+  
+  g_snprintf(buffer, 255, "%d", config->height);
+  xmlNewChild(tree, NULL, "Height", buffer);
+}
+
+/* Saves the miscellaneous options */
+void
+SaveMiscOptions(xmlNodePtr tree, struct config_struct * config)
+{
+  gchar buffer[256];
+  buffer[255] = 0;
+
+  g_snprintf(buffer, 255, "%d", config->zapping_setup_fb_verbosity);
+  xmlNewChild(tree, NULL, "ZappingSetupFbVerbosity", buffer);
+
+  g_snprintf(buffer, 255, "%d", config->avoid_noise);
+  xmlNewChild(tree, NULL, "AvoidNoise", buffer);
+}
+
+/* Saves all the info regarding video capture */
+void
+SaveVideoCapture(xmlNodePtr tree, struct config_struct * config)
+{
+  gchar buffer[FILENAME_MAX];
+  buffer[FILENAME_MAX-1] = 0;
+
+  g_snprintf(buffer, FILENAME_MAX-1, "%d", config -> capture_interlaced);
+  xmlNewChild(tree, NULL, "Interlaced", buffer);
+
+  g_snprintf(buffer, FILENAME_MAX-1, "%d", info.num_desired_buffers);
+  xmlNewChild(tree, NULL, "NumDesiredBuffers", buffer);
+
+  g_snprintf(buffer, FILENAME_MAX-1, "%s", config -> video_device);
+  xmlNewChild(tree, NULL, "VideoDevice", buffer);
+}
+
+/* Saves the info regarding tuning */
+void
+SaveTuning(xmlNodePtr tree, struct config_struct * config)
+{
+  gchar buffer[256];
+  buffer[255] = 0;
+
+  g_snprintf(buffer, 255, "%s", config -> country);
+  xmlNewChild(tree, NULL, "Country", buffer);
+
+  g_snprintf(buffer, 255, "%s", config -> tuned_channel);
+  xmlNewChild(tree, NULL, "Channel", buffer);
+
+  g_snprintf(buffer, 255, "%s", config -> input);
+  xmlNewChild(tree, NULL, "Input", buffer);
+
+  g_snprintf(buffer, 255, "%s", config -> standard);
+  xmlNewChild(tree, NULL, "Standard", buffer);
+
+  /* Currently tuned frequence */
+  g_snprintf(buffer, 255, "%u", config -> freq);
+  xmlNewChild(tree, NULL, "Frequence", buffer);
+}
+
+/* Saves currently tuned channel info */
+void
+SaveTunedChannels(xmlNodePtr tree)
+{
+  int i = 0;
+  tveng_tuned_channel * tune;
+  xmlNodePtr new_node;
+  gchar buffer[256];
+  buffer[255] = 0;
+
+  while ((tune = tveng_retrieve_tuned_channel_by_index(i++)))
+	 {
+	   g_snprintf(buffer, 255, "%u", tune -> freq);
+
+	   /* The name for this node is irrelevant */
+	   new_node = xmlNewChild(tree, NULL, "Channel", 
+				  buffer);
+
+	   /* Set real name Property */
+	   xmlSetProp(new_node, (const xmlChar*) "RName", 
+		      (const xmlChar*) tune -> real_name);
+
+	   /* Set name Property */
+	   xmlSetProp(new_node, (const xmlChar*) "Name",
+		      (const xmlChar*) tune -> name);
+	 }
+}
+
+/* Saves PNG saving options info */
+void
+SavePNGOptions(xmlNodePtr tree, struct config_struct * config)
+{
+  gchar buffer[256];
+  buffer[255] = 0;
+
+  g_snprintf(buffer, 255, "%s", config -> png_src_dir);
+  xmlNewChild(tree, NULL, "SrcDir", buffer);
+
+  g_snprintf(buffer, 255, "%s", config -> png_prefix);
+  xmlNewChild(tree, NULL, "Prefix", buffer);
+
+  g_snprintf(buffer, 255, "%d", config -> png_show_progress);
+  xmlNewChild(tree, NULL, "ShowProgress", buffer);
+}
+
+/* 
+   Saves the config document in XML format (could change, better call
+   SaveConfig()) 
+*/
+int
+SaveConfigDoc (gchar * file_name, struct config_struct * config)
+{
+  xmlDocPtr doc;
+  xmlNodePtr tree;
+  gchar buffer[256];
+  buffer[255] = 0;
+
+  doc = xmlNewDoc("1.0");
+  doc -> root = xmlNewDocNode(doc, NULL, "Configuration",
+   _("\nThis is the configuration file for Zapping, the TV viewer.\n"
+     "Feel free to modify this file as you want (standard XML, please).\n"
+     "Any changes made to this file will be loaded the next time Zapping\n"
+     "is started, and silently overwritten when closed.\n"
+     "If you are going to manually modify this file, please keep a backup\n"
+     "file, since in case of parse error, Zapping will load the defaults.\n"));
+
+  tree = xmlNewChild(doc->root, NULL, "Window_Dimensions",
+		     _("\nInfo regarding main window dimensions\n"));
+
+  SaveWindowDimensions(tree, config);
+
+  tree = xmlNewChild(doc->root, NULL, "Misc_Options", NULL);
+
+  SaveMiscOptions(tree, config);
+
+  tree = xmlNewChild(doc->root, NULL, "Video_Capture",
+		     _("\nInfo about capture parameters\n"));
+
+  SaveVideoCapture(tree, config);
+
+  tree = xmlNewChild(doc->root, NULL, "Tuning",
+		     _("\nInfo regarding current tuners\n"));
+
+  SaveTuning(tree, config);
+
+  tree = xmlNewChild(doc->root, NULL, "Tuned_Channels",
+		     _("\nThese are the pretuned channels\n"));
+  
+  SaveTunedChannels(tree);
+
+  tree = xmlNewChild(doc->root, NULL, "PNG_Options",
+		     _("\nOptions for saving PNG screenshots\n"));
+  
+  SavePNGOptions(tree, config);
+
+  return (xmlSaveFile(file_name, doc));
 }

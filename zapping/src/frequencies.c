@@ -1,30 +1,7 @@
-/* Zapping (TV viewer for the Gnome Desktop)
- * Copyright (C) 2000-2001 Iñaki García Etxebarria
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- */
-/**
- * The frequency table is taken from xawtv with donations around the globe.
- */
+/*
+  The frequency table is taken from xawtv
+*/
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
-#include <gnome.h>
-#include "strnatcmp.h"
 #include "frequencies.h"
 
 /* --------------------------------------------------------------------- */
@@ -837,218 +814,6 @@ static tveng_channel pal_newzealand[] = {
     { "10",	 217250 },
 };
 
-static tveng_channel secam_russia[] = {
-    { "1", 	  48500 }, 
-    { "2", 	  58000 }, 
-    { "3", 	  76000 }, 
-    { "4", 	  84000 }, 
-    { "5", 	  92000 }, 
-    { "6", 	 174000 }, 
-    { "7", 	 182000 }, 
-    { "8", 	 190000 }, 
-    { "9", 	 198000 }, 
-    { "10", 	 206000 }, 
-    { "11", 	 214000 }, 
-    { "12", 	 222000 }, 
-    { "21", 	 470000 }, 
-    { "22", 	 478000 }, 
-    { "23", 	 486000 }, 
-    { "24", 	 494000 }, 
-    { "25", 	 502000 }, 
-    { "26", 	 510000 }, 
-    { "27", 	 518000 }, 
-    { "28", 	 526000 }, 
-    { "29", 	 534000 }, 
-    { "30", 	 542000 }, 
-    { "31", 	 550000 }, 
-    { "32", 	 558000 }, 
-    { "33", 	 566000 }, 
-    { "34", 	 574000 }, 
-    { "35", 	 582000 }, 
-    { "36", 	 590000 }, 
-    { "37", 	 598000 }, 
-    { "38", 	 606000 }, 
-    { "39", 	 614000 }, 
-    { "40", 	 622000 }, 
-    { "41", 	 630000 }, 
-    { "42", 	 638000 }, 
-    { "43", 	 646000 }, 
-    { "44", 	 654000 }, 
-    { "45", 	 662000 }, 
-    { "46", 	 670000 }, 
-    { "47", 	 678000 }, 
-    { "48", 	 686000 }, 
-    { "49", 	 694000 }, 
-    { "50", 	 702000 }, 
-    { "51", 	 710000 }, 
-    { "52", 	 718000 }, 
-    { "53", 	 726000 }, 
-    { "54", 	 734000 }, 
-    { "55", 	 742000 }, 
-    { "56", 	 750000 }, 
-    { "57", 	 758000 }, 
-    { "58", 	 766000 }, 
-    { "59", 	 774000 }, 
-    { "60", 	 782000 }, 
-};
-
-static tveng_channel south_africa[] = {
-  { "4",	175250 },
-  { "5",	183250 },
-  { "6",	191250 },
-  { "7",	199250 },
-  { "8",	207250 },
-  { "9",	215250 },
-  { "10",	223250 },
-  { "11",	231250 },
-  { "13",	247430 },
-  { "21",	471250 },
-  { "22",	479250 },
-  { "23",	487250 },
-  { "24",	495250 },
-  { "25",	503250 },
-  { "26",	511250 },
-  { "27",	519250 },
-  { "28",	527250 },
-  { "29",	535250 },
-  { "30",	543250 },
-  { "31",	551250 },
-  { "32",	559250 },
-  { "33",	567250 },
-  { "34",	575250 },
-  { "35",	583250 },
-  { "36",	591250 },
-  { "37",	599250 },
-  { "38",	607250 },
-  { "39",	615250 },
-  { "40",	623250 },
-  { "41",	631250 },
-  { "42",	639250 },
-  { "43",	647250 },
-  { "44",	655250 },
-  { "45",	663250 },
-  { "46",	671250 },
-  { "47",	679250 },
-  { "48",	687250 },
-  { "49",	695250 },
-  { "50",	703250 },
-  { "51",	711250 },
-  { "52",	719250 },
-  { "53",	727250 },
-  { "54",	735250 },
-  { "55",	743250 },
-  { "56",	751250 },
-  { "57",	759250 },
-  { "58",	767250 },
-  { "59",	775250 },
-  { "60",	783250 },
-  { "61",	791250 },
-  { "62",	799250 },
-  { "63",	807250 },
-  { "64",	815250 },
-  { "65",	823250 },
-  { "66",	831250 },
-  { "67",	839250 },
-  { "68",	847250 }
-};
-
-static tveng_channel pal_bcast_cn[] = {
-    { "1",	49750 },
-    { "2",	57750 },
-    { "3",	65750 },
-    { "4",	77250 },
-    { "5",	85250 },
-    { "6",	112250 },
-    { "7",	120250 },
-    { "8",	128250 },
-    { "9",	136250 },
-    { "10",	144250 },
-    { "11",	152250 },
-    { "12",	160250 },
-    { "13",	168250 },
-    { "14",	176250 },
-    { "15",	184250 },
-    { "16",	192250 },
-    { "17",	200250 },
-    { "18",	208250 },
-    { "19",	216250 },
-    { "20",	224250 },
-    { "21",	232250 },
-    { "22",	240250 },
-    { "23",	248250 },
-    { "24",	256250 },
-    { "25",	264250 },
-    { "26",	272250 },
-    { "27",	280250 },
-    { "28",	288250 },
-    { "29",	296250 },
-    { "30",	304250 },
-    { "31",	312250 },
-    { "32",	320250 },
-    { "33",	328250 },
-    { "34",	336250 },
-    { "35",	344250 },
-    { "36",	352250 },
-    { "37",	360250 },
-    { "38",	368250 },
-    { "39",	376250 },
-    { "40",	384250 },
-    { "41",	392250 },
-    { "42",	400250 },
-    { "43",	408250 },
-    { "44",	416250 },
-    { "45",	424250 },
-    { "46",	432250 },
-    { "47",	440250 },
-    { "48",	448250 },
-    { "49",	456250 },
-    { "50",	463250 },
-    { "51",	471250 },
-    { "52",	479250 },
-    { "53",	487250 },
-    { "54",	495250 },
-    { "55",	503250 },
-    { "56",	511250 },
-    { "57",	519250 },
-    { "58",	527250 },
-    { "59",	535250 },
-    { "60",	543250 },
-    { "61",	551250 },
-    { "62",	559250 },
-    { "63",	607250 },
-    { "64",	615250 },
-    { "65",	623250 },
-    { "66",	631250 },
-    { "67",	639250 },
-    { "68",	647250 },
-    { "69",	655250 },
-    { "70",	663250 },
-    { "71",	671250 },
-    { "72",	679250 },
-    { "73",	687250 },
-    { "74",	695250 },
-    { "75",	703250 },
-    { "76",	711250 },
-    { "77",	719250 },
-    { "78",	727250 },
-    { "79",	735250 },
-    { "80",	743250 },
-    { "81",	751250 },
-    { "82",	759250 },
-    { "83",	767250 },
-    { "84",	775250 },
-    { "85",	783250 },
-    { "86",	791250 },
-    { "87",	799250 },
-    { "88",	807250 },
-    { "89",	815250 },
-    { "90",	823250 },
-    { "91",	831250 },
-    { "92",	839250 },
-    { "93",	847250 },
-    { "94",	855250 },
-};
-
 /* --------------------------------------------------------------------- */
 
 static tveng_channels chanlists[] = {
@@ -1064,9 +829,6 @@ static tveng_channels chanlists[] = {
     { N_("australia"),     pal_australia,   CHAN_COUNT(pal_australia)   },
     { N_("ireland"),       pal_ireland,     CHAN_COUNT(pal_ireland)     },
     { N_("france"),        secam_france,    CHAN_COUNT(secam_france)    },
-    { N_("russia"),        secam_russia,    CHAN_COUNT(secam_russia)    },
-    { N_("south africa"),  south_africa,    CHAN_COUNT(south_africa)    },
-    { N_("china"),	   pal_bcast_cn,    CHAN_COUNT(pal_bcast_cn)    },
     { NULL, NULL, 0 } /* EOF */
 };
 
@@ -1093,29 +855,6 @@ tveng_get_country_tune_by_name (gchar * country)
   return NULL;
 }
 
-/* 
-   Returns a pointer to the channel struct for some specific
-   country. NULL if the specified country is not found.
-   The given name can be i18ed this time.
-*/
-tveng_channels*
-tveng_get_country_tune_by_i18ed_name (gchar * i18ed_country)
-{
-  int i=0;
-
-  if (i18ed_country == NULL)
-    return NULL;
-  
-  while (chanlists[i].name)
-    {
-      if (!strcasecmp(_(chanlists[i].name), i18ed_country))
-	return (&(chanlists[i]));
-      i++;
-    }
-
-  return NULL;
-}
-
 /*
   Returns a pointer to the specified by id channel. Returns NULL on
   error.
@@ -1134,28 +873,6 @@ tveng_get_country_tune_by_id (int id)
     return NULL;
 
   return &(chanlists[id]);
-}
-
-/*
-  Returns the id of the given country tune, that could be used later
-  on with tveng_get_country_tune_by_id. Returns -1 on error.
-*/
-int
-tveng_get_id_of_country_tune (tveng_channels * country)
-{
-  int i=0;
-
-  if (country == NULL)
-    return -1;
-  
-  while (chanlists[i].name)
-    {
-      if (!strcasecmp(chanlists[i].name, country->name))
-	return i; /* Found */
-      i++;
-    }
-
-  return -1; /* Nothing found */
 }
 
 /*
@@ -1196,70 +913,32 @@ tveng_get_channel_by_id (int id, tveng_channels * country)
   return &(country->channel_list[id]);
 }
 
-/*
-  Returns the id of the given channel, that can be used later with
-  tveng_get_channel_by_id. Returns -1 on error.
-*/
-int
-tveng_get_id_of_channel (tveng_channel * channel, tveng_channels *
-			 country)
-{
-  int i;
-
-  if (channel == NULL)
-    return -1;
-
-  if (country == NULL)
-    return -1;
-
-  for (i=0; i<country->chan_count; i++)
-    if ((!strcasecmp(channel->name, country->channel_list[i].name)) && 
-	(channel -> freq == country->channel_list[i].freq))
-      return i; /* Found */
-
-  return -1; /* Nothing found */
-}
-
 /* Tuned channels API */
 /*
   Maybe it looks too much code for very little thing, but this way we
   simplify the rest of the code and it is easier to change
 */
 
-/**
- * Returns the first item in the channel list, or NULL
- */
-static tveng_tuned_channel *
-first_channel(tveng_tuned_channel * list)
-{
-  if (!list)
-    return NULL;
-
-  while (list->prev)
-    list = list->prev;
-
-  return list;    
-}
-
+/* 
+   This is actually a pointer to the first item in the linked list
+*/
+tveng_tuned_channel * tuned_channel = NULL;
 
 /*
   This function inserts a channel in the list (the list will keep
   alphabetically ordered).
   It returns the index where the channel is inserted.
 */
-tveng_tuned_channel *
-tveng_insert_tuned_channel_sorted (tveng_tuned_channel * new_channel,
-				   tveng_tuned_channel * list)
+int
+tveng_insert_tuned_channel (tveng_tuned_channel * new_channel)
 {
   tveng_tuned_channel * channel_added = (tveng_tuned_channel*)
-    g_malloc0(sizeof(tveng_tuned_channel));
-  tveng_tuned_channel * tc_ptr = first_channel(list);
+    malloc(sizeof(tveng_tuned_channel));
+  tveng_tuned_channel * tc_ptr = tuned_channel;
   int index = 0; /* Where are we storing it */
 
   if (!new_channel)
-    return list;
-
-  list = first_channel(list);
+    return -1;
 
   if (new_channel->name)
     channel_added->name = g_strdup(new_channel->name);
@@ -1268,29 +947,16 @@ tveng_insert_tuned_channel_sorted (tveng_tuned_channel * new_channel,
   if (new_channel->real_name)
     channel_added->real_name = g_strdup(new_channel->real_name);
   else
-    channel_added->real_name = g_strdup(_("(Unknown real channel)"));
-  if (new_channel->country)
-    channel_added->country = g_strdup(new_channel->country);
-  else
-    channel_added->country = g_strdup(_("(Unknown country)"));
-
-  channel_added->accel_key = new_channel->accel_key;
-  channel_added->accel_mask = new_channel->accel_mask;
+    channel_added->real_name = g_strdup(_("Unknown real channel"));
   channel_added->freq = new_channel->freq;
-  channel_added->input = new_channel->input;
-  channel_added->standard = new_channel->standard;
-  channel_added->num_controls = new_channel->num_controls;
-  if (new_channel->num_controls)
-    channel_added->controls =
-      g_memdup(new_channel->controls,
-	       channel_added->num_controls * sizeof(tveng_tc_control));
 
   /* OK, we are starting the list */
   if (!tc_ptr)
     {
       channel_added->index = 0;
       channel_added->next = channel_added->prev = NULL;
-      return channel_added;
+      tuned_channel = channel_added;
+      return 0;
     }
 
   /* The list is already started, proceed until we reach the desired
@@ -1298,13 +964,13 @@ tveng_insert_tuned_channel_sorted (tveng_tuned_channel * new_channel,
   while (tc_ptr)
     {
       /* If this one orders itself after us, then insert it here */
-      if (strnatcasecmp(tc_ptr -> name, channel_added -> name) >=
+      if (strcasecmp(tc_ptr -> name, channel_added -> name) >=
 	  0)
 	{
 	  /* If two are the same string, but one has capitals and the
 	     other one doesn't, insert first the capitalized one */
-	  if ((strnatcasecmp(tc_ptr -> name, channel_added -> name) == 0)
-	       && (strnatcmp(tc_ptr -> name, channel_added -> name) < 0) )
+	  if ((strcasecmp(tc_ptr -> name, channel_added -> name) == 0)
+	       && (strcmp(tc_ptr -> name, channel_added -> name) < 0) )
 	      { /* Insert better in the next position */
 		index++;
 		if (!tc_ptr -> next) /* Insert it as the last item */
@@ -1317,9 +983,9 @@ tveng_insert_tuned_channel_sorted (tveng_tuned_channel * new_channel,
 	  /* replace tc_ptr with the current one */
 	  channel_added -> prev = tc_ptr -> prev;
 
-	  if (tc_ptr == list)
-	    list = channel_added; /* We are adding the first
-				     item */
+	  if (tc_ptr == tuned_channel)
+	    tuned_channel = channel_added; /* We are adding the first
+					      item */
       
 	  if (tc_ptr -> prev)
 	    tc_ptr -> prev -> next = channel_added;
@@ -1334,7 +1000,8 @@ tveng_insert_tuned_channel_sorted (tveng_tuned_channel * new_channel,
 	      tc_ptr = tc_ptr->next;
 	    }
 
-	  return first_channel(list);
+	  return channel_added->index; /* Return the pos we were
+					  inserted in */
 	}
 
       index++;
@@ -1350,130 +1017,17 @@ tveng_insert_tuned_channel_sorted (tveng_tuned_channel * new_channel,
   channel_added -> index = index;
   channel_added -> next = NULL;
 
-  return first_channel(list);
-}
-
-tveng_tuned_channel *
-tveng_append_tuned_channel (tveng_tuned_channel * new_channel,
-			    tveng_tuned_channel * list)
-{
-  tveng_tuned_channel * channel_added = (tveng_tuned_channel*)
-    g_malloc0(sizeof(tveng_tuned_channel));
-  tveng_tuned_channel * tc_ptr = first_channel(list);
-  int index = 0; /* Where are we storing it */
-
-  if (!new_channel)
-    return list;
-
-  list = first_channel(list);
-
-  if (new_channel->name)
-    channel_added->name = g_strdup(new_channel->name);
-  else
-    channel_added->name = g_strdup(_("(Unnamed channel)"));
-  if (new_channel->real_name)
-    channel_added->real_name = g_strdup(new_channel->real_name);
-  else
-    channel_added->real_name = g_strdup(_("(Unknown real channel)"));
-  if (new_channel->country)
-    channel_added->country = g_strdup(new_channel->country);
-  else
-    channel_added->country = g_strdup(_("(Unknown country)"));
-
-  channel_added->accel_key = new_channel->accel_key;
-  channel_added->accel_mask = new_channel->accel_mask;
-  channel_added->freq = new_channel->freq;
-  channel_added->input = new_channel->input;
-  channel_added->standard = new_channel->standard;
-  channel_added->num_controls = new_channel->num_controls;
-  if (new_channel->num_controls)
-    channel_added->controls =
-      g_memdup(new_channel->controls,
-	       channel_added->num_controls * sizeof(tveng_tc_control));
-
-  /* OK, we are starting the list */
-  if (!tc_ptr)
-    {
-      channel_added->index = 0;
-      channel_added->next = channel_added->prev = NULL;
-      return channel_added;
-    }
-
-  /* The list is already started, proceed until we reach the desired
-     channel */
-  while (TRUE)
-    {
-      index++;
-      if (!tc_ptr -> next)
-	break; /* last one reached */
-      tc_ptr = tc_ptr -> next;
-    }
-
-  /* Add this entry as the last one */
-  tc_ptr -> next = channel_added;
-  channel_added -> prev = tc_ptr;
-  channel_added -> index = index;
-  channel_added -> next = NULL;
-
-  return first_channel(list);
-}
-
-void
-tveng_tuned_channel_up (tveng_tuned_channel * channel)
-{
-  tveng_tuned_channel tmp;
-
-  if (!channel || !channel->prev)
-    return;
-
-  channel->prev->next = channel->next;
-  if (channel->next)
-    channel->next->prev = channel->prev;
-
-  tmp.next = channel->next;
-  tmp.prev = channel->prev;
-  channel->next = tmp.prev;
-  channel->prev = tmp.prev->prev;
-  if (channel->prev)
-    channel->prev->next = channel;
-  channel->next->prev = channel;
-
-  channel->index--;
-  tmp.prev->index++;
-}
-
-void
-tveng_tuned_channel_down (tveng_tuned_channel * channel)
-{
-  tveng_tuned_channel tmp;
-
-  if (!channel || !channel->next)
-    return;
-
-  if (channel->prev)
-    channel->prev->next = channel->next;
-  channel->next->prev = channel->prev;
-
-  tmp.next = channel->next;
-  tmp.prev = channel->prev;
-  channel->next = tmp.next->next;
-  channel->prev = tmp.next;
-  if (channel->next)
-    channel->next->prev = channel;
-  channel->prev->next = channel;
-
-  channel->index++;
-  tmp.next->index--;
+  return (index);
 }
 
 /*
-  Returns the number of items in the list
+  Returns the number of items in the tuned_channel list
 */
 int
-tveng_tuned_channel_num (tveng_tuned_channel * list)
+tveng_tuned_channel_num (void)
 {
   int num_channels = 0;
-  tveng_tuned_channel * tc_ptr = first_channel(list);
+  tveng_tuned_channel * tc_ptr = tuned_channel;
 
   while (tc_ptr)
     {
@@ -1492,31 +1046,28 @@ tveng_tuned_channel_num (tveng_tuned_channel * list)
   out of bounds. if real_name is not NULL, then the first matching
   item from id is deleted.
 */
-tveng_tuned_channel *
-tveng_remove_tuned_channel (gchar * real_name, int id,
-			    tveng_tuned_channel * list)
+int
+tveng_remove_tuned_channel (gchar * real_name, int id)
 {
   tveng_tuned_channel * tc_ptr;
   tveng_tuned_channel * tc_ptr_traverse;
 
-  list = first_channel(list);
-
-  if (!list)
-    return NULL;
+  if (!tuned_channel)
+    return -1;
   
   /* We don't have a real name, use the id as the offset */
   if (!real_name)
     {
-      tc_ptr = tveng_retrieve_tuned_channel_by_index(id, list);
+      tc_ptr = tveng_retrieve_tuned_channel_by_index(id);
       if (!tc_ptr)
-	return list;
+	return -1;
     }
   else /* We have a real name, go find it */
     {
       tc_ptr = tveng_retrieve_tuned_channel_by_real_name(real_name,
-							id, list);
+							id);
       if (!tc_ptr)
-	return list;
+	return -1;
     }
 
   /* We have the desired channel, delete it */
@@ -1527,11 +1078,9 @@ tveng_remove_tuned_channel (gchar * real_name, int id,
 
   g_free(tc_ptr -> name);
   g_free(tc_ptr -> real_name);
-  g_free(tc_ptr -> country);
-  g_free(tc_ptr -> controls);
 
-  if (list == tc_ptr) /* We are deleting the first item */
-    list = tc_ptr -> next;
+  if (tuned_channel == tc_ptr) /* We are deleting the first item */
+    tuned_channel = tc_ptr -> next;
 
   /* Update indexes */
   tc_ptr_traverse = tc_ptr -> next;
@@ -1544,58 +1093,20 @@ tveng_remove_tuned_channel (gchar * real_name, int id,
   /* We are done, kill this channel */
   g_free(tc_ptr);
 
-  return list;
-}
-
-/*
-  Copies src into dest
-*/
-void
-tveng_copy_tuned_channel(tveng_tuned_channel * dest,
-			 tveng_tuned_channel * src)
-{
-  g_free(dest->name);
-  g_free(dest->real_name);
-  g_free(dest->country);
-  g_free(dest->controls);
-
-  if (src->name)
-    dest->name = g_strdup(src->name);
-  else
-    dest->name = g_strdup(_("(Unnamed channel)"));
-  if (src->real_name)
-    dest->real_name = g_strdup(src->real_name);
-  else
-    dest->real_name = g_strdup(_("(Unknown real channel)"));
-  if (src->country)
-    dest->country = g_strdup(src->country);
-  else
-    dest->country = g_strdup(_("(Unknown country)"));
-
-  dest->input = src->input;
-  dest->standard = src->standard;
-
-  dest->accel_key = src->accel_key;
-  dest->accel_mask = src->accel_mask;
-  dest->freq = src->freq;
-  dest->num_controls = src->num_controls;
-
-  if (dest->num_controls)
-    dest->controls =
-      g_memdup(src->controls, dest->num_controls * sizeof(tveng_tc_control));
-  else
-    dest->controls = NULL;
+  return 0; /* Success */
 }
 
 /*
   Removes all the items in the channel list
 */
-tveng_tuned_channel *
-tveng_clear_tuned_channel (tveng_tuned_channel * list)
+int
+tveng_clear_tuned_channel (void)
 {
-  while ((list = tveng_remove_tuned_channel(NULL, 0, list)));
+  while (tuned_channel)
+    if (tveng_remove_tuned_channel(NULL, 0) < 0)
+      return -1;
 
-  return list;
+  return 0;
 }
 
 /*
@@ -1604,11 +1115,9 @@ tveng_clear_tuned_channel (tveng_tuned_channel * list)
   strcasecomp(), so "VoX" matches "vOx", "Vox", "voX", ...
 */
 tveng_tuned_channel*
-tveng_retrieve_tuned_channel_by_name (gchar * name, int index,
-				      tveng_tuned_channel * list)
+tveng_retrieve_tuned_channel_by_name (gchar * name, int index)
 {
-  tveng_tuned_channel * tc_ptr =
-    tveng_retrieve_tuned_channel_by_index (index, list);
+  tveng_tuned_channel * tc_ptr = tveng_retrieve_tuned_channel_by_index (index);
 
   if (!tc_ptr)
     return NULL;
@@ -1632,11 +1141,9 @@ tveng_retrieve_tuned_channel_by_name (gchar * name, int index,
   from index. Returns NULL on error. Again a strcasecmp
 */
 tveng_tuned_channel*
-tveng_retrieve_tuned_channel_by_real_name (gchar * real_name, int index,
-					   tveng_tuned_channel * list)
+tveng_retrieve_tuned_channel_by_real_name (gchar * real_name, int index)
 {
-  tveng_tuned_channel * tc_ptr =
-    tveng_retrieve_tuned_channel_by_index (index, list);
+  tveng_tuned_channel * tc_ptr = tveng_retrieve_tuned_channel_by_index (index);
 
   if (!tc_ptr)
     return NULL;
@@ -1659,16 +1166,13 @@ tveng_retrieve_tuned_channel_by_real_name (gchar * real_name, int index,
   Retrieves the channel in position "index". NULL on error
 */
 tveng_tuned_channel*
-tveng_retrieve_tuned_channel_by_index (int index,
-				       tveng_tuned_channel * list)
+tveng_retrieve_tuned_channel_by_index (int index)
 {
-  tveng_tuned_channel * tc_ptr = first_channel(list);
-
-  g_assert(index >= 0);
-
-  if (index >= tveng_tuned_channel_num(list))
-    return NULL; /* probably just traversing */
-
+  tveng_tuned_channel * tc_ptr = tuned_channel;
+  
+  if ((index < 0) || (index >= tveng_tuned_channel_num()))
+    return NULL; /* Bounds error */
+  
   while (tc_ptr)
     {
       if (tc_ptr -> index == index)
@@ -1679,11 +1183,4 @@ tveng_retrieve_tuned_channel_by_index (int index,
   g_assert_not_reached(); /* This shouldn't be reached if everything
 			     works */
   return NULL;
-}
-
-gboolean
-tveng_tuned_channel_in_list (tveng_tuned_channel * channel,
-			     tveng_tuned_channel * list)
-{
-  return (first_channel(channel) == first_channel(list));
 }

@@ -1,49 +1,12 @@
-Outstanding issues for the next release (0.6.0)
------------------------------------------------
-	+ Finish parrot buffer for observing parrots.
-	+ Find/draw some icons for the parrot buffer plugin.
-	+ Fix country size field width.
-	+ Reorganize toolbar, etc.
-
-> 0.6.1
-	+ extend OSD to allow arbitrary strings, not just CC and ttx.
-	+ Add some remote control applet (or sth like that).
-	+ Have a copy of the stuff in the "quick bar" in the main menu
-	(for keyb navigation)
-	+ Key combos for lazy guys like me (channels + mute)
-	+ Fullscreen channel tips.
-	+ GUI improvements (channel selection, controls, toolbar...),
-	channel submenus.
-	+ Revamp GUI for closed caption, program info, etc.
-	+ Screenshot preview.
-	+ Get thumbnails of all tuned channels.
-	+ --roottv switch (use Z as screensaver)
-	+ Save control values and restore on startup (per channel).
-	+ Save screenshots at arbitrary sizes.
-	+ Create screenshots/mpeg/ttx dirs if not existant at write time.
-	+ In ttx search it will be more newbie friendly to make
-	  regexp optional. In progress window emphasis jumps between
-	  Cancel and Prev, should be Cancel and Next. Is Cancel correct
-	  at the left? And it may be cleaner with an Abort (the search)
-	  and a Cancel (the dialog).
-	+ In tty gui: The "R" (Reveal) button is unsuitable for i18n,
-	  should be "?" (preferably a nice pixmap), and "?" as kbd
-	  shortcut. Verify no other language dependant accels exist.
-	+ Improve documentation.
-	+ Avoid bundle memcpy in MPEG plugin. The V4L unsync warning is
-	  useless btw when we get no proper ESD timestamps either. :-(
-	+ Make controls move faster with the keyb, and avoid rounding
-	issues (maxvalue never reached because of integer rounding)
-	+ In ttx export: instead of "export dir", chop off and remember
-	  the last path entered. Add HTML option "Save Color". Make
-	  blockgfx replacement smarter.
-	+ zapzilla: channel selector, properties.
-
-> Somewhen...
-	+ Do realtime effects to the image, plainly wonderful, see
-	http://matsu-www.is.titech.ac.jp/~fukuchi/rooms/EffecTV/index.html
-	? Add a link to http://www.firstlinux.com/articles/zapping.shtml
-	  on the Z homepage. There was another french review, URL?
-
-please tell me about anything you think it's worth adding. 
-garetxe@users.sourceforge.net
+Outstanding issues for the next release
+---------------------------------------
+	+ Add plugin support and convert PNG saving into a plugin
+	+ Add some sort of AVI capture
+	+ Report "Control always 0 first time it's read" bug
+	+ Add perfomance test (full v4l2 /dev/video use implemented?)
+	+ Add the help for the Properties
+	+ Full i18n
+	+ Add desktop (and root menu) entries
+	+ Get rid of those annoying warnings about io.c
+	+ Fix all fixme's
+	+ Bug Track

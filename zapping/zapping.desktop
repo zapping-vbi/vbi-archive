@@ -1,7 +1,0 @@
-[Desktop Entry]
-Name=Zapping
-Comment=TV viewer
-Comment[es]=Pantalla de TV
-Exec=zapping
-Icon=zapping/gnome-television.png
-Type=Application
