@@ -18,13 +18,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.3 2000-10-17 06:18:45 mschimek Exp $ */
+/* $Id: vbi.c,v 1.4 2000-10-27 19:15:18 mschimek Exp $ */
 
 #include "../common/fifo.h"
 #include "../systems/mpeg.h"
 #include "../systems/systems.h"
 #include "../common/alloc.h"
 #include "../common/log.h"
+#include "../common/remote.h"
 #include "../options.h"
 #include "vbi.h"
 
@@ -84,20 +85,14 @@ vbi_thread(void *unused)
 	unsigned char *p, *p1;
 	int vbi_frame_count = 0;
 
-#if USE_REMOTE
 	if (do_subtitles)
 		remote_sync(vbi_cap_fifo, MOD_SUBTITLES, 1 / 25.0);
-#endif
 
 	while (vbi_frame_count < video_num_frames) { // XXX video XXX pdc
 		if (!(ibuf = wait_full_buffer(vbi_cap_fifo)))
 			break; // EOF
 
-#if USE_REMOTE
 		if (do_subtitles && remote_break(ibuf->time, 1 / 25.0)) {
-#else
-		if (do_subtitles && (ibuf->time >= vbi_stop_time)) {
-#endif
 			send_empty_buffer(vbi_cap_fifo, ibuf);
 			break;
 		}

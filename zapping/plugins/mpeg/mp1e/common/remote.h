@@ -18,15 +18,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: remote.h,v 1.1 2000-10-17 06:18:45 mschimek Exp $ */
+/* $Id: remote.h,v 1.2 2000-10-27 19:15:18 mschimek Exp $ */
 
 #ifndef REMOTE_H
 #define REMOTE_H
 
 #include "threads.h"
 #include "fifo.h"
-
-#define USE_REMOTE 0
 
 extern struct remote {
 	mucon			mucon;

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.32 2000-10-25 22:57:13 garetxe Exp $ */
+/* $Id: rte.c,v 1.33 2000-10-27 19:15:17 mschimek Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -43,6 +43,7 @@
 #include "common/log.h"
 #include "common/mmx.h"
 #include "common/bstream.h"
+#include "common/remote.h"
 #include "main.h"
 
 /*
@@ -777,7 +778,7 @@ int rte_start_encoding (rte_context * context)
 		return 0;
 	}
 
-	synchronize_capture_modules(FALSE);
+	remote_init(modules);
 
 	if (modules & MOD_AUDIO) {
 		ASSERT("create audio compression thread",
@@ -826,6 +827,8 @@ int rte_start_encoding (rte_context * context)
 		break;
 	}
 
+	remote_start(0.0); // now
+
 	context->private->encoding = 1;
 
 	return 1;
@@ -833,7 +836,6 @@ int rte_start_encoding (rte_context * context)
 
 void rte_stop ( rte_context * context )
 {
-	struct timeval tv;
 	rteDataCallback audio_callback;
 	rteDataCallback video_callback;
 
@@ -875,13 +877,8 @@ void rte_stop ( rte_context * context )
 		pthread_cond_broadcast(&(context->private->vid_consumer.cond));
 	}
 
-	/* fixme: use the remote stuff */
 	/* Tell the mp1e threads to shut down */
-	gettimeofday(&tv, NULL);
-
-	video_stop_time =
-	vbi_stop_time =
-	audio_stop_time = tv.tv_sec + tv.tv_usec / 1e6;
+	remote_stop(0.0); // now
 
 	/* Join the mux thread */
 	pthread_join(context->private->mux_thread, NULL);

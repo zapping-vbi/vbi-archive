@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: remote.c,v 1.1 2000-10-17 06:18:45 mschimek Exp $ */
+/* $Id: remote.c,v 1.2 2000-10-27 19:15:18 mschimek Exp $ */
 
 #include <float.h>
 #include "remote.h"
@@ -107,6 +107,8 @@ remote_sync(fifo *input_fifo, unsigned int this_module, double frame_period)
 				this_module, b->time, remote.start_time);
 			remote.start_time = b->time;
 			remote.vote = this_module;
+			if (this_module == remote.modules)
+				break;
 			pthread_cond_broadcast(&remote.mucon.cond);
 			pthread_cond_wait(&remote.mucon.cond, &remote.mucon.mutex);
 			continue;

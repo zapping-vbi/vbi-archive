@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#define PROFILING 1
+#define PROFILING 0
 
 #if PROFILING
 

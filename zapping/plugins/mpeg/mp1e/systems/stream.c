@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: stream.c,v 1.6 2000-10-15 21:24:48 mschimek Exp $ */
+/* $Id: stream.c,v 1.7 2000-10-27 19:15:18 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -368,6 +368,8 @@ mpeg_header_name(unsigned int code)
 	}
 }
 
+#if 0 // OBSOLETE
+
 void
 synchronize_capture_modules(bool start)
 {
@@ -426,3 +428,5 @@ synchronize_capture_modules(bool start)
 	for (str = (stream *) mux_input_streams.head; str; str = (stream *) str->node.next)
 		unget_full_buffer(str->cap_fifo, str->buf);
 }
+
+#endif

@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.8 2000-10-17 06:18:45 mschimek Exp $ */
+/* $Id: mp2.c,v 1.9 2000-10-27 19:15:18 mschimek Exp $ */
 
 #include <limits.h>
 #include "../options.h"
@@ -355,9 +355,7 @@ mpeg_audio_layer_ii_mono(void *unused)
 {
 	// fpu_control(FPCW_PRECISION_SINGLE, FPCW_PRECISION_MASK);
 
-#if USE_REMOTE
 	remote_sync(audio_cap_fifo, MOD_AUDIO, frame_period);
-#endif
 
 	for (;;) {
 		buffer *ibuf, *obuf;
@@ -384,11 +382,7 @@ mpeg_audio_layer_ii_mono(void *unused)
 
 		ibuf = wait_full_buffer(audio_cap_fifo);
 
-#if USE_REMOTE
 		if (!ibuf || remote_break(ibuf->time, frame_period)) {
-#else
-		if (!ibuf || ibuf->time >= audio_stop_time) {
-#endif
 			if (ibuf)
 				send_empty_buffer(audio_cap_fifo, ibuf);
 			terminate();
@@ -641,9 +635,7 @@ mpeg_audio_layer_ii_stereo(void *unused)
 {
 	// fpu_control(FPCW_PRECISION_SINGLE, FPCW_PRECISION_MASK);
 
-#if USE_REMOTE
 	remote_sync(audio_cap_fifo, MOD_AUDIO, frame_period);
-#endif
 
 	for (;;) {
 		buffer *ibuf, *obuf;
@@ -670,11 +662,7 @@ mpeg_audio_layer_ii_stereo(void *unused)
 
 		ibuf = wait_full_buffer(audio_cap_fifo);
 
-#if USE_REMOTE
 		if (!ibuf || remote_break(ibuf->time, frame_period)) {
-#else
-		if (!ibuf || ibuf->time >= audio_stop_time) {
-#endif
 			if (ibuf)
 				send_empty_buffer(audio_cap_fifo, ibuf);
 			terminate();

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.13 2000-10-27 16:20:06 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.14 2000-10-27 19:15:18 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -144,8 +144,8 @@ extern bool		temporal_interpolation;
 extern int		preview;
 extern void		packed_preview(unsigned char *buffer, int mb_cols, int mb_rows);
 
-int p_inter_bias = 65536 * 48 * 2,
-    b_inter_bias = 65536 * 96 * 2,
+int p_inter_bias = 65536 * 48,
+    b_inter_bias = 65536 * 96,
     quant_max = 31;
 
 #define QS 1
@@ -1351,9 +1351,7 @@ mpeg1_video_ipb(void *unused)
 
 	printv(3, "Video compression thread\n");
 
-#if USE_REMOTE
 	remote_sync(video_cap_fifo, MOD_VIDEO, time_per_frame);
-#endif
 
 	while (!done) {
 		int sp = 0;
@@ -1412,13 +1410,8 @@ mpeg1_video_ipb(void *unused)
 
 			sp++;
 
-#if USE_REMOTE
 			if (!this->org[0] || remote_break(this->time, time_per_frame) ||
 			    video_frame_count + sp > video_num_frames) {
-#else
-			if (!this->org[0] || this->time >= video_stop_time ||
-			    video_frame_count + sp > video_num_frames) {
-#endif
 				printv(2, "Video: End of file\n");
 
 				if (this->org[0] && this->buffer)

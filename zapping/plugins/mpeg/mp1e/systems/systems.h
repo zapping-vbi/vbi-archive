@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: systems.h,v 1.7 2000-10-15 21:24:48 mschimek Exp $ */
+/* $Id: systems.h,v 1.8 2000-10-27 19:15:18 mschimek Exp $ */
 
 #ifndef __SYSTEMS_H__
 #define __SYSTEMS_H__
@@ -27,7 +27,6 @@ extern mucon			mux_mucon;
 extern int			bytes_out;
 
 extern double			get_idle(void);
-extern void			synchronize_capture_modules(bool start);
 
 extern void *			stream_sink(void *unused);
 extern void *			mpeg1_system_mux(void *unused);

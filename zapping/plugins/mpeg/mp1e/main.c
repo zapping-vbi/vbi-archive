@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.28 2000-10-21 23:28:23 garetxe Exp $ */
+/* $Id: main.c,v 1.29 2000-10-27 19:15:17 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -104,21 +104,14 @@ terminate(int signum)
 
 	now = tv.tv_sec + tv.tv_usec / 1e6;
 
-#if USE_REMOTE
 	if (1)
 		remote_stop(0.0); // past times: stop asap
-		// XXX mutexes and signals don't mix
+		// XXX NOT SAFE mutexes and signals don't mix
 	else {
 		printv(0, "Deferred stop in 3 seconds\n");
 		remote_stop(now + 3.0);
 		// XXX allow cancelling
 	}
-#else
-	video_stop_time =
-	vbi_stop_time =
-	audio_stop_time = tv.tv_sec + tv.tv_usec / 1e6;
-// XXX unsafe? atomic set, once only, potential rc
-#endif
 
 	printv(1, "\nStop at %f\n", now);
 }
@@ -260,13 +253,9 @@ main(int ac, char **av)
 
 	ASSERT("initialize output routine", init_output_stdout());
 
-#if USE_REMOTE
 	// pause loop? >>
 
 	remote_init(modules);
-#else
-	synchronize_capture_modules(TRUE);
-#endif
 
 	if (modules & MOD_AUDIO) {
 		ASSERT("create audio compression thread",
@@ -324,7 +313,6 @@ main(int ac, char **av)
 		break;
 	}
 
-#if USE_REMOTE
 	/*
 	 *  Engines are running (ie. capturing),
 	 *  let's hit the record button.
@@ -340,7 +328,6 @@ main(int ac, char **av)
 
     		remote_start(3.0 + tv.tv_sec + tv.tv_usec / 1e6);
 	}
-#endif
 
 /*
    Suffice to suspend execution until mux_thread terminates.
