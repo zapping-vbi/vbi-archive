@@ -59,6 +59,7 @@ struct _rte_context_private {
 	pthread_mutex_t audio_mutex; /* mutex for the fetcher */
 	pthread_cond_t audio_cond; /* cond for the fetcher */
 	_rte_filter rgbfilter; /* the filter used for conversion, if any */
+	char * rgbmem; /* allocated mem for the rgb image */
 };
 
 #endif /* rtepriv.h */

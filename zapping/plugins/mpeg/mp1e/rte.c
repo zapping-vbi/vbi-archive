@@ -29,6 +29,7 @@
 #include "common/mmx.h"
 #include "common/math.h"
 #include "rtepriv.h"
+#include "convert_ry.h"
 #include "video/video.h" /* fixme: video_unget_frame and friends */
 #include "audio/audio.h" /* fixme: audio_read prots. */
 #include "audio/mpeg.h"
@@ -354,6 +355,11 @@ void rte_set_video_parameters (rte_context * context,
 	context->output_video_bits = output_video_bits;
 	context->video_bytes = context->width * context->height;
 	context->private->rgbfilter = NULL;
+	if (context->private->rgbmem)
+	{
+		free(context->private->rgbmem);
+		context->private->rgbmem = NULL;
+	}
 
 	switch (frame_format)
 	{
@@ -366,26 +372,38 @@ void rte_set_video_parameters (rte_context * context,
 	case RTE_RGB555:
 		context->video_bytes *= 1.5;
 		context->private->rgbfilter = convert_rgb555_ycbcr420;
+		context->private->rgbmem =
+			malloc(context->width*context->height*2);
 		break;
 	case RTE_RGB565:
 		context->video_bytes *= 1.5;
 		context->private->rgbfilter = convert_rgb565_ycbcr420;
+		context->private->rgbmem =
+			malloc(context->width*context->height*2);
 		break;
 	case RTE_RGB24:
 		context->video_bytes *= 1.5;
 		context->private->rgbfilter = convert_rgb24_ycbcr420;
+		context->private->rgbmem =
+			malloc(context->width*context->height*3);
 		break;
 	case RTE_BGR24:
 		context->video_bytes *= 1.5;
 		context->private->rgbfilter = convert_bgr24_ycbcr420;
+		context->private->rgbmem =
+			malloc(context->width*context->height*3);
 		break;
 	case RTE_RGB32:
 		context->video_bytes *= 1.5;
 		context->private->rgbfilter = convert_rgb32_ycbcr420;
+		context->private->rgbmem =
+			malloc(context->width*context->height*4);
 		break;
 	case RTE_BGR32:
 		context->video_bytes *= 1.5;
 		context->private->rgbfilter = convert_bgr32_ycbcr420;
+		context->private->rgbmem =
+			malloc(context->width*context->height*4);
 		break;
 	default:
 		rte_error(context, "unhandled pixformat: %d", frame_format);
@@ -691,6 +709,10 @@ void rte_stop ( rte_context * context )
 		close(context->private->fd);
 		context->private->fd = -1;
 	}
+	if (context->private->rgbmem) {
+		free(context->private->rgbmem);
+		context->private->rgbmem = NULL;
+	}
 }
 
 /* Input handling functions */
@@ -724,8 +746,11 @@ void * rte_push_video_data ( rte_context * context, void * data,
 	       || (!context->private->last_video_buffer && !data));
 
 	if (data) {
-		ASSERT("you haven't written to the provided buffer!\n",
-		       data == context->private->last_video_buffer->data);
+		if (!context->private->rgbfilter)
+			ASSERT("you haven't written to the provided buffer!\n",
+			       data == context->private->last_video_buffer->data);
+		else
+			context->private->rgbfilter(data, context->private->last_video_buffer->data, context->width, context->height);
 
 		context->private->last_video_buffer->time = time;
 
@@ -742,6 +767,9 @@ void * rte_push_video_data ( rte_context * context, void * data,
 		pthread_cond_broadcast(&(context->private->video_cond));
 		pthread_mutex_unlock(&(context->private->video_mutex));
 	}
+
+	if (context->private->rgbfilter)
+		return context->private->rgbmem;
 
 	return buf->data;
 }
