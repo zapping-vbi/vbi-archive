@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping.c,v 1.6 2004-10-09 05:41:28 mschimek Exp $ */
+/* $Id: zapping.c,v 1.7 2004-11-03 06:44:27 mschimek Exp $ */
 
 #include "config.h"
 #include "site_def.h"
@@ -33,6 +33,7 @@
 #include "zmisc.h"
 #include "zvideo.h"
 #include "zapping.h"
+#include "zvbi.h"
 #include "remote.h"
 
 static GObjectClass *		parent_class;
@@ -363,7 +364,7 @@ static void
 help_contents_action		(GtkAction *		action _unused_,
 				 Zapping *		z _unused_)
 {
-  gnome_help_display ("zapping", NULL, /* GError */ NULL);
+  z_help_display (NULL, "zapping", NULL);
 }
 
 static void
@@ -438,7 +439,7 @@ generic_toggle_actions [] = {
     N_("Switch audio on or off"), G_CALLBACK (mute_action), FALSE },
   { "ViewMenu", NULL, N_("Menu"), NULL,
     NULL, G_CALLBACK (view_menu_action), TRUE },
-  { "ViewToolbar", NULL, N_("Toolbar"), NULL,
+  { "ViewToolbar", NULL, N_("_Toolbar"), NULL,
     NULL, G_CALLBACK (view_toolbar_action), TRUE },
   { "KeepWindowOnTop", NULL, N_("Keep window on top"), NULL,
     NULL, G_CALLBACK (keep_window_on_top_action), FALSE },
@@ -560,11 +561,12 @@ void
 zapping_create_popup		(Zapping *		z,
 				 GdkEventButton *	event)
 {
+  GError *error = NULL;
   GtkUIManager *ui_manager;
-  GError *error;
   GtkWidget *widget;
   GtkWidget *popup_menu;
   GtkWidget *menu;
+  gboolean success;
 
   ui_manager = gtk_ui_manager_new ();
   gtk_ui_manager_insert_action_group (ui_manager,
@@ -572,12 +574,19 @@ zapping_create_popup		(Zapping *		z,
   gtk_ui_manager_insert_action_group (ui_manager,
 				      z->vbi_action_group, APPEND);
 
-  error = NULL;
-  if (!gtk_ui_manager_add_ui_from_string (ui_manager, popup_menu_description,
-					  NUL_TERMINATED, &error))
+  success = gtk_ui_manager_add_ui_from_string (ui_manager,
+					       popup_menu_description,
+					       NUL_TERMINATED,
+					       &error);
+  if (!success || error)
     {
-      g_message ("Cannot build popup menu:\n%s", error->message);
-      g_error_free (error);
+      if (error)
+	{
+	  g_message ("Cannot build popup menu:\n%s", error->message);
+	  g_error_free (error);
+	  error = NULL;
+	}
+
       exit (EXIT_FAILURE);
     }
 
@@ -593,7 +602,7 @@ zapping_create_popup		(Zapping *		z,
 #ifdef HAVE_LIBZVBI
   if (zvbi_get_object ())
     {
-      if (CAPTURE_MODE_TELETEXT == z->info->capture_mode)
+      if (CAPTURE_MODE_TELETEXT == tv_get_capture_mode (z->info))
 	{
 	  widget = gtk_ui_manager_get_widget
 	    (ui_manager, "/Popup/PopupSubmenu/TeletextSubmenu");
@@ -601,8 +610,8 @@ zapping_create_popup		(Zapping *		z,
 	  if (widget)
 	    {
 	      menu = NULL;
-	      if (_ttxview_popup)
-                menu = _ttxview_popup (GTK_WIDGET (zapping), event);  
+	      if (_ttxview_popup_menu_new)
+                menu = _ttxview_popup_menu_new (GTK_WIDGET (zapping), event);  
 	      if (menu)
 		gtk_menu_item_set_submenu (GTK_MENU_ITEM (widget), menu);
 	      else
@@ -641,7 +650,7 @@ zapping_create_popup		(Zapping *		z,
 	(ui_manager, "/Popup/PopupSubmenu/SubtitlesSubmenu");
       if (widget)
 	{
-	  if ((menu = subtitles_menu_new ()))
+	  if ((menu = subtitle_menu_new ()))
 	    gtk_menu_item_set_submenu (GTK_MENU_ITEM (widget), menu);
 	  else
 	    gtk_widget_hide (widget);
@@ -818,11 +827,12 @@ instance_init			(GTypeInstance *	instance,
 				 gpointer		g_class _unused_)
 {
   Zapping *z = (Zapping *) instance;
-  GError *error;
+  GError *error = NULL;
   GtkAction *action;
   GtkToggleAction *toggle_action;
   GtkWidget *box;
   GtkWidget *widget;
+  gboolean success;
 
   z->generic_action_group = gtk_action_group_new ("ZappingGenericActions");
 #ifdef ENABLE_NLS
@@ -847,9 +857,7 @@ instance_init			(GTypeInstance *	instance,
 
   /* We add the submenu ourselves. Make sure the menu item is
      visible despite initially without menu. */
-  action = gtk_action_group_get_action (z->generic_action_group,
-					"ChannelsSubmenu");
-  g_object_set (G_OBJECT (action), "hide-if-empty", FALSE, NULL);
+  z_show_empty_submenu (z->generic_action_group, "ChannelsSubmenu");
 
   z->vbi_action_group = gtk_action_group_new ("ZappingVBIActions");
 #ifdef ENABLE_NLS
@@ -875,15 +883,9 @@ instance_init			(GTypeInstance *	instance,
 
   /* We add the submenu ourselves. Make sure the menu item is
      visible despite initially without menu. */
-  action = gtk_action_group_get_action (z->vbi_action_group,
-					"TeletextSubmenu");
-  g_object_set (G_OBJECT (action), "hide-if-empty", FALSE, NULL);
-  action = gtk_action_group_get_action (z->vbi_action_group,
-					"SubtitlesSubmenu");
-  g_object_set (G_OBJECT (action), "hide-if-empty", FALSE, NULL);
-  action = gtk_action_group_get_action (z->vbi_action_group,
-					"BookmarksSubmenu");
-  g_object_set (G_OBJECT (action), "hide-if-empty", FALSE, NULL);
+  z_show_empty_submenu (z->vbi_action_group, "TeletextSubmenu");
+  z_show_empty_submenu (z->vbi_action_group, "SubtitlesSubmenu");
+  z_show_empty_submenu (z->vbi_action_group, "BookmarksSubmenu");
 
   gnome_app_construct (&z->app, "Zapping", "Zapping");
 
@@ -893,12 +895,19 @@ instance_init			(GTypeInstance *	instance,
   gtk_ui_manager_insert_action_group (z->ui_manager,
 				      z->vbi_action_group, APPEND);
 
-  error = NULL;
-  if (!gtk_ui_manager_add_ui_from_string (z->ui_manager, ui_description,
-					  NUL_TERMINATED, &error))
+  success = gtk_ui_manager_add_ui_from_string (z->ui_manager,
+					       ui_description,
+					       NUL_TERMINATED,
+					       &error);
+  if (!success || error)
     {
-      g_message ("Cannot build main menu:\n%s", error->message);
-      g_error_free (error);
+      if (error)
+	{
+	  g_message ("Cannot build main menu:\n%s", error->message);
+	  g_error_free (error);
+	  error = NULL;
+	}
+
       exit (EXIT_FAILURE);
     }
 

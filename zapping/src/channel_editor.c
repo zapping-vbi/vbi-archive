@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: channel_editor.c,v 1.43 2004-09-10 04:53:26 mschimek Exp $ */
+/* $Id: channel_editor.c,v 1.44 2004-11-03 06:43:53 mschimek Exp $ */
 
 /*
   TODO:
@@ -414,8 +414,12 @@ entry_fine_tuning_set		(channel_editor *	ce,
 				 const tveng_device_info *info,
 				 guint			frequency)
 {
-  GtkAdjustment *spin_adj = z_spinslider_get_spin_adj (ce->entry_fine_tuning);
-  GtkAdjustment *hscale_adj = z_spinslider_get_hscale_adj (ce->entry_fine_tuning);
+  GtkAdjustment *spin_adj;
+  GtkAdjustment *hscale_adj;
+  const tv_video_line *vi;
+
+  spin_adj = z_spinslider_get_spin_adj (ce->entry_fine_tuning);
+  hscale_adj = z_spinslider_get_hscale_adj (ce->entry_fine_tuning);
 
   if (frequency > 0)
     {
@@ -448,9 +452,10 @@ entry_fine_tuning_set		(channel_editor *	ce,
       z_spinslider_set_reset_value (ce->entry_fine_tuning, dfreq);
     }
 
-  if (frequency == 0
-      || !info->cur_video_input
-      || info->cur_video_input->type != TV_VIDEO_LINE_TYPE_TUNER)
+  vi = tv_cur_video_input (info);
+  if (0 == frequency
+      || NULL == vi
+      || vi->type != TV_VIDEO_LINE_TYPE_TUNER)
     gtk_widget_set_sensitive (ce->entry_fine_tuning, FALSE);
   else
     gtk_widget_set_sensitive (ce->entry_fine_tuning, TRUE);
@@ -1237,11 +1242,11 @@ on_ok_clicked			(GtkButton *		ok _unused_,
 }
 
 static void
-on_help_clicked			(GtkButton *		cancel _unused_,
-				 channel_editor *	ce _unused_)
+on_help_clicked			(GtkButton *		button _unused_,
+				 channel_editor *	ce)
 {
-  /* XXX handle error */
-  gnome_help_display ("zapping", "zapping-channel-editor", NULL);
+  z_help_display (GTK_WINDOW (ce->channel_editor),
+		  "zapping", "zapping-channel-editor");
 }
 
 static void

@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cmd.c,v 1.12 2004-10-11 01:53:14 mschimek Exp $ */
+/* $Id: cmd.c,v 1.13 2004-11-03 06:44:11 mschimek Exp $ */
 
 /**
  * Provides the functionality in the Python interface of Zapping.
@@ -75,7 +75,7 @@ static PyObject* py_quit (PyObject *self _unused_,
   zconf_set_int (h, "/zapping/internal/callbacks/h");
 
   mode = to_old_tveng_capture_mode (zapping->display_mode,
-				    zapping->info->capture_mode);
+				    tv_get_capture_mode (zapping->info));
   zconf_set_int (mode, "/zapping/options/main/capture_mode");
 
   zmisc_switch_mode (DISPLAY_MODE_WINDOW,
@@ -106,7 +106,7 @@ switch_mode			(display_mode dmode,
 
   if (-1 == zmisc_switch_mode (dmode, cmode, zapping->info))
     {
-      ShowBox(zapping->info->error, GTK_MESSAGE_ERROR);
+      ShowBox(tv_get_errstr(zapping->info), GTK_MESSAGE_ERROR);
       return FALSE;
     }
 
@@ -201,7 +201,7 @@ py_switch_mode			(PyObject *		self _unused_,
     g_error ("zapping.switch_mode(s)");
 
   cur_dmode = zapping->display_mode;
-  cur_cmode = zapping->info->capture_mode;
+  cur_cmode = tv_get_capture_mode (zapping->info);
 
   if (!parse_modes (&new_dmode, &new_cmode, mode_str))
     {
@@ -249,7 +249,7 @@ py_toggle_mode			(PyObject *		self _unused_,
     g_error ("zapping.toggle_mode(|s)");
 
   cur_dmode = zapping->display_mode;
-  cur_cmode = zapping->info->capture_mode;
+  cur_cmode = tv_get_capture_mode (zapping->info);
 
   if (mode_str)
     {
@@ -350,12 +350,11 @@ static PyObject* py_resize_screen (PyObject *self _unused_, PyObject *args)
   py_return_true;
 }
 
-
-static PyObject *py_help (PyObject *self _unused_, PyObject *args _unused_)
+static PyObject *
+py_help				(PyObject *		self _unused_,
+				 PyObject *		args _unused_)
 {
-  /* XXX handle error, maybe use link_id */
-  gnome_help_display ("zapping", NULL, NULL);
-
+  z_help_display (NULL, "zapping", NULL);
   py_return_none;
 }
 
