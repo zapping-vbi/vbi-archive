@@ -150,12 +150,6 @@ void render_ttx_mask(int id, GdkBitmap *bitmap);
  */
 void refresh_ttx_page(int id, GtkWidget *drawable);
 
-/* Startups the VBI engine (doesn't open devices) */
-void startup_zvbi(void);
-
-/* Shuts down the VBI engine */
-void shutdown_zvbi(void);
-
 /* Open the configured VBI device, FALSE on error */
 gboolean
 zvbi_open_device(const char *device);
@@ -231,6 +225,12 @@ vbi_wst_level
 zvbi_teletext_level (void);
 
 #else /* !HAVE_LIBZVBI */
+
+/* Startups the VBI engine (doesn't open devices) */
+void startup_zvbi(void);
+
+/* Shuts down the VBI engine */
+void shutdown_zvbi(void);
 
 typedef unsigned int vbi_pgno;
 
