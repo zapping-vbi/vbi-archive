@@ -686,6 +686,17 @@ start_saving_screenshot (gpointer data_to_save,
   data->cinfo.in_color_space = jpeg_color_space;
   jpeg_set_defaults(&(data->cinfo));
   jpeg_set_quality(&(data->cinfo), quality, TRUE);
+#if 0
+  if (jpeg_color_space == JCS_YCbCr)
+    {
+      data->cinfo.comp_info[0].h_samp_factor = 2;//		for Y
+      data->cinfo.comp_info[0].v_samp_factor = 2;
+      data->cinfo.comp_info[1].h_samp_factor = 1;//		for Cb
+      data->cinfo.comp_info[1].v_samp_factor = 1;
+      data->cinfo.comp_info[2].h_samp_factor = 1;//		for Cr
+      data->cinfo.comp_info[2].v_samp_factor = 1;
+    }
+#endif
   jpeg_start_compress(&(data->cinfo), TRUE);
 
   data -> window = gtk_window_new(GTK_WINDOW_DIALOG);
@@ -782,7 +793,7 @@ static void * saver_thread(void * _data)
       Converter = NULL;
       break;
     default:
-      fprintf(stderr, "pixformat not supported");
+      g_warning("pixformat not supported");
       goto finish; /* thread cleanup */
     }
 

@@ -224,6 +224,7 @@ int tveng2_attach_device(const char* device_file,
   /* Fill in inputs */
   info->inputs = NULL;
   info->cur_input = 0;
+  info->num_inputs = 0;
   error = tveng2_get_inputs(info);
   if (error < 0)
     {
@@ -244,6 +245,7 @@ int tveng2_attach_device(const char* device_file,
   /* Fill in standards */
   info->standards = NULL;
   info->cur_standard = 0;
+  info->num_standards = 0;
   error = tveng2_get_standards(info);
   if (error < 0)
     {
@@ -456,10 +458,13 @@ int tveng2_set_input(struct tveng_enum_input * input,
 		     tveng_device_info * info)
 {
   enum tveng_capture_mode current_mode;
+  enum tveng_frame_pixformat pixformat;
   struct v4l2_input new_input;
 
   t_assert(info != NULL);
   t_assert(input != NULL);
+
+  pixformat = info->format.pixformat;
 
   current_mode = tveng_stop_everything(info);
 
@@ -470,6 +475,9 @@ int tveng2_set_input(struct tveng_enum_input * input,
       t_error("VIDIOC_S_INPUT", info);
       return -1;
     }
+
+  info->format.pixformat = pixformat;
+  tveng_set_capture_format(info);
 
   /* Start capturing again as if nothing had happened */
   if (tveng_restart_everything(current_mode, info) == -1)
@@ -620,10 +628,13 @@ int tveng2_get_standards(tveng_device_info * info)
 int tveng2_set_standard(struct tveng_enumstd * std, tveng_device_info * info)
 {
   enum tveng_capture_mode current_mode;
+  enum tveng_frame_pixformat pixformat;
   struct v4l2_enumstd enumstd;
 
   t_assert(info != NULL);
   t_assert(std != NULL);
+
+  pixformat = info->format.pixformat;
 
   current_mode = tveng_stop_everything(info);
 
@@ -650,6 +661,9 @@ int tveng2_set_standard(struct tveng_enumstd * std, tveng_device_info * info)
   info->cur_standard = std->index;
 
   /* Start capturing again as if nothing had happened */
+  info->format.pixformat = pixformat;
+  tveng_set_capture_format(info);
+
   return tveng_restart_everything(current_mode, info);
 }
 
@@ -1489,9 +1503,6 @@ tveng2_get_tuner_bounds(__u32 * min, __u32 * max, tveng_device_info *
 }
 
 /* Some private functions */
-static int p_tveng2_qbuf(int index, tveng_device_info * info);
-static int p_tveng2_dqbuf(tveng_device_info * info);
-
 /* Queues an specific buffer. -1 on error */
 static int p_tveng2_qbuf(int index, tveng_device_info * info)
 {
@@ -1564,7 +1575,7 @@ tveng2_start_capturing(tveng_device_info * info)
   p_info -> buffers = NULL;
   p_info -> num_buffers = 0;
 
-  rb.count = 8; /* This is a good number */
+  rb.count = 8; /* This is a good number(tm) */
   rb.type = V4L2_BUF_TYPE_CAPTURE;
   if (ioctl(info->fd, VIDIOC_REQBUFS, &rb))
     {

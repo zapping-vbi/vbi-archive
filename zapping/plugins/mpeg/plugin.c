@@ -17,6 +17,7 @@
  */
 #include "plugin_common.h"
 #include <glade/glade.h>
+#include <rte.h>
 
 /*
   This plugin was built from the template one. It does some thing
@@ -37,12 +38,16 @@ static const gchar str_author[] = "Iñaki García Etxebarria";
    %d[[.%d[.%d]][other_things]], where the things between [] aren't
    needed, and if not present, 0 will be assumed */
 static const gchar str_version[] = "0.1";
-
-/* Set to TRUE when plugin_close is called */
-static gboolean close_everything = FALSE;
-
-static tveng_device_info * zapping_info = NULL; /* Info about the
-						   video device */
+/* TRUE if we are running */
+static gboolean active = FALSE;
+/* Number of encoded frames */
+static gint coded_frames = 0;
+/* Destination buffer provided by rte */
+static void * dest_buffer = NULL;
+/* The context we are encoding to */
+static rte_context * context = NULL;
+/* Info about the video device */
+static tveng_device_info * zapping_info = NULL;
 
 gint plugin_get_protocol ( void )
 {
@@ -129,20 +134,107 @@ gboolean plugin_init ( PluginBridge bridge, tveng_device_info * info )
 {
   zapping_info = info;
 
+  if (!rte_init())
+    {
+      ShowBox("RTE cannot be inited in this box (no MMX?)\n",
+	      GNOME_MESSAGE_BOX_ERROR);
+      return FALSE;
+    }
+
   return TRUE;
 }
 
 static
 void plugin_close(void)
 {
-  close_everything = TRUE;
+  if (active)
+    {
+      context = rte_context_destroy(context);
+      active = FALSE;
+    }
+}
+
+static void
+data_callback(rte_context * context, void * data, double * time, enum
+	      rte_mux_mode stream, void * user_data)
+{
+  struct timeval tv;
+
+  g_assert(stream == RTE_AUDIO);
+  g_assert(user_data == (void*)0xbeefdead);
+
+  gettimeofday(&tv, NULL);
+
+  *time = tv.tv_sec + tv.tv_usec/1e6;
 }
 
 static
 gboolean plugin_start (void)
 {
-  /* If everything has been ok, set the active flags and return TRUE
-   */
+  enum rte_pixformat pixformat = RTE_YUV420;
+
+  /* it would be better to gray out the button */
+  ShowBox("This doesn't work yet.", GNOME_MESSAGE_BOX_INFO);
+  return FALSE;
+
+  if (active)
+    {
+      ShowBox("The plugin is running!", GNOME_MESSAGE_BOX_WARNING);
+      return FALSE;
+    }
+
+  /* fixme: we should lock resizing from now */
+  switch (zapping_info->format.pixformat)
+    {
+    case TVENG_PIX_YUYV:
+      pixformat = RTE_YUYV;
+      break;
+    case TVENG_PIX_YUV420:
+      pixformat = RTE_YUV420;
+      break;
+    default:
+      ShowBox(_("The only supported pixformats are YUYV and YUV420"),
+	      GNOME_MESSAGE_BOX_ERROR);
+      return FALSE;
+    }
+
+  context =
+    rte_context_new(zapping_info->format.width,
+		    zapping_info->format.height, pixformat,
+		    (void*)0xbeefdead);
+
+  if (!context)
+    {
+      ShowBox("The encoding context cannot be created",
+	      GNOME_MESSAGE_BOX_ERROR);
+      return FALSE;
+    }
+
+  /* Set up the context for encoding */
+  rte_set_mode(context, RTE_AUDIO);
+  /*  rte_set_input(context, RTE_VIDEO, RTE_PUSH, FALSE, NULL, NULL,
+      NULL);*/
+  rte_set_input(context, RTE_AUDIO, RTE_CALLBACKS, FALSE,
+		data_callback, NULL, NULL);
+  rte_set_output(context, NULL, "temp.mpeg");
+  /* Set everything up for encoding */
+  if (!rte_init_context(context))
+    {
+      ShowBox("The encoding context cannot be inited: %s",
+	      GNOME_MESSAGE_BOX_ERROR, context->error);
+      rte_context_destroy(context);
+      return FALSE;
+    }
+  if (!rte_start_encoding(context))
+    {
+      ShowBox("Cannot start encoding: %s", GNOME_MESSAGE_BOX_ERROR,
+	      context->error);
+      rte_context_destroy(context);
+      return FALSE;
+    }
+  dest_buffer = rte_push_video_data(context, NULL, 0.0);
+  active = TRUE;
+  coded_frames = 0;
   return TRUE;
 }
 
@@ -159,6 +251,22 @@ void plugin_save_config (gchar * root_key)
 static
 void plugin_process_sample(plugin_sample * sample)
 {
+  double timestamp = ((double)(sample->video_timestamp/1000))/1e6;
+  if (!active)
+    return;
+
+  if (dest_buffer) /* fixme: this will segfault if the size changes */
+    memcpy(dest_buffer, sample->video_data, sample->video_format.sizeimage);
+  dest_buffer = rte_push_video_data(context, dest_buffer, timestamp);
+  if ((coded_frames++) > (25*10)) /* If we have encoded 10 seconds */
+    {
+      g_warning("stopping context");
+      rte_stop(context);
+      g_warning("context stopped");
+      context = rte_context_destroy(context);
+      g_warning("going deactivated");
+      active = FALSE;
+    }
 }
 
 static
@@ -226,7 +334,7 @@ static void
 on_mpeg_button_clicked          (GtkButton       *button,
 				 gpointer         user_data)
 {
-  ShowBox(_("Not done yet!"), GNOME_MESSAGE_BOX_ERROR);
+  plugin_start();
 }
 
 static
