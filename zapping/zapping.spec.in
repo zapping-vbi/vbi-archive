@@ -32,12 +32,12 @@ features, plus extensibility through a plugin system.
 %setup -q
 
 %build
-./configure
+./configure --prefix=%{prefix}
 make
 
 %install
 rm -rf %{buildroot}
-%makeinstall
+make DESTDIR=%{buildroot} install
 
 %post
 pushd %{prefix}/bin > /dev/null 2>&1
