@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.6.3\n"
-"POT-Creation-Date: 2002-08-31 05:38+0200\n"
+"POT-Creation-Date: 2002-09-26 22:16+0200\n"
 "PO-Revision-Date: 2002-03-20 15:36+0100\n"
 "Last-Translator: Christian Marillat <marillat.christian@wanadoo.fr>\n"
 "Language-Team: French <fr@li.org>\n"
@@ -226,84 +226,89 @@ msgstr "Overlay de cette page"
 msgid "Return to windowed mode and use the current page as subtitles"
 msgstr "Retour en mode fenêtre et utiliser la page courante comme sous-titre"
 
-#: src/frequencies.c:1094
+#: src/frequencies.c:1226
 msgid "US terrestrial"
 msgstr "Terrestre US"
 
-#: src/frequencies.c:1095
+#: src/frequencies.c:1227
 msgid "US cable"
 msgstr "Cable US"
 
-#: src/frequencies.c:1096
+#: src/frequencies.c:1228
 msgid "US cable-hrc"
 msgstr "Cable-hrc US"
 
-#: src/frequencies.c:1097
+#: src/frequencies.c:1229
+#, fuzzy
+msgid "Canada cable"
+msgstr "Cable Japon"
+
+#: src/frequencies.c:1230
 msgid "Japan terrestrial"
 msgstr "Terrestre Japon"
 
-#: src/frequencies.c:1098
+#: src/frequencies.c:1231
 msgid "Japan cable"
 msgstr "Cable Japon"
 
-#: src/frequencies.c:1099
+#: src/frequencies.c:1232
 msgid "Europe"
 msgstr "Europe"
 
-#: src/frequencies.c:1100 glade/glade_strings.c:125
+#: src/frequencies.c:1233 glade/glade_strings.c:125
 msgid "Eastern Europe"
 msgstr "Europe de l'est"
 
-#: src/frequencies.c:1101
+#: src/frequencies.c:1234
 msgid "Italy"
 msgstr "Italie"
 
-#: src/frequencies.c:1102
+#: src/frequencies.c:1235
 msgid "New Zealand"
 msgstr "Nouvelle Zélande"
 
-#: src/frequencies.c:1103
+#: src/frequencies.c:1236
 msgid "Australia"
 msgstr "Australie"
 
-#: src/frequencies.c:1104
+#: src/frequencies.c:1237
 msgid "Ireland"
 msgstr "Irlande"
 
-#: src/frequencies.c:1105
+#: src/frequencies.c:1238
 msgid "France"
 msgstr "France"
 
-#: src/frequencies.c:1106
+#: src/frequencies.c:1239
 msgid "Russia"
 msgstr "Russie"
 
-#: src/frequencies.c:1107
+#: src/frequencies.c:1240
 msgid "South Africa"
 msgstr "Afrique du sud"
 
-#: src/frequencies.c:1108
+#: src/frequencies.c:1241
 msgid "China"
 msgstr "Chine"
 
-#: src/frequencies.c:1109
+#: src/frequencies.c:1242
 #, fuzzy
 msgid "Pakistan cable"
 msgstr "Cable Japon"
 
-#: src/frequencies.c:1305 src/frequencies.c:1410 src/frequencies.c:1589
+#: src/frequencies.c:1438 src/frequencies.c:1543 src/frequencies.c:1722
 msgid "(Unnamed channel)"
 msgstr "(Chaîne sans nom)"
 
-#: src/frequencies.c:1309 src/frequencies.c:1414
+#: src/frequencies.c:1442 src/frequencies.c:1547
 msgid "(Unknown real channel)"
 msgstr "(Vraie chaîne inconnue)"
 
-#: src/frequencies.c:1313 src/frequencies.c:1418 src/frequencies.c:1597
+#: src/frequencies.c:1446 src/frequencies.c:1551 src/frequencies.c:1730
 msgid "(Unknown country)"
 msgstr "(Pays inconnu)"
 
-#: src/frequencies.c:1593
+#: src/frequencies.c:1726
 msgid "(Unknown RF channel)"
 msgstr "(Chaîne RF inconnue)"
 
@@ -481,7 +486,7 @@ msgstr[1] "%d minute"
 msgid "%d h %d m"
 msgstr "%d h %d m"
 
-#: src/zvbi.c:2152 src/ttxview.c:2539
+#: src/zvbi.c:2152 src/ttxview.c:2546
 msgid "Current program"
 msgstr "Programme courant"
 
@@ -944,95 +949,95 @@ msgstr "Liste des symboles exportés par le greffon"
 msgid "Sorry, but the plugin couldn't be started"
 msgstr "Désolé, mais le greffon ne peut être démarré"
 
-#: src/ttxview.c:180 src/ttxview.c:756 src/ttxview.c:1352
+#: src/ttxview.c:187 src/ttxview.c:763 src/ttxview.c:1359
 msgid "VBI has been disabled"
 msgstr "Le VBI a été désactivé"
 
-#: src/ttxview.c:396
+#: src/ttxview.c:403
 #, c-format
 msgid "Loading page %x..."
 msgstr "Chargement de la page %x..."
 
-#: src/ttxview.c:398
+#: src/ttxview.c:405
 #, c-format
 msgid "Loading subpage %x..."
 msgstr "Chargement de la sous-page %x..."
 
-#: src/ttxview.c:402 src/ttxview.c:694
+#: src/ttxview.c:409 src/ttxview.c:701
 msgid "Warning: Page not valid"
 msgstr "Avertissement : La page n'est pas valide"
 
-#: src/ttxview.c:523
+#: src/ttxview.c:530
 msgid "Text export failed"
 msgstr "L'export du texte à échoué"
 
-#: src/ttxview.c:597
+#: src/ttxview.c:604
 #, c-format
 msgid " Page %d"
 msgstr " Page %d"
 
-#: src/ttxview.c:601
+#: src/ttxview.c:608
 #, c-format
 msgid " Subpage %d"
 msgstr " Sous-page %d"
 
-#: src/ttxview.c:705
+#: src/ttxview.c:712
 msgid "The cache has been cleared"
 msgstr "Le cache à été effacé"
 
-#: src/ttxview.c:1062 src/ttxview.c:1083
+#: src/ttxview.c:1069 src/ttxview.c:1090
 msgid "No other subpage in the cache"
 msgstr "Pas d'autre sous-page dans le cache"
 
-#: src/ttxview.c:1146
+#: src/ttxview.c:1153
 msgid "Found"
 msgstr "Trouvé"
 
-#: src/ttxview.c:1164
+#: src/ttxview.c:1171
 msgid "Not found"
 msgstr "Non trouvé"
 
-#: src/ttxview.c:1184
+#: src/ttxview.c:1191
 msgid "Empty cache"
 msgstr "Cache vide"
 
-#: src/ttxview.c:1307
+#: src/ttxview.c:1314
 #, c-format
 msgid "Scanning %x.%02x"
 msgstr "Parcourir %x.%02x"
 
-#: src/ttxview.c:1561
+#: src/ttxview.c:1568
 #, c-format
 msgid "<%s> added to the bookmarks"
 msgstr "<%s> ajouté aux signets"
 
-#: src/ttxview.c:1624
+#: src/ttxview.c:1631
 msgid "Any subpage"
 msgstr "N'importe qu'elle sous-page"
 
-#: src/ttxview.c:1973
+#: src/ttxview.c:1980
 #, c-format
 msgid "Export %s"
 msgstr "Export %s"
 
-#: src/ttxview.c:1987 plugins/screenshot/screenshot_strings.c:19
+#: src/ttxview.c:1994 plugins/screenshot/screenshot_strings.c:19
 #: plugins/mpeg/mpeg_strings.c:36
 msgid "Save as:"
 msgstr "Sauver sous :"
 
-#: src/ttxview.c:1992
+#: src/ttxview.c:1999
 msgid "Select file you'll be exporting to"
 msgstr "Sélectionner le fichier d'exportation"
 
-#: src/ttxview.c:2007
+#: src/ttxview.c:2014
 msgid "Options"
 msgstr "Options"
 
-#: src/ttxview.c:2037 src/ttxview.c:2997
+#: src/ttxview.c:2044 src/ttxview.c:3004
 msgid "No page loaded"
 msgstr "Pas de page chargée"
 
-#: src/ttxview.c:2097
+#: src/ttxview.c:2104
 #, c-format
 msgid ""
 "Cannot create destination dir for Zapzilla export:\n"
@@ -1043,90 +1048,90 @@ msgstr ""
 "%s\n"
 "%s"
 
-#: src/ttxview.c:2116
+#: src/ttxview.c:2123
 #, c-format
 msgid "Export to %s failed: %s"
 msgstr "L'export de %s à échoué : %s"
 
-#: src/ttxview.c:2125
+#: src/ttxview.c:2132
 #, c-format
 msgid "%s saved"
 msgstr "%s sauvée"
 
-#: src/ttxview.c:2137
+#: src/ttxview.c:2144
 #, c-format
 msgid "Export failed: %s"
 msgstr "L'export à échoué : %s"
 
-#: src/ttxview.c:2445
+#: src/ttxview.c:2452
 #, c-format
 msgid "Caption %x - %s"
 msgstr "Sous-titre %x - %s"
 
-#: src/ttxview.c:2447
+#: src/ttxview.c:2454
 #, c-format
 msgid "Text %x - %s"
 msgstr "Texte %x - %s"
 
-#: src/ttxview.c:2451
+#: src/ttxview.c:2458
 #, c-format
 msgid "Caption %x"
 msgstr "Sous-titre %x"
 
-#: src/ttxview.c:2453
+#: src/ttxview.c:2460
 #, c-format
 msgid "Text %x"
 msgstr "Texte %x"
 
-#: src/ttxview.c:2478
+#: src/ttxview.c:2485
 #, c-format
 msgid "%x: Unknown language"
 msgstr "%x : langage inconnu"
 
-#: src/ttxview.c:2490 src/ttxview.c:2505 src/ttxview.c:2529 src/ttxview.c:2545
-#: src/ttxview.c:2561 src/ttxview.c:2577 src/ttxview.c:2593
+#: src/ttxview.c:2497 src/ttxview.c:2512 src/ttxview.c:2536 src/ttxview.c:2552
+#: src/ttxview.c:2568 src/ttxview.c:2584 src/ttxview.c:2600
 #, c-format
 msgid "Page %x"
 msgstr "Page %x"
 
-#: src/ttxview.c:2499
+#: src/ttxview.c:2506
 msgid "Index"
 msgstr "Index"
 
-#: src/ttxview.c:2523
+#: src/ttxview.c:2530
 msgid "Now and Next"
 msgstr "Maintenant et suivant"
 
-#: src/ttxview.c:2555
+#: src/ttxview.c:2562
 msgid "Program Index"
 msgstr "Index des programmes"
 
-#: src/ttxview.c:2571
+#: src/ttxview.c:2578
 msgid "Program Schedule"
 msgstr "Calendrier des programmes"
 
-#: src/ttxview.c:2587
+#: src/ttxview.c:2594
 msgid "Program Warning"
 msgstr "Préavis des programmes"
 
-#: src/ttxview.c:2607
+#: src/ttxview.c:2614
 msgid "Subtitles"
 msgstr "Sous-titres"
 
-#: src/ttxview.c:2609
+#: src/ttxview.c:2616
 msgid "Select subtitles page"
 msgstr "Choisir la page des sous-titres"
 
-#: src/ttxview.c:2682
+#: src/ttxview.c:2689
 #, c-format
 msgid "%s in %s"
 msgstr "%s dans %s"
 
-#: src/ttxview.c:3006
+#: src/ttxview.c:3013
 msgid "Selecting - hold Shift for table mode"
 msgstr "Sélection - appuyer sur Shift pour le mode table"
 
-#: src/ttxview.c:3126
+#: src/ttxview.c:3133
 msgid "Selection copied to clipboard"
 msgstr "Sélection copiée dans le presse papier"
 
@@ -1853,7 +1858,7 @@ msgstr "_Arrêter le greffon"
 #: glade/glade_strings.c:188 plugins/screenshot/screenshot.c:576
 #: plugins/screenshot/screenshot.c:1423 plugins/lirc/lirc.c:382
 #: plugins/mpeg/mpeg.c:1093 plugins/mpeg/mpeg.c:1120 plugins/mpeg/mpeg.c:1184
-#: plugins/mpeg/mpeg.c:2666 plugins/mpeg/mpeg.c:3241
+#: plugins/mpeg/mpeg.c:2668 plugins/mpeg/mpeg.c:3245
 msgid "Plugins"
 msgstr "Greffons"
 
@@ -2342,7 +2347,7 @@ msgid "This plugin takes screenshots of the video capture."
 msgstr "Ce greffon fait des copies d'écran de la capture vidéo"
 
 #: plugins/screenshot/screenshot.c:173 plugins/lirc/lirc.c:134
-#: plugins/alirc/alirc.c:231 plugins/mpeg/mpeg.c:142 plugins/mpeg/mpeg.c:3303
+#: plugins/alirc/alirc.c:231 plugins/mpeg/mpeg.c:142 plugins/mpeg/mpeg.c:3307
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr "Check erreur : \"%s\" du greffon %s has hash 0x%x vs. 0x%x"
@@ -2765,12 +2770,12 @@ msgstr "Démarrer l'enregistrement"
 msgid "Record as MPEG"
 msgstr "Enregistrer en MPEG"
 
-#: plugins/mpeg/mpeg.c:1686
+#: plugins/mpeg/mpeg.c:1688
 #, c-format
 msgid "Format %s is incomplete, please configure the video or audio codec."
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:1829
+#: plugins/mpeg/mpeg.c:1831
 #, fuzzy, c-format
 msgid ""
 "Cannot create destination directory:\n"
@@ -2781,37 +2786,37 @@ msgstr ""
 "%s\n"
 "%s"
 
-#: plugins/mpeg/mpeg.c:1841
+#: plugins/mpeg/mpeg.c:1843
 #, fuzzy, c-format
 msgid "Cannot create file %s: %s\n"
 msgstr "Ne peut créer %s : %s"
 
-#: plugins/mpeg/mpeg.c:2666 plugins/mpeg/mpeg.c:3095 plugins/mpeg/mpeg.c:3119
-#: plugins/mpeg/mpeg.c:3229 plugins/mpeg/mpeg_strings.c:34
+#: plugins/mpeg/mpeg.c:2668 plugins/mpeg/mpeg.c:3099 plugins/mpeg/mpeg.c:3123
+#: plugins/mpeg/mpeg.c:3233 plugins/mpeg/mpeg_strings.c:34
 #: plugins/mpeg/mpeg_strings.c:41
 #, fuzzy
 msgid "Record"
 msgstr "Enregistrer en MPEG"
 
-#: plugins/mpeg/mpeg.c:2910
+#: plugins/mpeg/mpeg.c:2912
 msgid "Not implemented yet"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:3079
+#: plugins/mpeg/mpeg.c:3083
 #, fuzzy
 msgid "Recording dialog"
 msgstr "Volume d'enregistrement :"
 
-#: plugins/mpeg/mpeg.c:3170
+#: plugins/mpeg/mpeg.c:3174
 msgid "Audio/Video Recorder"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:3173
+#: plugins/mpeg/mpeg.c:3177
 #, fuzzy
 msgid "This plugin records video and audio into a file"
 msgstr "Ce greffon encode les flux image et audio en un fichier MPEG"
 
-#: plugins/mpeg/mpeg.c:3176
+#: plugins/mpeg/mpeg.c:3180
 msgid "Record video and audio."
 msgstr ""
 

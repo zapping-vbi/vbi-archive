@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.6.1\n"
-"POT-Creation-Date: 2002-08-31 05:38+0200\n"
+"POT-Creation-Date: 2002-09-26 22:16+0200\n"
 "PO-Revision-Date: 2001-10-05 22:28+02:00\n"
 "Last-Translator: Ime Smits <ime@iae.nl>\n"
 "Language-Team: Dutch <ime@iae.nl>\n"
@@ -227,110 +227,116 @@ msgstr "Maak doorschijnend"
 msgid "Return to windowed mode and use the current page as subtitles"
 msgstr "Terug naar venstermodus en huidige pagina als ondertiteling gebruiken"
 
-#: src/frequencies.c:1094
+#: src/frequencies.c:1226
 msgid "US terrestrial"
 msgstr ""
 
 # src/frequencies.c:817
-#: src/frequencies.c:1095
+#: src/frequencies.c:1227
 #, fuzzy
 msgid "US cable"
 msgstr "VS kabel"
 
 # src/frequencies.c:818
-#: src/frequencies.c:1096
+#: src/frequencies.c:1228
 #, fuzzy
 msgid "US cable-hrc"
 msgstr "VS kabel HRC"
 
-#: src/frequencies.c:1097
+# src/frequencies.c:820
+#: src/frequencies.c:1229
+#, fuzzy
+msgid "Canada cable"
+msgstr "Japan kabel"
+
+#: src/frequencies.c:1230
 msgid "Japan terrestrial"
 msgstr ""
 
 # src/frequencies.c:820
-#: src/frequencies.c:1098
+#: src/frequencies.c:1231
 #, fuzzy
 msgid "Japan cable"
 msgstr "Japan kabel"
 
 # src/frequencies.c:821
-#: src/frequencies.c:1099
+#: src/frequencies.c:1232
 #, fuzzy
 msgid "Europe"
 msgstr "Europa"
 
 # src/frequencies.c:821
-#: src/frequencies.c:1100 glade/glade_strings.c:125
+#: src/frequencies.c:1233 glade/glade_strings.c:125
 msgid "Eastern Europe"
 msgstr "Oost-Europa"
 
 # src/frequencies.c:823
-#: src/frequencies.c:1101
+#: src/frequencies.c:1234
 #, fuzzy
 msgid "Italy"
 msgstr "Italie"
 
 # src/frequencies.c:824
-#: src/frequencies.c:1102
+#: src/frequencies.c:1235
 #, fuzzy
 msgid "New Zealand"
 msgstr "Nieuw Zeeland"
 
 # src/frequencies.c:825
-#: src/frequencies.c:1103
+#: src/frequencies.c:1236
 #, fuzzy
 msgid "Australia"
 msgstr "Australië"
 
 # src/frequencies.c:826
-#: src/frequencies.c:1104
+#: src/frequencies.c:1237
 #, fuzzy
 msgid "Ireland"
 msgstr "Ierland"
 
 # src/frequencies.c:827
-#: src/frequencies.c:1105
+#: src/frequencies.c:1238
 #, fuzzy
 msgid "France"
 msgstr "Frankrijk"
 
-#: src/frequencies.c:1106
+#: src/frequencies.c:1239
 #, fuzzy
 msgid "Russia"
 msgstr "Rusland"
 
-#: src/frequencies.c:1107
+#: src/frequencies.c:1240
 #, fuzzy
 msgid "South Africa"
 msgstr "Zuid Afrika"
 
-#: src/frequencies.c:1108
+#: src/frequencies.c:1241
 #, fuzzy
 msgid "China"
 msgstr "China"
 
 # src/frequencies.c:820
-#: src/frequencies.c:1109
+#: src/frequencies.c:1242
 #, fuzzy
 msgid "Pakistan cable"
 msgstr "Japan kabel"
 
 # src/v4l2interface.c:146
-#: src/frequencies.c:1305 src/frequencies.c:1410 src/frequencies.c:1589
+#: src/frequencies.c:1438 src/frequencies.c:1543 src/frequencies.c:1722
 msgid "(Unnamed channel)"
 msgstr "(naamloos kanaal)"
 
 # src/interface.c:412
-#: src/frequencies.c:1309 src/frequencies.c:1414
+#: src/frequencies.c:1442 src/frequencies.c:1547
 msgid "(Unknown real channel)"
 msgstr "(onbekend kanaal)"
 
-#: src/frequencies.c:1313 src/frequencies.c:1418 src/frequencies.c:1597
+#: src/frequencies.c:1446 src/frequencies.c:1551 src/frequencies.c:1730
 msgid "(Unknown country)"
 msgstr "(onbekend land)"
 
 # src/interface.c:412
-#: src/frequencies.c:1593
+#: src/frequencies.c:1726
 #, fuzzy
 msgid "(Unknown RF channel)"
 msgstr "(onbekend kanaal)"
@@ -513,7 +519,7 @@ msgstr[0] "min"
 msgid "%d h %d m"
 msgstr "%d h %d m"
 
-#: src/zvbi.c:2152 src/ttxview.c:2539
+#: src/zvbi.c:2152 src/ttxview.c:2546
 msgid "Current program"
 msgstr "Huidige programma"
 
@@ -987,96 +993,96 @@ msgstr "Lijst met door de plugin geëxporteerde symbolen"
 msgid "Sorry, but the plugin couldn't be started"
 msgstr "De plugin kon niet worden gestart"
 
-#: src/ttxview.c:180 src/ttxview.c:756 src/ttxview.c:1352
+#: src/ttxview.c:187 src/ttxview.c:763 src/ttxview.c:1359
 msgid "VBI has been disabled"
 msgstr "VBI is uitgeschakeld"
 
-#: src/ttxview.c:396
+#: src/ttxview.c:403
 #, c-format
 msgid "Loading page %x..."
 msgstr "Laden van pagina %x..."
 
-#: src/ttxview.c:398
+#: src/ttxview.c:405
 #, c-format
 msgid "Loading subpage %x..."
 msgstr "Laden van subpagina %x..."
 
-#: src/ttxview.c:402 src/ttxview.c:694
+#: src/ttxview.c:409 src/ttxview.c:701
 msgid "Warning: Page not valid"
 msgstr "Let op: pagina ongeldig"
 
-#: src/ttxview.c:523
+#: src/ttxview.c:530
 #, fuzzy
 msgid "Text export failed"
 msgstr "Tekst-export mislukt: %s"
 
-#: src/ttxview.c:597
+#: src/ttxview.c:604
 #, c-format
 msgid " Page %d"
 msgstr " Pagina %d"
 
-#: src/ttxview.c:601
+#: src/ttxview.c:608
 #, c-format
 msgid " Subpage %d"
 msgstr " Subpagina %d"
 
-#: src/ttxview.c:705
+#: src/ttxview.c:712
 msgid "The cache has been cleared"
 msgstr "De cache is geleegd"
 
-#: src/ttxview.c:1062 src/ttxview.c:1083
+#: src/ttxview.c:1069 src/ttxview.c:1090
 msgid "No other subpage in the cache"
 msgstr "Geen subpaginas in de cache"
 
-#: src/ttxview.c:1146
+#: src/ttxview.c:1153
 msgid "Found"
 msgstr "Gevonden"
 
-#: src/ttxview.c:1164
+#: src/ttxview.c:1171
 msgid "Not found"
 msgstr "Niet gevonden"
 
-#: src/ttxview.c:1184
+#: src/ttxview.c:1191
 msgid "Empty cache"
 msgstr "Cache legen"
 
-#: src/ttxview.c:1307
+#: src/ttxview.c:1314
 #, c-format
 msgid "Scanning %x.%02x"
 msgstr "Scannen van %x.%02x"
 
-#: src/ttxview.c:1561
+#: src/ttxview.c:1568
 #, c-format
 msgid "<%s> added to the bookmarks"
 msgstr "<%s> aan de bookmarks toegevoegd"
 
-#: src/ttxview.c:1624
+#: src/ttxview.c:1631
 msgid "Any subpage"
 msgstr "Willekeurige subpagina"
 
-#: src/ttxview.c:1973
+#: src/ttxview.c:1980
 #, c-format
 msgid "Export %s"
 msgstr "Export - %s"
 
-#: src/ttxview.c:1987 plugins/screenshot/screenshot_strings.c:19
+#: src/ttxview.c:1994 plugins/screenshot/screenshot_strings.c:19
 #: plugins/mpeg/mpeg_strings.c:36
 msgid "Save as:"
 msgstr "Opslaan als:"
 
-#: src/ttxview.c:1992
+#: src/ttxview.c:1999
 msgid "Select file you'll be exporting to"
 msgstr "Selecteer het doelbestand voor exporteren"
 
-#: src/ttxview.c:2007
+#: src/ttxview.c:2014
 msgid "Options"
 msgstr "Opties"
 
-#: src/ttxview.c:2037 src/ttxview.c:2997
+#: src/ttxview.c:2044 src/ttxview.c:3004
 msgid "No page loaded"
 msgstr "Geen pagina geladen"
 
-#: src/ttxview.c:2097
+#: src/ttxview.c:2104
 #, c-format
 msgid ""
 "Cannot create destination dir for Zapzilla export:\n"
@@ -1087,90 +1093,90 @@ msgstr ""
 "%s\n"
 "%s"
 
-#: src/ttxview.c:2116
+#: src/ttxview.c:2123
 #, c-format
 msgid "Export to %s failed: %s"
 msgstr "Exporteren naar %s mislukt: %s"
 
-#: src/ttxview.c:2125
+#: src/ttxview.c:2132
 #, c-format
 msgid "%s saved"
 msgstr "%s opgeslagen"
 
-#: src/ttxview.c:2137
+#: src/ttxview.c:2144
 #, c-format
 msgid "Export failed: %s"
 msgstr "Exporteren mislukt: %s"
 
-#: src/ttxview.c:2445
+#: src/ttxview.c:2452
 #, c-format
 msgid "Caption %x - %s"
 msgstr "Titel %x - %s"
 
-#: src/ttxview.c:2447
+#: src/ttxview.c:2454
 #, c-format
 msgid "Text %x - %s"
 msgstr "Tekst %x - %s"
 
-#: src/ttxview.c:2451
+#: src/ttxview.c:2458
 #, c-format
 msgid "Caption %x"
 msgstr "Titel %x"
 
-#: src/ttxview.c:2453
+#: src/ttxview.c:2460
 #, c-format
 msgid "Text %x"
 msgstr "Tekst %x"
 
-#: src/ttxview.c:2478
+#: src/ttxview.c:2485
 #, c-format
 msgid "%x: Unknown language"
 msgstr "%x: onbekende taal"
 
-#: src/ttxview.c:2490 src/ttxview.c:2505 src/ttxview.c:2529 src/ttxview.c:2545
-#: src/ttxview.c:2561 src/ttxview.c:2577 src/ttxview.c:2593
+#: src/ttxview.c:2497 src/ttxview.c:2512 src/ttxview.c:2536 src/ttxview.c:2552
+#: src/ttxview.c:2568 src/ttxview.c:2584 src/ttxview.c:2600
 #, c-format
 msgid "Page %x"
 msgstr "Pagina %x"
 
-#: src/ttxview.c:2499
+#: src/ttxview.c:2506
 msgid "Index"
 msgstr "Inhoud"
 
-#: src/ttxview.c:2523
+#: src/ttxview.c:2530
 msgid "Now and Next"
 msgstr "Nu en straks"
 
-#: src/ttxview.c:2555
+#: src/ttxview.c:2562
 msgid "Program Index"
 msgstr "Programma-index"
 
-#: src/ttxview.c:2571
+#: src/ttxview.c:2578
 msgid "Program Schedule"
 msgstr "Programma-overzicht"
 
-#: src/ttxview.c:2587
+#: src/ttxview.c:2594
 msgid "Program Warning"
 msgstr "Waarschuwing"
 
-#: src/ttxview.c:2607
+#: src/ttxview.c:2614
 msgid "Subtitles"
 msgstr "Ondertiteling"
 
-#: src/ttxview.c:2609
+#: src/ttxview.c:2616
 msgid "Select subtitles page"
 msgstr "Ondertitelingspagina"
 
-#: src/ttxview.c:2682
+#: src/ttxview.c:2689
 #, c-format
 msgid "%s in %s"
 msgstr "%s in %s"
 
-#: src/ttxview.c:3006
+#: src/ttxview.c:3013
 msgid "Selecting - hold Shift for table mode"
 msgstr "Selecteren - voor blokmodus shift ingedrukt houden"
 
-#: src/ttxview.c:3126
+#: src/ttxview.c:3133
 msgid "Selection copied to clipboard"
 msgstr "Selectie gekopiëerd naar klembord"
 
@@ -1924,7 +1930,7 @@ msgstr "Plugin s_toppen"
 #: glade/glade_strings.c:188 plugins/screenshot/screenshot.c:576
 #: plugins/screenshot/screenshot.c:1423 plugins/lirc/lirc.c:382
 #: plugins/mpeg/mpeg.c:1093 plugins/mpeg/mpeg.c:1120 plugins/mpeg/mpeg.c:1184
-#: plugins/mpeg/mpeg.c:2666 plugins/mpeg/mpeg.c:3241
+#: plugins/mpeg/mpeg.c:2668 plugins/mpeg/mpeg.c:3245
 msgid "Plugins"
 msgstr "Plugins"
 
@@ -2455,7 +2461,7 @@ msgid "This plugin takes screenshots of the video capture."
 msgstr "Deze plugin maakt screenshots van het videobeeld."
 
 #: plugins/screenshot/screenshot.c:173 plugins/lirc/lirc.c:134
-#: plugins/alirc/alirc.c:231 plugins/mpeg/mpeg.c:142 plugins/mpeg/mpeg.c:3303
+#: plugins/alirc/alirc.c:231 plugins/mpeg/mpeg.c:142 plugins/mpeg/mpeg.c:3307
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr "Waarschuwing: \"%s\" in plugin %s heeft checksum 0x%x i.p.v. 0x%x"
@@ -2892,12 +2898,12 @@ msgstr ""
 msgid "Record as MPEG"
 msgstr "Osplaan in MPEG-formaat"
 
-#: plugins/mpeg/mpeg.c:1686
+#: plugins/mpeg/mpeg.c:1688
 #, c-format
 msgid "Format %s is incomplete, please configure the video or audio codec."
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:1829
+#: plugins/mpeg/mpeg.c:1831
 #, fuzzy, c-format
 msgid ""
 "Cannot create destination directory:\n"
@@ -2908,37 +2914,37 @@ msgstr ""
 "%s\n"
 "%s"
 
-#: plugins/mpeg/mpeg.c:1841
+#: plugins/mpeg/mpeg.c:1843
 #, fuzzy, c-format
 msgid "Cannot create file %s: %s\n"
 msgstr "Kan bestand '%s' niet aanmaken: %s"
 
-#: plugins/mpeg/mpeg.c:2666 plugins/mpeg/mpeg.c:3095 plugins/mpeg/mpeg.c:3119
-#: plugins/mpeg/mpeg.c:3229 plugins/mpeg/mpeg_strings.c:34
+#: plugins/mpeg/mpeg.c:2668 plugins/mpeg/mpeg.c:3099 plugins/mpeg/mpeg.c:3123
+#: plugins/mpeg/mpeg.c:3233 plugins/mpeg/mpeg_strings.c:34
 #: plugins/mpeg/mpeg_strings.c:41
 #, fuzzy
 msgid "Record"
 msgstr "Rood"
 
-#: plugins/mpeg/mpeg.c:2910
+#: plugins/mpeg/mpeg.c:2912
 msgid "Not implemented yet"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:3079
+#: plugins/mpeg/mpeg.c:3083
 #, fuzzy
 msgid "Recording dialog"
 msgstr "Programma-overzicht"
 
-#: plugins/mpeg/mpeg.c:3170
+#: plugins/mpeg/mpeg.c:3174
 msgid "Audio/Video Recorder"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:3173
+#: plugins/mpeg/mpeg.c:3177
 #, fuzzy
 msgid "This plugin records video and audio into a file"
 msgstr "Deze plugin neemd beeld en geluid op als MPEG bestand"
 
-#: plugins/mpeg/mpeg.c:3176
+#: plugins/mpeg/mpeg.c:3180
 msgid "Record video and audio."
 msgstr ""
 
