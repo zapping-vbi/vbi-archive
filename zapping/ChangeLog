@@ -1,3 +1,13 @@
+2.1.2001	libvbi <mschimek@users.sourceforge.net>
+
+	* fmt_page: returns boolean success now
+	* PPM export restored
+	* PNG export added
+
+31.12.2000	libvbi <mschimek@users.sourceforge.net>
+
+	* FLOF restored
+
 31.12.2000	Small fixes <garetxe@users.sourceforge.net>
 
 	* libvbi/export.h: Prototype for fmt_page

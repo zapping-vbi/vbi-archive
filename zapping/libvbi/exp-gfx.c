@@ -1,3 +1,32 @@
+/*
+ *  Zapzilla - Teletext graphical rendering and export functions
+ *
+ *  Copyright (C) 2000-2001 Michael H. Schimek
+ *
+ *  Based on code from AleVT 1.5.1
+ *  Copyright (C) 1998,1999 Edgar Toernig (froese@gmx.de)
+ *  Copyright 1999 by Paul Ortyl <ortylp@from.pl>
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+
+/* $Id: exp-gfx.c,v 1.16 2001-01-02 04:46:17 mschimek Exp $ */
+
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -223,6 +252,20 @@ draw_drcs(unsigned int *canvas, unsigned char *src, unsigned int *pen, int glyph
 	}
 }
 
+static inline void
+draw_blank(unsigned int *canvas, unsigned int colour)
+{
+	int x, y;
+
+	for (y = 0; y < CH; y++) {
+		for (x = 0; x < CW; x++)
+			canvas[x] = colour;
+
+		canvas += WW;
+	}
+}
+
+
 void
 vbi_draw_page(struct fmt_page *pg, void *data)
 {
@@ -254,10 +297,42 @@ vbi_draw_page(struct fmt_page *pg, void *data)
 	}
 }
 
-///////////////////////////////////////////////////////
-// STUFF FOR PPM OUTPUT
+void
+vbi_draw_page_indexed(struct fmt_page *pg, void *data)
+{
+	unsigned int pen[64];
+	int row, column;
+	attr_char *ac;
+	int i;
+	unsigned int *canvas = (unsigned int*)data;
 
-static int ppm_output(struct export *e, char *name, struct fmt_page *pg);
+	for (i = 2; i < 64; i++)
+		pen[i] = pg->drcs_clut[i];
+
+	for (row = 0; row < H; canvas += W * CW * CH - W * CW, row++) {
+		for (column = 0; column < W; canvas += CW, column++) {
+			ac = &pg->data[row][column];
+
+			pen[0] = ac->background;
+			pen[1] = ac->foreground;
+
+			if (ac->size <= DOUBLE_SIZE) {
+				if ((ac->glyph & 0xFFFF) >= GL_DRCS) {
+					draw_drcs(canvas, pg->drcs[(ac->glyph & 0x1F00) >> 8],
+						pen, ac->glyph, ac->size);
+				} else
+					draw_char(canvas, pen, ac->glyph,
+						ac->bold, ac->underline, ac->size);
+			}
+		}
+	}
+}
+
+/*
+ *  PPM - Portable Pixmap File (raw)
+ */
+
+int ppm_output(struct export *e, char *name, struct fmt_page *pg);
 
 struct export_module export_ppm[1] =	// exported module definition
 {
@@ -273,56 +348,286 @@ struct export_module export_ppm[1] =	// exported module definition
   }
 };
 
-static int
+int
 ppm_output(struct export *e, char *name, struct fmt_page *pg)
 {
-  FILE *fp;
-  long n;
-  static u8 rgb1[][3]={{0,0,0},
-		      {1,0,0},
-		      {0,1,0},
-		      {1,1,0},
-		      {0,0,1},
-		      {1,0,1},
-		      {0,1,1},
-		      {1,1,1}};
-  
-  unsigned char *colour_matrix;
+	unsigned int *image;
+	unsigned char *body;
+	FILE *fp;
+	int i;
 
-return 0;
-
-  if (!(colour_matrix=malloc(WH*WW))) 
-    {
-      export_error("cannot allocate memory");
-      return 0;
-    }
-
-//  prepare_colour_matrix(/*e,*/ pg, (unsigned char *)colour_matrix); 
-  
-  if (not(fp = fopen(name, "w")))
-    {
-      free(colour_matrix);
-      export_error("cannot create file");
-      return -1;
-    }
-  
-  fprintf(fp,"P6 %d %d 1\n", WW, WH);
-
-  for(n=0;n<WH*WW;n++)
-    {
-      if (!fwrite(rgb1[(int) *(colour_matrix+n)], 3, 1, fp))
-	{
-	  export_error("error while writting to file");
-	  free(colour_matrix);
-	  fclose(fp);
-	  return -1;
+	if (!(image = malloc(WH * WW * sizeof(*image)))) {
+		export_error("cannot allocate memory");
+		return 0;
 	}
-    }
-  
-  free(colour_matrix);
-  fclose(fp);
-  return 0;
+
+	vbi_draw_page(pg, image);
+
+	if (!(fp = fopen(name, "w"))) {
+		free(image);
+		export_error("cannot create file");
+		return -1;
+	}
+
+	fprintf(fp, "P6 %d %d 15\n", WW, WH);
+
+	body = (unsigned char *) image;
+
+	for (i = 0; i < WH * WW; body += 3, i++) {
+		unsigned int n = (image[i] >> 4) & 0x0F0F0F;
+
+		body[0] = n;
+		body[1] = n >> 8;
+		body[2] = n >> 16;
+	}
+
+	if (!fwrite(image, WH * WW * 3, 1, fp)) {
+		export_error("error while writting to file");
+		free(image);
+		fclose(fp);
+		return -1;
+	}
+
+	free(image);
+
+	if (!fclose(fp)) {
+		export_error("error while writting to file");
+		return -1;
+	}
+
+	return 0;
 }
+
+/*
+ *  PNG - Portable Network Graphics File
+ */
+
+#ifdef HAVE_LIBPNG
+
+#include "png.h"
+#include "setjmp.h"
+
+int png_output(struct export *e, char *name, struct fmt_page *pg);
+
+struct export_module export_png[1] =	// exported module definition
+{
+  {
+    "png",			// id
+    "png",			// extension
+    0,				// options
+    0,				// size
+    0,				// open
+    0,				// close
+    0,				// option
+    ppm_output			// output
+  }
+};
+
+int
+png_output(struct export *e, char *name, struct fmt_page *pg)
+{
+	FILE *fp;
+	png_structp png_ptr;
+	png_infop info_ptr;
+	png_color palette[64];
+	png_byte alpha[64];
+	png_text text[4];
+	char title[80];
+	png_bytep row_pointer[WH];
+	unsigned int *image;
+	int i;
+
+	if ((image = malloc(WH * WW * sizeof(*image)))) {
+		png_bytep body = (png_bytep) image;
+		unsigned int *canvas = image;
+		unsigned int pen[128];
+		int row, column;
+		attr_char *ac;
+
+		for (i = 2; i < 64; i++) {
+			pen[i]      = pg->drcs_clut[i];
+			pen[i + 64] = pg->drcs_clut[i] + 32;
+		}
+
+		for (row = 0; row < H; canvas += W * CW * CH - W * CW, row++) {
+			for (column = 0; column < W; canvas += CW, column++) {
+				ac = &pg->data[row][column];
+
+				if (ac->size > DOUBLE_SIZE)
+					continue;
+
+				switch (ac->opacity) {
+				case TRANSPARENT_SPACE:
+					/*
+					 *  Transparent foreground and background.
+					 */
+					draw_blank(canvas, TRANSPARENT_BLACK);
+					break;
+
+				case TRANSPARENT:
+					/*
+					 *  Transparent background, opaque foreground. Currently not used.
+					 *  Mind Teletext level 2.5 foreground and background transparency
+					 *  by referencing colourmap entry 8, TRANSPARENT_BLACK.
+					 *  The background of multicolour DRCS is ambiguous, so we make
+					 *  them opaque.
+					 */
+					if ((ac->glyph & 0xFFFF) >= GL_DRCS) {
+						pen[0] = TRANSPARENT_BLACK;
+						pen[1] = ac->foreground;
+
+						draw_drcs(canvas, pg->drcs[(ac->glyph & 0x1F00) >> 8],
+							pen, ac->glyph, ac->size);
+					} else {
+						pen[0] = TRANSPARENT_BLACK;
+						pen[1] = ac->foreground;
+
+						draw_char(canvas, pen, ac->glyph,
+							ac->bold, ac->underline, ac->size);
+					}
+
+					break;
+
+				case SEMI_TRANSPARENT:
+					/*
+					 *  Translucent background (for 'boxed' text), opaque foreground.
+					 *  The background of multicolour DRCS is ambiguous, so we make
+					 *  them completely translucent. 
+					 */
+					if ((ac->glyph & 0xFFFF) >= GL_DRCS) {
+						pen[64] = ac->background + 32;
+						pen[65] = ac->foreground;
+
+						draw_drcs(canvas, pg->drcs[(ac->glyph & 0x1F00) >> 8],
+							pen + 64, ac->glyph, ac->size);
+					} else {
+						pen[0] = ac->background + 32;
+						pen[1] = ac->foreground;
+
+						draw_char(canvas, pen, ac->glyph,
+							ac->bold, ac->underline, ac->size);
+					}
+
+					break;
+
+				case OPAQUE:
+					pen[0] = ac->background;
+					pen[1] = ac->foreground;
+
+					if ((ac->glyph & 0xFFFF) >= GL_DRCS) {
+						draw_drcs(canvas, pg->drcs[(ac->glyph & 0x1F00) >> 8],
+							pen, ac->glyph, ac->size);
+					} else {
+						draw_char(canvas, pen, ac->glyph,
+							ac->bold, ac->underline, ac->size);
+					}
+					break;
+				}
+			}
+		}
+
+		/* XXX poor */
+		for (i = 0; i < WH * WW; i++) {
+			*body++ = image[i];
+		}
+	} else {
+		export_error("cannot allocate memory");
+		return 0;
+	}
+
+	if (!(fp = fopen(name, "wb"))) {
+		export_error("cannot create file");
+		free(image);
+		return -1;
+	}
+
+	if (!(png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL))) {
+		fclose(fp);
+		free(image);
+		return -1;
+	}
+
+	if (!(info_ptr = png_create_info_struct(png_ptr))) {
+		png_destroy_write_struct(&png_ptr, (png_infopp) NULL);
+		fclose(fp);
+		free(image);
+		return -1;
+	}
+
+	if (setjmp(png_ptr->jmpbuf)) {
+		/* If we get here, we had a problem writing the file */
+		png_destroy_write_struct(&png_ptr, &info_ptr);
+		fclose(fp);
+		free(image);
+		return -1;
+	}
+
+	png_init_io(png_ptr, fp);
+
+	png_set_IHDR(png_ptr, info_ptr, WW, WH,
+		8 /* bit_depth */,
+		PNG_COLOR_TYPE_PALETTE,
+		PNG_INTERLACE_NONE,
+	     /* PNG_INTERLACE_ADAM7,   pretty much useless, impossible to read anything until pass 7 */
+		PNG_COMPRESSION_TYPE_DEFAULT,
+		PNG_FILTER_TYPE_DEFAULT);
+
+	/* Could be optimized (or does libpng?) */
+	for (i = 0; i < 32; i++) {
+		palette[i].red   = pg->colour_map[i] & 0xFF;
+		palette[i].green = (pg->colour_map[i] >> 8) & 0xFF;
+		palette[i].blue	 = (pg->colour_map[i] >> 16) & 0xFF;
+		alpha[i]	 = 255;
+
+		palette[i + 32]  = palette[i];
+		alpha[i + 32]	 = 128;
+	}
+
+	alpha[8] = alpha[8 + 32] = 0; /* TRANSPARENT_BLACK */
+
+	png_set_PLTE(png_ptr, info_ptr, palette, 64);
+	png_set_tRNS(png_ptr, info_ptr, alpha, 64, NULL);
+
+	png_set_gAMA(png_ptr, info_ptr, 1.0 / 2.2);
+
+	/*
+	 *  ISO 8859-1 (Latin-1) character set required,
+	 *  see png spec for other
+	 */
+	memset(text, 0, sizeof(text));
+	snprintf(title, sizeof(title) - 1,
+		"Teletext Page %3x/%04x",
+		pg->vtp->pgno, pg->vtp->subno); // XXX make it "station_short Teletext ..."
+
+	text[0].key = "Title";
+	text[0].text = title;
+	text[0].compression = PNG_TEXT_COMPRESSION_NONE;
+	text[1].key = "Software";
+	text[1].text = "Zapzilla " VERSION;
+	text[1].compression = PNG_TEXT_COMPRESSION_NONE;
+
+	png_set_text(png_ptr, info_ptr, text, 2);
+
+	png_write_info(png_ptr, info_ptr);
+
+	for (i = 0; i < WH; i++)
+		row_pointer[i] = ((png_bytep) image) + i * WW;
+
+	png_write_image(png_ptr, row_pointer);
+
+	png_write_end(png_ptr, info_ptr);
+
+	png_destroy_write_struct(&png_ptr, &info_ptr);
+
+	fclose(fp);
+
+	free(image);
+
+	return 0;
+}
+
+#endif /* HAVE_LIBPNG */
+
 
 /* We could just export WW and WH too.. */
 void vbi_get_rendered_size(int *w, int *h)

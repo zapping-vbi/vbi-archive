@@ -381,7 +381,8 @@ build_client_page(struct ttx_client *client, struct vt_page *vtp)
   if (vtp)
     {
       memcpy(&client->vtp, vtp, sizeof(struct vt_page));
-      fmt_page(FALSE, &client->fp, vtp, 25);
+      if (!fmt_page(FALSE, &client->fp, vtp, 25))
+        goto unlock;
       client->fp.vtp = &client->vtp;
       vbi_draw_page(&client->fp,
 		    gdk_pixbuf_get_pixels(client->unscaled));
@@ -429,7 +430,7 @@ build_client_page(struct ttx_client *client, struct vt_page *vtp)
 		     (double) client->h /
 		      gdk_pixbuf_get_height(client->unscaled),
 		     INTERP_MODE);
-  
+unlock:
   pthread_mutex_unlock(&client->mutex);
 }
 
@@ -854,9 +855,9 @@ zvbi_format_page(gint page, gint subpage, gboolean reveal,
 
   zvbi_set_page_state(vtp->pgno, vtp->subno, FALSE, time(NULL));
 
-  fmt_page(reveal, pg, vtp, 25);
+  return fmt_page(reveal, pg, vtp, 25);
 
-  return TRUE;
+//  return TRUE;
 }
 
 /*
@@ -1088,11 +1089,13 @@ zvbi_render_monitored_page(struct vt_page * vtp)
 	{
 	  pthread_mutex_lock(&(mp->mutex));
 	  memcpy(&(mp->vtp), vtp, sizeof(struct vt_page));
-	  fmt_page(FALSE, &(mp->pg), &(mp->vtp), 25);
-	  if (mp->mem)
-	    free(mp->mem);
-	  mp->mem = zvbi_render_page_rgba(&(mp->pg), &(mp->width),
+	  if (fmt_page(FALSE, &(mp->pg), &(mp->vtp), 25))
+	    {
+	      if (mp->mem)
+	        free(mp->mem);
+	      mp->mem = zvbi_render_page_rgba(&(mp->pg), &(mp->width),
 				      &(mp->height), alphas);
+	    }
 	  pthread_mutex_unlock(&(mp->mutex));
 	}
       p=p->next;

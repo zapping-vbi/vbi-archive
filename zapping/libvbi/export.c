@@ -1380,9 +1380,7 @@ default_object_invocation(struct fmt_page *pg)
 	return TRUE;
 }
 
-
-
-void
+int
 fmt_page(int reveal,
 	struct fmt_page *pg, struct vt_page *vtp,
 	int display_rows)
@@ -1391,6 +1389,9 @@ fmt_page(int reveal,
 	magazine *mag;
 	vt_extension *ext;
 	int column, row, i;
+
+	if (vtp->function != PAGE_FUNCTION_LOP)
+		return 0;
 
 	printv("\nFormatting page %03x/%04x\n", vtp->pgno, vtp->subno);
 
@@ -1743,6 +1744,8 @@ fmt_page(int reveal,
 			pg->data[row][column].link_page = page;
 			pg->data[row][column].link_subpage = subpage;
 		}
+
+	return 1;
 }
 
 

@@ -72,6 +72,18 @@ fi
 AC_SUBST(JPEG_LIB)
 
 dnl ----------------------------------------------------------------------
+dnl Check the PNG writing lib
+dnl ----------------------------------------------------------------------
+PNG_LIB=""
+HAVE_PNG="yes"
+AC_CHECK_LIB(png, png_destroy_write_struct, PNG_LIB="-lpng -lz", HAVE_PNG="no", -lz)
+dnl Zapzilla PNG export
+if test "x$HAVE_PNG" = "xyes"; then
+AC_DEFINE(HAVE_LIBPNG)
+fi
+AC_SUBST(PNG_LIB)
+
+dnl ----------------------------------------------------------------------
 dnl Check for RTE, the MPEG encoder
 dnl ----------------------------------------------------------------------
 HAVE_RTE=""

@@ -1237,7 +1237,7 @@ vt_packet(struct vbi *vbi, u8 *p)
 		vbi->current = rvtp;
 		cvtp->pgno = mag8 * 256 + page;
 
-		subpage = hamm16a(p + 2) * 256 + hamm16a(p + 4);
+		subpage = hamm16a(p + 2) + hamm16a(p + 4) * 256;
 		flags = hamm16a(p + 6);
 
 		if (page == 0xFF || (subpage | flags) < 0) {
@@ -1787,7 +1787,7 @@ if(0)
 
 //static char *sample_file = "libvbi/samples/t2-br";
 static char *sample_file = NULL; // disabled
-static FILE *sample_fi;
+static FILE *sample_fd;
 
 void
 sample_beta(struct vbi *vbi)
@@ -1799,25 +1799,25 @@ sample_beta(struct vbi *vbi)
 	int items;
 	int i;
 
-	if (feof(sample_fi)) {
-		rewind(sample_fi);
+	if (feof(sample_fd)) {
+		rewind(sample_fd);
 		printf("Rewind sample stream\n");
 	}
 
 	{
-		fgets(buf, 255, sample_fi);
+		fgets(buf, 255, sample_fd);
 
 		/* usually 0.04 (1/25) */
 //		dt = strtod(buf, NULL);
 
-		items = fgetc(sample_fi);
+		items = fgetc(sample_fd);
 
 //		printf("%8.6f %d:\n", dt, items);
 
 		for (i = 0; i < items; i++) {
-			index = fgetc(sample_fi);
-			line = fgetc(sample_fi);
-			line += 256 * fgetc(sample_fi);
+			index = fgetc(sample_fd);
+			line = fgetc(sample_fd);
+			line += 256 * fgetc(sample_fd);
 
 			if (index != 0) {
 				printf("Oops! Confusion in vbi.c/sample_beta()\n");
@@ -1825,7 +1825,7 @@ sample_beta(struct vbi *vbi)
 				exit(EXIT_FAILURE);
 			}
 
-			fread(wst, 1, 42, sample_fi);
+			fread(wst, 1, 42, sample_fd);
 
 			vt_packet(vbi, wst);
 		}
@@ -1852,7 +1852,7 @@ vbi_teletext(struct vbi *vbi, buffer *b)
     vbi_sliced *s;
     int items;
 
-    if (sample_fi) {
+    if (sample_fd) {
 	    sample_beta(vbi);
 	    return;
     }
@@ -1931,7 +1931,7 @@ vbi_open(char *vbi_name, struct cache *ca, int fine_tune, int big_buf)
     reset_magazines(vbi);
 
     if (sample_file)
-	if (!(sample_fi = fopen(sample_file, "r")))
+	if (!(sample_fd = fopen(sample_file, "r")))
 	    printf("Cannot open %s: %s\n", sample_file, strerror(errno));
 
     return vbi;
@@ -1952,9 +1952,9 @@ vbi_close(struct vbi *vbi)
 
     close_vbi_v4lx(vbi->fifo);
 
-    if (sample_fi)
-	fclose(sample_fi);
-    sample_fi = NULL;
+    if (sample_fd)
+	fclose(sample_fd);
+    sample_fd = NULL;
 
     free(vbi);
 }

@@ -105,7 +105,7 @@ void vbi_draw_page(struct fmt_page *pg, void *data);
 void vbi_get_rendered_size(int *w, int *h);
 
 /* formats the vtp page into a more easily usable format */
-void
+int
 fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp, int
 	 display_rows);
 
