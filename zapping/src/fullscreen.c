@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.23 2004-04-19 16:51:26 mschimek Exp $
+ * $Id: fullscreen.c,v 1.24 2004-05-24 01:57:36 mschimek Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -211,6 +211,9 @@ start_fullscreen		(tveng_device_info *	info)
   gtk_widget_realize (black_window);
   gdk_window_set_decorations (black_window->window, 0);
   gtk_widget_show (black_window);
+
+  /* Make sure we are top level and have focus (such that keys work). */
+  gtk_window_present (GTK_WINDOW (black_window));
 
   z_video_blank_cursor (Z_VIDEO (da), 1500 /* ms */);
 
