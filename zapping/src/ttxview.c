@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: ttxview.c,v 1.121 2003-11-29 19:43:24 mschimek Exp $ */
+/* $Id: ttxview.c,v 1.122 2003-12-04 03:08:41 mschimek Exp $ */
 
 /*
  *  Teletext View
@@ -121,6 +121,8 @@ struct search_dialog {
   gchar *		text;
   gint			direction;
   gboolean		searching;
+  vbi_pgno		start_pgno;
+  vbi_subno		start_subno;
 };
 
 static GtkWidget *	color_dialog;
@@ -2873,41 +2875,40 @@ enum {
   SEARCH_RESPONSE_FORWARD,
 };
 
-/* Substitute keywords by regex, returns a newly allocated string,
-   and g_free's the given string. */
+/* Substitute keywords by regex, returns a newly allocated string. */
 static gchar *
-search_dialog_subtitute		(gchar *		string)
+search_dialog_substitute	(const gchar *		string)
 {
   static const gchar *search_keys [][2] = {
     { "#email#", "([:alnum:]|[-~.])+@([:alnum:]|[-~.])+" },
     { "#url#", "(https?://([:alnum:]|[-~./?%_=+])+)|(www.([:alnum:]|[-~./?%_=+])+)" }
   };
+  gchar *s;
   guint i;
 
   if (!string || !*string)
-    {
-      g_free (string);
-      return g_strdup ("");
-    }
+    return g_strdup ("");
+  else
+    s = g_strdup (string);
 
   for (i = 0; i < 2; ++i)
     {
       gchar *found;
 
-      while ((found = strstr (string, search_keys[i][0])))
+      while ((found = strstr (s, search_keys[i][0])))
 	{
-	  gchar *p;
+	  gchar *s1;
 
 	  *found = 0;
 
-	  p = g_strconcat (string, search_keys[i][1],
-			   found + strlen (search_keys[i][0]), NULL);
-	  g_free (string);
-	  string = p;
+	  s1 = g_strconcat (s, search_keys[i][1],
+			    found + strlen (search_keys[i][0]), NULL);
+	  g_free (s);
+	  s = s1;
 	}
     }
 
-  return string;
+  return s;
 }
 
 static void
@@ -2971,6 +2972,8 @@ search_dialog_idle		(gpointer		user_data)
   switch (status)
     {
     case VBI_SEARCH_SUCCESS:
+      sp->start_pgno = pg->pgno;
+      sp->start_subno = pg->subno;
       load_page (sp->data, pg->pgno, pg->subno, pg);
       search_dialog_result (sp, _("Found text on page %x.%02x:"),
 			    pg->pgno, pg->subno);
@@ -3028,10 +3031,65 @@ on_search_dialog_destroy	(GObject *		object,
 }
 
 static void
+search_restart			(search_dialog *	sp,
+				 const gchar *		text,
+				 vbi_pgno		start_pgno,
+				 vbi_subno		start_subno,
+				 gboolean		regexp,
+				 gboolean		casefold)
+{
+  uint16_t *pattern;
+  const gchar *s;
+  gchar *s1;
+  guint i;
+
+  g_free (sp->text);
+  sp->text = g_strdup (text);
+
+  zcs_bool (regexp, "ure_regexp");
+  zcs_bool (casefold, "ure_casefold");
+
+  s1 = search_dialog_substitute (text);
+
+  /* I don't trust g_convert() to convert to the
+     machine endian UCS2 we need, hence g_utf8_foo. */
+
+  pattern = g_malloc (strlen (s1) * 2 + 2);
+
+  i = 0;
+
+  for (s = s1; *s; s = g_utf8_next_char (s))
+    pattern[i++] = g_utf8_get_char (s);
+
+  pattern[i] = 0;
+
+  vbi_search_delete (sp->context);
+
+  /* Progress callback: Tried first with, to permit the user cancelling
+     a running search. But it seems there's a bug in libzvbi,
+     vbi_search_next does not properly resume after the progress
+     callback aborted to handle pending gtk events. Calling gtk main
+     from callback is suicidal. Another bug: the callback lacks a
+     user_data parameter. */
+  sp->context = vbi_search_new (zvbi_get_object (),
+				start_pgno,
+				start_subno,
+				pattern,
+				casefold,
+				regexp,
+				/* progress */ NULL);
+  g_free (pattern);
+
+  g_free (s1);
+}
+
+static void
 search_dialog_continue		(search_dialog *	sp,
 				 gint			direction)
 {
   gchar *text;
+  gboolean regexp;
+  gboolean casefold;
 
   text = (gchar *) gtk_entry_get_text (GTK_ENTRY (sp->entry));
 
@@ -3045,47 +3103,22 @@ search_dialog_continue		(search_dialog *	sp,
 
   text = g_strdup (text);
 
-  if (!sp->text || 0 != strcmp (sp->text, text))
+  regexp = gtk_toggle_button_get_active (sp->regexp);
+  casefold = gtk_toggle_button_get_active (sp->casefold);
+
+  if (!sp->text
+      || 0 != strcmp (sp->text, text))
     {
-      uint16_t *pattern;
-      const gchar *s;
-      guint i;
-
-      g_free (sp->text);
-      sp->text = g_strdup (text);
-
-      zcs_bool (gtk_toggle_button_get_active (sp->regexp), "ure_regexp");
-      zcs_bool (gtk_toggle_button_get_active (sp->casefold), "ure_casefold");
-
-      text = search_dialog_subtitute (text);
-
-      /* I don't trust g_convert() to convert to the
-	 machine endian UCS2 we need, hence g_utf8_foo. */
-
-      pattern = g_malloc (strlen (text) * 2 + 2);
-
-      i = 0;
-
-      for (s = text; *s; s = g_utf8_next_char (s))
-	pattern[i++] = g_utf8_get_char (s);
-
-      pattern[i] = 0;
-
-      vbi_search_delete (sp->context);
-
-      /* Progress callback: Tried first with, to permit the user cancelling
-	 a running search. But it seems there's a bug in libzvbi,
-	 vbi_search_next does not properly resume after the progress
-	 callback aborted to handle pending gtk events. Calling gtk main
-         from callback is suicidal. Another bug: the callback lacks a
-         user_data parameter. */
-      sp->context = vbi_search_new (zvbi_get_object (),
-				    0x100, VBI_ANY_SUBNO,
-				    pattern,
-				    zcg_bool (NULL, "ure_casefold"),
-				    zcg_bool (NULL, "ure_regexp"),
-				    /* progress */ NULL);
-      g_free (pattern);
+      search_restart (sp, text,
+		      0x100, VBI_ANY_SUBNO,
+		      regexp, casefold);
+    }
+  else if (casefold != zcg_bool (NULL, "ure_casefold")
+	   || regexp != zcg_bool (NULL, "ure_regexp"))
+    {
+      search_restart (sp, text,
+		      sp->start_pgno, sp->start_subno,
+		      regexp, casefold);
     }
 
   g_free (text);
@@ -3154,6 +3187,9 @@ search_dialog_new		(ttxview_data *		data)
 
   data->search_dialog = sp;
   sp->data = data;
+
+  sp->start_pgno = 0x100;
+  sp->start_subno = VBI_ANY_SUBNO;
 
   widget = gtk_dialog_new ();
   window = GTK_WINDOW (widget);
