@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.7\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-02-16 03:40+0100\n"
+"POT-Creation-Date: 2005-02-20 09:38+0100\n"
 "PO-Revision-Date: 2005-02-05 06:26+0100\n"
 "Last-Translator: Michael H. Schimek <mschimek@users.sourceforge.net>\n"
 "Language-Team: German <de@li.org>\n"
@@ -37,7 +37,7 @@ msgstr ""
 msgid "Advanced"
 msgstr "Komplex"
 
-#: glade/zapping.glade2.h:4 src/audio.c:529 src/audio.c:534 src/tveng.c:4457
+#: glade/zapping.glade2.h:4 src/audio.c:529 src/audio.c:534 src/tveng.c:4464
 msgid "Audio"
 msgstr "Audio"
 
@@ -363,11 +363,11 @@ msgstr "Zapping stumm _starten"
 msgid "seconds"
 msgstr "Sekunden"
 
-#: libvbi/exp-gfx.c:1490
+#: libvbi/exp-gfx.c:1480
 msgid "Correct aspect ratio"
 msgstr "Korrektes Seitenverhältnis"
 
-#: libvbi/exp-gfx.c:1491
+#: libvbi/exp-gfx.c:1481
 msgid ""
 "Approach an image aspect ratio similar to a real TV. This will double the "
 "image size."
@@ -375,29 +375,29 @@ msgstr ""
 "Ein Seitenverhältnis entsprechend einem Fernsehbild anstreben, verdoppelt "
 "die Bildgröße"
 
-#: libvbi/exp-gfx.c:1634
+#: libvbi/exp-gfx.c:1624
 msgid "PPM"
 msgstr "PPM"
 
-#: libvbi/exp-gfx.c:1635
+#: libvbi/exp-gfx.c:1625
 msgid "Export this page as raw PPM image"
 msgstr "Diese Seite als PPM Grafik ausgeben"
 
-#: libvbi/exp-gfx.c:1946 libvbi/exp-html.c:528
+#: libvbi/exp-gfx.c:1936 libvbi/exp-html.c:528
 #, c-format
 msgid "Teletext Page %3x.%x"
 msgstr "Teletext Seite %3x.%x"
 
-#: libvbi/exp-gfx.c:1950 libvbi/exp-html.c:531
+#: libvbi/exp-gfx.c:1940 libvbi/exp-html.c:531
 #, c-format
 msgid "Teletext Page %3x"
 msgstr "Teletext Seite %x"
 
-#: libvbi/exp-gfx.c:2013
+#: libvbi/exp-gfx.c:2003
 msgid "PNG"
 msgstr "PNG"
 
-#: libvbi/exp-gfx.c:2014
+#: libvbi/exp-gfx.c:2004
 msgid "Export this page as PNG image"
 msgstr "Diese Seite als PNG Grafik ausgeben"
 
@@ -1750,7 +1750,7 @@ msgstr "Befehl"
 msgid "Shortcut"
 msgstr "Tastenkombination"
 
-#: src/main.c:164 src/tveng.c:2228 src/tveng1.c:1101 src/tveng25.c:495
+#: src/main.c:164 src/tveng.c:2228 src/tveng1.c:1126 src/tveng25.c:495
 #: src/tvengbktr.c:412 src/tvengxv.c:578
 msgid "Mute"
 msgstr "Stumm"
@@ -2137,7 +2137,7 @@ msgstr "Desktopvorgaben verwenden (%s)"
 msgid "Do not change"
 msgstr "Nicht verändern"
 
-#: src/properties-handler.c:1168 src/tveng.c:4468
+#: src/properties-handler.c:1168 src/tveng.c:4475
 msgid "Automatic"
 msgstr "Automatisch"
 
@@ -2206,26 +2206,26 @@ msgstr "Filter"
 msgid "Colorkey"
 msgstr "Überblendfarbe"
 
-#: src/tveng.c:4475
+#: src/tveng.c:4482
 msgid "Mono"
 msgstr "Mono"
 
-#: src/tveng.c:4482
+#: src/tveng.c:4489
 msgid "Stereo"
 msgstr "Stereo"
 
-#: src/tveng.c:4490
+#: src/tveng.c:4497
 msgid "Language 2"
 msgstr "Sprache 2"
 
-#: src/tveng1.c:1153
+#: src/tveng1.c:1178
 msgid "Frame Rate"
 msgstr "Bildrate"
 
 #. TRANSLATORS: PWC driver control.  In 'Snapshot' mode the
 #. camera freezes its automatic exposure and colour balance
 #. controls.
-#: src/tveng1.c:1166
+#: src/tveng1.c:1191
 msgid "Snapshot Mode"
 msgstr "Standbildmodus"
 
