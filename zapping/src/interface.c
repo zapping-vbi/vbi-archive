@@ -172,13 +172,15 @@ create_zapping (void)
   GtkWidget *tv_screen;
 
   widget = build_widget ("zapping", NULL);
-  gtk_widget_modify_bg (widget, GTK_STATE_NORMAL, &col);
 
   box = lookup_widget (widget, "tv_screen_box");
+  gtk_widget_modify_bg (box, GTK_STATE_NORMAL, &col);
 
   tv_screen = z_video_new ();
   gtk_container_add (GTK_CONTAINER (box), tv_screen);
   register_widget (tv_screen, "tv-screen");
+
+  z_video_set_min_size (Z_VIDEO (tv_screen), 64, 64 * 3 / 4);
 
   // XXX free, 4:3, 16:9
   if (zconf_get_boolean (NULL, "/zapping/options/main/fixed_increments"))
