@@ -120,6 +120,9 @@ gboolean plugin_help_properties ( GnomePropertyBox * gpb, gint page ) __attribut
 static void plugin_add_gui ( GnomeApp * app ) __attribute__ ((unused)) ;
 static void plugin_remove_gui ( GnomeApp * app ) __attribute__ ((unused)) ;
 static struct plugin_misc_info * plugin_get_misc_info ( void ) __attribute__ ((unused)) ;
+static void plugin_process_popup_menu ( GtkWidget *window,
+					GdkEventButton *button,
+					GtkMenu *popup) __attribute__ ((unused));
 
 /* This macro if for your convenience, it symplifies adding symbols */
 #define SYMBOL(symbol, hash) \

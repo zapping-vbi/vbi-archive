@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.74 2001-09-02 03:25:58 mschimek Exp $ */
+/* $Id: vbi.c,v 1.75 2001-10-08 19:48:47 garetxe Exp $ */
 
 #include "site_def.h"
 
@@ -353,8 +353,19 @@ mainloop(void *p)
 	setpriority(PRIO_PROCESS, 0, 5);
 
 	while (!vbi->quit) {
-		buffer *b = wait_full_buffer(&c);
-		double d = b->time - vbi->time;
+		buffer *b;
+		double d;
+		struct timeval now;
+		struct timespec timeout;
+
+		gettimeofday(&now, NULL);
+		timeout.tv_sec = now.tv_sec + 1;
+		timeout.tv_nsec = now.tv_usec * 1000;
+
+		if (!(b = recv_full_buffer_timeout(&c, &timeout)))
+			continue;
+		
+		d = b->time - vbi->time;
 
 		if (b->used <= 0) {
 			/* ack */
@@ -810,7 +821,7 @@ vbi_push_video(struct vbi *vbi, void *video_data,
 void
 vbi_close(struct vbi *vbi)
 {
-	vbi->quit = TRUE;
+	vbi->quit = 1;
 
 	pthread_join(vbi->mainloop_thread_id, NULL);
 

@@ -316,6 +316,7 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 {
   GtkWidget * zapping = lookup_widget(widget, "zapping");
   GdkEventButton * bevent = (GdkEventButton *) event;
+  GList *p;
 
   if (event->type != GDK_BUTTON_PRESS)
     return FALSE;
@@ -376,6 +377,14 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 			    _("Show the menu and the toolbar"));
 
 	process_ttxview_menu_popup(main_window, bevent, menu);
+	/* Let plugins add their GUI to this context menu */
+	p = g_list_first(plugin_list);
+	while (p)
+	  {
+	    plugin_process_popup_menu(main_window, bevent, menu, 
+			      (struct plugin_info*)p->data);
+	    p = p->next;
+	  }
 	gtk_menu_popup(menu, NULL, NULL, NULL,
 		       NULL, bevent->button, bevent->time);
 	gtk_object_set_user_data(GTK_OBJECT(menu), zapping);

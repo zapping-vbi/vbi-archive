@@ -108,6 +108,10 @@ struct plugin_info{
   void (*plugin_remove_gui) ( GnomeApp * app );
   /* Get some misc info about the plugin */
   struct plugin_misc_info * (*plugin_get_misc_info) ( void );
+  /* Add the plugin actions to the context menu */
+  void (*plugin_process_popup_menu) ( GtkWidget	*widget,
+				      GdkEventButton	*event,
+				      GtkMenu	*popup );
 
   /******* Variables *********/
   struct plugin_misc_info misc_info; /* Info about the plugin */
@@ -186,6 +190,11 @@ void plugin_add_gui (GnomeApp * app, struct plugin_info * info);
 void plugin_remove_gui (GnomeApp * app, struct plugin_info * info);
 
 gint plugin_get_priority (struct plugin_info * info);
+
+void plugin_process_popup_menu (GtkWidget	*widget,
+				GdkEventButton	*event,
+				GtkMenu	*popup,
+				struct plugin_info *info);
 
 /*
   Loads the plugins, returning a GList. The data item of each element

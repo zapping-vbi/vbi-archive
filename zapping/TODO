@@ -10,6 +10,8 @@ Outstanding issues for the next release (0.6.2)
 	  issues (maxvalue never reached because of integer rounding)
 	+ TTX export: Make blockgfx replacement smarter. Streaming ascii
 	  subtitles. HTML: replace nonstd <blink> by "text-decoration: blink;"
+	+ Chan up/down direction should be configurable (it's nonintutive)
+	+ use spinbuttons in control box?
 
 > 0.6.3
 	+ Examine the possiblity of linking movie titles, VBI plugin API.
@@ -34,6 +36,7 @@ Outstanding issues for the next release (0.6.2)
 	http://matsu-www.is.titech.ac.jp/~fukuchi/rooms/EffecTV/index.html
 	? Add a link to http://www.firstlinux.com/articles/zapping.shtml
 	  on the Z homepage. There was another french review, URL?
+	+ More compression formats.
 
 please tell me about anything you think it's worth adding. 
 garetxe@users.sourceforge.net

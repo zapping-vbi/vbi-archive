@@ -289,6 +289,16 @@ z_pixbuf_scale_simple		(GdkPixbuf	*source,
 }
 
 /**
+ * Like gtk_widget_add_accelerator but takes care of creating the
+ * accel group.
+ */
+void
+z_widget_add_accelerator	(GtkWidget	*widget,
+				 const gchar	*accel_signal,
+				 guint		accel_key,
+				 guint		accel_mods);
+
+/**
  * Builds the given path if it doesn't exist and checks that it's a
  * valid dir.
  * On error returns FALSE and fills in error_description with a newly

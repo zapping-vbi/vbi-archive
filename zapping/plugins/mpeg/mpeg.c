@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.12 2001-10-08 05:50:53 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.13 2001-10-08 19:48:47 garetxe Exp $ */
 
 #include "plugin_common.h"
 
@@ -111,7 +111,8 @@ gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
     SYMBOL(plugin_add_gui, 0x1234),
     SYMBOL(plugin_remove_gui, 0x1234),
     SYMBOL(plugin_get_misc_info, 0x1234),
-    SYMBOL(plugin_running, 0x1234)
+    SYMBOL(plugin_running, 0x1234),
+    SYMBOL(plugin_process_popup_menu, 0x1234)
   };
   gint num_exported_symbols =
     sizeof(table_of_symbols)/sizeof(struct plugin_exported_symbol);
@@ -408,7 +409,7 @@ close_audio(void)
 
 /* Called when compressed data is ready */
 static void
-encode_callback(rte_context * context, void * data, size_t size,
+encode_callback(rte_context * context, void * data, ssize_t size,
 		void * user_data)
 {
   /* currently /dev/null handler */
@@ -1389,6 +1390,8 @@ on_mpeg_button_clicked          (GtkButton       *button,
   plugin_start();
 }
 
+static const gchar *tooltip = N_("Start recording [Ctrl+r]");
+
 static
 void plugin_add_gui (GnomeApp * app)
 {
@@ -1402,16 +1405,16 @@ void plugin_add_gui (GnomeApp * app)
   button = gtk_toolbar_append_element(GTK_TOOLBAR(toolbar1),
 				      GTK_TOOLBAR_CHILD_BUTTON, NULL,
 				      _("MPEG"),
-				      _("Store the data as MPEG"),
+				      _(tooltip),
 				      NULL, tmp_toolbar_icon,
 				      on_mpeg_button_clicked,
 				      NULL);
-  gtk_widget_ref (button);
+
+  z_widget_add_accelerator(button, "clicked", GDK_r, GDK_CONTROL_MASK);
 
   /* Set up the widget so we can find it later */
-  gtk_object_set_data_full (GTK_OBJECT(app), "mpeg_button",
-			    button, (GtkDestroyNotify)
-			    gtk_widget_unref);
+  gtk_object_set_data (GTK_OBJECT(app), "mpeg_button",
+		       button);
 
   gtk_widget_show(button);
 }
@@ -1425,6 +1428,26 @@ void plugin_remove_gui (GnomeApp * app)
   GtkWidget * toolbar1 = lookup_widget(GTK_WIDGET(app), "toolbar1");
 
   gtk_container_remove(GTK_CONTAINER(toolbar1), button);
+}
+
+static void
+plugin_process_popup_menu		(GtkWidget	*widget,
+					 GdkEventButton	*event,
+					 GtkMenu	*popup)
+{
+  GtkWidget *menuitem;
+
+  menuitem = gtk_menu_item_new();
+  gtk_widget_show(menuitem);
+  gtk_menu_append(popup, menuitem);
+
+  menuitem = z_gtk_pixmap_menu_item_new(_("Record as MPEG"),
+					GNOME_STOCK_PIXMAP_COLORSELECTOR);
+  set_tooltip(menuitem, _(tooltip));
+  gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
+		     GTK_SIGNAL_FUNC(on_mpeg_button_clicked), NULL);
+  gtk_widget_show(menuitem);
+  gtk_menu_append(popup, menuitem);
 }
 
 static

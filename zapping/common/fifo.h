@@ -15,7 +15,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.25 2001-08-22 01:26:53 mschimek Exp $ */
+/* $Id: fifo.h,v 1.26 2001-10-08 19:48:47 garetxe Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -256,6 +256,8 @@ recv_full_buffer(consumer *c)
 }
 
 extern buffer *		wait_full_buffer(consumer *c);
+extern buffer *		recv_full_buffer_timeout(consumer *c, struct
+						 timespec *timeout);
 
 /**
  * unget_full_buffer:

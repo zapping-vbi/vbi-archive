@@ -69,9 +69,9 @@ ttxview_get_scaled_ttx_page	(GtkWidget	*parent);
  * given popup menu the TTXView entries
  */
 void
-process_ttxview_menu_popup		(GtkWidget	*widget,
-					 GdkEventButton	*event,
-					 GtkMenu	*popup);
+process_ttxview_menu_popup	(GtkWidget	*widget,
+				 GdkEventButton	*event,
+				 GtkMenu	*popup);
 
 /**
  * Opens the given page in a new TTXView

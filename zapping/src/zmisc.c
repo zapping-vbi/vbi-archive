@@ -599,6 +599,29 @@ z_option_menu_set_active	(GtkWidget	*option_menu,
   gtk_option_menu_set_history(GTK_OPTION_MENU(option_menu), index);
 }
 
+static GtkAccelGroup *accel_group = NULL;
+
+/**
+ * Like gtk_widget_add_accelerator but takes care of creating the
+ * accel group.
+ */
+void
+z_widget_add_accelerator	(GtkWidget	*widget,
+				 const gchar	*accel_signal,
+				 guint		accel_key,
+				 guint		accel_mods)
+{
+  if (!accel_group)
+    {
+      accel_group = gtk_accel_group_new();
+      gtk_window_add_accel_group(GTK_WINDOW(main_window),
+				 accel_group);
+    }
+
+  gtk_widget_add_accelerator(widget, accel_signal, accel_group,
+			     accel_key, accel_mods, GTK_ACCEL_VISIBLE);
+}
+
 static void
 change_pixmenuitem_label		(GtkWidget	*menuitem,
 					 const gchar	*new_label)

@@ -4,9 +4,9 @@ Known bugs with zapping, don't report them
 ! == Bug that needs fixing, very important
 ------------------------------------------
 
-	! When there's no VBI data available vbi_close can hang
-	forever when joining mainloop, which is waiting a buffer that
-	will never come. Appears to be bug #459849 (lockup on close).
+	! MPEG plugin crashes on mp1e_mp2_init
+	! "zapping: fifo.c:1101: rem_consumer: Assertion "c->dequeued
+== 0" failed" when recording video only.
 	* Need better no-overlay-present handling.
 	* vbi eats too much CPU, investigate.
 	* Capture won't work under PPC (endianess)

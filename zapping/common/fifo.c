@@ -15,7 +15,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.32 2001-09-03 05:25:31 mschimek Exp $ */
+/* $Id: fifo.c,v 1.33 2001-10-08 19:48:47 garetxe Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -334,6 +334,62 @@ wait_full_buffer(consumer *c)
 		}
 
 		f->c_reentry--;
+	}
+
+	c->next_buffer = (buffer *) b->node.succ;
+
+	b->dequeued++;
+
+	pthread_mutex_unlock(&f->consumer->mutex);
+
+	c->dequeued++;
+
+	return b;
+}
+
+/**
+ * recv_full_buffer_timeout:
+ * @c: consumer *
+ * @timeout: struct timespec *
+ * 
+ * Suspends execution of the calling thread until a full buffer becomes
+ * available for consumption or the timeout is reached. Identical
+ * behaviour to wait_full_buffer otherwise.
+ *
+ * Return value:
+ * Buffer pointer, or %NULL if the timeout was reached.
+ **/
+buffer *
+recv_full_buffer_timeout(consumer *c, struct timespec *timeout)
+{
+	fifo *f = c->fifo;
+	buffer *b;
+	int err = 0;
+
+	pthread_mutex_lock(&f->consumer->mutex);
+
+	while (!(b = c->next_buffer)->node.succ) {
+		if (f->c_reentry++ || !f->wait_full) {
+			/* Free resources which may block other consumers */
+			pthread_cleanup_push((void (*)(void *))
+				pthread_mutex_unlock, &f->consumer->mutex);
+			err = pthread_cond_timedwait(&f->consumer->cond,
+						     &f->consumer->mutex,
+						     timeout);
+			pthread_cleanup_pop(0);
+		} else {
+			pthread_mutex_unlock(&f->consumer->mutex);
+			f->wait_full(f);
+			pthread_mutex_lock(&f->consumer->mutex);
+		}
+
+		f->c_reentry--;
+
+		if (err == ETIMEDOUT)
+		  {
+		    pthread_mutex_unlock(&f->consumer->mutex);
+		    return NULL;
+		  }
 	}
 
 	c->next_buffer = (buffer *) b->node.succ;

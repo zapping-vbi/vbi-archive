@@ -176,6 +176,10 @@ static gboolean plugin_load(gchar * file_name, struct plugin_info * info)
       (!info->plugin_remove_gui))
     info -> plugin_add_gui = info -> plugin_remove_gui = NULL;
 
+  if (!(*plugin_get_symbol)("plugin_process_popup_menu", 0x1234,
+	    (gpointer*)&(info->plugin_process_popup_menu)))
+    info->plugin_process_popup_menu = NULL;
+
   if (!(*plugin_get_symbol)("plugin_get_misc_info", 0x1234,
 	    (gpointer*)&(info->plugin_get_misc_info)))
     info->plugin_get_misc_info = NULL;
@@ -590,6 +594,17 @@ gint plugin_get_priority (struct plugin_info * info)
   g_assert(info != NULL);
 
   return info -> misc_info.plugin_priority;
+}
+
+void plugin_process_popup_menu (GtkWidget	*widget,
+				GdkEventButton	*event,
+				GtkMenu	*popup,
+				struct plugin_info *info)
+{
+  g_assert(info != NULL);
+
+  if (info->plugin_process_popup_menu)
+    (*info->plugin_process_popup_menu)(widget, event, popup);
 }
 
 /* Loads all the valid plugins in the given directory, and appends them to
