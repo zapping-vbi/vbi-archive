@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.2.2.6 2004-01-30 00:40:37 mschimek Exp $ */
+/* $Id: misc.h,v 1.2.2.7 2004-02-13 02:13:08 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
@@ -61,33 +61,6 @@
 typedef int vbi_bool;
 /** @} */
 
-/**
- * @ingroup Event
- * @brief Unique network id (a libzvbi thing).
- *
- * 0 = unknown network, bit 31 reserved for preliminary nuids.
- * Other network codes are arbitrary.
- *
- * XXX fixme
-a) custom, defined by the client (0<<63 + some)
-b) temporary, created by libzvbi (7<<61 + time_t, you get the idea)
-c) received call sign (6<<61 + 7 chars)
-d) received cni (5<<61 + table index) (cannot use cni directly, blah blah)
-Idea: Each channel cached by libzvbi has two nuids, one internal and
-one client visible. When libzvbi detects a channel switch it sets
-internal and visible to one new temporary nuid. When the client
-announces a channel switch it can name the channel in advance by
-assigning any nuid to visible, e.g. custom from a channel table
-index or a received nuid known from previous sessions. Likewise
-the client can rename a channel any time after a switch, e.g. when
-a nuid was actually received. An id received by libzvbi is assigned
-to internal and the client is notified about it, with value.
- */
-typedef unsigned int vbi_nuid;
-
-/* preliminary */
-#define NUID0 0
-
 #if __GNUC__ >= 3
 #define vbi_attribute_pure __attribute__ ((pure))
 #define vbi_attribute_const __attribute__ ((const))
@@ -122,6 +95,12 @@ typedef unsigned int vbi_nuid;
 	__typeof__ (&((_type *) 0)->_member) _p = (_ptr);		\
 	(_p != 0) ? (_type *)(((char *) _p) - offsetof (_type,		\
 	  _member)) : (_type *) 0;					\
+})
+
+#define CONST_PARENT(_ptr, _type, _member) ({				\
+	__typeof__ (&((const _type *) 0)->_member) _p = (_ptr);		\
+	(_p != 0) ? (const _type *)(((const char *) _p) - offsetof	\
+	 (const _type, _member)) : (const _type *) 0;			\
 })
 
 #undef ABS
@@ -200,9 +179,17 @@ static char *
 PARENT_HELPER (char *p, unsigned int offset)
 { return (p == 0) ? 0 : p - offset; }
 
+static const char *
+CONST_PARENT_HELPER (const char *p, unsigned int offset)
+{ return (p == 0) ? 0 : p - offset; }
+
 #define PARENT(_ptr, _type, _member)					\
 	((offsetof (_type, _member) == 0) ? (_type *)(_ptr)		\
 	 : (_type *) PARENT_HELPER ((char *)(_ptr), offsetof (_type, _member)))
+#define CONST_PARENT(_ptr, _type, _member)				\
+	((offsetof (const _type, _member) == 0) ? (const _type *)(_ptr)	\
+	 : (const _type *) CONST_PARENT_HELPER ((const char *)(_ptr),	\
+	  offsetof (const _type, _member)))
 
 #undef ABS
 #define ABS(n) (((n) < 0) ? -(n) : (n))
