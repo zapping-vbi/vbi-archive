@@ -23,7 +23,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.2 2002-08-22 22:01:58 mschimek Exp $ */
+/* $Id: v4l.c,v 1.3 2002-08-27 02:43:15 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -324,15 +324,6 @@ v4l_init(rte_video_stream_params *par, struct filter_param *fp)
 	printv(2, "Source frame rate is %f Hz.\n", par->frame_rate);
 	mp1e_timestamp_init(&tfmem, 1.0 / par->frame_rate);
 
-	if (fix_interlaced) {
-		/* AIW hack. Top half of the image is discarded,
-		 * bottom half is scaled horizontally 2:1.
-		 */
-		filter_mode = CM_YUYV_HORIZONTAL_DECIMATION;
-		par->width = 384; /* target size */
-		par->height = 288;
-	}
-
 	par->width = saturate(par->width, 1, MAX_WIDTH);
 	par->height = saturate(par->height, 1, MAX_HEIGHT);
 
@@ -344,7 +335,7 @@ v4l_init(rte_video_stream_params *par, struct filter_param *fp)
 	else
 		par->width  = (width1 + 15) & -16;
 
-	if (DECIMATING_VERT(filter_mode) || fix_interlaced)
+	if (DECIMATING_VERT(filter_mode))
 		par->height = (height1 * 2 + 31) & -32;
 	else
 		par->height = (height1 + 15) & -16;
@@ -394,9 +385,6 @@ v4l_init(rte_video_stream_params *par, struct filter_param *fp)
 		while (IOCTL(fd, VIDIOCSPICT, &vpict) != 0) {
 			printv(2, "Image format %d not accepted.\n", vpict.palette);
 
-			if (fix_interlaced)
-				FAIL("-K mode requires YUYV, sorry.\n");
-
 			if (vpict.palette == VIDEO_PALETTE_YUYV) {
 				vpict.palette = VIDEO_PALETTE_YUV422;
 				continue;
@@ -418,6 +406,9 @@ v4l_init(rte_video_stream_params *par, struct filter_param *fp)
 			}
 		}
 
+		if (YUV420(filter_mode) && fix_interlaced)
+			FAIL("-K mode requires YUYV, sorry.\n");
+		
 		for (;;) {
 			CLEAR(&vwin);
 			vwin.width = par->width;
