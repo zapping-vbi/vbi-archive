@@ -1,3 +1,8 @@
+2002-05-09	<mschimek@users.sf.net>
+
+	* common, configure.in: Dereferenced symlinked files, was useful
+	  at one time but now just a nuisance.
+
 2002-04-10	<mschimek@users.sf.net>
 
 	* src/Makefile.am: Removed version number from library name.

@@ -1,3 +1,10 @@
+2002-05-09	<mschimek@users.sf.net>
+
+	* common, configure.in: Dereferenced symlinked videodev files,
+	  was useful at one time but now just a nuisance.
+	* video/mpeg1.c, systems/mpeg1.c: Added fifo usage test.
+	* b_mp1e.c: Added split_sequence dummies.
+ 
 2002-05-06	<mschimek@users.sf.net>
 
 	* video/mpeg1.c: Fixed a recently introduced quantization

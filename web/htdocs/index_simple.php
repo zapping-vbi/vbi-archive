@@ -2,7 +2,7 @@
 	"http://www.w3.org/TR/html4/loose.dtd">
 <html>
   <!--
-  Generated from index_simple.xml on Thu May  9 22:06:59 2002
+  Generated from index_simple.xml on Thu May  9 22:33:10 2002
   -->
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
@@ -127,8 +127,8 @@ cvs -z3 -d:pserver:anonymous@cvs.zapping.sf.net:/cvsroot/zapping co zapping
 
 </pre>
         This will check out the latest version of Zapping (or "co
-        rte" (rte library and mp1e), "co vbi" (zvbi library), from
-	now on you can enter in your zapping (or rte or vbi)
+        rte" for the rte library and mp1e, "co vbi" for the zvbi library),
+	from now on you can enter in your zapping (or rte or vbi)
 	directory:<br><br></li><li><pre>
 cvs -z3 update -dP
 </pre>
@@ -137,7 +137,7 @@ cvs -z3 update -dP
     creates all missing files and the configuration files. You
     need recent versions of the GNU building tools like automake,
     autoconf and libtool. Then type <tt>make</tt>, perhaps <tt>make
-    install</tt> or <tt>make uninstall</tt>. Remember you're living
+    install</tt> or <tt>make uninstall</tt>. Remember you are living
     on the bleeding edge now, these versions may not compile or work
     correctly.</p><p>You can also <a href="http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/zapping">browse</a>
     the CVS repository, or download this daily updated snapshot of

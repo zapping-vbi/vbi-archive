@@ -5,7 +5,7 @@
 Zapping -- Linux TV Viewer -- Downloading
 </title>
 <!--
-	Generated from download.xml on Thu May  9 22:06:58 2002
+	Generated from download.xml on Thu May  9 22:33:09 2002
 -->
 <meta name="description" content="Zapping is a TV Viewer Software for Linux/Unix. Zapping is Open Source and has the ability to use plugins, it has also nice extra build in features.">
 <meta name="language" content="en-us">
@@ -200,8 +200,8 @@ cvs -z3 -d:pserver:anonymous@cvs.zapping.sf.net:/cvsroot/zapping co zapping
 
 </pre>
         This will check out the latest version of Zapping (or "co
-        rte" (rte library and mp1e), "co vbi" (zvbi library), from
-	now on you can enter in your zapping (or rte or vbi)
+        rte" for the rte library and mp1e, "co vbi" for the zvbi library),
+	from now on you can enter in your zapping (or rte or vbi)
 	directory:<br><br></li><li><pre>
 cvs -z3 update -dP
 </pre>
@@ -210,7 +210,7 @@ cvs -z3 update -dP
     creates all missing files and the configuration files. You
     need recent versions of the GNU building tools like automake,
     autoconf and libtool. Then type <tt>make</tt>, perhaps <tt>make
-    install</tt> or <tt>make uninstall</tt>. Remember you're living
+    install</tt> or <tt>make uninstall</tt>. Remember you are living
     on the bleeding edge now, these versions may not compile or work
     correctly.</p><p>You can also <a href="http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/zapping">browse</a>
     the CVS repository, or download this daily updated snapshot of
