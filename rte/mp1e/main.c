@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.37 2002-09-08 23:43:25 mschimek Exp $ */
+/* $Id: main.c,v 1.38 2002-09-12 12:23:19 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -816,7 +816,7 @@ main(int ac, char **av)
 		    || (frame_rate >= 29 && height > 240))
 		  	printv(0, "Warning: image size %d x %d pixels is not VCD 1.x compliant, "
 			       "Should be 352 x 240 (PAL/NTSC) or 352 x 288 (PAL).\n", width, height);
-		if (video_bit_rate != 1152000)
+		if (fabs(video_bit_rate - 1152000) > 900)
 		  	printv(0, "Warning: video bit rate %d kbit/s is not VCD 1.x compliant. "
 			       "Should be 1152 kbit/s.\n", video_bit_rate / 1000);
 		printv(1, "VCD %s MPEG-1 Stream\n",
