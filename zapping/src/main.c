@@ -33,6 +33,13 @@
 #include "plugins.h"
 
 gboolean flag_exit_program = FALSE;
+GdkImage * dummy_image = NULL;
+
+/* Keep compiler happy */
+gboolean
+delete_event                (GtkWidget       *widget,
+			     GdkEvent        *event,
+			     gpointer         user_data);
 
 gboolean
 delete_event                (GtkWidget       *widget,
@@ -50,13 +57,30 @@ on_tv_screen_size_allocate             (GtkWidget       *widget,
                                         gpointer         user_data)
 {
   tveng_device_info * info = (tveng_device_info*) user_data;
+
+  /* Delete dummy_image */
+  /* We must have something to free here */
+  ((GdkImagePrivate*)dummy_image)->ximage->data = malloc(16);      
+  gdk_image_destroy(dummy_image);
+
+  /* This way errors don't segfault */
+  dummy_image = NULL;
+  
   if (tveng_set_capture_size(allocation->width, allocation->height, 
 			     info) == -1)
     {
-      printf("vsdfs\n");
       fprintf(stderr, "%s\n", info->error);
       return;
     }
+
+  /* Reallocate a new image */
+  dummy_image = gdk_image_new(GDK_IMAGE_NORMAL,
+			      gdk_visual_get_system(),
+			      info->format.width,
+			      info->format.height);
+
+  /* We don't need the actual data */
+  XFree(((GdkImagePrivate*)dummy_image)->ximage->data);  
 }
 
 int ShowBox(const gchar * message,
@@ -78,7 +102,6 @@ int main(int argc, char * argv[])
   int num_channels = 3;
   GtkWidget * main_window;
   GtkWidget * tv_screen;
-  GdkImage * dummy_image=NULL; /* This is for displaying the TV data */
   int channels[] = 
   {
     703250,
@@ -171,9 +194,6 @@ int main(int argc, char * argv[])
 			      main_info->format.width,
 			      main_info->format.height);
 
-  printf("%d x %d\n", 
-	 main_info->format.width, main_info->format.height);
-
   /* We don't need the actual data */
   XFree(((GdkImagePrivate*)dummy_image)->ximage->data);
 
@@ -190,6 +210,7 @@ int main(int argc, char * argv[])
 	printf("read(): %s\n", main_info->error);
       ((GdkImagePrivate*)dummy_image)->ximage->data = 
 	main_info->format.data;
+
       gdk_draw_image(tv_screen -> window,
 		     tv_screen -> style -> white_gc,
 		     dummy_image,
@@ -211,7 +232,5 @@ int main(int argc, char * argv[])
       ((GdkImagePrivate*)dummy_image)->ximage->data = malloc(16);      
       gdk_image_destroy(dummy_image);
     }
-
-  fprintf(stderr, "Done\n");
   return 0;
 }

@@ -46,7 +46,7 @@ t_error_msg(str_error, strerror(info->tveng_errno), info)
 
 /* Builds a custom error message, doesn't use errno */
 #define t_error_msg(str_error, msg_error, info) \
-snprintf(info->error, 256, _("%s, %s (line %d)\n%s failed: %s"), \
+snprintf(info->error, 256, _("[%s] %s (line %d)\n%s failed: %s"), \
 __FILE__, __PRETTY_FUNCTION__, __LINE__, str_error, msg_error)
 
 /* 
@@ -334,8 +334,9 @@ int tveng_attach_device(const char* device_file, int flags,
     }
 
   /* Set our desired size, make it halfway */
-  info -> format.width = 640;
-  info -> format.height = 480;
+  info -> format.width = (info->caps.minwidth + info->caps.maxwidth)/2;
+  info -> format.height = (info->caps.minheight +
+			   info->caps.maxheight)/2;
 
   if (tveng_set_capture_format(info) == -1)
     {
@@ -730,11 +731,12 @@ tveng_update_capture_format(tveng_device_info * info)
 
   t_assert(info != NULL);
 
+  memset(&window, 0, sizeof(struct video_window));
+
   if (ioctl(info->fd, VIDIOCGPICT, &pict))
     {
       info->tveng_errno = errno;
-      perror("VIDIOCGPICT");
-      snprintf(info->error, 256, _("Cannot get picture parameters"));
+      t_error("VIDIOCGPICT", info);
       return -1;
     }
   
@@ -742,20 +744,21 @@ tveng_update_capture_format(tveng_device_info * info)
   switch(pict.palette)
     {
     case VIDEO_PALETTE_RGB565:
-      pict.depth = 16;
+      info->format.depth = 16;
       info->format.pixformat = TVENG_PIX_RGB565;
       break;
     case VIDEO_PALETTE_RGB24:
-      pict.depth = 24;
+      info->format.depth = 24;
       info->format.pixformat = TVENG_PIX_BGR24;
       break;
     case VIDEO_PALETTE_RGB32:
-      pict.depth = 32;
+      info->format.depth = 32;
       info->format.pixformat = TVENG_PIX_BGR32;
       break;
     default:
       info->tveng_errno = -1; /* unknown */
-      snprintf(info->error, 256, _("Cannot understand the actual palette"));
+      t_error_msg("switch()",
+		  _("Cannot understand the actual palette"), info);
       return -1;
     }
   /* Ok, now get the video window dimensions */
@@ -767,7 +770,6 @@ tveng_update_capture_format(tveng_device_info * info)
       return -1;
     }
   /* Fill in the format structure (except for the data field) */
-  info->format.depth = pict.depth;
   info->format.bpp = (info->format.depth + 7)>>3;
   info->format.width = window.width;
   info->format.height = window.height;
@@ -778,6 +780,7 @@ tveng_update_capture_format(tveng_device_info * info)
   info->window.width = window.width;
   info->window.height = window.height;
   info->window.chromakey = window.chromakey;
+  /* These two are write-only */
   info->window.clipcount = 0;
   info->window.clips = NULL;
   return 0;
@@ -809,46 +812,53 @@ tveng_set_capture_format(tveng_device_info * info)
     {
     case TVENG_PIX_RGB565:
       pict.palette = VIDEO_PALETTE_RGB565;
-      info->format.depth = 16;
+      pict.depth = 16;
       break;
     case TVENG_PIX_RGB24:
     case TVENG_PIX_BGR24: /* No way to distinguish these two in V4L */
       pict.palette = VIDEO_PALETTE_RGB24;
-      info->format.depth = 24;
+      pict.depth = 24;
       break;
     case TVENG_PIX_RGB32:
     case TVENG_PIX_BGR32:
       pict.palette = VIDEO_PALETTE_RGB32;
-      info->format.depth = 32;
+      pict.depth = 32;
       break;
     default:
       info->tveng_errno = -1; /* unknown */
-      snprintf(info->error, 256, _("Cannot understand the given palette"));
+      t_error_msg("switch()", _("Cannot understand the given palette"),
+		  info);
       return -1;
     }
-  pict.depth = info->format.depth;
 
   /* Set this values for the picture properties */
   if (ioctl(info->fd, VIDIOCSPICT, &pict))
     {
       info->tveng_errno = errno;
-      perror("VIDIOCSPICT");
-      snprintf(info->error, 256, _("Cannot set picture parameters"));
+      t_error("VIDIOCSPICT", info);
       return -1;
     }
 
   /* Fill in the new width and height parameters */
-  /* Make them 4-byte multiplus */
+  /* Get the current window parameters */
+  /*if (ioctl(info->fd, VIDIOCGWIN, &window))
+    {
+      info->tveng_errno = errno;
+      t_error("VIDIOCGWIN", info);
+      return -1;
+    }
+  */
+  /* Make them 4-byte multiplus to avoid errors */
   window.width = (info->format.width+3) & ~3;
   window.height = (info->format.height+3) & ~3;
+  window.clips = NULL;
+  window.clipcount = 0;
 
   /* Ok, now set the video window dimensions */
   if (ioctl(info->fd, VIDIOCSWIN, &window))
     {
       info->tveng_errno = errno;
-      perror("VIDIOCSWIN");
-      printf("Error here\n");
-      snprintf(info->error, 256, _("Cannot set window attributes"));
+      t_error("VIDIOCSWIN", info);
       return -1;
     }
   /* Check fill in info with the current values (may not be the ones
@@ -863,8 +873,7 @@ tveng_set_capture_format(tveng_device_info * info)
   if (!info->format.data)
     {
       info->tveng_errno = errno;
-      perror("malloc");
-      snprintf(info->error, 256, _("Cannot allocate capture buffer"));
+      t_error("malloc", info);
       return -1;
     }
   return 0; /* Success */
@@ -1527,6 +1536,10 @@ tveng_start_capturing(tveng_device_info * info)
 
   info->current_mode = TVENG_CAPTURE_READ;
 
+  /* Queue first buffer */
+  if (p_tveng_queue(info) == -1)
+    return -1;
+
   return 0;
 }
 
@@ -1544,6 +1557,10 @@ tveng_stop_capturing(tveng_device_info * info)
       return 0; /* Nothing to be done */
     }
   t_assert(info->current_mode == TVENG_CAPTURE_READ);
+
+  /* Dequeue last buffer */
+  if (p_tveng_dequeue(info) == -1)
+    return -1;
 
   if (p_info -> mmaped_data != ((char*)-1))
     if (munmap(p_info->mmaped_data, p_info->mmbuf.size) == -1)
@@ -1587,7 +1604,7 @@ int p_tveng_queue(tveng_device_info * info)
 		  info);
       return -1;
     }
-  bm.frame = p_info -> queued;
+  bm.frame = (p_info -> queued) % p_info->mmbuf.frames;
   bm.width = info -> format.width;
   bm.height = info -> format.height;
 
@@ -1607,7 +1624,7 @@ int p_tveng_queue(tveng_device_info * info)
     }
 
   /* increase the queued index */
-  p_info -> queued = (p_info -> queued + 1) % p_info->mmbuf.frames;
+  p_info -> queued = p_info -> queued ++;
 
   return 0; /* Success */
 }
@@ -1617,9 +1634,13 @@ int p_tveng_dequeue(tveng_device_info * info)
   struct video_mmap bm;
   struct private_tveng_device_info * p_info =
     (struct private_tveng_device_info*) info;
+  int frame;
 
   t_assert(info != NULL);
   t_assert(info -> current_mode == TVENG_CAPTURE_READ);
+
+  if (p_info -> dequeued == p_info -> queued)
+    return 0; /* All queued frames have been dequeued */
 
   /* Fill in the mmaped_buffer struct */
   switch(info->format.pixformat)
@@ -1641,7 +1662,8 @@ int p_tveng_dequeue(tveng_device_info * info)
 		  info);
       return -1;
     }
-  bm.frame = p_info -> dequeued;
+  frame = (p_info -> dequeued) % (p_info->mmbuf.frames);
+  bm.frame = frame;
   bm.width = info -> format.width;
   bm.height = info -> format.height;
 
@@ -1653,11 +1675,12 @@ int p_tveng_dequeue(tveng_device_info * info)
     }
 
   /* Copy the mmaped data to the data struct */
-  memcpy(info -> format.data, p_info -> mmaped_data + p_info -> 
-     mmbuf.offsets[p_info->dequeued], info->format.sizeimage);
+  memcpy(info -> format.data, p_info -> mmaped_data + p_info->
+	 mmbuf.offsets[bm.frame],
+	 info->format.sizeimage);
 
   /* increase the dequeued index */
-  p_info -> dequeued = (p_info -> dequeued + 1) % p_info->mmbuf.frames;
+  p_info -> dequeued ++;
 
   return 0;
 }
@@ -1709,8 +1732,8 @@ int tveng_set_capture_size(int width, int height, tveng_device_info * info)
     if (tveng_stop_capturing(info) == -1)
       return -1;
 
-  info -> format.width = (width+127) & ~127;
-  info -> format.height = ((height)/98) *98;
+  info -> format.width = width;
+  info -> format.height = height;
   if (tveng_set_capture_format(info) == -1)
     return -1;
 
