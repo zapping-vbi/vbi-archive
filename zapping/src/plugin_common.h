@@ -51,6 +51,32 @@ struct plugin_exported_symbol
   gint hash; /* Symbol hash */
 };
 
+/*
+  Use this flags to describe your plugin. OR any convenient flags.
+*/
+#define PLUGIN_CATHEGORY_AUDIO_OUT (1<<0) /* Sends audio to other
+					     device */
+#define PLUGIN_CATHEGORY_AUDIO_PROCESS (1<<1) /* Processes audio */
+#define PLUGIN_CATHEGORY_VIDEO_OUT (1<<2) /* Sends video to other
+					     device */
+#define PLUGIN_CATHEGORY_VIDEO_PROCESS (1<<3) /* Processes the video
+						 stream */
+#define PLUGIN_CATHEGORY_DEVICE_CONTROL (1<<4) /* Controls the video
+						  device */
+#define PLUGIN_CATHEGORY_FILTER (1<<5) /* Provides filters */
+#define PLUGIN_CATHEGORY_GUI (1<<6) /* Modifies the GUI */
+
+/*
+  This struct holds some misc info about the plugin. If it exists, all
+  fields must be set correctly upon return.
+*/
+struct plugin_misc_info
+{
+  gint size; /* Size of this structure */
+  gint plugin_priority; /* Priority the plugin requests */
+  gint plugin_cathegory; /* Cathegories the plugin falls under */
+};
+
 #ifndef ZAPPING /* If this is being included from a plugin, give them
 		   the correct prototypes for public symbols ( so
 		   compiling will give an error if defined differently) */
@@ -87,7 +113,7 @@ static
 gboolean plugin_help_properties ( GnomePropertyBox * gpb, gint page );
 static void plugin_add_gui ( GnomeApp * app );
 static void plugin_remove_gui ( GnomeApp * app );
-static gint plugin_get_priority ( void );
+static struct plugin_misc_info * plugin_get_misc_info ( void );
 
 /* This macro if for your convenience, it symplifies adding symbols */
 #define SYMBOL(symbol, hash) \

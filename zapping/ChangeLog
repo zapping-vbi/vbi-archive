@@ -1,3 +1,12 @@
+29.5.2000	Tveng2 done <garetxe@users.sourceforge.net>
+
+	* tveng2.c:
+	* tveng.c: The V4L2 driver has been [re]written and apparently it
+	works fine. The bugs when opening external programs and changing
+	inputs are still there, though :(
+	* plugins.c: Converted plugin_get_priority into a more general
+	pourpouse function, plugin_get_misc_info. Added cathegories too.
+
 20.5.2000	Back into coding <garetxe@users.sourceforge.net>
 
 	* /me: I'm very busy with my finals, i won't have much time for

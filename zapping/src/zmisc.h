@@ -46,12 +46,12 @@ MSG, MSGTYPE, TRUE, TRUE)
   Prints a message box showing an error, with the location of the code
   that called the function.
 */
-int ShowBoxReal(const gchar * sourcefile,
-		const gint line,
-		const gchar * func,
-		const gchar * message,
-		const gchar * message_box_type,
-		gboolean blocking, gboolean modal);
+GtkWidget * ShowBoxReal(const gchar * sourcefile,
+			const gint line,
+			const gchar * func,
+			const gchar * message,
+			const gchar * message_box_type,
+			gboolean blocking, gboolean modal);
 
 /*
   Resizes the image to a new size. If this is the same as the old

@@ -70,14 +70,14 @@ int
 p_tveng1_build_controls(tveng_device_info * info);
 
 /* Internal function declaration */
-int tveng1_open_device_file(int flags, tveng_device_info * info);
+int p_tveng1_open_device_file(int flags, tveng_device_info * info);
 
 /*
   Return fd for the device file opened. Checks if the device is a
   valid video device. -1 on error.
   Flags will be used for open()'ing the file 
 */
-int tveng1_open_device_file(int flags, tveng_device_info * info)
+int p_tveng1_open_device_file(int flags, tveng_device_info * info)
 {
   struct video_capability caps;
 
@@ -193,7 +193,7 @@ int tveng1_attach_device(const char* device_file,
       /* In V4L there is no control-only mode */
     case TVENG_ATTACH_CONTROL:
     case TVENG_ATTACH_READ:
-      info -> fd = tveng1_open_device_file(O_RDWR, info);
+      info -> fd = p_tveng1_open_device_file(O_RDWR, info);
       break;
     default:
       t_error_msg("switch()", _("Unknown attach mode for the device"),
@@ -342,6 +342,9 @@ tveng1_describe_controller(char ** short_str, char ** long_str,
 /* Closes a device opened with tveng_init_device */
 void tveng1_close_device(tveng_device_info * info)
 {
+  int i;
+  int j;
+
   switch (info->current_mode)
     {
     case TVENG_CAPTURE_READ:
@@ -364,6 +367,20 @@ void tveng1_close_device(tveng_device_info * info)
     free(info -> inputs);
   if (info -> standards)
     free(info -> standards);
+  for (i=0; i<info->num_controls; i++)
+    {
+      if ((info->controls[i].type == TVENG_CONTROL_MENU) &&
+	  (info->controls[i].data))
+	{
+	  j = 0;
+	  while (info->controls[i].data[j])
+	    {
+	      free(info->controls[i].data[j]);
+	      j++;
+	    }
+	  free(info->controls[i].data);
+	}
+    }
   if (info -> controls)
     free(info -> controls);
 }
@@ -970,6 +987,7 @@ p_tveng1_build_controls(tveng_device_info * info)
   struct video_picture pict;
   struct video_audio audio;
   struct tveng_control control;
+  int i;
 
   memset(&pict, 0, sizeof(struct video_picture));
   memset(&audio, 0, sizeof(struct video_audio));
@@ -1050,7 +1068,14 @@ p_tveng1_build_controls(tveng_device_info * info)
   control.min = 0;
   control.max = 3;
   control.type = TVENG_CONTROL_MENU;
-  control.data = tveng1_audio_decoding_entries;
+  /* Build each entry */
+  control.data = malloc(sizeof(tveng1_audio_decoding_entries));
+  i = 0;
+  while (tveng1_audio_decoding_entries[i]){
+    control.data[i] = strdup(tveng1_audio_decoding_entries[i]);
+    i++;
+  }
+  control.data[i] = NULL; /* Finish the array */  
   if (p_tveng1_append_control(&control, info) == -1)
     return -1;
 
@@ -1118,6 +1143,7 @@ tveng1_update_controls(tveng_device_info * info)
 
   t_assert(info != NULL);
   t_assert(info->num_controls > 0);
+  t_assert(info->controls != NULL);
 
   /* Fill in the two structs */
   if (ioctl(info->fd, VIDIOCGAUDIO, &audio))
@@ -1384,7 +1410,6 @@ tveng1_get_control_by_name(const char * control_name,
   snprintf(info->error, 256, 
 	   _("Cannot find control \"%s\" in the list of controls"),
 	   control_name);
-  fprintf(stderr, "%s\n", info->error);
   return -1;
 }
 
@@ -1415,7 +1440,6 @@ tveng1_set_control_by_name(const char * control_name,
   snprintf(info->error, 256, 
 	   _("Cannot find control \"%s\" in the list of controls"),
 	   control_name);
-  fprintf(stderr, "%s\n", info->error);
   return -1;
 }
 
@@ -1455,7 +1479,6 @@ tveng1_get_control_by_id(int cid, int * cur_value,
   snprintf(info->error, 256, 
 	   _("Cannot find control %d in the list of controls"),
 	   cid);
-  fprintf(stderr, "%s\n", info->error);
   return -1;
 }
 
@@ -1481,7 +1504,6 @@ int tveng1_set_control_by_id(int cid, int new_value,
   snprintf(info->error, 256, 
 	   _("Cannot find control %d in the list of controls"),
 	   cid);
-  fprintf(stderr, "%s\n", info->error);
   return -1;
 }
 
@@ -1625,7 +1647,8 @@ tveng1_get_tune(__u32 * freq, tveng_device_info * info)
   /* Check that there are tuners in the current input */
   if (info->inputs[info->cur_input].tuners == 0)
     {
-      *freq = 0;
+      if (freq)
+	*freq = 0;
       info->tveng_errno = -1;
       t_error_msg("tuners check",
 		  _("There are no tuners for the active input"),
@@ -2007,6 +2030,15 @@ int tveng1_set_capture_size(int width, int height, tveng_device_info * info)
       break;
     }
 
+  if (width < info->caps.minwidth)
+    width = info->caps.minwidth;
+  else if (width > info->caps.maxwidth)
+    width = info->caps.maxwidth;
+  if (height < info->caps.minheight)
+    height = info->caps.minheight;
+  else if (height > info->caps.maxheight)
+    height = info->caps.maxheight;
+
   info -> format.width = width;
   info -> format.height = height;
   if (tveng1_set_capture_format(info) == -1)
@@ -2228,6 +2260,7 @@ tveng1_start_previewing (tveng_device_info * info)
   /* Enable Direct Graphics (just the DirectVideo thing) */
   if (!XF86DGADirectVideo(display, 0, XF86DGADirectGraphics))
     {
+      info->tveng_errno = -1;
       t_error("XF86DGADirectVideo", info);
       return -1;
     }
@@ -2310,6 +2343,7 @@ tveng1_stop_previewing(tveng_device_info * info)
 
   if (!XF86DGADirectVideo(display, 0, 0))
     {
+      info->tveng_errno = -1;
       t_error("XF86DGADirectVideo", info);
       return -1;
     }

@@ -103,11 +103,11 @@ struct plugin_info{
   void (*plugin_add_gui) ( GnomeApp * app );
   /* Remove the plugin from the GUI */
   void (*plugin_remove_gui) ( GnomeApp * app );
-  /* Get the priority of the plugin */
-  gint (*plugin_get_priority) ( void );
+  /* Get some misc info about the plugin */
+  struct plugin_misc_info * (*plugin_get_misc_info) ( void );
 
   /******* Variables *********/
-  gint priority; /* Holds the desired priority for the plugin */
+  struct plugin_misc_info misc_info; /* Info about the plugin */
   gchar * file_name; /* The name of the file that holds the plugin */
   gchar * canonical_name; /* The canonical name of the plugin */
   gint major, minor, micro; /* Plugin version number, used only

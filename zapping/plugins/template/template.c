@@ -74,7 +74,7 @@ gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
     SYMBOL(plugin_help_properties, 0x1234),
     SYMBOL(plugin_add_gui, 0x1234),
     SYMBOL(plugin_remove_gui, 0x1234),
-    SYMBOL(plugin_get_priority, 0x1234)
+    SYMBOL(plugin_get_misc_info, 0x1234)
   };
   gint num_exported_symbols =
     sizeof(table_of_symbols)/sizeof(struct plugin_exported_symbol);
@@ -319,11 +319,18 @@ void plugin_remove_gui (GnomeApp * app)
 }
 
 static
-gint plugin_get_priority (void)
+struct plugin_misc_info * plugin_get_misc_info (void)
 {
+  static struct plugin_misc_info returned_struct =
+  {
+    sizeof(struct plugin_misc_info), /* size of this struct */
+    6, /* plugin priority, this is just an example */
+    0 /* Cathegory */
+  };
+
   /*
     Tell that the template plugin should be run with a somewhat high
     priority (just to put an example)
   */
-  return 5;
+  return (&returned_struct);
 }

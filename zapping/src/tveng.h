@@ -179,8 +179,8 @@ struct tveng_control{
   int min, max; /* Control ranges */
   int cur_value; /* The current control value */
   enum tveng_control_type type; /* The control type */
-  char ** data; /* In case the control is a menu option items are
-		   stored here, it will be ended by a NULL entry */
+  char ** data; /* If this is a menu entry, pointer to a array of
+		   pointers to the labels, ended by a NULL pointer */
 };
 
 enum tveng_capture_mode

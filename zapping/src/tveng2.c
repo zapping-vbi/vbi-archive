@@ -43,12 +43,13 @@
 int
 p_tveng2_build_controls(tveng_device_info * info);
 
+int p_tveng2_open_device_file(int flags, tveng_device_info * info);
 /*
   Return fd for the device file opened. Checks if the device is a
   valid video device. -1 on error.
   Flags will be used for open()'ing the file 
 */
-int tveng2_open_device_file(int flags, tveng_device_info * info)
+int p_tveng2_open_device_file(int flags, tveng_device_info * info)
 {
   struct v4l2_capability caps;
   struct v4l2_framebuffer fb;
@@ -98,7 +99,7 @@ int tveng2_open_device_file(int flags, tveng_device_info * info)
       return -1;
     }
 
-  if (!(info->caps.flags & V4L2_FLAG_SELECT))
+  if (!(caps.flags & V4L2_FLAG_SELECT))
     {
       info->tveng_errno = -1;
       snprintf(info->error, 256, 
@@ -108,7 +109,7 @@ int tveng2_open_device_file(int flags, tveng_device_info * info)
       return -1;
     }
 
-  if (!(info->caps.flags & V4L2_FLAG_TUNER))
+  if (!(caps.flags & V4L2_FLAG_TUNER))
     {
       info -> tveng_errno = -1;
       snprintf(info->error, 255, 
@@ -128,7 +129,7 @@ int tveng2_open_device_file(int flags, tveng_device_info * info)
   info->caps.minheight = caps.minheight;
   info->caps.flags = 0;
 
-  info->caps.flags |= TVENG_CAPTURE; /* This has been tested before */
+  info->caps.flags |= TVENG_CAPS_CAPTURE; /* This has been tested before */
 
   if (caps.flags & V4L2_FLAG_TUNER)
     info->caps.flags |= TVENG_CAPS_TUNER;
@@ -194,9 +195,9 @@ int tveng2_attach_device(const char* device_file,
   switch (attach_mode)
     {
     case TVENG_ATTACH_CONTROL:
-      info -> fd = tveng2_open_device_file(O_NOIO, info);
+      info -> fd = p_tveng2_open_device_file(O_NOIO, info);
     case TVENG_ATTACH_READ:
-      info -> fd = tveng2_open_device_file(O_RDWR, info);
+      info -> fd = p_tveng2_open_device_file(O_RDWR, info);
       break;
     default:
       t_error_msg("switch()", _("Unknown attach mode for the device"),
@@ -265,7 +266,7 @@ int tveng2_attach_device(const char* device_file,
   /* Query present controls */
   info->num_controls = 0;
   info->controls = NULL;
-  error = p_tveng2_get_controls(info);
+  error = p_tveng2_build_controls(info);
   if (error == -1)
       return -1;
 
@@ -307,7 +308,6 @@ int tveng2_attach_device(const char* device_file,
       tveng2_close_device(info);
       return -1;
     }
-
   return info -> fd;
 }
 
@@ -335,6 +335,9 @@ tveng2_describe_controller(char ** short_str, char ** long_str,
 /* Closes a device opened with tveng_init_device */
 void tveng2_close_device(tveng_device_info * info)
 {
+  int i;
+  int j;
+
   switch (info->current_mode)
     {
     case TVENG_CAPTURE_READ:
@@ -357,6 +360,20 @@ void tveng2_close_device(tveng_device_info * info)
     free(info -> inputs);
   if (info -> standards)
     free(info -> standards);
+  for (i=0; i<info->num_controls; i++)
+    {
+      if ((info->controls[i].type == TVENG_CONTROL_MENU) &&
+	  (info->controls[i].data))
+	{
+	  j = 0;
+	  while (info->controls[i].data[j])
+	    {
+	      free(info->controls[i].data[j]);
+	      j++;
+	    }
+	  free(info->controls[i].data);
+	}
+    }
   if (info -> controls)
     free(info -> controls);
 }
@@ -386,8 +403,8 @@ int tveng2_get_inputs(tveng_device_info * info)
 
   for (i=0;;i++)
     {
-      input.index = i;
       memset(&input, 0, sizeof(struct v4l2_input));
+      input.index = i;
       if (ioctl(info->fd, VIDIOC_ENUMINPUT, &input))
 	break;
       info->inputs = realloc(info->inputs, (i+1)*
@@ -545,7 +562,7 @@ tveng2_set_input_by_index(int index, tveng_device_info * info)
   Returns the number of standards in the given device and fills in info
   with the correct info, allocating memory as needed
 */
-int tveng2_get_standards(tveng2_device_info * info)
+int tveng2_get_standards(tveng_device_info * info)
 {
   int count = 0; /* Number of available standards */
   struct v4l2_enumstd enumstd;
@@ -574,10 +591,10 @@ int tveng2_get_standards(tveng2_device_info * info)
 	break; /* Unsupported by the current input */
 
       info->standards = realloc(info->standards, 
-				(count+1)*sizeof(tveng2_enumstd));
+				(count+1)*sizeof(struct tveng_enumstd));
       info->standards[count].index = count;
       info->standards[count].id = i;
-      snprintf(info->standards[count].name, 32, enumstd.name);
+      snprintf(info->standards[count].name, 24, enumstd.std.name);
       count++;
     }
 
@@ -606,7 +623,7 @@ int tveng2_get_standards(tveng2_device_info * info)
     {
       /* Set the first standard as active */
       fprintf(stderr, "FIXME: current standard not found");
-      tveng1_set_standard(&(info->standards[0]), info);
+      tveng2_set_standard(&(info->standards[0]), info);
     }
 
   return (info->num_standards);
@@ -642,7 +659,7 @@ int tveng2_set_standard(struct tveng_enumstd * std, tveng_device_info * info)
     }
 
   /* Get info about the standard we are going to set */
-  memset(&enumstd, 0, sizoef(struct v4l2_enumstd));
+  memset(&enumstd, 0, sizeof(struct v4l2_enumstd));
   enumstd.index = std -> id;
   if (ioctl(info->fd, VIDIOC_ENUMSTD, &enumstd))
     {
@@ -746,21 +763,21 @@ tveng2_update_capture_format(tveng_device_info * info)
       t_error("VIDIOC_G_FMT", info);
       return -1;
     }
-  if (info->fd, VIDIOC_G_WIN, &window)
+  if (ioctl(info->fd, VIDIOC_G_WIN, &window))
     {
       info->tveng_errno = errno;
       t_error("VIDIOC_G_WIN", info);
       return -1;
     }
-  info->format.bpp = (format.pix.depth + 7)>>3;
-  info->format.width = format.pix.width;
-  info->format.height = format.pix.height;
-  if (format.pix.flags & V4L2_FMT_FLAG_BYTESPERLINE)
-    info->format.bytesperline = format.pix.bytesperline;
+  info->format.bpp = (format.fmt.pix.depth + 7)>>3;
+  info->format.width = format.fmt.pix.width;
+  info->format.height = format.fmt.pix.height;
+  if (format.fmt.pix.flags & V4L2_FMT_FLAG_BYTESPERLINE)
+    info->format.bytesperline = format.fmt.pix.bytesperline;
   else
     info->format.bytesperline = info->format.bpp * info->format.width;
-  info->format.sizeimage = format.pix.sizeimage;
-  switch (format.pix.pixelformat)
+  info->format.sizeimage = format.fmt.pix.sizeimage;
+  switch (format.fmt.pix.pixelformat)
     {
     case V4L2_PIX_FMT_RGB565:
       info->format.depth = 16;
@@ -818,24 +835,24 @@ tveng2_set_capture_format(tveng_device_info * info)
   switch(info->format.pixformat)
     {
     case TVENG_PIX_RGB565:
-      format.pix.pixelformat = V4L2_PIX_FMT_RGB565;
-      format.pix.depth = 16;
+      format.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB565;
+      format.fmt.pix.depth = 16;
       break;
     case TVENG_PIX_RGB24:
-      format.pix.pixelformat = V4L2_PIX_FMT_RGB24;
-      format.pix.depth = 24;
+      format.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB24;
+      format.fmt.pix.depth = 24;
       break;
     case TVENG_PIX_BGR24:
-      format.pix.pixelformat = V4L2_PIX_FMT_BGR24;
-      format.pix.depth = 24;
+      format.fmt.pix.pixelformat = V4L2_PIX_FMT_BGR24;
+      format.fmt.pix.depth = 24;
       break;
     case TVENG_PIX_RGB32:
-      format.pix.pixelformat = V4L2_PIX_FMT_RGB32;
-      format.pix.depth = 32;
+      format.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB32;
+      format.fmt.pix.depth = 32;
       break;
     case TVENG_PIX_BGR32:
-      format.pix.pixelformat = V4L2_PIX_FMT_BGR32;
-      format.pix.depth = 32;
+      format.fmt.pix.pixelformat = V4L2_PIX_FMT_BGR32;
+      format.fmt.pix.depth = 32;
       break;
     default:
       info->tveng_errno = -1; /* unknown */
@@ -857,12 +874,13 @@ tveng2_set_capture_format(tveng_device_info * info)
   if (info->format.width > info->caps.maxwidth)
     info->format.width = info->caps.maxwidth;
   
-  format.pix.width = (info->format.width+3) & ~3;
-  format.pix.height = (info->format.height+3) & ~3;
-  format.pix.bytesperline = ((format.pix.depth+7)>>3) *
-    format.pix.width;
-  format.pix.sizeimage = format.pix.bytesperline * format.pix.height;
-  format.pix.flags = V4L2_FMT_FLAG_INTERLACED;
+  format.fmt.pix.width = (info->format.width+3) & ~3;
+  format.fmt.pix.height = (info->format.height+3) & ~3;
+  format.fmt.pix.bytesperline = ((format.fmt.pix.depth+7)>>3) *
+    format.fmt.pix.width;
+  format.fmt.pix.sizeimage =
+    format.fmt.pix.bytesperline * format.fmt.pix.height;
+  format.fmt.pix.flags = V4L2_FMT_FLAG_INTERLACED;
 
   /* everything is set up */
   if (ioctl(info->fd, VIDIOC_S_FMT, &format))
@@ -893,6 +911,8 @@ p_tveng2_append_control(struct tveng_control * new_control,
     realloc(info->controls, (info->num_controls+1)*
 	    sizeof(struct tveng_control));
 
+  t_assert(info != NULL);
+
   if (!new_pointer)
     {
       info->tveng_errno = errno;
@@ -908,7 +928,7 @@ p_tveng2_append_control(struct tveng_control * new_control,
 }
 
 /* To aid i18n, possible label isn't actually used */
-struct p_tveng_control_with_i18n
+struct p_tveng2_control_with_i18n
 {
   __u32 cid;
   char * possible_label;
@@ -916,15 +936,18 @@ struct p_tveng_control_with_i18n
 
 /* Private, builds the controls structure */
 int
-p_tveng1_build_controls(tveng_device_info * info)
+p_tveng2_build_controls(tveng_device_info * info)
 {
   struct v4l2_queryctrl qc;
+  struct v4l2_querymenu qm;
   struct tveng_control control;
   int i;
+  int j;
 
   /* This shouldn't be neccessary is control querying worked properly */
   /* FIXME: add some ifdef's to use the sane way to query controls */
-  struct p_tveng_control_with_i18n cids[] =
+  /* FIXME: add audio subchannels selecting controls */
+  struct p_tveng2_control_with_i18n cids[] =
   {
     {V4L2_CID_BRIGHTNESS, N_("Brightness")},
     {V4L2_CID_CONTRAST, N_("Contrast")},
@@ -947,86 +970,329 @@ p_tveng1_build_controls(tveng_device_info * info)
     {V4L2_CID_AUDIO_MUTE, N_("Mute")},
     {V4L2_CID_AUDIO_BALANCE, N_("Balance")},
     {V4L2_CID_AUDIO_TREBLE, N_("Treble")},
-    {V4L2_CID_LOUDNESS, N_("Loudness")}
+    {V4L2_CID_AUDIO_LOUDNESS, N_("Loudness")}
   };
 
   memset(&qc, 0, sizeof(struct v4l2_queryctrl));
-  for (i = 0; i < (sizeof(cids)/sizeof(__u32)); i++)
+  for (i = 0;
+       i < (sizeof(cids)/sizeof(struct p_tveng2_control_with_i18n));
+       i++)
     {
       qc.id = cids[i].cid;
-      if (ioctl(info->fd, VIDIOC_QUERYCTRL, &qc) == 0)
+      if ((ioctl(info->fd, VIDIOC_QUERYCTRL, &qc) == 0) &&
+	  (!(qc.flags & V4L2_CTRL_FLAG_DISABLED)))
 	{
 	  if (!strcasecmp(qc.name, cids[i].possible_label))
 	    snprintf(control.name, 32, _(cids[i].possible_label));
 	  else
 	    {
 	      fprintf(stderr,
-		  "%s found: Please contact garetxe@users.sourceforge.net", 
-		      qc.name);
+"%s [%d -> %d] found: Please contact garetxe@users.sourceforge.net\n", 
+		      qc.name, i, cids[i].cid);
 	      snprintf(control.name, 32, _(qc.name));
 	    }
 	  control.min = qc.minimum;
 	  control.max = qc.maximum;
+	  control.id = qc.id;
 	  switch (qc.type)
 	    {
 	    case V4L2_CTRL_TYPE_INTEGER:
 	      control.type = TVENG_CONTROL_SLIDER;
 	      control.data = NULL;
+	      break;
+	    case V4L2_CTRL_TYPE_BOOLEAN:
+	      control.type = TVENG_CONTROL_CHECKBOX;
+	      control.data = NULL;
+	      break;
+	    case V4L2_CTRL_TYPE_BUTTON:
+	      control.type = TVENG_CONTROL_BUTTON;
+	      control.data = NULL;
+	      break;
+	    case V4L2_CTRL_TYPE_MENU:
+	      control.type = TVENG_CONTROL_MENU;
+	      control.data = NULL;
+	      /* This needs a more complex management */
+	      for (j=0; j<=control.max; j++)
+		{
+		  control.data = realloc(control.data,
+					 (j+1)*sizeof(char*));
+		  qm.id = qc.id;
+		  qm.index = j;
+		  if (ioctl(info->fd, VIDIOC_QUERYMENU, &qm))
+		    control.data[j] =
+			strdup(_("<Broken menu entry>"));
+		  else
+		    control.data[j] = strdup(_(qm.name));
+		}
+	      control.data = realloc(control.data,
+				     (j+1)*sizeof(char*));
+	      control.data[j] = NULL;
+	      break;
+	    default:
+	      fprintf(stderr,
+		      _("V4L2: Unknown control type 0x%x (%s)\n"),
+		      qc.type, qc.name);
+	      continue; /* Skip this one */
 	    }
-	  /* FIXME: i'm here */
-	  /* FIXME: Fix memory leak concerning menu controls */
+	  if (p_tveng2_append_control(&control, info) == -1)
+	    return -1;
 	}
     }
   return 0;
 }
 
 /*
-  Gets the value of an specific control. Some of this functions have
-  wrappers, such as tveng2_get_mute(). The value is stored in the
-  address value points to, if there is no error. In case of error, the
-  function returns -1, and value is undefined
+  Gets the current value of the controls, fills in info->controls
+  appropiately. After this (and if it succeeds) you can look in
+  info->controls to get the values for each control. -1 on error
 */
-int tveng2_get_control(int control_id, int * value,
-		      tveng2_device_info * info)
+int
+tveng2_update_controls(tveng_device_info * info)
 {
-  struct v4l2_queryctrl qc;
+  int i;
   struct v4l2_control c;
 
-  /* Check if the control is available */
-  if (tveng2_test_control(control_id, &qc, info) != 0)
-    return -1;
+  t_assert(info != NULL);
+  t_assert(info->num_controls>0);
+  t_assert(info->controls != NULL);
 
-  c.id = control_id;
-
-  if (ioctl(info -> fd, VIDIOC_G_CTRL, &c) != 0)
-    return -1;
-  
-  *value = c.value;
-
+  for (i=0; i<info->num_controls; i++)
+    {
+      c.id = info->controls[i].id;
+      if (ioctl(info->fd, VIDIOC_G_CTRL, &c))
+	{
+	  info->tveng_errno = errno;
+	  t_error("VIDIOC_G_CTRL", info);
+	  c.value = 0; /* This shouldn't be critical */
+	}
+      info->controls[i].cur_value = c.value;
+    }
   return 0;
 }
 
 /*
-  Tunes a video input (if is hasn't a tuner this function fails with
-  0) to the specified frequence (in kHz). If the given frequence is
-  higher than rangehigh or lower than rangelow it is clipped.
-  FIXME: What does afc in v4l2_tuner mean?
+  Sets the value for an specific control. The given value will be
+  clipped between min and max values. Returns -1 on error
 */
-int tveng2_tune_input(int input, __u32 _freq, tveng2_device_info * info)
+int
+tveng2_set_control(struct tveng_control * control, int value,
+		   tveng_device_info * info)
+{
+  struct v4l2_control c;
+
+  t_assert(control != NULL);
+  t_assert(info != NULL);
+
+  t_assert(control != NULL);
+  t_assert(info != NULL);
+
+  /* Clip value to a valid one */
+  if (value < control->min)
+    value = control -> min;
+
+  if (value > control->max)
+    value = control -> max;
+
+  c.id = control->id;
+  c.value = value;
+
+  if (ioctl(info->fd, VIDIOC_S_CTRL, &c))
+    {
+      info->tveng_errno = errno;
+      t_error("VIDIOC_S_CTRL", info);
+      return -1;
+    }
+
+  return (tveng2_update_controls(info));
+}
+/*
+  Gets the value of a control, given its name. Returns -1 on
+  error. The comparison is performed disregarding the case. The value
+  read is stored in cur_value.
+*/
+int
+tveng2_get_control_by_name(const char * control_name,
+			   int * cur_value,
+			   tveng_device_info * info)
+{
+  int i;
+  int value;
+
+  t_assert(info != NULL);
+  t_assert(info -> num_controls > 0);
+  t_assert(control_name != NULL);
+
+  /* Update the controls (their values) */
+  if (tveng2_update_controls(info) == -1)
+    return -1;
+
+  /* iterate through the info struct to find the mute control */
+  for (i = 0; i < info->num_controls; i++)
+    if (!strcasecmp(info->controls[i].name,control_name))
+      /* we found it */
+      {
+	value = info->controls[i].cur_value;
+	t_assert(value <= info->controls[i].max);
+	t_assert(value >= info->controls[i].min);
+	if (cur_value)
+	  *cur_value = value;
+	return 0; /* Success */
+      }
+
+  /* if we reach this, we haven't found the control */
+  info->tveng_errno = -1;
+  snprintf(info->error, 256, 
+	   _("Cannot find control \"%s\" in the list of controls"),
+	   control_name);
+  fprintf(stderr, "%s\n", info->error);
+  return -1;
+}
+
+/*
+  Sets the value of a control, given its name. Returns -1 on
+  error. The comparison is performed disregarding the case.
+  new_value holds the new value given to the control, and it is
+  clipped as neccessary.
+*/
+int
+tveng2_set_control_by_name(const char * control_name,
+			   int new_value,
+			   tveng_device_info * info)
+{
+  int i;
+
+  t_assert(info != NULL);
+  t_assert(info -> num_controls > 0);
+
+  /* iterate through the info struct to find the mute control */
+  for (i = 0; i < info->num_controls; i++)
+    if (!strcasecmp(info->controls[i].name,control_name))
+      /* we found it */
+      return (tveng2_set_control(&(info->controls[i]), new_value, info));
+
+  /* if we reach this, we haven't found the control */
+  info->tveng_errno = -1;
+  snprintf(info->error, 256, 
+	   _("Cannot find control \"%s\" in the list of controls"),
+	   control_name);
+  fprintf(stderr, "%s\n", info->error);
+  return -1;
+}
+
+/*
+  Gets the value of a control, given its control id. -1 on error (or
+  cid not found). The result is stored in cur_value.
+*/
+int
+tveng2_get_control_by_id(int cid, int * cur_value,
+			 tveng_device_info * info)
+{
+  int i;
+  int value;
+
+  t_assert(info != NULL);
+  t_assert(info -> num_controls > 0);
+
+  /* Update the controls (their values) */
+  if (tveng2_update_controls(info) == -1)
+    return -1;
+
+  /* iterate through the info struct to find the mute control */
+  for (i = 0; i < info->num_controls; i++)
+    if (info->controls[i].id == cid)
+      /* we found it */
+      {
+	value = info->controls[i].cur_value;
+	t_assert(value <= info->controls[i].max);
+	t_assert(value >= info->controls[i].min);
+	if (cur_value)
+	  *cur_value = value;
+	return 0; /* Success */
+      }
+
+  /* if we reach this, we haven't found the control */
+  info->tveng_errno = -1;
+  snprintf(info->error, 256, 
+	   _("Cannot find control %d in the list of controls"),
+	   cid);
+  return -1;
+}
+
+/*
+  Sets a control by its id. Returns -1 on error
+*/
+int tveng2_set_control_by_id(int cid, int new_value,
+			    tveng_device_info * info)
+{
+  int i;
+
+  t_assert(info != NULL);
+  t_assert(info -> num_controls > 0);
+
+  /* iterate through the info struct to find the mute control */
+  for (i = 0; i < info->num_controls; i++)
+    if (info->controls[i].id == cid)
+      /* we found it */
+      return (tveng2_set_control(&(info->controls[i]), new_value,
+				 info));
+
+  /* if we reach this, we haven't found the control */
+  info->tveng_errno = -1;
+  snprintf(info->error, 256, 
+	   _("Cannot find control %d in the list of controls"),
+	   cid);
+  return -1;
+}
+
+/*
+  Gets the value of the mute property. 1 means mute (no sound) and 0
+  unmute (sound). -1 on error
+*/
+int
+tveng2_get_mute(tveng_device_info * info)
+{
+  int returned_value;
+  if (tveng2_get_control_by_name(_("Mute"), &returned_value, info) ==
+      -1)
+    return -1;
+  return returned_value;
+}
+
+/*
+  Sets the value of the mute property. 0 means unmute (sound) and 1
+  mute (no sound). -1 on error
+*/
+int
+tveng2_set_mute(int value, tveng_device_info * info)
+{
+  return (tveng2_set_control_by_name(_("Mute"), value, info));
+}
+
+/*
+  Tunes the current input to the given freq. Returns -1 on error.
+*/
+int
+tveng2_tune_input(__u32 _freq, tveng_device_info * info)
 {
   struct v4l2_tuner tuner_info;
-  unsigned int freq; /* real frequence passed to v4l2 */
+  __u32 freq; /* real frequence passed to v4l2 */
 
-  g_assert(input < info -> num_inputs);
-  
-  /* Check if there was a tuner in this input */
-  if (!(info -> inputs[input].input.type & V4L2_INPUT_TYPE_TUNER))
-    return 0;
-  
+  t_assert(info != NULL);
+  t_assert(info->cur_input < info->num_inputs);
+  t_assert(info->cur_input >= 0);
+
+  /* Check that there are tuners in the current input */
+  if (info->inputs[info->cur_input].tuners == 0)
+    return 0; /* Success (we shouldn't be tuning, anyway) */
+
   /* Get more info about this tuner */
-  tuner_info.input = input;
+  tuner_info.input = info->inputs[info->cur_input].id;
   if (ioctl(info -> fd, VIDIOC_G_TUNER, &tuner_info) != 0)
-    return -1;
+    {
+      info->tveng_errno = errno;
+      t_error("VIDIOC_G_TUNER", info);
+      return -1;
+    }
   
   if (tuner_info.capability & V4L2_TUNER_CAP_LOW)
     freq = _freq / 0.0625;
@@ -1039,327 +1305,344 @@ int tveng2_tune_input(int input, __u32 _freq, tveng2_device_info * info)
     freq = tuner_info.rangelow;
   
   /* OK, everything is set up, try to tune it */
-  if (ioctl(info -> fd, VIDIOC_S_FREQ, &freq) != 0)
-      return -1;
-
-  /* It is tuned */
-
-  return 1; /* Success */
-}
-
-/*
-  Stores in freq the frequence the current input is tuned on. Returns
-  -1 on error.
-*/
-int tveng2_get_tune(__u32 * freq, tveng2_device_info * info)
-{
-  if (ioctl(info->fd, VIDIOC_G_FREQ, freq) != 0)
-    return -1;
-
-  return 0;
-}
-
-/* Prints the name of the current pixformat and a newline */
-void print_format(__u32 format)
-{
-  printf("%c%c%c%c\n",
-	 (format & 0xff),
-	 (format & 0xff00) >> 8,
-	 (format & 0xff0000) >> 16,
-	 (format & 0xff000000) >> 24);
-}
-
-/* -1 if failed */
-int
-tveng2_get_capture_format(tveng2_device_info * info)
-{
-  /* Get current settings */
-  info -> pix_format.type = V4L2_BUF_TYPE_CAPTURE;
-
-  if (ioctl(info -> fd, VIDIOC_G_FMT, &(info->pix_format)))
+  if (ioctl(info -> fd, VIDIOC_S_FREQ, &freq))
     {
-      perror("Cannot get format");
+      info->tveng_errno = errno;
+      t_error("VIDIOC_S_FREQ", info);
       return -1;
     }
-  return 0;
-}
-
-/* -1 if failed. Sets the pixformat and fills in info -> pix_format
-   with the correct values  */
-int
-tveng2_set_capture_format(__u32 video_format, tveng2_device_info * info)
-{
-  if (tveng2_get_capture_format(info) == -1)
-    return -1;
-
-  info -> pix_format.type = V4L2_BUF_TYPE_CAPTURE;
-  info -> pix_format.fmt.pix.pixelformat = video_format;
-  if (info -> interlaced)
-    info -> pix_format.fmt.pix.flags = V4L2_FMT_FLAG_INTERLACED;
-  else
-    info -> pix_format.fmt.pix.flags = 0;
-
-  if (ioctl(info->fd, VIDIOC_S_FMT, &(info -> pix_format)) != 0)
-    {
-      perror("Cannot set format\n");
-      return -1;
-    }
-
-  if (tveng2_get_capture_format(info) == -1)
-    return -1;
-
-  if (info -> pix_format.fmt.pix.pixelformat != video_format)
-    return -1;
-
-  return 0; /* Success setting the format */
-}
-
-/*
-  Start capturing frames to a memory buffer. Returns NULL on error,
-  the address of the first mmap'ed buffer otherwise
-  We should specify the number of different buffers to allocate using
-  mmap().
-*/
-gpointer tveng2_start_capturing(tveng2_device_info * info)
-{
-  struct v4l2_requestbuffers rb;
-  int error;
-  int i;
-  int tmp_var = 0;
-  gboolean video_format_set = FALSE;
-
-  /* We are drawing on a RGB visual (even if we don't use GdkRgb
-     functions directly) */
-  GdkVisual * rgb_visual = gdk_rgb_get_visual();
-
-  /* Sorry to use this, but we need to access private fields */
-  GdkImagePrivate * image_private;
-
-  g_assert(info -> current_mode == TVENG2_NO_CAPTURE);
-
-  i = 0;
-  error = TRUE;
-
-  if (rgb_visual -> depth == 15)
-    {
-      if (tveng2_set_capture_format(V4L2_PIX_FMT_RGB555, info) != -1)
-	video_format_set = TRUE;
-    }
-  else if (rgb_visual->depth == 16)
-    {
-      if (tveng2_set_capture_format(V4L2_PIX_FMT_RGB565, info) != 1)
-	video_format_set = TRUE;
-    }
-  else if (rgb_visual->depth == 24)
-    {
-      if (tveng2_set_capture_format(V4L2_PIX_FMT_RGB24, info) != -1)
-	video_format_set = TRUE;
-
-      if (!video_format_set)
-	if (tveng2_set_capture_format(V4L2_PIX_FMT_BGR32, info) != -1)
-	  video_format_set = TRUE;
-    }
-  else if (rgb_visual->depth == 32)
-    {
-      if (tveng2_set_capture_format(V4L2_PIX_FMT_RGB32, info) != -1)
-	video_format_set = TRUE;
-
-      if (!video_format_set)
-	if (tveng2_set_capture_format(V4L2_PIX_FMT_BGR32, info) != -1)
-	  video_format_set = TRUE;
-    }
-
-  if (!video_format_set)
-    {
-      ShowBox(_("Sorry, but cannot start capturing in an adequate format\n"),
-	      GNOME_MESSAGE_BOX_ERROR);
-      return NULL;
-    }
-
-  /* Get current settings */
-  if (tveng2_get_capture_format(info))
-    return NULL;
-
-  rb.count = info -> num_desired_buffers;
-  rb.type = V4L2_BUF_TYPE_CAPTURE;
-  error = ioctl(info->fd, VIDIOC_REQBUFS, &rb);
-
-  if ((error < 0) || (rb.count < 1))
-    {
-#ifndef NDEBUG
-      printf("Cannot get buffers\n");
-#endif
-      return NULL;
-    }
-
-  info -> buffers = (tveng2_vbuf*) malloc(rb.count*sizeof(tveng2_vbuf));
-  info -> num_buffers = rb.count;
-
-  for (i = 0; i < rb.count; i++)
-    {
-      info -> buffers[i].vidbuf.index = i;
-      info -> buffers[i].vidbuf.type = V4L2_BUF_TYPE_CAPTURE;
-      error = ioctl(info->fd, VIDIOC_QUERYBUF, &(info->buffers[i].vidbuf));
-      if (error < 0)
-	{
-#ifndef NDEBUG
-	  printf("Cannot query buffers\n");
-#endif
-	  return NULL;
-	}
-      info->buffers[i].vmem = mmap(0, info->buffers[i].vidbuf.length,
-				   PROT_READ,
-				   MAP_SHARED, info->fd, 
-				   info->buffers[i].vidbuf.offset);
-      if ((int)info->buffers[i].vmem == -1)
-	{
-#ifndef NDEBUG
-	  printf("Cannot mmap() capture devices\n");
-#endif
-	  return NULL;
-	}
-      
-	/* Queue the buffer */
-      tveng2_qbuf(i, info);
-    }
-
-  switch (info -> pix_format.fmt.pix.pixelformat)
-    {
-    case V4L2_PIX_FMT_RGB555:
-      info -> format.pixformat = TVENG2_PIX_RGB555;
-      info -> format.depth = 15;
-      info -> format.bpp = 2;
-      break;
-    case V4L2_PIX_FMT_RGB565:
-      info -> format.pixformat = TVENG2_PIX_RGB565;
-      info -> format.depth = 16;
-      info -> format.bpp = 2;
-      break;
-    case V4L2_PIX_FMT_RGB24:
-      info -> format.pixformat = TVENG2_PIX_RGB24;
-      info -> format.depth = 24;
-      info -> format.bpp = 3;
-      break;
-    case V4L2_PIX_FMT_BGR24:
-      info -> format.pixformat = TVENG2_PIX_BGR24;
-      info -> format.depth = 24;
-      info -> format.bpp = 3;
-      break;
-    case V4L2_PIX_FMT_RGB32:
-      info -> format.pixformat = TVENG2_PIX_RGB32;
-      info -> format.depth = 32;
-      info -> format.bpp = 4;
-      break;
-    case V4L2_PIX_FMT_BGR32:
-      info -> format.pixformat = TVENG2_PIX_BGR32;
-      info -> format.depth = 32;
-      info -> format.bpp = 4;
-      break;
-    default:
-      fprintf(stderr, "%s (%d): Cannot init this struct correctly\n",
-	      __FILE__, __LINE__);
-      break;
-    }
-  info -> format.width = info -> pix_format.fmt.pix.width;
-  info -> format.height = info -> pix_format.fmt.pix.height;
-  /* Set Bytes per line */
-  if (info -> pix_format.fmt.pix.flags & V4L2_FMT_FLAG_BYTESPERLINE)
-    {
-#ifndef NDEBUG
-      printf("Bytes per line set\n");
-#endif
-      info -> format.bytesperline = info->pix_format.fmt.pix.bytesperline;
-    }
-  else /* try to estimate this value */
-    info -> format.bytesperline = (info -> format.width) * (info ->
-							    format.bpp);
-  info -> format.sizeimage = info->format.bytesperline *
-    info->format.height;
-  info -> format.data = (gpointer) malloc(info->format.sizeimage);
-  if (!(info -> format.data))
-    printf("(%s) %d: Cannot allocate memory for info->format.data\n",
-	   __FILE__, __LINE__);
-
-  /* Turn on streaming */
-  tmp_var = V4L2_BUF_TYPE_CAPTURE;
-  if (ioctl(info->fd, VIDIOC_STREAMON, &tmp_var) != 0)
-    {
-#ifndef NDEBUG
-      perror("Cannot turn streaming on");
-#endif
-      return NULL;
-    }
-
-  /* Create the XImage to hold the capture */
-  info -> image = gdk_image_new(GDK_IMAGE_NORMAL,
-			       rgb_visual,
-			       info -> format.width,
-			       info -> format.height);
-
-  image_private = (GdkImagePrivate*) info -> image;
-  info -> ximage = image_private -> ximage;
-
-  free(info -> ximage -> data);
-
-  /* Set the mode flag */
-  info -> current_mode = TVENG2_CAPTURE_MMAPED_BUFFERS;
-
-  return (info->format.data); /* Success */
-}
-
-/* Try to stop capturing. -1 on error */
-int tveng2_stop_capturing(tveng2_device_info * info)
-{
-  int i;
-  int tmp_var;
-
-  if (info -> current_mode == TVENG2_NO_CAPTURE)
-    {
-      printf("ERROR: This shouldn't happen (Bad design somewhere)!!! (1)\n");
-      return 0; 
-    }
-
-  g_assert(info -> current_mode == TVENG2_CAPTURE_MMAPED_BUFFERS);
-
-  /* Turn streaming off */
-  tmp_var = V4L2_BUF_TYPE_CAPTURE;
-  if (ioctl(info->fd, VIDIOC_STREAMOFF, &tmp_var))
-    {
-#ifndef NDEBUG
-      perror("VIDIOC_STREAMOFF");
-#endif
-      return -1;
-    }
-
-  for (i = 0; i < info -> num_buffers; i++)
-    {
-      if (munmap(info -> buffers[i].vmem, info ->
-		 buffers[i].vidbuf.length))
-	{
-#ifndef NDEBUG
-	  perror("munmap");
-#endif
-	}
-    }
-
-  info -> ximage -> data = (char*) malloc(2); /* Allocate something */
-  gdk_image_destroy(info -> image);
-
-  //g_free(info -> buffers);
-
-  /* Free the memory we allocated on start */
-  if (info -> format.data)
-    free(info -> format.data);
-
-  /* We have switched off the mode */
-  info -> current_mode = TVENG2_NO_CAPTURE;
 
   return 0; /* Success */
 }
 
+/*
+  Gets the signal strength and the afc code. The afc code indicates
+  how to get a better signal, if negative, tune higher, if negative,
+  tune lower. 0 means no idea of feature not present in the current
+  controller (i.e. V4L1). Strength and/or afc can be NULL pointers,
+  that would mean ignore that parameter.
+*/
+int
+tveng2_get_signal_strength (int *strength, int * afc,
+			   tveng_device_info * info)
+{
+  struct v4l2_tuner tuner;
+
+  t_assert(info != NULL);
+  t_assert(info->cur_input < info->num_inputs);
+  t_assert(info->cur_input >= 0);
+
+  /* Check that there are tuners in the current input */
+  if (info->inputs[info->cur_input].tuners == 0)
+    return -1;
+
+  tuner.input = info->inputs[info->cur_input].id;
+  if (ioctl(info -> fd, VIDIOC_G_TUNER, &tuner) != 0)
+    {
+      info->tveng_errno = errno;
+      t_error("VIDIOC_G_TUNER", info);
+      return -1;
+    }
+
+  if (strength)
+    *strength = tuner.signal;
+
+  if (afc)
+    *afc = tuner.afc;
+
+  return 0; /* Success */
+}
+
+/*
+  Stores in freq the currently tuned freq. Returns -1 on error.
+*/
+int
+tveng2_get_tune(__u32 * freq, tveng_device_info * info)
+{
+  __u32 real_freq;
+  struct v4l2_tuner tuner;
+
+  t_assert(info != NULL);
+  t_assert(freq != NULL);
+  t_assert(info->cur_input < info->num_inputs);
+  t_assert(info->cur_input >= 0);
+
+  /* Check that there are tuners in the current input */
+  if (info->inputs[info->cur_input].tuners == 0)
+    {
+      if (freq)
+	*freq = 0;
+      info->tveng_errno = -1;
+      t_error_msg("tuners check",
+		  _("There are no tuners for the active input"),
+		  info);
+      return -1;
+    }
+
+  if (ioctl(info->fd, VIDIOC_G_FREQ, &real_freq) != 0)
+    {
+      info->tveng_errno = errno;
+      t_error("VIDIOC_G_FREQ", info);
+      return -1;
+    }
+
+  /* Get more info about this tuner */
+  tuner.input = info->inputs[info->cur_input].id;
+  if (ioctl(info -> fd, VIDIOC_G_TUNER, &tuner) != 0)
+    {
+      info->tveng_errno = errno;
+      t_error("VIDIOC_G_TUNER", info);
+      return -1;
+    }
+  
+  if (tuner.capability & V4L2_TUNER_CAP_LOW)
+    *freq = real_freq * 0.0625;
+  else
+    *freq = real_freq * 62.5;
+
+  return 0;
+}
+
+/*
+  Gets the minimum and maximum freq that the current input can
+  tune. If there is no tuner in this input, -1 will be returned.
+  If any of the pointers is NULL, its value will not be filled.
+*/
+int
+tveng2_get_tuner_bounds(__u32 * min, __u32 * max, tveng_device_info *
+			info)
+{
+  struct v4l2_tuner tuner;
+
+  t_assert(info != NULL);
+  t_assert(info->cur_input < info->num_inputs);
+  t_assert(info->cur_input >= 0);
+
+  /* Check that there are tuners in the current input */
+  if (info->inputs[info->cur_input].tuners == 0)
+    return -1;
+
+  /* Get info about the current tuner */
+  tuner.input = info->inputs[info->cur_input].id;
+  if (ioctl(info -> fd, VIDIOC_G_TUNER, &tuner) != 0)
+    {
+      info->tveng_errno = errno;
+      t_error("VIDIOC_G_TUNER", info);
+      return -1;
+    }
+
+  if (min)
+    *min = tuner.rangelow;
+  if (max)
+    *max = tuner.rangehigh;
+
+  if (tuner.capability & V4L2_TUNER_CAP_LOW)
+    {
+      if (min)
+	*min *= 0.0625;
+      if (max)
+	*max *= 0.0625;
+    }
+  else
+    {
+      if (min)
+	*min *= 62.5;
+      if (max)
+	*max *= 62.5;
+    }
+
+  return 0; /* Success */
+}
+
+/* Some private functions */
+int p_tveng2_qbuf(int index, tveng_device_info * info);
+int p_tveng2_dqbuf(tveng_device_info * info);
+
+/* Queues an specific buffer. -1 on error */
+int p_tveng2_qbuf(int index, tveng_device_info * info)
+{
+  struct v4l2_buffer tmp_buffer;
+  struct private_tveng2_device_info * p_info =
+    (struct private_tveng2_device_info*) info;
+
+  t_assert(info != NULL);
+
+  tmp_buffer.type = p_info -> buffers[0].vidbuf.type;
+  tmp_buffer.index = index;
+
+  if (ioctl(info->fd, VIDIOC_QBUF, &tmp_buffer))
+    {
+      info->tveng_errno = errno;
+      t_error("VIDIOC_QBUF", info);
+      return -1;
+    }
+
+  return 0;
+}
+
+/* dequeues next available buffer and returns it's id. -1 on error */
+int p_tveng2_dqbuf(tveng_device_info * info)
+{
+  struct v4l2_buffer tmp_buffer;
+  struct private_tveng2_device_info * p_info =
+    (struct private_tveng2_device_info*) info;
+
+  t_assert(info != NULL);
+
+  tmp_buffer.type = p_info -> buffers[0].vidbuf.type;
+
+  if (ioctl(info->fd, VIDIOC_DQBUF, &tmp_buffer))
+    {
+      info->tveng_errno = errno;
+      t_error("VIDIOC_DQBUF", info);
+      return -1;
+    }
+  
+  return (tmp_buffer.index);
+}
+
+/*
+  Sets up the capture device so any read() call after this one
+  succeeds. Returns -1 on error.
+*/
+int
+tveng2_start_capturing(tveng_device_info * info)
+{
+  struct v4l2_requestbuffers rb;
+  struct private_tveng2_device_info * p_info =
+    (struct private_tveng2_device_info*) info;
+  int i;
+
+  t_assert(info != NULL);
+
+  /* Check which is the current mode and switch it off if neccesary */
+  switch (info -> current_mode)
+    {
+    case TVENG_CAPTURE_READ:
+      /* Doing this is a bit dumb, but maybe we want to restart */
+      tveng2_stop_capturing(info);
+      break;
+    case TVENG_CAPTURE_PREVIEW:
+      tveng2_stop_previewing(info);
+      break;
+    default:
+      break;
+    }
+  t_assert(info -> current_mode == TVENG_NO_CAPTURE);
+
+  p_info -> buffers = NULL;
+  p_info -> num_buffers = 0;
+
+  rb.count = 8; /* This is a good number */
+  rb.type = V4L2_BUF_TYPE_CAPTURE;
+  if (ioctl(info->fd, VIDIOC_REQBUFS, &rb))
+    {
+      info->tveng_errno = errno;
+      t_error("VIDIOC_REQBUFS", info);
+      return -1;
+    }
+
+  if (rb.count == 0)
+    {
+      info->tveng_errno = -1;
+      t_error_msg("check()", _("Not enough buffers"), info);
+      return -1;
+    }
+
+  p_info -> buffers = (struct tveng2_vbuf*)
+    malloc(rb.count*sizeof(struct tveng2_vbuf));
+  p_info -> num_buffers = rb.count;
+
+  for (i = 0; i < rb.count; i++)
+    {
+      p_info -> buffers[i].vidbuf.index = i;
+      p_info -> buffers[i].vidbuf.type = V4L2_BUF_TYPE_CAPTURE;
+      if (ioctl(info->fd, VIDIOC_QUERYBUF,
+		&(p_info->buffers[i].vidbuf)))
+	{
+	  info->tveng_errno = errno;
+	  t_error("VIDIOC_QUERYBUF", info);
+	  return -1;
+	}
+      p_info->buffers[i].vmem =
+	mmap(0, p_info->buffers[i].vidbuf.length,
+	     PROT_READ,
+	     MAP_SHARED, info->fd, 
+	     p_info->buffers[i].vidbuf.offset);
+      if ((int)p_info->buffers[i].vmem == -1)
+	{
+	  info->tveng_errno = errno;
+	  t_error("mmap()", info);
+	  return -1;
+	}
+      
+	/* Queue the buffer */
+      if (p_tveng2_qbuf(i, info) == -1)
+	return -1;
+    }
+
+  /* Turn on streaming */
+  i = V4L2_BUF_TYPE_CAPTURE;
+  if (ioctl(info->fd, VIDIOC_STREAMON, &i) != 0)
+    {
+      info->tveng_errno = errno;
+      t_error("VIDIOC_STREAMON", info);
+      return -1;
+    }
+
+  info->current_mode = TVENG_CAPTURE_READ;
+
+  return 0;
+}
+
+/* Tries to stop capturing. -1 on error. */
+int
+tveng2_stop_capturing(tveng_device_info * info)
+{
+  struct private_tveng2_device_info * p_info =
+    (struct private_tveng2_device_info*) info;
+  int i;
+
+  if (info -> current_mode == TVENG_NO_CAPTURE)
+    {
+      fprintf(stderr, 
+	      _("Warning: trying to stop capture with no capture active\n"));
+      return 0; /* Nothing to be done */
+    }
+
+  t_assert(info->current_mode == TVENG_CAPTURE_READ);
+
+  /* Turn streaming off */
+  i = V4L2_BUF_TYPE_CAPTURE;
+  if (ioctl(info->fd, VIDIOC_STREAMOFF, &i))
+    {
+      info->tveng_errno = errno;
+      t_error("VIDIOC_STREAMOFF", info);
+      return -1;
+    }
+
+  for (i = 0; i < p_info -> num_buffers; i++)
+    {
+      if (munmap(p_info -> buffers[i].vmem,
+		 p_info -> buffers[i].vidbuf.length))
+	{
+	  info->tveng_errno = errno;
+	  t_error("munmap()", info);
+	}
+    }
+
+  if (p_info -> buffers)
+    free(p_info -> buffers);
+
+  info->current_mode = TVENG_NO_CAPTURE;
+
+  return 0;
+}
+
 /* 
    Reads a frame from the video device, storing the read data in
-   info->format.data
+   the location pointed to by where. size indicates the destination
+   buffer size (that must equal or greater than format.sizeimage)
    time: time to wait using select() in miliseconds
    info: pointer to the video device info structure
    This call was originally intended to wrap a single read() call, but
@@ -1367,11 +1650,30 @@ int tveng2_stop_capturing(tveng2_device_info * info)
    logic.
    Returns -1 on error, anything else on success
 */
-int tveng2_read_frame(unsigned int time, tveng2_device_info * info)
+int tveng2_read_frame(void * where, unsigned int size, 
+		      unsigned int time, tveng_device_info * info)
 {
+  struct private_tveng2_device_info * p_info =
+    (struct private_tveng2_device_info*) info;
   int n; /* The dequeued buffer */
   fd_set rdset;
   struct timeval timeout;
+
+  if (info -> current_mode != TVENG_CAPTURE_READ)
+    {
+      info -> tveng_errno = -1;
+      t_error_msg("check", _("Current capture mode is not READ"),
+		  info);
+      return -1;
+    }
+
+  if (info -> format.sizeimage > size)
+    {
+      info -> tveng_errno = ENOMEM;
+      t_error_msg("check()", 
+	      _("Size check failed, quitting to avoid segfault"), info);
+      return -1;
+    }
 
   /* Fill in the rdset structure */
   FD_ZERO(&rdset);
@@ -1381,23 +1683,19 @@ int tveng2_read_frame(unsigned int time, tveng2_device_info * info)
   n = select(info->fd +1, &rdset, NULL, NULL, &timeout);
   if (n == -1)
     {
-#ifndef NDEBUG
-      perror("select()");
-#endif
+      info->tveng_errno = errno;
+      t_error("select()", info);
       return -1;
     }
   else if (n == 0)
-    return -1; /* This isn't properly an error */
+    return 0; /* This isn't properly an error, just a timeout */
 
-  g_assert(FD_ISSET(info->fd, &rdset)); /* Some sanity check */
-  n = tveng2_dqbuf(info);
+  t_assert(FD_ISSET(info->fd, &rdset)); /* Some sanity check */
+
+  n = p_tveng2_dqbuf(info);
   if (n == -1)
-    {
-#ifndef NDEBUG
-      perror("tveng2_dqbuf()");
-#endif
-      return -1;
-    }
+    return -1;
+
   /* Ignore frames we haven't been able to process */
   do{
     FD_ZERO(&rdset);
@@ -1405,46 +1703,20 @@ int tveng2_read_frame(unsigned int time, tveng2_device_info * info)
     timeout.tv_sec = timeout.tv_usec = 0;
     if (select(info->fd +1, &rdset, NULL, NULL, &timeout) < 1)
       break;
-    tveng2_qbuf(n, info);
-    n = tveng2_dqbuf(info);
+    p_tveng2_qbuf(n, info);
+    n = p_tveng2_dqbuf(info);
   } while (TRUE);
-  /* Copy the data to the address info->format.data points to */
-  memcpy(info->format.data, info->buffers[n].vmem,
-	 info->format.sizeimage);
+
+  /* Copy the data to the address given */
+  memcpy(where, p_info->buffers[n].vmem,
+	 size);
+
   /* Queue the buffer again for processing */
-  if (tveng2_qbuf(n, info))
-    {
-#ifndef NDEBUG
-      perror("tveng2_qbuf()");
-#endif
-      return -1;
-    }
+  if (p_tveng2_qbuf(n, info))
+    return -1;
+
   /* Everything has been OK, return 0 (success) */
   return 0;
-}
-
-/* Queues an specific buffer. -1 on error */
-int tveng2_qbuf(int buffer_id, tveng2_device_info * info)
-{
-  struct v4l2_buffer tmp_buffer;
-
-  tmp_buffer.type = info -> buffers[0].vidbuf.type;
-  tmp_buffer.index = buffer_id;
-
-  return (ioctl(info->fd, VIDIOC_QBUF, &tmp_buffer));
-}
-
-/* dequeues next available buffer and returns it's id. -1 on error */
-int tveng2_dqbuf(tveng2_device_info * info)
-{
-  struct v4l2_buffer tmp_buffer;
-
-  tmp_buffer.type = info -> buffers[0].vidbuf.type;
-
-  if (ioctl(info->fd, VIDIOC_DQBUF, &tmp_buffer))
-    return -1;
-  
-  return (tmp_buffer.index);
 }
 
 /* 
@@ -1452,183 +1724,115 @@ int tveng2_dqbuf(tveng2_device_info * info)
    error. Remember to check the value of width and height since it can
    be different to the one requested. 
 */
-int tveng2_set_capture_size(int width, int height, tveng2_device_info * info)
+int tveng2_set_capture_size(int width, int height, tveng_device_info * info)
 {
-  g_assert(width > 0);
-  g_assert(height > 0);
+  enum tveng_capture_mode current_mode;
+  t_assert(info != NULL);
+  t_assert(width > 0);
+  t_assert(height > 0);
 
-  if (tveng2_stop_capturing(info) == -1) /* Stop all current captures
-					 */
-    {printf("stop_capturing_failed()\n"); return -1;}
-  
-  /* We set the new format , clipping if neccessary */
-  
-  if (width < info->caps.minwidth)
-     width = info->caps.minwidth;
-   else if (width > info->caps.maxwidth)
-     width = info->caps.maxwidth;
-   if (height < info->caps.minheight)
-     height = info->caps.minheight;
-   else if (height > info->caps.maxheight)
-     height = info->caps.maxheight;
+  current_mode = info -> current_mode;
 
-  info -> pix_format.type = V4L2_BUF_TYPE_CAPTURE;
-
-  if (ioctl(info->fd, VIDIOC_G_FMT, &(info->pix_format)))
+  /* Stop any current capture (this is a big deal) */
+  switch (info -> current_mode)
     {
-      printf("get format in set_capture_size failed\n");
-      return -1;
+    case TVENG_CAPTURE_READ:
+      if (tveng2_stop_capturing(info) == -1)
+	return -1;
+      break;
+    case TVENG_CAPTURE_PREVIEW:
+      if (tveng2_stop_previewing(info) == -1)
+	return -1;
+      break;
+    default:
+      break;
     }
 
-  info -> pix_format.fmt.pix.width = width;
-  info -> pix_format.fmt.pix.height = height;
-  info -> pix_format.type = V4L2_BUF_TYPE_CAPTURE;
-  if (info -> interlaced)
-    info -> pix_format.fmt.pix.flags = V4L2_FMT_FLAG_INTERLACED;
-  else
-    info -> pix_format.fmt.pix.flags = 0;
+  if (width < info->caps.minwidth)
+    width = info->caps.minwidth;
+  else if (width > info->caps.maxwidth)
+    width = info->caps.maxwidth;
+  if (height < info->caps.minheight)
+    height = info->caps.minheight;
+  else if (height > info->caps.maxheight)
+    height = info->caps.maxheight;
+  
+  info -> format.width = width;
+  info -> format.height = height;
+  if (tveng2_set_capture_format(info) == -1)
+    return -1;
 
-  /* Call the ioctl */
-  if (ioctl(info -> fd, VIDIOC_S_FMT, &(info -> pix_format)))
-    {printf("Set format failed\n"); return -1;}
+  /* Restart capture again */
+  switch (current_mode)
+    {
+    case TVENG_CAPTURE_READ:
+      if (tveng2_start_capturing(info) == -1)
+	return -1;
+      break;
+    case TVENG_CAPTURE_PREVIEW:
+      if (tveng2_start_previewing(info) == -1)
+	return -1;
+      break;
+    default:
+      break;
+    }
 
-  if (tveng2_start_capturing(info) == NULL) /* Starts capturing again */
-    {printf("start_capturing failed()\n"); return -1;}
-
-  return 0; /* Success */
+  return 0;
 }
 
 /* 
    Gets the actual size of the capture buffer in width and height.
    -1 on error
 */
-int tveng2_get_capture_size(int *width, int *height, tveng2_device_info * info)
+int tveng2_get_capture_size(int *width, int *height, tveng_device_info * info)
 {
-  struct v4l2_format format;
+  t_assert(info != NULL);
 
-  format.type = V4L2_BUF_TYPE_CAPTURE;
-
-  /* Call the ioctl */
-  if (ioctl(info->fd, VIDIOC_G_FMT, &format))
+  if (tveng2_update_capture_format(info))
     return -1;
 
-  *width = format.fmt.pix.width;
-  *height = format.fmt.pix.height;
+  if (width)
+    *width = info->format.width;
+  if (height)
+    *height = info->format.height;
 
   return 0; /* Success */
 }
 
 /* XF86 Frame Buffer routines */
-/* 
-   Detects the presence of a suitable Frame Buffer.
-   TRUE if the program should continue (Frame Buffer present,
-   available and suitable)
-   FALSE if the framebuffer shouldn't be used.
-   FIXME: Many FB and Overlay routines require root access, make that
-          routines into an external program with SUID root
-	  privileges. Potential security flaw here.
-   display: The display we are connected to (gdk_display)
-   screen: The screen we will use
-   info: Its fb member is filled in
-*/
-
-/* Most of the functionality here has moved to zapping_setup_fb */
-gboolean
-tveng2_detect_XF86DGA(Display * display, int screen, tveng2_device_info
-		     * info)
-{
-  int event_base, error_base;
-  int major_version, minor_version;
-  int flags;
-
-  if (!XF86DGAQueryExtension(display, &event_base, &error_base))
-    {
-#ifndef NDEBUG
-      perror("XF86DGAQueryExtension");
-#endif
-      return FALSE;
-    }
-
-  if (!XF86DGAQueryVersion(display, &major_version, &minor_version))
-    {
-#ifndef NDEBUG
-      perror("XF86DGAQueryVersion");
-#endif
-      return FALSE;
-    }
-
-  if (!XF86DGAQueryDirectVideo(display, screen, &flags))
-    {
-#ifndef NDEBUG
-      perror("XF86DGAQueryDirectVideo");
-#endif
-      return FALSE;
-    }
-
-  /* Direct Video should be present (otherwise enabling all this would
-     be pointless) */
-  if (!(flags & XF86DGADirectPresent))
-    {
-#ifndef NDEBUG
-      printf("flags & XF86DGADirectPresent\n");
-#endif
-      return FALSE;
-    }
-
-/* Print collected info if we are in debug mode */
-#ifndef NDEBUG
-  printf("DGA info (using screen %d and current gdk display)\n", screen);
-  printf("  - event and error base  : %d, %d\n", event_base, error_base);
-  printf("  - DGA reported version  : %d.%d\n", major_version, minor_version);
-  printf("  - Supported features    :%s\n",
-	 (flags & XF86DGADirectPresent) ? " DirectVideo" : "");
-#endif
-
-  return TRUE; /* Everything correct */
-}
-
 /*
-  Checks if previewing is available for the desired device.
-  Returns TRUE if success, FALSE on error
+  Returns 1 if the device attached to info suports previewing, 0 otherwise
 */
-gboolean
-tveng2_detect_preview (tveng2_device_info * info)
+int
+tveng2_detect_preview (tveng_device_info * info)
 {
-  if (!(info -> caps.flags & V4L2_FLAG_PREVIEW))
+  struct v4l2_framebuffer fb;
+
+  t_assert(info != NULL);
+
+  if ((info -> caps.flags & TVENG_CAPS_OVERLAY) == 0)
     {
-#ifndef NDEBUG
-      printf("info -> caps.flags & V4L2_FLAG_PREVIEW\n");
-#endif
-      return FALSE;
+      info -> tveng_errno = -1;
+      t_error_msg("flags check",
+       _("The capability field says that there is no overlay"), info);
+      return 0;
     }
 
-  /* The current framebuffer info */
-  if (ioctl(info -> fd, VIDIOC_G_FBUF, &(info -> fb)))
+  /* Get the current framebuffer info */
+  if (ioctl(info -> fd, VIDIOC_G_FBUF, &fb))
     {
-#ifndef NDEBUG
-      perror("VIDIOC_G_FBUF");
-#endif
-      return FALSE;
+      info->tveng_errno = errno;
+      t_error("VIDIOCGFBUF", info);
+      return 0;
     }
 
-/* Print some info about the Overlay device */
-#ifndef NDEBUG
-  printf("Capabilities of the FB device (according to V4L2):\n");
-  if (info -> fb.capability & V4L2_FBUF_CAP_EXTERNOVERLAY)
-    printf("   - V4L2_FBUF_CAP_EXTERNOVERLAY\n");
-  if (info -> fb.capability & V4L2_FBUF_CAP_CHROMAKEY)
-    printf("   - V4L2_FBUF_CAP_CHROMAKEY\n");
-  if (info -> fb.capability & V4L2_FBUF_CAP_CLIPPING)
-    printf("   - V4L2_FBUF_CAP_CLIPPING\n");
-  if (info -> fb.capability & V4L2_FBUF_CAP_BITMAP_CLIPPING)
-    printf("   - V4L2_FBUF_CAP_BITMAP_CLIPPING\n");
-  if (info -> fb.capability & V4L2_FBUF_CAP_SCALEUP)
-    printf("   - V4L2_FBUF_CAP_SCALEUP\n");
-  if (info -> fb.capability & V4L2_FBUF_CAP_SCALEDOWN)
-    printf("   - V4L2_FBUF_CAP_SCALEDOWN\n");
-#endif
+  info->fb_info.base = fb.base;
+  info->fb_info.height = fb.fmt.height;
+  info->fb_info.width = fb.fmt.width;
+  info->fb_info.depth = fb.fmt.depth;
+  info->fb_info.bytesperline = fb.fmt.bytesperline;
 
-  return TRUE;
+  return 1;
 }
 
 /*
@@ -1636,267 +1840,244 @@ tveng2_detect_preview (tveng2_device_info * info)
   Returns -1 on error, something else on success.
   Success doesn't mean that the requested dimensions are used, maybe
   they are different, check the returned fields to see if they are suitable
-  window : Structure containing the window to use (including clipping)
   info   : Device we are controlling
   The current chromakey value is used, the caller doesn't need to fill
   it in.
 */
 int
-tveng2_set_preview_window(struct v4l2_window * window,
-			 tveng2_device_info * info)
+tveng2_set_preview_window(tveng_device_info * info)
 {
-  struct v4l2_window check_window;
+  struct v4l2_window window;
+  struct v4l2_clip * clip=NULL, *safe_clip=NULL;
+  int i;
 
-  g_assert(window != NULL);
-  g_assert(window->clipcount >= 0);
-  g_assert((window->clips != NULL) || (window -> clipcount == 0));
+  t_assert(info != NULL);
+  t_assert(info-> window.clipcount >= 0);
 
-  /* Get the current dimensions */
-  if (tveng2_get_preview_window(&check_window, info) == -1)
-    return -1;
+  memset(&window, 0, sizeof(struct v4l2_window));
 
-  /* Fill in chromakey value and set window */
-  window -> chromakey = check_window.chromakey;
-  if (ioctl(info -> fd, VIDIOC_S_WIN, window))
+  /* We do not set the chromakey value */
+  window.x = info->window.x;
+  window.y = info->window.y;
+  window.width = (info->window.width+3) & ~3;
+  window.height = (info->window.height+3) & ~3;
+  window.clipcount = info->window.clipcount;
+  if (window.clipcount == 0)
+    window.clips = NULL;
+  else
     {
-#ifndef NDEBUG
-      perror("VIDIOC_S_WIN");
-#endif
+      clip = malloc(sizeof(struct v4l2_clip));
+      window.clips = clip;
+      for (i=0;i<window.clipcount;i++)
+	{
+	  if (i > 0)
+	    clip = clip->next;
+	  clip->x = info->window.clips[i].x;
+	  clip->y = info->window.clips[i].y;
+	  clip->width = info->window.clips[i].width;
+	  clip->height = info->window.clips[i].height;
+	  clip->next = malloc(sizeof(struct v4l2_clip));
+	}
+      clip -> next = NULL; /* The last one */
+    }
+  safe_clip = window.clips; /* this property is set-only */
+
+  /* Set the new window */
+  if (ioctl(info->fd, VIDIOC_S_WIN, &window))
+    {
+      info->tveng_errno = errno;
+      t_error("VIDIOC_S_WIN", info);
+      if (clip) /* free the mem */
+	{
+	  safe_clip = clip;
+	  while (safe_clip)
+	    {
+	      safe_clip = clip->next;
+	      free(clip);
+	      clip = safe_clip;
+	    }
+	}
       return -1;
     }
 
-  /* Check returned */
-  if (tveng2_get_preview_window(window, info) == -1)
-    return -1;
+  /* free allocated mem */
+  if (safe_clip)
+    {
+      clip = safe_clip;
+      while (safe_clip)
+	{
+	  safe_clip = clip->next;
+	  free(clip);
+	  clip = safe_clip;
+	}
+    }
 
-  /* Success */
-  return 0;
+  /* Update the info struct */
+  return (tveng2_get_preview_window(info));
 }
 
 /*
   Gets the current overlay window parameters.
   Returns -1 on error, and any other value on success.
-  window : Where to store the collected data
   info   : The device to use
 */
 int
-tveng2_get_preview_window(struct v4l2_window * window,
-			 tveng2_device_info * info)
+tveng2_get_preview_window(tveng_device_info * info)
 {
-  if (ioctl(info -> fd, VIDIOC_G_WIN, window))
-    {
-#ifndef NDEBUG
-      perror("VIDIOC_G_WIN");
-#endif
-      return -1;
-    }
-
-  return 0; /* Success */
+  /* Updates the entire capture format, since there is no
+     difference */
+  return (tveng2_update_capture_format(info));
 }
 
 /* 
    Sets the previewing on/off.
-   TRUE  : on
-   FALSE : off
+   on : if 1, set preview on, if 0 off, other values are silently ignored
    info  : device to use for previewing
    Returns -1 on error, anything else on success
 */
 int
-tveng2_set_preview (gboolean on, tveng2_device_info * info)
+tveng2_set_preview (int on, tveng_device_info * info)
 {
-  int state_on=1, state_off=0;
-  if (ioctl(info -> fd, VIDIOC_PREVIEW, on ? &state_on : &state_off))
+  int one = 1, zero = 0;
+
+  t_assert(info != NULL);
+
+  if ((on < 0) || (on > 1))
+    return 0;
+
+  if (ioctl(info->fd, VIDIOC_PREVIEW, on ? &one : &zero))
     {
-#ifndef NDEBUG
-      perror("VIDIOC_PREVIEW");
-#endif
+      info->tveng_errno = errno;
+      t_error("VIDIOC_PREVIEW", info);
       return -1;
     }
-
   return 0;
 }
 
 /* 
-   Sets up everything and starts previewing to Full Screen if possible.
-   Just call this function to start fullscreen mode, it takes care of
-   everything.
-   There should be no capture active when calling this function
-   Returns TRUE on success and FALSE on failure.
+   Sets up everything and starts previewing.
+   Just call this function to start previewing, it takes care of
+   (mostly) everything.
+   Returns -1 on error.
 */
-gboolean
-tveng2_start_fullscreen_previewing (tveng2_device_info * info, int
-				   verbosity)
+int
+tveng2_start_previewing (tveng_device_info * info)
 {
-  Display * display = gdk_display;
-  int screen = 0; /* Capture to screen number 0 by default */
-  struct v4l2_window window;
-  char * argv[8]; /* The command line passed to zapping_setup_fb */
-  pid_t pid; /* New child's pid as returned by fork() */
-  int status; /* zapping_setup_fb returned status */
-  int i=0;
+  Display * display = info->display;
+  int width, height;
+  int dwidth, dheight; /* Width and height of the display */
+
+  /* Check which is the current mode and switch it off if neccesary */
+  switch (info -> current_mode)
+    {
+    case TVENG_CAPTURE_READ:
+      tveng2_stop_capturing(info);
+      break;
+    case TVENG_CAPTURE_PREVIEW:
+      tveng2_stop_previewing(info);
+      break;
+    default:
+      break;
+    }
+  t_assert(info -> current_mode == TVENG_NO_CAPTURE);
 
   if (!tveng2_detect_preview(info))
-    {
-      ShowBox(_("V4L2 doesn't report any previewing capabilities"),
-	      GNOME_MESSAGE_BOX_ERROR);
-      return FALSE;
-    }
+    /* We shouldn't be reaching this if the app is well programmed */
+    t_assert_not_reached();
 
-  if (!tveng2_detect_XF86DGA(display, screen, info))
-    {
-      ShowBox(_("XFree86 - DGA extension isn't valid or it is missing"),
-	      GNOME_MESSAGE_BOX_ERROR);
-      return FALSE;
-    }
-
-  /* Executes zapping_setup_fb with the given arguments */
-  argv[i++] = "zapping_setup_fb";
-  argv[i++] = "--device";
-  argv[i++] = info -> file_name;
-  /* Clip verbosity to valid values */
-  if (verbosity < 0)
-    verbosity = 0;
-  else if (verbosity > 2)
-    verbosity = 2;
-  for (; verbosity > 0; verbosity --)
-    argv[i++] = "--verbose";
-  argv[i] = NULL;
-  
-  pid = fork();
-
-  if (pid == -1)
-    {
-      perror("fork");
-      return FALSE;
-    }
-
-  if (!pid) /* New child process */
-    {
-      execvp("zapping_setup_fb", argv);
-      /* This shouldn't be reached if everything suceeds */
-      perror("execvp");
-      _exit(2); /* zapping setup_fb on error returns 1 */
-    }
-
-  /* This statement is only reached by the parent */
-  if (waitpid(pid, &status, 0) == -1)
-    {
-      perror("waitpid");
-      return FALSE;
-    }
-
-  if (! WIFEXITED(status)) /* zapping_setup_fb exited abnormally */
-    {
-      ShowBox(_("zapping_setup_fb exited abnormally (check stderr)\n"),
-	      GNOME_MESSAGE_BOX_ERROR);
-      return FALSE;
-    }
-
-  switch (WEXITSTATUS(status))
-    {
-    case 1: /* zapping_setup_fb couldn't do its job */
-      ShowBox(_("zapping_setup_fb returned error (check stderr)\n"),
-	      GNOME_MESSAGE_BOX_ERROR);
-      return FALSE;
-    case 2:
-      ShowBox(_("Cannot start zapping_setup_fb, please check\n"
-		"your installation. Try running:\n"
-		"zapping_setup_fb --verbose --verbose\n"),
-	      GNOME_MESSAGE_BOX_ERROR);
-      return FALSE;
-    default:
-      break; /* Exit code == 0, success setting up the framebuffer */
-    }
+  if (!tveng_detect_XF86DGA(info))
+    return -1;
 
   /* Enable Direct Graphics (just the DirectVideo thing) */
-  if (!XF86DGADirectVideo(display, screen, XF86DGADirectGraphics))
+  if (!XF86DGADirectVideo(display, 0, XF86DGADirectGraphics))
     {
-#ifndef NDEBUG
-      perror("XF86DGADirectVideo\n");
-#endif
-      return FALSE;
+      info -> tveng_errno = -1;
+      t_error("XF86DGADirectVideo", info);
+      return -1;
     }
 
-  /* Set coordinates */
-  window.x = window.y = 0;
-  window.width = gdk_screen_width();
-  window.height = gdk_screen_height();
-  window.clips = NULL;
-  window.clipcount = 0;
-  window.bitmap = NULL;
+  /* calculate coordinates for the preview window. We compute this for
+   the first display */
+  dwidth = DisplayWidth(display, 0);
+  dheight = DisplayHeight(display, 0); 
+  width = info->caps.maxwidth;
+
+  if (width > dwidth)
+    width = dwidth;
+
+  height = info->caps.maxheight;
+  if (height > dheight)
+    height = dheight;
+
+  /* Center the window, dwidth is always >= width */
+  info->window.x = (dwidth - width)/2;
+  info->window.y = (dheight - height)/2;
+  info->window.width = width;
+  info->window.height = height;
+  info->window.clips = NULL;
+  info->window.clipcount = 0;
 
   /* Set new capture dimensions */
-  if (tveng2_set_preview_window(&window, info) == -1)
+  if (tveng2_set_preview_window(info) == -1)
     {
       /* Switch DirectVideo off */
-      if (!XF86DGADirectVideo(display, screen, 0))
-#ifndef NDEBUG
-	perror("XF86DGADirectVideo");
-#endif
-      return FALSE;
+      if (!XF86DGADirectVideo(display, 0, 0))
+	t_error("XF86DGADirectVideo", info);
+      return -1;
     }
 
   /* Center preview window (maybe the requested width and/or height)
      aren't valid */
-  window.x = (gdk_screen_width()/2) - (window.width/2);
-  window.y = (gdk_screen_height()/2) - (window.height/2);
-  window.clipcount = 0;
-  window.clips = NULL;
-  if (tveng2_set_preview_window(&window, info) == -1)
+  info->window.x = (dwidth - info->window.width)/2;
+  info->window.y = (dheight - info->window.height)/2;
+  info->window.clipcount = 0;
+  info->window.clips = NULL;
+  if (tveng2_set_preview_window(info) == -1)
     {
       /* Switch DirectVideo off */
-      if (!XF86DGADirectVideo(display, screen, 0))
-#ifndef NDEBUG
-	perror("XF86DGADirectVideo");
-#endif
-      return FALSE;
+      if (!XF86DGADirectVideo(display, 0, 0))
+	t_error("XF86DGADirectVideo", info);
+      return -1;
     }
 
   /* Start preview */
-  if (tveng2_set_preview_on(info) == -1)
+  if (tveng2_set_preview(1, info) == -1)
     {
       /* Switch DirectVideo off */
-      if (!XF86DGADirectVideo(display, screen, 0))
-#ifndef NDEBUG
-	perror("XF86DGADirectVideo");
-#endif
-      return FALSE;
+      if (!XF86DGADirectVideo(display, 0, 0))
+	t_error("XF86DGADirectVideo", info);
+      return -1;
     }
 
-  /* FIXME: Clear screen */
-
-  info -> current_mode = TVENG2_CAPTURE_FULLSCREEN;
-  return TRUE; /* Success */
+  info -> current_mode = TVENG_CAPTURE_PREVIEW;
+  return 0; /* Success */
 }
 
 /*
-  Stops the fullscreen mode. FALSE on error and TRUE on success
+  Stops the fullscreen mode. Returns -1 on error
 */
-gboolean
-tveng2_stop_fullscreen_previewing(tveng2_device_info * info)
+int
+tveng2_stop_previewing(tveng_device_info * info)
 {
-  Display * display = gdk_display;
-  int screen = 0; /* Capture to screen number 0 by default */
+  Display * display = info->display;
 
-  if (info -> current_mode == TVENG2_NO_CAPTURE)
+  if (info -> current_mode == TVENG_NO_CAPTURE)
     {
-      printf("ERROR: This shouldn't happen (Bad design somewhere)!!! (2)\n");
-      return 0; 
+      fprintf(stderr, 
+	      _("Warning: trying to stop preview with no capture active\n"));
+      return 0; /* Nothing to be done */
     }
-
-  g_assert(info -> current_mode == TVENG2_CAPTURE_FULLSCREEN);
+  t_assert(info->current_mode == TVENG_CAPTURE_PREVIEW);
 
   /* No error checking */
-  tveng2_set_preview_off(info);
+  tveng2_set_preview(0, info);
 
-  if (!XF86DGADirectVideo(display, screen, 0))
+  if (!XF86DGADirectVideo(display, 0, 0))
     {
-#ifndef NDEBUG
-      perror("XF86DGADirectVideo\n");
-#endif
-      return FALSE;
+      t_error("XF86DGADirectVideo", info);
+      return -1;
     }
 
-  info -> current_mode = TVENG2_NO_CAPTURE;
-  return TRUE; /* Success */
+  info -> current_mode = TVENG_NO_CAPTURE;
+  return 0; /* Success */
 }

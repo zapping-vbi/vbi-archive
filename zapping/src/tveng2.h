@@ -46,7 +46,7 @@
 struct tveng2_vbuf
 {
   void * vmem; /* Captured image in this buffer */
-  struct v4l2_buffer buffer; /* Info about the buffer */
+  struct v4l2_buffer vidbuf; /* Info about the buffer */
 };
 
 /* 

@@ -24,15 +24,15 @@ GdkImage * zimage = NULL; /* The buffer that holds the capture */
 /*
   Prints a message box showing an error, with the location of the code
   that called the function. If run is TRUE, gnome_dialog_run will be
-  called instead of just shoawing the dialog. Keep in mind that this
+  called instead of just showing the dialog. Keep in mind that this
   will block the capture.
 */
-int ShowBoxReal(const gchar * sourcefile,
-		const gint line,
-		const gchar * func,
-		const gchar * message,
-		const gchar * message_box_type,
-		gboolean blocking, gboolean modal)
+GtkWidget * ShowBoxReal(const gchar * sourcefile,
+			const gint line,
+			const gchar * func,
+			const gchar * message,
+			const gchar * message_box_type,
+			gboolean blocking, gboolean modal)
 {
   GtkWidget * dialog;
   gchar * str;
@@ -45,7 +45,7 @@ int ShowBoxReal(const gchar * sourcefile,
   str = g_strconcat(sourcefile, buffer, ": [", func, "]", NULL);
 
   if (!str)
-    return 0;
+    return NULL;
 
   dialog = gnome_message_box_new(message, message_box_type,
 				 GNOME_STOCK_BUTTON_OK,
@@ -57,12 +57,15 @@ int ShowBoxReal(const gchar * sourcefile,
   g_free(str);
 
   if (blocking)
-    return (gnome_dialog_run_and_close(GNOME_DIALOG(dialog)));
+    {
+      gnome_dialog_run_and_close(GNOME_DIALOG(dialog));
+      return NULL;
+    }
 
   gtk_window_set_modal(GTK_WINDOW (dialog), modal);
   gtk_widget_show(dialog);
 
-  return 0;
+  return dialog;
 }
 
 /*

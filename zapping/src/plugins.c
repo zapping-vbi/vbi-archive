@@ -169,14 +169,15 @@ gboolean plugin_load(gchar * file_name, struct plugin_info * info)
       (!info->plugin_remove_gui))
     info -> plugin_add_gui = info -> plugin_remove_gui = NULL;
 
-  if (!(*plugin_get_symbol)("plugin_get_priority", 0x1234,
-		       (gpointer*)&(info->plugin_get_priority)))
-    info->plugin_get_priority = NULL;
+  if (!(*plugin_get_symbol)("plugin_get_misc_info", 0x1234,
+	    (gpointer*)&(info->plugin_get_misc_info)))
+    info->plugin_get_misc_info = NULL;
 
-  if (info -> plugin_get_priority)
-    info -> priority = (*info->plugin_get_priority)();
-  else
-    info -> priority = 0;
+  memset(&(info->misc_info), 0, sizeof(struct plugin_misc_info));
+
+  if (info -> plugin_get_misc_info)
+    memcpy(&(info->misc_info), (*info->plugin_get_misc_info)(),
+	   ((*info->plugin_get_misc_info)())->size);
 
   plugin_get_info(&canonical_name, NULL, NULL, NULL, NULL, NULL,
 		   info);
@@ -566,7 +567,7 @@ gint plugin_get_priority (struct plugin_info * info)
 {
   g_assert(info != NULL);
 
-  return info -> priority;
+  return info -> misc_info.plugin_priority;
 }
 
 /* Loads all the valid plugins in the given directory, and appends them to
@@ -683,7 +684,7 @@ gint plugin_sorter (struct plugin_info * a, struct plugin_info * b)
   g_assert(a != NULL);
   g_assert(b != NULL);
 
-  return (b->priority - a->priority);
+  return (b->misc_info.plugin_priority - a->misc_info.plugin_priority);
 }
 
 /* Loads all the plugins in the system */
