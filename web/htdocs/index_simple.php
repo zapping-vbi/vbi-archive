@@ -182,7 +182,7 @@ mailing list page</a>.
 
   <ul><li>XawTV: <a href="http://bytesex.org/xawtv/">http://bytesex.org/xawtv/</a>.
       Very widespread app, with useful tools.</li><li>KWinTV: <a href="http://kwintv.sourceforge.net">http://kwintv.sourceforge.net</a>.
-      KDE app, quite easy to use GUI.</li><li>AleVT: <a href="http://lecker.essen.de/~froese">http://lecker.essen.de/~froese</a>.
+      KDE app, quite easy to use GUI.</li><li>AleVT: <a href="http://www.goron.de/~froese">http://www.goron.de/~froese</a>.
       Good TTX decoder, probably the second best around. ;-)</li></ul><center><h3>Developer info</h3></center><ul><li><a href="http://roadrunner.swansea.uk.linux.org/v4l.shtml">V4L</a>,
     the video interface present in stable kernels.</li><li><a href="http://www.thedirks.org/v4l2/">V4L2</a>, a new and better
     API for video.</li><li><a href="http://developer.gnome.org">developer.gnome.org</a>, the
