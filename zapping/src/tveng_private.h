@@ -232,7 +232,7 @@ extern void
 free_video_standards		(tveng_device_info *	info);
 extern tv_video_standard *
 append_video_standard		(tv_video_standard **	list,
-				 tv_video_standard_id	id,
+				 tv_videostd_set	videostd_set,
 				 const char *		label,
 				 const char *		hlabel,
 				 unsigned int		size);
@@ -282,6 +282,9 @@ tv_strndup			(const char *		s,
 extern char *
 tv_strdup_printf		(const char *		templ,
 				 ...);
+
+extern tv_pixfmt
+pig_depth_to_pixfmt		(unsigned int		depth);
 
 struct _tv_mixer_interface {
 	const char *		name;
