@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.h,v 1.15 2002-03-16 16:35:38 mschimek Exp $ */
+/* $Id: rte.h,v 1.16 2002-04-20 06:43:37 mschimek Exp $ */
 
 #ifndef RTE_H
 #define RTE_H
@@ -116,6 +116,7 @@ typedef rte_bool (*rte_seek_callback)(rte_context *context,
 				      off64_t offset,
 				      int whence);
 
+
 extern rte_bool			rte_set_input_callback_active(rte_codec *codec, rte_buffer_callback read_cb, rte_buffer_callback unref_cb, int *queue_length);
 extern rte_bool			rte_set_input_callback_passive(rte_codec *codec, rte_buffer_callback read_cb);
 extern rte_bool			rte_set_input_push_active(rte_codec *codec, rte_buffer_callback unref_cb, int queue_request, int *queue_length);
@@ -124,13 +125,12 @@ extern rte_bool			rte_set_input_push_passive(rte_codec *codec, int queue_request
 extern rte_bool			rte_set_output_callback_passive(rte_context *context, rte_buffer_callback write_cb, rte_seek_callback seek_cb);
 extern rte_bool			rte_set_output_stdio(rte_context *context, int fd);
 extern rte_bool			rte_set_output_file(rte_context *context, const char *filename);
+extern rte_bool			rte_set_output_discard(rte_context *context);
 
 extern rte_bool			rte_push_buffer(rte_codec *codec, rte_buffer *buffer, rte_bool blocking);
 
 extern rte_bool			rte_start(rte_context *context, double timestamp, rte_codec *sync_ref, rte_bool async);
 extern rte_bool			rte_stop(rte_context *context, double timestamp);
-
-
 
 /* Private */
 

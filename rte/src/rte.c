@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.13 2002-03-23 14:06:45 mschimek Exp $ */
+/* $Id: rte.c,v 1.14 2002-04-20 06:43:27 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -31,19 +31,6 @@
 #include <unistd.h>
 
 #include "rtepriv.h"
-
-/*
-  TODO in no particular order:
-  * context->bsize should be visible by the app.
-  * Push modes not functional (think about termination).
-  * better error reporting.
-  * Pause, resume.
-  * Status api.
-  * Sliced vbi.
-  * Finish b_mp1e, write b_divx4linux and b_ffmpeg.
-  * i18n support.
-  * Document start/stop.
-*/
 
 /*
 [enum context]
@@ -62,8 +49,7 @@ rte_context_new (which format)
                               state, changing parameters unlocks)
   select output interface (this puts the whole context in ready state,
                            replacing rte_init)
-<<
-  start/pause/restart/stop
+start/pause/restart/stop
 delete 
  */
 
@@ -468,7 +454,7 @@ write_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
 		return TRUE;
 
 	do actual = write(context->output_fd, buffer->data, buffer->size);
-	while (actual == -1 && errno == EINTR);
+	while (actual == (ssize_t) -1 && errno == EINTR);
 
 	// XXX error propagation?
 	// Aborting encoding is bad for Zapping. It should a)
@@ -583,6 +569,47 @@ rte_set_output_file(rte_context *context, const char *filename)
 	}
 }
 
+static rte_bool
+discard_write_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
+{
+	return TRUE;
+}
+
+static rte_bool
+discard_seek_cb(rte_context *context, off64_t offset, int whence)
+{
+	return TRUE;
+}
+
+/**
+ * rte_set_output_discard:
+ * @context: Initialized #rte_context as returned by rte_context_new().
+ *
+ * Sets the output mode for the context and makes the context ready
+ * to start encoding. All output of the codec will be discarded (for
+ * testing purposes).
+ *
+ * Return value:
+ * Before selecting an output method you must select input methods for all
+ * codecs, else this function fails with a return value of %FALSE. Setting
+ * context options or selecting or removing codecs cancels the output method
+ * selection.
+ **/
+rte_bool
+rte_set_output_discard(rte_context *context)
+{
+	nullcheck(context, return FALSE);
+
+	rte_error_reset(context);
+
+	if (rte_set_output_callback_passive(context, discard_write_cb, discard_seek_cb)) {
+		new_output_fd(context, RTE_DISCARD, -1);
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
 /*
  *  Start / Stop
  */
@@ -590,7 +617,7 @@ rte_set_output_file(rte_context *context, const char *filename)
 /**
  * rte_start:
  * @context: Initialized #rte_context as returned by rte_context_new().
- * @timestamp: Start instance.
+ * @timestamp: Start instant, pass 0.0.
  * @sync_ref: Pass %NULL.
  * @async: Pass %TRUE.
  *
@@ -618,7 +645,7 @@ rte_start(rte_context *context, double timestamp, rte_codec *sync_ref, rte_bool 
 /**
  * rte_stop:
  * @context: Initialized #rte_context as returned by rte_context_new().
- * @timestamp: Start instance.
+ * @timestamp: Stop instant.
  * 
  * XXX describe me
  *
@@ -655,6 +682,33 @@ rte_stop(rte_context *context, double timestamp)
 /* rte_resume() TODO */
 
 void
+rte_status_query(rte_context *context, rte_codec *codec,
+		 rte_status *status, int size)
+{
+	assert(status != NULL);
+	assert(size >= sizeof(status->valid));
+
+	if (codec)
+		context = codec->context;
+	if (!context || !xc->status) {
+		status->valid = 0;
+		return;
+	}
+
+	if (context->state != RTE_STATE_RUNNING) {
+		status->valid = 0;
+		return;
+	}
+
+	if (size > sizeof(*status))
+		size = sizeof(*status);
+
+	xc->status(context, codec, status, size);
+}
+
+#if 0 /* obsolete */
+
+void
 rte_status_free(rte_status_info *status)
 {
 	rte_context *context = NULL;
@@ -666,6 +720,8 @@ rte_status_free(rte_status_info *status)
 
 	free(status);
 }
+
+#endif
 
 /**
  * rte_option_string:
