@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.c,v 1.1 2004-09-10 04:55:24 mschimek Exp $ */
+/* $Id: image_format.c,v 1.2 2004-11-03 06:39:06 mschimek Exp $ */
 
 #include "misc.h"
 #include "image_format.h"
@@ -28,7 +28,7 @@ tv_image_format_init		(tv_image_format *	format,
 				 unsigned int		height,
 				 unsigned int		bytes_per_line,
 				 tv_pixfmt		pixfmt,
-				 unsigned int		reserved)
+				 tv_color_space		color_space)
 {
 	tv_pixel_format pf;
 	unsigned int min_bpl;
@@ -90,7 +90,7 @@ tv_image_format_init		(tv_image_format *	format,
 	}
 
 	format->pixfmt = pixfmt;
-	format->_reserved = reserved;
+	format->color_space = color_space;
 
 	return TRUE;
 }

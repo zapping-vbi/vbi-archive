@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.5 2004-09-10 04:47:05 mschimek Exp $ */
+/* $Id: v4l.c,v 1.6 2004-11-03 06:37:44 mschimek Exp $ */
 
 #include "config.h"
 #include "zapping_setup_fb.h"
@@ -87,7 +87,7 @@ setup_v4l			(const char *		device_name,
 
   r = tv_pixel_format_from_pixfmt (&pf,
 				   buffer->format.pixfmt,
-				   buffer->format._reserved);
+				   buffer->format.color_space);
   assert (TRUE == r);
 
   if (32 == pf.bits_per_pixel)

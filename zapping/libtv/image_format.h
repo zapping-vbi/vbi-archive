@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.h,v 1.1 2004-09-10 04:55:45 mschimek Exp $ */
+/* $Id: image_format.h,v 1.2 2004-11-03 06:38:53 mschimek Exp $ */
 
 #ifndef __ZTV_IMAGE_FORMAT_H__
 #define __ZTV_IMAGE_FORMAT_H__
@@ -26,6 +26,12 @@
 #include "pixel_format.h"
 
 TV_BEGIN_DECLS
+
+/** Color space identifier. No values defined yet. */
+typedef enum {
+	TV_COLOR_SPACE_NONE,				/**< */
+	TV_COLOR_SPACE_UNKNOWN = TV_COLOR_SPACE_NONE,	/**< */
+} tv_color_space;
 
 typedef struct {
 	/* Image width in pixels, for planar formats this refers to
@@ -62,7 +68,7 @@ typedef struct {
 	unsigned int		size;
 
 	tv_pixfmt		pixfmt;
-	unsigned int		_reserved;		/* color space */
+	tv_color_space		color_space;
 } tv_image_format;
 
 extern tv_bool
@@ -71,7 +77,7 @@ tv_image_format_init		(tv_image_format *	format,
 				 unsigned int		height,
 				 unsigned int		bytes_per_line,
 				 tv_pixfmt		pixfmt,
-				 unsigned int		reserved);
+				 tv_color_space		color_space);
 extern tv_bool
 tv_image_format_is_valid	(const tv_image_format *format);
 extern void
