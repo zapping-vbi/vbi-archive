@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.37 2002-09-14 04:19:34 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.38 2002-09-26 20:38:23 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -2290,6 +2290,10 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 		break;
 	}
 
+	rsp->video.framefmt = RTE_FRAMEFMT_PROGRESSIVE;
+	rsp->video.spatial_order = 0;
+	rsp->video.temporal_order = 0;
+
 	switch (rsp->video.pixfmt) {
 	case RTE_PIXFMT_YUV420:
 		if (rsp->video.stride == 0)
@@ -2421,7 +2425,7 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 		mm_mbrow = calloc_aligned(mb_width * (16 * 8) * sizeof(short), 4096);
 
 		if (!mm_mbrow) {
-			rte_error_printf(codec->context, _("Out of memory for mc buffer."));
+			rte_error_printf(codec->context, _("Out of memory."));
 			goto reject;
 		}
 	} else {
@@ -2441,12 +2445,12 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 	size = (motion ? 10 * 64 : 6 * 64) * mb_num;
 
 	if (!(mpeg1->oldref = calloc_aligned(size, 4096))) {
-		rte_error_printf(codec->context, _("Out of memory for video buffer."));
+		rte_error_printf(codec->context, _("Out of memory."));
 		goto reject;
 	}
 
 	if (!(newref = calloc_aligned(size, 4096))) {
-		rte_error_printf(codec->context, _("Out of memory for video buffer."));
+		rte_error_printf(codec->context, _("Out of memory."));
 		goto reject;
 	}
 
@@ -2556,9 +2560,10 @@ reject:
 
 static char *
 menu_skip_method[] = {
+	/* NLS: Virtual frame rate method */
 	N_("Standard compliant"),
-	N_("Multiplexer"),
-	N_("Fake picture"),
+	N_("Multiplexer timestamps"),
+	N_("Insert fake pictures"),
 };
 
 static rte_option_info
@@ -2568,8 +2573,7 @@ mpeg1_options[] = {
 	/* FIX vcd_parameters_set when adding w/h options */
 	RTE_OPTION_INT_RANGE_INITIALIZER
 	  ("bit_rate", N_("Bit rate"),
-	   2300000, 30000, 8000000, 1000,
-	   N_("Output bit rate")),
+	   2300000, 30000, 8000000, 1000, NULL),
 	RTE_OPTION_REAL_MENU_INITIALIZER
 	  ("coded_frame_rate", NULL,
 	   2 /* 25.0 */, (double *) &frame_rate_value[1], 8, NULL),
@@ -2623,8 +2627,8 @@ option_print(rte_codec *codec, const char *keyword, va_list args)
 	} else if (KEYWORD("virtual_frame_rate")) {
 		snprintf(buf, sizeof(buf), _("%5.3f frames/s"), va_arg(args, double));
 	} else if (KEYWORD("skip_method")) {
-		return rte_strdup(context, NULL, menu_skip_method[
-			RTE_OPTION_ARG_MENU(menu_skip_method)]);
+		return rte_strdup(context, NULL, _(menu_skip_method[
+			RTE_OPTION_ARG_MENU(menu_skip_method)]));
 	} else if (KEYWORD("gop_sequence") || KEYWORD("anno")) {
 		return rte_strdup(context, NULL, va_arg(args, char *));
 	} else if (KEYWORD("motion_compensation") || KEYWORD("monochrome")) {
