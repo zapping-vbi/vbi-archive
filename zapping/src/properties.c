@@ -1,5 +1,5 @@
 /* Zapping (TV viewer for the Gnome Desktop)
- * Copyright (C) 2000 Iñaki García Etxebarria
+ * Copyright (C) 2000-2001 Iñaki García Etxebarria
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -244,6 +244,16 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
 		     GTK_SIGNAL_FUNC(on_property_item_changed),
 		     zapping_properties);
 
+  /* capture size under XVideo */
+  widget = lookup_widget(zapping_properties, "optionmenu20");
+  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
+    zconf_get_integer(NULL,
+		      "/zapping/options/capture/xvsize"));
+
+  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+
   /* Enable VBI decoding */
   widget = lookup_widget(zapping_properties, "checkbutton6");
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
@@ -456,6 +466,11 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
 
       zconf_set_integer(z_option_menu_get_active(widget),
 			"/zapping/options/main/change_mode");
+
+      widget = lookup_widget(pbox, "optionmenu20"); /* xv capture size */
+
+      zconf_set_integer(z_option_menu_get_active(widget),
+			"/zapping/options/capture/xvsize");
 
       break;
     case 2:

@@ -250,8 +250,9 @@ int tveng_attach_device(const char* device_file,
 	      info->window.height);
       fprintf(stderr, "Detected standards:\n");
       for (i=0;i<info->num_standards;i++)
-	fprintf(stderr, "  %d) [%s] ID: %d Hash: %x\n", i,
+	fprintf(stderr, "  %d) [%s] ID: %d Size: %dx%d Hash: %x\n", i,
 		info->standards[i].name, info->standards[i].id,
+		info->standards[i].width, info->standards[i].height,
 		info->standards[i].hash);
       fprintf(stderr, "Detected inputs:\n");
       for (i=0;i<info->num_inputs;i++)

@@ -662,6 +662,8 @@ tvengxv_get_standards(tveng_device_info *info)
       info->standards[info->num_standards].hash =
 	tveng_build_hash(info->standards[info->num_standards].name);
       info->standards[info->num_standards].index = info->num_standards;
+      info->standards[info->num_standards].width = p_info->ei[i].width;
+      info->standards[info->num_standards].height = p_info->ei[i].height;
       info->num_standards++;
     }
 

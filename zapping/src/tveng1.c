@@ -686,6 +686,19 @@ static int tveng1_get_standards(tveng_device_info * info)
       info -> standards[count].name[31] = 0;
       info -> standards[count].hash =
 	tveng_build_hash(info->standards[count].name);
+      /* Weird that there's no strcasestr */
+      if (strstr(std_t[count].name, "ntsc") ||
+	  strstr(std_t[count].name, "NTSC") ||
+	  strstr(std_t[count].name, "Ntsc"))
+	{
+	  info -> standards[count].width = 640;
+	  info -> standards[count].height = 480;
+	}
+      else
+	{
+	  info -> standards[count].width = 768;
+	  info -> standards[count].height = 576;
+	}
       count++;
     }
 

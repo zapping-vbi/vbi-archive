@@ -1,3 +1,8 @@
+2.05.2001	Config options <garetxe@users.sourceforge.net>
+
+	* src/capture.c: Fixed, so plugins can work again. Made capture
+	size under XVideo configurable.
+
 1.05.2001	New capture code <garetxe@users.sourceforge.net>
 
 	* src/capture.c: Rewrote capture code using fifos, etc. Appears to

@@ -1218,6 +1218,52 @@ Do not change mode
 	  </child>
 	</widget>
       </widget>
+
+      <widget>
+	<class>GtkHBox</class>
+	<name>hbox32</name>
+	<homogeneous>True</homogeneous>
+	<spacing>3</spacing>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>True</fill>
+	</child>
+
+	<widget>
+	  <class>GtkLabel</class>
+	  <name>label220</name>
+	  <label>Capture size under XVideo:</label>
+	  <justify>GTK_JUSTIFY_CENTER</justify>
+	  <wrap>False</wrap>
+	  <xalign>1</xalign>
+	  <yalign>0.5</yalign>
+	  <xpad>0</xpad>
+	  <ypad>0</ypad>
+	  <child>
+	    <padding>0</padding>
+	    <expand>True</expand>
+	    <fill>True</fill>
+	  </child>
+	</widget>
+
+	<widget>
+	  <class>GtkOptionMenu</class>
+	  <name>optionmenu20</name>
+	  <tooltip>Thanks to the XVideo extension, if present, the capture buffer can be scaled to arbitrary sizes using HW acceleration. Select here the capture size to use in this case.</tooltip>
+	  <can_focus>True</can_focus>
+	  <items>Biggest noninterlaced (autodetect)
+320x240
+Interlaced (window size)
+</items>
+	  <initial_choice>0</initial_choice>
+	  <child>
+	    <padding>0</padding>
+	    <expand>True</expand>
+	    <fill>True</fill>
+	  </child>
+	</widget>
+      </widget>
     </widget>
 
     <widget>

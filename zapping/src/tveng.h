@@ -194,6 +194,8 @@ struct tveng_enumstd{
   int index; /* Index in info->standards */
   int hash; /* Based on the normalized name */
   char name[32]; /* Canonical name for the standard */
+  int width; /* width (double of uninterlaced width) */
+  int height; /* height (double of uninterlaced height) */
 };
 
 /* Flags for the input */

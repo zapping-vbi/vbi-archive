@@ -26,7 +26,7 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
 
-#define ZCONF_DOMAIN "/zapping/options/main/"
+#define ZCONF_DOMAIN "/zapping/options/capture/"
 #include "zconf.h"
 
 #include <pthread.h>
@@ -37,12 +37,6 @@
 #include "plugins.h"
 #include "capture.h"
 #include "common/fifo.h"
-
-/* Uncomment for faster capture (only if XVideo backend scaler present) */
-/* FIXME: Not production quality yet (properties, not hardcoded size) */
-#define NO_INTERLACE 1
-#define NO_INTERLACE_W 384
-#define NO_INTERLACE_H 288
 
 /* Some global stuff we need, see descriptions in main.c */
 extern GList		*plugin_list;
@@ -192,6 +186,8 @@ capture_thread (gpointer data)
 gboolean
 startup_capture(GtkWidget * widget)
 {
+  zcc_int(0, "Capture size under XVideo", "xvsize");
+
   return TRUE;
 }
 
@@ -208,13 +204,24 @@ on_tv_screen_size_allocate             (GtkWidget       *widget,
   gboolean success = FALSE;
 
   if (have_xv)
-#ifndef NO_INTERLACE
-    success = request_bundle_format(TVENG_PIX_YUYV, allocation->width,
-    				    allocation->height);
-#else
-    success = request_bundle_format(TVENG_PIX_YUYV, NO_INTERLACE_W,
-				    NO_INTERLACE_H);
-#endif
+    {
+      if ((!zcg_int(NULL, "xvsize")) && /* biggest noninterlaced */
+	  (info->num_standards))
+	success =
+	  request_bundle_format(TVENG_PIX_YUYV,
+				info->standards[info->cur_standard].width/2,
+				info->standards[info->cur_standard].height/2);
+
+      if ((zcg_int(NULL, "xvsize") == 1) || /* 320x240 */
+	  ((!zcg_int(NULL, "xvsize")) && (!success)))
+	success =
+	  request_bundle_format(TVENG_PIX_YUYV, 320, 240);
+
+      if (!success)
+	success = request_bundle_format(TVENG_PIX_YUYV,
+					allocation->width,
+					allocation->height);
+    }
 
   if (!success)
     request_bundle_format(zmisc_resolve_pixformat(x11_get_bpp(),
@@ -263,6 +270,7 @@ build_bundle(capture_bundle *d, struct tveng_frame_format *format)
 	  d->format.width = d->image.xvimage->w;
 	  d->format.height = d->image.xvimage->h;
 	  d->image_size = d->image.xvimage->data_size;
+	  d->format.bytesperline = d->format.width * 2;
 	}
       else
 	{
@@ -271,8 +279,10 @@ build_bundle(capture_bundle *d, struct tveng_frame_format *format)
 	  d->format.width = format->width;
 	  d->format.height = format->height;
 	  d->image_size = d->format.width * d->format.height * 2;
+	  d->format.bytesperline = d->format.width * 2;
 	}
       d->format.pixformat = TVENG_PIX_YUYV;
+      d->format.depth = 16;
       break;
     default: /* Anything else if assumed to be current visual RGB */
       d->image.gdkimage = gdk_image_new(GDK_IMAGE_FASTEST,
@@ -287,10 +297,15 @@ build_bundle(capture_bundle *d, struct tveng_frame_format *format)
 	  d->format.pixformat =
 	    zmisc_resolve_pixformat(d->image.gdkimage->bpp<<3,
 				    x11_get_byte_order());
-	  d->image_size = d->image.gdkimage->bpl * d->image.gdkimage->height;
+	  d->format.depth = d->image.gdkimage->bpp;
+	  d->image_size = d->image.gdkimage->bpl *
+	    d->image.gdkimage->height;
+	  d->format.bytesperline = d->image.gdkimage->bpl;
 	}
       break;
     }
+  d->format.sizeimage = d->image_size;
+  d->format.bpp = (format->depth+7)>>3;
 }
 
 static void
@@ -323,8 +338,7 @@ give_data_to_plugins(capture_bundle *d)
   p = g_list_first(plugin_list);
   while (p)
     {
-      /* FIXME: Nonfunctional right now, investigate */
-      //      plugin_process_sample(&sample, (struct plugin_info*)p->data);
+      plugin_process_sample(&sample, (struct plugin_info*)p->data);
       p = p->next;
     }
 }
@@ -348,6 +362,9 @@ static gint idle_handler(GtkWidget *tv_screen)
       d = (capture_bundle*)b->data;
       if (d->timestamp)
 	{
+	  if (d->image_type)
+	    give_data_to_plugins(d);
+
 	  switch (d->image_type)
 	    {
 	    case CAPTURE_XV:
@@ -365,7 +382,7 @@ static gint idle_handler(GtkWidget *tv_screen)
 			     iw, ih);
 	      break;
 	    case CAPTURE_DATA:
-	      g_warning("FIXME: TBD");
+	      //	      g_warning("FIXME: TBD");
 	      break;
 	    case 0:
 	      /* to be rebuilt, just ignore */
@@ -374,9 +391,6 @@ static gint idle_handler(GtkWidget *tv_screen)
 	      g_assert_not_reached();
 	      break;
 	    }
-
-	  if (d->image_type)
-	    give_data_to_plugins(d);
 	}
 
       /* Rebuild if needed */
@@ -398,8 +412,8 @@ static gint idle_handler(GtkWidget *tv_screen)
 gint
 capture_start(GtkWidget * window, tveng_device_info *info)
 {
-  enum tveng_frame_pixformat pixformat;
   gint w, h;
+  gboolean success = FALSE;
 
   g_assert(window != NULL);
   g_assert(window->window != NULL);
@@ -422,20 +436,31 @@ capture_start(GtkWidget * window, tveng_device_info *info)
   
   if (have_xv)
     {
-#ifdef NO_INTERLACE
-      w = NO_INTERLACE_W;
-      h = NO_INTERLACE_H;
-#endif
-      pixformat = TVENG_PIX_YUYV;
+      if ((!zcg_int(NULL, "xvsize")) && /* biggest noninterlaced */
+	  (info->num_standards))
+	success =
+	  request_bundle_format(TVENG_PIX_YUYV,
+				info->standards[info->cur_standard].width/2,
+				info->standards[info->cur_standard].height/2);
+      
+      if ((zcg_int(NULL, "xvsize") == 1) || /* 320x240 */
+	  ((!zcg_int(NULL, "xvsize")) && (!success)))
+	success =
+	  request_bundle_format(TVENG_PIX_YUYV, 320, 240);
+      
+      if (!success)
+	success = request_bundle_format(TVENG_PIX_YUYV, w, h);
     }
-  else
-    pixformat =
-      zmisc_resolve_pixformat(x11_get_bpp(), x11_get_byte_order());
 
-  if (!request_bundle_format(pixformat, w, h))
+  if (!success)
+    success = request_bundle_format(zmisc_resolve_pixformat(x11_get_bpp(),
+				    x11_get_byte_order()),
+				    w, h);
+
+  if (!success)
     {
-      ShowBox("Couldn't start capture: format request denied",
-	      GNOME_MESSAGE_BOX_INFO);
+      ShowBox("Couldn't start capture: no capture format available",
+	      GNOME_MESSAGE_BOX_ERROR);
       return -1;
     }
 

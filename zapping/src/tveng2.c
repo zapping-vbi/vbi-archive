@@ -585,6 +585,18 @@ int tveng2_get_standards(tveng_device_info * info)
       info->standards[count].name[31] = 0; /* not needed, std.name < 24 */
       info->standards[count].hash =
 	tveng_build_hash(info->standards[count].name);
+      if (strstr(enumstd.std.name, "ntsc") ||
+	  strstr(enumstd.std.name, "NTSC") ||
+	  strstr(enumstd.std.name, "Ntsc"))
+	{
+	  info -> standards[count].width = 640;
+	  info -> standards[count].height = 480;
+	}
+      else
+	{
+	  info -> standards[count].width = 768;
+	  info -> standards[count].height = 576;
+	}
       count++;
     }
 
