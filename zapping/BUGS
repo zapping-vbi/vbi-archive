@@ -1,6 +1,7 @@
 Known bugs in Zapping, don't report them
 ----------------------------------------
 
+* Pointer does not properly reappear in windowed mode.
 * Xawtv import skips channel when name contains non-ascii.
 * zvbi error messages need locale to UTF-8 conversion.
 * Screenshot plugin temporarily switches format without need.
