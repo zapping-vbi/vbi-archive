@@ -183,6 +183,7 @@ struct tveng_enumstd{
   int width; /* width (double of uninterlaced width) */
   int height; /* height (double of uninterlaced height) */
   double frame_rate; /* nominal frames/s (eg. PAL 25) */
+  unsigned long long std_id; /* ad-hoc for v4l25, to be replaced */
 };
 
 /* Flags for the input */
@@ -203,6 +204,7 @@ struct tveng_enum_input{
   int tuners; /* Number of tuners for this input */
   int flags; /* Flags for this channel */
   enum tveng_input_type type; /* The type for this input */
+  int tuner_id; /* ad-hoc for v4l25, to be replaced */
 };
 
 /* Possible control types */

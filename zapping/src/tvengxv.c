@@ -542,7 +542,10 @@ tvengxv_get_inputs(tveng_device_info *info)
       (p_info->encoding_gettable))
     XvGetPortAttribute(info->priv->display, p_info->port,
 		       p_info->encoding, &val);
-
+#warning
+  /* Xv/v4l BUG? */
+  if (val < 0 || val > 10 /*XXX*/)
+    val = 0;
   if (p_info->ei)
     if ((2 == sscanf(p_info->ei[val].name, "%63[^-]-%63s", norm, input)) &&
 	(-1 != (i=tvengxv_find_input(input, info))))
@@ -683,7 +686,10 @@ tvengxv_get_standards(tveng_device_info *info)
       (p_info->encoding_gettable))
     XvGetPortAttribute(info->priv->display, p_info->port,
 		       p_info->encoding, &val);
-
+#warning
+  /* Xv/v4l BUG? */
+  if (val < 0 || val > 10 /*XXX*/)
+    val = 0;
   if (p_info->ei)
     if ((2 == sscanf(p_info->ei[val].name, "%63[^-]-%63s", norm, input)) &&
 	(-1 != (i=tvengxv_find_standard(norm, info))))
@@ -1098,7 +1104,6 @@ tvengxv_set_preview(int on, tveng_device_info * info)
       (p_info->encoding_gettable))
     XvGetPortAttribute(info->priv->display, p_info->port,
 		       p_info->encoding, &val);
-
   if (on)
     {
       XvPutVideo(info->priv->display, p_info->port, info->window.win,

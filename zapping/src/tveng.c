@@ -41,6 +41,7 @@
 #include "tveng.h"
 #include "tveng1.h" /* V4L specific headers */
 #include "tveng2.h" /* V4L2 specific headers */
+#include "tveng25.h" /* V4L2 (Linux 2.5) specific headers */
 #include "tvengxv.h" /* XVideo specific headers */
 #include "tveng_private.h" /* private definitions */
 
@@ -72,9 +73,10 @@ do {									\
 
 typedef void (*tveng_controller)(struct tveng_module_info *info);
 static tveng_controller tveng_controllers[] = {
-  tvengxv_init_module,
-  tveng2_init_module,
-  tveng1_init_module
+    tvengxv_init_module,
+    tveng25_init_module,
+    tveng2_init_module,
+    tveng1_init_module,
 };
 
 /* Initializes a tveng_device_info object */

@@ -1,3 +1,24 @@
+16.2.2003	<mschimek@users.sf.net>
+
+	* Release 0.6.6.
+
+16.2.2003	<mschimek@users.sf.net>
+
+	* configure.in: Don't build static libraries (plugins)
+	  by default. We never use them.
+
+08.2.2003	<mschimek@users.sf.net>
+
+	* src/zmisc.c (zmisc_switch_mode): Save video standard.
+
+	V4L2 Linux 2.5 port:
+	* common/Makefile.am: Added videodev25.h.
+	* src/Makefile.am: Added tveng25.c, tveng25.h.
+	* zapping_setup_fb/Makefile.am: Fixed incorrect $(DESTDIR)
+	  prefix in csfb.capps. Added v4l25 target.
+	* zapping_setup_fb/zapping_setup_fb.c,
+	  zapping_setup_fb/v4l25.c: Added v4l2 2.5 interface.
+
 23.1.2003	<mschimek@users.sf.net>
 
 	* src/main.c, src/tveng.c, src/tveng1.c, src/tveng2.c,

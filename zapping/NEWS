@@ -1,6 +1,21 @@
 New stuff, refer to the ChangeLog for a more detailed description of
 the changes.
 
+0.6.6
+-----
+Hi folks. Following the last Gnome 1 release of Zapping I'm proud
+to announce the actual last version. Let's hope 0.7 will be ready
+before we need some more last versions.
+
+This version fixes a number of bugs in the previous version,
+most notably recording and mute/volume problems.
+
+The V4L2 interface of Linux 2.5 is now supported, new commands
+were added to the alirc plugin: MUTE, VOL_UP, VOL_DOWN,
+and the SETCHANNEL function improved. The --remote command line
+option can be used to disable overlay. Pino Toscano kindly
+contributed an Italian translation.
+
 0.6.5
 -----
 It's been a long time since 0.6.4, much too long, but finally

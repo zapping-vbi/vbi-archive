@@ -41,11 +41,11 @@ endif
 
 zapping_setup_fb_SOURCES = \
 	zapping_setup_fb.c zapping_setup_fb.h \
-	dga.c v4l.c v4l2.c
+	dga.c v4l.c v4l2.c v4l25.c
 
 zapping_setup_fb_LDADD = $(X_LIBS) \
 -lX11 -lXext -lXxf86dga $(X_EXTRA_LIBS)
 
 zsfb.capps:
 	echo USER=root >$@
-	echo PROGRAM=$(DESTDIR)$(sbindir)/zapping_setup_fb >>$@
+	echo PROGRAM=$(sbindir)/zapping_setup_fb >>$@

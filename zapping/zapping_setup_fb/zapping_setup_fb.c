@@ -42,7 +42,7 @@
 
 #include "zapping_setup_fb.h"
 
-#define ZSFB_VERSION "zapping_setup_fb 0.10"
+#define ZSFB_VERSION "zapping_setup_fb 0.11"
 #define MAX_VERBOSITY 3
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
@@ -344,10 +344,19 @@ main				(int			argc,
 
 	case 'b':
 	  bpp_arg = strtol (optarg, NULL, 0);
-	    
-	  if (bpp_arg < 8 || bpp_arg > 32)
+
+	  switch (bpp_arg)
 	    {
-	      message (1, "Invalid bpp argument %d.\n", bpp_arg);
+	    case 8:
+	    case 15:
+	    case 16:
+	    case 24:
+	    case 32:
+	      break;
+
+	    default:
+	      message (1, "Invalid bpp argument %d. Expected\n"
+		       "color depth 8, 15, 16, 24 or 32.\n", bpp_arg);
 	      goto failure;
 	    }
 
@@ -391,14 +400,15 @@ main				(int			argc,
   /* OK, the DGA is working and we have its info,
      set up the overlay */
 
-  err = setup_v4l2 (device_name);
+  err = setup_v4l25 (device_name);
 
   if (err == -1)
     {
-      err = setup_v4l (device_name);
+      err = setup_v4l2 (device_name);
 
       if (err == -1)
 	{
+	  err = setup_v4l (device_name);
 	}
     }
 

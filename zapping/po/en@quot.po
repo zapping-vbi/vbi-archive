@@ -1,6 +1,6 @@
 # English translations for PACKAGE package.
 # This file is put in the public domain.
-# Automatically generated, 2002.
+# Automatically generated, 2003.
 #
 # All this catalog "translates" are quotation characters.
 # The msgids must be ASCII and therefore cannot contain real quotation
@@ -26,9 +26,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: zapping 0.6.5\n"
-"POT-Creation-Date: 2003-01-21 06:44+0100\n"
-"PO-Revision-Date: 2002-10-04 17:11+0200\n"
+"Project-Id-Version: zapping 0.6.6\n"
+"POT-Creation-Date: 2003-02-16 13:34+0100\n"
+"PO-Revision-Date: 2003-02-16 13:34+0100\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
 "MIME-Version: 1.0\n"
@@ -36,89 +36,93 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: src/main.c:337
+#: src/main.c:338
 msgid "Video device to use"
 msgstr "Video device to use"
 
-#: src/main.c:338 src/zapzilla.c:88
+#: src/main.c:339 src/zapzilla.c:88
 msgid "DEVICE"
 msgstr "DEVICE"
 
-#: src/main.c:346
+#: src/main.c:347
 msgid "Disable plugins support"
 msgstr "Disable plugins support"
 
-#: src/main.c:355
+#: src/main.c:356
 msgid "Disable VBI support"
 msgstr "Disable VBI support"
 
-#: src/main.c:364
+#: src/main.c:365
 msgid "Disable XVideo extension support"
 msgstr "Disable XVideo extension support"
 
-#: src/main.c:373
+#: src/main.c:374
+msgid "X11 display is remote. This basically disables video overlay"
+msgstr "X11 display is remote. This basically disables video overlay"
+
+#: src/main.c:383
 msgid "Do not call zapping_setup_fb on startup"
 msgstr "Do not call zapping_setup_fb on startup"
 
-#: src/main.c:382
+#: src/main.c:392
 msgid "Color depth of the X display"
 msgstr "Color depth of the X display"
 
-#: src/main.c:383
+#: src/main.c:393
 msgid "BPP"
 msgstr "BPP"
 
-#: src/main.c:391 src/zapzilla.c:78
+#: src/main.c:401 src/zapzilla.c:78
 msgid "Set debug messages on"
 msgstr "Set debug messages on"
 
-#: src/main.c:400
+#: src/main.c:410
 msgid "Force dword aligning of the overlay window"
 msgstr "Force dword aligning of the overlay window"
 
-#: src/main.c:409
+#: src/main.c:419
 msgid "Execute the given command and exit"
 msgstr "Execute the given command and exit"
 
-#: src/main.c:410
+#: src/main.c:420
 msgid "CMD"
 msgstr "CMD"
 
-#: src/main.c:418
+#: src/main.c:428
 msgid "Pixformat for XVideo capture mode [YUYV | YVU420]"
 msgstr "Pixformat for XVideo capture mode [YUYV | YVU420]"
 
-#: src/main.c:419
+#: src/main.c:429
 msgid "PIXFORMAT"
 msgstr "PIXFORMAT"
 
-#: src/main.c:427 src/zapzilla.c:96
+#: src/main.c:437 src/zapzilla.c:96
 msgid "Redirect the error messages to the console"
 msgstr "Redirect the error messages to the console"
 
-#: src/main.c:515
+#: src/main.c:525
 msgid "Sorry, but there is no module support in GLib"
 msgstr "Sorry, but there is no module support in GLib"
 
-#: src/main.c:525
+#: src/main.c:535
 msgid "Cannot get device info struct"
 msgstr "Cannot get device info struct"
 
-#: src/main.c:534
+#: src/main.c:544
 msgid "Zapping couldn't be started"
 msgstr "Zapping couldn't be started"
 
-#: src/main.c:595
+#: src/main.c:605
 #, c-format
 msgid "Couldn't open %s, should I try some common options?"
 msgstr "Couldn't open %s, should I try some common options?"
 
-#: src/main.c:629
+#: src/main.c:639
 #, c-format
 msgid "%s suceeded, setting it as the new default"
 msgstr "%s suceeded, setting it as the new default"
 
-#: src/main.c:638
+#: src/main.c:648
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
@@ -127,7 +131,7 @@ msgstr ""
 "Sorry, but “%s” could not be opened:\n"
 "%s"
 
-#: src/main.c:758
+#: src/main.c:768
 #, c-format
 msgid ""
 "Cannot restore previous mode%s:\n"
@@ -136,11 +140,11 @@ msgstr ""
 "Cannot restore previous mode%s:\n"
 "%s"
 
-#: src/main.c:761
+#: src/main.c:771
 msgid ", I will try starting capture mode"
 msgstr ", I will try starting capture mode"
 
-#: src/main.c:765
+#: src/main.c:775
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
@@ -149,7 +153,7 @@ msgstr ""
 "Capture mode couldn't be started either:\n"
 "%s"
 
-#: src/main.c:778
+#: src/main.c:788
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
@@ -158,15 +162,15 @@ msgstr ""
 "Capture mode couldn't be started:\n"
 "%s"
 
-#: src/main.c:810 src/callbacks.c:501 src/callbacks.c:630
+#: src/main.c:820 src/callbacks.c:501 src/callbacks.c:630
 msgid "Show controls"
 msgstr "Show controls"
 
-#: src/main.c:811 src/callbacks.c:502 src/callbacks.c:631
+#: src/main.c:821 src/callbacks.c:502 src/callbacks.c:631
 msgid "Show the menu and the toolbar"
 msgstr "Show the menu and the toolbar"
 
-#: src/main.c:1006 src/zapzilla.c:175
+#: src/main.c:1016 src/zapzilla.c:175
 #, c-format
 msgid ""
 "ZConf could not be closed properly , your\n"
@@ -187,7 +191,7 @@ msgstr ""
 "   - or, more probably, you have found a bug in\n"
 "     %s. Please contact the author.\n"
 
-#: src/main.c:1043
+#: src/main.c:1053
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Sorry, Zapping is unable to create the config tree"
 
@@ -203,8 +207,8 @@ msgstr "Zapzilla couldn't be started"
 msgid "Sorry, Zapzilla is unable to create the config tree"
 msgstr "Sorry, Zapzilla is unable to create the config tree"
 
-#: src/interface.c:232 src/tveng1.c:1192 src/tveng1.c:1547 src/tveng1.c:1560
-#: src/tveng2.c:946
+#: src/interface.c:232 src/tveng1.c:1194 src/tveng1.c:1549 src/tveng1.c:1562
+#: src/tveng2.c:948
 msgid "Mute"
 msgstr "Mute"
 
@@ -245,7 +249,7 @@ msgstr "Hide the menu and the toolbar"
 msgid "Overlay this page"
 msgstr "Overlay this page"
 
-#: src/callbacks.c:609 src/zmisc.c:352
+#: src/callbacks.c:609 src/zmisc.c:356
 msgid "Return to windowed mode and use the current page as subtitles"
 msgstr "Return to windowed mode and use the current page as subtitles"
 
@@ -380,11 +384,11 @@ msgstr "No tuned channels"
 msgid "No Audio"
 msgstr "No Audio"
 
-#: src/zvbi.c:136 src/tveng1.c:1030
+#: src/zvbi.c:136 src/tveng1.c:1032
 msgid "Mono"
 msgstr "Mono"
 
-#: src/zvbi.c:137 src/tveng1.c:1031
+#: src/zvbi.c:137 src/tveng1.c:1033
 msgid "Stereo"
 msgstr "Stereo"
 
@@ -577,163 +581,162 @@ msgstr "Captioned"
 msgid "Not rated"
 msgstr "Not rated"
 
-#: src/tveng.c:270
+#: src/tveng.c:272
 msgid "TV"
 msgstr "TV"
 
-#: src/tveng.c:271 src/properties-handler.c:122
+#: src/tveng.c:273 src/properties-handler.c:122
 msgid "Camera"
 msgstr "Camera"
 
-#: src/tveng.c:1544
+#: src/tveng.c:1546
 msgid "Couldn't locate zapping_setup_fb, check your install"
 msgstr "Couldn't locate zapping_setup_fb, check your install"
 
-#: src/tveng.c:2176 src/tveng.c:2194
+#: src/tveng.c:2178 src/tveng.c:2196
 msgid "Filter"
 msgstr "Filter"
 
-#: src/tveng.c:2212
+#: src/tveng.c:2214
 msgid "Colorkey"
 msgstr "Colorkey"
 
-#: src/tveng1.c:1029
-#, fuzzy
+#: src/tveng1.c:1031
 msgid "Automatic"
-msgstr "Auto gain"
+msgstr "Automatic"
 
-#: src/tveng1.c:1032
+#: src/tveng1.c:1034
 msgid "Alternate 1"
 msgstr "Alternate 1"
 
-#: src/tveng1.c:1033
+#: src/tveng1.c:1035
 msgid "Alternate 2"
 msgstr "Alternate 2"
 
-#: src/tveng1.c:1147 src/tveng2.c:927
+#: src/tveng1.c:1149 src/tveng2.c:929
 msgid "Brightness"
 msgstr "Brightness"
 
-#: src/tveng1.c:1157 src/tveng2.c:930
+#: src/tveng1.c:1159 src/tveng2.c:932
 msgid "Hue"
 msgstr "Hue"
 
-#: src/tveng1.c:1167
+#: src/tveng1.c:1169
 msgid "Colour"
 msgstr "Colour"
 
-#: src/tveng1.c:1177 src/tveng2.c:928
+#: src/tveng1.c:1179 src/tveng2.c:930
 msgid "Contrast"
 msgstr "Contrast"
 
-#: src/tveng1.c:1205 src/tveng2.c:945
+#: src/tveng1.c:1207 src/tveng2.c:947
 msgid "Volume"
 msgstr "Volume"
 
-#: src/tveng1.c:1217 src/tveng2.c:952
+#: src/tveng1.c:1219 src/tveng2.c:954
 msgid "Bass"
 msgstr "Bass"
 
-#: src/tveng1.c:1229 src/tveng2.c:950
+#: src/tveng1.c:1231 src/tveng2.c:952
 msgid "Treble"
 msgstr "Treble"
 
-#: src/tveng1.c:1244 src/tveng2.c:948
+#: src/tveng1.c:1246 src/tveng2.c:950
 msgid "Balance"
 msgstr "Balance"
 
-#: src/tveng1.c:1257
+#: src/tveng1.c:1259
 msgid "Audio Decoding"
 msgstr "Audio Decoding"
 
-#: src/tveng1.c:1683
+#: src/tveng1.c:1685
 msgid "There are no tuners for the active input"
 msgstr "There are no tuners for the active input"
 
-#: src/tveng2.c:121
+#: src/tveng2.c:122
 #, c-format
 msgid "%s doesn't look like a valid capture device"
 msgstr "%s doesn't look like a valid capture device"
 
-#: src/tveng2.c:132
+#: src/tveng2.c:133
 #, c-format
 msgid "Sorry, but \"%s\" cannot do streaming"
 msgstr "Sorry, but “%s” cannot do streaming"
 
-#: src/tveng2.c:142
+#: src/tveng2.c:143
 #, c-format
 msgid "Sorry, but \"%s\" cannot do select() on file descriptors"
 msgstr "Sorry, but “%s” cannot do select() on file descriptors"
 
-#: src/tveng2.c:929
+#: src/tveng2.c:931
 msgid "Saturation"
 msgstr "Saturation"
 
-#: src/tveng2.c:931
+#: src/tveng2.c:933
 msgid "Whiteness"
 msgstr "Whiteness"
 
-#: src/tveng2.c:932
+#: src/tveng2.c:934
 msgid "Black level"
 msgstr "Black level"
 
-#: src/tveng2.c:933
+#: src/tveng2.c:935
 msgid "White balance"
 msgstr "White balance"
 
-#: src/tveng2.c:934
+#: src/tveng2.c:936
 msgid "Do white balance"
 msgstr "Do white balance"
 
-#: src/tveng2.c:935
+#: src/tveng2.c:937
 msgid "Red balance"
 msgstr "Red balance"
 
-#: src/tveng2.c:936
+#: src/tveng2.c:938
 msgid "Blue balance"
 msgstr "Blue balance"
 
-#: src/tveng2.c:937
+#: src/tveng2.c:939
 msgid "Gamma"
 msgstr "Gamma"
 
-#: src/tveng2.c:938
+#: src/tveng2.c:940
 msgid "Exposure"
 msgstr "Exposure"
 
-#: src/tveng2.c:939
+#: src/tveng2.c:941
 msgid "Auto gain"
 msgstr "Auto gain"
 
-#: src/tveng2.c:940
+#: src/tveng2.c:942
 msgid "Gain"
 msgstr "Gain"
 
-#: src/tveng2.c:941
+#: src/tveng2.c:943
 msgid "HCenter"
 msgstr "HCenter"
 
-#: src/tveng2.c:942
+#: src/tveng2.c:944
 msgid "VCenter"
 msgstr "VCenter"
 
-#: src/tveng2.c:943
+#: src/tveng2.c:945
 msgid "Horizontal flipping"
 msgstr "Horizontal flipping"
 
-#: src/tveng2.c:944
+#: src/tveng2.c:946
 msgid "Vertical flipping"
 msgstr "Vertical flipping"
 
-#: src/tveng2.c:947
+#: src/tveng2.c:949
 msgid "Audio Mute"
 msgstr "Audio Mute"
 
-#: src/tveng2.c:949
+#: src/tveng2.c:951
 msgid "Audio Balance"
 msgstr "Audio Balance"
 
-#: src/tveng2.c:951
+#: src/tveng2.c:953
 msgid "Loudness"
 msgstr "Loudness"
 
@@ -760,38 +763,38 @@ msgstr ""
 "Check error: “%s” in plugin %s was supposed to be “%s” but it is:“%s”. "
 "Hashes are 0x%x vs. 0x%x"
 
-#: src/zmisc.c:347
+#: src/zmisc.c:351
 msgid "Use Zapping as a Teletext navigator"
 msgstr "Use Zapping as a Teletext navigator"
 
-#: src/zmisc.c:418
+#: src/zmisc.c:423
 #, c-format
 msgid "Preview will not work: %s"
 msgstr "Preview will not work: %s"
 
-#: src/zmisc.c:510
+#: src/zmisc.c:516
 msgid "VBI has been disabled, or it doesn't work."
 msgstr "VBI has been disabled, or it doesn't work."
 
-#: src/zmisc.c:754
+#: src/zmisc.c:764
 msgid "Hide the status bar"
 msgstr "Hide the status bar"
 
-#: src/zmisc.c:811
+#: src/zmisc.c:821
 msgid "The path must start with /"
 msgstr "The path must start with /"
 
-#: src/zmisc.c:826
+#: src/zmisc.c:836
 #, c-format
 msgid "Cannot create %s: %s"
 msgstr "Cannot create %s: %s"
 
-#: src/zmisc.c:839
+#: src/zmisc.c:849
 #, c-format
 msgid "%s is not a directory"
 msgstr "%s is not a directory"
 
-#: src/zmisc.c:1487 glade/glade_strings.c:272 glade/glade_strings.c:273
+#: src/zmisc.c:1497 glade/glade_strings.c:272 glade/glade_strings.c:273
 msgid "Reset"
 msgstr "Reset"
 
@@ -1510,7 +1513,7 @@ msgstr "Avoid noise while changing channels"
 
 #: glade/glade_strings.c:83
 msgid "Control volume with mixer instead of video device"
-msgstr ""
+msgstr "Control volume with mixer instead of video device"
 
 #: glade/glade_strings.c:84
 msgid "Mixer settings for recording"
@@ -2330,32 +2333,32 @@ msgid "Synopsis"
 msgstr "Synopsis"
 
 #: glade/glade_strings.c:320
-#, fuzzy
 msgid "Video Standard"
-msgstr "Video standard:"
+msgstr "Video Standard"
 
 #: glade/glade_strings.c:321
 msgid ""
 "The video capture device does not report the correct\n"
 "video standard, please select manually:"
 msgstr ""
+"The video capture device does not report the correct\n"
+"video standard, please select manually:"
 
 #: glade/glade_strings.c:323
 msgid "NTSC"
-msgstr ""
+msgstr "NTSC"
 
 #: glade/glade_strings.c:324
 msgid "PAL"
-msgstr ""
+msgstr "PAL"
 
 #: glade/glade_strings.c:325
 msgid "SECAM"
-msgstr ""
+msgstr "SECAM"
 
 #: glade/glade_strings.c:326
-#, fuzzy
 msgid "Remember this video standard"
-msgstr "Video standard:"
+msgstr "Remember this video standard"
 
 #: plugins/screenshot/screenshot.c:40
 msgid "Screenshot saver"
@@ -2627,7 +2630,6 @@ msgid "Another lirc plugin"
 msgstr "Another lirc plugin"
 
 #: plugins/alirc/alirc.c:34
-#, fuzzy
 msgid ""
 "Another plugin to control zapping through lirc\n"
 "\n"
@@ -2657,7 +2659,10 @@ msgstr ""
 "  CHANUP:  One Channel up\n"
 "  CHANDOWN:  One Channel down\n"
 "  ZOOM: switch between full screen and windowed mode\n"
-"  SETCHANNEL <int>: set the channel to <int> (the first channel is 0!!)\n"
+"  SETCHANNEL <int>: set the channel to 0 ... 9\n"
+"  MUTE: Turn Sound [On|Off]\n"
+"  VOL_UP: Increase Volume\n"
+"  VOL_DOWN: Decrease Volume\n"
 "  QUIT: Quit zapping\n"
 "  \n"
 "Note: when using SETCHANNEL two times within 1500 ms, it will react the "
