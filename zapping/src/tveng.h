@@ -57,6 +57,9 @@
 #include <X11/extensions/xf86vmode.h>
 #endif
 #ifdef USE_XV
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <X11/extensions/XShm.h>
 #include <X11/extensions/Xv.h>
 #include <X11/extensions/Xvlib.h>
 #endif
@@ -743,6 +746,13 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info);
 /* Tell that the given XV port isn't valid any more */
 void tveng_unset_xv_port(tveng_device_info *info);
 #endif
+
+/* Adquire the (recursive) mutex on the device, TVeng functions already
+   locks it when called. */
+void tveng_mutex_lock(tveng_device_info *info);
+
+/* Releases the mutex */
+void tveng_mutex_unlock(tveng_device_info * info);
 
 /* Sanity checks should use this */
 #define t_assert(condition) if (!(condition)) { \

@@ -1504,11 +1504,12 @@ int tveng2_read_frame(void * where, unsigned int size,
       return -1;
     }
 
-  if (info -> format.sizeimage != size)
+  if (info -> format.sizeimage > size)
     {
       info -> tveng_errno = ENOMEM;
       t_error_msg("check()", 
-	      "Size check failed, quitting to avoid segfault", info);
+		  "Size check failed, quitting to avoid segfault (%d, %d)",
+		  info, size, info->format.sizeimage);
       return -1;
     }
 

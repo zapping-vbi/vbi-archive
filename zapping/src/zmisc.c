@@ -253,7 +253,6 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
       gtk_widget_hide(lookup_widget(main_window, "appbar2"));
       ttxview_detach(main_window);
     }
-
   if (new_mode != TVENG_CAPTURE_PREVIEW)
     osd_set_window(tv_screen, main_window);
 

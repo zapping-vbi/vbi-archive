@@ -1,5 +1,5 @@
 /* Zapping (TV viewer for the Gnome Desktop)
- * Copyright (C) 2000 Iñaki García Etxebarria
+ * Copyright (C) 2000-2001 Iñaki García Etxebarria
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,8 +27,8 @@
 #include <gdk/gdkx.h>
 #include <gtk/gtk.h>
 #include <stdlib.h>
-#include <tveng.h>
 #include "x11stuff.h"
+#include "zmisc.h"
 
 #ifndef DISABLE_X_EXTENSIONS
 #ifdef HAVE_LIBXDPMS
@@ -43,7 +43,7 @@
 gpointer
 x11_get_data(GdkImage * image)
 {
-  return (((GdkImagePrivate*)image) -> ximage -> data);
+  return (image -> mem);
 }
 
 /*
@@ -318,3 +318,340 @@ x11_set_screensaver(gboolean on)
 #endif
   }
 }
+
+/**
+ * XvImage handling.
+ */
+
+/*
+  Comment out if you have problems with the Shm extension
+  (you keep getting a Gdk-error request_code:14x, minor_code:19)
+*/
+#define USE_XV_SHM 1
+
+struct _xvzImagePrivate {
+#ifdef USE_XV
+  gboolean		uses_shm;
+  XvImage		*image;
+#ifdef USE_XV_SHM
+  XShmSegmentInfo	shminfo; /* shared mem info for the xvimage */
+#endif
+#endif  
+};
+
+#ifdef USE_XV /* Real stuff */
+
+static unsigned int
+xv_mode_id(char * fourcc)
+{
+  return ((((__u32)(fourcc[0])<<0)|
+	   ((__u32)(fourcc[1])<<8)|
+	   ((__u32)(fourcc[2])<<16)|
+	   ((__u32)(fourcc[3])<<24)));
+}
+
+#define YV12 xv_mode_id("YV12") /* YVU420 (planar, 12 bits) */
+#define UYVY xv_mode_id("UYVY") /* UYVY (packed, 16 bits) */
+#define YUY2 xv_mode_id("YUY2") /* YUYV (packed, 16 bits) */
+
+#define XV_MODE YUY2 /* preferred mode in Xv */
+
+static XvPortID		xvport; /* Xv port we will use */
+static gboolean		port_grabbed = FALSE; /* We own a port */
+
+extern gint		disable_xv; /* TRUE if XV should be disabled */
+
+/**
+ * Create a new XV image with the given attributes, returns NULL on error.
+ */
+xvzImage * xvzImage_new(gint w, gint h)
+{
+  xvzImage *new_image = g_malloc0(sizeof(xvzImage));
+  struct _xvzImagePrivate * pimage = new_image->private =
+    g_malloc0(sizeof(struct _xvzImagePrivate));
+  void * image_data = NULL;
+
+  if (!port_grabbed)
+    {
+      g_warning("XVPort not grabbed!");
+      g_free(new_image->private);
+      g_free(new_image);
+      return NULL;
+    }
+
+  pimage -> uses_shm = FALSE;
+
+#ifdef USE_XV_SHM
+  memset(&pimage->shminfo, 0, sizeof(XShmSegmentInfo));
+  pimage->image = XvShmCreateImage(GDK_DISPLAY(), xvport, XV_MODE, NULL,
+				   w, h, &pimage->shminfo);
+  if (pimage->image)
+    pimage->uses_shm = TRUE;
+#endif
+
+  if (!pimage->image)
+    {
+      image_data = malloc(16*w*h);
+      if (!image_data)
+	{
+	  g_warning("XV image data allocation failed");
+	  g_free(new_image->private);
+	  g_free(new_image);
+	  return NULL;
+	}
+      pimage->image =
+	XvCreateImage(GDK_DISPLAY(), xvport, XV_MODE,
+		      image_data, w, h);
+    }
+
+  if (!pimage->image)
+    {
+      g_free(new_image->private);
+      g_free(new_image);
+      return NULL;
+    }
+
+#ifdef USE_XV_SHM
+  if (pimage->uses_shm)
+    {
+      pimage->shminfo.shmid =
+	shmget(IPC_PRIVATE, pimage->image->data_size,
+	       IPC_CREAT | 0777);
+      pimage->shminfo.shmaddr =
+	pimage->image->data = shmat(pimage->shminfo.shmid, 0, 0);
+      shmctl(pimage->shminfo.shmid, IPC_RMID, 0); /* remove when we
+							terminate */
+
+      pimage->shminfo.readOnly = False;
+
+      XShmAttach(GDK_DISPLAY(), &pimage->shminfo);
+    }
+#endif
+
+  XSync(GDK_DISPLAY(), False);
+
+  new_image->w = new_image->private->image->width;
+  new_image->h = new_image->private->image->height;
+  new_image->data = new_image->private->image->data;
+  new_image->data_size = new_image->private->image->data_size;
+
+  return new_image;
+}
+
+/**
+ * Puts the image in the given drawable, scales to the drawable's size.
+ */
+void xvzImage_put(xvzImage *image, GdkWindow *window, GdkGC *gc)
+{
+  gint w, h;
+  struct _xvzImagePrivate *pimage = image->private;
+
+  g_assert(window != NULL);
+
+  if (!port_grabbed)
+    {
+      g_warning("XVPort not grabbed!");
+      return;
+    }
+
+  if (!pimage->image)
+    {
+      g_warning("Trying to put an empty XV image");
+      return;
+    }
+
+  gdk_window_get_size(window, &w, &h);
+
+#ifdef USE_XV_SHM
+  if (pimage->uses_shm)
+    XvShmPutImage(GDK_DISPLAY(), xvport,
+		  GDK_WINDOW_XWINDOW(window),
+		  GDK_GC_XGC(gc), pimage->image,
+		  0, 0, image->w, image->h, /* source */
+		  0, 0, w, h, /* dest */
+		  False /* send event when done */);
+#endif
+
+  if (!pimage->uses_shm)
+    XvPutImage(GDK_DISPLAY(), xvport,
+	       GDK_WINDOW_XWINDOW(window),
+	       GDK_GC_XGC(gc), pimage->image,
+	       0, 0, image->w, image->h, /* source */
+	       0, 0, w, h /* dest */);
+}
+
+/**
+ * Frees the data associated with the image
+ */
+void xvzImage_destroy(xvzImage *image)
+{
+  struct _xvzImagePrivate *pimage = image->private;
+
+  g_assert(image != NULL);
+
+#ifdef USE_XV_SHM
+  if (pimage->uses_shm)
+    XShmDetach(GDK_DISPLAY(), &pimage->shminfo);
+#endif
+  if (!pimage->uses_shm)
+    free(pimage->image->data);
+
+  XFree(pimage->image);
+
+#ifdef USE_XV_SHM
+  if (pimage->uses_shm)
+    shmdt(pimage->shminfo.shmaddr);
+#endif
+
+  g_free(image->private);
+  g_free(image);
+}
+
+gboolean xvz_grab_port(tveng_device_info *info)
+{
+  Display *dpy=GDK_DISPLAY();
+  Window root_window = GDK_ROOT_WINDOW();
+  unsigned int version, revision, major_opcode, event_base,
+    error_base;
+  int i, j=0, k=0;
+  int nAdaptors;
+  XvAdaptorInfo *pAdaptors, *pAdaptor;
+  XvImageFormatValues *pImgFormats=NULL;
+  int nImgFormats;
+
+  if (disable_xv || port_grabbed)
+    return FALSE;
+
+  if (Success != XvQueryExtension(dpy, &version, &revision,
+				  &major_opcode, &event_base,
+				  &error_base))
+    goto error1;
+
+  if (version < 2 || (version == 2 && revision < 2))
+    goto error1;
+
+  if (Success != XvQueryAdaptors(dpy, root_window, &nAdaptors,
+				 &pAdaptors))
+    goto error1;
+  if (nAdaptors <= 0)
+    goto error1;
+
+  /* Just for debugging, can be useful */
+  for (i=0; i<nAdaptors; i++)
+    {
+      pAdaptor = pAdaptors + i;
+      /* print some info about this adaptor */
+      printv("%d) Adaptor info:\n"
+	     "	- Base port id:		0x%x\n"
+	     "	- Number of ports:	%d\n"
+	     "	- Type:			%d\n"
+	     "	- Name:			%s\n"
+	     "	- Number of formats:	%d\n",
+	     i, (int)pAdaptor->base_id, (int) pAdaptor->num_ports,
+	     (int)pAdaptor->type, pAdaptor->name,
+	     (int)pAdaptor->num_formats);
+
+      if ((pAdaptor->type & XvInputMask) &&
+	  (pAdaptor->type & XvImageMask))
+	{ /* Image adaptor, check if some port fits our needs */
+	  for (j=0; j<pAdaptor->num_ports;j++)
+	    {
+	      xvport = pAdaptor->base_id + j;
+	      pImgFormats = XvListImageFormats(dpy, xvport,
+					       &nImgFormats);
+	      if (!pImgFormats || !nImgFormats)
+		continue;
+
+	      for (k=0; k<nImgFormats; k++)
+		printv("		[%d] %c%c%c%c (0x%x)\n", k,
+		       (char)(pImgFormats[k].id>>0)&0xff,
+		       (char)(pImgFormats[k].id>>8)&0xff,
+		       (char)(pImgFormats[k].id>>16)&0xff,
+		       (char)(pImgFormats[k].id>>24)&0xff,
+		       pImgFormats[k].id);
+	    }
+	}
+    }
+
+  /* The real thing */
+  for (i=0; i<nAdaptors; i++)
+    {
+      pAdaptor = pAdaptors + i;
+
+      if ((pAdaptor->type & XvInputMask) &&
+	  (pAdaptor->type & XvImageMask))
+	{ /* Image adaptor, check if some port fits our needs */
+	  for (j=0; j<pAdaptor->num_ports;j++)
+	    {
+	      xvport = pAdaptor->base_id + j;
+	      pImgFormats = XvListImageFormats(dpy, xvport,
+					       &nImgFormats);
+	      if (!pImgFormats || !nImgFormats)
+		continue;
+
+	      if (Success != XvGrabPort(dpy, xvport, CurrentTime))
+		continue;
+
+	      for (k=0; k<nImgFormats; k++)
+		if (pImgFormats[k].id == XV_MODE)
+		  goto adaptor_found;
+
+	      XvUngrabPort(dpy, xvport, CurrentTime);
+	    }
+	}
+    }
+
+  if (i == nAdaptors)
+    goto error2;
+
+  /* success */
+ adaptor_found:
+  printv("Adaptor #%d, image format #%d (0x%x), port #%d chosen\n",
+	 i, k, pImgFormats[k].id, j);
+  XvFreeAdaptorInfo(pAdaptors);
+
+  tveng_set_xv_port(xvport, info);
+  port_grabbed = TRUE;
+  return TRUE;
+
+ error2:
+  XvFreeAdaptorInfo(pAdaptors);
+
+ error1:
+  return FALSE;
+}
+
+void xvz_ungrab_port(tveng_device_info *info)
+{
+  if (!port_grabbed)
+    return;
+
+  XvUngrabPort(GDK_DISPLAY(), xvport, CurrentTime);
+  port_grabbed = FALSE;
+  tveng_unset_xv_port(info);
+}
+
+#else /* !USE_XV, useless stubs */
+
+xvzImage * xvzImage_new(gint width, gint height)
+{
+  return NULL;
+}
+
+void xvzImage_put(xvzImage *image, GdkWindow *window)
+{
+}
+
+void xvzImage_destroy(xvzImage *image)
+{
+}
+
+gboolean xvz_grab_port(tveng_device_info *info)
+{
+  return FALSE;
+}
+
+void xvz_ungrab_port(tveng_device_info *info)
+{
+}
+#endif

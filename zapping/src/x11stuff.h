@@ -1,5 +1,5 @@
 /* Zapping (TV viewer for the Gnome Desktop)
- * Copyright (C) 2000 Iñaki García Etxebarria
+ * Copyright (C) 2000-2001 Iñaki García Etxebarria
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,8 @@
 #  include <config.h>
 #endif
 #include <gtk/gtk.h>
+
+#include <tveng.h>
 
 /*
  * Returns a pointer to the data contained in the given GdkImage
@@ -72,6 +74,43 @@ x11_window_viewable(GdkWindow *window);
  */
 void
 x11_set_screensaver(gboolean on);
+
+/**
+ * XvImage handling (SHM, etc)
+ */
+typedef struct {
+  gint			w, h;
+  gpointer		data;
+  gint			data_size; /* in bytes */
+  struct _xvzImagePrivate *private; /* X-related data, not interesting */
+} xvzImage;
+
+/**
+ * Create a new XV image with the given attributes, returns NULL on error.
+ */
+xvzImage * xvzImage_new(gint width, gint height);
+
+/**
+ * Puts the image in the given drawable, scales to the drawable's size.
+ */
+void xvzImage_put(xvzImage *image, GdkWindow *window, GdkGC *gc);
+
+/**
+ * Frees the data associated with the image
+ */
+void xvzImage_destroy(xvzImage *image);
+
+/**
+ * Tries to grab a port for displaying the xvzImages. FALSE on error.
+ * Must be called before all the rest of xvz routines, or they won't
+ * work.
+ */
+gboolean xvz_grab_port(tveng_device_info *info);
+
+/**
+ * Ungrabs any previously grabbed port.
+ */
+void xvz_ungrab_port(tveng_device_info *info);
 
 /* some useful constants */
 #ifndef OFF

@@ -3248,8 +3248,11 @@ ttxview_attach			(GtkWidget	*parent,
   if (data->da->window)
     {
       gdk_window_get_size(data->da->window, &w, &h);
-      resize_ttx_page(data->id, w, h);
-      gdk_window_clear_area_e(data->da->window, 0, 0, w, h);
+      if (w > 10 && h > 10)
+	{
+	  resize_ttx_page(data->id, w, h);
+	  gdk_window_clear_area_e(data->da->window, 0, 0, w, h);
+	}
     }
 
   data->blink_timeout = gtk_timeout_add(BLINK_CYCLE / 4, ttxview_blink, data);

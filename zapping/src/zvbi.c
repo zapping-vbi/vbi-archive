@@ -1246,6 +1246,7 @@ void resize_ttx_page(int id, int w, int h)
 	  client->scaled = NULL;
 	  client->scaled = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8,
 					  w, h);
+
 	  if (client->scaled)
 	    gdk_pixbuf_scale(client->unscaled_on,
 			     client->scaled, 0, 0, w, h,
@@ -1255,7 +1256,6 @@ void resize_ttx_page(int id, int w, int h)
 			     (double) h /
 			     gdk_pixbuf_get_height(client->unscaled_on),
 			     INTERP_MODE);
-	  
 	  client->w = w;
 	  client->h = h;
 

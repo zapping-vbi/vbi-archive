@@ -2201,3 +2201,13 @@ void tveng_unset_xv_port(tveng_device_info * info)
   info->private->filter = info->private->colorkey = None;
 }
 #endif
+
+void tveng_mutex_lock(tveng_device_info * info)
+{
+  TVLOCK;
+}
+
+void tveng_mutex_unlock(tveng_device_info * info)
+{
+  UNTVLOCK;
+}
