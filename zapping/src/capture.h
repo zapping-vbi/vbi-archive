@@ -42,7 +42,7 @@ typedef struct {
 /*
  * Start capturing, returns -1 on error.
  */
-gint capture_start (tveng_device_info *info);
+gint capture_start (tveng_device_info *info, GtkWidget *window);
 
 /*
  * Stop the current capture.

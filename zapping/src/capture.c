@@ -92,6 +92,8 @@ typedef struct {
 /* Available video formats in the video device */
 static tv_pixfmt_set	available_pixfmts = 0;
 
+static GtkWidget *	dest_window = NULL;
+
 static void broadcast (capture_event event)
 {
   gint i;
@@ -435,7 +437,7 @@ on_capture_canvas_allocate             (GtkWidget       *widget _unused_,
   request_capture_format (&fmt);
 }
 
-gint capture_start (tveng_device_info *info)
+gint capture_start (tveng_device_info *info, GtkWidget *window)
 {
   int i;
   zf_buffer *b;
@@ -446,6 +448,9 @@ gint capture_start (tveng_device_info *info)
 	       GTK_MESSAGE_ERROR, info->error);
       return FALSE;
     }
+
+  /* XXX */
+  dest_window = window;
 
   zf_init_buffered_fifo (capture_fifo, "zapping-capture", 0, 0);
 
@@ -467,7 +472,7 @@ gint capture_start (tveng_device_info *info)
   idle_id = g_idle_add ((GSourceFunc) idle_handler, info);
 
   /* XXX */
-  g_signal_connect (G_OBJECT (zapping->video),
+  g_signal_connect (G_OBJECT (window),
 		    "size-allocate",
 		    GTK_SIGNAL_FUNC (on_capture_canvas_allocate),
 		    zapping->info);
@@ -482,9 +487,11 @@ void capture_stop (void)
 
   /* XXX */
   g_signal_handlers_disconnect_by_func
-    (G_OBJECT (zapping->video),
+    (G_OBJECT (dest_window),
      GTK_SIGNAL_FUNC (on_capture_canvas_allocate),
      zapping->info);
+
+  dest_window = NULL;
 
   /* First tell all well-behaved consumers to stop */
   broadcast (CAPTURE_STOP);
@@ -506,6 +513,8 @@ void capture_stop (void)
   while ((b = zf_recv_full_buffer (cf_timeout_consumer)))
     zf_send_empty_buffer (cf_timeout_consumer, b);
   zf_rem_consumer (cf_timeout_consumer);
+
+#warning improve this:
   pthread_join (capture_thread_id, NULL);
 
   /* Free handlers and formats */
@@ -557,14 +566,16 @@ find_request_size (capture_fmt *fmt, gint *width, gint *height)
 
   /* FIXME this should query tveng or use
      some user configured values. */
-  {
-    GtkWidget *widget;
-
-    widget = GTK_WIDGET (zapping->video);
-
-    *width = MAX (64, widget->allocation.width);
-    *height = MAX (64 * 3/4, widget->allocation.height);
-  }
+  if (dest_window)
+    {
+      *width = SATURATE (dest_window->allocation.width, 64, 768);
+      *height = SATURATE (dest_window->allocation.height, 64 * 3/4, 576);
+    }
+  else
+    {
+      *width = 352;
+      *height = 288;
+    }
 
   return FALSE;
 }
