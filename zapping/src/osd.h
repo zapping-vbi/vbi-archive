@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: osd.h,v 1.15 2001-09-25 18:38:00 garetxe Exp $ */
+/* $Id: osd.h,v 1.16 2001-09-28 20:19:27 garetxe Exp $ */
 
 #ifndef __OSD_H__
 #define __OSD_H__
@@ -48,6 +48,12 @@ void osd_clear(void);
  */
 void
 osd_render_sgml		(const char *string, ...);
+
+/**
+ * Like osd_render_sgml but no sgml parsing is done
+ */
+void
+osd_render		(const char *string, ...);
 
 extern ZModel *osd_model; /* used for notification of changes */
 

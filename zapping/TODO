@@ -1,37 +1,34 @@
 Outstanding issues for the next release (0.6.2)
 -----------------------------------------------
 > 0.6.2
-	+ Finish parrot buffer for observing parrots.
-	+ extend OSD to allow arbitrary strings, not just CC and ttx.
-	+ Fullscreen channel tips.
-	+ GUI improvements (channel selection, controls, toolbar...)
-	+ Revamp GUI for closed caption, program info, etc.
-	+ Get thumbnails of all tuned channels.
-	+ --roottv switch (use Z as screensaver)
+	+ Make sure subtitles on/off status isn't affected by vbi status.
 	+ Save control values and restore on startup (per channel).
-	+ In ttx search progress window emphasis jumps between
-	  Cancel and Prev, should be Cancel and Next. Is Cancel correct
-	  at the left? And it may be cleaner with an Abort (the search)
-	  and a Cancel (the dialog).
+	+ In ttx search, is Cancel correct at the left? And it may be
+	  cleaner with an Abort (the search) and a Cancel (the dialog).
 	+ Verify no unNLSed accels exist. (suitable replacement for H?)
 	+ Improve documentation.
 	+ Make controls move faster with the keyb, and avoid rounding
-	issues (maxvalue never reached because of integer rounding)
+	  issues (maxvalue never reached because of integer rounding)
 	+ TTX export: Make blockgfx replacement smarter. Streaming ascii
 	  subtitles. HTML: replace nonstd <blink> by "text-decoration: blink;"
+
+> 0.6.3
+	+ Examine the possiblity of linking movie titles, VBI plugin API.
+	+ zapzilla: channel selector, properties.
+	+ Finish parrot buffer for observing parrots.
+	+ libvbi: SGML error reporting.
+	+ Get thumbnails of all tuned channels.
 	+ Think about ttx header samples (p100) for stations not transmitting
 	  a CNI (instead of guessing the name from ttx). Needs some sort of
 	  raw dump, so users can send updates. Upd: Oops, we do have a raw
 	  dump: VTX.
-	+ zapzilla: channel selector, properties.
-	+ libvbi: SGML error reporting.
-	+ Examine the possiblity of linking movie titles, VBI plugin API.
 
 > 0.7.0
 	+ Support for Python scripting, write all new gui handling as
 	Python code.
 	+ Add some remote control applet, or sth like that (moved here
 	because it will use scripting).
+	+ --roottv switch (use Z as screensaver)
 
 > Somewhen...
 	+ Do realtime effects to the image, plainly wonderful, see

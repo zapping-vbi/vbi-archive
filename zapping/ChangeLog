@@ -1,3 +1,12 @@
+28.09.2001	OSD complete <garetxe@users.sf.net>
+
+	* osd.c: Added osd_render, keep correct ratio for OSD text,
+	timeout, added zmodel_changed as needed. Appears to work reliably.
+	* v4linterface.c, callbacks.c: Added OSD notification for Audio
+	Mute/Unmute and channel change (when Fullscreen).
+	* TODO: Cleaned up a bit, moved some things to 0.6.3 to have
+	another release soon.
+
 26.09.2001	OSD fixes <garetxe@users.sf.net>
 
 	* osd.c: Fixed 'flicker in FS', 'off-by-one', 'extra

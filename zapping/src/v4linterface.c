@@ -34,6 +34,7 @@
 #include "zmisc.h"
 #include "interface.h"
 #include "zvbi.h"
+#include "osd.h"
 
 extern tveng_tuned_channel * global_channel_list;
 extern tveng_device_info *main_info;
@@ -809,6 +810,9 @@ z_switch_channel	(tveng_tuned_channel	*channel,
   update_control_box(info);
 
   zvbi_channel_switched();
+
+  if (info->current_mode == TVENG_CAPTURE_PREVIEW)
+    osd_render_sgml(_("Channel: <yellow>%s</yellow>"), channel->name);
 }
 
 void

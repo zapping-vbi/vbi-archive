@@ -3762,21 +3762,21 @@ ttxview_attach			(GtkWidget	*parent,
 		      GTK_SIGNAL_FUNC(on_ttxview_refresh),
 		      data);
 
-  if (data->da->window)
+  gdk_window_set_back_pixmap(data->da->window, NULL, FALSE);
+
+  gdk_window_get_size(data->da->window, &w, &h);
+  if (w > 10 && h > 10)
     {
-      gdk_window_get_size(data->da->window, &w, &h);
-      if (w > 10 && h > 10)
-	{
-	  resize_ttx_page(data->id, w, h);
-	  gdk_window_clear_area_e(data->da->window, 0, 0, w, h);
-	}
+      resize_ttx_page(data->id, w, h);
+      render_ttx_page(data->id, data->da->window,
+		      data->da->style->white_gc,
+		      0, 0, 0, 0,
+		      w, h);
     }
 
   data->blink_timeout = gtk_timeout_add(BLINK_CYCLE / 4, ttxview_blink, data);
 
   gtk_toolbar_set_style(GTK_TOOLBAR(data->toolbar), GTK_TOOLBAR_ICONS);
-
-  gdk_window_set_back_pixmap(data->da->window, NULL, FALSE);
 
   gtk_widget_show(data->toolbar);
 

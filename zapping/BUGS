@@ -4,15 +4,10 @@ Known bugs with zapping, don't report them
 ! == Bug that needs fixing, very important
 ------------------------------------------
 
-	! Z crashes randomly with a segv. I cannot reproduce, but
-	happens at times, even when i'm doing nothing with it. I wish
-	i could get a backtrace.
-	! MPEG plugin does all sort of weird things. Can take several
-	seconds to start, sometimes segfaults if a bundle resize is
-	involved and the mode is YUYV. Perhaps mcfifos-related, investigate.
+	! GtkFixed doesn't emit expose on size-allocate as drawing
+	area did, this screws up TTX in the main window.
 	* Need better no-overlay-present handling.
 	* vbi eats too much CPU, investigate.
-	* The standard is changed when changing modes (check, not sure)
 	* Capture won't work under PPC (endianess)
 	* Zapzilla: No fallback on incomplete DRCS page?
 	~ Zapzilla: Calls fetch_page more often than necessary,

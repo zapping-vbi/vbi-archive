@@ -929,12 +929,27 @@ prepare_context		(sax_context	*ctx,
   return TRUE;
 }
 
+static gint osd_clear_timeout_id = -1;
+#define OSD_ROW (MAX_ROWS - 1)
+
+static gint
+osd_clear_timeout	(void		*ignored)
+{
+  clear_row(OSD_ROW, FALSE);
+
+  osd_clear_timeout_id = -1;
+
+  zmodel_changed(osd_model);
+
+  return FALSE;
+}
+
 /* Finish the patch by creating the gdk pixbuf, etc */
 static void
 process_context		(sax_context	*ctx)
 {
   gint w, h, x, y, hmargin, vmargin;
-  gint row = MAX_ROWS - 1;
+  float rx, ry, rw, rh;
 
   w = (ctx->lbearing + (ctx->x - ctx->start_x));
   h = (ctx->ascent + ctx->descent);
@@ -959,14 +974,35 @@ process_context		(sax_context	*ctx)
       h=0;
     }
 
-  clear_row(row, FALSE);
+  rh = 0.1;
+  rw = (rh*w)/h;
+
+  if (rw >= 0.9)
+    {
+      rw = 0.9;
+      rh = (rw*h)/w;
+    }
+
+  rx = 1 - rw;
+  ry = 1 - rh;
+
+  clear_row(OSD_ROW, FALSE);
 
   add_piece(gdk_pixbuf_get_from_drawable
 	    (NULL, ctx->canvas, ctx->cmap, x, y, 0, 0, w, h),
 	    ctx->patch,
-	    0, row, 0, 0, 0, 0.6, 0.9, 0.4, 0.1, NULL);
-  
+	    0, OSD_ROW, 0, 0, 0, rx, ry, rw, rh, NULL);
+
+  zmodel_changed(osd_model);
+
+  if (osd_clear_timeout_id > -1)
+    gtk_timeout_remove(osd_clear_timeout_id);
+
   gdk_pixmap_unref(ctx->canvas);
+
+  osd_clear_timeout_id =
+    gtk_timeout_add(zcg_float(NULL, "timeout")*1000,
+		    osd_clear_timeout, NULL);
 }
 
 void
@@ -983,6 +1019,15 @@ osd_render_sgml		(const char *string, ...)
   va_start(args, string);
   buf = g_strdup_vprintf(string, args);
   va_end(args);
+
+  if (!buf)
+    return;
+
+  if (!*buf)
+    {
+      g_free(buf);
+      return;
+    }
 
   memset(&ctx, 0, sizeof(ctx));
 
@@ -1047,6 +1092,75 @@ osd_render_sgml		(const char *string, ...)
     }
 
   g_free(buf2);
+  g_free(buf);
+}
+
+void
+osd_render		(const char *string, ...)
+{
+  va_list args;
+  sax_context ctx;
+  gchar *buf;
+
+  if (!string || !strlen(string))
+    return;
+
+  va_start(args, string);
+  buf = g_strdup_vprintf(string, args);
+  va_end(args);
+
+  if (!buf)
+    return;
+
+  if (!*buf)
+    {
+      g_free(buf);
+      return;
+    }
+
+  memset(&ctx, 0, sizeof(ctx));
+
+  /* Prepare for drawing */
+  switch (zcg_int(NULL, "osd_type"))
+    {
+    case 0:
+      if (!prepare_context(&ctx, buf))
+	{
+	  g_free(buf);
+	  return;
+	}
+      break;
+    case 1:
+      ctx.dest_buf = g_strdup("");
+      break;
+    case 2:
+      printf("OSD: ");
+      break;
+    default:
+      g_assert_not_reached();
+      break;
+    }
+
+  my_characters(&ctx, buf, strlen(buf));
+
+  /* Create the patch with the pixbuf contents */
+  switch (zcg_int(NULL, "osd_type"))
+    {
+    case 0:
+      process_context(&ctx);
+      break;
+    case 1:
+      z_status_print(ctx.dest_buf);
+      g_free(ctx.dest_buf);
+      break;
+    case 2:
+      printf("\n");
+      break;
+    default:
+      g_assert_not_reached();
+      break;
+    }
+
   g_free(buf);
 }
 
@@ -1171,6 +1285,8 @@ startup_osd(void)
   zcc_float(0.0, "Default bg r component", "bg_r");
   zcc_float(0.0, "Default bg g component", "bg_g");
   zcc_float(0.0, "Default bg b component", "bg_b");
+
+  zcc_float(1.5, "Seconds the OSD text stays on screen", "timeout");
 
   orphanarium = gtk_fixed_new();
   gtk_widget_set_usize(orphanarium, 828, 271);

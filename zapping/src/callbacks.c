@@ -120,6 +120,10 @@ on_toggle_muted1_activate		(GtkMenuItem	*menuitem,
 					 gpointer	user_data)
 {
   tveng_set_mute(1-tveng_get_mute(main_info), main_info);
+
+  osd_render_sgml(tveng_get_mute(main_info) ?
+		  _("<blue>audio off</blue>") :
+		  _("<yellow>AUDIO ON</yellow>"));
 }
 
 void

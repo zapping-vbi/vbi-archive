@@ -83,6 +83,7 @@ gchar *s = N_("Default foreground color for OSD:");
 gchar *s = N_("Elija un color");
 gchar *s = N_("Default background color for OSD:");
 gchar *s = N_("Elija un color");
+gchar *s = N_("OSD timeout in seconds:");
 gchar *s = N_("OSD");
 gchar *s = N_("General options");
 gchar *s = N_("Enable VBI decoding");

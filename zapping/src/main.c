@@ -207,11 +207,6 @@ gboolean on_zapping_key_press		(GtkWidget	*widget,
 	}
     }
 
-  if (event->keyval == GDK_o ||
-      event->keyval == GDK_O)
-    osd_render_sgml("<i>Eg</i><b>ub</b><red>er</red><blue><u>rri"
-		    " </u></blue><green>on</green>");
-
   return FALSE;
 }
 
@@ -245,7 +240,7 @@ gint resize_timeout		( gpointer ignored )
   zconf_get_integer(&h, "/zapping/internal/callbacks/h");
   printv("Restoring geometry: <%d,%d> <%d x %d>\n", x, y, w, h);
   gdk_window_move_resize(main_window->window, x, y, w, h);
-  
+
   return FALSE;
 }
 
@@ -419,7 +414,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.135 2001-09-25 18:38:00 garetxe Exp $",
+	 "$Id: main.c,v 1.136 2001-09-28 20:19:27 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU support... ");
   switch (cpu_detection())

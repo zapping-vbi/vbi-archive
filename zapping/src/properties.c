@@ -363,6 +363,16 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
 		     GTK_SIGNAL_FUNC(color_set_bridge),
 		     zapping_properties);
 
+  /* OSD timeout in seconds */
+  widget = lookup_widget(zapping_properties, "spinbutton2");
+  gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget),
+     zconf_get_float(NULL,
+		       "/zapping/options/osd/timeout"));
+
+  gtk_signal_connect(GTK_OBJECT(widget), "changed",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+
   /* Enable VBI decoding */
   widget = lookup_widget(zapping_properties, "checkbutton6");
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
@@ -626,6 +636,11 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
       zconf_set_float(r, "/zapping/options/osd/bg_r");
       zconf_set_float(g, "/zapping/options/osd/bg_g");
       zconf_set_float(b, "/zapping/options/osd/bg_b");
+
+      widget = lookup_widget(pbox, "spinbutton2"); /* osd timeout */
+      zconf_set_float(
+	gtk_spin_button_get_value_as_float(GTK_SPIN_BUTTON(widget)),
+			"/zapping/options/osd/timeout");
 
       break;
     case 2:
