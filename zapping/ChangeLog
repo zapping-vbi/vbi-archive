@@ -1,3 +1,11 @@
+10.06.2002	<mschimek@users.sf.net>
+
+	* src/mixer.c: Try /dev/mixer before /dev/mixer0 etc, thanks to
+	  Heiko Abraham for reporting. Patch by Iñaki.
+	* zapping_setup_fb/zapping_setup_fb.c: Reduce the amount of code
+	  executed with root privileges. Patch by Iñaki. Yours truly
+	  cleaned up the code to make it more readable.
+
 30.05.2002	<mschimek@users.sf.net>
 
 	* src: Added "keep on top" re feature request #555064.

@@ -17,9 +17,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.9 2002-02-25 06:22:19 mschimek Exp $ */
+/* $Id: vbi.c,v 1.10 2002-06-12 04:01:06 mschimek Exp $ */
 
-#include "site_def.h"
+#include "../site_def.h"
 
 #include "../common/fifo.h"
 #include "../systems/mpeg.h"

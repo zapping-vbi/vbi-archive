@@ -1,5 +1,7 @@
-$Id: BUGS,v 1.1 2002-03-12 18:20:22 mschimek Exp $
+$Id: BUGS,v 1.2 2002-06-12 04:01:05 mschimek Exp $
 
+* desaturation out of order
+* verify esd error checking
 * Audio test failure ./mp1e -v -m2 -n30 -a0 -B32
 
 	 Bad grouping code for samples [ch][sb][s(+0,1,2)]

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io.c,v 1.3 2002-03-23 14:06:45 mschimek Exp $ */
+/* $Id: io.c,v 1.4 2002-06-12 04:01:43 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -30,6 +30,8 @@
 #include <getopt.h>
 #include <math.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
 
 #include "../src/librte.h"
 
@@ -50,6 +52,8 @@ static rte_codec_info *		dinfo;
 
 static int			audio_tracks = 0;
 static int			video_tracks = 0;
+
+static int			fd;
 
 /* Options */
 
@@ -310,6 +314,8 @@ unref_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
 //	fprintf(stderr, "unref %p\n", buffer->data);
 
 	free(buffer->data);
+
+	return TRUE;
 }
 
 /* Input method #2 callback passive */
@@ -379,14 +385,16 @@ write_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
 
 //	fprintf(stderr, "write %p %d\n", buffer->data, buffer->size);
 
-	write(STDOUT_FILENO, buffer->data, buffer->size);
+	write(fd, buffer->data, buffer->size);
 	return TRUE;
 }
 
 static rte_bool
 seek_cb(rte_context *context, off64_t offset, int whence)
 {
-	assert(0);
+	lseek64(fd, offset, whence);
+
+	return TRUE;
 }
 
 static const struct option
@@ -400,6 +408,7 @@ long_options[] = {
 	{ "sleep",		required_argument,	NULL,			's' },
 	{ "context",		required_argument,	NULL,			'x' },
 	{ "codec",		required_argument,	NULL,			'd' },
+	{ "output",		required_argument,	NULL,			'o' },
 };
 
 int
@@ -409,10 +418,11 @@ main(int argc, char **argv)
 	int queue_length;
 	char *errstr;
 	rte_bool r;
+	char *filename = NULL;
 
 	/* Options */
 
-	while ((c = getopt_long(argc, argv, "", long_options, &index)) != -1)
+	while ((c = getopt_long(argc, argv, "d:o:q:s:x:", long_options, &index)) != -1)
 		switch (c) {
 		case 0:
 			break;
@@ -433,9 +443,18 @@ main(int argc, char **argv)
 			codec_key[num_codecs++] = strdup(optarg);
 			break;
 
+		case 'o':
+			filename = strdup(optarg);
+			break;
+
 		default:
 			exit(EXIT_FAILURE);
 		}
+
+	if (!filename) {
+		fprintf(stderr, "Please give -o filename\n");
+		exit(EXIT_FAILURE);
+	}
 
 	if (num_codecs == 0) /* use default */
 		codec_key[num_codecs++] = "mpeg1_audio_layer2";
@@ -536,6 +555,13 @@ main(int argc, char **argv)
 	}
 
 	/* Start */
+
+	fd = open64(filename, O_WRONLY | O_CREAT | S_IRUSR | S_IWUSR);
+
+	if (fd == -1) {
+		fprintf(stderr, "Open failed: %d, %s\n", errno,  strerror(errno));
+		exit(EXIT_FAILURE);
+	}
 
 	if (!rte_start(context, 0.0, NULL, TRUE)) {
 		fprintf(stderr, "Start failed: %s\n", rte_errstr(context));

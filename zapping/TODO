@@ -40,6 +40,7 @@ Outstanding issues for the next release (0.6.5)
 	+ Deinterlace plugin.
 	+ iodiag module.
 	+ Disable screensaver in capture and preview mode too?
+	+ Compress config file (libxml).
 
 Please tell me about anything you think is worth adding:
 

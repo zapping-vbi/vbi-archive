@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: context.c,v 1.5 2002-04-20 06:44:16 mschimek Exp $ */
+/* $Id: context.c,v 1.6 2002-06-12 04:01:43 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -202,8 +202,10 @@ rte_context_new(const char *keyword, void *user_data, char **errstr)
 	for (j = 0; j < num_backends; j++)
 		if (backends[j]->context_enum)
 			for (i = 0; (rxc = backends[j]->context_enum(i, &error)); i++) {
-				if (strcmp(key, rxc->public.keyword) == 0)
+				if (strcmp(key, rxc->public.keyword) == 0) {
+					j = num_backends + 1;
 					break;
+				}
 
 				if (error) {
 					free(error);

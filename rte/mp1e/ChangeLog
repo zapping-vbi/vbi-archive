@@ -1,3 +1,18 @@
+2002-06-06	<mschimek@users.sf.net>
+
+	* video/vlc_gen.c: Added. There's just no reason to create static
+	  tables at runtime and it's cleaner too.
+	* video, audio: Removed device interfaces.
+	* devices: Moved device interfaces here, cleanup for rte.
+
+2002-05-29	<mschimek@users.sf.net>
+
+	* video/v4l.c: Applied patch by Monty Walls.
+
+2002-05-27	<mschimek@users.sf.net>
+
+	* video/mpeg1.c: Added rte_status.valid flags.
+
 2002-05-13	<mschimek@users.sf.net>
 
 	* video/filter.c: Fixed YUV 4:2:0 chroma offset bug.

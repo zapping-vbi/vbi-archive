@@ -8,8 +8,9 @@ INCLUDES = -D_GNU_SOURCE -D_REENTRANT -D_LARGEFILE64_SOURCE
 
 if BACKEND_MP1E
 mp1e = $(top_srcdir)/mp1e
-mp1e_libs = $(mp1e)/video/libvideo_rte.la \
-	$(mp1e)/audio/libaudio_rte.la \
+mp1e_libs = \
+	$(mp1e)/video/libvideo.la \
+	$(mp1e)/audio/libaudio.la \
 	$(mp1e)/systems/libsystems.la \
 	$(mp1e)/common/libcommon.la \
 	$(mp1e)/libmp1e.la
@@ -17,12 +18,10 @@ endif
 
 if BACKEND_FFMPEG
 ffmpeg = $(top_srcdir)/ffmpeg
-ffmpeg_libs = $(ffmpeg)/libffmpeg.la \
+ffmpeg_libs = \
+	$(ffmpeg)/libffmpeg.la \
 	$(ffmpeg)/libav/libav.la \
-	$(ffmpeg)/libavcodec/libavcodec.la \
-	$(ffmpeg)/libavcodec/i386/libi386.la \
-	$(ffmpeg)/libavcodec/libac3/libac3.la \
-	$(ffmpeg)/libavcodec/mpglib/libmpglib.la
+	$(ffmpeg)/libavcodec/libavcodec.la
 endif
 
 if BACKEND_DIVX4LINUX

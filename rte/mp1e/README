@@ -4,9 +4,22 @@
   Installation
   ============
 
-  Type "./configure" and "make install"
+  When you got mp1e from cvs, type "./autogen.sh" to create
+  and run the configure script. You will need recent versions
+  of the GNU build utilities automake, autoconf etc.
+  
+  When the source comes from a .tgz or .rpm package, just
+  type "./configure".
 
-  For usage instructions see the mp1e manual page.
+  You can preset the CFLAGS environment variable. This is
+  useful to optimize a little more, or to pass compiler flags
+  like -g to aid debugging (see info gcc for more). Example:
+
+    CFLAGS="-mcpu=athlon-xp" ./configure
+
+  Finally type "make install".
+
+  For usage instructions see the mp1e manual page: "man mp1e".
 
   License
   =======

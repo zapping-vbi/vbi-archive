@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: context.h,v 1.2 2002-04-20 06:44:16 mschimek Exp $ */
+/* $Id: context.h,v 1.3 2002-06-12 04:01:43 mschimek Exp $ */
 
 #ifndef CONTEXT_H
 #define CONTEXT_H
@@ -37,26 +37,26 @@
 typedef struct rte_context rte_context;
 
 typedef struct {
-  char *		keyword;	/* eg. "mp1e-mpeg1-ps" */
-  char *		backend;	/* no NLS b/c proper name */
+  const char *		keyword;	/* eg. "mp1e-mpeg1-ps" */
+  const char *		backend;	/* no NLS b/c proper name */
 
-  char *		label;		/* gettext()ized _N() */
-  char *		tooltip;	/* or NULL, gettext()ized _N() */
+  const char *		label;		/* gettext()ized _N() */
+  const char *		tooltip;	/* or NULL, gettext()ized _N() */
 
   /*
    *  Multiple strings allowed, separated by comma. The first
    *  string is preferred. Ex "video/x-mpeg", "mpg,mpeg".
    */
-  char *		mime_type;	/* or NULL */
-  char *		extension;	/* or NULL */
+  const char *		mime_type;	/* or NULL */
+  const char *		extension;	/* or NULL */
 
   /*
    *  Permitted number of elementary streams of each type, for example
    *  MPEG-1 PS: video 0-16, audio 0-32, sliced vbi 0-1, to select rte_codec_set
    *  substream number 0 ... n-1.
    */
-  char			min_elementary[16];
-  char			max_elementary[16];
+  const char		min_elementary[16];
+  const char		max_elementary[16];
 
 /* should we have flags like can pause, needs seek(), syncs, etc? */
 

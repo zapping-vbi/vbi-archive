@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: info.c,v 1.6 2002-03-16 16:35:38 mschimek Exp $ */
+/* $Id: info.c,v 1.7 2002-06-12 04:01:43 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -91,7 +91,7 @@ do {									\
 } while (0)
 
 static void
-keyword_check(char *keyword)
+keyword_check(const char *keyword)
 {
 	int i, l;
 
