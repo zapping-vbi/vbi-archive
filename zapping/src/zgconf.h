@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zgconf.h,v 1.2 2004-12-11 11:46:24 mschimek Exp $ */
+/* $Id: zgconf.h,v 1.3 2005-01-08 14:29:30 mschimek Exp $ */
 
 #ifndef Z_GCONF_H
 #define Z_GCONF_H
@@ -89,6 +89,16 @@ z_gconf_int_spinslider_new	(gint			def_value,
 				 gint			page_size,
 				 const gchar *		key,
 				 gint *			var);
+GtkWidget *
+z_gconf_float_spinslider_new	(gdouble		def_value,
+				 gdouble		min_value,
+				 gdouble		max_value,
+				 gdouble		step_incr,
+				 gdouble		page_incr,
+				 gdouble		page_size,
+				 gint			digits,
+				 const gchar *		key,
+				 gdouble *		var);
 extern GtkWidget *
 z_gconf_combo_box_new		(const gchar **		menu,
 				 const gchar *		key,

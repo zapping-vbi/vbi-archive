@@ -18,8 +18,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zgconf.c,v 1.2 2004-12-11 11:46:24 mschimek Exp $ */
+/* $Id: zgconf.c,v 1.3 2005-01-08 14:29:20 mschimek Exp $ */
 
+#include <math.h>		/* fabs() */
 #include "common/intl-priv.h"	/* _() */
 #include "globals.h"		/* gconf_client */
 #include "zspinslider.h"
@@ -604,6 +605,98 @@ z_gconf_int_spinslider_new	(gint			def_value,
 
   g_signal_connect_data (G_OBJECT (adj), "value-changed",
 			 G_CALLBACK (int_slider_changed), n,
+			 (GClosureNotify) notify_destroy,
+			 /* connect_flags */ 0);
+
+  return spinslider;
+}
+
+static void
+float_slider_notify		(GConfClient *		client _unused_,
+				 guint			cnxn_id _unused_,
+				 GConfEntry *		entry,
+				 notify *		n)
+{
+  ZSpinSlider *spinslider;
+  gdouble gvalue;
+  gdouble svalue;
+
+  if (!entry->value)
+    return; /* unset */
+
+  gvalue = gconf_value_get_float (entry->value);
+
+  spinslider = Z_SPINSLIDER (n->object);
+  svalue = z_spinslider_get_value (spinslider);
+
+  /* Breaks recursion. */
+  if (fabs (gvalue - svalue) < 0.0001)
+    return;
+
+  z_spinslider_set_value (spinslider, gvalue);
+
+  if (n->var)
+    *((gdouble *) n->var) = gvalue;
+}
+
+static void
+float_slider_changed		(GtkObject *		adj _unused_,
+				 notify *		n)
+{
+  ZSpinSlider *spinslider;
+  gdouble value;
+
+  spinslider = Z_SPINSLIDER (n->object);
+  value = z_spinslider_get_value (spinslider);
+
+  /* Error ignored. */
+  z_gconf_set_float (n->key, value);
+
+  if (n->var)
+    *((gdouble *) n->var) = value;
+}
+
+GtkWidget *
+z_gconf_float_spinslider_new	(gdouble		def_value,
+				 gdouble		min_value,
+				 gdouble		max_value,
+				 gdouble		step_incr,
+				 gdouble		page_incr,
+				 gdouble		page_size,
+				 gint			digits,
+				 const gchar *		key,
+				 gdouble *		var)
+{
+  notify *n;
+  GtkObject *adj;
+  GtkWidget *spinslider;
+
+  n = g_malloc0 (sizeof (*n));
+
+  n->var = var;
+
+  if (!var)
+    var = &def_value;
+
+  /* Error ignored. */
+  z_gconf_get_float (var, key);
+
+  adj = gtk_adjustment_new (*var,
+			    min_value,
+			    max_value,
+			    step_incr,
+			    page_incr,
+			    page_size);
+
+  spinslider = z_spinslider_new (GTK_ADJUSTMENT (adj),
+				 NULL, NULL, *var, digits);
+
+  n->object = G_OBJECT (spinslider);
+
+  notify_add (n, key, (GConfClientNotifyFunc) float_slider_notify);
+
+  g_signal_connect_data (G_OBJECT (adj), "value-changed",
+			 G_CALLBACK (float_slider_changed), n,
 			 (GClosureNotify) notify_destroy,
 			 /* connect_flags */ 0);
 
