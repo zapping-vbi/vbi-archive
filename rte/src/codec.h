@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: codec.h,v 1.5 2002-08-22 22:07:24 mschimek Exp $ */
+/* $Id: codec.h,v 1.6 2002-09-12 12:26:02 mschimek Exp $ */
 
 #ifndef CODEC_H
 #define CODEC_H
@@ -222,8 +222,9 @@ typedef struct {
 	 * - Square pixels: 1.0
 	 * - ITU-R Rec. 601 PAL or SECAM: 54.0 / 59.0
 	 * - ITU-R Rec. 601 NTSC: 11.0 / 10.0
+	 * for anamorphic 16:9 multiply by 3.0 / 4.0.
 	 *
--	 * The codec may store this information
+	 * The codec may store this information
 	 * in the stream for correct playback.
 	 */
 	double			sample_aspect;
