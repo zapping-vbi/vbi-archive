@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.49 2005-01-31 07:11:09 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.50 2005-02-18 07:56:22 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -277,16 +277,24 @@ line_doubler			(void *			buffer,
 #define PUSH(p, type, value)						\
 	*((type *) p) = value; p += sizeof (type);
 
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-
 #define RGBA_CONV4(r, g, b, a, endian)					\
 	while (color_size-- > 0) {					\
 		unsigned int value = *color++;				\
 									\
-		if (0 == endian)					\
-			value = RGBA_CONV (value, r, g, b, a);		\
-		else							\
-			value = RGBA_CONV_SWAB32 (value, r, g, b, a);	\
+		switch (Z_BYTE_ORDER) {					\
+		case Z_LITTLE_ENDIAN:					\
+			if (0 == endian)				\
+				value = RGBA_CONV (value, r, g, b, a);	\
+			else						\
+				value = RGBA_CONV_SWAB32 (value, r, g, b, a); \
+			break;						\
+		case Z_BIG_ENDIAN:					\
+			if (0 == endian)				\
+				value = RGBA_CONV_SWAB32 (value, r, g, b, a); \
+			else						\
+				value = RGBA_CONV (value, r, g, b, a);	\
+			break;						\
+		}							\
 		PUSH (d, uint32_t, value);				\
 	}
 
@@ -295,45 +303,27 @@ line_doubler			(void *			buffer,
 		unsigned int value = *color++;				\
 									\
 		value = RGBA_CONV (value, r, g, b, a);			\
-		if (0 == endian) {					\
-			PUSH (d, uint16_t, value);			\
-		} else {						\
-			d[0] = value >> 8;				\
-			d[1] = value;					\
-			d += 2;						\
+		switch (Z_BYTE_ORDER) {					\
+		case Z_LITTLE_ENDIAN:					\
+			if (0 == endian) {				\
+				PUSH (d, uint16_t, value);		\
+			} else {					\
+				d[0] = value >> 8;			\
+				d[1] = value;				\
+				d += 2;					\
+			}						\
+			break;						\
+		case Z_BIG_ENDIAN:					\
+			if (1 == endian) {				\
+				PUSH (d, uint16_t, value);		\
+			} else {					\
+				d[0] = value;				\
+				d[1] = value >> 8;			\
+				d += 2;					\
+			}						\
+			break;						\
 		}							\
 	}
-
-#elif __BYTE_ORDER == __BIG_ENDIAN
-
-#define RGBA_CONV4(r, g, b, a, endian)					\
-	while (color_size-- > 0) {					\
-		unsigned int value = *color++;				\
-									\
-		if (0 == endian)					\
-			value = RGBA_CONV_SWAB32 (value, r, g, b, a);	\
-		else							\
-			value = RGBA_CONV (value, r, g, b, a);		\
-		PUSH (d, uint32_t, value);				\
-	}
-
-#define RGBA_CONV2(r, g, b, a, endian)					\
-	while (color_size-- > 0) {					\
-		unsigned int value = *color++;				\
-									\
-		value = RGBA_CONV (value, r, g, b, a);			\
-		if (1 == endian) {					\
-			PUSH (d, uint16_t, value);			\
-		} else {						\
-			d[0] = value;					\
-			d[1] = value >> 8;				\
-			d += 2;						\
-		}							\
-	}
-
-#else
-#  error unknown endianess
-#endif
 
 #define RGBA_CONV1(r, g, b, a)						\
 	while (color_size-- > 0) {					\
