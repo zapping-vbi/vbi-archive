@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.28 2002-04-20 06:42:54 mschimek Exp $ */
+/* $Id: mp2.c,v 1.29 2002-05-07 06:39:01 mschimek Exp $ */
 
 #include <limits.h>
 
@@ -79,6 +79,7 @@ terminate(mp2_context *mp2)
 
 	buf = wait_empty_buffer(&mp2->prod);
 	buf->used = 0;
+	buf->error = 0xE0F;
 	send_full_buffer(&mp2->prod, buf);
 
 	rem_consumer(&mp2->cons);
@@ -149,10 +150,9 @@ fetch_samples(mp2_context *mp2, int channels)
 	unsigned char *o;
 	int todo;
 
-	if (mp2->codec.status.frames_out > mp2->num_frames
-	    || mp1e_sync_break(&mp2->codec.sstr, buf->time
-			       + (mp2->i16 >> 16) * mp2->nominal_sample_period)) {
-		send_empty_buffer(&mp2->cons, buf);
+	if (mp1e_sync_break(&mp2->codec.sstr, buf->time
+			    + (mp2->i16 >> 16) * mp2->nominal_sample_period)) {
+		send_empty_buffer(&mp2->cons, mp2->ibuf);
 		terminate(mp2);
 	}
 
@@ -514,6 +514,26 @@ audio_frame(mp2_context *mp2, int channels)
 	short *p;
 	int bpf;
 
+	if (mp2->coded_frames_countd < 1.0) {
+		extern int split_sequence;
+		buffer *buf;
+
+		if (!split_sequence) {
+			send_empty_buffer(&mp2->cons, mp2->ibuf);
+			terminate(mp2);
+		}
+
+		buf = wait_empty_buffer(&mp2->prod);
+		buf->used = 0;
+		buf->error = -1;
+		send_full_buffer(&mp2->prod, buf);
+
+		mp2->prod.eof_sent = FALSE;
+		mp2->prod.fifo->eof_count = 0;
+
+		mp2->coded_frames_countd += mp2->num_frames;
+	}
+
 	p = fetch_samples(mp2, channels);
 
 	// DUMP(p, 0, (1152 + 480) * channels);
@@ -575,6 +595,8 @@ audio_frame(mp2_context *mp2, int channels)
 
 	pthread_mutex_unlock(&C->mutex);
 
+	mp2->coded_frames_countd -= 1.0;
+
 	send_full_buffer(&mp2->prod, obuf);
 }
 
@@ -585,6 +607,9 @@ mp1e_mp2(void *codec)
 	int frame_frac = 0, channels;
 
 	printv(3, "Audio compression thread\n");
+
+	/* Round nearest, double prec, no exceptions */
+	__asm__ __volatile__ ("fldcw %0" :: "m" (0x027F));
 
 	assert(mp2->codec.codec.state == RTE_STATE_RUNNING);
 
@@ -898,6 +923,8 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 	mp2->codec.output_bit_rate = bit_rate;
 	mp2->codec.output_frame_rate = sampling_freq / (double) SAMPLES_PER_FRAME;
 
+	mp2->coded_frames_countd = mp2->num_frames;
+
 	memset(mp2->wrap, 0, sizeof(mp2->wrap));
 
 	memset(&mp2->codec.status, 0, sizeof(mp2->codec.status));
@@ -954,8 +981,8 @@ mpeg1_options[] = {
 	   N_("Speed/quality tradeoff. Selecting 'Accurate' is recommended "
 	      "below 80 kbit/s per channel, when you have bat ears or a "
 	      "little more CPU load doesn't matter.")),
-	RTE_OPTION_INT_RANGE_INITIALIZER
-	  ("num_frames", NULL, INT_MAX, 1, INT_MAX, 1, NULL),
+	RTE_OPTION_REAL_RANGE_INITIALIZER
+	  ("num_frames", NULL, DBL_MAX, 1, DBL_MAX, 1, NULL),
 };
 
 static rte_option_info
@@ -1007,7 +1034,7 @@ option_print(rte_codec *codec, const char *keyword, va_list args)
 		return rte_strdup(context, NULL, _(menu_psycho[
 			RTE_OPTION_ARG_MENU(menu_psycho)]));
 	} else if (KEYWORD("num_frames")) {
-		snprintf(buf, sizeof(buf), _("%d frames"), va_arg(args, int));
+		snprintf(buf, sizeof(buf), _("%f frames"), va_arg(args, double));
 	} else {
 		rte_unknown_option(context, codec, keyword);
 	failed:
@@ -1032,9 +1059,7 @@ option_get(rte_codec *codec, const char *keyword, rte_option_value *v)
 	} else if (KEYWORD("psycho")) {
 		v->num = mp2->psycho_loops;
 	} else if (KEYWORD("num_frames")) {
-		v->num = mp2->num_frames;
-		if (mp2->num_frames > (int64_t) INT_MAX)
-			v->num = INT_MAX;
+		v->dbl = mp2->num_frames;
 	} else {
 		rte_unknown_option(codec->context, codec, keyword);
 		return FALSE;
@@ -1077,9 +1102,7 @@ option_set(rte_codec *codec, const char *keyword, va_list args)
 	} else if (KEYWORD("psycho")) {
 		mp2->psycho_loops = RTE_OPTION_ARG_MENU(menu_psycho);
 	} else if (KEYWORD("num_frames")) {
-		mp2->num_frames = va_arg(args, int);
-		if (mp2->num_frames >= INT_MAX)
-			mp2->num_frames = INT64_MAX;
+		mp2->num_frames = va_arg(args, double);
 	} else {
 		rte_unknown_option(context, codec, keyword);
 	failed:

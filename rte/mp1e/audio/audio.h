@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.h,v 1.14 2002-03-12 18:20:23 mschimek Exp $ */
+/* $Id: audio.h,v 1.15 2002-05-07 06:39:10 mschimek Exp $ */
 
 #include <stdint.h>
 #include <pthread.h>
@@ -114,6 +114,7 @@ typedef struct mp2_context {
 	producer		prod;
 	unsigned int		header_template;
 	double			coded_frame_period;
+	double			coded_frames_countd;
 	int			sampling_freq;
 	int			bits_per_frame;
 	int			spf_rest, spf_lag;
@@ -126,7 +127,7 @@ typedef struct mp2_context {
 	int			sampling_freq_code;
 	int			bit_rate_code;
 	int			audio_mode;
-	int64_t			num_frames;
+	double			num_frames;
 
 } mp2_context;
 
