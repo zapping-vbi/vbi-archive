@@ -284,23 +284,20 @@ fi
 AC_SUBST(PNG_LIB)
 
 dnl ----------------------------------------------------------------------
-dnl Check for RTE, the MPEG encoder
+dnl Record plugin: librte, real time a/v encoding
 dnl ----------------------------------------------------------------------
+SAVE_LIBS=$LIBS
 HAVE_RTE="0.5"
-AC_CHECK_LIB(rte, rte_codec_parameters_set,
-  AC_EGREP_HEADER(rte_codec_parameters_set, librte.h, true, HAVE_RTE=no),
-    HAVE_RTE=no,)
-dnl The mpeg plugin requires RTE
+AC_CHECK_LIB(rte, rte_parameters_set,, [HAVE_RTE="no"])
+AC_EGREP_HEADER(rte_parameters_set, librte.h,, [HAVE_RTE="no"])
 if test "$HAVE_RTE" != "no"; then
   PLUGINS_TO_BUILD="$PLUGINS_TO_BUILD mpeg"
   AC_DEFINE(HAVE_LIBRTE5, 1, [Define if RTE lib 0.5 is present])
   RTE_LIB="-lrte"
 else
   HAVE_RTE="0.4"
-  AC_CHECK_LIB(rte-0.4, rte_option_set_menu,
-    AC_EGREP_HEADER(rte_option_set_menu, rte.h, true, HAVE_RTE=no),
-      HAVE_RTE=no,)
-  dnl The mpeg plugin requires RTE
+  AC_CHECK_LIB(rte-0.4, rte_option_set_menu,, [HAVE_RTE="no"])
+  AC_EGREP_HEADER(rte_option_set_menu, rte.h,, [HAVE_RTE="no"])
   if test "$HAVE_RTE" != "no"; then
     PLUGINS_TO_BUILD="$PLUGINS_TO_BUILD mpeg"
     AC_DEFINE(HAVE_LIBRTE4, 1, [Define if RTE lib 0.4 is present])
@@ -310,6 +307,7 @@ else
   fi
 fi
 AC_SUBST(RTE_LIB)
+LIBS="$SAVE_LIBS"
 
 dnl ----------------------------------------------------------------------
 dnl Check for lirc_client
@@ -344,10 +342,10 @@ DEFAULT_CFLAGS="-g -Wall -Wunused -Wmissing-prototypes -Wmissing-declarations -D
 AC_SUBST(DEFAULT_CFLAGS)
 
 AM_PROG_AS
-AS=$CC
-ASFLAGS=$DEFAULT_CFLAGS
-AC_SUBST(AS)
-AC_SUBST(ASFLAGS)
+dnl AS=$CC
+dnl ASFLAGS=$DEFAULT_CFLAGS
+dnl AC_SUBST(AS)
+dnl AC_SUBST(ASFLAGS)
 
 dnl -----------------------------------------------------------
 dnl with-gnome-prefix handling, used for building packages.
