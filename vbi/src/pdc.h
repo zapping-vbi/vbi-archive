@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.h,v 1.1.2.1 2004-02-13 02:15:27 mschimek Exp $ */
+/* $Id: pdc.h,v 1.1.2.2 2004-02-25 17:28:47 mschimek Exp $ */
 
 #ifndef PDC_H
 #define PDC_H
@@ -42,7 +42,7 @@ typedef unsigned int vbi_pil;
 #define VBI_PIL(month, day, hour, minute)				\
 	(((day) << 15) | ((month) << 11) | ((hour) << 6) | (minute))
 
-#define VBI_PIL_MONTH(pil)	(((pil) >> 1) & 15)	/**< 1 ... 12 */
+#define VBI_PIL_MONTH(pil)	(((pil) >> 11) & 15)	/**< 1 ... 12 */
 #define VBI_PIL_DAY(pil)	((pil) >> 15)		/**< 1 ... 31 */
 #define VBI_PIL_HOUR(pil)	(((pil) >> 6) & 31)	/**< 0 ... 23 */
 #define VBI_PIL_MINUTE(pil)	((pil) & 63)		/**< 0 ... 59 */
@@ -93,7 +93,7 @@ typedef struct {
 	unsigned int		minute;		/**< 0 ... 59 */
 
 	/**
-	 * PDC Programme Identification Label, that is a packed
+	 * PDC programme identification label, that is a packed
 	 * representation of the date above, or one of the
 	 * service codes.
 	 */
@@ -104,9 +104,16 @@ typedef struct {
 	 */
 	unsigned int		length;
 
-	/**
-	 * PDC program control status audio.
-	 */
+	/** PDC label channel identifier. */
+	unsigned int		lci;
+	/** PDC label update flag. */
+	vbi_bool		luf;
+	/** PDC mode identifier. */
+	vbi_bool		mi;
+	/** PDC prepare-to-record flag. */
+	vbi_bool		prf;
+
+	/** PDC program control status audio. */
 	vbi_pcs_audio		pcs_audio;
 
 	/**
@@ -115,10 +122,17 @@ typedef struct {
 	unsigned int		pty;
 
 	/**
-	 * Program is tape delayed (XDS flag), FALSE if unknown.
+	 * XDS program is tape delayed flag, FALSE if unknown.
 	 */
 	vbi_bool		tape_delayed;
 } vbi_program_id;
+
+/* Private */
+
+extern void
+vbi_program_id_dump		(const vbi_program_id *	pi,
+				 FILE *			fp);
+/* Public */
 
 /**
  * This structure contains PDC data for a program selected
