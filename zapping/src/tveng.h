@@ -803,7 +803,7 @@ tveng_describe_controller(const char ** short_str, const char ** long_str,
 			  tveng_device_info * info);
 
 /*
-  Closes the video device asocciated to the device info object. Should
+  Closes the video device associated to the device info object. Should
   be called before reattaching a video device to the same object, but
   there is no need to call this before calling tveng_device_info_destroy.
 */
@@ -811,6 +811,13 @@ void tveng_close_device(tveng_device_info* info);
 
 extern const char *
 tv_get_errstr			(tveng_device_info *	info);
+extern int
+tv_set_errstr			(tveng_device_info *	info,
+				 const char *		template,
+				 ...)
+     __attribute__ ((format (printf, 2, 3)));
+extern int
+tv_get_debug_level		(tveng_device_info *	info);
 extern int
 tv_get_errno			(tveng_device_info *	info);
 extern capture_mode
@@ -1206,10 +1213,10 @@ tv_clear_error			(tveng_device_info *	info);
 
 #define tv_error_msg(info, template, args...)				\
 do {									\
-  snprintf ((info)->error, 255, template ,##args );			\
-  if ((info)->debug_level > 0)						\
+  tv_set_errstr (info, template ,##args );				\
+  if (tv_get_debug_level (info) > 0)					\
     fprintf (stderr, "%s:%u:%s: %s\n", __FILE__, __LINE__,     		\
-	     __FUNCTION__, (info)->error);			        \
+	     __FUNCTION__, tv_get_errstr (info));		        \
 } while (0)
 
 /* Builds an error message that lets me debug much better */

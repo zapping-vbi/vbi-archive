@@ -211,6 +211,29 @@ tv_get_errstr			(tveng_device_info *	info)
 }
 
 int
+tv_set_errstr			(tveng_device_info *	info,
+				 const char *		template,
+				 ...)
+{
+	va_list ap;
+	int n;
+
+	va_start (ap, template);
+
+	n = vsnprintf (info->error, 256, template, ap);
+
+	va_end (ap);
+
+	return n;
+}
+
+int
+tv_get_debug_level		(tveng_device_info *	info)
+{
+	return info->debug_level;
+}
+
+int
 tv_get_errno			(tveng_device_info *	info)
 {
 	return info->tveng_errno;
