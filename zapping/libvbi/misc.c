@@ -2,6 +2,8 @@
 #include <stdarg.h>
 #include "misc.h"
 
+#define FAC	(1<<16)		// factor for fix-point arithmetic
+
 char *prgname = 0;
 
 extern char *strrchr(const char *, int);

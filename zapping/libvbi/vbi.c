@@ -12,25 +12,7 @@
 #include "hamm.h"
 #include "lang.h"
 
-
-#define BPL	2048
-#define FAC	(1<<16)
-#define STEP	335062	// (int)(35.468950/6.9375*FAC+.5)	// PAL!
-
-#define BASE_VIDIOCPRIVATE	192
-#define BTTV_VERSION		_IOR('v' , BASE_VIDIOCPRIVATE+6, int)
-#define BTTV_VBISIZE		_IOR('v' , BASE_VIDIOCPRIVATE+8, int)
-
-
-static u8 rawbuf[BPL*19*2];	// one global buffer for raw vbi data
-			// (putting this on the stack may trash the mm-system)
-
-int vbi_big_buf = -1;
-int vbi_fine_tune = 0;	// delay decoding n/10 bit length
-
-
-
-static void
+void
 out_of_sync(struct vbi *vbi)
 {
     int i;
@@ -39,7 +21,6 @@ out_of_sync(struct vbi *vbi)
     for (i = 0; i < 8; ++i)
 	vbi->rpage[i].page->flags &= ~PG_ACTIVE;
 }
-
 
 // send an event to all clients
 
@@ -56,7 +37,7 @@ vbi_send(struct vbi *vbi, int type, int i1, int i2, int i3, void *p1)
     ev->i3 = i3;
     ev->p1 = p1;
 
-    for (cl = $ vbi->clients->first; cln = $ cl->node->next; cl = cln)
+    for (cl = $ vbi->clients->first; (cln = $ cl->node->next); cl = cln)
 	cl->handler(cl->data, ev);
 }
 
@@ -288,27 +269,26 @@ vt_line(struct vbi *vbi, u8 *p)
     return 0;
 }
 
-
-
 // process one raw vbi line
 
-static int
+int
 vbi_line(struct vbi *vbi, u8 *p)
 {
     u8 data[43], min, max;
     int dt[256], hi[6], lo[6];
     int i, n, sync, thr;
+    int bpb = vbi->bpb;
 
     /* remove DC. edge-detector */
-    for (i = 40; i < 240; ++i)
-	dt[i] = p[i+STEP/FAC] - p[i];	// amplifies the edges best.
+    for (i = vbi->soc; i < vbi->eoc; ++i)
+	dt[i] = p[i+bpb/FAC] - p[i];	// amplifies the edges best.
 
     /* set barrier */
-    for (i = 240; i < 256; i += 2)
+    for (i = vbi->eoc; i < vbi->eoc+16; i += 2)
 	dt[i] = 100, dt[i+1] = -100;
 
     /* find 6 rising and falling edges */
-    for (i = 40, n = 0; n < 6; ++n)
+    for (i = vbi->soc, n = 0; n < 6; ++n)
     {
 	while (dt[i] < 32)
 	    i++;
@@ -317,13 +297,12 @@ vbi_line(struct vbi *vbi, u8 *p)
 	    i++;
 	lo[n] = i;
     }
-    if (i >= 240)
+    if (i >= vbi->eoc)
 	return -1;	// not enough periods found
 
-    i = hi[5] - hi[1];	// length of 4 periods (8 bits), normally 40.9
-    if (i < 39 || i > 42)
-	return -1;	// bad frequency
-
+    i = hi[5] - hi[1];	// length of 4 periods (8 bits)
+    if (i < vbi->bp8bl || i > vbi->bp8bh)
+	return -2;	// bad frequency
     /* AGC and sync-reference */
     min = 255, max = 0, sync = 0;
     for (i = hi[4]; i < hi[5]; ++i)
@@ -337,62 +316,30 @@ vbi_line(struct vbi *vbi, u8 *p)
     p += sync;
 
     /* search start-byte 11100100 */
-    for (i = 4*STEP + vbi->pll_adj*STEP/10; i < 16*STEP; i += STEP)
-	if (p[i/FAC] > thr && p[(i+STEP)/FAC] > thr) // two ones is enough...
+    for (i = 4*bpb + vbi->pll_adj*bpb/10; i < 16*bpb; i += bpb)
+	if (p[i/FAC] > thr && p[(i+bpb)/FAC] > thr) // two ones is enough...
 	{
 	    /* got it... */
 	    memset(data, 0, sizeof(data));
 
-	    for (n = 0; n < 43*8; ++n, i += STEP)
+	    for (n = 0; n < 43*8; ++n, i += bpb)
 		if (p[i/FAC] > thr)
 		    data[n/8] |= 1 << (n%8);
 
 	    if (data[0] != 0x27)	// really 11100100? (rev order!)
-		return -1;
+		return -3;
 
-	    if (i = vt_line(vbi, data+1))
+	    if ((i = vt_line(vbi, data+1)))
+	      {
 		if (i < 0)
-		    pll_add(vbi, 2, -i);
+		  pll_add(vbi, 2, -i);
 		else
-		    pll_add(vbi, 1, i);
+		  pll_add(vbi, 1, i);
+	      }
 	    return 0;
 	}
-    return -1;
+    return -4;
 }
-
-
-
-// called when new vbi data is waiting
-
-void
-vbi_handler(struct vbi *vbi, int fd)
-{
-    int n, i;
-    u32 seq;
-
-    n = read(vbi->fd, rawbuf, vbi->bufsize);
-
-    if (dl_empty(vbi->clients))
-	return;
-
-    if (n != vbi->bufsize)
-	return;
-
-    seq = *(u32 *)&rawbuf[n - 4];
-    if (vbi->seq+1 != seq)
-    {
-	out_of_sync(vbi);
-	if (seq < 3 && vbi->seq >= 3)
-	    vbi_reset(vbi);
-    }
-    vbi->seq = seq;
-
-    if (seq > 1)	// the first may contain data from prev channel
-	for (i = 0; i+BPL <= n; i += BPL)
-	    vbi_line(vbi, rawbuf + i);
-}
-
-
 
 int
 vbi_add_handler(struct vbi *vbi, void *handler, void *data)
@@ -407,8 +354,6 @@ vbi_add_handler(struct vbi *vbi, void *handler, void *data)
     return 0;
 }
 
-
-
 void
 vbi_del_handler(struct vbi *vbi, void *handler, void *data)
 {
@@ -422,8 +367,6 @@ vbi_del_handler(struct vbi *vbi, void *handler, void *data)
 	}
     return;
 }
-
-
 
 struct vbi *
 vbi_open(char *vbi_name, struct cache *ca, int fine_tune, int big_buf)
@@ -447,23 +390,12 @@ vbi_open(char *vbi_name, struct cache *ca, int fine_tune, int big_buf)
 	goto fail2;
     }
 
-    if ((vbi->bufsize = ioctl(vbi->fd, BTTV_VBISIZE)) == -1)
-    {
-	// big_buf == -1 default, 0 small, 1 large buffer
-#ifdef DEFAULT_SMALL_BUF
-	vbi->bufsize = big_buf==1 ? 19*2*2048 : 16*2*2048; // small is def
-#else
-	vbi->bufsize = big_buf!=0 ? 19*2*2048 : 16*2*2048; // large is def
-#endif
-    }
-    else if (vbi->bufsize < BPL || vbi->bufsize > (int)sizeof(rawbuf)
-						    || vbi->bufsize % BPL != 0)
-    {
-	error("illegal size of bttv driver's buffer (%d bytes)", vbi->bufsize);
+    if (big_buf != -1)
+	error("-oldbttv/-newbttv is obsolete.  option ignored.");
+
+    if ((v4l2_vbi_setup_dev(vbi) == -1) &&
+	(v4l_vbi_setup_dev(vbi) == -1))
 	goto fail3;
-    }
-    else if (big_buf != -1)
-	error("-oldbttv/-newbttv option ignored.");
 
     vbi->cache = ca;
 
@@ -473,7 +405,8 @@ vbi_open(char *vbi_name, struct cache *ca, int fine_tune, int big_buf)
     vbi->ppage = vbi->rpage;
 
     vbi_pll_reset(vbi, fine_tune);
-    fdset_add_fd(fds, vbi->fd, vbi_handler, vbi);
+    /* now done by v4l2 and v4l modules */
+    //    fdset_add_fd(fds, vbi->fd, vbi_handler, vbi);
     return vbi;
 
 fail3:
@@ -483,8 +416,6 @@ fail2:
 fail1:
     return 0;
 }
-
-
 
 void
 vbi_close(struct vbi *vbi)

@@ -102,7 +102,7 @@ txt_option(struct export *e, int opt, char *arg)
 static void
 put_attr(struct export *e, struct fmt_char *new)
 {
-    char buf[64];
+    char buf[512];
     char *p = buf;
     int fg, bg, attr;
     int reset = 0;

@@ -15,4 +15,5 @@ libvbi_a_SOURCES = \
 	lang.c lang.h \
 	misc.c misc.h \
 	vbi.c vbi.h libvbi.h \
+	vbi_v4l2.c vbi_v4l.c \
 	os.h vt.h

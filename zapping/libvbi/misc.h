@@ -5,6 +5,8 @@
 // generic macros/typedefs
 //////////////////////////
 
+#define FAC	(1<<16)		// factor for fix-point arithmetic
+
 #define $ (void *)
 #define NELEM(x) ((int)(sizeof(x)/sizeof(*(x))))
 #define NORETURN(x) void x __attribute__((__noreturn__))

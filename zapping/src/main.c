@@ -70,8 +70,37 @@ static
 gint			newbttv = -1; /* Compatibility with old bttv
 					 drivers */
 
-void shutdown_zapping(void);
-gboolean startup_zapping(void);
+static void shutdown_zapping(void);
+static gboolean startup_zapping(void);
+
+/* Start VBI services, and warn if we cannot */
+static void
+startup_teletext(void)
+{
+  /*
+   * fixme: this appears to be a bug in the bttv2 driver, if we open
+   * the vbi device and then the video device, the video device cannot
+   * be opened (-EBUSY)
+   * if we open video and then vbi it works.
+   * Justin has been informed.
+   */
+#ifdef HAVE_GDKPIXBUF
+  if (disable_vbi)
+    zconf_set_boolean(FALSE, "/zapping/options/vbi/enable_vbi");
+  if ((!zvbi_open_device(newbttv)) &&
+      (zconf_get_boolean(NULL, "/zapping/options/vbi/enable_vbi")))
+    ShowBox(_("Sorry, but %s couldn't be opened:\n%s (%d)"),
+	    GNOME_MESSAGE_BOX_ERROR, "/dev/vbi", strerror(errno), errno);
+#else
+  if (zconf_get_boolean(NULL, "/zapping/options/vbi/enable_vbi"))
+    ShowBox(_("There's no GdkPixbuf support, VBI has been disabled"),
+	    GNOME_MESSAGE_BOX_INFO);
+  zconf_set_boolean(FALSE, "/zapping/options/vbi/enable_vbi");
+#endif
+  D();
+  zvbi_set_mode(zcg_bool(NULL, "videotext_mode"));
+  D();
+}
 
 static void
 print_visual_info(GdkVisual * visual, const char * name)
@@ -420,7 +449,8 @@ int main(int argc, char * argv[])
   D();
   update_standards_menu(main_window, main_info);
   D();
-
+  startup_teletext();
+  D();
   /* Sets the coords to the previous values, if the users wants to */
   if (zcg_bool(NULL, "keep_geometry"))
     {
@@ -545,7 +575,7 @@ int main(int argc, char * argv[])
   return 0;
 }
 
-void shutdown_zapping(void)
+static void shutdown_zapping(void)
 {
   int i = 0;
   gchar * buffer = NULL;
@@ -627,7 +657,7 @@ void shutdown_zapping(void)
   shutdown_capture();
 }
 
-gboolean startup_zapping()
+static gboolean startup_zapping()
 {
   int i = 0;
   gchar * buffer = NULL;
@@ -699,23 +729,6 @@ gboolean startup_zapping()
       g_free(buffer);
       i++;
     }
-  D();
-  /* Start VBI services, and warn if we cannot */
-#ifdef HAVE_GDKPIXBUF
-  if (disable_vbi)
-    zconf_set_boolean(FALSE, "/zapping/options/vbi/enable_vbi");
-  if ((!zvbi_open_device(newbttv)) &&
-      (zconf_get_boolean(NULL, "/zapping/options/vbi/enable_vbi")))
-    ShowBox(_("Sorry, but %s couldn't be opened:\n%s (%d)"),
-	    GNOME_MESSAGE_BOX_ERROR, "/dev/vbi", strerror(errno), errno);
-#else
-  if (zconf_get_boolean(NULL, "/zapping/options/vbi/enable_vbi"))
-    ShowBox(_("There's no GdkPixbuf support, VBI has been disabled"),
-	    GNOME_MESSAGE_BOX_INFO);
-  zconf_set_boolean(FALSE, "/zapping/options/vbi/enable_vbi");
-#endif
-  D();
-  zvbi_set_mode(zcg_bool(NULL, "videotext_mode"));
   D();
   /* Starts all modules */
   if (!startup_callbacks())

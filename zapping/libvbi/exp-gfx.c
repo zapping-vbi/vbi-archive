@@ -7,81 +7,13 @@
 #include "lang.h"
 #include "export.h"
 
-#ifdef WITH_PNG
-#include <png.h>
-#endif
-
 #include "font.h"
 #define WW	(W*CW)			/* pixel width of window */
 #define WH	(H*CH)			/* pixel hegiht of window */
 
 
-static int gfx_open(struct export *e);
-static int gfx_option(struct export *e, int opt, char *arg);
-static int ppm_output(struct export *e, char *name, struct fmt_page *pg);
-#ifdef WITH_PNG
-static int png_output(struct export *e, char *name, struct fmt_page *pg);
-#endif
-
-
-static char *gfx_opts[] =	// module options
-{
-    //"compression=<level>",	// set compression level
-    0
-};
-
-/*struct gfx_data			// private data in struct export
-{
-};
-*/
-
-struct export_module export_ppm[1] =	// exported module definition
-{
-    "ppm",			// id
-    "ppm",			// extension
-    gfx_opts,			// options
-    0,                       	// size
-    gfx_open,			// open
-    0,				// close
-    gfx_option,			// option
-    ppm_output			// output
-};
-
-#ifdef WITH_PNG
-struct export_module export_png[1] =	// exported module definition
-{
-    "png",			// id
-    "png",			// extension
-    gfx_opts,			// options
-    0,                       	// size
-    gfx_open,			// open
-    0,				// close
-    gfx_option,			// option
-    png_output			// output
-};
-#endif
-
 ///////////////////////////////////////////////////////
-
-#define D  ((struct gfx_data *)e->data)
-
-static int
-gfx_open(struct export *e)
-{
-    //e->reveal=1;	// the default should be the same in all formats
-    return 0;
-}
-
-static int
-gfx_option(struct export *e, int opt, char *arg)
-{
-    switch (opt)
-    {
-	// no options at the moment...
-    }
-    return 0;
-}
-
+// COMMON ROUTINES FOR PPM AND PNG
 
 static inline void
 draw_char(unsigned char * colour_matrix, 
@@ -116,7 +48,7 @@ draw_char(unsigned char * colour_matrix,
 }
 
 static void
-prepare_colour_matrix(//*struct export *e,
+prepare_colour_matrix(/*struct export *e,*/
 		      struct fmt_page *pg, 
 		      unsigned char *colour_matrix)
 {
@@ -150,12 +82,31 @@ prepare_colour_matrix(//*struct export *e,
     return;
 }
 
+
+
+///////////////////////////////////////////////////////
+// STUFF FOR PPM OUTPUT
+
+static int ppm_output(struct export *e, char *name, struct fmt_page *pg);
+
+struct export_module export_ppm[1] =	// exported module definition
+{
+    "ppm",			// id
+    "ppm",			// extension
+    0,				// options
+    0,				// size
+    0,				// open
+    0,				// close
+    0,				// option
+    ppm_output			// output
+};
+
 static int
 ppm_output(struct export *e, char *name, struct fmt_page *pg)
 {
   FILE *fp;
   long n;
-  const u8 rgb1[][3]={{0,0,0},
+  static u8 rgb1[][3]={{0,0,0},
 		      {1,0,0},
 		      {0,1,0},
 		      {1,1,0},
@@ -198,81 +149,6 @@ ppm_output(struct export *e, char *name, struct fmt_page *pg)
   fclose(fp);
   return 0;
 }
-
-#ifdef WITH_PNG
-static int
-png_output(struct export *e, char *name, struct fmt_page *pg)
-{
-  FILE *fp;
-  int x;
-  png_structp png_ptr;
-  png_infop info_ptr;
-  png_byte *row_pointers[WH];
-  const u8 rgb8[][3]={{  0,  0,  0},
-		      {255,  0,  0},
-		      {  0,255,  0},
-		      {255,255,  0},
-		      {  0,  0,255},
-		      {255,  0,255},
-		      {  0,255,255},
-		      {255,255,255}};
-  unsigned char *colour_matrix;
-
-  if (!(colour_matrix=malloc(WH*WW))) 
-    {
-      export_error("cannot allocate memory");
-      return -1;
-    }
-  
-  prepare_colour_matrix(/*e,*/ pg, (unsigned char *)colour_matrix); 
-   
-  if (not(fp = fopen(name, "w")))
-    {
-      free(colour_matrix);
-      export_error("cannot create file");
-      return -1;
-      } 
-  
-  png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, 
-				    NULL, NULL, NULL);
-  if (!png_ptr)
-    {
-      free(colour_matrix);
-      fclose(fp);
-      export_error("libpng init error");
-      return -1;
-    }
-  info_ptr = png_create_info_struct(png_ptr);
-  if (!info_ptr)
-    {
-      png_destroy_write_struct(&png_ptr,
-			       (png_infopp)NULL);
-      free(colour_matrix);
-      fclose(fp);
-      export_error("libpng init error");
-      return -1;
-    }
-  png_init_io(png_ptr, fp);
-  png_set_compression_level(png_ptr, Z_BEST_COMPRESSION);
-  png_set_compression_mem_level(png_ptr, 9);
-  png_set_compression_window_bits(png_ptr, 15);
-  png_set_IHDR(png_ptr, info_ptr, WW, WH,
-	       8, PNG_COLOR_TYPE_PALETTE , PNG_INTERLACE_NONE,
-	       PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
-  png_set_PLTE(png_ptr, info_ptr,(png_color*) rgb8 , 8);
-  png_write_info(png_ptr, info_ptr);
-  
-  for(x=0; x<WH; x++)
-    { row_pointers[x]=colour_matrix+x*WW; }
-  png_write_image(png_ptr, row_pointers);
-  png_write_end(png_ptr, info_ptr);
-  png_destroy_write_struct(&png_ptr, &info_ptr);
-  
-  free(colour_matrix);
-  fclose(fp);
-  return 0;
-}
-#endif
 
 /* garetxe: This doesn't make sense in alevt, but it's useful in other
  contexts */

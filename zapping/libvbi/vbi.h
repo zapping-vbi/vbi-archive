@@ -14,24 +14,32 @@ struct raw_page
     struct enhance enh[1];
 };
 
+#define BUFS 4
+
 struct vbi
 {
     int fd;
     struct cache *cache;
     struct dl_head clients[1];
-    int bufsize;		// 32*2k or 38*2k (depending on bttv version)
+    // raw buffer management
+    int bufsize;		// nr of bytes sent by this device
+    int nbufs;
+    unsigned char *bufs[BUFS];
+    int bpl;			// bytes per line
     u32 seq;
+    // page assembly
     struct raw_page rpage[8];	// one for each magazin
     struct raw_page *ppage;	// points to page of previous pkt0
-    /*
-    struct vt_page page[8];	// one for each magazin
-    struct vt_page *ppage;	// points to page of previous pkt0
-    */
+    // phase correction
     int pll_fixed;		// 0 = auto, 1..2*PLL_ADJUST+1 = fixed
     int pll_adj;
     int pll_dir;
     int pll_cnt;
     int pll_err, pll_lerr;
+    // v4l2 decoder data
+    int bpb;			// bytes per bit * 2^16
+    int bp8bl, bp8bh;		// bytes per 8-bit low/high
+    int soc, eoc;		// start/end of clock run-in
 };
 
 struct vbi_client
@@ -49,5 +57,11 @@ int vbi_add_handler(struct vbi *vbi, void *handler, void *data);
 void vbi_del_handler(struct vbi *vbi, void *handler, void *data);
 struct vt_page *vbi_query_page(struct vbi *vbi, int pgno, int subno);
 void vbi_pll_reset(struct vbi *vbi, int fine_tune);
+
+int v4l2_vbi_setup_dev(struct vbi *vbi);
+int v4l_vbi_setup_dev(struct vbi *vbi);
+
+void out_of_sync(struct vbi *vbi);
+int vbi_line(struct vbi *vbi, u8 *p);
 
 #endif

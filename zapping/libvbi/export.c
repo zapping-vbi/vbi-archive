@@ -184,7 +184,7 @@ adjust(char *p, char *str, char fill, int width)
 {
     int l = width - strlen(str);
 
-    while (l > 0)
+    while (l-- > 0)
 	*p++ = fill;
     while (*p = *str++)
 	p++;
@@ -240,9 +240,6 @@ export_mkname(struct export *e, char *fmt, struct vt_page *vtp, char *usr)
     return p;
 }
 
-/* garetxe */
-/* doesn't require to create an export object now
- */
 void
 fmt_page(int reveal, struct fmt_page *pg, struct vt_page *vtp)
 {

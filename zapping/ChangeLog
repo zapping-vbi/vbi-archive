@@ -1,3 +1,18 @@
+17.11.2000	V4L VBI support <garetxe@users.sourceforge.net>
+
+	* libvbi/: tries to open the vbi device as V4L2. If it fails, uses
+	V4L instead.
+	* po/es.po: Updated.
+	* src/main.c (main): startup_vbi called after setting the input
+	and the standard to work around bttv2 locking.
+
+15.11.2000	V4L2 VBI support <garetxe@users.sourceforge.net>
+
+	* libvbi/: Brought up-to-date with alevt 1.6.0, added V4L2-aware
+	code. This will be replaced in the future by Michael's decoder.
+	* configure.in: Fixed, --disable options didn't work (i wasn't
+	using $enableval), removed --enable-tveng-debug, no longer needed.
+
 14.11.2000	Bug fixes <garetxe@users.sourceforge.net>
 
 	* main.c: Fixed the auto-resize-to-unusable-size bug, it lacked a

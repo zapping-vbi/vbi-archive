@@ -233,7 +233,7 @@ int tveng2_attach_device(const char* device_file,
       return -1;
     }
 
-#ifndef TVENG_DISABLE_IOCTL_TESTS
+#ifdef TVENG_ENABLE_IOCTL_TESTS
   /* Make an ioctl test and switch to the first input */
   if ((info->num_inputs) &&
       (tveng2_set_input(&(info->inputs[0]), info) == -1))
@@ -254,7 +254,7 @@ int tveng2_attach_device(const char* device_file,
       return -1;
     }
 
-#ifndef TVENG_DISABLE_IOCTL_TESTS
+#ifdef TVENG_ENABLE_IOCTL_TESTS
   /* make another ioctl test, switch to first standard */
   if ((info->num_standards) &&
       (tveng2_set_standard(&(info->standards[0]), info) == -1))

@@ -52,7 +52,7 @@ I need feedback specially on these bugs:
 
 *) The program just hangs after showing the main window.
 	I have experienced this one myself with a 2.4.0test8
-	kernel, and appearently it gets fixed in the 5.4 release. I
+	kernel, and appearently it gets fixed in the 0.5.4 release. I
 	would really appreciate some feedback on this one.
 
 *) Teletext just shows loading..., no page ever loaded

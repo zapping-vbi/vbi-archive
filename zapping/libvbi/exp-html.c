@@ -134,7 +134,7 @@ if (!D->bare)
       int last_nonblank=0;
       int first_unprinted=0;
       int last_space=1;
-      // previous char was &nbsp
+      // previous char was &nbsp;
       // is used for deciding to put semicolon or not
       int nbsp=0; 
 
@@ -214,7 +214,7 @@ if (!D->bare)
 	      {
 		if (last_space)
 		  {
-		    fprintf(fp,"&nbsp");
+		    fprintf(fp,"&nbsp;");
 		    last_space=0;
 		    nbsp=1;
 		  }
@@ -251,7 +251,7 @@ if (!D->bare)
 		      {
 			if (last_space)
 			  {
-			    fprintf(fp,"&nbsp");
+			    fprintf(fp,"&nbsp;");
 			    last_space=0;
 			    nbsp=1;
 			  }

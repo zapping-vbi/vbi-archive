@@ -14,16 +14,15 @@ dnl libs.
 PLUGINS_TO_BUILD="template"
 
 dnl ---------------------------------------------------------------------------
-dnl disable X extensions
+dnl enable X extensions
 dnl ---------------------------------------------------------------------------
-AC_MSG_CHECKING(whether to disable X extensions)
+AC_MSG_CHECKING(whether to enable X extensions)
 AC_ARG_ENABLE(
-	x-extensions,
+	x_extensions,
 	[  --disable-x-extensions  Disable all X extensions],
-	[disable_x_extensions="yes"],
-	[disable_x_extensions="no"])
-AC_MSG_RESULT($disable_x_extensions)
-if test "$disable_x_extensions" = "yes"; then
+	enable_x_extensions="$enableval", enable_x_extensions="yes")
+AC_MSG_RESULT($enable_x_extensions)
+if test "x$enable_x_extensions" = "xno"; then
 	AC_DEFINE(DISABLE_X_EXTENSIONS)
 else
 	X_DGA_LIBS="-lXxf86dga -lXxf86vm"
@@ -36,38 +35,22 @@ dnl ---------------------------------------------------------------------------
 AC_ARG_ENABLE(
 	ordering,
 	[  --disable-ordering      Disable automatic channel ordering],
-	[disable_ordering="yes"],
-	[disable_ordering="no"])
-if test "$disable_ordering" = "yes"; then
+	enable_ordering="$enableval", enable_ordering="yes")
+if test "x$enable_ordering" = "xno"; then
 	AC_DEFINE(DISABLE_CHANNEL_ORDERING)
 fi
 
 dnl ---------------------------------------------------------------------------
 dnl enable V4L/V4L2 checks on startup of tveng
 dnl ---------------------------------------------------------------------------
-AC_MSG_CHECKING(whether to disable some checks on the V4L devices)
+AC_MSG_CHECKING(whether to enable some checks on the V4L device)
 AC_ARG_ENABLE(
 	tveng-checks,
-	[  --disable-tveng-checks  Disable some initial checks],
-	[disable_tveng_checks="yes"],
-	[disable_tveng_checks="no"])
-AC_MSG_RESULT($disable_tveng_checks)
-if test "$disable_tveng_checks" = "yes"; then
-	AC_DEFINE(TVENG_DISABLE_IOCTL_TESTS)
-fi
-
-dnl ---------------------------------------------------------------------------
-dnl enable TVeng debugging messages
-dnl ---------------------------------------------------------------------------
-AC_MSG_CHECKING(whether to disable TVeng debugging messages)
-AC_ARG_ENABLE(
-	tveng-debug,
-	[  --disable-tveng-debug   Disable debug messages in TVeng],
-	[disable_tveng_debug="yes"],
-	[disable_tveng_debug="no"])
-AC_MSG_RESULT($disable_tveng_debug)
-if test "$disable_tveng_debug" = "no"; then
-	AC_DEFINE(TVENG_DEBUG)
+	[  --enable-tveng-checks   Enable some initial TVeng checks],
+	enable_tveng_checks="$enableval", enable_tveng_checks="no")
+AC_MSG_RESULT($enable_tveng_checks)
+if test "x$enable_tveng_checks" = "xyes"; then
+	AC_DEFINE(TVENG_ENABLE_IOCTL_TESTS)
 fi
 
 GNOME_INIT
@@ -251,6 +234,7 @@ echo "
 	GdkPixbuf			$HAVE_GDK_PIXBUF
 	JPEG lib			$HAVE_JPEG
 	MMX support			$HAVE_MMX
+	XVideo support			$XV_PRESENT
 	MPEG encoder			$HAVE_RTE
 
 	Plugins to build

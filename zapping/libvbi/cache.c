@@ -3,9 +3,6 @@
 #include "misc.h"
 #include "dllist.h"
 #include "cache.h"
-#if 0 /* kraxel */
-#include "help.h"
-#endif
 
 /*
     There are some subtleties in this cache.
@@ -84,7 +81,7 @@ cache_reset(struct cache *ca)
 
 /*
     Get a page from the cache.
-    If subno is ANY_SUB, the newest subpage of that page is returned
+    If subno is SUB_ANY, the newest subpage of that page is returned
 */
 
 static struct vt_page *
@@ -115,7 +112,7 @@ cache_put(struct cache *ca, struct vt_page *vtp)
 {
     struct cache_page *cp;
     int h = hash(vtp->pgno);
-
+    
     for (cp = $ ca->hash[h].first; cp->node->next; cp = $ cp->node->next)
 	if (cp->page->pgno == vtp->pgno && cp->page->subno == vtp->subno)
 	    break;
@@ -178,7 +175,7 @@ cache_foreach_pg(struct cache *ca, int pgno, int subno, int dir,
     if (vtp = cache_lookup(ca, pgno, subno))
 	subno = vtp->subno;
     else if (subno == ANY_SUB)
-	subno = dir < 0 ? 0 : 99999;
+	subno = dir < 0 ? 0 : 0xffff;
 
     for (;;)
     {
@@ -248,11 +245,6 @@ cache_open(void)
     ca->erc = 1;
     ca->npages = 0;
     ca->op = &cops;
-
-#if 0 /* kraxel */
-    for (vtp = help_pages; vtp->pgno >= 0; vtp++)
-	cache_put(ca, vtp);
-#endif
 
     return ca;
 

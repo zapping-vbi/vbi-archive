@@ -3,12 +3,14 @@ Outstanding issues for the next release
 	+ Write the mpeg plugin (this is a MUST)
 	+ Bring up-to-date libvbi with aleVT 1.6.0, add support for v4l2
 	+ Xv support if present.
+	+ Update es.po
 	+ Update THANKS, README and NEWS, mark the rest of the docs as 'OLD'
 	+ Bug fixes
 	+ Add to the configure script and to the .spec deps the
 		dependency on mp1e (actually RTE).
 	> Release 0.5.9
-	+ Subtitles support
+	+ Michael's VBI decoder (TTX, CC, CNI, ...)
+	+ Subtitles support.
 	+ Better teletext navigation
 	+ VBI can be opened/closed while running, try.
 	? Make the visited pages in the teletext browser a tree ? -

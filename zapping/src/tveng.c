@@ -61,11 +61,14 @@ tveng_device_info * tveng_device_info_new(Display * display, int bpp,
       return NULL;
     }
 
+  memset(new_object->private, 0, sizeof(struct tveng_private));
+
   /* Allocate some space for the error string */
   new_object -> error = (char*) malloc(256);
 
   if (!new_object->error)
     {
+      free(new_object->private);
       free(new_object);
       perror("malloc");
       return NULL;
@@ -144,7 +147,7 @@ int tveng_attach_device(const char* device_file,
     default:
       info -> tveng_errno = -1;
       t_error_msg("switch()",
-		  _("The current private->display depth isn't supported by TVeng"),
+		  _("The current display depth isn't supported by TVeng"),
 		  info);
       return -1;
     }

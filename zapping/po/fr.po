@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.5.4\n"
-"POT-Creation-Date: 2000-11-03 21:33+0100\n"
+"POT-Creation-Date: 2000-11-17 19:28+0100\n"
 "PO-Revision-Date: 2000-09-17 11:11+02:00\n"
 "Last-Translator: Christian Marillat <marillat.christian@wanadoo.fr>\n"
 "Language-Team: French <fr@li.org>\n"
@@ -12,52 +12,65 @@ msgstr ""
 "Content-Type: text/plain; charset=iso-8859-1\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/main.c:153
+#: src/main.c:92
+#, c-format
+msgid ""
+"Sorry, but %s couldn't be opened:\n"
+"%s (%d)"
+msgstr ""
+"Désolé, mais %s ne peut pas être ouvert :\n"
+"%s (%d)"
+
+#: src/main.c:96
+msgid "There's no GdkPixbuf support, VBI has been disabled"
+msgstr "Il n'y a pas de GdkPixbuf support, le VBI a été déactivé"
+
+#: src/main.c:182
 msgid "Give the XImage bpp"
 msgstr ""
 
-#: src/main.c:154 src/main.c:163
+#: src/main.c:183 src/main.c:192
 msgid "BPP"
 msgstr "BPP"
 
-#: src/main.c:162
+#: src/main.c:191
 msgid "Color depth of the X display"
 msgstr "Nombres de couleurs du display X"
 
-#: src/main.c:171
+#: src/main.c:200
 msgid "Set debug messages on"
 msgstr "Activer le débuguage"
 
-#: src/main.c:180
+#: src/main.c:209
 msgid "Disable VBI support"
 msgstr "Déactiver le support VBI"
 
-#: src/main.c:189
+#: src/main.c:218
 msgid "VBI support for old (<0.5.2) bttv drivers"
 msgstr ""
 
-#: src/main.c:198
+#: src/main.c:227
 msgid "Set the default standard/norm for tunerless inputs"
 msgstr ""
 "Selectionner par défaut standard/norm pour un tuner ayant une faible entrée"
 
-#: src/main.c:199
+#: src/main.c:228
 msgid "NORM"
 msgstr "NORM"
 
-#: src/main.c:239
+#: src/main.c:268
 msgid "Sorry, but there is no module support"
 msgstr "Désolé, mais il n'y a pas le support des modules"
 
-#: src/main.c:247
+#: src/main.c:276
 msgid "Cannot get device info struct"
 msgstr "Impossible d'obtenir les infos du device"
 
-#: src/main.c:254
+#: src/main.c:283
 msgid "Zapping couldn't be started"
 msgstr "Zapping ne peut pas démarrer."
 
-#: src/main.c:292
+#: src/main.c:321
 msgid ""
 "The specified device isn't \"/dev/video\".\n"
 "Should I try it?"
@@ -65,7 +78,7 @@ msgstr ""
 "Le device spécifié n'est pas \"/dev/video\".\n"
 "Essayer quand même ?"
 
-#: src/main.c:313
+#: src/main.c:342
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
@@ -74,7 +87,7 @@ msgstr ""
 "Désolé, mais \"%s\" ne peut pas être ouvert :\n"
 "%s"
 
-#: src/main.c:448
+#: src/main.c:481
 #, c-format
 msgid ""
 "Cannot restore previous mode%s:\n"
@@ -83,11 +96,11 @@ msgstr ""
 "Impossible de restorer le précédent mode%s:\n"
 "%s"
 
-#: src/main.c:451
+#: src/main.c:484
 msgid ", I will try starting capture mode"
 msgstr ", je vais essayer de démarrer la capture de fenêtre"
 
-#: src/main.c:455
+#: src/main.c:488
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
@@ -96,7 +109,7 @@ msgstr ""
 "La capture ne peut pas être faites :\n"
 "%s"
 
-#: src/main.c:468
+#: src/main.c:501
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
@@ -105,7 +118,7 @@ msgstr ""
 "La capture d'écran ne peut être démarrée :\n"
 "%s"
 
-#: src/main.c:603
+#: src/main.c:636
 msgid ""
 "ZConf could not be closed properly , your\n"
 "configuration will be lost.\n"
@@ -125,22 +138,9 @@ msgstr ""
 "   - ou, plus sûrement, vous venez de trouver un bug dans\n"
 "     Zapping. Contacter l'auteur SVP.\n"
 
-#: src/main.c:638
+#: src/main.c:671
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Désolé, Zapping n'est pas capable de créer la configuration"
-
-#: src/main.c:705
-#, c-format
-msgid ""
-"Sorry, but %s couldn't be opened:\n"
-"%s (%d)"
-msgstr ""
-"Désolé, mais %s ne peut pas être ouvert :\n"
-"%s (%d)"
-
-#: src/main.c:709
-msgid "There's no GdkPixbuf support, VBI has been disabled"
-msgstr "Il n'y a pas de GdkPixbuf support, le VBI a été déactivé"
 
 #: src/interface.c:49
 #, c-format
@@ -175,7 +175,7 @@ msgstr "Impossible d'accorder la chaîne %d (aucune chaîne)\n"
 msgid "Cannot tune input"
 msgstr "Impossible d'accorder l'entrée"
 
-#: src/callbacks.c:397
+#: src/callbacks.c:387
 #, fuzzy
 msgid ""
 "The teletext decoder needs GdkPixbuf, and\n"
@@ -184,15 +184,15 @@ msgstr ""
 "Le décodeur videotext a besoin de GdkPixbuf, et\n"
 "configure ne le trouve pas."
 
-#: src/callbacks.c:403
+#: src/callbacks.c:393
 msgid "VBI has been disabled, or it doesn't work."
 msgstr "VBI n'a pas été activé, ou il ne marche pas."
 
-#: src/callbacks.c:550 src/v4linterface.c:161
+#: src/callbacks.c:540 src/v4linterface.c:161
 msgid "No tuner"
 msgstr "Pas de tuner"
 
-#: src/callbacks.c:558 src/v4linterface.c:163
+#: src/callbacks.c:548 src/v4linterface.c:163
 msgid "No tuned channels"
 msgstr "Pas de chaîne accordées"
 
@@ -292,324 +292,325 @@ msgstr "Le type %d du control %s n'est pas supporté"
 msgid "Error adding %s"
 msgstr "Erreur en ajoutant %s"
 
-#: src/tveng.c:140
+#: src/tveng.c:150
+#, fuzzy
 msgid "The current display depth isn't supported by TVeng"
 msgstr "Le nombre de couleurs courant n'est pas supporté par TVeng"
 
-#: src/tveng.c:158
+#: src/tveng.c:168
 msgid "The device cannot be attached to any controller"
 msgstr "Le device ne peut pas être controllé"
 
-#: src/tveng.c:194
+#: src/tveng.c:204
 msgid "TV"
 msgstr "TV"
 
 #: src/properties.c:139 src/properties.c:146 src/properties.c:153
-#: src/tveng.c:195
+#: src/tveng.c:205
 msgid "Camera"
 msgstr "Caméra"
 
-#: src/tveng.c:251 src/tveng.c:277 src/tveng.c:309 src/tveng.c:335
-#: src/tveng.c:361 src/tveng.c:387 src/tveng.c:412 src/tveng.c:439
-#: src/tveng.c:465 src/tveng.c:491 src/tveng.c:516 src/tveng.c:541
-#: src/tveng.c:564 src/tveng.c:599 src/tveng.c:626 src/tveng.c:654
-#: src/tveng.c:684 src/tveng.c:717 src/tveng.c:746 src/tveng.c:771
-#: src/tveng.c:797 src/tveng.c:823 src/tveng.c:848 src/tveng.c:878
-#: src/tveng.c:903 src/tveng.c:931 src/tveng.c:957 src/tveng.c:980
-#: src/tveng.c:1014 src/tveng.c:1042 src/tveng.c:1070 src/tveng.c:1095
-#: src/tveng.c:1185 src/tveng.c:1385 src/tveng.c:1412 src/tveng.c:1440
-#: src/tveng.c:1636 src/tveng.c:1663
+#: src/tveng.c:261 src/tveng.c:287 src/tveng.c:319 src/tveng.c:345
+#: src/tveng.c:371 src/tveng.c:397 src/tveng.c:422 src/tveng.c:449
+#: src/tveng.c:475 src/tveng.c:501 src/tveng.c:526 src/tveng.c:551
+#: src/tveng.c:574 src/tveng.c:609 src/tveng.c:636 src/tveng.c:664
+#: src/tveng.c:694 src/tveng.c:727 src/tveng.c:756 src/tveng.c:781
+#: src/tveng.c:807 src/tveng.c:833 src/tveng.c:858 src/tveng.c:888
+#: src/tveng.c:913 src/tveng.c:941 src/tveng.c:967 src/tveng.c:990
+#: src/tveng.c:1024 src/tveng.c:1048 src/tveng.c:1076 src/tveng.c:1101
+#: src/tveng.c:1191 src/tveng.c:1391 src/tveng.c:1418 src/tveng.c:1446
+#: src/tveng.c:1652 src/tveng.c:1679
 #, c-format
 msgid "%s called on a non-controlled device: %s\n"
 msgstr "%s appelé avec un device non controllé : %s\n"
 
-#: src/tveng.c:1267
+#: src/tveng.c:1273
 msgid "zapping_setup_fb exited abnormally, check stderr"
 msgstr "zapping_setup_fb quitté anormalement, voir la sortie d'erreurs"
 
-#: src/tveng.c:1277
+#: src/tveng.c:1283
 msgid "zapping_setup_fb failed to set up the video"
 msgstr "zapping_setup_fb n'a pas pu configurer la vidéo"
 
-#: src/tveng.c:1282
+#: src/tveng.c:1288
 msgid "Couldn't locate zapping_setup_fb, check your install"
 msgstr "Impossible de trouver zapping_setup_fb, vérifié votre installation"
 
-#: src/tveng.c:1326
+#: src/tveng.c:1332
 msgid "Cannot find an appropiate visual"
 msgstr "Impossible de trouver un visuel"
 
-#: src/tveng.c:1346
+#: src/tveng.c:1352
 msgid "Cannot figure out X depth"
 msgstr "Impossible de déterminer le nombre de couleurs"
 
-#: src/tveng.c:1732
+#: src/tveng.c:1748
 msgid "Warning: trying to stop window with no capture active\n"
 msgstr "Attention: essai d'arrêter la fenêtre sans la capture active\n"
 
-#: src/tveng1.c:110 src/tveng2.c:99
+#: src/tveng1.c:111 src/tveng2.c:100
 #, c-format
 msgid "%s doesn't look like a valid capture device"
 msgstr "%s n'est pas un device de capture valable"
 
-#: src/tveng1.c:197
+#: src/tveng1.c:198
 msgid "Cannot duplicate device name"
 msgstr "Impossible de copier le nom du device"
 
-#: src/tveng1.c:209 src/tveng2.c:207
+#: src/tveng1.c:210 src/tveng2.c:208
 msgid "Unknown attach mode for the device"
 msgstr "Attaque mode inconnu pour le device"
 
-#: src/tveng1.c:235
+#: src/tveng1.c:236
 msgid "No inputs for this device"
 msgstr "Pas d'entrée pour ce device"
 
-#: src/tveng1.c:325 src/tveng2.c:297
+#: src/tveng1.c:326 src/tveng2.c:300
 msgid "Cannot find appropiate palette for current display"
 msgstr "Impossible de trouver une palette pour cet écran"
 
-#: src/tveng1.c:587 src/tveng2.c:504
+#: src/tveng1.c:588 src/tveng2.c:513
 #, c-format
 msgid "Input %s doesn't appear to exist"
 msgstr "L'entrée %s n'existe apparemment pas"
 
-#: src/tveng1.c:609 src/tveng2.c:526
+#: src/tveng1.c:610 src/tveng2.c:535
 #, c-format
 msgid "Input number %d doesn't appear to exist"
 msgstr "L'entrée numéro %d n'existe apparemment pas"
 
-#: src/tveng1.c:783 src/tveng2.c:669
+#: src/tveng1.c:784 src/tveng2.c:684
 #, c-format
 msgid "Standard %s doesn't appear to exist"
 msgstr "Le standard %s n'existe apparemment pas"
 
-#: src/tveng1.c:801 src/tveng2.c:687
+#: src/tveng1.c:802 src/tveng2.c:702
 #, c-format
 msgid "Standard %d doesn't appear to exist"
 msgstr "Le standard %d n'existe apparemment pas"
 
-#: src/tveng1.c:875 src/tveng2.c:792
+#: src/tveng1.c:876 src/tveng2.c:807
 msgid "Cannot understand the actual palette"
 msgstr "Impossible d'utiliser la palette courante"
 
 #. unknown
-#: src/tveng1.c:959 src/tveng2.c:867
+#: src/tveng1.c:960 src/tveng2.c:882
 msgid "Cannot understand the given palette"
 msgstr "Impossible de comprendre la palette donnée"
 
-#: src/tveng1.c:1041
+#: src/tveng1.c:1042
 msgid "Mono"
 msgstr "Mono"
 
-#: src/tveng1.c:1042
+#: src/tveng1.c:1043
 msgid "Stereo"
 msgstr "Stéréo"
 
-#: src/tveng1.c:1043
+#: src/tveng1.c:1044
 msgid "Alternate 1"
 msgstr "Alternate 1"
 
-#: src/tveng1.c:1044
+#: src/tveng1.c:1045
 msgid "Alternate 2"
 msgstr "Alternate 2"
 
-#: src/tveng1.c:1199 src/tveng1.c:1695 src/tveng1.c:1708 src/tveng2.c:979
+#: src/tveng1.c:1200 src/tveng1.c:1694 src/tveng1.c:1707 src/tveng2.c:994
 msgid "Mute"
 msgstr "Sourdine"
 
-#: src/tveng1.c:1210 src/tveng2.c:978
+#: src/tveng1.c:1211 src/tveng2.c:993
 msgid "Volume"
 msgstr "Volume"
 
-#: src/tveng1.c:1221 src/tveng2.c:985
+#: src/tveng1.c:1222 src/tveng2.c:1000
 msgid "Bass"
 msgstr "Grave"
 
-#: src/tveng1.c:1232 src/tveng2.c:983
+#: src/tveng1.c:1233 src/tveng2.c:998
 msgid "Treble"
 msgstr "Aigu"
 
-#: src/tveng1.c:1247 src/tveng2.c:981
+#: src/tveng1.c:1247 src/tveng2.c:996
 msgid "Balance"
 msgstr "Balance"
 
-#: src/tveng1.c:1260
+#: src/tveng1.c:1259
 msgid "Audio Decoding"
 msgstr "Décodage Audio"
 
-#: src/tveng1.c:1274 src/tveng2.c:960
+#: src/tveng1.c:1273 src/tveng2.c:975
 msgid "Brightness"
 msgstr "Luminosité"
 
-#: src/tveng1.c:1283 src/tveng2.c:963
+#: src/tveng1.c:1282 src/tveng2.c:978
 msgid "Hue"
 msgstr "Hue"
 
-#: src/tveng1.c:1292
+#: src/tveng1.c:1291
 msgid "Colour"
 msgstr "Couleur"
 
-#: src/tveng1.c:1301 src/tveng2.c:961
+#: src/tveng1.c:1300 src/tveng2.c:976
 msgid "Contrast"
 msgstr "Contraste"
 
-#: src/tveng1.c:1390
+#: src/tveng1.c:1389
 msgid "Unknown decoding mode"
 msgstr "Mode de décodage inconnu"
 
-#: src/tveng1.c:1412
+#: src/tveng1.c:1411
 #, c-format
 msgid "Unknown control: %s (%d)"
 msgstr "Contrôleur inconnu : %s (%d)"
 
-#: src/tveng1.c:1496
+#: src/tveng1.c:1495
 #, c-format
 msgid "Unknown audio control: %s (%d)"
 msgstr "Contrôleur audio inconnu : %s (%d)"
 
-#: src/tveng1.c:1534
+#: src/tveng1.c:1533
 #, c-format
 msgid "Unknown video control: %s (%d)"
 msgstr "Contrôleur vidéo inconnu : %s (%d)"
 
-#: src/tveng1.c:1588 src/tveng1.c:1618 src/tveng2.c:1158 src/tveng2.c:1189
+#: src/tveng1.c:1587 src/tveng1.c:1617 src/tveng2.c:1173 src/tveng2.c:1204
 #, c-format
 msgid "Cannot find control \"%s\" in the list of controls"
 msgstr ""
 "Impossible de trouver le contrôleur \"%s\" dans la liste des contrôleurs"
 
-#: src/tveng1.c:1657 src/tveng1.c:1682 src/tveng2.c:1229 src/tveng2.c:1255
+#: src/tveng1.c:1656 src/tveng1.c:1681 src/tveng2.c:1244 src/tveng2.c:1270
 #, c-format
 msgid "Cannot find control %d in the list of controls"
 msgstr "Impossible de trouver le contrôleur %d dans la liste de contrôle"
 
-#: src/tveng1.c:1831 src/tveng2.c:1411
+#: src/tveng1.c:1830 src/tveng2.c:1426
 msgid "There are no tuners for the active input"
 msgstr "Il n'y a pas de tuner pour l'entrée active"
 
-#: src/tveng1.c:1980 src/tveng2.c:1642
+#: src/tveng1.c:1979 src/tveng2.c:1650
 msgid "Warning: trying to stop capture with no capture active\n"
 msgstr "Attention: essai d'arrêter la capture sans quelle soit active\n"
 
-#: src/tveng1.c:2040 src/tveng1.c:2111
+#: src/tveng1.c:2039 src/tveng1.c:2110
 msgid "Cannot understand actual palette"
 msgstr "Impossible de comprendre la palette actuelle"
 
-#: src/tveng1.c:2053
+#: src/tveng1.c:2052
 msgid "Grabber chip can't sync (no station tuned in?)"
 msgstr ""
 "Impossible de synchroniser la capture de l'écran (pas de station accordée ?)"
 
-#: src/tveng1.c:2176 src/tveng2.c:1700
+#: src/tveng1.c:2163 src/tveng2.c:1712
 msgid "Current capture mode is not READ"
 msgstr "Le mode de capture courant n'a pas été lu"
 
-#: src/tveng1.c:2185 src/tveng2.c:1709
+#: src/tveng1.c:2172 src/tveng2.c:1721
 msgid "Size check failed, quitting to avoid segfault"
 msgstr "Le contrôle de la taille à échoué, quitter avant un plantage"
 
-#: src/tveng1.c:2298 src/tveng2.c:1843
+#: src/tveng1.c:2278 src/tveng2.c:1856
 msgid "The capability field says that there is no overlay"
 msgstr "Le champ de capacité qu'il n'y a pas d'overlay"
 
-#: src/tveng1.c:2516 src/tveng2.c:2044
+#: src/tveng1.c:2496 src/tveng2.c:2057
 msgid "Warning: trying to stop preview with no capture active\n"
 msgstr ""
 "Attention: essai de stopper la pré-visualisation sans la capture active\n"
 
-#: src/tveng2.c:110
+#: src/tveng2.c:111
 #, c-format
 msgid "Sorry, but \"%s\" cannot do streaming"
 msgstr "Désolé, mais \"%s\" ne peu pas faire du streaming"
 
-#: src/tveng2.c:120
+#: src/tveng2.c:121
 #, c-format
 msgid "Sorry, but \"%s\" cannot do select() on file descriptors"
 msgstr "Désolé, mais \"%s\" ne peu sélectionné le descripteur de fichier"
 
-#: src/tveng2.c:962
+#: src/tveng2.c:977
 msgid "Saturation"
 msgstr "Saturation"
 
-#: src/tveng2.c:964
+#: src/tveng2.c:979
 msgid "Whiteness"
 msgstr "Blancheur"
 
-#: src/tveng2.c:965
+#: src/tveng2.c:980
 msgid "Black level"
 msgstr "Niveau de noir"
 
-#: src/tveng2.c:966
+#: src/tveng2.c:981
 msgid "White balance"
 msgstr "Balance du blanc"
 
-#: src/tveng2.c:967
+#: src/tveng2.c:982
 msgid "Do white balance"
 msgstr "Faire balance blanche"
 
-#: src/tveng2.c:968
+#: src/tveng2.c:983
 msgid "Red balance"
 msgstr "Balance rouge"
 
-#: src/tveng2.c:969
+#: src/tveng2.c:984
 msgid "Blue balance"
 msgstr "Balance Bleu"
 
-#: src/tveng2.c:970
+#: src/tveng2.c:985
 msgid "Gamma"
 msgstr "Gamma"
 
-#: src/tveng2.c:971
+#: src/tveng2.c:986
 msgid "Exposure"
 msgstr "Exposition"
 
-#: src/tveng2.c:972
+#: src/tveng2.c:987
 msgid "Auto gain"
 msgstr ""
 
-#: src/tveng2.c:973
+#: src/tveng2.c:988
 msgid "Gain"
 msgstr "Gain"
 
-#: src/tveng2.c:974
+#: src/tveng2.c:989
 msgid "HCenter"
 msgstr "Hcentre"
 
-#: src/tveng2.c:975
+#: src/tveng2.c:990
 msgid "VCenter"
 msgstr "Vcentre"
 
-#: src/tveng2.c:976
+#: src/tveng2.c:991
 msgid "Horizontal flipping"
 msgstr "Retournement Horizontale"
 
-#: src/tveng2.c:977
+#: src/tveng2.c:992
 msgid "Vertical flipping"
 msgstr "Retournement verticale"
 
-#: src/tveng2.c:980
+#: src/tveng2.c:995
 msgid "Audio Mute"
 msgstr ""
 
-#: src/tveng2.c:982
+#: src/tveng2.c:997
 #, fuzzy
 msgid "Audio Balance"
 msgstr "Balance"
 
-#: src/tveng2.c:984
+#: src/tveng2.c:999
 msgid "Loudness"
 msgstr "Loudness"
 
-#: src/tveng2.c:1036
+#: src/tveng2.c:1051
 msgid "<Broken menu entry>"
 msgstr "<Entrée du menu défectueuse>"
 
-#: src/tveng2.c:1046
+#: src/tveng2.c:1061
 #, c-format
 msgid "V4L2: Unknown control type 0x%x (%s)\n"
 msgstr "V4L2: Control inconnu de type 0x%x (%s)\n"
 
-#: src/tveng2.c:1579
+#: src/tveng2.c:1587
 msgid "Not enough buffers"
 msgstr "Plus de buffer"
 
@@ -837,11 +838,11 @@ msgstr "%s avec un tuner"
 msgid "%s with %d tuners"
 msgstr "%s avec %d tuners"
 
-#: src/properties.c:410
+#: src/properties.c:428
 msgid "No plugin accepts this page."
 msgstr "Aucun plu-gin n'accepte cette page"
 
-#: src/properties.c:445
+#: src/properties.c:463
 msgid ""
 "The plugin that created the active page doesn't provide help for it. Sorry."
 msgstr "Le plu-gin qui à créer cette page ne fournis pas d'aide. Désolé."
@@ -1044,23 +1045,23 @@ msgstr ""
 "Utilisez ceci pour le plein écran. Appuyez sur ESC pour retourner en mode "
 "fenêtre"
 
-#: glade/glade_strings.c:13 glade/glade_strings.c:123
+#: glade/glade_strings.c:13 glade/glade_strings.c:127
 msgid "Go _Fullscreen"
 msgstr "P_lein écran"
 
-#: glade/glade_strings.c:14 glade/glade_strings.c:124
+#: glade/glade_strings.c:14 glade/glade_strings.c:128
 msgid "Use this to start the windowed overlay mode"
 msgstr "Utilisez ceci pour démarrer le mode overlay"
 
-#: glade/glade_strings.c:15 glade/glade_strings.c:125
+#: glade/glade_strings.c:15 glade/glade_strings.c:129
 msgid "Go _Previewing"
 msgstr "Faire la _Pré-visualisation"
 
-#: glade/glade_strings.c:16 glade/glade_strings.c:126
+#: glade/glade_strings.c:16 glade/glade_strings.c:130
 msgid "Use this to start the windowed capture mode"
 msgstr "Utilisez ceci pour démarrer la capture en fenêtre"
 
-#: glade/glade_strings.c:17 glade/glade_strings.c:127
+#: glade/glade_strings.c:17 glade/glade_strings.c:131
 msgid "Go _Capturing"
 msgstr "Faire la _Capture"
 
@@ -1068,7 +1069,7 @@ msgstr "Faire la _Capture"
 msgid "Use Zapping as a Teletext navigator"
 msgstr "Utiliser Zapping comme un navigateur Teletext"
 
-#: glade/glade_strings.c:19 glade/glade_strings.c:129
+#: glade/glade_strings.c:19 glade/glade_strings.c:133
 msgid "_Teletext"
 msgstr "_Teletext"
 
@@ -1104,7 +1105,7 @@ msgstr "Aide _Principale"
 msgid "Configure capture"
 msgstr "Configurer la capture"
 
-#: glade/glade_strings.c:28 glade/glade_strings.c:132
+#: glade/glade_strings.c:28 glade/glade_strings.c:136
 msgid "Controls"
 msgstr "Contrôles"
 
@@ -1116,7 +1117,7 @@ msgstr "Capacité du device vidéo"
 msgid "label30"
 msgstr "label30"
 
-#: glade/glade_strings.c:31 glade/glade_strings.c:58
+#: glade/glade_strings.c:31 glade/glade_strings.c:62
 msgid "Device name:"
 msgstr "Nom du device :"
 
@@ -1161,39 +1162,41 @@ msgid "Device info"
 msgstr "Info du device"
 
 #: glade/glade_strings.c:42
-msgid "Verbosity value given to zapping_setup_fb:"
-msgstr "Valeur de verbosité donnée a zapping__setup__fb :"
+msgid "Fullscreen video mode:"
+msgstr ""
 
 #: glade/glade_strings.c:43
-msgid "The bigger this value is, the more verbose zapping_setup_fb will be"
-msgstr "Plus la valeur serra grande, plus zapping_setup_fb serra verbeux"
+msgid ""
+"Autodetect\n"
+"Do not change mode\n"
+msgstr ""
 
-#: glade/glade_strings.c:44
+#: glade/glade_strings.c:46
 msgid "Avoid noise while changing channels"
 msgstr "Éviter le bruit lors du changement de chaîne"
 
-#: glade/glade_strings.c:45
+#: glade/glade_strings.c:47
 msgid "Save window geometry (some WM's don't like it)"
 msgstr "Sauver la position de la fenêtre (certains WM n'aime pas ça)"
 
-#: glade/glade_strings.c:46
+#: glade/glade_strings.c:48
 msgid "Resize using fixed increments"
 msgstr "Redimensionner en utilisant un incrément fixe"
 
-#: glade/glade_strings.c:47
+#: glade/glade_strings.c:49
 msgid "Start Zapping muted"
 msgstr "Démarré Zapping sans le son"
 
-#: glade/glade_strings.c:48
+#: glade/glade_strings.c:50
 msgid ""
 "Avoid some flicker in preview mode (leaves artifacts in the main window)"
 msgstr ""
 
-#: glade/glade_strings.c:49
+#: glade/glade_strings.c:51
 msgid "Ratio mode:"
 msgstr "mode Ratio :"
 
-#: glade/glade_strings.c:50
+#: glade/glade_strings.c:52
 msgid ""
 "No fixed ratio\n"
 "4:3\n"
@@ -1203,39 +1206,47 @@ msgstr ""
 "4:3\n"
 "16:9\n"
 
-#: glade/glade_strings.c:54
+#: glade/glade_strings.c:56
+msgid "Verbosity value given to zapping_setup_fb:"
+msgstr "Valeur de verbosité donnée a zapping__setup__fb :"
+
+#: glade/glade_strings.c:57
+msgid "The bigger this value is, the more verbose zapping_setup_fb will be"
+msgstr "Plus la valeur serra grande, plus zapping_setup_fb serra verbeux"
+
+#: glade/glade_strings.c:58
 msgid "General options"
 msgstr "Options générale"
 
-#: glade/glade_strings.c:55
+#: glade/glade_strings.c:59
 msgid "Enable VBI decoding"
 msgstr "Activer le décodage VBI"
 
-#: glade/glade_strings.c:56
+#: glade/glade_strings.c:60
 msgid "Use VBI for getting station names"
 msgstr "Utiliser le VBI pour définir le nom des chaînes"
 
-#: glade/glade_strings.c:57
+#: glade/glade_strings.c:61
 msgid "Try to correct errors when decoding"
 msgstr "Essaie de corriger les erreurs pendant le décodage"
 
-#: glade/glade_strings.c:59
+#: glade/glade_strings.c:63
 msgid "Select the VBI device"
 msgstr "Selectionner le device VBI"
 
-#: glade/glade_strings.c:60
+#: glade/glade_strings.c:64
 msgid "Finetune:"
 msgstr "Ajustage fin :"
 
-#: glade/glade_strings.c:61
+#: glade/glade_strings.c:65
 msgid "VBI options"
 msgstr "Options VBI"
 
-#: glade/glade_strings.c:62
+#: glade/glade_strings.c:66
 msgid "Channel choosing"
 msgstr "Choisir la chaîne"
 
-#: glade/glade_strings.c:63
+#: glade/glade_strings.c:67
 msgid ""
 "Choose here the channels you want to use.\n"
 "If your country is not listed, please find out the frequencies used for\n"
@@ -1245,256 +1256,256 @@ msgstr ""
 "Choissisé ici les chaînes que vous voulez utiliser.\n"
 "Pour la France il faut choisir Europe ou italy"
 
-#: glade/glade_strings.c:67
+#: glade/glade_strings.c:71
 msgid "Select here the country you are in"
 msgstr "Sélectionné le pays ou vous êtes"
 
-#: glade/glade_strings.c:68
+#: glade/glade_strings.c:72
 msgid "Dummy country\n"
 msgstr "Pays vide\n"
 
-#: glade/glade_strings.c:70
+#: glade/glade_strings.c:74
 msgid "Select here the channel you want to tune"
 msgstr "Sélectionné ici la chaîne que vous voulez accorder"
 
-#: glade/glade_strings.c:71 glade/glade_strings.c:74
+#: glade/glade_strings.c:75 glade/glade_strings.c:78
 msgid "Channel"
 msgstr "Chaîne"
 
-#: glade/glade_strings.c:72
+#: glade/glade_strings.c:76
 msgid "Freq (kHz)"
 msgstr "Freq (kHz)"
 
-#: glade/glade_strings.c:73
+#: glade/glade_strings.c:77
 msgid "Alias"
 msgstr "Nom"
 
-#: glade/glade_strings.c:75
+#: glade/glade_strings.c:79
 msgid "Country"
 msgstr "Pays"
 
-#: glade/glade_strings.c:76
+#: glade/glade_strings.c:80
 msgid "kHz"
 msgstr "kHz"
 
-#: glade/glade_strings.c:77
+#: glade/glade_strings.c:81
 msgid "Frequence:"
 msgstr "Fréquence :"
 
-#: glade/glade_strings.c:78
+#: glade/glade_strings.c:82
 msgid "Select your country and click here to search for the available channels"
 msgstr "Sélectionner votre pays et cliquez ici pour chercher les chaînes"
 
-#: glade/glade_strings.c:79
+#: glade/glade_strings.c:83
 msgid "_Search for the available channels in the current country"
 msgstr "Chercher le_s chaines dans le pays courant"
 
-#: glade/glade_strings.c:80
+#: glade/glade_strings.c:84
 msgid "Enter here the alias you want to give to this channel:"
 msgstr "Entrez ici le nom que vous voulez donner à cette chaîne :"
 
-#: glade/glade_strings.c:81
+#: glade/glade_strings.c:85
 msgid "Enter here the name you want to give to this channel"
 msgstr "Entrez ici le nom que vous voulez donner à cette chaîne :"
 
-#: glade/glade_strings.c:82 glade/glade_strings.c:92
+#: glade/glade_strings.c:86 glade/glade_strings.c:96
 msgid "Click here when you are done"
 msgstr "Cliquez ici une fois fini"
 
-#: glade/glade_strings.c:83
+#: glade/glade_strings.c:87
 msgid "Click this button if you want to discard current changes"
 msgstr "Cliquez ici si vous voulez annuler les changements effectués"
 
-#: glade/glade_strings.c:84
+#: glade/glade_strings.c:88
 msgid "Click here to add current channel"
 msgstr "Cliquez ici pour ajouter la chaîne courante"
 
-#: glade/glade_strings.c:85
+#: glade/glade_strings.c:89
 msgid "_Add"
 msgstr "_Ajouter"
 
-#: glade/glade_strings.c:86
+#: glade/glade_strings.c:90
 msgid "Click here to apply the current options to the selected channels"
 msgstr ""
 "Cliquez ici pour appliquer les options courantes à la chaîne sélectionnée"
 
-#: glade/glade_strings.c:87
+#: glade/glade_strings.c:91
 msgid "_Modify"
 msgstr "_Modifier"
 
-#: glade/glade_strings.c:88
+#: glade/glade_strings.c:92
 msgid "Click here to delete selected channels"
 msgstr "Cliquez ici pour annuler la chaîne sélectionnées"
 
-#: glade/glade_strings.c:89
+#: glade/glade_strings.c:93
 msgid "_Remove"
 msgstr "_Enlever"
 
-#: glade/glade_strings.c:90
+#: glade/glade_strings.c:94
 msgid "This shows some help about this dialog"
 msgstr "Ceci affiche une aide a propos de ce dialogue"
 
-#: glade/glade_strings.c:91
+#: glade/glade_strings.c:95
 msgid "Plugin properties"
 msgstr "Propriété du plu-gin"
 
-#: glade/glade_strings.c:93
+#: glade/glade_strings.c:97
 msgid "Run the plugin"
 msgstr "Démarrer ce plu-gin"
 
-#: glade/glade_strings.c:94
+#: glade/glade_strings.c:98
 msgid "_Start Plugin"
 msgstr "_Démarrer le plu-gin"
 
-#: glade/glade_strings.c:95
+#: glade/glade_strings.c:99
 msgid "Stop this plugin"
 msgstr "Arrêter ce plu-gin"
 
-#: glade/glade_strings.c:96
+#: glade/glade_strings.c:100
 msgid "S_top Plugin"
 msgstr "_Arrêter le plu-gin"
 
-#: glade/glade_strings.c:97
+#: glade/glade_strings.c:101
 msgid "Show the configuration options for this plugin"
 msgstr "Voir les options de configuration pour ce plu-gin"
 
-#: glade/glade_strings.c:98
+#: glade/glade_strings.c:102
 msgid "_Configure"
 msgstr "_Configurer"
 
-#: glade/glade_strings.c:99
+#: glade/glade_strings.c:103
 msgid "Plugins"
 msgstr "Plu-gins"
 
-#: glade/glade_strings.c:100
+#: glade/glade_strings.c:104
 msgid "label67 (Plugin name)"
 msgstr "label67 (Nom du plu-gin)"
 
-#: glade/glade_strings.c:101
+#: glade/glade_strings.c:105
 msgid "label68 (Plugin short description)"
 msgstr "label68 (Courte description du plu-gin)"
 
-#: glade/glade_strings.c:102
+#: glade/glade_strings.c:106
 msgid "Canonical name:"
 msgstr "Nom principal :"
 
-#: glade/glade_strings.c:103
+#: glade/glade_strings.c:107
 msgid "label69"
 msgstr "label69"
 
-#: glade/glade_strings.c:104
+#: glade/glade_strings.c:108
 msgid "Author:"
 msgstr "Auteur :"
 
-#: glade/glade_strings.c:105
+#: glade/glade_strings.c:109
 msgid "label71"
 msgstr "label71"
 
-#: glade/glade_strings.c:106
+#: glade/glade_strings.c:110
 msgid "Plugin version:"
 msgstr "Version du plu-gin :"
 
-#: glade/glade_strings.c:107
+#: glade/glade_strings.c:111
 msgid "label72"
 msgstr "label72"
 
-#: glade/glade_strings.c:108
+#: glade/glade_strings.c:112
 msgid "Plugin priority:"
 msgstr "Priorité du plu-gin :"
 
-#: glade/glade_strings.c:109
+#: glade/glade_strings.c:113
 msgid "label73"
 msgstr "label73"
 
-#: glade/glade_strings.c:110
+#: glade/glade_strings.c:114
 msgid "Plugin description"
 msgstr "Description du plu-gin"
 
-#: glade/glade_strings.c:111
+#: glade/glade_strings.c:115
 msgid "text1"
 msgstr "text1"
 
-#: glade/glade_strings.c:112
+#: glade/glade_strings.c:116
 msgid "Properties"
 msgstr "Propriétés"
 
-#: glade/glade_strings.c:113
+#: glade/glade_strings.c:117
 msgid "Plugin location"
 msgstr "Location du plu-gin"
 
-#: glade/glade_strings.c:114
+#: glade/glade_strings.c:118
 msgid "This is the file where the plugin is located"
 msgstr "ceci est le fichier ou ce trouve le plu-gin"
 
-#: glade/glade_strings.c:115
+#: glade/glade_strings.c:119
 msgid "text2"
 msgstr "text2"
 
-#: glade/glade_strings.c:116
+#: glade/glade_strings.c:120
 msgid "label76"
 msgstr "label76"
 
-#: glade/glade_strings.c:117
+#: glade/glade_strings.c:121
 msgid "Symbol"
 msgstr "Symbole"
 
-#: glade/glade_strings.c:118
+#: glade/glade_strings.c:122
 msgid "Hash"
 msgstr "Hash"
 
-#: glade/glade_strings.c:119
+#: glade/glade_strings.c:123
 msgid "Description of the symbol"
 msgstr "Description du symbole"
 
-#: glade/glade_strings.c:120
+#: glade/glade_strings.c:124
 msgid "text3"
 msgstr "text3"
 
-#: glade/glade_strings.c:121
+#: glade/glade_strings.c:125
 msgid "Advanced"
 msgstr "Avancé"
 
-#: glade/glade_strings.c:122
+#: glade/glade_strings.c:126
 msgid "Use this for starting the fullscreen mode"
 msgstr "Utilisé ceci pour démarrer le mode plein écran"
 
-#: glade/glade_strings.c:128
+#: glade/glade_strings.c:132
 msgid "Use Zapping as a teletext navigator"
 msgstr "Utiliser Zapping comme un navigateur teletext"
 
-#: glade/glade_strings.c:130
+#: glade/glade_strings.c:134
 msgid "Searching..."
 msgstr "Recherche..."
 
-#: glade/glade_strings.c:131
+#: glade/glade_strings.c:135
 msgid "%P %%"
 msgstr "%P %%"
 
-#: glade/glade_strings.c:133
+#: glade/glade_strings.c:137
 msgid "Next page"
 msgstr "Page suivante"
 
-#: glade/glade_strings.c:134
+#: glade/glade_strings.c:138
 msgid "Previous history entry"
 msgstr "Entrée précédente"
 
-#: glade/glade_strings.c:135
+#: glade/glade_strings.c:139
 msgid "Next history entry"
 msgstr "Entrée suivante"
 
-#: glade/glade_strings.c:136
+#: glade/glade_strings.c:140
 msgid "Previous page"
 msgstr "Page précédente"
 
-#: glade/glade_strings.c:137
+#: glade/glade_strings.c:141
 msgid "Visit:"
 msgstr "Visiter :"
 
-#: glade/glade_strings.c:138 glade/glade_strings.c:140
+#: glade/glade_strings.c:142 glade/glade_strings.c:144
 msgid "Page"
 msgstr "Page"
 
-#: glade/glade_strings.c:139
+#: glade/glade_strings.c:143
 msgid "Subpage, -1 for looking to all subpages"
 msgstr "Sous-page, -1 pour voir toutes les sous-pages"
 
@@ -1518,42 +1529,42 @@ msgstr "Ce plu-gin fait des copies d'écran de la fenêtre"
 
 #. hash collision code
 #. Warn
-#: plugins/mpeg/plugin.c:94 plugins/screenshot/screenshot.c:181
+#: plugins/mpeg/plugin.c:112 plugins/screenshot/screenshot.c:185
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr "Check erreur : \"%s\" du plu-gin %s has hash 0x%x vs. 0x%x"
 
-#: plugins/screenshot/screenshot.c:324
+#: plugins/screenshot/screenshot.c:333
 msgid "Converts a row in RGB565 format to RGB24. Returns the destination."
 msgstr ""
 "Convertis une ligne au format RGB565 en RGB24. Retourne la destination."
 
-#: plugins/screenshot/screenshot.c:330
+#: plugins/screenshot/screenshot.c:339
 msgid "Converts a row in RGB555 format to RGB24. Returns the destination."
 msgstr ""
 "Convertis une ligne au format RGB555 en RGB24. Retourne la destination."
 
-#: plugins/screenshot/screenshot.c:336
+#: plugins/screenshot/screenshot.c:345
 msgid "Converts a row in RGBA format to RGB24. Returns the destination."
 msgstr "Convertis une ligne au format RGBA en RGB24. Retourne la destination."
 
-#: plugins/screenshot/screenshot.c:375
+#: plugins/screenshot/screenshot.c:384
 msgid "Select here the directory where screenshots will be saved"
 msgstr "Sélectionnez le répertoire ou sera sauver l'image de la copie d'écran"
 
-#: plugins/screenshot/screenshot.c:381
+#: plugins/screenshot/screenshot.c:390
 msgid "Select directory to save screenshots"
 msgstr "Sélectionnez le répertoire de sauvegarde"
 
-#: plugins/screenshot/screenshot.c:399
+#: plugins/screenshot/screenshot.c:408
 msgid "Quality of the compressed image:"
 msgstr "Qualité de la compression d'image :"
 
-#: plugins/screenshot/screenshot.c:420 plugins/screenshot/screenshot.c:494
+#: plugins/screenshot/screenshot.c:429 plugins/screenshot/screenshot.c:503
 msgid "Screenshot"
 msgstr "Copie d'écran"
 
-#: plugins/screenshot/screenshot.c:466
+#: plugins/screenshot/screenshot.c:475
 msgid ""
 "The first option, the screenshot dir, lets you specify where\n"
 "will the screenshots be saved. The file name will be:\n"
@@ -1569,21 +1580,21 @@ msgstr ""
 "L'option de qualité permet de définir combien de données\n"
 "seront perdus pendant la compression."
 
-#: plugins/screenshot/screenshot.c:495
+#: plugins/screenshot/screenshot.c:504
 msgid "Take a JPEG screenshot"
 msgstr "Faire une copie d'écran en JPEG"
 
 #. Probably there is no mem even for this, but try anyway
-#: plugins/screenshot/screenshot.c:576 plugins/screenshot/screenshot.c:586
-#: plugins/screenshot/screenshot.c:595
+#: plugins/screenshot/screenshot.c:584 plugins/screenshot/screenshot.c:594
+#: plugins/screenshot/screenshot.c:603
 msgid "Sorry, not enough mem"
 msgstr "Désolé, plus de mémoire"
 
-#: plugins/screenshot/screenshot.c:624
+#: plugins/screenshot/screenshot.c:632
 msgid "Sorry, but I cannot write\n"
 msgstr "Désolé, mais je ne peut pas écrire\n"
 
-#: plugins/screenshot/screenshot.c:626
+#: plugins/screenshot/screenshot.c:634
 msgid ""
 "\n"
 "The image won't be saved."
@@ -1591,39 +1602,71 @@ msgstr ""
 "\n"
 "L'image ne sera pas sauvée."
 
-#: plugins/screenshot/screenshot.c:716
+#: plugins/screenshot/screenshot.c:714
 msgid "Saving..."
 msgstr "Sauvegarde..."
 
-#: plugins/screenshot/screenshot.c:727
+#: plugins/screenshot/screenshot.c:725
 msgid "Sorry, not enough resources for creating a new thread"
 msgstr "Désolé, plus de ressource pour créer un nouveau thread"
 
-#: plugins/screenshot/screenshot.c:731
+#: plugins/screenshot/screenshot.c:729
 msgid "There are too many threads"
 msgstr "Il y a trop de thread"
 
-#: plugins/mpeg/plugin.c:31
+#: plugins/mpeg/plugin.c:33
 msgid "MPEG encoder"
 msgstr ""
 
-#: plugins/mpeg/plugin.c:33
+#: plugins/mpeg/plugin.c:35
 msgid "This plugin encodes the image and audio stream into a MPEG file"
 msgstr ""
 
-#: plugins/mpeg/plugin.c:35
+#: plugins/mpeg/plugin.c:37
 msgid "Encode the stream as MPEG."
 msgstr ""
 
-#: plugins/mpeg/plugin.c:179
+#: plugins/mpeg/plugin.c:393
 msgid "The only supported pixformats are YUYV and YUV420"
 msgstr ""
 
-#: plugins/mpeg/plugin.c:266 plugins/mpeg/plugin.c:333
+#: plugins/mpeg/plugin.c:496
+#, c-format
+msgid "RTE ID: %s"
+msgstr ""
+
+#: plugins/mpeg/plugin.c:501
+#, c-format
+msgid "Destination: %s"
+msgstr ""
+
+#: plugins/mpeg/plugin.c:509
+#, fuzzy
+msgid "Audio only"
+msgstr "Décodage Audio"
+
+#: plugins/mpeg/plugin.c:512
+msgid "Video only"
+msgstr ""
+
+#: plugins/mpeg/plugin.c:515
+#, fuzzy
+msgid "Audio and Video"
+msgstr "Balance"
+
+#: plugins/mpeg/mpeg_strings.c:21 plugins/mpeg/plugin.c:523
+msgid "Output video Mbits per second:"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:22 plugins/mpeg/plugin.c:525
+msgid "Output audio Kbits per second:"
+msgstr ""
+
+#: plugins/mpeg/plugin.c:675 plugins/mpeg/plugin.c:812
 msgid "MPEG"
 msgstr ""
 
-#: plugins/mpeg/plugin.c:334
+#: plugins/mpeg/plugin.c:813
 msgid "Store the data as MPEG"
 msgstr ""
 
@@ -1636,18 +1679,85 @@ msgstr ""
 msgid "window1"
 msgstr ""
 
-#: plugins/mpeg/mpeg_strings.c:8 plugins/mpeg/mpeg_strings.c:10
+#: plugins/mpeg/mpeg_strings.c:8
 #, fuzzy
-msgid "Not done"
-msgstr "Pas de tuner"
+msgid "What to do with the compressed stream"
+msgstr "Qualité de la compression d'image :"
 
 #: plugins/mpeg/mpeg_strings.c:9
+msgid ""
+"Save to file\n"
+"/dev/null\n"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:12
+msgid "Whether to encode audio and/or video"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:13
+msgid ""
+"Audio only\n"
+"Video only\n"
+"Audio and Video\n"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:17
+msgid "Write the encoded stream to:"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:18
+msgid "MPEG file destination"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:19
+msgid "Sets the dir where the encoded clips will be written to"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:20
 msgid "Input / output"
 msgstr ""
 
-#: plugins/mpeg/mpeg_strings.c:11
+#: plugins/mpeg/mpeg_strings.c:23
+msgid "Engine verbosity (output goes to stderr):"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:24
 msgid "Compression parameters"
 msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:25
+#, fuzzy
+msgid "Saving MPEG"
+msgstr "Sauvegarde..."
+
+#: plugins/mpeg/mpeg_strings.c:26
+#, fuzzy
+msgid "Press this when you are done"
+msgstr "Cliquez ici une fois fini"
+
+#: plugins/mpeg/mpeg_strings.c:27
+msgid "RTE id (for debugging)"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:28
+msgid "Destination"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:29
+msgid "Mux mode"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:30
+msgid "Some more info: bit rates"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:31
+msgid "Dinamic stats (dropped, output M's, etc)"
+msgstr ""
+
+#, fuzzy
+#~ msgid "Not done"
+#~ msgstr "Pas de tuner"
 
 #~ msgid "There is no allocated mem for the capture"
 #~ msgstr "Il n'y a pas de mémoire allouée pour la capture"
