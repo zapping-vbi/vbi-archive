@@ -72,13 +72,13 @@ occasionally heavily bugfixed, version. Enter the following:
 <ol>
 <li><pre>cvs -z3 -d:pserver:anonymous@cvs.zapping.sf.net:/cvsroot/zapping login
 </pre>You will be asked for a password, just hit return.
-<pre></pre></li>
-<li><pre>cvs -z3 -d:pserver:anonymous@cvs.zapping.sf.net:/cvsroot/zapping co zapping
-</pre>This will check out the latest version of Zapping (or "co rte" if you want),
+</li>
+<li><pre>cvs -z3 -d:pserver:anonymous@cvs.zapping.sf.net:/cvsroot/zapping co zapping</pre>
+This will check out the latest version of Zapping (or "co rte" if you want),
 from now on you can enter in your zapping (or rte) directory:
-<pre></pre></li>
-<li><pre>cvs -z3 update -dP
-</pre>to update your local copy of the CVS repository.</li>
+</li>
+<li><pre>cvs -z3 update -dP</pre>
+to update your local copy of the CVS repository.</li>
 </ol>
 </p>
 <p>

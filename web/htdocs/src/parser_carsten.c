@@ -334,6 +334,7 @@ input.theme {
 ½MENU8_LIGHT
 <img src="images_carsten/menu8-light.png" width="130" height="42" border="0" align="top" alt="Resources you need to know, Linux Geek">
 ½MENU_CLOSE
+<p><a href="http://sourceforge.net"><img SRC="http://sourceforge.net/sflogo.php?group_id=2599&amp;type=1" BORDER=0 height=31 width=88 ALT="Sourceforge Logo"></a></p>
 <form action="<?php echo $PHP_SELF ?>" method="POST">
 <select name="sel_theme" class="theme" title="Select your theme here">
 <option value="simple" <?php if ($theme=="simple") echo "selected" ?>>Simple</option>

@@ -274,6 +274,7 @@ int main(int argc, char *argv[])
                   <tr>
                     <td align="center" bgcolor="#5b5b5b">
                       <p><a href="http://www.guistuff.com"><img border="0" src="images_modern/gui.gif" width="105" height="78" alt="guistuff"></a></p>
+		      <p><a href="http://sourceforge.net"><img SRC="http://sourceforge.net/sflogo.php?group_id=2599&amp;type=1" BORDER=0 height=31 width=88 ALT="Sourceforge Logo"></a></p>
                       <p><a href="http://validator.w3.org/check/referer"><img border="0" src="valid-html401.gif" alt="Valid HTML 4.01!" height="31" width="88"></a></p>
 		      <form action="<?php echo $PHP_SELF ?>" method="POST">
 		      <select name="sel_theme" class="theme" title="Select your theme here">
