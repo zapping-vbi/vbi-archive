@@ -878,60 +878,65 @@ add_hide(GtkWidget *appbar)
   g_object_set_data(G_OBJECT(appbar), "hide_button", widget);
 }
 
-static guint status_hide_timeout_id = -1;
+static guint 		status_hide_timeout_id 		= 0;
+static gboolean		status_hide			= FALSE;
 
 static gint
-status_hide_timeout	(void		*ignored)
+status_hide_timeout		(void *			ignored)
 {
-  GtkWidget *appbar2 =
-    lookup_widget(main_window, "appbar2");
+  GtkWidget *appbar2;
 
-  appbar_hide (appbar2);
+  appbar2 = lookup_widget (main_window, "appbar2");
 
-  status_hide_timeout_id = -1;
+  if (status_hide)
+    {
+      appbar_hide (appbar2);
+    }
+  else /* just clean */
+    {
+      GtkWidget *status;
+
+      status = gnome_appbar_get_status (GNOME_APPBAR (appbar2));
+
+      gtk_label_set_text (GTK_LABEL (status), "");
+    }
+
+  status_hide_timeout_id = 0;
+
   return FALSE; /* Do not call me again */
 }
 
-void z_status_print(const gchar *message, gint timeout)
+void
+z_status_print			(const gchar *		message,
+				 gboolean		markup,
+				 guint			timeout,
+				 gboolean		hide)
 {
-  GtkWidget *appbar2 =
-    lookup_widget(main_window, "appbar2");
-  GtkWidget *status = gnome_appbar_get_status (GNOME_APPBAR (appbar2));
+  GtkWidget *appbar2;
+  GtkWidget *status;
 
-  add_hide(appbar2);
+  appbar2 = lookup_widget (main_window, "appbar2");
+  status = gnome_appbar_get_status (GNOME_APPBAR (appbar2));
 
-  gtk_label_set_text (GTK_LABEL (status), message);
-  gtk_widget_show(appbar2);
+  add_hide (appbar2);
+
+  if (markup)
+    gtk_label_set_markup (GTK_LABEL (status), message);
+  else
+    gtk_label_set_text (GTK_LABEL (status), message);
+
+  gtk_widget_show (appbar2);
 
   if (status_hide_timeout_id > 0)
     g_source_remove (status_hide_timeout_id);
+
+  status_hide = hide;
 
   if (timeout > 0)
     status_hide_timeout_id =
       g_timeout_add (timeout, (GSourceFunc) status_hide_timeout, NULL);
   else
-    status_hide_timeout_id = -1;
-}
-
-void z_status_print_markup (const gchar *markup, gint timeout)
-{
-  GtkWidget *appbar2 =
-    lookup_widget(main_window, "appbar2");
-  GtkWidget *status = gnome_appbar_get_status (GNOME_APPBAR (appbar2));
-
-  add_hide(appbar2);
-
-  gtk_label_set_markup (GTK_LABEL (status), markup);
-  gtk_widget_show(appbar2);
-
-  if (status_hide_timeout_id > -1)
-    gtk_timeout_remove(status_hide_timeout_id);
-
-  if (timeout > 0)
-    status_hide_timeout_id =
-      gtk_timeout_add(timeout, status_hide_timeout, NULL);
-  else
-    status_hide_timeout_id = -1;
+    status_hide_timeout_id = 0;
 }
 
 /* FIXME: [Hide] button */
