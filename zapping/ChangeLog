@@ -1,3 +1,11 @@
+29.09.2002	<mschimek@users.sf.net>
+
+	* src: #include fixes for GCC 2.7 (as if anyone would
+	  still use it...)
+	* Makefile.am: Added missing DISTCLEANFILES.
+	* zapping_setup_fb/Makefile.am: Added missing DISTCLEANFILES.
+	* src/Makefile.am (COMMON_LIB): Changed to $(top_builddir).
+
 28.09.2002	<mschimek@users.sf.net>
 
 	* po/fr.po: Updated by Christan Marillat.
@@ -2599,6 +2607,9 @@
 	* src/tveng.c: Direct Video Blitting (BGR -> RGB conversion avoided)
 	* src/interface.c: Channel editor added
 
-;; Local Variables:
-;; coding: utf-8
-;; End:
+Local Variables:
+mode: change-log
+coding: utf-8
+left-margin: 8
+fill-column: 76
+End:

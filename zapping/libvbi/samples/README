@@ -17,7 +17,7 @@ Header
 Line
     8 bits		0: Teletext, 7: Caption
 		        (supposed to be log2(SLICED_*), well, that changed)
-    8 bits		ITU-T line number lsb
+    8 bits		ITU-R line number lsb
     7 bits		line number msb
     1 bit		field 2
     Teletext:

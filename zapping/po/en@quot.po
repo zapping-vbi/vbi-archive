@@ -26,9 +26,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: zapping 0.6.5cvs1\n"
-"POT-Creation-Date: 2002-09-27 17:02+0200\n"
-"PO-Revision-Date: 2002-09-25 07:47+0200\n"
+"Project-Id-Version: zapping 0.6.5\n"
+"POT-Creation-Date: 2002-09-30 06:20+0200\n"
+"PO-Revision-Date: 2002-09-30 06:20+0200\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
 "MIME-Version: 1.0\n"
@@ -342,7 +342,8 @@ msgstr "Adjust %s"
 msgid "Available controls"
 msgstr "Available controls"
 
-#: src/v4linterface.c:663 src/zvbi.c:2106
+#. NLS: Network info, network name
+#: src/v4linterface.c:663 src/zvbi.c:2105
 msgid "Unknown"
 msgstr "Unknown"
 
@@ -363,6 +364,7 @@ msgstr "No standard"
 msgid "Channel: <yellow>%s</yellow>"
 msgstr "Channel: <yellow>%s</yellow>"
 
+#. NLS: Channel name being entered on numeric keypad
 #: src/v4linterface.c:1014
 #, c-format
 msgid "<green>%s</green>"
@@ -376,55 +378,55 @@ msgstr "Inputs"
 msgid "No tuned channels"
 msgstr "No tuned channels"
 
-#: src/zvbi.c:136
+#: src/zvbi.c:135
 msgid "No Audio"
 msgstr "No Audio"
 
-#: src/zvbi.c:137 src/tveng1.c:1018
+#: src/zvbi.c:136 src/tveng1.c:1018
 msgid "Mono"
 msgstr "Mono"
 
-#: src/zvbi.c:138 src/tveng1.c:1019
+#: src/zvbi.c:137 src/tveng1.c:1019
 msgid "Stereo"
 msgstr "Stereo"
 
-#: src/zvbi.c:139
+#: src/zvbi.c:138
 msgid "Stereo Surround"
 msgstr "Stereo Surround"
 
-#: src/zvbi.c:140
+#: src/zvbi.c:139
 msgid "Simulated Stereo"
 msgstr "Simulated Stereo"
 
-#: src/zvbi.c:141
+#: src/zvbi.c:140
 msgid "Video Descriptions"
 msgstr "Video Descriptions"
 
-#: src/zvbi.c:142
+#: src/zvbi.c:141
 msgid "Non-program Audio"
 msgstr "Non-program Audio"
 
-#: src/zvbi.c:143
+#: src/zvbi.c:142
 msgid "Special Effects"
 msgstr "Special Effects"
 
-#: src/zvbi.c:144
+#: src/zvbi.c:143
 msgid "Data Service"
 msgstr "Data Service"
 
-#: src/zvbi.c:145
+#: src/zvbi.c:144
 msgid "Unknown Audio"
 msgstr "Unknown Audio"
 
-#: src/zvbi.c:253
+#: src/zvbi.c:252
 msgid "V4L/V4L2 VBI interface timeout"
 msgstr "V4L/V4L2 VBI interface timeout"
 
-#: src/zvbi.c:266
+#: src/zvbi.c:265
 msgid "V4L/V4L2 VBI interface: Failed to read from the device"
 msgstr "V4L/V4L2 VBI interface: Failed to read from the device"
 
-#: src/zvbi.c:361
+#: src/zvbi.c:360
 #, c-format
 msgid ""
 "VBI initialization failed.\n"
@@ -433,15 +435,15 @@ msgstr ""
 "VBI initialization failed.\n"
 "%s"
 
-#: src/zvbi.c:362
+#: src/zvbi.c:361
 msgid "Ran out of memory."
 msgstr "Ran out of memory."
 
-#: src/zvbi.c:363
+#: src/zvbi.c:362
 msgid "Out of resources to start a new thread."
 msgstr "Out of resources to start a new thread."
 
-#: src/zvbi.c:365
+#: src/zvbi.c:364
 msgid ""
 "This probably means that the required driver isn't loaded. Add to your /etc/"
 "modules.conf the line:\n"
@@ -457,11 +459,11 @@ msgstr ""
 "and with mknod create /dev/vbi0 appropriately. If this doesn't work, you can "
 "disable VBI in Settings/Preferences/VBI options/Enable VBI decoding."
 
-#: src/zvbi.c:717
+#: src/zvbi.c:716
 msgid "Click me"
 msgstr "Click me"
 
-#: src/zvbi.c:752
+#: src/zvbi.c:751
 msgid ""
 "Open this link with the predetermined Web browser.\n"
 "You can configure this in the GNOME Control Center, under Handlers/Url "
@@ -471,49 +473,52 @@ msgstr ""
 "You can configure this in the GNOME Control Center, under Handlers/Url "
 "Navigator"
 
-#: src/zvbi.c:759
+#: src/zvbi.c:758
 #, c-format
 msgid " %s: Teletext Page %x"
 msgstr " %s: Teletext Page %x"
 
-#: src/zvbi.c:762
+#: src/zvbi.c:761
 #, c-format
 msgid " Teletext Page %x"
 msgstr " Teletext Page %x"
 
-#: src/zvbi.c:763
+#: src/zvbi.c:762
 msgid "Open this page with Zapzilla"
 msgstr "Open this page with Zapzilla"
 
-#: src/zvbi.c:2111
+#. NLS: Network info, call letters (USA) - not applicable
+#: src/zvbi.c:2110
 msgid "n/a"
 msgstr "n/a"
 
-#: src/zvbi.c:2115
+#. NLS: Network info, tape delay (USA)
+#: src/zvbi.c:2114
 msgid "none"
 msgstr "none"
 
-#: src/zvbi.c:2118
+#: src/zvbi.c:2117
 #, c-format
 msgid "%d minute"
 msgid_plural "%d minutes"
 msgstr[0] "%d minute"
 msgstr[1] "%d minutes"
 
-#: src/zvbi.c:2120
+#. NLS: Network info, tape delay (USA)
+#: src/zvbi.c:2119
 #, c-format
 msgid "%d h %d m"
 msgstr "%d h %d m"
 
-#: src/zvbi.c:2152 src/ttxview.c:2546
+#: src/zvbi.c:2151 src/ttxview.c:2545
 msgid "Current program"
 msgstr "Current program"
 
-#: src/zvbi.c:2173
+#: src/zvbi.c:2172
 msgid "%d %b  %I:%M %p    "
 msgstr "%d %b  %I:%M %p    "
 
-#: src/zvbi.c:2195
+#: src/zvbi.c:2194
 #, c-format
 msgid ""
 "\n"
@@ -522,21 +527,21 @@ msgstr ""
 "\n"
 "Length: %uh%02u (%uh%02u remaining)"
 
-#: src/zvbi.c:2203
+#: src/zvbi.c:2202
 #, c-format
 msgid "Length: %uh%02u"
 msgstr "Length: %uh%02u"
 
-#: src/zvbi.c:2210
+#: src/zvbi.c:2209
 #, c-format
 msgid "Elapsed: %uh%02u"
 msgstr "Elapsed: %uh%02u"
 
-#: src/zvbi.c:2233 src/zvbi.c:2235
+#: src/zvbi.c:2232 src/zvbi.c:2234
 msgid "unknown language"
 msgstr "unknown language"
 
-#: src/zvbi.c:2238
+#: src/zvbi.c:2237
 #, c-format
 msgid ""
 "Channel 1: %s (%s)\n"
@@ -545,7 +550,7 @@ msgstr ""
 "Channel 1: %s (%s)\n"
 "Channel 2: %s (%s)"
 
-#: src/zvbi.c:2246
+#: src/zvbi.c:2245
 #, c-format
 msgid ""
 "Channel 1: %s\n"
@@ -554,26 +559,28 @@ msgstr ""
 "Channel 1: %s\n"
 "Channel 2: %s"
 
-#: src/zvbi.c:2259
+#: src/zvbi.c:2258
 #, c-format
 msgid "Audio: %s (%s)"
 msgstr "Audio: %s (%s)"
 
-#: src/zvbi.c:2264
+#: src/zvbi.c:2263
 #, c-format
 msgid "Audio: %s"
 msgstr "Audio: %s"
 
-#: src/zvbi.c:2283
+#: src/zvbi.c:2282
 #, c-format
 msgid "Captioned %s"
 msgstr "Captioned %s"
 
-#: src/zvbi.c:2283
+#: src/zvbi.c:2282
 msgid "Captioned"
 msgstr "Captioned"
 
-#: src/zvbi.c:2367 src/zvbi.c:2628
+#. NLS: Current program rating
+#. (not rated means we don't know, not it's exempt)
+#: src/zvbi.c:2366 src/zvbi.c:2627
 msgid "Not rated"
 msgstr "Not rated"
 
@@ -966,95 +973,95 @@ msgstr "List of symbols exported by the plugin"
 msgid "Sorry, but the plugin couldn't be started"
 msgstr "Sorry, but the plugin couldn't be started"
 
-#: src/ttxview.c:187 src/ttxview.c:763 src/ttxview.c:1359
+#: src/ttxview.c:186 src/ttxview.c:762 src/ttxview.c:1358
 msgid "VBI has been disabled"
 msgstr "VBI has been disabled"
 
-#: src/ttxview.c:403
+#: src/ttxview.c:402
 #, c-format
 msgid "Loading page %x..."
 msgstr "Loading page %x..."
 
-#: src/ttxview.c:405
+#: src/ttxview.c:404
 #, c-format
 msgid "Loading subpage %x..."
 msgstr "Loading subpage %x..."
 
-#: src/ttxview.c:409 src/ttxview.c:701
+#: src/ttxview.c:408 src/ttxview.c:700
 msgid "Warning: Page not valid"
 msgstr "Warning: Page not valid"
 
-#: src/ttxview.c:530
+#: src/ttxview.c:529
 msgid "Text export failed"
 msgstr "Text export failed"
 
-#: src/ttxview.c:604
+#: src/ttxview.c:603
 #, c-format
 msgid " Page %d"
 msgstr " Page %d"
 
-#: src/ttxview.c:608
+#: src/ttxview.c:607
 #, c-format
 msgid " Subpage %d"
 msgstr " Subpage %d"
 
-#: src/ttxview.c:712
+#: src/ttxview.c:711
 msgid "The cache has been cleared"
 msgstr "The cache has been cleared"
 
-#: src/ttxview.c:1069 src/ttxview.c:1090
+#: src/ttxview.c:1068 src/ttxview.c:1089
 msgid "No other subpage in the cache"
 msgstr "No other subpage in the cache"
 
-#: src/ttxview.c:1153
+#: src/ttxview.c:1152
 msgid "Found"
 msgstr "Found"
 
-#: src/ttxview.c:1171
+#: src/ttxview.c:1170
 msgid "Not found"
 msgstr "Not found"
 
-#: src/ttxview.c:1191
+#: src/ttxview.c:1190
 msgid "Empty cache"
 msgstr "Empty cache"
 
-#: src/ttxview.c:1314
+#: src/ttxview.c:1313
 #, c-format
 msgid "Scanning %x.%02x"
 msgstr "Scanning %x.%02x"
 
-#: src/ttxview.c:1568
+#: src/ttxview.c:1567
 #, c-format
 msgid "<%s> added to the bookmarks"
 msgstr "<%s> added to the bookmarks"
 
-#: src/ttxview.c:1631
+#: src/ttxview.c:1630
 msgid "Any subpage"
 msgstr "Any subpage"
 
-#: src/ttxview.c:1980
+#: src/ttxview.c:1979
 #, c-format
 msgid "Export %s"
 msgstr "Export %s"
 
-#: src/ttxview.c:1994 plugins/screenshot/screenshot_strings.c:19
+#: src/ttxview.c:1993 plugins/screenshot/screenshot_strings.c:19
 #: plugins/mpeg/mpeg_strings.c:36
 msgid "Save as:"
 msgstr "Save as:"
 
-#: src/ttxview.c:1999
+#: src/ttxview.c:1998
 msgid "Select file you'll be exporting to"
 msgstr "Select file you'll be exporting to"
 
-#: src/ttxview.c:2014
+#: src/ttxview.c:2013
 msgid "Options"
 msgstr "Options"
 
-#: src/ttxview.c:2044 src/ttxview.c:3004
+#: src/ttxview.c:2043 src/ttxview.c:3003
 msgid "No page loaded"
 msgstr "No page loaded"
 
-#: src/ttxview.c:2104
+#: src/ttxview.c:2103
 #, c-format
 msgid ""
 "Cannot create destination dir for Zapzilla export:\n"
@@ -1065,90 +1072,90 @@ msgstr ""
 "%s\n"
 "%s"
 
-#: src/ttxview.c:2123
+#: src/ttxview.c:2122
 #, c-format
 msgid "Export to %s failed: %s"
 msgstr "Export to %s failed: %s"
 
-#: src/ttxview.c:2132
+#: src/ttxview.c:2131
 #, c-format
 msgid "%s saved"
 msgstr "%s saved"
 
-#: src/ttxview.c:2144
+#: src/ttxview.c:2143
 #, c-format
 msgid "Export failed: %s"
 msgstr "Export failed: %s"
 
-#: src/ttxview.c:2452
+#: src/ttxview.c:2451
 #, c-format
 msgid "Caption %x - %s"
 msgstr "Caption %x - %s"
 
-#: src/ttxview.c:2454
+#: src/ttxview.c:2453
 #, c-format
 msgid "Text %x - %s"
 msgstr "Text %x - %s"
 
-#: src/ttxview.c:2458
+#: src/ttxview.c:2457
 #, c-format
 msgid "Caption %x"
 msgstr "Caption %x"
 
-#: src/ttxview.c:2460
+#: src/ttxview.c:2459
 #, c-format
 msgid "Text %x"
 msgstr "Text %x"
 
-#: src/ttxview.c:2485
+#: src/ttxview.c:2484
 #, c-format
 msgid "%x: Unknown language"
 msgstr "%x: Unknown language"
 
-#: src/ttxview.c:2497 src/ttxview.c:2512 src/ttxview.c:2536 src/ttxview.c:2552
-#: src/ttxview.c:2568 src/ttxview.c:2584 src/ttxview.c:2600
+#: src/ttxview.c:2496 src/ttxview.c:2511 src/ttxview.c:2535 src/ttxview.c:2551
+#: src/ttxview.c:2567 src/ttxview.c:2583 src/ttxview.c:2599
 #, c-format
 msgid "Page %x"
 msgstr "Page %x"
 
-#: src/ttxview.c:2506
+#: src/ttxview.c:2505
 msgid "Index"
 msgstr "Index"
 
-#: src/ttxview.c:2530
+#: src/ttxview.c:2529
 msgid "Now and Next"
 msgstr "Now and Next"
 
-#: src/ttxview.c:2562
+#: src/ttxview.c:2561
 msgid "Program Index"
 msgstr "Program Index"
 
-#: src/ttxview.c:2578
+#: src/ttxview.c:2577
 msgid "Program Schedule"
 msgstr "Program Schedule"
 
-#: src/ttxview.c:2594
+#: src/ttxview.c:2593
 msgid "Program Warning"
 msgstr "Program Warning"
 
-#: src/ttxview.c:2614
+#: src/ttxview.c:2613
 msgid "Subtitles"
 msgstr "Subtitles"
 
-#: src/ttxview.c:2616
+#: src/ttxview.c:2615
 msgid "Select subtitles page"
 msgstr "Select subtitles page"
 
-#: src/ttxview.c:2689
+#: src/ttxview.c:2688
 #, c-format
 msgid "%s in %s"
 msgstr "%s in %s"
 
-#: src/ttxview.c:3013
+#: src/ttxview.c:3012
 msgid "Selecting - hold Shift for table mode"
 msgstr "Selecting - hold Shift for table mode"
 
-#: src/ttxview.c:3133
+#: src/ttxview.c:3132
 msgid "Selection copied to clipboard"
 msgstr "Selection copied to clipboard"
 
@@ -1852,8 +1859,8 @@ msgstr "S_top Plugin"
 
 #: glade/glade_strings.c:188 plugins/screenshot/screenshot.c:576
 #: plugins/screenshot/screenshot.c:1423 plugins/lirc/lirc.c:382
-#: plugins/mpeg/mpeg.c:1093 plugins/mpeg/mpeg.c:1120 plugins/mpeg/mpeg.c:1184
-#: plugins/mpeg/mpeg.c:2668 plugins/mpeg/mpeg.c:3258
+#: plugins/mpeg/mpeg.c:1093 plugins/mpeg/mpeg.c:1120 plugins/mpeg/mpeg.c:1186
+#: plugins/mpeg/mpeg.c:2682 plugins/mpeg/mpeg.c:3286
 msgid "Plugins"
 msgstr "Plugins"
 
@@ -2337,7 +2344,7 @@ msgid "This plugin takes screenshots of the video capture."
 msgstr "This plugin takes screenshots of the video capture."
 
 #: plugins/screenshot/screenshot.c:173 plugins/lirc/lirc.c:134
-#: plugins/alirc/alirc.c:231 plugins/mpeg/mpeg.c:142 plugins/mpeg/mpeg.c:3320
+#: plugins/alirc/alirc.c:231 plugins/mpeg/mpeg.c:142 plugins/mpeg/mpeg.c:3348
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr "Check error: “%s” in plugin %s has hash 0x%x vs. 0x%x"
@@ -2731,8 +2738,8 @@ msgstr "Output video Mbits per second:"
 msgid "Waiting for frames..."
 msgstr "Waiting for frames..."
 
-#: plugins/mpeg/mpeg.c:1089 plugins/mpeg/mpeg.c:1120 plugins/mpeg/mpeg.c:1184
-#: plugins/mpeg/mpeg.c:1225
+#: plugins/mpeg/mpeg.c:1089 plugins/mpeg/mpeg.c:1120 plugins/mpeg/mpeg.c:1186
+#: plugins/mpeg/mpeg.c:1227
 msgid "MPEG"
 msgstr "MPEG"
 
@@ -2748,20 +2755,20 @@ msgstr ""
 msgid "Open preferences"
 msgstr "Open preferences"
 
-#: plugins/mpeg/mpeg.c:1210
+#: plugins/mpeg/mpeg.c:1212
 msgid "Start recording"
 msgstr "Start recording"
 
-#: plugins/mpeg/mpeg.c:1261
+#: plugins/mpeg/mpeg.c:1263
 msgid "Record as MPEG"
 msgstr "Record as MPEG"
 
-#: plugins/mpeg/mpeg.c:1688
+#: plugins/mpeg/mpeg.c:1691
 #, c-format
 msgid "Format %s is incomplete, please configure the video or audio codec."
 msgstr "Format %s is incomplete, please configure the video or audio codec."
 
-#: plugins/mpeg/mpeg.c:1831
+#: plugins/mpeg/mpeg.c:1841
 #, c-format
 msgid ""
 "Cannot create destination directory:\n"
@@ -2772,34 +2779,34 @@ msgstr ""
 "%s\n"
 "%s"
 
-#: plugins/mpeg/mpeg.c:1843
+#: plugins/mpeg/mpeg.c:1854
 #, c-format
 msgid "Cannot create file %s: %s\n"
 msgstr "Cannot create file %s: %s\n"
 
-#: plugins/mpeg/mpeg.c:2668 plugins/mpeg/mpeg.c:3112 plugins/mpeg/mpeg.c:3136
-#: plugins/mpeg/mpeg.c:3246 plugins/mpeg/mpeg_strings.c:34
+#: plugins/mpeg/mpeg.c:2682 plugins/mpeg/mpeg.c:3140 plugins/mpeg/mpeg.c:3164
+#: plugins/mpeg/mpeg.c:3274 plugins/mpeg/mpeg_strings.c:34
 #: plugins/mpeg/mpeg_strings.c:41
 msgid "Record"
 msgstr "Record"
 
-#: plugins/mpeg/mpeg.c:2912
+#: plugins/mpeg/mpeg.c:2938
 msgid "Not implemented yet"
 msgstr "Not implemented yet"
 
-#: plugins/mpeg/mpeg.c:3096
+#: plugins/mpeg/mpeg.c:3124
 msgid "Recording dialog"
 msgstr "Recording dialog"
 
-#: plugins/mpeg/mpeg.c:3187
+#: plugins/mpeg/mpeg.c:3215
 msgid "Audio/Video Recorder"
 msgstr "Audio/Video Recorder"
 
-#: plugins/mpeg/mpeg.c:3190
+#: plugins/mpeg/mpeg.c:3218
 msgid "This plugin records video and audio into a file"
 msgstr "This plugin records video and audio into a file"
 
-#: plugins/mpeg/mpeg.c:3193
+#: plugins/mpeg/mpeg.c:3221
 msgid "Record video and audio."
 msgstr "Record video and audio."
 

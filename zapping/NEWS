@@ -1,6 +1,30 @@
 New stuff, refer to the ChangeLog for a more detailed description of
 the changes.
 
+0.6.5
+-----
+It's been a long time since 0.6.4, much too long, but finally the
+beast arrived. Main change this time is the switch from rte 0.4
+to 0.5, our real time audio/video recording library. It adds
+a lot more formats besides MPEG-1 using ffmpeg and divx4linux.
+Quite likely the number will increase with future releases. Along
+with it comes a new recording dialog. New chrome aside users can
+now define recording configurations with different names.
+
+
+
+
+* build fixes
+* lang updates
+* improved recording dialog
+* vbi/rte i18n
+* Canada cable
+* fixes
+* New GUI options toolbar style, keep window on top (when
+  supporte by window manager), and a few minor improvements.
+* Disables XScreensaver
+* 
+
 0.6.4
 -----
 This is mostly a bugfix release, no new features. When you
