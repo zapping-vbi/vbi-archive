@@ -1,3 +1,12 @@
+2003-01-02	<mschimek@users.sf.net>
+
+	* macros/alsa.m4: Updated from ALSA 0.9.0rc6.
+	* configure.in: New check for ALSA 0.9.x.
+	* devices/Makefile.am: Added ALSA_CFLAGS|_LIBS.
+	* devices/alsa.c: Rewrote ALSA 0.9 interface, works now, with
+	  proper timestamping. Removed ALSA 0.5 routines.
+	* global_data.c: ALSA device name fix.
+
 2002-12-25	<mschimek@users.sf.net>
 
 	* systems/vcd.c: Fixed status.bytes_out bug.

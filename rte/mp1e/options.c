@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.22 2002-12-14 00:43:43 mschimek Exp $ */
+/* $Id: options.c,v 1.23 2003-01-03 05:37:33 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -42,7 +42,6 @@
 #include "audio/libaudio.h"
 #include "audio/mpeg.h"
 #include "options.h"
-#include "librte.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>

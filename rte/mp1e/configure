@@ -9224,15 +9224,16 @@ if test "$alsa_prefix" != "" ; then
 	LDFLAGS="$LDFLAGS $ALSA_LIBS"
 fi
 
-ALSA_LIBS="$ALSA_LIBS -lasound -lm -ldl"
+ALSA_LIBS="$ALSA_LIBS -lasound -lm -ldl -lpthread"
 LIBS=`echo $LIBS | sed 's/-lm//'`
 LIBS=`echo $LIBS | sed 's/-ldl//'`
+LIBS=`echo $LIBS | sed 's/-lpthread//'`
 LIBS=`echo $LIBS | sed 's/  //'`
 LIBS="$ALSA_LIBS $LIBS"
 echo "$as_me:$LINENO: result: $ALSA_LIBS" >&5
 echo "${ECHO_T}$ALSA_LIBS" >&6
 
-min_alsa_version=0.5.9
+min_alsa_version=0.9.0
 echo "$as_me:$LINENO: checking for libasound headers version >= $min_alsa_version" >&5
 echo $ECHO_N "checking for libasound headers version >= $min_alsa_version... $ECHO_C" >&6
 no_alsa=""
@@ -9255,14 +9256,12 @@ cat >conftest.$ac_ext <<_ACEOF
 #line $LINENO "configure"
 #include "confdefs.h"
 
-#include <sys/asoundlib.h>
+#include <alsa/asoundlib.h>
 
 int
 main ()
 {
 
-void main(void)
-{
 /* ensure backward compatibility */
 #if !defined(SND_LIB_MAJOR) && defined(SOUNDLIB_VERSION_MAJOR)
 #define SND_LIB_MAJOR SOUNDLIB_VERSION_MAJOR
@@ -9294,7 +9293,6 @@ void main(void)
 #    endif
 #  endif
 exit(0);
-}
 
   ;
   return 0;
@@ -9332,9 +9330,9 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
-echo "$as_me:$LINENO: checking for snd_seq_create_event in -lasound" >&5
-echo $ECHO_N "checking for snd_seq_create_event in -lasound... $ECHO_C" >&6
-if test "${ac_cv_lib_asound_snd_seq_create_event+set}" = set; then
+echo "$as_me:$LINENO: checking for snd_ctl_open in -lasound" >&5
+echo $ECHO_N "checking for snd_ctl_open in -lasound... $ECHO_C" >&6
+if test "${ac_cv_lib_asound_snd_ctl_open+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
   ac_check_lib_save_LIBS=$LIBS
@@ -9349,11 +9347,11 @@ extern "C"
 #endif
 /* We use char because int might match the return type of a gcc2
    builtin and then its argument prototype would still apply.  */
-char snd_seq_create_event ();
+char snd_ctl_open ();
 int
 main ()
 {
-snd_seq_create_event ();
+snd_ctl_open ();
   ;
   return 0;
 }
@@ -9370,18 +9368,18 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  ac_cv_lib_asound_snd_seq_create_event=yes
+  ac_cv_lib_asound_snd_ctl_open=yes
 else
   echo "$as_me: failed program was:" >&5
 cat conftest.$ac_ext >&5
-ac_cv_lib_asound_snd_seq_create_event=no
+ac_cv_lib_asound_snd_ctl_open=no
 fi
 rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-echo "$as_me:$LINENO: result: $ac_cv_lib_asound_snd_seq_create_event" >&5
-echo "${ECHO_T}$ac_cv_lib_asound_snd_seq_create_event" >&6
-if test $ac_cv_lib_asound_snd_seq_create_event = yes; then
+echo "$as_me:$LINENO: result: $ac_cv_lib_asound_snd_ctl_open" >&5
+echo "${ECHO_T}$ac_cv_lib_asound_snd_ctl_open" >&6
+if test $ac_cv_lib_asound_snd_ctl_open = yes; then
   cat >>confdefs.h <<_ACEOF
 #define HAVE_LIBASOUND 1
 _ACEOF

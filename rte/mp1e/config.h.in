@@ -3,7 +3,7 @@
 /* For Z/VBI */
 #undef ENABLE_V4L
 
-/* Define if you have ALSA. */
+/* Define if you have ALSA 0.9.x. */
 #undef HAVE_ALSA
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
