@@ -1,19 +1,21 @@
+# translation of zapping.po to Italian
 # Zapping (a Gnome TV viewer) / Zapping (Visualizzatore TV per Gnome)
 # Zapping italian translation
 # Pino Toscano <toscano.pino@tiscali.it>, 2002, 2003, 2004.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Zapping 0.7\n"
+"Project-Id-Version: zapping\n"
 "POT-Creation-Date: 2004-07-10 09:59+0200\n"
-"PO-Revision-Date: 2004-01-14 21:46+0100\n"
+"PO-Revision-Date: 2004-07-12 20:23+0200\n"
 "Last-Translator: Pino Toscano <toscano.pino@tiscali.it>\n"
-"Language-Team: Italian <it@li.org>\n"
+"Language-Team: Italian <kde-i18n-it@kde.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Report-Msgid-Bugs-To: \n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: KBabel 1.3.1\n"
 
 #: glade/zapping.glade2.h:1 plugins/mpeg/mpeg_properties.glade2.h:1
 #: plugins/screenshot/screenshot.glade2.h:1
@@ -715,7 +717,6 @@ msgid "_Add toolbar button"
 msgstr "_Aggiungi pulsante alla barra degli strumenti"
 
 #: plugins/screenshot/screenshot.glade2.h:10
-#, fuzzy
 msgid "_Completion command:"
 msgstr "_Comando di completamento:"
 
@@ -847,8 +848,7 @@ msgstr "Aggiungi tutti i _canali"
 
 #: src/channel_editor.c:1812
 msgid "Add all channels in the frequency table to the channel list."
-msgstr ""
-"Aggiungi tutti i canali della tavola delle frequenze alla lista dei canali."
+msgstr "Aggiungi tutti i canali della tavola delle frequenze alla lista dei canali."
 
 #: src/channel_editor.c:1816
 msgid "_Import XawTV configuration"
@@ -953,7 +953,7 @@ msgstr "_A tutto schermo"
 
 #: src/interface.c:304 src/interface.c:532
 msgid "_Overlay mode"
-msgstr "M_odalità sovrascrittura"
+msgstr "M_odalità overlay"
 
 #: src/interface.c:310 src/interface.c:538
 msgid "_Capture mode"
@@ -1122,18 +1122,16 @@ msgid "XVideo video input port"
 msgstr "Porta dell'ingresso video di XVideo"
 
 #: src/main.c:346
-#, fuzzy
 msgid "XVideo image overlay port"
-msgstr "Porta della sovrascrittura dell'immagine di XVideo"
+msgstr "Porta di overlay dell'immagine di XVideo"
 
 #: src/main.c:364
 msgid "Disable XVideo video input support"
 msgstr "Disabilita supporto ingresso video di XVideo"
 
 #: src/main.c:373
-#, fuzzy
 msgid "Disable XVideo image overlay support"
-msgstr "Disabilita sovrascrittura dell'immagine di XVideo"
+msgstr "Disabilita overlay dell'immagine di XVideo"
 
 #: src/main.c:382
 msgid "Disable XVideo extension support"
@@ -1141,11 +1139,11 @@ msgstr "Disabilita supporto estensioni XVideo"
 
 #: src/main.c:394
 msgid "Disable video overlay"
-msgstr "Disabilita sovrascrittura video"
+msgstr "Disabilita overlay video"
 
 #: src/main.c:403
 msgid "X display is remote, disable video overlay"
-msgstr "Il display X è remoto, disabilita la sovrascrittura video"
+msgstr "Il display X è remoto, disabilita overlay"
 
 #: src/main.c:412
 msgid "Disable VBI support"
@@ -1174,7 +1172,7 @@ msgstr "Stampa i messaggi di debug"
 
 #: src/main.c:471
 msgid "Force dword alignment of the overlay window"
-msgstr "Forza allineamento a dword della finestra sovrascritta"
+msgstr "Forza allineamento a dword della finestra di overlay"
 
 #: src/main.c:480
 msgid "Execute the given command and exit"
@@ -1374,7 +1372,7 @@ msgstr "Supporta il servizio del televideo.\n"
 
 #: src/properties-handler.c:90
 msgid "Can overlay the image.\n"
-msgstr "Può sovrascrivere l'immagine.\n"
+msgstr "Può effettuare l'overlay sull'immagine.\n"
 
 #: src/properties-handler.c:92
 msgid "Can chromakey the image.\n"
@@ -2033,7 +2031,7 @@ msgid ""
 "Cannot start video overlay.\n"
 "%s"
 msgstr ""
-"Impossibile avviare la sovrascrittura video.\n"
+"Impossibile avviare l'overlay video.\n"
 "%s"
 
 #: src/zmisc.c:578
@@ -2042,7 +2040,7 @@ msgid ""
 "Cannot start fullscreen overlay.\n"
 "%s"
 msgstr ""
-"Impossibile avviare la sovrascrittura a tutto schermo.\n"
+"Impossibile avviare l'overlay a tutto schermo.\n"
 "%s"
 
 #: src/zmisc.c:615
@@ -2188,3 +2186,4 @@ msgstr "Visualizzatore TV"
 #~ "Apri questo collegamento con il browser Web predefinito.\n"
 #~ "Puoi configurare questo comportamento nel Centro di Controllo di GNOME, "
 #~ "sotto Avanzato/Applicazioni Preferite"
+
