@@ -1092,7 +1092,7 @@ int tvengxv_attach_device(const char* device_file _unused_,
 
   dpy = info->priv->display;
 
-  if (info -> fd) /* If the device is already attached, detach it */
+  if (-1 != info -> fd) /* If the device is already attached, detach it */
     tveng_close_device(info);
 
   /* clear the atoms */
@@ -1126,10 +1126,10 @@ int tvengxv_attach_device(const char* device_file _unused_,
       goto error1;
     };
 
-  if (info -> fd < 0)
+  if (-1 == info -> fd)
     goto error1;
 
-  info->fd = 0;
+  info->fd = -1;
   
   info -> attach_mode = attach_mode;
   /* Current capture mode is no capture at all */
@@ -1311,7 +1311,7 @@ static void tvengxv_close_device(tveng_device_info * info)
     XvFreeEncodingInfo(p_info->ei);
   p_info->ei = NULL;
 
-  info -> fd = 0;
+  info -> fd = -1;
   info -> current_controller = TVENG_CONTROLLER_NONE;
 
   if (info -> file_name)

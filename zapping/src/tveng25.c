@@ -1404,7 +1404,7 @@ static int p_tveng25_open_device_file(int flags, tveng_device_info * info)
 
   flags |= O_NONBLOCK;
   info -> fd = device_open(info->log_fp, info -> file_name, flags, 0);
-  if (info -> fd < 0)
+  if (-1 == info -> fd)
     {
       info->tveng_errno = errno;
       t_error("open()", info);
@@ -1528,7 +1528,7 @@ static void tveng25_close_device(tveng_device_info * info)
   p_tveng_stop_everything(info,&dummy);
 
   device_close(info->log_fp, info->fd);
-  info -> fd = 0;
+  info -> fd = -1;
   info -> current_controller = TVENG_CONTROLLER_NONE;
 
   if (info -> file_name)
@@ -2048,7 +2048,7 @@ int tveng25_attach_device(const char* device_file,
   t_assert(device_file != NULL);
   t_assert(info != NULL);
 
-  if (info -> fd) /* If the device is already attached, detach it */
+  if (-1 != info -> fd) /* If the device is already attached, detach it */
     tveng_close_device(info);
 
   info->audio_mutable = 0;
@@ -2087,7 +2087,7 @@ int tveng25_attach_device(const char* device_file,
     Errors (if any) are already aknowledged when we reach this point,
     so we don't show them again
   */
-  if (info -> fd < 0)
+  if (-1 == info -> fd)
     {
       free(info->file_name);
       info->file_name = NULL;
