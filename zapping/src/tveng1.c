@@ -2620,7 +2620,7 @@ static int p_tveng1_dequeue(void *image,
 	frame = p_info->dequeued % p_info->mmbuf.frames;
 
 	/* XXX must bypass device_ioctl() to get EINTR. */
-	while (-1 == ioctl (info, VIDIOCSYNC, &frame)) {
+	while (-1 == xioctl (info, VIDIOCSYNC, &frame)) {
 		switch (errno) {
 		case EINTR:
 			if (timeout_alarm)
