@@ -166,7 +166,8 @@ frequency_tables [] =
       RANGE_END
     }
   }, {
-    "jp-cable", "Japan cable", "japan-cable", /* ALIGN? */
+    /* ALIGN? */
+    "jp-cable", "Japan cable", "japan-cable",
     "JP", N_("cable"),
     TV_VIDEOSTD_NTSC_M_JP,
     {
