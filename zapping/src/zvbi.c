@@ -251,7 +251,8 @@ void shutdown_zvbi(void)
   if (vbi)
     zvbi_close_device();
 
-  gtk_object_destroy(GTK_OBJECT(vbi_model));
+  if (vbi_model)
+    gtk_object_destroy(GTK_OBJECT(vbi_model));
 
   close(osd_pipe[0]);
   close(osd_pipe[1]);
