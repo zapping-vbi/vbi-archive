@@ -47,16 +47,15 @@
 #include "zconf.h"
 #include "zmisc.h"
 #include "zmodel.h"
-#include "common/fifo.h"
-//#include "common/errstr.h"
-#include "common/ucs-2.h"
+#include "../common/fifo.h"
+#include "../common/ucs-2.h"
 #include "osd.h"
 #include "callbacks.h"
 #include "remote.h"
 
 /* graphics */
-#include <pixmaps/con.xpm> /* contrast */
-#include <pixmaps/brig.xpm> /* brightness */
+#include "../pixmaps/con.xpm" /* contrast */
+#include "../pixmaps/brig.xpm" /* brightness */
 
 /* Useful vars from Zapping */
 extern gboolean flag_exit_program;

@@ -23,7 +23,7 @@
 #  include <config.h>
 #endif
 
-#include <common/math.h>
+#include "../common/math.h"
 
 #include <gnome.h>
 #include "strnatcmp.h"

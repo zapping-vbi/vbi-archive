@@ -31,7 +31,7 @@
 #include "zvbi.h" /* for vbi_push_video */
 
 #include <tveng.h>
-#include "common/fifo.h"
+#include "../common/fifo.h"
 #include "zmisc.h"
 #include "x11stuff.h"
 #include "plugins.h"

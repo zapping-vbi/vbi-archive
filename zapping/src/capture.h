@@ -21,7 +21,7 @@
 
 #include <gtk/gtk.h>
 #include "tveng.h"
-#include "common/fifo.h"
+#include "../common/fifo.h"
 
 /*
   This struct holds all the info about a video sample pased to a
