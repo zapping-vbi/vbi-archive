@@ -6,7 +6,7 @@ EXTRA_DIST = gen_conv.s zmarshalers.list
 INCLUDES = -I$(top_srcdir) @DEFAULT_CFLAGS@ @COMMON_INCLUDES@ \
 	$(LIBXML_CFLAGS)
 
-bin_PROGRAMS = zapping
+bin_PROGRAMS = zapping zapping_remote
 
 COMMON_LIB = $(top_builddir)/common/libcommon.a
 
@@ -26,6 +26,7 @@ install-binPROGRAMS: $(bin_PROGRAMS)
 
 uninstall-binPROGRAMS:
 	rm -f $(DESTDIR)$(bindir)/zapping
+	rm -f $(DESTDIR)$(bindir)/zremote
 
 #	rm -f $(DESTDIR)$(bindir)/zapzilla
 
@@ -82,10 +83,13 @@ zapping_SOURCES = \
 	xawtv.c xawtv.h \
 	vdr.c vdr.h
 
-# zapzilla.c
-
 zapping_LDADD = $(gen_conv_lib) $(COMMON_LIB) $(PACKAGE_LIBS) $(PYTHON_LIBS) \
   $(X_LIBS) $(X_DPMS_LIBS) \
   $(X_XF86DGA_LIBS) $(X_XF86VMODE_LIBS) $(X_XV_LIBS) \
   $(CCMALLOC) $(ZVBI_LIB) $(ARTS_LIBS) $(ESD_LIBS) $(LIBXML_LIBS)
 zapping_LDFLAGS = -export-dynamic
+
+zapping_remote_SOURCES = \
+	zapping_remote.c
+
+zapping_remote_LDADD = $(X_LIBS) -lX11 -lXmu
