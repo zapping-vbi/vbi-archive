@@ -1238,7 +1238,6 @@ video_setup		(GtkWidget	*page)
 static void
 video_apply		(GtkWidget	*page)
 {
-  GtkWidget *tv_screen;
   GtkWidget *widget;
   gboolean active;
 
@@ -1303,12 +1302,10 @@ video_apply		(GtkWidget	*page)
   active = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
   zconf_set_boolean (active, "/zapping/options/main/fixed_increments");
 
-  tv_screen = lookup_widget (GTK_WIDGET (zapping), "tv-screen");
-
   if (active) /* XXX free, 4:3, 16:9 */
-    z_video_set_size_inc (Z_VIDEO (tv_screen), 64, 64 * 3 / 4);
+    z_video_set_size_inc (zapping->video, 64, 64 * 3 / 4);
   else
-    z_video_set_size_inc (Z_VIDEO (tv_screen), 1, 1);
+    z_video_set_size_inc (zapping->video, 1, 1);
 
   widget = lookup_widget (page, "picture-sizes-treeview");
   picture_sizes_apply (GTK_TREE_VIEW (widget));

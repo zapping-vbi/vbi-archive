@@ -503,50 +503,49 @@ properties_add			(GtkDialog	*dialog)
 }
 
 static
-void plugin_add_gui (GnomeApp * app)
+void plugin_add_gui (GnomeApp * app _unused_)
 {
-  GtkWidget *toolbar;
-  GtkWidget *button;
+  GtkToolItem *tool_item;
   gpointer p;
 
-  toolbar = lookup_widget (GTK_WIDGET (app), "toolbar1");
-  p = g_object_get_data (G_OBJECT(app), "screenshot_button");
-  button = p ? GTK_WIDGET (p) : NULL;
-
-  if (!button)
+  p = g_object_get_data (G_OBJECT (zapping), "screenshot_button");
+  if (p)
     {
-      GtkWidget *tmp_toolbar_icon;
+      tool_item = GTK_TOOL_ITEM (p);
+    }
+  else
+    {
+      tool_item = gtk_tool_button_new (NULL, _("Screenshot"));
 
-      tmp_toolbar_icon =
-	gtk_image_new_from_stock ("zapping-screenshot",
-				  GTK_ICON_SIZE_LARGE_TOOLBAR);
+      gtk_tool_button_set_stock_id (GTK_TOOL_BUTTON (tool_item),
+				    "zapping-screenshot");
 
-      button = gtk_toolbar_append_item (GTK_TOOLBAR (toolbar),
-					_("Screenshot"),
-					_("Take a screenshot"), NULL,
-					tmp_toolbar_icon,
-					GTK_SIGNAL_FUNC(on_python_command1),
-					(gpointer) "zapping.screenshot()");
+      z_tooltip_set (GTK_WIDGET (tool_item), _("Take a screenshot"));
+
+      g_signal_connect (G_OBJECT (tool_item), "clicked",
+			G_CALLBACK (on_python_command1),
+			(gpointer) "zapping.screenshot()");
+
+      gtk_toolbar_insert (zapping->toolbar, tool_item, APPEND);
+
+      /* Set up the widget so we can find it later */
+      g_object_set_data (G_OBJECT (zapping), "screenshot_button", tool_item);
     }
 
   if (screenshot_option_toolbutton)
-    gtk_widget_show (button);
+    gtk_widget_show (tool_item);
   else
-    gtk_widget_hide (button);
-
-  /* Set up the widget so we can find it later */
-  g_object_set_data (G_OBJECT (app), "screenshot_button", button);
+    gtk_widget_hide (tool_item);
 }
 
 static void
-plugin_remove_gui (GnomeApp * app)
+plugin_remove_gui (GnomeApp * app _unused_)
 {
-  GtkWidget * button = 
-    GTK_WIDGET(g_object_get_data(G_OBJECT(app),
-				   "screenshot_button"));
-  GtkWidget * toolbar1 = lookup_widget(GTK_WIDGET(app), "toolbar1");
+  GtkWidget *button;
 
-  gtk_container_remove(GTK_CONTAINER(toolbar1), button);
+  button = GTK_WIDGET (g_object_get_data (G_OBJECT (zapping),
+					  "screenshot_button"));
+  gtk_container_remove (GTK_CONTAINER (zapping->toolbar), button);
 }
 
 static struct plugin_misc_info *

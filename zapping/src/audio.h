@@ -1,6 +1,7 @@
 #ifndef __AUDIO_H__
 #define __AUDIO_H__
 
+#include <gtk/gtk.h>
 #include "tveng.h"
 
 enum audio_format {

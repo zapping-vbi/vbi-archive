@@ -1,3 +1,43 @@
+2004-09-20    <mschimek@users.sf.net>
+
+	* src/zvbi.c (vbi_gui_sensitive): Use GtkActionGroup visibility
+	  change instead of hiding widgets manually.
+	* src/zapping.h, src/zapping.c, src/v4linterface.c (update_bundle):
+	  Rebuild channel menu code moved to src/zapping.c.
+	* src/zapping.c, src/main.c: Initial hiding of menu and toolbar
+	  now properly implemented in src/zapping.c. shutdown_zapping()
+	  call moved to src/zapping.c finalization for dependency reasons. 
+	* src/zapping.h, src/zapping.c, src/interface.h, src/interface.c:
+	  Moved Zapping widget creation routines to src/zapping.c, switched
+	  from GnomeUI to GtkActions.
+	* src/zapping.c, src/main.c, src/globals.h, src/globals.c: 
+	  Removed obsolete display_preview flag, replaced by disable_overlay
+	  where necessary. Added gconf_client for zapping show
+	  options. hide_controls and keep_on_top zconf options moved into
+	  gconf.
+	* src/overlay.h, src/overlay.c (start_overlay, stop_overlay),
+	  src/fullscreen.h, src/fullscreen.c (start_fullscreen,
+	  stop_fullscreen): Implicit parameters. 
+	* src/zapping.c, src/cmd.c: Moved py_hide_controls(),
+	  py_keep_on_top() to src/zapping.c.
+	* src/zmisc.c, src/zapping.h, src/zapping.c,
+	  src/properties-handler.c (video_apply), src/main.c, src/capture.c,
+	  plugins/screenshot/screenshot.c, plugins/mpeg/mpeg.c: 
+	  Replaced widget registration/lookup by simple pointers in
+	  zapping object.
+	* src/zmisc.h, src/zmisc.c: Added helper connecting a
+	  GtkToggleAction and gconf bool.
+	* src/ttxview.h, src/ttxview.c (ttxview_hotlist_menu_append):
+	  Changed to _insert due to new action based menus creation.
+	* src/zmisc.c, src/zapping.h, src/zapping.c, src/properties.c,
+	  src/plugin_properties.c, src/main.c, src/audio.c (set_mute):
+	  Switched to action based menus and toolbar.
+	  NOTE Zapping now requires Gtk+ 2.4.
+
+	* po/sv.po, po/nl.po, po/it.po, po/fr.po, po/es.po, po/de.po: 
+	  Updated from Gnome compendium (former libgnomeui strings).
+	* po/POTFILES.in: Added src/zapping.c.
+
 2004-09-16    <mschimek@users.sf.net>
 
 	* src/tveng25.c: Cleaned up overlay and capture format code. Added
