@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: global_data.c,v 1.14 2002-06-19 19:55:56 mschimek Exp $ */
+/* $Id: global_data.c,v 1.15 2002-08-22 22:02:38 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -69,6 +69,7 @@ char *			pcm_dev			= "";
 char *			mix_dev			= "/dev/mixer";
 char *			vbi_dev			= "/dev/vbi";
 
+int			m2i			= 0;
 int			width			= 352;
 int			height			= 288;
 int			grab_width		= 352;
@@ -81,6 +82,7 @@ char *			gop_sequence		= "IBBPBBPBBPBB";
 // int			frames_per_seqhdr	= 50;
 int			filter_mode		= CM_YUV_VERTICAL_DECIMATION;
 double			frame_rate		= 1000.0;
+double			sample_aspect		= 0.0;			// autodetect
 int			preview			= 0;			// 0 = none, XvImage/GTK, progressive
 char *			anno			= NULL;
 int			luma_only		= 0;			// boolean
@@ -112,3 +114,7 @@ int			aud_buffers		= 32;			// audio compression -> mux
 #endif
 
 int			cpu_type		= 0;			// detect
+
+/* Work-arounds for the AIW v4l driver */
+double                  source_fps              = -1.0;			// manually-defined source fps
+int                     fix_interlaced          = 0;			// drop every 2nd sequential field read and enable horizontal decimation
