@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.h,v 1.5.2.2 2003-05-02 10:44:10 mschimek Exp $ */
+/* $Id: vbi.h,v 1.5.2.3 2003-06-16 06:03:20 mschimek Exp $ */
 
 #ifndef VBI_H
 #define VBI_H
@@ -42,6 +42,45 @@ struct event_handler {
 	vbi_event_handler	handler;
 	void *			user_data;
 };
+
+typedef enum {
+	/* uint8_t, 42, 0 */
+	VBI_HOOK_TELETEXT_PACKET,
+	/* uint8_t, 42, packet number */
+	VBI_HOOK_TELETEXT_PACKET_8_30,
+	/* uint8_t, variable, application id */
+	VBI_HOOK_EACEM_TRIGGER,
+	/* uint8_t (odd parity), 2, 0 */
+	VBI_HOOK_CLOSED_CAPTION,
+	/* uint8_t, 13, 0 */
+	VBI_HOOK_VPS,
+	VBI_HOOK_NUM
+} vbi_decode_hook;
+
+typedef void vbi_decode_hook_fn (vbi_decode_hook	hook,
+				 void *			data,
+				 unsigned int		size,
+				 unsigned int		id);
+
+struct decode_hook {
+	struct decode_hook *	next;
+	vbi_decode_hook_fn *	func;
+};
+
+/*
+static __inline__ void
+vbi_hook_call			(vbi_decoder *		vbi,
+				 vbi_decode_hook	hook,
+				 void *			data,
+				 unsigned int		size,
+				 unsigned int		id)
+{
+	struct decode_hook *h;
+
+	for (h = vbi->decode_hooks[hook]; h; h = h->next)
+		h->func (hook, data, size, id);
+}
+*/
 
 struct page_clear {
 	int			ci;		/* continuity index */
@@ -103,6 +142,8 @@ struct vbi_decoder {
 	vbi_bit_slicer		wss_slicer;
 	producer		wss_producer;
 #endif
+
+	struct decode_hook *	decode_hooks[VBI_HOOK_NUM];
 };
 
 #ifndef VBI_DECODER
@@ -198,8 +239,11 @@ extern void		vbi_decoder_delete(vbi_decoder *vbi);
 extern void		vbi_decode(vbi_decoder *vbi, vbi_sliced *sliced,
 				   int lines, double timestamp);
 extern void             vbi_channel_switched(vbi_decoder *vbi, vbi_nuid nuid);
+extern const char **
+vbi_cache_page_language		(vbi_decoder *		vbi,
+				 vbi_pgno		pgno);
 extern vbi_page_type	vbi_classify_page(vbi_decoder *vbi, vbi_pgno pgno,
-					  vbi_subno *subno, const char **language);
+					  vbi_subno *subno);
 extern void		vbi_version(unsigned int *major, unsigned int *minor, unsigned int *micro);
 /** @} */
 
