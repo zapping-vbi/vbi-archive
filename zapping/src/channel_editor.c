@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: channel_editor.c,v 1.37.2.9 2003-03-06 22:00:46 mschimek Exp $ */
+/* $Id: channel_editor.c,v 1.37.2.10 2003-03-26 07:38:06 mschimek Exp $ */
 
 /*
   TODO:
@@ -530,6 +530,9 @@ on_country_menu_changed		(GtkOptionMenu *	country_menu,
 
   zconf_set_string (rf_table, "/zapping/options/main/current_country");
 
+  zconf_set_integer (tv_rf_channel_align (&ch) ? 1 : 0,
+		     "/zapping/options/main/channel_txl");
+
   ce->freq_model = create_freq_list_model (&ch);
   gtk_tree_view_set_model (ce->freq_treeview, GTK_TREE_MODEL (ce->freq_model));
 }
@@ -748,20 +751,53 @@ on_add_all_channels_clicked	(GtkButton *		add_all_channels,
 {
   tv_rf_channel ch;
   tveng_tuned_channel tc;
+  gboolean align;
 
   memset (&tc, 0, sizeof (tc));
 
   current_rf_channel_table (ce, &ch, NULL);
 
-  do
-    {
-      tc.name		= (gchar *) ch.channel_name;
-      tc.rf_name	= (gchar *) ch.channel_name;
-      tc.rf_table	= (gchar *) ch.table_name;
-      tc.freq		= ch.frequency / 1000;
+  align = tv_rf_channel_align (&ch);
 
-      channel_list_add_tuned_channel (ce, &global_channel_list, &tc);
+  if (align)
+    {
+      GtkTreeIter iter;
+      gint added;
+
+      added = tveng_tuned_channel_num (global_channel_list);
+
+      do
+	if (g_ascii_isdigit (ch.channel_name[0]))
+	  {
+	    tc.name	= (gchar *) ch.channel_name;
+	    tc.rf_name	= (gchar *) ch.channel_name;
+	    tc.rf_table	= (gchar *) ch.table_name;
+	    tc.freq	= ch.frequency / 1000;
+
+	    tveng_tuned_channel_replace (&global_channel_list,
+					 tveng_tuned_channel_new (&tc),
+					 atoi (ch.channel_name));
+	  }
+      while (tv_rf_channel_next (&ch));
+
+      added = tveng_tuned_channel_num (global_channel_list) - added;
+
+      while (added-- > 0)
+	gtk_list_store_append (ce->channel_model, &iter);
+
+      tv_rf_channel_first (&ch);
     }
+
+  do
+    if (!align || !g_ascii_isdigit (ch.channel_name[0]))
+      {
+	tc.name		= (gchar *) ch.channel_name;
+	tc.rf_name	= (gchar *) ch.channel_name;
+	tc.rf_table	= (gchar *) ch.table_name;
+	tc.freq		= ch.frequency / 1000;
+
+	channel_list_add_tuned_channel (ce, &global_channel_list, &tc);
+      }
   while (tv_rf_channel_next (&ch));
 }
 
@@ -886,26 +922,19 @@ static void
 on_channel_add_clicked		(GtkButton *		channel_add,
 				 channel_editor *	ce)
 {
-  tveng_tuned_channel tc;
   GtkTreeIter iter;
-
-  memset (&tc, 0, sizeof (tc));
-
-  tc.name = "";
-  tc.rf_name = "";
-  tc.rf_table = "";
 
   if (channel_list_get_selection (ce, &iter, NULL, NULL, NULL))
     {
       tveng_tuned_channel_insert (&global_channel_list,
-				  tveng_tuned_channel_new (&tc),
+				  tveng_tuned_channel_new (NULL),
 				  channel_list_index (ce, &iter));
       gtk_list_store_insert_before (ce->channel_model, &iter, &iter);
     }
   else
     {
       tveng_tuned_channel_insert (&global_channel_list,
-				  tveng_tuned_channel_new (&tc),
+				  tveng_tuned_channel_new (NULL),
 				  G_MAXINT);
       gtk_list_store_append (ce->channel_model, &iter);
     }
