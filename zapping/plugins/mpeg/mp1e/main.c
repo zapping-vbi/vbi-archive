@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.16 2000-08-27 21:40:08 garetxe Exp $ */
+/* $Id: main.c,v 1.17 2000-09-12 17:14:09 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,7 +53,12 @@
 
 #define RTE 1
 
+#if RTE
+
 #include "rtepriv.h"
+#include "main.h"
+
+#endif // RTE
 
 char *			my_name;
 int			verbose;
@@ -177,7 +182,7 @@ void * audio_emulation_thread (void * ptr)
   This is just for a preliminary testing, loads of things need to be
   done before this gets really functional.
   push + callbacks don't work together yet, but separately they
-  do. Does anybody really want to use them toghether?
+  do. Does anybody really want to use them together?
   The push interface works great, not much more CPU usage and nearly
   no lost frames; the callbacks one needs a bit more CPU, and drops
   some more frames, but works fine too.

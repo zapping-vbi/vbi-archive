@@ -17,7 +17,7 @@
  */
 #include "plugin_common.h"
 #include <pthread.h>
-#include <png.h>
+#include <jpeglib.h> /* jpeg compression */
 
 /*
   This plugin was builded from the template one. It does some thing
@@ -31,7 +31,7 @@ static const gchar str_descriptive_name[] =
 N_("Screenshot saver");
 static const gchar str_description[] =
 N_("You can use this plugin to take screenshots of what you are"
-" actually watching in TV.\nIt will save the screenshots in PNG"
+" actually watching in TV.\nIt will save the screenshots in JPEG"
 " format.");
 static const gchar str_short_description[] = 
 N_("This plugin takes screenshots of the capture.");
@@ -51,8 +51,7 @@ static gint num_threads = 0;
 /* Where should the screenshots be saved to (dir) */
 static gchar * save_dir = NULL;
 
-static gboolean interlaced; /* Whether the image should be saved
-			       interlaced or not */
+static gint quality; /* Quality of the compressed image */
 
 static tveng_device_info * zapping_info = NULL; /* Info about the
 						   video device */
@@ -88,9 +87,10 @@ struct screenshot_data
   gboolean close; /* TRUE if the plugin should close itself */
   pthread_t thread; /* The thread responsible for this data */
   GtkWidget * window; /* The window that contains the progressbar */
-  png_structp png_ptr; /* Info about the png we are saving */
-  png_infop info_ptr; /* Info about the png we are saving */
+  struct jpeg_compress_struct cinfo; /* Compression parameters */
+  struct jpeg_error_mgr jerr; /* Error handler */
   FILE * handle; /* Handle to the file we are saving */
+  gboolean set_bgr; /* TRUE if we got BGR data instead of RGB */
 };
 
 /*
@@ -114,7 +114,7 @@ on_progress_delete_event               (GtkWidget       *widget,
 					GdkEvent        *event,
                                         struct screenshot_data * data);
 
-/* Conversions between different pixel formats */
+/* Conversions between different RGB pixel formats */
 /*
   This Convert... functions are exported through the symbol mechanism
   so other plugins can use them too.
@@ -259,11 +259,11 @@ void plugin_load_config (gchar * root_key)
 {
   gchar * buffer;
 
-  buffer = g_strconcat(root_key, "interlaced", NULL);
-  zconf_create_boolean(TRUE,
-		       "Whether interlacing should be used",
+  buffer = g_strconcat(root_key, "quality", NULL);
+  zconf_create_integer(75,
+		       "Quality of the compressed image",
 		       buffer);
-  interlaced = zconf_get_boolean(NULL, buffer);
+  quality = zconf_get_integer(NULL, buffer);
   g_free(buffer);
 
   buffer = g_strconcat(root_key, "save_dir", NULL);
@@ -283,8 +283,8 @@ void plugin_save_config (gchar * root_key)
   zconf_set_string(save_dir, buffer);
   g_free(buffer);
 
-  buffer = g_strconcat(root_key, "interlaced", NULL);
-  zconf_set_boolean(interlaced, buffer);
+  buffer = g_strconcat(root_key, "quality", NULL);
+  zconf_set_integer(quality, buffer);
   g_free(buffer);
 
   g_free(save_dir);
@@ -356,10 +356,12 @@ void plugin_add_properties ( GnomePropertyBox * gpb )
 {
   GtkWidget * label;
   GtkBox * vbox; /* the page added to the notebook */
+  GtkWidget * box; /* For building the slider */
   GtkWidget * widget;
+  GtkObject * adj;
+  GtkWidget * hscale;
   gint page;
 
-  label = gtk_label_new(_("PNG saver"));
   vbox = GTK_BOX(gtk_vbox_new(FALSE, 15));
 
   widget =
@@ -385,19 +387,31 @@ void plugin_add_properties ( GnomePropertyBox * gpb )
   gtk_signal_connect(GTK_OBJECT(widget), "changed",
 		     on_property_item_changed, gpb);
 
-  /* The interlaced checkbutton */
-  widget = gtk_check_button_new_with_label(_("Save interlaced PNG"));
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget), interlaced);
-  gtk_object_set_data (GTK_OBJECT(gpb), "screenshot_interlaced",
-		       widget);
-  gtk_signal_connect(GTK_OBJECT(widget), "toggled",
-		     on_property_item_changed, gpb);
-  gtk_box_pack_start(vbox, widget, FALSE, TRUE, 0);
-  gtk_widget_show(widget);
-
+  /* The quality slider */
+  box = gtk_hbox_new (FALSE, 0);
+  label = gtk_label_new(_("Quality of the compressed image"));
   gtk_widget_show(label);
+  gtk_box_pack_start_defaults(GTK_BOX (box), label);
+
+  adj = gtk_adjustment_new(quality, 0, 100, 1, 10,
+			   10);
+  gtk_object_set_data (GTK_OBJECT(gpb), "screenshot_quality", adj);
+  gtk_signal_connect(adj, "value-changed", 
+		     on_property_item_changed, gpb);
+
+  hscale = gtk_hscale_new (GTK_ADJUSTMENT (adj));
+
+  gtk_widget_show (hscale);
+  gtk_box_pack_end_defaults(GTK_BOX (box), hscale);
+  gtk_scale_set_value_pos (GTK_SCALE(hscale), GTK_POS_RIGHT);
+  gtk_scale_set_digits (GTK_SCALE (hscale), 0);
+  gtk_widget_show(box);
+  gtk_box_pack_start(vbox, box, FALSE, TRUE, 0);
+  
   gtk_widget_show(GTK_WIDGET(vbox));
 
+  label = gtk_label_new(_("Screenshot"));
+  gtk_widget_show(label);
   page = gnome_property_box_append_page(gpb, GTK_WIDGET(vbox), label);
 
   gtk_object_set_data(GTK_OBJECT(gpb), "screenshot_page",
@@ -413,9 +427,9 @@ gboolean plugin_activate_properties ( GnomePropertyBox * gpb, gint page )
   GnomeFileEntry * save_dir_widget
     = GNOME_FILE_ENTRY(gtk_object_get_data(GTK_OBJECT(gpb),
 					   "screenshot_save_dir"));
-  GtkToggleButton * interlaced_widget =
-    GTK_TOGGLE_BUTTON(gtk_object_get_data(GTK_OBJECT(gpb),
-					  "screenshot_interlaced"));
+  GtkAdjustment * quality_adj =
+    GTK_ADJUSTMENT(gtk_object_get_data(GTK_OBJECT(gpb),
+				       "screenshot_quality"));
 
   if (GPOINTER_TO_INT(data) == page)
     {
@@ -425,7 +439,7 @@ gboolean plugin_activate_properties ( GnomePropertyBox * gpb, gint page )
 						FALSE);
       gnome_entry_save_history(GNOME_ENTRY(gnome_file_entry_gnome_entry(
 	 save_dir_widget)));
-      interlaced = gtk_toggle_button_get_active(interlaced_widget);
+      quality = quality_adj->value;
       return TRUE;
     }
 
@@ -445,8 +459,8 @@ gboolean plugin_help_properties ( GnomePropertyBox * gpb, gint page )
 N_("The first option, the screenshot dir, lets you specify where\n"
    "will the screenshots be saved. The file name will be:\n"
    "save_dir/shot[1,2,3,...].png\n\n"
-   "The interlacing lets you specify if the saved image will be\n"
-   "interlaced. This allows image viewers load it progressively."
+   "The quality option lets you choose how much info will be\n"
+   "discarded when compressing the JPEG."
 );
 
   if (GPOINTER_TO_INT(data) == page)
@@ -471,7 +485,7 @@ void plugin_add_gui (GnomeApp * app)
   button = gtk_toolbar_append_element(GTK_TOOLBAR(toolbar1),
 				      GTK_TOOLBAR_CHILD_BUTTON, NULL,
 				      _("Screenshot"),
-				      _("Take a PNG screenshot"),
+				      _("Take a JPEG screenshot"),
 				      NULL, tmp_toolbar_icon,
 				      on_screenshot_button_clicked,
 				      NULL);
@@ -547,9 +561,6 @@ start_saving_screenshot (gpointer data_to_save,
   gchar * window_title;
   gchar * buffer = NULL;
   gint image_index = 1; /* Start by save_dir/shot1.png */
-  gboolean set_bgr = FALSE;
-
-  png_text text[2];
 
   if (!data)
     {
@@ -591,9 +602,9 @@ start_saving_screenshot (gpointer data_to_save,
 
       /* Add a slash if needed */
       if ((!*save_dir) || (save_dir[strlen(save_dir)-1] != '/'))
-	buffer = g_strdup_printf("%s/shot%d.png", save_dir, image_index++);
+	buffer = g_strdup_printf("%s/shot%d.jpeg", save_dir, image_index++);
       else
-	buffer = g_strdup_printf("%sshot%d.png", save_dir, image_index++);
+	buffer = g_strdup_printf("%sshot%d.jpeg", save_dir, image_index++);
 
       /* Open this file  */
       data->handle = fopen(buffer, "rb");
@@ -619,84 +630,41 @@ start_saving_screenshot (gpointer data_to_save,
       return;
     }  
 
-  data-> png_ptr =
-    png_create_write_struct (PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-  if (data->png_ptr == NULL)
-    {
-      g_free(buffer);
-      free(data->line_data);
-      free(data->data);
-      free(data);
-
-      ShowBox(_("Cannot init the first PNG saving structure"),
-	      GNOME_MESSAGE_BOX_ERROR);
-
-      return;
-    }
-
-  data->info_ptr = png_create_info_struct (data->png_ptr);
-  if (data->info_ptr == NULL)
-    {
-      g_free(buffer);
-      free(data->line_data);
-      free(data->data);
-      free(data);
-      png_destroy_write_struct(&(data->png_ptr), (png_infopp)NULL);
-
-      ShowBox(_("Cannot init the second PNG saving structure"),
-	      GNOME_MESSAGE_BOX_ERROR);
-
-      return;
-    }
-
-  /* There is no error checking, but there shouldn't be any errors
-     except for out of space */
-  png_init_io (data->png_ptr, data->handle);
-
-  png_set_IHDR (data->png_ptr, data->info_ptr,
-		format->width, format->height,
-		8, PNG_COLOR_TYPE_RGB,
-		interlaced ? PNG_INTERLACE_ADAM7 : PNG_INTERLACE_NONE,
-		PNG_COMPRESSION_TYPE_BASE,
-		PNG_FILTER_TYPE_BASE);
+  data->cinfo.err = jpeg_std_error(&(data->jerr));
+  jpeg_create_compress(&(data->cinfo));
+  jpeg_stdio_dest(&(data->cinfo), data->handle);
+  data->cinfo.image_width = data->format.width;
+  data->cinfo.image_height = data->format.height;
+  data->cinfo.input_components = 3;
+  data->cinfo.in_color_space = JCS_RGB;
+  jpeg_set_defaults(&(data->cinfo));
+  jpeg_set_quality(&(data->cinfo), quality, TRUE);
+  jpeg_start_compress(&(data->cinfo), TRUE);
+  
+  data -> set_bgr = FALSE;
 
   /* Check if BGR must be used */
   switch (format->pixformat)
     {
     case TVENG_PIX_RGB32:
-      set_bgr = FALSE;
+      data->set_bgr = FALSE;
       break;
     case TVENG_PIX_RGB24:
-      set_bgr = FALSE;
+      data->set_bgr = FALSE;
       break;
     case TVENG_PIX_BGR32:
-      set_bgr = TRUE;
+      data->set_bgr = TRUE;
       break;
     case TVENG_PIX_BGR24:
-      set_bgr = TRUE;
+      data->set_bgr = TRUE;
       break;
     case TVENG_PIX_RGB565:
-      set_bgr = TRUE;
+      data->set_bgr = TRUE;
       break;
     case TVENG_PIX_RGB555:
-      set_bgr = TRUE;
+      data->set_bgr = TRUE;
       break;
     }
-
-  if (set_bgr)
-    png_set_bgr(data->png_ptr);
-
-  /* Some text to go with the png image */
-  text[0].key = "Title";
-  text[0].text = buffer;
-  text[0].compression = PNG_TEXT_COMPRESSION_NONE;
-  text[1].key = "Software";
-  text[1].text = "Zapping";
-  text[1].compression = PNG_TEXT_COMPRESSION_NONE;
-  png_set_text (data->png_ptr, data->info_ptr, text, 2);
-
-  /* Write header data */
-  png_write_info (data->png_ptr, data->info_ptr);
 
   data -> window = gtk_window_new(GTK_WINDOW_DIALOG);
   progressbar =
@@ -737,6 +705,19 @@ start_saving_screenshot (gpointer data_to_save,
 
 }
 
+/* Swaps the R and the B components of a RGB (BGR) image */
+static void bgr2rgb(gchar * data, gint npixels)
+{
+  gchar c;
+  gint i;
+
+  for (i=0; i<npixels; i++)
+    {
+      c = data[0]; data[0] = data[2]; data[2] = c;
+      data += 3;
+    }
+}
+
 /*
   This routine is the one that takes care of saving the image. It runs
   in another thread.
@@ -746,9 +727,8 @@ static void * saver_thread(void * _data)
   struct screenshot_data * data = (struct screenshot_data *) _data;
   LineConverter Converter = NULL; /* The line converter, could be NULL (no
 				      conversion) */
-  png_bytep row_pointer;
   gint rowstride;
-  gchar * pixels;
+  gchar * pixels, *row_pointer = NULL;
   gint number_of_passes;
   gboolean done_writing = FALSE;
 
@@ -782,8 +762,6 @@ static void * saver_thread(void * _data)
   pixels = (gchar*) data->data;
   rowstride = data->format.bytesperline;
 
-  number_of_passes = png_set_interlace_handling(data->png_ptr);
-
   while ((!done_writing) && (!close_everything) &&
 	 (!data -> close))
     {
@@ -793,23 +771,21 @@ static void * saver_thread(void * _data)
       else
 	row_pointer = pixels;
 
-      png_write_row (data->png_ptr, row_pointer);
+      if (data->set_bgr)
+	bgr2rgb(row_pointer, data->format.width);
+
+      jpeg_write_scanlines(&(data->cinfo), (JSAMPROW*)&row_pointer, 1);
 
       pixels += rowstride;
 
       data->lines++;
       if (data->lines == data->format.height)
-	{
-	  if (number_of_passes == 1)
-	    done_writing = TRUE;
-	  else
-	    {
-	      number_of_passes --;
-	      data->lines = 0;
-	      pixels = (gchar*) data->data;
-	    }
-	}
+	done_writing = TRUE;
     }
+
+  jpeg_finish_compress(&(data->cinfo));
+  jpeg_destroy_compress(&(data->cinfo));
+  fclose(data->handle);
 
   data->done = TRUE;
 
@@ -838,10 +814,6 @@ static gboolean thread_manager (struct screenshot_data * data)
       if (data->window)
 	gtk_widget_destroy(data->window);
       pthread_join(data->thread, &result);
-      png_write_end (data->png_ptr, NULL);
-      png_destroy_write_struct (&(data->png_ptr),
-				&(data->info_ptr));
-      fclose(data->handle);
       free(data -> data);
       free(data -> line_data);
       free(data);

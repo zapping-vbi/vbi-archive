@@ -56,7 +56,7 @@ gboolean plugin_load(gchar * file_name, struct plugin_info * info)
   info -> handle = g_module_open (file_name, 0);
   if (!info -> handle)
     {
-      g_warning(g_module_error());
+      g_warning("Failed to load plugin: %s", g_module_error());
       return FALSE;
     }
 

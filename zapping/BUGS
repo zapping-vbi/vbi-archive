@@ -9,4 +9,9 @@ Known bugs with zapping, don't report them
 	* When viewing Teletext, we shouldn't use ERC, but we should
 for the rest. Make it configurable.
 	* Add support in TVeng for tuner-less cards.
+	* Some (broken :-/) X Servers work in 24bpp mode while the
+default visual is 32 bpp, or viceversa. This stops Capture and Preview
+from working both correctly at the same time. Work around this.
 	* YUV support is needed for using TVeng with Xv.
+	! If we use V4L2 controllers with VBI, they crash. Add support
+in libvbi for the V4L2 api (or something like that).

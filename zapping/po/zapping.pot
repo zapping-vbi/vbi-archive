@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-09-11 19:45+0200\n"
+"POT-Creation-Date: 2000-09-12 17:15+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -14,73 +14,77 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: ENCODING\n"
 
-#: src/main.c:92
+#: src/main.c:93
 msgid "Color depth of the X display"
 msgstr ""
 
-#: src/main.c:93
+#: src/main.c:94
 msgid "BPP"
 msgstr ""
 
-#: src/main.c:101
+#: src/main.c:102
 msgid "Set debug messages on"
 msgstr ""
 
-#: src/main.c:120
+#: src/main.c:111
+msgid "Disable VBI support"
+msgstr ""
+
+#: src/main.c:130
 msgid "Sorry, but there is no module support"
 msgstr ""
 
-#: src/main.c:129
+#: src/main.c:139
 msgid "Cannot get device info struct"
 msgstr ""
 
-#: src/main.c:135
+#: src/main.c:145
 msgid "Zapping couldn't be started"
 msgstr ""
 
-#: src/main.c:173
+#: src/main.c:183
 msgid ""
 "The specified device isn't \"/dev/video\".\n"
 "Should I try it?"
 msgstr ""
 
-#: src/main.c:194
+#: src/main.c:204
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:312
+#: src/main.c:322
 #, c-format
 msgid ""
 "Cannot restore previous mode%s:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:315
+#: src/main.c:325
 msgid ", I will try starting capture mode"
 msgstr ""
 
-#: src/main.c:319
+#: src/main.c:329
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:332
+#: src/main.c:342
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
 "%s"
 msgstr ""
 
-#: src/main.c:395
+#: src/main.c:405
 msgid "There is no allocated mem for the capture"
 msgstr ""
 
-#: src/main.c:512
+#: src/main.c:522
 msgid ""
 "ZConf could not be closed properly , your\n"
 "configuration will be lost.\n"
@@ -92,18 +96,18 @@ msgid ""
 "     Zapping. Please contact the author.\n"
 msgstr ""
 
-#: src/main.c:546
+#: src/main.c:556
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr ""
 
-#: src/main.c:611
+#: src/main.c:623
 #, c-format
 msgid ""
 "Sorry, but %s couldn't be opened:\n"
 "%s (%d)"
 msgstr ""
 
-#: src/main.c:615
+#: src/main.c:627
 msgid "There's no GdkPixbuf support, VBI has been disabled"
 msgstr ""
 
@@ -1432,7 +1436,7 @@ msgstr ""
 msgid ""
 "You can use this plugin to take screenshots of what you are actually "
 "watching in TV.\n"
-"It will save the screenshots in PNG format."
+"It will save the screenshots in JPEG format."
 msgstr ""
 
 #: plugins/screenshot/screenshot.c:37
@@ -1458,8 +1462,8 @@ msgstr ""
 msgid "Converts a row in RGBA format to RGB24. Returns the destination."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:362
-msgid "PNG saver"
+#: plugins/screenshot/screenshot.c:362 plugins/screenshot/screenshot.c:473
+msgid "Screenshot"
 msgstr ""
 
 #: plugins/screenshot/screenshot.c:366
@@ -1483,10 +1487,6 @@ msgid ""
 "\n"
 "The interlacing lets you specify if the saved image will be\n"
 "interlaced. This allows image viewers load it progressively."
-msgstr ""
-
-#: plugins/screenshot/screenshot.c:473
-msgid "Screenshot"
 msgstr ""
 
 #: plugins/screenshot/screenshot.c:474

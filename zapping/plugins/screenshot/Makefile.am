@@ -5,6 +5,7 @@ plugindir = $(prefix)/share/zapping/plugins
 plugin_LTLIBRARIES = libscreenshot.zapping.la
 
 libscreenshot_zapping_la_SOURCES = screenshot.c
+libscreenshot_zapping_la_LIBADD = $(JPEG_LIB)
 
 CFLAGS = -Wall -Wno-unused # Avoid warnings about undeclared statics
 INCLUDES = \

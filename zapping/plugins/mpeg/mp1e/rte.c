@@ -33,6 +33,7 @@
 #include "video/video.h" /* fixme: video_unget_frame and friends */
 #include "audio/audio.h" /* fixme: audio_read prots. */
 #include "audio/mpeg.h"
+#include "main.h"
 
 /*
   BUGS:
@@ -704,6 +705,8 @@ int rte_start ( rte_context * context )
 		}
 	}
 
+	/* Now init the engine, as main would do */
+	
 	return 1;
 }
 

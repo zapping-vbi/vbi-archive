@@ -52,7 +52,8 @@ gboolean disable_preview = FALSE; /* TRUE if zapping_setup_fb didn't
 GtkWidget * main_window;
 gboolean was_fullscreen=FALSE; /* will be TRUE if when quitting we
 				  were fullscreen */
-
+static gboolean disable_vbi = FALSE; /* TRUE for disabling VBI support
+				      */
 void shutdown_zapping(void);
 gboolean startup_zapping(void);
 
@@ -99,6 +100,15 @@ int main(int argc, char * argv[])
       &debug_msg,
       0,
       N_("Set debug messages on"),
+      NULL
+    },
+    {
+      "no-vbi",
+      0,
+      POPT_ARG_NONE,
+      &disable_vbi,
+      0,
+      N_("Disable VBI support"),
       NULL
     },
     {
@@ -606,6 +616,8 @@ gboolean startup_zapping()
   D();
   /* Start VBI services, and warn if we cannot */
 #ifdef HAVE_GDKPIXBUF
+  if (disable_vbi)
+    zconf_set_boolean(FALSE, "/zapping/options/vbi/enable_vbi");
   if ((!zvbi_open_device()) &&
       (zconf_get_boolean(NULL, "/zapping/options/vbi/enable_vbi")))
     ShowBox(_("Sorry, but %s couldn't be opened:\n%s (%d)"),
