@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.22 2001-02-16 22:15:16 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.23 2001-02-18 07:37:26 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -286,7 +286,7 @@ vbi_draw_page_region(struct fmt_page *pg, void *data, int conceal,
 	     canvas += W * CW * CH - W * CW, row++) {
 		for (column = scol; column < scol+width;
 		     canvas += CW, column++) {
-			ac = &pg->data[row][column];
+			ac = &pg->text[row * pg->columns + column];
 
 			glyph = (ac->conceal & conceal) ? GL_SPACE : ac->glyph;
 
@@ -303,6 +303,7 @@ vbi_draw_page_region(struct fmt_page *pg, void *data, int conceal,
 				}
 			}
 		}
+
 		canvas += (W-width)*CW;
 	}
 }
@@ -380,7 +381,7 @@ ppm_output(struct export *e, char *name, struct fmt_page *pg)
 	int i;
 
 	if (!(image = malloc(WH * WW * sizeof(*image)))) {
-		export_error(_("unable to allocate %d KB image buffer"),
+		export_error(e, _("unable to allocate %d KB image buffer"),
 			WH * WW * sizeof(*image) / 1024);
 		return 0;
 	}
@@ -388,7 +389,7 @@ ppm_output(struct export *e, char *name, struct fmt_page *pg)
 	vbi_draw_page(pg, image, !e->reveal);
 
 	if (!(fp = fopen(name, "wb"))) {
-		export_error(_("cannot create file '%s': %s"), name, strerror(errno));
+		export_error(e, _("cannot create file '%s': %s"), name, strerror(errno));
 		free(image);
 		return -1;
 	}
@@ -432,7 +433,7 @@ ppm_output(struct export *e, char *name, struct fmt_page *pg)
 	return 0;
 
 write_error:
-	export_error(errno ?
+	export_error(e, errno ?
 		_("error while writing file '%s': %s") :
 		_("error while writing file '%s'"), name, strerror(errno));
 
@@ -516,7 +517,7 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 
 		for (row = 0; row < H; canvas += W * CW * CH - W * CW, row++) {
 			for (column = 0; column < W; canvas += CW, column++) {
-				ac = &pg->data[row][column];
+				ac = &pg->text[row * pg->columns + column];
 
 				if (ac->size > DOUBLE_SIZE)
 					continue;
@@ -591,13 +592,13 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 			}
 		}
 	} else {
-		export_error(_("unable to allocate %d KB image buffer"),
+		export_error(e, _("unable to allocate %d KB image buffer"),
 			WH * WW * sizeof(*image) / 1024);
 		return -1;
 	}
 
 	if (!(fp = fopen(name, "wb"))) {
-		export_error(_("cannot create file '%s': %s"), name, strerror(errno));
+		export_error(e, _("cannot create file '%s': %s"), name, strerror(errno));
 		free(image);
 		return -1;
 	}
@@ -686,7 +687,7 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 	return 0;
 
 write_error:
-	export_error(errno ?
+	export_error(e, errno ?
 		_("error while writing '%s': %s") :
 		_("error while writing '%s'"), name, strerror(errno));
 

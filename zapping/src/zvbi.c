@@ -64,8 +64,8 @@
 
 static struct vbi *vbi=NULL; /* holds the vbi object */
 static pthread_t zvbi_thread_id; /* Just a dummy thread to select() */
-static volatile gboolean exit_thread = FALSE; /* just an atomic flag
-						 to tell the thread to exit */
+//static volatile gboolean exit_thread = FALSE; /* just an atomic flag
+//						 to tell the thread to exit */
 
 struct ttx_client {
   fifo		mqueue;
@@ -86,7 +86,7 @@ static pthread_mutex_t clients_mutex;
 static void event(struct dl_head *reqs, vbi_event *ev);
 
 /* thread function (just a loop that selects on the VBI device) */
-static void * zvbi_thread(void * vbi);
+//static void * zvbi_thread(void * vbi);
 
 /* Some info about the last processed header, protected by a mutex */
 static struct {
@@ -154,7 +154,8 @@ zvbi_open_device(void)
 
   pthread_mutex_init(&(last_info.mutex), NULL);
   pthread_cond_init(&(last_info.xpacket_cond), NULL);
-  if (pthread_create(&zvbi_thread_id, NULL, zvbi_thread, vbi))
+
+  if (pthread_create(&zvbi_thread_id, NULL, vbi_mainloop, vbi))
     {
       vbi_del_handler(vbi, event, NULL);
       vbi_close(vbi);
@@ -358,7 +359,7 @@ build_client_page(struct ttx_client *client, int page, int subpage)
   pthread_mutex_lock(&client->mutex);
   if (page > 0)
     {
-      if (!vbi_fetch_page(vbi, &client->fp, page, subpage, 25))
+      if (!vbi_fetch_page(vbi, &client->fp, page, subpage, 25, 1))
         {
 	  pthread_mutex_unlock(&client->mutex);
 	  return 0;
@@ -598,9 +599,9 @@ zvbi_close_device(void)
   if (!vbi) /* disabled */
     return;
 
-  exit_thread = TRUE;
-
+  vbi->quit = 1;
   pthread_join(zvbi_thread_id, NULL);
+
   pthread_mutex_destroy(&(last_info.mutex));
   pthread_cond_destroy(&(last_info.xpacket_cond));
 
@@ -774,6 +775,7 @@ zvbi_get_time(gint * hour, gint * min, gint * sec)
   pthread_mutex_unlock(&(last_info.mutex));
 }
 
+/* not used
 static void * zvbi_thread(void *p)
 {
   extern void vbi_teletext(struct vbi *vbi, buffer *b);
@@ -796,3 +798,4 @@ static void * zvbi_thread(void *p)
 
   return NULL;
 }
+*/

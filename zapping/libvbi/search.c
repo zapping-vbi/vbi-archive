@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.9 2001-02-16 22:15:17 mschimek Exp $ */
+/* $Id: search.c,v 1.10 2001-02-18 07:37:26 mschimek Exp $ */
 
 #include <stdlib.h>
 #include "vt.h"
@@ -65,7 +65,7 @@ highlight(struct search *s, struct vt_page *vtp,
 	ucs2_t *hp;
 	int i, j;
 
-	acp = &s->pg.data[FIRST_ROW][0];
+	acp = &s->pg.text[FIRST_ROW * s->pg.columns + 0];
 	hp = s->haystack;
 
 	s->start_pgno = vtp->pgno;
@@ -169,7 +169,7 @@ search_page_fwd(struct search *s, struct vt_page *vtp, int wrapped)
 	if (vtp->function != PAGE_FUNCTION_LOP)
 		return 0; // try next
 
-	if (!vbi_format_page(s->vbi, &s->pg, vtp, 25))
+	if (!vbi_format_page(s->vbi, &s->pg, vtp, 25, 1))
 		return -3; // formatting error, abort
 
 	if (s->progress)
@@ -187,7 +187,7 @@ search_page_fwd(struct search *s, struct vt_page *vtp, int wrapped)
 
 	/* To Unicode */
 
-	acp = &s->pg.data[FIRST_ROW][0];
+	acp = &s->pg.text[FIRST_ROW * s->pg.columns + 0];
 	hp = s->haystack;
 	first = hp;
 	row = (this == start) ? s->row[0] : -1;
@@ -266,7 +266,7 @@ search_page_rev(struct search *s, struct vt_page *vtp, int wrapped)
 	if (vtp->function != PAGE_FUNCTION_LOP)
 		return 0; // try next page
 
-	if (!vbi_format_page(s->vbi, &s->pg, vtp, 25))
+	if (!vbi_format_page(s->vbi, &s->pg, vtp, 25, 1))
 		return -3; // formatting error, abort
 
 	if (s->progress)
@@ -284,7 +284,7 @@ search_page_rev(struct search *s, struct vt_page *vtp, int wrapped)
 
 	/* To Unicode */
 
-	acp = &s->pg.data[FIRST_ROW][0];
+	acp = &s->pg.text[FIRST_ROW * s->pg.columns + 0];
 	hp = s->haystack;
 	row = (this == start) ? s->row[1] : 100;
 	flags = 0;

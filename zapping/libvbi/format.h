@@ -18,14 +18,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: format.h,v 1.1 2001-02-07 04:39:30 mschimek Exp $ */
+/* $Id: format.h,v 1.2 2001-02-18 07:37:26 mschimek Exp $ */
 
 #ifndef FORMAT_H
 #define FORMAT_H
 
-/*
- *  attr_char
- */
+#include "lang.h"
 
 /*
  *  WST/CC base palette, actual number of entries in WST mode
@@ -123,10 +121,55 @@ typedef struct {
 	unsigned	glyph		: 32;	/* see lang.c for details */
 } attr_char;
 
-#define attr_char_op(op, s1, s2)
+#define attr_char_op(op, s1, s2) /* tbd */
 
-/*
- *  unified page struct here
- */
+#ifndef ANY_SUB
+#define ANY_SUB		0x3F7F
+#endif
+
+struct fmt_page
+{
+	/*
+	 *  Teletext page number, pgno 0x100 ... 0x8FF, subno 0 ... 0x3F7F
+	 *  or Closed Caption channel, pgno 1 ... 8, subno ANY_SUB.
+	 */
+	int			pgno;
+	int			subno;
+
+	int			rows;
+	int			columns;
+
+	attr_char		text[1000];
+
+	/*
+	 *  Colour and opacity outside the text area.
+	 */
+	attr_rgba		screen_colour;
+	attr_opacity		screen_opacity;
+
+	/*
+	 *  text[].foreground and .background colours.
+	 */
+	attr_rgba *		colour_map;
+
+	/*
+	 *  DRCS LUTs, see exp_gfx.c.
+	 */
+	unsigned char *		drcs_clut;		/* 64 entries */
+	unsigned char *		drcs[32];		/* 16 * 48 * 12 * 10 nibbles, LSN first */
+
+	/* Private */
+
+	struct {
+		int			pgno, subno;
+	}			nav_link[6];
+	char			nav_index[64];
+
+	font_descriptor	*	font[2];
+	unsigned int		double_height_lower;	/* legacy */
+
+	attr_opacity		page_opacity[2];
+	attr_opacity		boxed_opacity[2];
+};
 
 #endif /* FORMAT_H */

@@ -6,7 +6,6 @@
 
 #define W		40
 #define H		25
-#define BAD_CHAR	0xb8	// substitute for chars with bad parity
 
 extern int debug;
 
@@ -103,6 +102,10 @@ typedef vt_triplet vt_enhancement[16 * 13 + 1];
 
 #define NO_PAGE(pgno) (((pgno) & 0xFF) == 0xFF)
 
+#ifndef ANY_SUB
+#define ANY_SUB		0x3F7F
+#endif
+
 struct vt_page
 {
 	page_function		function;
@@ -110,9 +113,6 @@ struct vt_page
 	int			national;
 	int			flags;
 	u32			lop_lines, enh_lines;		/* set of received lines */
-
-	/* added temporarily: */
-	struct vbi *	__vbi;
 
 	union {
 		struct lop {
@@ -246,7 +246,6 @@ typedef struct {
 
 
 
-#define ANY_SUB		0x3f7f	// universal subpage number
 
 
 #endif

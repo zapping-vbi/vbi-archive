@@ -22,6 +22,13 @@ struct raw_page
 
 #define BUFS 4
 
+typedef enum {
+	VBI_LEVEL_1,
+	VBI_LEVEL_1p5,
+	VBI_LEVEL_2p5,
+	VBI_LEVEL_3p5
+} vbi_wst_level;
+
 struct vbi
 {
     int fd;
@@ -33,6 +40,10 @@ struct vbi
     unsigned char *bufs[BUFS];
     int bpl;			// bytes per line
     // magazine defaults
+
+	int			quit; // stoopid
+
+	vbi_wst_level		max_level;
 
 	vt_pagenum		initial_page;
 	magazine		magazine[9];	/* 1 ... 8; #0 unmodified level 1 ... 1.5 default */
@@ -56,19 +67,29 @@ struct vbi
 
 struct vbi *vbi_open(char *vbi_dev_name, struct cache *ca, int fine_tune);
 void vbi_close(struct vbi *vbi);
-void vbi_reset(struct vbi *vbi);
 int vbi_add_handler(struct vbi *vbi, void *handler, void *data);
 void vbi_del_handler(struct vbi *vbi, void *handler, void *data);
-struct vt_page *vbi_query_page(struct vbi *vbi, int pgno, int subno);
 void vbi_pll_reset(struct vbi *vbi, int fine_tune);
 
 int v4l2_vbi_setup_dev(struct vbi *vbi);
 int v4l_vbi_setup_dev(struct vbi *vbi);
 
-void out_of_sync(struct vbi *vbi);
 int vbi_line(struct vbi *vbi, u8 *p);
-void vbi_set_default_region(struct vbi *vbi, int default_region);
 
 extern struct vt_page *convert_page(struct vbi *vbi, struct vt_page *vtp, bool cached, page_function new_function);
+
+extern void *	vbi_mainloop(void *p);
+
+
+
+
+void	out_of_sync(struct vbi *vbi);
+void	vbi_set_default_region(struct vbi *vbi, int default_region);
+struct vt_page *
+	convert_page(struct vbi *vbi, struct vt_page *vtp, bool cached, page_function new_function);
+bool	vbi_packet(struct vbi *vbi, u8 *p);
+
+void reset_magazines(struct vbi *vbi);
+void vbi_send(struct vbi *vbi, int type, int pgno, int subno, int i1, int i2, int i3, void *p1);
 
 #endif

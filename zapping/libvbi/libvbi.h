@@ -11,10 +11,54 @@
 //#include <lang.h>
 #include <dllist.h>
 #include <export.h>
-#include "../common/ucs-2.h"
 
 /*
- *  Navigation
+ *  BCD arithmetic for page numbers
+ */
+
+static inline unsigned int
+dec2bcd(unsigned int dec)
+{
+	return (dec % 10) + ((dec / 10) % 10) * 16 + (dec / 100) * 256;
+}
+
+static inline unsigned int
+bcd2dec(unsigned int bcd)
+{
+	return (bcd & 15) + ((bcd >> 4) & 15) * 10 + (bcd >> 8) * 100;
+}
+
+static inline unsigned int
+add_bcd(unsigned int a, unsigned int b)
+{
+	unsigned int t;
+
+	a += 0x06666666;
+	t  = a + b;
+	b ^= a ^ t;
+	b  = (~b & 0x11111110) >> 3;
+	b |= b * 2;
+
+	return (t - b) & 0xFFF;
+}
+
+static inline int
+is_bcd(unsigned int bcd)
+{
+	const unsigned int x = 0x06666666;
+
+	return (((bcd + x) ^ (bcd ^ x)) & 0x110) == 0;
+}
+
+/*
+ *  Teletext (teletext.c)
+ */
+
+extern int		vbi_fetch_page(struct vbi *vbi, struct fmt_page *pg,
+				       int pgno, int subno, int display_rows, int navigation);
+
+/*
+ *  Navigation (teletext.c)
  */
 
 typedef enum {
@@ -39,8 +83,10 @@ extern void		vbi_resolve_home(struct fmt_page *pg, vbi_link *ld);
 extern int		vbi_page_title(struct vbi *vbi, int pgno, int subno, char *buf);
 
 /*
- *  Search
+ *  Teletext search (search.c)
  */
+
+#include "../common/ucs-2.h"
 
 extern void		vbi_delete_search(void *p);
 extern void *		vbi_new_search(struct vbi *vbi, int pgno, int subno,

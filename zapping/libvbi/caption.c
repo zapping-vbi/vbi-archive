@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.10 2001-02-07 04:39:30 mschimek Exp $ */
+/* $Id: caption.c,v 1.11 2001-02-18 07:37:26 mschimek Exp $ */
 
 #define TEST 1
 
@@ -45,6 +45,7 @@
 
 #include "hamm.c"
 #include "tables.c"
+#include "lang.c"
 
 #define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
 
@@ -608,8 +609,8 @@ itv_separator(char c)
 #include "format.h"
 
 /*
- *  Render <row> 0 ... 14 or -1 all rows, from <buffer> if you're
- *  monitoring <page>, which is CC_PAGE_BASE +
+ *  Render <row> 0 ... 14 or -1 all rows, from <pg->text> if you're
+ *  monitoring <pg->pgno>, which is CC_PAGE_BASE +
  *
  *  0:	"Caption 1" "Primary synchronous caption service [English]"
  *  1:  "Caption 2" "Special non-synchronous data that is intended to
@@ -638,7 +639,7 @@ itv_separator(char c)
  *  If the same render() is used for WST we may need a bool indicating
  *  the required layout.
  */
-extern void render(int page, attr_char *buffer, int row);
+extern void render(struct fmt_page *pg, int row);
 
 /*
  *  Another render() shortcut, set all cols and rows to
@@ -646,19 +647,19 @@ extern void render(int page, attr_char *buffer, int row);
  *  mode because we don't have the buffer to render() and erasing
  *  all data at once will be faster than scanning the buffer anyway.
  */
-extern void clear(int page);
+extern void clear(int pgno);
 
 /*
  *  Start soft scrolling, move <first_row> + 1 ... <last_row> (inclusive)
  *  up to <first_row>. Rows numbered 0 ... 14. Feel free to scroll a row
  *  at once, render from the buffer, move unscaled image data, window
  *  contents, windows, whatever. first_row is provided in buffer to render,
- *  the decoder will roll <buffer> *after* returning and continue writing
- *  in last_row or another. Don't dereference <buffer> pointer after
+ *  the decoder will roll <pg->text> *after* returning and continue writing
+ *  in last_row or another. Don't dereference <pg> pointer after
  *  returning. Soft scrolling finished or not, render() can be called
  *  any time later, any row, so prepare.
  */
-extern void roll_up(int page, attr_char *buffer, int first_row, int last_row);
+extern void roll_up(struct fmt_page *pg, int first_row, int last_row);
 
 /*
  *
@@ -699,7 +700,7 @@ struct caption {
 		bool		italic;
 		attr_char	attr;
 		attr_char *	line;
-		attr_char	buffer[NUM_COLS * NUM_ROWS];
+		struct fmt_page	pg;
 	}		channels[8];		/* caption 1-4, text 1-4 */
 
 	bool		xds;
@@ -740,8 +741,7 @@ word_break(struct caption *cc, struct ch_rec *ch)
 	 *  XXX should not render if space follows space,
 	 *  but force in long words. 
 	 */
-	render(CC_PAGE_BASE + (ch - cc->channels),
-		ch->buffer, ch->redraw_all ? -1 : ch->row);
+	render(&ch->pg, ch->redraw_all ? -1 : ch->row);
 
 	ch->redraw_all = FALSE;
 }
@@ -752,7 +752,7 @@ set_cursor(struct ch_rec *ch, int col, int row)
 	ch->col = ch->col1 = col;
 	ch->row = row;
 
-	ch->line = ch->buffer + row * NUM_COLS;
+	ch->line = ch->pg.text + row * NUM_COLS;
 }
 
 static void
@@ -770,7 +770,7 @@ put_char(struct caption *cc, struct ch_rec *ch, attr_char c)
 		word_break(cc, ch);
 
 /* test */
-// render(CC_PAGE_BASE + (ch - cc->channels), ch->buffer, -1);
+// render(&ch->pg, -1);
 }
 
 static inline struct ch_rec *
@@ -788,10 +788,10 @@ erase_memory(struct caption *cc, struct ch_rec *ch)
 	int i;
 
 	for (i = 0; i < NUM_ROWS * NUM_COLS; i++)
-		ch->buffer[i] = c;
+		ch->pg.text[i] = c;
 }
 
-static const colours palette_mapping[8] = {
+static const attr_colours palette_mapping[8] = {
 	WHITE, GREEN, BLUE, CYAN, RED, YELLOW, MAGENTA, BLACK
 };
 
@@ -999,7 +999,7 @@ caption_command(struct caption *cc,
 
 			word_break(cc, ch);
 
-			render(CC_PAGE_BASE + chan, ch->buffer, -1);
+			render(&ch->pg, -1);
 			ch->redraw_all = FALSE;
 
 			erase_memory(cc, ch);
@@ -1049,10 +1049,10 @@ caption_command(struct caption *cc,
 				set_cursor(ch, 1, ch->row + 1);
 			else {
 				if (ch->mode != POP_ON)
-					roll_up(CC_PAGE_BASE + chan, ch->buffer, ch->row1, last_row);
+					roll_up(&ch->pg, ch->row1, last_row);
 
-				memmove(ch->buffer + ch->row1 * NUM_COLS,
-					ch->buffer + (ch->row1 + 1) * NUM_COLS,
+				memmove(ch->pg.text + ch->row1 * NUM_COLS,
+					ch->pg.text + (ch->row1 + 1) * NUM_COLS,
 					(ch->roll - 1) * NUM_COLS);
 
 //				for (i = 1; i <= NUM_COLS - 1 /* ! */; i++)
@@ -1074,7 +1074,7 @@ caption_command(struct caption *cc,
 
 			word_break(cc, ch);
 
-			render(CC_PAGE_BASE + chan, ch->buffer, ch->redraw_all ? -1 : ch->row);
+			render(&ch->pg, ch->redraw_all ? -1 : ch->row);
 			ch->redraw_all = FALSE;
 
 			return;
@@ -1249,6 +1249,12 @@ dispatch_caption(struct caption *cc, unsigned char *buf, bool field2)
 	}
 }
 
+static attr_rgba
+default_colour_map[8] = {
+	0xFF000000, 0xFF0000FF, 0xFF00FF00, 0xFF00FFFF,	
+	0xFFFF0000, 0xFFFF00FF, 0xFFFFFF00, 0xFFFFFFFF
+};
+
 void
 reset_caption(struct caption *cc)
 {
@@ -1286,7 +1292,21 @@ reset_caption(struct caption *cc)
 		ch->attr.foreground = WHITE;
 		ch->attr.background = BLACK;
 
-		ch->line = ch->buffer + ch->row * NUM_COLS;
+		ch->line = ch->pg.text + ch->row * NUM_COLS;
+
+		ch->pg.pgno = CC_PAGE_BASE + i;
+		ch->pg.subno = ANY_SUB;
+
+		ch->pg.rows = NUM_ROWS;
+		ch->pg.columns = NUM_COLS;
+
+		ch->pg.screen_colour = 0;
+		ch->pg.screen_opacity = (i < 4) ? TRANSPARENT_SPACE : OPAQUE;
+
+		ch->pg.colour_map = default_colour_map;
+
+		ch->pg.font[0] = font_descriptors; /* English */
+		ch->pg.font[1] = font_descriptors;
 
 		erase_memory(cc, ch);
 	}
@@ -1439,12 +1459,12 @@ bump(int n, bool draw)
 }
 
 void
-render(int page, attr_char *buffer, int row)
+render(struct fmt_page *pg, int row)
 {
 	ushort *canvas = ximgdata + 48 + 45 * DISP_WIDTH;
 	int i;
 
-	if (draw_page >= 0 && page != draw_page)
+	if (draw_page >= 0 && pg->pgno != draw_page)
 		return;
 
 	if (shift > 0) {
@@ -1456,10 +1476,10 @@ render(int page, attr_char *buffer, int row)
 	if (row < 0)
 		for (i = 0; i < NUM_ROWS; i++)
 			draw_row(ximgdata + 48 + (45 + i * CELL_HEIGHT)
-				 * DISP_WIDTH, buffer + i * NUM_COLS);
+				 * DISP_WIDTH, pg->text + i * NUM_COLS);
 	else
 		draw_row(ximgdata + 48 + (45 + row * CELL_HEIGHT)
-			 * DISP_WIDTH, buffer + row * NUM_COLS);
+			 * DISP_WIDTH, pg->text + row * NUM_COLS);
 
 	XPutImage(display, window, gc, ximage,
 		0, 0, 0, 0, DISP_WIDTH, DISP_HEIGHT);
@@ -1482,12 +1502,12 @@ clear(int page)
 }
 
 void
-roll_up(int page, attr_char *buffer, int first_row, int last_row)
+roll_up(struct fmt_page *pg, int first_row, int last_row)
 {
 	ushort *canvas = ximgdata + 45 * DISP_WIDTH;
 	int i;
 
-	if (draw_page >= 0 && page != draw_page)
+	if (draw_page >= 0 && pg->pgno != draw_page)
 		return;
 
 #if 0
@@ -1532,7 +1552,7 @@ fetch(int page)
 	if (ch->mode == POP_ON)
 		clear(page); // XXX have no displayed buffer, should we?
 	else
-		render(page, ch->buffer, -1);
+		render(&ch->pg, -1);
 }
 
 static void

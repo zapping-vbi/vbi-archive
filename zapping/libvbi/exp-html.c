@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.8 2001-02-16 22:15:16 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.9 2001-02-18 07:37:26 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -180,7 +180,7 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 	}
 
 	if ((cd = iconv_open(charset, "UCS2")) == (iconv_t) -1) {
-		export_error("character conversion not supported, should not happen");
+		export_error(e, "character conversion not supported, should not happen");
 		return -1;
 	}
 
@@ -191,7 +191,7 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 	flash      = FALSE;
 #endif
 
-	for (acp = pg.data[0], i = 0; i < 25; acp += 40, i++) {
+	for (acp = pg.text, i = 0; i < 25; acp += pg.columns, i++) {
 		int blank = 0;
 
 		for (j = 0; j < 40; j++) {
@@ -256,7 +256,7 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 	}
 
 	if (!(fp = fopen(name, "w"))) {
-		export_error(_("cannot create file '%s': %s"), name, strerror(errno));
+		export_error(e, _("cannot create file '%s': %s"), name, strerror(errno));
 		iconv_close(cd);
 		return -1;
 	}
@@ -289,7 +289,7 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 	span	   = FALSE;
 
 	/* XXX this can get extremely large and ugly, should be improved. */
-	for (acp = pg.data[0], i = 0; i < 25; acp += 40, i++) {
+	for (acp = pg.text, i = 0; i < 25; acp += pg.columns, i++) {
 		for (j = 0; j < 40; j++) {
 			int code;
 
@@ -416,7 +416,7 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 	fclose(fp);
 
 	if (ferror(fp)) {
-		export_error(errno ?
+		export_error(e, errno ?
 			_("error while writing file '%s': %s") :
 			_("error while writing file '%s'"), name, strerror(errno));
 

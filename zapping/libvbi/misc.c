@@ -1,3 +1,8 @@
+
+/* this code is out of use, can be deleted */
+
+#if 0
+
 #include <stdio.h>
 #include <stdarg.h>
 #include "misc.h"
@@ -72,3 +77,5 @@ out_of_mem(int size)
 	fatal("out of memory allocating %d bytes.", size);
     fatal("out of memory.");
 }
+
+#endif

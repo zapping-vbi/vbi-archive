@@ -1,4 +1,4 @@
-#include "vt.h"
+#include "misc.h"
 #include "hamm.h"
 
 // table to decode hamm8/4 encoded bytes.
@@ -296,6 +296,6 @@ chk_parity(u8 *p, int n)
 	if (hamm24par[0][*p] & 32)
 	    *p &= 0x7f;
 	else
-	    *p = BAD_CHAR, err++;
+	    *p = 0x20, err++;
     return err;
 }

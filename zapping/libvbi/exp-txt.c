@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.8 2001-02-11 23:43:29 garetxe Exp $ */
+/* $Id: exp-txt.c,v 1.9 2001-02-18 07:37:26 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -260,7 +260,7 @@ txt_output(struct export *e, char *name, struct fmt_page *pg)
     D->fp = fopen(name, "w");
     if (not D->fp)
     {
-	export_error("cannot create file");
+	export_error(e, "cannot create file");
 	return -1;
     }
 
@@ -277,7 +277,7 @@ txt_output(struct export *e, char *name, struct fmt_page *pg)
 	    // character conversion
 	    for (x = 0; x < W; ++x)
 	    {
-		attr_char ac = pg->data[y][x];
+		attr_char ac = pg->text[y * pg->columns + x];
 
 		if (ac.size > DOUBLE_SIZE) {
 			ac.glyph = 0x20;
@@ -348,7 +348,7 @@ string_output(struct export *e, char *name, struct fmt_page *pg)
 	    // character conversion
 	    for (x = S->col; x < S->col+S->width; ++x)
 		{
-		    attr_char ac = pg->data[y][x];
+		    attr_char ac = pg->text[y * pg->columns + x];
 		    
 		    if (ac.size > DOUBLE_SIZE) {
 			ac.glyph = 0x20;

@@ -12,8 +12,10 @@ libvbi_a_SOURCES = \
 	dllist.h \
 	hamm.c hamm.h \
 	lang.c lang.h \
-	misc.c misc.h \
+	misc.h \
 	vbi.c vbi.h libvbi.h \
 	tables.c tables.h \
 	os.h vt.h \
-	search.c
+	search.c teletext.c packet.c
+
+

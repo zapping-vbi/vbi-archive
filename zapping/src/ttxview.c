@@ -411,7 +411,7 @@ static void selection_handle		(GtkWidget	*widget,
 
 	  if ((e = export_open(buffer)))
 	    {
-	      if ((result = (gchar*)export_fmt_page(e, &data->clipboard_fmt_page,
+	      if ((result = (gchar*)export(e, &data->clipboard_fmt_page,
 					   "memory")))
 		{
 		  gtk_selection_data_set (selection_data,
@@ -420,12 +420,12 @@ static void selection_handle		(GtkWidget	*widget,
 		  free(result);
 		}
 	      else
-		g_warning("couldn't export as string: %s", export_errstr());
+		g_warning("couldn't export as string: %s", export_errstr(e));
 	      export_close(e);
 	    }
 	  else
 	    g_warning("couldn't init export struct: <%s> %s", buffer,
-		      export_errstr());
+		      export_errstr(e));
 
 	  g_free(buffer);
 	}
@@ -475,13 +475,14 @@ update_pointer (ttxview_data *data)
     return;
 
   /* convert to fmt_page space */
-  col = (x*40)/w;
-  row = (y*25)/h;
+  col = (x*data->fmt_page->columns)/w;
+  row = (y*data->fmt_page->rows)/h;
 
-  if ((col < 0) || (col >= 40) || (row < 0) || (row >= 25))
+  if ((col < 0) || (col >= data->fmt_page->columns)
+      || (row < 0) || (row >= data->fmt_page->rows))
     return;
 
-  if (data->fmt_page->data[row][col].link)
+  if (data->fmt_page->text[row * data->fmt_page->columns + col].link)
     {
       vbi_link ld;
 
@@ -1361,10 +1362,10 @@ void export_ttx_page			(GtkWidget	*widget,
       zcs_char(buffer2, "exportdir");
       buffer = g_strconcat(buffer2, filename, NULL);
       g_free(buffer2);
-      if (export_fmt_page(exp, data->fmt_page, buffer))
+      if (export(exp, data->fmt_page, buffer))
 	{
 	  buffer2 = g_strdup_printf("Export to %s failed: %s", buffer,
-				    export_errstr());
+				    export_errstr(exp));
 	  g_warning(buffer2);
 	  if (data->appbar)
 	    gnome_appbar_set_status(GNOME_APPBAR(data->appbar), buffer2);
@@ -1384,7 +1385,7 @@ void export_ttx_page			(GtkWidget	*widget,
   else
     {
       buffer = g_strdup_printf("Cannot create export struct: %s",
-			       export_errstr());
+			       export_errstr(exp));
       g_warning(buffer);
       if (data->appbar)
 	gnome_appbar_set_status(GNOME_APPBAR(data->appbar), buffer);
@@ -1540,11 +1541,11 @@ process_ttxview_menu_popup		(GtkWidget	*widget,
 
   gdk_window_get_size(widget->window, &w, &h);
   /* convert to fmt_page space */
-  col = (event->x*40)/w;
-  row = (event->y*25)/h;
+  col = (event->x*data->fmt_page->columns)/w;
+  row = (event->y*data->fmt_page->rows)/h;
 
   ld.pgno = ld.subno = 0;
-  if (data->fmt_page->data[row][col].link)
+  if (data->fmt_page->text[row * data->fmt_page->columns + col].link)
     {
       vbi_resolve_link(data->fmt_page, col, row, &ld);
 
@@ -2044,14 +2045,14 @@ on_ttxview_button_press			(GtkWidget	*widget,
 
   gdk_window_get_size(widget->window, &w, &h);
   /* convert to fmt_page space */
-  col = (event->x*40)/w;
-  row = (event->y*25)/h;
+  col = (event->x*data->fmt_page->columns)/w;
+  row = (event->y*data->fmt_page->rows)/h;
 
   ld.type = VBI_LINK_NONE;
   ld.pgno = ld.subno = 0;
 
   /* Any modifier enters select mode */
-  if ((data->fmt_page->data[row][col].link) && (!
+  if ((data->fmt_page->text[row * data->fmt_page->columns + col].link) && (!
       (event->state & GDK_SHIFT_MASK ||
        event->state & GDK_CONTROL_MASK ||
        event->state & GDK_MOD1_MASK)))

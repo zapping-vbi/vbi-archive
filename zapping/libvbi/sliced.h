@@ -16,12 +16,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sliced.h,v 1.1 2000-12-11 04:13:38 mschimek Exp $ */
+/* $Id: sliced.h,v 1.2 2001-02-18 07:37:26 mschimek Exp $ */
 
 /*
     Definition of sliced vbi data (vbi device interface),
-    the container is fifo.h/buffer (one frame), vbi_sliced
-    repeats buffer.used / sizeof(vbi_sliced) times.   
+    the container is fifo.h/buffer (one frame). vbi_sliced
+    repeats buffer.used / sizeof(vbi_sliced) times, with
+    increasing line numbers i.e. oldest samples first.
  */
 
 /* Known data services */
@@ -40,9 +41,8 @@
 #define SLICED_VBI_625			(1UL << 30)
 #define SLICED_VBI_525			(1UL << 31)
 
-// XXX MUST add field number for CC
 typedef struct {
 	unsigned int		id;		/* set of SLICED_ */
-	int			line;		/* ITU-R line number 1..n, 0: unknown */
-	unsigned char		data[48];
+	unsigned int		line;		/* ITU-R line number 1..n, 0: unknown */
+	unsigned char		data[56];
 } vbi_sliced;
