@@ -1,6 +1,9 @@
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I.. -masm=intel
+INCLUDES = \
+	-I$(top_srcdir) \
+	-I$(top_srcdir)/plugins/deinterlace \
+	-masm=intel
 
 noinst_LTLIBRARIES = libDI_Misc.la
 
