@@ -1270,219 +1270,252 @@ find_unused_name		(const gchar *		dir,
  *  [12345___|<>] unit [-<>--------][Reset]
  */
 
-GtkAdjustment *
-z_spinslider_get_spin_adj		(GtkWidget *hbox)
-{
-  GtkAdjustment * adj;
+typedef struct z_spinslider z_spinslider;
 
-  adj = g_object_get_data (G_OBJECT (hbox), "spin_adj");
-  g_assert (adj);
-  return adj;
+struct z_spinslider
+{
+  GtkWidget *		hbox;
+  GtkAdjustment *	spin_adj;
+  GtkAdjustment *	hscale_adj;
+
+  gfloat		history[3];
+  guint			reset_state;
+  gboolean		in_reset;
+};
+
+static inline z_spinslider *
+get_spinslider			(GtkWidget *		hbox)
+{
+  z_spinslider *sp;
+
+  sp = g_object_get_data (G_OBJECT (hbox), "z_spinslider");
+  g_assert (sp != NULL);
+
+  return sp;
 }
 
 GtkAdjustment *
-z_spinslider_get_hscale_adj		(GtkWidget *hbox)
+z_spinslider_get_spin_adj	(GtkWidget *		hbox)
 {
-  GtkAdjustment * adj;
+  return get_spinslider (hbox)->spin_adj;
+}
 
-  adj = g_object_get_data (G_OBJECT (hbox), "hscale_adj");
-  g_assert (adj);
-  return adj;
+GtkAdjustment *
+z_spinslider_get_hscale_adj	(GtkWidget *		hbox)
+{
+  return get_spinslider (hbox)->hscale_adj;
 }
 
 gfloat
-z_spinslider_get_value			(GtkWidget *hbox)
+z_spinslider_get_value		(GtkWidget *		hbox)
 {
-  GtkAdjustment * adj;
-
-  adj = g_object_get_data (G_OBJECT (hbox), "spin_adj");
-  g_assert (adj);
-  return adj->value;
+  return get_spinslider (hbox)->spin_adj->value;
 }
 
 void
-z_spinslider_set_value			(GtkWidget *hbox,
-					 gfloat value)
+z_spinslider_set_value		(GtkWidget *		hbox,
+				 gfloat			value)
 {
-  GtkAdjustment * spin_adj, * hscale_adj;
+  z_spinslider *sp = get_spinslider (hbox);
 
-  spin_adj = g_object_get_data (G_OBJECT (hbox), "spin_adj");
-  hscale_adj = g_object_get_data (G_OBJECT (hbox), "hscale_adj");
-  g_assert (spin_adj && hscale_adj);
-  gtk_adjustment_set_value (spin_adj, value);
-  gtk_adjustment_set_value (hscale_adj, value);
+  gtk_adjustment_set_value (sp->spin_adj, value);
+  gtk_adjustment_set_value (sp->hscale_adj, value);
 }
 
 void
-z_spinslider_set_reset_value		(GtkWidget *hbox,
-					 gfloat value)
+z_spinslider_set_reset_value	(GtkWidget *		hbox,
+				 gfloat			value)
 {
-  gfloat *reset_value =
-    g_object_get_data (G_OBJECT (hbox), "reset_value");
+  z_spinslider *sp = get_spinslider (hbox);
 
-  g_assert (reset_value);
-  *reset_value = value;
+  sp->history[sp->reset_state] = value;
+
+  gtk_adjustment_set_value (sp->spin_adj, value);
+  gtk_adjustment_set_value (sp->hscale_adj, value);
 }
 
 void
-z_spinslider_adjustment_changed		(GtkWidget *hbox)
+z_spinslider_adjustment_changed	(GtkWidget *		hbox)
 {
-  GtkAdjustment *spin_adj, *hscale_adj;
+  z_spinslider *sp = get_spinslider (hbox);
 
-  spin_adj = g_object_get_data (G_OBJECT (hbox), "spin_adj");
-  hscale_adj = g_object_get_data (G_OBJECT (hbox), "hscale_adj");
-  g_assert (spin_adj && hscale_adj);
-  hscale_adj->value = spin_adj->value;
-  hscale_adj->lower = spin_adj->lower;
-  hscale_adj->upper = spin_adj->upper + spin_adj->page_size;
-  hscale_adj->step_increment = spin_adj->step_increment;
-  hscale_adj->page_increment = spin_adj->page_increment;
-  hscale_adj->page_size = spin_adj->page_size;
-  gtk_adjustment_changed (spin_adj);
-  gtk_adjustment_changed (hscale_adj);
+  sp->hscale_adj->value = sp->spin_adj->value;
+  sp->hscale_adj->lower = sp->spin_adj->lower;
+  sp->hscale_adj->upper = sp->spin_adj->upper + sp->spin_adj->page_size;
+  sp->hscale_adj->step_increment = sp->spin_adj->step_increment;
+  sp->hscale_adj->page_increment = sp->spin_adj->page_increment;
+  sp->hscale_adj->page_size = sp->spin_adj->page_size;
+  gtk_adjustment_changed (sp->spin_adj);
+  gtk_adjustment_changed (sp->hscale_adj);
 }
 
 static void
-on_z_spinslider_hscale_changed		(GtkWidget *widget,
-					 GtkWidget *hbox)
+on_z_spinslider_hscale_changed	(GtkWidget *		widget,
+				 z_spinslider *		sp)
 {
-  GtkAdjustment * spin_adj, * hscale_adj;
-
-  spin_adj = g_object_get_data (G_OBJECT (hbox), "spin_adj");
-  hscale_adj = g_object_get_data (G_OBJECT (hbox), "hscale_adj");
-  g_assert (spin_adj && hscale_adj);
-  if (spin_adj->value != hscale_adj->value)
-    gtk_adjustment_set_value (spin_adj, hscale_adj->value);
+  if (sp->spin_adj->value != sp->hscale_adj->value)
+    gtk_adjustment_set_value (sp->spin_adj, sp->hscale_adj->value);
 }
 
 static void
-on_z_spinslider_spinbutton_changed	(GtkWidget *widget,
-					 GtkWidget *hbox)
+on_z_spinslider_spinbutton_changed (GtkWidget *		widget,
+				    z_spinslider *	sp)
 {
-  GtkAdjustment * spin_adj, * hscale_adj;
+  if (!sp->in_reset)
+    {
+      if (sp->reset_state != 0)
+	{
+	  sp->history[0] = sp->history[1];
+	  sp->history[1] = sp->history[2];
+	  sp->reset_state--;
+	}
+      sp->history[2] = sp->spin_adj->value;
+    }
 
-  spin_adj = g_object_get_data (G_OBJECT (hbox), "spin_adj");
-  hscale_adj = g_object_get_data (G_OBJECT (hbox), "hscale_adj");
-  g_assert (spin_adj && hscale_adj);
-  if (spin_adj->value != hscale_adj->value)
-    gtk_adjustment_set_value (hscale_adj, spin_adj->value);
+  if (sp->spin_adj->value != sp->hscale_adj->value)
+    gtk_adjustment_set_value (sp->hscale_adj, sp->spin_adj->value);
 }
 
 static void
-on_z_spinslider_reset			(GtkWidget *widget,
-					 GtkWidget *hbox)
+on_z_spinslider_reset		(GtkWidget *		widget,
+				 z_spinslider *		sp)
 {
-  gfloat *reset_value =
-    g_object_get_data (G_OBJECT (hbox), "reset_value");
+  gfloat current_value;
 
-  g_assert (reset_value);
-  z_spinslider_set_value (hbox, *reset_value);
+  current_value = sp->history[2];
+  sp->history[2] = sp->history[1];
+  sp->history[1] = sp->history[0];
+  sp->history[0] = current_value;
+
+  sp->in_reset = TRUE;
+
+  gtk_adjustment_set_value (sp->spin_adj, sp->history[2]);
+  gtk_adjustment_set_value (sp->hscale_adj, sp->history[2]);
+
+  sp->in_reset = FALSE;
+
+  if (sp->reset_state == 0
+      && fabs (sp->history[0] - sp->history[1]) < 1e-6)
+    sp->reset_state = 2;
+  else
+    sp->reset_state = (sp->reset_state + 1) % 3;
 }
 
 GtkWidget *
 z_spinslider_new		(GtkAdjustment *	spin_adj,
 				 GtkAdjustment *	hscale_adj,
 				 const gchar *		unit,
-				 gfloat			reset)
+				 gfloat			reset,
+				 gint			digits)
 {
-  GtkWidget * hbox;
-  GtkWidget * hscale;
-  GtkWidget * spinbutton;
-  GtkWidget * label;
-  GtkWidget * button;
-  GtkWidget * pixmap;
-  gfloat * reset_value;
-  gint digits;
+  z_spinslider *sp;
 
-  hbox = gtk_hbox_new (FALSE, 0);
-  g_object_set_data (G_OBJECT (hbox), "spin_adj", spin_adj);
+  g_assert (spin_adj != NULL);
+
+  sp = g_malloc (sizeof (*sp));
+
+  sp->spin_adj = spin_adj;
+  sp->hscale_adj = hscale_adj;
+
+  sp->hbox = gtk_hbox_new (FALSE, 0);
+  g_object_set_data_full (G_OBJECT (sp->hbox), "z_spinslider", sp,
+			  (GDestroyNotify) g_free);
+
+  /*
+    fprintf(stderr, "zss_new %f %f...%f  %f %f  %f  %d\n",
+    spin_adj->value,
+    spin_adj->lower, spin_adj->upper,
+    spin_adj->step_increment, spin_adj->page_increment,
+    spin_adj->page_size, digits);
+  */
 
   /* Spin button */
 
-  /* Set decimal digits so that step increments < 1.0 become visible */
-  if (spin_adj->step_increment == 0.0
-      || (digits = floor(log10(spin_adj->step_increment))) > 0)
-    digits = 0;
-  /*
-  fprintf(stderr, "zss_new %f %f...%f  %f %f  %f  %d\n",
-	  spin_adj->value,
-	  spin_adj->lower, spin_adj->upper,
-	  spin_adj->step_increment, spin_adj->page_increment,
-	  spin_adj->page_size, digits);
-  */
-  spinbutton = gtk_spin_button_new (spin_adj, 1, -digits);
-  gtk_widget_show (spinbutton);
-  /* I don't see how to set "as much as needed", so hacking this up */
-  gtk_widget_set_size_request (spinbutton, 80, -1);
-  gtk_spin_button_set_update_policy (GTK_SPIN_BUTTON (spinbutton),
-				     GTK_UPDATE_IF_VALID);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton), TRUE);
-  gtk_spin_button_set_wrap (GTK_SPIN_BUTTON (spinbutton), TRUE);
-  gtk_spin_button_set_snap_to_ticks (GTK_SPIN_BUTTON (spinbutton), TRUE);
-  gtk_box_pack_start(GTK_BOX (hbox), spinbutton, FALSE, FALSE, 0);
-  g_signal_connect (G_OBJECT (spin_adj), "value-changed",
-		      G_CALLBACK (on_z_spinslider_spinbutton_changed), hbox);
+  {
+    GtkWidget *spinbutton;
+
+    spinbutton = gtk_spin_button_new (sp->spin_adj,
+				      sp->spin_adj->step_increment, digits);
+    gtk_widget_show (spinbutton);
+    /* I don't see how to set "as much as needed", so hacking this up */
+    gtk_widget_set_size_request (spinbutton, 80, -1);
+    gtk_spin_button_set_update_policy (GTK_SPIN_BUTTON (spinbutton),
+				       GTK_UPDATE_IF_VALID);
+    gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton), TRUE);
+    gtk_spin_button_set_wrap (GTK_SPIN_BUTTON (spinbutton), TRUE);
+    gtk_spin_button_set_snap_to_ticks (GTK_SPIN_BUTTON (spinbutton), TRUE);
+    gtk_box_pack_start (GTK_BOX (sp->hbox), spinbutton, FALSE, FALSE, 0);
+    g_signal_connect (G_OBJECT (sp->spin_adj), "value-changed",
+		      G_CALLBACK (on_z_spinslider_spinbutton_changed), sp);
+  }
 
   /* Unit name */
 
   if (unit)
     {
+      GtkWidget *label;
+
       label = gtk_label_new (unit);
       gtk_widget_show (label);
-      gtk_box_pack_start (GTK_BOX (hbox), label, FALSE, FALSE, 3);
+      gtk_box_pack_start (GTK_BOX (sp->hbox), label, FALSE, FALSE, 3);
     }
 
   /* Slider */
 
   /* Necessary to reach spin_adj->upper with slider */
   if (!hscale_adj)
-    hscale_adj = GTK_ADJUSTMENT (gtk_adjustment_new (spin_adj->value,
-      spin_adj->lower, spin_adj->upper + spin_adj->page_size,
-      spin_adj->step_increment, spin_adj->page_increment,
-      spin_adj->page_size));
+    sp->hscale_adj = GTK_ADJUSTMENT (gtk_adjustment_new
+	(sp->spin_adj->value,
+	 sp->spin_adj->lower,
+	 sp->spin_adj->upper + sp->spin_adj->page_size,
+	 sp->spin_adj->step_increment,
+	 sp->spin_adj->page_increment,
+	 sp->spin_adj->page_size));
 
-  g_object_set_data (G_OBJECT (hbox), "hscale_adj", hscale_adj);
+  {
+    GtkWidget *hscale;
 
-  hscale = gtk_hscale_new (hscale_adj);
-  /* Another hack */
-  gtk_widget_set_size_request (hscale, 80, -1);
-  gtk_widget_show (hscale);
-
-  gtk_scale_set_draw_value (GTK_SCALE (hscale), FALSE);
-  gtk_scale_set_digits (GTK_SCALE (hscale), -digits);
-
-  gtk_box_pack_start (GTK_BOX (hbox), hscale, TRUE, TRUE, 3);
-
-  g_signal_connect (G_OBJECT (hscale_adj), "value-changed",
-		      G_CALLBACK (on_z_spinslider_hscale_changed), hbox);
+    hscale = gtk_hscale_new (sp->hscale_adj);
+    /* Another hack */
+    gtk_widget_set_size_request (hscale, 80, -1);
+    gtk_widget_show (hscale);
+    gtk_scale_set_draw_value (GTK_SCALE (hscale), FALSE);
+    gtk_scale_set_digits (GTK_SCALE (hscale), -digits);
+    gtk_box_pack_start (GTK_BOX (sp->hbox), hscale, TRUE, TRUE, 3);
+    g_signal_connect (G_OBJECT (sp->hscale_adj), "value-changed",
+		      G_CALLBACK (on_z_spinslider_hscale_changed), sp);
+  }
 
   /* Reset button */
 
-  if ((pixmap = z_load_pixmap ("reset.png")))
-    {
-      button = gtk_button_new ();
-      gtk_container_add (GTK_CONTAINER (button), pixmap);
-      z_tooltip_set (button, _("Reset"));
-    }
-  else
-    {
-      button = gtk_button_new_with_label (_("Reset"));
-    }
+  {
+    GtkWidget *button;
+    GtkWidget *pixmap;
 
-  gtk_widget_show (button);
-  gtk_box_pack_start (GTK_BOX (hbox), button, FALSE, FALSE, 0);
+    sp->history[0] = reset;
+    sp->history[1] = reset;
+    sp->history[2] = reset;
+    sp->reset_state = 0;
+    sp->in_reset = FALSE;
 
-  /* Sigh */
-  reset_value = g_malloc (sizeof (gfloat));
-  *reset_value = reset;
+    if ((pixmap = z_load_pixmap ("reset.png")))
+      {
+	button = gtk_button_new ();
+	gtk_container_add (GTK_CONTAINER (button), pixmap);
+	z_tooltip_set (button, _("Reset"));
+      }
+    else
+      {
+	button = gtk_button_new_with_label (_("Reset"));
+      }
 
-  g_object_set_data_full (G_OBJECT (hbox), "reset_value", reset_value,
-			  (GDestroyNotify) g_free);
+    gtk_widget_show (button);
+    gtk_box_pack_start (GTK_BOX (sp->hbox), button, FALSE, FALSE, 0);
+    g_signal_connect (G_OBJECT (button), "pressed",
+		      G_CALLBACK (on_z_spinslider_reset), sp);
+  }
 
-  g_signal_connect (G_OBJECT (button), "pressed",
-		      G_CALLBACK (on_z_spinslider_reset), hbox);
-
-  return hbox;
+  return sp->hbox;
 }
 
 /**
@@ -1530,4 +1563,117 @@ z_entry_emits_response		(GtkWidget	*entry,
 
   g_object_set_data (G_OBJECT (entry), "zmisc-response",
 		     GINT_TO_POINTER (response));
+}
+
+/*
+ *  Application stock icons
+ */
+
+static gboolean
+icon_factory_add_file		(GtkIconFactory *	factory,
+				 const gchar *		stock_id,
+				 const gchar *		filename)
+{
+  GtkIconSet *icon_set;
+  GdkPixbuf *pixbuf;
+  GError *err;
+  gchar *path;
+ 
+  path = g_strconcat (PACKAGE_PIXMAPS_DIR "/", filename, NULL);
+
+  pixbuf = gdk_pixbuf_new_from_file (path, &err);
+
+  g_free (path);
+
+  if (!pixbuf && err)
+    {
+#ifdef ZMISC_DEBUG_STOCK /* FIXME */
+      fprintf (stderr, "Cannot read image file '%s':\n%s\n",
+	       err->message);
+#endif
+      g_error_free (err);
+      return FALSE;
+    }
+
+  g_assert (pixbuf && !err);
+
+  icon_set = gtk_icon_set_new_from_pixbuf (pixbuf);
+
+  gtk_icon_factory_add (factory, stock_id, icon_set);
+
+  return TRUE;
+}
+
+#if 0
+
+static gboolean
+icon_factory_add_pixdata	(GtkIconFactory *	factory,
+				 const gchar *		stock_id,
+				 const GdkPixdata *	pixdata)
+{
+  GtkIconSet *icon_set;
+  GdkPixbuf *pixbuf;
+  GError *err;
+
+  pixbuf = gdk_pixbuf_from_pixdata (pixdata, /* copy_pixels */ FALSE, &err);
+
+  if (!pixbuf && err)
+    {
+#ifdef ZMISC_DEBUG_STOCK /* FIXME */
+      fprintf (stderr, "Cannot read pixdata:\n%s\n", err->message);
+#endif
+      g_error_free (err);
+      return FALSE;
+    }
+
+  g_assert (pixbuf && !err);
+
+  iconset = gtk_icon_set_new_from_pixbuf (pixbuf);
+
+  gtk_icon_factory_add (factory, stock_id, icon_set);
+
+  return TRUE;
+}
+
+#endif
+
+gboolean
+z_icon_factory_add_default_files
+				(const gchar *		stock_id,
+				 const gchar *		filename,
+				 ...)
+{
+  GtkIconFactory *factory;
+  va_list ap;
+
+  factory = gtk_icon_factory_new ();
+
+  if (!icon_factory_add_file (factory, stock_id, filename))
+    goto failure;
+
+  va_start (ap, filename);
+
+  for (;;)
+    {
+      stock_id = va_arg (ap, const gchar *);
+
+      if (!stock_id)
+	break;
+
+      filename = va_arg (ap, const gchar *);
+
+      if (!icon_factory_add_file (factory, stock_id, filename))
+	goto failure;
+    }
+
+  va_end (ap);
+
+  gtk_icon_factory_add_default (factory);
+
+  return TRUE;
+
+ failure:
+  va_end (ap);
+  g_object_unref (G_OBJECT (factory));
+  return FALSE;
 }
