@@ -25,8 +25,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#define SWAP(a, b) \
-  do { __typeof__ (a) _t = (b); (b) = (a); (a) = _t; } while (0)
 
 /*
   This plugin was built from the template one. It does some thing

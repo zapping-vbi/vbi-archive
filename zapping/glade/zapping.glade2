@@ -6422,11 +6422,12 @@ adding the table if possible, for inclusion in the next release of this program.
   <property name="visible">True</property>
   <property name="destroy_with_parent">False</property>
   <property name="logo">logo.png</property>
-  <property name="copyright" translatable="yes">Copyright (C) 2002 the authors.</property>
+  <property name="copyright" translatable="yes">Copyright (C) 2000-2003 the contributors
+</property>
   <property name="comments" translatable="yes">TV viewer for the Gnome environment</property>
   <property name="authors">Michael H. Schimek
 Iñaki García Etxebarria</property>
-  <property name="translator_credits" translatable="yes">Guus Bonnema
+  <property name="translator_credits">Guus Bonnema
 Iñaki García Etxebarria
 Joseba García Etxebarria
 Henrik Isacsson
@@ -6892,16 +6893,6 @@ Pino Toscano</property>
 	      </child>
 
 	      <child>
-		<widget class="button" id="videotext3">
-		  <property name="visible">True</property>
-		  <property name="tooltip" translatable="yes">Activate Teletext mode</property>
-		  <property name="label" translatable="yes">Teletext</property>
-		  <property name="use_underline">True</property>
-		  <property name="stock_pixmap">gtk-justify-fill</property>
-		</widget>
-	      </child>
-
-	      <child>
 		<widget class="toggle" id="tb-mute">
 		  <property name="visible">True</property>
 		  <property name="tooltip" translatable="yes">Switch audio on and off</property>
@@ -6910,6 +6901,16 @@ Pino Toscano</property>
 		  <property name="icon">mute.png</property>
 		  <property name="active">False</property>
 		  <property name="inconsistent">True</property>
+		</widget>
+	      </child>
+
+	      <child>
+		<widget class="button" id="videotext3">
+		  <property name="visible">True</property>
+		  <property name="tooltip" translatable="yes">Activate Teletext mode</property>
+		  <property name="label" translatable="yes">Teletext</property>
+		  <property name="use_underline">True</property>
+		  <property name="stock_pixmap">gtk-justify-fill</property>
 		</widget>
 	      </child>
 	    </widget>

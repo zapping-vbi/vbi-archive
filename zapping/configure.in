@@ -1,4 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
+dnl $Id: configure.in,v 1.130.2.11 2003-02-18 07:56:20 mschimek Exp $
 
 AC_INIT(zapping, 0.7, [http://sourceforge.net/tracker/?atid=102599&group_id=2599&func=browse])
 AC_CONFIG_SRCDIR(configure.in)
@@ -36,6 +37,7 @@ test -e site_def.h || cat <<EOF >site_def.h
 /* #define X11STUFF_WM_HINTS_DEBUG 1 */
 /* #define X11STUFF_VIDMODE_DEBUG 1 */
 /* #define X11STUFF_SCREENSAVER_DEBUG 1 */
+/* #define X11STUFF_DGA_DEBUG 1 */
 #endif /* SITE_DEF_H */
 EOF
 
@@ -418,16 +420,18 @@ if test "x$HAVE_ESD" = "xyes"; then
 fi
 AC_SUBST(ESD_LIBS)
 
-
-GETTEXT_PACKAGE=zapping
+dnl ----------------------------------------------------------------------
+dnl Native language support
+dnl ----------------------------------------------------------------------
+GETTEXT_PACKAGE=AC_PACKAGE_NAME
 AC_SUBST(GETTEXT_PACKAGE)
-AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE,"$GETTEXT_PACKAGE", [gp])
-
-dnl Add the languages which your application supports here.
-ALL_LINGUAS="de en@quot es fr it nl pl sv"
+AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE, "$GETTEXT_PACKAGE", [gp])
+ALL_LINGUAS=`sed -e "/^ *#/d" po/LINGUAS`
 AM_GLIB_GNU_GETTEXT
 
-dnl Check for python support
+dnl ----------------------------------------------------------------------
+dnl Check for Python support (our script language)
+dnl ----------------------------------------------------------------------
 AC_PYTHON_CHECK
 
 dnl Setup the compilation flags
