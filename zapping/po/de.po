@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.5\n"
 "POT-Creation-Date: 2001-08-22 17:59+0200\n"
-"PO-Revision-Date: 2001-08-22 03:28+02:00\n"
+"PO-Revision-Date: 2001-08-23 20:51+02:00\n"
 "Last-Translator: Michael H. Schimek <mschimek@users.sourceforge.net>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -1706,20 +1706,18 @@ msgstr "..."
 
 #: glade/glade_strings.c:177
 msgid "Save the changes and leave the dialog"
-msgstr ""
+msgstr "Die Veränderungen speichern und den Dialog verlassen"
 
 # src/interface.c:432
 #: glade/glade_strings.c:178
-#, fuzzy
 msgid ""
 "Click this button if you want to leave the dialog discarding the changes"
-msgstr "Verwirft alle Änderung"
+msgstr "Alle Veränderungen verwerfen und den Dialog verlassen"
 
 # src/interface.c:432
 #: glade/glade_strings.c:179
-#, fuzzy
 msgid "Click here to add the current channel"
-msgstr "Anklicken um die Eingaben als neuen Sender hinzuzufügen"
+msgstr "Die Eingaben als neuen Sender hinzuzufügen"
 
 #: glade/glade_strings.c:180
 msgid "_Add"
@@ -1904,9 +1902,8 @@ msgid "Previous subpage [-]"
 msgstr "Vorhergehende Unterseite [-]"
 
 #: glade/glade_strings.c:236
-#, fuzzy
 msgid "Go to the previous page [Down]"
-msgstr "Zur Hauptseite [Pos1]"
+msgstr "Zur vorhergehenden Seite [Cursor ab]"
 
 #: glade/glade_strings.c:237
 msgid "Hold the current subpage [H]"
@@ -1917,9 +1914,8 @@ msgid "100"
 msgstr "100"
 
 #: glade/glade_strings.c:239
-#, fuzzy
 msgid "Go to the next page [Up]"
-msgstr "Zur Hauptseite [Pos1]"
+msgstr "Zur nächsten Seite [Cursor auf]"
 
 #: glade/glade_strings.c:240
 msgid "Next subpage [+]"
