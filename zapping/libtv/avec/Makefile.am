@@ -5,8 +5,8 @@
 
 noinst_LIBRARIES = libavec.a
 
-# No -maltivec here until we have a runtime detection
-AM_CFLAGS = -O3 -fomit-frame-pointer -D_REENTRANT -DALTIVEC
+AM_CFLAGS = -O3 -fomit-frame-pointer -D_REENTRANT \
+	-maltivec -mabi=altivec -DALTIVEC
 
 EXTRA_DIST = \
 	clear_block.h
