@@ -228,6 +228,12 @@ zmisc_resolve_pixformat(int bpp, GdkByteOrder byte_order)
 }
 
 /**
+ * Changes the pixmap of a pixbutton (buttons in the toolbar, for example)
+ */
+void set_stock_pixmap	(GtkWidget	*button,
+			 const gchar	*new_pix);
+
+/**
  * Just like gdk_pixbuf_copy_area but does clipping.
  */
 void

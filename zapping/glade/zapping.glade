@@ -1034,7 +1034,6 @@
 	  <items>No fixed ratio
 4:3
 16:9
-3:2
 </items>
 	  <initial_choice>0</initial_choice>
 	  <child>
@@ -3761,6 +3760,9 @@ in the next release of this program.</label>
 	  <tooltip>Go to the index page [Home]</tooltip>
 	  <label>Home</label>
 	  <stock_pixmap>GNOME_STOCK_PIXMAP_HOME</stock_pixmap>
+	  <child>
+	    <new_group>True</new_group>
+	  </child>
 	</widget>
 
 	<widget>

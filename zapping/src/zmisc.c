@@ -433,9 +433,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   return return_value;
 }
 
-#if 0
 /* API flaw */
-static
 void set_stock_pixmap	(GtkWidget	*button,
 			 const gchar	*new_pix)
 {
@@ -446,7 +444,6 @@ void set_stock_pixmap	(GtkWidget	*button,
 
   gnome_stock_set_icon(GNOME_STOCK(widget), new_pix);
 }
-#endif
 
 /**
  * Just like gdk_pixbuf_copy_area but does clipping.

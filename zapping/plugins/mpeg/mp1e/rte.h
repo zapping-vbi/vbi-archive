@@ -32,7 +32,7 @@
 /*
  * Lib build ID, for debugging.
  */
-#define RTE_ID " $Id: rte.h,v 1.25 2001-07-26 05:41:31 mschimek Exp $ "
+#define RTE_ID " $Id: rte.h,v 1.26 2001-07-28 13:19:40 garetxe Exp $ "
 
 /*
  * What are we going to encode, audio only, video only or both
@@ -120,6 +120,8 @@ typedef struct {
 	char * file_name;
 	/* Whether to encode audio only, video only or both */
 	enum rte_mux_mode mode;
+	/* Format we will encode to */
+	char *format;
 
 	/******** video parameters **********/
 	/* pixformat the passed video data is in, defaults to YUV420 */
@@ -142,7 +144,6 @@ typedef struct {
 	   chars max, defaults to IBBPBBPBBPBB */
 	char gop_sequence[1024];
 
-
 	/******* audio parameters **********/
 	/* audio sampling rate in Hz, 44100 by default */
 	int audio_rate; 
@@ -158,11 +159,6 @@ typedef struct {
 
 	/* Stuff we don't want you to see ;-) */
 	rte_context_private * private;
-
-
-
-	char *format;
-
 } rte_context;
 
 /*

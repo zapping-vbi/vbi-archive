@@ -1,6 +1,14 @@
+28.07.2001	gui fixes <garetxe@users.sf.net>
+
+	* ttxview: Added a sep between up/down and the rest.
+	* main.c: Worked around a bug in glade (automagically changes
+	GNOME_STOCK_PIXMAP_(UP|DOWN) into _(TOP|BOTTOM)).
+
+
 28.07.2001	<mschimek@users.sf.net>
 
 	* Fifo conversion complete.
+
 
 25.07.2001	rearranged gui <garetxe@users.sf.net>
 

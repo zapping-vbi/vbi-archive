@@ -138,10 +138,6 @@ static gint timeout_handler(gpointer unused)
 	rw = 16;
 	rh = 9;
 	break;
-      case 3:
-	rw = 3;
-	rh = 2;
-	break;
       default:
 	break;
       }
@@ -373,7 +369,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.118 2001-07-25 21:46:46 garetxe Exp $",
+	 "$Id: main.c,v 1.119 2001-07-28 13:19:40 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU support... ");
   switch (cpu_detection())
@@ -555,6 +551,11 @@ int main(int argc, char * argv[])
   tveng_set_mute(1, main_info);
   D();
   main_window = create_zapping();
+  /* Change the pixmaps, workm around glade bug */
+  set_stock_pixmap(lookup_widget(main_window, "channel_up"),
+		   GNOME_STOCK_PIXMAP_UP);
+  set_stock_pixmap(lookup_widget(main_window, "channel_down"),
+		   GNOME_STOCK_PIXMAP_DOWN);
   D();
   tv_screen = lookup_widget(main_window, "tv_screen");
   /* Avoid dumb resizes to 1 pixel height */
