@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.35 2002-08-22 22:00:23 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.36 2002-09-12 12:23:48 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -46,7 +46,8 @@
 #include "video.h"
 
 /* XXX vlc_mmx.s */
-struct bs_rec		video_out;
+//struct bs_rec		video_out;
+struct vlc_rec		video_out;
 
 /* XXX status report */
 long long		video_frame_count;
@@ -129,7 +130,7 @@ extern void		packed_preview(unsigned char *buffer,
 do {									\
 	/* this isn't really justified, better limit mb_skipped */	\
 	for (i = (skipped); __builtin_expect(i >= 33, 0); i -= 33)	\
-		bputl(&video_out, 0x008, 11); /* mb addr escape */	\
+		bputl(&video_out.bstream, 0x008, 11); /* mb addr escape */	\
 									\
 	code = mp1e_macroblock_address_increment[i].code;		\
 	length = mp1e_macroblock_address_increment[i].length; /* 1...11 */ \
@@ -138,7 +139,7 @@ do {									\
 #define motion_vector(m, dmv)						\
 do {									\
 	int l1 = (m)->vlc[dmv[1]].length;				\
-	bputl(&video_out, ((m)->vlc[dmv[0]].code << l1)			\
+	bputl(&video_out.bstream, ((m)->vlc[dmv[0]].code << l1)			\
 			  + (m)->vlc[dmv[1]].code,			\
 	      (m)->vlc[dmv[0]].length + l1);				\
 } while (0)
@@ -195,7 +196,7 @@ tmp_slice_i(mpeg1_context *mpeg1, bool motion)
 
 			quant = rc_quant(&mpeg1->rc, MB_INTRA,
 					 var / VARQ + 1, 0.0,
-					 bwritten(&video_out), 0, quant_max);
+					 bwritten(&video_out.bstream), 0, quant_max);
 
 if (0)
 			if (mb_col > 0 && !(TEST12 && motion)) {
@@ -216,7 +217,7 @@ if (0)
 
 		/* Encode macroblock */
 
-		brewind(&mark, &video_out);
+		brewind(&mark, &video_out.bstream);
 
 		for (;;) {
 			pr_start(22, "FDCT intra");
@@ -226,29 +227,30 @@ if (0)
 			if (0 && var < LOWVARI)
 				mblock_hp(0);
 
-			bepilog(&video_out);
+			bepilog(&video_out.bstream);
 
 			if (__builtin_expect((mb_col + mb_row) == 0, 0)) {
 				bstartq(SLICE_START_CODE);
 				bcatq((quant << 3) + 0x3, 8);
-				bputq(&video_out, 40);
+				bputq(&video_out.bstream, 40);
 				/*
 				 *  slice header: quantiser_scale_code 'xxxxx', extra_bit_slice '0';
 				 *  macroblock_address_increment '1', macroblock_type '1' (I Intra)
 				 */
 			} else if (MB_HIST(mb_col - 1 /* last */).quant != quant) {
-				bputl(&video_out, 0xA0 + quant, 8);
+				bputl(&video_out.bstream, 0xA0 + quant, 8);
 				/*
 				 *  macroblock_address_increment '1', macroblock_type '01' (I Intra, Quant),
 				 *  quantiser_scale_code 'xxxxx'
 				 */
 			} else
-				bputl(&video_out, 0x3, 2);
+				bputl(&video_out.bstream, 0x3, 2);
 				/* macroblock_address_increment '1', macroblock_type '1' (I Intra) */
 
 			pr_start(44, "Encode intra");
 
-			if (__builtin_expect(!mpeg1_encode_intra(), 1)) { // mblock[1]
+			if (__builtin_expect(!mpeg1_encode_intra(&video_out, mblock[1],
+								 mp1e_iscan0, 1), 1)) {
 				pr_end(44);
 				break;
 			}
@@ -256,12 +258,12 @@ if (0)
 			pr_end(44);
 
 			quant++;
-			brewind(&video_out, &mark);
+			brewind(&video_out.bstream, &mark);
 
 			pr_event(42, "I/intra overflow");
 		}
 
-		bprolog(&video_out);
+		bprolog(&video_out.bstream);
 
 		mpeg1->quant_sum += quant;
 		MB_HIST(mb_col).quant = quant;
@@ -306,7 +308,7 @@ tmp_picture_i(mpeg1_context *mpeg1, unsigned char *org, bool motion)
 	swap(mpeg1->oldref, newref);
 
 	reset_mba();
-	reset_dct_pred();
+	reset_dct_pred (&video_out);
 
 	{
 		struct mblock_hist m = { -100, 0, { 0, 0 }};
@@ -318,17 +320,17 @@ tmp_picture_i(mpeg1_context *mpeg1, unsigned char *org, bool motion)
 
 	/* Picture header */
 
-	bepilog(&video_out);
+	bepilog(&video_out.bstream);
 
-	bputl(&video_out, PICTURE_START_CODE, 32);
-	bputl(&video_out, ((mpeg1->gop_frame_count & 1023) << 22)
+	bputl(&video_out.bstream, PICTURE_START_CODE, 32);
+	bputl(&video_out.bstream, ((mpeg1->gop_frame_count & 1023) << 22)
 	      + (I_TYPE << 19) + (NO_VBV << 3) + (0 << 2), 32);
 	/*
 	 *  temporal_reference [10], picture_coding_type [3], vbv_delay [16];
 	 *  extra_bit_picture '0', byte align '00'
 	 */
 
-	bprolog(&video_out);
+	bprolog(&video_out.bstream);
 
 	mpeg1->filter_param[0].src = org;
 
@@ -339,7 +341,7 @@ tmp_picture_i(mpeg1_context *mpeg1, unsigned char *org, bool motion)
 
 	/* Rate control */
 
-	S = bflush(&video_out);
+	S = bflush(&video_out.bstream);
 
 	rc_picture_end(&mpeg1->rc, I_TYPE, S, mpeg1->quant_sum, mb_num);
 
@@ -355,7 +357,7 @@ tmp_picture_i(mpeg1_context *mpeg1, unsigned char *org, bool motion)
 
 #define pb_intra_mb(f)							\
 do {									\
-	brewind(&mark, &video_out);					\
+	brewind(&mark, &video_out.bstream);					\
 									\
 	for (;;) {							\
 		pr_start(22, "FDCT intra");				\
@@ -365,31 +367,31 @@ do {									\
 		if (0 && var < LOWVARP)					\
 			mblock_hp(0);					\
 									\
-		bepilog(&video_out);					\
+		bepilog(&video_out.bstream);					\
 									\
 		if (f) {						\
 			macroblock_address(mb_skipped);			\
 									\
 			if (prev_quant != quant && prev_quant >= 0) {	\
-				bputl(&video_out, (code << 11) + 0x020  \
+				bputl(&video_out.bstream, (code << 11) + 0x020  \
 					+ quant, length + 11);		\
 				/* macroblock_type '0000 01' */		\
 				/* (P/B Intra, Quant), */		\
 				/* quantiser_scale_code 'xxxxx' */	\
 			} else	{					\
-				bputl(&video_out, (code << 5) + 0x3,	\
+				bputl(&video_out.bstream, (code << 5) + 0x3,	\
 					length + 5);			\
 				/* macroblock_type '0001 1' */		\
 				/* (P/B Intra) */			\
 			}						\
 		} else {						\
 			if (prev_quant != quant) {			\
-				bputl(&video_out, 0x820 + quant, 11);	\
+				bputl(&video_out.bstream, 0x820 + quant, 11);	\
 				/* macroblock_address_increment '1' */	\
 				/* macroblock_type '0000 01' */		\
 				/* quantiser_scale_code 'xxxxx' */	\
 			} else	{					\
-				bputl(&video_out, 0x23, 6);		\
+				bputl(&video_out.bstream, 0x23, 6);		\
 				/* macroblock_address_increment '1' */	\
 				/* macroblock_type '0001 1' */		\
 			}						\
@@ -397,8 +399,8 @@ do {									\
 									\
 		pr_start(44, "Encode intra");				\
 									\
-		if (__builtin_expect(!mpeg1_encode_intra(), 1)) {	\
-					    /* mblock[1] */		\
+		if (__builtin_expect(!mpeg1_encode_intra(		\
+			&video_out, mblock[1], mp1e_iscan0, 1), 1)) {	\
 			pr_end(44);					\
 			break;						\
 		}							\
@@ -407,12 +409,12 @@ do {									\
 									\
 		quant++;						\
 									\
-		brewind(&video_out, &mark);				\
+		brewind(&video_out.bstream, &mark);				\
 									\
 		pr_event(49, "PB/intra overflow");			\
 	}								\
 									\
-	bprolog(&video_out);						\
+	bprolog(&video_out.bstream);						\
 } while (0)
 
 static inline int
@@ -455,7 +457,7 @@ tmp_picture_p(mpeg1_context *mpeg1, unsigned char *org,
 
 	mpeg1->quant_sum = 0;
 
-	reset_dct_pred();
+	reset_dct_pred (&video_out);
 	
 	prev_quant = -100;
 	mb_count = 1;
@@ -463,25 +465,25 @@ tmp_picture_p(mpeg1_context *mpeg1, unsigned char *org,
 
 	/* Picture header */
 
-	bepilog(&video_out);
+	bepilog(&video_out.bstream);
 
-	bputl(&video_out, PICTURE_START_CODE, 32);
+	bputl(&video_out.bstream, PICTURE_START_CODE, 32);
 
-	bputl(&video_out, ((mpeg1->gop_frame_count & 1023) << 19)
+	bputl(&video_out.bstream, ((mpeg1->gop_frame_count & 1023) << 19)
 	      + (P_TYPE << 16) + NO_VBV, 29);
-	bputl(&video_out, (0 << 10) + (M[0].f_code << 7) + (0 << 6), 11);
+	bputl(&video_out.bstream, (0 << 10) + (M[0].f_code << 7) + (0 << 6), 11);
 	/*
 	 *  temporal_reference [10], picture_coding_type [3], vbv_delay [16];
 	 *  full_pel_forward_vector '0', forward_f_code,
 	 *  extra_bit_picture '0', byte align [6]
 	 */
 
-	bputl(&video_out, SLICE_START_CODE + 0, 32);
-	q1p = (unsigned char *) video_out.p + (video_out.n >> 3);
-	bputl(&video_out, (1 << 1) + 0, 6);
+	bputl(&video_out.bstream, SLICE_START_CODE + 0, 32);
+	q1p = (unsigned char *) video_out.bstream.p + (video_out.bstream.n >> 3);
+	bputl(&video_out.bstream, (1 << 1) + 0, 6);
 	/* slice header: quantiser_scale_code 'xxxxx', extra_bit_slice '0' */
 
-	bprolog(&video_out);
+	bprolog(&video_out.bstream);
 
 	mpeg1->filter_param[0].src = org;
 
@@ -555,7 +557,7 @@ tmp_picture_p(mpeg1_context *mpeg1, unsigned char *org,
 					M[0].PMV[1] = M[0].MV[1];
 				}
 
-				brewind(&mark, &video_out);
+				brewind(&mark, &video_out.bstream);
 
 				vmc = 0;
 				cbp = 0;
@@ -580,7 +582,7 @@ tmp_picture_p(mpeg1_context *mpeg1, unsigned char *org,
 				} else {
 					quant = rc_quant(&mpeg1->rc, MB_FORWARD,
 							 act, act,
-							 bwritten(&video_out), QS, quant_max);
+							 bwritten(&video_out.bstream), QS, quant_max);
 					quant = quant_res_intra[quant];
 
 //				if (quant >= 4 && nbabs(quant - prev_quant) <= 2)
@@ -620,7 +622,7 @@ tmp_picture_p(mpeg1_context *mpeg1, unsigned char *org,
 
 				quant = rc_quant(&mpeg1->rc, MB_FORWARD,
 						 var / VARQ + 1, vmc / VARQ + 1,
-						 bwritten(&video_out), 0, quant_max);
+						 bwritten(&video_out.bstream), 0, quant_max);
 if (!T3RT) quant = 2;
 
 //				if (quant >= 4 && nbabs(quant - prev_quant) <= 2)
@@ -634,7 +636,7 @@ if (!T3RT) quant = 2;
 					M[0].PMV[1] = M[0].MV[1];
 				}
 
-				brewind(&mark, &video_out);
+				brewind(&mark, &video_out.bstream);
 
 				for (;;) {
 					pr_start(26, "FDCT inter");
@@ -652,7 +654,7 @@ if (!T3RT) quant = 2;
 						i++;
 						break;
 					} else {
-						bepilog(&video_out);
+						bepilog(&video_out.bstream);
 
 						macroblock_address(i); // length = 1..11
 
@@ -660,31 +662,31 @@ if (!T3RT) quant = 2;
 
 						if (cbp == 0) {
 							if (motion) {
-								bputl(&video_out, (code << 3) + 1, length + 3);
+								bputl(&video_out.bstream, (code << 3) + 1, length + 3);
 								motion_vector(&M[0], dmv[0]);
 								/* macroblock_type '001' (P MC, Not Coded) */
 							} else {
-								bputl(&video_out, (code << 5) + 7, length + 5);
+								bputl(&video_out.bstream, (code << 5) + 7, length + 5);
 								/* macroblock_type '001' (P MC, Not Coded), '11' MV(0, 0) */
 							}
 
-							bprolog(&video_out);
+							bprolog(&video_out.bstream);
 							mp1e_mmx_copy_refblock();
 							break;
 						} else {
 							if (motion
 							    && (M[0].MV[0] | M[0].MV[1])) {
 								if (prev_quant != quant) {
-									bputl(&video_out, (code << 10) + (2 << 5) + quant, length + 10);
+									bputl(&video_out.bstream, (code << 10) + (2 << 5) + quant, length + 10);
 									/* macroblock_type '0001 0' (P MC, Coded, Quant), quantiser_scale_code 'xxxxx' */
 								} else {
-									bputl(&video_out, (code << 1) + 1, length + 1);
+									bputl(&video_out.bstream, (code << 1) + 1, length + 1);
 									/* macroblock_type '1' (P MC, Coded) */
 								}
 
 								motion_vector(&M[0], dmv[0]);
 							
-								bputl(&video_out, mp1e_coded_block_pattern[cbp].code,
+								bputl(&video_out.bstream, mp1e_coded_block_pattern[cbp].code,
 								      mp1e_coded_block_pattern[cbp].length); // 3..9
 							} else {
 								if (prev_quant != quant) {
@@ -699,7 +701,7 @@ if (!T3RT) quant = 2;
 
 								len = mp1e_coded_block_pattern[cbp].length; // 3..9
 								code = (code << len) + mp1e_coded_block_pattern[cbp].code;
-								bputl(&video_out, code, length + len);
+								bputl(&video_out.bstream, code, length + len);
 							}
 
 							pr_start(46, "Encode inter");
@@ -707,7 +709,7 @@ if (!T3RT) quant = 2;
 							if (!mpeg1_encode_inter(mblock[0], cbp)) {
 								pr_end(46);
 
-								bprolog(&video_out);
+								bprolog(&video_out.bstream);
 
 								if (prev_quant < 0)
 									quant1 = quant;
@@ -725,7 +727,7 @@ if (!T3RT) quant = 2;
 							pr_end(46);
 
 							quant++;
-							brewind(&video_out, &mark);
+							brewind(&video_out.bstream, &mark);
 
 							pr_event(45, "P/inter overflow");
 						
@@ -736,7 +738,7 @@ if (!T3RT) quant = 2;
 				mpeg1->quant_sum += quant;
 				mb_skipped = i;
 
-				reset_dct_pred();
+				reset_dct_pred (&video_out);
 			}
 
 			mba_col_incr();
@@ -759,7 +761,7 @@ if (!T3RT) quant = 2;
 
 	/* Rate control */
 
-	S = bflush(&video_out);
+	S = bflush(&video_out.bstream);
 	
 	*q1p |= (quant1 << 3);
 
@@ -808,7 +810,7 @@ tmp_picture_b(mpeg1_context *mpeg1, unsigned char *org,
 
 	mpeg1->quant_sum = 0;
 
-	reset_dct_pred();
+	reset_dct_pred (&video_out);
 
 
 	prev_quant = -100;
@@ -819,13 +821,13 @@ tmp_picture_b(mpeg1_context *mpeg1, unsigned char *org,
 
 	/* Picture header */
 
-	bepilog(&video_out);
+	bepilog(&video_out.bstream);
 
-	bputl(&video_out, PICTURE_START_CODE, 32);
+	bputl(&video_out.bstream, PICTURE_START_CODE, 32);
 
-	bputl(&video_out, ((mpeg1->gop_frame_count & 1023) << 19)
+	bputl(&video_out.bstream, ((mpeg1->gop_frame_count & 1023) << 19)
 	      + (B_TYPE << 16) + NO_VBV, 29);
-	bputl(&video_out, (0 << 10) + (M[0].f_code << 7) + (0 << 6)
+	bputl(&video_out.bstream, (0 << 10) + (M[0].f_code << 7) + (0 << 6)
 			            + (M[1].f_code << 3) + (0 << 2), 11);
 	/*
 	 *  temporal_reference [10], picture_coding_type [3], vbv_delay [16];
@@ -834,12 +836,12 @@ tmp_picture_b(mpeg1_context *mpeg1, unsigned char *org,
 	 *  extra_bit_picture '0', byte align [2]
 	 */
 
-	bputl(&video_out, SLICE_START_CODE + 0, 32);
-	q1p = (unsigned char *) video_out.p + (video_out.n >> 3);
-	bputl(&video_out, (1 << 1) + 0, 6);
+	bputl(&video_out.bstream, SLICE_START_CODE + 0, 32);
+	q1p = (unsigned char *) video_out.bstream.p + (video_out.bstream.n >> 3);
+	bputl(&video_out.bstream, (1 << 1) + 0, 6);
 	/* slice header: quantiser_scale_code 'xxxxx', extra_bit_slice '0' */
 
-	bprolog(&video_out);
+	bprolog(&video_out.bstream);
 
 	mpeg1->filter_param[0].src = org;
 
@@ -938,7 +940,7 @@ skip_pred:
 					dmv[1][1] = (M[1].MV[1] - M[1].PMV[1]) & M[1].f_mask;
 				}
 
-				brewind(&mark, &video_out);
+				brewind(&mark, &video_out.bstream);
 
 				vmc = 0;
 				cbp = 0;
@@ -960,7 +962,7 @@ skip_pred:
 
 				quant = rc_quant(&mpeg1->rc, MB_FORWARD,
 						 act, act,
-						 bwritten(&video_out), QS, quant_max);
+						 bwritten(&video_out.bstream), QS, quant_max);
 				quant = quant_res_intra[quant];
 
 				macroblock_type = MB_INTRA;
@@ -994,7 +996,7 @@ skip_pred:
 
 				quant = rc_quant(&mpeg1->rc, MB_INTERP,
 						 var / VARQ + 1, vmc / VARQ + 1,
-						 bwritten(&video_out), 0, quant_max);
+						 bwritten(&video_out.bstream), 0, quant_max);
 
 				if (quant < 1) quant = 1;
 				else
@@ -1012,7 +1014,7 @@ if (!T3RT) quant = 2;
 					dmv[1][1] = (M[1].MV[1] - M[1].PMV[1]) & M[1].f_mask;
 				}
 
-				brewind(&mark, &video_out);
+				brewind(&mark, &video_out.bstream);
 
 				for (;;) {
 	pr_start(26, "FDCT inter");
@@ -1032,7 +1034,7 @@ l2:
 		i++;
 		break;
 	} else {
-		bepilog(&video_out);
+		bepilog(&video_out.bstream);
 
 		macroblock_address(i); // 1..11
 
@@ -1041,7 +1043,7 @@ l2:
 		if (cbp == 0) {
 			if (motion) {
 				len = 5 - macroblock_type;
-				bputl(&video_out, (code << len) + 2, length + len);
+				bputl(&video_out.bstream, (code << len) + 2, length + len);
 				/* macroblock_type (B Not Coded, see vlc.c) */
 
 				if (macroblock_type & MB_FORWARD)
@@ -1050,11 +1052,11 @@ l2:
 					motion_vector(&M[1], dmv[1]);
 			} else {
 				len = mp1e_macroblock_type_b_nomc_notc[macroblock_type].length; // 5..6
-				bputl(&video_out, (code << len) +
+				bputl(&video_out.bstream, (code << len) +
 					mp1e_macroblock_type_b_nomc_notc[macroblock_type].code, length + len);
 			}
 
-			bprolog(&video_out);
+			bprolog(&video_out.bstream);
 			break;
 		} else {
 			if (motion) {
@@ -1067,7 +1069,7 @@ l2:
 					/* macroblock_type (B Coded, see vlc.c) */
 				}
 
-				bputl(&video_out, code, length + len);
+				bputl(&video_out.bstream, code, length + len);
 
 				if (macroblock_type & MB_FORWARD)
 					motion_vector(&M[0], dmv[0]);
@@ -1084,10 +1086,10 @@ l2:
 					code = (code << len) + mp1e_macroblock_type_b_nomc[macroblock_type].code;
 				}
 
-				bputl(&video_out, code, length + len);
+				bputl(&video_out.bstream, code, length + len);
 			}
 
-			bputl(&video_out, mp1e_coded_block_pattern[cbp].code,
+			bputl(&video_out.bstream, mp1e_coded_block_pattern[cbp].code,
 			      mp1e_coded_block_pattern[cbp].length);
 
 			pr_start(46, "Encode inter");
@@ -1095,7 +1097,7 @@ l2:
 			if (__builtin_expect(!mpeg1_encode_inter(mblock[0], cbp), 1)) {
 				pr_end(46);
 
-				bprolog(&video_out);
+				bprolog(&video_out.bstream);
 
 				break;
 			}
@@ -1104,7 +1106,7 @@ l2:
 
 			quant++;
 			
-			brewind(&video_out, &mark);
+			brewind(&video_out.bstream, &mark);
 
 			pr_event(47, "B/inter overflow");
 	
@@ -1131,7 +1133,7 @@ l2:
 					}
 				}
 
-				reset_dct_pred();
+				reset_dct_pred (&video_out);
 			}
 
 			mba_col_incr();
@@ -1147,7 +1149,7 @@ l2:
 
 	/* Rate control */
 
-	S = bflush(&video_out);
+	S = bflush(&video_out.bstream);
 
 	*q1p |= (quant1 << 3);
 
@@ -1207,21 +1209,21 @@ picture_zero(mpeg1_context *mpeg1)
 
 	printv(3, "Encoding 0 picture\n");
 
-	bepilog(&video_out);
+	bepilog(&video_out.bstream);
 
-	bputl(&video_out, PICTURE_START_CODE, 32);
+	bputl(&video_out.bstream, PICTURE_START_CODE, 32);
 	
-	bputl(&video_out, ((mpeg1->gop_frame_count & 1023) << 19)
+	bputl(&video_out.bstream, ((mpeg1->gop_frame_count & 1023) << 19)
 	      + (P_TYPE << 16) + NO_VBV, 29);
-	bputl(&video_out, (0 << 10) + (1 << 7) + (0 << 6), 11);
+	bputl(&video_out.bstream, (0 << 10) + (1 << 7) + (0 << 6), 11);
 	/*
 	 *  temporal_reference [10], picture_coding_type [3], vbv_delay [16];
 	 *  full_pel_forward_vector '0', forward_f_code '001',
 	 *  extra_bit_picture '0', byte align [6]
 	 */
 
-	bputl(&video_out, SLICE_START_CODE + 0, 32);
-	bputl(&video_out, (1 << 7) + (0 << 6) + (1 << 5) + 0x07, 12);
+	bputl(&video_out.bstream, SLICE_START_CODE + 0, 32);
+	bputl(&video_out.bstream, (1 << 7) + (0 << 6) + (1 << 5) + 0x07, 12);
 	/*
 	 *  slice header: quantiser_scale_code '00001', extra_bit_slice '0';
 	 *  macroblock_address_increment '1' (+1);
@@ -1229,18 +1231,18 @@ picture_zero(mpeg1_context *mpeg1)
 	 */
 
 	for (i = mb_num - 2; i >= 33; i -= 33)
-		bputl(&video_out, 0x008, 11); /* mb addr escape */
+		bputl(&video_out.bstream, 0x008, 11); /* mb addr escape */
 
 	code = mp1e_macroblock_address_increment[i].code;
 	length = mp1e_macroblock_address_increment[i].length; /* 1...11 */
 
-	bputl(&video_out, (code << 5) + 7, length + 5);
+	bputl(&video_out.bstream, (code << 5) + 7, length + 5);
 	/* macroblock_type '001' (P MC, Not Coded), '11' MV(0, 0) */
 
-	bprolog(&video_out);
+	bprolog(&video_out.bstream);
 	emms();
 
-	return bflush(&video_out) >> 3;
+	return bflush(&video_out.bstream) >> 3;
 }
 
 /*
@@ -1268,27 +1270,27 @@ sequence_header(mpeg1_context *mpeg1)
 	bit_rate_value = ceil(mpeg1->bit_rate / 400.0);
 	assert(bit_rate_value >= 1 && bit_rate_value <= 0x3FFFF);
 
-	bepilog(&video_out);
+	bepilog(&video_out.bstream);
 
-	bputl(&video_out, SEQUENCE_HEADER_CODE, 32);
+	bputl(&video_out.bstream, SEQUENCE_HEADER_CODE, 32);
 
-	bputl(&video_out, mpeg1->coded_width & 0xFFF, 12);	/* horizontal_size_value */
-	bputl(&video_out, mpeg1->coded_height & 0xFFF, 12);	/* vertical_size_value */
+	bputl(&video_out.bstream, mpeg1->coded_width & 0xFFF, 12);	/* horizontal_size_value */
+	bputl(&video_out.bstream, mpeg1->coded_height & 0xFFF, 12);	/* vertical_size_value */
 
-	bputl(&video_out, mpeg1->aspect_ratio_code, 4);		/* aspect_ratio_information */
-	bputl(&video_out, mpeg1->frame_rate_code, 4);		/* frame_rate_code */
-	bputl(&video_out, bit_rate_value & 0x3FFFF, 18);	/* bit_rate_value */
-	bputl(&video_out, 1, 1);				/* marker_bit */
-	bputl(&video_out, 0 & 0x3FF, 10);			/* vbv_buffer_size_value */
-	bputl(&video_out, 0, 1);				/* constrained_parameters_flag */
-	bputl(&video_out, 0, 1);				/* load_intra_quantizer_matrix */
-	bputl(&video_out, 0, 1);				/* load_non_intra_quantizer_matrix */
+	bputl(&video_out.bstream, mpeg1->aspect_ratio_code, 4);		/* aspect_ratio_information */
+	bputl(&video_out.bstream, mpeg1->frame_rate_code, 4);		/* frame_rate_code */
+	bputl(&video_out.bstream, bit_rate_value & 0x3FFFF, 18);	/* bit_rate_value */
+	bputl(&video_out.bstream, 1, 1);				/* marker_bit */
+	bputl(&video_out.bstream, 0 & 0x3FF, 10);			/* vbv_buffer_size_value */
+	bputl(&video_out.bstream, 0, 1);				/* constrained_parameters_flag */
+	bputl(&video_out.bstream, 0, 1);				/* load_intra_quantizer_matrix */
+	bputl(&video_out.bstream, 0, 1);				/* load_non_intra_quantizer_matrix */
 
-	bprolog(&video_out);
+	bprolog(&video_out.bstream);
 
 	emms();
 
-	return bflush(&video_out) >> 3;
+	return bflush(&video_out.bstream) >> 3;
 }
 
 static void
@@ -1297,9 +1299,9 @@ user_data(char *s)
 	int n = strlen(s);
 
 	if (n > 0) {
-		bputl(&video_out, USER_DATA_START_CODE, 32);
+		bputl(&video_out.bstream, USER_DATA_START_CODE, 32);
 		while (n--)
-			bputl(&video_out, *s++, 8);
+			bputl(&video_out.bstream, *s++, 8);
 	}
 }
 
@@ -1474,7 +1476,7 @@ encode_bframes(mpeg1_context *mpeg1, int stacked_bframes)
 			int forward, backward;
 
 			obuf = wait_empty_buffer(&mpeg1->prod);
-			bstart(&video_out, obuf->data);
+			bstart(&video_out.bstream, obuf->data);
 
 			/*
 			 *  dist: number 0++ of B frame
@@ -1529,7 +1531,7 @@ encode_keyframe(mpeg1_context *mpeg1, stacked_frame *this,
 		struct bs_rec mark;
 		int forward;
 
-		brewind(&mark, &video_out);
+		brewind(&mark, &video_out.bstream);
 
 		forward = mpeg1->skipped_zero /* I/P but didn't update decoder */
 			+ mpeg1->skipped_fake /* skipped since last I/P frame */
@@ -1541,7 +1543,7 @@ encode_keyframe(mpeg1_context *mpeg1, stacked_frame *this,
 			obuf->type = P_TYPE;
 			mpeg1->p_succ++;
 		} else /* scene cut, promote this P to I picture */
-			brewind(&video_out, &mark);
+			brewind(&video_out.bstream, &mark);
 	}
 
 	if (!obuf->used) {
@@ -1618,7 +1620,7 @@ skip_zerop(mpeg1_context *mpeg1, stacked_frame *this, int sp)
 		int b = sp - 1;
 
 		obuf = wait_empty_buffer(&mpeg1->prod);
-		bstart(&video_out, obuf->data);
+		bstart(&video_out.bstream, obuf->data);
 
 		mpeg1->referenced = TRUE;
 
@@ -1832,7 +1834,7 @@ next_frame:
 		/* Encode P or I picture plus sequence or GOP headers */
 
 		obuf = wait_empty_buffer(&mpeg1->prod);
-		bstart(&video_out, obuf->data);
+		bstart(&video_out.bstream, obuf->data);
 
 		if (!*seq) {
 			/* End of GOP sequence */
@@ -1843,19 +1845,19 @@ if (video_do_reset) {
 	video_reset(mpeg1);
 	video_do_reset = FALSE;
 
-	bstart(&video_out, obuf->data);
+	bstart(&video_out.bstream, obuf->data);
 }
 #endif
 
-			bepilog(&video_out);
+			bepilog(&video_out.bstream);
 
 			/* Sequence header */
 
 			if (mpeg1->seq_frame_count >= mpeg1->frames_per_seqhdr) {
 				printv(3, "[Sequence header]\n");
 
-				memcpy(video_out.p, mpeg1->seq_header_template, 16);
-				video_out.p += 16 * 8 / 64;
+				memcpy(video_out.bstream.p, mpeg1->seq_header_template, 16);
+				video_out.bstream.p += 16 * 8 / 64;
 
 				if (video_frame_count == 0 && mpeg1->banner)
 					user_data(mpeg1->banner);
@@ -1872,8 +1874,8 @@ if (video_do_reset) {
 
 				printv(3, "[GOP header, closed=%c]\n", "FT"[mpeg1->closed_gop]);
 
-				bputl(&video_out, GROUP_START_CODE, 32);
-				bputl(&video_out, (mpeg1->closed_gop << 19) + (0 << 6), 32);
+				bputl(&video_out.bstream, GROUP_START_CODE, 32);
+				bputl(&video_out.bstream, (mpeg1->closed_gop << 19) + (0 << 6), 32);
 				/*
 				 *  time_code [25 w/marker_bit] omitted, closed_gop,
 				 *  broken_link '0', byte align [5]
@@ -1882,7 +1884,7 @@ if (video_do_reset) {
 				mpeg1->gop_frame_count = 0;
 			}
 
-			bprolog(&video_out);
+			bprolog(&video_out.bstream);
 			emms();
 
 			seq = mpeg1->gop_sequence;
@@ -2096,7 +2098,7 @@ video_reset(mpeg1_context *mpeg1)
 
 	rc_reset(mpeg1);
 
-	bstart(&video_out, mpeg1->seq_header_template);
+	bstart(&video_out.bstream, mpeg1->seq_header_template);
 	header_size = sequence_header(mpeg1);
 	assert(header_size == 16);
 
@@ -2454,8 +2456,8 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 		goto reject;
 	}
 
-	binit_write(&video_out);
-	bstart(&video_out, mpeg1->oldref);
+	binit_write(&video_out.bstream);
+	bstart(&video_out.bstream, mpeg1->oldref);
 	mpeg1->Sz = picture_zero(mpeg1);
 
 	if (!(mpeg1->zerop_template =
