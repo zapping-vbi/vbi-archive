@@ -5,6 +5,7 @@ Known bugs with zapping, don't report them
 ------------------------------------------
 
 	* Need better no-overlay-present handling.
+	! RPM creates incorrect zsfb.capps 
 	* Capture won't work under PPC (endianess)
 	* Look for endianness problems.
 	* vbi eats too much CPU, investigate.
@@ -13,7 +14,7 @@ Known bugs with zapping, don't report them
 	~ Zapzilla: what's v4lx doing on standard change?
 	* check on_trigger_clicked
 	* Overlay (no XVideo) under E is broken, shading the window
-	isn't correctly detected.
+	  isn't correctly detected.
 	* Do not assert on ESD timeout
 	* Bug in save window geometry, reported by Pawel.
 	* Auto-overlays search result pages.

@@ -1,3 +1,8 @@
+2002-10-05	<mschimek@users.sf.net>
+
+	* video/mpeg1.c, video/mpeg2.c: GOP header fix, incorrect
+	  closed_gop flag.
+
 2002-10-02	<mschimek@users.sf.net>
 
 	* video/vlc_mmx.s: Correction.
