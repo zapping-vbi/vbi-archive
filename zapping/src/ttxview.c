@@ -374,8 +374,6 @@ static gint selection_clear		(GtkWidget	*widget,
 					 GdkEventSelection *event,
 					 ttxview_data	*data)
 {
-  g_message("clearing selection");
-
   if (event->selection == GDK_SELECTION_PRIMARY)
     data->in_selection = FALSE;
   else if (event->selection == clipboard_atom)
@@ -604,6 +602,7 @@ load_page (int page, int subpage, ttxview_data *data,
 			       data->hold);
     
   data->subpage = subpage;
+  data->page = page;
   data->monitored_subpage = subpage;
   widget = lookup_widget(data->toolbar, "ttxview_subpage");
   if (subpage != ANY_SUB)
@@ -2172,8 +2171,8 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
 	  g_free(buffer);
 	}
       break;
-    case GDK_Page_Down:
-    case GDK_KP_Page_Down:
+    case GDK_Page_Up:
+    case GDK_KP_Page_Up:
       if (data->page < 0x100)
 	data->page = add_bcd(data->fmt_page->pgno, 0x010);
       else
@@ -2182,8 +2181,8 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
 	data->page = 0x100;
       load_page(data->page, ANY_SUB, data, NULL);
       break;
-    case GDK_Page_Up:
-    case GDK_KP_Page_Up:
+    case GDK_Page_Down:
+    case GDK_KP_Page_Down:
       if (data->page < 0x100)
 	data->page = add_bcd(data->fmt_page->pgno, 0x990);
       else
@@ -2192,8 +2191,8 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
 	data->page = 0x899;
       load_page(data->page, ANY_SUB, data, NULL);
       break;
-    case GDK_KP_Up:
-    case GDK_Up:
+    case GDK_KP_Down:
+    case GDK_Down:
       if (data->page < 0x100)
 	data->page = add_bcd(data->fmt_page->pgno, 0x999);
       else
@@ -2202,8 +2201,8 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
 	data->page = 0x899;
       load_page(data->page, ANY_SUB, data, NULL);
       break;
-    case GDK_KP_Down:
-    case GDK_Down:
+    case GDK_KP_Up:
+    case GDK_Up:
       if (data->page < 0x100)
 	data->page = add_bcd(data->fmt_page->pgno, 0x001);
       else

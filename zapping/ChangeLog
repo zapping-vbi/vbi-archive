@@ -1,3 +1,13 @@
+17.2.2001	osd <garetxe@users.sourceforge.net>
+
+	* osd.c: Created. Has the required functionality for integrating
+	CC. No smooth scrolling but will work nicely without XV.
+	* tveng: Made it a bit more fault tolerant, tries to restart
+	capture after failed S_INPUT and S_STD.
+	* main.c: Killed the demiurgical fscking inmortal
+	i-resize-magically-when-*I*-desire-because-i'm-THE-MAIN-WINDOW
+	bug... for some time at least, awaiting its certain resurrection.
+
 16.2.2001	TTX export <mschimek@users.sourceforge.net>
 
 	* removed all vt_page references from ttxview, zvbi. This is

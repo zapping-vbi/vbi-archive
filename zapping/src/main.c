@@ -187,12 +187,30 @@ startup_teletext(void)
   D();
 }
 
+/*
+  Called 0.5s after the main window is created, should solve all the
+  problems with geometry restoring.
+*/
+static
+gint resize_timeout		( gpointer ignored )
+{
+  gint x, y, w, h; /* Saved geometry */
+
+  zconf_get_integer(&x, "/zapping/internal/callbacks/x");
+  zconf_get_integer(&y, "/zapping/internal/callbacks/y");
+  zconf_get_integer(&w, "/zapping/internal/callbacks/w");
+  zconf_get_integer(&h, "/zapping/internal/callbacks/h");
+  printv("Restoring geometry: <%d,%d> <%d x %d>\n", x, y, w, h);
+  gdk_window_move_resize(main_window->window, x, y, w, h);
+  
+  return FALSE;
+}
+
 int main(int argc, char * argv[])
 {
   GtkWidget * tv_screen;
   gchar * buffer;
   GList * p;
-  gint x, y, w, h; /* Saved geometry */
   gint x_bpp = -1;
   char *default_norm = NULL;
   char *video_device = NULL;
@@ -266,7 +284,7 @@ int main(int argc, char * argv[])
 			      0, NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.87 2001-02-02 21:22:43 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.88 2001-02-17 15:22:32 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -519,16 +537,7 @@ int main(int argc, char * argv[])
   D();
   /* Sets the coords to the previous values, if the users wants to */
   if (zcg_bool(NULL, "keep_geometry"))
-    {
-      zconf_get_integer(&x, "/zapping/internal/callbacks/x");
-      zconf_get_integer(&y, "/zapping/internal/callbacks/y");
-      zconf_get_integer(&w, "/zapping/internal/callbacks/w");
-      zconf_get_integer(&h, "/zapping/internal/callbacks/h");
-      printv("Restoring geometry: <%d,%d> <%d x %d>\n", x, y, w, h);
-      /* prevents the toolbar from resizing the window */
-      z_update_gui();
-      gdk_window_move_resize(main_window->window, x, y, w, h);
-    }
+    gtk_timeout_add(500, resize_timeout, NULL);
   D();
   gdk_window_set_back_pixmap(tv_screen->window, NULL, FALSE);
   D();

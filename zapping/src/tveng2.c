@@ -511,6 +511,7 @@ int tveng2_set_input(struct tveng_enum_input * input,
   enum tveng_capture_mode current_mode;
   enum tveng_frame_pixformat pixformat;
   struct v4l2_input new_input;
+  int retcode;
 
   t_assert(info != NULL);
   t_assert(input != NULL);
@@ -520,26 +521,24 @@ int tveng2_set_input(struct tveng_enum_input * input,
   current_mode = tveng_stop_everything(info);
 
   new_input.index = input->id;
-  if (ioctl(info->fd, VIDIOC_S_INPUT, &new_input))
+  if ((retcode = ioctl(info->fd, VIDIOC_S_INPUT, &new_input)))
     {
       info -> tveng_errno = errno;
       t_error("VIDIOC_S_INPUT", info);
-      return -1;
     }
 
   info->format.pixformat = pixformat;
   tveng_set_capture_format(info);
 
   /* Start capturing again as if nothing had happened */
-  if (tveng_restart_everything(current_mode, info) == -1)
-    return -1;
+  tveng_restart_everything(current_mode, info);
 
   info->cur_input = input->id;
 
   /* Maybe there are some other standards, get'em again */
   tveng2_get_standards(info);
 
-  return 0;
+  return retcode;
 }
 
 /*
@@ -621,6 +620,7 @@ int tveng2_set_standard(struct tveng_enumstd * std, tveng_device_info * info)
   enum tveng_capture_mode current_mode;
   enum tveng_frame_pixformat pixformat;
   struct v4l2_enumstd enumstd;
+  int retcode;
 
   t_assert(info != NULL);
   t_assert(std != NULL);
@@ -641,12 +641,10 @@ int tveng2_set_standard(struct tveng_enumstd * std, tveng_device_info * info)
     }
 
   /* Now set it */
-  if (ioctl(info->fd, VIDIOC_S_STD, &(enumstd.std)))
+  if ((retcode = ioctl(info->fd, VIDIOC_S_STD, &(enumstd.std))))
     {
       info->tveng_errno = errno;
       t_error("VIDIOC_S_STD", info);
-      tveng_restart_everything(current_mode, info);
-      return -1;
     }
   
   info->cur_standard = std->index;
@@ -655,7 +653,9 @@ int tveng2_set_standard(struct tveng_enumstd * std, tveng_device_info * info)
   info->format.pixformat = pixformat;
   tveng_set_capture_format(info);
 
-  return tveng_restart_everything(current_mode, info);
+  tveng_restart_everything(current_mode, info);
+
+  return retcode;
 }
 
 static int

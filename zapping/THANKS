@@ -6,5 +6,9 @@ Thanks are due to the following people for helping with the program:
 - Sergey Nikulin: Russian translation and cyrillic TTX glyphs.
 - Eugene Crosser: Russian freq table.
 - Jeremy Maccelari: South African freq table.
+- Magnus Sandin: Patch for keeping the input and the standard when
+		 changing capture modes.
+- Tim Powers: Patches to make it build and work under RH7 (for Fisher),
+	      fixes for the .spec.in file.
 
 And, of course, thanks to the people that sent bug reports and suggestions.

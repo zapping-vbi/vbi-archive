@@ -520,6 +520,7 @@ int tveng1_set_input(struct tveng_enum_input * input,
 {
   enum tveng_capture_mode current_mode;
   struct video_channel channel;
+  int retcode;
 
   t_assert(info != NULL);
   t_assert(input != NULL);
@@ -586,11 +587,10 @@ int tveng1_set_input(struct tveng_enum_input * input,
     }    
 
   /* Now set the channel */
-  if (ioctl(info->fd, VIDIOCSCHAN, &channel))
+  if ((retcode = ioctl(info->fd, VIDIOCSCHAN, &channel)))
     {
       info->tveng_errno = errno;
       t_error("VIDIOCSCHAN", info);
-      return -1;
     }
 
   info->cur_input = input->id;
@@ -599,7 +599,9 @@ int tveng1_set_input(struct tveng_enum_input * input,
   tveng1_get_standards(info);
 
   /* Start capturing again as if nothing had happened */
-  return tveng_restart_everything(current_mode, info);
+  tveng_restart_everything(current_mode, info);
+
+  return retcode;
 }
 
 /* For declaring the possible standards */
@@ -711,6 +713,7 @@ int tveng1_set_standard(struct tveng_enumstd * std, tveng_device_info * info)
   enum tveng_capture_mode current_mode;
   /* in v4l the standard is known as the norm of the channel */
   struct video_channel channel;
+  int retcode;
 
   t_assert(info != NULL);
   t_assert(std != NULL);
@@ -728,17 +731,18 @@ int tveng1_set_standard(struct tveng_enumstd * std, tveng_device_info * info)
 
   /* Now set the channel and the norm */
   channel.norm = std->id;
-  if (ioctl(info->fd, VIDIOCSCHAN, &channel))
+  if ((retcode = ioctl(info->fd, VIDIOCSCHAN, &channel)))
     {
       info->tveng_errno = errno;
       t_error("VIDIOCSCHAN", info);
-      return -1;
     }
 
   info->cur_standard = std->index;
 
   /* Start capturing again as if nothing had happened */
-  return tveng_restart_everything(current_mode, info);
+  tveng_restart_everything(current_mode, info);
+
+  return retcode;
 }
 
 /* Updates the current capture format info. -1 if failed */
