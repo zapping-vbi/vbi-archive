@@ -239,6 +239,7 @@ int main(int argc, char * argv[])
   struct video_capability caps;
   struct video_buffer fb; /* The framebuffer device */
   int show_version = FALSE;
+  int uid=getuid(), euid=geteuid();
 
   /* Parse given args */
   for (i = 1; i < argc; i++)
@@ -388,6 +389,19 @@ int main(int argc, char * argv[])
       return 1;
     }
 
+  /* Drop root privileges if we are root and the real user id
+   * isn't root so we can access the .Xauthority file if it is
+   * on NFS.
+   */
+  PM("Dropping SUID privilages\n", 2);
+  if(!euid && uid)
+  {
+       if(seteuid(uid)==-1)
+       {
+               fprintf(stderr,"uid %d, euid %d, ", uid, euid);
+               perror("but can't set euid");
+       }
+  }
   /* OK, the video device seems to work, open the given X display */
   PM("Opening X display\n", 1);
   display = XOpenDisplay(display_name);
@@ -398,7 +412,18 @@ int main(int argc, char * argv[])
       close(fd);
       return 1;
     }
+  /* Restore root privileges. */
+  if(!euid && uid)
+  {
+       if(seteuid(euid)==-1)
+       {
+               fprintf(stderr,"uid %d, euid %d, ", uid, euid);
+               perror("but can't set euid");
+       }
+  }
 
+  uid=getuid();
+  euid=geteuid();
   PM("Getting default screen for the given display\n", 2);
   screen = XDefaultScreen(display);
 
