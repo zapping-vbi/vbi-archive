@@ -18,9 +18,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dct_ref.c,v 1.1 2000-07-05 18:09:34 mschimek Exp $ */
+/* $Id: dct_ref.c,v 1.2 2000-08-09 09:41:36 mschimek Exp $ */
 
-#include "../misc.h"
+#include "../common/math.h"
 #include "dct.h"
 #include "mpeg.h"
 #include "video.h"

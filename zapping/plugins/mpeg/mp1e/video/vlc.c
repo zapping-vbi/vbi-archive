@@ -18,12 +18,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vlc.c,v 1.1 2000-07-05 18:09:34 mschimek Exp $ */
+/* $Id: vlc.c,v 1.2 2000-08-09 09:41:36 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
-#include "../bstream.h"
-#include "../log.h"
+#include "../common/bstream.h"
+#include "../common/log.h"
 #include "mpeg.h"
 #include "vlc.h"
 

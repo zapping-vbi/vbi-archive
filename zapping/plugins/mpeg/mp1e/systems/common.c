@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: common.c,v 1.2 2000-07-05 18:09:34 mschimek Exp $ */
+/* $Id: common.c,v 1.3 2000-08-09 09:41:36 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,14 +29,15 @@
 #include "../video/video.h"
 #include "../audio/mpeg.h"
 #include "../options.h"
-#include "../fifo.h"
-#include "../log.h"
+#include "../common/fifo.h"
+#include "../common/math.h"
+#include "../common/log.h"
 #include "systems.h"
 
 pthread_mutex_t		mux_mutex;
 pthread_cond_t		mux_cond;
 
-buffer			mux_buffer;
+_buffer			mux_buffer;
 
 int			bytes_out;
 
@@ -83,17 +84,17 @@ get_idle(void)
  *  Generic output routine (audio OR video)
  */
 void
-stream_output(fifo *fifo)
+stream_output(_fifo *fifo)
 {
 	int fps = lroundn(frame_rate_value[frame_rate_code]);
 	int i;
 
 	for (i = 0;; i++) {
-		buffer *buf;
+		_buffer *buf;
 
 		pthread_mutex_lock(&mux_mutex);
 
-		while (!(buf = (buffer *) rem_head(&fifo->full)))
+		while (!(buf = (_buffer *) rem_head(&fifo->full)))
 			pthread_cond_wait(&mux_cond, &mux_mutex);
 
 		pthread_mutex_unlock(&mux_mutex);
@@ -142,7 +143,7 @@ stream_output(fifo *fifo)
 			fflush(stderr);
 		}
 
-		empty_buffer(fifo, buf);
+		_empty_buffer(fifo, buf);
 	}
 
 	/* End of file (end code appended by producer) */

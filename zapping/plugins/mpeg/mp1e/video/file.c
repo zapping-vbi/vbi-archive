@@ -18,13 +18,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: file.c,v 1.1 2000-07-05 18:09:34 mschimek Exp $ */
+/* $Id: file.c,v 1.2 2000-08-09 09:41:36 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
-#include "../fifo.h"
+#include "../common/fifo.h"
 #include "../options.h"
-#include "../misc.h"
+#include "../common/math.h"
 #include "video.h"
 
 #define FILTER_MODE CM_YUYV // CM_YUV | CM_YUYV

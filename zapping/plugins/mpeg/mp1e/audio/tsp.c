@@ -19,11 +19,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: tsp.c,v 1.1 2000-07-05 18:09:34 mschimek Exp $ */
+/* $Id: tsp.c,v 1.2 2000-08-09 09:41:36 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "../log.h"
+#include "../common/log.h"
 
 #ifdef HAVE_LIBTSP 
 
@@ -33,12 +33,11 @@
 #include <errno.h>
 #include <libtsp.h>
 #include <sys/time.h>
-#include <libtsp.h>
 
 #include "mpeg.h"
 #include "audio.h"
-#include "../mmx.h"
-#include "../misc.h"
+#include "../common/mmx.h"
+#include "../common/math.h"
 
 /*
  *  Audio File Library (libtsp) Interface

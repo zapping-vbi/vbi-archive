@@ -30,14 +30,14 @@
 #include "../video/video.h"
 #include "../audio/mpeg.h"
 #include "../options.h"
-#include "../fifo.h"
-#include "../log.h"
+#include "../common/fifo.h"
+#include "../common/log.h"
 #include "../rtepriv.h"
 #include "systems.h"
 
 extern pthread_t        output_thread_id;
 
-static fifo             out;
+static _fifo             out;
 static int              out_buffers = 8;
 static size_t           out_buffer_size;
 
@@ -59,7 +59,7 @@ output_init( void )
 		break;
 	}
 
-	out_buffers = init_fifo(&out, "output", out_buffer_size,
+	out_buffers = _init_fifo(&out, "output", out_buffer_size,
 				out_buffers);
 
 	return (out_buffers > 4 ? 1 : 0);
@@ -68,18 +68,18 @@ output_init( void )
 void
 output_end ( void )
 {
-	buffer * buf;
+	_buffer * buf;
 	
 	pthread_cancel(output_thread_id);
 	pthread_join(output_thread_id, NULL);
 
-	while ((buf = (buffer *) rem_head(&out.full)))
+	while ((buf = (_buffer *) rem_head(&out.full)))
 	{
 		if (!buf->size)
 			break;
 		rte_global_context->private->encode_callback(buf->data, buf->size,
 			   rte_global_context, rte_global_context->private->user_data);
-		empty_buffer(&out, buf);
+		_empty_buffer(&out, buf);
 	}
 }
 
@@ -87,21 +87,21 @@ output_end ( void )
   If the output callback is NULL, we should call do_real_output
   directly from here, and avoid the fifo thing.
 */
-buffer *
-output(buffer *mbuf)
+_buffer *
+output(_buffer *mbuf)
 {
-	buffer *obuf;
+	_buffer *obuf;
 
 	bytes_out += mbuf->size;
 
-	obuf = new_buffer(&out);
+	obuf = _new_buffer(&out);
 
 	assert(out_buffer_size >= mbuf->size);
 
 	memcpy(obuf->data, mbuf->data, mbuf->size);
 	obuf->size = mbuf->size;
 
-	send_out_buffer(&out, obuf);
+	_send_out_buffer(&out, obuf);
 
 	return mbuf; /* any previously entered */
 }
@@ -112,12 +112,12 @@ output(buffer *mbuf)
 void *
 output_thread (void * unused)
 {
-	buffer * buf;
+	_buffer * buf;
 
 	for (;;) {
 		pthread_mutex_lock(&out.mutex);
 
-		while (!(buf = (buffer *) rem_head(&out.full)))
+		while (!(buf = (_buffer *) rem_head(&out.full)))
 			pthread_cond_wait(&out.cond, &out.mutex);
 
 		pthread_mutex_unlock(&out.mutex);
@@ -127,7 +127,7 @@ output_thread (void * unused)
 		rte_global_context->private->encode_callback(buf->data, buf->size,
 			   rte_global_context, rte_global_context->private->user_data);
 
-		empty_buffer(&out, buf);
+		_empty_buffer(&out, buf);
 	}
 
 	return NULL;

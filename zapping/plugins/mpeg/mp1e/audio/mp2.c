@@ -20,14 +20,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.2 2000-07-05 18:09:34 mschimek Exp $ */
+/* $Id: mp2.c,v 1.3 2000-08-09 09:41:36 mschimek Exp $ */
 
 #include <limits.h>
 #include "../options.h"
-#include "../mmx.h"
-#include "../profile.h"
-#include "../bstream.h"
-#include "../misc.h"
+#include "../common/mmx.h"
+#include "../common/profile.h"
+#include "../common/bstream.h"
+#include "../common/math.h"
 #include "mpeg.h"
 #include "audio.h"
 
@@ -173,7 +173,7 @@ audio_init(void)
 
 	channels = 1 << stereo;
 
-	binit(&aseg.out);
+	binit_write(&aseg.out);
 
         bit_rate_per_ch = bit_rate_value[mpeg_version][bit_rate_code] / channels;
         sampling_freq = sampling_freq_value[mpeg_version][sampling_freq_code];
@@ -329,7 +329,7 @@ void *
 audio_compression_thread(void *unused)
 {
 	for (;;) {
-		buffer *obuf;
+		_buffer *obuf;
 		unsigned int adb, bpf;
 		double stime;
 
@@ -359,9 +359,9 @@ audio_compression_thread(void *unused)
 			    stime >= audio_stop_time) {
 				printv(2, "Audio: End of file\n");
 
-				obuf = new_buffer(&aud);
+				obuf = _new_buffer(&aud);
 				obuf->size = 0;
-				send_buffer(&aud, obuf);
+				_send_buffer(&aud, obuf);
 				continue;
 			}
 
@@ -526,7 +526,7 @@ audio_compression_thread(void *unused)
 
 		pr_end(36);
 
-		obuf = new_buffer(&aud);
+		obuf = _new_buffer(&aud);
 
 		bstart(&aseg.out, obuf->data);
 
@@ -598,7 +598,7 @@ audio_compression_thread(void *unused)
 		obuf->size = bpf;
 		obuf->time = stime;
 
-		send_buffer(&aud, obuf);
+		_send_buffer(&aud, obuf);
 	}
 
 	return NULL; // never
@@ -608,7 +608,7 @@ void *
 stereo_audio_compression_thread(void *unused)
 {
 	for (;;) {
-		buffer *obuf;
+		_buffer *obuf;
 		unsigned int adb, bpf;
 		double stime;
 
@@ -638,9 +638,9 @@ stereo_audio_compression_thread(void *unused)
 			    stime >= audio_stop_time) {
 				printv(2, "Audio: End of file\n");
 
-				obuf = new_buffer(&aud);
+				obuf = _new_buffer(&aud);
 				obuf->size = 0;
-				send_buffer(&aud, obuf);
+				_send_buffer(&aud, obuf);
 				continue;
 			}
 
@@ -814,7 +814,7 @@ stereo_audio_compression_thread(void *unused)
 
 		pr_end(36);
 
-		obuf = new_buffer(&aud);
+		obuf = _new_buffer(&aud);
 
 		bstart(&aseg.out, obuf->data);
 
@@ -928,7 +928,7 @@ stereo_audio_compression_thread(void *unused)
 		obuf->size = bpf;
 		obuf->time = stime;
 
-		send_buffer(&aud, obuf);
+		_send_buffer(&aud, obuf);
 	}
 
 	return NULL; // never

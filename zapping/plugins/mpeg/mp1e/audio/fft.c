@@ -17,14 +17,14 @@
  *
  */
 
-/* $Id: fft.c,v 1.1 2000-07-05 18:09:34 mschimek Exp $ */
+/* $Id: fft.c,v 1.2 2000-08-09 09:41:36 mschimek Exp $ */
 
 /* http://www.fftw.org */
 
-#include <math.h>
-#include "../log.h"
-#include "../mmx.h"
-#include "../misc.h"
+#include "../common/log.h"
+#include "../common/mmx.h"
+#include "../common/math.h"
+#include "../common/alloc.h"
 
 typedef struct {
      FLOAT re, im;

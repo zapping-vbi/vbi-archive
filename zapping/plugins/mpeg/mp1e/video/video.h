@@ -18,10 +18,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: video.h,v 1.1 2000-07-05 18:09:34 mschimek Exp $ */
+/* $Id: video.h,v 1.2 2000-08-09 09:41:36 mschimek Exp $ */
 
-#include "../bstream.h"
-#include "../fifo.h"
+#include "../common/bstream.h"
+#include "../common/fifo.h"
 
 #define MAX_WIDTH 1024			// 1 ... 4096
 #define MAX_HEIGHT 1024			// 1 ... 2800
@@ -45,7 +45,7 @@ extern const char *	filter_labels[];
 extern int		video_frame_count;
 extern int		video_frames_dropped;
 
-extern fifo		vid;
+extern _fifo		vid;
 extern pthread_t	video_thread_id;
 
 extern void *		video_compression_thread(void *unused);

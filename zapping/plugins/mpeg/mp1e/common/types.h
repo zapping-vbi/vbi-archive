@@ -2,8 +2,6 @@
  *  MPEG-1 Real Time Encoder
  *
  *  Copyright (C) 1999-2000 Michael H. Schimek
- * 
- *  Modified by Iñaki G.E.
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,15 +18,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ifndef __OUTPUT_H__
-#define __OUTPUT_H__
+/* $Id: types.h,v 1.1 2000-08-09 09:40:14 mschimek Exp $ */
 
+#ifndef TYPES_H
+#define TYPES_H
 
-#define 			PACKET_SIZE		2048	// including any headers
+#define TRUE 1
+#define FALSE 0
 
-extern void *                   output_thread(void * unused);
-extern int                      output_init(void);
-extern void                     output_end(void);
-extern _buffer *                 output(_buffer *);
+typedef unsigned char bool;
 
-#endif
+#endif // TYPES_H

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.7 2000-07-17 20:17:57 garetxe Exp $ */
+/* $Id: main.c,v 1.8 2000-08-09 09:42:39 mschimek Exp $ */
 
 #define MAIN_C
 
@@ -42,17 +42,18 @@
 #include <asm/types.h>
 #include "videodev2.h"
 #include <linux/soundcard.h>
-#include "profile.h"
 #include "audio/mpeg.h"
 #include "video/mpeg.h"
 #include "video/video.h"
 #include "audio/audio.h"
 #include "systems/systems.h"
-#include "misc.h"
-#include "log.h"
+//#include "misc.h"
+#include "common/profile.h"
+#include "common/math.h"
+#include "common/log.h"
+#include "common/mmx.h"
+#include "common/bstream.h"
 #include "options.h"
-#include "mmx.h"
-#include "bstream.h"
 #include "rtepriv.h"
 
 char *			my_name;
@@ -61,13 +62,13 @@ int			verbose;
 double			video_stop_time = 1e30;
 double			audio_stop_time = 1e30;
 
-fifo			aud;
+_fifo			aud;
 pthread_t		audio_thread_id;
 short *			(* audio_read)(double *);
 void			(* audio_unget)(short *);
 int			stereo;
 
-fifo			vid;
+_fifo			vid;
 pthread_t		video_thread_id;
 void			(* video_start)(void);
 unsigned char *		(* video_wait_frame)(double *, int *);
@@ -213,6 +214,7 @@ int emulation_thread_init ( void )
 		break;
 	default:
 		printv(1, "filter mode not supported: %d\n", filter_mode);
+		format = RTE_YUYV;
 		break;
 	}
 
@@ -355,7 +357,7 @@ main(int ac, char **av)
 			sampling_rate / (double) 1000, sampling_rate < 32000 ? " (MPEG-2)" : "", modes[audio_mode],
 			audio_bit_rate / 1000, (double) sampling_rate * (16 << stereo) / audio_bit_rate);
 
-		aud_buffers = init_fifo(&aud, "audio compression", 2048 << stereo, aud_buffers);
+		aud_buffers = _init_fifo(&aud, "audio compression", 2048 << stereo, aud_buffers);
 
 		printv(2, "Allocated %d audio compression buffers\n", aud_buffers);
 
@@ -377,7 +379,7 @@ main(int ac, char **av)
 			width, height, (double) frame_rate,
 			video_bit_rate / 1e6, (width * height * 1.5 * 8 * frame_rate) / video_bit_rate);
 
-		vid_buffers = init_fifo(&vid, "video compression", mb_num * 384 * 4, vid_buffers);
+		vid_buffers = _init_fifo(&vid, "video compression", mb_num * 384 * 4, vid_buffers);
 
 		printv(2, "Allocated %d video compression buffers\n", vid_buffers);
 

@@ -18,9 +18,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mblock.c,v 1.1 2000-07-05 18:09:34 mschimek Exp $ */
+/* $Id: mblock.c,v 1.2 2000-08-09 09:41:36 mschimek Exp $ */
 
 #include "video.h"
+#include "../common/math.h"
 
 int			mb_col, mb_row,			// current
     			mb_width, mb_height,

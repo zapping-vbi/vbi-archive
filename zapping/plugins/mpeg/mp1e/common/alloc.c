@@ -2,8 +2,6 @@
  *  MPEG-1 Real Time Encoder
  *
  *  Copyright (C) 1999-2000 Michael H. Schimek
- * 
- *  Modified by Iñaki G.E.
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,15 +18,31 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ifndef __OUTPUT_H__
-#define __OUTPUT_H__
+/* $Id: alloc.c,v 1.1 2000-08-09 09:40:14 mschimek Exp $ */
 
+#include "math.h"
 
-#define 			PACKET_SIZE		2048	// including any headers
+#ifndef HAVE_MEMALIGN
 
-extern void *                   output_thread(void * unused);
-extern int                      output_init(void);
-extern void                     output_end(void);
-extern _buffer *                 output(_buffer *);
+void *
+alloc_aligned(size_t size, int align, bool clear)
+{
+	void *p, *b;
 
-#endif
+	if (align < sizeof(void *))
+		align = sizeof(void *);
+
+	if (!(b = malloc(size + align)))
+		return NULL;
+
+	p = (void *)(((long)((char *) b + align)) & -align);
+
+	((void **) p)[-1] = b;
+
+	if (clear)
+		memset(p, 0, size);
+
+	return p;
+}
+
+#endif // !HAVE_MEMALIGN

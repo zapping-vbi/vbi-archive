@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: systems.h,v 1.2 2000-07-05 18:09:34 mschimek Exp $ */
+/* $Id: systems.h,v 1.3 2000-08-09 09:41:36 mschimek Exp $ */
 
 #ifndef __SYSTEMS_H__
 #define __SYSTEMS_H__
@@ -27,12 +27,12 @@
 
 extern pthread_mutex_t		mux_mutex;
 extern pthread_cond_t		mux_cond;
-extern buffer			mux_buffer;
+extern _buffer			mux_buffer;
 extern int			bytes_out;
 extern double			system_idle;
 
 extern double			get_idle(void);
-extern void			stream_output(fifo *fifo);
+extern void			stream_output(_fifo *fifo);
 extern void			mpeg1_system_run_in(void);
 extern void *			mpeg1_system_mux(void *unused);
 

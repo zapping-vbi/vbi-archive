@@ -2,8 +2,6 @@
  *  MPEG-1 Real Time Encoder
  *
  *  Copyright (C) 1999-2000 Michael H. Schimek
- * 
- *  Modified by Iñaki G.E.
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,15 +18,20 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ifndef __OUTPUT_H__
-#define __OUTPUT_H__
+#define PROFILING 0
 
+#if PROFILING
 
-#define 			PACKET_SIZE		2048	// including any headers
+extern void pr_start(int n, char *label);
+extern void pr_end(int n);
+extern void pr_event(int n, char *label);
+extern void pr_report(void);
 
-extern void *                   output_thread(void * unused);
-extern int                      output_init(void);
-extern void                     output_end(void);
-extern _buffer *                 output(_buffer *);
+#else
+
+#define pr_start(n, label)
+#define pr_end(n)
+#define pr_event(n, label)
+#define pr_report()
 
 #endif

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.2 2000-07-05 18:09:34 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.3 2000-08-09 09:41:36 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,8 +30,9 @@
 #include "../audio/mpeg.h"
 #include "../audio/audio.h"
 #include "../options.h"
-#include "../fifo.h"
-#include "../log.h"
+#include "../common/fifo.h"
+#include "../common/math.h"
+#include "../common/log.h"
 #include "mpeg.h"
 #include "systems.h"
 
@@ -103,7 +104,7 @@ putt(unsigned char *d, int mark, unsigned int time)
 static inline void
 put4(unsigned char *d, unsigned int n)
 {
-	*((unsigned int *) d) = bswap(n);
+	*((unsigned int *) d) = swab32(n);
 }
 
 static inline void
@@ -126,18 +127,18 @@ mpeg1_system_mux(void *unused)
 {
 	unsigned int video_frame = 0, packet = 0, mux_rate_code;
 	double system_rate = 0, scr, pack_tick;
-	buffer *vbuf, *abuf;
+	_buffer *vbuf, *abuf;
 	bool done = FALSE;
-	buffer *mbuf = &mux_buffer;
+	_buffer *mbuf = &mux_buffer;
 
 	// Get sizes of pending first frames
 
 	pthread_mutex_lock(&mux_mutex);
 
-	while (!(vbuf = (buffer *) vid.full.head))
+	while (!(vbuf = (_buffer *) vid.full.head))
 		pthread_cond_wait(&mux_cond, &mux_mutex);
 
-	while (!(abuf = (buffer *) aud.full.head))
+	while (!(abuf = (_buffer *) aud.full.head))
 		pthread_cond_wait(&mux_cond, &mux_mutex);
 
 	pthread_mutex_unlock(&mux_mutex);
@@ -186,7 +187,7 @@ mpeg1_system_mux(void *unused)
 	// Packet loop
 
 	while (!done) {
-		fifo *f;
+		_fifo *f;
 		int empty = PACKET_SIZE;
 		unsigned char *ph, *p = mbuf->data;
 		double pts;
@@ -219,8 +220,8 @@ mpeg1_system_mux(void *unused)
 		{
 			ph = p;
 
-			((unsigned int *) p)[0] = bswap(PACKET_START_CODE + ((f == &vid) ? VIDEO_STREAM_0 : AUDIO_STREAM_0));
-			((unsigned int *) p)[1] = bswap(((empty - 6) << 16) + 0xFFFF);
+			((unsigned int *) p)[0] = swab32(PACKET_START_CODE + ((f == &vid) ? VIDEO_STREAM_0 : AUDIO_STREAM_0));
+			((unsigned int *) p)[1] = swab32(((empty - 6) << 16) + 0xFFFF);
 			((unsigned int *) p)[2] = 0xFFFFFFFF;
 			((unsigned int *) p)[3] = 0x0FFFFFFF;
 
@@ -237,7 +238,7 @@ mpeg1_system_mux(void *unused)
 				pthread_mutex_lock(&mux_mutex);
 
 				for (;;) {
-					if ((f->buf = (buffer *) rem_head(&f->full)))
+					if ((f->buf = (_buffer *) rem_head(&f->full)))
 						break;
 
 					pthread_cond_wait(&mux_cond, &mux_mutex);
@@ -308,7 +309,7 @@ mpeg1_system_mux(void *unused)
 			}
 
 			if (f->left == 0) {
-				empty_buffer(f, f->buf);
+				_empty_buffer(f, f->buf);
 
 				if (f == &vid)
 					if (video_frame >= video_num_frames || quit_please) {
@@ -316,8 +317,8 @@ mpeg1_system_mux(void *unused)
 							p = mbuf->data;
 
 						if (empty >= 8) { // XXX
-							((unsigned int *) p)[0] = bswap(SEQUENCE_END_CODE);
-							((unsigned int *) p)[1] = bswap(ISO_END_CODE);
+							((unsigned int *) p)[0] = swab32(SEQUENCE_END_CODE);
+							((unsigned int *) p)[1] = swab32(ISO_END_CODE);
 
 							p += 8;
 							empty -= 8;
@@ -335,8 +336,8 @@ mpeg1_system_mux(void *unused)
 
 							memset(mbuf->data, 0, PACKET_SIZE);
 
-							((unsigned int *) mbuf->data)[0] = bswap(PACKET_START_CODE + AUDIO_STREAM_0);
-							((unsigned int *) mbuf->data)[1] = bswap(((PACKET_SIZE - 6) << 16) + 0xFFFF);
+							((unsigned int *) mbuf->data)[0] = swab32(PACKET_START_CODE + AUDIO_STREAM_0);
+							((unsigned int *) mbuf->data)[1] = swab32(((PACKET_SIZE - 6) << 16) + 0xFFFF);
 							((unsigned int *) mbuf->data)[2] = 0xFFFFFFFF;
 							((unsigned int *) mbuf->data)[3] = 0x0FFFFFFF;
 

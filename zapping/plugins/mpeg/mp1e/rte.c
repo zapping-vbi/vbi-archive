@@ -25,8 +25,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "options.h"
-#include "fifo.h"
-#include "mmx.h"
+#include "common/fifo.h"
+#include "common/mmx.h"
+#include "common/math.h"
 #include "rtepriv.h"
 #include "video/video.h" /* fixme: video_unget_frame and friends */
 #include "audio/audio.h" /* fixme: audio_read, audio_unget prots. */
@@ -59,8 +60,8 @@ rte_context * rte_global_context = NULL;
 static inline void
 fetch_data(rte_context * context, int video)
 {
-	buffer * buf;
-	fifo * f;
+	_buffer * buf;
+	_fifo * f;
 	
 	if (!context->private->data_callback)
 		return;
@@ -70,11 +71,11 @@ fetch_data(rte_context * context, int video)
 	else
 		f = &(context->private->aud);
 
-	buf = new_buffer(f);
+	buf = _new_buffer(f);
 
 	context->private->data_callback(buf->data, &(buf->time), video,
 					context, context->private->user_data);
-	send_out_buffer(f, buf);
+	_send_out_buffer(f, buf);
 }
 
 /* Tells the video fetcher thread to fetch a new frame */
@@ -581,7 +582,7 @@ int rte_start ( rte_context * context )
 	   2-3 frames ahead). With 16 buffers we lose fewer frames */
 	if (context->mode & 1)
 	{
-		init_fifo(&(context->private->vid), "video input",
+		_init_fifo(&(context->private->vid), "video input",
 			  context->video_bytes, 8);
 		context->private->video_pending = 0;
 		if (context->private->data_callback) {
@@ -602,7 +603,7 @@ int rte_start ( rte_context * context )
 	}
 
 	if (context->mode & 2) {
-		init_fifo(&(context->private->aud), "audio input",
+		_init_fifo(&(context->private->aud), "audio input",
 			  context->audio_bytes, 8);
 		context->private->audio_pending = 0;
 		if (context->private->data_callback) {
@@ -645,7 +646,7 @@ void rte_stop ( rte_context * context )
 			pthread_cond_destroy(&(context->private->video_cond));
 			pthread_mutex_destroy(&(context->private->video_mutex));
 		}
-		free_fifo(&(context->private->vid));
+		_free_fifo(&(context->private->vid));
 	}
 
 	if (context->mode & 2) {
@@ -658,7 +659,7 @@ void rte_stop ( rte_context * context )
 			pthread_cond_destroy(&(context->private->audio_cond));
 			pthread_mutex_destroy(&(context->private->audio_mutex));
 		}
-		free_fifo(&(context->private->aud));
+		_free_fifo(&(context->private->aud));
 	}
 
 	if (context->private->fd > 0) {
@@ -671,7 +672,7 @@ void rte_stop ( rte_context * context )
 void * rte_push_video_data ( rte_context * context, void * data,
 			   double time )
 {
-	buffer * buf;
+	_buffer * buf;
 
 	if (!context) {
 		rte_error(NULL, "context == NULL");
@@ -691,7 +692,7 @@ void * rte_push_video_data ( rte_context * context, void * data,
 		return NULL;
 	}
 
-	buf = new_buffer(&(context->private->vid));
+	buf = _new_buffer(&(context->private->vid));
 
 	ASSERT("Arrr... stick to the usage, please\n",
 	       (context->private->last_video_buffer && data)
@@ -703,7 +704,7 @@ void * rte_push_video_data ( rte_context * context, void * data,
 
 		context->private->last_video_buffer->time = time;
 
-		send_out_buffer(&(context->private->vid),
+		_send_out_buffer(&(context->private->vid),
 				context->private->last_video_buffer);
 	}
 
@@ -723,7 +724,7 @@ void * rte_push_video_data ( rte_context * context, void * data,
 void * rte_push_audio_data ( rte_context * context, void * data,
 			     double time )
 {
-	buffer * buf;
+	_buffer * buf;
 
 	if (!context) {
 		rte_error(NULL, "context == NULL");
@@ -743,7 +744,7 @@ void * rte_push_audio_data ( rte_context * context, void * data,
 		return NULL;
 	}
 
-	buf = new_buffer(&(context->private->aud));
+	buf = _new_buffer(&(context->private->aud));
 
 	ASSERT("Arrr... stick to the usage, please\n",
 	       (context->private->last_audio_buffer && data)
@@ -755,7 +756,7 @@ void * rte_push_audio_data ( rte_context * context, void * data,
 
 		context->private->last_audio_buffer->time = time;
 
-		send_out_buffer(&(context->private->aud),
+		_send_out_buffer(&(context->private->aud),
 				context->private->last_audio_buffer);
 	}
 
@@ -785,8 +786,8 @@ static unsigned char *
 video_input_wait_frame (double *ftime, int *buf_index)
 {
 	rte_context * context = rte_global_context; /* FIXME: this shoudn't be global */
-	buffer * b;
-	fifo * f;
+	_buffer * b;
+	_fifo * f;
 
 	if (context->private->v_ubuffer > -1) {
 		*buf_index = context->private->v_ubuffer;
@@ -804,7 +805,7 @@ video_input_wait_frame (double *ftime, int *buf_index)
 
 	pthread_mutex_lock(&f->mutex);
 
-	b = (buffer*) rem_head(&f->full);
+	b = (_buffer*) rem_head(&f->full);
 	
 	pthread_mutex_unlock(&(f->mutex));
 	
@@ -813,7 +814,7 @@ video_input_wait_frame (double *ftime, int *buf_index)
 	if (!b) {
 		pthread_mutex_lock(&f->mutex);
 		
-		while (!(b = (buffer*) rem_head(&f->full)))
+		while (!(b = (_buffer*) rem_head(&f->full)))
 			pthread_cond_wait(&(f->cond), &(f->mutex));
 		
 		pthread_mutex_unlock(&(f->mutex));
@@ -834,7 +835,7 @@ video_input_frame_done(int buf_index)
 	ASSERT("Checking that i'm sane\n",
 	       context->private->vid.num_buffers > buf_index);
 
-	empty_buffer(&(context->private->vid),
+	_empty_buffer(&(context->private->vid),
 		     &(context->private->vid.buffer[buf_index]));
 }
 
@@ -855,8 +856,8 @@ static short *
 audio_input_read( double *ftime)
 {
 	rte_context * context = rte_global_context; /* FIXME: this shoudn't be global */
-	buffer * b;
-	fifo * f;
+	_buffer * b;
+	_fifo * f;
 
 	b = context->private->a_ubuffer;
 
@@ -871,11 +872,11 @@ audio_input_read( double *ftime)
 	f = &(context->private->aud);
 
 	if (b)
-		empty_buffer(f, b);
+		_empty_buffer(f, b);
 
 	pthread_mutex_lock(&f->mutex);
 
-	b = (buffer*) rem_head(&f->full);
+	b = (_buffer*) rem_head(&f->full);
 	
 	pthread_mutex_unlock(&(f->mutex));
 	
@@ -884,7 +885,7 @@ audio_input_read( double *ftime)
 	if (!b) {
 		pthread_mutex_lock(&f->mutex);
 		
-		while (!(b = (buffer*) rem_head(&f->full)))
+		while (!(b = (_buffer*) rem_head(&f->full)))
 			pthread_cond_wait(&(f->cond), &(f->mutex));
 		
 		pthread_mutex_unlock(&(f->mutex));

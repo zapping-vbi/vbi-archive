@@ -18,21 +18,21 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.3 2000-07-05 18:09:34 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.4 2000-08-09 09:41:36 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
-#include "../profile.h"
+#include "../common/log.h"
+#include "../common/profile.h"
+#include "../common/math.h"
+#include "../common/fifo.h"
+#include "../common/mmx.h"
+#include "../common/bstream.h"
 #include "../options.h"
-#include "../misc.h"
-#include "../log.h"
-#include "../mmx.h"
-#include "../bstream.h"
 #include "vlc.h"
 #include "dct.h"
 #include "predict.h"
 #include "mpeg.h"
-#include "../fifo.h"
 #include "video.h"
 
 
@@ -1166,14 +1166,14 @@ user_data(char *s)
 
 
 static inline void
-_send_buffer(fifo *f, buffer *b)
+__send_buffer(_fifo *f, _buffer *b)
 {
 	bits += b->size * 8;
 	counts += 1.0 / 25.0;
 
 //	printv(0, "%8.0f\n", gbits);
 
-	send_buffer(f, b);
+	_send_buffer(f, b);
 }
 
 static struct {
@@ -1186,12 +1186,12 @@ static inline void
 promote(int n)
 {
 	int i;
-	buffer *obuf;
+	_buffer *obuf;
 
 	for (i = 0; i < n; i++) {
 		printv(3, "Promoting stacked B picture #%d\n", i);
 
-		obuf = new_buffer(&vid);
+		obuf = _new_buffer(&vid);
 		bstart(&video_out, obuf->data);
 		referenced = TRUE;
 		Eb--;
@@ -1211,7 +1211,7 @@ promote(int n)
 
 		obuf->time = stack[i].time;
 
-		_send_buffer(&vid, obuf);
+		__send_buffer(&vid, obuf);
 
 		video_frame_count++;
 		seq_frame_count++;
@@ -1223,7 +1223,7 @@ static inline void
 resume(int n)
 {
 	int i;
-	buffer *obuf, *last = NULL;
+	_buffer *obuf, *last = NULL;
 
 	referenced = FALSE;
 	p_succ = 0;
@@ -1232,18 +1232,18 @@ resume(int n)
 		if (!stack[i].org[0]) {
 			assert(last != NULL);
 
-			obuf = new_buffer(&vid);
+			obuf = _new_buffer(&vid);
 
 			memcpy(obuf->data, last->data, last->size);
 			((unsigned int *) obuf->data)[1] |=
-				bswap((gop_frame_count & 1023) << 22);
+				swab32((gop_frame_count & 1023) << 22);
 
 			obuf->size = last->size;
 			obuf->time = stack[i].time;
 
-			_send_buffer(&vid, last);
+			__send_buffer(&vid, last);
 		} else {
-			obuf = new_buffer(&vid);
+			obuf = _new_buffer(&vid);
 			bstart(&video_out, obuf->data);
 			obuf->size = picture_b(stack[i].org[0], stack[i].org[1]);
 
@@ -1253,7 +1253,7 @@ resume(int n)
 			obuf->time = stack[i].time;
 
 			if (last)
-				_send_buffer(&vid, last);
+				__send_buffer(&vid, last);
 		}
 
 		last = obuf;
@@ -1264,7 +1264,7 @@ resume(int n)
 	}
 
 	if (last)
-		_send_buffer(&vid, last);
+		__send_buffer(&vid, last);
 }
 
 char video_do_reset = FALSE;
@@ -1275,7 +1275,7 @@ video_compression_thread(void *unused)
 {
 	bool done = FALSE;
 	char *seq = "";
-	buffer *obuf;
+	_buffer *obuf;
 int d3 = 3;
 
 	printv(3, "Video compression thread\n");
@@ -1376,16 +1376,16 @@ int d3 = 3;
 
 				assert(gop_frame_count > 0);
 
-				obuf = new_buffer(&vid);
+				obuf = _new_buffer(&vid);
 
 				memcpy(obuf->data, zerop_template, Sz);
 				((unsigned int *) obuf->data)[1] |=
-					bswap((gop_frame_count & 1023) << 22);
+					swab32((gop_frame_count & 1023) << 22);
 
 				obuf->size = Sz;
 				obuf->time = this->time;
 
-				_send_buffer(&vid, obuf);
+				__send_buffer(&vid, obuf);
 
 				video_frame_count++;
 				gop_frame_count++;
@@ -1406,7 +1406,7 @@ next_frame:
 
 		/* Encode P or I picture plus sequence or GOP headers */
 
-		obuf = new_buffer(&vid);
+		obuf = _new_buffer(&vid);
 		bstart(&video_out, obuf->data);
 
 		if (!*seq) {
@@ -1502,7 +1502,7 @@ d3 = 3;
 
 		obuf->time = this->time;
 
-		_send_buffer(&vid, obuf);
+		__send_buffer(&vid, obuf);
 
 		video_frame_count++;
 		seq_frame_count++;
@@ -1521,16 +1521,16 @@ d3 = 3;
 
 finish:
 	if (video_frame_count > 0) {
-		obuf = new_buffer(&vid);
-		((unsigned int *) obuf->data)[0] = bswap(SEQUENCE_END_CODE);
+		obuf = _new_buffer(&vid);
+		((unsigned int *) obuf->data)[0] = swab32(SEQUENCE_END_CODE);
 		obuf->size = 4;
-		_send_buffer(&vid, obuf);
+		__send_buffer(&vid, obuf);
 	}
 
 	for (;;) {
-		obuf = new_buffer(&vid);
+		obuf = _new_buffer(&vid);
 		obuf->size = 0; // EOF mark
-		_send_buffer(&vid, obuf);
+		__send_buffer(&vid, obuf);
 	}
 
 	return NULL; // never
@@ -1596,7 +1596,7 @@ video_init(void)
 {
 	int i;
 
-	binit(&video_out);
+	binit_write(&video_out);
 
 	vlc_init();
 
