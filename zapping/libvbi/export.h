@@ -10,8 +10,8 @@
 
 struct fmt_page
 {
-	struct vt_page *vtp;
-	/* XXX volatile */
+	int			pgno;
+	int			subno;
 
 	attr_char		data[H][W];
 
@@ -52,8 +52,11 @@ struct fmt_page
 	 */
 };
 
-extern int		vbi_format_page(struct fmt_page *pg, struct vt_page *vtp, int display_rows);
+/* not public */
+extern int		vbi_format_page(struct vbi *vbi, struct fmt_page *pg, struct vt_page *vtp, int display_rows);
 
+extern int		vbi_fetch_page(struct vbi *vbi, struct fmt_page *pg,
+					int pgno, int subno, int display_rows);
 
 
 struct export
@@ -82,11 +85,15 @@ struct export_module
 extern struct export_module *modules[];	// list of modules (for help msgs)
 void export_error(char *str, ...);	// set error
 char *export_errstr(void);		// return last error
-char *export_mkname(struct export *e, char *fmt, struct vt_page *vtp, char *usr);
+char *export_mkname(struct export *e, char *fmt, int pgno, int subno, char *usr);
 
 struct export *export_open(char *fmt);
 void export_close(struct export *e);
-int export(struct export *e, struct vt_page *vtp, char *user_str);
+int export_fmt_page(struct export *e, struct fmt_page *pg, char *user_str);
+
+/* not public */
+int export(struct vbi *vbi, struct export *e, struct vt_page *vtp, char *user_str);
+
 
 void vbi_draw_page_region(struct fmt_page *pg, void *data, int
 			  conceal, int scol, int srow, int width, int
@@ -121,6 +128,6 @@ add_bcd(unsigned int a, unsigned int b)
 	b |= b * 2;
 
 	return (t - b) & 0xFFF;
-}		     
+}
 
 #endif /* EXPORT_H */

@@ -29,6 +29,8 @@ struct cache_ops
     int (*mode)(struct cache *ca, int mode, int arg);
 };
 
+extern int vbi_is_cached(struct cache *ca, int pgno, int subno);
+
 struct cache *cache_open(void);
 
 #define CACHE_MODE_ERC	1

@@ -10,33 +10,6 @@
 
 extern int debug;
 
-struct vt_event
-{
-    int type;
-    void *resource;	/* struct xio_win *, struct vbi *, ... */
-    int i1, i2, i3, i4;
-    void *p1;
-};
-
-#define EV_CLOSE	1
-#define EV_KEY		2	// i1:KEY_xxx  i2:shift-flag
-#define EV_MOUSE	3	// i1:button  i2:shift-flag i3:x  i4:y
-#define EV_SELECTION	4	// i1:len  p1:data
-#define EV_PAGE		5	// p1:vt_page	i1:query-flag
-#define EV_HEADER	6	// i1:pgno  i2:subno  i3:flags  p1:data
-#define EV_XPACKET	7	// i1:mag  i2:pkt  i3:errors  p1:data
-#define EV_RESET	8	// ./.
-#define EV_TIMER	9	// ./.
-
-#define KEY_F(i)	(1000+i)
-#define KEY_LEFT	2001
-#define KEY_RIGHT	2002
-#define KEY_UP		2003
-#define KEY_DOWN	2004
-#define KEY_PUP		2005
-#define KEY_PDOWN	2006
-#define KEY_DEL		2007
-#define KEY_INS		2008
 
 /*
  *
@@ -139,7 +112,7 @@ struct vt_page
 	u32			lop_lines, enh_lines;		/* set of received lines */
 
 	/* added temporarily: */
-	struct vbi *	vbi;
+	struct vbi *	__vbi;
 
 	union {
 		struct lop {

@@ -299,3 +299,10 @@ fail1:
     return 0;
 }
 
+
+/* preliminary */
+int
+vbi_is_cached(struct cache *ca, int pgno, int subno)
+{
+	return NULL != ca->op->get(ca, pgno, subno, 0xffff);
+}

@@ -93,7 +93,7 @@ typedef struct {
   gint			osx, osy; /* old positions for the selection */
   gboolean		in_clipboard; /* in the "CLIPBOARD" clipboard */
   gboolean		in_selection; /* in the primary selection */
-  struct vt_page	clipboard_page; /* page that contains the
+  struct fmt_page	clipboard_fmt_page; /* page that contains the
 					   selection */
   gint			sel_col, sel_row, sel_width, sel_height;
 } ttxview_data;
@@ -236,7 +236,7 @@ find_prev_subpage (ttxview_data	*data, int subpage)
   struct vbi *vbi = zvbi_get_object();
   int start_subpage = subpage;
 
-  if (!vbi->cache->hi_subno[data->fmt_page->vtp->pgno])
+  if (!vbi->cache->hi_subno[data->fmt_page->pgno])
     return -1;
 
   do {
@@ -246,9 +246,8 @@ find_prev_subpage (ttxview_data	*data, int subpage)
       return -1;
     
     if (subpage < 0)
-      subpage = vbi->cache->hi_subno[data->fmt_page->vtp->pgno] - 1;
-  } while (!vbi->cache->op->get(vbi->cache, data->fmt_page->vtp->pgno,
-				subpage, 0xffff));
+      subpage = vbi->cache->hi_subno[data->fmt_page->pgno] - 1;
+  } while (!vbi_is_cached(vbi->cache, data->fmt_page->pgno, subpage));
 
   return subpage;
 }
@@ -259,7 +258,7 @@ find_next_subpage (ttxview_data	*data, int subpage)
   struct vbi *vbi = zvbi_get_object();
   int start_subpage = subpage;
 
-  if (!vbi->cache->hi_subno[data->fmt_page->vtp->pgno])
+  if (!vbi->cache->hi_subno[data->fmt_page->pgno])
     return -1;
 
   do {
@@ -268,10 +267,9 @@ find_next_subpage (ttxview_data	*data, int subpage)
     if (subpage == start_subpage)
       return -1;
     
-    if (subpage >= vbi->cache->hi_subno[data->fmt_page->vtp->pgno])
+    if (subpage >= vbi->cache->hi_subno[data->fmt_page->pgno])
       subpage = 0;
-  } while (!vbi->cache->op->get(vbi->cache, data->fmt_page->vtp->pgno,
-				subpage, 0xffff));
+  } while (!vbi_is_cached(vbi->cache, data->fmt_page->pgno, subpage));
 
   return subpage;
 }
@@ -415,7 +413,7 @@ static void selection_handle		(GtkWidget	*widget,
 
 	  if ((e = export_open(buffer)))
 	    {
-	      if ((result = (gchar*)export(e, &data->clipboard_page,
+	      if ((result = (gchar*)export_fmt_page(e, &data->clipboard_fmt_page,
 					   "memory")))
 		{
 		  gtk_selection_data_set (selection_data,
@@ -442,11 +440,8 @@ static void selection_handle		(GtkWidget	*widget,
 					     8, rw,
 					     data->sel_height*CH);
 	  gint id[2];
-	  struct fmt_page fmt;
 
-	  vbi_format_page(&fmt, &data->clipboard_page, 25);
-
-	  vbi_draw_page_region(&fmt,
+	  vbi_draw_page_region(&data->clipboard_fmt_page,
 			       gdk_pixbuf_get_pixels(canvas), 0,
 			       data->sel_col, data->sel_row,
 			       data->sel_width, data->sel_height);
@@ -490,7 +485,7 @@ update_pointer (ttxview_data *data)
 
   if (data->fmt_page->data[row][col].link)
     {
-      vbi_link_descr ld;
+      vbi_link ld;
 
       vbi_resolve_link(data->fmt_page, col, row, &ld);
 
@@ -507,9 +502,7 @@ update_pointer (ttxview_data *data)
 	case VBI_LINK_HTTP:
 	case VBI_LINK_FTP:
 	case VBI_LINK_EMAIL:
-	  buffer = g_strdup_printf(" %s%s",
-				   ld.type == VBI_LINK_EMAIL ?
-				   "mailto:" : "", ld.text);
+	  buffer = g_strdup_printf(" %s", ld.text);
 	  break;
 
         default:
@@ -558,12 +551,12 @@ event_timeout				(ttxview_data	*data)
 	case TTX_PAGE_RECEIVED:
 	  gdk_window_get_size(data->da->window, &w, &h);
 	  gdk_window_clear_area_e(data->da->window, 0, 0, w, h);
-	  data->subpage = data->fmt_page->vtp->subno;
+	  data->subpage = data->fmt_page->subno;
 	  widget = lookup_widget(data->toolbar, "ttxview_subpage");
 	  buffer = g_strdup_printf("S%x", data->subpage);
 	  gtk_label_set_text(GTK_LABEL(widget), buffer);
 	  if (!data->no_history)
-	    append_history(data->fmt_page->vtp->pgno,
+	    append_history(data->fmt_page->pgno,
 			   data->monitored_subpage, data);
 	  data->no_history = FALSE;
 	  g_free(buffer);
@@ -575,7 +568,7 @@ event_timeout				(ttxview_data	*data)
 		gnome_appbar_pop(GNOME_APPBAR(data->appbar));
 	      data->in_link = FALSE;
 	    }
-	  if ((!data->fmt_page->vtp->pgno) &&
+	  if ((!data->fmt_page->pgno) &&
 	      (data->appbar))
 	    gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
 				    _("Warning: Page not valid"));
@@ -649,7 +642,7 @@ static
 void on_ttxview_home_clicked		(GtkButton	*button,
 					 ttxview_data	*data)
 {
-  vbi_link_descr ld;
+  vbi_link ld;
 
   vbi_resolve_home(data->fmt_page, &ld);
 
@@ -668,10 +661,10 @@ void on_ttxview_hold_toggled		(GtkToggleButton *button,
     {
       data->hold = hold;
       if (hold)
-	load_page(data->fmt_page->vtp->pgno, data->fmt_page->vtp->subno,
+	load_page(data->fmt_page->pgno, data->fmt_page->subno,
 		  data, NULL);
       else
-	load_page(data->fmt_page->vtp->pgno, ANY_SUB, data, NULL);
+	load_page(data->fmt_page->pgno, ANY_SUB, data, NULL);
     }
 }
 
@@ -694,7 +687,7 @@ void on_ttxview_prev_sp_cache_clicked	(GtkButton	*button,
   
   if (((subpage = find_prev_subpage(data, data->subpage)) >= 0) &&
       (subpage != data->subpage))
-    load_page(data->fmt_page->vtp->pgno, subpage, data, NULL);
+    load_page(data->fmt_page->pgno, subpage, data, NULL);
   else if (data->appbar)
     gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
 			    _("No other subpage in the cache"));
@@ -709,7 +702,7 @@ void on_ttxview_prev_subpage_clicked	(GtkButton	*button,
     new_subpage = 0x99;
   else
     new_subpage = add_bcd(data->subpage, 0x99) & 0xFF;
-  load_page(data->fmt_page->vtp->pgno, new_subpage, data, NULL);
+  load_page(data->fmt_page->pgno, new_subpage, data, NULL);
 }
 
 static
@@ -730,7 +723,7 @@ void on_ttxview_next_sp_cache_clicked	(GtkButton	*button,
   
   if (((subpage = find_next_subpage(data, data->subpage)) >= 0) &&
       (subpage != data->subpage))
-    load_page(data->fmt_page->vtp->pgno, subpage, data, NULL);
+    load_page(data->fmt_page->pgno, subpage, data, NULL);
   else if (data->appbar)
     gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
 			    _("No other subpage in the cache"));
@@ -745,7 +738,7 @@ void on_ttxview_next_subpage_clicked	(GtkButton	*button,
     new_subpage = 0x00;
   else
     new_subpage = add_bcd(data->subpage, 0x01);
-  load_page(data->fmt_page->vtp->pgno, new_subpage, data, NULL);
+  load_page(data->fmt_page->pgno, new_subpage, data, NULL);
 }
 
 static
@@ -791,7 +784,7 @@ void run_next				(GtkButton	*button,
   switch ((return_code = vbi_next_search(context, &pg, dir)))
     {
     case 1: /* found, show the page, enable next */
-      load_page(pg->vtp->pgno, pg->vtp->subno, data, pg);
+      load_page(pg->pgno, pg->subno, data, pg);
       if (search_progress)
 	{
 	  gtk_widget_set_sensitive(search_cancel, FALSE);
@@ -946,8 +939,7 @@ int progress_update			(struct fmt_page *pg)
 
   if (search_progress)
     {
-      buffer = g_strdup_printf(_("Scanning %x.%02x"), pg->vtp->pgno,
-			       pg->vtp->subno);
+      buffer = g_strdup_printf(_("Scanning %x.%02x"), pg->pgno, pg->subno);
       gtk_label_set_text(GTK_LABEL(lookup_widget(search_progress, "label97")),
 			 buffer);
       g_free(buffer);
@@ -1113,8 +1105,8 @@ void on_ttxview_clone_clicked		(GtkButton	*button,
   GtkWidget *dolly = build_ttxview();
   gint w, h;
 
-  if (data->fmt_page->vtp->pgno)
-    load_page(data->fmt_page->vtp->pgno, data->monitored_subpage,
+  if (data->fmt_page->pgno)
+    load_page(data->fmt_page->pgno, data->monitored_subpage,
 	      (ttxview_data*)gtk_object_get_data(GTK_OBJECT(dolly),
 						 "ttxview_data"),
 	      NULL);
@@ -1163,7 +1155,7 @@ void new_bookmark			(GtkWidget	*widget,
   if (data->page >= 0x100)
     page = data->page;
   else
-    page = data->fmt_page->vtp->pgno;
+    page = data->fmt_page->pgno;
   subpage = data->monitored_subpage;
 
   if (vbi_page_title(vbi, page, subpage, title))
@@ -1314,7 +1306,7 @@ void export_ttx_page			(GtkWidget	*widget,
       return;
     }
 
-  if (data->fmt_page->vtp->pgno < 0x100)
+  if (data->fmt_page->pgno < 0x100)
     {
       if (data->appbar)
 	gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
@@ -1359,7 +1351,7 @@ void export_ttx_page			(GtkWidget	*widget,
 
       filename =
 	export_mkname(exp, "Zapzilla-%p.%e",
-		      data->fmt_page->vtp, NULL);
+		      data->fmt_page->pgno, data->fmt_page->subno, NULL);
       zcg_char(&buffer, "exportdir");
       g_strstrip(buffer);
       if (buffer[strlen(buffer)-1] != '/')
@@ -1370,7 +1362,7 @@ void export_ttx_page			(GtkWidget	*widget,
       zcs_char(buffer2, "exportdir");
       buffer = g_strconcat(buffer2, filename, NULL);
       g_free(buffer2);
-      if (export(exp, data->fmt_page->vtp, buffer))
+      if (export_fmt_page(exp, data->fmt_page, buffer))
 	{
 	  buffer2 = g_strdup_printf("Export to %s failed: %s", buffer,
 				    export_errstr());
@@ -1537,7 +1529,7 @@ process_ttxview_menu_popup		(GtkWidget	*widget,
 					 GtkMenu	*popup)
 {
   gint w, h, col, row;
-  vbi_link_descr ld;
+  vbi_link ld;
   GtkMenu *menu;
   ttxview_data *data = gtk_object_get_data(GTK_OBJECT(widget),
 					   "ttxview_data");
@@ -1621,7 +1613,7 @@ select_region				(gint		x1,
 
 static void select_start(gint x, gint y, ttxview_data * data)
 {
-  if (data->fmt_page->vtp->pgno < 0x100)
+  if (data->fmt_page->pgno < 0x100)
     {
       if (data->appbar)
   	gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
@@ -1723,8 +1715,9 @@ static void select_stop(ttxview_data * data)
       data->sel_row = srow;
       data->sel_width = (col-scol)+1;
       data->sel_height = (row-srow)+1;
-      memcpy(&data->clipboard_page, data->fmt_page->vtp,
-	     vtp_size(data->fmt_page->vtp));
+
+      memcpy(&data->clipboard_fmt_page, data->fmt_page,
+	     sizeof(data->clipboard_fmt_page));
 
       if (!data->in_clipboard)
 	if (gtk_selection_owner_set(data->da,
@@ -2046,10 +2039,9 @@ on_ttxview_button_press			(GtkWidget	*widget,
 					 ttxview_data	*data)
 {
   gint w, h, col, row;
-  vbi_link_descr ld;
+  vbi_link ld;
   GtkWidget *dolly;
   GtkMenu *menu;
-  gchar * buffer;
 
   gdk_window_get_size(widget->window, &w, &h);
   /* convert to fmt_page space */
@@ -2078,13 +2070,8 @@ on_ttxview_button_press			(GtkWidget	*widget,
 
 	case VBI_LINK_HTTP:
 	case VBI_LINK_FTP:
-	  gnome_url_show(ld.text);
-	  break;
-
 	case VBI_LINK_EMAIL:
-	  buffer = g_strconcat("mailto:", ld.text, NULL);
-	  gnome_url_show(buffer);
-	  g_free(buffer);
+	  gnome_url_show(ld.text);
 	  break;
 
 	default:
@@ -2107,13 +2094,8 @@ on_ttxview_button_press			(GtkWidget	*widget,
 
 	case VBI_LINK_HTTP:
 	case VBI_LINK_FTP:
-	  gnome_url_show(ld.text);
-	  break;
-
 	case VBI_LINK_EMAIL:
-	  buffer = g_strconcat("mailto:", ld.text, NULL);
-	  gnome_url_show(buffer);
-	  g_free(buffer);
+	  gnome_url_show(ld.text);
 	  break;
 
 	default:
@@ -2193,7 +2175,7 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
     case GDK_Page_Down:
     case GDK_KP_Page_Down:
       if (data->page < 0x100)
-	data->page = add_bcd(data->fmt_page->vtp->pgno, 0x010);
+	data->page = add_bcd(data->fmt_page->pgno, 0x010);
       else
 	data->page = add_bcd(data->page, 0x010);
       if (data->page > 0x899)
@@ -2203,7 +2185,7 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
     case GDK_Page_Up:
     case GDK_KP_Page_Up:
       if (data->page < 0x100)
-	data->page = add_bcd(data->fmt_page->vtp->pgno, 0x990);
+	data->page = add_bcd(data->fmt_page->pgno, 0x990);
       else
 	data->page = add_bcd(data->page, 0x990);
       if (data->page < 0x100)
@@ -2213,7 +2195,7 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
     case GDK_KP_Up:
     case GDK_Up:
       if (data->page < 0x100)
-	data->page = add_bcd(data->fmt_page->vtp->pgno, 0x999);
+	data->page = add_bcd(data->fmt_page->pgno, 0x999);
       else
 	data->page = add_bcd(data->page, 0x999);
       if (data->page < 0x100)
@@ -2223,7 +2205,7 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
     case GDK_KP_Down:
     case GDK_Down:
       if (data->page < 0x100)
-	data->page = add_bcd(data->fmt_page->vtp->pgno, 0x001);
+	data->page = add_bcd(data->fmt_page->pgno, 0x001);
       else
 	data->page = add_bcd(data->page, 0x001);
       if (data->page > 0x899)

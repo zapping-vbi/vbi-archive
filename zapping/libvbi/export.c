@@ -226,7 +226,8 @@ adjust(char *p, char *str, char fill, int width)
 }
 
 char *
-export_mkname(struct export *e, char *fmt, struct vt_page *vtp, char *usr)
+export_mkname(struct export *e, char *fmt,
+	int pgno, int subno, char *usr)
 {
     char bbuf[1024];
     char *p = bbuf;
@@ -250,17 +251,17 @@ export_mkname(struct export *e, char *fmt, struct vt_page *vtp, char *usr)
 		    p = adjust(p, e->mod->extension, '.', width);
 		    break;
 		case 'p':	// pageno[.subno]
-		    if (vtp->subno)
-			p = adjust(p,strcat(strcat(hexnum(buf, vtp->pgno),
-				"."), hexnum(buf2, vtp->subno)), ' ', width);
+		    if (subno)
+			p = adjust(p,strcat(strcat(hexnum(buf, pgno),
+				"."), hexnum(buf2, subno)), ' ', width);
 		    else
-			p = adjust(p, hexnum(buf, vtp->pgno), ' ', width);
+			p = adjust(p, hexnum(buf, pgno), ' ', width);
 		    break;
 		case 'S':	// subno
-		    p = adjust(p, hexnum(buf, vtp->subno), '0', width);
+		    p = adjust(p, hexnum(buf, subno), '0', width);
 		    break;
 		case 'P':	// pgno
-		    p = adjust(p, hexnum(buf, vtp->pgno), '0', width);
+		    p = adjust(p, hexnum(buf, pgno), '0', width);
 		    break;
 		case 's':	// user strin
 		    p = adjust(p, usr, ' ', width);
@@ -275,18 +276,24 @@ export_mkname(struct export *e, char *fmt, struct vt_page *vtp, char *usr)
 }
 
 int
-export(struct export *e, struct vt_page *vtp, char *name)
+export(struct vbi *vbi, struct export *e, struct vt_page *vtp, char *name)
 {
     struct fmt_page pg[1];
 
-    vbi_format_page(pg, vtp, 25);
+    vbi_format_page(vbi, pg, vtp, 25);
     return e->mod->output(e, name, pg);
+}
+
+int
+export_fmt_page(struct export *e, struct fmt_page *pg, char *name)
+{
+	return e->mod->output(e, name, pg);
 }
 
 
 #define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
 
- #undef printv
+#undef printv
  #define printv(templ, args...)
 // #define printv printf
 
@@ -640,7 +647,7 @@ top_index(struct vbi *vbi, struct fmt_page *pg, int subno)
  */
 
 static int
-keyword(vbi_link_descr *ld, unsigned char *p, int column,
+keyword(vbi_link *ld, unsigned char *p, int column,
 	int pgno, int subno, int *back)
 {
 	unsigned char *s = p + column;
@@ -695,22 +702,29 @@ keyword(vbi_link_descr *ld, unsigned char *p, int column,
 		strcpy(ld->text, "http://");
 	} else if (!strncasecmp(s, "ftp://", i = 6)) {
 		ld->type = VBI_LINK_FTP;
-	} else if (*s == '@') {
+	/*
+	 *  A few German networks invented this format since Latin1/German
+	 *  replaced the at sign with paragraph sign and they apparently
+	 *  can't afford a level 1.5 generator.
+	 */
+	} else if (*s == '@' || *s == 167) {
 		ld->type = VBI_LINK_EMAIL;
+		strcpy(ld->text, "mailto:");
+		*s = '@';
 		i = 1;
 	} else
 		return 1;
 
 	for (j = k = l = 0;;) {
 		// RFC 1738
-		while (isalnum(s[i + j]) || strchr("%&/=?+-:;@", s[i + j])) {
+		while (isalnum(s[i + j]) || strchr("%&/=?+-~:;@", s[i + j])) {
 			j++;
 			l++;
 		}
 
 		if (s[i + j] == '.') {
 			if (l < 1)
-				return i;
+				return i;		
 			l = 0;
 			j++;
 			k++;
@@ -726,7 +740,7 @@ keyword(vbi_link_descr *ld, unsigned char *p, int column,
 	k = 0;
 
 	if (ld->type == VBI_LINK_EMAIL) {
-		for (; isalnum(s[k - 1]) || strchr("-._", s[k - 1]); k--);
+		for (; isalnum(s[k - 1]) || strchr("-~._", s[k - 1]); k--);
 
 		if (k == 0) {
 			ld->type = VBI_LINK_NONE;
@@ -745,7 +759,7 @@ static inline void
 zap_links(struct fmt_page *pg, int row)
 {
 	unsigned char buffer[43]; /* One row, two spaces on the sides and NUL */
-	vbi_link_descr ld;
+	vbi_link ld;
 	attr_char *acp;
 	bool link[43];
 	int i, j, n, b;
@@ -765,7 +779,7 @@ zap_links(struct fmt_page *pg, int row)
 
 	for (i = 0; i < 40; i += n) { 
 		n = keyword(&ld, buffer, i + 1,
-			pg->vtp->pgno, pg->vtp->subno, &b);
+			pg->pgno, pg->subno, &b);
 
 		for (j = b; j < n; j++)
 			link[i + j] = (ld.type != VBI_LINK_NONE);
@@ -781,7 +795,7 @@ zap_links(struct fmt_page *pg, int row)
 }
 
 void
-vbi_resolve_link(struct fmt_page *pg, int column, int row, vbi_link_descr *ld)
+vbi_resolve_link(struct fmt_page *pg, int column, int row, vbi_link *ld)
 {
 	unsigned char buffer[43];
 	attr_char *acp;
@@ -811,7 +825,11 @@ vbi_resolve_link(struct fmt_page *pg, int column, int row, vbi_link_descr *ld)
 			continue;
 		if (i < column && !acp[i].link)
 			j = b = -1;
-		if ((buffer[j + 1] = glyph2latin(acp[i].glyph)) == '@' && b <= 0)
+
+		buffer[j + 1] = glyph2latin(acp[i].glyph);
+
+		if ((buffer[j + 1] == '@' ||
+		     buffer[j + 1] == 167) && b <= 0)
 			b = j;
 		j++;
 	}
@@ -820,15 +838,15 @@ vbi_resolve_link(struct fmt_page *pg, int column, int row, vbi_link_descr *ld)
 	buffer[j + 1] = ' ';
 	buffer[j + 2] = 0;
 
-	keyword(ld, buffer, 1, pg->vtp->pgno, pg->vtp->subno, &i);
+	keyword(ld, buffer, 1, pg->pgno, pg->subno, &i);
 
 	if (ld->type == VBI_LINK_NONE)
 		keyword(ld, buffer, b + 1,
-			pg->vtp->pgno, pg->vtp->subno, &i);
+			pg->pgno, pg->subno, &i);
 }
 
 void
-vbi_resolve_home(struct fmt_page *pg, vbi_link_descr *ld)
+vbi_resolve_home(struct fmt_page *pg, vbi_link *ld)
 {
 	ld->type = VBI_LINK_PAGE;
 	ld->pgno = pg->nav_link[5].pgno;
@@ -894,12 +912,12 @@ vbi_page_title(struct vbi *vbi, int pgno, int subno, char *buf)
 
 
 static void
-screen_colour(struct fmt_page *pg, int colour)
+screen_colour(struct fmt_page *pg, struct vt_page *vtp, int colour)
 { 
 	pg->screen_colour = colour;
 
 	if (colour == TRANSPARENT_BLACK
-	    || (pg->vtp->flags & (C5_NEWSFLASH | C6_SUBTITLE)))
+	    || (vtp->flags & (C5_NEWSFLASH | C6_SUBTITLE)))
 		pg->screen_opacity = TRANSPARENT_SPACE;
 	else
 		pg->screen_opacity = OPAQUE;
@@ -978,8 +996,10 @@ resolve_obj_address(struct vbi *vbi, object_type type,
 }
 
 static bool
-enhance(struct fmt_page *pg, object_type type,
-	vt_triplet *p, int inv_row, int inv_column)
+enhance(struct vbi *vbi,
+	struct fmt_page *pg, struct vt_page *vtp,
+	object_type type, vt_triplet *p,
+	int inv_row, int inv_column)
 {
 	attr_char ac, mac, *acp;
 	int active_column, active_row;
@@ -1073,7 +1093,7 @@ enhance(struct fmt_page *pg, object_type type,
 				int raw;
 
 				raw = (row == 0 && i < 9) ?
-					0x20 : parity(pg->vtp->data.lop.raw[row][i - 1]);
+					0x20 : parity(vtp->data.lop.raw[row][i - 1]);
 
 				/* set-after spacing attributes cancelling non-spacing */
 
@@ -1091,7 +1111,7 @@ enhance(struct fmt_page *pg, object_type type,
 
 				case 0x0A:		/* end box */
 				case 0x0B:		/* start box */
-					if (i < 40 && parity(pg->vtp->data.lop.raw[row][i]) == raw) {
+					if (i < 40 && parity(vtp->data.lop.raw[row][i]) == raw) {
 						printv("... boxed term %d %02x\n", i, raw);
 						mac.opacity = 0;
 					}
@@ -1110,7 +1130,7 @@ enhance(struct fmt_page *pg, object_type type,
 					break;
 
 				raw = (row == 0 && i < 8) ?
-					0x20 : parity(pg->vtp->data.lop.raw[row][i]);
+					0x20 : parity(vtp->data.lop.raw[row][i]);
 
 				/* set-at spacing attributes cancelling non-spacing */
 
@@ -1204,7 +1224,7 @@ enhance(struct fmt_page *pg, object_type type,
 			case 0x00:		/* full screen colour */
 				if (max_level >= LEVEL_2p5
 				    && s == 0 && type <= OBJ_TYPE_ACTIVE)
-					screen_colour(pg, p->data & 0x1F);
+					screen_colour(pg, vtp, p->data & 0x1F);
 
 				break;
 
@@ -1305,12 +1325,12 @@ enhance(struct fmt_page *pg, object_type type,
 
 					printv("... local obj %d/%d\n", designation, triplet);
 
-					if (!(pg->vtp->enh_lines & 1)) {
+					if (!(vtp->enh_lines & 1)) {
 						printv("... no packet %d\n", designation);
 						return FALSE;
 					}
 
-					trip = pg->vtp->data.enh_lop.enh + designation * 13 + triplet;
+					trip = vtp->data.enh_lop.enh + designation * 13 + triplet;
 				}
 				else /* global / public */
 				{
@@ -1320,7 +1340,7 @@ enhance(struct fmt_page *pg, object_type type,
 
 					if (source == 3) {
 						function = PAGE_FUNCTION_GPOP;
-						pgno = pg->vtp->data.lop.link[24].pgno;
+						pgno = vtp->data.lop.link[24].pgno;
 						i = 0;
 
 						if (NO_PAGE(pgno)) {
@@ -1331,10 +1351,10 @@ enhance(struct fmt_page *pg, object_type type,
 							printv("... X/27/4 GPOP overrides MOT\n");
 					} else {
 						function = PAGE_FUNCTION_POP;
-						pgno = pg->vtp->data.lop.link[25].pgno;
+						pgno = vtp->data.lop.link[25].pgno;
 
 						if (NO_PAGE(pgno)) {
-							if ((i = mag->pop_lut[pg->vtp->pgno & 0xFF]) == 0) {
+							if ((i = mag->pop_lut[vtp->pgno & 0xFF]) == 0) {
 								printv("... MOT pop_lut empty\n");
 								return FALSE; /* has no link (yet) */
 							}
@@ -1353,7 +1373,7 @@ enhance(struct fmt_page *pg, object_type type,
 
 					printv("... %s obj\n", (source == 3) ? "global" : "public");
 
-					trip = resolve_obj_address(pg->vtp->vbi, new_type, pgno,
+					trip = resolve_obj_address(vbi, new_type, pgno,
 						(p->address << 7) + p->data, function);
 
 					if (!trip)
@@ -1363,7 +1383,7 @@ enhance(struct fmt_page *pg, object_type type,
 				row = inv_row + active_row;
 				column = inv_column + active_column;
 
-				enhance(pg, new_type, trip,
+				enhance(vbi, pg, vtp, new_type, trip,
 					row + offset_row, column + offset_column);
 
 				printv("... object done\n");
@@ -1527,7 +1547,7 @@ enhance(struct fmt_page *pg, object_type type,
 				mac.size = ~0;
 
 				if (p->data & 2) {
-					if (pg->vtp->flags & (C5_NEWSFLASH | C6_SUBTITLE))
+					if (vtp->flags & (C5_NEWSFLASH | C6_SUBTITLE))
 						ac.opacity = SEMI_TRANSPARENT;
 					else
 						ac.opacity = TRANSPARENT_SPACE;
@@ -1554,7 +1574,7 @@ enhance(struct fmt_page *pg, object_type type,
 				magazine *mag = pg->magazine;
 				int normal = p->data >> 6;
 				int offset = p->data & 0x3F;
-				struct vt_page *vtp;
+				struct vt_page *dvtp;
 				page_function function;
 				int pgno, page, i;
 
@@ -1574,7 +1594,7 @@ enhance(struct fmt_page *pg, object_type type,
 				/* if (!pg->drcs[page]) */ {
 					if (!normal) {
 						function = PAGE_FUNCTION_GDRCS;
-						pgno = pg->vtp->data.lop.link[26].pgno;
+						pgno = vtp->data.lop.link[26].pgno;
 						i = 0;
 
 						if (NO_PAGE(pgno)) {
@@ -1585,10 +1605,10 @@ enhance(struct fmt_page *pg, object_type type,
 							printv("... X/27/4 GDRCS overrides MOT\n");
 					} else {
 						function = PAGE_FUNCTION_DRCS;
-						pgno = pg->vtp->data.lop.link[25].pgno;
+						pgno = vtp->data.lop.link[25].pgno;
 
 						if (NO_PAGE(pgno)) {
-							if ((i = mag->drcs_lut[pg->vtp->pgno & 0xFF]) == 0) {
+							if ((i = mag->drcs_lut[vtp->pgno & 0xFF]) == 0) {
 								printv("... MOT drcs_lut empty\n");
 								return FALSE; /* has no link (yet) */
 							}
@@ -1608,33 +1628,33 @@ enhance(struct fmt_page *pg, object_type type,
 					printv("... %s drcs from page %03x/%04x\n",
 						normal ? "normal" : "global", pgno, drcs_s1[normal]);
 
-					vtp = pg->vtp->vbi->cache->op->get(pg->vtp->vbi->cache,
+					dvtp = vbi->cache->op->get(vbi->cache,
 						pgno, drcs_s1[normal], 0x000F);
 
-					if (!vtp) {
+					if (!dvtp) {
 						printv("... page not cached\n");
 						return FALSE;
 					}
 
-					if (vtp->function == PAGE_FUNCTION_UNKNOWN) {
-						if (!(vtp = convert_page(pg->vtp->vbi, vtp, TRUE, function))) {
+					if (dvtp->function == PAGE_FUNCTION_UNKNOWN) {
+						if (!(dvtp = convert_page(vbi, dvtp, TRUE, function))) {
 							printv("... no g/drcs page or hamming error\n");
 							return FALSE;
 						}
-					} else if (vtp->function == PAGE_FUNCTION_DRCS) {
-						vtp->function = function;
-					} else if (vtp->function != function) {
+					} else if (dvtp->function == PAGE_FUNCTION_DRCS) {
+						dvtp->function = function;
+					} else if (dvtp->function != function) {
 						printv("... source page wrong function %d, expected %d\n",
-							vtp->function, function);
+							dvtp->function, function);
 						return FALSE;
 					}
 
-					if (vtp->data.drcs.invalid & (1ULL << offset)) {
+					if (dvtp->data.drcs.invalid & (1ULL << offset)) {
 						printv("... invalid drcs, prob. tx error\n");
 						return FALSE;
 					}
 
-					pg->drcs[page] = vtp->data.drcs.bits[0];
+					pg->drcs[page] = dvtp->data.drcs.bits[0];
 				}
 
 				gl = GL_DRCS + page * 256 + offset;
@@ -1797,13 +1817,14 @@ post_enhance(struct fmt_page *pg)
 }
 
 static inline bool
-default_object_invocation(struct fmt_page *pg)
+default_object_invocation(struct vbi *vbi,
+	struct fmt_page *pg, struct vt_page *vtp)
 {
 	magazine *mag = pg->magazine;
 	pop_link *pop;
 	int i, order;
 
-	if (!(i = mag->pop_lut[pg->vtp->pgno & 0xFF]))
+	if (!(i = mag->pop_lut[vtp->pgno & 0xFF]))
 		return FALSE; /* has no link (yet) */
 
 	pop = mag->pop_link + i + 8;
@@ -1828,20 +1849,21 @@ default_object_invocation(struct fmt_page *pg)
 
 		printv("default object #%d invocation, type %d\n", i ^ order, type);
 
-		trip = resolve_obj_address(pg->vtp->vbi, type, pop->pgno,
+		trip = resolve_obj_address(vbi, type, pop->pgno,
 			pop->default_obj[i ^ order].address, PAGE_FUNCTION_POP);
 
 		if (!trip)
 			return FALSE;
 
-		enhance(pg, type, trip, 0, 0);
+		enhance(vbi, pg, vtp, type, trip, 0, 0);
 	}
 
 	return TRUE;
 }
 
 int
-vbi_format_page(struct fmt_page *pg, struct vt_page *vtp,
+vbi_format_page(struct vbi *vbi,
+	struct fmt_page *pg, struct vt_page *vtp,
 	int display_rows)
 {
 	char buf[16];
@@ -1854,11 +1876,12 @@ vbi_format_page(struct fmt_page *pg, struct vt_page *vtp,
 
 	printv("\nFormatting page %03x/%04x\n", vtp->pgno, vtp->subno);
 
-	pg->vtp = vtp;
+	pg->pgno  = vtp->pgno;
+	pg->subno = vtp->subno;
 
 	pg->magazine =
-	mag = (max_level <= LEVEL_1p5) ? vtp->vbi->magazine
-		: vtp->vbi->magazine + (vtp->pgno >> 8);
+	mag = (max_level <= LEVEL_1p5) ? vbi->magazine
+		: vbi->magazine + (vtp->pgno >> 8);
 
 	if (vtp->data.lop.ext)
 		pg->ext = ext = &vtp->data.ext_lop.ext;
@@ -1885,14 +1908,14 @@ vbi_format_page(struct fmt_page *pg, struct vt_page *vtp,
 if (vtp->pgno >= 0x101 && vtp->pgno <= 0x108) {
 top_index(vtp->vbi, pg, vtp->pgno - 0x101);
 post_enhance(pg);
-for (row = 1; row < MIN(24, display_rows); row++)
+for (row = 1; row < 25; row++)
 	zap_links(pg, row);
 return 1;
 }
 */
 	/* Colours */
 
-	screen_colour(pg, ext->def_screen_colour);
+	screen_colour(pg, vtp, ext->def_screen_colour);
 
 	pg->colour_map = ext->colour_map;
 	pg->drcs_clut = ext->drcs_clut;
@@ -1920,12 +1943,6 @@ return 1;
 
 
 	sprintf(buf, "\2%x.%02x\7", vtp->pgno, vtp->subno & 0xff);
-
-
-	if (display_rows > 1 && vtp->function == PAGE_FUNCTION_LOP)
-		display_rows = vtp->data.lop.flof ? 25 : 24;
-	else
-		display_rows = 1;
 
 	i = 0;
 	pg->double_height_lower = 0;
@@ -2143,9 +2160,9 @@ return 1;
 
 		if (vtp->enh_lines & 1) {
 			printv("enhancement packets %08x\n", vtp->enh_lines);
-			success = enhance(pg, LOCAL_ENHANCEMENT_DATA, vtp->data.enh_lop.enh, 0, 0);
+			success = enhance(vbi, pg, vtp, LOCAL_ENHANCEMENT_DATA, vtp->data.enh_lop.enh, 0, 0);
 		} else
-			success = default_object_invocation(pg);
+			success = default_object_invocation(vbi, pg, vtp);
 
 		if (success)
 			post_enhance(pg);
@@ -2156,7 +2173,7 @@ return 1;
 	/* Navigation */
 
 	if (1) {
-		pg->nav_link[5] = vtp->vbi->initial_page;
+		pg->nav_link[5] = vbi->initial_page;
 
 		for (row = 1; row < MIN(24, display_rows); row++)
 			zap_links(pg, row);
@@ -2172,10 +2189,23 @@ return 1;
 					flof_links(pg, vtp);
 				else
 					flof_navigation_bar(pg, vtp);
-			} else if (vtp->vbi->top)
-				top_navigation_bar(vtp->vbi, pg, vtp);
+			} else if (vbi->top)
+				top_navigation_bar(vbi, pg, vtp);
 		}
 	}
 
 	return 1;
+}
+
+int
+vbi_fetch_page(struct vbi *vbi, struct fmt_page *pg, int pgno, int subno, int display_rows)
+{
+	struct vt_page *vtp;
+
+	vtp = vbi->cache->op->get(vbi->cache, pgno, subno, 0xFFFF);
+
+	if (!vtp)
+		return 0;
+
+	return vbi_format_page(vbi, pg, vtp, display_rows);
 }

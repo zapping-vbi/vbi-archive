@@ -54,13 +54,6 @@ struct vbi
     void *fifo;
 };
 
-struct vbi_client
-{
-    struct dl_node node[1];
-    void (*handler)(void *data, struct vt_event *ev);
-    void *data;
-};
-
 struct vbi *vbi_open(char *vbi_dev_name, struct cache *ca, int fine_tune);
 void vbi_close(struct vbi *vbi);
 void vbi_reset(struct vbi *vbi);

@@ -1,9 +1,25 @@
+16.2.2001	TTX export <mschimek@users.sourceforge.net>
+
+	* removed all vt_page references from ttxview, zvbi. This is
+	  a private libvbi structure now: vbi_event->pgno | user input
+	  -> vbi_fetch_page -> fmt_page -> buffer, export, render.
+	  Rationale: Raw data is useless for GUI, need not export
+	  the rat tail of vt_page substructures and definitions.
+	  No cache access outside libvbi, client can't maintain
+	  pointers into a dynamically allocated & updated cache
+	  or feed back outdated local copies of raw data.
+
 15.2.2001	Copy (pixmaps) <garetxe@users.sourceforge.net>
 
 	* src/ttxview.c: The selection is now exported as a pixmap too
 	(can be pasted into xpaint, for example)
 	* src/tveng2.c: Support for driver private controls (untested)
 	* libvbi/exp-gfx.c: Partial (region) rendering.
+
+13.2.2001	TTX export <mschimek@users.sourceforge.net>
+
+	* added aspect option to ppm/png export
+	* removed vt_page* from struct fmt_page
 
 11.2.2001	Copy (text) <garetxe@users.sourceforge.net>
 

@@ -14,7 +14,7 @@
 #include "lang.h"
 #include "export.h"
 #include "tables.h"
-
+#include "libvbi.h"
 
 static void reset_magazines(struct vbi *vbi);
 #define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
@@ -34,13 +34,15 @@ out_of_sync(struct vbi *vbi)
 // send an event to all clients
 
 static void
-vbi_send(struct vbi *vbi, int type, int i1, int i2, int i3, void *p1)
+vbi_send(struct vbi *vbi, int type, int pgno, int subno, int i1, int i2, int i3, void *p1)
 {
-    struct vt_event ev[1];
+    vbi_event ev[1];
     struct vbi_client *cl, *cln;
 
     ev->resource = vbi;
     ev->type = type;
+    ev->pgno = pgno;
+    ev->subno = subno;
     ev->i1 = i1;
     ev->i2 = i2;
     ev->i3 = i3;
@@ -66,7 +68,7 @@ vbi_send_page(struct vbi *vbi, struct raw_page *rvtp)
 	if (vbi->cache)
 		cvtp = vbi->cache->op->put(vbi->cache, rvtp->page);
 
-	vbi_send(vbi, EV_PAGE, 0, 0, 0, cvtp ?: rvtp->page);
+	vbi_send(vbi, VBI_EVENT_PAGE, rvtp->page->pgno, rvtp->page->subno, 0, 0, 0, cvtp ?: rvtp->page);
 }
 
 
@@ -1390,7 +1392,6 @@ vt_packet(struct vbi *vbi, u8 *p)
 //XXX?
 		cvtp->data.ext_lop.ext.designations = 0;
 		rvtp->num_triplets = 0;
-	cvtp->vbi = vbi; // temporary
 
 		return TRUE;
 	}
@@ -2005,7 +2006,7 @@ vbi_query_page(struct vbi *vbi, int pgno, int subno)
 	return 0;
     }
 
-    vbi_send(vbi, EV_PAGE, 1, 0, 0, vtp);
+    vbi_send(vbi, VBI_EVENT_PAGE, vtp->pgno, vtp->subno, 1, 0, 0, vtp);
     return vtp;
 }
 
@@ -2015,5 +2016,5 @@ vbi_reset(struct vbi *vbi)
     if (vbi->cache)
 	vbi->cache->op->reset(vbi->cache);
     reset_magazines(vbi);
-    vbi_send(vbi, EV_RESET, 0, 0, 0, 0);
+    vbi_send(vbi, VBI_EVENT_RESET, 0, 0, 0, 0, 0, 0);
 }

@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.21 2001-02-15 00:16:01 garetxe Exp $ */
+/* $Id: exp-gfx.c,v 1.22 2001-02-16 22:15:16 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -32,61 +32,60 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <errno.h>
+
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include "lang.h"
 #include "export.h"
 
 #include "wstfont.xbm"
+
+/* future */
+#undef _
+#define _(String) (String)
 
 #undef WW
 #undef WH
 #undef CW
 #undef CH
 
-#define CW 12		/* character cell dimensions - hardcoded (DRCS) */
-#define CH 10
-#define WW (W*CW)
-#define WH (H*CH)
 
-#if 0
+/* Character cell dimensions - hardcoded (DRCS) */
 
+#define CW		12		
+#define CH		10
+#define WW		(W * CW)
+#define WH		(H * CH)
+
+#define CPL		(wstfont_width / CW * wstfont_height / CH)
+
+static unsigned char *fimg;
 static void init_gfx(void) __attribute__ ((constructor));
 
 static void
 init_gfx(void)
 {
-	unsigned char *buf, *p;
+	unsigned char *p;
 	int i, j;
 
 	/* de-interleave font image (puts all chars in row 0) */
-	/* could load font image here rather than inline */
-	/* XXX need blank line #10 for c & (1 << 11) or diacr bitmap */
 
-	if (!(buf = malloc(wstfont_width * wstfont_height / 8)))
+	if (!(fimg = calloc(CPL * CW * (CH + 1) / 8, 1)))
 		exit(EXIT_FAILURE);
-	p = buf;
+
+	p = fimg;
 
 	for (i = 0; i < CH; i++)
 		for (j = 0; j < wstfont_height; p += wstfont_width / 8, j += CH)
 			memcpy(p, wstfont_bits + (j + i) * wstfont_width / 8,
 				wstfont_width / 8);
-
-	memcpy(wstfont_bits, buf, wstfont_width * wstfont_height / 8);
-
-	free(buf);
 }
-
-#endif
-
-#define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
-
-///////////////////////////////////////////////////////
-// COMMON ROUTINES FOR PPM AND PNG
 
 #if CW < 9 || CW > 16
 #error CW out of range
 #endif
-
-
 
 #define peek(p, i)							\
 ((canvas_type == sizeof(u8)) ? ((u8 *)(p))[i] :				\
@@ -100,32 +99,26 @@ init_gfx(void)
 
 static inline void
 draw_char(int canvas_type, u8 *canvas, u8 *pen,
-	int glyph, int bold, int underline, attr_size size)
+	int glyph, int bold, int underline, int italic, attr_size size)
 {
 	unsigned char *src1, *src2;
+	unsigned short g = glyph & 0xFFFF;
 	int shift1, shift2;
-	int x, y, base = 0; // XXX italic ? GL_ITALICS : 0;
+	int x, y, base = 0;
 	int ch = CH;
-#if 1
-	x = (glyph & 31) * CW;
-	shift1 = x & 7;
-	src1 = wstfont_bits + ((glyph & 0x03FF) >> 5) * CH * CW * 32 / 8 + (x >> 3);
 
-	x = (glyph >> 20) * CW;
-	shift2 = (x & 7) + ((glyph >> 18) & 1);
-	src2 = wstfont_bits + ((base + 0xC0) >> 5) * CH * CW * 32 / 8 + (x >> 3);
-	if (glyph & 0x080000) src2 += CW * 32 / 8;
-#else
-	x = (glyph & 0xFFFF) * CW;
+	if (italic && g < 0x200)
+		base = GL_ITALICS;
+
+	x = (base + g) * CW;
 	shift1 = x & 7;
-	src1 = wstfont_bits + (x >> 3);
+	src1 = fimg + (x >> 3);
 
 	x = (base + 0xC0 + (glyph >> 20)) * CW;
 	shift2 = (x & 7) + ((glyph >> 18) & 1);
-	src2 = wstfont_bits + (x >> 3);
+	src2 = fimg + (x >> 3);
 	if (glyph & (1 << 19))
-		src2 += wstfont_width * (wstfont_height / CH) / 8;
-#endif
+		src2 += CPL * CW / 8;
 
 	for (y = 0; y < ch; y++) {
 #if #cpu (i386)
@@ -190,13 +183,9 @@ draw_char(int canvas_type, u8 *canvas, u8 *pen,
 		default:
 			break;
 		}
-#if 1
-		src1 += CW * 32 / 8;
-		src2 += CW * 32 / 8;
-#else
-		src1 += wstfont_width * (wstfont_height / CH) / 8;
-		src2 += wstfont_width * (wstfont_height / CH) / 8;
-#endif
+
+		src1 += CPL * CW / 8;
+		src2 += CPL * CW / 8;
 	}
 }
 
@@ -310,13 +299,71 @@ vbi_draw_page_region(struct fmt_page *pg, void *data, int conceal,
 						pg->drcs[(glyph & 0x1F00) >> 8], glyph, ac->size);
 				} else {
 					draw_char(sizeof(*canvas), (u8 *) canvas, (u8 *) pen,
-						glyph, ac->bold, ac->underline, ac->size);
+						glyph, ac->bold, ac->underline, ac->italic, ac->size);
 				}
 			}
 		}
 		canvas += (W-width)*CW;
 	}
 }
+
+/* We could just export WW and WH too.. */
+void vbi_get_rendered_size(int *w, int *h)
+{
+  if (w)
+    *w = WW;
+  if (h)
+    *h = WH;
+}
+
+/*
+ *  Shared export options
+ */
+
+typedef struct
+{
+	int	double_height;
+	/*
+	 *  The raw image contains the same information a real TV
+	 *  would show, however a TV overlays the image on both fields.
+	 *  So raw pixel aspect is 2:1, and this option will double
+	 *  lines adding redundant information. The resulting images
+	 *  with pixel aspect 2:2 are still too narrow compared to a
+	 *  real TV closer to 4:3 (11 MHz pixel clock), but I {mhs}
+	 *  think one should export raw, not scaled data.
+	 */
+} gfx_data;
+
+static int
+gfx_open(struct export *e)
+{
+	gfx_data *d = (gfx_data *) e->data;
+
+	d->double_height = 1;
+
+	return 0;
+}
+
+static int
+gfx_option(struct export *e, int opt, char *arg)
+{
+	gfx_data *d = (gfx_data *) e->data;
+
+	switch (opt) {
+	case 1: // aspect
+		d->double_height = !d->double_height;
+		break;
+	}
+
+	return 0;
+}
+
+static char *
+gfx_opts[] =
+{
+	"aspect",	// line doubling
+	0
+};
 
 /*
  *  PPM - Portable Pixmap File (raw)
@@ -325,25 +372,31 @@ vbi_draw_page_region(struct fmt_page *pg, void *data, int conceal,
 static int
 ppm_output(struct export *e, char *name, struct fmt_page *pg)
 {
+	gfx_data *d = (gfx_data *) e->data;
 	unsigned int *image;
 	unsigned char *body;
+	struct stat st;
 	FILE *fp;
 	int i;
 
 	if (!(image = malloc(WH * WW * sizeof(*image)))) {
-		export_error("cannot allocate memory");
+		export_error(_("unable to allocate %d KB image buffer"),
+			WH * WW * sizeof(*image) / 1024);
 		return 0;
 	}
 
 	vbi_draw_page(pg, image, !e->reveal);
 
-	if (!(fp = fopen(name, "w"))) {
+	if (!(fp = fopen(name, "wb"))) {
+		export_error(_("cannot create file '%s': %s"), name, strerror(errno));
 		free(image);
-		export_error("cannot create file");
 		return -1;
 	}
 
-	fprintf(fp, "P6 %d %d 15\n", WW, WH);
+	fprintf(fp, "P6 %d %d 15\n", WW, WH << (!!d->double_height));
+
+	if (ferror(fp))
+		goto write_error;
 
 	body = (unsigned char *) image;
 
@@ -355,35 +408,59 @@ ppm_output(struct export *e, char *name, struct fmt_page *pg)
 		body[2] = n >> 16;
 	}
 
-	if (!fwrite(image, WH * WW * 3, 1, fp)) {
-		export_error("error while writting to file");
-		free(image);
-		fclose(fp);
-		return -1;
-	}
+	if (d->double_height) {
+		body = (unsigned char *) image;
+
+		for (i = 0; i < WH; body += WW * 3, i++) {
+			if (!fwrite(body, WW * 3, 1, fp))
+				goto write_error;
+			if (!fwrite(body, WW * 3, 1, fp))
+				goto write_error;
+		}
+	} else
+		if (!fwrite(image, WH * WW * 3, 1, fp))
+			goto write_error;
 
 	free(image);
+	image = NULL;
 
 	if (fclose(fp)) {
-		export_error("cannot close file");
-		return -1;
+		fp = NULL;
+		goto write_error;
 	}
 
 	return 0;
+
+write_error:
+	export_error(errno ?
+		_("error while writing file '%s': %s") :
+		_("error while writing file '%s'"), name, strerror(errno));
+
+	if (image)
+		free(image);
+
+	if (fp)
+		fclose(fp);
+
+	if (!stat(name, &st) && S_ISREG(st.st_mode))
+		remove(name);
+
+	return -1;
 }
 
-struct export_module export_ppm[1] =	// exported module definition
+struct export_module
+export_ppm[1] =			// exported module definition
 {
-  {
-    "ppm",			// id
-    "ppm",			// extension
-    0,				// options
-    0,				// size
-    0,				// open
-    0,				// close
-    0,				// option
-    ppm_output			// output
-  }
+    {
+	"ppm",			// id
+	"ppm",			// extension
+	gfx_opts,		// options
+	sizeof(gfx_data),	// size
+	gfx_open,		// open
+	0,			// close
+	gfx_option,		// option
+	ppm_output		// output
+    }
 };
 
 /*
@@ -396,11 +473,10 @@ struct export_module export_ppm[1] =	// exported module definition
 #include "setjmp.h"
 
 static void
-draw_char_indexed(png_bytep canvas, png_bytep pen,
-	int glyph, int bold, int underline, attr_size size)
+draw_char_indexed(png_bytep canvas, png_bytep pen, int glyph, attr_char *ac)
 {
 	draw_char(sizeof(png_byte), (u8 *) canvas, (u8 *) pen,
-		glyph, bold, underline, size);
+		glyph, ac->bold, ac->underline, ac->italic, ac->size);
 }
 
 static void
@@ -413,14 +489,16 @@ draw_drcs_indexed(png_bytep canvas, png_bytep pen,
 static int
 png_output(struct export *e, char *name, struct fmt_page *pg)
 {
+	gfx_data *d = (gfx_data *) e->data;
 	FILE *fp;
+	struct stat st;
 	png_structp png_ptr;
 	png_infop info_ptr;
 	png_color palette[80];
 	png_byte alpha[80];
 	png_text text[4];
 	char title[80];
-	png_bytep row_pointer[WH];
+	png_bytep row_pointer[WH * 2];
 	png_bytep image;
 	int i;
 
@@ -471,8 +549,7 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 						pen[0] = TRANSPARENT_BLACK;
 						pen[1] = ac->foreground;
 
-						draw_char_indexed(canvas, pen, glyph,
-							ac->bold, ac->underline, ac->size);
+						draw_char_indexed(canvas, pen, glyph, ac);
 					}
 
 					break;
@@ -493,8 +570,7 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 						pen[0] = ac->background + 40;
 						pen[1] = ac->foreground;
 
-						draw_char_indexed(canvas, pen, glyph,
-							ac->bold, ac->underline, ac->size);
+						draw_char_indexed(canvas, pen, glyph, ac);
 					}
 
 					break;
@@ -507,8 +583,7 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 						draw_drcs_indexed(canvas, pen, 
 							pg->drcs[(glyph & 0x1F00) >> 8], glyph, ac->size);
 					} else {
-						draw_char_indexed(canvas, pen, glyph,
-							ac->bold, ac->underline, ac->size);
+						draw_char_indexed(canvas, pen, glyph, ac);
 					}
 
 					break;
@@ -516,44 +591,35 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 			}
 		}
 	} else {
-		export_error("cannot allocate memory");
-		return 0;
+		export_error(_("unable to allocate %d KB image buffer"),
+			WH * WW * sizeof(*image) / 1024);
+		return -1;
 	}
 
 	if (!(fp = fopen(name, "wb"))) {
-		export_error("cannot create file");
+		export_error(_("cannot create file '%s': %s"), name, strerror(errno));
 		free(image);
 		return -1;
 	}
 
-	if (!(png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL))) {
-		fclose(fp);
-		free(image);
-		return -1;
-	}
+	if (!(png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL)))
+		goto unknown_error;
 
 	if (!(info_ptr = png_create_info_struct(png_ptr))) {
 		png_destroy_write_struct(&png_ptr, (png_infopp) NULL);
-		fclose(fp);
-		free(image);
-		return -1;
+		goto unknown_error;
 	}
 
-	if (setjmp(png_ptr->jmpbuf)) {
-		/* If we get here, we had a problem writing the file */
-		png_destroy_write_struct(&png_ptr, &info_ptr);
-		fclose(fp);
-		free(image);
-		return -1;
-	}
+	if (setjmp(png_ptr->jmpbuf))
+		goto write_error;
 
 	png_init_io(png_ptr, fp);
 
-	png_set_IHDR(png_ptr, info_ptr, WW, WH,
+	png_set_IHDR(png_ptr, info_ptr, WW, WH << (!!d->double_height),
 		8 /* bit_depth */,
 		PNG_COLOR_TYPE_PALETTE,
-		PNG_INTERLACE_NONE,
-	     /* PNG_INTERLACE_ADAM7,   pretty much useless, impossible to read anything until pass 7 */
+		(d->double_height) ?
+			PNG_INTERLACE_ADAM7 : PNG_INTERLACE_NONE,
 		PNG_COMPRESSION_TYPE_DEFAULT,
 		PNG_FILTER_TYPE_DEFAULT);
 
@@ -581,8 +647,8 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 	 */
 	memset(text, 0, sizeof(text));
 	snprintf(title, sizeof(title) - 1,
-		"Teletext Page %3x/%04x",
-		pg->vtp->pgno, pg->vtp->subno); // XXX make it "station_short Teletext ..."
+		_("Teletext Page %3x/%04x"),
+		pg->pgno, pg->subno); // XXX make it "station_short Teletext ..."
 
 	text[0].key = "Title";
 	text[0].text = title;
@@ -595,8 +661,13 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 
 	png_write_info(png_ptr, info_ptr);
 
-	for (i = 0; i < WH; i++)
-		row_pointer[i] = image + i * WW;
+	if (d->double_height)
+		for (i = 0; i < WH; i++)
+			row_pointer[i * 2 + 0] =
+			row_pointer[i * 2 + 1] = image + i * WW;
+	else
+		for (i = 0; i < WH; i++)
+			row_pointer[i] = image + i * WW;
 
 	png_write_image(png_ptr, row_pointer);
 
@@ -604,35 +675,47 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 
 	png_destroy_write_struct(&png_ptr, &info_ptr);
 
-	fclose(fp);
-
 	free(image);
+	image = NULL;
+
+	if (fclose(fp)) {
+		fp = NULL;
+		goto write_error;
+	}
 
 	return 0;
+
+write_error:
+	export_error(errno ?
+		_("error while writing '%s': %s") :
+		_("error while writing '%s'"), name, strerror(errno));
+
+unknown_error:
+	if (image)
+		free(image);
+
+	if (fp)
+		fclose(fp);
+
+	if (!stat(name, &st) && S_ISREG(st.st_mode))
+		remove(name);
+
+	return -1;
 }
 
-struct export_module export_png[1] =	// exported module definition
+struct export_module
+export_png[1] =			// exported module definition
 {
-  {
-    "png",			// id
-    "png",			// extension
-    0,				// options
-    0,				// size
-    0,				// open
-    0,				// close
-    0,				// option
-    png_output			// output
-  }
+    {
+	"png",			// id
+	"png",			// extension
+	gfx_opts,		// options
+	sizeof(gfx_data),	// size
+	gfx_open,		// open
+	0,			// close
+	gfx_option,		// option
+	png_output		// output
+    }
 };
 
 #endif /* HAVE_LIBPNG */
-
-
-/* We could just export WW and WH too.. */
-void vbi_get_rendered_size(int *w, int *h)
-{
-  if (w)
-    *w = WW;
-  if (h)
-    *h = WH;
-}

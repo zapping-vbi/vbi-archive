@@ -1,5 +1,5 @@
 /*
- *  Zapzilla - HTML export functions
+ *  Zapzilla - Teletext HTML export functions
  *
  *  Copyright (C) 2001 Michael H. Schimek
  *
@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.7 2001-02-07 04:39:30 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.8 2001-02-16 22:15:16 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -31,9 +31,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <errno.h>
+
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include <iconv.h>
+
 #include "lang.h"
 #include "export.h"
+
+/* future */
+#undef _
+#define _(String) (String)
 
 struct html_data	// private data in struct export
 {
@@ -88,9 +99,6 @@ static const char *	html_bold[]		= { "</b>", "<b>" };
 static const char *	html_italic[]		= { "</i>", "<i>" };
 static const char *	html_flash[]		= { "</blink>", "<blink>" };
 
-/*
- *  WARNING this destroys pg->data
- */
 static int
 html_output(struct export *e, char *name, struct fmt_page *pgp)
 {
@@ -102,6 +110,7 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 	int background;
 	bool underline, bold, italic, flash;
 	bool span;
+	struct stat st;
 	FILE *fp;
 	int i, j;
 
@@ -246,10 +255,8 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 		}
 	}
 
-	/* XXX write error */
-
 	if (!(fp = fopen(name, "w"))) {
-		export_error("cannot create file");
+		export_error(_("cannot create file '%s': %s"), name, strerror(errno));
 		iconv_close(cd);
 		return -1;
 	}
@@ -265,7 +272,7 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 				mind reserved chars (quote) and character set */
 			"</head>" LF,
 			charset,
-			pg.vtp->pgno, pg.vtp->subno);
+			pg.pgno, pg.subno);
 
 		fputs("<body text=\"#FFFFFF\" bgcolor=\"", fp);
 		hash_colour(fp, pg.colour_map[pg.screen_colour]);
@@ -404,9 +411,20 @@ html_output(struct export *e, char *name, struct fmt_page *pgp)
 
 	fputc('\n', fp);
 
+	iconv_close(cd);
+
 	fclose(fp);
 
-	iconv_close(cd);
+	if (ferror(fp)) {
+		export_error(errno ?
+			_("error while writing file '%s': %s") :
+			_("error while writing file '%s'"), name, strerror(errno));
+
+		if (!stat(name, &st) && S_ISREG(st.st_mode))
+			remove(name);
+
+		return -1;
+	}
 
 	return 0;
 }

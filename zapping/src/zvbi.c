@@ -72,7 +72,6 @@ struct ttx_client {
   int		page, subpage; /* monitored page, subpage */
   int		id; /* of the client */
   pthread_mutex_t mutex;
-  struct vt_page vtp; /* unformatted page */
   struct fmt_page fp; /* formatted page */
   GdkPixbuf	*unscaled; /* unscaled version of the page */
   GdkPixbuf	*scaled; /* scaled version of the page */
@@ -84,7 +83,7 @@ static GList *ttx_clients = NULL;
 static pthread_mutex_t clients_mutex;
 
 /* handler for a vbi event */
-static void event(struct dl_head *reqs, struct vt_event *ev);
+static void event(struct dl_head *reqs, vbi_event *ev);
 
 /* thread function (just a loop that selects on the VBI device) */
 static void * zvbi_thread(void * vbi);
@@ -207,7 +206,6 @@ register_ttx_client(void)
   client = g_malloc(sizeof(struct ttx_client));
   memset(client, 0, sizeof(struct ttx_client));
   client->id = id++;
-  client->fp.vtp = &client->vtp;
   pthread_mutex_init(&client->mutex, NULL);
   filename = g_strdup_printf("%s/%s%d.jpeg", PACKAGE_DATA_DIR,
 			     "../pixmaps/zapping/vt_loading",
@@ -349,8 +347,8 @@ unregister_ttx_client(int id)
   pthread_mutex_unlock(&clients_mutex);
 }
 
-static void
-build_client_page(struct ttx_client *client, struct vt_page *vtp)
+static int
+build_client_page(struct ttx_client *client, int page, int subpage)
 {
   GdkPixbuf *simple;
   gchar *filename;
@@ -358,20 +356,19 @@ build_client_page(struct ttx_client *client, struct vt_page *vtp)
   g_assert(client != NULL);
 
   pthread_mutex_lock(&client->mutex);
-  if ((vtp) && (vtp != (struct vt_page*)-1))
+  if (page > 0)
     {
-      memcpy(&client->vtp, vtp, vtp_size(vtp));
-      if (!vbi_format_page(&client->fp, vtp, 25))
-        goto unlock;
-      client->fp.vtp = &client->vtp;
+      if (!vbi_fetch_page(vbi, &client->fp, page, subpage, 25))
+        {
+	  pthread_mutex_unlock(&client->mutex);
+	  return 0;
+	}
       vbi_draw_page(&client->fp,
 		    gdk_pixbuf_get_pixels(client->unscaled), 0);
     }
-  else if (vtp != (struct vt_page*)-1)
+  else if (page == 0)
     {
-      memset(&client->vtp, 0, sizeof(struct vt_page));
       memset(&client->fp, 0, sizeof(struct fmt_page));
-      client->fp.vtp = &client->vtp;
       filename = g_strdup_printf("%s/%s%d.jpeg", PACKAGE_DATA_DIR,
 				 "../pixmaps/zapping/vt_loading",
 				 (rand()%2)+1);
@@ -410,15 +407,15 @@ build_client_page(struct ttx_client *client, struct vt_page *vtp)
 		     (double) client->h /
 		      gdk_pixbuf_get_height(client->unscaled),
 		     INTERP_MODE);
-unlock:
+
   pthread_mutex_unlock(&client->mutex);
+  return 1; /* success */
 }
 
 void
 monitor_ttx_page(int id/*client*/, int page, int subpage)
 {
   struct ttx_client *client;
-  struct vt_page *cached=NULL;
 
   pthread_mutex_lock(&clients_mutex);
   client = find_client(id);
@@ -428,17 +425,13 @@ monitor_ttx_page(int id/*client*/, int page, int subpage)
       client->page = page;
       client->subpage = subpage;
       if ((page >= 0x100) && (page <= 0x899)) {
-	if (vbi->cache) {
-	  cached = vbi->cache->op->get(vbi->cache, page, subpage, 0xFFFF);
-	  if (cached)
-	    {
-	      build_client_page(client, cached);
-	      clear_message_queue(client);
-	      send_ttx_message(client, TTX_PAGE_RECEIVED);
-	    }
-	}
+        if (build_client_page(client, page, subpage))
+	  {
+	    clear_message_queue(client);
+	    send_ttx_message(client, TTX_PAGE_RECEIVED);
+	  }
       } else {
-	build_client_page(client, NULL);
+	build_client_page(client, 0, 0);
 	clear_message_queue(client);
 	send_ttx_message(client, TTX_PAGE_RECEIVED);
       }
@@ -450,20 +443,19 @@ void monitor_ttx_this(int id, struct fmt_page *pg)
 {
   struct ttx_client *client;
 
-  if ((!pg) || (!pg->vtp))
+  if (!pg)
     return;
 
   pthread_mutex_lock(&clients_mutex);
   if ((client = find_client(id)))
     {
-      client->page = pg->vtp->pgno;
-      client->subpage = pg->vtp->subno;
+      client->page = pg->pgno;
+      client->subpage = pg->subno;
       client->freezed = TRUE;
-      memcpy(&client->vtp, pg->vtp, vtp_size(pg->vtp));
       memcpy(&client->fp, pg, sizeof(struct fmt_page));
       vbi_draw_page(&client->fp,
 		    gdk_pixbuf_get_pixels(client->unscaled), 0);
-      build_client_page(client, (struct vt_page*)-1);
+      build_client_page(client, -1, -1);
       clear_message_queue(client);
       send_ttx_message(client, TTX_PAGE_RECEIVED);
     }
@@ -493,7 +485,7 @@ ttx_unfreeze (int id)
 }
 
 static void
-notify_clients(int page, int subpage, struct vt_page *vtp)
+notify_clients(int page, int subpage)
 {
   GList *p;
   struct ttx_client *client;
@@ -506,7 +498,7 @@ notify_clients(int page, int subpage, struct vt_page *vtp)
       if ((client->page == page) && (!client->freezed) &&
 	  ((client->subpage == subpage) || (client->subpage == ANY_SUB)))
 	{
-	  build_client_page(client, vtp);
+	  build_client_page(client, page, subpage);
 	  send_ttx_message(client, TTX_PAGE_RECEIVED);
 	}
       p = p->next;
@@ -641,15 +633,14 @@ zvbi_get_object(void)
 
 /* this is called when we receive a page, header, etc. */
 static void
-event(struct dl_head *reqs, struct vt_event *ev)
+event(struct dl_head *reqs, vbi_event *ev)
 {
     unsigned char *p;
-    struct vt_page *vtp;
     int hour=0, min=0, sec=0;
     char *name, *h;
     
     switch (ev->type) {
-    case EV_HEADER:
+    case VBI_EVENT_HEADER:
 	p = ev->p1;
 	// printv("header %.32s\n", p+8);
 	pthread_mutex_lock(&(last_info.mutex));
@@ -684,15 +675,14 @@ event(struct dl_head *reqs, struct vt_event *ev)
 	last_info.sec = sec;
 	pthread_mutex_unlock(&(last_info.mutex));
 	break;
-    case EV_PAGE:
-      vtp = (struct vt_page*)ev->p1;
-	printv("vtx page %x.%02x  \r", vtp->pgno,
-	       vtp->subno);
+    case VBI_EVENT_PAGE:
+	printv("vtx page %x.%02x \r", ev->pgno,
+	       ev->subno & 0xFF);
 	
 	/* Set the dirty flag on the page */
-	notify_clients(vtp->pgno, vtp->subno, vtp);
+	notify_clients(ev->pgno, ev->subno);
 	break;
-    case EV_XPACKET:
+    case VBI_EVENT_XPACKET:
 	p = ev->p1;
 	//printv("xpacket %x %x %x %x - %.20s\n",
 	// 			p[0],p[1],p[3],p[5],p+20);
@@ -719,6 +709,8 @@ event(struct dl_head *reqs, struct vt_event *ev)
 	}
 	pthread_mutex_unlock(&(last_info.mutex));
 	break;
+
+    default:
     }
 }
 
