@@ -549,15 +549,9 @@ static GList * plugin_load_plugins_in_dir( const gchar * directory,
 					   gchar * exp,
 					   GList * old )
 {
-  struct dirent ** namelist;
-  int n; /* Number of scanned items */
   struct plugin_info plug;
-  struct plugin_info * new_plugin; /* If plugin is OK, a copy will be
-				      allocated here */
-  GList * p;
-
-  int i;
-  gchar * filename; /* Complete path to the plugin to load */
+  GDir *dir;
+  const gchar *name;
 
   g_assert(exp != NULL);
   g_assert(directory != NULL);
@@ -565,71 +559,73 @@ static GList * plugin_load_plugins_in_dir( const gchar * directory,
 
   printv("looking for plugins in %s\n", directory);
 
-  n = scandir(directory, &namelist, 0, alphasort);
-  if (n < 0)
+  dir = g_dir_open (directory, /* flags */ 0, /* GError */ NULL);
+  if (!dir)
     {
-      /* Show error just when there is actually an error */
-      if (errno != ENOENT)
+      if (0)
 	perror("scandir");
       return old;
     }
 
-  for (i = 0; i < n; i++)
+  while ((name = g_dir_read_name (dir)))
     {
-      filename = strstr(namelist[i]->d_name, exp);
+      gchar *filename;
+      GList *p;
+      struct plugin_info *new_plugin;
 
-      if ((!filename) || (strlen(exp) != strlen(filename)))
-	{
-	  free(namelist[i]);
-	  continue;
-	}
+      if (0 != strcmp (name + strlen (name) - strlen (exp), exp))
+	continue;
 
-      filename = g_strconcat(directory, directory[strlen(directory)-1] ==
-			     '/' ? "" : "/", namelist[i] -> d_name,
-			     NULL);
-      free (namelist[i]);
+      filename = g_build_filename (directory, name, NULL);
 
-      if (!plugin_load(filename, &plug))
+      if (!plugin_load (filename, &plug))
 	{
 	plugin_load_error:
-	  g_free(filename);
+	  g_free (filename);
 	  continue;
 	}
+
       /* Check whether there is no other other plugin with the same
 	 canonical name */
-      p = g_list_first(old);
-      while (p)
+
+      for (p = g_list_first (old); p; p = p->next)
 	{
-	  new_plugin = (struct plugin_info*)p->data;
-	  if (!strcasecmp(new_plugin->canonical_name,
-			  plug.canonical_name))
+	  new_plugin = (struct plugin_info *) p->data;
+
+	  if (0 == g_ascii_strcasecmp (new_plugin->canonical_name,
+				       plug.canonical_name))
 	    {
 	      /* Collision, load the highest version number */
 	      if (new_plugin->major > plug.major)
-		goto plugin_load_error;
+		{
+		  goto plugin_load_error;
+		}
 	      else if (new_plugin->major == plug.major)
 		{
 		  if (new_plugin->minor > plug.minor)
-		    goto plugin_load_error;
+		    {
+		      goto plugin_load_error;
+		    }
 		  else if (new_plugin->minor == plug.minor)
 		    {
 		      if (new_plugin->micro >= plug.micro)
 			goto plugin_load_error;
 		    }
 		}
+
 	      /* Replace the old one with the new one, just delete the
-	       old one */
-	      old = g_list_remove(old, new_plugin);
-	      plugin_unload(new_plugin);
-	      free(new_plugin);
+		 old one */
+	      old = g_list_remove (old, new_plugin);
+	      plugin_unload (new_plugin);
+	      free (new_plugin);
 	      break; /* There is no need to continue querying */
 	    }
-	  p = p->next;
 	}
-      g_free(filename);
+
+      g_free (filename);
 
       /* This plugin is valid, copy it and add it to the GList */
-      new_plugin = (struct plugin_info *) malloc(sizeof(struct plugin_info));
+      new_plugin = malloc (sizeof (*new_plugin));
       if (!new_plugin)
 	{
 	  perror("malloc");
@@ -637,13 +633,12 @@ static GList * plugin_load_plugins_in_dir( const gchar * directory,
 	  continue;
 	}
 
-      memcpy(new_plugin, &plug, sizeof(struct plugin_info));
+      *new_plugin = plug;
       
       old = g_list_append(old, new_plugin);
     }
 
-  if (namelist)
-    free(namelist);
+  g_dir_close (dir);
 
   return old;
 }
