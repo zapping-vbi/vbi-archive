@@ -34,15 +34,18 @@
 
 #define N_ELEMENTS(array) (sizeof (array) / sizeof (*(array)))
 
-#undef PARENT
-#define PARENT(ptr, type, member)					\
-  ((type *)(((char *)(ptr)) - offsetof (type, member)))
-
 #ifdef __GNUC__
 
 #if __GNUC__ < 3
 #define __builtin_expect(exp, c) (exp)
 #endif
+
+#undef PARENT
+#define PARENT(_ptr, _type, _member) ({					\
+	__typeof__ (&((const _type *) 0)->_member) _p = (_ptr);		\
+	(_p != 0) ? (_type *)(((char *) _p) - offsetof (_type,		\
+	  _member)) : (_type *) 0;					\
+})
 
 #undef ABS
 #define ABS(n) ({							\
@@ -105,6 +108,15 @@ do {									\
 #define __inline__
 #define __builtin_expect(exp, c) (exp)
 
+static char *
+PARENT_HELPER (char *p, unsigned int offset)
+{ return (p == 0) ? 0 : p - offset; }
+
+#undef PARENT
+#define PARENT(_ptr, _type, _member)					\
+	((offsetof (_type, _member) == 0) ? (_type *)(_ptr)		\
+	 : (_type *) PARENT_HELPER ((char *)(_ptr), offsetof (_type, _member)))
+
 #undef ABS
 #define ABS(n) (((n) < 0) ? -(n) : (n))
 
@@ -132,6 +144,7 @@ do {									\
 
 #include <gnome.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
+#include <gdk-pixbuf/gdk-pixdata.h>
 
 #include <tveng.h>
 
@@ -390,6 +403,10 @@ gint
 z_menu_get_index		(GtkWidget	*menu,
 				 GtkWidget	*item);
 
+extern GtkWidget *
+z_menu_shell_nth_item		(GtkMenuShell *		menu_shell,
+				 guint			n);
+
 /**
  * Returns the index of the selected entry in a GtkOptionMenu.
  */
@@ -530,5 +547,22 @@ do { gulong handler_id_;						\
   statement;								\
   g_signal_handler_unblock (G_OBJECT (object), handler_id_);		\
 } while (0)
+
+extern GtkWidget *
+z_gtk_image_new_from_pixdata	(const GdkPixdata *	pixdata);
+extern gboolean
+z_icon_factory_add_file		(const gchar *		stock_id,
+				 const gchar *		filename);
+extern gboolean
+z_icon_factory_add_pixdata	(const gchar *		stock_id,
+				 const GdkPixdata *	pixdata);
+
+extern size_t
+z_strlcpy			(char *			dst1,
+				 const char *		src,
+				 size_t			size);
+
+extern const gchar *
+z_gdk_event_name		(GdkEvent *		event);
 
 #endif /* __ZMISC_H__ */
