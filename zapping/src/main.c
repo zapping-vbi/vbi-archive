@@ -416,9 +416,9 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.140 2001-10-21 20:56:12 garetxe Exp $",
+	 "$Id: main.c,v 1.141 2001-10-28 20:05:13 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
-  printv("Checking for CPU support... ");
+  printv("Checking for CPU... ");
   switch (cpu_detection())
     {
     case CPU_PENTIUM_MMX:
@@ -445,7 +445,7 @@ int main(int argc, char * argv[])
       break;
 
     default:
-      printv("unknow CPU type. Using plain C.\n");
+      printv("unknow type. Using plain C.\n");
       break;
     }
   D();
@@ -623,6 +623,21 @@ int main(int argc, char * argv[])
   gtk_widget_realize(tv_screen);
   while (!tv_screen->window)
     z_update_gui();
+  D();
+  if (zcg_bool(NULL, "hide_pointer"))
+    z_set_cursor(tv_screen->window, 0);
+
+  {
+    static void pointer_hook	(const gchar	*key,
+				 gboolean	*new_value,
+				 gpointer	data)
+      {
+	z_set_cursor(tv_screen->window, (!*new_value)*GDK_LEFT_PTR);
+      }
+
+    zconf_add_hook(ZCONF_DOMAIN "hide_pointer", (ZConfHook)pointer_hook, NULL);
+  }
+
   D();
   if (!startup_capture(tv_screen))
     {
@@ -967,6 +982,7 @@ static gboolean startup_zapping(gboolean load_plugins)
   zcc_int(0, "Verbosity value given to zapping_setup_fb",
 	  "zapping_setup_fb_verbosity");
   zcc_int(0, "Ratio mode", "ratio");
+  zcc_bool(FALSE, "Hide the mouse pointer in the TV window", "hide_pointer");
   zcc_int(0, "Change the video mode when going fullscreen", "change_mode");
   zcc_int(0, "Current standard", "current_standard");
   zcc_int(0, "Current input", "current_input");

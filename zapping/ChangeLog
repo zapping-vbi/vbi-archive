@@ -1,3 +1,15 @@
+26.10.2001	Show/hide pointer <garetxe@users.sf.net>
+
+	* zmisc.c: Routines for showing/hiding the pointer, adapted from a
+	patch by Jonas Aaberg. Add also a properties entry.
+	* zconf: Modified hook semantics to save a lookup.
+	* overlay.c: Hooked on the root window events to remove the
+	(expensive??) check_timeout. Makes no difference here, but could
+	fix some reported bugs about cpu usage in overlay.
+	* tveng1.c: Fixed a typo that made working v4l1 devices
+	unavailable. Fixed a bug when setting audio controls too (stupid
+	confusing ugly v4l api...)
+
 23.10.2001	Mpeg plugin <mschimek@users.sf.net>
 
 	* Added format menu, grte_load|save_context and moved all
@@ -5,7 +17,7 @@
 	  brief descriptions.
 	* fifo.c: Added alloc_buffer(*) to struct fifo, renamed
 	  recv_full_buffer_timeout to wait_full_buffer_timeout since
-	  recv_* never waits. 
+	  recv_* never waits.
 
 21.10.2001	CS conversion, qce <garetxe@users.sf.net>
 

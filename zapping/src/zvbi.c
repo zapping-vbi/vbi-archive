@@ -128,10 +128,11 @@ static void event(vbi_event *ev, void *unused);
 
 static void
 on_vbi_prefs_changed		(const gchar *key,
+				 gboolean *new_value,
 				 gpointer data)
 {
   /* Try to open the device */
-  if (!vbi && zcg_bool(NULL, "enable_vbi"))
+  if (!vbi && *new_value)
     {
       D();
       if (!zvbi_open_device(zcg_char(NULL, "vbi_device")))
@@ -143,7 +144,7 @@ on_vbi_prefs_changed		(const gchar *key,
 	}
       D();
     }
-  if (vbi && !zcg_bool(NULL, "enable_vbi"))
+  if (vbi && !*new_value)
     {
       D();
       /* TTX mode */

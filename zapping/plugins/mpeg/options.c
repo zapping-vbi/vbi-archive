@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.9 2001-10-26 09:12:06 mschimek Exp $ */
+/* $Id: options.c,v 1.10 2001-10-28 20:05:13 garetxe Exp $ */
 
 #include "plugin_common.h"
 
@@ -593,7 +593,10 @@ grte_options_save (rte_codec *codec, gchar *zc_domain)
       rte_option_value val;
 
       if (!rte_option_get (codec, ro->keyword, &val))
-	return FALSE;
+	{
+	  g_free(zcname);
+	  return FALSE;
+	}
 
       switch (ro->type)
 	{

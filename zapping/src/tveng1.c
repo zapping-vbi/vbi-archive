@@ -1374,14 +1374,13 @@ tveng1_set_control(struct tveng_control * control, int value,
 	  t_error("VIDIOCGAUDIO", info);
 	  return -1;
 	}
-      audio.flags=0;
+
       switch (control->id)
 	{
 	case P_TVENG1_C_AUDIO_MUTE:
+	  audio.flags &= ~VIDEO_AUDIO_MUTE;
 	  if (value)
 	    audio.flags |= VIDEO_AUDIO_MUTE;
-	  else
-	    audio.flags &= ~VIDEO_AUDIO_MUTE;
 #ifdef TVENG1_BTTV_MUTE_BUG_WORKAROUND
 	  p_info->muted = value;
 #endif
@@ -1410,6 +1409,13 @@ tveng1_set_control(struct tveng_control * control, int value,
 	  fprintf(stderr, "%s\n", info->error);
 	  return -1;
 	}
+
+#ifdef TVENG1_BTTV_MUTE_BUG_WORKAROUND
+      audio.flags &= ~VIDEO_AUDIO_MUTE;
+      if (p_info->muted)
+	audio.flags |= VIDEO_AUDIO_MUTE;
+#endif
+
       /* Set the control */
       if (ioctl(info->fd, VIDIOCSAUDIO, &audio))
 	{

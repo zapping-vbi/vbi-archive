@@ -16,10 +16,6 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/*
- * These routines handle the Windowed overlay mode.
- * FIXME: This is WAY too HACKISH!
- */
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
@@ -28,27 +24,12 @@
 #include <gdk/gdkx.h>
 #include <tveng.h>
 
-#ifndef DISABLE_X_EXTENSIONS
-#ifdef HAVE_LIBXV
-#define USE_XV 1
-#endif
-#endif
-
-#ifdef USE_XV
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#include <X11/extensions/XShm.h>
-#include <X11/extensions/Xv.h>
-#include <X11/extensions/Xvlib.h>
-#endif /* USE_XV */
-
 #include "x11stuff.h"
 #include "zmisc.h"
 #include "zvbi.h"
 #include "overlay.h"
 #include "osd.h"
 
-#define CHECK_TIMEOUT 100 /* ms for the overlay check timeout */
 #define CLEAR_TIMEOUT 50 /* ms for the clear window timeout */
 
 /* event names for debugging. event_str = events[event->type+1] */
@@ -101,11 +82,11 @@ static struct {
   gint clipcount; /* Number of clips in clips */
   gboolean clean_screen; /* TRUE if the whole screen will be cleared */
   gint clear_timeout_id; /* timeout for redrawing */
-  gint check_timeout_id; /* timout for checking */
   gboolean needs_cleaning; /* FALSE for XVideo and chromakey */
 } tv_info;
 
-static int malloc_count = 0;
+/* Pointer to a gdk wrapper for the root window */
+static GdkWindow	*root_window = NULL;
 
 /*
  * Just like x11_get_clips, but fixes the dword-align ugliness
@@ -129,9 +110,6 @@ overlay_get_clips(GdkWindow * window, gint * clipcount)
 			tv_info.info->window.width,
 			tv_info.info->window.height,
 			clipcount);
-
-  if (clips)
-    malloc_count ++;
 
   return clips;
 }
@@ -171,10 +149,7 @@ overlay_clearing_timeout(gpointer data)
 		     tv_info.clipcount))
     { /* delay the update till the situation stabilizes */
       if (tv_info.clips)
-	{
-	  g_free(tv_info.clips);
-	  malloc_count --;
-	}
+	g_free(tv_info.clips);
 
       tv_info.clips = clips;
       tv_info.clipcount = clipcount;
@@ -183,10 +158,8 @@ overlay_clearing_timeout(gpointer data)
       return TRUE; /* call me again */
     }
 
-  if (clips) {
-    malloc_count --;
+  if (clips)
     g_free(clips);
-  }
 
   if ((tv_info.info->current_mode == TVENG_CAPTURE_WINDOW) &&
       (tv_info.needs_cleaning) && (tv_info.visible))
@@ -243,38 +216,6 @@ overlay_status_changed(gboolean clean_screen)
 }
 
 /*
- * Timeout callback. Check for changes in the window stacking and
- * schedules overlay_clearing_timeout if needed. The rest of the
- * changes that could affect the overlay window are event-handled.
- */
-static gint
-overlay_periodic_timeout(gpointer data)
-{
-  struct tveng_clip * clips;
-  gint clipcount;
-  gboolean do_clean = FALSE;
-
-  clips = overlay_get_clips(tv_info.window->window, &clipcount);
-
-  do_clean = !compare_clips(clips, clipcount, tv_info.clips,
-			    tv_info.clipcount);
-
-  if (tv_info.clips) {
-    malloc_count --;
-    g_free(tv_info.clips);
-  }
-
-  tv_info.clips = clips;
-  tv_info.clipcount = clipcount;
-
-  /* Re-schedule a cleaning CLEAR_TIMEOUT from now */
-  if (do_clean)
-    overlay_status_changed(FALSE);
-
-  return TRUE; /* keep calling me */
-}
-
-/*
  * event handler for the toplevel overlay window
  */
 static gboolean
@@ -301,6 +242,32 @@ on_main_overlay_event        (GtkWidget       *widget,
     }
 
   return FALSE;
+}
+
+/**
+ * Event handler for the root window.
+ */
+static GdkFilterReturn
+x_root_filter		(GdkXEvent	*xev,
+			 GdkEvent	*event,
+			 gpointer	data)
+{
+  struct tveng_clip * clips;
+  gint clipcount;
+
+  if (tv_info.clear_timeout_id >= 0 || !tv_info.needs_cleaning ||
+      !tv_info.visible)
+    return GDK_FILTER_CONTINUE; /* no need for this */
+
+  clips = overlay_get_clips(tv_info.window->window, &clipcount);
+
+  if (!compare_clips(clips, clipcount, tv_info.clips,
+		     tv_info.clipcount))
+    overlay_status_changed(TRUE);
+
+  g_free(clips);
+
+  return GDK_FILTER_CONTINUE;
 }
 
 /*
@@ -342,12 +309,6 @@ on_main_overlay_delete_event           (GtkWidget       *widget,
       tv_info.clear_timeout_id = -1;
     }
 
-  if (tv_info.check_timeout_id >= 0)
-    {
-      gtk_timeout_remove(tv_info.check_timeout_id);
-      tv_info.check_timeout_id = -1;
-    }
-
   return FALSE; /* go on with the callbacks */
 }
 
@@ -364,10 +325,8 @@ on_osd_model_changed			(ZModel		*osd_model,
       !tv_info.visible)
     return; /* no need for this */
 
-  if (tv_info.clips) {
-    malloc_count --;
+  if (tv_info.clips)
     g_free(tv_info.clips);
-  }
 
   tv_info.clips =
     overlay_get_clips(tv_info.window->window, &tv_info.clipcount);
@@ -461,17 +420,21 @@ startup_overlay(GtkWidget * window, GtkWidget * main_window,
 
   if (tv_info.needs_cleaning)
     {
-      tv_info.check_timeout_id =
-	gtk_timeout_add(CHECK_TIMEOUT, overlay_periodic_timeout,
-			&(tv_info.check_timeout_id));
+      if (!root_window)
+	{
+	  root_window = gdk_window_foreign_new(GDK_ROOT_WINDOW());
+	  gdk_window_set_events(root_window,
+				GDK_STRUCTURE_MASK |
+				GDK_SUBSTRUCTURE_MASK);
+	}
+      gdk_window_add_filter(root_window, x_root_filter, NULL);
+
       gtk_signal_connect(GTK_OBJECT(osd_model), "changed",
 			 GTK_SIGNAL_FUNC(on_osd_model_changed),
 			 NULL);
       /* Update the cliplist now */
       on_osd_model_changed(osd_model, NULL);
     }
-  else
-    tv_info.check_timeout_id = -1;
 }
 
 /*
@@ -497,16 +460,13 @@ overlay_stop(tveng_device_info *info)
 				  GTK_SIGNAL_FUNC(on_osd_model_changed),
 				  NULL);
 
+  if (tv_info.needs_cleaning)
+    gdk_window_remove_filter(root_window, x_root_filter, NULL);
+
   if (tv_info.clear_timeout_id >= 0)
     {
       gtk_timeout_remove(tv_info.clear_timeout_id);
       tv_info.clear_timeout_id = -1;
-    }
-
-  if (tv_info.check_timeout_id >= 0)
-    {
-      gtk_timeout_remove(tv_info.check_timeout_id);
-      tv_info.check_timeout_id = -1;
     }
 
   if (tv_info.needs_cleaning)
@@ -538,10 +498,8 @@ overlay_sync(gboolean clean_screen)
   gdk_window_get_origin(tv_info.window->window, &tv_info.x,
 			&tv_info.y);
 
-  if (tv_info.clips) {
-    malloc_count --;
+  if (tv_info.clips)
     g_free(tv_info.clips);
-  }
 
   tv_info.info->window.x = tv_info.x;
   tv_info.info->window.y = tv_info.y;
@@ -559,7 +517,6 @@ overlay_sync(gboolean clean_screen)
   if (tv_info.clips) {
     g_free(tv_info.clips);
     tv_info.clips = NULL;
-    malloc_count --;
   }
 
   /* The requested overlay coords might not be the definitive ones,

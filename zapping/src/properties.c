@@ -256,6 +256,15 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
 		     GTK_SIGNAL_FUNC(on_property_item_changed),
 		     zapping_properties);
 
+  /* Hide the mouse pointer */
+  widget = lookup_widget(zapping_properties, "checkbutton14");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
+    zconf_get_boolean(NULL, "/zapping/options/main/hide_pointer"));
+
+  gtk_signal_connect(GTK_OBJECT(widget), "toggled",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+
   /* Avoid some flicker in preview mode */
   widget = lookup_widget(zapping_properties, "checkbutton5");
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
@@ -587,6 +596,10 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
       widget = lookup_widget(pbox, "checkbutton13"); /* swap chan up/down */
       zconf_set_boolean(gtk_toggle_button_get_active(
 	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/swap_up_down");
+
+      widget = lookup_widget(pbox, "checkbutton14"); /* mouse pointer */
+      zconf_set_boolean(gtk_toggle_button_get_active(
+	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/hide_pointer");
 
       widget = lookup_widget(pbox, "checkbutton3"); /* start muted */
       zconf_set_boolean(gtk_toggle_button_get_active(

@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.14 2001-09-26 16:44:15 garetxe Exp $
+ * $Id: fullscreen.c,v 1.15 2001-10-28 20:05:13 garetxe Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -40,8 +40,6 @@
 
 static GtkWidget * black_window = NULL; /* The black window when you go
 					   fullscreen */
-static GdkCursor *fullscreen_cursor=NULL;
-
 extern GtkWidget * main_window;
 
 extern tveng_tuned_channel *global_channel_list;
@@ -155,44 +153,13 @@ gint
 fullscreen_start(tveng_device_info * info)
 {
   GtkWidget * da; /* Drawing area */
-  GdkPixmap *source, *mask;
-  GdkColor fg = {0, 0, 0, 0};
-  GdkColor bg = {0, 0, 0, 0};
   GdkColor chroma = {0, 0, 0, 0};
-
-#define empty_cursor_width 16
-#define empty_cursor_height 16
-  unsigned char empty_cursor_bits[] = {
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-  unsigned char empty_cursor_mask[] = {
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-
-  source = gdk_bitmap_create_from_data(NULL, empty_cursor_bits,
-				       empty_cursor_width,
-				       empty_cursor_height);
-
-  mask = gdk_bitmap_create_from_data(NULL, empty_cursor_mask,
-				     empty_cursor_width,
-				     empty_cursor_height);
 
   /* Add a black background */
   black_window = gtk_window_new( GTK_WINDOW_POPUP );
   da = gtk_fixed_new();
 
   gtk_widget_show(da);
-
-  if (fullscreen_cursor)
-    gdk_cursor_destroy(fullscreen_cursor);
-
-  fullscreen_cursor =
-    gdk_cursor_new_from_pixmap(source, mask, &fg, &bg, 8, 8);
-
-  gdk_pixmap_unref(source);
-  gdk_pixmap_unref(mask);
 
   gtk_container_add(GTK_CONTAINER(black_window), da);
   gtk_widget_set_usize(black_window, gdk_screen_width(),
@@ -206,7 +173,7 @@ fullscreen_start(tveng_device_info * info)
   gdk_window_set_decorations(black_window->window, 0);
 
   /* hide the cursor in fullscreen mode */
-  gdk_window_set_cursor(da->window, fullscreen_cursor);
+  z_set_cursor(da->window, 0);
 
   if (info->current_controller != TVENG_CONTROLLER_XV &&
       (info->caps.flags & TVENG_CAPS_CHROMAKEY))
@@ -286,10 +253,6 @@ fullscreen_stop(tveng_device_info * info)
   gtk_widget_destroy(black_window);
   x11_force_expose(0, 0, gdk_screen_width(), gdk_screen_height());
 
-  if (fullscreen_cursor)
-    gdk_cursor_destroy(fullscreen_cursor);
-
-  fullscreen_cursor = NULL;
   gtk_signal_disconnect_by_func(GTK_OBJECT(osd_model),
 				GTK_SIGNAL_FUNC(osd_model_changed),
 				info);

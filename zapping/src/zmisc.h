@@ -324,4 +324,9 @@ propagate_toolbar_changes	(GtkWidget	*toolbar);
 void
 zmisc_overlay_subtitles		(gint page);
 
+/* Sets the given X cursor to the window */
+void
+z_set_cursor			(GdkWindow	*window,
+				 guint		cid);
+
 #endif /* ZMISC.H */

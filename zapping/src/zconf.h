@@ -205,9 +205,16 @@ zconf_type_string(enum zconf_type type);
 /*
   Hooks handling. Any client can put a hook into a given key, it will
   be called when the value of the key is changed.
+  new_value is a *pointer* to the contents.
+  That is, if you are monitoring an int, you get the actual value by
+  doing *((gint*)new_value_ptr), for a string (gchar*)new_value_ptr,
+  etc.
+  The pointer will only be valid during the callback.
 */
 
-typedef gboolean (*ZConfHook) ( const gchar * key, gpointer data );
+typedef void (*ZConfHook) ( const gchar * key,
+			    gpointer new_value_ptr,
+			    gpointer data );
 
 /*
   key: The key we hook to.

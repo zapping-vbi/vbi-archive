@@ -434,18 +434,21 @@ void zconf_set_integer(gint new_value, const gchar * path)
       key -> type = ZCONF_TYPE_INTEGER;
     }
 
-  /* If there is no memory reserved for this key, create it */
-  if (key->contents == NULL)
-    key->contents = g_malloc(sizeof(gint));
-
-  /* Set the new value */
-  *((gint*)key->contents) = new_value;
-
   zconf_we = FALSE;
 
-  /* notify of the change */
-  if (key->model)
-    zmodel_changed(key->model);
+  /* Set the new value */
+  if (!key->contents || *(gint*)key->contents != new_value)
+    {
+      /* If there is no memory reserved for this key, create it */
+      if (key->contents == NULL)
+	key->contents = g_malloc(sizeof(gint));
+
+      *((gint*)key->contents) = new_value;
+      
+      /* notify of the change */
+      if (key->model)
+	zmodel_changed(key->model);
+    }
 }
 
 /*
@@ -575,21 +578,24 @@ void zconf_set_string(const gchar * new_value, const gchar * path)
       key -> type = ZCONF_TYPE_STRING;
     }
 
-  /* Free any memory previously allocated */
-  if (key->contents != NULL)
-    {
-      g_free(key->contents);
-      key->contents = NULL;
-    }
-
-  /* Set the new value */
-  key->contents = g_strdup(new_value);
-
   zconf_we = FALSE;
 
-  /* notify of the change */
-  if (key->model)
-    zmodel_changed(key->model);
+  if (!key->contents || strcmp(key->contents, new_value))
+    {
+      /* Free any memory previously allocated */
+      if (key->contents != NULL)
+	{
+	  g_free(key->contents);
+	  key->contents = NULL;
+	}
+
+      /* Set the new value */
+      key->contents = g_strdup(new_value);
+      
+      /* notify of the change */
+      if (key->model)
+	zmodel_changed(key->model);
+    }
 }
 
 /*
@@ -713,18 +719,21 @@ void zconf_set_boolean(gboolean new_value, const gchar * path)
       key -> type = ZCONF_TYPE_BOOLEAN;
     }
 
-  /* If there is no memory reserved for this key, create it */
-  if (key->contents == NULL)
-    key->contents = g_malloc(sizeof(gboolean));
-
-  /* Set the new value */
-  *((gboolean*)key->contents) = new_value;
-
   zconf_we = FALSE;
 
-  /* notify of the change */
-  if (key->model)
-    zmodel_changed(key->model);
+  if (!key->contents || *((gboolean*)key->contents) != new_value)
+    {
+      /* If there is no memory reserved for this key, create it */
+      if (key->contents == NULL)
+	key->contents = g_malloc(sizeof(gboolean));
+
+      /* Set the new value */
+      *((gboolean*)key->contents) = new_value;
+      
+      /* notify of the change */
+      if (key->model)
+	zmodel_changed(key->model);
+    }
 }
 
 /*
@@ -845,18 +854,21 @@ void zconf_set_float(gfloat new_value, const gchar * path)
       key -> type = ZCONF_TYPE_FLOAT;
     }
 
-  /* If there is no memory reserved for this key, create it */
-  if (key->contents == NULL)
-    key->contents = g_malloc(sizeof(gfloat));
-
-  /* Set the new value */
-  *((gfloat*)key->contents) = new_value;
-
   zconf_we = FALSE;
 
-  /* notify of the change */
-  if (key->model)
-    zmodel_changed(key->model);
+  if (!key->contents || *((gboolean*)key->contents) != new_value)
+    {
+      /* If there is no memory reserved for this key, create it */
+      if (key->contents == NULL)
+	key->contents = g_malloc(sizeof(gfloat));
+
+      /* Set the new value */
+      *((gfloat*)key->contents) = new_value;
+
+      /* notify of the change */
+      if (key->model)
+	zmodel_changed(key->model);
+    }
 }
 
 /*
@@ -1582,7 +1594,7 @@ void on_key_model_changed		(GtkObject	*model,
   g_assert(hook != NULL);
   g_assert(hook->callback != NULL);
 
-  hook->callback(key->full_path, hook->data);
+  hook->callback(key->full_path, key->contents, hook->data);
 }
 
 void

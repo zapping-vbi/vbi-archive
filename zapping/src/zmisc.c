@@ -928,3 +928,54 @@ void zmisc_overlay_subtitles	(gint page)
   gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(closed_caption1),
 				 TRUE);
 }
+
+void
+z_set_cursor	(GdkWindow	*window,
+		 guint		cid)
+{
+  GdkCursor *cursor;
+
+  /* blank cursor */
+  if (cid == 0)
+    {
+#define empty_cursor_width 16
+#define empty_cursor_height 16
+      unsigned char empty_cursor_bits[] = {
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+      unsigned char empty_cursor_mask[] = {
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+      GdkColor fg = {0, 0, 0, 0};
+      GdkColor bg = {0, 0, 0, 0};
+      GdkPixmap *source, *mask;
+
+      source = gdk_bitmap_create_from_data(NULL, empty_cursor_bits,
+					   empty_cursor_width,
+					   empty_cursor_height);
+
+      mask = gdk_bitmap_create_from_data(NULL, empty_cursor_mask,
+					 empty_cursor_width,
+					 empty_cursor_height);
+
+      cursor = gdk_cursor_new_from_pixmap(source, mask, &fg, &bg, 8, 8);
+      
+      gdk_pixmap_unref(source);
+      gdk_pixmap_unref(mask);
+    }
+  else
+    {
+      if (cid >= GDK_NUM_GLYPHS)
+	cid = GDK_NUM_GLYPHS-2;
+      cid &= ~1;
+      cursor = gdk_cursor_new(cid);
+    }
+
+  if (!cursor)
+    return;
+
+  gdk_window_set_cursor(window, cursor);
+  gdk_cursor_destroy(cursor);
+}
