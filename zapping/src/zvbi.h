@@ -33,12 +33,22 @@
 
 #include "tveng.h"
 #include "zmodel.h"
+#include "frequencies.h"
 
 typedef void
-vbi_sliced_fn			(const vbi_sliced *	sliced,
+zvbi_decoder_fn			(const vbi_sliced *	sliced,
 				 unsigned int		n_lines,
 				 double			timestamp);
-extern GList *sliced_list;
+typedef void
+zvbi_chsw_fn			(const tveng_tuned_channel *channel,
+				 guint			scanning);
+
+extern void
+zvbi_add_decoder		(zvbi_decoder_fn *	decoder,
+				 zvbi_chsw_fn *		chsw);
+extern void
+zvbi_remove_decoder		(zvbi_decoder_fn *	decoder,
+				 zvbi_chsw_fn *		chsw);
 
 extern void
 startup_zvbi			(void);
