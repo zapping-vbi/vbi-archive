@@ -1,3 +1,10 @@
+07.6.2000	fr.po added <garetxe@users.sourceforge.net>
+
+	* fr.po: thanks to Christian Marillat a french translation is
+	available.
+	* main.c: Zapping now saves the current input and the current
+	standard.
+	
 06.6.2000	Lazy day <garetxe@users.sourceforge.net>
 
 	* help/C/properties.c: Added the help for the properties

@@ -571,8 +571,14 @@ tveng1_set_input_by_index(int index, tveng_device_info * info)
 {
   t_assert(info != NULL);
   t_assert(index > -1);
-  t_assert(index < info -> num_inputs);
-  return (tveng1_set_input(&(info -> inputs[index]), info));
+
+  if (info->num_inputs)
+    {
+      t_assert(index < info -> num_inputs);
+      return (tveng1_set_input(&(info -> inputs[index]), info));
+    }
+
+  return 0;
 }
 
 /* For declaring the possible standards */
@@ -767,10 +773,14 @@ int
 tveng1_set_standard_by_index(int index, tveng_device_info * info)
 {
   t_assert(info != NULL);
-  t_assert(index < info->num_standards);
   t_assert(index > -1);
 
-  return (tveng1_set_standard(&(info->standards[index]), info));
+  if (info -> num_standards)
+    {
+      t_assert(index < info->num_standards);
+      return (tveng1_set_standard(&(info->standards[index]), info));
+    }
+  return 0;
 }
 
 /* Updates the current capture format info. -1 if failed */

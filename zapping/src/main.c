@@ -212,6 +212,10 @@ int main(int argc, char * argv[])
     }
   gtk_widget_show(main_window);
 
+  /* Restore the input and the standard */
+  tveng_set_input_by_index(zcg_int(NULL, "current_input"), main_info);
+  tveng_set_standard_by_index(zcg_int(NULL, "current_standard"), main_info);
+
   update_standards_menu(main_window, main_info);
 
   /* Process all events */
@@ -341,6 +345,10 @@ void shutdown_zapping(void)
     }
 
   zcs_char(current_country -> name, "current_country");
+  if (main_info->num_standards)
+    zcs_int(main_info -> cur_standard, "current_standard");
+  if (main_info->num_inputs)
+    zcs_int(main_info -> cur_input, "current_input");
 
   /* Shutdown sound */
   shutdown_sound();
@@ -397,6 +405,8 @@ gboolean startup_zapping()
 	   "start_muted");
   zcc_int(0, "Verbosity value given to zapping_setup_fb",
 	  "zapping_setup_fb_verbosity");
+  zcc_int(0, "Current standard", "current_standard");
+  zcc_int(0, "Current input", "current_input");
 
   /* Loads all the tuned channels */
   while (zconf_get_nth(i, &buffer, ZCONF_DOMAIN "tuned_channels") !=

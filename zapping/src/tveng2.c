@@ -554,8 +554,13 @@ tveng2_set_input_by_index(int index, tveng_device_info * info)
 {
   t_assert(info != NULL);
   t_assert(index > -1);
-  t_assert(index < info -> num_inputs);
-  return (tveng2_set_input(&(info -> inputs[index]), info));
+
+  if (info->num_inputs)
+    {
+      t_assert(index < info -> num_inputs);
+      return (tveng2_set_input(&(info -> inputs[index]), info));
+    }
+  return 0;
 }
 
 /*
@@ -736,10 +741,14 @@ int
 tveng2_set_standard_by_index(int index, tveng_device_info * info)
 {
   t_assert(info != NULL);
-  t_assert(index < info->num_standards);
   t_assert(index > -1);
 
-  return (tveng2_set_standard(&(info->standards[index]), info));
+  if (info->num_standards)
+    {
+      t_assert(index < info->num_standards);
+      return (tveng2_set_standard(&(info->standards[index]), info));
+    }
+  return 0;
 }
 
 int
