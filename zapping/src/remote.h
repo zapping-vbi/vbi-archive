@@ -46,4 +46,7 @@ gpointer remote_last_caller (void);
 #define py_return_true return PyInt_FromLong (TRUE)
 #define py_return_false return PyInt_FromLong (FALSE)
 
+gchar *
+cmd_compatibility		(const gchar *		cmd);
+
 #endif /* remote.h */
