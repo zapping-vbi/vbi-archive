@@ -1,6 +1,10 @@
 New stuff, refer to the ChangeLog for a more detailed description of
 the changes.
 
+0.6.8
+-----
+Overlay fix and an Italian translation update.
+
 0.6.7
 -----
 Fixes a bug in the screenshot plugin, crashing Zapping on exit,

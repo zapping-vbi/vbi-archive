@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.6.6\n"
-"POT-Creation-Date: 2003-05-29 11:52+0200\n"
+"POT-Creation-Date: 2003-11-29 10:49+0100\n"
 "PO-Revision-Date: 2003-02-17 22:30+0100\n"
 "Last-Translator: Morten Brix Pedersen <morten@wtf.dk>\n"
 "Language-Team: n/a\n"
