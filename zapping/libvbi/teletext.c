@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext.c,v 1.28 2004-11-03 06:49:30 mschimek Exp $ */
+/* $Id: teletext.c,v 1.29 2004-11-08 16:24:01 mschimek Exp $ */
 
 #include "../config.h"
 #include "site_def.h"
@@ -287,12 +287,13 @@ level_one_row			(vbi3_page_priv *	pgp,
 			}
 		}
 
-		if (!wide_char) {
+		if (wide_char) {
+			wide_char = FALSE;
+		} else {
 			acp[column] = ac;
 
 			wide_char = !!(ac.size & VBI3_DOUBLE_WIDTH);
-
-			if (wide_char && column < 39) {
+			if (wide_char) {
 				acp[column + 1] = ac;
 				acp[column + 1].size = VBI3_OVER_TOP;
 			}
@@ -2894,7 +2895,7 @@ vbi3_page_get_hyperlink		(const vbi3_page *	pg,
 	if (!(acp[column].attr & VBI3_LINK))
 		return FALSE;
 
-	if (row == 25) {
+	if (row == 24) {
 		int i;
 
 		i = pgp->link_ref[column];
@@ -2966,7 +2967,7 @@ flof_link_col [4] = {
 static vbi3_char *
 navigation_row			(vbi3_page_priv *	pgp)
 {
-	return pgp->pg.text + 25 * pgp->pg.columns;
+	return pgp->pg.text + 24 * pgp->pg.columns;
 }
 
 static vbi3_char *
@@ -2988,15 +2989,16 @@ clear_navigation_bar		(vbi3_page_priv *	pgp)
 
 	columns = pgp->pg.columns;
 
-	for (i = 0; i < columns; ++i) {
+	/* Don't touch column 0, would confuse column_41(). */
+	for (i = 1; i < columns; ++i) {
 		acp[i] = ac;
 	}
 
 	return acp;
 }
 
-/* We have FLOF links but no labels in row 25. This function replaces
-   row 25 using the FLOF page numbers as labels. */
+/* We have FLOF links but no labels in row 24. This function replaces
+   row 24 using the FLOF page numbers as labels. */
 static void
 flof_navigation_bar		(vbi3_page_priv *	pgp)
 {
@@ -3038,7 +3040,7 @@ flof_navigation_bar		(vbi3_page_priv *	pgp)
 	}
 }
 
-/* Adds link flags to a page navigation bar (row 25) from FLOF data. */
+/* Adds link flags to a page navigation bar (row 24) from FLOF data. */
 static void
 flof_links			(vbi3_page_priv *	pgp)
 {
@@ -3119,19 +3121,20 @@ write_link			(vbi3_page_priv *	pgp,
 /**
  * @internal
  * @param index Create pgp->nav_link 0 ... 3.
- * @param column Store text in a 12 character wide slot starting at
- *   this column (0 ... 40 - 12).
+ * @param column Store text here.
+ * @param width Available space at column.
  * @param pgno Store name of this page.
  * @param foreground Store text using this color.
  * @param ff add 0 ... 2 '>' characters (if space is available).
  *
- * Creates a TOP label for pgno in row 25.
+ * Creates a TOP label for pgno in row 24.
  */
 static vbi3_bool
 top_label			(vbi3_page_priv *	pgp,
 				 const vbi3_character_set *cs,
 				 unsigned int		index,
 				 unsigned int		column,
+				 unsigned int		width,
 				 vbi3_pgno		pgno,
 				 vbi3_color		foreground,
 				 unsigned int		ff)
@@ -3139,8 +3142,9 @@ top_label			(vbi3_page_priv *	pgp,
 	const ait_title *ait;
 	cache_page *ait_cp;
 	vbi3_char *acp;
+	unsigned int len;
 	unsigned int sh;
-	int i;
+	unsigned int i;
 
 	if (!(ait = cache_network_get_ait_title
 	      (pgp->cn, &ait_cp, pgno, VBI3_ANY_SUBNO)))
@@ -3151,27 +3155,25 @@ top_label			(vbi3_page_priv *	pgp,
 	pgp->link[index].pgno = pgno;
 	pgp->link[index].subno = VBI3_ANY_SUBNO;
 
-	for (i = 11; i >= 0; --i)
-		if (ait->text[i] > 0x20)
+	for (len = 12; len > 0; --len)
+		if (ait->text[len - 1] > 0x20)
 			break;
 
-	if (ff > 0 && (i <= (int)(11 - ff))) {
-		sh = (11 - ff - i) >> 1;
+	if (ff > 0 && (len + 1 + ff) <= width) {
+		sh = (width - len - 1 - ff) >> 1;
 
-		acp[sh + i + 1].attr |= VBI3_LINK;
-		pgp->link_ref[column + sh + i + 1] = index;
-
-		write_link (pgp, acp, ">>", ff,
-			    index, column + i + sh + 1,
+		write_link (pgp, acp,
+			    " >>", ff + 1,
+			    index, column + sh + len,
 			    foreground);
 	} else {
-		sh = (11 - i) >> 1; /* center */
+		sh = (width - len) >> 1; /* center */
 	}
 
-	acp += sh;
 	column += sh;
+	acp += column;
 
-	while (i >= 0) {
+	for (i = 0; i < len; ++i) {
 		uint8_t c;
 
 		c = MAX (ait->text[i], (uint8_t) 0x20);
@@ -3180,8 +3182,6 @@ top_label			(vbi3_page_priv *	pgp,
 		acp[i].attr |= VBI3_LINK;
 
 		pgp->link_ref[column + i] = index;
-
-		--i;
 	}
 
 	cache_page_unref (ait_cp);
@@ -3192,11 +3192,14 @@ top_label			(vbi3_page_priv *	pgp,
 /**
  * @internal
  *
- * Replaces row 25 by labels and links from TOP data.
+ * Replaces row 24 by labels and links from TOP data.
  * Style: Prev-page Next-chapter Next-block Next-page
+ *
+ *   <<   ----++++----  ----++++----   >> 
+ * 0123456789012345678901234567890123456789X
  */
 static void
-top_navigation_bar_style_1	(vbi3_page_priv *	pgp)
+top_navigation_bar_style_2	(vbi3_page_priv *	pgp)
 {
 	vbi3_pgno pgno;
 	vbi3_bool have_group;
@@ -3215,25 +3218,38 @@ top_navigation_bar_style_1	(vbi3_page_priv *	pgp)
 
 	acp = navigation_row (pgp);
 
-	pgp->link[0].pgno = vbi3_add_bcd (pgno, -1);
+	pgno = pgp->pg.pgno;
+
+	if (pgno <= 0x100)
+		pgp->link[0].pgno = 0x899;
+	else
+		pgp->link[0].pgno = vbi3_sub_bcd (pgno, 1);
+
 	pgp->link[0].subno = VBI3_ANY_SUBNO;
 
-	write_link (pgp, acp, "(<<)", 4, 0, 1, 32 + VBI3_RED);
+	write_link (pgp, acp,
+		    " << ", 4,
+		    0, 1, 32 + VBI3_RED);
 
-	pgp->link[3].pgno = vbi3_add_bcd (pgno, +1);
+	if (pgno >= 0x899)
+		pgp->link[3].pgno = 0x100;
+	else
+		pgp->link[3].pgno = vbi3_add_bcd (pgno, 1);
+
 	pgp->link[3].subno = VBI3_ANY_SUBNO;
 
-	write_link (pgp, acp, "(>>)", 4, 3, 40 - 5, 32 + VBI3_CYAN);
+	write_link (pgp, acp,
+		    " >> ", 4,
+		    3, pgp->pg.columns - 5, 32 + VBI3_CYAN);
 
 	/* Item 2 & 3, next group and block */
 
-	pgno = pgp->pg.pgno;
 	have_group = FALSE;
 
 	for (;;) {
-		pgno = ((pgno - 0xFF) & 0x7FF) + 0x100;
+		pgno = ((pgno - 0x0FF) & 0x7FF) + 0x100;
 
-		if (pgno == pgp->cp->pgno)
+		if (pgno == pgp->pg.pgno)
 			break;
 
 		ps = cache_network_const_page_stat (pgp->cn, pgno);
@@ -3242,7 +3258,7 @@ top_navigation_bar_style_1	(vbi3_page_priv *	pgp)
 		case VBI3_TOP_BLOCK:
 			/* XXX should we use char_set of the AIT page? */
 			top_label (pgp, pgp->char_set[0],
-				   1, 0 * 14 + 7,
+				   1, 7, 12,
 				   pgno, 32 + VBI3_GREEN, 0);
 			return;
 
@@ -3250,7 +3266,7 @@ top_navigation_bar_style_1	(vbi3_page_priv *	pgp)
 			if (!have_group) {
 				/* XXX as above */
 				top_label (pgp, pgp->char_set[0],
-					   2, 1 * 14 + 7,
+					   2, pgp->pg.columns - 19, 12,
 					   pgno, 32 + VBI3_BLUE, 0);
 				have_group = TRUE;
 			}
@@ -3263,11 +3279,14 @@ top_navigation_bar_style_1	(vbi3_page_priv *	pgp)
 /**
  * @internal
  *
- * Replaces row 25 by labels and links from TOP data.
+ * Replaces row 24 by labels and links from TOP data.
  * Style: Current-block-or-chapter  Next-chapter >  Next-block >>
+ *
+ *  ----++++---- ----++++---- ----+++++----
+ * 0123456789012345678901234567890123456789X
  */
 static void
-top_navigation_bar_style_2	(vbi3_page_priv *	pgp)
+top_navigation_bar_style_1	(vbi3_page_priv *	pgp)
 {
 	vbi3_pgno pgno;
 	vbi3_bool have_group;
@@ -3287,7 +3306,7 @@ top_navigation_bar_style_2	(vbi3_page_priv *	pgp)
 
 	pgno = pgp->pg.pgno;
 
-	do {
+	for (;;) {
 		vbi3_ttx_page_type type;
 
 		ps = cache_network_const_page_stat (pgp->cn, pgno);
@@ -3297,13 +3316,16 @@ top_navigation_bar_style_2	(vbi3_page_priv *	pgp)
 		    || VBI3_TOP_GROUP == type) {
 			/* XXX should we use char_set of the AIT page? */
 			top_label (pgp, pgp->char_set[0],
-				   0, 0 * 13 + 1,
+				   0, 1, 12,
 				   pgno, 32 + VBI3_WHITE, 0);
 			break;
 		}
 
-		pgno = ((pgno - 0x101) & 0x7FF) + 0x100;
-	} while (pgno != pgp->pg.pgno);
+		if (0 == (pgno & 0xFF))
+			break;
+
+		--pgno;
+	}
 
 	/* Item 2 & 3, next group and block */
 
@@ -3311,9 +3333,9 @@ top_navigation_bar_style_2	(vbi3_page_priv *	pgp)
 	have_group = FALSE;
 
 	for (;;) {
-		pgno = ((pgno - 0xFF) & 0x7FF) + 0x100;
+		pgno = ((pgno - 0x0FF) & 0x7FF) + 0x100;
 
-		if (pgno == pgp->cp->pgno)
+		if (pgno == pgp->pg.pgno)
 			break;
 
 		ps = cache_network_const_page_stat (pgp->cn, pgno);
@@ -3322,7 +3344,7 @@ top_navigation_bar_style_2	(vbi3_page_priv *	pgp)
 		case VBI3_TOP_BLOCK:
 			/* XXX should we use char_set of the AIT page? */
 			top_label (pgp, pgp->char_set[0],
-				   2, 2 * 13 + 1,
+				   2, 27, 13,
 				   pgno, 32 + VBI3_YELLOW, 2);
 			return;
 
@@ -3330,7 +3352,7 @@ top_navigation_bar_style_2	(vbi3_page_priv *	pgp)
 			if (!have_group) {
 				/* XXX as above */
 				top_label (pgp, pgp->char_set[0],
-					   1, 1 * 13 + 1,
+					   1, 14, 12,
 					   pgno, 32 + VBI3_GREEN, 1);
 				have_group = TRUE;
 			}
@@ -3404,7 +3426,7 @@ vbi3_page_get_teletext_link	(const vbi3_page *	pg,
 	PGP_CHECK (NULL);
 
 	if (pg->pgno < 0x100
-	    || index > N_ELEMENTS (&pgp->link)
+	    || index >= N_ELEMENTS (pgp->link)
 	    || pgp->link[index].pgno < 0x100) {
 		return NULL;
 	}
@@ -3720,7 +3742,7 @@ _vbi3_page_priv_from_cache_page_va_list
 		unsigned int row;
 
 		if (option_hyperlinks)
-			for (row = 1; row < 25; ++row)
+			for (row = 1; row < 24; ++row)
 				hyperlinks (pgp, row);
 
 		if (option_navigation_style > 0)
