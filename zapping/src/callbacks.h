@@ -139,10 +139,6 @@ void
 on_channel_down1_activate              (GtkMenuItem     *menuitem,
                                         gpointer         user_data);
 
-gboolean
-on_fullscreen_event                    (GtkWidget       *widget,
-					GdkEvent        *event,
-					gpointer        user_data);
 
 gboolean
 on_tv_screen_button_press_event        (GtkWidget       *widget,

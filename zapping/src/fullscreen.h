@@ -16,40 +16,22 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ifndef __OVERLAY_H__
-#define __OVERLAY_H__
+#ifndef __FULLSCREEN_H__
+#define __FULLSCREEN_H__
 
 /*
- * These routines handle the Windowed overlay mode.
+ * These routines handle the Fullscreen mode.
  */
+
 
 /*
- * Inits the overlay engine.
- * window: The window we will be overlaying to.
- * main_window: Its toplevel parent
+ * Starts fullscreen mode, returns -1 on error.
  */
-void
-startup_overlay(GtkWidget * window, GtkWidget * main_window,
-		tveng_device_info * info);
+gint fullscreen_start(tveng_device_info *info);
 
 /*
- * Stops the overlay engine.
+ * Stops fullscreen mode.
  */
-void
-overlay_stop(tveng_device_info *info);
+void fullscreen_stop(tveng_device_info *info);
 
-/*
- * Shuts down the overlay engine
- * do_cleanup: TRUE if the screen should be cleaned
- */
-void
-shutdown_overlay(gboolean do_cleanup);
-
-/*
- * Tells the overlay engine to sync the overlay with the window.
- * clean_screen: TRUE means that we should refresh the whole screeen.
- */
-void
-overlay_sync(gboolean clean_screen);
-
-#endif /* overlay.h */
+#endif /* fullscreen.h */

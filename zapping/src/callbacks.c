@@ -479,51 +479,6 @@ on_channel_down1_activate              (GtkMenuItem     *menuitem,
 			      new_channel);
 }
 
-gboolean on_fullscreen_event (GtkWidget * widget, GdkEvent * event,
-			      gpointer user_data)
-{
-  GtkWidget * window = GTK_WIDGET(user_data);
-  GtkMenuItem * channel_up1 =
-    GTK_MENU_ITEM(lookup_widget(window, "channel_up1"));
-  GtkMenuItem * channel_down1 =
-    GTK_MENU_ITEM(lookup_widget(window, "channel_down1"));
-  GtkMenuItem * go_windowed1 =
-    GTK_MENU_ITEM(lookup_widget(window, "channel_down1"));
-  GtkMenuItem * exit2 =
-    GTK_MENU_ITEM(lookup_widget(window, "exit2"));
-
-  if (event->type == GDK_KEY_PRESS)
-    {
-      GdkEventKey * kevent = (GdkEventKey*) event;
-      switch (kevent->keyval)
-	{
-	case GDK_Page_Up:
-	case GDK_KP_Page_Up:
-	  on_channel_up1_activate(channel_up1, NULL);
-	  break;
-	case GDK_Page_Down:
-	case GDK_KP_Page_Down:
-	  on_channel_down1_activate(channel_down1, NULL);
-	  break;
-	case GDK_Escape:
-	  on_go_windowed1_activate(go_windowed1, NULL);
-	  break;
-	  /* Let control-Q exit the app */
-	case GDK_q:
-	  if (kevent->state & GDK_CONTROL_MASK)
-	    {
-	      extern gboolean was_fullscreen;
-	      was_fullscreen = TRUE;
-	      on_go_windowed1_activate(go_windowed1, NULL);
-	      on_exit2_activate(exit2, NULL);
-	    }
-	  break;
-	}
-      return TRUE; /* Event processing done */
-    }
-  return FALSE; /* We aren't interested in this event, pass it on */
-}
-
 static void
 change_pixmenuitem_label		(GtkWidget	*menuitem,
 					 const gchar	*new_label)

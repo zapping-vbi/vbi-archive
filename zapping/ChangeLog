@@ -1,3 +1,9 @@
+8.3.2001	Fullscreen <garetxe@users.sourceforge.net>
+
+	* src/fullscreen: Added, holds the code for fullscreen mode. Added
+	the hability to do OSD correctly in fullscreen without XVideo
+	PutVideo.
+
 4.3.2001	TTX subtitles gui <garetxe@users.sourceforge.net>
 
 	* glade/zapping.glade: Added some provisional GUI for TTX

@@ -40,6 +40,8 @@ static pthread_mutex_t osd_mutex = PTHREAD_MUTEX_INITIALIZER;
 #include "../libvbi/libvbi.h"
 extern struct vbi *zvbi_get_object(void);
 
+ZModel *osd_model = NULL;
+
 struct osd_piece
 {
   GtkWidget	*window; /* Attached to this piece */
@@ -91,6 +93,8 @@ startup_osd(void)
 			   osd_event, NULL);
 
   pthread_mutex_unlock(&osd_mutex);
+
+  osd_model = ZMODEL(zmodel_new());
 }
 
 void
@@ -112,6 +116,9 @@ shutdown_osd(void)
   osd_started = FALSE;
 
   pthread_mutex_unlock(&osd_mutex);
+
+  gtk_object_destroy(GTK_OBJECT(osd_model));
+  osd_model = NULL;
 }
 
 static void
@@ -510,6 +517,8 @@ void osd_clear(void)
 
   for (i=0; i<osd_page.rows; i++)
     osd_clear_row(i, 0);
+
+  zmodel_changed(osd_model);
 }
 
 void osd_render2(void)
@@ -542,6 +551,8 @@ void osd_render2(void)
 
       clear_stack();
     }
+
+  zmodel_changed(osd_model);
 }
 
 void osd_roll_up(attr_char *buffer, int first_row, int last_row)
@@ -560,6 +571,8 @@ void osd_roll_up(attr_char *buffer, int first_row, int last_row)
       for (i=0; i<osd_matrix[first_row]->n_pieces; i++)
 	set_piece_geometry(first_row, i);
     }
+
+  zmodel_changed(osd_model);
 }
 
 static void

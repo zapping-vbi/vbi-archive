@@ -31,6 +31,7 @@
 #include "x11stuff.h"
 #include "overlay.h"
 #include "capture.h"
+#include "fullscreen.h"
 #include "v4linterface.h"
 #include "ttxview.h"
 #include "zvbi.h"
@@ -40,12 +41,6 @@ extern tveng_device_info * main_info;
 extern GtkWidget * main_window;
 extern gboolean disable_preview; /* TRUE if preview won't work */
 gboolean debug_msg=FALSE; /* Debugging messages on or off */
-static GtkWidget * black_window = NULL; /* The black window when you go
-					   preview */
-
-/* Comment the next line if you don't want to mess with the
-   XScreensaver */
-#define MESS_WITH_XSS 1
 
 /*
   Prints a message box showing an error, with the location of the code
@@ -195,128 +190,6 @@ void set_tooltip	(GtkWidget	*widget,
 
   gtk_tooltips_set_tip(tips, widget, new_tip,
 		       "private tip, or, er, just babbling, you know");
-}
-
-static GdkCursor *fullscreen_cursor=NULL;
-
-static gint
-fullscreen_start(tveng_device_info * info)
-{
-  GtkWidget * da; /* Drawing area */
-  GdkPixmap *source, *mask;
-  GdkColor fg = {0, 0, 0, 0};
-  GdkColor bg = {0, 0, 0, 0};
-
-#define empty_cursor_width 16
-#define empty_cursor_height 16
-  unsigned char empty_cursor_bits[] = {
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-  unsigned char empty_cursor_mask[] = {
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-
-  source = gdk_bitmap_create_from_data(NULL, empty_cursor_bits,
-				       empty_cursor_width,
-				       empty_cursor_height);
-
-  mask = gdk_bitmap_create_from_data(NULL, empty_cursor_mask,
-				     empty_cursor_width,
-				     empty_cursor_height);
-
-  /* Add a black background */
-  black_window = gtk_window_new( GTK_WINDOW_POPUP );
-  da = gtk_drawing_area_new();
-
-  gtk_widget_show(da);
-
-  if (fullscreen_cursor)
-    gdk_cursor_destroy(fullscreen_cursor);
-
-  fullscreen_cursor =
-    gdk_cursor_new_from_pixmap(source, mask, &fg, &bg, 8, 8);
-
-  gdk_pixmap_unref(source);
-  gdk_pixmap_unref(mask);
-
-  gtk_container_add(GTK_CONTAINER(black_window), da);
-  gtk_widget_set_usize(black_window, gdk_screen_width(),
-		       gdk_screen_height());
-
-  gtk_widget_realize(black_window);
-  gtk_widget_realize(da);
-  gtk_window_set_modal(GTK_WINDOW(black_window), TRUE);
-  gdk_window_set_decorations(black_window->window, 0);
-
-  /* hide the cursor in fullscreen mode */
-  gdk_window_set_cursor(da->window, fullscreen_cursor);
-
-  /* Draw on the drawing area */
-  gdk_draw_rectangle(da -> window,
-  		     da -> style -> black_gc,
-		     TRUE,
-		     0, 0, gdk_screen_width(), gdk_screen_height());
-
-  /* Needed for XV fullscreen */
-  info->window.win = GDK_WINDOW_XWINDOW(da->window);
-  info->window.gc = GDK_GC_XGC(da->style->white_gc);
-  if (tveng_start_previewing(info, 1-zcg_int(NULL, "change_mode")) == -1)
-    {
-      ShowBox(_("Sorry, but cannot go fullscreen:\n%s"),
-	      GNOME_MESSAGE_BOX_ERROR, info->error);
-      gtk_widget_destroy(black_window);
-      zmisc_switch_mode(TVENG_CAPTURE_READ, info);
-      return -1;
-    }
-
-  gtk_widget_show(black_window);
-
-  if (info -> current_mode != TVENG_CAPTURE_PREVIEW)
-    g_warning("Setting preview succeeded, but the mode is not set");
-
-#ifdef MESS_WITH_XSS
-  /* Set the blank screensaver */
-  x11_set_screensaver(OFF);
-#endif
-
-  gtk_widget_grab_focus(black_window);
-  /*
-    If something doesn't work, everything will be blocked here, maybe
-    this isn't a good idea... but it is apparently the less bad one.
-  */
-  gdk_keyboard_grab(black_window->window, TRUE, GDK_CURRENT_TIME);
-
-  gdk_window_set_events(black_window->window, GDK_ALL_EVENTS_MASK);
-
-  gtk_signal_connect(GTK_OBJECT(black_window), "event",
-		     GTK_SIGNAL_FUNC(on_fullscreen_event),
-  		     main_window);
-
-  osd_set_window(da, black_window);
-
-  return 0;
-}
-
-static void
-fullscreen_stop(tveng_device_info * info)
-{
-  gdk_keyboard_ungrab(GDK_CURRENT_TIME);
-
-#ifdef MESS_WITH_XSS
-  /* Restore the normal screensaver */
-  x11_set_screensaver(ON);
-#endif
-
-  /* Remove the black window */
-  gtk_widget_destroy(black_window);
-  x11_force_expose(0, 0, gdk_screen_width(), gdk_screen_height());
-
-  if (fullscreen_cursor)
-    gdk_cursor_destroy(fullscreen_cursor);
-
-  fullscreen_cursor = NULL;
 }
 
 /*

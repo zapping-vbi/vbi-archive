@@ -16,13 +16,14 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: osd.h,v 1.8 2001-02-27 12:26:47 mschimek Exp $ */
+/* $Id: osd.h,v 1.9 2001-03-08 21:16:33 garetxe Exp $ */
 
 #ifndef __OSD_H__
 #define __OSD_H__
 
 #include "../libvbi/format.h"
 #include "../libvbi/libvbi.h"
+#include "zmodel.h"
 
 void startup_osd(void);
 void shutdown_osd(void);
@@ -40,5 +41,7 @@ void osd_clear(void);
 void osd_roll_up(attr_char *buffer, int first_row, int last_row);
 
 void cc_event(vbi_event *ev, void *data);
+
+extern ZModel *osd_model; /* used for notification of changes */
 
 #endif /* osd.h */
