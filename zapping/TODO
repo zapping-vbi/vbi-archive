@@ -1,5 +1,7 @@
 Outstanding issues for the next release
 ---------------------------------------
+	+ Fix the autoconf mess (datadir), forcing the user to set
+datadir manually when compiling is terrible.
 	+ Integrate sound into the plugins.
 	+ AVI or MPEG saving plugin (adapt mp1e?)
 	> Release 0.5.2

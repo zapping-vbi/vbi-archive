@@ -1,4 +1,5 @@
 %define  prefix  /usr
+%define  datadir /usr/share
 %define  ver @VERSION@
 
 Name: zapping
@@ -33,13 +34,13 @@ features, plus extensibility through a plugin system.
 %setup -q
 
 %build
-./configure --prefix %prefix
+./configure --prefix %prefix --datadir %datadir
 make
 
 %install
 [ -n "$RPM_BUILD_ROOT" -a "$RPM_BUILD_ROOT" != / ] && rm -rf $RPM_BUILD_ROOT
 
-make prefix=$RPM_BUILD_ROOT%{prefix} install
+make prefix=$RPM_BUILD_ROOT%{prefix} datadir=$RPM_BUILD_ROOT%{datadir} install
 
 %clean
 [ -n "$RPM_BUILD_ROOT" -a "$RPM_BUILD_ROOT" != / ] && rm -rf $RPM_BUILD_ROOT
