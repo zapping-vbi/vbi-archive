@@ -2,7 +2,7 @@
  *  Real Time Encoder lib
  *  ffmpeg backend
  *
- *  Copyright (C) 2000, 2001 I? Garc?Etxebarria
+ *  Copyright (C) 2000, 2001 Iñaki García Etxebarria
  *  Copyright (C) 2000, 2001, 2002 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -20,8 +20,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_ffmpeg.c,v 1.6 2002-06-14 07:57:40 mschimek Exp $ */
+/* $Id: b_ffmpeg.c,v 1.7 2002-06-18 02:25:17 mschimek Exp $ */
 
+#include <limits.h>
 #include "b_ffmpeg.h"
 
 /*
@@ -99,7 +100,8 @@ do_audio_out(ffmpeg_context *fx, ffmpeg_codec *fd,
 
     /* now encode as many frames as possible */
     if (enc->frame_size > 1) {
-	assert(0);
+        ret = avcodec_encode_audio(enc, audio_out, size_out, (short *)buftmp);
+	fx->av.format->write_packet(&fx->av, /* index */ 0, audio_out, ret, 0);
     } else {
         /* output a pcm frame */
         /* XXX: change encoding codec API to avoid this ? */
@@ -525,10 +527,12 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 	ffmpeg_codec *fd = FD(codec);
 	ffmpeg_codec_class *fdc = FDC(fd->codec.class);
 	struct AVCodecContext *avcc = &fd->str.codec;
+	static const int16_t x = 1;
 
 	switch (fdc->rte.public.stream_type) {
 	case RTE_STREAM_AUDIO:
-		rsp->audio.sndfmt = RTE_SNDFMT_S16_LE; /* XXX machine endian */
+		rsp->audio.sndfmt = (((int8_t *) &x)[0] == 1) ?
+			RTE_SNDFMT_S16_LE : RTE_SNDFMT_S16_BE; /* machine endian */
 
 		rsp->audio.sampling_freq = avcc->sample_rate;
 		rsp->audio.channels = avcc->channels;
@@ -559,8 +563,12 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 
 /* Codec options */
 
-#define OPTION_OPEN_SAMPLING	(1 << 0)
-#define OPTION_STEREO		(1 << 1)
+#define OPTION_OPEN_SAMPLING		(1 << 0)
+#define OPTION_MPEG1_SAMPLING		(1 << 1)
+#define OPTION_MPEG2_SAMPLING		(1 << 2)
+#define OPTION_STEREO			(1 << 3)
+#define OPTION_MPEG1_AUDIO_BITRATE	(1 << 4)
+#define OPTION_MPEG2_AUDIO_BITRATE	(1 << 5)
 
 /* Attention: Canonical order */
 static const char *
@@ -570,6 +578,20 @@ menu_audio_mode[] = {
 	/* NLS: Bilingual for example left audio channel English, right French */
 	/* 2 */ N_("Bilingual"), 
 	/* 3 TODO N_("Joint Stereo"), */
+};
+
+static const int
+mpeg_audio_sampling[2][4] = {
+	{ 44100, 48000, 32000 },
+	{ 22050, 24000,	16000 }
+};
+
+static const int
+mpeg_audio_bit_rate[2][16] = {
+	{ 0, 32000, 48000, 56000, 64000, 80000, 96000, 112000,
+	  128000, 160000, 192000, 224000, 256000, 320000, 384000 },
+	{ 0, 8000, 16000, 24000, 32000, 40000, 48000, 56000,
+	  64000, 80000, 96000, 112000, 128000, 144000, 160000 }
 };
 
 static const struct {
@@ -582,12 +604,46 @@ static const struct {
 	{ OPTION_STEREO,		RTE_OPTION_MENU_INITIALIZER
 	  ("audio_mode", N_("Mode"),
 	   0, menu_audio_mode, 2, NULL) },
+	{ OPTION_MPEG1_AUDIO_BITRATE,	RTE_OPTION_INT_MENU_INITIALIZER
+	  ("bit_rate", N_("Bit rate"),
+	   7 /* 128k */, &mpeg_audio_bit_rate[0][1], 14,
+	   N_("Output bit rate, all channels together")) },
+	{ OPTION_MPEG2_AUDIO_BITRATE,	RTE_OPTION_INT_MENU_INITIALIZER
+	  ("bit_rate", N_("Bit rate"),
+	   7 /* 64k */, &mpeg_audio_bit_rate[1][1], 14,
+	   N_("Output bit rate, all channels together")) },
+	{ OPTION_MPEG1_SAMPLING,	RTE_OPTION_INT_MENU_INITIALIZER
+	  ("sampling_freq", N_("Sampling frequency"),
+	   0 /* 44100 */, &mpeg_audio_sampling[0][0], 3, NULL) },
+	{ OPTION_MPEG2_SAMPLING,	RTE_OPTION_INT_MENU_INITIALIZER
+	  ("sampling_freq", N_("Sampling frequency"),
+	   0 /* 22050 */, &mpeg_audio_sampling[1][0], 3, NULL) },
 };
 
 static const int num_options = sizeof(options) / sizeof(* options);
 
 #define KEYWORD(name) (strcmp(keyword, name) == 0)
 #define KEYOPT(type, name) ((fdc->options & type) && KEYWORD(name))
+
+static int
+ivec_vmin(const int *vec, int size, int val)
+{
+	int i, imin = 0;
+	unsigned int d, dmin = UINT_MAX;
+
+	assert(size > 0);
+
+	for (i = 0; i < size; i++) {
+		d = abs(val - vec[i]);
+
+		if (d < dmin) {
+			dmin = d;
+		        imin = i;
+		}
+	}
+
+	return vec[imin];
+}
 
 static char *
 option_print(rte_codec *codec, const char *keyword, va_list args)
@@ -597,11 +653,27 @@ option_print(rte_codec *codec, const char *keyword, va_list args)
 	rte_context *context = fd->codec.context;
 	char buf[80];
 
-	if (KEYWORD("sampling_freq")) {
+	if (KEYOPT(OPTION_OPEN_SAMPLING, "sampling_freq")) {
 		snprintf(buf, sizeof(buf), _("%u Hz"), va_arg(args, int));
 	} else if (KEYWORD("audio_mode")) {
 		return rte_strdup(context, NULL, _(menu_audio_mode[
 			RTE_OPTION_ARG_MENU(menu_audio_mode)]));
+	} else if (KEYOPT(OPTION_MPEG1_AUDIO_BITRATE, "bit_rate")) {
+		snprintf(buf, sizeof(buf), _("%u kbit/s"),
+			 ivec_vmin(&mpeg_audio_bit_rate[0][1], 14,
+				   va_arg(args, int)) / 1000);
+	} else if (KEYOPT(OPTION_MPEG2_AUDIO_BITRATE, "bit_rate")) {
+		snprintf(buf, sizeof(buf), _("%u kbit/s"),
+			 ivec_vmin(&mpeg_audio_bit_rate[1][1], 14,
+				   va_arg(args, int)) / 1000);
+	} else if (KEYOPT(OPTION_MPEG1_SAMPLING, "sampling_freq")) {
+		snprintf(buf, sizeof(buf), _("%u Hz"),
+			 ivec_vmin(mpeg_audio_sampling[0], 3,
+				   va_arg(args, int)));
+	} else if (KEYOPT(OPTION_MPEG2_SAMPLING, "sampling_freq")) {
+		snprintf(buf, sizeof(buf), _("%u Hz"),
+			 ivec_vmin(mpeg_audio_sampling[1], 3,
+				   va_arg(args, int)));
 	} else {
 		rte_unknown_option(context, codec, keyword);
 	failed:
@@ -618,10 +690,16 @@ option_get(rte_codec *codec, const char *keyword, rte_option_value *v)
         ffmpeg_codec_class *fdc = FDC(fd->codec.class);
 	rte_context *context = fd->codec.context;
 
-	if (KEYOPT(OPTION_OPEN_SAMPLING, "sampling_freq")) {
+	if ((fdc->options & (OPTION_OPEN_SAMPLING |
+			     OPTION_MPEG1_SAMPLING |
+			     OPTION_MPEG2_SAMPLING))
+	    && KEYWORD("sampling_freq")) {
 		v->num = fd->str.codec.sample_rate;
 	} else if (KEYOPT(OPTION_STEREO, "audio_mode")) {
 		v->num = fd->str.codec.channels - 1;
+	} else if ((fdc->options & (OPTION_MPEG1_AUDIO_BITRATE |
+				    OPTION_MPEG2_AUDIO_BITRATE))) {
+		v->num = fd->str.codec.bit_rate;
 	} else {
 		rte_unknown_option(context, codec, keyword);
 		return FALSE;
@@ -649,6 +727,18 @@ option_set(rte_codec *codec, const char *keyword, va_list args)
 		fd->str.codec.sample_rate = RTE_OPTION_ARG(int, 8000, 48000);
 	} else if (KEYOPT(OPTION_STEREO, "audio_mode")) {
 		fd->str.codec.channels = RTE_OPTION_ARG(int, 0, 2) + 1;
+	} else if (KEYOPT(OPTION_MPEG1_AUDIO_BITRATE, "bit_rate")) {
+		fd->str.codec.bit_rate = 
+			ivec_vmin(&mpeg_audio_bit_rate[0][1], 14, va_arg(args, int));
+	} else if (KEYOPT(OPTION_MPEG2_AUDIO_BITRATE, "bit_rate")) {
+		fd->str.codec.bit_rate =
+			ivec_vmin(&mpeg_audio_bit_rate[1][1], 14, va_arg(args, int));
+	} else if (KEYOPT(OPTION_MPEG1_SAMPLING, "sampling_freq")) {
+		fd->str.codec.sample_rate = 
+			ivec_vmin(mpeg_audio_sampling[0], 3, va_arg(args, int));
+	} else if (KEYOPT(OPTION_MPEG2_SAMPLING, "sampling_freq")) {
+		fd->str.codec.sample_rate = 
+			ivec_vmin(mpeg_audio_sampling[1], 3, va_arg(args, int));
 	} else {
 		rte_unknown_option(context, codec, keyword);
 	failed:
@@ -658,7 +748,7 @@ option_set(rte_codec *codec, const char *keyword, va_list args)
         return TRUE;
 }
 
-static const rte_option_info *
+static rte_option_info *
 option_enum(rte_codec *codec, int index)
 {
 	ffmpeg_codec *fd = FD(codec);
@@ -682,6 +772,7 @@ extern AVCodec pcm_s16le_encoder;
 extern AVCodec pcm_u8_encoder;
 extern AVCodec pcm_alaw_encoder;
 extern AVCodec pcm_mulaw_encoder;
+extern AVCodec mp2_encoder;
 
 ffmpeg_codec_class
 pcm_s16le_codec = {
@@ -728,6 +819,35 @@ pcm_mulaw_codec = {
                 .stream_type    = RTE_STREAM_AUDIO,
                 .keyword        = "pcm_mulaw",
                 .label          = N_("PCM mu-Law"),
+	},
+};
+
+ffmpeg_codec_class
+mpeg1_mp2_codec = {
+	.av		= &mp2_encoder,
+	.options	= OPTION_MPEG1_AUDIO_BITRATE |
+			  OPTION_MPEG1_SAMPLING |
+			  OPTION_STEREO,
+        .rte.public = {
+                .stream_type    = RTE_STREAM_AUDIO,
+                .keyword        = "mpeg1_audio_layer2",
+                .label          = N_("MPEG-1 Audio Layer II"),
+	},
+};
+
+ffmpeg_codec_class
+mpeg2_mp2_codec = {
+	.av		= &mp2_encoder,
+	.options	= OPTION_MPEG2_AUDIO_BITRATE |
+			  OPTION_MPEG2_SAMPLING |
+			  OPTION_STEREO,
+        .rte.public = {
+                .stream_type    = RTE_STREAM_AUDIO,
+                .keyword        = "mpeg2_audio_layer2",
+                .label          = N_("MPEG-2 Audio Layer II LSF"),
+		.tooltip	= N_("MPEG-2 Low Sampling Frequency extension to MPEG-1 "
+				     "Audio Layer II. Be warned not all MPEG video and "
+				     "audio players support MPEG-2 audio."),
 	},
 };
 
@@ -911,6 +1031,8 @@ codec_enum(rte_context *context, int index)
 }
 
 extern AVFormat wav_format;
+extern AVFormat mp2_format;
+extern AVFormat ac3_format;
 
 static ffmpeg_context_class
 ffmpeg_riff_wave_context = {
@@ -923,9 +1045,10 @@ ffmpeg_riff_wave_context = {
 	},
 	.av = &wav_format,
 	.codecs = {
-//		&mp2_codec,
-//		&mp3lame_codec,
-//		&ac3_codec,
+		&mpeg1_mp2_codec,
+		&mpeg2_mp2_codec,
+	     /* &mp3lame_codec, */
+	     /* &ac3_codec, */
 		&pcm_s16le_codec,
 		&pcm_u8_codec,
 		&pcm_alaw_codec,
@@ -934,9 +1057,41 @@ ffmpeg_riff_wave_context = {
 	}
 };
 
+static ffmpeg_context_class
+ffmpeg_mpeg_audio_context = {
+	.rte.public = {
+		.keyword	= "ffmpeg_mpeg_audio",
+		.label		= N_("MPEG Audio Elementary Stream"),
+		.min_elementary	= { 0, 0, 1 },
+		.max_elementary	= { 0, 0, 1 },
+	},
+	.av = &mp2_format,
+	.codecs = {
+		&mpeg1_mp2_codec,
+		&mpeg2_mp2_codec,
+	     /* &mp3lame_codec, */
+		NULL
+	}
+};
+
+static ffmpeg_context_class
+ffmpeg_ac3_audio_context = {
+	.rte.public = {
+		.keyword	= "ffmpeg_ac3_audio",
+		.label		= N_("AC3 Audio Elementary Stream"),
+		.min_elementary	= { 0, 0, 1 },
+		.max_elementary	= { 0, 0, 1 },
+	},
+	.av = &ac3_format,
+	.codecs = {
+		NULL
+	}
+};
+
 static ffmpeg_context_class *
 context_table[] = {
 	&ffmpeg_riff_wave_context,
+	&ffmpeg_mpeg_audio_context,
 };
 
 static const int num_contexts =
@@ -1040,6 +1195,10 @@ backend_init(void)
 static rte_context_class *
 context_enum(int index, char **errstr)
 {
+#ifndef FFMPEG_ENABLE
+	return NULL; /* under construction */
+#endif
+
 	if (index < 0 || index >= num_contexts)
 		return NULL;
 
