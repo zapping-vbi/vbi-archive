@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.37 2002-06-18 02:22:33 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.38 2002-06-24 03:19:36 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -82,25 +82,34 @@ static void
 status(rte_context *context, rte_codec *codec,
        rte_status *status, int size)
 {
-	rte_context_class *xc = context->class;
+	mp1e_context *mx = MX(context);
+	rte_context_class *xc = mx->context.class;
 
-#warning context status todo
-
-	if (xc == &mp1e_mpeg1_video_context
+	if (   xc == &mp1e_mpeg1_video_context
 	    || xc == &mp1e_mpeg1_audio_context) {
-		codec = PARENT(context, mp1e_context, context)->codecs;
+		codec = mx->codecs;
 	}
 
 	if (codec) {
 		pthread_mutex_lock(&codec->mutex);
-
-		memcpy(status,
-		       &PARENT(codec, mp1e_codec, codec)->status,
-		       size);
-
+		memcpy(status, &MD(codec)->status, size);
 		pthread_mutex_unlock(&codec->mutex);
 	} else {
-		memset(status, 0, size);
+		pthread_mutex_lock(&mx->context.mutex);
+
+		mx->mux.status.frames_dropped = 0;
+
+		for (codec = mx->codecs; codec; codec = codec->next) {
+			pthread_mutex_lock(&codec->mutex);
+			mx->mux.status.frames_dropped += MD(codec)->status.frames_dropped; 
+			pthread_mutex_unlock(&codec->mutex);
+		}
+
+		memcpy(status, &mx->mux.status, size);
+
+		pthread_mutex_unlock(&mx->context.mutex);
+
+		status->valid |= RTE_STATUS_FRAMES_DROPPED;
 	}
 }
 
@@ -112,7 +121,7 @@ status(rte_context *context, rte_codec *codec,
 static rte_bool
 stop(rte_context *context, double timestamp)
 {
-	mp1e_context *mx = PARENT(context, mp1e_context, context);
+	mp1e_context *mx = MX(context);
 	rte_context_class *xc = context->class;
 	rte_codec *codec;
 
@@ -125,7 +134,7 @@ stop(rte_context *context, double timestamp)
 	mp1e_sync_stop(&mx->sync, timestamp);
 
 	for (codec = mx->codecs; codec; codec = codec->next) {
-		mp1e_codec *md = PARENT(codec, mp1e_codec, codec);
+		mp1e_codec *md = MD(codec);
 		rte_codec_class *dc = md->codec.class;
 
 		// XXX timeout && force
@@ -157,7 +166,7 @@ static rte_bool
 start(rte_context *context, double timestamp,
       rte_codec *time_ref, rte_bool async)
 {
-	mp1e_context *mx = PARENT(context, mp1e_context, context);
+	mp1e_context *mx = MX(context);
 	rte_context_class *xc = context->class;
 	int error;
 
@@ -177,7 +186,7 @@ start(rte_context *context, double timestamp,
 	}
 
 	if (xc == &mp1e_mpeg1_video_context) {
-		mp1e_codec *md = PARENT(mx->codecs, mp1e_codec, codec);
+		mp1e_codec *md = MD(mx->codecs);
 
 		md->codec.state = RTE_STATE_RUNNING;
 
@@ -190,7 +199,7 @@ start(rte_context *context, double timestamp,
 			return FALSE;
 		}
 	} else if (xc == &mp1e_mpeg1_audio_context) {
-		mp1e_codec *md = PARENT(mx->codecs, mp1e_codec, codec);
+		mp1e_codec *md = MD(mx->codecs);
 
 		md->codec.state = RTE_STATE_RUNNING;
 
@@ -224,11 +233,10 @@ start(rte_context *context, double timestamp,
 			}
 		}
 
-		mx->sync.time_base =
-			PARENT(ref, mp1e_codec, codec)->sstr.this_module;
+		mx->sync.time_base = MD(ref)->sstr.this_module;
 
 		for (codec = mx->codecs; codec; codec = codec->next) {
-			mp1e_codec *md = PARENT(codec, mp1e_codec, codec);
+			mp1e_codec *md = MD(codec);
 			rte_codec_class *dc = md->codec.class;
 
 			md->codec.state = RTE_STATE_RUNNING;
@@ -337,12 +345,12 @@ mux_out(struct multiplexer *mux, buffer *b)
 static void
 reset_output(rte_context *context)
 {
-	mp1e_context *mx = PARENT(context, mp1e_context, context);
+	mp1e_context *mx = MX(context);
 	rte_context_class *xc = context->class;
 
 	if (xc == &mp1e_mpeg1_video_context
 	    || xc == &mp1e_mpeg1_audio_context) {
-		mp1e_codec *md = PARENT(mx->codecs, mp1e_codec, codec);
+		mp1e_codec *md = MD(mx->codecs);
 
 		rem_consumer(&md->cons);
 		destroy_fifo(md->output);
@@ -361,7 +369,7 @@ static rte_bool
 set_output(rte_context *context,
 	   rte_buffer_callback write_cb, rte_seek_callback seek_cb)
 {
-	mp1e_context *mx = PARENT(context, mp1e_context, context);
+	mp1e_context *mx = MX(context);
 	rte_context_class *xc = context->class;
 	sync_set modules = 0;
 	char buf[256];
@@ -404,7 +412,7 @@ set_output(rte_context *context,
 				return FALSE;
 			}
 
-			modules |= PARENT(codec, mp1e_codec, codec)->sstr.this_module = 1 << j++;
+			modules |= MD(codec)->sstr.this_module = 1 << j++;
 
 			count++;
 		}
@@ -418,7 +426,7 @@ set_output(rte_context *context,
 	}
 
 	if (xc == &mp1e_mpeg1_video_context || xc == &mp1e_mpeg1_audio_context) {
-		mp1e_codec *md = PARENT(mx->codecs, mp1e_codec, codec);
+		mp1e_codec *md = MD(mx->codecs);
 		rte_codec_class *dc = md->codec.class;
 
 		snprintf(buf, sizeof(buf) - 1, "%s-output-cp", dc->public.keyword);
@@ -448,7 +456,7 @@ set_output(rte_context *context,
 		}
 
 		for (codec = mx->codecs; codec; codec = codec->next) {
-			mp1e_codec *md = PARENT(codec, mp1e_codec, codec);
+			mp1e_codec *md = MD(codec);
 			rte_codec_class *dc = md->codec.class;
 
 			switch (dc->public.stream_type) {
@@ -575,7 +583,7 @@ wait_full_cp(fifo *f)
 static rte_bool
 push_buffer(rte_codec *codec, rte_buffer *wb, rte_bool blocking)
 {
-	mp1e_codec *md = PARENT(codec, mp1e_codec, codec);
+	mp1e_codec *md = MD(codec);
 	buffer *b = NULL;
 
 	if (md->codec.state != RTE_STATE_RUNNING) {
@@ -638,7 +646,7 @@ push_buffer(rte_codec *codec, rte_buffer *wb, rte_bool blocking)
 static void
 reset_input(rte_codec *codec)
 {
-	mp1e_codec *md = PARENT(codec, mp1e_codec, codec);
+	mp1e_codec *md = MD(codec);
 
 	rem_producer(&md->prod);
 	destroy_fifo(md->input);
@@ -650,7 +658,7 @@ static rte_bool
 set_input(rte_codec *codec, rte_io_method input_method,
 	  rte_buffer_callback read_cb, rte_buffer_callback unref_cb, int *queue_length)
 {
-	mp1e_codec *md = PARENT(codec, mp1e_codec, codec);
+	mp1e_codec *md = MD(codec);
 	rte_codec_class *dc = codec->class;
 	rte_context *context = codec->context;
 	char buf[256];
@@ -838,7 +846,7 @@ static const int num_codecs = sizeof(codec_table) / sizeof(codec_table[0]);
 static rte_codec *
 codec_get(rte_context *context, rte_stream_type stream_type, int stream_index)
 {
-	mp1e_context *mx = PARENT(context, mp1e_context, context);
+	mp1e_context *mx = MX(context);
 	rte_codec *codec;
 
 	for (codec = mx->codecs; codec; codec = codec->next)
@@ -853,7 +861,7 @@ static rte_codec *
 codec_set(rte_context *context, const char *keyword,
 	  rte_stream_type stream_type, int stream_index)
 {
-	mp1e_context *mx = PARENT(context, mp1e_context, context);
+	mp1e_context *mx = MX(context);
 	rte_context_class *xc = context->class;
 	rte_codec_class *dc;
 	rte_codec *old, **oldpp, *codec = NULL;
@@ -1039,7 +1047,7 @@ static const int num_contexts = sizeof(context_table) / sizeof(context_table[0])
 static void
 context_delete(rte_context *context)
 {
-	mp1e_context *mx = PARENT(context, mp1e_context, context);
+	mp1e_context *mx = MX(context);
 
 	switch (context->state) {
 	case RTE_STATE_RUNNING:
