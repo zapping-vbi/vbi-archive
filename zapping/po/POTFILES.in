@@ -9,4 +9,6 @@ src/v4l2interface.c
 src/tveng.c
 src/io.c
 src/plugins.c
+src/zmisc.c
+src/zconf.c
 zapping_setup_fb/zapping_setup_fb.c

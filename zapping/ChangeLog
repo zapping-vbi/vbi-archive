@@ -1,9 +1,37 @@
+01.3.2000	New module <garetxe@users.sourceforge.net>
+
+	* zmisc.c: Created, is a place for putting some misc functions
+	that didn't fit elsewhere.
+	
+01.3.2000	ZConf API created <garetxe@users.sourceforge.net>
+
+	* zconf.h: It holds the new zconf API, but nothing of it is
+	implemented yet.
+	
+31.3.2000	Using shared mem <garetxe@users.sourceforge.net>
+
+	* main.c: The program uses shared mem for displaying the data,
+	it is faster now.
+	* tveng.c: Removed info->format.data, now a parameter must be
+	supplied to tveng_read_frame, the user of tveng must take care now
+	about allocating memory.
+	
+30.3.2000	V4L fixes <garetxe@users.sourceforge.net>
+
+	* tveng.c: Some bugs in tveng for V4L have been fixed, now should
+	work quite reliably (tveng_[sg]et_format,
+	tveng_start/stop_capturing, tveng_read_frame,
+	p_tveng_[de]queue, ... had to be tested and fixed).
+	* tveng.c: tveng_attach_device sets a correct starting capture
+	size and tveng_set_capture_size stops capturing as neccesary.
+	* everything: The new 0.5 series are into CVS again ;-)
+	
 27.3.2000	V4L support ended <garetxe@users.sourceforge.net>
 
-	* tveng.c: V4L support has been completed after 9 days, very busy
-	this two weeks with the Uni :-(
+	* tveng.c: V4L support has been completed after 9 days, i've been
+	very busy this two weeks with the Uni :-(
 	* main.c: Rewritten, it was becoming very messy.
-	* config.c: Created. It's a config saving module, created with
+	* zconf.c: Created. It's a config saving module, created with
 	gconf porting in mind.
 	* plugins.c: The new plugin protocol has been designed, it lacks
 	the implementation yet, and some docs.
