@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alirc.c,v 1.4.2.2 2002-12-27 04:14:31 mschimek Exp $ */
+/* $Id: alirc.c,v 1.4.2.3 2003-08-24 23:53:29 mschimek Exp $ */
 
 #include "v4linterface.h" /* channel_key_press() */
 #include "plugin_common.h"
@@ -87,12 +87,12 @@ legacy_zoom			(const gchar *		args)
 	  break;
 	}
 
-      cmd_run_printf ("zapping.switch_mode('%s')", s);
+      python_command_printf (NULL, "zapping.switch_mode('%s')", s);
     }
   else
     {
       windowedmode = tveng_info->current_mode;
-      cmd_run ("zapping.switch_mode('fullscreen')");
+      python_command (NULL, "zapping.switch_mode('fullscreen')");
     }
 }
 
@@ -124,7 +124,7 @@ legacy_setchannel		(const gchar *		args)
     }
   else
     {
-      cmd_run_printf ("zapping.set_channel(%d)", n);
+      python_command_printf (NULL, "zapping.set_channel(%d)", n);
     }
 }
 
@@ -181,7 +181,7 @@ run_command			(const gchar *		s)
 	  if (lc->py_command)
 	    {
 	      printv ("alirc: command txl '%s'\n", lc->py_command);
-	      cmd_run (lc->py_command);
+	      python_command (NULL, lc->py_command);
 	    }
 	  else
 	    {
@@ -197,7 +197,7 @@ run_command			(const gchar *		s)
 
   printv ("alirc: not a legacy command\n");
 
-  cmd_run (s);
+  python_command (NULL, s);
 }
 
 static void

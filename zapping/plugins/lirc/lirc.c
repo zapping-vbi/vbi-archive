@@ -471,15 +471,15 @@ void *lirc_thread(void *dummy)
     if (action == NULL) continue;
 
     if (strcmp(action, "power off") == 0)
-      cmd_run ("zapping.quit()");
+      python_command (NULL, "zapping.quit()");
     else if (strcmp(action, "channel up") == 0)
-      cmd_run ("zapping.channel_up()");
+      python_command (NULL, "zapping.channel_up()");
     else if (strcmp(action, "channel down") == 0)
-      cmd_run ("zapping.channel_down()");
+      python_command (NULL, "zapping.channel_down()");
     else if (strncmp(action, "set channel", strlen("set_channel")) == 0) {
       /* extract channel number */
       action += strlen ("set channel");
-      cmd_run_printf ("zapping.set_channel(%s - 1)", action);
+      python_command_printf (NULL, "zapping.set_channel(%s - 1)", action);
     }
   }
 
