@@ -53,6 +53,7 @@
 #include "tveng25.h"
 
 #include "zmisc.h"
+#include "bayer.h"
 
 /*
  *  Kernel interface
@@ -115,11 +116,21 @@ struct private_tveng25_device_info
 
 	tv_bool			bttv_driver;
 	tv_bool			read_back_controls;
+
+	tv_bool			bayer_hack;
+	tv_pixfmt		bayer_pixfmt;
 };
 
 #define P_INFO(p) PARENT (p, struct private_tveng25_device_info, info)
 
 #define N_BUFFERS 8
+
+#ifndef TVENG25_DISABLE_STANDARDS
+#define TVENG25_DISABLE_STANDARDS 0
+#endif
+#ifndef TVENG25_BAYER_TEST
+#define TVENG25_BAYER_TEST 0
+#endif
 
 static tv_pixfmt
 pixelformat_to_pixfmt		(unsigned int		pixelformat)
@@ -684,7 +695,8 @@ set_video_standard		(tveng_device_info *	info,
   tv_pixfmt pixfmt;
 	int r;
 
-	if (0 == v4l25_ioctl (info, VIDIOC_G_STD, &std_id)) {
+	if (!TVENG25_DISABLE_STANDARDS
+	    && 0 == v4l25_ioctl (info, VIDIOC_G_STD, &std_id)) {
 		for_all (t, info->video_standards)
 			if (t->videostd_set == std_id)
 				break;
@@ -698,7 +710,10 @@ set_video_standard		(tveng_device_info *	info,
 
 	videostd_set = s->videostd_set;
 
-	r = v4l25_ioctl (info, VIDIOC_S_STD, &videostd_set);
+	if (TVENG25_DISABLE_STANDARDS)
+		r = -1;
+	else
+		r = v4l25_ioctl (info, VIDIOC_S_STD, &videostd_set);
 
 	if (0 == r) {
 		store_cur_video_standard (info, s);
@@ -722,6 +737,9 @@ get_video_standard_list		(tveng_device_info *	info)
 
 	if (!info->cur_video_input)
 		return TRUE;
+
+	if (TVENG25_DISABLE_STANDARDS)
+		goto failure;
 
 	for (i = 0;; ++i) {
 		struct v4l2_standard standard;
@@ -841,8 +859,9 @@ set_tuner_frequency		(tveng_device_info *	info,
 		for (i = 0; i < p_info->num_buffers; ++i) {
 			struct v4l2_buffer buffer;
 
-			tv_clear_image (p_info->buffers[i].vmem, 0,
-					&info->capture.format);
+			if (!p_info->bayer_hack)
+				tv_clear_image (p_info->buffers[i].vmem, 0,
+						&info->capture.format);
 
 			CLEAR (buffer);
 			buffer.type = p_info->buffers[i].vidbuf.type;
@@ -1238,23 +1257,33 @@ get_overlay_chromakey		(tveng_device_info *	info)
 */
 
 static tv_bool
-image_format_from_format	(tv_image_format *	f,
+image_format_from_format	(tveng_device_info *	info,
+				 tv_image_format *	f,
 				 const struct v4l2_format *vfmt)
 {
+	struct private_tveng25_device_info *p_info = P_INFO (info);
 	tv_pixfmt pixfmt;
 	unsigned int bytes_per_line;
 
 	CLEAR (*f);
 
-	pixfmt = pixelformat_to_pixfmt (vfmt->fmt.pix.pixelformat);
+	if (TVENG25_BAYER_TEST
+	    || V4L2_PIX_FMT_SBGGR8 == vfmt->fmt.pix.pixelformat) {
+		pixfmt = p_info->bayer_pixfmt;
 
-	if (TV_PIXFMT_UNKNOWN == pixfmt)
-		return FALSE;
+		bytes_per_line = vfmt->fmt.pix.width
+			* tv_pixfmt_bytes_per_pixel (p_info->bayer_pixfmt);
+	} else {
+		pixfmt = pixelformat_to_pixfmt (vfmt->fmt.pix.pixelformat);
 
-	/* bttv 0.9.12 bug:
-	   returns bpl = width * bpp, w/bpp > 1 if planar YUV */
-	bytes_per_line = vfmt->fmt.pix.width
-		* tv_pixfmt_bytes_per_pixel (pixfmt);
+		if (TV_PIXFMT_UNKNOWN == pixfmt)
+			return FALSE;
+
+		/* bttv 0.9.12 bug:
+		   returns bpl = width * bpp, w/bpp > 1 if planar YUV */
+		bytes_per_line = vfmt->fmt.pix.width
+			* tv_pixfmt_bytes_per_pixel (pixfmt);
+	}
 
 	tv_image_format_init (f,
 			      vfmt->fmt.pix.width,
@@ -1285,7 +1314,7 @@ get_capture_format		(tveng_device_info *	info)
 		return FALSE;
 
 	/* Error ignored. */
-	image_format_from_format (&info->capture.format, &format);
+	image_format_from_format (info, &info->capture.format, &format);
 
 	return TRUE;
 }
@@ -1294,24 +1323,55 @@ static tv_bool
 set_capture_format		(tveng_device_info *	info,
 				 const tv_image_format *fmt)
 {
+	struct private_tveng25_device_info *p_info = P_INFO (info);
 	struct v4l2_format format;
+	unsigned int pixelformat;
 
 	CLEAR (format);
 
 	format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
-	/* bttv 0.9.14 YUV 4:2:0: see BUGS. */
-	format.fmt.pix.pixelformat = pixfmt_to_pixelformat (fmt->pixfmt);
+	if (p_info->bayer_hack) {
+		switch (fmt->pixfmt) {
+		case TV_PIXFMT_BGRA32_LE:
+			break;
+		case TV_PIXFMT_BGR24_LE:
+			break;
+		case TV_PIXFMT_BGR16_LE:
+			break;
+		default:
+			t_error_msg ("", "Cannot convert bayer to %s", info,
+				     tv_pixfmt_name (fmt->pixfmt));
+			return FALSE;
+		}
 
-	if (0 == format.fmt.pix.pixelformat) {
+		if (TVENG25_BAYER_TEST)
+			pixelformat = V4L2_PIX_FMT_GREY;
+		else
+			pixelformat = V4L2_PIX_FMT_SBGGR8;
+
+		p_info->bayer_pixfmt = fmt->pixfmt;
+	} else {
+		/* bttv 0.9.14 YUV 4:2:0: see BUGS. */
+		pixelformat = pixfmt_to_pixelformat (fmt->pixfmt);
+	}
+
+	if (0 == pixelformat) {
 		info->tveng_errno = -1; /* unknown */
 		t_error_msg ("", "Bad pixfmt %u %s", info,
 			     fmt->pixfmt, tv_pixfmt_name (fmt->pixfmt));
 		return FALSE;
 	}
 
-	format.fmt.pix.width		= fmt->width;
-	format.fmt.pix.height		= fmt->height;
+	format.fmt.pix.pixelformat = pixelformat;
+
+	if (TVENG25_BAYER_TEST) {
+		format.fmt.pix.width	= 352;
+		format.fmt.pix.height	= 288;
+	} else {
+		format.fmt.pix.width	= fmt->width;
+		format.fmt.pix.height	= fmt->height;
+	}
 
 	format.fmt.pix.bytesperline	= 0; /* minimum please */
 	format.fmt.pix.sizeimage	= 0; /* ditto */
@@ -1324,77 +1384,109 @@ set_capture_format		(tveng_device_info *	info,
 	if (-1 == v4l25_ioctl (info, VIDIOC_S_FMT, &format))
 		return FALSE;
 
-	/* Actual image size. */
+	/* Actual image size (and pixfmt?). */
 
 	/* Error ignored. */
-	image_format_from_format (&info->capture.format, &format);
+	image_format_from_format (info, &info->capture.format, &format);
+
+	if (format.fmt.pix.pixelformat != pixelformat)
+		return FALSE;
 
 	return TRUE;
+}
+
+static void
+init_format_generic		(struct v4l2_format *	format)
+{
+	CLEAR (*format);
+
+	format->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+
+	format->fmt.pix.width		= 352;
+	format->fmt.pix.height		= 288;
+	format->fmt.pix.field		= V4L2_FIELD_BOTTOM;
+	format->fmt.pix.bytesperline	= 0; /* minimum please */
+	format->fmt.pix.sizeimage	= 0; /* ditto */
+	format->fmt.pix.colorspace	= 0;
 }
 
 static tv_pixfmt_set
 get_supported_pixfmt_set	(tveng_device_info *	info)
 {
+	struct private_tveng25_device_info *p_info = P_INFO (info);
 	struct v4l2_format format;
+	unsigned int pixelformat;
 	tv_pixfmt_set pixfmt_set;
 	tv_pixfmt pixfmt;
 
-	CLEAR (format);
+	if (TVENG25_BAYER_TEST)
+		goto bayer;
 
-	format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-
-	format.fmt.pix.width		= 352;
-	format.fmt.pix.height		= 288;
-
-	format.fmt.pix.bytesperline	= 0; /* minimum please */
-	format.fmt.pix.sizeimage	= 0; /* ditto */
-
-	format.fmt.pix.field = V4L2_FIELD_BOTTOM;
+	/* XXX enum_fmt here. */
 
 	pixfmt_set = TV_PIXFMT_SET_EMPTY;
 
 	for (pixfmt = 0; pixfmt < TV_MAX_PIXFMTS; ++pixfmt) {
 		/* bttv 0.9.14 YUV 4:2:0: see BUGS. */
-		format.fmt.pix.pixelformat =
-			pixfmt_to_pixelformat (pixfmt);
-
-		if (0 == format.fmt.pix.pixelformat)
+		pixelformat = pixfmt_to_pixelformat (pixfmt);
+		if (0 == pixelformat)
 			continue;
+
+		init_format_generic (&format);
+		format.fmt.pix.pixelformat = pixelformat;
 
 		if (-1 == v4l25_ioctl_nf (info, VIDIOC_TRY_FMT, &format))
 			continue;
 
-		pixfmt_set |= TV_PIXFMT_SET (pixfmt);
+		if (format.fmt.pix.pixelformat == pixelformat)
+			pixfmt_set |= TV_PIXFMT_SET (pixfmt);
 	}
 
 	if (0 != pixfmt_set)
 		return pixfmt_set;
 
+	{
+		init_format_generic (&format);
+
+		format.fmt.pix.pixelformat = V4L2_PIX_FMT_SBGGR8;
+
+		if (0 == v4l25_ioctl_nf (info, VIDIOC_TRY_FMT, &format)
+		    && format.fmt.pix.pixelformat == V4L2_PIX_FMT_SBGGR8) {
+			goto bayer;
+		}
+	}
+
 	/* TRY_FMT is optional, let's see if S_FMT works. */
 
 	for (pixfmt = 0; pixfmt < TV_MAX_PIXFMTS; ++pixfmt) {
 		/* bttv 0.9.14 YUV 4:2:0: see BUGS. */
-		format.fmt.pix.pixelformat =
-			pixfmt_to_pixelformat (pixfmt);
-
-		if (0 == format.fmt.pix.pixelformat)
+		pixelformat = pixfmt_to_pixelformat (pixfmt);
+		if (0 == pixelformat)
 			continue;
+
+		init_format_generic (&format);
+		format.fmt.pix.pixelformat = pixelformat;
+
 
 		if (-1 == v4l25_ioctl_nf (info, VIDIOC_S_FMT, &format))
 			continue;
 
 		/* Error ignored. */
-		image_format_from_format (&info->capture.format, &format);
+		image_format_from_format (info, &info->capture.format, &format);
 
-		pixfmt_set |= TV_PIXFMT_SET (pixfmt);
+		if (format.fmt.pix.pixelformat == pixelformat)
+			pixfmt_set |= TV_PIXFMT_SET (pixfmt);
 	}
 
 	return pixfmt_set;
+
+ bayer:
+	p_info->bayer_hack = TRUE;
+
+	return (TV_PIXFMT_SET (TV_PIXFMT_BGRA32_LE) |
+		TV_PIXFMT_SET (TV_PIXFMT_BGR24_LE) |
+		TV_PIXFMT_SET (TV_PIXFMT_BGR16_LE));
 }
-
-
-
-
 
 static int p_tveng25_open_device_file(int flags, tveng_device_info * info);
 /*
@@ -1790,8 +1882,9 @@ tveng25_start_capturing(tveng_device_info * info)
 	  return -1;
 	}
 
-      tv_clear_image (p_info->buffers[i].vmem, 0,
-		      &info->capture.format);
+      if (!p_info->bayer_hack)
+	      tv_clear_image (p_info->buffers[i].vmem, 0,
+			      &info->capture.format);
 
 	/* Queue the buffer */
       if (p_tveng25_qbuf(i, info) == -1)
@@ -1935,9 +2028,38 @@ int tveng25_read_frame(tveng_image_data *where,
       index = index2;
   } while (1);
 
-  /* Copy the data to the address given */
-  if (where)
-    tveng_copy_frame (p_info->buffers[index].vmem, where, info);
+  if (p_info->bayer_hack) {
+    if (where)
+      switch (p_info->bayer_pixfmt) {
+      case TV_PIXFMT_BGRA32_LE:
+	sbggr8_to_bgra32_le (where->linear.data,
+			     p_info->buffers[index].vmem,
+			     p_info->info.capture.format.width,
+			     p_info->info.capture.format.height);
+	break;
+
+      case TV_PIXFMT_BGR24_LE:
+	sbggr8_to_bgr24_le (where->linear.data,
+			    p_info->buffers[index].vmem,
+			    p_info->info.capture.format.width,
+			    p_info->info.capture.format.height);
+	break;
+
+      case TV_PIXFMT_BGR16_LE:
+	sbggr8_to_bgr16_le (where->linear.data,
+			    p_info->buffers[index].vmem,
+			    p_info->info.capture.format.width,
+			    p_info->info.capture.format.height);
+	break;
+
+      default:
+	assert (!"reached");
+      }
+  } else {
+    /* Copy the data to the address given */
+    if (where)
+      tveng_copy_frame (p_info->buffers[index].vmem, where, info);
+  }
 
   /* Queue the buffer again for processing */
   if (p_tveng25_qbuf((unsigned int) index, info))
