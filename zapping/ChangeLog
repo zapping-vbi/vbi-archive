@@ -3,6 +3,8 @@
 	* New weblink event for ITV and Z2W.
 	* packet.c: Added preliminary decoding of "zap2web", TTX based
 	  equv. of CC-ITV, went on air at CeBit last week.
+	UPDATE: Just got the EACEM prop "zap2web" is based on, this
+	  feature is on freeze for a rewrite.
 	* packet.c: Added page classification (program related,
 	  subtitles, number of subpages etc). Not reliable yet.
 
