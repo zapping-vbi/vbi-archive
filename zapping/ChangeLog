@@ -1,3 +1,7 @@
+09.09.2002	<mschimek@users.sf.net>
+
+	* src/frequencies.c: Added Canada cable contributed by "matt".
+
 22.08.2002	First simple tests <garetxe@users.sf.net>
 
 	* capture.c: Testing the new code. Works more or less with the
