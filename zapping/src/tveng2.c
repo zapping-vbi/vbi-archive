@@ -237,10 +237,11 @@ set_capture_format(tveng_device_info * info)
   format.type = V4L2_BUF_TYPE_CAPTURE;
 
   format.fmt.pix.pixelformat = pixfmt_to_pixelformat (info->format.pixfmt);
+
   if (0 == format.fmt.pix.pixelformat) {
-      info->tveng_errno = -1; /* unknown */
-      t_error_msg("switch()", "Cannot understand the given palette",
-		  info);
+      info->tveng_errno = EINVAL;
+      tv_error_msg (info, "%s not supported",
+		    tv_pixfmt_name (info->format.pixfmt));
       return -1;
   }
 
