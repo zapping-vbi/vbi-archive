@@ -1,0 +1,230 @@
+# RTE German translation -*- coding: latin-1 -*-
+# Copyright (C) 2001 Michael H. Schimek <mschimek@users.sf.net>
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: RTE 0.5\n"
+"POT-Creation-Date: 2001-12-17 09:22+0100\n"
+"PO-Revision-Date: 2001-12-17 09:59+0100\n"
+"Last-Translator: Michael H. Schimek <mschimek@users.sf.net>\n"
+"Language-Team: German <de@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=iso-8859-1\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: mp1e/video/mpeg1.c:1978
+#, c-format
+msgid "Invalid group of pictures sequence: \"%s\".\n"
+msgstr "Unzulässige Gruppe von Bildern: \"%s\".\n"
+
+#: mp1e/video/mpeg1.c:1984
+#, c-format
+msgid ""
+"Invalid group of pictures sequence: \"%s\", length %d.\n"
+"The number of pictures in a GOP is limited to 1024."
+msgstr ""
+"Unzulässige Gruppe von Bildern: \"%s\", länge %d.\n"
+"Die Anzahl der Bilder in einer Gruppe ist begrenzt auf 1024."
+
+#: mp1e/video/mpeg1.c:2036
+#, c-format
+msgid ""
+"Invalid group of pictures sequence: \"%s\".\n"
+"The number of successive 'B' bidirectionally predicted pictures is limited "
+"to %u."
+msgstr ""
+"Unzulässige Gruppe von Bildern: \"%s\".\n"
+"Die Anzahl aufeinanderfolgender 'B' bidirektional kodierter\n"
+"Bilder ist begrenzt auf %u."
+
+#: mp1e/video/mpeg1.c:2227
+msgid "Standard compliant"
+msgstr "Standardkonform"
+
+#: mp1e/video/mpeg1.c:2228
+msgid "Multiplexer"
+msgstr "Multiplexer"
+
+#: mp1e/video/mpeg1.c:2229
+msgid "Fake picture"
+msgstr "Unechte Bilder einfügen"
+
+#: mp1e/audio/mp2.c:914 mp1e/video/mpeg1.c:2237
+msgid "Bit rate"
+msgstr "Bitrate"
+
+#: mp1e/video/mpeg1.c:2239
+msgid "Output bit rate"
+msgstr "Bitrate"
+
+#: mp1e/video/mpeg1.c:2241
+msgid "Coded frame rate"
+msgstr "Kodierte Bildrate"
+
+#: mp1e/video/mpeg1.c:2244
+msgid "Virtual frame rate"
+msgstr "Virtuelle Bildrate"
+
+#: mp1e/video/mpeg1.c:2246
+msgid ""
+"MPEG-1 allows only a few discrete values for frames/s, but this codec can "
+"skip frames if you wish. Choose the output bit rate accordingly."
+msgstr ""
+"MPEG-1 erlaubt nur einige wenige Werte für Bilder/s, aber dieser\n"
+"Encoder kann Bilder überspringen wenn Sie möchten. Wählen Sie\n"
+"die Bitrate entsprechend."
+
+#: mp1e/video/mpeg1.c:2250
+msgid "Virtual frame rate method"
+msgstr "Methode für virtuelle Bildrate"
+
+#: mp1e/video/mpeg1.c:2252
+msgid ""
+"The standard compliant method has one major drawback: it may have to promote "
+"some or even all B to P pictures, reducing the image quality."
+msgstr "Die standardkonforme Methode hat einen Hauptnachteil: Möglicherweise müssen einige oder sogar alle B- als P-Bilder kodiert werden, was die Bildqualität reduziert."
+
+#: mp1e/video/mpeg1.c:2256
+msgid "GOP sequence"
+msgstr "Bildsequenz"
+
+#: mp1e/video/mpeg1.c:2259
+msgid "Motion compensation"
+msgstr "Bewegungskompensation"
+
+#: mp1e/video/mpeg1.c:2260
+msgid ""
+"Enable motion compensation to improve the image quality. The motion search "
+"range is automatically adjusted."
+msgstr "Aktivieren Sie Bewegungskompensation um die Bildqualität zu verbessern. Die Suchweite stellt sich automatisch ein."
+
+#. RTE_OPTION_BOOL_INITIALIZER
+#. ("monochrome", N_("Disable color"), FALSE, (NULL)),
+#. XXX
+#.
+#: mp1e/video/mpeg1.c:2267
+msgid "Annotation"
+msgstr "Anmerkung"
+
+#: mp1e/video/mpeg1.c:2268
+msgid ""
+"Add an annotation in the user data field shortly after the video stream "
+"start. This is an mp1e extension, players will ignore it."
+msgstr "Fügt eine Anmerkung im User-Data Feld kurz nach Beginn der Datei ein. Das ist eine mp1e spezifische Erweiterung, wird von Playern ignoriert."
+
+#: mp1e/video/mpeg1.c:2401
+msgid "on"
+msgstr "an"
+
+#: mp1e/video/mpeg1.c:2401
+msgid "off"
+msgstr "aus"
+
+#: mp1e/video/mpeg1.c:2410
+#, c-format
+msgid "%5.3f Mbit/s"
+msgstr "%5.3f Mbit/s"
+
+#: mp1e/video/mpeg1.c:2413
+#, c-format
+msgid "%4.2f frames/s"
+msgstr "%4.2f Bilder/s"
+
+#: mp1e/video/mpeg1.c:2418
+#, c-format
+msgid "%5.3f frames/s"
+msgstr "%5.3f Bilder/s"
+
+#. 0
+#: mp1e/audio/mp2.c:895
+msgid "Mono"
+msgstr "Mono"
+
+#. 1
+#: mp1e/audio/mp2.c:896
+msgid "Stereo"
+msgstr "Stereo"
+
+#. (NLS) Bilingual: for example left audio channel English, right French
+#. 2
+#: mp1e/audio/mp2.c:898
+msgid "Bilingual"
+msgstr "Zweisprachig"
+
+#. (NLS) Psychoaccoustic analysis: Static (none), Fast, Accurate
+#. 0
+#: mp1e/audio/mp2.c:906
+msgid "Static"
+msgstr "Statisch"
+
+#. 1
+#: mp1e/audio/mp2.c:907
+msgid "Fast"
+msgstr "Schnell"
+
+#. 2
+#: mp1e/audio/mp2.c:908
+msgid "Accurate"
+msgstr "Genau"
+
+#: mp1e/audio/mp2.c:917
+msgid "Output bit rate, all channels together"
+msgstr "Bitrate, alle Kanäle zusammen"
+
+#: mp1e/audio/mp2.c:919
+msgid "Sampling frequency"
+msgstr "Samplingfrequenz"
+
+#: mp1e/audio/mp2.c:923
+msgid "Mode"
+msgstr "Modus"
+
+#: mp1e/audio/mp2.c:926
+msgid "Psychoacoustic analysis"
+msgstr "Psychoakustische Analyse"
+
+#: mp1e/audio/mp2.c:928
+msgid ""
+"Speed/quality tradeoff. Selecting 'Accurate' is recommended below 80 kbit/s "
+"per channel, when you have bat ears or a little more CPU load doesn't matter."
+msgstr "Verhältnis von Geschwindigkeit und Qualität. 'Genau' ist empfohlen unterhalb 80 kbit/s je Kanal, wenn Sie Fledermausohren haben oder der zusätzliche Aufwand nicht weiter ins Gewicht fällt."
+
+#: mp1e/audio/mp2.c:1059
+#, c-format
+msgid "%u kbit/s"
+msgstr "%u kbit/s"
+
+#: mp1e/audio/mp2.c:1064
+#, c-format
+msgid "%u Hz"
+msgstr "%u Hz"
+
+#: mp1e/audio/mp2.c:1263
+msgid "MPEG-1 Audio Layer II"
+msgstr "MPEG-1 Audio Layer II"
+
+#: mp1e/audio/mp2.c:1290
+msgid "MPEG-2 Audio Layer II LFE"
+msgstr "MPEG-2 Audio Layer II LFE"
+
+#: mp1e/audio/mp2.c:1291
+msgid ""
+"MPEG-2 Low (Sampling) Frequency Extension to MPEG-1 Audio Layer II. Caution: "
+"Not all MPEG video and audio players support MPEG-2 audio."
+msgstr "MPEG-2 Erweiterung von MPEG-1 Audio Layer II für niedrigere Samplingfrequenzen. Vorsicht: Nicht alle MPEG Video und Audio Player unterstützen MPEG-2 Audio."
+
+#: mp1e/b_mp1e.c:136
+msgid "MPEG-1 Program Stream"
+msgstr "MPEG-1 Program Stream (Bild und Ton)"
+
+#: mp1e/b_mp1e.c:150
+msgid "MPEG-1 VCD Program Stream"
+msgstr "MPEG-1 VCD Program Stream"
+
+#: mp1e/b_mp1e.c:164
+msgid "MPEG Video Elementary Stream"
+msgstr "MPEG Video Elementary Stream"
+
+#: mp1e/b_mp1e.c:178
+msgid "MPEG Audio Elementary Stream"
+msgstr "MPEG Audio Elementary Stream"
