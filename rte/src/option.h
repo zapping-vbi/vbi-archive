@@ -19,14 +19,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: option.h,v 1.4 2002-09-26 20:47:35 mschimek Exp $ */
+/* $Id: option.h,v 1.5 2002-12-14 00:45:08 mschimek Exp $ */
 
 #ifndef OPTIONS_H
 #define OPTIONS_H
 
 /* Public */
 
-#include <stdint.h>
+#include <inttypes.h>
 
 /* doxygen sees static and ignores it... */
 #define static_inline static inline

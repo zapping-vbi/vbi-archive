@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: context.h,v 1.9 2002-10-02 20:58:50 mschimek Exp $ */
+/* $Id: context.h,v 1.10 2002-12-14 00:44:26 mschimek Exp $ */
 
 #ifndef CONTEXT_H
 #define CONTEXT_H
@@ -28,7 +28,7 @@
 
 /* Public */
 
-#include <stdint.h>
+#include <inttypes.h>
 
 /**
  * @ingroup Context
