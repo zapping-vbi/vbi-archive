@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: oss.c,v 1.15 2001-05-31 19:40:49 mschimek Exp $ */
+/* $Id: oss.c,v 1.16 2001-07-07 08:46:54 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -42,6 +42,8 @@
 #include "../common/mmx.h" 
 #include "../common/math.h" 
 #include "audio.h"
+
+#define IOCTL(fd, cmd, data) (TEMP_FAILURE_RETRY(ioctl(fd, cmd, data)))
 
 #define TEST 0
 
@@ -117,7 +119,7 @@ wait_full(fifo *f)
 		gettimeofday(&tv, NULL);
 
 		ASSERT("SNDCTL_DSP_GETISPACE",
-			ioctl(oss->fd, SNDCTL_DSP_GETISPACE, &info) != 1);
+			IOCTL(oss->fd, SNDCTL_DSP_GETISPACE, &info) == 0);
 
 		if (TEST)
 			write(oss->fd2, b->allocated, oss->scan_range * sizeof(short));
@@ -183,13 +185,13 @@ open_pcm_oss(char *dev_name, int sampling_rate, bool stereo)
 	printv(2, "Opened OSS PCM device %s\n", dev_name);
 
 	ASSERT("set OSS PCM AFMT_S16_LE",
-		ioctl(oss->fd, SNDCTL_DSP_SETFMT, &oss_format) != -1);
+		IOCTL(oss->fd, SNDCTL_DSP_SETFMT, &oss_format) == 0);
 
 	ASSERT("set OSS PCM %d channels",
-		ioctl(oss->fd, SNDCTL_DSP_STEREO, &oss_stereo) != -1, oss_stereo + 1);
+		IOCTL(oss->fd, SNDCTL_DSP_STEREO, &oss_stereo) == 0, oss_stereo + 1);
 
 	ASSERT("set OSS PCM sampling rate %d Hz",
-		ioctl(oss->fd, SNDCTL_DSP_SPEED, &oss_speed) != -1, oss_speed);
+		IOCTL(oss->fd, SNDCTL_DSP_SPEED, &oss_speed) == 0, oss_speed);
 
 	printv(3, "Set %s to signed 16 bit little endian, %d Hz, %s\n",
 		dev_name, oss->pcm.sampling_rate, oss->pcm.stereo ? "stereo" : "mono");
@@ -198,7 +200,7 @@ open_pcm_oss(char *dev_name, int sampling_rate, bool stereo)
 		int frag_size;
 
 		ASSERT("SNDCTL_DSP_GETBLKSIZE",
-			ioctl(oss->fd, SNDCTL_DSP_GETBLKSIZE, &frag_size) != -1);
+			IOCTL(oss->fd, SNDCTL_DSP_GETBLKSIZE, &frag_size) == 0);
 
 		printv(3, "Dsp buffer size %i\n", frag_size);
 	}
@@ -235,8 +237,8 @@ mix_restore(void)
 	int fd;
 
 	if ((fd = open(mix_dev, O_RDWR)) != -1) {
-		ioctl(fd, SOUND_MIXER_WRITE_RECSRC, &old_recsrc);
-		ioctl(fd, MIXER_WRITE(SOUND_MIXER_LINE), &old_recvol);
+		IOCTL(fd, SOUND_MIXER_WRITE_RECSRC, &old_recsrc);
+		IOCTL(fd, MIXER_WRITE(SOUND_MIXER_LINE), &old_recvol);
 		close(fd);
 	}
 }
@@ -253,13 +255,15 @@ mix_init(void)
 		return;
 	}
 
-	ASSERT("get PCM rec source", ioctl(fd, SOUND_MIXER_READ_RECSRC, &old_recsrc) != -1);
-	ASSERT("get PCM rec volume", ioctl(fd, MIXER_READ(SOUND_MIXER_LINE), &old_recvol) != -1);
+	ASSERT("get PCM rec source", IOCTL(fd, SOUND_MIXER_READ_RECSRC, &old_recsrc) == 0);
+	ASSERT("get PCM rec volume", IOCTL(fd, MIXER_READ(SOUND_MIXER_LINE), &old_recvol) == 0);
 
 	atexit(mix_restore);
 
-	ASSERT("set PCM rec source %d:%s", ioctl(fd, SOUND_MIXER_WRITE_RECSRC, &recsrc) != -1, mix_line, sources[mix_line]);
-	ASSERT("set PCM rec volume %d%%", ioctl(fd, MIXER_WRITE(SOUND_MIXER_LINE), &recvol) != -1, mix_volume);
+	ASSERT("set PCM rec source %d:%s", IOCTL(fd, SOUND_MIXER_WRITE_RECSRC,
+		&recsrc) == 0, mix_line, sources[mix_line]);
+	ASSERT("set PCM rec volume %d%%", IOCTL(fd, MIXER_WRITE(SOUND_MIXER_LINE),
+		&recvol) == 0, mix_volume);
 
 	close(fd);
 
@@ -279,7 +283,7 @@ mix_sources(void)
 	str[0] = 0;
 
 	if ((fd = open(mix_dev, O_RDWR)) != -1) {
-		ioctl(fd, SOUND_MIXER_READ_RECMASK, &recmask);
+		IOCTL(fd, SOUND_MIXER_READ_RECMASK, &recmask);
 		close(fd);
 	}
 

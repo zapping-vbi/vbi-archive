@@ -16,11 +16,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.12 2001-05-05 23:35:09 garetxe Exp $ */
+/* $Id: v4l.c,v 1.13 2001-07-07 08:46:54 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
 #include <sys/mman.h>
@@ -32,6 +33,8 @@
 #include "../common/math.h"
 #include "../options.h"
 #include "video.h"
+
+#define IOCTL(fd, cmd, data) (TEMP_FAILURE_RETRY(ioctl(fd, cmd, data)))
 
 #warning The V4L interface is unsupported.
 
@@ -64,10 +67,9 @@ wait_full(fifo *f)
 
 	vmmap.frame = oldcframe;
 	ASSERT("enqueue capture buffer",
-	       ioctl(fd, VIDIOCMCAPTURE, &vmmap) == 0);
+	       IOCTL(fd, VIDIOCMCAPTURE, &vmmap) == 0);
 
-	while (r < 0)
-	{
+	while (r < 0) {
 		vmmap.frame = cframe;
 
         	r = ioctl(fd, VIDIOCSYNC, &(vmmap.frame));
@@ -103,14 +105,14 @@ static void
 mute_restore(void)
 {
 	ASSERT("query audio capabilities",
-	       ioctl(fd, VIDIOCGAUDIO, &vaud) == 0);
+	       IOCTL(fd, VIDIOCGAUDIO, &vaud) == 0);
 
 	fprintf(stderr, "muting again\n");
 
 	vaud.flags |= VIDEO_AUDIO_MUTE;
 	vaud.volume = 0;
 
-	ASSERT("Audio muting", ioctl(fd, VIDIOCSAUDIO, &vaud) == 0);
+	ASSERT("Audio muting", IOCTL(fd, VIDIOCSAUDIO, &vaud) == 0);
 }
 
 void
@@ -129,12 +131,12 @@ v4l_init(void)
 	aligned_height = (height + 15) & -16;
 
 	ASSERT("open capture device", (fd = open(cap_dev, O_RDONLY)) != -1);
-	ASSERT("query video capture capabilities", ioctl(fd, VIDIOCGCAP, &vcap) == 0);
+	ASSERT("query video capture capabilities", IOCTL(fd, VIDIOCGCAP, &vcap) == 0);
 
 	if (!(vcap.type&VID_TYPE_CAPTURE))
 		FAIL("%s ('%s') is not a capture device", cap_dev, vcap.name);
 
-	ASSERT("query audio capabilities", ioctl(fd, VIDIOCGAUDIO, &vaud) == 0);
+	ASSERT("query audio capabilities", IOCTL(fd, VIDIOCGAUDIO, &vaud) == 0);
 
 	vaud_flags = vaud.flags;
 	vaud_volume = vaud.volume;
@@ -142,13 +144,13 @@ v4l_init(void)
 	vaud.flags &= ~VIDEO_AUDIO_MUTE;
 	vaud.volume = 60000;
 
-	ASSERT("Audio unmuting", ioctl(fd, VIDIOCSAUDIO, &vaud) == 0);
+	ASSERT("Audio unmuting", IOCTL(fd, VIDIOCSAUDIO, &vaud) == 0);
 
 	atexit(mute_restore);
 
 	printv(2, "Opened %s ('%s')\n", cap_dev, vcap.name);
 
-	ASSERT("query video channel", ioctl(fd, VIDIOCGCHAN, &chan) == 0);
+	ASSERT("query video channel", IOCTL(fd, VIDIOCGCHAN, &chan) == 0);
 
 	if (chan.norm == 0) /* PAL */
 		frame_rate_code = 3;
@@ -167,7 +169,7 @@ v4l_init(void)
 	filter_mode = CM_YUV;
 	filter_init(vmmap.width);
 
-	ASSERT("request capture buffers", ioctl(fd, VIDIOCGMBUF, &buf) == 0);
+	ASSERT("request capture buffers", IOCTL(fd, VIDIOCGMBUF, &buf) == 0);
 
 	if (buf.frames == 0)
 		FAIL("No capture buffers granted");
@@ -206,7 +208,7 @@ v4l_init(void)
 
 	vmmap.frame = 0;
 	ASSERT("queue buffer",
-	       ioctl(fd, VIDIOCMCAPTURE, &vmmap) == 0);
+	       IOCTL(fd, VIDIOCMCAPTURE, &vmmap) == 0);
 
 	video_cap_fifo = &cap_fifo;
 }

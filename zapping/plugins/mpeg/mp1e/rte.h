@@ -32,7 +32,7 @@
 /*
  * Lib build ID, for debugging.
  */
-#define RTE_ID " $Id: rte.h,v 1.22 2001-05-28 16:10:29 garetxe Exp $ "
+#define RTE_ID " $Id: rte.h,v 1.23 2001-07-07 08:46:54 mschimek Exp $ "
 
 /*
  * What are we going to encode, audio only, video only or both
@@ -71,6 +71,7 @@ enum rte_pixformat {
 	RTE_YUYV_VERTICAL_INTERPOLATION,
 	RTE_YUYV_PROGRESSIVE,
 	RTE_YUYV_PROGRESSIVE_TEMPORAL,
+	/* experimental, not accelerated, subject to change w/o notice */
 	RTE_YUYV_EXP,
 	RTE_YUYV_EXP_VERTICAL_DECIMATION,
 	RTE_YUYV_EXP2
@@ -99,6 +100,7 @@ enum rte_audio_mode {
 	RTE_AUDIO_MODE_MONO,
 	RTE_AUDIO_MODE_STEREO
 	/* fixme: what does this mean? */
+	/* mhs: see man page */
 //	RTE_AUDIO_MODE_DUAL_CHANNEL
 };
 
@@ -132,7 +134,10 @@ typedef struct {
 
 	/* size in bytes of a complete frame */
 	int video_bytes;
-	
+
+	/* motion compensation search range */
+	int motion_min, motion_max;
+
 	/******* audio parameters **********/
 	/* audio sampling rate in Hz, 44100 by default */
 	int audio_rate; 
@@ -300,6 +305,12 @@ int rte_set_audio_parameters (rte_context * context,
 
 /* Specifies whether to encode audio only, video only or both */
 void rte_set_mode (rte_context * context, enum rte_mux_mode mode);
+
+/*
+  Specifies motion compensation search range,
+  min <= max, min = max = 0 = off, in half samples.
+ */
+void rte_set_motion (rte_context * context, int min, int max);
 
 /* [SG]ets the user data parameter. Can be done while encoding */
 void rte_set_user_data(rte_context * context, void * user_data);

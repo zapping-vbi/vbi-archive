@@ -61,6 +61,7 @@ static gchar* save_dir;
 static gint output_mode; /* 0:file, 1:/dev/null */
 static gint mux_mode; /* 0:audio, 1:video, 2:both */
 static gint capture_w, capture_h;
+static gboolean motion_comp; /* bool */
 
 gboolean on_mpeg_dialog1_delete_event(GtkWidget *widget, GdkEvent
 				      *event, gpointer user_data);
@@ -433,13 +434,15 @@ static
 gboolean plugin_start (void)
 {
   enum rte_pixformat pixformat;
-  enum tveng_frame_pixformat tveng_pixformat =
-    zconf_get_integer(NULL, "/zapping/options/main/yuv_format");
+  enum tveng_frame_pixformat tveng_pixformat;
   gchar * file_name = NULL;
   GtkWidget * widget;
   FILE * file_fd;
   gchar * buffer;
   GtkWidget *dialog, *label;
+
+  tveng_pixformat =
+    zconf_get_integer(NULL, "/zapping/options/main/yuv_format");
 
   /* it would be better to gray out the button and set insensitive */
   if (active)
@@ -484,7 +487,7 @@ gboolean plugin_start (void)
 	}
     }
 
-  return FALSE;
+//  return FALSE;
 
   if (zmisc_switch_mode(TVENG_CAPTURE_READ, zapping_info))
     {
@@ -558,6 +561,9 @@ gboolean plugin_start (void)
     }
 
   data_dest = NULL;
+
+  if (motion_comp)
+    rte_set_motion(context, 8, 24);
 
   switch (output_mode)
     {
@@ -733,6 +739,11 @@ void plugin_load_config (gchar * root_key)
   mux_mode = zconf_get_integer(NULL, buffer);
   g_free(buffer);
 
+  buffer = g_strconcat(root_key, "motion_comp", NULL);
+  zconf_create_integer(0, "Enable motion compensation", buffer);
+  motion_comp = !!zconf_get_integer(NULL, buffer);
+  g_free(buffer);
+
   buffer = g_strconcat(root_key, "capture_w", NULL);
   zconf_create_integer(384, "Capture Width", buffer);
   capture_w = zconf_get_integer(NULL, buffer);
@@ -779,6 +790,10 @@ void plugin_save_config (gchar * root_key)
 
   buffer = g_strconcat(root_key, "mux_mode", NULL);
   zconf_set_integer(mux_mode, buffer);
+  g_free(buffer);
+
+  buffer = g_strconcat(root_key, "motion_comp", NULL);
+  zconf_set_integer(!!motion_comp, buffer);
   g_free(buffer);
 
   buffer = g_strconcat(root_key, "capture_w", NULL);
@@ -864,6 +879,11 @@ gboolean plugin_add_properties ( GnomePropertyBox * gpb )
   gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu),
 		     "deactivate", on_property_item_changed, gpb);
 
+  widget = lookup_widget(mpeg_properties, "checkmotion");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget), motion_comp);
+  gtk_signal_connect(GTK_OBJECT(widget),
+		     "toggled", on_property_item_changed, gpb);
+
   widget = lookup_widget(mpeg_properties, "spinbutton3");
   gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget), capture_w);
   gtk_signal_connect(GTK_OBJECT(widget), "changed",
@@ -929,6 +949,9 @@ gboolean plugin_activate_properties ( GnomePropertyBox * gpb, gint page )
       widget = GTK_WIDGET(GTK_OPTION_MENU(widget)->menu);
       mux_mode = g_list_index(GTK_MENU_SHELL(widget)->children,
 			      gtk_menu_get_active(GTK_MENU(widget)));
+
+      widget = lookup_widget(mpeg_properties, "checkmotion");
+      motion_comp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget));
 
       widget = lookup_widget(mpeg_properties, "optionmenu1");
       widget = GTK_WIDGET(GTK_OPTION_MENU(widget)->menu);

@@ -80,6 +80,20 @@ Audio and Video
       </widget>
 
       <widget>
+        <class>GtkCheckButton</class>
+        <name>checkmotion</name>
+        <can_focus>True</can_focus>
+	<label>Use motion compensation</label>
+	<active>False</active>
+	<draw_indicator>True</draw_indicator>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>False</fill>
+	</child>
+      </widget>
+
+      <widget>
 	<class>GtkHBox</class>
 	<name>hbox5</name>
 	<homogeneous>False</homogeneous>

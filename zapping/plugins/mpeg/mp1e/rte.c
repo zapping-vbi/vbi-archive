@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.54 2001-05-28 16:10:29 garetxe Exp $ */
+/* $Id: rte.c,v 1.55 2001-07-07 08:46:54 mschimek Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -544,6 +544,33 @@ void rte_set_mode (rte_context * context, enum rte_mux_mode mode)
 	}
 
 	context->mode = mode;
+}
+
+void rte_set_motion (rte_context * context, int min, int max)
+{
+	int t;
+
+	nullcheck(context, return);
+
+	if (context->private->inited)
+	{
+		rte_error(context, "context already inited");
+		return;
+	}
+
+	if (min > max) {
+		t = min;
+		min = max;
+		max = t;
+	}
+
+	if (max == 0)
+		min = 0;
+	else if (max > 64)
+		max = 64;
+
+	context->motion_min = min;
+	context->motion_max = max;
 }
 
 void rte_set_user_data(rte_context * context, void * user_data)
@@ -1136,6 +1163,9 @@ static int rte_fake_options(rte_context * context)
 			  context->audio_mode);
 		return 0;
 	}
+
+	motion_min = context->motion_min;
+	motion_max = context->motion_max;
 
 	video_cap_fifo = &(context->private->vid);
 	audio_cap_fifo = &(context->private->aud);

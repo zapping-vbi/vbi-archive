@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.19 2001-06-07 17:43:51 mschimek Exp $ */
+/* $Id: options.c,v 1.20 2001-07-07 08:46:54 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -80,6 +80,7 @@ usage(FILE *fi)
 		" -G wxh         Grab size, multiple of 16 x 16              %d x %d pixels\n"
 		" -H frames      Repeat sequence header every n frames,\n"
 		"                n > 0. Helps random access                  never repeated\n"
+		" -R min,max     Motion compensation search range limits     %d,%d\n"
 #if TEST_PREVIEW && defined(HAVE_LIBXV)
 		" -P             XvImage Preview (test mode)                 disabled\n"
 #endif
@@ -102,6 +103,7 @@ usage(FILE *fi)
 
 		my_name, mux_options[modules], (double) video_bit_rate / 1e6,
 		cap_dev, gop_sequence, width, height, grab_width, grab_height,
+		motion_min, motion_max,
 
 		audio_options[audio_mode], pcm_dev, audio_bit_rate / 1000, sampling_rate / 1e3,
 

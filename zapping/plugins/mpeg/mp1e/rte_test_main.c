@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rte_test_main.c,v 1.24 2001-05-27 22:21:07 garetxe Exp $
+ * $Id: rte_test_main.c,v 1.25 2001-07-07 08:46:54 mschimek Exp $
  * This is a simple RTE test.
  */
 
@@ -64,6 +64,7 @@ static struct v4l2_control	old_mute;
 static void
 read_video(rte_buffer * buffer)
 {
+	struct v4l2_buffer vbuf;
 	struct timeval tv;
 	fd_set fds;
 	int r = -1;
@@ -99,6 +100,8 @@ read_video(rte_buffer * buffer)
 static void
 unref_callback(rte_context * context, rte_buffer * buffer)
 {
+	struct v4l2_buffer vbuf;
+
 	vbuf.type = V4L2_BUF_TYPE_CAPTURE;
 	vbuf.index = (int)buffer->user_data;
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.37 2001-06-07 17:43:51 mschimek Exp $ */
+/* $Id: main.c,v 1.38 2001-07-07 08:46:54 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -236,6 +236,11 @@ main(int ac, char **av)
 		printv(1, "Video compression %d x %d, %2.1f frames/s at %1.2f Mbits/s (%1.1f : 1)\n",
 			width, height, (double) frame_rate,
 			video_bit_rate / 1e6, (width * height * 1.5 * 8 * frame_rate) / video_bit_rate);
+
+		if (motion_min == 0 || motion_max == 0)
+			printv(1, "Motion compensation disabled\n");
+		else
+			printv(1, "Motion compensation %d-%d\n", motion_min, motion_max);
 
 		video_init();
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.15 2001-07-05 08:25:30 mschimek Exp $ */
+/* $Id: fifo.h,v 1.16 2001-07-07 08:46:54 mschimek Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -238,41 +238,7 @@ propagate_buffer(fifo *f, buffer *b, coninfo *consumer)
 	}
 }
 
-static inline buffer *
-wait_full_buffer(fifo *f)
-{
-	buffer *b;
-	coninfo *consumer;
-
-	pthread_rwlock_rdlock(&f->consumers_rwlock);
-
-	consumer = query_consumer(f);
-
-	pthread_mutex_lock(&consumer->consumer.mutex);
-
-	if ((b = (buffer*) rem_head(&consumer->full))) {
-		consumer->waiting --;
-		pthread_mutex_unlock(&consumer->consumer.mutex);
-	} else {
-		if (f->wait_full) {
-			pthread_mutex_unlock(&consumer->consumer.mutex);
-			while (!b)
-				b = f->wait_full(f);
-			b->refcount = 1;
-			propagate_buffer(f, b, consumer);
-		} else {
-			while (!(b = (buffer *) rem_head(&consumer->full)))
-				pthread_cond_wait(&consumer->consumer.cond,
-						  &consumer->consumer.mutex);
-			consumer->waiting--;
-			pthread_mutex_unlock(&consumer->consumer.mutex);
-		}
-	}
-
-	pthread_rwlock_unlock(&f->consumers_rwlock);
-
-	return b;
-}
+extern buffer * wait_full_buffer(fifo *f);
 
 static inline buffer *
 recv_full_buffer(fifo *f)

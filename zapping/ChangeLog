@@ -1,7 +1,13 @@
+06.07.2001	mpeg plugin <mschimek@users.sf.net>
+
+	* made tveng2 EINTR aware (debugging)
+	* added motion option to mpeg plugin 
+
 05.07.2001	libvbi <mschimek@users.sf.net>
 
 	* rewrote common/list.h
 	* replaced libvbi/dllist.h
+	* fixed http link name bug
 
 02.07.2001	assorted fixes <garetxe@users.sf.net>
 

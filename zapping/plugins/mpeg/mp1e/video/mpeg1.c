@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.39 2001-07-01 04:52:00 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.40 2001-07-07 08:46:54 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -194,7 +194,7 @@ do { int i, j, n;					\
 
 #endif
 
-#define USE_SACT 1
+#define USE_SACT 0
 static inline int
 sact(int mb)
 {
@@ -944,28 +944,6 @@ if (T3RI
 			vmcb = sact(2);
 			vmc  = sact(3);
 #endif
-
-#define TEST3 0
-if (TEST3) {
-	int i, n, s, s2, j = 4 * 64;
-
-	for (i = s = s2 = 0; i < j; i++) {
-		s += n = mblock[0][0][0][i];
-		s2 += n * n;
-	} var = s2 * j - (s * s);
-	for (i = s = s2 = 0; i < j; i++) {
-		s += n = mblock[1][0][0][i];
-		s2 += n * n;
-	} vmcf = s2 * j - (s * s);
-	for (i = s = s2 = 0; i < j; i++) {
-		s += n = mblock[2][0][0][i];
-		s2 += n * n;
-	} vmcb = s2 * j - (s * s);
-	for (i = s = s2 = 0; i < j; i++) {
-		s += n = mblock[3][0][0][i];
-		s2 += n * n;
-	} vmc = s2 * j - (s * s);
-}
 				macroblock_type = MB_INTERP;
 				iblock = &mblock[3];
 
@@ -1006,7 +984,6 @@ skip_pred:
 				vmc <<= 8;
 #endif
 			} else
-if (!TEST3)
 				vmc <<= 8;
 
 			/* Encode macroblock */

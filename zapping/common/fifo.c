@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.16 2001-07-05 08:25:30 mschimek Exp $ */
+/* $Id: fifo.c,v 1.17 2001-07-07 08:46:54 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -333,6 +333,43 @@ kill_zombies(fifo *f)
 	}
 	pthread_rwlock_unlock(&f->consumers_rwlock);
 }
+
+buffer *
+wait_full_buffer(fifo *f)
+{
+	buffer *b;
+	coninfo *consumer;
+
+	pthread_rwlock_rdlock(&f->consumers_rwlock);
+
+	consumer = query_consumer(f);
+
+	pthread_mutex_lock(&consumer->consumer.mutex);
+
+	if ((b = (buffer*) rem_head(&consumer->full))) {
+		consumer->waiting --;
+		pthread_mutex_unlock(&consumer->consumer.mutex);
+	} else {
+		if (f->wait_full) {
+			pthread_mutex_unlock(&consumer->consumer.mutex);
+			while (!b)
+				b = f->wait_full(f);
+			b->refcount = 1;
+			propagate_buffer(f, b, consumer);
+		} else {
+			while (!(b = (buffer *) rem_head(&consumer->full)))
+				pthread_cond_wait(&consumer->consumer.cond,
+						  &consumer->consumer.mutex);
+			consumer->waiting--;
+			pthread_mutex_unlock(&consumer->consumer.mutex);
+		}
+	}
+
+	pthread_rwlock_unlock(&f->consumers_rwlock);
+
+	return b;
+}
+
 
 int
 init_callback_fifo(fifo *f, char *name,
@@ -771,7 +808,7 @@ wait_empty_buffer2(producer *p)
  *  This is the unbuffered lower half of function send_empty_buffer(),
  *  for callback consumers which lack a virtual full queue.
  */
-/* static */ inline void
+static inline void
 send_empty_unbuffered(consumer *c, buffer2 *b)
 {
 	fifo2 *f = c->fifo;

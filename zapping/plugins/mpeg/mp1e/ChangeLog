@@ -1,31 +1,43 @@
-2001-07-02	<mschimek@users.sourceforge.net>
+2001-07-06	<mschimek@users.sf.net>
+
+	* Made ioctls EINTR aware
+	* Corrected a B quant typo (post 1.9pre1)
+	* Added motion option to rte
+
+2001-07-05	<mschimek@users.sf.net>
+
+	* Fixed global vbuf conflict in rte_test, same correction
+	  in video/v4l2.c, just in case
+
+2001-07-02	<mschimek@users.sf.net>
 
 	* Added man page
 
-2001-06-22	<mschimek@users.sourceforge.net>
+2001-06-22	<mschimek@users.sf.net>
 
 	- MC + 704x576 -> segv
+	  2001-07-05 can't reproduce
 	* gcc 3.0 fixes
 
-2001-06-07	<mschimek@users.sourceforge.net>
+2001-06-07	<mschimek@users.sf.net>
 
 	* Restored subtitle recording
 	- MC P/B bug still with us :-P
 
-2001-06-05	<mschimek@users.sourceforge.net>
+2001-06-05	<mschimek@users.sf.net>
 
 	* Removed all hardcoded image sizes from motion code
 	* Some cleanup in motion.c
 	* Integration of motion finished (not enabled by default)
 
-2001-06-04	<mschimek@users.sourceforge.net>
+2001-06-04	<mschimek@users.sf.net>
 
 	* Fixed B-frame VLC bug
 	* Fixed B-motion mb skipping bug
 	* Fixed B-motion PMV bug
 	* Fixed MV overflow bug (could be improved)
 
-2001-06-01	<mschimek@users.sourceforge.net>
+2001-06-01	<mschimek@users.sf.net>
 
 	* Rewrote configure.in; added config.h
 	* Fixed closed_gop B-motion bug
@@ -38,25 +50,25 @@
 	though). rte_test works now with all possible combinations for me.
 	* YVU support.
 
-2001-05-10	<garetxe@users.sourceforge.net>
+2001-05-10	<garetxe@users.sf.net>
 
 	* Added .spec.in file, mux_thread_done flag for cleaner exit, some
 	more fixes to rte/fifos. Lots of useless debugging of mpeg plugin
 	segfaults/hanging, cannot isolate the bug yet.
 
-2001-05-07	<mschimek@users.sourceforge.net>
+2001-05-07	<mschimek@users.sf.net>
 
 	* Added MC 3.1, not yet compiled in by default, needs testing.
 	- MC: stream syntax bug, probably large vectors
 	  [-> confirmed, fixed on 2001-06-04]
 	- With MC enabled: P/B block bug (quant?), apparently at scene cuts
 
-2001-05-06	<garetxe@users.sourceforge.net>
+2001-05-06	<garetxe@users.sf.net>
 
 	* more work on fifos (killing zombies, fixes). Still some bugs
 	left.
 	* (later) fixed a couple of bugs, plus a purely theoretical one.
 
-2001-04-12	<mschimek@users.sourceforge.net>
+2001-04-12	<mschimek@users.sf.net>
 
 	* Fixed p-frame skipped mb bug.

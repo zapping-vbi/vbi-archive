@@ -390,6 +390,8 @@ keyword(vbi_link *ld, unsigned char *p, int column,
 	int i, j, k, l;
 
 	ld->type = VBI_LINK_NONE;
+	ld->name[0] = 0;
+	ld->url[0] = 0;
 	ld->page = 0;
 	ld->subpage = ANY_SUB;
 	*back = 0;

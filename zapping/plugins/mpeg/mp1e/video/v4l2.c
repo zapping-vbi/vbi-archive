@@ -18,11 +18,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.11 2001-05-05 23:35:09 garetxe Exp $ */
+/* $Id: v4l2.c,v 1.12 2001-07-07 08:46:54 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
 #include <sys/mman.h>
@@ -33,6 +34,8 @@
 #include "../common/math.h"
 #include "../options.h"
 #include "video.h"
+
+#define IOCTL(fd, cmd, data) (TEMP_FAILURE_RETRY(ioctl(fd, cmd, data)))
 
 #ifdef V4L2_MAJOR_VERSION
 
@@ -71,12 +74,13 @@ capture_on(fifo *unused)
 {
 	int str_type = V4L2_BUF_TYPE_CAPTURE;
 
-	return ioctl(fd, VIDIOC_STREAMON, &str_type) == 0;
+	return IOCTL(fd, VIDIOC_STREAMON, &str_type) == 0;
 }
 
 static buffer *
 wait_full(fifo *f)
 {
+	struct v4l2_buffer vbuf;
 	struct timeval tv;
 	fd_set fds;
 	buffer *b;
@@ -102,7 +106,8 @@ wait_full(fifo *f)
 
 	vbuf.type = V4L2_BUF_TYPE_CAPTURE;
 
-	ASSERT("dequeue capture buffer", ioctl(fd, VIDIOC_DQBUF, &vbuf) == 0);
+	ASSERT("dequeue capture buffer",
+		IOCTL(fd, VIDIOC_DQBUF, &vbuf) == 0);
 
 	b = cap_fifo.buffers + vbuf.index;
 
@@ -119,17 +124,20 @@ wait_full(fifo *f)
 static void
 send_empty(fifo *f, buffer *b)
 {
+	struct v4l2_buffer vbuf;
+
 	vbuf.type = V4L2_BUF_TYPE_CAPTURE;
 	vbuf.index = b->index;
 
-	ASSERT("enqueue capture buffer", ioctl(fd, VIDIOC_QBUF, &vbuf) == 0);
+	ASSERT("enqueue capture buffer",
+		IOCTL(fd, VIDIOC_QBUF, &vbuf) == 0);
 }
 
 static void
 mute_restore(void)
 {
 	if (old_mute.id)
-		ioctl(fd, VIDIOC_S_CTRL, &old_mute);
+		IOCTL(fd, VIDIOC_S_CTRL, &old_mute);
 }
 
 #define DECIMATING(mode) (mode == CM_YUYV_VERTICAL_DECIMATION ||	\
@@ -147,7 +155,8 @@ v4l2_init(void)
 	int min_cap_buffers = video_look_ahead(gop_sequence);
 
 	ASSERT("open video capture device", (fd = open(cap_dev, O_RDONLY)) != -1);
-	ASSERT("query video capture capabilities", ioctl(fd, VIDIOC_QUERYCAP, &vcap) == 0);
+	ASSERT("query video capture capabilities",
+		IOCTL(fd, VIDIOC_QUERYCAP, &vcap) == 0);
 
 	if (vcap.type != V4L2_TYPE_CAPTURE)
 		FAIL("%s ('%s') is not a capture device",
@@ -162,7 +171,8 @@ v4l2_init(void)
 	printv(2, "Opened %s ('%s')\n", cap_dev, vcap.name);
 
 	
-	ASSERT("query current video standard", ioctl(fd, VIDIOC_G_STD, &vstd) == 0);
+	ASSERT("query current video standard",
+		IOCTL(fd, VIDIOC_G_STD, &vstd) == 0);
 
 	frame_rate_code = ((double) vstd.framerate.denominator /
 				    vstd.framerate.numerator < 29.0) ? 3 : 4;
@@ -181,7 +191,7 @@ v4l2_init(void)
 	if (mute != 2) {
 		old_mute.id = V4L2_CID_AUDIO_MUTE;
 
-		if (ioctl(fd, VIDIOC_G_CTRL, &old_mute) == 0) {
+		if (IOCTL(fd, VIDIOC_G_CTRL, &old_mute) == 0) {
 			static const char *mute_options[] = { "unmuted", "muted" };
 			struct v4l2_control new_mute;
 
@@ -191,7 +201,7 @@ v4l2_init(void)
 			new_mute.value = !!mute;
 
 			ASSERT("set mute control to %d",
-				ioctl(fd, VIDIOC_S_CTRL, &new_mute) == 0, !!mute);
+				IOCTL(fd, VIDIOC_S_CTRL, &new_mute) == 0, !!mute);
 
 			printv(2, "Audio %s\n", mute_options[!!mute]);
 		} else {
@@ -235,7 +245,7 @@ v4l2_init(void)
 		else
 			vfmt.fmt.pix.flags = V4L2_FMT_FLAG_INTERLACED;
 
-		if (ioctl(fd, VIDIOC_S_FMT, &vfmt) == 0) {
+		if (IOCTL(fd, VIDIOC_S_FMT, &vfmt) == 0) {
 			if (!DECIMATING(filter_mode))
 				break;
 			if (vfmt.fmt.pix.height > aligned_height * 0.7)
@@ -272,7 +282,7 @@ v4l2_init(void)
 		vfmt.fmt.pix.width	&= -16;
 		vfmt.fmt.pix.height	&= -mod;
 
-		if (ioctl(fd, VIDIOC_S_FMT, &vfmt) != 0 ||
+		if (IOCTL(fd, VIDIOC_S_FMT, &vfmt) != 0 ||
 		    vfmt.fmt.pix.width & 15 || vfmt.fmt.pix.height & (mod - 1)) {
 			FAIL("Please try a different grab size");
 		}
@@ -315,20 +325,21 @@ v4l2_init(void)
 
 	if (grab_width * grab_height < 128000) {
 		int b = 12;
-		ioctl(fd, VIDIOC_PSB, &b);
+		IOCTL(fd, VIDIOC_PSB, &b);
 	} else if (grab_width * grab_height < 256000) {
 		int b = 6;
-		ioctl(fd, VIDIOC_PSB, &b);
+		IOCTL(fd, VIDIOC_PSB, &b);
 	} else {
 		int b = 2;
-		ioctl(fd, VIDIOC_PSB, &b);
+		IOCTL(fd, VIDIOC_PSB, &b);
 	}
 #endif
 
 	vrbuf.type = V4L2_BUF_TYPE_CAPTURE;
 	vrbuf.count = MAX(cap_buffers, min_cap_buffers);
 
-	ASSERT("request capture buffers", ioctl(fd, VIDIOC_REQBUFS, &vrbuf) == 0);
+	ASSERT("request capture buffers",
+		IOCTL(fd, VIDIOC_REQBUFS, &vrbuf) == 0);
 
 	if (vrbuf.count == 0)
 		FAIL("No capture buffers granted");
@@ -353,7 +364,8 @@ v4l2_init(void)
 
 		printv(3, "Mapping capture buffer #%d\n", cap_fifo.num_buffers);
 
-		ASSERT("query capture buffer #%d", ioctl(fd, VIDIOC_QUERYBUF, &vbuf) == 0,
+		ASSERT("query capture buffer #%d",
+			IOCTL(fd, VIDIOC_QUERYBUF, &vbuf) == 0,
 			cap_fifo.num_buffers);
 
 		p = mmap(NULL, vbuf.length, PROT_READ, MAP_SHARED, fd, vbuf.offset);
@@ -367,7 +379,8 @@ v4l2_init(void)
 			cap_fifo.buffers[cap_fifo.num_buffers].data = p;
 
 		ASSERT("enqueue capture buffer #%d",
-			ioctl(fd, VIDIOC_QBUF, &vbuf) == 0, vbuf.index);
+			IOCTL(fd, VIDIOC_QBUF, &vbuf) == 0,
+			vbuf.index);
 
 		cap_fifo.num_buffers++;
 	}
