@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.7 2002-10-22 04:42:40 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.7.2.1 2003-06-16 06:05:24 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -559,14 +559,14 @@ vbi_draw_cc_page_region(vbi_page *pg,
  *   must be at least @a rowstride * @a height * 10 bytes large.
  * @param rowstride @a canvas <em>byte</em> distance from line to line.
  *   If this is -1, pg->columns * 12 * sizeof(vbi_rgba) bytes will be assumed.
+ * @param flags Optional set of the following flags:
+ *   - @c VBI_REVEAL: Draw characters flagged 'conceal' (see vbi_char).
+ *   - @c VBI_FLASH_OFF: Draw characters flagged 'flash' (see vbi_char)
+ *     in off state, i. e. like a space (U+0020).
  * @param column First source column, 0 ... pg->columns - 1.
  * @param row First source row, 0 ... pg->rows - 1.
  * @param width Number of columns to draw, 1 ... pg->columns.
  * @param height Number of rows to draw, 1 ... pg->rows.
- * @param reveal If FALSE, draw characters flagged 'concealed' (see vbi_char) as
- *   space (U+0020).
- * @param flash_on If FALSE, draw characters flagged 'blink' (see vbi_char) as
- *   space (U+0020).
  * 
  * Draw a subsection of a Teletext vbi_page. In this mode one
  * character occupies 12 x 10 pixels.
@@ -574,8 +574,8 @@ vbi_draw_cc_page_region(vbi_page *pg,
 void
 vbi_draw_vt_page_region(vbi_page *pg,
 			vbi_pixfmt fmt, void *canvas, int rowstride,
-			int column, int row, int width, int height,
-			int reveal, int flash_on)
+			vbi_export_flags flags,
+			int column, int row, int width, int height)
 {
 	vbi_rgba pen[64], *canvast = canvas;
 	int count, row_adv;
@@ -603,8 +603,8 @@ vbi_draw_vt_page_region(vbi_page *pg,
 
 	row_adv = rowstride * 10 - width * 12 * sizeof(*canvast);
 
-	conceal = !reveal;
-	off = !flash_on;
+	conceal = !(flags & VBI_REVEAL);
+	off = !!(flags & VBI_FLASH_OFF);
 
 	if (pg->drcs_clut)
 		for (i = 2; i < 2 + 8 + 32; i++)
@@ -821,8 +821,8 @@ ppm_export(vbi_export *e, FILE *fp, vbi_page *pg)
 						0, row, pg->columns, 1 /* rows */);
 		else
 			vbi_draw_vt_page_region(pg, VBI_PIXFMT_RGBA32_LE, image, -1,
-						0, row, pg->columns, 1 /* rows */,
-						!e->reveal, 1 /* flash_on */);
+						(e->reveal ? VBI_REVEAL : 0),
+						0, row, pg->columns, 1 /* rows */);
 		body = (uint8_t *) image;
 
 		if (scale == 0)

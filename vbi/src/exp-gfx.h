@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.h,v 1.2 2002-07-16 00:11:36 mschimek Exp $ */
+/* $Id: exp-gfx.h,v 1.2.2.1 2003-06-16 06:05:24 mschimek Exp $ */
 
 #ifndef EXP_GFX_H
 #define EXP_GFX_H
@@ -36,30 +36,35 @@
  * @addtogroup Render
  * @{
  */
-extern void		vbi_draw_vt_page_region(vbi_page *pg, vbi_pixfmt fmt,
-						void *canvas, int rowstride,
-						int column, int row,
-						int width, int height,
-						int reveal, int flash_on);
+extern void
+vbi_draw_vt_page_region		(vbi_page *		pg,
+				 vbi_pixfmt		fmt,
+				 void *			canvas,
+				 int			rowstride,
+				 vbi_export_flags	flags,
+				 int			column,
+				 int			row,
+				 int			width,
+				 int			height);
 /**
  * @param pg Source page.
  * @param fmt Target format. For now only VBI_PIXFMT_RGBA32_LE (vbi_rgba) permitted.
  * @param canvas Pointer to destination image (currently an array of vbi_rgba). This
  *   must be at least pg->columns * pg->rows * 12 * 10 * pixels large,
  *   without padding between lines.
- * @param reveal If FALSE, draw characters flagged 'concealed' (see vbi_char) as
- *   space (U+0020).
- * @param flash_on If FALSE, draw characters flagged 'blink' (see vbi_char) as
- *   space (U+0020).
+ * @param flags Optional set of the following flags:
+ *   @c VBI_REVEAL: Draw characters flagged 'conceal' (see vbi_char).
+ *   @c VBI_FLASH_OFF: Draw characters flagged 'flash' (see vbi_char)
+ *     in off state, i. e. like a space (U+0020).
  * 
  * Draw a Teletext vbi_page. In this mode one character occupies 12 x 10 pixels.
  */
 static_inline void
 vbi_draw_vt_page(vbi_page *pg, vbi_pixfmt fmt, void *canvas,
-		 int reveal, int flash_on)
+		 vbi_export_flags flags)
 {
-	vbi_draw_vt_page_region(pg, fmt, canvas, -1, 0, 0,
-				pg->columns, pg->rows, reveal, flash_on);
+	vbi_draw_vt_page_region(pg, fmt, canvas, -1, flags,
+				0, 0, pg->columns, pg->rows);
 }
 
 extern void		vbi_draw_cc_page_region(vbi_page *pg, vbi_pixfmt fmt,

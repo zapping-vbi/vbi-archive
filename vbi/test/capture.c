@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: capture.c,v 1.7 2002-11-30 02:37:18 mschimek Exp $ */
+/* $Id: capture.c,v 1.7.2.1 2003-06-16 06:05:24 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -68,13 +68,10 @@ odd_parity(uint8_t c)
 	return c & 1;
 }
 
-extern const int8_t vbi_hamm8val[256];
-extern const uint8_t vbi_bit_reverse[256];
-
 static inline int
 vbi_hamm16(uint8_t *p)
 {
-	return vbi_hamm8val[p[0]] | (vbi_hamm8val[p[1]] << 4);
+	return vbi_iham16 (p);
 }
 
 #define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))

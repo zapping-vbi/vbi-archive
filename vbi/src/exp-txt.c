@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.10.2.1 2003-05-02 10:44:49 mschimek Exp $ */
+/* $Id: exp-txt.c,v 1.10.2.2 2003-06-16 06:05:24 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,7 +78,7 @@ static const char *
 formats[] = {
 	N_("ASCII"),
 	N_("ISO-8859-1 (Latin-1 Western languages)"),
-	N_("ISO-8859-2 (Latin-2 Central and Eastern Europe languages)"),
+	N_("ISO-8859-2 (Latin-2 Central and Eastern European languages)"),
 	N_("ISO-8859-4 (Latin-3 Baltic languages)"),
 	N_("ISO-8859-5 (Cyrillic)"),
 	N_("ISO-8859-7 (Greek)"),
@@ -270,23 +270,29 @@ print_spaces			(iconv_t		cd,
  *   fails with return value 0 when the text would exceed the
  *   buffer capacity.
  * @param format Character set name for iconv() conversion,
- *   for example "ISO-8859-1". When @c NULL, the default is UTF-8.
+ *   for example "ISO-8859-1". When @c NULL, the default is "UTF-8".
  * @param separator Copy this string verbatim into the buffer
- *   to separate rows. When @c NULL the default is a linefeed
- *   0x0A when @p table is TRUE, otherwise a space 0x20, both
- *   converted to the requested format.
+ *   to separate rows. When @c NULL a default is provided,
+ *   converted to the requested @a format. When @a flags contains
+ *   @c VBI_TABLE the default separator is 0x0A, otherwise a
+ *   space 0x20.
  * @param sep_size Length of the separator string in bytes.
  *   This permits separators containing zero bytes.
- * @param table Scan page in table mode, printing all characters
- *   within the source rectangle including runs of spaces at
- *   the start and end of rows. When @c FALSE, scan all characters
- *   from @a column, @a row to @a column + @a width - 1,
- *   @a row + @a height - 1 and all intermediate rows to their
- *   full pg->columns width. In this mode runs of spaces at
- *   the start and end of rows are collapsed into single spaces,
- *   blank lines are suppressed.
- * @param rtl If @c TRUE scan the page right to left (Hebrew, Arabic),
- *   otherwise left to right.
+ * @param flags Optional set of the following flags:
+ *   - @c VBI_TABLE: Scan page in table mode, printing all characters
+ *     within the source rectangle including runs of spaces at
+ *     the start and end of rows. When not given, scan all characters
+ *     from @a column, @a row to @a column + @a width - 1,
+ *     @a row + @a height - 1 and all intermediate rows to their
+ *     full pg->columns width. In this mode runs of spaces at
+ *     the start and end of rows collapse into single spaces,
+ *     blank lines are suppressed.
+ *   - @c VBI_RTL: Scan the page right to left (Hebrew, Arabic),
+ *     otherwise left to right.
+ *   - @c VBI_REVEAL: Reveal hidden characters otherwise
+ *     printed as space.
+ *   - @c VBI_FLASH_OFF: Print flashing characters in off state,
+ *     i. e. as space.
  * @param column First source column, 0 ... pg->columns - 1.
  * @param row First source row, 0 ... pg->rows - 1.
  * @param width Number of columns to print, 1 ... pg->columns.
@@ -294,8 +300,10 @@ print_spaces			(iconv_t		cd,
  * 
  * Print a subsection of a Teletext or Closed Caption vbi_page,
  * rows separated, in the desired format. All character attributes
- * and colors will be lost. Graphics characters, DRCS and all characters
- * not representable in the target format will be replaced by spaces.
+ * and colors will be lost. (Conversion to terminal control codes
+ * is possible using the text export module.) Graphics characters,
+ * DRCS and all characters not representable in the target format
+ * will be replaced by spaces.
  * 
  * @return
  * Number of bytes written into @a buf, a value of zero when
@@ -310,8 +318,7 @@ vbi_print_page_region		(vbi_page *		pg,
 				 const char *		format,
 				 const char *		separator,
 				 unsigned int		sep_size,
-				 vbi_bool		table,
-				 vbi_bool		rtl,
+				 vbi_export_flags	flags,
 				 unsigned int		column,
 				 unsigned int		row,
 				 unsigned int		width,
@@ -323,12 +330,10 @@ vbi_print_page_region		(vbi_page *		pg,
 	iconv_t cd;
 	char *p, *end;
 
-	/*
-	if (1)
+	if (0)
 		fprintf (stderr, "vbi_print_page_region '%s' "
-		         "table=%d col=%d row=%d width=%d height=%d\n",
-			 format, table, column, row, width, height);
-	*/
+		         "flags=0x%x col=%d row=%d width=%d height=%d\n",
+			 format, column, row, width, height);
 
 	column0 = column;
 	row0 = row;
@@ -356,11 +361,11 @@ vbi_print_page_region		(vbi_page *		pg,
 		unsigned int chars, spaces;
 		int adv;
 
-		xs = (table || y == row0) ? column0 : 0;
-		xe = (table || y == row1) ? column1 : (pg->columns - 1);
+		xs = ((flags & VBI_TABLE) || y == row0) ? column0 : 0;
+		xe = ((flags & VBI_TABLE) || y == row1) ? column1 : (pg->columns - 1);
 		yw = xe - xs;
 
-		if (rtl) {
+		if (flags & VBI_RTL) {
 			SWAP (xs, xe);
 			adv = -1;
 		} else {
@@ -369,8 +374,8 @@ vbi_print_page_region		(vbi_page *		pg,
 
 		xe += adv;
 
-		if (!table && height == 2 && y == row0)
-			xl = (rtl) ? column0 : column1;
+		if (!(flags & VBI_TABLE) && height == 2 && y == row0)
+			xl = (flags & VBI_RTL) ? column0 : column1;
 		else
 			xl = INT_MAX;
 
@@ -383,7 +388,13 @@ vbi_print_page_region		(vbi_page *		pg,
 		for (x = xs; x != xe; x += adv) {
 			vbi_char ac = pg->text[y * pg->columns + x];
 
-			if (table) {
+			if (ac.flash && (flags & VBI_FLASH_OFF))
+				ac.unicode = 0x0020;
+
+			if (ac.conceal && !(flags & VBI_REVEAL))
+				ac.unicode = 0x0020;
+
+			if (flags & VBI_TABLE) {
 				if (ac.size > VBI_DOUBLE_SIZE)
 					ac.unicode = 0x0020;
 			} else {
@@ -440,7 +451,7 @@ vbi_print_page_region		(vbi_page *		pg,
 		}
 
 		if (y < row1) {
-			/* Note table == TRUE implies spaces == 0 */
+			/* Note flags & TABLE implies spaces == 0 */
 
 			if (spaces >= yw) {
 				; /* suppress blank line */
@@ -455,7 +466,8 @@ vbi_print_page_region		(vbi_page *		pg,
 					p += sep_size;
 				} else {
 					if (!vbi_iconv_unicode (cd, &p, end - p,
-								table ? 0x000a : 0x0020))
+								(flags & VBI_TABLE) ?
+								0x000a : 0x0020))
 						goto failure;
 				}
 			}
@@ -487,24 +499,32 @@ vbi_print_page_region		(vbi_page *		pg,
  *   fails with return value 0 when the text would exceed the
  *   buffer capacity.
  * @param format Character set name for iconv() conversion,
- *   for example "ISO-8859-1". When @c NULL, the default is UTF-8.
- * @param table Scan page in table mode, printing all characters
- *   within the source rectangle including runs of spaces at
- *   the start and end of rows. When @c FALSE, scan all characters
- *   from @a column, @a row to @a column + @a width - 1,
- *   @a row + @a height - 1 and all intermediate rows to their
- *   full pg->columns width. In this mode runs of spaces at
- *   the start and end of rows are collapsed into single spaces,
- *   blank lines are suppressed.
- * @param rtl If @c TRUE scan the page right to left (Hebrew, Arabic),
- *   otherwise left to right.
- * 
- * Print a Teletext or Closed Caption vbi_page, rows separated by
- * linefeed when @p table is TRUE, in the desired format. All character
- * attributes and colors will be lost. Graphics characters, DRCS and
- * all characters not representable in the target format will be replaced
- * by spaces.
- * 
+ *   for example "ISO-8859-1". When @c NULL, the default is "UTF-8".
+ * @param flags Set of the following flags.
+ *   - @c VBI_TABLE: Scan page in table mode, printing all characters
+ *     within the source rectangle including runs of spaces at
+ *     the start and end of rows. When @c not given, scan all characters
+ *     from @a column, @a row to @a column + @a width - 1,
+ *     @a row + @a height - 1 and all intermediate rows to their
+ *     full pg->columns width. In this mode runs of spaces at
+ *     the start and end of rows collapse into single spaces,
+ *     blank lines are suppressed.
+ *   - @c VBI_RTL: Scan the page right to left (Hebrew, Arabic),
+ *     otherwise left to right.
+ *   - @c VBI_REVEAL: Reveal hidden characters otherwise
+ *     printed as space.
+ *   - @c VBI_FLASH_OFF: Print flashing characters in off state,
+ *     i. e. as space.
+ *
+ * Print a Teletext or Closed Caption vbi_page in the desired
+ * format. All character attributes and colors will be lost.
+ * (Conversion to terminal control codes is possible using the
+ * text export module.) Graphics characters, DRCS and all
+ * characters not representable in the target format will be
+ * replaced by spaces.
+ *
+ * This is a specialization of vbi_print_page_region().
+ *
  * @return
  * Number of bytes written into @a buf, a value of zero when
  * some error occurred. In this case @a buf may contain incomplete
@@ -516,12 +536,11 @@ vbi_print_page			(vbi_page *		pg,
 				 char *			buf,
 				 unsigned int		buf_size,
 				 const char *		format,
-				 vbi_bool		table,
-				 vbi_bool		rtl)
+				 vbi_export_flags	flags)
 {
 	return vbi_print_page_region (pg, buf, buf_size, format,
 				      /* separator */ NULL, /* sep_size */ 0,
-				      table, rtl,
+				      flags,
 				      /* column */ 0, /* row */ 0,
 				      pg->columns, pg->rows);
 }
@@ -575,7 +594,8 @@ print_char			(text_instance *	text,
 		*((uint64_t *) &chg) = *((uint64_t *) &old) ^ *((uint64_t *) &this);
 		*((uint64_t *) &off) = *((uint64_t *) &chg) & ~*((uint64_t *) &this);
 
-		/* http://www.cs.ruu.nl/wais/html/na-dir/emulators-faq/part3.html */
+		/* Control sequences based on ECMA-48,
+		   http://www.ecma-international.org/ */
 
 		if (chg.size)
 			switch (this.size) {
@@ -599,7 +619,9 @@ print_char			(text_instance *	text,
 				return -1; /* don't print */
 			}
 
-		p = stpcpy2 (p, "\e[");
+		/* SGR sequence */
+
+		p = stpcpy2 (p, "\e["); /* CSI */
 
 		if (text->term == TERMINAL_VT100) {
 			if (off.underline || off.bold || off.flash) {
@@ -612,36 +634,45 @@ print_char			(text_instance *	text,
 			}
 		}
 
+		if (chg.bold) {
+			if (this.bold)
+				p = stpcpy2 (p, "1;"); /* bold */
+			else
+				p = stpcpy2 (p, "22;"); /* bold off */
+		}
+
+		if (chg.italic) {
+			if (!this.italic)
+				*p++ = '2'; /* off */
+			p = stpcpy2 (p, "3;"); /* italic */
+		}
+
 		if (chg.underline) {
 			if (!this.underline)
 				*p++ = '2'; /* off */
 			p = stpcpy2 (p, "4;"); /* underline */
 		}
 
-		if (chg.bold) {
-			if (!this.bold)
-				*p++ = '2'; /* off */
-			p = stpcpy2 (p, "1;"); /* bold */
-		}
-
-		/* italic ignored, no control code */
-
 		if (chg.flash) {
 			if (!this.flash)
-				*p++ = '2'; /* off */
-			p = stpcpy2 (p, "5;"); /* flash */
+				*p++ = '2'; /* steady */
+			p = stpcpy2 (p, "5;"); /* slowly blinking */
 		}
 
+
+		/* ECMA-48 SGR offers conceal/reveal code, but we don't
+		   know if the terminal implements this correctly as
+		   requested by the caller. Proportional spacing needs
+		   further investigation. */
+
 		if (chg.foreground) {
-			p[0] = '3';
-			p[1] = '0' + match_color8 (pg->color_map[this.foreground]);
-			p += 2;
+			p = stpcpy2 (p, "30;");
+			p[-2] += match_color8 (pg->color_map[this.foreground]);
 		}
 
 		if (chg.background) {
-			p[0] = '4';
-			p[1] = '0' + match_color8 (pg->color_map[this.background]);
-			p += 2;
+			p = stpcpy2 (p, "40;");
+			p[-2] += match_color8 (pg->color_map[this.background]);
 		}
 
 		if (p[-1] == '[')

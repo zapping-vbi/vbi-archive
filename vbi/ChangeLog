@@ -1,3 +1,72 @@
+2003-06-13	<mschimek@users.sf.net>
+
+	* src/teletext.c, src/vt.h: Broke up various large functions
+	  using a struct temp to avoid excess parameters. This will
+	  become the private portion of a dynamically allocated
+	  vbi_page. Column 41 is optional. PDC-A/B parser
+	  finished except for query functions. Renamed link
+	  functions. Added hyperlink scan for ">>" pattern. Added
+	  functions to enumerate navigation and pdc links.
+	  Janitorial work.
+	* src/teletext.c, src/vt.h (vbi_format_vt_page,
+	  vbi_fetch_vt_page): Replaced display_rows, navigation by
+	  vbi_format_flags parameter. New options 41 columns,
+	  hyperlinks, pdc links.
+	* doc/Doxyfile.in: Added src/misc.h source.
+	* src/Makefile.am: Added src/misc.h to headers generating
+	  libzvbi.h for vbi_bool.
+	* src/bcd.h: Const int doesn't inline as expected, switched
+	  to #defines. Added vbi_bcd_limit() for PDC routines.
+	* src/cache.c, src/cache.h: Cosmetics.
+	* src/decoder.c, src/decoder.h: Bit slice inline functions
+	  (or templates actually) didn't inline. Seems gcc3 has a
+	  limit on inline function size. Switched to #defines. A
+	  few simplifications to save space. Added
+	  vbi_bit_slicer_new() and vbi_bit_slicer_delete(), struct
+	  vbi_bit_slicer will be private.
+	* src/decoder.c (vbi_bit_slice): Destination pointer first
+	  re memcpy and friends.
+	* src/decoder.c (vbi_bit_slicer_init, vbi_bit_slicer_new):
+	  Cleaned up parameters and doc.
+	* src/decoder.h: vbi_bit_slicer() no longer inline. Added
+	  struct vbi_sampling_parameters, will replace public
+	  struct vbi_raw_decoder.
+	* src/event.h: Added preliminary struct vbi_pdc_selection.
+	* src/hamm.c: Removed unused AleVT code. Restored parity
+	  vector functions. Simplified unham-24 function.
+	* src/hamm.c, src/hamm.h: Renamed error correction functions,
+	  most of them are public now. Added Hamming 8/4 encoding
+	  function. 16 bit bit-reverse function.
+	* src/vbi.h: Preliminary vbi_decode_hook stuff.
+	* test/Makefile.am: New regression tests. In C++ to test
+	  through a future C++ interface.
+	* test/test-bcd.cc, test/test-hamm.cc: Added.
+	* test/test-bitslicer.cc: Added, unfinished.
+
+2003-05-20	<mschimek@users.sf.net>
+
+	* src/vbi.c (vbi_classify_page): Removed language parameter.
+	  Replaced by vbi_cache_page_language() returning ISO
+	  language code.
+	* src/lang.c, src/lang.h: Replaced language names in
+	  vbi_font_descriptors by ISO 639 language codes.
+	* src/event.h: Replaced language names in
+	  vbi_program_info by ISO 639 language codes.
+	* src/caption.c, src/cc.h: Replaced language names in
+	  vbi_program_info by ISO 639 language codes.
+
+2003-05-04	<mschimek@users.sf.net>
+
+	* src/format.h: Added vbi_export_flags.
+	* src/exp-txt.c, src/exp-txt.h (vbi_print_page,
+	  vbi_print_page_region): Replaced table and rtl parameter
+	  by vbi_export_flags. Added italic control code.
+	* src/exp-gfx.c, src/exp-gfx.h (vbi_draw_vt_page,
+	  vbi_draw_vt_page_region): Replaced reveal and flash_on
+	  parameter by vbi_export_flags.
+	* src/caption.c (vbi_decode_caption):
+	  s/pthread_mutex_unlock/pthread_mutex_lock.
+
 2003-05-02	<mschimek@users.sf.net>
 
 	* src/io-v4l2k.c: Missed one of Tom's fixes.

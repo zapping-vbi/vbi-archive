@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.5 2002-11-30 02:37:18 mschimek Exp $ */
+/* $Id: export.c,v 1.5.2.1 2003-06-16 06:05:24 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -61,7 +61,11 @@ handler(vbi_event *ev, void *unused)
 	assert(vbi_fetch_vt_page(vbi, &page,
 				 ev->ev.ttx_page.pgno,
 				 ev->ev.ttx_page.subno,
-				 VBI_WST_LEVEL_3p5, 25, TRUE));
+				 VBI_WST_LEVEL_3p5,
+				 VBI_41_COLUMNS |
+				 VBI_NAVIGATION |
+				 VBI_HYPERLINKS |
+				 VBI_PDC_LINKS));
 
 	/* Just for fun */
 	if (pgno == -1) {

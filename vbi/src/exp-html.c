@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.6.2.1 2003-05-02 10:44:49 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.6.2.2 2003-06-16 06:05:24 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -581,7 +581,7 @@ export(vbi_export *e, FILE *fp, vbi_page *pgp)
 				if (acp[j].link && !html->link) {
 					vbi_link link;
 
-					vbi_resolve_link(pgp, j, i, &link);
+					vbi_page_hyperlink(pgp, &link, j, i);
 
 					switch (link.type) {
 					case VBI_LINK_HTTP:

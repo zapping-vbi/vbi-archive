@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.6.2.1 2003-02-16 21:03:39 mschimek Exp $ */
+/* $Id: search.c,v 1.6.2.2 2003-06-16 06:05:24 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -184,7 +184,8 @@ search_page_fwd(void *p, const vt_page *vtp, vbi_bool wrapped)
 	if (vtp->function != PAGE_FUNCTION_LOP)
 		return 0; /* try next */
 
-	if (!vbi_format_vt_page(s->vbi, &s->pg, vtp, s->vbi->vt.max_level, 25, 1))
+#warning format flags 
+	if (!vbi_format_vt_page(s->vbi, &s->pg, vtp, s->vbi->vt.max_level, 0))
 		return -3; /* formatting error, abort */
 
 	if (s->progress)
@@ -281,7 +282,8 @@ search_page_rev(void *p, const vt_page *vtp, vbi_bool wrapped)
 	if (vtp->function != PAGE_FUNCTION_LOP)
 		return 0; /* try next page */
 
-	if (!vbi_format_vt_page(s->vbi, &s->pg, vtp, s->vbi->vt.max_level, 25, 1))
+#warning format flags
+	if (!vbi_format_vt_page(s->vbi, &s->pg, vtp, s->vbi->vt.max_level, 0))
 		return -3; /* formatting error, abort */
 
 	if (s->progress)
