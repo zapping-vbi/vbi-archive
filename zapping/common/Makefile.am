@@ -20,7 +20,6 @@ BUILT_SOURCES = \
 	_bktr.h
 
 EXTRA_DIST = \
-	README \
 	$(structpr) \
 	$(BUILT_SOURCES)
 
