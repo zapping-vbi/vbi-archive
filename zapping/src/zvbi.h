@@ -106,7 +106,11 @@ void render_ttx_page(int id, GdkDrawable *drawable, GdkGC *gc,
  * dimensions) the transparency info of the current page.
  */
 void render_ttx_mask(int id, GdkBitmap *bitmap);
- 
+
+/**
+ * Updates the blinking items in the page.
+ */
+void refresh_ttx_page(int id, GtkWidget *drawable);
 
 /* Open the configured VBI device, FALSE on error */
 gboolean

@@ -1,3 +1,10 @@
+18.2.2001	blink <garetxe@users.sourceforge.net>
+
+	* TTX: Blinking chars now blink, but needs further work. How
+	should the blink be done?
+	* libvbi/exp-gfx.c: Added rowstride parameter, hope i didn't break
+	too many things ;-P
+
 17.2.2001	osd <garetxe@users.sourceforge.net>
 
 	* osd.c: Created. Has the required functionality for integrating

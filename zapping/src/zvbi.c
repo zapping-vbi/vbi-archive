@@ -1,5 +1,5 @@
 /* Zapping (TV viewer for the Gnome Desktop)
- * Copyright (C) 2000 Iñaki García Etxebarria
+ * Copyright (C) 2000-2001 Iñaki García Etxebarria
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 
 /*
  * This code is used to communicate with the VBI device (usually
- * /dev/vbi), so multiple plugins can access to it simultaneously.
+ * /dev/vbi), so multiple plugins can access it simultaneously.
  * The code uses libvbi, written by Michael Schimek.
  */
 
@@ -41,11 +41,6 @@
 #include "zvbi.h"
 #include "zmisc.h"
 
-/*
- * TODO:
- *	- protect against vbi=NULL
- */
-
 #undef TRUE
 #undef FALSE
 #include "../common/fifo.h"
@@ -63,9 +58,21 @@
 #define INTERP_MODE GDK_INTERP_BILINEAR
 
 static struct vbi *vbi=NULL; /* holds the vbi object */
-static pthread_t zvbi_thread_id; /* Just a dummy thread to select() */
-//static volatile gboolean exit_thread = FALSE; /* just an atomic flag
-//						 to tell the thread to exit */
+static pthread_t zvbi_thread_id; /* VBI thread in libvbi */
+
+/**
+ * The blink of items in the page is done by applying the patch once
+ * every second (whenever the client wishes) to the appropiate places
+ * in the screen.
+ */
+struct ttx_patch {
+  int		col, row, width, height; /* geometry of the patch */
+  GdkPixbuf	*unscaled_on; /* "on" state of the patch, unscaled */
+  GdkPixbuf	*unscaled_off; /* "off" state of the patch, unscaled */
+  GdkPixbuf	*scaled_on;
+  GdkPixbuf	*scaled_off;
+  gboolean	state; /* current state */
+};
 
 struct ttx_client {
   fifo		mqueue;
@@ -77,16 +84,16 @@ struct ttx_client {
   GdkPixbuf	*scaled; /* scaled version of the page */
   int		w, h;
   int		freezed; /* do not refresh the current page */
+  int		num_patches;
+  struct ttx_patch *patches; /* patches to be applied */
 };
 
 static GList *ttx_clients = NULL;
-static pthread_mutex_t clients_mutex;
+static pthread_mutex_t clients_mutex; /* FIXME: A rwlock is better for
+				       this */
 
 /* handler for a vbi event */
 static void event(struct dl_head *reqs, vbi_event *ev);
-
-/* thread function (just a loop that selects on the VBI device) */
-//static void * zvbi_thread(void * vbi);
 
 /* Some info about the last processed header, protected by a mutex */
 static struct {
@@ -186,11 +193,24 @@ send_ttx_message(struct ttx_client *client,
 static void
 remove_client(struct ttx_client *client)
 {
+  gint i;
+
   uninit_fifo(&client->mqueue);
   pthread_mutex_destroy(&client->mutex);
   gdk_pixbuf_unref(client->unscaled);
   if (client->scaled)
     gdk_pixbuf_unref(client->scaled);
+  for (i = 0; i<client->num_patches; i++)
+    {
+      gdk_pixbuf_unref(client->patches[i].unscaled_on);
+      gdk_pixbuf_unref(client->patches[i].unscaled_off);
+      if (client->patches[i].scaled_on)
+	gdk_pixbuf_unref(client->patches[i].scaled_on);
+      if (client->patches[i].scaled_off)
+	gdk_pixbuf_unref(client->patches[i].scaled_off);
+    }
+  if (client->num_patches)
+    g_free(client->patches);
   g_free(client);
 }
 
@@ -348,6 +368,194 @@ unregister_ttx_client(int id)
   pthread_mutex_unlock(&clients_mutex);
 }
 
+/* Won't change */
+#define CW		12		
+#define CH		10
+
+static void
+add_patch(struct ttx_client *client, int col, int row, attr_char *ac)
+{
+  struct ttx_patch patch;
+  gint sw, sh; /* scaled dimensions */
+
+  memset(&patch, 0, sizeof(struct ttx_patch));
+  patch.width = patch.height = 1;
+  patch.col = col;
+  patch.row = row;
+
+  switch (ac->size)
+    {
+    case DOUBLE_WIDTH:
+      patch.width = 2;
+      break;
+    case DOUBLE_HEIGHT:
+      patch.height = 2;
+      break;
+    case DOUBLE_SIZE:
+      patch.width = patch.height = 2;
+      break;
+    default:
+      break;
+    }
+
+  patch.unscaled_on =
+    gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, patch.width * CW,
+		   patch.height * CH);
+  patch.unscaled_off =
+    gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, patch.width * CW,
+		   patch.height * CH);
+
+  vbi_draw_page_region(&client->fp,
+		       gdk_pixbuf_get_pixels(patch.unscaled_on), 0,
+		       patch.col, patch.row, patch.width, patch.height,
+		       gdk_pixbuf_get_rowstride(patch.unscaled_on), 0);
+
+  vbi_draw_page_region(&client->fp,
+		       gdk_pixbuf_get_pixels(patch.unscaled_off), 0,
+		       patch.col, patch.row, patch.width, patch.height,
+		       gdk_pixbuf_get_rowstride(patch.unscaled_off), 1);
+
+  g_assert(patch.unscaled_on != NULL);
+  g_assert(patch.unscaled_off != NULL);
+
+  if (client->w > 0  &&  client->h > 0)
+    {
+      /* FIXME: Take roundoff into account */
+      sw = (client->w*patch.width)/client->fp.columns;
+      sh = (client->h*patch.height)/client->fp.rows;
+      patch.scaled_on =
+	gdk_pixbuf_scale_simple(patch.unscaled_on, sw, sh, INTERP_MODE);
+      patch.scaled_off =
+	gdk_pixbuf_scale_simple(patch.unscaled_off, sw, sh, INTERP_MODE);
+    }
+
+  client->patches = g_realloc(client->patches, sizeof(struct ttx_patch)*
+			      (client->num_patches+1));
+  memcpy(client->patches+client->num_patches, &patch,
+	 sizeof(struct ttx_patch));
+  client->num_patches++;
+}
+
+/**
+ * Resizes the set of patches to fit in the new geometry
+ */
+static void
+resize_patches(struct ttx_client *client)
+{
+  gint i;
+  gint sw, sh;
+
+  for (i=0; i<client->num_patches; i++)
+    {
+      sw = (client->w*client->patches[i].width)/client->fp.columns;
+      sh = (client->h*client->patches[i].height)/client->fp.rows;
+
+      if (client->patches[i].scaled_on)
+	gdk_pixbuf_unref(client->patches[i].scaled_on);
+      client->patches[i].scaled_on =
+	gdk_pixbuf_scale_simple(client->patches[i].unscaled_on,
+				sw, sh, INTERP_MODE);
+      if (client->patches[i].scaled_off)
+	gdk_pixbuf_unref(client->patches[i].scaled_off);
+      client->patches[i].scaled_off =
+	gdk_pixbuf_scale_simple(client->patches[i].unscaled_off,
+				sw, sh, INTERP_MODE);
+    }
+}
+
+/**
+ * Scans the current page of the client and builds the appropiate set
+ * of patches.
+ */
+static void
+build_patches(struct ttx_client *client)
+{
+  gint i;
+  gint col, row;
+  attr_char *ac;
+
+  for (i = 0; i<client->num_patches; i++)
+    {
+      gdk_pixbuf_unref(client->patches[i].unscaled_on);
+      gdk_pixbuf_unref(client->patches[i].unscaled_off);
+      if (client->patches[i].scaled_on)
+	gdk_pixbuf_unref(client->patches[i].scaled_on);
+      if (client->patches[i].scaled_off)
+	gdk_pixbuf_unref(client->patches[i].scaled_off);
+    }
+  g_free(client->patches);
+  client->patches = NULL;
+  client->num_patches = 0;
+
+  /* FIXME: This is too cumbersome, something more smart is needed */
+  for (col = 0; col < client->fp.columns; col++)
+    for (row = 0; row < client->fp.rows; row++)
+      {
+	ac = &client->fp.text[row * client->fp.columns + col];
+	if ((ac->flash) && (ac->size <= DOUBLE_SIZE))
+	  add_patch(client, col, row, ac);
+      }
+}
+
+/**
+ * Applies the patches into the page.
+ */
+void
+refresh_ttx_page(int id, GtkWidget *drawable)
+{
+  int i;
+  struct ttx_client *client;
+  struct ttx_patch *p;
+  GdkPixbuf *unscaled, *scaled;
+  gint x, y;
+
+  pthread_mutex_lock(&clients_mutex);
+
+  if ((client = find_client(id)))
+    for (i=0; i<client->num_patches; i++)
+      {
+	p = &(client->patches[i]);
+	if (p->state)
+	  {
+	    unscaled = p->unscaled_on;
+	    scaled = p->scaled_on;
+	  }
+	else
+	  {
+	    unscaled = p->unscaled_off;
+	    scaled = p->scaled_off;
+	  }
+
+	p->state = !p->state;
+
+	/* Update the unscaled version of the page */
+	gdk_pixbuf_copy_area(unscaled, 0, 0,
+			     gdk_pixbuf_get_width(unscaled),
+			     gdk_pixbuf_get_height(unscaled),
+			     client->unscaled,
+			     p->col*CW, p->row*CH);
+
+	/* Update the scaled version of the page */
+	if ((scaled) && (client->scaled) && (client->w > 0)
+	    && (client->h > 0))
+	  {
+	    x = (client->w*p->col)/client->fp.columns;
+	    y = (client->h*p->row)/client->fp.rows;
+	    gdk_pixbuf_copy_area(scaled, 0, 0,
+				 gdk_pixbuf_get_width(scaled),
+				 gdk_pixbuf_get_height(scaled),
+				 client->scaled,
+				 x, y);
+
+	    gdk_window_clear_area_e(drawable->window, x, y,
+				    gdk_pixbuf_get_width(scaled),
+				    gdk_pixbuf_get_height(scaled));
+	  }
+      }
+
+  pthread_mutex_unlock(&clients_mutex);
+}
+
 static int
 build_client_page(struct ttx_client *client, int page, int subpage)
 {
@@ -408,6 +616,8 @@ build_client_page(struct ttx_client *client, int page, int subpage)
 		     (double) client->h /
 		      gdk_pixbuf_get_height(client->unscaled),
 		     INTERP_MODE);
+
+  build_patches(client);
 
   pthread_mutex_unlock(&client->mutex);
   return 1; /* success */
@@ -538,6 +748,8 @@ void resize_ttx_page(int id, int w, int h)
 	  
 	  client->w = w;
 	  client->h = h;
+
+	  resize_patches(client);
 	}
       pthread_mutex_unlock(&client->mutex);
     }
@@ -677,9 +889,15 @@ event(struct dl_head *reqs, vbi_event *ev)
 	pthread_mutex_unlock(&(last_info.mutex));
 	break;
     case VBI_EVENT_PAGE:
-	printv("vtx page %x.%02x \r", ev->pgno,
-	       ev->subno & 0xFF);
-	
+      {
+	static gboolean receiving_pages = FALSE;
+	if (!receiving_pages)
+	  {
+	    receiving_pages = TRUE;
+	    printv("Received vtx page %x.%02x\n", ev->pgno,
+		   ev->subno & 0xFF);
+	  }
+      }
 	/* Set the dirty flag on the page */
 	notify_clients(ev->pgno, ev->subno);
 	break;
@@ -774,28 +992,3 @@ zvbi_get_time(gint * hour, gint * min, gint * sec)
 
   pthread_mutex_unlock(&(last_info.mutex));
 }
-
-/* not used
-static void * zvbi_thread(void *p)
-{
-  extern void vbi_teletext(struct vbi *vbi, buffer *b);
-  struct vbi *vbi = p;
-  buffer *b;
-
-  while (!exit_thread) {
-    b = wait_full_buffer(vbi->fifo);
-
-    if (!b) {
-      fprintf(stderr, "Oops! VBI read error and "
-              "I don't know how to handle it.\n");
-      exit(EXIT_FAILURE);
-    }
-
-    vbi_teletext(vbi, b);
-
-    send_empty_buffer(vbi->fifo, b);
-  }
-
-  return NULL;
-}
-*/

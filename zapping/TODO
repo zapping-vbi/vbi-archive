@@ -2,6 +2,7 @@ Outstanding issues for the next release
 ---------------------------------------
 	+ Integrate caption.c using osd.c
 	+ VBI can be opened/closed while running, try.
+	+ Conceal/reveal
 	+ Configurable Vidmode
 	+ Parrot buffer for observing parrots.
 	+ Add to the configure script and to the .spec deps the

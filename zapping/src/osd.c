@@ -345,15 +345,26 @@ gboolean on_osd_expose_event		(GtkWidget	*widget,
   return TRUE;
 }
 
-/* FIXME: We should keep some windows for future use, and create only
-   when required */
+/* List of destroyed windows for reuse */
+static GList *window_pool = NULL;
+
 static GtkWidget *
 get_window(void)
 {
-  GtkWidget *window = gtk_window_new(GTK_WINDOW_POPUP);
-  GtkWidget *da = gtk_drawing_area_new();
+  GtkWidget *window;
+  GtkWidget *da;
 
   g_assert(osd_started == TRUE);
+
+  if (window_pool)
+    {
+      window = GTK_WIDGET(g_list_last(window_pool)->data);
+      window_pool = g_list_remove(window_pool, window);
+      return window;
+    }
+
+  window = gtk_window_new(GTK_WINDOW_POPUP);
+  da = gtk_drawing_area_new();
 
   gtk_widget_realize(window);
   gtk_container_add(GTK_CONTAINER(window), da);
@@ -376,7 +387,9 @@ unget_window(GtkWidget *window)
 {
   g_assert(osd_started == TRUE);
 
-  gtk_widget_destroy(window);
+  gtk_widget_hide(window);
+
+  window_pool = g_list_append(window_pool, window);
 }
 
 static void

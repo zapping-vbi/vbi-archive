@@ -51,9 +51,9 @@ int export(struct export *e, struct fmt_page *pg, char *user_str);
 
 void vbi_draw_page_region(struct fmt_page *pg, void *data, int
 			  conceal, int scol, int srow, int width, int
-			  height);
+			  height, int rowstride, int blink);
 #define vbi_draw_page(X, Y, Z) \
-	vbi_draw_page_region(X, Y, Z, 0, 0, 40, 25)
+	vbi_draw_page_region(X, Y, Z, 0, 0, 40, 25, -1, 0)
 void vbi_get_rendered_size(int *w, int *h);
 
 

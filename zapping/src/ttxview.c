@@ -96,6 +96,7 @@ typedef struct {
   struct fmt_page	clipboard_fmt_page; /* page that contains the
 					   selection */
   gint			sel_col, sel_row, sel_width, sel_height;
+  gint			blink_timeout; /* timeout for refreshing the page */
 } ttxview_data;
 
 struct bookmark {
@@ -315,21 +316,6 @@ void append_history	(int page, int subpage, ttxview_data *data)
     }
 }
 
-#if 0
-/* API flaw */
-static
-void set_stock_pixmap	(GtkWidget	*button,
-			 const gchar	*new_pix)
-{
-  GtkWidget *widget = GTK_BIN(button)->child;
-  GList *node = g_list_first(GTK_BOX(widget)->children)->next;
-
-  widget = GTK_WIDGET(((GtkBoxChild*)(node->data))->widget);
-
-  gnome_stock_set_icon(GNOME_STOCK(widget), new_pix);
-}
-#endif
-
 static void
 remove_ttxview_instance			(ttxview_data	*data)
 {
@@ -353,8 +339,10 @@ remove_ttxview_instance			(ttxview_data	*data)
 				 GDK_CURRENT_TIME);
     }
 
-  unregister_ttx_client(data->id);
+  gtk_timeout_remove(data->blink_timeout);
   gtk_timeout_remove(data->timeout);
+
+  unregister_ttx_client(data->id);
   
   g_free(data);
 }
@@ -435,14 +423,15 @@ static void selection_handle		(GtkWidget	*widget,
 	    gdk_pixmap_new(data->da->window, data->sel_width*CW,
 			   data->sel_height*CH, -1);
 	  GdkPixbuf *canvas = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE,
-					     8, rw,
+					     8, data->sel_width*CW,
 					     data->sel_height*CH);
 	  gint id[2];
 
 	  vbi_draw_page_region(&data->clipboard_fmt_page,
 			       gdk_pixbuf_get_pixels(canvas), 0,
 			       data->sel_col, data->sel_row,
-			       data->sel_width, data->sel_height);
+			       data->sel_width, data->sel_height,
+			       gdk_pixbuf_get_rowstride(canvas), 0);
 	  gdk_pixbuf_render_to_drawable(canvas, pixmap,
 					data->da->style->white_gc, 0,
 					0, 0, 0, data->sel_width*CW,
@@ -2244,6 +2233,16 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
   return TRUE;
 }
 
+static gint
+ttxview_blink			(gpointer	p)
+{
+  ttxview_data *data = (ttxview_data*)p;
+
+  refresh_ttx_page(data->id, data->da);
+
+  return TRUE;
+}
+
 GtkWidget*
 build_ttxview(void)
 {
@@ -2341,6 +2340,8 @@ build_ttxview(void)
 			    clip_targets, n_clip_targets);
   gtk_signal_connect (GTK_OBJECT(data->da), "selection_get",
 		      GTK_SIGNAL_FUNC (selection_handle), data);
+
+  data->blink_timeout = gtk_timeout_add(1000, ttxview_blink, data);
 
   gtk_toolbar_set_style(GTK_TOOLBAR(data->toolbar), GTK_TOOLBAR_ICONS);
   gtk_widget_set_usize(ttxview, 360, 400);
@@ -2463,6 +2464,8 @@ ttxview_attach			(GtkWidget	*parent,
       resize_ttx_page(data->id, w, h);
       gdk_window_clear_area_e(data->da->window, 0, 0, w, h);
     }
+
+  data->blink_timeout = gtk_timeout_add(1000, ttxview_blink, data);
 
   gtk_toolbar_set_style(GTK_TOOLBAR(data->toolbar), GTK_TOOLBAR_ICONS);
 

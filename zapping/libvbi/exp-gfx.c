@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.23 2001-02-18 07:37:26 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.24 2001-02-18 22:15:02 garetxe Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -99,13 +99,15 @@ init_gfx(void)
 
 static inline void
 draw_char(int canvas_type, u8 *canvas, u8 *pen,
-	int glyph, int bold, int underline, int italic, attr_size size)
+	int glyph, int bold, int underline, int italic, attr_size size,
+	  int rowstride)
 {
 	unsigned char *src1, *src2;
 	unsigned short g = glyph & 0xFFFF;
 	int shift1, shift2;
 	int x, y, base = 0;
 	int ch = CH;
+	int ww = rowstride/canvas_type;
 
 	if (italic && g < 0x200)
 		base = GL_ITALICS;
@@ -138,7 +140,7 @@ draw_char(int canvas_type, u8 *canvas, u8 *pen,
 			for (x = 0; x < CW; bits >>= 1, x++)
 				poke(canvas, x, peek(pen, bits & 1));
 
-			canvas += WW * canvas_type;
+			canvas += rowstride;
 
 			break;
 
@@ -147,10 +149,10 @@ draw_char(int canvas_type, u8 *canvas, u8 *pen,
 				unsigned int col = peek(pen, bits & 1);
 
 				poke(canvas, x, col);
-				poke(canvas, x + WW, col);
+				poke(canvas, x + ww, col);
 			}
 
-			canvas += 2 * WW * canvas_type;
+			canvas += 2 * rowstride;
 
 			break;
 
@@ -162,7 +164,7 @@ draw_char(int canvas_type, u8 *canvas, u8 *pen,
 				poke(canvas, x + 1, col);
 			}
 
-			canvas += WW * canvas_type;
+			canvas += rowstride;
 
 			break;
 
@@ -172,11 +174,11 @@ draw_char(int canvas_type, u8 *canvas, u8 *pen,
 
 				poke(canvas, x + 0, col);
 				poke(canvas, x + 1, col);
-				poke(canvas, x + WW + 0, col);
-				poke(canvas, x + WW + 1, col);
+				poke(canvas, x + ww + 0, col);
+				poke(canvas, x + ww + 1, col);
 			}
 
-			canvas += 2 * WW * canvas_type;
+			canvas += 2 * rowstride;
 
 			break;
 
@@ -191,17 +193,18 @@ draw_char(int canvas_type, u8 *canvas, u8 *pen,
 
 static inline void
 draw_drcs(int canvas_type, u8 *canvas, u8 *pen,
-	unsigned char *src, int glyph, attr_size size)
+	unsigned char *src, int glyph, attr_size size, int rowstride)
 {
 	unsigned int col;
 	int x, y;
+	int ww = rowstride/canvas_type;
 
 	src += (glyph & 0x3F) * 60;
 	pen += (glyph >> 16) * canvas_type;
 
 	switch (size) {
 	case NORMAL:
-		for (y = 0; y < CH; canvas += WW * canvas_type, y++)
+		for (y = 0; y < CH; canvas += rowstride, y++)
 			for (x = 0; x < 12; src++, x += 2) {
 				poke(canvas, x + 0, peek(pen, *src & 15));
 				poke(canvas, x + 1, peek(pen, *src >> 4));
@@ -209,20 +212,20 @@ draw_drcs(int canvas_type, u8 *canvas, u8 *pen,
 		break;
 
 	case DOUBLE_HEIGHT:
-		for (y = 0; y < CH; canvas += 2 * WW * canvas_type, y++)
+		for (y = 0; y < CH; canvas += 2 * rowstride, y++)
 			for (x = 0; x < 12; src++, x += 2) {
 				col = peek(pen, *src & 15);
 				poke(canvas, x + 0, col);
-				poke(canvas, x + WW + 0, col);
+				poke(canvas, x + ww + 0, col);
 
 				col = peek(pen, *src >> 4);
 				poke(canvas, x + 1, col);
-				poke(canvas, x + WW + 1, col);
+				poke(canvas, x + ww + 1, col);
 			}
 		break;
 
 	case DOUBLE_WIDTH:
-		for (y = 0; y < CH; y++)
+		for (y = 0; y < CH; canvas += rowstride, y++)
 			for (x = 0; x < 12 * 2; src++, x += 4) {
 				col = peek(pen, *src & 15);
 				poke(canvas, x + 0, col);
@@ -235,19 +238,19 @@ draw_drcs(int canvas_type, u8 *canvas, u8 *pen,
 		break;
 
 	case DOUBLE_SIZE:
-		for (y = 0; y < CH; canvas += 2 * WW * canvas_type, y++)
+		for (y = 0; y < CH; canvas += 2 * rowstride, y++)
 			for (x = 0; x < 12 * 2; src++, x += 4) {
 				col = peek(pen, *src & 15);
 				poke(canvas, x + 0, col);
 				poke(canvas, x + 1, col);
-				poke(canvas, x + WW + 0, col);
-				poke(canvas, x + WW + 1, col);
+				poke(canvas, x + ww + 0, col);
+				poke(canvas, x + ww + 1, col);
 
 				col = peek(pen, *src >> 4);
 				poke(canvas, x + 2, col);
 				poke(canvas, x + 3, col);
-				poke(canvas, x + WW + 2, col);
-				poke(canvas, x + WW + 3, col);
+				poke(canvas, x + ww + 2, col);
+				poke(canvas, x + ww + 3, col);
 			}
 	default:
 		break;
@@ -255,7 +258,7 @@ draw_drcs(int canvas_type, u8 *canvas, u8 *pen,
 }
 
 static inline void
-draw_blank(int canvas_type, u8 *canvas, unsigned int colour)
+draw_blank(int canvas_type, u8 *canvas, unsigned int colour, int rowstride)
 {
 	int x, y;
 
@@ -263,19 +266,26 @@ draw_blank(int canvas_type, u8 *canvas, unsigned int colour)
 		for (x = 0; x < CW; x++)
 			poke(canvas, x, colour);
 
-		canvas += WW * canvas_type;
+		canvas += rowstride;
 	}
 }
 
 void
 vbi_draw_page_region(struct fmt_page *pg, void *data, int conceal,
-		     int scol, int srow, int width, int height)
+		     int scol, int srow, int width, int height,
+		     int rowstride, int blink) 
 {
 	unsigned int *canvas = (unsigned int *) data;
 	unsigned int pen[64];
 	int row, column;
 	attr_char *ac;
 	int glyph, i;
+	int ww;
+
+	if (rowstride == -1)
+		rowstride = WW*sizeof(*canvas);
+
+	ww = rowstride / sizeof(*canvas);
 
 	conceal = !!conceal;
 
@@ -283,7 +293,7 @@ vbi_draw_page_region(struct fmt_page *pg, void *data, int conceal,
 		pen[i] = pg->colour_map[pg->drcs_clut[i]];
 
 	for (row = srow; row < srow+height;
-	     canvas += W * CW * CH - W * CW, row++) {
+	     canvas += ww * (CH - 1), row++) {
 		for (column = scol; column < scol+width;
 		     canvas += CW, column++) {
 			ac = &pg->text[row * pg->columns + column];
@@ -293,18 +303,22 @@ vbi_draw_page_region(struct fmt_page *pg, void *data, int conceal,
 			pen[0] = pg->colour_map[ac->background];
 			pen[1] = pg->colour_map[ac->foreground];
 
+			/* FIXME: Correct(tm) way to do this? */
+			if (blink)
+				pen[1] ^= ~0;
+
 			if (ac->size <= DOUBLE_SIZE) {
 				if ((glyph & 0xFFFF) >= GL_DRCS) {
 					draw_drcs(sizeof(*canvas), (u8 *) canvas, (u8 *) pen,
-						pg->drcs[(glyph & 0x1F00) >> 8], glyph, ac->size);
+						pg->drcs[(glyph & 0x1F00) >> 8], glyph, ac->size, rowstride);
 				} else {
 					draw_char(sizeof(*canvas), (u8 *) canvas, (u8 *) pen,
-						glyph, ac->bold, ac->underline, ac->italic, ac->size);
+						glyph, ac->bold, ac->underline, ac->italic, ac->size, rowstride);
 				}
 			}
 		}
 
-		canvas += (W-width)*CW;
+		canvas += (ww/CW-width)*CW;
 	}
 }
 
@@ -474,17 +488,20 @@ export_ppm[1] =			// exported module definition
 #include "setjmp.h"
 
 static void
-draw_char_indexed(png_bytep canvas, png_bytep pen, int glyph, attr_char *ac)
+draw_char_indexed(png_bytep canvas, png_bytep pen, int glyph, attr_char *ac,
+		  int rowstride)
 {
 	draw_char(sizeof(png_byte), (u8 *) canvas, (u8 *) pen,
-		glyph, ac->bold, ac->underline, ac->italic, ac->size);
+		glyph, ac->bold, ac->underline, ac->italic, ac->size,
+		  rowstride);
 }
 
 static void
 draw_drcs_indexed(png_bytep canvas, png_bytep pen,
-	unsigned char *src, int glyph, attr_size size)
+	unsigned char *src, int glyph, attr_size size, int rowstride)
 {
-	draw_drcs(sizeof(png_byte), (u8 *) canvas, (u8 *) pen, src, glyph, size);
+	draw_drcs(sizeof(png_byte), (u8 *) canvas, (u8 *) pen, src, glyph,
+		  size, rowstride);
 }
 
 static int
@@ -502,6 +519,7 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 	png_bytep row_pointer[WH * 2];
 	png_bytep image;
 	int i;
+	int rowstride = WW*sizeof(*image);
 
 	if ((image = malloc(WH * WW * sizeof(*image)))) {
 		png_bytep canvas = image;
@@ -529,7 +547,7 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 					/*
 					 *  Transparent foreground and background.
 					 */
-					draw_blank(sizeof(*canvas), (u8 *) canvas, TRANSPARENT_BLACK);
+					draw_blank(sizeof(*canvas), (u8 *) canvas, TRANSPARENT_BLACK, rowstride);
 					break;
 
 				case TRANSPARENT:
@@ -545,12 +563,12 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 						pen[1] = ac->foreground;
 
 						draw_drcs_indexed(canvas, pen, 
-							pg->drcs[(glyph & 0x1F00) >> 8], glyph, ac->size);
+							pg->drcs[(glyph & 0x1F00) >> 8], glyph, ac->size, rowstride);
 					} else {
 						pen[0] = TRANSPARENT_BLACK;
 						pen[1] = ac->foreground;
 
-						draw_char_indexed(canvas, pen, glyph, ac);
+						draw_char_indexed(canvas, pen, glyph, ac, rowstride);
 					}
 
 					break;
@@ -566,12 +584,12 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 						pen[65] = ac->foreground;
 
 						draw_drcs_indexed(canvas, pen + 64, 
-							pg->drcs[(glyph & 0x1F00) >> 8], glyph, ac->size);
+							pg->drcs[(glyph & 0x1F00) >> 8], glyph, ac->size, rowstride);
 					} else {
 						pen[0] = ac->background + 40;
 						pen[1] = ac->foreground;
 
-						draw_char_indexed(canvas, pen, glyph, ac);
+						draw_char_indexed(canvas, pen, glyph, ac, rowstride);
 					}
 
 					break;
@@ -582,9 +600,9 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 
 					if ((glyph & 0xFFFF) >= GL_DRCS) {
 						draw_drcs_indexed(canvas, pen, 
-							pg->drcs[(glyph & 0x1F00) >> 8], glyph, ac->size);
+							pg->drcs[(glyph & 0x1F00) >> 8], glyph, ac->size, rowstride);
 					} else {
-						draw_char_indexed(canvas, pen, glyph, ac);
+						draw_char_indexed(canvas, pen, glyph, ac, rowstride);
 					}
 
 					break;

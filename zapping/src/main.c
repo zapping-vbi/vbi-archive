@@ -285,7 +285,7 @@ int main(int argc, char * argv[])
 			      0, NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.89 2001-02-17 22:32:41 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.90 2001-02-18 22:15:02 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -549,11 +549,9 @@ int main(int argc, char * argv[])
   D(); printv("going into main loop...\n");
   /* That's it, now go to the main loop */
   gtk_main();
-  D();
   /* Closes all fd's, writes the config to HD, and that kind of things
    */
   shutdown_zapping();
-  D();
   return 0;
 }
 
@@ -563,6 +561,8 @@ static void shutdown_zapping(void)
   gchar * buffer = NULL;
   tveng_tuned_channel * channel;
   gboolean do_screen_cleanup = FALSE;
+
+  printv("Shutting down the beast:\n");
 
   /* Stops any capture currently active */
   if (main_info->current_mode == TVENG_CAPTURE_WINDOW)
@@ -574,10 +574,12 @@ static void shutdown_zapping(void)
   tveng_set_mute(1, main_info);
   
   /* Unloads all plugins, this tells them to save their config too */
+  printv("plugins");
   plugin_unload_plugins(plugin_list);
   plugin_list = NULL;
 
   /* Write the currently tuned channels */
+  printv(" channels");
   zconf_delete(ZCONF_DOMAIN "tuned_channels");
   while ((channel = tveng_retrieve_tuned_channel_by_index(i,
 							  global_channel_list))
@@ -621,22 +623,27 @@ static void shutdown_zapping(void)
     zcs_int(main_info -> cur_input, "current_input");
 
   /* Shutdown all other modules */
+  printv(" callbacks");
   shutdown_callbacks();
 
   /* Shut down vbi */
+  printv(" vbi");
   zvbi_close_device();
 
   /*
    * Shuts down the teletext view
    */
+  printv(" ttxview");
   shutdown_ttxview();
 
   /*
    * Shuts down the OSD info
    */
+  printv(" osd");
   shutdown_osd();
 
   /* Save the config and show an error if something failed */
+  printv(" config");
   if (!zconf_close())
     ShowBox(_("ZConf could not be closed properly , your\n"
 	      "configuration will be lost.\n"
@@ -651,14 +658,19 @@ static void shutdown_zapping(void)
   /*
    * Tell the overlay engine to shut down and to do a cleanup if necessary
    */
+  printv(" overlay");
   shutdown_overlay(do_screen_cleanup);
   /*
    * Shuts down the capture engine
    */
+  printv(" capture");
   shutdown_capture(main_info);
 
   /* Close */
+  printv(" video device");
   tveng_device_info_destroy(main_info);
+
+  printv(".\nShutdown complete, goodbye.\n");
 }
 
 static gboolean startup_zapping()

@@ -523,3 +523,19 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 
   return return_value;
 }
+
+#if 0
+/* API flaw */
+static
+void set_stock_pixmap	(GtkWidget	*button,
+			 const gchar	*new_pix)
+{
+  GtkWidget *widget = GTK_BIN(button)->child;
+  GList *node = g_list_first(GTK_BOX(widget)->children)->next;
+
+  widget = GTK_WIDGET(((GtkBoxChild*)(node->data))->widget);
+
+  gnome_stock_set_icon(GNOME_STOCK(widget), new_pix);
+}
+#endif
+
