@@ -73,7 +73,8 @@ zapping_SOURCES = \
 	properties-handler.c properties-handler.h \
 	plugin_properties.c plugin_properties.h \
 	channel_editor.c channel_editor.h \
-	i18n.c i18n.h
+	i18n.c i18n.h \
+	zvideo.c zvideo.h
 
 zapping_LDADD = $(gen_conv_lib) $(COMMON_LIB) $(PACKAGE_LIBS) $(PYTHON_LIBS) \
   $(X_LIBS) $(X_DPMS_LIBS) \
