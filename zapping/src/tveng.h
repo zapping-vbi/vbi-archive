@@ -103,13 +103,6 @@ struct tveng_caps{
   int minwidth, minheight; /* minimum capture dimensions */
 };
 
-/* frame buffer info */
-struct UNUSED_tveng_fb_info{
-  void * base; /* Physical address for the FB */
-  int height, width; /* Width and height (physical, not window dimensions) */
-  int depth; /* FB depth in bits */
-  int bytesperline; /* Bytesperline in the image */
-};
 
 
 
@@ -1295,22 +1288,6 @@ int tveng_get_chromakey (uint32_t *chroma, tveng_device_info *info);
 int
 tveng_get_zapping_setup_fb_verbosity(tveng_device_info * info);
 
-/* 
-   Sets up everything and starts previewing.
-   Just call this function to start previewing, it takes care of
-   (mostly) everything.
-   change_mode: Set to 0 if tveng shouldn't switch to the best video mode.
-   Returns -1 on error.
-*/
-int
-tveng_start_previewing (tveng_device_info * info, const char *mode);
-
-/*
-  Stops the fullscreen mode. Returns -1 on error
-*/
-int
-tveng_stop_previewing (tveng_device_info * info);
-
 /* build hash for the given string, normalized */
 int
 tveng_build_hash(const char *string);
@@ -1530,6 +1507,14 @@ do { \
   snprintf((info)->error, 255, temp_error_buffer ,##args); \
   if ((info)->debug_level) \
     fprintf(stderr, "TVeng: %s\n", (info)->error); \
+} while (0)
+
+#define tv_error_msg(info, template, args...)				\
+do {									\
+  snprintf ((info)->error, 255, template ,##args );			\
+  if ((info)->debug_level > 0)						\
+    fprintf (stderr, "%s:%u:%s:%s", __FILE__, __LINE__,			\
+	     __PRETTY_FUNCTION__, (info)->error);			\
 } while (0)
 
 /* Builds an error message that lets me debug much better */
