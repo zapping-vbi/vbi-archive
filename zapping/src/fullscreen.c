@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.21.2.5 2003-01-30 02:39:49 mschimek Exp $
+ * $Id: fullscreen.c,v 1.21.2.6 2003-03-24 17:16:37 mschimek Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -39,6 +39,7 @@
 #include "fullscreen.h"
 #include "audio.h"
 #include "plugins.h"
+#include "zvideo.h"
 
 static GtkWidget * black_window = NULL; /* The black window when you go
 					   fullscreen */
@@ -126,7 +127,7 @@ fullscreen_start(tveng_device_info * info)
 
   /* Add a black background */
   black_window = gtk_window_new( GTK_WINDOW_POPUP );
-  da = gtk_drawing_area_new();
+  da = z_video_new (); /* gtk_drawing_area_new(); */
 
   gtk_widget_show(da);
 
@@ -141,7 +142,14 @@ fullscreen_start(tveng_device_info * info)
   gtk_widget_show (black_window);
 
   /* hide the cursor in fullscreen mode */
-  z_set_cursor(da->window, 0);
+  z_video_blank_cursor (Z_VIDEO (da), 1500 /* ms */);
+
+  /* XXX */
+  gdk_draw_rectangle (GTK_WIDGET (da)->window,
+		      GTK_WIDGET (da)->style->fg_gc[GTK_STATE_NORMAL],
+		      /* filled */ TRUE, /* x */ 0, /* y */ 0,
+		      GTK_WIDGET (da)->allocation.width,
+		      GTK_WIDGET (da)->allocation.height);
 
   if (info->current_controller != TVENG_CONTROLLER_XV &&
       (info->caps.flags & TVENG_CAPS_CHROMAKEY))
