@@ -37,7 +37,7 @@ rte.sym: librte.h
 # Concat the header files in this order and filter out all lines
 #   before "^/* Public", after "^/* Private" and between "^/**"..."**/$"
 librte.h: option.h context.h codec.h rte.h
-	sed -ne "1,/\*\//p" rte.h > $@
+	sed -ne "1,/\*\//p" $(srcdir)/rte.h > $@
 	echo -e "\n/* Generated file, do not edit! */" >> $@
 	echo -e "\n#ifndef __LIBRTE_H__\n#define __LIBRTE_H__" >> $@
 	echo -e "\n#define RTE_VERSION_MAJOR" `echo @VERSION@ \

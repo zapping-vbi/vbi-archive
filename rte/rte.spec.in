@@ -11,6 +11,8 @@ Buildroot: %{_tmppath}/%{name}-root
 PreReq: /sbin/install-info
 Provides: rte
 
+Requires: gettext >= 0.11.2
+
 %description
 Real Time Software Video/Audio Encoder library.
 
@@ -34,10 +36,13 @@ rm -rf %{buildroot}
 
 %files
 %defattr (-, root, root)
-%doc ChangeLog README
+%doc AUTHORS BUGS COPYING ChangeLog NEWS README TODO doc/html
 %{_libdir}/librte*
-%{_includedir}/rte.h
+%{_includedir}/librte.h
 
 %changelog
+* Tue Jun 18 2002 Michael H. Schimek <mschimek@users.sourceforge.net>
+- Requires gettext 0.11.2, ammended doc list
+
 * Tue Aug 8 2001 Iñaki García Etxebarria <garetxe@users.sourceforge.net>
 - Created
