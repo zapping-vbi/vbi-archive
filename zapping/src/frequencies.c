@@ -840,6 +840,36 @@ tv_rf_channel_next_country	(tv_rf_channel *	ch)
  *  Tuned channels
  */
 
+gboolean
+tveng_tuned_channel_set_control	(tveng_tuned_channel *	tc,
+				 const gchar *		name,
+				 gfloat			value)
+{
+  tveng_tc_control *tcc;
+  guint i;
+
+  for (i = 0; i < tc->num_controls; ++i)
+    if (0 == strncmp (tc->controls[i].name, name,
+		      sizeof (tc->controls[i].name) - 1))
+      {
+	tc->controls[i].value = value;
+	return TRUE;
+      }
+
+  tcc = g_realloc (tc->controls, (i + 1) * sizeof (*tc->controls));
+
+  if (NULL == tcc)
+    return FALSE;
+
+  tc->controls = tcc;
+  tc->num_controls = i + 1;
+
+  g_strlcpy (tcc[i].name, name, 32);
+  tcc[i].value = value;
+
+  return TRUE;
+}
+
 tveng_tuned_channel *
 tveng_tuned_channel_first	(const tveng_tuned_channel *list)
 {
