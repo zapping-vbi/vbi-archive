@@ -25,6 +25,9 @@
  *    for a list of possible options.
  *
  *  $Log: not supported by cvs2svn $
+ *  Revision 1.7  2003/06/07 09:43:23  tomzo
+ *  Added test for proxy with select() and zero timeout (#if 0'ed)
+ *
  *  Revision 1.6  2003/06/01 19:36:42  tomzo
  *  Added tests for TV channel switching
  *  - added new command line options -channel, -freq, -chnprio
@@ -47,7 +50,7 @@
  *
  */
 
-static const char rcsid[] = "$Id: proxy-test.c,v 1.7 2003-06-07 09:43:23 tomzo Exp $";
+static const char rcsid[] = "$Id: proxy-test.c,v 1.7.2.1 2004-01-27 21:10:05 tomzo Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -82,6 +85,7 @@ static int            opt_debug_level;
 static int            opt_channel;
 static int            opt_frequency;
 static int            opt_chnprio;
+static int            opt_subprio;
 
 /* ----------------------------------------------------------------------------
 ** Resolve parity on an array in-place
@@ -285,6 +289,7 @@ static void usage_exit( const char *argv0, const char *argvn, const char * reaso
                    "       -channel <index>    : switch video input channel\n"
                    "       -freq <kHz * 16>    : switch TV tuner frequency\n"
                    "       -chnprio <0..4>     : channel switch priority\n"
+                   "       -subprio <0..4>     : background scheduling priority\n"
                    "       -debug <level>      : enable debug output: 1=warnings, 2=all\n"
                    "       -help               : this message\n"
                    "You can also type service requests to stdin at runtime:\n"
@@ -325,6 +330,7 @@ static void parse_argv( int argc, char * argv[] )
    opt_channel = -1;
    opt_frequency = -1;
    opt_chnprio = 0;
+   opt_subprio = 0;
 
    while (arg_idx < argc)
    {
@@ -435,6 +441,16 @@ static void parse_argv( int argc, char * argv[] )
          else
             usage_exit(argv[0], argv[arg_idx], "missing priority level after");
       }
+      else if (strcasecmp(argv[arg_idx], "-subprio") == 0)
+      {
+         if ((arg_idx + 1 < argc) && parse_argv_numeric(argv[arg_idx + 1], &arg_val))
+         {
+            opt_subprio = arg_val;
+            arg_idx += 2;
+         }
+         else
+            usage_exit(argv[0], argv[arg_idx], "missing priority level after");
+      }
       else if (strcasecmp(argv[arg_idx], "-help") == 0)
       {
          usage_exit(argv[0], "", "the following options are available");
@@ -486,17 +502,30 @@ int main ( int argc, char ** argv )
          lastLineCount = 0;
 
          /* switch to the requested channel */
-         if ( (opt_channel != -1) || (opt_frequency != -1))
+         if ( (opt_channel != -1) || (opt_frequency != -1) )
          {
 	    vbi_channel_desc cd;
+            vbi_setup_parm   setup;
 	    vbi_bool         has_tuner;
 	    int	             new_scanning;
 
 	    memset(&cd, 0, sizeof(cd));
+	    cd.type                = VBI_CHN_DESC_TYPE_ANALOG;
 	    cd.u.analog.channel    = opt_channel;
 	    cd.u.analog.freq       = opt_frequency;
 	    cd.u.analog.mode_color = 0; /* PAL */
 	    cd.u.analog.mode_std   = -1;
+
+            if (opt_chnprio == 0)
+            {
+               memset(&setup, 0, sizeof(setup));
+               setup.type = VBI_SETUP_PROXY_CHN_PROFILE;
+               setup.u.proxy_chn_profile.chn_profile.is_valid      = TRUE;
+               setup.u.proxy_chn_profile.chn_profile.sub_prio      = opt_subprio;
+               setup.u.proxy_chn_profile.chn_profile.min_duration  = 10;
+               vbi_capture_setup(pVbiCapt, &setup);
+            }
+
             pErr = NULL;
             if (vbi_capture_channel_change(pVbiCapt, FALSE, opt_chnprio, &cd,
                                            &has_tuner, &new_scanning, &pErr) != 0)
