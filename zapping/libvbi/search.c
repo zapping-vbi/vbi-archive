@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.25 2005-01-27 04:14:37 mschimek Exp $ */
+/* $Id: search.c,v 1.26 2005-01-31 07:09:38 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -761,8 +761,7 @@ vbi3_search_utf8_new		(vbi3_cache *		ca,
 	uint16_t *ucs2_pattern;
 	vbi3_search *s;
 
-	if (!pattern)
-		return NULL;
+	assert (NULL != pattern);
 
 	ucs2_pattern = _vbi3_strdup_ucs2_utf8 (pattern);
 
