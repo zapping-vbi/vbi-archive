@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: video.h,v 1.20 2002-08-22 22:03:49 mschimek Exp $ */
+/* $Id: video.h,v 1.21 2002-09-12 12:24:24 mschimek Exp $ */
 
 #ifndef VIDEO_H
 #define VIDEO_H
@@ -255,6 +255,104 @@ typedef struct mpeg1_context mpeg1_context;
 struct mpeg1_context { 
 	filter_param	filter_param[2];
 
+	uint8_t		seq_header_template[16];
+
+	uint8_t *	zerop_template;		/* empty P picture */
+	int		Sz;			/* .. size in bytes */
+
+	int		(* picture_i)(mpeg1_context *, uint8_t *org);
+	int		(* picture_p)(mpeg1_context *, uint8_t *org,
+				      int dist, int forward_motion);
+	int		(* picture_b)(mpeg1_context *, uint8_t *org,
+				      int dist, int forward_motion,
+				      int backward_motion);
+
+	unsigned int	(* predict_forward)(uint8_t *from) reg(1);
+	unsigned int	(* predict_bidirectional)(uint8_t *from1, uint8_t *from2,
+						  unsigned int *vmc1,
+						  unsigned int *vmc2);
+
+	stacked_frame	stack[MAX_B_SUCC];
+	stacked_frame	last;
+
+	mblock_hist *	mb_hist;		/* attn: base -1 */
+
+						/* frames encoded (coding order) */
+	int		gop_frame_count;	/* .. in current GOP (display order) */
+	int		seq_frame_count;	/* .. since last sequence header */
+
+	double		skip_rate_acc;
+	double		drop_timeout;
+
+	uint8_t *	oldref;			/* past reference frame buffer */
+
+	bool		insert_gop_header;
+	bool		closed_gop;		/* random access point, no fwd ref */
+	bool		referenced;		/* by other P or B pictures */
+	bool		slice;
+
+	int		quant_sum;
+
+	struct rc	rc;
+
+	int		p_succ;
+	int		skipped_fake;
+	int		skipped_zero;
+
+	uint8_t *	banner;
+
+	consumer	cons;
+
+	int		mb_cx_row;
+	int		mb_cx_thresh;
+
+	int		motion_min;
+	int		motion_max;
+
+	int		coded_width;
+	int		coded_height;
+
+	int		frames_per_seqhdr;
+	int		aspect_ratio_code;
+
+	/* input */
+
+//	sync_stream	sstr;
+	double		coded_elapsed;
+	double		nominal_frame_rate;
+	double		nominal_frame_period;
+
+	/* Output */
+
+	fifo *		fifo;
+	producer	prod;
+	double		coded_time_elapsed;
+	double		coded_frame_rate;
+	double		coded_frame_period;
+	double		coded_frames_countd;
+
+	/* Options */
+
+	mp1e_codec	codec;
+
+	int		bit_rate;
+	int		frame_rate_code;
+	double		virtual_frame_rate;
+	char *		gop_sequence;
+	int		skip_method;
+	bool		motion_compensation;
+	bool		monochrome;
+	char *		anno;
+	double		num_frames;
+};
+
+
+
+
+
+struct mpeg2_context { 
+	filter_param	filter_param[2];
+
 	uint8_t		seq_header_template[32];
 
 	uint8_t *	zerop_template;		/* empty P picture */
@@ -346,6 +444,12 @@ struct mpeg1_context {
 	double		num_frames;
 };
 
+
+
+
+
+
+
 extern uint8_t * newref;	/* future reference frame buffer */
 
 
@@ -395,7 +499,7 @@ do {									\
 
 #define video_align(n) __attribute__ ((aligned (n)))
 
-extern struct bs_rec	video_out video_align(32);
+extern struct vlc_rec	video_out video_align(32);
 
 extern int		dropped;
 extern const char *	filter_labels[];
