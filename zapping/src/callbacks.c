@@ -26,6 +26,7 @@
 #include "callbacks.h"
 #include "interface.h"
 #include "v4linterface.h"
+#include "x11stuff.h"
 /* Manages config values for zconf (it saves me some typing) */
 #define ZCONF_DOMAIN "/zapping/internal/callbacks/"
 #include "zmisc.h"
@@ -33,12 +34,10 @@
 #include "zconf.h"
 #include "zvbi.h"
 
-/* Comment the next line if you don't want to mess with the
-   XScreensaver */
-#define MESS_WITH_XSS 1
-
 gboolean flag_exit_program; /* set this flag to TRUE to exit the program */
-GtkWidget * ToolBox = NULL; /* Here is stored the Toolbox (if any) */
+static GtkWidget * ToolBox = NULL; /* Here is stored the Toolbox (if any) */
+/* the mode set when we went fullscreen (used by main.c too) */
+enum tveng_capture_mode restore_mode;
 
 extern tveng_device_info * main_info; /* About the device we are using */
 extern gboolean disable_preview; /* TRUE if preview (fullscreen)
@@ -48,13 +47,7 @@ int cur_tuned_channel = 0; /* Currently tuned channel */
 
 GtkWidget * main_window; /* main Zapping window */
 
-GtkWidget * black_window = NULL; /* The black window when you go
-				    preview */
-
 extern GList * plugin_list; /* The plugins we have */
-
-/* the mode set when we went fullscreen */
-enum tveng_capture_mode restore_mode;
 
 /* Starts and stops callbacks */
 gboolean startup_callbacks(void)
@@ -385,130 +378,26 @@ void
 on_go_fullscreen1_activate             (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
-  GtkWidget * da; /* Drawing area */
+  restore_mode = main_info->current_mode;
 
-  /* Return if we are in fullscreen mode now */
-  if (main_info->current_mode == TVENG_CAPTURE_PREVIEW)
-    return;
-
-  if (disable_preview)
-    return;
-
-  zvbi_set_mode(FALSE);
-
-  restore_mode = tveng_stop_everything(main_info);
-
-  /* Add a black background */
-  black_window = gtk_window_new( GTK_WINDOW_POPUP );
-  da = gtk_drawing_area_new();
-
-  gtk_widget_show(da);
-
-  gtk_container_add(GTK_CONTAINER(black_window), da);
-  gtk_widget_set_usize(black_window, gdk_screen_width(),
-		       gdk_screen_height());
-
-  gtk_widget_show(black_window);
-  gtk_window_set_modal(GTK_WINDOW(black_window), TRUE);
-  gdk_window_set_decorations(black_window->window, 0);
-
-  /* Draw on the drawing area */
-  gdk_draw_rectangle(da -> window,
-  		     da -> style -> black_gc,
-		     TRUE,
-		     0, 0, gdk_screen_width(), gdk_screen_height());
-  
-  if (tveng_start_previewing(main_info) == -1)
-    {
-      ShowBox(_("Sorry, but cannot go fullscreen"),
-	      GNOME_MESSAGE_BOX_ERROR);
-      gtk_widget_destroy(black_window);
-      tveng_start_capturing(main_info);
-      return;
-    }
-
-  if (main_info -> current_mode != TVENG_CAPTURE_PREVIEW)
-    g_warning("Setting preview succeeded, but the mode is not set");
-
-#ifdef MESS_WITH_XSS
-  /* Set the blank screensaver */
-  x11_set_screensaver(OFF);
-#endif
-
-  gtk_widget_grab_focus(black_window);
-  /*
-    If something doesn't work, everything will be blocked here, maybe
-    this isn't a good idea... but it is apparently the less bad one.
-  */
-  gdk_keyboard_grab(black_window->window, TRUE, GDK_CURRENT_TIME);
-
-  gdk_window_set_events(black_window->window, GDK_ALL_EVENTS_MASK);
-
-  gtk_signal_connect(GTK_OBJECT(black_window), "event",
-		     GTK_SIGNAL_FUNC(on_fullscreen_event),
-  		     lookup_widget(GTK_WIDGET(menuitem), "zapping"));
+  zmisc_switch_mode(TVENG_CAPTURE_PREVIEW, main_info);
 }
 
 void
 on_go_fullscreen2_activate             (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
-  GtkWidget * widget = lookup_widget(GTK_WIDGET(menuitem),
-				     "popup_menu1");
-  GtkWidget * go_fullscreen1 = lookup_widget(GTK_WIDGET(
-    gtk_object_get_user_data(GTK_OBJECT(widget))), "go_fullscreen1");
+  /* fixme: there's no need for two different callbacks */
+  restore_mode = main_info->current_mode;
 
-  on_go_fullscreen1_activate(GTK_MENU_ITEM(go_fullscreen1), NULL);
+  zmisc_switch_mode(TVENG_CAPTURE_PREVIEW, main_info);
 }
 
 void
 on_go_windowed1_activate               (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
-  int w,h;
-  GtkWidget * widget;
-  GtkAllocation dummy_alloc;
-
-  if (main_info->current_mode == TVENG_CAPTURE_READ)
-    return;
-
-  gdk_keyboard_ungrab(GDK_CURRENT_TIME);
-
-#ifdef MESS_WITH_XSS
-  /* Restore the normal screensaver */
-  x11_set_screensaver(ON);
-#endif
-
-  /* Remove the black window */
-  gtk_widget_destroy(black_window);
-
-  tveng_stop_everything(main_info);
-
-  if (-1 == tveng_restart_everything(restore_mode, main_info))
-    {
-      ShowBox(main_info -> error, GNOME_MESSAGE_BOX_ERROR);
-      return;
-    }
-
-  /* we were probably in Videotext mode */
-  if (restore_mode == TVENG_NO_CAPTURE)
-    zvbi_set_mode(TRUE);    
-
-  widget = lookup_widget(GTK_WIDGET(menuitem), "tv_screen");
-  if (!widget)
-    {
-      ShowBox(_("I cannot find the main zapping window, weird..."),
-	      GNOME_MESSAGE_BOX_ERROR);
-      return;      
-    }
-
-  /* Fake a resize (to the actual size), this will update all capture
-     structs */
-  gdk_window_get_size(widget -> window, &w, &h);
-
-  dummy_alloc.width = w;
-  dummy_alloc.height = h;
-  on_tv_screen_size_allocate(widget, &dummy_alloc, NULL);
+  zmisc_switch_mode(restore_mode, main_info);
 }
 
 void

@@ -38,6 +38,7 @@
 #include "zvbi.h"
 #include "mmx.h"
 #include "overlay.h"
+#include "x11stuff.h"
 
 /* This comes from callbacks.c */
 extern enum tveng_capture_mode restore_mode; /* the mode set when we went
@@ -54,6 +55,7 @@ GList * plugin_list = NULL;
 struct soundinfo * si = NULL;
 gboolean disable_preview = FALSE; /* TRUE if zapping_setup_fb didn't
 				     work */
+gboolean print_info_inited = FALSE;
 GtkWidget * main_window;
 gboolean was_fullscreen=FALSE; /* will be TRUE if when quitting we
 				  were fullscreen */
@@ -66,13 +68,8 @@ static gint newbttv = -1; /* Compatibility with old bttv drivers */
 void shutdown_zapping(void);
 gboolean startup_zapping(void);
 
-/* Keep compiler happy */
-gboolean
-delete_event                (GtkWidget       *widget,
-			     GdkEvent        *event,
-			     gpointer         user_data);
-
-gboolean
+/*
+static gboolean
 delete_event                (GtkWidget       *widget,
 			     GdkEvent        *event,
 			     gpointer         user_data)
@@ -80,6 +77,82 @@ delete_event                (GtkWidget       *widget,
   flag_exit_program = TRUE;
   
   return FALSE;
+}
+*/
+
+static void
+print_visual_info(GdkVisual * visual, const char * name)
+{
+  fprintf(stderr,
+	  "%s (%p):\n"
+	  "	type:		%d\n"
+	  "	depth:		%d\n"
+	  "	byte_order:	%d\n"
+	  "	cmap_size:	%d\n"
+	  "	bprgb:		%d\n"
+	  "	red_mask:	0x%x\n"
+	  "	shift:		%d\n"
+	  "	prec:		%d\n"
+	  "	green_mask:	0x%x\n"
+	  "	shift:		%d\n"
+	  "	prec:		%d\n"
+	  "	blue_mask:	0x%x\n"
+	  "	shift:		%d\n"
+	  "	prec:		%d\n",
+	  name, visual, visual->type, visual->depth,
+	  visual->byte_order, visual->colormap_size,
+	  visual->bits_per_rgb,
+	  visual->red_mask, visual->red_shift, visual->red_prec,
+	  visual->green_mask, visual->green_shift, visual->green_prec,
+	  visual->blue_mask, visual->blue_shift, visual->blue_prec);
+}
+
+static void
+print_info(void)
+{
+  GdkImage * image = zimage_get();
+  GdkWindow * tv_screen = lookup_widget(main_window, "tv_screen")->window;
+  struct tveng_frame_format * format = &(main_info->format);
+
+  if ((!debug_msg) || (!image) || (print_info_inited))
+    return;
+
+  print_info_inited = TRUE;
+
+  /* info about the used visuals (they should match exactly) */
+  print_visual_info(gdk_visual_get_system(), "system visual");
+  print_visual_info(gdk_window_get_visual(tv_screen), "tv screen visual");
+  print_visual_info(image->visual, "zimage visual");
+
+  /* info about the zmisc image */
+  fprintf(stderr,
+	  "zimage info:\n"
+	  "	type:		%d\n"
+	  "	visual:		%p\n"
+	  "	order:		%d\n"
+	  "	width:		%d\n"
+	  "	height:		%d\n"
+	  "	depth:		%d\n"
+	  "	bpp:		%d\n"
+	  "	bpl:		%d\n"
+	  "	mem:		%p\n",
+	  image->type, image->visual, image->byte_order, (gint)image->width,
+	  (gint)image->height, (gint)image->depth, (gint)image->bpp,
+	  (gint)image->bpl, image->mem
+	  );
+  fprintf(stderr,
+	  "tveng frame format:\n"
+	  "	width:		%d\n"
+	  "	height:		%d\n"
+	  "	depth:		%d\n"
+	  "	pixformat:	%d\n"
+	  "	bpp:		%d\n"
+	  "	sizeimage:	%d\n",
+	  format->width, format->height, format->depth,
+	  format->pixformat, format->bpp, format->sizeimage );
+
+  fprintf(stderr, "detected x11 depth: %d\n", x11_get_bpp());
+  fprintf(stderr, "forced bpp: %d\n", forced_bpp);
 }
 
 int main(int argc, char * argv[])
@@ -419,6 +492,7 @@ int main(int argc, char * argv[])
 	ShowBox(_("Capture mode couldn't be started:\n%s"),
 		GNOME_MESSAGE_BOX_ERROR, main_info->error);
   D(); printv("going into main loop...\n");
+
   while (!flag_exit_program)
     {
       while (gtk_events_pending())
@@ -489,6 +563,8 @@ int main(int argc, char * argv[])
 	}
 
       zimage_reallocate(main_info->format.width, main_info->format.height);
+
+      print_info();
 
       /* Do the image processing here */
       if (tveng_read_frame(zimage_get_data(zimage_get()),

@@ -958,15 +958,11 @@ p_tveng2_build_controls(tveng_device_info * info)
       if ((ioctl(info->fd, VIDIOC_QUERYCTRL, &qc) == 0) &&
 	  (!(qc.flags & V4L2_CTRL_FLAG_DISABLED)))
 	{
-	  if (!strcasecmp(qc.name, cids[i].possible_label))
+	  /* if there isn't a translation available, use the real name */
+	  if (!strcasecmp(qc.name, _(qc.name)))
+	    snprintf(control.name, 32, qc.name);
+	  else /* translated name */
 	    snprintf(control.name, 32, _(cids[i].possible_label));
-	  else
-	    {
-	      fprintf(stderr,
-"%s [%d -> %d] found: Please contact garetxe@users.sourceforge.net\n", 
-		      qc.name, i, cids[i].cid);
-	      snprintf(control.name, 32, _(qc.name));
-	    }
 	  control.min = qc.minimum;
 	  control.max = qc.maximum;
 	  control.id = qc.id;

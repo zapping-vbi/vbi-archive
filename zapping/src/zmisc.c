@@ -35,6 +35,12 @@ extern GtkWidget * main_window;
 extern gboolean disable_preview; /* TRUE if preview won't work */
 static GdkImage * zimage = NULL; /* The buffer that holds the capture */
 gboolean debug_msg=FALSE; /* Debugging messages on or off */
+static GtkWidget * black_window = NULL; /* The black window when you go
+					   preview */
+
+/* Comment the next line if you don't want to mess with the
+   XScreensaver */
+#define MESS_WITH_XSS 1
 
 /*
   Prints a message box showing an error, with the location of the code
@@ -262,6 +268,78 @@ zmisc_resolve_pixformat(int bpp, GdkByteOrder byte_order)
   return -1;
 }
 
+static gint
+fullscreen_start(tveng_device_info * info)
+{
+  GtkWidget * da; /* Drawing area */
+
+  /* Add a black background */
+  black_window = gtk_window_new( GTK_WINDOW_POPUP );
+  da = gtk_drawing_area_new();
+
+  gtk_widget_show(da);
+
+  gtk_container_add(GTK_CONTAINER(black_window), da);
+  gtk_widget_set_usize(black_window, gdk_screen_width(),
+		       gdk_screen_height());
+
+  gtk_widget_show(black_window);
+  gtk_window_set_modal(GTK_WINDOW(black_window), TRUE);
+  gdk_window_set_decorations(black_window->window, 0);
+
+  /* Draw on the drawing area */
+  gdk_draw_rectangle(da -> window,
+  		     da -> style -> black_gc,
+		     TRUE,
+		     0, 0, gdk_screen_width(), gdk_screen_height());
+  
+  if (tveng_start_previewing(info) == -1)
+    {
+      ShowBox(_("Sorry, but cannot go fullscreen"),
+	      GNOME_MESSAGE_BOX_ERROR);
+      gtk_widget_destroy(black_window);
+      zmisc_switch_mode(TVENG_CAPTURE_READ, info);
+      return -1;
+    }
+
+  if (info -> current_mode != TVENG_CAPTURE_PREVIEW)
+    g_warning("Setting preview succeeded, but the mode is not set");
+
+#ifdef MESS_WITH_XSS
+  /* Set the blank screensaver */
+  x11_set_screensaver(OFF);
+#endif
+
+  gtk_widget_grab_focus(black_window);
+  /*
+    If something doesn't work, everything will be blocked here, maybe
+    this isn't a good idea... but it is apparently the less bad one.
+  */
+  gdk_keyboard_grab(black_window->window, TRUE, GDK_CURRENT_TIME);
+
+  gdk_window_set_events(black_window->window, GDK_ALL_EVENTS_MASK);
+
+  gtk_signal_connect(GTK_OBJECT(black_window), "event",
+		     GTK_SIGNAL_FUNC(on_fullscreen_event),
+  		     main_window);
+
+  return 0;
+}
+
+static void
+fullscreen_stop(tveng_device_info * info)
+{
+  gdk_keyboard_ungrab(GDK_CURRENT_TIME);
+
+#ifdef MESS_WITH_XSS
+  /* Restore the normal screensaver */
+  x11_set_screensaver(ON);
+#endif
+
+  /* Remove the black window */
+  gtk_widget_destroy(black_window);
+}
+
 /*
   does the mode switching. Since this requires more than just using
   tveng, a new routine is needed.
@@ -278,6 +356,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   GtkAllocation dummy_alloc;
   gint x, y, w, h;
   enum tveng_frame_pixformat format;
+  extern gboolean print_info_inited;
 
   g_assert(info != NULL);
   g_assert(main_window != NULL);
@@ -292,28 +371,24 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 
   /* If we are fullscreen, something else needs to be done */
   if (info->current_mode == TVENG_CAPTURE_PREVIEW)
-    {
-      /* fixme: we should avoid the code duplication here and
-	 callbacks.c */
-      extern GtkWidget *black_window; /* from callbacks.c */
-      gdk_keyboard_ungrab(GDK_CURRENT_TIME);
-      gtk_widget_destroy(black_window);
-      x11_set_screensaver(ON);
-    }
+    fullscreen_stop(info);
+
   tveng_stop_everything(info);
 
   if (new_mode != TVENG_NO_CAPTURE)
     zvbi_set_mode(FALSE);
+  else
+    zvbi_set_mode(TRUE);
 
   switch (new_mode)
     {
     case TVENG_CAPTURE_READ:
       format = zmisc_resolve_pixformat(x11_get_bpp(),
 				       x11_get_byte_order());
-
       if (format != -1)
 	{
 	  info->format.pixformat = format;
+	  tveng_set_capture_format(info);
 	  if (info->format.pixformat != format)
 	    g_warning("Couldn't set format correctly: %s", info->error);
 	}
@@ -327,6 +402,11 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	}
       else
 	g_warning(info->error);
+      if (debug_msg)
+	{
+	  g_message("switching to capture mode");
+	  print_info_inited = FALSE;
+	}
       break;
     case TVENG_CAPTURE_WINDOW:
       if (disable_preview) {
@@ -372,14 +452,10 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	  if (info->format.pixformat != format)
 	    g_warning("Couldn't set format correctly: %s", info->error);
 	}
-      on_go_fullscreen1_activate(
-       GTK_MENU_ITEM(lookup_widget(tv_screen, "go_fullscreen1")),
-       NULL);
-      if (main_info->current_mode != TVENG_CAPTURE_PREVIEW)
-	{
-	  g_warning(info->error);
-	  return_value = -1;
-	}
+
+      return_value = fullscreen_start(info);
+      if (return_value == -1)
+	g_warning("couldn't start fullscreen mode");
       break;
     default:
       break; /* TVENG_NO_CAPTURE */

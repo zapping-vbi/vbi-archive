@@ -64,9 +64,8 @@ x11_get_bpp(void)
   if (forced_bpp > 0)
     return forced_bpp;
 
-  tmp_image = gdk_image_new(GDK_IMAGE_FASTEST,
-			    gdk_visual_get_system(),
-			    16, 16);
+  tmp_image =
+    gdk_image_new(GDK_IMAGE_FASTEST, gdk_visual_get_system(), 16, 16);
 
   if (!tmp_image)
     return -1;
