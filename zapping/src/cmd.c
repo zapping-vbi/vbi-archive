@@ -258,7 +258,7 @@ static PyObject* py_resize_screen (PyObject *self _unused_, PyObject *args)
   if (!zapping)
     py_return_false;
 
-  subwindow = lookup_widget (GTK_WIDGET (zapping), "tv-screen")->window;
+  subwindow = GTK_WIDGET (zapping->video)->window;
   mw = gdk_window_get_toplevel(subwindow);
   ok = ParseTuple (args, "ii", &w, &h);
 
@@ -276,52 +276,6 @@ static PyObject* py_resize_screen (PyObject *self _unused_, PyObject *args)
   py_return_true;
 }
 
-static PyObject *
-py_hide_controls		(PyObject *		self _unused_,
-				 PyObject *		args)
-{
-  int hide;
-  int ok;
-
-  hide = 2; /* toggle */
-  ok = ParseTuple (args, "|i", &hide);
-
-  if (!ok)
-    g_error ("zapping.hide_controls(|i)");
-
-  zconf_set_boolean (hide, "/zapping/internal/callbacks/hide_controls");
-
-  py_return_none;
-}
-
-static PyObject *
-py_keep_on_top			(PyObject *		self _unused_,
-				 PyObject *		args)
-{
-  extern gboolean have_wm_hints;
-  int keep;
-  int ok;
-
-  if (!zapping)
-    py_return_false;
-
-  keep = 2; /* toggle */
-  ok = ParseTuple (args, "|i", &keep);
-
-  if (!ok)
-    g_error ("zapping.keep_on_top(|i)");
-
-  if (have_wm_hints)
-    {
-      if (keep > 1)
-        keep = !zconf_get_boolean (NULL, "/zapping/options/main/keep_on_top");
-      zconf_set_boolean (keep, "/zapping/options/main/keep_on_top");
-
-      x11_window_on_top (GTK_WINDOW (zapping), keep);
-    }
-
-  py_return_none;
-}
 
 static PyObject *py_help (PyObject *self _unused_, PyObject *args _unused_)
 {
@@ -353,12 +307,8 @@ startup_cmd (void)
   cmd_register ("about", py_about, METH_VARARGS,
 		("About Zapping"), "zapping.about()");
   cmd_register ("resize_screen", py_resize_screen, METH_VARARGS);
-  cmd_register ("hide_controls", py_hide_controls, METH_VARARGS,
-		("Show/hide menu and toolbar"), "zapping.hide_controls()");
   cmd_register ("help", py_help, METH_VARARGS,
 		("Zapping help"), "zapping.help()"); 
-  cmd_register ("keep_on_top", py_keep_on_top, METH_VARARGS,
-		("Keep window on top"), "zapping.keep_on_top()");
 }
 
 void
