@@ -1320,7 +1320,8 @@ z_switch_channel		(tveng_tuned_channel *	channel,
   if ((vi = tv_cur_video_input (info))
       && vi->type == TV_VIDEO_LINE_TYPE_TUNER)
     if (!tv_set_tuner_frequency (info, channel->frequ))
-      ShowBox(tv_get_errstr (info), GTK_MESSAGE_ERROR);
+      ShowBox("%s", GTK_MESSAGE_ERROR,
+	      tv_get_errstr (info));
 
   if (in_global_list)
     z_set_main_title(channel, NULL);

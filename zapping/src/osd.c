@@ -1200,7 +1200,7 @@ static PyObject* py_osd_render (PyObject *self _unused_, PyObject *args)
   if (!ok)
     g_error ("zapping.osd_render(s)");
 
-  osd_render (NULL, string);
+  osd_render (NULL, "%s", string);
 
   Py_INCREF(Py_None);
   return Py_None;

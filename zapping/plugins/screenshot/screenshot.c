@@ -839,7 +839,7 @@ screenshot_save			(screenshot_data *	data)
 
       window_title = g_strdup_printf (_("Sorry, but I cannot write %s\n%s"),
 				      data->filename, strerror (errno));
-      ShowBox (window_title, GTK_MESSAGE_ERROR);
+      ShowBox ("%s", GTK_MESSAGE_ERROR, window_title);
       g_free (window_title);
 
       goto failure;
@@ -1002,7 +1002,8 @@ preview (screenshot_data *data)
 	  goto restore;
 	}
 
-      data->backend->load (data, gdk_pixbuf_get_pixels (data->pixbuf),
+      data->backend->load (data,
+			   gdk_pixbuf_get_pixels (data->pixbuf),
 			   gdk_pixbuf_get_rowstride (data->pixbuf));
     }
   else /* backend doesn't support preview (lossless format?) */
@@ -1442,7 +1443,7 @@ screenshot_timeout (screenshot_data *data)
       num_threads--;
 
       if (data->error)
-	ShowBox(data->error, GTK_MESSAGE_ERROR);
+	ShowBox("%s", GTK_MESSAGE_ERROR, data->error);
 
       /* fall through */
 

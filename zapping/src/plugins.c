@@ -84,7 +84,7 @@ static gboolean plugin_load(gchar * file_name, struct plugin_info * info)
   if (!g_module_symbol (info->handle, "plugin_get_symbol",
 			(gpointer *) &info->get_symbol))
     {
-      g_warning(g_module_error());
+      g_warning("%s", g_module_error());
       g_module_close(info->handle);
       return FALSE;
     }

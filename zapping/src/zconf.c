@@ -190,7 +190,7 @@ zconf_init(const gchar * domain)
     {
       buffer = g_strconcat(domain,
 			   " cannot determine your home dir", NULL);
-      RunBox(buffer, GTK_MESSAGE_ERROR);
+      RunBox("%s", GTK_MESSAGE_ERROR, buffer);
       g_free(buffer);
       return FALSE;
     }
