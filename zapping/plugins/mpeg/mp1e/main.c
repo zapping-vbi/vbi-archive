@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.22 2000-09-29 17:54:31 mschimek Exp $ */
+/* $Id: main.c,v 1.23 2000-09-30 19:38:44 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -124,9 +124,10 @@ main(int ac, char **av)
 
 	options(ac, av);
 
-	if ((modules & MOD_SUBTITLES) && mux_syn >= 2)
-		FAIL("VBI multiplex not ready; use -X0 or -X1\n");
-	// XXX disable vbi if subtitle_pages == NULL (currently ignored for tests) 
+	if (subtitle_pages)
+		modules |= MOD_SUBTITLES;
+	else
+		modules &= ~MOD_SUBTITLES;
 
 	sigemptyset(&block_mask);
 	sigaddset(&block_mask, SIGINT);
@@ -249,6 +250,11 @@ main(int ac, char **av)
 	}
 
 	if (modules & MOD_SUBTITLES) {
+		if (!*subtitle_pages)
+			printv(1, "Recording Teletext, verbatim\n");
+		else
+			printv(1, "Recording Teletext, page %s\n", subtitle_pages);
+
 		vbi_init();
 	}
 
@@ -285,7 +291,7 @@ main(int ac, char **av)
 	sigprocmask(SIG_UNBLOCK, &block_mask, NULL);
 	// Unblock only in main thread
 
-	if ((modules & (MOD_VIDEO | MOD_AUDIO)) != (MOD_VIDEO | MOD_AUDIO)
+	if ((modules == MOD_VIDEO || modules == MOD_AUDIO)
 		&& mux_syn >= 2)
 		mux_syn = 1; // compatibility
 
@@ -310,14 +316,14 @@ main(int ac, char **av)
 				       mpeg1_system_mux, NULL));
 		break;
 	case 3:
-		printv(1, "MPEG-2 Program Stream");
+		printv(1, "MPEG-2 Program Stream\n");
 		ASSERT("create mpeg2 system mux",
 		       !pthread_create(&mux_thread, NULL,
 				       mpeg2_program_stream_mux, NULL));
 		break;
 	}
 
-	// unsafe: numframes, stop_time < mux finish time
+	// unsafe: numframes, stop_time < mux finish time, cuts off end code
 	/* wait until completition (SIGINT handler) */
 	do {
 		usleep(100000); /* 0.1 s*/

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.1 2000-09-29 17:54:33 mschimek Exp $ */
+/* $Id: vbi.c,v 1.2 2000-09-30 19:38:45 mschimek Exp $ */
 
 #include "../common/fifo.h"
 #include "../systems/mpeg.h"
@@ -139,6 +139,7 @@ vbi_thread(void *unused)
 				p += 46;
 			}
 
+			obuf->time = ibuf->time;
 			obuf->used = p - obuf->data;
 
 			send_full_buffer(vbi_fifo, obuf);
@@ -160,6 +161,8 @@ vbi_thread(void *unused)
 					if (decode_nrz(&ttxd, ibuf->data + i * vbi_para.samples_per_line, buf))
 						decode_ttx(NULL, buf, i);
 		}
+
+		send_empty_buffer(vbi_cap_fifo, ibuf);
 	}
 
 	printv(2, "VBI: End of file\n");

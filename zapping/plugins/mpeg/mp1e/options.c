@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.7 2000-09-29 17:54:31 mschimek Exp $ */
+/* $Id: options.c,v 1.8 2000-09-30 19:38:44 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -543,7 +543,7 @@ options(int ac, char **av)
 	if (!isatty(STDIN_FILENO))
 		options_from_file("stdin", FALSE);
 
-	while ((c = getopt_long(ac, av, "a:b:c:f:g:hi:lm:n:p:r:s:vwx:A:B:F:G:H:PS:VX:",
+	while ((c = getopt_long(ac, av, "a:b:c:f:g:hi:lm:n:p:r:s:vwx:A:B:F:G:H:I:M:PS:T:VX:",
 		long_options, &index)) != -1)
 		if (!parse_option(c))
 			usage(stderr);

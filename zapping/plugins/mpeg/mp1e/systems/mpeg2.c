@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg2.c,v 1.3 2000-09-29 17:54:33 mschimek Exp $ */
+/* $Id: mpeg2.c,v 1.4 2000-09-30 19:38:45 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -142,6 +142,8 @@ PS_system_header(unsigned char *p, double system_rate_bound)
 		} else if (IS_AUDIO_STREAM(str->stream_id)) {
 			put(p + 1, (0x3 << 14) + (0 << 13) + ((4096 + 127) >> 7), 2);
 			audio_bound++;
+		} else if (str->stream_id == PRIVATE_STREAM_1) {
+			put(p + 1, (0x3 << 14) + (0 << 13) + ((1504 + 127) >> 7), 2);
 		} else if (0 < (1 << (13 + 7))) {
 			put(p + 1, (0x3 << 14) + (0 << 13) + ((0 + 127) >> 7), 2);
 		} else
@@ -180,11 +182,24 @@ PES_packet_header(unsigned char *p, stream *str)
 {
 	put(p, PACKET_START_CODE + str->stream_id, 4);
 	put(p + 4, 0, 2); // |->
-	put(p + 6, (2 << 6) + (0 << 4) + (0 << 3) + (0 << 2) + (0 << 1) + (0 << 0), 1);
-	put(p + 7, (0 << 6) + (0 << 5) + (0 << 4) + (0 << 3) + (0 << 2) + (0 << 1) + (0 << 0), 1);
-	put(p + 8, 0x00FFFFFF, 4);
-	put(p + 12, 0xFFFFFFFF, 4);
-	put(p + 16, 0xFFFFFF, 3);
+
+	if (str->stream_id == PRIVATE_STREAM_1) {
+		put(p + 6, (2 << 6) + (0 << 4) + (0 << 3) + (1 << 2) + (0 << 1) + (0 << 0), 1);
+		put(p + 7, (0 << 6) + (0 << 5) + (0 << 4) + (0 << 3) + (0 << 2) + (0 << 1) + (0 << 0), 1);
+		put(p + 8, 0x00, 1);
+		memset(p + 9, 0xFF, 36);
+		put(p + 45, 0x10, 1); // data_identifier: EBU data
+
+		return p + 46;
+	} else {
+		put(p + 6, (2 << 6) + (0 << 4) + (0 << 3) + (0 << 2) + (0 << 1) + (0 << 0), 1);
+		put(p + 7, (0 << 6) + (0 << 5) + (0 << 4) + (0 << 3) + (0 << 2) + (0 << 1) + (0 << 0), 1);
+		put(p + 8, 0x00FFFFFF, 4);
+		put(p + 12, 0xFFFFFFFF, 4);
+		put(p + 16, 0xFFFFFF, 3);
+
+		return p + PES_PACKET_HEADER_SIZE;
+	}
 	/*
 	 *  packet_start_code_prefix [24], stream_id [8];
 	 *  PES_packet_length [16];
@@ -194,8 +209,6 @@ PES_packet_header(unsigned char *p, stream *str)
 	 *  additional_copy_info_flag, PES_CRC_flag, PES_extension_flag;
 	 *  PES_header_data_length [8]
 	 */
-
-	return p + PES_PACKET_HEADER_SIZE;
 }
 
 #define Rvid (1.0 / 1024)
@@ -214,7 +227,7 @@ next_access_unit(stream *str, double *ppts, unsigned char *ph)
 	if (!str->left)
 		return FALSE;
 
-	if (IS_VIDEO_STREAM(str->stream_id))
+	if (!IS_AUDIO_STREAM(str->stream_id))
 		str->eff_bit_rate +=
 			((buf->used * 8 * str->frame_rate)
 			 - str->eff_bit_rate) * Rvid;
@@ -240,7 +253,7 @@ next_access_unit(stream *str, double *ppts, unsigned char *ph)
 			default:
 				/* no time stamp */
 			}			
-		} else if (IS_AUDIO_STREAM(str->stream_id)) {
+		} else {
 			*ppts = str->dts;
 			ph[7] |= MARKER_PTS_ONLY << 6;
 			time_stamp(ph + 9, MARKER_PTS_ONLY, *ppts);
@@ -283,7 +296,7 @@ schedule(void)
 void *
 mpeg2_program_stream_mux(void *unused)
 {
-	unsigned char *p, *ph, *ps, *px;
+	unsigned char *p, *ph, *ps, *pl, *px;
 	unsigned long bytes_out = 0;
 	unsigned int pack_packet_count = PACKETS_PER_PACK;
 	unsigned int packet_count = 0;
@@ -345,7 +358,7 @@ mpeg2_program_stream_mux(void *unused)
 		ticks_per_pack = (packet_size * PACKETS_PER_PACK) / system_rate_bound * SYSTEM_TICKS;
 
 		for (str = (stream *) mux_input_streams.head; str; str = (stream *) str->node.next) {
-			if (IS_AUDIO_STREAM(str->stream_id)) {
+			if (!IS_VIDEO_STREAM(str->stream_id)) {
 				str->pts_offset = (double) SYSTEM_TICKS / (video_frame_rate * 1.0);
 				/* + 0.1 to schedule video frames first */
 				str->dts = preload_delay + 0.1;
@@ -390,7 +403,10 @@ reschedule:
 		ph = p;
 		ps = p;
 
-		p = PES_packet_header(p, str);
+		if (str->stream_id == PRIVATE_STREAM_1)
+			px -= (px - p) % 184;
+
+		pl = p = PES_packet_header(p, str);
 
 		/* Packet fill loop */
 
@@ -403,13 +419,13 @@ reschedule:
 				if (!next_access_unit(str, &pts, ph)) {
 					str->dts = LARGE_DTS * 2.0; // don't schedule stream
 
-					if (ph + PES_PACKET_HEADER_SIZE == p) {
+					if (pl == p) {
 						/* no payload */
 						p = ps;
 						goto reschedule;
 					}
 
-					if (FILL_UP) {
+					if (PAD_PACKETS || str->stream_id == PRIVATE_STREAM_1) {
 						memset(p, 0, px - p);
 						p = px;
 					}

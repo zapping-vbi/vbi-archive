@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: stream.h,v 1.2 2000-09-29 17:54:33 mschimek Exp $ */
+/* $Id: stream.h,v 1.3 2000-09-30 19:38:45 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "../common/types.h"
@@ -26,7 +26,7 @@
 
 #define PACKET_SIZE		2048
 #define PACKETS_PER_PACK	16
-#define FILL_UP			FALSE
+#define PAD_PACKETS		FALSE
 #define CONST_BIT_RATE		FALSE
 #define PAYLOAD_ALIGNMENT	1
 
