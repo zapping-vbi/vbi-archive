@@ -1,3 +1,11 @@
+23.9.2000	back again <garetxe@users.sourceforge.net>
+
+	* src/main.c: Added option for supporting old bttv devices.
+
+17.9.2000	fr.po updated <garetxe@users.sourceforge.net>
+
+	* po/fr.po: Updated (Christian Marillat)
+
 16.9.2000	/dev/dsp bug closed <garetxe@users.sourceforge.net>
 
 	* src/main.c: When VBI was disabled, the previous capture mode was

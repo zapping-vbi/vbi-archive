@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.3 2000-09-23 03:57:54 mschimek Exp $ */
+/* $Id: v4l.c,v 1.4 2000-09-24 20:58:06 garetxe Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -28,93 +28,84 @@
 #include "../videodev1.h"
 #include "../common/log.h"
 #include "../common/fifo.h"
+#include "../common/alloc.h"
 #include "../common/math.h"
 #include "../options.h"
 #include "video.h"
 
-void
-v4l_init(void)
-{
-	FAIL("V4L interface is unmaintained.\n");
-}
-
-#if 0
-
-static int			cap_fd;
-static int			uindex = -1;
-static unsigned char *		cap_buffer[256];
+static int			fd;
+static fifo 			cap_fifo;
 
 static struct video_capability	vcap;
 static struct video_channel	chan;
 static struct video_mbuf	buf;
 static struct video_mmap	vmmap;
 static struct video_audio	vaud;
+
+static int			vaud_flags;
+static int			vaud_volume;
 static int			cframe;
+static unsigned long		buf_base;
 
-static struct timeval		tv;
-
-extern int			min_cap_buffers;
-
-static void
-capture_on(void)
+static buffer *
+wait_full(fifo *f)
 {
-	for (cframe = 0; cframe < cap_buffers; cframe++)
+	buffer *b;
+	int r = -1;
+	struct timeval tv;
+	unsigned char * data;
+
+	while (r < 0)
 	{
 		vmmap.frame = cframe;
-		ASSERT("activate capturing", ioctl(cap_fd, VIDIOCMCAPTURE, &vmmap) == 0);
-	}
 
-	cframe = 0;
-}
-
-static unsigned char *
-wait_frame(double *time, int *buf_index)
-{
-	static double utime;
-	int r = -1;
-
-	if (uindex >= 0) {
-		*buf_index = uindex;
-		uindex = -1;
-		*time = utime;
-	} else
-	while (r <= 0)
-	{
-        	r = ioctl(cap_fd, VIDIOCSYNC, &cframe);
+        	r = ioctl(fd, VIDIOCSYNC, &(vmmap.frame));
 
 		gettimeofday(&tv, NULL);
 
 		if (r < 0 && errno == EINTR)
-                	continue;
+			continue;
 
 		ASSERT("execute video sync", r >= 0);
-
-		*time = utime = tv.tv_sec + tv.tv_usec / 1e6;
-		*buf_index = cframe;
-
-		break;
 	}
 
-	return cap_buffer[*buf_index];
-}
+	data = (unsigned char *)(buf_base + buf.offsets[cframe]);
 
-static void
-frame_done(int buf_index)
-{
-	vmmap.frame = buf_index;
-
-	ASSERT("enqueue capture buffer", ioctl(cap_fd, VIDIOCMCAPTURE, &vmmap) == 0);
+	b = f->buffers + cframe;
+	b->time = tv.tv_sec + tv.tv_usec / 1e6;
+	b->time -= (frame_rate_code == 3) ? (1.0/25.0) : (1.0/29.97);
 
 	cframe++;
+	if (cframe == f->num_buffers)
+		cframe = 0;
 
-	if (cframe == cap_buffers) cframe = 0;
+	vmmap.frame = cframe;
+	ASSERT("enqueue capture buffer",
+	       ioctl(fd, VIDIOCMCAPTURE, &vmmap) == 0);
+
+	memcpy(b->data, data, b->_size);
+
+	return b;
 }
 
 static void
-unget_frame(int buf_index)
+capture_on(void)
 {
-	assert(uindex < 0);
-	uindex = buf_index;
+	cframe = 0;
+}
+
+static void
+mute_restore(void)
+{
+	ASSERT("query audio capabilities",
+	       ioctl(fd, VIDIOCGAUDIO, &vaud) == 0);
+
+	fprintf(stderr, "muting again\n");
+
+	vaud.flags |= VIDEO_AUDIO_MUTE;
+	vaud.volume = 0;
+
+	ASSERT("Audio muting", ioctl(fd, VIDIOCSAUDIO, &vaud) == 0);
 }
 
 void
@@ -122,7 +113,7 @@ v4l_init(void)
 {
 	int aligned_width;
 	int aligned_height;
-	unsigned long buf_base;
+	unsigned long bufsize;
 
 	grab_width = width = saturate(width, 1, MAX_WIDTH);
 	grab_height = height = saturate(height, 1, MAX_HEIGHT);
@@ -130,24 +121,27 @@ v4l_init(void)
 	aligned_width  = (width + 15) & -16;
 	aligned_height = (height + 15) & -16;
 
-	ASSERT("open capture device", (cap_fd = open(cap_dev, O_RDONLY)) != -1);
-	ASSERT("query video capture capabilities", ioctl(cap_fd, VIDIOCGCAP, &vcap) == 0);
+	ASSERT("open capture device", (fd = open(cap_dev, O_RDONLY)) != -1);
+	ASSERT("query video capture capabilities", ioctl(fd, VIDIOCGCAP, &vcap) == 0);
 
 	if (!(vcap.type&VID_TYPE_CAPTURE))
 		FAIL("%s ('%s') is not a capture device", cap_dev, vcap.name);
 
-	ASSERT("query audio capabilities", ioctl(cap_fd, VIDIOCGAUDIO, &vaud) == 0);
+	ASSERT("query audio capabilities", ioctl(fd, VIDIOCGAUDIO, &vaud) == 0);
+
+	vaud_flags = vaud.flags;
+	vaud_volume = vaud.volume;
 
 	vaud.flags &= ~VIDEO_AUDIO_MUTE;
 	vaud.volume = 60000;
 
-	ASSERT("Audio unmuting", ioctl(cap_fd, VIDIOCSAUDIO, &vaud) == 0);
+	ASSERT("Audio unmuting", ioctl(fd, VIDIOCSAUDIO, &vaud) == 0);
 
-	ASSERT("unmute audio", ioctl(cap_fd, VIDIOCSAUDIO, &vaud) == 0);
+	atexit(mute_restore);
 
 	printv(2, "Opened %s ('%s')\n", cap_dev, vcap.name);
 
-	ASSERT("query video channel", ioctl(cap_fd, VIDIOCGCHAN, &chan) == 0);
+	ASSERT("query video channel", ioctl(fd, VIDIOCGCHAN, &chan) == 0);
 
 	if (chan.norm == 0) /* PAL */
 		frame_rate_code = 3;
@@ -166,7 +160,7 @@ v4l_init(void)
 	filter_mode = CM_YUV;
 	filter_init(vmmap.width);
 
-	ASSERT("request capture buffers", ioctl(cap_fd, VIDIOCGMBUF, &buf) == 0);
+	ASSERT("request capture buffers", ioctl(fd, VIDIOCGMBUF, &buf) == 0);
 
 	if (buf.frames == 0)
 		FAIL("No capture buffers granted");
@@ -176,19 +170,38 @@ v4l_init(void)
 	printv(3, "Mapping capture buffers.\n");
 
 	buf_base=(unsigned long)mmap(NULL, buf.size, PROT_READ,
-		  MAP_SHARED, cap_fd, 0);
+		  MAP_SHARED, fd, 0);
 
-	cap_buffer[0] = (unsigned char *)(buf_base + buf.offsets[0]);
+	ASSERT("map capture buffer", (int)buf_base != -1);
 
-	for (cap_buffers = 1; cap_buffers < buf.frames; cap_buffers++) {
-		cap_buffer[cap_buffers] = (unsigned char *)(buf_base + buf.offsets[cap_buffers]);
-		ASSERT("map capture buffer", (int) cap_buffer[cap_buffers] != -1);
+	ASSERT("init capture fifo", init_callback_fifo(&cap_fifo,
+		wait_full, NULL, NULL, NULL, 0, buf.frames));
+
+	cap_fifo.num_buffers = 0;
+	/* malloc() is needed because usually only 2 buffers are available */
+	bufsize = vmmap.width * vmmap.height * 1.5;
+
+	fprintf(stderr, "allocating %ld bytes\n", bufsize);
+
+	for (cap_fifo.num_buffers = 0; cap_fifo.num_buffers < buf.frames;
+		cap_fifo.num_buffers++) {
+		cap_fifo.buffers[cap_fifo.num_buffers].data =
+			cap_fifo.buffers[cap_fifo.num_buffers].allocated =
+			calloc_aligned(bufsize,
+				       bufsize < 4096 ? CACHE_LINE : 4096);
+		cap_fifo.buffers[cap_fifo.num_buffers]._size = bufsize;
+		ASSERT("allocate mem for the capture buffers",
+		       cap_fifo.buffers[cap_fifo.num_buffers].data);
+
+//		vmmap.frame = cap_fifo.num_buffers;
+//		ASSERT("queue buffer",
+//		       ioctl(fd, VIDIOCMCAPTURE, &vmmap) == 0);
 	}
 
-	video_start = capture_on;
-	video_wait_frame = wait_frame;
-	video_frame_done = frame_done;
-	video_unget_frame = unget_frame;
-}
+	vmmap.frame = 0;
+	ASSERT("queue buffer",
+	       ioctl(fd, VIDIOCMCAPTURE, &vmmap) == 0);
 
-#endif // 0
+	video_cap_fifo = &cap_fifo;
+	video_start = capture_on;
+}

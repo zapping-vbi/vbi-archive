@@ -2016,7 +2016,7 @@ static int p_tveng1_queue(tveng_device_info * info)
     }
 
   /* increase the queued index */
-  p_info -> queued = p_info -> queued ++;
+  p_info -> queued ++;
 
   return 0; /* Success */
 }

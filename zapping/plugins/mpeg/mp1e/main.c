@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.19 2000-09-23 03:56:13 mschimek Exp $ */
+/* $Id: main.c,v 1.20 2000-09-24 20:58:06 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,7 +38,7 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <asm/types.h>
-#include "videodev2.h"
+#include <linux/videodev.h>
 #include "audio/mpeg.h"
 #include "video/mpeg.h"
 #include "video/video.h"
