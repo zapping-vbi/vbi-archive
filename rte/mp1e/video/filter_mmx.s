@@ -17,7 +17,7 @@
 #  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 
-# $Id: filter_mmx.s,v 1.2 2001-08-22 01:28:10 mschimek Exp $
+# $Id: filter_mmx.s,v 1.3 2001-08-29 05:00:22 mschimek Exp $
 
 # int
 # mmx_YUV_420(unsigned char *buffer, unsigned char *unused)
@@ -274,16 +274,15 @@ mmx_YUYV_422:
 	movq		%mm2,128+0(%ebx);		paddd		%mm4,%mm7;
 	movq		24(%eax),%mm4;			movq		%mm0,%mm3;
 	movq		%mm0,%mm1;			punpcklwd	%mm4,%mm3;
-	decl		%ecx;				punpckhwd	%mm4,%mm1;
-	movq		%mm3,%mm2;			punpcklwd	%mm1,%mm3;
-	pand		%mm5,%mm0;			punpckhwd	%mm1,%mm2;
+	movq		%mm3,%mm2;			punpckhwd	%mm4,%mm1;
+	pand		%mm5,%mm0;			punpcklwd	%mm1,%mm3;
+	movq		%mm0,256-32(%edi);		punpckhwd	%mm1,%mm2;
 	movq		(%eax,%edx),%mm1;		pand		%mm5,%mm4;
-	movq		%mm0,256-32(%edi);		paddw		%mm0,%mm6;
-	psrlw		$8,%mm3;			pmaddwd		%mm0,%mm0;
-	movq		%mm4,256+8-32(%edi);		paddw		%mm4,%mm6;
-	psrlw		$8,%mm2;			pmaddwd		%mm4,%mm4;
-	movq		%mm3,8(%ebx);			paddd		%mm0,%mm7;
-	movq		(%eax,%edx,2),%mm0;		pand		%mm5,%mm1;
+	psrlw		$8,%mm3;			paddw		%mm0,%mm6;
+	movq		%mm4,256+8-32(%edi);		pmaddwd		%mm0,%mm0;
+	psrlw		$8,%mm2;			paddw		%mm4,%mm6;
+	movq		%mm3,8(%ebx);			pmaddwd		%mm4,%mm4;
+	paddd		%mm0,%mm7;			pand		%mm5,%mm1;
 	movq		%mm2,128+8(%ebx);		paddd		%mm4,%mm7;
 	movq		8(%eax,%edx),%mm2;		paddw		%mm1,%mm6;
 	movq		16(%eax,%edx),%mm3;		pand		%mm5,%mm2;
