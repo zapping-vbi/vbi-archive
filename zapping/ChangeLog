@@ -1,3 +1,8 @@
+1.3.2001	Lirc <garetxe@users.sourceforge.net>
+
+	* plugins/lirc: Added infrared support, written by Marco
+	Pfattner. Thanks a lot!
+
 28.2.2001	zconfhook <garetxe@users.sourceforge.net>
 
 	* zconf.c: Added gconfish notification mechanism, now the vbi

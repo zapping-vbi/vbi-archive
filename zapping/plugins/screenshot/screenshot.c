@@ -202,10 +202,12 @@ gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
 }
 
 static
-void plugin_get_info (gchar ** canonical_name, gchar **
-		  descriptive_name, gchar ** description, gchar **
-		  short_description, gchar ** author, gchar **
-		  version)
+void plugin_get_info (const gchar ** canonical_name,
+		      const gchar ** descriptive_name,
+		      const gchar ** description,
+		      const gchar ** short_description,
+		      const gchar ** author,
+		      const gchar ** version)
 {
   /* Usually, this one doesn't need modification either */
   if (canonical_name)
