@@ -1,25 +1,25 @@
 /*
- *  Zapping (TV viewer for the Gnome Desktop)
+ *  Zapping TV viewer
  *
- * Copyright (C) 2001 Iñaki García Etxebarria
- * Copyright (C) 2003 Michael H. Schimek
+ *  Copyright (C) 2000, 2001, 2002 Iñaki García Etxebarria
+ *  Copyright (C) 2000, 2001, 2002, 2003, 2004 Michael H. Schimek
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: window.h,v 1.1 2004-09-22 21:29:07 mschimek Exp $ */
+/* $Id: window.h,v 1.2 2004-11-03 06:47:44 mschimek Exp $ */
 
 #ifndef WINDOW_H
 #define WINDOW_H
@@ -52,8 +52,18 @@ struct _TeletextWindow
 
   /*< private >*/
 
+  GtkUIManager *	ui_manager;
+
   TeletextView *	view;
+
+  GtkMenuItem *		top_items;
+  vbi3_network		top_network;
+
+  GtkMenuItem *		channel_items;
+
   GtkMenuItem *		bookmarks_menu;
+
+  GtkCheckMenuItem *	encoding_auto_item;
 
   gboolean		toolbar_added;
   gboolean		statusbar_added;
