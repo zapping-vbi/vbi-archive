@@ -1114,6 +1114,7 @@ int tvengxv_attach_device(const char* device_file _unused_,
       snprintf(info->error, 256, "Cannot duplicate device name");
       goto error1;
     }
+
   switch (attach_mode)
     {
       /* In V4L there is no control-only mode */
@@ -1129,8 +1130,6 @@ int tvengxv_attach_device(const char* device_file _unused_,
   if (-1 == info -> fd)
     goto error1;
 
-  info->fd = -1;
-  
   info -> attach_mode = attach_mode;
   /* Current capture mode is no capture at all */
   info -> capture_mode = CAPTURE_MODE_NONE;
@@ -1266,7 +1265,7 @@ int tvengxv_attach_device(const char* device_file _unused_,
   info->caps.maxheight = 576;
 #endif
 
-  return info -> fd;
+  return info->fd;
 
  error1:
   if (info->file_name)
