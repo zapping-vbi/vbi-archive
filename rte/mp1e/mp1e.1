@@ -1,4 +1,4 @@
-.TH MP1E 1 "$Date: 2002-06-14 07:56:33 $" "mp1e manual" \" -*- nroff -*-
+.TH MP1E 1 "$Date: 2002-06-18 02:22:48 $" "mp1e manual" \" -*- nroff -*-
 .SH NAME
 mp1e \- realtime MPEG-1 audio/video encoder
 .SH SYNOPSIS
@@ -82,8 +82,6 @@ inserted to stand for numbers zero and up. For example img%04u.ppm
 will read img0000.ppm, img0001.ppm and so forth until there is no
 image of that name.
 .P
-As of version 1.9 the V4L interface is out of order. Contributions
-welcome.
 .RE
 .TP
 .BI "\-e, \-\-skip_method " "0 compatible | 1 mux | 2 fake_picture"
@@ -724,6 +722,10 @@ The ALSA and ESD interface in 1.9 doesn't work properly. Versions prior
 1.9.1 can hang due to a sync flaw and won't compile with ALSA devel libs
 0.9. The mixer volume wasn't set for the requested but the default PCM
 source by versions prior 1.9.2.
+.P
+Windows Media Player does not work well with mp1e files, reason unknown.
+Audio/Video sync is not rock solid, the problems are known to some
+extent, a solution to be found.
 .SH AUTHORS
 .IP \(em
 Michael H. Schimek (mschimek@users.sf.net)
@@ -739,5 +741,3 @@ and at
 .UR http://www.ibiblio.org
 www.ibiblio.org
 .UE
-
-
