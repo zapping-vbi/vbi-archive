@@ -895,10 +895,32 @@ on_plugins1_activate                   (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
   GtkWidget * plugin_properties = create_plugin_properties();
-  GtkWidget * text1 = lookup_widget(GTK_WIDGET(plugin_properties), "text1");
+  GtkWidget * text1 = lookup_widget(plugin_properties, "text1");
+  GList * p = g_list_first(plugin_list); /* Iterate through the
+					    plugins */
+  struct plugin_info * info;
+  gchar * clist2_entries[4]; /* Contains the entries for the CList */
+  gchar buffer[256];
+  GtkWidget * clist2 = lookup_widget(plugin_properties, "clist2");
+  buffer[255] = 0;
+  
   gtk_object_set_user_data(GTK_OBJECT(plugin_properties), menuitem);
   gtk_widget_set_sensitive(GTK_WIDGET(menuitem), FALSE);
   gtk_text_set_word_wrap(GTK_TEXT(text1), TRUE);
+
+  /* Add the plugins to the CList */
+  while (p)
+    {
+      info = (struct plugin_info*) p->data;
+      clist2_entries[0] = plugin_get_canonical_name(info);
+      clist2_entries[1] = plugin_get_name(info);
+      g_snprintf(buffer, 255, "%d.%d.%d", info -> major, info ->
+		 minor, info -> micro);
+      clist2_entries[2] = buffer;
+      clist2_entries[3] = plugin_running(info) ? _("Yes") : _("No");
+      gtk_clist_append(GTK_CLIST(clist2), clist2_entries);
+      p = p->next;
+    }
 
   gtk_widget_show(plugin_properties);
 }
@@ -912,19 +934,37 @@ on_clist2_select_row                   (GtkCList        *clist,
                                         gpointer         user_data)
 {
   GdkColor blue;
-
+  struct plugin_info * info;
   GtkText * text1 = GTK_TEXT(lookup_widget(GTK_WIDGET(clist), "text1"));
+  gchar buffer[256];
 
   /* lookup blue color */
   gdk_color_parse("blue", &blue);
   if (!gdk_colormap_alloc_color(gdk_rgb_get_cmap(), &blue,
 				TRUE, TRUE))
     return;
+
+  info = (struct plugin_info*) g_list_nth_data(plugin_list, row);
   
   gtk_text_freeze(text1); /* We are going to do a number of
 			     modifications */
   /* Delete all previous contents */
   gtk_editable_delete_text(GTK_EDITABLE(text1), 0, -1);
+
+  gtk_text_insert(text1, NULL, &blue, NULL, _("Plugin Description: "),
+		  -1);
+  gtk_text_insert(text1, NULL, NULL, NULL, plugin_get_info(info), -1);
+
+  gtk_text_insert(text1, NULL, &blue, NULL, _("\nPlugin author: "), -1);
+  gtk_text_insert(text1, NULL, NULL, NULL, plugin_author(info), -1);
+
+  g_snprintf(buffer, 255, "%d.%d.%d", info -> zapping_major, info ->
+	     zapping_minor, info -> zapping_micro);
+
+  /* Adapt this and " required" to your own language structure freely */
+  gtk_text_insert(text1, NULL, NULL, NULL, _("\nZapping "), -1);
+  gtk_text_insert(text1, NULL, &blue, NULL, buffer, -1);
+  gtk_text_insert(text1, NULL, NULL, NULL, _(" required"), -1);
 
   gtk_text_thaw(text1); /* Show the changes */
   gdk_colormap_free_colors(gdk_rgb_get_cmap(), &blue, 1);

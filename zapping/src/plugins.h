@@ -35,6 +35,16 @@ struct plugin_info{
   gchar* (*plugin_get_name)(); /* The name of the plugin */
   /* Init the plugin using the current video device, FALSE on error */
   gboolean (*plugin_init)(tveng_device_info * info);
+  /* The plugin should start if it isn't started yet. This should be
+     called from plugin_init automagically if the config said so (the
+     plugin itself should take care of that) */
+  gboolean (*plugin_start)();
+  /* Stop the plugin if it is running */
+  void (*plugin_stop)();
+  /* Returns TRUE if the plugin is running */
+  gboolean (*plugin_running)();
+  /* The name(s) of the plugin author(s) */
+  gchar* (*plugin_author)();
   /* Close plugin (for freeing memory, closing handles, etc) */
   void (*plugin_close)();
   /* Add the plugin to the GUI (update menus and toolbar), the
@@ -49,7 +59,7 @@ struct plugin_info{
      structure) */
   void (*plugin_eat_frame)(gchar * frame, struct v4l2_format *
 			   format);
-  /* TODO: Add properties and config */
+  /* FIXME: Add properties and config support */
 };
 
 /* Loads a plugin */
@@ -67,7 +77,15 @@ gchar * plugin_get_name(struct plugin_info * info);
    fail if the canonical name is NULL */
 gchar * plugin_get_canonical_name(struct plugin_info * info);
 
+/* Returns the long descriptive strings identifying the plugin and
+   descibing its use */
 gchar * plugin_get_info(struct plugin_info * info);
+
+/* Returns TRUE if the plugin is running now */
+gboolean plugin_running(struct plugin_info * info);
+
+/* The name of the plugin author */
+gchar * plugin_author(struct plugin_info * info);
 
 /* Loads all the valid plugins in the given directory, and appends them to
    the given GList. It returns the new GList. The plugins should

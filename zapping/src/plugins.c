@@ -98,6 +98,20 @@ gboolean plugin_load(gchar * file_name, struct plugin_info * info)
       return FALSE;
     }
 
+  info -> plugin_running = dlsym(info -> handle, "plugin_running");
+  if ((info -> error = dlerror()) != NULL)
+    {
+      dlclose(info -> handle);
+      return FALSE;
+    }
+
+  info -> plugin_author = dlsym(info -> handle, "plugin_author");
+  if ((info -> error = dlerror()) != NULL)
+    {
+      dlclose(info -> handle);
+      return FALSE;
+    }
+
   /* Get the plugin version */
   (*plugin_get_version)(&info->zapping_major, & info -> zapping_minor,
 			&info->zapping_micro, & info -> major,
@@ -140,11 +154,28 @@ gchar * plugin_get_canonical_name(struct plugin_info * info)
   return ((*info -> plugin_get_canonical_name)());
 }
 
+/* Gets the long descriptive string for the plugin */
 gchar * plugin_get_info(struct plugin_info * info)
 {
   gchar * returned_string = (*info->plugin_get_info)();
   if (!returned_string)
     return _("(No description provided for this plugin)");
+  else
+    return returned_string;
+}
+
+/* TRUE if the plugin says it's active */
+gboolean plugin_running(struct plugin_info * info)
+{
+  return ((*info->plugin_running)());
+}
+
+/* The name of the plugin author */
+gchar * plugin_author(struct plugin_info * info)
+{
+  gchar * returned_string = (*info->plugin_author)();
+  if (!returned_string)
+    return _("(Unknown author)");
   else
     return returned_string;
 }
