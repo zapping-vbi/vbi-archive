@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.1.1.1 2001-08-07 22:09:18 garetxe Exp $
+dnl $Id: configure.in,v 1.2 2001-08-08 23:01:58 garetxe Exp $
 
 AC_INIT(configure.in)
 AM_INIT_AUTOMAKE(mp1e, 1.9pre2)
@@ -48,6 +48,21 @@ for i in decoder.h decoder.c hamm.h hamm.c sliced.h tables.h tables.c v4lx.h v4l
 	}
 done
 
+RTE=..
+for i in rte.h rtepriv.h; do
+	test -e $i || {
+		test -f $RTE/$i || {
+			echo "Mp1e needs files from the Zapping CVS tree at" $VBILIB
+			echo "which is available from http://zapping.sourceforge.net."
+			echo "Sorry for the inconvenience."
+			exit 1
+		}
+		echo "creating link for" $i
+		dnl absolute path because make dist moves the tree
+		ln -s `cd $RTE; pwd; cd - >/dev/null`/$i $i || exit 1
+	}
+done
+		
 dnl Use this in the final release, debugging info until then
 dnl gcc3 -O0 makes mmx_mbsum segv, why?
 dnl CFLAGS="-Wall -O2 -fomit-frame-pointer"

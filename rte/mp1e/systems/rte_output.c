@@ -33,7 +33,7 @@
 #include "../common/fifo.h"
 #include "../common/log.h"
 #include "systems.h"
-#include "../../rtepriv.h"
+#include "../rtepriv.h"
 
 buffer *		(* mux_output)(buffer *b);
 

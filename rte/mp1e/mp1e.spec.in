@@ -4,7 +4,7 @@ Release: 1
 Summary: Real Time Software MPEG-1 Video/Audio Encoder
 Copyright: GPL
 Group: Applications/Multimedia
-Source: http://www.ibiblio.org/pub/Linux/apps/sound/convert/mp1e-%{version}.tar.bz2
+Source: http://www.ibiblio.org/pub/Linux/apps/sound/convert/mp1e-@VERSION@.tar.bz2
 Packager: Iñaki García Etxebarria <garetxe@users.sourceforge.net>
 Buildroot: %{_tmppath}/%{name}-root
 PreReq: /sbin/install-info

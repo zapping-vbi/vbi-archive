@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.3 2001-08-08 23:01:58 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -45,7 +45,7 @@
 #include "common/fifo.h"
 #include "main.h"
 
-#include "../rtepriv.h"
+#include "rtepriv.h"
 
 typedef struct {
 	rte_context_private	priv;

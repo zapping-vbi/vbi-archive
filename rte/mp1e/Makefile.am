@@ -13,7 +13,7 @@ man_MANS = mp1e.1
 ## We don't include mp1e.spec any more in the distro, use
 ## the prepare_dist script to generate an rpm.
 EXTRA_DIST = common/videodev.h common/videodev2.h \
-	mp1e.lsm.in mp1e.spec.in $(man_MANS)
+	mp1e.lsm.in mp1e.spec.in rte.h rtepriv.h $(man_MANS)
 
 libmp1e_la_SOURCES = global_data.c options.h main.h b_mp1e.c
 

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: afl.c,v 1.2 2001-08-08 05:24:36 mschimek Exp $ */
+/* $Id: afl.c,v 1.3 2001-08-08 23:01:58 garetxe Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -60,10 +60,10 @@ struct afl_context {
 };
 
 static void
-wait_full(fifo2 *f)
+wait_full(fifo *f)
 {
 	struct afl_context *afl = f->user_data;
-	buffer2 *b = PARENT(f->buffers.head, buffer2, added);
+	buffer *b = PARENT(f->buffers.head, buffer, added);
 
 	assert(b->data == NULL); /* no queue */
 
@@ -72,7 +72,7 @@ wait_full(fifo2 *f)
 
 		if (afl->eof) {
 			b->used = 0;
-			send_full_buffer2(&afl->pcm.producer, b);
+			send_full_buffer(&afl->pcm.producer, b);
 			return;
 		}
 
@@ -95,7 +95,7 @@ wait_full(fifo2 *f)
 
 			if (afl->left < afl->samples_per_frame) {
 				b->used = 0; /* EOF */
-				send_full_buffer2(&afl->pcm.producer, b);
+				send_full_buffer(&afl->pcm.producer, b);
 			}
 		}
 
@@ -110,24 +110,24 @@ wait_full(fifo2 *f)
 	b->time = afl->time;
 	afl->time += afl->frame_period;
 
-	send_full_buffer2(&afl->pcm.producer, b);
+	send_full_buffer(&afl->pcm.producer, b);
 }
 
 static void
 send_empty(consumer *c, buffer *b)
 {
 	// XXX
-	rem_node3(&c->fifo->full, &b->node);
+	rem_node(&c->fifo->full, &b->node);
 	b->data = NULL;
 }
 
-fifo2 *
+fifo *
 open_pcm_afl(char *name, int ignored1, bool ignored2)
 {
 	struct afl_context *afl;
 	int buffer_size;
 	int version, channels, rate;
-	buffer2 *b;
+	buffer *b;
 
 	ASSERT("allocate pcm context",
 		(afl = calloc(1, sizeof(struct afl_context))));
@@ -188,7 +188,7 @@ open_pcm_afl(char *name, int ignored1, bool ignored2)
 
 	buffer_size = (afl->scan_range + afl->look_ahead) * sizeof(short);
 
-	ASSERT("init afl fifo",	init_callback_fifo2(
+	ASSERT("init afl fifo",	init_callback_fifo(
 		&afl->pcm.fifo, "audio-afl",
 		NULL, NULL, wait_full, send_empty,
 		1, buffer_size));
@@ -198,7 +198,7 @@ open_pcm_afl(char *name, int ignored1, bool ignored2)
 
 	afl->pcm.fifo.user_data = afl;
 
-	b = PARENT(afl->pcm.fifo.buffers.head, buffer2, added);
+	b = PARENT(afl->pcm.fifo.buffers.head, buffer, added);
 
 	b->data = NULL;
 	b->used = (afl->samples_per_frame + afl->look_ahead) * sizeof(short);
