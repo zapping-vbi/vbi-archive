@@ -15,7 +15,7 @@ lookup_widget(GtkWidget * parent, const char * name);
  * loaded, but this is not recommended.
  */
 GtkWidget*
-build_widget(const char* name);
+build_widget(const char* name, const char* glade_file);
 GtkWidget* create_zapping (void);
 GtkWidget* create_channel_window (void);
 GtkWidget* create_zapping_properties (void);

@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-10-24 01:24+0200\n"
+"POT-Creation-Date: 2000-10-25 00:04+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -131,21 +131,21 @@ msgstr ""
 msgid "There's no GdkPixbuf support, VBI has been disabled"
 msgstr ""
 
-#: src/interface.c:52
+#: src/interface.c:49
 #, c-format
 msgid "Widget tree not found for %s"
 msgstr ""
 
-#: src/interface.c:61
+#: src/interface.c:58
 #, c-format
 msgid "Widget not found: %s"
 msgstr ""
 
-#: src/interface.c:131
+#: src/interface.c:128
 msgid "(C) Iñaki García Etxebarria"
 msgstr ""
 
-#: src/interface.c:133
+#: src/interface.c:130
 msgid "A TV viewer for the Gnome Desktop Environment"
 msgstr ""
 
@@ -1469,7 +1469,7 @@ msgstr ""
 
 #. hash collision code
 #. Warn
-#: plugins/mpeg/plugin.c:88 plugins/screenshot/screenshot.c:181
+#: plugins/mpeg/plugin.c:89 plugins/screenshot/screenshot.c:181
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr ""
@@ -1544,27 +1544,27 @@ msgstr ""
 msgid "There are too many threads"
 msgstr ""
 
-#: plugins/mpeg/plugin.c:29
+#: plugins/mpeg/plugin.c:30
 msgid "MPEG encoder"
 msgstr ""
 
-#: plugins/mpeg/plugin.c:31
+#: plugins/mpeg/plugin.c:32
 msgid "This plugin encodes the image and audio stream into a MPEG file"
 msgstr ""
 
-#: plugins/mpeg/plugin.c:33
+#: plugins/mpeg/plugin.c:34
 msgid "Encode the stream as MPEG."
 msgstr ""
 
-#: plugins/mpeg/plugin.c:193
-msgid "Not done yet!"
-msgstr ""
-
-#: plugins/mpeg/plugin.c:208
+#: plugins/mpeg/plugin.c:178 plugins/mpeg/plugin.c:245
 msgid "MPEG"
 msgstr ""
 
-#: plugins/mpeg/plugin.c:209
+#: plugins/mpeg/plugin.c:230
+msgid "Not done yet!"
+msgstr ""
+
+#: plugins/mpeg/plugin.c:246
 msgid "Store the data as MPEG"
 msgstr ""
 

@@ -13,15 +13,12 @@
 #include "callbacks.h"
 #include "interface.h"
 
-/* keep compiler happy, this is private */
-void interface_destroy_callback (GtkWidget * widget, gpointer data);
-
 /* The widget is being destroyed, destroy the GladeXML tree attached
    to it too */
-void interface_destroy_callback (GtkWidget * widget,
-				 gpointer data)
+static void interface_destroy_callback (GtkWidget * widget,
+					gpointer data)
 {
-  gtk_object_destroy(GTK_OBJECT(glade_get_widget_tree(widget)));
+  gtk_object_unref(GTK_OBJECT(glade_get_widget_tree(widget)));
 }
 
 /*
@@ -71,16 +68,16 @@ lookup_widget(GtkWidget * parent, const char * name)
  * loaded, but this is not recommended.
  */
 GtkWidget*
-build_widget(const char* name)
+build_widget(const char* name, const char* glade_file)
 {
-  GladeXML* xml = glade_xml_new(PACKAGE_DATA_DIR "/zapping.glade",
-      name);
+  GladeXML* xml = glade_xml_new(glade_file, name);
   GtkWidget * widget;
 
   if ( !xml )
     return NULL;
 
   widget = glade_xml_get_widget(xml, name);
+
   if ( !widget )
     return NULL;
 
@@ -91,27 +88,26 @@ build_widget(const char* name)
   gtk_signal_connect( GTK_OBJECT (widget), "destroy",
 		      GTK_SIGNAL_FUNC(interface_destroy_callback),
 		      NULL);
-
   return widget;
 }
 
 GtkWidget*
 create_zapping (void)
 {
-  return build_widget("zapping");
+  return build_widget("zapping", PACKAGE_DATA_DIR "/zapping.glade");
 }
 
 GtkWidget*
 create_channel_window (void)
 {
-  return build_widget("channel_window");
+  return build_widget("channel_window", PACKAGE_DATA_DIR "/zapping.glade");
 }
 
 GtkWidget*
 create_zapping_properties (void)
 {
 
-  return build_widget("zapping_properties");
+  return build_widget("zapping_properties", PACKAGE_DATA_DIR "/zapping.glade");
 }
 
 /*
@@ -140,23 +136,23 @@ create_about2 (void)
 GtkWidget*
 create_plugin_properties (void)
 {
-  return build_widget("plugin_properties");
+  return build_widget("plugin_properties", PACKAGE_DATA_DIR "/zapping.glade");
 }
 
 GtkWidget*
 create_popup_menu1 (void)
 {
-  return build_widget("popup_menu1");
+  return build_widget("popup_menu1", PACKAGE_DATA_DIR "/zapping.glade");
 }
 
 GtkWidget*
 create_searching (void)
 {
-  return build_widget("searching");
+  return build_widget("searching", PACKAGE_DATA_DIR "/zapping.glade");
 }
 
 GtkWidget*
 create_txtcontrols (void)
 {
-  return build_widget("txtcontrols");
+  return build_widget("txtcontrols", PACKAGE_DATA_DIR "/zapping.glade");
 }
