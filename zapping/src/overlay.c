@@ -102,6 +102,7 @@ static struct {
   gboolean clean_screen; /* TRUE if the whole screen will be cleared */
   gint clear_timeout_id; /* timeout for redrawing */
   gint check_timeout_id; /* timout for checking */
+  gboolean needs_cleaning; /* FALSE for XVideo and chromakey */
 } tv_info;
 
 static int malloc_count = 0;
@@ -116,8 +117,7 @@ overlay_get_clips(GdkWindow * window, gint * clipcount)
 
   g_assert(clipcount != NULL);
 
-  if (!window ||
-      tv_info.info->current_controller == TVENG_CONTROLLER_XV)
+  if (!window || !tv_info.needs_cleaning)
     {
       *clipcount = 0;
       return NULL;
@@ -189,8 +189,7 @@ overlay_clearing_timeout(gpointer data)
   }
 
   if ((tv_info.info->current_mode == TVENG_CAPTURE_WINDOW) &&
-      (tv_info.info->current_controller != TVENG_CONTROLLER_XV) &&
-      (tv_info.visible))
+      (tv_info.needs_cleaning) && (tv_info.visible))
     {
       if (tv_info.clean_screen)
 	x11_force_expose(0, 0, gdk_screen_width(), gdk_screen_height());
@@ -207,7 +206,7 @@ overlay_clearing_timeout(gpointer data)
   if (tv_info.info->current_mode == TVENG_CAPTURE_WINDOW)
     {
       overlay_sync(FALSE);
-      if (tv_info.info->current_controller != TVENG_CONTROLLER_XV)
+      if (tv_info.needs_cleaning)
 	{
 	  if (tv_info.visible)
 	    tveng_set_preview_on(tv_info.info);
@@ -236,7 +235,7 @@ overlay_status_changed(gboolean clean_screen)
 		    &(tv_info.clear_timeout_id));
 
   if ((tv_info.info->current_mode == TVENG_CAPTURE_WINDOW) &&
-      (tv_info.info->current_controller != TVENG_CONTROLLER_XV))
+      (tv_info.needs_cleaning))
     tveng_set_preview_off(tv_info.info);
 
   if (!tv_info.clean_screen)
@@ -348,8 +347,7 @@ on_osd_model_changed			(ZModel		*osd_model,
 {
   struct tveng_window window;
 
-  if (tv_info.clear_timeout_id >= 0 ||
-      tv_info.info->current_controller == TVENG_CONTROLLER_XV)
+  if (tv_info.clear_timeout_id >= 0 || !tv_info.needs_cleaning)
     return; /* there will be flicker (something else has changed) */
 
   if (tv_info.clips) {
@@ -415,16 +413,13 @@ startup_overlay(GtkWidget * window, GtkWidget * main_window,
   tv_info.visible = x11_window_viewable(window->window);
 
   tv_info.clear_timeout_id = -1;
-  if (info->current_controller != TVENG_CONTROLLER_XV)
-    tv_info.check_timeout_id =
-      gtk_timeout_add(CHECK_TIMEOUT, overlay_periodic_timeout,
-		      &(tv_info.check_timeout_id));
-  else
-    tv_info.check_timeout_id = -1;
   tv_info.clean_screen = FALSE;
   tv_info.clips = NULL;
   tv_info.clipcount = 0;
-  
+  if (info->current_controller == TVENG_CONTROLLER_XV)
+    tv_info.needs_cleaning = FALSE;
+  else
+    tv_info.needs_cleaning = TRUE;
   gdk_window_get_size(window->window, &tv_info.w, &tv_info.h);
   gdk_window_get_origin(window->window, &tv_info.x, &tv_info.y);
 
@@ -443,6 +438,7 @@ startup_overlay(GtkWidget * window, GtkWidget * main_window,
 	      gdk_window_set_background(window->window, &chroma);
 	      gdk_colormap_free_colors(gdk_colormap_get_system(), &chroma,
 				       1);
+	      tv_info.needs_cleaning = FALSE;
 	    }
 	  else
 	    ShowBox("Couldn't allocate chromakey, chroma won't work",
@@ -451,6 +447,13 @@ startup_overlay(GtkWidget * window, GtkWidget * main_window,
       else
 	gdk_window_set_back_pixmap(window->window, NULL, FALSE);
     }
+
+  if (tv_info.needs_cleaning)
+    tv_info.check_timeout_id =
+      gtk_timeout_add(CHECK_TIMEOUT, overlay_periodic_timeout,
+		      &(tv_info.check_timeout_id));
+  else
+    tv_info.check_timeout_id = -1;
 }
 
 /*
@@ -487,7 +490,7 @@ overlay_stop(tveng_device_info *info)
       tv_info.check_timeout_id = -1;
     }
 
-  if (info->current_controller != TVENG_CONTROLLER_XV)
+  if (tv_info.needs_cleaning)
     x11_force_expose(0, 0, gdk_screen_width(), gdk_screen_height());
 }
 
@@ -542,7 +545,7 @@ overlay_sync(gboolean clean_screen)
 
   /* The requested overlay coords might not be the definitive ones,
      adapt the clips */
-  if (tv_info.info->current_controller != TVENG_CONTROLLER_XV)
+  if (tv_info.needs_cleaning)
     {
       tv_info.clips = tv_info.info->window.clips =
 	overlay_get_clips(tv_info.window->window, &(tv_info.clipcount));

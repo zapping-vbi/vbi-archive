@@ -5,7 +5,8 @@ INCLUDES = \
 -I$(top_srcdir)/intl \
 $(ARCH_CFLAGS) \
 $(GNOME_INCLUDEDIR) \
-$(GDK_PIXBUF_CFLAGS)
+$(GDK_PIXBUF_CFLAGS) \
+$(UNICODE_CFLAGS)
 
 bin_PROGRAMS = zapping
 
