@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.14 2002-04-20 06:43:27 mschimek Exp $ */
+/* $Id: rte.c,v 1.15 2002-06-14 07:58:47 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -681,6 +681,18 @@ rte_stop(rte_context *context, double timestamp)
 /* rte_pause() TODO */
 /* rte_resume() TODO */
 
+/*
+ *  This functions returns context or codec status. It is not
+ *  client visible but wrapped in inline rte_context_status() and
+ *  rte_codec_status(). The @size argument is a compile time
+ *  constant on the client side, this permits upwards compatible
+ *  extensions to #rte_status.
+ *
+ *  No keywords because the app must look up values anyway, we're
+ *  in critical path and a struct is much faster than enum & strcmp.
+ *  A copy of #rte_status is returned because the values are calculated
+ *  on the fly and must be r/w locked.
+ */
 void
 rte_status_query(rte_context *context, rte_codec *codec,
 		 rte_status *status, int size)

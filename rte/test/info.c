@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: info.c,v 1.7 2002-06-12 04:01:43 mschimek Exp $ */
+/* $Id: info.c,v 1.8 2002-06-14 07:58:48 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -602,6 +602,8 @@ show_contexts (void)
 	puts("-- end of list --");
 }
 
+static const char *short_options = "c";
+
 static const struct option
 long_options[] = {
 	{ "check", no_argument, NULL, 'c' },
@@ -610,11 +612,11 @@ long_options[] = {
 int
 main (int argc, char **argv)
 {
-	int index, c;
+	int c;
 
 	printf("Welcome to Unimatrix 5, tertiary subunit of Zapping 6.\n\n");
 
-	while ((c = getopt_long(argc, argv, "c", long_options, &index)) != -1)
+	while ((c = getopt_long(argc, argv, short_options, long_options, NULL)) != -1)
 		switch (c) {
 		case 'c':
 			check = TRUE;

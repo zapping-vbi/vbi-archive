@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io.c,v 1.4 2002-06-12 04:01:43 mschimek Exp $ */
+/* $Id: io.c,v 1.5 2002-06-14 07:58:48 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -392,10 +392,18 @@ write_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
 static rte_bool
 seek_cb(rte_context *context, off64_t offset, int whence)
 {
+	if (fd == STDOUT_FILENO) {
+		fprintf(stderr, "Codec needs seeking which isn't possible on stdout.\n"
+			        "Please give argument -o filename\n");
+		exit(EXIT_FAILURE);
+	}
+
 	lseek64(fd, offset, whence);
 
 	return TRUE;
 }
+
+static const char *short_options = "d:o:q:s:x:";
 
 static const struct option
 long_options[] = {
@@ -414,7 +422,7 @@ long_options[] = {
 int
 main(int argc, char **argv)
 {
-	int index, c, i;
+	int c, i;
 	int queue_length;
 	char *errstr;
 	rte_bool r;
@@ -422,7 +430,8 @@ main(int argc, char **argv)
 
 	/* Options */
 
-	while ((c = getopt_long(argc, argv, "d:o:q:s:x:", long_options, &index)) != -1)
+	while ((c = getopt_long(argc, argv,
+				short_options, long_options, NULL)) != -1)
 		switch (c) {
 		case 0:
 			break;
@@ -450,11 +459,6 @@ main(int argc, char **argv)
 		default:
 			exit(EXIT_FAILURE);
 		}
-
-	if (!filename) {
-		fprintf(stderr, "Please give -o filename\n");
-		exit(EXIT_FAILURE);
-	}
 
 	if (num_codecs == 0) /* use default */
 		codec_key[num_codecs++] = "mpeg1_audio_layer2";
@@ -556,7 +560,14 @@ main(int argc, char **argv)
 
 	/* Start */
 
-	fd = open64(filename, O_WRONLY | O_CREAT | S_IRUSR | S_IWUSR);
+	if (filename)
+		fd = open64(filename,
+			    O_CREAT | O_TRUNC | O_WRONLY | O_LARGEFILE, 0
+			    | S_IRUSR | S_IWUSR
+			    | S_IRGRP | S_IWGRP
+			    | S_IROTH | S_IWOTH);
+	else
+		fd = STDOUT_FILENO;
 
 	if (fd == -1) {
 		fprintf(stderr, "Open failed: %d, %s\n", errno,  strerror(errno));

@@ -1,3 +1,9 @@
+2002-06-13	<mschimek@users.sf.net>
+
+	* src/context.h: Added seek flag to rte_context_info.
+	* src/codec.c, src/context.c: vbi_codec|context_info_keyword()
+	  cut option string off the keyword, a convenience.
+
 2002-06-06	<mschimek@users.sf.net>
 
 	* ffmpeg: Updated source to version 0.4.6 (CVS 2002-05-15).

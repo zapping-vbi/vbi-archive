@@ -7,7 +7,7 @@
   When you got mp1e from cvs, type "./autogen.sh" to create
   and run the configure script. You will need recent versions
   of the GNU build utilities automake, autoconf etc.
-  
+
   When the source comes from a .tgz or .rpm package, just
   type "./configure".
 
@@ -28,8 +28,18 @@
   under the terms of the GNU General Public License version 2 as
   published by the Free Software Foundation. NO WARRANTIES.
 
+  MPEG files created with this program are not derivative works in the
+  sense of the GPL2. You are free to do with them whatever you want.
+
   For a program compliant to the international standards ISO 11172
   and ISO 13818 it is inevitable to use methods covered by patents
   in various countries. The authors of this program disclaim any
   liability for patent infringement caused by using, modifying or
   redistributing this program.
+
+  Contributions
+  =============
+
+  Contributions to mp1e are welcome. As of 2002-06-01 all contributions
+  are considered in public domain unless you claim copyright by adding
+  a copyright notice, or by requesting such a notice be added.

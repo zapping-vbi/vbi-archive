@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rtepriv.h,v 1.13 2002-04-20 06:44:16 mschimek Exp $ */
+/* $Id: rtepriv.h,v 1.14 2002-06-14 07:58:47 mschimek Exp $ */
 
 #ifndef __RTEPRIV_H__
 #define __RTEPRIV_H__
@@ -102,16 +102,15 @@ struct rte_backend_class {
 /* Localization */
 
 #ifndef _
-#ifdef ENABLE_NLS
+#  ifdef ENABLE_NLS
 #    include <libintl.h>
 #    define _(String) gettext (String)
 #    ifdef gettext_noop
-#        define N_(String) gettext_noop (String)
+#      define N_(String) gettext_noop (String)
 #    else
-#        define N_(String) (String)
+#      define N_(String) (String)
 #    endif
-#else
-/* Stubs that do something close enough.  */
+#  else /* Stubs that do something close enough.  */
 #    define textdomain(String) (String)
 #    define gettext(String) (String)
 #    define dgettext(Domain,Message) (Message)
@@ -119,7 +118,7 @@ struct rte_backend_class {
 #    define bindtextdomain(Domain,Directory) (Domain)
 #    define _(String) (String)
 #    define N_(String) (String)
-#endif
+#  endif
 #endif
 
 /* Option info building */
@@ -181,6 +180,15 @@ struct rte_backend_class {
 #define RTE_OPTION_ARG_MENU(menu)					\
 	RTE_OPTION_ARG(int, 0, sizeof(menu) / sizeof(menu[0]))
 
+#define RTE_OPTION_ARG_SAT(type, min, max)				\
+({									\
+	type val = va_arg(args, type);					\
+									\
+	if (val < (min)) val = min;					\
+	else if (val > (max)) val = max;				\
+	val;								\
+})
+
 extern void			rte_unknown_option(rte_context *context, rte_codec *codec, const char *keyword);
 extern void			rte_invalid_option(rte_context *context, rte_codec *codec, const char *keyword, ...);
 
@@ -202,13 +210,13 @@ rte_error_reset(rte_context *context)
 	}
 }
 
-#define IRTF2(x) #x
-#define IRTF1(x) IRTF2(x)
+#define RTE_2(x) #x
+#define RTE_1(x) RTE_2(x)
 
 #define nullcheck(X, whattodo)						\
 do {									\
 	if ((X) == NULL) {						\
-		const char *s = "rte:" __FILE__ ":" IRTF1(__LINE__)	\
+		const char *s = "rte:" __FILE__ ":" RTE_1(__LINE__)	\
 				":%s: " #X " == NULL.\n";		\
 		if (context)						\
 			rte_error_printf(context, s,			\
