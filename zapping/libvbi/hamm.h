@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: hamm.h,v 1.13 2005-01-19 04:11:56 mschimek Exp $ */
+/* $Id: hamm.h,v 1.14 2005-01-24 00:07:49 mschimek Exp $ */
 
 #ifndef __ZVBI3_HAMM_H__
 #define __ZVBI3_HAMM_H__
@@ -169,7 +169,7 @@ vbi3_ham8			(unsigned int		c)
  * Data bits (D4 [msb] ... D1 [lsb]) or a negative
  * value if the byte contained incorrectable errors.
  */
-vbi3_inline unsigned int
+vbi3_inline int
 vbi3_unham8			(unsigned int		c)
 {
 	return _vbi3_hamm8_inv[(uint8_t) c];
