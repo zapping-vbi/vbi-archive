@@ -118,7 +118,7 @@ xv_image_rescale(gint w, gint h)
 #endif /* USE_XV */
 
 /*
- * Just live xv_image_rescale, but operates on the GdkImage
+ * Just like xv_image_rescale, but operates on the GdkImage
  */
 static void
 gdkimage_rescale(gint w, gint h)

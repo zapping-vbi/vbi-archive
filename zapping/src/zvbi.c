@@ -919,9 +919,13 @@ on_zvbi_expose_event		(GtkWidget	*widget,
 				 GdkEvent	*event,
 				 gpointer	user_data)
 {
-  if ((!vbi) || (!scaled_teletext_page) || (!vbi_mode) ||
-      (event->type != GDK_EXPOSE))
+  if ((!vbi) || (!vbi_mode) || (event->type != GDK_EXPOSE))
     return;
+
+#ifdef HAVE_GDKPIXBUF
+  if (!scaled_teletext_page)
+    return;
+#endif
 
   zvbi_do_redraw(widget, event->expose.area.x, event->expose.area.y,
 		 event->expose.area.width, event->expose.area.height);

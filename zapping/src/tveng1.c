@@ -252,33 +252,30 @@ int tveng1_attach_device(const char* device_file,
   info->standards = NULL;
   info->cur_standard = 0;
   error = tveng1_get_standards(info);
-  if (error < 1)
+  if (error < 0)
     {
-      if (error == 0) /* No standards */
-      {
-	info->tveng_errno = -1;
-	snprintf(info->error, 256, _("No standards for this device"));
-	fprintf(stderr, "%s\n", info->error);
-      }
       tveng1_close_device(info);
       return -1;
     }
 
 #ifndef TVENG_DISABLE_IOCTL_TESTS
   /* make another ioctl test, switch to first or default standard */
-  if (info->default_standard)
+  if (info->num_standards > 0)
     {
-      if (tveng1_set_standard_by_name(info->default_standard, info) ==
-	  -1)
+      if (info->default_standard)
+	{
+	  if (tveng1_set_standard_by_name(info->default_standard, info) ==
+	      -1)
+	    {
+	      tveng1_close_device(info);
+	      return -1;
+	    }
+	}
+      else if (tveng1_set_standard(&(info->standards[0]), info) == -1)
 	{
 	  tveng1_close_device(info);
 	  return -1;
 	}
-    }
-  else if (tveng1_set_standard(&(info->standards[0]), info) == -1)
-    {
-      tveng1_close_device(info);
-      return -1;
     }
 #endif
 
@@ -401,6 +398,10 @@ void tveng1_close_device(tveng_device_info * info)
     }
   if (info -> controls)
     free(info -> controls);
+
+  info -> num_controls = 0;
+  info -> num_standards = 0;
+  info -> num_inputs = 0;
 }
 
 /*

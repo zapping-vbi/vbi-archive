@@ -225,21 +225,16 @@ int tveng2_attach_device(const char* device_file,
   info->inputs = NULL;
   info->cur_input = 0;
   error = tveng2_get_inputs(info);
-  if (error < 1)
+  if (error < 0)
     {
-      if (error == 0) /* No inputs */
-      {
-	info->tveng_errno = -1;
-	snprintf(info->error, 256, _("No inputs for this device"));
-	fprintf(stderr, "%s\n", info->error);
-      }
       tveng2_close_device(info);
       return -1;
     }
 
 #ifndef TVENG_DISABLE_IOCTL_TESTS
   /* Make an ioctl test and switch to the first input */
-  if (tveng2_set_input(&(info->inputs[0]), info) == -1)
+  if ((info->num_inputs) &&
+      (tveng2_set_input(&(info->inputs[0]), info) == -1))
     {
       tveng2_close_device(info);
       return -1;
@@ -250,21 +245,16 @@ int tveng2_attach_device(const char* device_file,
   info->standards = NULL;
   info->cur_standard = 0;
   error = tveng2_get_standards(info);
-  if (error < 1)
+  if (error < 0)
     {
-      if (error == 0) /* No standards */
-      {
-	info->tveng_errno = -1;
-	snprintf(info->error, 256, _("No standards for this device"));
-	fprintf(stderr, "%s\n", info->error);
-      }
       tveng2_close_device(info);
       return -1;
     }
 
 #ifndef TVENG_DISABLE_IOCTL_TESTS
   /* make another ioctl test, switch to first standard */
-  if (tveng2_set_standard(&(info->standards[0]), info) == -1)
+  if ((info->num_standards) &&
+      (tveng2_set_standard(&(info->standards[0]), info) == -1))
     {
       tveng2_close_device(info);
       return -1;
@@ -317,11 +307,9 @@ int tveng2_attach_device(const char* device_file,
   info -> format.width = (info->caps.minwidth + info->caps.maxwidth)/2;
   info -> format.height = (info->caps.minheight +
 			   info->caps.maxheight)/2;
-  if (tveng2_set_capture_format(info) == -1)
-    {
-      tveng2_close_device(info);
-      return -1;
-    }
+
+  /* Set some capture format (not important) */
+  tveng2_set_capture_format(info);
 
   return info -> fd;
 }
@@ -393,6 +381,9 @@ void tveng2_close_device(tveng_device_info * info)
       free(info -> controls);
       info->controls = NULL;
     }
+  info->num_controls = 0;
+  info->num_standards = 0;
+  info->num_inputs = 0;
 }
 
 /*
