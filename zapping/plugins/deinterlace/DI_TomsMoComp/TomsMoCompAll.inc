@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// $Id: TomsMoCompAll.inc,v 1.1 2005-01-08 14:54:24 mschimek Exp $
+// $Id: TomsMoCompAll.inc,v 1.2 2005-02-05 22:21:18 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2002 Tom Barry  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -24,6 +24,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1  2005/01/08 14:54:24  mschimek
+// *** empty log message ***
+//
 // Revision 1.3  2002/12/10 16:32:21  adcockj
 // Fix StrangeBob for MMX
 //
@@ -126,7 +129,9 @@ BOOL FUNCT_NAME(TDeinterlaceInfo* pInfo)
 	// then go fill in the hard part, being variously lazy depending upon
 	// SearchEffort
 
-    if(UseStrangeBob == FALSE)
+    /* mhs XXX Search_Effort_n_SB uses pavgb, looks buggy. */
+    /* if(UseStrangeBob == FALSE) */
+    if (1)
     {
 		if (SearchEffort == 0)
 		{
