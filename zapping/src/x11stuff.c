@@ -378,9 +378,11 @@ xvzImage * xvzImage_new(enum tveng_frame_pixformat pixformat,
     g_malloc0(sizeof(struct _xvzImagePrivate));
   void * image_data = NULL;
   unsigned int xvmode = (pixformat == TVENG_PIX_YUYV) ? YUY2 : YV12;
-  int old_sync;
+  //  int old_sync;
 
-  old_sync = XSynchronize(GDK_DISPLAY(), True);
+  // FIXME: Broken, returned param is a int (*function)(Display *)
+  // not sure what's the way to fetch old sync value.
+  //  old_sync = XSynchronize(GDK_DISPLAY(), True);
 
   if (!port_grabbed)
     {
@@ -452,7 +454,8 @@ xvzImage * xvzImage_new(enum tveng_frame_pixformat pixformat,
         goto error2;
     }
 
-  XSynchronize(GDK_DISPLAY(), old_sync);
+  // FIXME: see above
+  //  XSynchronize(GDK_DISPLAY(), old_sync);
 
   new_image->w = new_image->private->image->width;
   new_image->h = new_image->private->image->height;
