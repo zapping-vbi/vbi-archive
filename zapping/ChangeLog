@@ -3,6 +3,7 @@
 	* callbacks.c: fixed channel ordering, reported by n0mada@terra.es.
 	* zconf.c: Fixed double free(), used xmlFree instead of g_free
 	where appropiate.
+	* fullscreen.c: Made channel accelerators work in fullscreen.
 
 15.06.2001	alirc, plugin properties <garetxe@users.sf.net>
 

@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.9 2001-05-18 22:15:09 garetxe Exp $
+ * $Id: fullscreen.c,v 1.10 2001-06-22 22:22:39 garetxe Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -43,6 +43,8 @@ static GdkCursor *fullscreen_cursor=NULL;
 
 extern GtkWidget * main_window;
 
+extern tveng_tuned_channel *global_channel_list;
+
 /* Comment out the next line if you don't want to mess with the
    XScreensaver */
 #define MESS_WITH_XSS 1
@@ -60,6 +62,9 @@ gboolean on_fullscreen_event (GtkWidget * widget, GdkEvent * event,
     GTK_MENU_ITEM(lookup_widget(window, "channel_down1"));
   GtkMenuItem * exit2 =
     GTK_MENU_ITEM(lookup_widget(window, "exit2"));
+  GtkWidget * Channels = lookup_widget(window, "Channels");
+  tveng_tuned_channel *tc;
+  gint i = 0;
 
   if (event->type == GDK_KEY_PRESS)
     {
@@ -86,6 +91,21 @@ gboolean on_fullscreen_event (GtkWidget * widget, GdkEvent * event,
 	      was_fullscreen = TRUE;
 	      on_go_windowed1_activate(go_windowed1, NULL);
 	      on_exit2_activate(exit2, NULL);
+	    }
+	  break;
+	default:
+	  while ((tc =
+		  tveng_retrieve_tuned_channel_by_index(i++,
+							global_channel_list)))
+	    {
+	      if ((kevent->keyval == tc->accel_key) &&
+		  ((tc->accel_mask & kevent->state) == tc->accel_mask))
+		{
+		  gtk_option_menu_set_history(GTK_OPTION_MENU(Channels),
+					      tc->index);
+		  on_channel_activate(NULL, GINT_TO_POINTER(tc->index));
+		  return TRUE;
+		}
 	    }
 	  break;
 	}
