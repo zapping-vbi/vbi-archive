@@ -19,12 +19,9 @@ Known bugs with zapping, don't report them
 	  both displayed and recorded, apparently due to incorrect scan
 	  line pitch. Happened with my driver and the v4l2 sample driver
 	  alike, so I suspect a bug in the capture routines.
-	* channel editor: input: add tuner;
-	  standard: don't change behaves strange.
-	  w/o tuner freq display is wrong.
 	* sometimes crash at termination.
 	* check on_trigger_clicked
-	* check html export blink attr
 	* Overlay (no XVideo) under E is broken, shading the window
 	isn't correctly detected.
 	* Do not assert on ESD timeout
+

@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.23 2001-11-22 17:51:07 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.24 2001-12-14 10:12:36 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -485,8 +485,7 @@ static void rte_video_init(rte_context *context, backend_private *priv)
 			assert(priv->video_codec);
 
 			rte_helper_set_option_va(priv->video_codec, "bit_rate", video_bit_rate);
-			/* vseg.frame_rate_code above
-			   rte_helper_set_option_va(priv->video_codec, "coded_frame_rate", ?); */
+			rte_helper_set_option_va(priv->video_codec, "coded_frame_rate", frame_rate);
 			rte_helper_set_option_va(priv->video_codec, "virtual_frame_rate",
 						 frame_rate);
 			rte_helper_set_option_va(priv->video_codec, "skip_method", 0);

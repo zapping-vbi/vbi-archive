@@ -25,6 +25,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <math.h>
 
 #define ZCONF_DOMAIN "/zapping/options/main/"
 #include "zmisc.h"
@@ -1114,4 +1115,202 @@ find_unused_name (const gchar * dir, const gchar * prefix,
     };
 
   return buf;
+}
+
+/*
+ *  "Spinslider"
+ */
+
+GtkAdjustment *
+z_spinslider_get_spin_adj		(GtkWidget *hbox)
+{
+  GtkAdjustment * adj;
+
+  adj = gtk_object_get_data (GTK_OBJECT (hbox), "spin_adj");
+  g_assert (adj);
+  return adj;
+}
+
+GtkAdjustment *
+z_spinslider_get_hscale_adj		(GtkWidget *hbox)
+{
+  GtkAdjustment * adj;
+
+  adj = gtk_object_get_data (GTK_OBJECT (hbox), "hscale_adj");
+  g_assert (adj);
+  return adj;
+}
+
+gfloat
+z_spinslider_get_value			(GtkWidget *hbox)
+{
+  GtkAdjustment * adj;
+
+  adj = gtk_object_get_data (GTK_OBJECT (hbox), "spin_adj");
+  g_assert (adj);
+  return adj->value;
+}
+
+void
+z_spinslider_set_value			(GtkWidget *hbox,
+					 gfloat value)
+{
+  GtkAdjustment * spin_adj, * hscale_adj;
+
+  spin_adj = gtk_object_get_data (GTK_OBJECT (hbox), "spin_adj");
+  hscale_adj = gtk_object_get_data (GTK_OBJECT (hbox), "hscale_adj");
+  g_assert (spin_adj && hscale_adj);
+  gtk_adjustment_set_value (spin_adj, value);
+  gtk_adjustment_set_value (hscale_adj, value);
+}
+
+void
+z_spinslider_set_reset_value		(GtkWidget *hbox,
+					 gfloat value)
+{
+  gfloat *reset_value =
+    gtk_object_get_data (GTK_OBJECT (hbox), "reset_value");
+
+  g_assert (reset_value);
+  *reset_value = value;
+}
+
+void
+z_spinslider_adjustment_changed		(GtkWidget *hbox)
+{
+  GtkAdjustment *spin_adj, *hscale_adj;
+
+  spin_adj = gtk_object_get_data (GTK_OBJECT (hbox), "spin_adj");
+  hscale_adj = gtk_object_get_data (GTK_OBJECT (hbox), "hscale_adj");
+  g_assert (spin_adj && hscale_adj);
+  hscale_adj->value = spin_adj->value;
+  hscale_adj->lower = spin_adj->lower;
+  hscale_adj->upper = spin_adj->upper + spin_adj->page_size;
+  hscale_adj->step_increment = spin_adj->step_increment;
+  hscale_adj->page_increment = spin_adj->page_increment;
+  hscale_adj->page_size = spin_adj->page_size;
+  gtk_adjustment_changed (spin_adj);
+  gtk_adjustment_changed (hscale_adj);
+}
+
+static void
+on_z_spinslider_hscale_changed		(GtkWidget *widget,
+					 GtkWidget *hbox)
+{
+  GtkAdjustment * spin_adj, * hscale_adj;
+
+  spin_adj = gtk_object_get_data (GTK_OBJECT (hbox), "spin_adj");
+  hscale_adj = gtk_object_get_data (GTK_OBJECT (hbox), "hscale_adj");
+  g_assert (spin_adj && hscale_adj);
+  if (spin_adj->value != hscale_adj->value)
+    gtk_adjustment_set_value (spin_adj, hscale_adj->value);
+}
+
+static void
+on_z_spinslider_spinbutton_changed	(GtkWidget *widget,
+					 GtkWidget *hbox)
+{
+  GtkAdjustment * spin_adj, * hscale_adj;
+
+  spin_adj = gtk_object_get_data (GTK_OBJECT (hbox), "spin_adj");
+  hscale_adj = gtk_object_get_data (GTK_OBJECT (hbox), "hscale_adj");
+  g_assert (spin_adj && hscale_adj);
+  if (spin_adj->value != hscale_adj->value)
+    gtk_adjustment_set_value (hscale_adj, spin_adj->value);
+}
+
+static void
+on_z_spinslider_reset			(GtkWidget *widget,
+					 GtkWidget *hbox)
+{
+  gfloat *reset_value =
+    gtk_object_get_data (GTK_OBJECT (hbox), "reset_value");
+
+  g_assert (reset_value);
+  z_spinslider_set_value (hbox, *reset_value);
+}
+
+GtkWidget *
+z_spinslider_new			(GtkAdjustment * spin_adj,
+					 GtkAdjustment * hscale_adj,
+					 gchar *unit, gfloat reset)
+{
+  GtkWidget * hbox;
+  GtkWidget * hscale;
+  GtkWidget * spinbutton;
+  GtkWidget * label;
+  GtkWidget * button;
+  gfloat * reset_value;
+  gint digits;
+
+  hbox = gtk_hbox_new (FALSE, 0);
+  gtk_object_set_data (GTK_OBJECT (hbox), "spin_adj", spin_adj);
+
+  /* Set decimal digits so that step increments < 1.0 become visible */
+  if (spin_adj->step_increment == 0.0
+      || (digits = floor(log10(spin_adj->step_increment))) > 0)
+    digits = 0;
+  /*
+  fprintf(stderr, "zss_new %f %f...%f  %f %f  %f  %d\n",
+	  spin_adj->value,
+	  spin_adj->lower, spin_adj->upper,
+	  spin_adj->step_increment, spin_adj->page_increment,
+	  spin_adj->page_size, digits);
+  */
+  spinbutton = gtk_spin_button_new (spin_adj, 1, -digits);
+  gtk_widget_show (spinbutton);
+  /* I don't see how to set "as much as needed", so hacking this up */
+  gtk_widget_set_usize (spinbutton, 80, -1);
+  gtk_spin_button_set_update_policy (GTK_SPIN_BUTTON (spinbutton),
+				     GTK_UPDATE_IF_VALID);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton), TRUE);
+  gtk_spin_button_set_wrap (GTK_SPIN_BUTTON (spinbutton), TRUE);
+  gtk_spin_button_set_snap_to_ticks (GTK_SPIN_BUTTON (spinbutton), TRUE);
+  gtk_spin_button_set_shadow_type (GTK_SPIN_BUTTON (spinbutton),
+				   GTK_SHADOW_NONE);
+  gtk_box_pack_start(GTK_BOX (hbox), spinbutton, FALSE, FALSE, 0);
+  gtk_signal_connect (GTK_OBJECT (spin_adj), "value-changed",
+		      GTK_SIGNAL_FUNC (on_z_spinslider_spinbutton_changed), hbox);
+
+  if (unit)
+    {
+      label = gtk_label_new (unit);
+      gtk_widget_show (label);
+      gtk_box_pack_start (GTK_BOX (hbox), label, FALSE, FALSE, 3);
+    }
+
+  /* Necessary to reach spin_adj->upper with slider */
+  if (!hscale_adj)
+    hscale_adj = GTK_ADJUSTMENT (gtk_adjustment_new (spin_adj->value,
+      spin_adj->lower, spin_adj->upper + spin_adj->page_size,
+      spin_adj->step_increment, spin_adj->page_increment,
+      spin_adj->page_size));
+  gtk_object_set_data (GTK_OBJECT (hbox), "hscale_adj", hscale_adj);
+  hscale = gtk_hscale_new (hscale_adj);
+  gtk_widget_show (hscale);
+  gtk_scale_set_draw_value (GTK_SCALE (hscale), FALSE);
+  gtk_scale_set_digits (GTK_SCALE (hscale), -digits);
+  gtk_box_pack_start (GTK_BOX (hbox), hscale, TRUE, TRUE, 3);
+  gtk_signal_connect (GTK_OBJECT (hscale_adj), "value-changed",
+		      GTK_SIGNAL_FUNC (on_z_spinslider_hscale_changed), hbox);
+
+  /*
+    button = gtk_button_new ();
+    gtk_widget_show (button);
+    pixmap =
+    gtk_widget_show (pixmap);
+    gtk_container_add (GTK_CONTAINER (button), pixmap);
+  */
+  button = gtk_button_new_with_label (_("Reset"));
+  gtk_widget_show (button);
+  gtk_box_pack_start (GTK_BOX (hbox), button, FALSE, FALSE, 0);
+  /* Sigh */
+  reset_value = g_malloc (sizeof (gfloat));
+  *reset_value = reset;
+  gtk_object_set_data_full (GTK_OBJECT (hbox), "reset_value", reset_value,
+			    (GtkDestroyNotify) g_free);
+  gtk_signal_connect (GTK_OBJECT (button), "pressed",
+		      GTK_SIGNAL_FUNC (on_z_spinslider_reset), hbox);
+
+  return hbox;
 }

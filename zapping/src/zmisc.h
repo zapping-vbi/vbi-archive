@@ -365,4 +365,28 @@ gchar*
 find_unused_name (const gchar * dir, const gchar * prefix,
 		  const gchar * suffix);
 
+/* hscale_adj and unit optional */
+GtkWidget *
+z_spinslider_new		(GtkAdjustment *spin_adj,
+				 GtkAdjustment *hscale_adj,
+				 gchar *unit,
+				 gfloat reset_value);
+GtkAdjustment *
+z_spinslider_get_spin_adj	(GtkWidget *hbox);
+GtkAdjustment *
+z_spinslider_get_hscale_adj	(GtkWidget *hbox);
+#define z_spinslider_get_adjustment(hbox) \
+  z_spinslider_get_spin_adj(hbox)
+gfloat
+z_spinslider_get_value		(GtkWidget *hbox);
+/* Change both adjustments or use this */
+void
+z_spinslider_set_value		(GtkWidget *hbox, gfloat value);
+void
+z_spinslider_set_reset_value	(GtkWidget *hbox,
+				 gfloat value);
+/* Change both adjustments or use this */
+void
+z_spinslider_adjustment_changed	(GtkWidget *hbox);
+
 #endif /* ZMISC.H */

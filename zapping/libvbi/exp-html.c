@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.27 2001-11-27 04:38:07 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.28 2001-12-14 10:12:13 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -49,6 +49,7 @@ typedef struct style {
 	int			ref_count;
 	int			foreground;
 	int			background;
+	unsigned int		flash : 1;
 } style;
 
 typedef struct html_data
@@ -163,8 +164,6 @@ escaped_fputs(FILE *fp, char *s)
 static const char *	html_underline[]	= { "</u>", "<u>" };
 static const char *	html_bold[]		= { "</b>", "<b>" };
 static const char *	html_italic[]		= { "</i>", "<i>" };
-static const char *	html_flash[]		=
-		{ "<div style=\"text-decoration: blink; \">", "</div>" };
 
 static void
 write_error(vbi_export *e)
@@ -284,11 +283,10 @@ header(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg)
 
 	case 36: /* Russian/Bulgarian */
 		if (!lang) lang = "ru";
-// XXX better KOI8-R?
 
 	case 37: /* Ukranian */
 		if (!lang) lang = "uk";
-		charset = "iso-8859-5";
+		charset = "koi8-r"; /* "iso-8859-5"; */
 		break;
 
 	case 64: /* Arabic/English */
@@ -356,6 +354,8 @@ header(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg)
 					hash_colour(d->fp, pg->colour_map[s->foreground]);
 					fputs("; background-color:", d->fp);
 					hash_colour(d->fp, pg->colour_map[s->background]);
+					if (s->flash)
+						fputs("; text-decoration: blink", d->fp);
 					fputs(" }" LF, d->fp);
 					ord++;
 				}
@@ -419,6 +419,7 @@ html_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pgp)
 	d->def.ref_count = 2;
 	d->def.foreground = d->foreground;
 	d->def.background = d->background;
+	d->def.flash = FALSE;
 
 	for (acp = pg.text, i = 0; i < pg.rows; acp += pg.columns, i++) {
 		int blank = 0;
@@ -490,7 +491,8 @@ html_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pgp)
 			style *s, **sp;
 
 			for (sp = &d->styles; (s = *sp); sp = &s->next) {
-				if (s->background != ac.background)
+				if (s->background != ac.background
+				    || ac.flash != s->flash)
 					continue;
 				if (ac.glyph == 0x20 || s->foreground == ac.foreground)
 					break;
@@ -501,6 +503,7 @@ html_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pgp)
 				*sp = s;
 				s->foreground = ac.foreground;
 				s->background = ac.background;
+				s->flash = ac.flash;
 			}
 
 			s->ref_count++;
@@ -528,12 +531,13 @@ html_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pgp)
 			     && ((acp[j].glyph != 0x20
 				  && acp[j].foreground != d->foreground)
 				 || acp[j].background != d->background))
-			    || d->link != acp[j].link) {
+			    || d->link != acp[j].link
+			    || d->flash != acp[j].flash) {
 				style *s;
 				int ord;
 
-				if (d->flash)
-					fputs(html_flash[0], d->fp);
+				/* if (d->flash)
+				   fputs(html_flash[0], d->fp); */
 				if (d->italic)
 					fputs(html_italic[0], d->fp);
 				if (d->bold)
@@ -550,7 +554,7 @@ html_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pgp)
 				d->underline  = FALSE;
 				d->bold	      = FALSE;
 				d->italic     = FALSE;
-				d->flash      = FALSE;
+				/* d->flash      = FALSE; */
 
 				if (acp[j].link && !d->link) {
 					vbi_link link;
@@ -574,7 +578,8 @@ html_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pgp)
 						if (s->ref_count > 1) {
 							if ((acp[j].glyph == 0x20
 							     || s->foreground == acp[j].foreground)
-							    && s->background == acp[j].background)
+							    && s->background == acp[j].background
+							    && s->flash == acp[j].flash)
 								break;
 							ord++;
 						}
@@ -583,14 +588,18 @@ html_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pgp)
 						if (s && !d->headerless) {
 							d->foreground = s->foreground;
 							d->background = s->background;
+							d->flash = s->flash;
 							fprintf(d->fp, "<span class=\"c%d\">", ord);
 						} else {
 							d->foreground = acp[j].foreground;
 							d->background = acp[j].background;
+							d->flash = s->flash;
 							fputs("<span style=\"color:", d->fp);
 							hash_colour(d->fp, pg.colour_map[d->foreground]);
 							fputs(";background-color:", d->fp);
 							hash_colour(d->fp, pg.colour_map[d->background]);
+							if (d->flash)
+								fputs("; text-decoration: blink", d->fp);
 							fputs("\">", d->fp);
 						}
 						
@@ -598,6 +607,7 @@ html_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pgp)
 					} else {
 						d->foreground = s->foreground;
 						d->background = s->background;
+						d->flash = s->flash;
 						d->span = FALSE;
 					}
 				}
@@ -618,10 +628,10 @@ html_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pgp)
 				fputs(html_italic[d->italic], d->fp);
 			}
 
-			if (acp[j].flash != d->flash) {
+			/* if (acp[j].flash != d->flash) {
 				d->flash = acp[j].flash;
 				fputs(html_flash[d->flash], d->fp);
-			}
+				} */
 
 #if TEST
 			if (!(rand() & 15))
@@ -636,8 +646,8 @@ html_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pgp)
 		fputc('\n', d->fp);
 	}
 
-	if (d->flash)
-		fputs(html_flash[0], d->fp);
+	/* if (d->flash)
+	   fputs(html_flash[0], d->fp); */
 	if (d->italic)
 		fputs(html_italic[0], d->fp);
 	if (d->bold)

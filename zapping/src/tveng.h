@@ -233,6 +233,7 @@ struct tveng_control{
   int id; /* control id */
   int min, max; /* Control ranges */
   int cur_value; /* The current control value */
+  int def_value; /* Default (reset) value */
   enum tveng_control_type type; /* The control type */
   char ** data; /* If this is a menu entry, pointer to a array of
 		   pointers to the labels, ended by a NULL pointer */

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.19 2001-12-07 06:50:24 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.20 2001-12-14 10:12:36 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -215,7 +215,7 @@ tmp_picture_i(mpeg1_context *mpeg1, unsigned char *org, bool motion)
 #endif
 			pr_end(41);
 
-			if (motion) {
+			if (motion && __builtin_expect(mpeg1->referenced, 1)) {
 				pr_start(56, "MB sum");
 				mmx_mbsum(newref + mm_buf_offs); // mblock[0]
 				pr_end(56);
@@ -484,9 +484,11 @@ tmp_picture_p(mpeg1_context *mpeg1, unsigned char *org,
 			pr_end(41);
 
 			if (motion) {
-				pr_start(56, "MB sum");
-				mmx_mbsum(newref + mm_buf_offs); // mblock[0]
-				pr_end(56);
+				if (__builtin_expect(mpeg1->referenced, 1)) {
+					pr_start(56, "MB sum");
+					mmx_mbsum(newref + mm_buf_offs); // mblock[0]
+					pr_end(56);
+				}
 
 				pr_start(51, "Predict forward");
 				vmc = predict_forward_motion(&M[0], mpeg1->oldref, dist);
@@ -2091,7 +2093,10 @@ video_init(rte_codec *codec, int cpu_type,
 		break;
 	}
 
-	if (mpeg1->motion_min && mpeg1->motion_max) {
+	assert(gop_validation(mpeg1, mpeg1->gop_sequence));
+
+	if (mpeg1->motion_min && mpeg1->motion_max
+	    && mpeg1->rc.np > 0 && mpeg1->rc.nb > 0) {
 #if REG_TEST
 		motion = (mpeg1->motion_min + mpeg1->motion_max) << 7;
 #else
@@ -2174,8 +2179,6 @@ video_init(rte_codec *codec, int cpu_type,
 
 	video_frames_dropped = 0;
 	video_frame_count = 0;
-
-	assert(gop_validation(mpeg1, mpeg1->gop_sequence));
 
 	{
 		mpeg1->mb_cx_row = mb_height;

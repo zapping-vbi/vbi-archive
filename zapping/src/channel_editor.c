@@ -43,44 +43,7 @@ extern tveng_device_info * main_info; /* About the device we are using */
 
 extern int cur_tuned_channel; /* Currently tuned channel */
 
-static GtkWidget *
-z_spinslider_new		(GtkAdjustment		*adj)
-{
-  GtkWidget * hbox;
-  GtkWidget * hscale;
-  GtkWidget * spinbutton;
-  
-  hbox = gtk_hbox_new(FALSE, 0);
-
-  hscale = gtk_hscale_new (GTK_ADJUSTMENT (adj));
-  gtk_widget_show (hscale);
-  gtk_box_pack_end_defaults(GTK_BOX (hbox), hscale);
-  gtk_scale_set_draw_value (GTK_SCALE(hscale), FALSE);
-  gtk_scale_set_digits (GTK_SCALE (hscale), 0);
-
-  spinbutton = gtk_spin_button_new(GTK_ADJUSTMENT (adj), 1, 0);
-  gtk_widget_show (spinbutton);
-  /* I don't see how to set "as much as needed", so hacking this up */
-  gtk_widget_set_usize(spinbutton, 80, -1);
-  gtk_box_pack_start(GTK_BOX (hbox), spinbutton, FALSE, FALSE, 0);
-  gtk_spin_button_set_update_policy (GTK_SPIN_BUTTON(spinbutton),
-				     GTK_UPDATE_IF_VALID);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON(spinbutton), TRUE);
-  gtk_spin_button_set_wrap (GTK_SPIN_BUTTON(spinbutton), TRUE);
-  gtk_spin_button_set_snap_to_ticks (GTK_SPIN_BUTTON(spinbutton), TRUE);
-  gtk_spin_button_set_shadow_type (GTK_SPIN_BUTTON(spinbutton),
-				   GTK_SHADOW_NONE);
-  
-  return (hbox);
-}
-
-static gfloat z_spinslider_get_value(GtkWidget	*channel_editor)
-{
-  gpointer adj = gtk_object_get_data(GTK_OBJECT(channel_editor),
-				     "spinslider_adj");
-
-  return GTK_ADJUSTMENT(adj)->value;
-}
+GtkStyle *istyle; /* Insensitive CList style */
 
 static void
 update_edit_buttons_sensitivity		(GtkWidget	*channel_editor)
@@ -204,6 +167,13 @@ build_channel_list(GtkCList *clist, tveng_tuned_channel * list)
 	}
 
       gtk_clist_append(clist, entry);
+
+      if (tuned_channel->input == 0)
+	{
+	  gtk_clist_set_cell_style (clist, i, 2, istyle);
+	  gtk_clist_set_cell_style (clist, i, 3, istyle);
+	  gtk_clist_set_cell_style (clist, i, 4, istyle);
+	}
     }
 
   gtk_clist_thaw(clist);
@@ -243,9 +213,18 @@ real_add_channel			(GtkWidget	*some_widget,
     tc.country = current_country -> name;
   else
     tc.country = NULL;
+  /*
+    See same sequence in on_modify_channel_clicked.
   if (main_info->inputs &&
       main_info->inputs[main_info->cur_input].tuners)
-    tc.freq = z_spinslider_get_value(channel_editor);
+  */
+    {
+      GtkWidget *spinslider =
+	gtk_object_get_data (GTK_OBJECT (channel_editor),
+			     "spinslider");
+
+      tc.freq = z_spinslider_get_value (spinslider);
+    }
   tc.accel_key = 0;
   buffer = gtk_entry_get_text(GTK_ENTRY(channel_accel));
   if (buffer)
@@ -322,29 +301,105 @@ static void
 set_slider(uint32_t freq, GtkWidget *channel_editor,
 	   tveng_device_info *info)
 {
-  GtkAdjustment *adj = GTK_ADJUSTMENT
-    (gtk_object_get_data(GTK_OBJECT(channel_editor), "spinslider_adj"));
-  GtkWidget *spinslider = GTK_WIDGET
-    (gtk_object_get_data(GTK_OBJECT(channel_editor), "spinslider"));
+  GtkWidget *spinslider =
+    gtk_object_get_data (GTK_OBJECT (channel_editor), "spinslider");
+  GtkAdjustment *spin_adj = z_spinslider_get_spin_adj (spinslider);
+  GtkAdjustment *hscale_adj = z_spinslider_get_hscale_adj (spinslider);
+
+  if (freq)
+    {
+      freq += 12;
+      freq -= freq % 25;
+
+      spin_adj -> value = freq;
+      spin_adj -> lower = 5000;
+      spin_adj -> upper = 900000;
+      spin_adj -> step_increment = 25;
+      spin_adj -> page_increment = 1e3;
+      spin_adj -> page_size = 0;
+
+      hscale_adj -> value = freq;
+      hscale_adj -> lower = freq - 1e4;
+      hscale_adj -> upper = freq + 1e4;
+      hscale_adj -> step_increment = 25;
+      hscale_adj -> page_increment = 1e3;
+      hscale_adj -> page_size = 0;
+
+      gtk_adjustment_changed (spin_adj);
+      gtk_adjustment_value_changed (spin_adj);
+      gtk_adjustment_changed (hscale_adj);
+      gtk_adjustment_value_changed (hscale_adj);
+      z_spinslider_set_reset_value (spinslider, freq);
+    }
 
   if (!freq || !info->inputs ||
       !info->inputs[info->cur_input].tuners)
     {
-      gtk_widget_set_sensitive(spinslider, FALSE);
+      gtk_widget_set_sensitive (spinslider, FALSE);
       return;
     }
 
-  gtk_widget_set_sensitive(spinslider, TRUE);
+  gtk_widget_set_sensitive (spinslider, TRUE);
+}
 
-  adj -> value = freq;
-  adj -> lower = freq - 1e4;
-  adj -> upper = freq + 1e4;
-  adj -> step_increment = 25;
-  adj -> page_increment = 1e3;
-  adj -> page_size = 0;
+static void
+on_input_changed		       (GtkWidget       *menu_item,
+					gpointer	*user_data)
+{
+  GtkWidget * channel_editor = lookup_widget (menu_item, "channel_editor");
+  gint selected = (gint) user_data;
+  tveng_device_info *info = main_info;
 
-  gtk_adjustment_changed(adj); /* Bounds changed */
-  gtk_adjustment_value_changed(adj); /* Value changed */
+  if (selected == 0) /* "don't change" */
+    return;
+
+  if (!info->inputs || (selected - 1) >= info->num_inputs)
+    return;
+
+  if (tveng_set_input (info->inputs + selected - 1, info) == -1)
+    return;
+
+  /* XXX zmodel_changed (z_input_model);
+     destroys this menu */
+
+  if (info->inputs[info->cur_input].tuners > 0)
+    {
+      GtkWidget *clist1 =
+	lookup_widget (GTK_WIDGET (channel_editor), "clist1");
+      GtkWidget *spinslider =
+	gtk_object_get_data (GTK_OBJECT (channel_editor), "spinslider");
+      GList *ptr;
+      uint32_t freq;
+
+      if (clist1)
+	for (ptr = GTK_CLIST(clist1)->row_list; ptr; ptr = ptr->next)
+	  if (GTK_CLIST_ROW(ptr)->state == GTK_STATE_SELECTED)
+	    {
+	      freq = z_spinslider_get_value (spinslider);
+	      break;
+	    }
+
+      if (clist1 && ptr && freq != 0)
+	{
+	  /* A channel is selected which has set the slider already,
+	   * we keep that freq (or whatever the user entered in the
+	   * meantime). Happens for baseband input and "don't change"
+	   * channels as well, so one can switch back and forth without
+	   * erasing the slider setting.
+	   */
+	  set_slider (freq, channel_editor, info);
+	  return;
+	}
+      else if (tveng_get_tune(&freq, info) != -1)
+	{
+	  set_slider (freq, channel_editor, info);
+	  return;
+	}
+      /* else: */
+    }
+
+  /* insensitive */
+  set_slider (0, channel_editor, info);
 }
 
 /* Called when the current country selection has been changed */
@@ -386,8 +441,8 @@ on_country_switch                      (GtkWidget       *menu_item,
   gtk_object_set_user_data ( GTK_OBJECT(clist1), country);
 }
 
-static void rebuild_inputs_standards(gpointer ignored,
-				     GtkWidget *widget)
+static void
+rebuild_inputs_and_standards (gpointer ignored, GtkWidget *widget)
 {
   GtkWidget * input = lookup_widget(widget, "attached_input");
   GtkWidget * standard = lookup_widget(widget, "attached_standard");
@@ -428,8 +483,10 @@ static void rebuild_inputs_standards(gpointer ignored,
 
   for (i = 0; i < main_info->num_inputs; i++)
   {
-    menu_item =
-      gtk_menu_item_new_with_label(main_info->inputs[i].name);
+    menu_item = gtk_menu_item_new_with_label(main_info->inputs[i].name);
+    gtk_signal_connect (GTK_OBJECT (menu_item), "activate",
+			GTK_SIGNAL_FUNC (on_input_changed),
+			(gpointer)(i + 1));
     gtk_widget_show (menu_item);
     gtk_menu_append(GTK_MENU (NewMenu), menu_item);
   }
@@ -674,13 +731,15 @@ on_channel_editor_delete_event         (GtkWidget       *widget,
   tveng_clear_tuned_channel(list);
 
   gtk_signal_disconnect_by_func(GTK_OBJECT(z_input_model),
-				GTK_SIGNAL_FUNC(rebuild_inputs_standards),
+				GTK_SIGNAL_FUNC(rebuild_inputs_and_standards),
 				ChannelWindow);
 
   zmodel_changed(z_input_model);
 
   /* Set the menuentry sensitive again */
   gtk_widget_set_sensitive(related_menuitem, TRUE);
+
+  gtk_style_unref (istyle);
 
   ChannelWindow = NULL; /* No more channel window */
 
@@ -763,6 +822,12 @@ on_channels1_activate                  (GtkMenuItem     *menuitem,
 	  tveng_retrieve_tuned_channel_by_index(i++, global_channel_list)))
     list = tveng_append_tuned_channel(tuned_channel, list);
 
+  istyle = gtk_style_copy (channel_editor->style);
+
+  /* Cough. */
+  istyle->fg[GTK_STATE_NORMAL] =
+    istyle->fg[GTK_STATE_INSENSITIVE];
+
   build_channel_list(GTK_CLIST(channel_list), list);
   
   /* Change contry to the currently tuned one */
@@ -777,21 +842,20 @@ on_channels1_activate                  (GtkMenuItem     *menuitem,
   gtk_widget_set_sensitive(GTK_WIDGET(menuitem), FALSE);
 
   /* Add fine tuning widget */
-  spinslider_adj =
-    GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, 0, 0, 0, 0));
-  spinslider = z_spinslider_new(spinslider_adj);
-  gtk_widget_set_sensitive(spinslider, FALSE);
-  gtk_widget_show(spinslider);
+  spinslider_adj = GTK_ADJUSTMENT
+    (gtk_adjustment_new (0, 0, 0, 0, 0, 0));
+  spinslider = z_spinslider_new (spinslider_adj, NULL, "kHz", 0);
+  gtk_widget_set_sensitive (spinslider, FALSE);
+  gtk_widget_show (spinslider);
   gtk_table_attach_defaults(GTK_TABLE(lookup_widget(channel_editor,
 						    "table72")),
 			    spinslider, 1, 2, 2, 3);
-  gtk_object_set_data(GTK_OBJECT(channel_editor), "spinslider", spinslider);
-  gtk_object_set_data(GTK_OBJECT(channel_editor), "spinslider_adj",
-		      spinslider_adj);
+  gtk_object_set_data (GTK_OBJECT (channel_editor),
+		       "spinslider", spinslider);
 
-  rebuild_inputs_standards(NULL, channel_editor);
+  rebuild_inputs_and_standards(NULL, channel_editor);
   gtk_signal_connect(GTK_OBJECT(z_input_model), "changed",
-		     GTK_SIGNAL_FUNC(rebuild_inputs_standards),
+		     GTK_SIGNAL_FUNC(rebuild_inputs_and_standards),
 		     channel_editor);
 
   gtk_signal_connect(GTK_OBJECT(lookup_widget(channel_editor, "known_keys")),
@@ -856,7 +920,7 @@ on_channels_done_clicked               (GtkButton       *button,
     GTK_WIDGET(gtk_object_get_user_data(GTK_OBJECT(channel_editor)));
 
   gtk_signal_disconnect_by_func(GTK_OBJECT(z_input_model),
-				GTK_SIGNAL_FUNC(rebuild_inputs_standards),
+				GTK_SIGNAL_FUNC(rebuild_inputs_and_standards),
 				ChannelWindow);
   zmodel_changed(z_input_model);
 
@@ -986,10 +1050,21 @@ on_modify_channel_clicked              (GtkButton       *button,
       tc.accel_key = gdk_keyval_from_name(buffer);
   if (tc.accel_key == GDK_VoidSymbol)
     tc.accel_key = 0;
+  /*
+    When this is a baseband input, tc.freq will be random.
+    You'll get it when switching back to tuner, so it's
+    even better to store the spinslider value (default 0)
+    instead of initializing to zero or some.
   if (main_info->inputs &&
       main_info->inputs[main_info->cur_input].tuners)
-    tc.freq =  z_spinslider_get_value(channel_editor);
+  */
+    {
+      GtkWidget *spinslider =
+	gtk_object_get_data (GTK_OBJECT (channel_editor),
+			     "spinslider");
 
+      tc.freq = z_spinslider_get_value (spinslider);
+    }
   tc.accel_mask = 0;
   widget = lookup_widget(clist1, "channel_accel_ctrl");
   tc.accel_mask |=
@@ -1162,7 +1237,7 @@ on_cancel_channels_clicked             (GtkButton       *button,
   tveng_clear_tuned_channel(list);
 
   gtk_signal_disconnect_by_func(GTK_OBJECT(z_input_model),
-				GTK_SIGNAL_FUNC(rebuild_inputs_standards),
+				GTK_SIGNAL_FUNC(rebuild_inputs_and_standards),
 				ChannelWindow);
 
   zmodel_changed(z_input_model);
@@ -1337,9 +1412,28 @@ on_channel_list_select_row             (GtkCList        *clist,
 
   if (main_info->inputs &&
       main_info->inputs[main_info->cur_input].tuners)
-    set_slider(list->freq, channel_editor, main_info);
-  else
-    set_slider(0, channel_editor, main_info);
+    {
+      set_slider(list->freq, channel_editor, main_info);
+    }
+  else if (list->input == 0)
+    {
+      /* Problematic. This is a "don't change input" and
+       * despite displaying a RF the user can't change it
+       * because we're not switched to a tuner, and we can't
+       * switch to a tuner either. (Which one? Making this
+       * silently a "tuner input channel"? The whole "don't
+       * change" channel idea is kind of odd.)
+       *
+       * Anyway we set the slider to this freq for
+       * on_input_changed while keeping it disabled. Same
+       * below, see on_modify_channel_clicked and real_add_channel.
+       */
+      set_slider(list->freq, channel_editor, main_info);
+    }
+  else /* decidedly baseband input */
+    {
+      set_slider(list->freq, channel_editor, main_info);
+    }
 
   widget = lookup_widget(channel_accel, "attached_standard");
   if (list->standard)
@@ -1354,6 +1448,7 @@ on_channel_list_select_row             (GtkCList        *clist,
     z_option_menu_set_active(widget, 0);
 
   widget = lookup_widget(channel_accel, "attached_input");
+
   if (list->input)
     {
       input = tveng_find_input_by_hash(list->input, main_info);

@@ -63,3 +63,4 @@ void	   zmodel_changed			(ZModel		 *model);
 
 
 #endif /* __ZMODEL_H__ */
+

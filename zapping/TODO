@@ -24,8 +24,6 @@ Outstanding issues for the next release (0.6.2)
 	  dump: VTX.
 	+ Take TTX out of the context menus when Zapping doesn't
 	  receive TTX. (event timestamps?)
-	+ After hitting trigger close button, repetition of same message
-	  should be suppressed, maybe with a short history.
 	+ TTX program name
 	+ Volume bindings
 
@@ -43,9 +41,19 @@ Outstanding issues for the next release (0.6.2)
 	+ Trigger: Close should remember it had been clicked already
 	  when a trigger is merely repeated.
 	+ Recording schedule.
+	+ Screenshot plugin: subtitle overlay
+	+ xawtv style pointer hiding
+	  "* Killed all the old mouse pointer handling code and the assorted 
+	  config config options / cmd line switches. Replaced it with a simple 
+	  timeout logic: If you don't move the mouse for some time xawtv will 
+	  hide the pointer. Any pointer motion event will show the pointer again."
+	+ TTX export ANSI colors needs improvement.
 
 please tell me about anything you think it's worth adding. 
 garetxe@users.sourceforge.net
+
+
+
 
 
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.13 2001-11-22 17:48:11 mschimek Exp $ */
+/* $Id: options.c,v 1.14 2001-12-14 10:12:14 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -79,7 +79,7 @@ do_option_control (GtkWidget *w, gpointer user_data)
       || !(ro = rte_option_info_by_keyword (opts->codec, keyword)))
     return;
 
-  /* XXX rte_option_set errors ignored */
+  /* rte_option_set errors ignored */
 
   if (ro->entries > 0)
     {
@@ -95,24 +95,18 @@ do_option_control (GtkWidget *w, gpointer user_data)
 	    break;
           case RTE_OPTION_INT:
           case RTE_OPTION_REAL:
-	    g_assert ((label = (GtkLabel *)
-		       gtk_object_get_data (GTK_OBJECT (w), "label")));
 	    if (ro->type == RTE_OPTION_INT)
 	      {
-	        val.num = GTK_ADJUSTMENT (w)->value;
-		if (val.num < 0)
-		  val.num += val.num % ro->step.num;
-		else
-		  val.num -= val.num % ro->step.num;
+		val.num = rint(GTK_ADJUSTMENT (w)->value
+			       / GTK_ADJUSTMENT (w)->step_increment);
+		val.num *= ro->step.num;
 	      }
 	    else
 	      {
-	        val.dbl = GTK_ADJUSTMENT (w)->value;
+		val.dbl = GTK_ADJUSTMENT (w)->value
+		  * ro->step.dbl / GTK_ADJUSTMENT (w)->step_increment;
 		val.dbl = rint(val.dbl / ro->step.dbl) * ro->step.dbl;
 	      }
-	    s = rte_option_print(opts->codec, ro->keyword, val);
-	    gtk_label_set_text (label, s);
-	    free (s);
 	    break;
           case RTE_OPTION_MENU:
 	    g_assert_not_reached();
@@ -140,28 +134,8 @@ on_option_control (GtkWidget *w, gpointer user_data)
   if (GTK_IS_WIDGET (w))
     z_property_item_modified (w);
   else if (GTK_IS_ADJUSTMENT (w))
-    z_property_item_modified ((GtkWidget*)gtk_object_get_data
-			      (GTK_OBJECT (w), "label"));
-}
-
-static void
-on_reset_slider (GtkWidget *w, gpointer user_data)
-{
-  grte_options *opts = (grte_options *) user_data;
-  GtkWidget *adj = (GtkWidget *) gtk_object_get_data (GTK_OBJECT (w), "adj");
-  char *keyword = (char *) gtk_object_get_data (GTK_OBJECT (w), "key");
-  rte_option_info *ro;
-
-  g_assert (opts && adj && keyword);
-
-  if (!(ro = rte_option_info_by_keyword (opts->codec, keyword)))
-    return;
-
-  gtk_adjustment_set_value (GTK_ADJUSTMENT (adj),
-			    (ro->type == RTE_OPTION_INT) ?
-			     ro->def.num : ro->def.dbl);
-
-  on_option_control (adj, opts);
+    z_property_item_modified ((GtkWidget *) gtk_object_get_data
+			      (GTK_OBJECT (w), "spinslider"));
 }
 
 static void
@@ -276,30 +250,18 @@ create_menu (grte_options *opts, rte_option_info *ro, int index)
 static void
 create_slider (grte_options *opts, rte_option_info *ro, int index)
 { 
-  GtkWidget *label1; /* This shows what the menu is for */
-  GtkWidget *label2; /* Displays the current value */
-  GtkWidget *hbox; /* Slider/button pair */
-  GtkWidget *hscale;
-  GtkWidget *button; /* Reset button */
+  GtkWidget *label; /* This shows what the menu is for */
+  GtkWidget *spinslider;
   GtkObject *adj; /* Adjustment object for the slider */
-  gfloat def, min, max, step, foo;
+  gdouble def, min, max, step, big_step, div, maxp;
   rte_option_value val;
   char *s;
 
-  label1 = ro_label_new (ro);
-
+  label = ro_label_new (ro);
   s = rte_option_print (opts->codec, ro->keyword, ro->max);
-  label2 = gtk_label_new (s);
-  free (s);
-  gtk_misc_set_alignment (GTK_MISC (label2), 1.0, 0.5);
-  gtk_misc_set_padding (GTK_MISC (label2), 3, 0);
-  gtk_widget_show (label2);
-
-  hbox = gtk_hbox_new (FALSE, 0);
-  gtk_widget_show (hbox);
-
+  maxp = strtod (s, &s);
+  while (*s == ' ') s++;
   g_assert (rte_option_get (opts->codec, ro->keyword, &val));
-
   if (ro->type == RTE_OPTION_INT)
     {
       def = ro->def.num; step = ro->step.num;
@@ -311,45 +273,27 @@ create_slider (grte_options *opts, rte_option_info *ro, int index)
       def = ro->def.dbl; step = ro->step.dbl;
       min = ro->min.dbl; max = ro->max.dbl;
     }
-
-  foo = (max - min + step) / 10;
+  div = maxp / max;
+  if (div > 1.0)
+    div = 1.0;
+  big_step = (max - min + step) / 10;
   if (0)
     fprintf(stderr, "slider %s: def=%f min=%f max=%f step=%f foo=%f cur=%f\n",
 	    ro->keyword, (double) def, (double) min,
-	    (double) max, (double) step, (double) foo, val.dbl);
-  adj = gtk_adjustment_new (def, min, max + foo, step, step, foo);
-  gtk_adjustment_set_value (GTK_ADJUSTMENT (adj), val.dbl);
+	    (double) max, (double) step, (double) big_step, val.dbl);
+  adj = gtk_adjustment_new (val.dbl * div, min * div, max * div,
+			    step * div, big_step * div, big_step * div);
+  spinslider = z_spinslider_new (GTK_ADJUSTMENT (adj), NULL, s, def * div);
   gtk_object_set_data (GTK_OBJECT (adj), "key", ro->keyword);
-  gtk_object_set_data (GTK_OBJECT (adj), "label", label2);
+  gtk_object_set_data (GTK_OBJECT (adj), "spinslider", spinslider);
   gtk_signal_connect (GTK_OBJECT (adj), "value-changed",
 		      GTK_SIGNAL_FUNC (on_option_control), opts);
-
-  hscale = gtk_hscale_new (GTK_ADJUSTMENT (adj));
-  gtk_scale_set_draw_value (GTK_SCALE (hscale), FALSE);
-  set_tooltip (hscale, _(ro->tooltip));
-  gtk_widget_show (hscale);
-  gtk_box_pack_start (GTK_BOX (hbox), hscale, TRUE, TRUE, 0);
-
-  do_option_control ((GtkWidget *) adj, opts);
-
-  button = gtk_button_new_with_label (_("Reset"));
-  gtk_object_set_data (GTK_OBJECT (button), "key", ro->keyword);
-  gtk_object_set_data (GTK_OBJECT (button), "adj", adj);
-  gtk_signal_connect (GTK_OBJECT (button), "pressed",
-		      GTK_SIGNAL_FUNC (on_reset_slider), opts);
-  gtk_widget_show (button);
-  gtk_box_pack_end (GTK_BOX (hbox), button, FALSE, FALSE, 0);
-
+  gtk_widget_show (spinslider);
   gtk_table_resize (GTK_TABLE (opts->table), index + 1, 2);
-  gtk_table_attach (GTK_TABLE (opts->table), label1, 0, 1, index, index + 1,
+  gtk_table_attach (GTK_TABLE (opts->table), label, 0, 1, index, index + 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 3, 3);
-  gtk_table_attach (GTK_TABLE (opts->table), label2, 1, 2,
-                    index, index + 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 3, 3);
-  gtk_table_attach (GTK_TABLE (opts->table), hbox, 2, 3,
-                    index, index + 1,
+  gtk_table_attach (GTK_TABLE (opts->table), spinslider, 1, 3, index, index + 1,
                     (GtkAttachOptions) (GTK_FILL | GTK_EXPAND),
                     (GtkAttachOptions) (0), 3, 3);
 }

@@ -741,6 +741,7 @@ p_tvengxv_build_controls(tveng_device_info *info)
   struct private_tvengxv_device_info * p_info =
     (struct private_tvengxv_device_info *) info;
   struct tveng_control control;
+  int r;
 
   t_assert(info != NULL);
 
@@ -849,7 +850,11 @@ p_tvengxv_build_controls(tveng_device_info *info)
     }
 
   /* fill in with the proper values */
-  return (tvengxv_update_controls(info));
+  r = tvengxv_update_controls(info);
+
+  control.def_value = control.cur_value;
+
+  return r;
 }
 
 static int

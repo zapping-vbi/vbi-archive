@@ -23,6 +23,8 @@
   the name is TV Engine, since it is intended mainly for TV viewing.
   This file is separated so zapping doesn't need to know about V4L[2]
 */
+#include <site_def.h>
+
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
@@ -160,6 +162,11 @@ static int p_tveng2_open_device_file(int flags, tveng_device_info * info)
     info->caps.flags |= TVENG_CAPS_TELETEXT;
   if (caps.flags & V4L2_FLAG_MONOCHROME)
     info->caps.flags |= TVENG_CAPS_MONOCHROME;
+
+#ifdef TVENG2_FAKE_TUNER
+  fprintf (stdout, "Faking tuner\n");
+  info->caps.flags |= TVENG_CAPS_TUNER;
+#endif
 
   if (caps.flags & V4L2_FLAG_PREVIEW)
     {
@@ -468,6 +475,20 @@ int tveng2_get_inputs(tveng_device_info * info)
 	info->inputs[i].flags |= TVENG_INPUT_AUDIO;
     }
 
+#ifdef TVENG2_FAKE_TUNER
+  info->inputs = realloc(info->inputs, (i+1)*
+			 sizeof(struct tveng_enum_input));
+  info->inputs[i].id = 100;
+  info->inputs[i].index = i;
+  snprintf(info->inputs[i].name, 32, "Fake tuner");
+  info->inputs[i].name[31] = 0;
+  info->inputs[i].hash = tveng_build_hash(info->inputs[i].name);
+  info->inputs[i].flags = TVENG_INPUT_TUNER;
+  info->inputs[i].tuners = 1;
+  info->inputs[i].type = TVENG_INPUT_TYPE_TV;
+  i++;
+#endif
+
   input_collisions(info);
 
   if (i) /* If there is any input present, switch to the first one */
@@ -503,12 +524,27 @@ int tveng2_set_input(struct tveng_enum_input * input,
 
   current_mode = tveng_stop_everything(info);
 
-  new_input.index = input->id;
-  if ((retcode = IOCTL(info->fd, VIDIOC_S_INPUT, &new_input)) != 0)
+#ifdef TVENG2_FAKE_TUNER
+  if (input->id == 100)
     {
-      info -> tveng_errno = errno;
-      t_error("VIDIOC_S_INPUT", info);
+      fprintf (stdout, "Switch to fake tuner\n");
     }
+  else
+    {
+      if (info->inputs[info->cur_input].id == 100)
+	fprintf (stdout, "Switch away from fake tuner\n");
+#endif
+
+      new_input.index = input->id;
+      if ((retcode = IOCTL(info->fd, VIDIOC_S_INPUT, &new_input)) != 0)
+	{
+	  info -> tveng_errno = errno;
+	  t_error("VIDIOC_S_INPUT", info);
+	}
+
+#ifdef TVENG2_FAKE_TUNER
+    }
+#endif
 
   info->format.pixformat = pixformat;
   tveng_set_capture_format(info);
@@ -516,7 +552,7 @@ int tveng2_set_input(struct tveng_enum_input * input,
   /* Start capturing again as if nothing had happened */
   tveng_restart_everything(current_mode, info);
 
-  info->cur_input = input->id;
+  info->cur_input = input->index;
 
   /* Maybe there are some other standards, get'em again */
   tveng2_get_standards(info);
@@ -940,6 +976,7 @@ p_tveng2_build_controls(tveng_device_info * info)
 	  control.name[31] = 0;
 	  control.min = qc.minimum;
 	  control.max = qc.maximum;
+	  control.def_value = qc.default_value;
 	  control.id = qc.id;
 	  control.controller = TVENG_CONTROLLER_V4L2;
 	  switch (qc.type)
@@ -1106,6 +1143,14 @@ tveng2_tune_input(uint32_t _freq, tveng_device_info * info)
   if (info->inputs[info->cur_input].tuners == 0)
     return 0; /* Success (we shouldn't be tuning, anyway) */
 
+#ifdef TVENG2_FAKE_TUNER
+  if (info->inputs[info->cur_input].id == 100)
+    {
+      fprintf (stdout, "Fake tuner to %7.3f Mhz\n", _freq / 1000.0);
+      return 0;
+    }
+#endif
+
   /* Get more info about this tuner */
   tuner_info.input = info->inputs[info->cur_input].id;
   if (IOCTL(info -> fd, VIDIOC_G_TUNER, &tuner_info) != 0)
@@ -1156,6 +1201,16 @@ tveng2_get_signal_strength (int *strength, int * afc,
   /* Check that there are tuners in the current input */
   if (info->inputs[info->cur_input].tuners == 0)
     return -1;
+
+#ifdef TVENG2_FAKE_TUNER
+  if (info->inputs[info->cur_input].id == 100)
+    {
+      if (strength)
+	*strength = 32768;
+      *afc = 0;
+      return 0;
+    }
+#endif
 
   tuner.input = info->inputs[info->cur_input].id;
   if (IOCTL(info -> fd, VIDIOC_G_TUNER, &tuner) != 0)
@@ -1221,6 +1276,14 @@ tveng2_get_tune(uint32_t * freq, tveng_device_info * info)
       return -1;
     }
 
+#ifdef TVENG2_FAKE_TUNER
+  if (info->inputs[info->cur_input].id == 100)
+    {
+      *freq = 777777;
+      return 0;
+    }
+#endif
+
   if (IOCTL(info->fd, VIDIOC_G_FREQ, &real_freq) != 0)
     {
       info->tveng_errno = errno;
@@ -1262,6 +1325,15 @@ tveng2_get_tuner_bounds(uint32_t * min, uint32_t * max, tveng_device_info *
   /* Check that there are tuners in the current input */
   if (info->inputs[info->cur_input].tuners == 0)
     return -1;
+
+#ifdef TVENG2_FAKE_TUNER
+  if (info->inputs[info->cur_input].id == 100)
+    {
+      *min = 0;
+      *max = 0x7FFFFFFF;
+      return 0;
+    }
+#endif
 
   /* Get info about the current tuner */
   tuner.input = info->inputs[info->cur_input].id;

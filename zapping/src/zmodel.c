@@ -101,3 +101,7 @@ zmodel_changed (ZModel        *model)
 
   gtk_signal_emit (GTK_OBJECT (model), zmodel_signals[CHANGED]);
 }
+
+
+
+

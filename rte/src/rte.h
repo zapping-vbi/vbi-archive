@@ -188,11 +188,12 @@ rte_codec_info_codec(rte_codec *codec);
  * @stream_index: Elementary stream number.
  * @codec_keyword: Codec identifier, e.g. from rte_codec_info.
  * 
- * Select the codec identified by @codec_keyword to encode the data as
- * elementary stream number @stream_index of the stream type @codec_keyword
- * belongs to. The stream number refers
- * for example to one of the 16 video or 32 audio streams contained in a
- * MPEG-1 program stream, but you should pass 0 for now.
+ * Assign this codec to encode data for the elementary stream of the
+ * codec's type and @stream_index of the format this context stands for.
+ * The stream number refers for example to one of the 16 video or 32 audio
+ * streams contained in a MPEG-1 program stream. The valid number of elementary
+ * streams of each type is available from &rte_context_info, see
+ * rte_context_enum(). The first (default) stream has index number 0.
  *
  * Setting a codec resets all properties of the codec for this stream type
  * and index. Passing a %NULL pointer as @codec_keyword withdraws encoding
@@ -274,7 +275,7 @@ rte_codec_set_parameters(rte_codec *codec, rte_stream_parameters *params);
  * Enumerates the options available for the given codec. 
  * You should start at index 0, incrementing.
  * Assume a subsequent call to this function will overwrite the returned
- * control description.
+ * option description.
  *
  * Return value: Static pointer to the option description, or %NULL if
  * @index is out of bounds.

@@ -1,3 +1,38 @@
+14.12.2001	yet more channel stuff <mschimek@users.sf.net>
+
+	* channel_editor.c: Fixed random freq when modifying channel to
+	  baseband input (or adding baseband input channel) and then
+	  modifying back to tuner. Selecting a channel now sets fine
+	  tuning even if "dont change" or baseband channel,
+	  so one can switch back and forth without erasing the freq.
+	  In clist "dont change" channels are now marked to distinguish
+	  from tuner channels.
+	* libvbi/lang.c: iconv broken??? Added workaround. 
+	* libvbi/exp_html.c: Fixed blink attribute. Replaced ISO-8859-5
+	  charset by KOI8-R which seems to be more widely accepted.
+
+13.12.2001	more channel stuff <mschimek@users.sf.net>
+
+	* tveng.h: Added tveng_control.def[ault]_value, from api (tveng2.c),
+	  or current value (tveng1.c, tvengxv.c). For controls dialog.
+	* tveng2.c: Added fake tuner for tests (by default not compiled),
+	  fixed in set_input: info->cur_input = input->id;
+	* tveng1.c: ditto input->id
+	* channel_editor.c: Changing input now activates said input and
+	  makes fine tuning sensitive iff tuner. Modified the spinbutton
+	  adjustment to allow entering arbitrary frequencies (for
+	  add-new-channel). 
+
+12.12.2001	channel stuff <mschimek@users.sf.net>
+
+	* Moved channel_editor.c z_spinslider into misc.c, merged with
+	  mpeg/options.c and made a few improvements. Replaced spinslider
+	  in options.c, channel_editor.c and v4linterface.c (which added
+	  a reset button to the latter two and a kHz label in channel
+	  dialog.
+	* v4linterface.c: Changed controls window policy allow_grow to
+	  TRUE, to allow wider sliders.
+
 10.12.2001	Solaris portability <garetxe@users.sf.net>
 
 	* Many fixes, mainly Solaris portability (thanks to Roger Fujii

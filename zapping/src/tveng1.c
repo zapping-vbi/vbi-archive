@@ -609,7 +609,7 @@ int tveng1_set_input(struct tveng_enum_input * input,
       t_error("VIDIOCSCHAN", info);
     }
 
-  info->cur_input = input->id;
+  info->cur_input = input->index;
 
   /* Maybe there are some other standards, get'em */
   tveng1_get_standards(info);
@@ -1099,6 +1099,7 @@ p_tveng1_build_controls(tveng_device_info * info)
   struct video_audio audio;
   struct tveng_control control;
   int audio_disabled = 0;
+  int r;
 
   memset(&pict, 0, sizeof(struct video_picture));
   memset(&audio, 0, sizeof(struct video_audio));
@@ -1241,8 +1242,12 @@ p_tveng1_build_controls(tveng_device_info * info)
 	}
     }
   
-  return (tveng1_update_controls(info)); /* Fill in with the valid
-					    values */
+  /* Fill in with the valid values */
+  r = tveng1_update_controls(info);
+
+  control.def_value = control.cur_value;
+
+  return r;
 }
 
 /*

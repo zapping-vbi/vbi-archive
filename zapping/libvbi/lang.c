@@ -17,12 +17,15 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.c,v 1.18 2001-09-11 07:13:41 mschimek Exp $ */
+/* $Id: lang.c,v 1.19 2001-12-14 10:12:13 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
 #endif
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
 #include "lang.h"
 
 /* 
@@ -656,14 +659,15 @@ glyph2latin(int glyph)
 	return 0x20;
 }
 
+static int endianess = 1;
+
 int
 glyph_iconv(iconv_t cd, int glyph, int gfx_substitute)
 {
 	int i, u;
 	unsigned char c, *cp = &c;
 	unsigned char uc[2], *up = uc;
-
-	size_t in = 4, out = 1;
+	size_t in = sizeof(uc), out = sizeof(c);
 
 	glyph &= 0xF3FFFF;
 
@@ -704,12 +708,49 @@ glyph_iconv(iconv_t cd, int glyph, int gfx_substitute)
 	return 0x20;
 
 conv:
-	uc[0] = u >> 8; /* network order */
-	uc[1] = u;
+	if (endianess == 1) {
+		/* UCS2 should be BE, but not always??? */
+		uc[0] = u >> 8;
+		uc[1] = u;
+	} else {
+		uc[0] = u;
+		uc[1] = u >> 8;
+	}
 
-	if (iconv(cd, (void *) &up, &in, (void *) &cp, &out) < 1
-	    || c == '@')
+	iconv(cd, (void *) &up, &in, (void *) &cp, &out);
+
+	/* ??? if (iconv(cd, (void *) &up, &in, (void *) &cp, &out) < 1 || */
+	if (c == '@')
 		return -u;
 	else
 		return c;
+}
+
+static void
+glyph_iconv_init(void) __attribute__ ((constructor));
+
+static void
+glyph_iconv_init(void)
+{
+	iconv_t cd;
+	char c = 'b', *cp = &c;
+	char uc[2] = { 'a', 'a' }, *up = uc;
+	size_t in = sizeof(c), out = sizeof(uc);
+
+	if ((cd = iconv_open("UCS2", /* from */ "iso-8859-1")) == (iconv_t) -1) {
+oops:
+		fprintf(stderr, "libvbi iconv error\n");
+		exit(EXIT_FAILURE);
+	}
+
+	iconv(cd, (void *) &cp, &in, (void *) &up, &out);
+
+	if (uc[0] == 0 && uc[1] == 'b')
+		endianess = 1;
+	else if (uc[1] == 0 && uc[0] == 'b')
+		endianess = 0;
+	else 
+		goto oops;
+
+	iconv_close(cd);
 }

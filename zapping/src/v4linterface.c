@@ -115,10 +115,8 @@ GtkWidget * create_slider(struct tveng_control * qc,
 			  tveng_device_info * info)
 { 
   GtkWidget * vbox; /* We have a slider and a label */
-  GtkWidget * hbox;
+  GtkWidget * spinslider;
   GtkWidget * label;
-  GtkWidget * hscale;
-  GtkWidget * spinbutton;
   GtkObject * adj; /* Adjustment object for the slider */
   int cur_value;
   
@@ -126,10 +124,6 @@ GtkWidget * create_slider(struct tveng_control * qc,
   label = gtk_label_new(_(qc->name));
   gtk_widget_show(label);
   gtk_box_pack_start_defaults(GTK_BOX (vbox), label);
-
-  hbox = gtk_hbox_new(FALSE, 0);
-  gtk_widget_show(hbox);
-  gtk_box_pack_start_defaults(GTK_BOX (vbox), hbox);
 
   cur_value = qc -> cur_value;
 
@@ -142,24 +136,12 @@ GtkWidget * create_slider(struct tveng_control * qc,
 		     GTK_SIGNAL_FUNC(on_control_slider_changed),
 		     GINT_TO_POINTER (index));
 
-  hscale = gtk_hscale_new (GTK_ADJUSTMENT (adj));
-  gtk_widget_show (hscale);
-  gtk_box_pack_start_defaults(GTK_BOX (hbox), hscale);
-  gtk_scale_set_draw_value (GTK_SCALE(hscale), FALSE);
-  gtk_scale_set_digits (GTK_SCALE (hscale), 0);
+  spinslider = z_spinslider_new (GTK_ADJUSTMENT (adj), NULL,
+				 NULL, qc -> def_value);
+  gtk_widget_show (spinslider);
+  gtk_box_pack_start_defaults (GTK_BOX (vbox), spinslider);
 
-  spinbutton = gtk_spin_button_new(GTK_ADJUSTMENT (adj), 1, 0);
-  gtk_widget_show (spinbutton);
-  gtk_box_pack_start_defaults(GTK_BOX (hbox), spinbutton);
-  gtk_spin_button_set_update_policy (GTK_SPIN_BUTTON(spinbutton),
-				     GTK_UPDATE_IF_VALID);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON(spinbutton), TRUE);
-  gtk_spin_button_set_wrap (GTK_SPIN_BUTTON(spinbutton), TRUE);
-  gtk_spin_button_set_snap_to_ticks (GTK_SPIN_BUTTON(spinbutton), TRUE);
-  gtk_spin_button_set_shadow_type (GTK_SPIN_BUTTON(spinbutton),
-				   GTK_SHADOW_NONE);
-  
-  gtk_adjustment_set_value( GTK_ADJUSTMENT (adj), cur_value);
+  z_spinslider_set_value (spinslider, cur_value);
   
   return (vbox);
 }
@@ -478,7 +460,7 @@ GtkWidget * create_control_box(tveng_device_info * info)
   gtk_widget_show(hbox);
   gtk_container_add(GTK_CONTAINER (control_box), hbox);
 
-  gtk_window_set_policy(GTK_WINDOW(control_box), FALSE, FALSE, FALSE);
+  gtk_window_set_policy(GTK_WINDOW(control_box), FALSE, TRUE, FALSE);
   gtk_object_set_data(GTK_OBJECT(control_box), "hbox", hbox);
   gtk_signal_connect(GTK_OBJECT(control_box), "destroy",
 		     GTK_SIGNAL_FUNC(on_control_box_destroy),
