@@ -1769,8 +1769,21 @@ zconf_hook_toggle_button	(const gchar *		key,
 				 gpointer		new_value_ptr,
 				 gpointer		user_data)
 {
-  gboolean on = * (gboolean *) new_value_ptr;
-  GtkWidget *widget = user_data;
+  gboolean active = * (gboolean *) new_value_ptr;
+  GtkToggleButton *toggle_button = user_data;
 
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (widget), on);
+  if (active != gtk_toggle_button_get_active (toggle_button))
+    gtk_toggle_button_set_active (toggle_button, active);
+}
+
+void
+zconf_hook_check_menu		(const gchar *		key,
+				 gpointer		new_value_ptr,
+				 gpointer		user_data)
+{
+  gboolean active = * (gboolean *) new_value_ptr;
+  GtkCheckMenuItem *item = user_data;
+
+  if (active != item->active)
+    gtk_check_menu_item_set_active (item, active);
 }

@@ -295,6 +295,9 @@ extern void
 zconf_hook_toggle_button	(const gchar *		key,
 				 gpointer		new_value_ptr,
 				 gpointer		user_data);
-
+extern void
+zconf_hook_check_menu		(const gchar *		key,
+				 gpointer		new_value_ptr,
+				 gpointer		user_data);
 
 #endif /* ZCONF.H */
