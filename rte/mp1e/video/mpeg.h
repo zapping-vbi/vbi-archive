@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.h,v 1.6 2002-06-12 04:00:15 mschimek Exp $ */
+/* $Id: mpeg.h,v 1.7 2002-09-12 12:24:49 mschimek Exp $ */
 
 #ifndef MPEG_H
 #define MPEG_H
@@ -37,6 +37,12 @@ typedef enum {
 	B_TYPE,
 	D_TYPE,
 } picture_type;
+
+typedef enum {
+	TOP_FIELD = 1,
+	BOTTOM_FIELD,
+	FRAME_PICTURE,
+} picture_struct;
 
 typedef enum {
 	SEQUENCE_EXTENSION_ID =	1,

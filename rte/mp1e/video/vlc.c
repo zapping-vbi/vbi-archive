@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vlc.c,v 1.6 2002-08-22 22:04:22 mschimek Exp $ */
+/* $Id: vlc.c,v 1.7 2002-09-12 12:24:49 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -28,21 +28,22 @@
 
 #define align(n) __attribute__ ((SECTION("vlc_tables") aligned (n)))
 
-// XXX
-int			dc_dct_pred[2][3];
-
 #include "vlc_tables.h"
 
 // XXX
 extern short		mblock[7][6][8][8];
-extern struct bs_rec	video_out;
+extern struct vlc_rec	video_out;
 
 /* Reference */
 
-#if 0
+#if 1
 
-static inline int
-escape (int run, int slevel, int ulevel, const int mpeg2)
+static int
+escape				(struct bs_rec *	bs,
+				 unsigned int		run,
+				 int			slevel,
+				 unsigned int		ulevel,
+				 const int		mpeg2)
 {
 	int len;
 
@@ -68,14 +69,19 @@ escape (int run, int slevel, int ulevel, const int mpeg2)
 		}
 	}
 
-	bputl (&video_out, slevel, len);
+	bputl (bs, slevel, len);
 
 	return 0;
 }
 
-static inline int
-intra_block (short block[8][8], int *dc_pred, const VLC8 *dc_vlc,
-	     const int mpeg2, const int B15)
+static int
+intra_block			(vlc_rec *		vr,
+				 const int16_t		block[8][8],
+				 const uint8_t		iscan[8][8],
+				 int *			dc_pred,
+				 const VLC8 *		dc_vlc,
+				 const int		mpeg2,
+				 const int		B15)
 {
 	const VLC2 *ac_vlc = /* B15 ? mp1e_ac_vlc_one : */ mp1e_ac_vlc_zero;
 
@@ -100,7 +106,7 @@ intra_block (short block[8][8], int *dc_pred, const VLC8 *dc_vlc,
 			val ^= (-1 << size);
 		}
 
-		bputl (&video_out, dc_vlc[size].code | val, dc_vlc[size].length);
+		bputl (&vr->bstream, dc_vlc[size].code | val, dc_vlc[size].length);
 
 		*dc_pred = block[0][0];
 	}
@@ -112,18 +118,18 @@ intra_block (short block[8][8], int *dc_pred, const VLC8 *dc_vlc,
 		int i;
 
 		for (i = 1; i < 64; i++) {
-			int ulevel, slevel = block[0][mp1e_iscan[0][ (i - 1) & 63]];
+			int ulevel, slevel = block[0][iscan[0][i - 1]];
 
 			if (slevel) {
 				ulevel = abs (slevel);
 
 				if (ulevel < (int) q->length) {
 					q += q->code + ulevel;
-					bputl (&video_out, q->code | ((slevel >> 31) & 1), q->length);
+					bputl (&vr->bstream, q->code | ((slevel >> 31) & 1), q->length);
 				} else {
 					int run = q - ac_vlc;
 
-					if (escape (run, slevel, ulevel, mpeg2))
+					if (escape (&vr->bstream, run, slevel, ulevel, mpeg2))
 						return 1;
 				}
 
@@ -137,26 +143,40 @@ intra_block (short block[8][8], int *dc_pred, const VLC8 *dc_vlc,
 	return 0;
 }
 
-static inline int
-intra_mblock (const int mpeg2, const int B15)
+static int
+intra_mblock			(vlc_rec *		vr,
+				 const int16_t		mblock[6][8][8],
+				 const uint8_t		iscan[8][8],
+				 const int		mpeg2,
+				 const int		B15,
+				 unsigned int		count)
 {
+	int save[3];
 	int v;
 
-	dc_dct_pred[1][0] = dc_dct_pred[0][0];
-	dc_dct_pred[1][1] = dc_dct_pred[0][1];
-	dc_dct_pred[1][2] = dc_dct_pred[0][2];
+	assert (count == 1);
 
-	v  = intra_block (mblock[1][0], &dc_dct_pred[0][0], mp1e_dc_vlc_intra[0], mpeg2, B15);
-	v |= intra_block (mblock[1][2], &dc_dct_pred[0][0], mp1e_dc_vlc_intra[B15 ? 3 : 1], mpeg2, B15);
-	v |= intra_block (mblock[1][1], &dc_dct_pred[0][0], mp1e_dc_vlc_intra[B15 ? 3 : 1], mpeg2, B15);
-	v |= intra_block (mblock[1][3], &dc_dct_pred[0][0], mp1e_dc_vlc_intra[B15 ? 3 : 1], mpeg2, B15);
-	v |= intra_block (mblock[1][4], &dc_dct_pred[0][1], mp1e_dc_vlc_intra[B15 ? 4 : 2], mpeg2, B15);
-	v |= intra_block (mblock[1][5], &dc_dct_pred[0][2], mp1e_dc_vlc_intra[B15 ? 4 : 2], mpeg2, B15);
+	save[0] = vr->dc_dct_pred[0];
+	save[1] = vr->dc_dct_pred[1];
+	save[2] = vr->dc_dct_pred[2];
+
+	v  = intra_block (vr, mblock[0], iscan, &vr->dc_dct_pred[0],
+			  mp1e_dc_vlc_intra[0], mpeg2, B15);
+	v |= intra_block (vr, mblock[2], iscan, &vr->dc_dct_pred[0],
+			  mp1e_dc_vlc_intra[B15 ? 3 : 1], mpeg2, B15);
+	v |= intra_block (vr, mblock[1], iscan, &vr->dc_dct_pred[0],
+			  mp1e_dc_vlc_intra[B15 ? 3 : 1], mpeg2, B15);
+	v |= intra_block (vr, mblock[3], iscan, &vr->dc_dct_pred[0],
+			  mp1e_dc_vlc_intra[B15 ? 3 : 1], mpeg2, B15);
+	v |= intra_block (vr, mblock[4], iscan, &vr->dc_dct_pred[1],
+			  mp1e_dc_vlc_intra[B15 ? 4 : 2], mpeg2, B15);
+	v |= intra_block (vr, mblock[5], iscan, &vr->dc_dct_pred[2],
+			  mp1e_dc_vlc_intra[B15 ? 4 : 2], mpeg2, B15);
 
 	if (B15)
-		bputl (&video_out, 0x6, 4); /* EOB '0110' (ISO 13818-2 table B-15) */
+		bputl (&video_out.bstream, 0x6, 4); /* EOB '0110' (ISO 13818-2 table B-15) */
 	else
-		bputl (&video_out, 0x2, 2); /* EOB '10' (ISO 13818-2 table B-14) */
+		bputl (&video_out.bstream, 0x2, 2); /* EOB '10' (ISO 13818-2 table B-14) */
 
 	/*
 	 *  Saturation is rarely needed, so the forward quantisation code
@@ -165,30 +185,39 @@ intra_mblock (const int mpeg2, const int B15)
 	 *  a visibly annoying reconstruction error.
 	 */
 	if (v) {
-		dc_dct_pred[0][0] = dc_dct_pred[1][0];
-		dc_dct_pred[0][1] = dc_dct_pred[1][1];
-		dc_dct_pred[0][2] = dc_dct_pred[1][2];
+		vr->dc_dct_pred[0] = save[0];
+		vr->dc_dct_pred[1] = save[1];
+		vr->dc_dct_pred[2] = save[2];
 	}
 
 	return v;
 }
 
 int
-mp1e_mpeg1_encode_intra (void)
+mp1e_mpeg1_encode_intra		(vlc_rec *		vr,
+				 const int16_t		mblock[6][8][8],
+				 const uint8_t		iscan[8][8],
+				 unsigned int		count)
 {
-	return intra_mblock (0, 0);
+	return intra_mblock (vr, mblock, iscan, 0, 0, count);
 }
 
 int
-mp1e_mpeg2_encode_intra_14 (void)
+mp1e_mpeg2_encode_intra_14	(vlc_rec *		vr,
+				 const int16_t		mblock[6][8][8],
+				 const uint8_t		iscan[8][8],
+				 unsigned int		count)
 {
-	return intra_mblock (1, 0);
+	return intra_mblock (vr, mblock, iscan, 1, 0, count);
 }
 
 int
-mp1e_mpeg2_encode_intra_15 (void)
+mp1e_mpeg2_encode_intra_15	(vlc_rec *		vr,
+				 const int16_t		mblock[6][8][8],
+				 const uint8_t		iscan[8][8],
+				 unsigned int		count)
 {
-	return intra_mblock (1, 1);
+	return intra_mblock (vr, mblock, iscan, 1, 1, count);
 }
 
 static inline int
@@ -202,7 +231,7 @@ inter_block (short block[8][8], const int mpeg2)
 	ulevel = abs (slevel = block[0][0]);
 
 	if (ulevel == 1) {
-		bputl (&video_out, 0x2 | ((slevel >> 31) & 1), 2);
+		bputl (&video_out.bstream, 0x2 | ((slevel >> 31) & 1), 2);
 	} else {
 		i = 0;
 	}
@@ -210,16 +239,16 @@ inter_block (short block[8][8], const int mpeg2)
 	/* AC coefficients */
 
 	while (i < 64) {
-		if ((slevel = block[0][mp1e_iscan[0][(i - 1) & 63]])) {
+		if ((slevel = block[0][mp1e_iscan0[0][(i - 1) & 63]])) {
 			ulevel = abs (slevel);
 
 	    		if (ulevel < (int) p->length) {
 				p += p->code + ulevel;
-				bputl (&video_out, p->code | ((slevel >> 31) & 1), p->length);
+				bputl (&video_out.bstream, p->code | ((slevel >> 31) & 1), p->length);
 			} else {
 				int run = p - mp1e_ac_vlc_zero;
 
-				if (escape (run, slevel, ulevel, mpeg2))
+				if (escape (&video_out.bstream, run, slevel, ulevel, mpeg2))
 					return 1;
 			}
 
@@ -231,7 +260,7 @@ inter_block (short block[8][8], const int mpeg2)
 		i++;
 	}
 
-	bputl (&video_out, 0x2, 2); /* EOB '10' (ISO 13818-2 table B-14) */
+	bputl (&video_out.bstream, 0x2, 2); /* EOB '10' (ISO 13818-2 table B-14) */
 
 	return 0;
 }
@@ -254,13 +283,13 @@ inter_mblock (short iblock[6][8][8], unsigned int cbp, const int mpeg2)
 }
 
 int
-mp1e_mpeg1_encode_inter (short iblock[6][8][8], unsigned int cbp)
+mp1e_mpeg1_encode_inter (const int16_t iblock[6][8][8], unsigned int cbp)
 {
 	return inter_mblock (iblock, cbp, 0);
 }
 
 int
-mp1e_mpeg2_encode_inter (short iblock[6][8][8], unsigned int cbp)
+mp1e_mpeg2_encode_inter_14 (const int16_t iblock[6][8][8], unsigned int cbp)
 {
 	return inter_mblock (iblock, cbp, 1);
 }

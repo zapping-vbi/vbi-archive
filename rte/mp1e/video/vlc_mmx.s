@@ -17,181 +17,241 @@
 #  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 
-# $Id: vlc_mmx.s,v 1.5 2002-08-22 22:04:22 mschimek Exp $
+# $Id: vlc_mmx.s,v 1.6 2002-09-12 12:24:49 mschimek Exp $
 
-	.text
-	.align		16
-	.globl		mp1e_p6_mpeg1_encode_intra
+# vlc_rec
+bs_rec_n	= 0
+bs_rec_p	= 4
+bs_rec_uq64	= 16
+dc_dct_pred_y	= 32
+dc_dct_pred_u	= 36
+dc_dct_pred_v	= 40
 
-mp1e_p6_mpeg1_encode_intra:
+vlc_recp	= 20
+mblockp		= 24
+iscanp		= 28
+count		= 32
 
-	pushl		%ebp;
-	pushl		%edi;
-	pushl		%edx;
-	leal		mp1e_dc_vlc_intra,%edi;
-	pushl		%esi;
-	leal		mblock+0*128+768,%esi;
-	pushl		%ebx;
-	movl		video_out,%ebp;
-	pushl		%ecx;
-	movl		dc_dct_pred,%ebx;
-	call		1f;
-	movswl		mblock+0*128+768,%ebx;
-	leal		mblock+2*128+768,%esi;
-	leal		mp1e_dc_vlc_intra+12*8,%edi;
-	call		1f;
-	movswl		mblock+2*128+768,%ebx;
-	leal		mblock+1*128+768,%esi;
-	leal		mp1e_dc_vlc_intra+12*8,%edi;
-	call		1f;
-	movswl		mblock+1*128+768,%ebx;
-	leal		mblock+3*128+768,%esi;
-	leal		mp1e_dc_vlc_intra+12*8,%edi;
-	call		1f;
-	movl		dc_dct_pred+4,%ebx;
-	leal		mblock+4*128+768,%esi;
+# int (vlc_rec *, mblock *, iscan *, int count);
+	
+	.macro intra mpeg=1 vlc=mp1e_ac_vlc_zero sse=0
+
+	subl		$16,%esp;
+	movl		%ebp,(%esp);
+	movl		vlc_recp(%esp),%ebp;
+	movl		%esi,4(%esp);
+	movl		mblockp(%esp),%esi;
+	movl		%ebx,8(%esp);
+	movl		dc_dct_pred_y(%ebp),%ebx;
+	movl		%edi,12(%esp);
+	movd		%esp,%mm0;
+	call		4f;
+	movl		mblockp(%esp),%esi;
 	leal		mp1e_dc_vlc_intra+24*8,%edi;
-	call		1f;
-	movl		dc_dct_pred+8,%ebx;
-	leal		mblock+5*128+768,%esi;
+	movl		dc_dct_pred_u(%ebp),%ebx;
+	leal		4*128(%esi),%esi;
+	call		5f;
+	movl		mblockp(%esp),%esi;
 	leal		mp1e_dc_vlc_intra+24*8,%edi;
-	call		1f;
-	movswl		mblock+3*128+768,%eax;
-	movswl		mblock+4*128+768,%ebx;
-	movl		%eax,dc_dct_pred;
-	movswl		mblock+5*128+768,%ecx;
-	movl		%ebx,dc_dct_pred+4;
-	movl		%ecx,dc_dct_pred+8;
-	movl		%ebp,video_out;
-	movl		$video_out,%eax;
+	movl		dc_dct_pred_v(%ebp),%ebx;
+	leal		5*128(%esi),%esi;
+	call		5f;
+#	decl		count(%esp);
+#	je		3f;
+#
+#2:	movl		mblockp(%esp),%esi;
+#	leal		mp1e_dc_vlc_intra,%edi;
+#	movswl		3*128(%esi),%ebx;
+#	leal		0*128+768(%esi),%esi;
+#	movl		%esi,mblockp(%esp);
+#	call		4f;
+#	movl		mblockp(%esp),%esi;
+#	leal		mp1e_dc_vlc_intra+24*8,%edi;
+#	movl		4*128-768(%esi),%ebx;
+#	leal		4*128(%esi),%esi;
+#	call		5f;
+#	movl		mblockp(%esp),%esi;
+#	leal		mp1e_dc_vlc_intra+24*8,%edi;
+#	movl		5*128-768(%esi),%ebx;
+#	leal		5*128(%esi),%esi;
+#	call		5f;
+#	decl		count(%esp);
+#	jne		2b;
+
+3:	movl		mblockp(%esp),%esi;
+	movl		%ebp,%eax;
+	movswl		3*128(%esi),%edx;
 	movl		$2,%ecx;
+	movswl		4*128(%esi),%ebx;
+	movl		%edx,dc_dct_pred_y(%ebp);
+	movswl		5*128(%esi),%esi;
+	movl		%ebx,dc_dct_pred_u(%ebp);
 	movl		$2,%edx;
+	movl		%esi,dc_dct_pred_v(%ebp);
 	call		mmx_bputl;
-	movl		(%esp),%ecx;
-	movl		4(%esp),%ebx;
-	movl		8(%esp),%esi;
+	movl		(%esp),%ebp;
+	movl		4(%esp),%esi;
 	xorl		%eax,%eax;
-	movl		12(%esp),%edx;
-	movl		16(%esp),%edi;
-	movl		20(%esp),%ebp;
-	leal		24(%esp),%esp;
-	ret;
+	movl		8(%esp),%ebx;
+	movl		12(%esp),%edi;
+	addl		$16,%esp;
+	ret
 
-	.align	16
+	.align 16
 
-1:	movd		%esp,%mm6;
+4:	leal		mp1e_dc_vlc_intra,%edi;
+	leal		0*128(%esi),%esi;
+	movl		iscanp+4(%esp),%edx;
+	call		6f;
+	movl		mblockp+4(%esp),%esi;
+	leal		mp1e_dc_vlc_intra+12*8,%edi;
+	movswl		0*128(%esi),%ebx;
+	leal		2*128(%esi),%esi;
+	movl		iscanp+4(%esp),%edx;
+	call		6f;
+	movl		mblockp+4(%esp),%esi;
+	leal		mp1e_dc_vlc_intra+12*8,%edi;
+	movswl		2*128(%esi),%ebx;
+	leal		1*128(%esi),%esi;
+	movl		iscanp+4(%esp),%edx;
+	call		6f;
+	movl		mblockp+4(%esp),%esi;
+	leal		mp1e_dc_vlc_intra+12*8,%edi;
+	movswl		1*128(%esi),%ebx;
+	leal		3*128(%esi),%esi;
+5:	movl		iscanp+4(%esp),%edx;
+6:	movd		%esp,%mm6;
 	movl		$0,%ecx;
 	movswl		(%esi),%eax;			
 	subl		%ebx,%eax;
 	movl		%eax,%ebx;
+	movl		%edx,%esp
 	cdq;
 	xorl		%edx,%eax;
 	subl		%edx,%eax;			
 	bsrl		%eax,%ecx;
 	setnz		%al;
 	addl		%edx,%ebx;
-	movl		$-63,%esp;
 	addb		%al,%cl;
 	sall		%cl,%edx;
 	xorl		%edx,%ebx;			
 	orl		(%edi,%ecx,8),%ebx;
-	addl		4(%edi,%ecx,8),%ebp;
-	jmp		4f;
+	movl		4(%edi,%ecx,8),%ecx;
+	jmp		8f;
 
 	.align 16
 
-2:	movswl		(%esi,%ebx,2),%eax;
+2:	movswl		(%esi,%ebx,2),%eax;		# slevel
 	testl		%eax,%eax;
+	leal		1(%esp),%esp;
 	jne		3f;
-	movzbl		mp1e_iscan+63(%esp),%ebx;
-	addl		$2,%edi;
-	incl		%esp;
-	jle		2b;
+	movzbl		(%esp),%ebx;			# scan
+	testl		%ebx,%ebx;
+	leal		2(%edi),%edi;			# run++
+	jne		2b;
 	movd		%mm6,%esp;
 	ret;
 
-3:	movzbl		1(%edi),%ecx;
+3:	movzbl		1(%edi),%ecx;			# level limit
 	cdq;
 	xorl		%edx,%eax;
-	subl		%edx,%eax;
+	subl		%edx,%eax;			# ulevel
 	cmpl		%ecx,%eax;
 	movzbl		(%edi),%ecx;
-	leal		(%eax,%ecx),%ecx;
+	leal		(%eax,%ecx),%ecx;		# vlc_table[run][level] offset
 	jge		5f;
-	movzbl		(%edi,%ecx,2),%ebx;
-	subl		%edx,%ebx;
-	movzbl		1(%edi,%ecx,2),%ecx;
-	addl		%ecx,%ebp;
+	movzbl		(%edi,%ecx,2),%ebx;		# code
+	subl		%edx,%ebx;			# sign
+	movzbl		1(%edi,%ecx,2),%ecx;		# length
+8:	addl		bs_rec_n(%ebp),%ecx;
 4:	movl		$64,%edi;
-	movd		%ebx,%mm2;			
-	subl		%ebp,%edi;
-	movd		%edi,%mm1;			
+	movl		%ecx,bs_rec_n(%ebp);
+	movd		%ebx,%mm2;
+	subl		%ecx,%edi;
+	movd		%edi,%mm1;
+	leal		\vlc,%edi;			# run = 0
 	jle		7f;
-	leal		mp1e_ac_vlc_zero,%edi;
+	movzbl		(%esp),%ebx;
 	psllq		%mm1,%mm2;
-	movzbl		mp1e_iscan+63(%esp),%ebx;		
-	incl		%esp;			
+	testl		%ebx,%ebx;
 	por		%mm2,%mm7;
-	jle		2b;
+	jne		2b;
 	movd		%mm6,%esp;
 	ret;
 
-5:	subl		$mp1e_ac_vlc_zero,%edi;
-	movswl		(%esi,%ebx,2),%edx;		
+	.ifeq \mpeg 1
+
+5:	subl		$\vlc,%edi;			# run
+	movswl		(%esi,%ebx,2),%edx;		# slevel		
 	cmpl		$127,%eax;
 	jg		6f;
 	andl		$255,%edx;			
 	sall		$8-1,%edi;
-	leal		16384(%edi,%edx),%ebx;
-	addl		$20,%ebp;
+	movl		bs_rec_n(%ebp),%ecx;
+	leal		16384(%edi,%edx),%ebx;		# escape
+	leal		20(%ecx),%ecx;			# length
 	jmp		4b;
 
 6:	sall		$16-1,%edi;			
 	andl		$33023,%edx;			
-	addl		$28,%ebp;
 	cmpl		$255,%eax;			
-	leal		4194304(%edi,%edx),%ebx;
+	movl		bs_rec_n(%ebp),%ecx;
+	leal		4194304(%edi,%edx),%ebx;	# escape
+	leal		28(%ecx),%ecx;			# length
 	jle		4b;
 
-	movd		%mm6,%esp;
-	addl		$4,%esp;
+	.else
+
+5:	subl		$\vlc,%edi;			# run
+	movswl		(%esi,%ebx,2),%edx;		# slevel		
+	sall		$12-1,%edi;
+	andl		$4095,%edx;
+	cmpl		$255,%eax;
+	movl		bs_rec_n(%ebp),%ecx;
+	leal		262144(%edi,%edx),%ebx;		# escape
+	leal		24(%ecx),%ecx;			# length
+	jle		4b;
+
+	.endif
+
+	movd		%mm0,%esp;
+	movl		(%esp),%ebp;
+	movl		4(%esp),%esi;
 	movl		$1,%eax;
-	popl		%ecx;				
-	popl		%ebx;
-	popl		%esi;				
-	popl		%edx;
-	popl		%edi;				
-	popl		%ebp;
-	ret;
+	movl		8(%esp),%ebx;
+	movl		12(%esp),%edi;
+	addl		$16,%esp;
+	ret
 
 	.align 16
 
-7:	movq		video_out+16,%mm3;		
-	movq		%mm2,%mm5;
-	leal		mp1e_ac_vlc_zero,%edi;		
+7:	movq		bs_rec_uq64(%ebp),%mm3;
 	pxor		%mm4,%mm4;
+	movq		%mm2,%mm5;
 	psubd		%mm1,%mm4;
-	movd		%mm4,%ebp;			
-	psubd		%mm4,%mm3;			
+	movd		%mm4,bs_rec_n(%ebp);
+	psubd		%mm4,%mm3;
 	psrld		%mm4,%mm5;
-	movl		video_out+4,%ecx;
-	por		%mm5,%mm7;			
-	movd		%mm7,%eax;			
-	movzbl		mp1e_iscan+63(%esp),%ebx;		
+	movl		bs_rec_p(%ebp),%ecx;
+	por		%mm5,%mm7;
+	movd		%mm7,%eax;
+	movzbl		(%esp),%ebx;
 	psrlq		$32,%mm7;
-	bswap		%eax;
+	bswap		%eax;				# sse? gain is small
 	leal		8(%ecx),%edx;
 	movl		%eax,4(%ecx);
-	movd		%mm7,%eax;			
+	movd		%mm7,%eax;
 	bswap		%eax;
 	psllq		%mm3,%mm2;
-	incl		%esp;
+	testl		%ebx,%ebx;
 	movq		%mm2,%mm7;
-	movl		%eax,(%ecx);			
-	movl		%edx,video_out+4;		
-	jle		2b;
+	movl		%eax,(%ecx);
+	movl		%edx,bs_rec_p(%ebp);
+	jne		2b;
 	movd		%mm6,%esp;
 	ret;
+
+	.endm
 
 # int
 # p6_mpeg1_encode_inter(short mblock[6][8][8], unsigned int cbp)
@@ -266,7 +326,7 @@ mp1e_p6_mpeg1_encode_inter:
 3:	movswl		(%esi,%ebp,2),%eax;		
 	testl		%eax,%eax;			
 	jne		4f;
-	movzbl		mp1e_iscan+63(%esp),%ebp;		
+	movzbl		mp1e_iscan0+63(%esp),%ebp;		
 	addl		$2,%edi;
 	incl		%esp;
 	jle		3b;
@@ -295,7 +355,7 @@ mp1e_p6_mpeg1_encode_inter:
 	movd		%edi,%mm1;		
 	jle		8f;
 	leal		mp1e_ac_vlc_zero,%edi;
-	movzbl		mp1e_iscan+63(%esp),%ebp;		
+	movzbl		mp1e_iscan0+63(%esp),%ebp;		
 	psllq		%mm1,%mm2;
 	incl		%esp;
 	por		%mm2,%mm7;
@@ -342,7 +402,7 @@ mp1e_p6_mpeg1_encode_inter:
 	movl		video_out+4,%ecx;
 	por		%mm5,%mm7;			
 	psubd		%mm4,%mm3;			
-	movzbl		mp1e_iscan+63(%esp),%ebp;
+	movzbl		mp1e_iscan0+63(%esp),%ebp;
 	movd		%mm7,%eax;			
 	psrlq		$32,%mm7;
 	psllq		%mm3,%mm2;
@@ -360,165 +420,21 @@ mp1e_p6_mpeg1_encode_inter:
 
 	.text
 	.align		16
+	.globl		mp1e_p6_mpeg1_encode_intra
+
+mp1e_p6_mpeg1_encode_intra:
+	intra mpeg=1 vlc=mp1e_ac_vlc_zero
+
+	.text
+	.align		16
 	.globl		mp1e_p6_mpeg2_encode_intra_14
 
 mp1e_p6_mpeg2_encode_intra_14:
+	intra mpeg=2 vlc=mp1e_ac_vlc_zero
 
-	pushl		%ebp;
-	pushl		%edi;
-	pushl		%edx;
-	leal		mp1e_dc_vlc_intra,%edi;
-	pushl		%esi;
-	leal		mblock+0*128+768,%esi;
-	pushl		%ebx;
-	movl		video_out,%ebp;
-	pushl		%ecx;
-	movl		dc_dct_pred,%ebx;
-	call		1f;
-	movswl		mblock+0*128+768,%ebx;
-	leal		mblock+2*128+768,%esi;
-	leal		mp1e_dc_vlc_intra+12*8,%edi;
-	call		1f;
-	movswl		mblock+2*128+768,%ebx;
-	leal		mblock+1*128+768,%esi;
-	leal		mp1e_dc_vlc_intra+12*8,%edi;
-	call		1f;
-	movswl		mblock+1*128+768,%ebx;
-	leal		mblock+3*128+768,%esi;
-	leal		mp1e_dc_vlc_intra+12*8,%edi;
-	call		1f;
-	movl		dc_dct_pred+4,%ebx;
-	leal		mblock+4*128+768,%esi;
-	leal		mp1e_dc_vlc_intra+24*8,%edi;
-	call		1f;
-	movl		dc_dct_pred+8,%ebx;
-	leal		mblock+5*128+768,%esi;
-	leal		mp1e_dc_vlc_intra+24*8,%edi;
-	call		1f;
-	movswl		mblock+3*128+768,%eax;
-	movswl		mblock+4*128+768,%ebx;
-	movl		%eax,dc_dct_pred;
-	movswl		mblock+5*128+768,%ecx;
-	movl		%ebx,dc_dct_pred+4;
-	movl		%ecx,dc_dct_pred+8;
-	movl		%ebp,video_out;
-	movl		$video_out,%eax;
-	movl		$2,%ecx;
-	movl		$2,%edx;
-	call		mmx_bputl;
-	movl		(%esp),%ecx;
-	movl		4(%esp),%ebx;
-	movl		8(%esp),%esi;
-	xorl		%eax,%eax;
-	movl		12(%esp),%edx;
-	movl		16(%esp),%edi;
-	movl		20(%esp),%ebp;
-	leal		24(%esp),%esp;
-	ret;
-
-	.align	16
-
-1:	movd		%esp,%mm6;
-	movl		$0,%ecx;
-	movswl		(%esi),%eax;			
-	subl		%ebx,%eax;
-	movl		%eax,%ebx;
-	cdq;
-	xorl		%edx,%eax;
-	subl		%edx,%eax;			
-	bsrl		%eax,%ecx;
-	setnz		%al;
-	addl		%edx,%ebx;
-	movl		$-63,%esp;
-	addb		%al,%cl;
-	sall		%cl,%edx;
-	xorl		%edx,%ebx;			
-	orl		(%edi,%ecx,8),%ebx;
-	addl		4(%edi,%ecx,8),%ebp;
-	jmp		4f;
-
-	.align 16
-
-2:	movswl		(%esi,%ebx,2),%eax;
-	testl		%eax,%eax;
-	jne		3f;
-	movzbl		mp1e_iscan+63(%esp),%ebx;
-	addl		$2,%edi;
-	incl		%esp;
-	jle		2b;
-	movd		%mm6,%esp;
-	ret;
-
-3:	movzbl		1(%edi),%ecx;
-	cdq;
-	xorl		%edx,%eax;
-	subl		%edx,%eax;
-	cmpl		%ecx,%eax;
-	movzbl		(%edi),%ecx;
-	leal		(%eax,%ecx),%ecx;
-	jge		5f;
-	movzbl		(%edi,%ecx,2),%ebx;
-	subl		%edx,%ebx;
-	movzbl		1(%edi,%ecx,2),%ecx;
-	addl		%ecx,%ebp;
-4:	movl		$64,%edi;
-	movd		%ebx,%mm2;			
-	subl		%ebp,%edi;
-	movd		%edi,%mm1;			
-	jle		7f;
-	leal		mp1e_ac_vlc_zero,%edi;
-	psllq		%mm1,%mm2;
-	movzbl		mp1e_iscan+63(%esp),%ebx;		
-	incl		%esp;			
-	por		%mm2,%mm7;
-	jle		2b;
-	movd		%mm6,%esp;
-	ret;
-
-5:	subl		$mp1e_ac_vlc_zero,%edi;
-	movswl		(%esi,%ebx,2),%edx;		
-	andl		$4095,%edx;			
-	addl		$24,%ebp;
-	sall		$12-1,%edi;
-	cmpl		$255,%eax;
-	leal		262144(%edi,%edx),%ebx;
-	jle		4b;
-	movd		%mm6,%esp;
-	addl		$4,%esp;
-	movl		$1,%eax;
-	popl		%ecx;				
-	popl		%ebx;
-	popl		%esi;				
-	popl		%edx;
-	popl		%edi;				
-	popl		%ebp;
-	ret;
-
-	.align 16
-
-7:	movq		video_out+16,%mm3;		
-	movq		%mm2,%mm5;
-	leal		mp1e_ac_vlc_zero,%edi;		
-	pxor		%mm4,%mm4;
-	psubd		%mm1,%mm4;
-	movd		%mm4,%ebp;			
-	psubd		%mm4,%mm3;			
-	psrld		%mm4,%mm5;
-	movl		video_out+4,%ecx;
-	por		%mm5,%mm7;			
-	movd		%mm7,%eax;			
-	movzbl		mp1e_iscan+63(%esp),%ebx;		
-	psrlq		$32,%mm7;
-	bswap		%eax;
-	leal		8(%ecx),%edx;
-	movl		%eax,4(%ecx);
-	movd		%mm7,%eax;			
-	bswap		%eax;
-	psllq		%mm3,%mm2;
-	incl		%esp;
-	movq		%mm2,%mm7;
-	movl		%eax,(%ecx);			
-	movl		%edx,video_out+4;		
-	jle		2b;
-	movd		%mm6,%esp;
-	ret;
+#	.text
+#	.align		16
+#	.globl		mp1e_p6_mpeg2_encode_intra_15
+#
+#mp1e_p6_mpeg2_encode_intra_15:
+#	intra mpeg=2 vlc=mp1e_ac_vlc_one
