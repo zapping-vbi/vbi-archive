@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zvideo.c,v 1.1.2.2 2003-06-16 06:06:49 mschimek Exp $ */
+/* $Id: zvideo.c,v 1.1.2.3 2003-07-29 03:36:14 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -343,17 +343,18 @@ size_allocate			(GtkWidget *		widget,
 	      hints_mask |= GDK_HINT_RESIZE_INC;
 	    }
 
-#warning gdk bug
 	  /* As of GTK+ 2.2 the geometry hints are broken, requesting
-	     the inverse of the desired aspect. See bugzilla.gnome.org
-	     #108237. Add a runtime version check when this is fixed. */
+	     the inverse of the desired aspect. Has been fixed. */
 
 	  /* Sawfish 1.2 doesn't seem to support the aspect hint and
 	     behaves strangely when we call gtk_window_set_geometry_-
 	     hints() with aspect while the user resizes. Needs
 	     further examination. */
 
-	  if (0
+	  if ((gtk_major_version > 2
+	       || (gtk_major_version == 2
+		   && (gtk_minor_version > 2)))
+	      && 0
 	      && video->ratio > 0.0
 	      && (hints.base_width | hints.base_height) == 0)
 	    {
@@ -363,17 +364,18 @@ size_allocate			(GtkWidget *		widget,
 	    }
 
 	  if (0)
-	  fprintf (stderr, "set_geometry_hints: min=%d,%d max=%d,%d "
-		   "inc=%d,%d aspect=%f\n",
-		   hints.min_width, hints.min_height,
-		   hints.max_width, hints.max_height,
-		   hints.width_inc, hints.height_inc,
-		   hints.min_aspect);
+	    fprintf (stderr, "set_geometry_hints: min=%d,%d max=%d,%d "
+		     "inc=%d,%d aspect=%f\n",
+		     hints.min_width, hints.min_height,
+		     hints.max_width, hints.max_height,
+		     hints.width_inc, hints.height_inc,
+		     hints.min_aspect);
 
 	  /* I guess geometry_widget should be video, not toplevel. But
 	     somehow the function doesn't initialize hints.base* as we
 	     do. Well, after computing base* ourselves we had to
-	     initialize minimum and maximum too. */
+	     initialize minimum and maximum too, so we have to call
+	     this anyway. */
 
 	  gtk_window_set_geometry_hints (GTK_WINDOW (toplevel),
 					 /* geometry_widget */ toplevel,
@@ -522,6 +524,9 @@ events				(GtkWidget *		widget,
 				 gpointer		unused)
 {
   ZVideo *video = (ZVideo *) widget;
+
+  if (0)
+    fprintf (stderr, "on_events: GDK_%s\n", z_gdk_event_name (event));
 
   switch (event->type)
     {
