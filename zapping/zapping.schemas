@@ -197,5 +197,18 @@ until the requested page has been received.</long>
     <short>Search all channels in the page memory.</short>
    </locale>
   </schema>
+  <schema>
+   <key>/schemas/apps/zapping/plugins/teletext/view/navigation</key>
+   <applyto>/apps/zapping/plugins/teletext/view/navigation</applyto>
+   <owner>Zapping</owner>
+   <type>string</type>
+   <default>flof_top2</default>
+   <locale name="C">
+    <short>Enable navigation elements.</short>
+    <long>Enable navigation elements in the bottom row of the Teletext
+ page. Valid values: disabled, flof_top1 (FLOF or TOP style 1),
+ flof_top2 (TOP style 2).</long>
+   </locale>
+  </schema>
  </schemalist>
 </gconfschemafile>
