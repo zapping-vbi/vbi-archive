@@ -17,11 +17,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
+
+#include "v4linterface.h" /* channel_key_press() */
 #include "plugin_common.h"
 
 #ifdef HAVE_LIRC
 #include <lirc/lirc_client.h>
 #include <time.h>
+#include <ctype.h>
 
 /* This is the description of the plugin, change as appropiate */
 static const gchar str_canonical_name[] = "alirc";
@@ -35,7 +38,10 @@ following commands:\n\
   CHANUP:  One Channel up\n\
   CHANDOWN:  One Channel down\n\
   ZOOM: switch between full screen and windowed mode\n\
-  SETCHANNEL <int>: set the channel to <int> (the first channel is 0!!)\n\
+  SETCHANNEL <int>: set the channel to 0 ... 9\n\
+  MUTE: Turn Sound [On|Off]\n\
+  VOL_UP: Increase Volume\n\
+  VOL_DOWN: Decrease Volume\n\
   QUIT: Quit zapping\n\
   \n\
 Note: when using SETCHANNEL two times within 1500 ms, it will react the same\n\
@@ -69,22 +75,8 @@ static unsigned long setchan_time;
 static int setchan;
 
 static void
-lirc_channel_up(char *args) {
-  remote_command("channel_up",NULL);
-}
-
-static void
-lirc_channel_down(char *args) {
-  remote_command("channel_down",NULL);
-}
-
-static void
-lirc_quit(char *args) {
-  remote_command("quit",NULL);
-}
-
-static void
-lirc_zoom(char *args) {
+legacy_zoom			(const gchar *		args)
+{
   if (tveng_info->current_mode == TVENG_CAPTURE_PREVIEW) {
     remote_command("switch_mode",GINT_TO_POINTER(windowedmode));
   } else {
@@ -94,77 +86,106 @@ lirc_zoom(char *args) {
 }
 
 static void
-lirc_setchannel(char *args) {
-  int channel,nchannels;
-  struct timeval time;
-  unsigned long timestamp;
+legacy_setchannel		(const gchar *		args)
+{
+  GdkEventKey event;
+  gint n;
 
-  GINT_TO_POINTER(nchannels) = remote_command("get_num_channels",NULL);
-  if (args == NULL) return;
+  if (args == NULL)
+    return;
 
-  gettimeofday(&time,NULL);
-  /* save timestamp in ms */
-  timestamp = time.tv_sec * 1000 + time.tv_usec / 1000;
+  n = atoi (args);
 
-  channel = atoi(args);
+  if (n < 0)
+    n = 0;
 
-  if (timestamp - setchan_time < 1500) { 
-    channel += (setchan*10);
-    setchan = 0; /* Go back to default mode.. this is the most sane thing to do
-                 \   except when people have more then 99 channels */ 
-  } else setchan = channel;
-
-  setchan_time = timestamp;
-   
-  /* zapping starts counting channels at 0, we start counting channels at 1 
-   | IMHO this is more sane, as zapping doesn't allow to give a channels a 
-   \ custom number */ 
-  channel--;
-
-  if (channel < 0 || channel >= nchannels ) channel = 0;
-
-  printv("alirc plugin: Setting channel to %d\n",channel);
-  remote_command("set_channel",GINT_TO_POINTER(channel));
+  if (n < 10)
+    {
+      /*
+       *  This (preliminary) calls the routine used to
+       *  enter channel numbers on the numeric keypad.
+       *  Side effects: OSD, digits combine within timeout,
+       *  numbers are interpreted as RF channel or channel name. 
+       */
+      event.keyval = GDK_KP_0 + n;
+      
+      channel_key_press (&event);
+    }
+  else
+    {
+      remote_command ("set_channel", GINT_TO_POINTER (n));
+    }
 }
 
-struct lirc_key {
-  char *command; /* lirc command */
-  void (*func)(char *args); /* function to call */
+struct legacy_command
+{
+  const gchar *		lirc_command;
+  const gchar *		mkii_command;
+  void			(* func)(const gchar *args);
 };
 
-/* list of lirc commands, and which function to call when that command is 
- |   given 
- */
-static struct lirc_key lirc_keys[] = {    
-  {"CHANUP",lirc_channel_up},	   
-  {"CHANDOWN",lirc_channel_down},    
-  {"QUIT",lirc_quit},                
-  {"ZOOM",lirc_zoom},                
-  {"SETCHANNEL",lirc_setchannel}
+static const struct legacy_command
+legacy_command_txl_table [] =
+{
+  { "CHANUP",		"channel_up",			NULL },
+  { "CHANDOWN",		"channel_down",			NULL },
+  { "QUIT",		"quit",				NULL },
+  { "ZOOM",		NULL,				legacy_zoom },
+  { "SETCHANNEL",	NULL,				legacy_setchannel },
+  { "MUTE",		"mute",				NULL },
+  { "VOL_UP",		"volume_incr +1",		NULL },
+  { "VOL_DOWN",		"volume_incr -1",		NULL },
 };
 
 static void 
-lirc_do_command(char *string) {
-  char *backup,*command,*args;
-  int num,i;
+run_command			(const gchar *		s)
+{
+  const struct legacy_command *lc;
+  guint i;
 
-  backup = strdup(string);
-  command = strtok(backup," ");
-  if (command == NULL) {
-    free(backup);
+  printv ("alirc: command string '%s'\n", s);
+
+  while (*s && isspace(*s))
+    s++;
+
+  if (!*s)
     return;
-  }
-  args = strtok(NULL,"");
-  printv("alirc: Command->%s... Args->%s\n",command,args);
 
-  num = sizeof(lirc_keys)/sizeof(struct lirc_key);
+  lc = legacy_command_txl_table;
 
-  for (i=0; i < num; i++) {
-    if (!strcmp(command,lirc_keys[i].command)) {
-      (lirc_keys[i].func)(args);
-      return;
+  for (i = 0; i < sizeof (legacy_command_txl_table)
+	 / sizeof (*legacy_command_txl_table); i++)
+    {
+      guint n = strlen (lc->lirc_command);
+
+      if (0 == strncmp (s, lc->lirc_command, n)
+	  && (s[n] == 0 || isspace(s[n])))
+	{
+	  printv ("alirc: command '%*s'\n", n, s);
+
+	  s += n;
+
+	  while (*s && isspace(*s))
+	    s++;
+
+	  if (lc->mkii_command)
+	    {
+	      printv ("alirc: command txl '%s'\n", lc->mkii_command);
+	      cmd_execute (NULL, lc->mkii_command);
+	    }
+	  else
+	    {
+	      printv ("alirc: command func w/args '%s'\n", s);
+	      lc->func (s);
+	    }
+
+	  return;
+	}
+
+      lc++;
     }
-  }
+
+  printv ("alirc: unknown command\n");
 }
 
 static void
@@ -181,7 +202,7 @@ lirc_receive(gpointer *data,int fd) {
   
   lirc_code2char(config,string,&command);
   while(command != NULL) {
-    lirc_do_command(command);
+    run_command(command);
     lirc_code2char(config,string,&command);
   }
 
