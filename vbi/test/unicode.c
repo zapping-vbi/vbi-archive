@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: unicode.c,v 1.4 2002-10-22 04:43:18 mschimek Exp $ */
+/* $Id: unicode.c,v 1.4.2.1 2004-02-25 17:27:09 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -28,11 +28,8 @@
 
 #include <libzvbi.h>
 
-/* Note these are private functions, used here for testing only. */
-
-extern unsigned int	vbi_teletext_unicode (int, int, int);
+/* Private function, used here for testing only. */
 extern unsigned int	vbi_teletext_composed_unicode (unsigned int a, unsigned int c);
-extern unsigned int	vbi_caption_unicode (unsigned int c);
 
 static void
 putwchar (unsigned int c)
