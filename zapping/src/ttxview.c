@@ -1885,11 +1885,11 @@ on_brig_con_reset			(GtkWidget	*widget,
   switch (control)
     {
     case 0: /* brightness */
-      value = 255;
+      value = 128;
       w = lookup_widget(widget, "hscale71");
       break;
     default: /* contrast */
-      value = 127;
+      value = 64;
       w = lookup_widget(widget, "hscale72");
       break;
     }
