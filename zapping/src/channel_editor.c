@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: channel_editor.c,v 1.37.2.14 2003-10-07 18:38:14 mschimek Exp $ */
+/* $Id: channel_editor.c,v 1.37.2.15 2003-10-20 21:33:39 mschimek Exp $ */
 
 /*
   TODO:
@@ -65,7 +65,7 @@ struct station_search
 
   guint			found;
   guint			iteration;
-  gint			freq;
+  guint			frequ;
   gint			strength;
   gint			afc;
 };
@@ -579,10 +579,10 @@ station_search_timeout		(gpointer		p)
 			       _("Channel: %s   Found: %u"),
 			       cs->ch.channel_name, cs->found);
 
-      cs->freq = cs->ch.frequency / 1000;
+      cs->frequ = cs->ch.frequency;
       cs->strength = 0;
 
-      if (!tv_set_tuner_frequency (main_info, cs->freq * 1000))
+      if (!tv_set_tuner_frequency (main_info, cs->frequ))
 	goto next_channel;
 
 #ifdef HAVE_LIBZVBI
@@ -611,10 +611,10 @@ station_search_timeout		(gpointer		p)
       if (afc && (afc != -cs->afc))
 	{
 	  cs->afc = afc;
-	  cs->freq += afc * 25; /* should be afc*50, but won't harm */
+	  cs->frequ += afc * 25000; /* should be afc*50000, but won't harm */
 
 	  /* error ignored */
-	  tv_set_tuner_frequency (main_info, (cs->freq += afc * 25) * 1000);
+	  tv_set_tuner_frequency (main_info, cs->frequ);
 	}
 
 #ifdef HAVE_LIBZVBI
@@ -645,7 +645,7 @@ station_search_timeout		(gpointer		p)
   tc.name	= station_name;
   tc.rf_name	= (gchar *) cs->ch.channel_name;
   tc.rf_table	= (gchar *) cs->ch.table_name;
-  tc.frequ	= cs->freq;
+  tc.frequ	= cs->frequ;
 
   channel_list_add_tuned_channel (ce, &global_channel_list, &tc);
 
