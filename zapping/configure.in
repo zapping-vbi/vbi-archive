@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.114 2002-03-09 14:27:24 mschimek Exp $
+dnl $Id: configure.in,v 1.115 2002-03-12 18:12:54 mschimek Exp $
 
 AC_INIT(src/callbacks.c)
 AM_INIT_AUTOMAKE(zapping, 0.6.3)
@@ -10,7 +10,7 @@ REQUIRED_RTE_VERSION="0.4"
 CFLAGS="-D_GNU_SOURCE -O2 -Wall -Wunused -Wmissing-prototypes -Wmissing-declarations"
 
 dnl Pick up the Gnome macros.
-AM_ACLOCAL_INCLUDE(macros)
+AM_ACLOCAL_INCLUDE(macros /opt/gnome/share/aclocal)
 
 AM_PROG_LIBTOOL
 
