@@ -18,7 +18,7 @@
 #  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 
-# $Id: motion_mmx.s,v 1.11 2001-08-01 08:40:16 mschimek Exp $
+# $Id: motion_mmx.s,v 1.12 2001-08-03 13:05:00 mschimek Exp $
 
 		.text
 		.align		16
@@ -29,7 +29,6 @@ mmx_predict_forward_packed:
 		pxor		%mm5,%mm5;
 		movl		$mblock,%ecx
 		movq		(%eax),%mm0;
-		pxor		%mm6,%mm6;
 		movq		(%ecx),%mm2;
 		pxor		%mm7,%mm7;
 		movq		8(%ecx),%mm3;
@@ -41,9 +40,7 @@ mmx_predict_forward_packed:
 		punpcklbw	%mm5,%mm0;
 		punpckhbw	%mm5,%mm1;
 		psubw		%mm0,%mm2;
-		paddw		%mm2,%mm6;
 		psubw		%mm1,%mm3;
-		paddw		%mm3,%mm6;
 		movq		%mm0,768*3+0(%ecx);
 		movq		%mm1,768*3+8(%ecx);
 		movq		%mm2,768*1+0(%ecx);
@@ -59,9 +56,7 @@ mmx_predict_forward_packed:
 		punpcklbw	%mm5,%mm4;
 		punpckhbw	%mm5,%mm2;
 		psubw		%mm4,%mm0;
-		paddw		%mm0,%mm6;
 		psubw		%mm2,%mm1;
-		paddw		%mm1,%mm6;
 		movq		%mm4,768*3+256+0(%ecx);
 		movq		%mm2,768*3+256+8(%ecx);
 		movq		%mm0,768*1+256+0(%ecx);
@@ -94,9 +89,7 @@ mmx_predict_forward_packed:
 		punpcklbw	%mm5,%mm0;
 		punpckhbw	%mm5,%mm1;
 		psubw		%mm0,%mm2;
-		paddw		%mm2,%mm6;
 		psubw		%mm1,%mm3;
-		paddw		%mm3,%mm6;
 		movq		%mm0,768*3+0(%ecx);
 		movq		%mm1,768*3+8(%ecx);
 		movq		%mm2,768*1+0(%ecx);
@@ -112,10 +105,7 @@ mmx_predict_forward_packed:
 		punpcklbw	%mm5,%mm4;
 		punpckhbw	%mm5,%mm1;
 		psubw		%mm4,%mm2;
-		paddw		%mm2,%mm6;
 		psubw		%mm1,%mm3;
-		paddw		%mm3,%mm6;
-		pmaddwd		c1,%mm6;
 		movq		%mm4,768*3+256+0(%ecx);
 		movq		%mm1,768*3+256+8(%ecx);
 		movq		%mm2,768*1+256+0(%ecx);
@@ -132,20 +122,14 @@ mmx_predict_forward_packed:
 		movq		%mm0,%mm1;
 		punpcklbw	%mm5,%mm0;
 		punpckhbw	%mm5,%mm1;
-		movq		%mm6,%mm5;
 		psubw		%mm0,%mm2;
-		psubw		%mm1,%mm3;
 		movq		%mm0,768*3+512+0(%ecx);
+		psubw		%mm1,%mm3;
 		movq		%mm1,768*3+512+8(%ecx);
-		psrlq		$32,%mm6;
-		paddd		%mm5,%mm6;
-		movq		%mm2,768*1+512+0(%ecx);
-		movq		%mm3,768*1+512+8(%ecx);
-		movd		%mm6,%ecx;
-		imul		%ecx,%ecx;
 		pslld		$8,%mm7;
+		movq		%mm2,768*1+512+0(%ecx);
 		movd		%mm7,%eax;
-// sact2 dc=0	subl		%ecx,%eax;
+		movq		%mm3,768*1+512+8(%ecx);
 		ret
 
 		.text
@@ -158,7 +142,6 @@ mmx_predict_forward_planar:
 		pxor		%mm5,%mm5;
 		movq		8(%eax),%mm4;
 		pushl		%edi
-		pxor		%mm6,%mm6;
 		pushl		%esi
 		pxor		%mm7,%mm7;
 		pushl		%ebx
@@ -181,8 +164,6 @@ mmx_predict_forward_planar:
 		movq		%mm1,3*768+8(%ebx);
 		movq		%mm2,1*768(%ebx);
 		movq		%mm3,1*768+8(%ebx);
-		paddw		%mm2,%mm6;
-		paddw		%mm3,%mm6;
 		pmaddwd		%mm2,%mm2;
 		pmaddwd		%mm3,%mm3;
 		paddd		%mm2,%mm7;
@@ -202,8 +183,6 @@ mmx_predict_forward_planar:
 		movq		%mm2,1*768+256(%ebx);
 		movq		%mm3,1*768+256+8(%ebx);
 		leal		16(%ebx),%ebx;
-		paddw		%mm2,%mm6;
-		paddw		%mm3,%mm6;
 		pmaddwd		%mm2,%mm2;
 		pmaddwd		%mm3,%mm3;
 		paddd		%mm2,%mm7;
@@ -222,8 +201,6 @@ mmx_predict_forward_planar:
 		movq		%mm1,3*768+8(%ebx);
 		movq		%mm2,1*768(%ebx);
 		movq		%mm3,1*768+8(%ebx);
-		paddw		%mm2,%mm6;
-		paddw		%mm3,%mm6;
 		pmaddwd		%mm2,%mm2;
 		pmaddwd		%mm3,%mm3;
 		paddd		%mm2,%mm7;
@@ -236,9 +213,6 @@ mmx_predict_forward_planar:
 		punpckhbw	%mm5,%mm1;
 		psubw		%mm4,%mm2;
 		psubw		%mm1,%mm3;
-		paddw		%mm2,%mm6;
-		paddw		%mm3,%mm6;
-		pmaddwd		c1,%mm6;
 		movq		%mm4,3*768+256(%ebx);
 		movq		%mm1,3*768+256+8(%ebx);
 		movq		%mm2,1*768+256(%ebx);
@@ -251,17 +225,11 @@ mmx_predict_forward_planar:
 		movq		%mm7,%mm4;
 		psrlq		$32,%mm7;
 		paddd		%mm4,%mm7;
-		movq		%mm6,%mm1;
-		psrlq		$32,%mm6;
-		paddd		%mm1,%mm6;
-		movd		%mm6,%edi;
-		imul		%edi,%edi;
 		addl		mb_address+32,%esi
 		movl		$mblock+512,%ecx
-		movl		mb_address+40,%ebx
 		pslld		$8,%mm7;
+		movl		mb_address+40,%ebx
 		movd		%mm7,%eax;
-// sact2 dc=0	subl		%edi,%eax;
 		movl		mb_address+36,%edi;
 
 1:

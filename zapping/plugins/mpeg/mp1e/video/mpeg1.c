@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.46 2001-08-01 08:40:16 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.47 2001-08-03 13:05:00 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -196,38 +196,6 @@ do { int i, j, n;					\
 
 #endif
 
-#define USE_SACT 0
-#if USE_SACT
-#undef VARQ
-#define VARQ (65536.0 / 16)
-static inline int
-sact1(int mb)
-{
-	int i, j;
-	int n, s, s2;
-	int max = 0, min = INT_MAX;
-
-	s = s2 = 0;
-	for (j = 0; j < 6/*6*/; j++) {
-		s = s2 = 0;
-		for (i = 0; i < 64; i++) {
-			s += n = mblock[mb][j][0][i];
-			s2 += n * n;
-		}
-
-		n = s2 * 256 - (s * s);
-		if (n > max)
-			max = n;
-		if (n < min)
-			min = n;
-	}
-
-//	max = (long long) s * s / 256;
-//	max = s2 - max;
-
-	return max;
-}
-#endif
 
 
 
@@ -320,10 +288,6 @@ tmp_picture_i(unsigned char *org0, unsigned char *org1, int motion)
 			pr_start(41, "Filter");
 			var = (*filter)(org0, org1); // -> mblock[0]
 			pr_end(41);
-
-#if USE_SACT
-			var = sact1(0);
-#endif
 
 			if (motion) {
 				pr_start(56, "MB sum");
@@ -615,10 +579,6 @@ tmp_picture_p(unsigned char *org0, unsigned char *org1, int dist, int forward_mo
 				vmc = predict_forward(oldref + mb_address.block[0].offset);
 				pr_end(51);
 			}
-#if USE_SACT
-			var = sact1(0);
-			vmc = sact2(1);
-#endif
 
 			emms();
 
@@ -956,12 +916,7 @@ if (T3RI
 						newref + mb_address.block[0].offset,
 						&vmcf, &vmcb);
 				pr_end(52);
-#if USE_SACT
-			var  = sact1(0);
-			vmcf = sact2(1);
-			vmcb = sact2(2);
-			vmc  = sact2(3);
-#endif
+
 				macroblock_type = MB_INTERP;
 				iblock = &mblock[3];
 if (GLITCH) {

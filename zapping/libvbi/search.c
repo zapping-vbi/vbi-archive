@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.15 2001-07-24 17:19:26 garetxe Exp $ */
+/* $Id: search.c,v 1.16 2001-08-03 13:05:00 mschimek Exp $ */
 
 #include <stdlib.h>
 #include <ctype.h>
@@ -63,11 +63,10 @@ static void
 highlight(struct search *s, struct vt_page *vtp,
 	  ucs2_t *first, long ms, long me)
 {
-	attr_char *acp;
+	struct fmt_page *pg = &s->pg;
 	ucs2_t *hp;
 	int i, j;
 
-	acp = &s->pg.text[FIRST_ROW * s->pg.columns + 0];
 	hp = s->haystack;
 
 	s->start_pgno = vtp->pgno;
@@ -76,6 +75,8 @@ highlight(struct search *s, struct vt_page *vtp,
 	s->col[0] = 0;
 
 	for (i = FIRST_ROW; i < LAST_ROW; i++) {
+		attr_char *acp = pg->text[i * pg->columns];
+
 		for (j = 0; j < 40; acp++, j++) {
 			int offset = hp - first;
  
@@ -101,10 +102,10 @@ highlight(struct search *s, struct vt_page *vtp,
 			switch (acp->size) {
 			case DOUBLE_SIZE:
 				if (offset >= ms) {
-					acp[40].foreground = 32 + BLACK;
-					acp[40].background = 32 + YELLOW;
-					acp[41].foreground = 32 + BLACK;
-					acp[41].background = 32 + YELLOW;
+					acp[pg->columns].foreground = 32 + BLACK;
+					acp[pg->columns].background = 32 + YELLOW;
+					acp[pg->columns + 1].foreground = 32 + BLACK;
+					acp[pg->columns + 1].background = 32 + YELLOW;
 				}
 
 				/* fall through */
@@ -125,8 +126,8 @@ highlight(struct search *s, struct vt_page *vtp,
 
 			case DOUBLE_HEIGHT:
 				if (offset >= ms) {
-					acp[40].foreground = 32 + BLACK;
-					acp[40].background = 32 + YELLOW;
+					acp[pg->columns].foreground = 32 + BLACK;
+					acp[pg->columns].background = 32 + YELLOW;
 				}
 
 				/* fall through */
@@ -190,7 +191,6 @@ search_page_fwd(struct search *s, struct vt_page *vtp, int wrapped)
 
 	/* To Unicode */
 
-	acp = &s->pg.text[FIRST_ROW * s->pg.columns + 0];
 	hp = s->haystack;
 	first = hp;
 	row = (this == start) ? s->row[0] : -1;
@@ -200,6 +200,8 @@ search_page_fwd(struct search *s, struct vt_page *vtp, int wrapped)
 		return 0; // try next page
 
 	for (i = FIRST_ROW; i < LAST_ROW; i++) {
+		acp = &s->pg.text[i * s->pg.columns];
+
 		for (j = 0; j < 40; acp++, j++) {
 			if (i == row && j <= s->col[0])
 				first = hp;
@@ -287,7 +289,6 @@ search_page_rev(struct search *s, struct vt_page *vtp, int wrapped)
 
 	/* To Unicode */
 
-	acp = &s->pg.text[FIRST_ROW * s->pg.columns + 0];
 	hp = s->haystack;
 	row = (this == start) ? s->row[1] : 100;
 	flags = 0;
@@ -296,6 +297,8 @@ search_page_rev(struct search *s, struct vt_page *vtp, int wrapped)
 		goto break2;
 
 	for (i = FIRST_ROW; i < LAST_ROW; i++) {
+		acp = &s->pg.text[i * s->pg.columns];
+
 		for (j = 0; j < 40; acp++, j++) {
 			if (i == row && j >= s->col[1])
 				goto break2;

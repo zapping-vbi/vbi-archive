@@ -19,3 +19,4 @@ Known bugs with zapping, don't report them
 	* vbi eats too much CPU, investigate.
 	* The standard is changed when changing modes (check, not sure)
 	* Capture won't work under PPC (endianess)
+	* Zapzilla: DRCS/double height char mistake on SWR?

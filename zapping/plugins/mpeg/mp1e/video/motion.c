@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: motion.c,v 1.15 2001-08-01 08:40:16 mschimek Exp $ */
+/* $Id: motion.c,v 1.16 2001-08-03 13:05:00 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -2828,7 +2828,6 @@ mmx_predict(unsigned char *from, int d2x, int d2y,
 
 	asm volatile (
 		" pxor		%mm5,%mm5;\n"
-		" pxor		%mm6,%mm6;\n"
 		" pxor		%mm7,%mm7;\n"
 	);
 
@@ -2847,8 +2846,6 @@ mmx_predict(unsigned char *from, int d2x, int d2y,
 			" psubw		%%mm1,%%mm3;\n"
 			" movq		%%mm2,0*768+0*128+0(%3);\n"
 			" movq		%%mm3,0*768+0*128+8(%3);\n"
-			" paddw		%%mm2,%%mm6;\n"
-			" paddw		%%mm3,%%mm6;\n"
 			" pmaddwd	%%mm2,%%mm2;\n"
 			" pmaddwd	%%mm3,%%mm3;\n"
 			" paddd		%%mm2,%%mm7;\n"
@@ -2870,8 +2867,6 @@ mmx_predict(unsigned char *from, int d2x, int d2y,
 			" psubw		%%mm1,%%mm3;\n"
 			" movq		%%mm2,0*768+2*128+0(%3);\n"
 			" movq		%%mm3,0*768+2*128+8(%3);\n"
-			" paddw		%%mm2,%%mm6;\n"
-			" paddw		%%mm3,%%mm6;\n"
 			" pmaddwd	%%mm2,%%mm2;\n"
 			" pmaddwd	%%mm3,%%mm3;\n"
 			" paddd		%%mm2,%%mm7;\n"
@@ -2897,8 +2892,6 @@ mmx_predict(unsigned char *from, int d2x, int d2y,
 			" psubw		%%mm1,%%mm3;\n"
 			" movq		%%mm2,0*768+0*128+0(%2);\n"
 			" movq		%%mm3,0*768+0*128+8(%2);\n"
-			" paddw		%%mm2,%%mm6;\n"
-			" paddw		%%mm3,%%mm6;\n"
 			" pmaddwd	%%mm2,%%mm2;\n"
 			" pmaddwd	%%mm3,%%mm3;\n"
 			" paddd		%%mm2,%%mm7;\n"
@@ -2916,8 +2909,6 @@ mmx_predict(unsigned char *from, int d2x, int d2y,
 			" psubw		%%mm1,%%mm3;\n"
 			" movq		%%mm2,0*768+2*128+0(%2);\n"
 			" movq		%%mm3,0*768+2*128+8(%2);\n"
-			" paddw		%%mm2,%%mm6;\n"
-			" paddw		%%mm3,%%mm6;\n"
 			" pmaddwd	%%mm2,%%mm2;\n"
 			" pmaddwd	%%mm3,%%mm3;\n"
 			" paddd		%%mm2,%%mm7;\n"
@@ -2930,18 +2921,11 @@ mmx_predict(unsigned char *from, int d2x, int d2y,
 	}
 
 	asm volatile (
-		" pmaddwd		c1,%%mm6;\n"
 		" movq		%%mm7,%%mm0;\n"
 		" psrlq		$32,%%mm7;\n"
 		" paddd		%%mm0,%%mm7;\n"
-		" movq		%%mm6,%%mm0;\n"
-		" psrlq		$32,%%mm6;\n"
-		" paddd		%%mm0,%%mm6;\n"
 		" pslld		$8,%%mm7;\n"
-		" movd		%%mm6,%1;\n"
-		" imul		%1,%1;\n"
 		" movd		%%mm7,%0;\n"
-// sact2 dc=0	" subl		%1,%0;\n"
 	: "=&r" (s) : "r" (0));
 
 	mx = d2x + mb_col * 16 * 2;
@@ -3578,7 +3562,7 @@ t7(int range, int dist)
 		return;
 
 	m = qmsum / qmcount;
-	q = 1.5 * m / dist;
+	q = 1.4 * m / dist;
 
 	if (range != 0)
 		assert(range > 3 && dist > 0);
@@ -3685,7 +3669,6 @@ predict_bidirectional_motion(struct motion *M,
 
 	asm volatile (
 		" movq		c1,%mm5;\n"
-		" pxor		%mm6,%mm6;\n"	
 		" pxor		%mm7,%mm7;\n"
 	);	
 
@@ -3698,7 +3681,6 @@ predict_bidirectional_motion(struct motion *M,
 			" movq		0*768+0*128+0(%0),%%mm2;\n"
 			" psubw		%%mm0,%%mm2;\n"
 			" movq		%%mm2,3*768+0*128+0(%0);\n"
-			" paddw		%%mm2,%%mm6;\n"
 			" pmaddwd	%%mm2,%%mm2;\n"
 			" paddd		%%mm2,%%mm7;\n"
 
@@ -3709,7 +3691,6 @@ predict_bidirectional_motion(struct motion *M,
 			" movq		0*768+0*128+8(%0),%%mm2;\n"
 			" psubw		%%mm0,%%mm2;\n"
 			" movq		%%mm2,3*768+0*128+8(%0);\n"
-			" paddw		%%mm2,%%mm6;\n"
 			" pmaddwd	%%mm2,%%mm2;\n"
 			" paddd		%%mm2,%%mm7;\n"
 
@@ -3720,7 +3701,6 @@ predict_bidirectional_motion(struct motion *M,
 			" movq		0*768+0*128+16(%0),%%mm2;\n"
 			" psubw		%%mm0,%%mm2;\n"
 			" movq		%%mm2,3*768+0*128+16(%0);\n"
-			" paddw		%%mm2,%%mm6;\n"
 			" pmaddwd	%%mm2,%%mm2;\n"
 			" paddd		%%mm2,%%mm7;\n"
 
@@ -3731,7 +3711,6 @@ predict_bidirectional_motion(struct motion *M,
 			" movq		0*768+0*128+24(%0),%%mm2;\n"
 			" psubw		%%mm0,%%mm2;\n"
 			" movq		%%mm2,3*768+0*128+24(%0);\n"
-			" paddw		%%mm2,%%mm6;\n"
 			" pmaddwd	%%mm2,%%mm2;\n"
 			" paddd		%%mm2,%%mm7;\n"
 
@@ -3755,18 +3734,11 @@ predict_bidirectional_motion(struct motion *M,
 	}
 
 	asm volatile (
-		" pmaddwd	%%mm5,%%mm6;\n"
 		" movq		%%mm7,%%mm0;\n"
 		" psrlq		$32,%%mm7;\n"
 		" paddd		%%mm0,%%mm7;\n"
-		" movq		%%mm6,%%mm0;\n"
-		" psrlq		$32,%%mm6;\n"
-		" paddd		%%mm0,%%mm6;\n"
 		" pslld		$8,%%mm7;\n"
-		" movd		%%mm6,%1;\n"
-		" imul		%1,%1;\n"
 		" movd		%%mm7,%0;\n"
-// sact2 dc=0	" subl		%1,%0;\n"
 	: "=&r" (si) : "r" (0));
 
 	*vmc1 = sf;
@@ -3794,12 +3766,11 @@ predict_bidirectional_motion(struct motion *M,
 unsigned int
 predict_forward_packed(unsigned char *from)
 {
-	int i, n, s = 0, s2 = 0;
+	int i, n, s2 = 0;
 
 	for (i = 0; i < 4 * 64; i++) {
 		mblock[1][0][0][i] = n = mblock[0][0][0][i] - from[i];
 		mblock[3][0][0][i] = from[i];
-		s += n;
 		s2 += n * n;
 	}
 
@@ -3808,13 +3779,13 @@ predict_forward_packed(unsigned char *from)
 		mblock[3][0][0][i] = from[i];
 	}
 
-	return s2 * 256; // - (s * s); sact2 dc=0
+	return s2 * 256;
 }
 
 unsigned int
 predict_forward_planar(unsigned char *from)
 {
-	int i, j, n, s = 0, s2 = 0;
+	int i, j, n, s2 = 0;
 	unsigned char *p;
 
 	p = from;
@@ -3823,11 +3794,9 @@ predict_forward_planar(unsigned char *from)
 		for (j = 0; j < 8; j++) {
 			mblock[1][0][i][j] = n = mblock[0][0][i][j] - p[j];
 			mblock[3][0][i][j] = p[j];
-			s += n;
 			s2 += n * n;
 			mblock[1][0][i + 16][j] = n = mblock[0][0][i + 16][j] - p[j + 8];
 			mblock[3][0][i + 16][j] = p[j + 8];
-			s += n;
 			s2 += n * n;
 		}
 
@@ -3847,7 +3816,7 @@ predict_forward_planar(unsigned char *from)
 		p += mb_address.block[4].pitch;
 	}
 
-	return s2 * 256; // - (s * s); sact2 dc=0
+	return s2 * 256;
 }
 
 /*
@@ -3858,17 +3827,17 @@ predict_forward_planar(unsigned char *from)
 unsigned int
 predict_backward_packed(unsigned char *from)
 {
-	int i, n, s = 0;
+	int i, n, s2 = 0;
 
 	for (i = 0; i < 4 * 64; i++) {
 		mblock[1][0][0][i] = n = mblock[0][0][0][i] - from[i];
-		s += n * n;
+		s2 += n * n;
 	}
 
 	for (; i < 6 * 64; i++)
 		mblock[1][0][0][i] = mblock[0][0][0][i] - from[i];
 
-	return s * 256;
+	return s2 * 256;
 }
 
 /*

@@ -4,6 +4,10 @@
 	* src/x11stuff.c: Removed XSynchronize call, was broken according
 	to 'man XSynchronize'.
 
+01.08.2001	libvbi fix <mschimek@users.sf.net>
+
+	* search.c: Corrected hardcoded column width 40.
+
 31.07.2001	libvbi <mschimek@users.sf.net>
 
 	* v4lx.c: Fixed blank vbi bug.

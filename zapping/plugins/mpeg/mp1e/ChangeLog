@@ -10,7 +10,7 @@
 	* Restored preview, preliminary.
 	* Examined the 2001-06-07 bug, is a DC rounding problem,
 	  not strictly a bug. Modified the quant calculation.
-	  Lets see how that works, then optimize. (**)
+	  Lets see how that works, then optimize.
 	* Restored v4l interface.
 
 2001-07-31	<mschimek@users.sf.net>
