@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.6 2004-09-10 04:46:55 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.7 2004-11-03 06:37:31 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -46,9 +46,6 @@ setup_v4l2			(const char *		device_name,
 {
   int fd;
   struct v4l2_capability cap;
-  struct v4l2_framebuffer fb;
-  tv_pixel_format pf;
-  tv_bool r;
 
   message (2, "Opening video device.\n");
 
@@ -57,135 +54,20 @@ setup_v4l2			(const char *		device_name,
 
   message (2, "Querying device capabilities.\n");
 
-  if (-1 == v4l2_ioctl (fd, VIDIOC_QUERYCAP, &cap))
+  if (0 == v4l2_ioctl (fd, VIDIOC_QUERYCAP, &cap))
     {
       errmsg ("VIDIOC_QUERYCAP ioctl failed,\n  probably not a V4L2 device");
       close (fd);
       return -1;
     }
 
-  message (1, "Using V4L2 interface.\n");
+  /* V4L2 0.20 is obsolete, superseded by V4L2 of Linux 2.6. */
 
-  message (2, "Checking overlay capability.\n");
-
-  if (V4L2_TYPE_CAPTURE != cap.type
-      || !(V4L2_FLAG_PREVIEW & cap.flags))
-    {
-      message (1, "Device '%s' does not support video overlay.\n",
-	       device_name);
-      goto failure;
-    }
-
-  message (2, "Getting current frame buffer parameters.\n");
-
-  if (-1 == v4l2_ioctl (fd, VIDIOC_G_FBUF, &fb))
-    {
-      errmsg ("VIDIOC_G_FBUF ioctl failed");
-      goto failure;
-    }
-
-  if (fb.capability & V4L2_FBUF_CAP_EXTERNOVERLAY)
-    {
-      message (2, "Genlock device, no setup necessary.\n");
-      close (fd);
-      return 1;
-    }
-
-  fb.base[0]		= (void *) buffer->base;
-  fb.base[1]		= (void *) buffer->base;
-  fb.base[2]		= (void *) buffer->base;
-
-  fb.fmt.width		= buffer->format.width;
-  fb.fmt.height		= buffer->format.height;
-
-  r = tv_pixel_format_from_pixfmt (&pf,
-				   buffer->format.pixfmt,
-				   buffer->format._reserved);
-  assert (TRUE == r);
-
-  fb.fmt.depth		= pf.bits_per_pixel;
-
-  switch (pf.color_depth)
-    {
-    case  8:
-      fb.fmt.pixelformat = V4L2_PIX_FMT_HI240; /* XXX bttv only */
-      break;
-
-      /* Note 15/16 defines and spec are wrong: r <-> b,
-	 RGB32 == A,R,G,B in bttv unlike description in spec. */
-
-#if Z_BYTE_ORDER == Z_BIG_ENDIAN /* safe? */
-    case 15:
-      fb.fmt.pixelformat = V4L2_PIX_FMT_RGB555X;
-      break;
-    case 16:
-      fb.fmt.pixelformat = V4L2_PIX_FMT_RGB565X;
-      break;
-    case 24:
-    case 32:
-      if (24 == pf.bits_per_pixel)
-	fb.fmt.pixelformat = V4L2_PIX_FMT_RGB24;
-      else
-	fb.fmt.pixelformat = V4L2_PIX_FMT_RGB32;
-      break;
-#elif Z_BYTE_ORDER == Z_LITTLE_ENDIAN
-    case 15:
-      fb.fmt.pixelformat = V4L2_PIX_FMT_RGB555;
-      break;
-    case 16:
-      fb.fmt.pixelformat = V4L2_PIX_FMT_RGB565;
-      break;
-    case 24:
-    case 32:
-      if (24 == pf.bits_per_pixel)
-	fb.fmt.pixelformat = V4L2_PIX_FMT_BGR24;
-      else
-	fb.fmt.pixelformat = V4L2_PIX_FMT_BGR32;
-      break;
-#else
-#  error Unknown or unsupported endianess.
-#endif
-    }
-
-  fb.fmt.flags		= V4L2_FMT_FLAG_BYTESPERLINE; 
-
-  fb.fmt.bytesperline	= buffer->format.bytes_per_line;
-  fb.fmt.sizeimage	= buffer->format.height * fb.fmt.bytesperline;
-
-  message (2, "Setting new frame buffer parameters.\n");
-
-  /* This ioctl is privileged because it sets up
-     DMA to a random (video memory) address. */
-  {
-    int success;
-    int saved_errno;
-
-    if (!restore_root_privileges ())
-      goto failure;
-
-    success = ioctl (fd, VIDIOC_S_FBUF, &fb);
-    saved_errno = errno;
-
-    drop_root_privileges ();
-
-    if (success == -1)
-      {
-	errno = saved_errno;
-
-        errmsg ("VIDIOC_S_FBUF ioctl failed");
-
-        if (EPERM == saved_errno && ROOT_UID != euid)
-	  privilege_hint ();
-
-      failure:
-	close (fd);
-        return 0;
-      }
-  }
+  errmsg ("V4L2 0.20 API not supported");
 
   close (fd);
 
-  return 1;
+  return 0; /* failed */
 }
 
 #else /* !ENABLE_V4L */
@@ -194,7 +76,7 @@ int
 setup_v4l2			(const char *		device_name,
 				 const tv_overlay_buffer *buffer)
 {
-  return -1;
+  return -1; /* try other */
 }
 
 #endif /* !ENABLE_V4L */
