@@ -8,7 +8,8 @@ liblirc_zapping_la_SOURCES = lirc.c
 
 EXTRA_DIST = README
 
-CFLAGS = -Wall -Wno-unused # Avoid warnings about undeclared statics
+## CFLAGS = $(PLUGIN_DEFAULT_FLAGS)
+CFLAGS = -Wall -g
 INCLUDES = \
 	-I$(top_srcdir)/intl \
 	-I$(includedir)	\

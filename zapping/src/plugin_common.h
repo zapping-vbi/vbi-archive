@@ -97,9 +97,6 @@ plugin_sample;
 		   the correct prototypes for public symbols ( so
 		   compiling will give an error if defined differently) */
 
-/* These are not commented here because they are in the plugin docs */
-/* This is the declaration of the two public symbols, the rest is
-   static and will give a warning if declared and not implemented */
 gint plugin_get_protocol (void);
 gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr);
 

@@ -6,7 +6,7 @@ plugin_LTLIBRARIES = libtemplate.zapping.la
 
 libtemplate_zapping_la_SOURCES = template.c
 
-CFLAGS = -Wall -Wno-unused # Avoid warnings about undeclared statics
+CFLAGS = $(PLUGIN_DEFAULT_FLAGS)
 INCLUDES = \
 	-I$(top_srcdir)/intl \
 	-I$(includedir)	\

@@ -7,7 +7,7 @@ plugin_LTLIBRARIES = libscreenshot.zapping.la
 libscreenshot_zapping_la_SOURCES = screenshot.c
 libscreenshot_zapping_la_LIBADD = $(JPEG_LIB)
 
-CFLAGS = -Wall -Wno-unused # Avoid warnings about undeclared statics
+CFLAGS = $(PLUGIN_DEFAULT_FLAGS)
 INCLUDES = \
 -I$(top_srcdir)/intl \
 -I$(includedir)	\

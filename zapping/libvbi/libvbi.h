@@ -176,7 +176,8 @@ extern int		vbi_event_handler(struct vbi *vbi, int event_mask, void (* handler)(
 
 
 struct cache;
-struct vbi *vbi_open(char *vbi_dev_name, struct cache *ca);
+/* given_fd points to an opened video device, or -1, ignored for V4L2 */
+struct vbi *vbi_open(char *vbi_dev_name, struct cache *ca, int given_fd);
 void vbi_close(struct vbi *vbi);
 extern void *	vbi_mainloop(void *p);
 

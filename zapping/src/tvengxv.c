@@ -228,12 +228,11 @@ int tvengxv_attach_device(const char* device_file,
 		  info);
       goto error1;
     };
-  /*
-    Errors (if any) are already aknowledged when we reach this point,
-    so we don't show them again
-  */
+
   if (info -> fd < 0)
     goto error1;
+
+  info->fd = 0;
   
   info -> attach_mode = attach_mode;
   /* Current capture mode is no capture at all */

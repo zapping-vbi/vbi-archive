@@ -31,6 +31,7 @@
 
 #include <libvbi.h>
 #include "tveng.h"
+#include "zmodel.h"
 
 enum ttx_message {
   TTX_NONE=0, /* No messages */
@@ -138,6 +139,13 @@ zvbi_close_device(void);
 */
 struct vbi *
 zvbi_get_object(void);
+
+/*
+  Returns the model for the vbi object. You can hook into this to know
+  when the vbi object is created or destroyed.
+*/
+ZModel *
+zvbi_get_model(void);
 
 /*
   Returns a pointer to the name of the Teletext provider, or NULL if

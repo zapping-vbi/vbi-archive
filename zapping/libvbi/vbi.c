@@ -289,7 +289,7 @@ remove_filter(struct vbi *vbi)
 
 
 struct vbi *
-vbi_open(char *vbi_name, struct cache *ca)
+vbi_open(char *vbi_name, struct cache *ca, int given_fd)
 {
     struct vbi *vbi;
     extern void open_vbi(void);
@@ -302,7 +302,7 @@ vbi_open(char *vbi_name, struct cache *ca)
 	goto fail1;
     }
 
-    vbi->fifo = open_vbi_v4lx(vbi_name);
+    vbi->fifo = open_vbi_v4lx(vbi_name, given_fd);
 
     if (!vbi->fifo)
     {

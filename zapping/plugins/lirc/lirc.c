@@ -226,11 +226,11 @@ void plugin_load_config (gchar * root_key)
     sprintf(number, "action_%d", ++i);
     buffer = g_strconcat(root_key, "actions/", number, NULL);
     button = zconf_get_string(NULL, buffer);
+    action = zconf_get_description(NULL, buffer);
     g_free(buffer);
     if (button != NULL) {
       item = (action_list_item*)malloc(sizeof(action_list_item));
       strncpy(item->button, button, 20);
-      action = zconf_get_description(NULL, buffer);
       strncpy(item->action, action, 30);
       add_action(item);
     }

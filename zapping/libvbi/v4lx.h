@@ -18,9 +18,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.h,v 1.1 2000-12-13 04:14:17 mschimek Exp $ */
+/* $Id: v4lx.h,v 1.2 2001-03-02 23:55:17 garetxe Exp $ */
 
 #include "../common/fifo.h"
 
-extern fifo *		open_vbi_v4lx(char *dev_name);
+/* given_fd points to an opened video device, or -1, ignored for V4L2 */
+extern fifo *		open_vbi_v4lx(char *dev_name, int given_fd);
 extern void		close_vbi_v4lx(fifo *f);

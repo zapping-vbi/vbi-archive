@@ -99,6 +99,7 @@ typedef struct {
 					   selection */
   gint			sel_col, sel_row, sel_width, sel_height;
   gint			blink_timeout; /* timeout for refreshing the page */
+  ZModel		*vbi_model;
 } ttxview_data;
 
 struct bookmark {
@@ -106,6 +107,15 @@ struct bookmark {
   gint subpage;
   gchar *description;
 };
+
+#define nullcheck() \
+do { \
+  if (!zvbi_get_object()) \
+    { \
+      ShowBox(_("VBI has been disabled"), GNOME_MESSAGE_BOX_WARNING); \
+      return; \
+    } \
+} while (0)
 
 static GList	*bookmarks=NULL;
 static ZModel	*model=NULL; /* for bookmarks */
@@ -240,6 +250,9 @@ find_prev_subpage (ttxview_data	*data, int subpage)
   struct vbi *vbi = zvbi_get_object();
   int start_subpage = subpage;
 
+  if (!vbi)
+    return -1;
+
   if (!vbi->cache->hi_subno[data->fmt_page->pgno])
     return -1;
 
@@ -261,6 +274,9 @@ find_next_subpage (ttxview_data	*data, int subpage)
 {
   struct vbi *vbi = zvbi_get_object();
   int start_subpage = subpage;
+
+  if (!vbi)
+    return -1;
 
   if (!vbi->cache->hi_subno[data->fmt_page->pgno])
     return -1;
@@ -320,6 +336,22 @@ void append_history	(int page, int subpage, ttxview_data *data)
 }
 
 static void
+remove_ttxview_instance			(ttxview_data	*data);
+
+static void
+on_vbi_model_changed			(ZModel		*model,
+					 ttxview_data	*data)
+{
+  GtkWidget * ttxview = lookup_widget(data->toolbar, "ttxview");
+
+  if (ttxview)
+    {
+      remove_ttxview_instance(data);
+      gtk_widget_destroy(ttxview);
+    }
+}
+
+static void
 remove_ttxview_instance			(ttxview_data	*data)
 {
   if (data->mask)
@@ -346,6 +378,10 @@ remove_ttxview_instance			(ttxview_data	*data)
   gtk_timeout_remove(data->timeout);
 
   unregister_ttx_client(data->id);
+
+  gtk_signal_disconnect_by_func(GTK_OBJECT(data->vbi_model),
+				GTK_SIGNAL_FUNC(on_vbi_model_changed),
+				data);
   
   g_free(data);
 }
@@ -562,8 +598,11 @@ event_timeout				(ttxview_data	*data)
 	    }
 	  if ((!data->fmt_page->pgno) &&
 	      (data->appbar))
-	    gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
-				    _("Warning: Page not valid"));
+	    {
+	      gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
+				      _("Warning: Page not valid"));
+	      g_warning("BAD PAGE: 0x%x", data->fmt_page->pgno);
+	    }
 	  update_pointer(data);
 	  break;
 	case TTX_BROKEN_PIPE:
@@ -679,7 +718,7 @@ void on_ttxview_prev_sp_cache_clicked	(GtkButton	*button,
   struct vbi *vbi = zvbi_get_object();
   int subpage;
 
-  g_assert(vbi != NULL);
+  nullcheck();
 
   if (!vbi->cache)
     {
@@ -716,7 +755,7 @@ void on_ttxview_next_sp_cache_clicked	(GtkButton	*button,
   struct vbi *vbi = zvbi_get_object();
   int subpage;
 
-  g_assert(vbi != NULL);
+  nullcheck();
 
   if (!vbi->cache)
     {
@@ -983,6 +1022,13 @@ void on_ttxview_search_clicked		(GtkButton	*button,
   void *search_context;
   ucs2_t *pattern;
 
+  if (!zvbi_get_object())
+    {
+      ShowBox(_("VBI has been disabled"), GNOME_MESSAGE_BOX_WARNING);
+      gtk_widget_destroy(GTK_WIDGET(ure_search));
+      return;
+    }
+
   gnome_dialog_set_parent(ure_search, GTK_WINDOW(data->parent));
   gnome_dialog_close_hides(ure_search, TRUE);
   gnome_dialog_set_default(ure_search, 0);
@@ -1106,8 +1152,12 @@ static
 void on_ttxview_clone_clicked		(GtkButton	*button,
 					 ttxview_data	*data)
 {
-  GtkWidget *dolly = build_ttxview();
+  GtkWidget *dolly;
   gint w, h;
+
+  nullcheck();
+
+  dolly = build_ttxview();
 
   if (data->fmt_page->pgno)
     load_page(data->fmt_page->pgno, data->monitored_subpage,
@@ -1155,6 +1205,8 @@ void new_bookmark			(GtkWidget	*widget,
   gchar title[41];
   gchar *buffer;
   gint page, subpage;
+
+  nullcheck();
 
   if (data->page >= 0x100)
     page = data->page;
@@ -2301,6 +2353,7 @@ build_ttxview(void)
   data->popup_menu = TRUE;
   gtk_object_set_data(GTK_OBJECT(ttxview), "ttxview_data", data);
   data->xor_gc = gdk_gc_new(data->da->window);
+  data->vbi_model = zvbi_get_model();
   gdk_gc_set_function(data->xor_gc, GDK_INVERT);
 
   ttxview_reveal = lookup_widget(data->toolbar, "ttxview_reveal");
@@ -2378,6 +2431,10 @@ build_ttxview(void)
 			    clip_targets, n_clip_targets);
   gtk_signal_connect (GTK_OBJECT(data->da), "selection_get",
 		      GTK_SIGNAL_FUNC (selection_handle), data);
+  /* handle the destruction of the vbi object */
+  gtk_signal_connect (GTK_OBJECT(data->vbi_model), "changed",
+		      GTK_SIGNAL_FUNC(on_vbi_model_changed),
+		      data);
 
   data->blink_timeout = gtk_timeout_add(BLINK_CYCLE / 4, ttxview_blink, data);
 

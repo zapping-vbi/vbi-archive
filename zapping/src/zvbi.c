@@ -62,6 +62,7 @@ extern tveng_device_info *main_info;
 #define INTERP_MODE GDK_INTERP_BILINEAR
 
 static struct vbi *vbi=NULL; /* holds the vbi object */
+static ZModel * vbi_model=NULL;
 static pthread_t zvbi_thread_id; /* VBI thread in libvbi */
 
 /**
@@ -123,21 +124,23 @@ on_vbi_prefs_changed		(const gchar *key,
   /* Try to open the device */
   if (!vbi && zcg_bool(NULL, "enable_vbi"))
     {
-      g_message("Opening the device");
+      D();
       if (!zvbi_open_device())
 	{
 	  ShowBox(_("Sorry, but %s couldn't be opened:\n%s (%d)"),
 		  GNOME_MESSAGE_BOX_ERROR, "/dev/vbi",
 		  strerror(errno), errno);
 	}
+      D();
     }
   if (vbi && !zcg_bool(NULL, "enable_vbi"))
     {
-      g_message("closing the device");
+      D();
       /* TTX mode */
       if (main_info->current_mode == TVENG_NO_CAPTURE)
 	zmisc_switch_mode(TVENG_CAPTURE_WINDOW, main_info);
       zvbi_close_device();
+      D();
     }
 
   /* disable VBI if needed */
@@ -197,7 +200,9 @@ startup_zvbi(void)
   zcc_int(0, "Default TTX region", "default_region");
 
   zconf_add_hook("/zapping/options/vbi/enable_vbi",
-		 (ZConfHook)on_vbi_prefs_changed, (gpointer)0xdeadbeef);
+		 (ZConfHook)on_vbi_prefs_changed,
+		 (gpointer)0xdeadbeef);
+  vbi_model = ZMODEL(zmodel_new());
 }
 
 void shutdown_zvbi(void)
@@ -214,6 +219,8 @@ zvbi_open_device(void)
 {
   gchar *device;
   gint index;
+  int given_fd;
+
   static int region_mapping[8] = {
     0, /* WCE */
     8, /* EE */
@@ -235,7 +242,12 @@ zvbi_open_device(void)
     exit(EXIT_FAILURE);
   }
 
-  if (!(vbi = vbi_open(device, cache_open())))
+  if (main_info)
+    given_fd = main_info->fd;
+  else
+    given_fd = -1;
+
+  if (!(vbi = vbi_open(device, cache_open(), given_fd)))
     {
       g_warning("cannot open %s, vbi services will be disabled",
 		device);
@@ -268,6 +280,8 @@ zvbi_open_device(void)
     index = 7;
   vbi_set_default_region(vbi, region_mapping[index]);
   pthread_mutex_init(&clients_mutex, NULL);
+
+  zmodel_changed(vbi_model);
 
   return TRUE;
 
@@ -312,6 +326,8 @@ zvbi_close_device(void)
   vbi = NULL;
   close(test_pipe[0]);
   close(test_pipe[1]);
+
+  zmodel_changed(vbi_model);
 }
 
 static void
@@ -717,6 +733,9 @@ build_client_page(struct ttx_client *client, int page, int subpage)
   GdkPixbuf *simple;
   gchar *filename;
 
+  if (!vbi)
+    return 0;
+  
   g_assert(client != NULL);
 
   pthread_mutex_lock(&client->mutex);
@@ -792,6 +811,9 @@ monitor_ttx_page(int id/*client*/, int page, int subpage)
 {
   struct ttx_client *client;
 
+  if (!vbi)
+    return;
+
   pthread_mutex_lock(&clients_mutex);
   client = find_client(id);
   if (client)
@@ -817,6 +839,9 @@ monitor_ttx_page(int id/*client*/, int page, int subpage)
 void monitor_ttx_this(int id, struct fmt_page *pg)
 {
   struct ttx_client *client;
+
+  if (!vbi)
+    return;
 
   if (!pg)
     return;
@@ -846,6 +871,9 @@ ttx_freeze (int id)
 {
   struct ttx_client *client;
 
+  if (!vbi)
+    return;
+
   pthread_mutex_lock(&clients_mutex);
   if ((client = find_client(id)))
     client->freezed = TRUE;
@@ -856,6 +884,9 @@ void
 ttx_unfreeze (int id)
 {
   struct ttx_client *client;
+
+  if (!vbi)
+    return;
 
   pthread_mutex_lock(&clients_mutex);
   if ((client = find_client(id)))
@@ -868,6 +899,9 @@ notify_clients(int page, int subpage)
 {
   GList *p;
   struct ttx_client *client;
+
+  if (!vbi)
+    return;
 
   pthread_mutex_lock(&clients_mutex);
   p = g_list_first(ttx_clients);
@@ -888,6 +922,9 @@ notify_clients(int page, int subpage)
 void resize_ttx_page(int id, int w, int h)
 {
   struct ttx_client *client;
+
+  if (!vbi)
+    return;
 
   if ((w<=0) || (h<=0))
     return;
@@ -918,8 +955,6 @@ void resize_ttx_page(int id, int w, int h)
 	  client->h = h;
 
 	  resize_patches(client);
-
-	  /* fixme: apply patches? */
 	}
       pthread_mutex_unlock(&client->mutex);
     }
@@ -933,6 +968,9 @@ void render_ttx_page(int id, GdkDrawable *drawable,
 		     gint w, gint h)
 {
   struct ttx_client *client;
+
+  if (!vbi)
+    return;
 
   pthread_mutex_lock(&clients_mutex);
   if ((client = find_client(id)))
@@ -959,6 +997,9 @@ render_ttx_mask(int id, GdkBitmap *mask)
 {
   struct ttx_client *client;
 
+  if (!vbi)
+    return;
+
   pthread_mutex_lock(&clients_mutex);
   if ((client = find_client(id)))
     {
@@ -981,6 +1022,12 @@ struct vbi *
 zvbi_get_object(void)
 {
   return vbi;
+}
+
+ZModel *
+zvbi_get_model(void)
+{
+  return vbi_model;
 }
 
 /* this is called when we receive a page, header, etc. */

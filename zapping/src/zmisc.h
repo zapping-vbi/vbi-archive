@@ -47,10 +47,13 @@ void ec_add_message(const gchar *text, gboolean show,
     level = _("Error: "); \
   else if (!strcasecmp(MSGTYPE, GNOME_MESSAGE_BOX_WARNING)) \
     level = _("Warning: "); \
-  else if (!strcasecmp(MSGTYPE, GNOME_MESSAGE_BOX_INFO)) \
-    level = _("Info: "); \
   else \
-    level = ""; \
+    { \
+      ShowBoxReal(__FILE__, __LINE__, G_GNUC_PRETTY_FUNCTION, \
+		  tmp_str, MSGTYPE, FALSE, FALSE); \
+      g_free(tmp_str); \
+      break; \
+    } \
   buffer = \
     g_strdup_printf("%s%s (%d) [%s]:\n%s", level, \
 		    __FILE__, __LINE__, G_GNUC_PRETTY_FUNCTION, \

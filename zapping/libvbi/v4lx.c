@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.7 2001-02-28 22:37:10 garetxe Exp $ */
+/* $Id: v4lx.c,v 1.8 2001-03-02 23:55:17 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -143,7 +143,7 @@ start_read(fifo *f)
 #warning guess_bttv_v4l not reliable
 
 static bool
-guess_bttv_v4l(vbi_device *vbi, int *strict)
+guess_bttv_v4l(vbi_device *vbi, int *strict, int given_fd)
 {
 	struct video_capability vcap;
 	struct video_tuner vtuner;
@@ -181,6 +181,16 @@ guess_bttv_v4l(vbi_device *vbi, int *strict)
 
 		if (major(vbi_stat.st_rdev) != 81)
 			return FALSE; /* break? */
+
+		/* We are given a device, try it */
+		if (given_fd > 0 &&
+		    ioctl(given_fd, VIDIOCGCAP, &vcap) != -1 &&
+		    (vcap.type & VID_TYPE_CAPTURE) &&
+		    ioctl(given_fd, VIDIOCGUNIT, &vunit) != -1 &&
+		    vunit.vbi == minor(vbi_stat.st_rdev)) {
+			video_fd = given_fd;
+			goto device_found;
+		}
 
 		/* Try first /dev/video0, this will speed things up in
 		 the common case */
@@ -251,8 +261,9 @@ guess_bttv_v4l(vbi_device *vbi, int *strict)
 			mode = vtuner.mode;
 		else if (ioctl(video_fd, VIDIOCGCHAN, &vchan) != -1)
 			mode = vchan.norm;
-
-		close(video_fd);
+		
+		if (video_fd != given_fd)
+			close(video_fd);
 	} while (0);
 
 	switch (mode) {
@@ -280,7 +291,7 @@ guess_bttv_v4l(vbi_device *vbi, int *strict)
 
 static int
 open_v4l(vbi_device **pvbi, char *dev_name,
-	 int fifo_depth, unsigned int services, int strict)
+	 int fifo_depth, unsigned int services, int strict, int given_fd)
 {
 #if HAVE_V4L_VBI_FORMAT
 	struct vbi_format vfmt;
@@ -305,7 +316,7 @@ open_v4l(vbi_device **pvbi, char *dev_name,
 		 *  Older bttv drivers don't support any
 		 *  vbi ioctls, let's see if we can guess the beast.
 		 */
-		if (!guess_bttv_v4l(vbi, &strict)) {
+		if (!guess_bttv_v4l(vbi, &strict, given_fd)) {
 			close(vbi->fd);
 			free(vbi);
 			return -1; /* Definately not V4L */
@@ -320,7 +331,7 @@ open_v4l(vbi_device **pvbi, char *dev_name,
 			goto failure;
 		}
 
-		guess_bttv_v4l(vbi, &strict);
+		guess_bttv_v4l(vbi, &strict, given_fd);
 	}
 
 	max_rate = 0;
@@ -441,7 +452,7 @@ open_v4l(vbi_device **pvbi, char *dev_name,
 			break;
 
 		default:
-			DIAG("driver clueless about video standard");
+			DIAG("driver clueless about video standard (1)");
 			goto failure;
 		}
 
@@ -474,7 +485,7 @@ open_v4l(vbi_device **pvbi, char *dev_name,
 			 *  We may have requested single field capture
 			 *  ourselves, but then we had guessed already.
 			 */
-			DIAG("driver clueless about video standard");
+			DIAG("driver clueless about video standard (2)");
 			goto failure;
 		}
 
@@ -939,7 +950,7 @@ close_vbi_v4lx(fifo *f)
 }
 
 fifo *
-open_vbi_v4lx(char *dev_name)
+open_vbi_v4lx(char *dev_name, int given_fd)
 {
 	vbi_device *vbi=NULL;
 	int r;
@@ -950,7 +961,8 @@ open_vbi_v4lx(char *dev_name)
 
 	if (r < 0)
 		if (!(r = open_v4l(&vbi, dev_name, 1,
-		    SLICED_TELETEXT_B | SLICED_VPS | SLICED_CAPTION, -1)))
+		    SLICED_TELETEXT_B | SLICED_VPS | SLICED_CAPTION,
+				   -1, given_fd)))
 			goto failure;
 	if (r < 0)
 		goto failure;
