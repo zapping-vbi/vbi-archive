@@ -6,9 +6,10 @@ plugin_LTLIBRARIES = libteletext.zapping.la
 
 libteletext_zapping_la_SOURCES = \
 	bookmark.c bookmark.h \
-	color.c color.h \
 	export.c export.h \
 	main.c main.h \
+	page_num.h \
+	preferences.c preferences.h \
 	search.c search.h \
 	toolbar.c toolbar.h \
 	view.c view.h \
@@ -16,3 +17,14 @@ libteletext_zapping_la_SOURCES = \
 
 INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/src $(COMMON_INCLUDES) \
 	$(PLUGIN_DEFAULT_FLAGS) -Wunused-function
+
+libteletext_zapping_la_LIBADD = \
+	$(top_builddir)/libvbi/libvbi.a \
+	$(PTHREAD_LIB) $(PNG_LIB) $(UNICODE_LIBS)
+
+# must prevent link conflict with libzvbi 0.2
+great_rename:
+	for file in *.c *.h; do \
+	  sed "s/vbi_/vbi3_/g;s/VBI_/VBI3_/g" <$$file >tmp; \
+	  mv tmp $$file; \
+	done
