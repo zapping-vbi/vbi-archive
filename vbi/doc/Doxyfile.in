@@ -67,6 +67,7 @@ FILE_PATTERNS          = *.c \
                          hamm.h \
                          io.h \
                          lang.h \
+                         misc.h \
                          search.h \
                          sliced.h \
                          tables.h \
