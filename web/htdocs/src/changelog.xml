@@ -6,8 +6,25 @@ HTML tags can be used freely in the body, the toc should contain only
 url tags.
 -->
 <document title="ChangeLog" abstract="CVS ChangeLog">
-<header>This is code</header>
-<?php print("<pre>");
-include("http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/~checkout~/zapping/zapping/ChangeLog?content-type=text/plain");
-print("</pre>"); ?>
+<header>Latest CVS entries</header>
+<?php
+$file_location = "http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/~checkout~/zapping/zapping/ChangeLog?content-type=text/plain";
+$file = fopen($file_location, "r");
+if ($file) {
+  print("<pre>");
+  for ($i=0; $i<50; $i++) {
+    $line = fgets($file, 1024);
+    print(htmlspecialchars($line));
+  }
+  fclose($file);
+  print("</pre>");
+  print("<b>");
+  print("The complete ChangeLog is available
+	<a href=\"$file_location\">here</a>.");
+  print("</b>");
+} else {
+  print("<b>Error:</b> Couldn't open the ChangeLog for reading,
+	it is available from <a href=\"$file_location\">here</a>.");
+}
+?>
 </document>

@@ -1,3 +1,301 @@
+18.08.2001	pl translation <garetxe@users.sf.net>
+
+	* pl.po: Commited pl translation, contributed by Paweł Sakowski.
+		 Thanks!
+	* zmisc.c: Fixed button hor/vert aligning in toolbars when the
+	orientation changes. Left the '<[Subpage]>' group always
+	horizontal because it made more sense.
+	* zvbi.c, v4linterface.c: Called vbi_channel_switched when
+	changing inputs, standards or channels.
+
+17.08.2001	many channels <garetxe@users.sf.net>
+
+	* v4linterface: create submenus as needed when there are many
+	channels, add inputs and standards to the context menu.
+
+16.08.2001	fixes <garetxe@users.sf.net>
+
+	* zvbi.c: Reduced the number of fetch_page calls. Better now?
+	* vbi_fetch_vt_page: Added memset(pg, 0, sizeof(*pg)), otherwise
+	segfault when drawing the page if pg is initially bogus data.
+	* capture.c: Fixes, but mc still breaks the mpeg plugin. Spent the
+	whole day tracking this down, nothing so far :-(
+
+16.08.2001	Zapzilla gui <mschimek@users.sf.net>
+	* ttxview.c: Removed export dir field, Zapzilla now
+	  remembers the path last entered. z_build_path is
+	  applied to the entered path, not exportdir. Made the
+	  file entry "electric", ie. the proposed file name is
+	  automagically appended.
+	* search.c, ttxview.c: Added regular expression option.
+
+16.08.2001	libvbi et al <mschimek@users.sf.net>
+
+	* exp-html.c: Added color option, fixed anchor insertion.
+	* ttxview.c: Didn't set vbi export from zconf, fixed.
+
+
+15.08.2001	add all channels <garetxe@users.sf.net>
+
+	* channel_editor: Added 'Add all channel' button.
+
+15.08.2001	libvbi et al <mschimek@users.sf.net>
+
+	* glade: Removed the gettextized "labelxx" and the like.
+	* list.h: rem_node() returns NULL if node is not member of
+	  the list. Fast removing w/o check under unlink_node().
+	* fifo.c: rem_producer/consumer() safe to call after
+	  adding failed. (More changes ahead.)
+	* vbi.c: Restored test filter.
+	* teletext.c: Fixed SWR p570 DRCS bug. Added enhancement
+	  header-only shortcut as suggested by spec.
+	* zvbi.c: Fixed off-by-one error (column 41) updating RTC
+	  in rolling_header(), and no RTC from a page not marked
+	  for rolling (was a problem on MTV ger; arguable, let's see).
+
+14.08.2001	mpeg plugin <garetxe@users.sf.net>
+
+	* plugins/mpeg: Avoided memcpy using mc fifos.
+
+14.08.2001	libvbi <mschimek@users.sf.net>
+
+	* Added explicit and autodetected channel switch. Note
+	  VBI_EVEN_NETWORK changed: vbi_network can be all zero
+	  now when switching away from a known channel.
+	* Updated CNI table.
+
+13.08.2001	capture code rewrite <garetxe@users.sf.net>
+
+	* src/capture.c: Rewrote/cleaned up the capture core to
+	differenciate between read/write serial plugins and allow for
+	other producer/consumers (this one not yet tested).
+	* plugins/mpeg: Commented out lip-sync warning.
+
+9.08.2001	z_build_path <garetxe@users.sf.net>
+
+	* zmisc.c: Added z_build_path.
+	* screenshot, mpeg, ttxview: Use it.
+	* mpeg: mv plugin.c mpeg.c
+
+9.08.2001	<mschimek@users.sf.net>
+
+	* zvbi.c: Displays the received station name in the titlebar if
+	  not known from channel list.
+
+8.08.2001	prepare_dist.sh <garetxe@users.sf.net>
+
+	* prepare_dist.sh: rpm generation now works for zapping, mp1e and
+	rte.
+
+8.08.2001	<mschimek@users.sf.net>
+
+	* Deleted old fifo code.
+
+6.08.2001	channel editor <garetxe@users.sf.net>
+
+	* src/channel_editor.c: Keep selected channels selected when
+	hitting up/down.
+	* glade/zapping.glade: s/frequence/frequency/ for
+	consistence. Ctrl+a mutes/unmutes the device.
+
+6.08.2001	MPEG plugin <mschimek@users.sf.net>
+
+	* no progress report in audio only mode, fixed.
+
+5.08.2001	v4lx.c <mschimek@users.sf.net>
+
+	* Rewrote guess_bttv.
+	* Added lots of error messages.
+	* Added lots of --debug output.
+	* Enabled the v4l 2.4.x vbi interface.
+
+1.08.2001	fixes <garetxe@users.sf.net>
+
+	* libvbi/exp-png.c: Fixed setjmp warning.
+	* src/x11stuff.c: Removed XSynchronize call, was broken according
+	to 'man XSynchronize'.
+
+01.08.2001	libvbi fix <mschimek@users.sf.net>
+
+	* search.c: Corrected hardcoded column width 40.
+
+31.07.2001	libvbi <mschimek@users.sf.net>
+
+	* v4lx.c: Fixed blank vbi bug.
+	* libvbi: Rewrote open sequence.
+
+29.07.2001	parrot fixes <mschimek@users.sf.net>
+
+	* x11stuff.c: Check success of shmget et al.
+	* parrot: Forgot to install parrot.glide.
+
+28.07.2001	gui fixes <garetxe@users.sf.net>
+
+	* ttxview: Added a sep between up/down and the rest.
+	* main.c: Worked around a bug in glade (automagically changes
+	GNOME_STOCK_PIXMAP_(UP|DOWN) into _(TOP|BOTTOM)).
+	* v4linterface.c, properties.c: Added configurable title bar.
+	* src/zapzilla: Because of popular demand, added standalone Zapzilla.
+	* src/ttxview.c: Added view creation/destruction notification.
+
+28.07.2001	<mschimek@users.sf.net>
+
+	* Fifo conversion complete.
+
+25.07.2001	rearranged gui <garetxe@users.sf.net>
+
+	* src/v4linterface.c, glade/zapping.glade: Left just channel
+	up/down in the toolbar, moved Channels, standards and inputs to
+	the menu. Set channel name in the main window title bar.
+
+24.07.2001	french translation <garetxe@users.sf.net>
+
+	* src/channel_editor.c: Doesn't add the channel if Cancel is
+	clicked on the new channel prompt.
+	* plugins/parrot: Made num_bundles configurable, size estimation
+	in the properties.
+	* Applied patches from Roger Fujii (Solaris
+	port). s/TRANSPARENT/TRANSPARENT_FULL/g.
+	* Updated french translation (Christian Marillat)
+
+22.07.2001	parrot gui <garetxe@users.sf.net>
+
+	* parrot.glade, parrot_strings.h: Added, gui for the parrot
+	plugin.
+	* src/ttxview.c: Cosmetic bugfix.
+
+21.07.2001	libvbi <mschimek@users.sf.net>
+
+	* Added aspect ratio event.
+	* Artificial 41st column for TTX pages.
+
+20.07.2001	zvbi station names <garetxe@users.sf.net>
+
+	* src/zvbi.c: Restored functionality to read channel names from
+	TTX.
+	* plugins/parrot: Play the "parrot" stream with the proper speed,
+	and fake timestamps so they are equal to the original ones.
+	* src/channel_editor.c: Added afc and zvbi_get_name support to the
+	autosearcher. afc is untested (i cannot test it).
+
+19.07.2001	Parrot buffer <garetxe@users.sf.net>
+
+	* src/ttxview.c: Restore old toolbar style when detaching the
+	view.
+	* plugins/parrot.c: Added parrot buffer plugin (unfinished, but
+	works).
+	* src/capture.c (set_bundle_filler): Plugins can now provide
+	custom data and override the standard tveng_read_frame routine.
+
+17.07.2001	libvbi/wss <mschimek@users.sf.net>
+
+	* Added vbi_push_video function, works ok. Some more
+	  details to be finished.
+
+16.07.2001	<mschimek@users.sf.net>
+
+	* capture.c: ported capture_fifo to fifo2
+	* v4lx.c: ported vbi fifo to fifo2
+	* Removed unneeded functions from acc colour
+	  conv: uyvy, *v*u*; enabled SSE, 3DNow, Athlon.
+	* Replaced CPU detection code. Hope this works for
+	  everyone.
+
+16.07.2001	fix aspect ratio <garetxe@users.sf.net>
+
+	* main.c: apply the aspect ratio setting to the tv screen, not to
+	the main window, including toolbar and menu in the geometry
+	computation.
+	* ttxview.c: Fixed a segv when vbi_search_next reported < 0, added
+	'Empty cache' message.
+	* libvbi/search.c: Made vbi_search_next return -2 when the cache
+	is empty and -3 when the error is unknown.
+	* plugins/mpeg: Adapted to the new (multi-backend) rte.
+
+15.07.2001	mpeg plugin <mschimek@users.sf.net>
+
+	* tveng.c: tveng_get_timestamp(), RETURN_UNTVLOCK()
+	  int cast of double time; symptom MPEG plugin a+v heisenbug
+	  in mp1e sync routines, delayed or inhibited recording. Added
+	  timestamp validation in mp1e.
+
+07.07.2001	save controls with channel <garetxe@users.sf.net>
+
+	* frequencies.c, main.c, v4linterface.c: The state of the controls
+	is saved when changing channels, and restored when switching back.
+	* zapping.glade: Added a global toggle to control this.
+	* pixmaps/gnome-television.h: Added, new icon.
+
+06.07.2001	mpeg plugin <mschimek@users.sf.net>
+
+	* made tveng2 EINTR aware (debugging)
+	* added motion option to mpeg plugin 
+
+05.07.2001	libvbi <mschimek@users.sf.net>
+
+	* rewrote common/list.h
+	* replaced libvbi/dllist.h
+	* fixed http link name bug
+
+02.07.2001	assorted fixes <garetxe@users.sf.net>
+
+	* channel_editor: Pops up a dialog box asking for the new channel
+	name if none was given when hitting Add.
+	* everything: Portability to Solaris, adapted from a patch by
+	Roger Fujii.
+	* configure.in: Removed broken "-multrasparc -mvis" in
+	configure.in.
+	* error_console.c: "console_errors" clo.
+	* fr.po: Updated (Christian Marillat).
+	* help/man/: Man pages (Christian Marillat).
+
+30.06.2001	yuv filters <garetxe@users.sf.net>
+
+	* yuv2rgb_mmx.c: Uses Michael's autogenerated filters now.
+	* gen_conv.[sh]: added.
+	* x11stuff.c, zapping_setup_fb: improve screen depth detection.
+
+28.06.2001	--disable-v4l <garetxe@users.sf.net>
+
+	* configure.in, v4lx.c, tveng1.c, tveng2.c: Added --disable-v4l
+	option, lets all the V4L specific stuff out of the compilation,
+	for Solaris.
+
+23.06.2001	<mschimek@users.sf.net>
+
+	* gcc 3.0 fixes (nothing serious)
+
+22.06.2001	bug fixes <garetxe@users.sf.net>
+
+	* callbacks.c: fixed channel ordering, reported by n0mada@terra.es.
+	* zconf.c: Fixed double free(), used xmlFree instead of g_free
+	where appropiate.
+	* fullscreen.c: Made channel accelerators work in fullscreen.
+
+15.06.2001	alirc, plugin properties <garetxe@users.sf.net>
+
+	* src/plugin_common.h: Made plugin_add_properties a gboolean,
+	returns TRUE if the plugins will add anything. gpb arg can be NULL.
+	* plugins/alirc: integrated patch by Sjoerd Simons.
+	* src/remote.c: Added load_page.
+
+8.06.2001	color dialog <garetxe@users.sf.net>
+
+	* glade/zapping.glade: Beautified ttx color dialog a bit.
+	* pixmaps/*.xpm: Added con and brig used above, the rest in
+	prevision for future use.
+
+29.05.2001	<mschimek@users.sf.net>
+
+	* list.h: double linked now
+	* fifotest.c: added
+	* yuv2rgb_mmx.c: added yuyv_rgba32, yuyv_rgb16
+
+28.05.2001	alirc plugin <garetxe@users.sf.net>
+
+	* plugins/alirc: 'Another lirc plugin', by Sjoerd Simons
+	<sjoerd@air.luon.net>. Thanks! :-)
+
 27.05.2001	MPEG fixes <garetxe@users.sf.net>
 
 	* plugins/mpeg.c: Works now if Z's yuv pixformat is YUYV and
@@ -617,7 +915,7 @@
 	* ASCII/ANSI export restored, enabled
 	* vbi_page_title added, unfinished
 	* fixed a problem with ttxview subpage display
-	* modified toolbar, let's see what I�aki sez ;-)
+	* modified toolbar, let's see what Iñaki sez ;-)
 
 3.01.2001	gui for export filters <garetxe@users.sourceforge.net>
 

@@ -184,6 +184,8 @@ int main(int argc, char *argv[])
 	font-family: arial,sans-serif;
     }
     input.theme {
+	font-size: 10px;
+	font-family: arial,sans-serif;
 	margin-top: 1px;
 	margin-bottom: 1px;
     }

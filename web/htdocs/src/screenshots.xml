@@ -4,6 +4,27 @@ title -> head
 abstract -> short text that describes the page (for themes that support it)
 -->
 <document title="Screenshots" abstract="Screenshots">
-<header>FIXME</header>
-Contents to be written.
+<header>Appearance</header>
+<center>
+<a href="screenshots/new/full.jpg"><img src="screenshots/new/full_s.jpg"
+alt="Appearance" width="387" height="335" border="0"></img></a></center>
+<header>The controls</header>
+<center>
+<a href="screenshots/new/controls.jpg"><img
+src="screenshots/new/controls_s.jpg"
+alt="Controls" width="225" height="250" border="0"></img></a></center>
+<header>The preferences</header>
+<center>
+<a href="screenshots/new/preferences.jpg"><img
+src="screenshots/new/preferences_s.jpg"
+alt="Preferences" width="287" height="173" border="0"></img></a></center>
+<header>Some installed plugins</header>
+<center>
+<a href="screenshots/new/plugins.jpg"><img src="screenshots/new/plugins_s.jpg"
+alt="Installed Plugins" width="254" height="219" border="0"></img></a></center>
+<header>The channel editor</header>
+<center>
+<a href="screenshots/new/channels.jpg"><img
+src="screenshots/new/channels_s.jpg"
+alt="Channel Editor" width="290" height="177" border="0"></img></a></center>
 </document>
