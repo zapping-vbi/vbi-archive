@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-02-20 09:38+0100\n"
+"POT-Creation-Date: 2005-02-24 22:59+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -31,7 +31,7 @@ msgstr ""
 msgid "Advanced"
 msgstr ""
 
-#: glade/zapping.glade2.h:4 src/audio.c:529 src/audio.c:534 src/tveng.c:4464
+#: glade/zapping.glade2.h:4 src/audio.c:529 src/audio.c:534 src/tveng.c:4487
 msgid "Audio"
 msgstr ""
 
@@ -1432,8 +1432,8 @@ msgstr ""
 msgid "_Received"
 msgstr ""
 
-#: plugins/teletext/window.c:341 src/v4linterface.c:1166
-#: src/v4linterface.c:2282
+#: plugins/teletext/window.c:341 src/v4linterface.c:1172
+#: src/v4linterface.c:2288
 msgid "Unnamed"
 msgstr ""
 
@@ -1496,7 +1496,11 @@ msgstr ""
 msgid "<span foreground=\"yellow\">Audio on</span>"
 msgstr ""
 
-#: src/capture.c:955
+#: src/capture.c:893
+msgid "Cannot stop capturing while recording."
+msgstr ""
+
+#: src/capture.c:961
 #, c-format
 msgid "Cannot start capturing: %s"
 msgstr ""
@@ -1686,7 +1690,7 @@ msgstr ""
 msgid "Shortcut"
 msgstr ""
 
-#: src/main.c:164 src/tveng.c:2228 src/tveng1.c:1126 src/tveng25.c:495
+#: src/main.c:164 src/tveng.c:2251 src/tveng1.c:1126 src/tveng25.c:495
 #: src/tvengbktr.c:412 src/tvengxv.c:578
 msgid "Mute"
 msgstr ""
@@ -2046,7 +2050,7 @@ msgstr ""
 msgid "Do not change"
 msgstr ""
 
-#: src/properties-handler.c:1168 src/tveng.c:4475
+#: src/properties-handler.c:1168 src/tveng.c:4498
 msgid "Automatic"
 msgstr ""
 
@@ -2085,45 +2089,45 @@ msgstr ""
 msgid "Page %x"
 msgstr ""
 
-#: src/tveng.c:2220 src/tveng25.c:494 src/tvengxv.c:579
+#: src/tveng.c:2243 src/tveng25.c:494 src/tvengxv.c:579
 msgid "Volume"
 msgstr ""
 
-#: src/tveng.c:3066
+#: src/tveng.c:3089
 msgid "Cannot execute zapping_setup_fb."
 msgstr ""
 
-#: src/tveng.c:3076 src/tveng.c:3084
+#: src/tveng.c:3099 src/tveng.c:3107
 msgid "zapping_setup_fb failed."
 msgstr ""
 
-#: src/tveng.c:3089
+#: src/tveng.c:3112
 #, c-format
 msgid "zapping_setup_fb not found in \"%s\" or executable search path."
 msgstr ""
 
-#: src/tveng.c:3096
+#: src/tveng.c:3119
 msgid "Unknown error in zapping_setup_fb."
 msgstr ""
 
-#: src/tveng.c:3848 src/tveng.c:3869
+#: src/tveng.c:3871 src/tveng.c:3892
 msgid "Filter"
 msgstr ""
 
 #. TRANSLATORS: Color replaced by video in overlay mode.
-#: src/tveng.c:3891
+#: src/tveng.c:3914
 msgid "Colorkey"
 msgstr ""
 
-#: src/tveng.c:4482
+#: src/tveng.c:4505
 msgid "Mono"
 msgstr ""
 
-#: src/tveng.c:4489
+#: src/tveng.c:4512
 msgid "Stereo"
 msgstr ""
 
-#: src/tveng.c:4497
+#: src/tveng.c:4520
 msgid "Language 2"
 msgstr ""
 
@@ -2283,33 +2287,33 @@ msgstr ""
 msgid "Controls"
 msgstr ""
 
-#: src/v4linterface.c:1157 src/zmisc.c:1765
+#: src/v4linterface.c:1163 src/zmisc.c:1765
 msgid "Unknown"
 msgstr ""
 
-#: src/v4linterface.c:1175
+#: src/v4linterface.c:1181
 msgid "No input"
 msgstr ""
 
-#: src/v4linterface.c:1186
+#: src/v4linterface.c:1192
 msgid "No standard"
 msgstr ""
 
-#: src/v4linterface.c:2172
+#: src/v4linterface.c:2178
 msgid "Video standards"
 msgstr ""
 
-#: src/v4linterface.c:2192
+#: src/v4linterface.c:2198
 msgid "Audio inputs"
 msgstr ""
 
-#: src/v4linterface.c:2212
+#: src/v4linterface.c:2218
 msgid "Video inputs"
 msgstr ""
 
 #. TRANSLATORS: This is displayed in the channel menu when
 #. the channel list is empty.
-#: src/v4linterface.c:2310
+#: src/v4linterface.c:2316
 msgid "No channels"
 msgstr ""
 
@@ -2557,4 +2561,154 @@ msgstr ""
 
 #: zapping.desktop.in.h:1
 msgid "Zapping TV Viewer"
+msgstr ""
+
+#: zapping.schemas.in.h:1
+msgid "Default Teletext character set."
+msgstr ""
+
+#: zapping.schemas.in.h:2
+msgid ""
+"Default Teletext home page, usually 100. Valid values range from 100 to 899."
+msgstr ""
+
+#: zapping.schemas.in.h:3
+msgid "Default Teletext home page."
+msgstr ""
+
+#: zapping.schemas.in.h:4
+msgid "Deinterlace option."
+msgstr ""
+
+#: zapping.schemas.in.h:5
+msgid "Display delay of second field (0.0 to 1.0 of one frame period)."
+msgstr ""
+
+#: zapping.schemas.in.h:6
+msgid ""
+"Enable navigation elements in the bottom row of the Teletext page. Valid "
+"values: disabled, flof_top1 (FLOF or TOP style 1), flof_top2 (TOP style 2)."
+msgstr ""
+
+#: zapping.schemas.in.h:7
+msgid "Enable navigation elements."
+msgstr ""
+
+#: zapping.schemas.in.h:8
+msgid "Horizontal image resolution in deinterlace mode."
+msgstr ""
+
+#: zapping.schemas.in.h:9
+msgid "Keep the main window above other windows."
+msgstr ""
+
+#: zapping.schemas.in.h:10
+msgid "Maximum number of networks in the Teletext page cache."
+msgstr ""
+
+#: zapping.schemas.in.h:11
+msgid "Maximum size of the Teletext page cache in bytes."
+msgstr ""
+
+#: zapping.schemas.in.h:12
+msgid ""
+"Quality/speed trade-off when scaling and anti-aliasing Teletext pages. Valid "
+"values: nearest, tiles, bilinear, hyper."
+msgstr ""
+
+#: zapping.schemas.in.h:13
+msgid "Reverse the temporal field order."
+msgstr ""
+
+#: zapping.schemas.in.h:14
+msgid "Roll Teletext page numbers."
+msgstr ""
+
+#: zapping.schemas.in.h:15
+msgid ""
+"Roll the Teletext page number in the page header until the requested page "
+"has arrived."
+msgstr ""
+
+#: zapping.schemas.in.h:16
+msgid "Search all channels in the Teletext page memory."
+msgstr ""
+
+#: zapping.schemas.in.h:17
+msgid "Show a menu bar in the main window."
+msgstr ""
+
+#: zapping.schemas.in.h:18
+msgid "Show a status bar in Teletext windows."
+msgstr ""
+
+#: zapping.schemas.in.h:19
+msgid "Show a toolbar in Teletext windows."
+msgstr ""
+
+#: zapping.schemas.in.h:20
+msgid "Show a toolbar in the main window."
+msgstr ""
+
+#: zapping.schemas.in.h:21
+msgid ""
+"Some stations fail to transmit a complete language identifier, so the "
+"Teletext viewer may not display the correct font or national characters. You "
+"can select your geographical region here as an additional hint. Valid "
+"values: western_and_central_europe, eastern_europe, "
+"western_europe_and_turkey, central_and_southeast_europe, cyrillic, "
+"greek_and_turkish, arabic, hebrew_and_arabic."
+msgstr ""
+
+#: zapping.schemas.in.h:22
+msgid "Switch to full capture size for screenshot."
+msgstr ""
+
+#: zapping.schemas.in.h:23
+msgid "Teletext implementation level."
+msgstr ""
+
+#: zapping.schemas.in.h:24
+msgid "Teletext implementation level. Valid values: 1, 1.5, 2.5, 3.5."
+msgstr ""
+
+#: zapping.schemas.in.h:25
+msgid "Teletext page scaling quality."
+msgstr ""
+
+#: zapping.schemas.in.h:26
+msgid "Text brightness, valid values range from 0 to 255."
+msgstr ""
+
+#: zapping.schemas.in.h:27
+msgid "Text contrast, valid values range from -128 to 127."
+msgstr ""
+
+#: zapping.schemas.in.h:28
+msgid "The Teletext search is case insensitive."
+msgstr ""
+
+#: zapping.schemas.in.h:29
+msgid "The Teletext search text is a regular expression."
+msgstr ""
+
+#: zapping.schemas.in.h:30
+msgid ""
+"This is the time in milliseconds Zapping will wait between pointer movements "
+"and blanking the pointer when over the video. A value of zero disables this "
+"feature."
+msgstr ""
+
+#: zapping.schemas.in.h:31
+msgid "Time to wait until blanking the pointer."
+msgstr ""
+
+#: zapping.schemas.in.h:32
+msgid "Update the clock in the Teletext page header."
+msgstr ""
+
+#: zapping.schemas.in.h:33
+msgid ""
+"When your CPU is too slow to use the desired deinterlace mode you can reduce "
+"the horizontal resolution. Valid values: low, medium, high."
 msgstr ""

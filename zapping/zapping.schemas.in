@@ -7,7 +7,7 @@
    <type>bool</type>
    <default>1</default>
    <locale name="C">
-    <short>Show menu in the main window.</short>
+    <short>Show a menu bar in the main window.</short>
    </locale>
   </schema>
   <schema>
@@ -17,7 +17,7 @@
    <type>bool</type>
    <default>1</default>
    <locale name="C">
-    <short>Show toolbar in the main window.</short>
+    <short>Show a toolbar in the main window.</short>
    </locale>
   </schema>
   <schema>
@@ -65,9 +65,9 @@
    <type>string</type>
    <default>hyper</default>
    <locale name="C">
-    <short>Page scaling quality.</short>
-    <long>Quality/speed trade-off when scaling and anti-aliasing the
- page. Valid values: nearest, tiles, bilinear, hyper.</long>
+    <short>Teletext page scaling quality.</short>
+    <long>Quality/speed trade-off when scaling and anti-aliasing Teletext
+ pages. Valid values: nearest, tiles, bilinear, hyper.</long>
    </locale>
   </schema>
   <schema>
@@ -89,7 +89,7 @@
    <type>bool</type>
    <default>1</default>
    <locale name="C">
-    <short>Show toolbar in Teletext windows.</short>
+    <short>Show a toolbar in Teletext windows.</short>
    </locale>
   </schema>
   <schema>
@@ -99,7 +99,7 @@
    <type>bool</type>
    <default>1</default>
    <locale name="C">
-    <short>Show status bar in Teletext windows.</short>
+    <short>Show a status bar in Teletext windows.</short>
    </locale>
   </schema>
   <schema>
@@ -122,9 +122,9 @@
    <type>bool</type>
    <default>1</default>
    <locale name="C">
-    <short>Roll page number when waiting for a page.</short>
-    <long>Roll the page number in the header while Zapping waits
-until the requested page has been received.</long>
+    <short>Roll Teletext page numbers.</short>
+    <long>Roll the Teletext page number in the page header until the
+requested page has arrived.</long>
    </locale>
   </schema>
   <schema>
@@ -134,7 +134,7 @@ until the requested page has been received.</long>
    <type>bool</type>
    <default>1</default>
    <locale name="C">
-    <short>Update the clock in the page header.</short>
+    <short>Update the clock in the Teletext page header.</short>
    </locale>
   </schema>
   <schema>
@@ -184,7 +184,7 @@ until the requested page has been received.</long>
    <type>bool</type>
    <default>1</default>
    <locale name="C">
-    <short>Search text is a regular expression.</short>
+    <short>The Teletext search text is a regular expression.</short>
    </locale>
   </schema>
   <schema>
@@ -194,7 +194,7 @@ until the requested page has been received.</long>
    <type>bool</type>
    <default>0</default>
    <locale name="C">
-    <short>Search case insensitive.</short>
+    <short>The Teletext search is case insensitive.</short>
    </locale>
   </schema>
   <schema>
@@ -204,7 +204,7 @@ until the requested page has been received.</long>
    <type>bool</type>
    <default>0</default>
    <locale name="C">
-    <short>Search all channels in the page memory.</short>
+    <short>Search all channels in the Teletext page memory.</short>
    </locale>
   </schema>
   <schema>

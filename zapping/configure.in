@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.171 2005-02-20 08:19:06 mschimek Exp $
+dnl $Id: configure.in,v 1.172 2005-02-25 18:15:47 mschimek Exp $
 
-AC_INIT(zapping, 0.9.1,
+AC_INIT(zapping, 0.9.2,
   [http://sourceforge.net/tracker/?atid=102599&group_id=2599&func=browse])
 AC_CONFIG_SRCDIR(configure.in)
 AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
@@ -679,18 +679,26 @@ if test "x$SCROLLKEEPER_CONFIG" = "xno"; then
   tarball from http://scrollkeeper.sourceforge.net])
 fi
 
-dnl Stolen from glib/configure.in
+dnl For test scripts.
+AC_ARG_ENABLE(rebuild-man,
+  AC_HELP_STRING([--enable-rebuild-man], [Rebuild manual pages (auto).]),,
+  [enableval=auto])
 
-BUILD_MAN=yes
-AC_PATH_PROG([XSLTPROC], [xsltproc])
-if test -z "$XSLTPROC"; then
-  BUILD_MAN=no
+BUILD_MAN=no
+if test "x$enableval" != "xno"; then
+  AC_PATH_PROG([XSLTPROC], [xsltproc])
+  if test ! -z "$XSLTPROC"; then
+    dnl Check for DocBook DTD and stylesheets in the local catalog.
+    JH_CHECK_XML_CATALOG([-//OASIS//DTD DocBook XML V4.1.2//EN],
+      [DocBook XML DTD V4.1.2], [BUILD_MAN=yes])
+    JH_CHECK_XML_CATALOG([http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl],
+      [DocBook XSL Stylesheets],, [BUILD_MAN=no])
+  fi
+  if test "x$enableval" = "xyes" -a "x$BUILD_MAN" = "xno"; then
+    AC_MSG_FAILURE([Cannot rebuild manual pages.]);
+  fi
 fi
-dnl Check for DocBook DTD and stylesheets in the local catalog.
-JH_CHECK_XML_CATALOG([-//OASIS//DTD DocBook XML V4.1.2//EN],
-  [DocBook XML DTD V4.1.2],, BUILD_MAN=no)
-JH_CHECK_XML_CATALOG([http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl],
-  [DocBook XSL Stylesheets],, BUILD_MAN=no)
+
 AM_CONDITIONAL(BUILD_MAN, test "x$BUILD_MAN" = "xyes")
 
 dnl ---------------------------------------------------------------------------

@@ -55,8 +55,6 @@ What does each file do?
   * capture.c, capture.h
   
   * Image format conversion, should go into libztv
-    * cpu.c, cpu.h CPU detection helpers for the MMX/SSE/...
-      accelerated conversion.
     * csconvert.c, csconvert.h Conversion frontend.
     * yuv2rgb.c, yuv2rgb.h Conversion routines in plain C.
     * gen_conv.s, gen_conv.h Conversion routines in x86. These files

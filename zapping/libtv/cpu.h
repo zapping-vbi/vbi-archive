@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cpu.h,v 1.4 2005-02-10 07:56:00 mschimek Exp $ */
+/* $Id: cpu.h,v 1.1 2005-02-25 18:15:54 mschimek Exp $ */
 
 #ifndef CPU_H
 #define CPU_H

@@ -1,3 +1,67 @@
+2005-02-25    <mschimek@users.sf.net>
+
+	* src/v4linterface.c (z_switch_video_input, z_switch_standard):
+	  Didn't report the cause when capture_stop() failed (e.g. recording
+	  is in progress).
+	* src/tveng.h, src/tveng.c:
+	  Added tv_set_errstr() and tv_get_debug_level() and rewrote
+	  tv_error_msg() macro to make it usable outside tveng code. 
+	* src/capture.h: Added REQ_CONTINUOUS flag to prevent capturing
+	  interruptions.
+	* src/capture.c (buffer_done): Don't re-enqueue buffers after
+	  capturing stopped, the pointers are no longer valid.
+	(capture_stop): Changed do-not-stop condition from REQ_SIZE to new
+	  REQ_CONTINUOUS. Prevented capture and display mode change with
+	  active deinterlacing, bug #1145094.  Leave error message if we
+	  cannot stop, bug #1145094.
+	(request_capture_format): Print new REQ_CONTINUOUS flag.
+	* zapping_setup_fb/Makefile.am (zapping_setup_fb_LDADD): libtv is
+	  now a LTLIBRARY.
+	* zapping_setup_fb/zapping_setup_fb.h,
+	  zapping_setup_fb/zapping_setup_fb.c, zapping_setup_fb/v4l25.c,
+	  zapping_setup_fb/v4l2.c, zapping_setup_fb/v4l.c,
+	  zapping_setup_fb/Makefile.am: Includes cleaned.
+	* test/memcpy.c, test/clear_image.c: Cannot include src/cpu.c
+	  anymore, changed to libtv/cpu.h.
+	* test/Makefile.am: libtv is now a LTLIBRARY.
+	* src/Makefile.am: libtv is now a LTLIBRARY.
+	(zapping_SOURCES): Removed cpu.c, cpu.h.
+	* po/POTFILES.in: Added zapping.schemas.in.
+	* plugins/mpeg/mpeg.c (do_start): Added request_capture_format()
+	  flag REQ_CONTINUOUS (don't interrupt capturing).
+	* libtv/mmx/mmx.h: Added cpu_detection_mmx() proto.
+	* libtv/mmx/Makefile.am (libmmx_la_SOURCES): Added cpu.c.
+	* libtv/mmx/cpu.c: x86 SIMD detection from src/cpu.c moved
+	  here. Added a x86-64 version of the cpuid function.
+	* libtv/avec/avec.h: Added cpu_detection_altivec() proto.
+	* libtv/avec/Makefile.am (libavec_a_SOURCES): Added cpu.c.
+	* libtv/avec/cpu.c: AltiVec detection from src/cpu.c moved here
+	  because "as" doesn't recognize avec instructions without -maltivec.
+	* src/yuv2rgb.c, src/main.c, plugins/deinterlace/main.c,
+	  libtv/image_format.c: src/cpu.h renamed to libtv/cpu.h.
+	* libtv/Makefile.am, libtv/mmx/Makefile.am, libtv/sse/Makefile.am,
+	  libtv/avec/Makefile.am: Changed to LTLIBRARIES because merging
+	  libs didn't work well with plain old archives and libtv will become
+	  a LTLIB anyway. Simplified SIMD conditionals.
+	(libtv_la_SOURCES): Added cpu.c, cpu.h.
+	* src/cpu.c, src/cpu.h, libtv/cpu.c, libtv/cpu.h: cpu.c|h moved from
+	  src to libtv because AltiVec detection must build in avec dir with
+	  -maltivec flag and cpu detection belongs in libtv anyway.
+	* zapping.schemas, zapping.schemas.in: Renamed to zapping.schemas to
+	  zapping.schemas.in. zapping.schemas is now a built file, removed
+	  from CVS. Improved key descriptions in zapping.schemas.in.
+	* Makefile.am: Localize and install zapping.schemas
+	  (INTLTOOL_SCHEMAS_RULE).
+
+2005-02-22    <mschimek@users.sf.net>
+
+	* help/man/zapping_remote.1: Added to CVS.
+	* help/man/Makefile.am: Fixed BUILD_MANS fix.
+	* src/cpu.c (HAVE_ALTIVEC): Missing signal.h and sigjmp.h includes.
+	* configure.in: Bumped version number to 0.9.2. Added man page
+	  rebuild option for automated test builds with/without the
+	  required XML files.
+
 2005-02-20    <mschimek@users.sf.net>
 
 	* Release 0.9.1.

@@ -5,6 +5,10 @@ Zapping 0.9:
 * bktr interface needs more work.
 * src/tveng1.c/p_tveng1_dequeue/CSYNC hangs with bttv when changing video
   standard PAL NTSC PAL. Timeout SIGALRMs but doesn't EINTR.
+* Video input and standard changes are not allowed while recording
+  but channel changing is.
+* The error box on video input and standard changes while recording
+  appears more than once.
 
 Zapping 0.7.2:
 * Fullscreen DMA overlay clips subtitles but not context menu and windows.
