@@ -1,13 +1,13 @@
 /*
  *  MPEG-1 Real Time Encoder
- *  Motion compensation V3.1.38
+ *  Motion compensation V3.1.39
  *
  *  Copyright (C) 2001 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *  (at your option) version 2.
  *
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: motion.c,v 1.10 2001-06-29 01:29:10 mschimek Exp $ */
+/* $Id: motion.c,v 1.11 2001-07-12 01:22:06 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -40,6 +40,8 @@
 #ifndef T3RT
 #define T3RT 1
 #endif
+
+int (* search)(int *dhx, int *dhy, unsigned char *from, int x, int y, int range, short dest[6][8][8]);
 
 /*
  *  16 x 16 signed/unsigned bytes, no padding
@@ -403,6 +405,596 @@ mmx_load_interp(unsigned char *p, int pitch, int dx, int dy)
 		" psrlq		$1,%%mm1;\n"
 		" paddb		%%mm4,%%mm1;\n"
 		" paddb		%%mm2,%%mm1;\n"
+		" movq		%%mm1,temp2h+18*16+8;\n"
+
+		" pushl		%%ecx;\n"
+		" pushl		%%edx;\n"
+		" movzxb	temp11+18*16+16,%%ecx;\n"
+		" movzxb	temp2h+18*16+16,%%edx;\n"
+		" addl		%%edx,%%ecx;\n"
+		" movd		%%ecx,%%mm4;\n"
+		" incl		%%ecx;\n"
+		" movl		%%ecx,%%edx;\n"
+		" shrl		$1,%%ecx;\n"
+		" movb		%%cl,temp2h+18*16+16;\n"
+		" movzxb	16(%0),%%ecx;\n"
+		" addl		%%ecx,%%edx;\n"
+		" movzxb	17(%0),%%ecx;\n"
+		" addl		%%ecx,%%edx;\n"
+		" incl		%%edx;\n"
+		" shrl		$2,%%edx;\n"
+		" movb		%%dl,temp22+18*16+16;\n"
+		" popl		%%edx;\n"
+		" popl		%%ecx;\n"
+
+		/* temp22 16 [1 & ((ab & cd) ^ ((ab ^ cd) & ~((a ^ b) | (c ^ d))))] */
+
+		" movq		%%mm5,%%mm2;\n"
+		" movq		%%mm6,%%mm3;\n"
+		" psrlq		$8,%%mm2;\n"
+		" psllq		$56,%%mm3;\n"
+		" por		%%mm2,%%mm5;\n"
+		" por		%%mm3,%%mm5;\n"
+		" movq		temp2h+18*16+1,%%mm3;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" pxor		%%mm3,%%mm2;\n"
+		" pandn		%%mm2,%%mm5;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" pand		%%mm3,%%mm2;\n"
+		" pxor		%%mm2,%%mm5;\n"
+		" pand		%%mm7,%%mm5;\n"
+		" por		%%mm7,%%mm3;\n"
+		" por		%%mm7,%%mm0;\n"
+		" psrlq		$1,%%mm3;\n"
+		" psrlq		$1,%%mm0;\n"
+		" paddb		%%mm3,%%mm0;\n"
+		" paddb		%%mm5,%%mm0;\n"
+		" movq		%%mm0,temp22+18*16+0;\n"
+
+		" movq		%%mm6,%%mm2;\n"
+		" psrlq		$8,%%mm2;\n"
+		" psllq		$56,%%mm4;\n"
+		" por		%%mm2,%%mm6;\n"
+		" por		%%mm4,%%mm6;\n"
+		" movq		temp2h+18*16+9,%%mm4;\n"
+		" movq		%%mm1,%%mm2;\n"
+		" pxor		%%mm4,%%mm2;\n"
+		" pandn		%%mm2,%%mm6;\n"
+		" movq		%%mm1,%%mm2;\n"
+		" pand		%%mm4,%%mm2;\n"
+		" pxor		%%mm2,%%mm6;\n"
+		" pand		%%mm7,%%mm6;\n"
+		" por		%%mm7,%%mm4;\n"
+		" por		%%mm7,%%mm1;\n"
+		" psrlq		$1,%%mm4;\n"
+		" psrlq		$1,%%mm1;\n"
+		" paddb		%%mm4,%%mm1;\n"
+		" paddb		%%mm6,%%mm1;\n"
+		" movq		%%mm1,temp22+18*16+8;\n"
+
+	:: "S" (p1 + y * pitch), "c" (y * 16), "r" (y) : "memory");
+}
+
+static inline void
+sse_load_interp(unsigned char *p, int pitch, int dx, int dy)
+{
+	unsigned char *p1 = p + dx + dy * pitch;
+	int y;
+
+	asm volatile (
+		" movq		(%0),%%mm0;\n"
+		" movq		%%mm0,%%mm1;\n"
+		" movq		%%mm0,temp11(%1);\n"
+		" psrlq		$8,%%mm1;\n"
+		" movq		8(%0),%%mm4;\n"
+		" movq		%%mm4,%%mm2;\n"
+		" movq		%%mm4,temp11+8(%1);\n"
+		" psllq		$56,%%mm2;\n"
+		" movq		c1b,%%mm7;\n"
+		" por		%%mm2,%%mm1;\n"
+		" movq		%%mm1,%%mm5;\n"
+		" pavgb		%%mm0,%%mm1;\n"
+		" pxor		%%mm0,%%mm5;\n"
+		" movq		%%mm1,temp2h(%1);\n"
+
+		" pushl		%%ecx;\n"
+		" movzxb	16(%0),%%ecx;\n"
+		" movd		%%ecx,%%mm2;\n"
+		" movb		%%cl,temp11+18*16(%2);\n"
+		" movb		17(%0),%%cl;\n"
+		" movb		%%cl,temp2h+18*16(%2);\n"
+		" popl		%%ecx;\n"
+
+		" psllq		$56,%%mm2;\n"
+		" movq		%%mm4,%%mm1;\n"
+		" psrlq		$8,%%mm1;\n"
+		" por		%%mm2,%%mm1;\n"
+		" movq		%%mm1,%%mm6;\n"
+		" pavgb		%%mm4,%%mm1;\n"
+		" pxor		%%mm4,%%mm6;\n"
+		" movq		%%mm1,temp2h+8(%1);\n"
+	:: "S" (p1), "c" (0), "r" (0) : "memory");
+
+	for (y = 1; y < 17; y++) {
+		asm volatile (
+			" movq		(%0),%%mm1;\n"
+			" movq		%%mm1,temp11(%1);\n"
+			" movq		%%mm1,%%mm3;\n"
+			" pavgb		temp11-16(%1),%%mm1;\n"
+			" movq		%%mm1,temp2v-16(%1);\n"
+
+			" movq		8(%0),%%mm1;\n"
+			" movq		%%mm1,temp11+8(%1);\n"
+			" movq		%%mm1,%%mm4;\n"
+			" pavgb		temp11+8-16(%1),%%mm1;\n"
+			" movq		%%mm1,temp2v+8-16(%1);\n"
+
+			" movq		%%mm3,%%mm0;\n"
+			" movq		temp11+1(%1),%%mm1;\n"
+			" pxor		%%mm1,%%mm3;\n"
+			" pavgb		%%mm0,%%mm1;\n"
+			" movq		%%mm1,temp2h(%1);\n"
+
+			" movq		temp2h-16(%1),%%mm0;\n"
+			" movq		%%mm0,%%mm2;\n"
+			" pxor		%%mm1,%%mm2;\n"
+			" por		%%mm3,%%mm5;\n"
+			" pandn		%%mm2,%%mm5;\n"
+			" movq		%%mm0,%%mm2;\n"
+			" pand		%%mm1,%%mm2;\n"
+			" pxor		%%mm5,%%mm2;\n"
+			" movq		%%mm3,%%mm5;\n"
+			" por		%%mm7,%%mm0;\n"
+			" por		%%mm7,%%mm1;\n"
+			" psrlq		$1,%%mm0;\n"
+			" pand		%%mm7,%%mm2;\n"
+			" psrlq		$1,%%mm1;\n"
+			" paddb		%%mm1,%%mm0;\n"
+			" paddb		%%mm2,%%mm0;\n"
+			" movq		%%mm0,temp22-16(%1);\n"
+
+			" pushl		%%ecx;\n"
+			" movzxb	16(%0),%%ecx;\n"
+			" movd		%%ecx,%%mm2;\n"
+			" movb		%%cl,temp11+18*16(%2);\n"
+			" movb		17(%0),%%cl;\n"
+			" movb		%%cl,temp2h+18*16(%2);\n"
+			" popl		%%ecx;\n"
+
+			" movq		%%mm4,%%mm1;\n"
+			" psrlq		$8,%%mm1;\n"
+			" psllq		$56,%%mm2;\n"
+			" por		%%mm2,%%mm1;\n"
+			" movq		%%mm1,%%mm3;\n"
+			" pavgb		%%mm4,%%mm1;\n"
+			" pxor		%%mm4,%%mm3;\n"
+			" movq		%%mm1,temp2h+8(%1);\n"
+
+			" movq		temp2h+8-16(%1),%%mm0;\n"
+			" movq		%%mm0,%%mm2;\n"
+			" pxor		%%mm1,%%mm2;\n"
+			" por		%%mm3,%%mm6;\n"
+			" pandn		%%mm2,%%mm6;\n"
+			" movq		%%mm0,%%mm2;\n"
+			" pand		%%mm1,%%mm2;\n"
+			" pxor		%%mm6,%%mm2;\n"
+			" movq		%%mm3,%%mm6;\n"
+			" por		%%mm7,%%mm0;\n"
+			" por		%%mm7,%%mm1;\n"
+			" psrlq		$1,%%mm0;\n"
+			" pand		%%mm7,%%mm2;\n"
+			" psrlq		$1,%%mm1;\n"
+			" paddb		%%mm0,%%mm1;\n"
+			" paddb		%%mm2,%%mm1;\n"
+			" movq		%%mm1,temp22+8-16(%1);\n"
+		:: "S" (p1 + y * pitch), "c" (y * 16), "r" (y) : "memory");
+	}
+
+	asm volatile (
+		" movq		(%0),%%mm1;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pavgb		temp11-16(%1),%%mm1;\n"
+		" movq		%%mm3,%%mm0;\n"
+		" movq		%%mm1,temp2v-16(%1);\n"
+		" movq		8(%0),%%mm1;\n"
+		" movq		%%mm1,%%mm4;\n"
+		" pavgb		temp11+8-16(%1),%%mm1;\n"
+		" movq		%%mm4,%%mm2;\n"
+		" movq		%%mm1,temp2v+8-16(%1);\n"
+		" movq		%%mm3,%%mm1;\n"
+		" psrlq		$8,%%mm1;\n"
+		" psllq		$56,%%mm2;\n"
+		" por		%%mm2,%%mm1;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" por		%%mm1,%%mm2;\n"
+		" pxor		%%mm1,%%mm3;\n"
+		" por		%%mm7,%%mm0;\n"
+		" por		%%mm7,%%mm1;\n"
+		" psrlq		$1,%%mm0;\n"
+		" pand		%%mm7,%%mm2;\n"
+		" psrlq		$1,%%mm1;\n"
+		" paddb		%%mm0,%%mm1;\n"
+		" movq		temp2h-16(%1),%%mm0;\n"
+		" por		%%mm3,%%mm5;\n"
+		" paddb		%%mm2,%%mm1;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" pxor		%%mm1,%%mm2;\n"
+		" pandn		%%mm2,%%mm5;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" pand		%%mm1,%%mm2;\n"
+		" pxor		%%mm5,%%mm2;\n"
+		" por		%%mm7,%%mm0;\n"
+		" por		%%mm7,%%mm1;\n"
+		" psrlq		$1,%%mm0;\n"
+		" pand		%%mm7,%%mm2;\n"
+		" psrlq		$1,%%mm1;\n"
+		" paddb		%%mm0,%%mm1;\n"
+		" paddb		%%mm2,%%mm1;\n"
+		" movq		%%mm1,temp22-16(%1);\n"
+
+		" movq		%%mm4,%%mm0;\n"
+		" movq		%%mm4,%%mm1;\n"
+		" psrlq		$8,%%mm1;\n"
+		" pushl		%%edx;\n"
+		" movzxb	16(%0),%%edx;\n"
+		" movd		%%edx,%%mm2;\n"
+		" popl		%%edx;\n"
+		" psllq		$56,%%mm2;\n"
+		" por		%%mm2,%%mm1;\n"
+		" pxor		%%mm1,%%mm4;\n"
+		" pavgb		%%mm0,%%mm1;\n"
+		" movq		temp2h+8-16(%1),%%mm0;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" pxor		%%mm1,%%mm2;\n"
+		" por		%%mm4,%%mm6;\n"
+		" pandn		%%mm2,%%mm6;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" pand		%%mm1,%%mm2;\n"
+		" pxor		%%mm6,%%mm2;\n"
+		" por		%%mm7,%%mm0;\n"
+		" por		%%mm7,%%mm1;\n"
+		" psrlq		$1,%%mm0;\n"
+		" pand		%%mm7,%%mm2;\n"
+		" psrlq		$1,%%mm1;\n"
+		" paddb		%%mm0,%%mm1;\n"
+		" paddb		%%mm2,%%mm1;\n"
+		" movq		%%mm1,temp22+8-16(%1);\n"
+
+		/* temp2v 16 */
+
+		" movq		temp11+18*16+0,%%mm0;\n"
+		" movq		%%mm0,%%mm3;\n"
+		" movq		temp11+18*16+1,%%mm1;\n"
+		" pavgb		%%mm0,%%mm1;\n"
+		" movq		%%mm1,temp2v+18*16+0;\n"
+		" movq		temp11+18*16+8,%%mm0;\n"
+		" movq		%%mm0,%%mm4;\n"
+		" movq		%%mm0,%%mm1;\n"
+		" psrlq		$8,%%mm1;\n"
+
+		" pushl		%%ecx;\n"
+		" pushl		%%edx;\n"
+		" movzxb	temp11+18*16+16,%%ecx;\n"
+		" movd		%%ecx,%%mm2;\n"
+		" movzxb	16(%0),%%edx;\n"
+		" addl		%%edx,%%ecx;\n"
+		" incl		%%ecx;\n"
+		" shrl		$1,%%ecx;\n"
+		" movb		%%cl,temp2v+18*16+16;\n"
+		" popl		%%edx;\n"
+		" popl		%%ecx;\n"
+
+		" psllq		$56,%%mm2;\n"
+		" por		%%mm2,%%mm1;\n"
+		" pavgb		%%mm0,%%mm1;\n"
+		" movq		%%mm1,temp2v+18*16+8;\n"
+
+		/* temp2h 16 */
+
+		" movq		temp2h+18*16+0,%%mm0;\n"
+		" movq		%%mm0,%%mm5;\n"
+		" pavgb		%%mm3,%%mm0;\n"
+		" movq		%%mm0,temp2h+18*16+0;\n"
+		" pxor		%%mm3,%%mm5;\n"
+		" movq		temp2h+18*16+8,%%mm1;\n"
+		" movq		%%mm1,%%mm6;\n"
+		" pavgb		%%mm4,%%mm1;\n"
+		" pxor		%%mm4,%%mm6;\n"
+		" movq		%%mm1,temp2h+18*16+8;\n"
+
+		" pushl		%%ecx;\n"
+		" pushl		%%edx;\n"
+		" movzxb	temp11+18*16+16,%%ecx;\n"
+		" movzxb	temp2h+18*16+16,%%edx;\n"
+		" addl		%%edx,%%ecx;\n"
+		" movd		%%ecx,%%mm4;\n"
+		" incl		%%ecx;\n"
+		" movl		%%ecx,%%edx;\n"
+		" shrl		$1,%%ecx;\n"
+		" movb		%%cl,temp2h+18*16+16;\n"
+		" movzxb	16(%0),%%ecx;\n"
+		" addl		%%ecx,%%edx;\n"
+		" movzxb	17(%0),%%ecx;\n"
+		" addl		%%ecx,%%edx;\n"
+		" incl		%%edx;\n"
+		" shrl		$2,%%edx;\n"
+		" movb		%%dl,temp22+18*16+16;\n"
+		" popl		%%edx;\n"
+		" popl		%%ecx;\n"
+
+		/* temp22 16 [1 & ((ab & cd) ^ ((ab ^ cd) & ~((a ^ b) | (c ^ d))))] */
+
+		" movq		%%mm5,%%mm2;\n"
+		" movq		%%mm6,%%mm3;\n"
+		" psrlq		$8,%%mm2;\n"
+		" psllq		$56,%%mm3;\n"
+		" por		%%mm2,%%mm5;\n"
+		" por		%%mm3,%%mm5;\n"
+		" movq		temp2h+18*16+1,%%mm3;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" pxor		%%mm3,%%mm2;\n"
+		" pandn		%%mm2,%%mm5;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" pand		%%mm3,%%mm2;\n"
+		" pxor		%%mm2,%%mm5;\n"
+		" pand		%%mm7,%%mm5;\n"
+		" por		%%mm7,%%mm3;\n"
+		" por		%%mm7,%%mm0;\n"
+		" psrlq		$1,%%mm3;\n"
+		" psrlq		$1,%%mm0;\n"
+		" paddb		%%mm3,%%mm0;\n"
+		" paddb		%%mm5,%%mm0;\n"
+		" movq		%%mm0,temp22+18*16+0;\n"
+
+		" movq		%%mm6,%%mm2;\n"
+		" psrlq		$8,%%mm2;\n"
+		" psllq		$56,%%mm4;\n"
+		" por		%%mm2,%%mm6;\n"
+		" por		%%mm4,%%mm6;\n"
+		" movq		temp2h+18*16+9,%%mm4;\n"
+		" movq		%%mm1,%%mm2;\n"
+		" pxor		%%mm4,%%mm2;\n"
+		" pandn		%%mm2,%%mm6;\n"
+		" movq		%%mm1,%%mm2;\n"
+		" pand		%%mm4,%%mm2;\n"
+		" pxor		%%mm2,%%mm6;\n"
+		" pand		%%mm7,%%mm6;\n"
+		" por		%%mm7,%%mm4;\n"
+		" por		%%mm7,%%mm1;\n"
+		" psrlq		$1,%%mm4;\n"
+		" psrlq		$1,%%mm1;\n"
+		" paddb		%%mm4,%%mm1;\n"
+		" paddb		%%mm6,%%mm1;\n"
+		" movq		%%mm1,temp22+18*16+8;\n"
+
+	:: "S" (p1 + y * pitch), "c" (y * 16), "r" (y) : "memory");
+}
+
+static inline void
+_3dn_load_interp(unsigned char *p, int pitch, int dx, int dy)
+{
+	unsigned char *p1 = p + dx + dy * pitch;
+	int y;
+
+	asm volatile (
+		" movq		(%0),%%mm0;\n"
+		" movq		%%mm0,%%mm1;\n"
+		" movq		%%mm0,temp11(%1);\n"
+		" psrlq		$8,%%mm1;\n"
+		" movq		8(%0),%%mm4;\n"
+		" movq		%%mm4,%%mm2;\n"
+		" movq		%%mm4,temp11+8(%1);\n"
+		" psllq		$56,%%mm2;\n"
+		" movq		c1b,%%mm7;\n"
+		" por		%%mm2,%%mm1;\n"
+		" movq		%%mm1,%%mm5;\n"
+		" pavgusb	%%mm0,%%mm1;\n"
+		" pxor		%%mm0,%%mm5;\n"
+		" movq		%%mm1,temp2h(%1);\n"
+
+		" pushl		%%ecx;\n"
+		" movzxb	16(%0),%%ecx;\n"
+		" movd		%%ecx,%%mm2;\n"
+		" movb		%%cl,temp11+18*16(%2);\n"
+		" movb		17(%0),%%cl;\n"
+		" movb		%%cl,temp2h+18*16(%2);\n"
+		" popl		%%ecx;\n"
+
+		" psllq		$56,%%mm2;\n"
+		" movq		%%mm4,%%mm1;\n"
+		" psrlq		$8,%%mm1;\n"
+		" por		%%mm2,%%mm1;\n"
+		" movq		%%mm1,%%mm6;\n"
+		" pavgusb	%%mm4,%%mm1;\n"
+		" pxor		%%mm4,%%mm6;\n"
+		" movq		%%mm1,temp2h+8(%1);\n"
+	:: "S" (p1), "c" (0), "r" (0) : "memory");
+
+	for (y = 1; y < 17; y++) {
+		asm volatile (
+			" movq		(%0),%%mm1;\n"
+			" movq		%%mm1,temp11(%1);\n"
+			" movq		%%mm1,%%mm3;\n"
+			" pavgusb	temp11-16(%1),%%mm1;\n"
+			" movq		%%mm1,temp2v-16(%1);\n"
+
+			" movq		8(%0),%%mm1;\n"
+			" movq		%%mm1,temp11+8(%1);\n"
+			" movq		%%mm1,%%mm4;\n"
+			" pavgusb	temp11+8-16(%1),%%mm1;\n"
+			" movq		%%mm1,temp2v+8-16(%1);\n"
+
+			" movq		%%mm3,%%mm0;\n"
+			" movq		temp11+1(%1),%%mm1;\n"
+			" pxor		%%mm1,%%mm3;\n"
+			" pavgusb	%%mm0,%%mm1;\n"
+			" movq		%%mm1,temp2h(%1);\n"
+
+			" movq		temp2h-16(%1),%%mm0;\n"
+			" movq		%%mm0,%%mm2;\n"
+			" pxor		%%mm1,%%mm2;\n"
+			" por		%%mm3,%%mm5;\n"
+			" pandn		%%mm2,%%mm5;\n"
+			" movq		%%mm0,%%mm2;\n"
+			" pand		%%mm1,%%mm2;\n"
+			" pxor		%%mm5,%%mm2;\n"
+			" movq		%%mm3,%%mm5;\n"
+			" por		%%mm7,%%mm0;\n"
+			" por		%%mm7,%%mm1;\n"
+			" psrlq		$1,%%mm0;\n"
+			" pand		%%mm7,%%mm2;\n"
+			" psrlq		$1,%%mm1;\n"
+			" paddb		%%mm1,%%mm0;\n"
+			" paddb		%%mm2,%%mm0;\n"
+			" movq		%%mm0,temp22-16(%1);\n"
+
+			" pushl		%%ecx;\n"
+			" movzxb	16(%0),%%ecx;\n"
+			" movd		%%ecx,%%mm2;\n"
+			" movb		%%cl,temp11+18*16(%2);\n"
+			" movb		17(%0),%%cl;\n"
+			" movb		%%cl,temp2h+18*16(%2);\n"
+			" popl		%%ecx;\n"
+
+			" movq		%%mm4,%%mm1;\n"
+			" psrlq		$8,%%mm1;\n"
+			" psllq		$56,%%mm2;\n"
+			" por		%%mm2,%%mm1;\n"
+			" movq		%%mm1,%%mm3;\n"
+			" pavgusb	%%mm4,%%mm1;\n"
+			" pxor		%%mm4,%%mm3;\n"
+			" movq		%%mm1,temp2h+8(%1);\n"
+
+			" movq		temp2h+8-16(%1),%%mm0;\n"
+			" movq		%%mm0,%%mm2;\n"
+			" pxor		%%mm1,%%mm2;\n"
+			" por		%%mm3,%%mm6;\n"
+			" pandn		%%mm2,%%mm6;\n"
+			" movq		%%mm0,%%mm2;\n"
+			" pand		%%mm1,%%mm2;\n"
+			" pxor		%%mm6,%%mm2;\n"
+			" movq		%%mm3,%%mm6;\n"
+			" por		%%mm7,%%mm0;\n"
+			" por		%%mm7,%%mm1;\n"
+			" psrlq		$1,%%mm0;\n"
+			" pand		%%mm7,%%mm2;\n"
+			" psrlq		$1,%%mm1;\n"
+			" paddb		%%mm0,%%mm1;\n"
+			" paddb		%%mm2,%%mm1;\n"
+			" movq		%%mm1,temp22+8-16(%1);\n"
+		:: "S" (p1 + y * pitch), "c" (y * 16), "r" (y) : "memory");
+	}
+
+	asm volatile (
+		" movq		(%0),%%mm1;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pavgusb	temp11-16(%1),%%mm1;\n"
+		" movq		%%mm3,%%mm0;\n"
+		" movq		%%mm1,temp2v-16(%1);\n"
+		" movq		8(%0),%%mm1;\n"
+		" movq		%%mm1,%%mm4;\n"
+		" pavgusb	temp11+8-16(%1),%%mm1;\n"
+		" movq		%%mm4,%%mm2;\n"
+		" movq		%%mm1,temp2v+8-16(%1);\n"
+		" movq		%%mm3,%%mm1;\n"
+		" psrlq		$8,%%mm1;\n"
+		" psllq		$56,%%mm2;\n"
+		" por		%%mm2,%%mm1;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" por		%%mm1,%%mm2;\n"
+		" pxor		%%mm1,%%mm3;\n"
+		" por		%%mm7,%%mm0;\n"
+		" por		%%mm7,%%mm1;\n"
+		" psrlq		$1,%%mm0;\n"
+		" pand		%%mm7,%%mm2;\n"
+		" psrlq		$1,%%mm1;\n"
+		" paddb		%%mm0,%%mm1;\n"
+		" movq		temp2h-16(%1),%%mm0;\n"
+		" por		%%mm3,%%mm5;\n"
+		" paddb		%%mm2,%%mm1;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" pxor		%%mm1,%%mm2;\n"
+		" pandn		%%mm2,%%mm5;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" pand		%%mm1,%%mm2;\n"
+		" pxor		%%mm5,%%mm2;\n"
+		" por		%%mm7,%%mm0;\n"
+		" por		%%mm7,%%mm1;\n"
+		" psrlq		$1,%%mm0;\n"
+		" pand		%%mm7,%%mm2;\n"
+		" psrlq		$1,%%mm1;\n"
+		" paddb		%%mm0,%%mm1;\n"
+		" paddb		%%mm2,%%mm1;\n"
+		" movq		%%mm1,temp22-16(%1);\n"
+
+		" movq		%%mm4,%%mm0;\n"
+		" movq		%%mm4,%%mm1;\n"
+		" psrlq		$8,%%mm1;\n"
+		" pushl		%%edx;\n"
+		" movzxb	16(%0),%%edx;\n"
+		" movd		%%edx,%%mm2;\n"
+		" popl		%%edx;\n"
+		" psllq		$56,%%mm2;\n"
+		" por		%%mm2,%%mm1;\n"
+		" pxor		%%mm1,%%mm4;\n"
+		" pavgusb	%%mm0,%%mm1;\n"
+		" movq		temp2h+8-16(%1),%%mm0;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" pxor		%%mm1,%%mm2;\n"
+		" por		%%mm4,%%mm6;\n"
+		" pandn		%%mm2,%%mm6;\n"
+		" movq		%%mm0,%%mm2;\n"
+		" pand		%%mm1,%%mm2;\n"
+		" pxor		%%mm6,%%mm2;\n"
+		" por		%%mm7,%%mm0;\n"
+		" por		%%mm7,%%mm1;\n"
+		" psrlq		$1,%%mm0;\n"
+		" pand		%%mm7,%%mm2;\n"
+		" psrlq		$1,%%mm1;\n"
+		" paddb		%%mm0,%%mm1;\n"
+		" paddb		%%mm2,%%mm1;\n"
+		" movq		%%mm1,temp22+8-16(%1);\n"
+
+		/* temp2v 16 */
+
+		" movq		temp11+18*16+0,%%mm0;\n"
+		" movq		%%mm0,%%mm3;\n"
+		" movq		temp11+18*16+1,%%mm1;\n"
+		" pavgusb	%%mm0,%%mm1;\n"
+		" movq		%%mm1,temp2v+18*16+0;\n"
+		" movq		temp11+18*16+8,%%mm0;\n"
+		" movq		%%mm0,%%mm4;\n"
+		" movq		%%mm0,%%mm1;\n"
+		" psrlq		$8,%%mm1;\n"
+
+		" pushl		%%ecx;\n"
+		" pushl		%%edx;\n"
+		" movzxb	temp11+18*16+16,%%ecx;\n"
+		" movd		%%ecx,%%mm2;\n"
+		" movzxb	16(%0),%%edx;\n"
+		" addl		%%edx,%%ecx;\n"
+		" incl		%%ecx;\n"
+		" shrl		$1,%%ecx;\n"
+		" movb		%%cl,temp2v+18*16+16;\n"
+		" popl		%%edx;\n"
+		" popl		%%ecx;\n"
+
+		" psllq		$56,%%mm2;\n"
+		" por		%%mm2,%%mm1;\n"
+		" pavgusb	%%mm0,%%mm1;\n"
+		" movq		%%mm1,temp2v+18*16+8;\n"
+
+		/* temp2h 16 */
+
+		" movq		temp2h+18*16+0,%%mm0;\n"
+		" movq		%%mm0,%%mm5;\n"
+		" pavgusb	%%mm3,%%mm0;\n"
+		" movq		%%mm0,temp2h+18*16+0;\n"
+		" pxor		%%mm3,%%mm5;\n"
+		" movq		temp2h+18*16+8,%%mm1;\n"
+		" movq		%%mm1,%%mm6;\n"
+		" pavgusb	%%mm4,%%mm1;\n"
+		" pxor		%%mm4,%%mm6;\n"
 		" movq		%%mm1,temp2h+18*16+8;\n"
 
 		" pushl		%%ecx;\n"
@@ -861,6 +1453,268 @@ mmx_sad2v(unsigned char ref[16][16], typeof(temp22) temp, int hx, int *r2)
 	return y; // left, r2 = right
 }
 
+static unsigned int
+sse_sad2h(unsigned char ref[16][16], typeof(temp22) temp, int hy, int *r2)
+{
+	unsigned char *s = &temp[hy][0];
+	unsigned char *t = &ref[0][0];
+	unsigned char *l = &temp[18][hy];
+	int y;
+
+	asm volatile (
+		" pxor		%%mm6,%%mm6;\n"
+		" pxor		%%mm7,%%mm7;\n"
+	:: "r" (s), "r" (t), "r" (l));
+
+	for (y = 0; y < 16; y++) {
+	asm volatile (
+		" movq		(%1),%%mm1;\n"
+		" movq		(%0),%%mm0;\n"
+		" psadbw	%%mm1,%%mm0;\n"
+		" paddw		%%mm0,%%mm6;\n"
+		" movq		1(%0),%%mm0;\n"
+		" psadbw	%%mm1,%%mm0;\n"
+		" paddw		%%mm0,%%mm7;\n"
+
+		" movq		8(%1),%%mm1;\n"
+		" movq		8(%0),%%mm0;\n"
+		" movq		%%mm0,%%mm3;\n"
+		" psadbw	%%mm1,%%mm0;\n"
+		" paddw		%%mm0,%%mm6;\n"
+		" movq		(%2),%%mm2;\n"
+		" psrlq		$8,%%mm3;\n"
+		" psllq		$56,%%mm2;\n"
+		" por		%%mm2,%%mm3;\n"
+		" psadbw	%%mm1,%%mm3;\n"
+		" paddw		%%mm3,%%mm7;\n"
+
+		:: "r" (s), "r" (t), "r" (l));
+
+		s += 16;
+		t += 16;
+		l += 1;
+	}
+
+	// XXX this is supposed to sort
+	asm volatile (
+		" movd		%%mm6,%0;\n"
+		" movd		%%mm7,(%1);\n"
+	: "=&a" (y) : "r" (r2));
+
+	return y; // left, r2 = right
+}
+
+static unsigned int
+sse_sad2v(unsigned char ref[16][16], typeof(temp22) temp, int hx, int *r2)
+{
+	unsigned char *s = &temp[0][0];
+	unsigned char *t = &ref[0][0];
+	unsigned char *l = &temp[18][0];
+	int y;
+
+	if (hx == 0) {
+	asm volatile (
+		" movq		(%0),%%mm3;\n"
+		" movq		8(%0),%%mm4;\n"
+		" movq		(%1),%%mm1;\n"
+		" movq		16(%0),%%mm0;\n"
+		" pxor		%%mm5,%%mm5;\n"
+		" pxor		%%mm6,%%mm6;\n"
+		" pxor		%%mm7,%%mm7;\n"
+	:: "r" (s), "r" (t), "r" (l));
+
+		for (y = 0; y < 5; y++) {
+	asm volatile (
+		" movq		%%mm1,%%mm2;\n"
+		" psadbw	%%mm3,%%mm1;\n"
+		" paddw		%%mm1,%%mm6;\n"
+		" movq		0*16+8(%1),%%mm1;\n"
+		" movq		%%mm0,%%mm3;\n"
+		" psadbw	%%mm2,%%mm0;\n"
+		" paddw		%%mm0,%%mm7;\n"
+		" movq		0*16+24(%0),%%mm0;\n"
+		" movq		%%mm1,%%mm2;\n"
+		" psadbw	%%mm4,%%mm1;\n"
+		" paddw		%%mm1,%%mm6;\n"
+		" movq		0*16+16(%1),%%mm1;\n"
+		" movq		%%mm0,%%mm4;\n"
+		" psadbw	%%mm2,%%mm0;\n"
+		" paddw		%%mm0,%%mm7;\n"
+		" movq		0*16+32(%0),%%mm0;\n"
+
+		" movq		%%mm1,%%mm2;\n"
+		" psadbw	%%mm3,%%mm1;\n"
+		" paddw		%%mm1,%%mm6;\n"
+		" movq		1*16+8(%1),%%mm1;\n"
+		" movq		%%mm0,%%mm3;\n"
+		" psadbw	%%mm2,%%mm0;\n"
+		" paddw		%%mm0,%%mm7;\n"
+		" movq		1*16+24(%0),%%mm0;\n"
+		" movq		%%mm1,%%mm2;\n"
+		" psadbw	%%mm4,%%mm1;\n"
+		" paddw		%%mm1,%%mm6;\n"
+		" movq		1*16+16(%1),%%mm1;\n"
+		" movq		%%mm0,%%mm4;\n"
+		" psadbw	%%mm2,%%mm0;\n"
+		" paddw		%%mm0,%%mm7;\n"
+		" movq		1*16+32(%0),%%mm0;\n"
+
+		" movq		%%mm1,%%mm2;\n"
+		" psadbw	%%mm3,%%mm1;\n"
+		" paddw		%%mm1,%%mm6;\n"
+		" movq		2*16+8(%1),%%mm1;\n"
+		" movq		%%mm0,%%mm3;\n"
+		" psadbw	%%mm2,%%mm0;\n"
+		" paddw		%%mm0,%%mm7;\n"
+		" movq		2*16+24(%0),%%mm0;\n"
+		" movq		%%mm1,%%mm2;\n"
+		" psadbw	%%mm4,%%mm1;\n"
+		" paddw		%%mm1,%%mm6;\n"
+		" movq		2*16+16(%1),%%mm1;\n"
+		" movq		%%mm0,%%mm4;\n"
+		" psadbw	%%mm2,%%mm0;\n"
+		" paddw		%%mm0,%%mm7;\n"
+		" movq		2*16+32(%0),%%mm0;\n"
+	:: "r" (s), "r" (t), "r" (l));
+
+			s += 16 * 3;
+			t += 16 * 3;
+		}
+
+	asm volatile (
+		" movq		%%mm1,%%mm2;\n"
+		" psadbw	%%mm3,%%mm1;\n"
+		" paddw		%%mm1,%%mm6;\n"
+		" movq		8(%1),%%mm1;\n"
+
+		" movq		%%mm0,%%mm3;\n"
+		" psadbw	%%mm2,%%mm0;\n"
+		" paddw		%%mm0,%%mm7;\n"
+		" movq		24(%0),%%mm0;\n"
+	:: "r" (s), "r" (t), "r" (l));
+
+	} else {
+
+	asm volatile (
+		" movq		8(%0),%%mm4;\n"
+		" psrlq		$8,%%mm4;\n"
+		" movq		(%2),%%mm2;\n"
+		" psllq		$56,%%mm2;\n"
+		" por		%%mm2,%%mm4;\n"
+
+		" movq		1(%0),%%mm3;\n"
+		" movq		(%1),%%mm1;\n"
+		" movq		17(%0),%%mm0;\n"
+
+		" pxor		%%mm5,%%mm5;\n"
+		" pxor		%%mm6,%%mm6;\n"
+		" pxor		%%mm7,%%mm7;\n"
+	:: "r" (s), "r" (t), "r" (l));
+
+		for (y = 0; y < 5; y++) {
+	asm volatile (
+		" movq		%%mm1,%%mm2;\n"
+		" psadbw	%%mm3,%%mm1;\n"
+		" paddw		%%mm1,%%mm6;\n"
+		" movq		0*16+8(%1),%%mm1;\n"
+		" movq		%%mm0,%%mm3;\n"
+		" psadbw	%%mm2,%%mm0;\n"
+		" paddw		%%mm0,%%mm7;\n"
+		" movq		0*16+24(%0),%%mm0;\n"
+		" movq		%%mm1,%%mm2;\n"
+		" psadbw	%%mm4,%%mm1;\n"
+		" movq		1(%2),%%mm4;\n"
+		" psrlq		$8,%%mm0;\n"
+		" paddw		%%mm1,%%mm6;\n"
+		" movq		0*16+16(%1),%%mm1;\n"
+		" psllq		$56,%%mm4;\n"
+		" por		%%mm4,%%mm0;\n"
+		" movq		%%mm0,%%mm4;\n"
+		" psadbw	%%mm2,%%mm0;\n"
+		" paddw		%%mm0,%%mm7;\n"
+		" movq		0*16+33(%0),%%mm0;\n"
+
+		" movq		%%mm1,%%mm2;\n"
+		" psadbw	%%mm3,%%mm1;\n"
+		" paddw		%%mm1,%%mm6;\n"
+		" movq		1*16+8(%1),%%mm1;\n"
+		" movq		%%mm0,%%mm3;\n"
+		" psadbw	%%mm2,%%mm0;\n"
+		" paddw		%%mm0,%%mm7;\n"
+		" movq		1*16+24(%0),%%mm0;\n"
+		" movq		%%mm1,%%mm2;\n"
+		" psadbw	%%mm4,%%mm1;\n"
+		" movq		1+1(%2),%%mm4;\n"
+		" psrlq		$8,%%mm0;\n"
+		" paddw		%%mm1,%%mm6;\n"
+		" movq		1*16+16(%1),%%mm1;\n"
+		" psllq		$56,%%mm4;\n"
+		" por		%%mm4,%%mm0;\n"
+		" movq		%%mm0,%%mm4;\n"
+		" psadbw	%%mm2,%%mm0;\n"
+		" paddw		%%mm0,%%mm7;\n"
+		" movq		1*16+33(%0),%%mm0;\n"
+
+		" movq		%%mm1,%%mm2;\n"
+		" psadbw	%%mm3,%%mm1;\n"
+		" paddw		%%mm1,%%mm6;\n"
+		" movq		2*16+8(%1),%%mm1;\n"
+		" movq		%%mm0,%%mm3;\n"
+		" psadbw	%%mm2,%%mm0;\n"
+		" paddw		%%mm0,%%mm7;\n"
+		" movq		2*16+24(%0),%%mm0;\n"
+		" movq		%%mm1,%%mm2;\n"
+		" psadbw	%%mm4,%%mm1;\n"
+		" movq		2+1(%2),%%mm4;\n"
+		" psrlq		$8,%%mm0;\n"
+		" paddw		%%mm1,%%mm6;\n"
+		" movq		2*16+16(%1),%%mm1;\n"
+		" psllq		$56,%%mm4;\n"
+		" por		%%mm4,%%mm0;\n"
+		" movq		%%mm0,%%mm4;\n"
+		" psadbw	%%mm2,%%mm0;\n"
+		" paddw		%%mm0,%%mm7;\n"
+		" movq		2*16+33(%0),%%mm0;\n"
+	:: "r" (s), "r" (t), "r" (l));
+			s += 16 * 3;
+			t += 16 * 3;
+			l += 1 * 3;
+		}
+
+	asm volatile (
+		" movq		%%mm1,%%mm2;\n"
+		" psadbw	%%mm3,%%mm1;\n"
+		" paddw		%%mm1,%%mm6;\n"
+		" movq		8(%1),%%mm1;\n"
+
+		" movq		%%mm0,%%mm3;\n"
+		" movq		1(%2),%%mm3;\n"
+		" psadbw	%%mm2,%%mm0;\n"
+		" psllq		$56,%%mm3;\n"
+		" paddw		%%mm0,%%mm7;\n"
+		" movq		24(%0),%%mm0;\n"
+		" psrlq		$8,%%mm0;\n"
+		" por		%%mm3,%%mm0;\n"
+	:: "r" (s), "r" (t), "r" (l));
+
+	}
+
+	// XXX this is supposed to sort
+
+	asm volatile (
+		" movq		%%mm1,%%mm2;\n"
+		" psadbw	%%mm4,%%mm1;\n"
+		" paddw		%%mm1,%%mm6;\n"
+		" psadbw	%%mm2,%%mm0;\n"
+		" paddw		%%mm0,%%mm7;\n"
+
+		" movd		%%mm6,%0;\n"
+		" movd		%%mm7,(%1);\n"
+	: "=&a" (y) : "r" (r2));
+
+	return y; // left, r2 = right
+}
+
 static inline void
 mmx_load_ref(unsigned char t[16][16])
 {
@@ -1166,8 +2020,8 @@ mmx_psse_8(char t[16][16], char *p, int pitch)
 
 		" movq		%%mm0,%%mm2;\n"
 		" movq		%%mm1,%%mm3;\n"
-		" pcmpgtb	%%mm1,%%mm2;		// 1 < 0\n"
-		" psubb		%%mm0,%%mm1;		// 1 = 1 - 0\n"
+		" pcmpgtb	%%mm1,%%mm2;\n"		// 1 < 0
+		" psubb		%%mm0,%%mm1;\n"		// 1 = 1 - 0
 		" movq		%%mm1,%%mm6;\n"
 		" punpcklbw	%%mm2,%%mm6;\n"
 		" pmullw	%%mm6,%%mm6;\n"
@@ -1473,6 +2327,285 @@ mmx_psse_8(char t[16][16], char *p, int pitch)
 		" pxor		%%mm0,%%mm2;\n"
 
 		" movq		%%mm1,bbmin;\n"
+		" movq		%%mm2,bbdxy;\n"
+
+	:: "r" (p), "r" (t), "r" (pitch * 8 /* ch */) : "memory");
+}
+
+static inline void
+sse_psse_8(char t[16][16], char *p, int pitch)
+{
+	asm volatile (
+		" movq		(%0),%%mm0;\n"
+		" movq		(%1),%%mm1;\n"
+		" movq		8(%0),%%mm4;\n"
+
+		" movq		%%mm0,%%mm2;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pcmpgtb	%%mm1,%%mm2;\n"		// 1 < 0
+		" psubb		%%mm0,%%mm1;\n"		// 1 = 1 - 0
+		" movq		%%mm1,%%mm6;\n"
+		" punpcklbw	%%mm2,%%mm6;\n"
+		" pmullw	%%mm6,%%mm6;\n"
+		" punpckhbw	%%mm2,%%mm1;\n"
+		" pmullw	%%mm1,%%mm1;\n"
+		" paddusw	%%mm1,%%mm6;\n"
+
+		" movq		8(%1),%%mm1;\n"
+
+		" psrlq		$32,%%mm0;\n"
+		" movq		%%mm4,%%mm2;\n"
+		" psllq		$32,%%mm2;\n"
+		" por		%%mm2,%%mm0;\n"
+
+		" movq		%%mm0,%%mm2;\n"
+		" pcmpgtb	%%mm3,%%mm2;\n"
+		" psubb		%%mm0,%%mm3;\n"
+		" movq		%%mm3,%%mm7;\n"
+		" punpcklbw	%%mm2,%%mm7;\n"
+		" pmullw	%%mm7,%%mm7;\n"
+		" punpckhbw	%%mm2,%%mm3;\n"
+		" pmullw	%%mm3,%%mm3;\n"
+		" movq		(%0,%2),%%mm5;\n"
+		" paddusw	%%mm3,%%mm7;\n"
+
+		" movq		%%mm4,%%mm2;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pcmpgtb	%%mm1,%%mm2;\n"
+		" psubb		%%mm4,%%mm1;\n"
+		" movq		%%mm1,%%mm0;\n"
+		" punpcklbw	%%mm2,%%mm0;\n"
+		" pmullw	%%mm0,%%mm0;\n"
+		" paddusw	%%mm0,%%mm6;\n"
+		" movd		16(%0),%%mm0;\n"
+		" punpckhbw	%%mm2,%%mm1;\n"
+		" pmullw	%%mm1,%%mm1;\n"
+		" paddusw	%%mm1,%%mm6;\n"
+
+		" movq		16(%1),%%mm1;\n"
+
+		" psrlq		$32,%%mm4;\n"
+		" psllq		$32,%%mm0;\n"
+		" por		%%mm4,%%mm0;\n"
+
+		" movq		%%mm0,%%mm2;\n"
+		" pcmpgtb	%%mm3,%%mm2;\n"
+		" psubb		%%mm0,%%mm3;\n"
+		" movq		%%mm3,%%mm0;\n"
+		" punpcklbw	%%mm2,%%mm0;\n"
+		" pmullw	%%mm0,%%mm0;\n"
+		" paddusw	%%mm0,%%mm7;\n"
+		" movq		8(%0,%2),%%mm0;\n"
+		" punpckhbw	%%mm2,%%mm3;\n"
+		" pmullw	%%mm3,%%mm3;\n"
+		" paddusw	%%mm3,%%mm7;\n"
+
+		" movq		%%mm5,%%mm2;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pcmpgtb	%%mm1,%%mm2;\n"
+		" psubb		%%mm5,%%mm1;\n"
+		" movq		%%mm1,%%mm4;\n"
+		" punpcklbw	%%mm2,%%mm4;\n"
+		" pmullw	%%mm4,%%mm4;\n"
+		" paddusw	%%mm4,%%mm6;\n"
+		" movq		24(%1),%%mm4;\n"
+		" punpckhbw	%%mm2,%%mm1;\n"
+		" pmullw	%%mm1,%%mm1;\n"
+		" paddusw	%%mm1,%%mm6;\n"
+
+		" psrlq		$32,%%mm5;\n"
+		" movq		%%mm0,%%mm1;\n"
+		" psllq		$32,%%mm1;\n"
+		" por		%%mm1,%%mm5;\n"
+
+		" movq		%%mm5,%%mm2;\n"
+		" pcmpgtb	%%mm3,%%mm2;\n"
+		" psubb		%%mm5,%%mm3;\n"
+		" movd		16(%0,%2),%%mm5;\n"
+		" movq		%%mm3,%%mm1;\n"
+		" punpcklbw	%%mm2,%%mm1;\n"
+		" pmullw	%%mm1,%%mm1;\n"
+		" paddusw	%%mm1,%%mm7;\n"
+		" punpckhbw	%%mm2,%%mm3;\n"
+		" pmullw	%%mm3,%%mm3;\n"
+		" paddusw	%%mm3,%%mm7;\n"
+
+		" movq		%%mm0,%%mm2;\n"
+		" movq		%%mm4,%%mm3;\n"
+		" pcmpgtb	%%mm4,%%mm2;\n"
+		" psubb		%%mm0,%%mm4;\n"
+		" movq		%%mm4,%%mm1;\n"
+		" punpcklbw	%%mm2,%%mm1;\n"
+		" pmullw	%%mm1,%%mm1;\n"
+		" paddusw	%%mm1,%%mm6;\n"
+		" movq		bbmin,%%mm1;\n"
+		" punpckhbw	%%mm2,%%mm4;\n"
+		" movq		bbdxy,%%mm2;\n"
+		" pmullw	%%mm4,%%mm4;\n"
+
+		" psrlq		$32,%%mm0;\n"
+		" paddusw	%%mm4,%%mm6;\n"
+		" movq		crdxy,%%mm4;\n"
+		" psllq		$32,%%mm5;\n"
+		" psubw		c1_15w,%%mm6;\n"
+		" por		%%mm5,%%mm0;\n"
+		" paddb		c4,%%mm4;\n"
+
+		" movq		%%mm0,%%mm5;\n"
+		" pcmpgtb	%%mm3,%%mm5;\n"
+		" psubb		%%mm0,%%mm3;\n"
+		" movq		%%mm3,%%mm0;\n"
+		" punpcklbw	%%mm5,%%mm0;\n"
+		" pmullw	%%mm0,%%mm0;\n"
+		" paddusw	%%mm0,%%mm7;\n"
+		" punpckhbw	%%mm5,%%mm3;\n"
+		" pmullw	%%mm3,%%mm3;\n"
+		" paddusw	%%mm3,%%mm7;\n"
+
+		" movq		%%mm4,%%mm0;\n"
+
+
+		" movq		%%mm4,%%mm5;\n"
+		" pxor		%%mm3,%%mm3;\n"
+		" pcmpgtb	%%mm4,%%mm3;\n"
+		" pxor		%%mm3,%%mm5;\n"
+		" psubb		%%mm3,%%mm5;\n"
+
+		" movq		%%mm5,%%mm3;\n"
+		" psrlw		$8,%%mm5;\n"
+		" paddsw	%%mm5,%%mm6;\n"
+		" pand		c255,%%mm3;\n"
+		" paddsw	%%mm3,%%mm6;\n"
+
+		" movq		%%mm1,%%mm5;\n"
+		" pcmpgtw	%%mm6,%%mm5;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pxor		%%mm6,%%mm3;\n"
+		" pand		%%mm5,%%mm3;\n"
+		" pxor		%%mm3,%%mm6;\n"
+		" pxor		%%mm3,%%mm1;\n"
+		" pshufw	$2*64+1*16+0*4+3,%%mm6,%%mm6;\n"
+		" pxor		%%mm4,%%mm2;\n"
+		" pand		%%mm2,%%mm5;\n"
+		" pxor		%%mm5,%%mm4;\n"
+		" pxor		%%mm4,%%mm2;\n"
+		" pshufw	$2*64+1*16+0*4+3,%%mm4,%%mm4;\n"
+
+		" psubw		c1_15w,%%mm7;\n"
+
+		" movq		%%mm1,%%mm5;\n"
+		" pcmpgtw	%%mm6,%%mm5;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pxor		%%mm6,%%mm3;\n"
+		" pand		%%mm5,%%mm3;\n"
+		" pxor		%%mm3,%%mm6;\n"
+		" pxor		%%mm3,%%mm1;\n"
+		" pshufw	$2*64+1*16+0*4+3,%%mm6,%%mm6;\n"
+		" pxor		%%mm4,%%mm2;\n"
+		" pand		%%mm2,%%mm5;\n"
+		" pxor		%%mm5,%%mm4;\n"
+		" pxor		%%mm4,%%mm2;\n"
+		" pshufw	$2*64+1*16+0*4+3,%%mm4,%%mm4;\n"
+
+		" paddb		c4,%%mm0;\n"
+
+		" movq		%%mm1,%%mm5;\n"
+		" pcmpgtw	%%mm6,%%mm5;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pxor		%%mm6,%%mm3;\n"
+		" pand		%%mm5,%%mm3;\n"
+		" pxor		%%mm3,%%mm6;\n"
+		" pxor		%%mm3,%%mm1;\n"
+		" pshufw	$2*64+1*16+0*4+3,%%mm6,%%mm6;\n"
+		" pxor		%%mm4,%%mm2;\n"
+		" pand		%%mm2,%%mm5;\n"
+		" pxor		%%mm5,%%mm4;\n"
+		" pxor		%%mm4,%%mm2;\n"
+		" pshufw	$2*64+1*16+0*4+3,%%mm4,%%mm4;\n"
+
+		    " movq		%%mm0,crdxy;\n"
+
+		" movq		%%mm1,%%mm5;\n"
+		" pcmpgtw	%%mm6,%%mm5;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pxor		%%mm6,%%mm3;\n"
+		" pand		%%mm5,%%mm3;\n"
+		" pxor		%%mm3,%%mm6;\n"
+		" pxor		%%mm3,%%mm1;\n"
+		" pxor		%%mm4,%%mm2;\n"
+		" pand		%%mm2,%%mm5;\n"
+		" pxor		%%mm5,%%mm4;\n"
+		" pxor		%%mm4,%%mm2;\n"
+
+
+		" movq		%%mm0,%%mm5;\n"
+		" pxor		%%mm3,%%mm3;\n"
+		" pcmpgtb	%%mm0,%%mm3;\n"
+		" pxor		%%mm3,%%mm5;\n"
+		" psubb		%%mm3,%%mm5;\n"
+
+		" movq		%%mm5,%%mm3;\n"
+		" psrlw		$8,%%mm5;\n"
+		" paddsw	%%mm5,%%mm7;\n"
+		" pand		c255,%%mm3;\n"
+		" paddsw	%%mm3,%%mm7;\n"
+
+
+		" movq		%%mm1,%%mm5;\n"
+		" pcmpgtw	%%mm7,%%mm5;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pxor		%%mm7,%%mm3;\n"
+		" pand		%%mm5,%%mm3;\n"
+		" pxor		%%mm3,%%mm7;\n"
+		" pxor		%%mm3,%%mm1;\n"
+		" pshufw	$2*64+1*16+0*4+3,%%mm7,%%mm7;\n"
+		" pxor		%%mm0,%%mm2;\n"
+		" pand		%%mm2,%%mm5;\n"
+		" pxor		%%mm5,%%mm0;\n"
+		" pxor		%%mm0,%%mm2;\n"
+		" pshufw	$2*64+1*16+0*4+3,%%mm0,%%mm0;\n"
+
+		" movq		%%mm1,%%mm5;\n"
+		" pcmpgtw	%%mm7,%%mm5;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pxor		%%mm7,%%mm3;\n"
+		" pand		%%mm5,%%mm3;\n"
+		" pxor		%%mm3,%%mm7;\n"
+		" pxor		%%mm3,%%mm1;\n"
+		" pshufw	$2*64+1*16+0*4+3,%%mm7,%%mm7;\n"
+		" pxor		%%mm0,%%mm2;\n"
+		" pand		%%mm2,%%mm5;\n"
+		" pxor		%%mm5,%%mm0;\n"
+		" pxor		%%mm0,%%mm2;\n"
+		" pshufw	$2*64+1*16+0*4+3,%%mm0,%%mm0;\n"
+
+		" movq		%%mm1,%%mm5;\n"
+		" pcmpgtw	%%mm7,%%mm5;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pxor		%%mm7,%%mm3;\n"
+		" pand		%%mm5,%%mm3;\n"
+		" pxor		%%mm3,%%mm7;\n"
+		" pxor		%%mm3,%%mm1;\n"
+		" pshufw	$2*64+1*16+0*4+3,%%mm7,%%mm7;\n"
+		" pxor		%%mm0,%%mm2;\n"
+		" pand		%%mm2,%%mm5;\n"
+		" pxor		%%mm5,%%mm0;\n"
+		" pxor		%%mm0,%%mm2;\n"
+		" pshufw	$2*64+1*16+0*4+3,%%mm0,%%mm0;\n"
+
+		" movq		%%mm1,%%mm5;\n"
+		" pcmpgtw	%%mm7,%%mm5;\n"
+		" movq		%%mm1,%%mm3;\n"
+		" pxor		%%mm7,%%mm3;\n"
+		" pand		%%mm5,%%mm3;\n"
+		" pxor		%%mm3,%%mm7;\n"
+		" pxor		%%mm3,%%mm1;\n"
+		" pxor		%%mm0,%%mm2;\n"
+		" movq		%%mm1,bbmin;\n"
+		" pand		%%mm2,%%mm5;\n"
+		" pxor		%%mm5,%%mm0;\n"
+		" pxor		%%mm0,%%mm2;\n"
+
 		" movq		%%mm2,bbdxy;\n"
 
 	:: "r" (p), "r" (t), "r" (pitch * 8 /* ch */) : "memory");
@@ -1929,9 +3062,10 @@ mmx_predict(unsigned char *from, int d2x, int d2y,
 	return s;
 }
 
-static int
-search(int *dhx, int *dhy, unsigned char *from,
-       int x, int y, int range, short dest[6][8][8])
+static inline int
+tmp_search(int *dhx, int *dhy, unsigned char *from,
+       int x, int y, int range, short dest[6][8][8],
+       int cpu_type)
 {
 	typeof (temp22) *pat1, *pat2, *pat3, *pat4;
 	int act, act2, min, mini[3][3];
@@ -1994,7 +3128,14 @@ search(int *dhx, int *dhy, unsigned char *from,
 			);
 
 			for (i = x0; i < x1; i += 8)
-				mmx_psse_8(tbuf, p + i, mb_address.block[0].pitch);
+				switch (cpu_type) {
+				case CPU_PENTIUM_III:
+					sse_psse_8(tbuf, p + i, mb_address.block[0].pitch);
+					break;
+				default:
+					mmx_psse_8(tbuf, p + i, mb_address.block[0].pitch);
+					break;
+				}
 		}
 	else
 		for (j = y0; j < y1; p += mb_address.block[0].pitch, j++) {
@@ -2012,15 +3153,32 @@ search(int *dhx, int *dhy, unsigned char *from,
 
 	mmx_load_ref(tbuf);
 
-	min = mmx_sad(tbuf, p, mb_address.block[0].pitch);
+	switch (cpu_type) {
+	case CPU_PENTIUM_III:
+		min = sse_sad(tbuf, p, mb_address.block[0].pitch);
+		break;
+	default:
+		min = mmx_sad(tbuf, p, mb_address.block[0].pitch);
+		break;
+	}
 	min -= (min >> 3);
 	dx = 0;			dy = 0;
 
 	for (i = 0; i < 4; i++) {
-		act = mmx_sad(tbuf,
-			p + bbdxy.b[i * 2 + 0] /* x */ 
-			+ bbdxy.b[i * 2 + 1] * mb_address.block[0].pitch,
-			mb_address.block[0].pitch);
+		switch (cpu_type) {
+		case CPU_PENTIUM_III:
+			act = sse_sad(tbuf,
+				p + bbdxy.b[i * 2 + 0] /* x */ 
+				+ bbdxy.b[i * 2 + 1] * mb_address.block[0].pitch,
+				mb_address.block[0].pitch);
+			break;
+		default:
+			act = mmx_sad(tbuf,
+				p + bbdxy.b[i * 2 + 0] /* x */ 
+				+ bbdxy.b[i * 2 + 1] * mb_address.block[0].pitch,
+				mb_address.block[0].pitch);
+			break;
+		}
 
 		if (act < min) {
 			min = act;
@@ -2091,8 +3249,22 @@ search(int *dhx, int *dhy, unsigned char *from,
 
 	mini[1][1] = min;
 
-	mmx_load_interp(from, mb_address.block[0].pitch,
-		(x + dx - 1) >> 1, (y + dy - 1) >> 1);
+	switch (cpu_type) {
+	case CPU_K6_2:
+		_3dn_load_interp(from, mb_address.block[0].pitch,
+			(x + dx - 1) >> 1, (y + dy - 1) >> 1);
+		break;
+
+	case CPU_PENTIUM_III:
+		sse_load_interp(from, mb_address.block[0].pitch,
+			(x + dx - 1) >> 1, (y + dy - 1) >> 1);
+		break;
+
+	default:
+		mmx_load_interp(from, mb_address.block[0].pitch,
+			(x + dx - 1) >> 1, (y + dy - 1) >> 1);
+		break;
+	}
 
 	pat1 = &temp11;
 	pat2 = &temp2v;
@@ -2119,14 +3291,30 @@ search(int *dhx, int *dhy, unsigned char *from,
 	 */
 	if (__builtin_expect((dx | dy) & 1, 0)) {
 		// act = sad1(tbuf, *pat1, iright, idown); mini[1][1] = act;
-		act = mmx_sad2h(tbuf, *pat1, idown, &act2);
-		mini[1][1] = iright ? act2 : act;
+		switch (cpu_type) {
+		case CPU_PENTIUM_III:
+			act = sse_sad2h(tbuf, *pat1, idown, &act2);
+			break;
+		default:
+			act = mmx_sad2h(tbuf, *pat1, idown, &act2);
+			break;
+		}
 	}
 
-	act = mmx_sad2h(tbuf, *pat3, idown, &act2); mini[1][0] = act; mini[1][2] = act2;
-	act = mmx_sad2h(tbuf, *pat4, 0, &act2); mini[0][0] = act; mini[0][2] = act2;
-	act = mmx_sad2h(tbuf, *pat4, 1, &act2); mini[2][0] = act; mini[2][2] = act2;
-	act = mmx_sad2v(tbuf, *pat2, iright, &act2); mini[0][1] = act; mini[2][1] = act2;
+	switch (cpu_type) {
+	case CPU_PENTIUM_III:
+		act = sse_sad2h(tbuf, *pat3, idown, &act2); mini[1][0] = act; mini[1][2] = act2;
+		act = sse_sad2h(tbuf, *pat4, 0, &act2); mini[0][0] = act; mini[0][2] = act2;
+		act = sse_sad2h(tbuf, *pat4, 1, &act2); mini[2][0] = act; mini[2][2] = act2;
+		act = sse_sad2v(tbuf, *pat2, iright, &act2); mini[0][1] = act; mini[2][1] = act2;
+		break;
+	default:
+		act = mmx_sad2h(tbuf, *pat3, idown, &act2); mini[1][0] = act; mini[1][2] = act2;
+		act = mmx_sad2h(tbuf, *pat4, 0, &act2); mini[0][0] = act; mini[0][2] = act2;
+		act = mmx_sad2h(tbuf, *pat4, 1, &act2); mini[2][0] = act; mini[2][2] = act2;
+		act = mmx_sad2v(tbuf, *pat2, iright, &act2); mini[0][1] = act; mini[2][1] = act2;
+		break;
+	}
 
 	/* XXX optimize */
 	for (j = -1; j <= +1; j++) {
@@ -2166,6 +3354,27 @@ bail_out:
 	}
 
 	return mmx_predict(from, *dhx, *dhy, ibuf, iright, idown, dest);
+}
+
+int
+mmx_search(int *dhx, int *dhy, unsigned char *from,
+       int x, int y, int range, short dest[6][8][8])
+{
+	return tmp_search(dhx, dhy, from, x, y, range, dest, CPU_PENTIUM_MMX);
+}
+
+int
+_3dn_search(int *dhx, int *dhy, unsigned char *from,
+       int x, int y, int range, short dest[6][8][8])
+{
+	return tmp_search(dhx, dhy, from, x, y, range, dest, CPU_K6_2);
+}
+
+int
+sse_search(int *dhx, int *dhy, unsigned char *from,
+       int x, int y, int range, short dest[6][8][8])
+{
+	return tmp_search(dhx, dhy, from, x, y, range, dest, CPU_PENTIUM_III);
 }
 
 static int

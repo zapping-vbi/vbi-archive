@@ -1,4 +1,4 @@
-.TH MP1E 1 "$Date: 2001-07-05 08:25:30 $" "mp1e manual" \" -*- nroff -*-
+.TH MP1E 1 "$Date: 2001-07-12 01:22:05 $" "mp1e manual" \" -*- nroff -*-
 .SH NAME
 mp1e \- realtime MPEG-1 audio/video encoder
 .SH SYNOPSIS
@@ -15,6 +15,10 @@ more than adequate, I-only compression (comparable to MJPEG) works
 on any MMX CPU and audio is usually negligible. The resources needed
 for compression depend on several factors, so the actual requirements
 may be lesser or greater than estimated above.
+.P
+If available,
+.B mp1e
+takes advantage of 3DNow! and SSE extensions for motion compensation.
 .SH OPTIONS
 Options in short (-a) and long (--audio_mode) format are supported.
 Some options take numbers or keywords as arguments, for example:
@@ -149,9 +153,10 @@ here.
 "D" pictures (ultra low quality for streaming fast forward and
 such) are not supported.
 .P
-You can enter any GOP sequence of "I", "P" and "B",
-provided it starts with "I" and does not exceed 1023
-pictures. The default is "IBBPBBPBBPBBP".
+You can enter any GOP sequence of "I", "P" and "B"
+(displayed, not coded order), provided it starts with "I"
+and does not exceed 1023 pictures. The default is
+"IBBPBBPBBPBBP".
 .B mp1e
 will override the sequence when a) frame dropping occurs,
 b) promote a P to an I picture when prediction appears
@@ -326,6 +331,15 @@ rounds to the closest possible. Only constant bit rates are
 implemented.
 .RE
 .TP
+.BI "\-C, \-\-cpu " type
+.RS
+You can override automatic CPU detection with this option. At
+present the valid types are: pmmx, p2, p3, p4 for the respective
+Intel Pentium CPUs; k6-2, k7 for AMD devices (Athlons, Durons
+and Athlon 4 are k7); m2 and c3 refer to the Cyrix MII and
+Cyrix III CPUs.
+.RE
+.TP
 .BI "\-F, \-\-filter " n
 .RS
 .B Mp1e
@@ -423,14 +437,13 @@ smaller than the captured image.
 .RS
 The sequence header in an MPEG-1 video stream contains information
 such as the picture size and rate, and is therefore essential for a
-player. By default
-.B mp1e
-encodes only one header, which is sufficient for archiving. If you
-want to stream the file, the player may have missed the initial
-header. This option allows to repeat the header at regular intervals.
-When you concatenate MPEG streams (simply with "cat") using different
-compression parameters, you may also want to repeat the header to
-ensure random access will pick up the correct parameters.
+player. For archiving it's sufficient to encode only one header.
+If you want to stream the file, the player may have missed the initial
+header. This option allows to repeat the header at certain regular
+intervals, the default is appx. two seconds. When you concatenate
+MPEG streams (simply with "cat") using different compression
+parameters, you may also want to repeat the header to ensure random
+access will pick up the correct parameters.
 .P
 Note whatever you specify the header is not inserted more often than
 once in each group of pictures (see above). A reasonable value may
@@ -628,7 +641,7 @@ for details.
 .B mp1e
 returns 0 on success, 1 on failure. Policy is to abort in doubt,
 to avoid hour long recording of snow or silence and you have
-to wait for the next repeat in 2022, err, those bloody...
+to wait for the next repeat in 2022...
 .SH BUGS
 Versions prior 1.7 should be avoided. Versions prior 1.8 created
 invalid stream syntax which only a few players would accept, and

@@ -6,7 +6,7 @@
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *  (at your option) version 2.
  *
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: global_data.c,v 1.11 2001-07-07 19:14:15 mschimek Exp $ */
+/* $Id: global_data.c,v 1.12 2001-07-12 01:22:05 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -64,7 +64,7 @@ int			grab_height		= 288;
 int			video_bit_rate		= 2300000;
 int			video_num_frames	= INT_MAX;
 char *			gop_sequence		= "IBBPBBPBBPBB";
-int			frames_per_seqhdr	= INT_MAX;
+int			frames_per_seqhdr	= 50;
 int			filter_mode		= CM_YUYV_VERTICAL_DECIMATION; // CM_YUV
 // defaults to _VERT_INTERP in motion mode
 double			frame_rate		= 1000.0;
@@ -96,3 +96,5 @@ int			cap_buffers		= 12;			// capture -> video compression
 int			vid_buffers		= 8;			// video compression -> mux
 int			aud_buffers		= 32;			// audio compression -> mux
 #endif
+
+int			cpu_type		= 0;			// detect

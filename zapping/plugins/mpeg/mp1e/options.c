@@ -6,7 +6,7 @@
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *  (at your option) version 2.
  *
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.21 2001-07-07 19:14:15 mschimek Exp $ */
+/* $Id: options.c,v 1.22 2001-07-12 01:22:05 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -48,6 +48,7 @@ static const char *mux_options[] = { "", "video", "audio", "video_and_audio", "s
 static const char *mux_syn_options[] = { "nirvana", "bypass", "mpeg1", "mpeg2-ps", "vcd" };
 static const char *audio_options[] = { "stereo", "", "dual_channel", "mono" };
 static const char *mute_options[] = { "unmute", "mute", "ignore" };
+static const char *cpu_options[] = { "", "pmmx", "p2", "p3", "p4", "k6-2", "k7", "m2", "c3" };
 
 void
 usage(FILE *fi)
@@ -62,28 +63,33 @@ usage(FILE *fi)
 		"Usage: %s [options]\n\n"
 		"Option                                                      Default\n"
 		" -m mode        Encode 1 = video, 2 = audio, 3 = both       %s\n"
-		" -v             Increase verbosity level, try -v, -vv\n"
+		" -X mux         Multiplexer to use                          auto\n"
 		"\n"
 		" -b bps         Output video bits per second                %5.3f Mbits/s\n"
 #ifdef V4L2_MAJOR_VERSION
 		" -c name        Video capture device (V4L2 API)             %s\n"
-		" -F mode        Filter mode\n"
+		" -F mode        Filter mode                                 apropriate\n"
 #else
 		" -c name        Video capture device (V4L API)              %s\n"
 #endif
 		" -f frames      Frames per second                           maximum\n"
 		" -g string      Group of pictures sequence (display order)  %s\n"
+		" -l             Letterbox mode                              off\n"
+		" -w             Grey mode                                   off\n"
 		" -n frames      Number of video (audio) frames to encode\n"
 		"                or until termination (Ctrl-C). To break\n"
 		"                immediately hit Ctrl-\\                      years\n"
 		" -s wxh         Image size (centred)                        %d x %d pixels\n"
 		" -G wxh         Grab size, multiple of 16 x 16              %d x %d pixels\n"
 		" -H frames      Repeat sequence header every n frames,\n"
-		"                n > 0. Helps random access                  never repeated\n"
+		"                n > 0. Helps random access                  2 secs\n"
 		" -R min,max     Motion compensation search range limits     %d,%d\n"
 #if TEST_PREVIEW && defined(HAVE_LIBXV)
 		" -P             XvImage Preview (test mode)                 disabled\n"
 #endif
+		"\n"
+		" -I name        VBI device for Teletext subtitles           %s\n"
+		" -T page        Teletext subtitle page(s), e.g. 1?0,200     none\n"
 		"\n"
 		" -a mode        Audio mode 0 = stereo, 2 = dual channel,\n"
 		"                3 = mono                                    %s\n"
@@ -98,12 +104,19 @@ usage(FILE *fi)
 		" -M mode        RF audio 0 = unmute, 1 = mute, 2 = ignore   %s\n"
 #endif
 		"\n"
+		" -i filename    Source configuration file\n"
+		" -v             Increase verbosity level, try -v, -vv\n"
+		" -C type        CPU type (p2, p3, k6-2, k7, ...)            auto\n"
+		"\n"
 		"A configuration file can be piped in from standard input,\n"
-		"the compressed stream will be sent to standard output.\n",
+		"the compressed stream will be sent to standard output. See the\n"
+		"mp1e manual page for details.\n",
 
 		my_name, mux_options[modules], (double) video_bit_rate / 1e6,
 		cap_dev, gop_sequence, width, height, grab_width, grab_height,
 		motion_min, motion_max,
+
+		vbi_dev,
 
 		audio_options[audio_mode], pcm_dev, audio_bit_rate / 1000, sampling_rate / 1e3,
 
@@ -116,7 +129,7 @@ usage(FILE *fi)
 	exit((fi == stderr) ? EXIT_FAILURE : EXIT_SUCCESS);
 }
 
-#define OPT_STR "2a:b:c:f:g:hi:lm:n:p:r:s:vwx:A:B:F:G:H:I:M:PR:S:T:VX:"
+#define OPT_STR "2a:b:c:f:g:hi:lm:n:p:r:s:vwx:A:C:B:F:G:H:I:M:PR:S:T:VX:"
 
 static const struct option
 long_options[] = {
@@ -140,6 +153,7 @@ long_options[] = {
 	{ "mixer_device",		required_argument, NULL, 'x' },
 	{ "anno",			required_argument, NULL, 'A' },
 	{ "audio_bit_rate",		required_argument, NULL, 'B' },
+	{ "cpu",			required_argument, NULL, 'C' },
 	{ "filter",			required_argument, NULL, 'F' },
 	{ "grab_size",			required_argument, NULL, 'G' },
 	{ "frames_per_seq_header",	required_argument, NULL, 'H' },
@@ -442,6 +456,11 @@ parse_option(int c)
 
 			break;
 		}
+
+		case 'C':
+			if ((cpu_type = suboption(cpu_options, 9, 0)) < 0)
+				return FALSE;
+			break;
 
 		case 'F':
 			filter_mode = strtol(optarg, NULL, 0);

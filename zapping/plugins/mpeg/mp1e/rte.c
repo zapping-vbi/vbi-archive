@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.55 2001-07-07 08:46:54 mschimek Exp $ */
+/* $Id: rte.c,v 1.56 2001-07-12 01:22:05 mschimek Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -1066,7 +1066,9 @@ int rte_get_verbosity ( rte_context * context )
 
 int rte_init ( void )
 {
-	if (!cpu_detection())
+	cpu_type = cpu_detection();
+
+	if (cpu_type == CPU_UNKNOWN)
 		return 0;
 
 	rte_global_context = NULL;

@@ -6,7 +6,7 @@
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *  (at your option) version 2.
  *
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mblock.h,v 1.1 2000-09-25 17:08:57 mschimek Exp $ */
+/* $Id: mblock.h,v 1.2 2001-07-12 01:22:06 mschimek Exp $ */
 
 #ifndef MBLOCK_H
 #define MBLOCK_H

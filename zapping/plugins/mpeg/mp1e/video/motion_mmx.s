@@ -6,7 +6,7 @@
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation; either version 2 of the License, or
-#  (at your option) any later version.
+#  (at your option) version 2.
 # 
 #  This program is distributed in the hope that it will be useful,
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,7 +18,7 @@
 #  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 
-# $Id: motion_mmx.s,v 1.7 2001-06-29 01:29:10 mschimek Exp $
+# $Id: motion_mmx.s,v 1.8 2001-07-12 01:22:06 mschimek Exp $
 
 		.text
 		.align		16
@@ -1166,3 +1166,115 @@ mmx_mbsum:
 		popl %esi
 		popl %edi
 		ret
+
+		.text
+		.align		16
+		.globl		sse_sad
+sse_sad:
+		movq		(%edx),%mm0;
+		movq		8(%edx),%mm1;
+		pxor		%mm7,%mm7;
+		movq		(%edx,%ecx),%mm2;
+		movq		8(%edx,%ecx),%mm3;
+		leal		(%edx,%ecx,2),%edx;
+		psadbw		(%eax),%mm0;
+		paddw		%mm0,%mm7;
+		movq		(%edx),%mm0;
+		psadbw		8(%eax),%mm1;
+		paddw		%mm1,%mm7;
+		movq		8(%edx),%mm1;
+		psadbw		16(%eax),%mm2;
+		paddw		%mm2,%mm7;
+		movq		(%edx,%ecx),%mm2;
+		psadbw		24(%eax),%mm3;
+		paddw		%mm3,%mm7;
+		movq		8(%edx,%ecx),%mm3;
+		leal		(%edx,%ecx,2),%edx;
+		psadbw		1*32(%eax),%mm0;
+		paddw		%mm0,%mm7;
+		movq		(%edx),%mm0;
+		psadbw		1*32+8(%eax),%mm1;
+		paddw		%mm1,%mm7;
+		movq		8(%edx),%mm1;
+		psadbw		1*32+16(%eax),%mm2;
+		paddw		%mm2,%mm7;
+		movq		(%edx,%ecx),%mm2;
+		psadbw		1*32+24(%eax),%mm3;
+		paddw		%mm3,%mm7;
+		movq		8(%edx,%ecx),%mm3;
+		leal		(%edx,%ecx,2),%edx;
+		psadbw		2*32(%eax),%mm0;
+		paddw		%mm0,%mm7;
+		movq		(%edx),%mm0;
+		psadbw		2*32+8(%eax),%mm1;
+		paddw		%mm1,%mm7;
+		movq		8(%edx),%mm1;
+		psadbw		2*32+16(%eax),%mm2;
+		paddw		%mm2,%mm7;
+		movq		(%edx,%ecx),%mm2;
+		psadbw		2*32+24(%eax),%mm3;
+		paddw		%mm3,%mm7;
+		movq		8(%edx,%ecx),%mm3;
+		leal		(%edx,%ecx,2),%edx;
+		psadbw		3*32(%eax),%mm0;
+		paddw		%mm0,%mm7;
+		movq		(%edx),%mm0;
+		psadbw		3*32+8(%eax),%mm1;
+		paddw		%mm1,%mm7;
+		movq		8(%edx),%mm1;
+		psadbw		3*32+16(%eax),%mm2;
+		paddw		%mm2,%mm7;
+		movq		(%edx,%ecx),%mm2;
+		psadbw		3*32+24(%eax),%mm3;
+		paddw		%mm3,%mm7;
+		movq		8(%edx,%ecx),%mm3;
+		leal		(%edx,%ecx,2),%edx;
+		psadbw		4*32(%eax),%mm0;
+		paddw		%mm0,%mm7;
+		movq		(%edx),%mm0;
+		psadbw		4*32+8(%eax),%mm1;
+		paddw		%mm1,%mm7;
+		movq		8(%edx),%mm1;
+		psadbw		4*32+16(%eax),%mm2;
+		paddw		%mm2,%mm7;
+		movq		(%edx,%ecx),%mm2;
+		psadbw		4*32+24(%eax),%mm3;
+		paddw		%mm3,%mm7;
+		movq		8(%edx,%ecx),%mm3;
+		leal		(%edx,%ecx,2),%edx;
+		psadbw		5*32(%eax),%mm0;
+		paddw		%mm0,%mm7;
+		movq		(%edx),%mm0;
+		psadbw		5*32+8(%eax),%mm1;
+		paddw		%mm1,%mm7;
+		movq		8(%edx),%mm1;
+		psadbw		5*32+16(%eax),%mm2;
+		paddw		%mm2,%mm7;
+		movq		(%edx,%ecx),%mm2;
+		psadbw		5*32+24(%eax),%mm3;
+		paddw		%mm3,%mm7;
+		movq		8(%edx,%ecx),%mm3;
+		leal		(%edx,%ecx,2),%edx;
+		psadbw		6*32(%eax),%mm0;
+		paddw		%mm0,%mm7;
+		movq		(%edx),%mm0;
+		psadbw		6*32+8(%eax),%mm1;
+		paddw		%mm1,%mm7;
+		movq		8(%edx),%mm1;
+		psadbw		6*32+16(%eax),%mm2;
+		paddw		%mm2,%mm7;
+		movq		(%edx,%ecx),%mm2;
+		psadbw		6*32+24(%eax),%mm3;
+		paddw		%mm3,%mm7;
+		movq		8(%edx,%ecx),%mm3;
+		leal		(%edx,%ecx,2),%edx;
+		psadbw		7*32(%eax),%mm0;
+		paddw		%mm0,%mm7;
+		psadbw		7*32+8(%eax),%mm1;
+		paddw		%mm1,%mm7;
+		psadbw		7*32+16(%eax),%mm2;
+		paddw		%mm2,%mm7;
+		psadbw		7*32+24(%eax),%mm3;
+		paddw		%mm3,%mm7;
+		movd		%mm7,%eax;
+		ret;

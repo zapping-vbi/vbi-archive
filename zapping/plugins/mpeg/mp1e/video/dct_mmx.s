@@ -6,7 +6,7 @@
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation; either version 2 of the License, or
-#  (at your option) any later version.
+#  (at your option) version 2.
 # 
 #  This program is distributed in the hope that it will be useful,
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,7 +18,7 @@
 #  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 
-# $Id: dct_mmx.s,v 1.7 2001-06-29 01:29:10 mschimek Exp $
+# $Id: dct_mmx.s,v 1.8 2001-07-12 01:22:06 mschimek Exp $
 
 	.text
 	.align		16

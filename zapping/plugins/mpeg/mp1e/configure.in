@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.28 2001-07-07 19:14:15 mschimek Exp $
+dnl $Id: configure.in,v 1.29 2001-07-12 01:22:05 mschimek Exp $
 
 AC_INIT(configure.in)
 AM_INIT_AUTOMAKE(mp1e, 1.9pre2)
@@ -34,8 +34,8 @@ for i in list.h fifo.h fifo.c threads.h videodev.h videodev2.h; do
 done
 
 dnl Use this in the final release, debugging info until then
-dnl CFLAGS="-Wall -O2 -fomit-frame-pointer"
-CFLAGS="-Wall -O2 -g -fomit-frame-pointer"
+dnl CFLAGS="-Wall -O2 -g -fomit-frame-pointer"
+CFLAGS="-Wall -O2 -fomit-frame-pointer"
 
 case "$host_alias" in
 i?86-*)

@@ -46,6 +46,7 @@ typedef	union {
 /*
  *  These are optimization classes rather than
  *  identifying the actual model or brand name.
+ *  Keep order (options.c)
  */
 #define CPU_UNKNOWN		0	/* no MMX */
 #define	CPU_PENTIUM_MMX		1	/* MMX; late P5 core */

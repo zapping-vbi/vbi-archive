@@ -6,7 +6,7 @@
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *  (at your option) version 2.
  *
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mblock.c,v 1.4 2000-10-15 21:24:49 mschimek Exp $ */
+/* $Id: mblock.c,v 1.5 2001-07-12 01:22:06 mschimek Exp $ */
 
 #include "video.h"
 #include "../common/math.h"

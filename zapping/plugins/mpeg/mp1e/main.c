@@ -6,7 +6,7 @@
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *  (at your option) version 2.
  *
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.39 2001-07-07 19:14:15 mschimek Exp $ */
+/* $Id: main.c,v 1.40 2001-07-12 01:22:05 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -117,19 +117,40 @@ main(int ac, char **av)
 
 	my_name = av[0];
 
-	if (!cpu_detection())
-		FAIL("Sorry, this program requires an MMX enhanced CPU");
-
 	options(ac, av);
+
+	if (cpu_type == CPU_UNKNOWN) {
+		cpu_type = cpu_detection();
+
+		if (cpu_type == CPU_UNKNOWN)
+			FAIL("Sorry, this program requires an MMX enhanced CPU");
+	}
+
+	switch (cpu_type) {
+	case CPU_K6_2:
+	case CPU_CYRIX_III:
+		printv(2, "Using 3DNow! optimized routines.\n");
+		break;
+
+	case CPU_PENTIUM_III:
+	case CPU_PENTIUM_4:
+	case CPU_ATHLON:
+		printv(2, "Using SSE optimized routines.\n");
+		break;
+	}
 
 	if (subtitle_pages)
 		modules |= MOD_SUBTITLES;
 	else
 		modules &= ~MOD_SUBTITLES;
 
+
 	sigemptyset(&block_mask);
 	sigaddset(&block_mask, SIGINT);
 	sigprocmask(SIG_BLOCK, &block_mask, NULL);
+	sigemptyset(&block_mask);
+	sigaddset(&block_mask, SIGILL);
+	sigprocmask(SIG_UNBLOCK, &block_mask, NULL);
 
 	ASSERT("install termination handler", signal(SIGINT, terminate) != SIG_ERR);
 

@@ -1,3 +1,8 @@
+2001-07-12	<mschimek@users.sf.net>
+
+	* Made emu work with pthreads (phew...)
+	* Added SSE and 3DNow! support
+
 2001-07-06	<mschimek@users.sf.net>
 
 	* Made ioctls EINTR aware
