@@ -43,11 +43,11 @@
 #include "tvengemu.h"
 
 struct control {
-	tv_dev_control		dev;
+	tv_control		pub;
 	/* interface specifics here */
 };
 
-#define C(l) PARENT (l, struct control, dev)
+#define C(l) PARENT (l, struct control, pub)
 
 struct private_tvengemu_device_info
 {
@@ -100,28 +100,30 @@ add_control			(tveng_device_info *	info,
 				 int			cur,
 				 int			def,
 				 int			minimum,
-				 int			maximum)
+				 int			maximum,
+				 int			step)
 {
 	struct control c;
 	tv_control *tc;
 
 	memset (&c, 0, sizeof (c));
 
-	if (!(c.dev.pub.label = strdup (_(label))))
+	if (!(c.pub.label = strdup (_(label))))
 		return NULL;
 
-	c.dev.pub.id = tcid;
-	c.dev.pub.type = type;
-	c.dev.pub.minimum = minimum;
-	c.dev.pub.maximum = maximum;
-	c.dev.pub.reset = def;
-	c.dev.pub.value = cur;
+	c.pub.id	= tcid;
+	c.pub.type	= type;
+	c.pub.minimum	= minimum;
+	c.pub.maximum	= maximum;
+	c.pub.step	= step;
+	c.pub.reset	= def;
+	c.pub.value	= cur;
 
-	c.dev.device = info;
+	c.pub._device = info;
 
-	if ((tc = append_control (info, &c.dev.pub, sizeof (c)))) {
+	if ((tc = append_control (info, &c.pub, sizeof (c)))) {
 	} else {
-		free ((char *) c.dev.pub.label);
+		free ((char *) c.pub.label);
 		return NULL;
 	}
 
@@ -203,12 +205,12 @@ int tvengemu_attach_device(const char* device_file,
       add_control (info, "Pimples",
 		   TV_CONTROL_ID_UNKNOWN,
 		   TV_CONTROL_TYPE_INTEGER,
-		   0, 13, -20, 72);
+		   0, 13, -20, 72, 3);
 
       tc = add_control (info, "Meaning of Life",
 			TV_CONTROL_ID_UNKNOWN,
 			TV_CONTROL_TYPE_CHOICE,
-			0, 0, 0, 2);
+			0, 0, 0, 2, 1);
       tc->menu = calloc (3 + 1, sizeof (const char *));
       tc->menu[0] = strdup ("42");
       tc->menu[1] = strdup ("Pr0n");
@@ -217,17 +219,17 @@ int tvengemu_attach_device(const char* device_file,
       add_control (info, "-> Self Destruct <-",
 		   TV_CONTROL_ID_UNKNOWN,
 		   TV_CONTROL_TYPE_ACTION,
-		   0, 0, 0, 0);
+		   0, 0, 0, 0, 0);
 
       add_control (info, "Mute",
 		   TV_CONTROL_ID_MUTE,
 		   TV_CONTROL_TYPE_BOOLEAN,
-		   0, 1, 0, 1);
+		   0, 1, 0, 1, 1);
 
       add_control (info, "Red Alert Color",
 		   TV_CONTROL_ID_UNKNOWN,
 		   TV_CONTROL_TYPE_COLOR,
-		   0x00FF00, 0xFF0000, 0, 0);
+		   0x00FF00, 0xFF0000, 0, 0, 0);
     }
 
   /* Set up some capture parameters */
@@ -424,17 +426,17 @@ tvengemu_set_capture_format (tveng_device_info *info)
 
 static tv_bool
 tvengemu_update_control		(tveng_device_info *	info,
-				 tv_dev_control *	tdc)
+				 tv_control *		tc)
 {
   return TRUE;
 }
 
 static tv_bool
 tvengemu_set_control		(tveng_device_info *	info,
-				 tv_dev_control *	tdc,
+				 tv_control *		tc,
 				 int			value)
 {
-  tdc->pub.value = value;
+  tc->value = value;
   return TRUE;
 }
 

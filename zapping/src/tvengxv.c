@@ -39,14 +39,11 @@
 #include "zmisc.h"
 
 struct control {
-	tv_dev_control		dev;
+	tv_control		pub;
 	Atom			atom;
 };
 
-#define C(l) PARENT (l, struct control, dev)
-#define CC(l) PARENT (l, struct control, dev.pub)
-
-#define N_ELEMENTS(array) (sizeof (array) / sizeof (*(array)))
+#define C(l) PARENT (l, struct control, pub)
 
 struct private_tvengxv_device_info
 {
@@ -211,7 +208,8 @@ add_control			(struct private_tvengxv_device_info *p_info,
 				 tv_control_id		id,
 				 tv_control_type	type,
 				 int			minimum,
-				 int			maximum)
+				 int			maximum,
+				 int			step)
 {
   struct control c;
   Atom xatom;
@@ -225,40 +223,41 @@ add_control			(struct private_tvengxv_device_info *p_info,
 
   c.atom = xatom;
 
-  c.dev.pub.id = id;
+  c.pub.id = id;
 
-  if (!(c.dev.pub.label = strdup (_(label))))
+  if (!(c.pub.label = strdup (_(label))))
 	 goto failure;
 
-  c.dev.pub.minimum = minimum;
-  c.dev.pub.maximum = maximum;
+  c.pub.minimum = minimum;
+  c.pub.maximum = maximum;
+  c.pub.step = step;
+  
+  c.pub.type = type;
 
-  c.dev.pub.type = type;
-
-  c.dev.device = &p_info->info;
+  c.pub._device = &p_info->info;
 
   if (0 == strcmp (atom, "XV_INTERLACE")) {
-	  c.dev.pub.menu = calloc (4, sizeof (char *));
+	  c.pub.menu = calloc (4, sizeof (char *));
 
-	  if (!c.dev.pub.menu)
+	  if (!c.pub.menu)
 		  goto failure;
 
-	  if (!(c.dev.pub.menu[0] = strdup (_("No")))
-	      || !(c.dev.pub.menu[1] = strdup (_("Yes")))
-	      || !(c.dev.pub.menu[2] = strdup (_("Doublescan"))))
+	  if (!(c.pub.menu[0] = strdup (_("No")))
+	      || !(c.pub.menu[1] = strdup (_("Yes")))
+	      || !(c.pub.menu[2] = strdup (_("Doublescan"))))
 		  goto failure;
   }
 
-  if (!append_control (&p_info->info, &c.dev.pub, sizeof (c))) {
+  if (!append_control (&p_info->info, &c.pub, sizeof (c))) {
   failure:
-	  if (c.dev.pub.menu) {
-		  free ((char *) c.dev.pub.menu[0]);
-		  free ((char *) c.dev.pub.menu[1]);
-		  free ((char *) c.dev.pub.menu[2]);
-		  free ((char **) c.dev.pub.menu);
+	  if (c.pub.menu) {
+		  free ((char *) c.pub.menu[0]);
+		  free ((char *) c.pub.menu[1]);
+		  free ((char *) c.pub.menu[2]);
+		  free ((char **) c.pub.menu);
 	  }
 
-	  free ((char *) c.dev.pub.label);
+	  free ((char *) c.pub.label);
 	  return FALSE;
   }
 
@@ -267,7 +266,7 @@ add_control			(struct private_tvengxv_device_info *p_info,
 
 static tv_bool
 tvengxv_update_control		(tveng_device_info *	info,
-				 tv_dev_control *	tdc);
+				 tv_control *		tc);
 
 /*
   Associates the given tveng_device_info with the given video
@@ -408,6 +407,11 @@ int tvengxv_attach_device(const char* device_file,
 
 	  for (j = 0; j < N_ELEMENTS (xv_attr_meta); j++) {
 		  if (0 == strcmp (xv_attr_meta[j].atom, at[i].name)) {
+			  int step;
+
+			  /* Not reported, let's make something up. */
+			  step = (at[i].max_value - at[i].min_value) / 100;
+
 			  /* Error ignored */
 			  add_control (p_info,
 				       xv_attr_meta[j].atom,
@@ -415,7 +419,8 @@ int tvengxv_attach_device(const char* device_file,
 				       xv_attr_meta[j].id,
 				       xv_attr_meta[j].type,
 				       at[i].min_value,
-				       at[i].max_value);
+				       at[i].max_value,
+				       step);
 		  }
 	  }
   }
@@ -838,9 +843,9 @@ update_control			(struct private_tvengxv_device_info *p_info,
 				    c->atom,
 				    &value);
 
-	if (c->dev.pub.value != value) {
-		c->dev.pub.value = value;
-		tv_callback_notify (&c->dev.pub, c->dev.callback);
+	if (c->pub.value != value) {
+		c->pub.value = value;
+		tv_callback_notify (&c->pub, c->pub._callback);
 	}
 
 	return TRUE; /* ? */
@@ -848,17 +853,16 @@ update_control			(struct private_tvengxv_device_info *p_info,
 
 static tv_bool
 tvengxv_update_control		(tveng_device_info *	info,
-				 tv_dev_control *	tdc)
+				 tv_control *		tc)
 {
 	struct private_tvengxv_device_info *p_info = P_INFO (info);
-	tv_control *tc;
 
-	if (tdc) {
-		return update_control (p_info, C(tdc));
+	if (tc) {
+		return update_control (p_info, C(tc));
 	} else {
 		for (tc = p_info->info.controls; tc; tc = tc->next)
-			if (CC(tc)->dev.device == info)
-				if (!update_control (p_info, CC(tc)))
+			if (tc->_device == info)
+				if (!update_control (p_info, C(tc)))
 					return FALSE;
 	}
 
@@ -867,27 +871,26 @@ tvengxv_update_control		(tveng_device_info *	info,
 
 static int
 tvengxv_set_control		(tveng_device_info *	info,
-				 tv_dev_control *	tdc,
+				 tv_control *		tc,
 				 int			value)
 {
 	struct private_tvengxv_device_info *p_info = P_INFO (info);
-	struct control *c = C(tdc);
 
 	XvSetPortAttribute (info->priv->display,
 			    p_info->port,
-			    c->atom,
+			    C(tc)->atom,
 			    value);
 
-	if (c->atom == p_info->mute) {
-		if (c->dev.pub.value != value) {
-			c->dev.pub.value = value;
-			tv_callback_notify (&c->dev.pub, c->dev.callback);
+	if (C(tc)->atom == p_info->mute) {
+		if (tc->value != value) {
+			tc->value = value;
+			tv_callback_notify (tc, tc->_callback);
 		}
 
 		return TRUE;
 	}
 
-	return update_control (p_info, c);
+	return update_control (p_info, C(tc));
 }
 
 
@@ -1059,7 +1062,8 @@ tvengxv_set_preview(int on, tveng_device_info * info)
 }
 
 static int
-tvengxv_start_previewing (tveng_device_info * info)
+tvengxv_start_previewing (tveng_device_info * info,
+			  x11_dga_parameters *dga)
 {
   int dummy;
   Window win_ignore;

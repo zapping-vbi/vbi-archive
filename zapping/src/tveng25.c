@@ -61,17 +61,31 @@
 #include "../common/videodev25.h"
 #include "../common/fprintf_videodev25.h"
 
+#define LOG_FP 0 /* stderr */
+
+#if 0
+
 #define v4l25_ioctl(fd, cmd, arg)					\
 (IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
- device_ioctl (fd, cmd, arg, 0 /* stderr */, fprintf_ioctl_arg))
+((cmd != VIDIOC_QBUF && cmd != VIDIOC_DQBUF) ?				\
+ device_ioctl (stderr, fprintf_ioctl_arg, fd, cmd, arg) : \
+ device_ioctl (LOG_FP, fprintf_ioctl_arg, fd, cmd, arg)))
+
+#else
+
+#define v4l25_ioctl(fd, cmd, arg)					\
+(IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
+ device_ioctl (LOG_FP, fprintf_ioctl_arg, fd, cmd, arg))
+
+#endif
 
 struct control {
-	tv_dev_control		dev;
+	tv_control		pub;
 	unsigned int		id;	/* V4L2_CID_ */
 };
 
-#define C(l) PARENT (l, struct control, dev)
-#define CC(l) PARENT (l, struct control, dev.pub)
+#define C(l) PARENT (l, struct control, pub)
+
 
 struct tveng25_vbuf
 {
@@ -87,7 +101,8 @@ struct private_tveng25_device_info
   double last_timestamp; /* The timestamp of the last captured buffer */
   uint32_t chroma;
   int audio_mode; /* 0 mono */
-	tv_control *mute;
+	tv_control *		mute;
+	unsigned		read_back_controls	: 1;
 };
 
 #define P_INFO(p) PARENT (p, struct private_tveng25_device_info, info)
@@ -113,7 +128,7 @@ static int p_tveng25_open_device_file(int flags, tveng_device_info * info)
   t_assert(info != NULL);
   t_assert(info->file_name != NULL);
 
-  info -> fd = open(info -> file_name, flags);
+  info -> fd = device_open(LOG_FP, info -> file_name, flags, 0);
   if (info -> fd < 0)
     {
       info->tveng_errno = errno;
@@ -129,7 +144,7 @@ static int p_tveng25_open_device_file(int flags, tveng_device_info * info)
     {
       info -> tveng_errno = errno;
       t_error("VIDIOC_QUERYCAP", info);
-      close(info -> fd);
+      device_close(LOG_FP, info -> fd);
       return -1;
     }
 
@@ -784,7 +799,7 @@ tveng25_update_capture_format(tveng_device_info * info)
 
   /* bttv */
   format.fmt.pix.bytesperline =
-    MAX (format.fmt.pix.width * info->format.bpp,
+    MAX ((unsigned int)(format.fmt.pix.width * info->format.bpp),
 	 format.fmt.pix.bytesperline);
 
   info->format.bytesperline = format.fmt.pix.bytesperline;
@@ -989,7 +1004,7 @@ update_control			(struct private_tveng25_device_info *p_info,
 
 	if (c->id == TVENG25_AUDIO_MAGIC) {
 		/* FIXME actual value */
-		c->dev.pub.value = p_info->audio_mode;
+		c->pub.value = p_info->audio_mode;
 		return TRUE;
 	} else if (c->id == V4L2_CID_AUDIO_MUTE) {
 		/*
@@ -1007,9 +1022,9 @@ update_control			(struct private_tveng25_device_info *p_info,
 		return FALSE;
 	}
 
-	if (c->dev.pub.value != ctrl.value) {
-		c->dev.pub.value = ctrl.value;
-		tv_callback_notify (&c->dev.pub, c->dev.callback);
+	if (c->pub.value != ctrl.value) {
+		c->pub.value = ctrl.value;
+		tv_callback_notify (&c->pub, c->pub._callback);
 	}
 
 	return TRUE;
@@ -1017,17 +1032,16 @@ update_control			(struct private_tveng25_device_info *p_info,
 
 static tv_bool
 tveng25_update_control		(tveng_device_info *	info,
-				 tv_dev_control *	tdc)
+				 tv_control *		tc)
 {
 	struct private_tveng25_device_info * p_info = P_INFO (info);
-	tv_control *tc;
 
-	if (tdc)
-		return update_control (p_info, C(tdc));
+	if (tc)
+		return update_control (p_info, C(tc));
 
 	for (tc = p_info->info.controls; tc; tc = tc->next)
-		if (CC(tc)->dev.device == info)
-			if (!update_control (p_info, CC(tc)))
+		if (tc->_device == info)
+			if (!update_control (p_info, C(tc)))
 				return FALSE;
 
 	return TRUE;
@@ -1035,13 +1049,13 @@ tveng25_update_control		(tveng_device_info *	info,
 
 static tv_bool
 tveng25_set_control		(tveng_device_info *	info,
-				 tv_dev_control *	tdc,
+				 tv_control *		tc,
 				 int			value)
 {
 	struct private_tveng25_device_info * p_info = P_INFO (info);
 	struct v4l2_control ctrl;
 
-	if (C(tdc)->id == TVENG25_AUDIO_MAGIC) {
+	if (C(tc)->id == TVENG25_AUDIO_MAGIC) {
 		if (p_info->info.inputs[p_info->info.cur_input].tuners > 0) {
 			struct v4l2_tuner tuner;
 
@@ -1064,7 +1078,7 @@ tveng25_set_control		(tveng_device_info *	info,
 		return TRUE;
 	}
 
-	ctrl.id = C(tdc)->id;
+	ctrl.id = C(tc)->id;
 	ctrl.value = value;
 
 	if (-1 == v4l25_ioctl(p_info->info.fd, VIDIOC_S_CTRL, &ctrl)) {
@@ -1073,19 +1087,28 @@ tveng25_set_control		(tveng_device_info *	info,
 		return FALSE;
 	}
 
-	/*
-	  Doesn't seem to work with bttv.
-	  FIXME we should check at runtime.
-	*/
-	if (ctrl.id == V4L2_CID_AUDIO_MUTE) {
-		if (tdc->pub.value != value) {
-			tdc->pub.value = value;
-			tv_callback_notify (&tdc->pub, tdc->callback);
+	if (p_info->read_back_controls) {
+		/*
+		  Doesn't seem to work with bttv.
+		  FIXME we should check at runtime.
+		*/
+		if (ctrl.id == V4L2_CID_AUDIO_MUTE) {
+			if (tc->value != value) {
+				tc->value = value;
+				tv_callback_notify (tc, tc->_callback);
+			}
+			return TRUE;
 		}
+
+		return update_control (p_info, C(tc));
+	} else {
+		if (tc->value != value) {
+			tc->value = value;
+			tv_callback_notify (tc, tc->_callback);
+		}
+
 		return TRUE;
 	}
-
-	return update_control (p_info, C(tdc));
 }
 
 static tv_bool
@@ -1118,32 +1141,33 @@ add_control			(tveng_device_info *	info,
 			break;
 
 	if (i < control_meta_size) {
-		c->dev.pub.label = strdup (_(control_meta[i].label));
-		c->dev.pub.id = control_meta[i].tcid;
+		c->pub.label = strdup (_(control_meta[i].label));
+		c->pub.id = control_meta[i].tcid;
 	} else {
-		c->dev.pub.label = strndup (qc.name, 32);
-		c->dev.pub.id = TV_CONTROL_ID_UNKNOWN;
+		c->pub.label = strndup (qc.name, 32);
+		c->pub.id = TV_CONTROL_ID_UNKNOWN;
 	}
 
-	if (!c->dev.pub.label)
+	if (!c->pub.label)
 		goto failure;
 
-	c->dev.pub.minimum = qc.minimum;
-	c->dev.pub.maximum = qc.maximum;
-	c->dev.pub.reset = qc.default_value;
-	c->id = qc.id;
-	c->dev.device = info;
-	c->dev.pub.menu = NULL;
+	c->pub.minimum	= qc.minimum;
+	c->pub.maximum	= qc.maximum;
+	c->pub.step	= qc.step;
+	c->pub.reset	= qc.default_value;
+	c->id		= qc.id;
+	c->pub._device	= info;
+	c->pub.menu	= NULL;
 
 	switch (qc.type) {
-	case V4L2_CTRL_TYPE_INTEGER:	c->dev.pub.type = TV_CONTROL_TYPE_INTEGER; break;
-	case V4L2_CTRL_TYPE_BOOLEAN:	c->dev.pub.type = TV_CONTROL_TYPE_BOOLEAN; break;
-	case V4L2_CTRL_TYPE_BUTTON:	c->dev.pub.type = TV_CONTROL_TYPE_ACTION; break;
+	case V4L2_CTRL_TYPE_INTEGER:	c->pub.type = TV_CONTROL_TYPE_INTEGER; break;
+	case V4L2_CTRL_TYPE_BOOLEAN:	c->pub.type = TV_CONTROL_TYPE_BOOLEAN; break;
+	case V4L2_CTRL_TYPE_BUTTON:	c->pub.type = TV_CONTROL_TYPE_ACTION; break;
 
 	case V4L2_CTRL_TYPE_MENU:
-		c->dev.pub.type = TV_CONTROL_TYPE_CHOICE;
+		c->pub.type = TV_CONTROL_TYPE_CHOICE;
 
-		if (!(c->dev.pub.menu = calloc (qc.maximum + 2, sizeof (char *))))
+		if (!(c->pub.menu = calloc (qc.maximum + 2, sizeof (char *))))
 			goto failure;
 
 		for (j = 0; j <= qc.maximum; j++) {
@@ -1151,7 +1175,7 @@ add_control			(tveng_device_info *	info,
 			qm.index = j;
 
 			if (0 == v4l25_ioctl (info->fd, VIDIOC_QUERYMENU, &qm)) {
-				if (!(c->dev.pub.menu[j] = strndup(_(qm.name), 32)))
+				if (!(c->pub.menu[j] = strndup(_(qm.name), 32)))
 					goto failure;
 			} else {
 				goto failure;
@@ -1165,13 +1189,13 @@ add_control			(tveng_device_info *	info,
 		goto failure;
 	}
 
-	if (!(tc = append_control (info, &c->dev.pub, 0))) {
+	if (!(tc = append_control (info, &c->pub, 0))) {
 	failure:
-		free_control (&c->dev.pub);
+		free_control (&c->pub);
 		return TRUE; /* no control, but not end of enum */
 	}
 
-	update_control (p_info, CC(tc));
+	update_control (p_info, C(tc));
 
 	if (qc.id == V4L2_CID_AUDIO_MUTE) {
 		p_info->mute = tc;
@@ -1213,26 +1237,26 @@ p_tveng25_build_controls(tveng_device_info * info)
 				if (!(c = calloc (1, sizeof (*c))))
 					goto failure;
 
-				if (!(c->dev.pub.label = strdup (_("Audio"))))
+				if (!(c->pub.label = strdup (_("Audio"))))
 					goto failure;
 
 				c->id = TVENG25_AUDIO_MAGIC;
-				c->dev.pub.type = TV_CONTROL_TYPE_CHOICE;
-				c->dev.pub.maximum = 4;
+				c->pub.type = TV_CONTROL_TYPE_CHOICE;
+				c->pub.maximum = 4;
 
-				if (!(c->dev.pub.menu = calloc (6, sizeof (char *))))
+				if (!(c->pub.menu = calloc (6, sizeof (char *))))
 					goto failure;
 
 				for (i = 0; i < 5; i++) {
-					if (!(c->dev.pub.menu[i] = strdup (_(audio_decoding_modes[i]))))
+					if (!(c->pub.menu[i] = strdup (_(audio_decoding_modes[i]))))
 						goto failure;
 				}
 
-				c->dev.device = info;
+				c->pub._device = info;
 
-				if (!append_control (info, &c->dev.pub, 0)) {
+				if (!append_control (info, &c->pub, 0)) {
 				failure:
-					free_control (&c->dev.pub);
+					free_control (&c->pub);
 				}
 
 				update_control (P_INFO(info), c);

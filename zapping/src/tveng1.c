@@ -62,9 +62,11 @@
 #include "../common/videodev.h"
 #include "../common/fprintf_videodev.h"
 
+#define LOG_FP 0 /* stderr */
+
 #define v4l_ioctl(fd, cmd, arg)						\
 (IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
- device_ioctl (fd, cmd, arg, 0 /* stderr */, fprintf_ioctl_arg))
+ device_ioctl (LOG_FP, fprintf_ioctl_arg, fd, cmd, arg))
 
 /*
  *  Private control IDs. In v4l the control concept doesn't exist.
@@ -87,12 +89,11 @@
 #define ALL_CONTROLS		(VIDEO_CONTROLS | AUDIO_CONTROLS)
 
 struct control {
-	tv_dev_control		dev;
+	tv_control		pub;
 	unsigned int		id;	/* CONTROL_ */
 };
 
-#define C(l) PARENT (l, struct control, dev)
-#define CC(l) PARENT (l, struct control, dev.pub)
+#define C(l) PARENT (l, struct control, pub)
 
 /*
   If this is enabled, some specific features of the bttv driver are
@@ -153,7 +154,7 @@ int p_tveng1_open_device_file(int flags, tveng_device_info * info)
   t_assert(info != NULL);
   t_assert(info -> file_name != NULL);
 
-  info -> fd = open(info -> file_name, flags);
+  info -> fd = device_open (LOG_FP, info -> file_name, flags, 0);
   if (info -> fd < 0)
     {
       info->tveng_errno = errno; /* Just to put something other than 0 */
@@ -166,7 +167,7 @@ int p_tveng1_open_device_file(int flags, tveng_device_info * info)
     {
       info->tveng_errno = errno;
       t_error("VIDIOCGCAP", info);
-      close(info -> fd);
+      device_close (0, info -> fd);
       return -1;
     }
 
@@ -462,7 +463,7 @@ static void tveng1_close_device(tveng_device_info * info)
 
   tveng_stop_everything(info);
 
-  close(info -> fd);
+  device_close(LOG_FP, info -> fd);
   info -> fd = 0;
   info -> current_controller = TVENG_CONTROLLER_NONE;
 
@@ -479,7 +480,7 @@ static void tveng1_close_device(tveng_device_info * info)
 	}
 
   if (p_info -> ogb_fd > 0)
-    close(p_info->ogb_fd);
+    device_close(LOG_FP, p_info->ogb_fd);
   p_info ->ogb_fd = -1;
 
   info -> num_standards = 0;
@@ -1164,10 +1165,10 @@ update_controls			(tveng_device_info *	info,
 	tv_control *tc;
 
 	for (tc = p_info->info.controls; tc; tc = tc->next) {
-		struct control *c = CC(tc);
+		struct control *c = C(tc);
 		int value;
 
-		if (c->dev.device != info)
+		if (c->pub._device != info)
 			continue;
 
 		if (!(c->id & controls))
@@ -1212,24 +1213,24 @@ update_controls			(tveng_device_info *	info,
 			assert (0);
 		}
 
-		if (c->dev.pub.value != value) {
-			c->dev.pub.value = value;
-			tv_callback_notify (&c->dev.pub, c->dev.callback);
+		if (c->pub.value != value) {
+			c->pub.value = value;
+			tv_callback_notify (&c->pub, c->pub._callback);
 		}
 	}
 }
 
 static tv_bool
 tveng1_update_control		(tveng_device_info *	info,
-				 tv_dev_control *	tdc)
+				 tv_control *		tc)
 {
 	struct private_tveng1_device_info *p_info = P_INFO (info);
 	struct video_picture pict;
 	struct video_audio audio;
 	unsigned int controls;
 
-	if (tdc)
-		controls = C(tdc)->id;
+	if (tc)
+		controls = C(tc)->id;
 	else
 		controls = p_info->all_controls;
 
@@ -1260,11 +1261,11 @@ tveng1_update_control		(tveng_device_info *	info,
 
 static tv_bool
 tveng1_set_control		(tveng_device_info *	info,
-				 tv_dev_control *	tdc,
+				 tv_control *		tc,
 				 int			value)
 {
 	struct private_tveng1_device_info *p_info = P_INFO (info);
-	struct control *c = C(tdc);
+	struct control *c = C(tc);
 
 	if (c->id & VIDEO_CONTROLS) {
 		struct video_picture pict;
@@ -1366,9 +1367,9 @@ tveng1_set_control		(tveng_device_info *	info,
 				audio.mode = rx_mode;
 		}
 
-		if (no_read && c->dev.pub.value != value) {
-			c->dev.pub.value = value;
-			tv_callback_notify (&c->dev.pub, c->dev.callback);
+		if (no_read && c->pub.value != value) {
+			c->pub.value = value;
+			tv_callback_notify (&c->pub, c->pub._callback);
 		}
 
 		update_controls (&p_info->info, NULL, &audio, AUDIO_CONTROLS);
@@ -1388,7 +1389,8 @@ add_control			(tveng_device_info *	info,
 				 int			cur,
 				 int			def,
 				 int			minimum,
-				 int			maximum)
+				 int			maximum,
+				 int			step)
 {
 	struct private_tveng1_device_info *p_info = P_INFO (info);
 	struct control c;
@@ -1398,23 +1400,24 @@ add_control			(tveng_device_info *	info,
 
 	c.id = id;
 
-	c.dev.pub.id = tcid;
+	c.pub.id = tcid;
 
-	if (!(c.dev.pub.label = strdup (_(label))))
+	if (!(c.pub.label = strdup (_(label))))
 		return NULL;
 
-	c.dev.pub.type = type;
-	c.dev.pub.minimum = minimum;
-	c.dev.pub.maximum = maximum;
-	c.dev.pub.reset = def;
-	c.dev.pub.value = cur;
+	c.pub.type	= type;
+	c.pub.minimum	= minimum;
+	c.pub.maximum	= maximum;
+	c.pub.step	= step;
+	c.pub.reset	= def;
+	c.pub.value	= cur;
 
-	c.dev.device = info;
+	c.pub._device	= info;
 
-	if ((tc = append_control (info, &c.dev.pub, sizeof (c)))) {
+	if ((tc = append_control (info, &c.pub, sizeof (c)))) {
 		p_info->all_controls |= id;
 	} else {
-		free ((char *) c.dev.pub.label);
+		free ((char *) c.pub.label);
 		return NULL;
 	}
 
@@ -1431,27 +1434,27 @@ add_audio_dec_control		(tveng_device_info *	info)
 
 	c->id = CONTROL_AUDIO_DECODING;
 
-	if (!(c->dev.pub.label = strdup (_("Audio")))) {
-		free_control (&c->dev.pub);
+	if (!(c->pub.label = strdup (_("Audio")))) {
+		free_control (&c->pub);
 		return NULL;
 	}
 
-	c->dev.pub.maximum = 4; /* XXX */
-	c->dev.pub.type = TV_CONTROL_TYPE_CHOICE;
+	c->pub.maximum = 4; /* XXX */
+	c->pub.type = TV_CONTROL_TYPE_CHOICE;
 
-	c->dev.device = info;
+	c->pub._device = info;
 
-	if (!(c->dev.pub.menu = (const char **)
+	if (!(c->pub.menu = (char **)
 	      p_tveng1_test_audio_decode (info))) {
-		free_control (&c->dev.pub);
+		free_control (&c->pub);
 		return NULL;
 	}
 
-	append_control (info, &c->dev.pub, 0);
+	append_control (info, &c->pub, 0);
 
 	P_INFO (info)->all_controls |= CONTROL_AUDIO_DECODING;
 
-	return &c->dev.pub;
+	return &c->pub;
 }
 
 /* Private, builds the controls structure */
@@ -1466,26 +1469,22 @@ p_tveng1_build_controls(tveng_device_info * info)
 
   	CLEAR (pict);
 
+	/*
+	 *  The range 0 ... 65535 is mandated by the v4l spec.
+	 *  We add a reset value of 32768 and a step value of 256.
+	 *  The actual reset value and hardware resolution is not
+	 *  reported by v4l, but for the GUI these values should do.
+	 */
+#define ADD_STD_CONTROL(name, label, id, value)				\
+	add_control (info, CONTROL_##name, _(label),			\
+		     TV_CONTROL_ID_##id, TV_CONTROL_TYPE_INTEGER,	\
+		     value, 32768, 0, 65535, 256)
+
 	if (0 == v4l_ioctl (info->fd, VIDIOCGPICT, &pict)) {
-		add_control (info, CONTROL_BRIGHTNESS, "Brightness",
-			     TV_CONTROL_ID_BRIGHTNESS,
-			     TV_CONTROL_TYPE_INTEGER,
-			     pict.brightness, 32768, 0, 65535);
-
-		add_control (info, CONTROL_CONTRAST, "Contrast",
-			     TV_CONTROL_ID_CONTRAST,
-			     TV_CONTROL_TYPE_INTEGER,
-			     pict.contrast, 32768, 0, 65535);
-
-		add_control (info, CONTROL_COLOUR, "Saturation",
-			     TV_CONTROL_ID_SATURATION,
-			     TV_CONTROL_TYPE_INTEGER,
-			     pict.colour, 32768, 0, 65535);
-
-		add_control (info, CONTROL_HUE, "Hue",
-			     TV_CONTROL_ID_HUE,
-			     TV_CONTROL_TYPE_INTEGER,
-			     pict.hue, 32768, 0, 65535);
+		ADD_STD_CONTROL (BRIGHTNESS, "Brightness", BRIGHTNESS, pict.brightness);
+		ADD_STD_CONTROL (CONTRAST,   "Contrast",   CONTRAST,   pict.contrast);
+		ADD_STD_CONTROL (COLOUR,     "Saturation", SATURATION, pict.colour);
+		ADD_STD_CONTROL (HUE,        "Hue",        HUE,        pict.hue);
 	} else {
 		info->tveng_errno = errno;
 		t_error("VIDIOCGPICT", info);
@@ -1504,37 +1503,25 @@ p_tveng1_build_controls(tveng_device_info * info)
 			}
 
 			p_info->control_mute =
-				add_control (info, CONTROL_MUTE, "Mute",
+				add_control (info, CONTROL_MUTE, _("Mute"),
 					     TV_CONTROL_ID_MUTE,
 					     TV_CONTROL_TYPE_BOOLEAN,
 					     (audio.flags & VIDEO_AUDIO_MUTE) != 0,
-					     0, 0, 1);
+					     0, 0, 1, 1);
 		}
 
 		if (audio.flags & VIDEO_AUDIO_VOLUME)
-			add_control (info, CONTROL_VOLUME, "Volume",
-				     TV_CONTROL_ID_VOLUME,
-				     TV_CONTROL_TYPE_INTEGER,
-				     audio.volume, 32768, 0, 65535);
+			ADD_STD_CONTROL (VOLUME, "Volume", VOLUME, audio.volume);
 
 		if (audio.flags & VIDEO_AUDIO_BASS)
-			add_control (info, CONTROL_BASS, "Bass",
-				     TV_CONTROL_ID_BASS,
-				     TV_CONTROL_TYPE_INTEGER,
-				     audio.bass, 32768, 0, 65535);
+			ADD_STD_CONTROL (BASS, "Bass", BASS, audio.bass);
 
 		if (audio.flags & VIDEO_AUDIO_TREBLE)
-			add_control (info, CONTROL_TREBLE, "Treble",
-				     TV_CONTROL_ID_TREBLE,
-				     TV_CONTROL_TYPE_INTEGER,
-				     audio.treble, 32768, 0, 65535);
+			ADD_STD_CONTROL (TREBLE, "Treble", TREBLE, audio.treble);
 
 #ifdef VIDEO_AUDIO_BALANCE /* In the V4L API, but not present in bttv */
 		if (audio.flags & VIDEO_AUDIO_BALANCE)
-			add_control (info, CONTROL_BALANCE, "Balance",
-				     TV_CONTROL_ID_UNKNOWN,
-				     TV_CONTROL_TYPE_INTEGER,
-				     audio.balance, 32768, 0, 65535);
+			ADD_STD_CONTROL (BALANCE, "Balance", UNKNOWN, audio.balance);
 #endif
 		p_info->control_audio_dec =
 			add_audio_dec_control (info);
@@ -1606,7 +1593,7 @@ tveng1_tune_input(uint32_t freq, tveng_device_info * info)
      it too much (it mutes the input if the signal strength
      is too low) */
   if (P_INFO (info)->control_mute)
-    tveng1_update_control (info, &CC (P_INFO (info)->control_mute)->dev);
+    tveng1_update_control (info, P_INFO (info)->control_mute);
 
   /* Ok, tune the current input */
   if (v4l_ioctl(info->fd, VIDIOCSFREQ, &new_freq))
@@ -1618,7 +1605,7 @@ tveng1_tune_input(uint32_t freq, tveng_device_info * info)
 
   /* Restore the mute status. This makes bttv behave like i want */
   if (P_INFO (info)->control_mute)
-    tveng1_set_control (info, &CC (P_INFO (info)->control_mute)->dev,
+    tveng1_set_control (info, P_INFO (info)->control_mute,
 			P_INFO (info)->control_mute->value);
 
   return 0; /* Success */
