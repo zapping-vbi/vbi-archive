@@ -971,10 +971,10 @@ struct _tv_overlay_buffer {
 typedef struct _tv_clip tv_clip;
 
 struct _tv_clip {
-	unsigned int		x		: 16;
-	unsigned int		y		: 16;
-	unsigned int		width		: 16;
-	unsigned int		height		: 16;
+	uint16_t		x;
+	uint16_t		y;
+	uint16_t		width;
+	uint16_t		height;
 };
 
 static __inline__ tv_bool

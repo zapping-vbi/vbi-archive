@@ -4841,7 +4841,7 @@ tv_clip_vector_add_clip_xy	(tv_clip_vector *	vector,
 			/* Merge clips. */
 
 			for (;;) {
-				x1 = MIN (x1, clip->x);
+				x1 = MIN (x1, (unsigned int) clip->x);
 				x2 = MAX (x2, cx2);
 
 				if (clip + 1 >= end ||
