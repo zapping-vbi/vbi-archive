@@ -1,7 +1,9 @@
 /*
  *  Closed Caption Decoder  DRAFT
  *
- *  Copyright (C) 1999-2000 Michael H. Schimek
+ *  gcc -g -ocaption caption.c -L/usr/X11R6/lib -lX11
+ *
+ *  Copyright (C) 2000 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,26 +20,68 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.1 2000-12-02 19:52:20 mschimek Exp $ */
+/* $Id: caption.c,v 1.2 2000-12-04 08:57:19 mschimek Exp $ */
 
 #include "ccfont.xbm"
 
+#define TEST 1
+
 /*
     TODO:
-    - everything
+    - a lot
  */
 
-enum colours {
-	BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef char bool;
+enum { FALSE, TRUE };
+
+unsigned char
+odd_parity[256] =
+{
+	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,
+	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,
+	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,
+	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,
+	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,
+	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,
+	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,
+	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0
 };
 
-enum opacity {
+
+
+
+/*
+ *  WST/CC BGR palette, prepare for 32 random entries in the
+ *  future: Store palette in render context, depth and endianess
+ *  hardware specific (e.g. 8:8:8 or CI8), remember palette
+ *  until we switch stations (decoder will fetch station palette
+ *  from cache and reload all entries), export a load function
+ *  (int index, uchar r, g, b).
+ */
+typedef enum {
+	BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE
+} colours;
+
+/*
+ *  TRANSPARENT_SPACE:
+ *    Display video if possible, otherwise override opacity
+ *    as desired and display as normal glyph (all attributes
+ *    and colours valid, character is 0x20 space on given
+ *    code page)
+ *  other: overlay glyph as requested, otherwise override
+ *    opacity as desired by user or mandated by hardware
+ *    limitations.
+ */
+typedef enum {
 	TRANSPARENT_SPACE, TRANSPARENT, SEMI_TRANSPARENT, OPAQUE
-};
+} opacity;
 
 typedef struct {
 	unsigned	underline	: 1;
-	unsigned	flash		: 1;
+	unsigned	flash		: 1;  /* how, if? */
 	unsigned	pad		: 6;
 	unsigned	opacity		: 2;
 	unsigned	foreground	: 3;
@@ -45,9 +89,49 @@ typedef struct {
 	unsigned	glyph		: 16;
 } attr_char;
 
-render()
+/*
+ *  Render <row> 0 ... 14 or -1 all rows, from <buffer> if you're
+ *  monitoring <page>, which is CC_PAGE_BASE +
+ *
+ *  0:	"Caption 1" "Primary synchronous caption service [English]"
+ *  1:  "Caption 2" "Special non-synchronous data that is intended to
+ *                   augment information carried in the program"
+ *  2:  "Caption 3" "Secondary synchronous caption service, usually
+ *                   second language [Spanish, French]"
+ *  3:  "Caption 4" "Special non-synchronous data similar to Caption 2"
+ *  4:  "Text 1"    "First text service, data usually not program
+ *                   related"
+ *  5:  "Text 2"    "Second text service, additional data usually
+ *                   not program related"
+ *  6:  "Text 3"    "Third and forth text services, to be used only
+ *  7:  "Text 4"     if Text 1 and Text 2 are not sufficient"
+ *
+ *  Remember unscaled image or you'll have to redraw all if row != -1;
+ *  Don't dereference <buffer> pointer after returning.
+ *
+ *  The decoder doesn't filter channels, all 'pages' in cache are live
+ *  cf. WST, except for POP_ON mode because we only cache the hidden
+ *  buffer we're writing while the unscaled image is our visible buffer.
+ *  render() is intended to be a callback (function pointer), we can
+ *  export a fetch() function calling render() in turn to update the
+ *  screen immediately after a switch.
+ *
+ *  If the same render() is used for WST we may need a bool indicating
+ *  the required layout.
+ */
+extern void render(int page, attr_char *buffer, int row);
 
-roll_up()
+/*
+ *  Start soft scrolling, move <first_row> + 1 ... <last_row> (inclusive)
+ *  up to <first_row>. Rows numbered 0 ... 14. Feel free to scroll a row
+ *  at once, render from the buffer, move unscaled image data, window
+ *  contents, windows, whatever. first_row is provided in buffer to render,
+ *  the decoder will roll <buffer> *after* returning and continue writing
+ *  in last_row or another. Don't dereference <buffer> pointer after
+ *  returning. Soft scrolling finished or not, render() can be called
+ *  any time later, any row, so prepare.
+ */
+extern void roll_up(int page, attr_char *buffer, int first_row, int last_row);
 
 /*
  *
@@ -57,10 +141,19 @@ roll_up()
 #define NUM_ROWS	15
 
 #define CODE_PAGE	(8 * 256)
+/*
+ *  Any, refers to the 256 glyphs in ccfont.xbm.
+ *  The character cell is 16 x 26 pixels matching a
+ *  square pixel 640 x 480 display, text area at
+ *  (48, 45) - (591, 434), display video outside.
+ *  Must scale text for other aspects accordingly.
+ */
 
-enum mode {
+#define CC_PAGE_BASE	1
+
+typedef enum {
 	POP_ON, PAINT_ON, ROLL_UP, TEXT
-};
+} mode;
 
 struct caption {
 	int		chan;
@@ -71,7 +164,8 @@ struct caption {
 		int		col, col1;
 		int		row, row1;
 		int		roll;
-		int		italic;
+		bool		redraw_all;
+		bool		italic;
 		attr_char	attr;
 		attr_char *	line;
 		attr_char	buffer[NUM_COLS * NUM_ROWS];
@@ -81,6 +175,15 @@ struct caption {
 };
 
 static void
+word_break(struct caption *cc, struct ch_rec *ch)
+{
+	/* box, iff */
+
+	render(CC_PAGE_BASE + (ch - cc->channels), ch->buffer, ch->redraw_all ? -1 : ch->row);
+	ch->redraw_all = FALSE;
+}
+
+static void
 put_char(struct caption *cc, struct ch_rec *ch, attr_char c)
 {
 	if (ch->col < NUM_COLS - 1)
@@ -88,11 +191,12 @@ put_char(struct caption *cc, struct ch_rec *ch, attr_char c)
 	else
 		ch->line[NUM_COLS - 2] = c;
 
-    XXX render, box
+	if ((c.glyph & 0x7F) == 0x20 /* || word too long? */)
+		word_break(cc, ch);
 }
 
-#define switch_channel(pcc, chan)					\
-	(&(pcc)->channels[(pcc)->chan = (chan)])
+#define switch_channel(cc, new_chan) \
+	(&((cc)->channels[(cc)->chan = (new_chan)]))
 
 static inline void
 set_cursor(struct ch_rec *ch, int col, int row)
@@ -114,8 +218,12 @@ erase_memory(struct caption *cc, struct ch_rec *ch)
 }
 
 static inline void
-caption_command(unsigned char c1, unsigned char c2, bool field2)
+caption_command(struct caption *cc,
+	unsigned char c1, unsigned char c2, bool field2)
 {
+	static const colours palette[8] = {
+		WHITE, GREEN, BLUE, CYAN, RED, YELLOW, MAGENTA, BLACK
+	};
 	struct ch_rec *ch;
 	int chan, i;
 
@@ -140,6 +248,7 @@ caption_command(unsigned char c1, unsigned char c2, bool field2)
 			int row = row_mapping[(c1 << 1) + ((c2 >> 5) & 1)];
 
 			if (row >= 0) {
+				word_break(cc, ch);
 				set_cursor(ch, 1, row);
 
 				ch->attr.background = BLACK;
@@ -197,7 +306,8 @@ caption_command(unsigned char c1, unsigned char c2, bool field2)
 
 		return;
 
-	case 2, 3:	/* Optional Extended Characters	001 c01f  01x xxxx */
+	case 2:		/* Optional Extended Characters	001 c01f  01x xxxx */
+	case 3:
 		/* Send specs to the maintainer of this code */
 		return;
 
@@ -209,16 +319,24 @@ caption_command(unsigned char c1, unsigned char c2, bool field2)
 		case 0:		/* Resume Caption Loading	001 c10f  010 0000 */
 			ch = switch_channel(cc, chan & 3);
 			ch->mode = POP_ON;
+
 			erase_memory(cc, ch);
+
 			return;
 
 		/* case 4: reserved */
 
-		case 5, 6, 7:	/* Roll-Up Captions		001 c10f  010 0xxx */
+		case 5:		/* Roll-Up Captions		001 c10f  010 0xxx */
+		case 6:
+		case 7:
 			ch = switch_channel(cc, chan & 3);
 			ch->mode = ROLL_UP;
+
 			ch->roll = (c2 & 7) - 3;
+
+			word_break(cc, ch);
 			set_cursor(ch, 1, 14);
+
 			return;
 
 		case 9:		/* Resume Direct Captioning	001 c10f  010 1001 */
@@ -228,7 +346,10 @@ caption_command(unsigned char c1, unsigned char c2, bool field2)
 
 		case 10:	/* Text Restart			001 c10f  010 1010 */
 			ch = switch_channel(cc, chan | 4);
+
 			erase_memory(cc, ch);
+			ch->redraw_all = TRUE;
+
 			set_cursor(ch, 1, 0);
 			return;
 
@@ -239,8 +360,12 @@ caption_command(unsigned char c1, unsigned char c2, bool field2)
 		case 15:	/* End Of Caption		001 c10f  010 1111 */
 			ch = switch_channel(cc, chan & 3);
 			ch->mode = POP_ON;
-			render(cc, ch);
+
+			render(CC_PAGE_BASE + chan, ch->buffer, -1);
+			ch->redraw_all = FALSE;
+
 			erase_memory(cc, ch);
+
 			return;
 
 		case 8:		/* Flash On			001 c10f  010 1000 */
@@ -250,31 +375,63 @@ caption_command(unsigned char c1, unsigned char c2, bool field2)
 		case 1:		/* Backspace			001 c10f  010 0001 */
 			if (ch->col > 1) {
 				ch->line[--ch->col] = cc->transp_space[chan >> 2];
+
 				if (ch->col < ch->col1)
 					ch->col1 = ch->col;
 			}
+
 			return;
+
+		case 13:	/* Carriage Return		001 c10f  010 1101 */
+		{
+			int last_row = ch->row1 + ch->roll - 1;
+
+			if (last_row > NUM_ROWS - 1)
+				last_row = NUM_ROWS - 1;
+
+			word_break(cc, ch);
+
+			if (ch->row < last_row)
+				set_cursor(ch, 1, ch->row + 1);
+			else {
+				if (ch->mode != POP_ON)
+					roll_up(CC_PAGE_BASE + chan, ch->buffer, ch->row1, last_row);
+
+				memmove(ch->buffer + ch->row1 * NUM_COLS,
+					ch->buffer + (ch->row1 + 1) * NUM_COLS,
+					(ch->roll - 1) * NUM_COLS);
+
+				for (i = 1; i <= NUM_COLS - 1 /* ! */; i++)
+					ch->line[i] = cc->transp_space[chan >> 2];
+
+				ch->col1 = ch->col = 1;
+			}
+
+			return;
+		}
 
 		case 4:		/* Delete To End Of Row		001 c10f  010 0100 */
 			for (i = ch->col; i <= NUM_COLS - 1; i++)
 				ch->line[i] = cc->transp_space[chan >> 2];
-			render(cc, ch);
-			return;
 
-		case 13:	/* Carriage Return		001 c10f  010 1101 */
-			if (ch->row < 14 && ch->row < (ch->row1 + ch->roll - 1))
-				set_cursor(ch, 1, cc->row + 1);
-			else
-				roll_up(cc, ch);
+			word_break(cc, ch);
+
+			render(CC_PAGE_BASE + chan, ch->buffer, ch->redraw_all ? -1 : ch->row);
+			ch->redraw_all = FALSE;
+
 			return;
 
 		case 12:	/* Erase Displayed Memory	001 c10f  010 1100 */
 			erase_memory(cc, ch);
+
+			ch->redraw_all = TRUE; /* override render row */
+
 			return;
 
 		case 14:	/* Erase Non-Displayed Memory	001 c10f  010 1110 */
 			if (ch->mode == POP_ON)
 				erase_memory(cc, ch);
+
 			return;
 		}
 
@@ -287,16 +444,19 @@ caption_command(unsigned char c1, unsigned char c2, bool field2)
 		case 0x21 ... 0x23:	/* Misc Control Codes, Tabs	001 c111  010 00xx */
 			for (i = c2 & 3; i > 0 && ch->col < NUM_ROWS - 1; i--)
 				ch->line[ch->col++] = cc->transp_space[chan >> 2];
+
 			ch->col1 = ch->col;
+
 			return;
 
 		case 0x2D:		/* Optional Attributes		001 c111  010 11xx */
 			ch->attr.opacity = TRANSPARENT;
 			break;
 
-		case 0x2E, 0x2F:	/* Optional Attributes		001 c111  010 11xx */
+		case 0x2E:		/* Optional Attributes		001 c111  010 11xx */
+		case 0x2F:
 			ch->attr.foreground = BLACK;
-			ch->attr.underlined = c2 & 1;
+			ch->attr.underline = c2 & 1;
 			break;
 
 		default:
@@ -312,8 +472,13 @@ caption_command(unsigned char c1, unsigned char c2, bool field2)
 	}
 }
 
-static void
-dispatch(struct caption *cc, unsigned char *buf, bool field2)
+void
+xds(unsigned char *buf)
+{
+}
+
+void
+dispatch_caption(struct caption *cc, unsigned char *buf, bool field2)
 {
 	char c1 = buf[0] & 0x7F;
 	int i;
@@ -330,8 +495,8 @@ dispatch(struct caption *cc, unsigned char *buf, bool field2)
 	}
 
 	if (!odd_parity[buf[0]]) {
-		buf[0] = 127; /* 'bad' glyph */
-		buf[1] = 127;
+		buf[0] = 127; /* traditional 'bad' glyph, ccfont has */
+		buf[1] = 127; /*  room, design a special glyph? */
 	}
 
 	switch (c1) {
@@ -343,7 +508,7 @@ dispatch(struct caption *cc, unsigned char *buf, bool field2)
 
 	case 0x10 ... 0x1F:
 		if (odd_parity[buf[1]])
-			caption_command(c1, buf[1] & 0x7F, field2);
+			caption_command(cc, c1, buf[1] & 0x7F, field2);
 		return;
 
 	default:
@@ -363,7 +528,7 @@ dispatch(struct caption *cc, unsigned char *buf, bool field2)
 	}
 }
 
-static void
+void
 reset_caption(struct caption *cc)
 {
 	struct ch_rec *ch;
@@ -396,8 +561,318 @@ reset_caption(struct caption *cc)
 			ch->roll = NUM_ROWS;
 		}
 
+		ch->attr.opacity = OPAQUE;
+		ch->attr.foreground = WHITE;
+		ch->attr.background = BLACK;
+
 		ch->line = ch->buffer + ch->row * NUM_COLS;
 
 		erase_memory(cc, ch);
 	}
 }
+
+#if TEST
+
+#include <X11/Xlib.h>
+#include <X11/keysym.h>
+#include <X11/Xutil.h>
+#include <X11/xpm.h>
+
+#define DISP_WIDTH	640
+#define DISP_HEIGHT	480
+
+#define CELL_WIDTH	16
+#define CELL_HEIGHT	26
+
+Display *		display;
+int			screen;
+Colormap		cmap;
+Window			window;
+GC			gc;
+XEvent			event;
+XImage *		ximage;
+ushort *		ximgdata;
+
+struct caption		caption;
+int			draw_page;
+
+#define RGB565(r, g, b)	\
+	(((b & 0xF8) << 8) + ((g & 0xFC) << 3) + ((r & 0xF8) >> 3))
+
+const ushort palette[8] = {
+	RGB565(0x00, 0x00, 0x00),
+	RGB565(0xFF, 0x00, 0x00),
+	RGB565(0x00, 0xFF, 0x00),
+	RGB565(0xFF, 0xFF, 0x00),
+	RGB565(0x00, 0x00, 0xFF),
+	RGB565(0xFF, 0x00, 0xFF),
+	RGB565(0x00, 0xFF, 0xFF),
+	RGB565(0xFF, 0xFF, 0xFF)
+};
+
+#define CHROMAKEY RGB565(0x40, 0xFF, 0x40)
+
+/* ushort NOT PORTABLE, use explicit 16 or 32 bit type */
+static inline void
+draw_char(ushort *p, unsigned int c, ushort *pen, int underline)
+{
+	ushort *s = ((unsigned short *) bitmap_bits)
+		+ (c & 31) + (c >> 5) * 32 * CELL_HEIGHT;
+	int x, y, b;
+
+	for (y = 0; y < CELL_HEIGHT; y++) {
+		b = *s;
+		s += 32;
+
+		if (underline && (y >= 23 && y <= 24))
+			b = ~b;
+
+		for (x = 0; x < CELL_WIDTH; x++) {
+			p[x] = pen[b & 1];
+			b >>= 1;
+		}
+
+		p += DISP_WIDTH;
+	}
+}
+
+static void
+draw_tspaces(ushort *p, int num_chars)
+{
+	int x, y;
+
+	for (y = 0; y < CELL_HEIGHT; y++) {
+		for (x = 0; x < CELL_WIDTH * num_chars; x++)
+			p[x] = CHROMAKEY;
+
+		p += DISP_WIDTH;
+	}
+}
+
+static void
+draw_row(ushort *p, attr_char *line)
+{
+	int i, num_tspaces = 0;
+	ushort pen[2];
+
+	for (i = 0; i < NUM_COLS; i++) {
+		if (line[i].opacity == TRANSPARENT_SPACE) {
+			num_tspaces++;
+			continue;
+		}
+
+		if (num_tspaces > 0) {
+			draw_tspaces(p, num_tspaces);
+			p += num_tspaces * CELL_WIDTH;
+			num_tspaces = 0; 
+		}
+
+		switch (line[i].opacity) {
+		case TRANSPARENT:
+		case SEMI_TRANSPARENT:
+			pen[0] = CHROMAKEY;
+			pen[1] = palette[line[i].foreground];
+			break;
+
+		default:
+			pen[0] = palette[line[i].background];
+			pen[1] = palette[line[i].foreground];
+			break;
+		}
+
+		draw_char(p, line[i].glyph & 0xFF, pen, line[i].underline);
+		p += CELL_WIDTH;
+	}
+
+	if (num_tspaces > 0)
+		draw_tspaces(p, num_tspaces);
+}
+
+void
+render(int page, attr_char *buffer, int row)
+{
+	ushort *p = ximgdata + 48 + 45 * DISP_WIDTH;
+	int i;
+
+//	if (page != draw_page)
+//		return;
+
+	if (row < 0)
+		for (i = 0; i < NUM_ROWS; i++)
+			draw_row(ximgdata + 48 + (45 + i * CELL_HEIGHT)
+				 * DISP_WIDTH, buffer + i * NUM_COLS);
+	else
+		draw_row(ximgdata + 48 + (45 + row * CELL_HEIGHT)
+			 * DISP_WIDTH, buffer + row * NUM_COLS);
+
+	XPutImage(display, window, gc, ximage,
+		0, 0, 0, 0, DISP_WIDTH, DISP_HEIGHT);
+}
+
+void
+roll_up(int page, attr_char *buffer, int first_row, int last_row)
+{
+	/* TODO */
+}
+
+static void
+xevent(void)
+{
+	while (XPending(display)) {
+		XNextEvent(display, &event);
+
+		switch (event.type) {
+		case KeyPress:
+		{
+			switch (XLookupKeysym(&event.xkey, 0)) {
+			case 'q':
+			case 'c':
+				exit(EXIT_SUCCESS);
+			}
+
+			break;
+		}
+
+	        case ButtonPress:
+			break;
+
+		case FocusIn:
+			break;
+
+		case ConfigureNotify:
+			break;
+
+		case Expose:
+			XPutImage(display, window, gc, ximage,
+				0, 0, 0, 0, DISP_WIDTH, DISP_HEIGHT);
+			break;
+
+		case ClientMessage:
+			exit(EXIT_SUCCESS);
+		}
+	}
+
+	usleep(40000);
+}
+
+static bool
+init_window(int ac, char **av)
+{
+	Atom delete_window_atom;
+	XWindowAttributes wa;
+	int i;
+
+	if (!(display = XOpenDisplay(NULL))) {
+		return FALSE;
+	}
+
+	screen = DefaultScreen(display);
+	cmap = DefaultColormap(display, screen);
+ 
+	window = XCreateSimpleWindow(display,
+		RootWindow(display, screen),
+		0, 0,		// x, y
+		DISP_WIDTH, DISP_HEIGHT,
+		2,		// borderwidth
+		0xffffffff,	// fgd
+		0x00000000);	// bgd 
+
+	if (!window) {
+		return FALSE;
+	}
+
+	XGetWindowAttributes(display, window, &wa);
+			
+	if (wa.depth != 16) {
+		fprintf(stderr, "Can only run at colour depth 16\n");
+		return FALSE;
+	}
+
+	if (!(ximgdata = malloc(DISP_WIDTH * DISP_HEIGHT * 2))) {
+		return FALSE;
+	}
+
+	for (i = 0; i < DISP_WIDTH * DISP_HEIGHT; i++)
+		ximgdata[i] = CHROMAKEY;
+
+	ximage = XCreateImage(display,
+		DefaultVisual(display, screen),
+		DefaultDepth(display, screen),
+		ZPixmap, 0, (char *) ximgdata,
+		DISP_WIDTH, DISP_HEIGHT,
+		8, 0);
+
+	if (!ximage) {
+		return FALSE;
+	}
+
+	delete_window_atom = XInternAtom(display, "WM_DELETE_WINDOW", False);
+
+	XSelectInput(display, window, KeyPressMask | ExposureMask | StructureNotifyMask);
+	XSetWMProtocols(display, window, &delete_window_atom, 1);
+	XStoreName(display, window, "Caption Test");
+
+	gc = XCreateGC(display, window, 0, NULL);
+
+	XMapWindow(display, window);
+	       
+	XSync(display, False);
+
+	XPutImage(display, window, gc, ximage,
+		0, 0, 0, 0, DISP_WIDTH, DISP_HEIGHT);
+
+	return TRUE;
+}
+
+static inline int
+odd(int c)
+{
+	int n;
+	
+	n = c ^ (c >> 4);
+	n = n ^ (n >> 2);
+	n = n ^ (n >> 1);
+
+	if (!(n & 1))
+		c |= 0x80;
+
+	return c;
+}
+
+static void
+print(char *s)
+{
+	unsigned char buf[2];
+
+	for (; s[0] && s[1]; s += 2) {
+		buf[0] = odd(s[0]);
+		buf[1] = odd(s[1]);
+		dispatch_caption(&caption, buf, FALSE);
+	}
+
+	if (s[0]) {
+		buf[0] = odd(s[0]);
+		buf[1] = 0;
+		dispatch_caption(&caption, buf, FALSE);
+	}
+
+	xevent();
+}
+
+int
+main(int ac, char **av)
+{
+	if (!init_window(ac, av))
+		exit(EXIT_FAILURE);
+
+	reset_caption(&caption);
+
+	print(" HELLO WORLD! ");
+
+	for (;;)
+		xevent();
+
+	exit(EXIT_SUCCESS);
+}
+
+#endif
