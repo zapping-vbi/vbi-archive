@@ -61,7 +61,7 @@
 
 /* Some global stuff we need, see descriptions in main.c */
 extern GList		*plugin_list;
-extern gboolean		disable_xv; /* TRUE is XVideo should be
+extern gint		disable_xv; /* TRUE is XVideo should be
 				       disabled */
 extern gboolean		flag_exit_program;
 

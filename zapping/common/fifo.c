@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.4 2000-12-16 00:21:56 garetxe Exp $ */
+/* $Id: fifo.c,v 1.5 2001-03-20 22:19:50 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -123,28 +123,30 @@ static inline void
 dealloc_consumer_info(fifo *f, int index)
 {
 	buffer *b; int i;
-	list * full=&(f->consumers[index].full);
-	mucon *consumer=&(f->consumers[index].consumer);
+	list * full=&(f->consumers[index]->full);
+	mucon *consumer=&(f->consumers[index]->consumer);
 
 	pthread_mutex_lock(&(consumer->mutex));
 	while ((b = (buffer*) rem_head(full))) {
 		send_empty_buffer(f, b);
-		f->consumers[index].occupancy--;
+		f->consumers[index]->occupancy--;
 	}
-	assert(f->consumers[index].occupancy == 0);
+	assert(f->consumers[index]->occupancy == 0);
 	pthread_mutex_unlock(&(consumer->mutex));
 	mucon_destroy(consumer);
+
+	free(f->consumers[index]);
 
 	if (index<(f->num_consumers-1))
 		memcpy(&(f->consumers[index]),
 		       &(f->consumers[index+1]),
-		       ((f->num_consumers-1)-index)*sizeof(coninfo));
+		       ((f->num_consumers-1)-index)*sizeof(coninfo*));
 
 	f->consumers = realloc(f->consumers,
-			       (--(f->num_consumers))*sizeof(coninfo));
+			       (--(f->num_consumers))*sizeof(coninfo*));
 
 	for (i=0; i<f->num_consumers; i++) /* reindex */
-		f->consumers[i].index = i;
+		f->consumers[i]->index = i;
 
 	pthread_setspecific(f->consumer_key, NULL);
 }
@@ -215,11 +217,11 @@ send_full(fifo *f, buffer *b)
 		b->refcount = f->num_consumers;
 
 		for (i=0; i<f->num_consumers; i++) {
-			pthread_mutex_lock(&(f->consumers[i].consumer.mutex));
-			add_tail(&(f->consumers[i].full), &b->node);
-			f->consumers[i].occupancy++;
-			pthread_mutex_unlock(&(f->consumers[i].consumer.mutex));
-			pthread_cond_broadcast(&(f->consumers[i].consumer.cond));
+			pthread_mutex_lock(&(f->consumers[i]->consumer.mutex));
+			add_tail(&(f->consumers[i]->full), &b->node);
+			f->consumers[i]->occupancy++;
+			pthread_mutex_unlock(&(f->consumers[i]->consumer.mutex));
+			pthread_cond_broadcast(&(f->consumers[i]->consumer.cond));
 		}
 	} else {
 		/* store it for later use */
@@ -246,7 +248,7 @@ key_destroy_callback(void *param)
 }
 
 int
-init_callback_fifo(fifo *f,
+init_callback_fifo(fifo *f, char *name,
 	buffer * (* custom_wait_full)(fifo *),
 	void     (* custom_send_empty)(fifo *, buffer *),
 	buffer * (* custom_wait_empty)(fifo *),
@@ -293,9 +295,10 @@ init_callback_fifo(fifo *f,
 }
 
 int
-init_buffered_fifo(fifo *f, mucon *consumer, int num_buffers, int buffer_size)
+init_buffered_fifo(fifo *f, char *name,
+	mucon *consumer, int num_buffers, int buffer_size)
 {
-	init_callback_fifo(f, NULL, NULL, NULL, NULL,
+	init_callback_fifo(f, name, NULL, NULL, NULL, NULL,
 		num_buffers, buffer_size);
 
 	if (num_buffers > 0 && f->num_buffers <= 0)

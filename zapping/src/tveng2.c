@@ -823,9 +823,6 @@ tveng2_set_capture_format(tveng_device_info * info)
     }
 
   /* Adjust the given dimensions */
-  /* Make them 4-byte multiplus to avoid errors */
-  info->format.width = (info->format.width+3) & ~3;
-  info->format.height = (info->format.height+3) & ~3;
   if (info->format.height < info->caps.minheight)
     info->format.height = info->caps.minheight;
   if (info->format.height > info->caps.maxheight)
@@ -835,8 +832,8 @@ tveng2_set_capture_format(tveng_device_info * info)
   if (info->format.width > info->caps.maxwidth)
     info->format.width = info->caps.maxwidth;
   
-  format.fmt.pix.width = (info->format.width+3) & ~3;
-  format.fmt.pix.height = (info->format.height+3) & ~3;
+  format.fmt.pix.width = info->format.width;
+  format.fmt.pix.height = info->format.height;
   format.fmt.pix.bytesperline = ((format.fmt.pix.depth+7)>>3) *
     format.fmt.pix.width;
   format.fmt.pix.sizeimage =
@@ -1686,9 +1683,9 @@ tveng2_set_preview_window(tveng_device_info * info)
 
   memset(&window, 0, sizeof(struct v4l2_window));
 
-  window.x = (info->window.x+3) & ~3;
+  window.x = info->window.x;
   window.y = info->window.y;
-  window.width = info->window.width & ~3;
+  window.width = info->window.width;
   window.height = info->window.height;
   window.clipcount = info->window.clipcount;
   window.chromakey = info->private->chromakey;

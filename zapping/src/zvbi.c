@@ -428,7 +428,8 @@ register_ttx_client(void)
       gdk_pixbuf_unref(simple);
     }
 
-  g_assert(init_buffered_fifo(&client->mqueue, NULL, 16, 0) > 0);
+  g_assert(init_buffered_fifo(&client->mqueue, "zvbi-mqueue", NULL,
+			      16, 0) > 0);
   pthread_mutex_lock(&clients_mutex);
   ttx_clients = g_list_append(ttx_clients, client);
   pthread_mutex_unlock(&clients_mutex);

@@ -44,7 +44,7 @@ enum tveng_capture_mode restore_mode;
 
 extern tveng_tuned_channel * global_channel_list;
 extern tveng_device_info * main_info; /* About the device we are using */
-extern gboolean disable_preview; /* TRUE if preview (fullscreen)
+extern gint disable_preview; /* TRUE if preview (fullscreen)
 				    doesn't work */
 
 int cur_tuned_channel = 0; /* Currently tuned channel */

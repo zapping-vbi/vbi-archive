@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.45 2001-03-19 21:45:03 garetxe Exp $ */
+/* $Id: rte.c,v 1.46 2001-03-20 22:19:50 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -849,6 +849,7 @@ void rte_stop ( rte_context * context )
 
 	/* Join the mux thread */
 	printv(2, "joining mux\n");
+	pthread_cancel(context->private->mux_thread);
 	pthread_join(context->private->mux_thread, NULL);
 	printv(2, "mux joined\n");
 

@@ -897,8 +897,6 @@ tveng1_set_capture_format(tveng_device_info * info)
 
   /* Fill in the new width and height parameters */
   /* Make them 4-byte multiplus to avoid errors */
-  info->format.width = (info->format.width+3) & ~3;
-  info->format.height = (info->format.height+3) & ~3;
   if (info->format.height < info->caps.minheight)
     info->format.height = info->caps.minheight;
   if (info->format.height > info->caps.maxheight)
@@ -908,8 +906,8 @@ tveng1_set_capture_format(tveng_device_info * info)
   if (info->format.width > info->caps.maxwidth)
     info->format.width = info->caps.maxwidth;
   
-  window.width = (info->format.width+3) & ~3;
-  window.height = (info->format.height+3) & ~3;
+  window.width = info->format.width;
+  window.height = info->format.height;
   window.clips = NULL;
   window.clipcount = 0;
 
@@ -1272,15 +1270,16 @@ tveng1_update_controls(tveng_device_info * info)
 	  break;
 	case P_TVENG1_C_AUDIO_DECODING:
 	  for (j = 0; j<num_audio_decoding_modes; j++)
-	    {
-	      if (audio.mode == audio_decoding_modes[j].id)
+	    if (audio.mode == audio_decoding_modes[j].id)
+	      {
 		control -> cur_value = j;
-	    }
+		break;
+	      }
 	  if (j == num_audio_decoding_modes)
 	    {
 	      info -> tveng_errno = -1;
-	      t_error_msg("switch()", "Unknown decoding mode",
-			  info);
+	      t_error_msg("switch()", "Unknown decoding mode (%d)",
+			  info, audio.mode);
 	      break;
 	    }
 	  break;
@@ -1300,10 +1299,9 @@ tveng1_update_controls(tveng_device_info * info)
 	  break;
 	default:
 	  info->tveng_errno = -1;
-	  snprintf(info->error, 256,
-		   "Unknown control: %s (%d)",
-		   control->name, control->id);
-	  fprintf(stderr, "%s\n", info->error);
+	  t_error_msg("switch()",
+		      "Unkown control: %s (%d)", info,
+		      control->name, control->id);
 	  continue;
 	}
     }
@@ -2067,17 +2065,16 @@ tveng1_set_preview_window(tveng_device_info * info)
   struct video_window v4l_window;
   struct video_clip * clips=NULL;
   enum tveng_capture_mode mode;
-  int i, dx;
+  int i;
 
   t_assert(info != NULL);
   t_assert(info-> window.clipcount >= 0);
 
   memset(&v4l_window, 0, sizeof(struct video_window));
 
-  v4l_window.x = (info->window.x+3) & ~3; /* dword align */
-  dx = v4l_window.x - info->window.x;
+  v4l_window.x = info->window.x;
   v4l_window.y = info->window.y;
-  v4l_window.width = (info->window.width-dx+3) & ~3;
+  v4l_window.width = info->window.width;
   v4l_window.height = info->window.height;
   v4l_window.clipcount = info->window.clipcount;
   v4l_window.clips = NULL;

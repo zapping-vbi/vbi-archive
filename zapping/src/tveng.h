@@ -632,10 +632,17 @@ tveng_get_preview_window(tveng_device_info * info);
 int
 tveng_set_preview (int on, tveng_device_info * info);
 
-/* Adjusts the verbosity value passed to zapping_setup_fb, cannot fail
+/*
+ * Adjusts the verbosity value passed to zapping_setup_fb, cannot fail
  */
 void
 tveng_set_zapping_setup_fb_verbosity(int level, tveng_device_info * info);
+
+/*
+ * A value of TRUE forces dword-aligning of X coords and widths in
+ * preview mode (workaround for some buggy drivers).
+ */
+void tveng_set_dword_align(int dword_align, tveng_device_info *info);
 
 /*
  * Sets the chroma value to the given one, has only effect if the

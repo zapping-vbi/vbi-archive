@@ -39,7 +39,7 @@
 
 extern tveng_device_info * main_info;
 extern GtkWidget * main_window;
-extern gboolean disable_preview; /* TRUE if preview won't work */
+extern gint disable_preview; /* TRUE if preview won't work */
 gboolean debug_msg=FALSE; /* Debugging messages on or off */
 
 /*

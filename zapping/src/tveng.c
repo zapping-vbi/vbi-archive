@@ -600,8 +600,8 @@ tveng_set_capture_format(tveng_device_info * info)
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  info->format.width = (info->format.width+3) & ~3;
-  info->format.height = (info->format.height+3) & ~3;
+  if (info->private->dword_align)
+    info->format.width = (info->format.width+3) & ~3;
   if (info->format.height < info->caps.minheight)
     info->format.height = info->caps.minheight;
   if (info->format.height > info->caps.maxheight)
@@ -1161,7 +1161,8 @@ int tveng_set_capture_size(int width, int height, tveng_device_info * info)
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  width = (width & ~3);
+  if (info->private->dword_align)
+    width = (width & ~3);
   if (width < info->caps.minwidth)
     width = info->caps.minwidth;
   if (width > info->caps.maxwidth)
@@ -1459,8 +1460,11 @@ tveng_set_preview_window(tveng_device_info * info)
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-  info->window.x = (info->window.x+3) & ~3;
-  info->window.width = (info->window.width+3) & ~3;
+  if (info->private->dword_align)
+    {
+      info->window.x = (info->window.x+3) & ~3;
+      info->window.width = (info->window.width+3) & ~3;
+    }
   if (info->window.height < info->caps.minheight)
     info->window.height = info->caps.minheight;
   if (info->window.height > info->caps.maxheight)
@@ -1541,6 +1545,12 @@ tveng_set_zapping_setup_fb_verbosity(int level, tveng_device_info *
 void tveng_set_chromakey(int r, int g, int b, tveng_device_info *info)
 {
   info->private->chromakey = ((r&0xff)<<16) + ((g&0xff)<<8) + (b&0xff);
+}
+
+/* Sets the dword align flag */
+void tveng_set_dword_align(int dword_align, tveng_device_info *info)
+{
+  info->private->dword_align = dword_align;
 }
 
 /* Returns the current verbosity value passed to zapping_setup_fb */

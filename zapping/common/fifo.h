@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.4 2000-12-16 00:21:57 garetxe Exp $ */
+/* $Id: fifo.h,v 1.5 2001-03-20 22:19:50 garetxe Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -84,7 +84,7 @@ struct _fifo {
 	mucon			mbackup;
 
 	/* Consumers */
-	coninfo *		consumers;
+	coninfo **		consumers;
 	pthread_rwlock_t	consumers_rwlock;
 	int			num_consumers;
 	pthread_key_t		consumer_key;
@@ -114,8 +114,8 @@ extern void	uninit_buffer(buffer *b);
 extern int	alloc_buffer_vec(buffer **bpp, int num_buffers, int buffer_size);
 extern void	free_buffer_vec(buffer *bvec, int num_buffers);
 
-extern int	init_buffered_fifo(fifo *f, mucon *consumer, int num_buffers, int buffer_size);
-extern int	init_callback_fifo(fifo *f, buffer * (* wait_full)(fifo *), void (* send_empty)(fifo *, buffer *), buffer * (* wait_empty)(fifo *), void (* send_full)(fifo *, buffer *), int num_buffers, int buffer_size);
+extern int	init_buffered_fifo(fifo *f, char *name, mucon *consumer, int num_buffers, int buffer_size);
+extern int	init_callback_fifo(fifo *f, char *name, buffer * (* wait_full)(fifo *), void (* send_empty)(fifo *, buffer *), buffer * (* wait_empty)(fifo *), void (* send_full)(fifo *, buffer *), int num_buffers, int buffer_size);
 extern int	num_buffers_queued(fifo *f);
 extern void	remove_consumer(fifo *f);
 
@@ -151,27 +151,27 @@ query_consumer(fifo *f)
 	  between the unlock and the wrlock.
 	*/
 	i = f->num_consumers;
-	f->consumers = (coninfo*)
-		realloc(f->consumers, sizeof(coninfo)*(i+1));
-	
-	memset(&(f->consumers[i]), 0, sizeof(coninfo));
-	f->consumers[i].index = i;
-	f->consumers[i].f = f;
-	pthread_setspecific(f->consumer_key, &(f->consumers[i]));
-	mucon_init(&(f->consumers[i].consumer));
+	f->consumers = realloc(f->consumers, sizeof(coninfo*)*(i+1));
+	f->consumers[i] = malloc(sizeof(coninfo));
+	memset(f->consumers[i], 0, sizeof(coninfo));
+
+	f->consumers[i]->index = i;
+	f->consumers[i]->f = f;
+	pthread_setspecific(f->consumer_key, f->consumers[i]);
+	mucon_init(&(f->consumers[i]->consumer));
 	f->num_consumers++;
 	/* Send the kept buffers to this consumer */
 	pthread_mutex_lock(&f->mbackup.mutex);
 	while ((b = (buffer*) rem_head(&f->backup))) {
-		add_tail(&(f->consumers[i].full), &b->node);
-		f->consumers[i].occupancy++;
+		add_tail(&(f->consumers[i]->full), &b->node);
+		f->consumers[i]->occupancy++;
 	}
 	pthread_mutex_unlock(&f->mbackup.mutex);
 
 	pthread_rwlock_unlock(&f->consumers_rwlock);
 	pthread_rwlock_rdlock(&f->consumers_rwlock);
 
-	return &(f->consumers[i]);
+	return f->consumers[i];
 }
 
 static inline bool

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.9 2001-03-09 17:39:01 mschimek Exp $ */
+/* $Id: v4lx.c,v 1.10 2001-03-20 22:19:50 garetxe Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -513,7 +513,7 @@ open_v4l(vbi_device **pvbi, char *dev_name,
 	buffer_size = (vbi->dec.count[0] + vbi->dec.count[1])
 		      * vbi->dec.samples_per_line;
 
-	if (!init_callback_fifo(&vbi->fifo,
+	if (!init_callback_fifo(&vbi->fifo, "vbi-v4l",
 	    wait_full_read, send_empty_read, NULL, NULL, fifo_depth,
 	    sizeof(vbi_sliced) * (vbi->dec.count[0] + vbi->dec.count[1]))) {
 		goto failure;
@@ -787,7 +787,7 @@ open_v4l2(vbi_device **pvbi, char *dev_name,
 	    && vcap.flags & V4L2_FLAG_SELECT) {
 		vbi->streaming = TRUE;
 
-		if (!init_callback_fifo(&vbi->fifo,
+		if (!init_callback_fifo(&vbi->fifo, "vbi-v4l2-stream",
 			wait_full_stream, send_empty_stream, NULL, NULL, fifo_depth,
 		    sizeof(vbi_sliced) * (vbi->dec.count[0] + vbi->dec.count[1]))) {
 			goto failure;
@@ -863,7 +863,7 @@ open_v4l2(vbi_device **pvbi, char *dev_name,
 		int buffer_size = (vbi->dec.count[0] + vbi->dec.count[1])
 				  * vbi->dec.samples_per_line;
 
-		if (!init_callback_fifo(&vbi->fifo,
+		if (!init_callback_fifo(&vbi->fifo, "vbi-v4l2-read",
 		    wait_full_read, send_empty_read, NULL, NULL, fifo_depth,
 		    sizeof(vbi_sliced) * (vbi->dec.count[0] + vbi->dec.count[1]))) {
 			goto failure;

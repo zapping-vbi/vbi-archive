@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.16 2001-02-22 14:15:51 mschimek Exp $ */
+/* $Id: fifo.h,v 1.17 2001-03-20 22:19:50 garetxe Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -84,7 +84,7 @@ struct _fifo {
 	mucon			mbackup;
 
 	/* Consumers */
-	coninfo *		consumers;
+	coninfo **		consumers;
 	pthread_rwlock_t	consumers_rwlock;
 	int			num_consumers;
 	pthread_key_t		consumer_key;
@@ -151,27 +151,27 @@ query_consumer(fifo *f)
 	  between the unlock and the wrlock.
 	*/
 	i = f->num_consumers;
-	f->consumers = (coninfo*)
-		realloc(f->consumers, sizeof(coninfo)*(i+1));
-	
-	memset(&(f->consumers[i]), 0, sizeof(coninfo));
-	f->consumers[i].index = i;
-	f->consumers[i].f = f;
-	pthread_setspecific(f->consumer_key, &(f->consumers[i]));
-	mucon_init(&(f->consumers[i].consumer));
+	f->consumers = realloc(f->consumers, sizeof(coninfo*)*(i+1));
+	f->consumers[i] = malloc(sizeof(coninfo));
+	memset(f->consumers[i], 0, sizeof(coninfo));
+
+	f->consumers[i]->index = i;
+	f->consumers[i]->f = f;
+	pthread_setspecific(f->consumer_key, f->consumers[i]);
+	mucon_init(&(f->consumers[i]->consumer));
 	f->num_consumers++;
 	/* Send the kept buffers to this consumer */
 	pthread_mutex_lock(&f->mbackup.mutex);
 	while ((b = (buffer*) rem_head(&f->backup))) {
-		add_tail(&(f->consumers[i].full), &b->node);
-		f->consumers[i].occupancy++;
+		add_tail(&(f->consumers[i]->full), &b->node);
+		f->consumers[i]->occupancy++;
 	}
 	pthread_mutex_unlock(&f->mbackup.mutex);
 
 	pthread_rwlock_unlock(&f->consumers_rwlock);
 	pthread_rwlock_rdlock(&f->consumers_rwlock);
 
-	return &(f->consumers[i]);
+	return f->consumers[i];
 }
 
 static inline bool

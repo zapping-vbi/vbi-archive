@@ -54,9 +54,9 @@ tveng_device_info	*main_info;
 volatile gboolean	flag_exit_program = FALSE;
 tveng_channels		*current_country = NULL;
 GList			*plugin_list = NULL;
-gboolean		disable_preview = FALSE;/* preview should be
+gint			disable_preview = FALSE;/* preview should be
 						   disabled */
-gboolean		disable_xv = FALSE; /* XVideo should be
+gint			disable_xv = FALSE; /* XVideo should be
 					       disabled */
 GtkWidget		*main_window;
 gboolean		was_fullscreen=FALSE; /* will be TRUE if when
@@ -201,6 +201,7 @@ int main(int argc, char * argv[])
   GtkWidget * tv_screen;
   GList * p;
   gint x_bpp = -1;
+  gint dword_align = FALSE;
   char *default_norm = NULL;
   char *video_device = NULL;
   /* Some other common options in case the standard one fails */
@@ -275,6 +276,15 @@ int main(int argc, char * argv[])
       NULL
     },
     {
+      "dword-align",
+      0,
+      POPT_ARG_NONE,
+      &dword_align,
+      0,
+      N_("Force dword aligning of the overlay window"),
+      NULL
+    },
+    {
       NULL,
     } /* end the list */
   };
@@ -288,7 +298,7 @@ int main(int argc, char * argv[])
 			      0, NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.96 2001-03-18 16:04:08 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.97 2001-03-20 22:19:50 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -327,6 +337,7 @@ int main(int argc, char * argv[])
     }
   tveng_set_debug_level(debug_msg, main_info);
   tveng_set_xv_support(disable_xv, main_info);
+  tveng_set_dword_align(dword_align, main_info);
   D();
   if (!startup_zapping())
     {

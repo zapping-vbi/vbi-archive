@@ -91,6 +91,7 @@ struct tveng_private {
   int		change_mode;
   int		disable_xv; /* 1 if XVideo should be disabled */
   int		chromakey; /* RGB32 */
+  int		dword_align; /* 1 if x and w should be dword aligned */
 
   /* Controls managed directly by tveng.c */
 #ifdef USE_XV
