@@ -602,10 +602,11 @@ void plugin_add_gui (GnomeApp * app)
       button = gtk_toolbar_append_element (GTK_TOOLBAR (toolbar),
 					   GTK_TOOLBAR_CHILD_BUTTON, NULL,
 					   _("Screenshot"),
-					   _("Take a screenshot"),
-					   NULL, tmp_toolbar_icon,
+					   NULL, NULL, tmp_toolbar_icon,
 					   on_remote_command1,
 					   (gpointer)((const gchar *) "screenshot"));
+
+      z_tooltip_set (button, _("Take a screenshot"));
     }
 
   if (screenshot_option_toolbutton)
@@ -1167,10 +1168,10 @@ on_format_changed                     (GtkWidget *menu,
   g_free (screenshot_option_format);
   screenshot_option_format = g_strdup (data->backend->keyword);
 
-  set_sensitive_with_tooltip (data->quality_slider,
-			      data->backend->quality,
-			      NULL,
-			      _("This format has no quality option"));
+  z_set_sensitive_with_tooltip (data->quality_slider,
+				data->backend->quality,
+				NULL,
+				_("This format has no quality option"));
 
   name = gtk_entry_get_text (data->entry);
   name = z_replace_filename_extension (name, data->backend->extension);
@@ -1286,10 +1287,10 @@ build_dialog (screenshot_data *data)
   gtk_signal_connect (GTK_OBJECT (adj), "value-changed",
 		      GTK_SIGNAL_FUNC (on_quality_changed), data);
 
-  set_sensitive_with_tooltip (data->quality_slider,
-			      data->backend->quality,
-			      NULL,
-			      _("This format has no quality option"));
+  z_set_sensitive_with_tooltip (data->quality_slider,
+				data->backend->quality,
+				NULL,
+				_("This format has no quality option"));
 
   gnome_dialog_set_parent (GNOME_DIALOG (data->dialog),
 			   z_main_window ());
@@ -1324,8 +1325,8 @@ build_dialog (screenshot_data *data)
     {
       widget = lookup_widget (data->dialog, "hbox2");
 
-      set_sensitive_with_tooltip (widget, FALSE, NULL,
-      	_("Only useful with full size, unscaled picture (480 or 576 lines)"));
+      z_set_sensitive_with_tooltip (widget, FALSE, NULL,
+        _("Only useful with full size, unscaled picture (480 or 576 lines)"));
     }
 }
 
