@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: systems.c,v 1.14 2002-12-14 00:43:44 mschimek Exp $ */
+/* $Id: systems.c,v 1.15 2005-02-25 18:30:56 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -401,7 +401,7 @@ get_idle(void)
 	return system_idle;
 }
 
-char *
+const char *
 mpeg_header_name(unsigned int code)
 {
 	static char buf[40];

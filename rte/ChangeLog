@@ -1,3 +1,39 @@
+2005-02-25    <mschimek@users.sf.net>
+
+	* test/io.c (audio, init_audio): Added support for stereo so we
+	  can test the VCD codec.
+	(init_audio, init_video, video): Replaced evil #if BYTE_ORDER by
+	  a switch().
+	* src/rte.c: Doxumenation fixed.
+	* src/context.h (rte_error_printf): Added __attribute__ printf
+	  format check.
+	* src/context.c (rte_context_option_set,
+	  rte_context_option_print, rte_set_output_stdio): Doxumenation fixed.
+	* src/Makefile.am (librte_la_LIBADD): LTLIBICONV, LTLIBINTL
+	  replaced by INTLLIBS. (AM_GNU_GETTEXT sets LTLIBICONV even if
+	  we don't have or need it.)
+	* ffmpeg/libavcodec/avcodec.c (avcodec): Fixed lvalue casts (gcc 4.x).
+	* ffmpeg/libavcodec/ac3enc.c: Segv on FreeBSD due to stack
+	  overflow. Now malloc'ates the arrays.
+	* divx4linux/b_divx4linux.c: gcc 4.x warnings.
+	* configure.in: Bumped version number to 0.5.4.
+	* autogen.sh: Updates due to m4/autogen.sh change.
+	* Updated gettext and build scripts.
+
+2005-02-20    <mschimek@users.sf.net>
+
+	* ffmpeg/libavcodec/Makefile.am (INCLUDES): Define __CPU__ (gcc 4.x).
+	* ffmpeg/b_ffmpeg.c: gcc 4.x warnings.
+	(mainloop): Void pointer arithmetic.
+	(set_output): Segv in rte_error_printf() due to missing parameter.
+
+	* ffmpeg/libavcodec/avcodec.c (avcodec): Lvalue cast fix.
+
+2005-02-19    <mschimek@users.sf.net>
+
+	* configure.in: End with exit 0 to override result of previous test.
+	* src/context.c: Define INT64_MAX if missing.
+
 2004-06-02    <mschimek@users.sf.net>
 
 	* src/context.c: Enhanced to record large files in parts on

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mmx.c,v 1.3 2004-10-22 00:58:31 mschimek Exp $ */
+/* $Id: mmx.c,v 1.4 2005-02-25 18:30:47 mschimek Exp $ */
 
 #include <stdlib.h>
 #include "log.h"
@@ -45,7 +45,7 @@
  */
 
 typedef union {
-	unsigned char		s[16];
+	char			s[16];
 	struct {
 		unsigned int		eax;
 		unsigned int		ebx;

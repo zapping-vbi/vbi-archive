@@ -15,7 +15,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: types.h,v 1.3 2002-12-14 00:43:44 mschimek Exp $ */
+/* $Id: types.h,v 1.4 2005-02-25 18:30:47 mschimek Exp $ */
 
 #ifndef TYPES_H
 #define TYPES_H
@@ -32,7 +32,7 @@
 #ifdef	NDEBUG
 # define asserts(expr) ((void) 0)
 #else
-extern void asserts_fail(char *assertion, char *file, unsigned int line, char *function, void *caller);
+extern void asserts_fail(const char *assertion, const char *file, unsigned int line, const char *function, void *caller);
 #define asserts(expr)							\
 	((void) ((expr) ? 0 : asserts_fail(#expr, __FILE__, __LINE__,	\
 		__PRETTY_FUNCTION__, __builtin_return_address(0))))

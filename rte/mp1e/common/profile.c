@@ -18,11 +18,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: profile.c,v 1.5 2002-06-24 03:20:58 mschimek Exp $ */
+/* $Id: profile.c,v 1.6 2005-02-25 18:30:47 mschimek Exp $ */
 
 #include "site_def.h"
 
-#if PROFILING
+#ifdef PROFILING
 
 #include <stdio.h>
 

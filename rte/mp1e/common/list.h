@@ -15,7 +15,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: list.h,v 1.1 2002-06-18 02:23:44 mschimek Exp $ */
+/* $Id: list.h,v 1.2 2005-02-25 18:30:47 mschimek Exp $ */
 
 #ifndef LIST_H
 #define LIST_H
@@ -96,6 +96,7 @@ destroy_xlist(xlist *l)
 static inline void
 destroy_list(list *l)
 {
+	l = l;
 }
 
 static inline void

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.44 2004-10-22 00:58:31 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.45 2005-02-25 18:31:00 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -261,7 +261,7 @@ tmp_slice_i(mpeg1_context *mpeg1, rte_bool motion)
 
 		emms();
 
-		if (0 && var < LOWVARI) {
+		if (0 && var <= LOWVARI) {
 			quant = 4;
 			fprintf(stderr, "+");
 		} else {
@@ -298,7 +298,7 @@ if (0)
 			fdct_intra(quant); // mblock[0] -> mblock[1]
 			pr_end(22);
 
-			if (0 && var < LOWVARI)
+			if (0 && var <= LOWVARI)
 				mblock_hp(0);
 
 			bepilog(&video_out.bstream);
@@ -352,7 +352,7 @@ if (0)
 
 			mba_col_incr();
 		}
-#if TEST_PREVIEW
+#ifdef TEST_PREVIEW
 		if (preview > 1) {
 			emms();
 			packed_preview(newref, mb_width, mb_height);
@@ -429,7 +429,7 @@ tmp_picture_i(mpeg1_context *mpeg1, unsigned char *org, rte_bool motion)
 
 	pr_end(21);
 
-#if TEST_PREVIEW
+#ifdef TEST_PREVIEW
 	if (preview)
 		packed_preview(newref, mb_width, mb_height);
 #endif
@@ -446,7 +446,7 @@ do {									\
 		fdct_intra(quant); /* mblock[0] -> mblock[1] */		\
 		pr_end(22);						\
 									\
-		if (0 && var < LOWVARP)					\
+		if (0 && var <= LOWVARP)				\
 			mblock_hp(0);					\
 									\
 		bepilog(&video_out.bstream);					\
@@ -530,7 +530,7 @@ tmp_picture_p(mpeg1_context *mpeg1, unsigned char *org,
 
 	reset_mba();
 
-#if TEST_PREVIEW
+#ifdef TEST_PREVIEW
 	if (preview > 1)
 		memcpy(newref, mpeg1->oldref, 64 * 6 * mb_num);
 #endif
@@ -654,7 +654,7 @@ tmp_picture_p(mpeg1_context *mpeg1, unsigned char *org,
 			if (T3RI
 			    && ((TEST12
 				 && motion
-				 && (var < (LOWVAR / 6)))
+				 && (var <= (LOWVAR / 6)))
 				|| vmc > p_inter_bias))
 			{
 				double act = var / VARQ + 1;
@@ -663,7 +663,7 @@ tmp_picture_p(mpeg1_context *mpeg1, unsigned char *org,
 
 				/* Calculate quantization factor */
 
-				if (0 && var < LOWVARP) {
+				if (0 && var <= LOWVARP) {
 					quant = 3;
 	    			        fprintf(stderr, "/");
 				} else {
@@ -830,7 +830,7 @@ if (!T3RT) quant = 2;
 
 			mba_col_incr();
 			mb_count++;
-#if TEST_PREVIEW
+#ifdef TEST_PREVIEW
 			if (preview > 1) {
 				emms();
 				packed_preview(newref, mb_width, mb_height);
@@ -858,7 +858,7 @@ if (!T3RT) quant = 2;
 
 	pr_end(24);
 
-#if TEST_PREVIEW
+#ifdef TEST_PREVIEW
 	if (preview == 1)
 		packed_preview(newref, mb_width, mb_height);
 #endif
@@ -955,7 +955,7 @@ tmp_picture_b(mpeg1_context *mpeg1, unsigned char *org,
 if (T3RI
     && ((TEST12
          && motion
-	 && (var < (unsigned int)(LOWVAR / (6 * B_SHARE)))
+	 && (var <= (unsigned int)(LOWVAR / (6 * B_SHARE)))
 	 )))
 	goto skip_pred;
 
@@ -1044,7 +1044,7 @@ skip_pred:
 			if (T3RI
 			    && ((TEST12
 				 && motion
-				 && (var < (unsigned int)(LOWVAR / (6 * B_SHARE))))
+				 && (var <= (unsigned int)(LOWVAR / (6 * B_SHARE))))
 				|| vmc > p_inter_bias
 				))
 			{
@@ -1061,7 +1061,7 @@ skip_pred:
 
 				macroblock_type = MB_INTRA;
 
-				if (0 && var < LOWVARP) {
+				if (0 && var <= LOWVARP) {
 					quant = 3;
 					fprintf(stderr, "-");
 				}
@@ -1945,7 +1945,7 @@ next_frame:
 
 		if (!*seq) {
 			/* End of GOP sequence */
-#if TEST_PREVIEW
+#ifdef TEST_PREVIEW
 if (video_do_reset) {
 	static void video_reset(mpeg1_context *mpeg1);
 
@@ -2317,20 +2317,28 @@ do_free(void **pp)
 	}
 }
 
+#define FREE_ALIGNED(p)							\
+do {									\
+	if (NULL != (p)) {						\
+		free_aligned (p);					\
+		(p) = NULL;						\
+	}								\
+} while (0)
+
 static void
 uninit(rte_codec *codec)
 {
 	mpeg1_context *mpeg1 = PARENT(codec, mpeg1_context, codec);
 
 	/* 0P */
-	do_free((void **) &mpeg1->zerop_template);
+	FREE_ALIGNED (mpeg1->zerop_template);
 
 	/* main buffers */
-	do_free((void **) &mm_mbrow);
-	do_free((void **) &newref);
-	do_free((void **) &mpeg1->oldref);
+	FREE_ALIGNED (mm_mbrow);
+	FREE_ALIGNED (newref);
+	FREE_ALIGNED (mpeg1->oldref);
 
-	do_free((void **) &mpeg1->mb_hist);
+	FREE_ALIGNED (mpeg1->mb_hist);
 
 	do_free((void **) &mpeg1->banner);
 
@@ -2536,7 +2544,7 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 			search = mmx_search;
 			break;
 		}
-#if REG_TEST
+#ifdef REG_TEST
 		motion = (mpeg1->motion_min + mpeg1->motion_max) << 7;
 #else
 		motion = (mpeg1->motion_min * 3 + mpeg1->motion_max * 1) * 256 / 4;
@@ -2810,6 +2818,8 @@ option_get(rte_codec *codec, const char *keyword, rte_option_value *v)
 	return TRUE;
 }
 
+static char *option_print(rte_codec *, const char *, va_list);
+
 static rte_bool
 option_set(rte_codec *codec, const char *keyword, va_list args)
 {
@@ -2817,7 +2827,6 @@ option_set(rte_codec *codec, const char *keyword, va_list args)
 	rte_context *context = codec->context;
 
 	if (0) {
-		static char *option_print(rte_codec *, const char *, va_list);
 		char *str = option_print(codec, keyword, args);
 
 		printv(0, "mpeg1/option_set(%p, %s, %s)\n", mpeg1, keyword, str);
@@ -2898,7 +2907,7 @@ option_enum(rte_codec *codec, unsigned int index)
 {
 	/* mpeg1_context *mpeg1 = PARENT(codec, mpeg1_context, codec); */
 
-	if (index < 0 || index >= elements(mpeg1_options))
+	if (index >= elements(mpeg1_options))
 		return NULL;
 
 	return mpeg1_options + index;

@@ -1,17 +1,47 @@
 ## Process this file with automake to produce Makefile.in
 
-TESTS = optest cpptest
-noinst_PROGRAMS = info io cpptest
-cpptest_SOURCES = cpptest.cc
+XFAIL_TESTS = \
+	io-bad-context \
+	io-bad-codec-1 \
+	io-bad-codec-2 \
+	io-n-codecs-1 \
+	io-n-codecs-2 \
+	io-n-codecs-3 \
+	io-n-codecs-4
 
-EXTRA_DIST = optest README
+TESTS = \
+	cpptest \
+	io-all-formats \
+	optest \
+	$(XFAIL_TESTS)
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_builddir)/src $(COMMON_INCLUDES) \
-	-D_GNU_SOURCE -D_REENTRANT -D_LARGEFILE64_SOURCE \
-	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
+check_PROGRAMS = \
+	cpptest \
+	info \
+	io
 
-LDADD = $(top_builddir)/src/.libs/librte.a $(PTHREAD_LIB) -lm \
-	$(LTLIBICONV) $(LTLIBINTL)
+cpptest_SOURCES = \
+	cpptest.cc
+
+EXTRA_DIST = \
+	README \
+	io-all-formats \
+	optest \
+	$(XFAIL_TESTS)
+
+INCLUDES = \
+	-I$(top_srcdir)/src \
+	-I$(top_builddir)/src \
+	$(COMMON_INCLUDES) \
+	-D_GNU_SOURCE \
+	-D_REENTRANT \
+	-D_LARGEFILE64_SOURCE
+
+LDADD = \
+	$(top_builddir)/src/.libs/librte.a \
+	$(PTHREAD_LIB) \
+	-lm \
+	$(INTLLIBS)
 
 ## rte_test_INCLUDES = $(ESD_CFLAGS)
 ## rte_test_LDADD = $(ESD_LIBS) $(PTHREAD_LIB) -lm ../src/.libs/librte.a

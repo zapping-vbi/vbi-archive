@@ -1,3 +1,27 @@
+2005-02-20    <mschimek@users.sf.net>
+
+	* systems/systems.c (mpeg_header_name): Constness fix.
+	* systems/vcd.c (schedule), systems/mpeg2.c (schedule),
+	  systems/mpeg1.c (schedule): VCD mux segv at stream end because
+	  dts in schedule() wrapped and an already finished stream was
+	  scheduled for output again. Added similar check to mpeg1 and mpeg2
+	  routines, just in case.
+	* b_mp1e.c: gcc 4.x fixes.
+	(set_output): Segv in rte_error_printf() due to missing parameter.
+	(codec_set): mp1e_mpeg1_vcd and mpeg2_audio_layer2 do not combine.
+	* common/fifo.c, common/types.h (asserts_fail): Constness fix.
+	* systems/libsystems.h (mpeg_header_name), common/mmx.c (cpuid_t),
+	  common/fifo.c (asserts_fail), common/types.h: Constness fixes.
+	* audio/mp2.c: Lvalue cast fixes (gcc 4.x).
+	(mp1e_mp2): asm parameter fix (gcc 4.x).
+	* audio/mp2.c, common/bstream.h (bcatq): gcc 4.x fixes.
+	* common/list.h (destroy_list): Suppress unused parameter warning.
+	* common/mmx.h (swab32): Removed redundant const in return type.
+	  (cpuid_t): Unsiged char fix.
+	* video/mpeg2.c (uninit), video/mpeg1.c (uninit): Segv on FreeBSD
+	  because the function called free() instead of free_aligned().
+	* common/alloc.c, common/alloc.h (alloc_aligned): Fixed.
+
 2004-01-19     <japie@deserver.nl>
 
 	* common/mmx.c, common/mmx.h, main.c, mp1e.1,

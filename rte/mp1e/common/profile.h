@@ -19,7 +19,7 @@
 
 #include "site_def.h"
 
-#if PROFILING
+#ifdef PROFILING
 
 extern void pr_start(int n, char *label);
 extern void pr_end(int n);

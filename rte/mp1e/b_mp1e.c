@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.47 2002-12-25 09:44:14 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.48 2005-02-25 18:30:28 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -429,7 +429,7 @@ set_output(rte_context *context,
 		if (count < xc->_public->min_elementary[i]) {
 			rte_error_printf(context, "Not enough elementary streams of rte stream type %d "
 					 "for context %s. %d required, %d allocated.",
-					 xc->_public->keyword, xc->_public->min_elementary[i], count);
+					 i, xc->_public->keyword, xc->_public->min_elementary[i], count);
 			return FALSE;
 		}
 	}
@@ -899,7 +899,9 @@ codec_set(rte_context *context, const char *keyword,
 			if (strcmp(codec_table[i]->_public->keyword, keyword) == 0)
 				break;
 
-		if (i >= num_codecs) {
+		if (i >= num_codecs
+		    || (0 == strcmp (context->_class->_public->keyword, "mp1e_mpeg1_vcd")
+			&& 0 == strcmp (codec_table[i]->_public->keyword, "mpeg2_audio_layer2"))) {
 			rte_error_printf(context, "'%s' is no codec of the %s encoder.",
 					 keyword, xc->_public->keyword);
 			return NULL;
@@ -1037,10 +1039,10 @@ mp1e_mpeg1_audio_info = {
 	.max_elementary	= { 0, 0, 1 },
 };
 
-static rte_context_class mp1e_mpeg1_ps_context = { ._public = &mp1e_mpeg1_ps_info };
-static rte_context_class mp1e_mpeg1_vcd_context = { ._public = &mp1e_mpeg1_vcd_info };
-static rte_context_class mp1e_mpeg1_video_context = { ._public = &mp1e_mpeg1_video_info };
-static rte_context_class mp1e_mpeg1_audio_context = { ._public = &mp1e_mpeg1_audio_info };
+rte_context_class mp1e_mpeg1_ps_context = { ._public = &mp1e_mpeg1_ps_info };
+rte_context_class mp1e_mpeg1_vcd_context = { ._public = &mp1e_mpeg1_vcd_info };
+rte_context_class mp1e_mpeg1_video_context = { ._public = &mp1e_mpeg1_video_info };
+rte_context_class mp1e_mpeg1_audio_context = { ._public = &mp1e_mpeg1_audio_info };
 
 static rte_context_class *
 context_table[] = {
@@ -1208,7 +1210,7 @@ backend_init(void)
 static rte_context_class *
 context_enum(unsigned int index, char **errstr)
 {
-	if (index < 0 || index >= num_contexts)
+	if (index >= num_contexts)
 		return NULL;
 
 	if (cpu_type == CPU_UNKNOWN) {

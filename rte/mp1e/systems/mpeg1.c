@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.15 2002-12-14 00:43:44 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.16 2005-02-25 18:30:56 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -288,7 +288,7 @@ schedule(multiplexer *mux)
 	for_all_nodes (s, &mux->streams, fifo.node) {
 		double dtsi = s->dts_old;
 
-		if (s->buf)
+		if (s->buf && s->left >= 0)
 			dtsi += (s->ptr - s->buf->data) * s->ticks_per_byte;
 
 		if (dtsi < dtsi_min) {

@@ -1,0 +1,2 @@
+#!/bin/sh
+./io -x nosuchcontext -d mpeg1_video -d mpeg1_audio_layer2 -o dummy.mpg

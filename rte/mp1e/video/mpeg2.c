@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg2.c,v 1.11 2004-10-22 00:58:31 mschimek Exp $ */
+/* $Id: mpeg2.c,v 1.12 2005-02-25 18:31:00 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -1161,20 +1161,28 @@ do_free(void **pp)
 	}
 }
 
+#define FREE_ALIGNED(p)							\
+do {									\
+	if (NULL != (p)) {						\
+		free_aligned (p);					\
+		(p) = NULL;						\
+	}								\
+} while (0)
+
 static void
 uninit(rte_codec *codec)
 {
 	mpeg1_context *mpeg1 = PARENT(codec, mpeg1_context, codec);
 
 	/* 0P */
-	do_free((void **) &mpeg1->zerop_template);
+	FREE_ALIGNED (mpeg1->zerop_template);
 
 	/* main buffers */
-//	do_free((void **) &mm_mbrow);
-	do_free((void **) &newref);
-	do_free((void **) &mpeg1->oldref);
+//	FREE_ALIGNED (mm_mbrow);
+	FREE_ALIGNED (newref);
+	FREE_ALIGNED (mpeg1->oldref);
 
-	do_free((void **) &mpeg1->mb_hist);
+	FREE_ALIGNED (mpeg1->mb_hist);
 
 	do_free((void **) &mpeg1->banner);
 

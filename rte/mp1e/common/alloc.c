@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alloc.c,v 1.7 2002-12-14 00:43:44 mschimek Exp $ */
+/* $Id: alloc.c,v 1.8 2005-02-25 18:30:46 mschimek Exp $ */
 
 #include <stdlib.h>
 #include "math.h"
@@ -26,24 +26,32 @@
 #ifndef HAVE_MEMALIGN
 
 void *
-alloc_aligned(size_t size, int align, rte_bool clear)
+alloc_aligned			(size_t			size,
+				 size_t			align,
+				 rte_bool		clear)
 {
-	void *p, *b;
+	void *p;
+	void **pp;
+	unsigned long addr;
 
-	if (align < sizeof(void *))
-		align = sizeof(void *);
+	if (align < sizeof (void *))
+		align = sizeof (void *);
 
-	if (!(b = malloc(size + align)))
+	if (!(p = malloc (size + align)))
 		return NULL;
 
-	p = (void *)(((long)((char *) b + align)) & -align);
+	addr = align + (unsigned long) p;
+	addr -= addr % align;
 
-	((void **) p)[-1] = b;
+	pp = (void **) addr;
+	pp[-1] = p;
+
+	p = (void *) addr;
 
 	if (clear)
-		memset(p, 0, size);
+		memset (p, 0, size);
 
 	return p;
 }
 
-#endif // !HAVE_MEMALIGN
+#endif /* !HAVE_MEMALIGN */

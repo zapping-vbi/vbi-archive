@@ -60,7 +60,15 @@ typedef	union {
 
 extern int cpu_detection(void);
 
-#if __GNUC__ == 3
+#if __GNUC__ == 4
+# if __GNUC_MINOR__ > 0
+#  warning Compilation with your version of gcc is untested,
+#  warning may fail or create incorrect code.
+# endif
+# define FPU_REGS , "st", "st(1)", "st(2)", "st(3)", "st(4)", "st(5)", "st(6)", "st(7)"
+# define SECTION(x) section (x), 
+# define emms() do { asm volatile ("\temms\n" ::: "cc" FPU_REGS); } while(0)
+#elif __GNUC__ == 3
 # if __GNUC_MINOR__ > 4
 #  warning Compilation with your version of gcc is untested,
 #  warning may fail or create incorrect code.
@@ -89,29 +97,32 @@ extern int cpu_detection(void);
 # error Sorry, your GCC does not exist.
 #endif
 
-#define CACHE_LINE 32 // power of two
+#define CACHE_LINE 32 /* power of two */
 
-static inline const unsigned int
-swab32(unsigned int x)
+static __inline__ unsigned int
+swab32				(unsigned int		x)
 {
 	if (__builtin_constant_p(x))
-		return (((x) & 0xFFUL) << 24) | (((x) & 0xFF00UL) << 8)
-			| (((x) & 0xFF0000UL) >> 8) | (((x) & 0xFF000000UL) >> 24);
+		return ((((x) & 0xFFU) << 24) |
+			(((x) & 0xFF00U) << 8)	|
+			(((x) & 0xFF0000U) >> 8) |
+			(((x) & 0xFF000000U) >> 24));
 
-	asm volatile ("bswap %0" : "=r" (x) : "0" (x));
+	__asm__ __volatile__ ("bswap %0" : "=r" (x) : "0" (x));
 
 	return x;
 }
 
-static inline const unsigned short
-swab16(unsigned short x)
+static __inline__ unsigned short
+swab16				(unsigned short		x)
 {
 	if (__builtin_constant_p(x))
-		return (((x) & 0xFFUL) << 8) | (((x) & 0xFF00UL) >> 8);
+		return ((((x) & 0xFFU) << 8) |
+			(((x) & 0xFF00U) >> 8));
 
-	asm volatile ("xchgb %b0,%h0" : "=q" (x) : "0" (x));
+	__asm__ __volatile__ ("xchgb %b0,%h0" : "=q" (x) : "0" (x));
 
 	return x;
 }
 
-#endif // MMX_H
+#endif /* MMX_H */

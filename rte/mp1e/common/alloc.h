@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alloc.h,v 1.9 2004-08-13 01:22:06 mschimek Exp $ */
+/* $Id: alloc.h,v 1.10 2005-02-25 18:30:47 mschimek Exp $ */
 
 #ifndef ALLOC_H
 #define ALLOC_H
@@ -27,47 +27,44 @@
 #include "types.h"
 
 #ifdef HAVE_MEMALIGN
-#include <malloc.h>
-#define free_aligned(p) free(p)
+#  include <malloc.h>
+#  define free_aligned(p) free (p)
 #else
-#define free_aligned(p) free(((void **) p)[-1])
+#  define free_aligned(p) free (((void **) p)[-1])
 #endif
 
-extern void *alloc_aligned(size_t, int, rte_bool);
+void *
+alloc_aligned			(size_t			size,
+				 size_t			align,
+				 rte_bool		clear);
 
-static inline void *
-malloc_aligned(size_t size, int align)
+static __inline__ void *
+malloc_aligned			(size_t			size,
+				 size_t			align)
 {
 	void *p;
 
 #ifdef HAVE_MEMALIGN
-	p = (void *) memalign(align, size);
+	p = (void *) memalign (align, size);
 #else
-	p = alloc_aligned(size, align, FALSE);
-/*
-	if ((p = malloc(size + align)))
-		(char *) p += align - ((int) p & (align - 1));
- */
+	p = alloc_aligned (size, align, FALSE);
 #endif
 	return p;
 }
 
-static inline void *
-calloc_aligned(size_t size, int align)
+static __inline__ void *
+calloc_aligned			(size_t			size,
+				 size_t			align)
 {
 	void *p;
 
 #ifdef HAVE_MEMALIGN
-	if ((p = (void *) memalign(align, size)))
-		memset(p, 0, size);
+	if ((p = (void *) memalign (align, size)))
+		memset (p, 0, size);
 #else
-	p = alloc_aligned(size, align, TRUE);
-/*
-	if ((p = calloc(1, size + align)))
-		(char *) p += align - ((int) p & (align - 1));
- */
+	p = alloc_aligned (size, align, TRUE);
 #endif
 	return p;
 }
 
-#endif // ALLOC_H
+#endif /* ALLOC_H */

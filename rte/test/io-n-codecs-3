@@ -1,0 +1,3 @@
+#!/bin/sh
+# Missing audio codec.
+./io -x ffmpeg_mpeg1_ps -d mpeg1_video -o dummy.mpg

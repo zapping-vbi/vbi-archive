@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.37 2002-10-02 20:51:28 mschimek Exp $ */
+/* $Id: mp2.c,v 1.38 2005-02-25 18:30:30 mschimek Exp $ */
 
 #include <limits.h>
 
@@ -184,14 +184,22 @@ fetch_samples(mp2_context *mp2, int channels)
 
 			if (channels > 1) {
 				uint32_t temp;
+				uint32_t *o32;
 
 				temp = ((uint16_t *) buf->data)[mp2->i16 >> 16] << 8;	/* 00RRLL00 or 00LLRR00 */
 				temp = ((temp << 8) | temp) & 0xFF00FF00;		/* RRxxLLxx or LLxxRRxx */
 
-				*((uint32_t *) o)++ = mp2->format_sign ^ temp;
-			} else
-				*((uint16_t *) o)++ = mp2->format_sign
-					^ (((uint8_t *) buf->data)[mp2->i16 >> 16] << 8);
+				o32 = (uint32_t *) o;
+				*o32++ = mp2->format_sign ^ temp;
+				o = (unsigned char *) o32;
+			} else {
+				uint16_t *o16;
+
+				o16 = (uint16_t *) o;
+				*o16++ = mp2->format_sign
+				  ^ (((uint8_t *) buf->data)[mp2->i16 >> 16] << 8);
+				o = (unsigned char *) o16;
+			}
 
 			mp2->i16 += mp2->incr;
 		}
@@ -204,12 +212,21 @@ fetch_samples(mp2_context *mp2, int channels)
 
 			/* 16 -> 16 bit, same endian */
 
-			if (channels > 1)
-				*((uint32_t *) o)++ = mp2->format_sign
+			if (channels > 1) {
+				uint32_t *o32;
+
+				o32 = (uint32_t *) o;
+				*o32++ = mp2->format_sign
 					^ ((uint32_t *) buf->data)[mp2->i16 >> 16];
-			else
-				*((uint16_t *) o)++ = mp2->format_sign
+				o = (unsigned char *) o32;
+			} else {
+				uint16_t *o16;
+
+				o16 = (uint16_t *) o;
+				*o16++ = mp2->format_sign
 					^ ((uint16_t *) buf->data)[mp2->i16 >> 16];
+				o = (unsigned char *) o16;
+			}
 
 			mp2->i16 += mp2->incr;
 		}
@@ -511,8 +528,13 @@ encode(mp2_context *mp2, unsigned char *buf, int bpf, int channels)
 
 	bflush(&mp2->out);
 
-	while (((char *) mp2->out.p - (char *) mp2->out.p1) < bpf)
-		*((unsigned int *)(mp2->out.p))++ = 0;
+	while (((char *) mp2->out.p - (char *) mp2->out.p1) < bpf) {
+		unsigned int *p;
+
+		p = mp2->out.p;
+		*p++ = 0;
+		mp2->out.p = p;
+	}
 }
 
 #define C (&mp2->codec.codec)
@@ -616,13 +638,14 @@ audio_frame(mp2_context *mp2, int channels)
 void *
 mp1e_mp2(void *codec)
 {
+	const uint16_t cw = 0x027F;
 	mp2_context *mp2 = PARENT(codec, mp2_context, codec.codec);
 	int frame_frac = 0, channels;
 
 	printv(3, "Audio compression thread\n");
 
 	/* Round nearest, double prec, no exceptions */
-	__asm__ __volatile__ ("fldcw %0" :: "m" (0x027F));
+	__asm__ __volatile__ ("fldcw %0" :: "m" (cw));
 
 	assert(mp2->codec.codec.state == RTE_STATE_RUNNING);
 
@@ -1114,11 +1137,11 @@ option_enum(rte_codec *codec, unsigned int index)
 	/* Update backend on change */
 
 	if (codec->_class == &mp1e_mpeg1_layer2_codec) {
-		if (index < 0 || index >= elements(mpeg1_options))
+		if (index >= elements(mpeg1_options))
 			return NULL;
 		return mpeg1_options + index;
 	} else {
-		if (index < 0 || index >= elements(mpeg2_options))
+		if (index >= elements(mpeg2_options))
 			return NULL;
 		return mpeg2_options + index;
 	}

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libsystems.h,v 1.8 2002-12-14 00:43:44 mschimek Exp $ */
+/* $Id: libsystems.h,v 1.9 2005-02-25 18:30:56 mschimek Exp $ */
 
 #ifndef LIBSYSTEMS_H
 #define LIBSYSTEMS_H
@@ -64,6 +64,6 @@ extern void *                   output_thread(void * unused);
 extern int                      output_init(void);
 extern void                     output_end(void);
 
-extern char *			mpeg_header_name(unsigned int code);
+extern const char *		mpeg_header_name(unsigned int code);
 
 #endif

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vcd.c,v 1.15 2002-12-25 03:31:26 mschimek Exp $ */
+/* $Id: vcd.c,v 1.16 2005-02-25 18:30:56 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -331,6 +331,9 @@ schedule(multiplexer *mux, tstamp scr)
 
 	for_all_nodes (s, &mux->streams, fifo.node) {
 		tstamp dts = s->dts;
+
+		if (s->left < 0)
+			continue;
 
 		if (s->buf)
 			dts += (s->ptr - s->buf->data) * s->ticks_per_byte;

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bstream.h,v 1.4 2002-09-12 12:25:13 mschimek Exp $ */
+/* $Id: bstream.h,v 1.5 2005-02-25 18:30:47 mschimek Exp $ */
 
 #ifndef BITSTREAM_H
 #define BITSTREAM_H
@@ -55,6 +55,28 @@ bstartq(unsigned int v)
 		:: "rm" (v) : "cc" FPU_REGS);
 }
 
+#if __GNUC__ >= 4
+
+#define bcatq(v, n)							\
+do {									\
+	if (__builtin_constant_p(n))					\
+		__asm__ __volatile__ (					\
+			"\tpsllq %0,%%mm0;\n"				\
+			:: "i" ((n)) : "cc" FPU_REGS);			\
+	else								\
+		__asm__ __volatile__ (					\
+			"\tmovd %0,%%mm2;\n"				\
+			"\tpsllq %%mm2,%%mm0;\n"			\
+			:: "rm" ((unsigned int)(n)) : "cc" FPU_REGS);	\
+									\
+	__asm__ __volatile__ (						\
+			"\tmovd %0,%%mm1;\n"				\
+			"\tpor %%mm1,%%mm0;\n"				\
+			:: "rm" ((unsigned int)(v)) : "cc" FPU_REGS);	\
+} while (0)
+
+#else
+
 #define bcatq(v, n)							\
 do {									\
 	if (__builtin_constant_p(n))					\
@@ -78,6 +100,8 @@ do {									\
 			"\tpor %%mm1,%%mm0;\n"				\
 			:: "rm" ((unsigned int)(v)) : "cc" FPU_REGS);	\
 } while (0)
+
+#endif
 
 static inline void
 balign (struct bs_rec *b)

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: motion.c,v 1.16 2004-10-22 00:58:31 mschimek Exp $ */
+/* $Id: motion.c,v 1.17 2005-02-25 18:30:59 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -3395,7 +3395,7 @@ tmp_search(int *dhx, int *dhy, unsigned char *from,
 
 	*dhx = dx * 2;		*dhy = dy * 2;
 
-#if TEST11
+#ifdef TEST11
 	if (__builtin_expect(min < (16 * 256) && !(dx | dy), 0)) {
 
 	x *= 2;			y *= 2;
@@ -3557,7 +3557,7 @@ tmp_search(int *dhx, int *dhy, unsigned char *from,
 		}
 	}
 
-#if TEST11
+#ifdef TEST11
 bail_out:
 #endif
 	if (ii == 0) {
