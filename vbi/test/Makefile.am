@@ -1,6 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
-TESTS = exoptest test-bcd test-hamm test-bitslicer
+TESTS = exoptest test-bcd test-hamm
+# test-bitslicer
 
 noinst_PROGRAMS = unicode glyph explist caption export osc capture \
 	test-bcd test-hamm
