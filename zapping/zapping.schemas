@@ -44,7 +44,7 @@
    <default>2.5</default>
    <locale name="C">
     <short>Teletext implementation level.</short>
-    <long>Teletext implementation level. Valid values: 1.0, 1.5,
+    <long>Teletext implementation level. Valid values: 1, 1.5,
  2.5, 3.5.</long>
    </locale>
   </schema>
@@ -103,6 +103,98 @@
     <long>This is the time in milliseconds Zapping will wait between
  pointer movements and blanking the pointer when over the video. A
  value of zero disables this feature.</long>
+   </locale>
+  </schema>
+  <schema>
+   <key>/schemas/apps/zapping/plugins/teletext/view/rolling_header</key>
+   <applyto>/apps/zapping/plugins/teletext/view/rolling_header</applyto>
+   <owner>Zapping</owner>
+   <type>bool</type>
+   <default>1</default>
+   <locale name="C">
+    <short>Roll page number when waiting for a page.</short>
+    <long>Roll the page number in the header while Zapping waits
+until the requested page has been received.</long>
+   </locale>
+  </schema>
+  <schema>
+   <key>/schemas/apps/zapping/plugins/teletext/view/live_clock</key>
+   <applyto>/apps/zapping/plugins/teletext/view/live_clock</applyto>
+   <owner>Zapping</owner>
+   <type>bool</type>
+   <default>1</default>
+   <locale name="C">
+    <short>Update the clock in the page header.</short>
+   </locale>
+  </schema>
+  <schema>
+   <key>/schemas/apps/zapping/plugins/teletext/cache_size</key>
+   <applyto>/apps/zapping/plugins/teletext/cache_size</applyto>
+   <owner>Zapping</owner>
+   <type>int</type>
+   <default>1024000</default>
+   <locale name="C">
+    <short>Maximum size of the Teletext page cache in bytes.</short>
+   </locale>
+  </schema>
+  <schema>
+   <key>/schemas/apps/zapping/plugins/teletext/cache_networks</key>
+   <applyto>/apps/zapping/plugins/teletext/cache_networks</applyto>
+   <owner>Zapping</owner>
+   <type>int</type>
+   <default>1</default>
+   <locale name="C">
+    <short>Maximum number of networks in the Teletext page cache.</short>
+   </locale>
+  </schema>
+  <schema>
+   <key>/schemas/apps/zapping/plugins/teletext/view/brightness</key>
+   <applyto>/apps/zapping/plugins/teletext/view/brightness</applyto>
+   <owner>Zapping</owner>
+   <type>int</type>
+   <default>128</default>
+   <locale name="C">
+    <short>Text brightness, valid values range from 0 to 255.</short>
+   </locale>
+  </schema>
+  <schema>
+   <key>/schemas/apps/zapping/plugins/teletext/view/contrast</key>
+   <applyto>/apps/zapping/plugins/teletext/view/contrast</applyto>
+   <owner>Zapping</owner>
+   <type>int</type>
+   <default>64</default>
+   <locale name="C">
+    <short>Text contrast, valid values range from -128 to 127.</short>
+   </locale>
+  </schema>
+  <schema>
+   <key>/schemas/apps/zapping/plugins/teletext/search/regexp</key>
+   <applyto>/apps/zapping/plugins/teletext/search/regexp</applyto>
+   <owner>Zapping</owner>
+   <type>bool</type>
+   <default>1</default>
+   <locale name="C">
+    <short>Search text is a regular expression.</short>
+   </locale>
+  </schema>
+  <schema>
+   <key>/schemas/apps/zapping/plugins/teletext/search/casefold</key>
+   <applyto>/apps/zapping/plugins/teletext/search/casefold</applyto>
+   <owner>Zapping</owner>
+   <type>bool</type>
+   <default>0</default>
+   <locale name="C">
+    <short>Search case insensitive.</short>
+   </locale>
+  </schema>
+  <schema>
+   <key>/schemas/apps/zapping/plugins/teletext/search/all_channels</key>
+   <applyto>/apps/zapping/plugins/teletext/search/all_channels</applyto>
+   <owner>Zapping</owner>
+   <type>bool</type>
+   <default>0</default>
+   <locale name="C">
+    <short>Search all channels in the page memory.</short>
    </locale>
   </schema>
  </schemalist>
