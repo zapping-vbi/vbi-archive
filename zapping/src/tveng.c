@@ -171,7 +171,7 @@ tveng_device_info * tveng_device_info_new(Display * display, int bpp)
   x11_vidmode_clear_state (&new_object->priv->old_mode);
 
   pthread_mutexattr_init(&attr);
-  //  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+  /*  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE); */
   pthread_mutex_init(&(new_object->priv->mutex), &attr);
   pthread_mutexattr_destroy(&attr);
 
@@ -299,8 +299,8 @@ int tveng_attach_device(const char* device_file,
       if (tc->id == TV_CONTROL_ID_MUTE
 	  && (!tc->_ignore)
 	  && info->priv->control_mute == NULL) {
-	//	if (tv_control_callback_add (tc, NULL, (void *) deref_callback,
-	//			     &info->priv->control_mute))
+        /*	if (tv_control_callback_add (tc, NULL, (void *) deref_callback,
+		&info->priv->control_mute)) */
 	  {
 	    info->priv->control_mute = tc;
 	    info->audio_mutable = 1; /* preliminary */
@@ -854,7 +854,7 @@ tveng_set_input_by_name(const char * input_name,
   for_all (tl, info->video_inputs)
     if (tveng_normstrcmp(tl->label, input_name))
       {
-//XXX
+/*XXX*/
 	UNTVLOCK;
 	return tv_set_video_input (info, tl);
       }
@@ -2112,7 +2112,7 @@ tv_mute_get			(tveng_device_info *	info,
   t_assert (info != NULL);
   t_assert (info->current_controller != TVENG_CONTROLLER_NONE);
 
-  // XXX TVLOCK;
+  /* XXX TVLOCK;*/
 
   if ((tc = info->priv->control_mute))
     {
@@ -2183,13 +2183,13 @@ tv_bool
 tv_set_audio_mode		(tveng_device_info *	info,
 				 tv_audio_mode		mode)
 {
-  return FALSE; // XXX todo
+	return FALSE; /* XXX todo*/
 }
 
 tv_bool
 tv_audio_update			(tveng_device_info *	info)
 {
-  return FALSE; // XXX todo
+	return FALSE; /* XXX todo*/
 }
 
 /* capability or reception changes */
@@ -2281,7 +2281,7 @@ tveng_stop_capturing(tveng_device_info * info)
    the location pointed to by dest. dest can be NULL to discard.
    time: time to wait using select() in miliseconds
    info: pointer to the video device info structure
-   Returns -1 on error, anything else on success
+   Returns -1 on error, 1 on timeout, 0 on success
 */
 int tveng_read_frame(tveng_image_data * dest, 
 		     unsigned int time, tveng_device_info * info)
@@ -2796,8 +2796,8 @@ p_tveng_set_preview (int on, tveng_device_info * info)
 			return (-1);
 		}
 
-		// XXX should also check if a previous
-		// tveng_set_preview_window () failed.
+		/* XXX should also check if a previous 
+		   tveng_set_preview_window () failed. */
 	}
 
 	if (!info->priv->module.set_overlay (info, on))
@@ -2888,9 +2888,9 @@ tveng_get_zapping_setup_fb_verbosity(tveng_device_info * info)
   return (info->priv->zapping_setup_fb_verbosity);
 }
 
-// FIXME static
-// This is used because mode can be _PREVIEW or _WINDOW without
-// overlay_active due to delay timer. Don't reactivate prematurely.
+/* FIXME static
+  This is used because mode can be _PREVIEW or _WINDOW without
+  overlay_active due to delay timer. Don't reactivate prematurely. */
 static tv_bool overlay_was_active = FALSE;
 
 enum tveng_capture_mode 
@@ -2974,7 +2974,7 @@ int p_tveng_restart_everything (enum tveng_capture_mode mode,
   switch (mode)
     {
     case TVENG_CAPTURE_READ:
-      // XXX REQUIRE_IO_MODE (-1);
+	    /* XXX REQUIRE_IO_MODE (-1); */
       if (info->priv->module.start_capturing)
 	if (-1 == info->priv->module.start_capturing(info))
 	  return -1;
@@ -3174,7 +3174,7 @@ int
 tveng_ov511_get_button_state (tveng_device_info *info)
 {
 	if (!info) return -1;
-//  t_assert(info != NULL);
+/*  t_assert(info != NULL); */
 
   if (info->current_controller == TVENG_CONTROLLER_NONE)
     return -1;
@@ -4947,48 +4947,52 @@ tv_bool
 tv_image_format_init		(tv_image_format *	format,
 				 unsigned int		width,
 				 unsigned int		height,
+				 unsigned int		bytes_per_line,
 				 tv_pixfmt		pixfmt,
 				 unsigned int		reserved)
 {
-	tv_pixel_format pixel;
+	tv_pixel_format pf;
+	unsigned int min_bpl;
 
 	assert (NULL != format);
 
-	if (!tv_pixfmt_to_pixel_format (&pixel, pixfmt, 0))
+	if (!tv_pixfmt_to_pixel_format (&pf, pixfmt, 0))
 		return FALSE;
 
 	if (0 == width || 0 == height)
 		return FALSE;
 
-	if (pixel.planar) {
+	if (pf.planar) {
 		/* Round size up to U and V scale factors. */
 
-		width += pixel.uv_hscale - 1;
-		width -= width % pixel.uv_hscale;
+		width += pf.uv_hscale - 1;
+		width -= width % pf.uv_hscale;
 
-		height += pixel.uv_vscale - 1;
-		height -= height % pixel.uv_vscale;
+		height += pf.uv_vscale - 1;
+		height -= height % pf.uv_vscale;
 	}
 
 	format->width = width;
 	format->height = height;
 
-	/* No padding. */
-	format->bytes_per_line = (width * pixel.bits_per_pixel + 7) >> 3;
+	min_bpl = (width * pf.bits_per_pixel + 7) >> 3;
+
+	format->bytes_per_line = MAX (bytes_per_line, min_bpl);
 
 	format->offset = 0;
 
-	if (pixel.planar) {
+	if (pf.planar) {
 		unsigned int y_size;
 		unsigned int uv_size;
 
 		/* No padding. */
-		format->uv_bytes_per_line = width / pixel.uv_hscale;
+		format->uv_bytes_per_line =
+			format->bytes_per_line / pf.uv_hscale;
 
 		y_size = format->bytes_per_line * height;
-		uv_size = y_size / (pixel.uv_hscale * pixel.uv_vscale);
+		uv_size = y_size / (pf.uv_hscale * pf.uv_vscale);
 
-		if (pixel.vu_order) {
+		if (pf.vu_order) {
 			format->v_offset = y_size; 
 			format->u_offset = y_size + uv_size;
 		} else {
@@ -5015,55 +5019,54 @@ tv_image_format_init		(tv_image_format *	format,
 tv_bool
 tv_image_format_is_valid	(const tv_image_format *format)
 {
-	tv_pixel_format pixel;
-	unsigned int min_bytes_per_line;
+	tv_pixel_format pf;
+	unsigned int min_bpl;
 	unsigned int min_size;
 
 	assert (NULL != format);
 
-	if (!tv_pixfmt_to_pixel_format (&pixel, format->pixfmt, 0))
+	if (!tv_pixfmt_to_pixel_format (&pf, format->pixfmt, 0))
 		return FALSE;
 
 	if (0 == format->width
 	    || 0 == format->height)
 		return FALSE;
 
-	min_bytes_per_line = (format->width * pixel.bits_per_pixel + 7) >> 3;
+	min_bpl = (format->width * pf.bits_per_pixel + 7) >> 3;
 
-	if (format->bytes_per_line < min_bytes_per_line)
+	if (format->bytes_per_line < min_bpl)
 		return FALSE;
 
 	/* We don't enforce bytes_per_line padding on the last
 	   line, in case offset and bytes_per_line were adjusted
 	   for cropping. */
-	min_size = format->bytes_per_line * (format->height - 1)
-		+ min_bytes_per_line;
+	min_size = format->bytes_per_line * (format->height - 1) + min_bpl;
 
-	if (pixel.planar) {
+	if (pf.planar) {
 		unsigned int min_uv_bytes_per_line;
 		unsigned int min_uv_size;
 		unsigned int p1_offset;
 		unsigned int p2_offset;
 
-		if (0 != format->width % pixel.uv_hscale
-		    || 0 != format->height % pixel.uv_vscale)
+		if (0 != format->width % pf.uv_hscale
+		    || 0 != format->height % pf.uv_vscale)
 			return FALSE;
 
-		if (0 != format->bytes_per_line % pixel.uv_hscale)
+		if (0 != format->bytes_per_line % pf.uv_hscale)
 			return FALSE;
 
 		/* U and V bits_per_pixel assumed 8. */
-		min_uv_bytes_per_line = format->width / pixel.uv_hscale;
+		min_uv_bytes_per_line = format->width / pf.uv_hscale;
 
 		if (format->uv_bytes_per_line < min_uv_bytes_per_line)
 			return FALSE;
 
 		/* We don't enforce bytes_per_line padding on the last line. */
 		min_uv_size = format->uv_bytes_per_line
-			* (format->height / pixel.uv_vscale - 1)
+			* (format->height / pf.uv_vscale - 1)
 			+ min_uv_bytes_per_line;
 
-		if (pixel.vu_order != (format->v_offset > format->u_offset))
+		if (pf.vu_order != (format->v_offset > format->u_offset))
 			return FALSE;
 
 		if (format->u_offset > format->v_offset) {
@@ -5091,4 +5094,187 @@ tv_image_format_is_valid	(const tv_image_format *format)
 	}
 
 	return TRUE;
+}
+
+static void
+clear_block1			(uint8_t *		d,
+				 unsigned int		value,
+				 unsigned int		width,
+				 unsigned int		height,
+				 unsigned int		bytes_per_line)
+{
+	if (width == bytes_per_line) {
+		memset (d, value, width * height);
+	} else {
+		for (; height-- > 0; d += bytes_per_line)
+			memset (d, value, width);
+	}
+}
+
+static void
+clear_block3			(uint8_t *		d,
+				 unsigned int		value0,
+				 unsigned int		value1,
+				 unsigned int		value2,
+				 unsigned int		width,
+				 unsigned int		height,
+				 unsigned int		bytes_per_line)
+{
+	unsigned int i;
+
+	width *= 3;
+
+	if (width == bytes_per_line) {
+		width *= height;
+
+		if (value0 == value1 && value0 == value2) {
+			memset (d, value0, width);
+			return;
+		}
+
+		height = 1;
+	}
+
+	for (; height-- > 0; d += bytes_per_line) {
+		for (i = 0; i < width; i += 3) {
+			d[i + 0] = value0;
+			d[i + 1] = value1;
+			d[i + 2] = value2;
+		}
+	}
+}
+
+static void
+clear_block4			(uint32_t *		d,
+				 unsigned int		value,
+				 unsigned int		width,
+				 unsigned int		height,
+				 unsigned int		bytes_per_line)
+{
+	unsigned int i;
+
+	if (width * 4 == bytes_per_line) {
+		width *= height;
+
+		if (0 == (uint16_t)(value ^ (value >> 16))
+		    && 0 == (uint8_t)(value ^ (value >> 8))) {
+			memset (d, value, width * 4);
+			return;
+		}
+
+		height = 1;
+	}
+
+#if BYTE_ORDER == LITTLE_ENDIAN
+#elif BYTE_ORDER == BIG_ENDIAN
+	value = + ((value & 0xFF) << 24)
+		+ ((value & 0xFF00) << 8)
+		+ ((value & 0xFF0000) >> 8)
+		+ ((value & 0xFF000000) >> 24);
+#else
+#error unknown endianess
+#endif
+
+	while (height-- > 0) {
+		for (i = 0; i < width; ++i) {
+			d[i] = value;
+		}
+
+		d = (uint32_t *)(bytes_per_line + (char *) d);
+	}
+}
+
+tv_bool
+tv_clear_image			(void *			image,
+				 unsigned int		luma,
+				 const tv_image_format *format)
+{
+	tv_pixel_format pf;
+	tv_pixfmt_set set;
+	uint8_t *data;
+
+	assert (NULL != image);
+	assert (NULL != format);
+
+	if (!tv_pixfmt_to_pixel_format (&pf,
+					format->pixfmt,
+					format->_reserved))
+		return FALSE;
+
+	set = TV_PIXFMT_SET (format->pixfmt);
+
+	data = image;
+
+	if (set & TV_PIXFMT_SET_RGB) {
+		clear_block1 (data + format->offset, luma,
+			      (format->width * pf.bits_per_pixel) >> 3,
+			      format->height,
+			      format->bytes_per_line);
+		return TRUE;
+	} else if (set & TV_PIXFMT_SET_YUV_PLANAR) {
+		unsigned int uv_width = format->width / pf.uv_hscale;
+		unsigned int uv_height = format->height / pf.uv_vscale;
+
+		clear_block1 (data + format->offset, luma,
+			      format->width, format->height,
+			      format->bytes_per_line);
+		clear_block1 (data + format->u_offset, 0x80,
+			      uv_width, uv_height,
+			      format->uv_bytes_per_line);
+		clear_block1 (data + format->v_offset, 0x80,
+			      uv_width, uv_height,
+			      format->uv_bytes_per_line);
+		return TRUE;
+	}
+
+	switch (format->pixfmt) {
+	case TV_PIXFMT_YUV24_LE:
+	case TV_PIXFMT_YVU24_LE:
+		clear_block3 (data + format->offset, luma, 0x80, 0x80,
+			     format->width, format->height,
+			     format->bytes_per_line);
+		return TRUE;
+
+	case TV_PIXFMT_YUV24_BE:
+	case TV_PIXFMT_YVU24_BE:
+		clear_block3 (data + format->offset, 0x80, 0x80, luma,
+			     format->width, format->height,
+			     format->bytes_per_line);
+		return TRUE;
+
+	case TV_PIXFMT_YUVA24_LE:
+	case TV_PIXFMT_YVUA24_LE:
+		clear_block4 ((uint32_t *)(data + format->offset),
+			      0xFF808000 + (luma & 0xFF),
+			      format->width, format->height,
+			      format->bytes_per_line);
+		return TRUE;
+
+	case TV_PIXFMT_YUVA24_BE:
+	case TV_PIXFMT_YVUA24_BE:
+		clear_block4 ((uint32_t *)(data + format->offset),
+			      0x008080FF + (luma << 24),
+			      format->width, format->height,
+			      format->bytes_per_line);
+		return TRUE;
+
+	case TV_PIXFMT_YUYV:
+	case TV_PIXFMT_YVYU:
+		clear_block4 ((uint32_t *)(data + format->offset),
+			      0x80008000 + (luma & 0xFF) * 0x010001,
+			      format->width >> 1, format->height,
+			      format->bytes_per_line);
+		return TRUE;
+
+	case TV_PIXFMT_UYVY:
+	case TV_PIXFMT_VYUY:
+		clear_block4 ((uint32_t *)(data + format->offset),
+			      0x00800080 + (luma & 0xFF) * 0x01000100,
+			      format->width >> 1, format->height,
+			      format->bytes_per_line);
+		return TRUE;
+
+	default:
+		return FALSE;
+	}
 }
