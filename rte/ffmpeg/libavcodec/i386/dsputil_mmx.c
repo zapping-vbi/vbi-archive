@@ -180,16 +180,16 @@ static void put_pixels_mmx(UINT8 *block, const UINT8 *pixels, int line_size, int
     dh=h&3;
     while(hh--) {
     __asm __volatile(
-	"movq	%4, %%mm0\n\t"
-	"movq	%5, %%mm1\n\t"
-	"movq	%6, %%mm2\n\t"
-	"movq	%7, %%mm3\n\t"
-	"movq	%%mm0, %0\n\t"
-	"movq	%%mm1, %1\n\t"
-	"movq	%%mm2, %2\n\t"
-	"movq	%%mm3, %3\n\t"
-	:"=m"(*p), "=m"(*(p+line_size)), "=m"(*(p+line_size*2)), "=m"(*(p+line_size*3))
-	:"m"(*pix), "m"(*(pix+line_size)), "m"(*(pix+line_size*2)), "m"(*(pix+line_size*3))
+	"movq	(%1), %%mm0\n\t"
+	"movq	(%1,%2), %%mm1\n\t"
+	"movq	(%1,%2,2), %%mm2\n\t"
+	"movq	(%1,%3), %%mm3\n\t"
+	"movq	%%mm0, (%0)\n\t"
+	"movq	%%mm1, (%0,%2)\n\t"
+	"movq	%%mm2, (%0,%2,2)\n\t"
+	"movq	%%mm3, (%0,%3)\n\t"
+	:: "r"(p), "r"(pix), "r"(line_size), "r"(line_size*3)
+	 /* mhs: modified constraints for egcs */
 	:"memory");
         pix = pix + line_size*4;
         p =   p   + line_size*4;
