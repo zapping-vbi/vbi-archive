@@ -7,8 +7,7 @@
 #include <errno.h>
 #include <sys/ioctl.h>
 #include "os.h"
-#include "vt.h"
-#include "misc.h"
+#include "vbi.h"
 #include "vbi.h"
 #include "hamm.h"
 #include "lang.h"
@@ -27,7 +26,7 @@ out_of_sync(struct vbi *vbi)
     // discard all in progress pages
 
 	for (i = 0; i < 8; i++)
-		vbi->raw_page[i].page->function = PAGE_FUNCTION_DISCARD;
+		vbi->vt.raw_page[i].page->function = PAGE_FUNCTION_DISCARD;
 }
 
 // send an event to all clients
@@ -47,7 +46,7 @@ vbi_send(struct vbi *vbi, int type, int pgno, int subno, int i1, int i2, int i3,
     ev->i3 = i3;
     ev->p1 = p1;
 
-    for (cl = $ vbi->clients->first; (cln = $ cl->node->next); cl = cln)
+    for (cl = (void *) vbi->clients->first; (cln = (void *) cl->node->next); cl = cln)
 	cl->handler(cl->data, ev);
 }
 
@@ -78,13 +77,13 @@ vbi_send_page(struct vbi *vbi, struct raw_page *rvtp)
 
 
 static inline void
-dump_pagenum(vt_pagenum page)
+dump_pagenum(pagenum page)
 {
 	printf("T%x %3x/%04x\n", page.type, page.pgno, page.subno);
 }
 
 static void
-dump_extension(vt_extension *ext)
+dump_extension(extension *ext)
 {
 	int i;
 
@@ -136,7 +135,7 @@ dump_drcs(struct vt_page *vtp)
 }
 
 static void
-dump_page_info(struct vbi *vbi)
+dump_page_info(struct teletext *vt)
 {
 	int i, j;
 
@@ -145,9 +144,9 @@ dump_page_info(struct vbi *vbi)
 
 		for (j = 0; j < 8; j++)
 			printf("%02x:%02x:%04x ",
-				vbi->page_info[i + j].btt & 0xFF,
-				vbi->page_info[i + j].mip & 0xFF,
-				vbi->page_info[i + j].sub_pages & 0xFFFF);
+				vt->page_info[i + j].btt & 0xFF,
+				vt->page_info[i + j].mip & 0xFF,
+				vt->page_info[i + j].sub_pages & 0xFFFF);
 
 		putchar('\n');
 	}
@@ -155,83 +154,8 @@ dump_page_info(struct vbi *vbi)
 	putchar('\n');
 }
 
-/*
- *  ETS 300 706 Table 30: Colour Map
- */
-static const attr_rgba
-default_colour_map[40] = {
-	0xFF000000, 0xFF0000FF, 0xFF00FF00, 0xFF00FFFF,	0xFFFF0000, 0xFFFF00FF, 0xFFFFFF00, 0xFFFFFFFF,
-	0xFF000000, 0xFF000077, 0xFF007700, 0xFF007777, 0xFF770000, 0xFF770077, 0xFF777700, 0xFF777777,
-	0xFF5500FF, 0xFF0077FF, 0xFF77FF00, 0xFFBBFFFF, 0xFFAACC00, 0xFF000055, 0xFF225566, 0xFF7777CC,
-	0xFF333333, 0xFF7777FF, 0xFF77FF77, 0xFF77FFFF, 0xFFFF7777, 0xFFFF77FF, 0xFFFFFF77, 0xFFDDDDDD,
-
-	/* Private colours */
-	0xFF111111, 0xFF99AAFF, 0xFF44EE00, 0xFF00DDFF, 0xFFFFAA99, 0xFFFF00FF, 0xFFFFFF00, 0xFFEEEEEE,
-};
-
-void
-vbi_set_default_region(struct vbi *vbi, int default_region)
-{
-	int i;
-
-	for (i = 0; i < 9; i++) {
-		vt_extension *ext = &vbi->magazine[i].extension;
-
-		ext->char_set[0] =
-		ext->char_set[1] =
-			default_region;
-	}
-}
-
-void
-reset_magazines(struct vbi *vbi)
-{
-	magazine *mag;
-	vt_extension *ext;
-	int i, j;
-
-	vbi->initial_page.pgno = 0x100;
-	vbi->initial_page.subno = ANY_SUB;
-
-	vbi->top = FALSE;
-
-	memset(vbi->page_info, 0xFF, sizeof(vbi->page_info));	/* unknown */
-
-	/* Magazine defaults */
-
-	memset(vbi->magazine, 0, sizeof(vbi->magazine));
-
-	for (i = 0; i < 9; i++) {
-		mag = vbi->magazine + i;
-
-		for (j = 0; j < 16; j++) {
-			mag->pop_link[j].pgno = 0x0FF;		/* unused */
-			mag->drcs_link[j] = 0x0FF;		/* unused */
-		}
-
-		ext = &mag->extension;
-
-		ext->char_set[0]		= 16;		/* Latin G0, G2, English subset */
-		ext->char_set[0]		= 16;		/* Latin G0, English subset */
-								/* Region Western Europe and Turkey */
-		ext->def_screen_colour		= BLACK;	/* A.5 */
-		ext->def_row_colour		= BLACK;	/* A.5 */
-		ext->foreground_clut		= 0;
-		ext->background_clut		= 0;
-
-		for (j = 0; j < 8; j++)
-			ext->drcs_clut[j + 2] = j & 3;
-
-		for (j = 0; j < 32; j++)
-			ext->drcs_clut[j + 10] = j & 15;
-
-		memcpy(ext->colour_map, default_colour_map,
-			sizeof(ext->colour_map));
-	}
-}
-
 static inline bool
-hamm8_page_number(vt_pagenum *p, u8 *raw, int magazine)
+hamm8_page_number(pagenum *p, unsigned char *raw, int magazine)
 {
 	int b1, b2, b3, err, m;
 
@@ -251,7 +175,7 @@ hamm8_page_number(vt_pagenum *p, u8 *raw, int magazine)
 }
 
 static inline bool
-parse_mot(magazine *mag, u8 *raw, int packet)
+parse_mot(magazine *mag, unsigned char *raw, int packet)
 {
 	int err, i, j;
 
@@ -372,7 +296,7 @@ parse_mot(magazine *mag, u8 *raw, int packet)
 }
 
 static bool
-parse_pop(struct vt_page *vtp, u8 *raw, int packet)
+parse_pop(struct vt_page *vtp, unsigned char *raw, int packet)
 {
 	int designation, triplet[13];
 	vt_triplet *trip;
@@ -545,7 +469,7 @@ convert_drcs(struct vt_page *vtp, unsigned char *raw)
 }
 
 static inline bool
-parse_mip(struct vbi *vbi, int mag8, u8 *raw, int packet)
+parse_mip(struct teletext *vt, int mag8, unsigned char *raw, int packet)
 {
 	switch (packet) {
 	case 1 ... 8:
@@ -559,7 +483,7 @@ parse_mip(struct vbi *vbi, int mag8, u8 *raw, int packet)
 			if ((n = hamm16a(raw)) < 0)
 				continue;
 
-			vbi->page_info[index - 0x100].mip = n;
+			vt->page_info[index - 0x100].mip = n;
 		}
 
 		return TRUE;
@@ -580,7 +504,7 @@ parse_mip(struct vbi *vbi, int mag8, u8 *raw, int packet)
 			if ((n = hamm16a(raw)) < 0)
 				continue;
 
-			vbi->page_info[index - 0x100].mip = n;
+			vt->page_info[index - 0x100].mip = n;
 		}
 
 		return TRUE;
@@ -603,7 +527,7 @@ static const int dec2bcdp[20] = {
 };
 
 static bool
-top_page_number(vt_pagenum *p, u8 *raw)
+top_page_number(pagenum *p, unsigned char *raw)
 {
 	char n[8];
 	int pgno, err, i;
@@ -624,7 +548,7 @@ top_page_number(vt_pagenum *p, u8 *raw)
 }
 
 static inline bool
-parse_btt(struct vbi *vbi, u8 *raw, int packet)
+parse_btt(struct teletext *vt, unsigned char *raw, int packet)
 {
 	switch (packet) {
 	case 1 ... 20:
@@ -635,7 +559,7 @@ parse_btt(struct vbi *vbi, u8 *raw, int packet)
 		for (i = 0; i < 4; i++) {
 			for (j = 0; j < 10; index++, j++)
 				if ((n = hamm8a[*raw++]) >= 0)
-					vbi->page_info[index].btt = n;
+					vt->page_info[index].btt = n;
 
 			index += ((index & 0xFF) == 0x9A) ? 0x66 : 0x06;
 		}
@@ -645,10 +569,10 @@ parse_btt(struct vbi *vbi, u8 *raw, int packet)
 
 	case 21 ... 23:
 	    {
-		vt_pagenum *p = vbi->btt_link + (packet - 21) * 5;
+		pagenum *p = vt->btt_link + (packet - 21) * 5;
 		int i;
 
-		vbi->top = TRUE;
+		vt->top = TRUE;
 
 		for (i = 0; i < 5; raw += 8, p++, i++) {
 			if (!top_page_number(p, raw))
@@ -662,7 +586,7 @@ parse_btt(struct vbi *vbi, u8 *raw, int packet)
 			switch (p->type) {
 			case 1: // MPT?
 			case 2: // AIT?
-				vbi->page_info[p->pgno - 0x100].mip = MIP_TOP_PAGE;
+				vt->page_info[p->pgno - 0x100].mip = MIP_TOP_PAGE;
 				break;
 			}
 		}
@@ -672,13 +596,13 @@ parse_btt(struct vbi *vbi, u8 *raw, int packet)
 	}
 
 	if (0 && packet == 1)
-		dump_page_info(vbi);
+		dump_page_info(vt);
 
 	return TRUE;
 }
 
 static bool
-parse_ait(struct vt_page *vtp, u8 *raw, int packet)
+parse_ait(struct vt_page *vtp, unsigned char *raw, int packet)
 {
 	int i, n;
 	ait_entry *ait;
@@ -704,7 +628,7 @@ parse_ait(struct vt_page *vtp, u8 *raw, int packet)
 }
 
 static inline bool
-parse_mpt(struct vbi *vbi, u8 *raw, int packet)
+parse_mpt(struct teletext *vt, unsigned char *raw, int packet)
 {
 	int i, j, index;
 	char n;
@@ -717,7 +641,7 @@ parse_mpt(struct vbi *vbi, u8 *raw, int packet)
 			for (j = 0; j < 10; index++, j++)
 				if ((n = hamm8a[*raw++]) >= 0) {
 					if (n > 0)
-						vbi->page_info[index].sub_pages = n;
+						vt->page_info[index].sub_pages = n;
 				}
 
 			index += ((index & 0xFF) == 0x9A) ? 0x66 : 0x06;
@@ -727,8 +651,12 @@ parse_mpt(struct vbi *vbi, u8 *raw, int packet)
 	return TRUE;
 }
 
+/*
+ *  Since MOT, MIP and X/28 are optional, the function of a system page
+ *  may not be clear until we format a LOP and find a link of certain type.
+ */
 struct vt_page *
-convert_page(struct vbi *vbi, struct vt_page *vtp, bool cached, page_function new_function)
+vbi_convert_page(struct vbi *vbi, struct vt_page *vtp, bool cached, page_function new_function)
 {
 	struct vt_page page;
 	int i;
@@ -781,7 +709,7 @@ convert_page(struct vbi *vbi, struct vt_page *vtp, bool cached, page_function ne
 	case PAGE_FUNCTION_MPT:
 		for (i = 1; i <= 20; i++)
 			if (vtp->lop_lines & (1 << i))
-				if (!parse_mpt(vbi, vtp->data.unknown.raw[i], i))
+				if (!parse_mpt(&vbi->vt, vtp->data.unknown.raw[i], i))
 					return FALSE;
 		break;
 
@@ -1017,7 +945,7 @@ parse_x26_pdc(int address, int mode, int data)
 }
 
 static bool
-parse_bsd(u8 *raw, int packet, int designation)
+parse_bsd(unsigned char *raw, int packet, int designation)
 {
 	int err, i;
 
@@ -1155,22 +1083,8 @@ parse_bsd(u8 *raw, int packet, int designation)
 
 
 
-
-
-
-
-
-
-
-
-
-// process one videotext packet
-
-/* XXX!!! p read-only */
-
-
 bool
-vbi_packet(struct vbi *vbi, u8 *p)
+vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 {
 	struct vt_page *cvtp;
 	struct raw_page *rvtp;
@@ -1184,10 +1098,10 @@ vbi_packet(struct vbi *vbi, u8 *p)
 
 	mag0 = packet & 7;
 	mag8 = mag0 ? : 8;
-	mag = vbi->magazine + mag8;
+	mag = vbi->vt.magazine + mag8;
 	packet >>= 3;
 
-	rvtp = vbi->raw_page + mag0;
+	rvtp = vbi->vt.raw_page + mag0;
 	cvtp = rvtp->page;
 
 	p += 2;
@@ -1207,7 +1121,7 @@ vbi_packet(struct vbi *vbi, u8 *p)
 
 		pgno = mag8 * 256 + page;
 
-		while ((curr = vbi->current)) {
+		while ((curr = vbi->vt.current)) {
 			vtp = curr->page;
 
 			if (vtp->flags & C11_MAGAZINE_SERIAL) {
@@ -1246,7 +1160,7 @@ vbi_packet(struct vbi *vbi, u8 *p)
 		}
 
 		cvtp->pgno = pgno;
-		vbi->current = rvtp;
+		vbi->vt.current = rvtp;
 
 		subpage = hamm16a(p + 2) + hamm16a(p + 4) * 256;
 		flags = hamm16a(p + 6);
@@ -1293,13 +1207,13 @@ vbi_packet(struct vbi *vbi, u8 *p)
 
 			if (cvtp->pgno == 0x1F0) {
 				cvtp->function = PAGE_FUNCTION_BTT;
-				vbi->page_info[0x1F0 - 0x100].mip = MIP_TOP_PAGE;
+				vbi->vt.page_info[0x1F0 - 0x100].mip = MIP_TOP_PAGE;
 			} else if (page == 0xFD) {
 				cvtp->function = PAGE_FUNCTION_MIP;
-				vbi->page_info[(mag8 * 256) + 0xFD - 0x100].mip = MIP_SYSTEM_PAGE;
+				vbi->vt.page_info[(mag8 * 256) + 0xFD - 0x100].mip = MIP_SYSTEM_PAGE;
 			} else if (page == 0xFE) {
 				cvtp->function = PAGE_FUNCTION_MOT;
-				vbi->page_info[(mag8 * 256) + 0xFE - 0x100].mip = MIP_SYSTEM_PAGE;
+				vbi->vt.page_info[(mag8 * 256) + 0xFE - 0x100].mip = MIP_SYSTEM_PAGE;
 			} else {
 				cvtp->function = PAGE_FUNCTION_UNKNOWN;
 
@@ -1319,7 +1233,7 @@ vbi_packet(struct vbi *vbi, u8 *p)
 		if (cvtp->function == PAGE_FUNCTION_UNKNOWN) {
 			page_function function = PAGE_FUNCTION_UNKNOWN;
 
-			switch (vbi->page_info[cvtp->pgno - 0x100].mip) {
+			switch (vbi->vt.page_info[cvtp->pgno - 0x100].mip) {
 			case 0x01 ... 0x51:
 			case 0x70 ... 0x7F:
 			case 0x81 ... 0xD1:
@@ -1333,10 +1247,10 @@ vbi_packet(struct vbi *vbi, u8 *p)
 
 			case MIP_TOP_PAGE:
 				for (i = 0; i < 8; i++)
-					if (cvtp->pgno == vbi->btt_link[i].pgno)
+					if (cvtp->pgno == vbi->vt.btt_link[i].pgno)
 						break;
 				if (i < 8) {
-					switch (vbi->btt_link[i].type) {
+					switch (vbi->vt.btt_link[i].type) {
 					case 1:
 						function = PAGE_FUNCTION_MPT;
 						break;
@@ -1348,7 +1262,7 @@ vbi_packet(struct vbi *vbi, u8 *p)
 					default:
 						if (0)
 							printf("page is TOP, link %d, unknown type %d\n",
-								i, vbi->btt_link[i].type);
+								i, vbi->vt.btt_link[i].type);
 					}
 				} else if (0)
 					printf("page claims to be TOP, link not found\n");
@@ -1385,7 +1299,7 @@ vbi_packet(struct vbi *vbi, u8 *p)
 			}
 
 			if (function != PAGE_FUNCTION_UNKNOWN) {
-				convert_page(vbi, cvtp, FALSE, function);
+				vbi_convert_page(vbi, cvtp, FALSE, function);
 			}
 		}
 //XXX?
@@ -1401,12 +1315,12 @@ vbi_packet(struct vbi *vbi, u8 *p)
 			return TRUE;
 
 		case PAGE_FUNCTION_MOT:
-			if (!parse_mot(vbi->magazine + mag8, p, packet))
+			if (!parse_mot(vbi->vt.magazine + mag8, p, packet))
 				return FALSE;
 			break;
 
 		case PAGE_FUNCTION_MIP:
-			if (!parse_mip(vbi, mag8, p, packet))
+			if (!parse_mip(&vbi->vt, mag8, p, packet))
 				return FALSE;
 			break;
 
@@ -1422,7 +1336,7 @@ vbi_packet(struct vbi *vbi, u8 *p)
 			break;
 
 		case PAGE_FUNCTION_BTT:
-			if (!parse_btt(vbi, p, packet))
+			if (!parse_btt(&vbi->vt, p, packet))
 				return FALSE;
 			break;
 
@@ -1432,7 +1346,7 @@ vbi_packet(struct vbi *vbi, u8 *p)
 			break;
 
 		case PAGE_FUNCTION_MPT:
-			if (!(parse_mpt(vbi, p, packet)))
+			if (!(parse_mpt(&vbi->vt, p, packet)))
 				return FALSE;
 			break;
 
@@ -1585,7 +1499,7 @@ if(0)
 	{
 		int designation, function;
 		int triplets[13], *triplet = triplets, buf = 0, left = 0;
-		vt_extension *ext;
+		extension *ext;
 
 		static int
 		bits(int count)
@@ -1643,7 +1557,7 @@ if(0)
 
 			/* XXX X/28/0 Format 2, distinguish how? */
 
-			ext = &vbi->magazine[mag8].extension;
+			ext = &vbi->vt.magazine[mag8].extension;
 
 			if (packet == 28) {
 				if (!cvtp->data.ext_lop.ext.designations) {
@@ -1727,7 +1641,7 @@ if(0)
 
 		case 1: /* X/28/1, M/29/1 Level 3.5 DRCS CLUT */
 
-			ext = &vbi->magazine[mag8].extension;
+			ext = &vbi->vt.magazine[mag8].extension;
 
 			if (packet == 28) {
 				if (!cvtp->data.ext_lop.ext.designations) {
@@ -1795,12 +1709,12 @@ if(0)
 		if (designation > 4)
 			break;
 
-		if (!hamm8_page_number(&vbi->initial_page, p + 1, 0))
+		if (!hamm8_page_number(&vbi->vt.initial_page, p + 1, 0))
 			return FALSE;
 
-		if ((vbi->initial_page.pgno & 0xFF) == 0xFF) {
-			vbi->initial_page.pgno = 0x100;
-			vbi->initial_page.subno = ANY_SUB;
+		if ((vbi->vt.initial_page.pgno & 0xFF) == 0xFF) {
+			vbi->vt.initial_page.pgno = 0x100;
+			vbi->vt.initial_page.subno = ANY_SUB;
 		}
 
 		return parse_bsd(p, packet, designation);
@@ -1810,4 +1724,85 @@ if(0)
 	}
 
 	return TRUE;
+}
+
+/*
+ *  ETS 300 706 Table 30: Colour Map
+ */
+static const attr_rgba
+default_colour_map[40] = {
+	0xFF000000, 0xFF0000FF, 0xFF00FF00, 0xFF00FFFF,	0xFFFF0000, 0xFFFF00FF, 0xFFFFFF00, 0xFFFFFFFF,
+	0xFF000000, 0xFF000077, 0xFF007700, 0xFF007777, 0xFF770000, 0xFF770077, 0xFF777700, 0xFF777777,
+	0xFF5500FF, 0xFF0077FF, 0xFF77FF00, 0xFFBBFFFF, 0xFFAACC00, 0xFF000055, 0xFF225566, 0xFF7777CC,
+	0xFF333333, 0xFF7777FF, 0xFF77FF77, 0xFF77FFFF, 0xFFFF7777, 0xFFFF77FF, 0xFFFFFF77, 0xFFDDDDDD,
+
+	/* Private colours */
+
+	0xFF111111, 0xFF99AAFF, 0xFF44EE00, 0xFF00DDFF, 0xFFFFAA99, 0xFFFF00FF, 0xFFFFFF00, 0xFFEEEEEE,
+};
+
+/*
+ *  Public. default_region is an index into font_descriptors[]
+ *  table, lang.c.
+ */
+void
+vbi_set_default_region(struct vbi *vbi, int default_region)
+{
+	int i;
+
+	for (i = 0; i < 9; i++) {
+		extension *ext = &vbi->vt.magazine[i].extension;
+
+		ext->char_set[0] =
+		ext->char_set[1] =
+			default_region;
+	}
+}
+
+void
+vbi_init_teletext(struct teletext *vt)
+{
+	magazine *mag;
+	extension *ext;
+	int i, j;
+
+	vt->max_level = VBI_LEVEL_2p5;
+
+	vt->initial_page.pgno = 0x100;
+	vt->initial_page.subno = ANY_SUB;
+
+	vt->top = FALSE;
+
+	memset(vt->page_info, 0xFF, sizeof(vt->page_info));	/* unknown */
+
+	/* Magazine defaults */
+
+	memset(vt->magazine, 0, sizeof(vt->magazine));
+
+	for (i = 0; i < 9; i++) {
+		mag = vt->magazine + i;
+
+		for (j = 0; j < 16; j++) {
+			mag->pop_link[j].pgno = 0x0FF;		/* unused */
+			mag->drcs_link[j] = 0x0FF;		/* unused */
+		}
+
+		ext = &mag->extension;
+
+		ext->char_set[0]		= 16;		/* Latin G0, G2, English subset */
+		ext->char_set[0]		= 16;		/* Latin G0, English subset */
+								/* Region Western Europe and Turkey */
+		ext->def_screen_colour		= BLACK;	/* A.5 */
+		ext->def_row_colour		= BLACK;	/* A.5 */
+		ext->foreground_clut		= 0;
+		ext->background_clut		= 0;
+
+		for (j = 0; j < 8; j++)
+			ext->drcs_clut[j + 2] = j & 3;
+
+		for (j = 0; j < 32; j++)
+			ext->drcs_clut[j + 10] = j & 15;
+
+		memcpy(ext->colour_map, default_colour_map, sizeof(ext->colour_map));
+	}
 }

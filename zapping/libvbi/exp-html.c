@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.9 2001-02-18 07:37:26 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.10 2001-02-19 07:23:02 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -48,8 +48,8 @@
 
 struct html_data	// private data in struct export
 {
-  u8 gfx_chr;
-  u8 bare;
+  unsigned char gfx_chr;
+  unsigned char bare;
 };
 
 #define D  ((struct html_data *)e->data)

@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.9 2001-02-18 07:37:26 mschimek Exp $ */
+/* $Id: exp-txt.c,v 1.10 2001-02-19 07:23:02 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,10 +56,10 @@ static char *string_opts[] =	// module options
 
 struct txt_data			// private data in struct export
 {
-    u8 color;
-    u8 gfx_chr;
-    u8 def_fg;
-    u8 def_bg;
+    unsigned char color;
+    unsigned char gfx_chr;
+    unsigned char def_fg;
+    unsigned char def_bg;
     attr_char curr[1];
     FILE *fp;
 };
@@ -249,16 +249,18 @@ put_attr(struct export *e, attr_char *new)
  *  without a props menu.
  */
 
+#define MAX_COLUMNS 64
+
 static int
 txt_output(struct export *e, char *name, struct fmt_page *pg)
 {
     attr_char def_ac[1];
-    attr_char l[W+2];
+    attr_char l[MAX_COLUMNS+2];
     #define L (l+1)
     int x, y;
 
     D->fp = fopen(name, "w");
-    if (not D->fp)
+    if (! D->fp)
     {
 	export_error(e, "cannot create file");
 	return -1;
@@ -270,12 +272,12 @@ txt_output(struct export *e, char *name, struct fmt_page *pg)
     def_ac->foreground = D->def_fg;
     def_ac->background = D->def_bg;
     *D->curr = *def_ac;
-    L[-1] = L[W] = *def_ac;
+    L[-1] = L[pg->columns] = *def_ac;
 
-    for (y = 0; y < H; y++)
+    for (y = 0; y < pg->rows; y++)
 	{
 	    // character conversion
-	    for (x = 0; x < W; ++x)
+	    for (x = 0; x < pg->columns; ++x)
 	    {
 		attr_char ac = pg->text[y * pg->columns + x];
 
@@ -297,7 +299,7 @@ txt_output(struct export *e, char *name, struct fmt_page *pg)
 		// optimize color and attribute changes
 
 		// delay fg and attr changes as far as possible
-		for (x = 0; x < W; ++x)
+		for (x = 0; x < pg->columns; ++x)
 		    if (L[x].glyph == ' ')
 		    {
 			L[x] = L[x-1];
@@ -305,7 +307,7 @@ txt_output(struct export *e, char *name, struct fmt_page *pg)
 		    }
 
 		// move fg and attr changes to prev bg change point
-		for (x = W-1; x >= 0; x--)
+		for (x = pg->columns-1; x >= 0; x--)
 		    if (L[x].glyph == ' ' && L[x].background == L[x+1].background)
 		    {
 			L[x] = L[x+1];
@@ -314,7 +316,7 @@ txt_output(struct export *e, char *name, struct fmt_page *pg)
 	    }
 
 	    // now emit the whole line (incl EOL)
-	    for (x = 0; x < W+1; ++x)
+	    for (x = 0; x < pg->columns+1; ++x)
 		put_attr(e, L + x);
 	}
     fclose(D->fp);

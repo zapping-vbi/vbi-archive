@@ -10,7 +10,6 @@
 #include <assert.h>
 #include "libvbi.h"
 #include "vt.h"
-#include "misc.h"
 #include "export.h"
 #include "vbi.h"
 #include "hamm.h"
@@ -97,7 +96,7 @@ struct export *
 export_open(char *fmt)
 {
     struct export_module **eem, *em;
-    struct export *e;
+    struct export *e = NULL;
     char *opt, *optend, *optarg;
     int opti;
 
@@ -116,13 +115,13 @@ export_open(char *fmt)
 		e->fmt_str = fmt;
 		e->reveal = 0;
 		memset(e + 1, 0, em->local_size);
-		if (not em->open || em->open(e) == 0)
+		if (! em->open || em->open(e) == 0)
 		{
 		    for (; opt; opt = optend)
 		    {
 			if ((optend = strchr(opt, ',')))
 			    *optend++ = 0;
-			if (not *opt)
+			if (! *opt)
 			    continue;
 			if ((optarg = strchr(opt, '=')))
 			    *optarg++ = 0;
@@ -254,7 +253,7 @@ export_mkname(struct export *e, char *fmt,
 	    }
 	}
     p = strdup(bbuf);
-    if (not p)
+    if (! p)
 	export_error(e, "out of memory");
     return p;
 }

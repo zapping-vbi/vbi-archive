@@ -6,8 +6,7 @@
 #define __LIBVBI_H__
 
 #include <vt.h>
-#include <misc.h>
-#include <vbi.h>
+#include <vbi.h>	/* XXX */
 //#include <lang.h>
 #include <dllist.h>
 #include <export.h>
@@ -51,11 +50,14 @@ is_bcd(unsigned int bcd)
 }
 
 /*
- *  Teletext (teletext.c)
+ *  Teletext (teletext.c, packet.c)
  */
+
+struct vbi; /* opaque type */
 
 extern int		vbi_fetch_page(struct vbi *vbi, struct fmt_page *pg,
 				       int pgno, int subno, int display_rows, int navigation);
+extern void		vbi_set_default_region(struct vbi *vbi, int default_region);
 
 /*
  *  Navigation (teletext.c)

@@ -8,7 +8,6 @@
 #include <sys/ioctl.h>
 #include "os.h"
 #include "vt.h"
-#include "misc.h"
 #include "vbi.h"
 #include "hamm.h"
 #include "lang.h"
@@ -26,7 +25,7 @@ vbi_add_handler(struct vbi *vbi, void *handler, void *data)
 {
     struct vbi_client *cl;
 
-    if (not(cl = malloc(sizeof(*cl))))
+    if (!(cl = malloc(sizeof(*cl))))
 	return -1;
     cl->handler = handler;
     cl->data = data;
@@ -39,7 +38,7 @@ vbi_del_handler(struct vbi *vbi, void *handler, void *data)
 {
     struct vbi_client *cl;
 
-    for (cl = $ vbi->clients->first; cl->node->next; cl = $ cl->node->next)
+    for (cl = (void *) vbi->clients->first; cl->node->next; cl = (void *) cl->node->next)
 	if (cl->handler == handler && cl->data == data)
 	{
 	    dl_remove(cl->node);
@@ -76,7 +75,7 @@ vbi_mainloop(void *p)
 
 		while (items) {
 			if (s->id & SLICED_TELETEXT_B)
-				vbi_packet(vbi, s->data);
+				vbi_teletext_packet(vbi, s->data);
 /*
 			if (s->id & SLICED_CAPTION)
 				vbi_caption(vbi, s->line, s->data);
@@ -140,7 +139,7 @@ sample_beta(struct vbi *vbi)
 
 			fread(wst, 1, 42, sample_fd);
 
-			vbi_packet(vbi, wst);
+			vbi_teletext_packet(vbi, wst);
 		}
 	}
 }
@@ -154,9 +153,9 @@ vbi_open(char *vbi_name, struct cache *ca, int fine_tune)
     
     
 
-    if (not(vbi = calloc(1, sizeof(*vbi)))) // must clear for reset_magazines
+    if (!(vbi = calloc(1, sizeof(*vbi))))
     {
-	error("out of memory");
+//	error("out of memory");
 	goto fail1;
     }
 
@@ -168,13 +167,16 @@ vbi_open(char *vbi_name, struct cache *ca, int fine_tune)
 	goto fail2;
     }
 
-    vbi->max_level = VBI_LEVEL_2p5;
-
     vbi->cache = ca;
 
     dl_init(vbi->clients);
+
+	vbi_init_teletext(&vbi->vt);
+//	vbi_init_caption(&vbi->cc);
+
+	vbi->vt.max_level = VBI_LEVEL_2p5;
+
     out_of_sync(vbi);
-    reset_magazines(vbi);
 
     if (sample_file)
 	if (!(sample_fd = fopen(sample_file, "r")))
@@ -191,7 +193,6 @@ fail1:
 void
 vbi_close(struct vbi *vbi)
 {
-    reset_magazines(vbi);
 
     if (vbi->cache)
 	vbi->cache->op->close(vbi->cache);
@@ -204,5 +205,3 @@ vbi_close(struct vbi *vbi)
 
     free(vbi);
 }
-
-

@@ -2,7 +2,6 @@
 #define CACHE_H
 
 #include "vt.h"
-#include "misc.h"
 #include "dllist.h"
 
 #define HASH_SIZE	113
@@ -12,7 +11,7 @@ struct cache
     struct dl_head hash[HASH_SIZE];
     int erc;			// error reduction circuit on
     int npages;
-    u16 hi_subno[0x9ff + 1];	// 0:pg not in cache, 1-3f80:highest subno + 1
+    unsigned short hi_subno[0x9ff + 1];	// 0:pg not in cache, 1-3f80:highest subno + 1
     struct cache_ops *op;
 };
 

@@ -1,7 +1,7 @@
 /*
  *  Zapzilla - Search functions
  *
- *  Copyright (C) 2000 Michael H. Schimek
+ *  Copyright (C) 2000-2001 Michael H. Schimek
  *
  *  Based on code from AleVT 1.5.1
  *  Copyright (C) 1998,1999 Edgar Toernig (froese@gmx.de)
@@ -21,12 +21,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.10 2001-02-18 07:37:26 mschimek Exp $ */
+/* $Id: search.c,v 1.11 2001-02-19 07:23:02 mschimek Exp $ */
 
 #include <stdlib.h>
 #include "vt.h"
 #include "vbi.h"
-#include "misc.h"
 #include "cache.h"
 #include "export.h"
 #include "../common/ucs-2.h"
@@ -324,7 +323,7 @@ break2:
 
 	/* Search */
 
-	me = 0;
+	ms = me = 0;
 
 	for (i = 0; s->haystack + me < hp; i++) {
 		unsigned long ms1, me1;

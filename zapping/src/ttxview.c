@@ -39,6 +39,8 @@
 
 extern gboolean flag_exit_program;
 
+#define BLINK_CYCLE 1500 /* ms */
+
 /* targets for the clipboard */
 enum
 {
@@ -431,7 +433,7 @@ static void selection_handle		(GtkWidget	*widget,
 			       gdk_pixbuf_get_pixels(canvas), 0,
 			       data->sel_col, data->sel_row,
 			       data->sel_width, data->sel_height,
-			       gdk_pixbuf_get_rowstride(canvas), 0);
+			       gdk_pixbuf_get_rowstride(canvas), 1);
 	  gdk_pixbuf_render_to_drawable(canvas, pixmap,
 					data->da->style->white_gc, 0,
 					0, 0, 0, data->sel_width*CW,
@@ -2341,7 +2343,7 @@ build_ttxview(void)
   gtk_signal_connect (GTK_OBJECT(data->da), "selection_get",
 		      GTK_SIGNAL_FUNC (selection_handle), data);
 
-  data->blink_timeout = gtk_timeout_add(1000, ttxview_blink, data);
+  data->blink_timeout = gtk_timeout_add(BLINK_CYCLE / 4, ttxview_blink, data);
 
   gtk_toolbar_set_style(GTK_TOOLBAR(data->toolbar), GTK_TOOLBAR_ICONS);
   gtk_widget_set_usize(ttxview, 360, 400);
@@ -2465,7 +2467,7 @@ ttxview_attach			(GtkWidget	*parent,
       gdk_window_clear_area_e(data->da->window, 0, 0, w, h);
     }
 
-  data->blink_timeout = gtk_timeout_add(1000, ttxview_blink, data);
+  data->blink_timeout = gtk_timeout_add(BLINK_CYCLE / 4, ttxview_blink, data);
 
   gtk_toolbar_set_style(GTK_TOOLBAR(data->toolbar), GTK_TOOLBAR_ICONS);
 

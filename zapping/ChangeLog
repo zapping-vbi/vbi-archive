@@ -1,3 +1,9 @@
+19.2.2001	blink <mschimek@users.sourceforge.net>
+
+        * Modified phase from 50:50 to 75:25, is easier to read,
+	  and cycle time 1.5 s.
+	* libvbi/exp-gfx.c: correction, flash to background.
+
 18.2.2001	blink <garetxe@users.sourceforge.net>
 
 	* TTX: Blinking chars now blink, but needs further work. How

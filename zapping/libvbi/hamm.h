@@ -1,13 +1,13 @@
 #ifndef HAMM_H
 #define HAMM_H
 
-int hamm8(u8 *p, int *err);
-int hamm16(u8 *p, int *err);
-int hamm24(u8 *p, int *err);
-int chk_parity(u8 *p, int n);
+int hamm8(unsigned char *p, int *err);
+int hamm16(unsigned char *p, int *err);
+int hamm24(unsigned char *p, int *err);
+int chk_parity(unsigned char *p, int n);
 extern char hamm24par[3][256];
 
-extern int		hamm24a(u8 *p);
+extern int		hamm24a(unsigned char *p);
 
 extern unsigned char	bit_reverse[256];
 extern char		hamm8a[256];

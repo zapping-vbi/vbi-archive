@@ -10,7 +10,6 @@
 #include <assert.h>
 #include "libvbi.h"
 #include "vt.h"
-#include "misc.h"
 #include "export.h"
 #include "vbi.h"
 #include "hamm.h"
@@ -32,12 +31,10 @@
     XXX t2-br p. 490 
     XXX 3sat p. 888
  */
-#undef W
-#undef H
 
-#define W		40
-#define H		25
-#define LAST_ROW	((H - 1) * W)
+#define ROWS			25
+#define COLUMNS			40
+#define LAST_ROW		((ROWS - 1) * COLUMNS)
 
 /*
  *  FLOF navigation
@@ -59,7 +56,7 @@ flof_navigation_bar(struct fmt_page *pg, struct vt_page *vtp)
 	ac.opacity	= pg->page_opacity[1];
 	ac.glyph	= GL_SPACE;
 
-	for (i = 0; i < W; i++)
+	for (i = 0; i < COLUMNS; i++)
 		pg->text[LAST_ROW + i] = ac;
 
 	ac.link = TRUE;
@@ -90,8 +87,8 @@ flof_links(struct fmt_page *pg, struct vt_page *vtp)
 	attr_char *acp = pg->text + LAST_ROW;
 	int i, j, k, col = -1, start = 0;
 
-	for (i = 0; i < W + 1; i++) {
-		if (i == W || (acp[i].foreground & 7) != col) {
+	for (i = 0; i < COLUMNS + 1; i++) {
+		if (i == COLUMNS || (acp[i].foreground & 7) != col) {
 			for (k = 0; k < 4; k++)
 				if (flof_link_col[k] == col)
 					break;
@@ -110,7 +107,7 @@ flof_links(struct fmt_page *pg, struct vt_page *vtp)
 		    		pg->nav_link[k].subno = vtp->data.lop.link[k].subno;
 			}
 
-			if (i >= W)
+			if (i >= COLUMNS)
 				break;
 
 			col = acp[i].foreground & 7;
@@ -139,9 +136,9 @@ top_label(struct vbi *vbi, struct fmt_page *pg, font_descriptor *font,
 	acp = &pg->text[LAST_ROW + column];
 
 	for (i = 0; i < 8; i++)
-		if (vbi->btt_link[i].type == 2) {
+		if (vbi->vt.btt_link[i].type == 2) {
 			vtp = vbi->cache->op->get(vbi->cache,
-				vbi->btt_link[i].pgno, vbi->btt_link[i].subno, 0x3f7f);
+				vbi->vt.btt_link[i].pgno, vbi->vt.btt_link[i].subno, 0x3f7f);
 
 			if (!vtp) {
 				printv("top ait page %x not cached\n", vbi->btt_link[i].pgno);
@@ -214,7 +211,7 @@ top_navigation_bar(struct vbi *vbi, struct fmt_page *pg,
 	ac.opacity	= pg->page_opacity[1];
 	ac.glyph	= GL_SPACE;
 
-	for (i = 0; i < W; i++)
+	for (i = 0; i < COLUMNS; i++)
 		pg->text[LAST_ROW + i] = ac;
 
 	if (pg->page_opacity[1] != OPAQUE)
@@ -228,7 +225,7 @@ top_navigation_bar(struct vbi *vbi, struct fmt_page *pg,
 
 //	top_label(vbi, pg, pg->font[0], 0, vtp->pgno, RED, FALSE);
 
-	switch (vbi->page_info[vtp->pgno - 0x100].btt) {
+	switch (vbi->vt.page_info[vtp->pgno - 0x100].btt) {
 	case 1: // subtitles?
 	default:
 		break;
@@ -238,13 +235,13 @@ top_navigation_bar(struct vbi *vbi, struct fmt_page *pg,
 	case 8:
 	case 10:
 		for (i = vtp->pgno; i != vtp->pgno + 1; i = (i == 0) ? 0x89a : i - 1)
-			if (vbi->page_info[i - 0x100].btt >= 4 && vbi->page_info[i - 0x100].btt <= 7) {
+			if (vbi->vt.page_info[i - 0x100].btt >= 4 && vbi->vt.page_info[i - 0x100].btt <= 7) {
 				top_label(vbi, pg, pg->font[0], 0, i, 32 + WHITE, 0);
 				break;
 			}
 
 		for (i = vtp->pgno + 1, got = FALSE; i != vtp->pgno; i = (i == 0x899) ? 0x100 : i + 1)
-			switch (vbi->page_info[i - 0x100].btt) {
+			switch (vbi->vt.page_info[i - 0x100].btt) {
 			case 4 ... 5:
 				top_label(vbi, pg, pg->font[0], 2, i, 32 + YELLOW, 2);
 				return;
@@ -269,9 +266,9 @@ next_ait(struct vbi *vbi, int pgno, int subno)
 	int i, j;
 
 	for (i = 0; i < 8; i++) {
-		if (vbi->btt_link[i].type == 2) {
+		if (vbi->vt.btt_link[i].type == 2) {
 			vtp = vbi->cache->op->get(vbi->cache,
-				vbi->btt_link[i].pgno, vbi->btt_link[i].subno, 0x3f7f);
+				vbi->vt.btt_link[i].pgno, vbi->vt.btt_link[i].subno, 0x3f7f);
 
 			if (!vtp) {
 				printv("top ait page %x not cached\n", vbi->btt_link[i].pgno);
@@ -317,7 +314,7 @@ top_index(struct vbi *vbi, struct fmt_page *pg, int subno)
 	ac.background	= 32 + BLUE;
 	ac.glyph	= GL_SPACE;
 
-	for (i = 0; i < W * H; i++)
+	for (i = 0; i < COLUMNS * ROWS; i++)
 		pg->text[i] = ac;
 
 	ac.size = DOUBLE_SIZE;
@@ -325,12 +322,12 @@ top_index(struct vbi *vbi, struct fmt_page *pg, int subno)
 	for (i = 0; i < 5; i++) {
 		// this asks for i18n and some2glyph :-P
 		ac.glyph = "INDEX"[i];
-		pg->text[1 * W + 2 + i * 2] = ac;
+		pg->text[1 * COLUMNS + 2 + i * 2] = ac;
 	}
 
 	ac.size = NORMAL;
 
-	acp = &pg->text[4 * W];
+	acp = &pg->text[4 * COLUMNS];
 	lines = 17;
 	xpgno = 0;
 	xsubno = 0;
@@ -353,7 +350,7 @@ top_index(struct vbi *vbi, struct fmt_page *pg, int subno)
 			if (ait->text[i] > 0x20)
 				break;
 
-		switch (vbi->page_info[ait->page.pgno - 0x100].btt) {
+		switch (vbi->vt.page_info[ait->page.pgno - 0x100].btt) {
 		case 6 ... 7:
 			k = 3;
 			break;
@@ -380,7 +377,7 @@ top_index(struct vbi *vbi, struct fmt_page *pg, int subno)
 			acp[j + 35].glyph = n;
  		}
 
-		acp += W;
+		acp += COLUMNS;
 	}
 
 	return 1;
@@ -508,9 +505,9 @@ zap_links(struct fmt_page *pg, int row)
 	bool link[43];
 	int i, j, n, b;
 
-	acp = &pg->text[row * W];
+	acp = &pg->text[row * COLUMNS];
 
-	for (i = j = 0; i < W; i++) {
+	for (i = j = 0; i < COLUMNS; i++) {
 		if (acp[i].size == OVER_TOP || acp[i].size == OVER_BOTTOM)
 			continue;
 		buffer[j + 1] = glyph2latin(acp[i].glyph);
@@ -521,7 +518,7 @@ zap_links(struct fmt_page *pg, int row)
 	buffer[j + 1] = ' ';
 	buffer[j + 2] = 0;
 
-	for (i = 0; i < W; i += n) { 
+	for (i = 0; i < COLUMNS; i += n) { 
 		n = keyword(&ld, buffer, i + 1,
 			pg->pgno, pg->subno, &b);
 
@@ -529,7 +526,7 @@ zap_links(struct fmt_page *pg, int row)
 			link[i + j] = (ld.type != VBI_LINK_NONE);
 	}
 
-	for (i = j = 0; i < W; i++) {
+	for (i = j = 0; i < COLUMNS; i++) {
 		acp[i].link = link[j];
 
 		if (acp[i].size == OVER_TOP || acp[i].size == OVER_BOTTOM)
@@ -545,11 +542,11 @@ vbi_resolve_link(struct fmt_page *pg, int column, int row, vbi_link *ld)
 	attr_char *acp;
 	int i, j, b;
 
-	assert(column >= 0 && column < W);
+	assert(column >= 0 && column < COLUMNS);
 
-	acp = &pg->text[row * W];
+	acp = &pg->text[row * COLUMNS];
 
-	if (row == (H - 1) && acp[column].link) {
+	if (row == (ROWS - 1) && acp[column].link) {
 		i = pg->nav_index[column];
 
 		ld->type = VBI_LINK_PAGE;
@@ -564,7 +561,7 @@ vbi_resolve_link(struct fmt_page *pg, int column, int row, vbi_link *ld)
 		return;
 	}
 
-	for (i = j = b = 0; i < W; i++) {
+	for (i = j = b = 0; i < COLUMNS; i++) {
 		if (acp[i].size == OVER_TOP || acp[i].size == OVER_BOTTOM)
 			continue;
 		if (i < column && !acp[i].link)
@@ -611,11 +608,11 @@ vbi_page_title(struct vbi *vbi, int pgno, int subno, char *buf)
 	ait_entry *ait;
 	int i, j;
 
-	if (vbi->top) {
+	if (vbi->vt.top) {
 		for (i = 0; i < 8; i++)
-			if (vbi->btt_link[i].type == 2) {
+			if (vbi->vt.btt_link[i].type == 2) {
 				vtp = vbi->cache->op->get(vbi->cache,
-					vbi->btt_link[i].pgno, vbi->btt_link[i].subno, 0x3f7f);
+					vbi->vt.btt_link[i].pgno, vbi->vt.btt_link[i].subno, 0x3f7f);
 
 				if (!vtp) {
 					printv("p/t top ait page %x not cached\n", vbi->btt_link[i].pgno);
@@ -688,7 +685,7 @@ resolve_obj_address(struct vbi *vbi, object_type type,
 	}
 
 	if (vtp->function == PAGE_FUNCTION_UNKNOWN) {
-		if (!(vtp = convert_page(vbi, vtp, TRUE, function))) {
+		if (!(vtp = vbi_convert_page(vbi, vtp, TRUE, function))) {
 			printv("... no g/pop page or hamming error\n");
 			return 0;
 		}
@@ -739,7 +736,7 @@ resolve_obj_address(struct vbi *vbi, object_type type,
 /* XXX todo: panels */
 
 static bool
-enhance(struct vbi *vbi, magazine *mag,	vt_extension *ext,
+enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 	struct fmt_page *pg, struct vt_page *vtp,
 	object_type type, vt_triplet *p,
 	int inv_row, int inv_column)
@@ -758,7 +755,7 @@ enhance(struct vbi *vbi, magazine *mag,	vt_extension *ext,
 		int row = inv_row + active_row;
 		int i;
 
-		if (row >= H)
+		if (row >= ROWS)
 			return;
 
 		if (type == OBJ_TYPE_PASSIVE && !mac.glyph) {
@@ -854,7 +851,7 @@ enhance(struct vbi *vbi, magazine *mag,	vt_extension *ext,
 
 				case 0x0A:		/* end box */
 				case 0x0B:		/* start box */
-					if (i < W && parity(vtp->data.lop.raw[row][i]) == raw) {
+					if (i < COLUMNS && parity(vtp->data.lop.raw[row][i]) == raw) {
 						printv("... boxed term %d %02x\n", i, raw);
 						mac.opacity = 0;
 					}
@@ -914,7 +911,7 @@ enhance(struct vbi *vbi, magazine *mag,	vt_extension *ext,
 		if (type == OBJ_TYPE_PASSIVE || type == OBJ_TYPE_ADAPTIVE)
 			flush(active_column + 1);
 		else
-			flush(W);
+			flush(COLUMNS);
 
 		if (type != OBJ_TYPE_PASSIVE)
 			memset(&mac, 0, sizeof(mac));
@@ -923,7 +920,7 @@ enhance(struct vbi *vbi, magazine *mag,	vt_extension *ext,
 	active_column = 0;
 	active_row = 0;
 
-	acp = &pg->text[(inv_row + 0) * W];
+	acp = &pg->text[(inv_row + 0) * COLUMNS];
 
 	offset_column = 0;
 	offset_row = 0;
@@ -956,16 +953,17 @@ enhance(struct vbi *vbi, magazine *mag,	vt_extension *ext,
 	font = pg->font[0];
 
 	for (;; p++) {
-		if (p->address >= W) {
+		if (p->address >= COLUMNS) {
 			/*
 			 *  Row address triplets
 			 */
 			int s = p->data >> 5;
-			int column, row = (p->address - W) ? : (H - 1);
+			int row = (p->address - COLUMNS) ? : (ROWS - 1);
+			int column = 0;
 
 			switch (p->mode) {
 			case 0x00:		/* full screen colour */
-				if (vbi->max_level >= VBI_LEVEL_2p5
+				if (vbi->vt.max_level >= VBI_LEVEL_2p5
 				    && s == 0 && type <= OBJ_TYPE_ACTIVE)
 					screen_colour(pg, vtp, p->data & 0x1F);
 
@@ -981,7 +979,6 @@ enhance(struct vbi *vbi, magazine *mag,	vt_extension *ext,
 
 			case 0x01:		/* full row colour */
 				row_colour = next_row_colour;
-				column = 0;
 
 				if (s == 0) {
 					row_colour = p->data & 0x1F;
@@ -998,8 +995,8 @@ enhance(struct vbi *vbi, magazine *mag,	vt_extension *ext,
 				break;
 
 			case 0x04:		/* set active position */
-				if (vbi->max_level >= VBI_LEVEL_2p5) {
-					if (p->data >= W)
+				if (vbi->vt.max_level >= VBI_LEVEL_2p5) {
+					if (p->data >= COLUMNS)
 						break; /* reserved */
 
 					column = p->data;
@@ -1017,7 +1014,7 @@ enhance(struct vbi *vbi, magazine *mag,	vt_extension *ext,
 				active_row = row;
 				active_column = column;
 
-				acp = &pg->text[(inv_row + active_row) * W];
+				acp = &pg->text[(inv_row + active_row) * COLUMNS];
 
 				break;
 
@@ -1027,14 +1024,14 @@ enhance(struct vbi *vbi, magazine *mag,	vt_extension *ext,
 				break;
 
 			case 0x10:		/* origin modifier */
-				if (vbi->max_level < VBI_LEVEL_2p5)
+				if (vbi->vt.max_level < VBI_LEVEL_2p5)
 					break;
 
 				if (p->data >= 72)
 					break; /* invalid */
 
 				offset_column = p->data;
-				offset_row = p->address - W;
+				offset_row = p->address - COLUMNS;
 
 				printv("enh origin modifier col %+d row %+d\n",
 					offset_column, offset_row);
@@ -1047,7 +1044,7 @@ enhance(struct vbi *vbi, magazine *mag,	vt_extension *ext,
 				object_type new_type = p->mode & 3;
 				vt_triplet *trip;
 
-				if (vbi->max_level < VBI_LEVEL_2p5)
+				if (vbi->vt.max_level < VBI_LEVEL_2p5)
 					break;
 
 				printv("enh obj invocation source %d type %d\n", source, new_type);
@@ -1086,7 +1083,7 @@ enhance(struct vbi *vbi, magazine *mag,	vt_extension *ext,
 						i = 0;
 
 						if (NO_PAGE(pgno)) {
-							if (vbi->max_level < VBI_LEVEL_3p5
+							if (vbi->vt.max_level < VBI_LEVEL_3p5
 							    || NO_PAGE(pgno = mag->pop_link[8].pgno))
 								pgno = mag->pop_link[0].pgno;
 						} else
@@ -1101,7 +1098,7 @@ enhance(struct vbi *vbi, magazine *mag,	vt_extension *ext,
 								return FALSE; /* has no link (yet) */
 							}
 
-							if (vbi->max_level < VBI_LEVEL_3p5
+							if (vbi->vt.max_level < VBI_LEVEL_3p5
 							    || NO_PAGE(pgno = mag->pop_link[i + 8].pgno))
 								pgno = mag->pop_link[i + 0].pgno;
 						} else
@@ -1168,7 +1165,7 @@ enhance(struct vbi *vbi, magazine *mag,	vt_extension *ext,
 
 			switch (p->mode) {
 			case 0x00:		/* foreground colour */
-				if (vbi->max_level >= VBI_LEVEL_2p5 && s == 0) {
+				if (vbi->vt.max_level >= VBI_LEVEL_2p5 && s == 0) {
 					if (column > active_column)
 						flush(column);
 
@@ -1181,7 +1178,7 @@ enhance(struct vbi *vbi, magazine *mag,	vt_extension *ext,
 				break;
 
 			case 0x01:		/* G1 block mosaic character */
-				if (vbi->max_level >= VBI_LEVEL_2p5) {
+				if (vbi->vt.max_level >= VBI_LEVEL_2p5) {
 					if (column > active_column)
 						flush(column);
 
@@ -1197,7 +1194,7 @@ enhance(struct vbi *vbi, magazine *mag,	vt_extension *ext,
 				break;
 
 			case 0x0B:		/* G3 smooth mosaic or line drawing character */
-				if (vbi->max_level < VBI_LEVEL_2p5)
+				if (vbi->vt.max_level < VBI_LEVEL_2p5)
 					break;
 
 				/* fall through */
@@ -1214,7 +1211,7 @@ enhance(struct vbi *vbi, magazine *mag,	vt_extension *ext,
 				break;
 
 			case 0x03:		/* background colour */
-				if (vbi->max_level >= VBI_LEVEL_2p5 && s == 0) {
+				if (vbi->vt.max_level >= VBI_LEVEL_2p5 && s == 0) {
 					if (column > active_column)
 						flush(column);
 
@@ -1231,7 +1228,7 @@ enhance(struct vbi *vbi, magazine *mag,	vt_extension *ext,
 			case 0x06:		/* PDC data */
 
 			case 0x07:		/* additional flash functions */
-				if (vbi->max_level >= VBI_LEVEL_2p5) {
+				if (vbi->vt.max_level >= VBI_LEVEL_2p5) {
 					if (column > active_column)
 						flush(column);
 
@@ -1249,7 +1246,7 @@ enhance(struct vbi *vbi, magazine *mag,	vt_extension *ext,
 				break;
 
 			case 0x08:		/* modified G0 and G2 character set designation */
-				if (vbi->max_level >= VBI_LEVEL_2p5) {
+				if (vbi->vt.max_level >= VBI_LEVEL_2p5) {
 					if (column > active_column)
 						flush(column);
 
@@ -1264,7 +1261,7 @@ enhance(struct vbi *vbi, magazine *mag,	vt_extension *ext,
 				break;
 
 			case 0x09:		/* G0 character */
-				if (vbi->max_level >= VBI_LEVEL_2p5 && p->data >= 0x20) {
+				if (vbi->vt.max_level >= VBI_LEVEL_2p5 && p->data >= 0x20) {
 					if (column > active_column)
 						flush(column);
 
@@ -1278,7 +1275,7 @@ enhance(struct vbi *vbi, magazine *mag,	vt_extension *ext,
 				break;
 
 			case 0x0C:		/* display attributes */
-				if (vbi->max_level < VBI_LEVEL_2p5)
+				if (vbi->vt.max_level < VBI_LEVEL_2p5)
 					break;
 
 				if (column > active_column)
@@ -1319,7 +1316,7 @@ enhance(struct vbi *vbi, magazine *mag,	vt_extension *ext,
 				page_function function;
 				int pgno, page, i;
 
-				if (vbi->max_level < VBI_LEVEL_2p5)
+				if (vbi->vt.max_level < VBI_LEVEL_2p5)
 					break;
 
 				if (offset >= 48)
@@ -1339,7 +1336,7 @@ enhance(struct vbi *vbi, magazine *mag,	vt_extension *ext,
 						i = 0;
 
 						if (NO_PAGE(pgno)) {
-							if (vbi->max_level < VBI_LEVEL_3p5
+							if (vbi->vt.max_level < VBI_LEVEL_3p5
 							    || NO_PAGE(pgno = mag->drcs_link[8]))
 								pgno = mag->drcs_link[0];
 						} else
@@ -1354,7 +1351,7 @@ enhance(struct vbi *vbi, magazine *mag,	vt_extension *ext,
 								return FALSE; /* has no link (yet) */
 							}
 
-							if (vbi->max_level < VBI_LEVEL_3p5
+							if (vbi->vt.max_level < VBI_LEVEL_3p5
 							    || NO_PAGE(pgno = mag->drcs_link[i + 8]))
 								pgno = mag->drcs_link[i + 0];
 						} else
@@ -1378,7 +1375,7 @@ enhance(struct vbi *vbi, magazine *mag,	vt_extension *ext,
 					}
 
 					if (dvtp->function == PAGE_FUNCTION_UNKNOWN) {
-						if (!(dvtp = convert_page(vbi, dvtp, TRUE, function))) {
+						if (!(dvtp = vbi_convert_page(vbi, dvtp, TRUE, function))) {
 							printv("... no g/drcs page or hamming error\n");
 							return FALSE;
 						}
@@ -1408,25 +1405,25 @@ enhance(struct vbi *vbi, magazine *mag,	vt_extension *ext,
 				int col, row, count;
 				attr_char *acp;
 
-				if (vbi->max_level < VBI_LEVEL_3p5)
+				if (vbi->vt.max_level < VBI_LEVEL_3p5)
 					break;
 
 				row = inv_row + active_row;
 				count = (p->data >> 4) + 1;
-				acp = &pg->text[row * W];
+				acp = &pg->text[row * COLUMNS];
 
 				proportional = (p->data >> 0) & 1;
 				bold = (p->data >> 1) & 1;
 				italic = (p->data >> 2) & 1;
 
-				while (row < H && count > 0) {
-					for (col = inv_column + column; col < W; col++) {
+				while (row < ROWS && count > 0) {
+					for (col = inv_column + column; col < COLUMNS; col++) {
 						acp[col].italic = italic;
 		    				acp[col].bold = bold;
 						acp[col].proportional = proportional;
 					}
 
-					acp += W;
+					acp += COLUMNS;
 					row++;
 					count--;
 				}
@@ -1474,10 +1471,10 @@ swedish:
 #if 0
 	acp = pg->data[0];
 
-	for (active_row = 0; active_row < H; active_row++) {
+	for (active_row = 0; active_row < ROWS; active_row++) {
 		printv("%2d: ", active_row);
 
-		for (active_column = 0; active_column < W; acp++, active_column++) {
+		for (active_column = 0; active_column < COLUMNS; acp++, active_column++) {
 			printv("%04x ", acp->glyph);
 		}
 
@@ -1496,8 +1493,8 @@ post_enhance(struct fmt_page *pg)
 
 	acp = pg->text;
 
-	for (row = 0; row < H - 1; row++) {
-		for (column = 0; column < W; acp++, column++) {
+	for (row = 0; row < ROWS - 1; row++) {
+		for (column = 0; column < COLUMNS; acp++, column++) {
 //			printv("%d ", acp->size);
 
 			if (acp->opacity == TRANSPARENT_SPACE
@@ -1512,9 +1509,9 @@ post_enhance(struct fmt_page *pg)
 			switch (acp->size) {
 			case NORMAL:
 				if (row < 23
-				    && (acp[W].size == DOUBLE_HEIGHT2 || acp[W].size == DOUBLE_SIZE2)) {
-					acp[W].glyph = GL_SPACE;
-					acp[W].size = NORMAL;
+				    && (acp[COLUMNS].size == DOUBLE_HEIGHT2 || acp[COLUMNS].size == DOUBLE_SIZE2)) {
+					acp[COLUMNS].glyph = GL_SPACE;
+					acp[COLUMNS].size = NORMAL;
 				}
 
 				if (column < 39
@@ -1528,13 +1525,13 @@ post_enhance(struct fmt_page *pg)
 			case DOUBLE_HEIGHT:
 				ac = acp[0];
 				ac.size = DOUBLE_HEIGHT2;
-				acp[W] = ac;
+				acp[COLUMNS] = ac;
 				break;
 
 			case DOUBLE_SIZE:
 				ac = acp[0];
 				ac.size = DOUBLE_SIZE2;
-				acp[W] = ac;
+				acp[COLUMNS] = ac;
 				ac.size = OVER_BOTTOM;
 				acp[41] = ac;
 				/* fall through */
@@ -1556,7 +1553,7 @@ post_enhance(struct fmt_page *pg)
 
 static inline bool
 default_object_invocation(struct vbi *vbi, magazine *mag,
-	vt_extension *ext, struct fmt_page *pg, struct vt_page *vtp)
+	extension *ext, struct fmt_page *pg, struct vt_page *vtp)
 {
 	pop_link *pop;
 	int i, order;
@@ -1566,7 +1563,7 @@ default_object_invocation(struct vbi *vbi, magazine *mag,
 
 	pop = mag->pop_link + i + 8;
 
-	if (vbi->max_level < VBI_LEVEL_3p5 || NO_PAGE(pop->pgno)) {
+	if (vbi->vt.max_level < VBI_LEVEL_3p5 || NO_PAGE(pop->pgno)) {
 		pop = mag->pop_link + i;
 
 		if (NO_PAGE(pop->pgno)) {
@@ -1605,7 +1602,7 @@ vbi_format_page(struct vbi *vbi,
 {
 	char buf[16];
 	magazine *mag;
-	vt_extension *ext;
+	extension *ext;
 	int column, row, i;
 
 	if (vtp->function != PAGE_FUNCTION_LOP)
@@ -1616,11 +1613,11 @@ vbi_format_page(struct vbi *vbi,
 	pg->pgno = vtp->pgno;
 	pg->subno = vtp->subno;
 
-	pg->rows = H;
-	pg->columns = W;
+	pg->rows = ROWS;
+	pg->columns = COLUMNS;
 
-	mag = (vbi->max_level <= VBI_LEVEL_1p5) ?
-		vbi->magazine : vbi->magazine + (vtp->pgno >> 8);
+	mag = (vbi->vt.max_level <= VBI_LEVEL_1p5) ?
+		vbi->vt.magazine : vbi->vt.magazine + (vtp->pgno >> 8);
 
 	if (vtp->data.lop.ext)
 		ext = &vtp->data.ext_lop.ext;
@@ -1684,7 +1681,7 @@ vbi_format_page(struct vbi *vbi,
 		int held_mosaic_glyph;
 		bool hold, mosaic;
 		bool double_height, wide_char;
-		attr_char ac, *acp = &pg->text[row * W];
+		attr_char ac, *acp = &pg->text[row * COLUMNS];
 
 		held_mosaic_glyph = GL_CONTIGUOUS_BLOCK_MOSAIC_G1 + 0; /* blank */
 
@@ -1701,7 +1698,7 @@ vbi_format_page(struct vbi *vbi,
 		double_height	= FALSE;
 		wide_char	= FALSE;
 
-		for (column = 0; column < W; ++column) {
+		for (column = 0; column < COLUMNS; ++column) {
 			int raw;
 
 			if (row == 0 && column < 8) {
@@ -1829,38 +1826,38 @@ vbi_format_page(struct vbi *vbi,
 		}
 
 		if (double_height) {
-			for (column = 0; column < W; column++) {
+			for (column = 0; column < COLUMNS; column++) {
 				ac = acp[column];
 
 				switch (ac.size) {
 				case DOUBLE_HEIGHT:
 					ac.size = DOUBLE_HEIGHT2;
-					acp[W + column] = ac;
+					acp[COLUMNS + column] = ac;
 					break;
 		
 				case DOUBLE_SIZE:
 					ac.size = DOUBLE_SIZE2;
-					acp[W + column] = ac;
+					acp[COLUMNS + column] = ac;
 					ac.size = OVER_BOTTOM;
-					acp[W + (++column)] = ac;
+					acp[COLUMNS + (++column)] = ac;
 					break;
 
 				default: /* NORMAL, DOUBLE_WIDTH, OVER_TOP */
 					ac.size = NORMAL;
 					ac.glyph = GL_SPACE;
-					acp[W + column] = ac;
+					acp[COLUMNS + column] = ac;
 					break;
 				}
 			}
 
-			i += W;
+			i += COLUMNS;
 			row++;
 
 			pg->double_height_lower |= 1 << row;
 		}
 	}
 
-	if (row < H) {
+	if (row < ROWS) {
 		attr_char ac;
 
 		memset(&ac, 0, sizeof(ac));
@@ -1870,13 +1867,13 @@ vbi_format_page(struct vbi *vbi,
 		ac.opacity	= pg->page_opacity[1];
 		ac.glyph	= GL_SPACE;
 
-		for (i = row * W; i < H * W; i++)
+		for (i = row * COLUMNS; i < ROWS * COLUMNS; i++)
 			pg->text[i] = ac;
 	}
 
 	/* Local enhancement data and objects */
 
-	if (vbi->max_level >= VBI_LEVEL_1p5) {
+	if (vbi->vt.max_level >= VBI_LEVEL_1p5) {
 		struct fmt_page page;
 		bool success;
 
@@ -1903,13 +1900,13 @@ vbi_format_page(struct vbi *vbi,
 	/* Navigation */
 
 	if (navigation) {
-		pg->nav_link[5].pgno = vbi->initial_page.pgno;
-		pg->nav_link[5].subno = vbi->initial_page.subno;
+		pg->nav_link[5].pgno = vbi->vt.initial_page.pgno;
+		pg->nav_link[5].subno = vbi->vt.initial_page.subno;
 
-		for (row = 1; row < MIN(H - 1, display_rows); row++)
+		for (row = 1; row < MIN(ROWS - 1, display_rows); row++)
 			zap_links(pg, row);
 
-		if (display_rows >= H) {
+		if (display_rows >= ROWS) {
 			if (vtp->data.lop.flof) {
 				if (vtp->data.lop.link[5].pgno >= 0x100
 				    && vtp->data.lop.link[5].pgno <= 0x899
@@ -1922,7 +1919,7 @@ vbi_format_page(struct vbi *vbi,
 					flof_links(pg, vtp);
 				else
 					flof_navigation_bar(pg, vtp);
-			} else if (vbi->top)
+			} else if (vbi->vt.top)
 				top_navigation_bar(vbi, pg, vtp);
 		}
 	}
@@ -1939,12 +1936,12 @@ vbi_fetch_page(struct vbi *vbi, struct fmt_page *pg,
 
 	switch (pgno) {
 	case 0x900:
-		if (!vbi->top || !top_index(vbi, pg, subno))
+		if (!vbi->vt.top || !top_index(vbi, pg, subno))
 			return 0;
 
 		post_enhance(pg);
 
-		for (row = 1; row < H; row++)
+		for (row = 1; row < ROWS; row++)
 			zap_links(pg, row);
 
 		return 1;

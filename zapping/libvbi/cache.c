@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <string.h>
-#include "misc.h"
 #include "dllist.h"
 #include "cache.h"
 #include <stdio.h>
@@ -40,9 +39,9 @@ cache_close(struct cache *ca)
     int i;
 
     for (i = 0; i < HASH_SIZE; ++i)
-	while (not dl_empty(ca->hash + i))
+	while (!dl_empty(ca->hash + i))
 	{
-	    cp = $ ca->hash[i].first;
+	    cp = (void *) ca->hash[i].first;
 	    dl_remove(cp->node);
 	    free(cp);
 	}
@@ -56,7 +55,7 @@ cache_reset(struct cache *ca)
     int i;
 
     for (i = 0; i < HASH_SIZE; ++i)
-	for (cp = $ ca->hash[i].first; (cpn = $ cp->node->next); cp = cpn)
+	for (cp = (void *) ca->hash[i].first; (cpn = (void *) cp->node->next); cp = cpn)
 	    if (cp->page->pgno / 256 != 9) // don't remove help pages
 	    {
 		dl_remove(cp->node);
@@ -79,7 +78,7 @@ cache_get(struct cache *ca, int pgno, int subno, int subno_mask)
     struct cache_page *cp;
     int h = hash(pgno);
 
-    for (cp = $ ca->hash[h].first; cp->node->next; cp = $ cp->node->next) {
+    for (cp = (void *) ca->hash[h].first; cp->node->next; cp = (void *) cp->node->next) {
 	if (cp->page->pgno == pgno)
 	    if (subno == ANY_SUB || (cp->page->subno & subno_mask) == subno)
 	    {
@@ -105,8 +104,8 @@ cache_put(struct cache *ca, struct vt_page *vtp)
     int size = vtp_size(vtp);
 
 
-    for (cp = $ ca->hash[h].first;
-     cp->node->next; cp = $ cp->node->next)
+    for (cp = (void *) ca->hash[h].first;
+     cp->node->next; cp = (void *) cp->node->next)
 	if (cp->page->pgno == vtp->pgno && cp->page->subno == vtp->subno)
 	    break;
 
@@ -154,7 +153,7 @@ cache_lookup(struct cache *ca, int pgno, int subno)
     struct cache_page *cp;
     int h = hash(pgno);
 
-    for (cp = $ ca->hash[h].first; cp->node->next; cp = $ cp->node->next)
+    for (cp = (void *) ca->hash[h].first; cp->node->next; cp = (void *) cp->node->next)
 	if (cp->page->pgno == pgno)
 	    if (subno == ANY_SUB || cp->page->subno == subno)
 		return cp->page;
@@ -280,7 +279,7 @@ cache_open(void)
 //    struct vt_page *vtp;
     int i;
 
-    if (not(ca = malloc(sizeof(*ca))))
+    if (!(ca = malloc(sizeof(*ca))))
 	goto fail1;
 
     for (i = 0; i < HASH_SIZE; ++i)

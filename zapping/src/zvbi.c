@@ -71,7 +71,7 @@ struct ttx_patch {
   GdkPixbuf	*unscaled_off; /* "off" state of the patch, unscaled */
   GdkPixbuf	*scaled_on;
   GdkPixbuf	*scaled_off;
-  gboolean	state; /* current state */
+  gboolean	phase; /* flash phase 0 ... 3, 0 == off */
 };
 
 struct ttx_client {
@@ -408,12 +408,12 @@ add_patch(struct ttx_client *client, int col, int row, attr_char *ac)
   vbi_draw_page_region(&client->fp,
 		       gdk_pixbuf_get_pixels(patch.unscaled_on), 0,
 		       patch.col, patch.row, patch.width, patch.height,
-		       gdk_pixbuf_get_rowstride(patch.unscaled_on), 0);
+		       gdk_pixbuf_get_rowstride(patch.unscaled_on), 1);
 
   vbi_draw_page_region(&client->fp,
 		       gdk_pixbuf_get_pixels(patch.unscaled_off), 0,
 		       patch.col, patch.row, patch.width, patch.height,
-		       gdk_pixbuf_get_rowstride(patch.unscaled_off), 1);
+		       gdk_pixbuf_get_rowstride(patch.unscaled_off), 0);
 
   g_assert(patch.unscaled_on != NULL);
   g_assert(patch.unscaled_off != NULL);
@@ -515,7 +515,10 @@ refresh_ttx_page(int id, GtkWidget *drawable)
     for (i=0; i<client->num_patches; i++)
       {
 	p = &(client->patches[i]);
-	if (p->state)
+	p->phase = (p->phase + 1) & 3;
+	if (p->phase > 1)
+	  continue;
+	else if (p->phase)
 	  {
 	    unscaled = p->unscaled_on;
 	    scaled = p->scaled_on;
@@ -525,8 +528,6 @@ refresh_ttx_page(int id, GtkWidget *drawable)
 	    unscaled = p->unscaled_off;
 	    scaled = p->scaled_off;
 	  }
-
-	p->state = !p->state;
 
 	/* Update the unscaled version of the page */
 	gdk_pixbuf_copy_area(unscaled, 0, 0,

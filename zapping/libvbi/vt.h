@@ -1,18 +1,31 @@
+/*
+ *  Teletext decoder
+ *
+ *  Copyright (C) 2000-2001 Michael H. Schimek
+ *
+ *  Based on code from AleVT 1.5.1
+ *  Copyright (C) 1998,1999 Edgar Toernig (froese@gmx.de)
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+
 #ifndef VT_H
 #define VT_H
 
-#include "misc.h"
 #include "format.h"
-
-#define W		40
-#define H		25
-
-extern int debug;
-
-
-/*
- *
- */
+#include "../common/types.h"
 
 typedef enum {
 	PAGE_FUNCTION_DISCARD = -2,	/* private */
@@ -76,10 +89,10 @@ typedef struct {
 
 	ext_fallback	fallback;
 
-	u8		drcs_clut[2 + 2 * 4 + 2 * 16];
+	unsigned char   drcs_clut[2 + 2 * 4 + 2 * 16];
 						/* f/b, dclut4, dclut16 */
 	attr_rgba	colour_map[40];
-} vt_extension;
+} extension;
 
 typedef struct vt_triplet {
 	unsigned	address : 8;
@@ -88,17 +101,17 @@ typedef struct vt_triplet {
 } __attribute__ ((packed)) vt_triplet;
 
 typedef struct vt_pagenum {
-	unsigned	type : 4;
-	unsigned	pgno : 12;
+	unsigned	type : 8;
+	unsigned	pgno : 16;
 	unsigned	subno : 16;
-} vt_pagenum;
+} pagenum;
 
 typedef struct {
-	vt_pagenum	page;
+	pagenum	        page;
 	unsigned char	text[12];
 } ait_entry;
 
-typedef vt_triplet vt_enhancement[16 * 13 + 1];
+typedef vt_triplet enhancement[16 * 13 + 1];
 
 #define NO_PAGE(pgno) (((pgno) & 0xFF) == 0xFF)
 
@@ -106,38 +119,52 @@ typedef vt_triplet vt_enhancement[16 * 13 + 1];
 #define ANY_SUB		0x3F7F
 #endif
 
+/*                              0xE03F7F 	national character subset and sub-page */
+#define C4_ERASE_PAGE		0x000080	/* erase previously stored packets */
+#define C5_NEWSFLASH		0x004000	/* box and overlay */
+#define C6_SUBTITLE		0x008000	/* box and overlay */
+#define C7_SUPPRESS_HEADER	0x010000	/* row 0 not to be displayed */
+#define C8_UPDATE		0x020000
+#define C9_INTERRUPTED		0x040000
+#define C10_INHIBIT_DISPLAY	0x080000	/* rows 1-24 not to be displayed */
+#define C11_MAGAZINE_SERIAL	0x100000
+
 struct vt_page
 {
 	page_function		function;
+
 	int			pgno, subno;
+
 	int			national;
 	int			flags;
-	u32			lop_lines, enh_lines;		/* set of received lines */
+
+	unsigned int		lop_lines;		/* set of received lines */
+        unsigned int            enh_lines;
 
 	union {
 		struct lop {
-			u8		raw[26][40];
-			vt_pagenum	link[6 * 6];		/* X/27/0-5 links */
+			unsigned char	raw[26][40];
+		        pagenum	        link[6 * 6];		/* X/27/0-5 links */
 			char		flof, ext;
 		}		unknown, lop;
 		struct {
 			struct lop	lop;
-			vt_enhancement	enh;
+			enhancement	enh;
 		}		enh_lop;
 		struct {
 			struct lop	lop;
-			vt_enhancement	enh;
-			vt_extension	ext;
+			enhancement	enh;
+			extension	ext;
 		}		ext_lop;
 		struct {
-			u16		pointer[96];
+			unsigned short	pointer[96];
 			vt_triplet	triplet[39 * 13 + 1];
 // XXX preset [+1] mode (not 0xFF) or catch
 		}		gpop, pop;
 		struct {
-			u8			raw[26][40];
-			u8			bits[48][12 * 10 / 2];
-			u8			mode[48];
+			unsigned char		raw[26][40];
+			unsigned char		bits[48][12 * 10 / 2];
+			unsigned char		mode[48];
 			unsigned long long	invalid;
 		}		gdrcs, drcs;
 
@@ -154,7 +181,7 @@ struct vt_page
 static inline int
 vtp_size(struct vt_page *vtp)
 {
-/*	switch (vtp->function) {
+	switch (vtp->function) {
 	case PAGE_FUNCTION_UNKNOWN:
 	case PAGE_FUNCTION_LOP:
 		if (vtp->data.lop.ext)
@@ -177,22 +204,9 @@ vtp_size(struct vt_page *vtp)
 
 	default:
 	}
-*/
+
 	return sizeof(*vtp);
 }
-
-/*                              0xE03F7F 	national character subset and sub-page */
-#define C4_ERASE_PAGE		0x000080	/* erase previously stored packets */
-#define C5_NEWSFLASH		0x004000	/* box and overlay */
-#define C6_SUBTITLE		0x008000	/* box and overlay */
-#define C7_SUPPRESS_HEADER	0x010000	/* row 0 not to be displayed */
-#define C8_UPDATE		0x020000
-#define C9_INTERRUPTED		0x040000
-#define C10_INHIBIT_DISPLAY	0x080000	/* rows 1-24 not to be displayed */
-#define C11_MAGAZINE_SERIAL	0x100000
-
-
-
 
 #define MIP_NO_PAGE		0x00
 #define MIP_NORMAL_PAGE		0x01
@@ -234,7 +248,7 @@ typedef struct {
 } pop_link;
 
 typedef struct {
-	vt_extension	extension;
+	extension	extension;
 
 	unsigned char	pop_lut[256];
 	unsigned char	drcs_lut[256];
@@ -243,9 +257,44 @@ typedef struct {
 	int		drcs_link[16];	/* pgno */
 } magazine;
 
+struct raw_page
+{
+	struct vt_page		page[1];
+        unsigned char	        drcs_mode[48];
+	int			num_triplets;
+	int			ait_page;
+};
 
+typedef enum {
+	VBI_LEVEL_1,
+	VBI_LEVEL_1p5,
+	VBI_LEVEL_2p5,
+	VBI_LEVEL_3p5
+} vbi_wst_level;
 
+struct teletext {
+	vbi_wst_level		max_level;
 
+        pagenum		        initial_page;
+	magazine		magazine[9];		/* 1 ... 8; #0 unmodified level 1.5 default */
 
+	struct {
+		signed char		btt;
+		unsigned char		mip;
+		unsigned short		sub_pages;
+	}			page_info[0x800];
+
+	pagenum		        btt_link[15];
+	bool			top;			/* use top navigation, flof overrides */
+
+	struct raw_page		raw_page[8];
+	struct raw_page		*current;
+};
+
+struct vbi; /* parent of struct teletext, here for vbi->cache */
+
+extern void		vbi_init_teletext(struct teletext *vt);
+extern bool		vbi_teletext_packet(struct vbi *vbi, unsigned char *p);
+extern struct vt_page *	vbi_convert_page(struct vbi *vbi, struct vt_page *vtp, bool cached, page_function new_function);
 
 #endif

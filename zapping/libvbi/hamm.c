@@ -1,4 +1,3 @@
-#include "misc.h"
 #include "hamm.h"
 
 // table to decode hamm8/4 encoded bytes.
@@ -251,7 +250,7 @@ bit_reverse[256] = {
 
 
 int
-hamm8(u8 *p, int *err)
+hamm8(unsigned char *p, int *err)
 {
     int a = hammtab[p[0]];
     *err += a;
@@ -259,7 +258,7 @@ hamm8(u8 *p, int *err)
 }
 
 int
-hamm16(u8 *p, int *err)
+hamm16(unsigned char *p, int *err)
 {
     int a = hammtab[p[0]];
     int b = hammtab[p[1]];
@@ -269,7 +268,7 @@ hamm16(u8 *p, int *err)
 }
 
 int
-hamm24(u8 *p, int *err)
+hamm24(unsigned char *p, int *err)
 {
     int e = hamm24par[0][p[0]] ^ hamm24par[1][p[1]] ^ hamm24par[2][p[2]];
     int x = hamm24val[p[0]] + p[1] % 128 * 16 + p[2] % 128 * 2048;
@@ -279,7 +278,7 @@ hamm24(u8 *p, int *err)
 }
 
 int
-hamm24a(u8 *p)
+hamm24a(unsigned char *p)
 {
 	int e = hamm24par[0][p[0]] ^ hamm24par[1][p[1]] ^ hamm24par[2][p[2]];
 	int x = hamm24val[p[0]] + p[1] % 128 * 16 + p[2] % 128 * 2048;
@@ -288,7 +287,7 @@ hamm24a(u8 *p)
 }
 
 int
-chk_parity(u8 *p, int n)
+chk_parity(unsigned char *p, int n)
 {
     int err;
 
@@ -299,3 +298,12 @@ chk_parity(u8 *p, int n)
 	    *p = 0x20, err++;
     return err;
 }
+
+
+
+
+
+
+
+
+

@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.11 2001-02-18 07:37:26 mschimek Exp $ */
+/* $Id: caption.c,v 1.12 2001-02-19 07:23:02 mschimek Exp $ */
 
 #define TEST 1
 
@@ -51,6 +51,8 @@
 
 typedef char bool;
 enum { FALSE, TRUE };
+
+#include "cc.h"
 
 unsigned char
 odd_parity[256] =
@@ -333,15 +335,10 @@ xds_decoder(int class, int type, char *buffer, int length)
 	}
 }
 
-struct sub_packet {
-	int		count;
-	int		chksum;
-	char		buffer[32];
-} sub[4][0x18], *current;
-
 void
-xds_separator(unsigned char *buf)
+xds_separator(struct caption *cc, unsigned char *buf)
 {
+	xds_sub_packet *sp = cc->curr_sp;
 	int c1 = parity(buf[0]);
 	int c2 = parity(buf[1]);
 	int class, type;
@@ -352,10 +349,10 @@ xds_separator(unsigned char *buf)
 	if ((c1 | c2) < 0) {
 //		printf("XDS tx error, discard current packet\n");
 
-		if (current) {
-			current->count = 0;
-			current->chksum = 0;
-			current = NULL;
+		if (sp) {
+			sp->count = 0;
+			sp->chksum = 0;
+			sp = NULL;
 		}
 
 		return;
@@ -365,23 +362,23 @@ xds_separator(unsigned char *buf)
 	case 1 ... 14:
 		class = (c1 - 1) >> 1;
 
-		if (class > sizeof(sub) / sizeof(sub[0])
-		    || c2 > sizeof(sub[0]) / sizeof(sub[0][0]))
+		if (class > sizeof(cc->sub_packet) / sizeof(cc->sub_packet[0])
+		    || c2 > sizeof(cc->sub_packet[0]) / sizeof(cc->sub_packet[0][0]))
 		{
 //			printf("XDS ignore packet %d/0x%02x\n", class, c2);
-			current = NULL;
+			cc->curr_sp = NULL;
 			return;
 		}
 
-		current = &sub[class][c2];
+		cc->curr_sp = sp = &cc->sub_packet[class][c2];
 
 		if (c1 & 1) { /* start */
-			current->chksum = c1 + c2;
-			current->count = 2;
+			sp->chksum = c1 + c2;
+			sp->count = 2;
 		} else {
-			if (!current->count) {
+			if (!sp->count) {
 //				printf("XDS can't continue %d/0x%02x\n", class, c2);
-				current = NULL;
+				cc->curr_sp = NULL;
 				return;
 			}
 		}
@@ -389,52 +386,52 @@ xds_separator(unsigned char *buf)
 		return;
 
 	case 15:
-		if (!current)
+		if (!sp)
 			return;
 
-		current->chksum += c1 + c2;
+		sp->chksum += c1 + c2;
 
-		class = (current - sub[0]) / (sizeof(sub[0]) / sizeof(sub[0][0]));
-		type = (current - sub[0]) % (sizeof(sub[0]) / sizeof(sub[0][0]));
+		class = (sp - cc->sub_packet[0]) / (sizeof(cc->sub_packet[0]) / sizeof(cc->sub_packet[0][0]));
+		type = (sp - cc->sub_packet[0]) % (sizeof(cc->sub_packet[0]) / sizeof(cc->sub_packet[0][0]));
 
-		if (current->chksum & 0x7F) {
+		if (sp->chksum & 0x7F) {
 //			printf("XDS ignore packet %d/0x%02x, checksum error\n", class, type);
-		} else if (current->count <= 2) {
+		} else if (sp->count <= 2) {
 //			printf("XDS ignore empty packet %d/0x%02x\n", class, type);
 		} else {
-			xds_decoder(class, type, current->buffer, current->count - 2);
+			xds_decoder(class, type, sp->buffer, sp->count - 2);
 /*
-	for (i = 0; i < current->count - 2; i++)
-		printf("%c", printable(current->buffer[i]));
+	for (i = 0; i < sp->count - 2; i++)
+		printf("%c", printable(sp->buffer[i]));
 	printf(" %d/0x%02x\n", class, type);
 */
 		}
 
-		current->count = 0;
-		current->chksum = 0;
-		current = NULL;
+		sp->count = 0;
+		sp->chksum = 0;
+		cc->curr_sp = NULL;
 
 		return;
 
 	case 0x20 ... 0x7F:
-		if (!current)
+		if (!sp)
 			return;
 
-		if (current->count >= 32 + 2) {
+		if (sp->count >= 32 + 2) {
 //			printf("XDS packet length overflow, discard %d/0x%02x\n",
-//				(current - sub[0]) / sizeof(sub[0]),
-//				(current - sub[0]) % sizeof(sub[0][0]));
+//				(sp - cc->sub_packet[0]) / sizeof(cc->sub_packet[0]),
+//				(sp - cc->sub_packet[0]) % sizeof(cc->sub_packet[0][0]));
 
-			current->count = 0;
-			current->chksum = 0;
-			current = NULL;
+			sp->count = 0;
+			sp->chksum = 0;
+			cc->curr_sp = NULL;
 			return;
 		}
 
-		current->buffer[current->count - 2] = c1;
-		current->buffer[current->count - 1] = c2;
-		current->chksum += c1 + c2;
-		current->count += 1 + !!c2;
+		sp->buffer[sp->count - 2] = c1;
+		sp->buffer[sp->count - 1] = c2;
+		sp->chksum += c1 + c2;
+		sp->count += 1 + !!c2;
 
 		return;
 
@@ -448,9 +445,6 @@ xds_separator(unsigned char *buf)
  *
  *  http://developer.webtv.net
  */
-
-char itv_buf[256];
-int itv_count = 0;
 
 char *itv_key[] = { "program", "network", "station", "sponsor", "operator", NULL };
 
@@ -470,10 +464,10 @@ itv_chksum(char *s, unsigned int sum)
 }
 
 static void
-itv_decoder(char *s1)
+itv_decoder(struct caption *cc, char *s1)
 {
 	char *s, *e;
-	char *d, ripped[sizeof(itv_buf)];
+	char *d, ripped[sizeof(cc->itv_buf)];
 	int type = -1, view = 'w';
 	char *url = NULL, *name = NULL;
 	char *script = NULL, *expires = "29991231T235959";
@@ -584,29 +578,32 @@ itv_decoder(char *s1)
 }
 
 void
-itv_separator(char c)
+itv_separator(struct caption *cc, char c)
 {
 	if (c >= 0x20) {
 		if (c == '<') // s4nbc omitted CR
-			itv_separator(0);
-		else if (itv_count > sizeof(itv_buf) - 2)
-			itv_count = 0;
+			itv_separator(cc, 0);
+		else if (cc->itv_count > sizeof(cc->itv_buf) - 2)
+			cc->itv_count = 0;
 
-		itv_buf[itv_count++] = c;
+		cc->itv_buf[cc->itv_count++] = c;
 
 		return;
 	}
 
-	itv_buf[itv_count] = 0;
-	itv_count = 0;
+	cc->itv_buf[cc->itv_count] = 0;
+	cc->itv_count = 0;
 
-	itv_decoder(itv_buf);
+	itv_decoder(cc,  cc->itv_buf);
 }
 
 /* Caption */
 
 #include "ccfont.xbm"
 #include "format.h"
+
+#define ROWS			15
+#define COLUMNS			34
 
 /*
  *  Render <row> 0 ... 14 or -1 all rows, from <pg->text> if you're
@@ -665,10 +662,8 @@ extern void roll_up(struct fmt_page *pg, int first_row, int last_row);
  *
  */
 
-#define NUM_COLS	34
-#define NUM_ROWS	15
 
-#define CODE_PAGE	(8 * 256)
+//#define CODE_PAGE	(8 * 256)
 /*
  *  Any, refers to the 256 glyphs in ccfont.xbm.
  *  The character cell is 16 x 26 pixels matching a
@@ -677,37 +672,9 @@ extern void roll_up(struct fmt_page *pg, int first_row, int last_row);
  *  Must scale text for other aspects accordingly.
  */
 
-#define CC_PAGE_BASE	1
-
-typedef enum {
-	NO_MODE, POP_ON, PAINT_ON, ROLL_UP, TEXT
-} mode;
-
-struct caption {
-	unsigned char	last[2];
-
-	int		chan;
-	attr_char	transp_space[2];	/* caption, text mode */
-
-	struct ch_rec {
-		mode		mode;
-		int		col, col1;
-		int		row, row1;
-		int		roll;
-		int		nul_ct;
-// XXX should be 'silence count'
-		bool		redraw_all;
-		bool		italic;
-		attr_char	attr;
-		attr_char *	line;
-		struct fmt_page	pg;
-	}		channels[8];		/* caption 1-4, text 1-4 */
-
-	bool		xds;
-};
 
 static void
-word_break(struct caption *cc, struct ch_rec *ch)
+word_break(struct caption *cc, channel *ch)
 {
 	/*
 	 *  Add a leading and trailing space.
@@ -730,7 +697,7 @@ word_break(struct caption *cc, struct ch_rec *ch)
 		}
 	}
 
-	if (ch->mode == POP_ON)
+	if (ch->mode == MODE_POP_ON)
 		return;
 
 	/*
@@ -747,23 +714,23 @@ word_break(struct caption *cc, struct ch_rec *ch)
 }
 
 static inline void
-set_cursor(struct ch_rec *ch, int col, int row)
+set_cursor(channel *ch, int col, int row)
 {
 	ch->col = ch->col1 = col;
 	ch->row = row;
 
-	ch->line = ch->pg.text + row * NUM_COLS;
+	ch->line = ch->pg.text + row * COLUMNS;
 }
 
 static void
-put_char(struct caption *cc, struct ch_rec *ch, attr_char c)
+put_char(struct caption *cc, channel *ch, attr_char c)
 {
-	if (ch->col < NUM_COLS - 1)
+	if (ch->col < COLUMNS - 1)
 		ch->line[ch->col++] = c;
 	else {
 		/* line break here? */
 
-		ch->line[NUM_COLS - 2] = c;
+		ch->line[COLUMNS - 2] = c;
 	}
 
 	if ((c.glyph & 0x7F) == 0x20)
@@ -773,21 +740,21 @@ put_char(struct caption *cc, struct ch_rec *ch, attr_char c)
 // render(&ch->pg, -1);
 }
 
-static inline struct ch_rec *
-switch_channel(struct caption *cc, struct ch_rec *ch, int new_chan)
+static inline channel *
+switch_channel(struct caption *cc, channel *ch, int new_chan)
 {
 	word_break(cc, ch); // we leave for a number of frames
 
-	return &cc->channels[cc->chan = new_chan];
+	return &cc->channel[cc->curr_chan = new_chan];
 }
 
 static void
-erase_memory(struct caption *cc, struct ch_rec *ch)
+erase_memory(struct caption *cc, channel *ch)
 {
-	attr_char c = cc->transp_space[ch >= &cc->channels[4]];
+	attr_char c = cc->transp_space[ch >= &cc->channel[4]];
 	int i;
 
-	for (i = 0; i < NUM_ROWS * NUM_COLS; i++)
+	for (i = 0; i < COLUMNS * ROWS; i++)
 		ch->pg.text[i] = c;
 }
 
@@ -806,12 +773,12 @@ static inline void
 caption_command(struct caption *cc,
 	unsigned char c1, unsigned char c2, bool field2)
 {
-	struct ch_rec *ch;
+	channel *ch;
 	int chan, col, i;
 	int last_row;
 
-	chan = (cc->chan & 4) + field2 * 2 + ((c1 >> 3) & 1);
-	ch = &cc->channels[chan];
+	chan = (cc->curr_chan & 4) + field2 * 2 + ((c1 >> 3) & 1);
+	ch = &cc->channel[chan];
 
 	c1 &= 7;
 
@@ -828,7 +795,7 @@ caption_command(struct caption *cc,
 
 		word_break(cc, ch);
 
-		if (ch->mode == ROLL_UP) {
+		if (ch->mode == MODE_ROLL_UP) {
 #if 0 // questionable
 			int bottom = row + ch->roll - 1;
 
@@ -866,7 +833,7 @@ caption_command(struct caption *cc,
 		if (c2 & 0x10) {
 			col = ch->col;
 
-			for (i = (c2 & 14) * 2; i > 0 && col < NUM_COLS - 1; i--)
+			for (i = (c2 & 14) * 2; i > 0 && col < COLUMNS - 1; i--)
 				ch->line[col++] = cc->transp_space[chan >> 2];
 
 			if (col > ch->col)
@@ -903,11 +870,11 @@ caption_command(struct caption *cc,
 			c2 &= 15;
 
 			if (c2 == 9) { // "transparent space"
-				if (ch->col < NUM_COLS - 1) {
+				if (ch->col < COLUMNS - 1) {
 					ch->line[ch->col++] = cc->transp_space[chan >> 2];
 					ch->col1 = ch->col;
 				} else
-					ch->line[NUM_COLS - 2] = cc->transp_space[chan >> 2];
+					ch->line[COLUMNS - 2] = cc->transp_space[chan >> 2];
 					// XXX boxed logic?
 			} else {
 				attr_char c = ch->attr;
@@ -947,7 +914,7 @@ caption_command(struct caption *cc,
 		case 0:		/* Resume Caption Loading	001 c10f  010 0000 */
 			ch = switch_channel(cc, ch, chan & 3);
 
-			ch->mode = POP_ON;
+			ch->mode = MODE_POP_ON;
 
 // no?			erase_memory(cc, ch);
 
@@ -963,12 +930,12 @@ caption_command(struct caption *cc,
 
 			ch = switch_channel(cc, ch, chan & 3);
 
-			if (ch->mode == ROLL_UP && ch->roll == roll)
+			if (ch->mode == MODE_ROLL_UP && ch->roll == roll)
 				return;
 
 			erase_memory(cc, ch);
 			ch->redraw_all = TRUE;
-			ch->mode = ROLL_UP;
+			ch->mode = MODE_ROLL_UP;
 			ch->roll = roll;
 			set_cursor(ch, 1, 14);
 			ch->row1 = 14 - roll + 1;
@@ -979,7 +946,7 @@ caption_command(struct caption *cc,
 		case 9:		/* Resume Direct Captioning	001 c10f  010 1001 */
 // not verified
 			ch = switch_channel(cc, ch, chan & 3);
-			ch->mode = PAINT_ON;
+			ch->mode = MODE_PAINT_ON;
 			return;
 
 		case 10:	/* Text Restart			001 c10f  010 1010 */
@@ -995,7 +962,7 @@ caption_command(struct caption *cc,
 
 		case 15:	/* End Of Caption		001 c10f  010 1111 */
 			ch = switch_channel(cc, ch, chan & 3);
-			ch->mode = POP_ON;
+			ch->mode = MODE_POP_ON;
 
 			word_break(cc, ch);
 
@@ -1009,7 +976,7 @@ caption_command(struct caption *cc,
 			 *  reset to a known state to be safe.
 			 *  XXX row 0?
 			 */
-			set_cursor(ch, 1, NUM_ROWS - 1);
+			set_cursor(ch, 1, ROWS - 1);
 
 			return;
 
@@ -1032,31 +999,31 @@ caption_command(struct caption *cc,
 		case 13:	/* Carriage Return		001 c10f  010 1101 */
 // s1: appears in text mode only
 // s4: in roll-up mode
-			if (ch == cc->channels + 5)
-				itv_separator(0);
+			if (ch == cc->channel + 5)
+				itv_separator(cc, 0);
 
 			if (!ch->mode)
 				return;
 
 			last_row = ch->row1 + ch->roll - 1;
 
-			if (last_row > NUM_ROWS - 1)
-				last_row = NUM_ROWS - 1;
+			if (last_row > ROWS - 1)
+				last_row = ROWS - 1;
 
 			word_break(cc, ch);
 
 			if (ch->row < last_row)
 				set_cursor(ch, 1, ch->row + 1);
 			else {
-				if (ch->mode != POP_ON)
+				if (ch->mode != MODE_POP_ON)
 					roll_up(&ch->pg, ch->row1, last_row);
 
-				memmove(ch->pg.text + ch->row1 * NUM_COLS,
-					ch->pg.text + (ch->row1 + 1) * NUM_COLS,
-					(ch->roll - 1) * NUM_COLS);
+				memmove(ch->pg.text + ch->row1 * COLUMNS,
+					ch->pg.text + (ch->row1 + 1) * COLUMNS,
+					(ch->roll - 1) * COLUMNS);
 
-//				for (i = 1; i <= NUM_COLS - 1 /* ! */; i++)
-				for (i = 0; i <= NUM_COLS; i++)
+//				for (i = 1; i <= COLUMNS - 1 /* ! */; i++)
+				for (i = 0; i <= COLUMNS; i++)
 					ch->line[i] = cc->transp_space[chan >> 2];
 
 				ch->col1 = ch->col = 1;
@@ -1069,7 +1036,7 @@ caption_command(struct caption *cc,
 			if (!ch->mode)
 				return;
 
-			for (i = ch->col; i <= NUM_COLS - 1; i++)
+			for (i = ch->col; i <= COLUMNS - 1; i++)
 				ch->line[i] = cc->transp_space[chan >> 2];
 
 			word_break(cc, ch);
@@ -1082,7 +1049,7 @@ caption_command(struct caption *cc,
 		case 12:	/* Erase Displayed Memory	001 c10f  010 1100 */
 // s1, s4: EDM always before EOC
 
-			if (ch->mode == POP_ON) {
+			if (ch->mode == MODE_POP_ON) {
 				clear(CC_PAGE_BASE + chan);
 				ch->redraw_all = FALSE;
 			} else {
@@ -1094,7 +1061,7 @@ caption_command(struct caption *cc,
 
 		case 14:	/* Erase Non-Displayed Memory	001 c10f  010 1110 */
 // not verified
-			if (ch->mode == POP_ON)
+			if (ch->mode == MODE_POP_ON)
 				erase_memory(cc, ch);
 
 			return;
@@ -1113,7 +1080,7 @@ caption_command(struct caption *cc,
 // not verified
 			col = ch->col;
 
-			for (i = c2 & 3; i > 0 && col < NUM_ROWS - 1; i--)
+			for (i = c2 & 3; i > 0 && col < ROWS - 1; i--)
 				ch->line[col++] = cc->transp_space[chan >> 2];
 
 			if (col > ch->col)
@@ -1160,17 +1127,17 @@ dispatch_caption(struct caption *cc, unsigned char *buf, bool field2)
 			if (c1 == 0)
 				return;
 			else if (c1 <= 0x0F) {
-				xds_separator(buf);
+				xds_separator(cc, buf);
 				cc->xds = (c1 != XDS_END);
 				return;
 			} else if (c1 <= 0x1F) {
 				cc->xds = FALSE;
 			} else if (cc->xds) {
-				xds_separator(buf);
+				xds_separator(cc, buf);
 				return;
 			}
 		} else if (cc->xds) {
-			xds_separator(buf);
+			xds_separator(cc, buf);
 			return;
 		}
 	}
@@ -1181,7 +1148,7 @@ dispatch_caption(struct caption *cc, unsigned char *buf, bool field2)
 	}
 
 	switch (c1) {
-		struct ch_rec *ch;
+		channel *ch;
 		attr_char c;
 
 	case 0x01 ... 0x0F:
@@ -1211,7 +1178,7 @@ dispatch_caption(struct caption *cc, unsigned char *buf, bool field2)
 		return;
 
 	default:
-		ch = &cc->channels[(cc->chan & 5) + field2 * 2];
+		ch = &cc->channel[(cc->curr_chan & 5) + field2 * 2];
 
 		if (buf[0] == 0x80 && buf[1] == 0x80) {
 			if (ch->mode) {
@@ -1239,8 +1206,8 @@ dispatch_caption(struct caption *cc, unsigned char *buf, bool field2)
 			if (ci == 0)
 				continue;
 
-			if (ch == cc->channels + 5) // 'T2'
-				itv_separator(ci);
+			if (ch == cc->channel + 5) // 'T2'
+				itv_separator(cc, ci);
 
 			c.glyph = CODE_PAGE + (ch->italic * 128) + ci;
 
@@ -1256,9 +1223,9 @@ default_colour_map[8] = {
 };
 
 void
-reset_caption(struct caption *cc)
+vbi_init_caption(struct caption *cc)
 {
-	struct ch_rec *ch;
+	channel *ch;
 	int i;
 
 	memset(cc, 0, sizeof(struct caption));
@@ -1273,32 +1240,32 @@ reset_caption(struct caption *cc)
 	cc->transp_space[1].opacity = OPAQUE;
 
 	for (i = 0; i < 8; i++) {
-		ch = &cc->channels[i];
+		ch = &cc->channel[i];
 
 		if (i < 4) {
-			ch->mode = NO_MODE; // ROLL_UP;
+			ch->mode = MODE_NONE; // MODE_ROLL_UP;
 			ch->col1 = ch->col = 1;
-			ch->row = NUM_ROWS - 1;
-			ch->row1 = NUM_ROWS - 3;
+			ch->row = ROWS - 1;
+			ch->row1 = ROWS - 3;
 			ch->roll = 3;
 		} else {
-			ch->mode = TEXT;
+			ch->mode = MODE_TEXT;
 			ch->col1 = ch->col = 1;
 			ch->row1 = ch->row = 0;
-			ch->roll = NUM_ROWS;
+			ch->roll = ROWS;
 		}
 
 		ch->attr.opacity = OPAQUE;
 		ch->attr.foreground = WHITE;
 		ch->attr.background = BLACK;
 
-		ch->line = ch->pg.text + ch->row * NUM_COLS;
+		ch->line = ch->pg.text + ch->row * ROWS;
 
 		ch->pg.pgno = CC_PAGE_BASE + i;
 		ch->pg.subno = ANY_SUB;
 
-		ch->pg.rows = NUM_ROWS;
-		ch->pg.columns = NUM_COLS;
+		ch->pg.rows = ROWS;
+		ch->pg.columns = COLUMNS;
 
 		ch->pg.screen_colour = 0;
 		ch->pg.screen_opacity = (i < 4) ? TRANSPARENT_SPACE : OPAQUE;
@@ -1402,7 +1369,7 @@ draw_row(ushort *canvas, attr_char *line)
 	int i, num_tspaces = 0;
 	ushort pen[2];
 
-	for (i = 0; i < NUM_COLS; i++) {
+	for (i = 0; i < ROWS; i++) {
 		if (line[i].opacity == TRANSPARENT_SPACE) {
 			num_tspaces++;
 			continue;
@@ -1474,12 +1441,12 @@ render(struct fmt_page *pg, int row)
 	}
 
 	if (row < 0)
-		for (i = 0; i < NUM_ROWS; i++)
+		for (i = 0; i < COLUMNS; i++)
 			draw_row(ximgdata + 48 + (45 + i * CELL_HEIGHT)
-				 * DISP_WIDTH, pg->text + i * NUM_COLS);
+				 * DISP_WIDTH, pg->text + i * COLUMNS);
 	else
 		draw_row(ximgdata + 48 + (45 + row * CELL_HEIGHT)
-			 * DISP_WIDTH, pg->text + row * NUM_COLS);
+			 * DISP_WIDTH, pg->text + row * COLUMNS);
 
 	XPutImage(display, window, gc, ximage,
 		0, 0, 0, 0, DISP_WIDTH, DISP_HEIGHT);
@@ -1493,9 +1460,9 @@ clear(int page)
 	if (draw_page >= 0 && page != draw_page)
 		return;
 
-	for (i = 0; i < NUM_ROWS; i++)
+	for (i = 0; i < ROWS; i++)
 		draw_tspaces(ximgdata + 48 + (45 + i * CELL_HEIGHT)
-			 * DISP_WIDTH, NUM_COLS);
+			 * DISP_WIDTH, COLUMNS);
 
 	XPutImage(display, window, gc, ximage,
 		0, 0, 0, 0, DISP_WIDTH, DISP_HEIGHT);
@@ -1526,7 +1493,7 @@ roll_up(struct fmt_page *pg, int first_row, int last_row)
 		(last_row - first_row) * CELL_HEIGHT * DISP_WIDTH * 2);
 
 	draw_tspaces(ximgdata + 48 + (45 + (last_row * CELL_HEIGHT))
-		* DISP_WIDTH, NUM_COLS);
+		* DISP_WIDTH, COLUMNS);
 #endif
 	XPutImage(display, window, gc, ximage,
 		0, 0, 0, 0, DISP_WIDTH, DISP_HEIGHT);
@@ -1539,7 +1506,7 @@ roll_up(struct fmt_page *pg, int first_row, int last_row)
 static void
 fetch(int page)
 {
-	struct ch_rec *ch = &caption.channels[page - CC_PAGE_BASE];
+	channel *ch = &caption.channel[page - CC_PAGE_BASE];
 
 	if (shift > 0) {
 		bump(shift, FALSE);
@@ -1549,7 +1516,7 @@ fetch(int page)
 
 	draw_page = page;
 
-	if (ch->mode == POP_ON)
+	if (ch->mode == MODE_POP_ON)
 		clear(page); // XXX have no displayed buffer, should we?
 	else
 		render(&ch->pg, -1);
@@ -1959,7 +1926,7 @@ main(int ac, char **av)
 	if (!init_window(ac, av))
 		exit(EXIT_FAILURE);
 
-	reset_caption(&caption);
+	vbi_reset_caption(&caption);
 
 	if (isatty(STDIN_FILENO))
 		hello_world();

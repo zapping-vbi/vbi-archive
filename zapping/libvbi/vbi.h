@@ -2,6 +2,8 @@
 #define VBI_H
 
 #include "vt.h"
+#include "cc.h"
+
 #include "dllist.h"
 #include "cache.h"
 //#include "lang.h"
@@ -11,55 +13,15 @@
 // #define PLL_ADJUST	4
 
 
-struct raw_page
-{
-    struct vt_page page[1];
-//	vt_extension		extension;
-	u8			drcs_mode[48];
-	int			num_triplets;
-	int			ait_page;
-};
-
-#define BUFS 4
-
-typedef enum {
-	VBI_LEVEL_1,
-	VBI_LEVEL_1p5,
-	VBI_LEVEL_2p5,
-	VBI_LEVEL_3p5
-} vbi_wst_level;
-
 struct vbi
 {
-    int fd;
     struct cache *cache;
     struct dl_head clients[1];
-    // raw buffer management
-    int bufsize;		// nr of bytes sent by this device
-    int nbufs;
-    unsigned char *bufs[BUFS];
-    int bpl;			// bytes per line
-    // magazine defaults
 
 	int			quit; // stoopid
 
-	vbi_wst_level		max_level;
-
-	vt_pagenum		initial_page;
-	magazine		magazine[9];	/* 1 ... 8; #0 unmodified level 1 ... 1.5 default */
-
-	struct {
-		signed char		btt;
-		unsigned char		mip;
-		unsigned short		sub_pages;
-	}			page_info[0x800];
-
-	vt_pagenum		btt_link[15];
-	bool			top;		/* use top navigation, flof overrides */
-
-    // page assembly
-	struct raw_page		raw_page[8];
-	struct raw_page		*current;
+	struct teletext		vt;
+	struct caption		cc;
 
     // sliced data source
     void *fifo;
@@ -69,14 +31,7 @@ struct vbi *vbi_open(char *vbi_dev_name, struct cache *ca, int fine_tune);
 void vbi_close(struct vbi *vbi);
 int vbi_add_handler(struct vbi *vbi, void *handler, void *data);
 void vbi_del_handler(struct vbi *vbi, void *handler, void *data);
-void vbi_pll_reset(struct vbi *vbi, int fine_tune);
 
-int v4l2_vbi_setup_dev(struct vbi *vbi);
-int v4l_vbi_setup_dev(struct vbi *vbi);
-
-int vbi_line(struct vbi *vbi, u8 *p);
-
-extern struct vt_page *convert_page(struct vbi *vbi, struct vt_page *vtp, bool cached, page_function new_function);
 
 extern void *	vbi_mainloop(void *p);
 
@@ -84,12 +39,6 @@ extern void *	vbi_mainloop(void *p);
 
 
 void	out_of_sync(struct vbi *vbi);
-void	vbi_set_default_region(struct vbi *vbi, int default_region);
-struct vt_page *
-	convert_page(struct vbi *vbi, struct vt_page *vtp, bool cached, page_function new_function);
-bool	vbi_packet(struct vbi *vbi, u8 *p);
-
-void reset_magazines(struct vbi *vbi);
 void vbi_send(struct vbi *vbi, int type, int pgno, int subno, int i1, int i2, int i3, void *p1);
 
 #endif
