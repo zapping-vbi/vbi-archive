@@ -9,6 +9,8 @@
         * src/ttxview.c, src/v4linterface.c: Removed global
 	  current_country, renamed tveng_tuned_channel.country
 	  to .rf_table "cc@table".
+        * src/v4linterface.c: Channel name completion in
+	  keypad (alirc) channel number entering for faster switching.
 
 5.1.2003	<mschimek@users.sf.net>
 
