@@ -28,9 +28,11 @@
 #  include <config.h>
 #endif
 
-#include <gdk-pixbuf/gdk-pixbuf.h>
+#ifdef HAVE_LIBZVBI
 
-#include <libvbi.h>
+#include <gdk-pixbuf/gdk-pixbuf.h>
+#include <libzvbi.h>
+
 #include "tveng.h"
 #include "zmodel.h"
 
@@ -94,7 +96,7 @@ void monitor_ttx_page(int id/*client*/, int page, int subpage);
  * Render the provided page to the client, and send the RECEIVED
  * event. Set it as the currently monitored page.
  */
-void monitor_ttx_this(int id, struct fmt_page *pg);
+void monitor_ttx_this(int id, vbi_page *pg);
 
 /*
  * Freezes the current page, no more RECEIVED events are sent until
@@ -110,7 +112,7 @@ void ttx_unfreeze(int id);
 /*
  * Returns a pointer to the formatted page the client is rendering
  */
-struct fmt_page* get_ttx_fmt_page(int id);
+vbi_page* get_ttx_fmt_page(int id);
 
 /*
  * Returns a pointer to the scaled version of the page. Consider the
@@ -163,7 +165,7 @@ zvbi_close_device(void);
   doesn't work. You can safely use this function to test if VBI works
   (it will return NULL if it doesn't).
 */
-struct vbi *
+vbi_decoder *
 zvbi_get_object(void);
 
 /*
@@ -224,4 +226,12 @@ zvbi_current_title(void);
 gchar *
 zvbi_current_rating(void);
 
+/*
+  Returns the currently selected
+  Teletext implementation level (for vbi_fetch_*)
+*/
+vbi_wst_level
+zvbi_teletext_level (void);
+
+#endif /* HAVE_LIBZVBI */
 #endif /* zvbi.h */

@@ -47,9 +47,9 @@ Creating encoding contexts.
 </para>
 
 @keyword: 
-@user_data: 
 @Returns: 
 <!-- # Unused Parameters # -->
+@user_data: 
 @format: 
 @backend: 
 

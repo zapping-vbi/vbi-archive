@@ -1,10 +1,9 @@
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = $(COMMON_INCLUDES) -I$(top_srcdir)/libvbi -I$(top_srcdir)/intl
+INCLUDES = $(COMMON_INCLUDES) -I$(top_srcdir)/intl
 
 bin_PROGRAMS = zapping
 
-VBI_LIB = $(top_srcdir)/libvbi/libvbi.a
 COMMON_LIB = $(top_srcdir)/common/libcommon.a
 
 ## Don't forget to put these files into the distribution
@@ -61,7 +60,7 @@ zapping_SOURCES = \
 	gen_conv.h \
 	mixer.c mixer.h
 
-zapping_LDADD = $(gen_conv_lib) $(VBI_LIB) $(COMMON_LIB) $(GNOME_LIBDIR) \
+zapping_LDADD = $(gen_conv_lib) $(ZVBI_LIB) $(COMMON_LIB) $(GNOME_LIBDIR) \
 $(GNOMEUI_LIBS) $(GDK_PIXBUF_LIBS) $(INTLLIBS) $(LIBXML_LIBS) \
 $(LIBGLADE_LIBS) $(X_LIBS) $(X_DGA_LIBS) $(X_XV_LIBS) $(X_XDPMS_LIBS) \
 $(PTHREAD_LIB) $(PNG_LIB) $(UNICODE_LIBS) $(ARTS_LIBS)

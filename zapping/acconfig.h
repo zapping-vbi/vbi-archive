@@ -17,6 +17,7 @@
 #undef LIBXML_CHILDS
 #undef LIBXML_xmlDocGetRootElement
 #undef HAVE_LIBJPEG
+#undef HAVE_LIBZVBI
 #undef HAVE_LIBRTE
 #undef HAVE_LIRC
 #undef HAVE_ARTS

@@ -28,11 +28,10 @@
 #  include <config.h>
 #endif
 
+#ifdef HAVE_LIBZVBI
+
 #include <gnome.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
-#include <libvbi.h>
-#include <v4lx.h> /* one of possibly several vbi driver interfaces */
-#include <lang.h>
 #include <pthread.h>
 #include <ctype.h>
 #include <time.h>
@@ -51,6 +50,7 @@
 #include "v4linterface.h"
 #include "ttxview.h"
 #include "osd.h"
+#include "callbacks.h"
 
 #undef TRUE
 #undef FALSE
@@ -71,10 +71,11 @@ extern tveng_device_info *main_info;
 */
 #define INTERP_MODE GDK_INTERP_BILINEAR
 
-static struct vbi *vbi=NULL; /* holds the vbi object */
+static vbi_decoder *vbi=NULL; /* holds the vbi object */
 static ZModel * vbi_model=NULL; /* notify to clients the open/closure
 				   of the device */
-static fifo *vbi_source=NULL; /* source of vbi data for libvbi */
+
+static vbi_wst_level teletext_level = VBI_WST_LEVEL_1p5;
 static pthread_mutex_t network_mutex;
 static pthread_mutex_t prog_info_mutex;
 static gboolean station_name_known = FALSE;
@@ -84,8 +85,9 @@ vbi_program_info program_info[2]; /* current and next program */
 
 double zvbi_ratio = 4.0/3.0;
 
-/* symbol used by osd.c */
-int zvbi_page = 1, zvbi_subpage = ANY_SUB;	// caption 1 ... 8
+/* symbols used by osd.c */
+vbi_pgno		zvbi_page = 1;
+vbi_subno		zvbi_subpage = VBI_ANY_SUBNO;
 
 /**
  * The blink of items in the page is done by applying the patch once
@@ -110,7 +112,7 @@ struct ttx_client {
   int		page, subpage; /* monitored page, subpage */
   int		id; /* of the client */
   pthread_mutex_t mutex;
-  struct fmt_page fp; /* formatted page */
+  vbi_page	fp; /* formatted page */
   GdkPixbuf	*unscaled_on; /* unscaled version of the page (on) */
   GdkPixbuf	*unscaled_off;
   GdkPixbuf	*scaled; /* scaled version of the page */
@@ -142,6 +144,289 @@ gchar *zvbi_audio_mode_str[] =
   N_("Unknown Audio"),
 };
 
+/*
+ *  VBI core
+ */
+
+static pthread_t	decoder_id;
+static pthread_t	capturer_id;
+static gboolean		vbi_quit;
+static fifo		sliced_fifo;
+static vbi_capture *	capture;
+
+static void *
+decoding_thread (void *p)
+{
+  consumer c;
+
+  D();
+
+  assert (add_consumer (&sliced_fifo, &c));
+
+  /* setpriority (PRIO_PROCESS, 0, 5); */
+
+  while (!vbi_quit) {
+    buffer *b;
+    struct timeval now;
+    struct timespec timeout;
+
+    gettimeofday (&now, NULL);
+    timeout.tv_sec = now.tv_sec + 1;
+    timeout.tv_nsec = now.tv_usec * 1000;
+  D();
+    if (!(b = wait_full_buffer_timeout (&c, &timeout)))
+      continue;
+  D();
+    if (b->used <= 0) {
+      send_empty_buffer (&c, b);
+      if (b->used < 0)
+	fprintf (stderr, "I/O error in decoding thread, aborting.\n");
+      break;
+    }
+  D();
+    vbi_decode (vbi, (vbi_sliced *) b->data,
+		b->used / sizeof(vbi_sliced), b->time);
+  D();
+    send_empty_buffer(&c, b);
+  }
+
+  rem_consumer(&c);
+
+  return NULL;
+}
+
+static void *
+capturing_thread (void *x)
+{
+  struct timeval timeout;  
+  producer p;
+#if 0
+  list stack;
+  int stacked;
+
+  init_list(&stack);
+  glitch_time = v4l->time_per_frame * 1.25;
+  stacked_time = 0.0;
+  last_time = 0.0;
+  stacked = 0;
+#endif
+
+  printv("vbi capturing thread\n");
+
+  timeout.tv_sec = 2;
+  timeout.tv_usec = 0;
+
+  assert (add_producer (&sliced_fifo, &p));
+
+  while (!vbi_quit) {
+    buffer *b;
+    int lines;
+  D();
+    b = wait_empty_buffer (&p);
+  D();
+    switch (vbi_capture_read_sliced (capture, (vbi_sliced *) b->data,
+				     &lines, &b->time, &timeout))
+      {
+      case 1:
+  D();
+	break;
+
+      case 0:
+  D();
+#if 0
+	for (; stacked > 0; stacked--)
+	  send_full_buffer (&p, PARENT (rem_head(&stack), buffer, node));
+#endif
+	b->used = -1;
+	b->error = errno;
+	b->errorstr = _("V4L/V4L2 VBI interface timeout");
+
+	send_full_buffer (&p, b);
+
+	goto abort;
+
+      default:
+  D();
+#if 0
+	for (; stacked > 0; stacked--)
+	  send_full_buffer (&p, PARENT (rem_head(&stack), buffer, node));
+#endif
+	b->used = -1;
+	b->error = errno;
+	b->errorstr = _("V4L/V4L2 VBI interface: Failed to read from the device");
+
+	send_full_buffer (&p, b);
+
+	goto abort;
+      }
+  D();
+    if (lines == 0) {
+      ((vbi_sliced *) b->data)->id = VBI_SLICED_NONE;
+      b->used = sizeof(vbi_sliced); /* zero means EOF */
+    } else {
+      b->used = lines * sizeof(vbi_sliced);
+    }
+  D();
+#if 0 /* L8R */
+    /*
+     *  This curious construct compensates temporary shifts
+     *  caused by an unusual delay between read() and
+     *  the execution of gettimeofday(). A complete loss
+     *  remains lost.
+     */
+    if (last_time > 0 &&
+	(b->time - (last_time + stacked_time)) > glitch_time) {
+      if (stacked >= (f->buffers.members >> 2)) {
+	/* Not enough space &| hopeless desynced */
+	for (stacked_time = 0.0; stacked > 0; stacked--) {
+	  buffer *b = PARENT(rem_head(&stack), buffer, node);
+	  send_full_buffer(&p, b);
+	}
+      } else {
+	add_tail(&stack, &b->node);
+	stacked_time += v4l->time_per_frame;
+	stacked++;
+	continue;
+      }
+    } else { /* (back) on track */ 
+      for (stacked_time = 0.0; stacked > 0; stacked--) {
+	buffer *b = PARENT(rem_head(&stack), buffer, node);
+	b->time = last_time += v4l->time_per_frame; 
+	send_full_buffer(&p, b);
+      }
+    }
+
+    last_time = b->time;
+#endif
+  D();
+    send_full_buffer(&p, b);
+  }
+
+ abort:
+
+  rem_producer (&p);
+
+  return NULL;
+}
+
+#define SERVICES (VBI_SLICED_TELETEXT_B | VBI_SLICED_VPS | \
+		  VBI_SLICED_CAPTION_625 | VBI_SLICED_CAPTION_525 | \
+		  VBI_SLICED_WSS_625 | VBI_SLICED_WSS_CPR1204)
+
+// XXX vbi must be restarted on video std change. is it?
+
+static gboolean
+threads_init (gchar *dev_name, int given_fd)
+{
+  gchar *failed = _("VBI initialization failed.\n%s");
+  gchar *memory = _("Ran out of memory.");
+  gchar *thread = _("Out of resources to start a new thread.");
+  gchar *mknod_hint = _(
+	"This probably means that the required driver isn't loaded. "
+	"Add to your /etc/modules.conf the line:\n"
+	"alias char-major-81-224 bttv (replace bttv by the name "
+	"of your video driver)\n"
+        "and with mknod create /dev/vbi0 appropriately. If this "
+	"doesn't work, you can disable VBI in Settings/Preferences/VBI "
+	"options/Enable VBI decoding.");
+  unsigned int services = SERVICES;
+  char *_errstr;
+  vbi_raw_decoder *raw;
+  int buffer_size;
+
+  D();
+
+  if (!(vbi = vbi_decoder_new()))
+    {
+      ShowBox(failed, GNOME_MESSAGE_BOX_ERROR, memory);
+      return FALSE;
+    }
+
+  D();
+
+  if (!(capture = vbi_capture_v4l2_new (dev_name, 20 /* buffers */,
+                                        &services, /* strict */ -1,
+					&_errstr, !!debug_msg)))
+    {
+      if (errno == ENOENT || errno == ENXIO || errno == ENODEV)
+	{
+	  gchar *s = g_strconcat(_errstr, "\n", mknod_hint);
+
+	  ShowBox(failed, GNOME_MESSAGE_BOX_ERROR, s);
+	  g_free (s);
+	}
+      else
+	{
+	  ShowBox(failed, GNOME_MESSAGE_BOX_ERROR, _errstr);
+	}
+      free (_errstr);
+      vbi_decoder_delete (vbi);
+      return FALSE;
+    }
+
+  D();
+
+  // XXX when we have WSS625, disable video sampling
+
+  raw = vbi_capture_parameters (capture);
+  buffer_size = (raw->count[0] + raw->count[1]) * sizeof(vbi_sliced);
+
+  if (!init_buffered_fifo (&sliced_fifo, "vbi-sliced", 20, buffer_size))
+    {
+      ShowBox(failed, GNOME_MESSAGE_BOX_ERROR, memory);
+      vbi_capture_delete (capture);
+      vbi_decoder_delete (vbi);
+      return FALSE;
+    }
+
+  D();
+
+  vbi_quit = FALSE;
+
+  if (pthread_create (&decoder_id, NULL, decoding_thread, NULL))
+    {
+      ShowBox(failed, GNOME_MESSAGE_BOX_ERROR, thread);
+      destroy_fifo (&sliced_fifo);
+      vbi_capture_delete (capture);
+      vbi_decoder_delete (vbi);
+      return FALSE;
+    }
+
+  D();
+
+  if (pthread_create (&capturer_id, NULL, capturing_thread, NULL))
+    {
+      ShowBox(failed, GNOME_MESSAGE_BOX_ERROR, thread);
+      vbi_quit = TRUE;
+      pthread_join (decoder_id, NULL);
+      destroy_fifo (&sliced_fifo);
+      vbi_capture_delete (capture);
+      vbi_decoder_delete (vbi);
+      return FALSE;
+    }
+
+  D();
+
+  return TRUE;
+}
+
+static void
+threads_destroy (void)
+{
+  vbi_quit = TRUE;
+
+// XXX should wait a brief period, then if no response terminate the threads.
+  pthread_join (capturer_id, NULL);
+  pthread_join (decoder_id, NULL);
+  destroy_fifo (&sliced_fifo);
+  vbi_capture_delete (capture);
+  vbi_decoder_delete (vbi);
+
+  vbi = NULL;
+}
+
+
+
 /* handler for a vbi event */
 static void event(vbi_event *ev, void *unused);
 
@@ -156,10 +441,6 @@ on_vbi_prefs_changed		(const gchar *key,
       D();
       if (!zvbi_open_device(zcg_char(NULL, "vbi_device")))
 	{
-	  ShowBox(_("Sorry, but %s couldn't be opened:\n%s (%d)"),
-		  GNOME_MESSAGE_BOX_ERROR,
-		  zcg_char(NULL, "vbi_device"),
-		  strerror(errno), errno);
 	  /* Define in site_def.h if you don't want this to happen */
 #ifndef DO_NOT_DISABLE_VBI_ON_FAILURE
 	  zcs_bool(FALSE, "enable_vbi");
@@ -178,63 +459,7 @@ on_vbi_prefs_changed		(const gchar *key,
     }
 
   /* disable VBI if needed */
-  if (!zvbi_get_object())
-    {
-      printv("VBI disabled, removing GUI items\n");
-      gtk_widget_set_sensitive(lookup_widget(main_window, "separador5"),
-			       FALSE);
-      gtk_widget_hide(lookup_widget(main_window, "separador5"));
-      gtk_widget_set_sensitive(lookup_widget(main_window, "videotext1"),
-			       FALSE);
-      gtk_widget_hide(lookup_widget(main_window, "videotext1"));
-      gtk_widget_set_sensitive(lookup_widget(main_window, "vbi_info1"),
-			       FALSE);
-      gtk_widget_hide(lookup_widget(main_window, "vbi_info1"));
-      gtk_widget_set_sensitive(lookup_widget(main_window, "program_info1"),
-			       FALSE);
-      gtk_widget_hide(lookup_widget(main_window, "program_info1"));
-      gtk_widget_set_sensitive(lookup_widget(main_window, "videotext3"),
-			       FALSE);
-      gtk_widget_hide(lookup_widget(main_window, "videotext3"));
-      gtk_widget_set_sensitive(lookup_widget(main_window, "new_ttxview"),
-			       FALSE);
-      gtk_widget_hide(lookup_widget(main_window, "new_ttxview"));
-      gtk_widget_set_sensitive(lookup_widget(main_window,
-					     "closed_caption1"),
-			       FALSE);
-      gtk_widget_hide(lookup_widget(main_window, "closed_caption1"));
-      gtk_widget_hide(lookup_widget(main_window, "separator8"));
-      /* Set the capture mode to a default value and disable VBI */
-      if (zcg_int(NULL, "capture_mode") == TVENG_NO_CAPTURE)
-	zcs_int(TVENG_CAPTURE_READ, "capture_mode");
-    }
-  else
-    {
-      printv("VBI enabled, showing GUI items\n");
-      gtk_widget_set_sensitive(lookup_widget(main_window, "separador5"),
-			       TRUE);
-      gtk_widget_show(lookup_widget(main_window, "separador5"));
-      gtk_widget_set_sensitive(lookup_widget(main_window, "videotext1"),
-			       TRUE);
-      gtk_widget_show(lookup_widget(main_window, "videotext1"));
-      gtk_widget_set_sensitive(lookup_widget(main_window, "vbi_info1"),
-			       TRUE);
-      gtk_widget_show(lookup_widget(main_window, "vbi_info1"));
-      gtk_widget_set_sensitive(lookup_widget(main_window, "program_info1"),
-			       TRUE);
-      gtk_widget_show(lookup_widget(main_window, "program_info1"));
-      gtk_widget_set_sensitive(lookup_widget(main_window, "videotext3"),
-			       TRUE);
-      gtk_widget_show(lookup_widget(main_window, "videotext3"));
-      gtk_widget_set_sensitive(lookup_widget(main_window, "new_ttxview"),
-			       TRUE);
-      gtk_widget_show(lookup_widget(main_window, "new_ttxview"));
-      gtk_widget_set_sensitive(lookup_widget(main_window,
-					     "closed_caption1"),
-			       TRUE);
-      gtk_widget_show(lookup_widget(main_window, "closed_caption1"));
-      gtk_widget_show(lookup_widget(main_window, "separator8"));
-    }
+  vbi_gui_sensitive(!!zvbi_get_object());
 }
 
 int osd_pipe[2];
@@ -341,7 +566,7 @@ on_trigger_clicked			(gpointer	ignored,
 
     case VBI_LINK_PAGE:
     case VBI_LINK_SUBPAGE:
-      open_in_new_ttxview(trigger->page, trigger->subpage);
+      open_in_new_ttxview(trigger->pgno, trigger->subno);
       break;
 
     case VBI_LINK_LID:
@@ -476,10 +701,10 @@ acknowledge_trigger			(vbi_link	*link)
     case VBI_LINK_PAGE:
     case VBI_LINK_SUBPAGE:
       if (link->name[0])
-        buffer = g_strdup_printf(_(" %s: Teletext Page %x"), link->name,
-			         link->page);
+        buffer = g_strdup_printf(_(" %s: Teletext Page %x"),
+				 link->name, link->pgno);
       else
-        buffer = g_strdup_printf(_(" Teletext Page %x"), link->page);
+        buffer = g_strdup_printf(_(" Teletext Page %x"), link->pgno);
       set_tooltip(button, _("Open this page with Zapzilla"));
       break;
     case VBI_LINK_MESSAGE:
@@ -571,40 +796,8 @@ zvbi_open_device(char *device)
   else
     given_fd = -1;
   D();
-    vbi_source = vbi_open_v4lx(device, given_fd,
-			       1 /* buffered */, 50 /* fifo depth */);
-  if (!vbi_source)
-    {
-      gchar *mknod_hint = _(
-	"This probably means that the required driver isn't loaded. "
-	"Add to your /etc/modules.conf the line:\n"
-	"alias char-major-81-224 bttv (replace bttv by the name "
-	"of your video driver)\n"
-        "and with mknod create /dev/vbi0 appropriately. If this "
-	"doesn't work, you can disable VBI in Settings/Preferences/VBI "
-	"options/Enable VBI decoding.");
-
-      D();
-      if (errno != ENOENT)
-        mknod_hint = "";
-      if (errstr)
-        ShowBox(_("Failed to access vbi device:\n%s\n%s"),
-	  GNOME_MESSAGE_BOX_ERROR, errstr, mknod_hint);
-      else /* should not happen */
-        ShowBox(_("Failed to access vbi device %s, cause unknown.\n"),
-	  GNOME_MESSAGE_BOX_ERROR, device);
-      D();
-      return FALSE;
-    }
-  D();
-  if (!(vbi = vbi_open(vbi_source)))
-    {
-      D();
-      /* This shouldn't happen unless vmem is exhausted */
-      g_warning("Cannot open libvbi, vbi services will be disabled");
-      D();
-      return FALSE;
-    }
+  if (!threads_init (device, given_fd))
+    return FALSE;
   D();
   /* Enter something valid or accept the default */
   index = zcg_int(NULL, "default_region");
@@ -612,19 +805,22 @@ zvbi_open_device(char *device)
     vbi_teletext_set_default_region(vbi, region_mapping[index]);
   index = zcg_int(NULL, "teletext_level");
   if (index >= 0 && index <= 3)
-    vbi_teletext_set_level(vbi, index);
+    {
+      vbi_teletext_set_level(vbi, index);
+      teletext_level = index;
+    }
   D();
   /* Send all events to our main event handler */
-  g_assert(vbi_event_handler(vbi, ~0, event, NULL) != 0);
+  g_assert(vbi_event_handler_add(vbi, ~0, event, NULL) != 0);
   D();
   pthread_mutex_init(&clients_mutex, NULL);
   D();
   zmodel_changed(vbi_model);
   D();
   /* Send OSD relevant events to our OSD event handler */
-  g_assert(vbi_event_handler(vbi,
-			     VBI_EVENT_CAPTION | VBI_EVENT_TTX_PAGE,
-			     cc_event, osd_pipe) != 0);
+  g_assert(vbi_event_handler_add(vbi,
+				 VBI_EVENT_CAPTION | VBI_EVENT_TTX_PAGE,
+				 cc_event, osd_pipe) != 0);
   D();
   if (trigger_client_id >= 0)
     unregister_ttx_client(trigger_client_id);
@@ -635,6 +831,7 @@ zvbi_open_device(char *device)
 				       GINT_TO_POINTER(trigger_client_id));
   return TRUE;
 #endif
+
   return FALSE;
 }
 
@@ -668,12 +865,8 @@ zvbi_close_device(void)
   ttx_clients = NULL;
   pthread_mutex_unlock(&clients_mutex);
   pthread_mutex_destroy(&clients_mutex);
-
-  vbi_close(vbi);
-  vbi = NULL;
-
-  vbi_close_v4lx(vbi_source);
-  vbi_source = NULL;
+ 
+  threads_destroy ();
 
   zmodel_changed(vbi_model);
 }
@@ -809,18 +1002,20 @@ set_ttx_parameters(int id, int reveal)
   pthread_mutex_unlock(&clients_mutex);
 }
 
-struct fmt_page*
+vbi_page *
 get_ttx_fmt_page(int id)
 {
   struct ttx_client *client;
-  struct fmt_page *result=NULL;
+  vbi_page *pg = NULL;
 
   pthread_mutex_lock(&clients_mutex);
+
   if ((client = find_client(id)))
-    result = &client->fp;
+    pg = &client->fp;
+
   pthread_mutex_unlock(&clients_mutex);
 
-  return result;
+  return pg;
 }
 
 GdkPixbuf *
@@ -929,15 +1124,15 @@ unregister_ttx_client(int id)
 #define CH		10
 
 static void
-add_patch(struct ttx_client *client, int col, int row, attr_char *ac,
-	  gboolean vanilla_only)
+add_patch(struct ttx_client *client, int col, int row,
+	  vbi_char *ac, gboolean vanilla_only)
 {
   struct ttx_patch patch, *destiny = NULL;
   gint sw, sh; /* scaled dimensions */
   gint i;
 
   /* avoid duplicate patches */
-  for (i=0; i<client->num_patches; i++)
+  for (i = 0; i < client->num_patches; i++)
     if (client->patches[i].col == col &&
 	client->patches[i].row == row)
       {
@@ -960,23 +1155,24 @@ add_patch(struct ttx_client *client, int col, int row, attr_char *ac,
 
   switch (ac->size)
     {
-    case DOUBLE_WIDTH:
+    case VBI_DOUBLE_WIDTH:
       patch.width = 2;
       break;
-    case DOUBLE_HEIGHT:
+    case VBI_DOUBLE_HEIGHT:
       patch.height = 2;
       break;
-    case DOUBLE_SIZE:
-      patch.width = patch.height = 2;
+    case VBI_DOUBLE_SIZE:
+      patch.width = 2;
+      patch.height = 2;
       break;
     default:
       break;
     }
 
-  sw = rint(((double)client->w*(patch.width*CW+10))/
-	    gdk_pixbuf_get_width(client->unscaled_on));
-  sh = rint(((double)client->h*(patch.height*CH+10))/
-	    gdk_pixbuf_get_height(client->unscaled_on));
+  sw = rint(((double) client->w * (patch.width * CW + 10))
+	    / gdk_pixbuf_get_width(client->unscaled_on));
+  sh = rint(((double) client->h * (patch.height * CH + 10))
+	    / gdk_pixbuf_get_height(client->unscaled_on));
 
   patch.unscaled_on = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8,
 				     patch.width*CW+10, patch.height*CH+10);
@@ -1053,7 +1249,7 @@ build_patches(struct ttx_client *client)
 {
   gint i;
   gint col, row;
-  attr_char *ac;
+  vbi_char *ac;
 
   for (i = 0; i<client->num_patches; i++)
     {
@@ -1073,7 +1269,7 @@ build_patches(struct ttx_client *client)
     for (row = 0; row < client->fp.rows; row++)
       {
 	ac = &client->fp.text[row * client->fp.columns + col];
-	if ((ac->flash) && (ac->size <= DOUBLE_SIZE))
+	if ((ac->flash) && (ac->size <= VBI_DOUBLE_SIZE))
 	  add_patch(client, col, row, ac, FALSE);
       }
 }
@@ -1153,7 +1349,7 @@ refresh_ttx_page(int id, GtkWidget *drawable)
 }
 
 static int
-build_client_page(struct ttx_client *client, struct fmt_page *pg)
+build_client_page(struct ttx_client *client, vbi_page *pg)
 {
   GdkPixbuf *simple;
   gchar *filename;
@@ -1162,23 +1358,25 @@ build_client_page(struct ttx_client *client, struct fmt_page *pg)
     return 0;
 
   pthread_mutex_lock(&client->mutex);
-  if (pg && pg != (struct fmt_page *)-1)
+  if (pg && pg != (vbi_page *) -1)
     {
       memcpy(&client->fp, pg, sizeof(client->fp));
       vbi_draw_vt_page(&client->fp,
+		       VBI_PIXFMT_RGBA32_LE,
 		       (uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_on),
 		       client->reveal, 1 /* flash_on */);
       vbi_draw_vt_page_region(&client->fp,
-                              (uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_off),
+			      VBI_PIXFMT_RGBA32_LE,
+			      (uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_off),
+			      -1 /* rowstride */,
 			      0 /* column */, 0 /* row */,
 			      client->fp.columns, client->fp.rows,
-			      -1 /* rowstride */,
 			      client->reveal, 0 /* flash_on */);
       client->waiting = FALSE;
     }
   else if (!pg)
     {
-      memset(&client->fp, 0, sizeof(struct fmt_page));
+      memset(&client->fp, 0, sizeof(client->fp));
       filename = g_strdup_printf("%s/%s%d.jpeg", PACKAGE_DATA_DIR,
 				 "../pixmaps/zapping/vt_loading",
 				 (rand()%2)+1);
@@ -1230,10 +1428,10 @@ build_client_page(struct ttx_client *client, struct fmt_page *pg)
 }
 
 static void
-rolling_headers(struct ttx_client *client, struct fmt_page *pg)
+rolling_headers(struct ttx_client *client, vbi_page *pg)
 {
   gint col;
-  attr_char *ac;
+  vbi_char *ac;
   const gint first_col = 32; /* 8 needs more thoughts */
 
 /* To debug page formatting (site_def.h) */
@@ -1246,29 +1444,28 @@ rolling_headers(struct ttx_client *client, struct fmt_page *pg)
 
   pthread_mutex_lock(&client->mutex);
 
-  if (pg->columns < 40)
+  if (pg->pgno < 0x100)
     goto abort;
 
   for (col = first_col; col < 40; col++)
     {
       ac = client->fp.text + col;
       
-      if (ac->glyph != pg->text[col].glyph
-	  && ac->size <= DOUBLE_SIZE)
+      if (ac->unicode != pg->text[col].unicode
+	  && ac->size <= VBI_DOUBLE_SIZE)
 	{
-	  ac->glyph = pg->text[col].glyph;
+	  ac->unicode = pg->text[col].unicode;
+
 	  vbi_draw_vt_page_region(&client->fp,
-				  (uint32_t *)
-				  gdk_pixbuf_get_pixels(client->unscaled_off)+col*CW,
-				  col, 0, 1, 1,
-				  gdk_pixbuf_get_rowstride(client->unscaled_off) /* rowstride */,
-				  client->reveal, 0 /* flash_off */);
+		VBI_PIXFMT_RGBA32_LE,
+	  	(uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_off) + col * CW,
+		gdk_pixbuf_get_rowstride(client->unscaled_off),
+		col, 0, 1, 1, client->reveal, 0 /* flash_off */);
 	  vbi_draw_vt_page_region(&client->fp,
-				  (uint32_t *)
-				  gdk_pixbuf_get_pixels(client->unscaled_on)+col*CW,
-				  col, 0, 1, 1,
-				  gdk_pixbuf_get_rowstride(client->unscaled_on) /* rowstride */,
-				  client->reveal, 1 /* flash_on */);
+		VBI_PIXFMT_RGBA32_LE,
+		(uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_on) + col * CW,
+		gdk_pixbuf_get_rowstride(client->unscaled_on),
+		col, 0, 1, 1, client->reveal, 1 /* flash_on */);
 	  add_patch(client, col, 0, ac, !ac->flash);
 	}
     }
@@ -1281,7 +1478,7 @@ void
 monitor_ttx_page(int id/*client*/, int page, int subpage)
 {
   struct ttx_client *client;
-  struct fmt_page pg;
+  vbi_page pg;
 
   if (!vbi)
     return;
@@ -1297,7 +1494,8 @@ monitor_ttx_page(int id/*client*/, int page, int subpage)
       /* 0x900 is our TOP index page */
       if ((page >= 0x100) && (page <= 0x900))
         {
-	  if (vbi_fetch_vt_page(vbi, &pg, page, subpage, 25, 1))
+	  if (vbi_fetch_vt_page(vbi, &pg, page, subpage,
+				teletext_level, 25, 1))
 	    {
 	      build_client_page(client, &pg);
 	      clear_message_queue(client);
@@ -1314,7 +1512,7 @@ monitor_ttx_page(int id/*client*/, int page, int subpage)
   pthread_mutex_unlock(&clients_mutex);
 }
 
-void monitor_ttx_this(int id, struct fmt_page *pg)
+void monitor_ttx_this(int id, vbi_page *pg)
 {
   struct ttx_client *client;
 
@@ -1330,17 +1528,17 @@ void monitor_ttx_this(int id, struct fmt_page *pg)
       client->page = pg->pgno;
       client->subpage = pg->subno;
       client->freezed = TRUE;
-      memcpy(&client->fp, pg, sizeof(struct fmt_page));
+      memcpy(&client->fp, pg, sizeof(client->fp));
       vbi_draw_vt_page(&client->fp,
-		       (uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_on),
-		       client->reveal, 1 /* flash_on */);
+		VBI_PIXFMT_RGBA32_LE,
+		(uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_on),
+		client->reveal, 1 /* flash_on */);
       vbi_draw_vt_page_region(&client->fp,
-                              (uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_off),
-			      0 /* column */, 0 /* row */,
-			      pg->columns, pg->rows,
-			      -1 /* rowstride */,
-			      client->reveal, 0 /* flash_on */);
-      build_client_page(client, (struct fmt_page*)-1);
+		VBI_PIXFMT_RGBA32_LE,
+      		(uint32_t *) gdk_pixbuf_get_pixels(client->unscaled_off),
+		-1 /* rowstride */, 0 /* column */, 0 /* row */,
+		pg->columns, pg->rows, client->reveal, 0 /* flash_on */);
+      build_client_page(client, (vbi_page *) -1);
       clear_message_queue(client);
       send_ttx_message(client, TTX_PAGE_RECEIVED, NULL, 0);
     }
@@ -1376,10 +1574,10 @@ ttx_unfreeze (int id)
 }
 
 static void
-scan_header(struct fmt_page *pg)
+scan_header(vbi_page *pg)
 {
   gint col, i=0;
-  attr_char *ac;
+  vbi_char *ac;
   ucs2_t ucs2[256];
   char *buf;
 
@@ -1388,21 +1586,21 @@ scan_header(struct fmt_page *pg)
     {
       ac = pg->text + col;
 
-      if (!ac->glyph || !gl_isalnum(ac->glyph))
+      if (!ac->unicode || !vbi_is_print(ac->unicode))
 	/* prob. bad reception, abort */
 	return;
 
-      if (ac->glyph == GL_SPACE && i == 0)
+      if (ac->unicode == 0x0020 && i == 0)
 	continue;
 
-      ucs2[i++] = glyph2unicode(ac->glyph);
+      ucs2[i++] = ac->unicode;
     }
 
   if (!i)
     return;
 
   /* remove spaces in the end */
-  for (col = i-1; col >= 0 && ucs2[col] == ' '; col--)
+  for (col = i-1; col >= 0 && ucs2[col] == 0x0020; col--)
     i = col;
 
   if (!i)
@@ -1444,7 +1642,7 @@ notify_clients(int page, int subpage,
 {
   GList *p;
   struct ttx_client *client;
-  struct fmt_page pg;
+  vbi_page pg;
 
   if (!vbi)
     return;
@@ -1458,10 +1656,11 @@ notify_clients(int page, int subpage,
       client = (struct ttx_client*)p->data;
       
       if ((client->page == page) && (!client->freezed) &&
-	  ((client->subpage == subpage) || (client->subpage == ANY_SUB)))
+	  ((client->subpage == subpage) || (client->subpage == VBI_ANY_SUBNO)))
 	{
 	  if (pg.rows < 25
-	      && !vbi_fetch_vt_page(vbi, &pg, page, subpage, 25, 1))
+	      && !vbi_fetch_vt_page(vbi, &pg, page, subpage,
+				    teletext_level, 25, 1))
 	    {
 	      pthread_mutex_unlock(&clients_mutex);
 	      return;
@@ -1472,7 +1671,8 @@ notify_clients(int page, int subpage,
       else if (roll_header)
 	{
 	  if (pg.rows < 1
-	      && !vbi_fetch_vt_page(vbi, &pg, page, subpage, 1, 0))
+	      && !vbi_fetch_vt_page(vbi, &pg, page, subpage,
+				    teletext_level, 1, 0))
 	    {
 	      pthread_mutex_unlock(&clients_mutex);
 	      return;
@@ -1486,7 +1686,8 @@ notify_clients(int page, int subpage,
   if (header_update)
     {
       if (pg.rows < 1
-	  && vbi_fetch_vt_page(vbi, &pg, page, subpage, 1, 0))
+	  && vbi_fetch_vt_page(vbi, &pg, page, subpage,
+			       teletext_level, 1, 0))
 	scan_header(&pg);
     }
 }
@@ -1631,7 +1832,7 @@ render_ttx_mask(int id, GdkBitmap *mask)
   doesn't work. You can safely use this function to test if VBI works
   (it will return NULL if it doesn't).
 */
-struct vbi *
+vbi_decoder *
 zvbi_get_object(void)
 {
   return vbi;
@@ -1686,12 +1887,6 @@ event(vbi_event *ev, void *unused)
       if (*current_network.name)
 	{
 	  strncpy(station_name, current_network.name, 255);
-	  station_name[255] = 0;
-	  station_name_known = TRUE;
-	}
-      else if (*current_network.label)
-	{
-	  strncpy(station_name, current_network.label, 255);
 	  station_name[255] = 0;
 	  station_name_known = TRUE;
 	}
@@ -1836,11 +2031,6 @@ update_vi_network			(struct vi_data *data)
     gtk_label_set_text(GTK_LABEL(name), current_network.name);
   else
     gtk_label_set_text(GTK_LABEL(name), "n/a");
-
-  if (*current_network.label)
-    gtk_label_set_text(GTK_LABEL(label), current_network.label);
-  else
-    gtk_label_set_text(GTK_LABEL(label), "n/a");
 
   if (*current_network.call)
     gtk_label_set_text(GTK_LABEL(call), current_network.call);
@@ -2048,7 +2238,7 @@ update_vi_program			(struct vi_data *data)
 
   /* Rating */
 
-  s = vbi_rating_str_by_id(pi->rating_auth, pi->rating_id);
+  s = vbi_rating_string(pi->rating_auth, pi->rating_id);
   if (!s)
     s = "";
   strncpy(buffer, s, sizeof(buffer) - 1);
@@ -2120,7 +2310,7 @@ update_vi_program			(struct vi_data *data)
 
   for (i = 0; i < 32; i++)
     {
-      s = vbi_prog_type_str_by_id(pi->type_classf, pi->type_id[i]);
+      s = vbi_prog_type_string(pi->type_classf, pi->type_id[i]);
 
       if (!s)
 	break;
@@ -2357,7 +2547,7 @@ zvbi_current_rating(void)
 
   pthread_mutex_lock(&prog_info_mutex);
 
-  s = vbi_rating_str_by_id(program_info[0].rating_auth, program_info[0].rating_id);
+  s = vbi_rating_string(program_info[0].rating_auth, program_info[0].rating_id);
 
   if (s == NULL)
   /* current program rating (not rated means we don't know, not it's exempt) */
@@ -2367,3 +2557,11 @@ zvbi_current_rating(void)
 
   return s;
 }
+
+vbi_wst_level
+zvbi_teletext_level (void)
+{
+  return teletext_level;
+}
+
+#endif /* HAVE_LIBZVBI */

@@ -456,11 +456,12 @@ vbi_general_setup	(GtkWidget	*page)
   gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
     zconf_get_integer(NULL,
 		      "/zapping/options/vbi/qstradeoff"));
-
+#ifdef HAVE_LIBZVBI
   /* Default subtitle page */
   widget = lookup_widget(page, "subtitle_page");
   gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget),
-			    bcd2dec(zcg_int(NULL, "zvbi_page")));
+			    vbi_bcd2dec(zcg_int(NULL, "zvbi_page")));
+#endif
 }
 
 typedef enum {
@@ -492,6 +493,7 @@ set_toggle		(GtkWidget *page,
 static void
 vbi_general_apply	(GtkWidget	*page)
 {
+#ifdef HAVE_LIBZVBI
   togglean enable_vbi, use_vbi;
   GtkWidget *widget;
   gchar *text;
@@ -572,13 +574,14 @@ vbi_general_apply	(GtkWidget	*page)
 
   widget = lookup_widget(page, "subtitle_page"); /* subtitle page */
   index =
-    dec2bcd(gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widget)));
+    vbi_dec2bcd(gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widget)));
   if (index != zvbi_page)
     {
       zvbi_page = index;
       zcs_int(zvbi_page, "zvbi_page");
       osd_clear();
     }
+#endif /* HAVE_LIBZVBI */
 }
 
 /* Interactive TV */

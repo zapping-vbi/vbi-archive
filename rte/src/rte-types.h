@@ -28,8 +28,143 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-/* use with option varargs to make sure the correct cast is done */
+/* options */
+
+#ifndef FALSE
+#define FALSE 0
+#endif
+#ifndef TRUE
+#define TRUE 1
+#endif
+
 typedef int rte_bool;
+
+/**
+ * rte_option_type:
+ * @RTE_OPTION_BOOL:
+ *   A boolean value, either %TRUE (1) or %FALSE (0).
+ *   <informaltable frame=none><tgroup cols=2><tbody>
+ *   <row><entry>Type:</><entry>int</></row>
+ *   <row><entry>Default:</><entry>def.num</></row>
+ *   <row><entry>Bounds:</><entry>min.num (0) ... max.num (1),
+ *     step.num (1)</></row>
+ *   <row><entry>Menu:</><entry>%NULL</></row>
+ *   </tbody></tgroup></informaltable>
+ * @RTE_OPTION_INT:
+ *   A signed integer value. When only a few discrete values rather than
+ *   a range are permitted @menu points to a vector of integers. Note the
+ *   option is still set by value, not by menu index, which may be rejected
+ *   or replaced by the closest possible.
+ *   <informaltable frame=none><tgroup cols=2><tbody>
+ *   <row><entry>Type:</><entry>int</></row>
+ *   <row><entry>Default:</><entry>def.num or menu.num[def.num]</></row>
+ *   <row><entry>Bounds:</><entry>min.num ... max.num, step.num or menu</></row>
+ *   <row><entry>Menu:</><entry>%NULL or menu.num[min.num (0) ... max.num],
+ *     step.num (1)</></row>
+ *   </tbody></tgroup></informaltable>
+ * @RTE_OPTION_REAL:
+ *   A real value, optional a vector of possible values.
+ *   <informaltable frame=none><tgroup cols=2><tbody>
+ *   <row><entry>Type:</><entry>double</></row>
+ *   <row><entry>Default:</><entry>def.dbl or menu.dbl[def.num]</></row>
+ *   <row><entry>Bounds:</><entry>min.dbl ... max.dbl,
+ *      step.dbl or menu</></row>
+ *   <row><entry>Menu:</><entry>%NULL or menu.dbl[min.num (0) ... max.num],
+ *      step.num (1)</></row>
+ *   </tbody></tgroup></informaltable>
+ * @RTE_OPTION_STRING:
+ *   A null terminated string. Note the menu version differs from
+ *   RTE_OPTION_MENU in its argument, which is the string itself. For example:
+ *   <programlisting>
+ *   menu.str[0] = "red"
+ *   menu.str[1] = "blue"
+ *   ... and perhaps other colors not explicitely listed
+ *   </programlisting>
+ *   <informaltable frame=none><tgroup cols=2><tbody>
+ *   <row><entry>Type:</><entry>char *</></row>
+ *   <row><entry>Default:</><entry>def.str or menu.str[def.num]</></row>
+ *   <row><entry>Bounds:</><entry>not applicable</></row>
+ *   <row><entry>Menu:</><entry>%NULL or menu.str[min.num (0) ... max.num],
+ *     step.num (1)</></row>
+ *   </tbody></tgroup></informaltable>
+ * @RTE_OPTION_MENU:
+ *   Choice between a number of named options. For example:
+ *   <programlisting>
+ *   menu.str[0] = "up"
+ *   menu.str[1] = "down"
+ *   menu.str[2] = "strange"
+ *   </programlisting>
+ *   <informaltable frame=none><tgroup cols=2><tbody>
+ *   <row><entry>Type:</><entry>int</></row>
+ *   <row><entry>Default:</><entry>def.num</></row>
+ *   <row><entry>Bounds:</><entry>min.num (0) ... max.num, 
+ *      step.num (1)</></row>
+ *   <row><entry>Menu:</><entry>menu.str[min.num (0) ... max.num],
+ *      step.num (1).
+ *      These strings are gettext'ized N_(), see the gettext() manuals
+ *      for details.</></row>
+ *   </tbody></tgroup></informaltable>
+ **/
+typedef enum {
+	RTE_OPTION_BOOL = 1,
+	RTE_OPTION_INT,
+	RTE_OPTION_REAL,
+	RTE_OPTION_STRING,
+	RTE_OPTION_MENU,
+} rte_option_type;
+
+typedef union rte_option_value {
+	int			num;
+	double			dbl;
+	char *			str;
+} rte_option_value;
+
+typedef union rte_option_value_ptr {
+	int *			num;
+	double *		dbl;
+	char **			str;
+} rte_option_value_ptr;
+
+/**
+ * rte_option_info:
+ * 
+ * Although export options can be accessed by a static keyword they are
+ * by definition opaque: the client can present them to the user and
+ * manipulate them without knowing about their presence or purpose.
+ * To do so, some amount of information about the option is necessary,
+ * given in this structure.
+ * 
+ * You can obtain this information with rte_context_option_info_enum()
+ * or rte_codec_option_info_enum().
+ * 
+ * @type: Type of the option, see #rte_option_type for details.
+ *
+ * @keyword: Unique (within this context or codec) keyword to identify
+ *   this option. Can be stored in configuration files.
+ *
+ * @label: Name of the option to be shown to the user.
+ *   This can be %NULL to indicate this option shall not be listed.
+ *   gettext()ized N_(), see the gettext manual.
+ *
+ * @def, @min, @max, @step, @menu: See #rte_option_type for details.
+ *
+ * @tooltip: A brief description (or %NULL) for the user.
+ *   gettext()ized N_(), see the gettext manual.
+ **/
+typedef struct {
+	rte_option_type		type;
+	char *			keyword;
+	char *			label;
+	rte_option_value	def;
+	rte_option_value	min;
+	rte_option_value	max;
+	rte_option_value	step;
+	rte_option_value_ptr	menu;
+	char *			tooltip;
+} rte_option_info;
+
+
+/* use with option varargs to make sure the correct cast is done */
 typedef int rte_int;
 typedef double rte_real;
 typedef char* rte_string;
@@ -70,31 +205,6 @@ typedef struct {
 } rte_codec_info;
 
 typedef struct _rte_codec rte_codec; /* opaque */
-
-typedef union {
-  rte_int		num;
-  rte_menu		idx;
-  rte_string		str;		/* gettext()ized _N() */
-  rte_real		dbl;
-} rte_option_value;
-
-typedef struct {
-  rte_option_type	type;
-  char *		keyword;
-  char *		label;		/* gettext()ized _N() */
-  rte_option_value	def;		/* default (reset) */
-  rte_option_value	min, max;
-  rte_option_value	step;
-  union {
-    rte_bool *		val;
-    rte_int *           num;
-    rte_string *        str;
-    rte_real *		dbl;
-  }                     menu;
-  rte_basic_type	menu_type;	/* type of data the menu contains */
-  int			entries;
-  char *		tooltip;	/* or NULL, gettext()ized _N() */
-} rte_option_info;
 
 typedef struct {
   rte_pixfmt	pixfmt;
@@ -158,12 +268,5 @@ typedef void (*rteWriteCallback)(rte_context * context,
 typedef void (*rteSeekCallback)(rte_context * context,
 				off64_t offset,
 				int whence);
-
-#ifndef FALSE
-#define FALSE 0
-#endif
-#ifndef TRUE
-#define TRUE (!FALSE)
-#endif
 
 #endif /* rte-types.h */

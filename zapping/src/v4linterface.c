@@ -683,12 +683,19 @@ gchar *substitute_keywords	(gchar		*string,
 	 case 5:
 	   buffer = g_strdup_printf("%d", tc->freq);
 	   break;
+#ifdef HAVE_LIBZVBI
 	 case 6: /* title */
 	   buffer = zvbi_current_title();
 	   break;
 	 case 7: /* rating */
 	   buffer = g_strdup(zvbi_current_rating());
 	   break;
+#else
+	 case 6: /* title */
+	 case 7: /* rating */
+	   buffer = g_strdup("");
+	   break;
+#endif
 	 default:
 	   g_assert_not_reached();
 	   break;
@@ -816,10 +823,12 @@ z_switch_channel	(tveng_tuned_channel	*channel,
 
   update_control_box(info);
 
+#ifdef HAVE_LIBZVBI
   zvbi_channel_switched();
 
   if (info->current_mode == TVENG_CAPTURE_PREVIEW)
     osd_render_sgml(_("Channel: <yellow>%s</yellow>"), channel->name);
+#endif
 }
 
 void
@@ -927,7 +936,9 @@ void on_input_activate              (GtkMenuItem     *menuitem,
 				     gpointer        user_data)
 {
   z_switch_input(GPOINTER_TO_INT(user_data), main_info);
+#ifdef HAVE_LIBZVBI
   zvbi_channel_switched();
+#endif
 }
 
 /* Activate an standard */
@@ -936,7 +947,9 @@ void on_standard_activate              (GtkMenuItem     *menuitem,
 					gpointer        user_data)
 {
   z_switch_standard(GPOINTER_TO_INT(user_data), main_info);
+#ifdef HAVE_LIBZVBI
   zvbi_channel_switched();
+#endif
 }
 
 /**

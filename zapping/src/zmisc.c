@@ -261,6 +261,8 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
       tveng_stop_everything(info);
       break;
     }
+
+#ifdef HAVE_LIBZVBI
   if (!flag_exit_program)
     {
       if (new_mode != TVENG_NO_CAPTURE)
@@ -281,6 +283,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 			"page as subtitles"));
 	}
     }
+
   if (new_mode != TVENG_CAPTURE_PREVIEW &&
       new_mode != TVENG_NO_CAPTURE)
     osd_set_window(tv_screen);
@@ -289,6 +292,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
       osd_clear();
       osd_unset_window();
     }
+#endif /* HAVE_LIBZVBI */
 
   switch (new_mode)
     {
@@ -421,18 +425,22 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
     default:
       if (!flag_exit_program) /* Just closing */
 	{
-	  if (!zvbi_get_object())
+#ifdef HAVE_LIBZVBI
+	  if (zvbi_get_object())
+	    {
+	      /* start vbi code */
+	      gtk_widget_show(lookup_widget(main_window, "appbar2"));
+	      ttxview_attach(main_window, lookup_widget(main_window, "tv_screen"),
+			     lookup_widget(main_window, "toolbar1"),
+			     lookup_widget(main_window, "appbar2"));
+	    }
+	  else
+#endif
 	    {
 	      ShowBox(_("VBI has been disabled, or it doesn't work."),
 		      GNOME_MESSAGE_BOX_INFO);
 	      break;
 	    }
-	  
-	  /* start vbi code */
-	  gtk_widget_show(lookup_widget(main_window, "appbar2"));
-	  ttxview_attach(main_window, lookup_widget(main_window, "tv_screen"),
-			 lookup_widget(main_window, "toolbar1"),
-			 lookup_widget(main_window, "appbar2"));
 	}
       break; /* TVENG_NO_CAPTURE */
     }
@@ -819,6 +827,37 @@ z_replace_filename_extension (gchar *filename, gchar *new_ext)
   return name;
 }
 
+gchar *
+z_build_filename (gchar *dirname, gchar *filename)
+{
+  gchar *name;
+  gint trailing_slashes = 0, i;
+
+  if (!dirname || strlen (dirname) == 0)
+    return g_strdup (filename);
+
+  dirname = g_strdup (dirname);
+  g_strstrip (dirname);
+
+  for (i = strlen (dirname); i > 0 && dirname[i - 1] == '/'; i--)
+    trailing_slashes++;
+
+  if (trailing_slashes <= 0)
+    name = g_strconcat (dirname, "/", filename, NULL);
+  else if (trailing_slashes == 1)
+    name = g_strconcat (dirname, filename, NULL);
+  else
+    {
+      gchar *temp = g_strndup (dirname, i + 1);
+      name = g_strconcat (dirname, filename, NULL);
+      g_free (temp);
+    }
+
+  g_free (dirname);
+
+  return name;
+}
+
 /* See ttx export or screenshot for a demo */
 void
 z_on_electric_filename (GtkWidget *w, gpointer user_data)
@@ -984,6 +1023,7 @@ propagate_toolbar_changes	(GtkWidget	*toolbar)
 
 void zmisc_overlay_subtitles	(gint page)
 {
+#ifdef HAVE_LIBZVBI
   GtkWidget *closed_caption1;
 
   zvbi_page = page;
@@ -1001,6 +1041,7 @@ void zmisc_overlay_subtitles	(gint page)
     lookup_widget(main_window, "closed_caption1");
   gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(closed_caption1),
 				 TRUE);
+#endif /* HAVE_LIBZVBI */
 }
 
 void

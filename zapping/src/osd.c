@@ -24,6 +24,8 @@
 #  include <config.h>
 #endif
 
+#ifdef HAVE_LIBZVBI
+
 #include <gnome.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 
@@ -32,6 +34,7 @@
 #include "zmisc.h"
 #include "osd.h"
 #include <common/math.h>
+#include <common/ucs-2.h>
 
 #define MAX_COLUMNS 48 /* TTX */
 #define MAX_ROWS 26 /* 25 for TTX plus one for OSD */
@@ -462,13 +465,9 @@ roll_up(int first_row, int last_row)
  * OSD sources.
  */
 
-/* CC/TTX, from libvbi */
-#include "libvbi/export.h"
-#include "libvbi/libvbi.h"
-#include "libvbi/format.h"
 #include "zvbi.h"
 
-static struct fmt_page osd_page;
+static vbi_page osd_page;
 extern int osd_pipe[2];
 
 static void
@@ -552,19 +551,21 @@ add_piece_vbi		(int col, int row, int width)
       buf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8,
 			   16 * width, 26);
       vbi_draw_cc_page_region(&osd_page,
-          (uint32_t *) gdk_pixbuf_get_pixels(buf),
-	  col, row, width, 1 /* height */,
-          gdk_pixbuf_get_rowstride(buf));
+			      VBI_PIXFMT_RGBA32_LE,
+			      (uint32_t *) gdk_pixbuf_get_pixels(buf),
+			      gdk_pixbuf_get_rowstride(buf),
+			      col, row, width, 1 /* height */);
     }
   else
     {
       buf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8,
 			   12 * width, 10);
       vbi_draw_vt_page_region(&osd_page,
-          (uint32_t *) gdk_pixbuf_get_pixels(buf),
-          col, row, width, 1 /* height */,
-	  gdk_pixbuf_get_rowstride(buf),
-	  1 /* reveal */, 1 /* flash_on */);
+			      VBI_PIXFMT_RGBA32_LE,
+			      (uint32_t *) gdk_pixbuf_get_pixels(buf),
+			      gdk_pixbuf_get_rowstride(buf),
+			      col, row, width, 1 /* height */,
+			      1 /* reveal */, 1 /* flash_on */);
     }
 
   add_piece(buf, da, col, row, width, osd_page.rows,
@@ -575,7 +576,7 @@ add_piece_vbi		(int col, int row, int width)
 static void
 render_page		(void)
 {
-  attr_char *ac_row;
+  vbi_char *ac_row;
   int row, i, j;
   gboolean dirty = FALSE;
 
@@ -587,7 +588,7 @@ render_page		(void)
       clear_row(row, TRUE);
       for (i = j = 0; i < osd_page.columns; i++)
         {
-	  if (ac_row[i].opacity != TRANSPARENT_SPACE)
+	  if (ac_row[i].opacity != VBI_TRANSPARENT_SPACE)
 	    j++;
 	  else if (j > 0)
 	    {
@@ -615,7 +616,7 @@ osd_event		(gpointer	   data,
 			 gint              source, 
 			 GdkInputCondition condition)
 {
-  struct vbi *vbi = zvbi_get_object();
+  vbi_decoder *vbi = zvbi_get_object();
   char dummy[16];
   extern int zvbi_page, zvbi_subpage;
 
@@ -630,13 +631,13 @@ osd_event		(gpointer	   data,
 
   if (zvbi_page <= 8)
     {
-      if (!vbi_fetch_cc_page(vbi, &osd_page, zvbi_page))
+      if (!vbi_fetch_cc_page(vbi, &osd_page, zvbi_page, TRUE))
         return; /* trouble in outer space */
     }
   else
     {
       if (!vbi_fetch_vt_page(vbi, &osd_page, zvbi_page, zvbi_subpage,
-          25 /* rows */, 1 /* nav */))
+			     zvbi_teletext_level(), 25 /* rows */, TRUE /* nav */))
         return;
     }
 
@@ -726,19 +727,19 @@ my_startElement (void *ptr,
   else if (!strcasecmp(name, "f"))
     ctx->flash++;
 
-  sec(TRANSPARENT_SPACE, opacity, opacity_sp);
-  sec(TRANSPARENT_FULL, opacity, opacity_sp);
-  sec(SEMI_TRANSPARENT, opacity, opacity_sp);
-  sec(OPAQUE, opacity, opacity_sp);
+  sec(VBI_TRANSPARENT_SPACE, opacity, opacity_sp);
+  sec(VBI_TRANSPARENT_FULL, opacity, opacity_sp);
+  sec(VBI_SEMI_TRANSPARENT, opacity, opacity_sp);
+  sec(VBI_OPAQUE, opacity, opacity_sp);
 
-  sec(BLACK, fg, fg_sp);
-  sec(RED, fg, fg_sp);
-  sec(GREEN, fg, fg_sp);
-  sec(YELLOW, fg, fg_sp);
-  sec(BLUE, fg, fg_sp);
-  sec(MAGENTA, fg, fg_sp);
-  sec(CYAN, fg, fg_sp);
-  sec(WHITE, fg, fg_sp);
+  sec(VBI_BLACK, fg, fg_sp);
+  sec(VBI_RED, fg, fg_sp);
+  sec(VBI_GREEN, fg, fg_sp);
+  sec(VBI_YELLOW, fg, fg_sp);
+  sec(VBI_BLUE, fg, fg_sp);
+  sec(VBI_MAGENTA, fg, fg_sp);
+  sec(VBI_CYAN, fg, fg_sp);
+  sec(VBI_WHITE, fg, fg_sp);
 }
 
 #define eec(label, entry_sp) \
@@ -1385,7 +1386,7 @@ startup_osd(void)
 
   osd_model = ZMODEL(zmodel_new());
 
-  memset(&osd_page, 0, sizeof(struct fmt_page));
+  memset(&osd_page, 0, sizeof(osd_page));
 
   zcc_int(0, "Which kind of OSD should be used", "osd_type");
   zcc_char("-adobe-times-bold-r-normal-*-14-*-*-*-p-*-iso8859-1",
@@ -1426,3 +1427,5 @@ shutdown_osd(void)
   gtk_object_destroy(GTK_OBJECT(osd_model));
   osd_model = NULL;
 }
+
+#endif /* HAVE_LIBZVBI */

@@ -29,7 +29,6 @@
 #include <pthread.h>
 
 /* for vbi_push_video */
-#include <libvbi.h>
 #include "zvbi.h"
 
 #include <tveng.h>

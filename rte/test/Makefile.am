@@ -8,6 +8,6 @@ rte_test_INCLUDES = $(ESD_CFLAGS)
 rte_test_LDADD = $(ESD_LIBS) -lpthread -lm ../src/.libs/librte.a
 rte_test_SOURCES = rte_test.c
 
-info_INCLUDES = -I../src
+info_INCLUDES = -UNDEBUG -I../src
 info_LDADD = -lpthread -lm ../src/.libs/librte.a
 info_SOURCE = info.c

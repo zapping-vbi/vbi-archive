@@ -7,5 +7,5 @@ EXTRA_DIST = $(Multimedia_DATA) \
 README.plugins BUGS THANKS zapping.spec.in zapping.spec prepare_dist.sh \
 autogen.sh
 
-SUBDIRS = intl po macros libvbi common src zapping_setup_fb glade help \
+SUBDIRS = intl po macros common src zapping_setup_fb glade help \
 plugins pixmaps

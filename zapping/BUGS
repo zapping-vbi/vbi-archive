@@ -4,6 +4,11 @@ Known bugs with zapping, don't report them
 ! == Bug that needs fixing, very important
 ------------------------------------------
 
+	! 0.6.2: segv in plugins/mpeg.c 447 when composite input:
+            captured_frame_rate = zapping_info->standards[zapping_info->cur_standard].frame_rate;
+	  Prolly v4l standard not known. captured_frame_rate is essential for recording, seems
+	  this incorrectly defaulted to 25 Hz before 0.6.2 & 0.4.
+	* In rte/mp1e: -f1 & sync
 	* Need better no-overlay-present handling.
 	* Capture won't work under PPC (endianess)
 	* Look for endianness problems.
@@ -16,6 +21,7 @@ Known bugs with zapping, don't report them
 	isn't correctly detected.
 	* Do not assert on ESD timeout
 	* Bug in save window geometry, reported by Pawel.
+	* TTX search broken.
 	* Closing the main window while recording blocks.
 	  Backtrace:
 	  on_exit2_activate()
@@ -47,15 +53,3 @@ Known bugs with zapping, don't report them
 	  TVLOCK   in tveng_mutex_lock 625163
 	  TVLOCK   in tveng_read_frame 625197
 	   :
-
-
-
-
-
-
-
-
-
-
-
-

@@ -1816,6 +1816,7 @@ screenshot_grab (gint dialog)
 	  return FALSE; /* unable to set the mode */
 	}
     }
+#ifdef HAVE_LIBZVBI
   /*
    *  Otherwise request TTX image 
    *  XXX Option: include subtitles
@@ -1844,6 +1845,7 @@ screenshot_grab (gint dialog)
 
       return TRUE;
     }
+#endif /* HAVE_LIBZVBI */
   else
     return FALSE;
 

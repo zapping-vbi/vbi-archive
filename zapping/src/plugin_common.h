@@ -27,6 +27,10 @@
 
 #include <gnome.h>
 
+#ifdef HAVE_LIBZVBI
+#include <libzvbi.h>
+#endif
+
 #include "tveng.h"
 #include "zmisc.h"
 #include "zconf.h"
@@ -34,7 +38,6 @@
 #include "remote.h"
 #include "x11stuff.h"
 #include "common/fifo.h"
-#include "libvbi/libvbi.h"
 #include "capture.h"
 #include "frequencies.h"
 

@@ -22,6 +22,8 @@
 #  include <config.h>
 #endif
 
+#ifdef HAVE_LIBZVBI
+
 #include <zmodel.h>
 
 GtkWidget *build_ttxview(void);
@@ -98,4 +100,5 @@ get_ttxview_page			(GtkWidget	*view,
 					 gint		*page,
 					 gint		*subpage);
 
-#endif
+#endif /* HAVE_LIBZVBI */
+#endif /* __TTXVIEW_H__ */

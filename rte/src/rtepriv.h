@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rtepriv.h,v 1.7 2001-12-18 18:24:04 garetxe Exp $
+ * $Id: rtepriv.h,v 1.8 2002-01-13 09:54:01 mschimek Exp $
  * Private stuff in the context.
  */
 
@@ -27,6 +27,7 @@
 #define __RTEPRIV_H__
 #include "rte.h"
 #include <pthread.h>
+#include <stdio.h>
 #include <stdarg.h>
 #include <assert.h>
 #include "../common/fifo.h"
@@ -203,39 +204,42 @@ typedef struct {
   { type_ = def_ }, { type_ = min_ }, { type_ = max_ }, { type_ = step_ }
 
 #define RTE_OPTION_BOOL_INITIALIZER(key_, label_, def_, tip_)		\
-  { RTE_OPTION_BOOL, key_, label_,					\
-    RTE_OPTION_BOUNDS_INITIALIZER_(.num, def_, 0, 1, 1),		\
-    { .num = NULL }, 0, 0, tip_ }
+  { RTE_OPTION_BOOL, key_, label_, RTE_OPTION_BOUNDS_INITIALIZER_(	\
+  .num, def_, 0, 1, 1),	{ .num = NULL }, tip_ }
 
-#define RTE_OPTION_MENU_INT_INITIALIZER(key_, label_, def_, menu_,	\
-    entries_, tip_) { RTE_OPTION_MENU, key_, label_,			\
-    RTE_OPTION_BOUNDS_INITIALIZER_(.idx, def_, 0, entries_, 1),		\
-    { .num = menu_ }, RTE_INT, entries_, tip_ }
+#define RTE_OPTION_INT_RANGE_INITIALIZER(key_, label_, def_, min_,	\
+  max_,	step_, tip_) { RTE_OPTION_INT, key_, label_,			\
+  RTE_OPTION_BOUNDS_INITIALIZER_(.num, def_, min_, max_, step_),	\
+  { .num = NULL }, tip_ }
 
-#define RTE_OPTION_INT_INITIALIZER(key_, label_, def_, min_, max_,	\
-  step_, tip_) { RTE_OPTION_INT, key_, label_,				\
-    RTE_OPTION_BOUNDS_INITIALIZER_(.num, def_, min_, max_, step_),	\
-    { .num = NULL }, 0, 0, tip_ }
+#define RTE_OPTION_INT_MENU_INITIALIZER(key_, label_, def_,		\
+  menu_, entries_, tip_) { RTE_OPTION_INT, key_, label_,		\
+  RTE_OPTION_BOUNDS_INITIALIZER_(.num, def_, 0, (entries_) - 1, 1),	\
+  { .num = menu_ }, tip_ }
 
-#define RTE_OPTION_MENU_REAL_INITIALIZER(key_, label_, def_, menu_,	\
-    entries_, tip_) { RTE_OPTION_MENU, key_, label_,			\
-    RTE_OPTION_BOUNDS_INITIALIZER_(.idx, def_, 0, entries_, 1),		\
-    { .dbl = menu_ }, RTE_REAL, entries_, tip_ }
+#define RTE_OPTION_REAL_RANGE_INITIALIZER(key_, label_, def_, min_,	\
+  max_, step_, tip_) { RTE_OPTION_REAL, key_, label_,			\
+  RTE_OPTION_BOUNDS_INITIALIZER_(.dbl, def_, min_, max_, step_),	\
+  { .dbl = NULL }, tip_ }
 
-#define RTE_OPTION_REAL_INITIALIZER(key_, label_, def_, min_, max_,	\
-  step_, tip_) { RTE_OPTION_REAL, key_, label_,				\
-    RTE_OPTION_BOUNDS_INITIALIZER_(.dbl, def_, min_, max_, step_),	\
-    { .dbl = NULL }, 0, 0, tip_ }
+#define RTE_OPTION_REAL_MENU_INITIALIZER(key_, label_, def_,		\
+  menu_, entries_, tip_) { RTE_OPTION_REAL, key_, label_,		\
+  RTE_OPTION_BOUNDS_INITIALIZER_(.num, def_, 0, (entries_) - 1, 1),	\
+  { .dbl = menu_ }, tip_ }
 
-#define RTE_OPTION_MENU_STRING_INITIALIZER(key_, label_, def_, menu_,	\
-    entries_, tip_) { RTE_OPTION_MENU, key_, label_,			\
-    RTE_OPTION_BOUNDS_INITIALIZER_(.idx, def_, 0, entries_, 1),		\
-    { .str = menu_ }, RTE_STRING, entries_, tip_ }
+#define RTE_OPTION_STRING_INITIALIZER(key_, label_, def_, tip_)		\
+  { RTE_OPTION_STRING, key_, label_, RTE_OPTION_BOUNDS_INITIALIZER_(	\
+  .str, def_, NULL, NULL, NULL), { .str = NULL }, tip_ }
 
-#define RTE_OPTION_STRING_INITIALIZER(key_, label_, def_, tip_) {	\
-	RTE_OPTION_STRING, key_, label_,				\
-    RTE_OPTION_BOUNDS_INITIALIZER_(.str, def_, NULL, NULL, NULL),	\
-    { .str = NULL }, 0, 0, tip_ }
+#define RTE_OPTION_STRING_MENU_INITIALIZER(key_, label_, def_,		\
+  menu_, entries_, tip_) { RTE_OPTION_STRING, key_, label_,		\
+  RTE_OPTION_BOUNDS_INITIALIZER_(.str, def_, 0, (entries_) - 1, 1),	\
+  { .str = menu_ }, tip_ }
+
+#define RTE_OPTION_MENU_INITIALIZER(key_, label_, def_, menu_,		\
+  entries_, tip_) { RTE_OPTION_MENU, key_, label_,			\
+  RTE_OPTION_BOUNDS_INITIALIZER_(.num, def_, 0, (entries_) - 1, 1),	\
+  { .str = menu_ }, tip_ }
 
 #define RC(X) ((rte_context*)X)
 
@@ -275,6 +279,7 @@ rte_helper_set_option_va(rte_codec *codec, char *keyword, ...)
 	return r;
 }
 
+/* to be removed */
 static inline int
 rte_helper_reset_options(rte_codec *codec)
 {
@@ -283,28 +288,52 @@ rte_helper_reset_options(rte_codec *codec)
 
 	while (r && (option = codec->class->option_enum(codec, i++))) {
 		switch (option->type) {
-		case RTE_OPTION_INT:
 		case RTE_OPTION_BOOL:
-		case RTE_OPTION_MENU:
-			r = rte_helper_set_option_va(
-				codec, option->keyword, option->def.num);
+		case RTE_OPTION_INT:
+			if (option->menu.num)
+				r = rte_helper_set_option_va(codec, option->keyword,
+							 option->menu.num[option->def.num]);
+			else
+				r = rte_helper_set_option_va(codec, option->keyword,
+							 option->def.num);
 			break;
-		case RTE_OPTION_STRING:
-			r = rte_helper_set_option_va(
-				codec, option->keyword, option->def.str);
-			break;
+
 		case RTE_OPTION_REAL:
-			r = rte_helper_set_option_va(
-				codec, option->keyword, option->def.dbl);
+			if (option->menu.dbl)
+				r = rte_helper_set_option_va(codec, option->keyword,
+							 option->menu.dbl[option->def.num]);
+			else
+				r = rte_helper_set_option_va(codec, option->keyword, 
+							 option->def.dbl);
 			break;
+
+		case RTE_OPTION_STRING:
+			if (option->menu.str)
+				r = rte_helper_set_option_va(codec, option->keyword,
+							 option->menu.str[option->def.num]);
+			else
+				r = rte_helper_set_option_va(codec, option->keyword, 
+							 option->def.str);
+			break;
+
+		case RTE_OPTION_MENU:
+			r = rte_helper_set_option_va(codec, option->keyword, option->def.num);
+			break;
+
 		default:
-			assert(!"reset option->type");
+			fprintf(stderr, __PRETTY_FUNCTION__
+				": unknown codec option type %d\n", option->type);
+			exit(EXIT_FAILURE);
 		}
 	}
 
 	return r;
 }
 
+extern rte_bool
+rte_codec_options_reset(rte_codec *codec);
+
+extern rte_bool
+rte_context_options_reset(rte_context *context);
+
 #endif /* rtepriv.h */
-
-

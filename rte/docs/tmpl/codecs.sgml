@@ -51,6 +51,7 @@ Selecting codecs.
 </para>
 
 @context: 
+@stream_type: 
 @stream_index: 
 @codec_keyword: 
 @Returns: 
@@ -93,5 +94,14 @@ Selecting codecs.
 @codec: 
 @params: 
 @Returns: 
+
+
+<!-- ##### FUNCTION rte_codec_get_parameters ##### -->
+<para>
+
+</para>
+
+@codec: 
+@params: 
 
 

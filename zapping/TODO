@@ -1,8 +1,7 @@
-Outstanding issues for the next release (0.6.2)
+Outstanding issues for the next release (0.6.3)
 -----------------------------------------------
 > 0.6.3
 	+ Improve documentation.
-	+ TTX export: Make blockgfx replacement smarter.
 	+ vbi: add toggle button to disable CC/TTX decoding
           (independent of station name decoding, that is). Mind
 	  listing subtitles. Should also disable trigger
@@ -10,22 +9,21 @@ Outstanding issues for the next release (0.6.2)
 	+ rte: We need a TODO/Changelog for this, do not forget
 	+ Look into scripting.
 	+ Examine the possiblity of linking movie titles, VBI plugin API.
-	+ Streaming ASCII plugin.
 	+ zapzilla: channel selector, properties.
 	+ Finish parrot buffer for observing parrots.
-	+ libvbi: SGML error reporting.
 	+ Get thumbnails of all tuned channels.
-	+ Think about ttx header samples (p100) for stations not transmitting
-	  a CNI (instead of guessing the name from ttx). Needs some sort of
-	  raw dump, so users can send updates. Upd: Oops, we do have a raw
-	  dump: VTX.
 	+ Take TTX out of the context menus when Zapping doesn't
 	  receive TTX. (event timestamps?)
-	+ TTX program name
 	+ Volume bindings
 	+ Make Zapping UTF-8 clean (for now by moving all string ops
           into one place, propose zmisc.c, avoiding strlen etc).
 	+ Finish WSS.
+	! Video standard question.
+
+	+ "Overlay subtitle pages automatically" default FALSE.
+	+ Remove default overlay page?
+	! MPEG plugin frame rate fix.
+	+ ttxview.c/selection_handle: What's the correct char set?
 
 > 0.7.0
 	+ Support for Python scripting, write all new gui handling as
@@ -42,7 +40,6 @@ Outstanding issues for the next release (0.6.2)
 	  when a trigger is merely repeated.
 	+ Recording schedule.
 	+ Screenshot plugin: subtitle overlay
-	+ TTX export ANSI colors needs improvement.
 	+ Mpeg plugin/mp1e very low frame rate interrupts display,
 	  probably a scheduling issue. Investigate if/how this can be avoided.
 

@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.15 2001-10-28 20:05:13 garetxe Exp $
+ * $Id: fullscreen.c,v 1.16 2002-01-13 09:52:22 mschimek Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -224,7 +224,7 @@ fullscreen_start(tveng_device_info * info)
   gtk_signal_connect(GTK_OBJECT(black_window), "event",
 		     GTK_SIGNAL_FUNC(on_fullscreen_event),
   		     main_window);
-
+#ifdef HAVE_LIBZVBI
   if (info->current_controller != TVENG_CONTROLLER_XV)
     osd_set_coords(da,
 		   info->window.x, info->window.y, info->window.width,
@@ -235,6 +235,7 @@ fullscreen_start(tveng_device_info * info)
 
   gtk_signal_connect(GTK_OBJECT(osd_model), "changed",
 		     GTK_SIGNAL_FUNC(osd_model_changed), info);
+#endif
 
   return 0;
 }
@@ -247,13 +248,17 @@ fullscreen_stop(tveng_device_info * info)
   x11_set_screensaver(ON);
 #endif
 
+#ifdef HAVE_LIBZVBI
   osd_unset_window();
+#endif
 
   /* Remove the black window */
   gtk_widget_destroy(black_window);
   x11_force_expose(0, 0, gdk_screen_width(), gdk_screen_height());
 
+#ifdef HAVE_LIBZVBI
   gtk_signal_disconnect_by_func(GTK_OBJECT(osd_model),
 				GTK_SIGNAL_FUNC(osd_model_changed),
 				info);
+#endif
 }

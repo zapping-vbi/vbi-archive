@@ -120,10 +120,11 @@ on_toggle_muted1_activate		(GtkMenuItem	*menuitem,
 					 gpointer	user_data)
 {
   tveng_set_mute(1-tveng_get_mute(main_info), main_info);
-
+#ifdef HAVE_LIBZVBI
   osd_render_sgml(tveng_get_mute(main_info) ?
 		  _("<blue>audio off</blue>") :
 		  _("<yellow>AUDIO ON</yellow>"));
+#endif
 }
 
 void
@@ -256,6 +257,7 @@ void
 on_closed_caption1_activate            (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
+#ifdef HAVE_LIBZVBI
   GtkCheckMenuItem *button = GTK_CHECK_MENU_ITEM(menuitem);
   gboolean status = button->active;
 
@@ -263,12 +265,14 @@ on_closed_caption1_activate            (GtkMenuItem     *menuitem,
 
   if (!status)
     osd_clear();
+#endif
 }
 
 void
 on_videotext1_activate                 (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
+#ifdef HAVE_LIBZVBI
   /* Switch from TTX to Subtitles overlay, and viceversa */
   if (main_info->current_mode == TVENG_NO_CAPTURE)
     {
@@ -277,27 +281,34 @@ on_videotext1_activate                 (GtkMenuItem     *menuitem,
     }
   else
     zmisc_switch_mode(TVENG_NO_CAPTURE, main_info);
+#endif
 }
 
 void
 on_vbi_info1_activate                  (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
+#ifdef HAVE_LIBZVBI
   gtk_widget_show(zvbi_build_network_info());
+#endif
 }
 
 void
 on_program_info1_activate              (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
+#ifdef HAVE_LIBZVBI
   gtk_widget_show(zvbi_build_program_info());
+#endif
 }
 
 void
 on_new_ttxview_activate		       (GtkMenuItem	*menuitem,
 					gpointer	user_data)
 {
+#ifdef HAVE_LIBZVBI
   gtk_widget_show(build_ttxview());
+#endif
 }
 
 void
@@ -347,7 +358,10 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 	    gtk_widget_set_sensitive(widget, FALSE);
 	    gtk_widget_hide(widget);
 	  }
+
+#ifdef HAVE_LIBZVBI
 	if (!zvbi_get_object())
+#endif
 	  {
 	    widget = lookup_widget(GTK_WIDGET(menu), "separador6");
 	    gtk_widget_set_sensitive(widget, FALSE);
@@ -359,6 +373,7 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 	    gtk_widget_set_sensitive(widget, FALSE);
 	    gtk_widget_hide(widget);
 	  }
+#ifdef HAVE_LIBZVBI
 	else if (main_info->current_mode == TVENG_NO_CAPTURE)
 	  {
 	    widget = lookup_widget(GTK_WIDGET(menu), "videotext2");
@@ -368,8 +383,12 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 			      _("Return to windowed mode and use the current "
 				"page as subtitles"));
 	  }
+
 	/* Remove capturing item if it's redundant */
 	if ((!zvbi_get_object()) && (disable_preview))
+#else
+	if (disable_preview)
+#endif
 	  {
 	    gtk_widget_hide(lookup_widget(GTK_WIDGET(menu),
 					  "separador3"));
@@ -384,8 +403,10 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
 			    GNOME_STOCK_PIXMAP_BOOK_OPEN,
 			    _("Show controls"),
 			    _("Show the menu and the toolbar"));
-
+#ifdef HAVE_LIBZVBI
 	process_ttxview_menu_popup(main_window, bevent, menu);
+#endif
+
 	/* Let plugins add their GUI to this context menu */
 	p = g_list_first(plugin_list);
 	while (p)
@@ -488,4 +509,66 @@ on_ntsc_small_activate		       (GtkMenuItem     *menuitem,
   GtkWidget *tv_screen = lookup_widget(main_window, "tv_screen");
 
   resize_subwindow(tv_screen->window, 640/2, 480/2);
+}
+
+void
+vbi_gui_sensitive (gboolean on)
+{
+  if (!on)
+    {
+      printv("VBI disabled, removing GUI items\n");
+      gtk_widget_set_sensitive(lookup_widget(main_window, "separador5"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "separador5"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "videotext1"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "videotext1"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "vbi_info1"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "vbi_info1"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "program_info1"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "program_info1"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "videotext3"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "videotext3"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "new_ttxview"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "new_ttxview"));
+      gtk_widget_set_sensitive(lookup_widget(main_window,
+					     "closed_caption1"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "closed_caption1"));
+      gtk_widget_hide(lookup_widget(main_window, "separator8"));
+      /* Set the capture mode to a default value and disable VBI */
+      if (zcg_int(NULL, "capture_mode") == TVENG_NO_CAPTURE)
+	zcs_int(TVENG_CAPTURE_READ, "capture_mode");
+    }
+  else
+    {
+      printv("VBI enabled, showing GUI items\n");
+      gtk_widget_set_sensitive(lookup_widget(main_window, "separador5"),
+			       TRUE);
+      gtk_widget_show(lookup_widget(main_window, "separador5"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "videotext1"),
+			       TRUE);
+      gtk_widget_show(lookup_widget(main_window, "videotext1"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "vbi_info1"),
+			       TRUE);
+      gtk_widget_show(lookup_widget(main_window, "vbi_info1"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "program_info1"),
+			       TRUE);
+      gtk_widget_show(lookup_widget(main_window, "program_info1"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "videotext3"),
+			       TRUE);
+      gtk_widget_show(lookup_widget(main_window, "videotext3"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "new_ttxview"),
+			       TRUE);
+      gtk_widget_show(lookup_widget(main_window, "new_ttxview"));
+      gtk_widget_set_sensitive(lookup_widget(main_window,
+					     "closed_caption1"),
+			       TRUE);
+      gtk_widget_show(lookup_widget(main_window, "closed_caption1"));
+      gtk_widget_show(lookup_widget(main_window, "separator8"));
+    }
 }

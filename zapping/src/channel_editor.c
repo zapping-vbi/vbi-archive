@@ -1516,8 +1516,11 @@ gint do_search (GtkWidget * searching)
 	    lookup_widget(channel_list, "channel_name");
 	  guint32 last_freq = channel->freq, last_afc = afc;
 
+#ifdef HAVE_LIBZVBI
 	  /* zvbi should store the station name if known from now */
 	  zvbi_name_unknown();
+#endif
+
 	  /* wait afc code, receive some VBI data to get the station,
 	     etc. XXX should wake up earlier when the data is ready */
 	  usleep(3e5);
@@ -1536,13 +1539,14 @@ gint do_search (GtkWidget * searching)
 	      last_freq += afc*25;
 	    }
 
+#ifdef HAVE_LIBZVBI
 	  if (zconf_get_boolean(NULL, "/zapping/options/vbi/use_vbi"))
 	    tuned_name = zvbi_get_name();
-
-	  if ((!zconf_get_boolean(NULL,
-				  "/zapping/options/vbi/use_vbi")) ||
-	      (!tuned_name))
+#endif
+	  if ((!zconf_get_boolean(NULL, "/zapping/options/vbi/use_vbi"))
+	      || (!tuned_name))
 	    tuned_name = g_strdup(channel->name);
+
 	  gtk_entry_set_text(GTK_ENTRY(channel_name), tuned_name);
 	  g_free(tuned_name);
 

@@ -418,6 +418,7 @@ startup_overlay(GtkWidget * window, GtkWidget * main_window,
   else
     gdk_window_set_back_pixmap(window->window, NULL, FALSE);
 
+#ifdef HAVE_LIBZVBI
   if (tv_info.needs_cleaning)
     {
       if (!root_window)
@@ -435,6 +436,7 @@ startup_overlay(GtkWidget * window, GtkWidget * main_window,
       /* Update the cliplist now */
       on_osd_model_changed(osd_model, NULL);
     }
+#endif /* HAVE_LIBZVBI */
 }
 
 /*
@@ -454,11 +456,12 @@ overlay_stop(tveng_device_info *info)
   gtk_signal_disconnect_by_func(GTK_OBJECT(tv_info.window),
 				GTK_SIGNAL_FUNC(on_tv_screen_size_allocate),
 				NULL);
-
+#ifdef HAVE_LIBZVBI
   if (tv_info.needs_cleaning)
     gtk_signal_disconnect_by_func(GTK_OBJECT(osd_model),
 				  GTK_SIGNAL_FUNC(on_osd_model_changed),
 				  NULL);
+#endif
 
   if (tv_info.needs_cleaning)
     gdk_window_remove_filter(root_window, x_root_filter, NULL);

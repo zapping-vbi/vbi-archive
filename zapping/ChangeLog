@@ -1,3 +1,10 @@
+08.01.2002	<mschimek@users.sf.net>
+
+	* ttxview.c: Page is exported with current reveal state.
+	* vbi export: "TODO: TTX export ANSI colors needs improvement"
+	  done, now has char set and terminal option, the stupid
+	  fg/bg options are gone.
+
 25.12.2001	hide pointer timeout <garetxe@users.sf.net>
 
 	* main.c: Hide the pointer after 1.5s, timeout logic.

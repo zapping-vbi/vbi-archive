@@ -24,9 +24,12 @@
 #  include <config.h>
 #endif
 
+#ifdef HAVE_LIBZVBI
+
 #include <gnome.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <gdk/gdkx.h>
+#include <ctype.h>
 
 #include "interface.h"
 #include "frequencies.h"
@@ -39,6 +42,7 @@
 #include "zmodel.h"
 #include "common/fifo.h"
 #include "common/errstr.h"
+#include "common/ucs-2.h"
 #include "osd.h"
 #include "callbacks.h"
 
@@ -120,7 +124,7 @@ typedef struct {
   GtkWidget		*da;
   int			id; /* TTX client id */
   guint			timeout; /* id */
-  struct fmt_page	*fmt_page; /* current page, formatted */
+  vbi_page		*fmt_page; /* current page, formatted */
   gint			page; /* page we are entering */
   gint			subpage; /* current subpage */
   GList			*history_stack; /* for back, etc... */
@@ -143,7 +147,7 @@ typedef struct {
   gint			osx, osy; /* old positions for the selection */
   gboolean		in_clipboard; /* in the "CLIPBOARD" clipboard */
   gboolean		in_selection; /* in the primary selection */
-  struct fmt_page	clipboard_fmt_page; /* page that contains the
+  vbi_page		clipboard_fmt_page; /* page that contains the
 					   selection */
   gboolean		sel_table;
   gint			sel_col1, sel_row1, sel_col2, sel_row2;
@@ -154,7 +158,7 @@ typedef struct {
   guint32		last_time; /* time of the last key event */
   gint			wait_timeout_id; /* GUI too fast, slowing down */
   guint			wait_page; /* last page requested */
-  struct fmt_page	wait_pg; /* page we wait for */
+  vbi_page		wait_pg; /* page we wait for */
   gboolean		wait_mode; /* waiting */
   
   GtkToolbarStyle	toolbar_style; /* previous style of the
@@ -339,7 +343,7 @@ void scale_image			(GtkWidget	*wid,
 static int
 find_prev_subpage (ttxview_data	*data, int subpage)
 {
-  struct vbi *vbi = zvbi_get_object();
+  vbi_decoder *vbi = zvbi_get_object();
   int start_subpage = subpage;
 
   if (!vbi)
@@ -349,7 +353,7 @@ find_prev_subpage (ttxview_data	*data, int subpage)
     return -1;
 
   do {
-    subpage = add_bcd(subpage, 0x999);
+    subpage = vbi_add_bcd(subpage, 0x999);
 
     if (subpage == start_subpage)
       return -1;
@@ -364,7 +368,7 @@ find_prev_subpage (ttxview_data	*data, int subpage)
 static int
 find_next_subpage (ttxview_data	*data, int subpage)
 {
-  struct vbi *vbi = zvbi_get_object();
+  vbi_decoder *vbi = zvbi_get_object();
   int start_subpage = subpage;
 
   if (!vbi)
@@ -374,7 +378,7 @@ find_next_subpage (ttxview_data	*data, int subpage)
     return -1;
 
   do {
-    subpage = add_bcd(subpage, 0x001);
+    subpage = vbi_add_bcd(subpage, 0x001);
 
     if (subpage == start_subpage)
       return -1;
@@ -412,7 +416,7 @@ void append_history	(int page, int subpage, ttxview_data *data)
 {
   gint page_code, pc_subpage;
 
-  pc_subpage = (subpage == ANY_SUB) ? 0xffff : (subpage & 0xffff);
+  pc_subpage = (subpage == VBI_ANY_SUBNO) ? 0xffff : (subpage & 0xffff);
   page_code = (page<<16)+pc_subpage;
 
   if ((!data->history_stack) ||
@@ -450,8 +454,8 @@ static gint wait_timeout (ttxview_data *data)
 
   page = data->wait_page >> 8;
   subpage = data->wait_page & 0xff;
-  if (subpage == (ANY_SUB & 0xff))
-    subpage = ANY_SUB;
+  if (subpage == (VBI_ANY_SUBNO & 0xff))
+    subpage = VBI_ANY_SUBNO;
 
   data->wait_timeout_id = -1;
 
@@ -466,12 +470,12 @@ static gint wait_timeout (ttxview_data *data)
 }
 
 static void retarded_load(gint page, gint subpage,
-			  ttxview_data *data, struct fmt_page *pg)
+			  ttxview_data *data, vbi_page *pg)
 {
 
   data->wait_page = (page << 8) + (subpage & 0xff);
   if (pg)
-    memcpy(&data->wait_pg, pg, sizeof(struct fmt_page));
+    memcpy(&data->wait_pg, pg, sizeof(data->wait_pg));
   else
     data->wait_pg.pgno = -1;
 
@@ -497,30 +501,30 @@ static void retarded_load(gint page, gint subpage,
 }
 
 static void
-load_page (int page, int subpage, ttxview_data *data,
-	   struct fmt_page *pg)
+load_page (vbi_pgno page, vbi_subno subpage,
+	   ttxview_data *data, vbi_page *pg)
 {
   GtkWidget *ttxview_url = lookup_widget(data->toolbar, "ttxview_url");
   GtkWidget *ttxview_hold = lookup_widget(data->toolbar, "ttxview_hold");
   gchar *buffer;
 
-  data->hold = (subpage != ANY_SUB)?TRUE:FALSE;
+  data->hold = (subpage != VBI_ANY_SUBNO) ? TRUE : FALSE;
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ttxview_hold),
 			       data->hold);
     
   data->subpage = subpage;
   data->page = page;
   data->monitored_subpage = subpage;
-  if (subpage != ANY_SUB && subpage)
-    buffer = g_strdup_printf("%d.%d", bcd2dec(page), bcd2dec(subpage));
+  if (subpage != VBI_ANY_SUBNO && subpage)
+    buffer = g_strdup_printf("%d.%d", vbi_bcd2dec(page), vbi_bcd2dec(subpage));
   else
-    buffer = g_strdup_printf("%d", bcd2dec(page));
+    buffer = g_strdup_printf("%d", vbi_bcd2dec(page));
   gtk_label_set_text(GTK_LABEL(ttxview_url), buffer);
   g_free(buffer);
 
   if ((page >= 0x100) && (page <= 0x900 /* 0x900 == top index */))
     {
-      if (subpage == ANY_SUB)
+      if (subpage == VBI_ANY_SUBNO)
 	buffer = g_strdup_printf(_("Loading page %x..."), page);
       else
 	buffer = g_strdup_printf(_("Loading subpage %x..."),
@@ -629,45 +633,26 @@ static void selection_handle		(GtkWidget	*widget,
     {
       if (info == TARGET_STRING)
 	{
-	  vbi_export *e;
-	  gchar * buffer =
-	    g_strdup_printf("string,col1=%d,row1=%d,"
-			    "col2=%d,row2=%d,table=%d",
-			    data->sel_col1, data->sel_row1,
-			    data->sel_col2, data->sel_row2,
-			    data->sel_table);
+	  int width = data->sel_col2 - data->sel_col1 + 1;
+	  int height = data->sel_row2 - data->sel_row1 + 1;
+	  int actual = 0, size = width * height * 8;
+	  char *buf = malloc (size);
 
-	  if ((e = vbi_export_open(buffer, NULL, 0)))
-	    {
-#ifdef ENABLE_V4L
-	      char *str;
-	      size_t size;
-	      FILE *fp = open_memstream(&str, &size);
+	  if (buf) {
+	    actual = vbi_print_page_region (&data->clipboard_fmt_page,
+					    buf, size, "ISO-8859-1" /* OK? */,
+					    data->sel_table, /* rtl */ FALSE,
+					    data->sel_col1, data->sel_row1,
+					    width, height);
+	    if (actual > 0)
+	      gtk_selection_data_set (selection_data,
+				      GDK_SELECTION_TYPE_STRING, 8,
+				      buf, actual);
+	    free (buf);
+	  }
 
-	      g_assert(fp != NULL);
-
-	      if (vbi_export_file(e, fp, &data->clipboard_fmt_page))
-		{
-	          fclose(fp);
-		  gtk_selection_data_set (selection_data,
-					  GDK_SELECTION_TYPE_STRING, 8,
-					  str, size);
-		}
-	      else
-	        {
-	          fclose(fp);
-		  g_warning(_("Text export failed: %s"), errstr);
-		}
-	      if (str)
-	        free(str);
-#endif
-	      vbi_export_close(e);
-	    }
-	  else
-	    {
-	      g_warning(_("Selection failed: %s"), errstr);
-	    }
-	  g_free(buffer);
+	  if (actual <= 0)
+	    g_warning (_("Text export failed"));
 	}
       else if (info == TARGET_PIXMAP)
 	{
@@ -689,6 +674,7 @@ static void selection_handle		(GtkWidget	*widget,
 					     8, width*CW, height*CH);
 
 	  vbi_draw_vt_page_region(&data->clipboard_fmt_page,
+				  VBI_PIXFMT_RGBA32_LE,
 				  (uint32_t *) gdk_pixbuf_get_pixels(canvas),
 				  data->sel_col1, data->sel_row1,
 				  width, height,
@@ -724,8 +710,8 @@ update_pointer (ttxview_data *data)
     return;
 
   /* convert to fmt_page space */
-  col = (x*data->fmt_page->columns)/w;
-  row = (y*data->fmt_page->rows)/h;
+  col = (x * data->fmt_page->columns) / w;
+  row = (y * data->fmt_page->rows) / h;
 
   if ((col < 0) || (col >= data->fmt_page->columns)
       || (row < 0) || (row >= data->fmt_page->rows))
@@ -740,11 +726,12 @@ update_pointer (ttxview_data *data)
       switch (ld.type)
         {
 	case VBI_LINK_PAGE:
-	  buffer = g_strdup_printf(_(" Page %d"), bcd2dec(ld.page));
+	  buffer = g_strdup_printf(_(" Page %d"), vbi_bcd2dec(ld.pgno));
 	  break;
 
 	case VBI_LINK_SUBPAGE:
-	  buffer = g_strdup_printf(_(" Subpage %d"), bcd2dec(ld.subpage & 0xFF));
+	  buffer = g_strdup_printf(_(" Subpage %d"),
+				   vbi_bcd2dec(ld.subno & 0xFF));
 	  break;
 
 	case VBI_LINK_HTTP:
@@ -801,7 +788,7 @@ event_timeout				(ttxview_data	*data)
 	  if (data->parent_toolbar &&
 	      zconf_get_boolean(NULL,
 				"/zapping/options/vbi/auto_overlay") &&
-	      (data->fmt_page->screen_opacity == TRANSPARENT_SPACE ||
+	      (data->fmt_page->screen_opacity == VBI_TRANSPARENT_SPACE ||
 	       vbi_classify_page(zvbi_get_object(), data->fmt_page->pgno, NULL,
 				 NULL) == VBI_SUBTITLE_PAGE))
 	    {
@@ -871,10 +858,10 @@ void on_ttxview_home_clicked		(GtkButton	*button,
 
   if (ld.type == VBI_LINK_PAGE || ld.type == VBI_LINK_SUBPAGE)
     {
-      if (ld.page)
-	load_page(ld.page, ld.subpage, data, NULL);
+      if (ld.pgno)
+	load_page(ld.pgno, ld.subno, data, NULL);
       else
-	load_page(0x100, ANY_SUB, data, NULL);
+	load_page(0x100, VBI_ANY_SUBNO, data, NULL);
     }
   /* else VBI_LINK_HTTP, "http://zapping.sourceforge.net" :-) */
 }
@@ -887,12 +874,14 @@ void on_ttxview_hold_toggled		(GtkToggleButton *button,
 
   if (hold != data->hold)
     {
+      vbi_page *pg = data->fmt_page;
+
       data->hold = hold;
+
       if (hold)
-	load_page(data->fmt_page->pgno, data->fmt_page->subno,
-		  data, NULL);
+	load_page(pg->pgno, pg->subno, data, NULL);
       else
-	load_page(data->fmt_page->pgno, ANY_SUB, data, NULL);
+	load_page(pg->pgno, VBI_ANY_SUBNO, data, NULL);
     }
 }
 
@@ -911,12 +900,14 @@ static
 void on_ttxview_prev_page_clicked	(GtkButton	*button,
 					 ttxview_data	*data)
 {
-  gint new_page;
+  vbi_pgno new_page;
+
   if (data->page == 0)
     new_page = 0x899;
   else
-    new_page = add_bcd(data->page, 0x999) & 0xFFF;
-  load_page(new_page, ANY_SUB, data, NULL);
+    new_page = vbi_add_bcd(data->page, 0x999);
+
+  load_page(new_page, VBI_ANY_SUBNO, data, NULL);
 }
 
 static
@@ -927,7 +918,7 @@ void on_ttxview_prev_sp_cache_clicked	(GtkWidget	*widget,
 
   if (data->fmt_page->pgno == TOP_INDEX_PAGE)
     load_page(data->fmt_page->pgno,
-	      add_bcd(data->subpage, 0x99) & 0xFF, data, NULL);
+	      vbi_add_bcd(data->subpage, 0x99) & 0xFF, data, NULL);
   else
     {
       int subpage = find_prev_subpage(data, data->subpage);
@@ -948,7 +939,7 @@ void on_ttxview_prev_subpage_clicked	(GtkButton	*button,
   if (data->subpage == 0)
     new_subpage = 0x99;
   else
-    new_subpage = add_bcd(data->subpage, 0x99) & 0xFF;
+    new_subpage = vbi_add_bcd(data->subpage, 0x99) & 0xFF;
   load_page(data->fmt_page->pgno, new_subpage, data, NULL);
 }
 
@@ -956,13 +947,14 @@ static
 void on_ttxview_next_page_clicked	(GtkButton	*button,
 					 ttxview_data	*data)
 {
-  gint new_page;
+  vbi_pgno new_page;
 
   if (data->page >= 0x899)
     new_page = 0x100;
   else
-    new_page = add_bcd(data->page, 0x001);
-  load_page(new_page, ANY_SUB, data, NULL);
+    new_page = vbi_add_bcd(data->page, 0x001);
+
+  load_page(new_page, VBI_ANY_SUBNO, data, NULL);
 }
 
 static
@@ -973,7 +965,7 @@ void on_ttxview_next_sp_cache_clicked	(GtkWidget	*widget,
 
   if (data->fmt_page->pgno == TOP_INDEX_PAGE)
     load_page(data->fmt_page->pgno,
-	      add_bcd(data->subpage, 0x01), data, NULL);
+	      vbi_add_bcd(data->subpage, 0x01) & 0xFF, data, NULL);
   else
     {
       int subpage = find_next_subpage(data, data->subpage);
@@ -994,7 +986,7 @@ void on_ttxview_next_subpage_clicked	(GtkButton	*button,
   if (data->subpage >= 0x99)
     new_subpage = 0x00;
   else
-    new_subpage = add_bcd(data->subpage, 0x01);
+    new_subpage = vbi_add_bcd(data->subpage, 0x01);
   load_page(data->fmt_page->pgno, new_subpage, data, NULL);
 }
 
@@ -1007,7 +999,7 @@ void on_search_progress_destroy		(GtkObject	*widget,
   search_progress = NULL;
 
   if (!running)
-    vbi_delete_search(context);
+    vbi_search_delete(context);
 }
 
 static
@@ -1016,7 +1008,7 @@ void run_next				(GtkButton	*button,
 					 gint           dir)
 {
   gint return_code;
-  struct fmt_page *pg;
+  vbi_page *pg;
   ttxview_data *data =
     (ttxview_data *)gtk_object_get_data(GTK_OBJECT(button),
 					"ttxview_data");
@@ -1035,7 +1027,7 @@ void run_next				(GtkButton	*button,
   gtk_object_set_user_data(GTK_OBJECT(search_progress),
 			   (gpointer)0xdeadbeef);
 
-  switch ((return_code = vbi_next_search(context, &pg, dir)))
+  switch ((return_code = vbi_search_next(context, &pg, dir)))
     {
     case 1: /* found, show the page, enable next */
       load_page(pg->pgno, pg->subno, data, pg);
@@ -1111,7 +1103,7 @@ void run_next				(GtkButton	*button,
       if (search_progress)
 	gtk_widget_destroy(search_progress);
       else
-	vbi_delete_search(context);
+	vbi_search_delete(context);
     }
 }
 
@@ -1205,7 +1197,7 @@ gchar *subtitute_search_keywords	(gchar		*string)
 }
 
 static
-int progress_update			(struct fmt_page *pg)
+int progress_update			(vbi_page *pg)
 {
   gchar *buffer;
   GtkProgress *progress;
@@ -1253,7 +1245,7 @@ void on_ttxview_search_clicked		(GtkButton	*button,
   gboolean result;
   gchar *needle;
   void *search_context;
-  ucs2_t *pattern;
+  uint16_t *pattern;
 
   if (!zvbi_get_object())
     {
@@ -1299,8 +1291,8 @@ void on_ttxview_search_clicked		(GtkButton	*button,
       if (pattern)
 	{
 	  search_context =
-	    vbi_new_search(zvbi_get_object(),
-			   0x100, ANY_SUB, pattern,
+	    vbi_search_new(zvbi_get_object(),
+			   0x100, VBI_ANY_SUBNO, pattern,
 			   zcg_bool(NULL, "ure_casefold"),
 			   zcg_bool(NULL, "ure_regexp"),
 			   progress_update);
@@ -1360,7 +1352,7 @@ void on_ttxview_history_prev_clicked	(GtkButton	*button,
 					 data->history_sp)->data);
   page = page_code >> 16;
   pc_subpage = (page_code & 0xffff);
-  pc_subpage = (pc_subpage == 0xffff) ? ANY_SUB : pc_subpage;
+  pc_subpage = (pc_subpage == 0xffff) ? VBI_ANY_SUBNO : pc_subpage;
 
   data->no_history = TRUE;
   load_page(page, pc_subpage, data, NULL);
@@ -1381,7 +1373,7 @@ void on_ttxview_history_next_clicked	(GtkButton	*button,
 					 data->history_sp)->data);
   page = page_code >> 16;
   pc_subpage = (page_code & 0xffff);
-  pc_subpage = (pc_subpage == 0xffff) ? ANY_SUB : pc_subpage;
+  pc_subpage = (pc_subpage == 0xffff) ? VBI_ANY_SUBNO : pc_subpage;
 
   data->no_history = TRUE;
   load_page(page, pc_subpage, data, NULL);
@@ -1405,7 +1397,7 @@ void on_ttxview_clone_clicked		(GtkButton	*button,
 						 "ttxview_data"),
 	      NULL);
   else
-    load_page(0x100, ANY_SUB,
+    load_page(0x100, VBI_ANY_SUBNO,
 	      (ttxview_data*)gtk_object_get_data(GTK_OBJECT(dolly),
 						 "ttxview_data"),
 	      NULL);
@@ -1485,7 +1477,7 @@ static
 void new_bookmark			(GtkWidget	*widget,
 					 ttxview_data	*data)
 {
-  struct vbi *vbi = zvbi_get_object();
+  vbi_decoder *vbi = zvbi_get_object();
   gchar *default_description=NULL;
   gchar title[41];
   gchar *buffer;
@@ -1506,7 +1498,7 @@ void new_bookmark			(GtkWidget	*widget,
 
   if (vbi_page_title(vbi, page, subpage, title))
     {
-      if (subpage != ANY_SUB)
+      if (subpage != VBI_ANY_SUBNO)
         default_description =
           g_strdup_printf("%x.%x %s", page, subpage, title);
       else
@@ -1514,7 +1506,7 @@ void new_bookmark			(GtkWidget	*widget,
     }
   else
     {
-      if (subpage != ANY_SUB)
+      if (subpage != VBI_ANY_SUBNO)
         default_description =
           g_strdup_printf("%x.%x", page, subpage);
       else
@@ -1613,7 +1605,7 @@ void on_be_model_changed		(GtkObject	*model,
     {
       bookmark = (struct bookmark*)p->data;
       buffer[0] = g_strdup_printf("%x", bookmark->page);
-      if (bookmark->subpage == ANY_SUB)
+      if (bookmark->subpage == VBI_ANY_SUBNO)
 	buffer[1] = g_strdup(_("Any subpage"));
       else
 	buffer[1] = g_strdup_printf("%x", bookmark->subpage);
@@ -1654,92 +1646,103 @@ void on_edit_bookmarks_activated	(GtkWidget	*widget,
   gtk_widget_show(be);
 }
 
-/* returns the zconf name for the given export option, needs to be
-   g_free'd by the caller */
-static inline gchar *
-xo_zconf_name (vbi_export_option *xo, vbi_export *exp)
-{
-  vbi_export_module *xm = vbi_export_info(exp);
+/*
+ *  Export dialog
+ */
 
-  g_assert(xm != NULL);
+/**
+ * xo_zconf_name:
+ * @exp:
+ * @oi: 
+ * 
+ * Return value: 
+ * Zconf name for the given export option,
+ * must be g_free()ed.
+ **/
+static inline gchar *
+xo_zconf_name (vbi_export *exp, vbi_option_info *oi)
+{
+  vbi_export_info *xi = vbi_export_info_export(exp);
+
+  g_assert (xi != NULL);
 
   return g_strdup_printf("/zapping/options/export/%s/%s",
-			 xm->keyword, xo->keyword);
+			 xi->keyword, oi->keyword);
 }
 
 static void
 on_export_control			(GtkWidget *w,
 					 gpointer user_data)
 {
-  gint id = GPOINTER_TO_INT (user_data);
-  vbi_export *exp =
-    (vbi_export *) gtk_object_get_data (GTK_OBJECT (w), "exp");
-  vbi_export_option *xo = vbi_export_query_option(exp, id);
-  gint t1; gchar *t2;
+  vbi_export *exp = user_data;
+  gchar *keyword = gtk_object_get_data (GTK_OBJECT (w), "key");
+  vbi_option_info *oi = vbi_export_option_info_keyword (exp, keyword);
+  vbi_option_value val;
   gchar *zcname;
 
-  g_assert(exp != NULL && xo != NULL);
+  g_assert (exp != NULL && oi != NULL);
 
-  zcname = xo_zconf_name(xo, exp);
+  zcname = xo_zconf_name (exp, oi);
 
-  switch (xo->type)
+  if (oi->menu.str)
     {
-      case VBI_EXPORT_BOOL:
-	t1 = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (w));
-        vbi_export_set_option (exp, id, t1);
-	zconf_set_boolean(t1, zcname);
-	break;
-      case VBI_EXPORT_INT:
-	t1 = GTK_ADJUSTMENT (w)->value;
-        vbi_export_set_option (exp, id, t1);
-	zconf_set_integer(t1, zcname);
-	break;
-      case VBI_EXPORT_MENU:
-        {
-	  int value = (int) gtk_object_get_data (GTK_OBJECT (w),
-						"value");
-	  vbi_export_set_option (exp, id, value);
-	  zconf_set_integer(value, zcname);
-	  break;
-	}
-      case VBI_EXPORT_STRING:
-	t2 = gtk_entry_get_text (GTK_ENTRY (w));
-        vbi_export_set_option (exp, id, t2);
-	zconf_set_string(t2, zcname);
-	break;
-
-      default:
-	g_warning ("Miracle of type %d in on_export_control", xo->type);
+      val.num = (gint) gtk_object_get_data (GTK_OBJECT (w), "idx");
+      vbi_export_option_menu_set (exp, keyword, val.num);
     }
+  else
+    switch (oi->type)
+      {
+      case VBI_OPTION_BOOL:
+	val.num = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (w));
+        if (vbi_export_option_set (exp, keyword, val))
+	  zconf_set_boolean (val.num, zcname);
+	break;
+      case VBI_OPTION_INT:
+	val.num = GTK_ADJUSTMENT (w)->value;
+        if (vbi_export_option_set (exp, keyword, val))
+	  zconf_set_integer (val.num, zcname);
+	break;
+      case VBI_OPTION_REAL:
+	val.dbl = GTK_ADJUSTMENT (w)->value;
+        if (vbi_export_option_set (exp, keyword, val))
+	  zconf_set_float (val.dbl, zcname);
+	break;
+      case VBI_OPTION_STRING:
+	val.str = gtk_entry_get_text (GTK_ENTRY (w));
+        if (vbi_export_option_set (exp, keyword, val))
+	  zconf_set_string (val.str, zcname);
+	break;
+      default:
+	g_warning ("Unknown export option type %d "
+		   "in on_export_control", oi->type);
+      }
 
   g_free(zcname);
 }
 
 static void
-create_export_entry (GtkWidget *table, vbi_export_option *xo,
-		    int index, vbi_export *exp)
+create_export_entry (GtkWidget *table, vbi_option_info *oi,
+		     int index, vbi_export *exp)
 { 
+  gchar *zcname = xo_zconf_name (exp, oi);
   GtkWidget *label;
   GtkWidget *entry;
-  gchar *zcname = xo_zconf_name(xo, exp);
 
-  label = gtk_label_new (_(xo->label));
+  label = gtk_label_new (_(oi->label));
   gtk_widget_show (label);
 
   entry = gtk_entry_new ();
-  set_tooltip (entry, _(xo->tooltip));
+  set_tooltip (entry, _(oi->tooltip));
   gtk_widget_show (entry);
-  zconf_create_string(xo->def.str, xo->tooltip, zcname);
+  zconf_create_string (oi->def.str, oi->tooltip, zcname);
   gtk_entry_set_text (GTK_ENTRY (entry),
 		      _(zconf_get_string(NULL, zcname)));
-                       /* XXX gettext? */
-  g_free(zcname);
+  g_free (zcname);
 
-  gtk_object_set_data (GTK_OBJECT (entry), "exp", (gpointer) exp);
+  gtk_object_set_data (GTK_OBJECT (entry), "key", oi->keyword);
   gtk_signal_connect (GTK_OBJECT (entry), "changed", 
-		     GTK_SIGNAL_FUNC (on_export_control),
-		     GINT_TO_POINTER (index));
-  on_export_control(entry, GINT_TO_POINTER (index));
+		     GTK_SIGNAL_FUNC (on_export_control), exp);
+  on_export_control (entry, exp);
 
   gtk_table_resize (GTK_TABLE (table), index + 1, 2);
   gtk_table_attach (GTK_TABLE (table), label, 0, 1, index, index + 1,
@@ -1751,48 +1754,68 @@ create_export_entry (GtkWidget *table, vbi_export_option *xo,
 }
 
 static void
-create_export_menu (GtkWidget *table, vbi_export_option *xo,
-		   int index, vbi_export *exp)
+create_export_menu (GtkWidget *table, vbi_option_info *oi,
+		    int index, vbi_export *exp)
 {
   GtkWidget *label; /* This shows what the menu is for */
   GtkWidget *option_menu; /* The option menu */
   GtkWidget *menu; /* The menu displayed */
   GtkWidget *menu_item; /* Each of the menu items */
-  gchar *zcname = xo_zconf_name(xo, exp); /* Path to the config key */
+  gchar *zcname = xo_zconf_name (exp, oi); /* Path to the config key */
+  gchar buf[256];
   gint i, saved;
 
-  label = gtk_label_new (_(xo->label));
+  label = gtk_label_new (_(oi->label));
   gtk_widget_show (label);
 
-  option_menu = gtk_option_menu_new();
+  option_menu = gtk_option_menu_new ();
   menu = gtk_menu_new ();
 
-  saved = zconf_get_integer(NULL, zcname);
+  saved = zconf_get_integer (NULL, zcname);
 
-  for (i = xo->min; i <= xo->max; i++)
+  for (i = 0; i <= oi->max.num; i++)
     {
-      menu_item = gtk_menu_item_new_with_label (_(xo->menu[i - xo->min]));
+      switch (oi->type)
+	{
+	case VBI_OPTION_BOOL:
+	case VBI_OPTION_INT:
+	  snprintf (buf, sizeof(buf) - 1, "%d", oi->menu.num[i]);
+	  break;
+	case VBI_OPTION_REAL:
+	  snprintf (buf, sizeof(buf) - 1, "%f", oi->menu.dbl[i]);
+	  break;
+	case VBI_OPTION_STRING:
+	  strncpy (buf, oi->menu.str[i], sizeof(buf) - 1);
+	  break;
+	case VBI_OPTION_MENU:
+	  strncpy (buf, _(oi->menu.str[i]), sizeof(buf) - 1);
+	  break;
+	default:
+	  g_warning ("Unknown export option type %d "
+		     "in create_export_menu", oi->type);
+	  buf[0] = 0;
+	}
 
-      gtk_object_set_data (GTK_OBJECT (menu_item), "exp", (gpointer) exp);
-      gtk_object_set_data (GTK_OBJECT (menu_item), "value", 
-			  GINT_TO_POINTER (i));
+      menu_item = gtk_menu_item_new_with_label (buf);
+
+      gtk_object_set_data (GTK_OBJECT (menu_item), "key", oi->keyword);
+      gtk_object_set_data (GTK_OBJECT (menu_item), "idx", GINT_TO_POINTER (i));
       gtk_signal_connect (GTK_OBJECT (menu_item), "activate",
-			 GTK_SIGNAL_FUNC (on_export_control),
-			 GINT_TO_POINTER (index));
+			 GTK_SIGNAL_FUNC (on_export_control), exp);
 
       gtk_widget_show (menu_item);
       gtk_menu_append (GTK_MENU (menu), menu_item);
 
       if (i == saved)
-	on_export_control(menu_item, GINT_TO_POINTER (index));
+	on_export_control(menu_item, exp);
     }
 
   gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu), menu);
-  zconf_create_integer(xo->def.num, xo->tooltip, zcname);
+  zconf_create_integer (oi->def.num, oi->tooltip, zcname);
   gtk_option_menu_set_history (GTK_OPTION_MENU (option_menu), saved);
-  g_free(zcname);
+  g_free (zcname);
   gtk_widget_show (menu);
-  set_tooltip (option_menu, _(xo->tooltip));
+  set_tooltip (option_menu, _(oi->tooltip));
   gtk_widget_show (option_menu);
 
   gtk_table_resize (GTK_TABLE (table), index + 1, 2);
@@ -1806,33 +1829,45 @@ create_export_menu (GtkWidget *table, vbi_export_option *xo,
 }
 
 static void
-create_export_slider (GtkWidget *table, vbi_export_option *xo,
-		     int index, vbi_export *exp)
+create_export_slider (GtkWidget *table, vbi_option_info *oi,
+		      int index, vbi_export *exp)
 { 
   GtkWidget *label;
   GtkWidget *hscale;
   GtkObject *adj; /* Adjustment object for the slider */
-  gchar *zcname = xo_zconf_name(xo, exp);
+  gchar *zcname = xo_zconf_name(exp, oi);
 
-  label = gtk_label_new (_(xo->label));
+  label = gtk_label_new (_(oi->label));
   gtk_widget_show (label);
 
-  adj = gtk_adjustment_new (xo->def.num, xo->min, xo->max, 1, 10, 10);
-  zconf_create_integer(xo->def.num, xo->tooltip, zcname);
-  gtk_adjustment_set_value (GTK_ADJUSTMENT (adj),
-			    zconf_get_integer(NULL, zcname));
+  if (oi->type == VBI_OPTION_INT)
+    {
+      adj = gtk_adjustment_new (oi->def.num, oi->min.num,
+				oi->max.num, 1, 10, 10);
+      zconf_create_integer (oi->def.num, oi->tooltip, zcname);
+      gtk_adjustment_set_value (GTK_ADJUSTMENT (adj),
+				zconf_get_integer (NULL, zcname));
+    }
+  else
+    {
+      adj = gtk_adjustment_new (oi->def.dbl, oi->min.dbl,
+				oi->max.dbl, 1, 10, 10);
+      zconf_create_float (oi->def.dbl, oi->tooltip, zcname);
+      gtk_adjustment_set_value (GTK_ADJUSTMENT (adj),
+				zconf_get_float (NULL, zcname));
+    }
+
   g_free (zcname);
 
-  gtk_object_set_data (GTK_OBJECT (adj), "exp", (gpointer) exp);
-  gtk_signal_connect (adj, "value-changed", 
-		     GTK_SIGNAL_FUNC (on_export_control),
-		     GINT_TO_POINTER (index));
-  on_export_control((GtkWidget *) adj, GINT_TO_POINTER (index));
+  gtk_object_set_data (GTK_OBJECT (adj), "key", oi->keyword);
+  gtk_signal_connect (adj, "value-changed",
+		      GTK_SIGNAL_FUNC (on_export_control), exp);
+  on_export_control ((GtkWidget *) adj, exp);
 
   hscale = gtk_hscale_new (GTK_ADJUSTMENT (adj));
   gtk_scale_set_value_pos (GTK_SCALE (hscale), GTK_POS_LEFT);
   gtk_scale_set_digits (GTK_SCALE (hscale), 0);
-  set_tooltip (hscale, _(xo->tooltip));
+  set_tooltip (hscale, _(oi->tooltip));
   gtk_widget_show (hscale);
 
   gtk_table_resize (GTK_TABLE (table), index + 1, 2);
@@ -1846,28 +1881,26 @@ create_export_slider (GtkWidget *table, vbi_export_option *xo,
 }
 
 static void
-create_export_checkbutton (GtkWidget *table, vbi_export_option *xo,
-			  int index, vbi_export *exp)
+create_export_checkbutton (GtkWidget *table, vbi_option_info *oi,
+			   int index, vbi_export *exp)
 {
   GtkWidget *cb;
-  gchar *zcname = xo_zconf_name(xo, exp);
+  gchar *zcname = xo_zconf_name(exp, oi);
 
-  cb = gtk_check_button_new_with_label (_(xo->label));
-  zconf_create_boolean(xo->def.num, xo->tooltip, zcname);
+  cb = gtk_check_button_new_with_label (_(oi->label));
+  zconf_create_boolean (oi->def.num, oi->tooltip, zcname);
 
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (cb), FALSE);
-  set_tooltip (cb, _(xo->tooltip));
+  set_tooltip (cb, _(oi->tooltip));
   gtk_widget_show (cb);
 
-  gtk_object_set_data (GTK_OBJECT (cb), "exp", (gpointer) exp);
+  gtk_object_set_data (GTK_OBJECT (cb), "key", oi->keyword);
   gtk_signal_connect (GTK_OBJECT (cb), "toggled",
-		     GTK_SIGNAL_FUNC (on_export_control),
-		     GINT_TO_POINTER (index));
+		     GTK_SIGNAL_FUNC (on_export_control), exp);
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (cb),
-				zconf_get_boolean(NULL, zcname));
-  g_free(zcname);
-  /* mhs: gtk_tbsa not enough? */
-  on_export_control(cb, GINT_TO_POINTER (index));
+				zconf_get_boolean (NULL, zcname));
+  g_free (zcname);
+  on_export_control (cb, exp);
 
   gtk_table_resize (GTK_TABLE (table), index + 1, 2);
   gtk_table_attach (GTK_TABLE (table), cb, 1, 2, index, index + 1,
@@ -1878,59 +1911,60 @@ create_export_checkbutton (GtkWidget *table, vbi_export_option *xo,
 static void
 create_export_options (GtkWidget *table, vbi_export *exp)
 {
-  vbi_export_option *xo;
+  vbi_option_info *oi;
   int i;
 
-  for (i = 0; (xo = vbi_export_query_option(exp, i)); i++)
+  for (i = 0; (oi = vbi_export_option_info_enum (exp, i)); i++)
     {
-      switch (xo->type)
-	{
-	case VBI_EXPORT_BOOL:
-	  create_export_checkbutton (table, xo, i, exp);
-	  break;
-	case VBI_EXPORT_INT:
-	  create_export_slider (table, xo, i, exp);
-	  break;
-	case VBI_EXPORT_MENU:
-	  create_export_menu (table, xo, i, exp);
-	  break;
-	case VBI_EXPORT_STRING:
-	  create_export_entry (table, xo, i, exp);
-	  break;
+      if (!oi->label)
+	continue;
 
-	default:
-	  g_warning ("Type %d of export option %s is not supported",
-		    xo->type, xo->keyword);
-	  continue;
-	}
+      if (oi->menu.str)
+	create_export_menu (table, oi, i, exp);
+      else
+	switch (oi->type)
+	  {
+	  case VBI_OPTION_BOOL:
+	    create_export_checkbutton (table, oi, i, exp);
+	    break;
+	  case VBI_OPTION_INT:
+	  case VBI_OPTION_REAL:
+	    create_export_slider (table, oi, i, exp);
+	    break;
+	  case VBI_OPTION_STRING:
+	    create_export_entry (table, oi, i, exp);
+	    break;
+	  default:
+	    g_warning ("Unknown export option type %d "
+		       "in create_export_options", oi->type);
+	    continue;
+	  }
     }
 }
 
 static GtkWidget *
-create_export_dialog (gchar **bpp,
-		      gchar *basename,
-		      ttxview_data *data,
-		      vbi_export *exp)
+create_export_dialog (gchar **bpp, gchar *basename,
+		      ttxview_data *data, vbi_export *exp)
 {
-  vbi_export_module *xm;
+  vbi_export_info *xm;
   gchar *buffer;
   GtkWidget *dialog;
   GtkWidget *table;
   GtkWidget *vbox;
   GtkWidget *w;
 
-  xm = vbi_export_info(exp);
-  g_assert(xm != NULL);
-  buffer = g_strdup_printf(_("Export %s"), xm->label);
+  xm = vbi_export_info_export (exp);
+  g_assert (xm != NULL);
+  buffer = g_strdup_printf (_("Export %s"), xm->label);
 
   dialog = gnome_dialog_new (buffer,
 			     GNOME_STOCK_BUTTON_OK,
 			     GNOME_STOCK_BUTTON_CANCEL,
 			     NULL);
-  g_free(buffer);
+  g_free (buffer);
   gnome_dialog_set_parent (GNOME_DIALOG (dialog), GTK_WINDOW (data->parent));
-  gnome_dialog_set_default(GNOME_DIALOG(dialog), 0);
-  gtk_window_set_policy(GTK_WINDOW(dialog), TRUE, TRUE, TRUE); // resizable
+  gnome_dialog_set_default (GNOME_DIALOG (dialog), 0);
+  gtk_window_set_policy (GTK_WINDOW (dialog), TRUE, TRUE, TRUE); // resizable
 
   vbox = gtk_vbox_new (FALSE, 3);
   gtk_widget_show (vbox);
@@ -1939,21 +1973,21 @@ create_export_dialog (gchar **bpp,
   gtk_widget_show (w);
   gtk_box_pack_start_defaults (GTK_BOX (vbox), w);
 
-  w = gnome_file_entry_new("ttxview_export_id",
-			   _("Select file you'll be exporting to"));
-  gnome_file_entry_set_default_path(GNOME_FILE_ENTRY(w), *bpp);
+  w = gnome_file_entry_new ("ttxview_export_id",
+			    _("Select file you'll be exporting to"));
+  gnome_file_entry_set_default_path (GNOME_FILE_ENTRY (w), *bpp);
   gtk_widget_set_usize (w, 400, -1);
   gtk_widget_show (w);
   gtk_box_pack_start_defaults (GTK_BOX (vbox), w);
 
-  w = gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(w));
+  w = gnome_file_entry_gtk_entry (GNOME_FILE_ENTRY(w));
   gtk_object_set_data (GTK_OBJECT (w), "basename", (gpointer) basename);
-  gtk_entry_set_text(GTK_ENTRY(w), *bpp);
+  gtk_entry_set_text (GTK_ENTRY(w), *bpp);
   gtk_signal_connect (GTK_OBJECT (w), "changed",
 		      GTK_SIGNAL_FUNC (z_on_electric_filename),
 		      (gpointer) bpp);
 
-  if (vbi_export_query_option(exp, 0))
+  if (vbi_export_option_info_enum(exp, 0))
     {
       w = gtk_frame_new (_("Options"));
       gtk_widget_show (w);
@@ -1973,11 +2007,143 @@ create_export_dialog (gchar **bpp,
   return dialog;
 }
 
+static
+void export_ttx_page			(GtkWidget	*widget,
+					 ttxview_data	*data,
+					 char		*fmt)
+{
+  vbi_export *exp;
+  char *error;
+
+  if (data->fmt_page->pgno < 0x100)
+    {
+      if (data->appbar)
+	gnome_appbar_set_status (GNOME_APPBAR (data->appbar),
+				_("No page loaded"));
+      return;
+    }
+
+  if ((exp = vbi_export_new (fmt, &error)))
+    {
+      extern vbi_network current_network; /* FIXME */
+      vbi_network network;
+      GtkWidget *dialog;
+      vbi_export_info *xi;
+      gchar *name;
+      gchar *dirname;
+      gchar *filename;
+      gchar **extensions;
+      gint i, result;
+
+      network = current_network;
+      if (!network.name[0])
+	strncpy (network.name, "Zapzilla", sizeof (network.name) - 1);
+
+      /* Don't care if these fail */
+      vbi_export_option_set (exp, "network", network.name);
+      vbi_export_option_set (exp, "creator", "Zapzilla " VERSION);
+      vbi_export_option_set (exp, "reveal", !!zcg_bool(NULL, "reveal"));
+
+      xi = vbi_export_info_export (exp);
+      extensions = g_strsplit (xi->extension, ",", 1);
+
+      for (i = 0; i < strlen (network.name); i++)
+	if (!isalnum (network.name[i]))
+	  network.name[i] = '_';
+
+      if (data->fmt_page->subno > 0
+	  && data->fmt_page->subno != VBI_ANY_SUBNO)
+	filename = g_strdup_printf ("%s-%x-%x.%s", network.name,
+				    data->fmt_page->pgno,
+				    data->fmt_page->subno & 0xFF,
+				    extensions[0]);
+      else
+	filename = g_strdup_printf ("%s-%x.%s", network.name,
+				    data->fmt_page->pgno,
+				    extensions[0]);
+      g_strfreev (extensions);
+
+      name = z_build_filename (zcg_char (NULL, "exportdir"), filename);
+
+      dialog = create_export_dialog (&name, filename, data, exp);
+      result = gnome_dialog_run_and_close (GNOME_DIALOG(dialog));
+      if (result != 0)
+	goto failure;
+
+      g_strstrip(name);
+
+      dirname = g_dirname (name);
+      if (strcmp (dirname, ".") != 0 || name[0] == '.')
+	{
+	  gchar *_errstr;
+
+	  if (!z_build_path (dirname, &_errstr))
+	    {
+	      ShowBox (_("Cannot create destination dir for Zapzilla "
+			 "export:\n%s\n%s"),
+		       GNOME_MESSAGE_BOX_WARNING, dirname, _errstr);
+	      g_free (_errstr);
+	      g_free (dirname);
+	      goto failure;
+	    }
+
+	  /* make absolute path? */
+	  zcs_char (dirname, "exportdir");
+	}
+      else
+	{
+	  zcs_char ("", "exportdir");
+	}
+      g_free (dirname);
+
+      if (!vbi_export_file (exp, name, data->fmt_page))
+	{
+	  gchar *msg = g_strdup_printf (_("Export to %s failed: %s"),
+					name, vbi_export_errstr(exp));
+	  g_warning (msg);
+	  if (data->appbar)
+	    gnome_appbar_set_status (GNOME_APPBAR(data->appbar), msg);
+	  g_free (msg);
+	}
+      else if (data->appbar)
+	{
+	  gchar *msg = g_strdup_printf (_("%s saved"), name);
+ 	  gnome_appbar_set_status (GNOME_APPBAR(data->appbar), msg);
+	  g_free (msg);
+	}
+
+    failure:
+      g_free (name);
+      free (filename);
+      vbi_export_delete (exp);
+    }
+  else
+    {
+      gchar *msg = g_strdup_printf (_("Export failed: %s"), error);
+
+      free (error);
+      g_warning (msg);
+      if (data->appbar)
+	gnome_appbar_set_status (GNOME_APPBAR(data->appbar), msg);
+      g_free (msg);
+    }
+}
+
+static
+void on_export_menu			(GtkWidget	*widget,
+					 ttxview_data	*data)
+{
+  gchar *keyword = (gchar *)
+    gtk_object_get_user_data (GTK_OBJECT (widget));
+
+  export_ttx_page (widget, data, keyword);
+}
+
 static void
 on_color_control			(GtkWidget *w,
 					 gpointer user_data)
 {
-  struct vbi *vbi = zvbi_get_object();
+  vbi_decoder *vbi = zvbi_get_object();
   gint id = GPOINTER_TO_INT (user_data);
   gint brig, cont;
 
@@ -2000,7 +2166,9 @@ on_color_control			(GtkWidget *w,
   if (cont < -128) cont = -128;
   if (cont > 127) cont = 127;
 
-  vbi_set_colour_level(vbi, brig, cont);
+  vbi_set_brightness(vbi, brig);
+  vbi_set_contrast(vbi, cont);
+
   zmodel_changed(refresh);
 }
 
@@ -2025,8 +2193,8 @@ on_brig_con_reset			(GtkWidget	*widget,
       break;
     }
 
-  adj = GTK_ADJUSTMENT(gtk_range_get_adjustment(GTK_RANGE(w)));
-  gtk_adjustment_set_value(adj, value);
+  adj = GTK_ADJUSTMENT (gtk_range_get_adjustment (GTK_RANGE(w)));
+  gtk_adjustment_set_value (adj, value);
 }
 
 static
@@ -2125,127 +2293,6 @@ create_color_dialog			(GtkWidget	*widget,
 }
 
 static
-void export_ttx_page			(GtkWidget	*widget,
-					 ttxview_data	*data,
-					 char		*fmt)
-{
-  extern vbi_network current_network; /* FIXME */
-  vbi_network network;
-  vbi_export *exp;
-
-  if (data->fmt_page->pgno < 0x100)
-    {
-      if (data->appbar)
-	gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
-				_("No page loaded"));
-      return;
-    }
-
-  network = current_network;
-  if (!network.label[0])
-    strncpy(network.label, _("Zapzilla"), sizeof(network.label) - 1);
-
-  if ((exp = vbi_export_open(fmt, &network, 0 /* reveal */)))
-    {
-      GtkWidget *dialog;
-      gchar *dirname, *name;
-      char *filename;
-      gint result;
-
-      filename =
-	vbi_export_mkname(exp, "%n-%p.%e",
-		      data->fmt_page->pgno, data->fmt_page->subno, NULL);
-      g_assert(filename != NULL);
-
-      dirname = zcg_char(NULL, "exportdir");
-      if (dirname && strlen(dirname) > 0)
-	{
-	  gint trailing_slashes = 0, i;
-
-	  g_strstrip(dirname);
-
-	  for (i = strlen(dirname); i > 0 && dirname[i - 1] == '/'; i--)
-	    trailing_slashes++;
-
-	  if (trailing_slashes <= 0)
-	    name = g_strconcat(dirname, "/", filename, NULL);
-	  else if (trailing_slashes == 1)
-	    name = g_strconcat(dirname, filename, NULL);
-	  else
-	    {
-	      gchar *temp = g_strndup(dirname, i + 1);
-	      name = g_strconcat(dirname, filename, NULL);
-	      g_free(temp);
-	    }
-	}
-      else
-	{
-	  name = g_strdup(filename);
-	}
-
-      dialog = create_export_dialog(&name, filename, data, exp);
-      result = gnome_dialog_run_and_close(GNOME_DIALOG(dialog));
-      if (result != 0)
-	goto failure;
-
-      g_strstrip(name);
-
-      dirname = g_dirname(name);
-      if (strcmp(dirname, ".") != 0 || name[0] == '.')
-	{
-	  gchar *_errstr;
-
-	  if (!z_build_path(dirname, &_errstr))
-	    {
-	      ShowBox(_("Cannot create destination dir for Zapzilla "
-			"export:\n%s\n%s"),
-		      GNOME_MESSAGE_BOX_WARNING, dirname, _errstr);
-	      g_free(_errstr);
-	      g_free(dirname);
-	      goto failure;
-	    }
-
-	  /* make absolute path? */
-	  zcs_char(dirname, "exportdir");
-	}
-      else
-	{
-	  zcs_char("", "exportdir");
-	}
-      g_free(dirname);
-
-      if (!vbi_export_name(exp, name, data->fmt_page))
-	{
-	  gchar *msg = g_strdup_printf(_("Export to %s failed: %s"),
-				       name, errstr);
-	  g_warning(msg);
-	  if (data->appbar)
-	    gnome_appbar_set_status(GNOME_APPBAR(data->appbar), msg);
-	  g_free(msg);
-	}
-      else if (data->appbar)
-	{
-	  gchar *msg = g_strdup_printf(_("%s saved"), name);
- 	  gnome_appbar_set_status(GNOME_APPBAR(data->appbar), msg);
-	  g_free(msg);
-	}
-
-    failure:
-      g_free(name);
-      free(filename);
-      vbi_export_close(exp);
-    }
-  else
-    {
-      gchar *msg = g_strdup_printf(_("Export failed: %s"), errstr);
-      g_warning(msg);
-      if (data->appbar)
-	gnome_appbar_set_status(GNOME_APPBAR(data->appbar), msg);
-      g_free(msg);
-    }
-}
-
-static
 void on_bookmark_activated		(GtkWidget	*widget,
 					 ttxview_data	*data)
 {
@@ -2264,20 +2311,10 @@ void on_bookmark_activated		(GtkWidget	*widget,
 }
 
 static
-void on_export_menu			(GtkWidget	*widget,
-					 ttxview_data	*data)
-{
-  gchar *keyword = (gchar *)
-    gtk_object_get_user_data(GTK_OBJECT(widget));
-
-  export_ttx_page(widget, data, keyword);
-}
-
-static
 void on_subtitle_select			(GtkWidget	*widget,
 					 gint		page)
 {
-  int classf;
+  vbi_page_type classf;
 
   if (!zvbi_get_object())
     return;
@@ -2285,7 +2322,7 @@ void on_subtitle_select			(GtkWidget	*widget,
   classf = vbi_classify_page(zvbi_get_object(), page, NULL, NULL);
 
   if (classf == VBI_SUBTITLE_PAGE ||
-      (classf == VBI_NORMAL_PAGE && (page > 4 && page < 9)))
+      (classf == VBI_NORMAL_PAGE && (page >= 5 && page <= 8)))
     zmisc_overlay_subtitles(page);
 }
 
@@ -2352,7 +2389,8 @@ build_subtitles_submenu(GtkWidget *widget,
   GtkWidget *menu_item;
   gint count;
   gboolean empty = TRUE, something = FALSE, index = FALSE;
-  gint classf, subpage = ANY_SUB;
+  vbi_page_type classf;
+  vbi_subno subpage = VBI_ANY_SUBNO;
   gchar *language;
   gchar *buffer;
   gint insert_index; /* after New TTX view */
@@ -2378,7 +2416,7 @@ build_subtitles_submenu(GtkWidget *widget,
   insert_index++; /* insert after the separator */
 
   /* CC */
-  for (count = 1; count <= 8; count = add_bcd(count, 1))
+  for (count = 1; count <= 8; count++)
     {
       classf = vbi_classify_page(zvbi_get_object(), count, NULL,
 				 &language);
@@ -2412,7 +2450,7 @@ build_subtitles_submenu(GtkWidget *widget,
     }
 
   /* TTX */
-  for (count = 0x100; count <= 0x899; count = add_bcd(count, 1))
+  for (count = 0x100; count <= 0x899; count = vbi_add_bcd(count, 1))
     {
       classf = vbi_classify_page(zvbi_get_object(), count, NULL,
 				 &language);
@@ -2447,7 +2485,7 @@ build_subtitles_submenu(GtkWidget *widget,
 	  gtk_object_set_user_data(GTK_OBJECT(menu_item), widget);
 	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
 			     GTK_SIGNAL_FUNC(on_subtitle_page_ttxview),
-			     GINT_TO_POINTER(count<<16) + ANY_SUB);
+			     GINT_TO_POINTER(count<<16) + VBI_ANY_SUBNO);
 	  buffer = g_strdup_printf(_("Page %x"), count);
 	  set_tooltip(menu_item, buffer);
 	  g_free(buffer);
@@ -2471,7 +2509,7 @@ build_subtitles_submenu(GtkWidget *widget,
 	  gtk_object_set_user_data(GTK_OBJECT(menu_item), widget);
 	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
 			     GTK_SIGNAL_FUNC(on_subtitle_page_main),
-			     GINT_TO_POINTER((count<<16) + ANY_SUB));
+			     GINT_TO_POINTER((count << 16) + VBI_ANY_SUBNO));
 	  buffer = g_strdup_printf(_("Page %x"), count);
 	  set_tooltip(menu_item, buffer);
 	  g_free(buffer);
@@ -2503,7 +2541,7 @@ build_subtitles_submenu(GtkWidget *widget,
 	  gtk_object_set_user_data(GTK_OBJECT(menu_item), widget);
 	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
 			     GTK_SIGNAL_FUNC(on_subtitle_page_ttxview),
-			     GINT_TO_POINTER((count<<16) + ANY_SUB));
+			     GINT_TO_POINTER((count << 16) + VBI_ANY_SUBNO));
 	  buffer = g_strdup_printf(_("Page %x"), count);
 	  set_tooltip(menu_item, buffer);
 	  g_free(buffer);
@@ -2535,7 +2573,7 @@ build_subtitles_submenu(GtkWidget *widget,
 	  gtk_object_set_user_data(GTK_OBJECT(menu_item), widget);
 	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
 			     GTK_SIGNAL_FUNC(on_subtitle_page_main),
-			     GINT_TO_POINTER((count<<16) + ANY_SUB));
+			     GINT_TO_POINTER((count << 16) + VBI_ANY_SUBNO));
 	  buffer = g_strdup_printf(_("Page %x"), count);
 	  set_tooltip(menu_item, buffer);
 	  g_free(buffer);
@@ -2620,7 +2658,7 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
 	bookmark = (struct bookmark*)p->data;
 	menuitem = z_gtk_pixmap_menu_item_new(bookmark->description,
 					      GNOME_STOCK_PIXMAP_JUMP_TO);
-	if (bookmark->subpage != ANY_SUB)
+	if (bookmark->subpage != VBI_ANY_SUBNO)
 	  buffer = g_strdup_printf("%x.%x", bookmark->page, bookmark->subpage);
 	else
 	  buffer = g_strdup_printf("%x", bookmark->page);
@@ -2643,11 +2681,11 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
   /* Export modules */
   export = lookup_widget(popup, "export1");
 
-  if (!vbi_export_enum(0))
+  if (!vbi_export_info_enum(0))
     gtk_widget_hide(export);
   else
     {
-      vbi_export_module *xm;
+      vbi_export_info *xm;
       gint i;
 
       menu = gtk_menu_new();
@@ -2656,7 +2694,7 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
       gtk_widget_show(menuitem);
       gtk_menu_append(GTK_MENU(menu), menuitem);
 
-      for (i = 0; (xm = vbi_export_enum(i)); i++)
+      for (i = 0; (xm = vbi_export_info_enum(i)); i++)
         if (xm->label) /* for public use */
           {
 	    menuitem = gtk_menu_item_new_with_label(xm->label);
@@ -2698,17 +2736,22 @@ process_ttxview_menu_popup		(GtkWidget	*widget,
       col = (event->x*data->fmt_page->columns)/w;
       row = (event->y*data->fmt_page->rows)/h;
       
-      ld.page = ld.subpage = 0;
+      ld.pgno = 0;
+      ld.subno = 0;
+
       if (data->fmt_page->text[row * data->fmt_page->columns + col].link)
 	{
 	  vbi_resolve_link(data->fmt_page, col, row, &ld);
 	  
 	  if (ld.type != VBI_LINK_PAGE &&
 	      ld.type != VBI_LINK_SUBPAGE)
-	    ld.page = ld.subpage = 0;
+	    {
+	      ld.pgno = 0;
+	      ld.subno = 0;
+	    }
 	}
       
-      menu = GTK_MENU(build_ttxview_popup(data, ld.page, ld.subpage));
+      menu = GTK_MENU(build_ttxview_popup(data, ld.pgno, ld.subno));
       
       menu_item =
 	z_gtk_pixmap_menu_item_new("Zapzilla", GNOME_STOCK_PIXMAP_ALIGN_JUSTIFY);
@@ -3143,7 +3186,8 @@ on_ttxview_button_press			(GtkWidget	*widget,
   row = (event->y*data->fmt_page->rows)/h;
 
   ld.type = VBI_LINK_NONE;
-  ld.page = ld.subpage = 0;
+  ld.pgno = 0;
+  ld.subno = 0;
 
   /* Any modifier enters select mode */
   if ((data->fmt_page->text[row * data->fmt_page->columns + col].link) && (!
@@ -3159,7 +3203,7 @@ on_ttxview_button_press			(GtkWidget	*widget,
         {
 	case VBI_LINK_PAGE:
 	case VBI_LINK_SUBPAGE:
-	  load_page(ld.page, ld.subpage, data, NULL);
+	  load_page(ld.pgno, ld.subno, data, NULL);
 	  break;
 
 	case VBI_LINK_HTTP:
@@ -3179,7 +3223,7 @@ on_ttxview_button_press			(GtkWidget	*widget,
         {
 	case VBI_LINK_PAGE:
 	case VBI_LINK_SUBPAGE:
-	  open_in_new_ttxview(ld.page, ld.subpage);
+	  open_in_new_ttxview(ld.pgno, ld.subno);
 	  break;
 
 	case VBI_LINK_HTTP:
@@ -3197,10 +3241,11 @@ on_ttxview_button_press			(GtkWidget	*widget,
 	{
 	  if (ld.type != VBI_LINK_PAGE &&
 	      ld.type != VBI_LINK_SUBPAGE)
-	    ld.page = ld.subpage = 0;
-
-	  menu = GTK_MENU(build_ttxview_popup(data, ld.page,
-					      ld.subpage));
+	    {
+	      ld.pgno = 0;
+	      ld.subno = 0;
+	    }
+	  menu = GTK_MENU(build_ttxview_popup(data, ld.pgno, ld.subno));
 	  gtk_menu_popup(menu, NULL, NULL, NULL,
 			 NULL, event->button, event->time);
 	}
@@ -3260,8 +3305,8 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
       if (event->state & GDK_SHIFT_MASK)
 	{	
 	  if (event->keyval - GDK_0)
-	    load_page(dec2bcd((event->keyval - GDK_0)*100), ANY_SUB,
-		      data, NULL);
+	    load_page(vbi_dec2bcd((event->keyval - GDK_0) * 100),
+		      VBI_ANY_SUBNO, data, NULL);
 	  break;
 	}
       if (data->page >= 0x100)
@@ -3272,11 +3317,11 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
       if (data->page > 0x900)
 	data->page = TOP_INDEX_PAGE; /* 0x900 */
       if (data->page >= 0x100)
-	load_page(data->page, ANY_SUB, data, NULL);
+	load_page(data->page, VBI_ANY_SUBNO, data, NULL);
       else
 	{
 	  ttx_freeze(data->id);
-	  buffer = g_strdup_printf("%d", bcd2dec(data->page));
+	  buffer = g_strdup_printf("%d", vbi_bcd2dec(data->page));
 	  gtk_label_set_text(GTK_LABEL(lookup_widget(data->toolbar,
 			     "ttxview_url")), buffer);
 	  g_free(buffer);
@@ -3286,8 +3331,8 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
       if (event->state & GDK_SHIFT_MASK)
 	{	
 	  if (event->keyval - GDK_KP_0)
-	    load_page(dec2bcd((event->keyval - GDK_KP_0)*100),
-		      ANY_SUB, data, NULL);
+	    load_page(vbi_dec2bcd((event->keyval - GDK_KP_0) * 100),
+		      VBI_ANY_SUBNO, data, NULL);
 	  break;
 	}
       if (data->page >= 0x100)
@@ -3296,10 +3341,10 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
       if (data->page > 0x900)
 	data->page = TOP_INDEX_PAGE; /* 0x900 */
       if (data->page >= 0x100)
-	load_page(data->page, ANY_SUB, data, NULL);
+	load_page(data->page, VBI_ANY_SUBNO, data, NULL);
       else
 	{
-	  buffer = g_strdup_printf("%d", bcd2dec(data->page));
+	  buffer = g_strdup_printf("%d", vbi_bcd2dec(data->page));
 	  gtk_label_set_text(GTK_LABEL(lookup_widget(data->toolbar,
 			     "ttxview_url")), buffer);
 	  g_free(buffer);
@@ -3309,23 +3354,23 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
     case GDK_Down:
       jump = (event->state & GDK_SHIFT_MASK) ? 0x990 : 0x999;
       if (data->page < 0x100)
-	data->page = add_bcd(data->fmt_page->pgno, jump);
+	data->page = vbi_add_bcd(data->fmt_page->pgno, jump);
       else
-	data->page = add_bcd(data->page, jump);
+	data->page = vbi_add_bcd(data->page, jump);
       if (data->page < 0x100)
 	data->page = 0x899;
-      load_page(data->page, ANY_SUB, data, NULL);
+      load_page(data->page, VBI_ANY_SUBNO, data, NULL);
       break;
     case GDK_KP_Up:
     case GDK_Up:
       jump = (event->state & GDK_SHIFT_MASK) ? 0x010 : 0x001;
       if (data->page < 0x100)
-	data->page = add_bcd(data->fmt_page->pgno, jump);
+	data->page = vbi_add_bcd(data->fmt_page->pgno, jump);
       else
-	data->page = add_bcd(data->page, jump);
+	data->page = vbi_add_bcd(data->page, jump);
       if (data->page > 0x899)
 	data->page = 0x100;
-      load_page(data->page, ANY_SUB, data, NULL);
+      load_page(data->page, VBI_ANY_SUBNO, data, NULL);
       break;
     case GDK_KP_Left:
     case GDK_Left:
@@ -3370,20 +3415,6 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
 	  on_ttxview_clone_clicked(GTK_BUTTON(lookup_widget(data->toolbar,
 					      "ttxview_clone")), data);
       break;
-    case GDK_B:
-    case GDK_b:
-      {
-	 struct vbi *vbi = zvbi_get_object();
-         static int br = 128;
-
-	 if (event->keyval == GDK_B)
-	   br = (br > 0) ? (br - 4) : 0;
-	 else
-	   br = (br < 255) ? (br + 4) : 256 - 4;
-	 vbi_set_colour_level(vbi, br, 64 /* cont */);
-         load_page(data->page, data->subpage, data, NULL);
-	 break;
-      }
     default:
       return FALSE;
     }
@@ -3556,7 +3587,7 @@ build_ttxview(void)
 
   set_ttx_parameters(data->id, zcg_bool(NULL, "reveal"));
 
-  load_page(0x100, ANY_SUB, data, NULL);
+  load_page(0x100, VBI_ANY_SUBNO, data, NULL);
 
   setup_history_gui(data);
 
@@ -3768,7 +3799,7 @@ ttxview_attach			(GtkWidget	*parent,
 
   set_ttx_parameters(data->id, zcg_bool(NULL, "reveal"));
 
-  load_page(0x100, ANY_SUB, data, NULL);
+  load_page(0x100, VBI_ANY_SUBNO, data, NULL);
 
   setup_history_gui(data);
 
@@ -3868,4 +3899,4 @@ ttxview_detach			(GtkWidget	*parent)
   gtk_object_set_data(GTK_OBJECT(parent), "ttxview_data", NULL);
 }
 
-
+#endif /* HAVE_LIBZVBI */

@@ -174,8 +174,10 @@ gpointer remote_command(gchar *command, gpointer arg)
     {
       z_channel_down();
     }
+#ifdef HAVE_LIBZVBI
   else if (!strcasecmp(command, "set_vbi_mode"))
     {
+
       if (GPOINTER_TO_INT(arg))
 	on_videotext1_activate(GTK_MENU_ITEM(lookup_widget(main_window,
 					     "videotext1")),
@@ -189,13 +191,14 @@ gpointer remote_command(gchar *command, gpointer arg)
 
       zmisc_switch_mode(TVENG_NO_CAPTURE, main_info);
 
-      page = GPOINTER_TO_INT(arg)>>16;
-      page = dec2bcd(page);
-      subpage = GPOINTER_TO_INT(arg)&0xfff;
-      subpage = dec2bcd(subpage);
-      
+      page = GPOINTER_TO_INT(arg) >> 16;
+      page = vbi_dec2bcd(page);
+      subpage = GPOINTER_TO_INT(arg) & 0xFFFF;
+      subpage = vbi_dec2bcd(subpage) & 0xFF;
+
       open_in_ttxview(main_window, page, subpage);
     }
+#endif /* HAVE_LIBZVBI */
 
   return NULL;
 }

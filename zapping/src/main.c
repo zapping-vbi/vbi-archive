@@ -125,8 +125,6 @@ static gint timeout_handler(gpointer unused)
   GtkWidget *tv_screen;
   gint tvs_w, tvs_h, mw_w, mw_h;
   double rw = 0, rh=0;
-  extern double zvbi_ratio;
-  static double old_ratio = 0;
 
   if ((flag_exit_program) || (!main_window->window))
     return 0;
@@ -150,10 +148,16 @@ static gint timeout_handler(gpointer unused)
 	rw = 16;
 	rh = 9;
 	break;
+#ifdef HAVE_LIBZVBI
       case 3:
-	rw = zvbi_ratio;
-	rh = 1;
-	break;
+	{
+	  extern double zvbi_ratio;
+
+	  rw = zvbi_ratio;
+	  rh = 1;
+	  break;
+	}
+#endif
       default:
 	break;
       }
@@ -175,19 +179,24 @@ static gint timeout_handler(gpointer unused)
       
       gdk_window_set_geometry_hints(main_window->window, &geometry,
 				    hints);
+#ifdef HAVE_LIBZVBI
+      {
+	extern double zvbi_ratio;
+	static double old_ratio = 0;
 
-      if (old_ratio != zvbi_ratio &&
-	  zcg_int(NULL, "ratio") == 3 &&
-	  mw_h > 1 &&
-	  geometry.min_aspect > 0.1)
-	{
-	  /* ug, ugly */
-	  gdk_window_get_size(main_window->window, &mw_w, &mw_h);
-	  gdk_window_resize(main_window->window,
-			    mw_h*geometry.min_aspect, mw_h);
-	  old_ratio = zvbi_ratio;
-	}
-
+	if (old_ratio != zvbi_ratio &&
+	    zcg_int(NULL, "ratio") == 3 &&
+	    mw_h > 1 &&
+	    geometry.min_aspect > 0.1)
+	  {
+	    /* ug, ugly */
+	    gdk_window_get_size(main_window->window, &mw_w, &mw_h);
+	    gdk_window_resize(main_window->window,
+			      mw_h*geometry.min_aspect, mw_h);
+	    old_ratio = zvbi_ratio;
+	  }
+      }
+#endif
     }
 
   return 1; /* Keep calling me */
@@ -258,6 +267,7 @@ on_da_motion_notify			(GtkWidget	*widget,
 static void
 startup_teletext(void)
 {
+#ifdef HAVE_LIBZVBI
   startup_zvbi();
 
   if (disable_vbi)
@@ -267,6 +277,10 @@ startup_teletext(void)
   D();
   zconf_touch("/zapping/options/vbi/enable_vbi");
   D();
+#else
+  zconf_set_boolean(FALSE, "/zapping/options/vbi/enable_vbi");
+  vbi_gui_sensitive(FALSE);
+#endif
 }
 
 /*
@@ -424,7 +438,11 @@ int main(int argc, char * argv[])
 
   if (strlen(argv[0]) >= strlen("zapzilla") &&
       !(strcmp(&argv[0][strlen(argv[0])-strlen("zapzilla")], "zapzilla")))
+#ifdef HAVE_LIBZVBI
     return zapzilla_main(argc, argv);
+#else
+    return EXIT_FAILURE;
+#endif
 
 #ifdef ENABLE_NLS
   bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
@@ -452,7 +470,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.151 2001-12-25 19:56:15 garetxe Exp $",
+	 "$Id: main.c,v 1.152 2002-01-13 09:52:22 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -696,21 +714,25 @@ int main(int argc, char * argv[])
   D();
   startup_teletext();
   D();
+#ifdef HAVE_LIBZVBI
   startup_ttxview();
   D();
   startup_osd();
   D();
+#endif
   startup_audio();
   D();
   startup_csconvert();
   D();
   startup_properties_handler();
   D();
+#ifdef HAVE_LIBZVBI
   osd_set_window(tv_screen);
   gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM
        (lookup_widget(main_window, "closed_caption1")),
        zconf_get_boolean(NULL, "/zapping/internal/callbacks/closed_caption"));
   D();
+#endif
   printv("switching to mode %d (%d)\n", zcg_int(NULL,
 						"capture_mode"),
 	 TVENG_CAPTURE_READ);
@@ -771,10 +793,12 @@ int main(int argc, char * argv[])
 			    _("Show controls"),
 			    _("Show the menu and the toolbar"));
 	}
+#ifdef HAVE_LIBZVBI
       /* setup subtitles page button */
       zconf_get_integer(&zvbi_page,
 			"/zapping/internal/callbacks/zvbi_page");
       D();
+#endif
       /* Sets the coords to the previous values, if the users wants to */
       if (zcg_bool(NULL, "keep_geometry"))
 	gtk_timeout_add(500, resize_timeout, NULL);
@@ -907,6 +931,7 @@ static void shutdown_zapping(void)
   printv(" callbacks");
   shutdown_callbacks();
 
+#ifdef HAVE_LIBZVBI
   /*
    * Shuts down the teletext view
    */
@@ -916,6 +941,7 @@ static void shutdown_zapping(void)
   /* Shut down vbi */
   printv(" vbi");
   shutdown_zvbi();
+#endif
 
   /* inputs, standards handling */
   printv(" v4linterface");
@@ -927,11 +953,13 @@ static void shutdown_zapping(void)
   printv(" overlay");
   shutdown_overlay();
 
+#ifdef HAVE_LIBZVBI
   /*
    * Shuts down the OSD info
    */
   printv(" osd");
   shutdown_osd();
+#endif
 
   /*
    * Shuts down the capture engine

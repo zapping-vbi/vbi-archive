@@ -1,3 +1,11 @@
+2002-01-13	<mschimek@users.sf.net>
+
+	* src/rte.h: Resynched options with libzvbi.
+	* src/rte.c: Restored rte_*_option_menu_*() and added 
+	  private (for now, anyway) rte_*_reset_options(). Fixed
+	  return value of rte_*_option_set().
+	* test/info.c: Added option dump & check, incl. context options.
+
 2001-12-17	Added po <mschimek@users.sf.net>
 
 2001-12-16	Going forward <garetxe@users.sf.net>

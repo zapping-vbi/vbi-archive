@@ -272,4 +272,7 @@ on_plugin_properties_help              (GnomePropertyBox *gnomepropertybox,
                                         gint             arg1,
                                         gpointer         user_data);
 
+void
+vbi_gui_sensitive (gboolean on);
+
 #endif /* __CALLBACKS_H__ */

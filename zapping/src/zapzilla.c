@@ -20,6 +20,8 @@
 #  include <config.h>
 #endif
 
+#ifdef HAVE_LIBZVBI
+
 #include <gnome.h>
 #include <glade/glade.h>
 #include <libgnomeui/gnome-window-icon.h> /* only gnome 1.2 and above */
@@ -95,7 +97,7 @@ int zapzilla_main(int argc, char * argv[])
 			      0, NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: zapzilla.c,v 1.1 2001-07-29 15:47:38 garetxe Exp $",
+	 "$Id: zapzilla.c,v 1.2 2002-01-13 09:52:22 mschimek Exp $",
 	 "Zapzilla", VERSION, __DATE__);
   glade_gnome_init();
   D();
@@ -114,8 +116,10 @@ int zapzilla_main(int argc, char * argv[])
 				  "/zapping/options/vbi/vbi_device");
   if (!zvbi_open_device(vbi_device))
     {
+      /* zvbi_open_device reports error 
       RunBox(_("Couldn't open %s, exitting"), GNOME_MESSAGE_BOX_ERROR,
 	     vbi_device);
+      */
       return 0;
     }
   D();
@@ -173,3 +177,5 @@ static gboolean startup_zapzilla()
   D();
   return TRUE;
 }
+
+#endif /* HAVE_LIBZVBI */
