@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vt.h,v 1.4.2.7 2004-02-18 07:53:31 mschimek Exp $ */
+/* $Id: vt.h,v 1.4.2.8 2004-02-25 17:28:58 mschimek Exp $ */
 
 #ifndef VT_H
 #define VT_H
@@ -31,6 +31,7 @@
 
 #include "bcd.h"
 #include "format.h"
+#include "lang.h"
 
 #ifndef VBI_DECODER
 #define VBI_DECODER
@@ -115,22 +116,23 @@ struct _ext_fallback {
 typedef struct _vt_extension vt_extension;
 
 struct _vt_extension {
-	unsigned int	designations;
+	unsigned int		designations;
 
-	int		char_set[2];		/* primary, secondary */
+	vbi_character_set_code	charset_code[2]; /* primary, secondary */
+	vbi_bool		charset_valid;
 
-	int		def_screen_color;
-	int		def_row_color;
+	int			def_screen_color;
+	int			def_row_color;
 
-	int		foreground_clut;	/* 0, 8, 16, 24 */
-	int		background_clut;
+	int			foreground_clut; /* 0, 8, 16, 24 */
+	int			background_clut;
 
-	ext_fallback	fallback;
+	ext_fallback		fallback;
 
 	/** f/b, dclut4, dclut16; see also vbi_page. */
-	vbi_color	drcs_clut[2 * 1 + 2 * 4 + 2 * 16];
+	vbi_color		drcs_clut[2 * 1 + 2 * 4 + 2 * 16];
 
-	vbi_rgba	color_map[40];
+	vbi_rgba		color_map[40];
 };
 
 typedef struct _vt_triplet vt_triplet;
@@ -452,26 +454,31 @@ extern void		vbi_teletext_set_level(vbi_decoder *vbi, int level);
 typedef enum {
 	/**
 	 * Format only the first row.
+	 * Parameter: vbi_bool.
 	 */
 	VBI_HEADER_ONLY = 0x37138F00,
 	/**
-	 * Add an artificial 41st column. Often column 0 of a page
-	 * contains all black spaces, unlike column 39. This will
-	 * result in a more balanced view.
+	 * Often column 0 of a page contains all black spaces,
+	 * unlike column 39. Enabling this option will result in
+	 * a more balanced view.
+	 * Parameter: vbi_bool.
 	 */
 	VBI_41_COLUMNS,
 	/**
 	 * Enable TOP or FLOF navigation in row 25.
+	 * Parameter: vbi_bool.
 	 */
 	VBI_NAVIGATION,
 	/**
 	 * Scan the page for page numbers, URLs, e-mail addresses
 	 * etc. and create hyperlinks.
+	 * Parameter: vbi_bool.
 	 */
 	VBI_HYPERLINKS,
 	/**
 	 * Scan the page for PDC Method A/B preselection data
 	 * and create a PDC table and links.
+	 * Parameter: vbi_bool.
 	 */
 	VBI_PDC_LINKS,
 	/**
@@ -479,6 +486,14 @@ typedef enum {
 	 * Parameter: vbi_wst_level.
 	 */
 	VBI_WST_LEVEL,
+	/**
+	 * Parameter: vbi_character_set_code.
+	 */
+	VBI_CHAR_SET_DEFAULT,
+	/**
+	 * Parameter: vbi_character_set_code.
+	 */
+	VBI_CHAR_SET_OVERRIDE,
 } vbi_format_option;
 
 extern vbi_page *
