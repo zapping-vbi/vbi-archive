@@ -50,6 +50,7 @@ fifo					*capture_fifo = &_capture_fifo;
 /* The frame producer */
 static pthread_t			capture_thread_id;
 static volatile gboolean		exit_capture_thread;
+static pthread_rwlock_t size_rwlock;
 /* List of requested capture formats */
 static struct {
   gint			id;
@@ -181,15 +182,21 @@ capture_thread (void *data)
 	Just seeing that the buffer is old doesn't mean that it's
 	unusable, if compatible is TRUE then we fill it normally.
       */
+
+      pthread_rwlock_rdlock (&size_rwlock);
+
       if (p->tag != request_id && !compatible (p, info))
 	{
 	  /* schedule for rebuilding in the main thread */
 	  p->frame.b.used = 1; /* used==0 indicates eof */
 	  send_full_buffer(&prod, &p->frame.b);
+	  pthread_rwlock_unlock (&size_rwlock);
 	  continue;
 	}
 
       fill_bundle_tveng(p, info);
+
+      pthread_rwlock_unlock (&size_rwlock);
 
       p->frame.b.time = p->frame.timestamp;
       if (p->src_image)
@@ -234,7 +241,6 @@ scan_device		(tveng_device_info	*info)
   for (fmt = TVENG_PIX_FIRST; fmt <= TVENG_PIX_LAST; fmt++)
     {
       info->format.pixformat = fmt;
-XX();
       if (!tveng_set_capture_format (info))
 	values += 1<<fmt;
     }
@@ -291,6 +297,7 @@ static gint idle_handler(gpointer _info)
     return TRUE; /* keep calling me */
 
   pb = (producer_buffer*)b;
+
   if (pb->tag == request_id)
     {
       capture_frame *cf = (capture_frame*)pb;
@@ -323,6 +330,7 @@ static gint idle_handler(gpointer _info)
 	    pb->images[pb->num_images] =
 	      zimage_new (i, info->format.width,
 			  info->format.height);
+
 	    if (info->format.pixformat == i)
 	      {
 		pb->src_index = pb->num_images;
@@ -337,6 +345,22 @@ static gint idle_handler(gpointer _info)
   send_empty_buffer (cf_timeout_consumer, b);
 
   return TRUE; /* keep calling me */
+}
+
+static void
+on_capture_canvas_allocate             (GtkWidget       *widget,
+                                        GtkAllocation   *allocation,
+                                        tveng_device_info *info)
+{
+  capture_fmt fmt;
+
+  memset (&fmt, 0, sizeof (fmt));
+
+  fmt.fmt = info->format.pixformat;
+  fmt.width = allocation->width;
+  fmt.height = allocation->height;
+
+  request_capture_format (&fmt);
 }
 
 gint capture_start (tveng_device_info *info)
@@ -370,6 +394,12 @@ gint capture_start (tveng_device_info *info)
 
   idle_id = gtk_idle_add (idle_handler, info);
 
+  /* XXX */
+  g_signal_connect (G_OBJECT (lookup_widget (main_window, "tv-screen")),
+		    "size-allocate",
+		    GTK_SIGNAL_FUNC (on_capture_canvas_allocate),
+		    main_info);
+
   return TRUE;
 }
 
@@ -377,6 +407,12 @@ void capture_stop (void)
 {
   GList *p;
   buffer *b;
+
+  /* XXX */
+  g_signal_handlers_disconnect_by_func
+    (G_OBJECT (lookup_widget (main_window, "tv-screen")),
+     GTK_SIGNAL_FUNC (on_capture_canvas_allocate),
+     main_info);
 
   /* First tell all well-behaved consumers to stop */
   broadcast (CAPTURE_STOP);
@@ -437,8 +473,23 @@ find_request_size (capture_fmt *fmt, gint *width, gint *height)
 
   /* Not specified, use config defaults */
   /* FIXME: Query zconf and use the values in there */
+
+  /* mhs FIXME: The intention isn't clear to me. */
+
+#if 0
   *width = 320;
   *height = 240;
+#else
+  {
+    GtkWidget *widget;
+
+    widget = lookup_widget (main_window, "tv-screen");
+
+    *width = MAX (64, widget->allocation.width);
+    *height = MAX (64 * 3/4, widget->allocation.height);
+  }
+#endif
+
   return FALSE;
 }
 
@@ -467,6 +518,7 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
   gint conversions = 999;
   struct tveng_frame_format prev_fmt;
   gint req_w, req_h;
+  enum tveng_capture_mode cur_mode;
 
   if (fmt)
     pthread_rwlock_wrlock (&fmt_rwlock);
@@ -546,17 +598,21 @@ request_capture_format_real (capture_fmt *fmt, gboolean required,
     }
 
  req_ok:
+  /* We cannot change w/h while the thread runs: race. */
+  pthread_rwlock_wrlock (&size_rwlock);
+
   /* Request the new format to TVeng (should succeed) [id] */
   memcpy (&prev_fmt, &info->format, sizeof (prev_fmt));
   info->format.pixformat = id;
 #warning
+
   find_request_size (fmt, &req_w, &req_h);
     {
       info->format.width = req_w;
       info->format.height = req_h;
     }
   printv ("Setting TVeng mode %s [%d x %d]\n", mode2str(id), req_w, req_h);
-XX();
+
   if (tveng_set_capture_format (info) == -1 ||
       info->format.width != req_w || info->format.height != req_h)
     {
@@ -564,13 +620,16 @@ XX();
 	g_warning ("Cannot set new mode: %s", info->error);
       /* Try to restore previous setup so we can keep working */
       memcpy (&info->format, &prev_fmt, sizeof (prev_fmt));
-XX();
+
       if (tveng_set_capture_format (info) != -1)
 	if (info->current_mode == TVENG_NO_CAPTURE)
 	  tveng_start_capturing (info);
+      pthread_rwlock_unlock (&size_rwlock);
       pthread_rwlock_unlock (&fmt_rwlock);
       return -1;
     }
+
+  pthread_rwlock_unlock (&size_rwlock);
 
   /* Flags that the request list *might* have changed */
   request_id ++;
@@ -715,11 +774,13 @@ void
 startup_capture (void)
 {
   pthread_rwlock_init (&fmt_rwlock, NULL);
+  pthread_rwlock_init (&size_rwlock, NULL);
 }
 
 void
 shutdown_capture (void)
 {
+  pthread_rwlock_destroy (&size_rwlock);
   pthread_rwlock_destroy (&fmt_rwlock);
 }
 
