@@ -51,7 +51,7 @@ extern int zvbi_page;
 
 #define BLINK_CYCLE 300 /* ms */
 
-
+#define TXCOLOR_DOMAIN "/zapping/options/text/"
 
 /* targets for the clipboard */
 enum
@@ -200,6 +200,9 @@ startup_ttxview (void)
   zcc_bool(TRUE, "Reveal hidden characters", "reveal");
   zcc_bool(FALSE, "Selecting a bookmark switchs the current channel",
 	   "bookmark_switch");
+  zconf_create_integer(127, "Brightness",
+		       TXCOLOR_DOMAIN "brightness");
+  zconf_create_integer(127, "Contrast", TXCOLOR_DOMAIN "contrast");
 
   while (zconf_get_nth(i, &buffer, ZCONF_DOMAIN "bookmarks"))
     {
@@ -1823,8 +1826,6 @@ create_export_dialog (gchar **bpp, ttxview_data *data,
   return dialog;
 }
 
-#define TXCOLOR_DOMAIN "/zapping/options/text/"
-
 static void
 on_color_control			(GtkWidget *w,
 					 gpointer user_data)
@@ -1858,8 +1859,7 @@ on_color_control			(GtkWidget *w,
 /*
  *  Teletext text brightness/contrast (in the future possibly
  *  Caption default colors (overriding std wht on blk))
- *  XXX needs improvement: zconf defaults != 0, reset,
- *  prettier dialog
+ *  XXX needs improvement: reset, prettier dialog.
  */
 static GtkWidget *
 create_color_dialog			(GtkWidget	*widget,
@@ -1872,18 +1872,16 @@ create_color_dialog			(GtkWidget	*widget,
 
   w = lookup_widget(dialog, "hscale71");
   zconf_get_integer(&value, TXCOLOR_DOMAIN "brightness");
-  adj = GTK_ADJUSTMENT(gtk_adjustment_new(value, 0, 255, 1, 8, 0));
-  gtk_range_set_adjustment(GTK_RANGE(w), adj);
-  gtk_adjustment_set_value(adj, value); /* ugly evil dirty hack */
+  adj = GTK_ADJUSTMENT(gtk_range_get_adjustment(GTK_RANGE(w)));
+  gtk_adjustment_set_value(adj, value);
   gtk_signal_connect(GTK_OBJECT(adj), "value-changed",
 		     GTK_SIGNAL_FUNC (on_color_control),
 		     GINT_TO_POINTER (0));
 
   w = lookup_widget(dialog, "hscale72");
   zconf_get_integer(&value, TXCOLOR_DOMAIN "contrast");
-  adj = GTK_ADJUSTMENT(gtk_adjustment_new(value, -128, 127, 1, 8, 0));
-  gtk_range_set_adjustment(GTK_RANGE(w), adj);
-  gtk_adjustment_set_value(adj, value); /* ugly evil dirty hack */
+  adj = GTK_ADJUSTMENT(gtk_range_get_adjustment(GTK_RANGE(w)));
+  gtk_adjustment_set_value(adj, value);
   gtk_signal_connect(GTK_OBJECT(adj), "value-changed",
 		     GTK_SIGNAL_FUNC (on_color_control),
 		     GINT_TO_POINTER (1));

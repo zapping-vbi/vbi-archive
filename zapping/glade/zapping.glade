@@ -5144,9 +5144,9 @@ in the next release of this program.</label>
       <value_pos>GTK_POS_LEFT</value_pos>
       <digits>0</digits>
       <policy>GTK_UPDATE_CONTINUOUS</policy>
-      <value>0</value>
-      <lower>0</lower>
-      <upper>255</upper>
+      <value>127</value>
+      <lower>-128</lower>
+      <upper>127</upper>
       <step>1</step>
       <page>8</page>
       <page_size>0</page_size>
@@ -5165,7 +5165,7 @@ in the next release of this program.</label>
 	<yfill>True</yfill>
       </child>
     </widget>
-    
+
     <widget>
       <class>GtkLabel</class>
       <name>label71</name>
