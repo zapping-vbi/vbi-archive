@@ -136,9 +136,7 @@ get_clips			(tv_clip_vector *	vector)
 
       for (i = 0; i < vector->size; ++i, ++clip)
 	fprintf (stderr, "%3u: %3u, %3u - %3u, %3u\n",
-		 i, clip->x, clip->y,
-		 clip->x + clip->width,
-		 clip->y + clip->height);
+		 i, clip->x1, clip->y1, clip->x2, clip->y2);
     }
 }
 
@@ -153,10 +151,10 @@ expose_window_clip_vector	(tv_window *		window)
 
   while (count-- > 0)
     {
-      x11_force_expose (window->x + clip->x,
-			window->y + clip->y,
-			clip->width,
-			clip->height);
+      x11_force_expose (window->x + clip->x1,
+			window->y + clip->y1,
+			clip->x2 - clip->x1,
+			clip->y2 - clip->y1);
       ++clip;
     }
 }
