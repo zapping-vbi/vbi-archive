@@ -71,26 +71,38 @@
 /*
  *  Private control IDs. In v4l the control concept doesn't exist.
  */
-#define CONTROL_BRIGHTNESS	(1 << 0)
-#define CONTROL_CONTRAST	(1 << 1)
-#define CONTROL_COLOUR		(1 << 2)
-#define CONTROL_HUE		(1 << 3)
-#define VIDEO_CONTROLS		(CONTROL_BRIGHTNESS | CONTROL_CONTRAST | \
-				 CONTROL_COLOUR | CONTROL_HUE)
-#define CONTROL_MUTE		(1 << 16)
-#define CONTROL_VOLUME		(1 << 17)
-#define CONTROL_BASS		(1 << 18)
-#define CONTROL_TREBLE		(1 << 19)
-#define CONTROL_BALANCE		(1 << 20)
-#define CONTROL_AUDIO_DECODING	(1 << 21)
-#define AUDIO_CONTROLS		(CONTROL_MUTE | CONTROL_VOLUME | \
-				 CONTROL_BASS | CONTROL_TREBLE | \
-				 CONTROL_BALANCE | CONTROL_AUDIO_DECODING)
-#define ALL_CONTROLS		(VIDEO_CONTROLS | AUDIO_CONTROLS)
+typedef enum {
+	CONTROL_BRIGHTNESS	= (1 << 0),
+	CONTROL_CONTRAST	= (1 << 1),
+	CONTROL_COLOUR		= (1 << 2),
+	CONTROL_HUE		= (1 << 3),
+	CONTROL_MUTE		= (1 << 16),
+	CONTROL_VOLUME		= (1 << 17),
+	CONTROL_BASS		= (1 << 18),
+	CONTROL_TREBLE		= (1 << 19),
+	CONTROL_BALANCE		= (1 << 20),
+	CONTROL_AUDIO_DECODING	= (1 << 21)
+} control_id;
+
+static const control_id VIDEO_CONTROLS =
+	CONTROL_BRIGHTNESS |
+	CONTROL_CONTRAST |
+	CONTROL_COLOUR |
+	CONTROL_HUE;
+
+static const control_id AUDIO_CONTROLS =
+	CONTROL_MUTE |
+	CONTROL_VOLUME |
+	CONTROL_BASS |
+	CONTROL_TREBLE |
+	CONTROL_BALANCE |
+	CONTROL_AUDIO_DECODING;
+
+#define ALL_CONTROLS (VIDEO_CONTROLS | AUDIO_CONTROLS)
 
 struct control {
 	tv_control		pub;
-	unsigned int		id;	/* CONTROL_ */
+	control_id		id;
 };
 
 #define C(l) PARENT (l, struct control, pub)
@@ -475,7 +487,7 @@ static void tveng1_close_device(tveng_device_info * info)
     free(info -> standards);
 
 	while ((tc = info->controls)) {
-		info->controls = tc->next;
+		info->controls = tc->_next;
 		free_control (tc);
 	}
 
@@ -1164,7 +1176,7 @@ update_controls			(tveng_device_info *	info,
 	struct private_tveng1_device_info *p_info = P_INFO (info);
 	tv_control *tc;
 
-	for (tc = p_info->info.controls; tc; tc = tc->next) {
+	for (tc = p_info->info.controls; tc; tc = tc->_next) {
 		struct control *c = C(tc);
 		int value;
 

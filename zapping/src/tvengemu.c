@@ -313,7 +313,7 @@ static void tvengemu_close_device(tveng_device_info * info)
     }
 
 	while ((tc = info->controls)) {
-		info->controls = tc->next;
+		info->controls = tc->_next;
 		free_control (tc);
 	}
 
