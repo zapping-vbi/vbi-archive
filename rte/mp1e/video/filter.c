@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: filter.c,v 1.8 2002-06-24 03:18:56 mschimek Exp $ */
+/* $Id: filter.c,v 1.9 2002-08-22 22:01:45 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "../common/mmx.h"
@@ -37,8 +37,8 @@ filter_labels[] = {
 	"YUYV 4:2:2 field progressive 50/60 Hz",
 	"YUYV 4:2:2 50/60 Hz w/temporal interpolation", /* REMOVED */
 	"YUV 4:2:0 w/vertical decimation",
-	"",
-	"",
+	"YUYV 4:2:2 w/horizontal decimation",
+	"YUYV 4:2:2 with 4:1 decimation",
 	"YVU 4:2:0 fastest",
 };
 
@@ -47,7 +47,9 @@ extern filter_fn	pmmx_YUV420_2;
 extern filter_fn	sse_YUV420_0;
 extern filter_fn	sse_YUV420_2;
 extern filter_fn	pmmx_YUYV_0;
+extern filter_fn	pmmx_YUYV_1;
 extern filter_fn	pmmx_YUYV_2;
+extern filter_fn	pmmx_YUYV_3;
 extern filter_fn	pmmx_YUYV_6;
 extern filter_fn	sse_YUYV_0;
 extern filter_fn	sse_YUYV_2;
@@ -150,13 +152,24 @@ filter_init(rte_video_stream_params *par, struct filter_param *fp)
 		fp->func = sse ? sse_YUYV_0 : pmmx_YUYV_0;
 		break;
 
-	case CM_YUYV_EXP2:
-	case CM_YUYV_EXP_VERTICAL_DECIMATION:
+/* removed	case CM_YUYV_EXP2: */
+/* removed	case CM_YUYV_EXP_VERTICAL_DECIMATION: */
 		FAIL("Sorry, the selected filter mode was experimental and is no longer available.\n");
 		break;
 
 	case CM_YUYV_VERTICAL_DECIMATION:
 		fp->func = sse ? sse_YUYV_2 : pmmx_YUYV_2;
+		scale_y = 2;
+		break;
+
+	case CM_YUYV_HORIZONTAL_DECIMATION:
+		fp->func = pmmx_YUYV_1;
+		scale_x = 2;
+		break;
+
+	case CM_YUYV_QUAD_DECIMATION:
+		fp->func = pmmx_YUYV_3;
+		scale_x = 2;
 		scale_y = 2;
 		break;
 
