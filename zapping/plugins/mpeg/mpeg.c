@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.45 2004-06-06 12:56:54 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.46 2004-08-13 01:11:37 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu -> ? */
 #undef GTK_DISABLE_DEPRECATED
@@ -1882,7 +1882,7 @@ plugin_load_config		(gchar *		root_key)
   gint n = strlen (root_key);
 
   g_assert (n > 0 && root_key[n - 1] == '/');
-  zconf_root = strndup (root_key, n - 1);
+  zconf_root = g_strndup (root_key, n - 1);
   zconf_root_temp = g_strconcat (zconf_root, "/temp", NULL);
 
   buffer = g_strconcat (root_key, "config", NULL);
