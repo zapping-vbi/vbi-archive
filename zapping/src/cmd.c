@@ -16,6 +16,8 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+/* $Id: cmd.c,v 1.12 2004-10-11 01:53:14 mschimek Exp $ */
+
 /**
  * Provides the functionality in the Python interface of Zapping.
  */
