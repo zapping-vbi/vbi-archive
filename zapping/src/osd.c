@@ -60,7 +60,10 @@ struct osd_piece
   GtkWidget	*window; /* Attached to this piece */
   GdkPixbuf	*unscaled; /* unscaled version of the rendered text */
   GdkPixbuf	*scaled; /* scaled version of the text */
-  attr_char	*c; /* characters in the row */
+//  attr_char	*c; /* characters in the row */
+// -> &osd_page.text[row * osd_page.columns + start]
+// osd_render|clear|roll_up just have to update
+// pieces to match the page passed by caption.c
   int		start; /* starting col in the row */
   int		width; /* number of characters in this piece */
 };
@@ -70,6 +73,7 @@ struct osd_row {
   int			n_pieces; /* Number of pieces in this row */
 };
 static struct osd_row * osd_matrix[NUM_ROWS];
+static struct fmt_page osd_page;
 
 static GtkWidget *osd_window = NULL;
 static GtkWidget *osd_parent_window = NULL;
@@ -77,7 +81,7 @@ static gboolean osd_started = FALSE; /* shared between threads */
 static gboolean osd_status = FALSE;
 
 static gint keeper_id = 0;
-
+static gint input_id = 0;
 
 /* Gets the events in the fifo */
 static gint
@@ -109,6 +113,22 @@ the_kommand_keeper		(gpointer	data)
   return TRUE;
 }
 
+extern int test_pipe[2];
+
+/* Gets the events in the pipe */
+static void
+the_kommand_batter		(gpointer	   data,
+                                 gint              source, 
+				 GdkInputCondition condition)
+{
+  char dummy[16];
+
+  if (read(test_pipe[0], dummy, 16 /* flush */) <= 0 || !osd_status)
+    return;
+ 
+  osd_event();
+}
+
 void
 startup_osd(void)
 {
@@ -131,10 +151,15 @@ startup_osd(void)
 
   osd_started = TRUE;
 
+#if 1
+  input_id = gdk_input_add(test_pipe[0], GDK_INPUT_READ,
+			   the_kommand_batter, NULL);
+#else
   keeper_id = gtk_timeout_add(50, the_kommand_keeper, NULL);
+#endif
 
   g_assert(vbi_event_handler(vbi, VBI_EVENT_CAPTION,
-                             cc_event, NULL) != 0);
+                             cc_event, test_pipe) != 0);
 
   pthread_mutex_unlock(&osd_mutex);
 }
@@ -159,7 +184,11 @@ shutdown_osd(void)
 
   uninit_fifo(&osd_fifo);
 
+#if 1
+  gdk_input_remove(input_id);
+#else
   gtk_timeout_remove(keeper_id);
+#endif
 
   osd_started = FALSE;
 
@@ -526,8 +555,8 @@ remove_piece(int row, int p_index, int just_push)
 
   p = &(osd_matrix[row]->pieces[p_index]);
 
-  if (p->width > 0 && p->c)
-    g_free(p->c);
+//  if (p->width > 0 && p->c)
+//    g_free(p->c);
 
   if (p->scaled)
     gdk_pixbuf_unref(p->scaled);
@@ -570,14 +599,15 @@ add_piece(int col, int row, int width, attr_char *c)
 
   p.width = width;
   p.start = col;
-  p.c = g_malloc(width*sizeof(attr_char));
-  memcpy(p.c, c, width*sizeof(attr_char));
+//  p.c = g_malloc(width*sizeof(attr_char));
+//  memcpy(p.c, c, width*sizeof(attr_char));
   p.window = pop_window();
   da = GTK_BIN(p.window)->child;
 
   p.unscaled = gdk_pixbuf_new(GDK_COLORSPACE_RGB, FALSE, 8,
 			       CELL_WIDTH*p.width, CELL_HEIGHT);
-  draw_row(gdk_pixbuf_get_pixels(p.unscaled), p.c, p.width,
+  draw_row(gdk_pixbuf_get_pixels(p.unscaled), 
+           c, width,
   	   gdk_pixbuf_get_rowstride(p.unscaled));
 
   pp = &(osd_matrix[row]->pieces[osd_matrix[row]->n_pieces]);
@@ -621,41 +651,36 @@ void osd_clear(void)
     osd_clear_row(i, 0);
 }
 
-void osd_render(attr_char *buffer, int row)
+void osd_render2(void)
 {
-  int height=1;
-  int i, j;
-  attr_char piece_buffer[NUM_COLS];
-  gint last_row;
+  attr_char *ac_row;
+  int row, i, j;
 
   g_assert(osd_started == TRUE);
 
-  if (row == -1)
-    {
-      row = 0;
-      height = NUM_ROWS;
-    }
+  row = osd_page.dirty.y0;
+  ac_row = osd_page.text + row * osd_page.columns;
 
-  last_row = row+height;
-
-  for (; row < last_row; row++, buffer += NUM_COLS)
+  for (; row <= osd_page.dirty.y1; ac_row += osd_page.columns, row++)
     {
       /* FIXME: This produces flicker, we should allow rendering from
 	 an arbitrary row, there's no way to know from osd */
       osd_clear_row(row, 1);
       for (i = j = 0; i<NUM_COLS; i++)
-	{
-	  if ((buffer[i].opacity == TRANSPARENT_SPACE) &&
-	      (j))
+        {
+	  if (ac_row[i].opacity != TRANSPARENT_SPACE)
+	    j++;
+	  else if (j > 0)
 	    {
-	      add_piece(i-j, row, j, piece_buffer);
+	      add_piece(i - j, row, j, ac_row + i - j);
 	      j = 0;
 	    }
-	  else if (buffer[i].opacity != TRANSPARENT_SPACE)
-	    piece_buffer[j++] = buffer[i];
 	}
+
       if (j)
-	add_piece(NUM_COLS-j, row, j, piece_buffer);
+	add_piece(osd_page.columns - j, row, j,
+		  ac_row + osd_page.columns - j);
+
       clear_stack();
     }
 }
@@ -681,40 +706,31 @@ void osd_roll_up(attr_char *buffer, int first_row, int last_row)
 void osd_event(void)
 {
   struct vbi *vbi = zvbi_get_object();
-  struct fmt_page page;
   int i;
 
-  if (!vbi_fetch_cc_page(vbi, &page, 1 /* XXX pgno 1 ... 8 */))
+  if (!vbi_fetch_cc_page(vbi, &osd_page, 1 /* XXX pgno 1 ... 8 */))
     return; /* trouble in outer space */
 
-  if (page.dirty.y0 > page.dirty.y1)
+  if (osd_page.dirty.y0 > osd_page.dirty.y1)
     return; /* not dirty */
 
-  if (abs(page.dirty.roll) >= page.rows)
+  if (abs(osd_page.dirty.roll) >= osd_page.rows)
     {
       osd_clear();
       return;
     }
 
-  if (page.dirty.roll == -1)
+  if (osd_page.dirty.roll == -1)
     {
-      osd_roll_up(page.text + page.dirty.y0 * page.columns,
-                  page.dirty.y0, page.dirty.y1);
+      osd_roll_up(osd_page.text + osd_page.dirty.y0 * osd_page.columns,
+                  osd_page.dirty.y0, osd_page.dirty.y1);
       return;
     }
 
-  g_assert(page.dirty.roll == 0);
-  /* currently never down or more than one row */
+  g_assert(osd_page.dirty.roll == 0);
+    /* currently never down or more than one row */
 
-  if (page.dirty.y0 == 0
-      && page.dirty.y1 == (page.rows - 1))
-    {
-      osd_render(&page.text[0], -1);
-      return;
-    }
-
-  for (i = page.dirty.y0; i <= page.dirty.y1; i++)
-    osd_render(page.text + i * page.columns, i);
+  osd_render2();
 }
 
 static void
@@ -737,12 +753,18 @@ send_cc_command(struct osd_command *c)
 void cc_event(vbi_event *ev, void *data)
 {
   struct osd_command c;
+  int *pipe = data;
 
   /* Discard or flag update. pg->dirty tracks changes
      between calls to vbi_fetch_cc_page */
   if (ev->pgno != 1 /* XXX 1 ... 8 */)
     return;
 
+#if 1
+  /* Shouldn't block when the pipe buffer is full... ? */
+  write(pipe[1], "", 1);
+#else
   c.command = OSD_EVENT;
   send_cc_command(&c);
+#endif
 }

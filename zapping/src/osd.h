@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: osd.h,v 1.6 2001-02-26 15:01:11 mschimek Exp $ */
+/* $Id: osd.h,v 1.7 2001-02-27 06:38:07 mschimek Exp $ */
 
 #ifndef __OSD_H__
 #define __OSD_H__
@@ -35,7 +35,7 @@ void osd_off(void);
 void osd_set_window(GtkWidget *dest_window, GtkWidget *parent);
 
 /* See libvbi/caption.c */
-void osd_render(attr_char *buffer, int row);
+void osd_render2(void);
 void osd_clear(void);
 void osd_roll_up(attr_char *buffer, int first_row, int last_row);
 

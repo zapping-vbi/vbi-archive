@@ -112,6 +112,8 @@ static struct {
   int hour, min, sec;
 } last_info;
 
+int test_pipe[2];
+
 /* Open the configured VBI device, FALSE on error */
 gboolean
 zvbi_open_device(void)
@@ -145,6 +147,12 @@ zvbi_open_device(void)
   device = zcg_char(NULL, "vbi_device");
   finetune = zcg_int(NULL, "finetune");
   erc = zcg_bool(NULL, "erc");
+
+/* XXX never closed */
+  if (pipe(test_pipe)) {
+    fprintf(stderr, "pipe! pipe! duh.\n");
+    exit(EXIT_FAILURE);
+  }
 
   if (!(vbi = vbi_open(device, cache_open(), finetune)))
     {
