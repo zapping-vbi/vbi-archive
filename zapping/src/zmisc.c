@@ -1023,3 +1023,35 @@ z_main_window		(void)
 {
   return GTK_WINDOW(main_window);
 }
+
+gchar*
+find_unused_name (const gchar * dir, const gchar * prefix,
+		  const gchar * suffix)
+{
+  gint index = 1;
+  gchar * buf = NULL;
+  struct stat sb;
+
+  while (TRUE)
+    {
+      /* Add a slash if needed */
+      if ((!*dir) || (dir[strlen(dir)-1] != '/'))
+	buf = g_strdup_printf("%s/%s%d%s", dir, prefix, index++,
+			      suffix);
+      else
+	buf = g_strdup_printf("%s%s%d%s", dir, prefix, index++,
+			      suffix);
+
+      /* Try to query file availability */
+      /*
+       * Note: This is easy to break, but since there's no good(tm)
+       * way to predict an available file name, just do the simple thing.
+       */
+      if (stat(buf, &sb))
+	break;
+
+      g_free(buf);
+    };
+
+  return buf;
+}

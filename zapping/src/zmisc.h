@@ -344,4 +344,14 @@ z_pixmap_new_from_file		(const gchar	*file);
 GtkWindow *
 z_main_window			(void);
 
+/**
+ * Scans @dir sequentially looking for files named prefix%dsuffix
+ * (clip17.mpeg, for example) and returns the name of the first
+ * file that made stat() fail.
+ * NULL on error.
+ */
+gchar*
+find_unused_name (const gchar * dir, const gchar * prefix,
+		  const gchar * suffix);
+
 #endif /* ZMISC.H */

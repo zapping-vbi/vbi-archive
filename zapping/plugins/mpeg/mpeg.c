@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.23 2001-11-16 22:30:50 garetxe Exp $ */
+/* $Id: mpeg.c,v 1.24 2001-11-18 19:26:43 garetxe Exp $ */
 
 #include "plugin_common.h"
 
@@ -75,7 +75,10 @@ static gint update_timeout_id;
 static gint engine_verbosity;
 /* I/O */
 static gchar* save_dir;
-static gint output_mode; /* 0:file, 1:/dev/null */
+static enum {
+  OUTPUT_FILE,
+  OUTPUT_DEV_NULL
+} output_mode; /* 0:file, 1:/dev/null */
 static gint capture_w, capture_h;
 
 /* Properties handling code */
@@ -222,51 +225,6 @@ void plugin_close (void)
     }
 }
 
-/*
- * Returns a pointer to a file available for writing and stores in
- * name the name of the opened file.
- * On error, NULL is returned, and name is undefined.
- * You need to g_free name on success.
- */
-static FILE *
-resolve_filename (const gchar * dir, const gchar * prefix,
-		 const gchar * suffix, gchar ** name)
-{
-  gint clip_index = 1;
-  gchar * buffer = NULL;
-  FILE * returned_file = NULL;
-
-  do {
-    if (returned_file)
-      fclose (returned_file);
-    
-    g_free (buffer);
-
-    if ((!*save_dir) || (save_dir[strlen (save_dir)-1] != '/'))
-      buffer = g_strdup_printf ("%s/%s%d%s", save_dir, prefix,
-			       clip_index++, suffix);
-    else
-      buffer = g_strdup_printf ("%s%s%d%s", save_dir, prefix,
-			       clip_index++, suffix);
-
-    /* Just check for the existance for now */
-    returned_file = fopen (buffer, "rb");
-  } while (returned_file);
-
-  if (! (returned_file = fopen (buffer, "wb")))
-    {
-      ShowBox ("%s couldn't be opened for writing.\n"
-	      "Check your permissions.", GNOME_MESSAGE_BOX_ERROR, buffer);
-      g_free (buffer);
-      return NULL;
-    }
-
-  if (name)
-    *name = buffer;
-
-  return returned_file;
-}
-
 static gint
 update_timeout (rte_context *context)
 {
@@ -379,15 +337,13 @@ video_unref_callback (rte_context *context, rte_buffer *buf)
 }
 
 static gboolean
-plugin_start (void)
+real_plugin_start (const gchar *file_name)
 {
   enum rte_pixformat pixformat = 0;
   enum tveng_frame_pixformat tveng_pixformat;
   rte_stream_parameters params;
-  gchar * file_name = NULL;
   GtkWidget * widget;
-  FILE * file_fd;
-  gchar * buffer, *b;
+  gchar * buffer;
   GtkWidget *dialog, *label;
   rte_context *context;
   rte_codec *audio_codec, *video_codec;
@@ -399,14 +355,6 @@ plugin_start (void)
   if (active)
     {
       ShowBox ("The plugin is running!", GNOME_MESSAGE_BOX_WARNING);
-      return FALSE;
-    }
-
-  if (!z_build_path (save_dir, &b))
-    {
-      ShowBox (_("Cannot create destination dir for clips:\n%s\n%s"),
-	      GNOME_MESSAGE_BOX_WARNING, save_dir, b);
-      g_free (b);
       return FALSE;
     }
 
@@ -552,24 +500,25 @@ plugin_start (void)
 	goto failed;
     }
 
-  switch (output_mode)
+  if (output_mode == OUTPUT_FILE)
     {
-    case 0:
-      /* we are just interested in the file name */
-      file_fd = resolve_filename (save_dir, "clip", ".mpeg",
-				 &file_name);
-      if (!file_fd)
+      gchar *dir = g_dirname(file_name);
+      gchar *error_msg;
+
+      if (!z_build_path (dir, &error_msg))
 	{
+	  ShowBox (_("Cannot create destination dir for clips:\n%s\n%s"),
+		   GNOME_MESSAGE_BOX_WARNING, dir, error_msg);
+	  g_free (error_msg);
+	  g_free (dir);
 	  goto failed;
 	}
-      fclose (file_fd);
+      g_free(dir);
+
       rte_set_output (context, NULL, NULL, file_name);
-      break;
-    default:
-      file_name = g_strdup ("/dev/null");
-      rte_set_output (context, encode_callback, NULL, NULL);
-      break;
     }
+  else
+    rte_set_output (context, encode_callback, NULL, NULL);
 
   /* Set video and audio rates */
 
@@ -634,7 +583,10 @@ plugin_start (void)
   g_free (buffer);
 
   widget = lookup_widget (saving_dialog, "label9");
-  buffer = g_strdup_printf (_("Destination: %s"), file_name);
+  if (output_mode == OUTPUT_FILE)
+    buffer = g_strdup_printf (_("Destination: %s"), file_name);
+  else
+    buffer = g_strdup_printf (_("Destination: %s"), "/dev/null");
   gtk_label_set_text (GTK_LABEL (widget), buffer);
   g_free (buffer);
 
@@ -684,8 +636,6 @@ plugin_start (void)
   widget = lookup_widget (saving_dialog, "label12");
   gtk_label_set_text (GTK_LABEL (widget), _("Waiting for frames..."));
 
-  g_free (file_name);
-
   update_timeout_id =
     gtk_timeout_add (250, (GtkFunction)update_timeout, context);
 
@@ -703,6 +653,16 @@ plugin_start (void)
   audio_handle = NULL;
 
   return FALSE;
+}
+
+static
+gboolean plugin_start (void)
+{
+  gchar *filename = find_unused_name(save_dir, "clip", ".mpeg");
+  gint result = real_plugin_start(filename);
+  g_free(filename);
+
+  return result;
 }
 
 static void
@@ -767,10 +727,6 @@ void plugin_load_config (gchar * root_key)
   zconf_create_integer (0, "Where will we send the encoded stream",
 		       buffer);
   output_mode = zconf_get_integer (NULL, buffer);
-  if (output_mode < 0)
-    output_mode = 0;
-  else if (output_mode > 1)
-    output_mode = 1;
   g_free (buffer);
 
   buffer = g_strconcat (root_key, "capture_w", NULL);
@@ -1094,27 +1050,52 @@ on_mpeg_button_clicked          (GtkButton       *button,
 				 gpointer         user_data)
 {
   /* Normal invocation, configure and start */
-  GtkWidget *dialog, *toggle;
+  GtkWidget *dialog;
+  GtkEntry *entry;
+  gchar *filename;
+  GtkWidget *properties;
 
-  dialog = gnome_dialog_new ("FIXME: Make me",
-			     GNOME_STOCK_BUTTON_OK,
-			     GNOME_STOCK_BUTTON_CANCEL,
-			     NULL);
+  if (output_mode != OUTPUT_FILE)
+    {
+      plugin_start();
+      return;
+    }
 
-  toggle =
-    gtk_toggle_button_new_with_label ("Toggle me tender, toggle me true");
-  gtk_widget_show(toggle);
-  gtk_box_pack_start_defaults (GTK_BOX (GNOME_DIALOG (dialog)->vbox), toggle);
-  gnome_dialog_set_parent(GNOME_DIALOG(dialog), z_main_window());
+  dialog = build_widget("dialog2",
+			PACKAGE_DATA_DIR "/mpeg_properties.glade");
+  entry = GTK_ENTRY(lookup_widget(dialog, "entry"));
+  gnome_dialog_editable_enters(GNOME_DIALOG(dialog), GTK_EDITABLE (entry));
   gnome_dialog_set_default(GNOME_DIALOG(dialog), 0);
+  filename = find_unused_name(save_dir, "clip", ".mpeg");
+  gtk_entry_set_text(entry, filename);
+  g_free(filename);
+  gtk_entry_select_region(entry, 0, -1);
+
+  gnome_dialog_set_parent(GNOME_DIALOG(dialog), z_main_window());
+  gtk_widget_grab_focus(GTK_WIDGET(entry));
 
   /*
    * -1 or 1 if cancelled.
    */
-  if (gnome_dialog_run_and_close (GNOME_DIALOG (dialog)) == 0)
+  switch (gnome_dialog_run_and_close (GNOME_DIALOG (dialog)))
     {
-      plugin_start ();
+    case 0: /* OK */
+      filename = g_strdup(gtk_entry_get_text(entry));
+      if (filename)
+	real_plugin_start (filename);
+      g_free(filename);
+      break;
+    case 2: /* Configure */
+      properties = build_properties_dialog();
+      open_properties_page(properties,
+			   _("Plugins"), _("MPEG"));
+      gnome_dialog_run(GNOME_DIALOG(properties));
+      break;
+    default: /* Cancel */
+      break;
     }
+
+  gtk_widget_destroy(GTK_WIDGET(dialog));
 }
 
 static void

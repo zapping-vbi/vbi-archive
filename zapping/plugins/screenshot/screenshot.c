@@ -28,7 +28,6 @@
 #include <jpeglib.h> /* jpeg compression */
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <libgen.h> /* for dirname(), portability? */
 
 /*
   This plugin was built from the template one. It does some thing
@@ -268,37 +267,6 @@ void plugin_close(void)
     }
 }
 
-/* Find an unused file name, the returned value must be g_free'd */
-static gchar*
-find_no_file			(const gchar	*dir,
-				 const gchar	*prefix)
-{
-  gchar *buffer = NULL;
-  gint index = 0;
-  struct stat sb;
-
-  while (TRUE)
-    {
-      /* Add a slash if needed */
-      if ((!*dir) || (dir[strlen(dir)-1] != '/'))
-	buffer = g_strdup_printf("%s/%s%d.jpeg", dir, prefix, index++);
-      else
-	buffer = g_strdup_printf("%s%s%d.jpeg", dir, prefix, index++);
-
-      /* Try to query file availability */
-      /*
-       * Note: This is easy to break, but since there's no good(tm)
-       * way to predict an available file name, just do the simple thing.
-       */
-      if (stat(buffer, &sb))
-	break;
-
-      g_free(buffer);
-    };
-
-  return buffer;
-}
-
 static gboolean
 real_plugin_start	(const gchar	*dest_path)
 {
@@ -346,7 +314,7 @@ real_plugin_start	(const gchar	*dest_path)
 static
 gboolean plugin_start (void)
 {
-  gchar *filename = find_no_file(save_dir, "shot");
+  gchar *filename = find_unused_name(save_dir, "shot", ".jpeg");
   gint result = real_plugin_start(filename);
   g_free(filename);
 
@@ -627,38 +595,21 @@ on_screenshot_button_clicked		(GtkButton       *button,
 {
   /* Normal invocation, configure and start */
   GtkWidget *dialog;
-  GtkWidget *label;
-  GtkWidget *fentry;
   GtkEntry *entry;
   gchar *filename;
   GtkWidget *properties;
 
-  dialog = gnome_dialog_new (_("Save screenshot"),
-			     GNOME_STOCK_BUTTON_OK,
-			     GNOME_STOCK_BUTTON_CANCEL,
-			     _("Configure plugin"),
-			     NULL);
-
-  label = gtk_label_new(_("Destination file:"));
-  gtk_widget_show(label);
-  gtk_box_pack_start_defaults (GTK_BOX (GNOME_DIALOG (dialog)->vbox), label);
-
-  fentry = gnome_file_entry_new("screenshot_dest_file_history",
-				_("Destination file"));
-  entry = GTK_ENTRY(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(fentry)));
-  gtk_widget_show(fentry);
-  gtk_box_pack_start_defaults (GTK_BOX (GNOME_DIALOG (dialog)->vbox), fentry);
-
+  dialog = build_widget("dialog1", PACKAGE_DATA_DIR "/screenshot.glade");
+  entry = GTK_ENTRY(lookup_widget(dialog, "entry"));
   gnome_dialog_editable_enters(GNOME_DIALOG(dialog), GTK_EDITABLE (entry));
-  gtk_widget_grab_focus(GTK_WIDGET(entry));
-  filename = find_no_file(save_dir, "shot");
+  gnome_dialog_set_default(GNOME_DIALOG(dialog), 0);
+  filename = find_unused_name(save_dir, "shot", ".jpeg");
   gtk_entry_set_text(entry, filename);
   g_free(filename);
   gtk_entry_select_region(entry, 0, -1);
 
   gnome_dialog_set_parent(GNOME_DIALOG(dialog), z_main_window());
-  gnome_dialog_set_default(GNOME_DIALOG(dialog), 0);
-  gnome_dialog_close_hides (GNOME_DIALOG(dialog), TRUE);
+  gtk_widget_grab_focus(GTK_WIDGET(entry));
 
   /*
    * -1 or 1 if cancelled.
@@ -704,17 +655,17 @@ start_saving_screenshot (gpointer data_to_save,
   GtkWidget * label;
   GtkWidget * progressbar;
   uint8_t *y, *u, *v, *t;
-  gchar *b, *buffer = g_strdup(path);
+  gchar *b, *dir = g_dirname(path);
 
-  if (!z_build_path(dirname(buffer), &b))
+  if (!z_build_path(dir, &b))
     {
       ShowBox(_("Cannot create destination dir for screenshots:\n%s\n%s"),
-	      GNOME_MESSAGE_BOX_WARNING, dirname(buffer), b);
+	      GNOME_MESSAGE_BOX_WARNING, dir, b);
       g_free(b);
-      g_free(buffer);
+      g_free(dir);
       return;
     }
-  g_free(buffer);
+  g_free(dir);
 
   if (format->pixformat == TVENG_PIX_YVU420 ||
       format->pixformat == TVENG_PIX_YUV420)

@@ -1,3 +1,8 @@
+18.11.2001	Completed fast-clicked <garetxe@users.sf.net>
+
+	* screenshot: gladeified clicked() dialog.
+	* mpeg: Select destination file on clicked signal, as in screenshot.
+
 16.11.2001	Fast variants of screenshot and mpeg <garetxe@users.sf.net>
 
 	* screenshot, mpeg: Added fast (Ctrl, no configuration) distinction.
