@@ -1,3 +1,8 @@
+25.1.2001	Old cruft removed <garetxe@users.sourceforge.net>
+
+	* libvbi/: Moved vbi_v4l[2].c to the attic, not longer needed,
+	updated README.
+
 24.1.2001	minor tweaks <garetxe@users.sourceforge.net>
 
 	* src/zmisc.c: Hide the pointer in fullscreen mode.

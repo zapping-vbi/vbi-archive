@@ -74,13 +74,17 @@ static gboolean startup_zapping(void);
  * This removes the bug when resizing toolbar makes the tv_screen have
  * 1 unit height.
 */
-static gint old_height=160;
+static gint old_height=-1;
+
 static void
 on_tv_screen_size_allocate	(GtkWidget	*widget,
 				 GtkAllocation	*allocation,
 				 gpointer	data)
 {
   gint oldw;
+
+  if (old_height == -1)
+    old_height = gdk_screen_height()/2;
 
   if (!main_window->window)
     return;
@@ -242,7 +246,7 @@ int main(int argc, char * argv[])
     newbttv = 0;
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.82 2001-01-24 20:01:26 garetxe Exp $", "Zapping", VERSION, __DATE__);
+	 "$Id: main.c,v 1.83 2001-01-25 19:51:17 garetxe Exp $", "Zapping", VERSION, __DATE__);
   printv("Checking for MMX support... ");
   switch (mm_support())
     {
@@ -467,6 +471,7 @@ int main(int argc, char * argv[])
 	ShowBox(_("Capture mode couldn't be started:\n%s"),
 		GNOME_MESSAGE_BOX_ERROR, main_info->error);
   D();
+  /* hide toolbars and co. if necessary */
   if (zconf_get_boolean(NULL, "/zapping/internal/callbacks/hide_controls"))
     {
       gtk_widget_hide(lookup_widget(main_window, "dockitem1"));

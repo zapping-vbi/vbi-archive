@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: 0.5.8cvs\n"
-"POT-Creation-Date: 2001-01-24 00:27+0000\n"
+"POT-Creation-Date: 2001-01-24 23:33+0000\n"
 "PO-Revision-Date: 2000-11-18 17:00+0300\n"
 "Last-Translator: Sergey Nikulin <sergey-nikulin@mail.ru>\n"
 "Language-Team: LANGUAGE <ru@li.org>\n"
@@ -11,63 +11,63 @@ msgstr ""
 "Content-Type: text/plain; charset=koi8-r\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/main.c:150
+#: src/main.c:154
 #, c-format
 msgid ""
 "Sorry, but %s couldn't be opened:\n"
 "%s (%d)"
 msgstr "Извините, но %s не может быть открыт:%s (%d)"
 
-#: src/main.c:154
+#: src/main.c:158
 msgid "There's no GdkPixbuf support, VBI has been disabled"
 msgstr "Нет поддержки GdkPizbuf, VBI будет отключен"
 
-#: src/main.c:178
+#: src/main.c:182
 msgid "Color depth of the X display"
 msgstr "Глубина цвета Х-дисплея"
 
-#: src/main.c:179
+#: src/main.c:183
 msgid "BPP"
 msgstr ""
 
-#: src/main.c:187
+#: src/main.c:191
 msgid "Set debug messages on"
 msgstr "Устнановить отладлчные сообщения на"
 
-#: src/main.c:196
+#: src/main.c:200
 msgid "Disable VBI support"
 msgstr "Отключить поддержку VBI"
 
-#: src/main.c:205
+#: src/main.c:209
 msgid "VBI support for old (<0.5.2) bttv drivers"
 msgstr "Поддержка VBI для старых (<0.5.2) bttv драйверов"
 
-#: src/main.c:214
+#: src/main.c:218
 msgid "Set the default standard/norm for tunerless inputs"
 msgstr "Установить стандарт/норму по умолчанию для входов без тюнера"
 
-#: src/main.c:215
+#: src/main.c:219
 msgid "NORM"
 msgstr "НОРМА"
 
-#: src/main.c:223
+#: src/main.c:227
 #, fuzzy
 msgid "Disable XVideo extension support"
 msgstr "Отключить поддержку VBI"
 
-#: src/main.c:266
+#: src/main.c:270
 msgid "Sorry, but there is no module support"
 msgstr "Извините, нет поддержки модулей"
 
-#: src/main.c:274
+#: src/main.c:278
 msgid "Cannot get device info struct"
 msgstr "Не могу получить информацию об устройстве"
 
-#: src/main.c:282
+#: src/main.c:286
 msgid "Zapping couldn't be started"
 msgstr "Zapping не может стартовать"
 
-#: src/main.c:321
+#: src/main.c:325
 msgid ""
 "The specified device isn't \"/dev/video\".\n"
 "Should I try it?"
@@ -75,14 +75,14 @@ msgstr ""
 "Указанное устройство не \"/dev/video\"\n"
 "Попробывать его?"
 
-#: src/main.c:342
+#: src/main.c:346
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
 "%s"
 msgstr "Извините, но \"%s\" не может быть открыт:%s"
 
-#: src/main.c:448
+#: src/main.c:451
 #, c-format
 msgid ""
 "Cannot restore previous mode%s:\n"
@@ -91,11 +91,11 @@ msgstr ""
 "Не могу восстановить предыдущий режим%s:\n"
 "%s"
 
-#: src/main.c:451
+#: src/main.c:454
 msgid ", I will try starting capture mode"
 msgstr ", я попробую запустить режим захвата"
 
-#: src/main.c:455
+#: src/main.c:458
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
@@ -104,7 +104,7 @@ msgstr ""
 "Режим захвата не может быть запущен из-за:\n"
 "%s"
 
-#: src/main.c:468
+#: src/main.c:471
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
@@ -113,7 +113,7 @@ msgstr ""
 "Режим захвата не может быть запущен:\n"
 "%s"
 
-#: src/main.c:574
+#: src/main.c:579
 msgid ""
 "ZConf could not be closed properly , your\n"
 "configuration will be lost.\n"
@@ -133,7 +133,7 @@ msgstr ""
 "   - или, что более вероятно, вы нашли баг в\n"
 "     Zapping. Пожалуйста свяжитесь с автором.\n"
 
-#: src/main.c:608
+#: src/main.c:613
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Извините, Zapping не может создать конфигурационное дерево"
 
@@ -145,43 +145,43 @@ msgstr ""
 msgid "A TV viewer for the Gnome Desktop Environment"
 msgstr "Просмотр TV для GNOME"
 
-#: src/callbacks.c:245
+#: src/callbacks.c:247
 msgid "Cannot set input"
 msgstr "Не могу установить вход"
 
-#: src/callbacks.c:264
+#: src/callbacks.c:266
 #, c-format
 msgid "Cannot tune given channel %d (no such channel)\n"
 msgstr "Не могу настроиться на указанный канал %d (нет такого канала)\n"
 
 #. Set the
 #. input freq
-#: src/callbacks.c:279
+#: src/callbacks.c:281
 msgid "Cannot tune input"
 msgstr "Не могу настроить вход"
 
-#: src/callbacks.c:519 src/v4linterface.c:166
+#: src/callbacks.c:525 src/v4linterface.c:166
 msgid "No tuner"
 msgstr "Нет тюнера"
 
-#: src/callbacks.c:527 src/v4linterface.c:168
+#: src/callbacks.c:533 src/v4linterface.c:168
 msgid "No tuned channels"
 msgstr "Нет настроенных каналов"
 
-#: src/callbacks.c:581
+#: src/callbacks.c:587
 msgid "Show extra controls"
 msgstr ""
 
-#: src/callbacks.c:583
+#: src/callbacks.c:589
 msgid "Show the Inputs and Standards menu"
 msgstr ""
 
-#: src/callbacks.c:599
+#: src/callbacks.c:605
 #, fuzzy
 msgid "Show controls"
 msgstr "Настройки"
 
-#: src/callbacks.c:601
+#: src/callbacks.c:607
 msgid "Show the menu and the toolbar"
 msgstr ""
 
@@ -586,11 +586,11 @@ msgid ""
 "Hashes are 0x%x vs. 0x%x"
 msgstr ""
 
-#: src/zmisc.c:226
+#: src/zmisc.c:262
 msgid "Sorry, but cannot go fullscreen"
 msgstr "Извините, не могу переключиться в полноэкранный режим"
 
-#: src/zmisc.c:426
+#: src/zmisc.c:467
 msgid ""
 "The teletext decoder needs GdkPixbuf, and\n"
 "configure didn't find it."
@@ -598,7 +598,7 @@ msgstr ""
 "Декодеру телетекста нужен GdkPixbuf, и\n"
 "configure не нашел его."
 
-#: src/zmisc.c:433
+#: src/zmisc.c:474
 msgid "VBI has been disabled, or it doesn't work."
 msgstr "VBI был отключен или не работает."
 

@@ -6,7 +6,7 @@ EXTRA_DIST = wstfont.xbm README
 CFLAGS = -D_GNU_SOURCE -g -O0 -Wall $(ARCH_CFLAGS)
 
 libvbi_a_SOURCES = \
-	decoder.c decoder.h v4lx.c v4lx.h \
+	decoder.c sliced.h decoder.h v4lx.c v4lx.h \
 	cache.c cache.h \
 	exp-gfx.c exp-html.c exp-txt.c export.c export.h \
 	dllist.h \

@@ -211,6 +211,7 @@ x11_force_expose(gint x, gint y, gint w, gint h)
   XDestroyWindow(GDK_DISPLAY(), win);
 }
 
+#if 0
 static void
 _x11_force_expose(gint x, gint y, gint w, gint h)
 {
@@ -254,6 +255,7 @@ _x11_force_expose(gint x, gint y, gint w, gint h)
   if (children)
     XFree((char *) children);
 }
+#endif
 
 /*
  * Returns TRUE if the window is viewable

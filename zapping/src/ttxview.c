@@ -395,12 +395,12 @@ event_timeout				(ttxview_data	*data)
 	{
 	case TTX_PAGE_RECEIVED:
 	  gdk_window_get_size(data->da->window, &w, &h);
-	  if (data->mask)
-	    {
+	  //	  if (data->mask)
+	  //	    {
 	      // render_ttx_mask(data->id, data->mask);
 	      // gdk_window_shape_combine_mask(data->da->window, data->mask,
 	      //			    0, 0);
-	    }
+	  //	    }
 	  gdk_window_clear_area_e(data->da->window, 0, 0, w, h);
 	  data->subpage = data->fmt_page->vtp->subno;
 	  widget = lookup_widget(data->toolbar, "ttxview_subpage");

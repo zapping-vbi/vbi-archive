@@ -1,6 +1,9 @@
-This is for vbi decoding.  Taken from xawtv-3.19, which in turn took
-it from alevt 1.5.1.
+This is for vbi decoding.
+It's was originally based on aleVT 1.6.0, but lots (most) of the
+current code is rewritten from scratch.
+
 Changes:
+  {gar}
   * Makefile.am created.
   * Removed debug code from vbi.c
   * Fixed typo in cache.c (SUB_ANY)

@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.5\n"
-"POT-Creation-Date: 2001-01-24 00:27+0000\n"
+"POT-Creation-Date: 2001-01-24 23:33+0000\n"
 "PO-Revision-Date: 2000-11-04 16:00+0100\n"
 "Last-Translator: Michael H. Schimek <mschimek@users.sourceforge.net>\n"
 "Language-Team: German <de@li.org>\n"
@@ -12,7 +12,7 @@ msgstr ""
 "Content-Type: text/plain; charset=iso-8859-1\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/main.c:150
+#: src/main.c:154
 #, c-format
 msgid ""
 "Sorry, but %s couldn't be opened:\n"
@@ -21,58 +21,58 @@ msgstr ""
 "\"%s\" konnte nicht geöffnet werden:\n"
 "%s (%d)"
 
-#: src/main.c:154
+#: src/main.c:158
 msgid "There's no GdkPixbuf support, VBI has been disabled"
 msgstr "GdkPixbuf wird nicht unterstützt, VBI deaktiviert"
 
-#: src/main.c:178
+#: src/main.c:182
 msgid "Color depth of the X display"
 msgstr "X Display Farbtiefe"
 
-#: src/main.c:179
+#: src/main.c:183
 msgid "BPP"
 msgstr ""
 
-#: src/main.c:187
+#: src/main.c:191
 msgid "Set debug messages on"
 msgstr "Diagnosemeldungen an"
 
-#: src/main.c:196
+#: src/main.c:200
 msgid "Disable VBI support"
 msgstr "VBI Unterstützung deaktivieren"
 
-#: src/main.c:205
+#: src/main.c:209
 msgid "VBI support for old (<0.5.2) bttv drivers"
 msgstr "VBI Unterstützung für alte (<0.5.2) BTTV Treiber"
 
-#: src/main.c:214
+#: src/main.c:218
 msgid "Set the default standard/norm for tunerless inputs"
 msgstr "Videostandard für Eingänge ohne Tuner einstellen"
 
-#: src/main.c:215
+#: src/main.c:219
 msgid "NORM"
 msgstr ""
 
-#: src/main.c:223
+#: src/main.c:227
 #, fuzzy
 msgid "Disable XVideo extension support"
 msgstr "VBI Unterstützung deaktivieren"
 
-#: src/main.c:266
+#: src/main.c:270
 msgid "Sorry, but there is no module support"
 msgstr "Module werden leider nicht unterstützt"
 
 # src/callbacks.c:320 src/v4l2interface.c:89
-#: src/main.c:274
+#: src/main.c:278
 msgid "Cannot get device info struct"
 msgstr ""
 
 # ## ?
-#: src/main.c:282
+#: src/main.c:286
 msgid "Zapping couldn't be started"
 msgstr "Zapping konnte nicht gestartet werden"
 
-#: src/main.c:321
+#: src/main.c:325
 msgid ""
 "The specified device isn't \"/dev/video\".\n"
 "Should I try it?"
@@ -80,7 +80,7 @@ msgstr ""
 "Das angegebene Gerät ist nicht \"/dev/video\".\n"
 "Versuchen?"
 
-#: src/main.c:342
+#: src/main.c:346
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
@@ -89,7 +89,7 @@ msgstr ""
 "\"%s\" konnte leider nicht geöffnet werden:\n"
 "%s"
 
-#: src/main.c:448
+#: src/main.c:451
 #, c-format
 msgid ""
 "Cannot restore previous mode%s:\n"
@@ -98,11 +98,11 @@ msgstr ""
 "Kann alten Modus %s nicht wiederherstellen:\n"
 "%s"
 
-#: src/main.c:451
+#: src/main.c:454
 msgid ", I will try starting capture mode"
 msgstr ", werde versuchen den Capture-Modus zu starten"
 
-#: src/main.c:455
+#: src/main.c:458
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
@@ -111,7 +111,7 @@ msgstr ""
 "Capture-Modus konnte auch nicht gestartet werden:\n"
 "%s"
 
-#: src/main.c:468
+#: src/main.c:471
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
@@ -120,7 +120,7 @@ msgstr ""
 "Capture-Modus konnte nicht gestartet werden:\n"
 "%s"
 
-#: src/main.c:574
+#: src/main.c:579
 msgid ""
 "ZConf could not be closed properly , your\n"
 "configuration will be lost.\n"
@@ -139,7 +139,7 @@ msgstr ""
 "   - oder, wahrscheinlicher, Sie haben einen Fehler in\n"
 "     Zapping gefunden. Bitte kontaktieren Sie den Autor.\n"
 
-#: src/main.c:608
+#: src/main.c:613
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Zapping kann die Konfiguration nicht erstellen"
 
@@ -152,12 +152,12 @@ msgid "A TV viewer for the Gnome Desktop Environment"
 msgstr "Ein TV Programm für das Gnome Desktop Environment"
 
 # src/callbacks.c:320 src/v4l2interface.c:89
-#: src/callbacks.c:245
+#: src/callbacks.c:247
 msgid "Cannot set input"
 msgstr "Kann Eingang nicht einstellen"
 
 # src/callbacks.c:338
-#: src/callbacks.c:264
+#: src/callbacks.c:266
 #, c-format
 msgid "Cannot tune given channel %d (no such channel)\n"
 msgstr "Kann nicht zu Kanal %d wechseln (existiert nicht)\n"
@@ -165,36 +165,36 @@ msgstr "Kann nicht zu Kanal %d wechseln (existiert nicht)\n"
 # src/callbacks.c:355
 #. Set the
 #. input freq
-#: src/callbacks.c:279
+#: src/callbacks.c:281
 msgid "Cannot tune input"
 msgstr "Kann den Tuner nicht einstellen"
 
 # src/v4l2interface.c:139
-#: src/callbacks.c:519 src/v4linterface.c:166
+#: src/callbacks.c:525 src/v4linterface.c:166
 msgid "No tuner"
 msgstr "Kein Tuner"
 
 # src/v4l2interface.c:146
-#: src/callbacks.c:527 src/v4linterface.c:168
+#: src/callbacks.c:533 src/v4linterface.c:168
 msgid "No tuned channels"
 msgstr "Keine Fernsehkanäle"
 
-#: src/callbacks.c:581
+#: src/callbacks.c:587
 msgid "Show extra controls"
 msgstr ""
 
-#: src/callbacks.c:583
+#: src/callbacks.c:589
 msgid "Show the Inputs and Standards menu"
 msgstr ""
 
 # src/interface.c:247
 # # *Teletext* controls
-#: src/callbacks.c:599
+#: src/callbacks.c:605
 #, fuzzy
 msgid "Show controls"
 msgstr "Seitenauswahl"
 
-#: src/callbacks.c:601
+#: src/callbacks.c:607
 msgid "Show the menu and the toolbar"
 msgstr ""
 
@@ -629,11 +629,11 @@ msgstr ""
 "sind 0x%x ggü. 0x%x"
 
 # src/tveng.c:70
-#: src/zmisc.c:226
+#: src/zmisc.c:262
 msgid "Sorry, but cannot go fullscreen"
 msgstr "Kann Vollbildmodus leider nicht aktivieren"
 
-#: src/zmisc.c:426
+#: src/zmisc.c:467
 #, fuzzy
 msgid ""
 "The teletext decoder needs GdkPixbuf, and\n"
@@ -642,7 +642,7 @@ msgstr ""
 "Der Teletext-Dekoder braucht GdkPixbuf,\n"
 "und configure konnte es nicht finden."
 
-#: src/zmisc.c:433
+#: src/zmisc.c:474
 msgid "VBI has been disabled, or it doesn't work."
 msgstr "VBI wurde deaktiviert oder funktioniert nicht."
 
