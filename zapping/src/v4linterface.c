@@ -878,11 +878,11 @@ static char* normalize(const char *string)
   const char *strptr=string;
   char *result;
 
-  t_assert(string != NULL);
+  g_assert(string != NULL);
 
   result = strdup(string);
 
-  t_assert(result != NULL);
+  g_assert(result != NULL);
 
   while (*strptr != 0) {
     if (*strptr == '_' || *strptr == '-' || *strptr == ' ') {
@@ -905,8 +905,8 @@ static int normstrcmp (const char * in1, const char * in2)
   char *s1 = normalize(in1);
   char *s2 = normalize(in2);
 
-  t_assert(in1 != NULL);
-  t_assert(in2 != NULL);
+  g_assert(in1 != NULL);
+  g_assert(in2 != NULL);
 
   /* Compare the strings */
   if (!strcmp(s1, s2)) {
@@ -1776,7 +1776,8 @@ select_cur_video_standard_item	(GtkMenuShell *		menu_shell,
   g_assert (menu_item != NULL);
 
   SIGNAL_HANDLER_BLOCK (menu_item, on_video_standard_activate,
-			gtk_menu_shell_select_item (menu_shell, menu_item));
+			gtk_check_menu_item_set_active
+			(GTK_CHECK_MENU_ITEM (menu_item), TRUE));
 }
 
 static void
@@ -1820,6 +1821,9 @@ on_video_standard_activate	(GtkMenuItem *		menu_item,
   gint index;
 
   menu_shell = GTK_MENU_SHELL (gtk_menu_item_get_submenu (sm->menu_item));
+  if (!menu_shell)
+    return;
+
   index = g_list_index (menu_shell->children, menu_item);
 
   success = FALSE;
@@ -1907,7 +1911,8 @@ select_cur_audio_input_item	(GtkMenuShell *		menu_shell,
   g_assert (menu_item != NULL);
 
   SIGNAL_HANDLER_BLOCK (menu_item, on_audio_input_activate,
-			gtk_menu_shell_select_item (menu_shell, menu_item));
+			gtk_check_menu_item_set_active
+			(GTK_CHECK_MENU_ITEM (menu_item), TRUE));
 }
 
 static void
@@ -1951,6 +1956,9 @@ on_audio_input_activate		(GtkMenuItem *		menu_item,
   gint index;
 
   menu_shell = GTK_MENU_SHELL (gtk_menu_item_get_submenu (sm->menu_item));
+  if (!menu_shell)
+    return;
+
   index = g_list_index (menu_shell->children, menu_item);
 
   success = FALSE;
@@ -2036,7 +2044,8 @@ select_cur_video_input_item	(GtkMenuShell *		menu_shell,
   g_assert (menu_item != NULL);
 
   SIGNAL_HANDLER_BLOCK (menu_item, on_video_input_activate,
-			gtk_menu_shell_select_item (menu_shell, menu_item));
+			gtk_check_menu_item_set_active
+			(GTK_CHECK_MENU_ITEM (menu_item), TRUE));
 }
 
 static void
@@ -2084,6 +2093,9 @@ on_video_input_activate		(GtkMenuItem *		menu_item,
   gint index;
 
   menu_shell = GTK_MENU_SHELL (gtk_menu_item_get_submenu (sm->menu_item));
+  if (!menu_shell)
+    return;
+
   index = g_list_index (menu_shell->children, menu_item);
 
   success = FALSE;
