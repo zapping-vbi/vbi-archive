@@ -6,7 +6,7 @@
 
 typedef struct tveng_rf_channel {
   const gchar *			name;
-  uint32_t			freq; /* kHz */
+  uint32_t			frequ; /* Hz */
 } tveng_rf_channel;
 
 typedef struct tveng_rf_table {
@@ -35,7 +35,7 @@ struct _tveng_tuned_channel {
   z_key				accel;		/* key to select this channel */
 
   int index; /* Index in the tuned_channel list */
-  uint32_t			freq;		/* Frequency of this RF channel in kHz
+  uint32_t			frequ;		/* Frequency of this RF channel in Hz
 						   (may differ from RF table due to fine tuning) */
   gint num_controls; /* number of saved controls for this channel */
   tveng_tc_control *controls; /* saved controls for this
