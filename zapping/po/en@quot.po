@@ -27,7 +27,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.6.5cvs1\n"
-"POT-Creation-Date: 2002-09-26 22:16+0200\n"
+"POT-Creation-Date: 2002-09-27 17:02+0200\n"
 "PO-Revision-Date: 2002-09-25 07:47+0200\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -1853,7 +1853,7 @@ msgstr "S_top Plugin"
 #: glade/glade_strings.c:188 plugins/screenshot/screenshot.c:576
 #: plugins/screenshot/screenshot.c:1423 plugins/lirc/lirc.c:382
 #: plugins/mpeg/mpeg.c:1093 plugins/mpeg/mpeg.c:1120 plugins/mpeg/mpeg.c:1184
-#: plugins/mpeg/mpeg.c:2668 plugins/mpeg/mpeg.c:3245
+#: plugins/mpeg/mpeg.c:2668 plugins/mpeg/mpeg.c:3258
 msgid "Plugins"
 msgstr "Plugins"
 
@@ -2337,7 +2337,7 @@ msgid "This plugin takes screenshots of the video capture."
 msgstr "This plugin takes screenshots of the video capture."
 
 #: plugins/screenshot/screenshot.c:173 plugins/lirc/lirc.c:134
-#: plugins/alirc/alirc.c:231 plugins/mpeg/mpeg.c:142 plugins/mpeg/mpeg.c:3307
+#: plugins/alirc/alirc.c:231 plugins/mpeg/mpeg.c:142 plugins/mpeg/mpeg.c:3320
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr "Check error: “%s” in plugin %s has hash 0x%x vs. 0x%x"
@@ -2777,8 +2777,8 @@ msgstr ""
 msgid "Cannot create file %s: %s\n"
 msgstr "Cannot create file %s: %s\n"
 
-#: plugins/mpeg/mpeg.c:2668 plugins/mpeg/mpeg.c:3099 plugins/mpeg/mpeg.c:3123
-#: plugins/mpeg/mpeg.c:3233 plugins/mpeg/mpeg_strings.c:34
+#: plugins/mpeg/mpeg.c:2668 plugins/mpeg/mpeg.c:3112 plugins/mpeg/mpeg.c:3136
+#: plugins/mpeg/mpeg.c:3246 plugins/mpeg/mpeg_strings.c:34
 #: plugins/mpeg/mpeg_strings.c:41
 msgid "Record"
 msgstr "Record"
@@ -2787,19 +2787,19 @@ msgstr "Record"
 msgid "Not implemented yet"
 msgstr "Not implemented yet"
 
-#: plugins/mpeg/mpeg.c:3083
+#: plugins/mpeg/mpeg.c:3096
 msgid "Recording dialog"
 msgstr "Recording dialog"
 
-#: plugins/mpeg/mpeg.c:3174
+#: plugins/mpeg/mpeg.c:3187
 msgid "Audio/Video Recorder"
 msgstr "Audio/Video Recorder"
 
-#: plugins/mpeg/mpeg.c:3177
+#: plugins/mpeg/mpeg.c:3190
 msgid "This plugin records video and audio into a file"
 msgstr "This plugin records video and audio into a file"
 
-#: plugins/mpeg/mpeg.c:3180
+#: plugins/mpeg/mpeg.c:3193
 msgid "Record video and audio."
 msgstr "Record video and audio."
 
