@@ -1,7 +1,7 @@
 /*
  *  MPEG-1 Real Time Encoder
  *
- *  Copyright (C) 1999-2000 Michael H. Schimek
+ *  Copyright (C) 1999-2002 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.12 2002-05-09 21:04:18 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.13 2002-06-24 03:19:13 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,7 +31,6 @@
 #include "../common/log.h"
 #include "../common/fifo.h"
 #include "../common/math.h"
-#include "../options.h"
 #include "mpeg.h"
 #include "systems.h"
 
@@ -326,7 +325,7 @@ prolog(multiplexer *mux, buffer **obufp,
 
 		if (IS_VIDEO_STREAM(str->stream_id)
 		    && str->frame_rate < video_frame_rate)
-			video_frame_rate = frame_rate;
+			video_frame_rate = str->frame_rate;
 
 		if (str->dts_end > max_dts_end)
 			max_dts_end = str->dts_end;
@@ -391,9 +390,7 @@ mpeg1_system_mux(void *muxp)
 	extern int split_sequence;
 	multiplexer *mux = muxp;
 	unsigned char *p, *ph, *ps, *pl, *px;
-	unsigned long bytes_out = 0;
 	unsigned int pack_packet_count;
-	unsigned int packet_count;
 	unsigned int pack_count;
 	double system_rate, system_rate_bound;
 	double system_overhead;
@@ -403,8 +400,18 @@ mpeg1_system_mux(void *muxp)
 	buffer *obuf = NULL;
 	stream *str;
 
-	pthread_cleanup_push((void (*)(void *)) pthread_rwlock_unlock, (void *) &mux->streams.rwlock);
+	pthread_cleanup_push((void (*)(void *)) pthread_rwlock_unlock,
+			     (void *) &mux->streams.rwlock);
+
 	assert(pthread_rwlock_rdlock(&mux->streams.rwlock) == 0);
+
+	mux->status.frames_out = 0;
+	mux->status.bytes_out = 0;
+	mux->status.coded_time = 0.0;
+	mux->status.valid = 0
+		+ RTE_STATUS_FRAMES_OUT
+		+ RTE_STATUS_BYTES_OUT
+		+ RTE_STATUS_CODED_TIME;
 
 #if CDLOG
 	if ((cdlog = fopen("cdlog", "w"))) {
@@ -420,7 +427,6 @@ mpeg1_system_mux(void *muxp)
 
 restart:
 	pack_packet_count = PACKETS_PER_PACK;
-	packet_count = 0;
 	pack_count = 0;
 
 	for (;;) {
@@ -509,26 +515,31 @@ reschedule:
 			str->ptr += n;
 		}
 
-		printv(3, "Packet #%d %s, pts=%f\n",
-			packet_count, mpeg_header_name(str->stream_id), pts);
+		printv(3, "Packet #%lld %s, pts=%f\n",
+			mux->status.frames_out, mpeg_header_name(str->stream_id), pts);
 
 		((unsigned short *) ps)[2] = swab16(p - ps - 6);
 
-		bytes_out += obuf->used = p - obuf->data;
+		mux->status.bytes_out += obuf->used = p - obuf->data;
 
 		obuf = mux->mux_output(mux, obuf);
 
 		assert(obuf && obuf->size >= 512
 			   && obuf->size <= 32768);
 
-		packet_count++;
-		pack_packet_count++;
-
 		if (pts > front_pts)
 			front_pts = pts;
 
-		if (verbose > 0 && (packet_count & 3) == 0) {
+		/* XXX lock */
+		mux->status.coded_time = front_pts * (1.0 / SYSTEM_TICKS);
+		mux->status.frames_out++;
+
+		pack_packet_count++;
+
+		if (verbose > 0 && (mux->status.frames_out & 3) == 0) {
+#ifdef VIDEO_FIFO_TEST
 			extern double in_fifo_load, out_fifo_load;
+#endif
 			double system_load = 1.0 - get_idle();
 			int min, sec;
 
@@ -539,11 +550,14 @@ reschedule:
 #ifdef VIDEO_FIFO_TEST
 			printv(1, "%d:%02d (%.1f MB), system load %4.1f %%"
 				" [V%2.1f:%2.1f]",
-				min, sec, bytes_out / (double)(1 << 20),
-				100.0 * system_load, in_fifo_load, out_fifo_load);
+				min, sec,
+				mux->status.bytes_out / (double)(1 << 20),
+				100.0 * system_load,
+				in_fifo_load, out_fifo_load);
 #else
 			printv(1, "%d:%02d (%.1f MB), system load %4.1f %%",
-				min, sec, bytes_out / (double)(1 << 20),
+				min, sec,
+				mux->status.bytes_out / (double)(1 << 20),
 				100.0 * system_load);
 #endif
 			if (video_frames_dropped > 0)
@@ -551,11 +565,6 @@ reschedule:
 					video_frames_dropped,
 					100.0 * video_frames_dropped / video_frame_count);
 
-#if 0 /* garetxe: num_buffers_queued doesn't exist any longer */
-			printv(1, ", fifo v=%5.2f%% a=%5.2f%%",
-			       100.0 * num_buffers_queued(video_fifo) / video_fifo->num_buffers,
-			       100.0 * num_buffers_queued(audio_fifo) / audio_fifo->num_buffers);
-#endif
 			printv(1, (verbose > 2) ? "\n" : "  \r");
 
 			fflush(stderr);
