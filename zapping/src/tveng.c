@@ -1475,7 +1475,7 @@ tveng_get_zapping_setup_fb_verbosity(tveng_device_info * info)
    Returns -1 on error.
 */
 int
-tveng_start_previewing (tveng_device_info * info)
+tveng_start_previewing (tveng_device_info * info, int change_mode)
 {
 #ifndef DISABLE_X_EXTENSIONS
   int event_base, error_base, major_version, minor_version;
@@ -1490,6 +1490,13 @@ tveng_start_previewing (tveng_device_info * info)
 #endif
 
   t_assert(info != NULL);
+
+  /* special code, used only inside tveng, means remember from last
+     time */
+  if (change_mode == -1)
+    change_mode = info->change_mode;
+  else
+    info->change_mode = change_mode;
 
 #ifndef DISABLE_X_EXTENSIONS
   info -> xf86vm_enabled = 1;
@@ -1584,6 +1591,9 @@ tveng_start_previewing (tveng_device_info * info)
       XF86VidModeGetViewPort(info->display,
 			     DefaultScreen(info->display),
 			     &(info->save_x), &(info->save_y));
+
+      if (change_mode == 0)
+	chosen_mode = 0;
 
       if (chosen_mode == 0)
 	{
@@ -1787,7 +1797,7 @@ int tveng_restart_everything (enum tveng_capture_mode mode,
 	return -1;
       break;
     case TVENG_CAPTURE_PREVIEW:
-      if (tveng_start_previewing(info) == -1)
+      if (tveng_start_previewing(info, -1) == -1) /* fixme */
 	return -1;
       break;
     case TVENG_CAPTURE_WINDOW:

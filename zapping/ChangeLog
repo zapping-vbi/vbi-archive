@@ -1,3 +1,11 @@
+12.11.2000	de.po and some quick hacks <garetxe@users.sourceforge.net>
+
+	* po/de.po: Commited by Michael some days ago.
+	* src/tveng.c: Changing the vidmode is now configurable, some
+	people had complained about this.
+	* glade/zapping.glade: Added the property to modify this.
+	* configure.in: The channel ordering is configurable now.
+
 05.11.2000	YUYV->RGB converter <garetxe@users.sourceforge.net>
 
 	* plugins/screenshot: Added this needed converter.

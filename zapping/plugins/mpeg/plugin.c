@@ -316,6 +316,7 @@ encode_callback(rte_context * context, void * data, size_t size,
 		void * user_data)
 {
   /* currently /dev/null handler */
+  g_assert(0xbeefdead == (int)user_data);
 }
 
 /*
@@ -453,12 +454,11 @@ gboolean plugin_start (void)
 	  return FALSE;
 	}
       fclose(file_fd);
-      g_message("saving in %s", file_name);
       rte_set_output(context, NULL, file_name);
       break;
     default:
-      rte_set_output(context, encode_callback, NULL);
       file_name = g_strdup("/dev/null");
+      rte_set_output(context, encode_callback, NULL);
       break;
     }
 
@@ -640,6 +640,7 @@ void plugin_process_sample(plugin_sample * sample)
 	    close_audio();
 	  return;
 	}
+      g_message("encoding to %s", context->file_name);
     }
 
   if ((coded_frames++) > (25*10)) /* If we have encoded 10 seconds */

@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-11-07 22:55+0100\n"
+"POT-Creation-Date: 2000-11-12 23:21+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -112,14 +112,14 @@ msgstr ""
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr ""
 
-#: src/main.c:705
+#: src/main.c:706
 #, c-format
 msgid ""
 "Sorry, but %s couldn't be opened:\n"
 "%s (%d)"
 msgstr ""
 
-#: src/main.c:709
+#: src/main.c:710
 msgid "There's no GdkPixbuf support, VBI has been disabled"
 msgstr ""
 
@@ -296,7 +296,7 @@ msgstr ""
 #: src/tveng.c:903 src/tveng.c:931 src/tveng.c:957 src/tveng.c:980
 #: src/tveng.c:1014 src/tveng.c:1038 src/tveng.c:1066 src/tveng.c:1091
 #: src/tveng.c:1181 src/tveng.c:1381 src/tveng.c:1408 src/tveng.c:1436
-#: src/tveng.c:1632 src/tveng.c:1659
+#: src/tveng.c:1642 src/tveng.c:1669
 #, c-format
 msgid "%s called on a non-controlled device: %s\n"
 msgstr ""
@@ -321,7 +321,7 @@ msgstr ""
 msgid "Cannot figure out X depth"
 msgstr ""
 
-#: src/tveng.c:1728
+#: src/tveng.c:1738
 msgid "Warning: trying to stop window with no capture active\n"
 msgstr ""
 
@@ -799,11 +799,11 @@ msgstr ""
 msgid "%s with %d tuners"
 msgstr ""
 
-#: src/properties.c:410
+#: src/properties.c:428
 msgid "No plugin accepts this page."
 msgstr ""
 
-#: src/properties.c:445
+#: src/properties.c:463
 msgid ""
 "The plugin that created the active page doesn't provide help for it. Sorry."
 msgstr ""
@@ -992,23 +992,23 @@ msgstr ""
 msgid "Use this to go fullscreen. Press ESC to return to Windowed mode"
 msgstr ""
 
-#: glade/glade_strings.c:13 glade/glade_strings.c:123
+#: glade/glade_strings.c:13 glade/glade_strings.c:127
 msgid "Go _Fullscreen"
 msgstr ""
 
-#: glade/glade_strings.c:14 glade/glade_strings.c:124
+#: glade/glade_strings.c:14 glade/glade_strings.c:128
 msgid "Use this to start the windowed overlay mode"
 msgstr ""
 
-#: glade/glade_strings.c:15 glade/glade_strings.c:125
+#: glade/glade_strings.c:15 glade/glade_strings.c:129
 msgid "Go _Previewing"
 msgstr ""
 
-#: glade/glade_strings.c:16 glade/glade_strings.c:126
+#: glade/glade_strings.c:16 glade/glade_strings.c:130
 msgid "Use this to start the windowed capture mode"
 msgstr ""
 
-#: glade/glade_strings.c:17 glade/glade_strings.c:127
+#: glade/glade_strings.c:17 glade/glade_strings.c:131
 msgid "Go _Capturing"
 msgstr ""
 
@@ -1016,7 +1016,7 @@ msgstr ""
 msgid "Use Zapping as a Teletext navigator"
 msgstr ""
 
-#: glade/glade_strings.c:19 glade/glade_strings.c:129
+#: glade/glade_strings.c:19 glade/glade_strings.c:133
 msgid "_Teletext"
 msgstr ""
 
@@ -1052,7 +1052,7 @@ msgstr ""
 msgid "Configure capture"
 msgstr ""
 
-#: glade/glade_strings.c:28 glade/glade_strings.c:132
+#: glade/glade_strings.c:28 glade/glade_strings.c:136
 msgid "Controls"
 msgstr ""
 
@@ -1064,7 +1064,7 @@ msgstr ""
 msgid "label30"
 msgstr ""
 
-#: glade/glade_strings.c:31 glade/glade_strings.c:58
+#: glade/glade_strings.c:31 glade/glade_strings.c:62
 msgid "Device name:"
 msgstr ""
 
@@ -1109,78 +1109,88 @@ msgid "Device info"
 msgstr ""
 
 #: glade/glade_strings.c:42
-msgid "Verbosity value given to zapping_setup_fb:"
+msgid "Fullscreen mode:"
 msgstr ""
 
 #: glade/glade_strings.c:43
-msgid "The bigger this value is, the more verbose zapping_setup_fb will be"
-msgstr ""
-
-#: glade/glade_strings.c:44
-msgid "Avoid noise while changing channels"
-msgstr ""
-
-#: glade/glade_strings.c:45
-msgid "Save window geometry (some WM's don't like it)"
+msgid ""
+"Autodetect\n"
+"Do not change mode\n"
 msgstr ""
 
 #: glade/glade_strings.c:46
-msgid "Resize using fixed increments"
+msgid "Avoid noise while changing channels"
 msgstr ""
 
 #: glade/glade_strings.c:47
-msgid "Start Zapping muted"
+msgid "Save window geometry (some WM's don't like it)"
 msgstr ""
 
 #: glade/glade_strings.c:48
+msgid "Resize using fixed increments"
+msgstr ""
+
+#: glade/glade_strings.c:49
+msgid "Start Zapping muted"
+msgstr ""
+
+#: glade/glade_strings.c:50
 msgid ""
 "Avoid some flicker in preview mode (leaves artifacts in the main window)"
 msgstr ""
 
-#: glade/glade_strings.c:49
+#: glade/glade_strings.c:51
 msgid "Ratio mode:"
 msgstr ""
 
-#: glade/glade_strings.c:50
+#: glade/glade_strings.c:52
 msgid ""
 "No fixed ratio\n"
 "4:3\n"
 "16:9\n"
 msgstr ""
 
-#: glade/glade_strings.c:54
-msgid "General options"
-msgstr ""
-
-#: glade/glade_strings.c:55
-msgid "Enable VBI decoding"
-msgstr ""
-
 #: glade/glade_strings.c:56
-msgid "Use VBI for getting station names"
+msgid "Verbosity value given to zapping_setup_fb:"
 msgstr ""
 
 #: glade/glade_strings.c:57
-msgid "Try to correct errors when decoding"
+msgid "The bigger this value is, the more verbose zapping_setup_fb will be"
+msgstr ""
+
+#: glade/glade_strings.c:58
+msgid "General options"
 msgstr ""
 
 #: glade/glade_strings.c:59
-msgid "Select the VBI device"
+msgid "Enable VBI decoding"
 msgstr ""
 
 #: glade/glade_strings.c:60
-msgid "Finetune:"
+msgid "Use VBI for getting station names"
 msgstr ""
 
 #: glade/glade_strings.c:61
-msgid "VBI options"
-msgstr ""
-
-#: glade/glade_strings.c:62
-msgid "Channel choosing"
+msgid "Try to correct errors when decoding"
 msgstr ""
 
 #: glade/glade_strings.c:63
+msgid "Select the VBI device"
+msgstr ""
+
+#: glade/glade_strings.c:64
+msgid "Finetune:"
+msgstr ""
+
+#: glade/glade_strings.c:65
+msgid "VBI options"
+msgstr ""
+
+#: glade/glade_strings.c:66
+msgid "Channel choosing"
+msgstr ""
+
+#: glade/glade_strings.c:67
 msgid ""
 "Choose here the channels you want to use.\n"
 "If your country is not listed, please find out the frequencies used for\n"
@@ -1188,255 +1198,255 @@ msgid ""
 "in the next release of this program."
 msgstr ""
 
-#: glade/glade_strings.c:67
+#: glade/glade_strings.c:71
 msgid "Select here the country you are in"
 msgstr ""
 
-#: glade/glade_strings.c:68
+#: glade/glade_strings.c:72
 msgid "Dummy country\n"
 msgstr ""
 
-#: glade/glade_strings.c:70
+#: glade/glade_strings.c:74
 msgid "Select here the channel you want to tune"
 msgstr ""
 
-#: glade/glade_strings.c:71 glade/glade_strings.c:74
+#: glade/glade_strings.c:75 glade/glade_strings.c:78
 msgid "Channel"
 msgstr ""
 
-#: glade/glade_strings.c:72
+#: glade/glade_strings.c:76
 msgid "Freq (kHz)"
 msgstr ""
 
-#: glade/glade_strings.c:73
+#: glade/glade_strings.c:77
 msgid "Alias"
 msgstr ""
 
-#: glade/glade_strings.c:75
+#: glade/glade_strings.c:79
 msgid "Country"
 msgstr ""
 
-#: glade/glade_strings.c:76
+#: glade/glade_strings.c:80
 msgid "kHz"
 msgstr ""
 
-#: glade/glade_strings.c:77
+#: glade/glade_strings.c:81
 msgid "Frequence:"
 msgstr ""
 
-#: glade/glade_strings.c:78
+#: glade/glade_strings.c:82
 msgid "Select your country and click here to search for the available channels"
 msgstr ""
 
-#: glade/glade_strings.c:79
+#: glade/glade_strings.c:83
 msgid "_Search for the available channels in the current country"
 msgstr ""
 
-#: glade/glade_strings.c:80
+#: glade/glade_strings.c:84
 msgid "Enter here the alias you want to give to this channel:"
 msgstr ""
 
-#: glade/glade_strings.c:81
+#: glade/glade_strings.c:85
 msgid "Enter here the name you want to give to this channel"
 msgstr ""
 
-#: glade/glade_strings.c:82 glade/glade_strings.c:92
+#: glade/glade_strings.c:86 glade/glade_strings.c:96
 msgid "Click here when you are done"
 msgstr ""
 
-#: glade/glade_strings.c:83
+#: glade/glade_strings.c:87
 msgid "Click this button if you want to discard current changes"
 msgstr ""
 
-#: glade/glade_strings.c:84
+#: glade/glade_strings.c:88
 msgid "Click here to add current channel"
 msgstr ""
 
-#: glade/glade_strings.c:85
+#: glade/glade_strings.c:89
 msgid "_Add"
 msgstr ""
 
-#: glade/glade_strings.c:86
+#: glade/glade_strings.c:90
 msgid "Click here to apply the current options to the selected channels"
 msgstr ""
 
-#: glade/glade_strings.c:87
+#: glade/glade_strings.c:91
 msgid "_Modify"
 msgstr ""
 
-#: glade/glade_strings.c:88
+#: glade/glade_strings.c:92
 msgid "Click here to delete selected channels"
 msgstr ""
 
-#: glade/glade_strings.c:89
+#: glade/glade_strings.c:93
 msgid "_Remove"
 msgstr ""
 
-#: glade/glade_strings.c:90
+#: glade/glade_strings.c:94
 msgid "This shows some help about this dialog"
 msgstr ""
 
-#: glade/glade_strings.c:91
+#: glade/glade_strings.c:95
 msgid "Plugin properties"
 msgstr ""
 
-#: glade/glade_strings.c:93
+#: glade/glade_strings.c:97
 msgid "Run the plugin"
 msgstr ""
 
-#: glade/glade_strings.c:94
+#: glade/glade_strings.c:98
 msgid "_Start Plugin"
 msgstr ""
 
-#: glade/glade_strings.c:95
+#: glade/glade_strings.c:99
 msgid "Stop this plugin"
 msgstr ""
 
-#: glade/glade_strings.c:96
+#: glade/glade_strings.c:100
 msgid "S_top Plugin"
 msgstr ""
 
-#: glade/glade_strings.c:97
+#: glade/glade_strings.c:101
 msgid "Show the configuration options for this plugin"
 msgstr ""
 
-#: glade/glade_strings.c:98
+#: glade/glade_strings.c:102
 msgid "_Configure"
 msgstr ""
 
-#: glade/glade_strings.c:99
+#: glade/glade_strings.c:103
 msgid "Plugins"
 msgstr ""
 
-#: glade/glade_strings.c:100
+#: glade/glade_strings.c:104
 msgid "label67 (Plugin name)"
 msgstr ""
 
-#: glade/glade_strings.c:101
+#: glade/glade_strings.c:105
 msgid "label68 (Plugin short description)"
 msgstr ""
 
-#: glade/glade_strings.c:102
+#: glade/glade_strings.c:106
 msgid "Canonical name:"
 msgstr ""
 
-#: glade/glade_strings.c:103
+#: glade/glade_strings.c:107
 msgid "label69"
 msgstr ""
 
-#: glade/glade_strings.c:104
+#: glade/glade_strings.c:108
 msgid "Author:"
 msgstr ""
 
-#: glade/glade_strings.c:105
+#: glade/glade_strings.c:109
 msgid "label71"
 msgstr ""
 
-#: glade/glade_strings.c:106
+#: glade/glade_strings.c:110
 msgid "Plugin version:"
 msgstr ""
 
-#: glade/glade_strings.c:107
+#: glade/glade_strings.c:111
 msgid "label72"
 msgstr ""
 
-#: glade/glade_strings.c:108
+#: glade/glade_strings.c:112
 msgid "Plugin priority:"
 msgstr ""
 
-#: glade/glade_strings.c:109
+#: glade/glade_strings.c:113
 msgid "label73"
 msgstr ""
 
-#: glade/glade_strings.c:110
+#: glade/glade_strings.c:114
 msgid "Plugin description"
 msgstr ""
 
-#: glade/glade_strings.c:111
+#: glade/glade_strings.c:115
 msgid "text1"
 msgstr ""
 
-#: glade/glade_strings.c:112
+#: glade/glade_strings.c:116
 msgid "Properties"
 msgstr ""
 
-#: glade/glade_strings.c:113
+#: glade/glade_strings.c:117
 msgid "Plugin location"
 msgstr ""
 
-#: glade/glade_strings.c:114
+#: glade/glade_strings.c:118
 msgid "This is the file where the plugin is located"
 msgstr ""
 
-#: glade/glade_strings.c:115
+#: glade/glade_strings.c:119
 msgid "text2"
 msgstr ""
 
-#: glade/glade_strings.c:116
+#: glade/glade_strings.c:120
 msgid "label76"
 msgstr ""
 
-#: glade/glade_strings.c:117
+#: glade/glade_strings.c:121
 msgid "Symbol"
 msgstr ""
 
-#: glade/glade_strings.c:118
+#: glade/glade_strings.c:122
 msgid "Hash"
 msgstr ""
 
-#: glade/glade_strings.c:119
+#: glade/glade_strings.c:123
 msgid "Description of the symbol"
 msgstr ""
 
-#: glade/glade_strings.c:120
+#: glade/glade_strings.c:124
 msgid "text3"
 msgstr ""
 
-#: glade/glade_strings.c:121
+#: glade/glade_strings.c:125
 msgid "Advanced"
 msgstr ""
 
-#: glade/glade_strings.c:122
+#: glade/glade_strings.c:126
 msgid "Use this for starting the fullscreen mode"
 msgstr ""
 
-#: glade/glade_strings.c:128
+#: glade/glade_strings.c:132
 msgid "Use Zapping as a teletext navigator"
 msgstr ""
 
-#: glade/glade_strings.c:130
+#: glade/glade_strings.c:134
 msgid "Searching..."
 msgstr ""
 
-#: glade/glade_strings.c:131
+#: glade/glade_strings.c:135
 msgid "%P %%"
 msgstr ""
 
-#: glade/glade_strings.c:133
+#: glade/glade_strings.c:137
 msgid "Next page"
 msgstr ""
 
-#: glade/glade_strings.c:134
+#: glade/glade_strings.c:138
 msgid "Previous history entry"
 msgstr ""
 
-#: glade/glade_strings.c:135
+#: glade/glade_strings.c:139
 msgid "Next history entry"
 msgstr ""
 
-#: glade/glade_strings.c:136
+#: glade/glade_strings.c:140
 msgid "Previous page"
 msgstr ""
 
-#: glade/glade_strings.c:137
+#: glade/glade_strings.c:141
 msgid "Visit:"
 msgstr ""
 
-#: glade/glade_strings.c:138 glade/glade_strings.c:140
+#: glade/glade_strings.c:142 glade/glade_strings.c:144
 msgid "Page"
 msgstr ""
 
-#: glade/glade_strings.c:139
+#: glade/glade_strings.c:143
 msgid "Subpage, -1 for looking to all subpages"
 msgstr ""
 
@@ -1457,40 +1467,40 @@ msgstr ""
 
 #. hash collision code
 #. Warn
-#: plugins/mpeg/plugin.c:95 plugins/screenshot/screenshot.c:185
+#: plugins/mpeg/plugin.c:112 plugins/screenshot/screenshot.c:185
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:328
+#: plugins/screenshot/screenshot.c:333
 msgid "Converts a row in RGB565 format to RGB24. Returns the destination."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:334
+#: plugins/screenshot/screenshot.c:339
 msgid "Converts a row in RGB555 format to RGB24. Returns the destination."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:340
+#: plugins/screenshot/screenshot.c:345
 msgid "Converts a row in RGBA format to RGB24. Returns the destination."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:379
+#: plugins/screenshot/screenshot.c:384
 msgid "Select here the directory where screenshots will be saved"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:385
+#: plugins/screenshot/screenshot.c:390
 msgid "Select directory to save screenshots"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:403
+#: plugins/screenshot/screenshot.c:408
 msgid "Quality of the compressed image:"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:424 plugins/screenshot/screenshot.c:498
+#: plugins/screenshot/screenshot.c:429 plugins/screenshot/screenshot.c:503
 msgid "Screenshot"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:470
+#: plugins/screenshot/screenshot.c:475
 msgid ""
 "The first option, the screenshot dir, lets you specify where\n"
 "will the screenshots be saved. The file name will be:\n"
@@ -1500,59 +1510,89 @@ msgid ""
 "discarded when compressing the JPEG."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:499
+#: plugins/screenshot/screenshot.c:504
 msgid "Take a JPEG screenshot"
 msgstr ""
 
 #. Probably there is no mem even for this, but try anyway
-#: plugins/screenshot/screenshot.c:579 plugins/screenshot/screenshot.c:589
-#: plugins/screenshot/screenshot.c:598
+#: plugins/screenshot/screenshot.c:584 plugins/screenshot/screenshot.c:594
+#: plugins/screenshot/screenshot.c:603
 msgid "Sorry, not enough mem"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:627
+#: plugins/screenshot/screenshot.c:632
 msgid "Sorry, but I cannot write\n"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:629
+#: plugins/screenshot/screenshot.c:634
 msgid ""
 "\n"
 "The image won't be saved."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:709
+#: plugins/screenshot/screenshot.c:714
 msgid "Saving..."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:720
+#: plugins/screenshot/screenshot.c:725
 msgid "Sorry, not enough resources for creating a new thread"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:724
+#: plugins/screenshot/screenshot.c:729
 msgid "There are too many threads"
 msgstr ""
 
-#: plugins/mpeg/plugin.c:32
+#: plugins/mpeg/plugin.c:33
 msgid "MPEG encoder"
 msgstr ""
 
-#: plugins/mpeg/plugin.c:34
+#: plugins/mpeg/plugin.c:35
 msgid "This plugin encodes the image and audio stream into a MPEG file"
 msgstr ""
 
-#: plugins/mpeg/plugin.c:36
+#: plugins/mpeg/plugin.c:37
 msgid "Encode the stream as MPEG."
 msgstr ""
 
-#: plugins/mpeg/plugin.c:318
+#: plugins/mpeg/plugin.c:393
 msgid "The only supported pixformats are YUYV and YUV420"
 msgstr ""
 
-#: plugins/mpeg/plugin.c:415 plugins/mpeg/plugin.c:482
+#: plugins/mpeg/plugin.c:496
+#, c-format
+msgid "RTE ID: %s"
+msgstr ""
+
+#: plugins/mpeg/plugin.c:501
+#, c-format
+msgid "Destination: %s"
+msgstr ""
+
+#: plugins/mpeg/plugin.c:509
+msgid "Audio only"
+msgstr ""
+
+#: plugins/mpeg/plugin.c:512
+msgid "Video only"
+msgstr ""
+
+#: plugins/mpeg/plugin.c:515
+msgid "Audio and Video"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:21 plugins/mpeg/plugin.c:523
+msgid "Output video Mbits per second:"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:22 plugins/mpeg/plugin.c:525
+msgid "Output audio Kbits per second:"
+msgstr ""
+
+#: plugins/mpeg/plugin.c:675 plugins/mpeg/plugin.c:812
 msgid "MPEG"
 msgstr ""
 
-#: plugins/mpeg/plugin.c:483
+#: plugins/mpeg/plugin.c:813
 msgid "Store the data as MPEG"
 msgstr ""
 
@@ -1565,14 +1605,75 @@ msgstr ""
 msgid "window1"
 msgstr ""
 
-#: plugins/mpeg/mpeg_strings.c:8 plugins/mpeg/mpeg_strings.c:10
-msgid "Not done"
+#: plugins/mpeg/mpeg_strings.c:8
+msgid "What to do with the compressed stream"
 msgstr ""
 
 #: plugins/mpeg/mpeg_strings.c:9
+msgid ""
+"Save to file\n"
+"/dev/null\n"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:12
+msgid "Whether to encode audio and/or video"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:13
+msgid ""
+"Audio only\n"
+"Video only\n"
+"Audio and Video\n"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:17
+msgid "Write the encoded stream to:"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:18
+msgid "MPEG file destination"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:19
+msgid "Sets the dir where the encoded clips will be written to"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:20
 msgid "Input / output"
 msgstr ""
 
-#: plugins/mpeg/mpeg_strings.c:11
+#: plugins/mpeg/mpeg_strings.c:23
+msgid "Engine verbosity (output goes to stderr):"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:24
 msgid "Compression parameters"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:25
+msgid "Saving MPEG"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:26
+msgid "Press this when you are done"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:27
+msgid "RTE id (for debugging)"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:28
+msgid "Destination"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:29
+msgid "Mux mode"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:30
+msgid "Some more info: bit rates"
+msgstr ""
+
+#: plugins/mpeg/mpeg_strings.c:31
+msgid "Dinamic stats (dropped, output M's, etc)"
 msgstr ""

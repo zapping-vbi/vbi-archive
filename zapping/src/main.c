@@ -656,6 +656,7 @@ gboolean startup_zapping()
   zcc_int(0, "Verbosity value given to zapping_setup_fb",
 	  "zapping_setup_fb_verbosity");
   zcc_int(0, "Ratio mode", "ratio");
+  zcc_int(!0, "Change the video mode when going fullscreen", "change_mode");
   zcc_int(0, "Current standard", "current_standard");
   zcc_int(0, "Current input", "current_input");
   zcc_int(TVENG_CAPTURE_WINDOW, "Current capture mode", "capture_mode");

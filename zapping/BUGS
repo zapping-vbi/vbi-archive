@@ -4,12 +4,7 @@ Known bugs with zapping, don't report them
 ! == Bug that needs fixing, very important
 ------------------------------------------
 	
-	* Use XScreenSaver routines, not xscreensaver-command
-	* There appears to be a memleak in x11_get_clips
 	* When viewing Teletext, we shouldn't use ERC, but we should
 for the rest. Make it configurable.
 	* The window resizes automatically to minimum size if the
 given size < min gtk size.
-	! The channel searcher sometimes appears to hang when getting
-the VBI name, make it faster.
-	! The MMX test should be in configure

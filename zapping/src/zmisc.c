@@ -177,8 +177,8 @@ fullscreen_start(tveng_device_info * info)
   		     da -> style -> black_gc,
 		     TRUE,
 		     0, 0, gdk_screen_width(), gdk_screen_height());
-  
-  if (tveng_start_previewing(info) == -1)
+
+  if (tveng_start_previewing(info, 1-zcg_int(NULL, "change_mode")) == -1)
     {
       ShowBox(_("Sorry, but cannot go fullscreen"),
 	      GNOME_MESSAGE_BOX_ERROR);

@@ -240,6 +240,16 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
 		     GTK_SIGNAL_FUNC(on_property_item_changed),
 		     zapping_properties);
 
+  /* fullscreen video mode */
+  widget = lookup_widget(zapping_properties, "optionmenu2");
+  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
+    zconf_get_integer(NULL,
+		      "/zapping/options/main/change_mode"));
+
+  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
+		     GTK_SIGNAL_FUNC(on_property_item_changed),
+		     zapping_properties);
+
   /* Enable VBI decoding */
   widget = lookup_widget(zapping_properties, "checkbutton6");
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
@@ -364,6 +374,14 @@ on_zapping_properties_apply            (GnomePropertyBox *gnomepropertybox,
 	g_list_index(GTK_MENU_SHELL(widget)->children,
 		     gtk_menu_get_active(GTK_MENU(widget))),
 	"/zapping/options/main/ratio");
+
+      widget = lookup_widget(pbox, "optionmenu2");
+      widget = GTK_WIDGET(GTK_OPTION_MENU(widget)->menu);
+
+      zconf_set_integer(
+	g_list_index(GTK_MENU_SHELL(widget)->children,
+		     gtk_menu_get_active(GTK_MENU(widget))),
+	"/zapping/options/main/change_mode");
 
       break;
     case 2:

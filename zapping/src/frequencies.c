@@ -1114,6 +1114,7 @@ tveng_insert_tuned_channel (tveng_tuned_channel * new_channel)
 
   /* The list is already started, proceed until we reach the desired
      channel */
+#ifndef DISABLE_CHANNEL_ORDERING /* ordering can be disabled */
   while (tc_ptr)
     {
       /* If this one orders itself after us, then insert it here */
@@ -1163,6 +1164,15 @@ tveng_insert_tuned_channel (tveng_tuned_channel * new_channel)
 
       tc_ptr = tc_ptr -> next;
     }
+#else /* no ordering, just go to the last entry */
+  while (tc_ptr)
+    {
+      index++;
+      if (!tc_ptr -> next)
+	break; /* last_one reached */
+      tc_ptr = tc_ptr -> next;
+    }
+#endif
 
   /* Add this entry as the last one */
   tc_ptr -> next = channel_added;
@@ -1323,7 +1333,7 @@ tveng_tuned_channel*
 tveng_retrieve_tuned_channel_by_index (int index)
 {
   tveng_tuned_channel * tc_ptr = tuned_channel;
-  
+
   if ((index < 0) || (index >= tveng_tuned_channel_num()))
     return NULL; /* Bounds error */
   

@@ -1,8 +1,6 @@
 Outstanding issues for the next release
 ---------------------------------------
 	+ Write the mpeg plugin (this is a MUST)
-	+ Make the 640x480 auto-choosing configurable.
-	+ Make the channel ordering configurable
 	+ Disable audio by default
 	+ Bring up-to-date libvbi with aleVT 1.6.0, add support for v4l2
 	+ Xv support if present.

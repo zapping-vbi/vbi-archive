@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.38 2000-11-11 02:32:21 mschimek Exp $ */
+/* $Id: rte.c,v 1.39 2000-11-12 22:25:36 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -327,7 +327,7 @@ void * rte_context_destroy ( rte_context * context )
 
 	if (context != rte_global_context)
 	{
-		rte_error(NULL, "Sorry, the given context hasn't been created by rte");
+		rte_error(NULL, "The given context hasn't been created by rte");
 		return NULL;
 	}
 
