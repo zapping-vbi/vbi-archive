@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: simd.h,v 1.1 2005-03-15 03:56:56 mschimek Exp $ */
+/* $Id: simd.h,v 1.2 2005-03-30 21:29:04 mschimek Exp $ */
 
 #ifndef SIMD_H
 #define SIMD_H
@@ -97,17 +97,21 @@ typedef __m64 vu32;		/* vector of 2 or 4 uint32_t */
 
 /* Common subexpression elimination doesn't seem to work in gcc 3.x
    with _mm_set1(), so use these constants instead. */
-extern const v8 vsplat8_m1;	/* vsplat8(-1) (all ones) */
 extern const v8 vsplat8_1;	/* vsplat8(+1) */
+extern const v8 vsplat8_m1;	/* vsplat8(-1) */
 extern const v8 vsplat8_127;	/* vsplat8(127) */
 extern const v16 vsplat16_255;	/* vsplat16(255) */
 extern const v32 vsplat32_1;	/* vsplat32(1) */
 extern const v32 vsplat32_2;	/* vsplat32(2) */
 
-/* Constant zero. */
+/* Constant 0 (pxor or memory operand). */
 #define vzero8() _mm_setzero_si64 ()
 #define vzero16() _mm_setzero_si64 ()
 #define vzero32() _mm_setzero_si64 ()
+
+#define vminus18() vsplat8_m1
+#define vminus116() vminus18 ()
+#define vminus132() vminus18 ()
 
 /* gcc bug: would compile to SSE instruction pshufw. */
 #if (SIMD == MMX || SIMD == _3DNOW)					\
@@ -156,28 +160,51 @@ vsplat16			(int16_t		i)
 #  define vsplatu16(_i) _mm_set1_pi16 (_i)
 #endif
 
-/* Logical ops. */
+/* Non-temporal load and store (SSE, SSE2, AltiVec), to be
+   used if we do not access the same data / cache line soon. */
+#define vloadnt(_p) (*(_p))
+#define vstorent(_p, _a) (*(_p) = (_a))
+
 #define vand(_a, _b) _mm_and_si64 (_a, _b)
 /* NOTE: a & ~b. */
 #define vandnot(_a, _b) _mm_andnot_si64 (_b, _a)
 #define vor(_a, _b) _mm_or_si64 (_a, _b)
 #define vxor(_a, _b) _mm_xor_si64 (_a, _b)
-/* AltiVec has vnot, vnor instructions. */
-#define vnot(_a) vxor (_a, vsplat8_m1)
+/* AltiVec has a vnor (and by extension vnot) instruction.
+   Note this is a bitwise not. Boolean not is cheaper with cmpz
+   if we already have 0 in a register. */
+#define vnot(_a) vxor (_a, vminus18 ())
 #define vnand(_a, _b) vnot (vand (_a, _b))
 #define vnor(_a, _b) vnot (vor (_a, _b))
 
-/* Shift right logical or arithmetical by immediate. */
+/* For each bit: (1 == _mask) ? _b : _a.  One AltiVec instruction
+   but expensive with MMX/SSE/SSE2. */
+static __inline__ __m64
+vsel				(__m64			_a,
+				 __m64			_b,
+				 __m64			_mask)
+{
+	return vor (vand (_b, _mask), vandnot (_a, _mask));
+}
+
+/* Unsigned _a <<= 1 (MMX/3DNow/SSE have no byte shift ops). */
+#define vsl18(_a) _mm_slli_pi16 (vand (_a, vsplat8_127), 1)
+/* _a >>= 1. Somewhat expensive, better avoid it. */
+#define vsr18(_a) vsel (_a, _mm_srli_pi16 (_a, 1), vsplat8_127)
+#define vsr1u8(_a) vand (_mm_srli_pi16 (_a, 1), vsplat8_127)
+/* Shift left by immediate. */
+#define vsl16(_a, _i) _mm_slli_pi16 (_a, _i)
+/* Shift right by immediate. */
 #define vsr16(_a, _i) _mm_srai_pi16 (_a, _i)
 #define vsru16(_a, _i) _mm_srli_pi16 (_a, _i)
 
-/* Unsigned _a >>= 1 (MMX/3DNow/SSE/SSE2 have no psrlb instruction). */
-#define vsr1u8(_a) vand (vsru16 (_a, 1), vsplat8_127)
-
 /* _a + _b, _a - _b with wrap-around. */
 #define vadd8(_a, _b) _mm_add_pi8 (_a, _b)
+#define vadd16(_a, _b) _mm_add_pi16 (_a, _b)
 #define vadd32(_a, _b) _mm_add_pi32 (_a, _b)
+#define vsub8(_a, _b) _mm_sub_pi8 (_a, _b)
 #define vsub16(_a, _b) _mm_sub_pi16 (_a, _b)
+#define vsub32(_a, _b) _mm_sub_pi32 (_a, _b)
 
 /* Add or subtract with signed saturation. */
 #define vadds16(_a, _b) _mm_adds_pi16 (_a, _b)
@@ -189,49 +216,39 @@ vsplat16			(int16_t		i)
 #define vsubsu8(_a, _b) _mm_subs_pu8 (_a, _b)
 #define vsubsu16(_a, _b) _mm_subs_pu16 (_a, _b)
 
+/* Saturate against variable bounds. Expensive. */
+#define vsatu8(_a, _min, _max) vminu8 (vmaxu8 (_a, _min), _max)
+
 /* Compare (_a == _b) ? 0xFF : 0x00. */
 #define vcmpeq8(_a, _b) _mm_cmpeq_pi8 (_a, _b)
 #define vcmpeq16(_a, _b) _mm_cmpeq_pi16 (_a, _b)
 #define vcmpeq32(_a, _b) _mm_cmpeq_pi32 (_a, _b)
 
 /* Compare (_a == 0) ? 0xFF : 0x00. */
-#define vcmpz8(_a) vcmpeq8 (_a, vzero8 ())
-#define vcmpz16(_a) vcmpeq16 (_a, vzero16 ())
-#define vcmpz32(_a) vcmpeq32 (_a, vzero32 ())
+#define vcmpz8(_a) vcmpeq8 (_a, _mm_setzero_si64 ())
+#define vcmpz16(_a) vcmpeq16 (_a, _mm_setzero_si64 ())
+#define vcmpz32(_a) vcmpeq32 (_a, _mm_setzero_si64 ())
+
+/* Compare (_a != 0) ? 0xFF : 0x00. */
+#define vcmpnz8(_a) vcmpz8 (vcmpz8 (_a))
+#define vcmpnz16(_a) vcmpz16 (vcmpz16 (_a))
+#define vcmpnz32(_a) vcmpz32 (vcmpz32 (_a))
 
 /* Compare signed (_a > _b) ? 0xFF : 0x00. */
 #define vcmpgt8(_a, _b) _mm_cmpgt_pi8 (_a, _b)
 #define vcmpgt16(_a, _b) _mm_cmpgt_pi16 (_a, _b)
 #define vcmpgt32(_a, _b) _mm_cmpgt_pi32 (_a, _b)
 
-/* Compare unsigned (_a > _b) ? 0xFF : 0x00. */
-#define vcmpgtu16(_a, _b) (assert (!"vcmpgtu16"), vzero16 ())
-
 /* Compare unsigned (_a >= _b) ? 0xFF : 0x00. */
 #define vcmpgeu8(_a, _b) vcmpz8 (vsubsu8 (_b, _a))
+
+/* Any ideas for cmpge and cmpgtu? :-) */
 
 /* Multiply v16 giving low 16 bit of result (vu16). */
 #define vmullo16(_a, _b) _mm_mullo_pi16 (_a, _b)
 
-/* Saturate against variable bounds. */
-#define vsatu8(_a, _min, _max) vminu8 (vmaxu8 (_a, _min), _max)
-
-/* Clear MMX state (emms).  SSE2 and AltiVec no-op. */
+/* Clear MMX state (emms). */
 #define vempty() _mm_empty ()
-
-/* Non-temporal load and store (SSE, SSE2, AltiVec), to be
-   used if we do not access the same data soon. */
-#define vloadnt(_p) (*(_p))
-#define vstorent(_p, _a) (*(_p) = (_a))
-
-/* For each bit: (1 == _mask) ? _b : _a (AltiVec single op). */
-static __inline__ vu8
-vsel				(vu8			_a,
-				 vu8			_b,
-				 vu8			_mask)
-{
-	return vor (vand (_b, _mask), vandnot (_a, _mask));
-}
 
 /* abs (_a - _b). */
 static __inline__ vu8
@@ -251,22 +268,20 @@ vavgu8				(vu8			_a,
 	/* ((_a & 1) + (_b & 1) + 1) >> 1 */ 
 	carry = vand (vor (_a, _b), vsplat8_1);
 
+	/* "or 1" instead of "and 127" because we already have the const
+	   in a register.  The MSBs cancel out when added. */
 	_a = vsru16 (vor (_a, vsplat8_1), 1);
 	_b = vsru16 (vor (_b, vsplat8_1), 1);
 
 	return vadd8 (vadd8 (_a, _b), carry);
 }
 
-/* (_a + _b + 1) / 2. */
 static __inline__ vu8
 fast_vavgu8			(vu8			_a,
 				 vu8			_b)
 {
-	/* Fast but inaccurate. */
-	_a = vsru16 (vor (_a, vsplat8_1), 1);
-	_b = vsru16 (vor (_b, vsplat8_1), 1);
-
-	return vadd8 (_a, _b);
+	/* Faster but inaccurate. */
+	return vadd8 (vsr1u8 (_a), vsr1u8 (_b));
 }
 
 /* min (_a, _b) (single instruction on all but MMX, 3DNow). */
@@ -293,7 +308,7 @@ vmaxu8				(vu8			_a,
 }
 
 /* min (_a, _b), max (_a, _b).
-   With MMX this is faster vmin() and vmax(). */
+   With MMX this is faster than vmin(), vmax(). */
 static __inline__ void
 vminmaxu8			(vu8 *			_min,
 				 vu8 *			_max,
@@ -324,7 +339,7 @@ vminmaxu8			(vu8 *			_min,
 #include <mm3dnow.h>
 
 #define vavgu8(_a, _b) _m_pavgusb (_a, _b)
-#define fast_vavgu8(_a, _b) _m_pavgusb (_a, _b)
+#define fast_vavgu8(_a, _b) vavgu8 (_a, _b)
 
 /* Fast emms. */
 #undef vempty
@@ -376,8 +391,8 @@ typedef __m128i vu16;
 typedef __m128i v32;
 typedef __m128i vu32;
 
-extern const v8 vsplat8_m1;	/* vsplat8(-1) */
 extern const v8 vsplat8_1;	/* vsplat8(+1) */
+extern const v8 vsplat8_m1;	/* vsplat8(-1) */
 extern const v8 vsplat8_127;	/* vsplat8(127) */
 extern const v16 vsplat16_255;	/* vsplat16(255) */
 extern const v32 vsplat32_1;	/* vsplat32(1) */
@@ -387,60 +402,25 @@ extern const v32 vsplat32_2;	/* vsplat32(2) */
 #define vzero16() _mm_setzero_si128 ()
 #define vzero32() _mm_setzero_si128 ()
 
+#define vminus18() vsplat8_m1
+#define vminus116() vminus18 ()
+#define vminus132() vminus18 ()
+
 #define vsplat8(_i) _mm_set1_epi8 (_i)
 #define vsplat16(_i) _mm_set1_epi16 (_i)
 #define vsplatu8(_i) _mm_set1_epi8 (_i)
 #define vsplatu16(_i) _mm_set1_epi16 (_i)
 
+#define vloadnt(_p) (*(_p))
+#define vstorent(_p, _a) _mm_stream_si128 (_p, _a)
+
 #define vand(_a, _b) _mm_and_si128 (_a, _b)
 #define vandnot(_a, _b) _mm_andnot_si128 (_b, _a)
 #define vor(_a, _b) _mm_or_si128 (_a, _b)
 #define vxor(_a, _b) _mm_xor_si128 (_a, _b)
-#define vnot(_a) vxor (_a, vsplat8_m1)
+#define vnot(_a) vxor (vminus18 (), _a)
 #define vnand(_a, _b) vnot (vand (_a, _b))
 #define vnor(_a, _b) vnot (vor (_a, _b))
-
-#define vsr16(_a, _i) _mm_srai_epi16 (_a, _i)
-#define vsru16(_a, _i) _mm_srli_epi16 (_a, _i)
-#define vsr1u8(_a) vand (vsru16 (_a, 1), vsplat8_127)
-
-#define vadd8(_a, _b) _mm_add_epi8 (_a, _b)
-#define vadd32(_a, _b) _mm_add_epi32 (_a, _b)
-#define vsub16(_a, _b) _mm_sub_epi16 (_a, _b)
-#define vadds16(_a, _b) _mm_adds_epi16 (_a, _b)
-#define vsubs16(_a, _b) _mm_subs_epi16 (_a, _b)
-#define vaddsu8(_a, _b) _mm_adds_epu8 (_a, _b)
-#define vaddsu16(_a, _b) _mm_adds_epu16 (_a, _b)
-#define vsubsu8(_a, _b) _mm_subs_epu8 (_a, _b)
-#define vsubsu16(_a, _b) _mm_subs_epu16 (_a, _b)
-
-#define vcmpeq8(_a, _b) _mm_cmpeq_epi8 (_a, _b)
-#define vcmpeq16(_a, _b) _mm_cmpeq_epi16 (_a, _b)
-#define vcmpeq32(_a, _b) _mm_cmpeq_epi32 (_a, _b)
-
-#define vcmpz8(_a) vcmpeq8 (_a, vzero8 ())
-#define vcmpz16(_a) vcmpeq16 (_a, vzero16 ())
-#define vcmpz32(_a) vcmpeq32 (_a, vzero32 ())
-
-#define vcmpgt8(_a, _b) _mm_cmpgt_epi8 (_a, _b)
-#define vcmpgt16(_a, _b) _mm_cmpgt_epi16 (_a, _b)
-#define vcmpgt32(_a, _b) _mm_cmpgt_epi32 (_a, _b)
-
-/* FIXME Compare unsigned (_a > _b) ? 0xFF : 0x00. */
-#define vcmpgtu16(_a, _b) (assert (!"vcmpgtu16"), vzero16 ())
-
-/* Compare unsigned (_a >= _b) ? 0xFF : 0x00. */
-#define vcmpgeu8(_a, _b) vcmpz8 (vsubsu8 (_b, _a))
-
-#define vmullo16(_a, _b) _mm_mullo_epi16 (_a, _b)
-#define vsatu8(_a, _min, _max) vminu8 (vmaxu8 (_a, _min), _max)
-#define vempty() do {} while (0)
-#define vavgu8(_a, _b) _mm_avg_epu8 (_a, _b)
-#define fast_vavgu8(_a, _b) _mm_avg_epu8 (_a, _b)
-#define vminu8(_a, _b) _mm_min_epu8 (_a, _b)
-#define vmaxu8(_a, _b) _mm_max_epu8 (_a, _b)
-#define vloadnt(_p) (*(_p))
-#define vstorent(_p, _a) _mm_stream_si128 (_p, _a)
 
 /* For each bit: (1 == _mask) ? _b : _a. */
 static __inline__ vu8
@@ -450,6 +430,55 @@ vsel				(vu8			_a,
 {
 	return vor (vand (_b, _mask), vandnot (_a, _mask));
 }
+
+#define vsl18(_a) _mm_slli_epi16 (vand (_a, vsplat8_127), 1)
+#define vsr18(_a) vsel (_a, _mm_srli_epi16 (_a, 1), vsplat8_127)
+#define vsr1u8(_a) vand (_mm_srli_epi16 (_a, 1), vsplat8_127)
+#define vsl16(_a, _i) _mm_slli_epi16 (_a, _i)
+#define vsr16(_a, _i) _mm_srai_epi16 (_a, _i)
+#define vsru16(_a, _i) _mm_srli_epi16 (_a, _i)
+
+#define vadd8(_a, _b) _mm_add_epi8 (_a, _b)
+#define vadd16(_a, _b) _mm_add_epi16 (_a, _b)
+#define vadd32(_a, _b) _mm_add_epi32 (_a, _b)
+#define vsub8(_a, _b) _mm_sub_epi8 (_a, _b)
+#define vsub16(_a, _b) _mm_sub_epi16 (_a, _b)
+#define vsub32(_a, _b) _mm_sub_epi32 (_a, _b)
+#define vadds16(_a, _b) _mm_adds_epi16 (_a, _b)
+#define vsubs16(_a, _b) _mm_subs_epi16 (_a, _b)
+#define vaddsu8(_a, _b) _mm_adds_epu8 (_a, _b)
+#define vaddsu16(_a, _b) _mm_adds_epu16 (_a, _b)
+#define vsubsu8(_a, _b) _mm_subs_epu8 (_a, _b)
+#define vsubsu16(_a, _b) _mm_subs_epu16 (_a, _b)
+
+#define vsatu8(_a, _min, _max) vminu8 (vmaxu8 (_a, _min), _max)
+
+#define vcmpeq8(_a, _b) _mm_cmpeq_epi8 (_a, _b)
+#define vcmpeq16(_a, _b) _mm_cmpeq_epi16 (_a, _b)
+#define vcmpeq32(_a, _b) _mm_cmpeq_epi32 (_a, _b)
+
+#define vcmpz8(_a) vcmpeq8 (_a, _mm_setzero_si128 ())
+#define vcmpz16(_a) vcmpeq16 (_a, _mm_setzero_si128 ())
+#define vcmpz32(_a) vcmpeq32 (_a, _mm_setzero_si128 ())
+
+#define vcmpnz8(_a) vcmpz8 (vcmpz8 (_a))
+#define vcmpnz16(_a) vcmpz16 (vcmpz16 (_a))
+#define vcmpnz32(_a) vcmpz32 (vcmpz32 (_a))
+
+#define vcmpgt8(_a, _b) _mm_cmpgt_epi8 (_a, _b)
+#define vcmpgt16(_a, _b) _mm_cmpgt_epi16 (_a, _b)
+#define vcmpgt32(_a, _b) _mm_cmpgt_epi32 (_a, _b)
+
+/* Compare unsigned (_a >= _b) ? 0xFF : 0x00. */
+#define vcmpgeu8(_a, _b) vcmpz8 (vsubsu8 (_b, _a))
+
+#define vmullo16(_a, _b) _mm_mullo_epi16 (_a, _b)
+#define vempty() do {} while (0)
+
+#define vavgu8(_a, _b) _mm_avg_epu8 (_a, _b)
+#define fast_vavgu8(_a, _b) _mm_avg_epu8 (_a, _b)
+#define vminu8(_a, _b) _mm_min_epu8 (_a, _b)
+#define vmaxu8(_a, _b) _mm_max_epu8 (_a, _b)
 
 /* abs (_a - _b). */
 static __inline__ vu8
@@ -503,36 +532,47 @@ typedef vector unsigned short vu16;
 typedef vector int v32;
 typedef vector unsigned int vu32;
 
-extern const v8 vsplat8_m1;	/* vsplat8(-1) */
 extern const v8 vsplat8_1;	/* vsplat8(+1) */
 extern const v8 vsplat8_127;	/* vsplat8(127) */
 extern const v16 vsplat16_255;	/* vsplat16(255) */
 extern const v32 vsplat32_1;	/* vsplat32(1) */
 extern const v32 vsplat32_2;	/* vsplat32(2) */
 
+#define vzero8() vec_splat_s8 (0)
+#define vzero16() vec_splat_s16 (0)
+#define vzero32() vec_splat_s32 (0)
+
+#define vminus18() vec_splat_s8 (-1)
+#define vminus116() vec_splat_s16 (-1)
+#define vminus132() vec_splat_s32 (-1)
+
 /* FIXME these macros load a scalar variable into each element
    of the vector.  AltiVec has another instruction to load an
-   immediate, but it's limited to 0 ... 15. */
+   immediate, but it's limited to -16 ... 15. */
 #define vsplat8(_i) vec_splat ((v8) vec_lde (0, &(_i)), 0);
 #define vsplat16(_i) vec_splat ((v16) vec_lde (0, &(_i)), 0);
 #define vsplatu8(_i) vec_splat ((vu8) vec_lde (0, &(_i)), 0);
 #define vsplatu16(_i) vec_splat ((vu16) vec_lde (0, &(_i)), 0);
 
-#define vzero8() vec_splat_s8 (0)
-#define vzero16() vec_splat_s16 (0)
-#define vzero32() vec_splat_s32 (0)
+#define vloadnt(_p) vec_ldl (0, _p)
+#define vstorent(_p, _a) vec_stl (_a, 0, _p)
 
 #define vand(_a, _b) vec_and (_a, _b)
 #define vandnot(_a, _b) vec_andc (_a, _b)
 #define vor(_a, _b) vec_or (_a, _b)
 #define vxor(_a, _b) vec_xor (_a, _b)
-#define vnot(_a) vec_nor (_a, _a)
+#define vnot(_a) ({ __typeof__ (_a) __a = (_a); vec_nor (__a, __a); })
 #define vnand(_a, _b) vnot (vand (_a, _b))
 #define vnor(_a, _b) vec_nor (_a, _b)
 
+#define vsel(_a, _b, _mask) vec_sel (_a, _b, _mask)
+
 #define vadd8(_a, _b) vec_add (_a, _b)
+#define vadd16(_a, _b) vec_add (_a, _b)
 #define vadd32(_a, _b) vec_add (_a, _b)
+#define vsub8(_a, _b) vec_sub (_a, _b)
 #define vsub16(_a, _b) vec_sub (_a, _b)
+#define vsub32(_a, _b) vec_sub (_a, _b)
 #define vadds16(_a, _b) vec_adds (_a, _b)
 #define vsubs16(_a, _b) vec_subs (_a, _b)
 #define vaddsu8(_a, _b) vec_adds (_a, _b)
@@ -540,13 +580,26 @@ extern const v32 vsplat32_2;	/* vsplat32(2) */
 #define vsubsu8(_a, _b) vec_subs (_a, _b)
 #define vsubsu16(_a, _b) vec_subs (_a, _b)
 
+#define vsatu8(_a, _min, _max) vminu8 (vmaxu8 (_a, _min), _max)
+
+#define vsl18(_a, _i) vec_sl (_a, vec_splat_u8 (1))
+#define vsr18(_a, _i) vec_sra (_a, vec_splat_u8 (1))
+#define vsr1u8(_a, _i) vec_sr (_a, vec_splat_u8 (1))
+#define vsl16(_a, _i) vec_sl (_a, vec_splat_u16 (_i))
 #define vsr16(_a, _i) vec_sra (_a, vec_splat_u16 (_i))
 #define vsru16(_a, _i) vec_sr (_a, vec_splat_u16 (_i))
-#define vsr1u8(_a, _i) vec_sr (_a, vec_splat_u8 (1))
 
 #define vcmpeq8(_a, _b) vec_cmpeq (_a, _b)
 #define vcmpeq16(_a, _b) vec_cmpeq (_a, _b)
 #define vcmpeq32(_a, _b) vec_cmpeq (_a, _b)
+
+#define vcmpz8(_a) vec_cmpeq (_a, (vu8) vec_splat_s8 (0))
+#define vcmpz16(_a) vec_cmpeq (_a, (vu8) vec_splat_s8 (0))
+#define vcmpz32(_a) vec_cmpeq (_a, (vu8) vec_splat_s8 (0))
+
+#define vcmpnz8(_a) vnot (vcmpz8 (_a))
+#define vcmpnz16(_a) vnot (vcmpz16 (_a))
+#define vcmpnz32(_a) vnot (vcmpz32 (_a))
 
 #define vcmpgt8(_a, _b) vec_cmpgt (_a, _b)
 #define vcmpgt16(_a, _b) vec_cmpgt (_a, _b)
@@ -556,21 +609,21 @@ extern const v32 vsplat32_2;	/* vsplat32(2) */
 #define vcmpgtu16(_a, _b) vec_cmpgt (_a, _b)
 #define vcmpgtu32(_a, _b) vec_cmpgt (_a, _b)
 
+/* Has no integer cmpge. */
+#define vcmpgeu8(_a, _b) vcmpz8 ((v8) vsubsu8 (_b, _a))
+
 #define vmullo16(_a, _b) vec_mladd (_a, _b, vec_splat_s16 (0))
-#define vsel(_a, _b, _mask) vec_sel (_a, _b, _mask)
-#define vsatu8(_a, _min, _max) vminu8 (vmaxu8 (_a, _min), _max)
 #define vempty() do {} while (0)
 #define vavgu8(_a, _b) vec_avg (_a, _b)
 #define fast_vavgu8(_a, _b) vavgu8 (_a, _b)
 #define vminu8(_a, _b) vec_min (_a, _b)
 #define vmaxu8(_a, _b) vec_max (_a, _b)
-#define vloadnt(_p) vec_ldl (0, _p)
-#define vstorent(_p, _a) vec_stl (_a, 0, _p)
 
 static __inline__ vu8
 vabsdiffu8			(vu8			_a,
 				 vu8			_b)
 {
+	/* Shorter than vec_abs (vec_sub (_a, _b)). */
 	return vec_sub (vec_max (_a, _b), vec_min (_a, _b));
 }
 
@@ -592,23 +645,25 @@ vminmaxu8			(vu8 *			_min,
 
 /* ========================================================================= */
 
+/* Neither MMX nor AltiVec have cmplt instructions. */
+
 /* Compare signed (_a < _b) ? 0xFF : 0x00. */
-#define vcmplt8(_a, _b) vcmpgt8(_b, _a)
+#define vcmplt8(_a, _b) vcmpgt8 (_b, _a)
 #define vcmplt16(_a, _b) vcmpgt16 (_b, _a)
 #define vcmplt32(_a, _b) vcmpgt32 (_b, _a)
 
 /* Compare signed (_a <= _b) ? 0xFF : 0x00. */
-#define vcmple8(_a, _b) vcmpge8(_b, _a)
+#define vcmple8(_a, _b) vcmpge8 (_b, _a)
 #define vcmple16(_a, _b) vcmpge16 (_b, _a)
 #define vcmple32(_a, _b) vcmpge32 (_b, _a)
 
 /* Compare unsigned (_a < _b) ? 0xFF : 0x00. */
-#define vcmpltu8(_a, _b) vcmpgtu8(_b, _a)
+#define vcmpltu8(_a, _b) vcmpgtu8 (_b, _a)
 #define vcmpltu16(_a, _b) vcmpgtu16 (_b, _a)
 #define vcmpltu32(_a, _b) vcmpgtu32 (_b, _a)
 
 /* Compare unsigned (_a <= _b) ? 0xFF : 0x00. */
-#define vcmpleu8(_a, _b) vcmpgeu8(_b, _a)
+#define vcmpleu8(_a, _b) vcmpgeu8 (_b, _a)
 #define vcmpleu16(_a, _b) vcmpgeu16 (_b, _a)
 #define vcmpleu32(_a, _b) vcmpgeu32 (_b, _a)
 
