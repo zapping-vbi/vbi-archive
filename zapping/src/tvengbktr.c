@@ -24,9 +24,10 @@
 
 #ifdef ENABLE_BKTR
 
-#include <sys/time.h>
+#include <sys/time.h>		/* struct timeval, gettimeofday() */
 #include <signal.h>
 #include <math.h>
+#include <assert.h>
 #include "tvengbktr.h"
 #include "zmisc.h"
 #include "tveng_private.h"
@@ -68,24 +69,29 @@ struct private_tvengbktr_device_info
 
 #define P_INFO(p) PARENT (p, struct private_tvengbktr_device_info, info)
 
+/* This macro checks at compile time if the arg type is correct,
+   device_ioctl() repeats the ioctl if interrupted (EINTR) and logs
+   the args and result if log_fp is non-zero. When the ioctl failed
+   ioctl_failure() stores the cmd, caller and errno in info. */
 #define bktr_ioctl(info, cmd, arg)					\
-(IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
- ((0 == device_ioctl ((info)->log_fp, fprint_ioctl_arg,			\
-		      (info)->fd, cmd, (void *)(arg))) ?		\
-  0 : (ioctl_failure (info, __FILE__, __PRETTY_FUNCTION__,		\
-		      __LINE__, # cmd), -1)))
+	(IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),				\
+	 ((0 == device_ioctl ((info)->log_fp, fprint_ioctl_arg,		\
+			      (info)->fd, cmd, (void *)(arg))) ?	\
+	  0 : (ioctl_failure (info, __FILE__, __PRETTY_FUNCTION__,	\
+			      __LINE__, # cmd), -1)))
 
-#define bktr_ioctl_nf(info, cmd, arg)					\
-(IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
- device_ioctl ((info)->log_fp, fprint_ioctl_arg,			\
-	       (info)->fd, cmd, (void *)(arg)))
+#define bktr_ioctl_may_fail(info, cmd, arg)				\
+	(IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),				\
+	 device_ioctl ((info)->log_fp, fprint_ioctl_arg,		\
+		       (info)->fd, cmd, (void *)(arg)))
 
 #define tuner_ioctl(info, cmd, arg)					\
-(IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
- ((0 == device_ioctl ((info)->log_fp, fprint_ioctl_arg,			\
-		      P_INFO (info)->tuner_fd, cmd, (void *)(arg))) ?	\
-  0 : (ioctl_failure (info, __FILE__, __PRETTY_FUNCTION__,		\
-		      __LINE__, # cmd), -1)))
+	(IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),				\
+	 ((0 == device_ioctl ((info)->log_fp, fprint_ioctl_arg,		\
+			      P_INFO (info)->tuner_fd, cmd,		\
+			      (void *)(arg))) ?				\
+	  0 : (ioctl_failure (info, __FILE__, __PRETTY_FUNCTION__,	\
+			      __LINE__, # cmd), -1)))
 
 /* Private control IDs. */
 typedef enum {
@@ -247,7 +253,7 @@ get_control			(tveng_device_info *	info,
 	if (c)
 		return do_get_control (p_info, C(c));
 
-	for_all (c, p_info->info.controls)
+	for_all (c, p_info->info.panel.controls)
 		if (c->_parent == info)
 			if (!do_get_control (p_info, C(c)))
 				return FALSE;
@@ -416,7 +422,7 @@ get_control_list		(tveng_device_info *	info)
 	struct control *c;
 	tv_control *tc;
 
-	if (P_INFO (info)->bktr_driver)
+	if (p_info->bktr_driver)
 		table = bktr_controls;
 	else
 		table = meteor_controls;
@@ -464,7 +470,7 @@ get_video_standard		(tveng_device_info *	info)
 
 	s = NULL; /* unknown */
 
-	if (info->video_standards) {
+	if (info->panel.video_standards) {
 		unsigned long fmt;
 
 		if (P_INFO (info)->bktr_driver) {
@@ -475,7 +481,7 @@ get_video_standard		(tveng_device_info *	info)
 				return FALSE;
 		}
 
-		for (s = info->video_standards; s; s = s->_next)
+		for (s = info->panel.video_standards; s; s = s->_next)
 			if (S(s)->fmt == fmt)
 				break;
 	}
@@ -487,15 +493,17 @@ get_video_standard		(tveng_device_info *	info)
 
 static tv_bool
 set_video_standard		(tveng_device_info *	info,
-				 const tv_video_standard *s)
+				 tv_video_standard *	s)
 {
+	struct private_tvengbktr_device_info *p_info = P_INFO (info);
 	capture_mode current_mode;
 	gboolean was_active;
 	int r;
 
-	current_mode = p_tveng_stop_everything (info, &was_active);
+	if (p_info->ovl_active | p_info->cap_active)
+		return FALSE;
 
-	if (P_INFO (info)->bktr_driver) {
+	if (p_info->bktr_driver) {
 		r = bktr_ioctl (info, BT848SFMT, &S(s)->fmt);
 	} else {
 		r = bktr_ioctl (info, METEORSFMT, &S(s)->fmt);
@@ -503,14 +511,10 @@ set_video_standard		(tveng_device_info *	info,
 
 	if (0 == r) {
 		store_cur_video_standard (info, s);
+		return TRUE;
+	} else {
+		return FALSE;
 	}
-
-	/* Start capturing again as if nothing had happened */
-	/* XXX stop yes, restarting is not our business
-	   (eg. frame geometry change). */
-	p_tveng_restart_everything (current_mode, was_active, info);
-
-	return (0 == r);
 }
 
 struct standard_map {
@@ -554,7 +558,7 @@ get_standard_list		(tveng_device_info *	info)
 {
 	const struct standard_map *table;
 
-	if (info->video_standards)
+	if (info->panel.video_standards)
 		return TRUE; /* invariable */
 
 	if (P_INFO (info)->bktr_driver)
@@ -565,12 +569,14 @@ get_standard_list		(tveng_device_info *	info)
 	for (; table->label; ++table) {
 		struct standard *s;
 
-		if (!(s = S(append_video_standard (&info->video_standards,
-						   table->videostd_set,
-						   table->label,
-						   table->label,
-						   sizeof (*s))))) {
-			free_video_standard_list (&info->video_standards);
+		if (!(s = S(append_video_standard
+			    (&info->panel.video_standards,
+			     table->videostd_set,
+			     table->label,
+			     table->label,
+			     sizeof (*s))))) {
+			free_video_standard_list
+				(&info->panel.video_standards);
 			return FALSE;
 		}
 
@@ -617,7 +623,7 @@ get_tuner_frequency		(tveng_device_info *	info,
 		return FALSE;
 
 	/* XXX should we look up the only tuner input instead? */
-	if (info->cur_video_input == l) {
+	if (info->panel.cur_video_input == l) {
 		if (-1 == tuner_ioctl (info, TVTUNER_GETFREQ, &freq))
 			return FALSE;
 
@@ -686,13 +692,13 @@ get_video_input			(tveng_device_info *	info)
 {
 	const tv_video_line *l = NULL;
 
-	if (info->video_inputs) {
+	if (info->panel.video_inputs) {
 		unsigned long dev;
 
 		if (-1 == bktr_ioctl (info, METEORGINPUT, &dev))
 			return FALSE;
 
-		for_all (l, info->video_inputs)
+		for_all (l, info->panel.video_inputs)
 			if (VI(l)->dev == dev)
 				break;
 	}
@@ -709,14 +715,14 @@ get_video_input			(tveng_device_info *	info)
 
 static tv_bool
 set_video_input			(tveng_device_info *	info,
-				 const tv_video_line *	l)
+				 tv_video_line *	l)
 {
 	struct private_tvengbktr_device_info *p_info = P_INFO (info);
 	capture_mode current_mode;
 	gboolean was_active;
 	tv_pixfmt pixfmt;
 
-	if (p_info->info.cur_video_input) {
+	if (p_info->info.panel.cur_video_input) {
 		unsigned long dev;
 
 		if (0 == bktr_ioctl (&p_info->info, METEORGINPUT, &dev))
@@ -724,8 +730,8 @@ set_video_input			(tveng_device_info *	info,
 				return TRUE;
 	}
 
-	pixfmt = p_info->info.capture.format.pixfmt;
-	current_mode = p_tveng_stop_everything (&p_info->info, &was_active);
+	if (p_info->ovl_active | p_info->cap_active)
+		return FALSE;
 
 	if (-1 == bktr_ioctl (&p_info->info, METEORSINPUT, &VI(l)->dev))
 		return FALSE;
@@ -748,15 +754,9 @@ set_video_input			(tveng_device_info *	info,
 	   the frequency from the value we know. */
 	if (0 && IS_TUNER_LINE (l))
 		set_tuner_frequency (&p_info->info,
-				     p_info->info.cur_video_input,
-				     p_info->info.cur_video_input
+				     p_info->info.panel.cur_video_input,
+				     p_info->info.panel.cur_video_input
 				     ->u.tuner.frequency);
-
-	p_info->info.capture.format.pixfmt = pixfmt;
-	set_capture_format (info, &info->capture.format);
-
-	/* XXX Start capturing again as if nothing had happened */
-	p_tveng_restart_everything (current_mode, was_active, &p_info->info);
 
 	return TRUE;
 }
@@ -794,7 +794,7 @@ get_video_input_list		(tveng_device_info *	info)
 {
 	const struct video_input_map *table;
 
-	if (info->video_inputs)
+	if (info->panel.video_inputs)
 		return TRUE; /* invariable */
 
 	if (P_INFO (info)->bktr_driver)
@@ -805,7 +805,7 @@ get_video_input_list		(tveng_device_info *	info)
 	for (; table->label; ++table) {
 		struct video_input *vi;
 
-		if (!(vi = VI (append_video_line (&info->video_inputs,
+		if (!(vi = VI (append_video_line (&info->panel.video_inputs,
 						  table->type,
 						  table->label,
 						  table->label,
@@ -832,14 +832,14 @@ get_video_input_list		(tveng_device_info *	info)
 		}
 	}
 
-	if (info->video_inputs) {
+	if (info->panel.video_inputs) {
 		get_video_input (info);
 	}
 
 	return TRUE;
 
  failure:
-	free_video_line_list (&info->video_inputs);
+	free_video_line_list (&info->panel.video_inputs);
 	return FALSE;
 }
 
@@ -852,7 +852,7 @@ get_audio_input			(tveng_device_info *	info)
 {
 	const tv_audio_line *l = NULL;
 
-	if (info->audio_inputs) {
+	if (info->panel.audio_inputs) {
 		int dev;
 
 		if (-1 == tuner_ioctl (info, BT848_GAUDIO, &dev))
@@ -860,7 +860,7 @@ get_audio_input			(tveng_device_info *	info)
 
 		dev &= 0x7F; /* without mute flag */
 
-		for_all (l, info->audio_inputs)
+		for_all (l, info->panel.audio_inputs)
 			if (AI(l)->dev == dev)
 				break;
 	}
@@ -872,7 +872,7 @@ get_audio_input			(tveng_device_info *	info)
 
 static tv_bool
 set_audio_input			(tveng_device_info *	info,
-				 const tv_audio_line *	l)
+				 tv_audio_line *	l)
 {
 	struct private_tvengbktr_device_info *p_info = P_INFO (info);
 
@@ -904,13 +904,13 @@ get_audio_input_list		(tveng_device_info *	info)
 {
 	const struct audio_input_map *table;
 
-	if (info->audio_inputs)
+	if (info->panel.audio_inputs)
 		return TRUE; /* invariable */
 
 	for (table = bktr_audio_inputs; table->label; ++table) {
 		struct audio_input *ai;
 
-		if (!(ai = AI (append_audio_line (&info->audio_inputs,
+		if (!(ai = AI (append_audio_line (&info->panel.audio_inputs,
 						  TV_AUDIO_LINE_TYPE_NONE,
 						  table->label,
 						  table->label,
@@ -926,14 +926,14 @@ get_audio_input_list		(tveng_device_info *	info)
 		ai->dev = table->dev;
 	}
 
-	if (info->audio_inputs) {
+	if (info->panel.audio_inputs) {
 		get_audio_input (info);
 	}
 
 	return TRUE;
 
  failure:
-	free_audio_line_list (&info->audio_inputs);
+	free_audio_line_list (&info->panel.audio_inputs);
 	return FALSE;
 }
 
@@ -979,9 +979,16 @@ init_pixfmt_lut			(tveng_device_info *	info)
 
 		pixfmt.index = i;
 
-		if (-1 == bktr_ioctl (info, METEORGSUPPIXFMT, &pixfmt)) {
+		if (-1 == bktr_ioctl_may_fail
+		    (info, METEORGSUPPIXFMT, &pixfmt)) {
 			if (EINVAL == errno)
 				break;
+
+			ioctl_failure (info,
+				       __FILE__,
+				       __FUNCTION__,
+				       __LINE__,
+				       "METEORGSUPPIXFMT");
 
 			return FALSE;
 		}
@@ -1098,8 +1105,8 @@ set_format			(struct private_tvengbktr_device_info *p_info,
 	int bktr_pixfmt;
 
 	if (p_info->bktr_driver
-	    && TV_PIXFMT_IS_YUV (fmt->pixfmt)) {
-		tv_pixfmt oldfmt;
+	    && TV_PIXFMT_IS_YUV (fmt->pixel_format->pixfmt)) {
+		const tv_pixel_format *oldfmt;
 
 		/* Bug: the driver initializes BKTR_E|O_VTC for
 		   RGB capture but not for YUV. When we switch from RGB
@@ -1108,15 +1115,16 @@ set_format			(struct private_tvengbktr_device_info *p_info,
 		   higher resolutions the driver crashes. May not happen
 		   when we read VBI at the same time. */
 
-		oldfmt = fmt->pixfmt;
-		fmt->pixfmt = TV_PIXFMT_BGR16_LE;
+		oldfmt = fmt->pixel_format;
+		fmt->pixel_format =
+			tv_pixel_format_from_pixfmt (TV_PIXFMT_BGR16_LE);
 
-		if (-1 == set_format (p_info, fmt, std)) {
-			fmt->pixfmt = oldfmt;
+		if (!set_format (p_info, fmt, std)) {
+			fmt->pixel_format = oldfmt;
 			return FALSE;
 		}
 
-		fmt->pixfmt = oldfmt;
+		fmt->pixel_format = oldfmt;
 
 		if (-1 == bktr_ioctl (&p_info->info,
 				      METEORSVIDEO, &no_video)) {
@@ -1161,24 +1169,25 @@ set_format			(struct private_tvengbktr_device_info *p_info,
 	geom.frames = 1;
 
 	if (p_info->bktr_driver) {
-		tv_pixel_format pf;
+		const tv_pixel_format *pf;
 		unsigned int avg_bpp;
 
-		if (!tv_pixel_format_from_pixfmt (&pf, fmt->pixfmt, 0))
-			return FALSE;
+		pf = fmt->pixel_format;
 
-		bktr_pixfmt = p_info->pixfmt_lut[fmt->pixfmt];
+		bktr_pixfmt = p_info->pixfmt_lut[pf->pixfmt];
 
 		if (-1 == bktr_pixfmt)
 			return FALSE;
 
 		/* No padding possible. */
-		fmt->bytes_per_line = fmt->width * pf.bits_per_pixel / 8;
-		fmt->uv_bytes_per_line = fmt->bytes_per_line / pf.uv_hscale;
+		fmt->bytes_per_line[0] = fmt->width * pf->bits_per_pixel / 8;
+		fmt->bytes_per_line[1] =
+			fmt->bytes_per_line[0] >> pf->uv_hshift;
+		fmt->bytes_per_line[2] = fmt->bytes_per_line[1];
 
-		avg_bpp = pf.bits_per_pixel;
-		if (TV_PIXFMT_IS_PLANAR (pf.pixfmt))
-			avg_bpp += 16 / (pf.uv_hscale * pf.uv_vscale);
+		avg_bpp = pf->bits_per_pixel;
+		if (TV_PIXFMT_IS_PLANAR (pf->pixfmt))
+			avg_bpp += 16 >> (pf->uv_hshift + pf->uv_vshift);
 
 		if (avg_bpp > 16) {
 			/* Bug: the driver allocates a buffer with two or four
@@ -1192,25 +1201,25 @@ set_format			(struct private_tvengbktr_device_info *p_info,
 		}
 	} else {
 		/* Correct? */
-		switch (fmt->pixfmt) {
+		switch (fmt->pixel_format->pixfmt) {
 		case TV_PIXFMT_BGR16_LE:
 			geom.oformat = METEOR_GEO_RGB16;
-			fmt->bytes_per_line = fmt->width * 2;
+			fmt->bytes_per_line[0] = fmt->width * 2;
 			break;
 
 		case TV_PIXFMT_BGRA32_LE:
 			geom.oformat = METEOR_GEO_RGB24;
-			fmt->bytes_per_line = fmt->width * 4;
+			fmt->bytes_per_line[0] = fmt->width * 4;
 			break;
 
 		case TV_PIXFMT_YUYV:
 			geom.oformat = METEOR_GEO_YUV_PACKED;
-			fmt->bytes_per_line = fmt->width * 2;
+			fmt->bytes_per_line[0] = fmt->width * 2;
 			break;
 
 		case TV_PIXFMT_YUV422:
 			geom.oformat = METEOR_GEO_YUV_PLANAR;
-			fmt->bytes_per_line = fmt->width * 2;
+			fmt->bytes_per_line[0] = fmt->width * 2;
 			break;
 
 		default:
@@ -1249,17 +1258,12 @@ set_overlay_buffer		(tveng_device_info *	info,
 	struct private_tvengbktr_device_info *p_info = P_INFO (info);
 	tv_pixel_format format;
 
-	if (-1 == p_info->pixfmt_lut[t->format.pixfmt]) {
-		return FALSE;
-	}
-
-	if (!tv_pixel_format_from_pixfmt (&format, t->format.pixfmt,
-					0 /* TV_COLOR_SPACE_UNKNOWN */)) {
+	if (-1 == p_info->pixfmt_lut[t->format.pixel_format->pixfmt]) {
 		return FALSE;
 	}
 
 	p_info->info.overlay.buffer = *t;
-	p_info->ovl_bits_per_pixel = format.bits_per_pixel;
+	p_info->ovl_bits_per_pixel = t->format.pixel_format->bits_per_pixel;
 
 	return TRUE;
 }
@@ -1389,6 +1393,10 @@ set_overlay_window		(tveng_device_info *	info,
 	int wx2;
 	int wy2;
 
+	if (p_info->cap_active)
+		return FALSE;
+
+	/* Disable overlay if active. */
 	if (!enable_overlay (info, FALSE))
 		return FALSE;
 
@@ -1412,7 +1420,7 @@ set_overlay_window		(tveng_device_info *	info,
 
 	video.addr = p_info->info.overlay.buffer.base
 		+ start_line + start_byte;
-	video.width = bf->bytes_per_line;
+	video.width = bf->bytes_per_line[0];
 
 	size = (bf->size - ((char *) video.addr
 			    - (char *) p_info->info.overlay.buffer.base));
@@ -1431,7 +1439,7 @@ set_overlay_window		(tveng_device_info *	info,
 	fmt.width = w->width;
 	fmt.height = w->height;
 
-	if (!set_format (p_info, &fmt, info->cur_video_standard))
+	if (!set_format (p_info, &fmt, info->panel.cur_video_standard))
 		return FALSE;
 
 	if (p_info->bktr_driver) {
@@ -1439,8 +1447,9 @@ set_overlay_window		(tveng_device_info *	info,
 		unsigned int scale;
 
 		frame_height = 480;
-		if (info->cur_video_standard) {
-			frame_height = info->cur_video_standard->frame_height;
+		if (info->panel.cur_video_standard) {
+			frame_height = info->panel.cur_video_standard
+				->frame_height;
 		}
 
 		scale = (w->height > (frame_height >> 1));
@@ -1460,22 +1469,27 @@ set_overlay_window		(tveng_device_info *	info,
 	return TRUE;
 }
 
-static int
-get_overlay_window(tveng_device_info * info)
+static tv_bool
+get_overlay_window		(tveng_device_info *	info)
 {
-	/* to do */
-	return -1;
+	/* TODO */
+	return FALSE;
 }
 
 static tv_bool
 enable_overlay			(tveng_device_info *	info,
-				 tv_bool		on)
+				 tv_bool		enable)
 {
-	if (P_INFO (info)->ovl_active == on)
+	struct private_tvengbktr_device_info *p_info = P_INFO (info);
+
+	if (p_info->cap_active)
+		return FALSE;
+
+	if (p_info->ovl_active == enable)
 		return TRUE;
 
-	if (on) {
-	        if (!P_INFO (info)->ovl_ready)
+	if (enable) {
+	        if (!p_info->ovl_ready)
 		        return FALSE;
 
 		if (-1 == bktr_ioctl (info, METEORCAPTUR, &cap_continuous)) {
@@ -1489,7 +1503,7 @@ enable_overlay			(tveng_device_info *	info,
 
 	usleep (50000);
 
-	P_INFO (info)->ovl_active = on;
+	p_info->ovl_active = enable;
 
 	return TRUE;
 }
@@ -1549,7 +1563,8 @@ get_capture_format		(tveng_device_info * info)
 
 	if (0 == geom.columns || 0 == geom.rows) {
 		CLEAR (info->capture.format);
-		info->capture.format.pixfmt = pixfmt;
+		info->capture.format.pixel_format =
+			tv_pixel_format_from_pixfmt (pixfmt);
 	} else {
 		if (!tv_image_format_init (&info->capture.format,
 					   geom.columns,
@@ -1575,8 +1590,8 @@ set_capture_format		(tveng_device_info *	info,
 	capture_mode current_mode;
 	gboolean overlay_was_active;
 
-	/* XXX */
-	current_mode = p_tveng_stop_everything(info, &overlay_was_active);
+	if (p_info->ovl_active | p_info->cap_active)
+		return FALSE;
 
 	p_info->cap_ready = FALSE;
 	p_info->ovl_ready = FALSE;
@@ -1595,15 +1610,13 @@ set_capture_format		(tveng_device_info *	info,
 
 	if (!set_format (p_info,
 			 &info->capture.format,
-			 info->cur_video_standard)) {
+			 info->panel.cur_video_standard)) {
 		return FALSE;
 	}
 
+	usleep (50000);
+
 	p_info->cap_ready = TRUE;
-
-	p_tveng_restart_everything(current_mode, overlay_was_active, info);
-
-	usleep (100000);
 
 	return TRUE;
 }
@@ -1613,15 +1626,15 @@ static void
 timestamp_init(tveng_device_info *info)
 {
 	struct private_tvengbktr_device_info *p_info = P_INFO (info);
-	double rate = info->cur_video_standard ?
-		info->cur_video_standard->frame_rate : 25; /* XXX*/
+	double rate = info->panel.cur_video_standard ?
+		info->panel.cur_video_standard->frame_rate : 25; /* XXX*/
 
   p_info->capture_time = 0.0;
   p_info->frame_period_near = p_info->frame_period_far = 1.0 / rate;
 }
 
-static int
-start_capturing(tveng_device_info * info)
+static tv_bool
+start_capturing			(tveng_device_info *	info)
 {
 	struct private_tvengbktr_device_info *p_info = P_INFO (info);
 	gboolean dummy;
@@ -1629,7 +1642,10 @@ start_capturing(tveng_device_info * info)
 	p_info->cap_active = FALSE;
 
 	if (!p_info->cap_ready) {
-		return -1;
+		if (!set_capture_format (info, &info->capture.format))
+			return FALSE;
+
+		assert (p_info->cap_ready);
 	}
 
 	p_tveng_stop_everything(info, &dummy);
@@ -1646,35 +1662,36 @@ start_capturing(tveng_device_info * info)
 					    /* offset */ 0);
 
 	if ((char *) -1 == p_info->mmapped_data) {
-		return -1;
+		return FALSE;
 	}
 
 	if (-1 == bktr_ioctl (info, METEORSVIDEO, &no_video)) {
-		return -1;
+		return FALSE;
 	}
 
 	if (-1 == bktr_ioctl (info, BT848SCLIP, &no_clips)) {
-		return -1;
+		return FALSE;
 	}
 
 	init_signal (signal_handler);
 
 	if (-1 == bktr_ioctl (info, METEORSSIGNAL, &signal_usr1)) {
-		return -1;
+		return FALSE;
 	}
 
 	if (-1 == bktr_ioctl (info, METEORCAPTUR, &cap_continuous)) {
-		return -1;
+		return FALSE;
 	}
+
 	info->capture_mode = CAPTURE_MODE_READ;
 
 	p_info->cap_active = TRUE;
 
-	return 0;
+	return TRUE;
 }
 
-static int
-stop_capturing(tveng_device_info * info)
+static tv_bool
+stop_capturing			(tveng_device_info *	info)
 {
 	struct private_tvengbktr_device_info *p_info = P_INFO (info);
 
@@ -1683,17 +1700,17 @@ stop_capturing(tveng_device_info * info)
 	if (CAPTURE_MODE_NONE == info->capture_mode) {
 		fprintf(stderr, "Warning: trying to stop capture with "
 			"no capture active\n");
-		return 0; /* Nothing to be done */
+		return TRUE; /* Nothing to be done */
 	}
 
 	t_assert(CAPTURE_MODE_READ == info->capture_mode);
 
 	if (-1 == bktr_ioctl (info, METEORCAPTUR, &cap_stop_cont)) {
-		return -1;
+		return FALSE;
 	}
 
 	if (-1 == bktr_ioctl (info, METEORSSIGNAL, &signal_none)) {
-		return -1;
+		return FALSE;
 	}
 
 	if ((char *) -1 != p_info->mmapped_data
@@ -1710,7 +1727,27 @@ stop_capturing(tveng_device_info * info)
 
 	info->capture_mode = CAPTURE_MODE_NONE;
 
-	return 0;
+	return TRUE;
+}
+
+static tv_bool
+enable_capture			(tveng_device_info *	info,
+				 tv_bool		enable)
+{
+	struct private_tvengbktr_device_info *p_info = P_INFO (info);
+	int r;
+
+	if (p_info->ovl_active)
+		return FALSE;
+
+	if (p_info->cap_active == enable)
+		return TRUE;
+
+	if (enable) {
+		return start_capturing (info);
+	} else {
+		return stop_capturing (info);
+	}
 }
 
 static inline double
@@ -1758,36 +1795,67 @@ meteor_mem_dump			(const struct meteor_mem *mm,
 		 (void *) mm->buf);
 }
 
-static int 
-read_frame(tveng_image_data *where, 
-	   unsigned int time, tveng_device_info * info)
+static int
+read_frame			(tveng_device_info *	info,
+				 tv_capture_buffer *	buffer,
+				 const struct timeval *	timeout)
 {
 	struct private_tvengbktr_device_info *p_info = P_INFO (info);
 	sigset_t sa_mask;
-	struct itimerval nvalue;
-	struct itimerval ovalue;
+	struct timeval timestamp;
+	int r;
 
 	if (!p_info->cap_active) {
-		return -1;
+		return -1; /* error */
 	}
 
-	/* Stolen from xawtv. Blocks all signals except USR1 (new frame)
-	   and ALRM (timeout), then waits for any signal. */
-	CLEAR (nvalue);
-	nvalue.it_value.tv_sec = 0;
-	nvalue.it_value.tv_usec = 100;
-	setitimer (ITIMER_REAL, &nvalue, &ovalue);
- 	/* alarm (1); */ /* 1 sec (too much for station scan) */
-	sigfillset (&sa_mask);
-	sigdelset (&sa_mask, SIGUSR1);
-	sigdelset (&sa_mask, SIGALRM);
+	/* Partially stolen from xawtv. Blocks all signals except USR1
+	   (new frame) and ALRM (timeout), then waits for any signal. */
+
+	if (timeout) {
+		struct itimerval nvalue;
+		struct itimerval ovalue;
+
+		CLEAR (nvalue);
+
+		if ((timeout->tv_sec | timeout->tv_usec) > 0) {
+			nvalue.it_value = *timeout;
+		} else {
+			/* XXX non-blocking impossible. */
+
+			nvalue.it_value.tv_sec = 0;
+			nvalue.it_value.tv_usec = 1000;
+		}
+
+		setitimer (ITIMER_REAL, &nvalue, &ovalue);
+
+		sigfillset (&sa_mask);
+		sigdelset (&sa_mask, SIGUSR1);
+		sigdelset (&sa_mask, SIGALRM);
+	} else {
+		/* Infinite timeout. */
+
+		sigfillset (&sa_mask);
+		sigdelset (&sa_mask, SIGUSR1);
+	}
+
 	sigsuspend (&sa_mask);
 
-	p_info->last_timestamp = timestamp (p_info);
+	/* XXX did we get USR1 (success) or ALRM (timeout, return 0) ? */
 
-	/* alarm (0); */
-	CLEAR (nvalue);
-	setitimer (ITIMER_REAL, &nvalue, &ovalue);
+	/* XXX this is inaccurate. */
+	r = gettimeofday (&timestamp, /* timezone */ NULL);
+	assert (0 == r);
+
+	if (timeout) {
+		struct itimerval nvalue;
+		struct itimerval ovalue;
+
+		CLEAR (nvalue);
+
+		/* Cancel alarm. */
+		setitimer (ITIMER_REAL, &nvalue, &ovalue);
+	}
 
 	if (0) {
 		/* Double buffering not supported by bktr. :-( */
@@ -1795,21 +1863,21 @@ read_frame(tveng_image_data *where,
 				 p_info->mmapped_data, stderr);
 	}
 
-	/* Copy the mmaped data to the data struct, if it is not null */
-	if (where) {
-		tveng_copy_frame (p_info->mmapped_data, where, info);
+	if (buffer) {
+		const tv_image_format *dst_format;
+
+		dst_format = buffer->format;
+		if (!dst_format)
+			dst_format = &info->capture.format;
+
+		tv_copy_image (buffer->data, dst_format,
+			       p_info->mmapped_data, &info->capture.format);
+
+		buffer->sample_time = timestamp;
+		buffer->stream_time = 0; /* FIXME */
 	}
 
 	return 1; /* success */
-}
-
-	struct private_tvengbktr_device_info *p_info = P_INFO (info);
-
-  t_assert(info != NULL);
-  if (CAPTURE_MODE_READ != info->capture_mode)
-    return -1;
-
-  return (p_info -> last_timestamp);
 }
 
 #if 0
@@ -1986,27 +2054,33 @@ tvengbktr_attach_device (const char* device_file,
   info->attach_mode = attach_mode;
   info->capture_mode = CAPTURE_MODE_NONE;
 
-	info->video_inputs = NULL;
-	info->cur_video_input = NULL;
+	CLEAR (info->panel);
+
+	info->panel.set_video_input = set_video_input;
+	info->panel.get_video_input = get_video_input;
+	info->panel.set_tuner_frequency = set_tuner_frequency;
+	info->panel.get_tuner_frequency = get_tuner_frequency;
+	info->panel.get_signal_strength = get_signal_strength;
 
 	if (!get_video_input_list (info))
 		goto failure;
 
-	info->audio_inputs = NULL;
-	info->cur_audio_input = NULL;
+	info->panel.set_audio_input = set_audio_input;
+	info->panel.get_audio_input = get_audio_input;
 
 	if (P_INFO (info)->bktr_driver) {
 		if (!get_audio_input_list (info))
 			goto failure;
 	}
 
-	info->video_standards = NULL;
-	info->cur_video_standard = NULL;
+	info->panel.set_video_standard = set_video_standard;
+	info->panel.get_video_standard = get_video_standard;
 
 	if (!get_standard_list (info))
 		goto failure;
 
-	info->controls = NULL;
+	info->panel.set_control = set_control;
+	info->panel.get_control = get_control;
 
 	if (!get_control_list (info))
 		goto failure;
@@ -2017,16 +2091,14 @@ tvengbktr_attach_device (const char* device_file,
 	info->overlay.get_buffer = get_overlay_buffer;
 	info->overlay.set_window_clipvec = set_overlay_window;
 	info->overlay.get_window = get_overlay_window;
-	info->overlay.enable     = enable_overlay;
+	info->overlay.enable = enable_overlay;
 
 	CLEAR (info->capture);
 
 	info->capture.get_format = get_capture_format;
 	info->capture.set_format = set_capture_format;
 	info->capture.read_frame = read_frame;
-	info->capture.get_timestamp = get_timestamp;
-	info->capture.start_capturing = start_capturing;
-	info->capture.stop_capturing = stop_capturing;
+	info->capture.enable = enable_capture;
 
 	if (P_INFO (info)->bktr_driver) {
 		init_pixfmt_lut (info);
@@ -2052,10 +2124,10 @@ tvengbktr_attach_device (const char* device_file,
 		ul = BT848_IFORM_F_PALBDGHI;
 		bktr_ioctl (info, BT848SFMT, &ul);
 
-		if (-1 == set_capture_format (info, &info->capture.format))
+		if (!set_capture_format (info, &info->capture.format))
 			goto failure;
 
-		if (-1 == start_capturing (info))
+		if (!start_capturing (info))
 			goto failure;
 	}
 
@@ -2070,19 +2142,7 @@ static struct tveng_module_info tvengbktr_module_info = {
   .attach_device =		tvengbktr_attach_device,
   .close_device =		tvengbktr_close_device,
 
-  .set_video_input		= set_video_input,
-  .get_video_input		= get_video_input,
-  .set_tuner_frequency		= set_tuner_frequency,
-  .get_tuner_frequency		= get_tuner_frequency,
-  .get_signal_strength		= get_signal_strength,
-  .set_audio_input		= set_audio_input,
-  .get_audio_input		= get_audio_input,
-  .set_video_standard		= set_video_standard,
-  .get_video_standard		= get_video_standard,
-  .set_control			= set_control,
-  .get_control			= get_control,
-
-  .interface_label		= "BKTR/Meteor";
+  .interface_label		= "BKTR/Meteor",
 
   .private_size			= sizeof (struct private_tvengbktr_device_info)
 };
