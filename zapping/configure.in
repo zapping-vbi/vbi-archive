@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.130.2.15 2003-07-29 03:36:38 mschimek Exp $
+dnl $Id: configure.in,v 1.130.2.16 2003-08-24 23:56:37 mschimek Exp $
 
-AC_INIT(zapping, 0.7cvs, [http://sourceforge.net/tracker/?atid=102599&group_id=2599&func=browse])
+AC_INIT(zapping, 0.7cvs1, [http://sourceforge.net/tracker/?atid=102599&group_id=2599&func=browse])
 AC_CONFIG_SRCDIR(configure.in)
 AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
 
@@ -499,10 +499,12 @@ plugins/mpeg/Makefile
 plugins/screenshot/Makefile
 plugins/template/Makefile
 help/Makefile
-help/C/Makefile
-help/de/Makefile
 help/man/Makefile
 ])
+
+dnl needs work
+dnl help/C/Makefile
+dnl help/de/Makefile
 
 echo "
 	Optional package
