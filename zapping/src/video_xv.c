@@ -408,6 +408,60 @@ static video_backend xv = {
   suggest_format:	suggest_format
 };
 
+/*
+  XV_VIDEO
+  XV_IMAGE
+  XV_ENCODING
+
+  XV_BRIGHTNESS
+  XV_CONTRAST
+  XV_SATURATION
+  XV_HUE
+  XV_COLORKEY 0x000000 ... 0xFFFFFF
+  XV_INTERLACE
+    Neomagic: 0 combine fields, 1 one field, 2 interlaced
+    SMI: boolean
+    PM2: boolean
+  XV_CAPTURE_BRIGHTNESS
+    SMI: SAA7111 brightness (vs. XV_BRIGHTNESS of overlay)
+  XV_DOUBLE_BUFFER
+    PM3: boolean
+    MGA: boolean
+    ATI: boolean
+    NV: boolean
+  XV_AUTOPAINT_COLORKEY
+    PM3: boolean
+    NV: boolean
+  XV_FILTER
+    PM3: 0 off, 1 full, 2 partial
+    PM2: boolean
+  XV_ALPHA:
+    PM2: boolean (use alpha channel)
+  XV_BKGCOLOR:
+    PM2: 0x00RRGGBB for tv out
+  XV_FILTER_QUALITY:
+    TDFX: 0, 1
+  XV_SET_DEFAULTS:
+    SIS: action
+    NV: action
+  XV_FREQ:
+    v4l: n * 62500 Hz unit
+  XV_MUTE:
+    v4l: boolean
+  XV_VOLUME:
+    v4l: -1000, 1000
+  XV_COLORKEYMODE:
+    NSC: ?
+  XV_RED_INTENSITY:
+    ati: -1000, 1000
+  XV_GREEN_INTENSITY:
+    ati: -1000, 1000
+  XV_BLUE_INTENSITY:
+    ati: -1000, 1000
+  XV_ITURBT_709:
+    nv: boolean
+ */
+
 static void
 register_port			(XvPortID		xvport,
 				 tv_pixfmt		pixfmt,
