@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.2.2.8 2004-02-18 07:54:46 mschimek Exp $ */
+/* $Id: misc.h,v 1.2.2.9 2004-02-25 17:33:54 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
@@ -227,6 +227,11 @@ vbi_strlcpy			(char *			d,
 				 size_t			size);
 
 #define STRCOPY(d, s) (vbi_strlcpy (d, s, sizeof (d)) < sizeof (d))
+
+#define COPY_SET_MASK(to, from, mask)					\
+	(to ^= (from) ^ (to & (mask)))
+#define COPY_SET_COND(to, from, cond)					\
+	 ((cond) ? (to |= (from)) : (to &= ~(from)))
 
 #ifndef __BYTE_ORDER
 /* Should be __LITTLE_ENDIAN or __BIG_ENDIAN, but I guess
