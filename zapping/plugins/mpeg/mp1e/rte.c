@@ -17,7 +17,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-/* $Id: rte.c,v 1.26 2000-10-12 22:06:24 garetxe Exp $ */
+/* $Id: rte.c,v 1.27 2000-10-15 09:09:55 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -49,8 +49,6 @@
       . Callbacks + push doesn't work yet.
       . It isn't reentrant.
       . Plenty of unknown bugs
-  TODO:
-      . We should allow to use different interfaces for audio or video (easy)
 */
 
 #define NUM_VIDEO_BUFFERS 8 /* video buffers in the video fifo */
@@ -168,7 +166,7 @@ dead_end_callback(void *data, double *time, int video, rte_context *
 
 	*time = tv.tv_sec + tv.tv_usec/1e6;
 
-	// done
+	/* done */
 }
 
 /* The default write data callback */
@@ -235,7 +233,7 @@ rte_context * rte_context_new (int width, int height,
 	memset(context->private, 0, sizeof(rte_context_private));
 	rte_global_context = context;
 
-	context->mode = RTE_MUX_VIDEO_AND_AUDIO;
+	context->mode = RTE_MUX_AUDIO | RTE_MUX_VIDEO;
 
 	if (!rte_set_video_parameters(context, frame_format, width,
 				      height, rate, 2.3e6)) {
@@ -262,6 +260,8 @@ rte_context * rte_context_new (int width, int height,
 		}
 		
 		context->file_name = strdup(file);
+		fprintf(stderr, "context->file_name: %s, file: %s\n",
+			context->file_name, file);
 	}
 
 	context->private->audio_data_callback = audio_data_callback;
@@ -283,18 +283,15 @@ void * rte_context_destroy ( rte_context * context )
 		return NULL;
 	}
 
-	if (context->file_name)
-		free(context->file_name);
-
 	if (context->private->encoding)
 		rte_stop(context);
 
 	if (context->private->inited) {
-		if (context->mode & RTE_MUX_VIDEO_ONLY) {
+		if (context->mode & RTE_MUX_VIDEO) {
 			uninit_fifo(&context->private->aud);
 			mucon_destroy(&context->private->vid_consumer);
 		}
-		if (context->mode & RTE_MUX_AUDIO_ONLY) {
+		if (context->mode & RTE_MUX_AUDIO) {
 			uninit_fifo(&context->private->vid);
 			mucon_destroy(&context->private->aud_consumer);
 		}
@@ -307,6 +304,13 @@ void * rte_context_destroy ( rte_context * context )
 
 	if (context->error)
 		free(context->error);
+
+	if (context->file_name) {
+		fprintf(stderr, "file_name: %s\n", context->file_name);
+		free(context->file_name);
+	}
+
+	fprintf(stderr, "file_name freed\n");
 
 	free(context->private);
 	free(context);
@@ -334,7 +338,7 @@ int rte_set_video_parameters (rte_context * context,
 		return 0;
 	}
 
-	if (!(context->mode & RTE_MUX_VIDEO_ONLY)) {
+	if (!(context->mode & RTE_MUX_VIDEO)) {
 		rte_error(context, "current muxmode is without video");
 		return 0;
 	}
@@ -450,7 +454,7 @@ int rte_set_audio_parameters (rte_context * context,
 		return 0;
 	}
 
-	if (!(context->mode & RTE_MUX_AUDIO_ONLY)) {
+	if (!(context->mode & RTE_MUX_AUDIO)) {
 		rte_error(context, "current muxmode is without audio");
 		return 0;
 	}
@@ -635,13 +639,13 @@ int rte_init_context ( rte_context * context )
 			RTE_ENCODE_CALLBACK(default_write_callback);
 	}
 
-	if (context->mode & RTE_MUX_AUDIO_ONLY)
+	if (context->mode & RTE_MUX_AUDIO)
 		mucon_init(&(context->private->aud_consumer));
-	if (context->mode & RTE_MUX_VIDEO_ONLY)
+	if (context->mode & RTE_MUX_VIDEO)
 		mucon_init(&(context->private->vid_consumer));
 
 	/* create needed fifos */
-	if (context->mode & RTE_MUX_VIDEO_ONLY) {
+	if (context->mode & RTE_MUX_VIDEO) {
 		alloc_bytes = context->video_bytes;
 		switch (context->video_format)
 		{
@@ -678,7 +682,7 @@ int rte_init_context ( rte_context * context )
 		context->private->vid.wait_full = video_wait_full;
 	}
 
-	if (context->mode & RTE_MUX_AUDIO_ONLY) {
+	if (context->mode & RTE_MUX_AUDIO) {
 		if (4 > init_buffered_fifo(&(context->private->aud),
 		      &(context->private->aud_consumer), context->audio_bytes,
 					   NUM_AUDIO_BUFFERS)) {
@@ -792,9 +796,9 @@ void rte_stop ( rte_context * context )
 
 	/* Signal the conditions so any thread waiting for an
 	   audio/video push() wake up, and use the dead end */
-	if (context->mode & RTE_MUX_AUDIO_ONLY)
+	if (context->mode & RTE_MUX_AUDIO)
 		pthread_cond_broadcast(&(context->private->aud_consumer.cond));
-	if (context->mode & RTE_MUX_VIDEO_ONLY)
+	if (context->mode & RTE_MUX_VIDEO)
 		pthread_cond_broadcast(&(context->private->vid_consumer.cond));
 
 	/* Tell the mp1e threads to shut down */
@@ -815,11 +819,11 @@ void rte_stop ( rte_context * context )
 	context->private->audio_data_callback = audio_callback;
 	context->private->video_data_callback = video_callback;
 
-	if (context->mode & RTE_MUX_VIDEO_ONLY) {
+	if (context->mode & RTE_MUX_VIDEO) {
 		uninit_fifo(&context->private->aud);
 		mucon_destroy(&context->private->vid_consumer);
 	}
-	if (context->mode & RTE_MUX_AUDIO_ONLY) {
+	if (context->mode & RTE_MUX_AUDIO) {
 		uninit_fifo(&context->private->vid);
 		mucon_destroy(&context->private->aud_consumer);
 	}
@@ -850,7 +854,7 @@ void * rte_push_video_data ( rte_context * context, void * data,
 		rte_error(context, "context not inited");
 		return NULL;
 	}
-	if (!(context->mode & RTE_MUX_VIDEO_ONLY)) {
+	if (!(context->mode & RTE_MUX_VIDEO)) {
 		rte_error(context, "Mux isn't prepared to encode video!");
 		return NULL;
 	}
@@ -899,7 +903,7 @@ void * rte_push_audio_data ( rte_context * context, void * data,
 		rte_error(context, "context not inited");
 		return NULL;
 	}
-	if (!(context->mode & RTE_MUX_AUDIO_ONLY)) {
+	if (!(context->mode & RTE_MUX_AUDIO)) {
 		rte_error(context, "Mux isn't prepared to encode audio!");
 		return NULL;
 	}

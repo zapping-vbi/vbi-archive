@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: rte.h,v 1.12 2000-10-12 22:06:24 garetxe Exp $
+ * $Id: rte.h,v 1.13 2000-10-15 09:09:55 garetxe Exp $
  * Function prototypes for RTE
  */
 
@@ -35,9 +35,9 @@
   FIXME: subtitles?
 */
 enum rte_mux_mode {
-	RTE_MUX_VIDEO_ONLY = 1,
-	RTE_MUX_AUDIO_ONLY,
-	RTE_MUX_VIDEO_AND_AUDIO
+	RTE_MUX_VIDEO = 1,
+	RTE_MUX_AUDIO = 2,
+	RTE_MUX_AUDIO_AND_VIDEO = 3 /* AUDIO | VIDEO */
 };
 
 /*
@@ -47,8 +47,8 @@ enum rte_mux_mode {
   The YUV formats are in the YCbCr colorspace
 */
 enum rte_pixformat {
-	RTE_YUYV, /* YCbYCr linear, 2 bytes per pixel */
 	RTE_YUV420, /* Planar Y:Cb:Cr 1.5 bytes per pixel */
+	RTE_YUYV, /* YCbYCr linear, 2 bytes per pixel */
 	/* RGB modes, get converted to YUV420 */
 	RTE_RGB555,
 	RTE_RGB565,
@@ -104,14 +104,14 @@ typedef struct {
 	enum rte_mux_mode mode;
 
 	/******** video parameters **********/
-	/* pixformat the passed video data is in, RTE_YUYV by default */
+	/* pixformat the passed video data is in */
 	enum rte_pixformat video_format;
 	/* frame size */
 	int width, height;
 
 	/* Video frame rate */
 	enum rte_frame_rate video_rate;
-	/* output video bits per second, defaults to 2000000 */
+	/* output video bits per second, defaults to 2.3 Mbit/s */
 	size_t output_video_bits;
 
 	/* size in bytes of a complete frame */
@@ -122,7 +122,7 @@ typedef struct {
 	int audio_rate; 
 	/* Audio mode, defaults to Mono */
 	enum rte_audio_mode audio_mode;
-	/* output audio bits per second, defaults to 80000 */
+	/* output audio bits per second, defaults to 80Kbit/s */
 	size_t output_audio_bits;
 	/* size in bytes of an audio frame */
 	int audio_bytes;
