@@ -712,13 +712,13 @@ typedef uint64_t tv_pixfmt_set;
 				  + TV_PIXFMT_SET (TV_PIXFMT_YUV24_BE)	\
 				  + TV_PIXFMT_SET (TV_PIXFMT_YVU24_LE)	\
 				  + TV_PIXFMT_SET (TV_PIXFMT_YVU24_BE))
-#define TV_PIXFMT_SET_YUYV	 (+ TV_PIXFMT_SET (TV_PIXFMT_YUYV)	\
+#define TV_PIXFMT_SET_YUV16	 (+ TV_PIXFMT_SET (TV_PIXFMT_YUYV)	\
 				  + TV_PIXFMT_SET (TV_PIXFMT_YVYU)	\
 				  + TV_PIXFMT_SET (TV_PIXFMT_UYVY)	\
 				  + TV_PIXFMT_SET (TV_PIXFMT_VYUY))
 #define TV_PIXFMT_SET_YUV_PACKED (+ TV_PIXFMT_SET_YUVA24		\
 				  + TV_PIXFMT_SET_YUV24			\
-				  + TV_PIXFMT_SET_YUYV			\
+				  + TV_PIXFMT_SET_YUV16			\
 				  + TV_PIXFMT_SET (TV_PIXFMT_Y8))
 #define TV_PIXFMT_SET_YUV	 (+ TV_PIXFMT_SET_YUV_PLANAR		\
 				  + TV_PIXFMT_SET_YUV_PACKED)
@@ -1471,12 +1471,6 @@ void tveng_set_xv_port(XvPortID port, tveng_device_info * info);
 /* Tell that the given XV port isn't valid any more */
 void tveng_unset_xv_port(tveng_device_info *info);
 #endif
-
-
-/* Assume destination buffer is YVU instead of YUV in the next
-   read_frame's. Only has effect if the mode is PIX_YUV420 and the
-   controller is V4L1. assume is by default 0 */
-void tveng_assume_yvu(int assume, tveng_device_info *info);
 
 /*
   OV511 specific code:
