@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.h,v 1.13 2002-02-25 06:22:19 mschimek Exp $ */
+/* $Id: audio.h,v 1.14 2002-03-12 18:20:23 mschimek Exp $ */
 
 #include <stdint.h>
 #include <pthread.h>
@@ -126,7 +126,7 @@ typedef struct mp2_context {
 	int			sampling_freq_code;
 	int			bit_rate_code;
 	int			audio_mode;
-	int			num_frames;		// XXX max two years
+	int64_t			num_frames;
 
 } mp2_context;
 

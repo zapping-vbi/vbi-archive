@@ -1,3 +1,11 @@
+12.03.2002	<mschimek@users.sf.net>
+
+	* configure.in: Added "/opt/gnome/share/aclocal" to
+	  AM_ACLOCAL_INCLUDE() (this has to be literal since aclocal
+	  scans configure.in before it's autoconf'ed), seems to
+	  solve the problems we had with gnome installs in /opt.
+	  See zap-misc 2001-10-15, 2002-03-09.
+
 10.03.2002	zapping-Bugs-527984 <mschimek@users.sf.net>
 
 	* src/tveng1.c: Added mmap PROT_READ | PROT_WRITE for

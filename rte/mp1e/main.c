@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.26 2002-03-09 10:21:07 mschimek Exp $ */
+/* $Id: main.c,v 1.27 2002-03-12 18:20:23 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -483,7 +483,7 @@ main(int ac, char **av)
 		set_option(audio_codec, "bit_rate", audio_bit_rate);
 		set_option(audio_codec, "audio_mode", (int) "\1\3\2\0"[audio_mode]);
 		set_option(audio_codec, "psycho", psycho_loops);
-		set_option(audio_codec, "num_frames", audio_num_frames);
+		set_option(audio_codec, "num_frames", MIN((int64_t) INT_MAX, audio_num_frames));
 
 		memset(&rsp, 0, sizeof(rsp));
 		rsp.audio.sndfmt = pcm->format;
@@ -542,7 +542,7 @@ main(int ac, char **av)
 //	        set_option(video_codec, "motion_compensation", motion_min > 0 && motion_max > 0);
 //		set_option(video_codec, "desaturate", !!luma_only);
 		set_option(video_codec, "anno", anno);
-		set_option(video_codec, "num_frames", video_num_frames);
+		set_option(video_codec, "num_frames", MIN((int64_t) INT_MAX, video_num_frames));
 
 		ASSERT("set video parameters",
 		       video_codec->class->parameters_set(video_codec, &video_params));

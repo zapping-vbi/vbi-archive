@@ -1,4 +1,4 @@
-.TH MP1E 1 "$Date: 2002-02-09 07:24:41 $" "mp1e manual" \" -*- nroff -*-
+.TH MP1E 1 "$Date: 2002-03-12 18:20:23 $" "mp1e manual" \" -*- nroff -*-
 .SH NAME
 mp1e \- realtime MPEG-1 audio/video encoder
 .SH SYNOPSIS
@@ -239,7 +239,7 @@ countries which couldn't decide between straight PAL and NTSC one
 has to guess.
 .P
 In audio only mode the frame number n refers to audio frames of
-1152 samples each (regardless of stereo or dual channel mode).
+1152 samples (times two in stereo or dual channel mode) each.
 .P
 The other method to stop compression is to hit Ctrl-C or to
 send the process a SIGUSR1 signal.

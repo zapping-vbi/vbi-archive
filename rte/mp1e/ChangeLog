@@ -1,3 +1,11 @@
+2002-03-11	<mschimek@users.sf.net>
+
+	* options.c: Fixed typo in -o error check. -a, -m,
+	  -X etc accepted out of bounds values.
+	* audio/mp2.c: fixed option_get(num_frames) bug,
+	  num_frames = INT_MAX ~ oo.
+	* video/mpeg1.c: num_frames = INT_MAX ~ oo.
+
 2002-02-18	<mschimek@users.sf.net>
 
 	* mblock.c: Fixed video_look_ahead().

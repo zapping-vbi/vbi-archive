@@ -1,0 +1,216 @@
+$Id: BUGS,v 1.1 2002-03-12 18:20:22 mschimek Exp $
+
+* Audio test failure ./mp1e -v -m2 -n30 -a0 -B32
+
+	 Bad grouping code for samples [ch][sb][s(+0,1,2)]
+
+		Code of grouped samples #s,#s+1,#s+2 in
+		subband #sb in channel #ch is violating 
+		unequalities in part C1528 ISO/IEC 11172-3
+		and part 2533 ISO/IEC 11172-4 (layer 2 only)
+
+	 Bad code for samples [ch][sb][s]
+
+		Code of sample #s in subband #sb in channel
+		#ch has all its bits equal to 1, violating
+		part C1528 ISO/IEC 11172-3 and part 2533
+		ISO/IEC 11172-4 if layer is 2, violating
+		part C1517 ISO/IEC 11172-3 and part 2532
+		ISO/IEC 11172-4 if layer is 1.
+
+	 Scalefactor [ch][sb][n]
+
+		Scalefactor #n in subband #sb in channel
+		#ch has all its bits equal to 1, violating
+		Table B.1 of ISO/IEC 11172-3 and part 2533
+		ISO/IEC 11172-4 (part 2532 if layer is 1).
+
+	 Too many data expected
+
+		The bit allocation is such that the total
+		number of bits expected exceeds the frame
+		lenght, violating part 2533 of ISO/IEC
+		11172-4 (part 2532 if layer is 1)
+
+	 Wrong padding bit compliance
+
+		The following unequality is not checked:
+		-N+file_length
+			<accumulated_length
+				<N+file_length
+		N is 8 bits for layer 2, 32 for layer 1.
+		accumulated_length is defined in part 2423
+		of ISO/IEC 11172-3. Please note that ISO is
+		more restrictive when the file is not
+		extracted from a longer sequence.
+
+	 All numbers (n,s,ch,sb) start from 0, like in
+	 part 2415 of ISO/IEC 11172-3
+
+ In frame 0++ :
+	Bitrate incompatible with mode non mono
+
+ Playback passed.
+
+* Audio test failure ./mp1e -v -m2 -n30 -a3 -B48
+
+	 Bad grouping code for samples [ch][sb][s(+0,1,2)]
+
+		Code of grouped samples #s,#s+1,#s+2 in
+		subband #sb in channel #ch is violating 
+		unequalities in part C1528 ISO/IEC 11172-3
+		and part 2533 ISO/IEC 11172-4 (layer 2 only)
+
+	 Bad code for samples [ch][sb][s]
+
+		Code of sample #s in subband #sb in channel
+		#ch has all its bits equal to 1, violating
+		part C1528 ISO/IEC 11172-3 and part 2533
+		ISO/IEC 11172-4 if layer is 2, violating
+		part C1517 ISO/IEC 11172-3 and part 2532
+		ISO/IEC 11172-4 if layer is 1.
+
+	 Scalefactor [ch][sb][n]
+
+		Scalefactor #n in subband #sb in channel
+		#ch has all its bits equal to 1, violating
+		Table B.1 of ISO/IEC 11172-3 and part 2533
+		ISO/IEC 11172-4 (part 2532 if layer is 1).
+
+	 Too many data expected
+
+		The bit allocation is such that the total
+		number of bits expected exceeds the frame
+		lenght, violating part 2533 of ISO/IEC
+		11172-4 (part 2532 if layer is 1)
+
+	 Wrong padding bit compliance
+
+		The following unequality is not checked:
+		-N+file_length
+			<accumulated_length
+				<N+file_length
+		N is 8 bits for layer 2, 32 for layer 1.
+		accumulated_length is defined in part 2423
+		of ISO/IEC 11172-3. Please note that ISO is
+		more restrictive when the file is not
+		extracted from a longer sequence.
+
+	 All numbers (n,s,ch,sb) start from 0, like in
+	 part 2415 of ISO/IEC 11172-3
+
+
+ In frame 2 :
+	Wrong padding bit compliance
+
+ In frame 6 :
+	Wrong padding bit compliance
+
+ In frame 10 :
+	Wrong padding bit compliance
+
+ In frame 14 :
+	Wrong padding bit compliance
+
+ In frame 17 :
+	Wrong padding bit compliance
+
+ In frame 21 :
+	Wrong padding bit compliance
+
+ In frame 25 :
+	Wrong padding bit compliance
+
+ In frame 29 :
+	Wrong padding bit compliance
+
+ Playback passed.
+
+* Audio test failure ./mp1e -v -m2 -n30 -a3 -B384
+
+ In frame 0 :
+	Bitrate>=224 & mode mono
+
+ Playback passed.
+
+* Audio test failure ./mp1e -v -m2 -n30 -a0 -B384
+
+	 Bad grouping code for samples [ch][sb][s(+0,1,2)]
+
+		Code of grouped samples #s,#s+1,#s+2 in
+		subband #sb in channel #ch is violating 
+		unequalities in part C1528 ISO/IEC 11172-3
+		and part 2533 ISO/IEC 11172-4 (layer 2 only)
+
+	 Bad code for samples [ch][sb][s]
+
+		Code of sample #s in subband #sb in channel
+		#ch has all its bits equal to 1, violating
+		part C1528 ISO/IEC 11172-3 and part 2533
+		ISO/IEC 11172-4 if layer is 2, violating
+		part C1517 ISO/IEC 11172-3 and part 2532
+		ISO/IEC 11172-4 if layer is 1.
+
+	 Scalefactor [ch][sb][n]
+
+		Scalefactor #n in subband #sb in channel
+		#ch has all its bits equal to 1, violating
+		Table B.1 of ISO/IEC 11172-3 and part 2533
+		ISO/IEC 11172-4 (part 2532 if layer is 1).
+
+	 Too many data expected
+
+		The bit allocation is such that the total
+		number of bits expected exceeds the frame
+		lenght, violating part 2533 of ISO/IEC
+		11172-4 (part 2532 if layer is 1)
+
+	 Wrong padding bit compliance
+
+		The following unequality is not checked:
+		-N+file_length
+			<accumulated_length
+				<N+file_length
+		N is 8 bits for layer 2, 32 for layer 1.
+		accumulated_length is defined in part 2423
+		of ISO/IEC 11172-3. Please note that ISO is
+		more restrictive when the file is not
+		extracted from a longer sequence.
+
+	 All numbers (n,s,ch,sb) start from 0, like in
+	 part 2415 of ISO/IEC 11172-3
+
+
+ In frame 5 :
+	Wrong padding bit compliance
+
+ In frame 6 :
+	Wrong padding bit compliance
+
+ In frame 7 :
+	Wrong padding bit compliance
+
+ In frame 13 :
+	Wrong padding bit compliance
+
+ In frame 14 :
+	Wrong padding bit compliance
+
+ In frame 15 :
+	Wrong padding bit compliance
+
+ In frame 21 :
+	Wrong padding bit compliance
+
+ In frame 22 :
+	Wrong padding bit compliance
+
+ In frame 23 :
+	Wrong padding bit compliance
+
+ In frame 29 :
+	Wrong padding bit compliance
+
+ In frame 30 :
+	Wrong padding bit compliance
+

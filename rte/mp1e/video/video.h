@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: video.h,v 1.15 2002-02-25 06:22:20 mschimek Exp $ */
+/* $Id: video.h,v 1.16 2002-03-12 18:20:23 mschimek Exp $ */
 
 #ifndef VIDEO_H
 #define VIDEO_H
@@ -322,7 +322,7 @@ struct mpeg1_context {
 	bool		motion_compensation;
 	bool		monochrome;
 	char *		anno;
-	int		num_frames; // XXX max two years
+	int64_t		num_frames;
 };
 
 extern uint8_t * newref;	/* future reference frame buffer */
