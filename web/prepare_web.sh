@@ -1,5 +1,5 @@
 #!/bin/sh
-#$Id: prepare_web.sh,v 1.10 2004-04-17 07:52:54 mschimek Exp $
+#$Id: prepare_web.sh,v 1.11 2004-04-17 07:54:53 mschimek Exp $
 #
 # Checks our html pages out of cvs, puts the files online
 # and cleans up.
@@ -31,4 +31,5 @@ done
 chmod a+rX doc -R
 cd -
 
-chmod a+rX lib -R
+chmod a+rX lib
+find lib -name "CVS" -prune -o -exec chmod a+rX '{}' ';'
