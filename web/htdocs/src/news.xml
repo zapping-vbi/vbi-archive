@@ -22,6 +22,9 @@ quickcams too, but this is untested).</li>
 </ul>
 </li>
 <li><b>rte</b> 0.4
+<p><b>Warning:</b> Please note that the old API wont work any longer
+and that the ffmpeg backend has been temporarily removed. This release is only
+known to work with the mpeg plugin in Zapping. We'll fix this soon.</p>
 <ul>
 <li>Continued api morphing (work in progress).</li>
 <li>Removed ffmpeg backend, it was unused.</li>
