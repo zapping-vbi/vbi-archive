@@ -18,6 +18,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+/*
+ * $Id: rte.h,v 1.12 2000-10-12 22:06:24 garetxe Exp $
+ * Function prototypes for RTE
+ */
+
 /* FIXME: We need declaring things as const */
 /* FIXME: global_context must disappear */
 /* FIXME: All these huge comments should go into a ref manual */
@@ -160,10 +165,10 @@ typedef void (*rteEncodeCallback)(void * data,
   user_data: User data passed to rte_context_new
 */
 typedef void (*rteDataCallback)(void * data,
-			       double * time,
-			       int video,
-			       rte_context * context,
-			       void * user_data);
+				double * time,
+				int video,
+				rte_context * context,
+				void * user_data);
 
 #define RTE_DATA_CALLBACK(function) ((rteDataCallback)function)
 
@@ -185,7 +190,7 @@ int rte_init ( void );
   width, height: Width and height of the pushed frames, must be 16-multiplus
   rate: Video frame rate
   encode_callback: Function to be called when encoded data is ready.
-  data_callback: Function to be called when data to be encoded is needed.
+  *_data_callback: Function to be called when data to be encoded is needed.
   user_data: Some data you would like to pass to the callback
 */
 rte_context * rte_context_new (int width, int height,
@@ -193,7 +198,8 @@ rte_context * rte_context_new (int width, int height,
 			       enum rte_frame_rate rate,
 			       char * file,
 			       rteEncodeCallback encode_callback,
-			       rteDataCallback data_callback,
+			       rteDataCallback audio_data_callback,
+			       rteDataCallback video_data_callback,
 			       void * user_data);
 
 /*
@@ -232,10 +238,14 @@ int rte_set_audio_parameters (rte_context * context,
 /* Specifies whether to encode audio only, video only or both */
 void rte_set_mode (rte_context * context, enum rte_mux_mode mode);
 
-/* [SG]ets the data callback (can be NULL) */
-void rte_set_data_callback (rte_context * context, rteDataCallback
-			    callback);
-rteDataCallback rte_get_data_callback (rte_context * context);
+/* [SG]ets the data callbacks (can be NULL) */
+void rte_set_data_callbacks (rte_context * context,
+			     rteDataCallback audio_callback,
+			     rteDataCallback video_callback);
+
+void rte_get_data_callbacks (rte_context * context,
+			     rteDataCallback * audio_callback,
+			     rteDataCallback * video_callback);
 
 /* [SG]ets the encode callback (can be NULL too if the output filename
    isn't NULL) */

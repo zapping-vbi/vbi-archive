@@ -17,7 +17,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-
+/* $Id: rte.c,v 1.26 2000-10-12 22:06:24 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -96,13 +96,18 @@ wait_data(rte_context * context, int video)
 	fifo * f;
 	buffer * b;
 	mucon * consumer;
+	rteDataCallback * data_callback;
 	
 	nullcheck(context, return NULL);
 
-	if (video)
+	if (video) {
 		f = &context->private->vid;
-	else
+		data_callback = &context->private->video_data_callback;
+	}
+	else {
 		f = &context->private->aud;
+		data_callback = &context->private->audio_data_callback;
+	}
 
 	consumer = f->consumer;
 
@@ -115,25 +120,25 @@ wait_data(rte_context * context, int video)
 		return b; /* yep, return it */
 	}
 
-	if (context->private->data_callback) { /* no, callback
-						  interface */
-		b = wait_empty_buffer(f);
+	while (!(b = (buffer*) rem_head(&f->full))) {
+		if (*data_callback) { /* no, callback
+					 interface */
+			b = wait_empty_buffer(f);
+			
+			ASSERT("size checks",
+			       b->_size == (video ? context->video_bytes :
+					    context->audio_bytes));
 
-		ASSERT("size checks",
-		       b->_size == (video ? context->video_bytes :
-				    context->audio_bytes));
+			(*data_callback)(b->data, &(b->time), video, context,
+					 context->private->user_data);
+			
+			pthread_mutex_unlock(&consumer->mutex);
+			return b;
+		}
 
-		context->private->data_callback(b->data, &(b->time),
-						video, context,
-						context->private->user_data);
-
-		pthread_mutex_unlock(&consumer->mutex);
-		return b;
-	}
-
-	/* wait for the push interface */
-	while (!(b = (buffer*) rem_head(&f->full)))
+		/* wait for the push interface */
 		pthread_cond_wait(&consumer->cond, &consumer->mutex);
+	}
 
 	pthread_mutex_unlock(&consumer->mutex);
 
@@ -150,6 +155,20 @@ static buffer*
 audio_wait_full(fifo *f)
 {
 	return wait_data((rte_context*)f->user_data, 0);
+}
+
+/* Do nothing callback */
+static void
+dead_end_callback(void *data, double *time, int video, rte_context *
+		  context, void * user_data)
+{
+	struct timeval tv;
+
+	gettimeofday(&tv, NULL);
+
+	*time = tv.tv_sec + tv.tv_usec/1e6;
+
+	// done
 }
 
 /* The default write data callback */
@@ -180,7 +199,8 @@ rte_context * rte_context_new (int width, int height,
 			       enum rte_frame_rate rate,
 			       char * file,
 			       rteEncodeCallback encode_callback,
-			       rteDataCallback data_callback,
+			       rteDataCallback audio_data_callback,
+			       rteDataCallback video_data_callback,
 			       void * user_data)
 {
 	rte_context * context;
@@ -244,7 +264,8 @@ rte_context * rte_context_new (int width, int height,
 		context->file_name = strdup(file);
 	}
 
-	context->private->data_callback = data_callback;
+	context->private->audio_data_callback = audio_data_callback;
+	context->private->video_data_callback = video_data_callback;
 
 	context->private->user_data = user_data;
 	context->private->fd = -1;
@@ -469,8 +490,9 @@ void rte_set_mode (rte_context * context, enum rte_mux_mode mode)
 	context->mode = mode;
 }
 
-void rte_set_data_callback (rte_context * context, rteDataCallback
-			    callback)
+void rte_set_data_callbacks (rte_context * context,
+			     rteDataCallback audio_callback,
+			     rteDataCallback video_callback)
 {
 	nullcheck(context, return);
 
@@ -480,14 +502,20 @@ void rte_set_data_callback (rte_context * context, rteDataCallback
 		return;
 	}
 
-	context->private->data_callback = callback;
+	context->private->audio_data_callback = audio_callback;
+	context->private->video_data_callback = video_callback;
 }
 
-rteDataCallback rte_get_data_callback (rte_context * context)
+void rte_get_data_callbacks (rte_context * context,
+			     rteDataCallback * audio_callback,
+			     rteDataCallback * video_callback)
 {
-	nullcheck(context, return NULL);
+	nullcheck(context, return);
 
-	return (context->private->data_callback);
+	if (audio_callback)
+		*audio_callback = context->private->audio_data_callback;
+	if (video_callback)
+		*video_callback = context->private->video_data_callback;
 }
 
 void rte_set_encode_callback (rte_context * context,
@@ -737,6 +765,8 @@ int rte_start_encoding (rte_context * context)
 void rte_stop ( rte_context * context )
 {
 	struct timeval tv;
+	rteDataCallback audio_callback;
+	rteDataCallback video_callback;
 
 	nullcheck(context, return);
 	
@@ -752,6 +782,21 @@ void rte_stop ( rte_context * context )
 	context->private->encoding = 0;
 	context->private->inited = 0;
 
+	/* save for future use */
+	audio_callback = context->private->audio_data_callback;
+	video_callback = context->private->video_data_callback;
+
+	/* set to dead ends */
+	context->private->audio_data_callback = dead_end_callback;
+	context->private->video_data_callback = dead_end_callback;
+
+	/* Signal the conditions so any thread waiting for an
+	   audio/video push() wake up, and use the dead end */
+	if (context->mode & RTE_MUX_AUDIO_ONLY)
+		pthread_cond_broadcast(&(context->private->aud_consumer.cond));
+	if (context->mode & RTE_MUX_VIDEO_ONLY)
+		pthread_cond_broadcast(&(context->private->vid_consumer.cond));
+
 	/* Tell the mp1e threads to shut down */
 	gettimeofday(&tv, NULL);
 
@@ -765,6 +810,10 @@ void rte_stop ( rte_context * context )
 	mux_cleanup();
 
 	output_end();
+
+	/* restore callbacks, as if nothing had happened */
+	context->private->audio_data_callback = audio_callback;
+	context->private->video_data_callback = video_callback;
 
 	if (context->mode & RTE_MUX_VIDEO_ONLY) {
 		uninit_fifo(&context->private->aud);
@@ -796,6 +845,8 @@ void * rte_push_video_data ( rte_context * context, void * data,
 	nullcheck(context, return NULL);
 
 	if (!context->private->inited) {
+		rte_error(NULL, "context not inited\n"
+			"The context must be encoding for push to work.");
 		rte_error(context, "context not inited");
 		return NULL;
 	}
@@ -843,11 +894,13 @@ void * rte_push_audio_data ( rte_context * context, void * data,
 	nullcheck(context, return NULL);
 
 	if (!context->private->inited) {
+		rte_error(NULL, "context not inited\n"
+			"The context must be encoding for push to work");
 		rte_error(context, "context not inited");
 		return NULL;
 	}
 	if (!(context->mode & RTE_MUX_AUDIO_ONLY)) {
-		rte_error(context, "Mux isn't prepared to encode video!");
+		rte_error(context, "Mux isn't prepared to encode audio!");
 		return NULL;
 	}
 

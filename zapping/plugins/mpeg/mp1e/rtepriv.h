@@ -17,6 +17,10 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
+/*
+ * $Id: rtepriv.h,v 1.9 2000-10-12 22:06:24 garetxe Exp $
+ * Private stuff in the context.
+ */
 
 #ifndef __RTEPRIV_H__
 #define __RTEPRIV_H__
@@ -55,7 +59,8 @@ struct _rte_context_private {
 	int encoding; /* 0 if not encoding */
 	int inited; /* 0 if not inited */
 	rteEncodeCallback encode_callback; /* save-data Callback */
-	rteDataCallback data_callback; /* need-data Callback */
+	rteDataCallback audio_data_callback; /* need audio data */
+	rteDataCallback video_data_callback; /* need video data */
 	pthread_t mux_thread; /* mp1e multiplexer thread */
 	pthread_t video_thread_id; /* video encoder thread */
 	pthread_t audio_thread_id; /* audio encoder thread */
@@ -69,16 +74,6 @@ struct _rte_context_private {
 	buffer * last_video_buffer; /* video buffer the app should be
 				       encoding to */
 	buffer * last_audio_buffer; /* audio buffer */
-	/* video fetcher (callbacks) */
-	int video_pending; /* Pending video frames */
-	pthread_t video_fetcher_id; /* id of the video fetcher thread */
-	pthread_mutex_t video_mutex; /* mutex for the fetcher */
-	pthread_cond_t video_cond; /* cond for the fetcher */
-	/* audio fetcher (callbacks) */
-	int audio_pending; /* Pending video frames */
-	pthread_t audio_fetcher_id; /* id of the video fetcher thread */
-	pthread_mutex_t audio_mutex; /* mutex for the fetcher */
-	pthread_cond_t audio_cond; /* cond for the fetcher */
 	_rte_filter rgbfilter; /* the filter used for conversion, if any */
 	char * rgbmem; /* allocated mem for the rgb image */
 };

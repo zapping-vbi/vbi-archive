@@ -18,6 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
+ * $Id: rte_test_main.c,v 1.10 2000-10-12 22:06:24 garetxe Exp $
  * This is a simple RTE test.
  */
 
@@ -33,11 +34,12 @@
 #include <sys/time.h>
 #include <sys/ioctl.h>
 #include <asm/types.h>
+#include <pthread.h>
 #include "common/log.h"
 #include "videodev2.h"
 #include "rte.h"
 
-#undef USE_ESD /* doesn't work yet */
+#undef USE_ESD
 
 #ifndef USE_ESD
 #include <linux/soundcard.h>
@@ -46,6 +48,7 @@
 #endif
 
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
 static int			fd; /* fd:video, fd2:audio */
 static void*			buffers[16];
@@ -300,40 +303,55 @@ read_audio(void * data, double * time, rte_context * context)
 	return;
 }
 #else /* use esd */
-#warning The ESD interface is still experimental
+#warning The ESD interface is broken
 static void
 read_audio(void * data, double * time, rte_context * context)
 {
-	fd_set rdset;
 	struct timeval tv;
-	int n, r = context->audio_bytes;
-	void * p = data;
-	double ltime;
+	int n, r;
+	static short * p = abuffer;
+	static int left = 0;
+	double ltime, utime;
 	int stereo = (context->audio_mode == RTE_AUDIO_MODE_STEREO) ? 1
 		: 0;
 	int sampling_rate = context->audio_rate;
 
-	while (r>0) {
-		FD_ZERO(&rdset);
-		FD_SET(esd_recording_socket, &rdset);
-		
-		tv.tv_sec = 1;
-		tv.tv_usec = 0;
-/*		n = select(esd_recording_socket, &rdset, NULL, NULL, &tv);
-		
-		gettimeofday(&tv, NULL);
-		fprintf(stderr, "selected\n");
-		if (n<0)
-			continue;
-			fprintf(stderr, "reading\n");*/
-		n = read(esd_recording_socket, p, r);
-//		fprintf(stderr, "n: %d, r: %d\n", n, r);
-		r -= n;
+	r = MIN(left, context->audio_bytes);
 
-		if (r <= 0)
-			gettimeofday(&tv, NULL);
+	memcpy(data, p, r);
 
-		p += n;
+	p += r;
+	left -= r;
+
+	if (left <= 0) {
+		memcpy(abuffer, p, context->audio_bytes - r);
+		p = ((char*)abuffer) + (context->audio_bytes - r);
+
+		r = ESD_BUFFER_SIZE;
+		while (r>0) {
+			FD_ZERO(&rdset);
+			FD_SET(esd_recording_socket, &rdset);
+			
+			tv.tv_sec = 1;
+			tv.tv_usec = 0;
+			n = select(esd_recording_socket, &rdset, NULL,
+				   NULL, &tv);
+		
+			fprintf(stderr, "selected\n");
+			if (n<0)
+				continue;
+			fprintf(stderr, "reading\n");
+			n = read(esd_recording_socket, p, r);
+//			fprintf(stderr, "n: %d, r: %d\n", n, r);
+			r -= n;
+			
+			if (r <= 0)
+				gettimeofday(&tv, NULL);
+
+			p += n;
+		}
+		
+		
 	}
 
 	ltime = ((double)context->audio_bytes) / (2 * (double)sampling_rate *
@@ -402,6 +420,25 @@ data_callback(void * data, double * time, int video, rte_context *
 		read_audio(data, time, context);
 }
 
+/* Set to 1 to shut down audio thread */
+static int thread_exit_signal=0;
+
+/* This thread pushes audio into the rte context */
+void * audio_thread(void * p)
+{
+	rte_context * context = (rte_context*) p;
+	double timestamp;
+
+	p = rte_push_audio_data(context, NULL, 0);
+
+	while (!thread_exit_signal) {
+		read_audio(p, &timestamp, context);
+		p = rte_push_audio_data(context, p, timestamp);
+	}
+
+	return NULL;
+}
+
 int main(int argc, char *argv[])
 {
 	rte_context * context;
@@ -412,6 +449,8 @@ int main(int argc, char *argv[])
 	char * video_device = "/dev/video";
 	char * audio_device = "/dev/audio";
 	char * dest_file = "temp.mpeg";
+	pthread_t audio_thread_id;
+	enum rte_mux_mode mux_mode = RTE_MUX_VIDEO_AND_AUDIO;
 
 	if (!rte_init()) {
 		fprintf(stderr, "RTE couldn't be inited\n");
@@ -430,26 +469,37 @@ int main(int argc, char *argv[])
 	rate_code = init_video(video_device, &width, &height);
 	init_audio(audio_device, audio_rate, stereo);
 
+	/*
+	 * width, height, pixformat
+	 * frame rate code, dest file, encode callback
+	 * audio data callback, video data callback
+	 * user data
+	 */
 	context = rte_context_new(width, height, RTE_YUV420,
 				  rate_code, dest_file, NULL,
-				  data_callback, (void*)0xdeadbeef);
+				  NULL, data_callback,
+				  (void*)0xdeadbeef);
 
 	if (!context) {
 		fprintf(stderr, "the context cannot be created\n");
 		return 0;
 	}
 
-	rte_set_audio_parameters(context, audio_rate, stereo ?
-				 RTE_AUDIO_MODE_STEREO :
-				 RTE_AUDIO_MODE_MONO,
-				 context->output_audio_bits);
+	rte_set_mode(context, mux_mode);
+
+	if (mux_mode & RTE_MUX_AUDIO_ONLY) {
+		rte_set_audio_parameters(context, audio_rate, stereo ?
+					 RTE_AUDIO_MODE_STEREO :
+					 RTE_AUDIO_MODE_MONO,
+					 context->output_audio_bits);
 
 #ifndef USE_ESD
-	abuffer = malloc(buffer_size);
-	memset(abuffer, 0, buffer_size);
+		abuffer = malloc(buffer_size);
+		memset(abuffer, 0, buffer_size);
 #endif
+	}
 
-	fprintf(stderr, "starting encode\n");
+	fprintf(stderr, "start encoding\n");
 
 	if (!rte_init_context(context)) {
 		fprintf(stderr, "cannot init the context: %s\n",
@@ -457,6 +507,9 @@ int main(int argc, char *argv[])
 		rte_context_destroy(context);
 		return 0;
 	}
+
+	if (mux_mode & RTE_MUX_AUDIO_ONLY)
+		pthread_create(&audio_thread_id, NULL, audio_thread, context);
 
 	if (!rte_start_encoding(context)) {
 		fprintf(stderr, "cannot start encoding: %s\n",
@@ -469,10 +522,18 @@ int main(int argc, char *argv[])
 
 	// let rte encode video for some time
 	sleep(sleep_time);
-
+	
 	fprintf(stderr, "done encoding\n");
 
-	// stop encoding
+	// Stop pushing before stopping the context
+	thread_exit_signal = 1;
+	if (mux_mode & RTE_MUX_AUDIO_ONLY)
+		pthread_join(audio_thread_id, NULL);
+
+	// stop encoding.
+	rte_stop(context);
+
+	// destroy the object
 	rte_context_destroy(context);
 
 	fprintf(stderr, "exiting\n");
