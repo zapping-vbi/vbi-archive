@@ -959,14 +959,15 @@ lookup_channel_cmd			(GtkWidget *	widget,
 static gchar			kp_chsel_buf[5];
 static gint			kp_chsel_prefix;
 static gboolean			kp_clear;
+static gboolean			kp_lirc;
 
 static void
-kp_timeout				(gboolean timer)
+kp_timeout			(gboolean timer)
 {
   gchar *vec[2] = { 0, kp_chsel_buf };
   gint txl = zconf_get_integer (NULL, "/zapping/options/main/channel_txl");
 
-  if (timer && txl >= 0) /* -1 disable, 0 list entry, 1 RF channel */
+  if (timer && (txl >= 0 || kp_lirc)) /* -1 disable, 0 list entry, 1 RF channel */
     {
       if (!isdigit(kp_chsel_buf[0]) || txl >= 1)
 	lookup_channel_cmd (NULL, 2, vec, NULL);
@@ -981,22 +982,18 @@ kp_timeout				(gboolean timer)
     }
 }
 
-gboolean
-on_channel_key_press			(GtkWidget *	widget,
-					 GdkEventKey *	event,
-					 gpointer	user_data)
+static gboolean
+kp_key_press			(GdkEventKey *	event,
+				 gint txl)
 {
   extern tveng_rf_table *current_country; /* Currently selected contry */
   gchar *vec[2] = { 0, kp_chsel_buf };
   tveng_tuned_channel *tc;
   const gchar *prefix;
   z_key key;
-  int txl, i;
+  int i;
 
-  txl = zconf_get_integer (NULL, "/zapping/options/main/channel_txl");
-
-  if (txl >= 0) /* !disabled */
-    switch (event->keyval)
+  switch (event->keyval)
       {
 #ifdef HAVE_LIBZVBI
       case GDK_KP_0 ... GDK_KP_9:
@@ -1051,6 +1048,42 @@ on_channel_key_press			(GtkWidget *	widget,
       default:
 	break;
       }
+
+  return FALSE; /* not for us, pass it on */
+}
+
+/*
+ * Called from alirc.c, preliminary.
+ */
+gboolean
+channel_key_press		(GdkEventKey *		event)
+{
+  gint txl;
+
+  txl = zconf_get_integer (NULL, "/zapping/options/main/channel_txl");
+
+  kp_lirc = TRUE;
+
+  return kp_key_press (event, txl);
+}
+
+gboolean
+on_channel_key_press			(GtkWidget *	widget,
+					 GdkEventKey *	event,
+					 gpointer	user_data)
+{
+  extern tveng_rf_table *current_country; /* Currently selected contry */
+  gchar *vec[2] = { 0, kp_chsel_buf };
+  tveng_tuned_channel *tc;
+  const gchar *prefix;
+  z_key key;
+  int txl, i;
+
+  txl = zconf_get_integer (NULL, "/zapping/options/main/channel_txl");
+
+  if (txl >= 0) /* !disabled */
+    if (kp_key_press (event, txl))
+      return TRUE;
 
   /* Channel accelerators */
 
