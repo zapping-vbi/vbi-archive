@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.36 2002-09-26 20:38:05 mschimek Exp $ */
+/* $Id: mp2.c,v 1.37 2002-10-02 20:51:28 mschimek Exp $ */
 
 #include <limits.h>
 
@@ -1077,7 +1077,7 @@ option_set(rte_codec *codec, const char *keyword, va_list args)
 		break;
 	default:
 		rte_error_printf(codec->context, "Cannot set %s options, codec is busy.",
-				 dc->_public.keyword);
+				 dc->_public->keyword);
 		return FALSE;
 	}
 
@@ -1176,44 +1176,44 @@ codec_new(rte_codec_class *cc, char **errstr)
 	return codec;
 }
 
+static rte_codec_info
+mpeg1_layer2_info = {
+	.stream_type	= RTE_STREAM_AUDIO,
+	.keyword	= "mpeg1_audio_layer2",
+	.label		= N_("MPEG-1 Audio Layer II"),
+};
+
 rte_codec_class
 mp1e_mpeg1_layer2_codec = {
-	._public = {
-		.stream_type	= RTE_STREAM_AUDIO,
-		.keyword	= "mpeg1_audio_layer2",
-		.label		= N_("MPEG-1 Audio Layer II"),
-	},
-
+	._public	= &mpeg1_layer2_info,
 	._new		= codec_new,
 	._delete        = codec_delete,
-
 	.option_enum	= option_enum,
 	.option_get	= option_get,
 	.option_set	= option_set,
 	.option_print	= option_print,
-
 	.parameters_set	= parameters_set,
+};
+
+static rte_codec_info
+mpeg2_layer2_info = {
+	.stream_type	= RTE_STREAM_AUDIO,
+	.keyword	= "mpeg2_audio_layer2",
+	.label		= N_("MPEG-2 Audio Layer II LSF"),
+	.tooltip	= N_("MPEG-2 Low Sampling Frequency extension to MPEG-1 "
+			     "Audio Layer II. Be warned not all MPEG video and "
+			     "audio players support MPEG-2 audio."),
 };
 
 rte_codec_class
 mp1e_mpeg2_layer2_codec = {
-	._public = {
-		.stream_type	= RTE_STREAM_AUDIO,
-		.keyword	= "mpeg2_audio_layer2",
-		.label		= N_("MPEG-2 Audio Layer II LSF"),
-		.tooltip	= N_("MPEG-2 Low Sampling Frequency extension to MPEG-1 "
-				     "Audio Layer II. Be warned not all MPEG video and "
-				     "audio players support MPEG-2 audio."),
-	},
-
+	._public	= &mpeg2_layer2_info,
 	._new		= codec_new,
 	._delete        = codec_delete,
-
 	.option_enum	= option_enum,
 	.option_get	= option_get,
 	.option_set	= option_set,
 	.option_print	= option_print,
-
 	.parameters_set	= parameters_set,
 };
 

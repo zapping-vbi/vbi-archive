@@ -17,11 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.5 2002-10-02 02:13:48 mschimek Exp $ */
-
-#ifdef HAVE_CONFIG_H
-//#  include "config.h"
-#endif
+/* $Id: v4l2.c,v 1.6 2002-10-02 20:52:40 mschimek Exp $ */
 
 #include "site_def.h"
 

@@ -17,11 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg2.c,v 1.6 2002-10-02 02:13:48 mschimek Exp $ */
-
-#ifdef HAVE_CONFIG_H
-//#  include "config.h"
-#endif
+/* $Id: mpeg2.c,v 1.7 2002-10-02 20:50:42 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -44,6 +40,8 @@
 #include "dct.h"
 #include "motion.h"
 #include "video.h"
+
+#ifdef OPTIONS_M2I
 
 #define VARQ 65536.0
 
@@ -1669,7 +1667,7 @@ option_set(rte_codec *codec, const char *keyword, va_list args)
 
 	default:
 		rte_error_printf(codec->context, "Cannot set %s options, codec is busy.",
-				 codec->_class->_public.keyword);
+				 codec->_class->_public->keyword);
 		return FALSE;
 	}
 
@@ -1792,23 +1790,23 @@ codec_new(rte_codec_class *cc, char **errstr)
 	return codec;
 }
 
+static rte_codec_info
+codec_info = {
+	.stream_type = RTE_STREAM_VIDEO,
+	.keyword = "mpeg2_video",
+// experimental
+//	.label = "MPEG-2 Video",
+};
+
 rte_codec_class
 mp1e_mpeg2_video_codec = {
-	._public = {
-		.stream_type = RTE_STREAM_VIDEO,
-		.keyword = "mpeg2_video",
-// experimental
-//		.label = "MPEG-2 Video",
-	},
-
+	._public	= &codec_info,
 	._new		= codec_new,
 	._delete	= codec_delete,
-
 	.option_enum	= option_enum,
 	.option_get	= option_get,
 	.option_set	= option_set,
 	.option_print	= option_print,
-
 	.parameters_set = parameters_set,
 };
 
@@ -1816,3 +1814,9 @@ void
 mp1e_mpeg2_module_init(int test)
 {
 }
+
+#else
+
+rte_codec_class mp1e_mpeg2_video_codec;
+
+#endif

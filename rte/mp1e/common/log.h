@@ -20,10 +20,6 @@
 #ifndef LOG_H
 #define LOG_H
 
-#ifdef HAVE_CONFIG_H
-//#  include "config.h"
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>

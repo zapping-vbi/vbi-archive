@@ -18,11 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: motion.c,v 1.14 2002-10-02 02:13:48 mschimek Exp $ */
-
-#ifdef HAVE_CONFIG_H
-//#  include "config.h"
-#endif
+/* $Id: motion.c,v 1.15 2002-10-02 20:50:42 mschimek Exp $ */
 
 #include "site_def.h"
 
