@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.56 2005-02-25 18:12:02 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.57 2005-02-28 22:34:56 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu -> ? */
 #undef GTK_DISABLE_DEPRECATED
@@ -430,13 +430,24 @@ do_start			(const gchar *		file_name)
 
   if (video_codec)
     {
+      display_mode old_dmode;
+      capture_mode old_cmode;
       tv_pixfmt_set pixfmt_set;
       rte_video_stream_params *par;
 
       par = &video_params.video;
 
-      if (-1 == zmisc_switch_mode (DISPLAY_MODE_WINDOW,
-				   CAPTURE_MODE_READ, zapping_info))
+      old_dmode = zapping->display_mode;
+      old_cmode = tv_get_capture_mode (zapping_info);
+
+      /* Stop and restart to make sure we use a capture thread,
+	 not a queue because in do_stop the (main) thread copying
+	 buffers from the queue to the fifo and the video codec
+	 thread reading frames until stop time is reached may
+	 deadlock. That means for now recording and deinterlacing
+	 do not combine. :-( */
+
+      if (-1 == zmisc_stop (zapping_info))
 	{
 	  rte_context_delete (context);
 	  context_enc = NULL;
@@ -444,6 +455,7 @@ do_start			(const gchar *		file_name)
 	  ShowBox ("This plugin needs to run in Capture mode, but"
 		   " couldn't switch to that mode:\n%s",
 		   GTK_MESSAGE_INFO, tv_get_errstr (zapping_info));
+
 	  return FALSE;
 	}
 
@@ -473,6 +485,8 @@ do_start			(const gchar *		file_name)
 	      ShowBox ("Cannot switch to requested capture format",
 		       GTK_MESSAGE_ERROR);
 
+	      zmisc_switch_mode (old_dmode, old_cmode, zapping_info);
+
 	      return FALSE;
 	    }
 
@@ -487,6 +501,8 @@ do_start			(const gchar *		file_name)
 
 	      ShowBox ("Cannot switch capture format",
 		       GTK_MESSAGE_ERROR);
+
+	      zmisc_switch_mode (old_dmode, old_cmode, zapping_info);
 
 	      return FALSE;
 	    }
@@ -550,6 +566,8 @@ do_start			(const gchar *		file_name)
 		      capture_format_id = -1;
 		    }
 
+		  zmisc_switch_mode (old_dmode, old_cmode, zapping_info);
+
 		  return FALSE;
 		}
 	    }
@@ -576,6 +594,8 @@ do_start			(const gchar *		file_name)
 
 	      ShowBox ("Oops, catched a bug.",
 		       GTK_MESSAGE_ERROR);
+
+	      zmisc_switch_mode (old_dmode, old_cmode, zapping_info);
 
 	      return FALSE; 
 	    }
@@ -622,6 +642,26 @@ do_start			(const gchar *		file_name)
 		}
 	    }
 	} /* retry loop */
+
+
+
+      if (-1 == zmisc_switch_mode (old_dmode, CAPTURE_MODE_READ, zapping_info))
+	{
+	  rte_context_delete (context);
+	  context_enc = NULL;
+
+	  if (-1 != capture_format_id)
+	    {
+	      release_capture_format (capture_format_id);
+	      capture_format_id = -1;
+	    }
+
+	  ShowBox ("This plugin needs to run in Capture mode, but"
+		   " couldn't switch to that mode:\n%s",
+		   GTK_MESSAGE_INFO, tv_get_errstr (zapping_info));
+
+	  return FALSE;
+	}
     }
 
   if (audio_codec)
@@ -1921,7 +1961,8 @@ plugin_running			(void)
 static void
 plugin_capture_stop		(void)
 {
-  saving_dialog_delete ();
+  /* Not good, and we stop capturing ourselves in do_start(). */
+  /* saving_dialog_delete (); */
 
   do_stop ();
 }
