@@ -22,5 +22,6 @@ Thanks are due to the following people for helping with the program
 - Roger Fujii: Fixes to build and work under Solaris.
 - Paweł Sakowski: Polish translation.
 - Henrik Isacsson: Swedish translation.
+- Mark Cooke: Lots of help with RPM build process under RH.
 
 And, of course, thanks to the people that sent bug reports and suggestions.
