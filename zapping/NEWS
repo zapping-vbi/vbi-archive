@@ -1,8 +1,25 @@
 New stuff, refer to the ChangeLog for a more detailed description of
 the changes.
 
-Zapping 0.9
------------
+Zapping 0.9, 2004-02-15
+-----------------------
+This version of Zapping has a new deinterlace plugin based on code from
+DScaler. Most of the changes since 0.8 went into related functions, for
+example faster capture routines. For now deinterlacing works only with
+V4L2 drivers on x86 CPUs with MMX. Zapping 0.9 should also work better
+with webcams (needs testing), specifically those supported by the sn9c102
+and pwc drivers. The screenshot plugin can grab images at full size as
+opposed to video window size. The zapping_remote tool already present in
+earlier version installs now, with a manual page. zapping_remote can be
+used to send commands to a running Zapping process.
+
+User visible bug fixes:
+- Recognize Cyrix CPUs with MMX/SSE.
+- Various fixes in the Teletext decoder.
+- Correct XVideo (v4l) video input and standard names.
+- Initially in the video input, audio input and standard menu the
+  wrong item was active.
+- Quitting by menu doesn't crash anymore.
 
 Zapping 0.8, 2004-11-11
 -----------------------

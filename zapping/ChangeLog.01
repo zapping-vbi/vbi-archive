@@ -1,0 +1,2283 @@
+2001-12-25	hide pointer timeout <garetxe@users.sf.net>
+
+	* main.c: Hide the pointer after 1.5s, timeout logic.
+
+2001-12-23	fake std <garetxe@users.sf.net>
+
+	* tveng1.c: Automatic workaround for v4l api bug, now tunerless
+	inputs can set the std when there's a tuner in the card.
+	* screenshot: Made the ov511 button polling a
+	timeout+thread. Rather inelegant, but we don't have much choice.
+	* po: Dumped the ngettext emulation and require the real thing
+	(>0.10.36). It won't be a problem except for people building from cvs.
+
+2001-12-16	pl.po updated <garetxe@users.sf.net>
+
+	* pl.po: Update by Paweł.
+
+2001-12-16	fixes <mschimek@users.sf.net>
+
+	* 176x144: bug in XvPutImage, driver side, deleted.
+	* Crash on exit: not recently observed, probably fixed.
+	* screenshot.c: Replaced "appx %.2f kB", appx w/2 decimals, yeah.
+	* capture.c: zapping --no-xv never cleared window regions
+	  not covered by image in case of exposure or image resizing
+	  (eg. mpeg plugin).
+	* zvbi.c: Fixed "last known station name" bug.
+	* export.c: Changed subno separator from '.' to '-'. Problems
+	  with new on_electric... but it's probably better to avoid
+	  two dots in filenames.
+
+2001-12-14	yet more channel stuff <mschimek@users.sf.net>
+
+	* channel_editor.c: Fixed random freq when modifying channel to
+	  baseband input (or adding baseband input channel) and then
+	  modifying back to tuner. Selecting a channel now sets fine
+	  tuning even if "dont change" or baseband channel,
+	  so one can switch back and forth without erasing the freq.
+	  In clist "dont change" channels are now marked to distinguish
+	  from tuner channels.
+	* libvbi/lang.c: iconv broken??? Added workaround. 
+	* libvbi/exp_html.c: Fixed blink attribute. Replaced ISO-8859-5
+	  charset by KOI8-R which seems to be more widely accepted.
+
+2001-12-13	more channel stuff <mschimek@users.sf.net>
+
+	* tveng.h: Added tveng_control.def[ault]_value, from api (tveng2.c),
+	  or current value (tveng1.c, tvengxv.c). For controls dialog.
+	* tveng2.c: Added fake tuner for tests (by default not compiled),
+	  fixed in set_input: info->cur_input = input->id;
+	* tveng1.c: ditto input->id
+	* channel_editor.c: Changing input now activates said input and
+	  makes fine tuning sensitive iff tuner. Modified the spinbutton
+	  adjustment to allow entering arbitrary frequencies (for
+	  add-new-channel). 
+
+2001-12-12	channel stuff <mschimek@users.sf.net>
+
+	* Moved channel_editor.c z_spinslider into misc.c, merged with
+	  mpeg/options.c and made a few improvements. Replaced spinslider
+	  in options.c, channel_editor.c and v4linterface.c (which added
+	  a reset button to the latter two and a kHz label in channel
+	  dialog.
+	* v4linterface.c: Changed controls window policy allow_grow to
+	  TRUE, to allow wider sliders.
+
+2001-12-10	Solaris portability <garetxe@users.sf.net>
+
+	* Many fixes, mainly Solaris portability (thanks to Roger Fujii
+	for his help with this).
+	* mpeg: run the properties dialog at least once before recording.
+
+2001-12-09	JPEG plugin <mschimek@users.sf.net>
+
+	* Rewrote jpeg plugin. New attractions: screenshot dialog
+	  got a format selector, quality slider and preview (optional),
+	  output size estimation, simple deinterlace option, also
+	  previewed. Like [Ctrl-S] the image is now grabbed on [S]
+	  rather than OK (optional). Added PPM backend. Electrified
+	  file name entry, made dialog closing on filename-enter
+	  optional.
+
+2001-12-07	<mschimek@users.sf.net>
+
+	* v4linterface.c: Added new title bar vars $(title), $(rating),
+	  contents from program_info[current] (for now CC/XDS only).
+	* Added program_info dialog, clone of vbi_info (now Network Info),
+	  unified the dialog design.
+
+2001-12-05	caption.c <mschimek@users.sf.net>
+
+	* Fixed repeated roll-ups may be merged into one.
+	  (Not related to the osd bug.)
+	* vbi.c: Fixed full stop bug in filter.
+	* Fixed vbi_classify_page could mistake current/next
+	  program caption language.
+	* Added XDS program info event.
+	* Added rating pixmaps for program info dialog.
+
+2001-12-05	screenshot.c <mschimek@users.sf.net>
+
+	* Made Convert_RGB5*5_RGB24 more accurate ((r & 31) * 255 / 31
+	  instead of (r & 31) << 3).
+	* Cleaned up and slightly accelerated line converters.
+	* Primitive beginnings of multiple backends.
+
+2001-12-03	fr.po <garetxe@users.sf.net>
+
+	* fr.po: Update by Christian Marillat.
+	* callbacks.c: Resize the tv_screen, not the whole window.
+	* tveng1.c: Fixed typo when getting the minor device number.
+	* zvbi.c: Disable VBI when opening the device fails.
+
+2001-12-02	Fractional pixel problem <garetxe@users.sf.net>
+
+	* audio.c: Set configured mixer settings when opening the device.
+	* osd.c: Teletubbyfied Mr. Copperfield.
+
+2001-12-01	Mixer et co. <garetxe@users.sf.net>
+
+	* tveng: Added tveng_ov511_get_button_state (untested),
+	autodetects /proc entry, etc.
+	* screenshot: use tveng for querying ov511 status.
+	* bookmark.ico: Added, it's a png indeed. Dunno why this, just
+	following what the galeon.sf.net web page does.
+	* htdocs: Added a "Shortcut Icon" link to the header so bookmarking
+	in galeon puts the logo next to the icon (might work in other
+	browsers, untested).
+	* mixer: Added code to control the mixer, nothing uses it yet
+	apart from properties.c
+	* properties/audio: Add a simple gui to force a given audio
+	recording line and volume, so we always record with the desired
+	settings.
+
+2001-11-27	Post-release fixes <garetxe@users.sf.net>
+
+	* zapping.spec.in: Included missing zapping_fix_overlay.
+	* src/frequencies.c: Added missing UHF for Italy (reported by
+	Lorenzo Delana) and Ireland (not sure, but it's probable).
+	* screenshot: call plugin_start only once when the ov511 button is
+	clicked.
+
+2001-11-27	Screenshot extension <mschimek@users.sf.net>
+
+	* Added function to poll Creative WebCam (ov511) grab button
+	  to screenshot plugin, contributed by Sandino Flores Moreno.
+
+2001-11-22	Fixes <mschimek@users.sf.net>
+
+	* v4lx.c: "bad signal -> eof_sent", probably due to exceeding
+	  the select timeout limit (can't test mmapped vbi), -> fatal
+	  error considered eof. Read interface not affected. Timeouts
+	  are ignored now, however a better response is warranted,
+	  this code to be revisited at a later date.
+	* teletext.c, ttxview.c: TOP index fixes: insufficient pg init,
+	  wrong char set, next subp didn't work, char size heisenbug (gcc?).
+	* teletext.c, vbi_page_title: Use correct national character set.
+	* teletext.c: [default] object invocation did not recursively abort.
+	* packet.c, eacem trigger: didn't consider 41st column. First
+	  encounter of 'ttx:' trigger, decoding worked out of the box
+	  incl nuid and stuff, link not quite.
+
+2001-11-20	Fixes <mschimek@users.sf.net>
+
+	* libvbi/caption.c: Fixed CR display update.
+	* osd.c: Segv in gdk_draw_rgb_image_dithalign at gdkrgb.c:3057
+	  due to missing gdk_rgb_init; Didn't happen when opening prefs
+	  first, gdk_rgb_init was called as load image side effect.
+	  Copied gdk_rgb_init seq from shaped_caption.c to main.c, correct?
+
+2001-11-18	Completed fast-clicked <garetxe@users.sf.net>
+
+	* screenshot: gladeified clicked() dialog.
+	* mpeg: Select destination file on clicked signal, as in screenshot.
+
+2001-11-16	Fast variants of screenshot and mpeg <garetxe@users.sf.net>
+
+	* screenshot, mpeg: Added fast (Ctrl, no configuration) distinction.
+	* main.c: GtkButtons in Z now have a "fast-clicked" signal in
+	their class.
+	* nl.po: Update by Ime Smits.
+	
+2001-11-15	nl.po <garetxe@users.sf.net>
+
+	* nl.po: Added, contributed by Ime Smits and Reinout van Schouwen.
+	* tveng1.c: Reenabled pal-n.
+	* properties.c: Remember last open group, added a frame around the
+	properties contents, fixed sidebar geometry calculation ("add"
+	isn't called for boxes, apparently, even being containers...)
+
+2001-11-14	Killed parrot <garetxe@users.sf.net>
+
+	* parrot: Removed from build tree.
+	* configure.in: Added --with-gnome-prefix, overrides
+	'gnome-config --prefix'
+	* prepare_dist: Added optional prefix parameter.
+	* channel_editor.c: Sync with glade file.
+	* TODO: I think ttx search gui is clear enough, removing from
+	here.
+
+2001-11-12	Plugins properties conversion <garetxe@users.sf.net>
+
+	* mpeg, lirc, screenshot: Converted properties to the new style.
+	* plugins.c: Removed properties handling code, each plugin
+	manages its properties now through the properties.h api.
+
+2001-11-06	More properties work <garetxe@users.sf.net>
+
+	* audio: Ported to the new properties code.
+	* zconf: Added hook_while_alive
+	* properties-handler: Dynamic ITV sensitivity.
+
+2001-11-05	Properties almost done <garetxe@users.sf.net>
+
+	* properties.c: Finished the shell code.
+	* properties-handler.c: Added, it's the handler for Z's properties
+	pages. Almost done except for audio backend properties code and
+	dynamic ITV sensitivity.
+
+2001-11-04	GUI sweetpill follow-up <mschimek@users.sf.net>
+
+	* mpeg.c: Added rte.h version check.
+	* Replaced occurences of "Elija un color" outside es.po
+	  by "Choose a color".
+	* zapping.glade: Moved a few channel dialog widgets.
+	* channel_editor.c: Added index and video standard to
+	  channel list, moved country, NLSed accelerator modifiers,
+	  displays input name instead of country, channel and freq
+	  when source is not tuner. Replaced unsafe snprintf(d, n, t)
+	  by strncpy. Up and down button insensitive at end of list
+	  and after selecting all rows (not always??). The respective
+	  next row is moved back in sight on up or down. My spelling
+	  gland asked for a change of the freq table names.
+
+2001-11-04	New properties dialog <garetxe@users.sf.net>
+
+	* properties.c: New Galeon style properties code. Still under
+	construction (and nonfunctional), but I couldn't resist commiting
+	:-) Plugins can	be configured in the 'Plugins' dialog.
+
+2001-11-02	GUI sweetpill <garetxe@users.sf.net>
+
+	* channel_editor: Rearranged as discussed in the mailing list.
+	* gnome_help: Remember to update clips after tveng_restart_everything.
+	* zapping_fix_overlay: Script to fix the so common consolehelper
+	bug (is it really consolehelper?).
+
+2001-10-30	<mschimek@users.sf.net>
+
+	* macros: Added as.m4 from automake 1.5, required there but not
+	  shipped with previous versions. aclocal 1.5 doesn't abort on
+	  double def anymore.
+	* mpeg.c: Sets correct frame rate for NTSC.
+	* tveng2.c, tvengxv.c: Fixed tveng_enumstd.frame_rate.
+
+2001-10-26	Show/hide pointer <garetxe@users.sf.net>
+
+	* zmisc.c: Routines for showing/hiding the pointer, adapted from a
+	patch by Jonas Aaberg. Add also a properties entry.
+	* zconf: Modified hook semantics to save a lookup.
+	* overlay.c: Hooked on the root window events to remove the
+	(expensive??) check_timeout. Makes no difference here, but could
+	fix some reported bugs about cpu usage in overlay.
+	* tveng1.c: Fixed a typo that made working v4l1 devices
+	unavailable. Fixed a bug when setting audio controls too (stupid
+	confusing ugly v4l api...)
+
+2001-10-23	Mpeg plugin <mschimek@users.sf.net>
+
+	* Added format menu, grte_load|save_context and moved all
+	  functions accessing the config file into options.c, with
+	  brief descriptions.
+	* fifo.c: Added alloc_buffer(*) to struct fifo, renamed
+	  recv_full_buffer_timeout to wait_full_buffer_timeout since
+	  recv_* never waits.
+
+2001-10-21	CS conversion, qce <garetxe@users.sf.net>
+
+	* csconvert.[ch]: Added some unaccelerated rgb colorspace
+	conversions.
+	* capture.c: Fallbacks to the csconvert routines if no better
+	rgb mode is available.
+	* Z: Works now with the Logitech Quickcam Express driver (possibly
+	with many other quickcams too).
+	* properties.c: Only one properties dialog can be opened
+	simultaneously.
+
+2001-10-21	Mpeg plugin <mschimek@users.sf.net>
+
+	* Slider values are rounded down to option step size.
+	* Added effective bits/s display.
+	* All the video options seem to work now.
+
+2001-10-19	Mpeg plugin <mschimek@users.sf.net>
+
+	* tveng1.c: Added mp1e/video/v4l.c timestamping method to get
+	  sufficently accurate time. Prerequisities:
+	* tveng.h: Added frame rate field to tveng_enumstd, will be set
+	  in tveng1.c, tveng2.c, tvengxv.c.
+	* tveng1.c: Fixed PAL-M incorrectly assumed 625/50.
+	* tveng2.c: Replaced strstr(enumstd.std.name, "ntsc"); Unless
+	  the driver is borken the w/h info is more reliable deduced
+	  from enumstd.std.framelines. May have incorrectly assumed
+	  PAL-M, PAL-60 are 625/50.
+	* esd.c, oss.c: Added mp1e esd.c, oss.c timestamping, tested, works.
+	* arts.c: Added mp1e esd.c timestamping, untested. (Not installed
+	  on my box.)
+	* src/properties.c: Complained "no plugin accepts..." (arg1 == 0),
+	  moved handlers[i].apply() loop under default: as it was supposedly
+	  intended.
+	* mpeg plugin: Ducks are back in a row, but it needs some more
+	  testing and polishing.
+
+2001-10-18	Easy stuff <garetxe@users.sf.net>
+
+	* v4linterface.c: Fixed an stupid bug in control saving, appears
+	to work nicely now.
+	* exp-html.c: Replaced <blink> by text-decoration: blink;
+
+2001-10-17	Video output abstraction <garetxe@users.sf.net>
+
+	* x11stuff.c, video_xv.c: Virtualized all xvz_ operations,
+	allowing for other kinds of YUV acceleration apart from XVideo.
+
+2001-10-14	Audio recording abstraction <garetxe@users.sf.net>
+
+	* audio.c: Audio recording abstraction so we can reuse the code
+	between plugins and make it easier to configure.
+	* esd.c, oss.c, arts.c: Some backends. Still ![finished|tested].
+	* properties.c: Added the property_handler logic, allows for
+	properties managing decentralization.
+	* glade/zapping.glade: Created new properties cathegory, audio.
+
+2001-10-10	Swap chan up/down <garetxe@users.sf.net>
+
+	* v4linterface.c: Made the PgUp/Down behaviour configurable, it
+	was counterintuitive for some people. This is provisional, just
+	till we have the generical bindings stuff in place.
+
+2001-10-09	Requested controls gui polishing <garetxe@users.sf.net>
+
+	* v4linterface.c: Added a spinbutton to the slider in the video
+	controls for finer tuning.
+	
+
+2001-10-08	Context menu for plugins <garetxe@users.sf.net>
+
+	* plugins.c: Added plugin_process_popup_menu.
+	* plugins/mpeg/mpeg.c: Add it to the context menu.
+	* fifos: added recv_full_buffer_timeout to solve problems in
+	vbi_close.
+
+2001-10-08	<mschimek@users.sf.net>
+
+	* configure.in: Changed REQUIRED_RTE_VERSION to 0.4cvs.
+	* plugins/mpeg/options.c: Resynced with rte.h.
+
+2001-10-01	Channel editor improvements <garetxe@users.sf.net>
+
+	* channel_editor.c: Now the freq saved with the channel is the one
+	set in the slider bar, not the current freq. Also, add the option
+	to enter custom freqs.
+
+2001-09-29	tvscreen gtkda again <garetxe@users.sf.net>
+
+	* glade/zapping.glade: Make tv_screen a GtkDrawingArea again to
+	fix GtkFixed expose problems with TTX.
+	* osd.c: Subtitles toggle only affects CC/TTX, not osd_render*
+	text. Same goes for osd_clear.
+
+2001-09-28	OSD complete <garetxe@users.sf.net>
+
+	* osd.c: Added osd_render, keep correct ratio for OSD text,
+	timeout, added zmodel_changed as needed. Appears to work reliably.
+	* v4linterface.c, callbacks.c: Added OSD notification for Audio
+	Mute/Unmute and channel change (when Fullscreen).
+	* TODO: Cleaned up a bit, moved some things to 0.6.3 to have
+	another release soon.
+
+2001-09-26	OSD fixes <garetxe@users.sf.net>
+
+	* osd.c: Fixed 'flicker in FS', 'off-by-one', 'extra
+	size_allocates'	and 'prolly more' :-) 'Missing words' is still a
+	mistery.
+
+2001-09-25	OSD rewrite <garetxe@users.sf.net>
+
+	* osd.c: Rewritten, now osd windows are subwindows of the TV
+	screen, still some bugs (flicker in FS, missing words ???,
+	off-by-one error in y coords when doing roll_up, extra
+	size_allocates, prolly more).
+	You can get a feeling of the sgml renderer pressing 'o'.
+
+2001-09-21	mpeg properties fixes <garetxe@users.sf.net>
+
+	* mpeg.c: Fixed options frame deletion (objects are created with a
+	floating ref, attaching them to a parent makes this ref be 1, when
+	the parent is destroyed the widget is unref'ed, and thus
+	destroyed, no need to call gtk_object_ref/unref ourselves).
+	* plugins.c: First load plugins under $home, then global.
+
+2001-09-19	more renderer work <garetxe@users.sf.net>
+
+	* osd.c: Make the renderer honour <i>, <u>, <b> and the colour
+	tags. Cleanup of the code, now the renderer is integrated with the
+	SAX parser and no charset translation is needed.
+	* release a new updated package with the .spec hopefully working
+	for RH (the new OSD code is disabled in here).
+
+2001-09-18	SGML renderer <garetxe@users.sf.net>
+
+	* osd.c: Wrote sgml gdk renderer, sgml tags still not
+	recognised (but that's easy).
+	* zmisc.c: Added hide button on status bar messages.
+	* zapping.spec.in: Now it should work under RH too, thanks to
+	Mark (mark at extension2.freeserve.co.uk) for his help with this.
+
+2001-09-17	OSD properties <garetxe@users.sf.net>
+
+	* osd.c: Finally(?) decided to try the gdk way, added properties
+	dialog handling.
+	* fr.po: Update by Christian.
+	* ttxview.c: Fixed a typo that broke the automatic overlaying of
+	subtitles, treat pages with TRANSPARENT background as subtitles too.
+	* Makefile.am: Added autogen.sh to the distro, so prepare_dist.sh
+	works out of the box.
+	* ru.po: Removed, unmaintained for a number of releases.
+	
+2001-09-16	SGML->attr_char <garetxe@users.sf.net>
+
+	* zvbi.c: Wrote a first version of the SGML->attr_char converter,
+	will improve.
+
+2001-09-13	bounds checking <garetxe@users.sf.net>
+
+	* libvbi/teletext.c: Added bounds checking for enhance, could
+	segfault under certain circunstances.
+	* ttxview.c: Search gui touches.
+
+2001-09-11	mpeg plugin audio options <mschimek@users.sf.net>
+
+	* plugins/mpeg: Added dynamic audio options using the new
+	  rte_option API. Unfinished, won't work as expected yet.
+
+2001-09-10	automatic overlaying of subtitles <garetxe@users.sf.net>
+
+	* ttxview: Subtitle pages opened in the main window can now be
+	opened automatically (configurable).
+	* tveng.c: Fixed xv control multigenesis bug.
+	* tveng[12].c: Removed the ioctl tests, they did no good.
+	* pl.po: Updated (Paweł)
+
+2001-09-03	fifo hang fix <mschimek@users.sf.net>
+
+	* fifo.c: rem_consumer could under certain circumstances leave
+	  unconsumed buffers on the virtual full queue, fixed.
+
+2001-09-02	sv translation <mschimek@users.sf.net>
+
+	* sv.po: Commited Swedish translation, contributed by
+	  Henrik Isacsson. Many thanks!
+
+2001-09-01	libvbi <mschimek@users.sf.net>
+
+	* decoder.c: NTSC requires valid line numbers, added vbi_ prefixes.
+	* exp-html.c: Added missing language id's, replaced open_memstr.
+	* export.c: Added vbi_export_open parameter "reveal".
+	* v4lx.c: Moved printv above ENABLE_V4L.
+	* Made vbi_event a union.
+	* tables.c updated, cleanup in cache.c|h, removed -D_GNU_SOURCE.
+	* zapping.desktop: Added comment translations from *.po.
+	* ttxview.c: Page up/down wasn't connected, changed page num
+	  format to %03x.02x to avoid widget resizing. 
+
+2001-08-31	Channel editor usability <garetxe@users.sf.net>
+
+	* src/channel_editor: Do not tune all channels when there are
+	many of them selected, smarter modify/add when activating the
+	channel name GtkEntry, keep selection et al when modifying.
+	* zapping_setup_fb: Reverted to the old bpp detection.
+	* configure.in: require ngettext in AM_GNU_GETTEXT (i18ed
+			plural forms).
+	* fr.po: Updated translation (Christian).
+
+2001-08-30	Select audio device <garetxe@users.sf.net>
+
+	* plugins/mpeg/mpeg.c: Added audio input device selection.
+
+2001-08-26	<mschimek@users.sf.net>
+
+	* src/gen_conv.*: Added rgb2yuv functions, for now MMX only. 
+	* src/gen_conv.s: Fixed stack allocation bug (harmless).
+	* libvbi/lang.c: Fixed bugs in Arabic and Hebrew glyph mapping.
+
+2001-08-25	Plural forms <garetxe@users.sf.net>
+
+	* gettext: Applied patch from Paweł for handling plural i18ed
+		strings correctly.
+
+2001-08-24	0.6.0 released <garetxe@users.sf.net>
+
+	* 0.6.0 released, include prepare_dist.sh in the distro.
+		Do not compile gen_conv.s if there's no MMX/GAS
+
+2001-08-23	capture with different bpl <garetxe@users.sf.net>
+
+	* capture.c, tveng: Capture now accepts frames with different
+	bytes per line but the same format otherwise.
+	* zapping_setup_fb: Made PAM support work for me again.
+	* capture.c: Correct format.pixformat set for YVU420 XV bundles.
+	* zapping.spec.in, configure.in: Made stupid rpm's out there work
+	fine. Now making 0.6.0 should be just running prepare_dist.sh.
+
+2001-08-22	Overlay this page <garetxe@users.sf.net>
+
+	* TTX mode: added the option to "overlay" the current page when
+	the main window is in TTX mode.
+	* ttxview: improved page selection as discussed, use the new
+	pixmaps.
+	* main.c, zvbi.c: Added support for aspect ratio autodetecting.
+	
+2001-08-21	es updated <garetxe@users.sf.net>
+
+	* es.po: Up to date, preparation for 0.6.0 release.
+	* configure.in: Cleaned up the gcc options a bit, avoid passing
+	many times the same flag. Use gnome-config --prefix instead of
+	ac_default_prefix.
+	* src/ttxview.c: Use Michael's left, rigth arrows instead of
+	<>. The rest will come later.
+
+2001-08-21	<mschimek@users.sf.net>
+
+	* Committed pixmaps: left, right, up, down, reveal, parrot.
+	* Modified a few, um, not so clear labels (en) in the channel
+	  dialog.
+
+2001-08-20	pl updated <garetxe@users.sf.net>
+
+	* pl.po: Updated to CVS.
+	* htdocs: Added content and dropped PHP session support for
+	the traditional grandma cookies.
+
+2001-08-19	<mschimek@users.sf.net>
+
+        * common/errstr.*: Added. libvbi/export and v4lx first victims.
+	* zvbi.c: page event change broke TTX and CC subtitles, fixed.
+	* caption.c: Corrected a channel switch bug.
+
+2001-08-18	<mschimek@users.sf.net>
+
+        * libvbi.h, packet.c: Modified & enhanced TTX page event.
+        * vbi_format_page bugs: Not pg->row = display_rows; Wrote
+	  glyph 0 instead of 0x20 in 41st column; Didn't write spacing
+	  attr double height lower row, probable cause of the
+	  vbi_fetch_vt_page segv.
+	* po: Added emacs coding hints. How's this coded btw?
+
+2001-08-18	pl translation <garetxe@users.sf.net>
+
+	* pl.po: Commited pl translation, contributed by Paweł Sakowski.
+		 Thanks!
+	* zmisc.c: Fixed button hor/vert aligning in toolbars when the
+	orientation changes. Left the '<[Subpage]>' group always
+	horizontal because it made more sense.
+	* zvbi.c, v4linterface.c: Called vbi_channel_switched when
+	changing inputs, standards or channels.
+
+2001-08-17	many channels <garetxe@users.sf.net>
+
+	* v4linterface: create submenus as needed when there are many
+	channels, add inputs and standards to the context menu.
+
+2001-08-16	fixes <garetxe@users.sf.net>
+
+	* zvbi.c: Reduced the number of fetch_page calls. Better now?
+	  (mhs: Z still calls fetch for notify_clients/rolling_header
+	   even in pure capture mode. Purpose?)
+	* vbi_fetch_vt_page: Added memset(pg, 0, sizeof(*pg)), otherwise
+	segfault when drawing the page if pg is initially bogus data.
+	* capture.c: Fixes, but mc still breaks the mpeg plugin. Spent the
+	whole day tracking this down, nothing so far :-(
+
+2001-08-16	Zapzilla gui <mschimek@users.sf.net>
+
+	* ttxview.c: Removed export dir field, Zapzilla now
+	  remembers the path last entered. z_build_path is
+	  applied to the entered path, not exportdir. Made the
+	  file entry "electric", ie. the proposed file name is
+	  automagically appended.
+	* search.c, ttxview.c: Added regular expression option.
+
+2001-08-16	libvbi et al <mschimek@users.sf.net>
+
+	* exp-html.c: Added color option, fixed anchor insertion.
+	* ttxview.c: Didn't set vbi export from zconf, fixed.
+
+2001-08-15	add all channels <garetxe@users.sf.net>
+
+	* channel_editor: Added 'Add all channel' button.
+
+2001-08-15	libvbi et al <mschimek@users.sf.net>
+
+	* glade: Removed the gettextized "labelxx" and the like.
+	* list.h: rem_node() returns NULL if node is not member of
+	  the list. Fast removing w/o check under unlink_node().
+	* fifo.c: rem_producer/consumer() safe to call after
+	  adding failed. (More changes ahead.)
+	* vbi.c: Restored test filter.
+	* teletext.c: Fixed SWR p570 DRCS bug. Added enhancement
+	  header-only shortcut as suggested by spec.
+	* zvbi.c: Fixed off-by-one error (41st column) updating RTC
+	  in rolling_header(), and no RTC from a page not marked
+	  for rolling (was a problem on MTV ger; arguable, let's see).
+
+2001-08-14	mpeg plugin <garetxe@users.sf.net>
+
+	* plugins/mpeg: Avoided memcpy using mc fifos.
+
+2001-08-14	libvbi <mschimek@users.sf.net>
+
+	* Added explicit and autodetected channel switch. Note
+	  VBI_EVEN_NETWORK changed: vbi_network can be all zero
+	  now when switching away from a known channel.
+	* Updated CNI table.
+
+2001-08-13	capture code rewrite <garetxe@users.sf.net>
+
+	* src/capture.c: Rewrote/cleaned up the capture core to
+	differenciate between read/write serial plugins and allow for
+	other producer/consumers (this one not yet tested).
+	* plugins/mpeg: Commented out lip-sync warning.
+
+2001-08-09	z_build_path <garetxe@users.sf.net>
+
+	* zmisc.c: Added z_build_path.
+	* screenshot, mpeg, ttxview: Use it.
+	* mpeg: mv plugin.c mpeg.c
+
+2001-08-09	<mschimek@users.sf.net>
+
+	* zvbi.c: Displays the received station name in the titlebar if
+	  not known from channel list.
+
+2001-08-08	prepare_dist.sh <garetxe@users.sf.net>
+
+	* prepare_dist.sh: rpm generation now works for zapping, mp1e and
+	rte.
+
+2001-08-08	<mschimek@users.sf.net>
+
+	* Deleted old fifo code.
+
+2001-08-06	channel editor <garetxe@users.sf.net>
+
+	* src/channel_editor.c: Keep selected channels selected when
+	hitting up/down.
+	* glade/zapping.glade: s/frequence/frequency/ for
+	consistence. Ctrl+a mutes/unmutes the device.
+
+2001-08-06	MPEG plugin <mschimek@users.sf.net>
+
+	* no progress report in audio only mode, fixed.
+
+2001-08-05	v4lx.c <mschimek@users.sf.net>
+
+	* Rewrote guess_bttv.
+	* Added lots of error messages.
+	* Added lots of --debug output.
+	* Enabled the v4l 2.4.x vbi interface.
+
+2001-08-01	fixes <garetxe@users.sf.net>
+
+	* libvbi/exp-png.c: Fixed setjmp warning.
+	* src/x11stuff.c: Removed XSynchronize call, was broken according
+	to 'man XSynchronize'.
+
+2001-08-01	libvbi fix <mschimek@users.sf.net>
+
+	* search.c: Corrected hardcoded column width 40.
+
+2001-07-31	libvbi <mschimek@users.sf.net>
+
+	* v4lx.c: Fixed blank vbi bug.
+	* libvbi: Rewrote open sequence.
+
+2001-07-29	parrot fixes <mschimek@users.sf.net>
+
+	* x11stuff.c: Check success of shmget et al.
+	* parrot: Forgot to install parrot.glide.
+
+2001-07-28	gui fixes <garetxe@users.sf.net>
+
+	* ttxview: Added a sep between up/down and the rest.
+	* main.c: Worked around a bug in glade (automagically changes
+	GNOME_STOCK_PIXMAP_(UP|DOWN) into _(TOP|BOTTOM)).
+	* v4linterface.c, properties.c: Added configurable title bar.
+	* src/zapzilla: Because of popular demand, added standalone Zapzilla.
+	* src/ttxview.c: Added view creation/destruction notification.
+
+2001-07-28	<mschimek@users.sf.net>
+
+	* Fifo conversion complete.
+
+2001-07-25	rearranged gui <garetxe@users.sf.net>
+
+	* src/v4linterface.c, glade/zapping.glade: Left just channel
+	up/down in the toolbar, moved Channels, standards and inputs to
+	the menu. Set channel name in the main window title bar.
+
+2001-07-24	french translation <garetxe@users.sf.net>
+
+	* src/channel_editor.c: Doesn't add the channel if Cancel is
+	clicked on the new channel prompt.
+	* plugins/parrot: Made num_bundles configurable, size estimation
+	in the properties.
+	* Applied patches from Roger Fujii (Solaris
+	port). s/TRANSPARENT/TRANSPARENT_FULL/g.
+	* Updated french translation (Christian Marillat)
+
+2001-07-22	parrot gui <garetxe@users.sf.net>
+
+	* parrot.glade, parrot_strings.h: Added, gui for the parrot
+	plugin.
+	* src/ttxview.c: Cosmetic bugfix.
+
+2001-07-21	libvbi <mschimek@users.sf.net>
+
+	* Added aspect ratio event.
+	* Artificial 41st column for TTX pages.
+
+2001-07-20	zvbi station names <garetxe@users.sf.net>
+
+	* src/zvbi.c: Restored functionality to read channel names from
+	TTX.
+	* plugins/parrot: Play the "parrot" stream with the proper speed,
+	and fake timestamps so they are equal to the original ones.
+	* src/channel_editor.c: Added afc and zvbi_get_name support to the
+	autosearcher. afc is untested (i cannot test it).
+
+2001-07-19	Parrot buffer <garetxe@users.sf.net>
+
+	* src/ttxview.c: Restore old toolbar style when detaching the
+	view.
+	* plugins/parrot.c: Added parrot buffer plugin (unfinished, but
+	works).
+	* src/capture.c (set_bundle_filler): Plugins can now provide
+	custom data and override the standard tveng_read_frame routine.
+
+2001-07-17	libvbi/wss <mschimek@users.sf.net>
+
+	* Added vbi_push_video function, works ok. Some more
+	  details to be finished.
+
+2001-07-16	<mschimek@users.sf.net>
+
+	* capture.c: ported capture_fifo to fifo2
+	* v4lx.c: ported vbi fifo to fifo2
+	* Removed unneeded functions from acc colour
+	  conv: uyvy, *v*u*; enabled SSE, 3DNow, Athlon.
+	* Replaced CPU detection code. Hope this works for
+	  everyone.
+
+2001-07-16	fix aspect ratio <garetxe@users.sf.net>
+
+	* main.c: apply the aspect ratio setting to the tv screen, not to
+	the main window, including toolbar and menu in the geometry
+	computation.
+	* ttxview.c: Fixed a segv when vbi_search_next reported < 0, added
+	'Empty cache' message.
+	* libvbi/search.c: Made vbi_search_next return -2 when the cache
+	is empty and -3 when the error is unknown.
+	* plugins/mpeg: Adapted to the new (multi-backend) rte.
+
+2001-07-15	mpeg plugin <mschimek@users.sf.net>
+
+	* tveng.c: tveng_get_timestamp(), RETURN_UNTVLOCK()
+	  int cast of double time; symptom MPEG plugin a+v heisenbug
+	  in mp1e sync routines, delayed or inhibited recording. Added
+	  timestamp validation in mp1e.
+
+2001-07-07	save controls with channel <garetxe@users.sf.net>
+
+	* frequencies.c, main.c, v4linterface.c: The state of the controls
+	is saved when changing channels, and restored when switching back.
+	* zapping.glade: Added a global toggle to control this.
+	* pixmaps/gnome-television.h: Added, new icon.
+
+2001-07-06	mpeg plugin <mschimek@users.sf.net>
+
+	* made tveng2 EINTR aware (debugging)
+	* added motion option to mpeg plugin 
+
+2001-07-05	libvbi <mschimek@users.sf.net>
+
+	* rewrote common/list.h
+	* replaced libvbi/dllist.h
+	* fixed http link name bug
+
+2001-07-02	assorted fixes <garetxe@users.sf.net>
+
+	* channel_editor: Pops up a dialog box asking for the new channel
+	name if none was given when hitting Add.
+	* everything: Portability to Solaris, adapted from a patch by
+	Roger Fujii.
+	* configure.in: Removed broken "-multrasparc -mvis" in
+	configure.in.
+	* error_console.c: "console_errors" clo.
+	* fr.po: Updated (Christian Marillat).
+	* help/man/: Man pages (Christian Marillat).
+
+2001-06-30	yuv filters <garetxe@users.sf.net>
+
+	* yuv2rgb_mmx.c: Uses Michael's autogenerated filters now.
+	* gen_conv.[sh]: added.
+	* x11stuff.c, zapping_setup_fb: improve screen depth detection.
+
+2001-06-28	--disable-v4l <garetxe@users.sf.net>
+
+	* configure.in, v4lx.c, tveng1.c, tveng2.c: Added --disable-v4l
+	option, lets all the V4L specific stuff out of the compilation,
+	for Solaris.
+
+2001-06-23	<mschimek@users.sf.net>
+
+	* gcc 3.0 fixes (nothing serious)
+
+2001-06-22	bug fixes <garetxe@users.sf.net>
+
+	* callbacks.c: fixed channel ordering, reported by n0mada@terra.es.
+	* zconf.c: Fixed double free(), used xmlFree instead of g_free
+	where appropiate.
+	* fullscreen.c: Made channel accelerators work in fullscreen.
+
+2001-06-15	alirc, plugin properties <garetxe@users.sf.net>
+
+	* src/plugin_common.h: Made plugin_add_properties a gboolean,
+	returns TRUE if the plugins will add anything. gpb arg can be NULL.
+	* plugins/alirc: integrated patch by Sjoerd Simons.
+	* src/remote.c: Added load_page.
+
+2001-06-08	color dialog <garetxe@users.sf.net>
+
+	* glade/zapping.glade: Beautified ttx color dialog a bit.
+	* pixmaps/*.xpm: Added con and brig used above, the rest in
+	prevision for future use.
+
+2001-05-29	<mschimek@users.sf.net>
+
+	* list.h: double linked now
+	* fifotest.c: added
+	* yuv2rgb_mmx.c: added yuyv_rgba32, yuyv_rgb16
+
+2001-05-28	alirc plugin <garetxe@users.sf.net>
+
+	* plugins/alirc: 'Another lirc plugin', by Sjoerd Simons
+	<sjoerd@air.luon.net>. Thanks! :-)
+
+2001-05-27	MPEG fixes <garetxe@users.sf.net>
+
+	* plugins/mpeg.c: Works now if Z's yuv pixformat is YUYV and
+	capture isn't buffered push. Core when buffered push and lock with
+	YVU420 (probably RGB too, untested). Probably bugs in plugin.c
+	and capture.c.
+	* glade/zapping.glade: Configurable Q/S tradeoff when doing the
+	scaling of the TTX pages.
+
+2001-05-25	<garetxe@users.sf.net>
+
+	* plugins/screenshot: YVU420, TTX capture.
+
+2001-05-24	<mschimek@users.sourceforge.net>
+
+	* plugins/lirc/lirc.c: lirc_page fixed in plugin_add_properties
+
+2001-05-24	Rolling headers <garetxe@users.sf.net>
+
+	* src/zvbi.c: Rolling headers support (just the time field for the
+	moment).
+
+2001-05-19	Fullscreen <garetxe@users.sourceforge.net>
+
+	* src/fullscreen.c: Made fullscreen usable under many heads.	
+
+2001-05-16	<mschimek@users.sourceforge.net>
+
+	* Fixed port_grabbed shortcut in xvz_grab_port.
+
+2001-05-14	--yuv-format flag <garetxe@users.sourceforge.net>
+
+	* src/main.c, capture.c, x11stuff.c: Added CLO [command line
+	option :-)] for deciding between YUYV and YVU420.
+	* src/fullscreen.c: No longer grabs the keyboard.
+	* src/videodev*: moved to /common, made libvbi use these versions
+	too for consistency.
+
+2001-05-13	CC classify gui <garetxe@users.sourceforge.net>
+
+	* src/ttxview.c: Added gui for the CC classification, added
+	'Subtitle Page' VBI property and removed toolbar spinbutton.
+	* BUGS: Investigated problems with bundle_data under V4L1, they
+	were due to a bug in bttv support for interlaced YUV420P. Maintainer
+	informed.
+
+2001-05-12	YVU420 <garetxe@users.sourceforge.net>
+
+	* src/capture.c: Defaulted to YVU420P for capture, plugins need
+	to be adapted. Added display of _DATA bundles, using yuv2rgb.
+	* tveng: Added assume_yvu to work around V4L1 API limitations.
+	* yuv2rgb_mmx: Added lacking "emms" to reenable math coprocessor.
+
+2001-05-11	did some things from TODO <garetxe@users.sourceforge.net>
+
+	* src/channel_editor.c: Channels can have an arbitrary order now.
+	* configure.in: Remove --disable-ordering flag.
+	* src/zvbi.c: Added a verboser message when vbi fails to open.
+	* src/ttxview.c: Go back from TTX.
+	
+2001-05-05	remote(get_channel_info) <garetxe@users.sourceforge.net>
+
+	* src/remote.c: added get_channel_info call.
+	* common/fifo: "slow consumer" killing code, unfinished, breaks
+	some things.
+
+2001-05-04	mpeg plugin improvements <garetxe@users.sourceforge.net>
+
+	* plugins/mpeg: Adapted to new bundled capture. Now it's possible
+	to record mpeg's without XVideo backend scaler.
+
+2001-05-02	Config options <garetxe@users.sourceforge.net>
+
+	* src/capture.c: Fixed, so plugins can work again. Made capture
+	size under XVideo configurable.
+
+2001-05-01	New capture code <garetxe@users.sourceforge.net>
+
+	* src/capture.c: Rewrote capture code using fifos, etc. Appears to
+	use less CPU with XV scaling (identically 0 :-)). Oppps, and
+	plugins won't work either, will fix tomorrow.
+
+2001-04-30	xvzImage <garetxe@users.sourceforge.net>
+
+	* src/x11stuff.c: Moved XvImage support here, made easier to use.
+
+2001-04-28	XV_SIGNAL_STRENGTH <garetxe@users.sourceforge.net>
+
+	* src/tvengxv.c: Added support for this atom, allows for automatic
+	channel searching. Now let's see if the v4l.c maintainer in XFree
+	accepts my patch, and the rest of the world sees this too :-)
+	* src/zmisc.c: Reduce unnecessary open/close couples.
+
+2001-04-27	TVeng thread-safe <garetxe@users.sourceforge.net>
+
+	* src/tveng.c: Added a per-device mutex, made tveng.c lock,
+	unlock it as necessary. Rewrote some common code as #macros.
+
+2001-04-25	--command switch <garetxe@users.sourceforge.net>
+
+	* src/remote.c, src/main.c: Added --command line switch, currently
+	just "set_channel". Use with 'zapping -c "set_channel BBC"'
+
+2001-04-24	trigger gui <garetxe@users.sourceforge.net>
+
+	* zvbi.c, properties, .glade: Started trigger gui.
+	* eacem_icon, atvef_icon: Moved to pixmaps. 
+
+2001-04-07	mpeg plugin <garetxe@users.sourceforge.net>
+
+	* rte: rte_stop closes properly, buffers used for push are
+	send_empty'ed, lots of fixes and tuning. Removed rgb support, it
+	was nonfunctional.
+	* fifos: Proper refcounting.
+	* plugins/mpeg/: Encodes, needs a lot of work though.
+
+2001-04-05	libvbi, help <mschimek@users.sourceforge.net>
+
+	* Finished trigger rewrite.
+	* Some work in /help.
+
+2001-04-03	overlay+osd fixes <garetxe@users.sourceforge.net>
+
+	* overlay, tveng, osd: Made them play nice together under V4L[12].
+	* src/tveng: Print more verbose messages if no DGA present.
+	* src/tvengxv.c: Made it work without DGA.
+	* src/osd.c, fullscreen: Centered subtitles in fullscreen even if
+	VidMode changed.
+
+2001-04-02	accelerators <garetxe@users.sourceforge.net>
+
+	* controls: Added accelerators for hiding/showing menu bars
+	(Ctrl+H), control box (Ctrl+C).
+	* es.po: Updated.
+	* src/ttxview.c: Added TTX subtitles selection to the popup menu.
+
+2001-04-01	screenshot gladefied <garetxe@users.sourceforge.net>
+
+	* plugins/screenshot: uses libglade now, added accelator for saving
+	(Ctrl+s).
+	* src/capture.c: send_event = False. Appears to be faster in some
+	setups.
+
+2001-03-31	mcfifos fixed <garetxe@users.sourceforge.net>
+
+	* fifo: Rewrote most multi-consumer part of fifos, rte
+	works again :-)
+	* mp1e: 'make dist' functional
+	* libvbi/v4lx.c: Minimized delay on joining the thread.
+
+2001-03-30	libvbi <mschimek@users.sourceforge.net>
+
+	* Teletext page classification.
+
+2001-03-28	libvbi <mschimek@users.sourceforge.net>
+
+	* New weblink event for ITV and Z2W.
+	* packet.c: Added preliminary decoding of "zap2web", TTX based
+	  equv. of CC-ITV, went on air at CeBit last week.
+	UPDATE: Just got the EACEM prop "zap2web" is based on, this
+	  feature is on freeze for a rewrite.
+	* packet.c: Added page classification (program related,
+	  subtitles, number of subpages etc). Not reliable yet.
+
+2001-03-25	channel=f(bookmark) <garetxe@users.sourceforge.net>
+
+	* src/ttxview.c: Selecting a bookmark can tune the current channel.
+	* libvbi/v4lx.c: Added some cancellation points, so the thread is
+	always joinable.
+
+2001-03-25	ttxview/libvbi <mschimek@users.sourceforge.net>
+
+	* ttxview.c & exp_txt.c: Improved wrapping selection of double-h/w/s
+	  characters.
+	* v4lx.c has a buffered fifo, timestamps are valid, out-of-sync
+	  function restored.
+	* Added text colour levels (brightness, contrast), no gui.
+	  Primarily an improvement when scaling < 1x.
+	* Page event flags rolling header.
+	* Added resize options 720x576 and 352x288 (ITU-R 601 devices).
+
+2001-03-24	channel editor <garetxe@users.sourceforge.net>
+
+	* src/channel_editor.c: Completed new channel code.
+
+2001-03-23	channels <garetxe@users.sourceforge.net>
+
+	* src/: Mostly finished new channels design. Lacks gui
+	polishing, but works.
+	* src/zmisc.c: Added convenience functions for GtkOptionMenu.
+	* tveng: Added hash for input/standards.
+
+2001-03-22	libxml2 <garetxe@users.sourceforge.net>
+
+	* configure.in: Better libxml detection, libxml2 support.
+	* ttxview.c: Fixed segv in expose. Added www.* addresses to #url# mask.
+	* Started channel => channel+input+standard work.
+
+2001-03-21	ttxview.c <mschimek@users.sourceforge.net>
+
+	* frequencies.c: Added PAL-China, ripped from XawTV. Isn't GPL
+	  a wonderful thing?
+	* libvbi: Rewrite of export api finished.
+	* ttxview.c: The export menu builds dynamically now, the only
+	  visible change is the dialog title "Export <format>".
+	* ttxview.c: Replaced the string export hack by mem fp.
+	* ttxview.c: Simplified the selection routines, added
+	  wrap-around mode cf. xterm.
+	* de.po update.
+
+2001-03-20	0.5.92 released <garetxe@users.sourceforge.net>
+
+	* src/overlay.c: Do not clean screen with cards that support
+	chromakeying. Reported to work.
+	* fifos: Fixed gross bug. Amazing it didn't have zillions of side
+	effects... but i cannot join mux thread from rte yet, getting
+	weirder and weirder...
+	* tveng, src/main.c: --dword-align option. Has some uses for
+	broken drivers, but disabled by default.
+	* libvbi/Makefile.am, src/Makefile.am: Added $(UNICODE_CFLAGS),
+	that should fix the build problems for people with unicode.h not
+	in an standard location.
+
+2001-03-18	Chroma <garetxe@users.sourceforge.net>
+
+	* Added chroma support for overlay, dunno if it works.
+	* plugins/lirc/lirc.c: Cleanup, fixed a bug.
+
+2001-03-18	TTX <mschimek@users.sourceforge.net>
+
+	* Fixed spurious blinking bug in level 2.5 decoder.
+	* Export filename and HTML/PNG title includes station name
+	  if known.
+	* HTML export adds anchors for http/ftp/email links.
+
+2001-03-17	Export beautification <garetxe@users.sourceforge.net>
+
+	* src/ttxview.c: Changed export file GtkEntry to GnomeFileEntry,
+	and now uses zconf to keep preferences. Made it a bit wider.
+	* configure.in: Released 0.5.91 (bugfixes) today, bumped version
+	to 0.6.0cvs.
+	* libvbi/lang.h, exp-*: Added gettext support to export.
+	* src/ttxview.c: Fixed ENIAC bug in txt mode.	
+
+2001-03-16	TTX export <mschimek@users.sourceforge.net>
+
+	* Export options interface now tveng controls style.
+	* Rewrote export dialog. Not completely satisfied, but well.
+	* Added email keywords (a), (at).
+	* Added vbi_network XDS/CNI unique id.
+
+2001-03-16	pam workarounds <garetxe@users.sourceforge.net>
+
+	* configure.in: Added --disable-pam option, apparently some pam
+	versions are broken, so they cannot exec zsfb properly.
+	* src/mmx.c: Strangely enough, the TryAMD label fails to compile
+	under gcc 2.95.3 (report by Olivier Perron), applied the patch he
+	sent to work around this.
+
+2001-03-15	more clean calls for Overlay <garetxe@users.sourceforge.net>
+
+	* src/overlay.c: Added some extra clean() calls (unmapping,
+	stopping), this should fix those ugly pixels left.
+	* src/main.c: Added a set of fallbacks in case /dev/video0 doesn't
+	open, should make devFS work too.
+	* src/capture.c: Capture mode speedup with XVideo scaler (1% cpu
+	usage, whew!).
+
+2001-03-14	DPMS in Xext <garetxe@users.sourceforge.net>
+
+	* configure.in: Applied patch by Dirk Meul to search for DPMS
+	functions in DPMS in -lXext in case -Xdpms fails.
+
+2001-03-10	osd rough edges <garetxe@users.sourceforge.net>
+
+	* osd.c: No flicker even w/o XVideo, knows about showing/hiding
+	the main window.
+	* help/de: German translation of index.html, by Carsten Menke.
+	* src/osd.c: Fixed "ttx subtitles no update" bug.
+
+2001-03-09	Cleanup <mschimek@users.sourceforge.net>
+
+	* Updated de.po
+
+2001-03-08	Fullscreen <garetxe@users.sourceforge.net>
+
+	* src/fullscreen: Added, holds the code for fullscreen mode. Added
+	the hability to do OSD correctly in fullscreen without XVideo
+	PutVideo.
+
+2001-03-04	TTX subtitles gui <garetxe@users.sourceforge.net>
+
+	* glade/zapping.glade: Added some provisional GUI for TTX
+	subtitles, but thinking about better ways to do it.
+
+2001-03-03	Network info <garetxe@users.sourceforge.net>
+
+	* src/zvbi.c: Added network info dialog.
+	* src/ttxview.c: Fixed a bug with with TTX restart.
+	* glade/zapping.glade: Reorganized a bit the VBI properties to
+	make the dialog take less space.
+
+2001-03-02	VBI open/close <garetxe@users.sourceforge.net>
+
+	* Made the vbi object notify clients (TTXView) about being closed,
+	this allows for clean start/restart of TTX.
+	* plugins/lirc: Bugfixes (one of them introduced by me ;-P)
+	* libvbi/v4lx.c: Made it accept a given_fd parameter, rationale:
+	guess_v4l tries to open a device to query state, let it know
+	that we already own it (otherwise v4l1 drivers will refuse
+	re-opening it). Now just fails for me reopening the vbi device under
+	XVideo and v4l1, good enough i think.
+
+2001-03-01	Lirc <garetxe@users.sourceforge.net>
+
+	* plugins/lirc: Added infrared support, written by Marco
+	Pfattner. Thanks a lot!
+
+2001-02-28	zconfhook <garetxe@users.sourceforge.net>
+
+	* zconf.c: Added gconfish notification mechanism, now the vbi
+	device can be opened/closed using the properties dialog, V4L open
+	fails.
+
+2001-02-27	osd <mschimek@users.sourceforge.net>
+
+	* osd.c: Pipe replaced fifo/timer event queue. Moved
+	  rendering to exp_gfx.c, modified ttx render funcs
+	  for Teletext overlay. Works nicely.
+
+2001-02-26	TTX <mschimek@users.sourceforge.net>
+
+	* Added VTX export module, rationale <http://alevt.listbot.com/
+	  cgi-bin/subscriber?Act=view_message&list_id=alevt&msg_num=188&start_num=>
+	* Cleaned up events, made caption a genuine event.
+
+2001-02-25	caption ipc <mschimek@users.sourceforge.net>
+
+	* Renamed conceal button to reveal. Is reveal on all
+	  RC's and TTX refers to it as 'reveal function'.
+	  Also renamed all identifiers for consistency.
+	* station: Added VPS support, fixed cni priority.
+	* caption.c, osd.c: Changed render()/clear()/
+	  roll_up() calls to caption event, fetch_cc, and
+	  tracking of changes.
+	* caption.c: All double buffered now.
+
+2001-02-23	XV fixes <garetxe@users.sourceforge.net>
+
+	* src/tvengxv.c: Added support in the controller for fullscreen
+	XVideo (easier than expected).
+	* XV: Fixed flicker because of extra preview_on, _off calls.
+	* src/ttxview.c, src/zvbi.c: Conceal option.
+	* src/osd.c: OSD works in fullscreen mode too.
+	* glade/zapping.glade: Option for turning CC display on/off.
+
+2001-02-21	caption integrated <garetxe@users.sourceforge.net>
+
+	* caption.c, osd.c: Integrated caption display into the program,
+	it works great :-) Flickers more than necessary when adding
+	text to the same row, could be solved by passing a starting_row to
+	the render function, thus avoiding the need to remove the
+	currently drawn portion of the line to draw again the same.
+
+2001-02-20	TTX <garetxe@users.sourceforge.net>
+
+	* export.c: Zero 'struct export *' on allocation, caused segv
+	when pasting text.
+	* zvbi.c: Better patch generation, corrects errors caused by interp.
+
+2001-02-20	caption <mschimek@users.sourceforge.net>
+
+	* Fixed 'double height acute vowels' bug.
+	* Caption decoder is online, minor tweaks here and there.
+	* lang.c: translates caption glyphs.
+
+2001-02-19	blink <mschimek@users.sourceforge.net>
+
+        * Modified phase from 50:50 to 75:25, is easier to read,
+	  and cycle time 1.5 s.
+	* libvbi/exp-gfx.c: correction, flash to background.
+
+2001-02-18	blink <garetxe@users.sourceforge.net>
+
+	* TTX: Blinking chars now blink, but needs further work. How
+	should the blink be done?
+	* libvbi/exp-gfx.c: Added rowstride parameter, hope i didn't break
+	too many things ;-P
+
+2001-02-17	osd <garetxe@users.sourceforge.net>
+
+	* osd.c: Created. Has the required functionality for integrating
+	CC. No smooth scrolling but will work nicely without XV.
+	* tveng: Made it a bit more fault tolerant, tries to restart
+	capture after failed S_INPUT and S_STD.
+	* main.c: Killed the demiurgical fscking inmortal
+	i-resize-magically-when-*I*-desire-because-i'm-THE-MAIN-WINDOW
+	bug... for some time at least, awaiting its certain resurrection.
+	* error_console.c: Created, avoids creating too many dialogs in
+	broken systems and allows copy&paste of the exact error messages
+	(so hopefully i won't get more "it breaks saying something i
+	didn't bother to look to" bug reports :-))
+	* osd.c: Added interface (cc_* routines) to be called from the CC
+	decoder threads (untested).
+	* zmisc.c: Z works now in environments with XVideo but no
+	functional video device.
+	
+2001-02-16	TTX export <mschimek@users.sourceforge.net>
+
+	* removed all vt_page references from ttxview, zvbi. This is
+	  a private libvbi structure now: vbi_event->pgno | user input
+	  -> vbi_fetch_page -> fmt_page -> buffer, export, render.
+	  Rationale: Raw data is useless for GUI, need not export
+	  the rat tail of vt_page substructures and definitions.
+	  No cache access outside libvbi, client can't maintain
+	  pointers into a dynamically allocated & updated cache
+	  or feed back outdated local copies of raw data.
+
+2001-02-15	Copy (pixmaps) <garetxe@users.sourceforge.net>
+
+	* src/ttxview.c: The selection is now exported as a pixmap too
+	(can be pasted into xpaint, for example)
+	* src/tveng2.c: Support for driver private controls (untested)
+	* libvbi/exp-gfx.c: Partial (region) rendering.
+
+2001-02-13	TTX export <mschimek@users.sourceforge.net>
+
+	* added aspect option to ppm/png export
+	* removed vt_page* from struct fmt_page
+
+2001-02-11	Copy (text) <garetxe@users.sourceforge.net>
+
+	* src/ttxview.c: Exports the selection as TEXT to the primary
+	clipboard (Emacs, X apps) and to CLIPBOARD (GTK apps). X sucks.
+	* libvbi/exp-txt.c: Added a string export filter.
+
+2001-02-10	Visual selection finished <garetxe@users.sourceforge.net>
+
+	* src/ttxview.c: Visually selecting the region works flicker free,
+	lacks the export filter to clipboard.
+	* src/tveng2.c: dummy s_win on startup, avoid g_win failing later
+	on because no window set.
+	* configure.in, src/x11stuff.c: Deactivate DPMS when going fullscreen.
+	* libvbi/v4lx.c (guess_v4l): Try with /dev/video0 before
+	traversing dev, 1s startup speedup in the common case.
+	
+2001-02-09	CP work <garetxe@users.sourceforge.net>
+
+	* src/ttxview.c: Visual selection works, needs to get flicker free
+	(easy, but time consuming). Fixed SEGV (button_release not
+	disconnected).
+	* src/tvengxv.c: Fixed cur_input setting, added index field to
+	tveng_enum_input.
+	* src/tveng.c: Applied patch to do normalized comparing of
+	standards and inputs (Magnus).
+
+2001-02-08	gnome-help-browser <garetxe@users.sourceforge.net>
+
+	* src/ttxview.c: Action for links. Configure with gnomecc,
+	"URL handler". Started copy&paste work, selecting doesn't work
+	properly yet, but i need to sleep 8-P
+
+2001-02-07	Zapzilla navigation <mschimek@users.sourceforge.net>
+
+	* new add_bcd and carry fix in on_ttxview_key_press()
+	* modified links, double width/size safe and http/ftp/email,
+	  action tbd.
+	* unified CC/WST attr_char, added format.h.
+	* moved conceal/reveal into render functions; Need a reveal button.
+
+2001-02-05	Set input <garetxe@users.sourceforge.net>
+
+	* src/zmisc.c: Applied patch by Magnus Sandin to keep input whilst
+	switching modes.
+	* zapping_setup_fb/Makefile.am, zapping.spec.in: Applied patch by
+	Tim Powers to fix build process.
+
+2001-02-03	ZSFB goes PAM <garetxe@users.sourceforge.net>
+
+	* zapping_setup_fb: Uses PAM if available, as explained by Tim
+	Powers.
+	* plugins: they get installed now under $(prefix)/lib/zapping/plugins,
+	that's more polite, according to informed sources :-)
+
+2001-02-02	/dev/video0 <garetxe@users.sourceforge.net>
+
+	* s/dev\/video/dev\/video0/g: rationale: In RH 7.1 beta (Fisher),
+	/dev/video is a dir. Patch sent by Tim Powers, thanks :-)
+	* Trying to get Z running under 2.4.1, BTTV. The driver appears to
+	be broken (mmap fails), haven't tested with xawtv yet.
+
+2001-01-31	Accel keys <garetxe@users.sourceforge.net>
+
+	* src/main.c, channel_editor.c: Finished accel keys. The key
+	list takes too much ram (custom widget?)
+	* configure.in: Used unicode-config for checking unicode.
+	* glade/: Added right-click access to some useful sizes.
+	* callbacks.c: Put the tuned channels in a submenu if more than 7.
+
+2001-01-31	Zapzilla <mschimek@users.sourceforge.net>
+
+	* export.c: rewrote enhancement decoder, didn't scale. Should
+		support all of 2.5, 3.5 now. Fragments of a TOP index.
+	* vbi.c: fixes
+
+2001-01-30	Key syms <garetxe@users.sourceforge.net>
+
+	* src/keysysms.h: busy, just putting up list of known keys.
+
+2001-01-27	Channel accels <garetxe@users.sourceforge.net>
+
+	* glade/zapping.glade, src/channel_editor.c: Added support for
+	attaching accelerators to channels, unfinished.
+
+2001-01-25	Old cruft removed <garetxe@users.sourceforge.net>
+
+	* libvbi/: Moved vbi_v4l[2].c to the attic, not longer needed,
+	updated README.
+
+2001-01-24	minor tweaks <garetxe@users.sourceforge.net>
+
+	* src/zmisc.c: Hide the pointer in fullscreen mode.
+	* src/overlay.c: Fixed tv_screen geometry changed handling.
+	* src/callbacks.c: Recompute gometry after modifying (hide, show,
+	resize) toolbar and menu.
+	* src/callbacks.c: Support for mouse wheel buttons 4 (channel up)
+	and 5 (channel down).
+
+2001-01-24	Zapzilla <mschimek@users.sourceforge.net>
+
+	* caption.c: added xds and itv decoder
+	* caption.c: various caption fixes (still unfinished)
+	* samples: s2-s7
+	* cache.c et al: optimized memory usage (-50%)
+
+2001-01-24	mp1e <mschimek@users.sourceforge.net>
+
+	* added vcd mux, syntax verified but not tested with hw players.
+
+2001-01-23	libunicode <garetxe@users.sourceforge.net>
+
+	* configure.in, zapping.spec.in: Added dependency on libunicode
+	* src/callbacks.c: Added option to hide menubars and toolbar.
+	* help/C/ure.html: [Extremely] Brief introduction to Unicode, and
+	some comments on the regex implementation.
+	* src/ttxview.c: New search button, pattern history.
+	* src/zvbi.c: Search results are freezed.
+	* po/*.po: Removed obsolete strings.
+
+2001-01-14	** bug <garetxe@users.sourceforge.net>
+
+	* common/ure.c: Fixed the "**" pattern bug.
+	* src/main.c: Definitively closed the auto-resizing bug (and the
+	many bugs its fix had caused :-)
+	* src/frequencies.c: South African frequency table, donated by
+	Jeremy Maccelary. Thanks!
+	* src/ttxview.c: Added popup menu support in attached views.
+	* zapping_setup_fb: Added not-running-as suid message, paranoid
+	security changes.
+
+2001-01-14	Search GUI <mschimek@users.sourceforge.net>
+
+	* Backward search added, remaining bugs fixed in the
+	libvbi search routines, should be all gone now.
+
+2001-01-13	TTXView in main window <garetxe@users.sourceforge.net>
+
+	* Restored teletext support into the main window, lacks popup menu
+	integration.
+	* src/main.c: Fixed the auto-resizing bug. A bit hackish, but
+	will remove the annoyance.
+	* src/txtcontrols.c: Removed, not longer needed.
+	* src/ttxview.c (update_pointer): Bounds checks, needed for calls
+	when the window isn't completely open.
+	* src/callbacks.c (popup): Transform "Hide extra options" into
+	"Show extra options" when needed.
+	* help/C/ure.html: Wrote help for the search engine.
+
+2001-01-12	Rewrite of main loop <garetxe@users.sourceforge.net>
+
+	* src/main.c: Got rid of that ugly main loop, use the usual
+	gtk_main instead, modules should hook into it if necessary.
+	* src/capture.c: Old (capture related) main loop has been moved
+	here.
+	* src/ttxview.c: Small usability improvements in search_progress,
+	default button setting (easier keyb navigation).
+	* src/zconf.h: Moved the zc[cgs]_ macros here.
+	* src/zmisc.h: Added z_update_gui, calling while
+	(gtk_events_pending()) is not any longer safe (idle calls).
+	* common/ure: Added URE_NOTBOL, URE_NOTEOL. No gui for that
+	yet. Made DOT_MATCHES_SEPARATORS behave properly with negated
+	cclasses.
+
+2001-01-12	Search GUI <garetxe@users.sourceforge.net>
+
+	* src/ttxview.c: GUI for TTX searching added.
+	* glade/zapping.glade: search_progress created.
+
+2001-01-10	URE, unicode <garetxe@users.sourceforge.net>
+
+	* common/README, common/ucs-2.h: Added.
+	* URE: Fixed some bugs, better is...() masks, some optimizations,
+	document the prototypes, use libunicode.
+	* unicode.c: current locale charset autodetection (taken from
+	libiconv), endianness workaround, URE usage example.
+
+2001-01-07	options <garetxe@users.sourceforge.net>
+
+	* src/ttxview.c: Added preliminary support for entering export
+	options.
+	* common/ure.c: Partial UTF16 regex implementation
+	* common/unicode.c: Unicode routines (requires -lunicode)
+
+2001-01-04	libvbi <mschimek@users.sourceforge.net>
+
+	* HTML export restored, enhanced, export filter enabled
+	* ASCII/ANSI export restored, enabled
+	* vbi_page_title added, unfinished
+	* fixed a problem with ttxview subpage display
+	* modified toolbar, let's see what Iñaki sez ;-)
+
+2001-01-03	gui for export filters <garetxe@users.sourceforge.net>
+
+	* src/ttxview.c: Export filters GUI. 
+
+2001-01-02	libvbi <mschimek@users.sourceforge.net>
+
+	* fmt_page: returns boolean success now
+	* PPM export restored
+	* PNG export added (requires libpng)
+
+2000-12-31	libvbi <mschimek@users.sourceforge.net>
+
+	* FLOF restored
+
+2000-12-31	Small fixes <garetxe@users.sourceforge.net>
+
+	* libvbi/export.h: Prototype for fmt_page
+	* src/ttxview.c: Better handling of invalid pages..., better
+	management of status bar.
+
+2000-12-30	Bookmarks editor <garetxe@users.sourceforge.net>
+
+	* glade/zapping.glade: Bookmarks editing dialog added.
+	* src/ttxview.c: Added some bookmarks editing (currently just
+	deleting, anything else is a wombat)
+	* src/zmodel.c, src/zmodel.h: Added, generic model object, with
+	just a "changed" signal. Quite useful for MV design.
+
+2000-12-30	Faster rendering, bookmarks <garetxe@users.sourceforge.net>
+
+	* glade/zapping.glade: [<<][<][>][>>]
+	* src/ttxview.c: Added bookmarks. They cannot be removed yet (edit
+	by hand zapping.conf)
+	* src/zmisc.c: Got rid of redundant malloc, free's, it should
+	be faster now.
+
+2000-12-28	YAGR <garetxe@users.sourceforge.net>
+
+	* glade/zapping.glade: Yet another GUi revamp. We are getting
+	closer to perfection :-)
+	* src/ttxview.c: Made the prev, next subpage buttons traverse the
+	cache of pages. We probably need some way to request a given subpage.
+
+2000-12-26	GUI changes <garetxe@users.sourceforge.net>
+
+	* glade/zapping.glade: Added some GUI elements to access the new
+	stuff, and the option to hide the Standards, Inputs optionmenus.
+	* src/overlay.c: Made it a bit more modular.
+	* src/callbacks.c: Code to handle the new GUi items, unfinished.
+
+2000-12-23	History done <garetxe@users.sourceforge.net>
+
+	* src/ttxview.c: History works now
+	* glade/zapping.glade: Redesigned advanced controls.
+
+2000-12-22	More TTXView work <garetxe@users.sourceforge.net>
+
+	* src/ttxview.c: More GUI love, should be ready to start merging
+	history and other fancy stuff. Tried to minimize used screen
+	space, support for subpages, and a very improved Keyb handling.
+	* src/tvengxv.c: I shouldn't read that fast...
+
+2000-12-20	TTXView, T thread <garetxe@users.sourceforge.net>
+
+	* src/ttxview.c: All the difficult things are done by now, lacks
+	history.
+	* src/zvbi.c: Created T thread as discussed, loads of old code
+	need to be removed now.
+	* src/tvengxv.c (tvengxv_get_tune): Fixed(?) a bug, the pointer
+	was apparently wrongly passed. This could be a memleak, needs
+	further investigation, i just fixed the sympthoms.
+
+2000-12-17	TTXView started <garetxe@users.sourceforge.net>
+
+	* src/ttxview.c: Started, will be the GUI for the TTX decoder.
+
+2000-12-16	Configurable default charset <garetxe@users.sourceforge.net>
+
+	* glade/zapping.glade, libvbi/vbi.c: Added the
+	option to set the default charset.
+
+2000-12-16	Teletext character sets <mschimek@users.sourceforge.net>
+
+	* /libvbi: Zapping now supports all Teletext character sets.
+
+2000-12-16	MC fifos <garetxe@users.sourceforge.net>
+
+	* common/fifo.[ch]: Converted to multi-consumers. Lacks some
+	things yet.
+
+2000-12-06	XV bugfixes, remote.c <garetxe@users.sourceforge.net>
+
+	* src/remote.[ch]: Created, allows running some internal Zapping
+	functions from inside the plugins.
+	* All: Fixed a number of bugs with the XVideo support, thanks to
+	all the people that helped with them.
+	
+2000-12-02	Multi-controller controls <garetxe@users.sourceforge.net>
+
+	* src/tveng.c: Filter and Colorkey controls are now managed by the
+	"mother" controller.
+	* src/tveng.h: Mother controller added, COLOR control type added,
+	controllers now know who do they belong to.
+	* src/v4linterface.c: Added GUI item for COLOR controls, cleanup.
+	* src/tvengxv.c: removed filter control, now managed by the mother
+	controller.
+
+2000-11-30	Bug fixes <garetxe@users.sourceforge.net>
+
+	* all: some code cleanups, wrong assumptions removed.
+
+2000-11-29	Doc updates <garetxe@users.sourceforge.net>
+
+	* TODO, README, NEWS, THANKS, BUGS, doc/: Updated, i'm going to
+	make a new release soon.
+	* src/channel_editor.c: Print a notice when the XVideo controller
+	is used and channel autosearching is requested.
+	* all: Fixed some fixme's.
+
+2000-11-26	Controller auto-switching <garetxe@users.sourceforge.net>
+
+	* src/tvengxv.c, src/zmisc.c: Use the XV controller just for
+	Overlay mode, READ controller for the rest, fixed some bugs (XSync)
+	* zmisc.c: The standards, input and controls are
+	dynamically changed when the controller changes.
+	* libvbi: Now allows dynamic glyphs switching (currently just
+	Latin[12] and Russian)
+	* src/mmx.c: Fixed incorrect instruction order (pop, then Return:)
+	* src/main.c: Fixed incorrect function order (zmisc_switch_mode,
+	then startup_teletext)
+
+2000-11-25	XVideo working (mol) <garetxe@users.sourceforge.net>
+
+	* src/tvengxv.c, src/callbacks.c, src/main.c, src/overlay.c: First
+	working XVideo code. It almost works, except for some glitches,
+	and that some parts (mainly overlay) are a compendium of gross
+	hacks that should be rewritten cleanly.
+
+2000-11-24	Russian glyphs, XVideo <garetxe@users.sourceforge.net>
+
+	* libvbi/: Added font3 and font4, they are the Russian
+	glyphs. Contributed by Sergey Nikulin.
+	* libvbi/font.h: Added some prepocessor magic for using this fonts
+	(FONTS_RUSSIAN)
+	* src/tveng1.c: Fixed a couple of minor bugs and some stylistic
+	changes.
+	* src/tvengxv.c: standards, inputs, freq, controls done.
+	* src/tvengxv.h: Created.
+
+2000-11-23	More XVideo, tveng1 fixes <garetxe@users.sourceforge.net>
+
+	* tvengxv.c: Some more work into this, emulating TVeng api using
+	XVideo is a bit tricky. get_inputs, find_input.
+	* tveng1.c: Fixed a bug that could cause memleaks and broken
+	inputs.
+
+2000-11-22	XVideo work <garetxe@users.sourceforge.net>
+
+	* tvengxv.c: Created, handles the XV module. Just does some
+	minimal work by now: attach, describe, close, init.
+	* /me: I wish i had time to sleep... a day with 48 hours would
+	be fine too... All day in the Uni, then code :-(
+
+2000-11-21	tveng modularized <garetxe@users.sourceforge.net>
+
+	* tveng: Changed the structure into a more modular design, this
+	will let me add the XVideo handling module easier.
+
+2000-11-19	ru.po <sergey-nikulin@mail.ru>
+
+	* po/ru.po: Added Russian translation
+
+2000-11-17	V4L VBI support <garetxe@users.sourceforge.net>
+
+	* libvbi/: tries to open the vbi device as V4L2. If it fails, uses
+	V4L instead.
+	* po/es.po: Updated.
+	* src/main.c (main): startup_vbi called after setting the input
+	and the standard to work around bttv2 locking.
+
+2000-11-15	V4L2 VBI support <garetxe@users.sourceforge.net>
+
+	* libvbi/: Brought up-to-date with alevt 1.6.0, added V4L2-aware
+	code. This will be replaced in the future by Michael's decoder.
+	* configure.in: Fixed, --disable options didn't work (i wasn't
+	using $enableval), removed --enable-tveng-debug, no longer needed.
+
+2000-11-14	Bug fixes <garetxe@users.sourceforge.net>
+
+	* main.c: Fixed the auto-resize-to-unusable-size bug, it lacked a
+	gtk_main_iteration.
+	* tveng.h: Privatized some stuff
+	* tveng_private.h: Added, definitions for the private stuff.
+	* tveng_lib: Brought the standalone lib in sync with the latest
+	stuff.
+	
+2000-11-12	de.po and some quick hacks <garetxe@users.sourceforge.net>
+
+	* po/de.po: Commited by Michael some days ago.
+	* src/tveng.c: Changing the vidmode is now configurable, some
+	people had complained about this.
+	* glade/zapping.glade: Added the property to modify this.
+	* configure.in: The channel ordering is configurable now.
+
+2000-11-05	YUYV->RGB converter <garetxe@users.sourceforge.net>
+
+	* plugins/screenshot: Added this needed converter.
+
+2000-11-04	MPEG starts to work <garetxe@users.sourceforge.net>
+
+	* plugins/mpeg: It starts to work fine after many bugfixes in rte.
+	* src/tveng2.c: Fixed a bug that made it segfault when changing
+	standards. Well, not really a bug, but a "feature" of the bttv2
+	driver.
+	* src/tveng: Use seconds as the timestamp unit, it's a double now.
+
+2000-10-31	More work on Xv <garetxe@users.sourceforge.net>
+
+	* src/capture.c: Default Xv pixformat is YUYV now, was UYVY.
+	* src/tveng1.c: Fixed the YUV modes defs (TVENG_PIX_YUV420 =
+	PALETTE_YUV420P, not PALETTE_YUV420)
+
+2000-10-30	Capture code working <garetxe@eusers.sourceforge.net>
+
+	* src/capture.c: It can work without Xv support now.
+	* src/zmisc.c: Removed some code (obsoleted by capture.c).
+
+2000-10-29	YUV and XV support <garetxe@users.sourceforge.net>
+
+	* src/tveng: Added support for YUV modes (YUV420, YVU420, UYVY,
+	YUYV).
+	* src/main.c:
+	* src/zmisc.c: The capture code now goes into capture.c
+	* src/capture.c: Now it can read and draw data (only if the Xv
+	extension is present and it works).
+
+2000-10-28	ZVBI more modular <garetxe@users.sourceforge.net>
+
+	* src/zvbi.c, zvbi.h: Now the callbacks that handle the VBI are
+	self-contained, they don't need to be called from other modules.
+	* src/tveng2.c, src/videodev2.h: Brought up-to-date with the
+	latest videodevX.
+	* src/capture.c: Some preliminar Xv code has been written.
+
+2000-10-27	Tveng debug configurable <garetxe@users.sourceforge.net>
+
+	* src/tveng.c: Now the debug level can be changed using
+	tveng_set_debug_level.
+	* src/sound: Removed sound support. It wasn't used, and it was
+	causing some problems.
+
+2000-10-24	MPEG plugin started <garetxe@users.sourceforge.net>
+
+	* plugins/mpeg: rte is now ready, i'm starting the wrapper plugin.
+	* configure.in, Makefile.am: Modified as necessary
+
+2000-10-14	XGetScreenSaver <garetxe@users.sourceforge.net>
+
+	* src/x11stuff.c: Use XGetScreenSaver and friends to modify the
+	screensaver, but it doesn't appear to work yet :-(
+
+2000-10-05	Russian frequency table <garetxe@eusers.sourceforge.net>
+
+	* src/frequencies.c: Added russian frequency table, donated by
+	Eugene Crosser.
+
+2000-10-05	overlay rewritten <garetxe@users.sourceforge.net>
+
+	* configure.in: Added check for CPU type and presence of MMX.
+	* src/yuv2rgb.c:
+	* src/yuv2rgb.h:
+	* src/yuv2rgb_mmx: YUV->RGB transform routines, with MMX
+	aceleration supported.
+	* src/mmx.h:
+	* src/mmx.c: MMX detecting and handling helper functions.
+	* src/overlay.{ch}: Overlay handling code, completely
+	rewritten. Now it works perfectly, just a bit of necessary
+	flicker.
+	* src/x11stuff.{ch}: Low-level X11 stuff. I'll try to stick with
+	GDK in the rest of Zapping for the sake of clarity.
+	* src/tveng2.c: Some fixes to make it work with the newest bttv2
+	and videodevX.
+
+2000-09-23	back again <garetxe@users.sourceforge.net>
+
+	* src/main.c: Added option for supporting old bttv devices.
+
+2000-09-17	fr.po updated <garetxe@users.sourceforge.net>
+
+	* po/fr.po: Updated (Christian Marillat)
+
+2000-09-16	/dev/dsp bug closed <garetxe@users.sourceforge.net>
+
+	* src/main.c: When VBI was disabled, the previous capture mode was
+	set automatically to CAPTURE, fixed.
+	* src/tveng.c: tveng_attach_device prints info about the video
+	device on success (if not configured with --disable-tveng-debug)
+	* src/tveng.c: Kernel 2.4.0test8's bttv makes the program hang if
+	the given width and height aren't valid, fixed (was '/dev/dsp bug')
+	* src/tveng.c: Added the option to tveng_device_info_new to use a
+	standard norm is the input we are going to switch to is tunerless
+	(so it defaults to PAL).
+	* src/main.c: Added the command line option to control the default
+	norm (--tunerless-norm, -n)
+
+2000-09-14	Kernel 2.4.0test8 <garetxe@users.sourceforge.net>
+
+	* /box: Installed the new kernel, a number of problems have arisen
+	with Zapping. I can reproduce now the /dev/dsp bug! I don't have a
+	clue of the cause, though :-)
+	* /box: NOTE: Some user related that the problem disappeared after
+	installing Gerd's bttv over the 2.4.0test8's one. Check.
+	* src/sound.c: bugfix, even when esd failed to open the device,
+	startup_sound returned succeeded.
+	* src/main.c: Sound can be disabled by a command line  option and
+	if startup_sound fails.
+	* README: Updated, added a quick troubleshooting.
+
+2000-09-13	Teletext processed <garetxe@users.sourceforge.net>
+
+	* src/zvbi.c, src/main.c: The teletext image is now received by
+	the plugins, so it can be processed.
+	* src/plugins.c: The plugin_sample struct no longer contains a
+	GdkImage.
+	* plugins/screenshot: Now it saves the current teletext page too.
+	* src/strnatcmp: Like strcmp and strcasecmp, but perform natural
+	ordering of strings with numbers (1, 2, 3, .., 8, 9, 10, 11)
+	* src/strnatcmp.c: fall back to str[case]cmp if they compare the
+	same in natural order.
+	* src/frequencies.c: Now it uses strnatcmp for station aliases.
+	
+2000-09-12	JPEG screenshots <garetxe@users.sourceforge.net>
+
+	* plugins/screenshot.c: Now it uses JPEG format instead of PNG.
+	* main.c: Added option to disable VBI on startup (avoid V4L2
+	crashes)
+	* src/zvbi.c: Added debug messages
+
+2000-09-11	New release <garetxe@users.sourceforge.net>
+
+	* html docs: Updated.
+	* src/tveng.c: Support for command-line bpp added.
+	* src/callbacks.c: The screensaver now goes to throttle mode when
+	Fullscreen is used.
+	* src/zmisc.h: Added some debug routines
+	* src/main.c: populated with debugging messages
+
+2000-09-08	History improved <garetxe@users.sourceforge.net>
+
+	* glade/zapping.glade: txtcontrols redesigned, now it only shows
+	the visited pages, not page + subpage. For using both, a tree
+	would be better.
+	* src/zvbi.c: Added a web-browser-like history, and a visited
+	pages list. It's easier to navigate now. Added fast navigation
+	("color" navigation, FLOF), and subpage/page recognision.
+	* src/main.c: Added command line option --bpp.
+
+2000-09-07	History implemented <garetxe@users.sourceforge.net>
+
+	* src/txtcontrols.c: Previous, next work for pages and subpages,
+	history is saved when setting pages.
+
+2000-09-06	VBI integrated <garetxe@users.sourceforge.net>
+
+	* glade/zapping.glade: VBI has been integrated into the GUI.
+	* src/callbacks.c: Added code for switching to VBI
+	* src/zvbi.c: Much less CPU usage (pre-rendered frames, draw only
+	when neccessary)
+	* pixmaps/vt_loading*: Two images (~11K) created for when the
+	requested page isn't available.
+	* src/channel_editor.c: Uses VBI for getting the station names.
+	* src/main.c: Added config setting for saving the VBI state.
+	* src/txtcontrols.c: Created, manages the VBI GUI.
+
+2000-09-05	Bpp fixes <garetxe@users.sourceforge.net>
+
+	* zapping_setup_fb: Now accepts command line --bpp option
+	* src/zvbi.c: Does most of the work. Fetches, renders and scales
+	automagically teletext pages. Depends on GdkPixbuf to work.
+	* src/properties.c: Now the VBI properties are modificable.
+
+2000-09-04	Bug fixes <garetxe@users.sourceforge.net>
+
+	* src/tveng[12].c: Fixes in the fullscreen mode, it had errors
+	related to non-functional DGA drivers. Now most of the
+	functionality goes into the VidMode extension, that usually works.
+
+2000-09-03	Project structure changes <garetxe@users.sourceforge.net>
+
+	* libvbi/: It's a bit cleaner now, and commited to CVS
+	* src/zvbi.c: Gets the date and the name on each header/xpacket
+	* configure.in: Not having -lpng is not longer fatal, conditional
+	plugin build, [optional] GdkPixbuf support added (i will need it
+	for the VBI plugin)
+
+2000-09-01	VBI support added <garetxe@users.sourceforge.net>
+
+	* libvbi/: Added support for VBI (stolen from alevt)
+	* src/zvbi.c: Swallow support and encapsulation added
+
+2000-08-25	mode switch when needed <garetxe@users.sourceforge.net>
+
+	* plugins/screenshot: Now switchs to capture mode automagically
+	when overlay. Doesn't switch back, though.
+	* src/zmisc.c: ShowBox now accepts parameters (like sprintf,
+	printf and friends)
+
+2000-08-24	back to work <garetxe@users.sourceforge.net>
+
+	* po/fr.po: Updated the french translation (Christian Marillat)
+	* src/callbacks.c: The focus change no longer makes the overlay
+	refresh (was a bit visually unpleasant)
+	* src/tveng[12].c: Added a configure option to avoid initial
+	channel and standard selection.
+
+2000-07-27	mode switching <garetxe@users.sourceforge.net>
+
+	* src/zmisc.c: Added a routine for switching modes correctly.
+	
+2000-07-23	Misc bug fixing <garetxe@users.sourceforge.net>
+
+	* src/zmisc.c: Fixed the segfault when quitting (i believe so, at
+	least).
+	* src/tveng.c: Fixed some memleaks with the X code, and made it
+	restore the VidMode correctly when returning from fullscreen.
+	* src/zconf.c: Fixed the problems with the help being opened by
+	Mozilla - it was a mem-leak, g_get_home_dir returns a static
+	string, and I was g_free'ing it.
+	* plugins/screenshot: It now checks for capture mode before starting.
+	* help/C: I updated the docs and the screenshots.
+	
+2000-07-22	Windowed preview working <garetxe@users.sourceforge.net>
+
+	* src/zmisc.c: Fixed the last bugs with it except one, that i
+	would need to get events from the root window to fix (and I don't
+	want to). You could call it a "feature" ;-) Did I tell that
+	windowed preview sucks? There is a bug with it that i'm trying to
+	reproduce (a SIGSEGV when exitting)
+	* src/tveng2.c: Fixed a bug with clipping rectangles. The struct
+	wasn't built correctly for more than one rectangle.
+	* everything: The windowed mode has been integrated in the program
+	(TVENG_CAPTURE_WINDOW mode).
+	* src/zmisc.c: I think the SIGSEGV previously mencioned is fixed now.
+	
+2000-07-21	Windowed preview <garetxe@users.sourceforge.net>
+
+	* src/zmisc.c: It's still unfinished (and sucks), but it mostly
+	works now. I've added (copied from xawtv) clipping support. There
+	are some bugs with it still.
+
+2000-07-20	Modify channels <garetxe@users.sourceforge.net>
+
+	* src/channel_editor.c: Added the option to modify channels and a
+	fine tuner
+	* glade/zapping.glade: Modified accordingly.
+	* src/main.c: Fixed ratio is working (although it doesn't work
+	under Sawfish)
+	* macros/autogen.sh: Little fix, it tried to autoconf mp1e's
+	configure.in (it's in the same CVS tree as zapping)
+	* src/callbacks.c: Added some (very rudimentary) support for
+	windowed overlay mode. It just sucks, and will suck forever, but
+	people ask for it :-/
+	
+2000-07-19	Option for keeping the ratio <garetxe@users.sourceforge.net>
+
+	* src/properties.c: Added the option (doesn't do anything for now)
+	to keep a given aspect ratio when resizing.
+	* glade/zapping.glade: Updated the properties dialog accordingly.
+
+2000-07-04	configure.in fix <garetxe@users.sourceforge.net>
+
+	* configure.in: configure.in now tries "-lpng -lz" if "-lpng"
+	fails.
+	* /me: I'm working with M.Schimek in a lib front-end for mp1e,
+	don't expect changes in Zapping in the near future.
+
+2000-06-21	Timestamps <garetxe@users.sourceforge.net>
+
+	* src/tveng: Timestamps support has been added
+	* src/plugins: Now the plugins receive a sample object (a+v), not
+	just video.
+
+2000-06-20	Channel finder <garetxe@users.sourceforge.net>
+
+	* src/channel_editor.c: Added the option to find automagically all
+	the tunable channels (works fine in V4L, a bit worse in V4L2)
+	* src/tveng2.c: Fixed, so it can do channel searching.
+
+2000-06-19	datadir fixed <garetxe@users.sourceforge.net>
+
+	* configure.in: Now the need to specify the datadir option has
+	disappeared, --prefix is enough.
+	* tveng1.c: Worked around a bug in the bttv driver, the returned
+	maximum capture width isn't correct (thanks to Marcel Janssen)
+
+2000-06-14	Right-click menu <garetxe@users.sourceforge.net>
+
+	* src/callbacks.c: Fullscreen mode grabs the keyboard again, but
+	it is apparently safe now.
+	* glade/zapping.glade: Added a right click menu. Not very useful,
+	but it is fancy and somewhat faster to use.
+	* src/tveng.c: Now it fills the fb_info struct correctly on startup.
+
+2000-06-13	Sound fixes <garetxe@users.sourceforge.net>
+
+	* src/sound.c: Some fixes have been made, now it should be
+	somewhat faster. It is yet untested.
+	* src/tveng.c: Added support for 15 bpp screen depth.
+	* zapping.spec.in: Fixed, now it adds the translations to the RPM
+	correctly.
+	* src/callbacks.c: Fullscreen mode no longer grabs the
+	keybord. This should avoid blocking X (completely :-) if something
+	doesn't work while we are fullscreen.
+
+2000-06-12	Docs added <garetxe@users.sourceforge.net>
+
+	* help/C/channel_editor.html: Added.
+	* src/sound.c: Sound capturing support is now complete. It is
+	slow, though.
+	* src/tveng.c: Fixed a couple of memleaks in
+	tveng_get_display_depth (memprof is great!)
+	
+2000-06-09	VidMode extension <garetxe@users.sourceforge.net>
+
+	* tveng.c: If a better resolution for going fullscreen is
+	available, switch to it using the Vidmode extension.
+	
+2000-06-07	fr.po added <garetxe@users.sourceforge.net>
+
+	* fr.po: thanks to Christian Marillat a french translation is
+	available.
+	* main.c: Zapping now saves the current input and the current
+	standard.
+	* zapping.spec.in: I got to build a RPM, seems to work.
+	
+2000-06-06	Lazy day <garetxe@users.sourceforge.net>
+
+	* help/C/properties.c: Added the help for the properties
+	* zapping.spec.in: Written, but it doesn't build yet, and lacks
+	dependencies.
+	
+2000-06-04	Plugin code remade <garetxe@users.sourceforge.net>
+
+	* src/plugin_properties.c:
+	* glade/zapping.glade: Dialog layout redesigned, now the plugins
+	are configurable from the plugin_properties dialog too.
+	* src/sound.[ch]: Preliminary esd sound support added.
+	
+2000-06-02	First problems fixed <garetxe@users.sourceforge.net>
+
+	* configure.in: Added the option to disable X extensions (DGA)
+	from the configure script (thanks to Jan Castermans).
+	* configure.in: Added a test to determine whether to use
+	node->children or node->childs.
+	* tveng: Added frame timestamps.
+	* callbacks.c:
+	* main.c: Added option for resizing with fixed increments.
+	
+2000-06-01	Bug fixes <garetxe@users.sourceforge.net>
+
+	* everything: Lots of bugs and fixme's have been corrected. Some
+	code cleanups have been made too.
+	* configure.in: Changed release number from 0.5.0pre1 to 0.5.0. I
+	plan to release tomorrow.
+
+2000-05-29	Tveng2 done <garetxe@users.sourceforge.net>
+
+	* tveng2.c:
+	* tveng.c: The V4L2 driver has been [re]written and apparently it
+	works fine. The bugs when opening external programs and changing
+	inputs are still there, though :(
+	* plugins.c: Converted plugin_get_priority into a more general
+	pourpouse function, plugin_get_misc_info. Added cathegories too.
+
+2000-05-20	Back into coding <garetxe@users.sourceforge.net>
+
+	* /me: I'm very busy with my finals, i won't have much time for
+	coding this month (and half of the next one) :(	
+	* plugins.c:
+	* plugin_common.h: New plugin structure, more flexible.
+	* plugins/template/template.c:
+	* plugins/screenshot/screenshot.c: Adapted to the new API.
+	* tveng: Started rewritting the V4L2 controller.
+	* zapping_setup_fb/zapping_setub_fb.c: Corrected verbosity and
+	some typos.
+	
+2000-04-30	Screenshot saver <garetxe@users.sourceforge.net>
+
+	* plugins/screenshot/screenshot.c: Finished.
+	* configure.in: Added checking for -lpng
+
+2000-04-29	Screenshot saver <garetxe@users.sourceforge.net>
+
+	* plugins/template/template.c: Finished.
+	* src/Makefile.am: Added pthread support.
+	* src/zmisc.c:
+	* src/zmisc.h: Added some blocking, modal variations of ShowBox.
+	
+2000-04-28	Plugins working <garetxe@users.sourceforge.net>
+
+	* src/plugins.c: some bugs (misfeatures ;) corrected, it now works
+	as expected.
+	* help/C/plugin_devel.html: Changed plugin_ prefix to zp_ in the
+	plugin API (there was a symbol collision).
+	* plugins/template/template.c: Template plugin created.
+	* src/zmisc.c: Fixed a bug in zimage_reallocate
+	
+2000-04-27	Plugins finished <garetxe@users.sourceforge.net>
+
+	* help/C/plugins_devel.html: Holds the new plugin API.
+	* src/plugins.c: Implements the functionality described in the
+	doc.
+	
+2000-04-24	Again into CVS <garetxe@users.sourceforge.net>
+
+	* CVS/: Zapping has gone again into CVS (it was time since the
+	last cvs ci, but a lot of work has been done :)))
+	* src/tveng1.c: All the V4L1 specific stuff has been placed here
+	* src/tveng.c: Now it detects the video device driver (V4L1 or
+	V4L2) and acts accordingly. Total rewrite.
+	* help/C/plugin_devel.html: Created, it is the plugin API.
+	
+2000-04-22	Channel editor done <garetxe@users.sourceforge.net>
+
+	* channel_editor.c: Finished, except for the help (not written)
+	and autotuning (not written in tveng.c)
+	* SF: Added the project to the Trove system in SourceForge.
+	
+2000-04-21	Channel editor improved <garetxe@users.sourceforge.net>
+
+	* channel_editor.c: Created. Holds the code for handling the
+	channel editor dialog.
+	* frequencies.c: Added tveng_get_id_of_channel and
+	tveng_get_id_of_country_tune, needed by channel_editor.c
+	* callbacks.h: Cleanup and some comments have been added
+	* src/Makefile.am: Added channel_editor.c to the list of sources.
+
+2000-04-20	misc improvements <garetxe@users.sourceforge.net>
+
+	* properties.c: Created, holds all the code for handling the
+	properties dialog.
+	* zapping.glade: Channel choosing dialog redesigned.
+	* tveng.c: Added a parameter to tveng_attach_device (attach_mode)
+	* callbacks.c: Cleaned a hack used in go_windowed
+	
+2000-04-16	properties done <garetxe@users.sourceforge.net>
+
+	* callbacks.c: Properties dialog has been implemented, shows now
+	some info about the video device (a la gnometv)
+	* main.c: the video device name and zapping setup fb verbosity now
+	can be configured, just as before
+	* tveng.c: Added a range check in tveng_set_format, it prevents
+	errors that let the device in a unusable state.
+	
+2000-04-15	help support added <garetxe@users.sourceforge.net>
+
+	* help/: The introduction to Zapping has been written here
+	* Makefile.am:
+	* configure.in: Modified to reflect the above
+	* callbacks.c: Some bugfixes
+	* main.c: Everything works now, except for plugin support (the API
+	has to be slightly modified)
+	
+2000-04-15	bugtrack day <garetxe@users.sourceforge.net>
+	
+	* v4linterface.c:
+	* tveng.c:
+	* callbacks.c: Lots of bugs were introduced, some have been fixed,
+	now zapping works (almost) as 0.3.3 :-)
+	* tveng.c:
+	* v4linterface.c: Added language select control (mono, stereo,
+	european1 and european2), but apparently it doesn't work.
+	* tveng.c: Some conflictive and bttv-only code fragments have been
+	#ifdef'ed.
+	
+2000-04-14	zapping reassembled <garetxe@users.sourceforge.net>
+
+	* v4linterface.c: Adapted to the new tveng interface
+	* everything: Zapping now is completely reassembled and compiles
+	clean, lots of bugs have arosen, but i'm so happy ;-))))
+	
+2000-04-13	callbacks updated <garetxe@users.sourceforge.net>
+
+	* zapping.glade: Removed the 'Save screenshot button', it will be
+	a plug-in.
+	* callbacks.c: It now uses the new tveng api, it is much nicer to
+	deal with, btw :-)
+	* libglade: Posted a bug to the mantainer, the about box wouldn't
+	show the logo properly, and that was a pity with such a nice
+	Zapping logo.
+	
+2000-04-13	libglade in <garetxe@users.sourceforge.net>
+
+	* interface.c: The project now uses libglade.
+	* support.c: Removed from the project, it is now useless.
+	
+2000-04-08	zconf working <garetxe@users.sourceforge.net>
+
+	* zconf.c: Now it is written and appears to work fine.
+	
+2000-04-01	New module <garetxe@users.sourceforge.net>
+
+	* zmisc.c: Created, is a place for putting some misc functions
+	that didn't fit elsewhere.
+	
+2000-04-01	ZConf API created <garetxe@users.sourceforge.net>
+
+	* zconf.h: It holds the new zconf API, but nothing of it is
+	implemented yet.
+	
+2000-03-31	Using shared mem <garetxe@users.sourceforge.net>
+
+	* main.c: The program uses shared mem for displaying the data,
+	it is faster now.
+	* tveng.c: Removed info->format.data, now a parameter must be
+	supplied to tveng_read_frame, the user of tveng must take care now
+	about allocating memory.
+	
+2000-03-30	V4L fixes <garetxe@users.sourceforge.net>
+
+	* tveng.c: Some bugs in tveng for V4L have been fixed, now should
+	work quite reliably (tveng_[sg]et_format,
+	tveng_start/stop_capturing, tveng_read_frame,
+	p_tveng_[de]queue, ... had to be tested and fixed).
+	* tveng.c: tveng_attach_device sets a correct starting capture
+	size and tveng_set_capture_size stops capturing as neccesary.
+	* everything: The new 0.5 series are into CVS again ;-)
+	
+2000-03-27	V4L support ended <garetxe@users.sourceforge.net>
+
+	* tveng.c: V4L support has been completed after 9 days, i've been
+	very busy this two weeks with the Uni :-(
+	* main.c: Rewritten, it was becoming very messy.
+	* zconf.c: Created. It's a config saving module, created with
+	gconf porting in mind.
+	* plugins.c: The new plugin protocol has been designed, it lacks
+	the implementation yet, and some docs.
+	
+2000-03-18	V4L support started <garetxe@users.sourceforge.net>
+
+	* tveng.c: It has been converted to V4L and the API has changed
+	significantly. Now the rest of the program must be changed...
+	* zapping_setup_fb: Converted to V4L
+	* Release: 0.3.2 contained a bug in the distro, a bug fix release
+	has been made, named 0.3.3.
+	
+2000-02-24	New release: 0.3.2 <garetxe@users.sourceforge.net>
+
+	* plugins.c:
+	* main.c:
+	* callbacks.c: Added a tveng_read_frame() function and fixed some
+	bugs. This is the first version considered "working". The plugin
+	protocol shouldn't change too much in the near future.
+	* tveng.c: i cannot get read() calls to work under v4l2 yet :-(
+	
+2000-02-22	Plugin support finished <garetxe@users.sourceforge.net>
+
+	* plugins.c:
+	* main.c: The plugin support is now completely integrated into
+	zapping, i made a test plugin and works fine.
+	
+2000-02-20	Plugin config saved <garetxe@users.sourceforge.net>
+
+	* plugins.c:
+	* main.c: Now the plugins can save/restore their configuration
+	
+2000-02-19	Plugin structure ready <garetxe@users.sourceforge.net>
+
+	* plugin.c: The plugin loading / unloading funtions work
+	
+2000-02-19	Added the project to CVS <garetxe@users.sourceforge.net>
+
+	* Generic: The project has been added to
+	  cvs.zapping.sourceforge.net, it can now be accessed anonymously
+	* zapping_setup_fb: Has moved from src/zapping_setup_fb to
+	  zapping_setup_fb in order to follow the 'no / in Makefile.am'
+	  rule, and not to break automake.
+	* io.c: Minor changes
+	
+2000-02-11	Suid and preview operative <garetxe@users.sourceforge.net>
+
+	* src/zapping_setup_fb/zapping_setup_fb.c: I finished the preview
+	  code and the suid program, i hope it hasn't many security flaws.
+	* src/interface.c: some more configurable properties
+	* pixmaps/0.3-logo.png: Created a nice logo with the Gimp
+
+
+2000-02-02	Fullscreen mode working <garetxe@users.sourceforge.net>
+	
+	* src/tveng.c: Fullscreen mode now works (although the code now is
+	just a hack, needs to be cleaned up)
+	* Makefile.am: Added the suid to the project, now it compiles
+	
+2000-01-29	First _really_ working version <garetxe@users.sourceforge.net>
+
+	* src/tveng.c: Fairly complete V4L2 wrapping library
+	* src/io.c: Ability to capture PNG images
+	* src/tveng.c: Direct Video Blitting (BGR -> RGB conversion avoided)
+	* src/interface.c: Channel editor added
+
+Local Variables:
+mode: change-log
+coding: utf-8
+left-margin: 8
+fill-column: 76
+End:

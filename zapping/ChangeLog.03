@@ -1,0 +1,2066 @@
+2003-12-31    <mschimek@users.sf.net>
+
+	* src/tveng25.c (set_standard), src/tveng2.c (set_standard):
+	  Shortcut if requested standard same as current, saves a
+	  stop_everything cycle.
+	* src/tvengxv.c, src/tvengemu.c,
+	  src/tveng1.c, src/tveng2.c, src/tveng25.c, src/tveng.c,
+	  p_tveng_stop_everything must be reentrant, not use static
+	  overlay_was_active.
+	* src/properties.h, src/properties.c (append_properties_group),
+	  plugins/lirc/lirc.c (custom_properties_add):
+	  append_properties_group stored translated string in config.
+	* glade/zapping.glade2: Restored show-toolbar-as option.
+	* po: Updated from 0.6 & gnome for show-toolbar-as option.
+	* src/properties-handler.c: Restored show-toolbar-as option.
+	* configure.in: PKG_CHECK_MODULES for gconf-2.0.
+	* plugins/screenshot/screenshot.c: Auto filename didn't work right.
+	
+2003-12-25    <mschimek@users.sf.net>
+
+	* src/plugin_common.h (PLUGIN_PROTOCOL): Changed to 0x700,
+	  just in case.
+	* src/v4linterface.c: Enable numeric keypad channel entering
+	  without libzvbi.
+	* src/zvbi.h, src/zvbi.c, src/main.c: Enable py_closed_caption
+	  with or without libzvbi.
+
+2003-12-17    <mschimek@users.sf.net>
+
+	* src/vdr.c (vdr_open): Error messages only with -d option.
+
+2003-12-16    <mschimek@users.sf.net>
+
+	* help/man/zapping.xml, help/man/zapping_setup_fb.xml: Added.
+	* acinclude.m4: Added XML catalog check macros from gtk-doc.
+	* configure.in: Check for prereqs to rebuild man pages.
+	* help/man/Makefile.am: Modified to build man pages from
+	  DocBook sources.
+
+	* src/audio.c (set_mute), po/da.po, po/de.po, po/es.po, po/fr.po,
+	  po/it.po, po/nl.po, po/pl.po, po/sv.po: Correction of OSD markup.
+	* src/main.c: Startup/shutdown vdr module.
+	* src/Makefile.am: Added vdr.c, vdr.h.
+	* src/vdr.c, src/vdr.h: Added. Contributed by Slobodan Tomic.
+	  Modified for new Python based commands.
+	* src/ttxview.c: Restored search dialog help. 
+	* src/properties.h, src/properties.c: Modified to open
+	  help file on help button click.
+	* src/channel_editor.c: Added help button. 
+	* plugins/screenshot/screenshot.c (properties_add): Replaced help
+	  box by ghelp link.
+	* src/properties-handler.c, src/osd.c, src/keyboard.c,
+	  src/audio.c, plugins/mpeg/mpeg.c: Linked each prefs page to
+	  the appropriate help file section.
+
+2003-12-15    <mschimek@users.sf.net>
+
+	* help/C/figures: Added.
+	* help/C: Rewrote help docs Gnome2 style.
+	* help/de: Removed.
+
+2003-12-11    <mschimek@users.sf.net>
+
+	* plugins/alirc/README.alirc: Moved user instructions into
+	  on-line help.
+	* README.commands: Moved contents into on-line help,
+	  file no longer needed.
+
+2003-12-06    <mschimek@users.sf.net>
+
+	* po/fr.po: Updated by Christian Marillat.
+	* po/it.po: Updated by Pino Toscano.
+	* po/nl.po: Updated by Guus Bonnema.
+	
+2003-12-04    <mschimek@users.sf.net>
+
+	* po/sv.po: Updated by Henrik Isacsson.
+
+2003-12-04	<garetxe@users.sf.net>
+
+	* it.po, es.po: Updated.
+	* src/zvbi.c (acknowledge_trigger): Display proper location of
+	web browser setting in GNOME Preferences (Pino).
+
+2003-12-03    <mschimek@users.sf.net>
+
+	* configure.in: Work with automake 1.4, 1.5, 1.6, 1.7.
+	* plugins/template/Makefile.am, plugins/screenshot/Makefile.am,
+	  plugins/parrot/Makefile.am, plugins/mpeg/Makefile.am,
+	  plugins/lirc/Makefile.am, plugins/alirc/Makefile.am:
+	  Don't set CFLAGS.
+	* src/ttxview.c (search_dialog_continue): Restart search on
+	  regexp or casefold option change.
+	* src/zvideo.c (blank_cursor_timeout): Pointer wasn't unblanked
+	  on motion in overlay mode.
+
+2003-12-01    <mschimek@users.sf.net>
+
+	* src/zmisc.c (z_status_print): Merged z_status_print_markup()
+	  in and added hide/clean option.
+	* src/audio.c (set_mute): Bad OSD markup.
+	* src/osd.c (render_console): Assumed console uses UTF-8.
+	  (osd_render_markup): Use no markup (i.e. funky colors)
+	  in status bar, clean but hide after timeout.
+
+2003-11-29    <mschimek@users.sf.net>
+
+	* Merged zapping-gnome2 branch back into cvs main trunk.
+
+2003-11-28    <mschimek@users.sf.net>
+
+	* zapping_setup_fb/zapping_setup_fb.c (drop_root_privileges): 
+	  Cannot distiguish between root and consolehelper, warning
+	  removed.
+	* src/properties-handler.c (video_setup, video_apply): Fullscreen
+	  vidmode option only when xf86vmode available.
+	  (vbi_general_setup): VBI options only when libzvbi available.
+	* src/zmisc.c (zmisc_stop), src/v4linterface.c (z_switch_channel):
+	  Compile only if libzvbi present.
+	  (z_on_electric_filename): Uninitialized pointer deref.
+	* src/x11stuff.c: Compile warning fixes.
+	* src/tvengxv.c (p_tvengxv_open_device): Uninitialized value.
+	* src/tveng.c (set_control_audio): Compile warning fix.
+	  (tveng_attach_device): Use emulator backend if device name
+	  is 'emulator'.
+	* src/tvengemu.c: Removed TVENGEMU_ENABLE.
+	* src/ttxview.c (get_ttxview_page), src/osd.c (osd_clear):
+	  Uninitialized pointer deref (might be called from
+	  py_closed_caption() before main_window was created).
+
+2003-11-27    <mschimek@users.sf.net>
+
+	* src/zvbi.h: Define vbi_pgno, vbi_gui_sensitive() when
+	  libzvbi not present.
+	* src/tveng2.c (update_video_input_list): Uninitialized value.
+	* src/tveng.c (tveng_get_control_by_name): Uninitialized pointer
+	  deref.
+	* src/properties-handler.c (video_setup, video_apply),
+	  src/main.c (main): Xv options only when XVideo available.
+
+	* src/tveng.c (tv_set_overlay_buffer): Try zapping_setup_fb in PATH
+	  first, installed exe might lack suid root.
+	* src/zvbi.c (vbi_gui_sensitive): Remove menu item subtitles
+	  when vbi is disabled.
+	  (decoding_thread): Didn't properly handle i/o errors, causing
+	  chance segv's in vbi_decode().
+	* src/interface.c (zapping_popup_menu_new): Show toolbar
+	  checkmark was reversed.
+
+	* plugins/mpeg/Makefile.am: Removed mpeg_strings.c,
+	  intltool takes care.
+	* po/POTFILE.in: s/mpeg_strings.c/mpeg_properties.glade2, added
+	  missing files.
+	* plugins/Makefile.am: Don't build plugins/lirc.
+	* configure.in: Don't configure plugins/lirc.
+	* src, plugins: Some i18n related improvements and corrections.
+
+2003-11-26    <mschimek@users.sf.net>
+
+	* src/zvbi.c: Removed unused zvbi_(caption_)subpage.
+	  (py_closed_caption): Rewrote.
+	* src/zmisc.h: New SIGNAL_BLOCK macro.
+	* src/zmisc.c, src/zmisc.h: Removed zmisc_overlay_subtitles(page).
+	* src/zconf.c, src/zconf.h: Added zconf_hook_check_menu.
+	* src/v4linterface.c (z_switch_channel): Change caption
+	  page on channel switch.
+	* src/tveng2.c, src/tveng25.c: Clear image buffers on tuner
+	  freq change and capture start. Proper info->format
+	  initialization in update_capture_format. Report timeout
+	  in read_frame.
+	* src/tveng1.c (set_tuner_frequency): Clear image buffers on tuner
+	  freq change.
+	* src/tveng.c, src/tveng.h: Added tv_clear_image(). 
+	  (tv_image_format_is_valid): Added optional bytes_per_line parameter.
+	* src/ttxview.c (get_ttxview_page): Improper parameter declaration. 
+	  (ttxview_subtitles_menu_new): Added disable item.
+	* src/osd.c (osd_event): Bail out if invalid caption pgno, no
+	  more caption subno.
+	* src/main.c (init_zapping_stock): New subtitle icon.
+	  (main): Moved startup_zvbi() up, is needed to create_zapping()
+	  with bindings to caption functions. Removed obsolete caption
+	  initialization.
+	  (shutdown_zapping): Save per-channel caption page.
+	  (startup_zapping): Load per-channel caption page from config.
+	* src/interface.c: Restored subtitle menu, added subtitle
+	  toolbar button. Some minor improvements.
+	* src/frequencies.c, src/frequencies.h: Caption pgno
+	  now remembered per channel.
+	* src/channel_editor.c (station_search_timeout): Always use
+	  vbi to determine station names, option gone.
+	* src/capture.c (fill_bundle_tveng): Ignored tveng_read_frame()
+	  success.
+	  (capture_thread): Ignored fill_bundle_tveng() success, especially
+	  timeout, sending out old frames.
+	* glade/zapping.glade2, src/properties-handler.c: Removed vbi
+	  options: use vbi for getting station names (yes), auto overlay
+	  subtitle pages (no), subtitle page (now per channel).
+	* src/audio.c: s/SIGNAL_HANDLER_BLOCK/SIGNAL_BLOCK due to
+	  changes in src/interface.c.
+
+2003-11-20    <mschimek@users.sf.net>
+
+	* pixmaps/Makefile.am: Added subtitle.png. 
+	* configure.in: Accidentally replaced default prefix by
+	  dirname which gdk-pixbuf-csource, that's some/bin.
+	  Was a bad idea to begin with, removed.
+	* configure.in, zapping.spec.in, prepare_dist.sh:
+	  Configure --with-gnome-prefix option asks for user
+	  confusion, removed and its applications replaced
+	  by --prefix.
+	* prepare_dist.sh: Updated to match configure.in.
+	* configure.in: Must not expand prefix var in configure.in.
+	* src/Makefile.am: Moved -DZSFB_DIR to configure.in.
+
+2003-11-19    <mschimek@users.sf.net>
+
+	* src/tveng.c (update_xv_control): Channel change muted
+	  permanently when controls window was open due to missing
+	  quiet handling in p_tveng_update_controls(), fixed here.
+	* src/audio.c (startup_audio): Wrong zconf key when setting
+	  start/quit muted to defaults.
+
+2003-11-17    <mschimek@users.sf.net>
+
+	* src/zvbi.c (rolling_headers): Preliminary fix of invalid
+	  pointer deref in vbi_draw_vt_page_region after channel change.
+	* src/ttxview.c (ttxview_delete): Post destruction use of
+	  color_zmodel. 
+	  (on_main_menu_bookmarks_destroy): Post destruction use of
+	  bookmarks_zmodel.
+	  (on_ttxview_expose_event): Segv refreshing an exposed
+	  region when drawing area is smaller than window. Appears
+	  to "fix" that second bug as well.
+	  (on_ttxview_quit): Works now.
+
+2003-11-15    <mschimek@users.sf.net>
+
+	* pixmaps/Makefile.am: Don't install built-in pixmaps.
+	* src/zvideo.c: g_source_remove id must be > 0.
+
+2003-11-14    <mschimek@users.sf.net>
+
+	* src/tvengxv.c, src/tvengemu.c, src/tvengbktr.c,
+	  src/tveng_private.h, src/tveng25.c, src/tveng2.c,
+	  src/tveng1.c, src/tveng.c: Recursive tveng_device_info->
+	  priv->mutex didn't work, replaced by fast type. Divided
+	  a few tveng_ funcs for internal use without locking.
+
+2003-11-13    <mschimek@users.sf.net>
+
+	* plugins/mpeg/mpeg.c (py_record): Missing check if dialog
+	  already opened.
+	* src/zimage.h, src/video_xv.c, src/video_x11.c, src/video_mem.c,
+	  src/video_gdkrgb.c, src/tvengemu.c, src/tveng25.c, src/tveng2.c,
+	  src/tveng1.c, src/tveng.c, src/tveng.h, src/capture.c,
+	  plugins/screenshot/screenshot.c,
+	  plugins/screenshot/screenshot.h: struct tveng_frame_format
+	  replaced by tv_image_format. More work required.
+	* src/x11stuff.c, src/tveng.c, src/main.c, src/zmisc.h,
+	  src/fullscreen.c: Update due to tv_image_format
+	  in tv_overlay_buffer (dga_param).
+	* src/tveng.h: Replaced image format parameters in struct
+	  tv_overlay_buffer by tv_image_format. Replaced base pointer by
+	  ulong, since it refers to another address space.
+	* src/tveng.c (tv_pixfmt_bytes_per_pixel): Added to speed up future
+	  copy functions.
+	* plugins/mpeg/mpeg.c (video_callback): Missing retrieve_frame(),
+	  abort loop if necessary.
+	  (do_start): Preliminary hack to prefer native image format
+	  if 4:2:0 or 4:2:2. Missing size locking of requested capture
+	  format. Translation to RTE_PIXFMT_YUV had UV order wrong.
+	  Added support for TV_PIXFMT_YUV420. False negative in format
+	  retry loop.
+	* plugins/mpeg/mpeg.c: Missing release_capture_format() calls.
+	
+2003-11-07    <mschimek@users.sf.net>
+
+	* plugins/screenshot/screenshot.glade2: File selection dialog didn't
+	  focus. Apparently it must be modal if parent is (by using
+	  gtk_dialog_run).
+	* src/cmd.c (py_quit): Quit-muted fix (wrong zconf key).
+	  (py_toggle_mode): Logic fix.
+
+2003-11-04    <mschimek@users.sf.net>
+
+	* src/interface.c (zapping_popup_menu_new): Show toolbar and
+	  keep on top didn't work.
+
+2003-11-03    <mschimek@users.sf.net>
+
+	* src/ttxview.c (on_search_dialog_destroy, search_dialog_continue),
+	  src/capture.c (capture_start, capture_stop): Replaced
+	  deprecated gtk_idle by g_idle.
+	* src/osd.c (osd_render_osd, osd_set_window): Replaced
+	  deprecated gdk_window... by gdk_drawable... functions.
+	* src/zvideo.c (z_video_set_cursor, z_video_blank_cursor),
+	  src/overlay.c (stop_timeout, restart_timeout),
+	  src/audio.c (reset_quiet), src/ttxview.c,
+	  src/osd.c (osd_render_osd), src/zmisc.c (z_status_print),
+	  src/x11stuff.c (x11_screensaver_set), src/main.c (main),
+	  plugins/screenshot/screenshot.c (plugin_init, plugin_close),
+	  plugins/mpeg/mpeg.c (saving_dialog_status_disable,
+	  saving_dialog_status_enable): Replaced deprecated gtk_timeout
+	  by g_timeout.
+
+2003-11-02    <mschimek@users.sf.net>
+
+	* configure.in: Added Xinerama check.
+	* plugins/mpeg/options.c (create_slider): Calculation of decimal
+	  digits no longer in spinslider.
+	* src/video_gdkrgb.c: Correct red/blue order.
+	* src/video_x11.c (add_backend_x11): Expect DGA not present
+	  (Xnest, remote display).
+	* plugins/mpeg/mpeg.c (saving_dialog_new): Didn't show pixmaps.
+
+2003-10-31    <mschimek@users.sf.net>
+
+	* plugins/mpeg/mpeg.c (saving_dialog_attach_formats),
+	  src/ttxview.c (export_dialog_new),
+	  src/zmisc.c (z_electric_replace_extension): Fixed inconsistent
+	  freeing of basename.
+	* src/zmisc.c (z_electric_set_basename): Added.
+	* src/zmisc.c (z_on_electric_filename): Fixed buffer overflow.
+	* plugins/mpeg/options.c: Fixed NULL tooltips deref.
+	  (create_menu): Another locale to UTF-8 fix.
+	* plugins/mpeg/mpeg_properties.glade2: Removed obsolete rte 0.4
+	  dialogs.
+	* src/main.c (main): Added new options to disable and select port
+	  for xv video and image. 
+
+2003-10-30    <mschimek@users.sf.net>
+
+	* src/tvengxv.c (tvengxv_attach_device): Glint XV_ENCODING bug
+	  work-around.
+	* src/zvbi.c (threads_init), src/ttxview.c
+	  (on_export_dialog_ok_clicked): Make sure errstr is UTF8.
+	* src/keyboard.c: Fixed loading of default keybindings.
+
+2003-10-20    <mschimek@users.sf.net>
+
+	* plugins/mpeg/options.c: Locale to UTF-8 fixes.
+	* common/fifo.h, common/fifo.c, src, plugins/mpeg: Prefixed
+	  fifo functions and types to prevent linker accidents because
+	  the fifo functions aren't binary compatible with their rte
+	  clones if rte was compiled with linuxthreads and zapping
+	  with nptl, or vice versa. Ported from 0.6 branch.
+
+2003-10-17    <mschimek@users.sf.net>
+
+	* src/frequencies.c (tv_rf_channel_next): Off-by-one error
+	  skipping last channel in range.
+	* src/channel_editor.c (station_search_timeout): Incomplete
+	  frequency change on 09-24.
+
+2003-10-14    <mschimek@users.sf.net>
+
+	* src/tveng.c (tveng_unset_xv_port): Only #ifdef USE_XV.
+
+2003-10-11    <mschimek@users.sf.net>
+
+	* src/yuv2rgb.c (startup_yuv2rgb): cfuncs r<->b fix.
+	* src/tveng_private.h: tveng_private.assume_yvu useless, removed.
+	* src/video_mem.c (planar_image_new): Incorrect uv_stride.
+	* src/capture.c (request_capture_format_real): No
+	  tveng_set_capture_format call if the format is still the same.
+	* src/tveng.c (tveng_set_capture_format): We have a few problems in
+          request_capture_format_real, see TODO. Fix is complex. For now
+	  this function will block requests for RGB formats. Zapping 0.0
+	  to 0.6 worked well enough this way.
+	  (tveng_copy_frame): assume_yvu useless, removed. Implicit YVU420
+	  to YUV420 conversion removed.
+	* src/tveng.c, src/tveng.h: tveng_assume_yvu() useless, removed.
+	* src/video_xv.c (traverse_ports): Did not register YVU420 ports.
+	  (image_new): Proper U/V plane swapping for YUV/YVU 4:2:0, support
+	  more packed formats.
+
+2003-10-10    <mschimek@users.sf.net>
+
+	* plugins/screenshot/screenshot.c,
+	  plugins/screenshot/screenshot.glade: Brushed up the dialogs.
+
+2003-10-09    <mschimek@users.sf.net>
+
+	* src/video_x11.c (image_new): Incorrect pixfmt assertion.
+	* src/frequencies.c (tveng_tuned_channel_copy): Function
+	  decomposed characters with diacritical marks, solution
+	  s/G_NORMALIZE_DEFAULT/G_NORMALIZE_DEFAULT_COMPOSE.
+	* src/xawtv.c (xawtv_import_config): Handle non-ASCII
+	  channel names.
+	* src/zmisc.c, src/zmisc.h: Added z_set_window_bg().
+	* src/zmisc.c, src/overlay.c, src/fullscreen.c: Setting window
+	  background did not, or not immediately, show.
+	
+2003-10-07    <mschimek@users.sf.net>
+
+	* src/frequencies.c (tv_rf_channel_next): Still didn't work
+	  right. Fixed again, hopefully for the last time.
+	* src/tvengxv.c: Cleaned up a bit.
+	  (grab_port): NVidia tv out bug workaround.
+	  (set_overlay): Fixed return values.
+	* src/video_xv.c (add_backend_xv): Cleaned and split up
+	  for better readability. Listing XVideo resources moved
+	  into helper function in src/x11_stuff.c.
+	  (tveng2xv): Removed, the module now remembers the
+	  image format id reported by xvlib.
+	  (tveng2bpp): Replaced by tv_pixfmt_to_pixel_format().
+	* src/zmisc.c (zmisc_switch_mode): Proper overlay and fullscreen
+	  error messages.
+	* src/tveng2.c (tveng2_set_capture_format): Capture didn't work,
+	  added tveng_stop/restart to remap buffers after format change.
+	* src/tveng.c (tv_set_overlay_buffer): Missing slash in
+	  zapping_setup_fb install path. Improved error messages.
+	* src/tveng.c, src/tveng.h:
+	  Moved preview functions into fullscreen.c.
+	* src/main.c: Moved zapping_setup_fb call into overlay.c
+	  and fullscreen.c, where it is called only before DMA
+	  overlay is actually activated (mostly for error
+	  reporting reasons). Removed Xv detection which existed
+	  here only to bypass zapping_setup_fb when we (apparently)
+	  have Xv overlay capability. Fixed start-muted.
+        * src/video_x11.c: Replaced zmisc_resolve_pixformat()
+	  call by global dga_param access, which already contains
+	  the required information.
+ 	* src/overlay.c: Proper overlay target initialization.
+	* src/fullscreen.c: Moved tveng preview functions here.
+	  Removed superfluous (when we're using XVideo)
+	  tv_set_overlay_buffer() call.
+	* plugins/mpeg/mpeg.c, plugins/screenshot/screenshot.c,
+	  src/capture.c, src/capture.h, src/csconvert.c,
+	  src/csconvert.h, src/main.c, src/tveng.c, src/tveng.h,
+	  src/tveng1.c, src/tveng2.c, src/tveng25.c, src/tvengemu.c,
+	  src/tvengxv.c, src/video_gdkrgb.c, src/video_mem.c,
+	  src/video_x11.c, src/video_xv.c, src/x11_stuff.c,
+	  src/x11_stuff.h, src/yuv2rgb.c, src/zimage.c,
+	  src/zimage.h, src/zmisc.c, src/zmisc.h:
+	  Replaced tveng_frame_pixformat by tv_pixfmt and tv_pixfmt_set,
+	  which covers more formats and is more accurate WRT color
+	  component order and endianess. (So accurate in fact, it
+	  revealed a V4L2 API bug.)
+	* src/zmisc.h (zmisc_resolve_pixformat): No longer needed.
+	* src/tveng.c, src/tveng.h, src/tveng_private.h: Replaced
+	  tv_video_standard_id by tv_videostd and tv_videostd_set
+	  a la tv_pixfmt, under the "no surprise today will keep
+	  the bug away" rule.
+	  (pig_depth_to_pixfmt): New helper function for backends.
+	* src/tveng.c, src/tveng.h:
+	  (tveng_set_xv_port): Missing XFree().
+	  (tveng_detect_xv_overlay): No longer needed, see main.c.
+	  (tveng_is_planar): No longer needed, replaced by
+	    TV_PIXFMT_IS_PLANAR() and tv_pixfmt_to_pixel_format().
+	  (tv_pixfmt_name): Added, for debugging.
+	  (tv_pixfmt_to_pixel_format): Extended. Replaces
+	  tveng_frame_pixformat to tv_pixel_format function of
+	  same name.
+	  (tv_videostd_name): Added, for debugging.
+	* src/main.c, src/globals.c, src/globals.h: Obsoleted --no-zsfb
+	  switch. zapping_setup_fb is no longer called at startup but only
+	  when we actually switch to dma overlay.
+	* zapping_setup_fb/v4l.c, zapping_setup_fb/v4l2.c,
+	  zapping_setup_fb/v4l25.c: Did not properly distinguish between
+	  24 and 32 bpp.
+	* src/x11stuff.c, src/x11stuff.h: Added XVideo helper functions.
+
+2003-09-27	<mschimek@users.sf.net>
+
+	* src/tveng1.c (p_tveng1_open_device_file): ioctl
+	  BTTV_VERSION failure is non-fatal.
+	* src/tveng1.c, src/tveng2.c, src/tveng25.c, src/tvengbktr.c:
+	  s/open/device_open, s/close/device_close (debugging).
+	* src/properties-handler.c (picture_sizes_on_menu_activate):
+	  Fixed wrong selection.
+	* src/v4linterface.c (load_control_values): Fixed, cleaned.
+	* src/frequencies.c (tveng_tuned_channel_set_control): Added.
+	* src/frequencies.h: Removed obsolete declarations.
+
+2003-09-24	<mschimek@users.sf.net>
+
+	* configure.in, src/Makefile.am: Restored libxml check from
+	  0.6.x for src/zconf.
+	* configure.in: Added BSD driver check, cleanup.
+	* src/Makefile.am, src/keyboard.c:
+	  Replaced z_key editing widget by eggcellrendererkeys.
+	* src/Makefile.am, src/channel_editor.c: Added channel list
+	  import from xawtv config file.
+	* src/frequencies.c: Resynched frequency tables with
+	  XawTV for config import function. Added SE Asian tables.
+	* src/frequencies.h: Changed all frequency values to Hz unit.
+	* src/i18n.c: New SE Asian country names.
+	* src/channel_editor.c: Fixed standard and input option menu.
+	* src/zmisc.c, src/zmisc.h: Added a few gtk_tree_view helper
+	  functions. Added z_device_entry_grab_focus().
+	* src/tvengbktr.c: Cleaned up, removed old cruft, compiles now.
+	  But doesn't do anything useful yet. :-(
+	* src/tveng.c (tv_set_overlay_buffer):  First try the
+	  zapping_setup_fb install path.
+	* src/audio.c, src/audio.h, src/properties-handler.c:
+	  Rewrote audio device selection in preferences.
+	  Cleaned up audio preferences. Added mute on exit option.
+	  Removed mute on channel switch option, always on now.
+	* src/zmisc.c: Always mute on channel switch.
+	* src/cmd.c: Mute on exit optional.
+	* src/callbacks.c, src/callbacks.h: No longer used. The
+	  remaining button press cb moved into src/interface.c.
+	* src/main.c (on_zapping_key_press): Missing call to
+	  on_picture_size_key_press().
+	* zapping_setup_fb/v4l.c, zapping_setup_fb/v4l2.c,
+	  zapping_setup_fb/v4l25.c: Missing #include w/o ENABLE_V4L.
+	* plugins, src:	Make VPATH include fixes.
+	  (cmd_register): Replaced description and example by
+	  set of macros.
+
+2003-08-26	<mschimek@users.sf.net>
+
+	* src/ttxview.c: Teletext doesn't hang anymore. TTXView windows
+	  now have a main menu, roughly as recommended in GHIG. Show
+	  toolbar/statusbar options inhibited, must investigate how this
+	  should be properly implemented. Quit item inhibited, keeps
+	  crashing, reason to be investigated. Toolbar improvements:
+	  History finally works as expected, page numbers display better,
+	  page up/down/etc buttons rearrange on orientation change.
+	  Removed Stop button, windows ought to have a close button and
+	  we still have the main menu. Added on_toggle and zconf callbacks
+	  for reveal button, fixes possible display inconsistency. Fixed
+	  attaching to main window toolbar. Creates smaller toolbar for
+	  main window. New Python command to open page link in current
+	  window. Search dialog not modal anymore. Unified text input
+	  dialog and progress display (actually no more progress display,
+	  libzvbi needs a fix for proper function). Help button disabled,
+	  help needs update for Gnome 2. Export dialog not modal anymore.
+	  Format selection moved from submenu (in main_window from popup
+	  subsubmenu :-P) into dialog. Removed electric filename, needs
+	  work. Fixed bug picking up the wrong file extension. Fixed
+	  tabulation of widgets in color dialog, changed to spin slider
+	  as in controls dialog. Brushed up bookmarks dialog. Libzvbi
+	  strings coded in Latin1 or locale are converted to UTF-8.
+	  Rearranged TTXView context menu. Different menus depending on
+	  link type, added Open and Open in New Window items. Changed
+	  Export to Save as. Create modified context menu for Teletext
+	  view in main window. Removed all Teletext widgets from
+	  zapping.glade, these are now custom built in ttxview.c. Cleanups.
+	* pixmaps/reveal.png: Reveal is now a normal toolbar button,
+	  had to resize icon to keep it in line with other buttons.
+	* src/interface.c, src/properties-handler.c, src/zvbi.c,
+	  src/zvbi.h: Removed program and network info stuff, vbi triggers.
+	  Were barely useful and the GUI sucked. Maybe later.
+	* src/zvbi.c: Libzvbi network name coded in Latin1 is converted
+	  to UTF-8.
+	  (vbi_gui_sensitive): Simplified.
+	* src/v4linterface.c (add_controls): Properly pad box.
+	  (substitute_keywords): Program and network info temporarily
+	  unavailable, needs a rewrite.
+	* src/zmisc.c, src/zmisc.h: Cleanup in
+	  [z_toolbar_]set_style_recursive(). propagate_toolbar_changes()
+	  no longer needed, removed. z_strlcpy() added for tveng.
+
+	* src/capture.c, src/cmd.c, src/overlay.c, src/properties-handler.c,
+	  src/tveng.c, src/tveng.h, src/zmisc.c, src/zvbi.c:
+	  Added tveng_capture_mode TVENG_TELETEXT (which is, naturally,
+	  not handled by tveng itself but I don't want to break too many
+	  things at once by splitting into a capture and display mode).
+	  TVENG_NO_CAPTURE changed meaning to "no display", so we have a
+	  state to start from or to fall back.
+	* src/zmisc.c (zmisc_stop): Blanks the window since a restart
+	  may fail. Basically this is what TVENG_NO_CAPTURE displays.
+	  (zmisc_switch_mode): Moved ttxview_detach() into zmisc_stop().
+	  Changed appearance of Teletext toolbar button to toggle
+	  between Teletext and Video. Separated TVENG_NO_CAPTURE and
+	  TVENG_TELETEXT start code.
+
+	* src/interface.c: Zapping GnomeApp, its menu, toolbar
+	  and popup menu are now built here instead of by Glade.
+	  Better control, no more working around Glade flaws.
+	* src/main.c, src/properties-handler.c: Added toolbar style
+	  option and zconf, then I discovered Gnome has one already.
+	  Code disabled until I know how to properly handle the
+	  conflict while satisfying GHIG. Removed "avoid flicker"
+	  option and zconf, not used anymore.
+	* src/interface.c: Added zconf hooks to automagically
+	  update menus when hide-toolbar-and-menu and
+	  keep-window-on-top config changes. Hook also
+	  hides/shows toolbar and menu.
+	* pixmaps/Makefile.am: zapping_stock.h was a stupid idea,
+	  removed. Rating pixmaps are no longer installed, the code
+	  using them is gone. For now.
+	* src/main.c: Replaced stupid zapping_stock.h.
+	* src/audio.c, src/interface.c, src/interface.h,
+	  src/properties.c: Added optional parent widget parameter to
+	  register_widget, in case the widget is no child of main_window.
+	* src/audio.c, src/interface.c: Replaced "bonobodockitem"
+	  widget names by gnome_app_get_dock_item_by_name().
+	* src/callbacks.c (on_tv_screen_button_press_event): Moved popup
+	  menu initialization into create_popup_menu1().
+	* src/main.c: Hide toolbar and menu via zconf hook after
+	  main_window was shown, has no effect before. :-P
+	* src/cmd.c (py_toggle_mode): Made no sense, cleaned up.
+	  (py_keep_on_top): Moved menu item update into zconf hook.
+	  (py_help): Disabled, help stuff needs rewrite for Gnome 2.
+
+	* glade/zapping2.glade: Removed a number of obsolete widgets,
+	  others are now custom built. Removed "avoid flicker in
+	  preview mode" option, not used anymore. Could return
+	  later as a hidden option, this just isn't anything the
+	  average user cares about.
+
+	* src/overlay.c (on_video_window_event): Added GDK_EXPOSE
+	  case, is need when child windows (like popup menu submenu)
+	  disappear. 
+	* src/fullscreen.c (osd_model_changed): Fixed automatic
+	  recentering of view.
+	* src/x11stuff (x11_vidmode_list_new): Turned out the server
+	  does not behave as expected.
+	  (x11_vidmode_switch, x11_vidmode_restore): Make sure this
+	  works right when switching to the present vidmode.
+
+	* src/zconf.c, src/zconf.h: Added option to zconf_add_hook()
+	  to call the hook for initialization right away. Added
+	  zconf_hook_widget_show(), a generic hook.
+
+	* help/Makefile.am: Removed C, de subdirs. Help files and
+	  installation need a rewrite for Gnome 2.
+
+	* plugins/alirc/alirc.c, plugins/lirc/lirc.c, plugins/lirc/mpeg.c,
+	  plugins/lirc/screenshot.c, src/audio.c, src/callbacks.c,
+	  src/fullscreen.c, src/interface.c, src/keyboard.c, src/main.c,
+	  src/remote.c, src/remote.h, src/zvbi.c:
+	  Renamed python command calls, added optional widget
+	  parameter to properly identify the caller.
+
+	* plugins/mpeg/mpeg.c: Replaced code which is now in
+	  z_electric_replace_extension().
+
+	* src/properties-handler.c (zapping.picture_size_cycle):
+	  Wrong error message.
+
+	* src/frequencies.c (tv_rf_channel_next): Fixed bug adding
+	  null channel in channel editor frequency table.
+
+	* src/channel_editor.c, src/plugin_properties.c,
+	  src/properties-handler.c, src/zmisc.c, src/zmisc.h:
+	  New convenience function z_label_set_text_printf().
+
+	* src/channel_editor.c: Replaced tveng_tune_input by
+	  tv_set_tuner_frequency().
+
+	* src/tveng.c (panel_failure, REQUIRE_IO_MODE): Block some
+	  functions when the controller is in TVENG_ATTACH_CONTROL mode.
+	  Saves similar checks in the backends.
+	  (support_failure, REQUIRE_SUPPORT): Abort some functions
+	  when the controller doesn't support it. Replaces UNSUPPORTED
+	  macro.
+	  (tv_get_tuner_frequency, tv_set_tuner_frequency):
+	  Replacement for tveng_get_tune, tveng_tune_input.
+	  (tveng_get_tuner_bounds): Removed. This information is now
+	  available directly in struct tv_tuner.
+	  (tv_set_overlay_buffer): Worked only when the driver was
+	  initialized for overlay before.
+	  (tveng_start_previewing): Limit window size to video standard
+	  nominal picture size.
+	  (tv_clip_vector_to_clip_mask): Added, untested. Primarily for
+	  tveng backends, for drivers supporting only a clip mask.
+	* src/tveng.h (tv_clip_vector_to_clip_mask): Added, untested.
+	  (tv_get_tuner_frequency, tv_set_tuner_frequency):
+	  Replacement for tveng_get_tune, tveng_tune_input.
+	  (tveng_get_tuner_bounds): Removed. This information is now
+	  available in struct tv_tuner.
+	* src/tveng_private.h:
+	  Rewrote tuner frequency interface, now with bounds in
+	  struct tv_tuner, promise of per-tuner frequency setting and
+	  control like change callbacks. Unit is Hz instead of kHz
+	  or whatever the driver likes. Cleanups.
+	* src/tveng1.c: Rewrote tuner frequency code. V4L does not
+	  promise per-tuner frequency settings, so we enforce that here.
+	  Added rudimentary panel mode. Some cleanup as usual. :-)
+	* src/tveng2.c: Rewrote tuner frequency code. V4L2 does not
+	  promise per-tuner frequency settings, so we enforce that here.
+	  Cleanups.
+	* src/tveng25.c: Rewrote tuner frequency code.
+	* src/tvengemu.c: Rewrote tuner frequency code.	
+	  (add_controls): Fixed incorrect action and color control bounds.
+	* src/tvengxv.c: Rewrote tuner frequency code. Parsing of encoding
+	  string (standard-input) was backwards.
+	* src/tveng1.c (v4l_ioctl_nf): New macro to call ioctl without
+	  error report, used when EINVAL is expected.
+	  (tveng1_set_control): Fixed bogus non-handling of audio
+	  control error.
+	* src/tveng2.c (v4l2_ioctl_nf): New macro to call ioctl without
+	  error report, used when EINVAL is expected.
+	  (add_control): Workaround for drivers reporting wrong boolean
+	  and action control bounds.
+	* src/tveng25.c (v4l25_ioctl_nf): New macro to call ioctl without
+	  error report, used when EINVAL is expected.
+	  (add_control): Workaround for drivers reporting wrong boolean
+	  and action control bounds. None observed yet, but just in case.
+	* src/tveng1.h, src/tveng2.h, src/tveng25.h, src/tvengemu.h,
+	  src/tvengxv.h: Removed no longer needed function declarations.
+
+	* po/Makefile.in.in: Updated.
+	* configure.in: Incremented version number for intermediate
+	  release. Disabled help Makefile targets, these need work.
+
+2003-07-28	<mschimek@users.sf.net>
+
+	* src/zvideo.c: Gtk version check for aspect bug.
+
+	* configure.in: gdk_pixbuf_csource helper app check.
+	* pixmaps: Some work to embed pixmaps as stock into the application
+	  instead of loading at runtime, unfinished.
+	* src/main.c (init_zapping_stock): Added.
+	* plugins/mpeg/Makefile.am, plugins/mpeg/mpeg.c: Use GtkPixdata
+	  and application stock instead of loading pixmaps at runtime.
+	* plugins/screenshot/screenshot.c: Use application stock instead
+	  of loading toolbutton image at runtime.
+	* src/zmisc.c, src/zmisc.h: Rewrote helper functions for application
+	  stock icons.
+	* src/ttxview.c: Use GtkPixdata and application stock instead of
+	  loading pixmaps at runtime.
+
+	* glade/zapping.glade2: "s/Hide// menu and toolbar" as recommeded
+	  in HIG. Use application stock pixmaps.
+	* src/callbacks.c (on_tv_screen_button_press_event), src/cmd.c
+	  (py_hide_controls): Changed hide/show menu and toolbar menu to
+	  check menu as recommended in HIG.
+	* src/interface.c: Added on_toggle callbacks for toolbar and
+	  keep-on-top check menus calling python. Fixes possible keep-on-top
+	  menu check mark and state inconsistency.
+
+	* src/tveng.c, src/tveng.h, src/tveng_private.h: Replaced video
+	  input	and video standard vectors of tveng_device_info by linked
+	  lists, with appropriate methods, callbacks, helper functions
+	  and macros.
+	* src/tveng.c, src/tveng.h: Rewrote tv_control and its methods to
+	  follow the design of other enumerated items.
+	* src/tveng.c, src/tveng.h: tv_callback_s/node//, Added
+	  tv_callback_fn type.
+	* src/tveng.c, src/tveng_private.h, src/tveng1.c,
+	  src/tveng2.c, src/tveng25.c: Helper function ioctl_failure
+	  to record ioctl name and errno in case of failure. Called
+	  automagically from ioctl macros.
+	* src/v4linterface.c: Don't make station menu insensitive when there
+	  are no channels, we still have baseband inputs. Rewrote video
+	  input and video standard menu building functions. These are now
+	  radio menus with automatic update and rebuilding taking advantage
+	  of tv_callbacks.
+	* src/zmisc.c, src/zmisc.h: Added z_menu_shell_nth_item() helper.
+	* plugins/mpeg/mpeg.c, src/channel_editor.c, src/main.c,
+	  src/properties-handler.c, src/zmisc.c: Updated for new video input
+	  and standard enumeration.
+	* src/tveng.c, src/tveng.h: Replaced tv_mixer_line by generic
+	  tv_audio_line. Added audio input list to tveng_device_info, audio
+	  input helper functions, not used yet.
+	* src/audio.c, src/globals.c, src/globals.h, src/mixer.c, src/oss.c:
+	  Replaced tv_mixer_line by generic tv_audio_line.
+	* src/tveng.c, src/tveng.h: Work towards audio mode interface
+	  (mono/stereo/...), unfinished.
+
+	* src/tveng.c, src/tveng.h: Replaced tveng_clip by tv_clip and
+	  tv_clip_vector structures and methods, updated tveng_window (now
+	  tv_overlay_window) accordingly. Makes things a lot cleaner. New
+	  function tv_clip_vector_add_clip_xy sorts clips, will be necessary
+	  for bktr.
+	* src/tveng.c, src/tveng.h: Rewrote get/set frame buffer
+	  routines. Setting checks if already initialized, saving the
+	  zapping_setup_fb call, and again if the helper really worked as
+	  expected.
+	* src/tveng.c (tveng_set_preview): DMA target check before
+	  overlay is enabled to prevent memory corruption.
+	* src/tveng1.c, src/tveng2.c, src/tveng25.c, src/tvengxv.c,
+	  src/tvengemu.c, src/tveng1.h, src/tveng2.h, src/tveng25.h,
+	  src/tvengxv.h, src/tvengemu.h: Rewrote video input, standard and
+	  some overlay functions. Removed redundant detect_preview and
+	  start/stop_previewing (fullscreen overlay) functions.
+	* src/tvengemu.c, src/tveng_private.h: Added tv_set_overlay_buffer
+	  function. Not used yet, except in tvengemu.c where calling
+	  zapping_setup_fb makes no sense.
+	* src/main.c (main): Pixfmt breakdown in DGA parameter dump. Moved
+	  zapping_setup_fb call after device open to permit check if
+	  parameters are already initialized.
+	* src/overlay.c, src/overlay.h: Major cleanup. Fixed (non-)clipping
+	  against window bounds (right border trashing bug due to DMA
+	  overlay alignment by (bttv <= 0.8) driver), tooltip flicker,
+	  screen cleanup. All windowed overlay is now controlled by
+	  start_overlay() and stop_overlay() in this file.
+	* src/x11stuff.c, src/x11stuff.h: Rewrote clip vector building
+	  routines. Simpler now, and take window boundary into account.
+	* src/fullscreen.c: Update to new tv_overlay_window and
+	  tv_clip_vector.
+	* src/tveng.c, src/tveng.h: Replaced tveng_fb_info by
+	  tv_overlay_buffer structure, also used to hold DGA parameters.
+	* src/tveng.c, src/tveng.h, src/video_mem.c: Added
+	  tv_pixfmt_to_pixel_format(), with argument struct tv_pixel_format.
+	  Breaks down pixfmt, for clients requiring more details.
+	  Accordingly removed redundant color depth and bpp from DGA
+	  parameters and tveng_pixformat_bits_per_pixel function.
+	* src/x11stuff.c, src/x11stuff.h: Replaced x11_dga_parameters by
+	  tv_overlay_buffer structure in DGA routines. The same structure
+	  is used in tveng to program overlay.
+	* src/globals.c, src/globals.h: Replaced x11_dga_parameters by
+	  tv_overlay_buffer.
+	* src/zmisc.c (zmisc_stop): Replaced tveng_stop_everything() calls,
+	  this function is tveng internal now.
+	* src/zmisc.c (zmisc_restart): Removed, tveng_restart_everything()
+	  is tveng internal now and the function wasn't used anyway.
+	* src/zmisc.c (zmisc_switch_mode): Replaced obsolete
+	  tveng_detect_preview() call. Simplified switch to windowed
+	  overlay, all initialization now in overlay.c/start_overlay().
+	* src/tveng.c, src/tveng.h, src/tveng_private.h: Added
+	  tv_set_overlay_xwindow as set_overlay_buffer (video memory)
+	  counterpart.
+	* src/tveng.c, src/tveng.h, src/tveng_private.h:
+	  tveng_stop_everything() conflicts with encapsulation of overlay
+ 	  code in overlay.c, therefore now tveng internal. Actually it
+	  shouldn't be used at all (before video standard change etc),
+	  permitting asynchronous video parameter changes and what not.
+	  But fixing this is complicated, postponed until a later date.
+	* src/tveng.c (round_boundary_4): Replaced doubleword alignment of
+	  images by more elaborate rounding function.
+
+	* src/capture.c (scan_device): Restore pixfmt after scan.
+	* common/Makefile.am: VPATH fix: location of structpr_gen.pl script.
+	* common/types.h, src/zmisc.h: PARENT macro passes through NULL.
+	* src/zmisc.c, src/zmisc.h: Added z_strlcpy() helper. Sane version
+	  of strncpy, idea from FreeBSD.
+	* zapping_setup_fb/zapping_setup_fb.c: #include <sys/stat.h> for 
+	  device_open_safer(). Oops.
+
+2003-05-28	<mschimek@users.sf.net>
+
+	* plugins/screenshot/screenshot.c: Fix incompatibility
+	  with RH9 nptl library, wrong assumption about pthread_t.
+	* zapping_setup_fb/Makefile.am,
+	  zapping_setup_fb/zapping_setup_fb.pam: Consolehelper
+	  mediation didn't work on RH9. Fix borrowed from v4l-conf.
+
+2003-04-26	<mschimek@users.sf.net>
+
+	* src/zmisc.c, src/zmisc.h: Cleaned up & improved filename
+	  helpers. In particular z_on_electric_filename() didn't work
+	  right. Added z_electric_replace_extension(), better than
+	  tinkering with text entry directly.
+	* src/ttxview.c, src/zmisc.c, src/zmisc.h: z_build_filename()
+	  no longer needed, use glib 2.0 g_build_filename().
+	* plugins/screenshot/screenshot.c: Use
+	  z_electric_replace_extension().
+	* plugins/screenshot/Makefile.am,
+	  plugins/screenshot/screenshot_strings.c: Switched to
+	  intltool. screenshot_strings.c obsolete, removed.
+	* po/POTFILES.in: Intltoolized screenshot plugin.
+
+	* src/capture.c: Race in capture resize logic, added
+	  added rwlock.
+	* src/capture.c: Restored on_capture_canvas_allocate()
+	  to (if possible) resize captured image to window
+	  size. Provisional.
+	* src/capture.c (find_request_size): Default capture size
+	  determined by window size. Provisional.
+
+	* src/zvideo.c, src/zvideo.h: Added cursor blanked signal.
+	* src/fullscreen.c (on_cursor_blanked): Automagically
+	  recenter view.
+	* src/fullscreen.c (fullscreen_start): Fixed black background.
+	* src/interface.c (create_zapping): Fixed black background.
+
+	* src/tveng.c, src/tveng.h, src/tveng1.c, src/tveng2.c,
+	  src/tveng25.c, src/tvengxv.c, src/tvengemu.c,
+	  src/v4linterface.c: Made tv_control.next and .ignore
+	  private as planned. Added tv_control_next() function.
+	* src/tveng_private.h, src/tveng.c: Moved control and image
+	  copy helper functions, pointless to inline.
+	* src/tveng.h: New tveng_pixformat_bits_per_pixel() helper.
+	* src/tvengbktr.c: Some progress, but still unfinished.
+
+	Remove some duplicate code. Won't help security but it 
+	helps maintenance.
+	* zapping_setup_fb/Makefile.am: Include src/ headers. Um.
+	* src/x11stuff.c (x11_dga_query), src/x11stuff.h: Added
+	  optional display_name parameter.
+	* zapping_setup_fb/dga.c: Replaced by x11stuff.c code.
+	  Later zapping_setup_fb should link tveng.
+	* zapping_setup_fb/zapping_setup_fb.c, zapping_setup_fb/v4l.c,
+	  zapping_setup_fb/v4l2.c, zapping_setup_fb/v4l25.c,
+	  zapping_setup_fb/zapping_setup_fb.h: Use
+	  common/device interface instead of local copy. Use
+	  x11_dga_parameters (x11stuff.h) parameter instead of globals.
+
+	* glade/zapping.glade2: Eliminated nested toolbar widgets
+	  creating unwanted border around channel up/down buttons.
+	* plugins/mpeg/mpeg.c: Format request fix. Hint to self,
+	  never forget to clear unused fields.
+
+2003-03-25	<mschimek@users.sf.net>
+
+	* src/channel_editor.c: "Add all" aligns channel name with
+	  channel list number in NTSC country. Automatically select
+	  channel_txl option depending on country.
+	* src/frequencies.c, src/frequencies.h: Added channel number
+	  alignment hint. Fixed tv_rf_channel_next(), specifically
+	  using the French frequency table.
+	* v4linterface.c: Don't list unnamed stations in menus.
+
+2003-03-24	<mschimek@users.sf.net>
+
+	* zapping_setup_fb/Makefile.am: Patch #706599 by Kris Verbeeck
+	  to fix installation on Gentoo Linux.
+
+2003-03-22	<mschimek@users.sf.net>
+
+	* pixmaps/Makefile.am: Fixed path of zapping.desktop icon.
+	* src/oss.c (oss_mixer_set_rec_line): Fixed incorrect
+	  set of record lines.
+
+2003-03-21	<mschimek@users.sf.net>
+
+	* glade/zapping.glade2, src/properties-handler.c: Removed ratio
+	  option, needs rewrite. Auto ratio doesn't work as suggested,
+	  belongs into menu, ought to use ZVideo.
+	* glade/zapping.glade2: Replaced tv_screen GtkDrawingArea.
+	* src/Makefile.am: added zvideo.c, zvideo.h.
+	* src/cmd.c: Fixed shutdown muting incorrectly recorded in config.
+	* src/fullscreen.c: Switched from GtkDrawingArea to ZVideo. Paint
+	  video background black.
+	* src/interface.c: Replaced tv_screen GtkDrawingArea by ZVideo.
+	  Paint window background black. Fixed toolbar up/down command
+	  connection.
+	* src/main.c: Removed 1-unit-height hack. Removed geometry hints
+	  timeout hack. This is now better addressed (I hope) in ZVideo.
+	  Moved hide-pointer functions into ZVideo, is cleaner. Fixed
+	  first startup video size 0,0. Fixed saving of global
+	  (vs. per-channel) controls.
+	* src/properties-handler.c: Control window size increment with
+	  ZVideo.
+	* src/zmisc.c (zmisc_switch_mode): Use ZVideo cursor blanking.
+	  Fixed unmuting during shutdown. Moved z_set_cursor() into ZVideo.
+	* src/zmisc.c, src/zmisc.h (z_set_cursor): Moved into ZVideo.
+	* src/zvideo.c, src/zvideo.h: New custom widget, specialization
+	  of GtkDrawingArea, for better control over video size.
+
+2003-03-07	<mschimek@users.sf.net>
+
+	* src/tveng2.c, src/tveng25.c: Fixed get_standard code
+	  determining active picture size.
+
+2003-03-05	<mschimek@users.sf.net>
+
+	* common/Makefile.am: fprintf_videodev25.h compile warning fix.
+	* common/device.c, common/device.h: Added open() and
+	  close() wrapper.
+
+	Volume/Mute rewrite (mostly finished):
+
+	* src/mixer.c, src/mixer.h: Replaced mixer interface by 2003-01-15
+	  routines. Rewrote startup|shutdown_mixer().
+	* src/tveng.c, src/tveng.h, src/mixer.h: Added tv_device_node type
+	  and helper functions. Moved mixer definitions from mixer.h into
+	  tveng.h.
+	* src/oss.c: Enabled new OSS mixer routines. Various corrections.
+	  New function to scan for mixer devices, to be listed in the mixer
+	  selection GUI.
+	* src/zmisc.c, src/zmisc.h: Added z_device_entry helpers for prefs
+	  kernel device selection.
+	* glade/zapping.glade2: Redesigned soundcard mixer selection.
+	* src/audio.c, src/audio.h: New mixer selection GUI and config.
+	* src/globals.c, src/globals.h: Provisional current mixer and
+	  mixer_line variables, later to be moved into a virtual device
+	  context.
+
+	* configure.in: New audio mixer hack #defines for tveng.c.
+	* src/tveng.c, src/tveng.h: Integrated soundcard mixer volume control
+	  with tveng_attach_mixer_line(). Mixer controls are properly (and
+	  transparently) listed in the controls box.
+	* src/tveng.h, src/tveng1.c, src/tveng2.c, src/tveng25.c, src/tvengxv.c,
+	  src/tvengemu.c, src/v4linterface.c: Removed _dev abstraction from
+	  controls and mixer, was overkill. Added step property and 'ignore'
+	  flag (preliminary?) to controls.
+	* src/audio.c, src/audio.h: Use new mixer API. Removed audio_get|set_mute
+	  functions selecting between video device and soundcard mixer volume,
+	  this is now transparently handled by tveng.
+	* src/cmd.c (py_quit), src/main.c: s/audio_set_mute/tv_mute_set.
+
+	* src/main.c: Save and restore "global" controls if not saved per channel.
+	  Moved control config code into src/v4linterface.c.
+	* src/v4linterface.c, src/v4linterface.h: New functions to store controls
+	  in config and retrieve from config, code extracted from main.c.
+	* src/v4linterface.c (add_controls): Control box rebuilding didn't
+	  properly delete old controls.
+
+	* src/tveng.c, src/tveng.h: New tv_quiet_set() function implementing
+	  a program (as opposed to user) level mute function for transparent
+	  channel switch muting.
+	* src/v4linterface.c (z_switch_channel): Replaced mute and post-switch
+	  usleep by tv_quiet_set() and gtk timeout.
+	* src/audio.c, src/audio.h: New functions for gtk timeout delayed
+	  unmute after channel switch.
+
+	* README.commands, src/v4linterface.c: Removed zapping.volume_incr()
+	  ("record volume" which is BS, see ROADMAP) Python command, added
+	  zapping.control_incr() command. zapping.control_incr('volume', ...),
+	  [+]/[-], controls box volume is now all the same, using video device
+	  or soundcard mixer as configured.
+	* src/remote.c (cmd_compatibility): Convert obsolete zapping.volume_incr().
+	* src/keyboard.c: Default keymap s/zapping.volume_incr/zapping.control_incr.
+	  Added new keys to change brig, con, sat & hue, assigned to F-keys as
+	  in XawTV.
+
+	* src/properties-handler.c, src/v4linterface.c: Cleaned up option how to
+	  interpret channel numbers entered on keypad/alirc, former "no keypad
+	  entering" no longer applicable. 
+
+	* src/properties.c (build_properties_contents): Fixed spurious semicolon
+	  in conditional.
+	* plugins/mpeg/mpeg.c, plugins/mpeg/options.c, src/zvbi.c:
+	  Compile warning fixes.
+
+	* src/zvbi.c: Don't abort on i/o error, does more harm than good.
+	  Needs a better solution, perhaps in libzvbi.
+	
+2003-02-20	<mschimek@users.sf.net>
+
+	* common/Makefile.am, common/device.c, common/device.h,
+	  common/structpr_gen.pl: Added script to generate ioctl
+	  argument printing and testing functions, and the respective
+	  support functions.
+	* src/oss.c, src/tveng1.c, src/tveng2.c, src/tveng25.c:
+	  Use new ioctl facilities.
+
+	V4L2 Linux 2.5 port (finished):
+	* src/tveng.c, src/tveng.h: Updates for tveng25.c.
+	* src/tveng25.c, src/tveng25.h: Misc. fixes, compiles and seems
+	  to work correct now (although more polishing is needed, e.g.
+	  scaling).
+
+	* src/tvengemu.c, src/tvengemu.h: Compile fixes.
+
+2003-02-19	<mschimek@users.sf.net>
+
+	* configure.in, plugins/Makefile.am, plugins/mpeg/options.c,
+	  plugins/mpeg/schedule.c, plugins/mpeg/mpeg.c, plugins/mpeg/mpeg.h:
+	  Recording plugin compiles again, removed librte 0.4 support.
+	  Doesn't work however.
+	* glade/zapping.glade2, src/v4linterface.c, src/v4linterface.h:
+	  Ported videostd question from 0.6.6.
+	* plugins/mpeg/mpeg.c: Ported 0.6.6 fixes.
+
+2003-02-18	<mschimek@users.sf.net>
+
+	* po/LINGUAS, po/da.po, THANKS: Added Danish translation
+	  by Morten Brix Pedersen.
+	* configure.in: Cleaned up gettext checks.
+	* src/main.c, src/global.c, src/global.h, src/tvengxv.c:
+	  Added --xv-port option.
+
+2003-02-16	<mschimek@users.sf.net>
+
+	* configure.in: Don't build static libraries (plugins)
+	  by default. We never use them.
+
+2003-02-10	<mschimek@users.sf.net>
+
+	* configure.in, Makefile.am, zapping.desktop.in, po/POTFILES.in:
+	  Switched to intltool. See intltool/README and
+	  http://www.freedesktop.org/standards/desktop-entry-spec.html.
+
+	FreeBSD port II (unfinished, emulated video dev only):
+	* configure.in, zapping_setup_fb/zapping_setup_fb.c:
+	  Added getopt_long check.
+	* configure.in, zapping_setup_fb/Makefile.am: Made
+	  suid zapping_setup_fb owner & group OS dependant. 
+	* common/Makefile.am: Added ioctl_meteor.h, ioctl_bt848.h,
+	  videodev25.h.
+	* common/alloc.h: Don't include malloc.h, BSD says is deprecated.
+	* configure.in, common/unicode.c: Replaced iconv and libunicode
+	  routines by glib routines, removed libunicode checks.
+	* src/Makefile.am: COMMON_LIB is in top_builddir (VPATH builds).
+	  Added tvengbktr.c tvengbktr.h.
+	* src/frequencies.c, src/tvengemu.c, src/video_gdkrgb.c,
+	  src/video_mem.c, src/yuv2rgb.c, src/zimage.h:
+	  Use relative path to common/ includes.
+	* src/oss.c: Workarounds for older OSS mixer interface.
+	* src/zvbi.c: Still compile vbi_gui_sensitive() without
+	  libzvbi.
+	* zapping_setup_fb/Makefile.am: Use X_CFLAGS, X_XF86DGA_LIBS. 
+	* zapping_setup_fb/dga.c: Use HAVE_DGA_EXTENSION.
+	* configure.in: More robust X extensions checks.
+
+2003-02-09	<mschimek@users.sf.net>
+	
+	* src/frequencies.c: Moved video standard defines into
+	  tveng.h.
+	* src/tveng.h, src/tveng1.c, src/tveng2.c, src/tvengxv.c:
+	  New video standard types, for automatic standard
+	  selection et al.
+	* src/tveng2.c: Fixed TVENG_ATTACH_CONTROL.
+	* src/zmisc.c (zmisc_switch_mode): Save video standard.
+
+	V4L2 Linux 2.5 port (unfinished):
+	* common/Makefile.am: Added videodev25.h.
+	* src/Makefile.am: Added tveng25.c, tveng25.h.
+	* zapping_setup_fb/Makefile.am: Added v4l25 target.
+	* zapping_setup_fb/zapping_setup_fb.c,
+	  zapping_setup_fb/v4l25.c: Added v4l2 2.5 interface.
+
+2003-02-08	<mschimek@users.sf.net>
+
+	* zapping_setup_fb/Makefile.am: Fixed incorrect $(DESTDIR)
+	  prefix in csfb.capps.
+	* po/ChangeLog: Added. This is needed to make dist with our
+	  po/Makefile.in.in, an older gettext Makefile customized
+	  by the gnomes.
+
+2003-01-27	<mschimek@users.sf.net>
+
+	* configure.in: DPMS check didn't work properly, rewrote. In
+	  the course also add/changed checks for xf86dga, xf86vmode, xv.
+	* src/Makefile.am: configure.in X lib checks changed.
+	* src/fullscreen.c: Moved screensaver disabling into zmisc.c.
+	* src/main.c: Init screensaver routines.
+	* src/mixer.c, src/mixer.h: A few minor interface corrections.
+	* src/x11stuff.c: User more fine grained configure.in X lib
+	  checks. Various cleanups. Rewrote screensaver disabling routines.
+	* src/x11stuff.h: Cleanup, screensaver interface changed.
+	* src/zmisc.c (zmisc_switch_mode): Disable screensaver in all
+	  modes except Teletext. 
+
+2003-01-25	<mschimek@users.sf.net>
+
+	* src/tveng.c, src/tveng.h: Switch to tv_control with better
+	  encapsulation of controller specifics and callbacks, numerous
+	  small changes. Attn tveng_device_info.controls changed from vec
+	  to list. Added tveng_update_control(). Moved sanity checks from
+	  controllers into tveng_set_control(). tveng_*_control_by_id()
+	  preliminary disabled. tveng_*_mute() use controls, controller
+	  mute interface removed. 
+	* src/tveng_private.h: New tv_dev_control for controller control
+	  interface, mute interface removed. Replaced control helper
+	  functions.
+	* src/tveng1.c, src/tveng1.h, src/tveng2.c, src/tveng2.h,
+	  src/tvengxv.c, src/tvengxv.h, src/tvengemu.c, src/tvengemu.h:
+	  Switch to tv_control, rewrote most of the control routines.
+	  Mute interface routines removed.
+	* src/v4linterface.c: Switch to tv_control, use tv_control
+	  callback to update mute button.
+
+2003-01-23	<mschimek@users.sf.net>
+
+	* src/main.c, src/tveng.c, src/tveng1.c, src/tveng2.c,
+	  src/tvengxv.c: Added disable_overlay (--remote) option.
+
+2003-01-22	<mschimek@users.sf.net>
+
+	* src/properties_handler.c, src/tveng.c: Added fullscreen
+	  mode list.
+	* src/x11stuff.c, src/x11stuff.h (x11_vidmode_by_name):
+	  Added.
+
+2003-01-20	<mschimek@users.sf.net>
+
+	* src/globals.c, src/globals.h: New vidmodes list.
+	* src/main.c: Init new vidmodes list.
+	* src/tveng.c (tveng_start_previewing), src/tveng_private.h:
+	  Rewrote to use new x11_vidmode routines.
+	* src/tveng1.c (tveng1_start_previewing),
+	  src/tveng2.c (tveng2_start_previewing): Center fullscreen
+	  overlay over root window instead of viewport, same as
+	  Xv overlay. Accordingly x11_vidmode_switch() centers and
+	  we get nice margins.
+	* src/tvengxv.c: Fixed wrong icon in controls box.
+	* src/x11stuff.c, src/x11stuff.h: New x11_root_geometry()
+	  helper. New and extended x11_vidmode helper functions, former
+	  tveng_start_previewing() code.
+
+2003-01-19	<mschimek@users.sf.net>
+
+	* zapping_setup_fb/Makefile.am, zapping_setup_fb/dga.c,
+	  zapping_setup_fb/zapping_setup_fb.c,
+	  zapping_setup_fb/zapping_setup_fb.h, 
+	  zapping_setup_fb/v4l.c, zapping_setup_fb/v4l2.c: Separated
+	  video driver interface, added v4l2 interface.
+	* zapping_setup_fb/zapping_fix_overlay: test syntax correction.
+	* configure.in: Added program_invocation_name check for zsfb.
+
+2003-01-18	<mschimek@users.sf.net>
+
+	* src/channel_editor.c (py_channel_editor),
+	  src/plugin_properties.c (py_plugin_properties),
+	  src/properties.c (build_properties_dialog),
+	  src/v4linterface.c (py_control_box):
+	  Raise window on reopen.
+	* src/v4linterface.c: Don't disable toolbutton
+	  after open. Const fix.
+
+2003-01-15	<mschimek@users.sf.net>
+
+	* common/types.h (PARENT): Missing brackets.
+	* src/ROADMAP: Added some notes for future tveng improvements.
+	* src/audio.c (audio_set_mute): Unmute tv audio when unmuting
+	  mixer line.
+	* src/main.c: Const fix.
+	* src/mixer.c, src/mixer.h, src/oss.c: New interface,
+	  not used yet.
+	* src/tveng.c, src/tveng.h: Added (final) callback mechanism
+	  for new mixer interface (and other tveng properties in
+	  the future).
+	
+2003-01-08	<mschimek@users.sf.net>
+
+	* src/Makefile.am, src/i18n.c, src/i18n.h:
+	  Added i18n.c, i18n.h country name routines.
+	* src/channel_editor.c, src/frequencies.c,
+	  src/frequencies.h: Replaced frequency table routines.
+	* src/frequencies.c (tveng_tuned_channel_by_string): Fixed.
+	* src/main.c, src/globals.c, src/globals.h,
+        * src/ttxview.c, src/v4linterface.c: Removed global
+	  current_country, renamed tveng_tuned_channel.country
+	  to .rf_table "cc@table".
+        * src/v4linterface.c: Channel name completion in
+	  keypad (alirc) channel number entering for faster switching.
+
+2003-01-05	<mschimek@users.sf.net>
+
+	* src/tveng1.c: Fixed audio mode selection.
+
+2003-01-03	<mschimek@users.sf.net>
+
+	* glade: Added force_mixer checkbutton in audio prefs.
+	* src/audio.c, src/audio.h: Added force_mixer checkbutton,
+	  new master mute functions.
+	* src/cmd.c, src/main.c, src/v4linterface.c, src/zmisc.c:
+	  Use audio_xxx_mute().
+
+2002-12-31	<mschimek@users.sf.net>
+
+	* common/unicode.c: (get_locale_charset): Switched to
+	  g_get_charset(), hopefully this is more reliable.
+	* src/v4linterface.c, src/tveng2.c: Fixed controls display.
+	* src/v4linterface.c: Update controls faster on channel switch etc.
+	* src/audio.c: Restored mute button/controls binding.
+	* src/tveng2.c: Added bttv mute bug work-around. Added (preliminary)
+	  audio mode menu (no luck w/bttv 0.8.45, needs another
+	  work-around).
+
+2002-12-30	<garetxe@users.sf.net>
+
+	* src/frequencies.c: Added Poland Autocom cable Frequency table,
+          contributed by Artur Flinta.
+        * src/osd.c: Ported to Pango.
+
+2002-12-28	<mschimek@users.sf.net>
+
+	* configure.in: Preliminary libesd check.
+	* src/tveng.h: mutable.
+	* src/tveng1.c, src/tveng2.c, src/tvengxv.c: Set
+	  info->audio_mutable flag.
+	* src/mixer.h, src/mixer.c: Added mute function.
+	* src/main.c, src/zmisc.c, src/audio.c (set_mute1): Mute
+	  by mixer if not supported by video device (preliminary).
+
+2002-12-26	<mschimek@users.sf.net>
+
+	* src/properties-handler.c, src/properties-handler.h: Popup menu
+	  appearance sizes now configurable with kbd shortcuts re
+	  http://bugs.debian.org/168263. Added py_picture_size_cycle
+	  function.
+	* src/keyboard.c: Changed KP_Add and _Sub default key bindings to
+	  cycle through the favorite picture sizes. The ttx_subpage_incr
+	  functions are still available on cursor l/r.
+	* src/v4linterface.c (on_channel_key_press, kp_timeout): Keypad
+	  channel number entering broken, fixed zapping.set_channel
+	  argument. Splitted for reuse by alirc.
+	* plugins/alirc/alirc.c: Added MUTE, VOL_UP, VOL_DOWN re
+	  zapping-misc@lists.sourceforge.net 23 Dec 2002. Connected
+	  SETCHANNEL to the keypad channel number entering routines.
+	  Alirc now accepts the new Python commands.
+	* README.commands: Added.
+
+2002-12-24	<mschimek@users.sf.net>
+
+	* src/channel_editor.c, src/channel_editor.h: Rewrote from scratch.
+	  Modify button dropped, text entries change the list directly now.
+	  Add button adds blank channel. Modification of multiple channels
+	  works better. Station search channel name from vbi works better
+	  (for me from ttx/vps, anyway), although it runs a bit slower now.
+	  Station search and add-all does not add already known channels.
+	  Internal the dialog isn't modal and global_channel_list is edited,
+	  so all changes are put into effect immediately (needs more work).
+	  Cancel button or close restores the old list. Added missing
+	  channel_editor.h file.
+	* src/frequencies.c, src/frequencies.h: Rewrote tuned_channel
+	  routines. Cleaner and UTF-8 safe.
+	* src/keyboard.c, src/keyboard.h: Added z_key_entry_entry() and
+	  cleaned up to permit z_key_entry signal callback.
+	* src/keyboard.c: Commands in key bindings loaded from config now
+	  automagically translated from pre-0.7 syntax to Python (e.g.
+	  channel up/dn).
+	* src/remote.c, src/remote.h (cmd_compatibility): Added to
+	  translate pre-0.7 syntax commands.
+	* src/zmisc.c, src/zmisc.h: Spinslider cleanup. Reset button
+	  now cycles between current, previous and reset value.
+	  (z_icon_factory_add_default_files): Added but not used
+	  yet.
+	* src/v4linterface.c (add_channel_entries): Cleanup.
+	* src/options.c, src/v4linterface.c: Spinslider interface changed.
+	* src/main.c, src/v4linterface.c, src/zvbi.c, src/ttxview.c,
+	  plugins/screenshot/screenshot.c: Tuned channel interface changed.
+        * src/zvbi.c (zvbi_get_name): Changed to return UTF-8 string instead
+	  of Latin-1 station name.
+	* src/cmd.c: Added py_keep_on_top function.
+	* src/properties-handler.c, glade/zapping.glade2: Moved
+	  keep-window-on-top option into View menu.
+	* src/interface.c: Initialize keep-window-on-top check menu.
+
+2002-12-04	<mschimek@users.sf.net>
+
+	* src/main.c, src/x11stuff.c (wm_hints_detect): Rewrote to
+	  work with Sawfish.
+	* src/gen_conv.s: Replaced comments, older as dislike C style.
+	* src/tveng.h, src/tveng2.c, src/tvengxv.c: Provisions for
+	  control icons.
+	* src/tveng1.c: Provisions for control icons and defaults
+	  32768.
+	* src/zmisc.c, src/zmisc.h: Spinslider improvements.
+	* src/v4linterface.c: More compact control box.
+
+2002-11-15	<mschimek@users.sf.net>
+
+	* src/Makefile.am: Added DEFAULT_CFLAGS, didn't compile
+	  without -D_GNU_SOURCE.
+
+2002-10-30	Italian translation <garetxe@users.sf.net>
+
+	* po/it.po: Italian translation, contributed by Pino Toscano.
+
+2002-10-10	<mschimek@users.sf.net>
+
+	* configure.in: Updated rte 0.5 check.
+	* common: Removed obsolete errstr.c, errstr.h.
+	* po/README: Added to explain UTF-8.
+	* po: Updated from 0.6.5 trunk.
+	* plugins/mpeg/mpeg.c, plugins/mpeg/mpeg.h, plugins/mpeg/options.c:
+	  Updated rte 0.5 interface to match latest revision. Changed
+	  gettext() calls to dgettext() where they access library strings.
+	  Proper setup of quickrec recording window. (From 0.6.5)
+	* src/Makefile.am (COMMON_LIB): Changed to $(top_builddir).
+	* src/ttxview.c: Changed gettext() calls to dgettext() where they
+	  access library strings. (From 0.6.5)
+	* src/tvengxv.c: Added XSync in tvengxv_tune_input as
+	  suggested by bug report #599834.
+	* src: #include fixes for GCC 2.7 (as if anyone would
+	  still use it...)
+	* zapping_setup_fb/Makefile.am: Added missing DISTCLEANFILES.
+	* zapping_setup_fb/zapping_setup_fb.c: Had to restore pre-gcc3
+	  macro varargs for compatibility.
+	* BUGS, NEWS, THANKS, prepare_dist.sh, src/zvbi.c, zapping.spec.in:
+	  Merged in changes since 0.6.5 branch.
+
+2002-10-08	<mschimek@users.sf.net>
+
+	* plugins/Makefile.am: Disabled mpeg, does not compile.
+	* glade/Makefile.am: Disabled zapping.glade2p, no file.
+
+2002-10-05	bug fixes in screenshot <garetxe@users.sf.net>
+
+	* plugins/screenshot: Fixed a couple bugs introduced when porting.
+	* src/capture.c: Fixed stupid mistake when resizing formats array.
+
+2002-10-04	screenshot, template restored <garetxe@users.sf.net>
+
+	* plugins/screenshot: Restored.
+	* plugins/template: Restored.
+
+2002-09-09	<mschimek@users.sf.net>
+
+	* src/frequencies.c: Added Canada cable contributed by "matt".
+
+2002-08-22	First simple tests <garetxe@users.sf.net>
+
+	* capture.c: Testing the new code. Works more or less with the
+	TVeng_emu driver. Appears to have fewer bugs than i expected,
+	yeeha! :-) Commiting, so the world finally sees the
+	breakage. Plugins are broken, btw.
+	* video_xv.c, video_x11.c: (later) Both work fine, sometimes i
+	find myself utterly amazing:-)
+
+2002-08-18	capture.c finished <garetxe@users.sf.net>
+
+	* capture.c: Finished modulo a couple simple things, I will do
+	those tomorrow, but Z compiles again (at last!).
+
+2002-08-15	capture.c <garetxe@users.sf.net>
+
+	* capture.c: Wrote the complex logic, doesn't compile yet, but the
+	remaining pieces are a piece of cake compared to this.
+
+2002-08-12	video_* done <garetxe@users.sf.net>
+
+	* video_*: Finished video_xv and wrote the rest of the backends
+	needed for having all the previous functionality (actually much
+	more, as usual ;) Now we only need to finish capture.c and the
+	rewrite will compile (but not work yet, as it will surely contain
+	miriads of bugs and/or typos).
+
+2002-08-11	video_xv done <garetxe@users.sf.net>
+
+	* video_xv.c: Compiles. It's the xv video backend adapted to the
+	new design, the rest of the backends i intend to write (x11,
+	rgb and mem) will be considerably easier.
+
+2002-08-10	Continued capture core work <garetxe@users.sf.net>
+
+	* capture.c: Wrote part of it (doesn't compile yet, though).
+	* main.c, x11stuff.c: Adapted.
+	* zimage.[ch]: created, it's a generic image object. Provides an
+	uniform interface to the various possible accelerated kinds of
+	images (Xv[Shm]Image, GdkImage, GdkPixbuf, ...), even to
+	unblittable data.
+	* tveng (tveng_read_frame): Made it accept a tveng_image_data
+	argument instead of void* data, int stride; this syntax suports
+	planar modes better.
+
+2002-08-08	Capture core rewrite <garetxe@users.sf.net>
+
+	* capture, csconvert, video_xv...: Finished the new design for the
+	capture code, hopefully it will become much clearer and
+	robust when implemented.
+	* csconvert.c: Rewrote rgb->rgb filters according to the new
+	design.
+	* yuv2rgb.c: Adapted to the new design, and enabled the rgb->yuv
+	filters in the process. All this is untested, but compiles.
+
+2002-08-03	TVeng emu <garetxe@users.sf.net>
+
+	* tvengemu.c: Created, manages a virtual device. Useful for
+	debugging without convenient hw.
+
+2002-08-02	Chroma+gtk2 fixes <garetxe@users.sf.net>
+
+	* overlay, fullscreen: Found and fixed the infamous "video not
+	redrawn with xvideo" problem, it appeared because gtk2 was drawing
+	over the chromakey whenever it received an expose event. Thanks to
+	Gerd Knorr for some advice regarding this bug.
+	* tveng (tveng_[gs]et_chromakey): Added saner chromakey handling,
+	prolly the V4L[2] code chromakey isn't 100% correct but i have no
+	way to know. It isn't worse than before, anyway.
+
+2002-07-23	Further fixes <garetxe@users.sf.net>
+
+	* zapping: Fixes and missing functionality, it's getting quite
+	usable now.
+
+2002-07-20	Fixes <garetxe@users.sf.net>
+
+	* lirc: Fixed a typo.
+	* acinclude.in: Don't check whether we can build libs depending on
+	libpython, we won't use it anyway.
+	* help: Include it.
+	
+2002-07-19	Plugins done <garetxe@users.sf.net>
+
+	* mpeg, screenshot, lirc, alirc: Ported.
+	* po: Converted to utf-8.
+
+2002-07-17	Plugins <garetxe@users.sf.net>
+
+	* plugin_properties: Redone.
+	* template: Ported.
+
+2002-07-16	Everything except plugins <garetxe@users.sf.net>
+
+	* zapping_setup_fb: Copy'n'paste.
+
+2002-07-15	ttxview <garetxe@users.sf.net>
+
+	* ttxview: Ported, but untested.
+	* zapzilla.c: Ported.
+	* properties-handler: Ported.
+	
+2002-07-14	Small tweaks <garetxe@users.sf.net>
+
+	* cmd.c: Added some missing functions.
+	* keyboard.c: Converted default bindings to Python syntax.
+	* interface.c: For some strange reason sometimes (most times
+	indeed) "activate" isn't invoqued for items in the appearance
+	submenu of the popup menu. No idea why, and spent too much time
+	with it.
+	
+2002-07-13	Audio, v4linterface <garetxe@users.sf.net>
+
+	* v4linterface, x11stuff: Ported.
+	* arts.c, esd.c, oss.c, audio, mixer: Ported.
+	* cpu, csconvert, yuv2rgb: Ported.
+	* plugins: Ported. Now ~/.zapping/plugin_dirs has disappeared,
+	there's a zconf key /zapping/plugins/plugins_dirs instead. This
+	way, when zconf is converted to gconf we won't need .zapping any
+	longer.
+	* capture, preview, fullscreen: Ported but untested.
+	* zmisc: Added zmisc_switch_mode routines.
+	* main.c: Ported, things start to work, khewl! I can see the image
+	produced by my webcam as before.
+
+2002-07-12	Ported OSD <garetxe@users.sf.net>
+
+	* osd.c: Ported, kept some deprecated gdk_font stuff
+	around since it's so much easier to use than raw Pango. As a
+	little bonus osd now works even without zvbi compiled in. Moved
+	the OSD properties management code in here, helps modularity.
+	* zapping: Compiled with GDK_DISABLED_DEPRECATED too, fixed
+	appearances of deprecated stuff.
+	* src/zvbi.c: Ported.
+	* remote.c: Added missing cmd_run_printf.
+
+2002-07-11	Properties shell working <garetxe@users.sf.net>
+
+	* properties: Ported the shell code, works no problem with the
+	keyboard settings. properties-handler isn't there yet.
+	* video_xv.c, x11stuff: Ported. The WM_HOOKS (stay on top) isn't
+	ported yet, apparently gnome-winhints has just dissapeared without
+	any replacement. Stuff to work on after I make the hard things
+	work.
+	* zmisc: Ported all of it modulo the switch_mode routines, I
+	cannot port those till I have the capture stuff working, perhaps a
+	couple of days.
+
+2002-07-10	Started high-gui stuff <garetxe@users.sf.net>
+
+	* frequencies.[ch]: Ported.
+	* keyboard.c, .h, keysyms.h: Ported, compiles but untested yet
+	since it requires the properties stuff, which i have't ported
+	yet. This was my first exposure to GtkTreeView (GtkCList on
+	steroids). While ackward at first glance, gets easier to work with
+	when you get used to it.
+
+2002-07-09	Low-gui stuff ported <garetxe@users.sf.net>
+
+	* common: Copied and pasted, this one was easy :-)
+	* tveng: Ported.
+	* configure.in: Brought back some missing macros.
+	* src/interface.c: Added menu callbacks support.
+	* zmodel: Ported to being a GObject.
+	* zconf: Ported. Not completely tested, but the hook stuff, which
+	is the part that could break appears to work. Zapping will be the
+	definite test, though.
+	* zmisc: Ported propagate_toolbar_changes; ShowBox and friends
+	are now GtkMessage boxes.
+
+2002-07-08	Started port <garetxe@users.sf.net>
+
+	* zapping: Started Gnome 2 port, it will become	zapping 0.7 when
+	completed.
+	* glade: Converted to glade-2, fixed a few stock pixmaps that went
+	astray during the conversion. Surely there are others left. Change
+	some callbacks that were using user_data to specify the action,
+	this ain't easy to do with glade-2.
+	* src/callbacks.c: Added on_zapping_delete_event.
+	* src/remote.c: Uses the builtin Python interpreter now.
+	* src/cmd.[ch]: Created, C implementation on Python methods,
+	currently just quit().
+	* acinclude.m4: Custom macros, necessary since there's no macros
+	subdir in Gnome2 (at least by default).
+	* src/interface.c: Libglade routines adapted, some stuff is
+	missing yet.
+
+######### zapping-gnome2 merge point ##########################################
+
+2003-11-29	<mschimek@users.sf.net>
+
+	* Release 0.6.8.
+
+2003-11-04	<mschimek@users.sf.net>
+
+	* po/it.po: Updated by Pino Toscano. 
+
+2003-09-29	<mschimek@users.sf.net>
+
+	* src/overlay.c: Background fix. Patch #811746 by Cheuksan Wang.
+
+2003-05-27	<mschimek@users.sf.net>
+
+	* Release 0.6.7.
+
+2003-05-24	<mschimek@users.sf.net>
+
+	* plugins/screenshot/screenshot.c: Fix incompatibility
+	  with RH9 nptl library, wrong assumption about pthread_t.
+	* common/fifo.h, common/fifo.c, src, plugins/mpeg: Prefixed
+	  fifo functions and types to prevent linker accidents because
+	  the fifo functions aren't binary compatible with their rte
+	  clones if rte was compiled with linuxthreads and zapping
+	  with nptl, or vice versa.
+	* zapping_setup_fb/Makefile.am,
+	  zapping_setup_fb/zapping_setup_fb.pam: Consolehelper
+	  mediation didn't work on RH9. Fix borrowed from v4l-conf.
+	* Switched to libpng12 (so.3) in RPM. Apparently we must link
+	  with the same version as the Gnome libs we use. The linker
+	  won't load two different versions (??) and libpng complains
+	  about version mismatch.
+
+2003-05-17	<mschimek@users.sf.net>
+
+	* src/callbacks.c: Fix compile err without libzvbi, patch
+	  by Leonard Norrgard.
+
+2003-05-07	<mschimek@users.sf.net>
+
+	* src/zvbi.c: Experimental proxyd interface.
+	* configure.in: Added --enable-proxy (experimental
+	  proxyd interface).
+
+2003-02-19	<morten@wtf.dk>
+
+        * zapping.desktop: Add Danish translation.
+
+2003-02-18	<mschimek@users.sf.net>
+
+	* po/LINGUAS, po/da.po, THANKS: Added Danish translation
+	  by Morten Brix Pedersen.
+	* src/main.c, src/tvengxv.c: Added --xv-port option.
+
+2003-02-16	<mschimek@users.sf.net>
+
+	* Release 0.6.6.
+
+2003-02-16	<mschimek@users.sf.net>
+
+	* configure.in: Don't build static libraries (plugins)
+	  by default. We never use them.
+
+2003-02-08	<mschimek@users.sf.net>
+
+	* src/zmisc.c (zmisc_switch_mode): Save video standard.
+
+	V4L2 Linux 2.5 port:
+	* common/Makefile.am: Added videodev25.h.
+	* src/Makefile.am: Added tveng25.c, tveng25.h.
+	* zapping_setup_fb/Makefile.am: Fixed incorrect $(DESTDIR)
+	  prefix in csfb.capps. Added v4l25 target.
+	* zapping_setup_fb/zapping_setup_fb.c,
+	  zapping_setup_fb/v4l25.c: Added v4l2 2.5 interface.
+
+2003-01-23	<mschimek@users.sf.net>
+
+	* src/main.c, src/tveng.c, src/tveng1.c, src/tveng2.c,
+	  src/tvengxv.c: Added disable_overlay (--remote) option.
+
+2003-01-19	<mschimek@users.sf.net>
+
+	* zapping_setup_fb/Makefile.am, zapping_setup_fb/dga.c,
+	  zapping_setup_fb/zapping_setup_fb.c,
+	  zapping_setup_fb/zapping_setup_fb.h, 
+	  zapping_setup_fb/v4l.c, zapping_setup_fb/v4l2.c: Separated
+	  video driver interface, added v4l2 interface.
+	* zapping_setup_fb/zapping_fix_overlay: test correction.
+
+2003-01-15
+
+	* src/audio.c (audio_set_mute): Unmute tv audio when unmuting
+	  mixer line.
+	* src/main.c: Const fix.
+
+2003-01-05	<mschimek@users.sf.net>
+
+	* src/tveng1.c: Fixed audio mode selection.
+
+2003-01-03	<mschimek@users.sf.net>
+
+	* glade: Added force_mixer checkbutton in audio prefs.
+	* src/audio.c, src/audio.h: Added force_mixer checkbutton,
+	  new master mute functions.
+	* src/callback.c, src/main.c, src/zmisc.c, src/v4linterface.c:
+	  Use audio_xxx_mute().
+
+2002-12-28	<mschimek@users.sf.net>
+
+	* src/tveng.h: mutable.
+	* src/tveng1.c, src/tveng2.c, src/tvengxv.c: Set
+	  info->audio_mutable flag.
+	* src/tveng2.c: Bttv mute bug work-around.
+	* src/mixer.h, src/mixer.c: Added mute function.
+	* src/main.c, src/zmisc.c, src/callback.c (set_mute1): Mute
+	  by mixer if not supported by video device (preliminary).
+
+2002-12-26	<mschimek@users.sf.net>
+
+	* src/v4linterface.c: Splitted keypad channel number entering
+	  routines for reuse by alirc.
+	* plugins/alirc/alirc.c: Added MUTE, VOL_UP, VOL_DOWN re
+	  zapping-misc@lists.sourceforge.net 23 Dec 2002. Connected
+	  SETCHANNEL to the keypad channel number entering routines.
+
+2002-12-13	<mschimek@users.sf.net>
+
+	* glade/zapping.glade, src/v4linterface.c, src/v4linterface.h,
+	  plugins/mpeg/mpeg.c: Added video standard inquiry if not
+	  reported by driver.
+	* src/zmisc.c (z_spinslider_new): digits init bug fixed.
+
+2002-12-12	<mschimek@users.sf.net>
+
+	* plugins/mpeg/mpeg.c (video_callback): Unusual condition can
+	  block encoding, added temp fix to abort after stop.
+	(on_saving_configure_clicked, saving_dialog_attach_formats):
+	  GUI confusion fix, saving dialog now automatically selects
+	  last configured format. 
+	(select_file_format): preliminary visual hint, mp1e vcd image
+	  size is not variable.
+	(do_start): Retry request_bundle_format() with codec video
+	  parameters.
+	* src/callbacks.c, src/osd.c, src/ttxview.c, src/zvbi.h,
+	  src/zvbi.c: Corrected wrong type of zvbi_page, zvbi_subpage
+	  for libzvbi 0.3.
+	* zapping.desktop: Italian translation from po/it.po.
+
+2002-10-30	Italian translation <garetxe@users.sf.net>
+
+	* it.po: Italian translation, contributed by Pino Toscano.
+
+2002-10-21	<mschimek@users.sf.net>
+
+	* src/zvbi.c (threads_init): g_strconcat() fix re #635976.
+	* src/gen_conv.s: Replaced /**/ remarks, old as don't like it.
+
+2002-10-04	<mschimek@users.sf.net>
+
+	* Release 0.6.5.
+
+2002-10-01	<mschimek@users.sf.net>
+
+	* po/nl.po: Updated by Guus Bonnema.
+
+2002-09-29	<mschimek@users.sf.net>
+
+	* src: #include fixes for GCC 2.7 (as if anyone would
+	  still use it...)
+	* Makefile.am: Added missing DISTCLEANFILES.
+	* zapping_setup_fb/Makefile.am: Added missing DISTCLEANFILES.
+	* src/Makefile.am (COMMON_LIB): Changed to $(top_builddir).
+
+2002-09-28	<mschimek@users.sf.net>
+
+	* po/fr.po: Updated by Christan Marillat.
+
+2002-09-27	<mschimek@users.sf.net>
+
+	* plugins/mpeg/mpeg.c: Proper setup of quickrec recording window.
+
+2002-09-26	<mschimek@users.sf.net>
+
+	* src/ttxview.c, plugins/mpeg/mpeg.c: Changed gettext() calls to
+	  dgettext() where they access library strings. Oops.
+
+2002-09-24	<mschimek@users.sf.net>
+
+	* configure.in: Change rte 0.5 check to match latest revision.
+	* plugins/mpeg/mpeg.c: Updated rte 0.5 interface to match latest
+	  revision.
+
+2002-09-09	<mschimek@users.sf.net>
+
+	* src/frequencies.c: Added Canada cable contributed by "matt".
+
+2002-08-31	<mschimek@users.sf.net>
+
+	* src/tvengxv.c: Added XSync in tvengxv_tune_input as
+	  suggested by bug report #599834.
+	* src/v4linterface.c: Increased nap time before unmuting after
+	  channel switch.
+	* src/main.c: Fixed widget lookup before main window creation bug.
+	* zapping_setup_fb/zapping_setup_fb.c: Had to restore pre-gcc3
+	  macro varargs for compatibility.
+
+######### zapping-gnome2 branch point #########################################
+
+2002-06-19	<mschimek@users.sf.net>
+
+	* src, glade, plugins: Added show tooltips option.
+
+2002-06-17	<mschimek@users.sf.net>
+
+	* m4, po, intl, config.rpath: Added because cannot use autogen.sh
+	  gettextize --force since gettext 0.11. The fine hack insists
+	  on updating already updated Makefile.am's and configure.in.
+	* po/Rules-quot: s/PACKAGE VERSION/... because msgfmt complains.
+
+2002-06-16	gettextize  <bug-gnu-gettext@gnu.org>
+
+	* Makefile.am (SUBDIRS): Add m4.
+	(ACLOCAL_AMFLAGS): New variable.
+	(EXTRA_DIST): Add config.rpath.
+	* configure.in (AC_OUTPUT): Add m4/Makefile.
+
+2002-06-10	<mschimek@users.sf.net>
+
+	* src/mixer.c: Try /dev/mixer before /dev/mixer0 etc, thanks to
+	  Heiko Abraham for reporting. Patch by Iñaki.
+	* zapping_setup_fb/zapping_setup_fb.c: Reduce the amount of code
+	  executed with root privileges. Patch by Iñaki. Yours truly
+	  cleaned up the code to make it more readable.
+
+2002-05-30	<mschimek@users.sf.net>
+
+	* src: Added "keep on top" re feature request #555064.
+	  Note doesn't work with sawfish, has incomplete Gnome wm proto.
+
+2002-05-29	<mschimek@users.sf.net>
+
+	* plugins/mpeg: Finished changes for rte 0.5 (still compiles with
+	  rte 0.4).
+	* src/x11stuff.c: Applied Iñaki's XScreensaver patch.
+
+2002-05-28	<mschimek@users.sf.net>
+
+	* src/zmisc.c, src/zmisc.h: Added set_sensitive_with_tooltips(),
+	  made find_unused_name() more flexible.
+	* plugins/screenshot/screenshot.c: Disabled widgets explain
+	  why... doesn't seem to work. :-(
+
+2002-05-25	<mschimek@users.sf.net>
+
+	* src/properties.c, src/properties.h: Added handler cancel
+	  function.
+	* src/interface.c: Modified build_widget() semantics to get
+	  rid of hardcoded PACKAGE_DATA_DIR.
+
+2002-05-24	<mschimek@users.sf.net>
+
+	* src/zmisc.c, src/zmisc.h: Added z_load_pixmap() (simplification
+	  and less instances of PACKAGE_PIXMAP_DIR), replaced
+	  old pixmap from file creation code.
+	* src/interface.c, src/properties.c, src/lirc.c: Replaced
+	  old pixmap from file creation code.
+	* src/ttxview.c, src/zvbi.c: Replaced old pixmap/pixbuf
+	  from file creation code.
+
+2002-05-20	<mschimek@users.sf.net>
+
+	* configure.in: Now inherits CFLAGS from environment, modified
+	  clean.pl to retain argument order.
+
+2002-04-17	<mschimek@users.sf.net>
+
+	* plugins/mpeg/mpeg.c: Some work towards the new recording
+	  dialog.
+
+2002-04-15	<mschimek@users.sf.net>
+
+	* plugins/mpeg/mpeg.c, plugins/mpeg/options.c: Ported to
+	  rte 0.5 (optional), config audio and video pages now
+	  sensitive only when the stream type applies. For testing
+	  only.
+	* configure.in: Added check for rte 0.5.
+
+2002-04-10	<mschimek@users.sf.net>
+
+	Greetings from the chrome department:
+	* src/keyboard.c: Replaced shutdown by keyboard image in prefs.
+	* src/properties-handler.c: Added toolbar style option.
+	* src/interface.c: Added toolbar style option and changed
+	  toolbar mute button image from stock volume to crossed
+	  speaker symbol.
+	* src/zmisc.c: Spinslider [reset] button replaced by pixbutton,
+	  needs less screen real estate and no translation.
+
+2002-04-09	<mschimek@users.sf.net>
+
+	* zapping_setup_fb/Makefile.am: In absence of consolehelper
+	  install suid root zapping_setup_fb in $sbindir but $bindir
+	  and create a symlink in $bindir. Now the executable is always
+	  in $sbindir. Removed zsfb.capps.in, now created by
+	  Makefile, to replace $prefix/sbin by $sbindir (which isn't
+	  fully expanded by autoconf in zsfb.capps.in).
+	* zapping_setup_fb/zapping_fix_overlay.in: Renamed from
+	  zapping_fix_overlay. This version works exactly like
+	  the new make install, honouring $bindir and $sbindir, with a
+	  a provision for RPM relocation and a reversion option.
+
+2002-04-06	<mschimek@users.sf.net>
+
+	* src/osd.c: Fix to compile w/o zvbi.
+	* src/callbacks.c: Fix to compile w/o zvbi.
+
+2002-04-04	<mschimek@users.sf.net>
+
+	* zapping_setup_fb/zapping_fix_overlay: Didn't work when
+	  'which' found */sbin/zapping_setup_fb.
+
+2002-04-02	tveng_detect_xv_overlay <garetxe@users.sf.net>
+
+	* src/tveng.c: Do not run zsfb if XV overlay will be used, bttv
+	and v4l driver in XFree do weird things otherwise.
+
+2002-04-01	Release 0.6.4 <mschimek@users.sf.net>
+
+	* po/es.po: Updated by Iñaki G. Etxebarria.
+	* po/pl.po: Updated by Paweł Sakowski.
+	* src/properties-handler.c: Use ngettext for
+	  'with %d tuners' (%d > 1) string.
+
+2002-03-23	Christian Marillat
+
+	* po/fr.po: Updated.
+
+2002-03-22	automake 1.6 <mschimek@users.sf.net>
+
+	* configure.in: Prepared for automake 1.6, removed
+	  'deprecated and discouraged' acconfig.h.
+
+2002-03-21	Fixes <mschimek@users.sf.net>
+
+	* src/callbacks.c: quit_cmd() didn't work correctly when
+	  called from Quit menu, fixed. Added subtitle_overlay
+	  command to replace the toggle function of switch_mode teletext.
+	* src/zapzilla.c: Added quit command (for [q]).
+	
+2002-03-19	<mschimek@users.sf.net>
+
+	* src/zvbi.c: Experimental change re zapping-Bugs-527786.
+	* configure.in: Added runtime tests for arts, unicode, xml.
+	* callbacks.c: switch_mode_cmd() to current not remebered
+	  as last mode. Extended restore_mode_cmd() to swap between
+	  current/last or requested/last. Added "swap_mode" synonym.
+	* keyboard.c: Replaced switch_mode by swap_mode.
+
+2002-03-15	<mschimek@users.sf.net>
+
+	* zapping_setup_fb/zapping_setup_fb.c: Changed messages refering
+	  to "this program", which is confusing, to "zapping_setup_fb".
+	* src/main.c: Replaced "overlay" in error messages by "previewing"
+	  for consistency with the GUI. Actually overlay would be the better
+	  term.
+
+2002-03-12	<mschimek@users.sf.net>
+
+	* configure.in: Added "/opt/gnome/share/aclocal" to
+	  AM_ACLOCAL_INCLUDE() (this has to be literal since aclocal
+	  scans configure.in before it's autoconf'ed), seems to
+	  solve the problems we had with gnome installs in /opt.
+	  See zap-misc 2001-10-15, 2002-03-09.
+
+2002-03-10	zapping-Bugs-527984 <mschimek@users.sf.net>
+
+	* src/tveng1.c: Added mmap PROT_READ | PROT_WRITE for
+	  bttv 0.8.x.
+	* src/tveng2.c: Added mmap PROT_READ | PROT_WRITE for
+	  bttv 0.8.x.
+	* src/audio.c: Missing LIBZVBI conditional around
+	  osd_render_sgml().
+	* src/osd.c: Added dummy osd_render_sgml(), just in case.
+
+2002-03-08	zapping_setup_fb <mschimek@users.sf.net>
+
+	* zapping_setup_fb/Makefile.am: Automake or autoconf created
+	  a bad Makefile, moving the "if SUID_ZFSB" around helped. 
+
+2002-02-26	Keyboard and command changes <mschimek@users.sf.net>
+
+	* Channel number entering on KP: Removed all keys except
+	  0-9, decimal, enter. Decimal now runs through all channel
+	  prefixes and serves as clear key.
+	* src/v4linterface.c: Removed channel up/down swap option.
+	* src/remote.c: Added new command functions. These replace
+	  a number of on_event functions, allowing both keys and
+	  glade GUI elements to trigger kind of mini scripts.
+	  Will probably add more of these and extend to (a)lirc
+	  and command line.
+	* src/ttxview.c: Removed all key bindings except 0-9.
+	  Replaced several functions by remote commands.
+	* src/keyboard.c: New file. Added key entry widget based
+	  on channel dialog with two changes: Reordered the 'known
+	  keys' dialog key table and added a key enter function.
+	  Preferences: Added keyboard section to assign commands
+	  to keys. Added new one-key bindings. Key events are
+	  differently handled now, see README.
+	* plugins/screenshot/screenshot.c: Made toolbar button
+	  optional. Added two remote commands to activate, with
+	  format parameter.
+	* plugins/screenshot/mpeg.c: Added two remote commands
+	  to activate. Had to rewrite mpeg_configured() message,
+	  crashed due to a glade bug (?).
+	* src/audio.c: Volume and mute remote commands.
+	* src/callbacks.c: Switch mode/restore/quit remote
+	  commands. (Should probably go into main.c)
+	* src/channel_editor.c: Replaced key entry dialog.
+	  The channel accel stuff is much cleaner now.
+	* src/frequencies.c: A little renaming to reduce the
+	  confusion between station name and RF channel name.
+
+2002-02-24	Audio <mschimek@users.sf.net>
+
+	* Added preliminary volume +/- buttons. This affects
+	  the record line volume using OSS /dev/mixer.
+
+2002-02-25	zapping_setup_fb patch <mschimek@users.sf.net>
+
+	* zapping_setup_fb/zapping_setup_fb.c: Patch by David Fries.
+	  zapping_setup_fb won't run because the .Xauthority is on a nfs mounted
+	  directory with the server doing root squash so it can't contact the X
+	  server. This patch drops the root privileges when connecting to the X
+	  server.
+
+2002-02-08	Fixes <mschimek@users.sf.net>
+
+	* src/zvbi.c: Made threads_destroy() block-proof, fixed a td == 0
+	  crash (??) in	update_vi_network().
+	* src/zmisc.c: -d dumps failure cause of z_pixmap_new_from_file().
+
+2002-02-05	Another mute fix and better KP entering <mschimek@users.sf.net>
+
+	* src/tvengxv.c: tveng_get|set_mute ignored controls bttv
+	  mute bug workaround.	   
+	* src/osd.c: Added remove timeout callback.
+	* src/v4linterface.c: Uses OSD for KP channel number entering.
+	* Added "channel number refers to" option.
+
+2002-02-03	Mute fixes <mschimek@users.sf.net>
+
+	* src/zmisc.c: zmisc_switch_mode() didn't expect failure of
+	  tveng_get_mute(), updated control box before restoring
+	  old mute state.
+	* src/callbacks.c: on_toggle_muted1_activate() didn't expect
+	  failure of tveng_get_mute() and didn't update control box.
+	* Added KP channel number entering suggested by Nathan G. Grennan.
+
+2002-01-24	Added @euro charset <garetxe@users.sf.net>
+
+	* common/unicode.c: Added support for the ISO-8859-15 locale
+	(@euro), and a default when the charset is unknown.
+	* src/osd.c: Prefixed correctly VBI_BLUE in sax parsing, etc,
+	otherwise they would be ignored.
+
+2002-01-19	<mschimek@users.sf.net>
+
+	* src/osd.c: Segv fix in geometry_update().
+	* src/zvbi.c: threads_init(), threads_destroy() didn't
+	  work correctly on failure.
+	* Updated Zapzilla export docs.
+
+2002-01-18	<mschimek@users.sf.net>
+
+	* plugins/mpeg/mpeg.c: Error box when the video
+	  standard is unknown, used to crash.
+	* src/zvbi.c: "Overlay subtitle pages
+	  automatically" defaults to FALSE.
+
+2002-01-14	<mschimek@users.sf.net>
+
+	* src/zvbi.c: Restored v4l vbi interface, untested.
+
+2002-01-13	libzvbi <mschimek@users.sf.net>
+
+	* Ported Zapping from old libvbi to libzvbi, the new
+	  standalone version in CVS, module "vbi". Right now only
+	  the v4l2 interface works (oops...), ttx search doesn't
+	  and the "sample filter" is gone, but the rest seems to
+	  be in good shape. Zapping will also compile without
+	  libzvbi, disabling all vbi features.
+
+2002-01-08	<mschimek@users.sf.net>
+
+	* ttxview.c: Page is exported with current reveal state.
+	* vbi export: "TODO: TTX export ANSI colors needs improvement"
+	  done, now has char set and terminal option, the stupid
+	  fg/bg options are gone.
+
+Local Variables:
+mode: change-log
+coding: utf-8
+left-margin: 8
+fill-column: 76
+End:
