@@ -1,3 +1,9 @@
+13.09.2001	bounds checking <garetxe@users.sf.net>
+
+	* libvbi/teletext.c: Added bounds checking for enhance, could
+	segfault under certain circunstances.
+	* ttxview.c: Search gui touches.
+
 11.09.2001	mpeg plugin audio options <mschimek@users.sf.net>
 
 	* plugins/mpeg: Added dynamic audio options using the new

@@ -1007,8 +1007,6 @@ void run_next				(GtkButton	*button,
   ttxview_data *data =
     (ttxview_data *)gtk_object_get_data(GTK_OBJECT(button),
 					"ttxview_data");
-  GtkWidget *search_cancel = lookup_widget(GTK_WIDGET(button),
-					   "button19");
   GtkWidget *search_next = lookup_widget(GTK_WIDGET(button),
 					   "button21");
   GtkWidget *search_prev = lookup_widget(GTK_WIDGET(button),
@@ -1016,10 +1014,9 @@ void run_next				(GtkButton	*button,
 
   gtk_widget_set_sensitive(search_next, FALSE);
   gtk_widget_set_sensitive(search_prev, FALSE);
-  gtk_widget_set_sensitive(search_cancel, TRUE);
-  gtk_widget_set_sensitive(lookup_widget(search_cancel,
+  gtk_widget_set_sensitive(lookup_widget(search_next,
 					 "progressbar2"), TRUE);
-  gtk_label_set_text(GTK_LABEL(lookup_widget(search_cancel, "label97")),
+  gtk_label_set_text(GTK_LABEL(lookup_widget(search_next, "label97")),
 		     "");
   gnome_dialog_set_default(GNOME_DIALOG(search_progress), 0);
   gtk_object_set_user_data(GTK_OBJECT(search_progress),
@@ -1031,38 +1028,36 @@ void run_next				(GtkButton	*button,
       load_page(pg->pgno, pg->subno, data, pg);
       if (search_progress)
 	{
-	  gtk_widget_set_sensitive(search_cancel, FALSE);
 	  gtk_widget_set_sensitive(search_next, TRUE);
 	  gtk_widget_set_sensitive(search_prev, TRUE);
 	  if (zcg_bool(NULL, "ure_backwards"))
 	    gnome_dialog_set_default(GNOME_DIALOG(search_progress),
-				     2);
+				     1);
 	  else
 	    gnome_dialog_set_default(GNOME_DIALOG(search_progress),
-				     1);
-	  gtk_label_set_text(GTK_LABEL(lookup_widget(search_cancel,
+				     2);
+	  gtk_label_set_text(GTK_LABEL(lookup_widget(search_next,
 						     "label97")),
 			     _("Found"));
-	  gtk_widget_set_sensitive(lookup_widget(search_cancel,
+	  gtk_widget_set_sensitive(lookup_widget(search_next,
 						 "progressbar2"), FALSE);
 	}
       break;
     case 0: /* not found */
       if (search_progress)
 	{
-	  gtk_widget_set_sensitive(search_cancel, FALSE);
 	  gtk_widget_set_sensitive(search_next, TRUE);
 	  gtk_widget_set_sensitive(search_prev, TRUE);
 	  if (zcg_bool(NULL, "ure_backwards"))
 	    gnome_dialog_set_default(GNOME_DIALOG(search_progress),
-				     2);
+				     1);
 	  else
 	    gnome_dialog_set_default(GNOME_DIALOG(search_progress),
-				     1);
-	  gtk_label_set_text(GTK_LABEL(lookup_widget(search_cancel,
+				     2);
+	  gtk_label_set_text(GTK_LABEL(lookup_widget(search_next,
 						     "label97")),
 			     _("Not found"));
-	  gtk_widget_set_sensitive(lookup_widget(search_cancel,
+	  gtk_widget_set_sensitive(lookup_widget(search_next,
 						 "progressbar2"), FALSE);
 	}
       break;      
@@ -1071,19 +1066,18 @@ void run_next				(GtkButton	*button,
     case -2: /* no pages in the cache */
       if (search_progress)
 	{
-	  gtk_widget_set_sensitive(search_cancel, FALSE);
 	  gtk_widget_set_sensitive(search_next, TRUE);
 	  gtk_widget_set_sensitive(search_prev, TRUE);
 	  if (zcg_bool(NULL, "ure_backwards"))
 	    gnome_dialog_set_default(GNOME_DIALOG(search_progress),
-				     2);
+				     1);
 	  else
 	    gnome_dialog_set_default(GNOME_DIALOG(search_progress),
-				     1);
-	  gtk_label_set_text(GTK_LABEL(lookup_widget(search_cancel,
+				     2);
+	  gtk_label_set_text(GTK_LABEL(lookup_widget(search_next,
 						     "label97")),
 			     _("Empty cache"));
-	  gtk_widget_set_sensitive(lookup_widget(search_cancel,
+	  gtk_widget_set_sensitive(lookup_widget(search_next,
 						 "progressbar2"), FALSE);
 	}
       break;
@@ -1262,8 +1256,6 @@ void on_ttxview_search_clicked		(GtkButton	*button,
   gnome_dialog_button_connect(ure_search, 2,
 			      GTK_SIGNAL_FUNC(show_search_help), data);
 
-  gtk_widget_grab_focus(entry2);
-
   gtk_toggle_button_set_active(checkbutton9,
 			       zcg_bool(NULL, "ure_regexp"));
   gtk_toggle_button_set_active(checkbutton9a,
@@ -1271,11 +1263,16 @@ void on_ttxview_search_clicked		(GtkButton	*button,
   gtk_toggle_button_set_active(checkbutton10,
 			       zcg_bool(NULL, "ure_backwards"));
 
-  result = gnome_dialog_run_and_close(ure_search);
+ no_needle:
+  gtk_widget_grab_focus(entry2);
+
+  result = gnome_dialog_run(ure_search);
   needle = gtk_entry_get_text(GTK_ENTRY(entry2));
-  if (needle)
+  if (needle && *needle)
     needle = g_strdup(needle);
-  
+  else if (!result)
+    goto no_needle;
+
   zcs_bool(gtk_toggle_button_get_active(checkbutton9), "ure_regexp");
   zcs_bool(gtk_toggle_button_get_active(checkbutton9a), "ure_casefold");
   zcs_bool(gtk_toggle_button_get_active(checkbutton10), "ure_backwards");

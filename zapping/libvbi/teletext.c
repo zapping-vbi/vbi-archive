@@ -676,7 +676,8 @@ screen_colour(struct fmt_page *pg, int flags, int colour)
 
 static vt_triplet *
 resolve_obj_address(struct vbi *vbi, object_type type,
-	int pgno, object_address address, page_function function)
+	int pgno, object_address address, page_function function,
+	int *remaining)
 {
 	int s1, packet, pointer;
 	struct vt_page *vtp;
@@ -731,6 +732,7 @@ resolve_obj_address(struct vbi *vbi, object_type type,
 	}
 
 	trip = vtp->data.pop.triplet + pointer;
+	*remaining = acount(vtp->data.pop.triplet) - (pointer+1);
 
 	printv("... obj def: ad 0x%02x mo 0x%04x dat %d=0x%x\n",
 		trip->address, trip->mode, trip->data, trip->data);
@@ -752,6 +754,7 @@ static bool
 enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 	struct fmt_page *pg, struct vt_page *vtp,
 	object_type type, vt_triplet *p,
+	int max_triplets,
 	int inv_row, int inv_column,
 	vbi_wst_level max_level, bool header_only)
 {
@@ -970,7 +973,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 
 	font = pg->font[0];
 
-	for (;; p++) {
+	for (;max_triplets>0; p++, max_triplets--) {
 		if (p->address >= COLUMNS) {
 			/*
 			 *  Row address triplets
@@ -1026,7 +1029,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 
 			set_active:
 				if (header_only && row > 0) {
-					for (;; p++)
+					for (;max_triplets>1; p++, max_triplets--)
 						if (p[1].address >= COLUMNS) {
 							if (p[1].mode == 0x07)
 								break;
@@ -1073,6 +1076,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 				int source = (p->address >> 3) & 3;
 				object_type new_type = p->mode & 3;
 				vt_triplet *trip;
+				int remaining_max_triplets = 0;
 
 				if (max_level < VBI_LEVEL_2p5)
 					break;
@@ -1101,6 +1105,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 					}
 
 					trip = vtp->data.enh_lop.enh + designation * 13 + triplet;
+					remaining_max_triplets = acount(vtp->data.enh_lop.enh) - (designation* 13 + triplet);
 				}
 				else /* global / public */
 				{
@@ -1142,7 +1147,8 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 					printv("... %s obj\n", (source == 3) ? "global" : "public");
 
 					trip = resolve_obj_address(vbi, new_type, pgno,
-						(p->address << 7) + p->data, function);
+						(p->address << 7) + p->data, function,
+						&remaining_max_triplets);
 
 					if (!trip)
 						return FALSE;
@@ -1152,6 +1158,7 @@ enhance(struct vbi *vbi, magazine *mag,	extension *ext,
 				column = inv_column + active_column;
 
 				enhance(vbi, mag, ext, pg, vtp, new_type, trip,
+					remaining_max_triplets,
 					row + offset_row, column + offset_column,
 					max_level, header_only);
 
@@ -1630,6 +1637,7 @@ default_object_invocation(struct vbi *vbi, magazine *mag,
 	for (i = 0; i < 2; i++) {
 		object_type type = pop->default_obj[i ^ order].type;
 		vt_triplet *trip;
+		int remaining_max_triplets;
 
 		if (type == OBJ_TYPE_NONE)
 			continue;
@@ -1637,12 +1645,13 @@ default_object_invocation(struct vbi *vbi, magazine *mag,
 		printv("default object #%d invocation, type %d\n", i ^ order, type);
 
 		trip = resolve_obj_address(vbi, type, pop->pgno,
-			pop->default_obj[i ^ order].address, PAGE_FUNCTION_POP);
+			pop->default_obj[i ^ order].address, PAGE_FUNCTION_POP,
+			&remaining_max_triplets);
 
 		if (!trip)
 			return FALSE;
 
-		enhance(vbi, mag, ext, pg, vtp, type, trip, 0, 0, max_level, header_only);
+		enhance(vbi, mag, ext, pg, vtp, type, trip, remaining_max_triplets, 0, 0, max_level, header_only);
 	}
 
 	return TRUE;
@@ -1967,7 +1976,8 @@ vbi_format_page(struct vbi *vbi,
 		if (vtp->enh_lines & 1) {
 			printv("enhancement packets %08x\n", vtp->enh_lines);
 			success = enhance(vbi, mag, ext, pg, vtp, LOCAL_ENHANCEMENT_DATA,
-				vtp->data.enh_lop.enh, 0, 0, max_level, display_rows == 1);
+				vtp->data.enh_lop.enh, acount(vtp->data.enh_lop.enh),
+				0, 0, max_level, display_rows == 1);
 		} else
 			success = default_object_invocation(vbi, mag, ext, pg, vtp,
 							    max_level, display_rows == 1);

@@ -25,13 +25,20 @@
 #include <pthread.h>
 
 /* i18n */
-#include <libintl.h>
 #ifndef _
+#ifdef ENABLE_NLS
+#include <libintl.h>
 #define _(String) gettext (String)
-#endif
 #ifndef N_
 #define N_(String) (String)
 #endif
+#else /* ENABLE_NLS */
+#define _(String) (String)
+#ifndef N_
+#define N_(String) (String)
+#endif
+#endif /* ENABLE_NLS */
+#endif /* _ */
 
 
 /*
