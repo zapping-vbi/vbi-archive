@@ -1,3 +1,7 @@
+19.11.2000	ru.po <sergey-nikulin@mail.ru>
+
+	* po/ru.po: Added Russian translation
+
 17.11.2000	V4L VBI support <garetxe@users.sourceforge.net>
 
 	* libvbi/: tries to open the vbi device as V4L2. If it fails, uses
