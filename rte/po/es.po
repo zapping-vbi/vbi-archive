@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: RTE 0.5\n"
-"POT-Creation-Date: 2002-09-26 09:02+0200\n"
+"POT-Creation-Date: 2002-09-27 21:38+0200\n"
 "PO-Revision-Date: 2002-03-28 16:56+0100\n"
 "Last-Translator: Iñaki García Etxebarria <garetxe@users.sourceforge.net>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -17,7 +17,7 @@ msgstr ""
 #: mp1e/video/mpeg1.c:2123
 #, c-format
 msgid "Invalid group of pictures sequence: \"%s\".\n"
-msgstr ""
+msgstr "Secuencia GOP no válida: \"%s\".\n"
 
 #: mp1e/video/mpeg1.c:2130
 #, c-format
@@ -25,6 +25,8 @@ msgid ""
 "Invalid group of pictures sequence: \"%s\", length %d.\n"
 "The number of pictures in a GOP is limited to 1024."
 msgstr ""
+"Secuencia GOP no válida: \"%s\", longitud %d.\n"
+"El número de cuadros en un GOP es 1024 como máximo."
 
 #: mp1e/video/mpeg1.c:2183
 #, c-format
@@ -33,6 +35,8 @@ msgid ""
 "The number of successive 'B' bidirectionally predicted pictures is limited "
 "to %u."
 msgstr ""
+"Secuencia GOP no válida: \"%s\".\n"
+"El número de cuadros bidireccionales 'B' sucesivos está limitado a %u."
 
 #: mp1e/video/mpeg1.c:2428 mp1e/video/mpeg1.c:2448 mp1e/video/mpeg1.c:2453
 #: mp1e/video/mpeg1.c:2463 mp1e/video/mpeg1.c:2820 mp1e/audio/mp2.c:1161
@@ -40,420 +44,436 @@ msgstr ""
 #: ffmpeg/b_ffmpeg.c:621 ffmpeg/b_ffmpeg.c:1329 ffmpeg/b_ffmpeg.c:1726
 #: divx4linux/b_divx4linux.c:291 divx4linux/b_divx4linux.c:733
 msgid "Out of memory."
-msgstr ""
+msgstr "Memoria exhausta."
 
 #: mp1e/video/mpeg1.c:2564
 msgid "Standard compliant"
-msgstr ""
+msgstr "Según el estándar"
 
 #: mp1e/video/mpeg1.c:2565
 msgid "Multiplexer timestamps"
-msgstr ""
+msgstr "Marcas temporales en el multiplexador."
 
 #: mp1e/video/mpeg1.c:2566
 msgid "Insert fake pictures"
-msgstr ""
+msgstr "Insertar cuadros espúreos."
 
 #: mp1e/video/mpeg1.c:2575 mp1e/audio/mp2.c:982 ffmpeg/b_ffmpeg.c:842
 #: ffmpeg/b_ffmpeg.c:846 ffmpeg/b_ffmpeg.c:859 ffmpeg/b_ffmpeg.c:863
 #: divx4linux/b_divx4linux.c:483
 msgid "Bit rate"
-msgstr ""
+msgstr "Tasa de bits"
 
 #: mp1e/video/mpeg1.c:2581
 msgid "Virtual frame rate"
-msgstr ""
+msgstr "Tasa de cuadros virtual"
 
 #: mp1e/video/mpeg1.c:2583
 msgid ""
 "MPEG-1 allows only a few discrete values for frames/s, but this codec can "
 "skip frames if you wish. Choose the output bit rate accordingly."
 msgstr ""
+"MPEG-1 soporta sólo valores discretos para los cuadros/segundo, pero este "
+"codec puede saltarse cuadros si lo deseas. Elige la tasa de bits de salida "
+"de acuerdo con esto."
 
 #: mp1e/video/mpeg1.c:2587
 msgid "Virtual frame rate method"
-msgstr ""
+msgstr "Método para la tasa de cuadros virtual"
 
 #: mp1e/video/mpeg1.c:2589
 msgid ""
 "The standard compliant method has one major drawback: it may have to promote "
 "some or even all B to P pictures, reducing the image quality."
 msgstr ""
+"El método estándar tiene una pega importante: quizá tenga que transformar "
+"cuadros B a P, reduciendo la calidad de imagen."
 
 #: mp1e/video/mpeg1.c:2593
 msgid "GOP sequence"
-msgstr ""
+msgstr "Secuencia GOP"
 
 #: mp1e/video/mpeg1.c:2596
 msgid "Motion compensation"
-msgstr ""
+msgstr "Compensación de movimiento"
 
 #: mp1e/video/mpeg1.c:2597
 msgid ""
 "Enable motion compensation to improve the image quality. The motion search "
 "range is automatically adjusted."
 msgstr ""
+"Habilita la compensación de movimiento para mejorar la calidad de imagen. El "
+"rango de búsqueda de movimiento se ajusta automáticamente."
 
 #: mp1e/video/mpeg1.c:2604
 msgid "Annotation"
-msgstr ""
+msgstr "Anotación"
 
 #: mp1e/video/mpeg1.c:2605
 msgid ""
 "Add an annotation in the user data field shortly after the video stream "
 "start. This is an mp1e extension, players will ignore it."
 msgstr ""
+"Añade una nota en el campo de datos del usuario un poco después del comienzo "
+"del vídeo. Ésta es una extensión de mp1e, los reproductores la ignorarán."
 
 #: mp1e/video/mpeg1.c:2621 ffmpeg/b_ffmpeg.c:913 divx4linux/b_divx4linux.c:512
 #, c-format
 msgid "%5.3f Mbit/s"
-msgstr ""
+msgstr "%5.3f Mbits/s"
 
 #: mp1e/video/mpeg1.c:2623
 #, c-format
 msgid "%4.2f frames/s"
-msgstr ""
+msgstr "%4.2f frames/s"
 
 #: mp1e/video/mpeg1.c:2628
 #, c-format
 msgid "%5.3f frames/s"
-msgstr ""
+msgstr "%5.3f frames/s"
 
 #: mp1e/video/mpeg1.c:2636 divx4linux/b_divx4linux.c:522
 msgid "on"
-msgstr ""
+msgstr "on"
 
 #: mp1e/video/mpeg1.c:2636 divx4linux/b_divx4linux.c:522
 msgid "off"
-msgstr ""
+msgstr "off"
 
 #: mp1e/video/mpeg1.c:2638 mp1e/audio/mp2.c:1030
 #, c-format
 msgid "%f frames"
-msgstr ""
+msgstr "%f cuadros"
 
 #: mp1e/audio/mp2.c:963 ffmpeg/b_ffmpeg.c:777
 msgid "Mono"
-msgstr ""
+msgstr "Mono"
 
 #: mp1e/audio/mp2.c:964 ffmpeg/b_ffmpeg.c:778
 msgid "Stereo"
-msgstr ""
+msgstr "Estéreo"
 
 #: mp1e/audio/mp2.c:966 ffmpeg/b_ffmpeg.c:780
 msgid "Bilingual"
-msgstr ""
+msgstr "Bilingüe"
 
 #: mp1e/audio/mp2.c:974
 msgid "Static"
-msgstr ""
+msgstr "Estático"
 
 #: mp1e/audio/mp2.c:975
 msgid "Fast"
-msgstr ""
+msgstr "Rápido"
 
 #: mp1e/audio/mp2.c:976
 msgid "Accurate"
-msgstr ""
+msgstr "Preciso"
 
 #: mp1e/audio/mp2.c:984 ffmpeg/b_ffmpeg.c:844 ffmpeg/b_ffmpeg.c:848
 #: ffmpeg/b_ffmpeg.c:861
 msgid "Output bit rate, all channels together"
-msgstr ""
+msgstr "Tasa de bits de salida, todos los canales juntos"
 
 #: mp1e/audio/mp2.c:986 ffmpeg/b_ffmpeg.c:836 ffmpeg/b_ffmpeg.c:850
 #: ffmpeg/b_ffmpeg.c:853 ffmpeg/b_ffmpeg.c:856
 msgid "Sampling frequency"
-msgstr ""
+msgstr "Frecuencia de muestreo"
 
 #: mp1e/audio/mp2.c:989 ffmpeg/b_ffmpeg.c:839
 msgid "Mode"
-msgstr ""
+msgstr "Modo"
 
 #: mp1e/audio/mp2.c:992
 msgid "Psychoacoustic analysis"
-msgstr ""
+msgstr "Análisis psicoacústico"
 
 #: mp1e/audio/mp2.c:994
 msgid ""
 "Speed/quality tradeoff. Selecting 'Accurate' is recommended below 80 kbit/s "
 "per channel, when you have bat ears or a little more CPU load doesn't matter."
 msgstr ""
+"Relación velocidad/calidad. Se recomienda seleccionar 'Preciso' por debajo "
+"de 80 kbits/s por canal, no importa si tienes oído de murciélago o algo más "
+"de carga de CPU."
 
 #: mp1e/audio/mp2.c:1014
 #, c-format
 msgid "%u kbit/s"
-msgstr ""
+msgstr "%u kbits/s"
 
 #: mp1e/audio/mp2.c:1019 ffmpeg/b_ffmpeg.c:896
 #, c-format
 msgid "%u Hz"
-msgstr ""
+msgstr "%u Hz"
 
 #: mp1e/audio/mp2.c:1184 ffmpeg/b_ffmpeg.c:1134
 msgid "MPEG-1 Audio Layer II"
-msgstr ""
+msgstr "MPEG-1 Audio Layer II"
 
 #: mp1e/audio/mp2.c:1203 ffmpeg/b_ffmpeg.c:1147
 msgid "MPEG-2 Audio Layer II LSF"
-msgstr ""
+msgstr "MPEG-2 Audio Layer II LSF"
 
 #: mp1e/audio/mp2.c:1204 ffmpeg/b_ffmpeg.c:1148
 msgid ""
 "MPEG-2 Low Sampling Frequency extension to MPEG-1 Audio Layer II. Be warned "
 "not all MPEG video and audio players support MPEG-2 audio."
 msgstr ""
+"Extensión MPEG-2 bajas frecuencias de muestreo a MPEG-1 Audio Layer II. No "
+"todos los reproductores soportan audio MPEG-2, estás avisado."
 
 #: mp1e/b_mp1e.c:198
 msgid "Insufficient resources to start video encoding thread.\n"
-msgstr ""
+msgstr "Recursos insuficientes para iniciar el hilo de compresión de vídeo.\n"
 
 #: mp1e/b_mp1e.c:211
 msgid "Insufficient resources to start audio encoding thread.\n"
-msgstr ""
+msgstr "Recursos insuficientes para iniciar el hilo de compresión de audio.\n"
 
 #: mp1e/b_mp1e.c:264
 msgid "Insufficient resources to start codec thread.\n"
-msgstr ""
+msgstr "Recursos insuficientes para iniciar el hilo de codificación.\n"
 
 #: mp1e/b_mp1e.c:284
 msgid "Insufficient resources to start context thread.\n"
-msgstr ""
+msgstr "Recursos insuficientes para iniciar el hilo de contexto.\n"
 
 #: mp1e/b_mp1e.c:926 ffmpeg/b_ffmpeg.c:1418
 #, c-format
 msgid "Cannot create new codec instance '%s'. %s"
-msgstr ""
+msgstr "No se puede crear una instancia del codec '%s'. %s"
 
 #: mp1e/b_mp1e.c:930 ffmpeg/b_ffmpeg.c:1423
 #, c-format
 msgid "Cannot create new codec instance '%s'."
-msgstr ""
+msgstr "No se puede crear una nueva instancia del codec '%s'."
 
 #: mp1e/b_mp1e.c:996 ffmpeg/b_ffmpeg.c:1587
 msgid "MPEG-1 Program Stream"
-msgstr ""
+msgstr "MPEG-1 Program Stream"
 
 #: mp1e/b_mp1e.c:1008
 msgid "MPEG-1 VCD Program Stream"
-msgstr ""
+msgstr "MPEG-1 VCD Program Stream"
 
 #: mp1e/b_mp1e.c:1020 ffmpeg/b_ffmpeg.c:1564
 msgid "MPEG Video Elementary Stream"
-msgstr ""
+msgstr "MPEG Video Elementary Stream"
 
 #: mp1e/b_mp1e.c:1032 ffmpeg/b_ffmpeg.c:1516
 msgid "MPEG Audio Elementary Stream"
-msgstr ""
+msgstr "MPEG Audio Elementary Stream"
 
 #: mp1e/b_mp1e.c:1210
 msgid ""
 "MP1E backend requires MMX but the CPU type is unknown, backend disabled."
 msgstr ""
+"El backend MP1E requiere MMX pero el tipo de CPU no es conocido, el backend "
+"se desactivará."
 
 #: ffmpeg/b_ffmpeg.c:449 divx4linux/b_divx4linux.c:236
 msgid "Insufficient resources to start encoding thread.\n"
-msgstr ""
+msgstr "Recursos insuficientes para iniciar el hilo de compresión.\n"
 
 #: ffmpeg/b_ffmpeg.c:755
 msgid "Codec initialization failed."
-msgstr ""
+msgstr "La inicialización del codec falló."
 
 #: ffmpeg/b_ffmpeg.c:817
 msgid "Disabled (fastest, worst quality)"
-msgstr ""
+msgstr "Deshabilitar (el más rápido, la peor calidad)"
 
 #: ffmpeg/b_ffmpeg.c:822
 msgid "Full search (slowest, best quality)"
-msgstr ""
+msgstr "Búsqueda completa (el más lento, la mejor calidad)"
 
 #: ffmpeg/b_ffmpeg.c:866
 msgid "Motion estimation"
-msgstr ""
+msgstr "Estimación de movimiento"
 
 #: ffmpeg/b_ffmpeg.c:869
 msgid "Intra picture distance (M)"
-msgstr ""
+msgstr "Distancia Intra (M)"
 
 #: ffmpeg/b_ffmpeg.c:872
 msgid "Predicted picture distance (N)"
-msgstr ""
+msgstr "Distancia predicha (N)"
 
 #: ffmpeg/b_ffmpeg.c:1073
 msgid "PCM 16 Bit Signed Little Endian"
-msgstr ""
+msgstr "PCM 16 Bit con signo Little Endian"
 
 #: ffmpeg/b_ffmpeg.c:1085
 msgid "PCM 16 Bit Signed Big Endian"
-msgstr ""
+msgstr "PCM 16 Bit con signo Big Endian"
 
 #: ffmpeg/b_ffmpeg.c:1097
 msgid "PCM 8 Bit Unsigned"
-msgstr ""
+msgstr "PCM 8 Bit sin signo"
 
 #: ffmpeg/b_ffmpeg.c:1109
 msgid "PCM a-Law"
-msgstr ""
+msgstr "PCM a-Law"
 
 #: ffmpeg/b_ffmpeg.c:1121
 msgid "PCM mu-Law"
-msgstr ""
+msgstr "PCM mu-Law"
 
 #: ffmpeg/b_ffmpeg.c:1163
 msgid "AC3 Audio"
-msgstr ""
+msgstr "AC3 Audio"
 
 #: ffmpeg/b_ffmpeg.c:1177
 msgid "MPEG-1 Video"
-msgstr ""
+msgstr "MPEG-1 Video"
 
 #: ffmpeg/b_ffmpeg.c:1191
 msgid "H.263 Video"
-msgstr ""
+msgstr "H.263 Video"
 
 #: ffmpeg/b_ffmpeg.c:1205
 msgid "H.263+ Video"
-msgstr ""
+msgstr "H.263+ Video"
 
 #: ffmpeg/b_ffmpeg.c:1219
 msgid "RealVideo 1.0"
-msgstr ""
+msgstr "RealVideo 1.0"
 
 #: ffmpeg/b_ffmpeg.c:1230
 msgid "Motion JPEG"
-msgstr ""
+msgstr "Motion JPEG"
 
 #: ffmpeg/b_ffmpeg.c:1244
 msgid "MPEG-4 Video"
-msgstr ""
+msgstr "MPEG-4 Video"
 
 #: ffmpeg/b_ffmpeg.c:1258
 msgid "MS MPEG-4 V1 Video"
-msgstr ""
+msgstr "MS MPEG-4 V1 Video"
 
 #: ffmpeg/b_ffmpeg.c:1272
 msgid "MS MPEG-4 V2 Video"
-msgstr ""
+msgstr "MS MPEG-4 V2 Video"
 
 #: ffmpeg/b_ffmpeg.c:1286
 msgid "MS MPEG-4 V3 (DivX;-) Video"
-msgstr ""
+msgstr "MS MPEG-4 V3 (DivX;-) Video"
 
 #: ffmpeg/b_ffmpeg.c:1493
 msgid "RIFF-WAVE Audio"
-msgstr ""
+msgstr "RIFF-WAVE Audio"
 
 #: ffmpeg/b_ffmpeg.c:1533
 msgid "Dolby AC3 Audio Elementary Stream"
-msgstr ""
+msgstr "Dolby AC3 Audio Elementary Stream"
 
 #: ffmpeg/b_ffmpeg.c:1548
 msgid "Sun AU Audio File"
-msgstr ""
+msgstr "Sun AU Audio File"
 
 #: ffmpeg/b_ffmpeg.c:1603
 msgid "Real Audio/Video Stream"
-msgstr ""
+msgstr "Real Audio/Video Stream"
 
 #: ffmpeg/b_ffmpeg.c:1620
 msgid "ASF Audio/Video Stream"
-msgstr ""
+msgstr "ASF Audio/Video Stream"
 
 #: ffmpeg/b_ffmpeg.c:1637
 msgid "Shockwave Animation"
-msgstr ""
+msgstr "Animación Shockwave"
 
 #: ffmpeg/b_ffmpeg.c:1654
 msgid "AVI File"
-msgstr ""
+msgstr "Fichero AVI"
 
 #: divx4linux/b_divx4linux.c:473
 msgid "Fastest encoding, worst quality"
-msgstr ""
+msgstr "Codificación más rápida, la peor calidad"
 
 #: divx4linux/b_divx4linux.c:474
 msgid "Lower quality"
-msgstr ""
+msgstr "Calidad baja"
 
 #: divx4linux/b_divx4linux.c:475
 msgid "Medium quality"
-msgstr ""
+msgstr "Calidad media"
 
 #: divx4linux/b_divx4linux.c:476
 msgid "Higher quality"
-msgstr ""
+msgstr "Calidad alta"
 
 #: divx4linux/b_divx4linux.c:477
 msgid "Slowest encoding, best quality"
-msgstr ""
+msgstr "Codificación más lenta, la mejor calidad"
 
 #: divx4linux/b_divx4linux.c:486
 msgid "Key frame distance"
-msgstr ""
+msgstr "Distancia entre cuadros 'key'"
 
 #: divx4linux/b_divx4linux.c:489
 msgid "Compression quality"
-msgstr ""
+msgstr "Calidad de compresión"
 
 #: divx4linux/b_divx4linux.c:492
 msgid "Bidirectional encoding"
-msgstr ""
+msgstr "Compresión bidireccional"
 
 #: divx4linux/b_divx4linux.c:494
 msgid "Overlapped block motion compensation"
-msgstr ""
+msgstr "Compensación de movimiento en bloques solapados"
 
 #: divx4linux/b_divx4linux.c:496
 msgid "Deinterlace"
-msgstr ""
+msgstr "Deentrelazar"
 
 #: divx4linux/b_divx4linux.c:623
 msgid "DivX 4.x Video"
-msgstr ""
+msgstr "DivX 4.x Video"
 
 #: divx4linux/b_divx4linux.c:754
 msgid "DivX Video Elementary Stream"
-msgstr ""
+msgstr "DivX Video Elementary Stream"
 
 #: divx4linux/b_divx4linux.c:806
 #, c-format
 msgid "Version %d not supported\n"
-msgstr ""
+msgstr "Versión %d no soportada\n"
 
 #: divx4linux/b_divx4linux.c:818
 msgid "DivX 5.x Video"
-msgstr ""
+msgstr "DivX 5.x Video"
 
 #: divx4linux/b_divx4linux.c:832
 #, c-format
 msgid "DivX4Linux library not available. %s\n"
-msgstr ""
+msgstr "La librería DivX4Linux no está disponible. %s\n"
 
-#: src/context.c:220
+#: src/context.c:223
 #, c-format
 msgid "No such encoder '%s'."
-msgstr ""
-
-#: src/context.c:226
-#, c-format
-msgid "Encoder '%s' not available. %s"
-msgstr ""
+msgstr "No existe el codificador '%s'."
 
 #: src/context.c:229
 #, c-format
-msgid "Encoder '%s' not available."
-msgstr ""
+msgid "Encoder '%s' not available. %s"
+msgstr "Codificador '%s' no disponible. %s"
 
-#: src/context.c:243
+#: src/context.c:232
+#, c-format
+msgid "Encoder '%s' not available."
+msgstr "Codificador '%s' no disponible."
+
+#: src/context.c:246
 #, c-format
 msgid "Cannot create new encoding context '%s'. %s"
-msgstr ""
+msgstr "No se puede crear un nuevo contexto de compresión '%s'. %s"
 
-#: src/context.c:247
+#: src/context.c:250
 #, c-format
 msgid "Cannot create new encoding context '%s'."
-msgstr ""
+msgstr "No se puede crear un nuevo contexto de compresión '%s'."
 
-#: src/context.c:1155
+#: src/context.c:1158
 msgid "Unknown error."
-msgstr ""
+msgstr "Error desconocido."
