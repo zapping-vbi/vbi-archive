@@ -399,6 +399,8 @@ AC_SUBST(PLUGIN_DEFAULT_DIR)
 PLUGIN_DEFAULT_FLAGS="$CFLAGS -Wno-unused"
 AC_SUBST(PLUGIN_DEFAULT_FLAGS)
 
+rm -f po/Makefile
+
 AC_OUTPUT([
 zapping.spec
 Makefile
@@ -426,7 +428,7 @@ plugins/template/Makefile
 ])
 
 dnl fscking broken world
-if ! test -r po/Makefile; then
+if test ! -r po/Makefile; then
 	dnl Don't ask :-)
 	PF="POT"
 	PF=$PF"FILES"
@@ -448,5 +450,5 @@ echo "
 	----------------"
 
 for x in $PLUGINS_TO_BUILD; do
-echo -e "\t"$x
+echo "	"$x
 done
