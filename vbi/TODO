@@ -1,4 +1,4 @@
-$Id: TODO,v 1.11.2.7 2004-04-17 05:52:05 mschimek Exp $
+$Id: TODO,v 1.11.2.8 2004-04-21 18:23:14 mschimek Exp $
 
 Version 0.3
 
@@ -19,10 +19,11 @@ Version 0.3
   a CNI (instead of guessing the name from ttx). May use VTX to create
   samples.
 
-Version 0.4
+Version 0.3.x
 
 * Better support for custom fonts. For once, a TT font containing the
   Teletext special characters (block graphics etc) would be useful.
-
+  http://developer.apple.com/fonts/TTRefMan/index.html
+  
 -------------------------------------------------------------------------------
 Ideas? Drop us a note at http://zapping.sourceforge.net.

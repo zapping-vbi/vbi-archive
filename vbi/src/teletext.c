@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext.c,v 1.7.2.13 2004-04-17 05:52:25 mschimek Exp $ */
+/* $Id: teletext.c,v 1.7.2.14 2004-04-21 18:24:02 mschimek Exp $ */
 
 #include "../config.h"
 #include "site_def.h"
@@ -38,16 +38,6 @@
 #include "lang.h"
 #include "pdc.h"
 
-#define PGP_CHECK(ret_value)						\
-do {									\
-	assert (NULL != pg);						\
-									\
-	pgp = CONST_PARENT (pg, vbi_page_private, pg);			\
-									\
-	if (VBI_PAGE_PRIVATE_MAGIC != pgp->magic)			\
-		return ret_value;					\
-} while (0)
-
 #ifndef TELETEXT_FMT_LOG
 #define TELETEXT_FMT_LOG 0
 #endif
@@ -58,6 +48,16 @@ do {									\
 		fprintf (stderr, templ , ##args);			\
 } while (0)
 
+#define PGP_CHECK(ret_value)						\
+do {									\
+	assert (NULL != pg);						\
+									\
+	pgp = CONST_PARENT (pg, vbi_page_private, pg);			\
+									\
+	if (VBI_PAGE_PRIVATE_MAGIC != pgp->magic)			\
+		return ret_value;					\
+} while (0)
+
 static vbi_bool
 enhance				(vbi_page_private *	pgp,
 				 object_type		type,
@@ -66,37 +66,91 @@ enhance				(vbi_page_private *	pgp,
 				 unsigned int		inv_row,
 				 unsigned int		inv_column);
 
+
+void
+vbi_page_private_dump		(const vbi_page_private *pgp,
+				 FILE *			fp,
+				 unsigned int		mode)
+{
+	unsigned int row;
+	unsigned int column;
+	const vbi_char *acp;
+
+	acp = pgp->pg.text;
+
+	for (row = 0; row < pgp->pg.rows; ++row) {
+		fprintf (fp, "%2u: ", row);
+
+		for (column = 0; column < pgp->pg.columns; ++column) {
+			unsigned int c;
+
+			switch (mode) {
+			case 0:
+				c = acp->unicode;
+				if (c < 0x20 || c >= 0x7F)
+					c = '.';
+				fputc (c, fp);
+				break;
+
+			case 1:
+				fprintf (fp, "%04x ", acp->unicode);
+				break;
+
+			case 2:
+				fprintf (fp, "%04xF%uB%uS%uO%uL%u%u ",
+					 acp->unicode,
+					 acp->foreground, acp->background,
+					 acp->size, acp->opacity,
+					 !!(acp->attr & VBI_LINK),
+					 !!(acp->attr & VBI_PDC));
+				break;
+			}
+
+			++acp;
+		}
+
+		fputc ('\n', fp);
+	}
+}
+
 static void
-character_set_designation	(const vbi_character_set *char_set[2],
+init_character_set		(const vbi_character_set *charset[2],
 				 vbi_character_set_code default_code,
 				 const extension *	ext,
 				 const vt_page *	vtp)
 {
 	unsigned int i;
 
+	/* Primary and secondary. */
 	for (i = 0; i < 2; ++i) {
 		const vbi_character_set *cs;
 		vbi_character_set_code code;
 
 		code = default_code;
 
-		if (ext->designations & (1 << 0))
+		if (ext->designations & 0x11) {
+			/* Have X/28/0 or M/29/0 or /4. */
 			code = ext->charset_code[i];
+		}
 
-		cs = vbi_character_set_from_code ((code & ~7) + vtp->national);
+		cs = vbi_character_set_from_code
+			((code & (unsigned int) ~7) + vtp->national);
 
-		if (NULL == cs)
+		if (!cs)
 			cs = vbi_character_set_from_code (code);
 
-		if (NULL == cs)
+		if (!cs)
 			cs = vbi_character_set_from_code (0);
 
-		char_set[i] = cs;
+		charset[i] = cs;
 	}
 }
 
 /**
- * Blurb.
+ * @param level Return primary (0) or secondary (1) character set.
+ *
+ * @returns
+ * The default character set associated with a Teletext page.
  */
 const vbi_character_set *
 vbi_page_character_set		(const vbi_page *	pg,
@@ -113,7 +167,7 @@ static void
 init_screen_color		(vbi_page *		pg,
 				 unsigned int		flags,
 				 unsigned int		color)
-{ 
+{
 	pg->screen_color = color;
 
 	if (color == VBI_TRANSPARENT_BLACK
@@ -123,9 +177,263 @@ init_screen_color		(vbi_page *		pg,
 		pg->screen_opacity = VBI_OPAQUE;
 }
 
+/* Level One Page ---------------------------------------------------------- */
+
+vbi_inline vbi_bool
+level_one_row			(vbi_page_private *	pgp,
+				 unsigned int		row)
+{
+	static const unsigned int mosaic_separate = 0xEE00 - 0x20;
+	static const unsigned int mosaic_contiguous = 0xEE20 - 0x20;
+	const vbi_character_set *cs;
+	unsigned int mosaic_plane;
+	unsigned int held_mosaic_unicode;
+	vbi_bool hold;
+	vbi_bool mosaic;
+	vbi_bool double_height_row;
+	vbi_bool wide_char;
+	const uint8_t *rawp;
+	int raw;
+	vbi_char *acp;
+	vbi_char ac;
+	unsigned int column;
+
+	rawp = pgp->vtp->data.lop.raw[row];
+	acp = pgp->pg.text + row * pgp->pg.columns;
+
+	/* G1 block mosaic, blank, contiguous */
+	held_mosaic_unicode = mosaic_contiguous + 0x20;
+
+	CLEAR (ac);
+
+	ac.unicode		= 0x0020;
+	ac.foreground		= pgp->ext->foreground_clut + VBI_WHITE;
+	ac.background		= pgp->ext->background_clut + VBI_BLACK;
+	mosaic_plane		= mosaic_contiguous;
+	ac.opacity		= pgp->page_opacity[row > 0];
+	cs			= pgp->char_set[0];
+	hold			= FALSE;
+	mosaic			= FALSE;
+	double_height_row	= FALSE;
+	wide_char		= FALSE;
+
+	for (column = 0; column < 40; ++column) {
+		raw = vbi_ipar8	(*rawp++);
+
+		if ((0 == row && column < 8) || raw < 0)
+			raw = 0x20;
+
+		/* Set-at spacing attributes. */
+
+		switch (raw) {
+		case 0x09:		/* steady */
+			ac.attr &= ~VBI_FLASH;
+			break;
+
+		case 0x0C:		/* normal size */
+			ac.size = VBI_NORMAL_SIZE;
+			break;
+
+		case 0x18:		/* conceal */
+			ac.attr |= VBI_CONCEAL;
+			break;
+
+		case 0x19:		/* contiguous mosaics */
+			mosaic_plane = mosaic_contiguous;
+			break;
+
+		case 0x1A:		/* separated mosaics */
+			mosaic_plane = mosaic_separate;
+			break;
+
+		case 0x1C:		/* black background */
+			ac.background = pgp->ext->background_clut + VBI_BLACK;
+			break;
+
+		case 0x1D:		/* new background */
+			ac.background = pgp->ext->background_clut
+				+ (ac.foreground & 7);
+			break;
+
+		case 0x1E:		/* hold mosaic */
+			hold = TRUE;
+			break;
+
+		default:
+			break;
+		}
+
+		if (raw <= 0x1F) {
+			ac.unicode = (hold & mosaic) ?
+				held_mosaic_unicode : 0x0020;
+		} else {
+			if (mosaic && (raw & 0x20)) {
+				held_mosaic_unicode = mosaic_plane + raw;
+				ac.unicode = held_mosaic_unicode;
+			} else {
+				ac.unicode = vbi_teletext_unicode
+					(cs->g0, cs->subset, raw);
+			}
+		}
+
+		if (!wide_char) {
+			acp[column] = ac;
+
+			wide_char = !!(ac.size & VBI_DOUBLE_WIDTH);
+
+			if (wide_char && column < 39) {
+				acp[column + 1] = ac;
+				acp[column + 1].size = VBI_OVER_TOP;
+			}
+		}
+
+		/* Set-after spacing attributes. */
+
+		switch (raw) {
+		case 0x00 ... 0x07:	/* alpha + foreground color */
+			ac.foreground = pgp->ext->foreground_clut + (raw & 7);
+			ac.attr &= ~VBI_CONCEAL;
+			mosaic = FALSE;
+			break;
+
+		case 0x08:		/* flash */
+			ac.attr |= VBI_FLASH;
+			break;
+
+		case 0x0A:		/* end box */
+			/* 12.2 Table 26: Double transmission
+			   as additional error protection. */
+			if (column >= 39)
+				break;
+			if (0x0A == vbi_ipar8 (*rawp))
+				ac.opacity = pgp->page_opacity[row > 0];
+			break;
+
+		case 0x0B:		/* start box */
+			/* 12.2 Table 26: Double transmission
+			   as additional error protection. */
+			if (column >= 39)
+				break;
+			if (0x0B == vbi_ipar8 (*rawp))
+				ac.opacity = pgp->boxed_opacity[row > 0];
+			break;
+
+		case 0x0D:		/* double height */
+			if (row == 0 || row >= 23)
+				break;
+			ac.size = VBI_DOUBLE_HEIGHT;
+			double_height_row = TRUE;
+			break;
+
+		case 0x0E:		/* double width */
+			if (column >= 39)
+				break;
+			ac.size = VBI_DOUBLE_WIDTH;
+			break;
+
+		case 0x0F:		/* double size */
+			if (column >= 39 || row == 0 || row >= 23)
+				break;
+			ac.size = VBI_DOUBLE_SIZE;
+			double_height_row = TRUE;
+			break;
+
+		case 0x10 ... 0x17:	/* mosaic + foreground color */
+			ac.foreground = pgp->ext->foreground_clut + (raw & 7);
+			ac.attr &= ~VBI_CONCEAL;
+			mosaic = TRUE;
+			break;
+
+		case 0x1B:		/* ESC */
+			cs = pgp->char_set[cs == pgp->char_set[0]];
+			break;
+
+		case 0x1F:		/* release mosaic */
+			hold = FALSE;
+			break;
+		}
+	}
+
+	return double_height_row;
+}
+
+vbi_inline void
+level_one_row_extend		(vbi_page_private *	pgp,
+				 unsigned int		row)
+{
+	vbi_char *acp;
+	unsigned int column;
+
+	/* 12.2 Table 26: When double height (or double size) characters are
+	   used on a given row, the row below normal height characters on that
+	   row is displayed with the same local background colour and no
+	   foreground data. */
+
+	acp = pgp->pg.text + row * pgp->pg.columns;
+
+	for (column = 0; column < pgp->pg.columns; ++column) {
+		vbi_char ac = acp[column];
+
+		switch (ac.size) {
+		case VBI_DOUBLE_HEIGHT:
+			ac.size = VBI_DOUBLE_HEIGHT2;
+			acp[pgp->pg.columns + column] = ac;
+			break;
+		
+		case VBI_DOUBLE_SIZE:
+			ac.size = VBI_DOUBLE_SIZE2;
+			acp[pgp->pg.columns + column] = ac;
+			++column;
+			ac.size = VBI_OVER_BOTTOM;
+			acp[pgp->pg.columns + column] = ac;
+			break;
+
+		case VBI_NORMAL_SIZE:
+		case VBI_DOUBLE_WIDTH:
+		case VBI_OVER_TOP:
+			ac.size = VBI_NORMAL_SIZE;
+			ac.unicode = 0x0020;
+			acp[pgp->pg.columns + column] = ac;
+			break;
+
+		default:
+			assert (!"reached");
+		}
+	}
+}
+
+/**
+ * @internal
+ * @param pgp Current vbi_page.
+ *
+ * Formats a level one page.
+ */
+static void
+level_one_page			(vbi_page_private *	pgp)
+{
+	unsigned int row;
+
+	for (row = 0; row < pgp->pg.rows; ++row) {
+		vbi_bool double_height_row;
+
+		double_height_row = level_one_row (pgp, row);
+
+		if (double_height_row) {
+			level_one_row_extend (pgp, row);
+			++row;
+		}
+	}
+
+	if (0)
+		vbi_page_private_dump (pgp, 0, stderr);
+}
 
 
 
+
+
+
+//-----------------------------------------
 
 static const vt_page *
 get_system_page			(const vbi_page_private *pgp,
@@ -1970,7 +2278,7 @@ column_41			(vbi_page_private *		t)
  * Formats a level one page. Source is pgp->vtp.
  */
 static void
-level_one_page			(vbi_page_private *	pgp)
+___level_one_page			(vbi_page_private *	pgp)
 {
 	static const unsigned int mosaic_separate = 0xEE00 - 0x20;
 	static const unsigned int mosaic_contiguous = 0xEE20 - 0x20;
@@ -2222,8 +2530,8 @@ level_one_page			(vbi_page_private *	pgp)
 		}
 	}
 
-	if (0)
-		vbi_page_private_dump (pgp, 0, stderr);
+//	if (0)
+//		vbi_page_private_dump (pgp, 0, stderr);
 }
 
 /* Hyperlinks ------------------------------------------------------------- */
@@ -3142,7 +3450,7 @@ do_ait_title			(vbi_decoder *		vbi,
 	int i;
 
 	ext = &_vbi_teletext_decoder_default_magazine()->extension;
-	character_set_designation (char_set, 0, ext, vtp);
+	init_character_set (char_set, 0, ext, vtp);
 
 	for (i = 11; i >= 0; i--)
 		if (ait->text[i] > 0x20)
@@ -3467,9 +3775,9 @@ vbi_format_vt_page_va_list	(vbi_decoder *		vbi,
 		pgp->char_set[0] = option_cs_override;
 		pgp->char_set[1] = option_cs_override;
 	} else {
-		character_set_designation (pgp->char_set,
-					   option_cs_default,
-					   pgp->ext, vtp);
+		init_character_set (pgp->char_set,
+				    option_cs_default,
+				    pgp->ext, vtp);
 	}
 
 	/* Format level one page */

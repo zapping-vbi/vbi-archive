@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.h,v 1.5.2.11 2004-04-17 05:52:25 mschimek Exp $ */
+/* $Id: vbi.h,v 1.5.2.12 2004-04-21 18:24:02 mschimek Exp $ */
 
 #ifndef VBI_H
 #define VBI_H
@@ -213,8 +213,8 @@ typedef struct vbi_page_private {
 
 extern void
 vbi_page_private_dump		(const vbi_page_private *pgp,
-				 unsigned int		mode,
-				 FILE *			fp);
+				 FILE *			fp,
+				 unsigned int		mode);
 
 /* teletext.c */
 extern vbi_bool

@@ -28,5 +28,5 @@ AM_CXXFLAGS = \
 	-I$(top_srcdir) $(COMMON_INCLUDES) $(X_CFLAGS) \
 	-Wall -Wunused -Wmissing-prototypes
 
-LDADD = $(top_builddir)/src/.libs/libzvbi.a \
+LDADD = $(top_builddir)/src/.libs/libzvbi-0.3.a \
 	$(PTHREAD_LIB) -lm $(PNG_LIB) $(X_LIBS)

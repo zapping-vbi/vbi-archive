@@ -2,9 +2,18 @@
 
 lib_LTLIBRARIES = libzvbi-0.3.la
 
-BUILT_SOURCES = version.h zvbi.h wstfont2.xbm ccfont3.xbm \
-	_videodev.h _videodev2.h _videodev2k.h
-EXTRA_DIST = $(BUILT_SOURCES)
+structpr = structpr.pl
+
+BUILT_SOURCES = \
+	version.h \
+	zvbi.h \
+	wstfont2.xbm \
+	ccfont3.xbm \
+	_videodev.h \
+	_videodev2.h \
+	_videodev2k.h
+
+EXTRA_DIST = $(structpr) $(BUILT_SOURCES)
 CLEANFILES = $(BUILT_SOURCES)
 
 INCLUDES = \
@@ -111,8 +120,35 @@ ccfont3.xbm: ccfont3.pbm fontgen Makefile.in
 libzvbi_0_3_la_LIBADD = $(PTHREAD_LIB) $(PNG_LIB) $(UNICODE_LIBS)
 libzvbi_0_3_la_LDFLAGS = -version-info $(LIBZVBI_SO_VERSION)
 
-_videodev.h: Makefile.am structpr.pl videodev.h
-	$(srcdir)/structpr.pl <$(srcdir)/videodev.h \
+version.h: Makefile.in
+	echo -e "#ifndef __ZVBI_VERSION_H__" > $@
+	echo -e "#define __ZVBI_VERSION_H__\n" >> $@
+	echo -e "\n#define VBI_VERSION_MAJOR" `echo @VERSION@ \
+	 | sed "s/[^0-9.]//g" \
+	 | sed "s/\./\\\\\n#define VBI_VERSION_MINOR /" \
+	 | sed "s/\./\\\\\n#define VBI_VERSION_MICRO /"` >> $@
+	echo -e "\n#endif /* __ZVBI_VERSION_H__ */" >> $@
+
+zvbi.h: Makefile.in $(INSTALLHDRS) version.h
+	echo -e "#ifndef __ZVBI_H__\n#define __ZVBI_H__\n" > $@
+	for i in $(INSTALLHDRS); do \
+		echo -e "#include \"$$i\"" >> $@; \
+	done
+	echo -e "#include \"version.h\"\n" >> $@
+	echo -e "\n#endif /* __ZVBI_H__ */" >> $@
+
+icheck: $(libzvbiinclude_HEADERS)
+	for i in $(libzvbiinclude_HEADERS); do \
+		echo Checking $$i; \
+		grep "VBI_BEGIN_DECLS" $$i >/dev/null || exit 1; \
+		grep "VBI_END_DECLS" $$i >/dev/null || exit 1; \
+		echo -e "#include \"$$i\"" >_include_test.c; \
+		$(CC) -c _include_test.c || exit 1; \
+	done
+	rm _include_test*
+
+_videodev.h: Makefile.am $(structpr) videodev.h
+	$(srcdir)/$(structpr) <$(srcdir)/videodev.h \
 	video_device.type=VFL_TYPE_ \
 	video_device.hardware=VID_HARDWARE_ \
 	video_capability.type=VID_TYPE_ \
@@ -136,8 +172,8 @@ _videodev.h: Makefile.am structpr.pl videodev.h
 # XXX v4l2_pix_format.flags has V4L2_FMT_CS_field subset.
 # XXX v4l2_timecode.flags has V4L2_TC_USERBITS_field subset.
 # XXX v4l2_buffer.flags has V4L2_BUF_FLAG_, V4L2_BUF_ATTR_, V4L2_BUF_REQ_.
-_videodev2.h: Makefile.am structpr.pl videodev2.h
-	$(srcdir)/structpr.pl <$(srcdir)/videodev2.h \
+_videodev2.h: Makefile.am $(structpr) videodev2.h
+	$(srcdir)/$(structpr) <$(srcdir)/videodev2.h \
 	v4l2_capability.type=V4L2_TYPE_ \
 	v4l2_capability.flags=V4L2_FLAG_ \
 	v4l2_pix_format.pixelformat=V4L2_PIX_FMT_ \
@@ -178,8 +214,7 @@ _videodev2.h: Makefile.am structpr.pl videodev2.h
 	v4l2_output.index=WR \
 	v4l2_output.type=V4L2_OUTPUT_TYPE_ \
 	v4l2_output.capability=V4L2_OUTPUT_CAP_ \
-	v4l2_control=R \
-	v4l2_control.id=WR,V4L2_CID_ \
+	v4l2_control.id=V4L2_CID_ \
 	v4l2_queryctrl=R \
 	v4l2_queryctrl.id=WR,V4L2_CID_ \
 	v4l2_queryctrl.type=V4L2_CTRL_TYPE_ \
@@ -189,8 +224,7 @@ _videodev2.h: Makefile.am structpr.pl videodev2.h
 	v4l2_querymenu=R \
 	v4l2_querymenu.id=WR,V4L2_CID_ \
 	v4l2_querymenu.index=WR \
-	v4l2_fxcontrol=R \
-	v4l2_fxcontrol.id=WR,V4L2_CID_ \
+	v4l2_fxcontrol.id=V4L2_CID_ \
 	v4l2_tuner=R \
 	v4l2_tuner.input=WR \
 	v4l2_tuner.capability=V4L2_TUNER_CAP_ \
@@ -219,8 +253,8 @@ _videodev2.h: Makefile.am structpr.pl videodev2.h
 	> $@
 
 # XXX v4l2_timecode.flags has V4L2_TC_USERBITS_field subset.
-_videodev2k.h: Makefile.am structpr.pl videodev2k.h
-	$(srcdir)/structpr.pl <$(srcdir)/videodev2k.h \
+_videodev2k.h: Makefile.am $(structpr) videodev2k.h
+	$(srcdir)/$(structpr) <$(srcdir)/videodev2k.h \
 	"v4l2_fract={ fprintf (fp, \"%u/%u\", t->numerator, t->denominator); }" \
 	v4l2_capability.driver=string \
 	v4l2_capability.card=string \
@@ -236,7 +270,6 @@ _videodev2k.h: Makefile.am structpr.pl videodev2k.h
 	v4l2_timecode.type=V4L2_TC_TYPE_ \
 	v4l2_timecode.flags=V4L2_TC_FLAG_ \
 	v4l2_jpegcompression.jpeg_markers=V4L2_JPEG_MARKER_ \
-	v4l2_requestbuffers=WR \
 	v4l2_buffer=R \
 	v4l2_buffer.index=WR \
 	v4l2_buffer.type=WR \
@@ -257,8 +290,7 @@ _videodev2k.h: Makefile.am structpr.pl videodev2k.h
 	v4l2_output=R \
 	v4l2_output.index=WR \
 	v4l2_output.type=V4L2_OUTPUT_TYPE_ \
-	v4l2_control=R \
-	v4l2_control.id=WR,V4L2_CID_ \
+	v4l2_control.id=V4L2_CID_ \
 	v4l2_queryctrl=R \
 	v4l2_queryctrl.id=WR,V4L2_CID_ \
 	v4l2_queryctrl.flags=V4L2_CTRL_FLAG_ \
@@ -274,8 +306,6 @@ _videodev2k.h: Makefile.am structpr.pl videodev2k.h
 	v4l2_modulator.index=WR \
 	v4l2_modulator.capability=V4L2_TUNER_CAP_ \
 	v4l2_modulator.txsubchans=V4L2_TUNER_SUB_ \
-	v4l2_frequency=R \
-	v4l2_frequency.tuner=WR \
 	v4l2_audio=R \
 	v4l2_audio.index=WR \
 	v4l2_audio.capability=V4L2_AUDCAP_ \
@@ -289,29 +319,7 @@ _videodev2k.h: Makefile.am structpr.pl videodev2k.h
 			 V4L2_BUF_TYPE_VBI_CAPTURE:fmt.vbi \
 	> $@
 
-version.h: Makefile.in
-	echo -e "#ifndef __ZVBI_VERSION_H__" > $@
-	echo -e "#define __ZVBI_VERSION_H__\n" >> $@
-	echo -e "\n#define VBI_VERSION_MAJOR" `echo @VERSION@ \
-	 | sed "s/[^0-9.]//g" \
-	 | sed "s/\./\\\\\n#define VBI_VERSION_MINOR /" \
-	 | sed "s/\./\\\\\n#define VBI_VERSION_MICRO /"` >> $@
-	echo -e "\n#endif /* __ZVBI_VERSION_H__ */" >> $@
-
-zvbi.h: Makefile.in $(INSTALLHDRS) version.h
-	echo -e "#ifndef __ZVBI_H__\n#define __ZVBI_H__\n" > $@
-	for i in $(INSTALLHDRS); do \
-		echo -e "#include \"$$i\"" >> $@; \
-	done
-	echo -e "#include \"version.h\"\n" >> $@
-	echo -e "\n#endif /* __ZVBI_H__ */" >> $@
-
-icheck: $(libzvbiinclude_HEADERS)
-	for i in $(libzvbiinclude_HEADERS); do \
-		echo Checking $$i; \
-		grep "VBI_BEGIN_DECLS" $$i >/dev/null || exit 1; \
-		grep "VBI_END_DECLS" $$i >/dev/null || exit 1; \
-		echo -e "#include \"$$i\"" >_include_test.c; \
-		$(CC) -c _include_test.c || exit 1; \
-	done
-	rm _include_test*
+_bktr.h: Makefile.am $(structpr) ioctl_bt848.h ioctl_meteor.h
+	cat $(srcdir)/ioctl_bt848.h $(srcdir)/ioctl_meteor.h | \
+	$(srcdir)/$(structpr) \
+	> $@
