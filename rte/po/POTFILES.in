@@ -4,3 +4,5 @@ mp1e/video/mpeg1.c
 mp1e/audio/mp2.c
 mp1e/b_mp1e.c
 ffmpeg/b_ffmpeg.c
+divx4linux/b_divx4linux.c
+src/context.c
