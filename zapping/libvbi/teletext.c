@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext.c,v 1.32 2005-01-19 04:10:35 mschimek Exp $ */
+/* $Id: teletext.c,v 1.33 2005-01-27 04:16:38 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -3407,7 +3407,7 @@ vbi3_page_get_teletext_link	(const vbi3_page *	pg,
 	PGP_CHECK (NULL);
 
 	if (pg->pgno < 0x100
-	    || index > N_ELEMENTS (&pgp->link)
+	    || index >= N_ELEMENTS (pgp->link)
 	    || pgp->link[index].pgno < 0x100) {
 		return NULL;
 	}
