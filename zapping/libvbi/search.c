@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.24 2005-01-19 04:10:52 mschimek Exp $ */
+/* $Id: search.c,v 1.25 2005-01-27 04:14:37 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -784,7 +784,7 @@ vbi3_search_utf8_new		(vbi3_cache *		ca,
 
 vbi3_search_status
 vbi3_search_next_va_list	(vbi3_search *		s,
-				 vbi3_page **		pg,
+				 const vbi3_page **	pg,
 				 int			dir,
 				 va_list		format_options)
 {
@@ -796,7 +796,7 @@ vbi3_search_next_va_list	(vbi3_search *		s,
 
 vbi3_search_status
 vbi3_search_next		(vbi3_search *		s,
-				 vbi3_page **		pg,
+				 const vbi3_page **	pg,
 				 int			dir,
 				 ...)
 {
