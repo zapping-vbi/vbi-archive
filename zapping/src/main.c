@@ -354,7 +354,8 @@ int main(int argc, char * argv[])
     } /* end the list */
   };
 
-  if (strstr(argv[0], "zapzilla"))
+  if (strlen(argv[0]) >= strlen("zapzilla") &&
+      !(strcmp(&argv[0][strlen(argv[0])-strlen("zapzilla")], "zapzilla")))
     return zapzilla_main(argc, argv);
 
 #ifdef ENABLE_NLS
@@ -374,7 +375,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.121 2001-07-29 00:21:26 garetxe Exp $",
+	 "$Id: main.c,v 1.122 2001-07-29 15:42:22 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU support... ");
   switch (cpu_detection())
@@ -868,8 +869,8 @@ static void shutdown_zapping(void)
 	      "   - You do not have permissions to write to $HOME/.zapping\n"
 	      "   - libxml is non-functional (?)\n"
 	      "   - or, more probably, you have found a bug in\n"
-	      "     Zapping. Please contact the author.\n"
-	      ), GNOME_MESSAGE_BOX_ERROR);
+	      "     %s. Please contact the author.\n"
+	      ), GNOME_MESSAGE_BOX_ERROR, "Zapping");
 
   printv(".\nShutdown complete, goodbye.\n");
 }

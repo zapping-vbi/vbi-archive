@@ -581,10 +581,12 @@ zvbi_close_device(void)
 
   trigger_client_id = trigger_timeout_id = -1;
 
-  vbi->quit = 1;
+  vbi_event_handler(vbi, 0, event, NULL);
+  /* FIXME: How could we do this cleanly? (vbi->quit has no effect if
+     there's no valid vbi data) */
+  pthread_cancel(zvbi_thread_id);
   pthread_join(zvbi_thread_id, NULL);
 
-  vbi_event_handler(vbi, 0, event, NULL);
   pthread_mutex_lock(&clients_mutex);
   destruction = g_list_first(ttx_clients);
   while (destruction)
