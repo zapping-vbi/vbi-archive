@@ -162,6 +162,16 @@ enum tveng_frame_pixformat{
 
 #endif /* TVENG_FRAME_PIXFORMAT */
 
+static __inline__ unsigned int
+tveng_pixformat_bits_per_pixel	(enum tveng_frame_pixformat fmt)
+{
+  static const unsigned char bpp[] = {
+    16, 16, 24, 24, 32, 32, 12, 12, 16, 16, 8
+  };
+
+  return bpp[fmt];
+}
+
 /* This struct holds the structure of the captured frame */
 struct tveng_frame_format
 {
@@ -227,7 +237,7 @@ struct tveng_frame_format
 #define TV_VIDEOSTD_ALL         (TV_VIDEOSTD_525_60	|\
 				 TV_VIDEOSTD_625_50)
 
-typedef unsigned long long tv_videostd_id;
+typedef uint64_t tv_videostd_id;
 
 /* Info about a standard */
 struct tveng_enumstd{
@@ -277,6 +287,8 @@ struct tveng_enum_input{
 };
 
 typedef struct _tveng_device_info tveng_device_info;
+
+
 
 
 typedef int tv_bool;
@@ -402,12 +414,10 @@ typedef enum {
 typedef struct _tv_control tv_control;
 
 struct _tv_control {
-	tv_control *		next;		// private?
+	tv_control *		_next;		/* private, use tv_control_next() */
 
 	tv_control_id		id;
 	tv_control_type		type;
-
-  tv_bool ignore; /* preliminary */
 
 	char *			label;		/* localized */
 
@@ -423,10 +433,15 @@ struct _tv_control {
 
 	/* private */
 
-	tveng_device_info *	_device;	/* owner */	
+	tveng_device_info *	_device;	/* owner */
 	tv_callback_node *	_callback;
+
+  	tv_bool			_ignore; /* preliminary */
 };
 
+extern tv_control *
+tv_control_next			(tveng_device_info *	info,
+				 const tv_control *	control);
 extern tv_callback_node *
 tv_control_callback_add		(tv_control *		control,
 				 void			(* notify)(tv_control *, void *user_data),
@@ -438,6 +453,25 @@ a) audio mode capability - mono, stereo, sap, bilingual; ! sap & bi
 b) reception lang1, lang2 - nil, mono, stereo
 c) demodulation - auto, mono (l1), stereo (l1), l1 (mono), l2
 #endif
+
+typedef struct _tv_videostd tv_videostd;
+
+struct _tv_videostd {
+	int id; /* Standard id */
+	tv_videostd_id stdid; /* attn: don't take this literally. multiple bits
+    could be set if the driver doesn't know exactly, or doesn't care. */
+
+	int index; /* Index in info->standards */
+	int hash; /* Based on the normalized name */
+	char name[32]; /* Canonical name for the standard */
+	int width; /* width (double of uninterlaced width) */
+	int height; /* height (double of uninterlaced height) */
+	double frame_rate; /* nominal frames/s (eg. PAL 25) */ 
+};
+
+
+
+
 
 enum tveng_capture_mode
 {
