@@ -359,7 +359,7 @@ start_teletext			(void)
 			 /* band_position */ 0,
 			 /* offset */ 0);
 
-  zapping_enable_appbar (zapping, TRUE);
+  zapping_view_appbar (zapping, TRUE);
 
   gtk_widget_hide (GTK_WIDGET (zapping->video));
 
@@ -432,7 +432,12 @@ zmisc_stop (tveng_device_info *info)
   /* Stop current capture mode */
   switch (((int) zapping->display_mode) | (int) info->capture_mode)
     {
+    case DISPLAY_MODE_FULLSCREEN | CAPTURE_MODE_READ:
     case DISPLAY_MODE_FULLSCREEN | CAPTURE_MODE_OVERLAY:
+    case DISPLAY_MODE_FULLSCREEN | CAPTURE_MODE_TELETEXT:
+    case DISPLAY_MODE_BACKGROUND | CAPTURE_MODE_READ:
+    case DISPLAY_MODE_BACKGROUND | CAPTURE_MODE_OVERLAY:
+    case DISPLAY_MODE_BACKGROUND | CAPTURE_MODE_TELETEXT:
       stop_fullscreen ();
       break;
 
@@ -465,8 +470,6 @@ zmisc_stop (tveng_device_info *info)
   }
 }
 
-#define BLANK_CURSOR_TIMEOUT 1500 /* ms */
-
 /*
   does the mode switching. Since this requires more than just using
   tveng, a new routine is needed.
@@ -486,6 +489,8 @@ zmisc_switch_mode(display_mode new_dmode,
   capture_mode old_cmode;
   extern int disable_overlay;
   gint muted;
+  GError *error;
+  guint timeout;
 
   g_assert(info != NULL);
   g_assert(zapping->video != NULL);
@@ -496,6 +501,17 @@ zmisc_switch_mode(display_mode new_dmode,
 	     zapping->display_mode, info->capture_mode,
 	     new_dmode, new_cmode);
 
+  error = NULL;
+
+  timeout = (guint) gconf_client_get_int
+    (gconf_client, "/apps/zapping/blank_cursor_timeout", &error);
+
+  if (error)
+    {
+      timeout = 1500; /* ms */
+      g_error_free (error);
+    }
+
   if (zapping->display_mode == new_dmode
       && info->capture_mode == new_cmode)
     switch (new_cmode)
@@ -505,7 +521,7 @@ zmisc_switch_mode(display_mode new_dmode,
 	break;
       default:
 	x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE);
-	z_video_blank_cursor (zapping->video, BLANK_CURSOR_TIMEOUT);
+	z_video_blank_cursor (zapping->video, timeout);
 	return 0; /* success */
       }
 
@@ -542,7 +558,8 @@ zmisc_switch_mode(display_mode new_dmode,
     {
       GtkAction *action;
 
-      if (new_cmode == CAPTURE_MODE_TELETEXT)
+      if (new_dmode == DISPLAY_MODE_WINDOW
+	  && new_cmode == CAPTURE_MODE_TELETEXT)
 	{
 	  action = gtk_action_group_get_action (zapping->vbi_action_group,
 						"Teletext");
@@ -562,7 +579,7 @@ zmisc_switch_mode(display_mode new_dmode,
 						"Teletext");
 	  z_action_set_visible (action, TRUE);
 
-	  zapping_enable_appbar (zapping, FALSE);
+	  zapping_view_appbar (zapping, FALSE);
 	}
     }
 #endif /* HAVE_LIBZVBI */
@@ -609,13 +626,13 @@ zmisc_switch_mode(display_mode new_dmode,
 
       /* XXX error? */
       tveng_set_capture_size((guint)w, (guint)h, info);
-      return_value = capture_start(info);
+      return_value = capture_start(info, GTK_WIDGET (zapping->video));
       video_init (GTK_WIDGET (zapping->video),
 		  GTK_WIDGET (zapping->video)->style->black_gc);
       video_suggest_format ();
       x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE
 			   | X11_SCREENSAVER_CPU_ACTIVE);
-      z_video_blank_cursor (zapping->video, BLANK_CURSOR_TIMEOUT);
+      z_video_blank_cursor (zapping->video, timeout);
       break;
 
     case DISPLAY_MODE_WINDOW | CAPTURE_MODE_OVERLAY:
@@ -627,30 +644,11 @@ zmisc_switch_mode(display_mode new_dmode,
       if (start_overlay ())
 	{
 	  x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE);
-          z_video_blank_cursor (zapping->video, BLANK_CURSOR_TIMEOUT);
+          z_video_blank_cursor (zapping->video, timeout);
 	}
       else
 	{
 	  ShowBox (_("Cannot start video overlay.\n%s"),
-		   GTK_MESSAGE_ERROR, info->error);
-	  zmisc_stop (info);
-	  goto failure;
-	}
-      break;
-
-    case DISPLAY_MODE_FULLSCREEN | CAPTURE_MODE_OVERLAY:
-      if (disable_overlay) {
-	ShowBox ("Preview has been disabled", GTK_MESSAGE_WARNING);
-	goto failure;
-      }
-
-      if (start_fullscreen ())
-	{
-	  x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE);
-	}
-      else
-	{
-	  ShowBox (_("Cannot start fullscreen overlay.\n%s"),
 		   GTK_MESSAGE_ERROR, info->error);
 	  zmisc_stop (info);
 	  goto failure;
@@ -671,6 +669,38 @@ zmisc_switch_mode(display_mode new_dmode,
 
       zapping->info->capture_mode = CAPTURE_MODE_TELETEXT; /* ugh */
 
+      break;
+
+    case DISPLAY_MODE_FULLSCREEN | CAPTURE_MODE_READ:
+    case DISPLAY_MODE_FULLSCREEN | CAPTURE_MODE_OVERLAY:
+    case DISPLAY_MODE_FULLSCREEN | CAPTURE_MODE_TELETEXT:
+    case DISPLAY_MODE_BACKGROUND | CAPTURE_MODE_READ:
+    case DISPLAY_MODE_BACKGROUND | CAPTURE_MODE_OVERLAY:
+    case DISPLAY_MODE_BACKGROUND | CAPTURE_MODE_TELETEXT:
+      if (disable_overlay) {
+	ShowBox ("Preview has been disabled", GTK_MESSAGE_WARNING);
+	goto failure;
+      }
+
+      if (start_fullscreen (new_dmode, new_cmode))
+	{
+	  if (CAPTURE_MODE_TELETEXT != new_cmode)
+	    {
+	      if (CAPTURE_MODE_OVERLAY == new_cmode)
+		x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE);
+	      else
+		x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE |
+				     X11_SCREENSAVER_CPU_ACTIVE);
+	    }
+	}
+      else
+	{
+	  ShowBox (_("Cannot start fullscreen overlay.\n%s"),
+		   GTK_MESSAGE_ERROR, info->error);
+	  /* XXX s/overlay//. */
+	  zmisc_stop (info);
+	  goto failure;
+	}
       break;
 
     default: /* TVENG_NO_CAPTURE */
@@ -706,8 +736,8 @@ zmisc_switch_mode(display_mode new_dmode,
       zcs_int ((int) to_old_tveng_capture_mode (old_dmode, old_cmode),
 	       "previous_mode");
 
-      last_dmode = old_dmode;
-      last_cmode = old_cmode;
+      if (old_cmode != new_cmode)
+	last_cmode = old_cmode;
     }
 
   /* Update the standards, channels, etc */
@@ -928,7 +958,7 @@ z_change_menuitem			 (GtkWidget	*widget,
 static void
 appbar_hide(GtkWidget *appbar _unused_)
 {
-  zapping_enable_appbar (zapping, FALSE);
+  zapping_view_appbar (zapping, FALSE);
 }
 
 static void
@@ -965,7 +995,7 @@ status_hide_timeout		(void *			ignored _unused_)
 
   if (status_hide)
     {
-      zapping_enable_appbar (zapping, FALSE);
+      zapping_view_appbar (zapping, FALSE);
     }
   else /* just clean */
     {
@@ -988,7 +1018,7 @@ z_status_print			(const gchar *		message,
 {
   GtkWidget *status;
 
-  zapping_enable_appbar (zapping, TRUE);
+  zapping_view_appbar (zapping, TRUE);
 
   status = gnome_appbar_get_status (zapping->appbar);
 
@@ -1016,7 +1046,7 @@ void z_status_set_widget(GtkWidget * widget)
 {
   GtkWidget *old;
 
-  zapping_enable_appbar (zapping, TRUE);
+  zapping_view_appbar (zapping, TRUE);
 
   old = g_object_get_data(G_OBJECT(zapping->appbar), "old_widget");
   if (old)
@@ -2458,6 +2488,31 @@ from_old_tveng_capture_mode	(display_mode *		dmode,
       *dmode = DISPLAY_MODE_WINDOW;
       *cmode = CAPTURE_MODE_TELETEXT;
       return;
+
+    case OLD_TVENG_FULLSCREEN_READ:
+      *dmode = DISPLAY_MODE_FULLSCREEN;
+      *cmode = CAPTURE_MODE_READ;
+      return;
+
+    case OLD_TVENG_FULLSCREEN_TELETEXT:
+      *dmode = DISPLAY_MODE_FULLSCREEN;
+      *cmode = CAPTURE_MODE_TELETEXT;
+      return;
+
+    case OLD_TVENG_BACKGROUND_READ:
+      *dmode = DISPLAY_MODE_BACKGROUND;
+      *cmode = CAPTURE_MODE_READ;
+      return;
+
+    case OLD_TVENG_BACKGROUND_PREVIEW:
+      *dmode = DISPLAY_MODE_BACKGROUND;
+      *cmode = CAPTURE_MODE_OVERLAY;
+      return;
+
+    case OLD_TVENG_BACKGROUND_TELETEXT:
+      *dmode = DISPLAY_MODE_BACKGROUND;
+      *cmode = CAPTURE_MODE_TELETEXT;
+      return;
     }
 
   *dmode = DISPLAY_MODE_NONE;
@@ -2475,8 +2530,8 @@ to_old_tveng_capture_mode	(display_mode 		dmode,
   switch (dmode)
     {
     case DISPLAY_MODE_NONE:
-    case DISPLAY_MODE_BACKGROUND:
       mode = OLD_TVENG_NO_CAPTURE; break;
+
     case DISPLAY_MODE_WINDOW:
       switch (cmode)
 	{
@@ -2490,15 +2545,32 @@ to_old_tveng_capture_mode	(display_mode 		dmode,
 	  mode = OLD_TVENG_TELETEXT; break;
 	}
       break;
+
     case DISPLAY_MODE_FULLSCREEN:
       switch (cmode)
 	{
 	case CAPTURE_MODE_NONE:
-	case CAPTURE_MODE_READ:
-	case CAPTURE_MODE_TELETEXT:
 	  mode = OLD_TVENG_NO_CAPTURE; break;
+	case CAPTURE_MODE_READ:
+	  mode = OLD_TVENG_FULLSCREEN_READ; break;
+	case CAPTURE_MODE_TELETEXT:
+	  mode = OLD_TVENG_FULLSCREEN_TELETEXT; break;
 	case CAPTURE_MODE_OVERLAY:
 	  mode = OLD_TVENG_CAPTURE_PREVIEW; break;
+	}
+      break;
+
+    case DISPLAY_MODE_BACKGROUND:
+      switch (cmode)
+	{
+	case CAPTURE_MODE_NONE:
+	  mode = OLD_TVENG_NO_CAPTURE; break;
+	case CAPTURE_MODE_READ:
+	  mode = OLD_TVENG_BACKGROUND_READ; break;
+	case CAPTURE_MODE_TELETEXT:
+	  mode = OLD_TVENG_BACKGROUND_TELETEXT; break;
+	case CAPTURE_MODE_OVERLAY:
+	  mode = OLD_TVENG_BACKGROUND_PREVIEW; break;
 	}
       break;
     }
