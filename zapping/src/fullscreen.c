@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.21.2.9 2003-08-24 23:52:43 mschimek Exp $
+ * $Id: fullscreen.c,v 1.21.2.10 2003-09-29 07:06:52 mschimek Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -40,53 +40,47 @@
 #include "audio.h"
 #include "plugins.h"
 #include "zvideo.h"
+#include "globals.h"
 
 static GtkWidget * black_window = NULL; /* The black window when you go
 					   fullscreen */
-extern GtkWidget * main_window;
-
-extern tveng_tuned_channel *global_channel_list;
-
-extern enum tveng_capture_mode last_mode;
-
-extern tveng_device_info *main_info;
-
-/* Comment out the next line if you don't want to mess with the
-   XScreensaver */
-#define MESS_WITH_XSS 1
+static x11_vidmode_state old_vidmode;
 
 static gboolean
 on_fullscreen_event		(GtkWidget *		widget,
 				 GdkEvent *		event,
 				 gpointer		user_data)
 {
-  if (event->type == GDK_KEY_PRESS)
+  switch (event->type)
     {
-      GdkEventKey *kevent = (GdkEventKey *) event;
+    case GDK_KEY_PRESS:
+      {
+	GdkEventKey *kevent = (GdkEventKey *) event;
 
-      if (kevent->keyval == GDK_q && (kevent->state & GDK_CONTROL_MASK))
-	{
-	  extern gboolean was_fullscreen;
+	if (kevent->keyval == GDK_q
+	    && (kevent->state & GDK_CONTROL_MASK))
+	  {
+	    extern gboolean was_fullscreen;
 
-	  was_fullscreen = TRUE;
-	  zmisc_switch_mode(last_mode, main_info);
-	  python_command (widget, "zapping.quit()");
+	    was_fullscreen = TRUE;
+	    zmisc_switch_mode(last_mode, main_info);
+	    python_command (widget, "zapping.quit()");
 
-	  return TRUE;
-	}
-      else
-	{
-          return on_user_key_press (widget, kevent, user_data)
-	    || on_channel_key_press (widget, kevent, user_data);
-	}
-    }
-  else if (event->type == GDK_BUTTON_PRESS)
-    {
+	    return TRUE;
+	  }
+	else
+	  {
+	    return on_user_key_press (widget, kevent, user_data)
+	      || on_channel_key_press (widget, kevent, user_data);
+	  }
+      }
+
+    case GDK_BUTTON_PRESS:
       zmisc_switch_mode(last_mode, main_info);
       return TRUE;
     }
 
-  return FALSE; /* We aren't interested in this event, pass it on */
+  return FALSE; /* pass on */
 }
 
 /* Called when OSD changes the geometry of the pieces */
@@ -127,15 +121,64 @@ on_cursor_blanked		(ZVideo *		video,
   x11_vidmode_switch (vidmodes, NULL, NULL);
 }
 
-gint
-fullscreen_start(tveng_device_info * info)
+static x11_vidmode_info *
+find_vidmode			(guint			width,
+				 guint			height)
 {
-  GtkWidget * da; /* Drawing area */
-  GdkColor chroma = {0, 0, 0, 0};
+  x11_vidmode_info *v;
+  x11_vidmode_info *vmin;
+  gint64 amin;
 
-  /* Notes: The main window is not used in fullscreen mode but still
-     exists. black_window is an unmanaged, fullscreen window without
-     decorations. da is a drawing area of same size as the window.
+  vmin = vidmodes;
+  amin = ((gint64) 1) << 62;
+
+  for (v = vidmodes; v; v = v->next)
+    {
+      gint64 a;
+      gint64 dw, dh;
+
+      if (0)
+	fprintf (stderr, "width=%d height=%d cur %ux%u@%u best %ux%u@%u\n",
+		 width, height,
+		 v->width, v->height, (guint)(v->vfreq + 0.5),
+		 vmin->width, vmin->height, (guint)(vmin->vfreq + 0.5));
+
+      /* XXX ok? */
+      dw = (gint64) v->width - width;
+      dh = (gint64) v->height - height;
+      a = dw * dw + dh * dh;
+
+      if (a < amin
+	  || (a == amin && v->vfreq > vmin->vfreq))
+	{
+	  vmin = v;
+	  amin = a;
+	}
+    }
+
+  v = vmin;
+
+  if (main_info->debug_level > 0)
+    fprintf (stderr, "Using mode %ux%u@%u for video %ux%u\n",
+	     v->width, v->height, (guint)(v->vfreq + 0.5),
+	     width, height);
+
+  return v;
+}
+
+gboolean
+start_fullscreen		(tveng_device_info *	info)
+{
+  GtkWidget *da; /* drawing area */
+  GdkColor chroma = {0, 0, 0, 0};
+  const gchar *vidmode;
+  x11_vidmode_info *v;
+  unsigned int width, height;
+
+  /* Notes: The main window is not used in fullscreen mode but
+     remains open all the time. black_window is an unmanaged,
+     fullscreen window without decorations.
+     da is a drawing area of same size as the window.
      start_previewing enables Xv or v4l overlay into da->window.
      The video size is limited by the DMA hardware
      (eg. 768x576x4) and the window size, thus usually drawing only
@@ -158,8 +201,8 @@ fullscreen_start(tveng_device_info * info)
   gtk_widget_modify_bg (da, GTK_STATE_NORMAL, &chroma);
   gtk_container_add (GTK_CONTAINER (black_window), da);
 
-  gtk_widget_add_events(da, GDK_BUTTON_PRESS_MASK);
-  gtk_window_set_modal(GTK_WINDOW(black_window), TRUE);
+  gtk_widget_add_events (da, GDK_BUTTON_PRESS_MASK);
+  gtk_window_set_modal (GTK_WINDOW(black_window), TRUE);
   gtk_widget_realize (black_window);
   gdk_window_set_decorations (black_window->window, 0);
   gtk_widget_show (black_window);
@@ -181,12 +224,16 @@ fullscreen_start(tveng_device_info * info)
 				   1);
 	}
       else
-	ShowBox("Couldn't allocate chromakey, chroma won't work",
-		GTK_MESSAGE_WARNING);
+	{
+	  ShowBox("Couldn't allocate chromakey, chroma won't work",
+		  GTK_MESSAGE_WARNING);
+	}
     }
-  else if (info->current_controller == TVENG_CONTROLLER_XV &&
-	   tveng_get_chromakey (&chroma.pixel, info) == 0)
-    gdk_window_set_background(da->window, &chroma);
+  else if (info->current_controller == TVENG_CONTROLLER_XV
+	   && 0 == tveng_get_chromakey (&chroma.pixel, info))
+    {
+      gdk_window_set_background(da->window, &chroma);
+    }
 
   /* Disable double buffering just in case, will help in case a
      XV driver doesn't provide XV_COLORKEY but requires the colorkey
@@ -197,54 +244,175 @@ fullscreen_start(tveng_device_info * info)
   info->overlay_window.win = GDK_WINDOW_XWINDOW(da->window);
   info->overlay_window.gc = GDK_GC_XGC(da->style->white_gc);
 
-  if (tveng_start_previewing(info, zcg_char(NULL, "fullscreen/vidmode")) == -1)
+  if (!tv_set_overlay_buffer (info, &dga_param))
+    goto failure;
+
+  vidmode = zcg_char (NULL, "fullscreen/vidmode");
+
+  /* XXX we must distinguish between (limited) Xv overlay and Xv scaling.
+   * 1) determine natural size (videostd -> 480, 576 -> 640, 768),
+   *    try Xv target size, get actual
+   * 2) find closest vidmode
+   * 3) try Xv target size from vidmode, get actual,
+   *    if closer go back to 2) until sizes converge 
+   */
+  if (info->current_controller == TVENG_CONTROLLER_XV
+      && (vidmode == NULL || 0 == strcmp (vidmode, "auto")))
     {
-      ShowBox(_("Sorry, but cannot go fullscreen:\n%s"),
-	      GTK_MESSAGE_ERROR, info->error);
-      gtk_widget_destroy(black_window);
-      zmisc_switch_mode(TVENG_CAPTURE_READ, info);
-      return -1;
+      vidmode = NULL; /* not needed  XXX wrong */
+    }
+  else
+    {
+      /* XXX ditto, limited V4L/V4L2 overlay */
+      if (!x11_dga_present (&dga_param))
+	{
+	  info->tveng_errno = -1;
+	  tv_error_msg (info, _("No XFree86 DGA extension.\n"));
+	  goto failure;
+	}
     }
 
-  if (info -> current_mode != TVENG_CAPTURE_PREVIEW)
-    g_warning("Setting preview succeeded, but the mode is not set");
+  g_assert (vidmode != (const char *) -1);
+
+  /* XXX wrong */
+  if (info->cur_video_standard)
+    {
+      /* Note e.g. v4l2(old) bttv reports 48,32-922,576 */
+      width = MIN ((guint) info->caps.maxwidth,
+		   info->cur_video_standard->frame_width);
+      height = MIN ((guint) info->caps.maxheight,
+		    info->cur_video_standard->frame_height);
+    }
+  else
+    {
+      width = MIN (info->caps.maxwidth, 768);
+      height = MIN (info->caps.maxheight, 576);
+    }
+
+  width = MIN (width, dga_param.width);
+  height = MIN (height, dga_param.height);
+
+  v = NULL;
+
+  if (vidmode == NULL || vidmode[0] == 0)
+    {
+      /* Don't change, v = NULL. */
+    }
+  else if (vidmodes)
+    {
+      if ((v = x11_vidmode_by_name (vidmodes, vidmode)))
+	{
+	  /* User defined mode. */
+	}
+      else
+	{
+	  /* Automatic. */
+	  v = find_vidmode (width, height);
+	}
+    }
+
+  if (!x11_vidmode_switch (vidmodes, v, &old_vidmode))
+    {
+      /* Bad, but not fatal. */
+      /* goto failure; */
+      x11_vidmode_clear_state (&old_vidmode);
+    }
+
+  // XXX
+  if (info->current_controller == TVENG_CONTROLLER_XV)
+    {
+      if (!tv_set_overlay_xwindow (info, info->overlay_window.win,
+				   info->overlay_window.gc))
+	goto failure;
+    }
+  else
+    {
+      /* Center the window, dwidth is always >= width */
+      info->overlay_window.x = (dga_param.width - width) >> 1;
+      info->overlay_window.y = (dga_param.height - height) >> 1;
+      info->overlay_window.width = width;
+      info->overlay_window.height = height;
+
+      tv_clip_vector_clear (&info->overlay_window.clip_vector);
+
+      /* Set new capture dimensions */
+      if (-1 == tveng_set_preview_window (info))
+	goto failure;
+
+      if (info->overlay_window.width != width
+	  || info->overlay_window.height != height)
+	{
+	  info->overlay_window.x =
+	    (dga_param.width - info->overlay_window.width) >> 1;
+	  info->overlay_window.y =
+	    (dga_param.height - info->overlay_window.height) >> 1;
+
+	  if (-1 == tveng_set_preview_window (info))
+	    goto failure;
+	}
+    }
+
+  /* Start preview */
+  if (-1 == tveng_set_preview (TRUE, info))
+    goto failure;
+
+  info->current_mode = TVENG_CAPTURE_PREVIEW; /* "fullscreen overlay" */
 
   g_signal_connect (G_OBJECT (da), "cursor-blanked",
 		    G_CALLBACK (on_cursor_blanked), info);
 
-  gtk_widget_grab_focus(black_window);
+  gtk_widget_grab_focus (black_window);
 
-  g_signal_connect(G_OBJECT(black_window), "event",
-		     G_CALLBACK(on_fullscreen_event),
-  		     main_window);
+  g_signal_connect (G_OBJECT (black_window), "event",
+		    G_CALLBACK (on_fullscreen_event),
+		    main_window);
 
   if (info->current_controller != TVENG_CONTROLLER_XV)
-    osd_set_coords(da,
-		   info->overlay_window.x, info->overlay_window.y, info->overlay_window.width,
-		   info->overlay_window.height);
-  else /* wrong because Xv may pad to this size (DMA hw limit) */
-    osd_set_coords(da, 0, 0, info->overlay_window.width,
-		   info->overlay_window.height);
+    {
+      osd_set_coords (da,
+		      info->overlay_window.x,
+		      info->overlay_window.y,
+		      info->overlay_window.width,
+		      info->overlay_window.height);
+    }
+  else
+    {
+      /* wrong because Xv may pad to this size (DMA hw limit) */
+      osd_set_coords (da, 0, 0, info->overlay_window.width,
+		      info->overlay_window.height);
+    }
 
-  g_signal_connect(G_OBJECT(osd_model), "changed",
-		     G_CALLBACK(osd_model_changed), info);
+  g_signal_connect (G_OBJECT (osd_model), "changed",
+		    G_CALLBACK (osd_model_changed), info);
 
-  return 0;
+  return TRUE;
+
+ failure:
+  gtk_widget_destroy (black_window);
+  return FALSE;
 }
 
 void
-fullscreen_stop(tveng_device_info * info)
+stop_fullscreen			(tveng_device_info *	info)
 {
-  osd_unset_window();
+  g_assert (info->current_mode == TVENG_CAPTURE_PREVIEW);
+
+  /* Error ignored */
+  tveng_set_preview (FALSE, info);
+
+  info->current_mode = TVENG_NO_CAPTURE;
+
+  x11_vidmode_restore (vidmodes, &old_vidmode);
+
+  osd_unset_window ();
 
   /* Remove the black window */
-  gtk_widget_destroy(black_window);
-  x11_force_expose(0, 0, gdk_screen_width(), gdk_screen_height());
+  gtk_widget_destroy (black_window);
+  black_window = NULL;
 
-  g_signal_handlers_disconnect_matched(G_OBJECT(osd_model),
-				       G_SIGNAL_MATCH_FUNC |
-				       G_SIGNAL_MATCH_DATA,
-				       0, 0, NULL,
-				       G_CALLBACK(osd_model_changed),
-				       info);
+  x11_force_expose (0, 0, gdk_screen_width(), gdk_screen_height());
+
+  g_signal_handlers_disconnect_matched
+    (G_OBJECT (osd_model), G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA,
+     0, 0, NULL, G_CALLBACK (osd_model_changed), info);
 }
