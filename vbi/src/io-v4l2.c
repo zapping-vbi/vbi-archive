@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-v4l2.c,v 1.12.2.2 2003-05-02 10:44:49 mschimek Exp $";
+static char rcsid[] = "$Id: io-v4l2.c,v 1.12.2.3 2003-05-02 11:16:12 mschimek Exp $";
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -285,7 +285,7 @@ v4l2_fd(vbi_capture *vc)
 }
 
 static void
-print_vfmt(const char *s, struct v4l2_format *vfmt)
+print_vfmt(char *s, struct v4l2_format *vfmt)
 {
 	fprintf(stderr, "%s%d Hz, %d bpl, offs %d, "
 		"F1 %d+%d, F2 %d+%d, flags %08x\n", s,
@@ -424,8 +424,8 @@ vbi_capture_v4l2_new(const char *dev_name, int buffers,
 		vfmt.fmt.vbi.samples_per_line	= v->dec.bytes_per_line;
 		vfmt.fmt.vbi.offset		= v->dec.offset;
 		vfmt.fmt.vbi.start[0]		= v->dec.start[0] + V4L2_LINE;
-		vfmt.fmt.vbi.count[0]		= v->dec.count[1];
-		vfmt.fmt.vbi.start[1]		= v->dec.start[0] + V4L2_LINE;
+		vfmt.fmt.vbi.count[0]		= v->dec.count[0];
+		vfmt.fmt.vbi.start[1]		= v->dec.start[1] + V4L2_LINE;
 		vfmt.fmt.vbi.count[1]		= v->dec.count[1];
 
 		/* API rev. Nov 2000 paranoia */
@@ -480,9 +480,9 @@ vbi_capture_v4l2_new(const char *dev_name, int buffers,
 
 				break;
 			}
+		} else {
+			printv("Successful set vbi capture parameters\n");
 		}
-
-		printv("Successful set vbi capture parameters\n");
 	}
 
 	if (trace)
