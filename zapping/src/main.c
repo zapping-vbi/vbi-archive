@@ -45,6 +45,7 @@ GList * plugin_list = NULL;
 struct soundinfo * si;
 gboolean disable_preview = FALSE; /* TRUE if zapping_setup_fb didn't
 				     work */
+GtkWidget * main_window;
 
 void shutdown_zapping(void);
 gboolean startup_zapping(void);
@@ -67,7 +68,6 @@ delete_event                (GtkWidget       *widget,
 
 int main(int argc, char * argv[])
 {
-  GtkWidget * main_window;
   GtkWidget * tv_screen;
   gchar * buffer;
   GList * p;
@@ -243,7 +243,7 @@ int main(int argc, char * argv[])
 			   main_info))
     fprintf(stderr, "tveng_set_mute: %s\n", main_info->error);
 
-  /*tveng_stop_capturing(main_info);
+  tveng_stop_capturing(main_info);
   main_info->window.x = x;
   main_info->window.y = y;
   main_info->window.width = w;
@@ -252,7 +252,7 @@ int main(int argc, char * argv[])
   tveng_set_preview_window(main_info);
   tveng_set_preview_on(main_info);
   main_info->current_mode = TVENG_CAPTURE_PREVIEW;
-  */
+  
   while (!flag_exit_program)
     {
       while (gtk_events_pending())
@@ -360,6 +360,13 @@ void shutdown_zapping(void)
   int i = 0;
   gchar * buffer = NULL;
   tveng_tuned_channel * channel;
+  gboolean do_screen_cleanup = FALSE;
+
+  /* Stops any capture currently active */
+  if (main_info->current_mode == TVENG_CAPTURE_PREVIEW)
+    do_screen_cleanup = TRUE;
+
+  tveng_stop_everything(main_info);
 
   /* Unloads all plugins, this tells them to save their config too */
   plugin_unload_plugins(plugin_list);
@@ -421,6 +428,11 @@ void shutdown_zapping(void)
 
   /* Destroy the image that holds the capture */
   zimage_destroy();
+
+  /* refresh the tv screen (in case we were in windowed preview mode)
+   */
+  if (do_screen_cleanup)
+    zmisc_refresh_tv_screen(0, 0, 0, 0);
 }
 
 gboolean startup_zapping()

@@ -349,7 +349,7 @@
       <class>GtkDrawingArea</class>
       <child_name>GnomeDock:contents</child_name>
       <name>tv_screen</name>
-      <events>GDK_BUTTON_PRESS_MASK</events>
+      <events>GDK_BUTTON_PRESS_MASK | GDK_VISIBILITY_NOTIFY_MASK</events>
       <signal>
 	<name>size_allocate</name>
 	<handler>on_tv_screen_size_allocate</handler>
@@ -361,9 +361,9 @@
 	<last_modification_time>Wed, 14 Jun 2000 09:20:18 GMT</last_modification_time>
       </signal>
       <signal>
-	<name>configure_event</name>
+	<name>event</name>
 	<handler>on_zapping_configure_event</handler>
-	<last_modification_time>Thu, 20 Jul 2000 19:57:20 GMT</last_modification_time>
+	<last_modification_time>Fri, 21 Jul 2000 21:01:16 GMT</last_modification_time>
       </signal>
     </widget>
   </widget>

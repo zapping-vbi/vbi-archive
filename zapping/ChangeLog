@@ -1,8 +1,14 @@
+21.7.2000	Windowed preview <garetxe@users.sourceforge.net>
+
+	* src/zmisc.c: It's still unfinished (and sucks), but it mostly
+	works now. I've added (copied from xawtv) clipping support. There
+	are some bugs with it still.
+
 20.7.2000	Modify channels <garetxe@users.sourceforge.net>
 
 	* src/channel_editor.c: Added the option to modify channels and a
 	fine tuner
-	* galde/zapping.glade: Modified accordingly.
+	* glade/zapping.glade: Modified accordingly.
 	* src/main.c: Fixed ratio is working (although it doesn't work
 	under Sawfish)
 	* macros/autogen.sh: Little fix, it tried to autoconf mp1e's

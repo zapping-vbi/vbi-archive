@@ -85,6 +85,9 @@ zimage_destroy(void);
 GtkWidget * z_gtk_pixmap_menu_item_new(const gchar * label,
 				       const gchar * icon);
 
+/* Announces that the tv_screen has moved. This routine refreshes the
+   old placement of the window if neccesary */
+void zmisc_refresh_tv_screen(gint x, gint y, gint w, gint h);
 #endif /* ZMISC.H */
 
 #ifdef ZCONF_DOMAIN
