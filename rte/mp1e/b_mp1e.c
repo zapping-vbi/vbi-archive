@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.20 2001-10-26 09:14:51 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.21 2001-11-03 23:43:52 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -352,6 +352,7 @@ static int rte_fake_options(rte_context * context)
 	case RTE_YUYV_EXP:
 	case RTE_YUYV_EXP_VERTICAL_DECIMATION:
 	case RTE_YUYV_EXP2:
+#warning fixme
 		pitch = grab_width*2;
 		filter_mode =
 			(context->video_format-RTE_YUYV_VERTICAL_DECIMATION) + 
@@ -776,7 +777,7 @@ mp1e_mpeg1_video_context = {
 	.public = {
 		.keyword	= "mp1e-mpeg-video",
 		.backend	= "mp1e 1.9.2",
-		.label		= N_("MPEG Video Elementary Stream "),
+		.label		= N_("MPEG Video Elementary Stream"),
 
 		.mime_type	= "video/mpeg",
 		.extension	= "mpg,mpe,mpeg",

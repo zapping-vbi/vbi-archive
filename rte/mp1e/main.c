@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.16 2001-10-26 09:14:51 mschimek Exp $ */
+/* $Id: main.c,v 1.17 2001-11-03 23:43:52 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -181,6 +181,9 @@ main(int ac, char **av)
 		int psy_level = audio_mode / 10;
 
 		audio_mode %= 10;
+
+		if (audio_mode == 1) /* joint stereo */
+			audio_mode = 0; /* stereo */
 
 		stereo = (audio_mode != AUDIO_MODE_MONO);
 

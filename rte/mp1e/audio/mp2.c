@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.16 2001-10-26 09:14:51 mschimek Exp $ */
+/* $Id: mp2.c,v 1.17 2001-11-03 23:43:54 mschimek Exp $ */
 
 #include <limits.h>
 #include "../common/log.h"
@@ -688,12 +688,12 @@ mp1e_mp2_init(rte_codec *codec, unsigned int module,
 
 	if (mp2->mpeg_version == MPEG_VERSION_2)
 		table = 4;
-	else if ((mp2->sampling_freq == 48000 && bit_rate_per_ch >= 56000) ||
+	else if ((sampling_freq == 48000 && bit_rate_per_ch >= 56000) ||
 		 (bit_rate_per_ch >= 56000 && bit_rate_per_ch <= 80000))
 		table = 0;
-	else if (mp2->sampling_freq != 48000 && bit_rate_per_ch >= 96000)
+	else if (sampling_freq != 48000 && bit_rate_per_ch >= 96000)
 		table = 1;
-	else if (mp2->sampling_freq != 32000 && bit_rate_per_ch <= 48000)
+	else if (sampling_freq != 32000 && bit_rate_per_ch <= 48000)
 		table = 2;
 	else
 		table = 3;
@@ -709,7 +709,7 @@ mp1e_mp2_init(rte_codec *codec, unsigned int module,
 			min_sg = subband_group[table][sb - 1];
 
 	printv(3, "Audio table #%d, %d Hz cut-off\n",
-		table, mp2->sampling_freq * mp2->sblimit / 32);
+		table, sampling_freq * mp2->sblimit / 32);
 
 	mp2->sum_nbal = 0;
 

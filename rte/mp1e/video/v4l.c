@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.12 2001-10-19 06:57:56 mschimek Exp $ */
+/* $Id: v4l.c,v 1.13 2001-11-03 23:43:54 mschimek Exp $ */
 
 #include <ctype.h>
 #include <assert.h>
@@ -58,6 +58,7 @@ static double			frame_period_near;
 static double			frame_period_far;
 
 #define IOCTL(fd, cmd, data) (TEMP_FAILURE_RETRY(ioctl(fd, cmd, data)))
+#define CLEAR(var) (memset((var), 0, sizeof(*(var))))
 
 /*
  * a) Assume no driver provides more than two buffers.
@@ -209,6 +210,8 @@ v4l_init(double *frame_rate)
 
 	/* Unmute audio (bttv) */
 
+	CLEAR(&old_vaud);
+
 	if (IOCTL(fd, VIDIOCGAUDIO, &old_vaud) >= 0) {
 		struct video_audio vaud;
 
@@ -232,8 +235,14 @@ v4l_init(double *frame_rate)
 		struct video_tuner vtuner;
 		struct video_channel vchan;
 
+		CLEAR(&vtuner);
+		vtuner.tuner = 0; /* first tuner */
+
 		if (IOCTL(fd, VIDIOCGTUNER, &vtuner) == -1) {
 			printv(2, "Apparently the device has no tuner\n");
+
+			CLEAR(&vchan);
+			vchan.channel = 0; /* first channel */
 
 			ASSERT("query current video input of %s (VIDIOCGCHAN), "
 			       "cannot determine video standard (VIDIOCGTUNER didn't work either)\n",
@@ -288,8 +297,7 @@ v4l_init(double *frame_rate)
 
 		/* Set capture format and dimensions */
 
-		memset(&win, 0, sizeof(win));
-
+		CLEAR(&win);
 		win.width = aligned_width;
 		win.height = aligned_height;
 
@@ -303,15 +311,17 @@ v4l_init(double *frame_rate)
 			!IOCTL(fd, VIDIOCSWIN, &win),
 			cap_dev, win.width, win.height);
 
+		CLEAR(&pict);
+
 		ASSERT("determine the current image format of %s (VIDIOCGPICT)",
-		        !IOCTL(fd, VIDIOCGPICT, &pict), cap_dev);
+		       IOCTL(fd, VIDIOCGPICT, &pict) == 0, cap_dev);
 
 		if (filter_mode == CM_YUV)
 			pict.palette = VIDEO_PALETTE_YUV420P;
 		else
 			pict.palette = VIDEO_PALETTE_YUV422;
 
-		if (IOCTL(fd, VIDIOCSPICT, &pict) < 0) {
+		if (IOCTL(fd, VIDIOCSPICT, &pict) != 0) {
 			printv(2, "Image format %d not accepted.\n",
 				pict.palette);
 
@@ -320,14 +330,14 @@ v4l_init(double *frame_rate)
 				pict.palette = VIDEO_PALETTE_YUV422;
 			} else {
 				if (DECIMATING(filter_mode)) {
-					memset(&win, 0, sizeof(win));
+					CLEAR(&win);
 					win.width = aligned_width;
 					win.height = aligned_height;
 					win.chromakey = -1;
 
 					ASSERT("set the grab size of %s to %dx%d, "
 					       "suggest other -s, -G, -F values",
-						!IOCTL(fd, VIDIOCSWIN, &win),
+						IOCTL(fd, VIDIOCSWIN, &win) == 0,
 						cap_dev, win.width, win.height);
 				}
 
@@ -337,7 +347,7 @@ v4l_init(double *frame_rate)
 
 			ASSERT("set image format of %s, "
 			       "probably none of YUV 4:2:0 or 4:2:2 are supported",
-		    		!IOCTL(fd, VIDIOCSPICT, &pict), cap_dev);
+		    		IOCTL(fd, VIDIOCSPICT, &pict) == 0, cap_dev);
 		}
 
 		if (filter_mode == CM_YUV || filter_mode == CM_YVU) {
@@ -372,6 +382,7 @@ v4l_init(double *frame_rate)
 		printv(2, "Grab 1st frame and set capture format and dimensions.\n");
 		/* @:-} IMHO */
 
+		CLEAR(&gb_buf);
 		gb_buf.frame = (gb_frame+1) % gb_buffers.frames;
 		gb_buf.width = aligned_width;
 		gb_buf.height = aligned_height;
@@ -386,7 +397,7 @@ v4l_init(double *frame_rate)
 
     		r = IOCTL(fd, VIDIOCMCAPTURE, &gb_buf);
 
-		if (r < 0 && errno != EAGAIN) {
+		if (r != 0 && errno != EAGAIN) {
 			printv(2, "Image format %d not accepted.\n",
 				gb_buf.format);
 
@@ -403,7 +414,7 @@ v4l_init(double *frame_rate)
 			r = IOCTL(fd, VIDIOCMCAPTURE, &gb_buf);
 		}
 
-    		if (r < 0 && errno == EAGAIN)
+    		if (r != 0 && errno == EAGAIN)
 			FAIL("%s does not receive a video signal.\n", cap_dev);
 
 		ASSERT("start capturing (VIDIOCMCAPTURE) from %s, maybe the device doesn't\n"

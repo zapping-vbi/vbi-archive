@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: oss.c,v 1.11 2001-10-19 06:57:56 mschimek Exp $ */
+/* $Id: oss.c,v 1.12 2001-11-03 23:43:54 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -250,8 +250,8 @@ mix_restore(void)
 	int fd;
 
 	if ((fd = open(mix_dev, O_RDWR)) != -1) {
+		IOCTL(fd, MIXER_WRITE(mix_line), &old_recvol);
 		IOCTL(fd, SOUND_MIXER_WRITE_RECSRC, &old_recsrc);
-		IOCTL(fd, MIXER_WRITE(SOUND_MIXER_LINE), &old_recvol);
 		close(fd);
 	}
 }
@@ -260,23 +260,35 @@ void
 mix_init(void)
 {
 	int recsrc = 1 << mix_line;
-	int recvol = (mix_volume << 8) | mix_volume;
+	int recvol;
 	int fd;
 
+	if (mix_line < 0 || mix_line >= SOUND_MIXER_NRDEVICES)
+		FAIL("Mixer: invalid record source %d\n", mix_line);
+
+	mix_volume = saturate(mix_volume, 0, 100);
+
+	recvol = (mix_volume << 8) | mix_volume;
+
 	if ((fd = open(mix_dev, O_RDWR)) == -1) {
-		printv(1, "Cannot open mixer %s (%d, %s) (ignored)\n", mix_dev, errno, strerror(errno));
+		printv(1, "Cannot open mixer %s (%d, %s) (ignored)\n",
+		       mix_dev, errno, strerror(errno));
 		return;
 	}
 
-	ASSERT("get PCM rec source", IOCTL(fd, SOUND_MIXER_READ_RECSRC, &old_recsrc) == 0);
-	ASSERT("get PCM rec volume", IOCTL(fd, MIXER_READ(SOUND_MIXER_LINE), &old_recvol) == 0);
+	ASSERT("get PCM rec source",
+	       IOCTL(fd, SOUND_MIXER_READ_RECSRC, &old_recsrc) == 0);
+	ASSERT("get PCM rec volume",
+	       IOCTL(fd, MIXER_READ(mix_line), &old_recvol) == 0);
 
 	atexit(mix_restore);
 
-	ASSERT("set PCM rec source %d:%s", IOCTL(fd, SOUND_MIXER_WRITE_RECSRC,
-		&recsrc) == 0, mix_line, sources[mix_line]);
-	ASSERT("set PCM rec volume %d%%", IOCTL(fd, MIXER_WRITE(SOUND_MIXER_LINE),
-		&recvol) == 0, mix_volume);
+	ASSERT("set PCM rec source %d:%s",
+	       IOCTL(fd, SOUND_MIXER_WRITE_RECSRC,
+		     &recsrc) == 0, mix_line, sources[mix_line]);
+	ASSERT("set PCM rec volume %d%%",
+	       IOCTL(fd, MIXER_WRITE(mix_line),
+		     &recvol) == 0, mix_volume);
 
 	close(fd);
 

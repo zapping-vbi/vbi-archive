@@ -1,3 +1,11 @@
+2001-11-01	<mschimek@users.sf.net>
+
+	* mp2.c: Fixed audio table selection (wrong sampling_freq).
+	* oss.c: Mixer always set volume of line, not requested source.
+	* main.c: Added fallback for unsupported joint stereo.
+	* mp1e.1: Corrected a few typos.
+	
+
 2001-10-23	<mschimek@users.sf.net>
 
 	* mp2.c: Improved the codec status stuff, moved the sample

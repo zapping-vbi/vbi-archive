@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alsa.c,v 1.10 2001-10-16 22:18:15 mschimek Exp $ */
+/* $Id: alsa.c,v 1.11 2001-11-03 23:43:54 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -550,7 +550,7 @@ do {									\
 	ASSERT_ALSA("query PCM setup",
 		snd_pcm_channel_setup(alsa->handle, &setup));
 
-	printv(0, "ALSA setup: ilv %d, format %d (%s), rate %d, voices %d, "
+	printv(3, "ALSA setup: ilv %d, format %d (%s), rate %d, voices %d, "
 	       "frags %d, frag_size %d, bpf %d\n",
 	       setup.format.interleave, setup.format.format,
 	       snd_pcm_get_format_name(setup.format.format),
