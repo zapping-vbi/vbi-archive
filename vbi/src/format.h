@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: format.h,v 1.4.2.6 2004-02-18 07:54:58 mschimek Exp $ */
+/* $Id: format.h,v 1.4.2.7 2004-02-25 17:34:06 mschimek Exp $ */
 
 #ifndef FORMAT_H
 #define FORMAT_H
@@ -158,36 +158,43 @@ typedef enum {
 	VBI_OVER_TOP, VBI_OVER_BOTTOM, VBI_DOUBLE_HEIGHT2, VBI_DOUBLE_SIZE2
 } vbi_size;
 
+typedef enum {
+	VBI_UNDERLINE	= (1 << 0), /**< Display character underlined. */
+	VBI_BOLD	= (1 << 1),	/**< Display character bold. */
+	VBI_ITALIC	= (1 << 2),	/**< Display character slanted right. */
+	/**
+	 * Display character or space (U+0020). One second cycle time.
+	 */
+	VBI_FLASH	= (1 << 3),
+	/**
+	 * Replace character by space (U+0020) if not revealed.
+	 * This is used for example to hide text on question & answer pages.
+	 */
+	VBI_CONCEAL	= (1 << 4),
+	/**
+	 * No function yet, default is fixed spacing.
+	 */
+	VBI_PROPORTIONAL = (1 << 5),
+	/**
+	 * This character is part of a hyperlink. Call vbi_resolve_link()
+	 * to get more information.
+	 */
+	VBI_LINK	= (1 << 6),
+	/**
+	 * PDC link.
+	 */
+	VBI_PDC		= (1 << 7),
+} vbi_attr;
+
 /**
  * @ingroup Page
  * @brief Attributed character.
  */
 typedef struct vbi_char {
-	unsigned	underline	: 1;	/**< Display character underlined. */
-	unsigned	bold		: 1;	/**< Display character bold. */
-	unsigned	italic		: 1;	/**< Display character slanted right. */
 	/**
-	 * Display character or space (U+0020), one second cycle time.
+	 * Character attribute, see vbi_attr.
 	 */
-	unsigned	flash		: 1;
-	/**
-	 * Replace character by space (U+0020) if not revealed.
-	 * This is used for example to hide text on question & answer pages.
-	 */
-	unsigned	conceal		: 1;
-	/**
-	 * No function yet, default is fixed spacing.
-	 */
-	unsigned	proportional	: 1;
-	/**
-	 * This character is part of a hyperlink. Call vbi_resolve_link()
-	 * to get more information.
-	 */
-	unsigned	link		: 1;
-	/**
-	 * PDC link.
-	 */
-	unsigned	pdc		: 1;
+	unsigned	attr		: 8;
 	/**
 	 * Character size, see vbi_size.
 	 */
@@ -397,7 +404,7 @@ typedef enum {
 	VBI_RTL,
 	VBI_SCALE,
 	VBI_REVEAL,
-	VBI_FLASH,
+	VBI_FLASH_ON,
 	VBI_BRIGHTNESS,
 	VBI_CONTRAST,
 } vbi_export_option;
