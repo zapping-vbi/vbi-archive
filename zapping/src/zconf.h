@@ -232,7 +232,7 @@ zconf_add_hook(const gchar * key, ZConfHook hook, gpointer data);
   data: data to be passed to the hook.
 */
 void
-zconf_add_hook_while_alive(GtkObject *object,
+zconf_add_hook_while_alive(GObject *object,
 			   const gchar * key, ZConfHook hook,
 			   gpointer data);
 

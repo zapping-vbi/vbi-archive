@@ -34,9 +34,9 @@
 #endif
 
 #include <gnome.h>
-#include <tree.h> /* libxml */
-#include <parser.h> /* libxml */
-#include <xmlmemory.h> /* libxml */
+#include <libxml/tree.h>
+#include <libxml/parser.h>
+#include <libxml/xmlmemory.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -47,20 +47,7 @@
 #include "zconf.h"
 #include "zmisc.h" /* Misc common stuff */
 #include "zmodel.h"
-
-/*
-  Work around these little annoying incompatibilities between libxml 1
-  and 2
-*/
-#ifdef LIBXML_CHILDS
-#define children childs
-#endif
-
-#ifndef LIBXML_xmlDocGetRootElement
-/* Some people don't need this defines, but need the ones above */
-#define xmlDocSetRootElement(doc, node) (doc->root = node)
-#define xmlDocGetRootElement(doc) (doc->root)
-#endif
+#include "globals.h"
 
 /*
   This defines a key in the configuration tree.
@@ -186,7 +173,7 @@ gboolean
 zconf_init(const gchar * domain)
 {
   /* Hold here the home dir */
-  gchar * home_dir = g_get_home_dir();
+  const gchar * home_dir = g_get_home_dir();
   gchar * buffer = NULL; /* temporal storage */
   DIR * config_dir;
   xmlDocPtr doc;
@@ -203,7 +190,7 @@ zconf_init(const gchar * domain)
     {
       buffer = g_strconcat(domain,
 			   " cannot determine your home dir", NULL);
-      RunBox(buffer, GNOME_MESSAGE_BOX_ERROR);
+      RunBox(buffer, GTK_MESSAGE_ERROR);
       g_free(buffer);
       return FALSE;
     }
@@ -217,7 +204,7 @@ zconf_init(const gchar * domain)
 		S_IXGRP | S_IROTH | S_IXOTH) == -1)
 	{
 	  RunBox("Cannot create config home dir, check your permissions",
-		  GNOME_MESSAGE_BOX_ERROR);
+		  GTK_MESSAGE_ERROR);
 	  g_free(buffer);
 	  return FALSE;
 	}
@@ -225,7 +212,7 @@ zconf_init(const gchar * domain)
       if (!config_dir)
 	{
 	  RunBox("Cannot open config home dir, this is weird",
-		  GNOME_MESSAGE_BOX_ERROR);
+		  GTK_MESSAGE_ERROR);
 	  g_free(buffer);
 	  return FALSE;
 	}
@@ -325,11 +312,11 @@ gboolean zconf_close(void)
   /* and we destroy the zconf tree */
   zconf_root = p_zconf_cut_branch(zconf_root);
 
-  if (xmlSaveFile(zconf_file, doc) == -1)
+  if (xmlSaveFormatFile(zconf_file, doc, TRUE) == -1)
     {
       ShowBox("Zapping cannot save configuration to disk\n"
 	      "You should have write permissions to your home dir...",
-	      GNOME_MESSAGE_BOX_ERROR);
+	      GTK_MESSAGE_ERROR);
       return FALSE; /* Error */
     }
 
@@ -1356,7 +1343,7 @@ p_zconf_cut_branch(struct zconf_key * key)
   g_free(key -> contents);
   g_free(key -> description);
   if (key->model)
-    gtk_object_destroy(GTK_OBJECT(key->model));
+    g_object_unref(G_OBJECT(key->model));
 
   for (p = g_list_first(key->hooked); p; p = p->next)
     {
@@ -1590,10 +1577,10 @@ p_zconf_create(const gchar * key, struct zconf_key * starting_dir)
 
 /* HOOKS HANDLING */
 static
-void on_key_model_changed		(GtkObject	*model,
+void on_key_model_changed		(GObject	*model,
 					 struct	zconf_hook *hook)
 {
-  struct zconf_key *key = gtk_object_get_user_data(model);
+  struct zconf_key *key = g_object_get_data(model, "key");
 
   g_assert(key != NULL);
   g_assert(hook != NULL);
@@ -1622,7 +1609,7 @@ real_add_hook(const gchar * key_name, ZConfHook callback, gpointer data)
   if (!key->model)
     {
       key->model = ZMODEL(zmodel_new());
-      gtk_object_set_user_data(GTK_OBJECT(key->model), key);
+      g_object_set_data(G_OBJECT(key->model), "key", key);
     }
 
   hook = g_malloc(sizeof(struct zconf_hook));
@@ -1633,9 +1620,9 @@ real_add_hook(const gchar * key_name, ZConfHook callback, gpointer data)
 
   key->hooked = g_list_append(key->hooked, hook);
 
-  gtk_signal_connect(GTK_OBJECT(key->model), "changed",
-		     GTK_SIGNAL_FUNC(on_key_model_changed),
-		     hook);
+  g_signal_connect(G_OBJECT(key->model), "changed",
+		   G_CALLBACK(on_key_model_changed),
+		   hook);
 
   return hook;
 }
@@ -1647,7 +1634,7 @@ zconf_add_hook(const gchar * key_name, ZConfHook callback, gpointer data)
 }
 
 static void
-on_object_hook_destroyed	(GtkObject	*object,
+on_object_hook_destroyed	(GObject	*object,
 				 struct zconf_hook *hook)
 {
   struct zconf_key *key;
@@ -1665,7 +1652,7 @@ on_object_hook_destroyed	(GtkObject	*object,
 }
 
 void
-zconf_add_hook_while_alive(GtkObject *object,
+zconf_add_hook_while_alive(GObject *object,
 			   const gchar * key_name,
 			   ZConfHook callback,
 			   gpointer data)
@@ -1676,9 +1663,9 @@ zconf_add_hook_while_alive(GtkObject *object,
   if (!hook)
     return;
 
-  gtk_signal_connect(GTK_OBJECT(object), "destroy",
-		     GTK_SIGNAL_FUNC(on_object_hook_destroyed),
-		     hook);
+  g_signal_connect(object, "destroy",
+		   G_CALLBACK(on_object_hook_destroyed),
+		   hook);
 }
 
 void
@@ -1722,9 +1709,12 @@ zconf_remove_hook(const gchar * key_name, ZConfHook callback, gpointer data)
   g_free(hook->key);
   key->hooked = g_list_remove(key->hooked, hook);
 
-  gtk_signal_disconnect_by_func(GTK_OBJECT(key->model),
-				GTK_SIGNAL_FUNC(on_key_model_changed),
-				hook);
+  g_signal_handlers_disconnect_matched (key->model,
+					G_SIGNAL_MATCH_FUNC |
+					G_SIGNAL_MATCH_DATA,
+					0, 0, NULL,
+					on_key_model_changed,
+					hook);
 
   g_free(hook);
 }

@@ -24,7 +24,6 @@
 
 #include <gnome.h>
 #include <glade/glade.h>
-#include <libgnomeui/gnome-window-icon.h> /* only gnome 1.2 and above */
 #define ZCONF_DOMAIN "/zapping/options/main/"
 #include "zconf.h"
 #include "zmisc.h"
@@ -33,30 +32,27 @@
 #include "ttxview.h"
 #include "remote.h"
 #include "keyboard.h"
+#include "globals.h"
 
 static void shutdown_zapzilla(void);
 static gboolean startup_zapzilla(void);
 
 extern volatile gboolean	flag_exit_program;
-extern gint			console_errors;
 
-static gboolean
-quit_cmd				(GtkWidget *	widget,
-					 gint		argc,
-					 gchar **	argv,
-					 gpointer	user_data)
+static PyObject*
+py_quit (PyObject *self, PyObject *args)
 {
   flag_exit_program = TRUE;
   gtk_main_quit();
 
-  return TRUE;
+  py_return_true;
 }
 
 static void
 on_ttxview_model_changed		(ZModel		*model,
 					 gpointer	data)
 {
-  if (!GPOINTER_TO_INT(gtk_object_get_user_data(GTK_OBJECT(model))))
+  if (!GPOINTER_TO_INT(g_object_get_data(G_OBJECT(model), "user-data")))
     {
       flag_exit_program = TRUE;
       gtk_main_quit();
@@ -88,39 +84,32 @@ int zapzilla_main(int argc, char * argv[])
       N_("DEVICE")
     },
     {
-      "console-errors",
-      0,
-      POPT_ARG_NONE,
-      &console_errors,
-      0,
-      N_("Redirect the error messages to the console"),
-      NULL
-    },
-    {
       NULL,
     } /* end the list */
   };
 
 #ifdef ENABLE_NLS
-  bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
-  textdomain (PACKAGE);
+  bindtextdomain (GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR);
+  bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+  textdomain (GETTEXT_PACKAGE);
 #endif
 
-  /* Init gnome, libglade, modules and tveng */
-  gnome_init_with_popt_table ("zapzilla", VERSION, argc, argv, options,
-			      0, NULL);
+  gnome_program_init ("zapzilla", VERSION, LIBGNOMEUI_MODULE,
+		      argc, argv,
+		      GNOME_PARAM_APP_DATADIR, PACKAGE_DATA_DIR,
+		      GNOME_PARAM_POPT_TABLE, options,
+		      NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: zapzilla.c,v 1.4 2002-03-21 18:07:27 mschimek Exp $",
+	 "$Id: zapzilla.c,v 1.4.2.1 2002-07-19 20:53:48 garetxe Exp $",
 	 "Zapzilla", VERSION, __DATE__);
-  glade_gnome_init();
   D();
   /* FIXME: Find something better */
   gnome_window_icon_set_default_from_file(PACKAGE_PIXMAPS_DIR "/gnome-television.png");
   D();
   if (!startup_zapzilla())
     {
-      RunBox(_("Zapzilla couldn't be started"), GNOME_MESSAGE_BOX_ERROR);
+      RunBox(_("Zapzilla couldn't be started"), GTK_MESSAGE_ERROR);
       return 0;
     }
   D();
@@ -131,7 +120,7 @@ int zapzilla_main(int argc, char * argv[])
   if (!zvbi_open_device(vbi_device))
     {
       /* zvbi_open_device reports error 
-      RunBox(_("Couldn't open %s, exitting"), GNOME_MESSAGE_BOX_ERROR,
+      RunBox(_("Couldn't open %s, exitting"), GTK_MESSAGE_ERROR,
 	     vbi_device);
       */
       return 0;
@@ -139,9 +128,9 @@ int zapzilla_main(int argc, char * argv[])
   D();
   startup_ttxview();
   D();
-  gtk_signal_connect(GTK_OBJECT(ttxview_model), "changed",
-		     GTK_SIGNAL_FUNC(on_ttxview_model_changed),
-		     NULL);
+  g_signal_connect(G_OBJECT(ttxview_model), "changed",
+		   G_CALLBACK(on_ttxview_model_changed),
+		   NULL);
   D();
   gtk_widget_show(build_ttxview());
   D();
@@ -180,7 +169,7 @@ static void shutdown_zapzilla(void)
 	     "   - libxml is non-functional (?)\n"
 	     "   - or, more probably, you have found a bug in\n"
 	     "     %s. Please contact the author.\n"
-	     ), GNOME_MESSAGE_BOX_ERROR, "Zapzilla");
+	     ), GTK_MESSAGE_ERROR, "Zapzilla");
 
   printv(" cmd");
   shutdown_remote();
@@ -190,9 +179,10 @@ static void shutdown_zapzilla(void)
 
 static gboolean startup_zapzilla()
 {
-  cmd_register ("quit", quit_cmd, NULL);
-
   startup_remote ();
+
+  cmd_register ("quit", py_quit, METH_VARARGS,
+		_("Quits Zapzilla"), "zapping.quit()");
   D();
 
   /* Starts the configuration engine */

@@ -73,7 +73,7 @@ ttxview_get_scaled_ttx_page	(GtkWidget	*parent);
 void
 process_ttxview_menu_popup	(GtkWidget	*widget,
 				 GdkEventButton	*event,
-				 GtkMenu	*popup);
+				 GtkMenuShell	*popup);
 
 
 /**

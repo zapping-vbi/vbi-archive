@@ -22,21 +22,24 @@ lookup_widget (GtkWidget * parent, const gchar * name);
  * Registers a widget created by the app so lookup_widget finds it.
  */
 void
-register_widget(GtkWidget * widget, const char * name);
+register_widget (GtkWidget * widget, const char * name);
 
-/*
- * Change toolbar style of main window. Pass widget == NULL.
+/**
+ * Builds the given widget from the given glade file.
  */
-void
-change_toolbar_style (GtkWidget *widget, int style);
+GtkWidget *
+build_widget (const gchar* name, const gchar* file);
 
-extern GtkWidget *
-build_widget(const gchar* name, const gchar* file);
-GtkWidget* create_zapping (void);
-//GtkWidget* create_zapping_properties (void);
-GtkWidget* create_about2 (void);
-//GtkWidget* create_plugin_properties (void);
-GtkWidget* create_popup_menu1 (void);
-//GtkWidget* create_searching (void);
-//GtkWidget* create_txtcontrols (void);
+/**
+ * Builds the main window.
+ */
+GtkWidget *
+create_zapping (void);
+
+/**
+ * Builds the context menu for the main window.
+ */
+GtkWidget*
+create_popup_menu1 (void);
+
 #endif

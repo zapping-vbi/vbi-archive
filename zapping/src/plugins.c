@@ -16,8 +16,11 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+#define ZCONF_DOMAIN "/zapping/plugins/"
+#include "zconf.h"
 #include "plugins.h"
 #include "properties.h"
+#include "globals.h"
 
 /* This is the main plugin list, it is only used in plugin_bridge */
 extern GList * plugin_list;
@@ -269,6 +272,7 @@ void plugin_unload(struct plugin_info * info)
   g_module_close (info -> handle);
 }
 
+/* FIXME: This is ancient, remote.h is much nicer */
 /*
   This is the bridge given to the plugins.
 */
@@ -558,7 +562,8 @@ void plugin_process_popup_menu (GtkWidget	*widget,
 /* Loads all the valid plugins in the given directory, and appends them to
    the given GList. It returns the new GList. The plugins should
    contain exp in their filename (usually called with exp = .zapping.so) */
-static GList * plugin_load_plugins_in_dir( gchar * directory, gchar * exp,
+static GList * plugin_load_plugins_in_dir( const gchar * directory,
+					   gchar * exp,
 					   GList * old )
 {
   struct dirent ** namelist;
@@ -673,76 +678,42 @@ static gint plugin_sorter (struct plugin_info * a, struct plugin_info * b)
 GList * plugin_load_plugins ( void )
 {
   gchar * plugin_path; /* Path to the plugins */
-  gchar * buffer;
+  const gchar *dir;
+  gchar **plugin_dirs;
   GList * list = NULL;
-  FILE * fd;
   gint i;
 
   /* First load plugins in the home dir */
-  buffer = g_get_home_dir();
-  if (buffer)
+  dir = g_get_home_dir();
+  if (dir)
     {
-      g_assert(strlen(buffer) > 0);
-      if (buffer[strlen(buffer)-1] == '/')
-	plugin_path = g_strconcat(buffer, ".zapping/plugins", NULL);
+      g_assert(strlen(dir) > 0);
+      if (dir[strlen(dir)-1] == '/')
+	plugin_path = g_strconcat(dir, ".zapping/plugins", NULL);
       else
-	plugin_path = g_strconcat(buffer, "/.zapping/plugins", NULL);
+	plugin_path = g_strconcat(dir, "/.zapping/plugins", NULL);
       list = plugin_load_plugins_in_dir (plugin_path, PLUGIN_STRID,
 					 list);
       g_free( plugin_path );
-
-      /* Now load ~/.zapping/plugins_dirs */
-      if (buffer[strlen(buffer)-1] == '/')
-	plugin_path = g_strconcat(buffer, ".zapping/plugin_dirs", NULL);
-      else
-	plugin_path = g_strconcat(buffer, "/.zapping/plugin_dirs",
-				  NULL);
-      fd = fopen (plugin_path, "r");
-      g_free(plugin_path);
-      if (fd)
-	{
-	  buffer = (gchar *) g_malloc0(1024);
-
-	  while (fgets(buffer, 1023, fd))
-	    {
-	      plugin_path = buffer;
-	      /* Skip all spaces */
-	      while (*plugin_path == ' ')
-		plugin_path++;
-
-	      if ((strlen(plugin_path) == 0) || 
-		  (plugin_path[0] == '\n') ||
-		  (plugin_path[0] == '#')) /* Comments and empty lines
-					    */
-		continue;
-	      if (plugin_path[strlen(plugin_path)-1] == '\n')
-		plugin_path[strlen(plugin_path)-1] = 0;
-	      /* Remove all spaces at the end of the string */
-	      i = strlen(plugin_path)-1;
-	      while ((plugin_path[i] == ' ') && (i>=0))
-		{
-		  plugin_path[i--] = 0;
-		}
-	      if (strlen(plugin_path) == 0)
-		continue;
-	      list = plugin_load_plugins_in_dir (plugin_path,
-						 PLUGIN_STRID, list);
-	    }
-	  g_free (buffer);
-	}
     }
 
-  /* Now load plugins in $(prefix)/lib/zapping/plugins */
-  buffer = PACKAGE_LIB_DIR;
+  /* Load plugins in other directories */
+  zcc_char ("",
+	    "Colon separated list of dirs to be searched for plugins",
+	    "plugin_dirs");
+  plugin_dirs = g_strsplit(zcg_char (NULL, "plugin_dirs"),
+			   ":", 0);
+  if (plugin_dirs)
+    {
+      for (i=0; plugin_dirs[i]; i++)
+	list = plugin_load_plugins_in_dir (plugin_dirs[i],
+					   PLUGIN_STRID, list);
+      g_strfreev (plugin_dirs);
+    }
 
-  g_assert(strlen(buffer) > 0);
-  if (buffer[strlen(buffer)-1] == '/')
-    plugin_path = g_strconcat(buffer, "plugins", NULL);
-  else
-    plugin_path = g_strconcat(buffer, "/plugins", NULL);
-  /* Load all the plugins in this dir */
-  list = plugin_load_plugins_in_dir (plugin_path, PLUGIN_STRID, list);
-  g_free(plugin_path);
+  /* $(prefix)/lib/zapping/plugins */
+  dir = PACKAGE_LIB_DIR "/plugins";
+  list = plugin_load_plugins_in_dir (dir, PLUGIN_STRID, list);
 
   list = g_list_sort (list, (GCompareFunc) plugin_sorter);
 

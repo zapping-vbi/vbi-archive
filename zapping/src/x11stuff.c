@@ -33,6 +33,7 @@
 #include "zconf.h"
 #include "x11stuff.h"
 #include "zmisc.h"
+#include "globals.h"
 
 #ifndef DISABLE_X_EXTENSIONS
 #ifdef HAVE_LIBXDPMS
@@ -69,7 +70,10 @@ gint
 x11_get_bpp(void)
 {
   GdkImage * tmp_image;
-  gint result;
+  static gint depth = -1;
+
+  if (depth > 0)
+    return depth;
 
   tmp_image =
     gdk_image_new(GDK_IMAGE_FASTEST, gdk_visual_get_system(), 16, 16);
@@ -77,15 +81,15 @@ x11_get_bpp(void)
   if (!tmp_image)
     return -1;
 
-  result = tmp_image->depth;
+  depth = tmp_image->depth;
 
-  if (result == 24 &&
+  if (depth == 24 &&
       tmp_image->bpp == 4)
-    result = 32;
+    depth = 32;
 
-  gdk_image_destroy(tmp_image);
+  g_object_unref (G_OBJECT (tmp_image));
 
-  return result;
+  return depth;
 }
 
 /*
@@ -476,9 +480,6 @@ void xvzImage_destroy(xvzImage *image)
   backends[cur_backend].image_destroy(image);
 }
 
-#include <libgnomeui/gnome-winhints.h>
-#include <zmisc.h>
-
 static void
 dummy_window_on_top		(GtkWidget *		widget,
 				 gboolean		on)
@@ -491,6 +492,9 @@ dummy_window_on_top		(GtkWidget *		widget,
  */
 
 #if defined(USE_WMHOOKS) && !defined(DISABLE_X_EXTENSIONS)
+
+#include <libgnomeui/gnome-winhints.h>
+#include <zmisc.h>
 
 #include <stdio.h>
 #include <stdlib.h>

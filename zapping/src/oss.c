@@ -34,6 +34,7 @@
 #include "zconf.h"
 #include "interface.h"
 #include "zmisc.h"
+#include "globals.h"
 
 #include <sys/ioctl.h>
 #include <sys/soundcard.h>
@@ -184,7 +185,7 @@ oss_add_props (GtkBox *vbox)
   entry = GTK_ENTRY(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(fentry)));
   gtk_entry_set_text(entry, zcg_char(NULL, "oss/device"));
   gtk_box_pack_start_defaults(GTK_BOX(hbox), fentry);
-  gtk_object_set_data(GTK_OBJECT(vbox), "fentry", fentry);
+  g_object_set_data(G_OBJECT(vbox), "fentry", fentry);
 
   gtk_widget_show_all(hbox);
   gtk_box_pack_start_defaults(vbox, hbox);
@@ -194,16 +195,16 @@ static void
 oss_apply_props (GtkBox *vbox)
 {
   GnomeFileEntry *fentry =
-    GNOME_FILE_ENTRY(gtk_object_get_data(GTK_OBJECT(vbox), "fentry"));
+    GNOME_FILE_ENTRY(g_object_get_data(G_OBJECT(vbox), "fentry"));
   gchar *result = gnome_file_entry_get_full_path(fentry, TRUE);
 
   if (!result)
     {
-      gchar *real_text =
+      const gchar *real_text =
 	gtk_entry_get_text(GTK_ENTRY(gnome_file_entry_gtk_entry(fentry)));
 
       ShowBox(_("The given audio device \"%s\" doesn't exist"),
-	      GNOME_MESSAGE_BOX_WARNING, real_text);
+	      GTK_MESSAGE_WARNING, real_text);
     }
   else
     {

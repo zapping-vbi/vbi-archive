@@ -216,11 +216,6 @@ mw_setup		(GtkWidget	*page)
   widget = lookup_widget(page, "optionmenu23");
   gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
     1 + zconf_get_integer(NULL, "/zapping/options/main/channel_txl"));
-
-  /* toolbar style */
-  widget = lookup_widget(page, "toolbar_style");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL, "/zapping/options/main/toolbar_style"));  
 }
 
 static void
@@ -268,13 +263,6 @@ mw_apply		(GtkWidget	*page)
   /* channels refer to (-1 disabled) */
   zconf_set_integer(z_option_menu_get_active(widget) - 1,
 		    "/zapping/options/main/channel_txl");
-
-  widget = lookup_widget(page, "toolbar_style");
-  zconf_set_integer(z_option_menu_get_active(widget),
-		    "/zapping/options/main/toolbar_style");
-
-  change_toolbar_style (NULL, zconf_get_integer (NULL,
-		        "/zapping/options/main/toolbar_style"));
 }
 
 /* Video */
@@ -342,95 +330,7 @@ video_apply		(GtkWidget	*page)
 		    "/zapping/options/capture/xvsize");
 }
 
-static void
-on_osd_type_changed	(GtkWidget	*widget,
-			 GtkWidget	*page)
-{
-  widget = lookup_widget(widget, "optionmenu22");
-  gtk_widget_set_sensitive(lookup_widget(widget, "vbox38"),
-			   !z_option_menu_get_active(widget));
-}
-
-/* OSD */
-static void
-osd_setup		(GtkWidget	*page)
-{
-  GtkWidget *widget;
-
-  /* OSD type */
-  widget = lookup_widget(page, "optionmenu22");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_integer(NULL,
-		      "/zapping/options/osd/osd_type"));
-  gtk_widget_set_sensitive(lookup_widget(widget, "vbox38"),
-	   !zconf_get_integer(NULL, "/zapping/options/osd/osd_type"));
-  gtk_signal_connect(GTK_OBJECT(GTK_OPTION_MENU(widget)->menu), "deactivate",
-		     GTK_SIGNAL_FUNC(on_osd_type_changed),
-		     page);
-
-  /* OSD font */
-  widget = lookup_widget(page, "fontpicker1");
-  if (zconf_get_string(NULL, "/zapping/options/osd/font"))
-    gnome_font_picker_set_font_name(GNOME_FONT_PICKER(widget),
-    zconf_get_string(NULL, "/zapping/options/osd/font"));
-
-  /* OSD foreground color */
-  widget = lookup_widget(page, "colorpicker1");
-  gnome_color_picker_set_d(GNOME_COLOR_PICKER(widget),
-		   zconf_get_float(NULL, "/zapping/options/osd/fg_r"),
-		   zconf_get_float(NULL, "/zapping/options/osd/fg_g"),
-		   zconf_get_float(NULL, "/zapping/options/osd/fg_b"),
-		   0);
-
-  /* OSD background color */
-  widget = lookup_widget(page, "colorpicker2");
-  gnome_color_picker_set_d(GNOME_COLOR_PICKER(widget),
-		   zconf_get_float(NULL, "/zapping/options/osd/bg_r"),
-		   zconf_get_float(NULL, "/zapping/options/osd/bg_g"),
-		   zconf_get_float(NULL, "/zapping/options/osd/bg_b"),
-		   0);
-
-  /* OSD timeout in seconds */
-  widget = lookup_widget(page, "spinbutton2");
-  gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget),
-     zconf_get_float(NULL,
-		       "/zapping/options/osd/timeout"));
-}
-
-static void
-osd_apply		(GtkWidget	*page)
-{
-  GtkWidget *widget;
-  gdouble r, g, b, a;
-
-  widget = lookup_widget(page, "optionmenu22"); /* osd type */
-  zconf_set_integer(z_option_menu_get_active(widget),
-		    "/zapping/options/osd/osd_type");
-
-  widget = lookup_widget(page, "fontpicker1");
-  zconf_set_string(gnome_font_picker_get_font_name(GNOME_FONT_PICKER(widget)),
-		   "/zapping/options/osd/font");
-
-  widget = lookup_widget(page, "colorpicker1");
-  gnome_color_picker_get_d(GNOME_COLOR_PICKER(widget), &r, &g, &b,
-			   &a);
-  zconf_set_float(r, "/zapping/options/osd/fg_r");
-  zconf_set_float(g, "/zapping/options/osd/fg_g");
-  zconf_set_float(b, "/zapping/options/osd/fg_b");
-
-  widget = lookup_widget(page, "colorpicker2");
-  gnome_color_picker_get_d(GNOME_COLOR_PICKER(widget), &r, &g, &b,
-			   &a);
-  zconf_set_float(r, "/zapping/options/osd/bg_r");
-  zconf_set_float(g, "/zapping/options/osd/bg_g");
-  zconf_set_float(b, "/zapping/options/osd/bg_b");
-
-  widget = lookup_widget(page, "spinbutton2"); /* osd timeout */
-  zconf_set_float(
-	gtk_spin_button_get_value_as_float(GTK_SPIN_BUTTON(widget)),
-	"/zapping/options/osd/timeout");
-
-}
+/* VBI */
 
 static void
 on_enable_vbi_toggled	(GtkWidget	*widget,
@@ -448,8 +348,6 @@ on_enable_vbi_toggled	(GtkWidget	*widget,
     gtk_widget_set_sensitive(itv_props, active);
 }
 
-/* VBI */
-
 static void
 vbi_general_setup	(GtkWidget	*page)
 {
@@ -460,9 +358,9 @@ vbi_general_setup	(GtkWidget	*page)
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
     zconf_get_boolean(NULL, "/zapping/options/vbi/enable_vbi"));
   on_enable_vbi_toggled(widget, page);
-  gtk_signal_connect(GTK_OBJECT(widget), "toggled",
-		     GTK_SIGNAL_FUNC(on_enable_vbi_toggled),
-		     page);
+  g_signal_connect(G_OBJECT(widget), "toggled",
+		   G_CALLBACK(on_enable_vbi_toggled),
+		   page);
 
   /* use VBI for getting station names */
   widget = lookup_widget(page, "checkbutton7");
@@ -712,24 +610,22 @@ itv_apply		(GtkWidget	*page)
 }
 
 static void
-add				(GnomeDialog	*dialog)
+add				(GtkDialog	*dialog)
 {
   SidebarEntry device_info[] = {
-    { N_("Device Info"), ICON_ZAPPING, "gnome-info.png", "vbox9",
+    { N_("Device Info"), "gnome-info.png", "vbox9",
       di_setup, di_apply }
   };
   SidebarEntry general_options[] = {
-    { N_("Main Window"), ICON_ZAPPING, "gnome-session.png", "vbox35",
+    { N_("Main Window"), "gnome-session.png", "vbox35",
       mw_setup, mw_apply },
-    { N_("OSD"), ICON_ZAPPING, "gnome-oscilloscope.png", "vbox37",
-      osd_setup, osd_apply },
-    { N_("Video"), ICON_ZAPPING, "gnome-television.png", "vbox36",
+    { N_("Video"), "gnome-television.png", "vbox36",
       video_setup, video_apply }
   };
   SidebarEntry vbi_options[] = {
-    { N_("General"), ICON_ZAPPING, "gnome-monitor.png", "vbox17",
+    { N_("General"), "gnome-monitor.png", "vbox17",
       vbi_general_setup, vbi_general_apply },
-    { N_("Interactive TV"), ICON_ZAPPING, "gnome-monitor.png", "vbox33",
+    { N_("Interactive TV"), "gnome-monitor.png", "vbox33",
       itv_setup, itv_apply }
   };
   SidebarGroup groups[] = {
@@ -738,7 +634,8 @@ add				(GnomeDialog	*dialog)
     { N_("VBI Options"), vbi_options, acount(vbi_options) }
   };
 
-  standard_properties_add(dialog, groups, acount(groups), "zapping.glade");
+  standard_properties_add(dialog, groups, acount(groups),
+			  "zapping.glade2");
 }
 
 void startup_properties_handler(void)

@@ -32,59 +32,59 @@
 #include <gdk-pixbuf/gdk-pixbuf.h>
 
 #include <tveng.h>
-//#include <frequencies.h>
-
-/* in error_console.c, just adds the given message to the console */
-void ec_add_message(const gchar *text, gboolean show,
-		    GdkColor *color);
 
 /* With precompiler aid we can print much more useful info */
 /* This shows a non-modal, non-blocking message box */
-#define ShowBox(MSG, MSGTYPE, args...) do { \
-  gchar * tmp_str = g_strdup_printf(MSG,##args); \
-  gchar *level; \
-  gchar *buffer; \
-  if (!strcasecmp(MSGTYPE, GNOME_MESSAGE_BOX_ERROR)) \
-    level = _("Error: "); \
-  else if (!strcasecmp(MSGTYPE, GNOME_MESSAGE_BOX_WARNING)) \
-    level = _("Warning: "); \
-  else \
-    { \
-      ShowBoxReal(__FILE__, __LINE__, G_GNUC_PRETTY_FUNCTION, \
-		  tmp_str, MSGTYPE, FALSE, FALSE); \
-      g_free(tmp_str); \
-      break; \
-    } \
-  buffer = \
-    g_strdup_printf("%s%s (%d) [%s]:\n%s", level, \
-		    __FILE__, __LINE__, G_GNUC_PRETTY_FUNCTION, \
-		    tmp_str); \
-  ec_add_message(buffer, TRUE, NULL); \
-  g_free(tmp_str); \
-  g_free(buffer); \
+#define ShowBox(MSG, MSGTYPE, args...) \
+do {			\
+  GtkWidget * dialog =						\
+    gtk_message_dialog_new ((GtkWindow*)main_window,		\
+			    GTK_DIALOG_DESTROY_WITH_PARENT,	\
+			    MSGTYPE,				\
+			    GTK_BUTTONS_CLOSE,			\
+			    MSG,##args);			\
+								\
+  /* Destroy the dialog when the user responds to it */		\
+  /* (e.g. clicks a button) */					\
+  g_signal_connect_swapped (G_OBJECT (dialog), "response",	\
+			    G_CALLBACK (gtk_widget_destroy),	\
+			    GTK_OBJECT (dialog));		\
+								\
+  gtk_widget_show (dialog);					\
 } while (FALSE)
 
 /* This one shows a modal, non-blocking message box */
 #define ShowBoxModal(MSG, MSGTYPE, args...) \
-do { \
-  gchar * tmp_str = g_strdup_printf(MSG,##args); \
-  ShowBoxReal(__FILE__, __LINE__, G_GNUC_PRETTY_FUNCTION, \
-	      tmp_str, MSGTYPE, FALSE, TRUE); \
-  g_free(tmp_str); \
+do {		\
+  GtkWidget * dialog =						\
+    gtk_message_dialog_new ((GtkWindow*)main_window,		\
+			    GTK_DIALOG_DESTROY_WITH_PARENT |	\
+			    GTK_DIALOG_MODAL,			\
+			    MSGTYPE,				\
+			    GTK_BUTTONS_CLOSE,			\
+			    MSG,##args);			\
+								\
+  g_signal_connect_swapped (G_OBJECT (dialog), "response",	\
+			    G_CALLBACK (gtk_widget_destroy),	\
+			    GTK_OBJECT (dialog));		\
+								\
+  gtk_widget_show (dialog);					\
 } while (FALSE)
-
 
 /* This one shows a modal, blocking message box */
 #define RunBox(MSG, MSGTYPE, args...) \
-do { \
-  gchar * tmp_str = g_strdup_printf(MSG,##args); \
-  ShowBoxReal(__FILE__, __LINE__, G_GNUC_PRETTY_FUNCTION, \
-	      tmp_str, MSGTYPE, TRUE, TRUE); \
-  g_free(tmp_str); \
+do {			\
+  GtkWidget * dialog =						\
+    gtk_message_dialog_new ((GtkWindow*)main_window,		\
+			    GTK_DIALOG_DESTROY_WITH_PARENT |	\
+			    GTK_DIALOG_MODAL,			\
+			    MSGTYPE,				\
+			    GTK_BUTTONS_CLOSE,			\
+			    MSG,##args);			\
+								\
+  gtk_dialog_run (GTK_DIALOG (dialog));				\
+  gtk_widget_destroy (dialog);					\
 } while (FALSE)
-
-/* Some debug messages to track the startup */
-extern int /* gboolean */ debug_msg;
 
 #define D() \
 do { \
@@ -106,17 +106,6 @@ do { \
     gtk_main_iteration(); \
 } while (FALSE)
 
-/*
-  Prints a message box showing an error, with the location of the code
-  that called the function.
-*/
-GtkWidget * ShowBoxReal(const gchar * sourcefile,
-			const gint line,
-			const gchar * func,
-			const gchar * message,
-			const gchar * message_box_type,
-			gboolean blocking, gboolean modal);
-
 /**
  * Asks for a string, returning it, or NULL if it the operation was
  * cancelled
@@ -131,8 +120,8 @@ Prompt (GtkWidget *main_window, const gchar *title,
 	const gchar *prompt, const gchar *default_text);
 
 /**
- * Creates a GtkPixmapMenuEntry with the desired pixmap and the
- * desired label. The pixmap is a stock GNOME pixmap.
+ * Creates a GtkImageMenuItem with the desired pixmap and the
+ * desired mnemonic. The icon must be a valid Gtk stock icon name.
 */
 GtkWidget * z_gtk_pixmap_menu_item_new(const gchar * label,
 				       const gchar * icon);
@@ -348,10 +337,6 @@ void
 z_set_cursor			(GdkWindow	*window,
 				 guint		cid);
 
-/* Creates a GtkPixmap from the given filename, NULL if not found */
-GtkWidget *
-z_pixmap_new_from_file		(const gchar	*file);
-
 /* Same as z_pixmap_new_from_file(), but prepends PACKAGE_PIXMAP_DIR
    to name and gtk_shows the pixmap on success */
 GtkWidget *
@@ -394,5 +379,12 @@ z_spinslider_set_reset_value	(GtkWidget *hbox,
 /* Change both adjustments or use this */
 void
 z_spinslider_adjustment_changed	(GtkWidget *hbox);
+
+/* Makes the given entry emit the response to the dialog when
+   activated */
+void
+z_entry_emits_response		(GtkWidget	*entry,
+				 GtkDialog	*dialog,
+				 GtkResponseType response);
 
 #endif /* __ZMISC_H__ */

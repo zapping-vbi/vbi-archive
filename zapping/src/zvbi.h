@@ -176,6 +176,12 @@ ZModel *
 zvbi_get_model(void);
 
 /*
+  Modifies the gui according to VBI availability.
+ */
+void
+vbi_gui_sensitive (gboolean on);
+
+/*
   Builds a dialog showing the info we get from the VBI device
   a) network info, b) program info
 */

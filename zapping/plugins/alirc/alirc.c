@@ -70,36 +70,57 @@ static int setchan;
 
 static void
 lirc_channel_up(char *args) {
-  remote_command("channel_up",NULL);
+  cmd_run ("zapping.channel_up()");
 }
 
 static void
 lirc_channel_down(char *args) {
-  remote_command("channel_down",NULL);
+  cmd_run ("zapping.channel_down()");
 }
 
 static void
 lirc_quit(char *args) {
-  remote_command("quit",NULL);
+  cmd_run ("zapping.quit()");
+}
+
+static const char *
+mode2string (enum tveng_capture_mode mode)
+{
+  switch (mode)
+    {
+    case TVENG_CAPTURE_READ:
+      return "capture";
+    case TVENG_CAPTURE_PREVIEW:
+      return "fullscreen";
+    case TVENG_CAPTURE_WINDOW:
+      return "preview";
+    case TVENG_NO_CAPTURE:
+      return "teletext";
+    default:
+      g_assert_not_reached ();
+      break;
+    }
+
+  return "dona dona katona, sutondoan aitona";
 }
 
 static void
 lirc_zoom(char *args) {
   if (tveng_info->current_mode == TVENG_CAPTURE_PREVIEW) {
-    remote_command("switch_mode",GINT_TO_POINTER(windowedmode));
+    cmd_run_printf ("zapping.switch_mode('%s')",
+		    mode2string (windowedmode));
   } else {
     windowedmode = tveng_info->current_mode;
-    remote_command("switch_mode",GINT_TO_POINTER(TVENG_CAPTURE_PREVIEW));
+    cmd_run ("zapping.switch_mode('fullscreen')");
   }
 }
 
 static void
 lirc_setchannel(char *args) {
-  int channel,nchannels;
+  int channel;
   struct timeval time;
   unsigned long timestamp;
 
-  GINT_TO_POINTER(nchannels) = remote_command("get_num_channels",NULL);
   if (args == NULL) return;
 
   gettimeofday(&time,NULL);
@@ -121,10 +142,8 @@ lirc_setchannel(char *args) {
    \ custom number */ 
   channel--;
 
-  if (channel < 0 || channel >= nchannels ) channel = 0;
-
   printv("alirc plugin: Setting channel to %d\n",channel);
-  remote_command("set_channel",GINT_TO_POINTER(channel));
+  cmd_run_printf ("zapping.set_channel(%d)", channel);
 }
 
 struct lirc_key {
@@ -317,8 +336,10 @@ plugin_start (void) {
   }
   printv("alirc: Succesfully initialize\n");
 
-  lirc_iotag = gdk_input_add(fd,GDK_INPUT_READ,(GdkInputFunction)
-                             lirc_receive, NULL);
+  lirc_iotag = gtk_input_add_full (fd,
+				   GDK_INPUT_READ,
+				   (GdkInputFunction)
+				   lirc_receive, NULL, NULL, NULL);
   /* If everything has been ok, set the active flags and return TRUE
    */
   active = TRUE;
@@ -331,7 +352,7 @@ plugin_stop(void) {
   if (!active)
     return;
   /* stop it, we were active so */
-  gdk_input_remove(lirc_iotag);
+  gtk_input_remove(lirc_iotag);
   lirc_freeconfig(config);
   printv("alirc: Freed config struct\n");
   lirc_deinit();

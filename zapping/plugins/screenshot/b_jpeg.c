@@ -25,6 +25,7 @@
 /* avoid redefinition warning */
 #undef HAVE_STDLIB_H
 #undef HAVE_STDDEF_H
+#undef HAVE_PROTOTYPES
 #include <jpeglib.h>
 
 #define PARENT(ptr, type, member) \

@@ -19,7 +19,7 @@
 /*
  * This code is used to communicate with the VBI device (usually
  * /dev/vbi), so multiple plugins can access it simultaneously.
- * The code uses libvbi, written by Michael Schimek.
+ * Libvbi, written by Michael Schimek, is used.
  */
 
 #include <site_def.h>
@@ -38,7 +38,6 @@
 #include <pthread.h>
 #include <math.h>
 #include "common/ucs-2.h"
-//#include "common/errstr.h"
 
 #include "tveng.h"
 /* Manages config values for zconf (it saves me some typing) */
@@ -52,13 +51,11 @@
 #include "osd.h"
 #include "callbacks.h"
 #include "remote.h"
+#include "globals.h"
 
 #undef TRUE
 #undef FALSE
 #include "common/fifo.h"
-
-extern GtkWidget *main_window;
-extern tveng_device_info *main_info;
 
 /*
   Quality-speed tradeoff when scaling+antialiasing the page:
@@ -378,7 +375,7 @@ threads_init (gchar *dev_name, int given_fd)
 
   if (!(vbi = vbi_decoder_new()))
     {
-      ShowBox(failed, GNOME_MESSAGE_BOX_ERROR, memory);
+      RunBox(failed, GTK_MESSAGE_ERROR, memory);
       return FALSE;
     }
 
@@ -397,14 +394,14 @@ threads_init (gchar *dev_name, int given_fd)
 	{
 	  if (errno == ENOENT || errno == ENXIO || errno == ENODEV)
 	    {
-	      gchar *s = g_strconcat(_errstr, "\n", mknod_hint);
+	      gchar *s = g_strconcat(_errstr, "\n", mknod_hint, NULL);
 	      
-	      ShowBox(failed, GNOME_MESSAGE_BOX_ERROR, s);
+	      RunBox(failed, GTK_MESSAGE_ERROR, s);
 	      g_free (s);
 	    }
 	  else
 	    {
-	      ShowBox(failed, GNOME_MESSAGE_BOX_ERROR, _errstr);
+	      RunBox(failed, GTK_MESSAGE_ERROR, _errstr);
 	    }
 	  free (_errstr);
 	  vbi_decoder_delete (vbi);
@@ -422,7 +419,7 @@ threads_init (gchar *dev_name, int given_fd)
 
   if (!init_buffered_fifo (&sliced_fifo, "vbi-sliced", 20, buffer_size))
     {
-      ShowBox(failed, GNOME_MESSAGE_BOX_ERROR, memory);
+      ShowBox(failed, GTK_MESSAGE_ERROR, memory);
       vbi_capture_delete (capture);
       vbi_decoder_delete (vbi);
       vbi = NULL;
@@ -437,7 +434,7 @@ threads_init (gchar *dev_name, int given_fd)
 
   if (pthread_create (&decoder_id, NULL, decoding_thread, NULL))
     {
-      ShowBox(failed, GNOME_MESSAGE_BOX_ERROR, thread);
+      ShowBox(failed, GTK_MESSAGE_ERROR, thread);
       destroy_fifo (&sliced_fifo);
       vbi_capture_delete (capture);
       vbi_decoder_delete (vbi);
@@ -449,7 +446,7 @@ threads_init (gchar *dev_name, int given_fd)
 
   if (pthread_create (&capturer_id, NULL, capturing_thread, NULL))
     {
-      ShowBox(failed, GNOME_MESSAGE_BOX_ERROR, thread);
+      ShowBox(failed, GTK_MESSAGE_ERROR, thread);
       join ("dec0", decoder_id, &decoder_quit_ack, 15);
       destroy_fifo (&sliced_fifo);
       vbi_capture_delete (capture);
@@ -581,7 +578,7 @@ void shutdown_zvbi(void)
   D();
 
   if (vbi_model)
-    gtk_object_destroy(GTK_OBJECT(vbi_model));
+    g_object_unref(G_OBJECT(vbi_model));
 
   D();
 
@@ -622,18 +619,25 @@ static void
 on_trigger_clicked			(gpointer	ignored,
 					 vbi_link	*trigger)
 {
+  GError *err = NULL;
   switch (trigger->type)
     {
     case VBI_LINK_HTTP:
     case VBI_LINK_FTP:
     case VBI_LINK_EMAIL:
-      gnome_url_show(trigger->url);
+      gnome_url_show(trigger->url, &err);
+      if (err)
+	{
+	  ShowBox (_("Cannot show %s:\n%s"), GTK_MESSAGE_ERROR,
+	  trigger->url, err->message);
+	  g_error_free (err);
+	}
       break;
 
     case VBI_LINK_PAGE:
     case VBI_LINK_SUBPAGE:
-      cmd_execute_printf (NULL, "ttx_open_new %x %x",
-			  trigger->pgno, trigger->subno);
+      cmd_run_printf ("zapping.ttx_open_new(%x, %x)",
+		      trigger->pgno, trigger->subno);
       break;
 
     case VBI_LINK_LID:
@@ -644,7 +648,7 @@ on_trigger_clicked			(gpointer	ignored,
       
     default:
       ShowBox("Unhandled trigger type %d, please contact the maintainer",
-	      GNOME_MESSAGE_BOX_WARNING, trigger->type);
+	      GTK_MESSAGE_WARNING, trigger->type);
       break;
     }
 }
@@ -734,8 +738,8 @@ acknowledge_trigger			(vbi_link	*link)
    *     low = 6, 7, 8 or 9 (default 9)
    */
   memcpy(&last_trigger, link, sizeof(last_trigger));
-  gtk_signal_connect(GTK_OBJECT(button), "clicked",
-		     GTK_SIGNAL_FUNC(on_trigger_clicked),
+  g_signal_connect(G_OBJECT(button), "clicked",
+		     G_CALLBACK(on_trigger_clicked),
 		     &last_trigger);
 
   gtk_widget_show(button);
@@ -768,7 +772,7 @@ acknowledge_trigger			(vbi_link	*link)
       break;
     default:
       ShowBox("Unhandled link type %d, please contact the maintainer",
-	      GNOME_MESSAGE_BOX_WARNING, link->type);
+	      GTK_MESSAGE_WARNING, link->type);
       buffer = g_strdup_printf("%s", link->name);
       break;
     }
@@ -780,8 +784,6 @@ acknowledge_trigger			(vbi_link	*link)
 static void
 update_main_title (void)
 {
-  extern tveng_tuned_channel * global_channel_list;
-  extern int cur_tuned_channel;
   tveng_tuned_channel *channel;
   gchar *name = NULL;
 
@@ -966,18 +968,18 @@ remove_client(struct ttx_client *client)
 
   destroy_fifo(&client->mqueue);
   pthread_mutex_destroy(&client->mutex);
-  gdk_pixbuf_unref(client->unscaled_on);
-  gdk_pixbuf_unref(client->unscaled_off);
+  g_object_unref(client->unscaled_on);
+  g_object_unref(client->unscaled_off);
   if (client->scaled)
-    gdk_pixbuf_unref(client->scaled);
+    g_object_unref(client->scaled);
   for (i = 0; i<client->num_patches; i++)
     {
-      gdk_pixbuf_unref(client->patches[i].unscaled_on);
-      gdk_pixbuf_unref(client->patches[i].unscaled_off);
+      g_object_unref(client->patches[i].unscaled_on);
+      g_object_unref(client->patches[i].unscaled_off);
       if (client->patches[i].scaled_on)
-	gdk_pixbuf_unref(client->patches[i].scaled_on);
+	g_object_unref(client->patches[i].scaled_on);
       if (client->patches[i].scaled_off)
-	gdk_pixbuf_unref(client->patches[i].scaled_off);
+	g_object_unref(client->patches[i].scaled_off);
     }
   if (client->num_patches)
     g_free(client->patches);
@@ -994,7 +996,8 @@ vt_loading			(void)
 			     PACKAGE_PIXMAPS_DIR,
 			     (rand() % 2) + 1);
 
-  pixbuf = gdk_pixbuf_new_from_file (filename);
+  /* Errors will be detected later on */
+  pixbuf = gdk_pixbuf_new_from_file (filename, NULL);
 
   g_free (filename);
 
@@ -1035,7 +1038,7 @@ register_ttx_client(void)
 		       zcg_int(NULL, "qstradeoff"));
       z_pixbuf_copy_area(client->unscaled_on, 0, 0, w, h,
 			   client->unscaled_off, 0, 0);
-      gdk_pixbuf_unref(simple);
+      g_object_unref(simple);
     }
 
   g_assert(init_buffered_fifo(
@@ -1217,11 +1220,11 @@ add_patch(struct ttx_client *client, int col, int row,
       {
 	destiny = &client->patches[i];
 	if (destiny->scaled_on)
-	  gdk_pixbuf_unref(destiny->scaled_on);
+	  g_object_unref(G_OBJECT (destiny->scaled_on));
 	if (destiny->scaled_off)
-	  gdk_pixbuf_unref(destiny->scaled_off);
-	gdk_pixbuf_unref(destiny->unscaled_on);
-	gdk_pixbuf_unref(destiny->unscaled_off);
+	  g_object_unref(G_OBJECT (destiny->scaled_off));
+	g_object_unref(G_OBJECT (destiny->unscaled_on));
+	g_object_unref(G_OBJECT (destiny->unscaled_off));
 	break;
       }
       
@@ -1306,12 +1309,12 @@ resize_patches(struct ttx_client *client)
 	gdk_pixbuf_get_height(client->unscaled_on));
 
       if (client->patches[i].scaled_on)
-	gdk_pixbuf_unref(client->patches[i].scaled_on);
+	g_object_unref(G_OBJECT (client->patches[i].scaled_on));
       client->patches[i].scaled_on =
 	z_pixbuf_scale_simple(client->patches[i].unscaled_on,
 				sw, sh, zcg_int(NULL, "qstradeoff"));
       if (client->patches[i].scaled_off)
-	gdk_pixbuf_unref(client->patches[i].scaled_off);
+	g_object_unref(G_OBJECT (client->patches[i].scaled_off));
       client->patches[i].scaled_off =
 	z_pixbuf_scale_simple(client->patches[i].unscaled_off,
 				sw, sh, zcg_int(NULL, "qstradeoff"));
@@ -1333,11 +1336,11 @@ build_patches(struct ttx_client *client)
   for (i = 0; i<client->num_patches; i++)
     {
       if (client->patches[i].scaled_on)
-	gdk_pixbuf_unref(client->patches[i].scaled_on);
+	g_object_unref(G_OBJECT (client->patches[i].scaled_on));
       if (client->patches[i].scaled_off)
-	gdk_pixbuf_unref(client->patches[i].scaled_off);
-      gdk_pixbuf_unref(client->patches[i].unscaled_on);
-      gdk_pixbuf_unref(client->patches[i].unscaled_off);
+	g_object_unref(G_OBJECT (client->patches[i].scaled_off));
+      g_object_unref(G_OBJECT (client->patches[i].unscaled_on));
+      g_object_unref(G_OBJECT (client->patches[i].unscaled_off));
     }
   g_free(client->patches);
   client->patches = NULL;
@@ -1474,7 +1477,7 @@ build_client_page(struct ttx_client *client, vbi_page *pg)
 			       gdk_pixbuf_get_width(client->unscaled_on),
 			       gdk_pixbuf_get_height(client->unscaled_off),
 			       client->unscaled_off, 0, 0);
-	  gdk_pixbuf_unref(simple);
+	  g_object_unref(G_OBJECT (simple));
 	}
     }
 
@@ -1824,7 +1827,7 @@ void resize_ttx_page(int id, int w, int h)
 	  (client->h != h))
 	{
 	  if (client->scaled)
-	    gdk_pixbuf_unref(client->scaled);
+	    g_object_unref(G_OBJECT (client->scaled));
 	  client->scaled = NULL;
 	  client->scaled = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8,
 					  w, h);
@@ -2038,6 +2041,68 @@ event(vbi_event *ev, void *unused)
     }
 }
 
+void
+vbi_gui_sensitive (gboolean on)
+{
+  if (!on)
+    {
+      printv("VBI disabled, removing GUI items\n");
+      gtk_widget_set_sensitive(lookup_widget(main_window, "separador5"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "separador5"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "videotext1"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "videotext1"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "vbi_info1"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "vbi_info1"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "program_info1"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "program_info1"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "videotext3"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "videotext3"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "new_ttxview"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "new_ttxview"));
+      gtk_widget_set_sensitive(lookup_widget(main_window,
+					     "closed_caption1"),
+			       FALSE);
+      gtk_widget_hide(lookup_widget(main_window, "closed_caption1"));
+      gtk_widget_hide(lookup_widget(main_window, "separator8"));
+      /* Set the capture mode to a default value and disable VBI */
+      if (zcg_int(NULL, "capture_mode") == TVENG_NO_CAPTURE)
+	zcs_int(TVENG_CAPTURE_READ, "capture_mode");
+    }
+  else
+    {
+      printv("VBI enabled, showing GUI items\n");
+      gtk_widget_set_sensitive(lookup_widget(main_window, "separador5"),
+			       TRUE);
+      gtk_widget_show(lookup_widget(main_window, "separador5"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "videotext1"),
+			       TRUE);
+      gtk_widget_show(lookup_widget(main_window, "videotext1"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "vbi_info1"),
+			       TRUE);
+      gtk_widget_show(lookup_widget(main_window, "vbi_info1"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "program_info1"),
+			       TRUE);
+      gtk_widget_show(lookup_widget(main_window, "program_info1"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "videotext3"),
+			       TRUE);
+      gtk_widget_show(lookup_widget(main_window, "videotext3"));
+      gtk_widget_set_sensitive(lookup_widget(main_window, "new_ttxview"),
+			       TRUE);
+      gtk_widget_show(lookup_widget(main_window, "new_ttxview"));
+      gtk_widget_set_sensitive(lookup_widget(main_window,
+					     "closed_caption1"),
+			       TRUE);
+      gtk_widget_show(lookup_widget(main_window, "closed_caption1"));
+      gtk_widget_show(lookup_widget(main_window, "separator8"));
+    }
+}
+
 /* Handling of the network_info and prog_info dialog (alias vbi info vi) */
 
 typedef enum {
@@ -2061,9 +2126,12 @@ static void
 remove_vi_instance			(struct vi_data	*data)
 {
   unregister_ttx_client(data->id);
-  gtk_signal_disconnect_by_func(GTK_OBJECT(data->vbi_model),
-				GTK_SIGNAL_FUNC(destroy_vi),
-				data);
+  g_signal_handlers_disconnect_matched(G_OBJECT(data->vbi_model),
+				       G_SIGNAL_MATCH_FUNC |
+				       G_SIGNAL_MATCH_DATA,
+				       0, 0, NULL,
+				       G_CALLBACK(destroy_vi),
+				       data);
   gtk_timeout_remove(data->timeout);
   g_free(data);
 }
@@ -2468,7 +2536,7 @@ zvbi_build_network_info(void)
   if (!zvbi_get_object())
     {
       ShowBox("VBI couldn't be opened, Teletext won't work",
-	      GNOME_MESSAGE_BOX_ERROR);
+	      GTK_MESSAGE_ERROR);
       return vbi_info;
     }
 
@@ -2480,14 +2548,14 @@ zvbi_build_network_info(void)
   data->type = VI_TYPE_NETWORK;
   data->timeout = gtk_timeout_add(5000, (GtkFunction)event_timeout, data);
 
-  gtk_signal_connect(GTK_OBJECT(data->vbi_model), "changed",
-		     GTK_SIGNAL_FUNC(destroy_vi), data);
-  gtk_signal_connect(GTK_OBJECT(data->dialog), "delete-event",
-		     GTK_SIGNAL_FUNC(on_vi_delete_event),
+  g_signal_connect(G_OBJECT(data->vbi_model), "changed",
+		     G_CALLBACK(destroy_vi), data);
+  g_signal_connect(G_OBJECT(data->dialog), "delete-event",
+		     G_CALLBACK(on_vi_delete_event),
 		     data);
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->dialog, "button38")),
+  g_signal_connect(G_OBJECT(lookup_widget(data->dialog, "button38")),
 		     "clicked",
-		     GTK_SIGNAL_FUNC(destroy_vi), data);
+		     G_CALLBACK(destroy_vi), data);
 
   update_vi_network(data);
 
@@ -2502,7 +2570,7 @@ zvbi_build_program_info(void)
 
   if (!zvbi_get_object())
     {
-      ShowBox("VBI couldn't be opened", GNOME_MESSAGE_BOX_ERROR);
+      ShowBox("VBI couldn't be opened", GTK_MESSAGE_ERROR);
       return prog_info;
     }
 
@@ -2515,14 +2583,14 @@ zvbi_build_program_info(void)
   data->type = VI_TYPE_PROGRAM;
   data->timeout = gtk_timeout_add(5000, (GtkFunction)event_timeout, data);
 
-  gtk_signal_connect(GTK_OBJECT(data->vbi_model), "changed",
-		     GTK_SIGNAL_FUNC(destroy_vi), data);
-  gtk_signal_connect(GTK_OBJECT(data->dialog), "delete-event",
-		     GTK_SIGNAL_FUNC(on_vi_delete_event),
+  g_signal_connect(G_OBJECT(data->vbi_model), "changed",
+		     G_CALLBACK(destroy_vi), data);
+  g_signal_connect(G_OBJECT(data->dialog), "delete-event",
+		     G_CALLBACK(on_vi_delete_event),
 		     data);
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(data->dialog, "button40")),
+  g_signal_connect(G_OBJECT(lookup_widget(data->dialog, "button40")),
 		     "clicked",
-		     GTK_SIGNAL_FUNC(destroy_vi), data);
+		     G_CALLBACK(destroy_vi), data);
 
   update_vi_program(data);
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.19 2002-06-19 08:16:32 mschimek Exp $ */
+/* $Id: options.c,v 1.19.2.1 2002-07-19 20:53:44 garetxe Exp $ */
 
 #include "plugin_common.h"
 
@@ -65,7 +65,7 @@ static void
 do_option_control (GtkWidget *w, gpointer user_data)
 {
   grte_options *opts = (grte_options *) user_data;
-  char *keyword = (char *) gtk_object_get_data (GTK_OBJECT (w), "key");
+  char *keyword = (char *) g_object_get_data (G_OBJECT (w), "key");
   GtkLabel *label;
   rte_option_info *ro;
   rte_option_value val;
@@ -87,7 +87,7 @@ do_option_control (GtkWidget *w, gpointer user_data)
   if (ro->menu.num)
 #endif
     {
-      val.num = (gint) gtk_object_get_data (GTK_OBJECT (w), "idx");
+      val.num = (gint) g_object_get_data (G_OBJECT (w), "idx");
       rte_codec_option_menu_set (opts->codec, ro->keyword, val.num);
     }
   else
@@ -116,7 +116,7 @@ do_option_control (GtkWidget *w, gpointer user_data)
 	    g_assert_not_reached();
 	    break;
           case RTE_OPTION_STRING:
-	    val.str = gtk_entry_get_text (GTK_ENTRY (w));
+	    val.str = (gchar*)gtk_entry_get_text (GTK_ENTRY (w));
 	    break;
           default:
 	    g_warning ("Type %d of RTE option %s is not supported",
@@ -138,8 +138,8 @@ on_option_control (GtkWidget *w, gpointer user_data)
   if (GTK_IS_WIDGET (w))
     z_property_item_modified (w);
   else if (GTK_IS_ADJUSTMENT (w))
-    z_property_item_modified ((GtkWidget *) gtk_object_get_data
-			      (GTK_OBJECT (w), "spinslider"));
+    z_property_item_modified ((GtkWidget *) g_object_get_data
+			      (G_OBJECT (w), "spinslider"));
 }
 
 static void
@@ -159,9 +159,9 @@ create_entry (grte_options *opts, rte_option_info *ro, int index)
   gtk_entry_set_text (GTK_ENTRY (entry), val.str);
   free (val.str);
 
-  gtk_object_set_data (GTK_OBJECT (entry), "key", ro->keyword);
-  gtk_signal_connect (GTK_OBJECT (entry), "changed",
-		      GTK_SIGNAL_FUNC (on_option_control), opts);
+  g_object_set_data (G_OBJECT (entry), "key", ro->keyword);
+  g_signal_connect (G_OBJECT (entry), "changed",
+		      G_CALLBACK (on_option_control), opts);
 
   do_option_control (entry, opts);
 
@@ -232,13 +232,13 @@ create_menu (grte_options *opts, rte_option_info *ro, int index)
       menu_item = gtk_menu_item_new_with_label (str);
       free(str);
 
-      gtk_object_set_data (GTK_OBJECT (menu_item), "key", ro->keyword);
-      gtk_object_set_data (GTK_OBJECT (menu_item), "idx", GINT_TO_POINTER (i));
-      gtk_signal_connect (GTK_OBJECT (menu_item), "activate",
-			  GTK_SIGNAL_FUNC (on_option_control), opts);
+      g_object_set_data (G_OBJECT (menu_item), "key", ro->keyword);
+      g_object_set_data (G_OBJECT (menu_item), "idx", GINT_TO_POINTER (i));
+      g_signal_connect (G_OBJECT (menu_item), "activate",
+			  G_CALLBACK (on_option_control), opts);
 
       gtk_widget_show (menu_item);
-      gtk_menu_append (GTK_MENU (menu), menu_item);
+      gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
 
       if (current == i)
 	do_option_control (menu_item, opts);
@@ -297,10 +297,10 @@ create_slider (grte_options *opts, rte_option_info *ro, int index)
   adj = gtk_adjustment_new (val.dbl * div, min * div, max * div,
 			    step * div, big_step * div, big_step * div);
   spinslider = z_spinslider_new (GTK_ADJUSTMENT (adj), NULL, s, def * div);
-  gtk_object_set_data (GTK_OBJECT (adj), "key", ro->keyword);
-  gtk_object_set_data (GTK_OBJECT (adj), "spinslider", spinslider);
-  gtk_signal_connect (GTK_OBJECT (adj), "value-changed",
-		      GTK_SIGNAL_FUNC (on_option_control), opts);
+  g_object_set_data (G_OBJECT (adj), "key", ro->keyword);
+  g_object_set_data (G_OBJECT (adj), "spinslider", spinslider);
+  g_signal_connect (G_OBJECT (adj), "value-changed",
+		      G_CALLBACK (on_option_control), opts);
   gtk_widget_show (spinslider);
   gtk_table_resize (GTK_TABLE (opts->table), index + 1, 2);
   gtk_table_attach (GTK_TABLE (opts->table), label, 0, 1, index, index + 1,
@@ -326,9 +326,9 @@ create_checkbutton (grte_options *opts, rte_option_info *ro, int index)
   g_assert (rte_codec_option_get (opts->codec, ro->keyword, &val));
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (cb), val.num);
 
-  gtk_object_set_data (GTK_OBJECT (cb), "key", ro->keyword);
-  gtk_signal_connect (GTK_OBJECT (cb), "toggled",
-		      GTK_SIGNAL_FUNC (on_option_control), opts);
+  g_object_set_data (G_OBJECT (cb), "key", ro->keyword);
+  g_signal_connect (G_OBJECT (cb), "toggled",
+		      G_CALLBACK (on_option_control), opts);
 
   do_option_control (cb, opts);
 
@@ -385,7 +385,7 @@ grte_options_create (rte_context *context, rte_codec *codec)
   frame = gtk_frame_new (_("Options"));
   gtk_widget_show (frame);
 
-  gtk_object_set_data_full (GTK_OBJECT (frame), "opts", opts,
+  g_object_set_data_full (G_OBJECT (frame), "opts", opts,
     (GtkDestroyNotify) grte_options_destroy);
 
   opts->table = gtk_table_new (1, 3, FALSE);
@@ -678,7 +678,7 @@ grte_codec_create_menu		(rte_context *		context,
     {
       menu_item = gtk_menu_item_new_with_label (_("None"));
       gtk_widget_show (menu_item);
-      gtk_menu_append (GTK_MENU (menu), menu_item);
+      gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
     }
   else
     {
@@ -696,11 +696,11 @@ grte_codec_create_menu		(rte_context *		context,
         continue;
 
       menu_item = gtk_menu_item_new_with_label (_(cdinfo->label));
-      gtk_object_set_data (GTK_OBJECT (menu_item), "keyword",
+      g_object_set_data (G_OBJECT (menu_item), "keyword",
 			   (void *) cdinfo->keyword);
       z_tooltip_set (menu_item, _(cdinfo->tooltip));
       gtk_widget_show (menu_item);
-      gtk_menu_append (GTK_MENU (menu), menu_item);
+      gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
 
       if (default_item)
 	if (strcmp (keyword, cdinfo->keyword) == 0)
@@ -898,11 +898,12 @@ grte_context_create_menu	(const gchar *		zc_root,
 
       menu_item = gtk_menu_item_new_with_label (label);
       g_free(label);
-      gtk_object_set_data (GTK_OBJECT (menu_item), "keyword",
+
+      g_object_set_data (G_OBJECT (menu_item), "keyword",
 			   (void *) info->keyword);
       z_tooltip_set (menu_item, _(info->tooltip));
       gtk_widget_show (menu_item);
-      gtk_menu_append (GTK_MENU (menu), menu_item);
+      gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
 
       if (default_item)
 	if (strcmp (keyword, info->keyword) == 0)

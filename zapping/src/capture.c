@@ -38,16 +38,11 @@
 #include "capture.h"
 #include "yuv2rgb.h"
 #include "csconvert.h"
+#include "globals.h"
 
 /* FIXME: This is a pretty vital piece of code but it's a bit hard
    to follow. Needs some docs/cleanup. */
 /* FIXME: Plain ugliness */
-
-/* Some global stuff we need, see descriptions in main.c */
-extern tveng_device_info	*main_info;
-extern GtkWidget		*main_window;
-extern gboolean			flag_exit_program;
-extern GList			*plugin_list;
 
 #define NUM_BUNDLES 6 /* in capture_fifo */
 static fifo		_capture_fifo;
@@ -114,7 +109,7 @@ clear_bundle(capture_bundle *d)
       xvzImage_destroy(d->image.xvimage);
       break;
     case CAPTURE_BUNDLE_GDK:
-      gdk_image_destroy(d->image.gdkimage);
+      g_object_unref (G_OBJECT (d->image.gdkimage));
       break;
     case CAPTURE_BUNDLE_DATA:
       g_free(d->image.yuv_data);
@@ -577,7 +572,8 @@ capture_unlock(void)
 	  capture_canvas)
 	{
 	  /* request */
-	  gdk_window_get_size(capture_canvas->window, &w, &h);
+	  gdk_window_get_geometry(capture_canvas->window, NULL, NULL,
+				  &w, &h, NULL);
 	  
 	  request_default_format(w, h, main_info);
 	}
@@ -626,7 +622,8 @@ print_info(GtkWidget *main_window)
 
   /* info about the used visuals (they should match exactly) */
   print_visual_info(gdk_visual_get_system(), "system visual");
-  print_visual_info(gdk_window_get_visual(tv_screen), "tv screen visual");
+  print_visual_info(gdk_drawable_get_visual(GDK_DRAWABLE(tv_screen)),
+		    "tv screen visual");
 
   fprintf(stderr,
 	  "tveng frame format:\n"
@@ -711,7 +708,8 @@ static gint idle_handler(gpointer ignored)
 		   capture_canvas->style->white_gc);
       break;
     case CAPTURE_BUNDLE_GDK:
-      gdk_window_get_size(capture_canvas->window, &w, &h);
+      gdk_window_get_geometry(capture_canvas->window, NULL, NULL, &w,
+			      &h, NULL);
       iw = d->image.gdkimage->width;
       ih = d->image.gdkimage->height;
       if (expose_w != iw || expose_h != ih)
@@ -734,7 +732,7 @@ static gint idle_handler(gpointer ignored)
 	{
 	  /* reallocate translation buffer */
 	  if (yuv_image)
-	    gdk_image_destroy(yuv_image);
+	    g_object_unref (G_OBJECT (yuv_image));
 	  yuv_image = NULL;
 	  yuv_image = gdk_image_new(GDK_IMAGE_FASTEST,
 				    gdk_visual_get_system(),
@@ -751,7 +749,8 @@ static gint idle_handler(gpointer ignored)
 		       (uint8_t*)d->image.yuv_data,
 		       d->format.width, d->format.height,
 		       yuv_image->bpl, d->format.width*2);
-	      gdk_window_get_size(capture_canvas->window, &w, &h);
+	      gdk_window_get_geometry(capture_canvas->window, NULL,
+				      NULL, &w, &h, NULL);
 	      iw = yuv_image->width;
 	      ih = yuv_image->height;
 	      if (expose_w != iw || expose_h != ih)
@@ -780,7 +779,8 @@ static gint idle_handler(gpointer ignored)
 			d->format.width, d->format.height,
 			yuv_image->bpl, d->format.width,
 			d->format.width*0.5);
-		gdk_window_get_size(capture_canvas->window, &w, &h);
+		gdk_window_get_geometry(capture_canvas->window, NULL,
+					NULL, &w, &h, NULL);
 		iw = yuv_image->width;
 		ih = yuv_image->height;
 		if (expose_w != iw || expose_h != ih)
@@ -856,7 +856,7 @@ capture_start(GtkWidget * window, tveng_device_info *info)
 
   gdk_window_set_back_pixmap(window->window, NULL, FALSE);
 
-  gdk_window_get_size(window->window, &w, &h);
+  gdk_window_get_geometry(window->window, NULL, NULL, &w, &h, NULL);
 
   have_xv = exit_capture_thread = FALSE;
   capture_locked = 0;
@@ -867,7 +867,7 @@ capture_start(GtkWidget * window, tveng_device_info *info)
   if (!request_default_format(w, h, info))
     {
       ShowBox("Couldn't start capture: no capture format available",
-	      GNOME_MESSAGE_BOX_ERROR);
+	      GTK_MESSAGE_ERROR);
       if (have_xv)
 	xvz_ungrab_port(info);
       return -1;
@@ -876,7 +876,7 @@ capture_start(GtkWidget * window, tveng_device_info *info)
   if (-1 == tveng_start_capturing(info))
     {
       ShowBox("Couldn't start capturing: %s",
-	      GNOME_MESSAGE_BOX_ERROR,
+	      GTK_MESSAGE_ERROR,
 	      info->error);
       if (have_xv)
 	xvz_ungrab_port(info);
@@ -887,12 +887,12 @@ capture_start(GtkWidget * window, tveng_device_info *info)
 			   info));
 
   idle_id = gtk_idle_add((GtkFunction)idle_handler, window);
-  gtk_signal_connect(GTK_OBJECT(window), "size-allocate",
-		     GTK_SIGNAL_FUNC(on_capture_canvas_allocate), info);
+  g_signal_connect(G_OBJECT(window), "size-allocate",
+		   G_CALLBACK(on_capture_canvas_allocate), info);
   expose_w = -1;
   expose_h = -1;
-  gtk_signal_connect(GTK_OBJECT(window), "expose_event",
-		     GTK_SIGNAL_FUNC(on_capture_expose_event), NULL);
+  g_signal_connect(G_OBJECT(window), "expose_event",
+		   G_CALLBACK(on_capture_expose_event), NULL);
 
   capture_canvas = window;
 
@@ -931,12 +931,19 @@ capture_stop(tveng_device_info *info)
 
   if (!flag_exit_program)
     {
-      gtk_signal_disconnect_by_func(GTK_OBJECT(capture_canvas),
-				    GTK_SIGNAL_FUNC(on_capture_canvas_allocate),
-				    main_info);
-      gtk_signal_disconnect_by_func(GTK_OBJECT(capture_canvas),
-				    GTK_SIGNAL_FUNC (on_capture_expose_event),
-				    NULL);
+      g_signal_handlers_disconnect_matched(G_OBJECT(capture_canvas),
+					   G_SIGNAL_MATCH_FUNC |
+					   G_SIGNAL_MATCH_DATA,
+					   0, 0, NULL,
+					   G_CALLBACK(on_capture_canvas_allocate),
+					   main_info);
+
+      g_signal_handlers_disconnect_matched(G_OBJECT(capture_canvas),
+					   G_SIGNAL_MATCH_FUNC |
+					   G_SIGNAL_MATCH_DATA,
+					   0, 0, NULL,
+					   G_CALLBACK (on_capture_expose_event),
+					   NULL);
     }
 
   capture_canvas = NULL;
@@ -970,7 +977,7 @@ void
 shutdown_capture(void)
 {
   if (yuv_image)
-    gdk_image_destroy(yuv_image);
+    g_object_unref (G_OBJECT (yuv_image));
 
   pthread_mutex_destroy(&req_format_mutex);
 

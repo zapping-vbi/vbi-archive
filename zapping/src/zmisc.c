@@ -43,106 +43,55 @@
 #include "zvbi.h"
 #include "osd.h"
 #include "remote.h"
+#include "keyboard.h"
+#include "globals.h"
+#include "audio.h"
 
 extern tveng_device_info * main_info;
 extern volatile gboolean flag_exit_program;
-extern GtkWidget * main_window;
 extern gint disable_preview; /* TRUE if preview won't work */
 extern gboolean xv_present;
-int debug_msg = FALSE; /* Debugging messages on or off */
-
-/*
-  Prints a message box showing an error, with the location of the code
-  that called the function. If run is TRUE, gnome_dialog_run will be
-  called instead of just showing the dialog. Keep in mind that this
-  will block the capture.
-*/
-GtkWidget * ShowBoxReal(const gchar * sourcefile,
-			const gint line,
-			const gchar * func,
-			const gchar * message,
-			const gchar * message_box_type,
-			gboolean blocking, gboolean modal)
-{
-  GtkWidget * dialog;
-  gchar * str;
-  gchar buffer[256];
-
-  buffer[255] = 0;
-
-  g_snprintf(buffer, 255, " (%d)", line);
-
-  str = g_strconcat(sourcefile, buffer, ": [", func, "]", NULL);
-
-  if (!str)
-    return NULL;
-
-  dialog = gnome_message_box_new(message, message_box_type,
-				 GNOME_STOCK_BUTTON_OK,
-				 NULL);
-
-
-  gtk_window_set_title(GTK_WINDOW (dialog), str);
-
-  /*
-    I know this isn't usual for a dialog box, but this way we can see
-    all the title bar if we want to
-  */
-  gtk_window_set_policy(GTK_WINDOW (dialog), FALSE, TRUE, TRUE);
-
-  g_free(str);
-
-  if (blocking)
-    {
-      gnome_dialog_run_and_close(GNOME_DIALOG(dialog));
-      return NULL;
-    }
-
-  gtk_window_set_modal(GTK_WINDOW (dialog), modal);
-  gtk_widget_show(dialog);
-
-  return dialog;
-}
 
 gchar*
 Prompt (GtkWidget *main_window, const gchar *title,
 	const gchar *prompt,  const gchar *default_text)
 {
   GtkWidget * dialog;
-  GtkVBox * vbox;
+  GtkBox *vbox;
   GtkWidget *label, *entry;
   gchar *buffer = NULL;
 
-  dialog = gnome_dialog_new(title,
-			    GNOME_STOCK_BUTTON_OK,
-			    GNOME_STOCK_BUTTON_CANCEL,
-			    NULL);
-  if (main_window)
-    gnome_dialog_set_parent(GNOME_DIALOG (dialog), GTK_WINDOW(main_window));
-  gnome_dialog_close_hides(GNOME_DIALOG (dialog), TRUE);
-  gnome_dialog_set_default(GNOME_DIALOG (dialog), 0);
+  dialog = gtk_dialog_new_with_buttons
+    (title, GTK_WINDOW (main_window),
+     GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL,
+     GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+     GTK_STOCK_OK, GTK_RESPONSE_OK,
+     NULL);
 
-  gtk_window_set_title(GTK_WINDOW (dialog), title);
-  gtk_window_set_modal(GTK_WINDOW (dialog), TRUE);
-  vbox = GTK_VBOX(GNOME_DIALOG(dialog)->vbox);
+  gtk_dialog_set_default_response (GTK_DIALOG (dialog), GTK_RESPONSE_OK);
+
+  vbox = GTK_BOX (GTK_DIALOG (dialog) -> vbox);
+
   if (prompt)
     {
-      label = gtk_label_new(prompt);
-      gtk_box_pack_start_defaults(GTK_BOX(vbox), label);
+      label = gtk_label_new (prompt);
+      gtk_box_pack_start_defaults (vbox, label);
       gtk_widget_show(label);
     }
   entry = gtk_entry_new();
   gtk_box_pack_start_defaults(GTK_BOX(vbox), entry);
   gtk_widget_show(entry);
-  gnome_dialog_editable_enters(GNOME_DIALOG(dialog), GTK_EDITABLE (entry));
   gtk_widget_grab_focus(entry);
   if (default_text)
     {
-      gtk_entry_set_text(GTK_ENTRY(entry), default_text);
-      gtk_entry_select_region(GTK_ENTRY(entry), 0, -1);
+      gtk_entry_set_text (GTK_ENTRY(entry), default_text);
+      gtk_editable_select_region (GTK_EDITABLE (entry), 0, -1);
     }
 
-  if (!gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
+  z_entry_emits_response (entry, GTK_DIALOG (dialog),
+			  GTK_RESPONSE_OK);
+
+  if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_OK)
     buffer = g_strdup(gtk_entry_get_text(GTK_ENTRY(entry)));
 
   gtk_widget_destroy(dialog);
@@ -150,40 +99,24 @@ Prompt (GtkWidget *main_window, const gchar *title,
   return buffer;
 }
 
-/*
-  Creates a GtkPixmapMenuEntry with the desired pixmap and the
-  desired label.
-*/
-GtkWidget * z_gtk_pixmap_menu_item_new(const gchar * label,
+GtkWidget * z_gtk_pixmap_menu_item_new(const gchar * mnemonic,
 				       const gchar * icon)
 {
-  GtkWidget * pixmap_menu_item;
-  GtkWidget * accel_label;
-  GtkWidget * pixmap;
+  GtkWidget * imi;
+  GtkWidget * image;
 
-  g_assert(label != NULL);
-
-  pixmap_menu_item = gtk_pixmap_menu_item_new();
-  accel_label = gtk_accel_label_new (label);
-  gtk_misc_set_alignment(GTK_MISC(accel_label), 0.0, 0.5);
-  gtk_container_add(GTK_CONTAINER (pixmap_menu_item), accel_label);
-  gtk_accel_label_set_accel_widget (GTK_ACCEL_LABEL (accel_label),
-				    pixmap_menu_item);
-  gtk_widget_show (accel_label);
+  imi = gtk_image_menu_item_new_with_mnemonic (mnemonic);
 
   if (icon)
     {
-      /* if i don't specify the size, the pixmap is too big, but the
-	 one libgnomeui creates isn't... why? */
-      pixmap = gnome_stock_pixmap_widget_at_size (pixmap_menu_item,
-						  icon, 16, 16);
-      
-      gtk_pixmap_menu_item_set_pixmap(GTK_PIXMAP_MENU_ITEM(pixmap_menu_item),
-				      pixmap);
-      gtk_widget_show(pixmap);
+      image = gtk_image_new_from_stock (icon, GTK_ICON_SIZE_MENU);
+      gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (imi),
+				     image);
+      /* not sure whether this is necessary, but won't harm */
+      gtk_widget_show (image);
     }
 
-  return (pixmap_menu_item);
+  return (imi);
 }
 
 /*
@@ -195,7 +128,8 @@ static GtkTooltips *		tooltips_default = NULL;
 static gboolean			tooltips_enabled = TRUE;
 
 static void
-tooltips_destroy_notify		(gpointer		data)
+tooltips_destroy_notify		(gpointer	data,
+				 GObject	*where_the_object_was)
 {
   g_list_remove (tooltips_list, data);
 }
@@ -208,9 +142,9 @@ z_tooltips_add			(GtkTooltips *		tips)
 
   tooltips_list = g_list_append (tooltips_list, (gpointer) tips);
 
-  gtk_object_weakref (GTK_OBJECT (tips),
-		      tooltips_destroy_notify,
-		      (gpointer) tips);
+  g_object_weak_ref (G_OBJECT (tips),
+		     tooltips_destroy_notify,
+		     (gpointer) tips);
 
   if (tooltips_enabled)
     gtk_tooltips_enable (tips);
@@ -264,8 +198,7 @@ z_set_sensitive_with_tooltip	(GtkWidget *		widget,
   gtk_tooltips_set_tip (tooltips_default, widget, new_tip, NULL);
 }
 
-/*****************************************************************************/
-
+/**************************************************************************/
 int
 zmisc_restore_previous_mode(tveng_device_info * info)
 {
@@ -303,7 +236,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   if (info->num_inputs > 0)
     old_name = g_strdup(info->inputs[info->cur_input].name);
 
-  gdk_window_get_size(tv_screen->window, &w, &h);
+  gdk_window_get_geometry(tv_screen->window, NULL, NULL, &w, &h, NULL);
   gdk_window_get_origin(tv_screen->window, &x, &y);
 
   muted = tveng_get_mute(info);
@@ -340,16 +273,17 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 
 	  ttxview_detach(main_window);
 
-	  set_stock_pixmap(w, GNOME_STOCK_PIXMAP_ALIGN_JUSTIFY);
+	  set_stock_pixmap(w, GTK_STOCK_JUSTIFY_FILL);
 	  z_tooltip_set(w, _("Use Zapping as a Teletext navigator"));
 	}
       else
 	{
-	  set_stock_pixmap(w, GNOME_STOCK_PIXMAP_TABLE_FILL);
+	  set_stock_pixmap(w, GTK_STOCK_REDO);
 	  z_tooltip_set(w, _("Return to windowed mode and use the current "
 			   "page as subtitles"));
 	}
     }
+#endif /* HAVE_LIBZVBI */
 
   if (new_mode != TVENG_CAPTURE_PREVIEW &&
       new_mode != TVENG_NO_CAPTURE)
@@ -359,7 +293,6 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
       osd_clear();
       osd_unset_window();
     }
-#endif /* HAVE_LIBZVBI */
 
   switch (new_mode)
     {
@@ -377,13 +310,13 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 				      TVENG_ATTACH_XV, info) == -1)
 		{
 		  RunBox("%s couldn't be opened\n:%s,\naborting",
-			 GNOME_MESSAGE_BOX_ERROR,
+			 GTK_MESSAGE_ERROR,
 			 zcg_char(NULL, "video_device"), info->error);
 		  exit(1);
 		}
 	      else
 		ShowBox("Capture mode not available:\n%s",
-			GNOME_MESSAGE_BOX_ERROR, info->error);
+			GTK_MESSAGE_ERROR, info->error);
 	    }
 	}
       tveng_set_capture_size(w, h, info);
@@ -391,7 +324,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
       break;
     case TVENG_CAPTURE_WINDOW:
       if (disable_preview) {
-	ShowBox("preview has been disabled", GNOME_MESSAGE_BOX_WARNING);
+	ShowBox("preview has been disabled", GTK_MESSAGE_WARNING);
 	g_free(old_name);
 	return -1;
       }
@@ -404,7 +337,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 				  TVENG_ATTACH_XV, info)==-1)
 	    {
 	      RunBox("%s couldn't be opened\n:%s, aborting",
-		     GNOME_MESSAGE_BOX_ERROR,
+		     GTK_MESSAGE_ERROR,
 		     zcg_char(NULL, "video_device"), info->error);
 	      exit(1);
 	    }
@@ -413,7 +346,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
       if (!tveng_detect_preview(info))
 	{
 	  ShowBox(_("Preview will not work: %s"),
-		  GNOME_MESSAGE_BOX_ERROR, info->error);
+		  GTK_MESSAGE_ERROR, info->error);
 	  return -1;
 	}
 
@@ -451,7 +384,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
       break;
     case TVENG_CAPTURE_PREVIEW:
       if (disable_preview) {
-	ShowBox("preview has been disabled", GNOME_MESSAGE_BOX_WARNING);
+	ShowBox("preview has been disabled", GTK_MESSAGE_WARNING);
 	g_free(old_name);
 	return -1;
       }
@@ -464,7 +397,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 				  TVENG_ATTACH_XV, info)==-1)
 	    {
 	      RunBox("%s couldn't be opened\n:%s, aborting",
-		     GNOME_MESSAGE_BOX_ERROR,
+		     GTK_MESSAGE_ERROR,
 		     zcg_char(NULL, "video_device"), info->error);
 	      exit(1);
 	    }
@@ -505,7 +438,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 #endif
 	    {
 	      ShowBox(_("VBI has been disabled, or it doesn't work."),
-		      GNOME_MESSAGE_BOX_INFO);
+		      GTK_MESSAGE_INFO);
 	      break;
 	    }
 	}
@@ -557,12 +490,8 @@ z_restart_everything(enum tveng_capture_mode mode,
 void set_stock_pixmap	(GtkWidget	*button,
 			 const gchar	*new_pix)
 {
-  GtkWidget *widget = GTK_BIN(button)->child;
-  GList *node = g_list_first(GTK_BOX(widget)->children)->next;
-
-  widget = GTK_WIDGET(((GtkBoxChild*)(node->data))->widget);
-
-  gnome_stock_set_icon(GNOME_STOCK(widget), new_pix);
+  gtk_button_set_use_stock (GTK_BUTTON (button), TRUE);
+  gtk_button_set_label (GTK_BUTTON (button), new_pix);
 }
 
 /**
@@ -679,10 +608,7 @@ z_menu_get_index		(GtkWidget	*menu,
 gint
 z_option_menu_get_active	(GtkWidget	*option_menu)
 {
-  option_menu = gtk_option_menu_get_menu(GTK_OPTION_MENU(option_menu));
-
-  return g_list_index(GTK_MENU_SHELL(option_menu)->children,
-		      gtk_menu_get_active(GTK_MENU(option_menu)));
+  return gtk_option_menu_get_history (GTK_OPTION_MENU (option_menu));
 }
 
 void
@@ -709,7 +635,7 @@ z_change_menuitem			 (GtkWidget	*widget,
 					  const gchar	*new_label,
 					  const gchar	*new_tooltip)
 {
-  GtkWidget *spixmap;
+  GtkWidget *image;
 
   if (new_label)
     change_pixmenuitem_label(widget, new_label);
@@ -717,16 +643,11 @@ z_change_menuitem			 (GtkWidget	*widget,
     z_tooltip_set(widget, new_tooltip);
   if (new_pixmap)
     {
-      spixmap = gnome_stock_pixmap_widget_at_size(widget, new_pixmap, 16, 16);
-      
-      /************* THIS SHOULD NEVER BE DONE ***********/
-      gtk_object_destroy(GTK_OBJECT(GTK_PIXMAP_MENU_ITEM(widget)->pixmap));
-      GTK_PIXMAP_MENU_ITEM(widget)->pixmap = NULL;
-      
-      /********** BUT THERE'S NO OTHER WAY TO DO IT ******/
-      gtk_widget_show(spixmap);
-      gtk_pixmap_menu_item_set_pixmap(GTK_PIXMAP_MENU_ITEM(widget),
-				      spixmap);
+      image = gtk_image_new_from_stock (new_pixmap, GTK_ICON_SIZE_MENU);
+      gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (widget),
+				     image);
+      /* not sure whether this is necessary, but won't harm */
+      gtk_widget_show (image);
      }
 }
 
@@ -741,24 +662,24 @@ static void
 add_hide(GtkWidget *appbar)
 {
   GtkWidget *old =
-    gtk_object_get_data(GTK_OBJECT(appbar), "hide_button");
+    g_object_get_data(G_OBJECT(appbar), "hide_button");
   GtkWidget *widget;
 
   if (old)
     return;
 
-  widget = gnome_stock_button(GNOME_STOCK_BUTTON_CLOSE);
+  widget = gtk_button_new_from_stock (GTK_STOCK_CLOSE);
   z_tooltip_set(widget, _("Hide the status bar"));
 
   if (widget)
     gtk_box_pack_end(GTK_BOX(appbar), widget, FALSE, FALSE, 0);
 
   gtk_widget_show(widget);
-  gtk_signal_connect_object(GTK_OBJECT(widget), "clicked",
-			    GTK_SIGNAL_FUNC(appbar_hide),
-			    GTK_OBJECT(appbar));
+  g_signal_connect_swapped(G_OBJECT(widget), "clicked",
+			   G_CALLBACK(appbar_hide),
+			   appbar);
 
-  gtk_object_set_data(GTK_OBJECT(appbar), "hide_button", widget);
+  g_object_set_data(G_OBJECT(appbar), "hide_button", widget);
 }
 
 void z_status_print(const gchar *message)
@@ -778,7 +699,7 @@ void z_status_set_widget(GtkWidget * widget)
   GtkWidget *appbar2 =
     lookup_widget(main_window, "appbar2");
   GtkWidget *old =
-    gtk_object_get_data(GTK_OBJECT(appbar2), "old_widget");
+    g_object_get_data(G_OBJECT(appbar2), "old_widget");
 
   if (old)
     gtk_container_remove(GTK_CONTAINER(appbar2), old);
@@ -788,7 +709,7 @@ void z_status_set_widget(GtkWidget * widget)
 
   add_hide(appbar2);
 
-  gtk_object_set_data(GTK_OBJECT(appbar2), "old_widget", widget);
+  g_object_set_data(G_OBJECT(appbar2), "old_widget", widget);
 
   gtk_widget_show(appbar2);
 }
@@ -906,15 +827,28 @@ z_build_filename (gchar *dirname, gchar *filename)
   return name;
 }
 
+/* Why has this function been deprecated in gtk 2 is a mistery to me */
+static void
+z_entry_append_text	(gpointer e, const gchar *text)
+{
+  GtkEditable * _e = GTK_EDITABLE (e);
+  gint pos;
+
+  gtk_editable_set_position (_e, -1);
+  pos = gtk_editable_get_position (_e);
+  gtk_editable_insert_text (_e, text, strlen (text), &pos);
+}
+
 /* See ttx export or screenshot for a demo */
 void
 z_on_electric_filename (GtkWidget *w, gpointer user_data)
 {
   gchar **bpp = (gchar **) user_data;
   gchar *basename = (gchar *)
-    gtk_object_get_data (GTK_OBJECT (w), "basename");
-  gchar *name = gtk_entry_get_text (GTK_ENTRY (w));
-  gchar *baseext, *ext;
+    g_object_get_data (G_OBJECT (w), "basename");
+  const gchar *name = gtk_entry_get_text (GTK_ENTRY (w));
+  const gchar *ext;
+  gchar *baseext;
   gint len, baselen, baseextlen;
 
   g_assert(basename != NULL);
@@ -925,6 +859,12 @@ z_on_electric_filename (GtkWidget *w, gpointer user_data)
   baseextlen = (*baseext == '.') ?
     baselen - (baseext - basename) : 0;
 
+  /* This function is usually a callback handler for the "changed"
+     signal in a GtkEditable. Since we will change the editable too,
+     block the signal emission while we are editing */
+  g_signal_handlers_block_by_func (G_OBJECT (w), 
+				   z_on_electric_filename, user_data);
+
   len = strlen(name);
   /* last '/' in name */
   for (ext = name + len - 1; ext > name && *ext != '/'; ext--);
@@ -934,38 +874,44 @@ z_on_electric_filename (GtkWidget *w, gpointer user_data)
   /* Tack basename on if no name or ends with '/' */
   if (len == 0 || name[len - 1] == '/')
     {
-      gtk_entry_append_text (GTK_ENTRY (w), basename);
-      gtk_entry_set_position (GTK_ENTRY (w), len);
+      z_entry_append_text (w, basename);
+      gtk_editable_set_position (GTK_EDITABLE (w), len);
     }
   /* Cut off basename if not prepended by '/' */
   else if (len > baselen
 	   && strcmp(&name[len - baselen], basename) == 0
 	   && name[len - baselen - 1] != '/')
     {
-      name = g_strndup(name, len - baselen);
-      gtk_entry_set_text (GTK_ENTRY (w), name);
+      gchar *buf = g_strndup(name, len - baselen);
+      gtk_entry_set_text (GTK_ENTRY (w), buf);
       /* Attach baseext if none already left of basename */
-      if (baseextlen > 0 && ext < (name + len - baselen))
+      if (baseextlen > 0 && ext < (buf + len - baselen))
 	{
-	  gtk_entry_append_text (GTK_ENTRY (w), baseext);
-	  gtk_entry_set_position (GTK_ENTRY (w), len - baselen);
+	  z_entry_append_text (w, baseext);
+	  gtk_editable_set_position (GTK_EDITABLE (w), len - baselen);
 	}
-      g_free(name);
+      g_free(buf);
     }
   /* Cut off baseext when duplicate */
   else if (baseextlen > 0 && len > baseextlen
 	   && strcmp(&name[len - baseextlen], baseext) == 0
 	   && ext < (name + len - baseextlen))
     {
-      name = g_strndup(name, len - baseextlen);
-      gtk_entry_set_text (GTK_ENTRY (w), name);
-      g_free(name);
+      gchar *buf = g_strndup(name, len - baseextlen);
+      gtk_entry_set_text (GTK_ENTRY (w), buf);
+      g_free(buf);
     }
   else if (bpp)
     {
       g_free(*bpp);
       *bpp = g_strdup(name);
     }
+
+  /* unblock signal emission */
+  g_signal_handlers_unblock_by_func (G_OBJECT (w), 
+				     z_on_electric_filename,
+				     user_data);
+  g_signal_stop_emission_by_name (G_OBJECT (w), "changed");
 }
 
 static void
@@ -1061,12 +1007,12 @@ propagate_toolbar_changes	(GtkWidget	*toolbar)
 {
   g_return_if_fail (GTK_IS_TOOLBAR(toolbar));
 
-  gtk_signal_connect(GTK_OBJECT(toolbar), "style-changed",
-		     GTK_SIGNAL_FUNC(on_style_changed),
-		     NULL);
-  gtk_signal_connect(GTK_OBJECT(toolbar), "orientation-changed",
-		     GTK_SIGNAL_FUNC(on_orientation_changed),
-		     NULL);
+  g_signal_connect(G_OBJECT(toolbar), "style-changed",
+		   GTK_SIGNAL_FUNC(on_style_changed),
+		   NULL);
+  g_signal_connect(G_OBJECT(toolbar), "orientation-changed",
+		   GTK_SIGNAL_FUNC(on_orientation_changed),
+		   NULL);
 }
 
 void zmisc_overlay_subtitles	(gint page)
@@ -1125,13 +1071,13 @@ z_set_cursor	(GdkWindow	*window,
 
       cursor = gdk_cursor_new_from_pixmap(source, mask, &fg, &bg, 8, 8);
       
-      gdk_pixmap_unref(source);
-      gdk_pixmap_unref(mask);
+      g_object_unref (G_OBJECT (source));
+      g_object_unref (G_OBJECT (mask));
     }
   else
     {
-      if (cid >= GDK_NUM_GLYPHS)
-	cid = GDK_NUM_GLYPHS-2;
+      if (cid >= GDK_LAST_CURSOR)
+	cid = GDK_LAST_CURSOR-2;
       cid &= ~1;
       cursor = gdk_cursor_new(cid);
     }
@@ -1140,49 +1086,22 @@ z_set_cursor	(GdkWindow	*window,
     return;
 
   gdk_window_set_cursor(window, cursor);
-  gdk_cursor_destroy(cursor);
-}
-
-GtkWidget *
-z_pixmap_new_from_file		(const gchar *		name)
-{
-  GdkBitmap *mask;
-  GdkPixmap *pixmap;
-  GdkPixbuf *pb;
-  GtkWidget *pix;
-
-  pb = gdk_pixbuf_new_from_file (name);
-
-  if (!pb) {
-    printv("Unable to load pixmap \"%s\", errno %d: %s\n",
-	   name, errno, strerror(errno));
-    return NULL;
-  }
-
-  gdk_pixbuf_render_pixmap_and_mask(pb, &pixmap, &mask, 128);
-  gdk_pixbuf_unref(pb);
-  pix = gtk_pixmap_new(pixmap, mask);
-  if (mask)
-    gdk_bitmap_unref(mask);
-  gdk_pixmap_unref(pixmap);
-
-  return pix;
+  gdk_cursor_unref(cursor);
 }
 
 GtkWidget *
 z_load_pixmap			(const gchar *		name)
 {
-  GtkWidget *pixmap;
+  GtkWidget *image;
   gchar *path;
 
-  path = g_strconcat (PACKAGE_PIXMAPS_DIR, "/", name, NULL);
-  pixmap = z_pixmap_new_from_file (path);
+  path = g_strconcat (PACKAGE_PIXMAPS_DIR "/", name, NULL);
+  image = gtk_image_new_from_file (path);
   g_free (path);
 
-  if (pixmap)
-    gtk_widget_show (pixmap);
+  gtk_widget_show (image);
 
-  return pixmap;
+  return image;
 }
 
 GtkWindow *
@@ -1304,7 +1223,7 @@ z_spinslider_get_spin_adj		(GtkWidget *hbox)
 {
   GtkAdjustment * adj;
 
-  adj = gtk_object_get_data (GTK_OBJECT (hbox), "spin_adj");
+  adj = g_object_get_data (G_OBJECT (hbox), "spin_adj");
   g_assert (adj);
   return adj;
 }
@@ -1314,7 +1233,7 @@ z_spinslider_get_hscale_adj		(GtkWidget *hbox)
 {
   GtkAdjustment * adj;
 
-  adj = gtk_object_get_data (GTK_OBJECT (hbox), "hscale_adj");
+  adj = g_object_get_data (G_OBJECT (hbox), "hscale_adj");
   g_assert (adj);
   return adj;
 }
@@ -1324,7 +1243,7 @@ z_spinslider_get_value			(GtkWidget *hbox)
 {
   GtkAdjustment * adj;
 
-  adj = gtk_object_get_data (GTK_OBJECT (hbox), "spin_adj");
+  adj = g_object_get_data (G_OBJECT (hbox), "spin_adj");
   g_assert (adj);
   return adj->value;
 }
@@ -1335,8 +1254,8 @@ z_spinslider_set_value			(GtkWidget *hbox,
 {
   GtkAdjustment * spin_adj, * hscale_adj;
 
-  spin_adj = gtk_object_get_data (GTK_OBJECT (hbox), "spin_adj");
-  hscale_adj = gtk_object_get_data (GTK_OBJECT (hbox), "hscale_adj");
+  spin_adj = g_object_get_data (G_OBJECT (hbox), "spin_adj");
+  hscale_adj = g_object_get_data (G_OBJECT (hbox), "hscale_adj");
   g_assert (spin_adj && hscale_adj);
   gtk_adjustment_set_value (spin_adj, value);
   gtk_adjustment_set_value (hscale_adj, value);
@@ -1347,7 +1266,7 @@ z_spinslider_set_reset_value		(GtkWidget *hbox,
 					 gfloat value)
 {
   gfloat *reset_value =
-    gtk_object_get_data (GTK_OBJECT (hbox), "reset_value");
+    g_object_get_data (G_OBJECT (hbox), "reset_value");
 
   g_assert (reset_value);
   *reset_value = value;
@@ -1358,8 +1277,8 @@ z_spinslider_adjustment_changed		(GtkWidget *hbox)
 {
   GtkAdjustment *spin_adj, *hscale_adj;
 
-  spin_adj = gtk_object_get_data (GTK_OBJECT (hbox), "spin_adj");
-  hscale_adj = gtk_object_get_data (GTK_OBJECT (hbox), "hscale_adj");
+  spin_adj = g_object_get_data (G_OBJECT (hbox), "spin_adj");
+  hscale_adj = g_object_get_data (G_OBJECT (hbox), "hscale_adj");
   g_assert (spin_adj && hscale_adj);
   hscale_adj->value = spin_adj->value;
   hscale_adj->lower = spin_adj->lower;
@@ -1377,8 +1296,8 @@ on_z_spinslider_hscale_changed		(GtkWidget *widget,
 {
   GtkAdjustment * spin_adj, * hscale_adj;
 
-  spin_adj = gtk_object_get_data (GTK_OBJECT (hbox), "spin_adj");
-  hscale_adj = gtk_object_get_data (GTK_OBJECT (hbox), "hscale_adj");
+  spin_adj = g_object_get_data (G_OBJECT (hbox), "spin_adj");
+  hscale_adj = g_object_get_data (G_OBJECT (hbox), "hscale_adj");
   g_assert (spin_adj && hscale_adj);
   if (spin_adj->value != hscale_adj->value)
     gtk_adjustment_set_value (spin_adj, hscale_adj->value);
@@ -1390,8 +1309,8 @@ on_z_spinslider_spinbutton_changed	(GtkWidget *widget,
 {
   GtkAdjustment * spin_adj, * hscale_adj;
 
-  spin_adj = gtk_object_get_data (GTK_OBJECT (hbox), "spin_adj");
-  hscale_adj = gtk_object_get_data (GTK_OBJECT (hbox), "hscale_adj");
+  spin_adj = g_object_get_data (G_OBJECT (hbox), "spin_adj");
+  hscale_adj = g_object_get_data (G_OBJECT (hbox), "hscale_adj");
   g_assert (spin_adj && hscale_adj);
   if (spin_adj->value != hscale_adj->value)
     gtk_adjustment_set_value (hscale_adj, spin_adj->value);
@@ -1402,7 +1321,7 @@ on_z_spinslider_reset			(GtkWidget *widget,
 					 GtkWidget *hbox)
 {
   gfloat *reset_value =
-    gtk_object_get_data (GTK_OBJECT (hbox), "reset_value");
+    g_object_get_data (G_OBJECT (hbox), "reset_value");
 
   g_assert (reset_value);
   z_spinslider_set_value (hbox, *reset_value);
@@ -1423,7 +1342,7 @@ z_spinslider_new			(GtkAdjustment * spin_adj,
   gint digits;
 
   hbox = gtk_hbox_new (FALSE, 0);
-  gtk_object_set_data (GTK_OBJECT (hbox), "spin_adj", spin_adj);
+  g_object_set_data (G_OBJECT (hbox), "spin_adj", spin_adj);
 
   /* Set decimal digits so that step increments < 1.0 become visible */
   if (spin_adj->step_increment == 0.0
@@ -1439,17 +1358,15 @@ z_spinslider_new			(GtkAdjustment * spin_adj,
   spinbutton = gtk_spin_button_new (spin_adj, 1, -digits);
   gtk_widget_show (spinbutton);
   /* I don't see how to set "as much as needed", so hacking this up */
-  gtk_widget_set_usize (spinbutton, 80, -1);
+  gtk_widget_set_size_request (spinbutton, 80, -1);
   gtk_spin_button_set_update_policy (GTK_SPIN_BUTTON (spinbutton),
 				     GTK_UPDATE_IF_VALID);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton), TRUE);
   gtk_spin_button_set_wrap (GTK_SPIN_BUTTON (spinbutton), TRUE);
   gtk_spin_button_set_snap_to_ticks (GTK_SPIN_BUTTON (spinbutton), TRUE);
-  gtk_spin_button_set_shadow_type (GTK_SPIN_BUTTON (spinbutton),
-				   GTK_SHADOW_NONE);
   gtk_box_pack_start(GTK_BOX (hbox), spinbutton, FALSE, FALSE, 0);
-  gtk_signal_connect (GTK_OBJECT (spin_adj), "value-changed",
-		      GTK_SIGNAL_FUNC (on_z_spinslider_spinbutton_changed), hbox);
+  g_signal_connect (G_OBJECT (spin_adj), "value-changed",
+		      G_CALLBACK (on_z_spinslider_spinbutton_changed), hbox);
 
   if (unit)
     {
@@ -1464,14 +1381,14 @@ z_spinslider_new			(GtkAdjustment * spin_adj,
       spin_adj->lower, spin_adj->upper + spin_adj->page_size,
       spin_adj->step_increment, spin_adj->page_increment,
       spin_adj->page_size));
-  gtk_object_set_data (GTK_OBJECT (hbox), "hscale_adj", hscale_adj);
+  g_object_set_data (G_OBJECT (hbox), "hscale_adj", hscale_adj);
   hscale = gtk_hscale_new (hscale_adj);
   gtk_widget_show (hscale);
   gtk_scale_set_draw_value (GTK_SCALE (hscale), FALSE);
   gtk_scale_set_digits (GTK_SCALE (hscale), -digits);
   gtk_box_pack_start (GTK_BOX (hbox), hscale, TRUE, TRUE, 3);
-  gtk_signal_connect (GTK_OBJECT (hscale_adj), "value-changed",
-		      GTK_SIGNAL_FUNC (on_z_spinslider_hscale_changed), hbox);
+  g_signal_connect (G_OBJECT (hscale_adj), "value-changed",
+		      G_CALLBACK (on_z_spinslider_hscale_changed), hbox);
 
   if ((pixmap = z_load_pixmap ("reset.png")))
     {
@@ -1488,10 +1405,10 @@ z_spinslider_new			(GtkAdjustment * spin_adj,
   /* Sigh */
   reset_value = g_malloc (sizeof (gfloat));
   *reset_value = reset;
-  gtk_object_set_data_full (GTK_OBJECT (hbox), "reset_value", reset_value,
-			    (GtkDestroyNotify) g_free);
-  gtk_signal_connect (GTK_OBJECT (button), "pressed",
-		      GTK_SIGNAL_FUNC (on_z_spinslider_reset), hbox);
+  g_object_set_data_full (G_OBJECT (hbox), "reset_value", reset_value,
+			  (GDestroyNotify) g_free);
+  g_signal_connect (G_OBJECT (button), "pressed",
+		      G_CALLBACK (on_z_spinslider_reset), hbox);
 
   return hbox;
 }
@@ -1521,4 +1438,24 @@ z_widget_add_accelerator	(GtkWidget	*widget,
 
   gtk_widget_add_accelerator(widget, accel_signal, accel_group,
 			     accel_key, accel_mods, GTK_ACCEL_VISIBLE);
+}
+
+static void
+on_entry_activated (GObject *entry, GtkDialog *dialog)
+{
+  gtk_dialog_response (dialog, GPOINTER_TO_INT
+		       (g_object_get_data (entry, "zmisc-response")));
+}
+
+void
+z_entry_emits_response		(GtkWidget	*entry,
+				 GtkDialog	*dialog,
+				 GtkResponseType response)
+{
+  g_signal_connect (G_OBJECT (entry), "activate",
+		    G_CALLBACK (on_entry_activated),
+		    dialog);
+
+  g_object_set_data (G_OBJECT (entry), "zmisc-response",
+		     GINT_TO_POINTER (response));
 }

@@ -353,16 +353,16 @@ startup_overlay(GtkWidget * window, GtkWidget * main_window,
   GdkEventMask mask; /* The GDK events we want to see */
   GdkColor chroma = {0, 0, 0, 0};
 
-  gtk_signal_connect(GTK_OBJECT(main_window), "event",
-		     GTK_SIGNAL_FUNC(on_main_overlay_event),
+  g_signal_connect(G_OBJECT(main_window), "event",
+		     G_CALLBACK(on_main_overlay_event),
 		     NULL);
 
-  gtk_signal_connect(GTK_OBJECT(main_window), "delete-event",
-		     GTK_SIGNAL_FUNC(on_main_overlay_delete_event),
+  g_signal_connect(G_OBJECT(main_window), "delete-event",
+		     G_CALLBACK(on_main_overlay_delete_event),
 		     NULL);
 
-  gtk_signal_connect(GTK_OBJECT(window), "size-allocate",
-		     GTK_SIGNAL_FUNC(on_tv_screen_size_allocate),
+  g_signal_connect(G_OBJECT(window), "size-allocate",
+		     G_CALLBACK(on_tv_screen_size_allocate),
 		     NULL);
 
   /*
@@ -390,7 +390,8 @@ startup_overlay(GtkWidget * window, GtkWidget * main_window,
     tv_info.needs_cleaning = FALSE;
   else
     tv_info.needs_cleaning = TRUE;
-  gdk_window_get_size(window->window, &tv_info.w, &tv_info.h);
+  gdk_window_get_geometry(window->window, NULL, NULL, &tv_info.w,
+			  &tv_info.h, NULL);
   gdk_window_get_origin(window->window, &tv_info.x, &tv_info.y);
 
   if (info->current_controller != TVENG_CONTROLLER_XV)
@@ -406,7 +407,7 @@ startup_overlay(GtkWidget * window, GtkWidget * main_window,
 				chroma.blue >> 8, info);
 	  else
 	    ShowBox("Couldn't allocate chromakey, chroma won't work",
-		    GNOME_MESSAGE_BOX_WARNING);
+		    GTK_MESSAGE_WARNING);
 	}
 
       gdk_window_set_background(window->window, &chroma);
@@ -418,7 +419,6 @@ startup_overlay(GtkWidget * window, GtkWidget * main_window,
   else
     gdk_window_set_back_pixmap(window->window, NULL, FALSE);
 
-#ifdef HAVE_LIBZVBI
   if (tv_info.needs_cleaning)
     {
       if (!root_window)
@@ -430,13 +430,12 @@ startup_overlay(GtkWidget * window, GtkWidget * main_window,
 	}
       gdk_window_add_filter(root_window, x_root_filter, NULL);
 
-      gtk_signal_connect(GTK_OBJECT(osd_model), "changed",
-			 GTK_SIGNAL_FUNC(on_osd_model_changed),
+      g_signal_connect(G_OBJECT(osd_model), "changed",
+			 G_CALLBACK(on_osd_model_changed),
 			 NULL);
       /* Update the cliplist now */
       on_osd_model_changed(osd_model, NULL);
     }
-#endif /* HAVE_LIBZVBI */
 }
 
 /*
@@ -445,23 +444,33 @@ startup_overlay(GtkWidget * window, GtkWidget * main_window,
 void
 overlay_stop(tveng_device_info *info)
 {
-  gtk_signal_disconnect_by_func(GTK_OBJECT(tv_info.main_window),
-				GTK_SIGNAL_FUNC(on_main_overlay_event),
-				NULL);
+  g_signal_handlers_disconnect_matched(G_OBJECT(tv_info.main_window),
+				       G_SIGNAL_MATCH_FUNC |
+				       G_SIGNAL_MATCH_DATA,
+				       0, 0, NULL,
+				       G_CALLBACK(on_main_overlay_event),
+				       NULL);
 
-  gtk_signal_disconnect_by_func(GTK_OBJECT(tv_info.main_window),
-				GTK_SIGNAL_FUNC(on_main_overlay_delete_event),
-				NULL);
+  g_signal_handlers_disconnect_matched(G_OBJECT(tv_info.main_window),
+				       G_SIGNAL_MATCH_FUNC |
+				       G_SIGNAL_MATCH_DATA,
+				       0, 0, NULL,
+				       G_CALLBACK(on_main_overlay_delete_event),
+				       NULL);
 
-  gtk_signal_disconnect_by_func(GTK_OBJECT(tv_info.window),
-				GTK_SIGNAL_FUNC(on_tv_screen_size_allocate),
-				NULL);
-#ifdef HAVE_LIBZVBI
+  g_signal_handlers_disconnect_matched(G_OBJECT(tv_info.window),
+				       G_SIGNAL_MATCH_FUNC |
+				       G_SIGNAL_MATCH_DATA,
+				       0, 0, NULL,
+				       G_CALLBACK(on_tv_screen_size_allocate),
+				       NULL);
   if (tv_info.needs_cleaning)
-    gtk_signal_disconnect_by_func(GTK_OBJECT(osd_model),
-				  GTK_SIGNAL_FUNC(on_osd_model_changed),
-				  NULL);
-#endif
+    g_signal_handlers_disconnect_matched(G_OBJECT(osd_model),
+					 G_SIGNAL_MATCH_FUNC |
+					 G_SIGNAL_MATCH_DATA,
+					 0, 0, NULL,
+					 G_CALLBACK(on_osd_model_changed),
+					 NULL);
 
   if (tv_info.needs_cleaning)
     gdk_window_remove_filter(root_window, x_root_filter, NULL);
@@ -497,7 +506,8 @@ overlay_sync(gboolean clean_screen)
   if (main_info->current_mode != TVENG_CAPTURE_WINDOW)
     return;
 
-  gdk_window_get_size(tv_info.window->window, &tv_info.w, &tv_info.h);
+  gdk_window_get_geometry(tv_info.window->window, NULL, NULL,
+			  &tv_info.w, &tv_info.h, NULL);
   gdk_window_get_origin(tv_info.window->window, &tv_info.x,
 			&tv_info.y);
 

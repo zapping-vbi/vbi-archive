@@ -1,6 +1,6 @@
 /*
  * Screenshot saving plugin for Zapping
- * Copyright (C) 2000, 2001 Iñaki García Etxebarria
+ * Copyright (C) 2000, 2001 IÃ±aki GarcÃ­a Etxebarria
  * Copyright (C) 2001, 2002 Michael H. Schimek
  *
  * This program is free software; you can redistribute it and/or modify
@@ -44,7 +44,7 @@ N_("With this plugin you can take screen shots of the program "
 static const gchar str_short_description[] = 
 N_("This plugin takes screenshots of the video capture.");
 static const gchar str_author[] =
-"Iñaki García Etxebarria & Michael H. Schimek";
+"IÃ±aki GarcÃ­a Etxebarria & Michael H. Schimek";
 /* The format of the version string must be
    %d[[.%d[.%d]][other_things]], where the things between [] aren't
    needed, and if not present, 0 will be assumed */
@@ -78,7 +78,7 @@ static gint screenshot_option_deint;
 
 /* Properties handling code */
 static void
-properties_add			(GnomeDialog	*dialog);
+properties_add			(GtkDialog	*dialog);
 
 /* Callbacks */
 static void
@@ -290,28 +290,54 @@ find_backend (gchar *keyword)
     return backends[0];
 }
 
-static gboolean
-screenshot_cmd				(GtkWidget *	widget,
-					 gint		argc,
-					 gchar **	argv,
-					 gpointer	user_data)
+static PyObject*
+py_screenshot	(PyObject *self, PyObject *args)
 {
-  g_assert (argc > 0);
+  char *_format = NULL;
+  int ok = PyArg_ParseTuple (args, "|s", &_format);
 
-  if (argc > 1)
+  if (!ok)
+    g_error ("py_screenshot(|s)");
+
+  if (_format)
     {
-      struct screenshot_backend *backend = find_backend (argv[1]);
+      struct screenshot_backend *backend = find_backend (_format);
 
       if (!backend)
-	return FALSE;
+	py_return_false;
 
       g_free (screenshot_option_format);
       screenshot_option_format = g_strdup (backend->keyword);
     }
 
   /* 1 = screenshot, 0 = quickshot */
-  screenshot_grab (strcmp (argv[0], "screenshot") == 0);
-  return TRUE;
+  screenshot_grab (1);
+  py_return_true;
+}
+
+static PyObject*
+py_quickshot	(PyObject *self, PyObject *args)
+{
+  char *_format = NULL;
+  int ok = PyArg_ParseTuple (args, "|s", &_format);
+
+  if (!ok)
+    g_error ("py_quickshot(|s)");
+
+  if (_format)
+    {
+      struct screenshot_backend *backend = find_backend (_format);
+
+      if (!backend)
+	py_return_false;
+
+      g_free (screenshot_option_format);
+      screenshot_option_format = g_strdup (backend->keyword);
+    }
+
+  /* 1 = screenshot, 0 = quickshot */
+  screenshot_grab (0);
+  py_return_true;
 }
 
 static gboolean
@@ -332,8 +358,12 @@ plugin_init ( PluginBridge bridge, tveng_device_info * info )
 
   zapping_info = info;
 
-  cmd_register ("screenshot", screenshot_cmd, NULL);
-  cmd_register ("quickshot", screenshot_cmd, NULL);
+  cmd_register ("screenshot", py_screenshot, METH_VARARGS,
+		_("Takes a screenshot after asking some questions"),
+		"zapping.screenshot([png])");
+  cmd_register ("quickshot", py_quickshot, METH_VARARGS,
+		_("Takes a screenshot"),
+		"zapping.quickshot([png])");
 
   return TRUE;
 }
@@ -341,9 +371,6 @@ plugin_init ( PluginBridge bridge, tveng_device_info * info )
 static void
 plugin_close(void)
 {
-  cmd_remove ("screenshot");
-  cmd_remove ("quickshot");
-
   screenshot_close_everything = TRUE;
 
   if (ogb_timeout_id >= 0)
@@ -525,7 +552,6 @@ screenshot_setup		(GtkWidget	*page)
 static void
 screenshot_apply		(GtkWidget	*page)
 {
-  extern GtkWidget *main_window; /* ouch */
   void plugin_add_gui (GnomeApp *);
   GtkWidget *w;
 
@@ -533,8 +559,6 @@ screenshot_apply		(GtkWidget	*page)
   g_free (screenshot_option_save_dir);
   screenshot_option_save_dir =
     gnome_file_entry_get_full_path (GNOME_FILE_ENTRY (w), FALSE);
-  gnome_entry_save_history (GNOME_ENTRY (
-    gnome_file_entry_gnome_entry (GNOME_FILE_ENTRY (w))));
 
   w = lookup_widget (page, "screenshot_command");
   g_free (screenshot_option_command);
@@ -562,14 +586,14 @@ screenshot_help			(GtkWidget	*widget)
        "correct value.\n\n"
        );
 
-  ShowBox(_(help), GNOME_MESSAGE_BOX_INFO);
+  ShowBox(_(help), GTK_MESSAGE_INFO);
 }
 
 static void
-properties_add			(GnomeDialog	*dialog)
+properties_add			(GtkDialog	*dialog)
 {
   SidebarEntry plugin_options[] = {
-    { N_("Screenshot"), ICON_ZAPPING, "gnome-digital-camera.png", "vbox1",
+    { N_("Screenshot"), "gnome-digital-camera.png", "vbox1",
       screenshot_setup, screenshot_apply, screenshot_help }
   };
   SidebarGroup groups[] = {
@@ -577,7 +601,7 @@ properties_add			(GnomeDialog	*dialog)
   };
 
   standard_properties_add(dialog, groups, acount(groups),
-			  "screenshot.glade");
+			  "screenshot.glade2");
 }
 
 static
@@ -588,7 +612,7 @@ void plugin_add_gui (GnomeApp * app)
   gpointer p;
 
   toolbar = lookup_widget (GTK_WIDGET (app), "toolbar1");
-  p = gtk_object_get_data (GTK_OBJECT(app), "screenshot_button");
+  p = g_object_get_data (G_OBJECT(app), "screenshot_button");
   button = p ? GTK_WIDGET (p) : NULL;
 
   if (!button)
@@ -596,17 +620,16 @@ void plugin_add_gui (GnomeApp * app)
       GtkWidget *tmp_toolbar_icon;
 
       tmp_toolbar_icon =
-	gnome_stock_pixmap_widget (GTK_WIDGET (app),
-				   GNOME_STOCK_PIXMAP_COLORSELECTOR);
+	gtk_image_new_from_stock (GTK_STOCK_SELECT_COLOR,
+				  GTK_ICON_SIZE_LARGE_TOOLBAR);
 
-      button = gtk_toolbar_append_element (GTK_TOOLBAR (toolbar),
-					   GTK_TOOLBAR_CHILD_BUTTON, NULL,
-					   _("Screenshot"),
-					   NULL, NULL, tmp_toolbar_icon,
-					   on_remote_command1,
-					   (gpointer)((const gchar *) "screenshot"));
-
-      z_tooltip_set (button, _("Take a screenshot"));
+      button = gtk_toolbar_append_item (GTK_TOOLBAR (toolbar),
+					_("Screenshot"),
+					_("Take a screenshot"), NULL,
+					tmp_toolbar_icon,
+					GTK_SIGNAL_FUNC(on_remote_command1),
+					(gpointer)((const gchar *)
+						   "zapping.screenshot()"));
     }
 
   if (screenshot_option_toolbutton)
@@ -615,14 +638,14 @@ void plugin_add_gui (GnomeApp * app)
     gtk_widget_hide (button);
 
   /* Set up the widget so we can find it later */
-  gtk_object_set_data (GTK_OBJECT (app), "screenshot_button", button);
+  g_object_set_data (G_OBJECT (app), "screenshot_button", button);
 }
 
 static void
 plugin_remove_gui (GnomeApp * app)
 {
   GtkWidget * button = 
-    GTK_WIDGET(gtk_object_get_data(GTK_OBJECT(app),
+    GTK_WIDGET(g_object_get_data(G_OBJECT(app),
 				   "screenshot_button"));
   GtkWidget * toolbar1 = lookup_widget(GTK_WIDGET(app), "toolbar1");
 
@@ -695,7 +718,7 @@ screenshot_destroy (screenshot_data *data)
   g_free (data->auto_filename);
 
   if (data->pixbuf)
-    gdk_pixbuf_unref (data->pixbuf);
+    g_object_unref (G_OBJECT (data->pixbuf));
 
   if (data->dialog)
     gtk_widget_destroy (data->dialog);
@@ -880,9 +903,7 @@ create_status_window (screenshot_data *data)
   label = gtk_label_new (data->filename);
   gtk_widget_show (label);
 
-  progressbar =
-    gtk_progress_bar_new_with_adjustment (
-      GTK_ADJUSTMENT (gtk_adjustment_new (0, 0, 100, 1, 10, 10)));
+  progressbar = gtk_progress_bar_new ();
   gtk_widget_show (progressbar);
 
   vbox = gtk_vbox_new (FALSE, 0);
@@ -890,12 +911,12 @@ create_status_window (screenshot_data *data)
   gtk_box_pack_start_defaults (GTK_BOX (vbox), progressbar);
   gtk_widget_show (vbox);
 
-  window = gtk_window_new (GTK_WINDOW_DIALOG);
+  window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_container_add (GTK_CONTAINER (window), vbox);
   gtk_window_set_title (GTK_WINDOW (window), _("Saving..."));
   gtk_window_set_modal (GTK_WINDOW (window), FALSE);
-  gtk_object_set_data (GTK_OBJECT (window), "progressbar", progressbar);
-  gtk_signal_connect (GTK_OBJECT (window), "delete-event",
+  g_object_set_data (G_OBJECT (window), "progressbar", progressbar);
+  g_signal_connect (G_OBJECT (window), "delete-event",
 		      (GtkSignalFunc) on_progress_delete_event, data);
   gtk_widget_show (window);
 
@@ -908,12 +929,12 @@ screenshot_save (screenshot_data *data)
   GtkWindow *window;
   gchar *b, *dir;
 
-  dir = g_dirname (data->filename);
+  dir = g_path_get_dirname (data->filename);
 
   if (!z_build_path (dir, &b))
     {
       ShowBox (_("Cannot create directory:\n%s\n%s"),
-	       GNOME_MESSAGE_BOX_WARNING, dir, b);
+	       GTK_MESSAGE_WARNING, dir, b);
       g_free (b);
       g_free (dir);
       return FALSE;
@@ -930,7 +951,7 @@ screenshot_save (screenshot_data *data)
 				  _("\nThe image won't be saved.\n"),
 				  strerror (errno),
 				  NULL);
-      ShowBox (window_title, GNOME_MESSAGE_BOX_ERROR);
+      ShowBox (window_title, GTK_MESSAGE_ERROR);
       g_free (window_title);
       return FALSE;
     }
@@ -959,18 +980,23 @@ screenshot_save (screenshot_data *data)
     {
     case ENOMEM:
       ShowBox (_("Sorry, not enough resources to create a new thread"), 
-	       GNOME_MESSAGE_BOX_ERROR);
+	       GTK_MESSAGE_ERROR);
       return FALSE;
 
     case EAGAIN:
       ShowBox (_("There are too many threads"),
-	       GNOME_MESSAGE_BOX_ERROR);
+	       GTK_MESSAGE_ERROR);
       return FALSE;
 
     case 0:
       num_threads++;
       grab_data = NULL; /* permit new request */
-      data->status = 7; /* monitoring */
+
+      /* Funny bug: With small images encoding might finish before
+	 pthread_create returns, thus we must check that we aren't
+	 overwriting the finished status */
+      if (data->status != 8)
+	data->status = 7; /* monitoring */
       return TRUE;
 
     default:
@@ -1119,7 +1145,7 @@ static gboolean
 on_deint_changed                      (GtkWidget *widget,
 				       screenshot_data *data)
 {
-  gint new_deint = (gint) gtk_object_get_data (GTK_OBJECT (widget),
+  gint new_deint = (gint) g_object_get_data (G_OBJECT (widget),
 					       "deint");
   if (screenshot_option_deint == new_deint)
     return FALSE;
@@ -1159,7 +1185,7 @@ on_format_changed                     (GtkWidget *menu,
   GtkWidget *menu_item = gtk_menu_get_active (GTK_MENU (menu));
   gchar *keyword, *name;
 
-  keyword = gtk_object_get_data (GTK_OBJECT (menu_item), "keyword");
+  keyword = g_object_get_data (G_OBJECT (menu_item), "keyword");
 
   data->backend = find_backend (keyword);
 
@@ -1173,7 +1199,7 @@ on_format_changed                     (GtkWidget *menu,
 				NULL,
 				_("This format has no quality option"));
 
-  name = gtk_entry_get_text (data->entry);
+  name = (gchar*)gtk_entry_get_text (data->entry);
   name = z_replace_filename_extension (name, data->backend->extension);
   gtk_entry_set_text (data->entry, name);
   g_free (name);
@@ -1181,6 +1207,11 @@ on_format_changed                     (GtkWidget *menu,
   preview (data);
   on_drawingarea_expose_event (NULL, NULL, data);
 }
+
+enum {
+  SCREENSHOT_CONFIGURE = 666 /* Must match the value in the .glade2
+				file */
+};
 
 static void
 build_dialog (screenshot_data *data)
@@ -1193,7 +1224,7 @@ build_dialog (screenshot_data *data)
   gint default_item = 0;
   gint i;
 
-  data->dialog = build_widget ("dialog1", "screenshot.glade");
+  data->dialog = build_widget ("dialog1", "screenshot.glade2");
   /* Format menu */
 
   widget = lookup_widget (data->dialog, "optionmenu1");
@@ -1208,10 +1239,10 @@ build_dialog (screenshot_data *data)
   for (i = 0; backends[i]; i++)
     {
       menu_item = gtk_menu_item_new_with_label (_(backends[i]->label));
-      gtk_object_set_data (GTK_OBJECT (menu_item), "keyword",
+      g_object_set_data (G_OBJECT (menu_item), "keyword",
 			   backends[i]->keyword);
       gtk_widget_show (menu_item);
-      gtk_menu_append (GTK_MENU (menu), menu_item);
+      gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
 
       if (strcmp (screenshot_option_format, backends[i]->keyword) == 0)
 	default_item = i;
@@ -1219,8 +1250,8 @@ build_dialog (screenshot_data *data)
 
   gtk_option_menu_set_menu (GTK_OPTION_MENU (widget), menu);
   gtk_option_menu_set_history (GTK_OPTION_MENU (widget), default_item);
-  gtk_signal_connect (GTK_OBJECT (GTK_OPTION_MENU (widget)->menu),
-  		      "deactivate", on_format_changed, data);
+  g_signal_connect (G_OBJECT (GTK_OPTION_MENU (widget)->menu),
+		    "deactivate", G_CALLBACK (on_format_changed), data);
 
   data->backend = backends[default_item];
 
@@ -1228,20 +1259,22 @@ build_dialog (screenshot_data *data)
 
   data->entry = GTK_ENTRY (lookup_widget (data->dialog, "entry"));
   if (screenshot_option_enter_closes)
-    gnome_dialog_editable_enters (GNOME_DIALOG (data->dialog),
-				  GTK_EDITABLE (data->entry));
-  gnome_dialog_set_default (GNOME_DIALOG (data->dialog), 0);
+    z_entry_emits_response (GTK_WIDGET (data->entry),
+			    GTK_DIALOG (data->dialog),
+			    GTK_RESPONSE_OK);
+  gtk_dialog_set_default_response (GTK_DIALOG (data->dialog),
+				   GTK_RESPONSE_OK);
   filename = find_unused_name (screenshot_option_save_dir, "shot",
 			       data->backend->extension);
-  data->auto_filename = g_strdup (g_basename (filename));
+  data->auto_filename = g_path_get_basename (filename);
   gtk_entry_set_text (data->entry, filename);
   g_free (filename);
-  gtk_object_set_data (GTK_OBJECT (data->entry),
+  g_object_set_data (G_OBJECT (data->entry),
 		       "basename", (gpointer) data->auto_filename);
-  gtk_signal_connect (GTK_OBJECT (data->entry), "changed",
-		      GTK_SIGNAL_FUNC (z_on_electric_filename),
-		      (gpointer) NULL);
-  gtk_entry_select_region (data->entry, 0, -1);
+  g_signal_connect (G_OBJECT (data->entry), "changed",
+		    G_CALLBACK (z_on_electric_filename),
+		    (gpointer) NULL);
+  gtk_editable_select_region (GTK_EDITABLE (data->entry), 0, -1);
 
   /* Preview */
 
@@ -1260,8 +1293,8 @@ build_dialog (screenshot_data *data)
       gdk_window_set_back_pixmap (data->drawingarea->window,
 				  NULL, FALSE);
       preview (data);
-      gtk_signal_connect (GTK_OBJECT (data->drawingarea), "expose-event",
-			  GTK_SIGNAL_FUNC (on_drawingarea_expose_event),
+      g_signal_connect (G_OBJECT (data->drawingarea), "expose-event",
+			  G_CALLBACK (on_drawingarea_expose_event),
 			  data);
     }
   else
@@ -1284,16 +1317,16 @@ build_dialog (screenshot_data *data)
   adj = gtk_range_get_adjustment (GTK_RANGE (data->quality_slider));
   gtk_adjustment_set_value (GTK_ADJUSTMENT (adj),
 			    screenshot_option_quality);
-  gtk_signal_connect (GTK_OBJECT (adj), "value-changed",
-		      GTK_SIGNAL_FUNC (on_quality_changed), data);
+  g_signal_connect (G_OBJECT (adj), "value-changed",
+		      G_CALLBACK (on_quality_changed), data);
 
   z_set_sensitive_with_tooltip (data->quality_slider,
 				data->backend->quality,
 				NULL,
 				_("This format has no quality option"));
 
-  gnome_dialog_set_parent (GNOME_DIALOG (data->dialog),
-			   z_main_window ());
+  gtk_window_set_transient_for (GTK_WINDOW (data->dialog),
+				GTK_WINDOW (main_window));
 
   gtk_widget_grab_focus (GTK_WIDGET (data->entry));
 
@@ -1304,22 +1337,22 @@ build_dialog (screenshot_data *data)
       widget = lookup_widget (data->dialog, "radiobutton4");
       gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (widget),
 				    (screenshot_option_deint == 0));
-      gtk_signal_connect (GTK_OBJECT (widget), "pressed",
-			  GTK_SIGNAL_FUNC (on_deint_changed), data);
+      g_signal_connect (G_OBJECT (widget), "pressed",
+			  G_CALLBACK (on_deint_changed), data);
 
       widget = lookup_widget (data->dialog, "radiobutton2");
       gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (widget),
 				    (screenshot_option_deint == 1));
-      gtk_object_set_data (GTK_OBJECT (widget), "deint", (gpointer) 1);
-      gtk_signal_connect (GTK_OBJECT (widget), "pressed",
-			  GTK_SIGNAL_FUNC (on_deint_changed), data);
+      g_object_set_data (G_OBJECT (widget), "deint", (gpointer) 1);
+      g_signal_connect (G_OBJECT (widget), "pressed",
+			  G_CALLBACK (on_deint_changed), data);
 
       widget = lookup_widget (data->dialog, "radiobutton3");
       gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (widget),
 				    (screenshot_option_deint == 2));
-      gtk_object_set_data (GTK_OBJECT (widget), "deint", (gpointer) 2);
-      gtk_signal_connect (GTK_OBJECT (widget), "pressed",
-			  GTK_SIGNAL_FUNC (on_deint_changed), data);
+      g_object_set_data (G_OBJECT (widget), "deint", (gpointer) 2);
+      g_signal_connect (G_OBJECT (widget), "pressed",
+			  G_CALLBACK (on_deint_changed), data);
     }
   else
     {
@@ -1338,7 +1371,7 @@ build_dialog (screenshot_data *data)
 static gboolean
 screenshot_timeout (screenshot_data *data)
 {
-  gchar *filename;
+  const gchar *filename;
   gpointer result;
 
   switch (data->status)
@@ -1376,9 +1409,9 @@ screenshot_timeout (screenshot_data *data)
       /*
        * -1 or 1 if cancelled.
        */
-      switch (gnome_dialog_run_and_close (GNOME_DIALOG (data->dialog)))
+      switch (gtk_dialog_run (GTK_DIALOG (data->dialog)))
 	{
-	case 0: /* OK */
+	case GTK_RESPONSE_OK: /* OK */
 	  filename = gtk_entry_get_text (data->entry);
 
 	  if (filename)
@@ -1410,19 +1443,13 @@ screenshot_timeout (screenshot_data *data)
 	  screenshot_destroy (data);
 	  return FALSE; /* remove */
 
-	case 2: /* Configure */
+	case SCREENSHOT_CONFIGURE: /* Configure */
 	  {
-	    GtkWidget *properties;
-
 	    grab_data = NULL;
 	    screenshot_destroy (data);
 
-	    properties = build_properties_dialog ();
-
-	    open_properties_page (properties,
-				  _("Plugins"), _("Screenshot"));
-
-	    gnome_dialog_run (GNOME_DIALOG (properties));
+	    cmd_run_printf ("zapping.properties('%s', '%s')",
+			    _("Plugins"), _("Screenshot"));
 
 	    return FALSE; /* remove */
 	  }
@@ -1444,12 +1471,12 @@ screenshot_timeout (screenshot_data *data)
       if (data->status_window)
 	{
 	  GtkWidget *progressbar;
-	  gfloat progress = 100 * data->lines
-	    / (gfloat) data->format.height;
+	  gfloat progress = data->lines / (gfloat) data->format.height;
 
-	  progressbar = gtk_object_get_data
-	    (GTK_OBJECT (data->status_window), "progressbar");
-	  gtk_progress_set_value (GTK_PROGRESS (progressbar), progress);
+	  progressbar = g_object_get_data
+	    (G_OBJECT (data->status_window), "progressbar");
+	  gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (progressbar),
+					 progress);
 	}
 
       break;
@@ -1459,7 +1486,7 @@ screenshot_timeout (screenshot_data *data)
       num_threads--;
 
       if (data->error)
-	ShowBox(data->error, GNOME_MESSAGE_BOX_ERROR);
+	ShowBox(data->error, GTK_MESSAGE_ERROR);
 
       /* fall through */
 
@@ -1754,7 +1781,7 @@ copy_image (screenshot_data *data,
       break;
     default:
       ShowBox("The current pixformat isn't supported",
-	      GNOME_MESSAGE_BOX_ERROR);
+	      GTK_MESSAGE_ERROR);
       return FALSE;
     }
 

@@ -1,3 +1,108 @@
+19.07.2002	Plugins done <garetxe@users.sf.net>
+
+	* mpeg, screenshot, lirc, alirc: Ported.
+	* po: Converted to utf-8.
+
+17.07.2002	Plugins <garetxe@users.sf.net>
+
+	* plugin_properties: Redone.
+	* template: Ported.
+
+16.07.2002	Everything except plugins <garetxe@users.sf.net>
+
+	* zapping_setup_fb: Copy'n'paste.
+
+15.07.2002	ttxview <garetxe@users.sf.net>
+
+	* ttxview: Ported, but untested.
+	* zapzilla.c: Ported.
+	* properties-handler: Ported.
+	
+14.07.2002	Small tweaks <garetxe@users.sf.net>
+
+	* cmd.c: Added some missing functions.
+	* keyboard.c: Converted default bindings to Python syntax.
+	* interface.c: For some strange reason sometimes (most times
+	indeed) "activate" isn't invoqued for items in the appearance
+	submenu of the popup menu. No idea why, and spent too much time
+	with it.
+	
+13.07.2002	Audio, v4linterface <garetxe@users.sf.net>
+
+	* v4linterface, x11stuff: Ported.
+	* arts.c, esd.c, oss.c, audio, mixer: Ported.
+	* cpu, csconvert, yuv2rgb: Ported.
+	* plugins: Ported. Now ~/.zapping/plugin_dirs has disappeared,
+	there's a zconf key /zapping/plugins/plugins_dirs instead. This
+	way, when zconf is converted to gconf we won't need .zapping any
+	longer.
+	* capture, preview, fullscreen: Ported but untested.
+	* zmisc: Added zmisc_switch_mode routines.
+	* main.c: Ported, things start to work, khewl! I can see the image
+	produced by my webcam as before.
+
+12.07.2002	Ported OSD <garetxe@users.sf.net>
+
+	* osd.c: Ported, kept some deprecated gdk_font stuff
+	around since it's so much easier to use than raw Pango. As a
+	little bonus osd now works even without zvbi compiled in. Moved
+	the OSD properties management code in here, helps modularity.
+	* zapping: Compiled with GDK_DISABLED_DEPRECATED too, fixed
+	appearances of deprecated stuff.
+	* src/zvbi.c: Ported.
+	* remote.c: Added missing cmd_run_printf.
+
+11.07.2002	Properties shell working <garetxe@users.sf.net>
+
+	* properties: Ported the shell code, works no problem with the
+	keyboard settings. properties-handler isn't there yet.
+	* video_xv.c, x11stuff: Ported. The WM_HOOKS (stay on top) isn't
+	ported yet, apparently gnome-winhints has just dissapeared without
+	any replacement. Stuff to work on after I make the hard things
+	work.
+	* zmisc: Ported all of it modulo the switch_mode routines, I
+	cannot port those till I have the capture stuff working, perhaps a
+	couple of days.
+
+10.07.2002	Started high-gui stuff <garetxe@users.sf.net>
+
+	* frequencies.[ch]: Ported.
+	* keyboard.c, .h, keysyms.h: Ported, compiles but untested yet
+	since it requires the properties stuff, which i have't ported
+	yet. This was my first exposure to GtkTreeView (GtkCList on
+	steroids). While ackward at first glance, gets easier to work with
+	when you get used to it.
+
+09.07.2002	Low-gui stuff ported <garetxe@users.sf.net>
+
+	* common: Copied and pasted, this one was easy :-)
+	* tveng: Ported.
+	* configure.in: Brought back some missing macros.
+	* src/interface.c: Added menu callbacks support.
+	* zmodel: Ported to being a GObject.
+	* zconf: Ported. Not completely tested, but the hook stuff, which
+	is the part that could break appears to work. Zapping will be the
+	definite test, though.
+	* zmisc: Ported propagate_toolbar_changes; ShowBox and friends
+	are now GtkMessage boxes.
+
+08.07.2002	Started port <garetxe@users.sf.net>
+
+	* zapping: Started Gnome 2 port, it will become	zapping 0.7 when
+	completed.
+	* glade: Converted to glade-2, fixed a few stock pixmaps that went
+	astray during the conversion. Surely there are others left. Change
+	some callbacks that were using user_data to specify the action,
+	this ain't easy to do with glade-2.
+	* src/callbacks.c: Added on_zapping_delete_event.
+	* src/remote.c: Uses the builtin Python interpreter now.
+	* src/cmd.[ch]: Created, C implementation on Python methods,
+	currently just quit().
+	* acinclude.m4: Custom macros, necessary since there's no macros
+	subdir in Gnome2 (at least by default).
+	* src/interface.c: Libglade routines adapted, some stuff is
+	missing yet.
+
 19.06.2002	<mschimek@users.sf.net>
 
 	* src, glade, plugins: Added show tooltips option.

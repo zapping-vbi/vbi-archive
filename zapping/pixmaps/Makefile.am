@@ -1,5 +1,4 @@
-pixmapsdir = $(PACKAGE_PIXMAPS_DIR)
-pixmaps_DATA = logo.png vt_loading1.jpeg vt_loading2.jpeg \
+pkgdata_DATA = gtk-prop logo.png vt_loading1.jpeg vt_loading2.jpeg \
 atvef_icon.png eacem_icon.png brig.xpm con.xpm hue.xpm sat.xpm \
 gnome-television.png left.png right.png reveal.png up.png down.png \
 gnome-digital-camera.png gnome-grecord.png gnome-info.png \
@@ -32,4 +31,4 @@ rating_tv_us_62.png rating_tv_us_63.png \
 rating_tv_us_64.png rating_tv_us_65.png \
 rating_tv_us_66.png rating_tv_us_67.png
 
-EXTRA_DIST = $(pixmaps_DATA)
+EXTRA_DIST = $(pkgdata_DATA)

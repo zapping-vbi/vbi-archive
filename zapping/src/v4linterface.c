@@ -36,11 +36,9 @@
 #include "zvbi.h"
 #include "osd.h"
 #include "remote.h"
+#include "globals.h"
+#include "audio.h"
 
-extern tveng_tuned_channel * global_channel_list;
-extern tveng_device_info *main_info;
-extern GtkWidget *main_window;
-extern int cur_tuned_channel; /* currently tuned channel (in callbacks.c) */
 GtkWidget * ToolBox = NULL; /* Pointer to the last control box */
 ZModel *z_input_model = NULL;
 
@@ -53,7 +51,7 @@ update_bundle				(ZModel		*model,
 {
   GtkMenuItem *channels =
     GTK_MENU_ITEM(lookup_widget(main_window, "channels"));
-  GtkMenu *menu;
+  GtkMenuShell *menu;
   GtkWidget *menu_item;
 
   if (freeze)
@@ -62,11 +60,11 @@ update_bundle				(ZModel		*model,
       return;
     }
 
-  menu = GTK_MENU(gtk_menu_new());
+  menu = GTK_MENU_SHELL(gtk_menu_new());
 
   menu_item = gtk_tearoff_menu_item_new();
   gtk_widget_show(menu_item);
-  gtk_menu_append(menu, menu_item);
+  gtk_menu_shell_append(menu, menu_item);
 
   gtk_widget_show(GTK_WIDGET(menu));
   gtk_menu_item_remove_submenu(channels);
@@ -100,7 +98,7 @@ on_control_slider_changed              (GtkAdjustment *adjust,
   /* Control id */
   gint cid = GPOINTER_TO_INT (user_data);
   tveng_device_info * info =
-    (tveng_device_info*)gtk_object_get_data(GTK_OBJECT(adjust), "info");
+    (tveng_device_info*)g_object_get_data(G_OBJECT(adjust), "info");
 
   g_assert(info != NULL);
   g_assert(cid < info -> num_controls);
@@ -118,7 +116,7 @@ GtkWidget * create_slider(struct tveng_control * qc,
   GtkWidget * vbox; /* We have a slider and a label */
   GtkWidget * spinslider;
   GtkWidget * label;
-  GtkObject * adj; /* Adjustment object for the slider */
+  GObject * adj; /* Adjustment object for the slider */
   int cur_value;
   
   vbox = gtk_vbox_new (FALSE, 0);
@@ -128,13 +126,13 @@ GtkWidget * create_slider(struct tveng_control * qc,
 
   cur_value = qc -> cur_value;
 
-  adj = gtk_adjustment_new(cur_value, qc->min, qc->max, 1, 10,
-			   10);
+  adj = G_OBJECT(gtk_adjustment_new(cur_value, qc->min, qc->max, 1, 10,
+				    10));
 
-  gtk_object_set_data(GTK_OBJECT(adj), "info", (gpointer) info);
+  g_object_set_data(adj, "info", (gpointer) info);
 
-  gtk_signal_connect(adj, "value-changed", 
-		     GTK_SIGNAL_FUNC(on_control_slider_changed),
+  g_signal_connect(adj, "value-changed", 
+		     G_CALLBACK(on_control_slider_changed),
 		     GINT_TO_POINTER (index));
 
   spinslider = z_spinslider_new (GTK_ADJUSTMENT (adj), NULL,
@@ -153,7 +151,7 @@ on_control_checkbutton_toggled         (GtkToggleButton *tb,
 {
   gint cid = GPOINTER_TO_INT (user_data);
   tveng_device_info * info =
-    (tveng_device_info*)gtk_object_get_data(GTK_OBJECT(tb), "info");
+    (tveng_device_info*)g_object_get_data(G_OBJECT(tb), "info");
 
   g_assert(info != NULL);
   g_assert(cid < info -> num_controls);
@@ -179,9 +177,9 @@ GtkWidget * create_checkbutton(struct tveng_control * qc,
   cb = gtk_check_button_new_with_label(_(qc->name));
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(cb), cur_value);
 
-  gtk_object_set_data(GTK_OBJECT(cb), "info", (gpointer) info);
-  gtk_signal_connect(GTK_OBJECT(cb), "toggled",
-		     GTK_SIGNAL_FUNC(on_control_checkbutton_toggled),
+  g_object_set_data(G_OBJECT(cb), "info", (gpointer) info);
+  g_signal_connect(G_OBJECT(cb), "toggled",
+		     G_CALLBACK(on_control_checkbutton_toggled),
 		     GINT_TO_POINTER(index));
   return cb;
 }
@@ -192,10 +190,10 @@ on_control_menuitem_activate           (GtkMenuItem *menuitem,
 {
   gint cid = GPOINTER_TO_INT (user_data);
 
-  int value = (int) gtk_object_get_data(GTK_OBJECT(menuitem),
+  int value = (int) g_object_get_data(G_OBJECT(menuitem),
 					"value");
   tveng_device_info * info =
-    (tveng_device_info*)gtk_object_get_data(GTK_OBJECT(menuitem), "info");
+    (tveng_device_info*)g_object_get_data(G_OBJECT(menuitem), "info");
 
   g_assert(info != NULL);
   g_assert(cid < info -> num_controls);
@@ -230,15 +228,15 @@ GtkWidget * create_menu(struct tveng_control * qc,
     {
       menu_item = gtk_menu_item_new_with_label(_(qc->data[i]));
 
-      gtk_object_set_data(GTK_OBJECT(menu_item), "info", (gpointer) info);
-      gtk_object_set_data(GTK_OBJECT(menu_item), "value", 
+      g_object_set_data(G_OBJECT(menu_item), "info", (gpointer) info);
+      g_object_set_data(G_OBJECT(menu_item), "value", 
 			  GINT_TO_POINTER (i));
-      gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
-			 GTK_SIGNAL_FUNC(on_control_menuitem_activate),
+      g_signal_connect(G_OBJECT(menu_item), "activate",
+			 G_CALLBACK(on_control_menuitem_activate),
 			 GINT_TO_POINTER(index)); /* it should know about
 						     itself */
       gtk_widget_show(menu_item);
-      gtk_menu_append(GTK_MENU(menu), menu_item);
+      gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
       i++;
     }
 
@@ -260,7 +258,7 @@ on_control_button_clicked              (GtkButton *button,
 {
   gint cid = GPOINTER_TO_INT (user_data);
   tveng_device_info * info =
-    (tveng_device_info*)gtk_object_get_data(GTK_OBJECT(button), "info");
+    (tveng_device_info*)g_object_get_data(G_OBJECT(button), "info");
 
   g_assert(info != NULL);
   g_assert(cid < info -> num_controls);
@@ -278,9 +276,9 @@ GtkWidget * create_button(struct tveng_control * qc,
 
   button = gtk_button_new_with_label(_(qc->name));
 
-  gtk_object_set_data(GTK_OBJECT(button), "info", (gpointer) info);
-  gtk_signal_connect(GTK_OBJECT(button), "clicked",
-		     GTK_SIGNAL_FUNC(on_control_button_clicked),
+  g_object_set_data(G_OBJECT(button), "info", (gpointer) info);
+  g_signal_connect(G_OBJECT(button), "clicked",
+		     G_CALLBACK(on_control_button_clicked),
 		     GINT_TO_POINTER(index));
 
   return button;
@@ -297,7 +295,7 @@ on_color_set		       (GnomeColorPicker *colorpicker,
   gint cid = GPOINTER_TO_INT (user_data);
   gint color = ((arg1>>8)<<16)+((arg2>>8)<<8)+(arg3>>8);
   tveng_device_info * info =
-    (tveng_device_info*)gtk_object_get_data(GTK_OBJECT(colorpicker), "info");
+    (tveng_device_info*)g_object_get_data(G_OBJECT(colorpicker), "info");
 
   g_assert(info != NULL);
   g_assert(cid < info -> num_controls);
@@ -322,7 +320,7 @@ GtkWidget * create_color_picker(struct tveng_control * qc,
 			    (qc->cur_value&0xff00)>>8,
 			    (qc->cur_value&0xff), 0);
   gnome_color_picker_set_title(color_picker, buffer);
-  gtk_object_set_data(GTK_OBJECT(color_picker), "info", (gpointer) info);
+  g_object_set_data(G_OBJECT(color_picker), "info", (gpointer) info);
   g_free(buffer);
 
   gtk_widget_show(label);
@@ -330,8 +328,8 @@ GtkWidget * create_color_picker(struct tveng_control * qc,
   gtk_box_pack_start_defaults(GTK_BOX (hbox), label);
   gtk_box_pack_end_defaults(GTK_BOX (hbox), GTK_WIDGET(color_picker));
 
-  gtk_signal_connect(GTK_OBJECT(color_picker), "color-set",
-		     GTK_SIGNAL_FUNC(on_color_set),
+  g_signal_connect(G_OBJECT(color_picker), "color-set",
+		     G_CALLBACK(on_color_set),
 		     GINT_TO_POINTER(index));
 
   return hbox;
@@ -349,7 +347,7 @@ build_control_box(GtkWidget * hbox, tveng_device_info * info)
   if (-1 == tveng_update_controls( info ))
     {
       ShowBox("Tveng critical error, Zapping will exit NOW.",
-	      GNOME_MESSAGE_BOX_ERROR);
+	      GTK_MESSAGE_ERROR);
       g_error("tveng critical: %s", info->error);
     }
 
@@ -441,39 +439,49 @@ on_control_box_destroy		       (GtkWidget      *widget,
   GtkWidget * related_button;
 
   related_button =
-    GTK_WIDGET(gtk_object_get_user_data(GTK_OBJECT(widget)));
+    GTK_WIDGET(g_object_get_data(G_OBJECT(widget), "user-data"));
 
   gtk_widget_set_sensitive(related_button, TRUE);
 
   ToolBox = NULL;
 }
 
-GtkWidget * create_control_box(tveng_device_info * info)
+static PyObject* py_control_box (PyObject *self, PyObject *args)
 {
   GtkWidget * control_box;
   GtkWidget * hbox;
+  GtkWidget * related_button = lookup_widget (main_window, "controls");
 
-  control_box = gtk_window_new(GTK_WINDOW_DIALOG);
+  g_assert (ToolBox == NULL);
+
+  control_box = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_window_set_title(GTK_WINDOW(control_box), _("Available controls"));
 
   hbox = gtk_hbox_new(FALSE, 0);
 
-  build_control_box(hbox, info);
+  build_control_box(hbox, main_info);
 
   gtk_widget_show(hbox);
   gtk_container_add(GTK_CONTAINER (control_box), hbox);
 
-  gtk_window_set_policy(GTK_WINDOW(control_box), FALSE, TRUE, FALSE);
-  gtk_object_set_data(GTK_OBJECT(control_box), "hbox", hbox);
-  gtk_signal_connect(GTK_OBJECT(control_box), "destroy",
-		     GTK_SIGNAL_FUNC(on_control_box_destroy),
+  g_object_set_data(G_OBJECT(control_box), "hbox", hbox);
+  g_signal_connect(G_OBJECT(control_box), "destroy",
+		     G_CALLBACK(on_control_box_destroy),
 		     NULL);
 
-  gtk_signal_connect(GTK_OBJECT(control_box), "key-press-event",
-		     GTK_SIGNAL_FUNC(on_control_box_key_press),
+  g_signal_connect(G_OBJECT(control_box), "key-press-event",
+		     G_CALLBACK(on_control_box_key_press),
 		     NULL);
 
-  return (control_box);
+  gtk_widget_set_sensitive (related_button, FALSE);
+  g_object_set_data (G_OBJECT (control_box), "user-data",
+		     related_button);
+
+  ToolBox = control_box;
+
+  gtk_widget_show (control_box);
+
+  py_return_none;
 }
 
 void
@@ -485,7 +493,7 @@ update_control_box(tveng_device_info * info)
   if ((!info) || (!control_box))
     return;
 
-  hbox = GTK_WIDGET(gtk_object_get_data(GTK_OBJECT(control_box),
+  hbox = GTK_WIDGET(g_object_get_data(G_OBJECT(control_box),
 					"hbox"));
   gtk_container_remove(GTK_CONTAINER (control_box), hbox);
 
@@ -495,7 +503,7 @@ update_control_box(tveng_device_info * info)
 
   gtk_widget_show(hbox);
   gtk_container_add(GTK_CONTAINER (control_box), hbox);
-  gtk_object_set_data(GTK_OBJECT(control_box), "hbox", hbox);
+  g_object_set_data(G_OBJECT(control_box), "hbox", hbox);
 }
 
 void
@@ -507,7 +515,7 @@ z_switch_input			(int hash, tveng_device_info *info)
   if (!input)
     {
       ShowBox("Couldn't find input with hash %x",
-	      GNOME_MESSAGE_BOX_ERROR, hash);
+	      GTK_MESSAGE_ERROR, hash);
       return;
     }
 
@@ -516,7 +524,7 @@ z_switch_input			(int hash, tveng_device_info *info)
 
   if (tveng_set_input(input, info) == -1)
     ShowBox("Couldn't switch to input %s\n%s",
-	    GNOME_MESSAGE_BOX_ERROR,
+	    GTK_MESSAGE_ERROR,
 	    input->name, info->error);
   else
     zmodel_changed(z_input_model);
@@ -532,7 +540,7 @@ z_switch_standard		(int hash, tveng_device_info *info)
     {
       if (info->num_standards)
 	ShowBox("Couldn't find standard with hash %x",
-		GNOME_MESSAGE_BOX_ERROR, hash);
+		GTK_MESSAGE_ERROR, hash);
       return;
     }
 
@@ -541,7 +549,7 @@ z_switch_standard		(int hash, tveng_device_info *info)
 
   if (tveng_set_standard(standard, info) == -1)
     ShowBox("Couldn't switch to standard %s\n%s",
-	    GNOME_MESSAGE_BOX_ERROR,
+	    GTK_MESSAGE_ERROR,
 	    standard->name, info->error);
 }
 
@@ -799,7 +807,7 @@ z_switch_channel	(tveng_tuned_channel	*channel,
 
   if (info->num_inputs && info->inputs[info->cur_input].tuners)
     if (-1 == tveng_tune_input (channel->freq, info))
-      ShowBox(info -> error, GNOME_MESSAGE_BOX_ERROR);
+      ShowBox(info -> error, GTK_MESSAGE_ERROR);
 
   if (zcg_bool(NULL, "avoid_noise"))
     {
@@ -848,18 +856,15 @@ select_channel (gint num_channel)
   z_switch_channel(channel, main_info);
 }
 
-gboolean
-channel_up_cmd				(GtkWidget *	widget,
-					 gint		argc,
-					 gchar **	argv,
-					 gpointer	user_data)
+static PyObject*
+py_channel_up			(PyObject *self, PyObject *args)
 {
   gint num_channels = tveng_tuned_channel_num(global_channel_list);
   gint new_channel;
 
   if (num_channels == 0) /* If there are no tuned channels stop
 			    processing */
-    return TRUE;
+    py_return_none;
 
   new_channel = cur_tuned_channel + 1;
   if (new_channel >= num_channels)
@@ -867,21 +872,18 @@ channel_up_cmd				(GtkWidget *	widget,
 
   select_channel(new_channel);
 
-  return TRUE;
+  py_return_none;
 }
 
-gboolean
-channel_down_cmd			(GtkWidget *	widget,
-					 gint		argc,
-					 gchar **	argv,
-					 gpointer	user_data)
+static PyObject *
+py_channel_down			(PyObject *self, PyObject *args)
 {
   gint num_channels = tveng_tuned_channel_num(global_channel_list);
   gint new_channel;
 
   if (num_channels == 0) /* If there are no tuned channels stop
 			    processing */
-    return TRUE;
+    py_return_none;
 
   new_channel = cur_tuned_channel - 1;
   if (new_channel < 0)
@@ -889,25 +891,21 @@ channel_down_cmd			(GtkWidget *	widget,
   
   select_channel(new_channel);
 
-  return TRUE;
+  py_return_none;
 }
 
 /*
  *  Select a channel by index into the the channel list.
  */
-static gboolean
-set_channel_cmd				(GtkWidget *	widget,
-					 gint		argc,
-					 gchar **	argv,
-					 gpointer	user_data)
+static PyObject*
+py_set_channel				(PyObject *self, PyObject *args)
 {
   gint num_channels;
   gint i;
+  int ok = PyArg_ParseTuple (args, "i", &i);
 
-  if (argc < 2 || !argv[1][0])
-    return FALSE;
-
-  i = strtol(argv[1], NULL, 0);
+  if (!ok)
+    py_return_false;
 
   num_channels = tveng_tuned_channel_num(global_channel_list);
 
@@ -915,45 +913,44 @@ set_channel_cmd				(GtkWidget *	widget,
   if (i >= 0 && i < num_channels)
     {
       select_channel(i);
-      return TRUE;
+      py_return_true;
     }
 
-  return FALSE;
+  py_return_false;
 }
 
 /*
  *  Select a channel by station name ("MSNBCBS", "Linux TV", ...),
  *  when not found by channel name ("5", "S7", ...)
  */
-static gboolean
-lookup_channel_cmd			(GtkWidget *	widget,
-					 gint		argc,
-					 gchar **	argv,
-					 gpointer	user_data)
+static PyObject*
+py_lookup_channel			(PyObject *self, PyObject *args)
 {
   tveng_tuned_channel *tc;
   gint i;
+  char *name;
+  int ok = PyArg_ParseTuple (args, "s", &name);
 
-  if (argc < 2 || !argv[1][0])
-    return FALSE;
+  if (!ok)
+    py_return_false;
 
   for (i = 0; (tc = tveng_retrieve_tuned_channel_by_index
 	       (i, global_channel_list)); i++)
-    if (strcasecmp(argv[1], tc->name) == 0)
+    if (strcasecmp(name, tc->name) == 0)
       {
 	z_switch_channel(tc, main_info);
-	return TRUE;
+	py_return_true;
       }
 
   for (i = 0; (tc = tveng_retrieve_tuned_channel_by_index
 	       (i, global_channel_list)); i++)
-    if (strcasecmp(argv[1], tc->rf_name) == 0)
+    if (strcasecmp(name, tc->rf_name) == 0)
       {
 	z_switch_channel(tc, main_info);
-	return TRUE;
+	py_return_true;
       }
 
-  return FALSE;
+  py_return_false;
 }
 
 static gchar			kp_chsel_buf[5];
@@ -963,15 +960,14 @@ static gboolean			kp_clear;
 static void
 kp_timeout				(gboolean timer)
 {
-  gchar *vec[2] = { 0, kp_chsel_buf };
   gint txl = zconf_get_integer (NULL, "/zapping/options/main/channel_txl");
 
   if (timer && txl >= 0) /* -1 disable, 0 list entry, 1 RF channel */
     {
-      if (!isdigit(kp_chsel_buf[0]) || txl >= 1)
-	lookup_channel_cmd (NULL, 2, vec, NULL);
+      if (!isdigit (kp_chsel_buf[0]) || txl >= 1)
+	cmd_run_printf ("zapping.lookup_channel('%s')", kp_chsel_buf);
       else
-	set_channel_cmd (NULL, 2, vec, NULL);
+	cmd_run_printf ("zapping.set_channel(%d)", kp_chsel_buf);
     }
 
   if (kp_clear)
@@ -987,7 +983,6 @@ on_channel_key_press			(GtkWidget *	widget,
 					 gpointer	user_data)
 {
   extern tveng_rf_table *current_country; /* Currently selected contry */
-  gchar *vec[2] = { 0, kp_chsel_buf };
   tveng_tuned_channel *tc;
   const gchar *prefix;
   z_key key;
@@ -998,7 +993,6 @@ on_channel_key_press			(GtkWidget *	widget,
   if (txl >= 0) /* !disabled */
     switch (event->keyval)
       {
-#ifdef HAVE_LIBZVBI
       case GDK_KP_0 ... GDK_KP_9:
 	i = strlen (kp_chsel_buf);
 
@@ -1037,16 +1031,14 @@ on_channel_key_press			(GtkWidget *	widget,
 
       case GDK_KP_Enter:
 	if (!isdigit (kp_chsel_buf[0]) || txl >= 1)
-	  lookup_channel_cmd (NULL, 2, vec, NULL);
+	  cmd_run_printf ("zapping.lookup_channel('%s')", kp_chsel_buf);
 	else
-	  set_channel_cmd (NULL, 2, vec, NULL);
+	  cmd_run_printf ("zapping.set_channel(%d)", kp_chsel_buf);
 
 	kp_chsel_buf[0] = 0;
 	kp_chsel_prefix = 0;
 
 	return TRUE;
-
-#endif /* HAVE_LIBZVBI */
 
       default:
 	break;
@@ -1122,7 +1114,7 @@ void on_standard_activate              (GtkMenuItem     *menuitem,
 }
 
 static inline void
-insert_one_channel			(GtkMenu *menu,
+insert_one_channel			(GtkMenuShell *menu,
 					 gint index,
 					 gint pos)
 {
@@ -1131,10 +1123,10 @@ insert_one_channel			(GtkMenu *menu,
   gchar *tooltip;
   GtkWidget *menu_item =
     z_gtk_pixmap_menu_item_new(tuned->name,
-			       GNOME_STOCK_PIXMAP_PROPERTIES);
-  gtk_signal_connect_object(GTK_OBJECT(menu_item), "activate",
-			    GTK_SIGNAL_FUNC(select_channel),
-			    (GtkObject*)GINT_TO_POINTER(index));
+			       GTK_STOCK_PROPERTIES);
+  g_signal_connect_swapped(G_OBJECT(menu_item), "activate",
+			   G_CALLBACK(select_channel),
+			   GINT_TO_POINTER(index));
 
   if ((tooltip = z_key_name (tuned->accel)))
     {
@@ -1143,71 +1135,71 @@ insert_one_channel			(GtkMenu *menu,
     }
 
   gtk_widget_show(menu_item);
-  gtk_menu_insert(menu, menu_item, pos);
+  gtk_menu_shell_insert(menu, menu_item, pos);
 }
 
 /* Returns whether something (useful) was added */
 gboolean
-add_channel_entries			(GtkMenu *menu,
+add_channel_entries			(GtkMenuShell *menu,
 					 gint pos,
 					 gint menu_max_entries,
 					 tveng_device_info *info)
 {
   GtkWidget *menu_item = NULL;
-  GtkMenu *menu2 = NULL;
+  GtkMenuShell *menu2 = NULL;
   gchar *buf = NULL;
   gint i;
   gboolean sth = FALSE;
 
   if (info->num_standards)
     {
-      menu2 = GTK_MENU(gtk_menu_new());
+      menu2 = GTK_MENU_SHELL(gtk_menu_new());
       menu_item =
 	    z_gtk_pixmap_menu_item_new("Standards",
-				       GNOME_STOCK_PIXMAP_COLORSELECTOR);
+				       GTK_STOCK_SELECT_COLOR);
       gtk_widget_show(menu_item);
       gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item),
 				GTK_WIDGET(menu2));
-      gtk_menu_insert(menu, menu_item, pos);
+      gtk_menu_shell_insert(menu, menu_item, pos);
       menu_item = gtk_tearoff_menu_item_new();
       gtk_widget_show(menu_item);
-      gtk_menu_append(menu2, menu_item);
+      gtk_menu_shell_append(menu2, menu_item);
       for (i = 0; i<info->num_standards; i++)
 	{
 	  menu_item =
 	    z_gtk_pixmap_menu_item_new(info->standards[i].name,
-				       GNOME_STOCK_PIXMAP_COLORSELECTOR);
-	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
-			     GTK_SIGNAL_FUNC(on_standard_activate),
+				       GTK_STOCK_SELECT_COLOR);
+	  g_signal_connect(G_OBJECT(menu_item), "activate",
+			     G_CALLBACK(on_standard_activate),
 			     GINT_TO_POINTER(info->standards[i].hash));
 	  gtk_widget_show(menu_item);
-	  gtk_menu_append(menu2, menu_item);
+	  gtk_menu_shell_append(menu2, menu_item);
 	}
     }
 
   if (info->num_inputs)
     {
-      menu2 = GTK_MENU(gtk_menu_new());
+      menu2 = GTK_MENU_SHELL(gtk_menu_new());
       menu_item =
 	    z_gtk_pixmap_menu_item_new(_("Inputs"),
-				       GNOME_STOCK_PIXMAP_LINE_IN);
+				       "gnome-stock-line-in");
       gtk_widget_show(menu_item);
       gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item),
 				GTK_WIDGET(menu2));
-      gtk_menu_insert(menu, menu_item, pos);
+      gtk_menu_shell_insert(menu, menu_item, pos);
       menu_item = gtk_tearoff_menu_item_new();
       gtk_widget_show(menu_item);
-      gtk_menu_append(menu2, menu_item);
+      gtk_menu_shell_append(menu2, menu_item);
       for (i = 0; i<info->num_inputs; i++)
 	{
 	  menu_item =
 	    z_gtk_pixmap_menu_item_new(info->inputs[i].name,
-				       GNOME_STOCK_PIXMAP_LINE_IN);
-	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
-			     GTK_SIGNAL_FUNC(on_input_activate),
+				       "gnome-stock-line-in");
+	  g_signal_connect(G_OBJECT(menu_item), "activate",
+			     G_CALLBACK(on_input_activate),
 			     GINT_TO_POINTER(info->inputs[i].hash));
 	  gtk_widget_show(menu_item);
-	  gtk_menu_append(menu2, menu_item);
+	  gtk_menu_shell_append(menu2, menu_item);
 	}
     }
 
@@ -1217,7 +1209,7 @@ add_channel_entries			(GtkMenu *menu,
       /* separator */
       menu_item = gtk_menu_item_new();
       gtk_widget_show(menu_item);
-      gtk_menu_insert (menu, menu_item, pos);
+      gtk_menu_shell_insert (menu, menu_item, pos);
       sth = TRUE;
     }
 
@@ -1226,10 +1218,10 @@ add_channel_entries			(GtkMenu *menu,
   if (tveng_tuned_channel_num(global_channel_list) == 0)
     {
       menu_item = z_gtk_pixmap_menu_item_new(_("No tuned channels"),
-					     GNOME_STOCK_PIXMAP_CLOSE);
+					     GTK_STOCK_CLOSE);
       gtk_widget_set_sensitive(menu_item, FALSE);
       gtk_widget_show(menu_item);
-      gtk_menu_insert(menu, menu_item, pos);
+      gtk_menu_shell_insert(menu, menu_item, pos);
       /* This doesn't count as something added */
     }
   else
@@ -1246,16 +1238,16 @@ add_channel_entries			(GtkMenu *menu,
 	for (;i>=0;i--) {
 	  if (!menu2)
 	    {
-	      menu2 = GTK_MENU(gtk_menu_new());
+	      menu2 = GTK_MENU_SHELL(gtk_menu_new());
 	      menu_item = gtk_tearoff_menu_item_new();
 	      gtk_widget_show(menu_item);
-	      gtk_menu_append(menu2, menu_item);
+	      gtk_menu_shell_append(menu2, menu_item);
 	      gtk_widget_show(GTK_WIDGET(menu2));
 	      menu_item =
 		z_gtk_pixmap_menu_item_new("foobar",
-					   GNOME_STOCK_PIXMAP_LINE_IN);
+					   "gnome-stock-line-in");
 	      gtk_widget_show(menu_item);
-	      gtk_menu_insert(menu, menu_item, pos);
+	      gtk_menu_shell_insert(menu, menu_item, pos);
 	      gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item),
 					GTK_WIDGET(menu2));
 	      buf =
@@ -1279,21 +1271,29 @@ add_channel_entries			(GtkMenu *menu,
   return sth;
 }
 
-#define CMD_REG(_name) cmd_register (#_name, _name##_cmd, NULL)
-
 void
 startup_v4linterface(tveng_device_info *info)
 {
   z_input_model = ZMODEL(zmodel_new());
 
-  gtk_signal_connect(GTK_OBJECT(z_input_model), "changed",
-		     GTK_SIGNAL_FUNC(update_bundle),
+  g_signal_connect(G_OBJECT(z_input_model), "changed",
+		     G_CALLBACK(update_bundle),
 		     info);
 
-  CMD_REG (channel_up);
-  CMD_REG (channel_down);
-  CMD_REG (set_channel);
-  CMD_REG (lookup_channel);
+  cmd_register ("channel_up", py_channel_up, METH_VARARGS,
+		_("Switches to the next channel"),
+		"zapping.channel_up()");
+  cmd_register ("channel_down", py_channel_down, METH_VARARGS,
+		_("Switches to the previous channel"),
+		"zapping.channel_down()");
+  cmd_register ("set_channel", py_set_channel, METH_VARARGS,
+		_("Switches to a channel given its index"),
+		"zapping.set_channel(5)");
+  cmd_register ("lookup_channel", py_lookup_channel, METH_VARARGS,
+		_("Switches to a channel given its name"),
+		"zapping.lookup_channel('Linux TV')");
+  cmd_register ("control_box", py_control_box, METH_VARARGS,
+		_("Opens the control box"), "zapping.control_box()");
 
   zcc_char("Zapping: $(alias)", "Title format Z will use", "title_format");
   zcc_bool(FALSE, "Swap the page Up/Down bindings", "swap_up_down");
@@ -1306,5 +1306,5 @@ startup_v4linterface(tveng_device_info *info)
 void
 shutdown_v4linterface(void)
 {
-  gtk_object_destroy(GTK_OBJECT(z_input_model));
+  g_object_unref(G_OBJECT(z_input_model));
 }

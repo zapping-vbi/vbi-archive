@@ -35,6 +35,8 @@
 #include "osd.h"
 #include "remote.h"
 #include "callbacks.h"
+#include "globals.h"
+#include "v4linterface.h"
 
 extern audio_backend_info esd_backend;
 #if USE_OSS
@@ -89,7 +91,7 @@ open_audio_device (gboolean stereo, gint rate, enum audio_format
       ShowBox(_("Cannot open the configured audio device.\n"
 		"You might want to setup another kind of audio\n"
 		"device in the Properties dialog."),
-	      GNOME_MESSAGE_BOX_WARNING);
+	      GTK_MESSAGE_WARNING);
       return NULL;
     }
 
@@ -124,21 +126,21 @@ read_audio_data (gpointer handle, gpointer dest, gint num_bytes,
 }
 
 static void
-on_backend_activate	(GtkObject		*menuitem,
+on_backend_activate	(GObject		*menuitem,
 			 gpointer		pindex)
 {
   gint index = GPOINTER_TO_INT(pindex);
-  GtkObject * audio_backends =
-    GTK_OBJECT(gtk_object_get_user_data(menuitem));
+  GObject * audio_backends =
+    G_OBJECT(g_object_get_data(menuitem, "user-data"));
   gint cur_sel =
-    GPOINTER_TO_INT(gtk_object_get_data(audio_backends, "cur_sel"));
+    GPOINTER_TO_INT(g_object_get_data(audio_backends, "cur_sel"));
   GtkWidget **boxes =
-    (GtkWidget**)gtk_object_get_data(audio_backends, "boxes");
+    (GtkWidget**)g_object_get_data(audio_backends, "boxes");
 
   if (cur_sel == index)
     return;
 
-  gtk_object_set_data(audio_backends, "cur_sel", pindex);
+  g_object_set_data(audio_backends, "cur_sel", pindex);
   gtk_widget_hide(boxes[cur_sel]);
   gtk_widget_set_sensitive(boxes[cur_sel], FALSE);
 
@@ -149,7 +151,7 @@ on_backend_activate	(GtkObject		*menuitem,
 static void
 build_mixer_lines		(GtkWidget	*optionmenu)
 {
-  GtkMenu *menu = GTK_MENU
+  GtkMenuShell *menu = GTK_MENU_SHELL
     (gtk_option_menu_get_menu(GTK_OPTION_MENU(optionmenu)));
   GtkWidget *menuitem;
   gchar *label;
@@ -160,17 +162,17 @@ build_mixer_lines		(GtkWidget	*optionmenu)
       menuitem = gtk_menu_item_new_with_label(label);
       free(label);
       gtk_widget_show(menuitem);
-      gtk_menu_append(menu, menuitem);
+      gtk_menu_shell_append(menu, menuitem);
     }
 }
 
 static void
-on_record_source_changed	(GtkWidget	*optionmenu,
-				 gint		cur_sel,
+on_record_source_changed	(GtkOptionMenu	*optionmenu,
 				 GtkRange	*hscale)
 {
   int min, max;
   GtkAdjustment *adj;
+  gint cur_sel = z_option_menu_get_active (GTK_WIDGET (optionmenu));
 
   gtk_widget_set_sensitive(GTK_WIDGET(hscale), cur_sel);
 
@@ -206,17 +208,18 @@ audio_setup		(GtkWidget	*page)
   guint i;
 
   /* Hook on dialog destruction so there's no mem leak */
-  gtk_object_set_data_full(GTK_OBJECT (audio_backends), "boxes", boxes,
+  g_object_set_data_full(G_OBJECT (audio_backends), "boxes", boxes,
 			   (GtkDestroyNotify)g_free);
 
   for (i=0; i<num_backends; i++)
     {
       menuitem = gtk_menu_item_new_with_label(_(backends[i]->name));
-      gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
-			 GTK_SIGNAL_FUNC(on_backend_activate),
+      g_signal_connect(G_OBJECT(menuitem), "activate",
+			 G_CALLBACK(on_backend_activate),
 			 GINT_TO_POINTER(i));
-      gtk_menu_append(GTK_MENU(menu), menuitem);
-      gtk_object_set_user_data(GTK_OBJECT(menuitem), audio_backends);
+      gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
+      g_object_set_data(G_OBJECT(menuitem), "user-data",
+			audio_backends);
       gtk_widget_show(menuitem);
 
       boxes[i] = gtk_vbox_new(FALSE, 3);
@@ -232,7 +235,7 @@ audio_setup		(GtkWidget	*page)
   gtk_option_menu_set_menu(GTK_OPTION_MENU (audio_backends), menu);
   gtk_option_menu_set_history(GTK_OPTION_MENU (audio_backends),
 			      cur_backend);
-  gtk_object_set_data(GTK_OBJECT (audio_backends), "cur_sel",
+  g_object_set_data(G_OBJECT (audio_backends), "cur_sel",
 		      GINT_TO_POINTER(cur_backend));
 
   /* Avoid noise while changing channels */
@@ -248,11 +251,10 @@ audio_setup		(GtkWidget	*page)
   /* Recording source and volume */
   build_mixer_lines(record_source);
   z_option_menu_set_active(record_source, cur_input);
-  gtk_signal_connect(GTK_OBJECT(record_source), "changed",
-		     GTK_SIGNAL_FUNC(on_record_source_changed),
-		     record_volume);
-  on_record_source_changed(record_source,
-			   z_option_menu_get_active(record_source),
+  g_signal_connect(G_OBJECT(record_source), "changed",
+		   G_CALLBACK(on_record_source_changed),
+		   record_volume);
+  on_record_source_changed(GTK_OPTION_MENU (record_source),
 			   GTK_RANGE(record_volume));
   
   gtk_adjustment_set_value(gtk_range_get_adjustment(GTK_RANGE(record_volume)),
@@ -280,7 +282,7 @@ audio_apply		(GtkWidget	*page)
   /* Apply the properties */
   audio_backends = lookup_widget(page, "audio_backends");
   selected = z_option_menu_get_active(audio_backends);
-  boxes = (GtkWidget**)gtk_object_get_data(GTK_OBJECT(audio_backends),
+  boxes = (GtkWidget**)g_object_get_data(G_OBJECT(audio_backends),
 					   "boxes");
 
   if (backends[selected]->apply_props)
@@ -297,42 +299,40 @@ audio_apply		(GtkWidget	*page)
 }
 
 static void
-add				(GnomeDialog	*dialog)
+add				(GtkDialog	*dialog)
 {
   SidebarEntry general_options[] = {
-    { N_("Audio"), ICON_ZAPPING, "gnome-grecord.png", "vbox39",
+    { N_("Audio"), "gnome-grecord.png", "vbox39",
       audio_setup, audio_apply }
   };
   SidebarGroup groups[] = {
     { N_("General Options"), general_options, acount(general_options) }
   };
 
-  standard_properties_add(dialog, groups, acount(groups), "zapping.glade");
+  standard_properties_add(dialog, groups, acount(groups), "zapping.glade2");
 }
 
-static gboolean
-volume_incr_cmd				(GtkWidget *	widget,
-					 gint		argc,
-					 gchar **	argv,
-					 gpointer	user_data)
+static PyObject*
+py_volume_incr			(PyObject *self, PyObject *args)
 {
   int cur_line = zcg_int (NULL, "record_source");
   int min, max, range, step, cur;
-  gint value = +1;
+  int value = +1;
+  int ok = PyArg_ParseTuple (args, "|i", &value);
 
-  if (argc > 1)
-    value = strtol (argv[1], NULL, 0);
+  if (!ok)
+    g_error ("zapping.volume_incr(|i)");
 
   if (value < -100 || value > +100)
-    return FALSE;
+    goto done;
 
   if (!cur_line)
-    return FALSE;
+    goto done;
 
   cur_line--; /* 0 is "system setting" */
 
   if (mixer_get_bounds (cur_line, &min, &max) == -1)
-    return FALSE;
+    goto done;
 
   range = max - min + 1;
   step = (int)(((double) value) * range / 100.0);
@@ -349,17 +349,116 @@ volume_incr_cmd				(GtkWidget *	widget,
     cur = min;
 
   if (mixer_set_volume(cur_line, cur) == -1)
-    return FALSE;
+    goto done;
 
   zcs_int(cur, "record_volume");
 
-#ifdef HAVE_LIBZVBI
   /* NLS: Record volume */
   osd_render_sgml(NULL, _("<blue>%3d %%</blue>"),
 		  (cur - min) * 100 / range);
-#endif
+
+ done:
+  Py_INCREF(Py_None);
+
+  return Py_None;
+}
+
+/* FIXME */
+#define ORC_BLOCK(X) (X)
+static gboolean		mute_controls	= FALSE;
+static gboolean		mute_osd	= FALSE;
+
+gboolean
+set_mute1				(gint	        mode,
+					 gboolean	controls,
+					 gboolean	osd)
+{
+  static gboolean recursion = FALSE;
+  GtkCheckMenuItem *check;
+  GtkWidget *button;
+  gint mute;
+
+  if (recursion)
+    return TRUE;
+
+  recursion = TRUE;
+
+  if (mode >= 2)
+    {
+      if ((mute = tveng_get_mute(main_info)) < 0)
+	{
+	  printv("tveng_get_mute failed\n");
+	  recursion = FALSE;
+	  return FALSE;
+	}
+
+      if (mode == 2)
+	mute = !mute;
+    }
+  else
+    mute = !!mode;
+
+  if (mode <= 2)
+    {
+      if (tveng_set_mute(mute, main_info) < 0)
+	{
+	  printv("tveng_set_mute failed\n");
+	  recursion = FALSE;
+	  return FALSE;
+	}
+    }
+
+  /* Reflect change in GUI */
+
+  mute_controls = controls;
+  mute_osd = osd;
+
+  /* The if's here break the signal -> change -> signal recursion */
+
+  button = lookup_widget (main_window, "tb-mute");
+
+  check = GTK_CHECK_MENU_ITEM (lookup_widget (main_window, "mute2"));
+
+  if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (button)) != mute)
+    ORC_BLOCK (gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (button), mute));
+  else if (check->active == mute)
+    mute_controls = FALSE;
+
+  if (check->active != mute)
+    ORC_BLOCK (gtk_check_menu_item_set_active (check, mute));
+
+  if (mute_controls)
+    update_control_box (main_info);
+
+  if (mute_osd)
+    if (main_info->current_mode == TVENG_CAPTURE_PREVIEW ||
+	!GTK_WIDGET_VISIBLE(lookup_widget(main_window, "bonobodockitem2")))
+      osd_render_sgml(NULL, mute ?
+		      _("<blue>audio off</blue>") :
+		      _("<yellow>AUDIO ON</yellow>"));
+
+  mute_controls = TRUE;
+  mute_osd = TRUE;
+
+  recursion = FALSE;
 
   return TRUE;
+}
+
+static PyObject* py_mute (PyObject *self, PyObject *args)
+{
+  int value = 2; /* toggle by default */
+  int ok = PyArg_ParseTuple (args, "|i", &value);
+
+  if (!ok)
+    {
+      g_warning ("zapping.mute(|i)");
+      py_return_false;
+    }
+
+  set_mute1 (value, mute_controls, mute_osd);
+
+  py_return_true;
 }
 
 void startup_audio ( void )
@@ -381,8 +480,10 @@ void startup_audio ( void )
     if (backends[i]->init)
       backends[i]->init();
 
-  cmd_register ("mute", mute_cmd, NULL);
-  cmd_register ("volume_incr", volume_incr_cmd, NULL);
+  cmd_register ("mute", py_mute, METH_VARARGS,
+		"Toggles the mute state", "zapping.mute([new_state])");
+  cmd_register ("volume_incr", py_volume_incr, METH_VARARGS,
+		"Changes the sounds volume", "zapping.volume_incr(-10)");
 }
 
 void shutdown_audio ( void )

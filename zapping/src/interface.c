@@ -2,18 +2,13 @@
 #  include <config.h>
 #endif
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <string.h>
-
 #include <gnome.h>
 #include <glade/glade.h>
 
 #include "interface.h"
-#include "zmisc.h"
-#include "zconf.h"
 #include "remote.h"
+#include "zmisc.h"
+#include "globals.h"
 
 /**
  * Finds in the tree the given widget, returns a pointer to it or NULL
@@ -26,14 +21,13 @@ find_widget				(GtkWidget *	parent,
   GtkWidget *widget = parent;
   GtkWidget *result = NULL;
   GladeXML *tree;
-  gchar *long_name;
   gchar *buf;
 
   buf = g_strdup_printf("registered-widget-%s", name);
 
   while (widget)
     {
-      if ((result = (GtkWidget *) gtk_object_get_data (GTK_OBJECT (widget), buf)))
+      if ((result = (GtkWidget*) g_object_get_data (G_OBJECT(widget), buf)))
 	break; /* found registered widget with that name */
 
       if ((tree = glade_get_widget_tree (widget)))
@@ -41,11 +35,8 @@ find_widget				(GtkWidget *	parent,
 	  break; /* found glade widget with that name */
 
       if (0)
-	if ((long_name = (gchar *) glade_get_widget_long_name (widget)))
-	  {
-	    fprintf (stderr, "found '%s'\n", long_name);
-	    g_free (long_name);
-	  }
+	fprintf (stderr, "found '%s'\n",
+		 glade_get_widget_name(widget));
 
       /* try to go to the parent widget */
       if (GTK_IS_MENU (widget))
@@ -74,8 +65,8 @@ lookup_widget				(GtkWidget *	parent,
 
   if (!widget)
     {
-      RunBox("Widget %s not found, please contact the maintainer",
-	     GNOME_MESSAGE_BOX_ERROR, name);
+      RunBox(_("Widget %s not found, please contact the maintainer"),
+	     GTK_MESSAGE_ERROR, name);
       exit(1);
     }
 
@@ -94,7 +85,7 @@ register_widget(GtkWidget * widget, const char * name)
       if (!GTK_IS_MENU(widget) && !widget->parent)
 	{
 	  buf = g_strdup_printf("registered-widget-%s", name);
-	  gtk_object_set_data(GTK_OBJECT(widget), buf, this_widget);
+	  g_object_set_data(G_OBJECT(widget), buf, this_widget);
 	  g_free(buf);
 	  return;
 	}
@@ -116,7 +107,7 @@ register_widget(GtkWidget * widget, const char * name)
  * @file: Name of the Glade file. 
  * 
  * Loads a GtkWidget from a Glade file, when @file is %NULL from
- * zapping.glade. All the memory is freed when the object (widget)
+ * zapping.glade2. All the memory is freed when the object (widget)
  * is destroyed. If name is %NULL, all widgets are loaded, but this
  * is not recommended.
  * 
@@ -129,150 +120,93 @@ build_widget			(const gchar *		name,
 {
   GladeXML *xml;
   GtkWidget *widget;
-  GtkWidget *top_level;
   gchar *path;
-  gpointer data;
 
   if (!file)
-    file = "zapping.glade";
+    file = "zapping.glade2";
 
-  path = g_strconcat (PACKAGE_DATA_DIR, "/", file, NULL);
-
-  xml = glade_xml_new (path, name);
+  path = g_strconcat (PACKAGE_DATA_DIR "/" PACKAGE "/", file, NULL);
+  xml = glade_xml_new (path, name, NULL);
 
   if (!xml)
     {
-      RunBox ("%s [%s] couldn't be found, please contact the maintainer",
-	      GNOME_MESSAGE_BOX_ERROR, path, name);
+      g_warning ("%s [%s] couldn't be found, please contact the maintainer",
+		 path, name);
       exit (1);
     }
+
+  g_free (path);
 
   widget = glade_xml_get_widget (xml, name);
 
   if (!widget)
     {
-      RunBox ("%s [%s] couldn't be loaded, please contact the maintainer",
-	      GNOME_MESSAGE_BOX_ERROR, path, name);
+      g_warning ("%s [%s] couldn't be loaded, please contact the maintainer",
+		 path, name);
       exit (1);
     }
 
   glade_xml_signal_autoconnect (xml);
 
-  /*
-   *  Add tooltips to our global list. Too bad glade has no callback.
-   */
-  for (top_level = widget; top_level->parent; top_level = top_level->parent)
-    ;
-  if ((data = gtk_object_get_data (GTK_OBJECT (top_level),
-				   "libglade::GladeXML::tooltips")))
-    z_tooltips_add (GTK_TOOLTIPS (data));
-
-  g_free (path);
-
   return widget;
 }
 
-void
-change_toolbar_style (GtkWidget *widget, int style)
-{
-  extern GtkWidget *main_window;
-  static GtkToolbarStyle gts[] = {
-    GTK_TOOLBAR_ICONS,
-    GTK_TOOLBAR_TEXT,
-    GTK_TOOLBAR_BOTH
-  };
-
-  if (!widget)
-    widget = main_window;
-
-  if (!widget || style < 0 || style > 2)
-    return;
-
-  widget = lookup_widget (widget, "dockitem2"); /* main window */
-  widget = gnome_dock_item_get_child (GNOME_DOCK_ITEM (widget));
-
-  if (!widget)
-    return;
-
-  gtk_toolbar_set_style (GTK_TOOLBAR (widget), gts[style]);
-}
-
-#define MENU_CMD(_name, _cmd)						\
-  w = lookup_widget (widget, #_name);					\
-  gtk_signal_connect (GTK_OBJECT (w), "activate",			\
-		      (GtkSignalFunc) on_remote_command1,		\
-		      (gpointer)((const gchar *) _cmd));
+#define MENU_CMD(_name, _cmd)					\
+  w = lookup_widget (widget, #_name);				\
+  g_signal_connect (G_OBJECT (w), "activate",			\
+		    (GCallback) on_remote_command1,		\
+		    (gpointer)((const gchar *) _cmd));
 
 GtkWidget*
 create_zapping (void)
 {
-  GtkWidget *widget;
-  GtkWidget *w;
+  GtkWidget *widget, *w;
 
-  widget = build_widget("zapping", NULL);
+  widget = build_widget ("zapping", NULL);
 
-  /* Change the pixmaps, work around glade bug */
-  set_stock_pixmap (w = lookup_widget (widget, "channel_up"),
-		    GNOME_STOCK_PIXMAP_UP);
-  set_stock_pixmap (w = lookup_widget (widget, "channel_down"),
-		    GNOME_STOCK_PIXMAP_DOWN);
+  /* Work around libglade bug */
+  w = lookup_widget (widget, "tv_screen");
+  gtk_widget_add_events (w, GDK_BUTTON_PRESS_MASK | GDK_EXPOSURE_MASK
+			 | GDK_POINTER_MOTION_MASK |
+			 GDK_VISIBILITY_NOTIFY_MASK |
+			 GDK_KEY_PRESS_MASK);
 
   /* Menu remote commands, not possible with glade */
-  MENU_CMD (quit1,		"quit");
-  MENU_CMD (go_fullscreen1,	"switch_mode fullscreen");
-  MENU_CMD (go_previewing2,	"switch_mode preview");
-  MENU_CMD (go_capturing2,	"switch_mode capture");
-  MENU_CMD (videotext1,		"switch_mode teletext");
-  MENU_CMD (new_ttxview,	"ttx_open_new");
-  MENU_CMD (mute2,		"mute");
+  MENU_CMD (quit1,		"zapping.quit()");
+  MENU_CMD (go_fullscreen1,	"zapping.switch_mode('fullscreen')");
+  MENU_CMD (go_previewing2,	"zapping.switch_mode('preview')");
+  MENU_CMD (go_capturing2,	"zapping.switch_mode('capture')");
+  MENU_CMD (videotext1,		"zapping.switch_mode('teletext')");
+  MENU_CMD (new_ttxview,	"zapping.ttx_open_new()");
+  MENU_CMD (mute2,		"zapping.mute()");
+  MENU_CMD (about1,		"zapping.about()");
+  MENU_CMD (propiedades1,	"zapping.properties()");
+  MENU_CMD (hide_controls2,	"zapping.hide_controls()");
+  MENU_CMD (plugins1,		"zapping.plugin_properties()");
 
-  w = gtk_toolbar_insert_element (GTK_TOOLBAR (lookup_widget (widget, "toolbar1")),
-                                  GTK_TOOLBAR_CHILD_TOGGLEBUTTON,
-                                  NULL,
-                                  _("Mute"),
-                                  NULL, NULL,
-                                  z_load_pixmap ("mute.png"),
-				  NULL, NULL, 3);
-  z_tooltip_set (w, _("Switch audio on and off"));
-  gtk_object_set_data (GTK_OBJECT (widget), "registered-widget-tb-mute", w);
-  gtk_widget_show (w);
+  /* Toolbar commands */
+  w = lookup_widget (widget, "tb-mute");
+  g_signal_connect (G_OBJECT(w), "toggled",
+		    (GCallback) on_remote_command1,
+		    "zapping.mute()");
 
-  gtk_signal_connect (GTK_OBJECT (w), "toggled",
-		      (GtkSignalFunc) on_remote_command1,
-		      (gpointer)((const gchar *) "mute"));
+  w = lookup_widget (widget, "controls");
+  g_signal_connect (G_OBJECT(w), "clicked",
+		    (GCallback) on_remote_command1,
+		    "zapping.control_box()");
 
   propagate_toolbar_changes (lookup_widget (widget, "toolbar1"));
 
+#if 0
   zconf_create_integer (2, "Display icons, text or both",
 		        "/zapping/options/main/toolbar_style");
   change_toolbar_style (widget, zconf_get_integer (NULL,
 		        "/zapping/options/main/toolbar_style"));
+#endif
 
   return widget;
 }
 
-/*
- * This one doesn't use libglade, because libglade cannot properly
- * display the logo.
- */
-GtkWidget*
-create_about2 (void)
-{
-  const gchar *authors[] = {
-    "Iñaki García Etxebarria <garetxe@users.sourceforge.net>",
-    NULL
-  };
-  GtkWidget *about2;
-
-  about2 = gnome_about_new ("Zapping", VERSION,
-                        "(C) Iñaki García Etxebarria",
-                        authors,
-                        _("A TV viewer for the Gnome Desktop Environment"),
-                        "zapping/logo.png");
-  gtk_window_set_modal (GTK_WINDOW (about2), FALSE);
-
-  return about2;
-}
 
 GtkWidget*
 create_popup_menu1 (void)
@@ -281,13 +215,22 @@ create_popup_menu1 (void)
   GtkWidget *w;
 
   widget = build_widget ("popup_menu1", NULL);
-
+ 
   /* Menu remote commands, not possible with glade */
-  MENU_CMD (go_fullscreen2,	"switch_mode fullscreen");
-  MENU_CMD (go_previewing2,	"switch_mode preview");
-  MENU_CMD (go_capturing2,	"switch_mode capture");
-  MENU_CMD (videotext2,		"switch_mode teletext");
-  MENU_CMD (new_ttxview2,	"ttx_open_new");
+  MENU_CMD (go_fullscreen2,	"zapping.switch_mode('fullscreen')");
+  MENU_CMD (go_previewing2,	"zapping.switch_mode('preview')");
+  MENU_CMD (go_capturing2,	"zapping.switch_mode('capture')");
+  MENU_CMD (videotext2,		"zapping.switch_mode('teletext')");
+  MENU_CMD (new_ttxview2,	"zapping.ttx_open_new()");
+
+  /* Fixme: These don't work, dunno why */
+  MENU_CMD (hide_controls1,	"zapping.hide_controls()");
+  MENU_CMD (pal_big,		"zapping.resize_screen(768, 576)");
+  MENU_CMD (rec601_pal_big,	"zapping.resize_screen(720, 576)");
+  MENU_CMD (ntsc_big,		"zapping.resize_screen(640, 480)");
+  MENU_CMD (pal_small,		"zapping.resize_screen(384, 288)");
+  MENU_CMD (rec601_pal_small,	"zapping.resize_screen(360, 288)");
+  MENU_CMD (ntsc_small,		"zapping.resize_screen(320, 240)");
 
   return widget;
 }

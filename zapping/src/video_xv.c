@@ -31,6 +31,7 @@
 #include "zconf.h"
 #include "x11stuff.h"
 #include "zmisc.h"
+#include "globals.h"
 
 #ifdef USE_XV /* Real stuff */
 
@@ -181,7 +182,7 @@ image_put(xvzImage *image, GdkWindow *window, GdkGC *gc)
       return;
     }
 
-  gdk_window_get_size(window, &w, &h);
+  gdk_window_get_geometry(window, NULL, NULL, &w, &h, NULL);
 
 #ifdef USE_XV_SHM
   if (pimage->uses_shm)
@@ -411,6 +412,7 @@ gboolean add_backend_xv	(video_backend *backend)
 
 #else /* !USE_XV, do not add the backend */
 
+gboolean add_backend_xv (video_backend *backend);
 gboolean add_backend_xv	(video_backend *backend)
 {
   return FALSE;

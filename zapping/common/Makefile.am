@@ -2,7 +2,7 @@ noinst_LIBRARIES = libcommon.a
 
 EXTRA_DIST = README
 
-INCLUDES = $(UNICODE_CFLAGS)
+INCLUDES = $(DEFAULT_CFLAGS) $(UNICODE_CFLAGS)
 
 libcommon_a_SOURCES = \
 	fifo.h fifo.c \

@@ -41,7 +41,6 @@
 #include "zmisc.h"
 #include "zmodel.h"
 #include "common/fifo.h"
-//#include "common/errstr.h"
 #include "common/ucs-2.h"
 #include "osd.h"
 #include "callbacks.h"
@@ -62,14 +61,16 @@ extern int zvbi_page;
 /* Exported, notification of when do we create/destroy a view */
 ZModel *ttxview_model = NULL;
 
+#define ORC_BLOCK(X) (X)
+
 static void inc_model_count(void)
 {
   gint num_views =
-    GPOINTER_TO_INT(gtk_object_get_user_data(GTK_OBJECT(ttxview_model)));
+    GPOINTER_TO_INT(g_object_get_data(G_OBJECT(ttxview_model), "user-data"));
 
   num_views++;
 
-  gtk_object_set_user_data(GTK_OBJECT(ttxview_model),
+  g_object_set_data(G_OBJECT(ttxview_model), "user-data",
 			   GINT_TO_POINTER(num_views));
 
   zmodel_changed(ttxview_model);
@@ -78,12 +79,12 @@ static void inc_model_count(void)
 static void dec_model_count(void)
 {
   gint num_views =
-    GPOINTER_TO_INT(gtk_object_get_user_data(GTK_OBJECT(ttxview_model)));
+    GPOINTER_TO_INT(g_object_get_data(G_OBJECT(ttxview_model), "user-data"));
 
   num_views--;
 
-  gtk_object_set_user_data(GTK_OBJECT(ttxview_model),
-			   GINT_TO_POINTER(num_views));
+  g_object_set_data(G_OBJECT(ttxview_model), "user-data",
+	       GINT_TO_POINTER(num_views));
 
   zmodel_changed(ttxview_model);
 }
@@ -177,7 +178,7 @@ struct bookmark {
 do { \
   if (!zvbi_get_object()) \
     { \
-      ShowBox(_("VBI has been disabled"), GNOME_MESSAGE_BOX_WARNING); \
+      ShowBox(_("VBI has been disabled"), GTK_MESSAGE_WARNING); \
       return; \
     } \
 } while (0)
@@ -211,7 +212,7 @@ add_bookmark(gint page, gint subpage, const gchar *description,
 }
 
 static void
-remove_bookmark(gint index)
+remove_bookmark(gint index, gboolean changed)
 {
   GList *node = g_list_nth(bookmarks, index);
 
@@ -222,7 +223,9 @@ remove_bookmark(gint index)
   g_free(((struct bookmark*)(node->data))->channel);
   g_free(node->data);
   bookmarks = g_list_remove(bookmarks, node->data);
-  zmodel_changed(model);
+
+  if (changed)
+    zmodel_changed(model);
 }
 
 static ttxview_data *
@@ -233,7 +236,7 @@ ttxview_data_from_widget		(GtkWidget *	widget)
   if ((parent = find_widget (widget, "ttxview"))
       || (parent = find_widget (widget, "zapping")))
     return (ttxview_data *)
-      gtk_object_get_data (GTK_OBJECT (parent), "ttxview_data");
+      g_object_get_data (G_OBJECT (parent), "ttxview_data");
 
   return NULL;
 }
@@ -248,7 +251,7 @@ void scale_image			(GtkWidget	*wid,
       (data->h != h))
     {
       if (data->mask)
-	gdk_bitmap_unref(data->mask);
+	g_object_unref (G_OBJECT (data->mask));
       data->mask = gdk_pixmap_new(data->da->window, w, h, 1);
       g_assert(data->mask != NULL);
       resize_ttx_page(data->id, w, h);
@@ -423,9 +426,9 @@ static void
 remove_ttxview_instance			(ttxview_data	*data)
 {
   if (data->mask)
-    gdk_bitmap_unref(data->mask);
+    g_object_unref(data->mask);
 
-  gdk_gc_unref(data->xor_gc);
+  g_object_unref(data->xor_gc);
 
   if (data->in_clipboard)
     {
@@ -449,13 +452,19 @@ remove_ttxview_instance			(ttxview_data	*data)
 
   unregister_ttx_client(data->id);
 
-  gtk_signal_disconnect_by_func(GTK_OBJECT(data->vbi_model),
-				GTK_SIGNAL_FUNC(on_vbi_model_changed),
-				data);
+  g_signal_handlers_disconnect_matched(G_OBJECT(data->vbi_model),
+				       G_SIGNAL_MATCH_FUNC |
+				       G_SIGNAL_MATCH_DATA,
+				       0, 0, NULL,
+				       G_CALLBACK(on_vbi_model_changed),
+				       data);
   if (refresh)
-    gtk_signal_disconnect_by_func(GTK_OBJECT(refresh),
-				  GTK_SIGNAL_FUNC(on_ttxview_refresh),
-				  data);
+    g_signal_handlers_disconnect_matched(G_OBJECT(refresh),
+					 G_SIGNAL_MATCH_FUNC |
+					 G_SIGNAL_MATCH_DATA,
+					 0, 0, NULL,
+					 G_CALLBACK(on_ttxview_refresh),
+					 data);
   g_free(data);
 
   dec_model_count();
@@ -556,7 +565,7 @@ static void selection_handle		(GtkWidget	*widget,
 	  gtk_selection_data_set (selection_data,
 				  GDK_SELECTION_TYPE_PIXMAP, 32,
 				  (char*)&id[0], 4);
-	  gdk_pixbuf_unref(canvas);
+	  g_object_unref(canvas);
 	}
     }
 }
@@ -572,7 +581,7 @@ update_pointer (ttxview_data *data)
 
   gdk_window_get_pointer(widget->window, &x, &y, &mask);
 
-  gdk_window_get_size(widget->window, &w, &h);
+  gdk_window_get_geometry(widget->window, NULL, NULL, &w, &h, NULL);
 
   if ((w <= 0) || (h <= 0))
     return;
@@ -664,7 +673,8 @@ event_timeout				(ttxview_data	*data)
 	      return TRUE;
 	    }
 
-	  gdk_window_get_size(data->da->window, &w, &h);
+	  gdk_window_get_geometry(data->da->window, NULL, NULL, &w,
+				  &h, NULL);
 	  gdk_window_clear_area_e(data->da->window, 0, 0, w, h);
 	  data->subpage = data->fmt_page->subno;
 	  widget = lookup_widget(data->toolbar, "ttxview_url");
@@ -720,17 +730,26 @@ event_timeout				(ttxview_data	*data)
  *  Commands
  */
 
-static gboolean
-ttx_open_new_cmd			(GtkWidget *	widget,
-					 gint		argc,
-					 gchar **	argv,
-					 gpointer	user_data)
+static PyObject* py_ttx_open_new (PyObject *self, PyObject *args)
 {
-  ttxview_data *data = ttxview_data_from_widget (GTK_WIDGET (widget));
+  ttxview_data *data = ttxview_data_from_widget
+    (GTK_WIDGET (remote_last_caller ()));
   GtkWidget *dolly;
-  vbi_pgno page = 0x100;
+  vbi_pgno page = 100;
   vbi_subno subpage = VBI_ANY_SUBNO;
   gint w = 300, h = 320;
+  int ok = PyArg_ParseTuple (args, "|ii", &page, &subpage);
+
+  if (!ok)
+    g_error ("zapping.ttx_open_new(|ii)");
+
+  page = vbi_dec2bcd (page);
+  if (subpage != VBI_ANY_SUBNO)
+    subpage = vbi_dec2bcd (subpage);
+
+  if (page < 0x100 || page > 0x899
+      || (subpage != VBI_ANY_SUBNO && (subpage < 0x00 || subpage > 0x99)))
+    py_return_false;
 
   if (data)
     {
@@ -740,48 +759,37 @@ ttx_open_new_cmd			(GtkWidget *	widget,
 	  subpage = data->monitored_subpage & 0xFF;
 	}
 
-      gdk_window_get_size (data->parent->window, &w, &h);
+      gdk_window_get_geometry (data->parent->window, NULL, NULL, &w,
+			       &h, NULL);
     }
-
-  if (argc > 1)
-    page = strtol (argv[1], NULL, 16);
-  if (argc > 2)
-    subpage = strtol (argv[2], NULL, 16);
-  if (page < 0x100 || page > 0x899
-      || (subpage != VBI_ANY_SUBNO && (subpage < 0x00 || subpage > 0x99)))
-    return FALSE;
 
   if (!zvbi_get_object ())
     {
-      ShowBox (_("VBI has been disabled"), GNOME_MESSAGE_BOX_WARNING);
-      return FALSE;
+      ShowBox (_("VBI has been disabled"), GTK_MESSAGE_WARNING);
+      py_return_false;
     }
 
   dolly = build_ttxview ();
 
   load_page (page, subpage,
-	     (ttxview_data *) gtk_object_get_data
-	     (GTK_OBJECT (dolly), "ttxview_data"), NULL);
+	     (ttxview_data *) g_object_get_data
+	     (G_OBJECT (dolly), "ttxview_data"), NULL);
 
   gtk_widget_realize (dolly);
   z_update_gui ();
   gdk_window_resize (dolly->window, w, h);
   gtk_widget_show (dolly);
 
-  return TRUE;
+  py_return_true;
 }
 
-static gboolean
-ttx_home_cmd				(GtkWidget *	widget,
-					 gint		argc,
-					 gchar **	argv,
-					 gpointer	user_data)
+static PyObject* py_ttx_home (PyObject *self, PyObject *args)
 {
-  ttxview_data *data = ttxview_data_from_widget (GTK_WIDGET (widget));
+  ttxview_data *data = ttxview_data_from_widget
+    (GTK_WIDGET (remote_last_caller ()));
   vbi_link ld;
 
-  if (!data)
-    return FALSE;
+  g_assert (data != NULL);
 
   vbi_resolve_home (data->fmt_page, &ld);
 
@@ -794,25 +802,25 @@ ttx_home_cmd				(GtkWidget *	widget,
     }
   /* else VBI_LINK_HTTP, "http://zapping.sourceforge.net" :-) */
 
-  return TRUE;
+  py_return_true;
 }
 
-static gboolean
-ttx_page_incr_cmd			(GtkWidget *	widget,
-					 gint		argc,
-					 gchar **	argv,
-					 gpointer	user_data)
+static PyObject* py_ttx_page_incr (PyObject *self, PyObject *args)
 {
-  ttxview_data *data = ttxview_data_from_widget (GTK_WIDGET (widget));
+  ttxview_data *data = ttxview_data_from_widget
+    (GTK_WIDGET (remote_last_caller ()));
   vbi_pgno new_page;
   gint value = +1;
+  int ok = PyArg_ParseTuple (args, "|i", &value);
 
-  if (!data)
-    return FALSE;
-  if (argc > 1)
-    value = strtol (argv[1], NULL, 0);
+  if (!ok)
+    g_error ("zapping.ttx_page_incr(|i)");
+
+  g_assert (data != NULL);
+
   if (abs (value) > 999)
-    return FALSE;
+    py_return_false;
+
   if (value < 0)
     value += 1000;
 
@@ -825,25 +833,25 @@ ttx_page_incr_cmd			(GtkWidget *	widget,
 
   load_page (new_page, VBI_ANY_SUBNO, data, NULL);
 
-  return TRUE;
+  py_return_true;
 }
 
-static gboolean
-ttx_subpage_incr_cmd			(GtkWidget *	widget,
-					 gint		argc,
-					 gchar **	argv,
-					 gpointer	user_data)
+static PyObject* py_ttx_subpage_incr (PyObject *self, PyObject *args)
 {
-  ttxview_data *data = ttxview_data_from_widget (GTK_WIDGET (widget));
+  ttxview_data *data = ttxview_data_from_widget
+    (GTK_WIDGET (remote_last_caller ()));
   vbi_pgno new_subpage;
   gint value = +1;
+  int ok = PyArg_ParseTuple (args, "|i", &value);
 
-  if (!data)
-    return FALSE;
-  if (argc > 1)
-    value = strtol (argv[1], NULL, 0);
+  if (!ok)
+    g_error ("zapping.ttx_subpage_incr(|i)");
+
+  g_assert (data != NULL);
+
   if (abs (value) > 99)
-    return FALSE;
+    py_return_false;
+
   if (value < 0)
     value += 100; /* XXX should use actual or anounced number of subp */
 
@@ -851,7 +859,7 @@ ttx_subpage_incr_cmd			(GtkWidget *	widget,
 
   load_page (data->fmt_page->pgno, new_subpage, data, NULL);
 
-  return TRUE;
+  py_return_true;
 }
 
 static void
@@ -877,19 +885,18 @@ set_hold				(ttxview_data *	data,
     }
 }
 
-static gboolean
-ttx_hold_cmd				(GtkWidget *	widget,
-					 gint		argc,
-					 gchar **	argv,
-					 gpointer	user_data)
+static PyObject* py_ttx_hold (PyObject *self, PyObject *args)
 {
-  ttxview_data *data = ttxview_data_from_widget (GTK_WIDGET (widget));
+  ttxview_data *data = ttxview_data_from_widget
+    (GTK_WIDGET (remote_last_caller ()));
   gint hold = -1;
+  int ok = PyArg_ParseTuple (args, "|i", &hold);
 
-  if (!data)
-    return FALSE;
-  if (argc > 1)
-    hold = strtol (argv[1], NULL, 0);
+  if (!ok)
+    g_error ("zapping.ttx_hold(|i)");
+
+  g_assert (data != NULL);
+
   if (hold < 0)
     hold = !data->hold;
   else
@@ -897,23 +904,22 @@ ttx_hold_cmd				(GtkWidget *	widget,
 
   set_hold (data, hold);
 
-  return TRUE;
+  py_return_true;
 }
 
-static gboolean
-ttx_reveal_cmd				(GtkWidget *	widget,
-					 gint		argc,
-					 gchar **	argv,
-					 gpointer	user_data)
+static PyObject* py_ttx_reveal (PyObject *self, PyObject *args)
 {
-  ttxview_data *data = ttxview_data_from_widget (GTK_WIDGET (widget));
+  ttxview_data *data = ttxview_data_from_widget
+    (GTK_WIDGET (remote_last_caller ()));
   GtkWidget *button;
   gint reveal = -1;
+  int ok = PyArg_ParseTuple (args, "|i", &reveal);
 
-  if (!data)
-    return FALSE;
-  if (argc > 1)
-    reveal = strtol (argv[1], NULL, 0);
+  if (!ok)
+    g_error ("zapping.ttx_reveal(|i)");
+
+  g_assert (data != NULL);
+
   if (reveal < 0)
     reveal = !zcg_bool (NULL, "reveal");
   else
@@ -929,23 +935,20 @@ ttx_reveal_cmd				(GtkWidget *	widget,
   if (data->page >= 0x100)
     load_page (data->page, data->subpage, data, NULL);
 
-  return TRUE;
+  py_return_true;
 }
 
-static gboolean
-ttx_history_next_cmd			(GtkWidget *	widget,
-					 gint		argc,
-					 gchar **	argv,
-					 gpointer	user_data)
+static PyObject* py_ttx_history_next (PyObject *self, PyObject *args)
 {
-  ttxview_data *data = ttxview_data_from_widget (GTK_WIDGET (widget));
+  ttxview_data *data = ttxview_data_from_widget
+    (GTK_WIDGET (remote_last_caller ()));
   gint page, page_code, pc_subpage;
 
-  if (!data)
-    return FALSE;
+  g_assert (data != NULL);
 
   if (data->history_stack_size == (data->history_sp + 1))
-    return FALSE;
+    py_return_false;
+
   data->history_sp++;
 
   page_code = GPOINTER_TO_INT (g_list_nth (data->history_stack,
@@ -958,23 +961,19 @@ ttx_history_next_cmd			(GtkWidget *	widget,
   load_page (page, pc_subpage, data, NULL);
   setup_history_gui (data);
 
-  return TRUE;
+  py_return_true;
 }
 
-static gboolean
-ttx_history_prev_cmd			(GtkWidget *	widget,
-					 gint		argc,
-					 gchar **	argv,
-					 gpointer	user_data)
+static PyObject* py_ttx_history_prev (PyObject *self, PyObject *args)
 {
-  ttxview_data *data = ttxview_data_from_widget (GTK_WIDGET (widget));
+  ttxview_data *data = ttxview_data_from_widget
+    (GTK_WIDGET (remote_last_caller ()));
   gint page, page_code, pc_subpage;
 
-  if (!data)
-    return FALSE;
+  g_assert (data != NULL);
 
   if (data->history_sp == 0)
-    return FALSE;
+    py_return_false;
   data->history_sp--;
 
   page_code = GPOINTER_TO_INT (g_list_nth (data->history_stack,
@@ -987,7 +986,7 @@ ttx_history_prev_cmd			(GtkWidget *	widget,
   load_page (page, pc_subpage, data, NULL);
   setup_history_gui (data);
 
-  return TRUE;
+  py_return_true;
 }
 
 #if 0 /* Was bound to [left]/[right], restore? */
@@ -1091,16 +1090,23 @@ on_ttxview_next_sp_cache_clicked	(GtkWidget	*widget,
  */
 
 static
-void on_search_progress_destroy		(GtkObject	*widget,
+void on_search_progress_destroy		(GObject	*widget,
 					 gpointer	context)
 {
-  gpointer running = gtk_object_get_user_data(widget);
+  gpointer running = g_object_get_data(widget, "user-data");
 
   search_progress = NULL;
 
   if (!running)
     vbi_search_delete((vbi_search *) context);
 }
+
+/* These should match the definitions in the glade file */
+enum {
+  SEARCH_RESPONSE_BACK = 1,
+  SEARCH_RESPONSE_FORWARD,
+  SEARCH_RESPONSE_NEXT
+};
 
 static
 void run_next				(GtkButton	*button,
@@ -1110,7 +1116,7 @@ void run_next				(GtkButton	*button,
   gint return_code;
   vbi_page *pg;
   ttxview_data *data =
-    (ttxview_data *)gtk_object_get_data(GTK_OBJECT(button),
+    (ttxview_data *)g_object_get_data(G_OBJECT(button),
 					"ttxview_data");
   GtkWidget *search_next = lookup_widget(GTK_WIDGET(button),
 					   "button21");
@@ -1123,8 +1129,9 @@ void run_next				(GtkButton	*button,
 					 "progressbar2"), TRUE);
   gtk_label_set_text(GTK_LABEL(lookup_widget(search_next, "label97")),
 		     "");
-  gnome_dialog_set_default(GNOME_DIALOG(search_progress), 0);
-  gtk_object_set_user_data(GTK_OBJECT(search_progress),
+  gtk_dialog_set_default_response(GTK_DIALOG(search_progress),
+				  GTK_RESPONSE_CANCEL);
+  g_object_set_data(G_OBJECT(search_progress), "user-data",
 			   (gpointer)0xdeadbeef);
 
   switch ((return_code = vbi_search_next(context, &pg, dir)))
@@ -1136,11 +1143,11 @@ void run_next				(GtkButton	*button,
 	  gtk_widget_set_sensitive(search_next, TRUE);
 	  gtk_widget_set_sensitive(search_prev, TRUE);
 	  if (zcg_bool(NULL, "ure_backwards"))
-	    gnome_dialog_set_default(GNOME_DIALOG(search_progress),
-				     1);
+	    gtk_dialog_set_default_response(GTK_DIALOG(search_progress),
+					    SEARCH_RESPONSE_BACK);
 	  else
-	    gnome_dialog_set_default(GNOME_DIALOG(search_progress),
-				     2);
+	    gtk_dialog_set_default_response(GTK_DIALOG(search_progress),
+					    SEARCH_RESPONSE_FORWARD);
 	  gtk_label_set_text(GTK_LABEL(lookup_widget(search_next,
 						     "label97")),
 			     _("Found"));
@@ -1154,11 +1161,11 @@ void run_next				(GtkButton	*button,
 	  gtk_widget_set_sensitive(search_next, TRUE);
 	  gtk_widget_set_sensitive(search_prev, TRUE);
 	  if (zcg_bool(NULL, "ure_backwards"))
-	    gnome_dialog_set_default(GNOME_DIALOG(search_progress),
-				     1);
+	    gtk_dialog_set_default_response(GTK_DIALOG(search_progress),
+					    SEARCH_RESPONSE_BACK);
 	  else
-	    gnome_dialog_set_default(GNOME_DIALOG(search_progress),
-				     2);
+	    gtk_dialog_set_default_response(GTK_DIALOG(search_progress),
+					    SEARCH_RESPONSE_FORWARD);
 	  gtk_label_set_text(GTK_LABEL(lookup_widget(search_next,
 						     "label97")),
 			     _("Not found"));
@@ -1174,11 +1181,11 @@ void run_next				(GtkButton	*button,
 	  gtk_widget_set_sensitive(search_next, TRUE);
 	  gtk_widget_set_sensitive(search_prev, TRUE);
 	  if (zcg_bool(NULL, "ure_backwards"))
-	    gnome_dialog_set_default(GNOME_DIALOG(search_progress),
-				     1);
+	    gtk_dialog_set_default_response(GTK_DIALOG(search_progress),
+					    SEARCH_RESPONSE_BACK);
 	  else
-	    gnome_dialog_set_default(GNOME_DIALOG(search_progress),
-				     2);
+	    gtk_dialog_set_default_response(GTK_DIALOG(search_progress),
+					    SEARCH_RESPONSE_FORWARD);
 	  gtk_label_set_text(GTK_LABEL(lookup_widget(search_next,
 						     "label97")),
 			     _("Empty cache"));
@@ -1195,7 +1202,7 @@ void run_next				(GtkButton	*button,
     }
 
   if (search_progress)
-    gtk_object_set_user_data(GTK_OBJECT(search_progress), NULL);
+    g_object_set_data(G_OBJECT(search_progress), "user-data", NULL);
   
   if (return_code < 0 &&
       return_code != -2)
@@ -1211,7 +1218,7 @@ static
 void on_new_search_clicked		(GtkWidget	*button,
 					 ttxview_data	*data)
 {
-  gtk_signal_emit_stop_by_name(GTK_OBJECT(button), "clicked");
+  g_signal_stop_emission_by_name(G_OBJECT(button), "clicked");
 
   gtk_widget_destroy(lookup_widget(button, "search_progress"));
 
@@ -1223,7 +1230,7 @@ static
 void on_search_progress_next		(GtkButton	*button,
 					 gpointer	context)
 {
-  gtk_signal_emit_stop_by_name(GTK_OBJECT(button), "clicked");
+  g_signal_stop_emission_by_name(G_OBJECT(button), "clicked");
   
   zcs_bool(FALSE, "ure_backwards");
 
@@ -1234,25 +1241,11 @@ static
 void on_search_progress_prev		(GtkButton	*button,
 					 gpointer	context)
 {
-  gtk_signal_emit_stop_by_name(GTK_OBJECT(button), "clicked");
+  g_signal_stop_emission_by_name(G_OBJECT(button), "clicked");
 
   zcs_bool(TRUE, "ure_backwards");
 
   run_next(button, context, -1);
-}
-
-static
-void show_search_help			(GtkButton	*button,
-					 ttxview_data	*data)
-{
-  GnomeHelpMenuEntry help_ref = { NULL,
-				  "ure.html" };
-
-  help_ref.name = gnome_app_id;
-  gnome_help_display(NULL, &help_ref);
-
-  /* do not propagate this signal to the parent widget */
-  gtk_signal_emit_stop_by_name(GTK_OBJECT(button), "clicked");
 }
 
 /*
@@ -1300,7 +1293,7 @@ static
 int progress_update			(vbi_page *pg)
 {
   gchar *buffer;
-  GtkProgress *progress;
+  GtkProgressBar *progress;
 
   if (search_progress)
     {
@@ -1309,8 +1302,8 @@ int progress_update			(vbi_page *pg)
 			 buffer);
       g_free(buffer);
       progress =
-	GTK_PROGRESS(lookup_widget(search_progress, "progressbar2"));
-      gtk_progress_set_value(progress, 1-gtk_progress_get_value(progress));
+	GTK_PROGRESS_BAR(lookup_widget(search_progress, "progressbar2"));
+      gtk_progress_bar_pulse(progress);
     }
   else
     return FALSE;
@@ -1327,7 +1320,7 @@ static
 void on_ttxview_search_clicked		(GtkButton	*button,
 					 ttxview_data	*data)
 {
-  GnomeDialog *ure_search = GNOME_DIALOG(build_widget("ure_search", NULL));
+  GtkDialog *ure_search = GTK_DIALOG(build_widget("ure_search", NULL));
   GtkWidget *entry2 = gnome_entry_gtk_entry(GNOME_ENTRY(
     lookup_widget(GTK_WIDGET(ure_search), "entry2")));
   GtkWidget * button23;
@@ -1349,17 +1342,14 @@ void on_ttxview_search_clicked		(GtkButton	*button,
 
   if (!zvbi_get_object())
     {
-      ShowBox(_("VBI has been disabled"), GNOME_MESSAGE_BOX_WARNING);
+      ShowBox(_("VBI has been disabled"), GTK_MESSAGE_WARNING);
       gtk_widget_destroy(GTK_WIDGET(ure_search));
       return;
     }
 
-  gnome_dialog_set_parent(ure_search, GTK_WINDOW(data->parent));
-  gnome_dialog_close_hides(ure_search, TRUE);
-  gnome_dialog_set_default(ure_search, 0);
-  gnome_dialog_editable_enters(ure_search, GTK_EDITABLE(entry2));
-  gnome_dialog_button_connect(ure_search, 2,
-			      GTK_SIGNAL_FUNC(show_search_help), data);
+  gtk_window_set_transient_for (GTK_WINDOW (ure_search),
+				GTK_WINDOW (data->parent));
+  gtk_dialog_set_default_response(ure_search, GTK_RESPONSE_OK);
 
   gtk_toggle_button_set_active(checkbutton9,
 			       zcg_bool(NULL, "ure_regexp"));
@@ -1371,19 +1361,21 @@ void on_ttxview_search_clicked		(GtkButton	*button,
  no_needle:
   gtk_widget_grab_focus(entry2);
 
-  result = gnome_dialog_run(ure_search);
-  needle = gtk_entry_get_text(GTK_ENTRY(entry2));
+  while ((result = gtk_dialog_run(ure_search)) == GTK_RESPONSE_HELP)
+    gnome_help_display ("ure.html", NULL, NULL); 
+ 
+  needle = (gchar*)gtk_entry_get_text(GTK_ENTRY(entry2));
   if (needle && *needle)
     needle = g_strdup(needle);
-  else if (!result)
+  else if (result == GTK_RESPONSE_OK)
     goto no_needle;
 
   zcs_bool(gtk_toggle_button_get_active(checkbutton9), "ure_regexp");
   zcs_bool(gtk_toggle_button_get_active(checkbutton9a), "ure_casefold");
   zcs_bool(gtk_toggle_button_get_active(checkbutton10), "ure_backwards");
-  gtk_widget_destroy(GTK_WIDGET(ure_search));
+  gtk_widget_destroy (GTK_WIDGET (ure_search));
 
-  if ((!result) && (needle))
+  if ((result == GTK_RESPONSE_OK) && (needle))
     {
       needle = subtitute_search_keywords(needle);
       pattern = local2ucs2(needle);
@@ -1403,31 +1395,31 @@ void on_ttxview_search_clicked		(GtkButton	*button,
 		gtk_widget_destroy(search_progress);
 	      search_progress = build_widget("search_progress", NULL);
 	      gtk_window_set_modal(GTK_WINDOW(search_progress), TRUE);
-	      gnome_dialog_set_parent(GNOME_DIALOG(search_progress),
-				      GTK_WINDOW(data->parent));
-	      gtk_signal_connect(GTK_OBJECT(search_progress), "destroy",
-				 GTK_SIGNAL_FUNC(on_search_progress_destroy),
-				 search_context);
+	      gtk_window_set_transient_for (GTK_WINDOW(search_progress),
+					    GTK_WINDOW(data->parent));
+	      g_signal_connect(G_OBJECT(search_progress), "destroy",
+			       G_CALLBACK(on_search_progress_destroy),
+			       search_context);
 	      search_progress_next = lookup_widget(search_progress,
 						   "button21");
-	      gtk_signal_connect(GTK_OBJECT(search_progress_next), "clicked",
-				 GTK_SIGNAL_FUNC(on_search_progress_next),
-				 search_context);
-	      gtk_object_set_data(GTK_OBJECT(search_progress_next),
-				  "ttxview_data", data);
+	      g_signal_connect(G_OBJECT(search_progress_next), "clicked",
+			       G_CALLBACK(on_search_progress_next),
+			       search_context);
+	      g_object_set_data(G_OBJECT(search_progress_next),
+				"ttxview_data", data);
 	      gtk_widget_set_sensitive(search_progress_next, FALSE);
 	      search_progress_prev = lookup_widget(search_progress,
 						   "button22");
-	      gtk_signal_connect(GTK_OBJECT(search_progress_prev), "clicked",
-				 GTK_SIGNAL_FUNC(on_search_progress_prev),
-				 search_context);
-	      gtk_object_set_data(GTK_OBJECT(search_progress_prev),
+	      g_signal_connect(G_OBJECT(search_progress_prev), "clicked",
+			       G_CALLBACK(on_search_progress_prev),
+			       search_context);
+	      g_object_set_data(G_OBJECT(search_progress_prev),
 				  "ttxview_data", data);
 	      gtk_widget_set_sensitive(search_progress_prev, FALSE);
 	      button23 =
 		lookup_widget(GTK_WIDGET(search_progress), "button23");
-	      gtk_signal_connect(GTK_OBJECT(button23), "clicked",
-				 GTK_SIGNAL_FUNC(on_new_search_clicked),
+	      g_signal_connect(G_OBJECT(button23), "clicked",
+				 G_CALLBACK(on_new_search_clicked),
 				 data);
 	      gtk_widget_show(search_progress);
 	      run_next(GTK_BUTTON(search_progress_next), search_context,
@@ -1453,7 +1445,7 @@ open_in_ttxview				(GtkWidget	*view,
 					 gint		subpage)
 {
   ttxview_data *data = (ttxview_data*)
-    gtk_object_get_data(GTK_OBJECT(view), "ttxview_data");
+    g_object_get_data(G_OBJECT(view), "ttxview_data");
 
   if (!data)
     return;
@@ -1467,7 +1459,7 @@ get_ttxview_page			(GtkWidget	*view,
 					 gint		*subpage)
 {
   ttxview_data *data = (ttxview_data*)
-    gtk_object_get_data(GTK_OBJECT(view), "ttxview_data");
+    g_object_get_data(G_OBJECT(view), "ttxview_data");
 
   if (!data)
     return FALSE;
@@ -1484,8 +1476,8 @@ static
 void popup_new_win			(GtkWidget	*widget,
 					 ttxview_data	*data)
 {
-  cmd_execute_printf (widget, "ttx_open_new %x %x",
-		      data->pop_pgno, data->pop_subno);
+  cmd_run_printf ("zapping.ttx_open_new(%x, %x)",
+		  data->pop_pgno, data->pop_subno);
 }
 
 static
@@ -1495,7 +1487,7 @@ void new_bookmark			(GtkWidget	*widget,
   vbi_decoder *vbi = zvbi_get_object();
   gchar *default_description=NULL;
   gchar title[41];
-  gchar *buffer;
+  const gchar *buffer;
   gint page, subpage;
   gint active;
   GtkWidget *dialog = build_widget("new_bookmark", NULL);
@@ -1531,14 +1523,13 @@ void new_bookmark			(GtkWidget	*widget,
   gtk_widget_grab_focus(bookmark_name);
   gtk_entry_set_text(GTK_ENTRY(bookmark_name), default_description);
   g_free(default_description);
-  gtk_entry_select_region(GTK_ENTRY(bookmark_name), 0, -1);
-  gnome_dialog_editable_enters(GNOME_DIALOG(dialog),
-			       GTK_EDITABLE (bookmark_name));
+  gtk_editable_select_region(GTK_EDITABLE(bookmark_name), 0, -1);
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(bookmark_switch),
 			       zcg_bool(NULL, "bookmark_switch"));
-  gnome_dialog_set_default(GNOME_DIALOG (dialog), 0);
+  gtk_dialog_set_default_response(GTK_DIALOG (dialog),
+				  GTK_RESPONSE_OK);
   
-  if ((!gnome_dialog_run_and_close(GNOME_DIALOG(dialog))) &&
+  if ((gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_OK) &&
       (buffer = gtk_entry_get_text(GTK_ENTRY(bookmark_name))))
     {
       active =
@@ -1579,43 +1570,52 @@ static
 void on_be_delete			(GtkWidget	*widget,
 					 ttxview_data	*data)
 {
-  GtkCList *clist = GTK_CLIST(lookup_widget(widget, "bookmarks_clist"));
-  GList *rows = g_list_first(clist->row_list);
+  GtkTreeView *treeview = GTK_TREE_VIEW
+    (lookup_widget(widget, "bookmarks_treeview"));
   gint *deleted=NULL;
-  gint i=0, j=0, n;
+  gint i=0, j=0, n = g_list_length(bookmarks);
+  GtkTreeSelection *sel = gtk_tree_view_get_selection (treeview);
+  GtkTreeModel *model = gtk_tree_view_get_model (treeview);
+  gboolean valid;
+  GtkTreeIter iter;
 
-  if (!clist->selection)
-    return;
-
-  n = g_list_length(clist->selection);
   deleted = (gint *) g_malloc(n * sizeof(gint));
-  
-  while (rows)
-    {
-      if (GTK_CLIST_ROW(rows)->state == GTK_STATE_SELECTED)
-	deleted[j++] = i;
 
-      rows = rows->next;
-      i ++;
+  valid = gtk_tree_model_get_iter_first (model, &iter);
+
+  while (valid)
+    {
+      if (gtk_tree_selection_iter_is_selected (sel, &iter))
+	deleted[j++] = i++;
+
+      valid = gtk_tree_model_iter_next (model, &iter);
     }
   
-  for (i=0; i<n; i++)
-    remove_bookmark(deleted[i]-i);
+  for (i=0; i<j; i++)
+    remove_bookmark(deleted[i]-i, i == (j-1));
   
   g_free(deleted);
 }
 
+enum {
+  BE_PAGE,
+  BE_SUBPAGE,
+  BE_DESCRIPTION
+};
+
 static
-void on_be_model_changed		(GtkObject	*model,
-					 GtkWidget	*view)
+void on_be_model_changed		(gpointer	unused,
+					 GtkTreeView	*treeview)
 {
-  GtkCList *clist = GTK_CLIST(lookup_widget(view, "bookmarks_clist"));
+  GtkListStore *model =
+    GTK_LIST_STORE (gtk_tree_view_get_model (treeview));
   GList *p = g_list_first(bookmarks);
   struct bookmark *bookmark;
   gchar *buffer[3];
+  GtkTreeIter iter;
 
-  gtk_clist_freeze(clist);
-  gtk_clist_clear(clist);
+  gtk_list_store_clear (model);
+
   while (p)
     {
       bookmark = (struct bookmark*)p->data;
@@ -1625,21 +1625,32 @@ void on_be_model_changed		(GtkObject	*model,
       else
 	buffer[1] = g_strdup_printf("%x", bookmark->subpage);
       buffer[2] = bookmark->description;
-      gtk_clist_append(clist, buffer);
+      gtk_list_store_append (model, &iter);
+      gtk_list_store_set (model, &iter,
+			  BE_PAGE, buffer[0],
+			  BE_SUBPAGE, buffer[1],
+			  BE_DESCRIPTION, buffer[2],
+			  -1);
       g_free(buffer[0]);
       g_free(buffer[1]);
+
       p = p->next;
     }
-  gtk_clist_thaw(clist);
 }
 
 static
-void on_be_destroy			(GtkObject	*widget,
+void on_be_destroy			(GtkWidget	*widget,
 					 ttxview_data	*data)
 {
-  gtk_signal_disconnect_by_func(GTK_OBJECT(model),
-				GTK_SIGNAL_FUNC(on_be_model_changed),
-				GTK_WIDGET(widget));
+  GtkTreeView *treeview = GTK_TREE_VIEW 
+    (lookup_widget (widget, "bookmarks_treeview"));
+
+  g_signal_handlers_disconnect_matched(G_OBJECT(model),
+				       G_SIGNAL_MATCH_FUNC |
+				       G_SIGNAL_MATCH_DATA,
+				       0, 0, NULL,
+				       G_CALLBACK(on_be_model_changed),
+				       treeview);
 }
 
 static
@@ -1647,17 +1658,48 @@ void on_edit_bookmarks_activated	(GtkWidget	*widget,
 					 ttxview_data	*data)
 {
   GtkWidget *be = build_widget("bookmarks_editor", NULL);
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(be, "bookmarks_close")),
+  GtkTreeView *treeview = GTK_TREE_VIEW
+    (lookup_widget(widget, "bookmarks_treeview"));
+  GtkListStore *store = gtk_list_store_new (3, G_TYPE_STRING,
+					    G_TYPE_STRING, G_TYPE_STRING);
+  GtkTreeViewColumn *column;
+  GtkCellRenderer *renderer;
+
+  g_signal_connect(G_OBJECT(lookup_widget(be, "bookmarks_close")),
 		     "clicked",
-		     GTK_SIGNAL_FUNC(on_be_close), data);
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(be, "bookmarks_remove")),
+		     G_CALLBACK(on_be_close), data);
+  g_signal_connect(G_OBJECT(lookup_widget(be, "bookmarks_remove")),
 		     "clicked",
-		     GTK_SIGNAL_FUNC(on_be_delete), data);
-  gtk_signal_connect(GTK_OBJECT(model), "changed",
-		     GTK_SIGNAL_FUNC(on_be_model_changed), be);
-  gtk_signal_connect(GTK_OBJECT(be), "destroy",
-		     GTK_SIGNAL_FUNC(on_be_destroy), data);
-  on_be_model_changed(GTK_OBJECT(model), be);
+		     G_CALLBACK(on_be_delete), data);
+  g_signal_connect(G_OBJECT(model), "changed",
+		   G_CALLBACK(on_be_model_changed), treeview);
+  g_signal_connect(G_OBJECT(be), "destroy",
+		     G_CALLBACK(on_be_destroy), data);
+
+  /* Set the layout of the model */
+  renderer = gtk_cell_renderer_text_new ();
+  column = gtk_tree_view_column_new_with_attributes
+    (_("Page"), renderer,
+     "text", BE_PAGE, NULL);
+  gtk_tree_view_append_column (treeview, column);
+
+  renderer = gtk_cell_renderer_text_new ();
+  column = gtk_tree_view_column_new_with_attributes
+    (_("Subpage"), renderer,
+     "text", BE_SUBPAGE, NULL);
+  gtk_tree_view_append_column (treeview, column);
+
+  renderer = gtk_cell_renderer_text_new ();
+  column = gtk_tree_view_column_new_with_attributes
+    (_("Description"), renderer,
+     "text", BE_DESCRIPTION, NULL);
+  gtk_tree_view_append_column (treeview, column);
+
+  gtk_tree_view_set_search_column (treeview, BE_DESCRIPTION);
+
+  gtk_tree_view_set_model (treeview, GTK_TREE_MODEL (store));
+
+  on_be_model_changed(G_OBJECT(model), treeview);
   gtk_widget_show(be);
 }
 
@@ -1690,7 +1732,7 @@ on_export_control			(GtkWidget *w,
 					 gpointer user_data)
 {
   vbi_export *exp = user_data;
-  gchar *keyword = (gchar *) gtk_object_get_data (GTK_OBJECT (w), "key");
+  gchar *keyword = (gchar *) g_object_get_data (G_OBJECT (w), "key");
   vbi_option_info *oi = vbi_export_option_info_keyword (exp, keyword);
   vbi_option_value val;
   gchar *zcname;
@@ -1701,7 +1743,7 @@ on_export_control			(GtkWidget *w,
 
   if (oi->menu.str)
     {
-      val.num = (gint) gtk_object_get_data (GTK_OBJECT (w), "idx");
+      val.num = (gint) g_object_get_data (G_OBJECT (w), "idx");
       vbi_export_option_menu_set (exp, keyword, val.num);
     }
   else
@@ -1723,7 +1765,7 @@ on_export_control			(GtkWidget *w,
 	  zconf_set_float (val.dbl, zcname);
 	break;
       case VBI_OPTION_STRING:
-	val.str = gtk_entry_get_text (GTK_ENTRY (w));
+	val.str = (gchar*)gtk_entry_get_text (GTK_ENTRY (w));
         if (vbi_export_option_set (exp, keyword, val))
 	  zconf_set_string (val.str, zcname);
 	break;
@@ -1754,9 +1796,9 @@ create_export_entry (GtkWidget *table, vbi_option_info *oi,
 		      _(zconf_get_string(NULL, zcname)));
   g_free (zcname);
 
-  gtk_object_set_data (GTK_OBJECT (entry), "key", oi->keyword);
-  gtk_signal_connect (GTK_OBJECT (entry), "changed", 
-		     GTK_SIGNAL_FUNC (on_export_control), exp);
+  g_object_set_data (G_OBJECT (entry), "key", oi->keyword);
+  g_signal_connect (G_OBJECT (entry), "changed", 
+		     G_CALLBACK (on_export_control), exp);
   on_export_control (entry, exp);
 
   gtk_table_resize (GTK_TABLE (table), index + 1, 2);
@@ -1813,13 +1855,13 @@ create_export_menu (GtkWidget *table, vbi_option_info *oi,
 
       menu_item = gtk_menu_item_new_with_label (buf);
 
-      gtk_object_set_data (GTK_OBJECT (menu_item), "key", oi->keyword);
-      gtk_object_set_data (GTK_OBJECT (menu_item), "idx", GINT_TO_POINTER (i));
-      gtk_signal_connect (GTK_OBJECT (menu_item), "activate",
-			 GTK_SIGNAL_FUNC (on_export_control), exp);
+      g_object_set_data (G_OBJECT (menu_item), "key", oi->keyword);
+      g_object_set_data (G_OBJECT (menu_item), "idx", GINT_TO_POINTER (i));
+      g_signal_connect (G_OBJECT (menu_item), "activate",
+			 G_CALLBACK (on_export_control), exp);
 
       gtk_widget_show (menu_item);
-      gtk_menu_append (GTK_MENU (menu), menu_item);
+      gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
 
       if (i == saved)
 	on_export_control(menu_item, exp);
@@ -1874,9 +1916,9 @@ create_export_slider (GtkWidget *table, vbi_option_info *oi,
 
   g_free (zcname);
 
-  gtk_object_set_data (GTK_OBJECT (adj), "key", oi->keyword);
-  gtk_signal_connect (adj, "value-changed",
-		      GTK_SIGNAL_FUNC (on_export_control), exp);
+  g_object_set_data (G_OBJECT (adj), "key", oi->keyword);
+  g_signal_connect (adj, "value-changed",
+		      G_CALLBACK (on_export_control), exp);
   on_export_control ((GtkWidget *) adj, exp);
 
   hscale = gtk_hscale_new (GTK_ADJUSTMENT (adj));
@@ -1909,9 +1951,9 @@ create_export_checkbutton (GtkWidget *table, vbi_option_info *oi,
   z_tooltip_set (cb, _(oi->tooltip));
   gtk_widget_show (cb);
 
-  gtk_object_set_data (GTK_OBJECT (cb), "key", oi->keyword);
-  gtk_signal_connect (GTK_OBJECT (cb), "toggled",
-		     GTK_SIGNAL_FUNC (on_export_control), exp);
+  g_object_set_data (G_OBJECT (cb), "key", oi->keyword);
+  g_signal_connect (G_OBJECT (cb), "toggled",
+		     G_CALLBACK (on_export_control), exp);
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (cb),
 				zconf_get_boolean (NULL, zcname));
   g_free (zcname);
@@ -1972,14 +2014,16 @@ create_export_dialog (gchar **bpp, gchar *basename,
   g_assert (xm != NULL);
   buffer = g_strdup_printf (_("Export %s"), xm->label);
 
-  dialog = gnome_dialog_new (buffer,
-			     GNOME_STOCK_BUTTON_OK,
-			     GNOME_STOCK_BUTTON_CANCEL,
-			     NULL);
+  dialog = gtk_dialog_new_with_buttons
+    (buffer,
+     GTK_WINDOW (data->parent),
+     GTK_DIALOG_DESTROY_WITH_PARENT,
+     GTK_STOCK_OK, GTK_RESPONSE_OK,
+     GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+     NULL);
+
   g_free (buffer);
-  gnome_dialog_set_parent (GNOME_DIALOG (dialog), GTK_WINDOW (data->parent));
-  gnome_dialog_set_default (GNOME_DIALOG (dialog), 0);
-  gtk_window_set_policy (GTK_WINDOW (dialog), TRUE, TRUE, TRUE); // resizable
+  gtk_dialog_set_default_response (GTK_DIALOG (dialog), GTK_RESPONSE_OK);
 
   vbox = gtk_vbox_new (FALSE, 3);
   gtk_widget_show (vbox);
@@ -1991,15 +2035,15 @@ create_export_dialog (gchar **bpp, gchar *basename,
   w = gnome_file_entry_new ("ttxview_export_id",
 			    _("Select file you'll be exporting to"));
   gnome_file_entry_set_default_path (GNOME_FILE_ENTRY (w), *bpp);
-  gtk_widget_set_usize (w, 400, -1);
+  gtk_widget_set_size_request (w, 400, -1);
   gtk_widget_show (w);
   gtk_box_pack_start_defaults (GTK_BOX (vbox), w);
 
   w = gnome_file_entry_gtk_entry (GNOME_FILE_ENTRY(w));
-  gtk_object_set_data (GTK_OBJECT (w), "basename", (gpointer) basename);
+  g_object_set_data (G_OBJECT (w), "basename", (gpointer) basename);
   gtk_entry_set_text (GTK_ENTRY(w), *bpp);
-  gtk_signal_connect (GTK_OBJECT (w), "changed",
-		      GTK_SIGNAL_FUNC (z_on_electric_filename),
+  g_signal_connect (G_OBJECT (w), "changed",
+		      G_CALLBACK (z_on_electric_filename),
 		      (gpointer) bpp);
 
   if (vbi_export_option_info_enum(exp, 0))
@@ -2017,7 +2061,7 @@ create_export_dialog (gchar **bpp, gchar *basename,
       gtk_container_add (GTK_CONTAINER (w), table);
     }
 
-  gtk_box_pack_start_defaults (GTK_BOX (GNOME_DIALOG (dialog)->vbox), vbox);
+  gtk_box_pack_start_defaults (GTK_BOX (GTK_DIALOG (dialog)->vbox), vbox);
 
   return dialog;
 }
@@ -2081,13 +2125,13 @@ void export_ttx_page			(GtkWidget	*widget,
       name = z_build_filename (zcg_char (NULL, "exportdir"), filename);
 
       dialog = create_export_dialog (&name, filename, data, exp);
-      result = gnome_dialog_run_and_close (GNOME_DIALOG(dialog));
-      if (result != 0)
+      result = gtk_dialog_run (GTK_DIALOG(dialog));
+      if (result != GTK_RESPONSE_OK)
 	goto failure;
 
       g_strstrip(name);
 
-      dirname = g_dirname (name);
+      dirname = g_path_get_dirname (name);
       if (strcmp (dirname, ".") != 0 || name[0] == '.')
 	{
 	  gchar *_errstr;
@@ -2096,7 +2140,7 @@ void export_ttx_page			(GtkWidget	*widget,
 	    {
 	      ShowBox (_("Cannot create destination dir for Zapzilla "
 			 "export:\n%s\n%s"),
-		       GNOME_MESSAGE_BOX_WARNING, dirname, _errstr);
+		       GTK_MESSAGE_WARNING, dirname, _errstr);
 	      g_free (_errstr);
 	      g_free (dirname);
 	      goto failure;
@@ -2149,7 +2193,7 @@ void on_export_menu			(GtkWidget	*widget,
 					 ttxview_data	*data)
 {
   gchar *keyword = (gchar *)
-    gtk_object_get_user_data (GTK_OBJECT (widget));
+    g_object_get_data (G_OBJECT (widget), "user-data");
 
   export_ttx_page (widget, data, keyword);
 }
@@ -2248,8 +2292,6 @@ create_color_dialog			(GtkWidget	*widget,
   GtkAdjustment *adj;
   GtkWidget *w;
   gint value;
-  GdkBitmap *mask;
-  GdkPixmap *pixmap;
   GdkPixbuf *pb;
   GtkWidget *pix;
   GtkTable *table71 =
@@ -2257,51 +2299,45 @@ create_color_dialog			(GtkWidget	*widget,
 
   /* Add brightness, contrast icons */
   pb = gdk_pixbuf_new_from_xpm_data(brig_xpm);
-  gdk_pixbuf_render_pixmap_and_mask(pb, &pixmap, &mask, 128);
-  pix = gtk_pixmap_new(pixmap, mask);
+  pix = gtk_image_new_from_pixbuf (pb);
   gtk_widget_show(pix);
   gtk_table_attach_defaults(table71, pix, 0, 1, 0, 1);
-  gdk_bitmap_unref(mask);
-  gdk_bitmap_unref(pixmap);
-  gdk_pixbuf_unref(pb);
+  g_object_unref(pb);
 
   pb = gdk_pixbuf_new_from_xpm_data(con_xpm);
-  gdk_pixbuf_render_pixmap_and_mask(pb, &pixmap, &mask, 128);
-  pix = gtk_pixmap_new(pixmap, mask);
+  pix = gtk_image_new_from_pixbuf (pb);
   gtk_widget_show(pix);
   gtk_table_attach_defaults(table71, pix, 0, 1, 1, 2);
-  gdk_bitmap_unref(mask);
-  gdk_bitmap_unref(pixmap);
-  gdk_pixbuf_unref(pb);
+  g_object_unref(pb);
 
   w = lookup_widget(dialog, "hscale71");
   zconf_get_integer(&value, TXCOLOR_DOMAIN "brightness");
   adj = GTK_ADJUSTMENT(gtk_range_get_adjustment(GTK_RANGE(w)));
   gtk_adjustment_set_value(adj, value);
-  gtk_signal_connect(GTK_OBJECT(adj), "value-changed",
-		     GTK_SIGNAL_FUNC (on_color_control),
+  g_signal_connect(G_OBJECT(adj), "value-changed",
+		     G_CALLBACK (on_color_control),
 		     GINT_TO_POINTER (0));
 
   w = lookup_widget(dialog, "hscale72");
   zconf_get_integer(&value, TXCOLOR_DOMAIN "contrast");
   adj = GTK_ADJUSTMENT(gtk_range_get_adjustment(GTK_RANGE(w)));
   gtk_adjustment_set_value(adj, value);
-  gtk_signal_connect(GTK_OBJECT(adj), "value-changed",
-		     GTK_SIGNAL_FUNC (on_color_control),
+  g_signal_connect(G_OBJECT(adj), "value-changed",
+		     G_CALLBACK (on_color_control),
 		     GINT_TO_POINTER (1));
 
   w = lookup_widget(dialog, "brig_reset");
-  gtk_signal_connect(GTK_OBJECT(w), "clicked",
-		     GTK_SIGNAL_FUNC (on_brig_con_reset),
+  g_signal_connect(G_OBJECT(w), "clicked",
+		     G_CALLBACK (on_brig_con_reset),
 		     GINT_TO_POINTER (0));
 
   w = lookup_widget(dialog, "con_reset");
-  gtk_signal_connect(GTK_OBJECT(w), "clicked",
-		     GTK_SIGNAL_FUNC (on_brig_con_reset),
+  g_signal_connect(G_OBJECT(w), "clicked",
+		     G_CALLBACK (on_brig_con_reset),
 		     GINT_TO_POINTER (1));
 
-  gtk_signal_connect(GTK_OBJECT(dialog), "key-press-event",
-		     GTK_SIGNAL_FUNC(on_color_box_key_press),
+  g_signal_connect(G_OBJECT(dialog), "key-press-event",
+		     G_CALLBACK(on_color_box_key_press),
 		     NULL);
 
   return dialog;
@@ -2312,7 +2348,7 @@ void on_bookmark_activated		(GtkWidget	*widget,
 					 ttxview_data	*data)
 {
   struct bookmark *bookmark = (struct bookmark*)
-    gtk_object_get_user_data(GTK_OBJECT(widget));
+    g_object_get_data(G_OBJECT(widget), "user-data");
   tveng_tuned_channel *channel;
 
   if (main_info)
@@ -2352,8 +2388,8 @@ on_subtitle_page_ttxview		(GtkWidget	*widget,
   if (!zvbi_get_object() || page < 0x100)
     return;
 
-  cmd_execute_printf (widget, "ttx_open_new %x %x",
-		      page, subpage);
+  cmd_run_printf ("zapping.ttx_open_new(%x, %x)",
+		  page, subpage);
 }
 
 /* Open the subtitle page in the main window */
@@ -2365,7 +2401,7 @@ on_subtitle_page_main			(GtkWidget	*menuitem,
   gint subpage = val & 0xffff;
   ttxview_data *data;
   GtkWidget *widget =
-    GTK_WIDGET(gtk_object_get_user_data(GTK_OBJECT(menuitem)));
+    GTK_WIDGET(g_object_get_data(G_OBJECT(menuitem), "user-data"));
 
   if (!zvbi_get_object() || page < 0x100)
     return;
@@ -2376,7 +2412,7 @@ on_subtitle_page_main			(GtkWidget	*menuitem,
       /* Switch to TXT mode in the main window */
       zmisc_switch_mode(TVENG_NO_CAPTURE, main_info);
       
-      data = (ttxview_data*)gtk_object_get_data(GTK_OBJECT(main_window),
+      data = (ttxview_data*)g_object_get_data(G_OBJECT(main_window),
 						"ttxview_data");
 
       if (data) /* Z is now a TTXView */
@@ -2385,7 +2421,7 @@ on_subtitle_page_main			(GtkWidget	*menuitem,
   else /* Zapzilla window */
     {
       widget = lookup_widget(widget, "ttxview");
-      data = (ttxview_data*)gtk_object_get_data(GTK_OBJECT(widget),
+      data = (ttxview_data*)g_object_get_data(G_OBJECT(widget),
 						"ttxview_data");
       g_assert(data != NULL);
       /* should raise the window if the page is already open */
@@ -2399,9 +2435,9 @@ on_subtitle_page_main			(GtkWidget	*menuitem,
  */
 static void
 build_subtitles_submenu(GtkWidget *widget,
-			GtkMenu *zmenu, gboolean build_subtitles)
+			GtkMenuShell *zmenu, gboolean build_subtitles)
 {
-  GtkMenu *menu;
+  GtkMenuShell *menu;
   GtkWidget *menu_item;
   gint count;
   gboolean empty = TRUE, something = FALSE, index = FALSE;
@@ -2414,11 +2450,11 @@ build_subtitles_submenu(GtkWidget *widget,
   if (!zvbi_get_object())
     return;
 
-  menu = GTK_MENU(gtk_menu_new());
+  menu = GTK_MENU_SHELL(gtk_menu_new());
 
   menu_item = gtk_tearoff_menu_item_new();
   gtk_widget_show(menu_item);
-  gtk_menu_append(menu, menu_item);
+  gtk_menu_shell_append(menu, menu_item);
 
   if (find_widget(GTK_WIDGET(zmenu), "separador7"))
     insert_index =
@@ -2453,10 +2489,10 @@ build_subtitles_submenu(GtkWidget *widget,
 	      buffer = g_strdup_printf(_("Text %x"), count - 4);
 
 	  menu_item = gtk_menu_item_new_with_label(buffer);
-	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
-			     GTK_SIGNAL_FUNC(on_subtitle_select),
+	  g_signal_connect(G_OBJECT(menu_item), "activate",
+			     G_CALLBACK(on_subtitle_select),
 			     GINT_TO_POINTER(count));
-	  gtk_menu_append(menu, menu_item);
+	  gtk_menu_shell_append(menu, menu_item);
 	  gtk_widget_show(menu_item);
 
 	  g_free(buffer);
@@ -2478,10 +2514,10 @@ build_subtitles_submenu(GtkWidget *widget,
 	    buffer = g_strdup_printf(_("%x: Unknown language"), count);
 
 	  menu_item = gtk_menu_item_new_with_label(buffer);
-	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
-			     GTK_SIGNAL_FUNC(on_subtitle_select),
+	  g_signal_connect(G_OBJECT(menu_item), "activate",
+			     G_CALLBACK(on_subtitle_select),
 			     GINT_TO_POINTER(count));
-	  gtk_menu_append(menu, menu_item);
+	  gtk_menu_shell_append(menu, menu_item);
 	  gtk_widget_show(menu_item);
 
 	  g_free(buffer);
@@ -2497,21 +2533,21 @@ build_subtitles_submenu(GtkWidget *widget,
 	{
 	  menu_item =
 	    z_gtk_pixmap_menu_item_new(_("Index"),
-				       GNOME_STOCK_PIXMAP_INDEX);
-	  gtk_object_set_user_data(GTK_OBJECT(menu_item), widget);
-	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
-			     GTK_SIGNAL_FUNC(on_subtitle_page_ttxview),
+				       GTK_STOCK_INDEX);
+	  g_object_set_data(G_OBJECT(menu_item), "user-data", widget);
+	  g_signal_connect(G_OBJECT(menu_item), "activate",
+			     G_CALLBACK(on_subtitle_page_ttxview),
 			     GINT_TO_POINTER((count << 16) + VBI_ANY_SUBNO));
 	  buffer = g_strdup_printf(_("Page %x"), count);
 	  z_tooltip_set(menu_item, buffer);
 	  g_free(buffer);
-	  gtk_menu_insert(menu, menu_item, 1);
+	  gtk_menu_shell_insert(menu, menu_item, 1);
 	  gtk_widget_show(menu_item);
 	  if (!index)
 	    {
 	      menu_item = gtk_menu_item_new();
 	      gtk_widget_show(menu_item);
-	      gtk_menu_insert(menu, menu_item, 2);
+	      gtk_menu_shell_insert(menu, menu_item, 2);
 	    }
 	  index = TRUE;
 	  empty = FALSE;
@@ -2521,15 +2557,15 @@ build_subtitles_submenu(GtkWidget *widget,
 	{
 	  menu_item =
 	    z_gtk_pixmap_menu_item_new(_("Now and Next"),
-				       GNOME_STOCK_PIXMAP_ALIGN_JUSTIFY);
-	  gtk_object_set_user_data(GTK_OBJECT(menu_item), widget);
-	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
-			     GTK_SIGNAL_FUNC(on_subtitle_page_main),
+				       GTK_STOCK_JUSTIFY_FILL);
+	  g_object_set_data(G_OBJECT(menu_item), "user-data", widget);
+	  g_signal_connect(G_OBJECT(menu_item), "activate",
+			     G_CALLBACK(on_subtitle_page_main),
 			     GINT_TO_POINTER((count << 16) + VBI_ANY_SUBNO));
 	  buffer = g_strdup_printf(_("Page %x"), count);
 	  z_tooltip_set(menu_item, buffer);
 	  g_free(buffer);
-	  gtk_menu_insert(zmenu, menu_item, insert_index++);
+	  gtk_menu_shell_insert(zmenu, menu_item, insert_index++);
 	  gtk_widget_show(menu_item);
 	  something = TRUE;
 	}
@@ -2537,15 +2573,15 @@ build_subtitles_submenu(GtkWidget *widget,
 	{
 	  menu_item =
 	    z_gtk_pixmap_menu_item_new(_("Current program"),
-				       GNOME_STOCK_PIXMAP_ALIGN_JUSTIFY);
-	  gtk_object_set_user_data(GTK_OBJECT(menu_item), widget);
-	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
-			     GTK_SIGNAL_FUNC(on_subtitle_page_ttxview),
+				       GTK_STOCK_JUSTIFY_FILL);
+	  g_object_set_data(G_OBJECT(menu_item), "user-data", widget);
+	  g_signal_connect(G_OBJECT(menu_item), "activate",
+			     G_CALLBACK(on_subtitle_page_ttxview),
 			     GINT_TO_POINTER((count<<16) + subpage));
 	  buffer = g_strdup_printf(_("Page %x"), count);
 	  z_tooltip_set(menu_item, buffer);
 	  g_free(buffer);
-	  gtk_menu_insert(zmenu, menu_item, insert_index++);
+	  gtk_menu_shell_insert(zmenu, menu_item, insert_index++);
 	  gtk_widget_show(menu_item);
 	  something = TRUE;	  
 	}
@@ -2553,15 +2589,15 @@ build_subtitles_submenu(GtkWidget *widget,
 	{
 	  menu_item =
 	    z_gtk_pixmap_menu_item_new(_("Program Index"),
-				       GNOME_STOCK_PIXMAP_INDEX);
-	  gtk_object_set_user_data(GTK_OBJECT(menu_item), widget);
-	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
-			     GTK_SIGNAL_FUNC(on_subtitle_page_ttxview),
+				       GTK_STOCK_INDEX);
+	  g_object_set_data(G_OBJECT(menu_item), "user-data", widget);
+	  g_signal_connect(G_OBJECT(menu_item), "activate",
+			     G_CALLBACK(on_subtitle_page_ttxview),
 			     GINT_TO_POINTER((count << 16) + VBI_ANY_SUBNO));
 	  buffer = g_strdup_printf(_("Page %x"), count);
 	  z_tooltip_set(menu_item, buffer);
 	  g_free(buffer);
-	  gtk_menu_insert(zmenu, menu_item, insert_index++);
+	  gtk_menu_shell_insert(zmenu, menu_item, insert_index++);
 	  gtk_widget_show(menu_item);
 	  something = TRUE;
 	}
@@ -2569,15 +2605,15 @@ build_subtitles_submenu(GtkWidget *widget,
 	{
 	  menu_item =
 	    z_gtk_pixmap_menu_item_new(_("Program Schedule"),
-				       GNOME_STOCK_PIXMAP_TIMER);
-	  gtk_object_set_user_data(GTK_OBJECT(menu_item), widget);
-	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
-			     GTK_SIGNAL_FUNC(on_subtitle_page_ttxview),
+				       "gnome-stock-timer");
+	  g_object_set_data(G_OBJECT(menu_item), "user-data", widget);
+	  g_signal_connect(G_OBJECT(menu_item), "activate",
+			     G_CALLBACK(on_subtitle_page_ttxview),
 			     GINT_TO_POINTER((count<<16) + subpage));
 	  buffer = g_strdup_printf(_("Page %x"), count);
 	  z_tooltip_set(menu_item, buffer);
 	  g_free(buffer);
-	  gtk_menu_insert(zmenu, menu_item, insert_index++);
+	  gtk_menu_shell_insert(zmenu, menu_item, insert_index++);
 	  gtk_widget_show(menu_item);
 	  something = TRUE;
 	}
@@ -2585,15 +2621,15 @@ build_subtitles_submenu(GtkWidget *widget,
 	{
 	  menu_item =
 	    z_gtk_pixmap_menu_item_new(_("Program Warning"),
-				       GNOME_STOCK_PIXMAP_MAIL);
-	  gtk_object_set_user_data(GTK_OBJECT(menu_item), widget);
-	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
-			     GTK_SIGNAL_FUNC(on_subtitle_page_main),
+				       "gnome-stock-mail");
+	  g_object_set_data(G_OBJECT(menu_item), "user-data", widget);
+	  g_signal_connect(G_OBJECT(menu_item), "activate",
+			     G_CALLBACK(on_subtitle_page_main),
 			     GINT_TO_POINTER((count << 16) + VBI_ANY_SUBNO));
 	  buffer = g_strdup_printf(_("Page %x"), count);
 	  z_tooltip_set(menu_item, buffer);
 	  g_free(buffer);
-	  gtk_menu_insert(zmenu, menu_item, insert_index++);
+	  gtk_menu_shell_insert(zmenu, menu_item, insert_index++);
 	  gtk_widget_show(menu_item);
 	  something = TRUE;
 	}
@@ -2605,20 +2641,20 @@ build_subtitles_submenu(GtkWidget *widget,
     {
       menu_item =
 	z_gtk_pixmap_menu_item_new(_("Subtitles"),
-				   GNOME_STOCK_PIXMAP_ALIGN_JUSTIFY);
+				   GTK_STOCK_JUSTIFY_FILL);
       z_tooltip_set(menu_item, _("Select subtitles page"));
       gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item),
 				GTK_WIDGET(menu));
       gtk_widget_show(menu_item);
       gtk_widget_show(GTK_WIDGET(menu));
-      gtk_menu_insert(GTK_MENU(zmenu), menu_item, insert_index++);
+      gtk_menu_shell_insert(GTK_MENU_SHELL(zmenu), menu_item, insert_index++);
     }
 
   if (!empty || something)
     {
       menu_item = gtk_menu_item_new();
       gtk_widget_show(menu_item);
-      gtk_menu_insert(GTK_MENU(zmenu), menu_item, insert_index++);
+      gtk_menu_shell_insert(GTK_MENU_SHELL(zmenu), menu_item, insert_index++);
     }
 }
 
@@ -2645,25 +2681,25 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
       gtk_widget_hide(lookup_widget(popup, "separator8"));
     }
   else
-    gtk_signal_connect(GTK_OBJECT(lookup_widget(popup,
+    g_signal_connect(G_OBJECT(lookup_widget(popup,
 						"open_in_new_window1")),
-		       "activate", GTK_SIGNAL_FUNC(popup_new_win), data);
+		       "activate", G_CALLBACK(popup_new_win), data);
 
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(popup, "search1")),
+  g_signal_connect(G_OBJECT(lookup_widget(popup, "search1")),
 		     "activate",
-		     GTK_SIGNAL_FUNC(on_ttxview_search_clicked),
+		     G_CALLBACK(on_ttxview_search_clicked),
 		     data);
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(popup, "add_bookmark")),
+  g_signal_connect(G_OBJECT(lookup_widget(popup, "add_bookmark")),
 		     "activate",
-		     GTK_SIGNAL_FUNC(new_bookmark), data);
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(popup, "edit_bookmarks")),
+		     G_CALLBACK(new_bookmark), data);
+  g_signal_connect(G_OBJECT(lookup_widget(popup, "edit_bookmarks")),
 		     "activate",
-		     GTK_SIGNAL_FUNC(on_edit_bookmarks_activated),
+		     G_CALLBACK(on_edit_bookmarks_activated),
 		     data);
 
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(popup,
+  g_signal_connect(G_OBJECT(lookup_widget(popup,
 					      "ttx_color_dialog1")),
-		       "activate", GTK_SIGNAL_FUNC(create_color_dialog), data);
+		       "activate", G_CALLBACK(create_color_dialog), data);
 
   /* Bookmark entries */
   if (!p)
@@ -2673,7 +2709,7 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
       {
 	bookmark = (struct bookmark*)p->data;
 	menuitem = z_gtk_pixmap_menu_item_new(bookmark->description,
-					      GNOME_STOCK_PIXMAP_JUMP_TO);
+					      GTK_STOCK_JUMP_TO);
 	if (bookmark->subpage != VBI_ANY_SUBNO)
 	  buffer = g_strdup_printf("%x.%x", bookmark->page, bookmark->subpage);
 	else
@@ -2685,11 +2721,11 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
 	z_tooltip_set(menuitem, buffer2);
 	g_free(buffer2);
 	g_free(buffer);
-	gtk_object_set_user_data(GTK_OBJECT(menuitem), bookmark);
+	g_object_set_data(G_OBJECT(menuitem), "user-data", bookmark);
 	gtk_widget_show(menuitem);
-	gtk_menu_append(GTK_MENU(popup), menuitem);
-	gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
-			   GTK_SIGNAL_FUNC(on_bookmark_activated),
+	gtk_menu_shell_append(GTK_MENU_SHELL(popup), menuitem);
+	g_signal_connect(G_OBJECT(menuitem), "activate",
+			   G_CALLBACK(on_bookmark_activated),
 			   data);
 	p = p->next;
       }
@@ -2708,7 +2744,7 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
       gtk_widget_show(menu);
       menuitem = gtk_tearoff_menu_item_new();
       gtk_widget_show(menuitem);
-      gtk_menu_append(GTK_MENU(menu), menuitem);
+      gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 
       for (i = 0; (xm = vbi_export_info_enum(i)); i++)
         if (xm->label) /* for public use */
@@ -2716,17 +2752,17 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
 	    menuitem = gtk_menu_item_new_with_label(xm->label);
 	    if (xm->tooltip)
 	      z_tooltip_set(menuitem, xm->tooltip);
-	    gtk_object_set_user_data(GTK_OBJECT(menuitem), xm->keyword);
+	    g_object_set_data(G_OBJECT(menuitem), "user-data", xm->keyword);
 	    gtk_widget_show(menuitem);
-	    gtk_menu_append(GTK_MENU(menu), menuitem);
-	    gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
-			       GTK_SIGNAL_FUNC(on_export_menu),
+	    gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
+	    g_signal_connect(G_OBJECT(menuitem), "activate",
+			       G_CALLBACK(on_export_menu),
 			       data);
 	  }
       gtk_menu_item_set_submenu(GTK_MENU_ITEM(exp), menu);
     }
 
-  build_subtitles_submenu(data->parent, GTK_MENU(popup), FALSE);
+  build_subtitles_submenu(data->parent, GTK_MENU_SHELL(popup), FALSE);
 
   return popup;
 }
@@ -2734,20 +2770,20 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
 void
 process_ttxview_menu_popup		(GtkWidget	*widget,
 					 GdkEventButton	*event,
-					 GtkMenu	*popup)
+					 GtkMenuShell	*popup)
 {
   gint w, h, col, row;
   vbi_link ld;
-  GtkMenu *menu;
+  GtkMenuShell *menu;
   ttxview_data *data = (ttxview_data *)
-    gtk_object_get_data(GTK_OBJECT(widget), "ttxview_data");
+    g_object_get_data(G_OBJECT(widget), "ttxview_data");
 
   GtkWidget *menu_item;
   gint count = 1;
 
   if (data)
     {
-      gdk_window_get_size(widget->window, &w, &h);
+      gdk_window_get_geometry(widget->window, NULL, NULL, &w, &h, NULL);
       /* convert to fmt_page space */
       col = (event->x*data->fmt_page->columns)/w;
       row = (event->y*data->fmt_page->rows)/h;
@@ -2767,58 +2803,33 @@ process_ttxview_menu_popup		(GtkWidget	*widget,
 	    }
 	}
       
-      menu = GTK_MENU(build_ttxview_popup(data, ld.pgno, ld.subno));
+      menu = GTK_MENU_SHELL(build_ttxview_popup(data, ld.pgno, ld.subno));
       
       menu_item =
-	z_gtk_pixmap_menu_item_new("Zapzilla", GNOME_STOCK_PIXMAP_ALIGN_JUSTIFY);
+	z_gtk_pixmap_menu_item_new("Zapzilla", GTK_STOCK_JUSTIFY_FILL);
       gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item), GTK_WIDGET(menu));
       gtk_widget_show(GTK_WIDGET(menu));
       gtk_widget_show(menu_item);
-      gtk_menu_insert(GTK_MENU(popup), menu_item, 1);
+      gtk_menu_shell_insert(GTK_MENU_SHELL(popup), menu_item, 1);
       menu_item = gtk_menu_item_new();
       gtk_widget_show(menu_item);
-      gtk_menu_insert(GTK_MENU(popup), menu_item, 2);
+      gtk_menu_shell_insert(GTK_MENU_SHELL(popup), menu_item, 2);
       count += 2;
     }
   else
-    build_subtitles_submenu(widget, GTK_MENU(popup), !data);
+    build_subtitles_submenu(widget, GTK_MENU_SHELL(popup), !data);
 }
 
 GdkPixbuf*
 ttxview_get_scaled_ttx_page		(GtkWidget	*parent)
 {
   ttxview_data	*data = (ttxview_data*)
-    gtk_object_get_data(GTK_OBJECT(main_window), "ttxview_data");
+    g_object_get_data(G_OBJECT(main_window), "ttxview_data");
 
   if (!data)
     return NULL;
 
   return get_scaled_ttx_page(data->id);
-}
-
-/**
- * Returns a freshly allocated region exactly like rect.
- */
-static GdkRegion * region_from_rect(GdkRectangle *rect)
-{
-  GdkRegion *region = gdk_region_new();
-  GdkRegion *result = NULL;
-
-  result = gdk_region_union_with_rect(region, rect);
-  g_free(region);
-
-  return result;
-}
-
-static void region_union_with_rect(GdkRegion **region,
-                                   GdkRectangle *rect)
-{
-  GdkRegion *result;
-
-  result = gdk_region_union_with_rect(*region, rect);
-  gdk_region_destroy(*region);
-
-  *region = result;
 }
 
 /**
@@ -2873,12 +2884,11 @@ static void transform_region(gint sx1, gint sy1, gint sx2, gint sy2,
   gint rows, columns;
   GdkRectangle rect;
   GdkRegion *src_region, *dst_region;
-  GdkRegion *clip_region;
 
   rows = data->fmt_page->rows;
   columns = data->fmt_page->columns;
 
-  gdk_window_get_size(data->da->window, &w, &h);
+  gdk_window_get_geometry(data->da->window, NULL, NULL, &w, &h, NULL);
   gdk_gc_set_clip_origin(data->xor_gc, 0, 0);
 
   data->sel_table = dtable;
@@ -2900,14 +2910,14 @@ static void transform_region(gint sx1, gint sy1, gint sx2, gint sy2,
         SWAP(sx1, sx2);
 
       scale_rect(&rect, sx1, sy1 - h1, sx2, sy2 + h4, w, h, rows, columns);
-      src_region = region_from_rect(&rect);
+      src_region = gdk_region_rectangle(&rect);
     }
   else
     {
       scale_rect(&rect, sx1, sy1 - h1, columns - 1, sy1 + h2, w, h, rows, columns);
-      src_region = region_from_rect(&rect);
+      src_region = gdk_region_rectangle(&rect);
       scale_rect(&rect, 0, sy2 - h3, sx2, sy2 + h4, w, h, rows, columns);
-      region_union_with_rect(&src_region, &rect);
+      gdk_region_union_with_rect(src_region, &rect);
 
       sy1 += h2 + 1;
       sy2 -= h3 + 1;
@@ -2915,7 +2925,7 @@ static void transform_region(gint sx1, gint sy1, gint sx2, gint sy2,
       if (sy2 >= sy1)
         {
           scale_rect(&rect, 0, sy1, columns - 1, sy2, w, h, rows, columns);
-	  region_union_with_rect(&src_region, &rect);
+	  gdk_region_union_with_rect(src_region, &rect);
 	}
     }
 
@@ -2941,14 +2951,14 @@ static void transform_region(gint sx1, gint sy1, gint sx2, gint sy2,
       data->trn_row2 = dy2 += h4;
 
       scale_rect(&rect, dx1, dy1, dx2, dy2, w, h, rows, columns);
-      dst_region = region_from_rect(&rect);
+      dst_region = gdk_region_rectangle(&rect);
     }
   else
     {
       scale_rect(&rect, dx1, dy1 - h1, columns - 1, dy1 + h2, w, h, rows, columns);
-      dst_region = region_from_rect(&rect);
+      dst_region = gdk_region_rectangle(&rect);
       scale_rect(&rect, 0, dy2 - h3, dx2, dy2 + h4, w, h, rows, columns);
-      region_union_with_rect(&dst_region, &rect);
+      gdk_region_union_with_rect(dst_region, &rect);
 
       data->trn_col1 = dx1;
       data->trn_row1 = dy1 + h2;
@@ -2961,28 +2971,23 @@ static void transform_region(gint sx1, gint sy1, gint sx2, gint sy2,
       if (dy2 >= dy1)
         {
           scale_rect(&rect, 0, dy1, columns - 1, dy2, w, h, rows, columns);
-	  region_union_with_rect(&dst_region, &rect);
+	  gdk_region_union_with_rect(dst_region, &rect);
 	}
     }
 
   if (exposed)
-    {
-      clip_region = gdk_regions_subtract(src_region, exposed);
-      gdk_region_destroy(src_region);
-      src_region = clip_region;
-    }
+    gdk_region_subtract(src_region, exposed);
 
-  clip_region = gdk_regions_xor(src_region, dst_region);
+  gdk_region_xor(src_region, dst_region);
 
-  gdk_region_destroy(src_region);
   gdk_region_destroy(dst_region);
 
-  gdk_gc_set_clip_region(data->xor_gc, clip_region);
+  gdk_gc_set_clip_region(data->xor_gc, src_region);
+
+  gdk_region_destroy(src_region);
 
   gdk_draw_rectangle(data->da->window, data->xor_gc, TRUE,
 		     0, 0, w - 1, h - 1);
-
-  gdk_region_destroy(clip_region);
 
   gdk_gc_set_clip_rectangle(data->xor_gc, NULL);
 }
@@ -3028,7 +3033,7 @@ static void select_update(gint x, gint y, guint state,
   rows = data->fmt_page->rows;
   columns = data->fmt_page->columns;
 
-  gdk_window_get_size(data->da->window, &w, &h);
+  gdk_window_get_geometry(data->da->window, NULL, NULL, &w, &h, NULL);
 
   col = (x * columns) / w;
   row = (y * rows) / h;
@@ -3086,7 +3091,7 @@ static void select_stop(ttxview_data * data)
 
   if (data->osx != -1)
     {
-      gdk_window_get_size(data->da->window, &w, &h);
+      gdk_window_get_geometry(data->da->window, NULL, NULL, &w, &h, NULL);
 
       scol = (data->ssx * columns) / w;
       srow = (data->ssy * rows) / h;
@@ -3164,7 +3169,7 @@ gboolean on_ttxview_expose_event	(GtkWidget	*widget,
   
   if (data->selecting && data->osx != -1)
     {
-      gdk_window_get_size(data->da->window, &w, &h);
+      gdk_window_get_geometry(data->da->window, NULL, NULL, &w, &h, NULL);
 
       scol = (data->ssx * columns) / w;
       srow = (data->ssy * rows) / h;
@@ -3176,7 +3181,7 @@ gboolean on_ttxview_expose_event	(GtkWidget	*widget,
       scol = SATURATE(scol, 0, columns - 1);
       srow = SATURATE(srow, 0, rows - 1);
 
-      region = region_from_rect(&event->area);
+      region = gdk_region_rectangle(&event->area);
 
       transform_region(scol, srow, col, row, scol, srow, col, row,
                        data->sel_table, data->sel_table, region, data);
@@ -3194,9 +3199,10 @@ on_ttxview_button_press			(GtkWidget	*widget,
 {
   gint w, h, col, row;
   vbi_link ld;
-  GtkMenu *menu;
+  GtkMenuShell *menu;
+  GError *err;
 
-  gdk_window_get_size(widget->window, &w, &h);
+  gdk_window_get_geometry(widget->window, NULL, NULL, &w, &h, NULL);
   /* convert to fmt_page space */
   col = (event->x*data->fmt_page->columns)/w;
   row = (event->y*data->fmt_page->rows)/h;
@@ -3225,7 +3231,13 @@ on_ttxview_button_press			(GtkWidget	*widget,
 	case VBI_LINK_HTTP:
 	case VBI_LINK_FTP:
 	case VBI_LINK_EMAIL:
-	  gnome_url_show(ld.url);
+	  gnome_url_show(ld.url, &err);
+	  if (err)
+	    {
+	      ShowBox (_("Cannot show %s:\n%s"), GTK_MESSAGE_ERROR,
+		       ld.url, err->message);
+	      g_error_free (err);
+	    }
 	  break;
 
 	default:
@@ -3239,14 +3251,20 @@ on_ttxview_button_press			(GtkWidget	*widget,
         {
 	case VBI_LINK_PAGE:
 	case VBI_LINK_SUBPAGE:
-	  cmd_execute_printf (widget, "ttx_open_new %x %x",
-			      ld.pgno, ld.subno);
+	  cmd_run_printf ("zapping.ttx_open_new(%x, %x)",
+			  ld.pgno, ld.subno);
 	  break;
 
 	case VBI_LINK_HTTP:
 	case VBI_LINK_FTP:
 	case VBI_LINK_EMAIL:
-	  gnome_url_show(ld.url);
+	  gnome_url_show(ld.url, &err);
+	  if (err)
+	    {
+	      ShowBox (_("Cannot show %s:\n%s"), GTK_MESSAGE_ERROR,
+		       ld.url, err->message);
+	      g_error_free (err);
+	    }
 	  break;
 
 	default:
@@ -3262,8 +3280,8 @@ on_ttxview_button_press			(GtkWidget	*widget,
 	      ld.pgno = 0;
 	      ld.subno = 0;
 	    }
-	  menu = GTK_MENU(build_ttxview_popup(data, ld.pgno, ld.subno));
-	  gtk_menu_popup(menu, NULL, NULL, NULL,
+	  menu = GTK_MENU_SHELL(build_ttxview_popup(data, ld.pgno, ld.subno));
+	  gtk_menu_popup(GTK_MENU (menu), NULL, NULL, NULL,
 			 NULL, event->button, event->time);
 	}
       break;
@@ -3388,8 +3406,8 @@ ttxview_blink			(gpointer	p)
 }
 
 #define BUTTON_CMD(_name, _signal, _cmd)				\
-  gtk_signal_connect (GTK_OBJECT (lookup_widget (toolbar, #_name)),	\
-		      #_signal, GTK_SIGNAL_FUNC (on_remote_command1),	\
+  g_signal_connect (G_OBJECT (lookup_widget (toolbar, #_name)),	\
+		      #_signal, G_CALLBACK (on_remote_command1),	\
  		      (gpointer)((const gchar *) _cmd))
 
 static void
@@ -3397,23 +3415,34 @@ connect_toolbar				(ttxview_data *	data)
 {
   GtkWidget *toolbar = data->toolbar;
 
-  BUTTON_CMD (ttxview_prev_page,	clicked,	"ttx_page_incr -1");
-  BUTTON_CMD (ttxview_next_page,	clicked,	"ttx_page_incr +1");
-  BUTTON_CMD (ttxview_prev_subpage,	clicked,	"ttx_subpage_incr -1");
-  BUTTON_CMD (ttxview_next_subpage,	clicked,	"ttx_subpage_incr +1");
-  BUTTON_CMD (ttxview_home,		clicked,	"ttx_home");
-  BUTTON_CMD (ttxview_hold,		toggled,	"ttx_hold");
-  BUTTON_CMD (ttxview_reveal,		toggled,	"ttx_reveal");
-  BUTTON_CMD (ttxview_history_prev,	clicked,	"ttx_history_prev");
-  BUTTON_CMD (ttxview_history_next,	clicked,	"ttx_history_next");
-  BUTTON_CMD (ttxview_clone,		clicked,	"ttx_open_new");
+  BUTTON_CMD (ttxview_prev_page,	clicked,
+	      "zapping.ttx_page_incr(-1)");
+  BUTTON_CMD (ttxview_next_page,	clicked,
+	      "zapping.ttx_page_incr(+1)");
+  BUTTON_CMD (ttxview_prev_subpage,	clicked,
+	      "zapping.ttx_subpage_incr(-1)");
+  BUTTON_CMD (ttxview_next_subpage,	clicked,
+	      "zapping.ttx_subpage_incr(+1)");
+  BUTTON_CMD (ttxview_home,		clicked,
+	      "zapping.ttx_home()");
+  BUTTON_CMD (ttxview_hold,		toggled,
+	      "zapping.ttx_hold()");
+  BUTTON_CMD (ttxview_reveal,		toggled,
+	      "zapping.ttx_reveal()");
+  BUTTON_CMD (ttxview_history_prev,	clicked,
+	      "zapping.ttx_history_prev()");
+  BUTTON_CMD (ttxview_history_next,	clicked,
+	      "zapping.ttx_history_next()");
+  BUTTON_CMD (ttxview_clone,		clicked,
+	      "zapping.ttx_open_new()");
 
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(toolbar, "ttxview_search")),
-		     "clicked", GTK_SIGNAL_FUNC(on_ttxview_search_clicked),
+  /* FIXME: Convert these too */
+  g_signal_connect(G_OBJECT(lookup_widget(toolbar, "ttxview_search")),
+		     "clicked", G_CALLBACK(on_ttxview_search_clicked),
 		     data);
 
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(toolbar, "ttxview_exit")), "clicked",
-		     GTK_SIGNAL_FUNC(on_ttxview_exit),
+  g_signal_connect(G_OBJECT(lookup_widget(toolbar, "ttxview_exit")), "clicked",
+		     G_CALLBACK(on_ttxview_exit),
 		     data);
 }
 
@@ -3462,7 +3491,7 @@ build_ttxview(void)
   if (!zvbi_get_object())
     {
       ShowBox("VBI couldn't be opened, Teletext won't work",
-	      GNOME_MESSAGE_BOX_ERROR);
+	      GTK_MESSAGE_ERROR);
       return ttxview;
     }
 
@@ -3478,7 +3507,7 @@ build_ttxview(void)
     gtk_timeout_add(100, (GtkFunction)event_timeout, data);
   data->fmt_page = get_ttx_fmt_page(data->id);
   data->popup_menu = TRUE;
-  gtk_object_set_data(GTK_OBJECT(ttxview), "ttxview_data", data);
+  g_object_set_data(G_OBJECT(ttxview), "ttxview_data", data);
   data->xor_gc = gdk_gc_new(data->da->window);
   data->vbi_model = zvbi_get_model();
   data->wait_timeout_id = -1;
@@ -3487,45 +3516,45 @@ build_ttxview(void)
   ttxview_toolbar_init (data->toolbar);
 
   /* Callbacks */
-  gtk_signal_connect(GTK_OBJECT(ttxview), "delete-event",
-		     GTK_SIGNAL_FUNC(on_ttxview_delete_event), data);
+  g_signal_connect(G_OBJECT(ttxview), "delete-event",
+		     G_CALLBACK(on_ttxview_delete_event), data);
 
   connect_toolbar (data);
 
-  gtk_signal_connect(GTK_OBJECT(data->da),
+  g_signal_connect(G_OBJECT(data->da),
 		     "size-allocate",
-		     GTK_SIGNAL_FUNC(on_ttxview_size_allocate), data);
-  gtk_signal_connect(GTK_OBJECT(data->da),
+		     G_CALLBACK(on_ttxview_size_allocate), data);
+  g_signal_connect(G_OBJECT(data->da),
 		     "expose-event",
-		     GTK_SIGNAL_FUNC(on_ttxview_expose_event), data);
-  gtk_signal_connect(GTK_OBJECT(data->da),
+		     G_CALLBACK(on_ttxview_expose_event), data);
+  g_signal_connect(G_OBJECT(data->da),
 		     "motion-notify-event",
-		     GTK_SIGNAL_FUNC(on_ttxview_motion_notify), data);
-  gtk_signal_connect(GTK_OBJECT(data->da),
+		     G_CALLBACK(on_ttxview_motion_notify), data);
+  g_signal_connect(G_OBJECT(data->da),
 		     "button-press-event",
-		     GTK_SIGNAL_FUNC(on_ttxview_button_press), data);
-  gtk_signal_connect(GTK_OBJECT(data->da),
+		     G_CALLBACK(on_ttxview_button_press), data);
+  g_signal_connect(G_OBJECT(data->da),
 		     "button-release-event",
-		     GTK_SIGNAL_FUNC(on_ttxview_button_release), data);
-  gtk_signal_connect(GTK_OBJECT(data->parent),
+		     G_CALLBACK(on_ttxview_button_release), data);
+  g_signal_connect(G_OBJECT(data->parent),
 		     "key-press-event",
-		     GTK_SIGNAL_FUNC(on_ttxview_key_press), data);
+		     G_CALLBACK(on_ttxview_key_press), data);
   /* selection (aka clipboard) handling */
-  gtk_signal_connect (GTK_OBJECT(data->da), "selection_clear_event",
-		      GTK_SIGNAL_FUNC (selection_clear), data);
+  g_signal_connect (G_OBJECT(data->da), "selection_clear_event",
+		      G_CALLBACK (selection_clear), data);
   gtk_selection_add_targets(data->da, GDK_SELECTION_PRIMARY,
 			    clip_targets, n_clip_targets);
   gtk_selection_add_targets(data->da, clipboard_atom,
 			    clip_targets, n_clip_targets);
-  gtk_signal_connect (GTK_OBJECT(data->da), "selection_get",
-		      GTK_SIGNAL_FUNC (selection_handle), data);
+  g_signal_connect (G_OBJECT(data->da), "selection_get",
+		      G_CALLBACK (selection_handle), data);
   /* handle the destruction of the vbi object */
-  gtk_signal_connect (GTK_OBJECT(data->vbi_model), "changed",
-		      GTK_SIGNAL_FUNC(on_vbi_model_changed),
+  g_signal_connect (G_OBJECT(data->vbi_model), "changed",
+		      G_CALLBACK(on_vbi_model_changed),
 		      data);
   /* handle refreshing */
-  gtk_signal_connect (GTK_OBJECT(refresh), "changed",
-		      GTK_SIGNAL_FUNC(on_ttxview_refresh),
+  g_signal_connect (G_OBJECT(refresh), "changed",
+		      G_CALLBACK(on_ttxview_refresh),
 		      data);
 
   data->blink_timeout = gtk_timeout_add(BLINK_CYCLE / 4, ttxview_blink, data);
@@ -3534,7 +3563,7 @@ build_ttxview(void)
   gtk_toolbar_set_style(GTK_TOOLBAR(data->toolbar),
 			GTK_TOOLBAR_ICONS);
 
-  gtk_widget_set_usize(ttxview, 360, 400);
+  gtk_widget_set_size_request(ttxview, 360, 400);
   gtk_widget_realize(ttxview);
   gdk_window_set_back_pixmap(data->da->window, NULL, FALSE);
 
@@ -3561,13 +3590,13 @@ ttxview_attach				(GtkWidget	*parent,
 					 GtkWidget	*appbar)
 {
   ttxview_data *data = (ttxview_data *)
-    gtk_object_get_data(GTK_OBJECT(parent), "ttxview_data");
+    g_object_get_data(G_OBJECT(parent), "ttxview_data");
   gint w, h;
 
   if (!zvbi_get_object())
     {
       ShowBox("VBI couldn't be opened, Teletext won't work",
-	      GNOME_MESSAGE_BOX_ERROR);
+	      GTK_MESSAGE_ERROR);
       return;
     }
 
@@ -3578,7 +3607,7 @@ ttxview_attach				(GtkWidget	*parent,
   data = (ttxview_data *) g_malloc(sizeof(ttxview_data));
   memset(data, 0, sizeof(ttxview_data));
 
-  gtk_object_set_data(GTK_OBJECT(parent), "ttxview_data", data);
+  g_object_set_data(G_OBJECT(parent), "ttxview_data", data);
 
   data->da = da;
   data->appbar = appbar;
@@ -3598,52 +3627,56 @@ ttxview_attach				(GtkWidget	*parent,
   ttxview_toolbar_init (data->toolbar);
 
   /* Callbacks */
-  gtk_signal_connect(GTK_OBJECT(data->parent), "delete-event",
-		     GTK_SIGNAL_FUNC(on_ttxview_delete_event), data);
+  g_signal_connect(G_OBJECT(data->parent), "delete-event",
+		     G_CALLBACK(on_ttxview_delete_event), data);
 
   /* Redirect key-press-event */
-  gtk_signal_handler_block_by_func (GTK_OBJECT (data->parent),
-				    GTK_SIGNAL_FUNC (on_zapping_key_press), NULL);
-  gtk_signal_connect (GTK_OBJECT (data->parent), "key-press-event",
-		      GTK_SIGNAL_FUNC (on_ttxview_key_press), data);
+  g_signal_handlers_block_matched (G_OBJECT (data->parent),
+				   G_SIGNAL_MATCH_FUNC,
+				   0, 0, NULL,
+				   G_CALLBACK (on_zapping_key_press),
+				   NULL);
+
+  g_signal_connect (G_OBJECT (data->parent), "key-press-event",
+		      G_CALLBACK (on_ttxview_key_press), data);
 
   connect_toolbar (data);
 
-  gtk_signal_connect(GTK_OBJECT(data->da),
+  g_signal_connect(G_OBJECT(data->da),
 		     "size-allocate",
-		     GTK_SIGNAL_FUNC(on_ttxview_size_allocate), data);
-  gtk_signal_connect(GTK_OBJECT(data->da),
+		     G_CALLBACK(on_ttxview_size_allocate), data);
+  g_signal_connect(G_OBJECT(data->da),
 		     "expose-event",
-		     GTK_SIGNAL_FUNC(on_ttxview_expose_event), data);
-  gtk_signal_connect(GTK_OBJECT(data->da),
+		     G_CALLBACK(on_ttxview_expose_event), data);
+  g_signal_connect(G_OBJECT(data->da),
 		     "motion-notify-event",
-		     GTK_SIGNAL_FUNC(on_ttxview_motion_notify), data);
-  gtk_signal_connect(GTK_OBJECT(data->da),
+		     G_CALLBACK(on_ttxview_motion_notify), data);
+  g_signal_connect(G_OBJECT(data->da),
 		     "button-press-event",
-		     GTK_SIGNAL_FUNC(on_ttxview_button_press), data);
-  gtk_signal_connect(GTK_OBJECT(data->da),
+		     G_CALLBACK(on_ttxview_button_press), data);
+  g_signal_connect(G_OBJECT(data->da),
 		     "button-release-event",
-		     GTK_SIGNAL_FUNC(on_ttxview_button_release), data);
-  gtk_signal_connect (GTK_OBJECT(data->da), "selection_clear_event",
-		      GTK_SIGNAL_FUNC (selection_clear), data);
+		     G_CALLBACK(on_ttxview_button_release), data);
+  g_signal_connect (G_OBJECT(data->da), "selection_clear_event",
+		      G_CALLBACK (selection_clear), data);
   gtk_selection_add_targets(data->da, GDK_SELECTION_PRIMARY,
 			    clip_targets, n_clip_targets);
   gtk_selection_add_targets(data->da, clipboard_atom,
 			    clip_targets, n_clip_targets);
-  gtk_signal_connect (GTK_OBJECT(data->da), "selection_get",
-		      GTK_SIGNAL_FUNC (selection_handle), data);
+  g_signal_connect (G_OBJECT(data->da), "selection_get",
+		      G_CALLBACK (selection_handle), data);
   /* handle the destruction of the vbi object */
-  gtk_signal_connect (GTK_OBJECT(data->vbi_model), "changed",
-		      GTK_SIGNAL_FUNC(on_vbi_model_changed),
+  g_signal_connect (G_OBJECT(data->vbi_model), "changed",
+		      G_CALLBACK(on_vbi_model_changed),
 		      data);
   /* handle refreshing */
-  gtk_signal_connect (GTK_OBJECT(refresh), "changed",
-		      GTK_SIGNAL_FUNC(on_ttxview_refresh),
+  g_signal_connect (G_OBJECT(refresh), "changed",
+		      G_CALLBACK(on_ttxview_refresh),
 		      data);
 
   gdk_window_set_back_pixmap(data->da->window, NULL, FALSE);
 
-  gdk_window_get_size(data->da->window, &w, &h);
+  gdk_window_get_geometry(data->da->window, NULL, NULL, &w, &h, NULL);
   if (w > 10 && h > 10)
     {
       resize_ttx_page(data->id, w, h);
@@ -3681,7 +3714,7 @@ void
 ttxview_detach			(GtkWidget	*parent)
 {
   ttxview_data *data = (ttxview_data *)
-    gtk_object_get_data(GTK_OBJECT(parent), "ttxview_data");
+    g_object_get_data(G_OBJECT(parent), "ttxview_data");
 
   if (!data)
     return;
@@ -3689,44 +3722,74 @@ ttxview_detach			(GtkWidget	*parent)
   gtk_container_remove(GTK_CONTAINER(data->parent_toolbar),
 		       data->toolbar);
 
-  gtk_signal_disconnect_by_func(GTK_OBJECT(data->parent),
-				GTK_SIGNAL_FUNC(on_ttxview_delete_event),
-				data);
+  g_signal_handlers_disconnect_matched(G_OBJECT(data->parent),
+				       G_SIGNAL_MATCH_FUNC |
+				       G_SIGNAL_MATCH_DATA,
+				       0, 0, NULL,
+				       G_CALLBACK(on_ttxview_delete_event),
+				       data);
 
-  gtk_signal_disconnect_by_func(GTK_OBJECT(data->parent),
-				GTK_SIGNAL_FUNC(on_ttxview_key_press),
-				data);
-  gtk_signal_handler_unblock_by_func(GTK_OBJECT (data->parent),
-				     GTK_SIGNAL_FUNC (on_zapping_key_press), NULL);
+  g_signal_handlers_disconnect_matched(G_OBJECT(data->parent),
+				       G_SIGNAL_MATCH_FUNC |
+				       G_SIGNAL_MATCH_DATA,
+				       0, 0, NULL,
+				       G_CALLBACK(on_ttxview_key_press),
+				       data);
+  g_signal_handlers_unblock_matched (G_OBJECT (data->parent),
+				     G_SIGNAL_MATCH_FUNC,
+				     0, 0, NULL,
+				     G_CALLBACK (on_zapping_key_press),
+				     NULL);
 
-  gtk_signal_disconnect_by_func(GTK_OBJECT(data->da),
-				GTK_SIGNAL_FUNC(on_ttxview_size_allocate),
-				data);
-  gtk_signal_disconnect_by_func(GTK_OBJECT(data->da),
-				GTK_SIGNAL_FUNC(on_ttxview_expose_event),
-				data);
-  gtk_signal_disconnect_by_func(GTK_OBJECT(data->da),
-				GTK_SIGNAL_FUNC(on_ttxview_motion_notify),
-				data);
-  gtk_signal_disconnect_by_func(GTK_OBJECT(data->da),
-				GTK_SIGNAL_FUNC(on_ttxview_button_press),
-				data);
-  gtk_signal_disconnect_by_func(GTK_OBJECT(data->da),
-				GTK_SIGNAL_FUNC(on_ttxview_button_release),
-				data);
-  gtk_signal_disconnect_by_func(GTK_OBJECT(data->da),
-				GTK_SIGNAL_FUNC(selection_handle),
-				data);
-  gtk_signal_disconnect_by_func(GTK_OBJECT(data->da),
-				GTK_SIGNAL_FUNC(selection_clear),
-				data);
+  g_signal_handlers_disconnect_matched(G_OBJECT(data->da),
+				       G_SIGNAL_MATCH_FUNC |
+				       G_SIGNAL_MATCH_DATA,
+				       0, 0, NULL,
+				       G_CALLBACK(on_ttxview_size_allocate),
+				       data);
+  g_signal_handlers_disconnect_matched(G_OBJECT(data->da),
+				       G_SIGNAL_MATCH_FUNC |
+				       G_SIGNAL_MATCH_DATA,
+				       0, 0, NULL,
+				       G_CALLBACK(on_ttxview_expose_event),
+				       data);
+  g_signal_handlers_disconnect_matched(G_OBJECT(data->da),
+				       G_SIGNAL_MATCH_FUNC |
+				       G_SIGNAL_MATCH_DATA,
+				       0, 0, NULL,
+				       G_CALLBACK(on_ttxview_motion_notify),
+				       data);
+  g_signal_handlers_disconnect_matched(G_OBJECT(data->da),
+				       G_SIGNAL_MATCH_FUNC |
+				       G_SIGNAL_MATCH_DATA,
+				       0, 0, NULL,
+				       G_CALLBACK(on_ttxview_button_press),
+				       data);
+  g_signal_handlers_disconnect_matched(G_OBJECT(data->da),
+				       G_SIGNAL_MATCH_FUNC |
+				       G_SIGNAL_MATCH_DATA,
+				       0, 0, NULL,
+				       G_CALLBACK(on_ttxview_button_release),
+				       data);
+  g_signal_handlers_disconnect_matched(G_OBJECT(data->da),
+				       G_SIGNAL_MATCH_FUNC |
+				       G_SIGNAL_MATCH_DATA,
+				       0, 0, NULL,
+				       G_CALLBACK(selection_handle),
+				       data);
+  g_signal_handlers_disconnect_matched(G_OBJECT(data->da),
+				       G_SIGNAL_MATCH_FUNC |
+				       G_SIGNAL_MATCH_DATA,
+				       0, 0, NULL,
+				       G_CALLBACK(selection_clear),
+				       data);
 
   gtk_toolbar_set_style(GTK_TOOLBAR(data->parent_toolbar),
 			data->toolbar_style);
 
   remove_ttxview_instance(data);
 
-  gtk_object_set_data(GTK_OBJECT(parent), "ttxview_data", NULL);
+  g_object_set_data(G_OBJECT(parent), "ttxview_data", NULL);
 }
 
 gboolean
@@ -3737,8 +3800,8 @@ startup_ttxview (void)
   gint page, subpage;
 
   ttxview_model = ZMODEL(zmodel_new());
-  gtk_object_set_user_data(GTK_OBJECT(ttxview_model),
-			   GINT_TO_POINTER(0));
+  g_object_set_data(G_OBJECT(ttxview_model), "user-data",
+		    GINT_TO_POINTER(0));
 
   hand = gdk_cursor_new (GDK_HAND2);
   arrow = gdk_cursor_new (GDK_LEFT_PTR);
@@ -3778,16 +3841,31 @@ startup_ttxview (void)
       i++;
     }
 
-#define CMD_REG(_name) cmd_register (#_name, _name##_cmd, NULL)
-
-  CMD_REG (ttx_page_incr);
-  CMD_REG (ttx_subpage_incr);
-  CMD_REG (ttx_home);
-  CMD_REG (ttx_hold);
-  CMD_REG (ttx_reveal);
-  CMD_REG (ttx_history_prev);
-  CMD_REG (ttx_history_next);
-  CMD_REG (ttx_open_new);
+  cmd_register ("ttx_page_incr", py_ttx_page_incr, METH_VARARGS,
+		_("Advances the given number of pages, 1 by default"),
+		"zapping.ttx_page_incr(-4)");
+  cmd_register ("ttx_subpage_incr", py_ttx_subpage_incr, METH_VARARGS,
+		_("Advances the given number of subpages, 1 by default"),
+		"zapping.ttx_subpage_incr(-4)");
+  cmd_register ("ttx_home", py_ttx_home, METH_VARARGS,
+		_("Opens the home page, usually numbered 100"),
+		"zapping.home()");
+  cmd_register ("ttx_hold", py_ttx_hold, METH_VARARGS,
+		_("Set the hold state, toggles by default"),
+		"zapping.hold(1)");
+  cmd_register ("ttx_reveal", py_ttx_reveal, METH_VARARGS,
+		_("Whether to reveal hidden characters, toggles "
+		  "by default"), "zapping.reveal(0)");
+  cmd_register ("ttx_history_prev", py_ttx_history_prev, METH_VARARGS,
+		_("Loads the previous visited page, if available"),
+		"zapping.ttx_history_prev()");
+  cmd_register ("ttx_history_next", py_ttx_history_next, METH_VARARGS,
+		_("Loads the next visited page, if available"),
+		"zapping.ttx_history_next()");
+  cmd_register ("ttx_open_new", py_ttx_open_new, METH_VARARGS,
+		_("Opens a new TTX view. You can also specify "
+		  "the page and subpage to open"),
+		"zapping.ttx_open_new(300)");
 
   return TRUE;
 }
@@ -3800,9 +3878,9 @@ shutdown_ttxview (void)
   GList *p = g_list_first(bookmarks);
   struct bookmark* bookmark;
 
-  gdk_cursor_destroy(hand);
-  gdk_cursor_destroy(arrow);
-  gdk_cursor_destroy(xterm);
+  gdk_cursor_unref(hand);
+  gdk_cursor_unref(arrow);
+  gdk_cursor_unref(xterm);
 
   /* Store the bookmarks in the config */
   zconf_delete(ZCONF_DOMAIN "bookmarks");
@@ -3829,11 +3907,11 @@ shutdown_ttxview (void)
     }
 
   while (bookmarks)
-    remove_bookmark(0);
+    remove_bookmark(0, FALSE);
 
-  gtk_object_destroy(GTK_OBJECT(ttxview_model));
-  gtk_object_destroy(GTK_OBJECT(model));
-  gtk_object_destroy(GTK_OBJECT(refresh));
+  g_object_unref(G_OBJECT(ttxview_model));
+  g_object_unref(G_OBJECT(model));
+  g_object_unref(G_OBJECT(refresh));
   refresh = NULL;
 }
 

@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.21 2002-03-21 18:08:23 mschimek Exp $
+ * $Id: fullscreen.c,v 1.21.2.1 2002-07-19 20:53:47 garetxe Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -59,9 +59,6 @@ on_fullscreen_event			(GtkWidget *	widget,
 					 GdkEvent *	event,
 					 gpointer	user_data)
 {
-  GtkWidget * window = GTK_WIDGET(user_data);
-  GtkMenuItem * exit2 = GTK_MENU_ITEM(lookup_widget(window, "quit1"));
-
   if (event->type == GDK_KEY_PRESS)
     {
       GdkEventKey *kevent = (GdkEventKey *) event;
@@ -72,7 +69,7 @@ on_fullscreen_event			(GtkWidget *	widget,
 
 	  was_fullscreen = TRUE;
 	  zmisc_switch_mode(last_mode, main_info);
-	  cmd_execute (GTK_WIDGET (exit2), "quit");
+	  cmd_run ("zapping.quit()");
 
 	  return TRUE;
 	}
@@ -134,7 +131,7 @@ fullscreen_start(tveng_device_info * info)
   gtk_widget_show(da);
 
   gtk_container_add(GTK_CONTAINER(black_window), da);
-  gtk_widget_set_usize(black_window, gdk_screen_width(),
+  gtk_widget_set_size_request(black_window, gdk_screen_width(),
 		       gdk_screen_height());
 
   gtk_widget_realize(black_window);
@@ -159,7 +156,7 @@ fullscreen_start(tveng_device_info * info)
 			    chroma.blue >> 8, info);
       else
 	ShowBox("Couldn't allocate chromakey, chroma won't work",
-		GNOME_MESSAGE_BOX_WARNING);
+		GTK_MESSAGE_WARNING);
     }
 
   gdk_window_set_background(da->window, &chroma);
@@ -175,7 +172,7 @@ fullscreen_start(tveng_device_info * info)
   if (tveng_start_previewing(info, 1-zcg_int(NULL, "change_mode")) == -1)
     {
       ShowBox(_("Sorry, but cannot go fullscreen:\n%s"),
-	      GNOME_MESSAGE_BOX_ERROR, info->error);
+	      GTK_MESSAGE_ERROR, info->error);
       gtk_widget_destroy(black_window);
       zmisc_switch_mode(TVENG_CAPTURE_READ, info);
       return -1;
@@ -193,10 +190,10 @@ fullscreen_start(tveng_device_info * info)
 
   gtk_widget_grab_focus(black_window);
 
-  gtk_signal_connect(GTK_OBJECT(black_window), "event",
-		     GTK_SIGNAL_FUNC(on_fullscreen_event),
+  g_signal_connect(G_OBJECT(black_window), "event",
+		     G_CALLBACK(on_fullscreen_event),
   		     main_window);
-#ifdef HAVE_LIBZVBI
+
   if (info->current_controller != TVENG_CONTROLLER_XV)
     osd_set_coords(da,
 		   info->window.x, info->window.y, info->window.width,
@@ -205,9 +202,8 @@ fullscreen_start(tveng_device_info * info)
     osd_set_coords(da, 0, 0, info->window.width,
 		   info->window.height);
 
-  gtk_signal_connect(GTK_OBJECT(osd_model), "changed",
-		     GTK_SIGNAL_FUNC(osd_model_changed), info);
-#endif
+  g_signal_connect(G_OBJECT(osd_model), "changed",
+		     G_CALLBACK(osd_model_changed), info);
 
   return 0;
 }
@@ -220,17 +216,16 @@ fullscreen_stop(tveng_device_info * info)
   x11_set_screensaver(ON);
 #endif
 
-#ifdef HAVE_LIBZVBI
   osd_unset_window();
-#endif
 
   /* Remove the black window */
   gtk_widget_destroy(black_window);
   x11_force_expose(0, 0, gdk_screen_width(), gdk_screen_height());
 
-#ifdef HAVE_LIBZVBI
-  gtk_signal_disconnect_by_func(GTK_OBJECT(osd_model),
-				GTK_SIGNAL_FUNC(osd_model_changed),
-				info);
-#endif
+  g_signal_handlers_disconnect_matched(G_OBJECT(osd_model),
+				       G_SIGNAL_MATCH_FUNC |
+				       G_SIGNAL_MATCH_DATA,
+				       0, 0, NULL,
+				       G_CALLBACK(osd_model_changed),
+				       info);
 }

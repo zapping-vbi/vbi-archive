@@ -24,17 +24,20 @@
 #  include <config.h>
 #endif
 
-#ifdef HAVE_LIBZVBI
-
+/* FIXME: The renderer should be converted to pango, but i don't
+   really feel like it now. Use the deprecated stuff till then. */
+#undef GDK_DISABLE_DEPRECATED
 #include <gnome.h>
-#include <gdk-pixbuf/gdk-pixbuf.h>
 
 #define ZCONF_DOMAIN "/zapping/options/osd/"
 #include "zconf.h"
 #include "zmisc.h"
 #include "osd.h"
+#include "remote.h"
 #include "common/math.h"
-#include "common/ucs-2.h"
+#include "properties.h"
+#include "interface.h"
+#include "globals.h"
 
 #define MAX_COLUMNS 48 /* TTX */
 #define MAX_ROWS 26 /* 25 for TTX plus one for OSD */
@@ -140,7 +143,7 @@ set_piece_geometry		(piece		*p)
     {
       if (p->scaled)
 	{
-	  gdk_pixbuf_unref(p->scaled);
+	  g_object_unref (G_OBJECT (p->scaled));
 	  p->scaled = NULL;
 	}
       if (dest_h > 0)
@@ -197,7 +200,7 @@ set_piece_geometry		(piece		*p)
 		  /* We should always draw the whole p->scaled, no
 		     more, no less. Otherwise sth is severely b0rken. */
 		  g_assert(scaled_x == dest_w);
-		  gdk_pixbuf_unref(canvas);
+		  g_object_unref (G_OBJECT (canvas));
 		}
 	    }
 	}
@@ -278,6 +281,7 @@ push_window(GtkWidget *window)
 }
 
 /* Unget all windows in the stack */
+static void clear_stack (void) __attribute__ ((unused));
 static void
 clear_stack(void)
 {
@@ -333,8 +337,8 @@ add_piece			(GdkPixbuf	*unscaled,
 
   p->da = da;
 
-  gtk_signal_connect(GTK_OBJECT(p->da), "expose-event",
-		     GTK_SIGNAL_FUNC(expose), p);
+  g_signal_connect(G_OBJECT(p->da), "expose-event",
+		   G_CALLBACK(expose), p);
 
   p->x = x;
   p->y = y;
@@ -361,11 +365,14 @@ remove_piece			(int		row,
   piece *p = &(matrix[row]->pieces[p_index]);
 
   if (p->scaled)
-    gdk_pixbuf_unref(p->scaled);
-  gdk_pixbuf_unref(p->unscaled);
+    g_object_unref (G_OBJECT (p->scaled));
+  g_object_unref (G_OBJECT (p->unscaled));
 
-  gtk_signal_disconnect_by_func(GTK_OBJECT(p->da),
-				GTK_SIGNAL_FUNC(expose), p);
+  g_signal_handlers_disconnect_matched (G_OBJECT(p->da),
+					G_SIGNAL_MATCH_FUNC |
+					G_SIGNAL_MATCH_DATA,
+					0, 0, NULL,
+					G_CALLBACK (expose), p);
   
   if (!just_push)
     unget_window(p->da);
@@ -401,6 +408,7 @@ osd_clear			(void)
   zmodel_changed(osd_model);
 }
 
+static void roll_up(int first_row, int last_row) __attribute__ ((unused));
 static void
 roll_up(int first_row, int last_row)
 {
@@ -466,10 +474,12 @@ roll_up(int first_row, int last_row)
  * OSD sources.
  */
 
+#if HAVE_LIBZVBI
 #include "zvbi.h"
 
 static vbi_page osd_page;
 extern int osd_pipe[2];
+static gint input_id = -1;
 
 static void
 ttx_position		(piece		*p)
@@ -642,21 +652,6 @@ osd_event		(gpointer	   data,
         return;
     }
 
-#if 0
-  {
-    int row, col;
-
-    fprintf (stderr, "osd_event page=%d dirty.y0=%d .y1=%d .roll=%d\n",
-      osd_page.pgno, osd_page.dirty.y0, osd_page.dirty.y1, osd_page.dirty.roll);
-    for (row = osd_page.dirty.y0; row <= osd_page.dirty.y1; row++)
-      {
-        for (col = 0; col < osd_page.columns; col++)
-          fputc (osd_page.text[row * osd_page.columns + col].glyph & 0x7F, stderr);
-        fputc ('\n', stderr);
-      }
-  }
-#endif
-
   if (osd_page.dirty.y0 > osd_page.dirty.y1)
     return; /* not dirty (caption only) */
 
@@ -677,9 +672,33 @@ osd_event		(gpointer	   data,
 
   render_page();
 }
+#else /* !HAVE_LIBZVBI */
+/* We only use the transparent and color enums internally for
+   simplicity, so just define them here in case we are building
+   without zvbi. Copy'n'paste from libzvbi 0.2.1 */
+
+/* Code depends on order, don't change. */
+typedef enum {
+	VBI_BLACK,
+	VBI_RED,
+	VBI_GREEN,
+	VBI_YELLOW,
+	VBI_BLUE,
+	VBI_MAGENTA,
+	VBI_CYAN,
+	VBI_WHITE
+} vbi_color;
+
+typedef enum {
+	VBI_TRANSPARENT_SPACE,
+	VBI_TRANSPARENT_FULL,
+	VBI_SEMI_TRANSPARENT,
+	VBI_OPAQUE
+} vbi_opacity;
+#endif
 
 /* OSD text provided by the app */
-#include <parser.h> /* libxml */
+#include <libxml/parser.h>
 
 #define ATTR_STACK	128
 typedef struct {
@@ -837,50 +856,34 @@ create_color_by_id	(int color_no,
  * error or a GdkFont* to be freed with unref_font.
  */
 static GdkFont *
-create_font		(const		gchar *_xlfd,
+create_font		(const		gchar *description,
 			 gboolean	bold,
 			 gboolean	italic)
 {
-  const gchar *xlfd = _xlfd;
-  gchar *buf = g_malloc0(strlen(xlfd)+30), *p=buf;
   GdkFont *result;
+  PangoFontDescription *pfd, *pfd0;
 
-  if (!*xlfd)
+  pfd0 = pango_font_description_from_string (description);
+
+  if (!pfd0)
     return NULL;
 
-  /* Skip foundry and family */
-  *(p++) = *(xlfd++);
-  while (*xlfd && *xlfd != '-')
-    *(p++) = *(xlfd++);
-  *(p++) = '-';
-  xlfd++;
+  pfd = pango_font_description_copy_static (pfd0);
 
-  while (*xlfd && *xlfd != '-')
-    *(p++) = *(xlfd++);
-  *(p++) = '-';
-  xlfd++;
+  pango_font_description_set_style (pfd, italic ? PANGO_STYLE_ITALIC :
+				    PANGO_STYLE_NORMAL);
+  pango_font_description_set_weight (pfd, bold ? PANGO_WEIGHT_BOLD :
+				     PANGO_WEIGHT_NORMAL);
 
-  /* Weight and Slant */
-  p += sprintf(p, "%s-%s", bold? "bold" : "medium", italic ? "i" : "r");
-
-  while (*xlfd && *xlfd != '-')
-    xlfd++;
-  xlfd++;
-  while (*xlfd && *xlfd != '-')
-    xlfd++;
-
-  /* the rest of the xlfd */
-  strcpy(p, xlfd);
-
-  result = gdk_font_load(buf);
-
+  result = gdk_font_from_description(pfd);
   if (!result)
-    result = gdk_font_load(_xlfd);
-
-  g_free(buf);
+    result = gdk_font_from_description(pfd0);
 
   if (result)
     gdk_font_ref(result);
+
+  pango_font_description_free (pfd);
+  pango_font_description_free (pfd0);
 
   return result;
 }
@@ -1003,12 +1006,12 @@ prepare_context		(sax_context	*ctx,
       if (!fname || !*fname)
 	ShowBox(_("Please configure a font for OSD in\n"
 		  "Properties/General/OSD"),
-		GNOME_MESSAGE_BOX_ERROR);
+		GTK_MESSAGE_ERROR);
       else
 	ShowBox(_("The configured font <%s> cannot be loaded, please"
 		  " select another one in\n"
 		  "Properties/General/OSD"),
-		GNOME_MESSAGE_BOX_ERROR, fname);
+		GTK_MESSAGE_ERROR, fname);
       
       return FALSE;
     }
@@ -1128,7 +1131,7 @@ process_context		(sax_context	*ctx,
       gtk_timeout_remove(osd_clear_timeout_id);
     }
 
-  gdk_pixmap_unref(ctx->canvas);
+  g_object_unref (G_OBJECT (ctx->canvas));
 
   osd_clear_timeout_id =
     gtk_timeout_add(zcg_float(NULL, "timeout")*1000,
@@ -1174,9 +1177,9 @@ osd_render_sgml		(void (*timeout_cb)(gboolean),
   handler.endElement = my_endElement;
   handler.characters = my_characters;
 
-  buf2 = g_strdup_printf("<?xml version=\"1.0\" encoding=\"%s\"?>"
+  buf2 = g_strdup_printf("<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
 			 "<doc><text>%s</text></doc>    ",
-			 get_locale_charset(), buf);
+			 buf);
 
   /* Prepare for drawing */
   switch (zcg_int(NULL, "osd_type"))
@@ -1195,6 +1198,10 @@ osd_render_sgml		(void (*timeout_cb)(gboolean),
     case 2:
       printf("OSD: ");
       break;
+    case 3:
+      g_free (buf2);
+      g_free (buf);
+      return;
     default:
       g_assert_not_reached();
       break;
@@ -1284,6 +1291,9 @@ osd_render		(void (*timeout_cb)(gboolean),
     case 2:
       printf("OSD: ");
       break;
+    case 3:
+      g_free (buf);
+      return;
     default:
       g_assert_not_reached();
       break;
@@ -1345,18 +1355,22 @@ static void
 set_window(GtkWidget *dest_window, gboolean _coords_mode)
 {
   if (osd_window && !coords_mode)
-    gtk_signal_disconnect_by_func(GTK_OBJECT(osd_window),
-				  GTK_SIGNAL_FUNC(on_osd_screen_size_allocate),
-				  NULL);
+    g_signal_handlers_disconnect_matched (G_OBJECT(osd_window),
+					  G_SIGNAL_MATCH_FUNC |
+					  G_SIGNAL_MATCH_DATA,
+					  0, 0, NULL,
+					  G_CALLBACK
+					  (on_osd_screen_size_allocate),
+					  NULL);
 
   osd_window = dest_window;
 
   coords_mode = _coords_mode;
 
   if (!coords_mode)
-    gtk_signal_connect(GTK_OBJECT(dest_window), "size-allocate",
-		       GTK_SIGNAL_FUNC(on_osd_screen_size_allocate),
-		       NULL);
+    g_signal_connect(G_OBJECT(dest_window), "size-allocate",
+		     G_CALLBACK(on_osd_screen_size_allocate),
+		     NULL);
 
   geometry_update();
 }
@@ -1391,18 +1405,153 @@ osd_unset_window(void)
     return;
 
   if (!coords_mode)
-    gtk_signal_disconnect_by_func(GTK_OBJECT(osd_window),
-				  GTK_SIGNAL_FUNC(on_osd_screen_size_allocate),
-				  NULL);
+    g_signal_handlers_disconnect_matched (G_OBJECT(osd_window),
+					  G_SIGNAL_MATCH_FUNC |
+					  G_SIGNAL_MATCH_DATA,
+					  0, 0, NULL,
+					  G_CALLBACK (on_osd_screen_size_allocate),
+					  NULL);
 
   osd_window = NULL;
   geometry_update(); /* Reparent to the orphanarium */
 }
 
+/* Python wrappers for the OSD renderer */
+static PyObject* py_osd_render (PyObject *self, PyObject *args)
+{
+  char *string;
+  int ok = PyArg_ParseTuple (args, "s", &string);
+
+  if (!ok)
+    g_error ("zapping.osd_render(s)");
+
+  osd_render (NULL, string);
+
+  Py_INCREF(Py_None);
+  return Py_None;
+}
+
+static PyObject* py_osd_render_sgml (PyObject *self, PyObject *args)
+{
+  char *string;
+  int ok = PyArg_ParseTuple (args, "s", &string);
+
+  if (!ok)
+    g_error ("zapping.osd_render_sgml(s)");
+
+  osd_render_sgml (NULL, string);
+
+  Py_INCREF(Py_None);
+  return Py_None;
+}
+
+static void
+on_osd_type_changed	(GtkWidget	*widget,
+			 GtkWidget	*page)
+{
+  widget = lookup_widget(widget, "optionmenu22");
+  gtk_widget_set_sensitive(lookup_widget(widget, "vbox38"),
+			   !z_option_menu_get_active(widget));
+}
+
+/* OSD properties */
+static void
+osd_setup		(GtkWidget	*page)
+{
+  GtkWidget *widget;
+
+  /* OSD type */
+  widget = lookup_widget(page, "optionmenu22");
+  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
+			      zcg_int(NULL, "osd_type"));
+  gtk_widget_set_sensitive(lookup_widget(widget, "vbox38"),
+			   !zcg_int(NULL, "osd_type"));
+
+  g_signal_connect(G_OBJECT (widget), "changed",
+		   G_CALLBACK(on_osd_type_changed),
+		   page);
+
+  /* OSD font */
+  widget = lookup_widget(page, "fontpicker1");
+  if (zcg_char(NULL, "font"))
+    gnome_font_picker_set_font_name(GNOME_FONT_PICKER(widget),
+				    zcg_char(NULL, "font"));
+
+  /* OSD foreground color */
+  widget = lookup_widget(page, "colorpicker1");
+  gnome_color_picker_set_d(GNOME_COLOR_PICKER(widget),
+		   zcg_float(NULL, "fg_r"),
+		   zcg_float(NULL, "fg_g"),
+		   zcg_float(NULL, "fg_b"),
+		   0);
+
+  /* OSD background color */
+  widget = lookup_widget(page, "colorpicker2");
+  gnome_color_picker_set_d(GNOME_COLOR_PICKER(widget),
+		   zcg_float(NULL, "bg_r"),
+		   zcg_float(NULL, "bg_g"),
+		   zcg_float(NULL, "bg_b"),
+		   0);
+
+  /* OSD timeout in seconds */
+  widget = lookup_widget(page, "spinbutton2");
+  gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget),
+			    zcg_float(NULL, "timeout"));
+}
+
+static void
+osd_apply		(GtkWidget	*page)
+{
+  GtkWidget *widget;
+  gdouble r, g, b, a;
+
+  widget = lookup_widget(page, "optionmenu22"); /* osd type */
+  zcs_int(z_option_menu_get_active(widget),
+	  "osd_type");
+
+  widget = lookup_widget(page, "fontpicker1");
+  zcs_char(gnome_font_picker_get_font_name(GNOME_FONT_PICKER(widget)),
+	   "font");
+
+  widget = lookup_widget(page, "colorpicker1");
+  gnome_color_picker_get_d(GNOME_COLOR_PICKER(widget), &r, &g, &b,
+			   &a);
+  zcs_float(r, "fg_r");
+  zcs_float(g, "fg_g");
+  zcs_float(b, "fg_b");
+
+  widget = lookup_widget(page, "colorpicker2");
+  gnome_color_picker_get_d(GNOME_COLOR_PICKER(widget), &r, &g, &b,
+			   &a);
+  zcs_float(r, "bg_r");
+  zcs_float(g, "bg_g");
+  zcs_float(b, "bg_b");
+
+  widget = lookup_widget(page, "spinbutton2"); /* osd timeout */
+  zcs_float(gtk_spin_button_get_value(GTK_SPIN_BUTTON(widget)),
+	    "timeout");
+
+}
+
+static void
+add				(GtkDialog *		dialog)
+{
+  SidebarEntry general_options[] = {
+    { N_("OSD"), "gnome-oscilloscope.png", "vbox37",
+      osd_setup, osd_apply }
+  };
+  SidebarGroup groups[] = {
+    { N_("General Options"), general_options, acount (general_options) }
+  };
+
+
+  standard_properties_add (dialog, groups, acount (groups),
+			   "zapping.glade2");
+}
+
 /**
  * Shutdown/startup of the OSD engine
  */
-static gint		input_id = -1;
 ZModel			*osd_model = NULL;
 
 void
@@ -1410,26 +1559,23 @@ startup_osd(void)
 {
   int i;
   GtkWidget *toplevel;
+  property_handler osd_handler = {
+    add: add
+  };
 
   for (i = 0; i<MAX_ROWS; i++)
     matrix[i] = g_malloc0(sizeof(row));
 
-  if (!startup_ucs2())
-    g_warning("Couldn't start Unicode, expect weird things to happen");
-
-  printv("UNICODE: Current locale charset appears to be '%s'\n",
-	 get_locale_charset());
-
+#ifdef HAVE_LIBZVBI
   input_id = gdk_input_add(osd_pipe[0], GDK_INPUT_READ,
 			   osd_event, NULL);
+  memset(&osd_page, 0, sizeof(osd_page));
+#endif
 
   osd_model = ZMODEL(zmodel_new());
 
-  memset(&osd_page, 0, sizeof(osd_page));
-
   zcc_int(0, "Which kind of OSD should be used", "osd_type");
-  zcc_char("-adobe-times-bold-r-normal-*-14-*-*-*-p-*-iso8859-1",
-	   "Default font", "font");
+  zcc_char("times new roman Bold 36", "Default font", "font");
 
   zcc_float(1.0, "Default fg r component", "fg_r");
   zcc_float(1.0, "Default fg g component", "fg_g");
@@ -1442,12 +1588,23 @@ startup_osd(void)
   zcc_float(1.5, "Seconds the OSD text stays on screen", "timeout");
 
   orphanarium = gtk_fixed_new();
-  gtk_widget_set_usize(orphanarium, 828, 271);
+  gtk_widget_set_size_request (orphanarium, 828, 271);
   toplevel = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_container_add(GTK_CONTAINER(toplevel), orphanarium);
   gtk_widget_show(orphanarium);
   gtk_widget_realize(orphanarium);
   /* toplevel will never be shown */
+
+  /* Add Python interface to our routines */
+  cmd_register ("osd_render_sgml", py_osd_render_sgml, METH_VARARGS,
+		"Renders OSD text with SGML parsing",
+		"zapping.osd_render_sgml('Hello <blue>World</blue>!')");
+  cmd_register ("osd_render", py_osd_render, METH_VARARGS,
+		"Renders OSD text without SGML parsing",
+		"zapping.osd_render('Hello World!')");
+
+  /* Register our properties handler */
+  prepend_property_handler (&osd_handler);
 }
 
 void
@@ -1461,24 +1618,10 @@ shutdown_osd(void)
   for (i = 0; i<MAX_ROWS; i++)
     g_free(matrix[i]);
 
+#ifdef HAVE_LIBZVBI
   gdk_input_remove(input_id);
+#endif
 
-  gtk_object_destroy(GTK_OBJECT(osd_model));
+  g_object_unref (G_OBJECT (osd_model));
   osd_model = NULL;
 }
-
-#else /* !HAVE_LIBZVBI */
-
-#include <gnome.h>
-#include "osd.h"
-
-/* just in case */
-void
-osd_render_sgml		(void (*timeout_cb)(gboolean),
-			 const char *string, ...)
-{
-  if (timeout_cb)
-    timeout_cb(0);
-}
-
-#endif /* !HAVE_LIBZVBI */

@@ -80,6 +80,7 @@ static int		bpp;
 #define STF2(x) #x
 #define STF1(x) STF2(x)
 
+/*
 #define errmsg(template, ...)						\
 do {									\
   if (verbosity > 0)							\
@@ -87,6 +88,8 @@ do {									\
 	     template ": %d, %s\n", my_name, ##__VA_ARGS__,		\
 	     errno, strerror (errno));					\
 } while (0)
+*/
+#define errmsg(template, ...)
 
 #define message(level, template, ...)					\
 do {									\

@@ -21,7 +21,6 @@
 #endif
 
 #include <gnome.h>
-#include <libgnomeui/gnome-window-icon.h> /* only gnome 1.2 and above */
 #include <gdk/gdkx.h>
 #include <gnome-xml/tree.h>
 #include <gnome-xml/parser.h>
@@ -44,46 +43,20 @@
 #include "yuv2rgb.h"
 #include "osd.h"
 #include "remote.h"
+#include "cmd.h"
 #include "audio.h"
 #include "csconvert.h"
 #include "properties-handler.h"
 #include "properties.h"
 #include "mixer.h"
 #include "keyboard.h"
+#include "globals.h"
+#include "plugin_properties.h"
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
 char *program_invocation_name;
 char *program_invocation_short_name;
 #endif
-
-/* This comes from callbacks.c */
-extern enum tveng_capture_mode last_mode;
-
-extern int cur_tuned_channel;
-/* from channel_editor.c */
-extern GtkWidget *ChannelWindow;
-
-/**** GLOBAL STUFF ****/
-
-/* These are accessed by other modules as extern variables */
-tveng_device_info	*main_info = NULL;
-volatile gboolean	flag_exit_program = FALSE;
-tveng_rf_table *	current_country = NULL;
-GList			*plugin_list = NULL;
-gint			disable_preview = FALSE;/* preview should be
-						   disabled */
-gint			disable_xv = FALSE; /* XVideo should be
-					       disabled */
-gboolean		xv_present = FALSE; /* Whether the
-					       device can be attached as XV */
-GtkWidget		*main_window = NULL;
-gboolean		was_fullscreen=FALSE; /* will be TRUE if when
-						 quitting we were
-						 fullscreen */
-tveng_tuned_channel	*global_channel_list=NULL;
-gint			console_errors = FALSE;
-
-gboolean		have_wmhooks = FALSE;
 
 /*** END OF GLOBAL STUFF ***/
 
@@ -117,7 +90,8 @@ on_tv_screen_size_allocate	(GtkWidget	*widget,
 		      main_window->allocation.width,
 		      old_height);
   else
-    gdk_window_get_size(main_window->window, &oldw, &old_height);
+    gdk_window_get_geometry(main_window->window, NULL, NULL, &oldw,
+			    &old_height, NULL);
 }
 
 /* Adjusts geometry */
@@ -171,8 +145,10 @@ static gint timeout_handler(gpointer unused)
 
 	  /* toolbars correction */
 	  tv_screen = lookup_widget(main_window, "tv_screen");
-	  gdk_window_get_size(tv_screen->window, &tvs_w, &tvs_h);
-	  gdk_window_get_size(main_window->window, &mw_w, &mw_h);
+	  gdk_window_get_geometry(tv_screen->window, NULL, NULL,
+				  &tvs_w, &tvs_h, NULL);
+	  gdk_window_get_geometry(main_window->window, NULL, NULL,
+				  &mw_w, &mw_h, NULL);
 
 	  rw *= (((double)mw_w)/tvs_w);
 	  rh *= (((double)mw_h)/tvs_h);
@@ -193,7 +169,8 @@ static gint timeout_handler(gpointer unused)
 	    geometry.min_aspect > 0.1)
 	  {
 	    /* ug, ugly */
-	    gdk_window_get_size(main_window->window, &mw_w, &mw_h);
+	    gdk_window_get_geometry(main_window->window, NULL, NULL,
+				    &mw_w, &mw_h, NULL);
 	    gdk_window_resize(main_window->window,
 			      (int)(mw_h * geometry.min_aspect), mw_h);
 	    old_ratio = zvbi_ratio;
@@ -310,6 +287,7 @@ int main(int argc, char * argv[])
   char *command = NULL;
   char *yuv_format = NULL;
   gboolean xv_detected;
+  gboolean unmutable = FALSE;
   /* Some other common options in case the standard one fails */
   char *fallback_devices[] =
   {
@@ -418,15 +396,6 @@ int main(int argc, char * argv[])
       N_("PIXFORMAT")
     },
     {
-      "console-errors",
-      0,
-      POPT_ARG_NONE,
-      &console_errors,
-      0,
-      N_("Redirect the error messages to the console"),
-      NULL
-    },
-    {
       NULL,
     } /* end the list */
   };
@@ -440,17 +409,16 @@ int main(int argc, char * argv[])
 #endif
 
 #ifdef ENABLE_NLS
-  bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
-  textdomain (PACKAGE);
+  bindtextdomain (GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR);
+  bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+  textdomain (GETTEXT_PACKAGE);
 #endif
 
-  /* Init gnome, libglade, modules and tveng */
-  gnome_init_with_popt_table ("zapping", VERSION, argc, argv, options,
-			      0, NULL);
-
-  gdk_rgb_init();
-  gtk_widget_set_default_colormap (gdk_rgb_get_cmap());
-  gtk_widget_set_default_visual (gdk_rgb_get_visual());
+  gnome_program_init (PACKAGE, VERSION, LIBGNOMEUI_MODULE,
+                      argc, argv,
+                      GNOME_PARAM_APP_DATADIR, PACKAGE_DATA_DIR,
+                      GNOME_PARAM_POPT_TABLE, options,
+		      NULL);
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
   program_invocation_name = argv[0];
@@ -460,12 +428,12 @@ int main(int argc, char * argv[])
   if (x11_get_bpp() < 15)
     {
       RunBox("The current depth (%i bpp) isn't supported by Zapping",
-	     GNOME_MESSAGE_BOX_ERROR, x11_get_bpp());
+	     GTK_MESSAGE_ERROR, x11_get_bpp());
       return 0;
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.165 2002-06-25 04:34:09 mschimek Exp $",
+	 "$Id: main.c,v 1.165.2.1 2002-07-19 20:53:47 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -512,7 +480,7 @@ int main(int argc, char * argv[])
   if (!g_module_supported ())
     {
       RunBox(_("Sorry, but there is no module support in GLib"),
-	     GNOME_MESSAGE_BOX_ERROR);
+	     GTK_MESSAGE_ERROR);
       return 0;
     }
   D();
@@ -530,7 +498,7 @@ int main(int argc, char * argv[])
   D();
   if (!startup_zapping(!disable_plugins))
     {
-      RunBox(_("Zapping couldn't be started"), GNOME_MESSAGE_BOX_ERROR);
+      RunBox(_("Zapping couldn't be started"), GTK_MESSAGE_ERROR);
       tveng_device_info_destroy(main_info);
       return 0;
     }
@@ -590,22 +558,28 @@ int main(int argc, char * argv[])
     {
       GtkWidget * question_box;
       gint i;
-      gchar * buffer =
-	g_strdup_printf(_("Couldn't open %s, should I try "
-			  "some common options?"),
-			zcg_char(NULL, "video_device"));
-      question_box = gnome_message_box_new(buffer,
-					   GNOME_MESSAGE_BOX_QUESTION,
-					   GNOME_STOCK_BUTTON_YES,
-					   GNOME_STOCK_BUTTON_NO,
-					   NULL);
 
-      g_free(buffer);
+      question_box =
+	gtk_message_dialog_new(NULL,
+			       GTK_DIALOG_DESTROY_WITH_PARENT |
+			       GTK_DIALOG_MODAL,
+			       GTK_MESSAGE_QUESTION,
+			       GTK_BUTTONS_YES_NO,
+			       _("Couldn't open %s, should I try "
+				 "some common options?"),
+			       zcg_char(NULL, "video_device"));
+#if 0
+      /* Destroy the dialog when the user responds to it */
+      /* (e.g. clicks a button) */
+      g_signal_connect_swapped (G_OBJECT (question_box), "response",
+				G_CALLBACK (gtk_widget_destroy),
+				question_box);
+#endif
 
-      gtk_window_set_title(GTK_WINDOW(question_box),
-			   zcg_char(NULL, "video_device"));
-	 
-      if (!gnome_dialog_run(GNOME_DIALOG(question_box)))
+      gtk_dialog_set_default_response (GTK_DIALOG (question_box),
+				       GTK_RESPONSE_YES);
+
+      if (gtk_dialog_run(GTK_DIALOG(question_box)) == GTK_RESPONSE_YES)
 	{ /* retry */
 	  for (i = 0; i<num_fallbacks; i++)
 	    {
@@ -626,21 +600,16 @@ int main(int argc, char * argv[])
 		{
 		  zcs_char(fallback_devices[i], "video_device");
 		  ShowBox(_("%s suceeded, setting it as the new default"),
-			  GNOME_MESSAGE_BOX_INFO,
+			  GTK_MESSAGE_INFO,
 			  fallback_devices[i]);
 		  goto device_ok;
 		}
 	    }
 	}
 
-      buffer =
-	g_strdup_printf(_("Sorry, but \"%s\" could not be opened:\n%s"),
-			zcg_char(NULL, "video_device"),
-			main_info->error);
-
-      RunBox(buffer, GNOME_MESSAGE_BOX_ERROR);
-
-      g_free(buffer);
+      RunBox(_("Sorry, but \"%s\" could not be opened:\n%s"),
+	     GTK_MESSAGE_ERROR, zcg_char(NULL, "video_device"),
+	     main_info->error);
 
       return -1;
     }
@@ -652,11 +621,7 @@ int main(int argc, char * argv[])
   D();
   /* mute the device while we are starting up */
   if (tveng_set_mute(1, main_info) < 0)
-    {
-      /* has no mute function */
-      gtk_widget_hide(lookup_widget(main_window, "tb-mute"));
-      D();
-    }
+    unmutable = TRUE;
   D();
   z_tooltips_active (zconf_get_boolean
 		     (NULL, "/zapping/options/main/show_tooltips"));
@@ -665,12 +630,12 @@ int main(int argc, char * argv[])
   D();
   tv_screen = lookup_widget(main_window, "tv_screen");
   /* Avoid dumb resizes to 1 pixel height */
-  gtk_signal_connect(GTK_OBJECT(tv_screen), "size-allocate",
-		     GTK_SIGNAL_FUNC(on_tv_screen_size_allocate),
+  g_signal_connect(G_OBJECT(tv_screen), "size-allocate",
+		     G_CALLBACK(on_tv_screen_size_allocate),
 		     NULL);
-  gtk_signal_connect(GTK_OBJECT(main_window),
+  g_signal_connect(G_OBJECT(main_window),
 		     "key-press-event",
-		     GTK_SIGNAL_FUNC(on_zapping_key_press), NULL);
+		     G_CALLBACK(on_zapping_key_press), NULL);
   /* set periodically the geometry flags on the main window */
   gtk_timeout_add(100, (GtkFunction)timeout_handler, NULL);
   /* ensure that the main window is realized */
@@ -679,8 +644,8 @@ int main(int argc, char * argv[])
   while (!tv_screen->window)
     z_update_gui();
   D();
-  gtk_signal_connect(GTK_OBJECT(tv_screen), "motion-notify-event",
-		     GTK_SIGNAL_FUNC(on_da_motion_notify), NULL);
+  g_signal_connect(G_OBJECT(tv_screen), "motion-notify-event",
+		     G_CALLBACK(on_da_motion_notify), NULL);
   hide_pointer_tid = gtk_timeout_add(HIDE_TIMEOUT,
 				     (GtkFunction)hide_pointer_timeout,
 				     tv_screen);
@@ -689,9 +654,16 @@ int main(int argc, char * argv[])
   window_on_top (main_window, zconf_get_boolean
 		 (NULL, "/zapping/options/main/keep_on_top"));
   D();
+  if (unmutable)
+    {
+      /* has no mute function */
+      gtk_widget_hide(lookup_widget(main_window, "tb-mute"));
+      D();
+    }
+  D();
   if (!startup_capture(tv_screen))
     {
-      RunBox("The capture couldn't be started", GNOME_MESSAGE_BOX_ERROR);
+      RunBox("The capture couldn't be started", GTK_MESSAGE_ERROR);
       tveng_device_info_destroy(main_info);
       return 0;
     }
@@ -720,20 +692,22 @@ int main(int argc, char * argv[])
   D();
 #ifdef HAVE_LIBZVBI
   startup_ttxview();
+#endif
   D();
   startup_osd();
   D();
-#endif
   startup_audio();
   D();
   startup_keyboard();
   D();
   startup_csconvert();
   D();
-  startup_properties_handler();
+  startup_properties_handler ();
   D();
-#ifdef HAVE_LIBZVBI
+  startup_plugin_properties ();
+  D();
   osd_set_window(tv_screen);
+#ifdef HAVE_LIBZVBI
   gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM
        (lookup_widget(main_window, "closed_caption1")),
        zconf_get_boolean(NULL, "/zapping/internal/callbacks/closed_caption"));
@@ -750,14 +724,14 @@ int main(int argc, char * argv[])
 	  == -1)
 	{
 	  ShowBox(_("Cannot restore previous mode%s:\n%s"),
-		  GNOME_MESSAGE_BOX_ERROR,
+		  GTK_MESSAGE_ERROR,
 		  (zcg_int(NULL, "capture_mode") == TVENG_CAPTURE_READ) ? ""
 		  : _(", I will try starting capture mode"),
 		  main_info->error);
 	  if ((zcg_int(NULL, "capture_mode") != TVENG_CAPTURE_READ) &&
 	      (zmisc_switch_mode(TVENG_CAPTURE_READ, main_info) == -1))
 	    ShowBox(_("Capture mode couldn't be started either:\n%s"),
-		    GNOME_MESSAGE_BOX_ERROR, main_info->error);
+		    GTK_MESSAGE_ERROR, main_info->error);
 	}
       else
 	{
@@ -770,7 +744,7 @@ int main(int argc, char * argv[])
   else /* preview disabled */
       if (zmisc_switch_mode(TVENG_CAPTURE_READ, main_info) == -1)
 	ShowBox(_("Capture mode couldn't be started:\n%s"),
-		GNOME_MESSAGE_BOX_ERROR, main_info->error);
+		GTK_MESSAGE_ERROR, main_info->error);
   D();
   if (-1 == tveng_set_mute(zcg_bool(NULL, "start_muted"), main_info))
     printv("%s\n", main_info->error);
@@ -782,6 +756,8 @@ int main(int argc, char * argv[])
     z_switch_input(zcg_int(NULL, "current_input"), main_info);
   if (zcg_int(NULL, "current_standard"))
     z_switch_standard(zcg_int(NULL, "current_standard"), main_info);
+  /* FIXME: Figure out what to do regarding callbacks.c */
+  cur_tuned_channel = zcg_int(NULL, "cur_tuned_channel");
   z_switch_channel(tveng_retrieve_tuned_channel_by_index(cur_tuned_channel,
 							 global_channel_list),
 		   main_info);
@@ -791,17 +767,7 @@ int main(int argc, char * argv[])
       resize_timeout(NULL);
       /* hide toolbars and co. if necessary */
       if (zconf_get_boolean(NULL, "/zapping/internal/callbacks/hide_controls"))
-	{
-	  gtk_widget_hide(lookup_widget(main_window, "dockitem1"));
-	  gtk_widget_hide(lookup_widget(main_window, "dockitem2"));
-	  gtk_widget_queue_resize(main_window);
-	  
-	  z_change_menuitem(lookup_widget(GTK_WIDGET(main_window),
-				      "hide_controls2"),
-			    GNOME_STOCK_PIXMAP_BOOK_OPEN,
-			    _("Show controls"),
-			    _("Show the menu and the toolbar"));
-	}
+	cmd_run ("zapping.hide_controls(1)");
 #ifdef HAVE_LIBZVBI
       /* setup subtitles page button */
       zconf_get_integer(&zvbi_page,
@@ -817,7 +783,7 @@ int main(int argc, char * argv[])
   else
     {
       D(); printv("running command \"%s\"\n", command);
-      run_command(command);
+      cmd_run(command);
     }
   /* Closes all fd's, writes the config to HD, and that kind of things
    */
@@ -848,7 +814,6 @@ static void shutdown_zapping(void)
    */
   printv(" ttxview");
   shutdown_ttxview();
-
   /* Shut down vbi */
   printv(" vbi\n");
   shutdown_zvbi();
@@ -921,11 +886,11 @@ static void shutdown_zapping(void)
 
   tveng_set_mute(1, main_info);
 
+#if GNOME2_PORT_COMPLETE
   /* Shutdown all other modules */
   printv(" callbacks");
   shutdown_callbacks();
-
-    /* vbi */
+#endif
 
   /* inputs, standards handling */
   printv("\n v4linterface");
@@ -937,13 +902,11 @@ static void shutdown_zapping(void)
   printv(" overlay");
   shutdown_overlay();
 
-#ifdef HAVE_LIBZVBI
   /*
    * Shuts down the OSD info
    */
   printv(" osd");
   shutdown_osd();
-#endif
 
   /*
    * Shuts down the capture engine
@@ -982,6 +945,12 @@ static void shutdown_zapping(void)
   shutdown_mixer();
 
   /*
+   * The plugin properties dialog.
+   */
+  printv(" pp");
+  shutdown_plugin_properties();
+
+  /*
    * The properties handler.
    */
   printv(" ph");
@@ -1003,9 +972,10 @@ static void shutdown_zapping(void)
 	      "   - libxml is non-functional (?)\n"
 	      "   - or, more probably, you have found a bug in\n"
 	      "     %s. Please contact the author.\n"
-	      ), GNOME_MESSAGE_BOX_ERROR, "Zapping");
+	      ), GTK_MESSAGE_ERROR, "Zapping");
 
   printv(" cmd");
+  shutdown_cmd ();
   shutdown_remote();
 
   printv(".\nShutdown complete, goodbye.\n");
@@ -1020,14 +990,6 @@ static gboolean startup_zapping(gboolean load_plugins)
   gchar * buffer4 = NULL;
   tveng_tuned_channel new_channel;
   GList * p;
-  GtkObjectClass *button_class, *option_class;
-  D();
-  startup_remote ();
-  cmd_register ("switch_mode", switch_mode_cmd, NULL);
-  cmd_register ("toggle_mode", toggle_mode_cmd, NULL);
-  cmd_register ("restore_mode", toggle_mode_cmd, NULL); /* synonym for compat */
-  cmd_register ("subtitle_overlay", subtitle_overlay_cmd, NULL);
-  cmd_register ("quit", quit_cmd, NULL);
   D();
   /* Starts the configuration engine */
   if (!zconf_init("zapping"))
@@ -1036,34 +998,14 @@ static gboolean startup_zapping(gboolean load_plugins)
       return FALSE;
     }
   D();
+  startup_remote ();
+  startup_cmd ();
+#if GNOME2_PORT_COMPLETE
+  cmd_register ("subtitle_overlay", subtitle_overlay_cmd, NULL);
+#endif
   startup_properties();
   D();
-  /*
-   * Adds a new signal type to buttons, "fast-clicked".
-   * Used for recording buttons et al, means "do it now!"
-   * The prototype is the same as "clicked":
-   * void callback(GtkWidget *button, gpointer data)
-   */
-  button_class = gtk_type_class (GTK_TYPE_BUTTON);
-  gtk_object_class_user_signal_new (button_class, "fast-clicked",
-				    GTK_RUN_FIRST | GTK_RUN_ACTION,
-				    gtk_marshal_NONE__NONE,
-				    GTK_TYPE_NONE, 0);
-  /*
-   * Adds a new signal type to option menus, "changed"
-   * Emitted when the value of the selected item changes, only
-   * available when the optionmenu belongs to a property box.
-   * The prototype is:
-   * void callback(GtkWidget *optionmenu, gint new_selection, gpointer
-   * user_data)
-   */
-  option_class = gtk_type_class (GTK_TYPE_OPTION_MENU);
-  gtk_object_class_user_signal_new (button_class, "changed",
-				    GTK_RUN_FIRST | GTK_RUN_ACTION,
-				    gtk_marshal_NONE__INT,
-				    GTK_TYPE_NONE, 1,
-				    GTK_TYPE_INT);
-  D();
+
   /* Sets defaults for zconf */
   zcc_bool(TRUE, "Save and restore zapping geometry (non ICCM compliant)", 
 	   "keep_geometry");
@@ -1170,8 +1112,10 @@ static gboolean startup_zapping(gboolean load_plugins)
   D();
   startup_xvz();
   D();
+#if GNOME2_PORT_COMPLETE
   if (!startup_callbacks())
     return FALSE;
+#endif
   D();
   /* Loads the plugins */
   if (load_plugins)

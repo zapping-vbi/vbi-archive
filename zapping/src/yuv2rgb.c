@@ -38,8 +38,11 @@
 #include "gen_conv.h"
 #include "zmisc.h"
 #include "cpu.h"
+#include "globals.h"
 
 uint32_t matrix_coefficients = 6;
+
+/* FIXME: This should be wrapped by csconvert for simplicity */
 
 const int32_t Inverse_Table_6_9[8][4] = {
     {117504, 138453, 13954, 34903}, /* no sequence_display_extension */
