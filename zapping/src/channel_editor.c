@@ -141,6 +141,7 @@ real_add_channel			(GtkWidget	*some_widget,
 					   "channel_name");
   GtkWidget * channel_accel = lookup_widget(GTK_WIDGET(some_widget),
 					    "channel_accel");
+  GtkWidget * hscale1 = lookup_widget(GTK_WIDGET(some_widget), "hscale1");
   GtkWidget * widget;
 
   tveng_tuned_channel * list =
@@ -160,7 +161,7 @@ real_add_channel			(GtkWidget	*some_widget,
     tc.country = NULL;
   if (main_info->inputs &&
       main_info->inputs[main_info->cur_input].tuners)
-    tveng_get_tune(&tc.freq, main_info);
+    tc.freq = gtk_range_get_adjustment(GTK_RANGE(hscale1))->value;
   tc.accel_key = 0;
   buffer = gtk_entry_get_text(GTK_ENTRY(channel_accel));
   if (buffer)
@@ -536,6 +537,39 @@ on_move_channel_up_clicked		(GtkWidget	*button,
 }
 
 static void
+on_custom_frequency_clicked		(GtkWidget	*button,
+					 tveng_device_info *info)
+{
+  GtkWidget *hscale1 = lookup_widget(button, "hscale1");
+  gchar *cur_value = g_strdup_printf
+    ("%g", gtk_range_get_adjustment(GTK_RANGE(hscale1))->value);
+  GtkWidget * channel_editor = lookup_widget(button, "channel_window");
+  gchar *buf = Prompt(channel_editor, _("Custom Frequency"),
+		      _("Please enter the freq for this channel"),
+		      cur_value);
+  gint new_value;
+
+  if (!buf)
+    goto done;
+
+  if (!sscanf(buf, "%d", &new_value) &&
+      !sscanf(buf, "%x", &new_value))
+    {
+      ShowBox(_("Cannot parse \"%s\" as a number, sorry"),
+	      GNOME_MESSAGE_BOX_ERROR, buf);
+      goto done2;
+    }
+
+  set_slider(new_value, button, info);
+
+ done2:
+  g_free(buf);
+
+ done:
+  g_free(cur_value);
+}
+
+static void
 on_channel_list_unselect_row		(GtkCList	*channel_list,
 					 gint		 row,
 					 gint		 column,
@@ -559,6 +593,7 @@ on_channels1_activate                  (GtkMenuItem     *menuitem,
 
   GtkWidget * move_channel_up;
   GtkWidget * move_channel_down;
+  GtkWidget * custom_frequency;
 
   int i = 0;
   int currently_tuned_country = 0;
@@ -579,6 +614,8 @@ on_channels1_activate                  (GtkMenuItem     *menuitem,
 
   move_channel_up = lookup_widget(channel_window, "move_channel_up");
   move_channel_down = lookup_widget(channel_window, "move_channel_down");
+
+  custom_frequency = lookup_widget(channel_window, "custom_frequency");
 
   channel_list = lookup_widget(channel_window, "channel_list");
   new_menu = gtk_menu_new();
@@ -647,10 +684,15 @@ on_channels1_activate                  (GtkMenuItem     *menuitem,
   gtk_signal_connect(GTK_OBJECT(move_channel_down), "clicked",
 		     GTK_SIGNAL_FUNC(on_move_channel_down_clicked),
 		     channel_window);
-
+  gtk_signal_connect(GTK_OBJECT(custom_frequency), "clicked",
+		     GTK_SIGNAL_FUNC(on_custom_frequency_clicked),
+		     main_info);
   gtk_signal_connect(GTK_OBJECT(channel_list), "unselect-row",
 		     GTK_SIGNAL_FUNC(on_channel_list_unselect_row),
 		     channel_window);
+
+  /* I hate when libs try to be too "smart" */
+  gtk_button_set_relief(GTK_BUTTON(custom_frequency), GTK_RELIEF_NONE);
 
   update_edit_buttons_sensitivity(channel_window);
 
@@ -800,6 +842,7 @@ on_modify_channel_clicked              (GtkButton       *button,
 					   "channel_name");
   GtkWidget * channel_accel = lookup_widget(GTK_WIDGET(button),
 					    "channel_accel");
+  GtkWidget * hscale1 = lookup_widget(GTK_WIDGET(button), "hscale1");
   GtkWidget * widget;
 
   GList * ptr; /* Pointer to the selected item(s) in clist1 */
@@ -823,7 +866,7 @@ on_modify_channel_clicked              (GtkButton       *button,
       tc.accel_key = gdk_keyval_from_name(buffer);
   if (tc.accel_key == GDK_VoidSymbol)
     tc.accel_key = 0;
-  tveng_get_tune(&tc.freq, main_info);
+  tc.freq =  gtk_range_get_adjustment(GTK_RANGE(hscale1))->value;
 
   tc.accel_mask = 0;
   widget = lookup_widget(clist1, "channel_accel_ctrl");

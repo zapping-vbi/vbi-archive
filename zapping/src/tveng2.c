@@ -17,7 +17,7 @@
  */
 
 /*
-  This is the library in charge of simplyfying Video Access API (I
+  This is the library in charge of simplifying Video Access API (I
   don't want to use thirteen lines of code with ioctl's every time I
   want to change tuning freq).
   the name is TV Engine, since it is intended mainly for TV viewing.

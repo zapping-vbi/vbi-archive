@@ -1,3 +1,9 @@
+01.10.2001	Channel editor improvements <garetxe@users.sf.net>
+
+	* channel_editor.c: Now the freq saved with the channel is the one
+	set in the slider bar, not the current freq. Also, add the option
+	to enter custom freqs.
+
 29.09.2001	tvscreen gtkda again <garetxe@users.sf.net>
 
 	* glade/zapping.glade: Make tv_screen a GtkDrawingArea again to
