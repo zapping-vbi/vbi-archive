@@ -2,8 +2,6 @@ Outstanding issues for the next release
 ---------------------------------------
 	+ Add support for capturing the sound stream
 	+ Write docs on tveng and plugins
-	+ Add desktop (and root menu) entries
 	+ Build RPMS (rpm -tb) and DEBS (using alien)
 	+ Fix bugs
 	> Release 0.5.1
-	+ Add vidmode extension support for fullscreen mode.

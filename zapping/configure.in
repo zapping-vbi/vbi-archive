@@ -22,7 +22,7 @@ AC_MSG_RESULT($disable_x_extensions)
 if test "$disable_x_extensions" = "yes"; then
 	AC_DEFINE(DISABLE_X_EXTENSIONS)
 else
-	X_DGA_LIBS="-lXxf86dga"
+	X_DGA_LIBS="-lXxf86dga -lXxf86vm"
 	AC_SUBST(X_DGA_LIBS)
 fi
 

@@ -337,17 +337,7 @@ void tveng1_close_device(tveng_device_info * info)
   int i;
   int j;
 
-  switch (info->current_mode)
-    {
-    case TVENG_CAPTURE_READ:
-      tveng1_stop_capturing(info);
-      break;
-    case TVENG_CAPTURE_PREVIEW:
-      tveng1_stop_previewing(info);
-      break;
-    default:
-      break;
-    };
+  tveng_stop_everything(info);
 
   close(info -> fd);
   info -> fd = 0;
@@ -1852,19 +1842,7 @@ tveng1_start_capturing(tveng_device_info * info)
     (struct private_tveng1_device_info*) info;
   struct timeval tv;
 
-  /* Check which is the current mode and switch it off if neccesary */
-  switch (info -> current_mode)
-    {
-    case TVENG_CAPTURE_READ:
-      /* Doing this is a bit dumb, but maybe we want to restart */
-      tveng1_stop_capturing(info);
-      break;
-    case TVENG_CAPTURE_PREVIEW:
-      tveng1_stop_previewing(info);
-      break;
-    default:
-      break;
-    }
+  tveng_stop_everything(info);
   t_assert(info -> current_mode == TVENG_NO_CAPTURE);
 
   /* Make the pointer a invalid pointer */
@@ -2369,19 +2347,8 @@ tveng1_start_previewing (tveng_device_info * info)
   int width, height;
   int dwidth, dheight; /* Width and height of the display */
 
-  /* Check which is the current mode and switch it off if neccesary */
-  switch (info -> current_mode)
-    {
-    case TVENG_CAPTURE_READ:
-      /* Doing this is a bit dumb, but maybe we want to restart */
-      tveng1_stop_capturing(info);
-      break;
-    case TVENG_CAPTURE_PREVIEW:
-      tveng1_stop_previewing(info);
-      break;
-    default:
-      break;
-    }
+  tveng_stop_everything(info);
+
   t_assert(info -> current_mode == TVENG_NO_CAPTURE);
 
   if (!tveng1_detect_preview(info))
@@ -2401,8 +2368,8 @@ tveng1_start_previewing (tveng_device_info * info)
 
   /* calculate coordinates for the preview window. We compute this for
    the first display */
-  dwidth = DisplayWidth(display, 0);
-  dheight = DisplayHeight(display, 0); 
+  XF86DGAGetViewPortSize(display, DefaultScreen(display),
+			 &dwidth, &dheight);
   width = info->caps.maxwidth;
 
   if (width > dwidth)

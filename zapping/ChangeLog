@@ -1,3 +1,8 @@
+09.6.2000	VidMode extension <garetxe@users.sourceforge.net>
+
+	* tveng.c: If a better resolution for going fullscreen is
+	available, switch to it using the Vidmode extension.
+	
 07.6.2000	fr.po added <garetxe@users.sourceforge.net>
 
 	* fr.po: thanks to Christian Marillat a french translation is

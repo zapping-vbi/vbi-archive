@@ -198,6 +198,8 @@ void tveng_close_device(tveng_device_info * info)
 {
   t_assert(info != NULL);
 
+  tveng_stop_everything(info);
+
   switch (info -> current_controller)
     {
     case TVENG_CONTROLLER_NONE:
@@ -1357,7 +1359,127 @@ tveng_get_zapping_setup_fb_verbosity(tveng_device_info * info)
 int
 tveng_start_previewing (tveng_device_info * info)
 {
+#ifndef DISABLE_X_EXTENSIONS
+  int event_base, error_base, major_version, minor_version;
+  XF86VidModeModeInfo ** modesinfo;
+  int modecount;
+  int i;
+  int chosen_mode=0; /* The video mode we will use for fullscreen */
+  int distance=-1; /* Distance of the best video mode to a valid size */
+  int temp; /* Temporal value */
+  int bigger=0; /* Allow choosing bigger screen depths */
+#endif
+
   t_assert(info != NULL);
+
+#ifndef DISABLE_X_EXTENSIONS
+  info -> xf86vm_enabled = 1;
+
+  if (!XF86VidModeQueryExtension(info->display, &event_base,
+				 &error_base))
+    {
+      info->tveng_errno = -1;
+      t_error_msg("XF86VidModeQueryExtension",
+		  "No vidmode extension supported", info);
+      info->xf86vm_enabled = 0;
+    }
+
+  if ((info->xf86vm_enabled) &&
+      (!XF86VidModeQueryVersion(info->display, &major_version,
+				&minor_version)))
+    {
+      info->tveng_errno = -1;
+      t_error_msg("XF86VidModeQueryVersion",
+		  "No vidmode extension supported", info);
+      info->xf86vm_enabled = 0;      
+    }
+
+  if ((info->xf86vm_enabled) &&
+      (!XF86VidModeGetAllModeLines(info->display, 
+				   DefaultScreen(info->display),
+				   &modecount, &modesinfo)))
+    {
+      info->tveng_errno = -1;
+      t_error_msg("XF86VidModeGetAllModeLines",
+		  "No vidmode extension supported", info);
+      info->xf86vm_enabled = 0;
+    }
+
+  if (info -> xf86vm_enabled)
+    {
+      fprintf(stderr, "XF86VidMode info:\n");
+      fprintf(stderr, "  - event and error base  : %d, %d\n", event_base,
+	      error_base);
+      fprintf(stderr, "  - XF86VidMode version   : %d.%d\n",
+	      major_version, minor_version);
+      fprintf(stderr, "  - Available video modes : %d\n", modecount);
+
+    loop_point:
+      for (i = 0; i<modecount; i++)
+	{
+	  if (!bigger) /* print only once */
+	    fprintf(stderr, "      %d) %dx%d @ %d Hz\n", i, (int)
+		    modesinfo[i]->hdisplay, (int) modesinfo[i]->vdisplay,
+		    (int) modesinfo[i]->dotclock);
+	  /* Check whether this is a good value */
+	  temp = ((int)modesinfo[i]->hdisplay) - info->caps.maxwidth;
+	  temp *= temp;
+	  temp += (((int)modesinfo[i]->vdisplay) - info->caps.maxheight) *
+	    (((int)modesinfo[i]->vdisplay) - info->caps.maxheight);
+	  if  (((modesinfo[i]->hdisplay < info->caps.maxwidth) &&
+		(modesinfo[i]->vdisplay < info->caps.maxheight))
+	       || (bigger))
+	    {
+	      if ((distance == -1) || (temp < distance))
+		{
+		  /* This heuristic is somewhat krusty, but it should mostly
+		     work */
+		chosen_mode = i;
+		distance = temp;
+		}
+	    }
+	}
+
+      if (distance == -1) /* No adequate size smaller than the given
+			     one, get the nearest bigger one */
+	{
+	  bigger = 1;
+	  goto loop_point;
+	}
+      
+      fprintf(stderr, "      Mode # %d chosen\n", chosen_mode);
+      
+      /* If the chosen mode isn't the actual one, choose it, but
+	 place the viewport correctly first */
+      if (chosen_mode == 0)
+	{
+	  info->restore_mode = 0;
+	  XF86DGASetViewPort(info->display,
+			     DefaultScreen(info->display), 0, 0);
+	}
+      else
+	{
+	  info->restore_mode = 1;
+	  memcpy(&(info->modeinfo), modesinfo[0],
+		 sizeof(XF86VidModeModeInfo));
+	  if (!XF86VidModeSwitchToMode(info->display,
+				       DefaultScreen(info->display),
+				       modesinfo[chosen_mode]))
+	    info -> xf86vm_enabled = 0;
+
+	  /* Place the viewport again */
+	  if (info -> xf86vm_enabled)
+	    XF86DGASetViewPort(info->display,
+			       DefaultScreen(info->display), 0, 0);
+	}
+      
+      XFree(modesinfo);
+    }
+  else /* info -> xf86vm_enabled*/
+    {
+      fprintf(stderr, "XF86VidMode not enabled: %s\n", info -> error);
+    }
+#endif /* DISABLE_X_EXTENSIONS */
 
   switch (info -> current_controller)
     {
@@ -1383,6 +1505,13 @@ int
 tveng_stop_previewing(tveng_device_info * info)
 {
   t_assert(info != NULL);
+
+#ifndef DISABLE_X_EXTENSIONS
+  if ((info->restore_mode) && (info->xf86vm_enabled))
+    XF86VidModeSwitchToMode(info->display,
+			    DefaultScreen(info->display),
+			    &(info->modeinfo));
+#endif
 
   switch (info -> current_controller)
     {

@@ -367,21 +367,22 @@ on_go_fullscreen1_activate             (GtkMenuItem     *menuitem,
   gtk_widget_show(da);
 
   gtk_widget_show(black_window);
-
+  
   /* Draw on the drawing area */
   gdk_draw_rectangle(da -> window,
 		     da -> style -> black_gc,
 		     TRUE,
 		     0, 0, gdk_screen_width(), gdk_screen_height());
-
+  
   if (tveng_start_previewing(main_info) == -1)
     {
       ShowBox(_("Sorry, but cannot go fullscreen"),
 	      GNOME_MESSAGE_BOX_ERROR);
+      gtk_widget_destroy(black_window);
       tveng_start_capturing(main_info);
       return;
     }
-
+  
   if (main_info -> current_mode != TVENG_CAPTURE_PREVIEW)
     g_warning("Setting preview succeeded, but the mode is not set");
 
@@ -402,6 +403,12 @@ on_go_windowed1_activate               (GtkMenuItem     *menuitem,
 
   if (main_info->current_mode != TVENG_CAPTURE_PREVIEW)
     return;
+
+  /* Ungrab the previously grabbed keyboard */
+  gdk_keyboard_ungrab(GDK_CURRENT_TIME);
+
+  /* Remove the black window */
+  gtk_widget_destroy(black_window);
 
   if (-1 == tveng_start_capturing(main_info))
     {
@@ -424,13 +431,6 @@ on_go_windowed1_activate               (GtkMenuItem     *menuitem,
   dummy_alloc.width = w;
   dummy_alloc.height = h;
   on_tv_screen_size_allocate(widget, &dummy_alloc, NULL);
-
-  /* Ungrab the previously grabbed keyboard */
-  gdk_keyboard_ungrab(GDK_CURRENT_TIME);
-
-  /* Remove the black window */
-  gtk_widget_destroy(black_window);
-
 }
 
 void

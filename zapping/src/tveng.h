@@ -45,6 +45,7 @@
 #include <X11/Xfuncs.h>
 #ifndef DISABLE_X_EXTENSIONS
 #include <X11/extensions/xf86dga.h>
+#include <X11/extensions/xf86vmode.h>
 #endif
 
 /* i18n support if it hasn't been defined previously */
@@ -251,11 +252,16 @@ typedef struct
   int tveng_errno; /* Numerical id of the last error, 0 == success */
   char * error; /* points to the last error message */
 
-  /* The display we are connected to, it is needed by the X functions
-   */
+  /* Consider the following as private data, you don't need to access
+     this */
   Display * display;
 
-  /* The verbosity value used by zapping_setup_fb */
+#ifndef DISABLE_X_EXTENSIONS
+  XF86VidModeModeInfo modeinfo;
+  int restore_mode;
+  int xf86vm_enabled;
+#endif
+
   int zapping_setup_fb_verbosity;
 }
 tveng_device_info;

@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-06-07 18:13+0200\n"
+"POT-Creation-Date: 2000-06-09 14:16+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -96,7 +96,7 @@ msgstr ""
 msgid "Sorry, but cannot go fullscreen"
 msgstr ""
 
-#: src/callbacks.c:415
+#: src/callbacks.c:422
 msgid "I cannot find the main zapping window, weird..."
 msgstr ""
 
@@ -217,7 +217,7 @@ msgstr ""
 #: src/tveng.c:819 src/tveng.c:847 src/tveng.c:873 src/tveng.c:896
 #: src/tveng.c:930 src/tveng.c:958 src/tveng.c:986 src/tveng.c:1011
 #: src/tveng.c:1094 src/tveng.c:1261 src/tveng.c:1288 src/tveng.c:1316
-#: src/tveng.c:1365 src/tveng.c:1390
+#: src/tveng.c:1387 src/tveng.c:1412
 #, c-format
 msgid "%s called on a non-controlled device: %s\n"
 msgstr ""
