@@ -3,13 +3,14 @@
 ## Don't forget to put these files into the distribution
 EXTRA_DIST = gen_conv.s zmarshalers.list 
 
-INCLUDES = -I$(top_srcdir) @DEFAULT_CFLAGS@ @COMMON_INCLUDES@ \
-	$(LIBXML_CFLAGS)
+INCLUDES = -I$(top_srcdir) -D_GNU_SOURCE @DEFAULT_CFLAGS@ @COMMON_INCLUDES@ \
+	$(ZVBI_CFLAGS) $(LIBXML_CFLAGS)
 
 bin_PROGRAMS = zapping zapping_remote
 
 COMMON_LIB = $(top_builddir)/common/libcommon.a
 TV_LIB = $(top_builddir)/libtv/libtv.a
+
 
 if BUILD_GEN_CONV
 gen_conv_lib = libgen_conv.a
@@ -89,7 +90,7 @@ zapping_LDADD = $(gen_conv_lib) $(COMMON_LIB) $(TV_LIB) \
   $(PACKAGE_LIBS) $(PYTHON_LIBS) \
   $(X_LIBS) -lX11 $(X_DPMS_LIBS) $(X_XINERAMA_LIBS) \
   $(X_XF86DGA_LIBS) $(X_XF86VMODE_LIBS) $(X_XV_LIBS) \
-  $(CCMALLOC) $(ZVBI_LIB) $(ARTS_LIBS) $(ESD_LIBS) $(LIBXML_LIBS)
+  $(CCMALLOC) $(ZVBI_LIBS) $(ARTS_LIBS) $(ESD_LIBS) $(LIBXML_LIBS)
 zapping_LDFLAGS = -export-dynamic
 
 zapping_remote_SOURCES = \
