@@ -146,7 +146,7 @@ on_plugin_writing1_activate            (GtkMenuItem     *menuitem,
   help_ref.name = gnome_app_id;
   gnome_help_display (NULL, &help_ref);
 
-  if (tveng_restart_everything(cur_mode, main_info) == -1)
+  if (z_restart_everything(cur_mode, main_info) == -1)
     ShowBox(main_info->error, GNOME_MESSAGE_BOX_ERROR);
 }
 
@@ -163,7 +163,7 @@ on_main_help1_activate                 (GtkMenuItem     *menuitem,
   help_ref.name = gnome_app_id;
   gnome_help_display (NULL, &help_ref);
 
-  if (tveng_restart_everything(cur_mode, main_info) == -1)
+  if (z_restart_everything(cur_mode, main_info) == -1)
     ShowBox(main_info->error, GNOME_MESSAGE_BOX_ERROR);
 }
 
@@ -306,7 +306,9 @@ on_go_previewing2_activate             (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
   if (zmisc_switch_mode(TVENG_CAPTURE_WINDOW, main_info) == -1)
-    ShowBox(main_info->error, GNOME_MESSAGE_BOX_ERROR);
+    ShowBox(_("%s:\n"
+	      "Try running as root \"zapping_fix_overlay\" in a console"),
+	    GNOME_MESSAGE_BOX_ERROR, main_info->error);
 }
 
 gboolean

@@ -1,0 +1,33 @@
+#!/bin/sh
+## For some strange reason, zapping_setup_fb fails to run properly in
+## a variety of situations. Running this script will get rid of the
+## consolehelper mediation and make zapping_setup_fb a suid program.
+#
+ZSFB_DIR=`dirname $(which zapping_setup_fb)`
+ZSFB_PREFIX=`echo $ZSFB_DIR | sed s/\\\\/sbin//g`
+if test x`echo $ZSFB_DIR | grep sbin` = x; then
+    echo "Couldn't find zapping_setup_fb in */sbin, quit."
+    exit
+fi
+
+echo "This script will create the SUID ROOT program"
+echo "$ZSFB_PREFIX/bin/zapping_setup_fb, which is needed by Zapping."
+echo "This is often necessary when the more secure PAM method didn't work."
+echo "See 'man zapping_setup_fb' for more info."
+echo -n "Please enter \"yes\" if you want to continue: "
+read are_u_sure
+if test ! x$are_u_sure = "xyes"; then
+    echo "Abort"
+    exit
+fi
+
+echo mv $ZSFB_PREFIX/sbin/zapping_setup_fb $ZSFB_PREFIX/bin/zapping_setup_fb
+mv $ZSFB_PREFIX/sbin/zapping_setup_fb $ZSFB_PREFIX/bin/zapping_setup_fb
+
+echo chown root.root $ZSFB_PREFIX/bin/zapping_setup_fb
+chown root.root $ZSFB_PREFIX/bin/zapping_setup_fb
+
+echo chmod 4755 $ZSFB_PREFIX/bin/zapping_setup_fb
+chmod 4755 $ZSFB_PREFIX/bin/zapping_setup_fb
+
+echo Done.

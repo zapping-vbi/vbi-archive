@@ -43,6 +43,45 @@ extern tveng_device_info * main_info; /* About the device we are using */
 
 extern int cur_tuned_channel; /* Currently tuned channel */
 
+static GtkWidget *
+z_spinslider_new		(GtkAdjustment		*adj)
+{
+  GtkWidget * hbox;
+  GtkWidget * hscale;
+  GtkWidget * spinbutton;
+  
+  hbox = gtk_hbox_new(FALSE, 0);
+
+  hscale = gtk_hscale_new (GTK_ADJUSTMENT (adj));
+  gtk_widget_show (hscale);
+  gtk_box_pack_start_defaults(GTK_BOX (hbox), hscale);
+  gtk_scale_set_draw_value (GTK_SCALE(hscale), FALSE);
+  gtk_scale_set_digits (GTK_SCALE (hscale), 0);
+
+  spinbutton = gtk_spin_button_new(GTK_ADJUSTMENT (adj), 1, 0);
+  gtk_widget_show (spinbutton);
+  /* I don't see how to set "as much as needed", so hacking this up */
+  gtk_widget_set_usize(spinbutton, 80, -1);
+  gtk_box_pack_start(GTK_BOX (hbox), spinbutton, FALSE, FALSE, 0);
+  gtk_spin_button_set_update_policy (GTK_SPIN_BUTTON(spinbutton),
+				     GTK_UPDATE_IF_VALID);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON(spinbutton), TRUE);
+  gtk_spin_button_set_wrap (GTK_SPIN_BUTTON(spinbutton), TRUE);
+  gtk_spin_button_set_snap_to_ticks (GTK_SPIN_BUTTON(spinbutton), TRUE);
+  gtk_spin_button_set_shadow_type (GTK_SPIN_BUTTON(spinbutton),
+				   GTK_SHADOW_NONE);
+  
+  return (hbox);
+}
+
+static gfloat z_spinslider_get_value(GtkWidget	*channel_editor)
+{
+  gpointer adj = gtk_object_get_data(GTK_OBJECT(channel_editor),
+				     "spinslider_adj");
+
+  return GTK_ADJUSTMENT(adj)->value;
+}
+
 static void
 update_edit_buttons_sensitivity		(GtkWidget	*channel_editor)
 {
@@ -135,17 +174,16 @@ real_add_channel			(GtkWidget	*some_widget,
   GtkWidget * clist1 = lookup_widget(GTK_WIDGET(some_widget), "clist1");
   GtkWidget * channel_list = lookup_widget(GTK_WIDGET(some_widget),
 					   "channel_list");
-  GtkWidget * channel_window = lookup_widget(GTK_WIDGET(some_widget),
-					     "channel_window");
+  GtkWidget * channel_editor = lookup_widget(GTK_WIDGET(some_widget),
+					     "channel_editor");
   GtkWidget * channel_name = lookup_widget(GTK_WIDGET(some_widget),
 					   "channel_name");
   GtkWidget * channel_accel = lookup_widget(GTK_WIDGET(some_widget),
 					    "channel_accel");
-  GtkWidget * hscale1 = lookup_widget(GTK_WIDGET(some_widget), "hscale1");
   GtkWidget * widget;
 
   tveng_tuned_channel * list =
-    gtk_object_get_data(GTK_OBJECT(channel_window), "list");
+    gtk_object_get_data(GTK_OBJECT(channel_editor), "list");
 
   GList * ptr; /* Pointer to the selected item(s) in clist1 */
   int index = 0; /* The row we are reading now */
@@ -161,7 +199,7 @@ real_add_channel			(GtkWidget	*some_widget,
     tc.country = NULL;
   if (main_info->inputs &&
       main_info->inputs[main_info->cur_input].tuners)
-    tc.freq = gtk_range_get_adjustment(GTK_RANGE(hscale1))->value;
+    tc.freq = z_spinslider_get_value(channel_editor);
   tc.accel_key = 0;
   buffer = gtk_entry_get_text(GTK_ENTRY(channel_accel));
   if (buffer)
@@ -216,7 +254,7 @@ real_add_channel			(GtkWidget	*some_widget,
 
   list = tveng_insert_tuned_channel_sorted(&tc, list);
 
-  gtk_object_set_data(GTK_OBJECT(channel_window), "list", list);
+  gtk_object_set_data(GTK_OBJECT(channel_editor), "list", list);
 
   g_free(tc.controls);
 
@@ -226,37 +264,41 @@ real_add_channel			(GtkWidget	*some_widget,
 }
 
 static void
-on_hscale1_value_changed               (GtkAdjustment		*adj,
-                                        tveng_device_info	*info)
+on_fine_tune_value_changed               (GtkAdjustment		*adj,
+					  tveng_device_info	*info)
 {
   if (info->inputs &&
       info->inputs[info->cur_input].tuners)
     tveng_tune_input(adj->value, main_info);
 }
 
-/* Tunes the current input and updates hscale1 */
 static void
-set_slider(uint32_t freq, gpointer widget, tveng_device_info *info)
+set_slider(uint32_t freq, GtkWidget *channel_editor,
+	   tveng_device_info *info)
 {
-  GtkAdjustment * adj;
-  GtkWidget * hscale1 =
-    lookup_widget(GTK_WIDGET(widget), "hscale1");
+  GtkAdjustment *adj = GTK_ADJUSTMENT
+    (gtk_object_get_data(GTK_OBJECT(channel_editor), "spinslider_adj"));
+  GtkWidget *spinslider = GTK_WIDGET
+    (gtk_object_get_data(GTK_OBJECT(channel_editor), "spinslider"));
 
   if (!freq || !info->inputs ||
       !info->inputs[info->cur_input].tuners)
     {
-      gtk_widget_set_sensitive(hscale1, FALSE);
+      gtk_widget_set_sensitive(spinslider, FALSE);
       return;
     }
 
-  gtk_widget_set_sensitive(hscale1, TRUE);
-  adj = GTK_ADJUSTMENT(gtk_adjustment_new(freq -1, freq - 1e4, freq + 1e4,
-					 25, 1e3, 0));
+  gtk_widget_set_sensitive(spinslider, TRUE);
 
-  gtk_range_set_adjustment(GTK_RANGE(hscale1), adj);
-  gtk_adjustment_set_value(adj, freq); /* ugly evil dirty hack */
-  gtk_signal_connect(GTK_OBJECT(adj), "value-changed",
-		     GTK_SIGNAL_FUNC(on_hscale1_value_changed), info);
+  adj -> value = freq;
+  adj -> lower = freq - 1e4;
+  adj -> upper = freq + 1e4;
+  adj -> step_increment = 25;
+  adj -> page_increment = 1e3;
+  adj -> page_size = 0;
+
+  gtk_adjustment_changed(adj); /* Bounds changed */
+  gtk_adjustment_value_changed(adj); /* Value changed */
 }
 
 /* Called when the current country selection has been changed */
@@ -537,39 +579,6 @@ on_move_channel_up_clicked		(GtkWidget	*button,
 }
 
 static void
-on_custom_frequency_clicked		(GtkWidget	*button,
-					 tveng_device_info *info)
-{
-  GtkWidget *hscale1 = lookup_widget(button, "hscale1");
-  gchar *cur_value = g_strdup_printf
-    ("%g", gtk_range_get_adjustment(GTK_RANGE(hscale1))->value);
-  GtkWidget * channel_editor = lookup_widget(button, "channel_window");
-  gchar *buf = Prompt(channel_editor, _("Custom Frequency"),
-		      _("Please enter the freq for this channel"),
-		      cur_value);
-  gint new_value;
-
-  if (!buf)
-    goto done;
-
-  if (!sscanf(buf, "%d", &new_value) &&
-      !sscanf(buf, "%x", &new_value))
-    {
-      ShowBox(_("Cannot parse \"%s\" as a number, sorry"),
-	      GNOME_MESSAGE_BOX_ERROR, buf);
-      goto done2;
-    }
-
-  set_slider(new_value, button, info);
-
- done2:
-  g_free(buf);
-
- done:
-  g_free(cur_value);
-}
-
-static void
 on_channel_list_unselect_row		(GtkCList	*channel_list,
 					 gint		 row,
 					 gint		 column,
@@ -579,11 +588,37 @@ on_channel_list_unselect_row		(GtkCList	*channel_list,
   update_edit_buttons_sensitivity(channel_editor);
 }
 
+static gboolean
+on_channel_editor_delete_event         (GtkWidget       *widget,
+                                        GdkEvent        *event,
+                                        gpointer         user_data)
+{
+  GtkWidget * related_menuitem =
+    GTK_WIDGET(gtk_object_get_user_data(GTK_OBJECT(widget)));
+  tveng_tuned_channel * list =
+    gtk_object_get_data(GTK_OBJECT(widget), "list");
+
+  tveng_clear_tuned_channel(list);
+
+  gtk_signal_disconnect_by_func(GTK_OBJECT(z_input_model),
+				GTK_SIGNAL_FUNC(rebuild_inputs_standards),
+				ChannelWindow);
+
+  zmodel_changed(z_input_model);
+
+  /* Set the menuentry sensitive again */
+  gtk_widget_set_sensitive(related_menuitem, TRUE);
+
+  ChannelWindow = NULL; /* No more channel window */
+
+  return FALSE;
+}
+
 void
 on_channels1_activate                  (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
-  GtkWidget * channel_window;
+  GtkWidget * channel_editor;
   GtkWidget * country_options_menu;
 
   GtkWidget * channel_list;
@@ -593,7 +628,9 @@ on_channels1_activate                  (GtkMenuItem     *menuitem,
 
   GtkWidget * move_channel_up;
   GtkWidget * move_channel_down;
-  GtkWidget * custom_frequency;
+
+  GtkWidget * spinslider;
+  GtkAdjustment * spinslider_adj;
 
   int i = 0;
   int currently_tuned_country = 0;
@@ -608,16 +645,14 @@ on_channels1_activate                  (GtkMenuItem     *menuitem,
       return;
     }
 
-  channel_window = create_channel_window();
-  country_options_menu = lookup_widget(channel_window,
+  channel_editor = create_widget("channel_editor");
+  country_options_menu = lookup_widget(channel_editor,
 				       "country_options_menu");
 
-  move_channel_up = lookup_widget(channel_window, "move_channel_up");
-  move_channel_down = lookup_widget(channel_window, "move_channel_down");
+  move_channel_up = lookup_widget(channel_editor, "move_channel_up");
+  move_channel_down = lookup_widget(channel_editor, "move_channel_down");
 
-  custom_frequency = lookup_widget(channel_window, "custom_frequency");
-
-  channel_list = lookup_widget(channel_window, "channel_list");
+  channel_list = lookup_widget(channel_editor, "channel_list");
   new_menu = gtk_menu_new();
 
   /* Let's setup the window */
@@ -663,42 +698,55 @@ on_channels1_activate                  (GtkMenuItem     *menuitem,
 		      tveng_get_country_tune_by_id (currently_tuned_country));
 
   /* Save the disabled menuitem */
-  gtk_object_set_user_data(GTK_OBJECT(channel_window), menuitem);
-  gtk_object_set_data(GTK_OBJECT(channel_window), "list", list);
+  gtk_object_set_user_data(GTK_OBJECT(channel_editor), menuitem);
+  gtk_object_set_data(GTK_OBJECT(channel_editor), "list", list);
 
   gtk_widget_set_sensitive(GTK_WIDGET(menuitem), FALSE);
 
-  rebuild_inputs_standards(NULL, channel_window);
+  /* Add fine tuning widget */
+  spinslider_adj =
+    GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, 0, 0, 0, 0));
+  spinslider = z_spinslider_new(spinslider_adj);
+  gtk_widget_set_sensitive(spinslider, FALSE);
+  gtk_widget_show(spinslider);
+  gtk_table_attach_defaults(GTK_TABLE(lookup_widget(channel_editor,
+						    "table72")),
+			    spinslider, 1, 2, 2, 3);
+  gtk_object_set_data(GTK_OBJECT(channel_editor), "spinslider", spinslider);
+  gtk_object_set_data(GTK_OBJECT(channel_editor), "spinslider_adj",
+		      spinslider_adj);
+
+  rebuild_inputs_standards(NULL, channel_editor);
   gtk_signal_connect(GTK_OBJECT(z_input_model), "changed",
 		     GTK_SIGNAL_FUNC(rebuild_inputs_standards),
-		     channel_window);
+		     channel_editor);
 
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(channel_window, "known_keys")),
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(channel_editor, "known_keys")),
 		     "clicked",
 		     GTK_SIGNAL_FUNC(on_known_keys_clicked),
-		     channel_window);
+		     channel_editor);
 
   gtk_signal_connect(GTK_OBJECT(move_channel_up), "clicked",
 		     GTK_SIGNAL_FUNC(on_move_channel_up_clicked),
-		     channel_window);
+		     channel_editor);
   gtk_signal_connect(GTK_OBJECT(move_channel_down), "clicked",
 		     GTK_SIGNAL_FUNC(on_move_channel_down_clicked),
-		     channel_window);
-  gtk_signal_connect(GTK_OBJECT(custom_frequency), "clicked",
-		     GTK_SIGNAL_FUNC(on_custom_frequency_clicked),
-		     main_info);
+		     channel_editor);
   gtk_signal_connect(GTK_OBJECT(channel_list), "unselect-row",
 		     GTK_SIGNAL_FUNC(on_channel_list_unselect_row),
-		     channel_window);
+		     channel_editor);
+  gtk_signal_connect(GTK_OBJECT(channel_editor), "delete-event",
+		     GTK_SIGNAL_FUNC(on_channel_editor_delete_event),
+		     channel_editor);
+  gtk_signal_connect(GTK_OBJECT(spinslider_adj), "value-changed",
+		     GTK_SIGNAL_FUNC(on_fine_tune_value_changed),
+		     main_info);
 
-  /* I hate when libs try to be too "smart" */
-  gtk_button_set_relief(GTK_BUTTON(custom_frequency), GTK_RELIEF_NONE);
+  update_edit_buttons_sensitivity(channel_editor);
 
-  update_edit_buttons_sensitivity(channel_window);
+  gtk_widget_show(channel_editor);
 
-  gtk_widget_show(channel_window);
-
-  ChannelWindow = channel_window; /* Set this, we are present */
+  ChannelWindow = channel_editor; /* Set this, we are present */
 }
 
 /**
@@ -709,12 +757,12 @@ void
 on_channels_done_clicked               (GtkButton       *button,
                                         gpointer         user_data)
 {
-  GtkWidget * channel_window = lookup_widget(GTK_WIDGET (button),
-					     "channel_window"); /* The
+  GtkWidget * channel_editor = lookup_widget(GTK_WIDGET (button),
+					     "channel_editor"); /* The
 					     channel editor window */
   GtkWidget * menu_item; /* The menu item asocciated with this entry */
   tveng_tuned_channel * list =
-    gtk_object_get_data(GTK_OBJECT(channel_window), "list");
+    gtk_object_get_data(GTK_OBJECT(channel_editor), "list");
 
   int index; /* The row we are reading now */
 
@@ -732,7 +780,7 @@ on_channels_done_clicked               (GtkButton       *button,
 
   /* We are done, acknowledge the update in the model  */
   menu_item =
-    GTK_WIDGET(gtk_object_get_user_data(GTK_OBJECT(channel_window)));
+    GTK_WIDGET(gtk_object_get_user_data(GTK_OBJECT(channel_editor)));
 
   gtk_signal_disconnect_by_func(GTK_OBJECT(z_input_model),
 				GTK_SIGNAL_FUNC(rebuild_inputs_standards),
@@ -743,7 +791,7 @@ on_channels_done_clicked               (GtkButton       *button,
 
   tveng_clear_tuned_channel(list);
 
-  gtk_widget_destroy(channel_window);
+  gtk_widget_destroy(channel_editor);
 
   ChannelWindow = NULL;
 }
@@ -782,7 +830,7 @@ on_add_channel_clicked                 (GtkButton       *button,
 	buf2 = "";
 
       buf = Prompt(lookup_widget(GTK_WIDGET(button),
-				 "channel_window"),
+				 "channel_editor"),
 		   _("Add Channel"), _("New channel name:"), buf2);
       
       if (buf)
@@ -803,10 +851,10 @@ on_add_all_channels_clicked            (GtkButton       *button,
 {
   GtkWidget * channel_list = lookup_widget(GTK_WIDGET(button),
 					   "channel_list");
-  GtkWidget * channel_window = lookup_widget(GTK_WIDGET(button),
-					     "channel_window");
+  GtkWidget * channel_editor = lookup_widget(GTK_WIDGET(button),
+					     "channel_editor");
   tveng_tuned_channel * list =
-    gtk_object_get_data(GTK_OBJECT(channel_window), "list");
+    gtk_object_get_data(GTK_OBJECT(channel_editor), "list");
   tveng_tuned_channel tc;
   tveng_channel *chan;
   int i = 0;
@@ -822,7 +870,7 @@ on_add_all_channels_clicked            (GtkButton       *button,
       g_free(tc.controls);
     }
 
-  gtk_object_set_data(GTK_OBJECT(channel_window), "list", list);
+  gtk_object_set_data(GTK_OBJECT(channel_editor), "list", list);
 
   build_channel_list(GTK_CLIST(channel_list), list);
 }
@@ -834,15 +882,14 @@ on_modify_channel_clicked              (GtkButton       *button,
   GtkWidget * clist1 = lookup_widget(GTK_WIDGET(button), "clist1");
   GtkWidget * channel_list = lookup_widget(GTK_WIDGET(button),
 					   "channel_list");
-  GtkWidget * channel_window = lookup_widget(GTK_WIDGET(button),
-					     "channel_window");
+  GtkWidget * channel_editor = lookup_widget(GTK_WIDGET(button),
+					     "channel_editor");
   tveng_tuned_channel * list =
-    gtk_object_get_data(GTK_OBJECT(channel_window), "list");
+    gtk_object_get_data(GTK_OBJECT(channel_editor), "list");
   GtkWidget * channel_name = lookup_widget(GTK_WIDGET(button),
 					   "channel_name");
   GtkWidget * channel_accel = lookup_widget(GTK_WIDGET(button),
 					    "channel_accel");
-  GtkWidget * hscale1 = lookup_widget(GTK_WIDGET(button), "hscale1");
   GtkWidget * widget;
 
   GList * ptr; /* Pointer to the selected item(s) in clist1 */
@@ -866,7 +913,9 @@ on_modify_channel_clicked              (GtkButton       *button,
       tc.accel_key = gdk_keyval_from_name(buffer);
   if (tc.accel_key == GDK_VoidSymbol)
     tc.accel_key = 0;
-  tc.freq =  gtk_range_get_adjustment(GTK_RANGE(hscale1))->value;
+  if (main_info->inputs &&
+      main_info->inputs[main_info->cur_input].tuners)
+    tc.freq =  z_spinslider_get_value(channel_editor);
 
   tc.accel_mask = 0;
   widget = lookup_widget(clist1, "channel_accel_ctrl");
@@ -959,10 +1008,10 @@ on_remove_channel_clicked              (GtkButton       *button,
 {
   GtkWidget * channel_list = lookup_widget(GTK_WIDGET(button),
 					   "channel_list");
-  GtkWidget * channel_window = lookup_widget(GTK_WIDGET(button),
-					     "channel_window");
+  GtkWidget * channel_editor = lookup_widget(GTK_WIDGET(button),
+					     "channel_editor");
   tveng_tuned_channel * list =
-    gtk_object_get_data(GTK_OBJECT(channel_window), "list");
+    gtk_object_get_data(GTK_OBJECT(channel_editor), "list");
 
   GList * ptr; /* Pointer to the selected item(s) in clist1 */
   int index; /* The row we are reading now */
@@ -985,13 +1034,13 @@ on_remove_channel_clicked              (GtkButton       *button,
       index++;
     }
 
-  gtk_object_set_data(GTK_OBJECT(channel_window), "list", list);
+  gtk_object_set_data(GTK_OBJECT(channel_editor), "list", list);
 
   build_channel_list(GTK_CLIST(channel_list), list);
 }
 
 void
-on_clist1_select_row                   (GtkCList        *clist,
+on_clist1_select_row                   (GtkWidget       *clist,
                                         gint             row,
                                         gint             column,
                                         GdkEvent        *event,
@@ -1017,50 +1066,25 @@ on_clist1_select_row                   (GtkCList        *clist,
     g_warning("Cannot tune input at %d: %s", selected_channel->freq,
 	      main_info->error);
   else
-    set_slider(selected_channel->freq, clist, main_info);
-}
-
-gboolean
-on_channel_window_delete_event         (GtkWidget       *widget,
-                                        GdkEvent        *event,
-                                        gpointer         user_data)
-{
-  GtkWidget * related_menuitem =
-    GTK_WIDGET(gtk_object_get_user_data(GTK_OBJECT(widget)));
-  tveng_tuned_channel * list =
-    gtk_object_get_data(GTK_OBJECT(widget), "list");
-
-  tveng_clear_tuned_channel(list);
-
-  gtk_signal_disconnect_by_func(GTK_OBJECT(z_input_model),
-				GTK_SIGNAL_FUNC(rebuild_inputs_standards),
-				ChannelWindow);
-
-  zmodel_changed(z_input_model);
-
-  /* Set the menuentry sensitive again */
-  gtk_widget_set_sensitive(related_menuitem, TRUE);
-
-  ChannelWindow = NULL; /* No more channel window */
-
-  return FALSE;
+    set_slider(selected_channel->freq,
+	       lookup_widget(clist, "channel_editor"), main_info);
 }
 
 void
 on_cancel_channels_clicked             (GtkButton       *button,
                                         gpointer         user_data)
 {
-  GtkWidget * channel_window = lookup_widget(GTK_WIDGET (button),
-					     "channel_window"); /* The
+  GtkWidget * channel_editor = lookup_widget(GTK_WIDGET (button),
+					     "channel_editor"); /* The
 					     channel editor window */
   GtkWidget * menu_item; /* The menu item asocciated with this entry */
 
   tveng_tuned_channel * list =
-    gtk_object_get_data(GTK_OBJECT(channel_window), "list");
+    gtk_object_get_data(GTK_OBJECT(channel_editor), "list");
 
   /* We are done, acknowledge the update in the channel list */
   menu_item =
-    GTK_WIDGET(gtk_object_get_user_data(GTK_OBJECT(channel_window)));
+    GTK_WIDGET(gtk_object_get_user_data(GTK_OBJECT(channel_editor)));
 
   tveng_clear_tuned_channel(list);
 
@@ -1072,7 +1096,7 @@ on_cancel_channels_clicked             (GtkButton       *button,
 
   gtk_widget_set_sensitive(menu_item, TRUE);
 
-  gtk_widget_destroy(channel_window);
+  gtk_widget_destroy(channel_editor);
 
   ChannelWindow = NULL;
 }
@@ -1114,7 +1138,7 @@ on_help_channels_clicked               (GtkButton       *button,
   help_ref.name = gnome_app_id;
   gnome_help_display (NULL, &help_ref);
 
-  if (tveng_restart_everything(cur_mode, main_info) == -1)
+  if (z_restart_everything(cur_mode, main_info) == -1)
     ShowBox(main_info->error, GNOME_MESSAGE_BOX_ERROR);
 }
 
@@ -1143,10 +1167,10 @@ on_channel_list_select_row             (GtkCList        *clist,
   GtkWidget * clist1 = lookup_widget(GTK_WIDGET(clist), "clist1");
   GtkWidget * channel_name = lookup_widget(GTK_WIDGET(clist),
 					   "channel_name");
-  GtkWidget * channel_window =
-    lookup_widget(GTK_WIDGET(clist), "channel_window");
+  GtkWidget * channel_editor =
+    lookup_widget(GTK_WIDGET(clist), "channel_editor");
   tveng_tuned_channel * list =
-    gtk_object_get_data(GTK_OBJECT(channel_window), "list");
+    gtk_object_get_data(GTK_OBJECT(channel_editor), "list");
   GtkWidget * channel_accel = lookup_widget(GTK_WIDGET(clist),
 					    "channel_accel");
   GtkWidget * widget;
@@ -1240,9 +1264,9 @@ on_channel_list_select_row             (GtkCList        *clist,
 
   if (main_info->inputs &&
       main_info->inputs[main_info->cur_input].tuners)
-    set_slider(list->freq, channel_accel, main_info);
+    set_slider(list->freq, channel_editor, main_info);
   else
-    set_slider(0, channel_accel, main_info);
+    set_slider(0, channel_editor, main_info);
 
   widget = lookup_widget(channel_accel, "attached_standard");
   if (list->standard)
@@ -1268,7 +1292,7 @@ on_channel_list_select_row             (GtkCList        *clist,
   else
     z_option_menu_set_active(widget, 0);
 
-  update_edit_buttons_sensitivity(channel_window);
+  update_edit_buttons_sensitivity(channel_editor);
 
   /* block this call a bit longer */
   control_timeout_id =
@@ -1406,10 +1430,10 @@ void
 on_channel_search_clicked              (GtkButton       *button,
                                         gpointer         user_data)
 {
-  GtkWidget * channel_window =
-    lookup_widget(GTK_WIDGET(button), "channel_window");
+  GtkWidget * channel_editor =
+    lookup_widget(GTK_WIDGET(button), "channel_editor");
   GtkWidget * channel_list =
-    lookup_widget(channel_window, "channel_list");
+    lookup_widget(channel_editor, "channel_list");
   GtkWidget * searching;
   GtkWidget * progress;
   gint timeout;

@@ -1,8 +1,9 @@
 ## Process this file with automake to produce Makefile.in
 
 bin_PROGRAMS = zapping_setup_fb
+bin_SCRIPTS = zapping_fix_overlay
 
-EXTRA_DIST = zapping_setup_fb.pam zsfb.capps.in
+EXTRA_DIST = zapping_setup_fb.pam zsfb.capps.in zapping_fix_overlay
 
 if SUID_ZSFB
 install-binPROGRAMS: $(bin_PROGRAMS)

@@ -814,7 +814,7 @@ on_zapping_properties_help             (GnomePropertyBox *gnomepropertybox,
 	    " provide help for it!!!\nPlease contact the maintainer",
 	    GNOME_MESSAGE_BOX_WARNING);
 
-  if (tveng_restart_everything(cur_mode, main_info) == -1)
+  if (z_restart_everything(cur_mode, main_info) == -1)
     ShowBox(main_info->error, GNOME_MESSAGE_BOX_ERROR);
 }
 

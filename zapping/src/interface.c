@@ -108,12 +108,6 @@ create_zapping (void)
 }
 
 GtkWidget*
-create_channel_window (void)
-{
-  return build_widget("channel_window", PACKAGE_DATA_DIR "/zapping.glade");
-}
-
-GtkWidget*
 create_zapping_properties (void)
 {
 

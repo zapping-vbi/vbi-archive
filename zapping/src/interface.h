@@ -26,7 +26,6 @@ lookup_widget(GtkWidget * parent, const char * name);
 GtkWidget*
 build_widget(const char* name, const char* glade_file);
 GtkWidget* create_zapping (void);
-GtkWidget* create_channel_window (void);
 GtkWidget* create_zapping_properties (void);
 GtkWidget* create_about2 (void);
 GtkWidget* create_plugin_properties (void);

@@ -1,3 +1,10 @@
+2.10.2001	GUI sweetpill <garetxe@users.sf.net>
+
+	* channel_editor: Rearranged as discussed in the mailing list.
+	* gnome_help: Remember to update clips after tveng_restart_everything.
+	* zapping_fix_overlay: Script to fix the so common consolehelper
+	bug (is it really consolehelper?).
+
 30.10.2001	<mschimek@users.sf.net>
 
 	* macros: Added as.m4 from automake 1.5, required there but not

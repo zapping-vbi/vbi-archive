@@ -2489,712 +2489,6 @@ Open automatically
 </widget>
 
 <widget>
-  <class>GtkWindow</class>
-  <name>channel_window</name>
-  <height>327</height>
-  <signal>
-    <name>delete_event</name>
-    <handler>on_channel_window_delete_event</handler>
-    <last_modification_time>Wed, 19 Apr 2000 21:59:03 GMT</last_modification_time>
-  </signal>
-  <title>Channel choosing</title>
-  <type>GTK_WINDOW_TOPLEVEL</type>
-  <position>GTK_WIN_POS_NONE</position>
-  <modal>False</modal>
-  <allow_shrink>False</allow_shrink>
-  <allow_grow>True</allow_grow>
-  <auto_shrink>False</auto_shrink>
-
-  <widget>
-    <class>GtkVBox</class>
-    <name>vbox10</name>
-    <homogeneous>False</homogeneous>
-    <spacing>0</spacing>
-
-    <widget>
-      <class>GtkLabel</class>
-      <name>label1</name>
-      <label>With this dialog you can edit the channel list.
-To begin, please choose the frequency table used in your country.
-When your country or the required table is not present please notify the author,
-adding the table if possible, for inclusion in the next release of this program.</label>
-      <justify>GTK_JUSTIFY_CENTER</justify>
-      <wrap>False</wrap>
-      <xalign>0.5</xalign>
-      <yalign>0.5</yalign>
-      <xpad>0</xpad>
-      <ypad>0</ypad>
-      <child>
-	<padding>0</padding>
-	<expand>False</expand>
-	<fill>False</fill>
-      </child>
-    </widget>
-
-    <widget>
-      <class>GtkHBox</class>
-      <name>hbox6</name>
-      <homogeneous>False</homogeneous>
-      <spacing>0</spacing>
-      <child>
-	<padding>0</padding>
-	<expand>True</expand>
-	<fill>True</fill>
-      </child>
-
-      <widget>
-	<class>GtkVBox</class>
-	<name>vbox11</name>
-	<homogeneous>False</homogeneous>
-	<spacing>0</spacing>
-	<child>
-	  <padding>0</padding>
-	  <expand>True</expand>
-	  <fill>True</fill>
-	</child>
-
-	<widget>
-	  <class>GtkOptionMenu</class>
-	  <name>country_options_menu</name>
-	  <tooltip>Select here the frequency table used in your country</tooltip>
-	  <can_focus>True</can_focus>
-	  <items>No tables
-</items>
-	  <initial_choice>0</initial_choice>
-	  <child>
-	    <padding>0</padding>
-	    <expand>False</expand>
-	    <fill>False</fill>
-	  </child>
-	</widget>
-
-	<widget>
-	  <class>GtkScrolledWindow</class>
-	  <name>scrolledwindow5</name>
-	  <hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
-	  <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
-	  <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
-	  <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
-	  <child>
-	    <padding>0</padding>
-	    <expand>True</expand>
-	    <fill>True</fill>
-	  </child>
-
-	  <widget>
-	    <class>GtkCList</class>
-	    <name>clist1</name>
-	    <width>178</width>
-	    <tooltip>Select here the channel you want to tune</tooltip>
-	    <can_focus>True</can_focus>
-	    <signal>
-	      <name>select_row</name>
-	      <handler>on_clist1_select_row</handler>
-	      <last_modification_time>Sun, 16 Jan 2000 17:38:54 GMT</last_modification_time>
-	    </signal>
-	    <columns>2</columns>
-	    <column_widths>54,87</column_widths>
-	    <selection_mode>GTK_SELECTION_BROWSE</selection_mode>
-	    <show_titles>True</show_titles>
-	    <shadow_type>GTK_SHADOW_IN</shadow_type>
-
-	    <widget>
-	      <class>GtkLabel</class>
-	      <child_name>CList:title</child_name>
-	      <name>label5</name>
-	      <label>Channel</label>
-	      <justify>GTK_JUSTIFY_CENTER</justify>
-	      <wrap>False</wrap>
-	      <xalign>0.5</xalign>
-	      <yalign>0.5</yalign>
-	      <xpad>0</xpad>
-	      <ypad>0</ypad>
-	    </widget>
-
-	    <widget>
-	      <class>GtkLabel</class>
-	      <child_name>CList:title</child_name>
-	      <name>label6</name>
-	      <label>Freq (kHz)</label>
-	      <justify>GTK_JUSTIFY_CENTER</justify>
-	      <wrap>False</wrap>
-	      <xalign>0.5</xalign>
-	      <yalign>0.5</yalign>
-	      <xpad>0</xpad>
-	      <ypad>0</ypad>
-	    </widget>
-	  </widget>
-	</widget>
-
-	<widget>
-	  <class>GtkButton</class>
-	  <name>button35</name>
-	  <tooltip>Add all channels in the frequency table to the channel list.</tooltip>
-	  <can_focus>True</can_focus>
-	  <signal>
-	    <name>clicked</name>
-	    <handler>on_add_all_channels_clicked</handler>
-	    <last_modification_time>Wed, 15 Aug 2001 23:45:23 GMT</last_modification_time>
-	  </signal>
-	  <label>Add all the channels</label>
-	  <relief>GTK_RELIEF_NORMAL</relief>
-	  <child>
-	    <padding>0</padding>
-	    <expand>False</expand>
-	    <fill>False</fill>
-	  </child>
-	</widget>
-      </widget>
-
-      <widget>
-	<class>GtkScrolledWindow</class>
-	<name>scrolledwindow6</name>
-	<hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
-	<vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
-	<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
-	<vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
-	<child>
-	  <padding>0</padding>
-	  <expand>True</expand>
-	  <fill>True</fill>
-	</child>
-
-	<widget>
-	  <class>GtkCList</class>
-	  <name>channel_list</name>
-	  <width>370</width>
-	  <can_focus>True</can_focus>
-	  <signal>
-	    <name>select_row</name>
-	    <handler>on_channel_list_select_row</handler>
-	    <last_modification_time>Thu, 20 Apr 2000 10:51:09 GMT</last_modification_time>
-	  </signal>
-	  <signal>
-	    <name>key_press_event</name>
-	    <handler>on_channel_list_key_press_event</handler>
-	    <last_modification_time>Fri, 21 Apr 2000 22:00:53 GMT</last_modification_time>
-	  </signal>
-	  <columns>5</columns>
-	  <column_widths>90,50,60,70,65</column_widths>
-	  <selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
-	  <show_titles>True</show_titles>
-	  <shadow_type>GTK_SHADOW_IN</shadow_type>
-
-	  <widget>
-	    <class>GtkLabel</class>
-	    <child_name>CList:title</child_name>
-	    <name>label37</name>
-	    <label>Station name</label>
-	    <justify>GTK_JUSTIFY_CENTER</justify>
-	    <wrap>False</wrap>
-	    <xalign>0.5</xalign>
-	    <yalign>0.5</yalign>
-	    <xpad>0</xpad>
-	    <ypad>0</ypad>
-	  </widget>
-
-	  <widget>
-	    <class>GtkLabel</class>
-	    <child_name>CList:title</child_name>
-	    <name>label38</name>
-	    <label>Channel</label>
-	    <justify>GTK_JUSTIFY_CENTER</justify>
-	    <wrap>False</wrap>
-	    <xalign>0.5</xalign>
-	    <yalign>0.5</yalign>
-	    <xpad>0</xpad>
-	    <ypad>0</ypad>
-	  </widget>
-
-	  <widget>
-	    <class>GtkLabel</class>
-	    <child_name>CList:title</child_name>
-	    <name>label39</name>
-	    <label>Country</label>
-	    <justify>GTK_JUSTIFY_CENTER</justify>
-	    <wrap>False</wrap>
-	    <xalign>0.5</xalign>
-	    <yalign>0.5</yalign>
-	    <xpad>0</xpad>
-	    <ypad>0</ypad>
-	  </widget>
-
-	  <widget>
-	    <class>GtkLabel</class>
-	    <child_name>CList:title</child_name>
-	    <name>label40</name>
-	    <label>Freq (kHz)</label>
-	    <justify>GTK_JUSTIFY_CENTER</justify>
-	    <wrap>False</wrap>
-	    <xalign>0.5</xalign>
-	    <yalign>0.5</yalign>
-	    <xpad>0</xpad>
-	    <ypad>0</ypad>
-	  </widget>
-
-	  <widget>
-	    <class>GtkLabel</class>
-	    <child_name>CList:title</child_name>
-	    <name>label200</name>
-	    <label>Accelerator</label>
-	    <justify>GTK_JUSTIFY_CENTER</justify>
-	    <wrap>False</wrap>
-	    <xalign>0.5</xalign>
-	    <yalign>0.5</yalign>
-	    <xpad>0</xpad>
-	    <ypad>0</ypad>
-	  </widget>
-	</widget>
-      </widget>
-
-      <widget>
-	<class>GtkVBox</class>
-	<name>vbox34</name>
-	<homogeneous>False</homogeneous>
-	<spacing>0</spacing>
-	<child>
-	  <padding>0</padding>
-	  <expand>True</expand>
-	  <fill>True</fill>
-	</child>
-
-	<widget>
-	  <class>GtkButton</class>
-	  <name>move_channel_up</name>
-	  <tooltip>Move selected channels one row up</tooltip>
-	  <can_focus>True</can_focus>
-	  <stock_button>GNOME_STOCK_BUTTON_UP</stock_button>
-	  <relief>GTK_RELIEF_NORMAL</relief>
-	  <child>
-	    <padding>0</padding>
-	    <expand>True</expand>
-	    <fill>True</fill>
-	  </child>
-	</widget>
-
-	<widget>
-	  <class>GtkButton</class>
-	  <name>move_channel_down</name>
-	  <tooltip>Move selected channels one row down</tooltip>
-	  <can_focus>True</can_focus>
-	  <stock_button>GNOME_STOCK_BUTTON_DOWN</stock_button>
-	  <relief>GTK_RELIEF_NORMAL</relief>
-	  <child>
-	    <padding>0</padding>
-	    <expand>True</expand>
-	    <fill>True</fill>
-	  </child>
-	</widget>
-
-	<widget>
-	  <class>GtkButton</class>
-	  <name>remove_channel</name>
-	  <tooltip>Delete selected channels</tooltip>
-	  <can_focus>True</can_focus>
-	  <signal>
-	    <name>clicked</name>
-	    <handler>on_remove_channel_clicked</handler>
-	    <last_modification_time>Mon, 10 Jan 2000 23:21:05 GMT</last_modification_time>
-	  </signal>
-	  <label>_Remove</label>
-	  <relief>GTK_RELIEF_NORMAL</relief>
-	  <child>
-	    <padding>0</padding>
-	    <expand>False</expand>
-	    <fill>False</fill>
-	  </child>
-	</widget>
-
-	<widget>
-	  <class>GtkButton</class>
-	  <name>modify_channel</name>
-	  <tooltip>Click here to apply the current options to the selected channels</tooltip>
-	  <can_focus>True</can_focus>
-	  <signal>
-	    <name>clicked</name>
-	    <handler>on_modify_channel_clicked</handler>
-	    <last_modification_time>Thu, 20 Jul 2000 15:44:39 GMT</last_modification_time>
-	  </signal>
-	  <label>_Modify</label>
-	  <relief>GTK_RELIEF_NORMAL</relief>
-	  <child>
-	    <padding>0</padding>
-	    <expand>False</expand>
-	    <fill>False</fill>
-	  </child>
-	</widget>
-      </widget>
-    </widget>
-
-    <widget>
-      <class>GtkHBox</class>
-      <name>hbox30</name>
-      <homogeneous>True</homogeneous>
-      <spacing>0</spacing>
-      <child>
-	<padding>0</padding>
-	<expand>False</expand>
-	<fill>False</fill>
-      </child>
-
-      <widget>
-	<class>GtkOptionMenu</class>
-	<name>attached_input</name>
-	<tooltip>Select here the input to be attached to this channel</tooltip>
-	<can_focus>True</can_focus>
-	<items>Magical input
-</items>
-	<initial_choice>0</initial_choice>
-	<child>
-	  <padding>0</padding>
-	  <expand>True</expand>
-	  <fill>True</fill>
-	</child>
-      </widget>
-
-      <widget>
-	<class>GtkOptionMenu</class>
-	<name>attached_standard</name>
-	<tooltip>Select here the video standard used on this channel</tooltip>
-	<can_focus>True</can_focus>
-	<items>Magical Standard
-</items>
-	<initial_choice>0</initial_choice>
-	<child>
-	  <padding>0</padding>
-	  <expand>True</expand>
-	  <fill>True</fill>
-	</child>
-      </widget>
-    </widget>
-
-    <widget>
-      <class>GtkHBox</class>
-      <name>hbox17</name>
-      <homogeneous>False</homogeneous>
-      <spacing>0</spacing>
-      <child>
-	<padding>0</padding>
-	<expand>False</expand>
-	<fill>False</fill>
-      </child>
-
-      <widget>
-	<class>GtkButton</class>
-	<name>channel_search</name>
-	<border_width>7</border_width>
-	<tooltip>Select a suitable frequency table, then click here to search through all channels in the table and add the received stations to the channel list.</tooltip>
-	<can_focus>True</can_focus>
-	<signal>
-	  <name>clicked</name>
-	  <handler>on_channel_search_clicked</handler>
-	  <last_modification_time>Tue, 20 Jun 2000 13:54:19 GMT</last_modification_time>
-	</signal>
-	<label>Automatic station _search</label>
-	<relief>GTK_RELIEF_NORMAL</relief>
-	<child>
-	  <padding>0</padding>
-	  <expand>False</expand>
-	  <fill>False</fill>
-	</child>
-      </widget>
-
-      <widget>
-	<class>GtkButton</class>
-	<name>custom_frequency</name>
-	<tooltip>Click here to enter a custom frequency</tooltip>
-	<can_focus>True</can_focus>
-	<label>_Frequency:</label>
-	<relief>GTK_RELIEF_NONE</relief>
-	<child>
-	  <padding>0</padding>
-	  <expand>False</expand>
-	  <fill>False</fill>
-	</child>
-      </widget>
-
-      <widget>
-	<class>GtkHScale</class>
-	<name>hscale1</name>
-	<can_focus>True</can_focus>
-	<draw_value>True</draw_value>
-	<value_pos>GTK_POS_TOP</value_pos>
-	<digits>0</digits>
-	<policy>GTK_UPDATE_DELAYED</policy>
-	<value>0</value>
-	<lower>0</lower>
-	<upper>0</upper>
-	<step>0</step>
-	<page>0</page>
-	<page_size>0</page_size>
-	<child>
-	  <padding>0</padding>
-	  <expand>True</expand>
-	  <fill>True</fill>
-	</child>
-      </widget>
-    </widget>
-
-    <widget>
-      <class>GtkHBox</class>
-      <name>hbox28</name>
-      <homogeneous>False</homogeneous>
-      <spacing>0</spacing>
-      <child>
-	<padding>0</padding>
-	<expand>False</expand>
-	<fill>False</fill>
-      </child>
-
-      <widget>
-	<class>GtkVBox</class>
-	<name>vbox27</name>
-	<homogeneous>True</homogeneous>
-	<spacing>0</spacing>
-	<child>
-	  <padding>0</padding>
-	  <expand>True</expand>
-	  <fill>True</fill>
-	</child>
-
-	<widget>
-	  <class>GtkLabel</class>
-	  <name>label42</name>
-	  <label>Station name:</label>
-	  <justify>GTK_JUSTIFY_CENTER</justify>
-	  <wrap>False</wrap>
-	  <xalign>0.5</xalign>
-	  <yalign>0.5</yalign>
-	  <xpad>0</xpad>
-	  <ypad>0</ypad>
-	  <child>
-	    <padding>0</padding>
-	    <expand>False</expand>
-	    <fill>False</fill>
-	  </child>
-	</widget>
-
-	<widget>
-	  <class>GtkEntry</class>
-	  <name>channel_name</name>
-	  <can_focus>True</can_focus>
-	  <signal>
-	    <name>activate</name>
-	    <handler>on_channel_name_activate</handler>
-	    <last_modification_time>Wed, 19 Apr 2000 21:37:37 GMT</last_modification_time>
-	  </signal>
-	  <editable>True</editable>
-	  <text_visible>True</text_visible>
-	  <text_max_length>0</text_max_length>
-	  <text></text>
-	  <child>
-	    <padding>0</padding>
-	    <expand>False</expand>
-	    <fill>False</fill>
-	  </child>
-	</widget>
-      </widget>
-
-      <widget>
-	<class>GtkVBox</class>
-	<name>vbox28</name>
-	<homogeneous>True</homogeneous>
-	<spacing>0</spacing>
-	<child>
-	  <padding>0</padding>
-	  <expand>True</expand>
-	  <fill>True</fill>
-	</child>
-
-	<widget>
-	  <class>GtkHBox</class>
-	  <name>hbox29</name>
-	  <homogeneous>False</homogeneous>
-	  <spacing>0</spacing>
-	  <child>
-	    <padding>0</padding>
-	    <expand>True</expand>
-	    <fill>True</fill>
-	  </child>
-
-	  <widget>
-	    <class>GtkCheckButton</class>
-	    <name>channel_accel_ctrl</name>
-	    <can_focus>True</can_focus>
-	    <label>Ctrl</label>
-	    <active>False</active>
-	    <draw_indicator>True</draw_indicator>
-	    <child>
-	      <padding>0</padding>
-	      <expand>False</expand>
-	      <fill>False</fill>
-	    </child>
-	  </widget>
-
-	  <widget>
-	    <class>GtkCheckButton</class>
-	    <name>channel_accel_shift</name>
-	    <can_focus>True</can_focus>
-	    <label>Shift</label>
-	    <active>False</active>
-	    <draw_indicator>True</draw_indicator>
-	    <child>
-	      <padding>0</padding>
-	      <expand>False</expand>
-	      <fill>False</fill>
-	    </child>
-	  </widget>
-
-	  <widget>
-	    <class>GtkCheckButton</class>
-	    <name>channel_accel_alt</name>
-	    <can_focus>True</can_focus>
-	    <label>Alt</label>
-	    <active>False</active>
-	    <draw_indicator>True</draw_indicator>
-	    <child>
-	      <padding>0</padding>
-	      <expand>False</expand>
-	      <fill>False</fill>
-	    </child>
-	  </widget>
-	</widget>
-
-	<widget>
-	  <class>GtkHBox</class>
-	  <name>hbox31</name>
-	  <homogeneous>False</homogeneous>
-	  <spacing>0</spacing>
-	  <child>
-	    <padding>0</padding>
-	    <expand>False</expand>
-	    <fill>False</fill>
-	  </child>
-
-	  <widget>
-	    <class>GtkEntry</class>
-	    <name>channel_accel</name>
-	    <tooltip>Enter here the key you want to attach to this channel</tooltip>
-	    <can_focus>True</can_focus>
-	    <editable>True</editable>
-	    <text_visible>True</text_visible>
-	    <text_max_length>0</text_max_length>
-	    <text></text>
-	    <child>
-	      <padding>0</padding>
-	      <expand>True</expand>
-	      <fill>True</fill>
-	    </child>
-	  </widget>
-
-	  <widget>
-	    <class>GtkButton</class>
-	    <name>known_keys</name>
-	    <tooltip>Open the list of known keys</tooltip>
-	    <can_focus>True</can_focus>
-	    <label>...</label>
-	    <relief>GTK_RELIEF_NORMAL</relief>
-	    <child>
-	      <padding>0</padding>
-	      <expand>False</expand>
-	      <fill>False</fill>
-	    </child>
-	  </widget>
-	</widget>
-      </widget>
-    </widget>
-
-    <widget>
-      <class>GtkHBox</class>
-      <name>hbox5</name>
-      <homogeneous>True</homogeneous>
-      <spacing>15</spacing>
-      <child>
-	<padding>0</padding>
-	<expand>False</expand>
-	<fill>False</fill>
-      </child>
-
-      <widget>
-	<class>GtkButton</class>
-	<name>channels_done</name>
-	<tooltip>Save the changes and leave the dialog</tooltip>
-	<can_focus>True</can_focus>
-	<signal>
-	  <name>clicked</name>
-	  <handler>on_channels_done_clicked</handler>
-	  <last_modification_time>Sun, 09 Jan 2000 17:38:24 GMT</last_modification_time>
-	</signal>
-	<stock_button>GNOME_STOCK_BUTTON_OK</stock_button>
-	<relief>GTK_RELIEF_NORMAL</relief>
-	<child>
-	  <padding>0</padding>
-	  <expand>False</expand>
-	  <fill>True</fill>
-	</child>
-      </widget>
-
-      <widget>
-	<class>GtkButton</class>
-	<name>button11</name>
-	<tooltip>Click this button if you want to leave the dialog discarding the changes</tooltip>
-	<can_focus>True</can_focus>
-	<signal>
-	  <name>clicked</name>
-	  <handler>on_cancel_channels_clicked</handler>
-	  <last_modification_time>Wed, 19 Apr 2000 21:52:04 GMT</last_modification_time>
-	</signal>
-	<stock_button>GNOME_STOCK_BUTTON_CANCEL</stock_button>
-	<relief>GTK_RELIEF_NORMAL</relief>
-	<child>
-	  <padding>0</padding>
-	  <expand>False</expand>
-	  <fill>True</fill>
-	</child>
-      </widget>
-
-      <widget>
-	<class>GtkButton</class>
-	<name>add_channel</name>
-	<tooltip>Click here to add the current channel</tooltip>
-	<can_focus>True</can_focus>
-	<signal>
-	  <name>clicked</name>
-	  <handler>on_add_channel_clicked</handler>
-	  <last_modification_time>Mon, 10 Jan 2000 23:20:50 GMT</last_modification_time>
-	</signal>
-	<label>_Add</label>
-	<relief>GTK_RELIEF_NORMAL</relief>
-	<child>
-	  <padding>0</padding>
-	  <expand>False</expand>
-	  <fill>True</fill>
-	</child>
-      </widget>
-
-      <widget>
-	<class>GtkButton</class>
-	<name>button10</name>
-	<tooltip>This shows some help about this dialog</tooltip>
-	<can_focus>True</can_focus>
-	<signal>
-	  <name>clicked</name>
-	  <handler>on_help_channels_clicked</handler>
-	  <last_modification_time>Wed, 19 Apr 2000 21:51:51 GMT</last_modification_time>
-	</signal>
-	<stock_button>GNOME_STOCK_BUTTON_HELP</stock_button>
-	<relief>GTK_RELIEF_NORMAL</relief>
-	<child>
-	  <padding>0</padding>
-	  <expand>True</expand>
-	  <fill>True</fill>
-	</child>
-      </widget>
-    </widget>
-  </widget>
-</widget>
-
-<widget>
   <class>GtkDialog</class>
   <name>plugin_properties</name>
   <width>501</width>
@@ -5610,6 +4904,900 @@ adding the table if possible, for inclusion in the next release of this program.
 	<xfill>True</xfill>
 	<yfill>False</yfill>
       </child>
+    </widget>
+  </widget>
+</widget>
+
+<widget>
+  <class>GtkDialog</class>
+  <name>channel_editor</name>
+  <title>Channel editor</title>
+  <type>GTK_WINDOW_TOPLEVEL</type>
+  <position>GTK_WIN_POS_NONE</position>
+  <modal>False</modal>
+  <allow_shrink>False</allow_shrink>
+  <allow_grow>True</allow_grow>
+  <auto_shrink>False</auto_shrink>
+
+  <widget>
+    <class>GtkVBox</class>
+    <child_name>Dialog:vbox</child_name>
+    <name>dialog-vbox10</name>
+    <homogeneous>False</homogeneous>
+    <spacing>0</spacing>
+
+    <widget>
+      <class>GtkHBox</class>
+      <child_name>Dialog:action_area</child_name>
+      <name>dialog-action_area10</name>
+      <border_width>10</border_width>
+      <homogeneous>True</homogeneous>
+      <spacing>5</spacing>
+      <child>
+	<padding>0</padding>
+	<expand>False</expand>
+	<fill>True</fill>
+	<pack>GTK_PACK_END</pack>
+      </child>
+
+      <widget>
+	<class>GtkHBox</class>
+	<name>hbox5</name>
+	<homogeneous>True</homogeneous>
+	<spacing>15</spacing>
+	<child>
+	  <padding>0</padding>
+	  <expand>True</expand>
+	  <fill>True</fill>
+	</child>
+
+	<widget>
+	  <class>GtkButton</class>
+	  <name>channels_done</name>
+	  <tooltip>Save the changes and leave the dialog</tooltip>
+	  <can_focus>True</can_focus>
+	  <signal>
+	    <name>clicked</name>
+	    <handler>on_channels_done_clicked</handler>
+	    <last_modification_time>Sun, 09 Jan 2000 17:38:24 GMT</last_modification_time>
+	  </signal>
+	  <stock_button>GNOME_STOCK_BUTTON_OK</stock_button>
+	  <relief>GTK_RELIEF_NORMAL</relief>
+	  <child>
+	    <padding>0</padding>
+	    <expand>False</expand>
+	    <fill>True</fill>
+	  </child>
+	</widget>
+
+	<widget>
+	  <class>GtkButton</class>
+	  <name>button11</name>
+	  <tooltip>Click this button if you want to leave the dialog discarding the changes</tooltip>
+	  <can_focus>True</can_focus>
+	  <signal>
+	    <name>clicked</name>
+	    <handler>on_cancel_channels_clicked</handler>
+	    <last_modification_time>Wed, 19 Apr 2000 21:52:04 GMT</last_modification_time>
+	  </signal>
+	  <stock_button>GNOME_STOCK_BUTTON_CANCEL</stock_button>
+	  <relief>GTK_RELIEF_NORMAL</relief>
+	  <child>
+	    <padding>0</padding>
+	    <expand>False</expand>
+	    <fill>True</fill>
+	  </child>
+	</widget>
+
+	<widget>
+	  <class>GtkButton</class>
+	  <name>button10</name>
+	  <tooltip>This shows some help about this dialog</tooltip>
+	  <can_focus>True</can_focus>
+	  <signal>
+	    <name>clicked</name>
+	    <handler>on_help_channels_clicked</handler>
+	    <last_modification_time>Wed, 19 Apr 2000 21:51:51 GMT</last_modification_time>
+	  </signal>
+	  <stock_button>GNOME_STOCK_BUTTON_HELP</stock_button>
+	  <relief>GTK_RELIEF_NORMAL</relief>
+	  <child>
+	    <padding>0</padding>
+	    <expand>True</expand>
+	    <fill>True</fill>
+	  </child>
+	</widget>
+      </widget>
+    </widget>
+
+    <widget>
+      <class>GtkVBox</class>
+      <name>vbox40</name>
+      <border_width>3</border_width>
+      <homogeneous>False</homogeneous>
+      <spacing>3</spacing>
+      <child>
+	<padding>0</padding>
+	<expand>True</expand>
+	<fill>True</fill>
+      </child>
+
+      <widget>
+	<class>GtkFrame</class>
+	<name>frame8</name>
+	<label>Region</label>
+	<label_xalign>0</label_xalign>
+	<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>False</fill>
+	</child>
+
+	<widget>
+	  <class>GtkHBox</class>
+	  <name>hbox46</name>
+	  <homogeneous>False</homogeneous>
+	  <spacing>0</spacing>
+
+	  <widget>
+	    <class>GtkVBox</class>
+	    <name>vbox41</name>
+	    <homogeneous>False</homogeneous>
+	    <spacing>3</spacing>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkHBox</class>
+	      <name>hbox44</name>
+	      <homogeneous>False</homogeneous>
+	      <spacing>0</spacing>
+	      <child>
+		<padding>0</padding>
+		<expand>False</expand>
+		<fill>False</fill>
+	      </child>
+
+	      <widget>
+		<class>GtkOptionMenu</class>
+		<name>country_options_menu</name>
+		<tooltip>Select here the frequency table used in your country</tooltip>
+		<can_focus>True</can_focus>
+		<items>No tables
+</items>
+		<initial_choice>0</initial_choice>
+		<child>
+		  <padding>0</padding>
+		  <expand>True</expand>
+		  <fill>True</fill>
+		</child>
+	      </widget>
+	    </widget>
+
+	    <widget>
+	      <class>GtkHBox</class>
+	      <name>hbox45</name>
+	      <homogeneous>False</homogeneous>
+	      <spacing>3</spacing>
+	      <child>
+		<padding>0</padding>
+		<expand>False</expand>
+		<fill>False</fill>
+	      </child>
+
+	      <widget>
+		<class>GtkButton</class>
+		<name>channel_search</name>
+		<tooltip>Select a suitable frequency table, then click here to search through all channels in the table and add the received stations to the channel list.</tooltip>
+		<can_focus>True</can_focus>
+		<signal>
+		  <name>clicked</name>
+		  <handler>on_channel_search_clicked</handler>
+		  <last_modification_time>Tue, 20 Jun 2000 13:54:19 GMT</last_modification_time>
+		</signal>
+		<label>Automatic station _search</label>
+		<relief>GTK_RELIEF_NORMAL</relief>
+		<child>
+		  <padding>0</padding>
+		  <expand>False</expand>
+		  <fill>False</fill>
+		</child>
+	      </widget>
+
+	      <widget>
+		<class>GtkButton</class>
+		<name>button35</name>
+		<tooltip>Add all channels in the frequency table to the channel list.</tooltip>
+		<can_focus>True</can_focus>
+		<signal>
+		  <name>clicked</name>
+		  <handler>on_add_all_channels_clicked</handler>
+		  <last_modification_time>Wed, 15 Aug 2001 23:45:23 GMT</last_modification_time>
+		</signal>
+		<label>Add all the channels</label>
+		<relief>GTK_RELIEF_NORMAL</relief>
+		<child>
+		  <padding>0</padding>
+		  <expand>True</expand>
+		  <fill>True</fill>
+		</child>
+	      </widget>
+	    </widget>
+
+	    <widget>
+	      <class>GtkLabel</class>
+	      <name>label1</name>
+	      <label>When your country or the required table is not present please notify the author,
+adding the table if possible, for inclusion in the next release of this program.</label>
+	      <justify>GTK_JUSTIFY_CENTER</justify>
+	      <wrap>False</wrap>
+	      <xalign>0.5</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <child>
+		<padding>0</padding>
+		<expand>False</expand>
+		<fill>False</fill>
+	      </child>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkScrolledWindow</class>
+	    <name>scrolledwindow5</name>
+	    <hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
+	    <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
+	    <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+	    <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkCList</class>
+	      <name>clist1</name>
+	      <width>178</width>
+	      <height>100</height>
+	      <tooltip>Select here the channel you want to tune</tooltip>
+	      <can_focus>True</can_focus>
+	      <signal>
+		<name>select_row</name>
+		<handler>on_clist1_select_row</handler>
+		<last_modification_time>Sun, 16 Jan 2000 17:38:54 GMT</last_modification_time>
+	      </signal>
+	      <columns>2</columns>
+	      <column_widths>54,87</column_widths>
+	      <selection_mode>GTK_SELECTION_BROWSE</selection_mode>
+	      <show_titles>True</show_titles>
+	      <shadow_type>GTK_SHADOW_IN</shadow_type>
+
+	      <widget>
+		<class>GtkLabel</class>
+		<child_name>CList:title</child_name>
+		<name>label5</name>
+		<label>Station</label>
+		<justify>GTK_JUSTIFY_CENTER</justify>
+		<wrap>False</wrap>
+		<xalign>0.5</xalign>
+		<yalign>0.5</yalign>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+	      </widget>
+
+	      <widget>
+		<class>GtkLabel</class>
+		<child_name>CList:title</child_name>
+		<name>label6</name>
+		<label>Freq (kHz)</label>
+		<justify>GTK_JUSTIFY_CENTER</justify>
+		<wrap>False</wrap>
+		<xalign>0.5</xalign>
+		<yalign>0.5</yalign>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+	      </widget>
+	    </widget>
+	  </widget>
+	</widget>
+      </widget>
+
+      <widget>
+	<class>GtkFrame</class>
+	<name>frame9</name>
+	<label>Tuned channels</label>
+	<label_xalign>0</label_xalign>
+	<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+	<child>
+	  <padding>0</padding>
+	  <expand>True</expand>
+	  <fill>True</fill>
+	</child>
+
+	<widget>
+	  <class>GtkHBox</class>
+	  <name>hbox6</name>
+	  <homogeneous>False</homogeneous>
+	  <spacing>0</spacing>
+
+	  <widget>
+	    <class>GtkScrolledWindow</class>
+	    <name>scrolledwindow6</name>
+	    <height>110</height>
+	    <hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
+	    <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
+	    <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+	    <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkCList</class>
+	      <name>channel_list</name>
+	      <width>370</width>
+	      <can_focus>True</can_focus>
+	      <signal>
+		<name>select_row</name>
+		<handler>on_channel_list_select_row</handler>
+		<last_modification_time>Thu, 20 Apr 2000 10:51:09 GMT</last_modification_time>
+	      </signal>
+	      <signal>
+		<name>key_press_event</name>
+		<handler>on_channel_list_key_press_event</handler>
+		<last_modification_time>Fri, 21 Apr 2000 22:00:53 GMT</last_modification_time>
+	      </signal>
+	      <columns>5</columns>
+	      <column_widths>90,50,60,70,65</column_widths>
+	      <selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
+	      <show_titles>True</show_titles>
+	      <shadow_type>GTK_SHADOW_IN</shadow_type>
+
+	      <widget>
+		<class>GtkLabel</class>
+		<child_name>CList:title</child_name>
+		<name>label37</name>
+		<label>Name</label>
+		<justify>GTK_JUSTIFY_CENTER</justify>
+		<wrap>False</wrap>
+		<xalign>0.5</xalign>
+		<yalign>0.5</yalign>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+	      </widget>
+
+	      <widget>
+		<class>GtkLabel</class>
+		<child_name>CList:title</child_name>
+		<name>label38</name>
+		<label>Station</label>
+		<justify>GTK_JUSTIFY_CENTER</justify>
+		<wrap>False</wrap>
+		<xalign>0.5</xalign>
+		<yalign>0.5</yalign>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+	      </widget>
+
+	      <widget>
+		<class>GtkLabel</class>
+		<child_name>CList:title</child_name>
+		<name>label39</name>
+		<label>Country</label>
+		<justify>GTK_JUSTIFY_CENTER</justify>
+		<wrap>False</wrap>
+		<xalign>0.5</xalign>
+		<yalign>0.5</yalign>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+	      </widget>
+
+	      <widget>
+		<class>GtkLabel</class>
+		<child_name>CList:title</child_name>
+		<name>label40</name>
+		<label>Freq (kHz)</label>
+		<justify>GTK_JUSTIFY_CENTER</justify>
+		<wrap>False</wrap>
+		<xalign>0.5</xalign>
+		<yalign>0.5</yalign>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+	      </widget>
+
+	      <widget>
+		<class>GtkLabel</class>
+		<child_name>CList:title</child_name>
+		<name>label200</name>
+		<label>Accelerator</label>
+		<justify>GTK_JUSTIFY_CENTER</justify>
+		<wrap>False</wrap>
+		<xalign>0.5</xalign>
+		<yalign>0.5</yalign>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+	      </widget>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkVBox</class>
+	    <name>vbox34</name>
+	    <homogeneous>False</homogeneous>
+	    <spacing>0</spacing>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkButton</class>
+	      <name>move_channel_up</name>
+	      <tooltip>Move selected channels one row up</tooltip>
+	      <can_focus>True</can_focus>
+	      <stock_button>GNOME_STOCK_BUTTON_UP</stock_button>
+	      <relief>GTK_RELIEF_NORMAL</relief>
+	      <child>
+		<padding>0</padding>
+		<expand>True</expand>
+		<fill>True</fill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkButton</class>
+	      <name>move_channel_down</name>
+	      <tooltip>Move selected channels one row down</tooltip>
+	      <can_focus>True</can_focus>
+	      <stock_button>GNOME_STOCK_BUTTON_DOWN</stock_button>
+	      <relief>GTK_RELIEF_NORMAL</relief>
+	      <child>
+		<padding>0</padding>
+		<expand>True</expand>
+		<fill>True</fill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkButton</class>
+	      <name>remove_channel</name>
+	      <tooltip>Delete selected channels</tooltip>
+	      <can_focus>True</can_focus>
+	      <signal>
+		<name>clicked</name>
+		<handler>on_remove_channel_clicked</handler>
+		<last_modification_time>Mon, 10 Jan 2000 23:21:05 GMT</last_modification_time>
+	      </signal>
+	      <label>_Remove</label>
+	      <relief>GTK_RELIEF_NORMAL</relief>
+	      <child>
+		<padding>0</padding>
+		<expand>False</expand>
+		<fill>False</fill>
+	      </child>
+	    </widget>
+	  </widget>
+	</widget>
+      </widget>
+
+      <widget>
+	<class>GtkFrame</class>
+	<name>frame10</name>
+	<label>Edit channel</label>
+	<label_xalign>0</label_xalign>
+	<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>False</fill>
+	</child>
+
+	<widget>
+	  <class>GtkVBox</class>
+	  <name>vbox42</name>
+	  <homogeneous>False</homogeneous>
+	  <spacing>0</spacing>
+
+	  <widget>
+	    <class>GtkTable</class>
+	    <name>table72</name>
+	    <rows>5</rows>
+	    <columns>2</columns>
+	    <homogeneous>False</homogeneous>
+	    <row_spacing>3</row_spacing>
+	    <column_spacing>3</column_spacing>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkLabel</class>
+	      <name>label42</name>
+	      <label>Name:</label>
+	      <justify>GTK_JUSTIFY_CENTER</justify>
+	      <wrap>False</wrap>
+	      <xalign>1</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <child>
+		<left_attach>0</left_attach>
+		<right_attach>1</right_attach>
+		<top_attach>0</top_attach>
+		<bottom_attach>1</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>False</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>True</xfill>
+		<yfill>False</yfill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkEntry</class>
+	      <name>channel_name</name>
+	      <can_focus>True</can_focus>
+	      <signal>
+		<name>activate</name>
+		<handler>on_channel_name_activate</handler>
+		<last_modification_time>Wed, 19 Apr 2000 21:37:37 GMT</last_modification_time>
+	      </signal>
+	      <editable>True</editable>
+	      <text_visible>True</text_visible>
+	      <text_max_length>0</text_max_length>
+	      <text></text>
+	      <child>
+		<left_attach>1</left_attach>
+		<right_attach>2</right_attach>
+		<top_attach>0</top_attach>
+		<bottom_attach>1</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>True</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>True</xfill>
+		<yfill>False</yfill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkLabel</class>
+	      <name>label234</name>
+	      <label>Keyboard shortcut:</label>
+	      <justify>GTK_JUSTIFY_CENTER</justify>
+	      <wrap>False</wrap>
+	      <xalign>1</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <child>
+		<left_attach>0</left_attach>
+		<right_attach>1</right_attach>
+		<top_attach>1</top_attach>
+		<bottom_attach>2</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>False</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>True</xfill>
+		<yfill>False</yfill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkHBox</class>
+	      <name>hbox47</name>
+	      <homogeneous>False</homogeneous>
+	      <spacing>0</spacing>
+	      <child>
+		<left_attach>1</left_attach>
+		<right_attach>2</right_attach>
+		<top_attach>1</top_attach>
+		<bottom_attach>2</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>False</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>True</xfill>
+		<yfill>True</yfill>
+	      </child>
+
+	      <widget>
+		<class>GtkHBox</class>
+		<name>hbox29</name>
+		<homogeneous>False</homogeneous>
+		<spacing>0</spacing>
+		<child>
+		  <padding>0</padding>
+		  <expand>False</expand>
+		  <fill>False</fill>
+		</child>
+
+		<widget>
+		  <class>GtkCheckButton</class>
+		  <name>channel_accel_ctrl</name>
+		  <can_focus>True</can_focus>
+		  <label>Ctrl</label>
+		  <active>False</active>
+		  <draw_indicator>True</draw_indicator>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkCheckButton</class>
+		  <name>channel_accel_shift</name>
+		  <can_focus>True</can_focus>
+		  <label>Shift</label>
+		  <active>False</active>
+		  <draw_indicator>True</draw_indicator>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkCheckButton</class>
+		  <name>channel_accel_alt</name>
+		  <can_focus>True</can_focus>
+		  <label>Alt</label>
+		  <active>False</active>
+		  <draw_indicator>True</draw_indicator>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
+		</widget>
+	      </widget>
+
+	      <widget>
+		<class>GtkHBox</class>
+		<name>hbox31</name>
+		<homogeneous>False</homogeneous>
+		<spacing>0</spacing>
+		<child>
+		  <padding>0</padding>
+		  <expand>True</expand>
+		  <fill>True</fill>
+		</child>
+
+		<widget>
+		  <class>GtkEntry</class>
+		  <name>channel_accel</name>
+		  <tooltip>Enter here the key you want to attach to this channel</tooltip>
+		  <can_focus>True</can_focus>
+		  <editable>True</editable>
+		  <text_visible>True</text_visible>
+		  <text_max_length>0</text_max_length>
+		  <text></text>
+		  <child>
+		    <padding>0</padding>
+		    <expand>True</expand>
+		    <fill>True</fill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkButton</class>
+		  <name>known_keys</name>
+		  <tooltip>Open the list of known keys</tooltip>
+		  <can_focus>True</can_focus>
+		  <label>List of known keys</label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
+		</widget>
+	      </widget>
+	    </widget>
+
+	    <widget>
+	      <class>GtkLabel</class>
+	      <name>label235</name>
+	      <label>Fine tuning:</label>
+	      <justify>GTK_JUSTIFY_CENTER</justify>
+	      <wrap>False</wrap>
+	      <xalign>1</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <child>
+		<left_attach>0</left_attach>
+		<right_attach>1</right_attach>
+		<top_attach>2</top_attach>
+		<bottom_attach>3</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>False</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>True</xfill>
+		<yfill>False</yfill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkLabel</class>
+	      <name>label236</name>
+	      <label>Standard:</label>
+	      <justify>GTK_JUSTIFY_CENTER</justify>
+	      <wrap>False</wrap>
+	      <xalign>1</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <child>
+		<left_attach>0</left_attach>
+		<right_attach>1</right_attach>
+		<top_attach>3</top_attach>
+		<bottom_attach>4</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>False</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>True</xfill>
+		<yfill>False</yfill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkLabel</class>
+	      <name>label237</name>
+	      <label>Input:</label>
+	      <justify>GTK_JUSTIFY_CENTER</justify>
+	      <wrap>False</wrap>
+	      <xalign>1</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <child>
+		<left_attach>0</left_attach>
+		<right_attach>1</right_attach>
+		<top_attach>4</top_attach>
+		<bottom_attach>5</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>False</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>True</xfill>
+		<yfill>False</yfill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkOptionMenu</class>
+	      <name>attached_standard</name>
+	      <tooltip>Select here the video standard used on this channel</tooltip>
+	      <can_focus>True</can_focus>
+	      <items>Magical Standard
+</items>
+	      <initial_choice>0</initial_choice>
+	      <child>
+		<left_attach>1</left_attach>
+		<right_attach>2</right_attach>
+		<top_attach>3</top_attach>
+		<bottom_attach>4</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>False</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>True</xfill>
+		<yfill>False</yfill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkOptionMenu</class>
+	      <name>attached_input</name>
+	      <tooltip>Select here the input to be attached to this channel</tooltip>
+	      <can_focus>True</can_focus>
+	      <items>Magical input
+</items>
+	      <initial_choice>0</initial_choice>
+	      <child>
+		<left_attach>1</left_attach>
+		<right_attach>2</right_attach>
+		<top_attach>4</top_attach>
+		<bottom_attach>5</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>False</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>True</xfill>
+		<yfill>False</yfill>
+	      </child>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkHBox</class>
+	    <name>hbox48</name>
+	    <border_width>3</border_width>
+	    <homogeneous>True</homogeneous>
+	    <spacing>3</spacing>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkButton</class>
+	      <name>add_channel</name>
+	      <tooltip>Create a new channel with these settings</tooltip>
+	      <can_focus>True</can_focus>
+	      <signal>
+		<name>clicked</name>
+		<handler>on_add_channel_clicked</handler>
+		<last_modification_time>Fri, 02 Nov 2001 19:40:08 GMT</last_modification_time>
+	      </signal>
+	      <label>_Add as a new channel</label>
+	      <relief>GTK_RELIEF_NORMAL</relief>
+	      <child>
+		<padding>0</padding>
+		<expand>True</expand>
+		<fill>True</fill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkButton</class>
+	      <name>modify_channel</name>
+	      <tooltip>Apply the current settings to the selected channels above</tooltip>
+	      <can_focus>True</can_focus>
+	      <signal>
+		<name>clicked</name>
+		<handler>on_modify_channel_clicked</handler>
+		<last_modification_time>Thu, 20 Jul 2000 15:44:39 GMT</last_modification_time>
+	      </signal>
+	      <label>_Modify selected channels</label>
+	      <relief>GTK_RELIEF_NORMAL</relief>
+	      <child>
+		<padding>0</padding>
+		<expand>True</expand>
+		<fill>True</fill>
+	      </child>
+	    </widget>
+	  </widget>
+	</widget>
+      </widget>
     </widget>
   </widget>
 </widget>

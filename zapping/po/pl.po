@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.5\n"
-"POT-Creation-Date: 2001-09-20 23:33+0200\n"
+"POT-Creation-Date: 2001-09-18 01:27+0200\n"
 "PO-Revision-Date: 2001-09-08 17:59+0000\n"
 "Last-Translator: Pawe³ Sakowski <pawel@sakowski.eu.org>\n"
 "Language-Team: Polish <pl@li.org>\n"
@@ -323,7 +323,7 @@ msgstr "Wej¶cia"
 msgid "No tuned channels"
 msgstr "Brak ustawionych kana³ów"
 
-#: src/zvbi.c:139
+#: src/zvbi.c:140
 #, c-format
 msgid ""
 "Sorry, but %s couldn't be opened:\n"
@@ -333,11 +333,11 @@ msgstr ""
 "%s (%s)"
 
 #. pixmaps not installed
-#: src/zvbi.c:400
+#: src/zvbi.c:401
 msgid "Click me"
 msgstr "Kliknij na mnie"
 
-#: src/zvbi.c:434
+#: src/zvbi.c:435
 msgid ""
 "Open this link with the predetermined Web browser.\n"
 "You can configure this in the GNOME Control Center, under Handlers/Url "
@@ -347,21 +347,21 @@ msgstr ""
 "Mo¿esz j± skonfigurowaæ w Centrum Sterowania GNOME pod Obs³uga dokumentów/"
 "Obs³uga URL"
 
-#: src/zvbi.c:441
+#: src/zvbi.c:442
 #, c-format
 msgid " %s: Teletext Page %x"
 msgstr "%s: Strona Teletekstu %x"
 
-#: src/zvbi.c:444
+#: src/zvbi.c:445
 #, c-format
 msgid " Teletext Page %x"
 msgstr " Strona Teletekstu %x"
 
-#: src/zvbi.c:445
+#: src/zvbi.c:446
 msgid "Open this page with Zapzilla"
 msgstr "Otwórz t± stronê w Zapzilli"
 
-#: src/zvbi.c:538
+#: src/zvbi.c:539
 msgid ""
 "This probably means that the required driver isn't loaded. Add to your /etc/"
 "modules.conf the line:\n"
@@ -377,7 +377,7 @@ msgstr ""
 "i utwórz /dev/vbi0 przy u¿yciu mknod. Je¶li to nie zadzia³a, mo¿esz wy³±czyæ "
 "VBI w menu Ustawienia/Preferencje/Opcje VBI/W³±cz dekodowanie VBI."
 
-#: src/zvbi.c:550
+#: src/zvbi.c:551
 #, c-format
 msgid ""
 "Failed to access vbi device:\n"
@@ -389,12 +389,20 @@ msgstr ""
 "%s"
 
 #. should not happen
-#: src/zvbi.c:553
+#: src/zvbi.c:554
 #, c-format
 msgid "Failed to access vbi device %s, cause unknown.\n"
 msgstr "Nie mogê uzyskaæ dostêpu do urz±dzenia vbi %s, przyczyna nieznana.\n"
 
-#: src/zvbi.c:1755
+#: src/zvbi.c:1754
+#, c-format
+msgid "%d minute"
+msgid_plural "%d minutes"
+msgstr[0] "%d minuta"
+msgstr[1] "%d minuty"
+msgstr[2] "%d minut"
+
+#: src/zvbi.c:1756
 #, c-format
 msgid "%d h %d m"
 msgstr "%d godz. %d min."
@@ -638,21 +646,16 @@ msgstr "Podgl±d nie zadzia³a: %s"
 msgid "VBI has been disabled, or it doesn't work."
 msgstr "VBI zosta³ wy³±czony albo nie dzia³a."
 
-#: src/zmisc.c:650
-#, fuzzy
-msgid "Hide the status bar"
-msgstr "Pokazywaæ w pasku stanu"
-
-#: src/zmisc.c:707
+#: src/zmisc.c:672
 msgid "The path must start with /"
 msgstr "¦cie¿ka musi siê zaczynaæ od /"
 
-#: src/zmisc.c:722
+#: src/zmisc.c:687
 #, c-format
 msgid "Cannot create %s: %s"
 msgstr "Nie mogê utworzyæ %s: %s"
 
-#: src/zmisc.c:735
+#: src/zmisc.c:700
 #, c-format
 msgid "%s is not a directory"
 msgstr "%s nie jest katalogiem"
@@ -724,11 +727,11 @@ msgstr "%s z tunerem"
 msgid "%s with %d tuners"
 msgstr "%s z %d tunerami"
 
-#: src/properties.c:743
+#: src/properties.c:742
 msgid "No plugin accepts this page."
 msgstr "¯adna wtyczka nie akceptuje tej strony."
 
-#: src/properties.c:778
+#: src/properties.c:777
 msgid ""
 "The plugin that created the active page doesn't provide help for it. Sorry."
 msgstr ""
@@ -819,6 +822,10 @@ msgstr "Niestety, nie mo¿na uruchomiæ wtyczki"
 msgid "Sorry, the plugin doesn't provide help for this"
 msgstr "Niestety, wtyczka nie udostêpnia pomocy dla tego"
 
+#: src/ttxview.c:173 src/ttxview.c:1248
+msgid "VBI has been disabled"
+msgstr "VBI zosta³ wy³±czony"
+
 #: src/ttxview.c:522
 #, c-format
 msgid "Loading page %x..."
@@ -877,10 +884,6 @@ msgstr "Pamiêæ podrêczna pusta"
 #, c-format
 msgid "Scanning %x.%02x"
 msgstr "Przeszukujê %x.%02x"
-
-#: src/ttxview.c:1248
-msgid "VBI has been disabled"
-msgstr "VBI zosta³ wy³±czony"
 
 #: src/ttxview.c:1542
 #, c-format
@@ -2381,6 +2384,22 @@ msgstr "Ta wtyczka koduje strumieñ obrazu i d¼wiêku do pliku MPEG"
 msgid "Encode the stream as MPEG."
 msgstr "Zakoduj strumieñ jako MPEG."
 
+#: plugins/mpeg/mpeg.c:481
+#, c-format
+msgid "%d frame dropped"
+msgid_plural "%d frames dropped"
+msgstr[0] "porzucono %d ramkê"
+msgstr[1] "porzucono %d ramki"
+msgstr[2] "porzucono %d ramek"
+
+#: plugins/mpeg/mpeg.c:485
+#, c-format
+msgid "%d frame processed"
+msgid_plural "%d frames processed"
+msgstr[0] "przetworzono %d ramkê"
+msgstr[1] "przetworzono %d ramki"
+msgstr[2] "przetworzono %d ramek"
+
 #: plugins/mpeg/mpeg.c:489
 #, c-format
 msgid "%.1f MB : %s : %s"
@@ -2694,7 +2713,7 @@ msgid "Teletext Page %3x.%x"
 msgstr "Strona teletekstu %3x.%x"
 
 #: libvbi/exp-gfx.c:840 libvbi/exp-html.c:209
-#, c-format
+#, c-format, ycp-format
 msgid "Teletext Page %3x"
 msgstr "Strona teletekstu %3x"
 
@@ -3026,23 +3045,9 @@ msgstr ""
 "W %s (%s) brakuje interfejsu odczytu vbi, prawdopodobnie urz±dzenie tylko do "
 "wyj¶cia albo b³±d sterownika. %s\n"
 
-#~ msgid "%d minute"
-#~ msgid_plural "%d minutes"
-#~ msgstr[0] "%d minuta"
-#~ msgstr[1] "%d minuty"
-#~ msgstr[2] "%d minut"
-
-#~ msgid "%d frame dropped"
-#~ msgid_plural "%d frames dropped"
-#~ msgstr[0] "porzucono %d ramkê"
-#~ msgstr[1] "porzucono %d ramki"
-#~ msgstr[2] "porzucono %d ramek"
-
-#~ msgid "%d frame processed"
-#~ msgid_plural "%d frames processed"
-#~ msgstr[0] "przetworzono %d ramkê"
-#~ msgstr[1] "przetworzono %d ramki"
-#~ msgstr[2] "przetworzono %d ramek"
+#, fuzzy
+#~ msgid "Hide the status bar"
+#~ msgstr "Pokazywaæ w pasku stanu"
 
 #~ msgid "Verbosity value given to zapping__setup__fb:"
 #~ msgstr "Poziom rozwlek³o¶ci zapping__setup__fb:"

@@ -172,6 +172,13 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 		  tveng_device_info * info);
 
 /**
+ * Like tveng_restart_everything, but updates overlay clips as necessary.
+ */
+int
+z_restart_everything(enum tveng_capture_mode mode,
+		     tveng_device_info * info);
+
+/**
  * Prints the message in the status bar.
  * if the bar is hidden, it's shown.
  */

@@ -460,6 +460,21 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   return return_value;
 }
 
+int
+z_restart_everything(enum tveng_capture_mode mode,
+		     tveng_device_info * info)
+{
+  int result = tveng_restart_everything(mode, info);
+
+  if (result)
+    return result;
+
+  if (info->current_mode == TVENG_CAPTURE_WINDOW)
+    overlay_sync(FALSE);
+
+  return 0;
+}
+
 /* API flaw */
 void set_stock_pixmap	(GtkWidget	*button,
 			 const gchar	*new_pix)

@@ -205,13 +205,8 @@ void
 on_remove_channel_clicked              (GtkButton       *button,
                                         gpointer         user_data);
 
-gboolean
-on_channel_window_delete_event         (GtkWidget       *widget,
-                                        GdkEvent        *event,
-                                        gpointer         user_data);
-
 void
-on_clist1_select_row                   (GtkCList        *clist,
+on_clist1_select_row                   (GtkWidget       *clist,
                                         gint             row,
                                         gint             column,
                                         GdkEvent        *event,
