@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: memcpy.c,v 1.2 2005-02-06 21:42:08 mschimek Exp $ */
+/* $Id: memcpy.c,v 1.3 2005-02-10 07:55:47 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -108,6 +108,11 @@ main				(int			argc,
 	if (features & CPU_FEATURE_SSE) {
 		cpu_features = CPU_FEATURE_SSE;
 		test ("memcpy sse");
+	}
+
+	if (features & CPU_FEATURE_ALTIVEC) {
+		cpu_features = CPU_FEATURE_ALTIVEC;
+		test ("memcpy altivec");
 	}
 
 	return EXIT_SUCCESS;
