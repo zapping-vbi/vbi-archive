@@ -38,9 +38,10 @@ server that you want to use a smaller resolution apart from the usual
 one (in /etc/X11/XF86Config or maybe using Xconfigurator or a similar program).
 <li><i>What are you talking about? There's no menu option for
 that!</i><br>
-Actually, there is. It's just that it hides itself if no Direct Video
-(DGA) capabilities are found for the current X server, or the TV card
-doesn't provide a preview mode.
+Actually, there is. It's just that it hides itself if it isn't
+applicable. For example, if VBI is disabled, the menu items to switch
+Teletext on disappear. If DGA isn't found, preview and fullscreen are
+hidden. And so on.
 <li><i>The screen goes blank, but nothing appears.</i><br>
 That's a bug, please report it</a>.
 <li><i>When starting it prints /dev/dsp busy and stops working.</i><br>
@@ -50,10 +51,17 @@ That's a bug too. I'm specially interested in your libesd version
 This probably means that zapping.glade couldn't be found. That's a bug
 that should be fixed with 0.5.2, if it isn't, then report it (with the
 location where zapping.glade has been installed).
+<li><i>Fullscreen and preview modes show a very distorted image</i><br>
+The usual cause for this is that Zapping couldn't guess correctly the
+BPP the X Server is using internally. This is quite common in 24/32
+bpp modes, since there's no way I'm aware of to get the real bpp. Try
+using the command line --bpp switch.
 <li><i>Preview mode sucks!</i><br>
 I agree with you 100%. Use fullscreen when just watching TV and
 capture when doing something else. A windowed preview mode just
-doesn't make sense, but a lot of people have asked for it.
+doesn't make sense, but a lot of people have asked for it. Support the
+Xv extension is planned (see the included TODO), this will improve
+things dramatically.
 </ul>
 <H4>How can I help?</H4>
 In a thousand ways. The preferred way is with translations, patches
@@ -67,9 +75,7 @@ devices).
 If you want to contact me (please <a
 href="http://zapping.sourceforge.net/index.html#Bugs">report bugs</a>
 instead of sending them directly to me), you just have to follow <a
-href="mailto:garetxe@users.sourceforge.net">this link</a>. I won't be
-online from Jul 27 to Aug 25, so please be patient if I don't answer
-your mails.<br>
+href="mailto:garetxe@users.sourceforge.net">this link</a>.<br>
 In the
 <a href="http://sourceforge.net/projects/zapping">Sourceforge project
 page</a> there are some forums, use them freely.

@@ -1,3 +1,10 @@
+11.9.2000	New release <garetxe@users.sourceforge.net>
+
+	* html docs: Updated.
+	* src/tveng.c: Support for command-line bpp added.
+	* src/callbacks.c: The screensaver now goes to throttle mode when
+	Fullscreen is used.
+
 08.9.2000	History improved <garetxe@users.sourceforge.net>
 
 	* glade/zapping.glade: txtcontrols redesigned, now it only shows
@@ -6,6 +13,7 @@
 	* src/zvbi.c: Added a web-browser-like history, and a visited
 	pages list. It's easier to navigate now. Added fast navigation
 	("color" navigation, FLOF), and subpage/page recognision.
+	* src/main.c: Added command line option --bpp.
 
 07.9.2000	History implemented <garetxe@users.sourceforge.net>
 

@@ -1,14 +1,12 @@
 Outstanding issues for the next release
 ---------------------------------------
-	+ xscreensaver-command -throttle
-	+ sed s/videotext/teletext/g
-	+ Add bpp option
-	> Release 0.5.3
 	+ Write the mpeg plugin (this is a MUST)
 	+ Bug fixes
 	> Release 0.5.4
 	+ Subtitles support
 	+ Xv support if present.
+	+ Support in teletext mode for numeric keys
 	? Make the visited pages in the teletext browser a tree ? -
 		depends on feedback.
+	+ Teletext docs
 	> Release 0.5.5

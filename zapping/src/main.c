@@ -81,6 +81,21 @@ int main(int argc, char * argv[])
   GdkGeometry geometry;
   GdkWindowHints hints;
   plugin_sample sample; /* The a/v sample passed to the plugins */
+  gint x_bpp = -1;
+  const struct poptOption options[] = {
+    {
+      "bpp",
+      'b',
+      POPT_ARG_INT,
+      &x_bpp,
+      0,
+      N_("Color depth of the X display"),
+      N_("BPP")
+    },
+    {
+      NULL,
+    } /* end the list */
+  };
 
 #ifdef ENABLE_NLS
   bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
@@ -88,7 +103,8 @@ int main(int argc, char * argv[])
 #endif
 
   /* Init gnome, libglade, modules and tveng */
-  gnome_init ("zapping", VERSION, argc, argv);
+  gnome_init_with_popt_table ("zapping", VERSION, argc, argv, options,
+			      0, NULL);
   glade_gnome_init();
 
   if (!g_module_supported ())
@@ -98,7 +114,7 @@ int main(int argc, char * argv[])
       return 0;
     }
 
-  main_info = tveng_device_info_new( GDK_DISPLAY() );
+  main_info = tveng_device_info_new( GDK_DISPLAY(), x_bpp );
 
   if (!main_info)
     {

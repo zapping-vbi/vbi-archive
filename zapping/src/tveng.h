@@ -258,6 +258,7 @@ typedef struct
   /* fixme: put this into the private struct */
   Display * display;
   int save_x, save_y;
+  int bpp;
 
 #ifndef DISABLE_X_EXTENSIONS
   XF86VidModeModeInfo modeinfo;
@@ -272,8 +273,10 @@ typedef struct
 tveng_device_info;
 
 /* Starts a tveng_device_info object, returns a pointer to the object
-   or NULL on error. Display is the display we are connected to */
-tveng_device_info * tveng_device_info_new(Display * display);
+   or NULL on error. Display is the display we are connected to, bpp
+   is the current X display's depth in Bits Per Pixel, or -1 if TVeng
+   should try to detect it */
+tveng_device_info * tveng_device_info_new(Display * display, int bpp);
 
 /* Destroys a tveng_device_info object */
 void tveng_device_info_destroy(tveng_device_info * info);

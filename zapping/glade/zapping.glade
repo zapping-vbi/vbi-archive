@@ -230,10 +230,10 @@
 	    <widget>
 	      <class>GtkPixmapMenuItem</class>
 	      <name>videotext1</name>
-	      <tooltip>Use Zapping as a videotext decoder</tooltip>
+	      <tooltip>Use Zapping as a Teletext navigator</tooltip>
 	      <accelerator>
 		<modifiers>GDK_CONTROL_MASK | GDK_MOD1_MASK</modifiers>
-		<key>GDK_V</key>
+		<key>GDK_T</key>
 		<signal>activate</signal>
 	      </accelerator>
 	      <signal>
@@ -241,7 +241,7 @@
 		<handler>on_videotext1_activate</handler>
 		<last_modification_time>Wed, 06 Sep 2000 17:25:34 GMT</last_modification_time>
 	      </signal>
-	      <label>Videotext</label>
+	      <label>_Teletext</label>
 	      <right_justify>False</right_justify>
 	      <stock_icon>GNOME_STOCK_MENU_ALIGN_JUSTIFY</stock_icon>
 	    </widget>
@@ -2334,13 +2334,13 @@ in the next release of this program.</label>
   <widget>
     <class>GtkPixmapMenuItem</class>
     <name>videotext2</name>
-    <tooltip>Use Zapping as a videotext decoder</tooltip>
+    <tooltip>Use Zapping as a teletext navigator</tooltip>
     <signal>
       <name>activate</name>
       <handler>on_videotext1_activate</handler>
       <last_modification_time>Wed, 06 Sep 2000 21:13:23 GMT</last_modification_time>
     </signal>
-    <label>Videotext</label>
+    <label>_Teletext</label>
     <right_justify>False</right_justify>
     <stock_icon>GNOME_STOCK_MENU_ALIGN_JUSTIFY</stock_icon>
   </widget>
@@ -2676,7 +2676,7 @@ in the next release of this program.</label>
 	    <wrap>True</wrap>
 	    <value>100</value>
 	    <lower>100</lower>
-	    <upper>900</upper>
+	    <upper>899</upper>
 	    <step>1</step>
 	    <page>10</page>
 	    <page_size>10</page_size>
@@ -2700,7 +2700,7 @@ in the next release of this program.</label>
 	    <wrap>False</wrap>
 	    <value>-1</value>
 	    <lower>-1</lower>
-	    <upper>100</upper>
+	    <upper>99</upper>
 	    <step>1</step>
 	    <page>10</page>
 	    <page_size>10</page_size>

@@ -53,7 +53,7 @@ struct private_tveng_device_info
 };
 
 /* Initializes a tveng_device_info object */
-tveng_device_info * tveng_device_info_new(Display * display)
+tveng_device_info * tveng_device_info_new(Display * display, int bpp)
 {
   tveng_device_info * new_object = (tveng_device_info*)
     malloc(sizeof(struct private_tveng_device_info));
@@ -75,6 +75,7 @@ tveng_device_info * tveng_device_info_new(Display * display)
     }
 
   new_object->display = display;
+  new_object->bpp = bpp;
 
   new_object->zapping_setup_fb_verbosity = 0; /* No output by default */
 
@@ -1122,11 +1123,12 @@ tveng_detect_preview (tveng_device_info * info)
 int
 tveng_run_zapping_setup_fb(tveng_device_info * info)
 {
-  char * argv[8]; /* The command line passed to zapping_setup_fb */
+  char * argv[10]; /* The command line passed to zapping_setup_fb */
   pid_t pid; /* New child's pid as returned by fork() */
   int status; /* zapping_setup_fb returned status */
   int i=0;
   int verbosity = info->zapping_setup_fb_verbosity;
+  char buffer[256]; /* A temporary buffer */
 
   /* Executes zapping_setup_fb with the given arguments */
   argv[i++] = "zapping_setup_fb";
@@ -1140,6 +1142,13 @@ tveng_run_zapping_setup_fb(tveng_device_info * info)
     verbosity = 2;
   for (; verbosity > 0; verbosity --)
     argv[i++] = "--verbose";
+  if (info->bpp != -1)
+    {
+      snprintf(buffer, 255, "%d", info->bpp);
+      buffer[255] = 0;
+      argv[i++] = "--bpp";
+      argv[i++] = buffer;
+    }
   argv[i] = NULL;
   
   pid = fork();
@@ -1204,7 +1213,7 @@ tveng_run_zapping_setup_fb(tveng_device_info * info)
    depth 32, thus an expensive RGB -> RGBA conversion must be
    performed for each frame.
    display: the display we want to know its real depth (can be
-   accessed thorugh gdk_display)
+   accessed through gdk_display)
 */
 int
 tveng_get_display_depth(tveng_device_info * info)
@@ -1216,6 +1225,9 @@ tveng_get_display_depth(tveng_device_info * info)
   Display * display = info->display;
   int found, v, i, n;
   int bpp = 0;
+
+  if (info->bpp != -1)
+    return info->bpp;
 
   /* Use the first screen, should give no problems assuming this */
   template.screen = 0;

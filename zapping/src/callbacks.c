@@ -33,6 +33,10 @@
 #include "zconf.h"
 #include "zvbi.h"
 
+/* Comment the next line if you don't want to mess with the
+   XScreensaver */
+#define MESS_WITH_XSS 1
+
 gboolean flag_exit_program; /* set this flag to TRUE to exit the program */
 GtkWidget * ToolBox = NULL; /* Here is stored the Toolbox (if any) */
 
@@ -514,9 +518,14 @@ on_go_fullscreen1_activate             (GtkMenuItem     *menuitem,
       tveng_start_capturing(main_info);
       return;
     }
-  
+
   if (main_info -> current_mode != TVENG_CAPTURE_PREVIEW)
     g_warning("Setting preview succeeded, but the mode is not set");
+
+#ifdef MESS_WITH_XSS
+  /* Set the blank screensaver */
+  gnome_execute_shell(NULL, "xscreensaver-command -throttle");
+#endif
 
   gtk_widget_grab_focus(black_window);
   /*
@@ -556,6 +565,11 @@ on_go_windowed1_activate               (GtkMenuItem     *menuitem,
     return;
 
   gdk_keyboard_ungrab(GDK_CURRENT_TIME);
+
+#ifdef MESS_WITH_XSS
+  /* Restore the normal screensaver */
+  gnome_execute_shell(NULL, "xscreensaver-command -unthrottle");
+#endif
 
   /* Remove the black window */
   gtk_widget_destroy(black_window);
