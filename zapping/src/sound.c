@@ -67,6 +67,7 @@ struct SoundInfo
 };
 
 static struct SoundInfo si;
+static gboolean sound_ok = FALSE;
 static struct timeval tv; /* When did sound capturing start */
 static pthread_mutex_t tv_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -85,11 +86,9 @@ gboolean startup_sound ( void )
   si.esd_recording_socket =
     esd_record_stream_fallback(format, rate, NULL, NULL);
 
-  /* I'm not sure which one is the error code */
-  if ((si.esd_recording_socket == 0) || (si.esd_recording_socket == -1))
+  if (si.esd_recording_socket <= 0)
     {
-      RunBox("Sound couldn't be opened.",
-	     GNOME_MESSAGE_BOX_ERROR);
+      g_warning("Sound couldn't be opened for recording.");
       return FALSE;
     }
 
@@ -98,13 +97,11 @@ gboolean startup_sound ( void )
   si.esd_playing_socket =
     esd_play_stream_fallback(format, rate, NULL, NULL);
 
-  /* I'm not sure which one is the error code */
-  if ((si.esd_playing_socket == 0) || (si.esd_playing_socket == -1))
+  if (si.esd_playing_socket <= 0)
     {
       esd_close(si.esd_recording_socket);
 
-      RunBox("Sound couldn't be opened.",
-	     GNOME_MESSAGE_BOX_ERROR);
+      g_warning("Sound couldn't be opened for playback.");
       return FALSE;
     }
 
@@ -135,10 +132,11 @@ gboolean startup_sound ( void )
       pthread_mutex_destroy(&si.sb[0].mutex);
       pthread_mutex_destroy(&si.sb[1].mutex);
 
-      RunBox("Cannot create a new thread", GNOME_MESSAGE_BOX_ERROR);
+      g_warning("Cannot create a new thread for the sound input");
       return FALSE;
     }
 
+  sound_ok = TRUE;
   return TRUE;
 }
 
@@ -161,11 +159,16 @@ void shutdown_sound ( void )
 
   esd_close(si.esd_recording_socket);
   esd_close(si.esd_playing_socket);
+
+  sound_ok = FALSE;
 }
 
 /* Set the timestamps relative to the current time value */
 void sound_start_timer ( void )
 {
+  if (!sound_ok)
+    return;
+
   pthread_mutex_lock(&tv_mutex);
   gettimeofday(&tv, NULL);
   pthread_mutex_unlock(&tv_mutex);
@@ -265,6 +268,10 @@ struct soundinfo * sound_create_struct( void )
 {
   struct soundinfo * returned_struct =
     (struct soundinfo *) malloc(sizeof(struct soundinfo));
+
+  if (!sound_ok)
+    return NULL;
+
   memset(returned_struct, 0, sizeof(struct soundinfo));
 
   returned_struct -> rate = 44100;
@@ -291,6 +298,9 @@ gint sound_read_data(struct soundinfo * info)
 {
   static gint index;
   static gboolean waiting = FALSE;
+
+  if (!sound_ok)
+    return FALSE;
 
   if (!waiting)
     {
@@ -325,4 +335,3 @@ gint sound_read_data(struct soundinfo * info)
   pthread_mutex_unlock(&(si.sb[index].mutex));
   return (info->size);
 }
-

@@ -15,3 +15,5 @@ from working both correctly at the same time. Work around this.
 	* YUV support is needed for using TVeng with Xv.
 	! If we use V4L2 controllers with VBI, they crash. Add support
 in libvbi for the V4L2 api (or something like that).
+	! The channel searcher sometimes appears to hang when getting
+the VBI name, make it faster.

@@ -1,3 +1,15 @@
+14.9.2000	Kernel 2.4.0test8 <garetxe@users.sourceforge.net>
+
+	* /box: Installed the new kernel, a number of problems have arisen
+	with Zapping. I can reproduce now the /dev/dsp bug! I don't have a
+	clue of the cause, though :-)
+	* /box: NOTE: Some user related that the problem disappeared after
+	installing Gerd's bttv over the 2.4.0test8's one. Check.
+	* src/sound.c: bugfix, even when esd failed to open the device,
+	startup_sound returned succeeded.
+	* src/main.c: Sound can be disabled by a command line  option and
+	if startup_sound fails.
+
 13.9.2000	Teletext processed <garetxe@users.sourceforge.net>
 
 	* src/zvbi.c, src/main.c: The teletext image is now received by

@@ -37,6 +37,8 @@
 #include "sound.h"
 #include "zvbi.h"
 
+/* fixme: Find out why VBI makes the new kernel go nuts */
+
 /* This comes from callbacks.c */
 extern enum tveng_capture_mode restore_mode; /* the mode set when we went
 						fullscreen */
@@ -46,7 +48,7 @@ tveng_device_info * main_info;
 gboolean flag_exit_program = FALSE;
 tveng_channels * current_country = NULL;
 GList * plugin_list = NULL;
-struct soundinfo * si;
+struct soundinfo * si = NULL;
 gboolean disable_preview = FALSE; /* TRUE if zapping_setup_fb didn't
 				     work */
 GtkWidget * main_window;
@@ -54,6 +56,8 @@ gboolean was_fullscreen=FALSE; /* will be TRUE if when quitting we
 				  were fullscreen */
 static gboolean disable_vbi = FALSE; /* TRUE for disabling VBI support
 				      */
+static gboolean disable_sound = FALSE; /* Disable audio i/o in Zapping
+					*/
 void shutdown_zapping(void);
 gboolean startup_zapping(void);
 
@@ -110,6 +114,15 @@ int main(int argc, char * argv[])
       &disable_vbi,
       0,
       N_("Disable VBI support"),
+      NULL
+    },
+    {
+      "no-audio",
+      0,
+      POPT_ARG_NONE,
+      &disable_sound,
+      0,
+      N_("Disable audio i/o support"),
       NULL
     },
     {
@@ -345,8 +358,6 @@ int main(int argc, char * argv[])
   D(); printv("going into main loop...\n");
   while (!flag_exit_program)
     {
-      /* Stop precessing for a while */
-      //      usleep(10000);
       while (gtk_events_pending())
 	gtk_main_iteration(); /* Check for UI changes */
 
@@ -385,7 +396,8 @@ int main(int argc, char * argv[])
 	}
       /* Collect the sound data (the queue needs to be emptied,
 	 otherwise mem usage will grow a lot) */
-      sound_read_data(si);
+      if (si)
+	sound_read_data(si);
 
       /* VBI decoding support */
       if (zvbi_get_mode())
@@ -432,13 +444,21 @@ int main(int argc, char * argv[])
     give_data_to_plugins:
       /* Give the image to the plugins too */
       sample.v_timestamp = tveng_get_timestamp(main_info);
-      sample.audio_data  = si->buffer;
-      sample.audio_size  = si->size;
-      sample.audio_bits  = si->bits;
-      sample.audio_rate  = si->rate;
-      sample.a_timestamp = ((((__s64)si->tv.tv_sec) *
-      1000000)+si->tv.tv_usec)*1000;
-      
+      if (si)
+	{
+	  sample.audio_data  = si->buffer;
+	  sample.audio_size  = si->size;
+	  sample.audio_bits  = si->bits;
+	  sample.audio_rate  = si->rate;
+	  sample.a_timestamp = ((((__s64)si->tv.tv_sec) *
+				 1000000)+si->tv.tv_usec)*1000;
+	}
+      else
+	{
+	  sample.audio_data = NULL;
+	  sample.audio_size = 0;
+	}
+
       p = g_list_first(plugin_list);
       while (p)
 	{
@@ -459,11 +479,11 @@ int main(int argc, char * argv[])
 			 sample.format.height);
 	}
     }
-
+  D();
   /* Closes all fd's, writes the config to HD, and that kind of things
    */
   shutdown_zapping();
-
+  D();
   return 0;
 }
 
@@ -516,10 +536,12 @@ void shutdown_zapping(void)
   if (main_info->num_inputs)
     zcs_int(main_info -> cur_input, "current_input");
 
-  sound_destroy_struct(si);
+  if (si)
+    sound_destroy_struct(si);
 
   /* Shutdown sound */
-  shutdown_sound();
+  if (si)
+    shutdown_sound();
 
   /* Shutdown all other modules */
   shutdown_callbacks();
@@ -647,8 +669,8 @@ gboolean startup_zapping()
     return FALSE;
   D();
   /* Start sound capturing */
-  if (!startup_sound())
-    return FALSE;
+  if (!disable_sound)
+    startup_sound();
   D();
   /* Loads the modules */
   plugin_list = plugin_load_plugins();
@@ -672,8 +694,15 @@ gboolean startup_zapping()
   D();
   si = sound_create_struct();
   D();
-  /* Sync (more or less) the timestamps from the video and the audio */
-  sound_start_timer();
+  /* Sync (more or less) the timestamps from the video and the audio
+   */
+  if (si)
+    sound_start_timer();
+  else
+    {
+      disable_sound = TRUE; /* Just a flag that sound isn't present */
+      g_message("Sound (ESD) support has been disabled");
+    }
   tveng_start_timer(main_info);
   D();
   return TRUE;

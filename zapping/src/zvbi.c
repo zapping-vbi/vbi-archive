@@ -99,7 +99,7 @@ zvbi_open_device(void)
   gboolean erc;
   gchar *device;
 
-  zcc_bool(TRUE, "Enable VBI decoding", "enable_vbi");
+  zcc_bool(FALSE, "Enable VBI decoding", "enable_vbi");
   zcc_bool(TRUE, "Use VBI for getting station names", "use_vbi");
   zcc_char("/dev/vbi", "VBI device", "vbi_device");
   zcc_bool(TRUE, "Error correction", "erc");

@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2000-09-14 01:33+0200\n"
+"POT-Creation-Date: 2000-09-14 12:49+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -456,27 +456,23 @@ msgstr ""
 msgid "Warning: trying to stop capture with no capture active\n"
 msgstr ""
 
-#: src/tveng1.c:1924 src/tveng1.c:1985
+#: src/tveng1.c:1924 src/tveng1.c:1988
 msgid "Cannot understand actual palette"
 msgstr ""
 
-#: src/tveng1.c:1937
-msgid "Grabber chip can't sync (no station tuned in?)"
-msgstr ""
-
-#: src/tveng1.c:2050 src/tveng2.c:1654
+#: src/tveng1.c:2054 src/tveng2.c:1654
 msgid "Current capture mode is not READ"
 msgstr ""
 
-#: src/tveng1.c:2059 src/tveng2.c:1663
+#: src/tveng1.c:2063 src/tveng2.c:1663
 msgid "Size check failed, quitting to avoid segfault"
 msgstr ""
 
-#: src/tveng1.c:2172 src/tveng2.c:1797
+#: src/tveng1.c:2176 src/tveng2.c:1797
 msgid "The capability field says that there is no overlay"
 msgstr ""
 
-#: src/tveng1.c:2382 src/tveng2.c:1998
+#: src/tveng1.c:2386 src/tveng2.c:1998
 msgid "Warning: trying to stop preview with no capture active\n"
 msgstr ""
 

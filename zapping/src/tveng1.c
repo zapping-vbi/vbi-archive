@@ -1963,6 +1963,8 @@ static int p_tveng1_dequeue(void * where, tveng_device_info * info)
   if (p_info -> dequeued == p_info -> queued)
     return 0; /* All queued frames have been dequeued */
 
+  memset(&bm, 0, sizeof(struct video_mmap));
+
   /* Fill in the mmaped_buffer struct */
   switch(info->format.pixformat)
     {
