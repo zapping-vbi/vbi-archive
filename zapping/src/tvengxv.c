@@ -399,10 +399,14 @@ enable_overlay			(tveng_device_info *	info,
 			    /* src */ p_info->ei[encoding_num].height,
 			    /* dest */
 			    0, 0, width, height);
+
+		p_info->active = TRUE;
 	} else {
 		XvStopVideo (info->display,
 			     p_info->port,
 			     p_info->window);
+
+		p_info->active = FALSE;
 	}
 
 	XSync (info->display, False);
@@ -496,7 +500,7 @@ get_control			(tveng_device_info *	info,
 	if (c)
 		return do_get_control (p_info, C(c));
 
-	for_all (c, p_info->info.controls)
+	for_all (c, p_info->info.panel.controls)
 		if (c->_parent == info)
 			if (!do_get_control (p_info, C(c)))
 				return FALSE;
@@ -612,7 +616,7 @@ add_control			(struct private_tvengxv_device_info *p_info,
 
 static tv_bool
 set_video_standard		(tveng_device_info *	info,
-				 const tv_video_standard *s)
+				 tv_video_standard *	s)
 {
 	struct private_tvengxv_device_info *p_info = P_INFO (info);
 
@@ -689,7 +693,7 @@ get_video_standard_list		(tveng_device_info *	info)
 				break;
 
 		if (j < N_ELEMENTS (standards)) {
-			s = S(append_video_standard (&info->video_standards,
+			s = S(append_video_standard (&info->panel.video_standards,
 						     standards[j].set,
 						     standards[j].label,
 						     standards[j].name,
@@ -706,7 +710,7 @@ get_video_standard_list		(tveng_device_info *	info)
 			up[j] = 0;
 
 			s = S(append_video_standard
-			      (&info->video_standards,
+			      (&info->panel.video_standards,
 			       TV_VIDEOSTD_SET (1) << (custom++),
 			       up, buf,
 			       sizeof (*s)));
@@ -723,7 +727,7 @@ get_video_standard_list		(tveng_device_info *	info)
 	return TRUE;
 
  failure:
-	free_video_standard_list (&info->video_standards);
+	free_video_standard_list (&info->panel.video_standards);
 	return FALSE;
 }
 
@@ -760,7 +764,7 @@ get_tuner_frequency		(tveng_device_info *	info,
 	if (!get_video_input (info))
 		return FALSE;
 
-	if (info->cur_video_input == l) {
+	if (info->panel.cur_video_input == l) {
 		XvGetPortAttribute (info->display,
 				    p_info->port,
 				    p_info->xa_freq,
@@ -788,7 +792,7 @@ set_tuner_frequency		(tveng_device_info *	info,
 
 	freq = frequency / 62500;
 
-	if (info->cur_video_input != l)
+	if (info->panel.cur_video_input != l)
 		goto store;
 
 	if (io_debug_msg > 0) {
@@ -806,6 +810,26 @@ set_tuner_frequency		(tveng_device_info *	info,
 	store_frequency (info, VI (l), freq);
 	return TRUE;
 }
+
+static tv_bool
+get_signal_strength		(tveng_device_info *	info,
+				 int *			strength,
+				 int *			afc _unused_)
+{
+	struct private_tvengxv_device_info * p_info = P_INFO (info);
+
+	if (strength) {
+		if (None != p_info->xa_signal_strength)
+			XvGetPortAttribute (info->display,
+					    p_info->port,
+					    p_info->xa_signal_strength,
+					    strength);
+	}
+
+	return TRUE;
+}
+
+
 
 static struct video_input *
 find_video_input		(tv_video_line *	list,
@@ -825,23 +849,25 @@ find_video_input		(tv_video_line *	list,
    standard and input at the same time. */
 static void
 set_source			(tveng_device_info *	info,
-				 const tv_video_line *	input,
-				 const tv_video_standard *standard)
+				 tv_video_line *	input,
+				 tv_video_standard *	standard)
 {
 	tv_video_line *old_input;
 	tv_video_standard *old_standard;
 
-	old_input = info->cur_video_input;
-	info->cur_video_input = (tv_video_line *) input;
+	old_input = info->panel.cur_video_input;
+	info->panel.cur_video_input = input;
 
-	old_standard = info->cur_video_standard;
-	info->cur_video_standard = (tv_video_standard *) standard;
+	old_standard = info->panel.cur_video_standard;
+	info->panel.cur_video_standard = standard;
 
 	if (old_input != input)
-		tv_callback_notify (info, info, info->video_input_callback);
+		tv_callback_notify (info, info,
+				    info->panel.video_input_callback);
 
 	if (old_standard != standard)
-		tv_callback_notify (info, info, info->video_standard_callback);
+		tv_callback_notify (info, info,
+				    info->panel.video_standard_callback);
 }
 
 static tv_bool
@@ -873,13 +899,13 @@ get_video_input			(tveng_device_info *	info)
 	input = split_encoding (NULL, 0,
 				p_info->ei[p_info->cur_encoding].name);
 
-	vi = find_video_input (info->video_inputs, input);
+	vi = find_video_input (info->panel.video_inputs, input);
 
 	assert (vi != NULL);
 
 	get_video_standard_list (info);
 
-	for_all (ts, info->video_standards)
+	for_all (ts, info->panel.video_standards)
 		if (S(ts)->num == p_info->cur_encoding)
 			break;
 
@@ -890,22 +916,22 @@ get_video_input			(tveng_device_info *	info)
 
 static tv_bool
 set_video_input			(tveng_device_info *	info,
-				 const tv_video_line *	tl)
+				 tv_video_line *	tl)
 {
 	struct private_tvengxv_device_info *p_info = P_INFO (info);
-	const struct video_input *vi;
-	const tv_video_standard *ts;
+	struct video_input *vi;
+	tv_video_standard *ts;
 	int num;
 
-	vi = CVI(tl);
+	vi = VI(tl);
 	num = -1;
 
-	if (info->cur_video_standard) {
+	if (info->panel.cur_video_standard) {
 		struct standard *s;
 
 		/* Keep standard if possible. */
 
-		s = S(info->cur_video_standard);
+		s = S(info->panel.cur_video_standard);
 		num = find_encoding (info, vi->name, s->name);
 	}
 
@@ -937,7 +963,7 @@ set_video_input			(tveng_device_info *	info,
 
 	p_info->cur_encoding = num;
 
-	for_all (ts, info->video_standards)
+	for_all (ts, info->panel.video_standards)
 		if (CS(ts)->num == p_info->cur_encoding)
 			break;
 
@@ -947,8 +973,8 @@ set_video_input			(tveng_device_info *	info,
 	   XXX ignores the possibility that a third
 	   party changed the frequency from the value we know. */
 	if (IS_TUNER_LINE (tl))
-		set_tuner_frequency (info, info->cur_video_input,
-				     info->cur_video_input->u.tuner.frequency);
+		set_tuner_frequency (info, info->panel.cur_video_input,
+				     info->panel.cur_video_input->u.tuner.frequency);
 
 	return TRUE;
 }
@@ -978,7 +1004,7 @@ get_video_input_list		(tveng_device_info *	info)
 					      p_info->ei[i].name)))
 			continue;
 
-		if (find_video_input (info->video_inputs, input))
+		if (find_video_input (info->panel.video_inputs, input))
 			continue;
 
 		/* FIXME */
@@ -990,7 +1016,7 @@ get_video_input_list		(tveng_device_info *	info)
 		z_strlcpy (buf, input, sizeof (buf));
 		buf[0] = toupper (buf[0]);
 
-		if (!(vi = VI(append_video_line (&info->video_inputs,
+		if (!(vi = VI(append_video_line (&info->panel.video_inputs,
 						 type, buf, input, sizeof (*vi)))))
 			goto failure;
 
@@ -1021,7 +1047,7 @@ get_video_input_list		(tveng_device_info *	info)
 	return TRUE;
 
  failure:
-	free_video_line_list (&info->video_inputs);
+	free_video_line_list (&info->panel.video_inputs);
 	return FALSE;
 }
 
@@ -1115,6 +1141,14 @@ int tvengxv_attach_device(const char* device_file _unused_,
   p_info->ei = NULL;
   p_info->cur_encoding = 0;
 
+  p_info->active = FALSE;
+  p_info->window = 0;
+  p_info->gc = 0;
+  p_info->last_win = 0;
+  p_info->last_gc = 0;
+  p_info->last_w = 0;
+  p_info->last_h = 0;
+
   /* In this module, the given device file doesn't matter */
   info -> file_name = strdup("XVideo");
   if (!(info -> file_name))
@@ -1149,7 +1183,7 @@ int tvengxv_attach_device(const char* device_file _unused_,
 
   /* Atoms & controls */
 
-  info->controls = NULL;
+  info->panel.controls = NULL;
 
   at = XvQueryPortAttributes (dpy, p_info->port, &num_attributes);
 
@@ -1238,6 +1272,19 @@ int tvengxv_attach_device(const char* device_file _unused_,
       p_info->encoding_gettable = TRUE;
     }
 
+  info->panel.set_video_input = set_video_input;
+  info->panel.get_video_input = get_video_input;
+  info->panel.get_tuner_frequency = get_tuner_frequency;
+  info->panel.set_tuner_frequency = set_tuner_frequency;
+  info->panel.get_signal_strength = get_signal_strength;
+
+
+  /* Video input and standard combine as "encoding", get_video_input
+     also determines the current standard, hence no get_video_standard. */
+  info->panel.set_video_standard = set_video_standard;
+  info->panel.set_control = set_control;
+  info->panel.get_control = get_control;
+
       /* Set the mute control to OFF (workaround for BTTV bug) */
       /* tveng_set_control(&control, 0, info); */
 
@@ -1249,11 +1296,11 @@ int tvengxv_attach_device(const char* device_file _unused_,
 
 	/* Video inputs & standards */
 
-	info->video_inputs = NULL;
-	info->cur_video_input = NULL;
+	info->panel.video_inputs = NULL;
+	info->panel.cur_video_input = NULL;
 
-	info->video_standards = NULL;
-	info->cur_video_standard = NULL;
+	info->panel.video_standards = NULL;
+	info->panel.cur_video_standard = NULL;
 
 	if (!get_video_input_list (info))
 	  goto error1; /* XXX*/
@@ -1294,26 +1341,6 @@ int tvengxv_attach_device(const char* device_file _unused_,
   return -1;
 }
 
-/*
-  Stores in short_str and long_str (if they are non-null) the
-  description of the current controller. The enum value can be found in
-  info->current_controller.
-  For example, V4L2 controller would say:
-  short_str: 'V4L2'
-  long_str: 'Video4Linux 2'
-  info->current_controller: TVENG_CONTROLLER_V4L2
-  This function always succeeds.
-*/
-static void
-tvengxv_describe_controller(const char ** short_str, const char ** long_str,
-			   tveng_device_info * info)
-{
-  t_assert(info != NULL);
-  if (short_str)
-    *short_str = "XV";
-  if (long_str)
-    *long_str = "XVideo extension";
-}
 
 /* Closes a device opened with tveng_init_device */
 static void tvengxv_close_device(tveng_device_info * info)
@@ -1343,6 +1370,7 @@ static void tvengxv_close_device(tveng_device_info * info)
   /* clear the atoms */
 
   info -> file_name = NULL;
+
 }
 
 
@@ -1357,53 +1385,15 @@ static void tvengxv_close_device(tveng_device_info * info)
 
 
 
-
-static int
-tvengxv_get_signal_strength(int *strength, int *afc,
-			    tveng_device_info * info)
-{
-  struct private_tvengxv_device_info * p_info =
-    (struct private_tvengxv_device_info*)info;
-
-  if (p_info->xa_signal_strength == None)
-    {
-      info->tveng_errno = -1;
-      t_error_msg("XVideo",
-		  "\"XV_SIGNAL_STRENGTH\" atom not provided by "
-		  "the XVideo driver", info);
-      return -1;
-    }
-
-  if (strength)
-    XvGetPortAttribute(info->display,
-		       p_info->port,
-		       p_info->xa_signal_strength,
-		       strength);
-
-  if (afc)
-    *afc = 0;
-  return 0;
-}
 
 
 
 
 static struct tveng_module_info tvengxv_module_info = {
   .attach_device =		tvengxv_attach_device,
-  .describe_controller =	tvengxv_describe_controller,
   .close_device =		tvengxv_close_device,
 
-  .set_video_input		= set_video_input,
-  .get_video_input		= get_video_input,
-  .set_tuner_frequency		= set_tuner_frequency,
-  .get_tuner_frequency		= get_tuner_frequency,
-  /* Video input and standard combine as "encoding", get_video_input
-     also determines the current standard, hence no get_video_standard. */
-  .set_video_standard		= set_video_standard,
-  .set_control			= set_control,
-  .get_control			= get_control,
-
-  .get_signal_strength =	tvengxv_get_signal_strength,
+  .interface_label		= "XVideo extension",
 
   .private_size =		sizeof(struct private_tvengxv_device_info)
 };
