@@ -1,3 +1,16 @@
+2004-05-18    <mschimek@users.sf.net>
+
+	* src/frequencies.c: Extended tveng_tuned_channel_by_(rf_)name
+	  to match loosely for xawtv setstation.
+	* src/xawtv.c: Accept setstation command from nxtvepg.
+
+2004-05-17    <mschimek@users.sf.net>
+
+	* src/channel_editor.c (on_channel_search_clicked): Make sure
+	  we're in capture mode.
+	* src/osd.c, src/osd.h, src/xawtv.c: Accept vtx, message
+	  XAWTV_REMOTE commands from nxtvepg.
+
 2004-05-15    <mschimek@users.sf.net>
 
 	* src/Makefile.am, src/zremote.c: New experimental zremote tool.

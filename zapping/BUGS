@@ -8,9 +8,6 @@ Known bugs in Zapping, don't report them
 * Edited channels, clicked ok, tc==NULL in tuned_channel_nth_name().
 * Wrong window stacking layer of overlay window when
   Zapping restores no-xv fullscreen at startup.
-* Station search doesn't work in overlay mode
-  (Xv/v4l no signal strength), need check/switch.
-* Need better no-overlay-present handling.
 * "drose": Under mdk 9.1 the video capture stops for no reason.
   Start recording to a file -- come back in ten minutes, 1 - 3 minutes
   of video are stored and zapping wasn't running.
