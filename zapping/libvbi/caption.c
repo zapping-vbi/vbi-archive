@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.2 2000-12-04 08:57:19 mschimek Exp $ */
+/* $Id: caption.c,v 1.3 2000-12-04 16:23:30 mschimek Exp $ */
 
 #include "ccfont.xbm"
 
@@ -202,7 +202,7 @@ static inline void
 set_cursor(struct ch_rec *ch, int col, int row)
 {
 	ch->col = ch->col1 = col;
-	ch->row = ch->row1 = row;
+	ch->row = row;
 
 	ch->line = ch->buffer + row * NUM_COLS;
 }
@@ -250,6 +250,7 @@ caption_command(struct caption *cc,
 			if (row >= 0) {
 				word_break(cc, ch);
 				set_cursor(ch, 1, row);
+				ch->row1 = row;
 
 				ch->attr.background = BLACK;
 				ch->attr.opacity = OPAQUE;
@@ -336,6 +337,7 @@ caption_command(struct caption *cc,
 
 			word_break(cc, ch);
 			set_cursor(ch, 1, 14);
+			ch->row1 = 14 - ch->roll + 1;
 
 			return;
 
@@ -423,15 +425,12 @@ caption_command(struct caption *cc,
 
 		case 12:	/* Erase Displayed Memory	001 c10f  010 1100 */
 			erase_memory(cc, ch);
-
 			ch->redraw_all = TRUE; /* override render row */
-
 			return;
 
 		case 14:	/* Erase Non-Displayed Memory	001 c10f  010 1110 */
 			if (ch->mode == POP_ON)
 				erase_memory(cc, ch);
-
 			return;
 		}
 
@@ -552,7 +551,7 @@ reset_caption(struct caption *cc)
 			ch->mode = ROLL_UP;
 			ch->col1 = ch->col = 1;
 			ch->row = NUM_ROWS - 1;
-			ch->row1 = NUM_ROWS - 1 - 3;
+			ch->row1 = NUM_ROWS - 3;
 			ch->roll = 3;
 		} else {
 			ch->mode = TEXT;
@@ -595,6 +594,8 @@ ushort *		ximgdata;
 
 struct caption		caption;
 int			draw_page;
+int			shift = 0, step = 3;
+int			sh_first, sh_last;
 
 #define RGB565(r, g, b)	\
 	(((b & 0xF8) << 8) + ((g & 0xFC) << 3) + ((r & 0xF8) >> 3))
@@ -610,7 +611,7 @@ const ushort palette[8] = {
 	RGB565(0xFF, 0xFF, 0xFF)
 };
 
-#define CHROMAKEY RGB565(0x40, 0xFF, 0x40)
+#define CHROMAKEY RGB565(0x80, 0xFF, 0x80)
 
 /* ushort NOT PORTABLE, use explicit 16 or 32 bit type */
 static inline void
@@ -624,8 +625,8 @@ draw_char(ushort *p, unsigned int c, ushort *pen, int underline)
 		b = *s;
 		s += 32;
 
-		if (underline && (y >= 23 && y <= 24))
-			b = ~b;
+		if (underline && (y >= 24 && y <= 25))
+			b = ~0;
 
 		for (x = 0; x < CELL_WIDTH; x++) {
 			p[x] = pen[b & 1];
@@ -689,6 +690,32 @@ draw_row(ushort *p, attr_char *line)
 }
 
 void
+bump(int n, bool draw)
+{
+	ushort *p = ximgdata + 45 * DISP_WIDTH;
+	int i;
+
+//	if (page != draw_page)
+//		return;
+
+	if (shift < n)
+		n = shift;
+
+	if (shift <= 0 || n <= 0)
+		return;
+
+	memmove(p + (sh_first * CELL_HEIGHT) * DISP_WIDTH,
+		p + (sh_first * CELL_HEIGHT + n) * DISP_WIDTH,
+		((sh_last - sh_first + 1) * CELL_HEIGHT - n) * DISP_WIDTH * 2);
+
+	if (draw)
+		XPutImage(display, window, gc, ximage,
+			0, 0, 0, 0, DISP_WIDTH, DISP_HEIGHT);
+
+	shift -= n;
+}
+
+void
 render(int page, attr_char *buffer, int row)
 {
 	ushort *p = ximgdata + 48 + 45 * DISP_WIDTH;
@@ -696,6 +723,12 @@ render(int page, attr_char *buffer, int row)
 
 //	if (page != draw_page)
 //		return;
+
+	if (shift > 0) {
+		bump(shift, FALSE);
+		draw_tspaces(ximgdata + 48 + (45 + (sh_last * CELL_HEIGHT))
+			* DISP_WIDTH, 34);
+	}
 
 	if (row < 0)
 		for (i = 0; i < NUM_ROWS; i++)
@@ -712,7 +745,32 @@ render(int page, attr_char *buffer, int row)
 void
 roll_up(int page, attr_char *buffer, int first_row, int last_row)
 {
-	/* TODO */
+	ushort *p = ximgdata + 45 * DISP_WIDTH;
+	int i;
+
+//	if (page != draw_page)
+//		return;
+
+#if 1
+	sh_first = first_row;
+	sh_last = last_row;
+	shift = 26;
+	bump(step, FALSE);
+
+	p += ((last_row * CELL_HEIGHT) + CELL_HEIGHT - step) * DISP_WIDTH;
+
+	for (i = 0; i < DISP_WIDTH * step; i++)
+		p[i] = CHROMAKEY;
+#else
+	memmove(p + first_row * CELL_HEIGHT * DISP_WIDTH,
+		p + (first_row + 1) * CELL_HEIGHT * DISP_WIDTH,
+		(last_row - first_row) * CELL_HEIGHT * DISP_WIDTH * 2);
+
+	draw_tspaces(ximgdata + 48 + (45 + (last_row * CELL_HEIGHT))
+		* DISP_WIDTH, 34);
+#endif
+	XPutImage(display, window, gc, ximage,
+		0, 0, 0, 0, DISP_WIDTH, DISP_HEIGHT);
 }
 
 static void
@@ -751,6 +809,8 @@ xevent(void)
 			exit(EXIT_SUCCESS);
 		}
 	}
+
+	bump(step, TRUE);
 
 	usleep(40000);
 }
@@ -840,6 +900,18 @@ odd(int c)
 }
 
 static void
+printc(char c)
+{
+	unsigned char buf[2];
+
+	buf[0] = odd(c);
+	buf[1] = 0x80;
+	dispatch_caption(&caption, buf, FALSE);
+
+	xevent();
+}
+
+static void
 print(char *s)
 {
 	unsigned char buf[2];
@@ -852,22 +924,160 @@ print(char *s)
 
 	if (s[0]) {
 		buf[0] = odd(s[0]);
-		buf[1] = 0;
+		buf[1] = 0x80;
 		dispatch_caption(&caption, buf, FALSE);
 	}
 
 	xevent();
 }
 
+static void
+cmd(unsigned int n)
+{
+	unsigned char buf[2];
+
+	buf[0] = odd(n >> 8);
+	buf[1] = odd(n & 0x7F);
+
+	dispatch_caption(&caption, buf, FALSE);
+
+	xevent();
+}
+
+enum {
+	white, green, red, yellow, blue, cyan, magenta, black
+};
+
+#define italic 7
+#define underline 1
+#define opaque 0
+#define semi_transp 1
+
+#define BACKG(bg, t)		(cmd(0x2000), cmd(0x1020 + ((ch & 1) << 11) + (bg << 1) + t))
+#define PREAMBLE(r, fg, u)	cmd(0x1040 + ((ch & 1) << 11) + ((r & 14) << 7) + ((r & 1) << 5) + (fg << 1) + u)
+#define INDENT(r, fg, u)	cmd(0x1050 + ((ch & 1) << 11) + ((r & 14) << 7) + ((r & 1) << 5) + ((fg / 4) << 1) + u)
+#define MIDROW(fg, u)		cmd(0x1120 + ((ch & 1) << 11) + (fg << 1) + u)
+#define SPECIAL_CHAR(n)		cmd(0x1130 + ((ch & 1) << 11) + n)
+#define RESUME_CAPTION		cmd(0x1420 + ((ch & 1) << 11) + ((ch & 2) << 7))
+#define BACKSPACE		cmd(0x1421 + ((ch & 1) << 11) + ((ch & 2) << 7))
+#define DELETE_EOR		cmd(0x1424 + ((ch & 1) << 11) + ((ch & 2) << 7))
+#define ROLL_UP(rows)		cmd(0x1425 + ((ch & 1) << 11) + ((ch & 2) << 7) + rows - 2)
+#define FLASH_ON		cmd(0x1428 + ((ch & 1) << 11) + ((ch & 2) << 7))
+#define RESUME_DIRECT		cmd(0x1429 + ((ch & 1) << 11) + ((ch & 2) << 7))
+#define TEXT_RESTART		cmd(0x142A + ((ch & 1) << 11) + ((ch & 2) << 7))
+#define RESUME_TEXT		cmd(0x142B + ((ch & 1) << 11) + ((ch & 2) << 7))
+#define END_OF_CAPTION		cmd(0x142F + ((ch & 1) << 11) + ((ch & 2) << 7))
+#define ERASE_DISPLAY		cmd(0x142C + ((ch & 1) << 11) + ((ch & 2) << 7))
+#define CR			cmd(0x142D + ((ch & 1) << 11) + ((ch & 2) << 7))
+#define ERASE_HIDDEN		cmd(0x142E + ((ch & 1) << 11) + ((ch & 2) << 7))
+#define TAB(t)			cmd(0x1720 + ((ch & 1) << 11) + ((ch & 2) << 7) + t)
+#define TRANSP			(cmd(0x2000), cmd(0x172D + ((ch & 1) << 11)))
+#define BLACK(u)		(cmd(0x2000), cmd(0x172E + ((ch & 1) << 11) + u))
+
+static void
+PAUSE(int frames)
+{
+	while (frames--)
+		xevent();
+}
+
 int
 main(int ac, char **av)
 {
+	int ch = 0;
+	int i;
+
 	if (!init_window(ac, av))
 		exit(EXIT_FAILURE);
 
 	reset_caption(&caption);
 
 	print(" HELLO WORLD! ");
+	PAUSE(30);
+
+	ch = 4;
+	TEXT_RESTART;
+	print("Character set - Text 1");
+	CR; CR;
+	for (i = 32; i <= 127; i++) {
+		printc(i);
+		if ((i & 15) == 15)
+			CR;
+	}
+	MIDROW(italic, 0);
+	for (i = 32; i <= 127; i++) {
+		printc(i);
+		if ((i & 15) == 15)
+			CR;
+	}
+	MIDROW(white, underline);
+	for (i = 32; i <= 127; i++) {
+		printc(i);
+		if ((i & 15) == 15)
+			CR;
+	}
+	MIDROW(white, 0);
+	print("Special: ");
+	for (i = 0; i <= 15; i++) {
+		SPECIAL_CHAR(i);
+	}
+	CR;
+	print("DONE - Text 1 ");
+	PAUSE(50);
+
+	ch = 5;
+	TEXT_RESTART;
+	print("Styles - Text 2");
+	CR; CR;
+	MIDROW(white, 0); print("WHITE"); CR;
+	MIDROW(red, 0); print("RED"); CR;
+	MIDROW(green, 0); print("GREEN"); CR;
+	MIDROW(blue, 0); print("BLUE"); CR;
+	MIDROW(yellow, 0); print("YELLOW"); CR;
+	MIDROW(cyan, 0); print("CYAN"); CR;
+	MIDROW(magenta, 0); print("MAGENTA"); BLACK(0); CR;
+	BACKG(white, opaque); print("WHITE"); BACKG(black, opaque); CR;
+	BACKG(red, opaque); print("RED"); BACKG(black, opaque); CR;
+	BACKG(green, opaque); print("GREEN"); BACKG(black, opaque); CR;
+	BACKG(blue, opaque); print("BLUE"); BACKG(black, opaque); CR;
+	BACKG(yellow, opaque); print("YELLOW"); BACKG(black, opaque); CR;
+	BACKG(cyan, opaque); print("CYAN"); BACKG(black, opaque); CR;
+	BACKG(magenta, opaque); print("MAGENTA"); BACKG(black, opaque); CR;
+	TRANSP;
+	print(" TRANSPARENT BACKGROUND ");
+	BACKG(black, opaque); CR;
+	MIDROW(white, 0); print("DONE - Text 2 ");
+	PAUSE(50);
+
+	ch = 0;
+	ROLL_UP(4);
+	ERASE_DISPLAY;
+	print(" HELLO AGAIN! "); PAUSE(20);
+	print("I'M YOUR ROLL-UP "); CR; PAUSE(40);
+	print(" CAPTION! "); CR; PAUSE(30);
+	print(" >> MARY HAD A LITTLE LAMB. "); CR; PAUSE(30);
+	print(" HER SENTENTENCE WAS MUCH TOO LONG TO FIT IN A SINGLE LINE. "); CR; PAUSE(30);
+	print(" >> EAT MY SHORT"); PAUSE(20);
+	print(" DOUBLES "); CR; PAUSE(30);
+	print(" DONE - Caption 1 ");
+	PAUSE(30);
+
+	ch = 1;
+	ROLL_UP(3);
+	ERASE_DISPLAY;
+	PREAMBLE(2, yellow, 0);
+	INDENT(0, 10, 0); print(" FOO "); CR;
+	INDENT(0, 10, 0); print(" MIKE WAS HERE "); CR; PAUSE(20);
+	PREAMBLE(5, red, 0);
+	INDENT(0, 13, 0); print(" AND NOW... "); CR;
+	INDENT(0, 13, 0); print(" HE'S HERE "); CR; PAUSE(20);
+	PREAMBLE(12, red, 0);
+	MIDROW(cyan, 0);
+	print("01234567890123456789012345678901234567890123456789"); CR;
+	MIDROW(white, 0);
+	print(" DONE - Caption 2 "); CR;
+	print(" Not impressed. Hit [Q]");	
+	PAUSE(30);
 
 	for (;;)
 		xevent();
