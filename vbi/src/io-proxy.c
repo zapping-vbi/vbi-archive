@@ -18,6 +18,9 @@
  *
  *
  *  $Log: not supported by cvs2svn $
+ *  Revision 1.10  2003/10/16 18:16:11  mschimek
+ *  *** empty log message ***
+ *
  *  Revision 1.9  2003/06/07 09:42:32  tomzo
  *  Optimized client I/O in proxy-msg.c/.h: keep message header and body in one
  *  struct VBIPROXY_MSG to be able to write it to the pipe in one syscall.
@@ -60,7 +63,7 @@
  *
  */
 
-static const char rcsid[] = "$Id: io-proxy.c,v 1.10 2003-10-16 18:16:11 mschimek Exp $";
+static const char rcsid[] = "$Id: io-proxy.c,v 1.10.2.1 2004-01-27 21:04:44 tomzo Exp $";
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -98,7 +101,6 @@ typedef enum
 {
         CLNT_STATE_NULL,
         CLNT_STATE_ERROR,
-        CLNT_STATE_RETRY,
         CLNT_STATE_WAIT_CON_CNF,
         CLNT_STATE_WAIT_IDLE,
         CLNT_STATE_WAIT_SRV_CNF,
@@ -106,22 +108,12 @@ typedef enum
         CLNT_STATE_RECEIVE,
 } PROXY_CLIENT_STATE;
 
-typedef struct
-{
-        vbi_bool                blockOnRead;
-        vbi_bool                blockOnWrite;
-} PROXY_CLIENT_EVHAND;
-
-#define SRV_REPLY_TIMEOUT       60
 #define CLNT_NAME_STR           "libzvbi io-proxy"
-#define CLNT_RETRY_INTERVAL     20
-#define CLNT_MAX_MSG_LOOP_COUNT 50
 
 typedef struct vbi_capture_proxy
 {
         vbi_capture             capture;
         vbi_raw_decoder         dec;
-        double                  time_per_frame;
         vbi_capture_buffer      sliced_buffer;
         vbi_bool                sliced_ind;
 
@@ -131,8 +123,14 @@ typedef struct vbi_capture_proxy
         int                     buffer_count;
         vbi_bool                trace;
 
+        vbi_channel_profile     chn_profile;
+        vbi_channel_desc        chn_desc;
+        vbi_bool                chn_granted;
+        vbi_bool                chn_change;
+        int                     chn_scanning;
+        vbi_bool              * p_chn_change_flag;
+
         PROXY_CLIENT_STATE      state;
-        VBIPROXY_CHN_PROFILE    chn_profile;
         VBIPROXY_MSG_STATE      io;
         VBIPROXY_MSG          * p_client_msg;
         int                     max_client_msg_size;
@@ -423,7 +421,13 @@ static vbi_bool proxy_client_take_message( vbi_capture_proxy *v )
          break;
 
       case MSG_TYPE_CHN_CHANGE_IND:
-         /* XXX TODO */
+         dprintf1("CHANNEL CHANGE IND: granted=%d freq %d\n", pMsg->chn_change_ind.chn_granted, pMsg->chn_change_ind.chn_desc.u.analog.freq);
+         v->chn_desc      = pMsg->chn_change_ind.chn_desc;
+         v->chn_granted   = pMsg->chn_change_ind.chn_granted;
+         v->chn_scanning  = pMsg->chn_change_ind.scanning;
+         v->chn_change    = TRUE;
+         if (v->p_chn_change_flag != NULL)
+            *v->p_chn_change_flag = TRUE;
          result = TRUE;
          break;
 
@@ -457,52 +461,7 @@ static void proxy_client_close( vbi_capture_proxy *v )
 
    if (v->state != CLNT_STATE_NULL)
    {
-      /* enter error state */
-      /* will be changed to retry or off once the error is reported to the upper layer */
       v->state = CLNT_STATE_ERROR;
-   }
-}
-
-/* ----------------------------------------------------------------------------
-** Substract time spent waiting in select from a given max. timeout struct
-** - note that we don't use the Linux select(2) feature to return the
-**   time not slept in the timeout struct, because that's not portable
-** - instead gettimeofday(2) must be called before and after the select(2)
-**   and the delta calculated from that
-*/
-static void proxy_update_timeout_delta( struct timeval * tv_start,
-                                        struct timeval * tv_stop,
-                                        struct timeval * timeout )
-{
-   struct timeval delta;
-
-   /* first calculate difference between start and stop time */
-   delta.tv_sec = tv_stop->tv_sec - tv_start->tv_sec;
-   if (tv_stop->tv_usec < tv_start->tv_usec)
-   {
-      delta.tv_usec = 1000000 + tv_stop->tv_usec - tv_start->tv_usec;
-      delta.tv_sec += 1;
-   }
-   else
-      delta.tv_usec = tv_stop->tv_usec - tv_start->tv_usec;
-
-   assert((delta.tv_sec >= 0) && (delta.tv_usec >= 0));
-
-   /* substract delta from the given max. timeout */
-   timeout->tv_sec -= delta.tv_sec;
-   if (timeout->tv_usec < delta.tv_usec)
-   {
-      timeout->tv_usec = 1000000 + timeout->tv_usec - delta.tv_usec;
-      timeout->tv_sec -= 1;
-   }
-   else
-      timeout->tv_usec -= delta.tv_usec;
-
-   /* check if timeout was underrun -> set rest to zero */
-   if ( (timeout->tv_sec < 0) || (timeout->tv_usec < 0) )
-   {
-      timeout->tv_sec  = 0;
-      timeout->tv_usec = 0;
    }
 }
 
@@ -512,7 +471,6 @@ static void proxy_update_timeout_delta( struct timeval * tv_start,
 static int proxy_client_wait_select( vbi_capture_proxy *v, struct timeval * timeout )
 {
    struct timeval tv_start;
-   struct timeval tv_stop;
    struct timeval tv;
    fd_set fd_rd;
    fd_set fd_wr;
@@ -534,12 +492,11 @@ static int proxy_client_wait_select( vbi_capture_proxy *v, struct timeval * time
          FD_SET(v->io.sock_fd, &fd_rd);
 
       tv = *timeout; /* Linux kernel overwrites this */
-
       gettimeofday(&tv_start, NULL);
-      ret = select(v->io.sock_fd + 1, &fd_rd, &fd_wr, NULL, &tv);
-      gettimeofday(&tv_stop, NULL);
 
-      proxy_update_timeout_delta(&tv_start, &tv_stop, timeout);
+      ret = select(v->io.sock_fd + 1, &fd_rd, &fd_wr, NULL, &tv);
+
+      vbi_capture_io_update_timeout(&tv_start, timeout);
 
    } while ((ret < 0) && (errno == EINTR));
 
@@ -564,7 +521,7 @@ static vbi_bool proxy_client_rpc( vbi_capture_proxy *v, long tv_sec, long tv_use
    struct timeval tv;
    vbi_bool io_blocked;
 
-   assert ((v->state != CLNT_STATE_RETRY) && (v->state != CLNT_STATE_ERROR));
+   assert (v->state != CLNT_STATE_ERROR);
    assert (v->io.sock_fd != -1);
 
    tv.tv_sec  = tv_sec;
@@ -767,7 +724,6 @@ static vbi_bool proxy_client_start_acq( vbi_capture_proxy *v )
 
 failure:
    /* failed to establish a connection to the server */
-   v->state = CLNT_STATE_NULL;
    proxy_client_close(v);
    return FALSE;
 }
@@ -789,42 +745,6 @@ static void proxy_client_stop_acq( vbi_capture_proxy *v )
 }
 
 /* ----------------------------------------------------------------------------
-** Attempt to reconnect to the daemon
-*/
-static vbi_bool proxy_client_reconnect( vbi_capture_proxy *v, struct timeval *p_timeout )
-{
-   time_t   now = time(NULL);
-   vbi_bool result = FALSE;
-
-   if (v->state == CLNT_STATE_ERROR)
-   {
-      if (now + p_timeout->tv_sec > v->io.lastIoTime + CLNT_RETRY_INTERVAL)
-      {
-         dprintf1("initiate connect retry\n");
-         v->io.lastIoTime = now;
-
-         if ( proxy_client_connect_server(v) )
-         {
-            v->state = CLNT_STATE_NULL;
-            if (proxy_client_start_acq(v))
-            {
-               result = TRUE;
-            }
-            else
-               v->state = CLNT_STATE_ERROR;
-         }
-      }
-      else
-      {
-         select(0, NULL, NULL, NULL, p_timeout);
-         errno = EPIPE;
-      }
-   }
-
-   return result;
-}
-
-/* ----------------------------------------------------------------------------
 ** Read one frame's worth of sliced VBI data
 */
 static int
@@ -832,11 +752,8 @@ proxy_read( vbi_capture *vc, vbi_capture_buffer **raw,
             vbi_capture_buffer **sliced, struct timeval *p_timeout )
 {
         vbi_capture_proxy *v = PARENT(vc, vbi_capture_proxy, capture);
+        struct timeval timeout = *p_timeout;
         int  ret;
-
-        if ( (v->state == CLNT_STATE_ERROR) &&
-             (proxy_client_reconnect(v, p_timeout) == FALSE) )
-                return -1; /* XXX return 0 if client requested auto-reconnect */
 
         if (v->state != CLNT_STATE_RECEIVE)
                 return -1;
@@ -844,7 +761,7 @@ proxy_read( vbi_capture *vc, vbi_capture_buffer **raw,
         v->sliced_ind = FALSE;
 
         do {
-                ret = proxy_client_read_message(v, p_timeout);
+                ret = proxy_client_read_message(v, &timeout);
                 if (ret <= 0)
                         return ret;
 
@@ -923,13 +840,6 @@ proxy_channel_change(vbi_capture *vc, int chn_flags, int chn_prio,
 
         assert(v->state == CLNT_STATE_RECEIVE);
 
-        /* check for prio change (XXX depreciated - should use separate config func) */
-        if (chn_prio != v->chn_profile.chn_prio) {
-                memset(&v->chn_profile.chn_prio, 0, sizeof(v->chn_profile.chn_prio));
-                v->chn_profile.chn_prio = chn_prio;
-                v->chn_profile.is_valid = TRUE;
-        }
-
         proxy_client_alloc_msg_buf(v);
 
         /* wait for ongoing read to complete */
@@ -938,10 +848,11 @@ proxy_channel_change(vbi_capture *vc, int chn_flags, int chn_prio,
 
         v->state = CLNT_STATE_WAIT_CHN_CNF;
 
-        dprintf1("channel_change: req chn %d, freq %d\n", p_chn_desc->u.analog.channel, p_chn_desc->u.analog.freq);
+        dprintf1("channel_change: flags 0x%X, prio %d, req chn %d, freq %d\n", chn_flags, chn_prio, p_chn_desc->u.analog.channel, p_chn_desc->u.analog.freq);
 
-        /* send service request to proxy daemon */
+        /* send channel change request to proxy daemon */
         v->p_client_msg->body.chn_change_req.chn_flags   = chn_flags;
+        v->p_client_msg->body.chn_change_req.chn_prio    = chn_prio;
         v->p_client_msg->body.chn_change_req.chn_desc    = *p_chn_desc;
         v->p_client_msg->body.chn_change_req.chn_profile = v->chn_profile;
         v->p_client_msg->body.chn_change_req.serial      = v->rxTotal;
@@ -952,20 +863,25 @@ proxy_channel_change(vbi_capture *vc, int chn_flags, int chn_prio,
         if (proxy_client_rpc(v, 5, 0) == FALSE)
                 goto failure;
 
-        /* process the message - frees the buffer if neccessary */
+        /* process the reply message - frees the buffer if neccessary */
         if (proxy_client_take_message(v) == FALSE)
                 goto failure;
 
         /* XXX TODO check serial? (not mandatory b/c we wait for reply before next req.) */
 
-        *errorstr = NULL;
+        if (errorstr != NULL)
+                *errorstr = NULL;
+
         if (v->p_client_msg->head.type == MSG_TYPE_CHN_CHANGE_CNF) {
-                *p_scanning  = v->p_client_msg->body.chn_change_cnf.scanning;
-                *p_has_tuner = v->p_client_msg->body.chn_change_cnf.has_tuner;
+                if (p_scanning != NULL)
+                        *p_scanning  = v->p_client_msg->body.chn_change_cnf.scanning;
+                if (p_has_tuner != NULL)
+                        *p_has_tuner = v->p_client_msg->body.chn_change_cnf.has_tuner;
+
                 result = 0;
         }
         else {
-                if (v->p_client_msg->body.chn_change_rej.errorstr[0] != 0)
+                if ((v->p_client_msg->body.chn_change_rej.errorstr[0] != 0) && (errorstr != NULL))
                         *errorstr = strdup(v->p_client_msg->body.chn_change_rej.errorstr);
                 errno = v->p_client_msg->body.chn_change_rej.dev_errno;
                 result = -1;
@@ -978,26 +894,66 @@ failure:
         return -1;
 }
 
-static int
-proxy_get_read_fd(vbi_capture *vc)
+static vbi_bool
+proxy_setup(vbi_capture *vc, vbi_setup_parm *config)
 {
-        /* direct access to device is not supported */
-        return -1;
+        vbi_capture_proxy *v = PARENT(vc, vbi_capture_proxy, capture);
+        vbi_bool result;
+
+        switch (config->type)
+        {
+            case VBI_SETUP_GET_FD_TYPE:
+                config->u.get_fd_type.has_select = TRUE;
+                config->u.get_fd_type.is_device  = FALSE;
+                result = TRUE;
+                break;
+            case VBI_SETUP_ENABLE_CHN_IND:
+                if (config->u.enable_chn_ind.do_report)
+                        v->p_chn_change_flag = config->u.enable_chn_ind.p_report_flag;
+                else
+                        v->p_chn_change_flag = NULL;
+                result = TRUE;
+                break;
+            case VBI_SETUP_GET_CHN_DESC:
+                if (v->chn_change) {
+                        config->u.get_chn_desc.chn_desc    = v->chn_desc;
+                        config->u.get_chn_desc.chn_granted = v->chn_granted;
+                        config->u.get_chn_desc.scanning    = v->chn_scanning;
+                        v->chn_change = FALSE;
+                        result = TRUE;
+                }
+                else
+                        result = FALSE;
+                break;
+            case VBI_SETUP_PROXY_ANY_DEVICE:
+                /* XXX TODO config->u.proxy_any_device.use_any_device; */
+                result = FALSE;
+                break;
+            case VBI_SETUP_PROXY_CHN_PROFILE:
+                v->chn_profile = config->u.proxy_chn_profile.chn_profile;
+                result = TRUE;
+            case VBI_SETUP_PROXY_GET_API:
+                /* config->u.proxy_get_api.vbi_api_rev = v->api_rev; */
+                result = TRUE;
+            default:
+                result = FALSE;
+                break;
+        }
+        return result;
 }
 
 static int
-proxy_get_poll_fd(vbi_capture *vc)
+proxy_get_fd(vbi_capture *vc)
 {
         vbi_capture_proxy *v = PARENT(vc, vbi_capture_proxy, capture);
 
-        /* note: returned filehandle must only be used for poll(2) and select(2) */
         return v->io.sock_fd;
 }
 
 static unsigned int
 proxy_add_services(vbi_capture *vc, vbi_bool reset, vbi_bool commit,
-                  unsigned int services, int strict,
-                  char ** errorstr)
+                   unsigned int services, int strict,
+                   char ** errorstr)
 {
         vbi_capture_proxy *v = PARENT(vc, vbi_capture_proxy, capture);
 
@@ -1073,8 +1029,8 @@ vbi_capture_proxy_new(const char *dev_name, int buffers, int scanning,
 
         v->capture.parameters = proxy_parameters;
         v->capture._delete = proxy_delete;
-        v->capture.get_fd = proxy_get_read_fd;
-        v->capture.get_poll_fd = proxy_get_poll_fd;
+        v->capture.setup = proxy_setup;
+        v->capture.get_fd = proxy_get_fd;
         v->capture.read = proxy_read;
         v->capture.add_services = proxy_add_services;
         v->capture.channel_change = proxy_channel_change;
